@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.integration.infrastructure.connection;
 
 import com.forcitis.one.platform.integration.api.ExternalFailure;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import org.jspecify.annotations.Nullable;
 
 /**
  * ADR-0037 item 4 as amended by the implementation card (one-coordinator and one-ops, 2026-10-15) and the review of PR #163 (RULING-ADR37-10):
@@ -56,6 +58,8 @@ final class ReadOnlyBaseline {
     /** class, class_desc, state and permission of the only row the real logins hold in sys.server_permissions (H-1 export). */
     static final String LOGIN_SERVER_ROW = "100 SERVER G CONNECT SQL";
 
+    private static final int MAXIMUM_CAUSE_DEPTH = 64;
+
     /** state as in sys.database_permissions: D deny, G grant, W grant with grant option. */
     record DatabaseLevelPermission(String state, String permission) {
     }
@@ -78,8 +82,60 @@ final class ReadOnlyBaseline {
         }
     }
 
+    /** What was found, by category only: never a role, database, login or object name (the problem text may carry those). */
+    enum Reason {
+        EFFECTIVE_PERMISSIONS_DIFFER,
+        DATABASE_DENY_MISSING,
+        DATABASE_GRANT_NOT_BASELINE,
+        GRANT_WITH_GRANT_OPTION,
+        DATABASE_ROLE_MEMBERSHIP,
+        FIXED_SERVER_ROLE_MEMBERSHIP,
+        SERVER_PERMISSION_ROW_NOT_BASELINE,
+        DATABASE_OWNER,
+        OWNS_SCHEMA,
+        OWNS_OBJECT,
+        OWNS_ROLE,
+        DATABASE_PRINCIPAL_GRANT,
+        OTHER_DATABASE_REACHABLE,
+        SYSTEM_DATABASE_OWN_USER,
+        SECURABLE_GRANT_BEYOND_SELECT,
+        CATALOG_QUERY_FAILED,
+        CHECK_FAILED,
+        NO_ANSWER,
+        EMPTY_ANSWER,
+        FIXED_SERVER_ROLE_UNANSWERED,
+        OWN_DATABASE_NOT_LISTED
+    }
+
+    /** The error number and SQLState of the innermost SQL exception of a failure, as the driver reported them; never its message. */
+    record SqlError(int number, String state) {
+
+        static Optional<SqlError> of(Throwable failure) {
+            SQLException innermost = null;
+            int depth = 0;
+            for (Throwable t = failure; t != null && depth < MAXIMUM_CAUSE_DEPTH; t = t.getCause(), depth++) {
+                if (t instanceof SQLException sql) {
+                    innermost = sql;
+                }
+            }
+            return Optional.ofNullable(innermost).map(sql -> new SqlError(sql.getErrorCode(), sql.getSQLState()));
+        }
+    }
+
+    /** count is how many entries of the category were found (permissions, roles, databases, rows); a failed or empty answer counts one. */
+    record Finding(Reason reason, int count, @Nullable SqlError failure) {
+
+        Optional<SqlError> sqlError() {
+            return Optional.ofNullable(failure);
+        }
+    }
+
     /** One unmet item; confirmed when the catalog showed a violation, not only an answer it would not give. */
-    record Unmet(char item, String problem, boolean confirmed) {
+    record Unmet(char item, String problem, boolean confirmed, List<Finding> findings) {
+
+        Unmet {
+            findings = List.copyOf(findings);
+        }
 
         String described() {
             return "(" + item + ") " + problem;
@@ -126,24 +182,33 @@ final class ReadOnlyBaseline {
 
         final Set<String> confirmed = new LinkedHashSet<>();
         final Set<String> undeterminable = new LinkedHashSet<>();
+        final List<Finding> confirmedFindings = new ArrayList<>();
+        final List<Finding> undeterminableFindings = new ArrayList<>();
 
-        void violated(String problem) {
+        void violated(Reason reason, int count, String problem) {
             confirmed.add(problem);
+            confirmedFindings.add(new Finding(reason, count, null));
         }
 
-        void unknown(String problem) {
+        void unknown(Reason reason, int count, String problem) {
             undeterminable.add(problem);
+            undeterminableFindings.add(new Finding(reason, count, null));
+        }
+
+        void failed(Reason reason, Throwable failure) {
+            undeterminable.add("cannot be determined (" + ExternalFailure.of(failure) + ")");
+            undeterminableFindings.add(new Finding(reason, 1, SqlError.of(failure).orElse(null)));
         }
 
         <T> Optional<T> ask(Supplier<T> query) {
             try {
                 T answer = query.get();
                 if (answer == null) {
-                    unknown("cannot be determined (no answer)");
+                    unknown(Reason.NO_ANSWER, 1, "cannot be determined (no answer)");
                 }
                 return Optional.ofNullable(answer);
             } catch (RuntimeException failure) {
-                unknown("cannot be determined (" + ExternalFailure.of(failure) + ")");
+                failed(Reason.CATALOG_QUERY_FAILED, failure);
                 return Optional.empty();
             }
         }
@@ -154,19 +219,21 @@ final class ReadOnlyBaseline {
         try {
             rule.accept(found);
         } catch (RuntimeException failure) {
-            found.unknown("cannot be determined (" + ExternalFailure.of(failure) + ")");
+            found.failed(Reason.CHECK_FAILED, failure);
         }
         List<String> problems = new ArrayList<>(found.confirmed);
         problems.addAll(found.undeterminable);
         if (!problems.isEmpty()) {
-            unmet.add(new Unmet(item, String.join(", ", problems), !found.confirmed.isEmpty()));
+            List<Finding> findings = new ArrayList<>(found.confirmedFindings);
+            findings.addAll(found.undeterminableFindings);
+            unmet.add(new Unmet(item, String.join(", ", problems), !found.confirmed.isEmpty(), findings));
         }
     }
 
     private static void sameAs(Findings found, String what, List<String> actual, Set<String> baseline) {
         Set<String> have = normalised(actual);
         if (have.isEmpty()) {
-            found.unknown(what + " came back empty, cannot be determined");
+            found.unknown(Reason.EMPTY_ANSWER, 1, what + " came back empty, cannot be determined");
             return;
         }
         Set<String> more = new TreeSet<>(have);
@@ -174,13 +241,13 @@ final class ReadOnlyBaseline {
         Set<String> fewer = new TreeSet<>(baseline);
         fewer.removeAll(have);
         if (!more.isEmpty() || !fewer.isEmpty()) {
-            found.violated(what + " differ from the platform baseline: more " + more + ", fewer " + fewer);
+            found.violated(Reason.EFFECTIVE_PERMISSIONS_DIFFER, more.size() + fewer.size(), what + " differ from the platform baseline: more " + more + ", fewer " + fewer);
         }
     }
 
     private static void databaseLevel(Findings found, List<DatabaseLevelPermission> rows) {
         if (rows.isEmpty()) {
-            found.unknown("database-level permissions came back empty, cannot be determined");
+            found.unknown(Reason.EMPTY_ANSWER, 1, "database-level permissions came back empty, cannot be determined");
             return;
         }
         Set<String> denies = new TreeSet<>();
@@ -197,22 +264,27 @@ final class ReadOnlyBaseline {
         Set<String> missingDenies = new TreeSet<>(DATABASE_DENIES);
         missingDenies.removeAll(denies);
         if (!missingDenies.isEmpty()) {
-            found.violated("database-level DENY lacks " + missingDenies);
+            found.violated(Reason.DATABASE_DENY_MISSING, missingDenies.size(), "database-level DENY lacks " + missingDenies);
         }
         if (!grants.equals(DATABASE_GRANTS)) {
-            found.violated("database-level GRANT is " + grants + ", must be exactly " + new TreeSet<>(DATABASE_GRANTS));
+            Set<String> differing = new TreeSet<>(grants);
+            differing.addAll(DATABASE_GRANTS);
+            differing.removeIf(permission -> grants.contains(permission) && DATABASE_GRANTS.contains(permission));
+            found.violated(Reason.DATABASE_GRANT_NOT_BASELINE, differing.size(), "database-level GRANT is " + grants + ", must be exactly " + new TreeSet<>(DATABASE_GRANTS));
         }
         if (!grantable.isEmpty()) {
-            found.violated("database-level GRANT WITH GRANT OPTION " + grantable);
+            found.violated(Reason.GRANT_WITH_GRANT_OPTION, grantable.size(), "database-level GRANT WITH GRANT OPTION " + grantable);
         }
     }
 
     private static void onlyPublic(Findings found, List<String> roles) {
         Set<String> have = new TreeSet<>(roles.stream().map(String::trim).toList());
         if (have.isEmpty()) {
-            found.unknown("sys.user_token came back without public, cannot be determined");
+            found.unknown(Reason.EMPTY_ANSWER, 1, "sys.user_token came back without public, cannot be determined");
         } else if (!have.equals(Set.of("public"))) {
-            found.violated("the login is in the database roles " + have + ", only public is allowed");
+            Set<String> beyondPublic = new TreeSet<>(have);
+            beyondPublic.remove("public");
+            found.violated(Reason.DATABASE_ROLE_MEMBERSHIP, beyondPublic.size(), "the login is in the database roles " + have + ", only public is allowed");
         }
     }
 
@@ -225,7 +297,7 @@ final class ReadOnlyBaseline {
         found.ask(() -> catalog.fixedServerRoleMemberships(FIXED_SERVER_ROLES)).ifPresent(memberships -> fixedServerRoles(found, memberships));
         found.ask(catalog::serverPermissionRows).ifPresent(rows -> {
             if (rows.isEmpty()) {
-                found.unknown("sys.server_permissions came back empty, cannot be determined");
+                found.unknown(Reason.EMPTY_ANSWER, 1, "sys.server_permissions came back empty, cannot be determined");
                 return;
             }
             Set<String> have = new TreeSet<>();
@@ -234,7 +306,8 @@ final class ReadOnlyBaseline {
             Set<String> more = new TreeSet<>(have);
             more.remove(LOGIN_SERVER_ROW);
             if (!more.isEmpty() || !have.contains(LOGIN_SERVER_ROW)) {
-                found.violated("the login's rows in sys.server_permissions must be exactly [" + LOGIN_SERVER_ROW + "]: more " + more
+                found.violated(Reason.SERVER_PERMISSION_ROW_NOT_BASELINE, more.size() + (have.contains(LOGIN_SERVER_ROW) ? 0 : 1),
+                        "the login's rows in sys.server_permissions must be exactly [" + LOGIN_SERVER_ROW + "]: more " + more
                         + (have.contains(LOGIN_SERVER_ROW) ? "" : ", lacks " + LOGIN_SERVER_ROW));
             }
         });
@@ -251,28 +324,28 @@ final class ReadOnlyBaseline {
             }
         });
         if (!member.isEmpty()) {
-            found.violated("the login is a member of the fixed server roles " + member);
+            found.violated(Reason.FIXED_SERVER_ROLE_MEMBERSHIP, member.size(), "the login is a member of the fixed server roles " + member);
         }
         if (!unknown.isEmpty()) {
-            found.unknown("membership of the fixed server roles " + unknown + " cannot be determined");
+            found.unknown(Reason.FIXED_SERVER_ROLE_UNANSWERED, unknown.size(), "membership of the fixed server roles " + unknown + " cannot be determined");
         }
     }
 
     private static void ownsNothing(Findings found, Ownership ownership) {
         if (ownership.databaseOwner()) {
-            found.violated("the login is dbo");
+            found.violated(Reason.DATABASE_OWNER, 1, "the login is dbo");
         }
         if (ownership.schemas() > 0) {
-            found.violated("owns " + ownership.schemas() + " schema(s)");
+            found.violated(Reason.OWNS_SCHEMA, count(ownership.schemas()), "owns " + ownership.schemas() + " schema(s)");
         }
         if (ownership.objects() > 0) {
-            found.violated("owns " + ownership.objects() + " object(s)");
+            found.violated(Reason.OWNS_OBJECT, count(ownership.objects()), "owns " + ownership.objects() + " object(s)");
         }
         if (ownership.roles() > 0) {
-            found.violated("owns " + ownership.roles() + " role(s)");
+            found.violated(Reason.OWNS_ROLE, count(ownership.roles()), "owns " + ownership.roles() + " role(s)");
         }
         if (ownership.principalGrants() > 0) {
-            found.violated("holds " + ownership.principalGrants() + " grant(s) on database principals such as IMPERSONATE");
+            found.violated(Reason.DATABASE_PRINCIPAL_GRANT, count(ownership.principalGrants()), "holds " + ownership.principalGrants() + " grant(s) on database principals such as IMPERSONATE");
         }
     }
 
@@ -296,13 +369,13 @@ final class ReadOnlyBaseline {
             }
         }
         if (!ownReachable) {
-            found.unknown("HAS_DBACCESS does not list the login's own database, cannot be determined");
+            found.unknown(Reason.OWN_DATABASE_NOT_LISTED, 1, "HAS_DBACCESS does not list the login's own database, cannot be determined");
         }
         if (!beyond.isEmpty()) {
-            found.violated("the login can also enter the databases " + beyond);
+            found.violated(Reason.OTHER_DATABASE_REACHABLE, beyond.size(), "the login can also enter the databases " + beyond);
         }
         if (!withOwnUser.isEmpty()) {
-            found.violated("the login has a user of its own in the system databases " + withOwnUser + ", only guest is allowed there");
+            found.violated(Reason.SYSTEM_DATABASE_OWN_USER, withOwnUser.size(), "the login has a user of its own in the system databases " + withOwnUser + ", only guest is allowed there");
         }
     }
 
@@ -316,8 +389,12 @@ final class ReadOnlyBaseline {
             }
         }
         if (!beyond.isEmpty()) {
-            found.violated("schema, object and other grants below the database level may only be DENY or GRANT SELECT, found " + beyond);
+            found.violated(Reason.SECURABLE_GRANT_BEYOND_SELECT, beyond.size(), "schema, object and other grants below the database level may only be DENY or GRANT SELECT, found " + beyond);
         }
+    }
+
+    private static int count(long value) {
+        return (int) Math.min(Integer.MAX_VALUE, value);
     }
 
     private static String upper(String value) {
