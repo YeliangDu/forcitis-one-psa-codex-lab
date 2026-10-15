@@ -1,6 +1,5 @@
 package com.forcitis.one.platform.integration.infrastructure.seeyon;
 
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -46,10 +45,5 @@ final class JdbcSeeyonSchemaInspector implements SeeyonSchemaInspector {
     @Override
     public int countFeeEarnersMarked(String enumId) {
         return jdbc.sql(SeeyonViewSql.COUNT_FEE_EARNER_MARKED).param("enumId", enumId).query(Integer.class).single();
-    }
-
-    @Override
-    public List<String> excessivePermissions() {
-        return ReadOnlyGuard.excessiveDatabasePermissions(jdbc);
     }
 }

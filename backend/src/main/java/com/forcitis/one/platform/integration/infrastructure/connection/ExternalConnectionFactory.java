@@ -21,14 +21,26 @@ final class ExternalConnectionFactory implements ExternalConnections, AutoClosea
     private static final int MAXIMUM_POOL_SIZE = 2;
 
     private final ExternalConnectionProperties properties;
+    private final ReadOnlyAccounts accounts;
     private final List<HikariDataSource> pools = new CopyOnWriteArrayList<>();
 
-    ExternalConnectionFactory(ExternalConnectionProperties properties) {
+    ExternalConnectionFactory(ExternalConnectionProperties properties, ReadOnlyAccounts accounts) {
         this.properties = properties;
+        this.accounts = accounts;
     }
 
+    /** Every external login is read-only (ADR-0037 item 4): the first pool of a login is only handed out after the login passed its check. */
     @Override
     public DataSource open(String poolName, String jdbcUrl, String username, String password, ExternalCallKind kind) {
+        HikariDataSource pool = build(poolName, jdbcUrl, username, password, kind);
+        accounts.attach(poolName, new ReadOnlyAccounts.Login(jdbcUrl, username), new ReadOnlyAccounts.Pool(pool, pool::close), () -> {
+            HikariDataSource check = build(poolName + "-check", jdbcUrl, username, password, ExternalCallKind.BACKGROUND);
+            return new ReadOnlyAccounts.Pool(check, check::close);
+        });
+        return pool;
+    }
+
+    HikariDataSource build(String poolName, String jdbcUrl, String username, String password, ExternalCallKind kind) {
         Limits limits = properties.limitsOf(kind);
         HikariConfig config = new HikariConfig();
         config.setPoolName(poolName);
@@ -68,6 +80,7 @@ final class ExternalConnectionFactory implements ExternalConnections, AutoClosea
 
     @Override
     public void close() {
+        accounts.close();
         pools.forEach(HikariDataSource::close);
         pools.clear();
     }
