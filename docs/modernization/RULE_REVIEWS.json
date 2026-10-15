@@ -383,7 +383,19 @@
       "verdict": "confirmed",
       "at": "2026-10-14T11:00:28+02:00",
       "title": "Role maintenance: reserved code, unique name and code, system roles frozen, default scope ALL",
-      "note": "正确+修（整批同意评审建议）：保留 super_admin 预留码、名称与编码唯一、系统角色冻结、删角色连带删关联；新角色默认数据范围 SELF（最小权限），不再默认 ALL。"
+      "note": "正确+修（整批同意评审建议）：保留 super_admin 预留码、名称与编码唯一、系统角色冻结、删角色连带删关联；新角色默认数据范围 SELF（最小权限），不再默认 ALL。",
+      "revisions": [
+        {
+          "verdict": "confirmed",
+          "at": "2026-10-15T02:10:00+02:00",
+          "note": "正确+修（ADR-0034 0034-Q3）：保留 super_admin 预留码、名称与编码唯一、系统角色冻结、新角色默认数据范围 SELF 不变；删除角色改为关闭最后一个版本、不再开新版本，角色与全部版本及授予历史保留（仍有当前有效授予时拒绝）；被删除角色的编码不得复用于新角色。",
+          "quote": "「两份都批准 (Recommended)」",
+          "source": [
+            "ADR-0034",
+            "2026-10-15-020346-one-coordinator-ADR-0033-#119-与.md"
+          ]
+        }
+      ]
     },
     "RULE-349": {
       "verdict": "confirmed",
@@ -449,7 +461,20 @@
       "verdict": "confirmed",
       "at": "2026-10-14T11:00:28+02:00",
       "title": "A new A8 person becomes a legacy-system user with username = phone and a default password",
-      "note": "正确+修（整批同意评审建议）：A8 新人照旧建用户（ID 沿用 A8 ID）；不设本地口令（无共享默认口令）；创建时即写入 we_com_id。"
+      "note": "正确+修（整批同意评审建议）：A8 新人照旧建用户（ID 沿用 A8 ID）；不设本地口令（无共享默认口令）；创建时即写入 we_com_id。",
+      "revisions": [
+        {
+          "verdict": "confirmed",
+          "at": "2026-10-15T02:10:00+02:00",
+          "note": "正确+修（ADR-0033 第 11 项）：A8 新人照旧建档，员工与用户账号各用自有 UUIDv7（user_accounts.user_id 不等于员工 ID，另有唯一的 employee_id），A8 人员 ID 只登记在来源对照；不设本地口令不变；企业微信 userid 创建时写入 external_identities，不写员工快照。",
+          "quote": "「改为自有 UUIDv7 + A8 ID 对照列 (Recommended)」「主键统一」",
+          "source": [
+            "ADR-0033",
+            "2026-10-15-005616-one-coordinator-问人员-部门-岗位-任职主键继续.md",
+            "2026-10-15-005633-one-coordinator-主键决定后补充-主键统一.md"
+          ]
+        }
+      ]
     },
     "RULE-363": {
       "verdict": "confirmed",
@@ -485,7 +510,20 @@
       "verdict": "wrong",
       "at": "2026-10-14T11:00:28+02:00",
       "title": "Manual user maintenance: unique username, mobile and email; enabled dept and posts",
-      "note": "错误（整批同意评审建议）：不提供手工维护人员（D-06）；身份键为 A8 ID，唯一性在全部行上保证（含已离职）。"
+      "note": "错误（整批同意评审建议）：不提供手工维护人员（D-06）；身份键为 A8 ID，唯一性在全部行上保证（含已离职）。",
+      "revisions": [
+        {
+          "verdict": "wrong",
+          "at": "2026-10-15T02:10:00+02:00",
+          "note": "错误（ADR-0033 第 11 项）：不提供手工维护人员（D-06）不变；身份键为自有 user_id（UUIDv7），A8 人员 ID 只在来源对照，(来源系统, 类别, source_id) 唯一性在全部行上保证（含已离职）；员工编号不作键（5 个重复、42 人为空）。",
+          "quote": "「改为自有 UUIDv7 + A8 ID 对照列 (Recommended)」「主键统一」",
+          "source": [
+            "ADR-0033",
+            "2026-10-15-005616-one-coordinator-问人员-部门-岗位-任职主键继续.md",
+            "2026-10-15-005633-one-coordinator-主键决定后补充-主键统一.md"
+          ]
+        }
+      ]
     },
     "RULE-369": {
       "verdict": "wrong",
