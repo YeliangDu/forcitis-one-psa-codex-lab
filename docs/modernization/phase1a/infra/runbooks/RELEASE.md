@@ -73,7 +73,7 @@ Actions artifact 只用于同一次 release 运行中两个作业之间的传递
 
 ## 3. 部署（`deploy`）
 
-只能在 main 上手动运行，输入环境（dev / prod）、版本；prod 另须在 `confirm` 再输一次版本。
+只能在 main 上手动运行，输入环境（dev / prod）、版本；prod 另须在 `confirm` 再输一次版本。**部署一律从 main 触发 `deploy.yml`，以 `version` 输入选择发布包**；`v*` 标签只用于发布（`release.yml` 打标签、`gh release download` 寻址），不用于触发部署。从标签触发的运行：`gate` 与 `deploy` 两个作业的 `if: github.ref == 'refs/heads/main'` 不执行；即使改了标签所指提交里的 deploy.yml，OIDC 令牌的 `job_workflow_ref` 为 `…@refs/tags/…`，与 §8.2 信任条件不符，STS 拒绝（失败关闭）。
 
 1. `gate` 作业（`forcitis-one` runner，不进 environment，失败不必等审批）：版本格式；prod 的确认；`deploy_gate.py`：
    - `docs/modernization/status/blockers/` 中任一条目含 `` `blocks: deploy` `` 标记 → 失败。阻塞片段是单行（`build_records.py` 的格式），标记写在行内而非 front-matter。修复批合并后由调度会话删除该条目或标记。
@@ -206,7 +206,7 @@ systemd 单元、nginx 配置、logrotate、`one.env` 的键、安装器本身�
 
 | # | 步骤 | 位置 / 做法 |
 |---|---|---|
-| R-1 | 建 GitHub environments `release`、`dev`、`prod`；三者「Deployment branches and tags」都只允许 `main`（Team 私有仓库可用）。不设 required reviewers / wait timer（Team 私有仓库不可用，§11）；prod 的人工批准改为 `prod-approvals.txt` 批准行 **✅ 2026-10-15**：三个 environment 已建，部署分支策略均只有 `main`。 **补充（2026-10-15）**：dev、prod 另加标签部署策略 `v*`（deployment 的 ref 是标签 `v<版本>`，只允许 `main` 时可能被拒；用户「允许，首次部署前加上 (Recommended)」）；回读：release=main，dev / prod=main + v*（tag）。（OIDC 方案起 deploy 作业不再建以标签为 `ref` 的部署记录，`v*` 策略保留无害。） | 仓库 Settings → Environments |
+| R-1 | 建 GitHub environments `release`、`dev`、`prod`；三者「Deployment branches and tags」都只允许 `main`（Team 私有仓库可用）。不设 required reviewers / wait timer（Team 私有仓库不可用，§11）；prod 的人工批准改为 `prod-approvals.txt` 批准行 **✅ 2026-10-15**：三个 environment 已建，部署分支策略均只有 `main`。 **补充（2026-10-15）**：dev、prod 另加标签部署策略 `v*`（deployment 的 ref 是标签 `v<版本>`，只允许 `main` 时可能被拒；用户「允许，首次部署前加上 (Recommended)」）；回读：release=main，dev / prod=main + v*（tag）。（OIDC 方案起 deploy 作业不再建以标签为 `ref` 的部署记录，`v*` 策略已无用处：从标签触发的部署被 `gate` 的 `if` 与 §8.2 信任条件两道拒绝，见 §3；它只多允许标签触发的运行进入 dev / prod environment。是否撤掉由用户定，见 one-coordinator 台账。） | 仓库 Settings → Environments |
 | R-2 | 仓库级 Actions variables：§6 的 8 个构建期变量（B-2、B-3 完成后填） | Settings → Secrets and variables → Actions → Variables |
 | R-3 | ~~OSS bucket~~ **不再需要**：发布包改由 ECS 自取 GitHub Release（§8，用户「先测 GitHub 直拉，可行就用 (Recommended)」），不建发布用 bucket；B-13 归档 bucket 与此无关 | — |
 | R-4 | **OIDC 身份提供商 + RAM 角色（运维执行，经用户确认；不建 RAM 用户、不生成 AccessKey）**：① GitHub 仓库 OIDC `sub` 定制：`PUT /repos/FORCITIS/forcitis-one-psa/actions/oidc/customization/sub`，`{"use_default": false, "include_claim_keys": ["repo", "context", "job_workflow_ref"], "use_immutable_subject": true}`，回读 `GET` 同路径（2026-10-15 已执行，回读 `sub_claim_prefix` 为 `repo:FORCITIS@282818954/forcitis-one-psa@1418536044`）；② 阿里云 IMS `CreateOIDCProvider`：`IssuerUrl=https://token.actions.githubusercontent.com`、`ClientIds=sts.aliyuncs.com`、`Fingerprints`（运维创建时从该地址的证书链现场取得并核对；登记链上的 CA 证书，不登记叶子证书，见 §10）、名称 `github-actions`（2026-10-15 已执行，`acs:ram::1980847222980247:oidc-provider/github-actions`）；③ RAM `CreateRole`（每环境一个，如 `forcitis-one-deploy-dev`，`MaxSessionDuration=3600`，信任策略见 §8.2）；④ RAM `CreatePolicy`（§8.2 的部署策略 `forcitis-one-deploy-dev`：五个请求参数只有 `oos:UpdateParameter`、结果参数只有 `oos:GetParameter`，**没有任何 ECS 接口**）+ `AttachPolicyToRole`；⑤ RAM `CreatePolicy`（§8.2 的拉取策略 `forcitis-one-deploy-pull`：五个请求参数只有 `oos:GetParameter`、结果参数只有 `oos:UpdateParameter`）+ `AttachPolicyToRole`（附到 ECS 现有实例角色 `forcitis-one-ecs-archive`；**不新建、不改名、不重绑实例角色**：一台 ECS 只能绑一个实例角色。该实例角色承载归档写入与部署请求拉取两份最小策略）；⑥ 回读：`GetRole`、`ListPoliciesForRole`（两个角色）、`GetOIDCProvider`、`GetPolicyVersion` | 阿里云 RAM / IMS OpenAPI；GitHub REST |
