@@ -22,6 +22,63 @@ def load(rel):
         return yaml.safe_load(f)
 
 
+REL_STATUS = ("built", "planned")   # planned = 本阶段在建（ADR-0041 决定 4）；规划边不登记
+
+
+def relation_problems(rels, cids):
+    problems = []
+    for r in rels:
+        rid = r.get("id")
+        for end in ("upstream", "downstream"):
+            if r.get(end) not in cids:
+                problems.append(f"context-map.yaml {rid}: unknown {end} {r.get(end)}")
+        if r.get("type") not in REL_LABEL or ("type" in r and r["type"] is None):
+            problems.append(f"context-map.yaml {rid}: type must be one of {sorted(k for k in REL_LABEL if k)} or omitted, got {r.get('type')!r}")
+        if not str(r.get("via") or "").strip():
+            problems.append(f"context-map.yaml {rid}: via is required")
+        if r.get("status") not in REL_STATUS:
+            problems.append(f"context-map.yaml {rid}: status must be one of {REL_STATUS}, got {r.get('status')!r}")
+        if rid != f"{r.get('upstream')}>{r.get('downstream')}":
+            problems.append(f"context-map.yaml {rid}: id must be <upstream>><downstream>")
+    return problems
+
+
+def module_dependencies():
+    """backend/architecture/module-dependencies.txt as a set of (upstream, downstream) edges."""
+    edges = set()
+    with open(os.path.join(HERE, "..", "..", "..", "backend", "architecture", "module-dependencies.txt"), encoding="utf-8") as f:
+        for line in f:
+            line = line.split("#", 1)[0].strip()
+            if "->" not in line:
+                continue
+            down, ups = line.split("->", 1)
+            edges |= {(u.strip(), down.strip()) for u in ups.split(",") if u.strip()}
+    return edges
+
+
+def a1_problems(rels, deps):
+    """CI A1: the built edges in context-map.yaml equal the module dependency graph."""
+    built = {(r.get("upstream"), r.get("downstream")) for r in rels if r.get("status") == "built"}
+    return ([f"context-map.yaml: missing built edge {u}>{d} (in module-dependencies.txt)" for u, d in sorted(deps - built)]
+            + [f"context-map.yaml: built edge {u}>{d} not in module-dependencies.txt" for u, d in sorted(built - deps)])
+
+
+def self_test():
+    cids = {"a", "b"}
+    ok = {"id": "a>b", "upstream": "a", "downstream": "b", "via": "api：查询", "status": "built"}
+    assert relation_problems([ok], cids) == [], relation_problems([ok], cids)
+    assert relation_problems([{**ok, "type": "anticorruption-layer", "status": "planned"}], cids) == []
+    for bad in ({"type": "partnership"}, {"type": "customer-supplier"}, {"type": "separate-ways"}, {"type": ""}, {"type": None},
+                {"via": ""}, {"via": None}, {"status": "proposed"}, {"status": None}, {"id": "b>a"}, {"upstream": "x", "id": "x>b"}):
+        assert relation_problems([{**ok, **bad}], cids), f"should reject {bad}"
+    assert relation_problems([{k: v for k, v in ok.items() if k != "via"}], cids), "should reject missing via"
+    assert relation_problems([{k: v for k, v in ok.items() if k != "status"}], cids), "should reject missing status"
+    assert a1_problems([ok], {("a", "b")}) == []
+    assert a1_problems([], {("a", "b")}) and a1_problems([ok], set()), "A1 must catch both directions"
+    assert a1_problems([{**ok, "status": "planned"}], set()) == [], "planned edges are outside A1"
+    print("self-test: ok")
+
+
 def nid(x):
     return re.sub(r"[^A-Za-z0-9]", "_", x)
 
@@ -47,14 +104,8 @@ def model():
             problems.append(f"contexts.yaml {c['id']}: unknown subdomain {c['subdomain']}")
         if c["status"] not in ("built", "planned", "retired", "undecided"):
             problems.append(f"contexts.yaml {c['id']}: bad status {c['status']}")
-    for r in rels:
-        for end in ("upstream", "downstream"):
-            if r[end] not in cids:
-                problems.append(f"context-map.yaml {r['id']}: unknown {end} {r[end]}")
-        if r.get("type") not in REL_LABEL:
-            problems.append(f"context-map.yaml {r['id']}: unknown type {r.get('type')}")
-        if r["id"] != f"{r['upstream']}>{r['downstream']}":
-            problems.append(f"context-map.yaml {r['id']}: id must be <upstream>><downstream>")
+    problems += relation_problems(rels, set(cids))
+    problems += a1_problems(rels, module_dependencies())
     tids = {t["id"] for t in tas}
     for t in tas:
         problems += [f"transitions.yaml {t['id']}: unknown BC {b}" for b in t["delivers"] if b not in cids]
@@ -353,4 +404,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    self_test() if "--self-test" in sys.argv[1:] else main()

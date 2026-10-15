@@ -1,6 +1,6 @@
 # 上下文映射（ADR-0041）。ID = <上游>><下游>。只登记已建或本阶段在建的边，规划边到阶段再按 METHOD 第 3 步登记。
 # type 只用有代码后果的关系：anticorruption-layer / open-host-service / published-language / shared-kernel / conformist；普通 api 或事件依赖不写 type，经由写在 via。
-# status=built 的边集合必须等于 backend/architecture/module-dependencies.txt（下游 -> 上游）的边集合（CI A1）。
+# status=built 的边集合必须等于 backend/architecture/module-dependencies.txt（下游 -> 上游）的边集合（A1，build_architecture.py 实现）；status 只允许 built 与 planned（本阶段在建）；via 必填。
 # kernel 是共享内核，所有模块可用，不列边（ADR-0003）。删去的 109 条老系统切法规划边见 git 历史（2026-10-15 之前）。维护：one-architecture。
 relations:
 - id: organization.workforce>cost.timesheet
@@ -138,3 +138,9 @@ relations:
   via: api：来源对照（防腐层）
   status: built
   basis: module-dependencies.txt；关系类型为 one-architecture 提议，待架构评审
+- id: platform.web>platform.identity
+  upstream: platform.web
+  downstream: platform.identity
+  via: api：Web 参数约定（NotFromQuery）
+  status: built
+  basis: module-dependencies.txt（A1 实现时补登，2026-10-15）
