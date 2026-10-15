@@ -440,6 +440,10 @@ class A8SourceFlagsIT {
         assertThat(exceptCount(PURE_VIEW_MEMBERS, MEMBER_VIEW_COLUMNS, members)).as("pure view statement EXCEPT new person statement").isZero();
         assertThat(exceptCount(units, UNIT_VIEW_COLUMNS, PURE_VIEW_UNITS)).as("new org unit statement EXCEPT pure view statement").isZero();
         assertThat(exceptCount(PURE_VIEW_UNITS, UNIT_VIEW_COLUMNS, units)).as("pure view statement EXCEPT new org unit statement").isZero();
+        assertThat(executableRowCount(members)).as("new person statement row count equals pure view statement (EXCEPT is set semantics, a JOIN duplicate would hide)")
+                .isEqualTo(rowCount(PURE_VIEW_MEMBERS));
+        assertThat(executableRowCount(units)).as("new org unit statement row count equals pure view statement (EXCEPT is set semantics, a JOIN duplicate would hide)")
+                .isEqualTo(rowCount(PURE_VIEW_UNITS));
         assertThat(rowCount(PURE_VIEW_MEMBERS)).as("fixture sanity: the comparison is over real rows").isEqualTo(PEOPLE.stream().filter(Person::inScope).count());
         assertThat(rowCount(PURE_VIEW_UNITS)).isEqualTo(3);
     }
@@ -520,6 +524,15 @@ class A8SourceFlagsIT {
         try (Connection c = admin(MAIN); Statement s = c.createStatement(); ResultSet rs = s.executeQuery(sql)) {
             rs.next();
             return rs.getInt(1);
+        }
+    }
+
+    static long executableRowCount(String statement) throws SQLException {
+        String e = executable(statement);
+        try (Connection c = admin(MAIN); Statement s = c.createStatement();
+                ResultSet rs = s.executeQuery(declarations(e) + DECLARE_PURE_VIEW_PREFIX + "SELECT COUNT(*) FROM (" + body(e) + ") AS x")) {
+            rs.next();
+            return rs.getLong(1);
         }
     }
 
