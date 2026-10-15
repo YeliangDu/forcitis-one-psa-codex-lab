@@ -246,3 +246,4 @@
 - RULING-P4-3（第 6 条）：断言审批请求 ID 出自注入的 `IdGenerator`，且产生它的调用栈在 approval 领域或应用层、不在 `infrastructure.persistence`（不要求「第一个值」）。
 - RULING-P4-4（第 10 条）：「不查库」不可确定性断言，只断言非 uuid 路径参数答 400 且不是 `PLATFORM_APPROVAL_TASK_NOT_FOUND`。
 - RULING-P4-5：第 7 条验收只验表层，作业级「只跳过一次」由实现代理随 `ProcessArchiveJobIT` 改；第 8 条 `DeliverySubject` 组件顺序以验收为准（对象类别、对象 ID、用途、触发事件），企业微信 `task_id` 只断言重试稳定、行间不同、字符集合法；第 12 条不限定错误码；第 2 条两个部分索引只断言含 `created_at` / `escalate_at` 与状态谓词。
+- 改名边界（one-glossary 经 one-coordinator，2026-10-16）：BPMN 节点名与 `LegacyVocabulary` 中新系统一侧改为「部门负责人审批 / OrgUnitHeadApproval」；`LegacyVocabulary` 中老系统旧名「区域负责人审批」「regionalHeadReview」**保留**（回放老数据要用），不得随改名删除。词表 #270 已把旧中文名列为禁用，G38 只扫代码标识、不扫字面量与资源文本，保留的旧名不会使守护变红。
