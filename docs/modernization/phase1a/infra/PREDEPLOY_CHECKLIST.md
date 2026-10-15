@@ -13,7 +13,7 @@
 | # | 事项 | 建议 | 时点 | 依据 | 决定单 | 状态 |
 |---|---|---|---|---|---|---|
 | A-1 | `one.forcitis.com` 的 DNS 解析与证书由谁办理、用哪种证书 | 阿里云 SSL 证书服务（与现有证书统一管理）；DNS 指向新 ECS 公网地址 | dev 前 | INFRA_RUNBOOK D-3、E-9 | [A-1](DECISIONS_A.md#a-1-oneforcitiscom-的-dns-与证书谁办哪种证书) | ✅ 改选 B：Let's Encrypt + 自动续期（用户 2026-10-15「同意」） |
-| A-2 | A8 库与老系统库的只读视图、只读账号由谁建（对方 DBA 是谁） | 指定一名 DBA，按 `handoff/B-5-dba/` 执行；同一人负责 6a 前的 `mirror_*` 只写账号 | dev 前 | D-4、ADR-0025 第 5 条 | [A-2](DECISIONS_A.md#a-2-只读视图与账号由谁建dba) | 🟨 选项已定，人选待定 |
+| A-2 | A8 库与老系统库的只读视图、只读账号由谁建（对方 DBA 是谁） | 指定一名 DBA，按 `handoff/B-5-dba/` 执行；同一人负责 6a 前的 `mirror_*` 只写账号 | dev 前 | D-4、ADR-0025 第 5 条 | [A-2](DECISIONS_A.md#a-2-只读视图与账号由谁建dba) | ✅ 由 one-ops 执行（用户「需要我做的，都让ops 会话自己做」）；B-5 已完成 |
 | A-3 | 超级管理员人选（至少 2 名）与应急账号持有人（至少 2 个） | 平台负责人 + 一名运维；应急账号绑定超管持有人 | dev 前 | ADR-0026 / 0027、intent 156 | [A-3](DECISIONS_A.md#a-3-超级管理员持有人-2-名与应急账号持有人2-个账号) | 🟨 选项已定，人选待定 |
 | A-4 | 组织数据管理员、安全审计员、流程管理员的人选 | 组织数据管理员 1–2 名（HR 或行政）；安全审计员由内控 / 财务；流程管理员 1 名 | dev 前 | ADR-0026 D-11、ADR-0027、D-1a-61 | [A-4](DECISIONS_A.md#a-4-组织数据管理员安全审计员流程管理员人选) | 🟨 选项已定，人选待定 |
 | A-5 | 告警接收：P1 企业微信群与短信接收人、P2 群、值班安排 | 新建「FORCITIS one 运维」群；P1 短信给值班人与平台负责人 | dev 前 | 平台约定方案 §4（告警通道）、E-13 | [A-5](DECISIONS_A.md#a-5-告警接收) | 🟨 选项已定，人选待定 |
@@ -31,23 +31,23 @@
 | B-2 | 在企业微信后台新开自建应用（卡片按钮回调、扫码登录回调、可信域名） | dev 前 | SECURITY_INVARIANTS I-8（SEC-119）、D-1a-138、E-15 | [B-2](handoff/B-2-wecom-app.md) | 🟨 应用已建，可信域名已验证（2026-10-15 外部核验 `WW_verify_*.txt` 返回 200）；凭据已写入 ECS `/etc/forcitis-one/one.env`（0640 root:forcitis），ECS 上 `gettoken` 与 `agent/get` errcode=0（session-log one-1a-infra-b2）；待：其他出口发消息被拒（可信 IP）、登录冒烟与可见范围（dev 部署后）、本机凭据副本清理与 KMS |
 | B-3 | 由 A8 管理员登记新系统的致远验票回跳地址（不替换老 SSO） | dev 前 | E-16、D-1a-40 | [B-3](handoff/B-3-a8-sso-return.md) | 🟨 |
 | B-4 | DNS 解析 `one.forcitis.com`，证书申请 | dev 前 | A-1 | [B-4](handoff/B-4-dns-tls.md) | ✅ 解析与证书（2026-10-15 外部核验：A 记录 47.114.56.157，Let's Encrypt 至 2027-01-12，HTTP 301 到 HTTPS）；自动续期 `certbot-renew.timer` 每日两次、deploy hook 先 `nginx -t` 再 reload，`renew --dry-run --run-deploy-hooks` 通过（session-log one-1a-infra-b4）；待：ICP 备案主体核验、证书到期告警（C-7）；ICP 与公安联网备案：用户「已经完成所有备案」（2026-10-15）✅ |
-| B-5 | 对方 DBA 建 A8 与老系统只读视图和账号（按 `SEEYON_VIEWS.sql`、`LEGACY_INBOX_VIEW.sql`、`LEGACY_ORG_NAMES_VIEW.sql`） | dev 前 | A-2、INFRA_RUNBOOK §4 | [B-5](handoff/B-5-dba/README.md) | 🟨 A8 部分完成（2026-10-15 one-ops-1a）：`a8_db` 的 `forcitis_one` schema 与 4 个视图、登录 `one_a8_views_ro`；`a8_20_verify` 全部符合，真实登录可读视图、10 项写入与越权读取全部被拒；口令只在 ECS `one.env`（`A8_DB_*`）；RDS 白名单组 `forcitis_one` 放行 172.16.89.86。老系统部分 STEP 1 排序规则冲突失败、未建任何对象，视图已修正待复核后重跑。待决：SQL Server 未开 SSL，`encrypt=true` 下应用证书校验会失败 |
+| B-5 | 对方 DBA 建 A8 与老系统只读视图和账号（按 `SEEYON_VIEWS.sql`、`LEGACY_INBOX_VIEW.sql`、`LEGACY_ORG_NAMES_VIEW.sql`） | dev 前 | A-2、INFRA_RUNBOOK §4 | [B-5](handoff/B-5-dba/README.md) | ✅ 2026-10-15：A8 视图与 `one_a8_views_ro`、老系统 `psa_one_legacy_ro` 与 `one_legacy_names_ro` 已建；ADR-0037 后三个运行时账号改为库级只读（#135），另建取证账号 `one_evidence_ro`（#143）。连接为 `encrypt=true;trustServerCertificate=true`（加密、不校验证书），dev 可用；SQL Server 证书校验列入生产前维护窗口 |
 | B-6 | 组织数据管理员在 A8 补齐「在职但无企业微信 ID」清单至 0（确无者逐个登记） | 出口前 | D-1a-35（出口条件） | [B-6](handoff/B-6-wecom-id-coverage.md) | 🟨 上线前预估（2026-10-15T01:33:35+08:00，经 B-5 视图、`SeeyonViewSql` 同一范围）：范围内 1,254 人、在职 304 人、在职无企业微信 ID **0**、在职共用企业微信 ID 0；以 dev 同步后的问题清单为准 |
 | B-7 | 组织数据管理员录入 2027 年工作日历（节假日与调休） | 出口前（且每年 12 月 1 日前录入下一年） | D-1a-110..117 | [B-7](handoff/B-7-work-calendar-2027.md) | 🟨 |
 | B-8 | 业务管理员（用户）确认各单据编号模板；凭证号模板另需财务确认 | 出口前 | ADR-0027、出口条件「编号规则经管理员确认」 | [B-8](handoff/B-8-numbering-templates.md)（四眼确认待 ADR-0027 下一批实现） | 🟨 |
 | B-9 | 企业微信接口真实返回核对（`task_id` 重复的错误码、模板卡片更新） | 出口前 | 1a 第二波报告 | [B-9](handoff/B-9-wecom-api-check.md) | 🟨 |
-| B-10 | 发布与部署一次性设置。**必需前置：按 RELEASE.md R-0 重建专用部署 runner `forcitis-one-deploy`**（只接 deploy；程序、hook 与空主目录归 root，PATH 只含系统目录，`--disableupdate`；原注册已注销；发布打包与签名在 GitHub 托管机器上）；发布包由 ECS 按部署作业给出的短期签名地址从 GitHub 直接下载（不建发布用 OSS bucket；ECS 不持有 GitHub 令牌）；GitHub environments `dev` / `prod`（只允许 main；Team 计划私有仓库没有 required reviewers，prod 的人工批准由 `prod-approvals.txt` 批准行代替，RELEASE.md §11）、专用 runner 的 pre-job hook、构建期变量、environment `release` 与发布签名密钥（Team 计划私有仓库无出处证明，RELEASE.md §11）、immutable releases、`v*` 标签保护、prod 批准行；每环境一个经 GitHub OIDC 扮演的部署 RAM 角色（只许改写该环境的五个 OOS 请求参数、读结果参数，没有任何 ECS 接口；无 AccessKey）；ECS 现有实例角色另挂拉取策略（请求参数只读、结果参数只写）；ECS 侧安装器、`forcitis-migrate` 用户、目录归属与迁移凭据目录；最后一跳为 ECS 上每分钟运行的拉取定时器，请求经 OOS 参数传递 | dev 前 | 遗漏项「CI 无发布产物」、INFRA_RUNBOOK §7 | [RELEASE.md §7、§8](runbooks/RELEASE.md#7-一次性步骤用户或运维执行执行前确认) | 🟨 |
-| B-11 | dev 库按迁移基线重建：迁移基线合并（R-3a，#103，73 个迁移合为 10 份基线）后，任何执行过旧迁移的库都过不了 Flyway 校验（历史表里的版本在仓库中已不存在），只能删库重建，不能清表后续跑。dev 库 `forcitis_one_dev` 目前尚未执行过任何迁移，首次部署前按 C-3 现行脚本补齐（见 C-3）即可；若届时已执行过旧迁移则删库重建 | dev 前 | R-3a 基线；SESSION_PLAYBOOK §12.2 | [C-3](runbooks/C-3-dev-db.md) | ⬜ |
-| B-12 | 指定流程管理员：把 `process_administrator` 角色授予 1 名以上的人（建议 2 名，A-4 定人选）；该角色没有任何持有人时应用在任何环境都拒绝启动（只有测试配置可关闭） | dev 前 | D-1a-61；`process_administrator` 角色由 platform_identity 基线迁移建立（基线合并前为 V20261014205200） | — | ⬜ |
+| B-10 | 发布与部署一次性设置。**必需前置：按 RELEASE.md R-0 重建专用部署 runner `forcitis-one-deploy`**（只接 deploy；程序、hook 与空主目录归 root，PATH 只含系统目录，`--disableupdate`；原注册已注销；发布打包与签名在 GitHub 托管机器上）；发布包由 ECS 按部署作业给出的短期签名地址从 GitHub 直接下载（不建发布用 OSS bucket；ECS 不持有 GitHub 令牌）；GitHub environments `dev` / `prod`（只允许 main；Team 计划私有仓库没有 required reviewers，prod 的人工批准由 `prod-approvals.txt` 批准行代替，RELEASE.md §11）、专用 runner 的 pre-job hook、构建期变量、environment `release` 与发布签名密钥（Team 计划私有仓库无出处证明，RELEASE.md §11）、immutable releases、`v*` 标签保护、prod 批准行；每环境一个经 GitHub OIDC 扮演的部署 RAM 角色（只许改写该环境的五个 OOS 请求参数、读结果参数，没有任何 ECS 接口；无 AccessKey）；ECS 现有实例角色另挂拉取策略（请求参数只读、结果参数只写）；ECS 侧安装器、`forcitis-migrate` 用户、目录归属与迁移凭据目录；最后一跳为 ECS 上每分钟运行的拉取定时器，请求经 OOS 参数传递 | dev 前 | 遗漏项「CI 无发布产物」、INFRA_RUNBOOK §7 | [RELEASE.md §7、§8](runbooks/RELEASE.md#7-一次性步骤用户或运维执行执行前确认) | ✅ 2026-10-15：R-0..R-13、OIDC 拉取式部署 8 项、v* 撤销（RELEASE.md R-1、R-4、R-6、R-7）；v0.1.0-rc.1 已发布并验签（#151）；R-11 连通演练通过（#155）。① ⑦ 随首次 dev 部署验证 |
+| B-11 | dev 库按迁移基线重建：迁移基线合并（R-3a，#103，73 个迁移合为 10 份基线）后，任何执行过旧迁移的库都过不了 Flyway 校验（历史表里的版本在仓库中已不存在），只能删库重建，不能清表后续跑。dev 库 `forcitis_one_dev` 目前尚未执行过任何迁移，首次部署前按 C-3 现行脚本补齐（见 C-3）即可；若届时已执行过旧迁移则删库重建 | dev 前 | R-3a 基线；SESSION_PLAYBOOK §12.2 | [C-3](runbooks/C-3-dev-db.md) | ✅ dev 库从未执行过旧迁移，已按 C-3 现行脚本补齐增量（C-3 执行记录），无需重建；首次部署时由安装器执行基线迁移 |
+| B-12 | 指定流程管理员：把 `process_administrator` 角色授予 1 名以上的人（建议 2 名，A-4 定人选）；该角色没有任何持有人时应用在任何环境都拒绝启动（只有测试配置可关闭） | dev 前 | D-1a-61；`process_administrator` 角色由 platform_identity 基线迁移建立（基线合并前为 V20261014205200） | — | 🟨 dev 由用户本人兼任（用户决定，人名只在私有 role_holders.md）；首次部署后以运维命令授予；生产前另定 2 名 |
 | B-13 | 归档 OSS bucket `forcitis-one-archive`：第一个归档写入方上线前重新 `InitiateBucketWorm` 2557 天并锁定（锁定不可撤销，锁定前报 one-coordinator）；处理演练对象 `drill/20261015.txt` | 第一个归档写入方上线前 | 用户「现在不锁，第一个写入方上线前再锁 (Recommended)」 | [B-13](handoff/B-13-archive-oss-bucket.md) | 🟨 bucket 与写入方角色已建、演练通过 |
 
 ## C. 由会话执行，执行前须用户确认（对外变更或购买）
 
 | # | 事项 | 时点 | 依据 | 剧本 | 状态 |
 |---|---|---|---|---|---|
-| C-1 | RDS 扩容到 8 核 32 GB、ESSD 200 GB，开启存储自动扩容（购买） | dev 前 | ADR-0025 第 2 条、用户「扩容现有实例共用」 | [C-1](runbooks/C-1-rds-scale.md) | 🟨 |
-| C-2 | RDS 开启删除保护；备份策略满足 RPO ≤ 5 分钟（日志备份）、RTO ≤ 1 小时；首次恢复演练 | dev 前（演练在出口前） | 平台约定方案 §5 | [C-2](runbooks/C-2-rds-backup-restore.md) | 🟨 已核对（2026-10-15）：包年包月实例不支持删除保护（API `OperationDenied.PayType`），已开自动续费；日志备份已开、保留 7 天，但约 2.5 小时上传一次，**按时间点恢复达不到 RPO ≤ 5 分钟**；改动可能产生费用，待用户决定；演练未做 |
-| C-3 | 建库建角色：`forcitis_one_dev` 与 `one_dev_*`；按角色设连接数、超时与 work_mem | dev 前 | INFRA_RUNBOOK §2、ADR-0025 | [C-3](runbooks/C-3-dev-db.md) · `runbooks/sql/c3_dev_db*.sql` | 🟨 脚本已补 `cost_timesheet`；实例现为 4C16G、PG 18、`max_connections` 1600，现有库只有 `forcitis_one`（IT 服务门户）。**阻塞**：唯一高权限账号 `portal_migrator` 的口令不在任何服务器上，须用户提供或授权另建高权限账号 |
+| C-1 | RDS 扩容到 8 核 32 GB、ESSD 200 GB，开启存储自动扩容（购买） | 生产前 | ADR-0025 第 2 条、用户「扩容现有实例共用」 | [C-1](runbooks/C-1-rds-scale.md) | 🟨 时点由「dev 前」改为「生产前」（用户：不影响部署的扩容从 dev 前代办取消；dev 用现有 4C16G）|
+| C-2 | RDS 开启删除保护；备份策略满足 RPO ≤ 5 分钟（日志备份）、RTO ≤ 1 小时；首次恢复演练 | dev 前（演练在出口前） | 平台约定方案 §5 | [C-2](runbooks/C-2-rds-backup-restore.md) | ✅ 2026-10-15：包年包月实例不支持删除保护（`OperationDenied.PayType`），已开自动续费；日志备份已开、保留 7 天，PG 不能调日志备份频率，RPO 按现状由用户接受；恢复演练在出口前 |
+| C-3 | 建库建角色：`forcitis_one_dev` 与 `one_dev_*`；按角色设连接数、超时与 work_mem | dev 前 | INFRA_RUNBOOK §2、ADR-0025 | [C-3](runbooks/C-3-dev-db.md) · `runbooks/sql/c3_dev_db*.sql` | ✅ 2026-10-15：`forcitis_one_dev` 与 `one_dev_*` 已建（one_admin 先建后轮换，口令服务器侧生成），verify-full 连通；`platform_idempotency` 等增量已补（#108）；`portal_migrator` 口令阻塞已不存在 |
 | C-4 | ECS 初始化 E-1..E-17（数据盘、运行时、systemd、nginx、TLS、Logtail、ARMS、出站白名单） | dev 前 | INFRA_RUNBOOK §3 | [C-4](runbooks/C-4-ecs-init.md) · `runbooks/scripts/` · `runbooks/files/` | 🟨 已做：E-1 数据盘 XFS（one-data）挂载 /data、nginx 1.30.4 与 TLS、静态根 `/data/forcitis-one/current/web`（当前为 bootstrap）、`forcitis` 系统用户与 `/etc/forcitis-one/one.env`（session-log one-1a-infra-b4 / b2）；2026-10-15 one-ops-1a 按发布流水线的目录布局补 E-3 `forcitis-migrate`、E-5（`/data/forcitis-one` 与 `releases` root:forcitis 750、nginx 穿过 ACL、`logs`/`tmp`、`/etc/forcitis-one/migrate` 700、`SPRING_FLYWAY_ENABLED=false`）、E-6 单元与 logrotate 已装（首次部署前不 enable）、E-14 安全组出方向白名单（其余出站拒绝）；`psql` 客户端已装。**待**：E-4 发行版源无 Java 25，须用户确认来源；E-11 Logtail、E-12 ARMS 涉及计费，未做；E-17 数据盘快照策略。**注意**：企业微信校验文件 `WW_verify_*.txt` 现放在 current/web，发布切换 current 时须保留（见 RELEASE.md） |
 | C-5 | 应急管理员与首任超管开通（运维命令，双人在场） | dev 前 | INFRA_RUNBOOK §6、ADR-0027 | [C-5](runbooks/C-5-first-admins.md)（运维命令已实现，剧本待按 INFRA_RUNBOOK §6 对齐） | ⬜ |
 | C-6 | 老系统数据只读导出：老角色与权限（ADR-0026 D-9 已授权）、TIMESHEET 流程实例（回放用）、`psa_calendar` 2016–2026（迁入工作日历） | dev 前 | ADR-0026、TIMESHEET_REPLAY、D-1a-110 | [C-6](runbooks/C-6-legacy-export.md) · `runbooks/sql/c6_legacy_readonly_export.sql` | 🟨 |
@@ -77,11 +77,10 @@
 - 财务确认单 v2 的答复（G1 开工前必须）。
 - AG Grid 企业版许可采购（R1 前）。
 - OAT 文件在 ddd-theory 提交后，`glossary/oat/README.md` 改引提交号。
-- 老系统安全止血：用户决定不处理（「仍然完全不处理」），不阻塞 1a。
 
 ## 核对中发现、清单尚未列出的前置项（供 one-coordinator 决定是否立项）
 
-- **发布流水线**：已补 `release` / `deploy` 工作流与 [RELEASE.md](runbooks/RELEASE.md)（ECS 自取 GitHub Release、专用 runner、签名发布声明），用户侧一次性设置列为 B-10。仍待 1a 代码修复：`OneApplication` 无 `main`、POM 未声明 `spring-boot-maven-plugin`，当前构建不出可启动的 jar（`build.sh` 拒绝出包）。
+- **发布流水线**：已补 `release` / `deploy` 工作流与 [RELEASE.md](runbooks/RELEASE.md)（ECS 自取 GitHub Release、专用 runner、签名发布声明），用户侧一次性设置列为 B-10。~~仍待 1a 代码修复：`OneApplication` 无 `main`~~ 已解决：v0.1.0-rc.1 已构建出可启动的包（2026-10-15）。
 - **迁移执行方式**：代码只有启动时以运行账号自动跑 Flyway，与剧本「迁移账号单独执行」不一致，且运行账号对 `one_migration` 无权限会拒绝启动；发布流水线以 `SPRING_FLYWAY_ENABLED=false` + 安装器单独迁移绕行（[RELEASE.md §4](runbooks/RELEASE.md#4-数据库迁移)），1a 的 migrate profile（已排入 B2）合入后安装器自动改用；「只增不删不改名」的迁移守护由 1a 在迁移基线 PR 实现。
 - **运维命令**：首任超管与应急账号登记命令（C-5 的前提，ADR-0027 下一批）。
 - **工作日历录入页**：B-7 与 C-6 日历导入目前只能调接口；PC 管理端尚无页面。
