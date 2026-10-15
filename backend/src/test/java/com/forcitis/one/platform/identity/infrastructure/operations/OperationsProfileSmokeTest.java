@@ -27,7 +27,7 @@ class OperationsProfileSmokeTest {
         POSTGRES.start();
     }
 
-    record Finished(int exitCode, boolean anyJobBean, boolean anyScheduledTask, int webServerPort) {
+    record Finished(int exitCode, boolean anyJobBean, boolean anyScheduledTask, boolean schedulingProcessor, int webServerPort) {
     }
 
     private static byte[] random(int length) {
@@ -55,10 +55,11 @@ class OperationsProfileSmokeTest {
         try (ConfigurableApplicationContext context = application.run(all)) {
             boolean anyJobBean = java.util.stream.Stream.of("emergencyAdminCheckJob", "credentialPurgeJob", "orgSnapshotSyncJob",
                     "shortNameRefreshJob", "eventPublicationJobs").anyMatch(context::containsBean);
-            boolean anyScheduledTask = context.getBean(ScheduledAnnotationBeanPostProcessor.class).getScheduledTasks().stream()
-                    .anyMatch(task -> task.toString().matches(".*(EmergencyAdminCheckJob|CredentialPurgeJob|OrgSnapshotSyncJob|ShortNameRefreshJob|EventPublicationJobs).*"));
+            boolean anyScheduledTask = context.getBeanProvider(ScheduledAnnotationBeanPostProcessor.class).stream()
+                    .flatMap(processor -> processor.getScheduledTasks().stream()).anyMatch(task -> task.toString().matches(".*(EmergencyAdminCheckJob|CredentialPurgeJob|OrgSnapshotSyncJob|ShortNameRefreshJob|EventPublicationJobs).*"));
             int port = context instanceof org.springframework.boot.web.server.context.WebServerApplicationContext web ? web.getWebServer().getPort() : -2;
-            return new Finished(exit.get(), anyJobBean, anyScheduledTask, port);
+            boolean schedulingProcessor = context.getBeanNamesForType(ScheduledAnnotationBeanPostProcessor.class).length > 0;
+            return new Finished(exit.get(), anyJobBean, anyScheduledTask, schedulingProcessor, port);
         }
     }
 
@@ -71,6 +72,7 @@ class OperationsProfileSmokeTest {
         assertThat(finished.webServerPort()).as("B1-R3 the web part reports port -1; Tomcat still listens on an ephemeral port until OPS-PORT").isEqualTo(-1);
         assertThat(finished.anyJobBean()).isFalse();
         assertThat(finished.anyScheduledTask()).isFalse();
+        assertThat(finished.schedulingProcessor()).as("the Moments auto-configuration stays excluded, so nothing switches scheduling on").isFalse();
     }
 
     @Test

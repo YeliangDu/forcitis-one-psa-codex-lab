@@ -49,6 +49,7 @@
 - 会话内定时任务（/clear 后用 CronList 核对，不在就重设）：上下文巡检每 30 分钟（每小时第 13、43 分）（75% 准备交接 / 85% 批次边界交接；会话存活期内有效，最长 7 天）。
 
 ## 排定后续（指针）
+- 常驻会话（intent 本日 one-rules / one-quality）：one-rules、one-quality 画像已起草待用户新开；one-security 在生产前设（接 C1 安全复审、ASVS / 等保级别、个人信息）；one-data 在迁入阶段前设（ADR-0036、ADR-0038 基线关闭、对账）。
 - 18:30：已合并 #200–#207、#209、#211；队列 208 197 210。#197 合并后通知 one-ops 出 rc.2。
 - P3b 排序定为甲′：R-1b-0a → P3b → 拆分 b → 拆分 a → R-1b-0b → DA-3 → P5（next-3 的 p3b-sequencing.md）；G06/G07 撤下随拆分 a。待转 one-architecture（/clear 后）：ADR-0039 勘误（:41 排期解释、3 个权限码实为 2、SyncRunHoldReleased 语义）+ 拆分前设计卡。
 - one-glossary：A（写回）、C（项目样例页）开工；B1 等 A，B2 等 B1，均 opus 复审；kind 映射裁定见 18:20 消息（单据→聚合 / 实体，字段挂实体，子域等入 bcs.yaml）。
