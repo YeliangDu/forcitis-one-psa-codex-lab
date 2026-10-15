@@ -1,0 +1,61 @@
+# 财务口径决策单（docs/modernization/r0/FINANCE_DECISIONS.md，2026-10-15）中出现、词表未收的会计与经营用语。
+# 会计类提议术语须经财务口径确认（ADR-0018）；「产值收入」是方言，登记在正式用语「权责收入」下。
+terms:
+- id: accrual_revenue
+  zh: 权责收入
+  en: AccrualRevenue
+  snake: accrual_revenue
+  kind: metric
+  bc: operations.policy
+  definition: 权责口径账簿按客户确认（收入确认单）确认的营业收入（不含税）；与收付口径账簿按开票确认的收入相对，经营分析以此为收入主口径
+  standard_ref:
+  - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
+  - ADR-0022 总账纳入新系统
+  - ADR-0023 经营分析纳入现代化
+  confidence: medium
+  aliases:
+  - name: 产值收入
+    type: dialect
+    deprecated: true
+    source: 财务确认单第 2 版答复（ADR-0023 意见）
+  forbidden:
+  - 产值收入
+  status: proposed
+  note: 收付口径账簿的收入在开票时确认，叫法见「开票」词条的别名「开票收入」；指标含税口径见决策单 FD-14
+- id: information_service_fee
+  zh: 信息服务费
+  en: InformationServiceFee
+  snake: information_service_fee
+  kind: value
+  bc: expense.spend
+  definition: 公司费控中单列的一类项目费用（事前备案、付款另走付款申请）；性质（转付成本、合同取得成本或销售费用）待向财务核实，决定其在净收入还是贡献毛利中扣减
+  standard_ref:
+  - 企业会计准则第 14 号——收入（第二十八条合同取得成本、第三十四条主要责任人与代理人）
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 决策单 FD-41、F-06；A8 流程「信息服务费备案申请」（OA_PROCESS_INVENTORY 第 81 行）
+- id: debt_settlement_asset
+  zh: 抵债资产
+  en: DebtSettlementAsset
+  snake: debt_settlement_asset
+  kind: entity
+  bc: receivables.collection
+  definition: 客户以房产、车位、卡券等非现金资产清偿所欠款项时，公司取得控制权后按放弃债权的公允价值确认的资产；取得控制权前仍为对客户的应收款
+  standard_ref:
+  - 企业会计准则第 12 号——债务重组（2019 修订）
+  - 企业会计准则第 23 号——金融资产转移
+  confidence: medium
+  aliases:
+  - name: 工抵资产
+    type: undetermined
+    deprecated: false
+    source: 财务确认单第 2 版答复（ADR-0016 第 6 条补充）
+  - name: 工抵
+    type: undetermined
+    deprecated: false
+    source: 财务确认单第 2 版答复（FQ-14、FQ-16）
+  forbidden: []
+  status: proposed
+  note: 「工抵」为工程行业「工程款抵房」的简称，是否作为正式用语待用语确认；回款计入时点见决策单 FD-40，专项台账见用户 A6

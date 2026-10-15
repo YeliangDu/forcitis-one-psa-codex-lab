@@ -2,7 +2,7 @@ package com.forcitis.one.platform.approval.infrastructure.legacy;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-/** No default account; blank url means the old system is not connected; viewName is the ONE object the account may read. */
+/** No default account; blank url means the old system is not connected; viewName is the frozen to-do view (ADR-0037 item 6). */
 @ConfigurationProperties("forcitis.platform.approval.legacy")
 record LegacyProperties(String url, String username, String password, String viewName, String detailUrlTemplate) {
 
