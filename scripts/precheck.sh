@@ -154,7 +154,7 @@ if [ -s "$work/shell.present" ]; then
   run_step "shell syntax (bash -n)" syntax_all
 fi
 
-if touches '^scripts/release/'; then
+if [ "$builds_relevant" = true ]; then
   release_self_tests() {
     py scripts/release/ci_passed.py --self-test && py scripts/release/manifest.py --self-test && py scripts/release/deploy_gate.py --self-test
   }
@@ -164,8 +164,8 @@ if touches '^scripts/release/'; then
   else
     report SKIP "shellcheck scripts/release" "shellcheck not installed (CI uses 0.11.0)"
   fi
-elif [ -s "$work/shell.present" ]; then
-  report SKIP "shellcheck" "CI runs shellcheck on scripts/release only; other scripts: bash -n above"
+else
+  report SKIP "release scripts self-test, shellcheck" "relevant_change.py: nothing the release scripts or the builds read changed"
 fi
 
 if ! command -v gitleaks >/dev/null; then
