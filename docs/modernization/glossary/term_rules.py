@@ -8,8 +8,8 @@
 - 指标（kind metric）写口径：formula、grain、as_of；
 - 同一 bc 内一个中文名、一个英文名只对应一个词条（弃用的不算）；跨 bc 同名须在 homonyms 里互列对方 id，homonyms 只能列真同名的词条；
 - 错误码中文名全局唯一（G48、R-5、CS-2.24），不适用互列。
-存量违规登记在 glossary/term-rules-baseline.json：entries 为允许的问题（键 <来源>#<id>:<规则>），rules 为各规则的条数上限。
-只减不增：出现基线外的问题、某规则的条数超过上限、基线里的问题已修好而没删键，都失败。"""
+存量违规登记在 glossary/term-rules-baseline.json：entries 为允许的问题（键 <来源>#<id>:<规则>），rules 为各规则的登记条数。
+只减不增：出现基线外的问题、某规则的键数与登记条数不等（删键须同步调低 count）、基线里的问题已修好而没删键，都失败。"""
 import json, os
 
 STATUSES = ("proposed", "approved", "deprecated")
@@ -122,10 +122,10 @@ def judge(problems, baseline):
     counts = {}
     for k in allowed:
         counts[rule_of(k)] = counts.get(rule_of(k), 0) + 1
-    for rule, n in sorted(counts.items()):
-        cap = (limits.get(rule) or {}).get("count")
-        if cap is None or n > cap:
-            out.append(f"基线规则 {rule} 有 {n} 条，超过登记上限 {cap}：基线只减不增，不得加键")
+    for rule in sorted(set(counts) | set(limits)):
+        n, cap = counts.get(rule, 0), (limits.get(rule) or {}).get("count")
+        if cap is None or n != cap:
+            out.append(f"基线规则 {rule} 有 {n} 条，与登记条数 {cap} 不符：删键时同步调低 count，不得加键")
     return out
 
 
@@ -199,6 +199,9 @@ def self_test():
     want("基线外新问题", len(judge({"t#a:scope": "x", "t#b:scope": "y"}, base)) == 1, True)
     want("基线过期", len(judge({}, base)) == 1, True)
     want("基线加键超上限", len(judge({"t#a:scope": "x", "t#b:scope": "y"}, {"entries": {"t#a:scope": "x", "t#b:scope": "y"}, "rules": {"scope": {"count": 1}}})) == 1, True)
+    want("删键而没调低 count", len(judge({"t#a:scope": "x"}, {"entries": {"t#a:scope": "x"}, "rules": {"scope": {"count": 2}}})) == 1, True)
+    want("规则键全删而 count 未归零", len(judge({}, {"entries": {}, "rules": {"scope": {"count": 1}}})) == 1, True)
+    want("规则清零", judge({}, {"entries": {}, "rules": {"scope": {"count": 0}}}), [])
     want("基线规则未登记上限", len(judge(problems, {"entries": {"t#a:scope": "x"}, "rules": {}})) == 1, True)
     if failures:
         sys.exit("自测失败：\n  " + "\n  ".join(failures))
