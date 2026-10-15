@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.web;
 
 import java.time.LocalDate;
+import java.util.UUID;
 
-record AttributeLegalEntityRequest(long legalEntityId, LocalDate effectiveFrom) {
+record AttributeLegalEntityRequest(UUID legalEntityId, LocalDate effectiveFrom) {
 }

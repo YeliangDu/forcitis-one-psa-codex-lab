@@ -124,7 +124,7 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
     }
 
     private static AuditRecord row(ResultSet rs) throws SQLException {
-        return new AuditRecord(new AuditEntryId(rs.getLong("id")), rs.getTimestamp("created_at").toInstant(), rs.getString("action"),
+        return new AuditRecord(new AuditEntryId(rs.getObject("id", java.util.UUID.class)), rs.getTimestamp("created_at").toInstant(), rs.getString("action"),
                 userId(rs, "actor_id"), userId(rs, "on_behalf_of_id"), rs.getString("subject_key"), rs.getString("detail"),
                 rs.getString("source_address"), outcome(rs), rs.getString("login_method_kind"), rs.getString("change_reason"),
                 rs.getString("before_text"), rs.getString("after_text"), rs.getObject("correlation_id", java.util.UUID.class));

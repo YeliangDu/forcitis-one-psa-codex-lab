@@ -1,13 +1,13 @@
 package com.forcitis.one.platform.approval.application;
 
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.approval.domain.ApprovalTaskQueries;
 import com.forcitis.one.platform.approval.domain.TaskHandling;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +26,7 @@ public class ListHandledTasks {
     @Transactional(readOnly = true)
     public HandledPage execute(UserId user, ListPage page) {
         List<TaskHandling> rows = tasks.handledBy(user, page.cursor().map(ListPage.Position::at),
-                page.cursor().map(position -> UUID.fromString(position.id())), page.limit() + 1);
+                page.cursor().map(position -> Uuids.parseCanonical(position.id())), page.limit() + 1);
         boolean more = rows.size() > page.limit();
         List<TaskHandling> shown = more ? rows.subList(0, page.limit()) : rows;
         List<HandledTask> items = shown.stream().map(row -> new HandledTask(row.recordId(), row.taskId(), row.instanceId(), row.processKey(),

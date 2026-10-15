@@ -12,6 +12,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.platform.integration.api.WecomEntry;
@@ -85,7 +86,7 @@ class HttpWecomClientTest {
     }
 
     private static OutboundDelivery delivery() {
-        return OutboundDelivery.restore(new OutboundDeliveryId(1), "approval-task:42", List.of(new WecomUserId("alice"), new WecomUserId("bob")),
+        return OutboundDelivery.restore(new OutboundDeliveryId(TestIds.uuid(1)), "approval-task:42", List.of(new WecomUserId("alice"), new WecomUserId("bob")),
                 "title", "description", "https://one.example.test/tasks/42", "PENDING", 1, null, null, null, DeliveryKind.CARD, null, null, 0, 0);
     }
 
@@ -262,7 +263,7 @@ class HttpWecomClientTest {
     void replacementUsesTheResponseCode() {
         tokenIs("token-1", 7200);
         wecom.stubFor(post(urlPathEqualTo(UPDATE_PATH)).willReturn(okJson("{\"errcode\":0,\"errmsg\":\"ok\"}")));
-        OutboundDelivery sent = OutboundDelivery.restore(new OutboundDeliveryId(1), "approval-task:42",
+        OutboundDelivery sent = OutboundDelivery.restore(new OutboundDeliveryId(TestIds.uuid(1)), "approval-task:42",
                 List.of(new WecomUserId("alice"), new WecomUserId("bob")), "title", "description", "https://one.example.test/tasks/42",
                 "SENT", 1, "rc-1", null, null, DeliveryKind.CARD, null, null, 0, 0);
 

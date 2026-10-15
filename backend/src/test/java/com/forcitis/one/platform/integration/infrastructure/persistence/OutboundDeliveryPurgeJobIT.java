@@ -51,8 +51,8 @@ class OutboundDeliveryPurgeJobIT {
     private String delivery(String status, int daysAgo) {
         String key = status + "-" + daysAgo;
         jdbc.sql("""
-                insert into platform_integration.outbound_deliveries (deduplication_key, recipient_codes, title, target_url, status, created_at, updated_at)
-                values (:key, array['alice'], 'title', 'https://one.example.test/x', :status, now() - make_interval(days => :days), now() - make_interval(days => :days))
+                insert into platform_integration.outbound_deliveries (id, deduplication_key, recipient_codes, title, target_url, status, created_at, updated_at)
+                values (uuidv7(), :key, array['alice'], 'title', 'https://one.example.test/x', :status, now() - make_interval(days => :days), now() - make_interval(days => :days))
                 """).param("key", key).param("status", status).param("days", daysAgo).update();
         return key;
     }

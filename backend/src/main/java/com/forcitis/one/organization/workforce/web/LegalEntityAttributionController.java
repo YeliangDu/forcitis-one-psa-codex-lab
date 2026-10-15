@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.web;
 
 import com.forcitis.one.kernel.ExpectedVersion;
+import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.OrgUnitAccess;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.AttributionKind;
@@ -49,7 +50,7 @@ class LegalEntityAttributionController {
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_UPDATE + "')")
     ResponseEntity<LegalEntityAttributionResponse> attributeOrgUnit(@PathVariable long orgUnitId, @RequestBody AttributeLegalEntityRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch, Principal caller) {
-        return answer(attribute.execute(AttributionKind.ORG_UNIT, orgUnitId, request.legalEntityId(), request.effectiveFrom(),
+        return answer(attribute.execute(AttributionKind.ORG_UNIT, orgUnitId, request.legalEntityId() == null ? null : new LegalEntityId(request.legalEntityId()), request.effectiveFrom(),
                 ExpectedVersion.fromHeader(ifMatch), actor(caller)));
     }
 
@@ -70,7 +71,7 @@ class LegalEntityAttributionController {
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_UPDATE + "')")
     ResponseEntity<LegalEntityAttributionResponse> attributeEmployee(@PathVariable long employeeId, @RequestBody AttributeLegalEntityRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch, Principal caller) {
-        return answer(attribute.execute(AttributionKind.EMPLOYEE, employeeId, request.legalEntityId(), request.effectiveFrom(),
+        return answer(attribute.execute(AttributionKind.EMPLOYEE, employeeId, request.legalEntityId() == null ? null : new LegalEntityId(request.legalEntityId()), request.effectiveFrom(),
                 ExpectedVersion.fromHeader(ifMatch), actor(caller)));
     }
 

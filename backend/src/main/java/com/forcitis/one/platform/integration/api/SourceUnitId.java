@@ -10,4 +10,9 @@ public record SourceUnitId(long value) {
             throw new IllegalArgumentException("SourceUnitId must not be 0");
         }
     }
+
+    @Override
+    public String toString() {
+        return Long.toString(value);
+    }
 }

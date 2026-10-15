@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.forcitis.one.kernel.BusinessZone;
+import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.workforce.application.CreateLegalEntity;
 import com.forcitis.one.organization.workforce.application.SyncOrgSnapshot;
 import com.forcitis.one.organization.workforce.application.WorkforceIntegrationSupport;
@@ -55,7 +56,7 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
     @Autowired
     BusinessZone zone;
 
-    long legalEntity;
+    LegalEntityId legalEntity;
 
     String lastEtag;
 
@@ -69,7 +70,7 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
     }
 
     private String body() {
-        return "{\"legalEntityId\":" + legalEntity + ",\"effectiveFrom\":\"" + zone.today(clock) + "\"}";
+        return "{\"legalEntityId\":\"" + legalEntity.value() + "\",\"effectiveFrom\":\"" + zone.today(clock) + "\"}";
     }
 
     private int attributeEmployee(String actor, long employee) throws Exception {

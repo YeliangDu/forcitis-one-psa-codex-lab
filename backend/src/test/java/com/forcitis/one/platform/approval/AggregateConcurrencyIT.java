@@ -127,8 +127,8 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
     @Test
     @DisplayName("DDD-5 the database refuses a request without a legal entity")
     void legalEntityIsMandatoryInTheDatabase() {
-        assertThatThrownBy(() -> jdbc.update("insert into platform_approval.approval_requests (process_key, document_type, document_key, initiator_id,"
-                + " current_round, status, summary_text) values ('COST_TIMESHEET_APPROVAL', 'TIMESHEET', 'no-le', 1, 1, 'RUNNING', 's')"))
+        assertThatThrownBy(() -> jdbc.update("insert into platform_approval.approval_requests (id, process_key, document_type, document_key, initiator_id,"
+                + " current_round, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', 'no-le', 1, 1, 'RUNNING', 's')"))
                 .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     }
 

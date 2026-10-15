@@ -1,6 +1,7 @@
 package com.forcitis.one.cost.timesheet.infrastructure.persistence;
 
 import com.forcitis.one.cost.timesheet.domain.ConsumedEvents;
+import com.forcitis.one.kernel.IdGenerator;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -9,17 +10,19 @@ import org.springframework.stereotype.Repository;
 class JdbcConsumedEvents implements ConsumedEvents {
 
     private final JdbcClient jdbc;
+    private final IdGenerator ids;
 
-    JdbcConsumedEvents(JdbcClient jdbc) {
+    JdbcConsumedEvents(JdbcClient jdbc, IdGenerator ids) {
         this.jdbc = jdbc;
+        this.ids = ids;
     }
 
     @Override
     public boolean firstTime(UUID eventId, String consumerName) {
         return jdbc.sql("""
-                INSERT INTO cost_timesheet.consumed_events (event_id, consumer_name) VALUES (:event, :consumer)
+                INSERT INTO cost_timesheet.consumed_events (consumed_event_id, event_id, consumer_name) VALUES (:id, :event, :consumer)
                 ON CONFLICT (event_id, consumer_name) DO NOTHING
                 """)
-                .param("event", eventId).param("consumer", consumerName).update() == 1;
+                .param("id", ids.next()).param("event", eventId).param("consumer", consumerName).update() == 1;
     }
 }

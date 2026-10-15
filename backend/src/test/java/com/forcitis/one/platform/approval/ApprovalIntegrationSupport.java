@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.kernel.DocumentId;
@@ -66,7 +67,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 public abstract class ApprovalIntegrationSupport {
 
     public static final long ADMINISTRATOR = 9001;
-    public static final LegalEntityId LEGAL_ENTITY = new LegalEntityId(1);
+    public static final LegalEntityId LEGAL_ENTITY = new LegalEntityId(TestIds.uuid(1));
     static final AtomicLong IDS = new AtomicLong(100_000);
 
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18")
