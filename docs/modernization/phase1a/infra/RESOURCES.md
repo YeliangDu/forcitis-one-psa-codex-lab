@@ -11,6 +11,7 @@ SESSION_PLAYBOOK §2.1 第 9 条：定时器、本机 runner、云上资源与�
 | 本机 Mac | 自托管 runner mac-one-1..4（~/actions-runners/one-N，LaunchAgent，用户 yeliang）与 mac-one-deploy（/opt/forcitis-one-runner，LaunchDaemon，用户 forcitis-deploy，pre-job hook） | 长期 | one-coordinator / one-ops | — |
 | 本机 Mac | ~/.modernize/psa/ops-venv（运维用 Python 3.12 环境，阿里云 SDK；版本锁在 `ops-venv-requirements.txt`） | 长期 | one-ops | — |
 | 本机 Mac | ~/.modernize/psa/infra/role_holders.md（人名，0600）、~/.modernize/psa/finance/FINANCE_CONFIRM_v3.html（0600） | 长期私有 | one-coordinator | — |
+| 本机 Mac | ~/.modernize/psa/tools/mermaid-cli（@mermaid-js/mermaid-cli 11.4.2，锁版本；puppeteer 23.11.1 用 ~/.cache/puppeteer/chrome-headless-shell/mac_arm-131.0.6778.204）：架构图本机渲染（2026-10-15，SUPPLY_CHAIN S1） | 长期 | one-architecture | 不再生成架构 SVG 时删除该目录 |
 | 阿里云 | SLS Project forcitis-one-observability（nginx、ops 180 天，app 与 metrics 30 天）、云监控 OS 指标、ECS 快照策略 forcitis-one-daily | 长期付费（约 40 元/月以内） | one-ops | — |
 | 阿里云 | RDS 实例 pgm-bp13vak0sew3m003 参数 log_parameter_max_length -1 → 0（2026-10-15，共享实例，it_portal 慢日志同样不再带参数值；回退改回 -1） | 长期配置 | one-ops | — |
 | SQL Server rm-bp1690ep53t9778dp | 新系统只读账号 one_a8_views_ro（a8_db）、psa_one_legacy_ro 与 one_legacy_names_ro（老系统库）改为库级只读加库级写 / DDL / EXECUTE DENY（2026-10-15；依据用户「新系统可以读任何旧系统数据」「两者都是」「修改权限」「全部可读，不排除」；回滚 B-5 read-all/*_rollback.sql；应用启动校验 I-1 待 ADR-0037 改） | 长期配置 | one-ops | — |

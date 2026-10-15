@@ -22,6 +22,7 @@ SELF_TESTED = ["build_sessions.py", "../../scripts/hooks/session_context.py", "g
 # 正式术语 glossary/terms.yaml 由 build_terms.py 生成，--check 要求可复现；PyYAML 依赖登记于 SUPPLY_CHAIN.md S1
 if importlib.util.find_spec("yaml"):
     STEPS.insert(1, "glossary/build_terms.py")
+    STEPS.insert(-1, "architecture/build_architecture.py")   # 架构施工图（architecture/DESIGN.md §3）：mmd 可复现、SVG 未过期
 elif "--check" in sys.argv:
     sys.exit(f"失败：{sys.executable} 缺少 PyYAML，无法运行 glossary/build_terms.py 校验 terms.yaml 可复现（依赖见 SUPPLY_CHAIN.md S1）")
 else:
