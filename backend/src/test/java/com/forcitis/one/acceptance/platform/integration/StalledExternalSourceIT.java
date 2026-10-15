@@ -18,6 +18,7 @@ import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.SessionRoles;
 import com.forcitis.one.platform.integration.api.OrgShortNames;
 import com.forcitis.one.platform.integration.api.OrgSource;
+import com.forcitis.one.platform.integration.api.StaffLookup;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -227,7 +228,7 @@ class StalledExternalSourceIT {
     void controlWithoutAnyStall() throws Exception {
         String inbox = mvc.perform(get(INBOX).with(ordinarySession(INBOX_ACCOUNT))).andReturn().getResponse().getContentAsString();
         assertThat(inbox).contains("\"legacyAvailable\":true").contains("\"legacyCount\":1");
-        assertThat(a8.findStaffByLoginName(LOGIN_NAME)).hasSize(1);
+        assertThat(a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME))).hasSize(1);
         assertThat(names.readShortNames()).hasSize(1);
         SyncResult result = runSync();
         assertThat(result.status()).as(result.note()).isNotEqualTo(SyncRunStatus.FAILED);
@@ -304,7 +305,7 @@ class StalledExternalSourceIT {
 
     /** The port says "unavailable" (that is what the caller turns into "nobody found"), and the login use case built on it returns instead of throwing. */
     private void assertLoginLookupDegrades() {
-        Outcome<?> port = timed(HARD_CAP_INTERACTIVE, () -> a8.findStaffByLoginName(LOGIN_NAME));
+        Outcome<?> port = timed(HARD_CAP_INTERACTIVE, () -> a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME)));
         assertThat(port.hung()).as("the login lookup is still waiting for A8 after %s: it holds a request thread", HARD_CAP_INTERACTIVE).isFalse();
         assertThat(port.elapsed()).as("login answers within the 3 s budget of an external call").isLessThanOrEqualTo(INTERACTIVE_BUDGET);
         assertThat(port.failure()).as("an unreachable source is reported as such, not as an empty answer").isInstanceOf(ExternalSystemUnavailableException.class);
@@ -319,7 +320,7 @@ class StalledExternalSourceIT {
     @Test
     @DisplayName("D1-1 三条外部连接的会话都带有限的锁等待上限，交互路径的两条不超过 3 s")
     void everyExternalSessionCarriesALockTimeout() throws Exception {
-        a8.findStaffByLoginName(LOGIN_NAME);
+        a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME));
         names.readShortNames();
         readLegacyTodos();
 
@@ -350,7 +351,7 @@ class StalledExternalSourceIT {
         replaceView("a8world", "forcitis_one.v_org_member", SLOW_MEMBER_VIEW);
         viewsToRestore.add(new ViewRestore("a8world", "forcitis_one.v_org_member", MEMBER_VIEW));
 
-        Future<Outcome<Object>> inFlight = CALLERS.submit(() -> timed(HARD_CAP_INTERACTIVE, () -> a8.findStaffByLoginName(LOGIN_NAME)));
+        Future<Outcome<Object>> inFlight = CALLERS.submit(() -> timed(HARD_CAP_INTERACTIVE, () -> a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME))));
         Awaitility.await("the slow statement of a8_reader is visible in sys.dm_exec_requests while the lookup waits").atMost(Duration.ofSeconds(2))
                 .pollInterval(Duration.ofMillis(50)).untilAsserted(() -> assertThat(requestsOf("a8_reader", false)).isPositive());
         Outcome<Object> lookup = inFlight.get(HARD_CAP_INTERACTIVE.toMillis() * 2, TimeUnit.MILLISECONDS);

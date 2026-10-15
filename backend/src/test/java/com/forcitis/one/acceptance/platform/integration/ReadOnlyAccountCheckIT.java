@@ -16,6 +16,7 @@ import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.platform.integration.api.OrgShortNames;
 import com.forcitis.one.platform.integration.api.OrgSource;
+import com.forcitis.one.platform.integration.api.StaffLookup;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.sql.Connection;
@@ -344,7 +345,7 @@ class ReadOnlyAccountCheckIT {
         Account account = baselineAccount(ReadOnlyConnection.A8);
         try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.A8, account))) {
             OrgSource a8 = context.getBean(OrgSource.class);
-            assertThat(a8.findStaffByLoginName(LOGIN_NAME)).as("the adapter reads before the grant changes").hasSize(1);
+            assertThat(a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME))).as("the adapter reads before the grant changes").hasSize(1);
 
             grantWriteBehindTheDatabaseDeny(account);
             long readsBefore = baseTableReads("a8world", "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER");
@@ -354,7 +355,7 @@ class ReadOnlyAccountCheckIT {
             assertThat(output.getAll()).as("the failed re-check raises an ALERT naming item (b)").containsPattern("ALERT[^\\n]*[(（]b[)）]");
             assertThat(baseTableReads("a8world", "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER"))
                     .as("nothing is read from A8 once the re-check has failed").isEqualTo(readsBefore);
-            assertThatThrownBy(() -> a8.findStaffByLoginName(LOGIN_NAME)).as("the stopped adapter answers 'unavailable'")
+            assertThatThrownBy(() -> a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME))).as("the stopped adapter answers 'unavailable'")
                     .isInstanceOf(ExternalSystemUnavailableException.class);
             assertThat(baseTableReads("a8world", "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER")).isEqualTo(readsBefore);
         }
