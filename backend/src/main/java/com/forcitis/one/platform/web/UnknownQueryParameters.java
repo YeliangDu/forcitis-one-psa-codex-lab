@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.web;
 
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import jakarta.servlet.ServletRequest;
@@ -94,6 +95,9 @@ class UnknownQueryParameters implements WebMvcConfigurer, HandlerInterceptor {
                     throw unsupported(method, parameter, "@RequestParam of a Map reads every parameter");
                 }
                 names.add(!name.isEmpty() ? name : parameter.getParameterName());
+            } else if (type == UserId.class && parameter.getParameterAnnotations().length == 0) {
+                // the signed-in caller, resolved from the session by identity (P2-M1), never from the query
+                continue;
             } else if (parameter.hasParameterAnnotation(ModelAttribute.class)) {
                 throw unsupported(method, parameter, "@ModelAttribute binds an object from the query");
             } else if (hasBindingAnnotation(parameter)) {
