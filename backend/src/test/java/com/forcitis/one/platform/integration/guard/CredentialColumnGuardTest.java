@@ -207,7 +207,7 @@ class CredentialColumnGuardTest {
     }
 
     @Test
-    @DisplayName("ADR37-1 凭据列守护：读取列登记的任何一行都不登记凭据列拒绝清单中的列")
+    @DisplayName("ADR37-1 凭据列守护：外部读取登记的任何一行都不登记凭据列拒绝清单中的列")
     void readRegistriesListNoCredentialColumn() throws IOException {
         List<DeniedColumn> denied = deniedColumns();
         List<String> violations = new ArrayList<>();
