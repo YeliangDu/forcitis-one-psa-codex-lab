@@ -1,6 +1,6 @@
 # one-coordinator 台账（速查）
 
-只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-15 18:30（one-coordinator）
+只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-15 22:40（one-coordinator，/clear 前）
 
 ## 授权与边界
 - 合并 PR、开会话、派子代理：调度自定（「合 PR 交给你审核，决定权给你」）。不替用户定：部署、生产变更、购买、对外账号、ADR 变更。
@@ -49,6 +49,29 @@
 - 会话内定时任务（/clear 后用 CronList 核对，不在就重设）：上下文巡检每 30 分钟（每小时第 13、43 分）（75% 准备交接 / 85% 批次边界交接；会话存活期内有效，最长 7 天）。
 
 ## 排定后续（指针）
+- 23:25 现状（以此为准）：
+  - 合并改「文档合集」：纯文档 PR 不再逐个入队，由调度合成 `claude/one-coordinator-docs-train-N` 一个 PR 跑一次 CI 合入（用户采纳 PR 策略三条，intent 本日 PR 策略）；代码 PR 仍串行入队。合集 1 含 #233 #225 #229 #238 #244 #245 #247 #255 #249 #253 #256 #257 #261 #224 #258 #259；#252（one-ops，PREDEPLOY C-4..C-6 行冲突）退回作者。
+  - 代码队列：226 234 236 243 246 251 260。文档 PR 只跑轻量 CI（跳过前后端重步骤）派 one-quality（改 ci.yml，守护单列，opus 复审）。
+  - 用户决定：Docker Desktop 不买（intent 本日）；CI 搬 Linux / 试用机未答；Colima 试点在 mac-one-4（one-quality，样本够后出对比表）。
+  - P4 卡 D-4：one-architecture 判定属 ADR-0033 分阶段落地，收件人列由 DA-10 必补（F-1 后、基线关闭前）；DA-10 排期记此。
+  - C-14 (f)：opus 复审两个 High——H-1 msdb 直接授权与嵌套不设防（调度定补检查）、H-2 SQLAgent 角色固有能力（交用户知情确认，写入 ADR-0037 第 4 项 (f)）。
+- 22:40 /clear 前现状（以此为准，较早条目可能过时）：
+  - 合并队列：Monitor「合并队列」需重设；队列文件见「合并」节；mq_run2.sh 在跑；merge_pr.sh 已改为等待期间持续取消他人 CI（新版本是新 inode）。
+  - 会话：one-1a-next-4（opus，接 next-3）、one-1a-par、one-ops、one-glossary、one-glossary-b1、one-rules、one-quality（以上 sonnet）、one-architecture（opus）。模型策略见 SESSION_PLAYBOOK §5（#253）。
+  - dev 首次部署剩：C-14（(f) 纳入基线 + 本人拥有 Agent 作业数为 0，one-1a-par 改 ReadOnlyBaseline → 新 rc → 重跑第一步；#242 待 #238 合并后复核 → 探针 → 删 101）；C-19 白名单留 1 条（用户在 one-ops 会话答第几条或 userid，未答）；SLS 行动策略 one-alert-p1/p2 未查到（用户确认是否建在 SLS 主账号 1980847222980247 下）。
+  - 代码：#250（0a）→ P3b（next-4，H1 已修，合并时 one.env 老待办键改名同一 rc）→ P4（含 regionalHead 改名）→ P5 → F-1（one-1a-par，P5 后）。
+  - 待用户批：ADR-0043（分级两维度）、0044（0032 修订，Q1 撤并来源）、0045（FD-27 关账不重开）合一页（one-architecture 先发我过目）；C-6 回放差异页 https://claude.ai/artifact/Y7ogz8AWPmZdeuE4HCEGqL 未提交。
+  - 财务事实待外部：F-01..F-04、F-08 财务 / 税务复核，F-05 待财务（FINANCE_DECISIONS，#249）。
+  - 在途小项：C-6 DEFECT 不再取证（#254 暂停，按「回放方法限制、未坐实」记入 C-6 报告，D-3 出口评审由用户看）；one-quality 小 PR 待 #243、#246 合并后开；C1 全量铺开排 P3b 后；ARCH-D5 写回在 #249。
+- 22:10 现状：常驻会话新增 one-rules、one-quality；one-1a-next-3 已交接给 one-1a-next-4。
+- dev 首次部署只剩：101（C-14：rc.3 → 正式账号核实 → (f)/(g) 定处理 → #242 → 探针）、C-19 可见范围与白名单（用户本人操作 / 告知 userid）、one.env 已改三键；090 改为白名单外开放前与生产前（intent 214650，#241）；人选 dev 全由用户兼任（215052）；B-3 dev 暂缓。
+- 代码：先保 dev（214511）——0a → P3b → P4 → P5 → F-1（P5 后，one-1a-par）；拆分 a/b、R-1b-0b、DA-3 生产前。P3b 合并时 one.env 老待办键改名同一 rc（ops）。
+- 待用户：财务决策页、ARCH-D5 方案页、F-1 决策页（one-rules）；分级两维度 ADR（one-architecture）。
+- 债务：验收测试 ReadOnlyVerificationCommandIT（~980 行）、ReadOnlyAccountCheckIT（~575 行）超 400 行未拆（one-1a-par，#235）
+- P3B-H1：P3b 合并时核实命令连接名与指标标签随改（one-1a-next-4 + one-1a-par），同步 INFRA_RUNBOOK §4.1
+- 本机：用户授权停了 psa-local（4）与 pentagi（4）容器；ci-runner 5 个与两个 PG 未动
+- CI 并发：test.forks=2 等打包 ci.yml PR（one-ops），runner / Docker 配置不动观察
+- SESSION_PLAYBOOK §2.1 第 15 条补取证子代理派工约束（#233 合并后，锚点在其新增行）
 - 常驻会话（intent 本日 one-rules / one-quality）：one-rules、one-quality 画像已起草待用户新开；one-security 在生产前设（接 C1 安全复审、ASVS / 等保级别、个人信息）；one-data 在迁入阶段前设（ADR-0036、ADR-0038 基线关闭、对账）。
 - 18:30：已合并 #200–#207、#209、#211；队列 208 197 210。#197 合并后通知 one-ops 出 rc.2。
 - P3b 排序定为甲′：R-1b-0a → P3b → 拆分 b → 拆分 a → R-1b-0b → DA-3 → P5（next-3 的 p3b-sequencing.md）；G06/G07 撤下随拆分 a。待转 one-architecture（/clear 后）：ADR-0039 勘误（:41 排期解释、3 个权限码实为 2、SyncRunHoldReleased 语义）+ 拆分前设计卡。

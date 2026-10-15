@@ -1,0 +1,267 @@
+{
+ "sheet": "D5",
+ "title": "工时审批路径",
+ "lede": "Phase 2 工时上线前要定：每类工时由谁审批、审批人从哪里取。以 AEC 与专业服务行业主流产品的做法为主，老系统生产数据只作核对。每题已预选推荐项，同意就不用动；每组底部「提交本组」，确认后才算数。",
+ "groups": [
+  {
+   "id": "d5-route",
+   "title": "每类工时由谁审批",
+   "desc": "项目、售前、间接三类工时各自的审批人，以及老系统「混合」类型的去留。"
+  },
+  {
+   "id": "d5-whole",
+   "title": "整单确认与负责人来源",
+   "desc": "是否另加直属上级整单确认，以及部门负责人的来源。"
+  }
+ ],
+ "items": [
+  {
+   "no": "D5-01",
+   "grp": "d5-route",
+   "title": "项目工时由谁审批",
+   "src": "ARCH-D5；process/1a/TIMESHEET审批.md T1、T3",
+   "ctx": "一张工时单常含多个项目的行。1a 已实现「项目经理审批」节点（projectManagerReview，候选取表单字段 projectManagerId）。要定的是：项目行的审批人是谁，多个项目时怎么拆。",
+   "now": "老系统核对（2026-05 起）：项目行占 66%；按「项目经理 → 任务负责人 → 行上经理 → 按项目编码反查」四级回退取人，与按现行项目经理推算一致 92.9%；驳回率 0%。",
+   "check": "",
+   "basis": [
+    "已定：取不到人转流程管理员并告警（RULE-250 / RULE-262 评审）；防自审只在没有其他候选时升级到发起人直属上级（RULE-307 评审）。"
+   ],
+   "practice": [
+    "Upland PSA 部分驳回（各项目经理只看到自己项目的行）：https://help.uplandsoftware.com/psa/en/adminguide/timesheet/workflows/950212.htm",
+    "Oracle 工时审批工作流（默认沿主管层级路由，ELA 下各审批人只批自己负责的行）：https://docs.oracle.com/en/cloud/saas/human-resources/faitp/time-approval-workflow-configurations-overview.html",
+    "Workday 工时审批设置（Review Project Time 给组织外项目经理只批项目工时，Review Time 给主管组织内经理批项目、非项目与休假）：https://doc.workday.com/admin-guide/en-us/human-capital-management/time-tracking/reviewing-and-approving-time/setup-considerations--review-time-and-project-time.html"
+   ],
+   "opts": [
+    {
+     "label": "该行所属项目的项目经理；多个项目时每位项目经理只审、只看自己项目的行",
+     "effect": "与 Vision、Upland、Oracle（ELA）、Workday 做法一致；项目经理只取项目主档，取不到按已定规则转流程管理员并告警，不再走老系统的四级回退",
+     "rec": true
+    },
+    {
+     "label": "同上，但保留老系统四级回退（项目经理 → 任务负责人 → 行上经理 → 按项目编码反查）",
+     "effect": "取人成功率略高；但审批人可能落到不对项目负责的人，回退链掩盖项目主档缺项目经理的数据问题",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "D5-02",
+   "grp": "d5-route",
+   "title": "售前工时由谁审批",
+   "src": "ARCH-D5；D-1a-127",
+   "ctx": "售前工时记在商机、线索、客户或拜访计划上（合同签订前的投入）。1a 已有「区域负责人审批」节点（regionalHeadReview）。行业产品对售前工时谁审没有统一规定。",
+   "now": "老系统核对（2026-05 起）：售前行占 10%，审批人是售前对象（商机、线索、客户、拜访）归属部门的负责人，共 8 人；其中 79% 恰好也是提交人所在部门负责人；驳回率 0.02%。",
+   "check": "",
+   "basis": [
+    "CAS 14 第二十八条：投标等无论是否取得合同都会发生的支出计入当期损益；售前成本按承担部门归集，便于按部门、区域核算售前投入（财务口径决策单 FD-11、FD-44）。"
+   ],
+   "practice": [
+    "Deltek Vision 7.6 promotional 项目（合同前投入单独建项目归集，属间接成本子类，中标后可转常规项目；商机本身不能记成本）：https://help.deltek.com/Product/Vision/7.6/cf_promotional_projects.html",
+    "BigTime 审批模式（按项目团队负责人或按部门经理，公司级二选一，可叠加多级）：https://help.bigtime.net/hc/en-us/articles/10327342908439-TIMESHEET-REVIEW-AND-APPROVAL"
+   ],
+   "opts": [
+    {
+     "label": "售前对象（商机、线索、客户、拜访计划）归属部门的负责人",
+     "effect": "谁承担这笔售前投入谁审，与 Vision 把合同前投入挂在承担单位的 promotional 项目上同理；与老系统一致，只作核对",
+     "rec": true
+    },
+    {
+     "label": "提交人的直属上级（与间接工时同路）",
+     "effect": "最简单，少一个节点；但跨部门支援售前时，承担成本的部门看不到也管不了这部分投入",
+     "rec": false
+    },
+    {
+     "label": "商机负责人",
+     "effect": "由跟单的人确认；行业产品没有这种做法，商机负责人常是销售，未必对投入工时负责；线索、客户、拜访上没有对应负责人",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "D5-03",
+   "grp": "d5-route",
+   "title": "间接工时由谁审批",
+   "src": "ARCH-D5；terms.yaml supervisor_approval",
+   "ctx": "间接工时（管理、培训、内部事务等，不挂项目和售前对象）。1a 已有「直属上级审批」节点（supervisorReview，INITIATOR_SUPERVISOR 一级）。",
+   "now": "老系统核对（2026-05 起）：间接工时行占 24%，审批人是提交人直属上级，与按现行汇报线推算一致 83.5%（差异多为提交后汇报线变化）；驳回率 0.06%。",
+   "check": "",
+   "basis": [
+    "已定：直属上级（人员级汇报对象）与部门负责人是两个概念，每个流程写明用哪一个（RULE-372 评审）。"
+   ],
+   "practice": [
+    "Workday 工时审批设置（Review Project Time 给组织外项目经理只批项目工时，Review Time 给主管组织内经理批项目、非项目与休假）：https://doc.workday.com/admin-guide/en-us/human-capital-management/time-tracking/reviewing-and-approving-time/setup-considerations--review-time-and-project-time.html",
+    "Oracle 工时审批工作流（默认沿主管层级路由，ELA 下各审批人只批自己负责的行）：https://docs.oracle.com/en/cloud/saas/human-resources/faitp/time-approval-workflow-configurations-overview.html",
+    "Deltek Vision 7.6 行审批配置（项目行审批与整单审批是两套独立机制，可单开或并用；可按项目类型关闭间接与 promotional 项目的行审批）：https://help.deltek.com/Product/Vision/7.6/CF_TS_Line_Item_Approval_Tab.html"
+   ],
+   "opts": [
+    {
+     "label": "提交人的直属上级",
+     "effect": "与 Workday、Oracle 默认路由（主管层级）一致；1a 节点已按此实现",
+     "rec": true
+    },
+    {
+     "label": "提交人所在部门的负责人",
+     "effect": "审批人更集中；但部门负责人不一定了解每个人的间接工作，大部门工作量集中",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "D5-04",
+   "grp": "d5-route",
+   "title": "「混合」工时类型要不要保留",
+   "src": "ARCH-D5；NEXT_BATCH_PLAN Phase 2 前置项",
+   "ctx": "老系统工时行类型有项目、售前、间接、混合四种，混合在取审批人时与售前同路。",
+   "now": "老系统核对：近 12 个月混合类型行数为 0，类型没有空值。",
+   "check": "迁入前对全部历史工时核一次有无混合行；有则按所挂对象归到项目或售前，并在迁入核对报告中列数。",
+   "basis": [
+    "规则：输入缺失或无效失败并告警，不静默跳过（CLAUDE.md 第 6 条）。"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "不保留：工时行类型只有项目、售前、间接三种；出现别的类型或一个路由旗标都没置时，提交失败并告警",
+     "effect": "类型与审批路由一一对应；历史混合行（如有）迁入时按所挂对象归类",
+     "rec": true
+    },
+    {
+     "label": "保留混合，按售前路由审批",
+     "effect": "复刻老系统；但生产一年未用，多一种无人使用的类型和路由分支",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "D5-05",
+   "grp": "d5-whole",
+   "title": "直属上级要不要再对整张工时单做一次确认",
+   "src": "ARCH-D5；行业调研 2026-10-15",
+   "ctx": "行业产品普遍同时提供两套审批：项目维度审项目行，行政维度（直属上级）审整张单（出勤是否齐、加班是否合理），可单用也可并用。老系统只按行类型分路，直属上级只审间接工时。",
+   "now": "老系统核对：近 180 天三个节点共约 4.2 万个任务，93% 在 24 小时内办完；各类型驳回率都低于 0.1%。整单确认若每张都加，约再增加 2.5 万个任务 / 半年。",
+   "check": "",
+   "basis": [
+    "工时完整性（工作日工时加请假不少于 7.5 小时、单日不超过 15 小时、整天请假不得提交）已由提交校验保证（process/1a/TIMESHEET审批.md 步骤 2）。"
+   ],
+   "practice": [
+    "Deltek Vision 7.6 行审批配置（项目行审批与整单审批是两套独立机制，可单开或并用；可按项目类型关闭间接与 promotional 项目的行审批）：https://help.deltek.com/Product/Vision/7.6/CF_TS_Line_Item_Approval_Tab.html",
+    "Unanet 项目审批人与经理审批并行或设优先级：https://unanetuniversitycontent.unanet.com/uu_content/GC%20Managing%20Project%20Execution%20and%20Control/GC_Proj_Exec_Ctrl_eBook/files/basic-html/page12.html",
+    "Workday 工时审批设置（Review Project Time 给组织外项目经理只批项目工时，Review Time 给主管组织内经理批项目、非项目与休假）：https://doc.workday.com/admin-guide/en-us/human-capital-management/time-tracking/reviewing-and-approving-time/setup-considerations--review-time-and-project-time.html",
+    "BigTime 审批模式（按项目团队负责人或按部门经理，公司级二选一，可叠加多级）：https://help.bigtime.net/hc/en-us/articles/10327342908439-TIMESHEET-REVIEW-AND-APPROVAL"
+   ],
+   "opts": [
+    {
+     "label": "不加：维持按行类型分路，直属上级只审间接工时",
+     "effect": "任务量不增加；完整性靠提交校验，项目与售前投入由对其负责的人审；行业产品把整单审批作为可选配置",
+     "rec": true
+    },
+    {
+     "label": "加：直属上级对每张工时单整单确认，项目经理与售前负责人仍审各自的行",
+     "effect": "行政上级掌握下属全部投入；但审批任务约增加六成，T+1 时限压力集中在直属上级",
+     "rec": false
+    },
+    {
+     "label": "只在有加班（当日超过 7.5 小时）的单上加直属上级确认",
+     "effect": "针对性强；多一条按工时数路由的规则，后续加班口径变化要同步改",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "D5-06",
+   "grp": "d5-whole",
+   "title": "部门负责人从哪里取",
+   "src": "ARCH-D5「区域负责人来源」；D-1a-127",
+   "ctx": "D5-02 选「归属部门的负责人」时，要定这个负责人的来源。词表把「区域负责人」定义为「区域组织单元的负责人」，而老系统实际取的是售前对象归属部门在部门表上登记的负责人。",
+   "now": "老系统核对：售前审批人只有 8 位，都是部门表登记的部门负责人。",
+   "check": "",
+   "basis": [
+    "已定：部门负责人与直属上级是两个概念（RULE-372 评审）；组织数据随 A8 同步，组织数据管理员维护（ADR-0026、ADR-0027）。"
+   ],
+   "practice": [
+    "Deltek Vantagepoint org 级审批角色与审批失败时转审批管理员：https://help.deltek.com/product/vantagepoint/5.5/cfg_approv_Approval_Workflow_Failures.html",
+    "BigTime 审批模式（按项目团队负责人或按部门经理，公司级二选一，可叠加多级）：https://help.bigtime.net/hc/en-us/articles/10327342908439-TIMESHEET-REVIEW-AND-APPROVAL"
+   ],
+   "opts": [
+    {
+     "label": "组织架构中该部门登记的部门负责人（随组织同步维护），节点与用语改称「部门负责人审批」",
+     "effect": "不另建名单，组织调整自动生效；取不到按已定规则转流程管理员并告警；「区域负责人」用语交用语管家改定义或改名",
+     "rec": true
+    },
+    {
+     "label": "新系统单独维护一张「售前审批负责人」名单（部门 → 审批人）",
+     "effect": "可指定非部门负责人的人审；多一份要人维护的名单，组织调整后容易过期",
+     "rec": false
+    }
+   ]
+  }
+ ],
+ "info": [
+  {
+   "title": "老系统核对数据（2026-05 起）",
+   "lines": [
+    "行业做法为主，老系统数据只作核对。"
+   ],
+   "table": [
+    [
+     "工时行类型",
+     "行数占比",
+     "工时占比",
+     "审批人与规则推算一致",
+     "驳回率"
+    ],
+    [
+     "项目工时",
+     "66.1%",
+     "74.4%",
+     "92.9%",
+     "0%"
+    ],
+    [
+     "售前工时",
+     "10.4%",
+     "6.1%",
+     "96.8%",
+     "0.02%"
+    ],
+    [
+     "间接工时",
+     "23.5%",
+     "19.4%",
+     "83.5%",
+     "0.06%"
+    ],
+    [
+     "混合",
+     "0（近 12 个月）",
+     "0",
+     "—",
+     "—"
+    ]
+   ],
+   "after": [
+    "一张单只含一种类型的占 87.6%，三种都有的占 1.6%。",
+    "「不一致」多为提交后项目经理或上级变更（审批人是提交时锁定的），不是错误率。"
+   ]
+  }
+ ],
+ "side": [
+  {
+   "title": "已定（供核对）",
+   "lines": [
+    "三路并行：项目工时、售前工时、间接工时各一个节点，业务模块算旗标，流程只读旗标（T1）。",
+    "退回或驳回即结束本轮，重提开新一轮（M3）；按节点审批，不做按行驳回。",
+    "取不到审批人转流程管理员并告警，不静默跳过（RULE-250、RULE-262 评审）。",
+    "防自审：只有没有其他候选时才升级到发起人直属上级（RULE-307 评审）。老系统核对：项目行中审批人就是提交人本人的占 21%，售前占 10%。",
+    "候选组认领，通知发候选组全员（Q-3）。",
+    "审批时限 T+1 工作日 23:59，超时提醒、再过 1 个工作日升级，不自动通过（RULE-377–384）。"
+   ]
+  },
+  {
+   "title": "核对数据口径",
+   "lines": [
+    "老系统生产汇总，取证账号 one_evidence_ro 只读，2026-10-15，登记 LEGACY_READ_REGISTER。",
+    "工时日期 2026-05-01 起（A8 工时停用后）；任务耗时取近 180 天；只有计数与比例，不含任何人员明细。"
+   ]
+  }
+ ]
+}

@@ -138,6 +138,9 @@ else
   report SKIP "docs read by builds are registered" "no backend, frontend or script changed"
 fi
 
+if touches '^scripts/ci/(assertion_drift|ci_git)\.py$'; then
+  run_step "assertion drift (self-test)" py scripts/ci/assertion_drift.py --self-test
+fi
 if touches '(src/test/.*\.java|\.test\.tsx?|\.spec\.tsx?)$'; then
   if py scripts/ci/assertion_drift.py "$base" >"$work/drift.log" 2>&1; then
     if ! grep -q '^assertion drift: 0 finding' "$work/drift.log"; then

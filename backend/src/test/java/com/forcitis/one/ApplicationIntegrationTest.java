@@ -23,6 +23,8 @@ import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.integration.api.WecomGateway;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.method.HandlerMethod;
 import com.forcitis.one.platform.identity.api.Permission;
@@ -51,7 +53,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -59,9 +60,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -70,7 +68,6 @@ import tools.jackson.databind.json.JsonMapper;
         "spring.datasource.hikari.connection-timeout=2000",
         "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"})
 @AutoConfigureMockMvc
-@Testcontainers
 class ApplicationIntegrationTest {
     // Doubles stand in for the organisation: only the project manager 2002 exists.
     @MockitoBean
@@ -88,11 +85,12 @@ class ApplicationIntegrationTest {
     @MockitoBean
     AuditLog auditLog;
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = TestPostgres.container()
-            .withInitScript("init-schemas.sql")
-            .withUrlParam("currentSchema", "platform_approval");
+    static final TestDatabase postgres = TestPostgres.database(ApplicationIntegrationTest.class, TestPostgres.MIGRATED_TESTDATA).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     /** HTTP header names are fixed by RFC 9110 and the Idempotency-Key convention; they are not JSON names. */
     static final java.util.Set<String> STANDARD_HEADERS = java.util.Set.of("If-Match", "If-None-Match", "Idempotency-Key");

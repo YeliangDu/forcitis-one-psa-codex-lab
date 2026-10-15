@@ -1,0 +1,22 @@
+{
+ "C6~C6-01": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "c6",
+  "label": "接受：本人不审本人，没有其他候选时升级到直属上级",
+  "no": "C6-01",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:38:29.407Z"
+ },
+ "C6~C6-02": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "c6",
+  "label": "接受：停用或离职人员不再收到审批任务",
+  "no": "C6-02",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:38:29.407Z"
+ }
+}
