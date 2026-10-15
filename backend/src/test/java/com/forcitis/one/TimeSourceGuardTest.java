@@ -29,6 +29,8 @@ import org.junit.jupiter.api.Test;
  */
 class TimeSourceGuardTest {
     static final String CLOCK_BUILDER = "com.forcitis.one.kernel.KernelConfiguration";
+    /** Spring Session creates its own table and gives no clock injection point, so expiry must be compared on the framework's own clock; drop it when the C1 session repository is ours. */
+    static final String SESSION_STORE_CLOCK = "com.forcitis.one.platform.identity.infrastructure.persistence.SessionStoreClock";
     static final Path MAIN = Path.of("src/main/java");
     static final Path SQL_EXCEPTIONS = Path.of("architecture/sql-database-clock-exceptions.txt");
 
@@ -43,7 +45,7 @@ class TimeSourceGuardTest {
 
     /** KernelConfiguration builds the one system Clock that everything else is handed. */
     static ArchRule noAmbientTime() {
-        return noClasses().that().doNotHaveFullyQualifiedName(CLOCK_BUILDER)
+        return noClasses().that().doNotHaveFullyQualifiedName(CLOCK_BUILDER).and().doNotHaveFullyQualifiedName(SESSION_STORE_CLOCK)
                 .should().callMethodWhere(ASKS_THE_MACHINE)
                 .because("inject java.time.Clock; an instant or a business day read off the machine cannot be controlled in a test or tied to the business zone");
     }
@@ -70,7 +72,7 @@ class TimeSourceGuardTest {
     }
 
     @Test
-    @DisplayName("the one registered exception is the class that builds the Clock")
+    @DisplayName("the registered exceptions are the class that builds the Clock and the session store clock")
     void theClockBuilderIsExempt() {
         JavaClasses kernel = new ClassFileImporter().importPackages("com.forcitis.one.kernel");
 
