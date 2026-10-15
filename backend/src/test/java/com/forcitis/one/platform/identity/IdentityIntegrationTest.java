@@ -25,6 +25,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Stream;
@@ -319,10 +320,11 @@ public abstract class IdentityIntegrationTest {
     protected String emergencySession(long userId) throws Exception {
         createAccount(userId, "super_admin");
         byte[] secret = com.forcitis.one.platform.identity.domain.Totp.newSecret();
+        String password = "Aa1!" + UUID.randomUUID();
         emergencyAdmins.insertIfAbsent(com.forcitis.one.platform.identity.domain.EmergencyAdmin.register(new UserId(userId), "breakglass-" + userId,
-                hasher.hash("Str0ng!Passphrase#42"), vault.seal(secret)));
+                hasher.hash(password), vault.seal(secret)));
         MvcResult login = mvc.perform(post("/api/v1/platform/sessions:emergency-login").with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(
-                "{\"loginName\":\"breakglass-" + userId + "\",\"password\":\"Str0ng!Passphrase#42\",\"totpCode\":\""
+                "{\"loginName\":\"breakglass-" + userId + "\",\"password\":\"" + password + "\",\"totpCode\":\""
                         + com.forcitis.one.platform.identity.domain.Totp.code(secret, com.forcitis.one.platform.identity.domain.Totp.stepAt(clock.instant())) + "\"}")).andReturn();
         if (login.getResponse().getStatus() != 200) {
             throw new AssertionError("emergency login failed: " + login.getResponse().getContentAsString());
