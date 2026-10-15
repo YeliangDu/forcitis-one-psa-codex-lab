@@ -9,6 +9,7 @@ import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.platform.numbering.api.NumberingError;
+import com.forcitis.one.platform.numbering.domain.CounterScope;
 import com.forcitis.one.platform.numbering.domain.NumberingRule;
 import com.forcitis.one.platform.numbering.domain.TemplateVersion;
 import com.forcitis.one.platform.numbering.domain.NumberingRuleRepository;
@@ -45,7 +46,7 @@ class IssueDocumentNumber implements DocumentNumbers {
         LegalEntityCode legalEntityCode = legalEntities.lockActiveCode(legalEntity)
                 .orElseThrow(() -> new DomainException(NumberingError.PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE, ErrorKind.UNPROCESSABLE,
                         "Legal entity " + legalEntity.value() + " does not exist or is deactivated"));
-        LegalEntityId counterScope = template.pattern().usesLegalEntityCode() ? legalEntity : null;
+        CounterScope counterScope = template.pattern().usesLegalEntityCode() ? CounterScope.ofLegalEntity(legalEntity) : CounterScope.GLOBAL;
         String periodKey = template.pattern().resetPolicy().periodKey(businessDate);
         long sequence = rules.reserveNext(type, counterScope, periodKey, template.startValue());
         return new DocumentNumber(template.pattern().render(type.code().orElse(null), template.pattern().usesLegalEntityCode() ? legalEntityCode : null, businessDate, sequence));

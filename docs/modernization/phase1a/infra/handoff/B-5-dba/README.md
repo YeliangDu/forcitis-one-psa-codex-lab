@@ -30,7 +30,21 @@ FORCITIS one 只通过专用视图读这两个库，**不写任何数据，不�
 5. 口令交接：apply 脚本 STEP 3 在服务器上随机生成口令，**只显示一次**。DBA 通过约定的安全渠道（当面或密码管理器共享，不经聊天、邮件、工单）交给运维，运维写入 `/etc/forcitis-one/one.env`（`0640 root:forcitis`），以后迁到 KMS（`runbooks/C-8-kms.md`）。
 6. 回报 one-coordinator：两份 verify 结果、实际账号名、白名单已加。**不回报口令。**
 
-## 权限为什么这样给（最小化）
+## 2026-10-15 改为全库只读（取代下一节的最小化授权）
+
+依据：用户「新系统可以读任何旧系统数据」，澄清选「两者都是」（迁移取证与应用运行时都可以），随后「修改权限」；对凭据列答复「全部可读，不排除」（均经 one-coordinator 转达）。变更清单经 one-coordinator 确认后由 one-ops 执行。
+
+| 账号 | 变更前 | 变更后 |
+|---|---|---|
+| a8_db `one_a8_views_ro` | `forcitis_one` schema SELECT；`dbo` schema DENY SELECT、VIEW DEFINITION 与全部写类 | 库级 GRANT SELECT；`dbo` 的 DENY SELECT、DENY VIEW DEFINITION 撤销；库级 DENY INSERT、UPDATE、DELETE、ALTER、EXECUTE、REFERENCES、CREATE TABLE / VIEW / PROCEDURE / FUNCTION / SCHEMA；schema 级原有写类 DENY 保留 |
+| 老系统库 `psa_one_legacy_ro`、`one_legacy_names_ro` | 各自一个视图的 SELECT | 库级 GRANT SELECT；库级 DENY 同上；原视图授权保留 |
+
+- 脚本：`read-all/a8_apply.sql`、`read-all/legacy_apply.sql`（各一个事务），回滚 `read-all/a8_rollback.sql`、`read-all/legacy_rollback.sql`；执行与验证 `tools/b5_read_all_run.py`。三个账号都不加入任何数据库角色。
+- 执行记录（云助手）：前后授权导出与变更 t-hz0702doo7c0xkw：a8_db 授权 16 行 → 26 行，老系统库 4 行 → 28 行，与清单逐项一致，角色成员 0 行不变。登录验证 t-hz0702dpgo0dukg：三个账号以 one.env 中现有口令真实登录（口令在新 ECS 上以临时公钥加密转交，本会话只经手密文），基表、元数据与原视图均可读（只出计数）；UPDATE、DELETE 被拒（229），CREATE TABLE 被拒（262），allowed=0。两台服务器临时目录已清理。
+- **与应用启动校验冲突**：下一节所述「每个只读连接能 SELECT 的对象恰好一个视图」（SECURITY_INVARIANTS I-1）与 `ReadOnlyGuard`、`seeyon-view-columns.yaml` 白名单仍按最小化授权写。改为全库只读后应用启动校验会拒绝；运行时读取方式与校验口径由 ADR-0037 定，首次部署前须由代码会话改校验。`legacy_*_deny.sql` 中「读基表、读令牌表、读另一视图」三类期望已不成立，以 `read-all/*_login_*.sql` 为准。
+- 账号是否合并由 ADR-0037 定，应用配置暂不变。
+
+## 权限为什么这样给（最小化，2026-10-15 前）
 
 - **只给视图 SELECT**：A8 账号只对 `forcitis_one` schema 有 SELECT；老系统两个账号各只对一个视图有 SELECT。视图与基表同属 `dbo`，靠所有权链读取，账号对基表没有任何权限。A8 基表另加 DENY。
 - **不加入任何数据库角色**（`db_datareader` 等）：加入就等于读全库；而且应用检查授权时看不到经角色得到的权限。
