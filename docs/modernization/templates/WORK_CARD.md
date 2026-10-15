@@ -1,0 +1,133 @@
+# 派工卡模板
+
+用途：负责会话或调度会话派一张编码卡（给子代理、Codex 或工作会话）时，复制下方「模板」填写。规则出处：SESSION_PLAYBOOK §5「Codex 派工」、§6.1、§11「派工单」；CODING_STANDARD §7。一张卡只属于一类工作（§6.1 第 9 条），卡上没写的不做。
+
+## 模板
+
+```markdown
+# 派工卡 <卡号>：<一句话标题>
+
+## 1. 卡号与类别
+- 卡号：<复审编号 / 批次编号，如 INT-H3、R-4、F-7>
+- 类别：缺陷修复 | 功能补做（应交付未做） | 结构性重构（含改名）   ← 只选一个（SESSION_PLAYBOOK §6.1 第 9 条）
+- 批次与整合分支：<批次名；缺陷卡一张或几张一个小 PR，直接合入 main（§6.1 第 10 条）>
+
+## 2. 依据
+- 规格条款：<contract.md 的 D 编号 / 规格文件:节>
+- 规则卡：<RULE-nnn，及 RULE_REVIEWS.json 中的结论>
+- ADR：<ADR-nnnn 第 n 条>
+- 用户原话：<「……」（intent 片段文件名）>
+- 复审意见：<复审报告:编号，附复现步骤>
+
+## 3. 范围与卡上文件
+- 允许改动的文件 / 目录（越界先停下报告，不先做后报）：
+  - <路径>
+- 归属（§6.1 第 2 条）：本卡独占的表、权限码、事件、迁移文件、共享构件：<…>
+- 不碰：<验收测试目录、他卡文件、共享构件（需改时停下报告）>
+
+## 4. 验收测试（由测试代理先写，§6.1 第 8 条）
+- 测试代理：`code-modernization:test-engineer`（模型 <sonnet/opus>），先于实现提交，提交说明带 `Acceptance-Test-Author: test-engineer`
+- 路径：后端 `backend/src/test/java/com/forcitis/one/acceptance/<子域>/<bc>/…`、`backend/src/test/resources/acceptance/…`；前端 `frontend/**/__acceptance__/…`
+- 测试名（`@DisplayName` 以编号开头）：
+  - `<编号> <Given/When/Then 一句话>`
+- 实现方认为验收测试有误：停下报告，由复审裁定（`Acceptance-Ruling: RULING-n`），不自行修改
+
+## 5. 执行者与模型
+- 执行者：<子代理 / Codex / 工作会话名>
+- 模型与强度：<sonnet | opus | Codex：codex exec -m <模型> -c model_reasoning_effort=<强度> -s workspace-write --ephemeral>
+- 工作区：独立 worktree，分支 <claude/…>，基线 <main 提交号>
+- 复审：<opus，推理强度 high>
+
+## 6. 禁止事项
+- 不改卡外文件；不顺手重构、改名或统一风格（缺陷卡）
+- 不放宽、不删除断言；不改验收测试目录
+- 不联网、不起容器、不建账号、不调用对外接口（需要时停下问，CLAUDE.md）
+- 不打印、不写入密钥；测试密钥运行时生成
+- <本卡特有：例如不改业务语义、不改事件形状>
+
+## 7. 预期表结构 diff（涉及 DDL 时必填，SESSION_PLAYBOOK §12.2）
+- 方法：两个空库分别执行改动前、后的基线，`pg_dump --schema-only` 对比
+- 预期差异只能是：
+  - <schema.table：列 / 约束 / 默认值 / 索引的变化>
+- 不得出现的差异：<…>
+
+## 8. 交付物与自查
+- 交付物：<代码、测试、守护、文档、OpenAPI、例外清单的增删>
+- 自查：`scripts/precheck.sh <基线>` 全部 PASS 或有理由的 SKIP，输出贴进报告与 PR「precheck.sh 输出」
+- 受影响模块测试：<precheck 给出的命令>；交付前全量 `scripts/ci/backend_verify.sh`（起容器前先问）
+- 报告分开写「已验证」与「未运行」
+
+## 9. 复审要求（§6.1 第 4、11 条）
+- Blocker / High：opus 复核，合并前修完
+- Medium / Low：执行者补测试、CI 通过即关闭，负责会话抽查；不阻塞合并的登记进下一批
+- 复审清单：SESSION_PLAYBOOK §14、§14.1；CODING_STANDARD 相关节：<…>
+
+## 10. 报告去向
+- 完成、部分完成或阻塞，都向 <负责会话>，抄 one-coordinator（SESSION_PLAYBOOK §4 第 7 步）
+- 报告包含：提交号与分支、改动文件、验证结果（已验证 / 未运行）、precheck 输出、未完成项、需要用户决定的事；Codex 卡另记返工轮次与耗时
+```
+
+## 示例：R-4 去数据库时钟默认值
+
+```markdown
+# 派工卡 R-4：去掉数据库时钟默认值，时刻由注入 Clock 显式写入
+
+## 1. 卡号与类别
+- 卡号：R-4（并入 INT-L23）
+- 类别：结构性重构
+- 批次与整合分支：Phase 1a 下一批 W1，排在 R-2 合并之后；单独 PR
+
+## 2. 依据
+- 规格条款：NAMING_STANDARD §2.4a 第 3 条「数据库只允许技术默认值……业务值与时间一律由应用显式写入」；G25
+- 规则：CODING_STANDARD CS-2.26、CS-3.8；`TimeSourceGuardTest` 已禁止 SQL 字符串读数据库时钟
+- 计划：`phase1a/NEXT_BATCH_PLAN.md` §2.2 R-4 行与第 21 行（102 处、31 个文件：`DEFAULT` 99 处，DML `now()` 3 处：numbering `V20261014135200:11`、`V20261014135300:3`、`V20261015000300:78`）
+- 用户原话：「开放期内直接改基线 (Recommended)」（迁移基线写法，2026-10-15）；Codex 派工：「用最合适的模型，你试试」
+- 复审意见：修复批时区项范围外发现（INT-L23）
+
+## 3. 范围与卡上文件
+- 允许改动：
+  - `backend/src/main/resources/db/migration/**`（开放基线中的时钟 `DEFAULT` 与 3 处 `now()`）
+  - 写这些列的 `backend/src/main/java/**/infrastructure/persistence/Jdbc*Repository.java` 与其 application 调用方（只为传入 `Clock` 的时刻）
+  - `backend/src/test/java/com/forcitis/one/TimeSourceGuardTest.java`（扩展为扫描迁移文件）
+  - `backend/architecture/sql-database-clock-exceptions.txt`（只允许保持为空）
+- 归属：本卡独占上述迁移文件中的默认值子句；不改列名、类型、约束
+- 不碰：验收测试目录；框架自建表（Spring Session、Modulith 事件登记、ShedLock `usingDbTime`）与 Flowable `act_*`（FLW-1 另案）；种子迁移是否保留时钟写法先报告
+
+## 4. 验收测试（测试代理先写）
+- 测试代理：`code-modernization:test-engineer`（sonnet），先提交，trailer `Acceptance-Test-Author: test-engineer`
+- 路径：`backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/`、`…/acceptance/organization/workforce/` 等受影响模块子包
+- 测试名：
+  - `R-4 固定 Clock 下新建记录的 created_at 等于 Clock 时刻，而不是数据库时刻`
+  - `R-4 编号取号更新的时刻来自注入 Clock`（覆盖 3 处 `now()`）
+  - `R-4 迁移文件中不出现时钟类默认值与 now()`（守护负向样例：注入一条 `DEFAULT now()` 被拦下）
+
+## 5. 执行者与模型
+- 执行者：Codex（试点）
+- 模型与强度：`codex exec -m gpt-6.1-sol -c model_reasoning_effort=high -s workspace-write --ephemeral -o <结果文件>`
+- 工作区：独立 worktree，分支 `claude/one-1a-next-r4`，基线为 R-2 合并后的 main
+- 复审：opus，high；PR 正文注明「Codex 实现（gpt-6.1-sol，high）」
+
+## 6. 禁止事项
+- 不改表结构以外的业务语义；不改列名、类型（R-2 已完成）
+- 不往 `sql-database-clock-exceptions.txt` 加行
+- 不改验收测试；不放宽 `TimeSourceGuardTest` 已有断言
+- 不联网、不起容器（Testcontainers 测试由负责会话问过用户后运行）
+
+## 7. 预期表结构 diff
+- 两个空库分别执行改动前、后的基线，`pg_dump --schema-only` 对比
+- 预期差异只能是：99 处列的 `DEFAULT now()` / `DEFAULT current_timestamp` 被删除（逐列列在 PR 中）
+- 不得出现：列、类型、可空性、约束、索引的任何变化；`version` 等技术默认值的变化
+
+## 8. 交付物与自查
+- 交付物：基线迁移去时钟默认值；各 INSERT / UPDATE 显式传入 `Clock` 时刻；`TimeSourceGuardTest` 扫描迁移文件并带负向样例
+- 自查：`scripts/precheck.sh origin/main` 输出（迁移不可变、数据库脚本一致、gitleaks 须 PASS）
+- 受影响模块测试：precheck 给出的 `./mvnw -q test -Dtest=…`；交付前 `scripts/ci/backend_verify.sh`
+- 报告分开写「已验证」与「未运行」
+
+## 9. 复审要求
+- opus 核对：表结构 diff 只含声明的默认值删除；每处 INSERT 都传入时刻（无遗漏写 `null`）；守护对迁移生效且例外清单为空
+- Blocker / High 合并前修完并由 opus 复核；Medium / Low 登记进下一批
+
+## 10. 报告去向
+- 向 one-1a-next 报告，抄 one-coordinator；附返工轮次与耗时，与同类 sonnet 卡对比（SESSION_PLAYBOOK §5「Codex 派工」）
+```
