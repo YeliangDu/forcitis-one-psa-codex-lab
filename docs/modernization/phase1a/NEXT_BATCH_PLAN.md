@@ -457,6 +457,22 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 
 两条线文件基本不相交，可并行；P3b 在 D1-1、R-1b-0 之后（同改集成层）。
 
+### 7.11 ADR-0039 之后的 R-1b 排序（one-1a-next-3；one-coordinator 2026-10-15 采纳「甲′」）
+
+> 与 7.2、7.4、7.10 不一致处以本节为准。论证（文件交集、每张表只改一次）见负责会话私有证据 `~/.modernize/psa/handoff/one-1a-next-3/p3b-sequencing.md`。
+
+顺序：**R-1b-0a → P3b → 组织同步拆分 b（workforce「应用组织变更」与待放行离职）→ 拆分 a（集成层组织来源同步）→ R-1b-0b → DA-3 → P5**。
+
+| 项 | 决定 |
+|---|---|
+| ADR-0039:41「P3b 直接写到新 schema」 | 解释为：同步三表移出 P3b，由拆分按最终形态新建；P3b 只改 `sync_run_held_separations.employee_id` 的类型（外键指向 `employees.id`，无法避开）。决定本身不变（表只改一次、直接在最终位置）；该句与「3 个权限码」「5 个事件」计数由 one-architecture 在 ADR-0039 中加勘误说明 |
+| P3b 不等拆分 | P3b 本就要经来源对照分配自有 ID（ADR-0033 第 2 项第 3、4 条），不依赖拆分；拆分须先解决依赖反转成环（integration → workforce 与 audit → integration）、两事务一致性与新词门禁，前置会拖住 P3b → P4 → P5 → F-1 |
+| 表的位置 | P3b：workforce 快照、版本、归属期间与法人归属（DA-5 分列）、`user_accounts.employee_id`、`timesheets` 三列、审批 `initiator_id`；拆分 b：`sync_run_held_separations` 改为 workforce 待放行离职表、`last_sync_run_id` 改为引用变更集；拆分 a：`sync_runs`、`sync_diffs` 在 `platform_integration` 按最终形态新建（`subject_key` 拆列），`ddl-naming-baseline.txt` 同步表行直接删、新表合规命名（C10 例外）；DA-3：`employees` 删登录名与企业微信列；P5：`audit_entries.subject_key` |
+| 拆分内部顺序 | b 先 a 后：a 先则离职暂停仍挂在运行上，集成层须知道「谁是管理员」（被否决的 A2） |
+| R-1b-0 拆为 0a / 0b（重开 C-10） | 0a（读取列登记合并、`dbo.` 限定、启动时基表子集检查、`TYPE` 校验、三项守护 = D-1a-01 全部）现在做、P3b 前；0b（`STATE` / `IS_DELETED` / `IS_ENABLE` 读取、两项不一致判定记在集成层同步差异、RULING-R1B0-5）排在拆分 a 后。理由：按 ADR-0039 不一致判定的输入都是 A8 概念，只能在集成层，而同步差异要到拆分 a 才在集成层；不拆则 D-1a-01 要晚到拆分 a 之后 |
+| 新词 G06 / G07 | 撤下，随拆分 a 与集成层新词一并确认；G01–G05 照常确认（0a 只用 G01–G03） |
+| 拆分前设计卡 | one-architecture：依赖反转成环、登录查人改为 workforce 定义端口 / 集成层实现、D-1a-03「单事务」条款改写（不再问用户：用户选 A1 时已批两事务与组织同步整体搬） |
+
 ## 8. 2026-10-15 追加：部署前开发编排调整（one-1a-par）
 
 > 与第 1、6、7 节不一致处以本节为准。
