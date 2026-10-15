@@ -2,6 +2,7 @@ package com.forcitis.one.platform.integration.guard;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.JavaCode;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -9,6 +10,7 @@ import com.tngtech.archunit.core.importer.ImportOption;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
@@ -32,10 +34,11 @@ class ExternalConnectionFactoryGuardTest {
     static final Set<String> CONNECTION_BUILDERS = Set.of(
             "com.zaxxer.hikari.HikariConfig",
             "com.zaxxer.hikari.HikariDataSource",
+            "java.sql.Driver",
             "java.sql.DriverManager",
-            "org.springframework.jdbc.datasource.DriverManagerDataSource",
-            "org.springframework.jdbc.datasource.SimpleDriverDataSource",
             "org.springframework.boot.jdbc.DataSourceBuilder");
+
+    static final List<String> CONNECTION_PACKAGES = List.of("com.microsoft.sqlserver", "org.postgresql", "org.springframework.jdbc.datasource");
 
     static final JavaClasses CLASSES = new ClassFileImporter()
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
@@ -44,7 +47,8 @@ class ExternalConnectionFactoryGuardTest {
     static Set<String> classesThatBuildConnections() {
         return CLASSES.stream()
                 .filter(c -> c.getDirectDependenciesFromSelf().stream().map(d -> d.getTargetClass())
-                        .anyMatch(t -> CONNECTION_BUILDERS.contains(t.getName()) || t.getPackageName().startsWith("com.microsoft.sqlserver")))
+                        .anyMatch(t -> CONNECTION_BUILDERS.contains(t.getName())
+                                || CONNECTION_PACKAGES.stream().anyMatch(p -> t.getPackageName().equals(p) || t.getPackageName().startsWith(p + "."))))
                 .map(ExternalConnectionFactoryGuardTest::topLevelName)
                 .collect(Collectors.toCollection(TreeSet::new));
     }
@@ -75,10 +79,10 @@ class ExternalConnectionFactoryGuardTest {
 
         Path source = MAIN_SOURCES.resolve(factory.get().replace('.', '/') + ".java");
         assertThat(source).as("source of " + factory.get()).exists();
-        String text = Files.readString(source).toLowerCase(Locale.ROOT);
+        String text = JavaCode.withoutComments(Files.readString(source)).toLowerCase(Locale.ROOT);
 
-        assertThat(text).as("statement timeout (JDBC queryTimeout)").contains("querytimeout");
-        assertThat(text).as("network read timeout (JDBC socketTimeout)").contains("sockettimeout");
-        assertThat(text).as("lock wait limit (SET LOCK_TIMEOUT, SQL Server waits for ever by default)").contains("lock_timeout");
+        assertThat(text).as("statement timeout (JDBC queryTimeout)").contains("\"querytimeout\"");
+        assertThat(text).as("network read timeout (JDBC socketTimeout)").contains("\"sockettimeout\"");
+        assertThat(text).as("lock wait limit (SET LOCK_TIMEOUT, SQL Server waits for ever by default)").contains("\"set lock_timeout ");
     }
 }

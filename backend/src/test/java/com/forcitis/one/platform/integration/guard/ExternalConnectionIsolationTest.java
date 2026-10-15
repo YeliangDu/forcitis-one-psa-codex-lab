@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.integration.guard;
 
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.equivalentTo;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAnyPackage;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,8 +39,18 @@ class ExternalConnectionIsolationTest {
     @DisplayName("§9a only the connection factory of integration builds pools and touches the JDBC driver; the three read-only adapters (Seeyon, old short-name view, old to-do view) get theirs from it")
     void onlyTheConnectionFactoryBuildsExternalConnections() {
         noClasses().that().resideOutsideOfPackage(CONNECTION)
-                .should().dependOnClassesThat().resideInAnyPackage("com.zaxxer.hikari..", "com.microsoft.sqlserver..")
+                .should().dependOnClassesThat(resideInAnyPackage("com.zaxxer.hikari..", "org.springframework.jdbc.datasource..", "org.postgresql..", "com.microsoft.sqlserver..")
+                        .or(equivalentTo(java.sql.Driver.class)).or(equivalentTo(java.sql.DriverManager.class)))
                 .because("every external connection carries the query, socket and lock-wait timeouts only if it is built by platform.integration.infrastructure.connection")
+                .check(CLASSES);
+    }
+
+    @Test
+    @DisplayName("D1-1-R1 onlyTheApprovedAdaptersObtainExternalConnections: only the Seeyon, old-system and old to-do adapter packages (and the factory itself) use platform.integration.api.ExternalConnections")
+    void onlyTheApprovedAdaptersObtainExternalConnections() {
+        noClasses().that().resideOutsideOfPackages(SEEYON, INTEGRATION_LEGACY, APPROVAL_LEGACY, CONNECTION)
+                .should().dependOnClassesThat().haveFullyQualifiedName(ROOT + ".platform.integration.api.ExternalConnections")
+                .because("ADR-0037 item 2: no new exception to who may connect to the A8 or the old database; the shared api type must not widen the three adapters")
                 .check(CLASSES);
     }
 
