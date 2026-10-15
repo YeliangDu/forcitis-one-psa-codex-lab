@@ -26,6 +26,9 @@ class TestContainerGuardTest {
     static final String CONTAINER = "org.testcontainers.postgresql.PostgreSQLContainer";
     static final String HOME = "com.forcitis.one.TestPostgres";
     static final String JDBC_URL = "jdbc:" + "tc:";
+    static final String MSSQL_CONTAINER = "org.testcontainers.mssqlserver.MSSQLServerContainer";
+    static final String MSSQL_HOME = "com.forcitis.one.TestMssql";
+    static final String MSSQL_IMAGE_SOURCES = "/TestMssql.java|/TestImages.java|/TestContainerGuardTest.java";
 
     @Test
     @DisplayName("DDL-11 the PostgreSQL container is built, subclassed or referenced as a constructor in TestPostgres only; the files that still do are listed, and a listed file that no longer does is deleted from the list")
@@ -73,5 +76,38 @@ class TestContainerGuardTest {
 
         assertThat(added).as("test sources that start a PostgreSQL container themselves: use TestPostgres.container()").isEmpty();
         assertThat(closed).as("listed in %s but they no longer do (delete the line)", GAPS).isEmpty();
+    }
+
+    @Test
+    @DisplayName("SQL Server containers are built, subclassed or referenced as a constructor in TestMssql only, and the image prefix is read there only (one shared container per fork)")
+    void sqlServerContainersAreStartedThroughTestMssql() throws IOException {
+        Set<String> found = new TreeSet<>();
+        JavaClasses compiled = new ClassFileImporter().importPath(TEST_CLASSES);
+        assertThat(compiled.size()).as("compiled test classes (run test-compile first)").isGreaterThan(100);
+        for (JavaClass type : compiled) {
+            String top = type.getName().replaceAll("\\$.*", "");
+            if (top.equals(MSSQL_HOME)) {
+                continue;
+            }
+            boolean builds = type.getConstructorCallsFromSelf().stream().anyMatch(call -> call.getTargetOwner().getName().equals(MSSQL_CONTAINER))
+                    || type.getCodeUnits().stream().flatMap(unit -> unit.getConstructorReferencesFromSelf().stream())
+                            .anyMatch(reference -> reference.getTargetOwner().getName().equals(MSSQL_CONTAINER))
+                    || type.getAllRawSuperclasses().stream().anyMatch(parent -> parent.getName().equals(MSSQL_CONTAINER));
+            if (builds) {
+                found.add("src/test/java/" + top.replace('.', '/') + ".java");
+            }
+        }
+        // a constant is inlined by javac, so the read of the image prefix is found in the source text
+        try (Stream<Path> files = Files.walk(TEST_SOURCES)) {
+            for (Path file : files.filter(Files::isRegularFile).filter(f -> f.toString().endsWith(".java")).toList()) {
+                String path = file.toString().replace('\\', '/');
+                if (!MSSQL_IMAGE_SOURCES.contains(path.substring(path.lastIndexOf('/'))) && Files.readString(file).contains("MSSQL_PREFIX")) {
+                    found.add(path);
+                }
+            }
+        }
+
+        assertThat(found).as("test sources that start SQL Server themselves or read TestImages.MSSQL_PREFIX: use TestMssql.shared() / database() / container()")
+                .isEmpty();
     }
 }
