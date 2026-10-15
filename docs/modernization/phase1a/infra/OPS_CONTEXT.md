@@ -38,6 +38,7 @@
 - 首次 dev 部署通过后：删 /root/one-ops-backup-20261015020632；白天测 GitHub 直拉速度
 - 构建变量待替换：SSO 门户地址（B-3 回传后）、PROD_*（生产前确认）
 - 拉取单元沙箱收紧：首次 dev 部署跑通后、下次改安装器或单元时（RELEASE §10，#157）
+- NTP 偏差检查单元（INFRA_RUNBOOK §8「节点时间同步」，阈值 100 ms / 1 s）：安装前报计划待批
 - pg_stat_statements：Phase 2 前请示
 
 ## 坑
