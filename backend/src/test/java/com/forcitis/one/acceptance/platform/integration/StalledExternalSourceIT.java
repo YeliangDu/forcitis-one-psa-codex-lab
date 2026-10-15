@@ -5,6 +5,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import com.forcitis.one.TestImages;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WorkContext;
@@ -102,7 +103,7 @@ class StalledExternalSourceIT {
     static final String TODO_READER_PASSWORD = "Cc3!" + UUID.randomUUID();
     static final String NAMES_READER_PASSWORD = "Dd4!" + UUID.randomUUID();
 
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestImages.startingWith("postgres:"))
+    static final PostgreSQLContainer POSTGRES = TestPostgres.container()
             .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
 
     static final GenericContainer<?> MSSQL = new GenericContainer<>(TestImages.startingWith(TestImages.MSSQL_PREFIX))
