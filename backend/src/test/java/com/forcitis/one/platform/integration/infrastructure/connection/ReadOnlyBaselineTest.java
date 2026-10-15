@@ -355,6 +355,21 @@ class ReadOnlyBaselineTest {
     }
 
     @Test
+    @DisplayName("PAR-2 count adds up per call: when nothing can be read, each item counts its failed queries ((d) three, (f) two, the others one)")
+    void failedQueriesAreCountedPerCall() {
+        catalog.unreachable = true;
+
+        assertThat(ReadOnlyBaseline.check(catalog).unmet()).extracting(u -> u.item() + "=" + u.findings().stream().mapToInt(Finding::count).sum())
+                .containsExactly("a=1", "b=1", "c=1", "d=3", "e=1", "f=2", "g=1");
+    }
+
+    @Test
+    @DisplayName("PAR-2 a driver that gives no SQLState leaves the state empty, not invented")
+    void missingSqlStateStaysEmpty() {
+        assertThat(SqlError.of(new SQLException("x"))).contains(new SqlError(0, null));
+    }
+
+    @Test
     @DisplayName("PAR-2 every counterexample yields its reason code on its item")
     void everyCounterexampleYieldsItsReason() {
         for (Counterexample counterexample : COUNTEREXAMPLES) {

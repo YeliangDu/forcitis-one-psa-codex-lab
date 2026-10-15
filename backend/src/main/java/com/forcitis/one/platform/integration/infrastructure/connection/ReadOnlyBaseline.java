@@ -108,7 +108,7 @@ final class ReadOnlyBaseline {
     }
 
     /** The error number and SQLState of the innermost SQL exception of a failure, as the driver reported them; never its message. */
-    record SqlError(int number, String state) {
+    record SqlError(int number, @Nullable String state) {
 
         static Optional<SqlError> of(Throwable failure) {
             SQLException innermost = null;
@@ -122,7 +122,10 @@ final class ReadOnlyBaseline {
         }
     }
 
-    /** count is how many entries of the category were found (permissions, roles, databases, rows); a failed or empty answer counts one. */
+    /**
+     * One finding per call within an item: count is how many entries of the category the call found (permissions, roles, databases, rows);
+     * a failed or empty answer counts one, so an item whose queries all fail counts its failed queries.
+     */
     record Finding(Reason reason, int count, @Nullable SqlError failure) {
 
         Optional<SqlError> sqlError() {
