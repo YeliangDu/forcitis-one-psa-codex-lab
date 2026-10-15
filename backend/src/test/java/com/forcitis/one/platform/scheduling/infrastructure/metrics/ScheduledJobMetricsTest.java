@@ -35,13 +35,13 @@ class ScheduledJobMetricsTest {
 
     static class Nightly {
         @Scheduled(cron = "0 0 0 1 1 *")
-        @SchedulerLock(name = "platform.scheduling.test.breaks")
+        @SchedulerLock(name = "test.scheduling.breaks")
         void breaks() {
             throw new IllegalStateException("job failed");
         }
 
         @Scheduled(cron = "0 0 0 1 1 *")
-        @SchedulerLock(name = "platform.scheduling.test.works")
+        @SchedulerLock(name = "test.scheduling.works")
         void works() {
         }
 
@@ -67,7 +67,7 @@ class ScheduledJobMetricsTest {
             assertThatThrownBy(nightly::breaks).isInstanceOf(IllegalStateException.class).hasMessage("job failed");
             assertThatThrownBy(nightly::breaks).isInstanceOf(IllegalStateException.class);
 
-            assertThat(failures(registry, "platform.scheduling.test.breaks")).isEqualTo(2.0);
+            assertThat(failures(registry, "test.scheduling.breaks")).isEqualTo(2.0);
         });
     }
 
@@ -81,9 +81,9 @@ class ScheduledJobMetricsTest {
             nightly.works();
             assertThatThrownBy(nightly::helper).isInstanceOf(IllegalStateException.class);
 
-            assertThat(failures(registry, "platform.scheduling.test.works")).isZero();
+            assertThat(failures(registry, "test.scheduling.works")).isZero();
             assertThat(registry.find(FAILURES).counters()).extracting(c -> c.getId().getTag("job"))
-                    .containsExactlyInAnyOrder("platform.scheduling.test.breaks", "platform.scheduling.test.works");
+                    .containsExactlyInAnyOrder("test.scheduling.breaks", "test.scheduling.works");
         });
     }
 
@@ -93,8 +93,8 @@ class ScheduledJobMetricsTest {
         runner.run(context -> {
             MeterRegistry registry = context.getBean(MeterRegistry.class);
 
-            assertThat(failures(registry, "platform.scheduling.test.breaks")).isZero();
-            assertThat(failures(registry, "platform.scheduling.test.works")).isZero();
+            assertThat(failures(registry, "test.scheduling.breaks")).isZero();
+            assertThat(failures(registry, "test.scheduling.works")).isZero();
         });
     }
 }

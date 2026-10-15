@@ -46,7 +46,7 @@ class SeeyonConfigurationTest {
             assertThat(context).hasNotFailed();
             assertThat(context.getBean(OrgSource.class)).isInstanceOf(DisabledOrgSource.class);
             assertThat(context).doesNotHaveBean(SeeyonConnections.class);
-            assertThat(context.getBean(OrgSource.class).findStaffByWecomUserId(new WecomUserId("wx-1"))).isEmpty();
+            assertThat(context.getBean(OrgSource.class).findStaffByWecomUser(new WecomUserId("wx-1"))).isEmpty();
             assertThat(context.getBean(OrgSource.class).findStaffByLoginName("someone")).isEmpty();
             assertThatThrownBy(() -> context.getBean(OrgSource.class).readSnapshot()).isInstanceOf(ExternalSystemUnavailableException.class);
         });

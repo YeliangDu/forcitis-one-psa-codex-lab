@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.idempotency;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -134,7 +135,7 @@ class IdempotencyIT {
     }
 
     private MockHttpServletRequestBuilder order(String user, String key, String body) {
-        return post(ORDERS).with(user(user)).with(csrf()).header(KEY, key).contentType(MediaType.APPLICATION_JSON).content(body);
+        return post(ORDERS).with(user(TestAccounts.account(Long.parseLong(user)).value().toString())).with(csrf()).header(KEY, key).contentType(MediaType.APPLICATION_JSON).content(body);
     }
 
     private String problemCode(MvcResult result) throws Exception {
@@ -267,8 +268,8 @@ class IdempotencyIT {
     @DisplayName("what hands out a credential (under /sessions) is never stored, and only POST is covered")
     void scope() throws Exception {
         for (int i = 0; i < 2; i++) {
-            mvc.perform(post(SESSIONS).with(user("1")).with(csrf()).header(KEY, "k-session")).andReturn();
-            mvc.perform(put("/api/v1/platform/idempotency-probe/orders/1").with(user("1")).with(csrf()).header(KEY, "k-put")).andReturn();
+            mvc.perform(post(SESSIONS).with(user(TestAccounts.account(1).value().toString())).with(csrf()).header(KEY, "k-session")).andReturn();
+            mvc.perform(put("/api/v1/platform/idempotency-probe/orders/1").with(user(TestAccounts.account(1).value().toString())).with(csrf()).header(KEY, "k-put")).andReturn();
         }
 
         assertThat(probe.runs.get()).as("every call ran").isEqualTo(4);

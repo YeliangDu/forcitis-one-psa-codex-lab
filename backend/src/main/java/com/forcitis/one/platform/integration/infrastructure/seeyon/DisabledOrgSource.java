@@ -15,7 +15,7 @@ final class DisabledOrgSource implements OrgSource {
     }
 
     @Override
-    public List<SourcePerson> findStaffByWecomUserId(WecomUserId wecomUserId) {
+    public List<SourcePerson> findStaffByWecomUser(WecomUserId wecomUserId) {
         return List.of();
     }
 

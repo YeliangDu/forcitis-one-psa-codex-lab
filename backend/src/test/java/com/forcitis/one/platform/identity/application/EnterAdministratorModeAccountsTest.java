@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,7 +35,7 @@ import org.springframework.transaction.PlatformTransactionManager;
  * somebody else, whose code must not open the mode.
  */
 class EnterAdministratorModeAccountsTest {
-    static final UserId ACCOUNT = new UserId(6001);
+    static final UserId ACCOUNT = TestAccounts.account(6001);
     static final EmployeeId SIGNED_IN_EMPLOYEE = new EmployeeId(1001);
     static final Instant UNTIL = Instant.parse("2026-10-14T03:00:00Z");
 

@@ -435,6 +435,12 @@ ADR-0037 已采纳（Q1 选 (c)：现有 6 个视图冻结不动，新读取与 
 | 只追加表的 `updated_at` | 保留并加注释；统一去掉另开 PR，由 one-coordinator 定 |
 | A8 同步范围 | `MEMBER_SCOPE` 不看删除 / 启用标志，已删除或停用人员进入快照；R-1b-0 之后的同步卡或 DA-3 处理 |
 | RULE-363 | 修订随 DA-3（7.6） |
+| R-1b P2 复核 L-1（one-1a-next-3） | 系统操作主体目录 `system-actors.txt`「改名新增一行、旧行不删」加守护：CI 以 `git show origin/main:backend/architecture/system-actors.txt` 校验旧行仍在；落点 P5（P5 独占全部守护文件） |
+| R-1b P2 复核 L-8 | `SnapshotFreshness.cycleOf` 只取 cron 第一个间隔，间隔不均匀的 cron 会算错（现行每 5 分钟，无影响）；落点 P5 或首次改同步 cron 的卡 |
+| R-1b P2 复审 P2-L2 | `primary-key-type-baseline.txt` 中 `account_roles` 理由「the user id is the employee id」已过时；落点 W2（ADR-0034 实现卡） |
+| R-1b P2 复审 P2-L12 | 前端测试桩数据 `userId: '1001'` 仍为数字形态；落点 P5（G-A1 收尾） |
+| R-1b P2 卡外缺陷 | `OperationsCommands` 用 `UUID.randomUUID()` 作关联号，违反 ADR-0033 第 1 项第 11 条；手术式小卡 OPS-CID，P2 合并后 |
+| #184 opus 点检 Low | `review_revisions.py` 的 `GITHUB_ACTIONS == "true"` 补自测（true 且无基线失败、false 只告警）；空 `--base` 被拒时先输出一行针对性错误；与 #119 余项同文件，下一张文档工具小卡 |
 
 ### 7.9 子代理工作区约定（运行环境限制，2026-10-15 起）
 
@@ -501,6 +507,7 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 | 卡 | 内容 | 前置 | 来源 |
 |---|---|---|---|
 | FLW-2 BPMN 不用引擎计时器与到期 | 守护：流程定义（`processes/**.bpmn20.xml`）不得含计时器事件与 `flowable:dueDate`，时限只由 `approval_tasks` 与定时作业判定（RULE-386）；执行者到时定，opus 复审 | R-1b P4 之后（P4 独占 `EngineWiring`） | FLW-1 复审 L-6；one-coordinator 2026-10-15 排卡 |
+| OPS-PORT 运维命令档案不起 Web（结构性） | `identity-operations` 档案真正不起 Web：单独装配不依赖 Web 应用类型的 JDBC 会话仓库，控制器、安全链与 `CallerUserIdResolver` 等 Web 配置不进该档案上下文；`OperationsProfileSmokeTest` B1-R3 改为断言没有 WebServer（更严，PR 单列）；回归测试 `OperationsProfileListensOnNoPortTest`（分支 `claude/one-1a-par-ops-port`，先红已提交）。起因：one.env 的 `SERVER_PORT` / `MANAGEMENT_SERVER_PORT` 环境变量优先于档案文件；保留 servlet 设 `port=-1` 时 Tomcat 仍开随机端口（B1-R3 断言名不副实，已先改说明）。dev 前兜底：C-5 运行写法加 `UnsetEnvironment` 两端口变量（one-ops），`SERVER_ADDRESS=127.0.0.1` 使随机端口只绑回环；开工前向 one-1a-next-3 确认独占构件、按术语门禁列新词 | R-1b P2 合并后 | one-1a-par 发现；one-coordinator 2026-10-15 裁定方向 A、标结构性 |
 
 **F-1 规格裁定**（one-coordinator 2026-10-15 裁定，验收测试据此写，分支 `claude/one-1a-par-f1-acceptance`，与实现同一 PR 合并）：
 - 自定义部门明细挂在角色版本上，归 `role:update`（已采纳 ADR-0034 第 5 项）；2.4 F-1 行「授予时选范围的权限沿用 `account-role:update`」写于 ADR-0034 采纳前，以 ADR 为准；contract D-1a-58 在 1a 范围内由 ADR-0034 解决。

@@ -4,11 +4,12 @@ import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /** page is absent for an export, which takes every match up to its own limit. */
-public record AuditSearch(Long actorId, Long onBehalfOfId, String action, String actionPrefix, String subjectKey, String sourceAddress,
+public record AuditSearch(UUID actorId, UUID onBehalfOfId, String action, String actionPrefix, String subjectKey, String sourceAddress,
                           AuditOutcome outcome, Instant from, Instant to, PageRequest page) {
 
     /** The filter as text for the audit entry about the search or the export; control characters cannot forge a line. */

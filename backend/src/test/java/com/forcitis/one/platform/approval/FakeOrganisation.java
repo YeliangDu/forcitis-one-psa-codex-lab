@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
@@ -85,14 +86,20 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
     }
 
     @Override
-    public Optional<EmployeeProfile> findEmployeeByLoginName(String loginName) {
-        return Optional.empty();
+    public Optional<EmployeeProfile> findEmployeeByLogin(com.forcitis.one.organization.workforce.api.LoginLookup lookup) {
+        if (!(lookup instanceof com.forcitis.one.organization.workforce.api.LoginLookup.ByWecomUser(WecomUserId wecomUserId))) {
+            return Optional.empty();
+        }
+        return people.values().stream().filter(p -> wecomUserId.value().equals(p.wecom())).findFirst()
+                .flatMap(p -> findEmployee(new EmployeeId(p.id())));
     }
 
     @Override
-    public Optional<EmployeeProfile> findEmployeeByWecomUserId(WecomUserId wecomUserId) {
-        return people.values().stream().filter(p -> wecomUserId.value().equals(p.wecom())).findFirst()
-                .flatMap(p -> findEmployee(new EmployeeId(p.id())));
+    public com.forcitis.one.organization.workforce.api.EmploymentVerdict employmentOf(EmployeeId employeeId) {
+        return findEmployee(employeeId).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED
+                ? com.forcitis.one.organization.workforce.api.EmploymentVerdict.EMPLOYED
+                : com.forcitis.one.organization.workforce.api.EmploymentVerdict.SEPARATED)
+                .orElse(com.forcitis.one.organization.workforce.api.EmploymentVerdict.NOT_LISTED);
     }
 
     @Override
@@ -135,7 +142,7 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
         for (Long holder : roles.getOrDefault(roleCode.value(), Set.of())) {
             Person person = people.get(holder);
             if (person != null && person.employed()) {
-                holders.add(new UserId(holder));
+                holders.add(TestAccounts.account(holder));
             }
         }
         return holders;

@@ -6,13 +6,14 @@ import com.forcitis.one.organization.workforce.domain.SyncRunRecord;
 import com.forcitis.one.kernel.EmployeeId;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 public record SyncRunView(SyncRunId syncRunId, String trigger, String status, Instant startedAt, Instant finishedAt,
                           Integer sourceOrgUnitCount, Integer sourceEmployeeCount, Integer incomingActiveOrgUnitCount,
                           Integer incomingEmployedCount, Integer previousActiveOrgUnitCount,
                           Integer previousEmployedCount, Integer orgUnitChangeCount, Integer employeeChangeCount,
                           Integer positionChangeCount, Integer isolatedRowCount, Integer issueCount,
-                          Integer employedWithoutWecomCount, String heldReason, String failureReason, Long releasedBy,
+                          Integer employedWithoutWecomCount, String heldReason, String failureReason, UUID releasedBy,
                           Instant releasedAt, SyncRunId releasedByRunId, List<String> holdKinds, List<String> releasedKinds,
                           List<Long> heldSeparations) {
     static SyncRunView of(SyncRunRecord run) {

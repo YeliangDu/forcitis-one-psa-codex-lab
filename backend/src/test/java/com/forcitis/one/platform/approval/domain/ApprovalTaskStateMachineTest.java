@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.domain;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskStatus;
@@ -50,8 +51,8 @@ import org.junit.jupiter.api.Test;
 
 class ApprovalTaskStateMachineTest {
 
-    static final UserId HOLDER = new UserId(20);
-    static final UserId OTHER = new UserId(21);
+    static final UserId HOLDER = TestAccounts.account(20);
+    static final UserId OTHER = TestAccounts.account(21);
     static final EmployeeId INITIATOR = new EmployeeId(10);
     static final Instant DUE = Instant.parse("2026-10-19T15:59:00Z");
     static final Instant REMIND_AT = Instant.parse("2026-10-20T01:00:00Z");
@@ -62,7 +63,7 @@ class ApprovalTaskStateMachineTest {
     static final ApprovalInstanceId INSTANCE = new ApprovalInstanceId("i-1");
     static final NodeKey NODE = new NodeKey("projectManagerReview");
     static final com.forcitis.one.platform.approval.api.NodeName NODE_NAME = new com.forcitis.one.platform.approval.api.NodeName("项目经理审批");
-    static final UserId ADMIN = new UserId(1);
+    static final UserId ADMIN = TestAccounts.account(1);
     static final DocumentReference DOCUMENT = new DocumentReference(DocumentType.TIMESHEET, new DocumentId("7"));
     static final DeadlinePlan PLAN = new DeadlinePlan(DUE, REMIND_AT, ESCALATE_AT);
     static final TestEventEnvelopes ENVELOPES = new TestEventEnvelopes();
@@ -150,7 +151,7 @@ class ApprovalTaskStateMachineTest {
     @DisplayName("RULE-285 D-1a-75 only the current handler hands a task over, never to themself, and says why")
     void transferIsTheHandlersAndToSomebodyElseWithAReason() {
         ApprovalRequest request = in(ApprovalTaskStatus.CLAIMED);
-        assertThatThrownBy(() -> request.transferTask(TASK, OTHER, new UserId(22), new Reason("r"), NOW)).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> request.transferTask(TASK, OTHER, TestAccounts.account(22), new Reason("r"), NOW)).isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> request.transferTask(TASK, HOLDER, HOLDER, new Reason("r"), NOW)).isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> request.transferTask(TASK, HOLDER, OTHER, null, NOW)).isInstanceOfSatisfying(DomainException.class,
                 e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
@@ -227,9 +228,9 @@ class ApprovalTaskStateMachineTest {
         request.markTaskOverdue(TASK, List.of(HOLDER), NOW);
         request.escalateTask(TASK, List.of(OTHER), false, NOW);
         request.claimTask(TASK, OTHER, NOW);
-        request.transferTask(TASK, OTHER, new UserId(22), new Reason("on leave"), NOW);
-        request.reassignTask(TASK, ADMIN, new UserId(23), new Reason("covering"), NOW);
-        request.releaseTask(TASK, new UserId(23), NOW);
+        request.transferTask(TASK, OTHER, TestAccounts.account(22), new Reason("on leave"), NOW);
+        request.reassignTask(TASK, ADMIN, TestAccounts.account(23), new Reason("covering"), NOW);
+        request.releaseTask(TASK, TestAccounts.account(23), NOW);
         request.claimTask(TASK, HOLDER, NOW);
         request.completeTask(TASK, HOLDER, TaskOutcome.APPROVED, false, null, new ContentHash("d"), NOW);
         request.reject(new Reason("no"), NOW);
@@ -263,8 +264,8 @@ class ApprovalTaskStateMachineTest {
         TaskTransferred transferred = (TaskTransferred) events.get(7);
         assertThat(transferred.reason()).isEqualTo(new Reason("on leave"));
         TaskReassigned reassigned = (TaskReassigned) events.get(8);
-        assertThat(reassigned.from()).isEqualTo(new UserId(22));
-        assertThat(reassigned.to()).isEqualTo(new UserId(23));
+        assertThat(reassigned.from()).isEqualTo(TestAccounts.account(22));
+        assertThat(reassigned.to()).isEqualTo(TestAccounts.account(23));
         assertThat(events.get(9)).isInstanceOf(TaskReleased.class);
         assertThat(events.get(12)).isInstanceOf(TaskClosed.class);
         assertThat(((TaskClosed) events.get(12)).taskId()).isEqualTo(new ApprovalTaskId("t-2"));

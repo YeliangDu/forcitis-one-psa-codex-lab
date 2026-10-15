@@ -29,7 +29,7 @@ class RoleHolders implements RoleDirectory {
     @Transactional(readOnly = true)
     public Set<UserId> findRoleHolders(RoleCode roleCode) {
         return accounts.findEnabledHolders(roleCode).stream()
-                .filter(userId -> directory.findEmployee(accountEmployees.employeeOf(userId))
+                .filter(userId -> accountEmployees.employeeOf(userId).flatMap(directory::findEmployee)
                         .map(employee -> employee.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false))
                 .collect(Collectors.toUnmodifiableSet());
     }

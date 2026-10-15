@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.when;
@@ -47,17 +48,19 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     @Autowired
     TotpSecretVault vault;
 
-    private void publish(List<EmployeeId> changed, List<EmployeeId> separated) {
-        tx.executeWithoutResult(status -> events.publishEvent(
-                new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), changed, separated, List.of(), java.time.LocalDate.of(2026, 10, 15))));
+    private UUID publish(List<EmployeeId> changed, List<EmployeeId> separated) {
+        OrgSnapshotChanged event = new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), changed, separated,
+                List.of(), java.time.LocalDate.of(2026, 10, 15));
+        tx.executeWithoutResult(status -> events.publishEvent(event));
+        return event.envelope().eventId();
     }
 
     private long roleCount(long userId) {
-        return jdbc.sql("select count(*) from platform_identity.account_roles where user_id = :id").param("id", userId).query(Long.class).single();
+        return jdbc.sql("select count(*) from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = :id)").param("id", userId).query(Long.class).single();
     }
 
     private void registerEmergencyAdmin(long userId, String name) {
-        emergencyAdmins.insertIfAbsent(EmergencyAdmin.register(new UserId(userId), name, hasher.hash(UUID.randomUUID().toString()), vault.seal(Totp.newSecret())));
+        emergencyAdmins.insertIfAbsent(EmergencyAdmin.register(new com.forcitis.one.kernel.UserId(accountOf(userId)), name, hasher.hash(UUID.randomUUID().toString()), vault.seal(Totp.newSecret())));
     }
 
     @Test
@@ -75,22 +78,22 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(roleCount(1001)).isZero());
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(domainEvents.of(EmergencyAdminDisabled.class)).hasSize(1));
         assertThat(roleCount(1002)).as("nobody else is touched").isEqualTo(1);
-        assertThat(jdbc.sql("select is_enabled from platform_identity.emergency_admins where user_id = 1001").query(Boolean.class).single()).isFalse();
-        assertThat(jdbc.sql("select is_enabled from platform_identity.emergency_admins where user_id = 1002").query(Boolean.class).single()).isTrue();
-        assertThat(jdbc.sql("select count(*) from platform_identity.sessions where principal_name = '1001'").query(Long.class).single()).isZero();
-        assertThat(jdbc.sql("select count(*) from platform_identity.sessions where principal_name = '1002'").query(Long.class).single()).isEqualTo(1);
+        assertThat(jdbc.sql("select is_enabled from platform_identity.emergency_admins where user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 1001)").query(Boolean.class).single()).isFalse();
+        assertThat(jdbc.sql("select is_enabled from platform_identity.emergency_admins where user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 1002)").query(Boolean.class).single()).isTrue();
+        assertThat(jdbc.sql("select count(*) from platform_identity.sessions where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = 1001)").query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("select count(*) from platform_identity.sessions where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = 1002)").query(Long.class).single()).isEqualTo(1);
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("platform.identity.account.role.revoked"))
                 .extracting(AuditEntry::detail)
                 .containsExactlyInAnyOrder("role=employee cause=separation", "role=org_data_admin cause=separation", "role=super_admin cause=separation");
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("platform.identity.account.role.revoked"))
-                .allSatisfy(entry -> assertThat(entry.subjectKey()).isEqualTo("user-account:1001"));
+                .allSatisfy(entry -> assertThat(entry.subjectKey()).isEqualTo("user-account:" + accountOf(1001)));
         assertThat(recorded()).extracting(AuditEntry::action).contains("platform.identity.session.revoked");
         assertThat(domainEvents.of(AccountRolesReplaced.class)).singleElement().satisfies(e -> {
-            assertThat(e.userId()).isEqualTo(new UserId(1001));
+            assertThat(e.userId()).isEqualTo(new com.forcitis.one.kernel.UserId(accountOf(1001)));
             assertThat(e.roleIds()).isEmpty();
         });
         assertThat(domainEvents.of(EmergencyAdminDisabled.class)).singleElement().satisfies(e -> {
-            assertThat(e.userId()).isEqualTo(new UserId(1001));
+            assertThat(e.userId()).isEqualTo(new com.forcitis.one.kernel.UserId(accountOf(1001)));
             assertThat(e.cause()).isEqualTo(EmergencyAdminDisableCause.SEPARATION);
         });
         assertThat(mvcStatus(victim)).isEqualTo(401);
@@ -126,13 +129,19 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("a person without an account is a quiet no-op for the roles")
-    void personWithoutAnAccount() {
-        publish(List.of(), List.of(new EmployeeId(5555)));
+    @DisplayName("P2-H3 a person without an account is a quiet no-op: once the separation listener has handled the event, no account is opened, no role and no session is revoked (R-1b P2: there is no account id to name)")
+    void P2_H3_noAccountIsOpenedForASeparatedPersonWithout() {
+        UUID published = publish(List.of(), List.of(new EmployeeId(5555)));
 
-        await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
-                assertThat(recorded().stream().filter(e -> e.subjectKey().equals("user-account:5555")).count()).isEqualTo(1));
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(jdbc.sql("""
+                select count(*) from (select listener_id, completion_date, serialized_event from platform_integration.event_publication
+                                      union all
+                                      select listener_id, completion_date, serialized_event from platform_integration.event_publication_archive) p
+                 where p.listener_id like '%HandleOrgSnapshotChange%' and p.completion_date is not null and p.serialized_event like :event
+                """).param("event", "%" + published + "%").query(Long.class).single()).isEqualTo(1));
+        assertThat(count("user_accounts")).isZero();
         assertThat(count("account_roles")).isZero();
+        assertThat(recorded()).noneMatch(e -> e.action().equals("platform.identity.session.revoked"));
     }
 
     private int mvcStatus(String session) throws Exception {

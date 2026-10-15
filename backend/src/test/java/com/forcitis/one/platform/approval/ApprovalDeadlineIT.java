@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -247,7 +248,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
         assertThat(approvals.isFinished(s.instance())).isFalse();
         List<ApprovalTaskOverdue> overdue = events.overdue().stream().filter(e -> e.taskId().equals(s.task())).toList();
         assertThat(overdue).hasSize(1);
-        assertThat(overdue.getFirst().holders()).containsExactly(new UserId(s.manager()));
+        assertThat(overdue.getFirst().holders()).containsExactly(TestAccounts.account(s.manager()));
         assertThat(overdue.getFirst().dueAt()).isEqualTo(dueOf(s));
         assertThat(overdue.getFirst().envelope().aggregateType()).isEqualTo("ApprovalRequest");
         assertThat(overdue.getFirst().envelope().aggregateId()).isEqualTo("TIMESHEET:" + s.key());
@@ -260,7 +261,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
     @DisplayName("D-1a-84 a task decided in time is never reminded")
     void decidedInTimeIsNotReminded() {
         Scene s = scene(true);
-        decideTasks.execute(new UserId(s.manager()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
+        decideTasks.execute(TestAccounts.account(s.manager()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
 
         clock.set(escalateAtOf(s).plusSeconds(1));
 
@@ -273,24 +274,24 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
     @DisplayName("D-1a-113 a claimed task that is still unhandled at the escalation time goes to the claimant's superior; the claimant stays a candidate")
     void aClaimedTaskEscalatesToTheSuperior() {
         Scene s = scene(true);
-        claimTask.execute(s.task(), new UserId(s.manager()), java.util.OptionalLong.empty());
+        claimTask.execute(s.task(), TestAccounts.account(s.manager()), java.util.OptionalLong.empty());
         clock.set(escalateAtOf(s).plusSeconds(1));
 
         enforceDeadlines.execute();
 
-        assertThat(candidatesOf(s)).containsExactlyInAnyOrder(String.valueOf(s.manager()), String.valueOf(s.head()));
+        assertThat(candidatesOf(s)).containsExactlyInAnyOrder(TestAccounts.account(s.manager()).value().toString(), TestAccounts.account(s.head()).value().toString());
         assertThat(openTask(s.instance()).getAssignee()).as("the claim is released so the superior can take it").isNull();
         assertThat(jdbc.queryForObject("select status from platform_approval.approval_tasks where task_id = ?", String.class, s.task().value()))
                 .isEqualTo("PENDING");
         verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.deduplicationKey().equals("approval-task:" + s.task().value() + ":escalated")
                 && card.wecomUserIds().equals(List.of(new WecomUserId(organisation.wecomOf(s.head()))))));
         ApprovalTaskEscalated escalated = events.escalated().stream().filter(e -> e.taskId().equals(s.task())).findFirst().orElseThrow();
-        assertThat(escalated.escalatedTo()).containsExactly(new UserId(s.head()));
+        assertThat(escalated.escalatedTo()).containsExactly(TestAccounts.account(s.head()));
         assertThat(escalated.target()).isEqualTo(EscalationTarget.SUPERVISOR);
         assertThat(escalated.envelope().aggregateVersion()).as("round, assigned, claimed, overdue, escalated").isEqualTo(5);
         assertThat(requestStatus(s.key())).isEqualTo("RUNNING");
 
-        decideTasks.execute(new UserId(s.head()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, "covering")), java.util.OptionalLong.empty());
+        decideTasks.execute(TestAccounts.account(s.head()), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, "covering")), java.util.OptionalLong.empty());
         assertThat(requestStatus(s.key())).isEqualTo("APPROVED");
     }
 
@@ -305,15 +306,15 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
 
         enforceDeadlines.execute();
 
-        assertThat(candidatesOf(s)).containsExactlyInAnyOrder(String.valueOf(s.manager()), String.valueOf(ADMINISTRATOR),
-                String.valueOf(secondAdministrator));
+        assertThat(candidatesOf(s)).containsExactlyInAnyOrder(TestAccounts.account(s.manager()).value().toString(), TestAccounts.account(ADMINISTRATOR).value().toString(),
+                TestAccounts.account(secondAdministrator).value().toString());
         ApprovalTaskEscalated escalated = events.escalated().stream().filter(e -> e.taskId().equals(s.task())).findFirst().orElseThrow();
         assertThat(escalated.target()).isEqualTo(EscalationTarget.PROCESS_ADMINISTRATOR);
-        assertThat(escalated.escalatedTo()).containsExactlyInAnyOrder(new UserId(ADMINISTRATOR), new UserId(secondAdministrator));
+        assertThat(escalated.escalatedTo()).containsExactlyInAnyOrder(TestAccounts.account(ADMINISTRATOR), TestAccounts.account(secondAdministrator));
         assertThat(meters.counter("forcitis.platform.approval.task.escalation.administrator").count()).isEqualTo(before + 1);
         org.mockito.Mockito.verify(wecom, org.mockito.Mockito.timeout(10_000)).markHandled(org.mockito.ArgumentMatchers.eq("approval-task:" + s.task().value()),
                 org.mockito.ArgumentMatchers.argThat(note -> note.contains("已超时，已升级给")));
-        decideTasks.execute(new UserId(ADMINISTRATOR), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, "covering")), java.util.OptionalLong.empty());
+        decideTasks.execute(TestAccounts.account(ADMINISTRATOR), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, "covering")), java.util.OptionalLong.empty());
         assertThat(requestStatus(s.key())).isEqualTo("APPROVED");
     }
 
@@ -321,14 +322,14 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
     @DisplayName("D-1a-113 a claimed task whose holder has no superior goes to the process administrator and raises the alert counter")
     void noSuperiorGoesToTheAdministrator() {
         Scene s = scene(false);
-        claimTask.execute(s.task(), new UserId(s.manager()), java.util.OptionalLong.empty());
+        claimTask.execute(s.task(), TestAccounts.account(s.manager()), java.util.OptionalLong.empty());
         double before = meters.counter("forcitis.platform.approval.task.escalation.administrator").count();
         clock.set(escalateAtOf(s).plusSeconds(1));
 
         enforceDeadlines.execute();
 
         assertThat(meters.counter("forcitis.platform.approval.task.escalation.administrator").count()).isEqualTo(before + 1);
-        assertThat(candidatesOf(s)).contains(String.valueOf(ADMINISTRATOR));
+        assertThat(candidatesOf(s)).contains(TestAccounts.account(ADMINISTRATOR).value().toString());
         assertThat(events.escalated().stream().filter(e -> e.taskId().equals(s.task())).findFirst().orElseThrow().target())
                 .isEqualTo(EscalationTarget.PROCESS_ADMINISTRATOR);
     }
@@ -353,7 +354,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
     void aLeftoverTaskOfAnEarlierRoundIsClosed() {
         Scene s = scene(true);
         tx.executeWithoutResult(t -> approvals.withdraw(com.forcitis.one.platform.approval.api.ProcessKey.COST_TIMESHEET_APPROVAL, document(s.key()),
-                new UserId(s.initiator()), "wrong hours"));
+                TestAccounts.account(s.initiator()), "wrong hours"));
         start(s.key(), s.initiator(), s.manager());
         jdbc.update("update platform_approval.approval_tasks set status = 'PENDING', completed_at = null, due_at = ?, remind_at = ?, escalate_at = ?"
                 + " where task_id = ?", java.sql.Timestamp.from(Instant.parse("2019-01-01T00:00:00Z")),

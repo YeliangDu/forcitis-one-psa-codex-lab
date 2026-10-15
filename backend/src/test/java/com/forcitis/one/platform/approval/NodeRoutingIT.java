@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -120,7 +121,7 @@ class NodeRoutingIT extends ApprovalIntegrationSupport {
                 .includeIdentityLinks().singleResult();
         assertThat(supervisorTask).as("nobody above the initiator, skipping not allowed: the process administrator gets it").isNotNull();
         assertThat(taskService.getIdentityLinksForTask(supervisorTask.getId()).stream().filter(l -> "candidate".equals(l.getType()))
-                .map(l -> l.getUserId()).toList()).containsExactly(String.valueOf(ADMINISTRATOR));
+                .map(l -> l.getUserId()).toList()).containsExactly(TestAccounts.account(ADMINISTRATOR).value().toString());
     }
 
     @Test
@@ -134,7 +135,7 @@ class NodeRoutingIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(newKey("manual-repeat"), new EmployeeId(initiator), Set.of("again"),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))))));
 
-        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
+        decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
 
         assertThat(approvals.isFinished(instance)).as("unchanged content, but the node does not allow the automatic pass").isFalse();
         assertThat(openTask(instance).getTaskDefinitionKey()).isEqualTo("repeatReview");

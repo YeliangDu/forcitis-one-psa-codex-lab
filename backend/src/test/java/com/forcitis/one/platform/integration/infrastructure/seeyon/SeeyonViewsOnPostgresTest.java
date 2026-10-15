@@ -222,7 +222,7 @@ class SeeyonViewsOnPostgresTest {
         member(12, 1L, "00000001", "E12", 0, "13900000012", "wx-12");
 
         SourceOrgSnapshot all = source.readSnapshot();
-        List<SourcePerson> byWecom = source.findStaffByWecomUserId(new WecomUserId("wx-10"));
+        List<SourcePerson> byWecom = source.findStaffByWecomUser(new WecomUserId("wx-10"));
         List<SourcePerson> byLogin = source.findStaffByLoginName("13900000010");
 
         SourcePerson expected = all.staff().stream().filter(m -> m.personId().equals(new SourcePersonId(10))).findFirst().orElseThrow();
@@ -230,11 +230,11 @@ class SeeyonViewsOnPostgresTest {
         assertThat(byLogin).singleElement().isEqualTo(expected);
         assertThat(byWecom.getFirst().gender()).isEqualTo(SourceGender.MALE);
         assertThat(byWecom.getFirst().unitId()).isEqualTo(new SourceUnitId(1));
-        assertThat(source.findStaffByWecomUserId(new WecomUserId("wx-11"))).singleElement()
+        assertThat(source.findStaffByWecomUser(new WecomUserId("wx-11"))).singleElement()
                 .satisfies(m -> assertThat(m.loginName()).isNull());
-        assertThat(source.findStaffByWecomUserId(new WecomUserId("wx-12"))).as("out of scope: not internal").isEmpty();
+        assertThat(source.findStaffByWecomUser(new WecomUserId("wx-12"))).as("out of scope: not internal").isEmpty();
         assertThat(source.findStaffByLoginName("13900000012")).as("out of scope: not internal").isEmpty();
-        assertThat(source.findStaffByWecomUserId(new WecomUserId("wx-none"))).isEmpty();
+        assertThat(source.findStaffByWecomUser(new WecomUserId("wx-none"))).isEmpty();
         assertThat(source.findStaffByLoginName("nobody")).isEmpty();
     }
 

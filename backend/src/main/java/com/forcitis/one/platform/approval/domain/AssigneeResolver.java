@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
+import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -65,7 +66,16 @@ public final class AssigneeResolver {
     }
 
     private Set<UserId> accountsOf(Set<EmployeeId> employees) {
-        return employees.stream().map(accountEmployees::accountOf).collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<UserId> accounts = new LinkedHashSet<>();
+        for (EmployeeId employee : employees) {
+            accounts.add(accountEmployees.accountOf(employee).orElseThrow(() -> ApprovalError.PLATFORM_APPROVAL_NO_ASSIGNEE_FOUND.refusal(
+                    "employee " + employee.value() + " is an approver but has no account to hand the task to")));
+        }
+        return accounts;
+    }
+
+    private EmployeeId employeeOf(UserId holder) {
+        return accountEmployees.employeeOf(holder).orElseThrow(() -> new IllegalStateException("role holder " + holder.value() + " has no account"));
     }
 
     private Resolution fallback() {
@@ -88,7 +98,7 @@ public final class AssigneeResolver {
 
     private Collected collect(AssignmentRule rule, EmployeeId initiator, ProcessVariables variables) {
         return switch (rule) {
-            case AssignmentRule.Role role -> Collected.of(roles.findRoleHolders(role.role()).stream().map(accountEmployees::employeeOf)
+            case AssignmentRule.Role role -> Collected.of(roles.findRoleHolders(role.role()).stream().map(this::employeeOf)
                     .collect(Collectors.toCollection(LinkedHashSet::new)));
             case AssignmentRule.DepartmentHead head -> departmentHead(head, initiator, variables);
             case AssignmentRule.InitiatorSupervisor supervisor -> org.findEmployee(initiator).isEmpty() ? Collected.invalid()

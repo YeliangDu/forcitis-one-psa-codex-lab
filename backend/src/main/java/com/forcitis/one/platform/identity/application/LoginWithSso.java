@@ -2,6 +2,7 @@ package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
+import com.forcitis.one.organization.workforce.api.LoginLookup;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.integration.api.SsoTicketVerifier;
 import com.forcitis.one.platform.integration.api.SsoVerdict;
@@ -59,7 +60,7 @@ public class LoginWithSso {
         if (!firstUse) {
             return admission.reject(IdentityError.PLATFORM_IDENTITY_TICKET_REPLAYED, method, null, "ticket already used");
         }
-        Optional<EmployeeProfile> employee = orgDirectory.findEmployeeByLoginName(loginName.value());
+        Optional<EmployeeProfile> employee = orgDirectory.findEmployeeByLogin(new LoginLookup.ByLoginName(loginName.value()));
         if (employee.isEmpty()) {
             return admission.reject(IdentityError.PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN, method, null,
                     "no employee for login name " + loginName.value());
