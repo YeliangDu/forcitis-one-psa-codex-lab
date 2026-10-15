@@ -80,7 +80,7 @@ class LegalEntityCodeRaceIT {
 
     private LegalEntityId legalEntity(String code) {
         try (WorkContext.Scope acting = WorkContext.enter(UUID.randomUUID(), null, "numbering.race.test")) {
-            return createLegalEntity.execute(code, "Synthetic " + code, null).legalEntityId();
+            return createLegalEntity.execute(code, "Synthetic " + code).legalEntityId();
         }
     }
 
@@ -110,7 +110,7 @@ class LegalEntityCodeRaceIT {
         assertThat(issued.await(10, TimeUnit.SECONDS)).isTrue();
         CompletableFuture<Object> correction = CompletableFuture.supplyAsync(() -> {
             try (WorkContext.Scope acting = WorkContext.enter(UUID.randomUUID(), null, "numbering.race.test")) {
-                return updateLegalEntity.execute(le, com.forcitis.one.kernel.ExpectedVersion.of(1), "RAB", "Synthetic RAA", "ACTIVE", null);
+                return updateLegalEntity.execute(le, com.forcitis.one.kernel.ExpectedVersion.of(1), "RAB", "Synthetic RAA", "ACTIVE");
             }
         });
         awaitBlockedStatement();
@@ -133,7 +133,7 @@ class LegalEntityCodeRaceIT {
         CountDownLatch commit = new CountDownLatch(1);
         CompletableFuture<Object> correction = CompletableFuture.supplyAsync(() -> tx.execute(status -> {
             try (WorkContext.Scope acting = WorkContext.enter(UUID.randomUUID(), null, "numbering.race.test")) {
-                Object view = updateLegalEntity.execute(le, com.forcitis.one.kernel.ExpectedVersion.of(1), "RBB", "Synthetic RBA", "ACTIVE", null);
+                Object view = updateLegalEntity.execute(le, com.forcitis.one.kernel.ExpectedVersion.of(1), "RBB", "Synthetic RBA", "ACTIVE");
                 corrected.countDown();
                 await(commit);
                 return view;
@@ -156,7 +156,7 @@ class LegalEntityCodeRaceIT {
         CountDownLatch commit = new CountDownLatch(1);
         CompletableFuture<Object> deactivation = CompletableFuture.supplyAsync(() -> tx.execute(status -> {
             try (WorkContext.Scope acting = WorkContext.enter(UUID.randomUUID(), null, "numbering.race.test")) {
-                Object view = updateLegalEntity.execute(le, com.forcitis.one.kernel.ExpectedVersion.of(1), "RCA", "Synthetic RCA", "INACTIVE", null);
+                Object view = updateLegalEntity.execute(le, com.forcitis.one.kernel.ExpectedVersion.of(1), "RCA", "Synthetic RCA", "INACTIVE");
                 deactivated.countDown();
                 await(commit);
                 return view;

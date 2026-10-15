@@ -63,7 +63,7 @@ platform.audit ->
 platform.scheduling ->
 organization.workforce -> platform.audit, platform.integration
 platform.identity -> organization.workforce, platform.integration, platform.audit
-platform.numbering -> platform.identity, organization.workforce
+platform.numbering -> platform.identity, organization.workforce, platform.integration
 platform.approval -> platform.identity, organization.workforce, platform.integration, platform.audit
 ```
 
@@ -128,6 +128,7 @@ flowchart LR
   ID --> ACL
   NM -->|"Customer-Supplier：读 LegalEntityDirectory"| WF
   NM --> ID
+  NM -->|"原编号带来源系统：ExternalSource（ADR-0033）"| ACL
   AP --> ID
   AP --> WF
   AP --> ACL
@@ -145,6 +146,7 @@ flowchart LR
   WF -. "向共享内核端口 SeparationReview 询问" .-> K
   ID -. "实现 kernel.SeparationReview（依赖倒置，避免 workforce 依赖 identity）" .-> K
   WF -. "LegalEntityNumberUsage 由 numbering 实现（依赖倒置，避免环）" .-> NM
+  ACL -. "向共享内核端口 KnownLegalEntities 询问；workforce 实现（依赖倒置，避免环）" .-> K
   classDef tech fill:#eee,stroke:#999
   class EV,WB tech
 ```
@@ -155,6 +157,7 @@ flowchart LR
 - **开放主机服务**：每个模块的 `api` 包（窄接口，`ArchitectureRulesTest` 守护）。
 - **依赖倒置（共享内核端口）**：同步运行要在把人变成离职之前问「会不会让管理员全部离开」，workforce 不能依赖 identity（identity 已依赖 workforce），所以端口 `kernel.SeparationReview` 放在共享内核，由 identity 的 `AdministratorSeparationReview` 实现（ADR-0027 第 1 项、ADR-0028）；`module-dependencies.txt` 因此不增加边。
 - **依赖倒置**：workforce 需要知道某法人是否已发过号，却不能依赖 numbering（numbering 已依赖 workforce）；接口 `LegalEntityNumberUsage` 放在 workforce 的 api，由 numbering 实现。
+- **依赖倒置**：登记核算组织编码要确认所指法人存在，integration 却不能依赖 workforce（workforce 已依赖 integration）；端口 `kernel.KnownLegalEntities` 放在共享内核，由 workforce 实现（ADR-0033 第 5 项）；`module-dependencies.txt` 因此不增加这条边。numbering 的原编号带来源系统，使用 `platform.integration.api.ExternalSource`，所以增加 `platform.numbering -> platform.integration`（integration 不依赖任何模块，不成环）。
 - **一致性**：同一事务只改一个聚合；跨聚合协作经事件（至少一次，按 eventId 幂等）或按 ID 查询。
 
 ## 3. 关键设计
