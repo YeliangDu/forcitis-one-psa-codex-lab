@@ -25,12 +25,12 @@ class ExternalReadRegisterTest {
 
     /** Registered view column to the own column it lands in; both must carry the same sensitivity. */
     static final Map<String, String> OWN_COLUMN = Map.of(
-            "forcitis_one.v_org_member.NAME", "organization_workforce.employees.display_name",
-            "forcitis_one.v_org_member.CODE", "organization_workforce.employees.employee_code",
-            "forcitis_one.v_org_member.LOGIN_NAME", "organization_workforce.employees.login_name",
-            "forcitis_one.v_org_member.WE_COM_ID", "organization_workforce.employees.wecom_user_id",
-            "forcitis_one.v_org_member.ENTERPRISE_EMAIL", "organization_workforce.employees.email",
-            "forcitis_one.v_org_member.GENDER", "organization_workforce.employees.gender");
+            "forcitis_one.v_org_member.NAME", "employees.display_name",
+            "forcitis_one.v_org_member.CODE", "employees.employee_code",
+            "forcitis_one.v_org_member.LOGIN_NAME", "employees.login_name",
+            "forcitis_one.v_org_member.WE_COM_ID", "employees.wecom_user_id",
+            "forcitis_one.v_org_member.ENTERPRISE_EMAIL", "employees.email",
+            "forcitis_one.v_org_member.GENDER", "employees.gender");
 
     static List<String> allProblems(List<Row> rows, Set<String> databases) {
         List<String> problems = new ArrayList<>();
@@ -142,20 +142,21 @@ class ExternalReadRegisterTest {
     @Test
     @DisplayName("R-1b-0 登记的个人信息列与落到的自有列敏感级别一致（data-classification.txt）")
     void sensitivityMatchesTheOwnColumns() throws IOException {
-        Map<String, String> levels = new TreeMap<>();
+        Map<String, List<String>> levels = new TreeMap<>();
         for (String line : Files.readAllLines(CLASSIFICATION)) {
             String[] f = line.split("\\|");
             if (!line.startsWith("#") && f.length >= 2) {
-                levels.put(f[0].trim(), f[1].trim());
+                String column = f[0].trim();
+                levels.computeIfAbsent(column.substring(column.indexOf('.') + 1), k -> new ArrayList<>()).add(f[1].trim());
             }
         }
         Map<String, String> registered = new TreeMap<>();
         ExternalReadRegister.rows().forEach(r -> registered.put(r.object() + "." + r.column(), r.get("sensitivity")));
 
         OWN_COLUMN.forEach((read, own) -> {
-            assertThat(levels).as("own column %s is classified", own).containsKey(own);
+            assertThat(levels.get(own)).as("own column %s is classified once", own).hasSize(1);
             assertThat(registered).as("%s is registered", read).containsKey(read);
-            assertThat(registered.get(read)).as("%s lands in %s", read, own).isEqualTo(levels.get(own));
+            assertThat(registered.get(read)).as("%s lands in %s", read, own).isEqualTo(levels.get(own).getFirst());
         });
     }
 
