@@ -36,7 +36,7 @@
 |---|---|
 | 积压 | 以 `glossary/ISSUES.md` 首段为准（门槛只算业务用语；错误码单列归 R-5，用户 2026-10-15） |
 | 已知重复 | 中文名重复 5 组（§5 起因）；同义错误码 4 组（R-5 卡） |
-| 在途 | ACL 归类与第三轮重做已全部提交（`glossary/answers/2026-10-15-acl-round3.json`：同意 394、保持原样 16），待写回；测试链接 QPwiXzEFWCTqSGVCQRdK6J 是能在手机打开的新版（按 bc 分组），固定链接 MwoqwkhAYq9CtomgaedwZ1 仍是旧版第 9 版 |
+| 在途 | ACL 归类与第三轮重做已全部提交（`glossary/answers/2026-10-15-acl-round3.json`：同意 394、保持原样 16），待写回；固定链接改为 https://claude.ai/artifact/QPwiXzEFWCTqSGVCQRdK6J（用户手机能开，答复在其页面数据库）；原 MwoqwkhAYq9CtomgaedwZ1 停用，不删 |
 | 下一步 | 写回：定 ACL 用语单列的存放（terms.yaml 单独一节 + 守护：集成层允许、领域模块禁止）→ 新的写回（参考已关闭 #196 的 round3/apply_round3.py，分支 claude/one-glossary-round3-writeback）；16 条「保持原样」按领域用语处理；代码搬迁与 ADR 冲突交 one-architecture；R-1b-0 门禁按 ACL 结论重出 |
 | 用语规范 | evidence 只用于「证据」义（fact_evidence 等）；判定结果用 verdict（在职判定 EmploymentVerdict） |
 | 定时 | 每周积压检查（会话内定时任务，开会话后设，记在画像） |
