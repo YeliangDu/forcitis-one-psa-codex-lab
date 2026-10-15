@@ -7,6 +7,7 @@
 # requested version, and writes the outcome to the result parameter, which only reports and is never trusted by anyone.
 #
 #   pull                         take up this environment's request in OOS, if it is new (contract: RELEASE.md §3)
+#   finish-interrupted           ExecStopPost of the pull unit: undo an unconfirmed switch, end a request left `started`
 #   rollback [<version>]         back to the previous release, or to <version> (local only, no network)
 #   status
 #
@@ -32,6 +33,9 @@ OOS_ENDPOINT='https://oos.{region}.aliyuncs.com'
 ALERT_SENDER=/usr/local/sbin/one_alert_send
 # Failures that belong to no request (configuration, metadata, OOS) alert at most once per this many seconds per cause
 GLOBAL_ALERT_SECONDS=3600
+ALERTS_PER_HOUR=6
+# Remembers the last "state directory unavailable" alert when the state directory itself is missing
+STATE_ALERT_MARK=/run/forcitis-one-release.state-alert
 # GitHub serves release assets from these hosts as short-lived signed URLs; the deploy job resolves them, nothing else is fetched
 ASSET_HOSTS='objects.githubusercontent.com release-assets.githubusercontent.com'
 # Every request taken up, keyed <run_id>:<run_attempt>, with its outcome (root 0600, appended only); a key listed here is never installed again
@@ -39,6 +43,8 @@ STATE_DIR=/var/lib/forcitis-one-release
 PROCESSED="$STATE_DIR/processed-requests"
 # Alerts already sent: "<request_id or global> <cause>" and the time (root 0600, appended only)
 ALERTS="$STATE_DIR/alerts-sent"
+# "<version before> <version switched to> <request_id>" while a switch is not yet confirmed healthy; finish-interrupted switches back
+ACTIVATION="$STATE_DIR/activation"
 # Files nginx serves outside the releases, untouched by any deployment (WeCom trusted-domain verification, C-4 E-10)
 PINNED="$BASE/static-pinned"
 PINNED_PATTERN='^WW_verify_[A-Za-z0-9]{1,64}\.txt$'
@@ -55,9 +61,13 @@ APPLICATION_CLASS=OneApplication
 MIGRATE_PROFILE_RESOURCE=BOOT-INF/classes/application-migrate.properties
 VERSION_PATTERN='^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'
 MAX_BUNDLE_BYTES=$((1024 * 1024 * 1024))
+# Step limits of one `pull`: three small assets, the bundle, the migration, and the health check of the new release plus that of the
+# release switched back to. Their sum (2640 s) plus margin stays below forcitis-one-release-pull.service TimeoutStartSec (3000 s).
+SMALL_ASSET_TIMEOUT_SECONDS=60
 DOWNLOAD_TIMEOUT_SECONDS=1200
 HEALTH_TIMEOUT_SECONDS=180
 MIGRATION_TIMEOUT_SECONDS=900
+PULL_BUDGET_SECONDS=2900
 # The application refuses to start unless the JVM default zone is UTC (kernel.UtcJvm); every java launch here passes it
 JVM_TIMEZONE=-Duser.timezone=UTC
 KEEP_RELEASES=5
@@ -65,24 +75,30 @@ KEEP_RELEASES=5
 FIRST_INSTALL_ONLY='^(spring\.datasource\..+|flowable\.database-schema-update)$'
 
 log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >&2; }
-# In `pull`, stage names the cause; a cause already reported for this request (or, without a request, within the hour) ends quietly, so
-# the timer does not repeat the same alert and log every minute
+# In `pull`, stage names the cause. A failure before the request is recorded as started can heal by itself (the next round reads the
+# parameters again), so it reports `retrying`; after that the request ends `failed`. A cause already reported for this request (or,
+# without a request, within the hour) ends quietly, so the timer does not repeat the same alert and log every minute.
 fail() {
-  local cause="${stage:-install}"
-  if [ -n "${pulling:-}" ] && ! alert_due "$cause"; then exit 0; fi
+  local cause="${stage:-install}" status=retrying due=0
+  [ -z "${request_in_progress:-}" ] || status=failed
+  if [ -n "${pulling:-}" ]; then
+    alert_due "$cause" || due=$?
+    [ "$due" -ne 1 ] || exit 0
+  fi
   log "FAILED: $*"
   [ -z "${request_in_progress:-}" ] || record_request "$request_in_progress" failed "$cause: $*" || log "could not record request $request_in_progress as failed"
+  request_in_progress=""
   if [ -n "${pulling:-}" ]; then
-    [ -z "${request_id:-}" ] || write_result failed "$cause"
-    send_alert "$cause" "$*"
+    [ -z "${request_id:-}" ] || write_result "$status" "$cause"
+    if [ "$due" -eq 0 ]; then send_alert "$cause" "$*"; else log "alert for $cause not sent: $ALERTS cannot record it"; fi
   fi
   exit 1
 }
 
-# True when an alert for <cause> should go out now; remembers that it did
+# 0: an alert for <cause> should go out now (remembered); 1: already reported, stay quiet; 2: cannot be remembered, so not sent
 alert_due() {
   local cause="$1" key last
-  [ -d "$STATE_DIR" ] || return 0
+  [ -d "$STATE_DIR" ] || return 2
   if [ -n "${alert_key:-}" ]; then
     key="$alert_key $cause"
     if [ -f "$ALERTS" ] && awk -F'\t' -v key="$key" '$1 == key { found = 1 } END { exit !found }' "$ALERTS"; then return 1; fi
@@ -92,16 +108,40 @@ alert_due() {
     [ ! -f "$ALERTS" ] || last="$(awk -F'\t' -v key="$key" '$1 == key { t = $2 } END { print t + 0 }' "$ALERTS")"
     [ $(($(date +%s) - last)) -ge "$GLOBAL_ALERT_SECONDS" ] || return 1
   fi
-  (umask 077 && printf '%s\t%s\n' "$key" "$(date +%s)" >> "$ALERTS") || log "could not record the alert in $ALERTS"
+  (umask 077 && printf '%s\t%s\n' "$key" "$(date +%s)" >> "$ALERTS") 2>/dev/null || return 2
   return 0
 }
 
-# Alerts carry the cause and a message built here, never a link or a credential
+# Alerts carry the cause and a message built here, never a link or a credential. At most ALERTS_PER_HOUR go out per hour, however many
+# request_ids are written; the rest are counted and reported with the next alert that goes out.
 send_alert() {
-  "$ALERT_SENDER" P2 "one.release-pull ${target_env:-?}: ${request_id:+request $request_id }$1: $2" >/dev/null 2>&1 \
-    || log "alert delivery through $ALERT_SENDER failed"
+  local message="one.release-pull ${target_env:-?}: ${request_id:+request $request_id }$1: $2" now sent suppressed
+  now="$(date +%s)"
+  sent="$(awk -F'\t' -v since=$((now - 3600)) '$1 == "#sent" && $2 > since { n++ } END { print n + 0 }' "$ALERTS" 2>/dev/null || echo 0)"
+  if [ "$sent" -ge "$ALERTS_PER_HOUR" ]; then
+    (umask 077 && printf '#suppressed\t%s\n' "$now" >> "$ALERTS") 2>/dev/null || log "could not record the suppressed alert in $ALERTS"
+    log "alert suppressed ($ALERTS_PER_HOUR already sent within the hour): $1"
+    return 0
+  fi
+  suppressed="$(awk -F'\t' '$1 == "#reported" { n = 0 } $1 == "#suppressed" { n++ } END { print n + 0 }' "$ALERTS" 2>/dev/null || echo 0)"
+  [ "$suppressed" -eq 0 ] || message="$message (and $suppressed more alerts suppressed by the hourly limit)"
+  (umask 077 && printf '#sent\t%s\n#reported\t%s\n' "$now" "$now" >> "$ALERTS") 2>/dev/null || log "could not count the alert in $ALERTS"
+  "$ALERT_SENDER" P2 "$message" >/dev/null 2>&1 || log "alert delivery through $ALERT_SENDER failed"
 }
 
+# The state directory cannot be created: nothing can be remembered there, so a marker under /run limits the alert to once per hour
+state_unavailable() {
+  local now last=0
+  now="$(date +%s)"
+  [ ! -f "$STATE_ALERT_MARK" ] || last="$(cat "$STATE_ALERT_MARK" 2>/dev/null || echo 0)"
+  [[ "$last" =~ ^[0-9]+$ ]] || last=0
+  [ $((now - last)) -ge "$GLOBAL_ALERT_SECONDS" ] || exit 0
+  log "FAILED: cannot create $STATE_DIR; no request is taken up"
+  (umask 077 && printf '%s\n' "$now" > "$STATE_ALERT_MARK") 2>/dev/null || log "could not write $STATE_ALERT_MARK"
+  "$ALERT_SENDER" P2 "one.release-pull ${target_env:-?}: configuration: cannot create $STATE_DIR; no request is taken up" >/dev/null 2>&1 \
+    || log "alert delivery through $ALERT_SENDER failed"
+  exit 1
+}
 cleanup_paths=()
 cleanup() { [ "${#cleanup_paths[@]}" -eq 0 ] || rm -rf "${cleanup_paths[@]}"; }
 trap cleanup EXIT
@@ -168,19 +208,32 @@ pinned_served() {
   done
 }
 
-health_ok() {
-  local port deadline body
+management_port() {
+  local port
   port="$(env_value MANAGEMENT_SERVER_PORT)"
-  port="${port:-8081}"
-  deadline=$((SECONDS + HEALTH_TIMEOUT_SECONDS))
+  printf '%s' "${port:-8081}"
+}
+
+# The application exports its own metrics (names starting with forcitis_); without them the release is not counted as healthy. The
+# metrics text is only searched, never printed.
+metrics_ok() {
+  curl -fsS --max-time 5 "http://127.0.0.1:$1/actuator/prometheus" 2>/dev/null | grep '^forcitis_' >/dev/null
+}
+
+# One look: the unit is active, health is UP, the application's metrics are exported and every pinned file is served
+serving_now() {
+  local port body
+  port="$(management_port)"
+  systemctl is-active --quiet "$UNIT" || return 1
+  body="$(curl -fsS --max-time 5 "http://127.0.0.1:${port}/actuator/health" 2>/dev/null || true)"
+  [ -n "$body" ] && printf '%s' "$body" | python3 -I -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("status") == "UP" else 1)' 2>/dev/null \
+    && metrics_ok "$port" && pinned_served
+}
+
+health_ok() {
+  local deadline=$((SECONDS + HEALTH_TIMEOUT_SECONDS))
   while [ "$SECONDS" -lt "$deadline" ]; do
-    if systemctl is-active --quiet "$UNIT"; then
-      body="$(curl -fsS --max-time 5 "http://127.0.0.1:${port}/actuator/health" 2>/dev/null || true)"
-      if [ -n "$body" ] && printf '%s' "$body" | python3 -I -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("status") == "UP" else 1)' 2>/dev/null \
-         && pinned_served; then
-        return 0
-      fi
-    fi
+    serving_now && return 0
     if systemctl is-failed --quiet "$UNIT"; then
       return 1
     fi
@@ -203,30 +256,45 @@ switch_to() {
 
 record() { printf '%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$2" >> "$releases/HISTORY"; }
 
+# While a switch is unconfirmed, ACTIVATION names the release to return to, so a run killed half-way can still be switched back
 activate() {
   local version="$1" before
   before="$(linked_version "$current_link")"
   log "switching current: ${before:-none} -> $version"
+  [ ! -d "$STATE_DIR" ] || (umask 077 && printf '%s %s %s\n' "${before:--}" "$version" "${request_id:--}" > "$ACTIVATION") \
+    || log "could not write $ACTIVATION"
   switch_to "$version"
   if health_ok; then
     [ -z "$before" ] || [ "$before" = "$version" ] || ln -sfn "releases/$before" "$previous_link"
     record "$version" "active"
+    rm -f "$ACTIVATION"
     log "release $version is healthy"
     return 0
   fi
   record "$version" "unhealthy"
   if [ -z "$before" ] || [ "$before" = "$version" ]; then
     systemctl stop "$UNIT" || true
+    rm -f "$ACTIVATION"
     fail "release $version did not become healthy and there is no earlier release to return to; the service is stopped"
   fi
   log "release $version did not become healthy within ${HEALTH_TIMEOUT_SECONDS}s; switching back to $before"
+  switch_back "$before"
+  fail "release $version was unhealthy; $switch_back_outcome"
+}
+
+# Switches back to <before> and checks it; sets switch_back_outcome
+switch_back() {
+  local before="$1"
   switch_to "$before"
   if health_ok; then
     record "$before" "restored"
-    fail "release $version was unhealthy; $before is running again (see journalctl -u $UNIT and $BASE/logs)"
+    switch_back_outcome="$before is running again (see journalctl -u $UNIT and $BASE/logs)"
+  else
+    record "$before" "unhealthy"
+    switch_back_outcome="$before did not recover either; manual action needed (RELEASE.md §3, half-switched state)"
   fi
-  record "$before" "unhealthy"
-  fail "release $version was unhealthy and $before did not recover either; manual action needed"
+  rm -f "$ACTIVATION"
+  log "$switch_back_outcome"
 }
 
 check_tar_entries() {
@@ -502,12 +570,15 @@ PY
 oos_call() { python3 -I -c "$OOS_PY" "$METADATA_URL" "$OOS_ENDPOINT" "$MAX_PARAMETER_CHARS" "$@"; }
 
 prepare_state() {
-  [ -d "$STATE_DIR" ] || mkdir -m 0700 "$STATE_DIR"
+  [ -d "$STATE_DIR" ] || mkdir -m 0700 "$STATE_DIR" 2>/dev/null || state_unavailable
   [ "$(owner_mode "$STATE_DIR")" = "root 700" ] || fail "$STATE_DIR must be root-owned 0700"
   if [ -e "$PROCESSED" ]; then
     [ "$(owner_mode "$PROCESSED")" = "root 600" ] || fail "$PROCESSED must be root-owned 0600"
   else
     (umask 077 && : > "$PROCESSED")
+  fi
+  if [ -e "$ALERTS" ]; then
+    [ "$(owner_mode "$ALERTS")" = "root 600" ] || fail "$ALERTS must be root-owned 0600"
   fi
 }
 
@@ -533,29 +604,33 @@ print(json.dumps({"request_id": sys.argv[1], "status": sys.argv[2], "reason": sy
 # No redirect is followed and no credential is sent: the URL already is GitHub's final signed download link. It reaches curl through a
 # config on stdin (-K -), not the command line; -q first so no curlrc applies, -g so nothing in it is globbed.
 download_asset() {
-  local name="$1" out="$2" i url=""
+  local name="$1" out="$2" seconds="$3" i url=""
   for i in "${!asset_names[@]}"; do
     [ "${asset_names[$i]}" != "$name" ] || url="${asset_links[$i]}"
   done
   [ -n "$url" ] || fail "install request has no URL for $name"
-  printf 'url = "%s"\n' "$url" | timeout "$DOWNLOAD_TIMEOUT_SECONDS" curl -q -g -fsS --proto '=https' --proto-redir '=https' --tlsv1.2 \
+  printf 'url = "%s"\n' "$url" | timeout "$seconds" curl -q -g -fsS --proto '=https' --proto-redir '=https' --tlsv1.2 \
     -L --max-redirs 0 --max-filesize "$MAX_BUNDLE_BYTES" -o "$out" -K - \
     || fail "could not download release asset $name (the signed link may have expired; start a new deploy run)"
 }
 
 # Downloads the requested release into a new directory under releases/ and verifies it; sets staged (the unpacked bundle) and commit
 fetch_release() {
-  local version="$1" incoming archive top expected_sha
+  local version="$1" incoming archive top expected_sha seconds
   incoming="$(mktemp -d "$releases/.incoming.XXXXXX")"
   cleanup_paths+=("$incoming")
   top="forcitis-one-$version"
   archive="$incoming/bundle.tar.gz"
   log "fetching $top from the GitHub release v$version"
   stage=download
-  download_asset "$top.tar.gz.sha256" "$incoming/bundle.sha256"
-  download_asset "$top.release" "$incoming/statement"
-  download_asset "$top.release.sig" "$incoming/statement.sig"
-  download_asset "$top.tar.gz" "$archive"
+  download_asset "$top.tar.gz.sha256" "$incoming/bundle.sha256" "$SMALL_ASSET_TIMEOUT_SECONDS"
+  download_asset "$top.release" "$incoming/statement" "$SMALL_ASSET_TIMEOUT_SECONDS"
+  download_asset "$top.release.sig" "$incoming/statement.sig" "$SMALL_ASSET_TIMEOUT_SECONDS"
+  # The bundle gets what is left once the migration and two health checks are reserved, at most DOWNLOAD_TIMEOUT_SECONDS
+  seconds=$(($(remaining) - MIGRATION_TIMEOUT_SECONDS - 2 * HEALTH_TIMEOUT_SECONDS))
+  [ "$seconds" -le "$DOWNLOAD_TIMEOUT_SECONDS" ] || seconds="$DOWNLOAD_TIMEOUT_SECONDS"
+  [ "$seconds" -gt 0 ] || fail "no time left to download the bundle within this run's budget"
+  download_asset "$top.tar.gz" "$archive" "$seconds"
   [ "$(wc -c < "$archive")" -le "$MAX_BUNDLE_BYTES" ] || fail "bundle larger than $MAX_BUNDLE_BYTES bytes"
   log "fetched $(wc -c < "$archive" | tr -d ' ') bytes"
   stage=verification
@@ -741,13 +816,35 @@ read_request() {
   log "install request $request_id: v$version for $target_env"
 }
 
+# Seconds left of this run's budget (PULL_BUDGET_SECONDS)
+remaining() { echo $((pull_deadline - SECONDS)); }
+
+# Stopped by a signal (the unit timing out or being stopped): a switch not yet confirmed is undone, then the request ends `failed`
+# (cause terminated) with its result and an alert. forcitis-one-release finish-interrupted (ExecStopPost) covers the cases a signal
+# handler cannot, such as SIGKILL.
+on_term() {
+  local interrupted="$stage" before target
+  trap - TERM INT
+  stage="terminated"
+  if [ -f "$ACTIVATION" ] && read -r before target _ < "$ACTIVATION"; then
+    if [ "$before" != "-" ] && [ "$before" != "$target" ]; then
+      log "stopped while switching to $target; switching back to $before"
+      switch_back "$before"
+    fi
+    rm -f "$ACTIVATION"
+  fi
+  fail "stopped by a signal during $interrupted"
+}
+
 cmd_pull() {
   [ "$#" -eq 0 ] || fail "pull takes no arguments; the request is read from OOS (RELEASE.md §3)"
-  local target_env pinned_expected profile running new first_install=false version commit staged
+  local target_env pinned_expected profile running new first_install=false version commit staged stale
   request_id="" alert_key="" nothing_new="" pulling=1
+  pull_deadline=$((SECONDS + PULL_BUDGET_SECONDS))
   exec 9>"$LOCK"
   # Another pull or an operator's rollback is running: this round has nothing to do
   flock -n 9 || exit 0
+  trap on_term TERM INT
   stage=configuration
   prepare_state
   read_release_source
@@ -757,6 +854,12 @@ cmd_pull() {
   [[ ! -e "$current_link" || -L "$current_link" ]] \
     || fail "$current_link is a directory, not the release link; move pinned files to $PINNED and remove it first (C-4 E-10)"
   assert_root_owned "$BASE" "$releases"
+  # Left by a run that was killed; with the lock held no other run can be using one
+  stale="$(find "$releases" -mindepth 1 -maxdepth 1 -name '.incoming.*' | wc -l | tr -d ' ')"
+  if [ "$stale" -gt 0 ]; then
+    find "$releases" -mindepth 1 -maxdepth 1 -name '.incoming.*' -exec rm -rf {} +
+    log "removed $stale incomplete download(s) left by an interrupted run"
+  fi
   read_request
   [ -z "$nothing_new" ] || exit 0
 
@@ -772,6 +875,14 @@ cmd_pull() {
   running="$(linked_version "$current_link")"
   if [ -n "$running" ] && version_lower "$version" "$running"; then
     fail "$version is lower than the running $running; going back is an explicit operator rollback (forcitis-one-release rollback), never a deployment"
+  fi
+  # The same version already running and healthy: nothing to install, nothing to restart
+  if [ -n "$running" ] && [ "$running" = "$version" ] && serving_now; then
+    record_request "$request_id" succeeded "v$version already current" || log "could not record request $request_id as succeeded"
+    request_in_progress=""
+    log "release $version is already current and healthy; nothing to do"
+    write_result succeeded
+    return 0
   fi
   stage=configuration
   if [ -n "$pinned_expected" ]; then
@@ -793,13 +904,48 @@ cmd_pull() {
   else
     log "no new migrations; the run still validates the applied ones against this release"
   fi
+  stage=budget
+  [ "$(remaining)" -ge $((MIGRATION_TIMEOUT_SECONDS + 2 * HEALTH_TIMEOUT_SECONDS)) ] \
+    || fail "only $(remaining)s left of this run's budget; not starting the migration and the switch"
+  stage=migration
   migrate "$version" "$first_install"
+  stage=budget
+  [ "$(remaining)" -ge $((2 * HEALTH_TIMEOUT_SECONDS)) ] || fail "only $(remaining)s left of this run's budget; not switching"
   stage=activation
   activate "$version"
   record_request "$request_id" succeeded "v$version $commit" || log "could not record request $request_id as succeeded"
   request_in_progress=""
   write_result succeeded
   prune
+}
+
+# ExecStopPost of forcitis-one-release-pull.service: whatever stopped the run, an unconfirmed switch is undone and a request left
+# `started` ends `failed` (cause terminated), with its result and an alert
+cmd_finish_interrupted() {
+  [ "$#" -eq 0 ] || fail "finish-interrupted takes no arguments"
+  local target_env pinned_expected before target ids id
+  request_id="" alert_key="" pulling=1 stage="terminated"
+  exec 9>"$LOCK"
+  flock -n 9 || exit 0
+  [ -d "$STATE_DIR" ] || exit 0
+  read_release_source
+  if [ -f "$ACTIVATION" ] && read -r before target _ < "$ACTIVATION"; then
+    if [ "$before" != "-" ] && [ "$before" != "$target" ]; then
+      log "the run stopped while switching to $target; switching back to $before"
+      switch_back "$before"
+    else
+      log "the run stopped while switching to $target with no earlier release; check it by hand (RELEASE.md §3, half-switched state)"
+    fi
+    rm -f "$ACTIVATION"
+  fi
+  ids="$(awk -F'\t' '{ state[$1] = $3 } END { for (id in state) if (state[id] == "started") print id }' "$PROCESSED" 2>/dev/null || true)"
+  for id in $ids; do
+    request_id="$id" alert_key="$id"
+    record_request "$id" failed "terminated: the run stopped before it finished" || log "could not record request $id as failed"
+    log "FAILED: request $id: the run stopped before it finished"
+    write_result failed terminated
+    send_alert terminated "the run stopped before it finished (${SERVICE_RESULT:-unknown})"
+  done
 }
 
 cmd_rollback() {
@@ -833,9 +979,10 @@ main() {
   shift || true
   case "$command" in
     pull) cmd_pull "$@" ;;
+    finish-interrupted) cmd_finish_interrupted "$@" ;;
     rollback) cmd_rollback "$@" ;;
     status) [ "$#" -eq 0 ] || fail "status takes no arguments"; cmd_status ;;
-    *) fail "usage: pull | rollback [<version>] | status" ;;
+    *) fail "usage: pull | finish-interrupted | rollback [<version>] | status" ;;
   esac
 }
 

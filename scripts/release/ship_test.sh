@@ -87,7 +87,7 @@ import json, sys
 s = sys.argv[1]
 values = {"none": "{}", "garbage": "not json",
           "other": json.dumps({"request_id": "4100:1", "status": "succeeded", "reason": None, "time": "2026-10-15T00:00:00Z"})}
-value = values.get(s) or json.dumps({"request_id": "4242:2", "status": s, "reason": "download" if s == "failed" else None,
+value = values.get(s) or json.dumps({"request_id": "4242:2", "status": s, "reason": {"failed": "download", "retrying": "link-mismatch"}.get(s),
                                      "time": "2026-10-15T00:00:00Z"})
 print(json.dumps({"Parameter": {"Name": "forcitis-one-deploy-result-dev", "Value": value}}))' "$state" ;;
   *) echo "unexpected aliyun $product $action" >&2; exit 98 ;;
@@ -190,10 +190,18 @@ refused_streamed() { rc_failed "$1" && says "$1" "asset API answered 200, expect
 sts_refusal_shown() {
   rc_failed "$1" && says "$1" "STS refused: AuthenticationFail.OIDCToken.SubjectMismatch sub does not match" && [ ! -e "$1/oos" ]
 }
-other_request_waited() { rc_is "$1" 0 && says "$1" "request 4242:2: succeeded on the ECS" && ! says "$1" "4100:1"; }
+# Success only after this request_id was seen started, and after exactly the five reads the sequence needs
+other_request_waited() {
+  rc_is "$1" 0 && says "$1" "request 4242:2: the ECS started installing" && says "$1" "request 4242:2: succeeded on the ECS" \
+    && ! says "$1" "4100:1" && [ "$(grep -c '^oos GetParameter ' "$1/argv")" = 5 ] \
+    && [ "$(grep -n 'started installing' "$1/out" | cut -d: -f1)" -lt "$(grep -n 'succeeded on the ECS' "$1/out" | cut -d: -f1)" ]
+}
+retry_waited() {
+  rc_is "$1" 0 && [ "$(grep -c 'the ECS will retry (link-mismatch)' "$1/out")" = 1 ] && says "$1" "succeeded on the ECS"
+}
 failure_reported() { rc_is "$1" 1 && says "$1" "request 4242:2: the ECS reports failed (download)"; }
 timeout_names_request() {
-  rc_failed "$1" && says "$1" "no result for request 4242:2 after 2940s" && says "$1" "journalctl -u forcitis-one-release-pull.service" \
+  rc_failed "$1" && says "$1" "no result for request 4242:2 after 3300s" && says "$1" "journalctl -u forcitis-one-release-pull.service" \
     && says "$1" "set forcitis-one-deploy-request-dev back to {}"
 }
 transient_retried() { rc_is "$1" 0 && says "$1" "failed (2 of 6 in a row)" && says "$1" "succeeded on the ECS"; }
@@ -220,6 +228,8 @@ run sts-refused "succeeded" FAKE_STS=refuse
 expect sts-refused "an STS refusal shows code and message, and nothing is written to OOS" sts_refusal_shown
 run other-request "other other garbage started succeeded"
 expect other-request "a result of another request_id (or unreadable) means not yet taken up; keeps waiting" other_request_waited
+run retrying "retrying retrying started succeeded"
+expect retrying "retrying is not an end state: keeps waiting, reports the reason once" retry_waited
 run install-failed "started failed"
 expect install-failed "a failed result fails the job with the cause" failure_reported
 run timeout "other"

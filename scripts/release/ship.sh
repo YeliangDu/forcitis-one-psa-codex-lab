@@ -26,8 +26,8 @@ need() {
   [ "${#missing[@]}" -eq 0 ] || fail "environment $env lacks ${missing[*]} (RELEASE.md §7)"
 }
 
-# Timer period (60) + forcitis-one-release-pull.service TimeoutStartSec (2700) + margin
-WAIT_SECONDS=2940
+# forcitis-one-release-pull.service TimeoutStartSec (3000) + timer period (60) + margin; deploy.yml allows 75 minutes for the job
+WAIT_SECONDS=3300
 POLL_SECONDS=15
 MAX_POLL_FAILURES=6
 # Same names, limit and hosts as the installer (remote_install.sh)
@@ -168,7 +168,7 @@ echo "install request $request_id in OOS $parameter: $request"
 echo "waiting for the ECS (forcitis-one-release-pull.timer) to take up request $request_id"
 deadline=$(($(date +%s) + WAIT_SECONDS))
 failures=0
-announced=""
+announced="" last_retry=""
 stale_hint="the ECS may still take up request $request_id later: check the pull timer's log on the ECS (journalctl -u forcitis-one-release-pull.service) and forcitis-one-release status; to withdraw the request, set $parameter back to {}"
 while :; do
   if answer="$(aliyun oos GetParameter --region "$ECS_REGION" --RegionId "$ECS_REGION" --Name "$RESULT_PARAMETER_PREFIX-$env")" \
@@ -189,6 +189,8 @@ else:
         succeeded) echo "request $request_id: succeeded on the ECS"; exit 0 ;;
         failed) fail "request $request_id: the ECS reports failed ($reason); details in the pull timer's log on the ECS (journalctl -u forcitis-one-release-pull.service)" ;;
         started) [ -n "$announced" ] || { echo "request $request_id: the ECS started installing"; announced=yes; } ;;
+        # Refused before the replay record (link parameters of another run, OOS unreachable): the ECS tries again every minute
+        retrying) [ "$last_retry" = "$reason" ] || { echo "request $request_id: the ECS will retry ($reason)"; last_retry="$reason"; } ;;
       esac
     fi
   else

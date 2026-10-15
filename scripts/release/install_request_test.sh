@@ -18,7 +18,18 @@ WORKFLOW=FORCITIS/forcitis-one-psa/.github/workflows/release.yml@refs/heads/main
 mkdir -p "$scratch/bin"
 cat > "$scratch/bin/curl" <<'CURL'
 #!/usr/bin/env bash
-# Stand-in for curl: the link must arrive as a config on stdin, never as an argument; serves $FAKE_ASSETS/<last path segment>
+# Stand-in for curl. Local health and metrics: answers as configured, metrics only while current points at $FAKE_METRICS_FOR (or always
+# when unset). Release assets: the link must arrive as a config on stdin, never as an argument; serves $FAKE_ASSETS/<last path segment>
+for arg in "$@"; do
+  case "$arg" in
+    http://127.0.0.1:*/actuator/health) echo '{"status":"UP"}'; exit 0 ;;
+    http://127.0.0.1:*/actuator/prometheus)
+      echo '# TYPE jvm_threads_live_threads gauge'; echo 'jvm_threads_live_threads 20'
+      current="$(basename "$(readlink "$FAKE_CURRENT" 2>/dev/null)")"
+      if [ -z "${FAKE_METRICS_FOR:-}" ] || [ "$FAKE_METRICS_FOR" = "$current" ]; then echo 'forcitis_outbox_pending 0'; fi
+      exit 0 ;;
+  esac
+done
 [ "${1:-}" = -q ] || { echo "UNSAFE curl: -q is not the first argument" >&2; exit 90; }
 out="" seen=" "
 while [ "$#" -gt 0 ]; do
@@ -56,6 +67,16 @@ except OSError:
     sys.exit(1)' "$2"
 FLOCK
 fi
+cat > "$scratch/bin/systemctl" <<'SYSTEMCTL'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$FAKE_SYSTEMCTL_LOG"
+case "$1" in
+  is-active) exit 0 ;;
+  is-failed) exit 1 ;;
+  is-enabled) echo enabled ;;
+esac
+SYSTEMCTL
+printf '#!/bin/sh\nexit 0\n' > "$scratch/bin/sleep"
 cat > "$scratch/bin/one_alert_send" <<'ALERT'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$FAKE_ALERTS"
@@ -319,14 +340,17 @@ json.dump(state, open(path, "w"))
 PY
 }
 
-# Runs one `pull` in a subshell (output in <case dir>/<out>); placement, migration and activation are stubbed, the rest is the installer's
+# Runs one `pull` (or the command in COMMAND) in a subshell (output in <case dir>/<out>); unpacking into releases, migration, the link
+# switch itself and pruning are stubbed (systemd and GNU mv are not available here), the rest is the installer's, health checks included.
+# TERM_AT=migration | health sends the run a TERM there.
 attempt() {
   local case_dir="$1" server_env="$2" running="$3" out="$4"
   shift 4
   (
     # shellcheck disable=SC2030
     PATH="$scratch/bin:$PATH"
-    export FAKE_ASSETS="$case_dir/assets" FAKE_ALERTS="$case_dir/alerts"
+    export FAKE_ASSETS="$case_dir/assets" FAKE_ALERTS="$case_dir/alerts" FAKE_CURRENT="$case_dir/current" \
+      FAKE_SYSTEMCTL_LOG="$case_dir/systemctl"
     # shellcheck source=scripts/release/remote_install.sh
     source "$here/remote_install.sh"
     if stat -c %a / >/dev/null 2>&1; then
@@ -337,9 +361,15 @@ attempt() {
     assert_root_owned() { :; }
     place() { fetch_release "$1"; echo "ACCEPTED version=$version run=$request_id commit=$commit staged=$(basename "$staged")"; }
     new_migrations() { :; }
-    migrate() { :; }
-    activate() { :; }
+    # The subshell running the installer is the parent of this sh (bash 3.2 has no BASHPID)
+    migrate() { [ "${TERM_AT:-}" != migration ] || sh -c 'kill -TERM $PPID'; }
+    switch_to() { echo "$1" >> "$case_dir/switches"; ln -sfn "releases/$1" "$current_link"; }
+    if [ "${TERM_AT:-}" = health ]; then
+      eval "real_$(declare -f health_ok)"
+      health_ok() { if [ ! -e "$case_dir/termed" ]; then : > "$case_dir/termed"; sh -c 'kill -TERM $PPID'; fi; real_health_ok; }
+    fi
     prune() { :; }
+    HEALTH_TIMEOUT_SECONDS=1
     METADATA_URL="http://127.0.0.1:$port"
     OOS_ENDPOINT="http://127.0.0.1:$port/oos-{region}"
     ALERT_SENDER="$scratch/bin/one_alert_send"
@@ -347,12 +377,17 @@ attempt() {
     RELEASE_SOURCE="$ETC/release-source"
     RELEASE_SIGNERS="$ETC/release-signers"
     STATE_DIR="$case_dir/state"
+    [ -z "${STATE_BLOCKED:-}" ] || STATE_DIR="$case_dir/read-only/state"
     PROCESSED="$STATE_DIR/processed-requests"
     ALERTS="$STATE_DIR/alerts-sent"
+    ACTIVATION="$STATE_DIR/activation"
+    STATE_ALERT_MARK="$case_dir/state-alert-mark"
     LOCK="$case_dir/lock"
+    BASE="$case_dir"
     releases="$case_dir/releases"
     current_link="$case_dir/current"
-    cmd_pull "$@"
+    previous_link="$case_dir/previous"
+    if [ -n "${COMMAND:-}" ]; then "$COMMAND" "$@"; else cmd_pull "$@"; fi
   ) > "$case_dir/$out" 2>&1
 }
 
@@ -371,7 +406,12 @@ prepare_case() {
     failed) mkdir -m 0700 "$dir/state" && (umask 077 && printf '4242:1\t2026-10-14T00:00:00Z\tfailed\tdownload: x\n' > "$dir/state/processed-requests") ;;
     unwritable) mkdir -m 0700 "$dir/state" && mkdir -m 0600 "$dir/state/processed-requests" ;;
     earlier) mkdir -m 0700 "$dir/state" && (umask 077 && printf '4100:1\t2026-10-14T00:00:00Z\tsucceeded\tv0.0.9 x\n' > "$dir/state/processed-requests") ;;
+    interrupted) mkdir -m 0700 "$dir/state" && (umask 077 && printf '4100:1\t2026-10-14T00:00:00Z\tsucceeded\tv0.0.9 x\n4242:1\t2026-10-15T00:00:00Z\tstarted\tv0.1.0\n' > "$dir/state/processed-requests") \
+      && (umask 077 && printf '0.0.9 0.1.0 4242:1\n' > "$dir/state/activation") && ln -sfn releases/0.1.0 "$dir/current" ;;
+    alerts-unwritable) mkdir -m 0700 "$dir/state" && mkdir -m 0600 "$dir/state/alerts-sent" ;;
   esac
+  [ -z "${STALE_INCOMING:-}" ] || mkdir -p "$dir/releases/.incoming.Ab12Cd"
+  [ -z "${STATE_BLOCKED:-}" ] || { mkdir -p "$dir/read-only" && chmod 0500 "$dir/read-only"; }
 }
 
 test_flock() { if [ -x "$scratch/bin/flock" ]; then "$scratch/bin/flock" "$@"; else flock "$@"; fi; }
@@ -393,7 +433,7 @@ print(", ".join(found))
 PY
 }
 
-# check <name> <expect: accept | reject:text | quiet> [pull arguments...]; set before the name through variables:
+# check <name> <expect: accept | reject:text | quiet | ok (exit 0 with output)> [pull arguments...]; set before the name through variables:
 # REQUEST (change, default none), BREAK (stand-in failure), SERVER_ENV (dev), RUNNING, PROCESSED_BEFORE (no | yes | failed | unwritable |
 # earlier), RELEASE ("version manifest-version statement-version key tamper"), ALSO_RELEASE (a second clean version), TWICE (run pull again)
 check() {
@@ -422,9 +462,9 @@ check() {
   grep -q 'UNSAFE curl' "$dir/out" && status="unsafe download"
   leak="$(leaks "$dir")"
   [ -z "$leak" ] || status="leaked $leak"
-  case "$expect" in accept) want=accepted ;; quiet) want=quiet ;; *) want=rejected ;; esac
+  case "$expect" in accept) want=accepted ;; quiet) want=quiet ;; ok) want="exit 0 with output" ;; *) want=rejected ;; esac
   if [ "$status" = "$want" ] && { [ "$want" != rejected ] || grep -qF -- "${expect#reject:}" "$dir/out"; }; then
-    shown="ACCEPTED"; [ "${expect%%:*}" != reject ] || shown="${expect#reject:}"
+    shown="ACCEPTED"; [ "${expect%%:*}" != reject ] || shown="${expect#reject:}"; [ "$expect" != ok ] || shown="nothing to do"
     pass "$name: $status — $(grep -m1 -F -- "$shown" "$dir/out" | cut -c1-170)"
   else
     flunk "$name: $status, expected $expect" "$dir/out"
@@ -456,8 +496,8 @@ sys.exit(0 if ok else 1)
 PY
 }
 results_started_succeeded() { result_is "$1" "4242:1,started,- 4242:1,succeeded,-"; }
-result_link_mismatch_4243() { result_is "$1" "4243:1,failed,link-mismatch"; }
-result_link_mismatch_4242() { result_is "$1" "4242:1,failed,link-mismatch"; }
+result_link_mismatch_4243() { result_is "$1" "4243:1,retrying,link-mismatch"; }
+result_link_mismatch_4242() { result_is "$1" "4242:1,retrying,link-mismatch"; }
 alert_names_mismatch() { grep -q '^P2 one.release-pull dev: request 42[0-9][0-9]:1 link-mismatch: link parameters forcitis-one-deploy-request-dev-' "$1/alerts"; }
 alert_global_token() { grep -q '^P2 one.release-pull dev: read-parameters: cannot read the request parameter' "$1/alerts"; }
 alert_result_write() { grep -q '^P2 one.release-pull dev: request 4242:1 result-write:' "$1/alerts"; }
@@ -487,13 +527,13 @@ REQUEST=new-request-old-link PROCESSED_BEFORE=earlier TWICE=yes check mixed-new-
 expect mixed-new-request-old-link "one P2 alert naming request and parameter" alert_names_mismatch
 expect mixed-new-request-old-link "the same cause is alerted once; the next run is quiet" second_run_quiet
 expect mixed-new-request-old-link "alerts stay at one" one_alert
-expect mixed-new-request-old-link "replay record unchanged, nothing fetched" replay_unchanged
-expect mixed-new-request-old-link "result parameter: failed, link-mismatch, for 4243:1" result_link_mismatch_4243
+expect mixed-new-request-old-link "replay record unchanged" replay_unchanged
+expect mixed-new-request-old-link "result parameter: retrying (not an end state), link-mismatch, for 4243:1" result_link_mismatch_4243
 REQUEST=old-request-new-link PROCESSED_BEFORE=earlier check mixed-old-request-new-link \
   "reject:link parameters forcitis-one-deploy-request-dev-statement do not match"
 expect mixed-old-request-new-link "one P2 alert naming request and parameter" alert_names_mismatch
 expect mixed-old-request-new-link "replay record unchanged" replay_unchanged
-expect mixed-old-request-new-link "result parameter: failed, link-mismatch, for 4242:1" result_link_mismatch_4242
+expect mixed-old-request-new-link "result parameter: retrying (not an end state), link-mismatch, for 4242:1" result_link_mismatch_4242
 REQUEST=new-version-old-links ALSO_RELEASE=0.2.0 PROCESSED_BEFORE=earlier check mixed-new-version-old-assets \
   "reject:link parameters forcitis-one-deploy-request-dev-bundle forcitis-one-deploy-request-dev-bundle-sha256 forcitis-one-deploy-request-dev-statement forcitis-one-deploy-request-dev-statement-sig do not match"
 expect mixed-new-version-old-assets "nothing fetched: the 0.1.0 assets beside the 0.2.0 request are never downloaded" nothing_fetched
@@ -580,6 +620,95 @@ PROCESSED_BEFORE=unwritable check started-not-recordable "reject:could not recor
 expect started-not-recordable "nothing fetched without a start record" nothing_fetched
 started_recorded() { grep -q $'^4242:1\t.*\tstarted\tv0.1.0$' "$1/state/processed-requests"; }
 expect valid-request "processed-requests holds 4242:1 started" started_recorded
+
+
+# Health after the switch: health UP, metrics with forcitis_ names, pinned files
+switched_once() { [ "$(cat "$1/switches")" = "0.1.0" ]; }
+expect valid-request "switched once to 0.1.0 after a healthy check with the application's metrics" switched_once
+RUNNING=0.0.9 FAKE_METRICS_FOR=0.0.9 check metrics-missing "reject:release 0.1.0 was unhealthy; 0.0.9 is running again"
+switched_back() { [ "$(tr '\n' ' ' < "$1/switches")" = "0.1.0 0.0.9 " ] && [ "$(readlink "$1/current")" = releases/0.0.9 ]; }
+result_activation_failed() { result_is "$1" "4242:1,started,- 4242:1,failed,activation"; }
+metrics_not_printed() { ! grep -q 'jvm_threads\|forcitis_outbox' "$1/out"; }
+expect metrics-missing "without forcitis_ metrics the switch is undone" switched_back
+expect metrics-missing "result: started, then failed (activation)" result_activation_failed
+expect metrics-missing "the metrics text is never printed" metrics_not_printed
+RUNNING=0.1.0 check same-version-healthy ok
+same_version_untouched() {
+  [ ! -e "$1/switches" ] && ! grep -q 'fetching' "$1/out" && ! grep -q '^restart' "$1/systemctl" \
+    && result_is "$1" "4242:1,started,- 4242:1,succeeded,-" && grep -q $'^4242:1\t.*\tsucceeded\tv0.1.0 already current$' "$1/state/processed-requests"
+}
+expect same-version-healthy "already current and healthy: succeeded without download, migration, switch or restart" same_version_untouched
+
+# Stopped by a signal
+TERM_AT=migration check term-during-migration "reject:stopped by a signal during migration"
+result_terminated() { result_is "$1" "4242:1,started,- 4242:1,failed,terminated" && grep -q $'^4242:1\t.*\tfailed\tterminated: ' "$1/state/processed-requests"; }
+alert_terminated() { grep -q '^P2 one.release-pull dev: request 4242:1 terminated: stopped by a signal during migration' "$1/alerts"; }
+expect term-during-migration "recorded failed (terminated), result failed, one alert" result_terminated
+expect term-during-migration "alert names the request and the interrupted step" alert_terminated
+RUNNING=0.0.9 TERM_AT=health check term-after-switch "reject:stopped by a signal during activation"
+activation_cleared() { switched_back "$1" && [ ! -e "$1/state/activation" ]; }
+expect term-after-switch "a switch not yet confirmed is undone, the marker removed" activation_cleared
+expect term-after-switch "recorded failed (terminated), result failed" result_terminated
+
+# ExecStopPost after a run that could not handle the signal (SIGKILL)
+PROCESSED_BEFORE=interrupted RUNNING=0.0.9 COMMAND=cmd_finish_interrupted check finish-interrupted ok
+finished_interrupted() {
+  [ "$(cat "$1/switches")" = "0.0.9" ] && [ ! -e "$1/state/activation" ] && result_is "$1" "4242:1,failed,terminated" \
+    && grep -q $'^4242:1\t.*\tfailed\tterminated: ' "$1/state/processed-requests" \
+    && grep -q '^P2 one.release-pull dev: request 4242:1 terminated: ' "$1/alerts"
+}
+expect finish-interrupted "switched back to 0.0.9, request 4242:1 ended failed (terminated) with result and alert" finished_interrupted
+
+STALE_INCOMING=yes check stale-download-removed accept
+stale_removed() { [ -z "$(find "$1/releases" -maxdepth 1 -name '.incoming.*')" ] && grep -q 'removed 1 incomplete download' "$1/out"; }
+expect stale-download-removed "a .incoming.* left by a killed run is removed first" stale_removed
+
+PROCESSED_BEFORE=alerts-unwritable REQUEST=not-json check alerts-unwritable "reject:install request: is not JSON"
+alert_not_sent_logged() { [ ! -e "$1/alerts" ] && grep -q 'alert for invalid-request not sent' "$1/out"; }
+expect alerts-unwritable "an unrecordable alert is not sent, and that is logged" alert_not_sent_logged
+STATE_BLOCKED=yes TWICE=yes check state-dir-uncreatable "reject:cannot create"
+state_alert_once() { one_alert "$1" && grep -q 'configuration: cannot create' "$1/alerts" && second_run_quiet "$1"; }
+expect state-dir-uncreatable "one alert through the /run marker; the next run is quiet" state_alert_once
+
+# At most six alerts an hour, whatever the request_ids; the rest are counted and reported with the next alert
+cap="$scratch/alert-cap"
+prepare_case "$cap" dev "" no
+build_release "$cap/assets" 0.1.0 0.1.0 0.1.0 "$scratch/release_key" none
+write_state dev none "" "$cap"
+set +e
+for n in 1 2 3 4 5 6 7 8; do
+  python3 -I - "$scratch/state.json" "$n" <<'PY'
+import json, sys
+state = json.load(open(sys.argv[1]))
+state["params"]["forcitis-one-deploy-request-dev"] = f"not json {sys.argv[2]}"
+json.dump(state, open(sys.argv[1], "w"))
+PY
+  attempt "$cap" dev "" "out-$n"
+done
+set -e
+if [ "$(wc -l < "$cap/alerts" | tr -d ' ')" = 6 ] && [ "$(grep -c '^#suppressed' "$cap/state/alerts-sent")" = 2 ] \
+   && grep -q 'alert suppressed (6 already sent within the hour)' "$cap/out-7"; then
+  pass "alert-cap: eight different invalid requests send six alerts and count two as suppressed"
+else
+  flunk "alert-cap: expected six alerts and two suppressed" "$cap/out-8"
+fi
+old=$(( $(date +%s) - 4000 ))
+for n in 1 2 3 4 5 6; do printf '#sent\t%s\n' "$old" >> "$cap/state/alerts-sent"; done
+sed -i.bak "s/^#sent\t[0-9]*/#sent\t$old/" "$cap/state/alerts-sent"
+python3 -I - "$scratch/state.json" <<'PY'
+import json, sys
+state = json.load(open(sys.argv[1]))
+state["params"]["forcitis-one-deploy-request-dev"] = "not json 9"
+json.dump(state, open(sys.argv[1], "w"))
+PY
+set +e
+attempt "$cap" dev "" out-9
+set -e
+if tail -1 "$cap/alerts" | grep -q '(and 2 more alerts suppressed by the hourly limit)$'; then
+  pass "alert-cap: the next alert after the hour reports the two suppressed ones"
+else
+  flunk "alert-cap: the next alert does not report the suppressed ones" "$cap/out-9"
+fi
 
 signer_known_answer() {
   # shellcheck source=scripts/release/remote_install.sh

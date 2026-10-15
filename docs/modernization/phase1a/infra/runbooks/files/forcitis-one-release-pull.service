@@ -7,5 +7,22 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 ExecStart=/usr/local/sbin/forcitis-one-release pull
-# Download, migration and health check together stay below this; ship.sh waits a little longer than timer period plus this
-TimeoutStartSec=2700
+# Whatever stopped the run (timeout, stop, SIGKILL): undo an unconfirmed switch, end a request left `started` as failed, report, alert
+ExecStopPost=/usr/local/sbin/forcitis-one-release finish-interrupted
+# Step limits of the installer: small assets 3 × 60 + bundle 1200 + migration 900 + health of the new release 180 + health of the
+# release switched back to 180 = 2640 s. With signature checks, unpacking and OOS calls the installer stops starting new steps after
+# 2900 s; the unit allows 3000 s. ship.sh waits 3300 s (this plus the 60 s timer period plus margin); deploy.yml allows 75 minutes.
+TimeoutStartSec=3000
+# On a stop the TERM handler may switch back (health check up to 180 s), and ExecStopPost may do the same
+TimeoutStopSec=600
+StateDirectory=forcitis-one-release
+StateDirectoryMode=0700
+LogsDirectory=forcitis-one-release
+LogsDirectoryMode=0700
+ProtectSystem=strict
+# Releases, links and HISTORY under /data/forcitis-one; the lock and the alert marker under /run
+ReadWritePaths=/data/forcitis-one /run
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
