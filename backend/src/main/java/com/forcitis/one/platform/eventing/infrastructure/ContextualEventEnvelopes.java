@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.eventing.infrastructure;
 
+import com.forcitis.one.kernel.SystemActors;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
@@ -35,23 +37,23 @@ class ContextualEventEnvelopes implements EventEnvelopes {
         var system = WorkContext.systemActor();
         if (system.isPresent()) {
             actorType = ActorType.SYSTEM;
-            actorId = system.get();
+            actorId = SystemActors.idOf(system.get()).toString();
         } else {
             actorType = ActorType.USER;
-            actorId = String.valueOf(signedInUser());
+            actorId = signedInUser().value().toString();
         }
         return new EventEnvelope(Uuids.timeOrdered(now), draft.eventType(), draft.schemaVersion(), occurredAt, draft.aggregateType(),
                 draft.aggregateId(), draft.aggregateVersion(), correlationId, WorkContext.causationId().orElse(null),
                 actorType, actorId, draft.legalEntityId(), draft.businessDate(), draft.source(), null, draft.relatedAggregates());
     }
 
-    private long signedInUser() {
+    private UserId signedInUser() {
         CurrentUser user = currentUser.getIfAvailable();
         if (user == null) {
             throw new IllegalStateException("an event needs an actor: publish inside a signed-in request, a job or an event handler");
         }
         try {
-            return user.userId().value();
+            return user.userId();
         } catch (RuntimeException noSession) {
             throw new IllegalStateException("an event needs an actor: publish inside a signed-in request, a job or an event handler",
                     noSession);

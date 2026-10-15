@@ -1269,7 +1269,8 @@ components:
           - SYSTEM
         actorId:
           type: string
-          description: 用户 ID，或作业 / 监听器名；不带姓名
+          format: uuid
+          description: USER 为账号的用户 ID；SYSTEM 为代表该作业或监听器的固定 UUID（按作业名生成，kernel.SystemActors 可反查作业名）；不带姓名
         legalEntityId:
           type: string
           format: uuid
@@ -1588,6 +1589,7 @@ components:
             items:
               type: string
               x-type: UserId
+              format: uuid
           summary:
             type: object
             properties:
@@ -1656,6 +1658,7 @@ components:
           claimedBy:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     TaskResulted:
       name: TaskResulted
@@ -1727,6 +1730,7 @@ components:
           assignee:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           outcome:
             type: string
@@ -1815,10 +1819,12 @@ components:
           from:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           to:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           reason:
             type: object
@@ -1897,6 +1903,7 @@ components:
             items:
               type: string
               x-type: UserId
+              format: uuid
             description: 被提醒的人
     ApprovalTaskEscalated:
       name: ApprovalTaskEscalated
@@ -1965,6 +1972,7 @@ components:
             items:
               type: string
               x-type: UserId
+              format: uuid
           target:
             type: string
             enum:
@@ -2035,6 +2043,7 @@ components:
           releasedBy:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     TaskReassigned:
       name: TaskReassigned
@@ -2103,10 +2112,12 @@ components:
           from:
             type: string
             x-type: UserId
+            format: uuid
             description: 原处理人，没人持有时为空
           to:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           reason:
             type: object
@@ -2497,6 +2508,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     AccountDisabled:
       name: AccountDisabled
@@ -2527,6 +2539,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     AccountRolesReplaced:
       name: AccountRolesReplaced
@@ -2558,6 +2571,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           roleIds:
             type: array
@@ -2595,6 +2609,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     AccountOpened:
       name: AccountOpened
@@ -2626,6 +2641,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           roleIds:
             type: array
@@ -2662,6 +2678,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     EmergencyAdminEnabled:
       name: EmergencyAdminEnabled
@@ -2692,6 +2709,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     EmergencyAdminCredentialsReset:
       name: EmergencyAdminCredentialsReset
@@ -2722,6 +2740,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     EmergencyAdminDisabled:
       name: EmergencyAdminDisabled
@@ -2753,6 +2772,7 @@ components:
           userId:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           cause:
             type: string
@@ -2794,6 +2814,7 @@ components:
           requestedBy:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     AuthorizationConfirmed:
       name: AuthorizationConfirmed
@@ -2829,6 +2850,7 @@ components:
           confirmedBy:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     AuthorizationRejected:
       name: AuthorizationRejected
@@ -2864,6 +2886,7 @@ components:
           rejectedBy:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     SourceReferenceRegistered:
       name: SourceReferenceRegistered
@@ -3768,6 +3791,7 @@ components:
           releasedBy:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
     OrgSnapshotChanged:
       name: OrgSnapshotChanged

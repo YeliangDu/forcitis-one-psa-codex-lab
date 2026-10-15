@@ -43,7 +43,7 @@ ENVELOPE = {
         'correlationId': {'type': 'string', 'format': 'uuid', 'description': '同一业务操作的全部事件共用；来自 X-Correlation-Id'},
         'causationId': {'type': 'string', 'format': 'uuid', 'nullable': True, 'description': '直接上游事件的 eventId，根事件为空'},
         'actorType': {'type': 'string', 'enum': ['USER', 'SYSTEM']},
-        'actorId': {'type': 'string', 'description': '用户 ID，或作业 / 监听器名；不带姓名'},
+        'actorId': {'type': 'string', 'format': 'uuid', 'description': 'USER 为账号的用户 ID；SYSTEM 为代表该作业或监听器的固定 UUID（按作业名生成，kernel.SystemActors 可反查作业名）；不带姓名'},
         'legalEntityId': {'type': 'string', 'format': 'uuid', 'nullable': True, 'description': '属于某个法人的聚合必填；只有平台级事件为空'},
         'businessDate': {'type': 'string', 'format': 'date', 'nullable': True, 'description': '按 Asia/Shanghai 截日；取哪个日期见各事件的 x-event.businessDate'},
         'source': {'type': 'object', 'properties': {'system': {'type': 'string', 'enum': ['ONE', 'MIGRATION']},
