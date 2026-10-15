@@ -6,7 +6,7 @@
 
 - 不动四个正式登录（one_a8_views_ro、psa_one_legacy_ro、one_legacy_names_ro、one_evidence_ro），不碰 a8_db、ruoyi-vue-pro。
 - RDS SQL Server rm-bp1690ep53t9778dp 上新建：临时登录 `one_readonly_probe`；空库 `one_readonly_probe_db`（第 9 项另建 `one_readonly_probe_db2`）；探针库内的辅助主体（第 6–8 项）与一张空表 `dbo.probe_t`（第 12、14 项）。全部做完删除。
-- 例外：第 16、17 项在系统库 msdb、master 中为**探针登录**建用户（第 16 项另加 db_owner），做完立即删除；不改系统库里任何已有主体与对象。平台拒绝时记「平台不可构造」，不换方式。
+- 例外：第 17 项在系统库 master 中为**探针登录**建用户，做完立即删除；不改系统库里任何已有主体与对象；平台拒绝时记「平台不可构造」，不换方式。依据：用户 2026-10-15 追加批准（原批准只覆盖探针库）。第 16 项（msdb 加入 db_owner）用户决定不做：msdb 存有实例的作业与备份历史，共享实例上不构造。
 - 执行账号：老系统主数据源 u8c（RDS 高权限账号，只用于这些授权变更，ADR-0037 第 5 项第 4 条）；探针以自己的口令真实登录跑校验。
 
 ## 应用侧核实入口：选 one-1a-next-2 补的只读命令
@@ -25,7 +25,7 @@
 ## 时间窗口与共享实例影响
 
 - 约 75 分钟，工作日非高峰（建议 12:00–13:00 或 18:30 以后），提前告知 one-coordinator。
-- 影响：实例上临时多一个登录、两个空库，以及第 16、17 项在 master、msdb 中各一个短暂存在的探针用户（第 16 项另加 db_owner，做完即删）（几 MB，进入实例备份，删库后随备份保留期过期）；所有偏离只在探针库内或针对探针登录；不改 public、不改其他库，对 a8_db、ruoyi-vue-pro、it_portal 等库没有锁与授权变化。第 10 项的服务器级 DENY 预期被平台拒绝（4613），不产生变更。
+- 影响：实例上临时多一个登录、两个空库，以及第 17 项在 master 中一个短暂存在的探针用户（做完即删）（几 MB，进入实例备份，删库后随备份保留期过期）；所有偏离只在探针库内或针对探针登录；不改 public、不改其他库，对 a8_db、ruoyi-vue-pro、it_portal 等库没有锁与授权变化。第 10 项的服务器级 DENY 预期被平台拒绝（4613），不产生变更。
 - 停止条件：任一回退后计数不回到对照值、对照项不通过、出现对探针库以外对象的任何变更 → 立即停下报 one-coordinator。
 
 ## 准备（批准后执行）
@@ -65,20 +65,19 @@ DENY INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VI
 | 13 | `GRANT CONTROL ON SCHEMA::dbo TO [one_readonly_probe];` | (g)，可能另有 (a) | `REVOKE CONTROL ON SCHEMA::dbo FROM [one_readonly_probe];` |
 | 14 | `GRANT UPDATE ON OBJECT::dbo.probe_t TO public;` | (g)（public 主体） | `REVOKE UPDATE ON OBJECT::dbo.probe_t FROM public;` |
 | 15 | master：`GRANT IMPERSONATE ON LOGIN::sa TO [one_readonly_probe];` | 预期平台报 4613 → 记「平台不可构造」；若成功则预期 (d) | 成功时：`REVOKE IMPERSONATE ON LOGIN::sa FROM [one_readonly_probe];` |
-| 16 | msdb：`CREATE USER [one_readonly_probe] FOR LOGIN [one_readonly_probe]; ALTER ROLE db_owner ADD MEMBER [one_readonly_probe];` | (f)（系统库不是经 guest 进入）；平台拒绝则记「平台不可构造」 | msdb：`ALTER ROLE db_owner DROP MEMBER [one_readonly_probe]; DROP USER [one_readonly_probe];` |
-| 17 | master：`CREATE USER [one_readonly_probe] FOR LOGIN [one_readonly_probe];` | (f) | master：`DROP USER [one_readonly_probe];` |
+| 17 | master：`CREATE USER [one_readonly_probe] FOR LOGIN [one_readonly_probe];`（用户 2026-10-15 追加批准，在原批准范围外） | (f) | master：`DROP USER [one_readonly_probe];` |
 
 **可见性核实（第 14 项之前做，结论决定 (g) 在 RDS 上是否有效）**：在探针库 `GRANT SELECT ON OBJECT::dbo.probe_t TO public;`，以探针登录执行 `SELECT COUNT(*) FROM sys.database_permissions WHERE grantee_principal_id = 0 AND class <> 0`，再 `REVOKE SELECT ON OBJECT::dbo.probe_t FROM public;`。计数为 0（SQL Server 2016 上运行时账号看不到 public 在用户对象上的授权，而容器 2022 上能看到）→ **停下报 one-coordinator 与 one-1a-next-2**，不做第 14 项。
 
-平台不可构造、由 `ReadOnlyAccountCheckIT` 覆盖：CONTROL SERVER、加入 securityadmin、多出服务器级权限（u8c 无服务器级授予权限，4613；见 B-5 README 风险登记）。
+平台上不构造、由 `ReadOnlyAccountCheckIT` 覆盖：第 16 项「msdb 中本登录的用户加入 db_owner」（用户 2026-10-15 决定不做）；CONTROL SERVER、加入 securityadmin、多出服务器级权限（u8c 无服务器级授予权限，4613；见 B-5 README 风险登记）。
 
 ## 收尾
 
 ```sql
--- master 上下文（第 16、17 项的系统库用户应已在各自回退中删除，这里再核对一次）
+-- master 上下文（第 17 项的 master 用户应已在回退中删除，这里再核对一次）
 DROP DATABASE [one_readonly_probe_db];
 DROP LOGIN [one_readonly_probe];
--- 回读：sys.server_principals 无 one_readonly_probe；sys.databases 无 one_readonly_probe_db*；master、msdb 的 sys.database_principals 无 one_readonly_probe
+-- 回读：sys.server_principals 无 one_readonly_probe；sys.databases 无 one_readonly_probe_db*；master 的 sys.database_principals 无 one_readonly_probe
 ```
 
 ECS 删除 `/etc/forcitis-one/readonly-probe.env` 与临时目录（解开的 jar）；RESOURCES.md 记删除；执行记录写入本文件与 PREDEPLOY_CHECKLIST C-14。
