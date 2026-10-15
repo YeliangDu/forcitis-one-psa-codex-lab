@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.infrastructure.security;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
@@ -36,7 +37,10 @@ class AccessDeniedAudit implements AuthorizationEventPublisher {
     private final Clock clock;
     private final Map<String, Instant> lastWritten = new ConcurrentHashMap<>();
 
-    AccessDeniedAudit(AuditLog audit, ClientOrigin origin, Clock clock) {
+    private final MeterRegistry meters;
+
+    AccessDeniedAudit(AuditLog audit, ClientOrigin origin, Clock clock, MeterRegistry meters) {
+        this.meters = meters;
         this.audit = audit;
         this.origin = origin;
         this.clock = clock;
@@ -55,6 +59,8 @@ class AccessDeniedAudit implements AuthorizationEventPublisher {
         try {
             actor = UserId.parse(authentication.getName());
         } catch (IllegalArgumentException notAPerson) {
+            log.warn("platform.identity an access refusal names a principal that is not an account id; not audited as a person");
+            meters.counter("forcitis.platform.identity.session.principal.broken", "where", "access-denied").increment();
             return;
         }
         String resource = resourceOf(object);

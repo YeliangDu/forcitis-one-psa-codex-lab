@@ -55,6 +55,7 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instanceOfB = start(documentOfB, userB, manager);
         Map<String, Object> before = variablesOf(instanceOfB);
 
+        actAs(userA);
         assertThatThrownBy(() -> tx.executeWithoutResult(status -> approvals.start(startRequest(documentOfB, new EmployeeId(userA), Set.of("needs-seal"),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(userA))))))))
                 .isInstanceOf(AccessDeniedException.class);
@@ -82,8 +83,10 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
         decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(openTaskId(round1), DecisionOutcome.REJECT, "fix it")), java.util.OptionalLong.empty());
         assertThat(requestStatus(documentOfB)).isEqualTo("RETURNED");
         assertThat(taskService.createTaskQuery().processInstanceId(round1.value()).count()).as("nothing is parked at the initiator").isZero();
+        actAs(userA);
         assertThatThrownBy(() -> tx.executeWithoutResult(status -> approvals.start(startRequest(documentOfB, new EmployeeId(userA), Set.of(), List.of()))))
                 .isInstanceOf(AccessDeniedException.class);
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
 
         assertThat(requestStatus(documentOfB)).isEqualTo("RETURNED");
         assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where document_key = ?", Integer.class,

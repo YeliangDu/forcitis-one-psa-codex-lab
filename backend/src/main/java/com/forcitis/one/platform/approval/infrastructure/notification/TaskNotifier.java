@@ -117,7 +117,13 @@ class TaskNotifier {
 
     @ApplicationModuleListener
     void onApprovalCompleted(ApprovalCompleted event) {
-        send(null, accountEmployees.accountOf(event.initiator()).stream().toList(), ApprovalTexts.completedTitle(event.outcome()),
+        Optional<UserId> initiator = accountEmployees.accountOf(event.initiator());
+        if (initiator.isEmpty()) {
+            log.warn("Card approval-instance:{}:completed: initiator {} has no account, no card sent", event.instanceId().value(), event.initiator().value());
+            meters.counter("forcitis.platform.approval.notification.skipped").increment();
+            return;
+        }
+        send(null, List.of(initiator.get()), ApprovalTexts.completedTitle(event.outcome()),
                 ApprovalTexts.completedBody(event.processKey(), event.document(), event.round().value(),
                         event.reason() == null ? null : event.reason().value()),
                 "approval-instance:" + event.instanceId().value() + ":completed");

@@ -1,6 +1,9 @@
 package com.forcitis.one.platform.approval.application;
 
-import com.forcitis.one.kernel.AccountEmployees;
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.identity.api.CurrentUser;
+import org.springframework.beans.factory.ObjectProvider;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -35,17 +38,30 @@ public class StartApproval {
     private final TaskRegistrar registrar;
     private final DenialAudit audit;
     private final BusinessTime time;
-    private final AccountEmployees accountEmployees;
+    private final ObjectProvider<CurrentUser> currentUser;
 
     StartApproval(ApprovalRequestRepository requests, ApprovalEngine engine, Approvals approvals, TaskRegistrar registrar,
-            DenialAudit audit, BusinessTime time, AccountEmployees accountEmployees) {
-        this.accountEmployees = accountEmployees;
+            DenialAudit audit, BusinessTime time, ObjectProvider<CurrentUser> currentUser) {
+        this.currentUser = currentUser;
         this.requests = requests;
         this.engine = engine;
         this.approvals = approvals;
         this.registrar = registrar;
         this.audit = audit;
         this.time = time;
+    }
+
+    /** The signed-in account asking; a start from an event handler has none and is audited without an actor. */
+    private UserId caller() {
+        CurrentUser user = currentUser.getIfAvailable();
+        if (user == null) {
+            return null;
+        }
+        try {
+            return user.userId();
+        } catch (DomainException notSignedIn) {
+            return null;
+        }
     }
 
     @Transactional
@@ -55,7 +71,7 @@ public class StartApproval {
         if (existing.isPresent()) {
             ApprovalRequest current = existing.get();
             if (!current.initiator().equals(request.initiator())) {
-                audit.record(new AuditEntry("platform.approval.start.denied", accountEmployees.accountOf(request.initiator()).orElse(null), null,
+                audit.record(new AuditEntry("platform.approval.start.denied", caller(), null,
                         "approval-request:" + request.processKey() + ":" + current.aggregateId(), "not the initiator"));
                 throw new AccessDeniedException("The approval of " + current.aggregateId() + " was started by another user");
             }

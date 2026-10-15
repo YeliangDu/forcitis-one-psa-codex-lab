@@ -37,6 +37,20 @@ class TypedIdComparisonGuardTest {
             "com.forcitis.one.organization.workforce.domain.SourceTerms", "source ids to own ids; replaced by the source reference lookup in P3b",
             "com.forcitis.one.organization.workforce.infrastructure.external.ShortNameAdapter", "same, until P3b");
 
+    /**
+     * Classes that convert one kind of id into another in a way the scan cannot see (through a method that takes the raw number), kept on
+     * record with the reason; an entry whose class is gone fails.
+     */
+    private static final Map<String, String> CONVERTS_OUT_OF_SIGHT = Map.of(
+            "com.forcitis.one.platform.approval.infrastructure.replay.ExportedAccounts",
+            "AccountEmployees of the offline replay: an exported person number becomes an account id through account(long) and back through person(UserId)");
+
+    @Test
+    @DisplayName("P2-L7 every conversion the scan cannot see is on record and its class still exists")
+    void conversionsOutOfSightAreOnRecord() {
+        CONVERTS_OUT_OF_SIGHT.keySet().forEach(name -> assertThat(java.util.Arrays.stream(ALL).map(JavaClass::getName)).as(name).contains(name));
+    }
+
     private static List<TypedIdComparisons.Violation> inspect(Class<?> type) throws IOException {
         try (InputStream bytes = type.getResourceAsStream(type.getSimpleName() + ".class")) {
             return TypedIdComparisons.inspect(bytes, TYPED_IDS::contains);

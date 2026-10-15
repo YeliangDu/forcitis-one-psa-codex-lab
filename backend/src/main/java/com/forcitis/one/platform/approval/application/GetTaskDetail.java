@@ -46,7 +46,7 @@ public class GetTaskDetail {
         if (open.isPresent()) {
             TaskView task = open.get();
             TaskRecord row = record.orElseThrow();
-            List<UserId> candidates = task.candidates().stream().sorted(Comparator.comparing(id -> id.value().toString())).toList();
+            List<UserId> candidates = task.candidates().stream().sorted(Comparator.comparing(this::nameOf).thenComparing(id -> id.value().toString())).toList();
             return detail(row, Optional.of(task.nodeName()), task.assignee(), candidates, TaskActors.mayAct(task, viewer), now);
         }
         TaskRecord decided = record.filter(r -> !r.status().isOpen())

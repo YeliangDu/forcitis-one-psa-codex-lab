@@ -214,7 +214,7 @@ COMMENT ON COLUMN platform_identity.sessions.creation_time IS '创建时间（�
 COMMENT ON COLUMN platform_identity.sessions.last_access_time IS '最近访问时间（毫秒）';
 COMMENT ON COLUMN platform_identity.sessions.max_inactive_interval IS '空闲超时（秒）';
 COMMENT ON COLUMN platform_identity.sessions.expiry_time IS '过期时间（毫秒）';
-COMMENT ON COLUMN platform_identity.sessions.principal_name IS '主体名：用户 ID 的十进制字符串，用于吊销该用户全部会话';
+COMMENT ON COLUMN platform_identity.sessions.principal_name IS '主体名：用户 ID 的 uuid 文本（规范小写），用于吊销该用户全部会话';
 COMMENT ON COLUMN platform_identity.sessions.created_at IS '创建时间';
 COMMENT ON COLUMN platform_identity.sessions.updated_at IS '更新时间';
 
