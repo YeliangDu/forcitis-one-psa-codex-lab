@@ -46,7 +46,7 @@ class EngineWiring implements ApplicationListener<ApplicationReadyEvent> {
         this.environment = environment;
     }
 
-    /** Static, so that the engine configuration does not wait for this class, which needs the engine; the autoconfiguration sets no id generator of its own unless a bean is given. */
+    /** Static, so that the engine configuration does not wait for this class, which needs the engine; without an IdGenerator bean Flowable 8.0.0 defaults to StrongUuidGenerator; this configurer runs before the engine is built and replaces it. */
     @Bean
     static EngineConfigurationConfigurer<SpringProcessEngineConfiguration> engineIdGenerator(IdGenerator ids) {
         return configuration -> configuration.setIdGenerator(() -> ids.next().toString());
