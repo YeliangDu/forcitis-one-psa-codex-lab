@@ -8,6 +8,10 @@ terms:
   error_code:
     used_by: [cost.timesheet, organization.attendance, organization.workforce, platform.approval, platform.audit, platform.identity, platform.integration, platform.numbering, platform.web]
   # 跨 bc 同名、已按 <bc>__ 前缀分立的词条（第二轮已定）互列
+  migration:
+    homonyms: [read_purpose__migration]
+  read_purpose__migration:
+    homonyms: [migration]
   operations_facts__responsible_party:
     homonyms: [contract_riskdelivery__responsible_party, contract_changeorder__responsible_party]
   contract_riskdelivery__responsible_party:
