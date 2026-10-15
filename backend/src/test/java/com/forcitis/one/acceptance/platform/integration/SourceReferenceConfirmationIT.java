@@ -3,6 +3,7 @@ package com.forcitis.one.acceptance.platform.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.awaitility.Awaitility.await;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import com.jayway.jsonpath.JsonPath;
 import java.sql.Connection;
@@ -12,6 +13,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -142,6 +144,100 @@ class SourceReferenceConfirmationIT extends SourceReferenceHttpSupport {
         int registeredAgain = integrationAudit().size();
         assertThat(decide(APPROVER, second, "reject").getStatus()).isBetween(200, 299);
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(integrationAudit()).as("rejection").hasSizeGreaterThan(registeredAgain));
+    }
+
+    static final String CONFIRMED_ACTION = "platform.integration.SourceReferenceConfirmed";
+
+    /** Every row of one legal entity as GET /api/v1/platform/source-references answers it, keyed by sourceReferenceId. */
+    private Map<String, Object> listedRow(UUID legalEntity, Registered row) throws Exception {
+        MockHttpServletResponse found = mvc.perform(get(SOURCE_REFERENCES).param("sourceSystem", ACCOUNTING_SYSTEM).param("sourceObjectKind", LEGAL_ENTITY)
+                .param("ownId", legalEntity.toString()).with(APPROVER)).andReturn().getResponse();
+        assertThat(found.getStatus()).as(found.getContentAsString()).isEqualTo(200);
+        List<Map<String, Object>> items = JsonPath.read(found.getContentAsString(), "$.items[?(@.sourceReferenceId == '" + row.sourceReferenceId() + "')]");
+        assertThat(items).as("row %s is listed for its legal entity", row.sourceReferenceId()).hasSize(1);
+        return items.get(0);
+    }
+
+    @Test
+    @DisplayName("R-1b P3a 复审 M2（ADR-0033 第 2 项第 1 条、第 5 项第 4 条，用户口径「允许同日更正」）：已确认编码 A 自 D 起生效，同日 D 生效的更正 B 由他人确认后，出站自 D 起取到 B；A 行仍在、区间为空 [D, D)、来源 ID 不改写，确认写审计")
+    void aCorrectionFromTheSameDayReplacesAWrongCode() throws Exception {
+        UUID legalEntity = createLegalEntity("SRL", "Synthetic SRL");
+        LocalDate day = TODAY;
+        Registered wrong = confirmedAccountingCode(9401, legalEntity, day);
+
+        Registered correction = registerAccountingCode(RECORDER_WHO_ALSO_APPROVES, 9402, legalEntity, day);
+        assertThat(outboundAccountingCode(legalEntity, day)).as("while the correction waits, the confirmed code stays in use").isEqualTo(9401L);
+
+        int confirmationsBefore = auditedActions(CONFIRMED_ACTION).size();
+        MockHttpServletResponse confirmed = decide(APPROVER, correction, "confirm");
+        assertThat(confirmed.getStatus()).as("a correction from the day the wrong code starts: " + confirmed.getContentAsString()).isBetween(200, 299);
+
+        assertThat(row(correction.sourceReferenceId())).isEqualTo("CONFIRMED 9402 " + legalEntity + " [" + day + ", null)");
+        assertThat(outboundAccountingCode(legalEntity, day)).as("on the day itself").isEqualTo(9402L);
+        assertThat(outboundAccountingCode(legalEntity, day.plusDays(30))).as("and after it").isEqualTo(9402L);
+
+        assertThat(row(wrong.sourceReferenceId())).as("the wrong row stays, same source id and own id, its period emptied")
+                .endsWith(" 9401 " + legalEntity + " [" + day + ", " + day + ")");
+        Map<String, Object> listed = listedRow(legalEntity, wrong);
+        assertThat(listed).as("the wrong row as the legal entity page reads it").containsEntry("sourceId", "9401").containsEntry("ownId", legalEntity.toString())
+                .containsEntry("effectiveFrom", day.toString()).containsEntry("effectiveTo", day.toString());
+        assertThat(listedRow(legalEntity, correction)).containsEntry("sourceId", "9402").containsEntry("confirmationStatus", "CONFIRMED")
+                .containsEntry("effectiveFrom", day.toString());
+        assertThat(listedRow(legalEntity, correction).get("effectiveTo")).isNull();
+
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(auditedActions(CONFIRMED_ACTION)).as("the confirmation is audited")
+                .hasSizeGreaterThan(confirmationsBefore));
+    }
+
+    @Test
+    @DisplayName("R-1b P3a 复审 M2（ADR-0033 第 5 项第 4 条，用户口径「允许同日更正」，同样四眼）：同日更正由录入人自己确认得 403，行仍待确认、出站仍用原编码；他人确认后才生效")
+    void aSameDayCorrectionStillNeedsASecondPerson() throws Exception {
+        UUID legalEntity = createLegalEntity("SRM", "Synthetic SRM");
+        LocalDate day = TODAY;
+        Registered wrong = confirmedAccountingCode(9501, legalEntity, day);
+        Registered correction = registerAccountingCode(RECORDER_WHO_ALSO_APPROVES, 9502, legalEntity, day);
+
+        MockHttpServletResponse bySelf = decide(RECORDER_WHO_ALSO_APPROVES, correction, "confirm");
+        assertThat(bySelf.getStatus()).as(bySelf.getContentAsString()).isEqualTo(403);
+        assertThat((String) JsonPath.read(bySelf.getContentAsString(), "$.errorCode")).isEqualTo("PLATFORM_INTEGRATION_CONFIRMER_IS_AUTHOR");
+        assertThat(row(correction.sourceReferenceId())).startsWith("PENDING 9502 ");
+        assertThat(row(wrong.sourceReferenceId())).isEqualTo("CONFIRMED 9501 " + legalEntity + " [" + day + ", null)");
+        assertThat(outboundAccountingCode(legalEntity, day)).isEqualTo(9501L);
+
+        MockHttpServletResponse byAnother = decide(APPROVER, correction, "confirm");
+        assertThat(byAnother.getStatus()).as(byAnother.getContentAsString()).isBetween(200, 299);
+        assertThat(outboundAccountingCode(legalEntity, day)).isEqualTo(9502L);
+        assertThat(row(wrong.sourceReferenceId())).endsWith(" 9501 " + legalEntity + " [" + day + ", " + day + ")");
+    }
+
+    @Test
+    @DisplayName("R-1b P3a 复审 M2 回归（ADR-0033 第 2 项第 1 条）：生效日早于在用编码的更正仍被拒绝（4xx），在用编码不变；晚于的更正照旧关闭旧行并生效")
+    void aCorrectionBeforeTheCodeStartsIsStillRefused() throws Exception {
+        UUID legalEntity = createLegalEntity("SRN", "Synthetic SRN");
+        LocalDate day = TODAY.plusDays(10);
+        Registered inEffect = confirmedAccountingCode(9601, legalEntity, day);
+        setToday(day);
+
+        MockHttpServletResponse earlier = postJson(RECORDER_WHO_ALSO_APPROVES, body(ACCOUNTING_SYSTEM, LEGAL_ENTITY, "9602", legalEntity, day.minusDays(1)));
+        if (earlier.getStatus() == 201) {
+            Registered tooEarly = new Registered(UUID.fromString(JsonPath.read(earlier.getContentAsString(), "$.sourceReferenceId")), earlier.getHeader("ETag"));
+            MockHttpServletResponse refused = decide(APPROVER, tooEarly, "confirm");
+            assertThat(refused.getStatus()).as("a correction before the code in effect starts: " + refused.getContentAsString()).isBetween(400, 499);
+            assertThat(row(tooEarly.sourceReferenceId())).startsWith("PENDING 9602 ");
+        } else {
+            assertThat(earlier.getStatus()).as("a correction before the code in effect starts: " + earlier.getContentAsString()).isBetween(400, 499);
+        }
+        assertThat(row(inEffect.sourceReferenceId())).isEqualTo("CONFIRMED 9601 " + legalEntity + " [" + day + ", null)");
+        assertThat(outboundAccountingCode(legalEntity, day)).isEqualTo(9601L);
+
+        LocalDate later = day.plusDays(5);
+        Registered correction = registerAccountingCode(RECORDER_WHO_ALSO_APPROVES, 9603, legalEntity, later);
+        MockHttpServletResponse confirmed = decide(APPROVER, correction, "confirm");
+        assertThat(confirmed.getStatus()).as(confirmed.getContentAsString()).isBetween(200, 299);
+        assertThat(row(inEffect.sourceReferenceId())).isEqualTo("CONFIRMED 9601 " + legalEntity + " [" + day + ", " + later + ")");
+        assertThat(row(correction.sourceReferenceId())).isEqualTo("CONFIRMED 9603 " + legalEntity + " [" + later + ", null)");
+        assertThat(outboundAccountingCode(legalEntity, day)).isEqualTo(9601L);
+        assertThat(outboundAccountingCode(legalEntity, later)).isEqualTo(9603L);
     }
 
     static final RequestPostProcessor SECOND_APPROVER = person(18, APPROVE);

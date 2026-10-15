@@ -362,6 +362,46 @@ class SourceReferenceConstraintIT extends AcceptanceSupport {
         assertThat(present(manual)).isTrue();
     }
 
+    /** Runs one update of a row and keeps it when accepted; answers ACCEPTED or the SQL state. */
+    private String keptUpdate(UUID row, String assignment) throws SQLException {
+        Savepoint before = integration.setSavepoint();
+        try (PreparedStatement statement = integration.prepareStatement("update source_references set " + assignment + " where source_reference_id = ?")) {
+            statement.setObject(1, row);
+            int touched = statement.executeUpdate();
+            if (touched != 1) {
+                throw new AssertionError("the update touched " + touched + " rows instead of the one probed: " + assignment);
+            }
+            return ACCEPTED;
+        } catch (SQLException refused) {
+            integration.rollback(before);
+            return refused.getSQLState();
+        }
+    }
+
+    private UUID lastProbeId() {
+        return UUID.fromString(String.format("01900000-0000-7000-9000-%012x", probes));
+    }
+
+    @Test
+    @DisplayName("R-1b P3a 复审 M2（ADR-0033 第 2 项第 1 条，用户口径「允许同日更正」）：已确认行可关闭为空区间 [D, D)，也可直接以空区间写入；空区间不占排他约束，同日起的另一已确认行可以并存；失效日早于生效日仍被拒绝")
+    void anEmptyPeriodTakesNoKey() throws Exception {
+        assertThat(insert(accountingCode(1021, LEGAL_ENTITY_A, "CONFIRMED", "2026-11-02", null), true)).isEqualTo(ACCEPTED);
+        UUID wrong = lastProbeId();
+
+        assertThat(keptUpdate(wrong, "effective_to_date = effective_from_date")).as("closing the confirmed row on its own start day").isEqualTo(ACCEPTED);
+        assertThat(insert(accountingCode(1099, LEGAL_ENTITY_A, "CONFIRMED", "2026-11-02", null), true))
+                .as("the correction of the same legal entity, confirmed from the same day").isEqualTo(ACCEPTED);
+        assertThat(probe(accountingCode(1021, LEGAL_ENTITY_B, "CONFIRMED", "2026-11-02", null)))
+                .as("the emptied code confirmed for another legal entity from the same day").isEqualTo(ACCEPTED);
+        assertThat(probe(accountingCode(1099, LEGAL_ENTITY_B, "CONFIRMED", "2026-11-02", "2026-11-02")))
+                .as("a row written with an empty period beside the code in effect").isEqualTo(ACCEPTED);
+
+        assertThat(probe(accountingCode(1050, LEGAL_ENTITY_B, "CONFIRMED", "2026-11-02", "2026-11-01"))).as("a period that ends before it starts")
+                .isEqualTo(CHECK_VIOLATION);
+        assertThat(probe(accountingCode(1099, LEGAL_ENTITY_B, "CONFIRMED", "2026-11-20", null)))
+                .as("the code in effect is still exclusive to its legal entity").isIn(EXCLUSION_VIOLATION, UNIQUE_VIOLATION);
+    }
+
     @Test
     @DisplayName("R-1b P3a ADR-0033 第 2 项第 1 条：既有行的来源 ID 与自有 ID 不得改写")
     void sourceIdAndOwnIdAreNeverRewritten() throws Exception {
