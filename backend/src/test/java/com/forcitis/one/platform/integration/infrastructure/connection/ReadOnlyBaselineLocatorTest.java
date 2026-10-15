@@ -4,11 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.groups.Tuple.tuple;
 
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.DatabaseLevelPermission;
-import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.DatabaseLocator;
+import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.DatabaseLocator;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Finding;
-import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.GrantLocator;
-import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.OverriddenGrant;
-import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.OverridingDeny;
+import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.GrantLocator;
+import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.OverriddenGrant;
+import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.OverridingDeny;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Reason;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.SecurablePermissionRow;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Unmet;

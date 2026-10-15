@@ -1,9 +1,9 @@
 package com.forcitis.one.platform.integration.infrastructure.connection;
 
-import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.DatabaseLocator;
-import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.GrantLocator;
-import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Locator;
-import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.OverriddenGrant;
+import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.DatabaseLocator;
+import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.GrantLocator;
+import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.Locator;
+import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.OverriddenGrant;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Reason;
 import java.util.Locale;
 import org.jspecify.annotations.Nullable;
