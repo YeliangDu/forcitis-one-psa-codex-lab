@@ -128,7 +128,8 @@ class AuditExportAndOwnRecordsIT {
     @DisplayName("the administrator who ended someone's sessions does not see that entry among their own, and nobody asks for another person")
     void theAdministratorDoesNotSeeWhatTheyDidToOthers() throws Exception {
         mvc.perform(get(OWN).with(ADMINISTRATOR)).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
-        mvc.perform(get(OWN).param("userId", "1001").with(ADMINISTRATOR)).andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(get(OWN).param("userId", "1001").with(ADMINISTRATOR)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_REQUEST_INVALID")).andExpect(jsonPath("$.invalidParameters").value("userId"));
     }
 
     @Test
