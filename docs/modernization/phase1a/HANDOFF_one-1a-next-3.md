@@ -67,3 +67,12 @@ R-1b-0a → P3b → 组织同步拆分 b（workforce「应用组织变更」与�
 - **kernel 端口**：用户已定收紧，新增前先找 api 包 / 事件 / 参数解析器等替代；`KernelPortDetourTest` 拦「已有依赖边却经 kernel 绕行」。
 - **复审**：每份平均两轮；派复审写明只读、不起容器、不写对象库（不要 merge-tree --write-tree）。
 - **额度**：账户本周全模型用量 93%（3 天 14 小时后重置）；用户「照常，用完再说」（intent 183157）。
+
+## 7. 裁定登记（负责会话，one-coordinator 均已知悉或同意；详见 `~/.modernize/psa/handoff/one-1a-next-3/pending-notes.md`）
+
+- **P2**：RULING-P2-1..11、RULING-P2-C5（opus 裁定，静态系统操作主体目录），见 #209 正文。
+- **R-1b-0**：RULING-R1B0-1..7（卡第 11、13、14 节）。
+- **P3b**：RULING-P3B-D1..D12、P3B-1..12（卡第 13、14 节；P3B-9 已改判，保留原裁定与推翻理由）。
+- **FLAKY-SESS**（缺陷卡，one-coordinator 2026-10-15 开卡并选方案 H）：
+  - RULING-FS-1：Spring Session 4.1.1 无时钟注入点，会话过期判定改用与框架同基准的 `SessionStoreClock`（CS-2.26 框架表例外，随 C1 撤销）；`SessionPurgeClockIT` 第 2 条「空闲超期仍被清理」不再靠推进注入时钟，改为把会话行的 creation / last_access 时间改到真实时间 11 小时前、expiry 改到 1 小时前构造，断言含义不变。
+  - RULING-FS-2（opus 复审 M-1 / M-4 / L-4）：第 1 条清理前把注入时钟拨 +400 天，使任何日期运行都能区分「清理用注入时钟」的回归；类 Javadoc 与 acceptance README 例外说明更正；第 2 条收紧为恰删 1 条并断言 `platform.identity.session.expired`、`cause=IDLE` 审计。
