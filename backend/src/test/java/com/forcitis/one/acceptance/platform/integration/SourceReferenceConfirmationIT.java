@@ -5,13 +5,23 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.awaitility.Awaitility.await;
 
 import com.jayway.jsonpath.JsonPath;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -132,5 +142,80 @@ class SourceReferenceConfirmationIT extends SourceReferenceHttpSupport {
         int registeredAgain = integrationAudit().size();
         assertThat(decide(APPROVER, second, "reject").getStatus()).isBetween(200, 299);
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(integrationAudit()).as("rejection").hasSizeGreaterThan(registeredAgain));
+    }
+
+    static final RequestPostProcessor SECOND_APPROVER = person(18, APPROVE);
+
+    private int sessionsWaitingOnALock(Connection observer) throws Exception {
+        try (PreparedStatement waiting = observer.prepareStatement("""
+                select count(*) from pg_stat_activity where datname = current_database() and wait_event_type = 'Lock' and pid <> pg_backend_pid()
+                """); ResultSet rs = waiting.executeQuery()) {
+            rs.next();
+            return rs.getInt(1);
+        }
+    }
+
+    private long overlappingConfirmedRows(UUID legalEntity) throws Exception {
+        try (PreparedStatement overlaps = integration.prepareStatement("""
+                select count(*) from source_references a join source_references b
+                    on a.own_id = b.own_id and a.source_system = b.source_system and a.source_object_kind = b.source_object_kind
+                   and a.source_reference_id < b.source_reference_id
+                 where a.own_id = ? and a.confirmation_status = 'CONFIRMED' and b.confirmation_status = 'CONFIRMED'
+                   and daterange(a.effective_from_date, a.effective_to_date, '[)') && daterange(b.effective_from_date, b.effective_to_date, '[)')
+                """)) {
+            overlaps.setObject(1, legalEntity);
+            try (ResultSet rs = overlaps.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("R-1b P3a 复审 L9（ADR-0033 第 2 项第 1 条）：同一法人两笔更正由两人并发确认——一笔成功、后者 409 且仍待确认；任一日期只有一行已确认")
+    void concurrentCorrectionsConfirmOnlyOne() throws Exception {
+        UUID legalEntity = createLegalEntity("SRK", "Synthetic SRK");
+        Registered inEffect = confirmedAccountingCode(9301, legalEntity, TODAY);
+        setToday(TODAY.plusDays(14));
+        Registered sooner = registerAccountingCode(RECORDER_WHO_ALSO_APPROVES, 9302, legalEntity, TODAY.plusDays(14));
+        Registered later = registerAccountingCode(RECORDER_WHO_ALSO_APPROVES, 9303, legalEntity, TODAY.plusDays(21));
+
+        ExecutorService approvers = Executors.newFixedThreadPool(2);
+        List<Future<MockHttpServletResponse>> decisions = new ArrayList<>();
+        try (Connection holder = schemaConnection("platform_integration"); Connection observer = schemaConnection("platform_integration")) {
+            holder.setAutoCommit(false);
+            try (PreparedStatement lock = holder.prepareStatement("select 1 from source_references where source_reference_id = ? for update")) {
+                lock.setObject(1, inEffect.sourceReferenceId());
+                lock.executeQuery().close();
+            }
+            decisions.add(approvers.submit(() -> decide(APPROVER, sooner, "confirm")));
+            decisions.add(approvers.submit(() -> decide(SECOND_APPROVER, later, "confirm")));
+            await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> assertThat(
+                    sessionsWaitingOnALock(observer) + decisions.stream().filter(Future::isDone).count())
+                    .as("both confirmations have read the code in effect and wait for it, or are done").isGreaterThanOrEqualTo(2));
+            holder.commit();
+        }
+        List<Integer> statuses = new ArrayList<>();
+        List<String> bodies = new ArrayList<>();
+        try {
+            for (Future<MockHttpServletResponse> decision : decisions) {
+                MockHttpServletResponse answer = decision.get(30, TimeUnit.SECONDS);
+                statuses.add(answer.getStatus());
+                bodies.add(answer.getContentAsString());
+            }
+        } finally {
+            approvers.shutdownNow();
+        }
+
+        assertThat(statuses).as(bodies.toString()).anyMatch(status -> status / 100 == 2).contains(409);
+        Registered winner = statuses.get(0) / 100 == 2 ? sooner : later;
+        Registered loser = winner == sooner ? later : sooner;
+        long winnerCode = winner == sooner ? 9302L : 9303L;
+        LocalDate winnerFrom = winner == sooner ? TODAY.plusDays(14) : TODAY.plusDays(21);
+        assertThat(row(loser.sourceReferenceId())).as("the confirmation that lost the race is refused, not applied").startsWith("PENDING ");
+        assertThat(row(winner.sourceReferenceId())).isEqualTo("CONFIRMED " + winnerCode + " " + legalEntity + " [" + winnerFrom + ", null)");
+        assertThat(row(inEffect.sourceReferenceId())).isEqualTo("CONFIRMED 9301 " + legalEntity + " [" + TODAY + ", " + winnerFrom + ")");
+        assertThat(overlappingConfirmedRows(legalEntity)).as("confirmed rows of one legal entity never cover the same day").isZero();
+        assertThat(outboundAccountingCode(legalEntity, TODAY.plusDays(21))).isEqualTo(winnerCode);
     }
 }

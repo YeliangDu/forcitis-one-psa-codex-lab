@@ -1,9 +1,12 @@
 package com.forcitis.one.acceptance.platform.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.acceptance.AcceptanceSupport;
 import com.forcitis.one.kernel.WorkContext;
+import com.jayway.jsonpath.JsonPath;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -19,6 +22,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.ApplicationContext;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -149,16 +154,71 @@ class SourceReferenceConstraintIT extends AcceptanceSupport {
     }
 
     private String update(String assignment) throws SQLException {
+        return update(template, assignment);
+    }
+
+    private String update(UUID row, String assignment) throws SQLException {
+        return statement("update source_references set " + assignment + " where source_reference_id = ?", row);
+    }
+
+    /** Runs one statement in a savepoint that is always rolled back; answers ACCEPTED or the SQL state. A row-scoped statement must touch its row. */
+    private String statement(String sql, UUID row) throws SQLException {
         Savepoint before = integration.setSavepoint();
-        try (PreparedStatement update = integration.prepareStatement("update source_references set " + assignment + " where source_reference_id = ?")) {
-            update.setObject(1, template);
-            update.executeUpdate();
+        try (PreparedStatement statement = integration.prepareStatement(sql)) {
+            if (row != null) {
+                statement.setObject(1, row);
+            }
+            int touched = statement.executeUpdate();
             integration.rollback(before);
+            if (row != null && touched != 1) {
+                throw new AssertionError("the statement touched " + touched + " rows instead of the one probed: " + sql);
+            }
             return ACCEPTED;
         } catch (SQLException refused) {
             integration.rollback(before);
             return refused.getSQLState();
         }
+    }
+
+    private boolean present(UUID row) throws SQLException {
+        try (PreparedStatement select = integration.prepareStatement("select 1 from source_references where source_reference_id = ?")) {
+            select.setObject(1, row);
+            try (ResultSet rs = select.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    /** A user id literal of whatever type the audit columns have (bigint now, uuid once user accounts move to UUIDv7). */
+    private String someOtherUser() throws SQLException {
+        try (PreparedStatement type = integration.prepareStatement("""
+                select data_type from information_schema.columns
+                 where table_schema = current_schema() and table_name = 'source_references' and column_name = 'decided_by'
+                """); ResultSet rs = type.executeQuery()) {
+            assertThat(rs.next()).as("source_references.decided_by").isTrue();
+            return "uuid".equals(rs.getString(1)) ? "cast('01900000-0000-7000-8000-0000000000c9' as uuid)" : "70099";
+        }
+    }
+
+    /** An accounting organization code registered by hand through HTTP: PENDING, with its author, not yet decided. */
+    private UUID manualRegistration(String legalEntityCode, long code) throws Exception {
+        UUID legalEntity = createLegalEntity(legalEntityCode, "Synthetic " + legalEntityCode);
+        MockHttpServletResponse created = mvc.perform(post("/api/v1/platform/source-references").with(csrf())
+                .with(person(31, "platform.integration:source-reference:update")).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sourceSystem\":\"ACCOUNTING_SYSTEM\",\"sourceObjectKind\":\"LEGAL_ENTITY\",\"sourceId\":\"" + code + "\",\"ownId\":\""
+                        + legalEntity + "\",\"effectiveFrom\":\"" + TODAY + "\"}")).andReturn().getResponse();
+        assertThat(created.getStatus()).as(created.getContentAsString()).isEqualTo(201);
+        UUID row = UUID.fromString(JsonPath.read(created.getContentAsString(), "$.sourceReferenceId"));
+        try (PreparedStatement select = integration.prepareStatement(
+                "select confirmation_status, created_by is not null, decided_by is null from source_references where source_reference_id = ?")) {
+            select.setObject(1, row);
+            try (ResultSet rs = select.executeQuery()) {
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getString(1) + " " + rs.getBoolean(2) + " " + rs.getBoolean(3)).as("pending, with an author, undecided")
+                        .isEqualTo("PENDING true true");
+            }
+        }
+        return row;
     }
 
     @Test
@@ -239,6 +299,37 @@ class SourceReferenceConstraintIT extends AcceptanceSupport {
         assertThat(insert(accountingCode(1099, LEGAL_ENTITY_A, "PENDING", "2026-11-20", null), true)).isEqualTo(ACCEPTED);
         assertThat(insert(accountingCode(1098, LEGAL_ENTITY_A, "PENDING", "2026-11-20", null), true))
                 .as("two pending corrections side by side").isEqualTo(ACCEPTED);
+    }
+
+    @Test
+    @DisplayName("R-1b P3a 复审 M1（ADR-0033 第 5 项第 4 条）：人工登记的行（有录入人）没有决定人时，库内直接改为已确认或已拒绝都被拒绝；写明他人为决定人才可以")
+    void manualRowIsNeverDecidedWithoutADecider() throws Exception {
+        UUID manual = manualRegistration("SKA", 9101);
+
+        assertThat(update(manual, "confirmation_status = 'CONFIRMED'")).as("confirmed with no decider").isNotEqualTo(ACCEPTED);
+        assertThat(update(manual, "confirmation_status = 'REJECTED'")).as("rejected with no decider").isNotEqualTo(ACCEPTED);
+        assertThat(update(manual, "confirmation_status = 'CONFIRMED', decided_at = now()")).as("confirmed with a time but no decider").isNotEqualTo(ACCEPTED);
+
+        String decider = someOtherUser();
+        assertThat(update(manual, "confirmation_status = 'CONFIRMED', decided_by = " + decider + ", decided_at = now()"))
+                .as("confirmed by another person who is named as the decider").isEqualTo(ACCEPTED);
+        assertThat(update(manual, "confirmation_status = 'REJECTED', decided_by = " + decider + ", decided_at = now()"))
+                .as("rejected by another person who is named as the decider").isEqualTo(ACCEPTED);
+    }
+
+    @Test
+    @DisplayName("R-1b P3a 复审 M1（ADR-0033 第 2 项第 1 条、§14.1 D17）：来源对照只关闭不删除——DELETE 与 TRUNCATE 都被数据库拒绝，行仍在")
+    void referencesAreNeverDeleted() throws Exception {
+        UUID manual = manualRegistration("SKB", 9201);
+
+        assertThat(statement("delete from source_references where source_reference_id = ?", template)).as("deleting a synchronised reference")
+                .isNotEqualTo(ACCEPTED);
+        assertThat(statement("delete from source_references where source_reference_id = ?", manual)).as("deleting a pending registration")
+                .isNotEqualTo(ACCEPTED);
+        assertThat(statement("truncate source_references", null)).as("truncating the table").isNotEqualTo(ACCEPTED);
+
+        assertThat(present(template)).isTrue();
+        assertThat(present(manual)).isTrue();
     }
 
     @Test
