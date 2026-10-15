@@ -64,8 +64,6 @@
 - （2026-10-15 用户「需要我做的，都让ops 会话自己做」：R-4 改 OIDC、R-13 免除、云助手命令与 B-13 由 one-ops 做；ICP 与备案用户「已经完成所有备案」。下列旧条目以此为准。）
 - 用户待办（旧）：RDS 控制台查日志备份频率（RPO；查不到则平台约定改为「主机故障不丢、误操作恢复精度取决于日志备份」）；ICP 备案主体核验；建企业微信「FORCITIS one 运维」群与机器人（A-5，Webhook 经 one-ops 安全窗口）；R-0 部署 runner 重建（sudo）；R-1..R-12；建归档 OSS bucket（国内、归档存储、本地冗余、WORM 2557 天，B-11）与法兰克福发布 bucket；向 A8 方提 v_org_member 加离职日期列。
 - 发布流水线 U-1 / U-2 / U-3 / U-5：首次 prod 部署前定（建议接受 U-1、U-2、U-3；U-5 届时再定）。
-- 生产前维护窗口（用户定时间）：RDS SQL Server rm-bp1690ep53t9778dp 开 SSL 并强制校验；RDS PG 证书重签（私钥曾进 one-ops 会话记录）。
-- 老系统安全风险登记（用户「老系统先不管」）：SQL Server 公网白名单 0.0.0.0/0、psa-nacos 8848 对公司出口免登录可读生产库高权限口令、48088 对公网——这台 SQL Server 也承载新系统读 A8 的只读账号，1a 上线前须再请用户评估。
 - 部署前清单：A 类与 N-1..N-3 已决定（用户「A 类全部按建议」「其他人选先空着，N-2、N-3 也采纳」）；平台负责人为用户本人，其余人选待定（本机私有记录 `~/.modernize/psa/infra/role_holders.md`，不入仓库）——生产前须补齐第二名超管（运维）、安全审计员（不能是超管）、组织数据管理员、DBA。B 类只能用户或运维执行（先做 B-1 `/design-sync`、B-2 企业微信应用）；C 类执行前须确认，C-5 等运维命令实现。CI 无发布流水线（清单遗漏项）——待安排。
 - 财务：确认单 v2（`~/.modernize/psa/finance/FINANCE_CONFIRM_v2.html`，FQ-01..FQ-22 + 7 份 ADR），答复用 `r0/import_finance_answers.py` 导入；G1 开工前必须。FQ-18 需先跑 U8C 分类查询另行发送。
 - 用户：B1–B5 与经营问题清单（`~/.modernize/psa/bi-inputs/questions/`）；OAT 4 个文件在 ddd-theory 提交后改引提交号；确认单末尾「会计类新术语由财务逐条确认」是否保留（未答）。
