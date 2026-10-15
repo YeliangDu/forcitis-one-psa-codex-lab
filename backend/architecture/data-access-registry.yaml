@@ -328,6 +328,13 @@ tables:
     retention: {policy: 90d, job: platform.integration.outbound.purge}
     lineage: {source: NEW}
     writers: [platform.integration]
+  platform_integration.source_references:
+    role: AGGREGATE_ROOT
+    aggregate: SourceReference
+    mutability: MUTABLE
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [platform.integration]
 
   platform_numbering.numbering_rules:
     role: CONFIG_VERSIONED

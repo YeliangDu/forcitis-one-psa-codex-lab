@@ -341,8 +341,10 @@ SELECT roles.role_id, grants.permission_code
       ('org_data_admin', 'organization.attendance:locked-day:update'),
       ('org_data_admin', 'platform.numbering:numbering-rule:read'),
       ('org_data_admin', 'platform.numbering:numbering-rule:update'),
+      ('org_data_admin', 'platform.integration:source-reference:update'),
       ('business_admin', 'platform.numbering:numbering-rule:read'),
       ('business_admin', 'platform.numbering:numbering-rule:approve'),
+      ('business_admin', 'platform.integration:source-reference:approve'),
       ('security_auditor', 'platform.audit:audit-entry:read'),
       ('security_auditor', 'platform.audit:audit-entry:export'),
       ('employee', 'platform.audit:own-login-record:read')

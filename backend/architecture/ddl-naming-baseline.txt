@@ -20,7 +20,6 @@ column platform_identity.ticket_issuers.key_reference | 改名为 key_reference_
 column platform_integration.outbound_deliveries.handled_result | 改名为 handled_result_kind（加 CHECK）
 column platform_integration.outbound_deliveries.last_error | 改名为 last_error_message
 column platform_numbering.legacy_numbers.document_type | 改名为 document_type_code（单据类型代码是可扩展的登记项，G45；或保留并补 CHECK）
-column platform_numbering.legacy_numbers.import_batch | 改名为 import_batch_key
 column platform_numbering.numbering_counters.document_type | 改名为 document_type_code（同上）
 column platform_numbering.numbering_rules.document_type | 改名为 document_type_code（同上）
 column platform_numbering.numbering_rules.pattern | 改名为 pattern_text
@@ -59,8 +58,6 @@ constraint platform_identity.user_accounts.user_accounts_pkey | RENAME CONSTRAIN
 constraint platform_integration.outbound_deliveries.outbound_deliveries_deduplication_key_key | RENAME CONSTRAINT outbound_deliveries_deduplication_key_key TO uk_outbound_deliveries_deduplication_key
 constraint platform_integration.outbound_deliveries.outbound_deliveries_handled_note_target | RENAME CONSTRAINT outbound_deliveries_handled_note_target TO ck_outbound_deliveries_handled_note_target
 constraint platform_integration.outbound_deliveries.outbound_deliveries_pkey | RENAME CONSTRAINT outbound_deliveries_pkey TO pk_outbound_deliveries
-constraint platform_numbering.legacy_numbers.legacy_numbers_pkey | RENAME CONSTRAINT legacy_numbers_pkey TO pk_legacy_numbers
-constraint platform_numbering.legacy_numbers.legacy_numbers_type_number_key | RENAME CONSTRAINT legacy_numbers_type_number_key TO uk_legacy_numbers_document_type_legacy_number
 constraint platform_numbering.numbering_rules.numbering_rules_pkey | RENAME CONSTRAINT numbering_rules_pkey TO pk_numbering_rules
 index organization_workforce.assignments_org_unit_id_idx | ALTER INDEX organization_workforce.assignments_org_unit_id_idx RENAME TO ix_assignments_org_unit_id
 index organization_workforce.employees_employee_code_idx | ALTER INDEX organization_workforce.employees_employee_code_idx RENAME TO ix_employees_employee_code
@@ -77,4 +74,3 @@ index platform_identity.uq_roles_code | ALTER INDEX platform_identity.uq_roles_c
 index platform_identity.uq_roles_name | ALTER INDEX platform_identity.uq_roles_name RENAME TO uk_roles_name
 index platform_integration.outbound_deliveries_dead_idx | ALTER INDEX platform_integration.outbound_deliveries_dead_idx RENAME TO ix_outbound_deliveries_dead
 index platform_integration.outbound_deliveries_due_idx | ALTER INDEX platform_integration.outbound_deliveries_due_idx RENAME TO ix_outbound_deliveries_due
-index platform_numbering.legacy_numbers_document_idx | ALTER INDEX platform_numbering.legacy_numbers_document_idx RENAME TO ix_legacy_numbers_document

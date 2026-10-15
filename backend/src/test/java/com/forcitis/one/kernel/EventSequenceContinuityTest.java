@@ -174,6 +174,28 @@ class EventSequenceContinuityTest {
     }
 
     @Test
+    @DisplayName("SourceReference: events are numbered 1..n")
+    void sourceReference() {
+        var system = com.forcitis.one.platform.integration.api.ExternalSource.ACCOUNTING_SYSTEM;
+        var kind = com.forcitis.one.platform.integration.api.SourceObjectKind.LEGAL_ENTITY;
+        var own = new com.forcitis.one.platform.integration.api.OwnObjectId(TestIds.uuid(5));
+        checkMany(() -> com.forcitis.one.platform.integration.domain.SourceReference.register(
+                        new com.forcitis.one.platform.integration.domain.SourceReferenceId(TestIds.uuid(1)), system, kind,
+                        new com.forcitis.one.platform.integration.api.SourceObjectId(1021), own, TODAY, new UserId(1)),
+                List.of(r -> r.confirm(new UserId(2), NOW), r -> r.reject(new UserId(3), NOW), r -> r.supersede(TODAY.plusDays(30))));
+    }
+
+    @Test
+    @DisplayName("SourceReferenceRefusal: it announces its one event at the first number")
+    void sourceReferenceRefusal() {
+        var refusal = com.forcitis.one.platform.integration.domain.SourceReferenceRefusal.of(
+                new com.forcitis.one.platform.integration.domain.SourceReferenceId(TestIds.uuid(1)),
+                com.forcitis.one.platform.integration.api.ExternalSource.ORG_SOURCE, com.forcitis.one.platform.integration.api.SourceObjectKind.EMPLOYEE);
+
+        assertThat(refusal.drainEvents(TestEnvelopes.INSTANCE)).extracting(e -> e.envelope().aggregateVersion()).containsExactly(1L);
+    }
+
+    @Test
     @DisplayName("OutboundDelivery: it announces no event, so its sequence stays where it was while the lock version moves")
     void outboundDelivery() {
         checkMany(() -> com.forcitis.one.platform.integration.domain.OutboundDelivery.restore(
