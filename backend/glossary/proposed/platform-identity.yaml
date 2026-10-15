@@ -56,54 +56,14 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: login
-  zh: 登录
-  en: Login
-  snake: login
-  kind: action
-  bc: platform.identity
-  definition: 用户以某种凭证建立会话的动作；所有入口过同一道「启用且在职」检查
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: logout
-  zh: 登出
-  en: Logout
-  snake: logout
-  kind: action
-  bc: platform.identity
-  definition: 用户主动结束会话；会话在服务端删除
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: session
-  zh: 会话
-  en: Session
-  snake: session
-  kind: entity
-  bc: platform.identity
-  definition: 服务端会话（Spring Session JDBC）：空闲 10 小时、绝对上限 24 小时，均可配置
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: ticket
   zh: 票据
   en: Ticket
   snake: ticket
   kind: entity
   bc: platform.identity
+  scope: acl
+  acl_class: "长期"
   definition: 一次性登录凭据：致远 OA 票据，或外部系统的签名票据
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
@@ -118,6 +78,8 @@ terms:
   snake: ticket_issuer
   kind: entity
   bc: platform.identity
+  scope: acl
+  acl_class: "长期"
   definition: 被允许签发签名票据的外部系统（KM、组织门户、YD 门户、BI），每方一把密钥，默认关闭
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
@@ -132,133 +94,8 @@ terms:
   snake: sso
   kind: concept
   bc: platform.identity
+  scope: domain
   definition: 由致远 OA 发起的单点登录
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: emergency_admin
-  zh: 应急管理员
-  en: EmergencyAdmin
-  snake: emergency_admin
-  kind: entity
-  bc: platform.identity
-  definition: 独立凭据（Argon2id 口令 + TOTP）的 break-glass 管理员，只能从内网登录
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: administrator
-  zh: 管理员
-  en: Administrator
-  snake: administrator
-  kind: role
-  bc: platform.identity
-  definition: 持有 super_admin 或管理员角色的人；不得通过外部票据进入
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: password
-  zh: 口令
-  en: Password
-  snake: password
-  kind: value
-  bc: platform.identity
-  definition: 应急管理员的登录口令，至少 12 位并有复杂度要求
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: access_scope
-  zh: 数据范围
-  en: AccessScope
-  snake: access_scope
-  kind: value
-  bc: platform.identity
-  definition: 法人 × 部门 × 项目角色的行可见范围；空范围 = 零行
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: access_grant
-  zh: 数据范围授权
-  en: AccessGrant
-  snake: access_grant
-  kind: value
-  bc: platform.identity
-  definition: 数据范围中的一格：法人 × 部门（可含下级）× 项目角色
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: navigation
-  zh: 导航
-  en: Navigation
-  snake: navigation
-  kind: entity
-  bc: platform.identity
-  definition: 用户可见的菜单树
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: navigation_item
-  zh: 导航项
-  en: NavigationItem
-  snake: navigation_item
-  kind: entity
-  bc: platform.identity
-  definition: 菜单树中的目录或页面
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: descendant
-  zh: 下级单元
-  en: Descendant
-  snake: descendant
-  kind: concept
-  bc: platform.identity
-  definition: 组织树中某单元之下的单元
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: direct_report
-  zh: 直接下属
-  en: DirectReport
-  snake: direct_report
-  kind: concept
-  bc: platform.identity
-  definition: 汇报线上直接向某人汇报的人；「本人及下属」只算直接下属
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
   confidence: medium
@@ -272,6 +109,8 @@ terms:
   snake: external_identity
   kind: entity
   bc: platform.identity
+  scope: acl
+  acl_class: "长期"
   definition: 用户账号在某个身份提供方（企业微信、致远登录）中的标识与该账号的绑定，带绑定区间；登录只经此绑定解析用户
   standard_ref:
   - adr/ADR-0033.md
@@ -286,6 +125,8 @@ terms:
   snake: provider_kind
   kind: enum
   bc: platform.identity
+  scope: acl
+  acl_class: "长期"
   definition: 外部身份所属的身份提供方类别，如企业微信用户 ID、致远登录名
   standard_ref:
   - adr/ADR-0033.md
@@ -300,6 +141,8 @@ terms:
   snake: external_subject
   kind: value
   bc: platform.identity
+  scope: acl
+  acl_class: "长期"
   definition: 身份提供方给出的用户标识文本（企业微信 userid、致远登录名），只存于外部身份绑定
   standard_ref:
   - adr/ADR-0033.md
