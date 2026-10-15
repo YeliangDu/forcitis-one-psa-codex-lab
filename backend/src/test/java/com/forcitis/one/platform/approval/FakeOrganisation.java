@@ -87,7 +87,7 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
 
     @Override
     public Optional<EmployeeProfile> findEmployeeByLogin(com.forcitis.one.organization.workforce.api.LoginLookup lookup) {
-        if (!(lookup instanceof com.forcitis.one.organization.workforce.api.LoginLookup.ByWecomUserId(WecomUserId wecomUserId))) {
+        if (!(lookup instanceof com.forcitis.one.organization.workforce.api.LoginLookup.ByWecomUser(WecomUserId wecomUserId))) {
             return Optional.empty();
         }
         return people.values().stream().filter(p -> wecomUserId.value().equals(p.wecom())).findFirst()

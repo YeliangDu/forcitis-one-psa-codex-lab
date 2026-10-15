@@ -53,10 +53,10 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
 
     @Test
     @DisplayName("RULE-322/324 an employee is found by the exact WeCom user id from the snapshot, without asking the source")
-    void findsByWecomUserIdFromTheSnapshot() {
+    void findsByWecomUserFromTheSnapshot() {
         synced();
 
-        Optional<EmployeeProfile> found = directory.findEmployeeByLogin(new LoginLookup.ByWecomUserId(new WecomUserId("wx-2")));
+        Optional<EmployeeProfile> found = directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-2")));
 
         assertThat(found).isPresent();
         assertThat(found.get().employeeId()).isEqualTo(user(2));
@@ -105,7 +105,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         synced();
         orgSource.singleLookupResult = List.of(person(3001, 2, 100L, 1L, "13900003001", "wx-new-hire"));
 
-        Optional<EmployeeProfile> found = directory.findEmployeeByLogin(new LoginLookup.ByWecomUserId(new WecomUserId("wx-new-hire")));
+        Optional<EmployeeProfile> found = directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-new-hire")));
 
         assertThat(found).isPresent();
         assertThat(found.get().employeeId()).isEqualTo(user(3001));
@@ -115,7 +115,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(events.stream(EmployeeRegistered.class).filter(e -> e.envelope().aggregateType().equals("Employee")
                 && e.envelope().aggregateId().equals("3001") && e.envelope().aggregateVersion() == 1)).hasSize(1);
 
-        assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUserId(new WecomUserId("wx-new-hire")))).isPresent();
+        assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-new-hire")))).isPresent();
         assertThat(orgSource.singleLookups.get()).as("the second login is answered by the snapshot").isEqualTo(1);
     }
 
@@ -125,19 +125,19 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         synced();
 
         orgSource.singleLookupResult = List.of(person(3002, 99, 100L, null, "13900003002", "wx-no-unit"));
-        assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUserId(new WecomUserId("wx-no-unit")))).isEmpty();
+        assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-no-unit")))).isEmpty();
 
         orgSource.singleLookupResult = List.of(person(3003, 2, 555L, null, "13900003003", "wx-no-post"));
-        assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUserId(new WecomUserId("wx-no-post")))).isEmpty();
+        assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-no-post")))).isEmpty();
 
         orgSource.singleLookupResult = List.of(person(3004, 2, 100L, null, "13900003004", "wx-twice"), person(3005, 2, 100L, null, "13900003005", "wx-twice"));
-        assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUserId(new WecomUserId("wx-twice")))).isEmpty();
+        assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-twice")))).isEmpty();
 
-        assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUserId(new WecomUserId("wx-nobody")))).isEmpty();
+        assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-nobody")))).isEmpty();
 
         orgSource.singleLookupResult = List.of(person(3006, 2, 100L, null, "13900003006", "wx-while-down"));
         orgSource.unavailable = true;
-        assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUserId(new WecomUserId("wx-while-down")))).isEmpty();
+        assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-while-down")))).isEmpty();
 
         assertThat(count("employees")).isEqualTo(3);
         verify(audit, never()).record(argThat((AuditEntry e) -> e.action().contains("registered-on-login")));
@@ -206,7 +206,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         synced();
         orgSource.singleLookupResult = List.of(person(3007, 2, 100L, null, null, "wx-leaver"));
 
-        Optional<EmployeeProfile> found = directory.findEmployeeByLogin(new LoginLookup.ByWecomUserId(new WecomUserId("wx-leaver")));
+        Optional<EmployeeProfile> found = directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-leaver")));
 
         assertThat(found).isPresent();
         assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.SEPARATED);
@@ -218,7 +218,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         synced();
         orgSource.singleLookupResult = List.of(person(3008, 2, 100L, 99999L, "13900003008", "wx-bad-leader"));
 
-        assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUserId(new WecomUserId("wx-bad-leader")))).isPresent();
+        assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-bad-leader")))).isPresent();
 
         assertThat(jdbc.sql("select reports_to_employee_id from organization_workforce.assignments where employee_id = 3008").query(Long.class).optional()).isEmpty();
         assertThat(directory.findSupervisor(user(3008))).isEmpty();

@@ -8,7 +8,7 @@ public interface OrgSource {
     SourceOrgSnapshot readSnapshot();
 
     /** More than one result means ambiguous. */
-    List<SourcePerson> findStaffByWecomUserId(WecomUserId wecomUserId);
+    List<SourcePerson> findStaffByWecomUser(WecomUserId wecomUserId);
 
     /** More than one result means ambiguous. */
     List<SourcePerson> findStaffByLoginName(String loginName);

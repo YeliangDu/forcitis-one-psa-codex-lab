@@ -62,7 +62,7 @@ class LoginMissTransactionIntegrationTest extends WorkforceIntegrationSupport {
         boolean[] lockFreeInsideTheLoginTransaction = new boolean[1];
 
         assertThatThrownBy(() -> new TransactionTemplate(transactions).executeWithoutResult(status -> {
-            assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUserId(new WecomUserId("wx-new-hire")))).isPresent();
+            assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-new-hire")))).isPresent();
             try {
                 lockFreeInsideTheLoginTransaction[0] = snapshotWriterLockIsFree();
             } catch (Exception e) {

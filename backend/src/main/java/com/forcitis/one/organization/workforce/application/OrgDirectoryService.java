@@ -39,7 +39,7 @@ class OrgDirectoryService implements OrgDirectory {
     @Override
     public Optional<EmployeeProfile> findEmployeeByLogin(LoginLookup lookup) {
         return switch (lookup) {
-            case LoginLookup.ByWecomUserId wecom -> findEmployeeByWecomUserId(wecom.wecomUserId());
+            case LoginLookup.ByWecomUser wecom -> findEmployeeByWecomUser(wecom.wecomUserId());
             case LoginLookup.ByLoginName login -> findEmployeeByLoginName(login.loginName());
         };
     }
@@ -56,8 +56,8 @@ class OrgDirectoryService implements OrgDirectory {
         return staff.isPresent() ? EmploymentEvidence.EMPLOYED : EmploymentEvidence.NOT_LISTED;
     }
 
-    private Optional<EmployeeProfile> findEmployeeByWecomUserId(WecomUserId wecomUserId) {
-        return snapshots.findStaffByWecomUserId(wecomUserId)
+    private Optional<EmployeeProfile> findEmployeeByWecomUser(WecomUserId wecomUserId) {
+        return snapshots.findStaffByWecomUser(wecomUserId)
                 .or(() -> registerOnLogin.execute(wecomUserId))
                 .map(OrgDirectoryService::profile);
     }
