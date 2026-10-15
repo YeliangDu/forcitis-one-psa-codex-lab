@@ -75,7 +75,7 @@ node_version="$(node --version)"
 case "$node_version" in v24.*) ;; *) fail "Node 24 required, found: $node_version" ;; esac
 pnpm_pinned="$(node -p "require('./frontend/package.json').packageManager.split('@')[1].split('+')[0]")"
 # corepack picks pnpm from the nearest package.json; only frontend/ names it, elsewhere a fresh corepack falls back to its own default
-pnpm_found="$(cd frontend && pnpm --version)"
+pnpm_found="$(cd frontend && pnpm --version)" || fail "pnpm not runnable in frontend/ (corepack enabled?)"
 [ "$pnpm_found" = "$pnpm_pinned" ] || fail "pnpm $pnpm_pinned required, found: $pnpm_found"
 
 name="forcitis-one-${version}"
