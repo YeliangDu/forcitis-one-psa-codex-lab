@@ -480,7 +480,7 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 | K-3a 公共契约与守护 | kernel 常量（`limit` 默认 50 / 上限 200、批量 100、导出 10,000、导入 5,000、不分页小表 1,000）；游标编解码；`sort` 白名单解析；小表上限断言（超出失败并 ALERT）；`PageRequest.slice` 标弃用；platform.web 未知参数 400 拦截器（排除 springdoc、actuator、非 `/api`）与 OpenAPI `limit` 的 `minimum: 1` / `maximum: 200`；新增守护类 G-A2（按响应形状判 `{items, nextCursor}`）、G-P1（kernel 外无上限常量、OpenAPI 声明 200），现存缺口登记于 `backend/architecture/list-paging-gaps.txt`（每行：路径、负责卡、期限）；DDL-11 测试容器 initdb 排序统一为 C.UTF-8（与 dev 库一致，one-ops C-3；与 S-1 G-S4 协调）；G-X2 前端 `localeCompare` 带 `'zh'` 守护与后端约定；工作日历年份列表试点 | 现在；测试代理先写验收；新增守护类开工前征得 one-1a-next-3 同意，PR 单列守护文件改动，opus 复审 |
 | K-3b-1 identity、numbering、integration 接入 | 授权申请、编号规则、老编号 `documentId` 分支改 SQL 键集或登记小表 | R-1b P2 之后 |
 | K-3b-2 workforce 接入 | 部门列表、`HELD` 同步列表套小表上限；`status` 具名枚举与白名单；法人列表键集 | R-1b P3b 之后、F-1 实现之前 |
-| K-3b-3 approval 接入 | 上限 100→200、三个列表响应统一、收件箱计数改 `:count`、删 `PLATFORM_APPROVAL_PAGE_INVALID` | R-1b P4 之后 |
+| K-3b-3 approval 接入 | 三个列表响应统一、收件箱计数改 `:count`、删 `PLATFORM_APPROVAL_PAGE_INVALID`（上限 100→200 已在 K-3a #190 提前做，one-coordinator 裁定复审 H-1 选 (a)） | R-1b P4 之后 |
 | K-3b-4 audit 接入 | 本人登录记录分页；导出与列表同一组过滤参数（A-4）；导出上限 50,000→10,000、去掉导出前 `count(*)`（dev 前，运行正确性）；删 `AuditQuery.MAX_LIMIT` 与 `QUERY_INVALID` | R-1b P5 之后 |
 | K-3c 其余共用件 | 事件消费幂等、共用导出控制、日期边界测试夹具（另卡）；共用脱敏并入 DA-13（A-11 掩码） | 另排；F-1 只依赖分页约定 |
 
@@ -511,6 +511,8 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 - 人员详情用新权限码 `organization.workforce:employee:read`，按敏感权限分级登记。
 - 验收未覆盖、实现卡必做并补测试：祖先部门导航（RULE-353）、超期 5 个工作日升级与无收件人告警、HELD 期间不生成、按时刻还原授权历史、注册表与 ArchUnit 守护。
 | PAR-5 K-3 | 列表分页契约统一（游标、上限 200，A 2-H1 / 2-H2）与 DDL-11、G-X2；与 R-1b 在途文件冲突则排后 | 与 R-1b 在途文件不相交 |
+- 用语：第三轮用语确认（用户全部同意建议）已批准 F-1 验收分支的 12 条提议术语（uphold、include_descendants 等），由 one-glossary 写回正式词表；**F-1 实现 PR 合并前 rebase 到写回之后的 main，与 one-glossary 对名单后从 `backend/glossary/proposed/f1-data-scope.yaml` 删去这些条目**。改名卡 ID-22（`glossary/round3/RENAME_CARDS.md`）随 F-1 实现一起改。
+- 开工前术语门禁（SESSION_PLAYBOOK §5，#195）对 F-1 已满足（12 条已确认）；其后新卡在测试代理写验收时列「本卡新词」交 one-glossary，经用户确认后再派实现。
 
 **依据 ADR**：ADR-0033 迁移方案第 5 条等以「首次部署 dev」为界的时点，由 ADR-0038（已采纳，部分取代 ADR-0033 迁移方案第 5 条等） 改为生产前（取代范围见 ADR-0038 标题行与第 4、5 项）；本节的 W4 时点与 PAR-1 以其为依据。
 

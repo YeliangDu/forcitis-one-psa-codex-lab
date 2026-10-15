@@ -1308,6 +1308,7 @@ export interface components {
             detail?: string;
             errorCode: components["schemas"]["ErrorCode"] | (string & {});
             instance?: string;
+            invalidParameters?: string;
             legacyLoginUrl?: string;
             /** Format: int32 */
             status: number;

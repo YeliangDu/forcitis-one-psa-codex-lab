@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.fixture.doubles.MutableClock;
 import com.forcitis.one.fixture.doubles.RecordingArchiveVault;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
@@ -84,7 +85,7 @@ class ProcessArchiveJobIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18");
+    static PostgreSQLContainer postgres = TestPostgres.container();
 
     @Autowired
     ProcessArchiveJob job;

@@ -3,6 +3,7 @@ package com.forcitis.one.platform.approval.infrastructure.flowable;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.fixture.doubles.MutableClock;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditLog;
@@ -71,7 +72,7 @@ class EngineClockIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18");
+    static PostgreSQLContainer postgres = TestPostgres.container();
 
     @Autowired
     MutableClock clock;
