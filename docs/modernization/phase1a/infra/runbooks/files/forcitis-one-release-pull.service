@@ -1,0 +1,34 @@
+# /etc/systemd/system/forcitis-one-release-pull.service（RELEASE.md R-7）
+[Unit]
+Description=FORCITIS one release pull: install this environment's new request from OOS
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/forcitis-one-release pull
+# Whatever stopped the run (timeout, stop, SIGKILL): stop a leftover migration, undo an unconfirmed switch made by this pull, end a
+# request left `started` as failed, report, alert
+ExecStopPost=/usr/local/sbin/forcitis-one-release finish-interrupted
+# Budget: the installer starts no step after 2700 s. Step limits: small assets 3 × 60 + bundle (at most 1200) + migration 900 +
+# switch reserve 570 (two restarts of 60 s, each with a 180 s health check, plus 90 s for OOS calls) = 2850 s at most, and less in
+# practice because the bundle only gets what is left after the migration and the reserve. The unit allows 3000 s.
+# ship.sh waits 4320 s for the result (a run already in progress, this run, the 60 s timer period); deploy.yml allows 80 minutes.
+TimeoutStartSec=3000
+# On a stop the TERM handler may switch back (health check up to 180 s), and ExecStopPost may do the same
+TimeoutStopSec=600
+RuntimeDirectory=forcitis-one-release
+RuntimeDirectoryMode=0700
+# The lock is shared with an operator's rollback run outside this unit
+RuntimeDirectoryPreserve=yes
+StateDirectory=forcitis-one-release
+StateDirectoryMode=0700
+LogsDirectory=forcitis-one-release
+LogsDirectoryMode=0700
+ProtectSystem=strict
+# Releases, links and HISTORY
+ReadWritePaths=/data/forcitis-one
+ProtectHome=yes
+PrivateTmp=yes
+NoNewPrivileges=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6

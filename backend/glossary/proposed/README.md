@@ -97,6 +97,7 @@
 | `source_reference` | 来源对照 | SourceReference | 外部系统或老系统中对象标识与自有 ID 的对应；只在集成层；权限码 `platform.integration:source-reference:update`、`:approve`（ADR-0033 提议） |  |
 | `source_system` | 来源系统 | SourceSystem | 来源对照所属的外部系统（ADR-0033 提议） |  |
 | `source_object_kind` | 来源对象类别 | SourceObjectKind | 来源对照所指的自有对象类别（ADR-0033 提议） |  |
+| `evidence` | 取证 | Evidence | 只读核对老系统与 A8 生产数据（复刻老行为、迁入对账、新旧等价核对）；专用取证账号，每次登记一行（ADR-0037；数据库登录名 one_evidence_ro） |  |
 
 技术词 8 个，在 `common_words`。
 
