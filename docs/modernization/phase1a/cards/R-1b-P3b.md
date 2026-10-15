@@ -229,3 +229,11 @@
 - RULING-P3B-4：`OwnRolesIT` 以员工 uuid 作账号路径改断言为 404、不授出任何角色、不写授予审计（强度不降）。
 - RULING-P3B-6：签名票据 subject 接受完整 64 位有符号范围（A8 人员 ID 可为负、可达 19 位），补验收。
 - 老待办配置键搬迁时按 G46 改集成层前缀，键名由实现定后再出裁定改测试。
+
+## 15. 复审修复裁定（one-1a-next-4，2026-10-15；依据 opus 复审 @2d4e68b0：修后可合并，1 High、4 Medium、12 Low）
+- RULING-P3B-13（M1，RULE-356）：`SourceOrgSnapshot` / `OrgSource` 契约写明 relationships 按来源人员 ID 有符号升序；补跨层测试（真实来源适配器 + 对账：同部门两负责人先插 805 再插 -5，断言负责人为 -5 对应员工且有 MULTIPLE_HEADS）。`OrgUnitSyncRulesTest` 输入改序在 PR 单列。
+- RULING-P3B-14（M2，C8 告警频率）：新增计数器 `forcitis.platform.integration.legacy.inbox.unmapped`；同一员工每个自然日（注入时钟）只发一次 ALERT，其余降为 WARN。测试：同员工连调 3 次，均不可用、计数 3、ALERT 1 次。
+- RULING-P3B-15（M3，集成层运维档案）：档案加 `spring.flyway.enabled=false`；注释改为如实描述（启动时只读连库）；补测试：未知或缺 `--provider-kind` → 2、空白 `--external-subject` → 2、查无此人 → 1、`audit_entries` 不变、档案冒烟（无 Flyway 迁移、无调度任务）。验收目录内的由测试代理以 Acceptance-Test-Author 提交。依赖 #228（已合并）。
+- RULING-P3B-16（M4，旧配置键）：配置中出现任何 `forcitis.platform.approval.legacy.*` 键即拒绝启动，消息给出对应新键名（CLAUDE.md 第 6 条）；`DatabaseTransportCheckTest`「旧键不读」用例改为断言启动失败，PR 单列；one-ops 迁移 one.env 键名经 one-coordinator 转。
+- RULING-P3B-17（H1，只读核实命令连接，one-1a-par 构件，已获同意）：等 #235 合并后在 P3b 上 rebase 再改。枚举改 `INTEGRATION_LEGACY_INBOX("integration-legacy-inbox", …INTEGRATION_LEGACY_INBOX_URL/_USERNAME/_PASSWORD)`；`--connection=legacy-approval` 退出码 2 并提示新名；同步档案、INFRA_RUNBOOK §4.1、`ReadOnlyVerificationCommandIT`（测试代理）；单元测试 `verificationConnectionsAreTheRuntimeOnes` 从运行时连接定义推导（不另写字面量）。指标标签改名、告警规则、C-14 剧本、one.env 键名经 one-coordinator 转 one-ops，与 rc 发布顺序对齐。
+- Low：L1 改用类引用；L2 发起人流程变量解析移进 try；L3 票据 subject 规范形校验；L4 同级次序变化 PR 单列（不改）；L5 回放表单值 "0" 映射为空白；L6 删死代码；L7 完整类名改 import；L8 `SourceReferences.allocate` 限定组织来源；L9 `LegacyInboxProperties` 重写 toString 遮蔽口令；L10 INFRA_RUNBOOK 写明首次全量同步较慢；L11 核对术语与事件目录；L12 不改（生成器局限）。
