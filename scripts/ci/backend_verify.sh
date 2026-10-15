@@ -21,7 +21,10 @@ watchdog_mark=$(mktemp -u)
 # A fork closing its Spring contexts can ignore TERM for a while, hence the KILL after 20 s.
 forks="$PWD/target/surefire/"
 (
-  sleep "${BACKEND_WATCHDOG_SECONDS:-1500}"
+  # Stopped at a normal end by TERM: the trap leaves before the dump and the mark, so a passing run is never reported as timed out
+  trap 'kill "$s" 2>/dev/null; exit 0' TERM
+  sleep "${BACKEND_WATCHDOG_SECONDS:-1500}" & s=$!
+  wait "$s"
   mkdir -p "$dumps"
   for pid in $(pgrep -f "java .*$forks" || true); do
     jcmd "$pid" Thread.print -l >"$dumps/$pid.txt" 2>&1 || true
@@ -34,9 +37,7 @@ watchdog_pid=$!
 
 wait "$unit_pid"; unit_status=$?
 wait "$integration_pid"; integration_status=$?
-if [ ! -e "$watchdog_mark" ]; then
-  pkill -P "$watchdog_pid" sleep 2>/dev/null; kill "$watchdog_pid" 2>/dev/null
-fi
+[ -e "$watchdog_mark" ] || kill "$watchdog_pid" 2>/dev/null
 wait "$watchdog_pid" 2>/dev/null
 if [ -e "$watchdog_mark" ]; then
   rm -f "$watchdog_mark"
