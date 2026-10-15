@@ -205,3 +205,20 @@
 | D-10 | 数据访问注册表中四张快照表的血缘是否注明「经来源对照」（§14.1 D14） | 只在注释写明，不新增 `via` 取值（新取值随拆分 a 的集成层登记） |
 | D-11 | 执行模型：计划 7.2 的 P3b 行写 sonnet，本卡按负责会话要求为 opus | 以本卡为准，7.2 行由负责会话下次改计划时同步 |
 | D-12 | ADR-0033 守护 3 字面是「不得引用名为 `Source*` 的类型」，但 kernel 的事件来源 `kernel.event.SourceSystem` 被十余个领域类（`Timesheet`、`WorkCalendarYear`、`LegalEntity`、`SyncRun`、`ApprovalRequest`、`Role`、`UserAccount`、`NumberingRule` 等）引用，照字面会把它们全部算作违规 | 规则一按 CS-2.29 限为 `platform.integration` 中的 `Source*` 与 workforce 的 `SourceTerms`；`SourceSystem` 随 ADR-0039 第 5 条第 1 款在 P5 删除，不登记例外 |
+
+## 13. 负责会话裁定（one-1a-next-3，2026-10-15；涉及守护与契约形状的条目由 opus 复审确认）
+
+| 编号 | 裁定 |
+|---|---|
+| RULING-P3B-D1 | `ShortNameAdapter` 不整体搬进集成层（会形成 integration ↔ workforce 依赖环）：只把老系统部门 ID 的翻译移进集成层 `LegacyOrgNames`，workforce 留按自有 `OrgUnitId` 取简称的薄端口；依赖方向保持 workforce → integration |
+| RULING-P3B-D2 | 老待办 `LegacyTodo` 与行任务合并 `InboxMerger.mergeRowTasks` 一起移入集成层，沿用现名（中性化按 ADR-0039 第 5.2 条排在生产后） |
+| RULING-P3B-D3 | 关系指向本次结果集外的对象时照样分配自有 ID，保持现行「引用不存在 → 同步问题」判定，不改同步语义 |
+| RULING-P3B-D4 | 登录查人遇到未见过的人员按首次见到分配自有 ID（与同步同一分配路径、同一来源对照） |
+| RULING-P3B-D5 | 法人归属接口保留 `subjectKind` + `subjectId`（`subjectId` 改 uuid 字符串）；事件 `subject` 扁平为这两个字段；库表按 DA-5 分列 |
+| RULING-P3B-D6 | 回放工具中的老数字 ID 在内存中映射为 UUID，不经来源对照、不写库 |
+| RULING-P3B-D7 | 路径参数按 `openapi.json` 实际 7 个模板、9 个操作全改（计划「6 条」为计数笔误） |
+| RULING-P3B-D8 | 纳入本卡：ADR-0033 第 3 项第 6 条要求的只读运维命令（按 A8 登录名或企业微信 userid 返回匹配的员工 ID 与 `user_id` **列表**，不按员工编号查）；理由：P3b 后员工 ID 为 uuid，无此命令 C-5 剧本无法执行（CS-1.9）。命令名随技术标识交 one-glossary |
+| RULING-P3B-D9 | `org_unit_legal_entity_id` / `employee_legal_entity_id` 与备选 `*_attribution_period_id` 交 one-glossary 定名；确认前测试代理按推荐名写 |
+| RULING-P3B-D10 | 数据访问注册表血缘只在注释写「经来源对照」，不新增取值 |
+| RULING-P3B-D11 | 执行用 opus（体量大），计划 7.2 P3b 行的「sonnet」以本卡为准，随 P3b PR 同步改 |
+| RULING-P3B-D12 | `LegacyShapeTest` 新规则「领域与 api / events 不得引用 `Source*` 类型」按 CS-2.29 限定为 `platform.integration.api.Source*` 与 workforce 的 `SourceTerms`，不含 kernel 的 `SourceSystem`（事件来源，P5 随信封 `source` 删除，ADR-0039 第 5.1 条） |
