@@ -1,7 +1,7 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
 import com.forcitis.one.kernel.BusinessZone;
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -83,7 +83,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
         }
         history.recordOrgUnits(changes.orgUnits(), snapshotDate);
         // The unique WeCom key covers employed people only; clearing the batch first makes the write order irrelevant.
-        List<Long> staffIds = changes.staff().stream().map(s -> s.userId().value()).toList();
+        List<Long> staffIds = changes.staff().stream().map(s -> s.employeeId().value()).toList();
         if (!staffIds.isEmpty()) {
             jdbc.sql("update organization_workforce.employees set wecom_user_id = null where id in (:ids) and wecom_user_id is not null")
                     .param("ids", staffIds).update();
@@ -100,12 +100,12 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
         upsertStaff(registered.staff(), null, Timestamp.from(now));
         history.recordAssignments(List.of(registered.staff().assignment()), day);
         jdbc.sql("update organization_workforce.employees set event_count = :sequence where id = :id")
-                .param("sequence", registered.eventSequenceAfterSave()).param("id", registered.staff().userId().value()).update();
+                .param("sequence", registered.eventSequenceAfterSave()).param("id", registered.staff().employeeId().value()).update();
     }
 
     @Override
-    public long findEmployeeEventSequence(UserId userId) {
-        return jdbc.sql("select event_count from organization_workforce.employees where id = :id").param("id", userId.value())
+    public long findEmployeeEventSequence(EmployeeId employeeId) {
+        return jdbc.sql("select event_count from organization_workforce.employees where id = :id").param("id", employeeId.value())
                 .query(Long.class).optional().orElse(0L);
     }
 
@@ -150,7 +150,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                                            then coalesce(employees.separated_at, excluded.updated_at) end,
                        last_sync_run_id = excluded.last_sync_run_id, updated_at = excluded.updated_at, version = employees.version + 1
                 """)
-                .param("id", e.userId().value()).param("code", e.employeeCode()).param("name", e.displayName())
+                .param("id", e.employeeId().value()).param("code", e.employeeCode()).param("name", e.displayName())
                 .param("login", e.loginName()).param("email", e.email()).param("gender", e.gender() == null ? null : e.gender().name())
                 .param("wecom", e.wecomUserId() == null ? null : e.wecomUserId().value())
                 .param("status", e.employmentStatus().name()).param("feeEarner", e.feeEarner())

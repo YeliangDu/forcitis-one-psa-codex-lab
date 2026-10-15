@@ -2,6 +2,7 @@ package com.forcitis.one.platform.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.kernel.SeparationReview;
@@ -28,7 +29,7 @@ class AdministratorSeparationReviewTest extends IdentityIntegrationTest {
         holder(2, "super_admin");
         holder(3, "employee");
 
-        assertThat(review.review(List.of(new UserId(3), new UserId(404)), null).separatedAdministrators()).isEmpty();
+        assertThat(review.review(List.of(new EmployeeId(3), new EmployeeId(404)), null).separatedAdministrators()).isEmpty();
         assertThat(review.review(List.of(), null).separatedAdministrators()).isEmpty();
     }
 
@@ -39,7 +40,7 @@ class AdministratorSeparationReviewTest extends IdentityIntegrationTest {
         holder(2, "super_admin");
         holder(3, "super_admin");
 
-        assertThat(review.review(List.of(new UserId(1)), null).reason())
+        assertThat(review.review(List.of(new EmployeeId(1)), null).reason())
                 .contains("1 separated person(s)").contains("another holder must confirm").doesNotContain("would remain");
     }
 
@@ -50,9 +51,9 @@ class AdministratorSeparationReviewTest extends IdentityIntegrationTest {
         holder(2, "super_admin");
         holder(3, "employee");
 
-        assertThat(review.review(List.of(new UserId(1), new UserId(3)), null).reason())
+        assertThat(review.review(List.of(new EmployeeId(1), new EmployeeId(3)), null).reason())
                 .contains("only 1 usable super_admin holder(s) would remain");
-        assertThat(review.review(List.of(new UserId(1), new UserId(2)), null).reason())
+        assertThat(review.review(List.of(new EmployeeId(1), new EmployeeId(2)), null).reason())
                 .contains("only 0 usable");
     }
 
@@ -63,7 +64,7 @@ class AdministratorSeparationReviewTest extends IdentityIntegrationTest {
         holder(2, "super_admin");
         holder(5, "security_auditor");
 
-        assertThat(review.review(List.of(new UserId(5)), null).separatedAdministrators()).containsExactly(new UserId(5));
+        assertThat(review.review(List.of(new EmployeeId(5)), null).separatedAdministrators()).containsExactly(new EmployeeId(5));
     }
 
     @Test
@@ -75,7 +76,7 @@ class AdministratorSeparationReviewTest extends IdentityIntegrationTest {
         knownEmployee(3, EmploymentStatus.SEPARATED);
         jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where user_id = 2").update();
 
-        assertThat(review.review(List.of(new UserId(1)), null).reason()).contains("only 0 usable");
+        assertThat(review.review(List.of(new EmployeeId(1)), null).reason()).contains("only 0 usable");
     }
 
     @Test
@@ -85,7 +86,7 @@ class AdministratorSeparationReviewTest extends IdentityIntegrationTest {
         holder(2, "super_admin");
         holder(5, "security_auditor");
         holder(7, "org_data_admin");
-        List<UserId> separating = List.of(new UserId(1));
+        List<EmployeeId> separating = List.of(new EmployeeId(1));
 
         assertThat(review.review(separating, new UserId(2)).actorRetained()).isTrue();
         assertThat(review.review(separating, new UserId(5)).actorRetained()).isTrue();

@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.domain;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import java.util.LinkedHashMap;
@@ -30,9 +30,9 @@ public record OrgSnapshot(List<OrgUnit> orgUnits, List<Position> positions, List
         return byId;
     }
 
-    public Map<UserId, StaffEmployee> staffById() {
-        Map<UserId, StaffEmployee> byId = new LinkedHashMap<>();
-        staff.forEach(s -> byId.put(s.userId(), s));
+    public Map<EmployeeId, StaffEmployee> staffById() {
+        Map<EmployeeId, StaffEmployee> byId = new LinkedHashMap<>();
+        staff.forEach(s -> byId.put(s.employeeId(), s));
         return byId;
     }
 

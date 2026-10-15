@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
@@ -164,7 +165,7 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
         organisation.person(initiator, 1, null).person(manager, 1, null);
         String key = newKey("round-order");
         ApprovalInstanceId first = start(key, initiator, manager);
-        java.util.function.Function<Integer, ApprovalInstanceId> ask = round -> tx.execute(s -> approvals.start(startRequest(key, new UserId(initiator),
+        java.util.function.Function<Integer, ApprovalInstanceId> ask = round -> tx.execute(s -> approvals.start(startRequest(key, new EmployeeId(initiator),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))), round)));
 
@@ -205,7 +206,7 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
         organisation.person(initiator, 1, null);
         String key = newKey("rollback");
         assertThatThrownBy(() -> tx.executeWithoutResult(status -> {
-            approvals.start(startRequest(key, new UserId(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
+            approvals.start(startRequest(key, new EmployeeId(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                     List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(initiator))))));
             throw new IllegalStateException("business transaction fails after the start");
         })).isInstanceOf(IllegalStateException.class);

@@ -7,7 +7,7 @@ import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.LegalEntityId;
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.event.AggregateReference;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.EmployeeLegalEntities;
@@ -61,7 +61,7 @@ public class SubmitTimesheet {
 
     @Transactional
     public TimesheetView execute(SubmitTimesheetCommand command) {
-        UserId employee = currentUser.userId();
+        EmployeeId employee = currentUser.employeeId();
         LocalDate today = zone.today(clock);
         repository.lockForCreate(command.timesheetId());
         Optional<Timesheet> existing = repository.findForUpdate(command.timesheetId());
@@ -92,7 +92,7 @@ public class SubmitTimesheet {
         return view(timesheet, false);
     }
 
-    private void requireEmployed(UserId projectManager) {
+    private void requireEmployed(EmployeeId projectManager) {
         boolean employed = org.findEmployee(projectManager).filter(profile -> profile.employmentStatus() == EmploymentStatus.EMPLOYED).isPresent();
         if (!employed) {
             throw TimesheetError.COST_TIMESHEET_PROJECT_MANAGER_UNKNOWN.refusal("User " + projectManager.value()
@@ -115,7 +115,7 @@ public class SubmitTimesheet {
         }
     }
 
-    private static void requireOwner(Timesheet timesheet, UserId employee) {
+    private static void requireOwner(Timesheet timesheet, EmployeeId employee) {
         if (!timesheet.employee().equals(employee)) {
             throw TimesheetError.COST_TIMESHEET_NOT_FOUND.refusal("No such timesheet");
         }

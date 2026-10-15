@@ -5,6 +5,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.platform.audit.api.AuditEntry;
@@ -205,7 +206,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("ADR-0027 1.3 a missing snapshot does not stop the login: the organisation source may be down")
     void missingSnapshotIsAllowed() throws Exception {
-        when(orgDirectory.findEmployee(new UserId(7))).thenReturn(Optional.empty());
+        when(orgDirectory.findEmployee(new EmployeeId(7))).thenReturn(Optional.empty());
 
         MvcResult result = login("breakglass", PASSWORD, code());
 

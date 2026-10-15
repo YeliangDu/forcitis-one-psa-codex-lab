@@ -1,11 +1,11 @@
 package com.forcitis.one.platform.identity.api;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import java.util.HashSet;
 import java.util.Set;
 
 /** Fail-closed: a scope with no grants, no people and no unrestricted flag permits nothing. */
-public record AccessScope(boolean unrestricted, Set<AccessGrant> grants, Set<UserId> ownerIds) {
+public record AccessScope(boolean unrestricted, Set<AccessGrant> grants, Set<EmployeeId> ownerIds) {
 
     public AccessScope {
         grants = Set.copyOf(grants);
@@ -37,7 +37,7 @@ public record AccessScope(boolean unrestricted, Set<AccessGrant> grants, Set<Use
         }
         Set<AccessGrant> allGrants = new HashSet<>(grants);
         allGrants.addAll(other.grants);
-        Set<UserId> allOwners = new HashSet<>(ownerIds);
+        Set<EmployeeId> allOwners = new HashSet<>(ownerIds);
         allOwners.addAll(other.ownerIds);
         return new AccessScope(false, allGrants, allOwners);
     }

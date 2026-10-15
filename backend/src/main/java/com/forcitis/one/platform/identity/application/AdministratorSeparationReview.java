@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.AccountEmployees;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.SeparationReview;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
@@ -26,8 +28,11 @@ class AdministratorSeparationReview implements SeparationReview {
     private final AccountRepository accounts;
     private final OrgDirectory directory;
     private final SessionContext session;
+    private final AccountEmployees accountEmployees;
 
-    AdministratorSeparationReview(AccountRepository accounts, OrgDirectory directory, SessionContext session) {
+    AdministratorSeparationReview(AccountRepository accounts, OrgDirectory directory, SessionContext session,
+            AccountEmployees accountEmployees) {
+        this.accountEmployees = accountEmployees;
         this.accounts = accounts;
         this.directory = directory;
         this.session = session;
@@ -35,15 +40,16 @@ class AdministratorSeparationReview implements SeparationReview {
 
     @Override
     @Transactional(readOnly = true)
-    public Verdict review(List<UserId> separating, UserId releaser) {
-        Set<UserId> superAdministrators = usableHolders(Role.SUPER_ADMIN);
-        Set<UserId> everyone = new HashSet<>(superAdministrators);
+    public Verdict review(List<EmployeeId> separating, UserId releaser) {
+        Set<EmployeeId> superAdministrators = usableHolders(Role.SUPER_ADMIN);
+        Set<EmployeeId> everyone = new HashSet<>(superAdministrators);
         everyone.addAll(usableHolders(Role.SECURITY_AUDITOR));
-        Set<UserId> separatedAdministrators = new HashSet<>(separating);
+        Set<EmployeeId> separatedAdministrators = new HashSet<>(separating);
         separatedAdministrators.retainAll(everyone);
-        Set<UserId> remaining = new HashSet<>(superAdministrators);
+        Set<EmployeeId> remaining = new HashSet<>(superAdministrators);
         remaining.removeAll(separating);
-        boolean retained = releaser != null && !separating.contains(releaser) && everyone.contains(releaser);
+        EmployeeId releasingEmployee = releaser == null ? null : accountEmployees.employeeOf(releaser);
+        boolean retained = releasingEmployee != null && !separating.contains(releasingEmployee) && everyone.contains(releasingEmployee);
         String shortage = remaining.size() < MINIMUM_SUPER_ADMINISTRATORS
                 ? "; only " + remaining.size() + " usable super_admin holder(s) would remain, at least " + MINIMUM_SUPER_ADMINISTRATORS + " are needed"
                 : "";
@@ -52,11 +58,12 @@ class AdministratorSeparationReview implements SeparationReview {
         return new Verdict(separatedAdministrators, retained, remaining.size(), releaser == null ? "" : session.modeIfSignedIn().map(Enum::name).orElse(""), reason);
     }
 
-    private Set<UserId> usableHolders(RoleCode role) {
-        Set<UserId> usable = new HashSet<>();
+    private Set<EmployeeId> usableHolders(RoleCode role) {
+        Set<EmployeeId> usable = new HashSet<>();
         for (UserId holder : accounts.findEnabledHolders(role)) {
-            if (directory.findEmployee(holder).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false)) {
-                usable.add(holder);
+            EmployeeId employee = accountEmployees.employeeOf(holder);
+            if (directory.findEmployee(employee).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false)) {
+                usable.add(employee);
             }
         }
         return usable;

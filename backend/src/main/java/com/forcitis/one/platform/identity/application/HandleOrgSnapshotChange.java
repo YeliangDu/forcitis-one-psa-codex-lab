@@ -1,6 +1,8 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.DomainEvents;
@@ -40,10 +42,12 @@ public class HandleOrgSnapshotChange {
     private final AuditLog audit;
     private final DomainEvents events;
     private final RevokeBrowserIdentifiers revokeBrowserIdentifiers;
+    private final AccountEmployees accountEmployees;
 
     HandleOrgSnapshotChange(OrgDirectory directory, AccountProvisioning provisioning, AccountRepository accounts,
             SessionRegistry sessions, AccessCache cache, AuditLog audit, DomainEvents events,
-            RevokeBrowserIdentifiers revokeBrowserIdentifiers) {
+            RevokeBrowserIdentifiers revokeBrowserIdentifiers, AccountEmployees accountEmployees) {
+        this.accountEmployees = accountEmployees;
         this.revokeBrowserIdentifiers = revokeBrowserIdentifiers;
         this.directory = directory;
         this.provisioning = provisioning;
@@ -58,19 +62,19 @@ public class HandleOrgSnapshotChange {
     public void on(OrgSnapshotChanged event) {
         try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null),
                 ACTOR)) {
-            for (UserId separated : event.separatedEmployees()) {
-                separate(separated, "separated in the organisation snapshot");
+            for (EmployeeId separated : event.separatedEmployees()) {
+                separate(accountEmployees.accountOf(separated), "separated in the organisation snapshot");
             }
-            for (UserId changed : event.changedEmployees()) {
+            for (EmployeeId changed : event.changedEmployees()) {
                 Optional<EmployeeProfile> employee = directory.findEmployee(changed);
                 if (employee.isEmpty()) {
                     continue;
                 }
                 if (employee.get().employmentStatus() == EmploymentStatus.EMPLOYED) {
                     provisioning.ensureAccount(employee.get());
-                    cache.evict(changed);
+                    cache.evict(accountEmployees.accountOf(changed));
                 } else {
-                    separate(changed, "no longer employed");
+                    separate(accountEmployees.accountOf(changed), "no longer employed");
                 }
             }
         }

@@ -65,7 +65,7 @@ public class EnterAdministratorMode {
         switch (identification.identify(command, entry)) {
             case WecomIdentification.Outcome.Failed failed -> throw refused(userId, failed.reason());
             case WecomIdentification.Outcome.Identified identified -> {
-                if (!identified.employee().userId().equals(userId)) {
+                if (!identified.employee().employeeId().equals(currentUser.employeeId())) {
                     throw refused(userId, "the code proves another person");
                 }
             }

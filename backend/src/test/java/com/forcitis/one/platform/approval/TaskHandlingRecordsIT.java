@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
@@ -62,8 +63,8 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
         claimTask.execute(task, new UserId(manager), OptionalLong.empty());
         releaseTask.execute(task, new UserId(manager), OptionalLong.empty());
         claimTask.execute(task, new UserId(manager), OptionalLong.empty());
-        transferTask.execute(task, new UserId(manager), new UserId(colleague), "on leave", OptionalLong.empty());
-        reassignTask.execute(task, new UserId(ADMINISTRATOR), new UserId(manager), "back again", OptionalLong.empty());
+        transferTask.execute(task, new UserId(manager), new EmployeeId(colleague), "on leave", OptionalLong.empty());
+        reassignTask.execute(task, new UserId(ADMINISTRATOR), new EmployeeId(manager), "back again", OptionalLong.empty());
         decideTasks.execute(new UserId(manager), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "fine")), OptionalLong.empty());
 
         assertThat(actionsOf(key)).containsExactly("CLAIMED", "RELEASED", "CLAIMED", "TRANSFERRED", "REASSIGNED", "APPROVED");
@@ -105,7 +106,7 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
         String key = newKey("history");
         ApprovalTaskId task = openTaskId(start(key, initiator, manager));
         claimTask.execute(task, new UserId(manager), OptionalLong.empty());
-        transferTask.execute(task, new UserId(manager), new UserId(colleague), "on leave", OptionalLong.empty());
+        transferTask.execute(task, new UserId(manager), new EmployeeId(colleague), "on leave", OptionalLong.empty());
         decideTasks.execute(new UserId(colleague), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "fine")), OptionalLong.empty());
 
         mvc.perform(get("/api/v1/platform/approval-tasks/" + task.value()).with(user(String.valueOf(initiator)))).andExpect(status().isOk())
@@ -159,14 +160,14 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
         long second = newId();
         organisation.unit(unit, null, null).person(initiator, unit, null).person(first, unit, null).person(second, unit, null);
         String key = newKey("cosign");
-        tx.execute(s -> approvals.start(startRequest(key, new UserId(initiator),
+        tx.execute(s -> approvals.start(startRequest(key, new EmployeeId(initiator),
                 java.util.Set.of(com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                 List.of(new com.forcitis.one.platform.approval.api.ApprovalField(
                         com.forcitis.one.cost.timesheet.api.TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(first), String.valueOf(second)))))));
         ApprovalTaskId task = new ApprovalTaskId(taskService.createTaskQuery().processInstanceBusinessKey("TIMESHEET:" + key)
                 .taskCandidateOrAssigned(String.valueOf(first)).singleResult().getId());
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> reassignTask.execute(task, new UserId(ADMINISTRATOR), new UserId(second), "swap", OptionalLong.empty()))
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> reassignTask.execute(task, new UserId(ADMINISTRATOR), new EmployeeId(second), "swap", OptionalLong.empty()))
                 .isInstanceOf(com.forcitis.one.kernel.DomainException.class);
 
         String overview = "/api/v1/platform/approval-task-overviews";

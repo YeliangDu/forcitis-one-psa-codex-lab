@@ -33,10 +33,10 @@ class PersistRegisteredEmployee {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void execute(StaffEmployee staff) {
         snapshots.lockForWrite();
-        if (lookups.findStaff(staff.userId()).isPresent()) {
+        if (lookups.findStaff(staff.employeeId()).isPresent()) {
             return;
         }
-        RegisteredEmployee registered = RegisteredEmployee.onFirstLogin(staff, 0, snapshots.findEmployeeEventSequence(staff.userId()));
+        RegisteredEmployee registered = RegisteredEmployee.onFirstLogin(staff, 0, snapshots.findEmployeeEventSequence(staff.employeeId()));
         snapshots.saveRegisteredEmployee(registered, clock.instant());
         events.publish(registered);
     }

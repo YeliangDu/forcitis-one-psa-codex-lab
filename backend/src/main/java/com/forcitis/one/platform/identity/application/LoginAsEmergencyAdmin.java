@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
@@ -39,10 +40,12 @@ public class LoginAsEmergencyAdmin {
     private final NetworkAllowList internalNetworks;
     private final EmergencySettings settings;
     private final LoginAdmission admission;
+    private final AccountEmployees accountEmployees;
     private final Clock clock;
 
     LoginAsEmergencyAdmin(EmergencyAdminRepository admins, AccountRepository accounts, PasswordHasher hasher, TotpSecretVault vault,
-            OrgDirectory directory, ClientOrigin origin, EmergencySettings settings, LoginAdmission admission, Clock clock) {
+            OrgDirectory directory, ClientOrigin origin, EmergencySettings settings, LoginAdmission admission, AccountEmployees accountEmployees, Clock clock) {
+        this.accountEmployees = accountEmployees;
         this.admins = admins;
         this.accounts = accounts;
         this.hasher = hasher;
@@ -91,7 +94,7 @@ public class LoginAsEmergencyAdmin {
         if (!AccessProfile.of(accounts.findEnabledRoles(admin.userId())).isAdministrator()) {
             return rejectCredentials(admin, "the bound person no longer holds super_admin");
         }
-        Optional<EmployeeProfile> employee = directory.findEmployee(admin.userId());
+        Optional<EmployeeProfile> employee = directory.findEmployee(accountEmployees.employeeOf(admin.userId()));
         if (employee.isPresent() && employee.get().employmentStatus() != EmploymentStatus.EMPLOYED) {
             return admission.reject(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED, method, admin.userId(),
                     "the organisation snapshot lists the bound person as separated");
