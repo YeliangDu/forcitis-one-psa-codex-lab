@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.forcitis.one.kernel.NotFromQuery;
 import jakarta.servlet.http.HttpServletRequest;
 import java.security.Principal;
 import java.time.LocalDate;

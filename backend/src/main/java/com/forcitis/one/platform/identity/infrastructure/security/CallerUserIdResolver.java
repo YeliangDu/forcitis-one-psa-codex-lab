@@ -1,8 +1,8 @@
 package com.forcitis.one.platform.identity.infrastructure.security;
 
-import com.forcitis.one.kernel.NotFromQuery;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.platform.web.NotFromQuery;
 import java.util.List;
 import org.springdoc.core.utils.SpringDocUtils;
 import org.springframework.core.MethodParameter;

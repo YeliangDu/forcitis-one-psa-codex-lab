@@ -2,7 +2,6 @@ package com.forcitis.one.platform.web;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
-import com.forcitis.one.kernel.NotFromQuery;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;

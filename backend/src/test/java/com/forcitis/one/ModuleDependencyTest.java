@@ -1,5 +1,8 @@
 package com.forcitis.one;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.forcitis.one.platform.web.NotFromQuery;
 import com.tngtech.archunit.core.domain.Dependency;
 import com.tngtech.archunit.core.domain.JavaClass;
 import java.io.IOException;
@@ -12,6 +15,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class ModuleDependencyTest {
@@ -50,6 +54,25 @@ class ModuleDependencyTest {
             throw new AssertionError("Dependencies outside the approved context map (edit architecture/module-dependencies.txt only "
                     + "after design review):\n  " + String.join("\n  ", violations));
         }
+    }
+
+    @Test
+    @DisplayName("P2 recheck M-1 platform.identity uses platform.web only for the NotFromQuery marker, and only from infrastructure.security")
+    void identityUsesTheWebModuleOnlyForTheMarker() {
+        Set<String> violations = new TreeSet<>();
+        for (JavaClass c : ArchitectureRulesTest.CLASSES) {
+            if (!moduleOf(c).equals(Optional.of("platform.identity"))) {
+                continue;
+            }
+            for (Dependency d : c.getDirectDependenciesFromSelf()) {
+                if (moduleOf(d.getTargetClass()).equals(Optional.of("platform.web"))
+                        && (!d.getTargetClass().getName().equals(NotFromQuery.class.getName())
+                        || !c.getPackageName().equals(ROOT + "platform.identity.infrastructure.security"))) {
+                    violations.add(c.getName() + " uses " + d.getTargetClass().getName());
+                }
+            }
+        }
+        assertThat(violations).isEmpty();
     }
 
     static Optional<String> moduleOf(JavaClass c) {

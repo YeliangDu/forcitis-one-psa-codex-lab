@@ -1,4 +1,4 @@
-package com.forcitis.one.kernel;
+package com.forcitis.one.platform.web;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
