@@ -1,15 +1,12 @@
 package com.forcitis.one.platform.integration.api;
 
-import com.forcitis.one.kernel.WecomUserId;
 import java.util.List;
 
 public interface OrgSource {
 
+    /** Relationships come ordered by the source's person id, signed ascending; the reconciliation relies on it (RULE-356). */
     SourceOrgSnapshot readSnapshot();
 
-    /** More than one result means ambiguous. */
-    List<SourcePerson> findStaffByWecomUser(WecomUserId wecomUserId);
-
-    /** More than one result means ambiguous. */
-    List<SourcePerson> findStaffByLoginName(String loginName);
+    /** The people the sign-in names; more than one result means ambiguous. Goes with DA-3. */
+    List<SourcePerson> findStaffByLogin(StaffLookup lookup);
 }

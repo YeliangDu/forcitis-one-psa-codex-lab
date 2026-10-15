@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.crypto.Mac;
@@ -71,12 +72,12 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
     }
 
     /** A person who is employed, signs in once (which opens the account), holds super_admin and gets an emergency account. */
-    private EmergencyAccount boundSuperAdministrator(long person, long unit) throws Exception {
+    private EmergencyAccount boundSuperAdministrator(UUID person, UUID unit) throws Exception {
         employee(person, unit, null);
         SignedIn account = signIn(person);
         assertThat(employeeOfAccount(account.userId())).isEqualTo(person);
         grantRole(account.userId(), "super_admin");
-        return register(account, "breakglass-" + person);
+        return register(account, "breakglass-" + serialOf(person));
     }
 
     /**
@@ -84,7 +85,7 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
      * (--employee-id, ADR-0033 section 3 item 6); a "wrong usage" answer to the first form tries the second.
      */
     private EmergencyAccount register(SignedIn account, String loginName) {
-        List<String> forms = List.of("--user-id=" + account.userId(), "--employee-id=" + account.employeeId());
+        List<String> forms = List.of("--user-id=" + account.userId(), "--employee-id=" + text(account.employeeId()));
         StringBuilder refusals = new StringBuilder();
         for (String person : forms) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -131,9 +132,9 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
     }
 
     /** A working snapshot: a run that succeeded a minute ago and a colleague in it. */
-    private long workingSnapshot() throws Exception {
+    private UUID workingSnapshot() throws Exception {
         clearOrgSnapshot();
-        long unit = newOrgUnitId();
+        UUID unit = newOrgUnitId();
         orgUnit(unit, null, null);
         employee(newEmployeeId(), unit, null);
         syncRun("SUCCEEDED", NOW.minus(Duration.ofMinutes(2)), NOW.minus(Duration.ofMinutes(1)));
@@ -143,8 +144,8 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
     @Test
     @DisplayName("R-1b P2 ADR-0033 第 3 项第 7 条（U-4 已答：拒绝并告警）：快照可用但查不到绑定账号的员工 → 拒绝应急登录、不建会话、记登录失败并告警")
     void aWorkingSnapshotWithoutTheBoundEmployeeRefuses() throws Exception {
-        long unit = workingSnapshot();
-        long bound = newEmployeeId();
+        UUID unit = workingSnapshot();
+        UUID bound = newEmployeeId();
         EmergencyAccount account = boundSuperAdministrator(bound, unit);
         removeFromSnapshot(bound);
         int mark = logMark();
@@ -160,7 +161,7 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
     @Test
     @DisplayName("R-1b P2 ADR-0033 第 3 项第 7 条 / ADR-0027 第 1 项第 3 条（对照）：快照可用且绑定员工在职 → 放行，进入管理模式")
     void aWorkingSnapshotWithTheBoundEmployeeEmployedLetsThrough() throws Exception {
-        long unit = workingSnapshot();
+        UUID unit = workingSnapshot();
         EmergencyAccount account = boundSuperAdministrator(newEmployeeId(), unit);
 
         MockHttpServletResponse login = emergencyLogin(account);
@@ -173,7 +174,7 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
     @Test
     @DisplayName("R-1b P2 ADR-0033 第 3 项第 7 条 / ADR-0027 第 1 项第 3 条：快照整体不可用（没有快照、没有成功过的同步）→ 按 ADR-0027 放行，并比正常的应急登录多告警")
     void noSnapshotAtAllLetsThroughAndAlerts() throws Exception {
-        long unit = workingSnapshot();
+        UUID unit = workingSnapshot();
         EmergencyAccount account = boundSuperAdministrator(newEmployeeId(), unit);
         int usualMark = logMark();
         MockHttpServletResponse usual = emergencyLogin(account);
@@ -194,8 +195,8 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
     @Test
     @DisplayName("R-1b P2 ADR-0033 第 3 项第 7 条 / ADR-0027 第 1 项第 3 条：快照过期（最近一次成功同步在 30 天前，其后同步一直失败）且查不到绑定员工 → 放行，并比正常的应急登录多告警")
     void aStaleSnapshotWithoutTheBoundEmployeeLetsThroughAndAlerts() throws Exception {
-        long unit = workingSnapshot();
-        long bound = newEmployeeId();
+        UUID unit = workingSnapshot();
+        UUID bound = newEmployeeId();
         EmergencyAccount account = boundSuperAdministrator(bound, unit);
         int usualMark = logMark();
         MockHttpServletResponse usual = emergencyLogin(account);

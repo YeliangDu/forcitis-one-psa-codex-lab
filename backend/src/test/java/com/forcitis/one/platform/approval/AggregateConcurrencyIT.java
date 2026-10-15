@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -51,7 +52,7 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
 
         assertThatThrownBy(() -> tx.executeWithoutResult(s -> {
             ApprovalRequest staleCopy = ApprovalRequest.restore(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), LEGAL_ENTITY,
-                    new EmployeeId(initiator), 1, new ApprovalInstanceId("irrelevant"), ApprovalStatus.RUNNING, null,
+                    TestAccounts.employee(initiator), 1, new ApprovalInstanceId("irrelevant"), ApprovalStatus.RUNNING, null,
                     new ApprovalSummary("stale"), List.of(), 1, 0);
             staleCopy.approve(NOW);
             requests.save(staleCopy);
@@ -93,7 +94,7 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
                 "select current_instance_id from platform_approval.approval_requests where document_key = ?", String.class, key));
         jdbc.update("update platform_approval.approval_requests set status = 'CANCELLED' where document_key = ?", key);
 
-        ApprovalRequest copy = ApprovalRequest.restore(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), LEGAL_ENTITY, new EmployeeId(initiator), 1,
+        ApprovalRequest copy = ApprovalRequest.restore(ProcessKey.COST_TIMESHEET_APPROVAL, document(key), LEGAL_ENTITY, TestAccounts.employee(initiator), 1,
                 instance, ApprovalStatus.RUNNING, null, new ApprovalSummary("copy"), List.of(), version, 0);
         copy.approve(NOW);
 
@@ -130,7 +131,7 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
     @DisplayName("DDD-5 the database refuses a request without a legal entity")
     void legalEntityIsMandatoryInTheDatabase() {
         assertThatThrownBy(() -> jdbc.update("insert into platform_approval.approval_requests (id, process_key, document_type, document_key, initiator_id,"
-                + " current_round, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', 'no-le', 1, 1, 'RUNNING', 's')"))
+                + " current_round, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', 'no-le', " + TestOrgIds.sqlEmployee(1) + ", 1, 'RUNNING', 's')"))
                 .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     }
 

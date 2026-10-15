@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 
 /**
  * DDD-3 with the database in between: after every save the stored event count is the number of the last event of the aggregate, and
@@ -62,9 +63,9 @@ class EventSequencePersistenceIT extends ApprovalIntegrationSupport {
             Random random = new Random(seed);
             TimesheetId id = new TimesheetId(TestIds.uuid(IDS.incrementAndGet()));
             LocalDate today = LocalDate.now();
-            EmployeeId owner = new EmployeeId(newId());
+            EmployeeId owner = TestAccounts.employee(newId());
             Timesheet created = Timesheet.draft(id, new DocumentNumber("TS-SEQ-" + id.value()), new AggregateReference("NumberingRule", "TIMESHEET"),
-                    owner, new LegalEntityId(TestIds.uuid(1)), new OrgUnitId(1), today.minusDays(1), Hours.of("8"), new EmployeeId(newId()), today);
+                    owner, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(1), today.minusDays(1), Hours.of("8"), TestAccounts.employee(newId()), today);
             List<Long> numbers = new ArrayList<>();
             tx.executeWithoutResult(s -> timesheets.save(created));
             created.drainEvents(ENVELOPES).forEach(event -> numbers.add(event.envelope().aggregateVersion()));
@@ -113,9 +114,9 @@ class EventSequencePersistenceIT extends ApprovalIntegrationSupport {
                     case 0 -> claimTask.execute(task, holder, OptionalLong.empty());
                     case 1 -> releaseTask.execute(task, holder, OptionalLong.empty());
                     default -> {
-                        EmployeeId other = holder.equals(TestAccounts.account(manager)) ? new EmployeeId(colleague) : new EmployeeId(manager);
+                        EmployeeId other = holder.equals(TestAccounts.account(manager)) ? TestAccounts.employee(colleague) : TestAccounts.employee(manager);
                         transferTask.execute(task, holder, other, "swap", OptionalLong.empty());
-                        holder = TestAccounts.account(other.value());
+                        holder = TestAccounts.account(other);
                     }
                 }
             } catch (RuntimeException illegal) {

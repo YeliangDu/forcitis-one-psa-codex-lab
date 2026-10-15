@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 
 /**
  * ADR-0033 section 3, the approval rule "initiator versus candidate": the initiator is an employee, role holders are accounts,
@@ -28,8 +29,8 @@ import org.junit.jupiter.api.Test;
  * their own request.
  */
 class AssigneeResolverAccountsTest {
-    static final EmployeeId INITIATOR = new EmployeeId(1001);
-    static final EmployeeId SUPERVISOR = new EmployeeId(1003);
+    static final EmployeeId INITIATOR = TestAccounts.employee(1001);
+    static final EmployeeId SUPERVISOR = TestAccounts.employee(1003);
     static final RoleCode REVIEWER = new RoleCode("reviewer");
 
     final OrgDirectory org = mock(OrgDirectory.class);
@@ -38,8 +39,8 @@ class AssigneeResolverAccountsTest {
 
     AssigneeResolverAccountsTest() {
         for (long employee : new long[] {1001, 1002, 1003}) {
-            when(org.findEmployee(new EmployeeId(employee))).thenReturn(Optional.of(new EmployeeProfile(new EmployeeId(employee), "person-" + employee,
-                    new OrgUnitId(5), null, EmploymentStatus.EMPLOYED, false)));
+            when(org.findEmployee(TestAccounts.employee(employee))).thenReturn(Optional.of(new EmployeeProfile(TestAccounts.employee(employee), "person-" + employee,
+                    TestOrgIds.orgUnit(5), null, EmploymentStatus.EMPLOYED, false)));
         }
         when(org.findSupervisor(any(EmployeeId.class))).thenAnswer(call -> call.getArgument(0).equals(INITIATOR) ? Optional.of(SUPERVISOR) : Optional.empty());
     }
@@ -62,7 +63,7 @@ class AssigneeResolverAccountsTest {
     @Test
     @DisplayName("another person's account is not the initiator's: it stays a candidate")
     void anotherAccountWithTheInitiatorsNumberStays() {
-        when(org.findEmployee(new EmployeeId(3999))).thenReturn(Optional.of(new EmployeeProfile(new EmployeeId(3999), "other", new OrgUnitId(5), null,
+        when(org.findEmployee(TestAccounts.employee(3999))).thenReturn(Optional.of(new EmployeeProfile(TestAccounts.employee(3999), "other", TestOrgIds.orgUnit(5), null,
                 EmploymentStatus.EMPLOYED, false)));
 
         Resolution resolution = reviewers(3999);
@@ -82,7 +83,7 @@ class AssigneeResolverAccountsTest {
     @Test
     @DisplayName("people named in a form field are employees, and the candidates are their accounts")
     void formFieldNamesEmployees() {
-        ProcessVariables variables = new ProcessVariables(Map.of("projectManagerId", List.of("1002")), Map.of());
+        ProcessVariables variables = new ProcessVariables(Map.of("projectManagerId", List.of(TestAccounts.employee(1002).toString())), Map.of());
 
         Resolution resolution = resolver.resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), false, INITIATOR, variables);
 

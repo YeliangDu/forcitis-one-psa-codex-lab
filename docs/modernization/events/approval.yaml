@@ -56,6 +56,7 @@ components:
           initiator:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 发起人，完成卡片发给他
           returnSource:
             type: string
@@ -109,6 +110,7 @@ components:
           initiator:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 提交单据的员工，由所有者记录，不取自客户端
           round:
             type: object
@@ -224,6 +226,7 @@ components:
           initiator:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           candidates:
             type: array
@@ -801,6 +804,7 @@ components:
           initiator:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 发起人
       x-event:
         eventType: platform.approval.ApprovalRoundStarted

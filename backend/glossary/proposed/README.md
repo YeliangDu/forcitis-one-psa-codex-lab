@@ -162,6 +162,8 @@ Phase 1a 时间与时区修复新增用语（proposed，待业务评审，ADR-00
 | id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|---|
 | `system_actor` | 系统操作主体 | SystemActor | 共享内核 · kernel | 以 SYSTEM 身份发出事件的作业、监听器或运维入口；名字人为声明在 backend/architecture/system-actors.txt，事件信封 actorId 为该名字在固定命名空间下的 UUIDv5，同一名字恒定、不同于任何用户 ID，任何实例都可由目录反查名字（RULING-P2-C5） |  | RULING-P2-C5 已裁定：声明完整的静态目录，改名新增一行、旧行不删 |
+| `messaging_account` | 即时通讯账号 | MessagingAccount | 共享内核 · kernel | 员工在企业即时通讯平台上的账号，作为外部主体的一种；kernel 端口 ExternalSubjectEmployees 只以中性文本接收它的标识，平台取值只在集成层翻译（RULING-P3B-9） |  | one-glossary 2026-10-15 定名 withMessagingAccountId / withExternalLoginName；临时端口，C1 落地后按身份模型删除或改形 |
+| `external_login_name` | 外部登录名 | ExternalLoginName | 共享内核 · kernel | 员工在外部身份提供方的登录名，作为外部主体的一种；与新系统自身账号的登录无关 |  | one-glossary 2026-10-15 定名；临时端口 ExternalSubjectEmployees 的查询值，C1 落地后按身份模型删除或改形 |
 
 另有技术词 38 个（`common_words`），不在表中。
 
@@ -202,6 +204,7 @@ Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-
 | `workforce__staff_employee` | 人员 | StaffEmployee | ACL（过渡期） · organization.workforce | 一名员工连同其任职，是同步比较与写入的单位 |  |  |
 | `workforce__relationship` | 关系 | Relationship | ACL（过渡期） · platform.integration | A8 中人员与组织单元之间的关系（部门负责人、区域应收负责人），类型 ID 为配置项 |  |  |
 | `separation_observed_at` | 离职观察时间 | SeparationObservedAt | ACL（过渡期） · platform.integration | 组织同步第一次把员工判为离职、并写入快照的那一轮同步的提交时刻；只表示新系统这样判定了，不是人事生效日 | 「离职日期」已禁用；「separation_date」已禁用 | 单说离职日期有歧义，须写明预计离职日期或离职观察时间 |
+| `attribution_subject` | 法人归属对象 | AttributionSubject | 领域 · organization.workforce | 法人归属所指的对象，是一个组织单元或一名员工，由对象类别与对象 ID 共同确定；同一对象在同一时点只归属一个法人 |  | 类型 AttributionSubjectId 为它的标识（kind + subjectId，events/workforce.yaml x-type）；落库按 DA-5 拆为 org_unit_id / employee_id 两列 |
 
 另有错误码 10 个（kind 为 `error_code`）、技术词 86 个（`common_words`），不在表中。
 

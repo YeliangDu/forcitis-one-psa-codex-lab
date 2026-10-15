@@ -28,6 +28,7 @@ import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.PlatformTransactionManager;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 
 /**
  * Entering the administrator mode needs a fresh WeCom code that proves the signed-in person. The code proves an employee, the session
@@ -36,7 +37,7 @@ import org.springframework.transaction.PlatformTransactionManager;
  */
 class EnterAdministratorModeAccountsTest {
     static final UserId ACCOUNT = TestAccounts.account(6001);
-    static final EmployeeId SIGNED_IN_EMPLOYEE = new EmployeeId(1001);
+    static final EmployeeId SIGNED_IN_EMPLOYEE = TestAccounts.employee(1001);
     static final Instant UNTIL = Instant.parse("2026-10-14T03:00:00Z");
 
     final CurrentUser currentUser = mock(CurrentUser.class);
@@ -66,7 +67,7 @@ class EnterAdministratorModeAccountsTest {
 
     private void proves(EmployeeId employee) {
         when(identification.identify(any(), any())).thenReturn(new WecomIdentification.Outcome.Identified(
-                new EmployeeProfile(employee, "person", new OrgUnitId(5), null, EmploymentStatus.EMPLOYED, false)));
+                new EmployeeProfile(employee, "person", TestOrgIds.orgUnit(5), null, EmploymentStatus.EMPLOYED, false)));
     }
 
     @Test
@@ -80,7 +81,7 @@ class EnterAdministratorModeAccountsTest {
     @Test
     @DisplayName("a code that proves the employee numbered like the account is another person: refused, audited, and the mode stays shut")
     void codeOfTheEmployeeNumberedLikeTheAccountIsRefused() {
-        proves(new EmployeeId(6001));
+        proves(TestAccounts.employee(6001));
 
         assertThatThrownBy(() -> enter.execute(command)).isInstanceOfSatisfying(DomainException.class,
                 e -> assertThat(e.errorCode()).isEqualTo(IdentityError.PLATFORM_IDENTITY_ADMINISTRATOR_MODE_DENIED));

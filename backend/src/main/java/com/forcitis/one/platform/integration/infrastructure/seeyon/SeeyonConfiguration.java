@@ -1,8 +1,9 @@
 package com.forcitis.one.platform.integration.infrastructure.seeyon;
 
 import com.forcitis.one.platform.integration.api.ExternalCallKind;
-import com.forcitis.one.platform.integration.api.ExternalConnections;
+import com.forcitis.one.platform.integration.domain.ExternalConnections;
 import com.forcitis.one.platform.integration.api.OrgSource;
+import com.forcitis.one.platform.integration.application.SourceReferences;
 import com.forcitis.one.platform.integration.domain.ReadOnlyConnectionCheck;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -39,8 +40,9 @@ class SeeyonConfiguration {
         }
 
         @Bean
-        OrgSource seeyonOrgSource(SeeyonConnections connections, SeeyonProperties properties, ReadOnlyConnectionCheck check) {
-            return new SeeyonOrgSource(connections.interactive(), connections.background(), properties.views().mapping(), () -> check.recheck(BACKGROUND));
+        OrgSource seeyonOrgSource(SeeyonConnections connections, SeeyonProperties properties, ReadOnlyConnectionCheck check, SourceReferences references) {
+            return new SeeyonOrgSource(connections.interactive(), connections.background(), properties.views().mapping(), () -> check.recheck(BACKGROUND),
+                    new SourceIdTranslation(references));
         }
 
         @Bean

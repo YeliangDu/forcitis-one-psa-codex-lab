@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
@@ -20,6 +21,7 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
 import org.mockito.Mockito;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 
 /** A claimed task of one approval, for the tests that set the initiator (an employee) against accounts. */
 final class OpenTasks {
@@ -38,8 +40,8 @@ final class OpenTasks {
     static OrgDirectory employed(long... employees) {
         OrgDirectory directory = Mockito.mock(OrgDirectory.class);
         for (long employee : employees) {
-            Mockito.when(directory.findEmployee(new EmployeeId(employee))).thenReturn(Optional.of(new EmployeeProfile(new EmployeeId(employee),
-                    "person-" + employee, new OrgUnitId(5), null, EmploymentStatus.EMPLOYED, false)));
+            Mockito.when(directory.findEmployee(TestAccounts.employee(employee))).thenReturn(Optional.of(new EmployeeProfile(TestAccounts.employee(employee),
+                    "person-" + employee, TestOrgIds.orgUnit(5), null, EmploymentStatus.EMPLOYED, false)));
         }
         return directory;
     }

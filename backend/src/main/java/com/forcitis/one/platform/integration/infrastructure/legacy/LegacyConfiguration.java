@@ -1,8 +1,9 @@
 package com.forcitis.one.platform.integration.infrastructure.legacy;
 
 import com.forcitis.one.platform.integration.api.ExternalCallKind;
-import com.forcitis.one.platform.integration.api.ExternalConnections;
+import com.forcitis.one.platform.integration.domain.ExternalConnections;
 import com.forcitis.one.platform.integration.api.OrgShortNames;
+import com.forcitis.one.platform.integration.application.SourceReferences;
 import com.forcitis.one.platform.integration.domain.ReadOnlyConnectionCheck;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -34,8 +35,8 @@ class LegacyConfiguration {
         }
 
         @Bean
-        OrgShortNames legacyOrgNames(Connection connection, LegacyProperties properties, ReadOnlyConnectionCheck check) {
-            return new LegacyOrgNames(connection.jdbc(), properties.viewName(), () -> check.recheck(CONNECTION));
+        OrgShortNames legacyOrgNames(Connection connection, LegacyProperties properties, ReadOnlyConnectionCheck check, SourceReferences references) {
+            return new LegacyOrgNames(connection.jdbc(), properties.viewName(), () -> check.recheck(CONNECTION), references);
         }
     }
 

@@ -3,7 +3,7 @@ COMMENT ON SCHEMA platform_identity IS '身份与权限（权限流程与集成�
 
 CREATE TABLE platform_identity.user_accounts (
     user_id            uuid        PRIMARY KEY,
-    employee_id        bigint      NOT NULL,
+    employee_id        uuid        NOT NULL,
     status             text        NOT NULL DEFAULT 'ENABLED' CHECK (status IN ('ENABLED', 'DISABLED')),
     last_login_at      timestamptz,
     last_login_address text,
@@ -15,7 +15,7 @@ CREATE TABLE platform_identity.user_accounts (
 );
 COMMENT ON TABLE platform_identity.user_accounts IS '用户账号：身份侧的启用开关与最近登录；员工姓名、部门、在职状态归组织人事模块（不在此冗余）。粒度：每个用户一行';
 COMMENT ON COLUMN platform_identity.user_accounts.user_id IS '用户 ID（UUIDv7）：由身份模块分配，不等于员工 ID（ADR-0033 第 3 项第 1 条）';
-COMMENT ON COLUMN platform_identity.user_accounts.employee_id IS '员工 ID：账号所属的员工，每个员工至多一个账号；跨 schema 引用组织人事的员工，不建外键；R-1b P3b 随员工 ID 改为 uuid';
+COMMENT ON COLUMN platform_identity.user_accounts.employee_id IS '员工 ID：账号所属的员工，每个员工至多一个账号；跨 schema 引用组织人事的员工，不建外键';
 COMMENT ON COLUMN platform_identity.user_accounts.status IS '账号状态：ENABLED / DISABLED；登录与每次解析会话时都与在职状态一起检查（RULE-326/338）';
 COMMENT ON COLUMN platform_identity.user_accounts.last_login_at IS '最近一次登录成功时间（RULE-330）';
 COMMENT ON COLUMN platform_identity.user_accounts.last_login_address IS '最近一次登录成功的客户端地址（RULE-330）';
