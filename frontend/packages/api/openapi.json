@@ -215,6 +215,7 @@
             "type" : "array"
           },
           "orgUnitId" : {
+            "format" : "uuid",
             "type" : [ "string", "null" ]
           },
           "orgUnitName" : {
@@ -676,6 +677,7 @@
             "type" : "array"
           },
           "subjectId" : {
+            "format" : "uuid",
             "type" : "string"
           }
         },
@@ -912,6 +914,7 @@
         "properties" : {
           "ancestorOrgUnitIds" : {
             "items" : {
+              "format" : "uuid",
               "type" : "string"
             },
             "type" : "array"
@@ -921,6 +924,7 @@
           },
           "orgUnitAndBelowIds" : {
             "items" : {
+              "format" : "uuid",
               "type" : "string"
             },
             "type" : "array"
@@ -938,21 +942,25 @@
             "type" : "boolean"
           },
           "headEmployeeId" : {
+            "format" : "uuid",
             "type" : [ "string", "null" ]
           },
           "name" : {
             "type" : "string"
           },
           "orgUnitId" : {
+            "format" : "uuid",
             "type" : "string"
           },
           "parentOrgUnitId" : {
+            "format" : "uuid",
             "type" : [ "string", "null" ]
           },
           "regionCategory" : {
             "type" : [ "string", "null" ]
           },
           "regionalReceivablesManagerId" : {
+            "format" : "uuid",
             "type" : [ "string", "null" ]
           },
           "shortName" : {
@@ -1095,8 +1103,8 @@
       "ReassignTaskRequest" : {
         "properties" : {
           "assigneeId" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           },
           "reason" : {
             "type" : "string"
@@ -1337,6 +1345,7 @@
           },
           "heldSeparations" : {
             "items" : {
+              "format" : "uuid",
               "type" : "string"
             },
             "type" : "array"
@@ -1591,8 +1600,8 @@
       "TransferTaskRequest" : {
         "properties" : {
           "assigneeId" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           },
           "reason" : {
             "type" : "string"
@@ -1683,8 +1692,8 @@
           "name" : "employeeId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -1718,8 +1727,8 @@
           "name" : "employeeId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "header",
@@ -1772,8 +1781,8 @@
           "name" : "employeeId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "header",
@@ -1834,8 +1843,8 @@
           "name" : "employeeId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "header",
@@ -2077,8 +2086,8 @@
           "name" : "orgUnitId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         } ],
         "responses" : {
@@ -2112,8 +2121,8 @@
           "name" : "orgUnitId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "header",
@@ -2166,8 +2175,8 @@
           "name" : "orgUnitId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "header",
@@ -2228,8 +2237,8 @@
           "name" : "orgUnitId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         }, {
           "in" : "header",
@@ -2330,8 +2339,8 @@
           "name" : "orgUnitId",
           "required" : true,
           "schema" : {
-            "format" : "int64",
-            "type" : "integer"
+            "format" : "uuid",
+            "type" : "string"
           }
         } ],
         "responses" : {

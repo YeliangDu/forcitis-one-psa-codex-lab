@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/organization")
@@ -41,13 +42,13 @@ class LegalEntityAttributionController {
 
     @GetMapping("/org-unit-legal-entities/{orgUnitId}")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.ORG_UNIT_READ + "')")
-    ResponseEntity<LegalEntityAttributionResponse> ofOrgUnit(@PathVariable long orgUnitId, UserId caller) {
+    ResponseEntity<LegalEntityAttributionResponse> ofOrgUnit(@PathVariable UUID orgUnitId, UserId caller) {
         return answer(get.execute(AttributionKind.ORG_UNIT, orgUnitId, access.visibleOrgUnits(WorkforcePermissions.ORG_UNIT_READ), caller));
     }
 
     @PutMapping("/org-unit-legal-entities/{orgUnitId}")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_UPDATE + "')")
-    ResponseEntity<LegalEntityAttributionResponse> attributeOrgUnit(@PathVariable long orgUnitId, @RequestBody AttributeLegalEntityRequest request,
+    ResponseEntity<LegalEntityAttributionResponse> attributeOrgUnit(@PathVariable UUID orgUnitId, @RequestBody AttributeLegalEntityRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch, UserId caller) {
         return answer(attribute.execute(AttributionKind.ORG_UNIT, orgUnitId, request.legalEntityId() == null ? null : new LegalEntityId(request.legalEntityId()), request.effectiveFrom(),
                 ExpectedVersion.fromHeader(ifMatch), caller));
@@ -55,20 +56,20 @@ class LegalEntityAttributionController {
 
     @PostMapping("/org-unit-legal-entities/{orgUnitId}:end")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_UPDATE + "')")
-    ResponseEntity<LegalEntityAttributionResponse> endOrgUnit(@PathVariable long orgUnitId, @RequestBody EndLegalEntityAttributionRequest request,
+    ResponseEntity<LegalEntityAttributionResponse> endOrgUnit(@PathVariable UUID orgUnitId, @RequestBody EndLegalEntityAttributionRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch, UserId caller) {
         return answer(end.execute(AttributionKind.ORG_UNIT, orgUnitId, request.effectiveTo(), ExpectedVersion.fromHeader(ifMatch), caller));
     }
 
     @GetMapping("/employee-legal-entities/{employeeId}")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.ORG_UNIT_READ + "')")
-    ResponseEntity<LegalEntityAttributionResponse> ofEmployee(@PathVariable long employeeId, UserId caller) {
+    ResponseEntity<LegalEntityAttributionResponse> ofEmployee(@PathVariable UUID employeeId, UserId caller) {
         return answer(get.execute(AttributionKind.EMPLOYEE, employeeId, access.visibleOrgUnits(WorkforcePermissions.ORG_UNIT_READ), caller));
     }
 
     @PutMapping("/employee-legal-entities/{employeeId}")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_UPDATE + "')")
-    ResponseEntity<LegalEntityAttributionResponse> attributeEmployee(@PathVariable long employeeId, @RequestBody AttributeLegalEntityRequest request,
+    ResponseEntity<LegalEntityAttributionResponse> attributeEmployee(@PathVariable UUID employeeId, @RequestBody AttributeLegalEntityRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch, UserId caller) {
         return answer(attribute.execute(AttributionKind.EMPLOYEE, employeeId, request.legalEntityId() == null ? null : new LegalEntityId(request.legalEntityId()), request.effectiveFrom(),
                 ExpectedVersion.fromHeader(ifMatch), caller));
@@ -76,14 +77,14 @@ class LegalEntityAttributionController {
 
     @PostMapping("/employee-legal-entities/{employeeId}:end")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_UPDATE + "')")
-    ResponseEntity<LegalEntityAttributionResponse> endEmployee(@PathVariable long employeeId, @RequestBody EndLegalEntityAttributionRequest request,
+    ResponseEntity<LegalEntityAttributionResponse> endEmployee(@PathVariable UUID employeeId, @RequestBody EndLegalEntityAttributionRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch, UserId caller) {
         return answer(end.execute(AttributionKind.EMPLOYEE, employeeId, request.effectiveTo(), ExpectedVersion.fromHeader(ifMatch), caller));
     }
 
     @PostMapping("/org-unit-legal-entities/{orgUnitId}:correct")
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<LegalEntityAttributionResponse> correctOrgUnit(@PathVariable long orgUnitId, @RequestBody CorrectLegalEntityAttributionRequest request,
+    ResponseEntity<LegalEntityAttributionResponse> correctOrgUnit(@PathVariable UUID orgUnitId, @RequestBody CorrectLegalEntityAttributionRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch, UserId caller) {
         return answer(correct.execute(AttributionKind.ORG_UNIT, orgUnitId, request.periodFrom(), request.effectiveTo(), request.reason(),
                 caller, ExpectedVersion.fromHeader(ifMatch)));
@@ -91,7 +92,7 @@ class LegalEntityAttributionController {
 
     @PostMapping("/employee-legal-entities/{employeeId}:correct")
     @PreAuthorize("isAuthenticated()")
-    ResponseEntity<LegalEntityAttributionResponse> correctEmployee(@PathVariable long employeeId, @RequestBody CorrectLegalEntityAttributionRequest request,
+    ResponseEntity<LegalEntityAttributionResponse> correctEmployee(@PathVariable UUID employeeId, @RequestBody CorrectLegalEntityAttributionRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch, UserId caller) {
         return answer(correct.execute(AttributionKind.EMPLOYEE, employeeId, request.periodFrom(), request.effectiveTo(), request.reason(),
                 caller, ExpectedVersion.fromHeader(ifMatch)));

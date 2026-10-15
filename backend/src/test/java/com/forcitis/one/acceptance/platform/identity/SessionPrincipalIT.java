@@ -70,9 +70,9 @@ class SessionPrincipalIT extends AccountsAcceptanceSupport {
     @Test
     @DisplayName("R-1b P2 ADR-0033 第 3 项第 2 条（对照）：登录得到的会话主体是账号的 uuid，同一会话读当前用户得到同一个 userId")
     void theSessionOfALoginCarriesTheAccountUuid() throws Exception {
-        long unit = newOrgUnitId();
+        UUID unit = newOrgUnitId();
         orgUnit(unit, null, null);
-        long person = newEmployeeId();
+        UUID person = newEmployeeId();
         employee(person, unit, null);
         SignedIn signedIn = signIn(person);
 

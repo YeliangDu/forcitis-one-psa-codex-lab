@@ -332,17 +332,17 @@ terms:
   kind: value
   bc: platform.approval
   scope: domain
-  definition: 第三轮用语确认（R3-AP-69）已定为：区域负责人审批 / RegionalHeadApproval（regional_head_approval）。代码与界面改名合入前保留旧写法。
+  definition: 第三轮用语确认（R3-AP-69）曾定为区域负责人审批 / RegionalHeadApproval，后由 D5-06 取代，改为：部门负责人审批 / OrgUnitHeadApproval（org_unit_head_approval）。代码与界面改名合入前保留旧写法。
   standard_ref:
   - glossary/decisions-round3-2026-10-15.json R3-AP-69
   confidence: high
   aliases: []
   forbidden: []
   status: deprecated
-  replaced_by: regional_head_approval
-  until: "代码改名随 R-2a，生产前"
-  owner: "one-1a-next-3"
-  note: 代码仍用 RegionalHeadReview（main）
+  replaced_by: org_unit_head_approval
+  until: "代码改名随 R-1b P4（one-1a-next-4），生产前"
+  owner: "one-1a-next-4"
+  note: 代码仍用 RegionalHeadReview（main）；D5-06 把区域负责人审批改为部门负责人审批
 - id: round3_pending__supervisor_review
   zh: 一级汇报人审批
   en: SupervisorReview

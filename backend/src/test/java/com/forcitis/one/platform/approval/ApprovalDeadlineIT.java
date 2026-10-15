@@ -114,9 +114,9 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
         organisation.unit(unit, null, head).person(head, unit, null).person(initiator, unit, head)
                 .person(manager, unit, managerHasSuperior ? head : null);
         String key = newKey("deadline");
-        ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(key, new EmployeeId(initiator),
+        ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(key, TestAccounts.employee(initiator),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))))));
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(manager).toString()))))));
         return new Scene(key, instance, openTaskId(instance), initiator, manager, head);
     }
 
@@ -216,9 +216,9 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
         organisation.unit(unit, null, null).person(initiator, unit, null).person(manager, unit, null);
         String key = newKey("deadline-calendar");
 
-        assertThatThrownBy(() -> tx.executeWithoutResult(s -> approvals.start(startRequest(key, new EmployeeId(initiator),
+        assertThatThrownBy(() -> tx.executeWithoutResult(s -> approvals.start(startRequest(key, TestAccounts.employee(initiator),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager))))))))
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(manager).toString())))))))
                 .hasStackTraceContaining("not maintained");
 
         assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where document_key = ?", Integer.class, key)).isZero();

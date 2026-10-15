@@ -1,5 +1,6 @@
-package com.forcitis.one.platform.integration.api;
+package com.forcitis.one.platform.integration.domain;
 
+import com.forcitis.one.platform.integration.api.ExternalCallKind;
 import javax.sql.DataSource;
 
 /** The only way to reach an external database: every statement, network read and lock wait on the returned pool is bounded by the limit of the call kind. */

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -56,7 +57,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     }
 
     private long roleCount(long userId) {
-        return jdbc.sql("select count(*) from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = :id)").param("id", userId).query(Long.class).single();
+        return jdbc.sql("select count(*) from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = :id)").param("id", TestAccounts.employee(userId).value()).query(Long.class).single();
     }
 
     private void registerEmergencyAdmin(long userId, String name) {
@@ -73,15 +74,15 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
         registerEmergencyAdmin(1002, "breakglass-b");
         accessCache.evictAll();
 
-        publish(List.of(), List.of(new EmployeeId(1001)));
+        publish(List.of(), List.of(TestAccounts.employee(1001)));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(roleCount(1001)).isZero());
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(domainEvents.of(EmergencyAdminDisabled.class)).hasSize(1));
         assertThat(roleCount(1002)).as("nobody else is touched").isEqualTo(1);
-        assertThat(jdbc.sql("select is_enabled from platform_identity.emergency_admins where user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 1001)").query(Boolean.class).single()).isFalse();
-        assertThat(jdbc.sql("select is_enabled from platform_identity.emergency_admins where user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 1002)").query(Boolean.class).single()).isTrue();
-        assertThat(jdbc.sql("select count(*) from platform_identity.sessions where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = 1001)").query(Long.class).single()).isZero();
-        assertThat(jdbc.sql("select count(*) from platform_identity.sessions where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = 1002)").query(Long.class).single()).isEqualTo(1);
+        assertThat(jdbc.sql("select is_enabled from platform_identity.emergency_admins where user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").query(Boolean.class).single()).isFalse();
+        assertThat(jdbc.sql("select is_enabled from platform_identity.emergency_admins where user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1002) + ")").query(Boolean.class).single()).isTrue();
+        assertThat(jdbc.sql("select count(*) from platform_identity.sessions where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("select count(*) from platform_identity.sessions where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1002) + ")").query(Long.class).single()).isEqualTo(1);
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("platform.identity.account.role.revoked"))
                 .extracting(AuditEntry::detail)
                 .containsExactlyInAnyOrder("role=employee cause=separation", "role=org_data_admin cause=separation", "role=super_admin cause=separation");
@@ -106,7 +107,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
         knownEmployee(1003, EmploymentStatus.SEPARATED);
         createAccount(1003, "employee", "business_admin");
 
-        publish(List.of(new EmployeeId(1003)), List.of());
+        publish(List.of(TestAccounts.employee(1003)), List.of());
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(roleCount(1003)).isZero());
     }
@@ -117,9 +118,9 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
         createAccount(1004, "employee");
         registerEmergencyAdmin(1004, "breakglass-c");
 
-        publish(List.of(), List.of(new EmployeeId(1004)));
+        publish(List.of(), List.of(TestAccounts.employee(1004)));
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(roleCount(1004)).isZero());
-        publish(List.of(), List.of(new EmployeeId(1004)));
+        publish(List.of(), List.of(TestAccounts.employee(1004)));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
                 assertThat(recorded().stream().filter(e -> e.action().equals("platform.identity.session.revoked")).count()).isEqualTo(2));
@@ -131,7 +132,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("P2-H3 a person without an account is a quiet no-op: once the separation listener has handled the event, no account is opened, no role and no session is revoked (R-1b P2: there is no account id to name)")
     void P2_H3_noAccountIsOpenedForASeparatedPersonWithout() {
-        UUID published = publish(List.of(), List.of(new EmployeeId(5555)));
+        UUID published = publish(List.of(), List.of(TestAccounts.employee(5555)));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(jdbc.sql("""
                 select count(*) from (select listener_id, completion_date, serialized_event from platform_integration.event_publication

@@ -2,7 +2,7 @@ package com.forcitis.one.platform.integration.api;
 
 import java.util.Objects;
 
-public record SourcePosition(SourcePositionId positionId, String code, String name, Integer sortOrder, SourceRecordState state) {
+public record SourcePosition(OwnObjectId positionId, String code, String name, Integer sortOrder, SourceRecordState state) {
 
     public SourcePosition {
         Objects.requireNonNull(positionId, "positionId");

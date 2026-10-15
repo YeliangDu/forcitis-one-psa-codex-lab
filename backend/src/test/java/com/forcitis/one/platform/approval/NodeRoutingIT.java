@@ -76,9 +76,9 @@ class NodeRoutingIT extends ApprovalIntegrationSupport {
         organisation.person(initiator, 1, null).person(manager, 1, null);
         String key = newKey("unknown-flag");
 
-        assertThatThrownBy(() -> tx.executeWithoutResult(s -> approvals.start(startRequest(key, new EmployeeId(initiator),
+        assertThatThrownBy(() -> tx.executeWithoutResult(s -> approvals.start(startRequest(key, TestAccounts.employee(initiator),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName(), "projectHoursTypo"),
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager))))))))
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(manager).toString())))))))
                 .isInstanceOfSatisfying(DomainException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_ROUTING_FLAG_UNKNOWN));
 
@@ -132,8 +132,8 @@ class NodeRoutingIT extends ApprovalIntegrationSupport {
         long initiator = newId();
         long manager = newId();
         organisation.person(initiator, 1, null).person(manager, 1, null);
-        ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(newKey("manual-repeat"), new EmployeeId(initiator), Set.of("again"),
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))))));
+        ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(newKey("manual-repeat"), TestAccounts.employee(initiator), Set.of("again"),
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(manager).toString()))))));
 
         decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
 

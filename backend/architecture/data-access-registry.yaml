@@ -51,13 +51,13 @@ tables:
     role: SNAPSHOT
     mutability: MUTABLE
     retention: {policy: CURRENT_STATE}
-    lineage: {source: ORG_SOURCE}
+    lineage: {source: ORG_SOURCE}  # own ids through the confirmed source references of platform.integration (经来源对照, R-1b P3b)
     writers: [organization.workforce]
   organization_workforce.org_units:
     role: SNAPSHOT
     mutability: MUTABLE
     retention: {policy: CURRENT_STATE}
-    lineage: {source: ORG_SOURCE}
+    lineage: {source: ORG_SOURCE}  # own ids through the confirmed source references of platform.integration (经来源对照, R-1b P3b)
     fk_exceptions:
       last_sync_run_id: sync runs are deleted after two years while the snapshot row lives on
     references: {regional_receivables_manager_id: organization_workforce.employees}
@@ -66,7 +66,7 @@ tables:
     role: SNAPSHOT
     mutability: MUTABLE
     retention: {policy: CURRENT_STATE}
-    lineage: {source: ORG_SOURCE}
+    lineage: {source: ORG_SOURCE}  # own ids through the confirmed source references of platform.integration (经来源对照, R-1b P3b)
     fk_exceptions:
       last_sync_run_id: sync runs are deleted after two years while the snapshot row lives on
     writers: [organization.workforce]
@@ -74,7 +74,7 @@ tables:
     role: SNAPSHOT
     mutability: MUTABLE
     retention: {policy: CURRENT_STATE}
-    lineage: {source: ORG_SOURCE}
+    lineage: {source: ORG_SOURCE}  # own ids through the confirmed source references of platform.integration (经来源对照, R-1b P3b)
     writers: [organization.workforce]
   organization_workforce.org_unit_versions:
     role: DIMENSION_VERSIONED

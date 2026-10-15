@@ -70,9 +70,9 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         long stranger = newId();
         organisation.person(initiator, 1, null).person(candidate, 1, null).person(other, 1, null).person(stranger, 1, null);
         String key = newKey("actor");
-        ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(key, new EmployeeId(initiator), java.util.Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
+        ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(key, TestAccounts.employee(initiator), java.util.Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                 List.of(new com.forcitis.one.platform.approval.api.ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(),
-                        List.of(String.valueOf(candidate), String.valueOf(other)))))));
+                        List.of(TestAccounts.employee(candidate).toString(), TestAccounts.employee(other).toString()))))));
         return new Scene(key, instance, openTaskId(instance), initiator, candidate, other, stranger);
     }
 
@@ -264,7 +264,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         mvc.perform(get("/api/v1/platform/approval-tasks/" + id).with(reader(scene.stranger()))).andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errorCode").value("PLATFORM_APPROVAL_TASK_NOT_FOUND"));
         mvc.perform(get("/api/v1/platform/approval-tasks/" + id).with(reader(scene.candidate()))).andExpect(status().isOk())
-                .andExpect(jsonPath("$.canAct").value(true)).andExpect(jsonPath("$.initiator").value(scene.initiator()));
+                .andExpect(jsonPath("$.canAct").value(true)).andExpect(jsonPath("$.initiator").value(TestAccounts.employee(scene.initiator()).toString()));
         mvc.perform(get("/api/v1/platform/approval-tasks/" + id).with(reader(scene.initiator()))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.canAct").value(false));
     }
@@ -284,7 +284,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         Scene scene = scene();
         String stranger = TestAccounts.account(scene.stranger()).value().toString();
         for (String action : List.of(":claim", ":release", ":decide", ":return", ":transfer")) {
-            String body = "{\"outcome\":\"APPROVE\",\"reason\":\"x\",\"assigneeId\":" + scene.otherCandidate() + "}";
+            String body = "{\"outcome\":\"APPROVE\",\"reason\":\"x\",\"assigneeId\":\"" + TestAccounts.employee(scene.otherCandidate()) + "\"}";
             var foreign = mvc.perform(post("/api/v1/platform/approval-tasks/" + scene.task().value() + action).with(csrf()).with(currentEtag())
                     .with(approver(scene.stranger())).contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse();
             var missing = mvc.perform(post("/api/v1/platform/approval-tasks/no-such-task" + action).with(csrf()).with(currentEtag())

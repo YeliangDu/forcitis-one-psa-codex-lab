@@ -10,6 +10,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -39,6 +40,18 @@ class JdbcOrgSnapshotQueries implements OrgSnapshotQueries {
     }
 
     @Override
+    public List<EmployeeId> findEmployeeIdsByLoginName(String loginName) {
+        return jdbc.sql("select id from organization_workforce.employees where login_name = :login order by updated_at desc, id")
+                .param("login", loginName).query(UUID.class).list().stream().map(EmployeeId::new).toList();
+    }
+
+    @Override
+    public List<EmployeeId> findEmployeeIdsByWecomUser(WecomUserId wecomUserId) {
+        return jdbc.sql("select id from organization_workforce.employees where wecom_user_id = :wecom order by updated_at desc, id")
+                .param("wecom", wecomUserId.value()).query(UUID.class).list().stream().map(EmployeeId::new).toList();
+    }
+
+    @Override
     public Optional<OrgUnit> findOrgUnit(OrgUnitId orgUnitId) {
         return jdbc.sql(OrgSnapshotRows.SELECT_ORG_UNITS + " where id = :id").param("id", orgUnitId.value()).query((rs, n) -> OrgSnapshotRows.orgUnit(rs)).optional();
     }
@@ -50,7 +63,7 @@ class JdbcOrgSnapshotQueries implements OrgSnapshotQueries {
 
     @Override
     public List<OrgUnitId> findAncestors(OrgUnitId orgUnitId) {
-        List<Long> chain = jdbc.sql("""
+        List<UUID> chain = jdbc.sql("""
                 with recursive chain(id, depth) as (
                     select parent_org_unit_id, 1 from organization_workforce.org_units
                      where id = :id and parent_org_unit_id is not null
@@ -60,8 +73,8 @@ class JdbcOrgSnapshotQueries implements OrgSnapshotQueries {
                      where u.parent_org_unit_id is not null and c.depth < 64
                 )
                 select id from chain order by depth
-                """).param("id", orgUnitId.value()).query(Long.class).list();
-        Set<Long> unique = new LinkedHashSet<>(chain);
+                """).param("id", orgUnitId.value()).query(UUID.class).list();
+        Set<UUID> unique = new LinkedHashSet<>(chain);
         unique.remove(orgUnitId.value());
         return unique.stream().map(OrgUnitId::new).toList();
     }

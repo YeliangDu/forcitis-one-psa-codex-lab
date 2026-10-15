@@ -101,10 +101,10 @@ class JdbcTimesheetRepository implements TimesheetRepository {
 
     private static Timesheet read(ResultSet rs) throws SQLException {
         return Timesheet.restore(new TimesheetId(rs.getObject("id", UUID.class)), new DocumentNumber(rs.getString("timesheet_number")),
-                new EmployeeId(rs.getLong("employee_id")), new LegalEntityId(rs.getObject("legal_entity_id", UUID.class)),
-                new OrgUnitId(rs.getLong("org_unit_id")),
+                new EmployeeId(rs.getObject("employee_id", UUID.class)), new LegalEntityId(rs.getObject("legal_entity_id", UUID.class)),
+                new OrgUnitId(rs.getObject("org_unit_id", UUID.class)),
                 rs.getObject("work_date", LocalDate.class), new Hours(rs.getBigDecimal("submitted_hours")),
-                new EmployeeId(rs.getLong("project_manager_id")), TimesheetStatus.valueOf(rs.getString("status")), rs.getInt("round_number"),
+                new EmployeeId(rs.getObject("project_manager_id", UUID.class)), TimesheetStatus.valueOf(rs.getString("status")), rs.getInt("round_number"),
                 rs.getObject("submitted_date", LocalDate.class), rs.getLong("version"), rs.getLong("event_count"));
     }
 }

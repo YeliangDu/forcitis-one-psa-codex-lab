@@ -14,11 +14,11 @@ import com.forcitis.one.organization.workforce.application.SyncOrgSnapshot;
 import com.forcitis.one.organization.workforce.application.SyncResult;
 import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
-import com.forcitis.one.platform.approval.domain.LegacyInbox;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.SessionRoles;
 import com.forcitis.one.platform.integration.api.OrgShortNames;
 import com.forcitis.one.platform.integration.api.OrgSource;
+import com.forcitis.one.platform.integration.api.StaffLookup;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -76,7 +76,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
         "forcitis.platform.integration.seeyon.views.fee-earner-yes-enum-id=9002",
         "forcitis.platform.integration.seeyon.views.root-path=00000001",
         "forcitis.platform.integration.legacy.enabled=true",
-        "forcitis.platform.approval.legacy.view-name=dbo.v_psa_one_legacy_todo"})
+        "forcitis.platform.integration.legacy.inbox.view-name=dbo.v_psa_one_legacy_todo"})
 @AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension.class)
 class StalledExternalSourceIT {
@@ -91,6 +91,10 @@ class StalledExternalSourceIT {
     static final String LOGIN_NAME = "13900008001";
     /** The person as the old system names them (assignee_user_id), which is the employee id until R-1b P3b. */
     static final long INBOX_EMPLOYEE = 1001;
+    /** The old-system department of the short-name view. */
+    static final long SHORT_NAME_UNIT = 2;
+    /** R-1b P3b: EmployeeId wraps a UUID; the old system's ids are then reached through (LEGACY_SYSTEM, ...) source references (RULING-P3B-3). */
+    static final boolean UUID_IDS = EmployeeId.class.getRecordComponents()[0].getType() == UUID.class;
     /** The account of that employee: since R-1b P2 an id of its own (RULING-P2-6). */
     static final UUID INBOX_ACCOUNT = UUID.randomUUID();
     static final long HEAD_TYPE = 7001;
@@ -125,9 +129,9 @@ class StalledExternalSourceIT {
         registry.add("forcitis.platform.integration.seeyon.views.jdbc-url", () -> url(A8_WORLD));
         registry.add("forcitis.platform.integration.seeyon.views.username", () -> A8_READER);
         registry.add("forcitis.platform.integration.seeyon.views.password", () -> A8_READER_PASSWORD);
-        registry.add("forcitis.platform.approval.legacy.url", () -> url(LEGACY_WORLD));
-        registry.add("forcitis.platform.approval.legacy.username", () -> TODO_READER);
-        registry.add("forcitis.platform.approval.legacy.password", () -> TODO_READER_PASSWORD);
+        registry.add("forcitis.platform.integration.legacy.inbox.url", () -> url(LEGACY_WORLD));
+        registry.add("forcitis.platform.integration.legacy.inbox.username", () -> TODO_READER);
+        registry.add("forcitis.platform.integration.legacy.inbox.password", () -> TODO_READER_PASSWORD);
         registry.add("forcitis.platform.integration.legacy.jdbc-url", () -> url(LEGACY_WORLD));
         registry.add("forcitis.platform.integration.legacy.username", () -> NAMES_READER);
         registry.add("forcitis.platform.integration.legacy.password", () -> NAMES_READER_PASSWORD);
@@ -155,7 +159,10 @@ class StalledExternalSourceIT {
     OrgShortNames names;
 
     @Autowired
-    LegacyInbox legacyInbox;
+    org.springframework.context.ApplicationContext context;
+
+    /** The employee of the inbox account as the build stores it: the old-system id itself, or since R-1b P3b the own id its reference gives. */
+    Object inboxEmployee;
 
     static final ExecutorService CALLERS = Executors.newCachedThreadPool(runnable -> {
         Thread thread = new Thread(runnable, "request-thread");
@@ -170,12 +177,20 @@ class StalledExternalSourceIT {
     /** The session principal is the account; identity maps it to the employee whose old-system todos are read. */
     @BeforeEach
     void inboxPersonHasAnAccount() throws SQLException {
+        inboxEmployee = INBOX_EMPLOYEE;
+        if (UUID_IDS) {
+            try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
+                SourceReferencesProbe references = SourceReferencesProbe.of(context);
+                inboxEmployee = references.allocate("LEGACY_SYSTEM", "EMPLOYEE", INBOX_EMPLOYEE);
+                references.allocate("LEGACY_SYSTEM", "ORG_UNIT", SHORT_NAME_UNIT);
+            }
+        }
         try (Connection c = DriverManager.getConnection(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
                 Statement path = c.createStatement()) {
             path.execute("set search_path to platform_identity");
             try (PreparedStatement insert = c.prepareStatement("insert into user_accounts (user_id, employee_id) values (?, ?) on conflict do nothing")) {
                 insert.setObject(1, INBOX_ACCOUNT);
-                insert.setLong(2, INBOX_EMPLOYEE);
+                insert.setObject(2, inboxEmployee);
                 insert.executeUpdate();
             }
         }
@@ -213,7 +228,7 @@ class StalledExternalSourceIT {
     void controlWithoutAnyStall() throws Exception {
         String inbox = mvc.perform(get(INBOX).with(ordinarySession(INBOX_ACCOUNT))).andReturn().getResponse().getContentAsString();
         assertThat(inbox).contains("\"legacyAvailable\":true").contains("\"legacyCount\":1");
-        assertThat(a8.findStaffByLoginName(LOGIN_NAME)).hasSize(1);
+        assertThat(a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME))).hasSize(1);
         assertThat(names.readShortNames()).hasSize(1);
         SyncResult result = runSync();
         assertThat(result.status()).as(result.note()).isNotEqualTo(SyncRunStatus.FAILED);
@@ -290,7 +305,7 @@ class StalledExternalSourceIT {
 
     /** The port says "unavailable" (that is what the caller turns into "nobody found"), and the login use case built on it returns instead of throwing. */
     private void assertLoginLookupDegrades() {
-        Outcome<?> port = timed(HARD_CAP_INTERACTIVE, () -> a8.findStaffByLoginName(LOGIN_NAME));
+        Outcome<?> port = timed(HARD_CAP_INTERACTIVE, () -> a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME)));
         assertThat(port.hung()).as("the login lookup is still waiting for A8 after %s: it holds a request thread", HARD_CAP_INTERACTIVE).isFalse();
         assertThat(port.elapsed()).as("login answers within the 3 s budget of an external call").isLessThanOrEqualTo(INTERACTIVE_BUDGET);
         assertThat(port.failure()).as("an unreachable source is reported as such, not as an empty answer").isInstanceOf(ExternalSystemUnavailableException.class);
@@ -305,9 +320,9 @@ class StalledExternalSourceIT {
     @Test
     @DisplayName("D1-1 三条外部连接的会话都带有限的锁等待上限，交互路径的两条不超过 3 s")
     void everyExternalSessionCarriesALockTimeout() throws Exception {
-        a8.findStaffByLoginName(LOGIN_NAME);
+        a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME));
         names.readShortNames();
-        legacyInbox.readTodos(new EmployeeId(INBOX_EMPLOYEE));
+        readLegacyTodos();
 
         Map<String, Integer> lockTimeouts = new java.util.TreeMap<>();
         try (Connection c = admin("master"); Statement s = c.createStatement();
@@ -336,7 +351,7 @@ class StalledExternalSourceIT {
         replaceView(A8_WORLD, "forcitis_one.v_org_member", SLOW_MEMBER_VIEW);
         viewsToRestore.add(new ViewRestore(A8_WORLD, "forcitis_one.v_org_member", MEMBER_VIEW));
 
-        Future<Outcome<Object>> inFlight = CALLERS.submit(() -> timed(HARD_CAP_INTERACTIVE, () -> a8.findStaffByLoginName(LOGIN_NAME)));
+        Future<Outcome<Object>> inFlight = CALLERS.submit(() -> timed(HARD_CAP_INTERACTIVE, () -> a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME))));
         Awaitility.await("the slow statement of a8_reader is visible in sys.dm_exec_requests while the lookup waits").atMost(Duration.ofSeconds(2))
                 .pollInterval(Duration.ofMillis(50)).untilAsserted(() -> assertThat(requestsOf(A8_READER, false)).isPositive());
         Outcome<Object> lookup = inFlight.get(HARD_CAP_INTERACTIVE.toMillis() * 2, TimeUnit.MILLISECONDS);
@@ -374,6 +389,29 @@ class StalledExternalSourceIT {
             assertThat(outcome.value().status()).isEqualTo(200);
             assertThat(outcome.value().body()).as("request %d", i + 1).contains("\"legacyAvailable\":false");
         }
+    }
+
+    /**
+     * Reads the old to-dos of the inbox employee through the port named LegacyInbox, wherever it lives: platform.approval.domain until R-1b P3b,
+     * platform.integration after (ADR-0039 item 5.2, RULING-P3B-D2, RULING-P3B-3). A missing port fails the test.
+     */
+    void readLegacyTodos() throws ReflectiveOperationException {
+        for (String name : context.getBeanDefinitionNames()) {
+            Class<?> type = context.getType(name);
+            if (type == null) {
+                continue;
+            }
+            for (Class<?> port : org.springframework.util.ClassUtils.getAllInterfacesForClassAsSet(type)) {
+                if (port.getSimpleName().equals("LegacyInbox") && port.getPackageName().startsWith("com.forcitis.one.platform")) {
+                    java.lang.reflect.Method read = java.util.Arrays.stream(port.getMethods()).filter(m -> m.getName().equals("readTodos")
+                            && m.getParameterCount() == 1).findFirst().orElseThrow(() -> new AssertionError(port + " has no readTodos(employee)"));
+                    Class<?> idType = EmployeeId.class.getRecordComponents()[0].getType();
+                    read.invoke(context.getBean(name), EmployeeId.class.getDeclaredConstructor(idType).newInstance(inboxEmployee));
+                    return;
+                }
+            }
+        }
+        throw new AssertionError("no bean implements a port named LegacyInbox");
     }
 
     Reply inbox() throws Exception {

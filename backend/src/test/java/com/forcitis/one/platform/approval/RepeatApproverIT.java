@@ -38,8 +38,8 @@ class RepeatApproverIT extends ApprovalIntegrationSupport {
     org.flowable.engine.HistoryService history;
 
     ApprovalInstanceId startRepeating(String key, long initiator, long manager) {
-        return tx.execute(status -> approvals.start(startRequest(key, new EmployeeId(initiator), Set.of("again"),
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))))));
+        return tx.execute(status -> approvals.start(startRequest(key, TestAccounts.employee(initiator), Set.of("again"),
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(manager).toString()))))));
     }
 
     @Test
@@ -110,9 +110,9 @@ class RepeatApproverIT extends ApprovalIntegrationSupport {
         long initiator = newId();
         organisation.unit(unit, null, person).person(person, unit, null).person(initiator, unit, person);
         String key = newKey("two-nodes");
-        ApprovalInstanceId instance = tx.execute(status -> approvals.start(startRequest(key, new EmployeeId(initiator),
+        ApprovalInstanceId instance = tx.execute(status -> approvals.start(startRequest(key, TestAccounts.employee(initiator),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName(), TimesheetRoutingFlag.OVERHEAD_HOURS.flagName()),
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(person)))))));
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(person).toString()))))));
 
         assertThat(taskService.createTaskQuery().processInstanceId(instance.value()).count()).isEqualTo(2);
         decideTasks.execute(TestAccounts.account(person), List.of(new TaskDecision(openTaskId(instance, "projectManagerReview"), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());

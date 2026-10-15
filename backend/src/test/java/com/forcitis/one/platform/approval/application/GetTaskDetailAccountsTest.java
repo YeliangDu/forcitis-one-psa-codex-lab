@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
  * the viewer is the account 6001; the account numbered 1001 belongs to somebody else and sees nothing.
  */
 class GetTaskDetailAccountsTest {
-    static final EmployeeId INITIATOR = new EmployeeId(1001);
+    static final EmployeeId INITIATOR = TestAccounts.employee(1001);
     static final UserId INITIATORS_ACCOUNT = TestAccounts.account(1001);
     static final UserId HANDLER = TestAccounts.account(1002);
     static final UserId ACCOUNT_NUMBERED_LIKE_THE_INITIATOR = TestAccounts.unknownAccount(1001);

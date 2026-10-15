@@ -55,9 +55,9 @@ class RetractionIT extends ApprovalIntegrationSupport {
     }
 
     ApprovalInstanceId startFor(String key, Staff s) {
-        return tx.execute(status -> approvals.start(startRequest(key, new EmployeeId(s.initiator()),
+        return tx.execute(status -> approvals.start(startRequest(key, TestAccounts.employee(s.initiator()),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(s.manager())))))));
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(s.manager()).toString()))))));
     }
 
     RetractionResult withdraw(String key, long actor, String reason) {

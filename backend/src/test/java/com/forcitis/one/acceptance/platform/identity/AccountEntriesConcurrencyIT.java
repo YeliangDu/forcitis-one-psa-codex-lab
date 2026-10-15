@@ -94,33 +94,33 @@ class AccountEntriesConcurrencyIT extends AccountsAcceptanceSupport {
         errors.stop();
     }
 
-    private UUID publishEmployeeRegistered(long employee) {
+    private UUID publishEmployeeRegistered(UUID employee) {
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.login-registration")) {
             return transactions.execute(status -> {
                 EmployeeRegistered event = new EmployeeRegistered(envelopes.wrap(new EventDraft("organization.workforce.EmployeeRegistered", 1, "Employee",
-                        String.valueOf(employee), 1, null, null, new EventSource(SourceSystem.ONE, null), List.of())), new EmployeeId(employee));
+                        text(employee), 1, null, null, new EventSource(SourceSystem.ONE, null), List.of())), employeeIdOf(employee));
                 publisher.publishEvent(event);
                 return event.envelope().eventId();
             });
         }
     }
 
-    private UUID publishOrgSnapshotChanged(long employee) {
+    private UUID publishOrgSnapshotChanged(UUID employee) {
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
             return transactions.execute(status -> {
                 OrgSnapshotChanged event = new OrgSnapshotChanged(envelopes.wrap(new EventDraft("organization.workforce.OrgSnapshotChanged", 1, "OrgSnapshot",
                         UUID.randomUUID().toString(), 1, null, TODAY, new EventSource(SourceSystem.ONE, null), List.of())),
-                        List.of(new EmployeeId(employee)), List.of(), List.of(), TODAY);
+                        List.of(employeeIdOf(employee)), List.of(), List.of(), TODAY);
                 publisher.publishEvent(event);
                 return event.envelope().eventId();
             });
         }
     }
 
-    private String grantRoleByOperations(long employee) {
+    private String grantRoleByOperations(UUID employee) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
-        int exit = operations.run(new DefaultApplicationArguments("--operation=grant-role", "--employee-id=" + employee, "--role-code=business_admin",
+        int exit = operations.run(new DefaultApplicationArguments("--operation=grant-role", "--employee-id=" + text(employee), "--role-code=business_admin",
                 "--operator=acceptance-operator", "--witness=acceptance-witness"), new PrintStream(out, true, StandardCharsets.UTF_8),
                 new PrintStream(err, true, StandardCharsets.UTF_8));
         return (exit + " " + err.toString(StandardCharsets.UTF_8)).strip();
@@ -180,12 +180,12 @@ class AccountEntriesConcurrencyIT extends AccountsAcceptanceSupport {
     @Test
     @DisplayName("P2-M3 ADR-0033 第 3 项第 1 条：同一新员工同时经企业微信登录、EmployeeRegistered、OrgSnapshotChanged(changed)、运维 grant-role --employee-id 四个入口建账号 → 只有一个账号、恰一条 AccountOpened、四个入口都成功、没有唯一约束冲突")
     void fourEntriesAtOnceOpenOneAccount() throws Exception {
-        long unit = newOrgUnitId();
+        UUID unit = newOrgUnitId();
         orgUnit(unit, null, null);
         ExecutorService pool = Executors.newFixedThreadPool(4);
         try {
             for (int round = 0; round < ROUNDS; round++) {
-                long person = newEmployeeId();
+                UUID person = newEmployeeId();
                 employee(person, unit, null);
                 String code = wecomCodeFor(person);
                 int mark = errors.list.size();
@@ -207,7 +207,7 @@ class AccountEntriesConcurrencyIT extends AccountsAcceptanceSupport {
                 }
 
                 assertThat(accountsOfEmployee(person)).as("accounts of employee %s", person).containsExactly(account);
-                assertThat(account.toString()).isNotEqualTo(String.valueOf(person));
+                assertThat(account.toString()).isNotEqualTo(text(person));
                 Awaitility.await().atMost(Duration.ofSeconds(15)).pollInterval(Duration.ofMillis(100)).until(() -> accountOpenedEvents(account) >= 1);
                 assertThat(accountOpenedEvents(account)).as("AccountOpened events of %s", account).isEqualTo(1);
                 assertThat(List.copyOf(errors.list).subList(mark, errors.list.size()).stream()

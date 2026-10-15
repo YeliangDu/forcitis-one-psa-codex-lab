@@ -709,7 +709,10 @@ print("acl: 写使用范围", _scoped, "条；尚无归类", len(_unscoped), "�
 sys.path.insert(0, "glossary/b1")
 import apply_b1
 print("b1: 写使用范围 %d 条、改名 %d 条" % apply_b1.apply(terms))
+# 用户裁定（glossary/rulings.yaml）：在各轮写回之后改名、改定义、提议转正，规则在 glossary/apply_rulings.py
 sys.path.insert(0, "glossary")
+import apply_rulings
+print("rulings: 应用用户裁定", apply_rulings.apply(terms), "条")
 import term_rules
 _bcs = {b["id"]: b["kind"] for b in yaml.safe_load(open("glossary/bcs.yaml", encoding="utf-8"))["bcs"]}
 _extra = yaml.safe_load(open("glossary/term-fields.yaml", encoding="utf-8"))["terms"] or {}

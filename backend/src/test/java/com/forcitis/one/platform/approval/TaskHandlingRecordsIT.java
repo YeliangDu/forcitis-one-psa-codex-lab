@@ -64,8 +64,8 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
         claimTask.execute(task, TestAccounts.account(manager), OptionalLong.empty());
         releaseTask.execute(task, TestAccounts.account(manager), OptionalLong.empty());
         claimTask.execute(task, TestAccounts.account(manager), OptionalLong.empty());
-        transferTask.execute(task, TestAccounts.account(manager), new EmployeeId(colleague), "on leave", OptionalLong.empty());
-        reassignTask.execute(task, TestAccounts.account(ADMINISTRATOR), new EmployeeId(manager), "back again", OptionalLong.empty());
+        transferTask.execute(task, TestAccounts.account(manager), TestAccounts.employee(colleague), "on leave", OptionalLong.empty());
+        reassignTask.execute(task, TestAccounts.account(ADMINISTRATOR), TestAccounts.employee(manager), "back again", OptionalLong.empty());
         decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "fine")), OptionalLong.empty());
 
         assertThat(actionsOf(key)).containsExactly("CLAIMED", "RELEASED", "CLAIMED", "TRANSFERRED", "REASSIGNED", "APPROVED");
@@ -108,7 +108,7 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
         String key = newKey("history");
         ApprovalTaskId task = openTaskId(start(key, initiator, manager));
         claimTask.execute(task, TestAccounts.account(manager), OptionalLong.empty());
-        transferTask.execute(task, TestAccounts.account(manager), new EmployeeId(colleague), "on leave", OptionalLong.empty());
+        transferTask.execute(task, TestAccounts.account(manager), TestAccounts.employee(colleague), "on leave", OptionalLong.empty());
         decideTasks.execute(TestAccounts.account(colleague), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "fine")), OptionalLong.empty());
 
         mvc.perform(get("/api/v1/platform/approval-tasks/" + task.value()).with(user(TestAccounts.account(initiator).value().toString()))).andExpect(status().isOk())
@@ -162,14 +162,14 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
         long second = newId();
         organisation.unit(unit, null, null).person(initiator, unit, null).person(first, unit, null).person(second, unit, null);
         String key = newKey("cosign");
-        tx.execute(s -> approvals.start(startRequest(key, new EmployeeId(initiator),
+        tx.execute(s -> approvals.start(startRequest(key, TestAccounts.employee(initiator),
                 java.util.Set.of(com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                 List.of(new com.forcitis.one.platform.approval.api.ApprovalField(
-                        com.forcitis.one.cost.timesheet.api.TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(first), String.valueOf(second)))))));
+                        com.forcitis.one.cost.timesheet.api.TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(first).toString(), TestAccounts.employee(second).toString()))))));
         ApprovalTaskId task = new ApprovalTaskId(taskService.createTaskQuery().processInstanceBusinessKey("TIMESHEET:" + key)
                 .taskCandidateOrAssigned(TestAccounts.account(first).value().toString()).singleResult().getId());
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> reassignTask.execute(task, TestAccounts.account(ADMINISTRATOR), new EmployeeId(second), "swap", OptionalLong.empty()))
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> reassignTask.execute(task, TestAccounts.account(ADMINISTRATOR), TestAccounts.employee(second), "swap", OptionalLong.empty()))
                 .isInstanceOf(com.forcitis.one.kernel.DomainException.class);
 
         String overview = "/api/v1/platform/approval-task-overviews";

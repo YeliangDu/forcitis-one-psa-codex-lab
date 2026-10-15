@@ -1,10 +1,10 @@
 package com.forcitis.one.platform.integration.infrastructure.seeyon;
 
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
-import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.platform.integration.api.OrgSource;
 import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
 import com.forcitis.one.platform.integration.api.SourcePerson;
+import com.forcitis.one.platform.integration.api.StaffLookup;
 import java.util.List;
 
 final class DisabledOrgSource implements OrgSource {
@@ -15,12 +15,7 @@ final class DisabledOrgSource implements OrgSource {
     }
 
     @Override
-    public List<SourcePerson> findStaffByWecomUser(WecomUserId wecomUserId) {
-        return List.of();
-    }
-
-    @Override
-    public List<SourcePerson> findStaffByLoginName(String loginName) {
+    public List<SourcePerson> findStaffByLogin(StaffLookup lookup) {
         return List.of();
     }
 }

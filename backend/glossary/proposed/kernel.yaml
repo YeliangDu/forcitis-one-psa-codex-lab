@@ -16,6 +16,44 @@ terms:
   forbidden: []
   status: proposed
   note: RULING-P2-C5 已裁定：声明完整的静态目录，改名新增一行、旧行不删
+- id: messaging_account
+  zh: 即时通讯账号
+  en: MessagingAccount
+  snake: messaging_account
+  kind: value_object
+  bc: kernel
+  scope: kernel
+  used_by:
+  - platform.integration
+  - organization.workforce
+  definition: 员工在企业即时通讯平台上的账号，作为外部主体的一种；kernel 端口 ExternalSubjectEmployees 只以中性文本接收它的标识，平台取值只在集成层翻译（RULING-P3B-9）
+  standard_ref:
+  - ADR-0033 第 3 项第 6 条
+  - phase1a/cards/R-1b-P3b.md 第 13 节
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: one-glossary 2026-10-15 定名 withMessagingAccountId / withExternalLoginName；临时端口，C1 落地后按身份模型删除或改形
+- id: external_login_name
+  zh: 外部登录名
+  en: ExternalLoginName
+  snake: external_login_name
+  kind: value_object
+  bc: kernel
+  scope: kernel
+  used_by:
+  - platform.integration
+  - organization.workforce
+  definition: 员工在外部身份提供方的登录名，作为外部主体的一种；与新系统自身账号的登录无关
+  standard_ref:
+  - ADR-0033 第 3 项第 6 条
+  - phase1a/cards/R-1b-P3b.md 第 13 节
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: one-glossary 2026-10-15 定名；临时端口 ExternalSubjectEmployees 的查询值，C1 落地后按身份模型删除或改形
 common_words:
 - contain
 - containing

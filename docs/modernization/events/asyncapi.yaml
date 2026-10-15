@@ -1389,6 +1389,7 @@ components:
           initiator:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 发起人，完成卡片发给他
           returnSource:
             type: string
@@ -1453,6 +1454,7 @@ components:
           initiator:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 提交单据的员工，由所有者记录，不取自客户端
           round:
             type: object
@@ -1583,6 +1585,7 @@ components:
           initiator:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           candidates:
             type: array
@@ -2249,6 +2252,7 @@ components:
           initiator:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 发起人
     WorkCalendarYearMaintained:
       name: WorkCalendarYearMaintained
@@ -3313,6 +3317,7 @@ components:
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -3337,6 +3342,7 @@ components:
           projectManager:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 项目经理，工时审批第一道审批人
           submittedOn:
             type: string
@@ -3390,6 +3396,7 @@ components:
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -3453,6 +3460,7 @@ components:
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -3523,6 +3531,7 @@ components:
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -3593,6 +3602,7 @@ components:
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -3827,16 +3837,19 @@ components:
             items:
               type: string
               x-type: EmployeeId
+              format: uuid
           separatedEmployees:
             type: array
             items:
               type: string
               x-type: EmployeeId
+              format: uuid
           changedOrgUnits:
             type: array
             items:
               type: string
               x-type: OrgUnitId
+              format: uuid
           effectiveFrom:
             type: string
             x-type: LocalDate
@@ -4037,6 +4050,7 @@ components:
           employeeId:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
     LegalEntityAttributed:
       name: LegalEntityAttributed
@@ -4060,15 +4074,25 @@ components:
         type: object
         required:
         - envelope
-        - subject
+        - kind
+        - subjectId
         - legalEntityId
         - effectiveFrom
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
-          subject:
+          kind:
             type: string
-            x-type: AttributionSubject
+            enum:
+            - ORG_UNIT
+            - EMPLOYEE
+            x-type: AttributionKind
+            description: 归属对象类别：ORG_UNIT 部门 / EMPLOYEE 员工
+          subjectId:
+            type: string
+            format: uuid
+            x-type: AttributionSubjectId
+            description: 归属对象的自有 ID：部门 ID 或员工 ID（UUID，DA-5、RULING-P3B-D5）
           legalEntityId:
             type: string
             format: uuid
@@ -4098,15 +4122,25 @@ components:
         type: object
         required:
         - envelope
-        - subject
+        - kind
+        - subjectId
         - legalEntityId
         - effectiveTo
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
-          subject:
+          kind:
             type: string
-            x-type: AttributionSubject
+            enum:
+            - ORG_UNIT
+            - EMPLOYEE
+            x-type: AttributionKind
+            description: 归属对象类别：ORG_UNIT 部门 / EMPLOYEE 员工
+          subjectId:
+            type: string
+            format: uuid
+            x-type: AttributionSubjectId
+            description: 归属对象的自有 ID：部门 ID 或员工 ID（UUID，DA-5、RULING-P3B-D5）
           legalEntityId:
             type: string
             format: uuid
@@ -4136,7 +4170,8 @@ components:
         type: object
         required:
         - envelope
-        - subject
+        - kind
+        - subjectId
         - legalEntityId
         - periodFrom
         - previousEffectiveTo
@@ -4145,9 +4180,18 @@ components:
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
-          subject:
+          kind:
             type: string
-            x-type: AttributionSubject
+            enum:
+            - ORG_UNIT
+            - EMPLOYEE
+            x-type: AttributionKind
+            description: 归属对象类别：ORG_UNIT 部门 / EMPLOYEE 员工
+          subjectId:
+            type: string
+            format: uuid
+            x-type: AttributionSubjectId
+            description: 归属对象的自有 ID：部门 ID 或员工 ID（UUID，DA-5、RULING-P3B-D5）
           legalEntityId:
             type: string
             format: uuid

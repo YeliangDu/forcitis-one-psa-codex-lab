@@ -58,7 +58,7 @@ class TaskVersionHttpIT extends ApprovalIntegrationSupport {
         Scene s = scene();
         for (String action : List.of(":claim", ":release", ":decide", ":return", ":transfer", ":reassign")) {
             mvc.perform(post(BASE + s.task().value() + action).with(csrf()).with(user(TestAccounts.account(s.manager()).value().toString())).contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"outcome\":\"APPROVE\",\"reason\":\"r\",\"assigneeId\":" + s.colleague() + "}"))
+                    .content("{\"outcome\":\"APPROVE\",\"reason\":\"r\",\"assigneeId\":\"" + TestAccounts.employee(s.colleague()) + "\"}"))
                     .andExpect(status().isPreconditionRequired()).andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                     .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_VERSION_REQUIRED"));
         }
@@ -79,7 +79,7 @@ class TaskVersionHttpIT extends ApprovalIntegrationSupport {
 
         for (String action : List.of(":release", ":decide", ":return", ":transfer")) {
             mvc.perform(post(BASE + s.task().value() + action).with(csrf()).with(user(TestAccounts.account(s.manager()).value().toString())).header("If-Match", stale)
-                    .contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"APPROVE\",\"reason\":\"r\",\"assigneeId\":" + s.colleague() + "}"))
+                    .contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"APPROVE\",\"reason\":\"r\",\"assigneeId\":\"" + TestAccounts.employee(s.colleague()) + "\"}"))
                     .andExpect(status().isPreconditionFailed()).andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                     .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_VERSION_MISMATCH"));
         }

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -88,11 +89,11 @@ class EmergencyAdminDailyCheckTest extends IdentityIntegrationTest {
     void disabledAccountsDoNotCount() {
         emergencyAccount(1, "breakglass-a", "super_admin");
         emergencyAccount(2, "breakglass-b", "super_admin");
-        jdbc.sql("update platform_identity.emergency_admins set is_enabled = false where user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 1)").update();
+        jdbc.sql("update platform_identity.emergency_admins set is_enabled = false where user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1) + ")").update();
         assertThat(run()).singleElement().asString().contains("only 1 usable");
 
-        jdbc.sql("update platform_identity.emergency_admins set is_enabled = true where user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = 1)").update();
-        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where employee_id = 2").update();
+        jdbc.sql("update platform_identity.emergency_admins set is_enabled = true where user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1) + ")").update();
+        jdbc.sql("update platform_identity.user_accounts set status = 'DISABLED' where employee_id = " + TestOrgIds.sqlEmployee(2)).update();
         assertThat(run()).anySatisfy(problem -> assertThat(problem).contains("user " + accountOf(2))).anySatisfy(problem -> assertThat(problem).contains("only 1 usable"));
     }
 

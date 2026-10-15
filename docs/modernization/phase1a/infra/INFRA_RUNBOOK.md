@@ -95,6 +95,7 @@ Prometheus 里的名字是 Micrometer 名字把点换成下划线、计数器加
 | `SyncOrgSnapshot`（组织同步，失败写成 FAILED 记录，不抛出） | `forcitis_organization_workforce_sync_runs_total{status="FAILED"}` 与 `{status="HELD"}`；另有 `forcitis_organization_workforce_sync_lag_seconds`、`forcitis_organization_workforce_sync_held_runs` | `increase(…{status="FAILED"}[30m]) > 0`；`held_runs > 0` |
 | `EnforceDeadlines`（审批时限，单个任务失败只记日志） | `forcitis_platform_approval_deadline_failed_total`（第一次失败时才出现，用 `increase`，不要用 `absent` 判断它） | `increase(…[10m]) > 0` |
 | `RefreshShortNames`（部门简称刷新，老系统不可用时跳过） | `forcitis_organization_workforce_short_name_refresh_failures_total`（启动时为 0） | `increase(…[1d]) > 0` 仅提示，不升级为 P1：简称保持上一次的值 |
+| 合并待办读老待办（员工无 (LEGACY_SYSTEM, EMPLOYEE) 来源对照时答「不可用」） | `forcitis_platform_integration_legacy_inbox_unmapped_total`（每次这样的读取加 1）；`ALERT platform.integration` 日志每名员工每个业务日只出一次（每个实例分别计；重启后重新计），其余为 WARN | P6 导入对照前（C8）配置了老待办 URL 就会持续增长，属预期，只看趋势；P6 之后 `increase(…[1d]) > 0` 告警 |
 
 ## 4. 外部只读账号（SQL Server，由对方 DBA 执行）
 
@@ -124,7 +125,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
   |---|---|
   | `integration-seeyon-background` | `A8_DB_URL`、`A8_DB_USERNAME`、`A8_DB_PASSWORD` |
   | `integration-legacy` | `LEGACY_DB_RO_URL`、`LEGACY_DB_RO_USERNAME`、`LEGACY_DB_RO_PASSWORD` |
-  | `legacy-approval` | `FORCITIS_PLATFORM_APPROVAL_LEGACY_URL`、`_USERNAME`、`_PASSWORD` |
+  | `integration-legacy-inbox`（合并待办读老待办） | `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL`、`_USERNAME`、`_PASSWORD`（与运行时第 5 节同一组变量） |
   | `probe`（C-14 探针登录） | `READONLY_PROBE_DB_URL`、`READONLY_PROBE_DB_USERNAME`、`READONLY_PROBE_DB_PASSWORD` |
 
   三项**只从进程环境变量**读：`-D` 系统属性、命令行参数、`SPRING_APPLICATION_JSON` 里的同名设置一律不读；命令行出现这些变量名（`--A8_DB_URL=…`、`--readonly.probe.db.username=…` 等宽松写法也算）或 `--spring.application.json` 即用法错误。环境变量的给法：与迁移步骤同法用 `systemd-run --pipe --wait --collect -p EnvironmentFile=/etc/forcitis-one/one.env [-p EnvironmentFile=/etc/forcitis-one/readonly-probe.env] /usr/bin/java …`，不要把 env 文件 source 进交互 shell。只读所指定连接的三项；另两条连接配了什么不影响结果。缺任一项：用法错误，列出缺的变量名（不列值），不做核实。
@@ -160,7 +161,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
   - 每条授权一行（列级授权记在所在表上），`count` 等于该原因的 `violation` 行数；先 `violation` 后 `overridden`，各按字典序。
   - 定位字段只由本命令输出：启动校验的拒绝原因、运行期重检的 ALERT、日志与同步结果说明里只有项目标记与类别，不出现 schema 名与对象名。
 - (g) 的覆盖口径（RULING-ADR37-10 依 ADR-0037 第 4 项 (b) 收窄为按有效权限判定；启动校验、运行期重检与本命令同一套）：授给 public 或本登录、状态为 GRANT（无转授权）、权限名在库级 DENY 11 项内的对象级（含列级，同表同权限多列记为表上一条）或 schema 级授权（class 为 `OBJECT_OR_COLUMN` 或 `SCHEMA`；TYPE、数据库主体等其他 class 一律违规），若本登录自己有同名 DENY——库级，或在该安全对象所属的同一 schema 上——即为被拒绝覆盖的授权，不算违规；登录看不见所属 schema 的对象不按 schema 级 DENY 推断覆盖，按违规（one-coordinator 2026-10-15 裁定方向 A，不推断「看不见即被覆盖」）。按权限名精确比对 `sys.database_permissions` 中本登录的 DENY 行（库级行读 (b) 同一查询，schema 级行读 (g) 同一查询），不用 `HAS_PERMS_BY_NAME`；授给 public 的 DENY 不算。CONTROL、TAKE OWNERSHIP、IMPERSONATE、VIEW DEFINITION 等不在 11 项内的权限与 `GRANT_WITH_GRANT_OPTION` 一律违规，CONTROL 不因其中某项被 DENY 而视为覆盖。本登录的 DENY 查不到（查询失败，或库级与 schema 级 DENY 一行都没有）时，可被覆盖的授权判定不了，不出定位行；没有可被覆盖的授权时不查。
-- 退出码：0 通过；2 用法错误（缺少、重复或未知的连接名，非 `--名=值` 形式的参数，参数名含 `password` / `secret` / `credential`（不分大小写），命令行出现连接变量名或 `--spring.application.json`，进程环境缺变量，URL 不是 SQL Server，与 `migrate` 或 `identity-operations` 档案同时激活，日志系统不是应用自带的 Logback——参数值一律不回显）；3 违规（含与判定不了同在）；4 判定不了。1 只表示进程本身失败（与 Spring Boot 启动失败一样），不是任何结果。
+- 退出码：0 通过；2 用法错误（缺少、重复或未知的连接名，旧连接名 `legacy-approval`（提示改用 `integration-legacy-inbox`；RULING-P3B-17），非 `--名=值` 形式的参数，参数名含 `password` / `secret` / `credential`（不分大小写），命令行出现连接变量名或 `--spring.application.json`，进程环境缺变量，URL 不是 SQL Server，与 `migrate` 或 `identity-operations` 档案同时激活，日志系统不是应用自带的 Logback——参数值一律不回显）；3 违规（含与判定不了同在）；4 判定不了。1 只表示进程本身失败（与 Spring Boot 启动失败一样），不是任何结果。
 - 不输出：口令（任何连接的）、登录名、连接串（探针 URL 里有 `trustStorePassword`）、数据库消息原文、启动校验的 problem 文本、数据；名称只出现在上述定位行。命令自己的行直接写标准输出 / 标准错误，不经日志；日志在核实之前全部关闭：根 logger、`logging.level.*` 配置过的每个 logger（如 `--logging.level.com.zaxxer.hikari.HikariConfig=DEBUG` 也被关掉）与已有的全部 logger 都设为 OFF，关不掉即拒绝运行。`-Dorg.springframework.boot.logging.LoggingSystem=none` 时 Logback 默认根级 DEBUG、无法由应用关掉，命令拒绝运行（退出 2）。
 - 不启动 Web、不迁移、不起作业：命令在 Spring 准备好环境（档案、配置文件都已读入）之后、建立任何应用上下文之前运行并结束进程（与 `migrate` 模式同一做法，`spring.factories` 登记的环境就绪监听器，排在 `migrate` 之前），所以不建服务库数据源、不跑 Flyway、不起 Tomcat 与管理端口、不起定时任务、调度、事件发布作业、流程引擎与异步执行器，也不读 OSS、企业微信、单点登录、应急密钥与服务库的设置。one.env 里的 `SERVER_PORT`、`MANAGEMENT_SERVER_PORT` 等环境变量因此不起作用；命令另把 `spring.main.web-application-type=none` 放在最高优先级的属性源（高于 `SPRING_MAIN_WEB_APPLICATION_TYPE` 等环境变量），档案文件 `application-read-only-verification.properties` 再写一遍 web=none、Flyway 与作业关闭，作为第二道。
 - 发布包：命令与档案都在 jar 内，签名发布包不需要另登记文件；发布脚本与签名流程不变。
@@ -208,8 +209,8 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 | `INTEGRATION_SEEYON_VIEWS_ENABLED` | 致远 A8 组织视图读取开关（默认 false） | 否 |
 | `A8_DB_URL` / `A8_DB_USERNAME` / `A8_DB_PASSWORD` | A8 只读连接（第 4 节的专用账号；启用即做第 4 节的校验，无开关） | 启用时 |
 | `FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_HEAD_RELATIONSHIP_TYPE_ID`、`..._REGIONAL_RECEIVABLES_MANAGER_RELATIONSHIP_TYPE_ID`、`..._DELIVERY_UNIT_YES_ENUM_ID`、`..._FEE_EARNER_YES_ENUM_ID`、`..._ROOT_PATH` | A8 中关系类型、枚举的编号与同步根单位的层级路径（Spring 宽松绑定，对应 `forcitis.platform.integration.seeyon.views.*`）；**没有默认值**：启用视图读取而缺任何一项，应用启动失败，值由 A8 管理员提供 | 启用时 |
-| `FORCITIS_PLATFORM_APPROVAL_LEGACY_URL` / `_USERNAME` / `_PASSWORD` | 合并待办读老待办的只读连接（`psa_one_legacy_ro`；配置即做第 4 节的校验，无开关）；URL 为空则只显示新待办 | 启用时 |
-| `FORCITIS_PLATFORM_APPROVAL_LEGACY_DETAIL_URL_TEMPLATE` | 老待办详情页地址，含 `{processInstanceId}`、`{taskId}` | 启用时 |
+| `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL` / `_USERNAME` / `_PASSWORD` | 合并待办读老待办的只读连接（`psa_one_legacy_ro`，由 platform.integration 读取；配置即做第 4 节的校验，无开关）；URL 为空则只显示新待办；员工须有 (LEGACY_SYSTEM, EMPLOYEE) 来源对照才读得到，P6 导入前老待办恒为「不可用」（C8）。R-1b P3b 起取代 `FORCITIS_PLATFORM_APPROVAL_LEGACY_*`：旧变量（或任何 `forcitis.platform.approval.legacy.*` 键）仍在则**启动失败**，日志给出对应的新变量名，部署前须在 one.env 中改名 | 启用时 |
+| `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_DETAIL_URL_TEMPLATE` | 老待办详情页地址，含 `{processInstanceId}`、`{taskId}` | 启用时 |
 | `INTEGRATION_LEGACY_ENABLED` | 老系统**部门简称**视图读取开关（默认 false） | 否 |
 | `LEGACY_DB_RO_URL` / `LEGACY_DB_RO_USERNAME` / `LEGACY_DB_RO_PASSWORD` | 部门简称的只读连接（`one_legacy_names_ro`；启用即做第 4 节的校验，无开关） | 启用时 |
 | `WORKFORCE_SYNC_ENABLED` | 从 A8 视图同步组织与人员的定时任务开关（默认 false） | 否 |
@@ -281,7 +282,13 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
        [--login-name=<应急账号名>] [--role-code=<角色码>] --operator=<操作人> --witness=<见证人>
   ```
 
-  - 人员以 `--employee-id`（员工 ID，R-1b P2 期间为整数，P3b 起为 uuid 文本）指定：命令按员工取得其账号，员工在职而尚无账号时当场开通（ADR-0033 第 3 项第 6 条）；格式不对或员工不存在时退出码非 0，不写任何数据。原 `--user-id` 已删除。
+  - 人员以 `--employee-id`（员工 ID，小写规范 uuid 文本）指定：命令按员工取得其账号，员工在职而尚无账号时当场开通（ADR-0033 第 3 项第 6 条）；格式不对（整数、负数、大写 uuid 等）为用法错误、退出码 2，员工不存在时退出码 1，都不写任何数据。原 `--user-id` 已删除。
+  - 员工 ID 从只读查询命令得到（R-1b P3b，ADR-0033 第 3 项第 6 条；RULING-P3B-D8、P3B-7）：同一个 jar 以档案 `integration-operations` 启动，按组织源登录名或企业微信 userid 列出匹配的全部员工 ID 与用户 ID（同名两人都列出），**只读，不写任何数据、不记审计、不开通账号**：
+    ```
+    java -jar forcitis-one.jar --spring.profiles.active=integration-operations --operation=find-accounts-by-external-subject \
+         --provider-kind=<SEEYON_LOGIN_NAME|WECOM_USER_ID> --external-subject=<登录名或企业微信 userid>
+    ```
+    每个匹配输出一行 `employee-id=<uuid> user-id=<uuid 或 (no account)>`；退出码 0 找到、1 无人匹配、2 用法错误。不按员工编号查（员工编号不作键，ADR-0033 第 6 项）。端口与 F-12 的注意事项同上。
   - 命令：`register-emergency-admin`（需 `--login-name`）、`reset-emergency-admin-credentials`、`disable-emergency-admin`、`enable-emergency-admin`、`grant-role`（需 `--role-code`，用于首批超级管理员、业务管理员、组织数据管理员）。
   - **双人在场**：`--operator` 与 `--witness` 必填且必须是两个不同的人（比较前去掉首尾空白、折叠空格、不分大小写、全角按半角），两人都记入审计；缺一或相同则命令拒绝，什么也不做。
   - 口令与 TOTP 密钥由命令**生成**，只在这一次输出里显示（口令、base32 密钥、认证器链接），库里只存口令的 Argon2id 哈希与加密后的密钥；不要把输出复制进文件或聊天。口令强度与密钥长度由代码保证，不经命令行参数传入。
@@ -306,6 +313,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
    - **常驻服务不自己迁移**：生产 profile 的 `application-prod.properties` 已设 `spring.flyway.enabled=false`，环境里也写 `SPRING_FLYWAY_ENABLED=false`；常驻进程不持有迁移凭据。
 4. 切换 `current` 软链，`systemctl restart forcitis-one`，检查健康。
 5. 冒烟：匿名访问返回 401；企业微信 / 致远登录；`/me` 正常；组织同步跑一轮，sync_runs 为 SUCCEEDED。
+   - **首次全量同步较慢**：首次（及来源对照表重建后）每个未见过的部门、岗位、人员都要分配自有 ID，每次分配单独提交一个事务（R-1b P3b，ADR-0033 第 2 项），之后的同步只查不分配。首轮期间同步延迟告警可能触发，等这一轮 SUCCEEDED 后再判断。
 6. 回滚：`current` 指回上一版本并重启。数据库迁移只做向前兼容的变更，1a 期间不做破坏性迁移。
 
 ## 8. 日志、关联号与业务时区（本轮实施，运维需要知道的行为）
