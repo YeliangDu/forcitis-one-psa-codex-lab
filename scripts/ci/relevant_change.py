@@ -38,6 +38,8 @@ NOT_READ_BY_BUILDS = (
 READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/phase1a/infra/runbooks/sql/",
     "docs/modernization/build_all.py",
+    # session profiles: checked by build_all.py --check, injected by scripts/hooks/session_context.py
+    "docs/modernization/sessions/",
     "docs/modernization/check_legacy_name.py",
 )
 
