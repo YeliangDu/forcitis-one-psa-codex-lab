@@ -22,7 +22,11 @@ for step in STEPS:
         print(r.stderr.strip(), file=sys.stderr)
 
 if "--check" in sys.argv:
-    r = subprocess.run([sys.executable, os.path.join(BASE, "rules", "review_revisions.py")], cwd=BASE, capture_output=True, text=True)
+    merge_base = subprocess.run(["git", "merge-base", "HEAD", "origin/main"], cwd=BASE, capture_output=True, text=True)
+    base_args = ["--base", merge_base.stdout.strip()] if merge_base.returncode == 0 and merge_base.stdout.strip() else []
+    if not base_args:
+        print("警告：取不到 origin/main 的合并基点，原结论比对交给 review_revisions.py 按环境处理（CI 失败，本地告警）", file=sys.stderr)
+    r = subprocess.run([sys.executable, "-B", os.path.join(BASE, "rules", "review_revisions.py"), *base_args], cwd=BASE, capture_output=True, text=True)
     if r.stderr.strip():
         print(r.stderr.strip(), file=sys.stderr)
     if r.returncode:
