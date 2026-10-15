@@ -42,12 +42,15 @@ class JdbcWorkCalendarQueries implements WorkCalendarQueries {
     }
 
     @Override
-    public List<Integer> findMaintainedYears(LegalEntityId legalEntityId) {
+    public List<Integer> findMaintainedYearsBefore(LegalEntityId legalEntityId, Integer beforeYear, int limit) {
         return jdbc.sql("""
                         select year_number from organization_attendance.work_calendar_years
-                         where legal_entity_id is not distinct from :legalEntityId order by year_number
+                         where legal_entity_id is not distinct from :legalEntityId and (cast(:beforeYear as integer) is null or year_number < :beforeYear)
+                         order by year_number desc limit :limit
                         """)
                 .param("legalEntityId", legalEntityId == null ? null : legalEntityId.value(), java.sql.Types.OTHER)
+                .param("beforeYear", beforeYear, java.sql.Types.INTEGER)
+                .param("limit", limit)
                 .query(Integer.class).list();
     }
 }
