@@ -2,12 +2,21 @@ package com.forcitis.one;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.WildcardType;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.asm.ClassReader;
 import org.springframework.asm.ClassVisitor;
 import org.springframework.asm.Label;
@@ -21,10 +30,22 @@ import org.springframework.asm.Type;
  * out is how an employee id and a user id become comparable by accident (ADR-0033 section 3, guard 14); the comparison belongs on the
  * typed ids. A comparison with a constant, and ordering (&lt;, &gt;), are not equality of two people and pass.
  *
+ * It also finds a comparison between two different typed ids, which Error Prone cannot see because every record is comparable with
+ * every other record: userId.equals(employeeId), Objects.equals(userId, employeeId), and the lookup of one kind of id in a collection
+ * of another (Set&lt;UserId&gt;.contains(employeeId), Map&lt;UserId, …&gt;.get / containsKey / remove, List indexOf).
+ *
  * <p>The scan follows the operand stack of each method in a straight line: a call of value() on a typed id leaves a marked operand,
  * boxing keeps the mark, and a comparison instruction or equals call that consumes a marked operand against another operand that is
  * not a constant is reported. Where the stack cannot be followed (the code after a switch, for instance) it loses the marks and
  * reports nothing.
+ *
+ * <p>Boundary of the cross-type part. The type of an operand is known from the descriptor of the field or method that produced it,
+ * from the local variable table (Maven compiles with -g), and from a cast; the element type of a collection from a generic signature
+ * of a local variable, or from the generic type of a field or a method of this code base. Not seen: the element type of a collection
+ * that comes out of the JDK or a library (stream results, Optional chains, Map.values()), a nested generic such as the value of a
+ * Map&lt;K, Set&lt;V&gt;&gt;, an id held in a variable typed Object, raw collections, containsAll / removeAll / retainAll with another
+ * collection, and code behind a switch or a local variable slot whose type cannot be told. Those pass; the reverse tests of the
+ * "own person" gates cover them.
  */
 final class TypedIdComparisons {
 
@@ -37,16 +58,115 @@ final class TypedIdComparisons {
 
     private enum Kind { OTHER, CONSTANT, ID_VALUE, COMPARED }
 
-    private record Operand(Kind kind, String idType, Operand left, Operand right) {
-        static final Operand OTHER = new Operand(Kind.OTHER, null, null, null);
-        static final Operand CONSTANT = new Operand(Kind.CONSTANT, null, null, null);
+    private record Operand(Kind kind, String idType, Operand left, Operand right, String type, String key) {
+        static final Operand OTHER = new Operand(Kind.OTHER, null, null, null, null, null);
+        static final Operand CONSTANT = new Operand(Kind.CONSTANT, null, null, null, null, null);
 
         static Operand idValue(String idType) {
-            return new Operand(Kind.ID_VALUE, idType, null, null);
+            return new Operand(Kind.ID_VALUE, idType, null, null, null, null);
         }
 
         static Operand compared(Operand left, Operand right) {
-            return new Operand(Kind.COMPARED, null, left, right);
+            return new Operand(Kind.COMPARED, null, left, right, null, null);
+        }
+
+        /** type is the internal name of the class of an object operand; key the typed id that the collection or map it is holds, if known. */
+        static Operand typed(String type, String key) {
+            return type == null ? OTHER : new Operand(Kind.OTHER, null, null, null, type, key);
+        }
+    }
+
+    private record Variable(int index, String descriptor, String signature, int start, int end) {
+    }
+
+    private static final Pattern SIGNATURE = Pattern.compile("^L([\\w/$]+)<[+-]?L([\\w/$]+)[;<]");
+    private static final Set<String> LOOKUPS = Set.of("contains", "remove", "indexOf", "lastIndexOf", "get", "containsKey", "getOrDefault");
+
+    private static final class Tables {
+        final Predicate<String> typedId;
+        final ClassLoader loader = TypedIdComparisons.class.getClassLoader();
+        final Map<String, List<Variable>> variables = new HashMap<>();
+
+        Tables(Predicate<String> typedId) {
+            this.typedId = typedId;
+        }
+
+        Class<?> load(String internalName) {
+            try {
+                return Class.forName(internalName.replace('/', '.'), false, loader);
+            } catch (ReflectiveOperationException | LinkageError unavailable) {
+                return null;
+            }
+        }
+
+        boolean ours(String internalName) {
+            return internalName.startsWith("com/forcitis/one/");
+        }
+
+        boolean isCollectionOrMap(String internalName) {
+            Class<?> type = load(internalName);
+            return type != null && (Collection.class.isAssignableFrom(type) || Map.class.isAssignableFrom(type));
+        }
+
+        /** The typed id that a collection or map holds (its first type argument), from a reflected generic type. */
+        String keyOf(java.lang.reflect.Type declared) {
+            if (declared instanceof ParameterizedType parameterized && parameterized.getRawType() instanceof Class<?> raw
+                    && (Collection.class.isAssignableFrom(raw) || Map.class.isAssignableFrom(raw)) && parameterized.getActualTypeArguments().length > 0) {
+                java.lang.reflect.Type argument = parameterized.getActualTypeArguments()[0];
+                if (argument instanceof WildcardType wildcard) {
+                    argument = wildcard.getUpperBounds()[0];
+                }
+                if (argument instanceof Class<?> type && typedId.test(Type.getInternalName(type))) {
+                    return Type.getInternalName(type);
+                }
+            }
+            return null;
+        }
+
+        /** The same from a generic signature of the class file, such as Ljava/util/Set&lt;Lcom/forcitis/one/kernel/UserId;&gt;;. */
+        String keyOf(String signature) {
+            if (signature == null) {
+                return null;
+            }
+            Matcher matcher = SIGNATURE.matcher(signature);
+            if (matcher.find() && typedId.test(matcher.group(2)) && isCollectionOrMap(matcher.group(1))) {
+                return matcher.group(2);
+            }
+            return null;
+        }
+
+        String keyOfField(String owner, String name) {
+            Class<?> type = ours(owner) ? load(owner) : null;
+            if (type == null) {
+                return null;
+            }
+            try {
+                return keyOf(type.getDeclaredField(name).getGenericType());
+            } catch (ReflectiveOperationException | LinkageError unavailable) {
+                return null;
+            }
+        }
+
+        String keyOfMethod(String owner, String name, String descriptor) {
+            Class<?> type = ours(owner) ? load(owner) : null;
+            if (type == null) {
+                return null;
+            }
+            try {
+                for (Method method : type.getDeclaredMethods()) {
+                    if (method.getName().equals(name) && Type.getMethodDescriptor(method).equals(descriptor)) {
+                        return keyOf(method.getGenericReturnType());
+                    }
+                }
+                for (Method method : type.getMethods()) {
+                    if (method.getName().equals(name) && Type.getMethodDescriptor(method).equals(descriptor)) {
+                        return keyOf(method.getGenericReturnType());
+                    }
+                }
+            } catch (LinkageError unavailable) {
+                return null;
+            }
+            return null;
         }
     }
 
@@ -57,12 +177,33 @@ final class TypedIdComparisons {
 
     static List<Violation> inspect(InputStream classFile, Predicate<String> typedId) throws IOException {
         List<Violation> found = new ArrayList<>();
-        ClassReader reader = new ClassReader(classFile);
+        ClassReader reader = new ClassReader(classFile.readAllBytes());
         String owner = Type.getObjectType(reader.getClassName()).getClassName();
+        Tables tables = new Tables(typedId);
         reader.accept(new ClassVisitor(Opcodes.ASM9) {
             @Override
             public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-                return new Scan(owner + "." + name, typedId, found);
+                List<Variable> variables = tables.variables.computeIfAbsent(name + descriptor, key -> new ArrayList<>());
+                Map<Label, Integer> order = new IdentityHashMap<>();
+                return new MethodVisitor(Opcodes.ASM9) {
+                    @Override
+                    public void visitLabel(Label label) {
+                        order.put(label, order.size());
+                    }
+
+                    @Override
+                    public void visitLocalVariable(String variable, String variableDescriptor, String variableSignature, Label start, Label end,
+                            int index) {
+                        variables.add(new Variable(index, variableDescriptor, variableSignature, order.getOrDefault(start, 0),
+                                order.getOrDefault(end, Integer.MAX_VALUE)));
+                    }
+                };
+            }
+        }, ClassReader.SKIP_FRAMES);
+        reader.accept(new ClassVisitor(Opcodes.ASM9) {
+            @Override
+            public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+                return new Scan(owner + "." + name, tables, tables.variables.get(name + descriptor), found);
             }
         }, ClassReader.SKIP_FRAMES);
         return found;
@@ -70,16 +211,61 @@ final class TypedIdComparisons {
 
     private static final class Scan extends MethodVisitor {
         private final String where;
+        private final Tables tables;
         private final Predicate<String> typedId;
+        private final List<Variable> variables;
         private final List<Violation> found;
         private final Deque<Operand> stack = new ArrayDeque<>();
         private int line;
+        private int labels;
 
-        Scan(String where, Predicate<String> typedId, List<Violation> found) {
+        Scan(String where, Tables tables, List<Variable> variables, List<Violation> found) {
             super(Opcodes.ASM9);
             this.where = where;
-            this.typedId = typedId;
+            this.tables = tables;
+            this.typedId = tables.typedId;
+            this.variables = variables == null ? List.of() : variables;
             this.found = found;
+        }
+
+        /** Labels are numbered in the order they are visited, in both passes alike; a variable lives from its start label to its end label. */
+        @Override
+        public void visitLabel(Label label) {
+            labels++;
+        }
+
+        private Variable variableAt(int index) {
+            Variable result = null;
+            int current = labels - 1;
+            for (Variable variable : variables) {
+                if (variable.index() == index && variable.start() <= current && current < variable.end()) {
+                    result = variable;
+                }
+            }
+            return result;
+        }
+
+        private static String internalNameOf(String descriptor) {
+            Type type = Type.getType(descriptor);
+            return type.getSort() == Type.OBJECT ? type.getInternalName() : null;
+        }
+
+        private boolean isId(String internalName) {
+            return internalName != null && typedId.test(internalName);
+        }
+
+        private void checkTwoKinds(String left, String right) {
+            if (isId(left) && isId(right) && !left.equals(right)) {
+                found.add(new Violation(where, line, "compares a " + Type.getObjectType(left).getClassName() + " with a "
+                        + Type.getObjectType(right).getClassName() + "; they are different people"));
+            }
+        }
+
+        private void checkLookup(Operand collection, Operand argument) {
+            if (collection.key() != null && isId(argument.type()) && !collection.key().equals(argument.type())) {
+                found.add(new Violation(where, line, "looks up a " + Type.getObjectType(argument.type()).getClassName() + " in a collection of "
+                        + Type.getObjectType(collection.key()).getClassName()));
+            }
         }
 
         private Operand pop() {
@@ -166,7 +352,10 @@ final class TypedIdComparisons {
 
         @Override
         public void visitVarInsn(int opcode, int varIndex) {
-            if (opcode >= Opcodes.ILOAD && opcode <= Opcodes.ALOAD) {
+            if (opcode == Opcodes.ALOAD) {
+                Variable variable = variableAt(varIndex);
+                push(variable == null ? Operand.OTHER : Operand.typed(internalNameOf(variable.descriptor()), tables.keyOf(variable.signature())));
+            } else if (opcode >= Opcodes.ILOAD && opcode < Opcodes.ALOAD) {
                 push(Operand.OTHER);
             } else if (opcode >= Opcodes.ISTORE && opcode <= Opcodes.ASTORE) {
                 pop();
@@ -181,8 +370,11 @@ final class TypedIdComparisons {
                     pop();
                     push(Operand.OTHER);
                 }
+                case Opcodes.CHECKCAST -> {
+                    Operand cast = pop();
+                    push(Operand.typed(type, cast.key()));
+                }
                 default -> {
-                    // CHECKCAST keeps the operand
                 }
             }
         }
@@ -190,11 +382,11 @@ final class TypedIdComparisons {
         @Override
         public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
             switch (opcode) {
-                case Opcodes.GETSTATIC -> push(Operand.OTHER);
+                case Opcodes.GETSTATIC -> push(Operand.typed(internalNameOf(descriptor), tables.keyOfField(owner, name)));
                 case Opcodes.PUTSTATIC -> pop();
                 case Opcodes.GETFIELD -> {
                     pop();
-                    push(Operand.OTHER);
+                    push(Operand.typed(internalNameOf(descriptor), tables.keyOfField(owner, name)));
                 }
                 default -> pop(2);
             }
@@ -216,10 +408,22 @@ final class TypedIdComparisons {
                 result = taken[0];
             } else if (name.equals("equals") && descriptor.equals("(Ljava/lang/Object;)Z") && receiver != null) {
                 compare(receiver, taken[0]);
+                checkTwoKinds(isId(owner) ? owner : receiver.type(), taken[0].type());
             } else if (opcode == Opcodes.INVOKESTATIC && owner.equals("java/util/Objects") && name.equals("equals") && arguments.length == 2) {
                 compare(taken[0], taken[1]);
+                checkTwoKinds(taken[0].type(), taken[1].type());
+            } else if (receiver != null && owner.startsWith("java/util/") && LOOKUPS.contains(name) && arguments.length > 0
+                    && arguments[0].getDescriptor().equals("Ljava/lang/Object;")) {
+                checkLookup(receiver, taken[0]);
             }
             if (Type.getReturnType(descriptor).getSort() != Type.VOID) {
+                if (result == Operand.OTHER) {
+                    String key = tables.keyOfMethod(owner, name, descriptor);
+                    if (key == null && receiver != null && name.equals("keySet") && owner.equals("java/util/Map")) {
+                        key = receiver.key();
+                    }
+                    result = Operand.typed(internalNameOf(Type.getReturnType(descriptor).getDescriptor()), key);
+                }
                 push(result);
             }
         }

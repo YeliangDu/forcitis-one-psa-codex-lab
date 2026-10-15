@@ -2,13 +2,14 @@ package com.forcitis.one;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.fixture.typedid.CrossTypeIdComparisons;
 import com.forcitis.one.fixture.typedid.RawValueComparisons;
+import com.forcitis.one.kernel.IdRecords;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.RecordComponent;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -27,16 +28,8 @@ class TypedIdComparisonGuardTest {
     private static final JavaClass[] ALL = new ClassFileImporter().withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
             .importPackages("com.forcitis.one").stream().toArray(JavaClass[]::new);
 
-    private static final Set<String> TYPED_IDS = java.util.Arrays.stream(ALL).map(JavaClass::reflect).filter(TypedIdComparisonGuardTest::isTypedId)
+    private static final Set<String> TYPED_IDS = java.util.Arrays.stream(ALL).map(JavaClass::reflect).filter(IdRecords::isIdRecord)
             .map(type -> type.getName().replace('.', '/')).collect(Collectors.toSet());
-
-    private static boolean isTypedId(Class<?> type) {
-        if (!type.isRecord() || !type.getSimpleName().endsWith("Id")) {
-            return false;
-        }
-        RecordComponent[] components = type.getRecordComponents();
-        return components.length == 1 && components[0].getName().equals("value");
-    }
 
     private static List<TypedIdComparisons.Violation> inspect(Class<?> type) throws IOException {
         try (InputStream bytes = type.getResourceAsStream(type.getSimpleName() + ".class")) {
@@ -67,6 +60,21 @@ class TypedIdComparisonGuardTest {
 
         assertThat(caught).containsExactlyInAnyOrder("twoRawLongs", "twoRawLongsAsNotEqual", "boxedThroughObjects", "uuidValuesByEquals",
                 "plainLongAgainstTheId", "theIdAgainstAPlainLong");
+    }
+
+    @Test
+    @DisplayName("RULING-P1-1 injected: an id compared with, or looked up in a collection of, another kind of id is caught; the same kind, other types and what the scan cannot see pass")
+    void theGuardSeesCrossTypeComparisons() throws IOException {
+        List<TypedIdComparisons.Violation> found = inspect(CrossTypeIdComparisons.class);
+
+        List<String> caught = found.stream().map(TypedIdComparisons.Violation::where).map(where -> where.substring(where.lastIndexOf('.') + 1))
+                .distinct().toList();
+        assertThat(caught).containsExactlyInAnyOrder("wrongEqualsOnTheIds", "wrongObjectsEquals", "wrongContainsOnAParameter",
+                "wrongContainsOnAField", "wrongContainsOnALocal", "wrongListLookup", "wrongMapGet", "wrongContainsKey", "wrongGetOrDefault",
+                "wrongRemoveFromAKeySet", "wrongThroughAnAccessor", "wrongWithAWildcard");
+        assertThat(found.stream().filter(violation -> violation.where().endsWith("wrongThroughAnAccessor")).count())
+                .as("both lookups of the accessor").isEqualTo(2);
+        assertThat(found.stream().filter(violation -> violation.where().endsWith("wrongListLookup")).count()).as("indexOf and remove").isEqualTo(2);
     }
 
     @Test

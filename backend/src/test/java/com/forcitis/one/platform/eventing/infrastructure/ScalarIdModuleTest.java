@@ -7,6 +7,7 @@ import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Reason;
+import com.forcitis.one.kernel.IdRecords;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
@@ -65,7 +66,7 @@ class ScalarIdModuleTest {
     @DisplayName("G-C5 every typed id of the production code takes the scalar form and reads back to the same id")
     void everyTypedIdRoundTrips() throws Exception {
         List<Class<?>> idTypes = new ClassFileImporter().withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
-                .importPackages("com.forcitis.one").stream().map(JavaClass::reflect).filter(ScalarIdModule::isTypedId).toList();
+                .importPackages("com.forcitis.one").stream().map(JavaClass::reflect).filter(IdRecords::isIdRecord).toList();
         assertThat(idTypes).as("typed ids found").hasSizeGreaterThan(25);
 
         for (Class<?> type : idTypes) {

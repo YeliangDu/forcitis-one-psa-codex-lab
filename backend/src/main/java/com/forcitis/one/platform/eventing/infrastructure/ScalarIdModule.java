@@ -1,9 +1,9 @@
 package com.forcitis.one.platform.eventing.infrastructure;
 
+import com.forcitis.one.kernel.IdRecords;
 import com.forcitis.one.kernel.Uuids;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.RecordComponent;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 import tools.jackson.core.JsonGenerator;
@@ -35,24 +35,16 @@ class ScalarIdModule extends SimpleModule {
             @Override
             public ValueSerializer<?> modifySerializer(SerializationConfig config, BeanDescription.Supplier description,
                     ValueSerializer<?> serializer) {
-                return isTypedId(description.getBeanClass()) ? new IdSerializer(description.getBeanClass()) : serializer;
+                return IdRecords.isIdRecord(description.getBeanClass()) ? new IdSerializer(description.getBeanClass()) : serializer;
             }
         });
         setDeserializerModifier(new ValueDeserializerModifier() {
             @Override
             public ValueDeserializer<?> modifyDeserializer(DeserializationConfig config, BeanDescription.Supplier description,
                     ValueDeserializer<?> deserializer) {
-                return isTypedId(description.getBeanClass()) ? new IdDeserializer(description.getBeanClass()) : deserializer;
+                return IdRecords.isIdRecord(description.getBeanClass()) ? new IdDeserializer(description.getBeanClass()) : deserializer;
             }
         });
-    }
-
-    static boolean isTypedId(Class<?> type) {
-        if (!type.isRecord() || !type.getSimpleName().endsWith("Id")) {
-            return false;
-        }
-        RecordComponent[] components = type.getRecordComponents();
-        return components.length == 1 && components[0].getName().equals("value");
     }
 
     private static final class IdSerializer extends StdSerializer<Object> {
