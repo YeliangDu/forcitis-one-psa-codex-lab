@@ -186,7 +186,8 @@ class LegacyShapeTest {
         String javaRoot = "com/forcitis/one/";
         int at = file.indexOf(javaRoot);
         if (file.endsWith(".java") && at >= 0) {
-            String[] parts = file.substring(at + javaRoot.length()).split("/");
+            String relative = file.substring(at + javaRoot.length());
+            String[] parts = (relative.startsWith("acceptance/") ? relative.substring("acceptance/".length()) : relative).split("/");
             if (parts.length >= 3 && parts[0].equals("kernel")) {
                 return "kernel";
             }
@@ -242,7 +243,7 @@ class LegacyShapeTest {
         }
         if (kind == Kind.JAVA) {
             collect(hits, file, Rule.OLD_RULE_TYPE_NUMBER, RULE_TYPE_NUMBER, text);
-            Matcher classes = CLASS_DECLARATION.matcher(code(text));
+            Matcher classes = CLASS_DECLARATION.matcher(JavaCode.withoutComments(text));
             while (classes.find()) {
                 String name = classes.group(1);
                 if (CLASS_SUFFIX.matcher(name).find()) {
@@ -269,7 +270,7 @@ class LegacyShapeTest {
             collect(hits, file, Rule.NUMERIC_STATUS, NUMERIC_STATUS_COLUMN, text);
         }
         if (!moduleOf(file).equals("platform.integration") && kind != Kind.FRONTEND) {
-            String named = kind == Kind.JAVA ? code(text) : text;
+            String named = kind == Kind.JAVA ? JavaCode.withoutComments(text) : text;
             collect(hits, file, Rule.EXTERNAL_SYSTEM_NAME, EXTERNAL_NAME, named);
             Matcher inPath = EXTERNAL_NAME.matcher(file);
             if (inPath.find()) {
@@ -305,47 +306,6 @@ class LegacyShapeTest {
         int start = text.lastIndexOf('\n', offset) + 1;
         int end = text.indexOf('\n', offset);
         return text.substring(start, end < 0 ? text.length() : end).strip();
-    }
-
-    /** Java text without comments (string literals and text blocks stay). */
-    static String code(String java) {
-        StringBuilder out = new StringBuilder(java.length());
-        int i = 0;
-        int n = java.length();
-        while (i < n) {
-            char c = java.charAt(i);
-            if (java.startsWith("\"\"\"", i)) {
-                int end = java.indexOf("\"\"\"", i + 3);
-                end = end < 0 ? n : end + 3;
-                out.append(java, i, end);
-                i = end;
-            } else if (c == '"' || c == '\'') {
-                int j = i + 1;
-                while (j < n && java.charAt(j) != c && java.charAt(j) != '\n') {
-                    j += java.charAt(j) == '\\' ? 2 : 1;
-                }
-                j = Math.min(n, j + 1);
-                out.append(java, i, j);
-                i = j;
-            } else if (java.startsWith("//", i)) {
-                while (i < n && java.charAt(i) != '\n') {
-                    i++;
-                }
-            } else if (java.startsWith("/*", i)) {
-                int end = java.indexOf("*/", i + 2);
-                end = end < 0 ? n : end + 2;
-                for (int k = i; k < end; k++) {
-                    if (java.charAt(k) == '\n') {
-                        out.append('\n');
-                    }
-                }
-                i = end;
-            } else {
-                out.append(c);
-                i++;
-            }
-        }
-        return out.toString();
     }
 
     static List<Allowed> exceptions(Path file) {
@@ -590,6 +550,25 @@ class LegacyShapeTest {
                 "package com.forcitis.one.platform.integration.infrastructure.seeyon;\nclass SeeyonThing { String s = \"a8 views\"; }\n");
 
         assertThat(scan(project)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("moduleOf reads the module out of acceptance packages too: acceptance/platform/integration is platform.integration, other acceptance modules stay what they are")
+    void moduleOfReadsAcceptancePackages(@TempDir Path root) throws IOException {
+        String base = "src/test/java/com/forcitis/one/";
+        assertThat(moduleOf(base + "acceptance/platform/integration/StalledExternalSourceIT.java")).isEqualTo("platform.integration");
+        assertThat(moduleOf(base + "platform/integration/guard/SomeTest.java")).isEqualTo("platform.integration");
+        assertThat(moduleOf(base + "acceptance/organization/workforce/SomeIT.java")).isEqualTo("organization.workforce");
+        assertThat(moduleOf(base + "acceptance/kernel/time/SomeIT.java")).isEqualTo("kernel");
+        assertThat(moduleOf(base + "LegacyShapeTest.java")).isEmpty();
+
+        Path project = backendIn(root);
+        String named = "package %s;\nclass Named { String s = \"seeyon\"; }\n";
+        write(project, base + "acceptance/platform/integration/Named.java", named.formatted("com.forcitis.one.acceptance.platform.integration"));
+        write(project, base + "acceptance/organization/workforce/Named.java", named.formatted("com.forcitis.one.acceptance.organization.workforce"));
+
+        assertThat(scan(project)).filteredOn(h -> h.rule() == Rule.EXTERNAL_SYSTEM_NAME).extracting(Hit::file)
+                .containsExactly(base + "acceptance/organization/workforce/Named.java");
     }
 
     @Test
