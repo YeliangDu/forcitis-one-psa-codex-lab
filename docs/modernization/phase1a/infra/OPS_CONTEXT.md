@@ -57,6 +57,8 @@
 - corepack 按启动目录选 pnpm 版本 → 进 frontend 再调（#151、#156）
 - CI 偶发 postgres:18 测试容器起不来 → `gh run rerun --failed`
 
+- 2026-10-16 暂停（one-coordinator 决定）：C-6 回放 6 条差异的原因取证（#254，加密中转脚本与诊断查询，草稿，未运行）。理由：成本与风险偏高（新的安全类脚本加一轮复审），生产数据只作参考，A8 没有上级字段，做完也只能间接判断。6 条归为「回放方法限制」，未取证坐实；以后真要坐实再启用，须先过复审并合并。
+
 ## 剧本
 
 [RELEASE](runbooks/RELEASE.md) · [C-3](runbooks/C-3-dev-db.md) · [C-14](runbooks/C-14-readonly-probe.md) · [dev-db-rebuild](runbooks/dev-db-rebuild.md) · [C-7](runbooks/C-7-alerts.md) · [C-8](runbooks/C-8-kms.md) · [B-5](handoff/B-5-dba/README.md) · [PREDEPLOY](PREDEPLOY_CHECKLIST.md) · [台账](../../COORDINATOR_LEDGER.md)

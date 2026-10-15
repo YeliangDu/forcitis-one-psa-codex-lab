@@ -83,9 +83,9 @@
 | REVIEWED_SELF_APPROVAL | regionalHeadReview | 4 | 升级到发起人直属上级（ESCALATED_SELF_APPROVAL） | 发起人自己审批 | 表单区域负责人就是发起人 |
 | REVIEWED_SELF_APPROVAL | regionalHeadReview | 1 | 表单中发起人以外的人（RESOLVED） | 发起人自己加另一人 | 同上，多人 |
 | REVIEWED_DISABLED_APPROVER | supervisorReview | 1 | 发起人在快照中的直属上级（RESOLVED） | 发起人所在部门负责人 | 原审批人停用 |
-| DEFECT | supervisorReview | 6 | 发起人在快照中的直属上级 | 同一人，是该直属上级的下属，不在发起人上级链上 | 涉及 2 名发起人；导出没有时间与上级变更历史，原因待查（交代码会话，D-3） |
+| 回放方法限制（原 DEFECT，未取证坐实） | supervisorReview | 6 | 发起人在快照中的直属上级 | 同一人，是该直属上级的下属，不在发起人上级链上 | 涉及 2 名发起人；回放用的是导出日的组织快照，不是审批时点，老表没有汇报线历史，审批后上级若有调整就会出现这种差异（one-1a-par 的诊断，判断不是规则缺陷）；没有用取证去坐实 |
 
-REVIEWED_SELF_APPROVAL 涉及 37 名发起人。REVIEWED_* 请用户逐类接受（one-rules 做决策页）；DEFECT 交代码会话诊断。
+REVIEWED_SELF_APPROVAL 涉及 37 名发起人。REVIEWED_* 请用户逐类接受（one-rules 做决策页）。上表最后一行 6 条按 one-coordinator 的决定归为「回放方法限制」：不再为坐实原因做加密中转取证（成本与风险偏高，A8 又没有上级字段，只能间接判断），D-3 的结论由用户在出口评审时一并看；回放方法的改进（按提交时刻的组织快照重放）记为后续项。取证脚本草稿保留在 PR #254（草稿，暂停），需要时再启用。
 
 ## 校验
 
