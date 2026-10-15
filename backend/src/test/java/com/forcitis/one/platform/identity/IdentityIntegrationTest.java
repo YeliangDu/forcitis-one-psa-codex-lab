@@ -6,19 +6,27 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.TestPostgres;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
+import com.forcitis.one.organization.workforce.api.EmploymentVerdict;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.application.AccessCache;
+import com.forcitis.one.platform.identity.domain.EmergencyAdmin;
+import com.forcitis.one.platform.identity.domain.EmergencyAdminRepository;
+import com.forcitis.one.platform.identity.domain.PasswordHasher;
+import com.forcitis.one.platform.identity.domain.Totp;
+import com.forcitis.one.platform.identity.domain.TotpSecretVault;
 import com.forcitis.one.platform.integration.api.SsoTicketVerifier;
+import com.forcitis.one.platform.integration.api.TicketSubjects;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import jakarta.servlet.http.Cookie;
@@ -59,14 +67,6 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
-import com.forcitis.one.fixture.doubles.TestOrgIds;
-import com.forcitis.one.platform.integration.api.TicketSubjects;
-import com.forcitis.one.organization.workforce.api.EmploymentVerdict;
-import com.forcitis.one.platform.identity.domain.EmergencyAdminRepository;
-import com.forcitis.one.platform.identity.domain.PasswordHasher;
-import com.forcitis.one.platform.identity.domain.TotpSecretVault;
-import com.forcitis.one.platform.identity.domain.Totp;
-import com.forcitis.one.platform.identity.domain.EmergencyAdmin;
 
 /** WeCom, the portal ticket check, the organisation directory and the audit trail belong to other modules and are doubles. */
 @SpringBootTest(properties = {

@@ -314,7 +314,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
                 .orElseThrow(() -> new IllegalStateException("Instance " + instanceId + " has no initiator")));
     }
 
-    private static EmployeeId initiatorOfTask(ProcessVariables variables, Task task) {
+    static EmployeeId initiatorOfTask(ProcessVariables variables, Task task) {
         try {
             return initiatorOf(variables, task.getProcessInstanceId());
         } catch (RuntimeException invalid) {
