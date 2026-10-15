@@ -9,6 +9,7 @@ final class LegacyVocabulary {
     static final Map<String, String> FIELD_NAMES = table(
             "manager_id", "projectManagerId",
             "area_leader", "orgUnitHeadId",
+            "regionalHeadId", "orgUnitHeadId",
             "deliveryDeptId", "deliveryUnitId");
 
     /** The new names of the fields that name a person, and of those that name a department, by the old system's number. */
@@ -27,6 +28,7 @@ final class LegacyVocabulary {
     static final Map<String, String> NODE_KEYS = table(
             "项目经理审批", "projectManagerReview",
             "区域负责人审批", "orgUnitHeadApproval",
+            "regionalHeadReview", "orgUnitHeadApproval",
             "一级汇报人审批", "supervisorReview");
 
     static final String SUPERVISOR_KEY = "leaderUserId";

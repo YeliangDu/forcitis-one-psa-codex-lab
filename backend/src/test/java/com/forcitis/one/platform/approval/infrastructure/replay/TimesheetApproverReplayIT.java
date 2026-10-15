@@ -52,6 +52,22 @@ class TimesheetApproverReplayIT {
     }
 
     @Test
+    @DisplayName("an export in the old names (regionalHeadReview, regionalHeadId) replays to the same report: the department head node finds its person")
+    void exportInOldNamesReplays() throws IOException {
+        ReplayExport legacy;
+        try (InputStream in = TimesheetApproverReplayIT.class.getResourceAsStream("/replay/synthetic-timesheet-export-legacy-names.json")) {
+            legacy = MAPPER.readValue(in, ReplayExport.class);
+        }
+        ReplayReport report = TimesheetApproverReplay.replay(legacy);
+
+        assertThat(report).isEqualTo(TimesheetApproverReplay.replay(fixture()));
+        assertThat(report.differences()).filteredOn(d -> d.verdict() == ReplayVerdict.DEFECT).singleElement().satisfies(d -> {
+            assertThat(d.nodeKey()).isEqualTo("orgUnitHeadApproval");
+            assertThat(d.candidates()).containsExactly(110L);
+        });
+    }
+
+    @Test
     @DisplayName("RULE-249 'old approver in the new candidate set': every actual approver of a node is a member, in any order")
     void matchingIsMembership() throws IOException {
         ReplayReport report = TimesheetApproverReplay.replay(fixture());
@@ -129,7 +145,7 @@ class TimesheetApproverReplayIT {
         assertThat(LegacyVocabulary.flag(2)).isEqualTo("overheadHours");
         assertThat(LegacyVocabulary.HOUR_TYPE_FLAGS.values()).containsExactlyInAnyOrderElementsOf(
                 TimesheetBranches.ALL.stream().map(TimesheetBranches.Branch::flag).toList());
-        assertThat(LegacyVocabulary.NODE_KEYS.values()).containsExactlyInAnyOrderElementsOf(
+        assertThat(LegacyVocabulary.NODE_KEYS.values().stream().distinct().toList()).containsExactlyInAnyOrderElementsOf(
                 TimesheetBranches.ALL.stream().map(TimesheetBranches.Branch::nodeKey).toList());
     }
 
