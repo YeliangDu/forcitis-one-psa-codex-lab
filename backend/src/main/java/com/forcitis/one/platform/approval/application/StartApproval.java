@@ -55,7 +55,7 @@ public class StartApproval {
         if (existing.isPresent()) {
             ApprovalRequest current = existing.get();
             if (!current.initiator().equals(request.initiator())) {
-                audit.record(new AuditEntry("platform.approval.start.denied", accountEmployees.accountOf(request.initiator()), null,
+                audit.record(new AuditEntry("platform.approval.start.denied", accountEmployees.accountOf(request.initiator()).orElse(null), null,
                         "approval-request:" + request.processKey() + ":" + current.aggregateId(), "not the initiator"));
                 throw new AccessDeniedException("The approval of " + current.aggregateId() + " was started by another user");
             }

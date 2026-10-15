@@ -89,7 +89,7 @@ final class ExportedSnapshot implements OrgDirectory, RoleDirectory {
         Set<UserId> holders = new LinkedHashSet<>();
         for (Long holder : roleHolders.getOrDefault(roleCode.value(), Set.of())) {
             if (employed(holder)) {
-                holders.add(new UserId(holder));
+                holders.add(ExportedAccounts.account(holder));
             }
         }
         return holders;

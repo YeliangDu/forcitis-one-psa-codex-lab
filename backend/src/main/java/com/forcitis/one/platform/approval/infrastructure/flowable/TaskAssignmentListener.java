@@ -13,7 +13,6 @@ import com.forcitis.one.platform.approval.domain.NodePolicy;
 import com.forcitis.one.platform.approval.domain.ProcessVariables;
 import com.forcitis.one.platform.approval.domain.Resolution;
 import java.time.Clock;
-import java.util.Comparator;
 import java.util.List;
 import org.flowable.bpmn.model.BpmnModel;
 import org.flowable.bpmn.model.UserTask;
@@ -54,8 +53,9 @@ class TaskAssignmentListener implements FlowableEventListener {
 
         List<UserId> candidates;
         if (node.getLoopCharacteristics() != null) {
-            candidates = List.of(new UserId(Long.parseLong(variables.firstVariable(ApproverResolution.ELEMENT_VARIABLE)
-                    .orElseThrow(() -> new IllegalStateException("Countersign task of node " + node.getId() + " has no approver")))));
+            candidates = List.of(EngineUserIds.parse(variables.firstVariable(ApproverResolution.ELEMENT_VARIABLE)
+                    .orElseThrow(() -> new IllegalStateException("Countersign task of node " + node.getId() + " has no approver")),
+                    "the approver variable of countersign node " + node.getId()));
         } else {
             Resolution resolution = assignment.resolve(node, task.getProcessInstanceId(), task.getVariables());
             if (NodeAssignment.isSkipped(resolution)) {
@@ -65,11 +65,11 @@ class TaskAssignmentListener implements FlowableEventListener {
                 task.setVariableLocal(FlowableApprovalEngine.VARIABLE_SYSTEM_COMPLETE, Boolean.TRUE);
                 return;
             }
-            candidates = resolution.candidates().stream().sorted(Comparator.comparingLong(UserId::value)).toList();
+            candidates = resolution.candidates().stream().sorted(EngineUserIds.ORDER).toList();
         }
 
         task.setVariableLocal(FlowableApprovalEngine.VARIABLE_ASSIGNED_AT, clock.millis());
-        candidates.forEach(candidate -> task.addCandidateUser(String.valueOf(candidate.value())));
+        candidates.forEach(candidate -> task.addCandidateUser(EngineUserIds.text(candidate)));
 
         boolean passedBySystem = registrar.register(new TaskRegistration(new ApprovalTaskId(task.getId()),
                 new ApprovalInstanceId(task.getProcessInstanceId()),
