@@ -62,19 +62,19 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * held lock is how SQL Server hangs in production: it waits for ever by default), or a CPU-bound view that holds no lock at all.
  * The connection URLs carry no timeout: whatever stops the wait must come from how the application builds its external connections.
  * Budget of an interactive call to an external system: 3 s (user decision 2026-10-15, audit question 3.1) plus 1.5 s of margin.
+ * The three read-only logins equal the RDS platform baseline ({@link ReadOnlyBaselineFixture}): the start-up check of ADR37-1 cannot be
+ * switched off, so it runs here and must pass.
  */
 @SpringBootTest(properties = {
         "flowable.async-executor-activate=false",
         "forcitis.platform.approval.deadline.enabled=false",
         "forcitis.platform.integration.seeyon.views.enabled=true",
-        "forcitis.platform.integration.seeyon.views.validate-on-startup=false",
         "forcitis.platform.integration.seeyon.views.head-relationship-type-id=7001",
         "forcitis.platform.integration.seeyon.views.regional-receivables-manager-relationship-type-id=7002",
         "forcitis.platform.integration.seeyon.views.delivery-unit-yes-enum-id=9001",
         "forcitis.platform.integration.seeyon.views.fee-earner-yes-enum-id=9002",
         "forcitis.platform.integration.seeyon.views.root-path=00000001",
         "forcitis.platform.integration.legacy.enabled=true",
-        "forcitis.platform.integration.legacy.validate-on-startup=false",
         "forcitis.platform.approval.legacy.view-name=dbo.v_psa_one_legacy_todo"})
 @AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension.class)
@@ -89,6 +89,8 @@ class StalledExternalSourceIT {
     static final String INBOX = "/api/v1/platform/approval-tasks";
     static final String LOGIN_NAME = "13900008001";
     static final long INBOX_USER = 1001;
+    static final long HEAD_TYPE = 7001;
+    static final long MANAGER_TYPE = 7002;
 
     static final String SA_PASSWORD = "Aa1!" + UUID.randomUUID();
     static final String A8_READER_PASSWORD = "Bb2!" + UUID.randomUUID();
@@ -491,12 +493,11 @@ class StalledExternalSourceIT {
     private static void createExternalWorld() {
         try {
             waitForAdministratorLogin();
-            run("master", "CREATE DATABASE a8world", "CREATE DATABASE legacyworld",
-                    "CREATE LOGIN a8_reader WITH PASSWORD = N'" + A8_READER_PASSWORD + "', CHECK_POLICY = OFF",
-                    "CREATE LOGIN todo_reader WITH PASSWORD = N'" + TODO_READER_PASSWORD + "', CHECK_POLICY = OFF",
-                    "CREATE LOGIN names_reader WITH PASSWORD = N'" + NAMES_READER_PASSWORD + "', CHECK_POLICY = OFF");
+            run("master", "CREATE DATABASE a8world", "CREATE DATABASE legacyworld");
+            ReadOnlyBaselineFixture.createRdsCore(StalledExternalSourceIT::run);
             createA8World();
             createLegacyWorld();
+            createReadOnlyLogins();
         } catch (SQLException | ConditionTimeoutException e) {
             throw new IllegalStateException("cannot prepare the external databases; SQL Server log:\n" + MSSQL.getLogs(), e);
         }
@@ -515,7 +516,7 @@ class StalledExternalSourceIT {
     }
 
     private static void createA8World() throws SQLException {
-        run("a8world", "CREATE USER a8_reader FOR LOGIN a8_reader", "CREATE SCHEMA forcitis_one AUTHORIZATION dbo",
+        run("a8world", "CREATE SCHEMA " + ReadOnlyBaselineFixture.VIEW_SCHEMA + " AUTHORIZATION dbo",
                 BURN_FUNCTION,
                 "CREATE TABLE dbo.org_unit_rows (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, PATH nvarchar(200), IS_DELETED bit, "
                         + "IS_INTERNAL bit, IS_ENABLE bit, CATEGORY nvarchar(16), DELIVERY_FLAG_ENUM_ID nvarchar(32))",
@@ -527,24 +528,33 @@ class StalledExternalSourceIT {
                 "INSERT dbo.org_unit_rows VALUES (1, 'C1', N'Root', 1, '00000001', 0, 1, 1, N'总部', NULL), (2, 'C2', N'Delivery', 2, '000000010001', 0, 1, 1, N'区域', '9001')",
                 "INSERT dbo.post_rows VALUES (100, 'P100', N'Consultant', 1, 0, 0)",
                 "INSERT dbo.member_rows VALUES (8001, N'Worker', 'E8001', 2, '000000010001', 100, NULL, 'wx-8001', 1, '" + LOGIN_NAME + "', 'worker@example.test', N'女', '9002')",
+                "INSERT dbo.relationship_rows VALUES (8001, 2, " + HEAD_TYPE + ", 0), (8001, 2, " + MANAGER_TYPE + ", 0)",
                 "CREATE VIEW forcitis_one.v_org_unit AS SELECT ID, CODE, NAME, SORT_ID, PATH, IS_DELETED, IS_INTERNAL, IS_ENABLE, CATEGORY, DELIVERY_FLAG_ENUM_ID FROM dbo.org_unit_rows",
                 "CREATE VIEW forcitis_one.v_org_relationship AS SELECT SOURCE_MEMBER_ID, ORG_UNIT_ID, RELATIONSHIP_TYPE_ID, MEMBER_IS_DELETED FROM dbo.relationship_rows",
                 "CREATE VIEW forcitis_one.v_org_post AS SELECT ID, CODE, NAME, SORT_ID, STATUS, IS_DELETED FROM dbo.post_rows",
-                "CREATE VIEW forcitis_one.v_org_member AS " + MEMBER_VIEW,
-                "GRANT SELECT ON SCHEMA::forcitis_one TO a8_reader");
+                "CREATE VIEW forcitis_one.v_org_member AS " + MEMBER_VIEW);
     }
 
     private static void createLegacyWorld() throws SQLException {
-        run("legacyworld", "CREATE USER todo_reader FOR LOGIN todo_reader", "CREATE USER names_reader FOR LOGIN names_reader",
-                BURN_FUNCTION,
+        run("legacyworld", BURN_FUNCTION,
                 "CREATE TABLE dbo.todo_rows (assignee_user_id bigint, task_id nvarchar(64), process_instance_id nvarchar(64), task_def_key nvarchar(64), "
                         + "task_name nvarchar(128), process_title nvarchar(256), created_at datetime2)",
                 "CREATE TABLE dbo.short_name_rows (id bigint, short_name nvarchar(64))",
                 "INSERT dbo.todo_rows VALUES (" + INBOX_USER + ", 'T-1', 'I-1', 'approve', N'Approve', N'Legacy item', '2026-10-01T08:00:00')",
                 "INSERT dbo.short_name_rows VALUES (2, N'Delivery')",
                 "CREATE VIEW dbo.v_psa_one_legacy_todo AS " + TODO_VIEW,
-                "CREATE VIEW dbo.v_one_legacy_org_short_name AS SELECT id, short_name FROM dbo.short_name_rows",
-                "GRANT SELECT ON dbo.v_psa_one_legacy_todo TO todo_reader",
-                "GRANT SELECT ON dbo.v_one_legacy_org_short_name TO names_reader");
+                "CREATE VIEW dbo.v_one_legacy_org_short_name AS SELECT id, short_name FROM dbo.short_name_rows");
+    }
+
+    /** Checked against the RDS export before any case runs: a fixture that drifted from the baseline would prove nothing about production. */
+    private static void createReadOnlyLogins() throws SQLException {
+        ReadOnlyBaselineFixture.createViewSchemaReader(StalledExternalSourceIT::run, "a8world", "a8_reader", A8_READER_PASSWORD);
+        ReadOnlyBaselineFixture.createSingleViewReader(StalledExternalSourceIT::run, "legacyworld", "dbo.v_psa_one_legacy_todo", "todo_reader",
+                TODO_READER_PASSWORD);
+        ReadOnlyBaselineFixture.createSingleViewReader(StalledExternalSourceIT::run, "legacyworld", "dbo.v_one_legacy_org_short_name", "names_reader",
+                NAMES_READER_PASSWORD);
+        ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url("a8world"), "a8world", "a8_reader", A8_READER_PASSWORD);
+        ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url("legacyworld"), "legacyworld", "todo_reader", TODO_READER_PASSWORD);
+        ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url("legacyworld"), "legacyworld", "names_reader", NAMES_READER_PASSWORD);
     }
 }

@@ -27,8 +27,6 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -56,34 +54,11 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * against the RDS platform baseline when the application starts and again before each sync; anything more, anything less or anything that
  * cannot be determined refuses. The application is started for real (black box) against a real SQL Server, one start per case.
  *
- * <p>The container is not RDS: there the platform grants every login the server permissions of the baseline and SQL Server 2016 knows no
- * finer ones. Here the test grants the same server permissions and denies the finer ones SQL Server 2022 derives from them, so the effective
- * permissions equal the RDS export exactly; {@link #fixtureReproducesTheRdsBaseline} proves it before anything else is believed. rdscore is an
- * empty database with guest enabled, as on RDS.
+ * <p>The logins come from {@link ReadOnlyBaselineFixture}; {@link #fixtureReproducesTheRdsBaseline} proves they equal the RDS export
+ * before anything else is believed.
  */
 @ExtendWith(OutputCaptureExtension.class)
 class ReadOnlyAccountCheckIT {
-
-    /** B-5 README, "有效权限平台基线": real logins of the four accounts exported with fn_my_permissions(NULL, 'SERVER'), identical. */
-    static final Set<String> SERVER_BASELINE = Set.of("ALTER ANY CONNECTION", "ALTER ANY EVENT SESSION", "ALTER ANY LINKED SERVER",
-            "ALTER ANY LOGIN", "ALTER SERVER STATE", "ALTER TRACE", "CONNECT SQL", "VIEW ANY DATABASE", "VIEW SERVER STATE");
-
-    static final Set<String> DATABASE_BASELINE = Set.of("CONNECT", "KILL DATABASE CONNECTION", "SELECT", "SHOWPLAN",
-            "VIEW ANY COLUMN ENCRYPTION KEY DEFINITION", "VIEW ANY COLUMN MASTER KEY DEFINITION", "VIEW DATABASE STATE");
-
-    static final Set<String> GUEST_DATABASES = Set.of("master", "msdb", "rdscore", "tempdb");
-
-    static final String DATABASE_DENIES = "INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VIEW, CREATE PROCEDURE, "
-            + "CREATE FUNCTION, CREATE SCHEMA";
-
-    /** What the RDS platform grants every login; RDS refuses server-level GRANT and DENY, so the account owner cannot change it. */
-    static final String PLATFORM_SERVER_GRANTS = "ALTER ANY CONNECTION, ALTER ANY EVENT SESSION, ALTER ANY LINKED SERVER, ALTER ANY LOGIN, "
-            + "ALTER SERVER STATE, ALTER TRACE, VIEW SERVER STATE";
-
-    /** Container only: SQL Server 2022 derives these finer permissions from the grants above; the RDS export (SQL Server 2016) shows none of them. */
-    static final String SQL_SERVER_2022_ONLY = "ALTER ANY EVENT SESSION ADD EVENT, ALTER ANY EVENT SESSION ADD TARGET, ALTER ANY EVENT SESSION DISABLE, "
-            + "ALTER ANY EVENT SESSION DROP EVENT, ALTER ANY EVENT SESSION DROP TARGET, ALTER ANY EVENT SESSION ENABLE, ALTER ANY EVENT SESSION OPTION, "
-            + "CREATE ANY EVENT SESSION, DROP ANY EVENT SESSION, CREATE LOGIN, VIEW SERVER PERFORMANCE STATE, VIEW SERVER SECURITY STATE";
 
     static final String LOGIN_NAME = "13900008001";
     static final long HEAD_TYPE = 7001;
@@ -365,21 +340,12 @@ class ReadOnlyAccountCheckIT {
         String login = connection.loginPrefix + "_" + LOGINS.incrementAndGet();
         String password = "Ro1!" + UUID.randomUUID();
         try {
-            run("master", "CREATE LOGIN " + q(login) + " WITH PASSWORD = N'" + password + "', CHECK_POLICY = OFF",
-                    "GRANT " + PLATFORM_SERVER_GRANTS + " TO " + q(login),
-                    "DENY " + SQL_SERVER_2022_ONLY + " TO " + q(login));
-            String user = q(login);
             if (connection == ReadOnlyConnection.A8) {
-                run(connection.database, "CREATE USER " + user + " FOR LOGIN " + user + " WITH DEFAULT_SCHEMA = forcitis_one",
-                        "GRANT SELECT ON SCHEMA::forcitis_one TO " + user,
-                        "DENY INSERT, UPDATE, DELETE, EXECUTE, ALTER, REFERENCES ON SCHEMA::dbo TO " + user,
-                        "DENY INSERT, UPDATE, DELETE, EXECUTE, ALTER, REFERENCES ON SCHEMA::forcitis_one TO " + user);
+                ReadOnlyBaselineFixture.createViewSchemaReader(ReadOnlyAccountCheckIT::run, connection.database, login, password);
             } else {
                 String view = connection == ReadOnlyConnection.LEGACY_APPROVAL ? "dbo.v_psa_one_legacy_todo" : "dbo.v_one_legacy_org_short_name";
-                run(connection.database, "CREATE USER " + user + " FOR LOGIN " + user + " WITH DEFAULT_SCHEMA = dbo",
-                        "GRANT SELECT ON " + view + " TO " + user);
+                ReadOnlyBaselineFixture.createSingleViewReader(ReadOnlyAccountCheckIT::run, connection.database, view, login, password);
             }
-            run(connection.database, "GRANT SELECT TO " + user, "DENY " + DATABASE_DENIES + " TO " + user);
         } catch (SQLException e) {
             throw new IllegalStateException("cannot create the read-only login " + login, e);
         }
@@ -387,33 +353,8 @@ class ReadOnlyAccountCheckIT {
     }
 
     static void assertMatchesTheRdsBaseline(Account account) throws SQLException {
-        try (Connection c = DriverManager.getConnection(url(account.connection().database) + ";loginTimeout=30", account.login(), account.password());
-                Statement s = c.createStatement()) {
-            assertThat(strings(s, "SELECT permission_name FROM fn_my_permissions(NULL, 'SERVER')")).as("server, %s", account.login())
-                    .containsExactlyInAnyOrderElementsOf(SERVER_BASELINE);
-            assertThat(strings(s, "SELECT permission_name FROM fn_my_permissions(NULL, 'DATABASE')")).as("database, %s", account.login())
-                    .containsExactlyInAnyOrderElementsOf(DATABASE_BASELINE);
-            assertThat(strings(s, "SELECT name FROM sys.user_token WHERE principal_id <> USER_ID()")).as("roles").containsExactly("public");
-            Set<String> reachable = new TreeSet<>(GUEST_DATABASES);
-            reachable.add(account.connection().database);
-            assertThat(strings(s, "SELECT name FROM sys.databases WHERE HAS_DBACCESS(name) = 1")).as("databases")
-                    .containsExactlyInAnyOrderElementsOf(reachable);
-            assertThat(strings(s, "SELECT permission_name FROM sys.database_permissions WHERE class = 0 AND state = 'D' AND grantee_principal_id = USER_ID()"))
-                    .as("database-level DENY").containsExactlyInAnyOrder("INSERT", "UPDATE", "DELETE", "ALTER", "EXECUTE", "REFERENCES",
-                            "CREATE TABLE", "CREATE VIEW", "CREATE PROCEDURE", "CREATE FUNCTION", "CREATE SCHEMA");
-            assertThat(strings(s, "SELECT permission_name FROM sys.database_permissions WHERE class = 0 AND state = 'G' AND grantee_principal_id = USER_ID()"))
-                    .as("database-level GRANT").containsExactlyInAnyOrder("CONNECT", "SELECT");
-        }
-    }
-
-    static List<String> strings(Statement s, String query) throws SQLException {
-        List<String> values = new ArrayList<>();
-        try (ResultSet rs = s.executeQuery(query)) {
-            while (rs.next()) {
-                values.add(rs.getString(1).trim());
-            }
-        }
-        return values;
+        ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url(account.connection().database), account.connection().database, account.login(),
+                account.password());
     }
 
     /** Index usage counts every seek, scan and lookup a query makes on the table, also through a view. */
@@ -431,7 +372,7 @@ class ReadOnlyAccountCheckIT {
     }
 
     static String q(String name) {
-        return "[" + name + "]";
+        return ReadOnlyBaselineFixture.q(name);
     }
 
     static String url(String database) {
@@ -454,8 +395,8 @@ class ReadOnlyAccountCheckIT {
     private static void createExternalWorld() {
         try {
             waitForAdministratorLogin();
-            run("master", "CREATE DATABASE a8world", "CREATE DATABASE legacyworld", "CREATE DATABASE otherworld", "CREATE DATABASE rdscore");
-            run("rdscore", "GRANT CONNECT TO guest");
+            run("master", "CREATE DATABASE a8world", "CREATE DATABASE legacyworld", "CREATE DATABASE otherworld");
+            ReadOnlyBaselineFixture.createRdsCore(ReadOnlyAccountCheckIT::run);
             createA8World();
             createLegacyWorld();
         } catch (SQLException | ConditionTimeoutException e) {
@@ -473,7 +414,7 @@ class ReadOnlyAccountCheckIT {
     }
 
     private static void createA8World() throws SQLException {
-        run("a8world", "CREATE SCHEMA forcitis_one AUTHORIZATION dbo",
+        run("a8world", "CREATE SCHEMA " + ReadOnlyBaselineFixture.VIEW_SCHEMA + " AUTHORIZATION dbo",
                 "CREATE TABLE dbo.org_unit_rows (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, PATH nvarchar(200), IS_DELETED bit, "
                         + "IS_INTERNAL bit, IS_ENABLE bit, CATEGORY nvarchar(16), DELIVERY_FLAG_ENUM_ID nvarchar(32))",
                 "CREATE TABLE dbo.relationship_rows (SOURCE_MEMBER_ID bigint, ORG_UNIT_ID bigint, RELATIONSHIP_TYPE_ID bigint, MEMBER_IS_DELETED bit)",
