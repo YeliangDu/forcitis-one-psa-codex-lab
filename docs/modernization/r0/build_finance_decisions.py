@@ -77,6 +77,8 @@ def parse(md):
                 doc["facts"].append(cur)
             elif cur and line.startswith("影响："):
                 cur["impact"] = line[len("影响："):].strip()
+            elif cur and line.startswith(("答复：", "复核：")):
+                cur["answer" if line.startswith("答复：") else "review"] = line[3:].strip()
             continue
         if section == "decided" and line.startswith("- "):
             doc["decided"].append(line[2:].strip())

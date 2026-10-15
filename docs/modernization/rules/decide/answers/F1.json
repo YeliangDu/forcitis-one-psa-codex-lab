@@ -1,0 +1,72 @@
+{
+ "F1~F1-01": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "f1-now",
+  "label": "这类角色的自定义部门只许「仅本部门」；要覆盖新部门就改角色（改角色本身要第二人确认）",
+  "no": "F1-01",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:08:58.092Z"
+ },
+ "F1~F1-02": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "f1-now",
+  "label": "只由组织数据管理员办理，原因里写明确认需要的业务负责人；安全审计员只读；维持有效到下一次季度复核（D-13），到期重新生成条目",
+  "no": "F1-02",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:08:58.092Z"
+ },
+ "F1~F1-03": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "f1-later",
+  "label": "维持只含直接下属；需要整条链的人用「本部门含下级」或自定义部门显式授予",
+  "no": "F1-03",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:21:12.166Z"
+ },
+ "F1~F1-04": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "f1-later",
+  "label": "维持只升级、不自动收回",
+  "no": "F1-04",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:21:12.166Z"
+ },
+ "F1~F1-05": {
+  "choice": 1,
+  "defaulted": false,
+  "group": "f1-later",
+  "label": "现在就登记「区域」为后续范围维度并排期",
+  "no": "F1-05",
+  "note": "区域是介于项目和公司之间的一层组织，属于变动频率较高的一层，目前有区域和事业部之分。",
+  "recommended": false,
+  "submitted": "2026-10-15T20:21:12.166Z"
+ },
+ "F1~F1-06": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "f1-later",
+  "label": "不作通用规则；只对双人逐人级角色，连续休假或外派超过 30 天时暂停这些角色、返岗恢复，不删授予；随考勤休假数据接入的阶段实现",
+  "no": "F1-06",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:21:12.166Z"
+ },
+ "F1~F1-07": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "f1-later",
+  "label": "1b 报价按「部门范围 ∪ 本人是负责人或团队成员的报价」",
+  "no": "F1-07",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:21:12.166Z"
+ }
+}
