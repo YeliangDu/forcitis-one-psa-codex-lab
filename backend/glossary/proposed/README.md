@@ -103,6 +103,7 @@
 | `registration` | 登记 | Registration | 由人录入一条来源对照，等另一个人确认或拒绝 |  |
 | `supersede` | 取代 | Supersede | 已确认的后继对照从生效日起取代生效中的对照 |  |
 | `migration_batch` | 迁入批次 | MigrationBatch | 一次历史数据迁入运行；登记来源系统、对象类型、范围、状态、行数与来源 ID 摘要；批次挂在来源对照与原编号对照上，业务表不带批次列（ADR-0036 第 3 条） |  |
+| `evidence` | 取证 | Evidence | 只读核对老系统与 A8 生产数据（复刻老行为、迁入对账、新旧等价核对）；专用取证账号，每次登记一行（ADR-0037；数据库登录名 one_evidence_ro） |  |
 
 技术词 8 个，在 `common_words`。
 
