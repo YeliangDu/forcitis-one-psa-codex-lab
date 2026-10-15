@@ -33,7 +33,7 @@ COMMENT ON COLUMN platform_numbering.numbering_rules.event_count IS '事件序�
 CREATE TABLE platform_numbering.numbering_counters (
     numbering_counter_id uuid        NOT NULL,
     document_type        text        NOT NULL,
-    counter_scope_kind   text        NOT NULL CHECK (counter_scope_kind IN ('GLOBAL', 'LEGAL_ENTITY')),
+    counter_scope_kind   text        NOT NULL CONSTRAINT ck_numbering_counters_counter_scope_kind CHECK (counter_scope_kind IN ('GLOBAL', 'LEGAL_ENTITY')),
     legal_entity_id      uuid,
     period_key           text        NOT NULL,
     last_value           bigint      NOT NULL,
@@ -44,7 +44,7 @@ CREATE TABLE platform_numbering.numbering_counters (
     CONSTRAINT ck_numbering_counters_scope_kind_matches_legal_entity CHECK ((counter_scope_kind = 'GLOBAL') = (legal_entity_id IS NULL))
 );
 CREATE INDEX ix_numbering_counters_legal_entity_id ON platform_numbering.numbering_counters (legal_entity_id);
-COMMENT ON TABLE platform_numbering.numbering_counters IS '编号计数器：按单据类型 × 法人 × 周期计数，与业务写入同事务递增（不跳号）。粒度：每个单据类型、法人、周期一行';
+COMMENT ON TABLE platform_numbering.numbering_counters IS '编号计数器：按单据类型 × 法人 × 周期计数，与业务写入同事务递增（不跳号）。粒度：每个单据类型、计数范围（全局或某法人）、周期一行';
 COMMENT ON COLUMN platform_numbering.numbering_counters.numbering_counter_id IS '编号计数器 ID（UUIDv7）';
 COMMENT ON COLUMN platform_numbering.numbering_counters.document_type IS '单据类型';
 COMMENT ON COLUMN platform_numbering.numbering_counters.counter_scope_kind IS '计数范围类别：GLOBAL 全局（模板不含法人代码，各法人共用一个计数）/ LEGAL_ENTITY 按法人（每个法人各计各的）；与法人主体 ID 成对：GLOBAL 时法人为空，LEGAL_ENTITY 时法人必填';

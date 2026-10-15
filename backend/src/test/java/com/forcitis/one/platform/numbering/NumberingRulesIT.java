@@ -204,6 +204,23 @@ class NumberingRulesIT {
     }
 
     @Test
+    @DisplayName("the counter table refuses a counter scope kind that does not match its legal entity, and an unknown kind")
+    void counterTableRefusesMismatchedScopeAndUnknownKind() {
+        String insert = "insert into platform_numbering.numbering_counters (numbering_counter_id, document_type, counter_scope_kind, legal_entity_id, period_key, last_value)"
+                + " values (uuidv7(), 'QUOTE', '%s', %s, '202701', 1)";
+
+        assertThatThrownBy(() -> jdbc.sql(insert.formatted("GLOBAL", "'" + LE1.value() + "'")).update())
+                .as("a global scope must not name a legal entity")
+                .hasMessageContaining("ck_numbering_counters_scope_kind_matches_legal_entity");
+        assertThatThrownBy(() -> jdbc.sql(insert.formatted("LEGAL_ENTITY", "null")).update())
+                .as("a per-legal-entity scope must name a legal entity")
+                .hasMessageContaining("ck_numbering_counters_scope_kind_matches_legal_entity");
+        assertThatThrownBy(() -> jdbc.sql(insert.formatted("REGIONAL", "null")).update())
+                .as("only the two known kinds are stored")
+                .hasMessageContaining("ck_numbering_counters_counter_scope_kind");
+    }
+
+    @Test
     @DisplayName("the timesheet and the journal voucher start on the unified template with their registered codes, pending confirmation")
     void timesheetAndVoucherUseTheUnifiedTemplate() throws Exception {
         for (String type : new String[] {"TIMESHEET", "JOURNAL_VOUCHER"}) {
