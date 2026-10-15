@@ -1,8 +1,8 @@
 package com.forcitis.one.platform.approval.events;
 
 import com.forcitis.one.kernel.DocumentReference;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.Reason;
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -16,6 +16,6 @@ import com.forcitis.one.platform.approval.api.RoundNumber;
  * approval; returnSource is set only when the outcome is RETURNED (D-1a-72).
  */
 public record ApprovalCompleted(EventEnvelope envelope, DocumentReference document, ProcessKey processKey, ApprovalInstanceId instanceId,
-                                RoundNumber round, UserId initiator, ApprovalOutcome outcome, Reason reason,
+                                RoundNumber round, EmployeeId initiator, ApprovalOutcome outcome, Reason reason,
                                 ReturnSource returnSource) implements DomainEvent {
 }

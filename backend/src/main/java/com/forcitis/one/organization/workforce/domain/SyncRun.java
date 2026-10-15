@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.domain;
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.StateMachine;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.AggregateReference;
 import com.forcitis.one.kernel.event.EventDraft;
@@ -52,11 +53,11 @@ public final class SyncRun extends AggregateRoot {
     private SyncRunId releasedByRunId;
     private Set<HoldKind> holdKinds;
     private Set<HoldKind> releasedKinds;
-    private List<UserId> heldSeparations;
+    private List<EmployeeId> heldSeparations;
 
     private SyncRun(SyncRunId syncRunId, SyncTrigger trigger, SyncRunStatus status, Instant startedAt, Instant finishedAt,
                     RunStats stats, String heldReason, String failureReason, UserId releasedBy, Instant releasedAt,
-                    SyncRunId releasedByRunId, Set<HoldKind> holdKinds, Set<HoldKind> releasedKinds, List<UserId> heldSeparations, long version,
+                    SyncRunId releasedByRunId, Set<HoldKind> holdKinds, Set<HoldKind> releasedKinds, List<EmployeeId> heldSeparations, long version,
                     long eventSequence) {
         super(version, eventSequence);
         this.holdKinds = Set.copyOf(holdKinds);
@@ -97,7 +98,7 @@ public final class SyncRun extends AggregateRoot {
     public static SyncRun restore(SyncRunId syncRunId, SyncTrigger trigger, String status, Instant startedAt, Instant finishedAt,
                                   RunStats stats, String heldReason, String failureReason, UserId releasedBy, Instant releasedAt,
                                   SyncRunId releasedByRunId, Set<HoldKind> holdKinds, Set<HoldKind> releasedKinds,
-                                  List<UserId> heldSeparations, long version, long eventSequence) {
+                                  List<EmployeeId> heldSeparations, long version, long eventSequence) {
         return new SyncRun(syncRunId, trigger, SyncRunStatus.valueOf(status), startedAt, finishedAt, stats, heldReason,
                 failureReason, releasedBy, releasedAt, releasedByRunId, holdKinds, releasedKinds, heldSeparations, version, eventSequence);
     }
@@ -110,7 +111,7 @@ public final class SyncRun extends AggregateRoot {
         return releasedKinds;
     }
 
-    public List<UserId> heldSeparations() {
+    public List<EmployeeId> heldSeparations() {
         return heldSeparations;
     }
 
@@ -186,7 +187,7 @@ public final class SyncRun extends AggregateRoot {
     }
 
     /** A refreshed hold keeps the kinds already lifted only when the kinds and the leavers are exactly the same as before. */
-    public void hold(Instant now, RunStats runStats, String reason, Set<HoldKind> kinds, List<UserId> separating) {
+    public void hold(Instant now, RunStats runStats, String reason, Set<HoldKind> kinds, List<EmployeeId> separating) {
         move(SyncRunStatus.HELD);
         this.finishedAt = now;
         this.stats = runStats;

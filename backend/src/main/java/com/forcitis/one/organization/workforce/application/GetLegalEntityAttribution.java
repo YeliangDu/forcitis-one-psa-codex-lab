@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.application;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.OrgUnitAccess;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.AttributionKind;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -41,7 +42,7 @@ public class GetLegalEntityAttribution {
         Set<OrgUnitId> allowed = OrgUnitVisibility.idsIn(snapshot.findAllOrgUnits(), visible);
         boolean permitted = switch (kind) {
             case ORG_UNIT -> allowed.contains(new OrgUnitId(subjectId));
-            case EMPLOYEE -> snapshot.findStaff(new UserId(subjectId)).map(staff -> allowed.contains(staff.assignment().orgUnitId())).orElse(false);
+            case EMPLOYEE -> snapshot.findStaff(new EmployeeId(subjectId)).map(staff -> allowed.contains(staff.assignment().orgUnitId())).orElse(false);
         };
         if (!permitted) {
             audit.recordIndependently(new AuditEntry("organization.workforce.legal-entity-attribution.denied", actor, null,

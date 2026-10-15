@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.LegalEntityId;
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.identity.api.AccessGrant;
 import com.forcitis.one.platform.identity.api.AccessScope;
@@ -26,12 +26,12 @@ class AccessScopeTest {
     static final OrgUnitId DEPT_15 = new OrgUnitId(15);
     static final OrgUnitId DEPT_16 = new OrgUnitId(16);
     static final OrgUnitId DEPT_20 = new OrgUnitId(20);
-    static final UserId ME = new UserId(1001);
-    static final UserId REPORT = new UserId(2001);
-    static final UserId REPORTS_REPORT = new UserId(3001);
-    static final UserId STRANGER = new UserId(9999);
+    static final EmployeeId ME = new EmployeeId(1001);
+    static final EmployeeId REPORT = new EmployeeId(2001);
+    static final EmployeeId REPORTS_REPORT = new EmployeeId(3001);
+    static final EmployeeId STRANGER = new EmployeeId(9999);
 
-    static AccessTarget row(LegalEntityId le, OrgUnitId unit, UserId owner) {
+    static AccessTarget row(LegalEntityId le, OrgUnitId unit, EmployeeId owner) {
         List<OrgUnitId> path = unit.equals(DEPT_16) ? List.of(DEPT_16, DEPT_15, ROOT) : unit.equals(DEPT_15) ? List.of(DEPT_15, ROOT)
                 : List.of(unit, ROOT);
         return new AccessTarget(le, path, null, owner);

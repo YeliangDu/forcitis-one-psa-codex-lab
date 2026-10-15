@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -36,7 +37,7 @@ class RepeatApproverIT extends ApprovalIntegrationSupport {
     org.flowable.engine.HistoryService history;
 
     ApprovalInstanceId startRepeating(String key, long initiator, long manager) {
-        return tx.execute(status -> approvals.start(startRequest(key, new UserId(initiator), Set.of("again"),
+        return tx.execute(status -> approvals.start(startRequest(key, new EmployeeId(initiator), Set.of("again"),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))))));
     }
 
@@ -108,7 +109,7 @@ class RepeatApproverIT extends ApprovalIntegrationSupport {
         long initiator = newId();
         organisation.unit(unit, null, person).person(person, unit, null).person(initiator, unit, person);
         String key = newKey("two-nodes");
-        ApprovalInstanceId instance = tx.execute(status -> approvals.start(startRequest(key, new UserId(initiator),
+        ApprovalInstanceId instance = tx.execute(status -> approvals.start(startRequest(key, new EmployeeId(initiator),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName(), TimesheetRoutingFlag.OVERHEAD_HOURS.flagName()),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(person)))))));
 

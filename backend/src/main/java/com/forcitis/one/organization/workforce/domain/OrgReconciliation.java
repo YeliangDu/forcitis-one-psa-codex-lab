@@ -2,7 +2,7 @@ package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import java.util.ArrayList;
@@ -18,12 +18,12 @@ public final class OrgReconciliation {
     public static OrgReconciliationReport compare(SourceOrgSnapshot source, OrgSnapshot snapshot) {
         Reconciliation expected = SnapshotReconciler.reconcile(OrgSnapshot.empty(), source);
         Map<OrgUnitId, OrgUnit> expectedUnits = new OrgSnapshot(expected.orgUnits(), List.of(), List.of()).orgUnitsById();
-        Map<UserId, StaffEmployee> expectedStaff = new OrgSnapshot(List.of(), List.of(), expected.staff()).staffById();
+        Map<EmployeeId, StaffEmployee> expectedStaff = new OrgSnapshot(List.of(), List.of(), expected.staff()).staffById();
 
         // The snapshot keeps revoked units; they are not part of what the source returns.
         Map<OrgUnitId, OrgUnit> actualUnits = new java.util.LinkedHashMap<>();
         snapshot.orgUnits().stream().filter(u -> u.status() != OrgUnitStatus.REVOKED).forEach(u -> actualUnits.put(u.orgUnitId(), u));
-        Map<UserId, StaffEmployee> actualStaff = snapshot.staffById();
+        Map<EmployeeId, StaffEmployee> actualStaff = snapshot.staffById();
 
         List<String> missing = new ArrayList<>();
         List<String> unexpected = new ArrayList<>();

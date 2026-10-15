@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.domain;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -24,7 +24,7 @@ public interface OrgSnapshotRepository {
 
     void saveRegisteredEmployee(RegisteredEmployee registered, Instant now);
 
-    long findEmployeeEventSequence(UserId userId);
+    long findEmployeeEventSequence(EmployeeId employeeId);
 
     Set<OrgUnitId> findOrgUnitIds();
 

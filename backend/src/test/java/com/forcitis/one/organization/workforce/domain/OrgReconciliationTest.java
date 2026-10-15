@@ -49,7 +49,7 @@ class OrgReconciliationTest {
     void driftIsReported() {
         OrgSnapshot synced = apply(OrgSnapshot.empty(), first(sourceSnapshot()));
         StaffEmployee two = Fixtures.staff(synced, 2);
-        StaffEmployee drifted = new StaffEmployee(two.employee(), new Assignment(two.employee().userId(), two.assignment().orgUnitId(),
+        StaffEmployee drifted = new StaffEmployee(two.employee(), new Assignment(two.employee().employeeId(), two.assignment().orgUnitId(),
                 two.assignment().positionId(), Fixtures.user(3)));
         StaffEmployee leaver = Fixtures.staff(synced, 4);
         StaffEmployee stillEmployed = new StaffEmployee(leaver.employee().withEmploymentStatus(EmploymentStatus.EMPLOYED), leaver.assignment());
@@ -58,8 +58,8 @@ class OrgReconciliationTest {
                         u.sortOrder(), u.status(), u.headEmployeeId(), u.regionalReceivablesManagerId(), u.regionCategory(),
                         u.deliveryUnit(), u.shortName()) : u).toList();
         List<StaffEmployee> staff = synced.staff().stream()
-                .filter(s -> s.userId().value() != 3)
-                .map(s -> s.userId().value() == 2 ? drifted : s.userId().value() == 4 ? stillEmployed : s).toList();
+                .filter(s -> s.employeeId().value() != 3)
+                .map(s -> s.employeeId().value() == 2 ? drifted : s.employeeId().value() == 4 ? stillEmployed : s).toList();
         OrgSnapshot stored = new OrgSnapshot(units, synced.positions(), staff);
 
         OrgReconciliationReport report = OrgReconciliation.compare(sourceSnapshot(), stored);

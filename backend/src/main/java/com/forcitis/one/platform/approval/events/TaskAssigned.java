@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.approval.events;
 
 import com.forcitis.one.kernel.DocumentReference;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventEnvelope;
@@ -17,7 +18,7 @@ import java.util.List;
 /** Drives the WeCom card: one card per candidate (Q-3). dueAt is empty for a node without a deadline; summary comes from the business module. */
 public record TaskAssigned(EventEnvelope envelope, ApprovalTaskId taskId, ApprovalInstanceId instanceId, ProcessKey processKey,
                            ProcessName processName, DocumentReference document, ApprovalSummary summary, NodeKey nodeKey,
-                           NodeName nodeName, UserId initiator, List<UserId> candidates, Instant dueAt) implements DomainEvent {
+                           NodeName nodeName, EmployeeId initiator, List<UserId> candidates, Instant dueAt) implements DomainEvent {
 
     public TaskAssigned {
         candidates = List.copyOf(candidates);

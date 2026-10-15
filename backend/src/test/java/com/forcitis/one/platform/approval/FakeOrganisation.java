@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
@@ -74,11 +75,11 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
     }
 
     @Override
-    public Optional<EmployeeProfile> findEmployee(UserId userId) {
+    public Optional<EmployeeProfile> findEmployee(EmployeeId employeeId) {
         if (failNextLookup.compareAndSet(true, false)) {
             throw new IllegalStateException("organisation lookup failed");
         }
-        return Optional.ofNullable(people.get(userId.value())).map(p -> new EmployeeProfile(new UserId(p.id()), "person-" + p.id(),
+        return Optional.ofNullable(people.get(employeeId.value())).map(p -> new EmployeeProfile(new EmployeeId(p.id()), "person-" + p.id(),
                 new OrgUnitId(p.unit()), p.wecom() == null ? null : new WecomUserId(p.wecom()),
                 p.employed() ? EmploymentStatus.EMPLOYED : EmploymentStatus.SEPARATED, false));
     }
@@ -91,23 +92,23 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
     @Override
     public Optional<EmployeeProfile> findEmployeeByWecomUserId(WecomUserId wecomUserId) {
         return people.values().stream().filter(p -> wecomUserId.value().equals(p.wecom())).findFirst()
-                .flatMap(p -> findEmployee(new UserId(p.id())));
+                .flatMap(p -> findEmployee(new EmployeeId(p.id())));
     }
 
     @Override
-    public Optional<UserId> findSupervisor(UserId userId) {
-        return Optional.ofNullable(people.get(userId.value())).map(Person::leader)
-                .filter(l -> people.containsKey(l) && people.get(l).employed()).map(UserId::new);
+    public Optional<EmployeeId> findSupervisor(EmployeeId employeeId) {
+        return Optional.ofNullable(people.get(employeeId.value())).map(Person::leader)
+                .filter(l -> people.containsKey(l) && people.get(l).employed()).map(EmployeeId::new);
     }
 
     @Override
-    public Optional<UserId> findOrgUnitHead(OrgUnitId orgUnitId) {
-        return Optional.ofNullable(units.get(orgUnitId.value())).map(Unit::head).map(UserId::new);
+    public Optional<EmployeeId> findOrgUnitHead(OrgUnitId orgUnitId) {
+        return Optional.ofNullable(units.get(orgUnitId.value())).map(Unit::head).map(EmployeeId::new);
     }
 
     @Override
-    public Optional<UserId> findRegionalReceivablesManager(OrgUnitId orgUnitId) {
-        return Optional.ofNullable(units.get(orgUnitId.value())).map(Unit::receivablesManager).map(UserId::new);
+    public Optional<EmployeeId> findRegionalReceivablesManager(OrgUnitId orgUnitId) {
+        return Optional.ofNullable(units.get(orgUnitId.value())).map(Unit::receivablesManager).map(EmployeeId::new);
     }
 
     @Override

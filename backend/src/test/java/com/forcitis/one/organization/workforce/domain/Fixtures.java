@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.domain;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -26,8 +26,8 @@ public final class Fixtures {
         return new OrgUnitId(id);
     }
 
-    public static UserId user(long id) {
-        return new UserId(id);
+    public static EmployeeId user(long id) {
+        return new EmployeeId(id);
     }
 
     public static SourceUnitId sourceUnit(long id) {
@@ -95,7 +95,7 @@ public final class Fixtures {
         positions.removeIf(p -> changes.positions().stream().anyMatch(c -> c.positionId().equals(p.positionId())));
         positions.addAll(changes.positions());
         List<StaffEmployee> staff = new ArrayList<>(before.staffById().values());
-        staff.removeIf(s -> changes.staff().stream().anyMatch(c -> c.userId().equals(s.userId())));
+        staff.removeIf(s -> changes.staff().stream().anyMatch(c -> c.employeeId().equals(s.employeeId())));
         staff.addAll(changes.staff());
         return new OrgSnapshot(units, positions, staff);
     }

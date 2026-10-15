@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -34,9 +35,11 @@ public class StartApproval {
     private final TaskRegistrar registrar;
     private final DenialAudit audit;
     private final BusinessTime time;
+    private final AccountEmployees accountEmployees;
 
     StartApproval(ApprovalRequestRepository requests, ApprovalEngine engine, Approvals approvals, TaskRegistrar registrar,
-            DenialAudit audit, BusinessTime time) {
+            DenialAudit audit, BusinessTime time, AccountEmployees accountEmployees) {
+        this.accountEmployees = accountEmployees;
         this.requests = requests;
         this.engine = engine;
         this.approvals = approvals;
@@ -52,7 +55,7 @@ public class StartApproval {
         if (existing.isPresent()) {
             ApprovalRequest current = existing.get();
             if (!current.initiator().equals(request.initiator())) {
-                audit.record(new AuditEntry("platform.approval.start.denied", request.initiator(), null,
+                audit.record(new AuditEntry("platform.approval.start.denied", accountEmployees.accountOf(request.initiator()), null,
                         "approval-request:" + request.processKey() + ":" + current.aggregateId(), "not the initiator"));
                 throw new AccessDeniedException("The approval of " + current.aggregateId() + " was started by another user");
             }

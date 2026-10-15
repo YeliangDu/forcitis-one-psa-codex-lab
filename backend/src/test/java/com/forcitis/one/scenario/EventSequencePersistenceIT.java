@@ -8,6 +8,7 @@ import com.forcitis.one.cost.timesheet.domain.Timesheet;
 import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
 import com.forcitis.one.fixture.doubles.TestEventEnvelopes;
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Reason;
@@ -60,9 +61,9 @@ class EventSequencePersistenceIT extends ApprovalIntegrationSupport {
             Random random = new Random(seed);
             TimesheetId id = new TimesheetId(TestIds.uuid(IDS.incrementAndGet()));
             LocalDate today = LocalDate.now();
-            UserId owner = new UserId(newId());
+            EmployeeId owner = new EmployeeId(newId());
             Timesheet created = Timesheet.draft(id, new DocumentNumber("TS-SEQ-" + id.value()), new AggregateReference("NumberingRule", "TIMESHEET"),
-                    owner, new LegalEntityId(TestIds.uuid(1)), new OrgUnitId(1), today.minusDays(1), Hours.of("8"), new UserId(newId()), today);
+                    owner, new LegalEntityId(TestIds.uuid(1)), new OrgUnitId(1), today.minusDays(1), Hours.of("8"), new EmployeeId(newId()), today);
             List<Long> numbers = new ArrayList<>();
             tx.executeWithoutResult(s -> timesheets.save(created));
             created.drainEvents(ENVELOPES).forEach(event -> numbers.add(event.envelope().aggregateVersion()));
@@ -111,9 +112,9 @@ class EventSequencePersistenceIT extends ApprovalIntegrationSupport {
                     case 0 -> claimTask.execute(task, holder, OptionalLong.empty());
                     case 1 -> releaseTask.execute(task, holder, OptionalLong.empty());
                     default -> {
-                        UserId other = holder.value() == manager ? new UserId(colleague) : new UserId(manager);
+                        EmployeeId other = holder.value() == manager ? new EmployeeId(colleague) : new EmployeeId(manager);
                         transferTask.execute(task, holder, other, "swap", OptionalLong.empty());
-                        holder = other;
+                        holder = new UserId(other.value());
                     }
                 }
             } catch (RuntimeException illegal) {

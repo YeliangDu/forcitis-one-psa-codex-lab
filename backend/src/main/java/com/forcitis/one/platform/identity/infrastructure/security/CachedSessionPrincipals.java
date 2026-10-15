@@ -21,7 +21,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Component
 class CachedSessionPrincipals implements AccessCache {
 
-    private record Key(long userId, SessionKind kind) {
+    private record Key(UserId user, SessionKind kind) {
     }
 
     private final SessionPrincipals principals;
@@ -38,12 +38,12 @@ class CachedSessionPrincipals implements AccessCache {
     }
 
     SessionPrincipal get(long userId, SessionKind kind) {
-        return cache.get(new Key(userId, kind), key -> principals.resolve(new UserId(key.userId()), key.kind()));
+        return cache.get(new Key(new UserId(userId), kind), key -> principals.resolve(key.user(), key.kind()));
     }
 
     @Override
     public void evict(UserId userId) {
-        afterCommit(() -> cache.asMap().keySet().removeIf(key -> key.userId() == userId.value()));
+        afterCommit(() -> cache.asMap().keySet().removeIf(key -> key.user().equals(userId)));
     }
 
     @Override

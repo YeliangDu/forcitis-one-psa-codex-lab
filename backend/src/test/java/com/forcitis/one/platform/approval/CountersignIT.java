@@ -2,6 +2,7 @@ package com.forcitis.one.platform.approval;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
@@ -42,7 +43,7 @@ class CountersignIT extends ApprovalIntegrationSupport {
     }
 
     ApprovalInstanceId start(String key, Staff s, long... managers) {
-        return tx.execute(status -> approvals.start(startRequest(key, new UserId(s.initiator()),
+        return tx.execute(status -> approvals.start(startRequest(key, new EmployeeId(s.initiator()),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()), List.of(new ApprovalField(
                         TimesheetApprovalField.PROJECT_MANAGER.fieldName(), java.util.Arrays.stream(managers).mapToObj(String::valueOf).toList())))));
     }

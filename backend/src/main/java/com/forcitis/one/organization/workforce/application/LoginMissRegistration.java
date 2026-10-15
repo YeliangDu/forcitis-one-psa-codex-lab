@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.domain.Assignment;
 import com.forcitis.one.organization.workforce.domain.EmployeeChecks;
@@ -45,9 +45,9 @@ class LoginMissRegistration {
                     isolation.get().detail());
             return Optional.empty();
         }
-        UserId userId = SourceTerms.person(person.personId());
+        EmployeeId employeeId = SourceTerms.person(person.personId());
         StaffEmployee staff = new StaffEmployee(EmployeeChecks.toEmployee(person, true),
-                new Assignment(userId, SourceTerms.unit(person.unitId()), SourceTerms.position(person.positionId()), validSupervisor(person)));
+                new Assignment(employeeId, SourceTerms.unit(person.unitId()), SourceTerms.position(person.positionId()), validSupervisor(person)));
         persist.execute(staff);
         return Optional.of(staff);
     }
@@ -68,14 +68,14 @@ class LoginMissRegistration {
         return Optional.empty();
     }
 
-    private UserId validSupervisor(SourcePerson person) {
-        UserId leader = SourceTerms.person(person.supervisorId());
+    private EmployeeId validSupervisor(SourcePerson person) {
+        EmployeeId leader = SourceTerms.person(person.supervisorId());
         if (leader == null || leader.equals(SourceTerms.person(person.personId()))) {
             return null;
         }
         return lookups.findStaff(leader)
                 .filter(s -> s.employee().employmentStatus() == EmploymentStatus.EMPLOYED)
-                .map(StaffEmployee::userId)
+                .map(StaffEmployee::employeeId)
                 .orElse(null);
     }
 }

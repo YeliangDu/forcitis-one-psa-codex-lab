@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -38,14 +38,14 @@ final class OrgSnapshotRows {
     static OrgUnit orgUnit(ResultSet rs) throws SQLException {
         return new OrgUnit(new OrgUnitId(rs.getLong("id")), rs.getString("code"), rs.getString("name"),
                 orgUnitId(rs, "parent_org_unit_id"), integer(rs, "sort_order"),
-                OrgUnitStatus.valueOf(rs.getString("status")), userId(rs, "head_employee_id"),
-                userId(rs, "regional_receivables_manager_id"),
+                OrgUnitStatus.valueOf(rs.getString("status")), employeeId(rs, "head_employee_id"),
+                employeeId(rs, "regional_receivables_manager_id"),
                 rs.getString("region_category") == null ? null : RegionCategory.valueOf(rs.getString("region_category")),
                 rs.getBoolean("is_delivery_unit"), rs.getString("short_name"));
     }
 
     static StaffEmployee staff(ResultSet rs) throws SQLException {
-        UserId id = new UserId(rs.getLong("id"));
+        EmployeeId id = new EmployeeId(rs.getLong("id"));
         String wecom = rs.getString("wecom_user_id");
         String gender = rs.getString("gender");
         Employee employee = new Employee(id, rs.getString("employee_code"), rs.getString("display_name"),
@@ -55,7 +55,7 @@ final class OrgSnapshotRows {
         OrgUnitId orgUnit = new OrgUnitId(rs.getLong("org_unit_id"));
         long position = rs.getLong("position_id");
         PositionId positionId = rs.wasNull() ? null : new PositionId(position);
-        Assignment assignment = new Assignment(id, orgUnit, positionId, userId(rs, "reports_to_employee_id"));
+        Assignment assignment = new Assignment(id, orgUnit, positionId, employeeId(rs, "reports_to_employee_id"));
         return new StaffEmployee(employee, assignment);
     }
 
@@ -64,9 +64,9 @@ final class OrgSnapshotRows {
         return rs.wasNull() ? null : value;
     }
 
-    static UserId userId(ResultSet rs, String column) throws SQLException {
+    static EmployeeId employeeId(ResultSet rs, String column) throws SQLException {
         long value = rs.getLong(column);
-        return rs.wasNull() ? null : new UserId(value);
+        return rs.wasNull() ? null : new EmployeeId(value);
     }
 
     static OrgUnitId orgUnitId(ResultSet rs, String column) throws SQLException {

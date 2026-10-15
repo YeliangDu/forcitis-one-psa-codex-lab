@@ -20,8 +20,8 @@ public final class RegisteredEmployee extends AggregateRoot {
     public static RegisteredEmployee onFirstLogin(StaffEmployee staff, long version, long eventSequence) {
         RegisteredEmployee registered = new RegisteredEmployee(staff, version, eventSequence);
         registered.record((envelopes, sequence) -> new EmployeeRegistered(envelopes.wrap(new EventDraft(
-                "organization.workforce.EmployeeRegistered", 1, "Employee", String.valueOf(staff.userId().value()), sequence, null, null,
-                new EventSource(SourceSystem.ONE, null), List.of())), staff.userId()));
+                "organization.workforce.EmployeeRegistered", 1, "Employee", String.valueOf(staff.employeeId().value()), sequence, null, null,
+                new EventSource(SourceSystem.ONE, null), List.of())), staff.employeeId()));
         return registered;
     }
 
