@@ -5,11 +5,13 @@ Session name, first hit wins: the untracked marker <root>/.claude/session-name; 
 worktree directory name or the current branch without "claude/" equals or starts with followed by "-"; ended sessions listed
 in sessions/_retired.md take part in the match, so an ended session whose name extends a live one is not mistaken for it.
 Profiles are read from origin/main first (the worktree may be stale), then from the worktree; context documents are the
-backticked paths in the profile's 上下文文档 section, read from the worktree first, then origin/main.
-build_sessions.py imports context_docs() so the hook and the build check parse the section the same way.
+backticked paths in the profile's 上下文文档 section, read from the worktree first, then origin/main. A context path must be
+relative, free of "..", and stay under the repository root after resolving links; any other path is refused with a warning.
+build_sessions.py imports context_docs() and unsafe_reason() so the hook and the build check judge paths the same way.
+Every failure prints one 【会话画像】 line to stdout (the hook's output reaches the model) and the hook still exits 0.
 Usage: session_context.py <repo-root>  |  session_context.py --self-test
 """
-import os, re, subprocess, sys
+import contextlib, io, os, re, subprocess, sys, tempfile
 
 SESSIONS = "docs/modernization/sessions"
 MARKER = ".claude/session-name"
@@ -18,6 +20,17 @@ MARKER = ".claude/session-name"
 def context_docs(profile_text):
     m = re.search(r"(?ms)^## 上下文文档\n(.*?)(?=^## |\Z)", profile_text)
     return re.findall(r"`([^`\s]+\.md)`", m.group(1)) if m else []
+
+
+def unsafe_reason(root, path):
+    if os.path.isabs(path):
+        return "是绝对路径"
+    if ".." in path.replace("\\", "/").split("/"):
+        return "含 .."
+    base = os.path.realpath(root)
+    if os.path.commonpath([base, os.path.realpath(os.path.join(base, path))]) != base:
+        return "规范化后不在仓库根下"
+    return None
 
 
 def match(names, marker, candidates):
@@ -40,16 +53,13 @@ def git(root, *args):
     return r.stdout if r.returncode == 0 else None
 
 
-def read(root, path, main_first):
-    def from_main():
-        return git(root, "show", f"origin/main:{path}")
+def from_main(root, path):
+    return git(root, "show", f"origin/main:{path}")
 
-    def from_tree():
-        full = os.path.join(root, path)
-        return open(full, encoding="utf-8").read() if os.path.isfile(full) else None
 
-    first, second = (from_main, from_tree) if main_first else (from_tree, from_main)
-    return first() or second()
+def from_tree(root, path):
+    full = os.path.join(root, path)
+    return open(full, encoding="utf-8").read() if os.path.isfile(full) else None
 
 
 def main(root):
@@ -58,29 +68,44 @@ def main(root):
     for f in (listed or "").split() + (os.listdir(os.path.join(root, SESSIONS)) if os.path.isdir(os.path.join(root, SESSIONS)) else []):
         if f.endswith(".md") and not f.startswith("_"):
             names.add(f[:-3])
-    retired = retired_names(read(root, f"{SESSIONS}/_retired.md", main_first=True)) - names
+    retired_path = f"{SESSIONS}/_retired.md"
+    retired = retired_names(from_main(root, retired_path) or from_tree(root, retired_path)) - names
     marker_path = os.path.join(root, MARKER)
     marker = open(marker_path, encoding="utf-8").read().strip() if os.path.isfile(marker_path) else ""
     branch = (git(root, "rev-parse", "--abbrev-ref", "HEAD") or "").strip().removeprefix("claude/")
     name = match(names | retired, marker, [os.path.basename(root), branch])
     if name in retired:
-        print(f"【会话画像】本会话识别为已结束的 {name}（{SESSIONS}/_retired.md），没有画像；若不对，在 {MARKER}（不入仓）写入会话名。")
+        print(f"【会话画像】本会话识别为已结束的 {name}（{retired_path}），没有画像；若不对，在 {MARKER}（不入仓）写入会话名。")
         return
     if not name:
         how = f"标记 {MARKER} 写的「{marker}」没有对应画像" if marker else f"目录名「{os.path.basename(root)}」与分支名「{branch}」都没有对应画像"
         print(f"【会话画像】未识别本会话：{how}；请手动读 {SESSIONS}/<会话名>.md，并可在 {MARKER}（不入仓）写入会话名。")
         return
     profile_path = f"{SESSIONS}/{name}.md"
-    profile = read(root, profile_path, main_first=True) or f"（缺文件：{profile_path}）"
+    profile = from_main(root, profile_path)
+    if profile is None:
+        print("【会话画像】未能读取 origin/main，改用工作区画像。")
+        profile = from_tree(root, profile_path) or f"（缺文件：{profile_path}）"
     print(f"【压缩或清空后恢复上下文】本会话（{name}）的画像与上下文文档全文如下，以它们为准接续工作；完成点后继续更新。")
     print(f"\n===== {profile_path} =====")
     print(profile.rstrip("\n"))
     for doc in context_docs(profile):
         if doc == profile_path:
             continue
-        text = read(root, doc, main_first=False)
+        reason = unsafe_reason(root, doc)
+        if reason:
+            print(f"\n【会话画像】拒绝注入上下文文档 {doc}：{reason}；画像里只能写仓库根相对路径。")
+            continue
+        text = from_tree(root, doc) or from_main(root, doc)
         print(f"\n===== {doc} =====")
         print(text.rstrip("\n") if text else f"（缺文件：{doc}，按 SESSION_PLAYBOOK §2.1 第 16 条补齐）")
+
+
+def run(root):
+    try:
+        main(root)
+    except Exception as e:
+        print(f"【会话画像】注入失败（{type(e).__name__}: {e}）；请手动读 {SESSIONS}/<会话名>.md。")
 
 
 def self_test():
@@ -96,6 +121,30 @@ def self_test():
     assert match({"one-glossary", "one-glossary-gen"}, "", ["one-glossary-gen-x"]) == "one-glossary-gen"
     assert match({"one-glossary", "one-ops"}, "", ["modest-torvalds-293503", "one-glossary-round3"]) == "one-glossary"
     assert retired_names("<!-- x -->\n- one-glossary-gen：一次性\n") == {"one-glossary-gen"}
+    with tempfile.TemporaryDirectory() as tmp:
+        root = os.path.join(tmp, "one-x-r1")
+        outside = os.path.join(tmp, "secret.md")
+        open(outside, "w").write("outside")
+        os.makedirs(os.path.join(root, SESSIONS))
+        open(os.path.join(root, "docs", "a.md"), "w").write("CONTEXT-A")
+        os.symlink(outside, os.path.join(root, "docs", "link.md"))
+        assert unsafe_reason(root, "docs/a.md") is None
+        assert unsafe_reason(root, "/etc/hosts.md") == "是绝对路径"
+        assert unsafe_reason(root, "docs/../../secret.md") == "含 .."
+        assert unsafe_reason(root, "docs/link.md") == "规范化后不在仓库根下"
+        open(os.path.join(root, SESSIONS, "one-x.md"), "w").write(
+            "# one-x\n\n## 上下文文档\n\n- `docs/a.md`、`/etc/x.md`、`../secret.md`、`docs/link.md`\n")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            run(root)
+        text = out.getvalue()
+        assert "未能读取 origin/main，改用工作区画像" in text, text
+        assert "CONTEXT-A" in text and "outside" not in text, text
+        assert text.count("拒绝注入上下文文档") == 3, text
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            run(None)
+        assert out.getvalue().startswith("【会话画像】注入失败（TypeError"), out.getvalue()
     print("self-test: ok")
 
 
@@ -103,6 +152,6 @@ if __name__ == "__main__":
     if sys.argv[1:] == ["--self-test"]:
         self_test()
     elif len(sys.argv) == 2:
-        main(sys.argv[1])
+        run(sys.argv[1])
     else:
         sys.exit(__doc__)

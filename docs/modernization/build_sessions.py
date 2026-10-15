@@ -9,7 +9,7 @@
   会话名为 one-*、与文件名一致、全局唯一；「类型」为「长期」或「工作」；「当前状态」为一行。
 - sessions/_retired.md：已交接、一次性会话，每行「- <会话名>：<状态>」，只进汇总表、不写画像。
 - 「上下文文档」一节中反引号括起的 .md 路径（仓库根相对）即清空或压缩后钩子注入的文档（scripts/hooks/session_context.py，
-  解析函数与钩子共用）：路径必须存在；长期会话须至少有一份本画像以外的上下文文档。
+  解析与路径判定与钩子共用）：路径须为仓库根相对、不含 ..、规范化后仍在仓库根下，且必须存在；长期会话须至少有一份本画像以外的上下文文档。
 - 独占与不碰靠调度派工、评审时人工核对，不做自动校验（SESSION_PLAYBOOK §2.1 第 16 条）。
 不合规时生成失败，不写产物。
 """
@@ -19,7 +19,7 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(BASE))
 SESSIONS = os.path.join(BASE, "sessions")
 sys.path.insert(0, os.path.join(ROOT, "scripts", "hooks"))
-from session_context import context_docs  # noqa: E402
+from session_context import context_docs, unsafe_reason  # noqa: E402
 OUT = os.path.join(BASE, "SESSIONS.md")
 FIELDS = ["类型", "职责", "独占", "不碰", "输入", "输出", "触发与节奏", "自动化", "上下文文档", "交接条件", "权限边界", "当前状态"]
 KINDS = ("长期", "工作")
@@ -95,6 +95,9 @@ def check(profiles, retired, exists):
         own = f"docs/modernization/sessions/{p['name']}.md"
         docs = context_docs(f"## 上下文文档\n{p['上下文文档']}\n")
         for path in docs:
+            reason = unsafe_reason(ROOT, path)
+            if reason:
+                raise ProfileError(f"sessions/{p['name']}.md：上下文文档 {path} {reason}（只能写仓库根相对路径）")
             if not exists(path):
                 raise ProfileError(f"sessions/{p['name']}.md：上下文文档 {path} 不存在（写仓库根相对路径）")
         if p["类型"] == "长期" and not [d for d in docs if d != own]:
@@ -158,6 +161,8 @@ def self_test():
     check([p], [("one-old-1", "已交接")], yes)
     rejects("重名", lambda: check([p], [("one-x", "已交接")], yes))
     rejects("上下文文档不存在", lambda: check([p], [], lambda path: False))
+    rejects("上下文文档为绝对路径", lambda: check([dict(p, 上下文文档="`/etc/x.md`")], [], yes))
+    rejects("上下文文档含 ..", lambda: check([dict(p, 上下文文档="`docs/../../x.md`")], [], yes))
     long_lived = dict(p, 类型="长期")
     rejects("长期会话缺上下文文档", lambda: check([long_lived], [], yes))
     check([dict(long_lived, 上下文文档=f"- `docs/a.md`\n- `{own}`")], [], yes)
