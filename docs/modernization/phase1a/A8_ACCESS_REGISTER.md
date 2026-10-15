@@ -2,7 +2,7 @@
 
 日期：2026-10-14 · 来源：architecture-critic（opus）对 GUIDING_PRINCIPLES §9a 的专项核对（会话 psa-1a-platform-bridge-reimagine）。
 
-用途：§9a 要求「每个阶段的出口条件证明本阶段涉及的权责事实没有遗留在老系统或 OA」。本表登记老系统对 A8 的全部读取与写入，作为跨阶段台账：每个阶段出口时，本阶段对应行的状态改为「已停用」（老路径）或「已迁入」（新系统自有事实）。新系统可只读 A8 全库（ADR-0037），读取只在 `platform.integration` 内（A8 读取与致远验票在 `platform.integration.infrastructure.seeyon` 适配器，REIMAGINED_ARCHITECTURE §2.1，用户 2026-10-14：「改名并移到 integration」）；运行时读取的表与列见读取列登记（现为 `backend/architecture/seeyon-view-columns.yaml`，视图 DDL `phase1a/SEEYON_VIEWS.sql`，视图冻结，ADR-0037 第 6 项）。A8 数据不作为权责事实的输入（ADR-0037 第 2 项第 3 条）。生日（#6）不在 1a 白名单。
+用途：§9a 要求「每个阶段的出口条件证明本阶段涉及的权责事实没有遗留在老系统或 OA」。本表登记老系统对 A8 的全部读取与写入，作为跨阶段台账：每个阶段出口时，本阶段对应行的状态改为「已停用」（老路径）或「已迁入」（新系统自有事实）。新系统可只读 A8 全库（ADR-0037），读取只在 `platform.integration` 内（A8 读取与致远验票在 `platform.integration.infrastructure.seeyon` 适配器，REIMAGINED_ARCHITECTURE §2.1，用户 2026-10-14：「改名并移到 integration」）；运行时读取的表与列见读取列登记 `backend/architecture/external-read-registry.yaml`（视图 DDL `phase1a/SEEYON_VIEWS.sql`，视图冻结，ADR-0037 第 6 项）。A8 数据不作为权责事实的输入（ADR-0037 第 2 项第 3 条）。生日（#6）不在 1a 白名单。
 
 | 状态列约定 | 含义 |
 |---|---|
