@@ -167,8 +167,8 @@
 
 - **A-1 资源与命令**：读取用 `GET`；在集合上创建用 `POST /{复数资源}`；整体替换可编辑字段用 `PUT /{复数资源}/{id}`；状态转换与业务动作写成命令 `POST /{复数资源}/{id}:{动作}`（动作取自 `terms.yaml` 的 `standard_actions`），不用 `PUT` 改状态；删除用 `DELETE`，只用于允许删除的对象（如未提交的草稿），业务上的「作废」「撤销」是命令。不改变任何状态的只读计算（如试算、预览）可用 `GET /{复数资源}:{动作}` 或 `GET /{复数资源}/{id}:{动作}`，参数放查询串，不得有副作用。
 - **A-2 状态码**：创建返回 `201`，带 `Location` 与 `ETag`；命令返回 `200`（响应体为命令后的资源）或 `204`；删除返回 `204`；读取返回 `200` 与 `ETag`。契约中的状态码与运行时一致。
-- **A-3 列表**：响应一律为 `{items, nextCursor}`；参数 `cursor`（不透明，内部编码排序键 + `id`）与 `limit`。`limit` 默认 50、上限 200，两个值是全系统唯一的常量（kernel），OpenAPI 声明 `maximum: 200`，超出上限返回 400，不静默截断。列表一律按索引做键集分页，不在内存中切片（GUIDING_PRINCIPLES §7）；需要总数时另设 `GET /{复数资源}:count`，与列表用同一组过滤参数。不分页的小表上限见 GUIDING_PRINCIPLES §7a R-P2。
-- **A-4 过滤与排序**：过滤参数为 camelCase 字段名，多值用逗号分隔，不提供通用表达式语言；排序写 `sort=field,-field`，只接受白名单字段；未知参数、白名单外的字段返回 400。导出接口与对应列表使用同一组过滤参数。
+- **A-3 列表**：响应一律为 `{items, nextCursor}`；参数 `cursor`（不透明，带格式版本，不签名；内部编码排序键 + `id`，服务端严格校验结构与类型，不合格返回 400 `PLATFORM_WEB_CURSOR_INVALID`）与 `limit`。`limit` 默认 50、上限 200，两个值是全系统唯一的常量（kernel），OpenAPI 声明 `maximum: 200`，超出上限返回 400，不静默截断。列表一律按索引做键集分页，不在内存中切片（GUIDING_PRINCIPLES §7）；需要总数时另设 `GET /{复数资源}:count`，与列表用同一组过滤参数。不分页的小表上限见 GUIDING_PRINCIPLES §7a R-P2。
+- **A-4 过滤与排序**：过滤参数为 camelCase 字段名，多值用逗号分隔，不提供通用表达式语言；排序写 `sort=field,-field`，只接受白名单字段；未知参数、白名单外的字段返回 400 `PLATFORM_WEB_REQUEST_INVALID`，响应扩展属性 `invalidParameters` 给出参数名（所有 `/api` 的 `GET` 生效，含单资源读取）。导出接口与对应列表使用同一组过滤参数。
 - **A-5 不提供 `PATCH`**：局部修改用 `PUT` 整体替换可编辑字段，或用具名命令表达业务意图。
 - **A-6 批量**：写成 `POST /{复数资源}:{动作}-batch`，一次最多 100 项（与 GUIDING_PRINCIPLES §7a R-P2 同一上限；出处：one-coordinator 2026-10-15 在两份推荐值（100 / 200）中取较严者，用户「全部按推荐」）；逐项鉴权、逐项执行，各项各自成败。响应 `200`，按请求顺序返回逐项结果（对象 ID、结果、失败时的 ProblemDetail），部分成功也返回 `200`；整批格式不合法时返回 400、一项都不执行。
 - **A-7 类型表示**：
@@ -313,7 +313,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | # | 检查什么 | 出处 | 必须在何时之前 | 归属 |
 |---|---|---|---|---|
 | G-A1 | OpenAPI 中所有自有 ID（属性、路径参数、查询参数）为 `type: string, format: uuid`；前端生成类型中 ID 不是 number | §2.6 A-7 | 立即（转交 / 改派界面上线前） | R-1b（与自有 UUIDv7 同改） |
-| G-A2 | 列表响应形状为 `{items, nextCursor}`，参数为 `cursor` / `limit` | §2.6 A-3 | 首次部署前 | one-1a-next-2 排定（初拟：HTTP 契约守护；与 G-X3 合并） |
+| G-A2 | 列表响应形状为 `{items, nextCursor}`，参数为 `cursor` / `limit`（按响应形状判断，不按类名） | §2.6 A-3 | 首次部署前 | K-3a 已实现：`ListPagingGuardTest`；现存缺口登记于 `backend/architecture/list-paging-gaps.txt`（新增违规失败，登记了但已修好未删也失败） |
 | G-A3 | 并入 G-C4（修改类接口声明必填 `If-Match` 与 412 / 428，运行时一致；豁免逐条登记理由） | §2.6 A-8、ADR-0035 第 8 条 | 见 G-C4 | 见 G-C4 |
 | G-A4 | 并入 G-C4（集合上的 `POST` 返回 201 并带 `Location`） | §2.6 A-2、ADR-0035 第 8 条 | 见 G-C4 | 见 G-C4 |
 | G-A5 | 没有 `PATCH` 映射 | §2.6 A-5 | 1b 前 | one-1a-next-2 排定（初拟：HTTP 契约守护） |
@@ -328,7 +328,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | G-C5 | 事件负载与出站负载扁平：ID 为字符串 uuid，不出现 `{value: …}` 包装（dev 期生效的两条契约守护之一，另一条为 G-C4） | ADR-0035 第 2、5 条 | R-1b 合入即生效 | R-1b |
 | G-C6 | 弃用到期：定时检查到期未删的弃用项，发 P3 提醒并报调度会话（不让无关 PR 变红）；PR 中改动已弃用对象（删除除外）即失败 | ADR-0035 第 7 条 | 首次生产部署前 | one-1a-next-2 排定（初拟：契约演进守护） |
 | G-C7 | `reporting` 数据集契约：视图列名、类型与登记一致，破坏性变更按 ADR-0035 处理 | ADR-0035 | R1 | R1 工作单元 |
-| G-P1 | `limit` 上限只来自 kernel 一处常量，OpenAPI `maximum: 200`；禁止其他 `MAX_LIMIT` 类常量 | §2.6 A-3、GUIDING_PRINCIPLES §7a R-P2 | 1b 前 | one-1a-next-2 排定（初拟：HTTP 契约守护；与 G-X3 合并） |
+| G-P1 | `limit` 上限只来自 kernel 一处常量（`ListLimits`），OpenAPI 所有 `limit` 声明 `minimum: 1`、`maximum: 200`、`default: 50`；禁止其他 `MAX_LIMIT` 类常量 | §2.6 A-3、GUIDING_PRINCIPLES §7a R-P2 | 1b 前 | K-3a 已实现：`ListPagingGuardTest`；缺口同上 |
 | G-P2 | 列表与批量用例的 SQL 语句数不随行数增长（计数的 DataSource 装饰器，默认预算 ≤ 5） | GUIDING_PRINCIPLES §7a R-P3 | 1b 前 | one-1a-next-2 排定（初拟：性能守护） |
 | G-P3 | 登记的查询路径在 `enable_seqscan = off` 下 `EXPLAIN` 走索引 | GUIDING_PRINCIPLES §7a、SESSION_PLAYBOOK §14.1 D19 | 1b 前 | 同上 |
 | G-P4 | 外部只读连接三种超时生效：对挂起端口的集成测试在预算内失败或降级 | SESSION_PLAYBOOK §14.3 I2 | 首次部署前 | 同上（与 G-I1、G-I3 同卡） |

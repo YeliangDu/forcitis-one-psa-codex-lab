@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditEntry;
@@ -47,7 +48,7 @@ class AuditExportAndOwnRecordsIT {
 
     @Container
     @ServiceConnection
-    static PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:18")
+    static PostgreSQLContainer postgres = TestPostgres.container()
             .withInitScript("init-schemas.sql")
             .withUrlParam("currentSchema", "platform_approval");
 
@@ -127,7 +128,8 @@ class AuditExportAndOwnRecordsIT {
     @DisplayName("the administrator who ended someone's sessions does not see that entry among their own, and nobody asks for another person")
     void theAdministratorDoesNotSeeWhatTheyDidToOthers() throws Exception {
         mvc.perform(get(OWN).with(ADMINISTRATOR)).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
-        mvc.perform(get(OWN).param("userId", "1001").with(ADMINISTRATOR)).andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(get(OWN).param("userId", "1001").with(ADMINISTRATOR)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_REQUEST_INVALID")).andExpect(jsonPath("$.invalidParameters").value("userId"));
     }
 
     @Test
