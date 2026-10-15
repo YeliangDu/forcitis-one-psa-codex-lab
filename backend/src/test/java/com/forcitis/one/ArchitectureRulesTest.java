@@ -204,9 +204,12 @@ class ArchitectureRulesTest {
         NO_CLASSES_SHOULD_USE_FIELD_INJECTION.check(CLASSES);
         NO_CLASSES_SHOULD_ACCESS_STANDARD_STREAMS.check(CLASSES);
         NO_CLASSES_SHOULD_USE_JAVA_UTIL_LOGGING.check(CLASSES);
-        noClasses().should().dependOnClassesThat().haveFullyQualifiedName("java.util.Date")
-                .orShould().dependOnClassesThat().haveFullyQualifiedName("jakarta.annotation.security.PermitAll")
-                .because("use java.time; anonymous endpoints only via the identity module's SSO allowlist")
+        noClasses().that().doNotHaveFullyQualifiedName(ROOT + ".platform.approval.infrastructure.flowable.FlowableEngineClock")
+                .should().dependOnClassesThat().haveFullyQualifiedName("java.util.Date")
+                .because("use java.time; the one exception implements Flowable's Clock, whose signatures are java.util.Date (FLW-1)")
+                .check(CLASSES);
+        noClasses().should().dependOnClassesThat().haveFullyQualifiedName("jakarta.annotation.security.PermitAll")
+                .because("anonymous endpoints only via the identity module's SSO allowlist")
                 .check(CLASSES);
     }
 
