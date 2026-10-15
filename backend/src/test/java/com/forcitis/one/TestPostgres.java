@@ -67,14 +67,17 @@ public final class TestPostgres {
         return new TestDatabase(urlOf(name), shared().getUsername(), shared().getPassword());
     }
 
-    /** The class name made a valid unquoted identifier; past PostgreSQL's 63 bytes it is cut and a hash of the full name keeps it unique. */
+    /** The class name made a valid unquoted identifier, cut to fit PostgreSQL's 63 bytes; a hash of the exact name keeps names that sanitise alike (case, `.` and `_`) apart. */
     static String databaseName(String purpose, Class<?> testClass) {
-        String name = (purpose + "_" + testClass.getName()).toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_]", "_");
-        if (name.length() <= MAX_IDENTIFIER) {
-            return name;
-        }
-        String hash = String.format("%08x", (purpose + "_" + testClass.getName()).hashCode());
-        return name.substring(0, MAX_IDENTIFIER - hash.length() - 1) + "_" + hash;
+        return databaseName(purpose, testClass.getName());
+    }
+
+    static String databaseName(String purpose, String className) {
+        String full = purpose + "_" + className;
+        String hash = String.format("%08x", full.hashCode());
+        String readable = full.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_]", "_");
+        int room = MAX_IDENTIFIER - hash.length() - 1;
+        return (readable.length() > room ? readable.substring(0, room) : readable) + "_" + hash;
     }
 
     private static String migratedTemplate(String purpose) {
@@ -86,7 +89,7 @@ public final class TestPostgres {
             default -> throw new IllegalArgumentException("no template for purpose " + purpose);
         }
         String template = "template_" + purpose;
-        execute("DROP DATABASE IF EXISTS " + template);
+        execute("DROP DATABASE IF EXISTS " + template + " WITH (FORCE)");
         execute("CREATE DATABASE " + template);
         try (Connection connection = connect(template)) {
             ScriptUtils.executeSqlScript(connection, new ClassPathResource("init-schemas.sql"));
