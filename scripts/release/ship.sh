@@ -27,8 +27,8 @@ need() {
 }
 
 # forcitis-one-release-pull.service TimeoutStartSec (3000) + timer period (60) + room for a run already in progress; deploy.yml allows
-# 75 minutes for the whole job
-WAIT_SECONDS=4200
+# 80 minutes for the whole job
+WAIT_SECONDS=4320
 POLL_SECONDS=15
 MAX_POLL_FAILURES=6
 # Same names, limit and hosts as the installer (remote_install.sh)

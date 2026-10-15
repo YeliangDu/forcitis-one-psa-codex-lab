@@ -67,8 +67,8 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: [self-hosted, forcitis-one-deploy]
     environment: ${{ inputs.environment }}
-    # Longer than ship.sh's wait for the ECS (4200 s) plus the steps before it
-    timeout-minutes: 75
+    # Longer than ship.sh's wait for the ECS (4320 s) plus the steps before it
+    timeout-minutes: 80
     permissions:
       contents: read
       actions: read

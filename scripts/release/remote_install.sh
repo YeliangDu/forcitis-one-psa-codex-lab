@@ -977,25 +977,31 @@ cmd_finish_interrupted() {
   stop_orphan_migrations
   ids="$(awk -F'\t' '{ state[$1] = $3 } END { for (id in state) if (state[id] == "started") print id }' "$PROCESSED" 2>/dev/null || true)"
   [ ! -f "$ACTIVATION" ] || read -r before target owner < "$ACTIVATION" || true
-  # Only a switch made by a pull whose request is still `started` is undone here; any other marker (an operator's rollback) stays
+  # Only a switch made by a pull whose request is still `started` is undone here. Any other marker (an operator's rollback, or a request
+  # already recorded) stays for an operator; this runs after every pull, so the alert is keyed by the marker's content and sent once.
   if [ -n "$target" ] && { [ "$owner" = "-" ] || ! printf '%s\n' "$ids" | grep -qx -- "$owner"; }; then
     alert_key="activation-$(sha256sum < "$ACTIVATION" | cut -c1-16)"
-    log "found an unconfirmed switch marker not made by an interrupted pull (${before} -> ${target}, request ${owner}); left for an operator"
-    if alert_due manual-switch-marker; then
-      send_alert manual-switch-marker "an unconfirmed switch ${before} -> ${target} (request ${owner}, - is a manual rollback) was found and left as it is; check with forcitis-one-release status (RELEASE.md §3, half-switched state)"
+    log "found an unconfirmed switch marker (${before} -> ${target}, request ${owner}) that no interrupted pull owns; left for an operator"
+    if alert_due unconfirmed-switch-marker; then
+      send_alert unconfirmed-switch-marker "found an unconfirmed switch marker (${before} -> ${target}, request ${owner}) and left it as it is; check with forcitis-one-release status (RELEASE.md §3, half-switched state)"
     fi
     alert_key=""
     target=""
   fi
   note="the run stopped before it finished (${SERVICE_RESULT:-unknown})"
   if [ -n "$target" ]; then
-    if [ "$before" != "-" ] && [ "$before" != "$target" ]; then
+    if [ "$before" = "-" ]; then
+      # No release to return to; the marker stays so that status shows the unconfirmed first installation
+      log "first installation: the switch to $target was not confirmed and the service is still running; check it by hand (RELEASE.md §3, half-switched state)"
+      note="$note; first installation: the switch to $target was not confirmed and the service is still running"
+    elif [ "$before" = "$target" ]; then
+      log "reinstalling the running release $target was not confirmed; $target is still current and running"
+      note="$note; reinstalling the running release $target was not confirmed; it is still current and running"
+      rm -f "$ACTIVATION"
+    else
       log "the run stopped while switching to $target; switching back to $before"
       switch_back "$before"
       note="$note; switched back: $switch_back_outcome"
-    else
-      log "first installation: the switch to $target was not confirmed and the service is still running; check it by hand (RELEASE.md §3, half-switched state)"
-      note="$note; first installation: the switch to $target was not confirmed and the service is still running"
     fi
   fi
   for id in $ids; do

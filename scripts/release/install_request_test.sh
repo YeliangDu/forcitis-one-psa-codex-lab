@@ -349,6 +349,7 @@ attempt() {
   (
     # shellcheck disable=SC2030
     PATH="$scratch/bin:$PATH"
+    # shellcheck disable=SC2030
     export FAKE_ASSETS="$case_dir/assets" FAKE_ALERTS="$case_dir/alerts" FAKE_CURRENT="$case_dir/current" \
       FAKE_SYSTEMCTL_LOG="$case_dir/systemctl"
     # shellcheck source=scripts/release/remote_install.sh
@@ -415,6 +416,10 @@ prepare_case() {
     interrupted-first) mkdir -m 0700 "$dir/state" && (umask 077 && printf '4242:1\t2026-10-15T00:00:00Z\tstarted\tv0.1.0\n' > "$dir/state/processed-requests") \
       && (umask 077 && printf -- '- 0.1.0 4242:1\n' > "$dir/state/activation") && ln -sfn releases/0.1.0 "$dir/current" ;;
     activation-unwritable) mkdir -m 0700 "$dir/state" && mkdir "$dir/state/activation" ;;
+    marker-succeeded) mkdir -m 0700 "$dir/state" && (umask 077 && printf '4242:1\t2026-10-15T00:00:00Z\tstarted\tv0.1.0\n4242:1\t2026-10-15T00:01:00Z\tsucceeded\tv0.1.0 x\n' > "$dir/state/processed-requests") \
+      && (umask 077 && printf '0.0.9 0.1.0 4242:1\n' > "$dir/state/activation") && ln -sfn releases/0.1.0 "$dir/current" ;;
+    reinstall-interrupted) mkdir -m 0700 "$dir/state" && (umask 077 && printf '4242:1\t2026-10-15T00:00:00Z\tstarted\tv0.1.0\n' > "$dir/state/processed-requests") \
+      && (umask 077 && printf '0.1.0 0.1.0 4242:1\n' > "$dir/state/activation") ;;
     alerted) mkdir -m 0700 "$dir/state" && (umask 077 && printf '4242:1 activation\t%s\n' "$(date +%s)" > "$dir/state/alerts-sent") ;;
   esac
   [ -z "${STALE_INCOMING:-}" ] || mkdir -p "$dir/releases/.incoming.Ab12Cd"
@@ -683,7 +688,7 @@ COMMAND=cmd_finish_interrupted attempt "$scratch/rollback-interrupted" dev 0.1.0
 set -e
 rollback_left_alone() {
   [ "$(cat "$1/switches")" = "0.0.9" ] && [ "$(readlink "$1/current")" = releases/0.0.9 ] && [ "$(cat "$1/state/activation")" = "0.1.0 0.0.9 -" ] \
-    && grep -q 'manual-switch-marker: an unconfirmed switch 0.1.0 -> 0.0.9 (request -, - is a manual rollback) was found and left as it is' "$1/alerts" \
+    && grep -q 'unconfirmed-switch-marker: found an unconfirmed switch marker (0.1.0 -> 0.0.9, request -) and left it as it is' "$1/alerts" \
     && ! grep -q 'switching back' "$1/out-finish"
 }
 expect rollback-interrupted "finish-interrupted keeps the rollback: no switch back, marker kept, one alert" rollback_left_alone
@@ -698,6 +703,23 @@ first_install_reported() {
     && grep -q '^UNCONFIRMED SWITCH (before target request; - = none / manual rollback): - 0.1.0 4242:1$' "$1/out-status"
 }
 expect first-install-interrupted "alert says the first installation is unconfirmed and running; status shows the marker" first_install_reported
+
+# A marker whose request already ended succeeded belongs to no interrupted pull: not undone, one alert
+PROCESSED_BEFORE=marker-succeeded RUNNING=0.0.9 COMMAND=cmd_finish_interrupted TWICE=yes check marker-of-finished-request ok
+marker_of_finished_left() {
+  [ ! -e "$1/switches" ] && [ "$(cat "$1/state/activation")" = "0.0.9 0.1.0 4242:1" ] && [ ! -e "$1/results" ] && one_alert "$1" \
+    && grep -q 'unconfirmed-switch-marker: found an unconfirmed switch marker (0.0.9 -> 0.1.0, request 4242:1) and left it as it is' "$1/alerts"
+}
+expect marker-of-finished-request "no switch back, marker kept, one alert across two runs, no result" marker_of_finished_left
+
+# Reinstalling the running version interrupted: nothing to switch back to; said so, and the marker is cleared (no repeated alerts)
+PROCESSED_BEFORE=reinstall-interrupted RUNNING=0.1.0 COMMAND=cmd_finish_interrupted check reinstall-interrupted ok
+reinstall_reported() {
+  [ ! -e "$1/switches" ] && [ ! -e "$1/state/activation" ] && result_is "$1" "4242:1,failed,terminated" \
+    && grep -q 'reinstalling the running release 0.1.0 was not confirmed; it is still current and running' "$1/alerts" \
+    && ! grep -q 'first installation' "$1/alerts"
+}
+expect reinstall-interrupted "same-version reinstall: its own wording, no switch, marker removed, request failed" reinstall_reported
 
 PROCESSED_BEFORE=activation-unwritable check activation-unwritable "reject:could not write"
 not_switched() { [ ! -e "$1/switches" ] && result_is "$1" "4242:1,started,- 4242:1,failed,activation"; }
@@ -715,6 +737,67 @@ expect same-version-unhealthy "same version unhealthy: back to previous, the ser
 RUNNING=0.1.0 FAKE_METRICS_FOR=none check same-version-unhealthy-alone "reject:there is no previous release; the service is left running"
 never_stopped() { ! grep -qx 'stop forcitis-one' "$1/systemctl"; }
 expect same-version-unhealthy-alone "no previous release: error only, the service is not stopped" never_stopped
+
+# Both migration paths run under systemd-run with the same run time limit (stand-ins for systemd-run, stat and install)
+mig="$scratch/migration"
+mkdir -p "$mig/bin" "$mig/etc/migrate" "$mig/releases/0.1.0" "$mig/logs"
+cat > "$mig/bin/systemd-run" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$MIG_LOG"
+for arg in "$@"; do
+  case "$arg" in StandardOutput=append:*) echo "Started OneApplication in 9.9 seconds" >> "${arg#StandardOutput=append:}" ;; esac
+done
+EOF
+cat > "$mig/bin/stat" <<'EOF'
+#!/usr/bin/env bash
+if [ "$1" = -c ]; then
+  format="${2//%U/%Su}"; format="${format//%a/%Lp}"
+  /usr/bin/stat -f "$format" "$3" | sed "s/^$(id -un)\([ :]\)/root\1/"
+else
+  exec /usr/bin/stat "$@"
+fi
+EOF
+cat > "$mig/bin/install" <<'EOF'
+#!/usr/bin/env bash
+# install -d [-o -g -m ...] <dir>: only the directory matters here
+exec mkdir -p "${!#}"
+EOF
+chmod +x "$mig/bin"/*
+for property in spring.flyway.user spring.flyway.password; do (umask 077 && echo "value-$property" > "$mig/etc/migrate/$property"); done
+chmod 0700 "$mig/etc/migrate"
+: > "$mig/etc/one.env"
+run_migration() {
+  python3 -I - "$mig/releases/0.1.0/forcitis-one.jar" "$1" <<'PY'
+import sys, zipfile
+with zipfile.ZipFile(sys.argv[1], "w") as jar:
+    jar.writestr("META-INF/MANIFEST.MF", "Manifest-Version: 1.0\n")
+    if sys.argv[2] == "migrate-mode":
+        jar.writestr("BOOT-INF/classes/application-migrate.properties", "spring.main.web-application-type=none\n")
+PY
+  (
+    # shellcheck disable=SC2030,SC2031
+    PATH="$mig/bin:$scratch/bin:$PATH"
+    # shellcheck disable=SC2030,SC2031
+    export MIG_LOG="$mig/systemd-run.log" FAKE_SYSTEMCTL_LOG="$mig/systemctl"
+    # shellcheck source=scripts/release/remote_install.sh
+    source "$here/remote_install.sh"
+    assert_root_owned() { :; }
+    ETC="$mig/etc" MIGRATION_CREDENTIALS="$mig/etc/migrate" RELEASE_LOGS="$mig/logs" releases="$mig/releases"
+    migrate 0.1.0 false
+  ) > "$mig/out-$1" 2>&1
+}
+if [ "$(uname -s)" = Darwin ]; then
+  run_migration migrate-mode && run_migration fallback
+  if [ "$(wc -l < "$mig/systemd-run.log" | tr -d ' ')" = 2 ] && [ "$(grep -c 'RuntimeMaxSec=900' "$mig/systemd-run.log")" = 2 ] \
+     && head -1 "$mig/systemd-run.log" | grep -q -- '--wait' && ! tail -1 "$mig/systemd-run.log" | grep -q -- '--wait'; then
+    pass "migration: both paths (migrate mode with --wait, startup fallback) run with RuntimeMaxSec=900"
+  else
+    flunk "migration: a path lacks RuntimeMaxSec=900" "$mig/systemd-run.log"
+  fi
+else
+  # The stat stand-in translates GNU format strings for macOS; on Linux the real stat needs root-owned files
+  pass "migration: RuntimeMaxSec check runs on the macOS CI runner only"
+fi
 
 exposure_case() {
   (
