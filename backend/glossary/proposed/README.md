@@ -210,22 +210,15 @@
 | `ui_outcome_result` | 结果 | OutcomeResult | 一次办理或一次计算得出的结论 |  |
 | `ui_advisory_note` | 加签建议 | AdvisoryNote | 加签人给出的参考意见，不算正式的办理结果 |  |
 
-## 历史数据迁入（`data-migration.yaml`，ADR-0036 提议）
+## 历史数据迁入（`data-migration.yaml`）
 
 | id | zh | en | 定义 | 是否疑似方言 |
 |---|---|---|---|---|
 | `migration_batch` | 迁入批次 | MigrationBatch | 一次历史数据迁入运行；批次挂在来源对照与原编号对照上，业务表不带批次列 | 「导入批次」`import_batch` 为另一种写法，R-1b 归并后列入禁用写法 |
-| `migration_reject` | 迁入拒收 | MigrationReject | 迁入时被拒绝的一条来源行，带原因代码，须逐条处置 |  |
-| `migration_tie_out` | 迁入核对 | MigrationTieOut | 按期间 × 法人 × 对象类型比对来源快照与目标的行数、金额、来源 ID 摘要 | 不用 Reconciliation（已批准为「经营勾稽」） |
-| `period_status__historical` | 历史期间 | Historical | 期间状态取值，终态：只接受迁入过账通道，不逐期关账 | 会计类用语，待财务确认 |
-| `migration_marker` | 迁入标记 | MigrationMarker | 事实行上区分原生与迁入的标记，只在事实行 |  |
-| `migration_posting_channel` | 迁入过账通道 | MigrationPostingChannel | 只供迁入用例的过账入口，期间可为历史期间，不发事件 |  |
-| `source_snapshot` | 来源快照 | SourceSnapshot | 批次开始时一次读出、之后只读的来源行 |  |
-| `migration_staging` | 迁入暂存 | MigrationStaging | 转换为目标形状的暂存表，校验与核对针对它 |  |
-| `migration_batch_status__*` | 暂存中 / 待核对 / 提交中 / 已生效 / 已冲销 / 已放弃 | Staging / AwaitingTieOut / Committing / Effective / Reversed / Abandoned | 迁入批次状态取值 |  |
-| `source_reference_status` | 对照状态 | SourceReferenceStatus | 来源对照行的当前 / 已冲销 |  |
 
-契约演进用语（`contract-evolution.yaml`，ADR-0035 提议）：`maintenance_mode` 维护模式、`event_quarantine` 隔离登记、`deprecation_register` 弃用登记。
+迁入的其余用语（拒收、核对、历史期间、迁入标记等）随 ADR-0036（另行 PR）登记。
+
+契约演进用语（`contract-evolution.yaml`，ADR-0035）：`maintenance_mode` 维护模式、`event_quarantine` 隔离登记、`deprecation_register` 弃用登记。
 
 通用词另增 `batch`、`count`（批量命令后缀与计数端点，NAMING_STANDARD §2.6 A-3、A-6）。
 
