@@ -260,6 +260,50 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
         return JsonPath.read(found.getContentAsString(), "$.items");
     }
 
+    /**
+     * Use cases without an HTTP entry (the timesheet module's) are called as the signed-in account would call them: the security context
+     * of this thread names the account, nothing else is given. {@link #signOut()} clears it.
+     */
+    protected static void actAs(UUID userId) {
+        org.springframework.security.core.context.SecurityContext context = org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated(userId.toString(), null,
+                List.of(new SimpleGrantedAuthority("ROLE_" + SessionRoles.ORDINARY))));
+        org.springframework.security.core.context.SecurityContextHolder.setContext(context);
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    protected void signOut() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+    }
+
+    /** Attributes the employee to the legal entity from the fixed today on, done by a maintainer who is someone else. */
+    protected void attributeEmployee(UUID maintainer, long employeeId, UUID legalEntity) throws Exception {
+        MockHttpServletResponse attributed = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .put("/api/v1/organization/employee-legal-entities/" + employeeId).header("If-Match", "\"0\"").with(csrf())
+                .with(as(maintainer, Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE, Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":\"" + legalEntity + "\",\"effectiveFrom\":\"" + TODAY.minusDays(30) + "\"}"))
+                .andReturn().getResponse();
+        if (attributed.getStatus() != 200) {
+            throw new AssertionError("attributing employee " + employeeId + " answered " + attributed.getStatus() + ": " + attributed.getContentAsString());
+        }
+    }
+
+    /** Puts the seeded numbering template of the document type in force, confirmed by someone who did not write it. */
+    protected void confirmSeededNumberingRule(String documentType, UUID approver) throws Exception {
+        String rule = "/api/v1/platform/numbering-rules/" + documentType;
+        RequestPostProcessor who = as(approver, Permission.Codes.PLATFORM_NUMBERING_RULE_READ, Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE);
+        MockHttpServletResponse read = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(rule).with(who)).andReturn().getResponse();
+        if (!read.getContentAsString().contains("\"pending\":{")) {
+            return;
+        }
+        int version = JsonPath.read(read.getContentAsString(), "$.pending.templateVersion");
+        MockHttpServletResponse confirmed = mvc.perform(post(rule + ":confirm").with(csrf()).with(who).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"templateVersion\":" + version + "}")).andReturn().getResponse();
+        if (confirmed.getStatus() != 200) {
+            throw new AssertionError("confirming the " + documentType + " template answered " + confirmed.getStatus() + ": " + confirmed.getContentAsString());
+        }
+    }
+
     protected void grantRole(UUID userId, String roleCode) throws SQLException {
         try (Connection identity = schemaConnection("platform_identity"); PreparedStatement insert = identity.prepareStatement(
                 "insert into account_roles (user_id, role_id) select ?, role_id from roles where code = ? on conflict do nothing")) {
