@@ -1,5 +1,8 @@
 package com.forcitis.one.platform.integration.infrastructure.connection;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
 import com.forcitis.one.platform.integration.api.ExternalCallKind;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Finding;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Reason;
@@ -21,11 +24,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.logging.LogLevel;
 import org.springframework.boot.logging.LoggingSystem;
+import org.springframework.boot.logging.logback.LogbackLoggingSystem;
 import org.springframework.context.ApplicationListener;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -38,7 +44,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
  * The read-only verification command (PAR-2, ADR-0037 item 4, C-14): with the profile read-only-verification the process checks the login of
  * one named read-only connection with {@link ReadOnlyBaseline}, prints one line per item (a)–(g) and a RESULT line, and ends before any
  * application context exists, so no web server, migration, job, process engine or event publication starts. Only the three environment
- * variables of that connection are read; a password, secret or credential on the command line is refused.
+ * variables of that connection are read, from the process environment only; a password, secret, credential or connection setting on the
+ * command line is refused. SQL Server only.
  * Exit code: 0 passed, 2 wrong usage, 3 violated (also with undeterminable items), 4 undetermined. 1 stays Spring Boot's failed start.
  */
 final class ReadOnlyVerificationCommand implements ApplicationListener<ApplicationEnvironmentPreparedEvent>, Ordered {
@@ -53,8 +60,10 @@ final class ReadOnlyVerificationCommand implements ApplicationListener<Applicati
 
     static final List<Character> ITEMS = List.of('a', 'b', 'c', 'd', 'e', 'f', 'g');
     static final List<String> REFUSED_OPTION_WORDS = List.of("password", "secret", "credential");
+    static final String SQL_SERVER_URL = "jdbc:sqlserver:";
+    static final String CONFLICTING_PROFILES = "migrate | identity-operations";
+    static final List<String> QUIET_LOGGERS = List.of("com.zaxxer.hikari", "com.microsoft.sqlserver", "org.postgresql", "org.springframework.jdbc");
 
-    /** Pool names of the running service (metric tag connection, ALERT lines) and the environment variables each reads, as in one.env. */
     enum ReadOnlyConnection {
         SEEYON_BACKGROUND("integration-seeyon-background", "A8_DB_URL", "A8_DB_USERNAME", "A8_DB_PASSWORD"),
         LEGACY("integration-legacy", "LEGACY_DB_RO_URL", "LEGACY_DB_RO_USERNAME", "LEGACY_DB_RO_PASSWORD"),
@@ -82,14 +91,21 @@ final class ReadOnlyVerificationCommand implements ApplicationListener<Applicati
         static String names() {
             return Arrays.stream(values()).map(c -> c.connectionName).collect(Collectors.joining("|"));
         }
+
+        static boolean isVariable(String optionName) {
+            String option = relaxed(optionName);
+            return Arrays.stream(values()).flatMap(c -> Stream.of(c.urlVariable, c.usernameVariable, c.passwordVariable))
+                    .anyMatch(variable -> relaxed(variable).equals(option));
+        }
     }
 
     private record Group(Reason reason, @Nullable SqlError failure) {
     }
 
+    /** Before MigrateOnlyListener, so that with migrate active as well the command refuses before any migration runs. */
     @Override
     public int getOrder() {
-        return Ordered.LOWEST_PRECEDENCE;
+        return Ordered.LOWEST_PRECEDENCE - 1;
     }
 
     @Override
@@ -99,12 +115,17 @@ final class ReadOnlyVerificationCommand implements ApplicationListener<Applicati
             return;
         }
         environment.getPropertySources().addFirst(new MapPropertySource(PROFILE, Map.of("spring.main.web-application-type", "none")));
-        silenceDriverAndPoolLogs();
         PrintStream out = new PrintStream(new FileOutputStream(FileDescriptor.out), true, StandardCharsets.UTF_8);
         PrintStream err = new PrintStream(new FileOutputStream(FileDescriptor.err), true, StandardCharsets.UTF_8);
         int exitCode;
         try {
-            exitCode = run(event.getArgs(), environment, out, err);
+            Optional<String> loud = silenceLogs();
+            if (loud.isPresent()) {
+                err.println("wrong usage: " + loud.get());
+                exitCode = EXIT_USAGE;
+            } else {
+                exitCode = run(event.getArgs(), environment, out, err);
+            }
         } catch (RuntimeException | Error unexpected) {
             err.println("read-only verification failed (" + unexpected.getClass().getSimpleName() + ")");
             exitCode = 1;
@@ -112,15 +133,32 @@ final class ReadOnlyVerificationCommand implements ApplicationListener<Applicati
         System.exit(exitCode);
     }
 
-    /** Pool and driver log lines can carry the server's message text; the command prints only the error number and SQLState. */
-    private static void silenceDriverAndPoolLogs() {
+    /**
+     * Every logger off, the configured ones (logging.level.*) included: pool and driver lines can carry the URL, the login or the server's
+     * message text. The command's own lines do not go through logging. Without Spring Boot's Logback (e.g. -Dorg.springframework.boot.logging
+     * .LoggingSystem=none leaves Logback at DEBUG) the logs cannot be switched off, so the command refuses to run.
+     */
+    static Optional<String> silenceLogs() {
         LoggingSystem logging = LoggingSystem.get(ReadOnlyVerificationCommand.class.getClassLoader());
-        for (String logger : List.of("com.zaxxer.hikari", "com.microsoft.sqlserver", "org.postgresql", "org.springframework.jdbc")) {
-            logging.setLogLevel(logger, LogLevel.OFF);
+        if (!(logging instanceof LogbackLoggingSystem) || !(LoggerFactory.getILoggerFactory() instanceof LoggerContext context)) {
+            return Optional.of("the command runs only with the application's own Logback logging, which it switches off; do not set "
+                    + LoggingSystem.SYSTEM_PROPERTY);
         }
+        logging.getLoggerConfigurations().forEach(configuration -> logging.setLogLevel(configuration.getName(), LogLevel.OFF));
+        logging.setLogLevel(LoggingSystem.ROOT_LOGGER_NAME, LogLevel.OFF);
+        QUIET_LOGGERS.forEach(name -> logging.setLogLevel(name, LogLevel.OFF));
+        context.getLoggerList().forEach(logger -> logger.setLevel(Level.OFF));
+        if (context.getLoggerList().stream().anyMatch(Logger::isErrorEnabled)) {
+            return Optional.of("logging could not be switched off");
+        }
+        return Optional.empty();
     }
 
     static int run(String[] arguments, ConfigurableEnvironment environment, PrintStream out, PrintStream err) {
+        if (environment.acceptsProfiles(Profiles.of(CONFLICTING_PROFILES))) {
+            err.println("wrong usage: the profile " + PROFILE + " runs alone, not with migrate or identity-operations");
+            return EXIT_USAGE;
+        }
         Optional<String> wrongUsage = wrongUsage(arguments);
         if (wrongUsage.isPresent()) {
             err.println("wrong usage: " + wrongUsage.get());
@@ -133,21 +171,19 @@ final class ReadOnlyVerificationCommand implements ApplicationListener<Applicati
         String url = variable(environment, connection.urlVariable, missing);
         String username = variable(environment, connection.usernameVariable, missing);
         String password = variable(environment, connection.passwordVariable, missing);
-        if (!missing.isEmpty()) {
-            err.println("wrong usage: the connection " + connection.connectionName + " is not configured, the environment lacks " + missing);
+        if (url == null || username == null || password == null) {
+            err.println("wrong usage: the connection " + connection.connectionName + " is not configured, the process environment lacks " + missing);
+            return EXIT_USAGE;
+        }
+        if (!url.startsWith(SQL_SERVER_URL)) {
+            err.println("wrong usage: " + connection.urlVariable + " is not a SQL Server JDBC URL (" + SQL_SERVER_URL + "...); the command checks SQL Server logins only");
             return EXIT_USAGE;
         }
         ExternalConnectionProperties properties = Binder.get(environment)
                 .bindOrCreate("forcitis.platform.integration.external-connection", ExternalConnectionProperties.class);
-        Verdict verdict;
-        try {
-            verdict = ExternalConnectionFactory.onOneConnection(properties.limitsOf(ExternalCallKind.BACKGROUND), connection.connectionName + "-verification",
-                    url, username, password, source -> ReadOnlyBaseline.check(new JdbcReadOnlyCatalog(JdbcClient.create(source))),
-                    failure -> ReadOnlyBaseline.check(unconnectable(failure)));
-        } catch (IllegalArgumentException unsupported) {
-            err.println("wrong usage: " + connection.urlVariable + " is neither a SQL Server nor a PostgreSQL JDBC URL");
-            return EXIT_USAGE;
-        }
+        Verdict verdict = ExternalConnectionFactory.onOneConnection(properties.limitsOf(ExternalCallKind.BACKGROUND),
+                connection.connectionName + "-verification", url, username, password,
+                source -> ReadOnlyBaseline.check(new JdbcReadOnlyCatalog(JdbcClient.create(source))), failure -> ReadOnlyBaseline.check(unconnectable(failure)));
         report(verdict, out);
         if (verdict.violated()) {
             return EXIT_VIOLATED;
@@ -173,6 +209,9 @@ final class ReadOnlyVerificationCommand implements ApplicationListener<Applicati
             if (REFUSED_OPTION_WORDS.stream().anyMatch(lower::contains)) {
                 return Optional.of("--" + name + " is refused: passwords, secrets and credentials are read from the environment only, never from the command line");
             }
+            if (ReadOnlyConnection.isVariable(name) || relaxed(name).equals("springapplicationjson")) {
+                return Optional.of("--" + name + " is refused: the connection settings are read from the process environment only, never from the command line");
+            }
         }
         long connections = Arrays.stream(arguments).filter(a -> a.startsWith("--" + CONNECTION_OPTION + "=")).count();
         if (connections != 1) {
@@ -189,15 +228,20 @@ final class ReadOnlyVerificationCommand implements ApplicationListener<Applicati
         return Arrays.stream(arguments).filter(a -> a.startsWith(prefix)).map(a -> a.substring(prefix.length())).findFirst().orElse("");
     }
 
-    private static String variable(ConfigurableEnvironment environment, String name, List<String> missing) {
-        String value = environment.getProperty(name);
-        if (value == null || value.isBlank()) {
-            missing.add(name);
+    /** The process environment only: not a -D system property, a command-line option or SPRING_APPLICATION_JSON. */
+    private static @Nullable String variable(ConfigurableEnvironment environment, String name, List<String> missing) {
+        if (environment.getSystemEnvironment().get(name) instanceof String value && !value.isBlank()) {
+            return value;
         }
-        return value;
+        missing.add(name);
+        return null;
     }
 
-    /** Item lines and the result line only: reason codes, counts, error numbers and SQLStates; never the problem text, which names roles and databases. */
+    private static String relaxed(String name) {
+        return name.replaceAll("[-_.]", "").toLowerCase(Locale.ROOT);
+    }
+
+    /** Never the problem text: it names roles and databases. */
     static void report(Verdict verdict, PrintStream out) {
         Map<Character, Unmet> byItem = verdict.unmet().stream().collect(Collectors.toMap(Unmet::item, Function.identity()));
         for (char item : ITEMS) {
