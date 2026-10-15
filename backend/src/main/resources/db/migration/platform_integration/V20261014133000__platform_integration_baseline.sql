@@ -149,6 +149,8 @@ CREATE TABLE platform_integration.source_references (
         CHECK ((decided_by IS NULL) = (decided_at IS NULL) AND (decided_by IS NULL OR confirmation_status <> 'PENDING')),
     CONSTRAINT ck_source_references_decider_is_not_author CHECK (created_by IS NULL OR decided_by IS NULL OR decided_by <> created_by),
     CONSTRAINT ck_source_references_manual_row_is_decided_by_someone CHECK (created_by IS NULL OR confirmation_status = 'PENDING' OR decided_by IS NOT NULL),
+    CONSTRAINT ck_source_references_accounting_code_is_manual_registration
+        CHECK (NOT (source_system = 'ACCOUNTING_SYSTEM' AND source_object_kind = 'LEGAL_ENTITY') OR created_by IS NOT NULL),
     CONSTRAINT ex_source_references_source_id EXCLUDE USING gist (source_system WITH =, source_object_kind WITH =, source_id WITH =, daterange(effective_from_date, effective_to_date, '[)') WITH &&) WHERE (confirmation_status = 'CONFIRMED' AND source_object_kind = 'LEGAL_ENTITY'),
     CONSTRAINT ex_source_references_own_id EXCLUDE USING gist (source_system WITH =, source_object_kind WITH =, own_id WITH =, daterange(effective_from_date, effective_to_date, '[)') WITH &&) WHERE (confirmation_status = 'CONFIRMED' AND source_object_kind = 'LEGAL_ENTITY')
 );

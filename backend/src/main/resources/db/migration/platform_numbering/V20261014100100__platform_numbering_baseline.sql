@@ -73,7 +73,7 @@ COMMENT ON COLUMN platform_numbering.legacy_numbers.document_id IS '单据：新
 COMMENT ON COLUMN platform_numbering.legacy_numbers.legal_entity_id IS '法人主体 ID；导入时推不出法人的原编号留空，原编号仍可检索（D-1a-152）';
 COMMENT ON COLUMN platform_numbering.legacy_numbers.migration_batch_id IS '迁入批次 ID：写入这条对照的迁入批次，便于整批核对与回溯；批次登记在 platform_integration（ADR-0036），跨 schema 只按 ID 引用，不建外键';
 COMMENT ON COLUMN platform_numbering.legacy_numbers.created_at IS '创建时间';
-COMMENT ON COLUMN platform_numbering.legacy_numbers.updated_at IS '更新时间';
+COMMENT ON COLUMN platform_numbering.legacy_numbers.updated_at IS '更新时间（行不可更新，恒等于创建时间）';
 
 CREATE FUNCTION platform_numbering.reject_legacy_number_change() RETURNS trigger
     LANGUAGE plpgsql AS $$

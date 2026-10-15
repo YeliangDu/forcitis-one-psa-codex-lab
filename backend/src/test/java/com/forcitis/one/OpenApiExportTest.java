@@ -191,7 +191,11 @@ class OpenApiExportTest {
         assertThat(typesByComponent).as("the walk found components").containsKeys("SourceReferenceResponse", "NumberingRuleResponse", "SourceObjectKind");
         assertThat(typesByComponent.entrySet().stream().filter(entry -> entry.getValue().size() > 1).map(entry -> entry.getKey() + " names " + entry.getValue()).toList())
                 .as("one component name stands for one Java type: give one of the classes @Schema(name = ...)").isEmpty();
+        assertThat(typesByComponent.keySet()).as("OpenApiProblems writes these components itself; a Java type of the same name would be overwritten")
+                .doesNotContainAnyElementsOf(OPENAPI_PROBLEMS_COMPONENTS);
     }
+
+    private static final Set<String> OPENAPI_PROBLEMS_COMPONENTS = Set.of("ErrorCode", "ProblemDetail");
 
     private static final String COMPONENT_PREFIX = "#/components/schemas/";
 
