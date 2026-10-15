@@ -68,7 +68,7 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
                 .param("id", opened.requestId().value()).param("kind", opened.kind().name()).param("by", opened.requestedBy().value())
                 .param("at", OffsetDateTime.ofInstant(opened.requestedAt(), ZoneOffset.UTC))
                 .param("subject", opened.subjectUser() == null ? null : opened.subjectUser().value(), Types.BIGINT)
-                .param("role", opened.roleId() == null ? null : opened.roleId().value(), Types.BIGINT)
+                .param("role", opened.roleId() == null ? null : opened.roleId().value(), Types.OTHER)
                 .param("roleCodes", opened.roleCodes().toArray(String[]::new))
                 .param("newCode", draft == null ? null : draft.code(), Types.VARCHAR)
                 .param("roleName", draft == null ? null : draft.name(), Types.VARCHAR)
@@ -103,14 +103,13 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
                         rs.getString("access_scope_kind") == null ? null : AccessScopeKind.valueOf(rs.getString("access_scope_kind")), strings(rs, "permission_codes"));
         long subject = rs.getLong("subject_user_id");
         boolean noSubject = rs.wasNull();
-        long role = rs.getLong("role_id");
-        boolean noRole = rs.wasNull();
+        UUID role = rs.getObject("role_id", UUID.class);
         long decided = rs.getLong("decided_by");
         boolean notDecided = rs.wasNull();
         OffsetDateTime decidedAt = rs.getObject("decided_at", OffsetDateTime.class);
         return AuthorizationRequest.restore(new AuthorizationRequestId(rs.getObject("request_id", UUID.class)),
                 AuthorizationRequestKind.valueOf(rs.getString("request_kind")), new UserId(rs.getLong("requested_by")),
-                rs.getObject("requested_at", OffsetDateTime.class).toInstant(), noSubject ? null : new UserId(subject), noRole ? null : new RoleId(role),
+                rs.getObject("requested_at", OffsetDateTime.class).toInstant(), noSubject ? null : new UserId(subject), role == null ? null : new RoleId(role),
                 strings(rs, "role_codes"), draft, rs.getString("request_status"), notDecided ? null : new UserId(decided),
                 decidedAt == null ? null : decidedAt.toInstant(), rs.getLong("version"), rs.getLong("event_count"));
     }

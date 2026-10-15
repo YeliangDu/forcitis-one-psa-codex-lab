@@ -1,22 +1,23 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.organization.workforce.domain.RunStats;
 import com.forcitis.one.organization.workforce.domain.SyncRunRecord;
 import com.forcitis.one.kernel.UserId;
 import java.time.Instant;
 import java.util.List;
 
-public record SyncRunView(long syncRunId, String trigger, String status, Instant startedAt, Instant finishedAt,
+public record SyncRunView(SyncRunId syncRunId, String trigger, String status, Instant startedAt, Instant finishedAt,
                           Integer sourceOrgUnitCount, Integer sourceEmployeeCount, Integer incomingActiveOrgUnitCount,
                           Integer incomingEmployedCount, Integer previousActiveOrgUnitCount,
                           Integer previousEmployedCount, Integer orgUnitChangeCount, Integer employeeChangeCount,
                           Integer positionChangeCount, Integer isolatedRowCount, Integer issueCount,
                           Integer employedWithoutWecomCount, String heldReason, String failureReason, Long releasedBy,
-                          Instant releasedAt, Long releasedByRunId, List<String> holdKinds, List<String> releasedKinds,
+                          Instant releasedAt, SyncRunId releasedByRunId, List<String> holdKinds, List<String> releasedKinds,
                           List<Long> heldSeparations) {
     static SyncRunView of(SyncRunRecord run) {
         RunStats s = run.stats();
-        return new SyncRunView(run.syncRunId().value(), run.trigger().name(), run.status().name(), run.startedAt(),
+        return new SyncRunView(run.syncRunId(), run.trigger().name(), run.status().name(), run.startedAt(),
                 run.finishedAt(),
                 s == null ? null : s.sourceOrgUnitCount(), s == null ? null : s.sourceEmployeeCount(),
                 s == null ? null : s.incomingActiveOrgUnitCount(), s == null ? null : s.incomingEmployedCount(),
@@ -26,7 +27,7 @@ public record SyncRunView(long syncRunId, String trigger, String status, Instant
                 s == null ? null : s.issueCount(), s == null ? null : s.employedWithoutWecomCount(),
                 run.heldReason(), run.failureReason(),
                 run.releasedBy() == null ? null : run.releasedBy().value(), run.releasedAt(),
-                run.releasedByRunId() == null ? null : run.releasedByRunId().value(),
+                run.releasedByRunId(),
                 run.holdKinds().stream().map(Enum::name).sorted().toList(), run.releasedKinds().stream().map(Enum::name).sorted().toList(),
                 run.heldSeparations().stream().map(UserId::value).toList());
     }

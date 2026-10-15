@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -46,7 +47,7 @@ class JdbcAccountRepository implements AccountRepository {
         }
         UserAccount account = found.get();
         Set<RoleId> roles = new HashSet<>(jdbc.sql("select role_id from platform_identity.account_roles where user_id = :id")
-                .param("id", userId.value()).query(Long.class).list().stream().map(RoleId::new).toList());
+                .param("id", userId.value()).query(UUID.class).list().stream().map(RoleId::new).toList());
         return Optional.of(UserAccount.restore(account.userId(), account.status().name(), roles, account.version(), account.eventSequence()));
     }
 

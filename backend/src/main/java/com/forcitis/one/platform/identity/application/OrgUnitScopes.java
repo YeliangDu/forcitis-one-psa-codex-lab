@@ -2,19 +2,17 @@ package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
-import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.OrgUnitAccess;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
-import com.forcitis.one.platform.identity.api.AccessGrant;
-import com.forcitis.one.platform.identity.api.AccessScope;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.domain.AccessScopeCalculator;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,8 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 class OrgUnitScopes implements OrgUnitAccess {
-
-    private static final LegalEntityId NOT_USED = new LegalEntityId(1);
 
     private final CurrentUser currentUser;
     private final AccountRepository accounts;
@@ -48,17 +44,12 @@ class OrgUnitScopes implements OrgUnitAccess {
                     .map(role -> new AccessScopeCalculator.RoleScope(role.accessScope(), true, Set.of()))
                     .toList();
             var home = directory.findEmployee(userId).map(employee -> employee.orgUnitId());
-            AccessScope scope = AccessScopeCalculator.calculate(
-                    new AccessScopeCalculator.Person(userId, NOT_USED, home.orElse(null), Set.of()), roles);
-            if (scope.unrestricted()) {
+            AccessScopeCalculator.OrgUnitReach reach = AccessScopeCalculator.orgUnitReach(home.orElse(null), roles);
+            if (reach.unrestricted()) {
                 return Visible.all();
             }
-            Set<Long> units = new HashSet<>();
-            Set<Long> subtrees = new HashSet<>();
-            for (AccessGrant grant : scope.grants()) {
-                (grant.withDescendants() ? subtrees : units).add(grant.orgUnitId().value());
-            }
-            return new Visible(false, units, subtrees);
+            return new Visible(false, reach.units().stream().map(OrgUnitId::value).collect(Collectors.toSet()),
+                    reach.subtrees().stream().map(OrgUnitId::value).collect(Collectors.toSet()));
         } catch (DomainException refusal) {
             throw refusal;
         } catch (RuntimeException failure) {

@@ -132,16 +132,16 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
     @DisplayName("RULE-278 the database itself refuses a duplicate (process type, document, round) and a second round started by the same event")
     void roundsAreUniqueInTheDatabase() {
         String key = newKey("unique");
-        jdbc.update("insert into platform_approval.approval_requests (process_key, document_type, document_key, legal_entity_id, initiator_id,"
-                + " current_round, status, summary_text) values ('COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, 1, 5, 1, 'RUNNING', 's')", key);
+        jdbc.update("insert into platform_approval.approval_requests (id, process_key, document_type, document_key, legal_entity_id, initiator_id,"
+                + " current_round, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, '" + LEGAL_ENTITY.value() + "', 5, 1, 'RUNNING', 's')", key);
         String event = java.util.UUID.randomUUID().toString();
-        jdbc.update("insert into platform_approval.start_rounds (process_key, document_key, round_number, initiator_id, instance_id,"
-                + " trigger_event_id) values ('COST_TIMESHEET_APPROVAL', ?, 1, 5, 'a', ?::uuid)", key, event);
-        assertThatThrownBy(() -> jdbc.update("insert into platform_approval.start_rounds (process_key, document_key, round_number,"
-                + " initiator_id, instance_id, trigger_event_id) values ('COST_TIMESHEET_APPROVAL', ?, 1, 5, 'b', gen_random_uuid())", key))
+        jdbc.update("insert into platform_approval.start_rounds (id, process_key, document_key, round_number, initiator_id, instance_id,"
+                + " trigger_event_id) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', ?, 1, 5, 'a', ?::uuid)", key, event);
+        assertThatThrownBy(() -> jdbc.update("insert into platform_approval.start_rounds (id, process_key, document_key, round_number,"
+                + " initiator_id, instance_id, trigger_event_id) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', ?, 1, 5, 'b', gen_random_uuid())", key))
                 .isInstanceOf(DuplicateKeyException.class);
-        assertThatThrownBy(() -> jdbc.update("insert into platform_approval.start_rounds (process_key, document_key, round_number,"
-                + " initiator_id, instance_id, trigger_event_id) values ('COST_TIMESHEET_APPROVAL', ?, 2, 5, 'b', ?::uuid)", key, event))
+        assertThatThrownBy(() -> jdbc.update("insert into platform_approval.start_rounds (id, process_key, document_key, round_number,"
+                + " initiator_id, instance_id, trigger_event_id) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', ?, 2, 5, 'b', ?::uuid)", key, event))
                 .isInstanceOf(DuplicateKeyException.class);
     }
 
@@ -149,10 +149,10 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
     @DisplayName("RULE-264 the request table is unique per (process type, document)")
     void requestsAreUniqueInTheDatabase() {
         String key = newKey("unique-request");
-        jdbc.update("insert into platform_approval.approval_requests (process_key, document_type, document_key, legal_entity_id, initiator_id,"
-                + " current_round, status, summary_text) values ('COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, 1, 5, 1, 'RUNNING', 's')", key);
-        assertThatThrownBy(() -> jdbc.update("insert into platform_approval.approval_requests (process_key, document_type, document_key,"
-                + " legal_entity_id, initiator_id, current_round, status, summary_text) values ('COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, 1, 6, 1,"
+        jdbc.update("insert into platform_approval.approval_requests (id, process_key, document_type, document_key, legal_entity_id, initiator_id,"
+                + " current_round, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, '" + LEGAL_ENTITY.value() + "', 5, 1, 'RUNNING', 's')", key);
+        assertThatThrownBy(() -> jdbc.update("insert into platform_approval.approval_requests (id, process_key, document_type, document_key,"
+                + " legal_entity_id, initiator_id, current_round, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', ?, '" + LEGAL_ENTITY.value() + "', 6, 1,"
                 + " 'RUNNING', 's')", key)).isInstanceOf(DuplicateKeyException.class);
     }
 

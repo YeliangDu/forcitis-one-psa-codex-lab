@@ -3,6 +3,7 @@ package com.forcitis.one.platform.approval.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.fixture.doubles.TestEventEnvelopes;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
@@ -44,12 +45,12 @@ class ApprovalRequestStateMachineTest {
     static final TestEventEnvelopes ENVELOPES = new TestEventEnvelopes();
 
     static ApprovalRequest in(ApprovalStatus status) {
-        return ApprovalRequest.restore(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(1), INITIATOR, 2,
+        return ApprovalRequest.restore(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, 2,
                 new ApprovalInstanceId("i-2"), status, null, SUMMARY, List.of(), 5, 3);
     }
 
     static ApprovalRequest begun() {
-        return ApprovalRequest.begin(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(1), INITIATOR,
+        return ApprovalRequest.begin(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR,
                 new ApprovalInstanceId("i-1"), SUMMARY, UUID.randomUUID(), NOW);
     }
 
@@ -130,7 +131,7 @@ class ApprovalRequestStateMachineTest {
             assertThat(completed.envelope().aggregateType()).isEqualTo("ApprovalRequest");
             assertThat(completed.envelope().aggregateId()).isEqualTo("TIMESHEET:7");
             assertThat(completed.envelope().aggregateVersion()).as("the event sequence continues after the 3 events recorded before").isEqualTo(4);
-            assertThat(completed.envelope().legalEntityId()).isEqualTo(new LegalEntityId(1));
+            assertThat(completed.envelope().legalEntityId()).isEqualTo(new LegalEntityId(TestIds.uuid(1)));
             assertThat(completed.envelope().businessDate()).isEqualTo(TODAY);
             assertThat(request.eventSequence()).isEqualTo(4);
             assertThat(request.version()).as("the lock version moves once per save, whatever the number of events").isEqualTo(6);

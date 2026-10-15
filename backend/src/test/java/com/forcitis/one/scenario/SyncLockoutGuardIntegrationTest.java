@@ -125,11 +125,11 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
         return jdbc.sql("select employment_status from organization_workforce.employees where id = :id").param("id", userId).query(String.class).single();
     }
 
-    private String status(long runId) {
+    private String status(UUID runId) {
         return jdbc.sql("select status from organization_workforce.sync_runs where id = :id").param("id", runId).query(String.class).single();
     }
 
-    private MvcResult release(String session, long runId, String reason) throws Exception {
+    private MvcResult release(String session, UUID runId, String reason) throws Exception {
         return mvc.perform(post(RUNS + "/" + runId + ":release").with(xsrf()).cookie(new Cookie("SESSION", session))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"" + reason + "\"}")).andReturn();
     }
@@ -186,7 +186,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("ADR-0028 rule 1: an organisation data administrator, who may run syncs, cannot lift an administrator-separation hold")
     void theOrgDataAdministratorCannotLiftTheSeparationHold() throws Exception {
-        long held = syncWith(without(1)).syncRunId().value();
+        UUID held = syncWith(without(1)).syncRunId().value();
 
         MvcResult refused = release(ordinarySession(7), held, "please");
 
@@ -199,7 +199,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("ADR-0028 rule 1: a retained super_admin lifts it in the administrator mode; the release is audited with its reason and raises an alert")
     void aRetainedSuperAdministratorReleasesInTheAdministratorMode(CapturedOutput output) throws Exception {
-        long held = syncWith(without(1)).syncRunId().value();
+        UUID held = syncWith(without(1)).syncRunId().value();
 
         MvcResult released = release(administratorSession(2), held, "leaver confirmed by HR");
 
@@ -218,7 +218,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("ADR-0028 rule 1: a retained security auditor lifts it in an ordinary session")
     void aRetainedAuditorReleasesInAnOrdinarySession() throws Exception {
-        long held = syncWith(without(1)).syncRunId().value();
+        UUID held = syncWith(without(1)).syncRunId().value();
 
         MvcResult released = release(ordinarySession(3), held, "leaver confirmed by HR");
 
@@ -231,7 +231,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("ADR-0028 rule 1: someone on the separation list cannot lift it, whichever role they hold")
     void thoseLeavingCannotRelease() throws Exception {
-        long held = syncWith(without(1, 3)).syncRunId().value();
+        UUID held = syncWith(without(1, 3)).syncRunId().value();
 
         MvcResult leavingSuperAdministrator = release(administratorSession(1), held, "me");
         MvcResult leavingAuditor = release(ordinarySession(3), held, "me");
@@ -244,7 +244,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("ADR-0028 rule 1: with both kinds of hold, each is lifted by its own entitled person and the run stays HELD until both are")
     void bothKindsAreLiftedSeparately() throws Exception {
-        long held = syncWith(without(1, 8, 9)).syncRunId().value();
+        UUID held = syncWith(without(1, 8, 9)).syncRunId().value();
         assertThat(jdbc.sql("select hold_kind_codes::text from organization_workforce.sync_runs where id = :id").param("id", held).query(String.class).single())
                 .contains("SHRINK_GUARD").contains("ADMINISTRATOR_SEPARATION");
 
@@ -266,7 +266,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("ADR-0028 rule 2: when no usable super_admin would remain the screen refuses; only the operations command releases")
     void noSuperAdministratorLeftIsRefused() throws Exception {
-        long held = syncWith(without(1, 2)).syncRunId().value();
+        UUID held = syncWith(without(1, 2)).syncRunId().value();
 
         MvcResult refused = release(ordinarySession(3), held, "all gone");
 
@@ -279,7 +279,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("ADR-0028 rule 2: a new super_admin among the leavers when the run is re-run puts it back on hold")
     void aNewAdministratorInTheListHoldsAgain() throws Exception {
-        long held = syncWith(without(1)).syncRunId().value();
+        UUID held = syncWith(without(1)).syncRunId().value();
         sourceNowSays(1, 2);
 
         MvcResult again = release(ordinarySession(3), held, "leaver confirmed by HR");
@@ -298,7 +298,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("ADR-0028 rule 3: an emergency session cannot release while the person is not in the organisation snapshot")
     void anEmergencySessionNeedsTheSnapshot() throws Exception {
-        long held = syncWith(without(1)).syncRunId().value();
+        UUID held = syncWith(without(1)).syncRunId().value();
 
         MvcResult refused = release(emergencySession(8), held, "break glass");
 
@@ -309,7 +309,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("ADR-0028 rule 3: the held view needs sync-run:read or separation-hold:approve; holders of the second see no other run and no detail")
     void theHeldView() throws Exception {
-        long held = syncWith(without(1)).syncRunId().value();
+        UUID held = syncWith(without(1)).syncRunId().value();
 
         assertThat(getAs(ordinarySession(9), "?status=HELD").getResponse().getStatus()).isEqualTo(403);
         MvcResult view = getAs(administratorSession(2), "?status=HELD");
@@ -323,7 +323,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("a release without a reason is refused")
     void aReasonIsRequired() throws Exception {
-        long held = syncWith(without(1)).syncRunId().value();
+        UUID held = syncWith(without(1)).syncRunId().value();
 
         MvcResult refused = release(administratorSession(2), held, " ");
 
@@ -342,7 +342,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("INT-ADR-H2 aFailedRerunTakesTheLiftsBack: when the source cannot be read at release time the held run keeps nothing half lifted, and the same person can release it again")
     void aFailedRerunTakesTheLiftsBack() throws Exception {
-        long held = syncWith(without(1)).syncRunId().value();
+        UUID held = syncWith(without(1)).syncRunId().value();
         String administrator = administratorSession(2);
 
         when(orgSource.readSnapshot()).thenThrow(new IllegalStateException("source is down"));

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.Uuids;
@@ -33,7 +34,7 @@ class EventingTest {
     static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
 
     static EventDraft draft() {
-        return new EventDraft("platform.eventing.Probe", 1, "Probe", "7", 3, new LegalEntityId(1), LocalDate.of(2026, 10, 14),
+        return new EventDraft("platform.eventing.Probe", 1, "Probe", "7", 3, new LegalEntityId(TestIds.uuid(1)), LocalDate.of(2026, 10, 14),
                 new EventSource(SourceSystem.ONE, null), List.of());
     }
 
@@ -70,7 +71,7 @@ class EventingTest {
             assertThat(envelope.eventType()).isEqualTo("platform.eventing.Probe");
             assertThat(envelope.aggregateId()).isEqualTo("7");
             assertThat(envelope.aggregateVersion()).isEqualTo(3);
-            assertThat(envelope.legalEntityId()).isEqualTo(new LegalEntityId(1));
+            assertThat(envelope.legalEntityId()).isEqualTo(new LegalEntityId(TestIds.uuid(1)));
             assertThat(envelope.businessDate()).isEqualTo(LocalDate.of(2026, 10, 14));
             assertThat(envelope.accountingPeriod()).as("only the posting pipeline sets it").isNull();
             assertThat(envelope.correlationId()).isEqualTo(correlation);

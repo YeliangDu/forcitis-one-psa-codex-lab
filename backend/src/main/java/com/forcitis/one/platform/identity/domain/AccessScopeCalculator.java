@@ -8,6 +8,7 @@ import com.forcitis.one.platform.identity.api.AccessScope;
 import com.forcitis.one.platform.identity.api.AccessScopeKind;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 /** Nothing enabled, or nothing granted, gives AccessScope.none(), never "everything". */
@@ -29,7 +30,38 @@ public final class AccessScopeCalculator {
         }
     }
 
+    /** The org units a person reaches through roles, apart from legal entities and people: units shown as such, and units shown with everything below them. */
+    public record OrgUnitReach(boolean unrestricted, Set<OrgUnitId> units, Set<OrgUnitId> subtrees) {
+
+        public OrgUnitReach {
+            units = Set.copyOf(units);
+            subtrees = Set.copyOf(subtrees);
+        }
+    }
+
     private AccessScopeCalculator() {
+    }
+
+    /** A role with an own-unit scope needs the home unit: without one the call fails instead of reaching nothing quietly. */
+    public static OrgUnitReach orgUnitReach(OrgUnitId home, Collection<RoleScope> roles) {
+        Set<OrgUnitId> units = new HashSet<>();
+        Set<OrgUnitId> subtrees = new HashSet<>();
+        for (RoleScope role : roles) {
+            if (!role.enabled()) {
+                continue;
+            }
+            switch (role.kind()) {
+                case ALL -> {
+                    return new OrgUnitReach(true, Set.of(), Set.of());
+                }
+                case CUSTOM_ORG_UNITS -> units.addAll(role.customOrgUnits());
+                case OWN_ORG_UNIT -> units.add(Objects.requireNonNull(home, "orgUnitId"));
+                case OWN_ORG_UNIT_SUBTREE -> subtrees.add(Objects.requireNonNull(home, "orgUnitId"));
+                case SELF, SELF_AND_DIRECT_REPORTS -> {
+                }
+            }
+        }
+        return new OrgUnitReach(false, units, subtrees);
     }
 
     public static AccessScope calculate(Person person, Collection<RoleScope> roles) {

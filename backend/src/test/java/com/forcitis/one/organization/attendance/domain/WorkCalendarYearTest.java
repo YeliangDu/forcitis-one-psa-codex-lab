@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.attendance.domain;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.organization.attendance.api.DayKind;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -69,7 +70,7 @@ class WorkCalendarYearTest {
     @Test
     @DisplayName("maintaining records one WorkCalendarYearMaintained with the aggregate version and no legal entity for the default calendar")
     void maintainingRecordsTheEvent() {
-        WorkCalendarYear year = WorkCalendarYear.restore(7, WorkCalendarKey.defaultFor(2026), List.of(), 3, 3);
+        WorkCalendarYear year = WorkCalendarYear.restore(TestIds.uuid(7), WorkCalendarKey.defaultFor(2026), List.of(), 3, 3);
         year.maintain(List.of(day("2026-10-01", DayKind.HOLIDAY)), TODAY, false);
 
         List<DomainEvent> events = year.drainEvents(ENVELOPES);
@@ -86,7 +87,7 @@ class WorkCalendarYearTest {
     @Test
     @DisplayName("the event names exactly the days this save added, removed or changed, in date order, and has no businessDate")
     void eventNamesTheChangedDays() {
-        WorkCalendarYear year = WorkCalendarYear.restore(7, WorkCalendarKey.defaultFor(2026),
+        WorkCalendarYear year = WorkCalendarYear.restore(TestIds.uuid(7), WorkCalendarKey.defaultFor(2026),
                 List.of(day("2026-10-01", DayKind.HOLIDAY), day("2026-10-02", DayKind.HOLIDAY), day("2026-10-10", DayKind.MAKE_UP_WORKDAY)), 3, 3);
 
         year.maintain(List.of(day("2026-10-01", DayKind.HOLIDAY), day("2026-10-02", DayKind.HOLIDAY),
@@ -101,7 +102,7 @@ class WorkCalendarYearTest {
     @Test
     @DisplayName("T2 a day before today cannot be added, removed or changed without the confirmation; the refusal leaves the calendar untouched")
     void daysBeforeTodayAreLocked() {
-        WorkCalendarYear year = WorkCalendarYear.restore(7, WorkCalendarKey.defaultFor(2026),
+        WorkCalendarYear year = WorkCalendarYear.restore(TestIds.uuid(7), WorkCalendarKey.defaultFor(2026),
                 List.of(day("2026-10-03", DayKind.MAKE_UP_WORKDAY), day("2026-10-10", DayKind.MAKE_UP_WORKDAY)), 3, 3);
         LocalDate today = LocalDate.parse("2026-10-14");
 
@@ -119,7 +120,7 @@ class WorkCalendarYearTest {
     @Test
     @DisplayName("T2 days from today on stay editable, and an unchanged past does not need the confirmation")
     void todayAndLaterAreEditable() {
-        WorkCalendarYear year = WorkCalendarYear.restore(7, WorkCalendarKey.defaultFor(2026), List.of(day("2026-10-01", DayKind.HOLIDAY)), 3, 3);
+        WorkCalendarYear year = WorkCalendarYear.restore(TestIds.uuid(7), WorkCalendarKey.defaultFor(2026), List.of(day("2026-10-01", DayKind.HOLIDAY)), 3, 3);
         LocalDate today = LocalDate.parse("2026-10-14");
 
         year.maintain(List.of(day("2026-10-01", DayKind.HOLIDAY), day("2026-10-14", DayKind.HOLIDAY), day("2026-12-25", DayKind.HOLIDAY)), today, false);
@@ -131,7 +132,7 @@ class WorkCalendarYearTest {
     @Test
     @DisplayName("T2 with the confirmation a past day can change, and WorkCalendarLockedDaysChanged names exactly the changed past days")
     void confirmedChangeIsRecorded() {
-        WorkCalendarYear year = WorkCalendarYear.restore(7, WorkCalendarKey.defaultFor(2026), List.of(day("2026-10-01", DayKind.HOLIDAY)), 3, 3);
+        WorkCalendarYear year = WorkCalendarYear.restore(TestIds.uuid(7), WorkCalendarKey.defaultFor(2026), List.of(day("2026-10-01", DayKind.HOLIDAY)), 3, 3);
 
         year.maintain(List.of(day("2026-10-03", DayKind.MAKE_UP_WORKDAY), day("2026-10-20", DayKind.HOLIDAY)), LocalDate.parse("2026-10-14"), true);
 
@@ -149,7 +150,7 @@ class WorkCalendarYearTest {
     @Test
     @DisplayName("saving a year as it already is names no day: it only says the year has been checked")
     void unchangedYearNamesNoDay() {
-        WorkCalendarYear year = WorkCalendarYear.restore(7, WorkCalendarKey.defaultFor(2026), List.of(day("2026-10-01", DayKind.HOLIDAY)), 3, 3);
+        WorkCalendarYear year = WorkCalendarYear.restore(TestIds.uuid(7), WorkCalendarKey.defaultFor(2026), List.of(day("2026-10-01", DayKind.HOLIDAY)), 3, 3);
 
         year.maintain(List.of(day("2026-10-01", DayKind.HOLIDAY)), TODAY, false);
 
@@ -160,7 +161,7 @@ class WorkCalendarYearTest {
     @Test
     @DisplayName("a day that changes kind is named")
     void changedKindIsNamed() {
-        WorkCalendarYear year = WorkCalendarYear.restore(7, WorkCalendarKey.defaultFor(2026), List.of(day("2026-10-10", DayKind.MAKE_UP_WORKDAY)), 3, 3);
+        WorkCalendarYear year = WorkCalendarYear.restore(TestIds.uuid(7), WorkCalendarKey.defaultFor(2026), List.of(day("2026-10-10", DayKind.MAKE_UP_WORKDAY)), 3, 3);
 
         year.maintain(List.of(day("2026-10-10", DayKind.HOLIDAY)), TODAY, false);
 
