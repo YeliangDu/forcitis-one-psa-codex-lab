@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.integration.infrastructure.connection;
 
 import com.forcitis.one.platform.integration.api.ExternalCallKind;
-import com.forcitis.one.platform.integration.api.ExternalConnections;
+import com.forcitis.one.platform.integration.domain.ExternalConnections;
 import com.forcitis.one.platform.integration.infrastructure.connection.ExternalConnectionProperties.Limits;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;

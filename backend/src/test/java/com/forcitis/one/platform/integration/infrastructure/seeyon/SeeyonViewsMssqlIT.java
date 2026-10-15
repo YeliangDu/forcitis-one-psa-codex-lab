@@ -6,12 +6,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.forcitis.one.TestImages;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
+import com.forcitis.one.platform.integration.api.SourceOrgUnit;
 import com.forcitis.one.platform.integration.api.SourcePerson;
-import com.forcitis.one.platform.integration.api.SourcePersonId;
 import com.forcitis.one.platform.integration.api.SourceRecordState;
 import com.forcitis.one.platform.integration.api.SourceRegionKind;
 import com.forcitis.one.platform.integration.api.SourceRelationshipKind;
-import com.forcitis.one.platform.integration.api.SourceUnitId;
+import com.forcitis.one.platform.integration.application.InMemorySourceReferences;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -33,6 +33,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mssqlserver.MSSQLServerContainer;
 import org.testcontainers.utility.DockerImageName;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 
 /** Real SQL Server (Testcontainers), only under Maven profile legacy-it. */
 @Testcontainers
@@ -155,36 +156,36 @@ class SeeyonViewsMssqlIT {
     @Test
     @DisplayName("§9a the views are read through the ownership chain and map to the domain with the shared mapper")
     void viewsAreReadAndMapped() {
-        SourceOrgSnapshot snapshot = new SeeyonOrgSource(reader, reader, MAPPING, () -> { }).readSnapshot();
+        SourceOrgSnapshot snapshot = new SeeyonOrgSource(reader, reader, MAPPING, () -> { }, new SourceIdTranslation(new InMemorySourceReferences())).readSnapshot();
 
-        assertThat(snapshot.units()).extracting(u -> u.unitId().value()).containsExactlyInAnyOrder(1L, 2L, 3L);
-        assertThat(snapshot.units().stream().filter(u -> u.unitId().value() == 3).findFirst().orElseThrow().state()).isEqualTo(SourceRecordState.DISABLED);
-        var delivery = snapshot.units().stream().filter(u -> u.unitId().value() == 2).findFirst().orElseThrow();
+        assertThat(snapshot.units()).extracting(SourceOrgUnit::unitId).containsExactlyInAnyOrder(TestOrgIds.ownOrgUnit(1), TestOrgIds.ownOrgUnit(2), TestOrgIds.ownOrgUnit(3));
+        assertThat(snapshot.units().stream().filter(u -> u.unitId().equals(TestOrgIds.ownOrgUnit(3))).findFirst().orElseThrow().state()).isEqualTo(SourceRecordState.DISABLED);
+        var delivery = snapshot.units().stream().filter(u -> u.unitId().equals(TestOrgIds.ownOrgUnit(2))).findFirst().orElseThrow();
         assertThat(delivery.regionKind()).isEqualTo(SourceRegionKind.REGIONAL);
         assertThat(delivery.deliveryUnit()).isTrue();
-        assertThat(snapshot.units().stream().filter(u -> u.unitId().value() == 1).findFirst().orElseThrow().regionKind()).isEqualTo(SourceRegionKind.HEADQUARTERS);
+        assertThat(snapshot.units().stream().filter(u -> u.unitId().equals(TestOrgIds.ownOrgUnit(1))).findFirst().orElseThrow().regionKind()).isEqualTo(SourceRegionKind.HEADQUARTERS);
 
         assertThat(snapshot.relationships()).extracting(r -> r.kind()).containsExactlyInAnyOrder(SourceRelationshipKind.UNIT_HEAD, SourceRelationshipKind.REGIONAL_RECEIVABLES_MANAGER);
         assertThat(snapshot.positions()).hasSize(3);
 
-        assertThat(snapshot.staff()).extracting(m -> m.personId().value()).as("one row per person, in scope only")
-                .containsExactlyInAnyOrder(8001L, 8002L, 8003L);
-        SourcePerson worker = snapshot.staff().stream().filter(m -> m.personId().equals(new SourcePersonId(8002))).findFirst().orElseThrow();
-        assertThat(worker.supervisorId()).isEqualTo(new SourcePersonId(8001));
+        assertThat(snapshot.staff()).extracting(SourcePerson::personId).as("one row per person, in scope only")
+                .containsExactlyInAnyOrder(TestOrgIds.ownEmployee(8001), TestOrgIds.ownEmployee(8002), TestOrgIds.ownEmployee(8003));
+        SourcePerson worker = snapshot.staff().stream().filter(m -> m.personId().equals(TestOrgIds.ownEmployee(8002))).findFirst().orElseThrow();
+        assertThat(worker.supervisorId()).isEqualTo(TestOrgIds.ownEmployee(8001));
         assertThat(worker.loginName()).isEqualTo("13900008002");
         assertThat(worker.email()).isEqualTo("worker@example.test");
         assertThat(worker.feeEarner()).isTrue();
-        assertThat(worker.unitId()).isEqualTo(new SourceUnitId(2));
-        assertThat(snapshot.staff().stream().filter(m -> m.personId().value() == 8003).findFirst().orElseThrow().loginName()).isNull();
+        assertThat(worker.unitId()).isEqualTo(TestOrgIds.ownOrgUnit(2));
+        assertThat(snapshot.staff().stream().filter(m -> m.personId().equals(TestOrgIds.ownEmployee(8003))).findFirst().orElseThrow().loginName()).isNull();
     }
 
     @Test
     @DisplayName("§9a single-person lookup over the real view returns the same person as the bulk read")
     void singleLookup() {
-        SeeyonOrgSource source = new SeeyonOrgSource(reader, reader, MAPPING, () -> { });
+        SeeyonOrgSource source = new SeeyonOrgSource(reader, reader, MAPPING, () -> { }, new SourceIdTranslation(new InMemorySourceReferences()));
 
         assertThat(source.findStaffByWecomUser(new WecomUserId("wx-8002")))
-                .containsExactly(source.readSnapshot().staff().stream().filter(m -> m.personId().value() == 8002).findFirst().orElseThrow());
+                .containsExactly(source.readSnapshot().staff().stream().filter(m -> m.personId().equals(TestOrgIds.ownEmployee(8002))).findFirst().orElseThrow());
         assertThat(source.findStaffByWecomUser(new WecomUserId("wx-8004"))).as("outside the root path").isEmpty();
     }
 

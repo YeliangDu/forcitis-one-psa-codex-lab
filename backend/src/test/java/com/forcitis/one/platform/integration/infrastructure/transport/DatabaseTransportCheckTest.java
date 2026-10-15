@@ -76,6 +76,23 @@ class DatabaseTransportCheckTest {
     }
 
     @Test
+    @DisplayName("N-3 the legacy inbox connection is checked under its integration key as well as under the former approval key")
+    void legacyInboxIsCheckedUnderBothKeys() throws IOException {
+        String ca = caFile().toString();
+        Map<String, String> properties = configuration("jdbc:postgresql://db/one?sslmode=verify-full&sslrootcert=" + ca);
+        properties.put("forcitis.platform.integration.legacy.inbox.url", "jdbc:sqlserver://old:1433;databaseName=old;encrypt=true;trustServerCertificate=true");
+        properties.put("forcitis.platform.approval.legacy.url", "jdbc:sqlserver://old:1433;databaseName=old;encrypt=true;trustServerCertificate=false;trustStore=" + ca);
+
+        assertThat(DatabaseTransportCheck.problems(DatabaseTransportRequirement.VERIFIED_SERVER, properties::get)).singleElement().asString()
+                .contains("legacy inbox").doesNotContain("former key").contains("trustServerCertificate=true");
+
+        properties.put("forcitis.platform.integration.legacy.inbox.url", "jdbc:sqlserver://old:1433;databaseName=old;encrypt=true;trustServerCertificate=false;trustStore=" + ca);
+        properties.put("forcitis.platform.approval.legacy.url", "jdbc:sqlserver://old:1433;databaseName=old");
+        assertThat(DatabaseTransportCheck.problems(DatabaseTransportRequirement.VERIFIED_SERVER, properties::get)).singleElement().asString()
+                .contains("legacy inbox (former key)");
+    }
+
+    @Test
     @DisplayName("N-3 profiles decide the requirement: prod verifies, dev encrypts, anything else (tests, local) is not checked; prod wins over dev")
     void profilesDecideTheRequirement() {
         assertThat(DatabaseTransportRequirement.forProfiles(Set.of("prod"))).isEqualTo(DatabaseTransportRequirement.VERIFIED_SERVER);

@@ -2,19 +2,22 @@ package com.forcitis.one.platform.integration.infrastructure.seeyon;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static com.forcitis.one.fixture.doubles.TestOrgIds.ownEmployee;
+import static com.forcitis.one.fixture.doubles.TestOrgIds.ownOrgUnit;
+import static com.forcitis.one.fixture.doubles.TestOrgIds.ownPosition;
 
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.ExternalSourceBrokenException;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.platform.integration.api.OwnObjectId;
 import com.forcitis.one.platform.integration.api.SourceGender;
 import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
 import com.forcitis.one.platform.integration.api.SourceOrgUnit;
 import com.forcitis.one.platform.integration.api.SourcePerson;
-import com.forcitis.one.platform.integration.api.SourcePersonId;
 import com.forcitis.one.platform.integration.api.SourceRecordState;
 import com.forcitis.one.platform.integration.api.SourceRegionKind;
 import com.forcitis.one.platform.integration.api.SourceRelationshipKind;
-import com.forcitis.one.platform.integration.api.SourceUnitId;
+import com.forcitis.one.platform.integration.application.InMemorySourceReferences;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +49,7 @@ class SeeyonViewsOnPostgresTest {
     @BeforeAll
     static void connect() {
         admin = JdbcClient.create(new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword()));
-        source = new SeeyonOrgSource(admin, admin, MAPPING, () -> { });
+        source = new SeeyonOrgSource(admin, admin, MAPPING, () -> { }, new SourceIdTranslation(new InMemorySourceReferences()));
     }
 
     @BeforeEach
@@ -123,15 +126,15 @@ class SeeyonViewsOnPostgresTest {
         unit(4, "000000010003", 0, 1, 0, null, null);
         unit(5, "000000010004", null, null, null, null, null);
 
-        Map<Long, SourceOrgUnit> units = byId(source.readSnapshot().units());
+        Map<OwnObjectId, SourceOrgUnit> units = byId(source.readSnapshot().units());
 
-        assertThat(units.get(1L).state()).isEqualTo(SourceRecordState.ACTIVE);
-        assertThat(units.get(2L).state()).isEqualTo(SourceRecordState.DISABLED);
-        assertThat(units.get(3L).state()).isEqualTo(SourceRecordState.DISABLED);
-        assertThat(units.get(4L).state()).isEqualTo(SourceRecordState.DISABLED);
-        assertThat(units.get(5L).state()).isEqualTo(SourceRecordState.ACTIVE);
-        assertThat(units.get(5L).emptyFlags()).containsExactly("deleted", "internal", "enabled");
-        assertThat(units.get(1L).emptyFlags()).isEmpty();
+        assertThat(units.get(ownOrgUnit(1)).state()).isEqualTo(SourceRecordState.ACTIVE);
+        assertThat(units.get(ownOrgUnit(2)).state()).isEqualTo(SourceRecordState.DISABLED);
+        assertThat(units.get(ownOrgUnit(3)).state()).isEqualTo(SourceRecordState.DISABLED);
+        assertThat(units.get(ownOrgUnit(4)).state()).isEqualTo(SourceRecordState.DISABLED);
+        assertThat(units.get(ownOrgUnit(5)).state()).isEqualTo(SourceRecordState.ACTIVE);
+        assertThat(units.get(ownOrgUnit(5)).emptyFlags()).containsExactly("deleted", "internal", "enabled");
+        assertThat(units.get(ownOrgUnit(1)).emptyFlags()).isEmpty();
     }
 
     @Test
@@ -143,8 +146,8 @@ class SeeyonViewsOnPostgresTest {
 
         List<SourceOrgUnit> units = source.readSnapshot().units();
 
-        assertThat(units).extracting(u -> u.unitId().value()).containsExactly(2L, 3L, 4L);
-        assertThat(units).extracting(u -> u.parentUnitId() == null ? null : u.parentUnitId().value()).containsExactly(null, 2L, 3L);
+        assertThat(units).extracting(SourceOrgUnit::unitId).containsExactly(ownOrgUnit(2), ownOrgUnit(3), ownOrgUnit(4));
+        assertThat(units).extracting(SourceOrgUnit::parentUnitId).containsExactly(null, ownOrgUnit(2), ownOrgUnit(3));
     }
 
     @Test
@@ -171,8 +174,8 @@ class SeeyonViewsOnPostgresTest {
 
         SourceOrgSnapshot snapshot = source.readSnapshot();
 
-        assertThat(snapshot.units()).extracting(u -> u.unitId().value()).containsExactly(1L);
-        assertThat(snapshot.staff()).extracting(m -> m.personId().value()).containsExactly(10L);
+        assertThat(snapshot.units()).extracting(SourceOrgUnit::unitId).containsExactly(ownOrgUnit(1));
+        assertThat(snapshot.staff()).extracting(SourcePerson::personId).containsExactly(ownEmployee(10));
     }
 
     @Test
@@ -185,9 +188,9 @@ class SeeyonViewsOnPostgresTest {
 
         var staff = source.readSnapshot().staff();
 
-        assertThat(staff).extracting(m -> m.personId().value()).containsExactlyInAnyOrder(10L, 16L);
-        assertThat(staff).filteredOn(m -> m.personId().value() == 16).singleElement().satisfies(m -> assertThat(m.internalFlagMissing()).isTrue());
-        assertThat(staff).filteredOn(m -> m.personId().value() == 10).singleElement().satisfies(m -> assertThat(m.internalFlagMissing()).isFalse());
+        assertThat(staff).extracting(SourcePerson::personId).containsExactlyInAnyOrder(ownEmployee(10), ownEmployee(16));
+        assertThat(staff).filteredOn(m -> m.personId().equals(ownEmployee(16))).singleElement().satisfies(m -> assertThat(m.internalFlagMissing()).isTrue());
+        assertThat(staff).filteredOn(m -> m.personId().equals(ownEmployee(10))).singleElement().satisfies(m -> assertThat(m.internalFlagMissing()).isFalse());
     }
 
     @Test
@@ -201,15 +204,16 @@ class SeeyonViewsOnPostgresTest {
 
         var relationships = source.readSnapshot().relationships();
 
-        assertThat(relationships).extracting(r -> r.personId().value()).containsExactlyInAnyOrder(801L, 802L, 804L);
-        assertThat(relationships).filteredOn(r -> r.personId().value() == 801).singleElement()
+        assertThat(relationships).extracting(r -> r.personId()).containsExactly(ownEmployee(801), ownEmployee(802), ownEmployee(804));
+        assertThat(relationships).filteredOn(r -> r.personId().equals(ownEmployee(801))).singleElement()
                 .satisfies(r -> assertThat(r.kind()).isEqualTo(SourceRelationshipKind.UNIT_HEAD));
-        assertThat(relationships).filteredOn(r -> r.personId().value() == 802).singleElement()
+        assertThat(relationships).filteredOn(r -> r.personId().equals(ownEmployee(802))).singleElement()
                 .satisfies(r -> assertThat(r.kind()).isEqualTo(SourceRelationshipKind.REGIONAL_RECEIVABLES_MANAGER));
-        assertThat(relationships).filteredOn(r -> r.personId().value() == 804).singleElement()
+        assertThat(relationships).filteredOn(r -> r.personId().equals(ownEmployee(804))).singleElement()
                 .satisfies(r -> assertThat(r.personDeleted()).isTrue());
 
-        SeeyonOrgSource otherInstance = new SeeyonOrgSource(admin, admin, new SeeyonMapping(1, 2, "x", "y", "00000001"), () -> { });
+        SeeyonOrgSource otherInstance = new SeeyonOrgSource(admin, admin, new SeeyonMapping(1, 2, "x", "y", "00000001"), () -> { },
+                new SourceIdTranslation(new InMemorySourceReferences()));
         assertThat(otherInstance.readSnapshot().relationships()).isEmpty();
     }
 
@@ -223,14 +227,14 @@ class SeeyonViewsOnPostgresTest {
         admin.sql("update forcitis_one.v_org_member set FEE_EARNER_ENUM_ID = 'NO'").update();
 
         SourceOrgSnapshot snapshot = source.readSnapshot();
-        Map<Long, SourceOrgUnit> units = byId(snapshot.units());
+        Map<OwnObjectId, SourceOrgUnit> units = byId(snapshot.units());
 
-        assertThat(units.get(1L).regionKind()).isEqualTo(SourceRegionKind.HEADQUARTERS);
-        assertThat(units.get(1L).deliveryUnit()).isTrue();
-        assertThat(units.get(2L).regionKind()).isEqualTo(SourceRegionKind.REGIONAL);
-        assertThat(units.get(2L).deliveryUnit()).isFalse();
-        assertThat(units.get(3L).regionKind()).isNull();
-        assertThat(units.get(3L).rawRegion()).isEqualTo("somewhere");
+        assertThat(units.get(ownOrgUnit(1)).regionKind()).isEqualTo(SourceRegionKind.HEADQUARTERS);
+        assertThat(units.get(ownOrgUnit(1)).deliveryUnit()).isTrue();
+        assertThat(units.get(ownOrgUnit(2)).regionKind()).isEqualTo(SourceRegionKind.REGIONAL);
+        assertThat(units.get(ownOrgUnit(2)).deliveryUnit()).isFalse();
+        assertThat(units.get(ownOrgUnit(3)).regionKind()).isNull();
+        assertThat(units.get(ownOrgUnit(3)).rawRegion()).isEqualTo("somewhere");
         assertThat(snapshot.staff().getFirst().feeEarner()).isFalse();
     }
 
@@ -244,11 +248,11 @@ class SeeyonViewsOnPostgresTest {
 
         var positions = source.readSnapshot().positions();
 
-        assertThat(positions).extracting(p -> p.positionId().value(), p -> p.state())
-                .containsExactlyInAnyOrder(org.assertj.core.groups.Tuple.tuple(1L, SourceRecordState.ACTIVE),
-                        org.assertj.core.groups.Tuple.tuple(2L, SourceRecordState.DISABLED),
-                        org.assertj.core.groups.Tuple.tuple(3L, SourceRecordState.DELETED),
-                        org.assertj.core.groups.Tuple.tuple(4L, SourceRecordState.ACTIVE));
+        assertThat(positions).extracting(p -> p.positionId(), p -> p.state())
+                .containsExactlyInAnyOrder(org.assertj.core.groups.Tuple.tuple(ownPosition(1), SourceRecordState.ACTIVE),
+                        org.assertj.core.groups.Tuple.tuple(ownPosition(2), SourceRecordState.DISABLED),
+                        org.assertj.core.groups.Tuple.tuple(ownPosition(3), SourceRecordState.DELETED),
+                        org.assertj.core.groups.Tuple.tuple(ownPosition(4), SourceRecordState.ACTIVE));
     }
 
     @Test
@@ -263,11 +267,11 @@ class SeeyonViewsOnPostgresTest {
         List<SourcePerson> byWecom = source.findStaffByWecomUser(new WecomUserId("wx-10"));
         List<SourcePerson> byLogin = source.findStaffByLoginName("13900000010");
 
-        SourcePerson expected = all.staff().stream().filter(m -> m.personId().equals(new SourcePersonId(10))).findFirst().orElseThrow();
+        SourcePerson expected = all.staff().stream().filter(m -> m.personId().equals(ownEmployee(10))).findFirst().orElseThrow();
         assertThat(byWecom).singleElement().isEqualTo(expected);
         assertThat(byLogin).singleElement().isEqualTo(expected);
         assertThat(byWecom.getFirst().gender()).isEqualTo(SourceGender.MALE);
-        assertThat(byWecom.getFirst().unitId()).isEqualTo(new SourceUnitId(1));
+        assertThat(byWecom.getFirst().unitId()).isEqualTo(ownOrgUnit(1));
         assertThat(source.findStaffByWecomUser(new WecomUserId("wx-11"))).singleElement()
                 .satisfies(m -> assertThat(m.loginName()).isNull());
         assertThat(source.findStaffByWecomUser(new WecomUserId("wx-12"))).as("out of scope: not internal").isEmpty();
@@ -383,9 +387,9 @@ class SeeyonViewsOnPostgresTest {
                 .anyMatch(p -> p.contains("no org unit sits at the configured root path 00000009"));
     }
 
-    private static Map<Long, SourceOrgUnit> byId(List<SourceOrgUnit> units) {
-        Map<Long, SourceOrgUnit> byId = new HashMap<>();
-        units.forEach(u -> byId.put(u.unitId().value(), u));
+    private static Map<OwnObjectId, SourceOrgUnit> byId(List<SourceOrgUnit> units) {
+        Map<OwnObjectId, SourceOrgUnit> byId = new HashMap<>();
+        units.forEach(u -> byId.put(u.unitId(), u));
         return byId;
     }
 }

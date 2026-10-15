@@ -5,8 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.kernel.WecomUserId;
-import com.forcitis.one.platform.integration.api.ExternalConnections;
+import com.forcitis.one.platform.integration.domain.ExternalConnections;
 import com.forcitis.one.platform.integration.api.OrgSource;
+import com.forcitis.one.platform.integration.application.InMemorySourceReferences;
+import com.forcitis.one.platform.integration.application.SourceReferences;
 import com.forcitis.one.platform.integration.domain.ReadOnlyConnectionCheck;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +27,8 @@ class SeeyonConfigurationTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner().withUserConfiguration(SeeyonConfiguration.class)
             .withBean(ExternalConnections.class, () -> (poolName, url, user, password, kind) -> new DriverManagerDataSource(url, user, password))
-            .withBean(ReadOnlyConnectionCheck.class, () -> rechecked::add);
+            .withBean(ReadOnlyConnectionCheck.class, () -> rechecked::add)
+            .withBean(SourceReferences.class, InMemorySourceReferences::new);
 
     private static final String PREFIX = "forcitis.platform.integration.seeyon.views.";
     private static final String[] VIEWS_ON = {
@@ -77,7 +80,8 @@ class SeeyonConfigurationTest {
         JdbcClient unreachable = JdbcClient.create(new DriverManagerDataSource("jdbc:sqlserver://127.0.0.1:1;databaseName=nothing;loginTimeout=1",
                 "nobody", "not-a-secret"));
         List<String> order = new ArrayList<>();
-        SeeyonOrgSource source = new SeeyonOrgSource(unreachable, unreachable, new SeeyonMapping(1, 2, "3", "4", "00000001"), () -> order.add("recheck"));
+        SeeyonOrgSource source = new SeeyonOrgSource(unreachable, unreachable, new SeeyonMapping(1, 2, "3", "4", "00000001"), () -> order.add("recheck"),
+                new SourceIdTranslation(new InMemorySourceReferences()));
 
         assertThatThrownBy(source::readSnapshot).isInstanceOf(ExternalSystemUnavailableException.class)
                 .hasMessageStartingWith("Seeyon views cannot be read").hasMessageContaining("SQLState")
@@ -90,7 +94,7 @@ class SeeyonConfigurationTest {
     void failedRecheckReadsNothing() {
         SeeyonOrgSource source = new SeeyonOrgSource(null, null, new SeeyonMapping(1, 2, "3", "4", "00000001"), () -> {
             throw new ExternalSystemUnavailableException("the external connection integration-seeyon-background is stopped: (b)");
-        });
+        }, new SourceIdTranslation(new InMemorySourceReferences()));
 
         assertThatThrownBy(source::readSnapshot).isInstanceOf(ExternalSystemUnavailableException.class).hasMessageContaining("(b)");
     }
@@ -114,6 +118,7 @@ class SeeyonConfigurationTest {
                     throw new IllegalStateException("The external connection " + poolName + " is refused: (e) owns 1 schema(s)");
                 })
                 .withBean(ReadOnlyConnectionCheck.class, () -> name -> { })
+                .withBean(SourceReferences.class, InMemorySourceReferences::new)
                 .withPropertyValues(VIEWS_ON)
                 .run(context -> {
                     assertThat(context).hasFailed();
