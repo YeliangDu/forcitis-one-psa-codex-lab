@@ -14,21 +14,17 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 - 主类：发布包的默认入口（`OneApplication`），测试以 `java -jar target/forcitis-one-*.jar` 运行，与 ECS 上一样；不改主类。
 - `--connection=<连接名>`：运行中服务的只读连接名（建池名、度量标签 `connection` 与 ALERT 日志中用的同一名称）：
 
-| 连接名 | 读哪组环境变量（与 one.env 相同） |
-|---|---|
-| `integration-seeyon-background` | `A8_DB_URL`、`A8_DB_USERNAME`、`A8_DB_PASSWORD` |
-| `integration-legacy` | `LEGACY_DB_RO_URL`、`LEGACY_DB_RO_USERNAME`、`LEGACY_DB_RO_PASSWORD` |
-| `legacy-approval` | `FORCITIS_PLATFORM_APPROVAL_LEGACY_URL`、`FORCITIS_PLATFORM_APPROVAL_LEGACY_USERNAME`、`FORCITIS_PLATFORM_APPROVAL_LEGACY_PASSWORD` |
+  建池名与各自读取的环境变量（与 one.env 同名）不在本文写出，以 `docs/modernization/phase1a/infra/INFRA_RUNBOOK.md` §4.1 的表格为准；测试类中的枚举 `ReadOnlyConnection` 与之逐项对应。测试覆盖其中三条：组织源只读连接（后台建池名）、老系统部门简称只读连接、老系统待办只读连接；§4.1 中的 `probe`（C-14 探针登录）不测。
 
-  （A8 的交互连接 `integration-seeyon-interactive` 与 `integration-seeyon-background` 是同一登录，测试只用后者；实现是否也接受前者不测。）
+  组织源的交互建池名虽与后台建池名同一登录，**不在本命令范围**：实现只认 §4.1 的三个建池名加 `probe`，测试不用交互建池名。
 - 只核实所指定的那一条连接：测试的环境里另两条连接都配了违规账号（加入 `db_datareader`），所核实的连接仍须得出自己的结果。
-- 缺少 `--connection`、连接名不在上表：用法错误（第 4 节），不做核实。
+- 缺少 `--connection`、连接名不在 §4.1 表中：用法错误（第 4 节），不做核实。
 
 ## 2. 环境（测试给子进程的全部环境变量）
 
 子进程的环境只有下列变量加 `PATH`、`HOME`、`TMPDIR`、`LANG`，模拟 `/etc/forcitis-one/one.env` 中与本命令有关的部分：
 
-- 三组只读连接变量（第 1 节表格），`INTEGRATION_SEEYON_VIEWS_ENABLED=true`、`INTEGRATION_LEGACY_ENABLED=true`、`FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_*` 五项实例编号、`FORCITIS_PLATFORM_APPROVAL_LEGACY_DETAIL_URL_TEMPLATE`；
+- 三组只读连接变量（INFRA_RUNBOOK §4.1 表格），以及 one.env 中这三条连接的启用开关、组织源的五项实例编号、老系统待办详情地址模板（变量名见测试类 `environment()`）；
 - 服务自己的库 `SPRING_DATASOURCE_URL` / `_USERNAME` / `_PASSWORD`（一个空的 PostgreSQL）；
 - `SPRING_PROFILES_ACTIVE=dev`（被命令行 `--spring.profiles.active` 取代）；
 - `SERVER_ADDRESS`、`SERVER_PORT`、`MANAGEMENT_SERVER_ADDRESS`、`MANAGEMENT_SERVER_PORT`（各给一个空闲端口）：one.env 里有这几项，**环境变量的优先级高于档案的 properties 文件**，所以只在档案里写 `server.port=-1`、`management.server.port=-1` 挡不住它们；
@@ -76,7 +72,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 
 ## 6. 口令只从环境读
 
-命令行出现口令类参数即拒绝，退出 2，不做核实，不回显参数值。测试覆盖：`--password=…`、`--forcitis.platform.integration.seeyon.views.password=…`、`--A8_DB_PASSWORD=…`、`--spring.datasource.password=…`（同一环境去掉该参数即通过）。建议实现按「参数名中含 `password`（不分大小写）」判定，另可加 `secret`、`pwd`。
+命令行出现口令类参数即拒绝，退出 2，不做核实，不回显参数值。测试覆盖四种参数名（同一环境去掉该参数即通过）：`--password`、组织源连接配置键中的 password 属性、组织源口令环境变量名、`--spring.datasource.password`（原样写法见测试类 `passwordOnTheCommandLineIsRefused`）。建议实现按「参数名中含 `password`（不分大小写）」判定，另可加 `secret`、`pwd`。
 
 ## 7. 不监听端口、不迁移、不起作业
 
