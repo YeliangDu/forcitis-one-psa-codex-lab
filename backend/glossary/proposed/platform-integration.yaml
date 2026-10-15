@@ -6,6 +6,7 @@ terms:
   snake: platform_integration_delivery_transition_illegal
   kind: error_code
   bc: platform.integration
+  scope: domain
   definition: 投递只能从待发送离开一次（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -196,6 +197,7 @@ terms:
   snake: platform_integration_source_reference_not_found
   kind: error_code
   bc: platform.integration
+  scope: domain
   definition: 没有这条来源对照，或出站时按自有 ID 查不到当日生效的已确认对照（404）；出站查不到时投递挂起并告警
   standard_ref:
   - adr/ADR-0033.md
@@ -210,6 +212,7 @@ terms:
   snake: platform_integration_source_reference_invalid
   kind: error_code
   bc: platform.integration
+  scope: domain
   definition: 核算组织编码必须是正整数、必须给出生效日、所指法人必须存在（422）
   standard_ref:
   - adr/ADR-0033.md
@@ -224,6 +227,7 @@ terms:
   snake: platform_integration_source_reference_conflict
   kind: error_code
   bc: platform.integration
+  scope: domain
   definition: 确认会使同一来源标识或同一自有对象的已确认对照在同一时点重叠，或后继的生效日不晚于生效中对照的生效日（409）
   standard_ref:
   - adr/ADR-0033.md
@@ -238,6 +242,7 @@ terms:
   snake: platform_integration_source_reference_already_decided
   kind: error_code
   bc: platform.integration
+  scope: domain
   definition: 该来源对照已被确认或拒绝，不能再次决定（409）
   standard_ref:
   - adr/ADR-0033.md
@@ -252,6 +257,7 @@ terms:
   snake: platform_integration_source_object_kind_not_allowed
   kind: error_code
   bc: platform.integration
+  scope: domain
   definition: 人工登记只接受（核算系统，法人主体）；组织源、老系统与其他类别只由同步或导入写入（422，拒绝的尝试写审计）
   standard_ref:
   - adr/ADR-0033.md
@@ -266,6 +272,7 @@ terms:
   snake: platform_integration_confirmer_is_author
   kind: error_code
   bc: platform.integration
+  scope: domain
   definition: 登记来源对照的人不能确认或拒绝它，同一人持有两个权限也不行（403，四眼）
   standard_ref:
   - adr/ADR-0033.md
@@ -295,6 +302,8 @@ terms:
   snake: read_only_verification
   kind: command
   bc: platform.integration
+  scope: acl
+  acl_class: 过渡期
   definition: 运维命令：对一条只读外部连接的登录跑与启动校验同一套判定，逐项（ADR-0037 第 4 项 (a)–(g)）输出核实通过、确认违规或判定不了，判定不了时只带 SQL 错误号与 SQLState，按结果给退出码；不输出数据、消息原文与凭据，不监听端口、不迁移、不起作业，口令只从环境读
   standard_ref:
   - adr/ADR-0037.md
@@ -310,6 +319,8 @@ terms:
   snake: read_only_verification_result
   kind: enum
   bc: platform.integration
+  scope: acl
+  acl_class: 过渡期
   definition: 只读核实对每一项与对整条连接给出的结论，取核实通过、确认违规、判定不了之一；整条连接有任一项确认违规即为确认违规，否则有判定不了即为判定不了
   standard_ref:
   - adr/ADR-0037.md
@@ -324,6 +335,8 @@ terms:
   snake: passed
   kind: value
   bc: platform.integration
+  scope: acl
+  acl_class: 过渡期
   definition: 只读核实结果的取值：该项（或全部各项）与 RDS 平台基线一致
   standard_ref:
   - adr/ADR-0037.md
@@ -338,6 +351,8 @@ terms:
   snake: violated
   kind: value
   bc: platform.integration
+  scope: acl
+  acl_class: 过渡期
   definition: 只读核实结果的取值：数据库目录确实显示该项超出或缺少基线（与「判定不了」相对）
   standard_ref:
   - adr/ADR-0037.md
@@ -352,6 +367,8 @@ terms:
   snake: undetermined
   kind: value
   bc: platform.integration
+  scope: acl
+  acl_class: 过渡期
   definition: 只读核实结果的取值：查询出错、超时、连不上或返回为空，该项无法判定；启动时同样拒绝启动（ADR-0037 第 4 项第 2 条）
   standard_ref:
   - adr/ADR-0037.md

@@ -26,6 +26,8 @@
    "id": "可选：登记用的 id（默认取英文名的 snake_case）",
    "values": [{"zh": "取值中文", "en": "ValueEnglish"}],
    "code_note": "可选：需改代码之类的提示",
+   "scope": "domain|kernel|acl（登记时必填，B1）", "acl_class": "ACL 时：过渡期|长期",
+   "same_as": "可选：同一 bc 已登记的同一概念的 id，答复后不另立词条",
    "options": [{"action": "approve|rename|merge|common_word", "zh": "", "en": "", "into": "合并目标 id", "label": "给用户看的一句话", "recommended": true}]
  }]}
 ```

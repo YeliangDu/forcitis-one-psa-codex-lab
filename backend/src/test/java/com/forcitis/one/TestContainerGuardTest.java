@@ -8,6 +8,7 @@ import com.tngtech.archunit.core.importer.ClassFileImporter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Stream;
@@ -26,6 +27,11 @@ class TestContainerGuardTest {
     static final String CONTAINER = "org.testcontainers.postgresql.PostgreSQLContainer";
     static final String HOME = "com.forcitis.one.TestPostgres";
     static final String JDBC_URL = "jdbc:" + "tc:";
+    static final String MSSQL_CONTAINER = "org.testcontainers.mssqlserver.MSSQLServerContainer";
+    static final String MSSQL_HOME = "com.forcitis.one.TestMssql";
+    static final Set<String> MSSQL_IMAGE_SOURCES = Set.of("java/com/forcitis/one/TestMssql.java", "java/com/forcitis/one/TestImages.java",
+            "java/com/forcitis/one/TestContainerGuardTest.java");
+    static final List<String> MSSQL_IMAGE_MARKS = List.of("MSSQL_PREFIX", "mssql/server", "mcr.microsoft.com/mssql");
 
     @Test
     @DisplayName("DDL-11 the PostgreSQL container is built, subclassed or referenced as a constructor in TestPostgres only; the files that still do are listed, and a listed file that no longer does is deleted from the list")
@@ -73,5 +79,39 @@ class TestContainerGuardTest {
 
         assertThat(added).as("test sources that start a PostgreSQL container themselves: use TestPostgres.container()").isEmpty();
         assertThat(closed).as("listed in %s but they no longer do (delete the line)", GAPS).isEmpty();
+    }
+
+    @Test
+    @DisplayName("SQL Server containers are built, subclassed or referenced as a constructor in TestMssql only, and the image prefix is read there only (one shared container per fork)")
+    void sqlServerContainersAreStartedThroughTestMssql() throws IOException {
+        Set<String> found = new TreeSet<>();
+        JavaClasses compiled = new ClassFileImporter().importPath(TEST_CLASSES);
+        assertThat(compiled.size()).as("compiled test classes (run test-compile first)").isGreaterThan(100);
+        for (JavaClass type : compiled) {
+            String top = type.getName().replaceAll("\\$.*", "");
+            if (top.equals(MSSQL_HOME)) {
+                continue;
+            }
+            boolean builds = type.getConstructorCallsFromSelf().stream().anyMatch(call -> call.getTargetOwner().getName().equals(MSSQL_CONTAINER))
+                    || type.getCodeUnits().stream().flatMap(unit -> unit.getConstructorReferencesFromSelf().stream())
+                            .anyMatch(reference -> reference.getTargetOwner().getName().equals(MSSQL_CONTAINER))
+                    || type.getAllRawSuperclasses().stream().anyMatch(parent -> parent.getName().equals(MSSQL_CONTAINER));
+            if (builds) {
+                found.add("src/test/java/" + top.replace('.', '/') + ".java");
+            }
+        }
+        // a constant is inlined by javac, so the read of the image prefix is found in the source text
+        try (Stream<Path> files = Files.walk(TEST_SOURCES)) {
+            for (Path file : files.filter(Files::isRegularFile).filter(f -> f.toString().endsWith(".java")).toList()) {
+                String relative = TEST_SOURCES.relativize(file).toString().replace('\\', '/');
+                String text = Files.readString(file);
+                if (!MSSQL_IMAGE_SOURCES.contains(relative) && MSSQL_IMAGE_MARKS.stream().anyMatch(text::contains)) {
+                    found.add("src/test/" + relative);
+                }
+            }
+        }
+
+        assertThat(found).as("test sources that start SQL Server themselves, read TestImages.MSSQL_PREFIX or name the SQL Server image: use TestMssql.shared() / database()")
+                .isEmpty();
     }
 }

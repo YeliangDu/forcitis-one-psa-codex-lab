@@ -7,6 +7,7 @@
 5. ACL 归类（apply_acl.plan()）：已答复的结果写进 acl/acl-classification.json（class、decision，组织同步 7 条另写 bc）；
    仍留在提议文件的条目写 scope（ACL 再写 acl_class），组织同步 7 条 bc 改为集成层，「领域·定义去外部名」的按答复改写定义。
 正式词条由 glossary/build_terms.py 的第三轮应用段生成，不在这里写。
+一次性执行（#212）；之后 B1 给待改名登记补了弃用字段 replaced_by / until / owner（glossary/term_rules.py），不要重跑覆盖。
 用法：python3 docs/modernization/glossary/round3/writeback.py"""
 import json, os, re, sys
 import yaml
@@ -144,7 +145,7 @@ def main():
             "bc": src.get("bc") or "kernel",
             "definition": f"第三轮用语确认（R3-{x['code']}）已定为：{x['to']}。" + ("界面照用这个叫法，作正式词条的标准中文别名。" if x.get("ui_keeps_zh") and not x["why"] else "代码与界面改名合入前保留旧写法。"),
             "standard_ref": [f"glossary/decisions-round3-2026-10-15.json R3-{x['code']}"], "confidence": "high", "aliases": [], "forbidden": [],
-            "status": "proposed", "note": "；".join(x["why"]) or "界面叫法，保留",
+            "status": "deprecated", "note": "；".join(x["why"]) or "界面叫法，保留",
         })
     header = ("# 第三轮用语确认的待改名登记（one-glossary 生成，round3/writeback.py）：用户已定新名，旧名仍在代码或界面中使用。\n"
               "# 负责会话按 glossary/round3/RENAME_CARDS.md 改名并合入后，one-glossary 删除对应条目，方言禁用随之生效。\n")
