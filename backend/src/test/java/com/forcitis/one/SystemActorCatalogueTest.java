@@ -155,6 +155,93 @@ class SystemActorCatalogueTest {
         assertThat(literal).isEmpty();
     }
 
+    /** Actor expressions that are not a name but pass one on: the listener or job the aspect wraps, and delivery inside or outside a job. */
+    static final Map<String, Set<String>> PASSED_ON = Map.of(
+            "UnitOfWorkAspect.java", Set.of("handler", "job"),
+            "DeliverWecomCards.java", Set.of("WorkContext.systemActor().orElse(\"platform.integration.wecom.delivery\")"));
+
+    /** The third argument of every WorkContext.enter call in the source, whitespace collapsed. */
+    static List<String> actorArguments(String source) {
+        List<String> found = new ArrayList<>();
+        int from = 0;
+        while ((from = source.indexOf("WorkContext.enter(", from)) >= 0) {
+            int i = from + "WorkContext.enter(".length();
+            int depth = 0;
+            boolean quoted = false;
+            List<String> arguments = new ArrayList<>();
+            StringBuilder current = new StringBuilder();
+            for (; i < source.length(); i++) {
+                char c = source.charAt(i);
+                if (c == '"' && source.charAt(i - 1) != '\\') {
+                    quoted = !quoted;
+                } else if (!quoted && (c == '(' || c == '{')) {
+                    depth++;
+                } else if (!quoted && (c == ')' || c == '}')) {
+                    if (depth == 0) {
+                        break;
+                    }
+                    depth--;
+                } else if (!quoted && c == ',' && depth == 0) {
+                    arguments.add(current.toString());
+                    current.setLength(0);
+                    continue;
+                }
+                current.append(c);
+            }
+            arguments.add(current.toString());
+            found.add(arguments.size() == 3 ? arguments.get(2).strip().replaceAll("\\s+", " ") : "<" + arguments.size() + " arguments>");
+            from = i;
+        }
+        return found;
+    }
+
+    static boolean namedPlainly(String argument, String file) {
+        return argument.matches("\"[^\"]+\"") || argument.equals("ACTOR") || argument.equals("null")
+                || PASSED_ON.getOrDefault(file, Set.of()).contains(argument);
+    }
+
+    @Test
+    @DisplayName("P2 second recheck L-1 the actor given to WorkContext.enter is a literal, ACTOR, null or a listed pass-on, so the catalogue checks see every name")
+    void actorsAreNamedPlainly() throws IOException {
+        List<String> hidden = new ArrayList<>();
+        Map<String, Integer> passedOn = new HashMap<>();
+        int seen = 0;
+        for (Path root : List.of(MAIN, TESTS)) {
+            try (Stream<Path> files = Files.walk(root)) {
+                for (Path file : files.filter(f -> f.toString().endsWith(".java") && !f.endsWith("SystemActorCatalogueTest.java")).toList()) {
+                    String name = file.getFileName().toString();
+                    for (String argument : actorArguments(Files.readString(file))) {
+                        seen++;
+                        if (!namedPlainly(argument, name)) {
+                            hidden.add(name + ": " + argument);
+                        } else if (PASSED_ON.getOrDefault(name, Set.of()).contains(argument)) {
+                            passedOn.merge(name, 1, Integer::sum);
+                        }
+                    }
+                }
+            }
+        }
+        assertThat(seen).isGreaterThan(10);
+        assertThat(hidden).isEmpty();
+        assertThat(passedOn).as("every listed pass-on is still in use; delete the ones that are not").containsOnlyKeys(PASSED_ON.keySet());
+    }
+
+    @Test
+    @DisplayName("P2 second recheck L-1 negative sample: an actor held in a variable or computed is reported")
+    void anActorInAVariableIsReported() {
+        String sample = """
+                try (var a = WorkContext.enter(id, null, "test.job")) { }
+                try (var b = WorkContext.enter(Uuids.timeOrdered(clock), WorkContext.causationId().orElse(null), ACTOR)) { }
+                try (var c = WorkContext.enter(id, null, name)) { }
+                try (var d = WorkContext.enter(id, null, "test." + kind)) { }
+                try (var e = WorkContext.enter(id, null, handler)) { }
+                """;
+        List<String> arguments = actorArguments(sample);
+        assertThat(arguments).containsExactly("\"test.job\"", "ACTOR", "name", "\"test.\" + kind", "handler");
+        assertThat(arguments.stream().filter(argument -> !namedPlainly(argument, "Sample.java"))).containsExactly("name", "\"test.\" + kind", "handler");
+        assertThat(namedPlainly("handler", "UnitOfWorkAspect.java")).isTrue();
+    }
+
     @Test
     @DisplayName("P2 recheck B-1 every name the tests act under (WorkContext.enter, ACTOR, @SchedulerLock, @SystemActorName, SystemActors.idOf) is in the main or the test catalogue")
     void namesInTheTestsAreDeclared() throws IOException {
