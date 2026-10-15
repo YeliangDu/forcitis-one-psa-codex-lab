@@ -40,7 +40,7 @@
 | [ADR-0033](ADR-0033.md) | 自有标识与来源对照 | 已采纳（用户 2026-10-15：「两份都批准 (Recommended)」——U-1「认可对照表 (Recommended)」、U-2「新权限，授给组织数据管理员 (Recommended)」、U-3 核算编码登记与更正四眼，source-reference:approve 授业务管理员、U-4 快照可用但查不到绑定员工则拒绝并告警）（第 2 项第 1 条来源对照的列清单与自然键范围、第 2 项第 2 条「对照在交给领域模块之前先提交」对迁入的适用已被 ADR-0036 取代） |
 | [ADR-0034](ADR-0034.md) | 授权历史可还原（角色与授予版本化） | 已采纳（用户 2026-10-15：「两份都批准 (Recommended)」——0034-Q2 授予与角色版本保留期与审计同周期（在线 3 年 + 归档到满 10 年）；0034-Q3 确认 RULE-345 修订：删除角色关闭最后一个版本、编码不得复用） |
 | [ADR-0035](ADR-0035.md) | 契约演进与兼容 | 已采纳（用户 2026-10-15：「批准 (Recommended)」，intent `2026-10-15-082825-one-coordinator-ADR-0035-契约演进与兼容.md`；此前对 DDL 审计、原则核对 A / B 其余待决项答「全部按推荐 (Recommended)」，评审后对生效时点答「首次生产部署时生效 (Recommended)」） |
-| [ADR-0036](ADR-0036.md) | 历史数据迁入 | 已采纳（用户 2026-10-15：ADR-0036「批准 (Recommended)」；U-1 至 U-5「全部按推荐 (Recommended)」；此前对 DDL 审计、原则核对 A / B 其余待决项答「全部按推荐 (Recommended)」，评审与复核后答「新增终态「历史期间」 (Recommended)」「编号列存原编号作展示号 (Recommended)」「批次未生效不可见，失败整批冲销 (Recommended)」「同意改为暂存后提交 (Recommended)」「拆出单独继续改，其余规则先合并 (Recommended)」） |
+| [ADR-0036](ADR-0036.md) | 历史数据迁入 | 已采纳（用户 2026-10-15：ADR-0036「批准 (Recommended)」；U-1 至 U-5「全部按推荐 (Recommended)」，intent `2026-10-15-084845-one-coordinator-ADR-0036-历史数据迁入.md`；此前对 DDL 审计、原则核对 A / B 其余待决项答「全部按推荐 (Recommended)」，评审与复核后答「新增终态「历史期间」 (Recommended)」「编号列存原编号作展示号 (Recommended)」「批次未生效不可见，失败整批冲销 (Recommended)」「同意改为暂存后提交 (Recommended)」「拆出单独继续改，其余规则先合并 (Recommended)」） |
 | [ADR-0037](ADR-0037.md) | 新系统读取老系统与 A8 数据的范围 | 已采纳（用户 2026-10-15「新系统可以读任何旧系统数据」、澄清「两者都是」、「修改权限」，凭据类「全部可读，不排除」；批准：ADR-0037（#136）「按建议批准 (Recommended)」——Q1 (c)、Q2 全部、Q3、Q4、Q5 先查、Q6 (i)(ii)、C-1 / C-2 按建议；均经 one-coordinator 转达，intent 2026-10-15-081242） |
 
 ## ADR 生命周期与变更规则
