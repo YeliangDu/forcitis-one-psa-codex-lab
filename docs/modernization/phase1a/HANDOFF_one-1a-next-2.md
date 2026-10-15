@@ -29,7 +29,10 @@
 
 ## 3. 在途
 
-- **#163（ADR37-1）**——交接前由 one-1a-next-2 收尾（与 main 的 PREDEPLOY_CHECKLIST 冲突已在本地合并提交 `9fa44e5e`，事项描述取 ADR-0037 口径、状态取 #170 实况；关键测试 126 例通过；复核结论出来后与修复一起推送）：安全复审第一轮的 H-1..H-3、M-1、M-2 与 Low 已修（`bc5548bb`）；RULING-ADR37-11 已完成——夹具改为平台权限授给服务器角色 public（`6df27ff4`，`Acceptance-Ruling`），(d) 收紧为本登录 `sys.server_permissions` 恰好 `{100, CONNECT SQL, GRANT}`（`17d55880`）；`ReadOnlyAccountCheckIT` 68/68、`StalledExternalSourceIT` 9/9、全量 0 失败。**opus 安全复核 H-1..H-3 进行中**；通过后交 one-coordinator 入队。若交接时复核未完成或结论为需修改，由 one-1a-next-3 接着做：分支 `claude/one-1a-next-2-adr37-1`，复审全文 `adr37-1-review.md`，裁定见第 5 节；PR 需单列的断言改动：`ReadOnlyBaselineTest`（6→7 项、a–g；「基线内 GRANT / DENY 照常通过」改为两例拒绝）及第一轮实现时列出的 7 处删改旧测试（见 PR 正文）。
+- **#163（ADR37-1）**：已收尾——安全复审第一轮修复（`bc5548bb`）、RULING-ADR37-11 夹具贴近 RDS（`6df27ff4`）与 (d) 收紧（`17d55880`）、与 main 的 PREDEPLOY_CHECKLIST 冲突合并（`9fa44e5e`）。**opus 安全复核结论：H-1、H-2、H-3 已关闭，可合并**（全文 `adr37-1-recheck.md`），已交 one-coordinator 入队。**待 one-coordinator 裁定并由后续小 PR 落地**：
+  - M-1：阻塞项 101 的删除条件②「C-14 dev 验证」与 101 拦 dev 部署构成死循环——建议 101 只保留①，C-14 进 `deploy_gate.py` 的 `PROD_PREREQUISITES`（one-1a-par 的部署守护卡）。
+  - M-2：(g) 对 public 的规则未在真实业务库验证（老库 public 的 EXECUTE 会被拒而起不来）——建议 101 条件①加「只读核实命令对三个正式运行时账号各跑一次，预期全通过」。
+  - Low（后续小卡）：L-1 自定义服务器角色（`sys.login_token` 只许 public）；L-2 每日重检判定不了时只在成功时更新上次检查时刻、加状态指标；L-3 `ExternalFailure` 以错误号为判据、SQLState 可空；L-4 `SELECT *` 禁令的注释 / `TOP (?)` / 常量绕过；L-5 README 写明所有者仍受库级 DENY、(g) 防转授与 IMPERSONATE；L-6 C-14 剧本执行前补齐（#171）；L-7 系统库 guest / public 授权写进风险登记。
 - **R-1b-0（A8 视图标志列）**：WIP 提交 `f1a67d33`（分支 `claude/one-1a-next-2-a8-view-flags`，未推送）作废——按 ADR-0037 Q1 (c)，标志列改为直接读基表（`dbo.` 限定名），随读取列登记合并与 `SeeyonSourceScanTest` 调整一起做；STATE 取值证据见 `r1b0-a8-flags-evidence.md`（STATE 1 在职 / 2 离职，IS_DELETED / IS_ENABLE 为 0/1，ORG_UNIT.TYPE 为 Department / Account，其余取值失败并告警）。RULE-363 修订（STATE 替代「登录名为空即离职」）随 DA-3。
 - **C-14 真实账号核实**：用户已批准计划（intent `2026-10-15-120940`，`runbooks/C-14-readonly-probe.md`，one-ops 维护，#171 已按 (a)–(g) 与新反例 12–17 更新）；前提是 #163 合并、只读核实命令合并并发出 rc.2。第 16、17 项（msdb / master 系统库）超出原批准范围，one-coordinator 已报用户。
 
