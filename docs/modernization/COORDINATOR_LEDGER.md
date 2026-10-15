@@ -1,6 +1,6 @@
 # one-coordinator 台账（速查）
 
-只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-15 18:30（one-coordinator）
+只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-15 22:10（one-coordinator）
 
 ## 授权与边界
 - 合并 PR、开会话、派子代理：调度自定（「合 PR 交给你审核，决定权给你」）。不替用户定：部署、生产变更、购买、对外账号、ADR 变更。
@@ -49,6 +49,15 @@
 - 会话内定时任务（/clear 后用 CronList 核对，不在就重设）：上下文巡检每 30 分钟（每小时第 13、43 分）（75% 准备交接 / 85% 批次边界交接；会话存活期内有效，最长 7 天）。
 
 ## 排定后续（指针）
+- 22:10 现状：常驻会话新增 one-rules、one-quality；one-1a-next-3 已交接给 one-1a-next-4。
+- dev 首次部署只剩：101（C-14：rc.3 → 正式账号核实 → (f)/(g) 定处理 → #242 → 探针）、C-19 可见范围与白名单（用户本人操作 / 告知 userid）、one.env 已改三键；090 改为白名单外开放前与生产前（intent 214650，#241）；人选 dev 全由用户兼任（215052）；B-3 dev 暂缓。
+- 代码：先保 dev（214511）——0a → P3b → P4 → P5 → F-1（P5 后，one-1a-par）；拆分 a/b、R-1b-0b、DA-3 生产前。P3b 合并时 one.env 老待办键改名同一 rc（ops）。
+- 待用户：财务决策页、ARCH-D5 方案页、F-1 决策页（one-rules）；分级两维度 ADR（one-architecture）。
+- 债务：验收测试 ReadOnlyVerificationCommandIT（~980 行）、ReadOnlyAccountCheckIT（~575 行）超 400 行未拆（one-1a-par，#235）
+- P3B-H1：P3b 合并时核实命令连接名与指标标签随改（one-1a-next-4 + one-1a-par），同步 INFRA_RUNBOOK §4.1
+- 本机：用户授权停了 psa-local（4）与 pentagi（4）容器；ci-runner 5 个与两个 PG 未动
+- CI 并发：test.forks=2 等打包 ci.yml PR（one-ops），runner / Docker 配置不动观察
+- SESSION_PLAYBOOK §2.1 第 15 条补取证子代理派工约束（#233 合并后，锚点在其新增行）
 - 常驻会话（intent 本日 one-rules / one-quality）：one-rules、one-quality 画像已起草待用户新开；one-security 在生产前设（接 C1 安全复审、ASVS / 等保级别、个人信息）；one-data 在迁入阶段前设（ADR-0036、ADR-0038 基线关闭、对账）。
 - 18:30：已合并 #200–#207、#209、#211；队列 208 197 210。#197 合并后通知 one-ops 出 rc.2。
 - P3b 排序定为甲′：R-1b-0a → P3b → 拆分 b → 拆分 a → R-1b-0b → DA-3 → P5（next-3 的 p3b-sequencing.md）；G06/G07 撤下随拆分 a。待转 one-architecture（/clear 后）：ADR-0039 勘误（:41 排期解释、3 个权限码实为 2、SyncRunHoldReleased 语义）+ 拆分前设计卡。
