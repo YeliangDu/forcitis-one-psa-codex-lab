@@ -51,26 +51,40 @@ COMMENT ON COLUMN platform_numbering.numbering_counters.created_at IS '创建时
 COMMENT ON COLUMN platform_numbering.numbering_counters.updated_at IS '更新时间';
 
 CREATE TABLE platform_numbering.legacy_numbers (
-    id              uuid        PRIMARY KEY,
-    document_type   text        NOT NULL,
-    legacy_number   text        NOT NULL,
-    document_id     uuid        NOT NULL,
-    legal_entity_id uuid,
-    import_batch    text        NOT NULL,
-    created_at      timestamptz NOT NULL DEFAULT now(),
-    updated_at      timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT legacy_numbers_type_number_key UNIQUE (document_type, legacy_number)
+    id                 uuid        NOT NULL,
+    source_system      text        NOT NULL CONSTRAINT ck_legacy_numbers_source_system CHECK (source_system IN ('ORG_SOURCE', 'LEGACY_SYSTEM', 'ACCOUNTING_SYSTEM')),
+    document_type      text        NOT NULL,
+    legacy_number      text        NOT NULL,
+    document_id        uuid        NOT NULL,
+    legal_entity_id    uuid,
+    migration_batch_id uuid        NOT NULL,
+    created_at         timestamptz NOT NULL DEFAULT now(),
+    updated_at         timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_legacy_numbers PRIMARY KEY (id),
+    CONSTRAINT uk_legacy_numbers_source_system_document_type_legacy_number UNIQUE (source_system, document_type, legacy_number)
 );
-CREATE INDEX legacy_numbers_document_idx ON platform_numbering.legacy_numbers (document_type, document_id);
-COMMENT ON TABLE platform_numbering.legacy_numbers IS '原编号：新系统单据与其迁移前编号的对照，只读检索；各单据在其切换阶段导入。粒度：每个单据类型的每个原编号一行';
+CREATE INDEX ix_legacy_numbers_document ON platform_numbering.legacy_numbers (document_type, document_id);
+COMMENT ON TABLE platform_numbering.legacy_numbers IS '原编号：新系统单据与其迁移前编号的对照，只读检索，只追加；各单据在其切换阶段导入。粒度：每个来源系统的每个单据类型的每个原编号一行';
 COMMENT ON COLUMN platform_numbering.legacy_numbers.id IS '主键（UUIDv7）';
-COMMENT ON COLUMN platform_numbering.legacy_numbers.document_type IS '单据类型（DocumentType 枚举名）；与原编号合起来唯一';
-COMMENT ON COLUMN platform_numbering.legacy_numbers.legacy_number IS '原编号：迁移前该单据在老系统中的编号，按原样保留';
+COMMENT ON COLUMN platform_numbering.legacy_numbers.source_system IS '来源系统：该原编号出自哪个系统，ORG_SOURCE 组织源 / LEGACY_SYSTEM 老系统 / ACCOUNTING_SYSTEM 核算系统；与单据类型、原编号合起来唯一';
+COMMENT ON COLUMN platform_numbering.legacy_numbers.document_type IS '单据类型（DocumentType 枚举名）；与来源系统、原编号合起来唯一';
+COMMENT ON COLUMN platform_numbering.legacy_numbers.legacy_number IS '原编号：迁移前该单据在来源系统中的编号，按原样保留';
 COMMENT ON COLUMN platform_numbering.legacy_numbers.document_id IS '单据：新系统单据 id，与单据类型合起来定位一张单据';
 COMMENT ON COLUMN platform_numbering.legacy_numbers.legal_entity_id IS '法人主体 ID；导入时推不出法人的原编号留空，原编号仍可检索（D-1a-152）';
-COMMENT ON COLUMN platform_numbering.legacy_numbers.import_batch IS '导入批次：写入这条对照的导入批次标识，便于整批核对与回溯';
+COMMENT ON COLUMN platform_numbering.legacy_numbers.migration_batch_id IS '迁入批次 ID：写入这条对照的迁入批次，便于整批核对与回溯；批次登记在 platform_integration（ADR-0036），跨 schema 只按 ID 引用，不建外键';
 COMMENT ON COLUMN platform_numbering.legacy_numbers.created_at IS '创建时间';
 COMMENT ON COLUMN platform_numbering.legacy_numbers.updated_at IS '更新时间';
+
+CREATE FUNCTION platform_numbering.reject_legacy_number_change() RETURNS trigger
+    LANGUAGE plpgsql AS $$
+BEGIN
+    RAISE EXCEPTION 'platform_numbering.legacy_numbers is append-only: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
+END;
+$$;
+CREATE TRIGGER tg_legacy_numbers_append_only BEFORE UPDATE OR DELETE ON platform_numbering.legacy_numbers
+    FOR EACH ROW EXECUTE FUNCTION platform_numbering.reject_legacy_number_change();
+CREATE TRIGGER tg_legacy_numbers_append_only_truncate BEFORE TRUNCATE ON platform_numbering.legacy_numbers
+    FOR EACH STATEMENT EXECUTE FUNCTION platform_numbering.reject_legacy_number_change();
 
 -- ADR-0027 第 2 项第 4 条：编号模板按版本保存、不可变；作者不得确认自己的版本；未确认的规则不发号。
 CREATE TABLE platform_numbering.numbering_rule_versions (
