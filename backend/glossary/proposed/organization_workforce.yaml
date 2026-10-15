@@ -366,6 +366,48 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: separation_request
+  zh: 离职申请
+  en: SeparationRequest
+  snake: separation_request
+  kind: document
+  bc: organization.workforce
+  definition: 员工在 A8 发起的离职申请流程（表单）；只有正常结束且同意的申请才是预计离职日期的来源
+  standard_ref:
+  - docs/modernization/rules/WORKFORCE_HISTORY_RULES.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: expected_separation_date
+  zh: 预计离职日期
+  en: ExpectedSeparationDate
+  snake: expected_separation_date
+  kind: value
+  bc: organization.workforce
+  definition: 正常结束且同意的离职申请上的预计离职日期（业务日期，可能改期，已过而员工仍在职时为已过期），不是实际离职日
+  standard_ref:
+  - docs/modernization/rules/WORKFORCE_HISTORY_RULES.md
+  confidence: medium
+  aliases: []
+  forbidden: [离职日期, separation_date]
+  status: proposed
+  note: 单说离职日期有歧义，须写明预计离职日期或离职观察时间
+- id: separation_observed_at
+  zh: 离职观察时间
+  en: SeparationObservedAt
+  snake: separation_observed_at
+  kind: value
+  bc: organization.workforce
+  definition: 组织同步第一次把员工判为离职、并写入快照的那一轮同步的提交时刻；只表示新系统这样判定了，不是人事生效日
+  standard_ref:
+  - docs/modernization/rules/WORKFORCE_HISTORY_RULES.md
+  confidence: medium
+  aliases: []
+  forbidden: [离职日期, separation_date]
+  status: proposed
+  note: 单说离职日期有歧义，须写明预计离职日期或离职观察时间
 common_words:
 - accept
 - after
@@ -451,45 +493,3 @@ common_words:
 - rename
 - renamed
 - usage
-- id: separation_request
-  zh: 离职申请
-  en: SeparationRequest
-  snake: separation_request
-  kind: document
-  bc: organization.workforce
-  definition: 员工在 A8 发起的离职申请流程（表单）；只有正常结束且同意的申请才是预计离职日期的来源
-  standard_ref:
-  - docs/modernization/rules/WORKFORCE_HISTORY_RULES.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: expected_separation_date
-  zh: 预计离职日期
-  en: ExpectedSeparationDate
-  snake: expected_separation_date
-  kind: value
-  bc: organization.workforce
-  definition: 正常结束且同意的离职申请上的预计离职日期（业务日期，可能改期，已过而员工仍在职时为已过期），不是实际离职日
-  standard_ref:
-  - docs/modernization/rules/WORKFORCE_HISTORY_RULES.md
-  confidence: medium
-  aliases: []
-  forbidden: [离职日期, separation_date]
-  status: proposed
-  note: 单说离职日期有歧义，须写明预计离职日期或离职观察时间
-- id: separation_observed_at
-  zh: 离职观察时间
-  en: SeparationObservedAt
-  snake: separation_observed_at
-  kind: value
-  bc: organization.workforce
-  definition: 组织同步第一次把员工判为离职、并写入快照的那一轮同步的提交时刻；只表示新系统这样判定了，不是人事生效日
-  standard_ref:
-  - docs/modernization/rules/WORKFORCE_HISTORY_RULES.md
-  confidence: medium
-  aliases: []
-  forbidden: [离职日期, separation_date]
-  status: proposed
-  note: 单说离职日期有歧义，须写明预计离职日期或离职观察时间

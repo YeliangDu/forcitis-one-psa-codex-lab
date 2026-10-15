@@ -1,3 +1,5 @@
+# 迁入的其余用语（拒收、核对、历史期间、迁入标记等）随 ADR-0036（另行 PR）登记。
+# 通用词另增 `batch`、`count`（批量命令后缀与计数端点，NAMING_STANDARD §2.6 A-3、A-6）。
 terms:
 - id: migration_batch
   zh: 迁入批次
