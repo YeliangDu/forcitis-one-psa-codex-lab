@@ -85,13 +85,17 @@ def is_relevant(path):
     return not ("/" not in path and path.endswith(".md"))
 
 
+# without core.quotepath=off git quotes non-ASCII paths ("docs/...\350..."), which then look relevant
+GIT = ("git", "-c", "core.quotepath=off")
+
+
 def changed_files(base):
-    out = subprocess.run(["git", "diff", "--name-only", f"origin/{base}...HEAD"], capture_output=True, text=True, check=True)
+    out = subprocess.run([*GIT, "diff", "--name-only", f"origin/{base}...HEAD"], capture_output=True, text=True, check=True)
     return out.stdout.splitlines()
 
 
 def files_since(before):
-    out = subprocess.run(["git", "diff", "--name-only", before, "HEAD"], capture_output=True, text=True)
+    out = subprocess.run([*GIT, "diff", "--name-only", before, "HEAD"], capture_output=True, text=True)
     return out.stdout.splitlines() if out.returncode == 0 else None
 
 
