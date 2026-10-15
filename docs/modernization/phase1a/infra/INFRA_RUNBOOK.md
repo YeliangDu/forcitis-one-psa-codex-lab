@@ -112,7 +112,7 @@ DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`han
 
 ### 4.1 只读核实命令（PAR-2；C-14 与授权变更后的核对用）
 
-同一个发布包里的 jar（`forcitis-one.jar`，入口不变），以档案 `read-only-verification` 运行，对**一条**只读连接的登录跑与启动校验同一套判定（`ReadOnlyBaseline`，查询用 `JdbcReadOnlyCatalog`，连接与超时用连接工厂的后台限值），逐项输出后退出：
+同一个发布包里的 jar（`forcitis-one.jar`，入口不变），以档案 `read-only-verification` 运行，对**一条**只读连接的登录跑与启动校验同一套判定（`ReadOnlyBaseline`，查询用 `JdbcReadOnlyCatalog`，连接与超时用连接工厂的后台限值），逐项输出后退出。**只支持 SQL Server**（URL 须以 `jdbc:sqlserver:` 开头，PostgreSQL 等一律用法错误）：
 
 ```
 java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-only-verification --connection=<连接名>
@@ -127,11 +127,24 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
   | `legacy-approval` | `FORCITIS_PLATFORM_APPROVAL_LEGACY_URL`、`_USERNAME`、`_PASSWORD` |
   | `probe`（C-14 探针登录） | `READONLY_PROBE_DB_URL`、`READONLY_PROBE_DB_USERNAME`、`READONLY_PROBE_DB_PASSWORD` |
 
-  环境变量的给法：与迁移步骤同法用 `systemd-run --pipe --wait --collect -p EnvironmentFile=/etc/forcitis-one/one.env [-p EnvironmentFile=/etc/forcitis-one/readonly-probe.env] /usr/bin/java …`，不要把 env 文件 source 进交互 shell。只读所指定连接的三项；另两条连接配了什么不影响结果。缺任一项：用法错误，列出缺的变量名（不列值），不做核实。
-- 输出：每项一行 `(a) PASSED|VIOLATED|UNDETERMINED`，之后可带 ` reason=<原因代码> count=<个数>`（`ReadOnlyBaseline.Reason`，只是类别，不含角色名、库名、登录名）与查询失败时的 ` error=<SQL 错误号> sqlstate=<SQLState>`（驱动报出的最内层 SQL 异常）；末行 `RESULT PASSED|VIOLATED|UNDETERMINED`，有任一项违规即违规，否则有判定不了即判定不了。连不上时七项都是判定不了且带同一个错误号（只连一次，不按每个查询等连接池超时）。
-- 退出码：0 通过；2 用法错误（缺少、重复或未知的连接名，非 `--名=值` 形式的参数，参数名含 `password` / `secret` / `credential`（不分大小写）——口令只从环境读，参数值不回显，缺少环境变量，URL 既非 SQL Server 也非 PostgreSQL）；3 违规（含与判定不了同在）；4 判定不了。1 只表示进程本身失败（与 Spring Boot 启动失败一样），不是任何结果。
-- 不输出：口令（任何连接的）、登录名、连接串（探针 URL 里有 `trustStorePassword`）、数据库消息原文、启动校验的 problem 文本、数据。连接池与驱动（`com.zaxxer.hikari`、`com.microsoft.sqlserver`、`org.postgresql`、`org.springframework.jdbc`）的日志在命令内关闭，因为它们可能带服务器消息。
-- 不启动 Web、不迁移、不起作业：命令在 Spring 准备好环境（档案、配置文件、环境变量都已读入）之后、建立任何应用上下文之前运行并结束进程（与 `migrate` 模式同一做法，`spring.factories` 登记的环境就绪监听器），所以不建服务库数据源、不跑 Flyway、不起 Tomcat 与管理端口、不起定时任务、调度、事件发布作业、流程引擎与异步执行器，也不读 OSS、企业微信、单点登录、应急密钥与服务库的设置。one.env 里的 `SERVER_PORT`、`MANAGEMENT_SERVER_PORT` 等环境变量因此不起作用；命令另把 `spring.main.web-application-type=none` 放在最高优先级的属性源（高于 `SPRING_MAIN_WEB_APPLICATION_TYPE` 等环境变量），档案文件 `application-read-only-verification.properties` 再写一遍 web=none、Flyway 与作业关闭，作为第二道。
+  三项**只从进程环境变量**读：`-D` 系统属性、命令行参数、`SPRING_APPLICATION_JSON` 里的同名设置一律不读；命令行出现这些变量名（`--A8_DB_URL=…`、`--readonly.probe.db.username=…` 等宽松写法也算）或 `--spring.application.json` 即用法错误。环境变量的给法：与迁移步骤同法用 `systemd-run --pipe --wait --collect -p EnvironmentFile=/etc/forcitis-one/one.env [-p EnvironmentFile=/etc/forcitis-one/readonly-probe.env] /usr/bin/java …`，不要把 env 文件 source 进交互 shell。只读所指定连接的三项；另两条连接配了什么不影响结果。缺任一项：用法错误，列出缺的变量名（不列值），不做核实。
+- 输出：每项一行 `(a) PASSED|VIOLATED|UNDETERMINED`，之后可带 ` reason=<原因代码> count=<个数>`，以及查询失败时的 ` error=<SQL 错误号> sqlstate=<SQLState>`（驱动报出的最内层 SQL 异常；驱动未给 SQLState 时写占位 `sqlstate=none`）；末行 `RESULT PASSED|VIOLATED|UNDETERMINED`，有任一项违规即违规，否则有判定不了即判定不了。
+  - `count` 按调用累计：判定中每次检查或查询算一次，违规时计该次发现的条数（多出或缺少的权限、角色、库、授权行），查询失败或返回为空计 1；同一项内同一原因代码（与同一错误号）合并相加。所以连不上时七项都带同一个错误号，计数为各项失败的查询数：(d) 3、(f) 2、其余各 1（只连一次，不按每个查询等连接池超时）。
+  - 原因代码（`ReadOnlyBaseline.Reason`，21 个，只是类别，不含角色名、库名、登录名；属技术码，不进 `terms.yaml`——one-1a-next-3 同意 Unmet 加原因代码的条件⑤，PR 中单列）：
+
+    | 项 | 确认违规 | 判定不了 |
+    |---|---|---|
+    | (a) | `EFFECTIVE_PERMISSIONS_DIFFER` 库级有效权限与基线不等 | |
+    | (b) | `DATABASE_DENY_MISSING` 库级 DENY 缺项；`DATABASE_GRANT_NOT_BASELINE` 库级 GRANT 不恰为 CONNECT、SELECT；`GRANT_WITH_GRANT_OPTION` 可转授的授权 | |
+    | (c) | `DATABASE_ROLE_MEMBERSHIP` 在 public 以外的库角色中 | |
+    | (d) | `EFFECTIVE_PERMISSIONS_DIFFER` 服务器级有效权限与基线不等；`FIXED_SERVER_ROLE_MEMBERSHIP` 在固定服务器角色中；`SERVER_PERMISSION_ROW_NOT_BASELINE` 本登录在 `sys.server_permissions` 的行不恰为 GRANT CONNECT SQL | `FIXED_SERVER_ROLE_UNANSWERED` 服务器答不出某固定角色的成员关系 |
+    | (e) | `DATABASE_OWNER` 是 dbo；`OWNS_SCHEMA`、`OWNS_OBJECT`、`OWNS_ROLE` 拥有 schema / 对象 / 角色；`DATABASE_PRINCIPAL_GRANT` 有主体类授权 | |
+    | (f) | `OTHER_DATABASE_REACHABLE` 能进基线外的库；`SYSTEM_DATABASE_OWN_USER` 系统库里有本登录自己的用户 | `OWN_DATABASE_NOT_LISTED` HAS_DBACCESS 不列本库 |
+    | (g) | `SECURABLE_GRANT_BEYOND_SELECT` 库级以下有 DENY 与 GRANT SELECT 以外的授权 | |
+    | 任一项 | | `CATALOG_QUERY_FAILED` 查询失败（带错误号）；`CHECK_FAILED` 判定本身出错（带错误号，若有）；`NO_ANSWER` 无应答；`EMPTY_ANSWER` 返回为空 |
+- 退出码：0 通过；2 用法错误（缺少、重复或未知的连接名，非 `--名=值` 形式的参数，参数名含 `password` / `secret` / `credential`（不分大小写），命令行出现连接变量名或 `--spring.application.json`，进程环境缺变量，URL 不是 SQL Server，与 `migrate` 或 `identity-operations` 档案同时激活，日志系统不是应用自带的 Logback——参数值一律不回显）；3 违规（含与判定不了同在）；4 判定不了。1 只表示进程本身失败（与 Spring Boot 启动失败一样），不是任何结果。
+- 不输出：口令（任何连接的）、登录名、连接串（探针 URL 里有 `trustStorePassword`）、数据库消息原文、启动校验的 problem 文本、数据。命令自己的行直接写标准输出 / 标准错误，不经日志；日志在核实之前全部关闭：根 logger、`logging.level.*` 配置过的每个 logger（如 `--logging.level.com.zaxxer.hikari.HikariConfig=DEBUG` 也被关掉）与已有的全部 logger 都设为 OFF，关不掉即拒绝运行。`-Dorg.springframework.boot.logging.LoggingSystem=none` 时 Logback 默认根级 DEBUG、无法由应用关掉，命令拒绝运行（退出 2）。
+- 不启动 Web、不迁移、不起作业：命令在 Spring 准备好环境（档案、配置文件都已读入）之后、建立任何应用上下文之前运行并结束进程（与 `migrate` 模式同一做法，`spring.factories` 登记的环境就绪监听器，排在 `migrate` 之前），所以不建服务库数据源、不跑 Flyway、不起 Tomcat 与管理端口、不起定时任务、调度、事件发布作业、流程引擎与异步执行器，也不读 OSS、企业微信、单点登录、应急密钥与服务库的设置。one.env 里的 `SERVER_PORT`、`MANAGEMENT_SERVER_PORT` 等环境变量因此不起作用；命令另把 `spring.main.web-application-type=none` 放在最高优先级的属性源（高于 `SPRING_MAIN_WEB_APPLICATION_TYPE` 等环境变量），档案文件 `application-read-only-verification.properties` 再写一遍 web=none、Flyway 与作业关闭，作为第二道。
 - 发布包：命令与档案都在 jar 内，签名发布包不需要另登记文件；发布脚本与签名流程不变。
 - 验收：`ReadOnlyVerificationCommandIT`（以打包好的 jar 起子进程，探针证明不监听端口、服务库无表无 schema）；契约见 `backend/src/test/java/com/forcitis/one/acceptance/platform/integration/READONLY_VERIFY_ACCEPTANCE.md`。
 
