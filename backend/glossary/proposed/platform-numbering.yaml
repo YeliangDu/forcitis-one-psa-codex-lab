@@ -70,27 +70,13 @@ terms:
   forbidden: []
   status: proposed
   note: 1a 只交付结构与检索接口；各单据的原编号随其切换阶段导入
-- id: import_batch
-  zh: 导入批次
-  en: ImportBatch
-  snake: import_batch
-  kind: value
-  bc: platform.numbering
-  definition: 写入一批原编号对照的导入批次标识，便于整批核对与回溯
-  standard_ref:
-  - ADR-0010 可配置的业务编号
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: confirmation_status
   zh: 确认状态
   en: ConfirmationStatus
   snake: confirmation_status
   kind: value
   bc: platform.numbering
-  definition: 编号规则是否已由管理员确认；默认模板在确认前为待确认（PENDING_CONFIRMATION），保存即确认（CONFIRMED）
+  definition: 编号规则是否已由管理员确认；默认模板在确认前为待确认（PENDING_CONFIRMATION），保存即确认（CONFIRMED）。来源对照（platform.integration）沿用同一个词，取值写作 PENDING / CONFIRMED / REJECTED（待确认 / 已确认 / 已拒绝），中文一致、枚举名各随其表（ADR-0033 第 2 项第 1 条）
   standard_ref:
   - ADR-0010 可配置的业务编号
   confidence: medium
@@ -154,6 +140,34 @@ terms:
   forbidden: []
   status: proposed
   note: 例 JV-FST-202610-0001；模板待管理员确认
+- id: counter_scope
+  zh: 计数范围
+  en: CounterScope
+  snake: counter_scope
+  kind: value
+  bc: platform.numbering
+  definition: 编号计数器计数的范围：全局（各法人共用一个计数）或按法人（每个法人各计各的）；范围类别与法人主体成对，全局时无法人，按法人时必有法人
+  standard_ref:
+  - ADR-0010 可配置的业务编号
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 模板不含 {LE} 时为全局
+- id: counter_scope_kind
+  zh: 计数范围类别
+  en: CounterScopeKind
+  snake: counter_scope_kind
+  kind: enum
+  bc: platform.numbering
+  definition: 计数范围的类别：GLOBAL 全局 / LEGAL_ENTITY 按法人
+  standard_ref:
+  - ADR-0010 可配置的业务编号
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - confirm
 - reconfigure

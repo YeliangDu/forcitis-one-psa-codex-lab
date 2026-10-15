@@ -1,5 +1,19 @@
 # 前端界面用语中尚不在正式词表里的业务术语（proposed，待第三轮用语确认，ADR-0018）。
 terms:
+- id: correlation_id
+  zh: 关联号
+  en: CorrelationId
+  snake: correlation_id
+  kind: value
+  bc: kernel
+  definition: 一次请求及其引发的事件与投递共用的追踪编号（X-Correlation-Id）；出错时界面显示可复制的关联号，便于对日志（NAMING_STANDARD §4a U5、GUIDING_PRINCIPLES §11 O-1）
+  standard_ref:
+  - GUIDING_PRINCIPLES §11 O-1
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 界面不另称「错误编号」，与 platform-web 错误响应同一用语
 - id: pending_task
   zh: 待办
   en: PendingTask

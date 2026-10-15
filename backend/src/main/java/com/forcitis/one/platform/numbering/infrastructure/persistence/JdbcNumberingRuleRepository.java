@@ -8,6 +8,7 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.numbering.api.NumberingError;
 import com.forcitis.one.platform.numbering.api.ResetPolicy;
+import com.forcitis.one.platform.numbering.domain.CounterScope;
 import com.forcitis.one.platform.numbering.domain.NumberingPattern;
 import com.forcitis.one.platform.numbering.domain.NumberingRule;
 import com.forcitis.one.platform.numbering.domain.NumberingRuleRepository;
@@ -170,17 +171,18 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
     }
 
     @Override
-    public long reserveNext(DocumentType type, LegalEntityId legalEntity, String periodKey, long startValue) {
+    public long reserveNext(DocumentType type, CounterScope scope, String periodKey, long startValue) {
         return jdbc.sql("""
-                        insert into platform_numbering.numbering_counters (numbering_counter_id, document_type, legal_entity_id, period_key, last_value)
-                        values (:id, :type, :le, :period, :start)
+                        insert into platform_numbering.numbering_counters (numbering_counter_id, document_type, counter_scope_kind, legal_entity_id, period_key, last_value)
+                        values (:id, :type, :scopeKind, :le, :period, :start)
                         on conflict (document_type, legal_entity_id, period_key) do update
                            set last_value = platform_numbering.numbering_counters.last_value + 1, updated_at = :updatedAt
                         returning last_value
                         """)
                 .param("id", ids.next())
                 .param("type", type.name())
-                .param("le", legalEntity == null ? null : legalEntity.value(), Types.OTHER)
+                .param("scopeKind", scope.kind().name())
+                .param("le", scope.legalEntity() == null ? null : scope.legalEntity().value(), Types.OTHER)
                 .param("period", periodKey)
                 .param("start", startValue)
                 .param("updatedAt", Timestamp.from(clock.instant()))
