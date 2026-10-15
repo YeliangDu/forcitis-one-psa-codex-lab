@@ -45,7 +45,8 @@
 | 阿里云 | RAM 角色 forcitis-one-deploy-dev（acs:ram::1980847222980247:role/forcitis-one-deploy-dev，信任 github-actions 提供商、精确匹配不可变 sub，MaxSessionDuration 3600；2026-10-15 已建，策略待挂；回退 DeleteRole） | 长期 | one-ops | — |
 | 阿里云 | RAM 策略 forcitis-one-deploy-dev（挂 forcitis-one-deploy-dev 角色）与 forcitis-one-deploy-pull（挂实例角色 forcitis-one-ecs-archive，与 archive-writer 并存）：只对 5 个部署请求参数与结果参数各一方向（2026-10-15 已建；回退 DetachPolicyFromRole 后 DeletePolicy） | 长期 | one-ops | — |
 | GitHub | environment dev、prod 部署分支策略撤去 v*（tag），三个 environment 均只允许 main（2026-10-15，用户「撤掉，只留 main (Recommended)」） | 长期配置 | one-ops | — |
-| 阿里云 / ECS / GitHub | 6 个 OOS 参数、ECS 拉取定时器、dev 环境变量（RELEASE.md R-6、R-7，逐项报 one-coordinator） | 长期（待建） | one-ops | — |
+| 阿里云 | OOS 参数（cn-hangzhou，String）forcitis-one-deploy-request-dev（`{}`）、-bundle、-bundle-sha256、-statement、-statement-sig（`unset`）、forcitis-one-deploy-result-dev（`{}`）（2026-10-15 已建；回退 DeleteParameter） | 长期 | one-ops | — |
+| ECS / GitHub | ECS 拉取定时器、dev 环境变量（RELEASE.md R-6、R-7，逐项报 one-coordinator） | 长期（待建） | one-ops | — |
 | GitHub | environments release / dev / prod、签名私钥 secret（release）、v* 标签规则（仓库级，组织级待用户定）、immutable releases | 长期 | one-ops | — |
 | 阿里云（计划，PR #111 合并后由 one-ops 经用户确认建） | OIDC 身份提供商 github-actions；部署 RAM 角色与策略 forcitis-one-deploy-dev / -prod（只改写请求参数、只读结果参数，无 ECS 接口）；OOS 参数 forcitis-one-deploy-request-<env> 及 -bundle、-bundle-sha256、-statement、-statement-sig，结果参数 forcitis-one-deploy-result-<env>；拉取策略 forcitis-one-deploy-pull 挂在现有实例角色 forcitis-one-ecs-archive 上——该实例角色承载归档写入与部署请求拉取两份最小策略（不改名、不重绑）；GitHub 仓库 OIDC sub 定制；不建云助手命令 | 长期 | one-ops | 停用部署时删除；实例角色只解挂拉取策略 |
 | ECS i-bp122xlpar8w2uylmal2（计划，PR #111 合并后由 one-ops 装） | forcitis-one-release-pull.timer / .service（root，每分钟拉取 OOS 请求参数、单实例）；/var/lib/forcitis-one-release/{processed-requests,alerts-sent}（root 0600） | 长期（后台任务） | one-ops | 停用部署时 disable 并删除单元 |
