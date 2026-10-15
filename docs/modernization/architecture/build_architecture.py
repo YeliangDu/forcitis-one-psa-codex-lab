@@ -35,6 +35,8 @@ def model():
     ctx = load("ddd/contexts.yaml")["contexts"]
     rels = load("ddd/context-map.yaml")["relations"]
     tas = load("togaf/transitions.yaml")["transitions"]
+    aggs = load("ddd/aggregates.yaml")["aggregates"]
+    events = catalogue()
     problems = []
     sids = {s["id"] for s in subs}
     cids = [c["id"] for c in ctx]
@@ -57,7 +59,28 @@ def model():
     for t in tas:
         problems += [f"transitions.yaml {t['id']}: unknown BC {b}" for b in t["delivers"] if b not in cids]
         problems += [f"transitions.yaml {t['id']}: unknown predecessor {a}" for a in t["after"] if a not in tids]
-    return subs, ctx, rels, tas, problems
+    for a in aggs:
+        if a["bc"] not in cids:
+            problems.append(f"aggregates.yaml {a['id']}: unknown BC {a['bc']}")
+        problems += [f"aggregates.yaml {a['id']}: event {e} not in events/*.yaml" for e in a.get("events") or [] if e not in events]
+    return subs, ctx, rels, tas, problems, aggs, events
+
+
+def catalogue():
+    """eventType -> (publisher, consumers) from the event catalogue fragments (docs/modernization/events/*.yaml, ADR-0020 SSOT)."""
+    out = {}
+    base = os.path.join(HERE, "..", "events")
+    for f in sorted(os.listdir(base)):
+        if not f.endswith(".yaml") or f == "asyncapi.yaml":
+            continue
+        with open(os.path.join(base, f), encoding="utf-8") as fh:
+            d = yaml.safe_load(fh) or {}
+        for m in ((d.get("components") or {}).get("messages") or {}).values():
+            x = m.get("x-event") or {}
+            if x.get("eventType"):
+                cs = [c if isinstance(c, str) else c.get("module") for c in x.get("consumers") or []]
+                out[x["eventType"]] = (x.get("publisher"), [c for c in cs if c])
+    return out
 
 
 def context_map(subs, ctx, rels):
@@ -172,10 +195,77 @@ def landscape(subs, ctx):
     return svg_doc(16 + cols * (cw + gap), max(col_y) + 8, body)
 
 
+def event_chain(ctx, aggs, events):
+    """③ cross-BC event chain among built BCs: aggregate -> event -> consuming BC; audit fan-in collapsed to one edge per publisher."""
+    zh = {c["id"]: c["zh"] for c in ctx}
+    agg_of = {e: a for a in aggs for e in a.get("events") or []}
+    L = ["%% 生成文件，勿手改：python3 architecture/build_architecture.py（源：ddd/aggregates.yaml、events/*.yaml）",
+         "flowchart LR",
+         "  classDef bc fill:#dbeafe,stroke:#1d4ed8,color:#0f172a",
+         "  classDef evt fill:#fff7ed,stroke:#c2410c,color:#0f172a",
+         "  classDef audit fill:#f1f5f9,stroke:#64748b,color:#0f172a"]
+    used, audit_count, lines = set(), {}, []
+    for et, (pub, cons) in sorted(events.items()):
+        for c in cons:
+            if c == pub:
+                continue
+            if c == "platform.audit":
+                audit_count[pub] = audit_count.get(pub, 0) + 1
+                continue
+            a = agg_of.get(et)
+            src = nid(pub) + ("__" + nid(a["id"].split("/")[1]) if a else "")
+            used.update([pub, c])
+            lines.append(f'  {src} --> E_{nid(et)}(["{et.split(".")[-1]}"]):::evt --> {nid(c)}')
+    for pub, n in sorted(audit_count.items()):
+        used.update([pub, "platform.audit"])
+        lines.append(f"  {nid(pub)} -.->|{n} 个事件| {nid('platform.audit')}")
+    for b in sorted(used):
+        mine = sorted({agg_of[et]["id"].split("/")[1] for et, (pub, cons) in events.items()
+                       if pub == b and et in agg_of and any(c not in (pub, "platform.audit") for c in cons)})
+        if mine:
+            L.append(f'  subgraph {nid(b)}["{esc(zh.get(b, b))} · {b}"]')
+            L += [f'    {nid(b)}__{nid(x)}["{x}"]:::bc' for x in mine]
+            L.append("  end")
+        else:
+            L.append(f'  {nid(b)}["{esc(zh.get(b, b))}<br/><small>{b}</small>"]:::{"audit" if b == "platform.audit" else "bc"}')
+    return "\n".join(L + lines) + "\n"
+
+
+def tactical(ctx, aggs):
+    """④ plain SVG: one card per aggregate, commands on the left, events on the right, states underneath."""
+    zh = {c["id"]: c["zh"] for c in ctx}
+    W, cw, gap, line = 1260, 600, 20, 20
+    cols, col_y, body = 2, [52, 52], []
+    body.append(text(16, 30, "每张卡：左列命令（写这个聚合的用例），右列它产生的事件，底部为状态取值；来源 ddd/aggregates.yaml 与事件目录", 13, "#475569"))
+    for a in sorted(aggs, key=lambda a: a["id"]):
+        cmds = list(a.get("commands") or []) + [c + "（经端口）" for c in a.get("commands_via") or []]
+        evs = [e.split(".")[-1] for e in a.get("events") or []]
+        states = a.get("states") or []
+        rows = max(len(cmds), len(evs), 1)
+        h = 56 + rows * line + (28 if states else 8)
+        ci = col_y.index(min(col_y))
+        x, y = 16 + ci * (cw + gap), col_y[ci]
+        body += [rect(x, y, cw, h, "#ffffff", "#cbd5e1", rx=10),
+                 text(x + 12, y + 22, a["id"].split("/")[1], 15, font_weight=600),
+                 text(x + cw - 12, y + 22, zh.get(a["bc"], a["bc"]) + " · " + a["bc"], 11, "#475569", text_anchor="end")]
+        for i, c in enumerate(cmds):
+            body.append(text(x + 12, y + 48 + i * line, "▸ " + c, 12, "#1d4ed8"))
+        for i, e in enumerate(evs):
+            body.append(text(x + cw / 2 + 6, y + 48 + i * line, "◆ " + e, 12, "#c2410c"))
+        if not evs:
+            body.append(text(x + cw / 2 + 6, y + 48, "（无事件）", 12, "#94a3b8"))
+        if states:
+            body.append(text(x + 12, y + h - 12, "状态：" + " / ".join(states), 11, "#475569"))
+        col_y[ci] += h + gap
+    return svg_doc(W + 16, max(col_y) + 8, body)
+
+
 DRAWINGS = [  # (file stem, title, kind, builder); kind "mmd" is rendered by mermaid-cli, "svg" is written directly
     ("1a-landscape", "①a 上下文全景：子域与 BC", "svg", lambda m: landscape(m[0], m[1])),
     ("1b-context-map", "①b 上下文映射：已建 BC 的依赖与关系类型", "mmd", lambda m: context_map(m[0], m[1], m[2])),
     ("2-transitions", "② 过渡架构与建设阶段", "svg", lambda m: transitions(m[1], m[3])),
+    ("3-event-chain", "③ 跨 BC 事件链路（已建 BC；价值流层待 METHOD 第 1 步登记后叠加）", "mmd", lambda m: event_chain(m[1], m[5], m[6])),
+    ("4-tactical", "④ 战术聚合与契约（已建 BC）", "svg", lambda m: tactical(m[1], m[5])),
 ]
 
 
