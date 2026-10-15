@@ -815,6 +815,41 @@ else
   flunk "check_server_files: prometheus exposure check is wrong"
 fi
 
+jobs_switch_case() {
+  (
+    # shellcheck source=scripts/release/remote_install.sh
+    source "$here/remote_install.sh"
+    ETC="$scratch/jobs-switch"
+    mkdir -p "$ETC"
+    printf 'FORCITIS_JOBS_ENABLED=%s\n' "$1" > "$ETC/one.env"
+    jobs_switch_set
+  )
+}
+if jobs_switch_case true && jobs_switch_case false && jobs_switch_case "'true'" && ! jobs_switch_case '' && ! jobs_switch_case yes && ! jobs_switch_case TRUE \
+   && ! jobs_switch_case '"true"' && ! jobs_switch_case 'true '; then
+  pass "check_server_files: FORCITIS_JOBS_ENABLED must be true or false (empty, yes, TRUE, double-quoted, trailing space are refused)"
+else
+  flunk "check_server_files: FORCITIS_JOBS_ENABLED check is wrong"
+fi
+
+exclude_case() {
+  (
+    # shellcheck source=scripts/release/remote_install.sh
+    source "$here/remote_install.sh"
+    ETC="$scratch/autoconfigure"
+    mkdir -p "$ETC"
+    printf '%s\n' "$1" > "$ETC/one.env"
+    autoconfigure_overridden
+  )
+}
+if exclude_case 'SPRING_AUTOCONFIGURE_EXCLUDE=x' && exclude_case 'SPRING_AUTOCONFIGURE_EXCLUDE_0_=x' && exclude_case 'SPRING_AUTOCONFIGURE_EXCLUDE_0=x' \
+   && exclude_case 'SPRING_APPLICATION_JSON={}' && ! exclude_case 'FORCITIS_JOBS_ENABLED=true' && ! exclude_case 'SPRING_AUTOCONFIGUREX=x' \
+   && ! exclude_case '# SPRING_AUTOCONFIGURE_EXCLUDE=x'; then
+  pass "check_server_files: SPRING_AUTOCONFIGURE_EXCLUDE (plain or indexed) and SPRING_APPLICATION_JSON are refused"
+else
+  flunk "check_server_files: autoconfigure exclusion check is wrong"
+fi
+
 STALE_INCOMING=yes check stale-download-removed accept
 stale_removed() { [ -z "$(find "$1/releases" -maxdepth 1 -name '.incoming.*')" ] && grep -q 'removed 1 incomplete download' "$1/out"; }
 expect stale-download-removed "a .incoming.* left by a killed run is removed first" stale_removed
