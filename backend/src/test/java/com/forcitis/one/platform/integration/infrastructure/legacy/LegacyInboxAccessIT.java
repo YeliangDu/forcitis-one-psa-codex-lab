@@ -14,6 +14,7 @@ import com.forcitis.one.platform.integration.api.SourceObjectKind;
 import com.forcitis.one.platform.integration.application.InMemorySourceReferences;
 import com.forcitis.one.platform.integration.application.SourceReferences;
 import com.zaxxer.hikari.HikariDataSource;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.lang.reflect.Method;
 import java.time.Clock;
 import java.util.UUID;
@@ -95,7 +96,7 @@ class LegacyInboxAccessIT extends ApprovalIntegrationSupport {
     @DisplayName("ADR-0037 item 3.5 a failed read is logged with error number and SQLState only, never the database message")
     void failedReadLogsNoMessage(CapturedOutput output) {
         LegacyInbox.LegacyTodos result = new JdbcLegacyInbox(inboxConnection.jdbc(), "legacy_fixture.no_such_view_marker_7731", null,
-                employeeOneKnown(), zone, clock).readTodos(TestAccounts.employee(1));
+                employeeOneKnown(), zone, clock, new SimpleMeterRegistry()).readTodos(TestAccounts.employee(1));
 
         assertThat(result.available()).isFalse();
         assertThat(output.getAll().lines().filter(line -> line.contains("no_such_view_marker_7731")))
@@ -107,7 +108,7 @@ class LegacyInboxAccessIT extends ApprovalIntegrationSupport {
     @DisplayName("C1a-14 an unreachable old database yields legacyAvailable = false, never an exception")
     void unreachableDatabaseDegrades() {
         DriverManagerDataSource unreachable = new DriverManagerDataSource("jdbc:postgresql://127.0.0.1:1/none", "nobody", UUID.randomUUID().toString());
-        LegacyInbox.LegacyTodos result = new JdbcLegacyInbox(JdbcClient.create(unreachable), VIEW, null, employeeOneKnown(), zone, clock)
+        LegacyInbox.LegacyTodos result = new JdbcLegacyInbox(JdbcClient.create(unreachable), VIEW, null, employeeOneKnown(), zone, clock, new SimpleMeterRegistry())
                 .readTodos(TestAccounts.employee(1));
         assertThat(result.available()).isFalse();
         assertThat(result.todos()).isEmpty();
@@ -118,7 +119,7 @@ class LegacyInboxAccessIT extends ApprovalIntegrationSupport {
     void notConfiguredIsUnavailable() {
         LegacyInbox notConnected = new LegacyInboxConfiguration().legacyInbox(
                 new LegacyInboxConfiguration.LegacyInboxSettings(LegacyInboxProperties.none()),
-                new DefaultListableBeanFactory().getBeanProvider(LegacyInboxConfiguration.InboxConnection.class), employeeOneKnown(), zone, clock);
+                new DefaultListableBeanFactory().getBeanProvider(LegacyInboxConfiguration.InboxConnection.class), employeeOneKnown(), zone, clock, new SimpleMeterRegistry());
         assertThat(notConnected.readTodos(TestAccounts.employee(1)).available()).isFalse();
 
         EmployeeId known = new EmployeeId(sourceReferences.allocate(ExternalSource.LEGACY_SYSTEM, SourceObjectKind.EMPLOYEE, newId()));

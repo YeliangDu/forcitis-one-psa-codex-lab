@@ -5,6 +5,7 @@ import com.forcitis.one.platform.integration.api.ExternalCallKind;
 import com.forcitis.one.platform.integration.domain.ExternalConnections;
 import com.forcitis.one.platform.integration.api.LegacyInbox;
 import com.forcitis.one.platform.integration.application.SourceReferences;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,14 +50,14 @@ class LegacyInboxConfiguration {
 
     @Bean
     LegacyInbox legacyInbox(LegacyInboxSettings settings, ObjectProvider<InboxConnection> connection, SourceReferences references,
-                            BusinessZone zone, Clock clock) {
+                            BusinessZone zone, Clock clock, MeterRegistry meters) {
         InboxConnection connected = connection.getIfAvailable();
         if (connected == null) {
             log.warn("{}.url is not set: the merged inbox shows new tasks only", LegacyInboxProperties.PREFIX);
             return person -> LegacyInbox.LegacyTodos.unavailable();
         }
         LegacyInboxProperties properties = settings.properties();
-        return new JdbcLegacyInbox(connected.jdbc(), properties.viewName(), properties.detailUrlTemplate(), references, zone, clock);
+        return new JdbcLegacyInbox(connected.jdbc(), properties.viewName(), properties.detailUrlTemplate(), references, zone, clock, meters);
     }
 
     record LegacyInboxSettings(LegacyInboxProperties properties) {

@@ -13,11 +13,16 @@ import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.util.Calendar;
 import java.util.List;
+import java.util.Map;
 import java.util.OptionalLong;
 import java.util.TimeZone;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -26,7 +31,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 /**
  * No cache: every call queries (about 540 a day). The old system names a person by its own id, found through the (LEGACY_SYSTEM, EMPLOYEE)
  * source reference of the employee; without one, or with an unreachable database, the answer is available = false, never an empty list
- * or an exception that would hide the new tasks (C8: until P6 imports the references nobody has one).
+ * or an exception that would hide the new tasks (C8: until P6 imports the references nobody has one). Every such answer counts in
+ * forcitis.platform.integration.legacy.inbox.unmapped; the ALERT comes once per employee and business day, the repeats are WARN.
  */
 class JdbcLegacyInbox implements LegacyInbox {
 
@@ -38,21 +44,32 @@ class JdbcLegacyInbox implements LegacyInbox {
     private final SourceReferences references;
     private final BusinessZone zone;
     private final Clock clock;
+    private final Counter unmapped;
+    private final Map<EmployeeId, LocalDate> alertedOn = new ConcurrentHashMap<>();
 
-    JdbcLegacyInbox(JdbcClient jdbc, String viewName, String detailUrlTemplate, SourceReferences references, BusinessZone zone, Clock clock) {
+    JdbcLegacyInbox(JdbcClient jdbc, String viewName, String detailUrlTemplate, SourceReferences references, BusinessZone zone, Clock clock,
+                    MeterRegistry meters) {
         this.jdbc = jdbc;
         this.viewName = viewName;
         this.detailUrlTemplate = detailUrlTemplate;
         this.references = references;
         this.zone = zone;
         this.clock = clock;
+        this.unmapped = Counter.builder("forcitis.platform.integration.legacy.inbox.unmapped")
+                .description("Merged-inbox reads of an employee without a LEGACY_SYSTEM EMPLOYEE source reference").register(meters);
     }
 
     @Override
     public LegacyTodos readTodos(EmployeeId person) {
-        OptionalLong legacyPerson = references.findSourceId(ExternalSource.LEGACY_SYSTEM, SourceObjectKind.EMPLOYEE, person.value(), zone.today(clock));
+        LocalDate today = zone.today(clock);
+        OptionalLong legacyPerson = references.findSourceId(ExternalSource.LEGACY_SYSTEM, SourceObjectKind.EMPLOYEE, person.value(), today);
         if (legacyPerson.isEmpty()) {
-            log.error("ALERT platform.integration employee {} has no LEGACY_SYSTEM EMPLOYEE source reference: the old to-dos are unavailable", person);
+            unmapped.increment();
+            if (today.equals(alertedOn.put(person, today))) {
+                log.warn("Employee {} has no LEGACY_SYSTEM EMPLOYEE source reference: the old to-dos are unavailable (alerted today already)", person);
+            } else {
+                log.error("ALERT platform.integration employee {} has no LEGACY_SYSTEM EMPLOYEE source reference: the old to-dos are unavailable", person);
+            }
             return LegacyTodos.unavailable();
         }
         try {
