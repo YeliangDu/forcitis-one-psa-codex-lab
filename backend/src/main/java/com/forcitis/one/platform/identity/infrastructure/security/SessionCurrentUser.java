@@ -22,8 +22,11 @@ class SessionCurrentUser implements CurrentUser {
     private final AccountEmployees accountEmployees;
     private final BusinessZone zone;
     private final Clock clock;
+    private final CachedSessionPrincipals principals;
 
-    SessionCurrentUser(EmployeeLegalEntities employeeLegalEntities, AccountEmployees accountEmployees, BusinessZone zone, Clock clock) {
+    SessionCurrentUser(EmployeeLegalEntities employeeLegalEntities, AccountEmployees accountEmployees, BusinessZone zone, Clock clock,
+            CachedSessionPrincipals principals) {
+        this.principals = principals;
         this.employeeLegalEntities = employeeLegalEntities;
         this.accountEmployees = accountEmployees;
         this.zone = zone;
@@ -44,9 +47,19 @@ class SessionCurrentUser implements CurrentUser {
         }
     }
 
+    /** In a session the employee was resolved with the session principal; a caller authenticated otherwise is looked up through identity. */
     @Override
     public EmployeeId employeeId() {
         UserId account = userId();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication instanceof IdentityAuthentication identity) {
+            EmployeeId employee = principals.get(account, identity.kindAt(clock.instant())).employeeId();
+            if (employee == null) {
+                throw new DomainException(IdentityError.PLATFORM_IDENTITY_NOT_SIGNED_IN, ErrorKind.UNAUTHENTICATED,
+                        "the session names account " + account.value() + ", which does not exist");
+            }
+            return employee;
+        }
         return accountEmployees.employeeOf(account).orElseThrow(() -> new DomainException(IdentityError.PLATFORM_IDENTITY_NOT_SIGNED_IN,
                 ErrorKind.UNAUTHENTICATED, "the session names account " + account.value() + ", which does not exist"));
     }

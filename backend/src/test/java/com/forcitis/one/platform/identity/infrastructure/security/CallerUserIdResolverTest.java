@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 class CallerUserIdResolverTest {
 
     final CallerUserIdResolver resolver = new CallerUserIdResolver(new SessionCurrentUser(mock(EmployeeLegalEntities.class), TestAccounts.everyoneHasOne(),
-            new BusinessZone(ZoneId.of("Asia/Shanghai")), Clock.systemUTC()));
+            new BusinessZone(ZoneId.of("Asia/Shanghai")), Clock.systemUTC(), mock(CachedSessionPrincipals.class)));
 
     @SuppressWarnings("unused")
     void handler(UserId caller, @PathVariable UserId named) {

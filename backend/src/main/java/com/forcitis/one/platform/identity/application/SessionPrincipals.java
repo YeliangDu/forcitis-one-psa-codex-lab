@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
@@ -38,37 +39,37 @@ public class SessionPrincipals {
     public SessionPrincipal resolve(UserId userId, SessionKind kind) {
         Optional<UserAccount> account = accounts.find(userId);
         if (account.isEmpty()) {
-            return refused(Eligibility.ACCOUNT_MISSING);
+            return refused(Eligibility.ACCOUNT_MISSING, null);
         }
         if (!account.get().isEnabled()) {
-            return refused(Eligibility.ACCOUNT_DISABLED);
+            return refused(Eligibility.ACCOUNT_DISABLED, account.get().employeeId());
         }
         AccessProfile profile = AccessProfile.of(accounts.findEnabledRoles(userId));
         if (kind.mode() == SessionMode.ADMINISTRATOR) {
-            return administrator(userId, kind, profile);
+            return administrator(userId, account.get().employeeId(), kind, profile);
         }
         Optional<EmployeeProfile> employee = directory.findEmployee(account.get().employeeId());
         if (employee.isEmpty()) {
-            return refused(Eligibility.EMPLOYEE_UNKNOWN);
+            return refused(Eligibility.EMPLOYEE_UNKNOWN, account.get().employeeId());
         }
         if (employee.get().employmentStatus() != EmploymentStatus.EMPLOYED) {
-            return refused(Eligibility.EMPLOYEE_SEPARATED);
+            return refused(Eligibility.EMPLOYEE_SEPARATED, account.get().employeeId());
         }
         return new SessionPrincipal(Eligibility.ACTIVE, profile.permissionCodes().stream()
-                .filter(code -> !AdministratorMode.PLATFORM_ONLY.contains(code)).collect(Collectors.toUnmodifiableSet()));
+                .filter(code -> !AdministratorMode.PLATFORM_ONLY.contains(code)).collect(Collectors.toUnmodifiableSet()), account.get().employeeId());
     }
 
-    private SessionPrincipal administrator(UserId userId, SessionKind kind, AccessProfile profile) {
+    private SessionPrincipal administrator(UserId userId, EmployeeId employeeId, SessionKind kind, AccessProfile profile) {
         if (kind.emergency() && !emergencyAdmins.findByUserId(userId).map(EmergencyAdmin::enabled).orElse(false)) {
-            return refused(Eligibility.EMERGENCY_ADMIN_DISABLED);
+            return refused(Eligibility.EMERGENCY_ADMIN_DISABLED, employeeId);
         }
         if (!profile.isAdministrator()) {
-            return refused(Eligibility.NOT_ADMINISTRATOR);
+            return refused(Eligibility.NOT_ADMINISTRATOR, employeeId);
         }
-        return new SessionPrincipal(Eligibility.ACTIVE, profile.administratorModePermissionCodes());
+        return new SessionPrincipal(Eligibility.ACTIVE, profile.administratorModePermissionCodes(), employeeId);
     }
 
-    private static SessionPrincipal refused(Eligibility eligibility) {
-        return new SessionPrincipal(eligibility, Set.of());
+    private static SessionPrincipal refused(Eligibility eligibility, @org.jspecify.annotations.Nullable EmployeeId employeeId) {
+        return new SessionPrincipal(eligibility, Set.of(), employeeId);
     }
 }

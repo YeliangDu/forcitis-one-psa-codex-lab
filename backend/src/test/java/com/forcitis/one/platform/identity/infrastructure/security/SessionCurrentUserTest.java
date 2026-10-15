@@ -34,7 +34,7 @@ class SessionCurrentUserTest {
     static final Clock CLOCK = Clock.fixed(Instant.parse("2026-12-31T16:30:00Z"), ZoneOffset.UTC);
     final EmployeeLegalEntities employeeLegalEntities = mock(EmployeeLegalEntities.class);
     final SessionCurrentUser currentUser = new SessionCurrentUser(employeeLegalEntities, TestAccounts.everyoneHasOne(),
-            new BusinessZone(ZoneId.of("Asia/Shanghai")), CLOCK);
+            new BusinessZone(ZoneId.of("Asia/Shanghai")), CLOCK, mock(CachedSessionPrincipals.class));
 
     @AfterEach
     void clear() {
@@ -83,5 +83,28 @@ class SessionCurrentUserTest {
                 AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS")));
         assertThatThrownBy(currentUser::userId).isInstanceOfSatisfying(DomainException.class,
                 e -> assertThat(e.kind()).isEqualTo(ErrorKind.UNAUTHENTICATED));
+    }
+
+    @Test
+    @DisplayName("P2-M4 in a session the employee comes with the session principal, resolved once and cached; the account table is not asked on every call")
+    void P2_M4_employeeIdIsResolvedOncePerSession() {
+        com.forcitis.one.kernel.AccountEmployees accounts = org.mockito.Mockito.spy(TestAccounts.everyoneHasOne());
+        com.forcitis.one.platform.identity.application.SessionPrincipals resolver = mock(com.forcitis.one.platform.identity.application.SessionPrincipals.class);
+        UserId account = TestAccounts.account(1001);
+        when(resolver.resolve(org.mockito.ArgumentMatchers.eq(account), org.mockito.ArgumentMatchers.any())).thenReturn(
+                new com.forcitis.one.platform.identity.application.SessionPrincipal(com.forcitis.one.platform.identity.application.Eligibility.ACTIVE,
+                        java.util.Set.of(), new EmployeeId(1001)));
+        CachedSessionPrincipals principals = new CachedSessionPrincipals(resolver, new com.forcitis.one.platform.identity.application.SessionSettings(
+                java.time.Duration.ofHours(10), java.time.Duration.ofHours(24), java.time.Duration.ofSeconds(60), true, "Lax"), CLOCK);
+        SessionCurrentUser inSession = new SessionCurrentUser(employeeLegalEntities, accounts, new BusinessZone(ZoneId.of("Asia/Shanghai")), CLOCK, principals);
+        SecurityContextHolder.getContext().setAuthentication(new IdentityAuthentication(account.value().toString(), CLOCK.instant(), "WECOM_WORKBENCH",
+                null, List.of(), true));
+
+        for (int call = 0; call < 3; call++) {
+            assertThat(inSession.employeeId()).isEqualTo(new EmployeeId(1001));
+        }
+
+        org.mockito.Mockito.verify(accounts, org.mockito.Mockito.never()).employeeOf(org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(resolver, org.mockito.Mockito.times(1)).resolve(org.mockito.ArgumentMatchers.eq(account), org.mockito.ArgumentMatchers.any());
     }
 }
