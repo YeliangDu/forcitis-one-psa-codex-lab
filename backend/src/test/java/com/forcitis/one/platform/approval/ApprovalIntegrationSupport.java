@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.approval;
 
 import com.forcitis.one.TestIds;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.kernel.DocumentId;
@@ -75,7 +76,7 @@ public abstract class ApprovalIntegrationSupport {
     public static final LegalEntityId LEGAL_ENTITY = new LegalEntityId(TestIds.uuid(1));
     static final AtomicLong IDS = new AtomicLong(100_000);
 
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:18")
+    static final PostgreSQLContainer POSTGRES = TestPostgres.container()
             .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
 
     /** Throw-away credentials for the stand-in read-only account, generated per run. */

@@ -111,7 +111,7 @@ class DataArchitectureTest {
 
     @BeforeAll
     static void migrate() throws Exception {
-        postgres = new PostgreSQLContainer("postgres:18");
+        postgres = TestPostgres.container();
         postgres.start();
         Flyway.configure().dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword()).locations("classpath:db/migration")
                 .defaultSchema("one_migration").createSchemas(true).load().migrate();

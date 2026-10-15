@@ -6,6 +6,7 @@
 
 | 名称 | 标识 | 状态 | 依据 |
 |---|---|---|---|
+| 本机 Python（SDK） | ~/.modernize/psa/ops-venv，按 [ops-venv-requirements.txt](ops-venv-requirements.txt) 安装；B-5 工具用它的 python 运行，不借其他会话的 scratchpad | 用 | — |
 | 阿里云账号 / 本机凭据 | 1980847222980247 / profile forcitis-production | 用 | — |
 | 新 ECS | i-bp122xlpar8w2uylmal2，实例角色 forcitis-one-ecs-archive | 用 | C-4 |
 | 老系统应用服务器 | i-bp1b34hcl0g1cnkdtrb9 | 只读探针 | B-5 |

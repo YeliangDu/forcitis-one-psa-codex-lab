@@ -86,7 +86,7 @@ export function changedDates(saved: Exceptions, draft: Exceptions): string[] {
 }
 
 export function entriesOf(exceptions: Exceptions): DayEntry[] {
-  return [...exceptions.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([calendarDate, dayKind]) => ({ calendarDate, dayKind }));
+  return [...exceptions.entries()].sort(([a], [b]) => a.localeCompare(b, 'zh')).map(([calendarDate, dayKind]) => ({ calendarDate, dayKind }));
 }
 
 export function yearChoices(maintained: readonly number[], today: string): number[] {
