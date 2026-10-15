@@ -34,7 +34,10 @@ COMMENT ON COLUMN platform_integration.event_publication.updated_at IS '更新�
 
 CREATE TABLE platform_integration.outbound_deliveries (
     id                      uuid        PRIMARY KEY,
-    deduplication_key       text        NOT NULL UNIQUE,
+    subject_kind            text        NOT NULL CONSTRAINT ck_outbound_deliveries_subject_kind CHECK (subject_kind IN ('APPROVAL_TASK', 'APPROVAL_INSTANCE')),
+    subject_id              uuid        NOT NULL,
+    purpose_kind            text        NOT NULL CONSTRAINT ck_outbound_deliveries_purpose_kind CHECK (purpose_kind IN ('TASK_ASSIGNED', 'TASK_TRANSFERRED', 'TASK_REASSIGNED', 'TASK_OVERDUE', 'TASK_ESCALATED', 'APPROVAL_COMPLETED')),
+    trigger_event_id        uuid,
     title                   text        NOT NULL,
     description             text,
     target_url              text        NOT NULL,
@@ -49,19 +52,25 @@ CREATE TABLE platform_integration.outbound_deliveries (
     created_at              timestamptz NOT NULL DEFAULT now(),
     updated_at              timestamptz NOT NULL DEFAULT now(),
     kind                    text        NOT NULL DEFAULT 'CARD' CHECK (kind IN ('CARD', 'HANDLED_NOTE')),
-    target_key              text,
+    target_delivery_id      uuid,
     version                 bigint      NOT NULL DEFAULT 0,
     correlation_id          uuid,
     event_count             bigint      NOT NULL DEFAULT 0,
     recipient_codes         text[]      NOT NULL,
     skipped_recipient_codes text[],
-    CONSTRAINT outbound_deliveries_handled_note_target CHECK ((kind = 'HANDLED_NOTE') = (target_key IS NOT NULL))
+    CONSTRAINT outbound_deliveries_handled_note_target CHECK ((kind = 'HANDLED_NOTE') = (target_delivery_id IS NOT NULL)),
+    CONSTRAINT fk_outbound_deliveries_target_delivery_id FOREIGN KEY (target_delivery_id) REFERENCES platform_integration.outbound_deliveries (id)
 );
+CREATE UNIQUE INDEX uk_outbound_deliveries_card ON platform_integration.outbound_deliveries (subject_kind, subject_id, purpose_kind, trigger_event_id) NULLS NOT DISTINCT WHERE kind = 'CARD';
+CREATE UNIQUE INDEX uk_outbound_deliveries_target_delivery_id ON platform_integration.outbound_deliveries (target_delivery_id);
 CREATE INDEX outbound_deliveries_due_idx ON platform_integration.outbound_deliveries (next_attempt_at) WHERE status = 'PENDING';
 CREATE INDEX outbound_deliveries_dead_idx ON platform_integration.outbound_deliveries (status) WHERE status = 'DEAD_LETTER';
-COMMENT ON TABLE platform_integration.outbound_deliveries IS '外发投递：企业微信文本卡片的待发队列与结果，事务提交后由投递作业发送，失败退避重试，超过次数进死信；粒度：每张待发或已发的卡片一行（按去重键唯一）';
+COMMENT ON TABLE platform_integration.outbound_deliveries IS '外发投递：企业微信文本卡片的待发队列与结果，事务提交后由投递作业发送，失败退避重试，超过次数进死信；粒度：每张待发或已发的卡片一行（按对象、用途与触发事件唯一）';
 COMMENT ON COLUMN platform_integration.outbound_deliveries.id IS '投递 ID（UUIDv7）';
-COMMENT ON COLUMN platform_integration.outbound_deliveries.deduplication_key IS '去重键：同一键只投递一次，也用于事后把卡片改为已处理，如 approval-task:42';
+COMMENT ON COLUMN platform_integration.outbound_deliveries.subject_kind IS '对象类别 / 对象 ID：被记录或被投递的业务对象的类别与自有 ID。对象类别：APPROVAL_TASK 审批任务 / APPROVAL_INSTANCE 审批实例';
+COMMENT ON COLUMN platform_integration.outbound_deliveries.subject_id IS '对象 ID：被投递的业务对象的自有 ID（UUID）；与对象类别、用途、触发事件一起让同一张卡只投递一次，也用于事后把卡片改为已处理';
+COMMENT ON COLUMN platform_integration.outbound_deliveries.purpose_kind IS '投递用途：一张卡为什么发。TASK_ASSIGNED 任务指派 / TASK_TRANSFERRED 任务转交 / TASK_REASSIGNED 任务改派 / TASK_OVERDUE 任务超时 / TASK_ESCALATED 任务升级 / APPROVAL_COMPLETED 审批完成';
+COMMENT ON COLUMN platform_integration.outbound_deliveries.trigger_event_id IS '触发事件 ID：同一对象、同一用途可因多次事件重发时（转交、改派）取触发事件的 ID，其余为空';
 COMMENT ON COLUMN platform_integration.outbound_deliveries.title IS '卡片标题';
 COMMENT ON COLUMN platform_integration.outbound_deliveries.description IS '卡片说明';
 COMMENT ON COLUMN platform_integration.outbound_deliveries.target_url IS '卡片点击后的跳转链接';
@@ -76,7 +85,7 @@ COMMENT ON COLUMN platform_integration.outbound_deliveries.handled_result IS '�
 COMMENT ON COLUMN platform_integration.outbound_deliveries.created_at IS '创建时间';
 COMMENT ON COLUMN platform_integration.outbound_deliveries.updated_at IS '更新时间';
 COMMENT ON COLUMN platform_integration.outbound_deliveries.kind IS '投递种类：CARD 发送卡片 / HANDLED_NOTE 把已发送的卡片替换为已处理说明；两种共用同一套重试与死信';
-COMMENT ON COLUMN platform_integration.outbound_deliveries.target_key IS '被替换卡片的去重键；仅 HANDLED_NOTE 投递有值，其说明文字存放在 description';
+COMMENT ON COLUMN platform_integration.outbound_deliveries.target_delivery_id IS '被替换的投递 ID：被替换卡片的投递 ID；仅 HANDLED_NOTE 投递有值，每张卡至多一条说明，说明文字存放在 description';
 COMMENT ON COLUMN platform_integration.outbound_deliveries.version IS '乐观锁版本';
 COMMENT ON COLUMN platform_integration.outbound_deliveries.correlation_id IS '关联号：产生这条投递的请求、作业或事件处理的关联号；投递作业恢复它，发出的请求带上它';
 COMMENT ON COLUMN platform_integration.outbound_deliveries.event_count IS '事件序号：该聚合已发出的事件数，每发一个事件加 1，作为事件信封的 aggregateVersion；与乐观锁 version 分开';
