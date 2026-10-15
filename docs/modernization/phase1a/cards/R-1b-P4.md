@@ -216,7 +216,7 @@
 | D-1 | `approval_requests.document_key text` 存的是业务模块的自有 UUID，按 NAMING §2.4 `_key` 只用于 text 业务键 | 改名并改类型为 `document_id uuid`；`uq_approval_requests_document` 名称不变（C10） |
 | D-2 | 子表挂 `approval_request_id` 后，`process_key`、`document_key` 留不留作冗余 | 删除（外键目标为主键，G-DDL1；ADR-0033 第 8 项第 2 条「不再以文本挂根」）；`historyOf`、已办列表经 `approval_requests` 连接取流程标识与单据 |
 | D-3 | 「办理记录序号」的范围、列名、分配位置 | 按审批请求递增（跨轮次连续，轮次另有 `round_number`）；列名 `record_number`（待门禁）；在请求加锁的保存事务内分配，冲突按并发修改拒绝；聚合内计数或仓储取最大值由实现定 |
-| D-4 | ADR-0033 第 7 项第 3 条写去重键含「收件人 `user_id`」，而现行一张卡多个收件人（`recipient_codes text[]`），且收件人现是企业微信 userid（DA-10 才改为 `UserId`） | 本卡不把收件人放进去重键（粒度仍为一张卡一行），ADR 原文「具体列在 R-1b 的清单中列出」即由本卡定；DA-10 若改为一人一行再加列。已处理说明用 `target_delivery_id` 外键 + 唯一，取代 `#handled` 后缀；对象类别取值由集成层 api 的枚举持有（取值是中性的「审批任务 / 审批实例」，不出现外部系统名）。此条偏离 ADR 字面，**需 one-coordinator 认可** |
+| D-4 | ADR-0033 第 7 项第 3 条写去重键含「收件人 `user_id`」，而现行一张卡多个收件人（`recipient_codes text[]`），且收件人现是企业微信 userid（DA-10 才改为 `UserId`） | 本卡不把收件人放进去重键（粒度仍为一张卡一行），ADR 原文「具体列在 R-1b 的清单中列出」即由本卡定；收件人列由 DA-10 补入唯一约束（必做，首次部署前，迁移方案第 5 条）。已处理说明用 `target_delivery_id` 外键 + 唯一，取代 `#handled` 后缀；对象类别取值由集成层 api 的枚举持有（取值是中性的「审批任务 / 审批实例」，不出现外部系统名）。此条偏离 ADR 字面，**需 one-coordinator 认可** |
 | D-5 | 企业微信消息 `task_id` 现由去重键文本的 SHA-256 导出 | 改由投递行 `id` 导出（同一行重试不变，说明行与原卡各自独立）；确认企业微信侧对 `task_id` 的格式与长度限制不变 |
 | D-6 | `InboxItemResponse.taskId` 在老待办条目里装的是老系统任务键（非 uuid），不能声明 `format: uuid`；P5 计划清空 `OTHER_ID_NAMES` | 不拆字段（契约中性化随 ADR-0039 第 6 条放生产后）：`OTHER_ID_NAMES` 收窄为只按全名放行 `InboxItemResponse.taskId` 一项并写理由与到期条件；P5 清空时保留这一项，到期随中性化删除。备选：本卡拆为 `taskId`（uuid，仅新待办）+ 老系统任务键字段（改契约、加新词、前端改，越出本卡） |
 | D-7 | `idGenerator` 放哪里：`EngineWiring` 现为 `ApplicationReadyEvent` 监听器，此时引擎已建好，设置无效 | 在 `EngineWiring`（`@Configuration`）内加一个 `EngineConfigurationConfigurer` `@Bean`，保持 P4 只改独占文件；不改 `FlowableEngineClock`。若核实 Flowable 自动配置另有 `@Process` 限定的 `IdGenerator` bean 写法更稳妥，则用 bean 写法并在 PR 写明 |
@@ -231,10 +231,11 @@
 
 ## 13. 负责会话裁定（one-1a-next-4，2026-10-15）
 - RULING-P4-D1..D3、D5..D9、D11..D15：按第 12 节建议采纳。
-- D-4（去重键暂不含收件人）**待定**：one-coordinator 认为 ADR-0033 第 7 项第 3 条已列收件人 `user_id`，拿掉属偏离已采纳 ADR，已转 one-architecture 判定——认定为分阶段实施并写入 ADR-0033 落地清单则不算 ADR 变更；否则做勘误或修订交用户批准。结论前不派实现。`target_delivery_id` 取代 `#handled` 后缀不受影响。
-  - 收件人列何时补：DA-10（收件人解析移入集成层、收件人改 `UserId`、一人一行）随 DA-3 → DA-10，按计划 7.11 排在 F-1 之后、首次生产部署前，属 R-1b 之后的数据架构卡，不在 P4–P5。
-  - 补列时唯一约束迁移：基线开放期内（生产部署前）直接改基线——`outbound_deliveries` 加 `recipient_user_id uuid NOT NULL`，一张卡多收件人拆为一人一行，`uk_outbound_deliveries_card` 换为含 `recipient_user_id` 的新唯一约束（名称按 §2.4，`DdlNamingTest` 为准），`target_delivery_id` 指向被替换的那一人那一行；dev 库按 §12.2 重建，无存量迁移。若届时基线已关闭，则走新 Flyway 迁移：加可空列 → 按 `recipient_codes` 拆行回填（经 DA-10 的收件人对照）→ 置 NOT NULL → 建新唯一约束 → 删旧约束，回填不完整即迁移失败（不静默跳过）。
+- RULING-P4-D4（one-architecture 判定为 ADR-0033 允许的分阶段落地，2026-10-15）：收件人 `user_id` 到 DA-10 才存在（ADR-0033 第 4 项第 4、5 条），P4 去重键先不含收件人；**收件人列由 DA-10 补入唯一约束（必做，首次部署前，迁移方案第 5 条）**。`target_delivery_id` 取代 `#handled` 后缀符合第 2 项第 10 条，`trigger_event_id` 为追加的结构化列，均不构成偏离。
+  - DA-10 时点：随 DA-3 → DA-10，按计划 7.11 在 F-1 之后、首次生产部署前（基线关闭前）。
+  - DA-10 卡验收（基线开放时直接改基线）：删 `recipient_codes`，加 `recipient_user_id uuid NOT NULL`；`uk_outbound_deliveries_card` 改为 `(subject_kind, subject_id, purpose_kind, trigger_event_id, recipient_user_id) NULLS NOT DISTINCT WHERE kind = 'CARD'`，名称不变；D-5 一人一行后 `task_id` 按收件人各一张卡，已处理替换逐张进行；守护断言唯一约束含 `recipient_user_id`。
+  - 须交用户的情形：DA-10 不改为一人一行，或拖过基线关闭。
 - RULING-P4-D10：发起时核对表单字段名，未登记即发起失败并 ALERT（CLAUDE.md 第 6 条）；测试代理据此写验收第 12 条。
 - RULING-P4-D6：`OTHER_ID_NAMES` 收窄为只按全名放行 `InboxItemResponse.taskId`，写理由与到期条件（随 ADR-0039 第 6 条契约中性化），P5 清空时保留此项。
-- 开工条件：第 11 节新词经 one-glossary 定稿（部门负责人审批节点与字段名须用户确认的走确认页）；D-4 经 one-architecture 判定（及必要时用户批准）；P3b（#260）合并后 rebase。
+- 开工条件：第 11 节新词经 one-glossary 定稿（部门负责人审批节点与字段名须用户确认的走确认页）；D-4 已判定；P3b（#260）合并后 rebase。
 - 新词定稿（one-glossary，2026-10-15）：节点 `OrgUnitHeadApproval` / id `orgUnitHeadApproval`（后缀 Approval；兄弟节点 Review → Approval 随 R3 改名卡，不在本卡）；表单字段 `orgUnitHeadId`；`record_number`（列注释以「办理记录序号」开头，写明同一审批请求内递增、与单据编号流水号无关）；`approval_request_id` / `ApprovalRequestId`；`subject_kind` / `subject_id`（注释「对象类别 / 对象 ID：被记录或被投递的业务对象的类别与自有 ID」，与 P5 `audit_entries` 同句）；`purpose_kind` 取值六个照候选，实现 PR 登记提议术语 `delivery_purpose` 投递用途 / DeliveryPurpose（kind state，bc platform.integration，放 `platform-integration.yaml`，由 one-glossary 放确认页，实现不等）；`trigger_event_id`（注释「触发事件 ID」）、`target_delivery_id`、`process_archive_skip_id`、`document_id`（类型 `DocumentId`）、`DeliverySubject`（只在集成层 api）。代码中 `RegionalHeadApproval`、`regionalHeadId` 等旧名本卡一并改；词表中 `regional_head*` 由 one-glossary 写回，本卡不动。
