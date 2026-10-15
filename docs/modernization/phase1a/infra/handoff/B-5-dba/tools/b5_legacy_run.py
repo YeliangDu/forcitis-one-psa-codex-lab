@@ -9,9 +9,10 @@
 import base64, gzip, json, os, re, sys, time
 from pathlib import Path
 
-from alibabacloud_tea_openapi import models as om
-from alibabacloud_ecs20140526.client import Client as Ecs
 from alibabacloud_ecs20140526 import models as em
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / 'runbooks' / 'scripts'))
+from ops_credentials import ecs_client, require_committed  # noqa: E402
 
 REGION = 'cn-hangzhou'
 LEGACY_SERVER = 'i-bp1b34hcl0g1cnkdtrb9'
@@ -24,14 +25,11 @@ A8_URL = f'jdbc:sqlserver://{SQLSERVER}:1433;databaseName=a8_db;encrypt=true;tru
 LEGACY_WORK = '/root/one-ops-b5'
 ONE_WORK = '/root/one-ops-b5'
 
-_profile = next(p for p in json.load(open(os.path.expanduser('~/.aliyun/config.json')))['profiles'] if p['name'] == 'forcitis-production')
-if _profile['sts_expiration'] - time.time() < 900:
-    raise SystemExit('temporary credentials expire within 15 minutes; run any aliyun command to refresh first')
-ecs = Ecs(om.Config(access_key_id=_profile['access_key_id'], access_key_secret=_profile['access_key_secret'],
-                    security_token=_profile['sts_token'], region_id=REGION, endpoint=f'ecs.{REGION}.aliyuncs.com'))
+require_committed(__file__, sys.argv[0])
 
 
 def run(instance, script, timeout=600):
+    ecs = ecs_client(REGION, timeout + 120)
     invoke = ecs.run_command(em.RunCommandRequest(region_id=REGION, instance_id=[instance], type='RunShellScript',
                                                   command_content=script, timeout=timeout, keep_command=False,
                                                   name='one-ops-b5')).body.invoke_id
