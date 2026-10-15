@@ -17,8 +17,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
- * FLAKY-SESS: the purge judges expiry with the application clock (fixed at NOW in acceptance tests), so the session written at login
- * must be stamped by the same clock. Run once, deterministically: no dependence on the minute boundary of the scheduled job.
+ * FLAKY-SESS: the purge judges expiry on the same time basis as the framework writes into the session table; the injected Clock takes
+ * no part. Run once, deterministically: no dependence on the minute boundary of the scheduled job.
  */
 @Testcontainers
 class SessionPurgeClockIT extends AccountsAcceptanceSupport {
@@ -64,10 +64,12 @@ class SessionPurgeClockIT extends AccountsAcceptanceSupport {
     @DisplayName("FLAKY-SESS 刚登录、未过期的会话，清理作业执行一次后仍有效（200），不被误删")
     void aFreshSessionSurvivesAPurge() throws Exception {
         SignedIn signedIn = freshLogin();
+        clock.set(NOW.plus(Duration.ofDays(400)));
 
         int removed = purgeExpiredSessions.execute();
 
         assertThat(removed).as("sessions the purge removed").isZero();
+        clock.set(NOW);
         assertThat(statusOf(signedIn)).as("the session after the purge").isEqualTo(200);
     }
 
@@ -79,7 +81,10 @@ class SessionPurgeClockIT extends AccountsAcceptanceSupport {
 
         int removed = purgeExpiredSessions.execute();
 
-        assertThat(removed).as("sessions the purge removed").isGreaterThanOrEqualTo(1);
+        assertThat(removed).as("sessions the purge removed").isEqualTo(1);
+        assertThat(auditQuery(null, null, "platform.identity.session.expired"))
+                .filteredOn(entry -> ("user-account:" + signedIn.userId()).equals(entry.get("subjectKey")))
+                .singleElement().satisfies(entry -> assertThat(entry.get("detail")).isEqualTo("cause=IDLE"));
         assertThat(statusOf(signedIn)).as("the session after idling past the timeout and the purge").isEqualTo(401);
     }
 }
