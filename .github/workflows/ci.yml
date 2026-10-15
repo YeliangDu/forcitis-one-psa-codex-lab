@@ -56,7 +56,7 @@ jobs:
       - name: test images are present
         if: steps.change.outputs.relevant == 'true'
         run: |
-          for image in postgres:18 testcontainers/ryuk:0.14.0; do
+          grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' backend/architecture/test-images.txt | while read -r image || [ -n "$image" ]; do
             docker image inspect "$image" >/dev/null 2>&1 || docker pull -q "$image"
           done
       - name: surefire and failsafe, side by side
