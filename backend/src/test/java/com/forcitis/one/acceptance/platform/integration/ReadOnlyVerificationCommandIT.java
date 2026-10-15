@@ -74,11 +74,11 @@ class ReadOnlyVerificationCommandIT {
 
     /** READONLY_VERIFY_ACCEPTANCE.md section 3a: a quoted value is a catalog name with escapes, a bare one is a code or a placeholder. */
     static final String LOCATOR_VALUE = "(?:\"(?:[^\"\\\\\\p{Cntrl}\\u2028\\u2029]|\\\\[\"\\\\nrt]|\\\\u[0-9A-F]{4})*\"|[A-Z0-9_-]+)";
-    static final Pattern LOCATOR_LINE = Pattern.compile("^  \\(([fg])\\) (violation|covered)((?: [a-zA-Z]+=" + LOCATOR_VALUE + ")+)$");
+    static final Pattern LOCATOR_LINE = Pattern.compile("^  \\(([fg])\\) (violation|overridden)((?: [a-zA-Z]+=" + LOCATOR_VALUE + ")+)$");
     static final Pattern LOCATOR_FIELD = Pattern.compile(" ([a-zA-Z]+)=(" + LOCATOR_VALUE + ")");
     static final List<String> SYSTEM_DATABASE_FIELDS = List.of("reason", "database");
     static final List<String> VIOLATION_FIELDS = List.of("reason", "class", "schema", "object", "permission", "state", "grantee", "granteeType");
-    static final List<String> COVERED_FIELDS = List.of("class", "schema", "object", "permission", "state", "grantee", "granteeType", "by");
+    static final List<String> OVERRIDDEN_FIELDS = List.of("class", "schema", "object", "permission", "state", "grantee", "granteeType", "by");
     static final AtomicInteger ISOLATED_DATABASES = new AtomicInteger();
 
     static final Duration COMMAND_TIME_LIMIT = Duration.ofSeconds(120);
@@ -322,8 +322,8 @@ class ReadOnlyVerificationCommandIT {
     }
 
     @Test
-    @DisplayName("C-14 定位、ADR-0037 第 4 项 (b) 收窄 RULING-ADR37-10（one-coordinator 2026-10-15，安全判定放宽）：public 对象级 GRANT EXECUTE 被本账号库级 DENY EXECUTE 覆盖时 (g) 通过、输出一条已覆盖信息行、结果通过、退出 0（rc.2 A8 账号的情形）")
-    void publicExecuteCoveredByTheDatabaseDenyPasses() throws Exception {
+    @DisplayName("C-14 定位、ADR-0037 第 4 项 (b) 收窄 RULING-ADR37-10（one-coordinator 2026-10-15，安全判定放宽）：public 对象级 GRANT EXECUTE 被本账号库级 DENY EXECUTE 覆盖时 (g) 通过、输出一条 overridden 信息行（被拒绝覆盖的授权）、结果通过、退出 0（rc.2 A8 账号的情形）")
+    void publicExecuteOverriddenByTheDatabaseDenyPasses() throws Exception {
         Account account = isolatedAccount(ReadOnlyConnection.A8);
         String procedure = "p_" + marker();
         runIn(account, "CREATE PROCEDURE dbo." + q(procedure) + " AS SELECT 1", "GRANT EXECUTE ON OBJECT::dbo." + q(procedure) + " TO public");
@@ -336,15 +336,15 @@ class ReadOnlyVerificationCommandIT {
             assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
         }
         assertThat(run.locators()).as("one information line under (g), nothing counted as a violation\n%s", run.output()).containsExactly(
-                covered("OBJECT_OR_COLUMN", quoted("dbo"), quoted(procedure), "EXECUTE", PUBLIC, "DATABASE_DENY"));
+                overridden("OBJECT_OR_COLUMN", quoted("dbo"), quoted(procedure), "EXECUTE", PUBLIC, "DATABASE_DENY"));
         assertLocatorFieldsInContractOrder(run);
         assertThat(run.results()).as(run.output()).containsExactly("PASSED");
         assertTellsNothingSecret(run, account);
     }
 
     @Test
-    @DisplayName("C-14 定位、RULING-ADR37-10 收窄的安全条件 1、2、5、复审 H-1：public 对象级 GRANT CONTROL 与 GRANT TAKE OWNERSHIP 不在库级 DENY 清单内，即使本账号另有同名 schema 级 DENY 仍各算一条违规并带定位；同时被覆盖的 GRANT EXECUTE 只出信息行、不计数")
-    void controlAndTakeOwnershipStayViolationsBesideACoveredGrant() throws Exception {
+    @DisplayName("C-14 定位、RULING-ADR37-10 收窄的安全条件 1、2、5、复审 H-1：public 对象级 GRANT CONTROL 与 GRANT TAKE OWNERSHIP 不在库级 DENY 清单内，即使本账号另有同名 schema 级 DENY 仍各算一条违规并带定位；同时被 DENY 覆盖的 GRANT EXECUTE 只出 overridden 信息行、不计数")
+    void controlAndTakeOwnershipStayViolationsBesideAnOverriddenGrant() throws Exception {
         Account account = isolatedAccount(ReadOnlyConnection.A8);
         String table = "t_" + marker();
         String procedure = "p_" + marker();
@@ -362,8 +362,8 @@ class ReadOnlyVerificationCommandIT {
         assertThat(run.locators('g', "violation")).as(run.output()).containsExactlyInAnyOrder(
                 violation("OBJECT_OR_COLUMN", quoted("dbo"), quoted(table), "CONTROL", PUBLIC),
                 violation("OBJECT_OR_COLUMN", quoted("dbo"), quoted(table), "TAKE OWNERSHIP", PUBLIC));
-        assertThat(run.locators('g', "covered")).as(run.output()).containsExactly(
-                covered("OBJECT_OR_COLUMN", quoted("dbo"), quoted(procedure), "EXECUTE", PUBLIC, "DATABASE_DENY"));
+        assertThat(run.locators('g', "overridden")).as(run.output()).containsExactly(
+                overridden("OBJECT_OR_COLUMN", quoted("dbo"), quoted(procedure), "EXECUTE", PUBLIC, "DATABASE_DENY"));
         assertThat(run.locators()).as("no locator line for another item\n%s", run.output()).allSatisfy(l -> assertThat(l.item()).isEqualTo('g'));
         assertLocatorFieldsInContractOrder(run);
         assertThat(run.results()).as(run.output()).containsExactly("VIOLATED");
@@ -384,14 +384,14 @@ class ReadOnlyVerificationCommandIT {
         assertThat(run.item('g').tokens()).as(run.output()).contains(" reason=SECURABLE_GRANT_BEYOND_SELECT count=1");
         assertThat(run.locators()).as(run.output()).containsExactlyInAnyOrder(
                 violation("SCHEMA", quoted(schema), ABSENT, "CONTROL", PUBLIC),
-                covered("SCHEMA", quoted(schema), ABSENT, "INSERT", PUBLIC, "DATABASE_DENY"));
+                overridden("SCHEMA", quoted(schema), ABSENT, "INSERT", PUBLIC, "DATABASE_DENY"));
         assertLocatorFieldsInContractOrder(run);
         assertTellsNothingSecret(run, account);
     }
 
     @Test
-    @DisplayName("C-14 定位、安全条件 1（按权限名与 schema 精确匹配）：库级 DENY EXECUTE 被撤、只剩 DENY EXECUTE ON SCHEMA::dbo 时，dbo 下过程的 public GRANT EXECUTE 为已覆盖 by=SCHEMA_DENY，另一 schema 下的同类授权违规；(b) 违规、退出违规码")
-    void aSchemaDenyCoversOnlyItsOwnSchema() throws Exception {
+    @DisplayName("C-14 定位、安全条件 1（按权限名与 schema 精确匹配）：库级 DENY EXECUTE 被撤、只剩 DENY EXECUTE ON SCHEMA::dbo 时，dbo 下过程的 public GRANT EXECUTE 为 overridden by=SCHEMA_DENY，另一 schema 下的同类授权违规；(b) 违规、退出违规码")
+    void aSchemaDenyOverridesOnlyInItsOwnSchema() throws Exception {
         Account account = isolatedAccount(ReadOnlyConnection.A8);
         String schema = "s_" + marker();
         String inDbo = "p_" + marker();
@@ -409,13 +409,13 @@ class ReadOnlyVerificationCommandIT {
         assertThat(run.item('g').tokens()).as(run.output()).contains(" reason=SECURABLE_GRANT_BEYOND_SELECT count=1");
         assertThat(run.locators()).as(run.output()).containsExactlyInAnyOrder(
                 violation("OBJECT_OR_COLUMN", quoted(schema), quoted(elsewhere), "EXECUTE", PUBLIC),
-                covered("OBJECT_OR_COLUMN", quoted("dbo"), quoted(inDbo), "EXECUTE", PUBLIC, "SCHEMA_DENY"));
+                overridden("OBJECT_OR_COLUMN", quoted("dbo"), quoted(inDbo), "EXECUTE", PUBLIC, "SCHEMA_DENY"));
         assertLocatorFieldsInContractOrder(run);
         assertTellsNothingSecret(run, account);
     }
 
     @Test
-    @DisplayName("C-14 定位、安全条件 3：本账号一条 DENY 也查不到（库级 11 项全被撤）时，可被覆盖的 public GRANT EXECUTE 判 (g) 判定不了而非已覆盖，不出已覆盖行；(b) 违规、退出违规码")
+    @DisplayName("C-14 定位、安全条件 3：本账号一条 DENY 也查不到（库级 11 项全被撤）时，可被覆盖的 public GRANT EXECUTE 判 (g) 判定不了而非被拒绝覆盖，不出 overridden 行；(b) 违规、退出违规码")
     void noDenyAnswerLeavesTheGrantUndetermined() throws Exception {
         Account account = isolatedAccount(ReadOnlyConnection.A8);
         String procedure = "p_" + marker();
@@ -426,15 +426,15 @@ class ReadOnlyVerificationCommandIT {
 
         assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
         assertThat(run.item('b').verdict()).as(run.output()).isEqualTo("VIOLATED");
-        assertThat(run.item('g').verdict()).as("whether a DENY covers the grant cannot be told: undetermined, not covered\n%s", run.output())
+        assertThat(run.item('g').verdict()).as("whether a DENY overrides the grant cannot be told: undetermined, not overridden\n%s", run.output())
                 .isEqualTo("UNDETERMINED");
-        assertThat(run.locators('g', "covered")).as(run.output()).isEmpty();
+        assertThat(run.locators('g', "overridden")).as(run.output()).isEmpty();
         assertThat(run.results()).as(run.output()).containsExactly("VIOLATED");
         assertTellsNothingSecret(run, account);
     }
 
     @Test
-    @DisplayName("C-14 定位：授给账号本人的对象级授权，grantee 为占位 SELF 而非数据库用户名（夹具与 RDS 上用户名即登录名，不得输出），granteeType 为 SQL_USER；被覆盖的出信息行、未覆盖的违规")
+    @DisplayName("C-14 定位：授给账号本人的对象级授权，grantee 为占位 SELF 而非数据库用户名（夹具与 RDS 上用户名即登录名，不得输出），granteeType 为 SQL_USER；被 DENY 覆盖的出 overridden 信息行、未覆盖的违规")
     void grantsToTheLoginItselfShowTheSelfPlaceholder() throws Exception {
         Account account = isolatedAccount(ReadOnlyConnection.A8);
         String table = "t_" + marker();
@@ -449,7 +449,7 @@ class ReadOnlyVerificationCommandIT {
         assertThat(run.item('g').tokens()).as(run.output()).contains(" reason=SECURABLE_GRANT_BEYOND_SELECT count=1");
         assertThat(run.locators()).as(run.output()).containsExactlyInAnyOrder(
                 violation("OBJECT_OR_COLUMN", quoted("dbo"), quoted(table), "CONTROL", SELF),
-                covered("OBJECT_OR_COLUMN", quoted("dbo"), quoted(procedure), "EXECUTE", SELF, "DATABASE_DENY"));
+                overridden("OBJECT_OR_COLUMN", quoted("dbo"), quoted(procedure), "EXECUTE", SELF, "DATABASE_DENY"));
         assertLocatorFieldsInContractOrder(run);
         assertTellsNothingSecret(run, account);
     }
@@ -647,15 +647,15 @@ class ReadOnlyVerificationCommandIT {
                 "permission", quoted(permission), "state", "GRANT", "grantee", grantee.name(), "granteeType", grantee.type()));
     }
 
-    static Locator covered(String securableClass, String schema, String object, String permission, Grantee grantee, String by) {
-        return new Locator('g', "covered", fields("class", securableClass, "schema", schema, "object", object, "permission", quoted(permission),
+    static Locator overridden(String securableClass, String schema, String object, String permission, Grantee grantee, String by) {
+        return new Locator('g', "overridden", fields("class", securableClass, "schema", schema, "object", object, "permission", quoted(permission),
                 "state", "GRANT", "grantee", grantee.name(), "granteeType", grantee.type(), "by", by));
     }
 
     /** Fixed field order (section 3a), so that a grep for "permission=... state=..." finds the line. */
     static void assertLocatorFieldsInContractOrder(CommandRun run) {
         for (Locator locator : run.locators()) {
-            List<String> order = locator.item() == 'f' ? SYSTEM_DATABASE_FIELDS : locator.kind().equals("covered") ? COVERED_FIELDS : VIOLATION_FIELDS;
+            List<String> order = locator.item() == 'f' ? SYSTEM_DATABASE_FIELDS : locator.kind().equals("overridden") ? OVERRIDDEN_FIELDS : VIOLATION_FIELDS;
             assertThat(List.copyOf(locator.fields().keySet())).as("fields of %s\n%s", locator, run.output()).containsExactlyElementsOf(order);
         }
     }
