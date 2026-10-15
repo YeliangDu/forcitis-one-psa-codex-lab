@@ -43,7 +43,7 @@ class TimesheetApproverReplayIT {
         assertThat(report.differences()).hasSize(5 + 1);
         assertThat(report.differences()).filteredOn(d -> d.verdict() == ReplayVerdict.DEFECT).singleElement().satisfies(d -> {
             assertThat(d.instanceId()).isEqualTo("SYN-8");
-            assertThat(d.nodeKey()).isEqualTo("regionalHeadReview");
+            assertThat(d.nodeKey()).isEqualTo("orgUnitHeadApproval");
             assertThat(d.ruleType()).isEqualTo("FORM_FIELD_USERS");
             assertThat(d.candidates()).containsExactly(110L);
             assertThat(d.actualApprovers()).containsExactly(105L);
@@ -108,8 +108,8 @@ class TimesheetApproverReplayIT {
     void nodeSetDifferencesAreDefects() throws IOException {
         ReplayExport all = fixture();
         ReplayExport.InstanceRecord base = all.instances().stream().filter(i -> i.instanceId().equals("SYN-1")).findFirst().orElseThrow();
-        ReplayExport.NodeRecord extra = new ReplayExport.NodeRecord("regionalHeadReview",
-                java.util.Map.of("type", "FORM_FIELD_USERS", "field", "regionalHeadId"), false, List.of(112L));
+        ReplayExport.NodeRecord extra = new ReplayExport.NodeRecord("orgUnitHeadApproval",
+                java.util.Map.of("type", "FORM_FIELD_USERS", "field", "orgUnitHeadId"), false, List.of(112L));
         ReplayExport.InstanceRecord withExtra = new ReplayExport.InstanceRecord("X-1", base.initiatorId(), base.legacyHourTypes(),
                 base.formFields(), base.variables(), List.of(base.nodes().getFirst(), extra));
         ReplayExport.InstanceRecord oldSkipped = new ReplayExport.InstanceRecord("X-2", base.initiatorId(), base.legacyHourTypes(),

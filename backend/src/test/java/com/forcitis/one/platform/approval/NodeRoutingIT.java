@@ -53,7 +53,7 @@ class NodeRoutingIT extends ApprovalIntegrationSupport {
                 TimesheetRoutingFlag.OVERHEAD_HOURS);
 
         Map<String, Object> variables = runtime.getVariables(instance.value());
-        assertThat(variables).containsEntry("routed_projectManagerReview", true).containsEntry("routed_regionalHeadReview", false)
+        assertThat(variables).containsEntry("routed_projectManagerReview", true).containsEntry("routed_orgUnitHeadApproval", false)
                 .containsEntry("routed_supervisorReview", true);
         assertThat(taskService.createTaskQuery().processInstanceId(instance.value()).list()).extracting(Task::getTaskDefinitionKey)
                 .containsExactlyInAnyOrder("projectManagerReview", "supervisorReview");

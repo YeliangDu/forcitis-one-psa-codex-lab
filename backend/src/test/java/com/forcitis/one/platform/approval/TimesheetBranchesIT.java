@@ -33,21 +33,21 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
     @Autowired
     io.micrometer.core.instrument.MeterRegistry meters;
 
-    record Staff(long initiator, long projectManager, long regionalHead, long supervisor) {
+    record Staff(long initiator, long projectManager, long orgUnitHead, long supervisor) {
     }
 
     Staff staff() {
         long unit = newId();
         Staff s = new Staff(newId(), newId(), newId(), newId());
         organisation.unit(unit, null, s.supervisor()).person(s.supervisor(), unit, null).person(s.initiator(), unit, s.supervisor())
-                .person(s.projectManager(), unit, null).person(s.regionalHead(), unit, null);
+                .person(s.projectManager(), unit, null).person(s.orgUnitHead(), unit, null);
         return s;
     }
 
-    ApprovalInstanceId start(String key, Staff s, List<String> regionalHeads, TimesheetRoutingFlag... flags) {
+    ApprovalInstanceId start(String key, Staff s, List<String> orgUnitHeads, TimesheetRoutingFlag... flags) {
         List<ApprovalField> fields = new ArrayList<>();
         fields.add(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(s.projectManager()).toString())));
-        fields.add(new ApprovalField(TimesheetApprovalField.REGIONAL_HEAD.fieldName(), regionalHeads));
+        fields.add(new ApprovalField(TimesheetApprovalField.ORG_UNIT_HEAD.fieldName(), orgUnitHeads));
         Set<String> names = new java.util.HashSet<>();
         for (TimesheetRoutingFlag flag : flags) {
             names.add(flag.flagName());
@@ -69,7 +69,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
     void onlyProjectHours() {
         Staff s = staff();
         String key = newKey("branches");
-        ApprovalInstanceId instance = start(key, s, List.of(TestAccounts.employee(s.regionalHead()).toString()), TimesheetRoutingFlag.PROJECT_HOURS);
+        ApprovalInstanceId instance = start(key, s, List.of(TestAccounts.employee(s.orgUnitHead()).toString()), TimesheetRoutingFlag.PROJECT_HOURS);
 
         assertThat(openNodes(instance)).containsExactly("projectManagerReview");
         approve(s.projectManager(), instance, "projectManagerReview");
@@ -81,11 +81,11 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
     void projectAndPreSalesRunInParallel() {
         Staff s = staff();
         String key = newKey("branches");
-        ApprovalInstanceId instance = start(key, s, List.of(TestAccounts.employee(s.regionalHead()).toString()), TimesheetRoutingFlag.PROJECT_HOURS,
+        ApprovalInstanceId instance = start(key, s, List.of(TestAccounts.employee(s.orgUnitHead()).toString()), TimesheetRoutingFlag.PROJECT_HOURS,
                 TimesheetRoutingFlag.PRE_SALES_HOURS);
 
-        assertThat(openNodes(instance)).containsExactly("projectManagerReview", "regionalHeadReview");
-        approve(s.regionalHead(), instance, "regionalHeadReview");
+        assertThat(openNodes(instance)).containsExactly("projectManagerReview", "orgUnitHeadApproval");
+        approve(s.orgUnitHead(), instance, "orgUnitHeadApproval");
         assertThat(requestStatus(key)).isEqualTo("RUNNING");
         approve(s.projectManager(), instance, "projectManagerReview");
         assertThat(requestStatus(key)).isEqualTo("APPROVED");
@@ -96,14 +96,14 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
     void allThreeBranches() {
         Staff s = staff();
         String key = newKey("branches");
-        ApprovalInstanceId instance = start(key, s, List.of(TestAccounts.employee(s.regionalHead()).toString()), TimesheetRoutingFlag.PROJECT_HOURS,
+        ApprovalInstanceId instance = start(key, s, List.of(TestAccounts.employee(s.orgUnitHead()).toString()), TimesheetRoutingFlag.PROJECT_HOURS,
                 TimesheetRoutingFlag.PRE_SALES_HOURS, TimesheetRoutingFlag.OVERHEAD_HOURS);
 
-        assertThat(openNodes(instance)).containsExactly("projectManagerReview", "regionalHeadReview", "supervisorReview");
+        assertThat(openNodes(instance)).containsExactly("projectManagerReview", "orgUnitHeadApproval", "supervisorReview");
         approve(s.supervisor(), instance, "supervisorReview");
         approve(s.projectManager(), instance, "projectManagerReview");
         assertThat(requestStatus(key)).isEqualTo("RUNNING");
-        approve(s.regionalHead(), instance, "regionalHeadReview");
+        approve(s.orgUnitHead(), instance, "orgUnitHeadApproval");
         assertThat(requestStatus(key)).isEqualTo("APPROVED");
     }
 
@@ -112,7 +112,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
     void rejectionInOneBranchEndsTheRound() {
         Staff s = staff();
         String key = newKey("branches");
-        ApprovalInstanceId instance = start(key, s, List.of(TestAccounts.employee(s.regionalHead()).toString()), TimesheetRoutingFlag.PROJECT_HOURS,
+        ApprovalInstanceId instance = start(key, s, List.of(TestAccounts.employee(s.orgUnitHead()).toString()), TimesheetRoutingFlag.PROJECT_HOURS,
                 TimesheetRoutingFlag.OVERHEAD_HOURS);
 
         decideTasks.execute(TestAccounts.account(s.supervisor()),
@@ -148,7 +148,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
         organisation.separated(gone, newId(), null);
         String key = newKey("branches");
         ApprovalInstanceId instance = startWith(key, s, List.of(projectManagers(TestAccounts.employee(s.projectManager()).toString()),
-                new ApprovalField(TimesheetApprovalField.REGIONAL_HEAD.fieldName(), List.of(TestAccounts.employee(gone).toString()))),
+                new ApprovalField(TimesheetApprovalField.ORG_UNIT_HEAD.fieldName(), List.of(TestAccounts.employee(gone).toString()))),
                 TimesheetRoutingFlag.PROJECT_HOURS, TimesheetRoutingFlag.PRE_SALES_HOURS);
 
         assertThat(openNodes(instance)).containsExactly("projectManagerReview");
@@ -201,7 +201,7 @@ class TimesheetBranchesIT extends ApprovalIntegrationSupport {
         double before = counter("forcitis.platform.approval.all.nodes.skipped");
 
         assertThatThrownBy(() -> startWith(newKey("branches"), s,
-                List.of(new ApprovalField(TimesheetApprovalField.REGIONAL_HEAD.fieldName(), List.of(TestAccounts.employee(gone).toString()))),
+                List.of(new ApprovalField(TimesheetApprovalField.ORG_UNIT_HEAD.fieldName(), List.of(TestAccounts.employee(gone).toString()))),
                 TimesheetRoutingFlag.PRE_SALES_HOURS)).isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> assertThat(e.errorCode())
                         .as("the approver named on the document cannot act: the initiator can put that right").isEqualTo(com.forcitis.one.platform.approval.api.ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID));
 
