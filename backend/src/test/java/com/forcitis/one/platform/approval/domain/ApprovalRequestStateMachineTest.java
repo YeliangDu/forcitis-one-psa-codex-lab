@@ -33,11 +33,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import com.forcitis.one.fixture.doubles.TestAccounts;
 
 class ApprovalRequestStateMachineTest {
 
-    static final EmployeeId INITIATOR = new EmployeeId(10);
-    static final EmployeeId STRANGER = new EmployeeId(11);
+    static final EmployeeId INITIATOR = TestAccounts.employee(10);
+    static final EmployeeId STRANGER = TestAccounts.employee(11);
     static final LocalDate TODAY = LocalDate.of(2026, 10, 14);
     static final Moment NOW = new Moment(Instant.parse("2026-10-14T02:00:00Z"), TODAY);
     static final DocumentReference DOCUMENT = new DocumentReference(DocumentType.TIMESHEET, new DocumentId("7"));

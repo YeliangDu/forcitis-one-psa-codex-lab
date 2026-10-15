@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.infrastructure.flowable;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.DomainException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -232,15 +233,20 @@ class BpmnRuleConventionsTest {
     @Test
     @DisplayName("business fields never shadow engine variables; booleans round-trip; multi-valued fields survive")
     void engineVariableMapping() {
-        ProcessVariables in = new ProcessVariables(Map.of("projectManagerId", List.of("1", "2")),
-                Map.of("initiatorId", List.of("7"), "needs-seal", List.of("true")));
+        String first = TestAccounts.employee(1).toString();
+        String second = TestAccounts.employee(2).toString();
+        String initiator = TestAccounts.employee(7).toString();
+        ProcessVariables in = new ProcessVariables(Map.of("projectManagerId", List.of(first, second)),
+                Map.of("initiatorId", List.of(initiator), "needs-seal", List.of("true")));
         Map<String, Object> engine = EngineVariables.toEngine(in);
-        assertThat(engine).containsEntry("field:projectManagerId", "1\n2").containsEntry("initiatorId", "7").containsEntry("needs-seal", Boolean.TRUE);
+        assertThat(engine).containsEntry("field:projectManagerId", first + "\n" + second).containsEntry("initiatorId", initiator)
+                .containsEntry("needs-seal", Boolean.TRUE);
         ProcessVariables back = EngineVariables.fromEngine(engine);
-        assertThat(back.formField("projectManagerId")).containsExactly("1", "2");
-        assertThat(back.variable("initiatorId")).containsExactly("7");
+        assertThat(back.formField("projectManagerId")).containsExactly(first, second);
+        assertThat(back.variable("initiatorId")).containsExactly(initiator);
         assertThat(back.variable("needs-seal")).containsExactly("true");
-        ProcessVariables clash = new ProcessVariables(Map.of("initiatorId", List.of("999")), Map.of("initiatorId", List.of("7")));
-        assertThat(EngineVariables.fromEngine(EngineVariables.toEngine(clash)).variable("initiatorId")).containsExactly("7");
+        ProcessVariables clash = new ProcessVariables(Map.of("initiatorId", List.of(TestAccounts.employee(999).toString())),
+                Map.of("initiatorId", List.of(initiator)));
+        assertThat(EngineVariables.fromEngine(EngineVariables.toEngine(clash)).variable("initiatorId")).containsExactly(initiator);
     }
 }

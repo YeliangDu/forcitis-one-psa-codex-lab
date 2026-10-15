@@ -111,7 +111,7 @@ class ApprovalTaskController {
     @PreAuthorize(SIGNED_IN)
     ResponseEntity<Void> transfer(@PathVariable String taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
             @RequestBody TransferTaskRequest request) {
-        transferTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), new EmployeeId(request.assigneeId()), request.reason(),
+        transferTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), assignee(request.assigneeId()), request.reason(),
                 expectedVersion(ifMatch));
         return ResponseEntity.noContent().build();
     }
@@ -120,7 +120,7 @@ class ApprovalTaskController {
     @PreAuthorize(SIGNED_IN)
     ResponseEntity<Void> reassign(@PathVariable String taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
             @RequestBody ReassignTaskRequest request) {
-        reassignTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), new EmployeeId(request.assigneeId()), request.reason(),
+        reassignTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), assignee(request.assigneeId()), request.reason(),
                 expectedVersion(ifMatch));
         return ResponseEntity.noContent().build();
     }
@@ -128,5 +128,12 @@ class ApprovalTaskController {
     /** The version the caller read: the same If-Match rules as every other write (428 without, 400 for a weak or unreadable tag). */
     private static OptionalLong expectedVersion(String ifMatch) {
         return OptionalLong.of(ExpectedVersion.fromHeader(ifMatch).value());
+    }
+
+    private static EmployeeId assignee(java.util.UUID assigneeId) {
+        if (assigneeId == null) {
+            throw new com.forcitis.one.kernel.InvalidRequestException("assigneeId is required");
+        }
+        return new EmployeeId(assigneeId);
     }
 }

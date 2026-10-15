@@ -47,7 +47,7 @@ class NodeAssignment {
     Resolution resolve(UserTask node, String instanceId, Map<String, Object> engineVariables) {
         NodePolicy policy = NodePolicyReader.read(node);
         ProcessVariables variables = EngineVariables.fromEngine(engineVariables);
-        EmployeeId initiator = new EmployeeId(Long.parseLong(variables.firstVariable(FlowableApprovalEngine.VARIABLE_INITIATOR)
+        EmployeeId initiator = EmployeeId.parse((variables.firstVariable(FlowableApprovalEngine.VARIABLE_INITIATOR)
                 .orElseThrow(() -> new IllegalStateException("Instance " + instanceId + " has no initiator"))));
 
         Resolution resolution;

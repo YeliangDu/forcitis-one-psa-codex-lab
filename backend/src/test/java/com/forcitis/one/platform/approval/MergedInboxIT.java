@@ -19,6 +19,9 @@ import com.forcitis.one.platform.approval.application.ClaimTask;
 import com.forcitis.one.platform.approval.application.ListInbox;
 import com.forcitis.one.platform.approval.application.MergedInbox;
 import com.forcitis.one.platform.identity.api.Permission;
+import com.forcitis.one.platform.integration.api.ExternalSource;
+import com.forcitis.one.platform.integration.api.SourceObjectKind;
+import com.forcitis.one.platform.integration.application.SourceReferences;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -42,7 +45,17 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
     @Autowired
     ClaimTask claimTask;
 
-    static RequestPostProcessor reader(long id) {
+    @Autowired
+    SourceReferences sourceReferences;
+
+    /** An employee the old system knows by its own number: the own id comes from the source reference, as the import gives it. */
+    EmployeeId knownToTheOldSystem(long legacyPerson) {
+        EmployeeId employee = new EmployeeId(sourceReferences.allocate(ExternalSource.LEGACY_SYSTEM, SourceObjectKind.EMPLOYEE, legacyPerson));
+        organisation.person(employee, 1, null);
+        return employee;
+    }
+
+    static RequestPostProcessor reader(EmployeeId id) {
         return user(TestAccounts.account(id).value().toString()).authorities(com.forcitis.one.platform.approval.OrdinarySessions.with(Permission.Codes.PLATFORM_APPROVAL_TASK_READ));
     }
 
@@ -52,9 +65,9 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
                 "Old title " + instance, LocalDateTime.ofInstant(Instant.parse(when), ZoneOffset.UTC), result);
     }
 
-    ApprovalInstanceId newTaskFor(long initiator, String key, long... managers) {
-        return tx.execute(s -> approvals.start(startRequest(key, new EmployeeId(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), java.util.Arrays.stream(managers).mapToObj(String::valueOf).toList())))));
+    ApprovalInstanceId newTaskFor(long initiator, String key, EmployeeId... managers) {
+        return tx.execute(s -> approvals.start(startRequest(key, TestAccounts.employee(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), java.util.Arrays.stream(managers).map(EmployeeId::toString).toList())))));
     }
 
     @Test
@@ -63,9 +76,11 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
         long me = newId();
         long colleague = newId();
         long initiator = newId();
-        organisation.person(me, 1, null).person(colleague, 1, null).person(initiator, 1, null);
-        newTaskFor(initiator, newKey("inbox"), me, colleague);
-        newTaskFor(initiator, newKey("inbox"), me);
+        EmployeeId myself = knownToTheOldSystem(me);
+        EmployeeId myColleague = knownToTheOldSystem(colleague);
+        organisation.person(initiator, 1, null);
+        newTaskFor(initiator, newKey("inbox"), myself, myColleague);
+        newTaskFor(initiator, newKey("inbox"), myself);
         legacyRow(me, "r1", "P1-" + me, "N1", "2026-10-01T01:00:00Z", 1);
         legacyRow(me, "r2", "P1-" + me, "N1", "2026-10-01T02:00:00Z", 1);
         legacyRow(me, "r3", "P1-" + me, "N1", "2026-10-01T03:00:00Z", 1);
@@ -74,7 +89,7 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
         legacyRow(me, "done", "P3-" + me, "N1", "2026-10-03T01:00:00Z", 2);
         legacyRow(colleague, "c1", "P9-" + colleague, "N1", "2026-10-03T01:00:00Z", 1);
 
-        MergedInbox inbox = listInbox.execute(TestAccounts.account(me), com.forcitis.one.platform.approval.application.ListPage.first());
+        MergedInbox inbox = listInbox.execute(TestAccounts.account(myself), com.forcitis.one.platform.approval.application.ListPage.first());
         assertThat(inbox.newCount()).isEqualTo(2);
         assertThat(inbox.legacyCount()).isEqualTo(3);
         assertThat(inbox.totalCount()).isEqualTo(5);
@@ -83,10 +98,10 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
         assertThat(inbox.items().stream().filter(i -> i.source().name().equals("LEGACY")).map(i -> i.taskId()).toList())
                 .containsExactlyInAnyOrder("r3", "r4", "r5");
 
-        mvc.perform(get("/api/v1/platform/approval-tasks").with(reader(me))).andExpect(status().isOk())
+        mvc.perform(get("/api/v1/platform/approval-tasks").with(reader(myself))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.newCount").value(2)).andExpect(jsonPath("$.legacyCount").value(3))
                 .andExpect(jsonPath("$.totalCount").value(5)).andExpect(jsonPath("$.legacyAvailable").value(true));
-        MergedInbox colleagueInbox = listInbox.execute(TestAccounts.account(colleague), com.forcitis.one.platform.approval.application.ListPage.first());
+        MergedInbox colleagueInbox = listInbox.execute(TestAccounts.account(myColleague), com.forcitis.one.platform.approval.application.ListPage.first());
         assertThat(colleagueInbox.newCount()).isEqualTo(1);
         assertThat(colleagueInbox.legacyCount()).isEqualTo(1);
         assertThat(colleagueInbox.totalCount()).isEqualTo(2);
@@ -96,9 +111,9 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
     @DisplayName("RULE-261/C1a-14 every old to-do carries the old system's detail link; new tasks carry none")
     void legacyItemsLinkBackToTheOldSystem() {
         long me = newId();
-        organisation.person(me, 1, null);
+        EmployeeId myself = knownToTheOldSystem(me);
         legacyRow(me, "t-1", "P-" + me, "N1", "2026-10-01T01:00:00Z", 1);
-        MergedInbox inbox = listInbox.execute(TestAccounts.account(me), com.forcitis.one.platform.approval.application.ListPage.first());
+        MergedInbox inbox = listInbox.execute(TestAccounts.account(myself), com.forcitis.one.platform.approval.application.ListPage.first());
         assertThat(inbox.items()).singleElement().satisfies(item -> {
             assertThat(item.source().name()).isEqualTo("LEGACY");
             assertThat(item.detailUrl()).contains("https://legacy.example.test/bpm/detail?instance=P-" + me + "&task=t-1");
@@ -112,14 +127,29 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
     @DisplayName("REIMAGINED_ARCHITECTURE 3.6 no cache: rows added or finished in the old system show up on the very next call")
     void theOldViewIsReadLiveEveryTime() {
         long me = newId();
-        organisation.person(me, 1, null);
-        assertThat(listInbox.execute(TestAccounts.account(me), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isZero();
+        EmployeeId myself = knownToTheOldSystem(me);
+        assertThat(listInbox.execute(TestAccounts.account(myself), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isZero();
         legacyRow(me, "live-1", "P-" + me, "N1", "2026-10-01T01:00:00Z", 1);
-        assertThat(listInbox.execute(TestAccounts.account(me), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isEqualTo(1);
+        assertThat(listInbox.execute(TestAccounts.account(myself), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isEqualTo(1);
         legacyRow(me, "live-2", "Q-" + me, "N1", "2026-10-02T01:00:00Z", 1);
-        assertThat(listInbox.execute(TestAccounts.account(me), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isEqualTo(2);
+        assertThat(listInbox.execute(TestAccounts.account(myself), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isEqualTo(2);
         jdbc.update("update legacy_fixture.todo_rows set result = 2 where task_id = 'live-1'");
-        assertThat(listInbox.execute(TestAccounts.account(me), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isEqualTo(1);
+        assertThat(listInbox.execute(TestAccounts.account(myself), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("C8 without an old-system reference the old to-dos are unavailable, not an empty list, and the new tasks still show")
+    void withoutReferenceTheOldToDosAreUnavailable() {
+        long me = newId();
+        long initiator = newId();
+        organisation.person(me, 1, null).person(initiator, 1, null);
+        newTaskFor(initiator, newKey("inbox"), TestAccounts.employee(me));
+        legacyRow(me, "unref-1", "P-" + me, "N1", "2026-10-01T01:00:00Z", 1);
+
+        MergedInbox inbox = listInbox.execute(TestAccounts.account(me), com.forcitis.one.platform.approval.application.ListPage.first());
+        assertThat(inbox.legacyAvailable()).isFalse();
+        assertThat(inbox.legacyCount()).isZero();
+        assertThat(inbox.newCount()).isEqualTo(1);
     }
 
     @Test
@@ -129,7 +159,7 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
         long second = newId();
         long initiator = newId();
         organisation.person(first, 1, null).person(second, 1, null).person(initiator, 1, null);
-        ApprovalInstanceId instance = newTaskFor(initiator, newKey("inbox"), first, second);
+        ApprovalInstanceId instance = newTaskFor(initiator, newKey("inbox"), TestAccounts.employee(first), TestAccounts.employee(second));
 
         assertThat(listInbox.execute(TestAccounts.account(first), com.forcitis.one.platform.approval.application.ListPage.first()).newCount()).isEqualTo(1);
         assertThat(listInbox.execute(TestAccounts.account(second), com.forcitis.one.platform.approval.application.ListPage.first()).newCount()).isEqualTo(1);
@@ -150,21 +180,21 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
         long initiator = newId();
         organisation.person(me, 1, null).person(initiator, 1, null);
         for (int i = 0; i < 3; i++) {
-            newTaskFor(initiator, newKey("paged"), me);
+            newTaskFor(initiator, newKey("paged"), TestAccounts.employee(me));
         }
 
-        String first = mvc.perform(get("/api/v1/platform/approval-tasks").param("limit", "2").with(reader(me))).andExpect(status().isOk())
+        String first = mvc.perform(get("/api/v1/platform/approval-tasks").param("limit", "2").with(reader(TestAccounts.employee(me)))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(2)).andExpect(jsonPath("$.newCount").value(3))
                 .andExpect(jsonPath("$.totalCount").value(3)).andExpect(jsonPath("$.noticeCount").value(0))
                 .andExpect(jsonPath("$.nextCursor").exists()).andReturn().getResponse().getContentAsString();
         String cursor = com.jayway.jsonpath.JsonPath.read(first, "$.nextCursor");
-        String second = mvc.perform(get("/api/v1/platform/approval-tasks").param("limit", "2").param("cursor", cursor).with(reader(me)))
+        String second = mvc.perform(get("/api/v1/platform/approval-tasks").param("limit", "2").param("cursor", cursor).with(reader(TestAccounts.employee(me))))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(1)).andExpect(jsonPath("$.nextCursor").doesNotExist())
                 .andReturn().getResponse().getContentAsString();
 
         List<String> firstIds = com.jayway.jsonpath.JsonPath.read(first, "$.items[*].taskId");
         List<String> secondIds = com.jayway.jsonpath.JsonPath.read(second, "$.items[*].taskId");
         assertThat(firstIds).doesNotContainAnyElementsOf(secondIds);
-        mvc.perform(get("/api/v1/platform/approval-tasks").param("cursor", "garbage").with(reader(me))).andExpect(status().isBadRequest());
+        mvc.perform(get("/api/v1/platform/approval-tasks").param("cursor", "garbage").with(reader(TestAccounts.employee(me)))).andExpect(status().isBadRequest());
     }
 }

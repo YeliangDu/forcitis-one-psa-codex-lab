@@ -303,7 +303,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
                 definition.processKey(), documentOf(variables),
                 new LegalEntityId(UUID.fromString(variables.firstVariable(VARIABLE_LEGAL_ENTITY).orElseThrow())),
                 task.getTaskDefinitionKey(), task.getName(),
-                new EmployeeId(Long.parseLong(variables.firstVariable(VARIABLE_INITIATOR).orElseThrow())),
+                EmployeeId.parse((variables.firstVariable(VARIABLE_INITIATOR).orElseThrow())),
                 Optional.ofNullable(task.getAssignee()).map(a -> EngineUserIds.parse(a, "the assignee of task " + task.getId())), candidates, createdAt(task),
                 node.getSubProcess() != null, policy.beforeHookKey(), Boolean.TRUE.equals(task.getTaskLocalVariables().get(VARIABLE_ADVISORY)),
                 new ContentHash(variables.firstVariable(VARIABLE_CONTENT_HASH).orElseThrow()));

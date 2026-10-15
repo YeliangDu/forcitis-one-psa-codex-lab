@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.approval;
 
 import com.forcitis.one.fixture.doubles.TestAccounts;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
@@ -18,18 +19,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class FakeOrganisation implements OrgDirectory, RoleDirectory {
 
-    record Person(long id, long unit, Long leader, String wecom, boolean employed) {
+    record Person(EmployeeId id, String name, long unit, Long leader, String wecom, boolean employed) {
     }
 
     record Unit(long id, Long parent, Long head, Long receivablesManager, boolean active) {
     }
 
-    private final Map<Long, Person> people = new ConcurrentHashMap<>();
-    private final Map<Long, Unit> units = new ConcurrentHashMap<>();
+    private final Map<EmployeeId, Person> people = new ConcurrentHashMap<>();
+    private final Map<UUID, Unit> units = new ConcurrentHashMap<>();
     private final Map<String, Set<Long>> roles = new ConcurrentHashMap<>();
 
     private final java.util.concurrent.atomic.AtomicBoolean failNextLookup = new java.util.concurrent.atomic.AtomicBoolean();
@@ -39,27 +41,32 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
     }
 
     public FakeOrganisation unit(long id, Long parent, Long head) {
-        units.put(id, new Unit(id, parent, head, null, true));
+        units.put(unitKey(id), new Unit(id, parent, head, null, true));
         return this;
     }
 
     public FakeOrganisation unit(long id, Long parent, Long head, Long receivablesManager, boolean active) {
-        units.put(id, new Unit(id, parent, head, receivablesManager, active));
+        units.put(unitKey(id), new Unit(id, parent, head, receivablesManager, active));
         return this;
     }
 
     public FakeOrganisation person(long id, long unit, Long leader) {
-        people.put(id, new Person(id, unit, leader, "wx-" + id, true));
+        people.put(TestAccounts.employee(id), new Person(TestAccounts.employee(id), "person-" + id, unit, leader, "wx-" + id, true));
+        return this;
+    }
+
+    public FakeOrganisation person(EmployeeId id, long unit, Long leader) {
+        people.put(id, new Person(id, "person-" + id, unit, leader, "wx-" + id, true));
         return this;
     }
 
     public FakeOrganisation personWithoutWecom(long id, long unit, Long leader) {
-        people.put(id, new Person(id, unit, leader, null, true));
+        people.put(TestAccounts.employee(id), new Person(TestAccounts.employee(id), "person-" + id, unit, leader, null, true));
         return this;
     }
 
     public FakeOrganisation separated(long id, long unit, Long leader) {
-        people.put(id, new Person(id, unit, leader, "wx-" + id, false));
+        people.put(TestAccounts.employee(id), new Person(TestAccounts.employee(id), "person-" + id, unit, leader, "wx-" + id, false));
         return this;
     }
 
@@ -72,7 +79,7 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
     }
 
     public String wecomOf(long id) {
-        return people.get(id).wecom();
+        return people.get(TestAccounts.employee(id)).wecom();
     }
 
     @Override
@@ -80,8 +87,8 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
         if (failNextLookup.compareAndSet(true, false)) {
             throw new IllegalStateException("organisation lookup failed");
         }
-        return Optional.ofNullable(people.get(employeeId.value())).map(p -> new EmployeeProfile(new EmployeeId(p.id()), "person-" + p.id(),
-                new OrgUnitId(p.unit()), p.wecom() == null ? null : new WecomUserId(p.wecom()),
+        return Optional.ofNullable(people.get(employeeId)).map(p -> new EmployeeProfile(p.id(), p.name(),
+                TestOrgIds.orgUnit(p.unit()), p.wecom() == null ? null : new WecomUserId(p.wecom()),
                 p.employed() ? EmploymentStatus.EMPLOYED : EmploymentStatus.SEPARATED, false));
     }
 
@@ -91,7 +98,7 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
             return Optional.empty();
         }
         return people.values().stream().filter(p -> wecomUserId.value().equals(p.wecom())).findFirst()
-                .flatMap(p -> findEmployee(new EmployeeId(p.id())));
+                .flatMap(p -> findEmployee(p.id()));
     }
 
     @Override
@@ -104,34 +111,37 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
 
     @Override
     public Optional<EmployeeId> findSupervisor(EmployeeId employeeId) {
-        return Optional.ofNullable(people.get(employeeId.value())).map(Person::leader)
-                .filter(l -> people.containsKey(l) && people.get(l).employed()).map(EmployeeId::new);
+        return Optional.ofNullable(people.get(employeeId)).map(Person::leader)
+                .map(TestAccounts::employee).filter(l -> people.containsKey(l) && people.get(l).employed());
     }
 
     @Override
     public Optional<EmployeeId> findOrgUnitHead(OrgUnitId orgUnitId) {
-        return Optional.ofNullable(units.get(orgUnitId.value())).map(Unit::head).map(EmployeeId::new);
+        return Optional.ofNullable(units.get(orgUnitId.value())).map(Unit::head).map(TestAccounts::employee);
     }
 
     @Override
     public Optional<EmployeeId> findRegionalReceivablesManager(OrgUnitId orgUnitId) {
-        return Optional.ofNullable(units.get(orgUnitId.value())).map(Unit::receivablesManager).map(EmployeeId::new);
+        return Optional.ofNullable(units.get(orgUnitId.value())).map(Unit::receivablesManager).map(TestAccounts::employee);
     }
 
     @Override
     public Optional<OrgUnitProfile> findOrgUnit(OrgUnitId orgUnitId) {
-        return Optional.ofNullable(units.get(orgUnitId.value())).map(u -> new OrgUnitProfile(new OrgUnitId(u.id()), "unit-" + u.id(),
-                u.parent() == null ? null : new OrgUnitId(u.parent()), u.active()));
+        return Optional.ofNullable(units.get(orgUnitId.value())).map(u -> new OrgUnitProfile(TestOrgIds.orgUnit(u.id()), "unit-" + u.id(),
+                u.parent() == null ? null : TestOrgIds.orgUnit(u.parent()), u.active()));
     }
 
     @Override
     public List<OrgUnitId> findAncestors(OrgUnitId orgUnitId) {
         List<OrgUnitId> ancestors = new ArrayList<>();
-        Set<Long> seen = new HashSet<>(Set.of(orgUnitId.value()));
         Unit current = units.get(orgUnitId.value());
+        Set<Long> seen = new HashSet<>();
+        if (current != null) {
+            seen.add(current.id());
+        }
         while (current != null && current.parent() != null && seen.add(current.parent())) {
-            ancestors.add(new OrgUnitId(current.parent()));
-            current = units.get(current.parent());
+            ancestors.add(TestOrgIds.orgUnit(current.parent()));
+            current = units.get(unitKey(current.parent()));
         }
         return ancestors;
     }
@@ -140,11 +150,15 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
     public Set<UserId> findRoleHolders(RoleCode roleCode) {
         Set<UserId> holders = new LinkedHashSet<>();
         for (Long holder : roles.getOrDefault(roleCode.value(), Set.of())) {
-            Person person = people.get(holder);
+            Person person = people.get(TestAccounts.employee(holder));
             if (person != null && person.employed()) {
-                holders.add(TestAccounts.account(holder));
+                holders.add(TestAccounts.account(TestAccounts.employee(holder)));
             }
         }
         return holders;
+    }
+
+    private static UUID unitKey(long id) {
+        return TestOrgIds.orgUnit(id).value();
     }
 }

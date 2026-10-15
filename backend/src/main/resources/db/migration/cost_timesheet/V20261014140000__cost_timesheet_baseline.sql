@@ -3,11 +3,11 @@ COMMENT ON SCHEMA cost_timesheet IS '工时（成本 BC · 工时填报与审批
 
 CREATE TABLE cost_timesheet.timesheets (
     id                   uuid          NOT NULL,
-    employee_id          bigint        NOT NULL,
+    employee_id          uuid          NOT NULL,
     legal_entity_id      uuid          NOT NULL,
     work_date            date          NOT NULL,
     submitted_hours      numeric(10,2) NOT NULL,
-    project_manager_id   bigint        NOT NULL,
+    project_manager_id   uuid          NOT NULL,
     status               text          NOT NULL CHECK (status IN ('DRAFT', 'SUBMITTED', 'RETURNED', 'APPROVED', 'REJECTED')),
     round_number         integer       NOT NULL DEFAULT 0,
     event_count          bigint        NOT NULL DEFAULT 0,
@@ -15,7 +15,7 @@ CREATE TABLE cost_timesheet.timesheets (
     updated_at           timestamptz   NOT NULL DEFAULT now(),
     version              bigint        NOT NULL DEFAULT 0,
     timesheet_number     text          NOT NULL,
-    org_unit_id          bigint        NOT NULL,
+    org_unit_id          uuid          NOT NULL,
     submitted_date       date,
     CONSTRAINT pk_timesheets PRIMARY KEY (id),
     CONSTRAINT ck_timesheets_hours CHECK (submitted_hours >= 0),
@@ -28,11 +28,11 @@ CREATE INDEX ix_timesheets_org_unit_id ON cost_timesheet.timesheets (org_unit_id
 CREATE INDEX ix_timesheets_status ON cost_timesheet.timesheets (status, updated_at) WHERE status IN ('SUBMITTED', 'RETURNED');
 COMMENT ON TABLE cost_timesheet.timesheets IS '工时单：聚合根；粒度：每张工时单一行；状态机在聚合内，审批结果经审批完成事件回写';
 COMMENT ON COLUMN cost_timesheet.timesheets.id IS '主键：工时单标识（UUIDv7）';
-COMMENT ON COLUMN cost_timesheet.timesheets.employee_id IS '员工（人员 ID）：填报人，只有填报人能提交、撤回、撤销';
+COMMENT ON COLUMN cost_timesheet.timesheets.employee_id IS '员工（员工 ID）：填报人，只有填报人能提交、撤回、撤销';
 COMMENT ON COLUMN cost_timesheet.timesheets.legal_entity_id IS '法人主体（法人 ID）：由提交人所属法人传入，缺失即失败，不设默认';
 COMMENT ON COLUMN cost_timesheet.timesheets.work_date IS '工作日期：员工填写的、工时发生的那一天；创建时校验不得晚于今天，之后不再改写；事件的业务日期取它';
 COMMENT ON COLUMN cost_timesheet.timesheets.submitted_hours IS '填报工时：本单填报的工时，非负，两位小数';
-COMMENT ON COLUMN cost_timesheet.timesheets.project_manager_id IS '项目经理（人员 ID）：工时审批的第一道审批人，Phase 2 前由请求给出';
+COMMENT ON COLUMN cost_timesheet.timesheets.project_manager_id IS '项目经理（员工 ID）：工时审批的第一道审批人，Phase 2 前由请求给出';
 COMMENT ON COLUMN cost_timesheet.timesheets.status IS '状态：DRAFT 草稿 / SUBMITTED 已提交审批中 / RETURNED 已退回待修改 / APPROVED 已通过 / REJECTED 已驳回，用枚举不靠文案';
 COMMENT ON COLUMN cost_timesheet.timesheets.round_number IS '轮次：已提交审批的次数，与审批请求的轮次一致；0 表示从未提交';
 COMMENT ON COLUMN cost_timesheet.timesheets.event_count IS '事件序号：该聚合已记录的领域事件数，每个事件加一，下一个事件取其加一作信封的聚合版本；与乐观锁版本 version（每次保存加一）是两个计数';
