@@ -182,7 +182,7 @@ class ExternalSubjectLookupCommandIT extends AccountsAcceptanceSupport {
 
     private boolean noPublicationInFlight() throws SQLException {
         try (Connection registry = schemaConnection("platform_integration");
-             PreparedStatement count = registry.prepareStatement("select count(*) from event_publication where status in ('PUBLISHED', 'PROCESSING')");
+             PreparedStatement count = registry.prepareStatement("select count(*) from event_publication where status in ('PUBLISHED', 'PROCESSING', 'RESUBMITTED')");
              ResultSet rs = count.executeQuery()) {
             rs.next();
             return rs.getLong(1) == 0;

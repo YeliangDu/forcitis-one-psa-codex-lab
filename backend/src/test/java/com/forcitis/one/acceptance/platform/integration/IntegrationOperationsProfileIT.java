@@ -40,7 +40,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * R-1b P3b RULING-P3B-15 (review M3): smoke of the profile integration-operations as its properties file configures it. The application is
  * started a second time with that profile on the database the acceptance context migrated. The profile's runner ends the process with
  * System.exit, which would end the test JVM, so its bean definition (the one ApplicationRunner of platform.integration) is removed before
- * the context starts and the command is called directly; everything else starts as on the server.
+ * the context starts and the command is called directly. Besides that, the features whose configuration the test environment lacks are switched
+ * off by property (the scheduled purges and consumers, SSO, the process-administrator requirement; see the arguments of application.run);
+ * everything else starts as on the server.
  */
 @Testcontainers
 class IntegrationOperationsProfileIT extends AccountsAcceptanceSupport {
