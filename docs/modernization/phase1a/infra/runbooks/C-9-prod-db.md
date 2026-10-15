@@ -14,6 +14,9 @@
 
 ## 步骤
 
+> 慢语句日志不带参数值：实例级 `log_parameter_max_length = 0` 已设（2026-10-15，见 C-3 执行记录），库级无法设置，建生产库时无需另设；建库后 `SHOW log_parameter_max_length` 应为 0。
+
+
 ```bash
 cd docs/modernization/phase1a/infra/runbooks/sql && ./render_prod_sql.sh --check   # 必须通过
 psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one -f c9_prod_db.sql
