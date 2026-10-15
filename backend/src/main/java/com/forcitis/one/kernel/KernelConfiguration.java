@@ -20,7 +20,7 @@ class KernelConfiguration {
     @Bean
     @ConditionalOnMissingBean(IdGenerator.class)
     IdGenerator idGenerator(Clock clock) {
-        return () -> Uuids.timeOrdered(clock);
+        return new TimeOrderedIds(clock);
     }
 
     @Bean

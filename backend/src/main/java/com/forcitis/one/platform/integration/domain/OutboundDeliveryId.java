@@ -1,13 +1,18 @@
 package com.forcitis.one.platform.integration.domain;
 
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.ValueObject;
-import java.util.Objects;
 import java.util.UUID;
 
 @ValueObject
 public record OutboundDeliveryId(UUID value) {
 
     public OutboundDeliveryId {
-        Objects.requireNonNull(value, "value");
+        value = Uuids.requireKey(value, "OutboundDeliveryId");
+    }
+
+    @Override
+    public String toString() {
+        return value.toString();
     }
 }

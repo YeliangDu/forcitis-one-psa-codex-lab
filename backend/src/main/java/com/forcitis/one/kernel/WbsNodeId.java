@@ -1,12 +1,16 @@
 package com.forcitis.one.kernel;
 
-import java.util.Objects;
 import java.util.UUID;
 
 @ValueObject
 public record WbsNodeId(UUID value) {
 
     public WbsNodeId {
-        Objects.requireNonNull(value, "value");
+        value = Uuids.requireKey(value, "WbsNodeId");
+    }
+
+    @Override
+    public String toString() {
+        return value.toString();
     }
 }

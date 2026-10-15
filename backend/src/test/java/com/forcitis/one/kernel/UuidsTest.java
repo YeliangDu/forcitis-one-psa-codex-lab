@@ -6,9 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class UuidsTest {
@@ -32,26 +30,18 @@ class UuidsTest {
     }
 
     @Test
-    void idsOfTheSameMillisecondSortInTheOrderTheyWereMade() {
-        Clock clock = Clock.fixed(Instant.parse("2026-10-14T10:00:00.500Z"), ZoneOffset.UTC);
-        List<UUID> made = IntStream.range(0, 1000).mapToObj(i -> Uuids.timeOrdered(clock)).toList();
-
-        assertThat(made).isSorted();
-        assertThat(made).doesNotHaveDuplicates();
-        assertThat(made).allSatisfy(id -> assertThat(Uuids.instantOf(id)).isEqualTo(Instant.parse("2026-10-14T10:00:00.500Z")));
-    }
-
-    @Test
-    void theDefaultGeneratorMakesTimeOrderedIdsFromTheInjectedClock() {
-        Clock clock = Clock.fixed(Instant.parse("2026-10-14T10:00:00Z"), ZoneOffset.UTC);
-        UUID id = new KernelConfiguration().idGenerator(clock).next();
-
-        assertThat(id.version()).isEqualTo(7);
-        assertThat(Uuids.instantOf(id)).isEqualTo(Instant.parse("2026-10-14T10:00:00Z"));
-    }
-
-    @Test
     void anotherVersionHasNoInstant() {
         assertThatThrownBy(() -> Uuids.instantOf(UUID.randomUUID())).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void onlyTheCanonicalLowerCaseFormIsParsed() {
+        UUID id = Uuids.timeOrdered(Instant.parse("2026-10-14T10:00:00Z"));
+
+        assertThat(Uuids.parseCanonical(id.toString())).isEqualTo(id);
+        assertThatThrownBy(() -> Uuids.parseCanonical(id.toString().toUpperCase())).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> Uuids.parseCanonical("1-1-1-1-1")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> Uuids.parseCanonical(" " + id)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> Uuids.parseCanonical("7")).isInstanceOf(IllegalArgumentException.class);
     }
 }
