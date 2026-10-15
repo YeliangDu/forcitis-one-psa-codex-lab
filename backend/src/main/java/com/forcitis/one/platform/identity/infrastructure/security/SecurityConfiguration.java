@@ -8,8 +8,12 @@ import java.io.IOException;
 import java.time.Clock;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.actuate.autoconfigure.web.server.ConditionalOnManagementPort;
+import org.springframework.boot.actuate.autoconfigure.web.server.ManagementPortType;
+import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authorization.AuthorizationDecision;
@@ -33,7 +37,22 @@ class SecurityConfiguration {
         return CookieCsrfTokenRepository.withHttpOnlyFalse();
     }
 
+    /** Present only when the management server has a port of its own, where EndpointRequest matches inside that server alone; with a shared port prometheus would otherwise open on the application port. */
     @Bean
+    @Order(1)
+    @ConditionalOnManagementPort(ManagementPortType.DIFFERENT)
+    SecurityFilterChain managementScrapeSecurity(HttpSecurity http) throws Exception {
+        http.securityMatcher(EndpointRequest.to("health", "prometheus"))
+                .authorizeHttpRequests(requests -> requests.anyRequest().permitAll())
+                .csrf(csrf -> csrf.disable())
+                .requestCache(cache -> cache.requestCache(new NullRequestCache()))
+                .httpBasic(basic -> basic.disable())
+                .formLogin(form -> form.disable());
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
     SecurityFilterChain apiSecurity(HttpSecurity http, PublicEndpointRegistry publicEndpoints, CachedSessionPrincipals principals,
             SessionSettings sessionSettings, Clock clock, CookieCsrfTokenRepository csrfTokenRepository, AuditLog audit,
             @Qualifier("handlerExceptionResolver") HandlerExceptionResolver exceptionResolver) throws Exception {
