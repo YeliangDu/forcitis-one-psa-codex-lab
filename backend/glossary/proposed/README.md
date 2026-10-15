@@ -204,6 +204,7 @@ Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-
 | `workforce__staff_employee` | 人员 | StaffEmployee | 一名员工连同其任职，是同步比较与写入的单位 |  |  |
 | `workforce__relationship` | 关系 | Relationship | A8 中人员与组织单元之间的关系（部门负责人、区域应收负责人），类型 ID 为配置项 |  |  |
 | `separation_observed_at` | 离职观察时间 | SeparationObservedAt | 组织同步第一次把员工判为离职、并写入快照的那一轮同步的提交时刻；只表示新系统这样判定了，不是人事生效日 | 「离职日期」已禁用；「separation_date」已禁用 | 单说离职日期有歧义，须写明预计离职日期或离职观察时间 |
+| `attribution_subject` | 法人归属对象 | AttributionSubject | 法人归属所指的对象，是一个组织单元或一名员工，由对象类别与对象 ID 共同确定；同一对象在同一时点只归属一个法人 |  | 类型 AttributionSubjectId 为它的标识（kind + subjectId，events/workforce.yaml x-type）；落库按 DA-5 拆为 org_unit_id / employee_id 两列 |
 
 另有错误码 10 个（kind 为 `error_code`）、技术词 86 个（`common_words`），不在表中。
 

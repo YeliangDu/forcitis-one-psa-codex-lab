@@ -314,6 +314,21 @@ terms:
   forbidden: [离职日期, separation_date]
   status: proposed
   note: 单说离职日期有歧义，须写明预计离职日期或离职观察时间
+- id: attribution_subject
+  zh: 法人归属对象
+  en: AttributionSubject
+  snake: attribution_subject
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 法人归属所指的对象，是一个组织单元或一名员工，由对象类别与对象 ID 共同确定；同一对象在同一时点只归属一个法人
+  standard_ref:
+  - ADR-0033 第 7 项第 4 条（DA-5）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 类型 AttributionSubjectId 为它的标识（kind + subjectId，events/workforce.yaml x-type）；落库按 DA-5 拆为 org_unit_id / employee_id 两列
 common_words:
 - listed
 - lookup
