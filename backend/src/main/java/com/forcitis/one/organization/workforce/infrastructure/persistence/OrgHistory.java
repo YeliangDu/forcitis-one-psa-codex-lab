@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.Assignment;
 import com.forcitis.one.organization.workforce.domain.OrgUnit;
 import java.sql.Date;
@@ -74,7 +75,7 @@ final class OrgHistory {
         if (assignments.isEmpty()) {
             return;
         }
-        record Values(long orgUnit, Long position, Long reportsTo, Open open) {
+        record Values(OrgUnitId orgUnit, Long position, Long reportsTo, Open open) {
         }
         Map<Long, Values> open = new HashMap<>();
         jdbc.sql("""
@@ -82,14 +83,14 @@ final class OrgHistory {
                           from organization_workforce.assignment_versions where effective_to_date is null and employee_id in (:ids)
                         """)
                 .param("ids", assignments.stream().map(a -> a.employeeId().value()).toList())
-                .query((rs, n) -> open.put(rs.getLong("employee_id"), new Values(rs.getLong("org_unit_id"), (Long) rs.getObject("position_id"),
+                .query((rs, n) -> open.put(rs.getLong("employee_id"), new Values(new OrgUnitId(rs.getLong("org_unit_id")), (Long) rs.getObject("position_id"),
                         (Long) rs.getObject("reports_to_employee_id"),
                         new Open(rs.getDate("effective_from_date").toLocalDate(), rs.getInt("revision_number"))))).list();
         for (Assignment a : assignments) {
             Values before = open.get(a.employeeId().value());
             Long position = a.positionId() == null ? null : a.positionId().value();
             Long reportsTo = a.reportsToEmployeeId() == null ? null : a.reportsToEmployeeId().value();
-            if (before != null && before.orgUnit() == a.orgUnitId().value() && Objects.equals(before.position(), position) && Objects.equals(before.reportsTo(), reportsTo)) {
+            if (before != null && before.orgUnit().equals(a.orgUnitId()) && Objects.equals(before.position(), position) && Objects.equals(before.reportsTo(), reportsTo)) {
                 continue;
             }
             int revision = revisionFor(before == null ? null : before.open(), day);
