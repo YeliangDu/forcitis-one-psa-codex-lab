@@ -7769,7 +7769,7 @@
      "in_code": true,
      "verdict": "正式",
      "accounting": false,
-     "standard": "《中华人民共和国劳动法》第三十六条（工作时间）；《国务院关于职工工作时间的规定》（工作日）",
+     "standard": "《中华人民共和国劳动法》（工作时间）；《国务院关于职工工作时间的规定》（工作日）",
      "naming_issues": "",
      "reason": "「工作日」是劳动法规原文用语，英文与调休上班日 MakeUpWorkday 同拼法；审批时限（approval 组 AP-21）按工作日计也用同一词。",
      "options": [
@@ -9193,7 +9193,7 @@
      "in_code": false,
      "verdict": "方言",
      "accounting": true,
-     "standard": "企业会计准则第 14 号——收入（财会〔2017〕22 号） 第四十一条（合同资产、合同负债）；IFRS 15 Revenue from Contracts with Customers §105–107；ifrs-full:ContractAssets",
+     "standard": "企业会计准则第 14 号——收入（财会〔2017〕22 号）（合同资产、合同负债）；IFRS 15 Revenue from Contracts with Customers §105–107；ifrs-full:ContractAssets",
      "naming_issues": "",
      "reason": "收入以客户确认为准（财务已定口径 A1），「已确认」即收入已确认，未开票部分是合同资产（财务决策单 FD-38 背景同此表述）；但报表若含无合同项目，那部分只能进管理口径未开票在制，写回时需核对报表是否含无合同项目。目标词条用户已批准（B-contract_asset）。",
      "options": [
@@ -9236,7 +9236,7 @@
      "in_code": false,
      "verdict": "方言",
      "accounting": true,
-     "standard": "企业会计准则第 14 号——收入（财会〔2017〕22 号） 第四十一条；IFRS 15 §105–107",
+     "standard": "企业会计准则第 14 号——收入（财会〔2017〕22 号）；IFRS 15 §105–107",
      "naming_issues": "",
      "reason": "「资产」过泛，准则中没有「存量资产」；区域健康度若把应收账款一并计入，则不是单一词条，应拆成合同资产与应收账款两项列示。",
      "options": [
@@ -9279,7 +9279,7 @@
      "in_code": false,
      "verdict": "方言",
      "accounting": true,
-     "standard": "企业会计准则第 14 号——收入（财会〔2017〕22 号） 第四十一条；IFRS 15 §105–107",
+     "standard": "企业会计准则第 14 号——收入（财会〔2017〕22 号）；IFRS 15 §105–107",
      "naming_issues": "",
      "reason": "这是合同资产按形成期间切出的子集，不是新概念；指标名按 METRIC_BASELINE_DRAFT §1 原则 4 在括号里写切片口径，避免与全量相加（GL-024）。",
      "options": [
@@ -9349,7 +9349,7 @@
      "in_code": false,
      "verdict": "方言",
      "accounting": true,
-     "standard": "企业会计准则第 14 号——收入（财会〔2017〕22 号） 第四十一条（应收款项为无条件收款权）；企业会计准则第 22 号——金融工具确认和计量（财会〔2017〕7 号）；ifrs-full:TradeReceivables",
+     "standard": "企业会计准则第 14 号——收入（财会〔2017〕22 号）（应收款项为无条件收款权）；企业会计准则第 22 号——金融工具确认和计量（财会〔2017〕7 号）；ifrs-full:TradeReceivables",
      "naming_issues": "",
      "reason": "准则用语是应收账款；「已开票未回款」是描述式叫法，且首付款开票未到期时并不形成应收（财务已定口径 A5），字面与准则口径不一致。",
      "options": [
@@ -9532,7 +9532,7 @@
      "in_code": false,
      "verdict": "方言",
      "accounting": true,
-     "standard": "企业会计准则第 14 号——收入（财会〔2017〕22 号） 第四十一条（合同负债）；IFRS 15 §106；ifrs-full:ContractLiabilities",
+     "standard": "企业会计准则第 14 号——收入（财会〔2017〕22 号）（合同负债）；IFRS 15 §106；ifrs-full:ContractLiabilities",
      "naming_issues": "",
      "reason": "用户已定：R2-A-contract_liability-2（「预收款单」归方言）及第一轮「预收款 / 递延收入」归方言，同族叫法一致处理。报表「是否预收」是回款单的类型标记，余额叫合同负债（round2-proposals.yaml 注）。",
      "options": [
@@ -9610,7 +9610,7 @@
      "in_code": false,
      "verdict": "方言",
      "accounting": true,
-     "standard": "企业会计准则第 14 号——收入（财会〔2017〕22 号）（剩余履约义务披露）；IFRS 15 §120；ifrs-full:TransactionPriceAllocatedToRemainingPerformanceObligations",
+     "standard": "企业会计准则第 14 号——收入（财会〔2017〕22 号）（剩余履约义务披露）；IFRS 15（剩余履约义务披露）；ifrs-full:TransactionPriceAllocatedToRemainingPerformanceObligations",
      "naming_issues": "",
      "reason": "准则用语是剩余履约义务；行业叫法「在手合同额 / Backlog」已作 industry 别名登记，不需要再并列一个公司叫法。目标词条用户已批准（B-remaining_performance_obligation）。",
      "options": [
@@ -9645,7 +9645,7 @@
      "in_code": false,
      "verdict": "方言",
      "accounting": true,
-     "standard": "企业会计准则第 14 号——收入（财会〔2017〕22 号）（剩余履约义务披露）；IFRS 15 §120",
+     "standard": "企业会计准则第 14 号——收入（财会〔2017〕22 号）（剩余履约义务披露）；IFRS 15（剩余履约义务披露）",
      "naming_issues": "",
      "reason": "同 RA-17；「储备」若含未签约的预计合同，应改挂项目立项金额 RN-38，写回时按报表公式核对。",
      "options": [
@@ -11513,7 +11513,7 @@
      "in_code": false,
      "verdict": "正式",
      "accounting": true,
-     "standard": "企业会计准则第 14 号——收入（财会〔2017〕22 号）（可变对价）；IFRS 15 §50–59 Variable consideration；D17-8",
+     "standard": "企业会计准则第 14 号——收入（财会〔2017〕22 号）（可变对价）；IFRS 15（Variable consideration）；D17-8",
      "naming_issues": "",
      "reason": "D17-8 已定两种事实类型；英文 Reduction 与已批准的冲销 ReversingEntry、提议条目 KN-08（冲销单）区分清楚。中文「冲减」在会计实务里常用，保留。",
      "options": [
