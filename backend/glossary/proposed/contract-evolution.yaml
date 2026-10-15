@@ -1,0 +1,44 @@
+# 契约演进与部署排空用语（proposed，ADR-0035，待用语确认，ADR-0018）。
+terms:
+- id: maintenance_mode
+  zh: 维护模式
+  en: MaintenanceMode
+  snake: maintenance_mode
+  kind: value
+  bc: platform.scheduling
+  definition: 部署或回滚期间的系统状态：停写请求与业务类定时作业，事件投递与重投照常，用于排空事件发布；状态存于库内标记，由 one-ops 部署剧本开关（ADR-0035 第 6 条）
+  standard_ref:
+  - ADR-0035 契约演进与兼容
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: event_quarantine
+  zh: 隔离登记
+  en: EventQuarantine
+  snake: event_quarantine
+  kind: entity
+  bc: platform.integration
+  definition: 部署或回滚时排不空的事件发布被移入的登记，保留原负载、类型、关联号与部署批次，修复后重新投递或人工处理（ADR-0035 第 6 条）
+  standard_ref:
+  - ADR-0035 契约演进与兼容
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 与组织同步的「被隔离的行」（isolated row）无关
+- id: deprecation_register
+  zh: 弃用登记
+  en: DeprecationRegister
+  snake: deprecation_register
+  kind: entity
+  bc: platform.web
+  definition: 已标为弃用的接口、字段、事件或数据集列的登记（backend/architecture/deprecations.yaml）：对象、弃用日、消费方类别、到期条件、出处；G-C1 据此放行到期删除（ADR-0035 第 7 条）
+  standard_ref:
+  - ADR-0035 契约演进与兼容
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 仓库内文件，不是数据库表

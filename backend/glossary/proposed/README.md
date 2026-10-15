@@ -210,3 +210,17 @@
 | `ui_calculation` | 计算 | Calculation | 按规则得出日期、时限、编号等的过程 |  |
 | `ui_outcome_result` | 结果 | OutcomeResult | 一次办理或一次计算得出的结论 |  |
 | `ui_advisory_note` | 加签建议 | AdvisoryNote | 加签人给出的参考意见，不算正式的办理结果 |  |
+
+## 历史数据迁入（`data-migration.yaml`）
+
+| id | zh | en | 定义 | 是否疑似方言 |
+|---|---|---|---|---|
+| `migration_batch` | 迁入批次 | MigrationBatch | 一次历史数据迁入运行；批次挂在来源对照与原编号对照上，业务表不带批次列 | 「导入批次」`import_batch` 为另一种写法，R-1b 归并后列入禁用写法 |
+
+迁入的其余用语（拒收、核对、历史期间、迁入标记等）随 ADR-0036（另行 PR）登记。
+
+契约演进用语（`contract-evolution.yaml`，ADR-0035）：`maintenance_mode` 维护模式、`event_quarantine` 隔离登记、`deprecation_register` 弃用登记。
+
+通用词另增 `batch`、`count`（批量命令后缀与计数端点，NAMING_STANDARD §2.6 A-3、A-6）。
+
+前端界面用语（`frontend-ui.yaml`）另增：`correlation_id` 关联号 / CorrelationId（归属 `kernel`）——一次请求及其引发的事件与投递共用的追踪编号；出错时界面显示可复制的关联号（NAMING_STANDARD §4a U5）。
