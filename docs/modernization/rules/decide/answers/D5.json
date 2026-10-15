@@ -1,0 +1,62 @@
+{
+ "D5~D5-01": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "d5-route",
+  "label": "该行所属项目的项目经理；多个项目时每位项目经理只审、只看自己项目的行",
+  "no": "D5-01",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:08:43.165Z"
+ },
+ "D5~D5-02": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "d5-route",
+  "label": "售前对象（商机、线索、客户、拜访计划）归属部门的负责人",
+  "no": "D5-02",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:08:43.165Z"
+ },
+ "D5~D5-03": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "d5-route",
+  "label": "提交人的直属上级",
+  "no": "D5-03",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:08:43.165Z"
+ },
+ "D5~D5-04": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "d5-route",
+  "label": "不保留：工时行类型只有项目、售前、间接三种；出现别的类型或一个路由旗标都没置时，提交失败并告警",
+  "no": "D5-04",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:08:43.165Z"
+ },
+ "D5~D5-05": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "d5-whole",
+  "label": "不加：维持按行类型分路，直属上级只审间接工时",
+  "no": "D5-05",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:19:52.665Z"
+ },
+ "D5~D5-06": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "d5-whole",
+  "label": "组织架构中该部门登记的部门负责人（随组织同步维护），节点与用语改称「部门负责人审批」",
+  "no": "D5-06",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:19:52.665Z"
+ }
+}

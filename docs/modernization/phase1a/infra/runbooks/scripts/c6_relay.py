@@ -3,16 +3,17 @@
 
 老系统应用服务器上用 LegacyReadOnlyProbe 分页查询（READ COMMITTED，每页压缩后经云助手输出带回），在本进程内存中拼成文件，
 再经云助手 SendFile 分块写到新 ECS 的 /data/forcitis-one/import/c6/<日期>/（root 0700，文件 root 0600），在 ECS 上合并并核对 SHA256。
-本进程不写磁盘、不打印数据内容，只打印页号、行数与 SHA256。凭据取自 aliyun CLI 配置 forcitis-production 的临时凭据（先运行任一 aliyun 命令刷新）。
+本进程不写磁盘、不打印数据内容，只打印页号、行数与 SHA256。凭据取自 aliyun CLI 配置 forcitis-production 的临时凭据（ops_credentials：不足 15 分钟时等过期后自动换新）。
 用法：c6_relay.py roles-calendar <日期 YYYYMMDD>
       c6_relay.py replay <日期 YYYYMMDD>
 """
 import base64, gzip, hashlib, io, json, os, sys, time
 from pathlib import Path
 
-from alibabacloud_tea_openapi import models as om
-from alibabacloud_ecs20140526.client import Client as Ecs
 from alibabacloud_ecs20140526 import models as em
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from ops_credentials import MIN_SECONDS, ecs_client, require_committed  # noqa: E402
 
 REGION = 'cn-hangzhou'
 LEGACY_SERVER = 'i-bp1b34hcl0g1cnkdtrb9'
@@ -20,14 +21,11 @@ ONE_SERVER = 'i-bp122xlpar8w2uylmal2'
 SCRIPTS = Path(__file__).resolve().parent
 CHUNK = 24000
 
-_profile = next(p for p in json.load(open(os.path.expanduser('~/.aliyun/config.json')))['profiles'] if p['name'] == 'forcitis-production')
-if _profile['sts_expiration'] - time.time() < 900:
-    raise SystemExit('temporary credentials expire within 15 minutes; run any aliyun command to refresh first')
-ecs = Ecs(om.Config(access_key_id=_profile['access_key_id'], access_key_secret=_profile['access_key_secret'],
-                    security_token=_profile['sts_token'], region_id=REGION, endpoint=f'ecs.{REGION}.aliyuncs.com'))
+require_committed(__file__, sys.argv[0])
 
 
 def run(instance, script, timeout=300):
+    ecs = ecs_client(REGION, max(MIN_SECONDS, timeout + 120))
     invoke = ecs.run_command(em.RunCommandRequest(region_id=REGION, instance_id=[instance], type='RunShellScript',
                                                   command_content=script, timeout=timeout, keep_command=False,
                                                   name='one-ops-c6')).body.invoke_id
@@ -106,7 +104,7 @@ def deliver(date, name, data: bytes):
     encoded = base64.b64encode(gzip.compress(data, 9)).decode()
     chunks = [encoded[i:i + CHUNK] for i in range(0, len(encoded), CHUNK)]
     for index, chunk in enumerate(chunks):
-        invoke = ecs.send_file(em.SendFileRequest(region_id=REGION, instance_id=[ONE_SERVER], name=f'{index:05d}',
+        invoke = ecs_client(REGION).send_file(em.SendFileRequest(region_id=REGION, instance_id=[ONE_SERVER], name=f'{index:05d}',
                                                   target_dir=parts_dir, content=chunk, content_type='PlainText',
                                                   file_owner='root', file_group='root', file_mode='0600', overwrite=True,
                                                   description='one-ops c6 part')).body.invoke_id
@@ -120,6 +118,7 @@ def deliver(date, name, data: bytes):
 
 
 def _wait_send(invoke):
+    ecs = ecs_client(REGION)
     for _ in range(60):
         time.sleep(1)
         inv = ecs.describe_send_file_results(em.DescribeSendFileResultsRequest(region_id=REGION, invoke_id=invoke)).body.invocations.invocation[0]
