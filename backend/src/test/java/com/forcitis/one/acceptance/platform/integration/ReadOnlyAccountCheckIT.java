@@ -142,8 +142,8 @@ class ReadOnlyAccountCheckIT {
                     new Sql(a.connection().database, "ALTER ROLE db_datareader ADD MEMBER " + q(a.login())))),
             new Violation("能访问基线外的另一个用户库", "f", a -> List.of(
                     new Sql("otherworld", "CREATE USER " + q(a.login()) + " FOR LOGIN " + q(a.login())))),
-            new Violation("缺少一项：撤掉 VIEW SERVER STATE", "ad", a -> List.of(
-                    new Sql("master", "REVOKE VIEW SERVER STATE FROM " + q(a.login())))),
+            new Violation("缺少一项：DENY VIEW SERVER STATE（REVOKE 无效：平台授予的 ALTER SERVER STATE 隐含它）", "ad", a -> List.of(
+                    new Sql("master", "DENY VIEW SERVER STATE TO " + q(a.login())))),
             new Violation("校验查询失败：sys.database_permissions 被拒绝读取", "be", a -> List.of(
                     new Sql(a.connection().database, "DENY SELECT ON sys.database_permissions TO " + q(a.login())))));
 
