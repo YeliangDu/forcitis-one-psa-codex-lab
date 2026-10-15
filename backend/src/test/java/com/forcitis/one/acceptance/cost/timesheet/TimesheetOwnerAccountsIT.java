@@ -62,7 +62,7 @@ class TimesheetOwnerAccountsIT extends AccountsAcceptanceSupport {
     @Autowired
     CurrentUser currentUser;
 
-    long projectManager;
+    UUID projectManager;
     SignedIn owner;
     SignedIn other;
     UUID ownerLegalEntity;
@@ -70,13 +70,13 @@ class TimesheetOwnerAccountsIT extends AccountsAcceptanceSupport {
 
     @BeforeEach
     void twoPeopleWithAccountsAndLegalEntities() throws Exception {
-        long unit = newOrgUnitId();
+        UUID unit = newOrgUnitId();
         orgUnit(unit, null, null);
-        long maintainer = newEmployeeId();
-        long ownerEmployee = newEmployeeId();
-        long otherEmployee = newEmployeeId();
+        UUID maintainer = newEmployeeId();
+        UUID ownerEmployee = newEmployeeId();
+        UUID otherEmployee = newEmployeeId();
         projectManager = newEmployeeId();
-        for (long person : new long[] {maintainer, ownerEmployee, otherEmployee, projectManager}) {
+        for (UUID person : new UUID[] {maintainer, ownerEmployee, otherEmployee, projectManager}) {
             employee(person, unit, null);
         }
         grantByOperations(maintainer, "org_data_admin");
@@ -99,7 +99,7 @@ class TimesheetOwnerAccountsIT extends AccountsAcceptanceSupport {
 
     private TimesheetView submit(SignedIn as, TimesheetId timesheet) {
         actInSession(as);
-        return submitTimesheet.execute(new SubmitTimesheetCommand(timesheet, workDay(), Hours.of("8"), new EmployeeId(projectManager)));
+        return submitTimesheet.execute(new SubmitTimesheetCommand(timesheet, workDay(), Hours.of("8"), employeeIdOf(projectManager)));
     }
 
     /** The approval starts from the submitted event, after the commit: waits until withdrawing is offered to the owner. */
@@ -127,7 +127,7 @@ class TimesheetOwnerAccountsIT extends AccountsAcceptanceSupport {
         awaitApprovalOf(other, cancelled);
 
         actInSession(owner);
-        refusedAsNotFound(() -> submitTimesheet.execute(new SubmitTimesheetCommand(withdrawn, workDay(), Hours.of("4"), new EmployeeId(projectManager))));
+        refusedAsNotFound(() -> submitTimesheet.execute(new SubmitTimesheetCommand(withdrawn, workDay(), Hours.of("4"), employeeIdOf(projectManager))));
         refusedAsNotFound(() -> getTimesheet.execute(withdrawn));
         refusedAsNotFound(() -> cancelTimesheet.execute(cancelled, "synthetic: not mine", OptionalLong.empty()));
         refusedAsNotFound(() -> withdrawTimesheet.execute(withdrawn, "synthetic: not mine", OptionalLong.empty()));
@@ -161,11 +161,11 @@ class TimesheetOwnerAccountsIT extends AccountsAcceptanceSupport {
     void theCurrentUsersLegalEntityIsTheirEmployeesAttribution() {
         actInSession(owner);
         assertThat(currentUser.userId().value()).isEqualTo(owner.userId());
-        assertThat(currentUser.employeeId()).isEqualTo(new EmployeeId(owner.employeeId()));
+        assertThat(currentUser.employeeId()).isEqualTo(employeeIdOf(owner.employeeId()));
         assertThat(currentUser.legalEntityId()).isEqualTo(new LegalEntityId(ownerLegalEntity));
 
         actInSession(other);
-        assertThat(currentUser.employeeId()).isEqualTo(new EmployeeId(other.employeeId()));
+        assertThat(currentUser.employeeId()).isEqualTo(employeeIdOf(other.employeeId()));
         assertThat(currentUser.legalEntityId()).isEqualTo(new LegalEntityId(otherLegalEntity));
     }
 }

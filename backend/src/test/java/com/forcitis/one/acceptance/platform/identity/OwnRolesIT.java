@@ -34,7 +34,7 @@ class OwnRolesIT extends AccountsAcceptanceSupport {
     static PostgreSQLContainer postgres = database();
 
     /** A super_admin holder (operations command), signed in through WeCom and in the administrator mode of their own session. */
-    private SignedIn roleAdministrator(long employee) throws Exception {
+    private SignedIn roleAdministrator(UUID employee) throws Exception {
         grantByOperations(employee, "super_admin");
         return administratorMode(signIn(employee));
     }
@@ -56,10 +56,10 @@ class OwnRolesIT extends AccountsAcceptanceSupport {
     @Test
     @DisplayName("R-1b P2 ADR-0033 第 3 项第 3 条 / I-12：给自己授角色被拒（403 PLATFORM_IDENTITY_OWN_ROLES_FORBIDDEN，两侧都比较用户 ID），角色不变，拒绝记审计且操作人为本人的用户 ID；给他人授角色照常生效")
     void nobodyChangesTheirOwnRoles() throws Exception {
-        long unit = newOrgUnitId();
+        UUID unit = newOrgUnitId();
         orgUnit(unit, null, null);
-        long administratorEmployee = newEmployeeId();
-        long colleagueEmployee = newEmployeeId();
+        UUID administratorEmployee = newEmployeeId();
+        UUID colleagueEmployee = newEmployeeId();
         employee(administratorEmployee, unit, null);
         employee(colleagueEmployee, unit, null);
         SignedIn administratorSession = roleAdministrator(administratorEmployee);
@@ -87,16 +87,16 @@ class OwnRolesIT extends AccountsAcceptanceSupport {
     @Test
     @DisplayName("R-1b P2 G-A1 / ADR-0033 第 6 项第 2 条：账号路径只认用户 ID 的 uuid；拿本人的员工 ID 当路径不会命中本人账号（400），不授出任何角色")
     void theAccountPathTakesTheUserIdNotTheEmployeeId() throws Exception {
-        long unit = newOrgUnitId();
+        UUID unit = newOrgUnitId();
         orgUnit(unit, null, null);
-        long administratorEmployee = newEmployeeId();
-        long colleagueEmployee = newEmployeeId();
+        UUID administratorEmployee = newEmployeeId();
+        UUID colleagueEmployee = newEmployeeId();
         employee(administratorEmployee, unit, null);
         employee(colleagueEmployee, unit, null);
         SignedIn administrator = roleAdministrator(administratorEmployee);
         signIn(colleagueEmployee);
 
-        MockHttpServletResponse byEmployeeId = replaceRoles(administrator, String.valueOf(colleagueEmployee), List.of("employee"));
+        MockHttpServletResponse byEmployeeId = replaceRoles(administrator, text(colleagueEmployee), List.of("employee"));
 
         assertThat(byEmployeeId.getStatus()).as(byEmployeeId.getContentAsString()).isEqualTo(400);
     }
