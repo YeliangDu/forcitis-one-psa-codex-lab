@@ -70,6 +70,7 @@ class SeeyonViewsMssqlIT {
         createBaseTables();
         seedBase();
         applyDbaScript();
+        widenToTheWholeDatabase();
         reader = JdbcClient.create(new DriverManagerDataSource(url("seeyontest"), "forcitis_reader", readerPassword));
     }
 
@@ -134,6 +135,14 @@ class SeeyonViewsMssqlIT {
         }
     }
 
+    /** The shape one-ops applied on 2026-10-15 (B-5 read-all/a8_apply.sql, ADR-0037 item 1.2): whole-database SELECT, database-level DENY of every write. */
+    private static void widenToTheWholeDatabase() throws SQLException {
+        run("seeyontest", "REVOKE SELECT ON SCHEMA::dbo FROM forcitis_reader", "REVOKE VIEW DEFINITION ON SCHEMA::dbo FROM forcitis_reader",
+                "GRANT SELECT ON DATABASE::seeyontest TO forcitis_reader",
+                "DENY INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VIEW, CREATE PROCEDURE, CREATE FUNCTION, CREATE SCHEMA "
+                        + "ON DATABASE::seeyontest TO forcitis_reader");
+    }
+
     @Test
     @DisplayName("§9a the views carry exactly the whitelisted columns, and the start-up check passes against the real catalog")
     void startupCheckPassesAgainstSqlServer() {
@@ -141,13 +150,12 @@ class SeeyonViewsMssqlIT {
 
         assertThat(check.problems()).isEmpty();
         assertThat(new JdbcSeeyonSchemaInspector(reader).viewColumns()).containsOnlyKeys("V_ORG_UNIT", "V_ORG_RELATIONSHIP", "V_ORG_POST", "V_ORG_MEMBER");
-        assertThat(new JdbcSeeyonSchemaInspector(reader).excessivePermissions()).isEmpty();
     }
 
     @Test
     @DisplayName("§9a the views are read through the ownership chain and map to the domain with the shared mapper")
     void viewsAreReadAndMapped() {
-        SourceOrgSnapshot snapshot = new SeeyonOrgSource(reader, reader, MAPPING).readSnapshot();
+        SourceOrgSnapshot snapshot = new SeeyonOrgSource(reader, reader, MAPPING, () -> { }).readSnapshot();
 
         assertThat(snapshot.units()).extracting(u -> u.unitId().value()).containsExactlyInAnyOrder(1L, 2L, 3L);
         assertThat(snapshot.units().stream().filter(u -> u.unitId().value() == 3).findFirst().orElseThrow().state()).isEqualTo(SourceRecordState.DISABLED);
@@ -173,7 +181,7 @@ class SeeyonViewsMssqlIT {
     @Test
     @DisplayName("§9a single-person lookup over the real view returns the same person as the bulk read")
     void singleLookup() {
-        SeeyonOrgSource source = new SeeyonOrgSource(reader, reader, MAPPING);
+        SeeyonOrgSource source = new SeeyonOrgSource(reader, reader, MAPPING, () -> { });
 
         assertThat(source.findStaffByWecomUserId(new WecomUserId("wx-8002")))
                 .containsExactly(source.readSnapshot().staff().stream().filter(m -> m.personId().value() == 8002).findFirst().orElseThrow());
@@ -181,14 +189,13 @@ class SeeyonViewsMssqlIT {
     }
 
     @Test
-    @DisplayName("§9a ReadOnly: the account cannot read a single base table - including the birthday column and a money table")
-    void baseTablesAreDenied() {
+    @DisplayName("§9a ADR-0037 item 1: the login reads base tables as well as the views; writes stay refused (writesAreDenied)")
+    void baseTablesAreReadable() {
         JdbcClient jdbc = reader;
 
         for (String table : List.of("dbo.ORG_MEMBER", "dbo.ORG_UNIT", "dbo.formmain_0307", "dbo.contract_values", "dbo.ORG_PRINCIPAL")) {
-            assertThatThrownBy(() -> jdbc.sql("SELECT * FROM " + table).query().listOfRows()).as(table).hasMessageContaining("permission was denied");
+            assertThat(jdbc.sql("SELECT COUNT(*) FROM " + table).query(Integer.class).single()).as(table).isPositive();
         }
-        assertThatThrownBy(() -> jdbc.sql("SELECT EXT_ATTR_21 FROM dbo.ORG_MEMBER").query().listOfRows()).hasMessageContaining("permission was denied");
         assertThat(jdbc.sql("SELECT COUNT(*) FROM forcitis_one.v_org_member").query(Integer.class).single()).isPositive();
     }
 
@@ -235,17 +242,5 @@ class SeeyonViewsMssqlIT {
         SeeyonMapping wrong = new SeeyonMapping(1, 2, "nope", "nope", "00000001");
 
         assertThat(new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(reader), wrong).problems()).hasSize(4);
-    }
-
-    @Test
-    @DisplayName("§9a an account that was given too much (db_datareader) is refused by the permission probe")
-    void tooManyPermissionsAreDetected() throws SQLException {
-        String password = "Aa1!" + UUID.randomUUID();
-        run("master", "CREATE LOGIN greedy WITH PASSWORD = N'" + password + "', CHECK_POLICY = OFF");
-        run("seeyontest", "CREATE USER greedy FOR LOGIN greedy", "ALTER ROLE db_datareader ADD MEMBER greedy", "GRANT INSERT ON SCHEMA::dbo TO greedy");
-        JdbcClient greedy = JdbcClient.create(new DriverManagerDataSource(url("seeyontest"), "greedy", password));
-        assertThat(ReadOnlyGuard.excessiveDatabasePermissions(greedy)).contains("SELECT");
-        assertThat(new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(greedy), MAPPING).problems())
-                .anyMatch(p -> p.contains("must not have"));
     }
 }

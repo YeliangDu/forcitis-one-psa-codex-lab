@@ -9,7 +9,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 record SeeyonProperties(@DefaultValue Views views, @DefaultValue Sso sso) {
 
     record Views(@DefaultValue("false") boolean enabled, String jdbcUrl, String username, String password,
-                 @DefaultValue("false") boolean validateOnStartup, long headRelationshipTypeId,
+                 long headRelationshipTypeId,
                  long regionalReceivablesManagerRelationshipTypeId, String deliveryUnitYesEnumId, String feeEarnerYesEnumId, String rootPath) {
 
         SeeyonMapping mapping() {
