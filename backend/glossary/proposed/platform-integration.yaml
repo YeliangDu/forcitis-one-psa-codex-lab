@@ -252,22 +252,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: migration_batch
-  zh: 迁入批次
-  en: MigrationBatch
-  snake: migration_batch
-  kind: entity
-  bc: platform.integration
-  definition: 一次历史数据迁入运行；登记来源系统、对象类型、范围、状态、行数与来源 ID 摘要；批次挂在来源对照与原编号对照上，业务表不带批次列（ADR-0036 第 3 条）
-  standard_ref:
-  - ADR-0036 历史数据迁入
-  confidence: medium
-  aliases: []
-  forbidden:
-  - 导入批次
-  - import_batch
-  status: proposed
-  note: 用户 2026-10-15 定批次术语唯一写法；与 #129 分支 data-migration.yaml 同一条，合并时删去一处；platform.numbering 的 import_batch 在 R-1b 改为 migration_batch_id
 - id: evidence
   zh: 取证
   en: Evidence

@@ -90,7 +90,7 @@
   - 外部引用写 `<对象>_id`；审计列为 `created_at`、`created_by`、`updated_at`、`updated_by`、`version`；布尔列以 `is_` / `has_` 开头。
   - 金额成对存放 `<名>_amount` + `<名>_currency`；状态存枚举名（`text` + `CHECK`）。
   - Flyway 脚本放在各模块目录下，命名为 `V{yyyyMMddHHmmss}__{module}_{描述}.sql`，描述用英文 snake_case（中文说明写在脚本首行注释）。
-- **HTTP**：路径为 `/api/v{n}/{subdomain}/{复数资源}`（ADR-0008，例如 `/api/v1/cost/timesheets`；第二段是**子域** slug，不是 BC 或功能名），用 kebab-case；动作写成 `:submit` / `:approve`；**所有 JSON（接口、领域事件载荷、外部投递）字段一律 camelCase**，snake_case 只用于数据库；错误码按模块分段；跨模块通用的错误（状态转换不合法、被他人同时修改、必须填写原因、已过撤回截止点、未登录等）只在公共基础 `kernel` 定义一次，各模块直接使用，模块只定义本模块特有的错误（用户 2026-10-15 对抽规则答「通用错误码只在公共基础定义」）。
+- **HTTP**：路径为 `/api/v{n}/{subdomain}/{复数资源}`（ADR-0008，例如 `/api/v1/cost/timesheets`；第二段是**子域** slug，不是 BC 或功能名），用 kebab-case；动作写成 `:submit` / `:approve`；**所有 JSON（接口、领域事件载荷、外部投递）字段一律 camelCase**，snake_case 只用于数据库；错误码按模块分段；跨模块通用的错误（状态转换不合法、被他人同时修改、必须填写原因、已过撤回截止点、未登录等）只在公共基础 `kernel` 定义一次，各模块直接使用，模块只定义本模块特有的错误（用户 2026-10-15 对抽规则答「通用错误码只在公共基础定义」）。状态码、列表、类型表示、并发与错误响应等接口约定见 §2.6。
   - 更正（2026-10-14）：原示例 `/api/v1/timesheet/timesheets` 把 BC 当成子域，原规则「事件载荷 snake_case」与接口 camelCase 不一致，均已统一。
 - **前端**：`src/modules/<module>/{pages,components,hooks,api}`；API 客户端由 OpenAPI 生成（禁止手写 URL）；TypeScript strict；组件用 PascalCase，hook 用 `useXxx`，文件名用 kebab-case。
 
@@ -127,7 +127,7 @@
 
 另允许 `id`、`version` 两个独立列名。单据编号用 `_number`（与编号模块用语 `legacy_number`、`round_number` 一致），不用 `_no`。
 
-**约束与索引**：主键 `pk_<表>`；外键 `fk_<表>_<列>`；唯一 `uk_<表>_<列>`（唯一约束和唯一索引都用）；表级检查 `ck_<表>_<规则>`；普通索引 `ix_<表>_<列>`。主键、外键、唯一约束都要用 `CONSTRAINT <名>` 显式命名，不依赖 PostgreSQL 的默认名；只写在列上的枚举 `CHECK` 可不命名。
+**约束与索引**：主键 `pk_<表>`；外键 `fk_<表>_<列>`；唯一 `uk_<表>_<列>`（唯一约束和唯一索引都用）；表级检查 `ck_<表>_<规则>`；普通索引 `ix_<表>_<列>`。主键、外键、唯一约束都要用 `CONSTRAINT <名>` 显式命名，不依赖 PostgreSQL 的默认名。**枚举 `CHECK` 一律命名为 `ck_<表>_<列>`**（用户 2026-10-15：对 DDL 审计的待决项答「全部按推荐 (Recommended)」，DDL-22），不写不具名的列上 CHECK——上线后改取值要按名字删除重建；同一列的取值集合与对应 Java 枚举一致。基线开放期内的存量按此改名并入基线 DDL 收紧（R-2）；守护由 `DdlNamingTest` 扩展（§4「待实现的守护」G-D12）。
 
 **守护**：`DdlNamingTest` 按全部迁移脚本推算最终表结构（跟踪 `ADD COLUMN`、`RENAME COLUMN`、`RENAME CONSTRAINT`、`ALTER INDEX ... RENAME TO`），检查类别词与类型、约束与索引命名；注入样例覆盖每类错误。规则生效前已存在的项登记在 `backend/architecture/ddl-naming-baseline.txt`（每行附改名建议），新违规和「已修好却没删」的基线行都会失败。框架拥有列名的表豁免：`platform_identity.sessions`、`sessions_attributes`（Spring Session JDBC）、`platform_integration.event_publication`（Spring Modulith）、`platform_scheduling.scheduler_locks`（ShedLock）。
 
@@ -137,14 +137,14 @@
 
 1. **业务唯一约束**：主键一律 UUIDv7（§14.1 D16）；交易、主数据、参考、配置表另须至少一个业务唯一约束（如单据类型 + 单据编号、法人代码、角色代码、来源系统 + 对象类型 + 来源 ID；带生效区间的用排他约束），并在数据访问注册表登记 `business_key`。纯日志、事件类表可豁免，须写理由。引用一律用 UUID，不以业务键作外键。守护。
 2. **索引**：
-   - 外键列必须有以该列开头的索引（PostgreSQL 不自动建）。守护。
-   - 每条列表 / 查询路径在注册表登记（过滤列、排序列），并有索引覆盖；游标分页的排序键以 `id` 兜底组成联合索引。复审，可用 EXPLAIN 集成测试抽查。
+   - 外键列必须有以该列开头的索引（PostgreSQL 不自动建）。守护（G-DDL2，待实现）。
+   - 每条列表 / 查询路径在注册表登记（过滤列、排序列），并有索引覆盖；游标分页的排序键以 `id` 兜底组成联合索引。守护（§4 G-P3 与 G-DDL4 合并为一个 EXPLAIN 集成测试，待实现；实现前复审）。
    - 状态类热点用部分索引（`WHERE status IN (...)`）。
-   - 不留重复或冗余索引（与另一索引前缀相同、与唯一约束重复）。守护。
+   - 不留重复或冗余索引（与另一索引前缀相同、与唯一约束重复）。守护（G-DDL3，待实现）。
 3. **空值与默认值**：默认 `NOT NULL`；可空列须在列注释写明「空」的业务含义（守护：可空列注释含「为空表示」或等价说明）。文本列禁止空串代替空值（`CHECK (col <> '')`）。数据库只允许技术默认值（如 `version` 初值）；业务值与时间一律由应用显式写入。守护。
 4. **删除语义**：外键默认 `ON DELETE RESTRICT`；仅同一聚合内的子行允许 `CASCADE`，须登记。不用软删除标志列；业务删除以状态或版本表达，物理删除只用于技术数据过期清理。守护（CASCADE 白名单、禁 `is_deleted` 类列）。
 5. **代码格式与文本长度**：`_code` 列有格式 CHECK（字符集、大小写、长度）；不区分大小写比较的列，唯一约束建在规范化值上（如 `lower(email_address)`）。自由文本类列设长度上限（`CHECK (char_length(col) <= n)`）。守护。
-6. **枚举演进**：不用 PostgreSQL `ENUM` 类型，统一 `text + CHECK`；新增取值以迁移改 CHECK，删除取值先迁移数据。守护（禁 `CREATE TYPE ... AS ENUM`）。
+6. **枚举演进**：不用 PostgreSQL `ENUM` 类型，统一 `text + CHECK`（命名见 §2.4）；新增取值以迁移改 CHECK（`DROP CONSTRAINT` 后 `ADD CONSTRAINT … NOT VALID` 再 `VALIDATE`，避免长时间持锁），删除取值先迁移数据。守护（禁 `CREATE TYPE ... AS ENUM`）。
 7. **jsonb 边界**：`jsonb` 只用于本来无固定结构的载荷（事件归档、外部原文、幂等应答体），领域字段必须是正式列；每个 `jsonb` 列在注册表登记用途并有 `jsonb_typeof` CHECK。守护。
 8. **大表规划**：保留期超过 3 年或预计超过千万行的只追加表（审计、事件归档、过程归档等），在建表时定好分区键（按时间范围）与归档 / 清理方式，登记在注册表；上线后再分区要重写全表。复审。
 9. **上线后迁移安全**（基线开放标记删除后生效）：表结构变更只能「先扩后缩」（expand / contract）；加索引用 `CREATE INDEX CONCURRENTLY`（单独迁移、非事务）；迁移设 `lock_timeout` 与 `statement_timeout`；禁止会重写全表的变更（如改列类型、加带易变默认值的列）；删列、改名分两次发布。守护（迁移脚本静态检查）。
@@ -160,6 +160,29 @@
 | `RESTRICTED` 高度敏感 | 口令、密钥、会话内容 | 不出库（只在本模块内部使用）、不进日志、不进分析层 |
 
 登记在 `backend/architecture/data-classification.txt`（`<schema.table.column> | <级别> | <理由>`），未登记的列默认 `INTERNAL`。守护：`DdlNamingTest` 要求名字像敏感信息的列（口令、密钥、TOTP、银行、工资、日薪、证件、手机、邮箱、生日、性别、地址、会话内容）必须登记为 `SENSITIVE` 或 `RESTRICTED`，登记的列必须存在。web / api 出参不得直接暴露 `SENSITIVE`、`RESTRICTED` 列，这一守护由 1a 会话实现。
+
+### 2.6 HTTP 接口约定（用户 2026-10-15：对原则核对 A 的待决项答「全部按推荐 (Recommended)」）
+
+适用于全部 `/api/v{n}/…` 接口；由 `proposals/PHASE1A_PLATFORM_CONVENTIONS.md` §2–3 升格而来，那两节不再是现行规则。路径与命名见 §2.3；接口版本与契约演进见 ADR-0008 与 ADR-0035。守护见 §4「待实现的守护」G-A1–G-A9，未实现前由每波复审逐条检查。
+
+- **A-1 资源与命令**：读取用 `GET`；在集合上创建用 `POST /{复数资源}`；整体替换可编辑字段用 `PUT /{复数资源}/{id}`；状态转换与业务动作写成命令 `POST /{复数资源}/{id}:{动作}`（动作取自 `terms.yaml` 的 `standard_actions`），不用 `PUT` 改状态；删除用 `DELETE`，只用于允许删除的对象（如未提交的草稿），业务上的「作废」「撤销」是命令。不改变任何状态的只读计算（如试算、预览）可用 `GET /{复数资源}:{动作}` 或 `GET /{复数资源}/{id}:{动作}`，参数放查询串，不得有副作用。
+- **A-2 状态码**：创建返回 `201`，带 `Location` 与 `ETag`；命令返回 `200`（响应体为命令后的资源）或 `204`；删除返回 `204`；读取返回 `200` 与 `ETag`。契约中的状态码与运行时一致。
+- **A-3 列表**：响应一律为 `{items, nextCursor}`；参数 `cursor`（不透明，内部编码排序键 + `id`）与 `limit`。`limit` 默认 50、上限 200，两个值是全系统唯一的常量（kernel），OpenAPI 声明 `maximum: 200`，超出上限返回 400，不静默截断。列表一律按索引做键集分页，不在内存中切片（GUIDING_PRINCIPLES §7）；需要总数时另设 `GET /{复数资源}:count`，与列表用同一组过滤参数。不分页的小表上限见 GUIDING_PRINCIPLES §7a R-P2。
+- **A-4 过滤与排序**：过滤参数为 camelCase 字段名，多值用逗号分隔，不提供通用表达式语言；排序写 `sort=field,-field`，只接受白名单字段；未知参数、白名单外的字段返回 400。导出接口与对应列表使用同一组过滤参数。
+- **A-5 不提供 `PATCH`**：局部修改用 `PUT` 整体替换可编辑字段，或用具名命令表达业务意图。
+- **A-6 批量**：写成 `POST /{复数资源}:{动作}-batch`，一次最多 100 项（与 GUIDING_PRINCIPLES §7a R-P2 同一上限；出处：one-coordinator 2026-10-15 在两份推荐值（100 / 200）中取较严者，用户「全部按推荐」）；逐项鉴权、逐项执行，各项各自成败。响应 `200`，按请求顺序返回逐项结果（对象 ID、结果、失败时的 ProblemDetail），部分成功也返回 `200`；整批格式不合法时返回 400、一项都不执行。
+- **A-7 类型表示**：
+  - 自有 ID 一律是字符串 uuid：JSON string，OpenAPI `type: string, format: uuid`（ADR-0033 第 6 项第 2 条），属性、路径参数与查询参数同样；前端把它当不透明字符串，不做数值运算、不解析；来源系统的 ID 不进接口（ADR-0033）；
+  - 时刻用 ISO-8601 UTC，带 `Z`（`2026-10-15T02:00:00Z`），不用 `+08:00` 偏移，不用纪元毫秒；业务日期用 `YYYY-MM-DD`，按业务时区（`Asia/Shanghai`）取日；
+  - 金额为 `{amount, currency}`，`amount` 是十进制字符串；比率为 0–1 的十进制字符串；其他十进制量（工时、人天）同样用字符串；
+  - 状态、类型等取值在 OpenAPI 中是具名 `enum` schema，不用无约束的 `string`。
+- **A-8 幂等与并发**：
+  - 有副作用的 `POST` 接受 `Idempotency-Key`：服务端按「用户 + 键」保存 24 小时的应答（状态、正文、`ETag`、`Location`），重复请求原样回放；同键不同请求体返回 422，首个请求仍在处理时返回 409；处理中占位超过配置的超时后允许接管；5xx 不保存。会话与登录状态端点（路径含 `/sessions`、以 `/login-states` 结尾）永不保存应答正文，也不在契约中声明该请求头；范围由 `IdempotencyScope` 唯一表达，`HttpContractIT.idempotencyKeyIsOfferedExactlyWhereItIsStored` 守护。
+  - 修改已有资源的 `PUT`、`DELETE` 与命令必须带 `If-Match: "<version>"`：缺失返回 428，版本不一致返回 412；契约中声明该请求头为必填，并声明 412 / 428。版本不放在请求体。确实不需要版本的命令（如强制登出）在守护中登记豁免与理由。
+  - 409 只表示「当前状态不允许该操作」（状态转换不合法等），不用于并发冲突。
+- **A-9 错误**：一律 RFC 9457 ProblemDetail，`type` 与 `code` 取自 `ErrorCode`；通用错误只在 kernel 定义（§2.3、G48）；每个接口在 OpenAPI 中声明自己可能返回的错误状态码；5xx 的响应体只带关联号（correlationId），细节只进日志。错误响应由一处统一生成。
+- **A-10 访问控制在接口上的表现**：未登录 401；没有功能权限 403；有功能权限但单个资源不在本人数据范围内时返回 404，不暴露资源是否存在；列表按数据范围过滤，不报错；数据范围由会话决定，不作请求参数。
+- **A-11 出参**：响应体一律是 `web` 包内的 `*Response` record，不直接返回 application 层的 `*View` 或领域对象；`SENSITIVE` 字段按 §2.5 掩码，`RESTRICTED` 字段不出现。
 
 ## 3. 包结构：代码放在哪里（agent 速查表）
 
@@ -285,6 +308,86 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | F13 | 每个模块 `index.ts` 的导出数 ≤ 8（`check-public-api.mjs`） | 窄接口变宽 |
 | F14 | 业务模块禁止直接 import antd、禁内联样式、禁硬编码颜色；原始令牌只在 `shared/design-system` 中读取 | 偏离设计系统（ADR-0013） |
 
+**待实现的守护**（用户 2026-10-15：对 DDL 审计、原则核对 A / B 的待决项答「全部按推荐 (Recommended)」）：以下守护**只登记、尚未实现**，状态均为「待实现」。规则正文在「出处」一列所指的地方，本表只写检查什么、何时必须有、归属哪个工作单元。**归属由 one-1a-next-2 在计划中排定**：「归属」一列中已由 ADR 或用户决定落定的写工作单元名，其余写「one-1a-next-2 排定」，括号内是初拟的分组，供排定参考。未实现前由每波复审按出处逐条检查。与已有守护重叠的，实现时合并为一个测试，不重复写。
+
+| # | 检查什么 | 出处 | 必须在何时之前 | 归属 |
+|---|---|---|---|---|
+| G-A1 | OpenAPI 中所有自有 ID（属性、路径参数、查询参数）为 `type: string, format: uuid`；前端生成类型中 ID 不是 number | §2.6 A-7 | 立即（转交 / 改派界面上线前） | R-1b（与自有 UUIDv7 同改） |
+| G-A2 | 列表响应形状为 `{items, nextCursor}`，参数为 `cursor` / `limit` | §2.6 A-3 | 首次部署前 | one-1a-next-2 排定（初拟：HTTP 契约守护；与 G-X3 合并） |
+| G-A3 | 并入 G-C4（修改类接口声明必填 `If-Match` 与 412 / 428，运行时一致；豁免逐条登记理由） | §2.6 A-8、ADR-0035 第 8 条 | 见 G-C4 | 见 G-C4 |
+| G-A4 | 并入 G-C4（集合上的 `POST` 返回 201 并带 `Location`） | §2.6 A-2、ADR-0035 第 8 条 | 见 G-C4 | 见 G-C4 |
+| G-A5 | 没有 `PATCH` 映射 | §2.6 A-5 | 1b 前 | one-1a-next-2 排定（初拟：HTTP 契约守护） |
+| G-A6 | 时刻字段为带 `Z` 的 `date-time`；金额为 `{amount: string, currency}` | §2.6 A-7 | 1b 前 | one-1a-next-2 排定（初拟：HTTP 契约守护；金额部分与 G-M5 合并） |
+| G-A7 | 控制器返回类型只能是 `web` 包内的 `*Response` | §2.6 A-11 | 首次部署前 | one-1a-next-2 排定（初拟：HTTP 契约守护；与 G-X6 互补） |
+| G-A8 | kernel 以外不得定义通用错误码 | §2.3、§2.6 A-9 | 首次部署前 | R-5（与 G48 同一实现） |
+| G-A9 | 错误响应只由统一的处理器生成，控制器不手工拼 ProblemDetail | §2.6 A-9 | 1b 前 | one-1a-next-2 排定（初拟：HTTP 契约守护） |
+| G-C1 | `scripts/ci/openapi_compat.py`：与 merge-base 的 OpenAPI 比对；读取弃用登记，已登记且到期的删除放行；其他破坏性变更即失败，只能用提交 trailer `Contract-Break:` 放行并在 PR 中单列 | ADR-0035 第 3、7、9 条 | 首次生产部署前 | one-1a-next-2 排定（初拟：契约演进守护） |
+| G-C2 | 事件兼容（AsyncAPI 形状比对）：`asyncapi.yaml` 各消息的负载 schema 与类名同 merge-base 比对，形状或类名、包名有变化即判为破坏性，要求 `schemaVersion + 1` 或新事件类型二选一，并把本次发布标为「需排空」 | ADR-0035 第 3、5、9 条 | 首次生产部署前 | 同上 |
+| G-C3 | 部署前排空预检：标为「需排空」的发布，在开启维护模式（库内标记 `platform_scheduling.maintenance_modes`）之后检查未完成的事件发布与死信为 0，排不空的经隔离登记处理，否则中止部署 | ADR-0035 第 6 条 | 首次生产部署前 | 同上（接入部署剧本，one-ops） |
+| G-C4 | 契约如实：OpenAPI 的状态码（201 与 `Location`）、必填请求头（`If-Match`、412 / 428）、`ETag`、具名枚举、无无类型响应体、`info` 与运行时一致（扩展 `HttpContractIT`；G-A3、G-A4 并入）；dev 期生效的两条契约守护之一，另一条为 G-C5 | ADR-0035 第 2、8 条、§2.6 | H-1 合入即生效（H-1 排在 R-5 之后） | H-1 |
+| G-C5 | 事件负载与出站负载扁平：ID 为字符串 uuid，不出现 `{value: …}` 包装（dev 期生效的两条契约守护之一，另一条为 G-C4） | ADR-0035 第 2、5 条 | R-1b 合入即生效 | R-1b |
+| G-C6 | 弃用到期：定时检查到期未删的弃用项，发 P3 提醒并报调度会话（不让无关 PR 变红）；PR 中改动已弃用对象（删除除外）即失败 | ADR-0035 第 7 条 | 首次生产部署前 | one-1a-next-2 排定（初拟：契约演进守护） |
+| G-C7 | `reporting` 数据集契约：视图列名、类型与登记一致，破坏性变更按 ADR-0035 处理 | ADR-0035 | R1 | R1 工作单元 |
+| G-P1 | `limit` 上限只来自 kernel 一处常量，OpenAPI `maximum: 200`；禁止其他 `MAX_LIMIT` 类常量 | §2.6 A-3、GUIDING_PRINCIPLES §7a R-P2 | 1b 前 | one-1a-next-2 排定（初拟：HTTP 契约守护；与 G-X3 合并） |
+| G-P2 | 列表与批量用例的 SQL 语句数不随行数增长（计数的 DataSource 装饰器，默认预算 ≤ 5） | GUIDING_PRINCIPLES §7a R-P3 | 1b 前 | one-1a-next-2 排定（初拟：性能守护） |
+| G-P3 | 登记的查询路径在 `enable_seqscan = off` 下 `EXPLAIN` 走索引 | GUIDING_PRINCIPLES §7a、SESSION_PLAYBOOK §14.1 D19 | 1b 前 | 同上 |
+| G-P4 | 外部只读连接三种超时生效：对挂起端口的集成测试在预算内失败或降级 | SESSION_PLAYBOOK §14.3 I2 | 首次部署前 | 同上（与 G-I1、G-I3 同卡） |
+| G-P5 | 生产配置中连接池、语句超时、直方图桶、慢查询阈值存在且取值符合 R-P4–R-P6 | GUIDING_PRINCIPLES §7a | 首次部署前 | 同上 |
+| G-P6 | k6 压测：R-P1 各类接口达标（阶段出口） | GUIDING_PRINCIPLES §7a R-P1 | Phase 2 入口 | one-1a-next-2 排定（初拟：性能守护；安装 k6 前按 CLAUDE.md 请示） |
+| G-S1 | `scripts/ci/workflows_pinned.py`：工作流 `uses:` 一律固定 40 位 SHA；禁 `pull_request_target` | SUPPLY_CHAIN.md S6 | 首次部署前 | one-1a-next-2 排定（初拟：CI 供应链） |
+| G-S2 | osv-scanner：漏洞与许可证检查（并入已有作业，不加作业数） | SUPPLY_CHAIN.md S3、S4 | 首次部署前 | 同上 |
+| G-S3 | `pom.xml` 不声明自定义仓库，只用 Maven Central | SUPPLY_CHAIN.md S1 | 首次部署前 | 同上 |
+| G-S4 | 测试数据库镜像只在一处常量定义，带摘要 | SUPPLY_CHAIN.md S7 | 首次部署前 | 同上 |
+| G-S5 | 发布包含 SBOM，且 SBOM 写入签名声明 | SUPPLY_CHAIN.md S5 | 生产部署前 | 同上 |
+| G-S6 | runner 作业前钩子检查运行用户与凭据目录 | SUPPLY_CHAIN.md S6 | 待决（随 runner 专用用户的决定） | 同上 |
+| G-O1 | 日志扫描：`ERROR` 行必须以「ALERT P1\|P2\|P3 <子域>.<BC> 」开头 | GUIDING_PRINCIPLES §11 O-2 | 首次部署前 | one-1a-next-2 排定（初拟：可观测性） |
+| G-O2 | 日志参数不得是个人信息类方法的返回值；未知异常只记类名 | GUIDING_PRINCIPLES §11 O-3 | 首次部署前 | 同上 |
+| G-O3 | 集成测试断言每行日志有 correlationId，唯一约束冲突中的邮箱等值不落盘 | GUIDING_PRINCIPLES §11 O-1、O-3 | 首次部署前 | 同上 |
+| G-O4 | 生产配置暴露 Prometheus 端点、连接串含 `logServerErrorDetail=false`；部署后抓取到的业务指标数为 0 即失败 | GUIDING_PRINCIPLES §11 O-3、O-4 | 首次部署前 | 同上（部署后检查归 one-ops） |
+| G-O5 | 告警规则引用的指标在应用中存在 | GUIDING_PRINCIPLES §11 O-6 | 首次部署前 | 同上 |
+| G-O6 | 关联断开计数：事件发布时缺 correlationId 计数并告警，不静默新建 | GUIDING_PRINCIPLES §11 O-1 | 1b 前 | 同上 |
+| G-I1 | 外部连接只经集成层的连接工厂，工厂强制连接、查询、锁等待三种超时 | SESSION_PLAYBOOK §14.3 I2 | 首次部署前 | one-1a-next-2 排定（初拟：外部集成韧性） |
+| G-I2 | 集成登记册 `backend/architecture/integration-register.yaml` 与代码中的适配器一致 | SESSION_PLAYBOOK §14.3 | 首次部署前 | 同上 |
+| G-I3 | 用 `WAITFOR` 挂住的视图验证超时生效与降级 | SESSION_PLAYBOOK §14.3 I2、I7 | 首次部署前 | 同上 |
+| G-I4 | 用户路径冷却：连续失败 3 次后 60 秒内不再调用 | SESSION_PLAYBOOK §14.3 I6 | 1b 前 | 同上 |
+| G-I5 | 一次故障只记一次带堆栈的 `ERROR` | SESSION_PLAYBOOK §14.3 I10 | 首次部署前 | 同上 |
+| G-MG1 | `legacy_numbers` 形状：UUIDv7 主键、来源系统列、`uk(来源系统, 单据类型, 原编号)`、`migration_batch_id uuid NOT NULL`、只追加 | ADR-0033；ADR-0036（另行 PR） | 首次部署前 | R-1b |
+| G-MG6 | 批次术语唯一：代码与表结构中只出现「迁入批次」一种写法（R-1b 改名后给 `migration_batch` 加禁用写法 `import_batch` / `ImportBatch`） | 用户 2026-10-15 批次术语统一；ADR-0036（另行 PR） | 首次部署前 | R-1b |
+| G-D12 | 枚举 `CHECK` 已命名为 `ck_<表>_<列>`，取值集合与对应 Java 枚举一致（与 G-DDL8 同一测试） | §2.4、§2.4a 第 6 条 | 首次部署前 | R-2a |
+| G-DDL1 | 交易、主数据、参考、配置表在注册表登记 `business_key` 且有对应唯一约束；外键目标必须是主键 | §2.4a 第 1 条；DDL 审计（2026-10-15）守护 G1 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
+| G-DDL2 | 外键列有以该列开头的索引 | §2.4a 第 2 条；DDL 审计（2026-10-15）守护 G2 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
+| G-DDL3 | 没有重复或冗余索引（前缀相同、与唯一约束重复） | §2.4a 第 2 条；DDL 审计（2026-10-15）守护 G3 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
+| G-DDL4 | 查询路径登记且 `EXPLAIN` 走索引（与 G-P3 合并为一个测试；依赖 G-DDL12） | §2.4a 第 2 条、SESSION_PLAYBOOK §14.1 D19；DDL 审计（2026-10-15）守护 G4 | 1b 前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
+| G-DDL5 | 可空列注释写明「为空表示」；文本列有空串 CHECK；默认值只在技术默认白名单内 | §2.4a 第 3 条；DDL 审计（2026-10-15）守护 G5 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
+| G-DDL6 | `CASCADE` 登记、禁软删除标志列、物理删除只在白名单内 | §2.4a 第 4 条；DDL 审计（2026-10-15）守护 G6 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
+| G-DDL7 | `_code` 列有格式 CHECK；自由文本有长度上限；不区分大小写的唯一建在规范化值上 | §2.4a 第 5 条；DDL 审计（2026-10-15）守护 G7 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
+| G-DDL8 | 禁 `CREATE TYPE … AS ENUM`；枚举 CHECK 命名并与 Java 枚举一致（与 G-D12 同一测试） | §2.4a 第 6 条；DDL 审计（2026-10-15）守护 G8 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
+| G-DDL9 | `jsonb` 列已登记用途并有 `jsonb_typeof` CHECK | §2.4a 第 7 条；DDL 审计（2026-10-15）守护 G9 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
+| G-DDL10 | 长期保留或大表在注册表登记规模与分区决定 | §2.4a 第 8 条；DDL 审计（2026-10-15）守护 G10 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
+| G-DDL11 | `scripts/ci/migration_safety.py`：`CONCURRENTLY`、`lock_timeout` / `statement_timeout`、禁全表重写、外键与 CHECK 用 `NOT VALID`、先扩后缩、无无效索引 | §2.4a 第 9 条；DDL 审计（2026-10-15）守护 G11 | 首次部署前（C-3 删基线标记前合入） | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
+| G-DDL12 | 测试库排序规则为 C（与生产一致）；迁移后无无效索引；高频更新表的 fillfactor 有注释 | §2.4a 第 2、10 条；DDL 审计（2026-10-15）守护 G12 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
+| F15 | VI 色值以 sRGB 十六进制登记在 palette；`oklch` 必须落在 sRGB 色域内 | §4a U1 | D-8 首次 design-sync 前 | one-1a-next-2 排定（初拟：前端设计系统） |
+| F16 | 令牌配对的文字与非文字对比度达标 | §4a U2 | D-8 首次 design-sync 前 | 同上 |
+| F17 | `eslint-plugin-jsx-a11y` 规则 | §4a U3 | 1b 前 | 同上 |
+| F18 | 组件测试中跑 axe | §4a U3 | 1b 前 | 同上 |
+| F19 | 应用根部设置 antd `zhCN` 与 dayjs `zh-cn` | §4a U4 | 首次部署前 | 同上 |
+| F20 | `check-bundle-size.mjs`：gzip 体积超过预算即失败 | §4a U8 | 1b 前 | 同上 |
+| F21 | PC 与 H5 的语义组件契约类型一致（类型测试） | §4a U7 | 1b 前 | 同上 |
+| F22 | 查询视图三态结构检查 | §4a U5 | 1b 前 | 同上 |
+
+## 4a. 前端界面规则（用户 2026-10-15：对原则核对 B 的待决项答「全部按推荐 (Recommended)」）
+
+适用于 PC 与 H5。守护见上表 F15–F22。
+
+- **U1 品牌色与字体**：VI 色值按 sRGB 十六进制写入设计令牌的原始调色板，语义层只引用调色板：FOR 灰 `#595757`、CITIS 红 `#CF000E`（精确值，取代现有近似的 `oklch` 值，并同步设计令牌正本）。使用 `oklch` 时取值必须落在 sRGB 色域内。品牌字标用 SVG，不用字体渲染。Montserrat 等字体按 OFL 随包分发，字体文件在 1b 前入库。
+- **U2 对比度**：文字对比度 ≥ 4.5:1（大字 ≥ 3:1），非文字元素（图标、边框、焦点环）≥ 3:1，按令牌实际配对（文字色 × 所在背景）计算。三级文字色与待审批状态文字色加深到达标，其余配对保持。
+- **U3 无障碍**：全部操作键盘可达，焦点可见，弹层关闭后焦点回到触发处；错误提示 `role="alert"`，非打断的状态提示 `role="status"`（H5 同样）；只有图标的按钮带 `aria-label`。
+- **U4 语言与格式**：只做简体中文，不做多语言；antd 设 `zhCN`、dayjs 设 `zh-cn`；日期、时刻、金额、数量的格式化只经 core 的格式化函数。
+- **U5 加载、空、错误三态**：数据视图统一经查询视图组件呈现三态；5xx 错误显示可复制的「关联号」（即 correlationId，与 §2.6 A-9 同一个值），便于报障时对日志。
+- **U6 不做乐观更新**：单据、审批、金额相关的命令等服务端确认后再更新界面；只有无业务后果的界面偏好可乐观更新。
+- **U7 组件契约只定义一次**：语义组件（状态标签、金额、审批动作等）的契约只在 `shared/design-system` 定义一次，PC 与 H5 各自实现同一契约；core 只用 React 18 API。
+- **U8 包体积预算**（gzip）：PC 入口 ≤ 300 KB，单个路由 ≤ 150 KB，H5 入口 ≤ 200 KB；超出即 CI 失败，调整预算须在 PR 中写理由。
+
 ## 5. 对 agent 友好的约定
 
 - 每个模块根目录放 `AGENTS.md`（与 `package-info.java` 一致），写明：职责、拥有的 schema、对外的 api / events 清单、允许的依赖、相关规则 ID 范围。
@@ -347,7 +450,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | 17 | H5（Taro） | 目录、命名、接口客户端与 PC 同规则 | 无（守护模板只覆盖 PC） | ○ Phase 2 前为 H5 建同等 lint |
 | 18 | `reporting` 视图与 BI 列 | 视图名 `rpt_<主题>`，列名与词表 `snake` 一致 | 无 | ○ Phase 5 前补 |
 | 19 | 外部投递通道与防腐层 | 外部系统名统一（`wecom`、`seeyon`、`u8c`、`fenbeitong`），外部字段只在防腐层内出现 | G1（防腐层隔离） | ○ 补名称约定守护 |
-| 20 | 日志字段、追踪属性 | 结构化日志键 camelCase，业务键取词表 | 无 | ○ Phase 1a 可观测性接入时定 |
+| 20 | 日志字段、追踪属性 | 结构化日志键 camelCase，业务键取词表；字段集与追踪键见 GUIDING_PRINCIPLES §11 O-1 | G-O1、G-O3（待实现） | ○ |
 | 21 | Git 分支、提交、PR | 沿用老仓库约定（`feature/issue-{N}-…`、`type(scope): 中文`，scope 用子域 slug） | 老仓库 pr-hygiene | ○ 新仓库 CI 复用 |
 
 **本次统一时发现并更正的不一致**：

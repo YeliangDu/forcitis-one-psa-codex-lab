@@ -102,7 +102,6 @@
 | `rejected_state` | 已拒绝 | RejectedState | 来源对照的确认状态之一，不占自然键约束，不用于出站 |  |
 | `registration` | 登记 | Registration | 由人录入一条来源对照，等另一个人确认或拒绝 |  |
 | `supersede` | 取代 | Supersede | 已确认的后继对照从生效日起取代生效中的对照 |  |
-| `migration_batch` | 迁入批次 | MigrationBatch | 一次历史数据迁入运行；登记来源系统、对象类型、范围、状态、行数与来源 ID 摘要；批次挂在来源对照与原编号对照上，业务表不带批次列（ADR-0036 第 3 条） |  |
 | `evidence` | 取证 | Evidence | 只读核对老系统与 A8 生产数据（复刻老行为、迁入对账、新旧等价核对）；专用取证账号，每次登记一行（ADR-0037；数据库登录名 one_evidence_ro） |  |
 
 技术词 8 个，在 `common_words`。
@@ -215,3 +214,17 @@
 | `ui_calculation` | 计算 | Calculation | 按规则得出日期、时限、编号等的过程 |  |
 | `ui_outcome_result` | 结果 | OutcomeResult | 一次办理或一次计算得出的结论 |  |
 | `ui_advisory_note` | 加签建议 | AdvisoryNote | 加签人给出的参考意见，不算正式的办理结果 |  |
+
+## 历史数据迁入（`data-migration.yaml`）
+
+| id | zh | en | 定义 | 是否疑似方言 |
+|---|---|---|---|---|
+| `migration_batch` | 迁入批次 | MigrationBatch | 一次历史数据迁入运行；批次挂在来源对照与原编号对照上，业务表不带批次列 | 「导入批次」`import_batch` 为另一种写法，R-1b 归并后列入禁用写法 |
+
+迁入的其余用语（拒收、核对、历史期间、迁入标记等）随 ADR-0036（另行 PR）登记。
+
+契约演进用语（`contract-evolution.yaml`，ADR-0035）：`maintenance_mode` 维护模式、`event_quarantine` 隔离登记、`deprecation_register` 弃用登记。
+
+通用词另增 `batch`、`count`（批量命令后缀与计数端点，NAMING_STANDARD §2.6 A-3、A-6）。
+
+前端界面用语（`frontend-ui.yaml`）另增：`correlation_id` 关联号 / CorrelationId（归属 `kernel`）——一次请求及其引发的事件与投递共用的追踪编号；出错时界面显示可复制的关联号（NAMING_STANDARD §4a U5）。

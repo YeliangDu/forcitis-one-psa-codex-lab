@@ -9,6 +9,17 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/hooks/postcompact_context.sh"
+          }
+        ]
+      }
     ]
   }
 }

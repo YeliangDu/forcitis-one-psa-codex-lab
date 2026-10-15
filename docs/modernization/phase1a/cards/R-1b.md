@@ -55,3 +55,15 @@
 
 ## 10. 报告去向
 - 向 one-1a-next-2 报告，抄 one-coordinator
+
+## 2026-10-15 修订（one-1a-next-2）
+
+本卡改按 P0–P6 拆分子 PR（one-coordinator 同意），各子 PR 的范围、前置、执行 / 复审模型与拆分图 C1–C11 的处理见 `phase1a/NEXT_BATCH_PLAN.md` 第 7.2 节。§1 的 ①–④ 与 ADR-0033:210 的三段拆法作废；§3 至 §9 的要求逐个子 PR 适用，每个子 PR 附预期表结构 diff，OpenAPI 与前端生成物随子 PR 提交。以下补 #129 规则条文核对带来的验收点（不改上文）：
+
+- **G-A1**：路径参数与查询参数里的 ID 也是字符串；前端生成的 `validators.ts` 不得再把 ID 定义为数字。P2、P3b、P4 各自处理，P5 收尾。
+- **G-C5**：事件与出站负载扁平，不出现 `{value: …}`（P1）。契约如实修正（201、`If-Match`、`ETag`、具名枚举、`info`）不在本卡，归新卡 H-1。
+- **`legacy_numbers`（G-MG1 / G-MG6，P3a）**：只追加；具名唯一约束（含来源系统）；来源系统列加 CHECK；`document_id` 改 uuid；`import_batch` 改为 `migration_batch_id uuid NOT NULL`，不建外键（跨 schema），列注释引 ADR-0036；删除提议术语 `import_batch`，并在 `migration_batch` 的 `forbidden` 列出 `import_batch`、`ImportBatch`、「导入批次」。§7 预期表结构 diff 相应补上只追加约束与具名唯一约束。
+- **来源系统取值**按 ADR-0033:99（组织源、老系统、核算系统）定名并登记术语；kernel 已有的 `SourceSystem`（事件来源）不得复用，新词用 `ExternalSource`。
+- **「本人」判定清单补入**（C4）：工时单本人检查（提交、读取、取消、撤回）、`SessionCurrentUser` 用用户 ID 查员工法人、撤回时发起人的比较；P1、P2 各加反向集成测试（员工 ID 与用户 ID 取不同值）。
+- **系统操作的 `actorId`**（C5，P2）：复用信封已有的 `actorType`，不新增 `actorKind`；opus 复审裁定。
+- **老系统人员、部门对照的一次性导入**（P6）：读取明细须先经用户逐阶段批准，PR 只放计数与差异条数。
