@@ -47,7 +47,7 @@ runner 程序会在 GitHub 发布新版本后自动更新自己；需要手动�
 
 ## SQL Server 集成测试（profile legacy-it）
 
-`*MssqlIT` 只在 `-Plegacy-it` 下编译和运行（ADR-0037 守护第 5 组）。`relevant_change.py` 另输出 `legacy_it`：改到 `platform/integration`、`platform/approval/infrastructure/legacy` 的源码与测试、`acceptance/platform/integration`、`*MssqlIT` 直接引用的类与文件（`TestImages.java`、`kernel/WecomUserId.java`、`SEEYON_VIEWS.sql` 等，自检扫描 `*MssqlIT.java` 的 import 与相对路径，漏列即失败）、`backend/architecture/` 的 `test-images.txt` 与 `seeyon-view-columns.yaml`、`backend/pom.xml`、B-5 交接包的 `.sql`、`scripts/ci/legacy_it.sh`、`ci.yml` 与 `nightly-legacy-it.yml` 时，backend 作业末尾多跑 `scripts/ci/legacy_it.sh`（超时 30 分钟）。push 到 main 与前一次推送比较，比较不了时照跑；因 `ci.yml` 的并发组会取消同一分支上未完成的运行，连续合并时中间一次可能漏跑，由 PR 门禁与每夜全量兜底。
+`*MssqlIT` 只在 `-Plegacy-it` 下编译和运行（ADR-0037 守护第 5 组）。`relevant_change.py` 另输出 `legacy_it`：改到 `platform/integration`、`platform/approval/infrastructure/legacy` 的源码与测试、`acceptance/platform/integration`、`*MssqlIT` 直接引用的类与文件（`TestImages.java`、`kernel/WecomUserId.java`、`SEEYON_VIEWS.sql` 等，自检扫描 `*MssqlIT.java` 的 import 与相对路径，漏列即失败）、`backend/architecture/` 的 `test-images.txt` 与 `external-read-registry.yaml`、`backend/pom.xml`、B-5 交接包的 `.sql`、`scripts/ci/legacy_it.sh`、`ci.yml` 与 `nightly-legacy-it.yml` 时，backend 作业末尾多跑 `scripts/ci/legacy_it.sh`（超时 30 分钟）。push 到 main 与前一次推送比较，比较不了时照跑；因 `ci.yml` 的并发组会取消同一分支上未完成的运行，连续合并时中间一次可能漏跑，由 PR 门禁与每夜全量兜底。
 
 只跑 `*MssqlIT` 与 ADR 原文的 `verify -Plegacy-it` 等价：该 profile 只比默认构建多编译并运行 `*MssqlIT`，其余测试与同一作业里的默认全量运行相同，不必重跑。
 

@@ -69,7 +69,7 @@
 
 **CS-2.20 ID 值对象输出用 `value()`**（新增；R-1a 复审（PR #125 正文）H-1）
 - 类型化 ID（`UserId`、`OrgUnitId`、`SyncRunId` 等 `@ValueObject` record）写到接口响应、事件负载、日志键、游标、审计明细、SQL 参数时，一律取 `id.value()`（需要文本时 `id.value().toString()` 或 `String.valueOf(id.value())`），**不得对 ID 对象本身调用 `String.valueOf(id)` / `id.toString()` / 字符串拼接**：record 的 `toString()` 是 `OrgUnitId[value=…]`，换实现（long → UUID）时会静默改变对外形状。
-- 响应 record 的 ID 字段类型优先直接用 ID 的值类型（由 OpenAPI 生成器声明格式），而不是自己转字符串。
+- 响应 record 的 ID 字段类型优先直接用 ID 的值类型（由 OpenAPI 生成器声明格式），而不是自己转字符串。契约以 springdoc 实际输出为准，版本升级走 ADR；错误响应为 RFC 9457 problem details（用户 2026-10-15 采纳，ADR-0041，FRAMEWORKS §9（intent 195827））。
 - 守护（待实现：G-C1）。现状：`organization/workforce/web/*Response.java` 中有 `String.valueOf(view.orgUnitId())` 一类写法，须按 R-1 一并核对。
 
 **CS-2.21 不靠 ID 的顺序表达业务顺序**（新增；R-1a 复审（PR #125 正文）H-2）
@@ -101,7 +101,7 @@
 
 **CS-2.25 事务边界**（汇总）：`@Transactional` 只在 application 用例上；一个用例一个聚合（CS-2.3）；事务内不调外部系统、不发 HTTP、不跑批量计算，外部调用走发件箱与可靠投递（GUIDING_PRINCIPLES §7）；业务编号在本用例事务内取号（NAMING_STANDARD §3）。守护：G11、`SingleAggregateGuardTest`；事务内外部调用靠复审。
 
-**CS-2.26 时间只经注入 `Clock`**（汇总）：业务代码不调用 `now()`、`Clock.system*`、`System.currentTimeMillis`；domain 不持有 `Clock`，时刻与业务日由 application 传入；业务日按 `kernel.BusinessZone`；SQL 字符串与迁移不读数据库时钟（`now()`、`current_timestamp`、时钟类 `DEFAULT`），时刻由应用显式写入（NAMING_STANDARD G25、§2.4a 第 3 条；R-4）。守护：`TimeSourceGuardTest`、`EventBusinessDateGuardTest`；迁移文件扫描随 R-4 实现。
+**CS-2.26 时间只经注入 `Clock`**（汇总）：业务代码不调用 `now()`、`Clock.system*`、`System.currentTimeMillis`；domain 不持有 `Clock`，时刻与业务日由 application 传入；业务日按 `kernel.BusinessZone`；SQL 字符串与迁移不读数据库时钟（`now()`、`current_timestamp`、时钟类 `DEFAULT`），时刻由应用显式写入（NAMING_STANDARD G25、§2.4a 第 3 条；R-4）。守护：`TimeSourceGuardTest`、`EventBusinessDateGuardTest`；迁移文件扫描随 R-4 实现。例外：Spring Session 框架表（会话表）的过期比较走 `identity.infrastructure.persistence.SessionStoreClock`，因框架无时钟注入点；随 C1 自写会话仓库撤销；守护 `TimeSourceGuardTest`。
 
 **CS-2.27 金额只经 `Money`**（原则；K-1 金额内核进行中，实现以 K-1 为准）：金额总是「数值 + 币种」，kernel 以外不出现裸 `BigDecimal` 金额字段；不用 `double` / `float` 表示金额或比率；舍入口径集中在金额内核一处，领域代码不自行 `setScale` / `divide` / 指定 `RoundingMode`（K-1 守护）；拆分与分摊守恒（各份之和等于原额）且确定；跨币种运算拒绝；接口上金额为十进制字符串加币种（G-M5）。守护：G17、G24；K-1 新守护随 K-1 交付。数量同理用 `Hours` 等值对象（G23）。
 

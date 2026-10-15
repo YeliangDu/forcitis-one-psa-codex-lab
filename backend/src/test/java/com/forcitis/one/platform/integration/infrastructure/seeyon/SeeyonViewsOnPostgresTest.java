@@ -64,11 +64,49 @@ class SeeyonViewsOnPostgresTest {
                     ORG_UNIT_PATH varchar(64), POST_ID bigint, SUPERVISOR_MEMBER_ID bigint, WE_COM_ID varchar(64), IS_INTERNAL int,
                     LOGIN_NAME varchar(64), ENTERPRISE_EMAIL varchar(128), GENDER varchar(8), FEE_EARNER_ENUM_ID varchar(32))
                 """).update();
+        admin.sql("drop schema if exists dbo cascade").update();
+        admin.sql("create schema dbo").update();
+        admin.sql("create table dbo.ORG_UNIT (ID bigint primary key, PATH varchar(64), TYPE varchar(32))").update();
     }
 
+    /** Top-level paths are Account, the rest Department, as in A8. */
     private void unit(long id, String path, Integer deleted, Integer internal, Integer enabled, String category, String delivery) {
         admin.sql("insert into forcitis_one.v_org_unit values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
                 .params(id, "C" + id, "Unit " + id, 1, path, deleted, internal, enabled, category, delivery).update();
+        admin.sql("insert into dbo.ORG_UNIT values (?, ?, ?)").params(id, path, path.length() == 8 ? "Account" : "Department").update();
+    }
+
+    @Test
+    @DisplayName("R-1b-0 TYPE comes from dbo.ORG_UNIT by primary key: an Account below the root, an illegal TYPE or a missing base row rejects the whole read")
+    void unitTypeIsReadFromTheBaseTableAndChecked() {
+        unit(1, "00000001", 0, 1, 1, null, null);
+        unit(2, "000000010001", 0, 1, 1, null, null);
+        assertThat(source.readSnapshot().units()).hasSize(2);
+
+        admin.sql("update dbo.ORG_UNIT set TYPE = 'Account' where ID = 2").update();
+        assertThatThrownBy(source::readSnapshot).isInstanceOf(ExternalSourceBrokenException.class).hasMessageContaining("below the sync root are Account");
+
+        admin.sql("update dbo.ORG_UNIT set TYPE = 'department' where ID = 2").update();
+        assertThatThrownBy(source::readSnapshot).isInstanceOf(ExternalSourceBrokenException.class).hasMessageContaining("TYPE");
+
+        admin.sql("delete from dbo.ORG_UNIT where ID = 2").update();
+        assertThatThrownBy(source::readSnapshot).as("a view row without its base row is not dropped silently")
+                .isInstanceOf(ExternalSourceBrokenException.class).hasMessageContaining("TYPE");
+    }
+
+    @Test
+    @DisplayName("R-1b-0 the base table is a subset check: missing TYPE or a missing table refuses, an extra column is accepted")
+    void startupCheckTreatsBaseTablesAsSubset() {
+        seedValidData();
+        admin.sql("alter table dbo.ORG_UNIT add column EXTRA_COLUMN int").update();
+        assertThat(new SeeyonStartupCheck(inspector(), MAPPING).problems()).isEmpty();
+
+        admin.sql("alter table dbo.ORG_UNIT drop column TYPE").update();
+        assertThat(new SeeyonStartupCheck(inspector(), MAPPING).problems())
+                .anyMatch(p -> p.contains("dbo.ORG_UNIT") && p.contains("lacks registered columns") && p.contains("TYPE"));
+
+        admin.sql("drop table dbo.ORG_UNIT").update();
+        assertThat(new SeeyonStartupCheck(inspector(), MAPPING).problems()).anyMatch(p -> p.contains("dbo.ORG_UNIT is missing"));
     }
 
     private void member(long id, Long unit, String path, String code, Integer internal, String login, String wecom) {
@@ -244,6 +282,11 @@ class SeeyonViewsOnPostgresTest {
             @Override
             public Map<String, Set<String>> viewColumns() {
                 return real.viewColumns();
+            }
+
+            @Override
+            public Map<String, Set<String>> baseTableColumns() {
+                return real.baseTableColumns();
             }
 
             @Override

@@ -58,7 +58,7 @@ Then  不作为来源；计数并告警（G-1），不静默跳过
 
 敏感性与最小列：未结束的离职申请意味着「某人将要离职」尚未公开，属于敏感信息。为从源头避免，新系统读取的只读视图**在 A8 库内只返回正常结束且同意的申请**，未结束的申请不离开 A8；列只取流程发起人 A8 人员 ID（`start_member_id`）、员工编号（`field0012`，仅用于核对）、预计离职日期、流程结束时间；视图在库内按「finishedflag = 1 且摘要 STATE = 3」过滤；不含姓名文本、离职原因、约谈内容。
 
-范围：两个属性目前没有具体消费方——1b 的离职者在途待办与待调整权限都由离职事件触发，工时截止需要的是实际日期，两者都给不了。因此 1b 只把来源与口径写清，在出现具体消费方之前不建列、不建视图；离职观察时间多半可由同步批次与事件审计推出，届时先评估能否不另存。实现时须同步：`forcitis_one` schema 只读视图（one-ops 建）、`backend/architecture/seeyon-view-columns.yaml` 列白名单、应用启动自检的视图清单（`phase1a/SECURITY_INVARIANTS.md` I-1，含单对象 / 列白名单校验，否则应用拒绝启动）。执行路径：视图 SQL 与白名单在同一 PR 定稿合并后，经 one-coordinator 派 one-ops，用 B-5 工具（`handoff/B-5-dba/tools`）apply → verify → 以 `one_a8_views_ro` 真实登录核对能读、越权被拒，并授 SELECT 给 `one_a8_views_ro`。
+范围：两个属性目前没有具体消费方——1b 的离职者在途待办与待调整权限都由离职事件触发，工时截止需要的是实际日期，两者都给不了。因此 1b 只把来源与口径写清，在出现具体消费方之前不建列、不建视图；离职观察时间多半可由同步批次与事件审计推出，届时先评估能否不另存。实现时须同步：外部读取登记 `backend/architecture/external-read-registry.yaml`（按运行时用途登记，读 A8 基表一律写 `dbo.` 限定名）与应用启动检查（运行时用途的基表行做子集检查，缺列即拒绝启动；ADR-0037 第 6 项第 1 条）。`forcitis_one` 视图已冻结（ADR-0037 第 6 项），新列直接读基表，不加进视图，不需要 one-ops 改视图或重新授权。
 
 用语：提议术语见 `backend/glossary/proposed/organization_workforce.yaml`（离职申请 `separation_request`、预计离职日期 `expected_separation_date`、离职观察时间 `separation_observed_at`）；单说「离职日期」/ `separation_date` 有歧义，列为禁用写法。
 

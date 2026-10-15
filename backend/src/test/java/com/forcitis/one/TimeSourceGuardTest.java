@@ -1,5 +1,6 @@
 package com.forcitis.one;
 
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,6 +30,8 @@ import org.junit.jupiter.api.Test;
  */
 class TimeSourceGuardTest {
     static final String CLOCK_BUILDER = "com.forcitis.one.kernel.KernelConfiguration";
+    /** Spring Session creates its own table and gives no clock injection point, so expiry must be compared on the framework's own clock; drop it when the C1 session repository is ours. */
+    static final String SESSION_STORE_CLOCK = "com.forcitis.one.platform.identity.infrastructure.persistence.SessionStoreClock";
     static final Path MAIN = Path.of("src/main/java");
     static final Path SQL_EXCEPTIONS = Path.of("architecture/sql-database-clock-exceptions.txt");
 
@@ -43,13 +46,13 @@ class TimeSourceGuardTest {
 
     /** KernelConfiguration builds the one system Clock that everything else is handed. */
     static ArchRule noAmbientTime() {
-        return noClasses().that().doNotHaveFullyQualifiedName(CLOCK_BUILDER)
+        return noClasses().that().doNotHaveFullyQualifiedName(CLOCK_BUILDER).and().doNotHaveFullyQualifiedName(SESSION_STORE_CLOCK)
                 .should().callMethodWhere(ASKS_THE_MACHINE)
                 .because("inject java.time.Clock; an instant or a business day read off the machine cannot be controlled in a test or tied to the business zone");
     }
 
     @Test
-    @DisplayName("no class in domain, application, infrastructure, web or anywhere else asks the machine for the time, except the one that builds the Clock")
+    @DisplayName("no class in domain, application, infrastructure, web or anywhere else asks the machine for the time, except the one that builds the Clock and the session store clock")
     void productionCodeNeverAsksTheMachine() {
         noAmbientTime().check(ArchitectureRulesTest.CLASSES);
     }
@@ -70,11 +73,47 @@ class TimeSourceGuardTest {
     }
 
     @Test
-    @DisplayName("the one registered exception is the class that builds the Clock")
-    void theClockBuilderIsExempt() {
-        JavaClasses kernel = new ClassFileImporter().importPackages("com.forcitis.one.kernel");
+    @DisplayName("the registered exceptions exist among the scanned classes and are clean under the rule (a stale exception fails here)")
+    void theExemptClassesAreClean() {
+        JavaClasses exempt = new ClassFileImporter().importPackages("com.forcitis.one.kernel", SESSION_STORE_CLOCK.substring(0, SESSION_STORE_CLOCK.lastIndexOf('.')));
 
-        assertThat(noAmbientTime().evaluate(kernel).hasViolation()).isFalse();
+        assertThat(exempt.stream().map(c -> c.getName())).contains(CLOCK_BUILDER, SESSION_STORE_CLOCK);
+        assertThat(noAmbientTime().evaluate(exempt).hasViolation()).isFalse();
+    }
+
+    @Test
+    @DisplayName("injection: a class that merely carries the name SessionStoreClock in another package is still caught")
+    void aNamesakeIsNotExempt() {
+        JavaClasses namesake = new ClassFileImporter().importPackages("com.forcitis.one.fixture.infrastructure.stray");
+
+        List<String> details = noAmbientTime().evaluate(namesake).getFailureReport().getDetails();
+
+        assertThat(details).anyMatch(d -> d.contains("stray.SessionStoreClock") && d.contains("currentTimeMillis"));
+    }
+
+    static final String SESSION_STORE_USER = "com.forcitis.one.platform.identity.infrastructure.persistence.JdbcExpiredSessions";
+
+    static ArchRule onlyTheExpiredSessionsUseTheStoreClock(String clock, String user) {
+        return classes().that().haveFullyQualifiedName(clock)
+                .should().onlyHaveDependentClassesThat().haveFullyQualifiedName(user)
+                .because("the session store clock is the framework's clock; business instants come from the injected Clock");
+    }
+
+    @Test
+    @DisplayName("only JdbcExpiredSessions depends on SessionStoreClock")
+    void onlyTheExpiredSessionsUseTheStoreClock() {
+        onlyTheExpiredSessionsUseTheStoreClock(SESSION_STORE_CLOCK, SESSION_STORE_USER).check(ArchitectureRulesTest.CLASSES);
+    }
+
+    @Test
+    @DisplayName("injection: any other dependent of a session store clock is caught")
+    void aStrayUserIsCaught() {
+        JavaClasses stray = new ClassFileImporter().importPackages("com.forcitis.one.fixture.infrastructure.stray");
+
+        List<String> details = onlyTheExpiredSessionsUseTheStoreClock("com.forcitis.one.fixture.infrastructure.stray.SessionStoreClock", SESSION_STORE_USER)
+                .evaluate(stray).getFailureReport().getDetails();
+
+        assertThat(details).anyMatch(d -> d.contains("StrayClockUser"));
     }
 
     static final Pattern STRING_LITERAL = Pattern.compile("\"\"\"(.*?)\"\"\"|\"((?:[^\"\\\\\\n]|\\\\.)*)\"", Pattern.DOTALL);
