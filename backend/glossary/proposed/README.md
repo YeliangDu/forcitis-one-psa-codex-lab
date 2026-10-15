@@ -31,7 +31,9 @@ cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）�
 
 另有错误码 12 个（kind 为 `error_code`）、技术词 23 个（`common_words`），不在表中。
 
-## platform.integration（`data-migration.yaml`）
+## `data-migration.yaml`
+
+涉及模块：`accounting.period`、`operations.facts`、`platform.integration`、`platform.migration`。
 
 迁入的其余用语（拒收、核对、历史期间、迁入标记等）随 ADR-0036（另行 PR）登记。
 
@@ -40,6 +42,32 @@ cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）�
 | id | zh | en | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|
 | `migration_batch` | 迁入批次 | MigrationBatch | 一次历史数据迁入运行；登记来源系统、对象类型、范围、状态、行数与来源 ID 摘要；批次挂在来源对照与原编号对照上，业务表不带批次列 | 「导入批次」已禁用；「import_batch」已禁用；「ImportBatch」已禁用 | 用户 2026-10-15 定批次术语唯一写法；platform.numbering 的 import_batch 已在 R-1b P3a（#139）改为 migration_batch_id，同一提交加入 forbidden 并删去 platform-integration.yaml 中的重复条目 |
+| `migration_orchestration` | 迁入编排 | MigrationOrchestration | 按依赖顺序调用集成层与各目标 BC 迁入用例、推进迁入批次的独立模块（暂定 platform.migration）；只依赖它们的 api，不被任何模块依赖（ADR-0036 第 1 条） |  | 模块名在实现 PR 定 |
+| `migration_reject` | 迁入拒收 | MigrationReject | 迁入时被拒绝的一条来源行，带批次、来源对象、来源 ID 与原因代码；处置经应用内带权限的操作录入，批次提交前须逐条处置（ADR-0036 第 7 条） |  |  |
+| `migration_reject_reason__unmappable_value` | 取值无法映射 | UnmappableValue | 迁入拒收原因代码：来源取值在映射表中没有对应的自有取值（ADR-0036 第 7 条） |  |  |
+| `migration_reject_reason__required_missing` | 必填缺失 | RequiredMissing | 迁入拒收原因代码：目标必填项在来源中为空（ADR-0036 第 7 条） |  |  |
+| `migration_reject_reason__number_conflict` | 编号冲突 | NumberConflict | 迁入拒收原因代码：原编号与已有编号在（单据类型, 编号）上冲突（ADR-0036 第 7 条） |  |  |
+| `migration_reject_reason__original_missing` | 原行缺失 | OriginalMissing | 迁入拒收原因代码：冲销行的原行不在本批次也不在目标库中（ADR-0036 第 7 条） |  |  |
+| `migration_reject_reason__legal_entity_out_of_scope` | 法人不在范围 | LegalEntityOutOfScope | 迁入拒收原因代码：来源行的法人不在新系统的法人范围内（ADR-0036 第 7 条） |  |  |
+| `migration_reject_reason__trial_commit_failed` | 试提交失败 | TrialCommitFailed | 迁入拒收原因代码：试提交中领域校验或数据库约束不通过（ADR-0036 第 7 条） |  |  |
+| `migration_reject_disposition__rerun_after_fix` | 修正后重跑 | RerunAfterFix | 迁入拒收处置取值：修正映射或来源后由新的暂存重跑（ADR-0036 第 7 条） |  |  |
+| `migration_reject_disposition__excluded` | 确认不迁 | Excluded | 迁入拒收处置取值：确认该行不迁入；权责事实须财务负责人确认，其他由业务管理员确认（ADR-0036 第 7 条） |  |  |
+| `migration_tie_out` | 迁入核对 | MigrationTieOut | 一个迁入批次按期间 × 法人 × 对象类型比对来源侧聚合与暂存的行数、金额合计、来源 ID 摘要与按来源单号的行数金额的结果；零差异或经财务签字后批次才能提交（ADR-0036 第 8 条） |  | 不用 Reconciliation：已批准术语「经营勾稽」Reconciliation 指跨口径对账 |
+| `period_status__historical` | 历史期间 | Historical | 期间状态的一个取值，终态：FORCITIS one 首个业务期间之前的 (期间, 法人)，永不接受业务过账，只接受迁入过账通道；不逐期关账、不发关账事件（ADR-0036 第 6 条） |  | 会计类用语，待财务确认（ADR-0018；ADR-0036 U-3） |
+| `migration_period_reservation` | 迁入占用 | MigrationPeriodReservation | 迁入批次对 (期间, 法人) 的占用登记，由 accounting.period 自持；有未解除占用的期间不得关账，批次转为提交中时加锁确认期间状态（ADR-0036 第 6 条） |  |  |
+| `migration_marker` | 迁入标记 | MigrationMarker | 事实行上区分原生与迁入的标记；只在事实行，单据表不带；accounting.ledger 不为迁入标记的事实生成分录（ADR-0036 第 5、6 条） |  | 列名在实现 PR 中按 NAMING_STANDARD 定 |
+| `migration_posting_channel` | 迁入过账通道 | MigrationPostingChannel | operations.facts 中只供迁入用例使用的过账入口：期间可为历史期间或开放期间，不发布事件（ADR-0036 第 6 条） |  |  |
+| `migration_staging` | 迁入暂存 | MigrationStaging | 来源行转换为目标形状后存放的集成层暂存表（Flyway 按对象类型建固定表，带批次列、来源键、摘要与核对所需来源取值）；试提交与核对都针对它，核对通过后才提交目标库（ADR-0036 第 7 条） |  | 暂存只有一份，不另存来源快照 |
+| `trial_commit` | 试提交 | TrialCommit | 用与正式提交同一套代码把整批写入目标库后回滚事务，以跑全部领域校验与数据库约束（ADR-0036 第 7 条） |  |  |
+| `migration_batch_status__staging` | 暂存中 | Staging | 迁入批次状态取值：正在抽取、转换与暂存，可试提交（ADR-0036 第 3 条） |  |  |
+| `migration_batch_status__awaiting_tie_out` | 待核对 | AwaitingTieOut | 迁入批次状态取值：暂存与试提交完成，等待核对通过或签字（ADR-0036 第 3 条） |  |  |
+| `migration_batch_status__committing` | 提交中 | Committing | 迁入批次状态取值：核对已通过，正在分块提交目标库（ADR-0036 第 3 条） |  |  |
+| `migration_batch_status__effective` | 已生效 | Effective | 迁入批次状态取值：提交后复核一致；可转为已冲销（ADR-0036 第 3 条） |  |  |
+| `migration_batch_status__reversed` | 已冲销 | Reversed | 迁入批次状态取值：提交阶段失败或生效后发现错误，事实行已整批冲销，终态；重跑为新批次（ADR-0036 第 3 条） |  |  |
+| `migration_batch_status__abandoned` | 已放弃 | Abandoned | 迁入批次状态取值：提交前放弃，目标库未受影响，终态（ADR-0036 第 3 条） |  |  |
+| `source_reference_status` | 对照状态 | SourceReferenceStatus | 来源对照行的状态：当前 CURRENT / 已冲销 REVERSED；只有事实类对照可为已冲销，冲销与关闭旧对照同一事务（ADR-0036 第 3、9 条） |  | 与确认状态 confirmation_status 是两列；自然键只约束已确认且当前的行；取值「已冲销」REVERSED 与迁入批次状态的「已冲销」同词同义，不另登记 |
+| `source_reference_status__current` | 当前 | Current | 对照状态取值：该对照仍指向有效的自有行（ADR-0036 第 3 条） |  |  |
+| `source_row_digest` | 来源行摘要 | SourceRowDigest | 来源行规范化后的 SHA-256，存于来源对照与暂存行，用于重跑时判断同一来源行是否变化（ADR-0036 第 3、7 条） |  |  |
 
 另有技术词 2 个（`common_words`），不在表中。
 
