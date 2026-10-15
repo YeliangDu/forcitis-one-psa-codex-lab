@@ -222,6 +222,7 @@ def self_test():
     with open(CHECKLIST, encoding="utf-8") as handle:
         text = handle.read()
     assert len(table_rows(text, "D")) >= EXPECTED_EXIT_CONDITIONS, f"{CHECKLIST} section D no longer parses"
+    assert "D-10" in table_rows(text, "D"), f"{CHECKLIST} section D lacks D-10 (blocker 090 before prod)"
     assert all(row in table_rows(text, "C") for row in PROD_PREREQUISITES), f"{CHECKLIST} section C lacks {PROD_PREREQUISITES}"
     approvals(".")
     print("deploy_gate.py self-test passed")

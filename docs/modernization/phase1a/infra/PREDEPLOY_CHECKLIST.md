@@ -14,12 +14,12 @@
 |---|---|---|---|---|---|---|
 | A-1 | `one.forcitis.com` 的 DNS 解析与证书由谁办理、用哪种证书 | 阿里云 SSL 证书服务（与现有证书统一管理）；DNS 指向新 ECS 公网地址 | dev 前 | INFRA_RUNBOOK D-3、E-9 | [A-1](DECISIONS_A.md#a-1-oneforcitiscom-的-dns-与证书谁办哪种证书) | ✅ 改选 B：Let's Encrypt + 自动续期（用户 2026-10-15「同意」） |
 | A-2 | A8 库与老系统库的只读账号（ADR-0037 全库只读）与视图由谁建（对方 DBA 是谁） | 指定一名 DBA，按 `handoff/B-5-dba/` 执行；同一人负责 6a 前的 `mirror_*` 只写账号 | dev 前 | D-4、ADR-0025 第 5 条 | [A-2](DECISIONS_A.md#a-2-只读视图与账号由谁建dba) | ✅ 由 one-ops 执行（用户「需要我做的，都让ops 会话自己做」）；B-5 已完成 |
-| A-3 | 超级管理员人选（至少 2 名）与应急账号持有人（至少 2 个） | 平台负责人 + 一名运维；应急账号绑定超管持有人 | dev 前 | ADR-0026 / 0027、intent 156 | [A-3](DECISIONS_A.md#a-3-超级管理员持有人-2-名与应急账号持有人2-个账号) | 🟨 选项已定，人选待定 |
-| A-4 | 组织数据管理员、安全审计员、流程管理员的人选 | 组织数据管理员 1–2 名（HR 或行政）；安全审计员由内控 / 财务；流程管理员 1 名 | dev 前 | ADR-0026 D-11、ADR-0027、D-1a-61 | [A-4](DECISIONS_A.md#a-4-组织数据管理员安全审计员流程管理员人选) | 🟨 选项已定，人选待定 |
-| A-5 | 告警接收：P1 企业微信群与短信接收人、P2 群、值班安排 | 新建「FORCITIS one 运维」群；P1 短信给值班人与平台负责人 | dev 前 | 平台约定方案 §4（告警通道）、E-13 | [A-5](DECISIONS_A.md#a-5-告警接收) | 🟨 选项已定，人选待定 |
+| A-3 | 超级管理员人选（至少 2 名）与应急账号持有人（至少 2 个） | 平台负责人 + 一名运维；应急账号绑定超管持有人 | dev 前 | ADR-0026 / 0027、intent 156 | [A-3](DECISIONS_A.md#a-3-超级管理员持有人-2-名与应急账号持有人2-个账号) | 🟨 dev：用户本人兼任（非生产单人运维模式，ADR-0030；intent 2026-10-15-215052），正式人选生产前定；原状态：🟨 选项已定，人选待定 |
+| A-4 | 组织数据管理员、安全审计员、流程管理员的人选 | 组织数据管理员 1–2 名（HR 或行政）；安全审计员由内控 / 财务；流程管理员 1 名 | dev 前 | ADR-0026 D-11、ADR-0027、D-1a-61 | [A-4](DECISIONS_A.md#a-4-组织数据管理员安全审计员流程管理员人选) | 🟨 dev：用户本人兼任（非生产单人运维模式，ADR-0030；intent 2026-10-15-215052），正式人选生产前定；原状态：🟨 选项已定，人选待定 |
+| A-5 | 告警接收：P1 企业微信群与短信接收人、P2 群、值班安排 | 新建「FORCITIS one 运维」群；P1 短信给值班人与平台负责人 | dev 前 | 平台约定方案 §4（告警通道）、E-13 | [A-5](DECISIONS_A.md#a-5-告警接收) | 🟨 dev：用户本人兼任（非生产单人运维模式，ADR-0030；intent 2026-10-15-215052），正式人选生产前定；原状态：🟨 选项已定，人选待定 |
 | A-6 | 新 ECS 的云安全中心付费授权是否加购（现为免费版） | 生产前加购 1 台 | 生产前 | 用户「暂时用免费版」 | [A-6](DECISIONS_A.md#a-6-新-ecs-的云安全中心付费授权) | ✅ 已决定 |
 | A-7 | dev 库在上线前迁出共用实例还是停用 | 生产切换前停用 dev 库，另在开发机或临时实例做开发 | 生产前 | ADR-0025 第 2 条 | [A-7](DECISIONS_A.md#a-7-dev-库上线前迁出还是停用) | ✅ 已决定 |
-| A-8 | 企业微信消息收件人白名单：dev 白名单名单；生产 `WECOM_RESTRICT_RECIPIENTS=false` 的启用时点 | dev 只发给项目组成员；生产切换当日关闭白名单 | dev 前 / 生产前 | 1a 第二波报告 | [A-8](DECISIONS_A.md#a-8-企业微信收件人白名单) | 🟨 选项已定，人选待定 |
+| A-8 | 企业微信消息收件人白名单：dev 白名单名单；生产 `WECOM_RESTRICT_RECIPIENTS=false` 的启用时点 | dev 只发给项目组成员；生产切换当日关闭白名单 | dev 前 / 生产前 | 1a 第二波报告 | [A-8](DECISIONS_A.md#a-8-企业微信收件人白名单) | 🟨 dev：用户本人兼任（非生产单人运维模式，ADR-0030；intent 2026-10-15-215052），正式人选生产前定；原状态：🟨 选项已定，人选待定 |
 
 核对中新增的待决事项（H5 路径、服务账号口令到期、RDS SSL）列在 `DECISIONS_A.md` 末尾 N-1..N-3，由 one-coordinator 决定是否并入本表。
 
@@ -29,7 +29,7 @@
 |---|---|---|---|---|---|
 | B-1 | 在本仓库运行 `/design-sync`：设计 token 与正本对齐、正本备份到本地（入口条件），以及首次同步（出口条件） | dev 前 / 出口前 | brief Phase 1a 入口与出口 | —（用户在会话中运行） | ⬜ |
 | B-2 | 在企业微信后台新开自建应用（卡片按钮回调、扫码登录回调、可信域名） | dev 前 | SECURITY_INVARIANTS I-8（SEC-119）、D-1a-138、E-15 | [B-2](handoff/B-2-wecom-app.md) | 🟨 应用已建，可信域名已验证（2026-10-15 外部核验 `WW_verify_*.txt` 返回 200）；凭据已写入 ECS `/etc/forcitis-one/one.env`（0640 root:forcitis），ECS 上 `gettoken` 与 `agent/get` errcode=0（session-log one-1a-infra-b2）；待：其他出口发消息被拒（可信 IP）、登录冒烟与可见范围（dev 部署后）、本机凭据副本清理与 KMS |
-| B-3 | 由 A8 管理员登记新系统的致远验票回跳地址（不替换老 SSO） | dev 前 | E-16、D-1a-40 | [B-3](handoff/B-3-a8-sso-return.md) | 🟨 |
+| B-3 | 由 A8 管理员登记新系统的致远验票回跳地址（不替换老 SSO） | dev 前 | E-16、D-1a-40 | [B-3](handoff/B-3-a8-sso-return.md) | ⏸ dev 暂缓：dev 只用企业微信登录，`FORCITIS_PLATFORM_IDENTITY_SSO_ENABLED=false`（2026-10-16 已在 ECS 改，t-hz07057zxlib280）；要测致远登录前再做（intent 2026-10-15-215052）；原状态：🟨 |
 | B-4 | DNS 解析 `one.forcitis.com`，证书申请 | dev 前 | A-1 | [B-4](handoff/B-4-dns-tls.md) | ✅ 解析与证书（2026-10-15 外部核验：A 记录 47.114.56.157，Let's Encrypt 至 2027-01-12，HTTP 301 到 HTTPS）；自动续期 `certbot-renew.timer` 每日两次、deploy hook 先 `nginx -t` 再 reload，`renew --dry-run --run-deploy-hooks` 通过（session-log one-1a-infra-b4）；待：ICP 备案主体核验、证书到期告警（C-7）；ICP 与公安联网备案：用户「已经完成所有备案」（2026-10-15）✅ |
 | B-5 | 对方 DBA 建 A8 与老系统只读账号（ADR-0037：库级 SELECT、库级 DENY 写 / DDL / EXECUTE / REFERENCES，`read-all/*_apply.sql`）与视图（按 `SEEYON_VIEWS.sql`、`LEGACY_INBOX_VIEW.sql`、`LEGACY_ORG_NAMES_VIEW.sql`，视图冻结） | dev 前 | A-2、INFRA_RUNBOOK §4 | [B-5](handoff/B-5-dba/README.md) | ✅ 2026-10-15：A8 视图与 `one_a8_views_ro`、老系统 `psa_one_legacy_ro` 与 `one_legacy_names_ro` 已建；ADR-0037 后三个运行时账号改为库级只读（#135），另建取证账号 `one_evidence_ro`（#143）。连接为 `encrypt=true;trustServerCertificate=true`（加密、不校验证书），dev 可用；SQL Server 证书校验列入生产前维护窗口 |
 | B-6 | 组织数据管理员在 A8 补齐「在职但无企业微信 ID」清单至 0（确无者逐个登记） | 出口前 | D-1a-35（出口条件） | [B-6](handoff/B-6-wecom-id-coverage.md) | 🟨 上线前预估（2026-10-15T01:33:35+08:00，经 B-5 视图、`SeeyonViewSql` 同一范围）：范围内 1,254 人、在职 304 人、在职无企业微信 ID **0**、在职共用企业微信 ID 0；以 dev 同步后的问题清单为准 |
@@ -60,7 +60,7 @@
 | C-15 | 删除迁移基线开放标记 `backend/architecture/migration-baseline-open`（单独 PR，不夹带迁移改动），此后迁移只追加；dev 期间保持开放，基线改动后 dev 库与服务器发布状态一起重置（见 C-16）。`deploy_gate.py` 对 prod 拦截、对 dev 只告警 | 生产前 | SESSION_PLAYBOOK §12.2 第 4 条；用户 2026-10-15（ADR-0038（已采纳，部分取代 ADR-0033 迁移方案第 5 条等）；intent `2026-10-15-124901-one-coordinator-部署前开发编排三项都采纳-加一个.md`） | — | ⬜ |
 | C-16 | dev 库重建剧本 `runbooks/dev-db-rebuild.md`（one-ops）：基线开放期内基线迁移文件改过后，删库重建 dev 库并重置服务器发布状态（安装器比对两版 `migrations.txt`，迁移文件内容变了即拒绝安装，只删库不够；重置后不得回退到重置前的版本）；含 Flowable 首次安装项与首次部署前检查 | 基线改动后的第二次 dev 部署前 | ADR-0038（已采纳，部分取代 ADR-0033 迁移方案第 5 条等）；PAR-1 复审 H-1 | — | ⬜ |
 | C-17 | ECS `/etc/forcitis-one/one.env` 补 `FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_ROOT_PATH=00000001`（同步根单位的层级路径；没有默认值，启用视图读取而缺此项应用启动失败，INFRA_RUNBOOK §5）。2026-10-15 只读核对（t-hz0704aw6gtu0ao）该键缺失 | dev 首次部署前 | 值出处：规则卡 `rules/IDENTITY_ORG_RULES.md` 的 `A8_DEPT_ROOT_PATH = "00000001"`；R-1b-0 取证（PR #193）按此口径得到范围内 1254 人 | — | ⬜ |
-| C-19 | dev 企业微信收件人白名单（A-8）只含用户本人与已定管理员；阻塞项 090（ADR-0026 1a 数据范围机制）完成并在 dev 验证之前**不得加入其他人**，每次加人前先核对 090 已删除。理由：090 不再拦 dev 首次部署（intent 2026-10-15-214650），数据范围未完成时，任何能登录的人都可能看到范围外的数据 | dev 首次部署前，及每次改白名单前 | `status/blockers/090-*`；A-8 | — | ⬜ |
+| C-19 | 090（ADR-0026 1a 数据范围机制）完成并在 dev 验证之前，dev 只对用户本人开放（intent 2026-10-15-214650、2026-10-15-215052），同时收窄三处：(a) **登录入口**：dev 企业微信自建应用（B-2）的可见范围只含用户本人——在企业微信管理后台「应用管理 → 该自建应用 → 可见范围」只保留用户本人，删去其余成员与部门（需用户本人在后台操作，one-ops 执行时报 one-coordinator 转用户）；核对：用应用凭据调用 `agent/get` 回读 `allow_userinfos` 只有 1 人、`allow_partys` 与 `allow_tags` 为空，只记人数不记 userid；(b) **角色**：本系统除用户本人外不授予任何角色——核对：运维只读查询 `platform_identity` 中角色持有关系，持有人只有 1 人（只记人数）；(c) **消息**：`WECOM_RESTRICT_RECIPIENTS=true`，`WECOM_RECIPIENT_ALLOWLIST` 只含用户本人 1 条（只回读条目数）。090 删除之前三处都不得加人；每次加人前先核对 090 已删除 | dev 首次部署前（a、c）、首次部署后（b），及每次改可见范围、授角色、改白名单前 | `status/blockers/090-*`；A-8、B-2、B-12、C-5 | — | ⬜ |
 
 ## D. 部署后验证（Phase 1a 出口条件）
 
