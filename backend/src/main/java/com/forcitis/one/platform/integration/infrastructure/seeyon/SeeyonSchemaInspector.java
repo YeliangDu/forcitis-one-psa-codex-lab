@@ -1,6 +1,5 @@
 package com.forcitis.one.platform.integration.infrastructure.seeyon;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -15,6 +14,4 @@ interface SeeyonSchemaInspector {
     int countDeliveryUnitsMarked(String enumId);
 
     int countFeeEarnersMarked(String enumId);
-
-    List<String> excessivePermissions();
 }

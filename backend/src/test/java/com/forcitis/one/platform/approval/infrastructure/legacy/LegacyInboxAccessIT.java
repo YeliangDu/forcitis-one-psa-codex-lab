@@ -1,22 +1,28 @@
 package com.forcitis.one.platform.approval.infrastructure.legacy;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.ApprovalIntegrationSupport;
+import com.forcitis.one.platform.approval.ApprovalIntegrationSupport.RecordingExternalConnections;
 import com.forcitis.one.platform.approval.domain.LegacyInbox;
 import com.zaxxer.hikari.HikariDataSource;
+import java.lang.reflect.Method;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
+@ExtendWith(OutputCaptureExtension.class)
 class LegacyInboxAccessIT extends ApprovalIntegrationSupport {
 
     @Autowired
@@ -29,42 +35,46 @@ class LegacyInboxAccessIT extends ApprovalIntegrationSupport {
     @Autowired
     LegacyInbox legacyInbox;
 
+    @Autowired
+    RecordingExternalConnections connections;
+
     static final String VIEW = "legacy_fixture.v_psa_one_legacy_todo";
 
     @Test
-    @DisplayName("the legacy DataSource is qualified legacy-approval, read-only, and the application's own DataSource stays the default")
-    void legacyDataSourceIsSeparateAndReadOnly() throws Exception {
+    @DisplayName("the legacy DataSource is qualified legacy-approval, opened through the integration connection port for an interactive caller, and the application's own DataSource stays the default")
+    void legacyDataSourceIsSeparate() {
         assertThat(legacy).isNotSameAs(primary);
-        assertThat(legacy).isInstanceOfSatisfying(HikariDataSource.class, pool -> {
-            assertThat(pool.getPoolName()).isEqualTo("legacy-approval");
-            assertThat(pool.isReadOnly()).isTrue();
-            assertThat(pool.getUsername()).isEqualTo("legacy_ro");
-        });
         assertThat(primary).isInstanceOfSatisfying(HikariDataSource.class, pool -> assertThat(pool.getPoolName()).isNotEqualTo("legacy-approval"));
-        try (var connection = legacy.getConnection()) {
-            assertThat(connection.isReadOnly()).isTrue();
-        }
+        assertThat(connections.opened).containsExactly("legacy-approval INTERACTIVE");
     }
 
     @Test
-    @DisplayName("I-1 the read-only account may SELECT the inbox view and nothing else; writing and reading other tables fail")
-    void accountCanOnlyReadTheView() {
+    @DisplayName("ADR-0037 item 1: the read-only stand-in account reads the to-do view; writing through it fails")
+    void accountReadsButCannotWrite() {
         JdbcClient asLegacy = JdbcClient.create(legacy);
         assertThat(asLegacy.sql("select count(*) from " + VIEW).query(Long.class).single()).isGreaterThanOrEqualTo(0L);
-        assertThatThrownBy(() -> asLegacy.sql("select count(*) from legacy_fixture.todo_rows").query(Long.class).single())
-                .isInstanceOf(DataAccessException.class).rootCause().hasMessageContaining("permission denied");
         assertThatThrownBy(() -> asLegacy.sql("delete from " + VIEW).update()).isInstanceOf(DataAccessException.class);
-        assertThatThrownBy(() -> asLegacy.sql("select count(*) from platform_approval.approval_requests").query(Long.class).single())
+        assertThatThrownBy(() -> asLegacy.sql("insert into legacy_fixture.todo_rows (task_id) values ('x')").update())
                 .isInstanceOf(DataAccessException.class);
     }
 
     @Test
-    @DisplayName("I-1 start-up proof: the guard accepts the view-only account and refuses an account with wider grants")
-    void guardAcceptsViewOnlyAndRefusesWiderGrants() {
-        assertThatCode(() -> new LegacyAccessGuard(JdbcClient.create(legacy), VIEW).verify()).doesNotThrowAnyException();
-        // the application's own account owns many tables: such an account must never be configured as the legacy account
-        assertThatThrownBy(() -> new LegacyAccessGuard(JdbcClient.create(primary), VIEW).verify())
-                .isInstanceOf(IllegalStateException.class).hasMessageContaining("I-1");
+    @DisplayName("ADR37-1 approval keeps no check of its own that could swallow a failure: the login is checked by the integration connection factory")
+    void noApprovalSideCheck() {
+        assertThat(LegacyInboxConfiguration.class.getDeclaredMethods()).extracting(Method::getReturnType)
+                .doesNotContain(SmartInitializingSingleton.class);
+    }
+
+    @Test
+    @DisplayName("ADR-0037 item 3.5 a failed read is logged with error number and SQLState only, never the database message")
+    void failedReadLogsNoMessage(CapturedOutput output) {
+        LegacyInbox.LegacyTodos result = new JdbcLegacyInbox(JdbcClient.create(legacy), "legacy_fixture.no_such_view_marker_7731", null)
+                .readTodos(new UserId(1));
+
+        assertThat(result.available()).isFalse();
+        assertThat(output.getAll().lines().filter(line -> line.contains("no_such_view_marker_7731")))
+                .as("the log line of the failed read").isNotEmpty()
+                .allSatisfy(line -> assertThat(line).contains("SQLState").doesNotContain("does not exist").doesNotContain("SELECT"));
     }
 
     @Test

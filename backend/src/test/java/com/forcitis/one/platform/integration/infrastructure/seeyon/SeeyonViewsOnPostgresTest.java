@@ -46,7 +46,7 @@ class SeeyonViewsOnPostgresTest {
     @BeforeAll
     static void connect() {
         admin = JdbcClient.create(new DriverManagerDataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword()));
-        source = new SeeyonOrgSource(admin, admin, MAPPING);
+        source = new SeeyonOrgSource(admin, admin, MAPPING, () -> { });
     }
 
     @BeforeEach
@@ -171,7 +171,7 @@ class SeeyonViewsOnPostgresTest {
         assertThat(relationships).filteredOn(r -> r.personId().value() == 804).singleElement()
                 .satisfies(r -> assertThat(r.personDeleted()).isTrue());
 
-        SeeyonOrgSource otherInstance = new SeeyonOrgSource(admin, admin, new SeeyonMapping(1, 2, "x", "y", "00000001"));
+        SeeyonOrgSource otherInstance = new SeeyonOrgSource(admin, admin, new SeeyonMapping(1, 2, "x", "y", "00000001"), () -> { });
         assertThat(otherInstance.readSnapshot().relationships()).isEmpty();
     }
 
@@ -238,7 +238,7 @@ class SeeyonViewsOnPostgresTest {
         assertThat(source.findStaffByLoginName("nobody")).isEmpty();
     }
 
-    private static SeeyonSchemaInspector inspector(List<String> excessive) {
+    private static SeeyonSchemaInspector inspector() {
         JdbcSeeyonSchemaInspector real = new JdbcSeeyonSchemaInspector(admin);
         return new SeeyonSchemaInspector() {
             @Override
@@ -265,11 +265,6 @@ class SeeyonViewsOnPostgresTest {
             public int countFeeEarnersMarked(String enumId) {
                 return real.countFeeEarnersMarked(enumId);
             }
-
-            @Override
-            public List<String> excessivePermissions() {
-                return excessive;
-            }
         };
     }
 
@@ -285,8 +280,8 @@ class SeeyonViewsOnPostgresTest {
     void startupCheckPassesWhenColumnsEqualTheWhitelist() {
         seedValidData();
 
-        assertThat(new SeeyonStartupCheck(inspector(List.of()), MAPPING).problems()).isEmpty();
-        new SeeyonStartupCheck(inspector(List.of()), MAPPING).afterSingletonsInstantiated();
+        assertThat(new SeeyonStartupCheck(inspector(), MAPPING).problems()).isEmpty();
+        new SeeyonStartupCheck(inspector(), MAPPING).afterSingletonsInstantiated();
     }
 
     @Test
@@ -295,7 +290,7 @@ class SeeyonViewsOnPostgresTest {
         seedValidData();
         admin.sql("alter table forcitis_one.v_org_member add column BIRTHDAY date").update();
 
-        SeeyonStartupCheck check = new SeeyonStartupCheck(inspector(List.of()), MAPPING);
+        SeeyonStartupCheck check = new SeeyonStartupCheck(inspector(), MAPPING);
 
         assertThat(check.problems()).anyMatch(p -> p.contains("V_ORG_MEMBER") && p.contains("outside the whitelist") && p.contains("BIRTHDAY"));
         assertThatThrownBy(check::afterSingletonsInstantiated).isInstanceOf(IllegalStateException.class).hasMessageContaining("BIRTHDAY");
@@ -309,7 +304,7 @@ class SeeyonViewsOnPostgresTest {
         admin.sql("drop table forcitis_one.v_org_post").update();
         admin.sql("create table forcitis_one.contract_values (ID bigint)").update();
 
-        List<String> problems = new SeeyonStartupCheck(inspector(List.of()), MAPPING).problems();
+        List<String> problems = new SeeyonStartupCheck(inspector(), MAPPING).problems();
 
         assertThat(problems).anyMatch(p -> p.contains("V_ORG_UNIT") && p.contains("lacks") && p.contains("PATH"));
         assertThat(problems).anyMatch(p -> p.contains("V_ORG_POST") && p.contains("is missing"));
@@ -321,13 +316,13 @@ class SeeyonViewsOnPostgresTest {
     void startupCheckVerifiesTheConfiguredIds() {
         seedValidData();
 
-        List<String> problems = new SeeyonStartupCheck(inspector(List.of()), new SeeyonMapping(1, 2, "NO-SUCH-DELIVERY", "NO-SUCH-FEE", "00000001")).problems();
+        List<String> problems = new SeeyonStartupCheck(inspector(), new SeeyonMapping(1, 2, "NO-SUCH-DELIVERY", "NO-SUCH-FEE", "00000001")).problems();
 
         assertThat(problems).anyMatch(p -> p.contains("configured head type 1"));
         assertThat(problems).anyMatch(p -> p.contains("regional receivables manager type 2"));
         assertThat(problems).anyMatch(p -> p.contains("delivery-unit 'yes' enum id"));
         assertThat(problems).anyMatch(p -> p.contains("fee-earner 'yes' enum id"));
-        assertThat(new SeeyonStartupCheck(inspector(List.of()), new SeeyonMapping(0, 0, "", null, "")).problems())
+        assertThat(new SeeyonStartupCheck(inspector(), new SeeyonMapping(0, 0, "", null, "")).problems())
                 .anyMatch(p -> p.contains("head-relationship-type-id is not configured"))
                 .anyMatch(p -> p.contains("delivery-unit-yes-enum-id is not configured"));
     }
@@ -337,21 +332,12 @@ class SeeyonViewsOnPostgresTest {
     void startupCheckVerifiesTheRootPath() {
         seedValidData();
 
-        assertThat(new SeeyonStartupCheck(inspector(List.of()), new SeeyonMapping(MAPPING.headRelationshipTypeId(),
+        assertThat(new SeeyonStartupCheck(inspector(), new SeeyonMapping(MAPPING.headRelationshipTypeId(),
                 MAPPING.regionalReceivablesManagerRelationshipTypeId(), "YES-DELIVERY", "YES-FEE", "0000009")).problems())
                 .anyMatch(p -> p.contains("root-path must be digits"));
-        assertThat(new SeeyonStartupCheck(inspector(List.of()), new SeeyonMapping(MAPPING.headRelationshipTypeId(),
+        assertThat(new SeeyonStartupCheck(inspector(), new SeeyonMapping(MAPPING.headRelationshipTypeId(),
                 MAPPING.regionalReceivablesManagerRelationshipTypeId(), "YES-DELIVERY", "YES-FEE", "00000009")).problems())
                 .anyMatch(p -> p.contains("no org unit sits at the configured root path 00000009"));
-    }
-
-    @Test
-    @DisplayName("§9a an account with write or database-wide read permissions stops the start-up")
-    void startupCheckRefusesAnAccountThatCanWrite() {
-        seedValidData();
-
-        assertThat(new SeeyonStartupCheck(inspector(List.of("INSERT", "SELECT")), MAPPING).problems())
-                .anyMatch(p -> p.contains("must not have") && p.contains("INSERT"));
     }
 
     private static Map<Long, SourceOrgUnit> byId(List<SourceOrgUnit> units) {

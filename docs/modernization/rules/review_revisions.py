@@ -7,7 +7,8 @@
 
 校验：结构（见 structure_problems）；原字段、条目与已有修订相对比对基线不得被改写或删除。
 比对基线由调用方给出：--base <ref>（CI：pull_request 用 origin/$GITHUB_BASE_REF，push 用 github.event.before）；
-不给时取 origin/main 与 HEAD 的合并基点。CI 中（GITHUB_ACTIONS 已设或显式 --base）取不到基线即失败，本地只告警。
+不给时取 origin/main 与 HEAD 的合并基点（无合并基点时回退为 origin/main 本身并告警）。--base 不接受空值。
+CI 中（GITHUB_ACTIONS 为 true 或显式 --base）取不到基线即失败，本地只告警。
 
 用法：
   review_revisions.py [--base <ref>]   校验 RULE_REVIEWS.json（build_all.py --check 与 CI 运行）
@@ -176,9 +177,11 @@ def comparison_point(base_dir, base):
     if parents.returncode != 0:
         raise NoBaseline("无法读取 HEAD")
     if len(parents.stdout.split()) > 2:
-        return sha
+        return sha, None
     merged = git(base_dir, "merge-base", sha, "HEAD")
-    return merged.stdout.strip() if merged.returncode == 0 and merged.stdout.strip() else sha
+    if merged.returncode == 0 and merged.stdout.strip():
+        return merged.stdout.strip(), None
+    return sha, f"{base} 与 HEAD 无合并基点（浅克隆？），回退为 {base} 本身作基线，可能误报"
 
 
 def check(base_dir, base=None, strict=False, now=None):
@@ -189,7 +192,9 @@ def check(base_dir, base=None, strict=False, now=None):
         return [str(e)], warnings, info
     problems += structure_problems(reviews, base_dir, now)
     try:
-        sha = comparison_point(base_dir, base or DEFAULT_BASE)
+        sha, fallback = comparison_point(base_dir, base or DEFAULT_BASE)
+        if fallback:
+            warnings.append(fallback)
         shown = git(base_dir, "show", f"{sha}:./{REVIEWS_FILE}")
         label = f"{base or DEFAULT_BASE}（比对提交 {sha[:10]}）"
         if shown.returncode != 0:
@@ -414,6 +419,17 @@ def baseline_cases(original, revision, now, has, clean_env):
         problems, warnings, info = check_in(root, "no-such-ref", strict=True)
         assert has(problems, "no-such-ref"), "an explicit missing base fails"
 
+        run("checkout", "-q", "--orphan", "unrelated")
+        commit("unrelated root")
+        run("update-ref", "refs/remotes/origin/main", run("rev-parse", "HEAD"))
+        run("checkout", "-q", "main")
+        problems, warnings, info = check_in(root)
+        assert problems == [] and has(warnings, "无合并基点"), "a base without a common ancestor falls back and says so"
+
+        empty = subprocess.run([sys.executable, "-B", os.path.abspath(__file__), "--base", ""], capture_output=True, text=True,
+                               env={**clean_env, "GITHUB_ACTIONS": "false"})
+        assert empty.returncode == 2, "an empty --base is refused, not read as no base"
+
         main_tip = run("rev-parse", "HEAD")
         run("update-ref", "refs/remotes/origin/main", main_tip)
         run("checkout", "-q", "-b", "feature")
@@ -471,12 +487,12 @@ def main():
     if args == ["--self-test"]:
         return self_test()
     base = None
-    if len(args) == 2 and args[0] == "--base":
+    if len(args) == 2 and args[0] == "--base" and args[1].strip():
         base = args[1]
     elif args:
         print(__doc__, file=sys.stderr)
         return 2
-    strict = bool(base) or bool(os.environ.get("GITHUB_ACTIONS"))
+    strict = bool(base) or os.environ.get("GITHUB_ACTIONS") == "true"
     problems, warnings, info = check(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), base, strict)
     for line in warnings:
         print(f"警告：{line}", file=sys.stderr)

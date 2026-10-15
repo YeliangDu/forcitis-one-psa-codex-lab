@@ -23,6 +23,7 @@ class LegacyOrgNamesOnPostgresTest {
 
     static final String VIEW = "legacy_stand_in.v_one_legacy_org_short_name";
     static final String READER = "legacy_names_reader";
+    static final Runnable NO_RECHECK = () -> { };
 
     @Container
     static PostgreSQLContainer postgres = TestPostgres.container();
@@ -46,23 +47,33 @@ class LegacyOrgNamesOnPostgresTest {
         admin.sql("create schema legacy_stand_in").update();
         admin.sql("create table legacy_stand_in.v_one_legacy_org_short_name (id bigint, short_name varchar(32))").update();
         admin.sql("insert into legacy_stand_in.v_one_legacy_org_short_name values (1, ' HQ '), (2, null), (3, '')").update();
-        admin.sql("create table legacy_stand_in.token_table (id bigint, token varchar(32))").update();
         admin.sql("drop role if exists " + READER).update();
     }
 
     @Test
     @DisplayName("the short names are read with one statement over the two columns of the dedicated view")
     void shortNamesAreRead() {
-        var names = new LegacyOrgNames(admin, VIEW).readShortNames();
+        var names = new LegacyOrgNames(admin, VIEW, NO_RECHECK).readShortNames();
 
         assertThat(names).containsEntry(new SourceUnitId(1), "HQ").containsEntry(new SourceUnitId(2), null).containsEntry(new SourceUnitId(3), null);
     }
 
     @Test
-    @DisplayName("an unreachable view is an unavailable source, naming the failure class only")
+    @DisplayName("an unreachable view is an unavailable source, naming the failure type, error number and SQLState only (ADR-0037 item 3.5)")
     void unreadableView() {
-        assertThatThrownBy(() -> new LegacyOrgNames(admin, "legacy_stand_in.no_such_view").readShortNames())
-                .isInstanceOf(ExternalSystemUnavailableException.class).hasMessageStartingWith("old system short names cannot be read");
+        assertThatThrownBy(() -> new LegacyOrgNames(admin, "legacy_stand_in.no_such_view", NO_RECHECK).readShortNames())
+                .isInstanceOf(ExternalSystemUnavailableException.class).hasMessageStartingWith("old system short names cannot be read").hasNoCause();
+    }
+
+    @Test
+    @DisplayName("ADR37-1 the login is re-checked before every read; a failed re-check reads nothing and answers 'unavailable'")
+    void failedRecheckReadsNothing() {
+        JdbcClient reader = readerClient();
+        admin.sql("revoke select on " + VIEW + " from " + READER).update();
+
+        assertThatThrownBy(() -> new LegacyOrgNames(reader, VIEW, () -> {
+            throw new ExternalSystemUnavailableException("the external connection integration-legacy is stopped: (b)");
+        }).readShortNames()).isInstanceOf(ExternalSystemUnavailableException.class).hasMessageContaining("(b)");
     }
 
     private JdbcClient readerClient() {
@@ -71,21 +82,5 @@ class LegacyOrgNamesOnPostgresTest {
         admin.sql("grant usage on schema legacy_stand_in to " + READER).update();
         admin.sql("grant select on " + VIEW + " to " + READER).update();
         return JdbcClient.create(new DriverManagerDataSource(postgres.getJdbcUrl(), READER, password));
-    }
-
-    @Test
-    @DisplayName("I-1 the single-object guard passes for an account that can read only the view")
-    void guardPasses() {
-        new SingleObjectGuard(readerClient(), VIEW).verify();
-    }
-
-    @Test
-    @DisplayName("I-1 the single-object guard refuses an account that can also read another object (a token table, say)")
-    void guardRefusesMore() {
-        JdbcClient reader = readerClient();
-        admin.sql("grant select on legacy_stand_in.token_table to " + READER).update();
-
-        assertThatThrownBy(() -> new SingleObjectGuard(reader, VIEW).verify()).isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("legacy_stand_in.token_table");
     }
 }
