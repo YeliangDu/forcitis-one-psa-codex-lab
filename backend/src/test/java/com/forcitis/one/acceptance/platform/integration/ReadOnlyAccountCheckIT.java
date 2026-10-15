@@ -82,7 +82,7 @@ class ReadOnlyAccountCheckIT {
     }
 
     enum ReadOnlyConnection {
-        A8("a8world", "a8_ro", ReadOnlyBaselineFixture.VIEW_SCHEMA, "dbo.member_rows"),
+        A8("a8world", "a8_ro", ReadOnlyBaselineFixture.VIEW_SCHEMA, "dbo.ORG_MEMBER"),
         LEGACY_APPROVAL("legacyworld", "todo_ro", "dbo", "dbo.todo_rows"),
         LEGACY_NAMES("legacyworld", "names_ro", "dbo", "dbo.short_name_rows");
 
@@ -270,16 +270,16 @@ class ReadOnlyAccountCheckIT {
             assertThat(a8.findStaffByLoginName(LOGIN_NAME)).as("the adapter reads before the grant changes").hasSize(1);
 
             grantWriteBehindTheDatabaseDeny(account);
-            long readsBefore = baseTableReads("a8world", "org_unit_rows", "relationship_rows", "post_rows", "member_rows");
+            long readsBefore = baseTableReads("a8world", "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER");
             SyncResult result = runSync(context.getBean(SyncOrgSnapshot.class));
 
             assertThat(result.status()).as(result.note()).isEqualTo(SyncRunStatus.FAILED);
             assertThat(output.getAll()).as("the failed re-check raises an ALERT naming item (b)").containsPattern("ALERT[^\\n]*[(（]b[)）]");
-            assertThat(baseTableReads("a8world", "org_unit_rows", "relationship_rows", "post_rows", "member_rows"))
+            assertThat(baseTableReads("a8world", "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER"))
                     .as("nothing is read from A8 once the re-check has failed").isEqualTo(readsBefore);
             assertThatThrownBy(() -> a8.findStaffByLoginName(LOGIN_NAME)).as("the stopped adapter answers 'unavailable'")
                     .isInstanceOf(ExternalSystemUnavailableException.class);
-            assertThat(baseTableReads("a8world", "org_unit_rows", "relationship_rows", "post_rows", "member_rows")).isEqualTo(readsBefore);
+            assertThat(baseTableReads("a8world", "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER")).isEqualTo(readsBefore);
         }
     }
 
@@ -468,22 +468,22 @@ class ReadOnlyAccountCheckIT {
 
     private static void createA8World() throws SQLException {
         run("a8world", "CREATE SCHEMA " + ReadOnlyBaselineFixture.VIEW_SCHEMA + " AUTHORIZATION dbo",
-                "CREATE TABLE dbo.org_unit_rows (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, PATH nvarchar(200), IS_DELETED bit, "
-                        + "IS_INTERNAL bit, IS_ENABLE bit, CATEGORY nvarchar(16), DELIVERY_FLAG_ENUM_ID nvarchar(32))",
+                "CREATE TABLE dbo.ORG_UNIT (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, PATH nvarchar(200), IS_DELETED bit, "
+                        + "IS_INTERNAL bit, IS_ENABLE bit, CATEGORY nvarchar(16), DELIVERY_FLAG_ENUM_ID nvarchar(32), TYPE nvarchar(32) NULL)",
                 "CREATE TABLE dbo.relationship_rows (SOURCE_MEMBER_ID bigint, ORG_UNIT_ID bigint, RELATIONSHIP_TYPE_ID bigint, MEMBER_IS_DELETED bit)",
                 "CREATE TABLE dbo.post_rows (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, STATUS int, IS_DELETED bit)",
-                "CREATE TABLE dbo.member_rows (ID bigint PRIMARY KEY, NAME nvarchar(64), CODE nvarchar(32), ORG_UNIT_ID bigint, ORG_UNIT_PATH nvarchar(200), "
+                "CREATE TABLE dbo.ORG_MEMBER (ID bigint PRIMARY KEY, NAME nvarchar(64), CODE nvarchar(32), ORG_UNIT_ID bigint, ORG_UNIT_PATH nvarchar(200), "
                         + "POST_ID bigint, SUPERVISOR_MEMBER_ID bigint, WE_COM_ID nvarchar(64), IS_INTERNAL bit, LOGIN_NAME nvarchar(64), "
-                        + "ENTERPRISE_EMAIL nvarchar(128), GENDER nvarchar(8), FEE_EARNER_ENUM_ID nvarchar(32))",
-                "INSERT dbo.org_unit_rows VALUES (1, 'C1', N'Root', 1, '00000001', 0, 1, 1, N'总部', NULL), (2, 'C2', N'Delivery', 2, '000000010001', 0, 1, 1, N'区域', '9001')",
+                        + "ENTERPRISE_EMAIL nvarchar(128), GENDER nvarchar(8), FEE_EARNER_ENUM_ID nvarchar(32), STATE smallint NULL, IS_DELETED smallint NULL, IS_ENABLE smallint NULL)",
+                "INSERT dbo.ORG_UNIT VALUES (1, 'C1', N'Root', 1, '00000001', 0, 1, 1, N'总部', NULL, N'Account'), (2, 'C2', N'Delivery', 2, '000000010001', 0, 1, 1, N'区域', '9001', N'Department')",
                 "INSERT dbo.post_rows VALUES (100, 'P100', N'Consultant', 1, 0, 0)",
-                "INSERT dbo.member_rows VALUES (8001, N'Head', 'E8001', 2, '000000010001', 100, NULL, 'wx-8001', 1, '" + LOGIN_NAME + "', 'head@example.test', N'女', '9002')",
+                "INSERT dbo.ORG_MEMBER VALUES (8001, N'Head', 'E8001', 2, '000000010001', 100, NULL, 'wx-8001', 1, '" + LOGIN_NAME + "', 'head@example.test', N'女', '9002', 1, 0, 1)",
                 "INSERT dbo.relationship_rows VALUES (8001, 2, " + HEAD_TYPE + ", 0), (8001, 2, " + MANAGER_TYPE + ", 0)",
-                "CREATE VIEW forcitis_one.v_org_unit AS SELECT ID, CODE, NAME, SORT_ID, PATH, IS_DELETED, IS_INTERNAL, IS_ENABLE, CATEGORY, DELIVERY_FLAG_ENUM_ID FROM dbo.org_unit_rows",
+                "CREATE VIEW forcitis_one.v_org_unit AS SELECT ID, CODE, NAME, SORT_ID, PATH, IS_DELETED, IS_INTERNAL, IS_ENABLE, CATEGORY, DELIVERY_FLAG_ENUM_ID FROM dbo.ORG_UNIT",
                 "CREATE VIEW forcitis_one.v_org_relationship AS SELECT SOURCE_MEMBER_ID, ORG_UNIT_ID, RELATIONSHIP_TYPE_ID, MEMBER_IS_DELETED FROM dbo.relationship_rows",
                 "CREATE VIEW forcitis_one.v_org_post AS SELECT ID, CODE, NAME, SORT_ID, STATUS, IS_DELETED FROM dbo.post_rows",
                 "CREATE VIEW forcitis_one.v_org_member AS SELECT ID, NAME, CODE, ORG_UNIT_ID, ORG_UNIT_PATH, POST_ID, SUPERVISOR_MEMBER_ID, WE_COM_ID, IS_INTERNAL, "
-                        + "LOGIN_NAME, ENTERPRISE_EMAIL, GENDER, FEE_EARNER_ENUM_ID FROM dbo.member_rows");
+                        + "LOGIN_NAME, ENTERPRISE_EMAIL, GENDER, FEE_EARNER_ENUM_ID FROM dbo.ORG_MEMBER");
     }
 
     private static void createLegacyWorld() throws SQLException {
