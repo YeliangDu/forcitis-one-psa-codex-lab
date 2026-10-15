@@ -36,7 +36,9 @@
 ```sql
 -- master 上下文
 DECLARE @s nvarchar(64) = N'Pr-' + CONVERT(nvarchar(64), CRYPT_GEN_RANDOM(24), 2);
-EXEC (N'CREATE LOGIN [one_readonly_probe] WITH PASSWORD = ' + QUOTENAME(@s, N'''') + N', CHECK_POLICY = ON, CHECK_EXPIRATION = OFF, DEFAULT_DATABASE = [master]');
+DECLARE @ddl nvarchar(max) = N'CREATE LOGIN [one_readonly_probe] WITH PASSWORD = ' + QUOTENAME(@s, N'''')
+    + N', CHECK_POLICY = ON, CHECK_EXPIRATION = OFF, DEFAULT_DATABASE = [master]';
+EXEC (@ddl);   -- EXEC 的参数只能是变量或字面量，不能是表达式
 SELECT N'one_readonly_probe' AS login_name, @s AS one_time_secret;
 CREATE DATABASE [one_readonly_probe_db];   -- 若 T-SQL 建库被平台拒绝：停下，改用 RDS CreateDatabase 前先报
 -- one_readonly_probe_db 上下文：与正式账号同形
