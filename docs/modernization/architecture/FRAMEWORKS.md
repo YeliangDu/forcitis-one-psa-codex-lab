@@ -93,3 +93,25 @@ ArchiMate 4（C260，2026-04-27）已取代 3.2，元素大幅精简；Capabilit
 | **C4 model**（Simon Brown，CC BY 4.0） | https://c4model.com/ | 系统上下文、容器、组件、代码四层图：图④与代码视图的画法约定（第 7 步） | 无版本号 |
 | **Team Topologies**（Skelton & Pais，第 2 版 2025，IT Revolution） | https://teamtopologies.com/book ；概念 https://teamtopologies.com/key-concepts | 流对齐 / 赋能 / 复杂子系统 / 平台四类团队、三种交互模式、团队认知负荷：会话分工与 BC 对齐（会话画像的独占与不碰） | 康威定律的表述 |
 | **商业模式画布**（Osterwalder & Pigneur，*Business Model Generation*，Wiley 2010） | https://www.strategyzer.com/library/the-business-model-canvas | 九个构造块作为愿景、目标与 KPI 的来源（第 0 步） | 许可（CC BY-SA）与九块官方英文名只有二手来源 |
+
+## 9. 工程层标准（用户 2026-10-15 勾选页保存，intent `2026-10-15-192555`）
+
+核实：2026-10-15，sonnet 子代理只查一手来源，盘点见 `proposals/ENGINEERING_STANDARDS.md`。等保级别上生产前再定；Twelve-Factor、SemVer、Conventional Commits 不纳入。
+
+| 标准 | 锁定版本 | 用途 | 落点（补写经 one-coordinator 派工） |
+|---|---|---|---|
+| OpenAPI | 3.1.x（代码输出 3.1.0；不随 3.2 升级，生成工具支持后另定） | 接口契约 | CODING_STANDARD |
+| AsyncAPI | 3.0.0（3.1.0 另定升级） | 事件契约 | `events/asyncapi.yaml` 规则 |
+| RFC 9457 | — | 错误响应结构 | CODING_STANDARD |
+| RFC 9562 | UUID 第 7 版 | 自有表主键 | NAMING_STANDARD、SESSION_PLAYBOOK §14 |
+| CycloneDX | 1.7（ECMA-424） | 物料清单（SBOM） | SUPPLY_CHAIN S5；CI 补生成步骤 |
+| OpenTelemetry | 规范与语义约定分别锁版本（引入时取当时稳定版写入） | 日志、调用链、指标 | STACK_DECISION |
+| OWASP ASVS | 5.0.0 | 安全需求与验收逐条核对；目标级别另定 | 安全复审清单 |
+| OWASP Top 10 | 2025 | 安全复审快速清单 | 安全复审清单 |
+| ISO/IEC 25010 | 2023（第 2 版） | 非功能需求与质量属性口径 | 阶段出口评审 |
+| GB/T 22239 | 2019（等保 2.0），级别上生产前定 | 部署与安全控制基线 | 部署方案 |
+| 个人信息保护法 + GB/T 35273 | 2021 + 2020 | 个人信息处理、敏感信息、最小化 | SESSION_PLAYBOOK §14.1 |
+| SLSA | v1.2（Build Track + Source Track），目标级别另定 | 构建与发布链路可信 | SUPPLY_CHAIN |
+| DORA 指标 | 5 项（含部署返工率） | 交付效能度量 | 度量方案 |
+
+未核实（沿用盘点）：ASVS 级别与条目数、Top 10:2025 发布日、25010 九个特性名称、个人信息保护法条款细节、SLSA Build 各级定义。
