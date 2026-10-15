@@ -1,4 +1,4 @@
-# Approval deadline business rules — RULE-377..RULE-384
+# Approval deadline business rules — RULE-377..RULE-384, RULE-386
 
 Scope: Phase 1a `platform.approval`, the generic node deadline (T+1 in the first use: timesheets). These are rules of FORCITIS one itself, decided by the user on 2026-10-14; they have no counterpart in the old system, which only had a manual reminder. The numbers are fixed by the user decisions D-1a-110..117 and live as attributes of the node in the process file (`deadlineWorkdays`, `escalationWorkdays`, always together; D-1a-100: no decision table in 1a), not in code; a new version of the process file applies to the approvals started after it is deployed. D-1a-111/112/113 supersede the wording of RULE-377..381 where they differ: T is the workday the task is created in, the deadline is 23:59, the reminder is 09:00 of the next workday, the escalation 09:00 of the m-th workday after the reminder, a claimed task goes to the claimant's superior and an unclaimed one to the process administrator.
 
@@ -14,6 +14,7 @@ User decisions (REIMAGINED_ARCHITECTURE.md §2.1, last row): "工时要求 T+1 �
 | RULE-382 | approval | A deadline never approves, rejects or skips anything | P0 | No |
 | RULE-383 | approval | A calendar that cannot answer fails the start of the approval, never the submission | P0 | No |
 | RULE-384 | approval | Overdue and escalation are events with the task's own event number, counted for timeliness statistics | P1 | No |
+| RULE-386 | approval | Every approval moment reads the one injected Clock, including the process engine | P0 | No |
 
 ### RULE-377: A task's deadline is 23:59 of the n-th workday after the workday the task is created in, in the legal entity's calendar
 **Category:** Calculation
@@ -107,4 +108,12 @@ User decisions (REIMAGINED_ARCHITECTURE.md §2.1, last row): "工时要求 T+1 �
 **Source:** proposals/EVENT_ANALYTICS_FIELDS.md §6 (item 3: timer-triggered events take the owning aggregate's sequence)
 **Plain English:** `ApprovalTaskOverdue` and `ApprovalTaskEscalated` are published through the event publication registry like every domain event; their envelope's aggregateVersion is the task's event number (assigned = 1, then claimed, overdue, escalated … in order). They are process facts, not posting facts.
 **Tests:** `ApprovalDeadlineIT`, `ApprovalTaskStateMachineTest.eventsCarryTheTaskSequence`; catalogue entries in `docs/modernization/events/approval.yaml`.
+**Confidence:** High.
+
+### RULE-386: Every approval moment reads the one injected Clock, including the process engine
+**Category:** Policy
+**Priority:** P0
+**Source:** FLW-1 (one-coordinator 2026-10-15)
+**Plain English:** Every moment of an approval (task creation, deadline, reminder, escalation, reassignment, the archive cut-off date) comes from the single injected Clock (UTC) and is cut into workdays in the business zone. The process engine is wired to that same Clock when it is built; it never reads the machine or the database clock. Deadlines are recorded on `approval_tasks` and judged by the scheduled job, not by engine timers or engine task due dates. The F-14 reassignment on a leaver and the ADR-0032 escalation of a pending task after 5 workdays obey the same rule.
+**Tests:** `EngineClockIT`.
 **Confidence:** High.
