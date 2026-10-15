@@ -905,6 +905,7 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             detail?: string;
+            /** Format: uuid */
             entryId: string;
             loginMethod?: string;
             onBehalfOfId?: string;
@@ -919,6 +920,7 @@ export interface components {
         AuthorizationRequestView: {
             kind?: string;
             permissionCodes?: string[];
+            /** Format: uuid */
             requestId?: string;
             /** Format: date-time */
             requestedAt?: string;
@@ -1050,6 +1052,7 @@ export interface components {
             onBehalfOfName?: string;
             processKey: components["schemas"]["ProcessKey"] | (string & {});
             reason?: string;
+            /** Format: uuid */
             recordId: string;
             /** Format: int32 */
             round: number;
@@ -1066,6 +1069,7 @@ export interface components {
             nodeName: string;
             onBehalfOfName?: string;
             reason?: string;
+            /** Format: uuid */
             recordId: string;
             /** Format: int32 */
             round: number;
@@ -1101,10 +1105,12 @@ export interface components {
             totalCount: number;
         };
         LegacyNumberResponse: {
+            /** Format: uuid */
             documentId: string;
             documentType: components["schemas"]["DocumentType"] | (string & {});
             importBatch: string;
             legacyNumber: string;
+            /** Format: uuid */
             legalEntityId?: string;
         };
         LegalEntityAttributionResponse: {
@@ -1116,6 +1122,7 @@ export interface components {
             /** Format: int64 */
             accountingOrganizationNumber?: number;
             code: string;
+            /** Format: uuid */
             legalEntityId: string;
             name: string;
             status: string;
@@ -1240,6 +1247,7 @@ export interface components {
             effectiveFrom: string;
             /** Format: date */
             effectiveTo?: string;
+            /** Format: uuid */
             legalEntityId: string;
         };
         ProblemDetail: {
@@ -1292,6 +1300,7 @@ export interface components {
             kind: string;
             name: string;
             permissionCodes: string[];
+            /** Format: uuid */
             roleId: string;
         };
         SyncDiffResponse: {
@@ -1336,6 +1345,7 @@ export interface components {
             /** Format: date-time */
             releasedAt?: string;
             releasedBy?: string;
+            /** Format: uuid */
             releasedByRunId?: string;
             releasedKinds: string[];
             /** Format: int32 */
@@ -1345,6 +1355,7 @@ export interface components {
             /** Format: date-time */
             startedAt: string;
             status: string;
+            /** Format: uuid */
             syncRunId: string;
             trigger: string;
         };

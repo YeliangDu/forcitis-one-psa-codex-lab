@@ -41,7 +41,7 @@
 | # | 表 | 类型 | 范式 / 冗余 | 键与约束 | version | 状态 CHECK | 时间 | 生效区间 | 分析字段 | 注释（含粒度） | 保留期作业 | 敏感登记 | 归属 / 血缘 | 问题 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | `cost_timesheet.timesheets` | 根（工时单） | ✓ | △ 无查询索引 | ✓ | ✓ | ✓ | — | ✗ 缺部门、单据编号 | △ 未写粒度 | —（业务单据，随会计档案） | ✓ | 新系统自有；迁入历史经 `legacy_numbers` | K1 K2 K13 K9 |
-| 2 | `cost_timesheet.consumed_events` | 幂等记录 | ✓ | ✓ | —（只插入） | — | ✓ | — | — | ✓ | ✗ 无保留期 | — | 新系统 | T3 |
+| 2 | `cost_timesheet.consumed_events` | 幂等记录 | ✓ | ✓ 代理主键 consumed_event_id，（事件标识，消费者）为唯一约束 | —（只插入） | — | ✓ | — | — | ✓ | ✗ 无保留期 | — | 新系统 | T3 |
 | 3 | `delivery_execution.work_packages` | 根（占位） | △ `actual_hours` 为派生值 | △ 主键未按 `pk_` 命名 | ✓ | ✓ | ✓ | — | — | △ | — | — | 沿用老系统雪花 ID；1a 无写入 | T4 |
 | 4 | `organization_attendance.work_calendar_years` | 根（日历年度） | ✓ | ✓ | ✓ | — | ✓ | —（年份即区间） | — | ✗ 4 列无注释 | 永久 | — | 新系统；老日历待迁入 | K8 T2 |
 | 5 | `organization_attendance.work_calendar_days` | 子 | ✓ | ✓ | —（随根） | ✓ | ✓ | — | — | ✗ 3 列无注释 | 永久 | — | 同上 | K8 T2 |
@@ -62,8 +62,8 @@
 | 19 | `platform_identity.role_permissions` | 子 | ✓ | ✓ | —（整组替换） | — | ✓ | — | — | △ | 永久 | — | 新系统 | — |
 | 20 | `platform_identity.account_roles` | 关联 | ✓ | ✓ | —（整组替换） | — | ✓ | — | — | △ | 永久 | — | 新系统 | — |
 | 21 | `platform_identity.navigation_items` | 配置（种子） | ✓ | ✓ | —（只读） | — | ✓ | — | — | △ | 永久 | — | 新系统 | — |
-| 22 | `platform_identity.login_states` | 一次性凭证 | ✓ | △ 主键未命名 | — | ✓ | ✓ | — | — | ✓ | ✓ 到期即删 | ✓ | 新系统 | — |
-| 23 | `platform_identity.sso_ticket_uses` | 一次性凭证 | ✓ | ✓ | — | — | ✓ | — | — | ✓ | ✓ 到期即删 | ✓ | 新系统 | — |
+| 22 | `platform_identity.login_states` | 一次性凭证 | ✓ | △ 主键未命名；代理主键 login_state_id，state_hash 为唯一约束 | — | ✓ | ✓ | — | — | ✓ | ✓ 到期即删 | ✓ | 新系统 | — |
+| 23 | `platform_identity.sso_ticket_uses` | 一次性凭证 | ✓ | ✓ 代理主键 sso_ticket_use_id，（凭证来源，摘要）为唯一约束 | — | — | ✓ | — | — | ✓ | ✓ 到期即删 | ✓ | 新系统 | — |
 | 24 | `platform_identity.ticket_issuers` | 配置 | ✓ | ✓ | —（迁移维护） | — | ✓ | — | — | ✓ | 永久 | ✓ | 新系统 | — |
 | 25 | `platform_identity.emergency_admins` | 根 | ✓ | ✓ | ✗ 有 UPDATE 无 `version` | — | ✓ | — | — | ✓ | 永久 | △ `account_name` 未登记 | 新系统 | K12 K10 |
 | 26 | `platform_identity.sessions` | 框架 | 框架 | ✓ | — | — | 框架（毫秒 bigint） | — | — | ✓ | ✓ | ✓ | 框架 | 豁免 |
@@ -72,7 +72,7 @@
 | 29 | `platform_integration.event_publication_archive` | 框架 | 框架 | ✓ | — | ✓ | ✓ | — | — | ✓ | ✓ 30 天清理 | — | 框架 | 豁免 |
 | 30 | `platform_integration.outbound_deliveries` | 投递队列 | ✗ 收件人以竖线拼接 | ✓ | ✓ | ✓ | ✓ | — | ✓ 关联号 | △ | ✗ 认可 90 天 / 1 年，无清理作业 | ✗ 收件人未登记 | 新系统 | K7 K10 K14 |
 | 31 | `platform_numbering.numbering_rules` | 配置（编号规则） | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ 无版本历史与生效日 | — | △ | 永久 | — | 新系统 | K11 |
-| 32 | `platform_numbering.numbering_counters` | 计数器 | ✓ | ✓ | —（原子递增） | — | ✓ | — | — | ✓ | 永久 | — | 新系统 | — |
+| 32 | `platform_numbering.numbering_counters` | 计数器 | ✓ | ✓ 代理主键 numbering_counter_id；（单据类型，法人，周期）唯一，法人为空表示全局计数 | —（原子递增） | — | ✓ | — | — | ✓ | 永久 | — | 新系统 | — |
 | 33 | `platform_numbering.legacy_numbers` | 对照（血缘） | ✓ | △ 唯一约束未按 `uk_` 命名 | —（只插入） | — | ✓ | — | ✓（即信封的 `source.documentRef`） | ✓ | ✓ 永久 | — | 迁入 | — |
 | 34 | `platform_scheduling.scheduler_locks` | 框架 | 框架 | ✓ | — | — | ✓ | — | — | ✓ | — | — | 框架 | 豁免 |
 
