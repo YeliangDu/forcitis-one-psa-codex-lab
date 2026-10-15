@@ -1,0 +1,460 @@
+# 限界上下文（BC）。ID = Java 模块名 <子域>.<bc>（ADR-0003），schema = <子域>_<bc>。status：built（有模块包）/ planned / retired / undecided。
+# blueprint_bc：《边界蓝图 v2.3》编号（ADR-0017 第 1 条要求登记；载体见架构决策页 Q5，暂登记在此）。legacy_bc：老 04-限界上下文清单的 BC 名，只作证据。
+# status=planned：basis=legacy-evidence 来自老系统切法（老 04），仅作证据，不是目标；basis=adr 为已有 ADR 决定新建。进入对应阶段前都按能力地图与价值流重新推导。
+# 维护：one-architecture；新 BC 先在此登记（status: planned）再建模块。
+contexts:
+- id: kernel
+  zh: 共享内核
+  subdomain: null
+  kind: shared-kernel
+  status: built
+  schema: null
+  blueprint_bc: null
+  legacy_bc: null
+  evidence: backend 模块包与 module-dependencies.txt
+  note: 类型化标识、值对象、错误链、事件信封与跨模块端口；去向待定见 Q4
+- id: cost.timesheet
+  zh: 工时与投入有效性 BC
+  subdomain: cost
+  kind: business
+  status: built
+  schema: cost_timesheet
+  blueprint_bc: BC-06
+  legacy_bc: 工时与投入有效性 BC
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L34；02-子域划分.md 02 L133-137；ADR-0017 对照表
+- id: organization.attendance
+  zh: 考勤与休假 BC
+  subdomain: organization
+  kind: business
+  status: built
+  schema: organization_attendance
+  blueprint_bc: null
+  legacy_bc: null
+  evidence: backend 模块包与 module-dependencies.txt
+  note: Phase 1a 为工作日历先建（用户 2026-10-14）；与 organization.payroll 的边界见 Q3
+- id: organization.workforce
+  zh: 组织人事 BC
+  subdomain: organization
+  kind: business
+  status: built
+  schema: organization_workforce
+  blueprint_bc: BC-P8
+  legacy_bc: 组织人事 BC
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L56；02-子域划分.md 02 L194-203；ADR-0017 对照表
+- id: platform.approval
+  zh: 审批
+  subdomain: platform
+  kind: platform
+  status: built
+  schema: platform_approval
+  blueprint_bc: BC-P2
+  legacy_bc: 权限流程与集成平台 BC
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L66；02-子域划分.md 02 L231-236；ADR-0017 对照表
+- id: platform.audit
+  zh: 审计
+  subdomain: platform
+  kind: platform
+  status: built
+  schema: platform_audit
+  blueprint_bc: BC-P6
+  legacy_bc: 权限流程与集成平台 BC
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L66；02-子域划分.md 02 L231-236；ADR-0017 对照表
+- id: platform.identity
+  zh: 身份与权限
+  subdomain: platform
+  kind: platform
+  status: built
+  schema: platform_identity
+  blueprint_bc: BC-P1
+  legacy_bc: 权限流程与集成平台 BC
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L66；02-子域划分.md 02 L231-236；ADR-0017 对照表
+- id: platform.integration
+  zh: 外部集成（防腐层）
+  subdomain: platform
+  kind: platform
+  status: built
+  schema: platform_integration
+  blueprint_bc: BC-P5
+  legacy_bc: 权限流程与集成平台 BC
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L66；02-子域划分.md 02 L231-236；ADR-0017 对照表
+  note: 防腐层：外部系统（A8、U8C、企业微信、老系统等）的用语、编码与来源对照类型（Source*）只在本模块内，不进入其他业务模块，对外只暴露新系统自有用语（用户 2026-10-15「acl用语单列，不能进入新系统模块」，经 one-coordinator 转达）
+- id: platform.numbering
+  zh: 单据编号
+  subdomain: platform
+  kind: platform
+  status: built
+  schema: platform_numbering
+  blueprint_bc: null
+  legacy_bc: null
+  evidence: backend 模块包与 module-dependencies.txt
+- id: platform.scheduling
+  zh: 作业调度
+  subdomain: platform
+  kind: platform
+  status: built
+  schema: platform_scheduling
+  blueprint_bc: null
+  legacy_bc: null
+  evidence: backend 模块包与 module-dependencies.txt
+- id: platform.idempotency
+  zh: 幂等应答
+  subdomain: platform
+  kind: technical
+  status: built
+  schema: platform_idempotency
+  blueprint_bc: null
+  legacy_bc: null
+  evidence: backend 模块包与 module-dependencies.txt
+- id: platform.eventing
+  zh: 事件发布
+  subdomain: platform
+  kind: technical
+  status: built
+  schema: null
+  blueprint_bc: null
+  legacy_bc: null
+  evidence: backend 模块包与 module-dependencies.txt
+  note: 无 schema：事件发布登记表由框架管理
+- id: platform.web
+  zh: Web 与错误链
+  subdomain: platform
+  kind: technical
+  status: built
+  schema: null
+  blueprint_bc: null
+  legacy_bc: null
+  evidence: backend 模块包与 module-dependencies.txt
+  note: 无 schema：唯一的错误处理与 OpenAPI 调整
+- id: operations.planning
+  zh: 战略与经营计划 BC
+  subdomain: operations
+  kind: business
+  status: planned
+  schema: operations_planning
+  blueprint_bc: null
+  legacy_bc: 战略与经营计划 BC
+  responsibility: 经营目标/计划的编制与基线（目标基线与经营动作），向预算与口径供给
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L11；02-子域划分.md 02 L62,L72-81；ADR-0017 对照表
+- id: operations.budgeting
+  zh: 预算管控 BC
+  subdomain: operations
+  kind: business
+  status: planned
+  schema: operations_budgeting
+  blueprint_bc: null
+  legacy_bc: 预算管控 BC
+  responsibility: 预算编制/分解/占用/释放/调整/超预算审批（预算主权唯一）
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L12；02-子域划分.md 02 L62,L72-81;07 L24；ADR-0017 对照表
+- id: operations.facts
+  zh: 经营事实与归属 BC
+  subdomain: operations
+  kind: business
+  status: planned
+  schema: operations_facts
+  blueprint_bc: BC-08
+  legacy_bc: 经营事实与归属 BC
+  responsibility: 经营事实认定入台账与多维归属（默认订阅全量事件，不重新解释上游事实）
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L13；02-子域划分.md 02 L62；ADR-0017 对照表
+- id: operations.policy
+  zh: 经营口径与勾稽 BC
+  subdomain: operations
+  kind: business
+  status: planned
+  schema: operations_policy
+  blueprint_bc: BC-09
+  legacy_bc: 经营口径与勾稽 BC
+  responsibility: 经营口径（policy）定义与跨域勾稽
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L14；02-子域划分.md 02 L62；ADR-0017 对照表
+- id: presales.customer
+  zh: 客户经营 BC
+  subdomain: presales
+  kind: business
+  status: planned
+  schema: presales_customer
+  blueprint_bc: BC-01
+  legacy_bc: 客户经营 BC
+  responsibility: 客户主数据、画像、分级、风险状态、专属费率、联系人与决策关系、拜访与需求资产
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L18,L76；02-子域划分.md 02 L90；ADR-0017 对照表
+- id: presales.quoting
+  zh: 商机评估与报价承诺 BC
+  subdomain: presales
+  kind: business
+  status: planned
+  schema: presales_quoting
+  blueprint_bc: BC-01
+  legacy_bc: 商机评估与报价承诺 BC
+  responsibility: 商机阶段、资格判断、报价方案、报价承诺与商机风险结论
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L19,L75；02-子域划分.md 02 L90；ADR-0017 对照表
+- id: contract.baseline
+  zh: 合约基线 BC
+  subdomain: contract
+  kind: business
+  status: planned
+  schema: contract_baseline
+  blueprint_bc: BC-02, BC-03
+  legacy_bc: 合约基线 BC
+  responsibility: 合约基线、范围边界、合同金额与付款条件、合约缺口认定
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L23,L77；02-子域划分.md 02 L107-109；ADR-0017 对照表
+- id: contract.changeorder
+  zh: 变更签证索赔 BC
+  subdomain: contract
+  kind: business
+  status: planned
+  schema: contract_changeorder
+  blueprint_bc: BC-02
+  legacy_bc: 变更签证索赔 BC
+  responsibility: 变更、签证、索赔状态（ChangeOrderApproved 为基线修订唯一依据）
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L24；02-子域划分.md 02 L107-109；ADR-0017 对照表
+- id: contract.riskdelivery
+  zh: 风险交付 BC
+  subdomain: contract
+  kind: business
+  status: planned
+  schema: contract_riskdelivery
+  blueprint_bc: BC-02
+  legacy_bc: 风险交付 BC
+  responsibility: 风险交付授权（无合同交付/风险敞口）的申请、批准、关闭与额度监控
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L25；02-子域划分.md 02 L107-109；ADR-0017 对照表
+- id: delivery.execution
+  zh: 项目交付执行 BC
+  subdomain: delivery
+  kind: business
+  status: planned
+  schema: delivery_execution
+  blueprint_bc: BC-04, BC-05
+  legacy_bc: 项目交付执行 BC
+  responsibility: 项目计划/WBS/里程碑/进度偏差/EAC 的交付执行
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L29；02-子域划分.md 02 L119-123；ADR-0017 对照表
+  note: 曾建为工作包样板模块，D-1a-127 删除（retired-module-schemas.txt）；Phase 2 按目标设计重建
+- id: delivery.acceptance
+  zh: 质量返工与验收 BC
+  subdomain: delivery
+  kind: business
+  status: planned
+  schema: delivery_acceptance
+  blueprint_bc: null
+  legacy_bc: 质量返工与验收 BC
+  responsibility: 质量问题、返工认定、验收裁定（申报-裁定中的裁定侧，ADR-005）
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L30；02-子域划分.md 02 L119-123；ADR-0017 对照表
+- id: cost.costing
+  zh: 项目成本归集 BC
+  subdomain: cost
+  kind: business
+  status: planned
+  schema: cost_costing
+  blueprint_bc: BC-07
+  legacy_bc: 项目成本归集 BC
+  responsibility: 项目直接成本归集与归因、成本 WIP/结转/结转凭证请求（posting_rule）
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L35；02-子域划分.md 02 L133-137;06 L100；ADR-0017 对照表
+- id: receivables.wip
+  zh: WIP 与开票准入 BC
+  subdomain: receivables
+  kind: business
+  status: planned
+  schema: receivables_wip
+  blueprint_bc: BC-10, BC-11
+  legacy_bc: WIP 与开票准入 BC
+  responsibility: 开票口径 WIP（履约进度->合同资产）、开票准入、收入确认依据、结算
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L39；02-子域划分.md 02 L146-149；ADR-0017 对照表
+- id: receivables.collection
+  zh: AR 与现金转化 BC
+  subdomain: receivables
+  kind: business
+  status: planned
+  schema: receivables_collection
+  blueprint_bc: BC-12
+  legacy_bc: AR 与现金转化 BC
+  responsibility: 应收、回款、账龄、催收与减值风险判断（发票流程面属核心内支撑级）
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L40；02-子域划分.md 02 L67,L146-149；ADR-0017 对照表
+- id: expense.spend
+  zh: 费用报销与支出管控 BC
+  subdomain: expense
+  kind: business
+  status: planned
+  schema: expense_spend
+  blueprint_bc: BC-06
+  legacy_bc: 费用报销与支出管控 BC
+  responsibility: 员工费用申请/审批/报销/付款/合规与费用归类，费用事实初判
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L44；02-子域划分.md 02 L160-165；ADR-0017 对照表
+- id: procurement.subcontracting
+  zh: 分包与采购履约 BC
+  subdomain: procurement
+  kind: business
+  status: planned
+  schema: procurement_subcontracting
+  blueprint_bc: BC-07
+  legacy_bc: 分包与采购履约 BC
+  responsibility: 采购申请、供应商、询价、采购订单、分包履约、采购验收与付款
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L48；02-子域划分.md 02 L170-177；ADR-0017 对照表
+- id: km.knowledge
+  zh: 知识资产与 AI 赋能 BC
+  subdomain: km
+  kind: business
+  status: planned
+  schema: km_knowledge
+  blueprint_bc: null
+  legacy_bc: 知识资产与 AI 赋能 BC
+  responsibility: 知识资产、模板、案例、标准服务包、AI 建议的沉淀与复用
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L52；02-子域划分.md 02 L180-189；ADR-0017 对照表
+  note: 子域 slug 待定：老文档 knowledge_management，ADR-0017 写作 km
+- id: organization.payroll
+  zh: 假勤薪酬 BC
+  subdomain: organization
+  kind: business
+  status: planned
+  schema: organization_payroll
+  blueprint_bc: null
+  legacy_bc: 假勤薪酬 BC
+  responsibility: 假勤事实与薪酬基础（02 L203 称实为通用级、外购优先、无自建聚合档）
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L57；02-子域划分.md 02 L203；ADR-0017 对照表
+  decision_ref: Q3
+- id: organization.incentive
+  zh: 绩效激励 BC
+  subdomain: organization
+  kind: business
+  status: planned
+  schema: organization_incentive
+  blueprint_bc: null
+  legacy_bc: 绩效激励 BC
+  responsibility: 绩效评定与激励结果，承接经营结果（支撑级，强定制）
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L58；02-子域划分.md 02 L203；ADR-0017 对照表
+- id: accounting.ledger
+  zh: 财务总账与法定核算 BC
+  subdomain: accounting
+  kind: business
+  status: planned
+  schema: accounting_ledger
+  blueprint_bc: BC-14
+  legacy_bc: 财务总账与法定核算 BC
+  responsibility: 法定凭证、科目、收入确认、成本结转、减值、总账、报表（外购总账 + 自研内部结算防腐层）
+  basis: legacy-evidence
+  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
+  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L62；02-子域划分.md 02 L213-220；ADR-0017 对照表
+  note: ADR-0017 对照表此行已被 ADR-0022 取代（拆出 reporting / cashbank / tax / fixedasset）
+- id: accounting.period
+  zh: 会计期间 BC
+  subdomain: accounting
+  kind: business
+  status: planned
+  schema: accounting_period
+  blueprint_bc: BC-13
+  legacy_bc: null
+  basis: adr
+  review: 已有 ADR 决定新建，边界与名称待按目标架构（能力地图与价值流）重审
+  evidence: ADR-0016、ADR-0017（新增）
+- id: accounting.reporting
+  zh: 报表 BC
+  subdomain: accounting
+  kind: business
+  status: planned
+  schema: accounting_reporting
+  blueprint_bc: BC-14（报表部分）
+  legacy_bc: null
+  basis: adr
+  review: 已有 ADR 决定新建，边界与名称待按目标架构（能力地图与价值流）重审
+  evidence: ADR-0022 第 7 条
+- id: accounting.cashbank
+  zh: 银行与现金 BC
+  subdomain: accounting
+  kind: business
+  status: planned
+  schema: accounting_cashbank
+  blueprint_bc: 提议 BC-17
+  legacy_bc: null
+  basis: adr
+  review: 已有 ADR 决定新建，边界与名称待按目标架构（能力地图与价值流）重审
+  evidence: ADR-0022 第 7 条
+- id: accounting.tax
+  zh: 税费 BC
+  subdomain: accounting
+  kind: business
+  status: planned
+  schema: accounting_tax
+  blueprint_bc: 提议 BC-18
+  legacy_bc: null
+  basis: adr
+  review: 已有 ADR 决定新建，边界与名称待按目标架构（能力地图与价值流）重审
+  evidence: ADR-0022 第 7 条
+- id: accounting.fixedasset
+  zh: 固定资产 BC
+  subdomain: accounting
+  kind: business
+  status: planned
+  schema: accounting_fixedasset
+  blueprint_bc: 提议 BC-19
+  legacy_bc: null
+  basis: adr
+  review: 已有 ADR 决定新建，边界与名称待按目标架构（能力地图与价值流）重审
+  evidence: ADR-0022 第 7 条
+- id: payables.payment
+  zh: 应付与付款 BC
+  subdomain: payables
+  kind: business
+  status: planned
+  schema: payables_payment
+  blueprint_bc: 提议 BC-16
+  legacy_bc: null
+  basis: adr
+  review: 已有 ADR 决定新建，边界与名称待按目标架构（能力地图与价值流）重审
+  evidence: ADR-0021、ADR-0022 第 7 条；用语确认第二轮 N2
+- id: platform.migration
+  zh: 迁入编排
+  subdomain: platform
+  kind: platform
+  status: planned
+  schema: platform_migration
+  blueprint_bc: null
+  legacy_bc: null
+  basis: adr
+  review: 已有 ADR 决定新建，边界与名称待按目标架构（能力地图与价值流）重审
+  evidence: ADR-0036（模块名暂定）
+- id: reporting
+  zh: 经营分析（只读）
+  subdomain: null
+  kind: analytics
+  status: planned
+  schema: reporting
+  blueprint_bc: BC-15
+  legacy_bc: null
+  basis: adr
+  review: 已有 ADR 决定新建，边界与名称待按目标架构（能力地图与价值流）重审
+  evidence: ADR-0017 对照表、ADR-0023、ADR-0025；模块路径未定
+  decision_ref: 待定：模块路径

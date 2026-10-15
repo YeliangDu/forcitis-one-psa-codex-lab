@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static com.forcitis.one.platform.approval.OrdinarySessions.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -18,7 +19,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 class ApprovalTaskHttpIT extends ApprovalIntegrationSupport {
 
     static RequestPostProcessor as(long id, String... permissions) {
-        return user(String.valueOf(id)).authorities(com.forcitis.one.platform.approval.OrdinarySessions.with(permissions));
+        return user(TestAccounts.account(id).value().toString()).authorities(com.forcitis.one.platform.approval.OrdinarySessions.with(permissions));
     }
 
     static final String BASE = "/api/v1/platform/approval-tasks";
@@ -39,7 +40,7 @@ class ApprovalTaskHttpIT extends ApprovalIntegrationSupport {
                 .andExpect(jsonPath("$.items[0].source").value("NEW")).andExpect(jsonPath("$.items[0].taskId").value(task))
                 .andExpect(jsonPath("$.items[0].claimed").value(false));
         mvc.perform(post(BASE + "/" + task + ":claim").with(csrf()).with(currentEtag()).with(approve)).andExpect(status().isNoContent());
-        mvc.perform(get(BASE + "/" + task).with(approve)).andExpect(status().isOk()).andExpect(jsonPath("$.assignee").value(String.valueOf(manager)))
+        mvc.perform(get(BASE + "/" + task).with(approve)).andExpect(status().isOk()).andExpect(jsonPath("$.assignee").value(TestAccounts.account(manager).value().toString()))
                 .andExpect(jsonPath("$.nodeKey").value("projectManagerReview")).andExpect(jsonPath("$.canAct").value(true));
         mvc.perform(post(BASE + "/" + task + ":claim").with(csrf()).with(currentEtag()).with(approve)).andExpect(status().isNoContent());
         mvc.perform(post(BASE + "/" + task + ":decide").with(csrf()).with(currentEtag()).with(approve).contentType(MediaType.APPLICATION_JSON)

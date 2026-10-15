@@ -2,7 +2,6 @@ package com.forcitis.one.platform.audit.web;
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.application.ListOwnLoginRecords;
-import java.security.Principal;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,7 +22,7 @@ class OwnLoginRecordController {
 
     @GetMapping
     @PreAuthorize("hasAuthority('" + AuditPermissions.OWN_LOGIN_RECORD_READ + "')")
-    List<OwnLoginRecordResponse> list(@RequestParam(defaultValue = "50") int limit, Principal caller) {
-        return list.execute(new UserId(Long.parseLong(caller.getName())), limit).stream().map(OwnLoginRecordResponse::of).toList();
+    List<OwnLoginRecordResponse> list(@RequestParam(defaultValue = "50") int limit, UserId caller) {
+        return list.execute(caller, limit).stream().map(OwnLoginRecordResponse::of).toList();
     }
 }

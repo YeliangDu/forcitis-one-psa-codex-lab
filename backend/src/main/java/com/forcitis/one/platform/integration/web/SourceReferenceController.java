@@ -13,7 +13,6 @@ import com.forcitis.one.platform.integration.application.RegisterSourceReference
 import com.forcitis.one.platform.integration.application.RejectSourceReference;
 import com.forcitis.one.platform.integration.application.SourceReferenceView;
 import io.swagger.v3.oas.annotations.Parameter;
-import java.security.Principal;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -56,25 +55,25 @@ class SourceReferenceController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('" + IntegrationPermissions.SOURCE_REFERENCE_UPDATE + "')")
-    ResponseEntity<SourceReferenceResponse> register(@RequestBody RegisterSourceReferenceRequest request, Principal caller) {
+    ResponseEntity<SourceReferenceResponse> register(@RequestBody RegisterSourceReferenceRequest request, UserId caller) {
         if (request.sourceSystem() == null || request.sourceObjectKind() == null || request.sourceId() == null || request.ownId() == null) {
             throw new InvalidRequestException("sourceSystem, sourceObjectKind, sourceId and ownId are required");
         }
         SourceReferenceView view = register.execute(request.sourceSystem(), request.sourceObjectKind(), sourceId(request.sourceId()), request.ownId(),
-                request.effectiveFrom(), user(caller));
+                request.effectiveFrom(), caller);
         return ResponseEntity.status(HttpStatus.CREATED).body(SourceReferenceResponse.of(view));
     }
 
     @PostMapping("/{sourceReferenceId}:confirm")
     @PreAuthorize("hasAuthority('" + IntegrationPermissions.SOURCE_REFERENCE_APPROVE + "')")
-    SourceReferenceResponse confirm(@PathVariable UUID sourceReferenceId, Principal caller) {
-        return SourceReferenceResponse.of(confirm.execute(sourceReferenceId, user(caller)));
+    SourceReferenceResponse confirm(@PathVariable UUID sourceReferenceId, UserId caller) {
+        return SourceReferenceResponse.of(confirm.execute(sourceReferenceId, caller));
     }
 
     @PostMapping("/{sourceReferenceId}:reject")
     @PreAuthorize("hasAuthority('" + IntegrationPermissions.SOURCE_REFERENCE_APPROVE + "')")
-    SourceReferenceResponse reject(@PathVariable UUID sourceReferenceId, Principal caller) {
-        return SourceReferenceResponse.of(reject.execute(sourceReferenceId, user(caller)));
+    SourceReferenceResponse reject(@PathVariable UUID sourceReferenceId, UserId caller) {
+        return SourceReferenceResponse.of(reject.execute(sourceReferenceId, caller));
     }
 
     private static long sourceId(String text) {
@@ -85,7 +84,4 @@ class SourceReferenceController {
         }
     }
 
-    private static UserId user(Principal caller) {
-        return new UserId(Long.parseLong(caller.getName()));
-    }
 }

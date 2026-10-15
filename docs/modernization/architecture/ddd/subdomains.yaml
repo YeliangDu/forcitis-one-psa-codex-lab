@@ -1,0 +1,108 @@
+# 子域（DDD 战略设计）。ID = 包与 schema 的第一段。classification（核心 / 支撑 / 通用）由用户定（架构决策页 Q6），老文档的分类只作证据。
+# 来源：老仓库 02-子域划分.md 抽取，按目标架构修正（新增 payables，ADR-0022）。维护：one-architecture。
+subdomains:
+- id: operations
+  zh: 经营子域
+  en: Operations
+  purpose: 经营目标、预算约束、经营事实如何被及时准确可追溯地认定、归属、解释和管控
+  classification: undecided
+  classification_legacy: 核心子域
+  decision_ref: Q6
+  evidence: 老仓库 00_战略设计/02-子域划分.md 02 L69-81,L60-67,L43-46；英文名表 L26-39
+- id: presales
+  zh: 商机子域
+  en: Presales
+  purpose: 哪些机会值得做，报价是否覆盖真实交付复杂度，承诺是否可交付，前端是否已埋下亏损风险
+  classification: undecided
+  classification_legacy: 核心子域
+  decision_ref: Q6
+  evidence: 老仓库 00_战略设计/02-子域划分.md 02 L83-95；英文名表 L26-39
+- id: contract
+  zh: 合约子域
+  en: Contract
+  purpose: 合约是否完备、范围边界是否清楚、变更增补能否成立、风险交付是否可控
+  classification: undecided
+  classification_legacy: 核心子域
+  decision_ref: Q6
+  evidence: 老仓库 00_战略设计/02-子域划分.md 02 L97-109；英文名表 L26-39
+- id: delivery
+  zh: 交付子域
+  en: Delivery
+  purpose: 项目是否按计划和质量要求交付，偏差、返工和质量损失如何识别与归因
+  classification: undecided
+  classification_legacy: 核心子域
+  decision_ref: Q6
+  evidence: 老仓库 00_战略设计/02-子域划分.md 02 L111-123；英文名表 L26-39
+- id: cost
+  zh: 成本子域
+  en: Cost
+  purpose: 项目直接投入是否真实、有效、可归集、可解释，哪些形成产出，哪些形成漏损
+  classification: undecided
+  classification_legacy: 核心子域
+  decision_ref: Q6
+  evidence: 老仓库 00_战略设计/02-子域划分.md 02 L125-137；英文名表 L26-39
+- id: receivables
+  zh: 回款子域
+  en: Receivables
+  purpose: 交付成果如何转化为可开票、可收回、低风险现金，哪些 WIP/AR 会形成减值
+  classification: undecided
+  classification_legacy: 核心子域
+  decision_ref: Q6
+  evidence: 老仓库 00_战略设计/02-子域划分.md 02 L139-149；英文名表 L26-39
+- id: payables
+  zh: 应付子域
+  en: Payables
+  purpose: 供应商应付、付款申请与执行、预付核销（与 receivables 对称）
+  classification: undecided
+  classification_legacy: null
+  decision_ref: Q6
+  evidence: ADR-0022 第 7 条（新增子域 payables）；ADR-0021；用语确认第二轮 N2
+- id: expense
+  zh: 费用子域
+  en: Expense
+  purpose: 各类员工费用与支出如何申请、审批、报销、付款、合规校验并归类
+  classification: undecided
+  classification_legacy: 支撑子域
+  decision_ref: Q6
+  evidence: 老仓库 00_战略设计/02-子域划分.md 02 L155-165,L47；英文名表 L26-39
+- id: procurement
+  zh: 采购子域
+  en: Procurement
+  purpose: 外部资源、分包和采购活动如何合规可控，并为成本和交付提供采购事实
+  classification: undecided
+  classification_legacy: 支撑子域
+  decision_ref: Q6
+  evidence: 老仓库 00_战略设计/02-子域划分.md 02 L167-177,L47；英文名表 L26-39
+- id: km
+  zh: 知识子域
+  en: Knowledge
+  purpose: 专业知识如何沉淀、复用、产品化，并提升报价准确性和交付质量
+  classification: undecided
+  classification_legacy: 支撑子域
+  decision_ref: Q6
+  evidence: 老仓库 00_战略设计/02-子域划分.md 02 L179-189,L47；英文名表 L26-39
+  note: 老文档 slug 为 knowledge_management；ADR-0017 对照表写作 km
+- id: organization
+  zh: 组织子域
+  en: Organization
+  purpose: 人、组织、岗位、假勤、薪酬和绩效如何支撑经营责任与资源配置
+  classification: undecided
+  classification_legacy: 支撑子域。（内部分级：绩效激励/组织人事=支撑级；假勤薪酬实为通用级，外购优先，见 L203）
+  decision_ref: Q6
+  evidence: 老仓库 00_战略设计/02-子域划分.md 02 L191-203,L47；英文名表 L26-39
+- id: accounting
+  zh: 核算子域
+  en: Accounting
+  purpose: 法定口径的收入、成本、减值和总账如何按准则合规核算；内部结算/往来/转移定价/跨境合规映射如何合规又支撑经营归属
+  classification: undecided
+  classification_legacy: 两层定位：总账、凭证、科目、法定报表=通用子域（外购优先）；内部结算、内部往来对销、跨法人转移定价、跨境合规映射=支撑级定制能力（P0-4 裁决 2026-07-05）
+  decision_ref: Q6
+  evidence: 老仓库 00_战略设计/02-子域划分.md 02 L209-220,L48-49；英文名表 L26-39
+- id: platform
+  zh: 平台子域
+  en: Platform
+  purpose: 统一流程、权限、集成、规则、事件和数据底座如何支撑各业务子域稳定运行
+  classification: undecided
+  classification_legacy: 基础底座。（不属 Core/支撑/通用三类）
+  decision_ref: Q6
+  evidence: 老仓库 00_战略设计/02-子域划分.md 02 L222-236,L50；英文名表 L26-39

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
@@ -25,8 +26,10 @@ public class ListInbox {
     private final ApprovalTaskQueries tasks;
     private final LegacyInbox legacy;
     private final BusinessTime time;
+    private final AccountEmployees accountEmployees;
 
-    ListInbox(ApprovalEngine engine, ApprovalTaskQueries tasks, LegacyInbox legacy, BusinessTime time) {
+    ListInbox(ApprovalEngine engine, ApprovalTaskQueries tasks, LegacyInbox legacy, BusinessTime time, AccountEmployees accountEmployees) {
+        this.accountEmployees = accountEmployees;
         this.engine = engine;
         this.tasks = tasks;
         this.legacy = legacy;
@@ -47,7 +50,7 @@ public class ListInbox {
                     Optional.of(task.document().documentId().value()), InboxCategory.TODO));
         }
         int newCount = items.size();
-        LegacyInbox.LegacyTodos old = legacy.readTodos(user);
+        LegacyInbox.LegacyTodos old = accountEmployees.employeeOf(user).map(legacy::readTodos).orElseGet(LegacyInbox.LegacyTodos::unavailable);
         List<LegacyTodo> merged = InboxMerger.mergeRowTasks(old.todos());
         for (LegacyTodo todo : merged) {
             items.add(new InboxItem(InboxSource.LEGACY, todo.taskKey(), todo.title(), Optional.ofNullable(todo.nodeName()),

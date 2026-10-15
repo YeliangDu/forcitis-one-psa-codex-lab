@@ -42,7 +42,8 @@ public class TransferTask {
         ApprovalRequest request = approvals.lock(first.instanceId());
         approvals.requireVersion(request, expectedVersion);
         TaskView task = guard.requireHandler(taskId, actor, "transfer");
-        UserId assignee = accountEmployees.accountOf(to);
+        UserId assignee = accountEmployees.accountOf(to).orElseThrow(() -> ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID.refusal(
+                "Transfer target " + to.value() + " has no account"));
         requireValidTarget(task, actor, to, assignee);
         engine.reassignTask(taskId, assignee);
         request.transferTask(taskId, actor, assignee, Reason.ofNullable(reason), time.moment());

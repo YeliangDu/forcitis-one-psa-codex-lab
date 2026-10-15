@@ -220,10 +220,11 @@ DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`han
   > **待改（F-12）**：`--spring.profiles.active=identity-operations` 会顶掉环境档案（dev / prod），跳过 `VERIFIED_SERVER` 等环境校验。one-1a-next 在 F-12 改为追加档案（include）写法，届时本节与 C-5 的命令形式同步修改；在此之前不在生产使用。
 
   ```
-  java -jar forcitis-one.jar --spring.profiles.active=identity-operations --operation=<命令> --user-id=<人员 ID> \
+  java -jar forcitis-one.jar --spring.profiles.active=identity-operations --operation=<命令> --employee-id=<员工 ID> \
        [--login-name=<应急账号名>] [--role-code=<角色码>] --operator=<操作人> --witness=<见证人>
   ```
 
+  - 人员以 `--employee-id`（员工 ID，R-1b P2 期间为整数，P3b 起为 uuid 文本）指定：命令按员工取得其账号，员工在职而尚无账号时当场开通（ADR-0033 第 3 项第 6 条）；格式不对或员工不存在时退出码非 0，不写任何数据。原 `--user-id` 已删除。
   - 命令：`register-emergency-admin`（需 `--login-name`）、`reset-emergency-admin-credentials`、`disable-emergency-admin`、`enable-emergency-admin`、`grant-role`（需 `--role-code`，用于首批超级管理员、业务管理员、组织数据管理员）。
   - **双人在场**：`--operator` 与 `--witness` 必填且必须是两个不同的人（比较前去掉首尾空白、折叠空格、不分大小写、全角按半角），两人都记入审计；缺一或相同则命令拒绝，什么也不做。
   - 口令与 TOTP 密钥由命令**生成**，只在这一次输出里显示（口令、base32 密钥、认证器链接），库里只存口令的 Argon2id 哈希与加密后的密钥；不要把输出复制进文件或聊天。口令强度与密钥长度由代码保证，不经命令行参数传入。
@@ -231,6 +232,7 @@ DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`han
   - 退出码：0 成功（含「已是该状态，未改变」）；1 被拒绝（错误码在标准错误输出）；2 用法错误。
   - 注册后若可用应急账号少于 2 个，命令输出 `WARNING`；必须有至少 2 个、绑定不同的超级管理员持有人。
 - 应急账号只能从内网段登录，失败 5 次锁 15 分钟；检查与计数在凭据验证之前一步完成，并发猜测也只有 5 次机会。应急登录直接进入管理模式，1 小时后会话结束。
+- 应急登录的在职校验（ADR-0033 第 3 项第 7 条）：组织快照最近一次成功同步在 `forcitis.organization.workforce.sync.stale-after`（默认 PT10M，须不少于两个同步周期、不超过 PT1H，越界应用不启动；与告警 OneWorkforceSyncLagging 的 600 秒同一阈值）之内才算可用。快照可用而查不到绑定员工即拒绝并告警；快照不可用或过期时放行并告警。**关闭同步的环境（`WORKFORCE_SYNC_ENABLED=false`，如 dev）快照恒不可用，应急登录恒为「放行 + 告警」**，只有快照列为离职的人仍被拒绝。
 - 每日核对：任务 `platform.identity.emergency.admin.check`（ShedLock，每天一次，`forcitis.platform.identity.emergency.check.cron`）核对应急账号数量与可用性，少于 2 个可用即告警；总开关 `forcitis.platform.scheduling.jobs-enabled`（默认 true），本任务另有 `forcitis.platform.identity.emergency.check.enabled`。
 - **告警走 C-7 的日志告警规则**：本节与管理模式的告警都是一行 `ALERT platform.identity …` 的日志（结构化日志，见 §8），由 SLS 按 `ALERT` 关键字匹配后发往 A-5 指定的接收人；应用本身不直接发消息。涉及的告警：进入管理模式、退出或自然到期、应急登录、结束超级管理员或安全审计员的会话、应急账号因离职被停用、同步放行（`ALERT organization.workforce sync run …`）。
 - 同步因管理员离职而暂停时（ADR-0028）：留任的超级管理员在管理模式、或安全审计员在普通会话，通过 `POST /api/v1/organization/sync-runs/{id}:release` 写明理由放行；放行后将没有可用超级管理员时页面拒绝。**恢复路径**（B1-R2，选的是写明路径而不是新增命令）：先用本节的 `grant-role --role-code=super_admin` 给一个留任的人授出超级管理员（双人在场、写审计），再由此人进入管理模式放行该暂停。
@@ -256,7 +258,7 @@ DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`han
   - 排查一次操作：拿到响应头 `X-Correlation-Id`，在 SLS 里按 `correlationId` 检索，请求、事件处理、出站投递、发往企业微信的请求用的是同一个值。
 - **关联号**：请求头 `X-Correlation-Id`（必须是 UUID，不是则 400）；没有就生成，并写进响应头。发给企业微信的请求带同一个头（对方忽略也无妨）。
 - **业务时区**：`forcitis.kernel.business-zone`，默认 `Asia/Shanghai`；业务日、工作日历、`businessDate` 都按它截日，时刻一律以 UTC 存储（数据库只允许 `timestamptz`）。
-- **审批时刻只有一个时间来源**（FLW-1，RULE-386）：审批任务的创建、领取、完成、截止、提醒、升级、改派与流程归档截止日都取应用注入的时钟（UTC）；流程引擎在构建时接上同一个时钟（`FlowableEngineClock`），不读数据库的 `now()`，其时钟不可被改写或重置。时限不靠引擎计时器：截止、提醒、升级记在 `platform_approval.approval_tasks`，由定时作业判定（ShedLock 保证单节点执行）。因此 JVM 时区须为 UTC（应用启动时校验），各节点系统时间须经 NTP 同步（同步方式与偏差阈值由 one-ops 核定）；数据库时间偏差不影响审批业务时刻。行级 `created_at` / `updated_at` 列目前仍取数据库默认时间，由 R-4 去掉。不得用改机器时间的方式演练「时间穿越」，只在测试中替换时钟。
+- **审批时刻只有一个时间来源**（FLW-1，RULE-386）：审批任务的创建、领取、完成、截止、提醒、升级、改派与流程归档截止日都取应用注入的时钟（UTC）；流程引擎在构建时接上同一个时钟（`FlowableEngineClock`），不读数据库的 `now()`，其时钟不可被改写或重置。时限不靠引擎计时器：截止、提醒、升级记在 `platform_approval.approval_tasks`，由定时作业判定（ShedLock 保证单节点执行）。因此 JVM 时区须为 UTC（应用启动时校验），各节点系统时间须经 NTP 同步（同步方式与偏差阈值见本节「节点时间同步」）；数据库时间偏差不影响审批业务时刻。行级 `created_at` / `updated_at` 列目前仍取数据库默认时间，由 R-4 去掉。不得用改机器时间的方式演练「时间穿越」，只在测试中替换时钟。
 - **指标命名**：`forcitis.<子域>.<bc>.…`，例如 `forcitis.platform.integration.deliveries.dead.letters`；看板和告警规则用新名字。
 - **新增 schema**：`organization_attendance`（工作日历），已写入 `one_db_roles_schemas.sql`；上线前需在每个环境执行该脚本中对应的建 schema 与授权语句，再启动应用。
 - **工作日历要先维护**：依赖工作日历的计算（审批时限等）在所属年份没有维护时失败（提交本身已成功，失败的是审批发起，单据保持已提交，补录日历后重投）并记 `ALERT` 日志与指标 `forcitis.organization.attendance.calendar.unmaintained`；管理员用 `PUT /api/v1/organization/work-calendars/{年}` 维护（权限 `organization.attendance:work-calendar:update`），每年底前维护下一年。

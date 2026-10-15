@@ -91,7 +91,7 @@ class JdbcSyncRunRepository implements SyncRunRepository {
                 .param("l", s == null ? null : s.employedWithoutWecomCount(), Types.INTEGER)
                 .param("heldReason", run.heldReason(), Types.VARCHAR)
                 .param("failureReason", truncate(run.failureReason()), Types.VARCHAR)
-                .param("releasedBy", run.releasedBy() == null ? null : run.releasedBy().value(), Types.BIGINT)
+                .param("releasedBy", run.releasedBy() == null ? null : run.releasedBy().value(), Types.OTHER)
                 .param("releasedAt", run.releasedAt() == null ? null : Timestamp.from(run.releasedAt()), Types.TIMESTAMP)
                 .param("releasedByRun", run.releasedByRunId() == null ? null : run.releasedByRunId().value(), Types.OTHER)
                 .param("holdKinds", run.holdKinds().stream().map(Enum::name).toArray(String[]::new))

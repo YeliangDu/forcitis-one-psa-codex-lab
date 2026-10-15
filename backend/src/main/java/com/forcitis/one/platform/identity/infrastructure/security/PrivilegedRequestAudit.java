@@ -1,6 +1,5 @@
 package com.forcitis.one.platform.identity.infrastructure.security;
 
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
@@ -40,7 +39,7 @@ class PrivilegedRequestAudit implements WebMvcConfigurer, HandlerInterceptor {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication instanceof IdentityAuthentication identity && identity.modeAt(clock.instant()) == SessionMode.ADMINISTRATOR
                 && (writes(request) || readsAuthorisationData(request))) {
-            audit.recordIndependently(new AuditEntry("platform.identity.privileged.request", new UserId(identity.userIdValue()), null,
+            audit.recordIndependently(new AuditEntry("platform.identity.privileged.request", identity.account().orElse(null), null,
                     "request:" + request.getMethod() + " " + request.getRequestURI(), null)
                     .withTrace(origin.address(), AuditOutcome.SUCCEEDED, identity.loginMethod().name()));
         }

@@ -17,6 +17,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -55,7 +56,7 @@ class JdbcEmergencyAdminRepository implements EmergencyAdminRepository {
 
     private static EmergencyAdmin row(ResultSet rs) throws SQLException {
         OffsetDateTime lockedUntil = rs.getObject("locked_until", OffsetDateTime.class);
-        return EmergencyAdmin.restore(new UserId(rs.getLong("user_id")), rs.getString("account_name"), rs.getString("password_hash"),
+        return EmergencyAdmin.restore(new UserId(rs.getObject("user_id", UUID.class)), rs.getString("account_name"), rs.getString("password_hash"),
                 rs.getString("totp_secret_encrypted"), rs.getLong("last_totp_step"), rs.getInt("failed_attempts"),
                 lockedUntil == null ? null : lockedUntil.toInstant(), rs.getBoolean("is_enabled"), rs.getLong("version"),
                 rs.getLong("event_count"));

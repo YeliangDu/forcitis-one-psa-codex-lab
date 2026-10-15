@@ -1,5 +1,6 @@
 package com.forcitis.one.scenario;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.platform.identity.IdentityIntegrationTest;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
@@ -108,7 +109,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
 
     private SyncResult syncWith(List<SourcePerson> people) {
         when(orgSource.readSnapshot()).thenReturn(source(List.of(unit(1, null), unit(2, 1L)), List.of(head(2, 1)), List.of(post(100)), people));
-        try (WorkContext.Scope acting = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.test")) {
+        try (WorkContext.Scope acting = WorkContext.enter(UUID.randomUUID(), null, "test.organization.workforce")) {
             return sync.execute(SyncTrigger.SCHEDULED, false);
         }
     }
@@ -208,11 +209,11 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
         assertThat(status(held)).isEqualTo("RELEASED");
         assertThat(employment(1)).isEqualTo("SEPARATED");
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("organization.workforce.sync-run.released")).singleElement().satisfies(entry -> {
-            assertThat(entry.actorId()).isEqualTo(new UserId(2));
+            assertThat(entry.actorId()).isEqualTo(TestAccounts.account(2));
             assertThat(entry.detail()).contains("leaver confirmed by HR").contains("session mode: ADMINISTRATOR").contains("held: 1")
                     .contains("applied: 1").contains("remaining super_admin: 1");
         });
-        assertThat(output.getAll()).contains("ALERT organization.workforce sync run " + held + " released by user 2");
+        assertThat(output.getAll()).contains("ALERT organization.workforce sync run " + held + " released by user " + TestAccounts.account(2).value());
     }
 
     @Test

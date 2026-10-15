@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static com.forcitis.one.platform.approval.OrdinarySessions.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -60,17 +61,18 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instance = start(key, initiator, manager);
         ApprovalTaskId task = openTaskId(instance);
 
-        claimTask.execute(task, new UserId(manager), OptionalLong.empty());
-        releaseTask.execute(task, new UserId(manager), OptionalLong.empty());
-        claimTask.execute(task, new UserId(manager), OptionalLong.empty());
-        transferTask.execute(task, new UserId(manager), new EmployeeId(colleague), "on leave", OptionalLong.empty());
-        reassignTask.execute(task, new UserId(ADMINISTRATOR), new EmployeeId(manager), "back again", OptionalLong.empty());
-        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "fine")), OptionalLong.empty());
+        claimTask.execute(task, TestAccounts.account(manager), OptionalLong.empty());
+        releaseTask.execute(task, TestAccounts.account(manager), OptionalLong.empty());
+        claimTask.execute(task, TestAccounts.account(manager), OptionalLong.empty());
+        transferTask.execute(task, TestAccounts.account(manager), new EmployeeId(colleague), "on leave", OptionalLong.empty());
+        reassignTask.execute(task, TestAccounts.account(ADMINISTRATOR), new EmployeeId(manager), "back again", OptionalLong.empty());
+        decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "fine")), OptionalLong.empty());
 
         assertThat(actionsOf(key)).containsExactly("CLAIMED", "RELEASED", "CLAIMED", "TRANSFERRED", "REASSIGNED", "APPROVED");
         assertThat(jdbc.queryForMap("select actor_id, on_behalf_of_id, assignee_id, record_reason from platform_approval.approval_task_records"
                 + " where document_key = ? and action_kind = 'REASSIGNED'", key))
-                .containsEntry("actor_id", ADMINISTRATOR).containsEntry("on_behalf_of_id", colleague).containsEntry("assignee_id", manager)
+                .containsEntry("actor_id", TestAccounts.account(ADMINISTRATOR).value()).containsEntry("on_behalf_of_id", TestAccounts.account(colleague).value())
+                .containsEntry("assignee_id", TestAccounts.account(manager).value())
                 .containsEntry("record_reason", "back again");
         assertThat(jdbc.queryForMap("select node_name, round_number, record_reason from platform_approval.approval_task_records"
                 + " where document_key = ? and action_kind = 'APPROVED'", key)).containsEntry("round_number", 1).containsEntry("record_reason", "fine");
@@ -84,9 +86,9 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
         long manager = newId();
         organisation.unit(unit, null, null).person(initiator, unit, null).person(manager, unit, null);
         String key = newKey("append");
-        claimTask.execute(openTaskId(start(key, initiator, manager)), new UserId(manager), OptionalLong.empty());
+        claimTask.execute(openTaskId(start(key, initiator, manager)), TestAccounts.account(manager), OptionalLong.empty());
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.update("update platform_approval.approval_task_records set actor_id = 1 where document_key = ?", key))
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.update("update platform_approval.approval_task_records set actor_id = '01900000-0000-7000-8000-000000000001' where document_key = ?", key))
                 .isInstanceOf(org.springframework.dao.DataAccessException.class);
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.update("delete from platform_approval.approval_task_records where document_key = ?", key))
                 .isInstanceOf(org.springframework.dao.DataAccessException.class);
@@ -105,18 +107,18 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
         organisation.unit(unit, null, null).person(initiator, unit, null).person(manager, unit, null).person(colleague, unit, null);
         String key = newKey("history");
         ApprovalTaskId task = openTaskId(start(key, initiator, manager));
-        claimTask.execute(task, new UserId(manager), OptionalLong.empty());
-        transferTask.execute(task, new UserId(manager), new EmployeeId(colleague), "on leave", OptionalLong.empty());
-        decideTasks.execute(new UserId(colleague), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "fine")), OptionalLong.empty());
+        claimTask.execute(task, TestAccounts.account(manager), OptionalLong.empty());
+        transferTask.execute(task, TestAccounts.account(manager), new EmployeeId(colleague), "on leave", OptionalLong.empty());
+        decideTasks.execute(TestAccounts.account(colleague), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "fine")), OptionalLong.empty());
 
-        mvc.perform(get("/api/v1/platform/approval-tasks/" + task.value()).with(user(String.valueOf(initiator)))).andExpect(status().isOk())
+        mvc.perform(get("/api/v1/platform/approval-tasks/" + task.value()).with(user(TestAccounts.account(initiator).value().toString()))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.history.length()").value(3))
                 .andExpect(jsonPath("$.history[0].action").value("CLAIMED"))
                 .andExpect(jsonPath("$.history[1].action").value("TRANSFERRED"))
-                .andExpect(jsonPath("$.history[1].actorId").value(String.valueOf(manager)))
+                .andExpect(jsonPath("$.history[1].actorId").value(TestAccounts.account(manager).value().toString()))
                 .andExpect(jsonPath("$.history[1].assigneeName").exists())
                 .andExpect(jsonPath("$.history[2].action").value("APPROVED"));
-        mvc.perform(get(RECORDS).with(user(String.valueOf(manager)))).andExpect(status().isOk())
+        mvc.perform(get(RECORDS).with(user(TestAccounts.account(manager).value().toString()))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(2))
                 .andExpect(jsonPath("$.items[0].action").value("TRANSFERRED"))
                 .andExpect(jsonPath("$.items[1].action").value("CLAIMED"));
@@ -131,24 +133,24 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
         organisation.unit(unit, null, null).person(initiator, unit, null).person(manager, unit, null);
         for (int i = 0; i < 3; i++) {
             ApprovalTaskId task = openTaskId(start(newKey("done"), initiator, manager));
-            claimTask.execute(task, new UserId(manager), OptionalLong.empty());
-            decideTasks.execute(new UserId(manager), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "ok " + i)), OptionalLong.empty());
+            claimTask.execute(task, TestAccounts.account(manager), OptionalLong.empty());
+            decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "ok " + i)), OptionalLong.empty());
         }
 
-        String first = mvc.perform(get(RECORDS).param("limit", "4").with(user(String.valueOf(manager)))).andExpect(status().isOk())
+        String first = mvc.perform(get(RECORDS).param("limit", "4").with(user(TestAccounts.account(manager).value().toString()))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(4)).andExpect(jsonPath("$.items[0].action").value("APPROVED"))
-                .andExpect(jsonPath("$.items[0].reason").value("ok 2")).andExpect(jsonPath("$.items[0].actorId").value(String.valueOf(manager)))
+                .andExpect(jsonPath("$.items[0].reason").value("ok 2")).andExpect(jsonPath("$.items[0].actorId").value(TestAccounts.account(manager).value().toString()))
                 .andExpect(jsonPath("$.items[0].recordId").exists()).andExpect(jsonPath("$.items[0].nodeName").exists())
                 .andExpect(jsonPath("$.items[0].round").value(1)).andExpect(jsonPath("$.nextCursor").exists())
                 .andReturn().getResponse().getContentAsString();
         String cursor = com.jayway.jsonpath.JsonPath.read(first, "$.nextCursor");
 
-        mvc.perform(get(RECORDS).param("limit", "4").param("cursor", cursor).with(user(String.valueOf(manager)))).andExpect(status().isOk())
+        mvc.perform(get(RECORDS).param("limit", "4").param("cursor", cursor).with(user(TestAccounts.account(manager).value().toString()))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(2)).andExpect(jsonPath("$.items[0].reason").value("ok 0"))
                 .andExpect(jsonPath("$.nextCursor").doesNotExist());
-        mvc.perform(get(RECORDS).param("cursor", "not-a-cursor").with(user(String.valueOf(manager)))).andExpect(status().isBadRequest());
-        mvc.perform(get(RECORDS).param("limit", "0").with(user(String.valueOf(manager)))).andExpect(status().isBadRequest());
-        mvc.perform(get(RECORDS).with(user(String.valueOf(initiator)))).andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(0));
+        mvc.perform(get(RECORDS).param("cursor", "not-a-cursor").with(user(TestAccounts.account(manager).value().toString()))).andExpect(status().isBadRequest());
+        mvc.perform(get(RECORDS).param("limit", "0").with(user(TestAccounts.account(manager).value().toString()))).andExpect(status().isBadRequest());
+        mvc.perform(get(RECORDS).with(user(TestAccounts.account(initiator).value().toString()))).andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(0));
     }
 
     @Test
@@ -165,14 +167,14 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
                 List.of(new com.forcitis.one.platform.approval.api.ApprovalField(
                         com.forcitis.one.cost.timesheet.api.TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(first), String.valueOf(second)))))));
         ApprovalTaskId task = new ApprovalTaskId(taskService.createTaskQuery().processInstanceBusinessKey("TIMESHEET:" + key)
-                .taskCandidateOrAssigned(String.valueOf(first)).singleResult().getId());
+                .taskCandidateOrAssigned(TestAccounts.account(first).value().toString()).singleResult().getId());
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> reassignTask.execute(task, new UserId(ADMINISTRATOR), new EmployeeId(second), "swap", OptionalLong.empty()))
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> reassignTask.execute(task, TestAccounts.account(ADMINISTRATOR), new EmployeeId(second), "swap", OptionalLong.empty()))
                 .isInstanceOf(com.forcitis.one.kernel.DomainException.class);
 
         String overview = "/api/v1/platform/approval-task-overviews";
-        mvc.perform(get(overview).param("limit", "1").with(user(String.valueOf(ADMINISTRATOR)))).andExpect(status().isOk())
+        mvc.perform(get(overview).param("limit", "1").with(user(TestAccounts.account(ADMINISTRATOR).value().toString()))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(1)).andExpect(jsonPath("$.nextCursor").exists());
-        mvc.perform(get(overview).with(user(String.valueOf(first)))).andExpect(status().isForbidden());
+        mvc.perform(get(overview).with(user(TestAccounts.account(first).value().toString()))).andExpect(status().isForbidden());
     }
 }

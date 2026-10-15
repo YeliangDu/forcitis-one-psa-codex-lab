@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.numbering.domain;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -26,9 +27,9 @@ class NumberingRuleStateMachineTest {
     static final NumberingPattern OTHER = new NumberingPattern("{TYPE}-{yyyy}-{seq:5}", ResetPolicy.YEARLY);
     static final LocalDate DAY = LocalDate.parse("2026-10-15");
     static final Instant AT = Instant.parse("2026-10-14T08:00:00Z");
-    static final UserId AUTHOR = new UserId(11);
-    static final UserId CONFIRMER = new UserId(12);
-    static final UserId FINANCE = new UserId(13);
+    static final UserId AUTHOR = TestAccounts.account(11);
+    static final UserId CONFIRMER = TestAccounts.account(12);
+    static final UserId FINANCE = TestAccounts.account(13);
 
     static TemplateVersion pending(int number, UserId author) {
         return new TemplateVersion(number, TEMPLATE, 1, DAY, author, AT, VersionStatus.PENDING_CONFIRMATION, null, null, null, null);
@@ -134,7 +135,7 @@ class NumberingRuleStateMachineTest {
 
         NumberingRule voucher = rule(DocumentType.JOURNAL_VOUCHER, pending(1, AUTHOR));
         voucher.confirm(CONFIRMER, AT, DAY, new RuleVersion(1));
-        assertThat(refusal(() -> voucher.confirm(new UserId(99), AT, DAY, new RuleVersion(1))).errorCode())
+        assertThat(refusal(() -> voucher.confirm(TestAccounts.account(99), AT, DAY, new RuleVersion(1))).errorCode())
                 .isEqualTo(NumberingError.PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL);
     }
 

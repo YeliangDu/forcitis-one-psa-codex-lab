@@ -59,7 +59,7 @@ class SourceReferenceConstraintIT extends AcceptanceSupport {
     @BeforeEach
     void oneRowWrittenByTheService() throws Exception {
         SourceReferencesProbe references = SourceReferencesProbe.of(context);
-        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.sync")) {
+        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
             references.allocate("ORG_SOURCE", "EMPLOYEE", -8_000_001L);
         }
         integration = schemaConnection("platform_integration");

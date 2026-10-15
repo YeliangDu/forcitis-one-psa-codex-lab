@@ -84,8 +84,8 @@ class TaskDeadline {
 
     private void escalate(ApprovalRequest request, TaskView view, Moment now) {
         List<UserId> holders = holders(view);
-        UserId superior = view.assignee().map(accountEmployees::employeeOf).flatMap(org::findSupervisor)
-                .filter(supervisor -> !supervisor.equals(view.initiator())).map(accountEmployees::accountOf)
+        UserId superior = view.assignee().flatMap(accountEmployees::employeeOf).flatMap(org::findSupervisor)
+                .filter(supervisor -> !supervisor.equals(view.initiator())).flatMap(accountEmployees::accountOf)
                 .filter(supervisor -> !holders.contains(supervisor)).orElse(null);
         boolean toAdministrator = superior == null;
         List<UserId> receivers = toAdministrator ? administratorsFor(view, holders) : List.of(superior);
@@ -98,7 +98,7 @@ class TaskDeadline {
     }
 
     private List<UserId> administratorsFor(TaskView view, List<UserId> holders) {
-        List<UserId> fallback = administrator.holders().stream().sorted(Comparator.comparingLong(UserId::value)).toList();
+        List<UserId> fallback = administrator.holders().stream().sorted(Comparator.comparing(id -> id.value().toString())).toList();
         if (fallback.isEmpty()) {
             meters.counter("forcitis.platform.approval.task.escalation.unresolved").increment();
             log.error("Task {} is overdue and nobody can take it from {}: nobody holds the process administrator role", view.taskId().value(),
@@ -116,6 +116,6 @@ class TaskDeadline {
     }
 
     private static List<UserId> holders(TaskView view) {
-        return view.assignee().map(List::of).orElseGet(() -> view.candidates().stream().sorted(Comparator.comparingLong(UserId::value)).toList());
+        return view.assignee().map(List::of).orElseGet(() -> view.candidates().stream().sorted(Comparator.comparing(id -> id.value().toString())).toList());
     }
 }

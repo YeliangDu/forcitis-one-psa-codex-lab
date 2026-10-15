@@ -1,5 +1,6 @@
 package com.forcitis.one.cost.timesheet.application;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -49,7 +50,7 @@ import org.junit.jupiter.api.Test;
  * timesheet's employee against the account would let that one through.
  */
 class TimesheetOwnerGateTest {
-    static final UserId ACCOUNT = new UserId(6001);
+    static final UserId ACCOUNT = TestAccounts.account(6001);
     static final EmployeeId EMPLOYEE = new EmployeeId(1001);
     static final EmployeeId OWNER_OF_THE_ACCOUNT_NUMBER = new EmployeeId(6001);
     static final TimesheetId ID = new TimesheetId(TestIds.uuid(7));

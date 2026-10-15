@@ -230,6 +230,7 @@ components:
             items:
               type: string
               x-type: UserId
+              format: uuid
           summary:
             type: object
             properties:
@@ -290,6 +291,7 @@ components:
           claimedBy:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
       x-event:
         eventType: platform.approval.TaskClaimed
@@ -348,6 +350,7 @@ components:
           assignee:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           outcome:
             type: string
@@ -424,10 +427,12 @@ components:
           from:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           to:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           reason:
             type: object
@@ -498,6 +503,7 @@ components:
             items:
               type: string
               x-type: UserId
+              format: uuid
             description: 被提醒的人
       x-event:
         eventType: platform.approval.ApprovalTaskOverdue
@@ -555,6 +561,7 @@ components:
             items:
               type: string
               x-type: UserId
+              format: uuid
           target:
             type: string
             enum:
@@ -616,6 +623,7 @@ components:
           releasedBy:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
       x-event:
         eventType: platform.approval.TaskReleased
@@ -672,10 +680,12 @@ components:
           from:
             type: string
             x-type: UserId
+            format: uuid
             description: 原处理人，没人持有时为空
           to:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
           reason:
             type: object

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -72,7 +73,7 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
                 .as("the start recorded the round and one task in one save").containsEntry("version", 1L).containsEntry("event_count", 2L);
         tx.executeWithoutResult(s -> {
             ApprovalRequest request = requests.findForUpdate(ProcessKey.COST_TIMESHEET_APPROVAL, document(key)).orElseThrow();
-            request.claimTask(new ApprovalTaskId(openTask(instance).getId()), new UserId(manager), NOW);
+            request.claimTask(new ApprovalTaskId(openTask(instance).getId()), TestAccounts.account(manager), NOW);
             requests.save(request);
         });
         assertThat(jdbc.queryForMap("select version, event_count from platform_approval.approval_requests where document_key = ?", key))
@@ -114,15 +115,15 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
         ApprovalRequest stale = tx.execute(s -> requests.find(ProcessKey.COST_TIMESHEET_APPROVAL, document(key)).orElseThrow());
         tx.executeWithoutResult(s -> {
             ApprovalRequest loaded = requests.findForUpdate(ProcessKey.COST_TIMESHEET_APPROVAL, document(key)).orElseThrow();
-            loaded.claimTask(task, new UserId(manager), NOW);
+            loaded.claimTask(task, TestAccounts.account(manager), NOW);
             requests.save(loaded);
         });
-        stale.claimTask(task, new UserId(initiator), NOW);
+        stale.claimTask(task, TestAccounts.account(initiator), NOW);
 
         assertThatThrownBy(() -> tx.executeWithoutResult(s -> requests.save(stale))).isInstanceOfSatisfying(DomainException.class,
                 e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE));
-        assertThat(jdbc.queryForObject("select assignee_id from platform_approval.approval_tasks where task_id = ?", Long.class, task.value()))
-                .isEqualTo(manager);
+        assertThat(jdbc.queryForObject("select assignee_id from platform_approval.approval_tasks where task_id = ?", java.util.UUID.class, task.value()))
+                .isEqualTo(TestAccounts.account(manager).value());
     }
 
     @Test

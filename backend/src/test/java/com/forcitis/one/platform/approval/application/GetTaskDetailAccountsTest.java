@@ -31,15 +31,15 @@ import org.junit.jupiter.api.Test;
  */
 class GetTaskDetailAccountsTest {
     static final EmployeeId INITIATOR = new EmployeeId(1001);
-    static final UserId INITIATORS_ACCOUNT = new UserId(6001);
-    static final UserId HANDLER = new UserId(6002);
-    static final UserId ACCOUNT_NUMBERED_LIKE_THE_INITIATOR = new UserId(1001);
+    static final UserId INITIATORS_ACCOUNT = TestAccounts.account(1001);
+    static final UserId HANDLER = TestAccounts.account(1002);
+    static final UserId ACCOUNT_NUMBERED_LIKE_THE_INITIATOR = TestAccounts.unknownAccount(1001);
     static final Instant NOW = Instant.parse("2026-10-14T02:00:00Z");
 
     final ApprovalEngine engine = mock(ApprovalEngine.class);
     final ApprovalTaskQueries tasks = mock(ApprovalTaskQueries.class);
     final BusinessTime time = mock(BusinessTime.class);
-    final GetTaskDetail detail = new GetTaskDetail(engine, tasks, OpenTasks.employed(1001, 1002), time, TestAccounts.apart(5000));
+    final GetTaskDetail detail = new GetTaskDetail(engine, tasks, OpenTasks.employed(1001, 1002), time, TestAccounts.everyoneHasOne());
 
     GetTaskDetailAccountsTest() {
         when(time.now()).thenReturn(NOW);

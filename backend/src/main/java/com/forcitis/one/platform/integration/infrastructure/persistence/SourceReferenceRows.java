@@ -22,16 +22,14 @@ final class SourceReferenceRows {
     }
 
     static SourceReference map(ResultSet rs) throws SQLException {
-        long registeredBy = rs.getLong("created_by");
-        boolean hasRegistrant = !rs.wasNull();
-        long decidedBy = rs.getLong("decided_by");
-        boolean hasDecider = !rs.wasNull();
+        UUID registeredBy = rs.getObject("created_by", UUID.class);
+        UUID decidedBy = rs.getObject("decided_by", UUID.class);
         Timestamp decidedAt = rs.getTimestamp("decided_at");
         return SourceReference.restore(new SourceReferenceId(rs.getObject("source_reference_id", UUID.class)),
                 ExternalSource.valueOf(rs.getString("source_system")), SourceObjectKind.valueOf(rs.getString("source_object_kind")),
                 new SourceObjectId(rs.getLong("source_id")), new OwnObjectId(rs.getObject("own_id", UUID.class)), rs.getObject("effective_from_date", LocalDate.class),
-                rs.getObject("effective_to_date", LocalDate.class), hasRegistrant ? new UserId(registeredBy) : null,
-                rs.getString("confirmation_status"), hasDecider ? new UserId(decidedBy) : null, decidedAt == null ? null : decidedAt.toInstant(),
+                rs.getObject("effective_to_date", LocalDate.class), registeredBy == null ? null : new UserId(registeredBy),
+                rs.getString("confirmation_status"), decidedBy == null ? null : new UserId(decidedBy), decidedAt == null ? null : decidedAt.toInstant(),
                 rs.getLong("version"), rs.getLong("event_count"));
     }
 }

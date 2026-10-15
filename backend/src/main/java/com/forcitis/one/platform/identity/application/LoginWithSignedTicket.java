@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
-import com.forcitis.one.kernel.AccountEmployees;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
@@ -32,13 +32,11 @@ public class LoginWithSignedTicket {
     private final OneTimeCredentials credentials;
     private final OrgDirectory directory;
     private final AccountRepository accounts;
-    private final AccountEmployees accountEmployees;
     private final LoginAdmission admission;
     private final Clock clock;
 
     LoginWithSignedTicket(TicketIssuerRepository issuers, IssuerKeys keys, OneTimeCredentials credentials, OrgDirectory directory,
-            AccountRepository accounts, LoginAdmission admission, AccountEmployees accountEmployees, Clock clock) {
-        this.accountEmployees = accountEmployees;
+            AccountRepository accounts, LoginAdmission admission, Clock clock) {
         this.issuers = issuers;
         this.keys = keys;
         this.credentials = credentials;
@@ -81,20 +79,21 @@ public class LoginWithSignedTicket {
             return admission.reject(IdentityError.PLATFORM_IDENTITY_TICKET_REPLAYED, method, null,
                     "nonce already used, issuer " + issuer.issuerCode());
         }
-        UserId userId;
+        EmployeeId subject;
         try {
-            userId = new UserId(ticket.subject());
+            subject = new EmployeeId(ticket.subject());
         } catch (IllegalArgumentException zeroId) {
             return invalid(method, "bad subject");
         }
-        Optional<EmployeeProfile> employee = directory.findEmployee(accountEmployees.employeeOf(userId));
+        Optional<EmployeeProfile> employee = directory.findEmployee(subject);
         if (employee.isEmpty()) {
             return invalid(method, "subject is not an employee");
         }
         Optional<IdentityError> refused = admission.check(employee.get());
         if (refused.isPresent()) {
-            return admission.reject(refused.get(), method, userId, refused.get().name() + ", issuer " + issuer.issuerCode());
+            return admission.reject(refused.get(), method, admission.accountOf(employee.get()), refused.get().name() + ", issuer " + issuer.issuerCode());
         }
+        UserId userId = admission.accountOf(employee.get());
         AccessProfile profile = AccessProfile.of(accounts.findEnabledRoles(userId));
         if (profile.isAdministrator()) {
             return admission.reject(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED, method, userId,

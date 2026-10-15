@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -54,6 +55,7 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instanceOfB = start(documentOfB, userB, manager);
         Map<String, Object> before = variablesOf(instanceOfB);
 
+        actAs(userA);
         assertThatThrownBy(() -> tx.executeWithoutResult(status -> approvals.start(startRequest(documentOfB, new EmployeeId(userA), Set.of("needs-seal"),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(userA))))))))
                 .isInstanceOf(AccessDeniedException.class);
@@ -66,7 +68,28 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
                 documentOfB)).isEqualTo(1);
         assertThat(requestStatus(documentOfB)).isEqualTo("RUNNING");
         verify(audit, atLeastOnce()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.start.denied")
-                && entry.actorId().equals(new UserId(userA))));
+                && entry.actorId().equals(TestAccounts.account(userA))));
+    }
+
+    @Test
+    @DisplayName("P2 recheck L-4 a refused start is audited with the signed-in caller, not with the initiator the request names")
+    void theRefusalNamesTheCallerNotTheInitiatorInTheRequest() {
+        long userA = newId();
+        long userB = newId();
+        long caller = newId();
+        long manager = newId();
+        organisation.person(userA, 1, null).person(userB, 1, null).person(caller, 1, null).person(manager, 1, null);
+        String documentOfB = newKey("ownership");
+        start(documentOfB, userB, manager);
+
+        actAs(caller);
+        assertThatThrownBy(() -> tx.executeWithoutResult(status -> approvals.start(startRequest(documentOfB, new EmployeeId(userA), Set.of(), List.of()))))
+                .isInstanceOf(AccessDeniedException.class);
+
+        verify(audit, atLeastOnce()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.start.denied")
+                && entry.actorId().equals(TestAccounts.account(caller))));
+        verify(audit, org.mockito.Mockito.never()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.start.denied")
+                && TestAccounts.account(userA).equals(entry.actorId())));
     }
 
     @Test
@@ -78,17 +101,19 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
         organisation.person(userA, 1, null).person(userB, 1, null).person(manager, 1, null);
         String documentOfB = newKey("ownership");
         ApprovalInstanceId round1 = start(documentOfB, userB, manager);
-        decideTasks.execute(new UserId(manager), List.of(new TaskDecision(openTaskId(round1), DecisionOutcome.REJECT, "fix it")), java.util.OptionalLong.empty());
+        decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(openTaskId(round1), DecisionOutcome.REJECT, "fix it")), java.util.OptionalLong.empty());
         assertThat(requestStatus(documentOfB)).isEqualTo("RETURNED");
         assertThat(taskService.createTaskQuery().processInstanceId(round1.value()).count()).as("nothing is parked at the initiator").isZero();
+        actAs(userA);
         assertThatThrownBy(() -> tx.executeWithoutResult(status -> approvals.start(startRequest(documentOfB, new EmployeeId(userA), Set.of(), List.of()))))
                 .isInstanceOf(AccessDeniedException.class);
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
 
         assertThat(requestStatus(documentOfB)).isEqualTo("RETURNED");
         assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where document_key = ?", Integer.class,
                 documentOfB)).isEqualTo(1);
         verify(audit, atLeastOnce()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.start.denied")
-                && entry.actorId().equals(new UserId(userA))));
+                && entry.actorId().equals(TestAccounts.account(userA))));
 
         ApprovalInstanceId round2 = start(documentOfB, userB, manager);
         assertThat(round2).isNotEqualTo(round1);

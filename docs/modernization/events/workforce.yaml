@@ -134,6 +134,7 @@ components:
           releasedBy:
             type: string
             x-type: UserId
+            format: uuid
             description: 稳定 ID 的字符串形式
       x-event:
         eventType: organization.workforce.SyncRunHoldReleased

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
@@ -28,10 +29,11 @@ import org.springframework.stereotype.Service;
  * AccountSeparated fact in its own transaction. The per-request check (SessionPrincipals) holds even if this event is late or lost,
  * so session revocation does not depend on it.
  */
+@SystemActorName("platform.identity.separation")
 @Service
 public class HandleOrgSnapshotChange {
 
-    private static final String ACTOR = "platform.identity.separation";
+    private static final String ACTOR = HandleOrgSnapshotChange.class.getAnnotation(SystemActorName.class).value();
     private static final int MAX_ATTEMPTS = 3;
 
     private final OrgDirectory directory;
@@ -63,7 +65,7 @@ public class HandleOrgSnapshotChange {
         try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null),
                 ACTOR)) {
             for (EmployeeId separated : event.separatedEmployees()) {
-                separate(accountEmployees.accountOf(separated), "separated in the organisation snapshot");
+                accountEmployees.accountOf(separated).ifPresent(account -> separate(account, "separated in the organisation snapshot"));
             }
             for (EmployeeId changed : event.changedEmployees()) {
                 Optional<EmployeeProfile> employee = directory.findEmployee(changed);
@@ -71,10 +73,9 @@ public class HandleOrgSnapshotChange {
                     continue;
                 }
                 if (employee.get().employmentStatus() == EmploymentStatus.EMPLOYED) {
-                    provisioning.ensureAccount(employee.get());
-                    cache.evict(accountEmployees.accountOf(changed));
+                    provisioning.ensureAccount(employee.get()).ifPresent(cache::evict);
                 } else {
-                    separate(accountEmployees.accountOf(changed), "no longer employed");
+                    accountEmployees.accountOf(changed).ifPresent(account -> separate(account, "no longer employed"));
                 }
             }
         }
