@@ -6,6 +6,20 @@
 
 修改任何一个 yaml 后运行 `./mvnw -B verify`（GlossaryTest 会校验字段、重名和未登记词）与 `python3 docs/modernization/build_all.py`（重新生成本文件）。
 
+## `architecture-acl.yaml`
+
+涉及模块：`organization.workforce`、`platform.integration`。
+
+ADR-0039（防腐层边界）引入的术语（proposed，待业务评审，ADR-0018）。登记会话：one-architecture，2026-10-15。
+
+| id | zh | en | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|
+| `org_source_sync` | 组织来源同步 | OrgSourceSync | 集成层从组织来源系统拉取组织与人员数据、做缩水保护与差异比对、翻译成组织变更集并交组织人事应用的同步机制（含运行记录与运维放行） |  | 取代原 organization.workforce 内的同步运行（SyncRun）机制 |
+| `org_change_set` | 组织变更集 | OrgChangeSet | 集成层翻译成新系统用语后交给组织人事的一批组织单元、员工与任职变更；以同步运行 ID 作幂等键，整批在一个事务内应用 |  |  |
+| `apply_org_change_set` | 应用组织变更 | ApplyOrgChangeSet | 组织人事 api 中唯一的同步入口：应用一份组织变更集，管理员离职挂为待放行离职，其余变更照常生效；同一变更集重复调用返回上次结果 |  |  |
+| `separation_hold` | 待放行离职 | SeparationHold | 会使可用超级管理员少于 2 名、或涉及超级管理员与安全审计员持有人的离职，被单独挂起等待另一名持有人放行的记录（ADR-0027 第 1 项第 7 条、ADR-0028） |  | 权限码 organization.workforce:separation-hold:approve 已用此词（ADR-0028 第 2 条） |
+| `federated_identity` | 联合身份 | FederatedIdentity | 由外部身份提供方（企业微信、致远单点、签名票据签发方）认证、集成层校验并按外部身份对照映射到本系统用户的登录方式；本系统只据此决定能否登录并发会话 |  | 细节待「人员入职到账号开通」身份生命周期研究（ADR-0039 第 3 条） |
+
 ## `contract-evolution.yaml`
 
 涉及模块：`platform.integration`、`platform.scheduling`、`platform.web`。

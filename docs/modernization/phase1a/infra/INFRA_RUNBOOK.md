@@ -258,7 +258,7 @@ DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`han
   - 排查一次操作：拿到响应头 `X-Correlation-Id`，在 SLS 里按 `correlationId` 检索，请求、事件处理、出站投递、发往企业微信的请求用的是同一个值。
 - **关联号**：请求头 `X-Correlation-Id`（必须是 UUID，不是则 400）；没有就生成，并写进响应头。发给企业微信的请求带同一个头（对方忽略也无妨）。
 - **业务时区**：`forcitis.kernel.business-zone`，默认 `Asia/Shanghai`；业务日、工作日历、`businessDate` 都按它截日，时刻一律以 UTC 存储（数据库只允许 `timestamptz`）。
-- **审批时刻只有一个时间来源**（FLW-1，RULE-386）：审批任务的创建、领取、完成、截止、提醒、升级、改派与流程归档截止日都取应用注入的时钟（UTC）；流程引擎在构建时接上同一个时钟（`FlowableEngineClock`），不读数据库的 `now()`，其时钟不可被改写或重置。时限不靠引擎计时器：截止、提醒、升级记在 `platform_approval.approval_tasks`，由定时作业判定（ShedLock 保证单节点执行）。因此 JVM 时区须为 UTC（应用启动时校验），各节点系统时间须经 NTP 同步（同步方式与偏差阈值由 one-ops 核定）；数据库时间偏差不影响审批业务时刻。行级 `created_at` / `updated_at` 列目前仍取数据库默认时间，由 R-4 去掉。不得用改机器时间的方式演练「时间穿越」，只在测试中替换时钟。
+- **审批时刻只有一个时间来源**（FLW-1，RULE-386）：审批任务的创建、领取、完成、截止、提醒、升级、改派与流程归档截止日都取应用注入的时钟（UTC）；流程引擎在构建时接上同一个时钟（`FlowableEngineClock`），不读数据库的 `now()`，其时钟不可被改写或重置。时限不靠引擎计时器：截止、提醒、升级记在 `platform_approval.approval_tasks`，由定时作业判定（ShedLock 保证单节点执行）。因此 JVM 时区须为 UTC（应用启动时校验），各节点系统时间须经 NTP 同步（同步方式与偏差阈值见本节「节点时间同步」）；数据库时间偏差不影响审批业务时刻。行级 `created_at` / `updated_at` 列目前仍取数据库默认时间，由 R-4 去掉。不得用改机器时间的方式演练「时间穿越」，只在测试中替换时钟。
 - **指标命名**：`forcitis.<子域>.<bc>.…`，例如 `forcitis.platform.integration.deliveries.dead.letters`；看板和告警规则用新名字。
 - **新增 schema**：`organization_attendance`（工作日历），已写入 `one_db_roles_schemas.sql`；上线前需在每个环境执行该脚本中对应的建 schema 与授权语句，再启动应用。
 - **工作日历要先维护**：依赖工作日历的计算（审批时限等）在所属年份没有维护时失败（提交本身已成功，失败的是审批发起，单据保持已提交，补录日历后重投）并记 `ALERT` 日志与指标 `forcitis.organization.attendance.calendar.unmaintained`；管理员用 `PUT /api/v1/organization/work-calendars/{年}` 维护（权限 `organization.attendance:work-calendar:update`），每年底前维护下一年。
