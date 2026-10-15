@@ -10,7 +10,7 @@ import com.forcitis.one.platform.integration.infrastructure.connection.Effective
 import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.OverriddenGrant;
 import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.OverridingDeny;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Reason;
-import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.SecurablePermissionRow;
+import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.SecurablePermissionRow;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Unmet;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Verdict;
 import java.sql.SQLException;
@@ -132,6 +132,24 @@ class ReadOnlyBaselineLocatorTest {
                     new GrantLocator("DATABASE_PRINCIPAL", null, null, 7, "ALTER", "G", false, "public", "DATABASE_ROLE"),
                     new GrantLocator("TYPE", null, null, 8, "REFERENCES", "G", true, null, "SQL_USER"));
         });
+    }
+
+    @Test
+    @DisplayName("opus 安全复审 Low-5：Verdict、Unmet、Finding、定位与被拒绝覆盖的授权的 toString 不含库名、schema 名、对象名与 grantee 名，只有原因码、计数与 objectId")
+    void toStringNamesNothing() {
+        catalog.ownUsers.put("msdb", 1L);
+        catalog.reachableDatabases.add("db_secret_marker");
+        catalog.roles.add("role_secret_marker");
+        catalog.securablePermissionRows.add(new SecurablePermissionRow("OBJECT_OR_COLUMN", 4242, "G", "CONTROL", true, DBO, "s_secret_marker",
+                "t_secret_marker", "public", "DATABASE_ROLE"));
+        catalog.securablePermissionRows.add(new SecurablePermissionRow("OBJECT_OR_COLUMN", 4343, "G", "EXECUTE", true, DBO, "s_secret_marker",
+                "p_secret_marker", "public", "DATABASE_ROLE"));
+
+        Verdict verdict = ReadOnlyBaseline.check(catalog);
+
+        assertThat(verdict.overridden()).hasSize(1);
+        assertThat(verdict.toString()).doesNotContain("secret_marker").doesNotContain("msdb").doesNotContain("public\"")
+                .contains("SECURABLE_GRANT_BEYOND_SELECT").contains("objectId=4242").contains("objectId=4343");
     }
 
     @Test

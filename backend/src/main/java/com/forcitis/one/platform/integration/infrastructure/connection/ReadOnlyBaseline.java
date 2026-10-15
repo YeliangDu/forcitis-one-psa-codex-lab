@@ -71,15 +71,6 @@ final class ReadOnlyBaseline {
     record ServerPermissionRow(int securableClass, String classDescription, String state, String permission) {
     }
 
-    /**
-     * A row of sys.database_permissions below the database level (class other than 0), of the login itself or of public on a user securable.
-     * schemaId is the schema the securable belongs to (the schema itself for a schema-level row); a name the catalog does not show is null,
-     * and so is the grantee of the login's own rows, whose user name is its login name.
-     */
-    record SecurablePermissionRow(String classDescription, long majorId, String state, String permission, boolean toPublic, @Nullable Long schemaId,
-            @Nullable String schema, @Nullable String object, @Nullable String grantee, @Nullable String granteeType) {
-    }
-
     record ReachableDatabase(int id, String name) {
 
         boolean system() {
@@ -144,6 +135,12 @@ final class ReadOnlyBaseline {
         Optional<SqlError> sqlError() {
             return Optional.ofNullable(failure);
         }
+
+        /** Never a name: the locators carry database, schema and object names. */
+        @Override
+        public String toString() {
+            return "Finding[reason=" + reason + ", count=" + count + ", failure=" + failure + ", locators=" + locators + "]";
+        }
     }
 
     /** One unmet item; confirmed when the catalog showed a violation, not only an answer it would not give. */
@@ -155,6 +152,12 @@ final class ReadOnlyBaseline {
 
         String described() {
             return "(" + item + ") " + problem;
+        }
+
+        /** Never the problem text: it may name roles and databases. */
+        @Override
+        public String toString() {
+            return "Unmet[item=" + item + ", confirmed=" + confirmed + ", findings=" + findings + "]";
         }
     }
 
@@ -175,6 +178,11 @@ final class ReadOnlyBaseline {
 
         List<String> described() {
             return unmet.stream().map(Unmet::described).toList();
+        }
+
+        @Override
+        public String toString() {
+            return "Verdict[unmet=" + unmet + ", overridden=" + overridden + "]";
         }
     }
 

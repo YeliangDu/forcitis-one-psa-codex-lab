@@ -5,7 +5,6 @@ import static com.forcitis.one.platform.integration.infrastructure.connection.Re
 
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.DatabaseLevelPermission;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Reason;
-import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.SecurablePermissionRow;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -22,11 +21,25 @@ final class EffectiveGrants {
     /** The ruling names object-level and schema-level grants only; a grant on a type, a role or any other class stays a violation. */
     static final Set<String> OVERRIDABLE_CLASSES = Set.of("OBJECT_OR_COLUMN", "SCHEMA");
 
+    /**
+     * A row of sys.database_permissions below the database level (class other than 0), of the login itself or of public on a user securable.
+     * schemaId is the schema the securable belongs to (the schema itself for a schema-level row); a name the catalog does not show is null,
+     * and so is the grantee of the login's own rows, whose user name is its login name.
+     */
+    record SecurablePermissionRow(String classDescription, long majorId, String state, String permission, boolean toPublic, @Nullable Long schemaId,
+            @Nullable String schema, @Nullable String object, @Nullable String grantee, @Nullable String granteeType) {
+    }
+
     /** Where a violation or an overridden grant is; printed by the read-only verification command only, never in a refusal, an ALERT or a log. */
     sealed interface Locator permits DatabaseLocator, GrantLocator {
     }
 
     record DatabaseLocator(String database) implements Locator {
+
+        @Override
+        public String toString() {
+            return "DatabaseLocator";
+        }
     }
 
     /**
@@ -35,6 +48,13 @@ final class EffectiveGrants {
      */
     record GrantLocator(String classDescription, @Nullable String schema, @Nullable String object, long objectId, String permission, String state,
             boolean self, @Nullable String grantee, @Nullable String granteeType) implements Locator {
+
+        /** Numbers and codes only, never a schema, object or grantee name. */
+        @Override
+        public String toString() {
+            return "GrantLocator[class=" + classDescription + ", objectId=" + objectId + ", permission=" + permission + ", state=" + state + ", self=" + self
+                    + ", granteeType=" + granteeType + "]";
+        }
     }
 
     enum OverridingDeny {
