@@ -6,7 +6,7 @@
   python3 backend/glossary/build_proposed_index.py --self-test  解析器与渲染规则自测
 
 由 docs/modernization/build_all.py 调用；build_all.py --check 要求生成后 README.md 无差异。
-CI 的 python3 不带 PyYAML，故只用标准库解析本目录 yaml 用到的子集（块映射、块序列、单行标量、空的 {} 与由简单值组成的单行 [...]），
+CI 的 python3 不带 PyYAML，故只用标准库解析本目录 yaml 用到的子集（块映射、块序列、单行字符串与 true / false / null、空的 {} 与由简单值组成的单行 [...]），
 遇到子集以外的写法即失败，不猜测。
 
 每个 yaml 文件一节：文件开头连续的 # 行是该节导语（每行一段），遇到第一个非 # 行即停止。
@@ -33,6 +33,13 @@ class YamlSubsetError(ValueError):
     pass
 
 
+# SnakeYAML（GlossaryTest）按 YAML 1.1 解析：这些未加引号的值不是字符串，本解析器不解释它们，一律要求加引号
+YAML11_SPECIAL = re.compile(
+    r"y|Y|yes|Yes|YES|n|N|no|No|NO|True|TRUE|False|FALSE|on|On|ON|off|Off|OFF|Null|NULL"
+    r"|[-+]?[0-9][0-9a-fA-FxXoObB_:.eE+-]*"
+    r"|[-+]?\.[0-9][0-9_]*([eE][-+]?[0-9]+)?"
+    r"|[-+]?\.(inf|Inf|INF)|\.(nan|NaN|NAN)"
+    r"|[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}([Tt ].*)?")
 KEY = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*):(?: (.*))?$")
 
 
@@ -60,18 +67,16 @@ def scalar(text, where):
         if re.search(r"(?<!')'(?!')", body.replace("''", "")):
             raise YamlSubsetError(f"{where}: 单引号字符串含未成对的引号")
         return body.replace("''", "'")
-    if text[0] in "[{&*!|>%@`#":
-        raise YamlSubsetError(f"{where}: 不支持以 {text[0]!r} 开头的写法")
-    if " #" in text or text.endswith(":") or ": " in text:
+    if text[0] in "[{&*!|>%@`#" or text[:2] in ("- ", "? ") or text in ("-", "?", "=", "<<"):
+        raise YamlSubsetError(f"{where}: 不支持以 {text[:2]!r} 开头的写法")
+    if re.search(r"\s#", text) or text.endswith(":") or ": " in text:
         raise YamlSubsetError(f"{where}: 未加引号的值含「 #」或「: 」，含义有歧义")
     if text in ("true", "false"):
         return text == "true"
     if text in ("null", "~"):
         return None
-    if re.fullmatch(r"-?[0-9]+", text):
-        return int(text)
-    if re.fullmatch(r"-?[0-9]*\.[0-9]+|\.inf|\.nan|yes|no|on|off|True|False|Null|NULL", text):
-        raise YamlSubsetError(f"{where}: 值 {text!r} 在 YAML 中有特殊含义，请加引号")
+    if YAML11_SPECIAL.fullmatch(text):
+        raise YamlSubsetError(f"{where}: 值 {text!r} 在 YAML 1.1 中会被读成布尔、空、数字或日期，请加引号")
     return text
 
 
@@ -172,15 +177,12 @@ def cell(value):
 
 def dialect_column(term):
     marks, named = [], set()
-    forbidden = [str(f) for f in term.get("forbidden") or []]
+    forbidden = term.get("forbidden") or []
     for alias in term.get("aliases") or []:
-        kind, alias_name = alias.get("type"), str(alias.get("name", ""))
-        if kind == "dialect":
+        kind, alias_name = alias.get("type"), alias.get("name")
+        if kind in ("dialect", "undetermined"):
             banned = alias.get("deprecated") is True or alias_name in forbidden
-            marks.append(f"「{alias_name}」方言" + ("·已禁用" if banned else ""))
-            named.add(alias_name)
-        elif kind == "undetermined":
-            marks.append(f"「{alias_name}」待定" + ("·已禁用" if alias_name in forbidden else ""))
+            marks.append(f"「{alias_name}」" + ("方言" if kind == "dialect" else "待定") + ("·已禁用" if banned else ""))
             named.add(alias_name)
     marks += [f"「{f}」已禁用" for f in forbidden if f not in named]
     return "；".join(marks)
@@ -191,12 +193,27 @@ def section(file_name, text):
     unknown = set(document) - {"terms", "common_words"}
     if unknown:
         raise YamlSubsetError(f"{file_name}: 顶层只允许 terms、common_words，发现 {sorted(unknown)}")
-    terms = document.get("terms") or []
-    common_words = document.get("common_words") or []
+    terms = document.get("terms", [])
+    common_words = document.get("common_words", [])
+    if not isinstance(terms, list) or not isinstance(common_words, list):
+        raise YamlSubsetError(f"{file_name}: terms 与 common_words 须为序列")
+    if not all(isinstance(w, str) for w in common_words):
+        raise YamlSubsetError(f"{file_name}: common_words 的每项须为字符串")
     for index, term in enumerate(terms):
+        where = f"{file_name}: terms[{index}]"
+        if not isinstance(term, dict):
+            raise YamlSubsetError(f"{where} 须为映射")
         missing = [k for k in ("id", "zh", "en", "definition", "kind", "bc") if term.get(k) in (None, "")]
         if missing:
-            raise YamlSubsetError(f"{file_name}: terms[{index}] 缺少 {', '.join(missing)}")
+            raise YamlSubsetError(f"{where} 缺少 {', '.join(missing)}")
+        wrong = [k for k in ("id", "zh", "en", "definition", "kind", "bc", "note") if k in term and not isinstance(term[k], str)]
+        if wrong:
+            raise YamlSubsetError(f"{where} 的 {', '.join(wrong)} 须为字符串")
+        aliases, forbidden = term.get("aliases", []), term.get("forbidden", [])
+        if not isinstance(aliases, list) or not all(isinstance(a, dict) and isinstance(a.get("name"), str) for a in aliases):
+            raise YamlSubsetError(f"{where} 的 aliases 须为带 name 的映射序列")
+        if not isinstance(forbidden, list) or not all(isinstance(f, str) for f in forbidden):
+            raise YamlSubsetError(f"{where} 的 forbidden 须为字符串序列")
     contexts = sorted({t["bc"] for t in terms})
     title = f"{contexts[0]}（`{file_name}`）" if len(contexts) == 1 else f"`{file_name}`"
     out = [f"## {title}", ""]
@@ -236,7 +253,9 @@ def render(files):
 def build():
     files = {}
     for file_name in sorted(os.listdir(PROPOSED)):
-        if file_name.endswith((".yaml", ".yml")):
+        if file_name.endswith(".yml"):
+            sys.exit(f"{file_name}: 提议术语文件须以 .yaml 结尾（GlossaryTest 只读 .yaml）")
+        if file_name.endswith(".yaml"):
             with open(os.path.join(PROPOSED, file_name), encoding="utf-8") as f:
                 files[file_name] = f.read()
     if not files:
@@ -307,6 +326,7 @@ common_words:
     check("导语：首行不是 # 时为空", header_comments("terms: []\n# 不是导语\n"), [])
     check("方言列", dialect_column(parsed["terms"][0]), "「尾差」方言·已禁用；「OH工时」待定；「import_batch」已禁用")
     check("方言列为空", dialect_column({"aliases": [], "forbidden": []}), "")
+    check("待定且已弃用", dialect_column({"aliases": [{"name": "甲", "type": "undetermined", "deprecated": True}]}), "「甲」待定·已禁用")
     check("单元格转义", cell("a|b\nc"), "a\\|b c")
     lines, count = section("kernel.yaml", sample)
     check("错误码不入表", count, 1)
@@ -325,20 +345,33 @@ common_words:
     rejects("锚点", "terms: &x []\n")
     rejects("重复键", "terms: []\nterms: []\n")
     rejects("未闭合引号", "terms:\n- id: \"abc\n")
-    rejects("有歧义的值", "terms:\n- id: yes\n")
+    for special in ("yes", "Yes", "ON", "Off", "NO", "TRUE", "Null", "12", "012", "08", "0x1F", "1_000", "+1", "1:30", "1.", "1.0e+5",
+                    ".5", "-.inf", ".NaN", "2026-10-15", "2026-10-15 10:00"):
+        rejects(f"YAML 1.1 特殊值 {special}", f"terms:\n- id: {special}\n")
+    for odd in ("- x", "? x", "=", "<<", "a\t# c"):
+        rejects(f"有歧义的值 {odd!r}", f"terms:\n- id: {odd}\n")
+    check("普通文本", parse_yaml("a: 20 % 以上\nb: v1.2\nc: ADR-0031\n"), {"a": "20 % 以上", "b": "v1.2", "c": "ADR-0031"})
     rejects("缩进不对齐", "terms:\n- id: a\n   zh: 甲\n")
-    try:
-        section("bad.yaml", "terms:\n- id: a\n  zh: 甲\n")
-        failures.append("缺字段: 应失败但通过")
-    except YamlSubsetError:
-        pass
+    good = "  zh: 甲\n  en: A\n  kind: value\n  bc: x.y\n  definition: d\n"
+    for name, text in (("缺字段", "terms:\n- id: a\n  zh: 甲\n"),
+                       ("common_words 不是序列", "common_words: batch\n"),
+                       ("terms 是映射", "terms: {}\n"),
+                       ("条目不是映射", "terms:\n- a\n"),
+                       ("bc 不是字符串", "terms:\n- id: a\n  zh: 甲\n  en: A\n  kind: value\n  bc: [x]\n  definition: d\n"),
+                       ("别名是字符串", "terms:\n- id: a\n" + good + "  aliases:\n  - 甲\n"),
+                       ("禁用写法是映射", "terms:\n- id: a\n" + good + "  forbidden:\n  - name: 甲\n")):
+        try:
+            section("bad.yaml", text)
+            failures.append(f"{name}: 应失败但通过")
+        except YamlSubsetError:
+            pass
     try:
         import yaml  # 本机有 PyYAML 时，与它逐文件比对解析结果；CI 的 python3 没有，跳过
     except ImportError:
         print("警告：本机无 PyYAML，跳过与 PyYAML 的逐文件比对", file=sys.stderr)
     else:
         for file_name in sorted(os.listdir(PROPOSED)):
-            if file_name.endswith((".yaml", ".yml")):
+            if file_name.endswith(".yaml"):
                 with open(os.path.join(PROPOSED, file_name), encoding="utf-8") as f:
                     text = f.read()
                 try:

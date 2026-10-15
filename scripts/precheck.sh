@@ -87,8 +87,8 @@ if py scripts/ci/relevant_change.py --paths-from "$work/changed" | grep -qx 'rel
 fi
 
 records_dir=$(dirname docs/modernization/build_all.py)
-if [ -n "$(gitq status --porcelain -- "$records_dir")" ]; then
-  report SKIP "generated docs (build_all --check)" "$records_dir has uncommitted changes: commit first, then run again (请先提交再运行)"
+if [ -n "$(gitq status --porcelain -- "$records_dir" backend/glossary/proposed)" ]; then
+  report SKIP "generated docs (build_all --check)" "$records_dir or backend/glossary/proposed has uncommitted changes: commit first, then run again (请先提交再运行)"
 else
   run_step "generated docs (build_all --check)" py docs/modernization/build_all.py --check
 fi
