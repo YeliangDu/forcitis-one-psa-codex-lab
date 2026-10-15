@@ -71,6 +71,7 @@ class OneTimeCredentialConcurrencyIntegrationTest extends IdentityIntegrationTes
     void signedTicketNonce() throws Exception {
         knownEmployee(1001, EmploymentStatus.EMPLOYED);
         createAccount(1001, "employee");
+        organisationSourceKnows(1001);
         jdbc.sql("""
                 insert into platform_identity.ticket_issuers (ticket_issuer_id, issuer_code, signing_key_code, key_reference, is_enabled, allowed_role_codes)
                 values (uuidv7(), 'km', 'km-key-1', 'env:FORCITIS_TICKET_KEY_KM', true, array['employee'])

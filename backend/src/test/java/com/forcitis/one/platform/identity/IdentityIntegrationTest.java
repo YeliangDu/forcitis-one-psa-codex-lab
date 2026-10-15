@@ -58,6 +58,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 
 /** WeCom, the portal ticket check, the organisation directory and the audit trail belong to other modules and are doubles. */
 @SpringBootTest(properties = {
@@ -152,6 +153,9 @@ public abstract class IdentityIntegrationTest {
     @MockitoBean
     protected SsoTicketVerifier ssoVerifier;
 
+    @MockitoBean
+    protected com.forcitis.one.platform.integration.api.TicketSubjects ticketSubjects;
+
 
     @Autowired
     protected MockMvc mvc;
@@ -198,7 +202,7 @@ public abstract class IdentityIntegrationTest {
     }
 
     protected static EmployeeProfile profile(long id, EmploymentStatus status) {
-        return new EmployeeProfile(new EmployeeId(id), "Employee " + id, new OrgUnitId(10), new WecomUserId("wx" + id), status, false);
+        return new EmployeeProfile(TestAccounts.employee(id), "Employee " + id, TestOrgIds.orgUnit(10), new WecomUserId("wx" + id), status, false);
     }
 
     protected EmployeeProfile knownEmployee(long id, EmploymentStatus status) {
@@ -207,7 +211,7 @@ public abstract class IdentityIntegrationTest {
         when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByWecomUser(profile.wecomUserId()))).thenReturn(Optional.of(profile));
         when(orgDirectory.employmentOf(profile.employeeId())).thenReturn(status == EmploymentStatus.EMPLOYED
                 ? com.forcitis.one.organization.workforce.api.EmploymentVerdict.EMPLOYED : com.forcitis.one.organization.workforce.api.EmploymentVerdict.SEPARATED);
-        when(orgDirectory.findOrgUnit(new OrgUnitId(10))).thenReturn(Optional.of(new OrgUnitProfile(new OrgUnitId(10), "Delivery", null, true)));
+        when(orgDirectory.findOrgUnit(TestOrgIds.orgUnit(10))).thenReturn(Optional.of(new OrgUnitProfile(TestOrgIds.orgUnit(10), "Delivery", null, true)));
         return profile;
     }
 
@@ -217,7 +221,7 @@ public abstract class IdentityIntegrationTest {
 
     protected void createAccount(long id, String... roleCodes) {
         jdbc.sql("insert into platform_identity.user_accounts (user_id, employee_id) values (:user, :employee) on conflict do nothing")
-                .param("user", TestAccounts.account(id).value()).param("employee", id).update();
+                .param("user", TestAccounts.account(id).value()).param("employee", TestAccounts.employee(id).value()).update();
         for (String code : roleCodes) {
             jdbc.sql("""
                             insert into platform_identity.account_roles (user_id, role_id)
@@ -225,23 +229,28 @@ public abstract class IdentityIntegrationTest {
                              where a.employee_id = :employee and lower(r.code) = lower(:code)
                             on conflict do nothing
                             """)
-                    .param("employee", id).param("code", code).update();
+                    .param("employee", TestAccounts.employee(id).value()).param("code", code).update();
         }
+    }
+
+    /** The organisation source's person n is test employee n: what the confirmed (ORG_SOURCE, EMPLOYEE) reference of platform.integration answers. */
+    protected void organisationSourceKnows(long person) {
+        org.mockito.Mockito.when(ticketSubjects.employeeOf(String.valueOf(person))).thenReturn(java.util.Optional.of(TestAccounts.employee(person)));
     }
 
     /** The account of employee id, whether the test opened it or a login did. */
     protected java.util.UUID accountOf(long id) {
-        return jdbc.sql("select user_id from platform_identity.user_accounts where employee_id = :id").param("id", id).query(java.util.UUID.class).single();
+        return jdbc.sql("select user_id from platform_identity.user_accounts where employee_id = :id").param("id", TestAccounts.employee(id).value()).query(java.util.UUID.class).single();
     }
 
     /** The account of employee id, or the id the test double would give it when it has none (a path to nobody). */
     protected java.util.UUID accountOrNone(long id) {
-        return jdbc.sql("select user_id from platform_identity.user_accounts where employee_id = :id").param("id", id).query(java.util.UUID.class)
+        return jdbc.sql("select user_id from platform_identity.user_accounts where employee_id = :id").param("id", TestAccounts.employee(id).value()).query(java.util.UUID.class)
                 .optional().orElse(TestAccounts.account(id).value());
     }
 
     protected String accountVersion(long id) {
-        return "\"" + jdbc.sql("select version from platform_identity.user_accounts where employee_id = :id").param("id", id).query(Long.class).optional().orElse(0L) + "\"";
+        return "\"" + jdbc.sql("select version from platform_identity.user_accounts where employee_id = :id").param("id", TestAccounts.employee(id).value()).query(Long.class).optional().orElse(0L) + "\"";
     }
 
     protected String roleVersion(java.util.UUID roleId) {

@@ -13,6 +13,7 @@ import com.forcitis.one.platform.identity.domain.OneTimeCredentials;
 import com.forcitis.one.platform.identity.domain.SignedTicket;
 import com.forcitis.one.platform.identity.domain.TicketIssuer;
 import com.forcitis.one.platform.identity.domain.TicketIssuerRepository;
+import com.forcitis.one.platform.integration.api.TicketSubjects;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -33,16 +34,18 @@ public class LoginWithSignedTicket {
     private final OrgDirectory directory;
     private final AccountRepository accounts;
     private final LoginAdmission admission;
+    private final TicketSubjects subjects;
     private final Clock clock;
 
     LoginWithSignedTicket(TicketIssuerRepository issuers, IssuerKeys keys, OneTimeCredentials credentials, OrgDirectory directory,
-            AccountRepository accounts, LoginAdmission admission, Clock clock) {
+            AccountRepository accounts, LoginAdmission admission, TicketSubjects subjects, Clock clock) {
         this.issuers = issuers;
         this.keys = keys;
         this.credentials = credentials;
         this.directory = directory;
         this.accounts = accounts;
         this.admission = admission;
+        this.subjects = subjects;
         this.clock = clock;
     }
 
@@ -79,13 +82,11 @@ public class LoginWithSignedTicket {
             return admission.reject(IdentityError.PLATFORM_IDENTITY_TICKET_REPLAYED, method, null,
                     "nonce already used, issuer " + issuer.issuerCode());
         }
-        EmployeeId subject;
-        try {
-            subject = new EmployeeId(ticket.subject());
-        } catch (IllegalArgumentException zeroId) {
-            return invalid(method, "bad subject");
+        Optional<EmployeeId> subject = subjects.employeeOf(ticket.subject());
+        if (subject.isEmpty()) {
+            return invalid(method, "subject has no organisation source reference");
         }
-        Optional<EmployeeProfile> employee = directory.findEmployee(subject);
+        Optional<EmployeeProfile> employee = directory.findEmployee(subject.get());
         if (employee.isEmpty()) {
             return invalid(method, "subject is not an employee");
         }

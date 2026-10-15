@@ -42,7 +42,7 @@ class JdbcAccountRepository implements AccountRepository {
                         select user_id, employee_id, status, version, event_count from platform_identity.user_accounts where user_id = :id
                         """)
                 .param("id", userId.value())
-                .query((rs, n) -> UserAccount.restore(new UserId(rs.getObject("user_id", UUID.class)), new EmployeeId(rs.getLong("employee_id")),
+                .query((rs, n) -> UserAccount.restore(new UserId(rs.getObject("user_id", UUID.class)), new EmployeeId(rs.getObject("employee_id", UUID.class)),
                         rs.getString("status"), Set.of(), rs.getLong("version"), rs.getLong("event_count")))
                 .optional();
         if (found.isEmpty()) {
@@ -64,7 +64,7 @@ class JdbcAccountRepository implements AccountRepository {
     @Override
     public Optional<EmployeeId> findEmployee(UserId userId) {
         return jdbc.sql("select employee_id from platform_identity.user_accounts where user_id = :id").param("id", userId.value())
-                .query(Long.class).optional().map(EmployeeId::new);
+                .query(UUID.class).optional().map(EmployeeId::new);
     }
 
     @Override
