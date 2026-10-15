@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
@@ -25,9 +26,11 @@ public class GetTaskDetail {
     private final ApprovalEngine engine;
     private final ApprovalTaskQueries tasks;
     private final OrgDirectory org;
+    private final AccountEmployees accountEmployees;
     private final BusinessTime time;
 
-    GetTaskDetail(ApprovalEngine engine, ApprovalTaskQueries tasks, OrgDirectory org, BusinessTime time) {
+    GetTaskDetail(ApprovalEngine engine, ApprovalTaskQueries tasks, OrgDirectory org, BusinessTime time, AccountEmployees accountEmployees) {
+        this.accountEmployees = accountEmployees;
         this.engine = engine;
         this.tasks = tasks;
         this.org = org;
@@ -46,7 +49,7 @@ public class GetTaskDetail {
             return detail(row, Optional.of(task.nodeName()), task.assignee(), candidates, TaskActors.mayAct(task, viewer), now);
         }
         TaskRecord decided = record.filter(r -> !r.status().isOpen())
-                .filter(r -> r.initiator().equals(viewer) || r.assignee().map(viewer::equals).orElse(false))
+                .filter(r -> r.initiator().equals(accountEmployees.employeeOf(viewer)) || r.assignee().map(viewer::equals).orElse(false))
                 .orElseThrow(() -> ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND.refusal("Task " + taskId.value() + " does not exist"));
         return detail(decided, Optional.empty(), decided.assignee(), List.of(), false, now);
     }
@@ -66,10 +69,10 @@ public class GetTaskDetail {
     }
 
     private String nameOf(UserId user) {
-        return org.findEmployee(user).map(EmployeeProfile::name).orElse(String.valueOf(user.value()));
+        return org.findEmployee(accountEmployees.employeeOf(user)).map(EmployeeProfile::name).orElse(String.valueOf(user.value()));
     }
 
-    private static boolean isParticipant(TaskView task, UserId viewer) {
-        return task.initiator().equals(viewer) || task.assignee().map(viewer::equals).orElse(false) || task.candidates().contains(viewer);
+    private boolean isParticipant(TaskView task, UserId viewer) {
+        return task.initiator().equals(accountEmployees.employeeOf(viewer)) || task.assignee().map(viewer::equals).orElse(false) || task.candidates().contains(viewer);
     }
 }

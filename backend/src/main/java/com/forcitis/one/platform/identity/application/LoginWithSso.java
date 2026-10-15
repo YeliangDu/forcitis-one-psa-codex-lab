@@ -66,8 +66,8 @@ public class LoginWithSso {
         }
         Optional<IdentityError> refused = admission.check(employee.get());
         if (refused.isPresent()) {
-            return admission.reject(refused.get(), method, employee.get().userId(), refused.get().name());
+            return admission.reject(refused.get(), method, admission.accountOf(employee.get()), refused.get().name());
         }
-        return admission.completeFromTicket(employee.get().userId(), method, browserIdentifier);
+        return admission.completeFromTicket(admission.accountOf(employee.get()), method, browserIdentifier);
     }
 }

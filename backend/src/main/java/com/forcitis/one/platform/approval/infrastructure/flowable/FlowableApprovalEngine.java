@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -302,7 +303,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
                 definition.processKey(), documentOf(variables),
                 new LegalEntityId(UUID.fromString(variables.firstVariable(VARIABLE_LEGAL_ENTITY).orElseThrow())),
                 task.getTaskDefinitionKey(), task.getName(),
-                new UserId(Long.parseLong(variables.firstVariable(VARIABLE_INITIATOR).orElseThrow())),
+                new EmployeeId(Long.parseLong(variables.firstVariable(VARIABLE_INITIATOR).orElseThrow())),
                 Optional.ofNullable(task.getAssignee()).map(a -> new UserId(Long.parseLong(a))), candidates, createdAt(task),
                 node.getSubProcess() != null, policy.beforeHookKey(), Boolean.TRUE.equals(task.getTaskLocalVariables().get(VARIABLE_ADVISORY)),
                 new ContentHash(variables.firstVariable(VARIABLE_CONTENT_HASH).orElseThrow()));

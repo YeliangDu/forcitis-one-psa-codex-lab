@@ -1,7 +1,7 @@
 package com.forcitis.one.organization.workforce.api;
 
 import com.forcitis.one.kernel.LegalEntityId;
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import java.time.LocalDate;
 
 /**
@@ -11,5 +11,5 @@ import java.time.LocalDate;
 public interface EmployeeLegalEntities {
 
     /** @throws com.forcitis.one.kernel.DomainException ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED (422) when none applies */
-    LegalEntityId on(UserId employee, LocalDate date);
+    LegalEntityId on(EmployeeId employee, LocalDate date);
 }

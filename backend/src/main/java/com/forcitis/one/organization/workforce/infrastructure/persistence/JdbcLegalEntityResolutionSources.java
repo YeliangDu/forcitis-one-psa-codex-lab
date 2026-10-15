@@ -1,7 +1,7 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
 import com.forcitis.one.kernel.LegalEntityId;
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.AttributionKind;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolutionSources;
@@ -21,7 +21,7 @@ class JdbcLegalEntityResolutionSources implements LegalEntityResolutionSources {
     }
 
     @Override
-    public Optional<LegalEntityId> employeeAttribution(UserId employee, LocalDate date) {
+    public Optional<LegalEntityId> employeeAttribution(EmployeeId employee, LocalDate date) {
         return attribution(AttributionKind.EMPLOYEE, employee.value(), date);
     }
 
@@ -38,7 +38,7 @@ class JdbcLegalEntityResolutionSources implements LegalEntityResolutionSources {
     }
 
     @Override
-    public Optional<OrgUnitId> assignedUnit(UserId employee, LocalDate date) {
+    public Optional<OrgUnitId> assignedUnit(EmployeeId employee, LocalDate date) {
         return jdbc.sql("""
                         select org_unit_id from organization_workforce.assignment_versions
                          where employee_id = :id and effective_from_date <= :date and (effective_to_date is null or :date < effective_to_date)

@@ -10,6 +10,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
@@ -42,7 +43,7 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
     DecideTasks decideTasks;
 
     ApprovalInstanceId startWithManagers(String key, long initiator, long... managers) {
-        return tx.execute(s -> approvals.start(startRequest(key, new UserId(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
+        return tx.execute(s -> approvals.start(startRequest(key, new EmployeeId(initiator), Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), java.util.Arrays.stream(managers).mapToObj(String::valueOf).toList())))));
     }
 

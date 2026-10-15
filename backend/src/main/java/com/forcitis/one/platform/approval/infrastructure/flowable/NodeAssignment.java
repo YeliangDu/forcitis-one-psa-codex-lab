@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.approval.infrastructure.flowable;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.AccountEmployees;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.domain.AssigneeResolver;
@@ -31,8 +32,11 @@ class NodeAssignment {
     private final RoleDirectory roles;
     private final ProcessAdministrator administrator;
     private final MeterRegistry meters;
+    private final AccountEmployees accountEmployees;
 
-    NodeAssignment(OrgDirectory org, RoleDirectory roles, ProcessAdministrator administrator, MeterRegistry meters) {
+    NodeAssignment(OrgDirectory org, RoleDirectory roles, ProcessAdministrator administrator, MeterRegistry meters,
+            AccountEmployees accountEmployees) {
+        this.accountEmployees = accountEmployees;
         this.org = org;
         this.roles = roles;
         this.administrator = administrator;
@@ -43,12 +47,12 @@ class NodeAssignment {
     Resolution resolve(UserTask node, String instanceId, Map<String, Object> engineVariables) {
         NodePolicy policy = NodePolicyReader.read(node);
         ProcessVariables variables = EngineVariables.fromEngine(engineVariables);
-        UserId initiator = new UserId(Long.parseLong(variables.firstVariable(FlowableApprovalEngine.VARIABLE_INITIATOR)
+        EmployeeId initiator = new EmployeeId(Long.parseLong(variables.firstVariable(FlowableApprovalEngine.VARIABLE_INITIATOR)
                 .orElseThrow(() -> new IllegalStateException("Instance " + instanceId + " has no initiator"))));
 
         Resolution resolution;
         try {
-            resolution = new AssigneeResolver(org, roles, administrator.holders())
+            resolution = new AssigneeResolver(org, roles, administrator.holders(), accountEmployees)
                     .resolve(policy.rule(), policy.selfApprovalAllowed(), policy.skipWhenEmpty(), initiator, variables);
         } catch (RuntimeException failed) {
             log.error("Resolving the assignees of node {} (instance {}) failed: {}", node.getId(), instanceId, failed.toString());

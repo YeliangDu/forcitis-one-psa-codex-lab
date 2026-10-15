@@ -1,12 +1,12 @@
 package com.forcitis.one.organization.workforce.api;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
 import java.util.List;
 import java.util.Optional;
 
 public interface OrgDirectory {
-    Optional<EmployeeProfile> findEmployee(UserId userId);
+    Optional<EmployeeProfile> findEmployee(EmployeeId employeeId);
 
     /** Falls back to a single-person source lookup when the id is unknown. */
     Optional<EmployeeProfile> findEmployeeByWecomUserId(WecomUserId wecomUserId);
@@ -15,12 +15,12 @@ public interface OrgDirectory {
     Optional<EmployeeProfile> findEmployeeByLoginName(String loginName);
 
     /** Empty when none or not employed. */
-    Optional<UserId> findSupervisor(UserId userId);
+    Optional<EmployeeId> findSupervisor(EmployeeId employeeId);
 
-    Optional<UserId> findOrgUnitHead(OrgUnitId orgUnitId);
+    Optional<EmployeeId> findOrgUnitHead(OrgUnitId orgUnitId);
 
     /** Regional receivables manager (old system 区域 AR). */
-    Optional<UserId> findRegionalReceivablesManager(OrgUnitId orgUnitId);
+    Optional<EmployeeId> findRegionalReceivablesManager(OrgUnitId orgUnitId);
 
     Optional<OrgUnitProfile> findOrgUnit(OrgUnitId orgUnitId);
 

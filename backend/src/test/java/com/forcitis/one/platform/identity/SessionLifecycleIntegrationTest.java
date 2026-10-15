@@ -6,7 +6,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
@@ -195,7 +195,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         String victim = loginWithWecom(1001);
         String other = loginWithWecom(1002);
 
-        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(), List.of(new UserId(1001)), List.of(), LocalDate.of(2026, 10, 14)));
+        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(), List.of(new EmployeeId(1001)), List.of(), LocalDate.of(2026, 10, 14)));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(
                 jdbc.sql("select count(*) from platform_identity.sessions where principal_name = '1001'").query(Long.class).single()).isZero());
@@ -210,7 +210,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         knownEmployee(2001, EmploymentStatus.EMPLOYED);
         knownEmployee(2002, EmploymentStatus.SEPARATED);
 
-        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(new UserId(2001), new UserId(2002)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
+        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(new EmployeeId(2001), new EmployeeId(2002)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(count("user_accounts")).isEqualTo(1));
         assertThat(jdbc.sql("select user_id from platform_identity.user_accounts").query(Long.class).single()).isEqualTo(2001);
@@ -220,7 +220,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
                 """).query(String.class).list()).containsExactly("employee");
 
         jdbc.sql("delete from platform_identity.account_roles where user_id = 2001").update();
-        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(new UserId(2001)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
+        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(new EmployeeId(2001)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
         Thread.sleep(1000);
         assertThat(count("account_roles")).isZero();
     }

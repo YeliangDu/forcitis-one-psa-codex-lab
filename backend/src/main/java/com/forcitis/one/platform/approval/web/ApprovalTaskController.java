@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.approval.web;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.application.ClaimTask;
 import com.forcitis.one.platform.approval.application.DecideTasks;
@@ -111,7 +111,7 @@ class ApprovalTaskController {
     @PreAuthorize(SIGNED_IN)
     ResponseEntity<Void> transfer(@PathVariable String taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
             @RequestBody TransferTaskRequest request) {
-        transferTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), new UserId(request.assigneeId()), request.reason(),
+        transferTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), new EmployeeId(request.assigneeId()), request.reason(),
                 expectedVersion(ifMatch));
         return ResponseEntity.noContent().build();
     }
@@ -120,7 +120,7 @@ class ApprovalTaskController {
     @PreAuthorize(SIGNED_IN)
     ResponseEntity<Void> reassign(@PathVariable String taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
             @RequestBody ReassignTaskRequest request) {
-        reassignTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), new UserId(request.assigneeId()), request.reason(),
+        reassignTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), new EmployeeId(request.assigneeId()), request.reason(),
                 expectedVersion(ifMatch));
         return ResponseEntity.noContent().build();
     }

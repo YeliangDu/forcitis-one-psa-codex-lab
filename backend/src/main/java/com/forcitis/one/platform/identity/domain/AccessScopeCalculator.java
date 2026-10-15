@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.identity.domain;
 
 import com.forcitis.one.kernel.LegalEntityId;
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.identity.api.AccessGrant;
 import com.forcitis.one.platform.identity.api.AccessScope;
@@ -23,7 +23,7 @@ public final class AccessScopeCalculator {
     }
 
     /** directReports must already exclude separated people. */
-    public record Person(UserId userId, LegalEntityId legalEntityId, OrgUnitId orgUnitId, Set<UserId> directReports) {
+    public record Person(EmployeeId employeeId, LegalEntityId legalEntityId, OrgUnitId orgUnitId, Set<EmployeeId> directReports) {
 
         public Person {
             directReports = Set.copyOf(directReports);
@@ -66,7 +66,7 @@ public final class AccessScopeCalculator {
 
     public static AccessScope calculate(Person person, Collection<RoleScope> roles) {
         Set<AccessGrant> grants = new HashSet<>();
-        Set<UserId> owners = new HashSet<>();
+        Set<EmployeeId> owners = new HashSet<>();
         for (RoleScope role : roles) {
             if (!role.enabled()) {
                 continue;
@@ -79,9 +79,9 @@ public final class AccessScopeCalculator {
                         .forEach(unit -> grants.add(new AccessGrant(person.legalEntityId(), unit, false, null)));
                 case OWN_ORG_UNIT -> grants.add(new AccessGrant(person.legalEntityId(), person.orgUnitId(), false, null));
                 case OWN_ORG_UNIT_SUBTREE -> grants.add(new AccessGrant(person.legalEntityId(), person.orgUnitId(), true, null));
-                case SELF -> owners.add(person.userId());
+                case SELF -> owners.add(person.employeeId());
                 case SELF_AND_DIRECT_REPORTS -> {
-                    owners.add(person.userId());
+                    owners.add(person.employeeId());
                     owners.addAll(person.directReports());
                 }
             }

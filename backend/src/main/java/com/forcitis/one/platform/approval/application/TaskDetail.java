@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.approval.application;
 
 import com.forcitis.one.kernel.DocumentReference;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -24,7 +25,7 @@ import java.util.Optional;
  * caller sends back as If-Match when it acts on the task.
  */
 public record TaskDetail(ApprovalTaskId taskId, ApprovalInstanceId instanceId, ProcessKey processKey, DocumentReference document,
-                         String nodeKey, Optional<String> nodeName, UserId initiator, String initiatorName, Optional<String> initiatorOrgUnitName,
+                         String nodeKey, Optional<String> nodeName, EmployeeId initiator, String initiatorName, Optional<String> initiatorOrgUnitName,
                          Optional<UserId> assignee, Optional<String> assigneeName, List<UserId> candidates, List<String> candidateNames,
                          Instant createdAt, ApprovalTaskStatus status, Optional<Instant> dueAt, boolean overdue, Optional<Instant> completedAt,
                          Optional<TaskOutcome> outcome, Optional<TaskEffect> effect, Optional<Reason> reason, Optional<ApprovalSummary> summary,

@@ -3,7 +3,7 @@ package com.forcitis.one.organization.workforce.application;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.organization.workforce.domain.RunStats;
 import com.forcitis.one.organization.workforce.domain.SyncRunRecord;
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import java.time.Instant;
 import java.util.List;
 
@@ -29,6 +29,6 @@ public record SyncRunView(SyncRunId syncRunId, String trigger, String status, In
                 run.releasedBy() == null ? null : run.releasedBy().value(), run.releasedAt(),
                 run.releasedByRunId(),
                 run.holdKinds().stream().map(Enum::name).sorted().toList(), run.releasedKinds().stream().map(Enum::name).sorted().toList(),
-                run.heldSeparations().stream().map(UserId::value).toList());
+                run.heldSeparations().stream().map(EmployeeId::value).toList());
     }
 }

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
@@ -71,7 +72,7 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
         long second = newId();
         organisation.person(second, 1, null);
         String key = newKey("lifecycle");
-        ApprovalInstanceId instance = tx.execute(status -> approvals.start(startRequest(key, new UserId(s.initiator()),
+        ApprovalInstanceId instance = tx.execute(status -> approvals.start(startRequest(key, new EmployeeId(s.initiator()),
                 java.util.Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()), List.of(new com.forcitis.one.platform.approval.api.ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(),
                         List.of(String.valueOf(s.manager()), String.valueOf(second)))))));
         Task task = openTask(instance);

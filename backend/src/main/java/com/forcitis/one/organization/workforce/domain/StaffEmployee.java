@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.domain;
 
-import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.EmployeeId;
 import java.util.Objects;
 
 public record StaffEmployee(Employee employee, Assignment assignment) {
@@ -9,7 +9,7 @@ public record StaffEmployee(Employee employee, Assignment assignment) {
         Objects.requireNonNull(assignment, "assignment");
     }
 
-    public UserId userId() {
-        return employee.userId();
+    public EmployeeId employeeId() {
+        return employee.employeeId();
     }
 }
