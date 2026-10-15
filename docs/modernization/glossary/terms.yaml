@@ -6736,12 +6736,12 @@ terms:
   scope: acl
   acl_class: 过渡期
 - id: source_record_state__active
-  zh: 有效
+  zh: 来源有效
   en: Active
   snake: active
   kind: value
   bc: platform.integration
-  definition: 来源记录状态的取值
+  definition: 来源系统里该记录有效（取值名写「来源有效」：界面通用词「有效」不得被集成层用语占用，前端 check:copy 守护）
   standard_ref:
   - DAMA-DMBOK 主数据记录生命周期（active / inactive / deleted）
   confidence: medium
