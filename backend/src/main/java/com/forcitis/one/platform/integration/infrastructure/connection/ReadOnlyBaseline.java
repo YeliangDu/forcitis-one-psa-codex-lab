@@ -71,8 +71,34 @@ final class ReadOnlyBaseline {
     record ServerPermissionRow(int securableClass, String classDescription, String state, String permission) {
     }
 
-    /** A row of sys.database_permissions below the database level (class other than 0), of the login itself or of public on a user securable. */
-    record SecurablePermissionRow(String classDescription, long majorId, String state, String permission, boolean toPublic) {
+    /**
+     * A row of sys.database_permissions below the database level (class other than 0), of the login itself or of public on a user securable.
+     * schemaId is the schema the securable belongs to (the schema itself for a schema-level row); a name the catalog does not show is null,
+     * and so is the grantee of the login's own rows, whose user name is its login name.
+     */
+    record SecurablePermissionRow(String classDescription, long majorId, String state, String permission, boolean toPublic, @Nullable Long schemaId,
+            @Nullable String schema, @Nullable String object, @Nullable String grantee, @Nullable String granteeType) {
+    }
+
+    /** Where a violation or an overridden grant is; printed by the read-only verification command only, never in a refusal, an ALERT or a log. */
+    sealed interface Locator permits DatabaseLocator, GrantLocator {
+    }
+
+    record DatabaseLocator(String database) implements Locator {
+    }
+
+    /** state G or W; self for a grant to the login's own user, whose name is then not kept. */
+    record GrantLocator(String classDescription, @Nullable String schema, @Nullable String object, String permission, String state, boolean self,
+            @Nullable String grantee, @Nullable String granteeType) implements Locator {
+    }
+
+    enum OverridingDeny {
+        DATABASE_DENY,
+        SCHEMA_DENY
+    }
+
+    /** A GRANT that the login's own DENY of the same permission overrides (ADR-0037 item 4 (b), RULING-ADR37-10 narrowed): no violation. */
+    record OverriddenGrant(GrantLocator grant, OverridingDeny by) {
     }
 
     record ReachableDatabase(int id, String name) {
@@ -126,7 +152,15 @@ final class ReadOnlyBaseline {
      * One finding per call within an item: count is how many entries of the category the call found (permissions, roles, databases, rows);
      * a failed or empty answer counts one, so an item whose queries all fail counts its failed queries.
      */
-    record Finding(Reason reason, int count, @Nullable SqlError failure) {
+    record Finding(Reason reason, int count, @Nullable SqlError failure, List<Locator> locators) {
+
+        Finding {
+            locators = List.copyOf(locators);
+        }
+
+        Finding(Reason reason, int count, @Nullable SqlError failure) {
+            this(reason, count, failure, List.of());
+        }
 
         Optional<SqlError> sqlError() {
             return Optional.ofNullable(failure);
@@ -145,7 +179,12 @@ final class ReadOnlyBaseline {
         }
     }
 
-    record Verdict(List<Unmet> unmet) {
+    record Verdict(List<Unmet> unmet, List<OverriddenGrant> overridden) {
+
+        Verdict {
+            unmet = List.copyOf(unmet);
+            overridden = List.copyOf(overridden);
+        }
 
         boolean passed() {
             return unmet.isEmpty();
@@ -165,6 +204,7 @@ final class ReadOnlyBaseline {
 
     static Verdict check(ReadOnlyCatalog catalog) {
         List<Unmet> unmet = new ArrayList<>();
+        List<OverriddenGrant> overridden = new ArrayList<>();
         item(unmet, 'a', found -> found.ask(catalog::databasePermissions)
                 .ifPresent(permissions -> sameAs(found, "database-level effective permissions", permissions, DATABASE_PERMISSIONS)));
         item(unmet, 'b', found -> found.ask(catalog::databaseLevelPermissions).ifPresent(rows -> databaseLevel(found, rows)));
@@ -172,8 +212,11 @@ final class ReadOnlyBaseline {
         item(unmet, 'd', found -> server(found, catalog));
         item(unmet, 'e', found -> found.ask(catalog::ownership).ifPresent(ownership -> ownsNothing(found, ownership)));
         item(unmet, 'f', found -> reachable(found, catalog));
-        item(unmet, 'g', found -> found.ask(catalog::securablePermissionRows).ifPresent(rows -> belowTheDatabase(found, rows)));
-        return new Verdict(List.copyOf(unmet));
+        item(unmet, 'g', found -> {
+            found.ask(catalog::securablePermissionRows).ifPresent(rows -> belowTheDatabase(found, rows, catalog));
+            overridden.addAll(found.overridden);
+        });
+        return new Verdict(unmet, overridden);
     }
 
     /** Each entry starts with the item it breaks, "(a)" to "(g)". */
@@ -187,10 +230,15 @@ final class ReadOnlyBaseline {
         final Set<String> undeterminable = new LinkedHashSet<>();
         final List<Finding> confirmedFindings = new ArrayList<>();
         final List<Finding> undeterminableFindings = new ArrayList<>();
+        final List<OverriddenGrant> overridden = new ArrayList<>();
 
         void violated(Reason reason, int count, String problem) {
+            violated(reason, count, problem, List.of());
+        }
+
+        void violated(Reason reason, int count, String problem, List<? extends Locator> locators) {
             confirmed.add(problem);
-            confirmedFindings.add(new Finding(reason, count, null));
+            confirmedFindings.add(new Finding(reason, count, null, List.copyOf(locators)));
         }
 
         void unknown(Reason reason, int count, String problem) {
@@ -375,25 +423,81 @@ final class ReadOnlyBaseline {
             found.unknown(Reason.OWN_DATABASE_NOT_LISTED, 1, "HAS_DBACCESS does not list the login's own database, cannot be determined");
         }
         if (!beyond.isEmpty()) {
-            found.violated(Reason.OTHER_DATABASE_REACHABLE, beyond.size(), "the login can also enter the databases " + beyond);
+            found.violated(Reason.OTHER_DATABASE_REACHABLE, beyond.size(), "the login can also enter the databases " + beyond, located(beyond));
         }
         if (!withOwnUser.isEmpty()) {
-            found.violated(Reason.SYSTEM_DATABASE_OWN_USER, withOwnUser.size(), "the login has a user of its own in the system databases " + withOwnUser + ", only guest is allowed there");
+            found.violated(Reason.SYSTEM_DATABASE_OWN_USER, withOwnUser.size(), "the login has a user of its own in the system databases " + withOwnUser
+                    + ", only guest is allowed there", located(withOwnUser));
         }
     }
 
-    private static void belowTheDatabase(Findings found, List<SecurablePermissionRow> rows) {
+    private static List<DatabaseLocator> located(Set<String> databases) {
+        return databases.stream().map(DatabaseLocator::new).toList();
+    }
+
+    /**
+     * A GRANT of one of the eleven database-level DENY permissions is overridden by the login's own DENY of the same permission on the
+     * database or on the securable's schema; any other permission, CONTROL included, and any grant with grant option stays a violation.
+     * When the login's DENY rows cannot be read or there is none at all, such a grant cannot be determined.
+     */
+    private static void belowTheDatabase(Findings found, List<SecurablePermissionRow> rows, ReadOnlyCatalog catalog) {
         Set<String> beyond = new TreeSet<>();
+        Set<GrantLocator> violations = new LinkedHashSet<>();
+        List<SecurablePermissionRow> overridable = new ArrayList<>();
         for (SecurablePermissionRow row : rows) {
             String state = row.state().trim();
             String permission = upper(row.permission());
-            if (!(state.equals("D") || state.equals("G") && permission.equals("SELECT"))) {
-                beyond.add(row.classDescription().trim() + " " + row.majorId() + " " + state + " " + permission + (row.toPublic() ? " to public" : ""));
+            if (state.equals("D") || state.equals("G") && permission.equals("SELECT")) {
+                continue;
+            }
+            if (state.equals("G") && DATABASE_DENIES.contains(permission)) {
+                overridable.add(row);
+            } else {
+                beyond.add(beyondTheBaseline(row));
+                violations.add(located(row));
             }
         }
-        if (!beyond.isEmpty()) {
-            found.violated(Reason.SECURABLE_GRANT_BEYOND_SELECT, beyond.size(), "schema, object and other grants below the database level may only be DENY or GRANT SELECT, found " + beyond);
+        if (!overridable.isEmpty()) {
+            found.ask(catalog::databaseLevelPermissions).ifPresent(databaseLevel -> overriddenOrNot(found, overridable, databaseLevel, rows, beyond, violations));
         }
+        if (!beyond.isEmpty()) {
+            found.violated(Reason.SECURABLE_GRANT_BEYOND_SELECT, violations.size(), "schema, object and other grants below the database level may only be "
+                    + "DENY, GRANT SELECT or a GRANT the login's own DENY of the same permission overrides, found " + beyond, List.copyOf(violations));
+        }
+    }
+
+    private static void overriddenOrNot(Findings found, List<SecurablePermissionRow> overridable, List<DatabaseLevelPermission> databaseLevel,
+            List<SecurablePermissionRow> rows, Set<String> beyond, Set<GrantLocator> violations) {
+        Set<String> databaseDenies = new TreeSet<>();
+        databaseLevel.stream().filter(p -> p.state().trim().equals("D")).forEach(p -> databaseDenies.add(upper(p.permission())));
+        Set<String> schemaDenies = new TreeSet<>();
+        rows.stream().filter(r -> !r.toPublic() && r.state().trim().equals("D") && r.classDescription().trim().equals("SCHEMA"))
+                .forEach(r -> schemaDenies.add(r.majorId() + " " + upper(r.permission())));
+        if (databaseDenies.isEmpty() && schemaDenies.isEmpty()) {
+            found.unknown(Reason.EMPTY_ANSWER, 1, "the login's database-level and schema-level DENY came back empty, whether they override "
+                    + overridable.size() + " grant(s) below the database level cannot be determined");
+            return;
+        }
+        for (SecurablePermissionRow row : overridable) {
+            String permission = upper(row.permission());
+            if (databaseDenies.contains(permission)) {
+                found.overridden.add(new OverriddenGrant(located(row), OverridingDeny.DATABASE_DENY));
+            } else if (row.schemaId() != null && schemaDenies.contains(row.schemaId() + " " + permission)) {
+                found.overridden.add(new OverriddenGrant(located(row), OverridingDeny.SCHEMA_DENY));
+            } else {
+                beyond.add(beyondTheBaseline(row));
+                violations.add(located(row));
+            }
+        }
+    }
+
+    private static String beyondTheBaseline(SecurablePermissionRow row) {
+        return row.classDescription().trim() + " " + row.majorId() + " " + row.state().trim() + " " + upper(row.permission()) + (row.toPublic() ? " to public" : "");
+    }
+
+    private static GrantLocator located(SecurablePermissionRow row) {
+        return new GrantLocator(row.classDescription().trim(), row.schema(), row.object(), upper(row.permission()), row.state().trim(), !row.toPublic(),
+                row.toPublic() ? row.grantee() : null, row.granteeType());
     }
 
     private static int count(long value) {

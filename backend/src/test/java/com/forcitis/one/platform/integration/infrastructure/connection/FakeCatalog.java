@@ -29,7 +29,7 @@ class FakeCatalog implements ReadOnlyCatalog {
     List<ServerPermissionRow> serverPermissionRows = new ArrayList<>(List.of(new ServerPermissionRow(100, "SERVER", "G", "CONNECT SQL")));
     List<DatabaseLevelPermission> databaseLevelPermissions = baselineDatabaseLevel();
     List<SecurablePermissionRow> securablePermissionRows = new ArrayList<>(List.of(
-            new SecurablePermissionRow("OBJECT_OR_COLUMN", 917578307, "G", "SELECT", false)));
+            row("OBJECT_OR_COLUMN", 917578307, "G", "SELECT", false)));
     List<String> roles = new ArrayList<>(List.of("public"));
     Map<String, Integer> memberships = noMemberships();
     Ownership ownership = new Ownership(false, 0, 0, 0, 0);
@@ -48,6 +48,12 @@ class FakeCatalog implements ReadOnlyCatalog {
         rows.add(new DatabaseLevelPermission("G", "CONNECT"));
         rows.add(new DatabaseLevelPermission("G", "SELECT"));
         return rows;
+    }
+
+    /** Without names; a schema-level row belongs to its own schema, any other to none the catalog shows. */
+    static SecurablePermissionRow row(String classDescription, long majorId, String state, String permission, boolean toPublic) {
+        return new SecurablePermissionRow(classDescription, majorId, state, permission, toPublic, classDescription.equals("SCHEMA") ? majorId : null, null,
+                null, toPublic ? "public" : null, toPublic ? "DATABASE_ROLE" : "SQL_USER");
     }
 
     static Map<String, Integer> noMemberships() {

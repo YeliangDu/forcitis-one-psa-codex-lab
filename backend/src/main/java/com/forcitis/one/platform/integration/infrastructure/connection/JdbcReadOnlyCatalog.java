@@ -22,9 +22,14 @@ final class JdbcReadOnlyCatalog implements ReadOnlyCatalog {
     static final String DATABASE_LEVEL_PERMISSIONS = "SELECT state, permission_name FROM sys.database_permissions "
             + "WHERE class = 0 AND grantee_principal_id = DATABASE_PRINCIPAL_ID()";
     static final String SECURABLE_PERMISSION_ROWS = """
-            SELECT class_desc, major_id, state, permission_name, CASE WHEN grantee_principal_id = 0 THEN 1 ELSE 0 END
-            FROM sys.database_permissions
-            WHERE class <> 0 AND (grantee_principal_id = DATABASE_PRINCIPAL_ID() OR (grantee_principal_id = 0 AND major_id > 0))
+            SELECT p.class_desc, p.major_id, p.state, p.permission_name, CASE WHEN p.grantee_principal_id = 0 THEN 1 ELSE 0 END,
+                   CASE p.class WHEN 3 THEN p.major_id WHEN 1 THEN o.schema_id END, s.name, o.name,
+                   CASE WHEN p.grantee_principal_id = DATABASE_PRINCIPAL_ID() THEN NULL ELSE g.name END, g.type_desc
+            FROM sys.database_permissions p
+            LEFT JOIN sys.objects o ON p.class = 1 AND o.object_id = p.major_id
+            LEFT JOIN sys.schemas s ON s.schema_id = CASE p.class WHEN 3 THEN p.major_id WHEN 1 THEN o.schema_id END
+            LEFT JOIN sys.database_principals g ON g.principal_id = p.grantee_principal_id
+            WHERE p.class <> 0 AND (p.grantee_principal_id = DATABASE_PRINCIPAL_ID() OR (p.grantee_principal_id = 0 AND p.major_id > 0))
             """;
     static final String ROLES = "SELECT name FROM sys.user_token WHERE principal_id <> DATABASE_PRINCIPAL_ID()";
     static final String LISTED_FIXED_SERVER_ROLES = "SELECT name, IS_SRVROLEMEMBER(name) FROM sys.server_principals "
@@ -70,7 +75,8 @@ final class JdbcReadOnlyCatalog implements ReadOnlyCatalog {
     @Override
     public List<SecurablePermissionRow> securablePermissionRows() {
         return jdbc.sql(SECURABLE_PERMISSION_ROWS).query((rs, n) -> new SecurablePermissionRow(rs.getString(1), rs.getLong(2), rs.getString(3),
-                rs.getString(4), rs.getInt(5) == 1)).list();
+                rs.getString(4), rs.getInt(5) == 1, rs.getObject(6) == null ? null : rs.getLong(6), rs.getString(7), rs.getString(8), rs.getString(9),
+                rs.getString(10))).list();
     }
 
     @Override
