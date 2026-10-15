@@ -11,7 +11,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Replaces the framework's silent clean-up: each session that ends by running out leaves an audit entry that says whether it was idle or too old. */
+/** Replaces the framework's silent clean-up: each session that ends by running out leaves an audit entry that says whether it was idle or too old; SessionGuardFilter judges the absolute cap by login time and stays authoritative, this is the backstop. */
 @Service
 public class PurgeExpiredSessions {
     private static final Logger LOG = LoggerFactory.getLogger(PurgeExpiredSessions.class);
