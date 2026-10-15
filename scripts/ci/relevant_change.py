@@ -15,6 +15,9 @@ READ_BY_BUILDS = (
     "docs/modernization/phase1a/SEEYON_VIEWS.sql",
     "docs/modernization/phase1a/infra/one_db_roles_schemas.sql",
     "docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml",
+    # ADR37-1 guards: the credential deny list (CredentialColumnGuardTest) and the runbook that must not list a check switch (ReadOnlyCheckSwitchGuardTest)
+    "docs/modernization/phase1a/infra/handoff/B-5-dba/evidence/credential_columns.csv",
+    "docs/modernization/phase1a/infra/INFRA_RUNBOOK.md",
     # read by scripts/release (deploy gate, release bundle); their self-tests run in ci
     "docs/modernization/status/blockers/",
     "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md",
