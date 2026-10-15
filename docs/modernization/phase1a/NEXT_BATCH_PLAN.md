@@ -550,3 +550,10 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 | F-4：ID 字符串显示 | 首次部署前 | **随 R-1b** | 依赖 R-1b P2–P5 |
 | OSS-1、OSS-2 结论 | 首次部署前须有结论 | **dev 前**；dev 不启用归档写入时，改为启用归档写入之前 | 归档写入方上线即需要 |
 | 安全缺陷卡（B3-R2..R5、b12-M-8、b12-M-11、B2b NEW-2、INT-M4 / M5、INT-L30） | 首次部署前 | **dev 前** | 安全与正确性类 |
+
+**R-1b-0 推迟的两项守护**（one-1a-next-3，one-coordinator 2026-10-15 同意 C-8；卡见 `cards/R-1b-0.md`）：
+
+| 守护（ADR-0037 守护第 3 组） | 推迟到 | 为何后做更有价值（CS-1.9） |
+|---|---|---|
+| 集成层日志与向外异常不带 SQL 异常消息（扫描 `getMessage()` 等） | O-1 | 集成层有非 SQL 路径的合理用法（`DeliverWecomCards`、`ResolveWecomUserId`、`MigrateOnlyListener`），扫描范围须与 O-1 的日志口径一起定；seeyon 适配器现已统一用 `ExternalFailure` |
+| 迁入、对账端口的用途边界 ArchUnit | ADR-0036 第一个迁入端口 | 现在没有任何迁入、对账端口，守护无守护对象；随第一个端口一起写才能带真实负向样例 |
