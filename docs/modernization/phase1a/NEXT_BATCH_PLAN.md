@@ -564,4 +564,10 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 
 | 项 | 内容 | 验收条件 | 现状 |
 |---|---|---|---|
-| ARCH-D5 工时审批路线旗标映射 | 工时行类型、混合行到审批旗标（`projectHours` / `preSalesHours` / `overheadHours`）的映射，以及区域负责人的来源，交用户逐条决定（D-1a-127，`process/1a/TIMESHEET审批.md`:194）；先对照 AEC 行业项目制专业服务公司的通行做法定审批路线，老系统按行类型 0/1/2 的行为与生产数据只作参考与核对（取证已登记 `LEGACY_READ_REGISTER.md`），交 one-rules / 用户定——方案页 https://claude.ai/artifact/GGz4AuMS63ooyL85itojya（`rules/decide/sheets/D5.json`） | 映射卡实现时一并加「提交时一个旗标都没置即失败并告警」（现在不加：旗标写死 `PROJECT_HOURS`，检查必然通过，CS-1.8；one-coordinator 2026-10-15） | 1a 只有项目经理一路（D-1a-107 已关闭提交入口） |
+| ARCH-D5 工时审批路线旗标映射 | 工时行类型、混合行到审批旗标（`projectHours` / `preSalesHours` / `overheadHours`）的映射，以及区域负责人的来源，交用户逐条决定（D-1a-127，`process/1a/TIMESHEET审批.md`:194）；先对照 AEC 行业项目制专业服务公司的通行做法定审批路线，老系统按行类型 0/1/2 的行为与生产数据只作参考与核对（取证已登记 `LEGACY_READ_REGISTER.md`），交 one-rules / 用户定——方案页 https://claude.ai/artifact/GGz4AuMS63ooyL85itojya（`rules/decide/sheets/D5.json`）；用户 2026-10-15 六题全部选定，见 RULE-388～392（`rules/TIMESHEET_ROUTING_RULES.md`）；「区域负责人」节点与用语改为部门负责人，经 one-glossary 与改名卡 | 映射卡实现时一并加「提交时一个旗标都没置即失败并告警」（现在不加：旗标写死 `PROJECT_HOURS`，检查必然通过，CS-1.8；one-coordinator 2026-10-15） | 1a 只有项目经理一路（D-1a-107 已关闭提交入口） |
+
+### 数据范围后续维度（one-rules 登记，2026-10-15）
+
+| 项 | 内容 | 依据 | 排期 |
+|---|---|---|---|
+| 区域范围维度 | 「区域」登记为后续数据范围维度：区域是介于项目和公司之间的一层组织，变动频率较高，现有区域与事业部两种（用户说明）。须定：区域取自组织树的哪一层或单独维护、区域与事业部是否同一维度、组织调整后范围怎么复核（参照 RULE-387）、与部门、法人、项目角色维度的关系 | 用户 F1-05「现在就登记「区域」为后续范围维度并排期」（intent 2026-10-15，one-rules）；`rules/decide/answers/F1.json` | 待 one-architecture 排期 |

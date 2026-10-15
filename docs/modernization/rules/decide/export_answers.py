@@ -9,9 +9,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sheet, base = sys.argv[1], sys.argv[2]
 last = {}   # 组 id -> 本组答复的最后修改时刻
 answers = {}
-for f in glob.glob(os.path.join(base, "answers", f"{sheet}~*.json")):
+# ArtifactData 落盘时把文档 id 里的「~」写成「@」
+for f in glob.glob(os.path.join(base, "answers", f"{sheet}[~@]*.json")):
     d = json.load(open(f, encoding="utf-8"))
-    answers[os.path.basename(f)[:-5]] = d.get("data", d)
+    answers[os.path.basename(f)[:-5].replace("@", "~", 1)] = d.get("data", d)
 out, stale = {}, []
 for f in sorted(glob.glob(os.path.join(base, "answers-submit", "*.json"))):
     d = json.load(open(f, encoding="utf-8"))

@@ -38,5 +38,25 @@
   "note": "",
   "recommended": true,
   "submitted": "2026-10-15T20:08:43.165Z"
+ },
+ "D5~D5-05": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "d5-whole",
+  "label": "不加：维持按行类型分路，直属上级只审间接工时",
+  "no": "D5-05",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:19:52.665Z"
+ },
+ "D5~D5-06": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "d5-whole",
+  "label": "组织架构中该部门登记的部门负责人（随组织同步维护），节点与用语改称「部门负责人审批」",
+  "no": "D5-06",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-15T20:19:52.665Z"
  }
 }
