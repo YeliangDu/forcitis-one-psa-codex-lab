@@ -77,8 +77,8 @@ class ReadOnlyVerificationCommandIT {
     static final Pattern LOCATOR_LINE = Pattern.compile("^  \\(([fg])\\) (violation|overridden)((?: [a-zA-Z]+=" + LOCATOR_VALUE + ")+)$");
     static final Pattern LOCATOR_FIELD = Pattern.compile(" ([a-zA-Z]+)=(" + LOCATOR_VALUE + ")");
     static final List<String> SYSTEM_DATABASE_FIELDS = List.of("reason", "database");
-    static final List<String> VIOLATION_FIELDS = List.of("reason", "class", "schema", "object", "permission", "state", "grantee", "granteeType");
-    static final List<String> OVERRIDDEN_FIELDS = List.of("class", "schema", "object", "permission", "state", "grantee", "granteeType", "by");
+    static final List<String> VIOLATION_FIELDS = List.of("reason", "class", "schema", "object", "objectId", "permission", "state", "grantee", "granteeType");
+    static final List<String> OVERRIDDEN_FIELDS = List.of("class", "schema", "object", "objectId", "permission", "state", "grantee", "granteeType", "by");
     static final AtomicInteger ISOLATED_DATABASES = new AtomicInteger();
 
     static final Duration COMMAND_TIME_LIMIT = Duration.ofSeconds(120);
@@ -322,11 +322,13 @@ class ReadOnlyVerificationCommandIT {
     }
 
     @Test
-    @DisplayName("C-14 定位、ADR-0037 第 4 项 (b) 收窄 RULING-ADR37-10（one-coordinator 2026-10-15，安全判定放宽）：public 对象级 GRANT EXECUTE 被本账号库级 DENY EXECUTE 覆盖时 (g) 通过、输出一条 overridden 信息行（被拒绝覆盖的授权）、结果通过、退出 0（rc.2 A8 账号的情形）")
+    @DisplayName("C-14 定位、ADR-0037 第 4 项 (b) 收窄 RULING-ADR37-10（one-coordinator 2026-10-15，安全判定放宽）：public 对象级 GRANT EXECUTE 被本账号库级 DENY EXECUTE 覆盖时 (g) 通过、输出一条 overridden 信息行（被拒绝覆盖的授权）、结果通过、退出 0（rc.2 A8 账号的情形）；账号看不见该过程，schema、object 为 -，objectId 为其编号（one-1a-par 裁定：元数据可见性，方向 A）")
     void publicExecuteOverriddenByTheDatabaseDenyPasses() throws Exception {
         Account account = isolatedAccount(ReadOnlyConnection.A8);
         String procedure = "p_" + marker();
         runIn(account, "CREATE PROCEDURE dbo." + q(procedure) + " AS SELECT 1", "GRANT EXECUTE ON OBJECT::dbo." + q(procedure) + " TO public");
+        long procedureId = objectId(account, "dbo." + q(procedure));
+        assertThat(loginSeesObject(account, procedureId)).as("the fixture: the login's DENY EXECUTE hides the procedure from it").isFalse();
 
         CommandRun run = verify(ReadOnlyConnection.A8, account);
 
@@ -336,14 +338,15 @@ class ReadOnlyVerificationCommandIT {
             assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
         }
         assertThat(run.locators()).as("one information line under (g), nothing counted as a violation\n%s", run.output()).containsExactly(
-                overridden("OBJECT_OR_COLUMN", quoted("dbo"), quoted(procedure), "EXECUTE", PUBLIC, "DATABASE_DENY"));
+                overridden("OBJECT_OR_COLUMN", ABSENT, ABSENT, procedureId, "EXECUTE", PUBLIC, "DATABASE_DENY"));
         assertLocatorFieldsInContractOrder(run);
         assertThat(run.results()).as(run.output()).containsExactly("PASSED");
+        assertThat(run.output()).as("a name the login cannot see is not printed").doesNotContain(procedure);
         assertTellsNothingSecret(run, account);
     }
 
     @Test
-    @DisplayName("C-14 定位、RULING-ADR37-10 收窄的安全条件 1、2、5、复审 H-1：public 对象级 GRANT CONTROL 与 GRANT TAKE OWNERSHIP 不在库级 DENY 清单内，即使本账号另有同名 schema 级 DENY 仍各算一条违规并带定位；同时被 DENY 覆盖的 GRANT EXECUTE 只出 overridden 信息行、不计数")
+    @DisplayName("C-14 定位、RULING-ADR37-10 收窄的安全条件 1、2、5、复审 H-1：public 对象级 GRANT CONTROL 与 GRANT TAKE OWNERSHIP 不在库级 DENY 清单内，即使本账号另有同名 schema 级 DENY 仍各算一条违规并带定位（账号看得见该表，带名称）；同时被 DENY 覆盖的 GRANT EXECUTE 只出 overridden 信息行、不计数（看不见，名称为 -、带 objectId）")
     void controlAndTakeOwnershipStayViolationsBesideAnOverriddenGrant() throws Exception {
         Account account = isolatedAccount(ReadOnlyConnection.A8);
         String table = "t_" + marker();
@@ -352,6 +355,10 @@ class ReadOnlyVerificationCommandIT {
                 "GRANT CONTROL ON OBJECT::dbo." + q(table) + " TO public", "GRANT TAKE OWNERSHIP ON OBJECT::dbo." + q(table) + " TO public",
                 "GRANT EXECUTE ON OBJECT::dbo." + q(procedure) + " TO public",
                 "DENY TAKE OWNERSHIP ON SCHEMA::dbo TO " + q(account.login()));
+        long tableId = objectId(account, "dbo." + q(table));
+        long procedureId = objectId(account, "dbo." + q(procedure));
+        assertThat(loginSeesObject(account, tableId)).as("the fixture: the login sees the table").isTrue();
+        assertThat(loginSeesObject(account, procedureId)).as("the fixture: the login does not see the procedure").isFalse();
 
         CommandRun run = verify(ReadOnlyConnection.A8, account);
 
@@ -360,10 +367,10 @@ class ReadOnlyVerificationCommandIT {
         assertThat(run.item('g').tokens()).as("count is the number of violation lines\n%s", run.output())
                 .contains(" reason=SECURABLE_GRANT_BEYOND_SELECT count=2");
         assertThat(run.locators('g', "violation")).as(run.output()).containsExactlyInAnyOrder(
-                violation("OBJECT_OR_COLUMN", quoted("dbo"), quoted(table), "CONTROL", PUBLIC),
-                violation("OBJECT_OR_COLUMN", quoted("dbo"), quoted(table), "TAKE OWNERSHIP", PUBLIC));
+                violation("OBJECT_OR_COLUMN", quoted("dbo"), quoted(table), tableId, "CONTROL", PUBLIC),
+                violation("OBJECT_OR_COLUMN", quoted("dbo"), quoted(table), tableId, "TAKE OWNERSHIP", PUBLIC));
         assertThat(run.locators('g', "overridden")).as(run.output()).containsExactly(
-                overridden("OBJECT_OR_COLUMN", quoted("dbo"), quoted(procedure), "EXECUTE", PUBLIC, "DATABASE_DENY"));
+                overridden("OBJECT_OR_COLUMN", ABSENT, ABSENT, procedureId, "EXECUTE", PUBLIC, "DATABASE_DENY"));
         assertThat(run.locators()).as("no locator line for another item\n%s", run.output()).allSatisfy(l -> assertThat(l.item()).isEqualTo('g'));
         assertLocatorFieldsInContractOrder(run);
         assertThat(run.results()).as(run.output()).containsExactly("VIOLATED");
@@ -371,45 +378,56 @@ class ReadOnlyVerificationCommandIT {
     }
 
     @Test
-    @DisplayName("C-14 定位（字段缺失出占位不省略）：schema 级 GRANT 的 object 为占位 -；public 的 schema 级 GRANT CONTROL 违规、schema 级 GRANT INSERT 被库级 DENY INSERT 覆盖")
+    @DisplayName("C-14 定位（字段缺失出占位不省略）：schema 级 GRANT 的 object 为占位 -、objectId 为 schema 编号；public 的 schema 级 GRANT CONTROL 违规、schema 级 GRANT INSERT 被库级 DENY INSERT 覆盖")
     void schemaLevelGrantsCarryTheObjectPlaceholder() throws Exception {
         Account account = isolatedAccount(ReadOnlyConnection.A8);
         String schema = "s_" + marker();
         runIn(account, "CREATE SCHEMA " + q(schema) + " AUTHORIZATION dbo", "GRANT CONTROL ON SCHEMA::" + q(schema) + " TO public",
                 "GRANT INSERT ON SCHEMA::" + q(schema) + " TO public");
+        long schemaId = schemaId(account, schema);
+        assertThat(loginSeesSchema(account, schemaId)).as("the fixture: the login sees the schema").isTrue();
 
         CommandRun run = verify(ReadOnlyConnection.A8, account);
 
         assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
         assertThat(run.item('g').tokens()).as(run.output()).contains(" reason=SECURABLE_GRANT_BEYOND_SELECT count=1");
         assertThat(run.locators()).as(run.output()).containsExactlyInAnyOrder(
-                violation("SCHEMA", quoted(schema), ABSENT, "CONTROL", PUBLIC),
-                overridden("SCHEMA", quoted(schema), ABSENT, "INSERT", PUBLIC, "DATABASE_DENY"));
+                violation("SCHEMA", quoted(schema), ABSENT, schemaId, "CONTROL", PUBLIC),
+                overridden("SCHEMA", quoted(schema), ABSENT, schemaId, "INSERT", PUBLIC, "DATABASE_DENY"));
         assertLocatorFieldsInContractOrder(run);
         assertTellsNothingSecret(run, account);
     }
 
     @Test
-    @DisplayName("C-14 定位、安全条件 1（按权限名与 schema 精确匹配）：库级 DENY EXECUTE 被撤、只剩 DENY EXECUTE ON SCHEMA::dbo 时，dbo 下过程的 public GRANT EXECUTE 为 overridden by=SCHEMA_DENY，另一 schema 下的同类授权违规；(b) 违规、退出违规码")
+    @DisplayName("C-14 定位、安全条件 1（按权限名与 schema 精确匹配）与元数据可见性（one-1a-par 裁定方向 A）：库级 DENY INSERT、DENY EXECUTE 被撤，只剩 schema::dbo 上的同名 DENY 时——dbo 下账号看得见的表的 public GRANT INSERT 为 overridden by=SCHEMA_DENY；另一 schema 下的同类授权违规；dbo 下账号看不见的过程的 public GRANT EXECUTE 无法确认所属 schema，按保守口径违规（不按看不见即被覆盖）；(b) 违规、退出违规码")
     void aSchemaDenyOverridesOnlyInItsOwnSchema() throws Exception {
         Account account = isolatedAccount(ReadOnlyConnection.A8);
         String schema = "s_" + marker();
-        String inDbo = "p_" + marker();
-        String elsewhere = "p_" + marker();
-        runIn(account, "REVOKE EXECUTE FROM " + q(account.login()), "DENY EXECUTE ON SCHEMA::dbo TO " + q(account.login()),
+        String inDbo = "t_" + marker();
+        String elsewhere = "t_" + marker();
+        String hidden = "p_" + marker();
+        runIn(account, "REVOKE INSERT, EXECUTE FROM " + q(account.login()), "DENY INSERT, EXECUTE ON SCHEMA::dbo TO " + q(account.login()),
                 "CREATE SCHEMA " + q(schema) + " AUTHORIZATION dbo",
-                "CREATE PROCEDURE dbo." + q(inDbo) + " AS SELECT 1", "GRANT EXECUTE ON OBJECT::dbo." + q(inDbo) + " TO public",
-                "CREATE PROCEDURE " + q(schema) + "." + q(elsewhere) + " AS SELECT 1", "GRANT EXECUTE ON OBJECT::" + q(schema) + "." + q(elsewhere) + " TO public");
+                "CREATE TABLE dbo." + q(inDbo) + " (id bigint)", "GRANT INSERT ON OBJECT::dbo." + q(inDbo) + " TO public",
+                "CREATE TABLE " + q(schema) + "." + q(elsewhere) + " (id bigint)", "GRANT INSERT ON OBJECT::" + q(schema) + "." + q(elsewhere) + " TO public",
+                "CREATE PROCEDURE dbo." + q(hidden) + " AS SELECT 1", "GRANT EXECUTE ON OBJECT::dbo." + q(hidden) + " TO public");
+        long inDboId = objectId(account, "dbo." + q(inDbo));
+        long elsewhereId = objectId(account, q(schema) + "." + q(elsewhere));
+        long hiddenId = objectId(account, "dbo." + q(hidden));
+        assertThat(loginSeesObject(account, inDboId)).as("the fixture: the database-level GRANT SELECT shows the login the table in dbo").isTrue();
+        assertThat(loginSeesObject(account, elsewhereId)).as("the fixture: the login sees the table in the other schema").isTrue();
+        assertThat(loginSeesObject(account, hiddenId)).as("the fixture: the schema DENY EXECUTE hides the procedure from the login").isFalse();
 
         CommandRun run = verify(ReadOnlyConnection.A8, account);
 
         assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
-        assertThat(run.item('b').verdict()).as("the database-level DENY EXECUTE is missing\n%s", run.output()).isEqualTo("VIOLATED");
+        assertThat(run.item('b').verdict()).as("the database-level DENY INSERT and EXECUTE are missing\n%s", run.output()).isEqualTo("VIOLATED");
         assertThat(run.item('g').verdict()).as(run.output()).isEqualTo("VIOLATED");
-        assertThat(run.item('g').tokens()).as(run.output()).contains(" reason=SECURABLE_GRANT_BEYOND_SELECT count=1");
+        assertThat(run.item('g').tokens()).as(run.output()).contains(" reason=SECURABLE_GRANT_BEYOND_SELECT count=2");
         assertThat(run.locators()).as(run.output()).containsExactlyInAnyOrder(
-                violation("OBJECT_OR_COLUMN", quoted(schema), quoted(elsewhere), "EXECUTE", PUBLIC),
-                overridden("OBJECT_OR_COLUMN", quoted("dbo"), quoted(inDbo), "EXECUTE", PUBLIC, "SCHEMA_DENY"));
+                violation("OBJECT_OR_COLUMN", quoted(schema), quoted(elsewhere), elsewhereId, "INSERT", PUBLIC),
+                violation("OBJECT_OR_COLUMN", ABSENT, ABSENT, hiddenId, "EXECUTE", PUBLIC),
+                overridden("OBJECT_OR_COLUMN", quoted("dbo"), quoted(inDbo), inDboId, "INSERT", PUBLIC, "SCHEMA_DENY"));
         assertLocatorFieldsInContractOrder(run);
         assertTellsNothingSecret(run, account);
     }
@@ -434,7 +452,7 @@ class ReadOnlyVerificationCommandIT {
     }
 
     @Test
-    @DisplayName("C-14 定位：授给账号本人的对象级授权，grantee 为占位 SELF 而非数据库用户名（夹具与 RDS 上用户名即登录名，不得输出），granteeType 为 SQL_USER；被 DENY 覆盖的出 overridden 信息行、未覆盖的违规")
+    @DisplayName("C-14 定位：授给账号本人的对象级授权，grantee 为占位 SELF 而非数据库用户名（夹具与 RDS 上用户名即登录名，不得输出），granteeType 为 SQL_USER；被 DENY 覆盖的出 overridden 信息行（账号看不见该过程，名称为 -）、未覆盖的违规（看得见，带名称）")
     void grantsToTheLoginItselfShowTheSelfPlaceholder() throws Exception {
         Account account = isolatedAccount(ReadOnlyConnection.A8);
         String table = "t_" + marker();
@@ -442,14 +460,18 @@ class ReadOnlyVerificationCommandIT {
         runIn(account, "CREATE TABLE dbo." + q(table) + " (id bigint)", "CREATE PROCEDURE dbo." + q(procedure) + " AS SELECT 1",
                 "GRANT CONTROL ON OBJECT::dbo." + q(table) + " TO " + q(account.login()),
                 "GRANT EXECUTE ON OBJECT::dbo." + q(procedure) + " TO " + q(account.login()));
+        long tableId = objectId(account, "dbo." + q(table));
+        long procedureId = objectId(account, "dbo." + q(procedure));
+        assertThat(loginSeesObject(account, tableId)).as("the fixture: the login sees the table").isTrue();
+        assertThat(loginSeesObject(account, procedureId)).as("the fixture: the login's DENY EXECUTE hides the procedure").isFalse();
 
         CommandRun run = verify(ReadOnlyConnection.A8, account);
 
         assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
         assertThat(run.item('g').tokens()).as(run.output()).contains(" reason=SECURABLE_GRANT_BEYOND_SELECT count=1");
         assertThat(run.locators()).as(run.output()).containsExactlyInAnyOrder(
-                violation("OBJECT_OR_COLUMN", quoted("dbo"), quoted(table), "CONTROL", SELF),
-                overridden("OBJECT_OR_COLUMN", quoted("dbo"), quoted(procedure), "EXECUTE", SELF, "DATABASE_DENY"));
+                violation("OBJECT_OR_COLUMN", quoted("dbo"), quoted(table), tableId, "CONTROL", SELF),
+                overridden("OBJECT_OR_COLUMN", ABSENT, ABSENT, procedureId, "EXECUTE", SELF, "DATABASE_DENY"));
         assertLocatorFieldsInContractOrder(run);
         assertTellsNothingSecret(run, account);
     }
@@ -459,17 +481,19 @@ class ReadOnlyVerificationCommandIT {
     void locatorValuesAreEscaped() throws Exception {
         Account account = isolatedAccount(ReadOnlyConnection.A8);
         String mark = marker();
-        String table = "t_" + mark + "\nRESULT PASSED\r\t\u0007 \"\\x";
+        String table = "t_" + mark + "\nRESULT PASSED\r\t\u0007\u2028\"\\x";
         runIn(account, "CREATE TABLE dbo." + q(table) + " (id bigint)", "GRANT CONTROL ON OBJECT::dbo." + q(table) + " TO public");
+        long tableId = objectId(account, "dbo." + q(table));
+        assertThat(loginSeesObject(account, tableId)).as("the fixture: the login sees the table").isTrue();
 
         CommandRun run = verify(ReadOnlyConnection.A8, account);
 
         assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
         assertThat(run.locators()).as(run.output()).containsExactly(
-                violation("OBJECT_OR_COLUMN", quoted("dbo"), "\"t_" + mark + "\\nRESULT PASSED\\r\\t\\u0007\\u2028\\\"\\\\x\"", "CONTROL", PUBLIC));
+                violation("OBJECT_OR_COLUMN", quoted("dbo"), "\"t_" + mark + "\\nRESULT PASSED\\r\\t\\u0007\\u2028\\\"\\\\x\"", tableId, "CONTROL", PUBLIC));
         assertThat(run.results()).as("the name cannot add a result line\n%s", run.output()).containsExactly("VIOLATED");
         assertThat(run.output()).as("no raw line break, control character or line separator of the name reaches the output")
-                .doesNotContain(mark + "\n").doesNotContain("\u0007").doesNotContain(" ");
+                .doesNotContain(mark + "\n").doesNotContain("\u0007").doesNotContain("\u2028");
         assertLocatorFieldsInContractOrder(run);
         assertTellsNothingSecret(run, account);
     }
@@ -642,14 +666,52 @@ class ReadOnlyVerificationCommandIT {
         return fields;
     }
 
-    static Locator violation(String securableClass, String schema, String object, String permission, Grantee grantee) {
+    /** schema and object as printed (quoted name, or ABSENT where the login cannot see the securable); objectId is the major_id. */
+    static Locator violation(String securableClass, String schema, String object, long objectId, String permission, Grantee grantee) {
         return new Locator('g', "violation", fields("reason", "SECURABLE_GRANT_BEYOND_SELECT", "class", securableClass, "schema", schema, "object", object,
-                "permission", quoted(permission), "state", "GRANT", "grantee", grantee.name(), "granteeType", grantee.type()));
+                "objectId", String.valueOf(objectId), "permission", quoted(permission), "state", "GRANT", "grantee", grantee.name(), "granteeType", grantee.type()));
     }
 
-    static Locator overridden(String securableClass, String schema, String object, String permission, Grantee grantee, String by) {
-        return new Locator('g', "overridden", fields("class", securableClass, "schema", schema, "object", object, "permission", quoted(permission),
-                "state", "GRANT", "grantee", grantee.name(), "granteeType", grantee.type(), "by", by));
+    static Locator overridden(String securableClass, String schema, String object, long objectId, String permission, Grantee grantee, String by) {
+        return new Locator('g', "overridden", fields("class", securableClass, "schema", schema, "object", object, "objectId", String.valueOf(objectId),
+                "permission", quoted(permission), "state", "GRANT", "grantee", grantee.name(), "granteeType", grantee.type(), "by", by));
+    }
+
+    /** The major_id of an object as sa reads it: the oracle for objectId. */
+    static long objectId(Account account, String qualifiedName) throws SQLException {
+        return adminLong(account, "SELECT OBJECT_ID(N'" + qualifiedName.replace("'", "''") + "')");
+    }
+
+    static long schemaId(Account account, String schema) throws SQLException {
+        return adminLong(account, "SELECT SCHEMA_ID(N'" + schema.replace("'", "''") + "')");
+    }
+
+    private static long adminLong(Account account, String query) throws SQLException {
+        try (Connection c = DriverManager.getConnection(account.url() + ";loginTimeout=30", "sa", SA_PASSWORD); Statement s = c.createStatement();
+                ResultSet rs = s.executeQuery(query)) {
+            assertThat(rs.next() && rs.getObject(1) != null).as("the fixture: %s", query).isTrue();
+            return rs.getLong(1);
+        }
+    }
+
+    /**
+     * Metadata visibility, asked as the login itself: the premise of each expected name or placeholder. SQL Server shows the login a securable
+     * only where it holds some permission on it that is not denied.
+     */
+    static boolean loginSeesObject(Account account, long objectId) throws SQLException {
+        return loginCounts(account, "SELECT COUNT(*) FROM sys.objects WHERE object_id = " + objectId) == 1;
+    }
+
+    static boolean loginSeesSchema(Account account, long schemaId) throws SQLException {
+        return loginCounts(account, "SELECT COUNT(*) FROM sys.schemas WHERE schema_id = " + schemaId) == 1;
+    }
+
+    private static long loginCounts(Account account, String query) throws SQLException {
+        try (Connection c = DriverManager.getConnection(account.url() + ";loginTimeout=30", account.login(), account.password());
+                Statement s = c.createStatement(); ResultSet rs = s.executeQuery(query)) {
+            rs.next();
+            return rs.getLong(1);
+        }
     }
 
     /** Fixed field order (section 3a), so that a grep for "permission=... state=..." finds the line. */
