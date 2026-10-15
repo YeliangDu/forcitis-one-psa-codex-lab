@@ -23,7 +23,7 @@ terms:
   zh: 已分配
   en: Assigned
   snake: assigned
-  kind: event
+  kind: domain_event
   bc: platform.approval
   scope: domain
   definition: 第三轮用语确认（R3-AP-05）已定为：任务已分配 / TaskAssigned（task_assigned）。代码与界面改名合入前保留旧写法。
@@ -41,7 +41,7 @@ terms:
   zh: 已完成
   en: Completed
   snake: completed
-  kind: event
+  kind: domain_event
   bc: platform.approval
   scope: domain
   definition: 第三轮用语确认（R3-AP-07）已定为：审批已完成 / ApprovalCompleted（approval_completed）。代码与界面改名合入前保留旧写法。
@@ -59,7 +59,7 @@ terms:
   zh: 已升级
   en: Escalated
   snake: escalated
-  kind: value
+  kind: value_object
   bc: platform.approval
   scope: domain
   definition: 第三轮用语确认（R3-AP-10）已定为：已上推 / ReroutedToSuperior（rerouted_to_superior）。代码与界面改名合入前保留旧写法。
@@ -77,7 +77,7 @@ terms:
   zh: 兜底
   en: Fallback
   snake: fallback
-  kind: value
+  kind: value_object
   bc: platform.approval
   scope: domain
   definition: 第三轮用语确认（R3-AP-11）已定为：转流程管理员 / AdministratorFallback（administrator_fallback）。代码与界面改名合入前保留旧写法。
@@ -149,7 +149,7 @@ terms:
   zh: 审批时限
   en: Deadline
   snake: deadline
-  kind: value
+  kind: value_object
   bc: platform.approval
   scope: domain
   definition: 第三轮用语确认（R3-AP-21）已定为：审批时限 / ApprovalTimeLimit（approval_time_limit）。代码与界面改名合入前保留旧写法。
@@ -167,7 +167,7 @@ terms:
   zh: 效力
   en: Effect
   snake: effect
-  kind: value
+  kind: value_object
   bc: platform.approval
   scope: domain
   definition: 第三轮用语确认（R3-AP-22）已定为：办理效力 / TaskEffect（task_effect）。代码与界面改名合入前保留旧写法。
@@ -185,7 +185,7 @@ terms:
   zh: 释放
   en: ReleaseOfTask
   snake: release_of_task
-  kind: action
+  kind: command
   bc: platform.approval
   scope: domain
   definition: 第三轮用语确认（R3-AP-25）已定为：取消认领 / Unclaim（unclaim）。代码与界面改名合入前保留旧写法。
@@ -203,7 +203,7 @@ terms:
   zh: 业务摘要
   en: BusinessSummary
   snake: business_summary
-  kind: value
+  kind: value_object
   bc: platform.approval
   scope: domain
   definition: 第三轮用语确认（R3-AP-41）已定为：审批摘要 / ApprovalSummary（approval_summary）。代码与界面改名合入前保留旧写法。
@@ -275,7 +275,7 @@ terms:
   zh: 已出结果
   en: Resulted
   snake: resulted
-  kind: event
+  kind: domain_event
   bc: platform.approval
   scope: domain
   definition: 第三轮用语确认（R3-AP-60）已定为：任务已办理 / TaskHandled（task_handled）。代码与界面改名合入前保留旧写法。
@@ -311,7 +311,7 @@ terms:
   zh: 项目经理审批
   en: ProjectManagerReview
   snake: project_manager_review
-  kind: value
+  kind: value_object
   bc: platform.approval
   scope: domain
   definition: 第三轮用语确认（R3-AP-68）已定为：项目经理审批 / ProjectManagerApproval（project_manager_approval）。代码与界面改名合入前保留旧写法。
@@ -329,7 +329,7 @@ terms:
   zh: 区域负责人审批
   en: RegionalHeadReview
   snake: regional_head_review
-  kind: value
+  kind: value_object
   bc: platform.approval
   scope: domain
   definition: 第三轮用语确认（R3-AP-69）已定为：区域负责人审批 / RegionalHeadApproval（regional_head_approval）。代码与界面改名合入前保留旧写法。
@@ -347,7 +347,7 @@ terms:
   zh: 一级汇报人审批
   en: SupervisorReview
   snake: supervisor_review
-  kind: value
+  kind: value_object
   bc: platform.approval
   scope: domain
   definition: 第三轮用语确认（R3-AP-70）已定为：直属上级审批 / SupervisorApproval（supervisor_approval）。代码与界面改名合入前保留旧写法。
@@ -365,7 +365,7 @@ terms:
   zh: 撤回截止点
   en: Cutoff
   snake: cutoff
-  kind: value
+  kind: value_object
   bc: platform.approval
   scope: domain
   definition: 第三轮用语确认（R3-AP-74）已定为：撤回截止点 / WithdrawalCutoff（withdrawal_cutoff）。代码与界面改名合入前保留旧写法。
@@ -383,7 +383,7 @@ terms:
   zh: 管理模式
   en: AdministratorMode
   snake: administrator_mode
-  kind: concept
+  kind: business_rule
   bc: platform.identity
   scope: domain
   definition: 第三轮用语确认（R3-ID-04）已定为：管理员模式 / AdministratorMode（administrator_mode）。代码与界面改名合入前保留旧写法。
@@ -437,7 +437,7 @@ terms:
   zh: 敏感角色持有人
   en: SensitiveRoleHolder
   snake: sensitive_role_holder
-  kind: value
+  kind: value_object
   bc: platform.identity
   scope: domain
   definition: 第三轮用语确认（R3-ID-22）已定为：敏感角色复核 / SensitiveRoleReview（permission_adjustment_kind__sensitive_role_review）。代码与界面改名合入前保留旧写法。
@@ -455,7 +455,7 @@ terms:
   zh: 大小
   en: Size
   snake: size
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: domain
   definition: 第三轮用语确认（R3-IN-07）已定为：字节数 / ByteCount（byte_count）。代码与界面改名合入前保留旧写法。
@@ -473,7 +473,7 @@ terms:
   zh: 保留
   en: Keep
   snake: keep
-  kind: action
+  kind: command
   bc: platform.integration
   scope: domain
   definition: 第三轮用语确认（R3-IN-08）已定为：数据保留期限 / DataRetentionPeriod（data_retention_period）。代码与界面改名合入前保留旧写法。
@@ -491,7 +491,7 @@ terms:
   zh: 一次写入多次读取
   en: Worm
   snake: worm
-  kind: concept
+  kind: business_rule
   bc: platform.integration
   scope: domain
   definition: 第三轮用语确认（R3-IN-36）已定为：一次写入多次读取 / WriteOnceReadMany（write_once_read_many）。代码与界面改名合入前保留旧写法。
@@ -509,7 +509,7 @@ terms:
   zh: 凭证号规则
   en: VoucherNumberingRule
   snake: voucher_numbering_rule
-  kind: concept
+  kind: business_rule
   bc: platform.numbering
   scope: domain
   definition: 第三轮用语确认（R3-NU-08）已定为：记账凭证编号规则 / JournalVoucherNumberingRule（journal_voucher_numbering_rule）。代码与界面改名合入前保留旧写法。
@@ -527,7 +527,7 @@ terms:
   zh: 规则版本
   en: RuleVersion
   snake: rule_version
-  kind: value
+  kind: value_object
   bc: platform.numbering
   scope: domain
   definition: 第三轮用语确认（R3-NU-09）已定为：编号规则版本 / NumberingRuleVersion（numbering_rule_version）。代码与界面改名合入前保留旧写法。
@@ -545,7 +545,7 @@ terms:
   zh: OH 工时
   en: OverheadHours
   snake: overhead_hours
-  kind: value
+  kind: value_object
   bc: cost.timesheet
   scope: domain
   definition: 第三轮用语确认（R3-TS-04）已定为：间接工时 / IndirectHours（indirect_hours）。代码与界面改名合入前保留旧写法。
@@ -563,7 +563,7 @@ terms:
   zh: 企业邮箱
   en: Email
   snake: email
-  kind: value
+  kind: value_object
   bc: organization.workforce
   scope: domain
   definition: 第三轮用语确认（R3-WF-06）已定为：企业邮箱 / EmailAddress（workforce__email_address）。代码与界面改名合入前保留旧写法。
@@ -635,7 +635,7 @@ terms:
   zh: 工时单据类型代码
   en: Ts
   snake: ts
-  kind: value
+  kind: value_object
   bc: platform.numbering
   scope: domain
   definition: 第三轮用语确认（R3-NU-06）已定为：并入 document_type_code。代码与界面改名合入前保留旧写法。
@@ -653,7 +653,7 @@ terms:
   zh: 报价单据类型代码
   en: Qt
   snake: qt
-  kind: value
+  kind: value_object
   bc: platform.numbering
   scope: domain
   definition: 第三轮用语确认（R3-NU-17）已定为：并入 document_type_code。代码与界面改名合入前保留旧写法。
@@ -671,7 +671,7 @@ terms:
   zh: 记账凭证单据类型代码
   en: Jv
   snake: jv
-  kind: value
+  kind: value_object
   bc: platform.numbering
   scope: domain
   definition: 第三轮用语确认（R3-NU-18）已定为：并入 document_type_code。代码与界面改名合入前保留旧写法。
@@ -689,7 +689,7 @@ terms:
   zh: 会计凭证
   en: JournalVoucher
   snake: journal_voucher
-  kind: document
+  kind: aggregate
   bc: accounting.voucher
   scope: domain
   definition: 第三轮用语确认（R3-AP-26）已定为：记账凭证 / JournalVoucher（journal_voucher）。代码与界面改名合入前保留旧写法。

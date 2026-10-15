@@ -7,7 +7,11 @@
 - upstream_term（下游 bc 自用词对应的上游词条）须是另一个 bc 的未弃用词条；
 - 指标（kind metric）写口径：formula、grain、as_of；
 - 同一 bc 内一个中文名、一个英文名只对应一个词条（弃用的不算）；跨 bc 同名须在 homonyms 里互列对方 id，homonyms 只能列真同名的词条；
-- 错误码中文名全局唯一（G48、R-5、CS-2.24），不适用互列。
+- 错误码中文名全局唯一（G48、R-5、CS-2.24），不适用互列；
+- kind 只取 DDD 战术分类十种（聚合 aggregate、实体 entity、值对象 value_object、领域事件 domain_event、命令 command、业务规则 business_rule、读模型 read_model、指标 metric、角色 role、状态 state），错误码另列 error_code；
+- 命名（B2，intent 2026-10-15-171959 第 5 条）：领域事件的英文名以过去分词结尾（业务动词过去式）；命令的英文名以祈使动词开头（不以 -ed / -ing 开头）；
+  Create、Update、Delete 不作名字的头一个词，Data、Info、Manager、Handler、Helper、Util、Processor 不作名字的最后一个词（角色名中的 Manager 如项目经理除外），技术泛词不作领域名；
+- 同一个聚合名下，事件与命令只用一个中文名、一个英文名（同上一条同 bc 查重）。
 存量违规登记在 glossary/term-rules-baseline.json：entries 为允许的问题（键 <来源>#<id>:<规则>），rules 为各规则的登记条数。
 只减不增：出现基线外的问题、某规则的键数与登记条数不等（删键须同步调低 count）、基线里的问题已修好而没删键，都失败。"""
 import json, os
@@ -16,6 +20,30 @@ STATUSES = ("proposed", "approved", "deprecated")
 SCOPES = ("domain", "kernel", "acl")
 ACL_CLASSES = ("过渡期", "长期")
 METRIC_FIELDS = ("formula", "grain", "as_of")
+DDD_KINDS = ("aggregate", "entity", "value_object", "domain_event", "command", "business_rule", "read_model", "metric", "role", "state", "error_code")
+KIND_HINT = {"value": "value_object", "enum": "state", "event": "domain_event", "action": "command", "rule": "business_rule", "policy": "business_rule"}
+GENERIC_FIRST = ("create", "update", "delete")
+GENERIC_LAST = ("data", "info", "manager", "handler", "helper", "util", "utils", "processor")
+PARTICLES = ("off", "out", "up", "down", "in", "over", "back", "away", "on")
+PREPOSITIONS = ("for", "to", "by", "from", "in", "on", "at", "with", "of", "into", "after", "before")
+IRREGULAR_PAST = ("sent", "built", "held", "made", "paid", "set", "put", "read", "lost", "kept", "begun", "taken", "given", "written", "shown", "run", "bound", "found", "left", "met", "spent", "split", "cut", "hit", "closed", "reset", "frozen", "chosen", "broken", "undone", "overridden", "withdrawn", "drawn", "known", "seen", "gone", "become", "come")
+
+
+def past_tense(ws):
+    """名字以过去分词结尾，可后跟小品词（WrittenOff）或介词短语（SubmittedForApproval）。"""
+    ws = list(ws) or [""]
+    while len(ws) > 1 and ws[-1] in PARTICLES:
+        ws = ws[:-1]
+    for i in range(len(ws) - 1, -1, -1):
+        if ws[i].endswith("ed") or ws[i] in IRREGULAR_PAST:
+            return i == len(ws) - 1 or ws[i + 1] in PREPOSITIONS
+    return False
+
+
+def words(en):
+    import re
+    spaced = re.sub(r"([A-Z])([A-Z][a-z])", r"\1 \2", re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", en or ""))
+    return [w.lower() for w in re.split(r"[^A-Za-z0-9]+", spaced) if w and not w.isdigit()]
 DEPRECATED_FIELDS = ("replaced_by", "until", "owner")
 BC_KINDS = ("bc", "kernel")
 BASELINE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "term-rules-baseline.json")
@@ -52,6 +80,21 @@ def check(entries, bcs):
             missing = [f for f in DEPRECATED_FIELDS if _blank(e.get(f))]
             if missing or not live_id(e.get("replaced_by")):
                 bad(src, e, "deprecated", "弃用条目须写 replaced_by（未弃用的已登记 id）、until、owner：缺或无效 " + "、".join(missing or ["replaced_by"]))
+        if kind not in DDD_KINDS:
+            hint = f"，改为 {KIND_HINT[kind]}" if kind in KIND_HINT else ""
+            bad(src, e, "kind", f"kind「{kind}」不在 DDD 分类（{'/'.join(DDD_KINDS)}）{hint}")
+        if kind == "domain_event":
+            if not past_tense(words(e.get("en"))):
+                bad(src, e, "event_name", f"领域事件名须以过去分词结尾（聚合名加过去式业务动词），现为「{e.get('en')}」")
+        if kind == "command":
+            first = (words(e.get("en")) or [""])[0]
+            if first.endswith(("ed", "ing")):
+                bad(src, e, "command_name", f"命令名须以祈使动词开头，现为「{e.get('en')}」")
+        if kind != "error_code" and e.get("status") != "deprecated":
+            ws = words(e.get("en"))
+            generic = ([ws[0]] if ws and ws[0] in GENERIC_FIRST else []) + ([ws[-1]] if len(ws) > 1 and ws[-1] in GENERIC_LAST and not (kind == "role" and ws[-1] == "manager") else [])
+            if generic:
+                bad(src, e, "generic_word", f"技术泛词不作领域名：{'、'.join(generic)}（「{e.get('en')}」）")
         if scope not in SCOPES:
             bad(src, e, "scope", f"scope「{scope}」缺失或不在 {'/'.join(SCOPES)}")
         if bc not in usable:
@@ -180,6 +223,18 @@ def self_test():
     want("acl 合法", rules(term("a", scope="acl", acl_class="长期")), set())
     want("非 acl 不写 acl_class", rules(term("a", acl_class="长期")), {"acl_class"})
     want("指标口径", rules(term("a", kind="metric", formula="x")), {"metric"})
+    want("kind 不在 DDD 分类", rules(term("a", kind="value")), {"kind"})
+    want("kind 合法", rules(term("a", kind="aggregate"), term("b", zh="乙", en="B", kind="error_code")), set())
+    want("事件名过去式", rules(term("a", kind="domain_event", en="TimesheetApproved")), set())
+    want("事件名含小品词", rules(term("a", kind="domain_event", en="ArWrittenOff")), set())
+    want("事件名含介词短语", rules(term("a", kind="domain_event", en="DocumentSubmittedForApproval")), set())
+    want("事件名不是过去式", rules(term("a", kind="domain_event", en="TimesheetApproval")), {"event_name"})
+    want("命令名祈使", rules(term("a", kind="command", en="ApproveTimesheet")), set())
+    want("命令名不能是过去式", rules(term("a", kind="command", en="ApprovedTimesheet")), {"command_name"})
+    want("泛词开头", rules(term("a", en="CreateTimesheet")), {"generic_word"})
+    want("泛词结尾", rules(term("a", en="TimesheetManager")), {"generic_word"})
+    want("角色可叫经理", rules(term("a", kind="role", en="ProjectManager")), set())
+    want("泛词在中间不算", rules(term("a", en="DataRetentionPeriod")), set())
     want("upstream_term 不存在", rules(term("a", upstream_term="b")), {"upstream_term"})
     want("upstream_term 同 bc", rules(term("a", upstream_term="b"), term("b", zh="乙", en="B")), {"upstream_term"})
     want("upstream_term 指向弃用", rules(term("a", upstream_term="b"), term("b", zh="乙", en="B", bc="delivery.execution", **dict(dep, replaced_by="a"))), {"upstream_term"})

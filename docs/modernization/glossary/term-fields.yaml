@@ -22,3 +22,8 @@ terms:
     homonyms: [accounting_ledger__basis_difference_list]
   accounting_ledger__basis_difference_list:
     homonyms: [operations_policy__basis_difference_list]
+  # B2：作业失败由概念转为指标（B1-KIND 答复），口径取自定义（指标 job.failures）
+  job_failure:
+    formula: 带 SchedulerLock 的定时作业抛出异常的运行次数（作业自己捕获并记录的失败不计）
+    grain: 按作业名（锁名）
+    as_of: 实时累计，随进程重启归零（指标计数器）

@@ -252,7 +252,7 @@ bcs:
   subdomain: platform
   kind: bc
   business_owner: 用户兼任
-  description: "用户、角色、权限、登录与会话、数据范围"
+  description: "用户、角色、权限、登录与会话、数据范围。单点登录：由外部身份提供方发起，校验在集成层，本 bc 只决定能否登录并发会话"
 - id: platform.approval
   zh: 流程与审批
   subdomain: platform
@@ -264,7 +264,7 @@ bcs:
   subdomain: platform
   kind: bc
   business_owner: 用户兼任
-  description: "事件投递、数据集成通道、外部系统防腐层（ADR-0039：外部系统概念只在此）"
+  description: "事件投递、数据集成通道、外部系统防腐层（ADR-0039：外部系统概念只在此）。含组织来源同步（从组织来源系统拉取组织与人员数据、做缩水保护与差异比对、翻译成组织变更集交组织人事应用，含运行记录与运维放行）；联合身份校验（外部身份提供方认证、集成层校验并按外部身份对照映射到本系统用户，本系统只据此决定能否登录并发会话）"
 - id: platform.audit
   zh: 审计
   subdomain: platform
@@ -306,4 +306,47 @@ bcs:
   subdomain: platform
   kind: bc
   business_owner: 用户兼任
-  description: "提议术语使用，代码中无同名模块"
+  description: "迁入编排：按依赖顺序调用集成层与各目标 bc 的迁入用例、推进迁入批次的独立模块（暂定，代码中尚无同名模块），只依赖它们的 api，不被任何模块依赖（ADR-0036 第 1 条）"
+# 外部系统与本系统的名字（B2：原词表里 kind 为 system 的条目移到这里；英文词由 Glossary.java 登记，只可出现在 platform.integration，ADR-0039）
+- id: wecom
+  zh: 企业微信
+  en: Wecom
+  kind: system
+  subdomain: platform
+  description: "腾讯企业微信；登录（OAuth）与审批通知的外部系统"
+- id: seeyon
+  zh: 致远
+  en: Seeyon
+  kind: system
+  subdomain: platform
+  description: "致远；组织主数据与单点登录验票的外部系统，由集成模块的防腐层读取"
+- id: org_source
+  zh: 组织源
+  en: OrgSource
+  kind: system
+  subdomain: platform
+  description: "组织与人员的来源系统，来源系统取值 ORG_SOURCE；其员工、组织单元、岗位的标识登记在来源对照里"
+- id: accounting_system
+  zh: 核算系统
+  en: AccountingSystem
+  kind: system
+  subdomain: platform
+  description: "接收凭证的核算系统，来源系统取值 ACCOUNTING_SYSTEM；法人在其中的数字编码（核算组织编码）登记在来源对照里"
+- id: legacy_system
+  zh: 老系统
+  en: LegacySystem
+  kind: system
+  subdomain: platform
+  description: "被本系统替代的原项目管理系统（待办合并期间只读接入）"
+- id: new_system
+  zh: 新系统
+  en: NewSystem
+  kind: system
+  subdomain: platform
+  description: "FORCITIS one 本身；待办合并期间与老系统并存，界面用来标出待办的来源"
+- id: portal
+  zh: 门户
+  en: Portal
+  kind: system
+  subdomain: platform
+  description: "公司门户，致远单点登录的入口"

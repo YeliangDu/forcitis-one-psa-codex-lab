@@ -29,6 +29,19 @@ import org.junit.jupiter.api.Test;
 class GlossaryTest {
     static final Path MIGRATIONS = Path.of("src/main/resources/db/migration");
     static final Path DRAFT = Path.of("target/glossary-draft.yaml");
+    /** Code types without a (correct) glossary term: only shrinks (B2); one line per problem, see the header of the file. */
+    static final Path CODE_BASELINE = Path.of("glossary/code-term-baseline.txt");
+    static final String AGGREGATE_ROOT = "com.forcitis.one.kernel.AggregateRoot";
+    static final String DOMAIN_EVENT = "com.forcitis.one.kernel.event.DomainEvent";
+    static final Set<String> GENERIC_FIRST = Set.of("create", "update", "delete");
+    static final Set<String> GENERIC_LAST = Set.of("data", "info", "manager", "handler", "helper", "util", "utils", "processor");
+    static final Set<String> PARTICLES = Set.of("off", "out", "up", "down", "in", "over", "back", "away", "on");
+    static final Set<String> PREPOSITIONS = Set.of("for", "to", "by", "from", "in", "on", "at", "with", "of", "into", "after", "before");
+    // keep in step with IRREGULAR_PAST in docs/modernization/glossary/term_rules.py
+    static final Set<String> IRREGULAR_PAST = Set.of("sent", "built", "held", "made", "paid", "set", "put", "read", "lost", "kept", "begun",
+            "taken", "given", "written", "shown", "run", "bound", "found", "left", "met", "spent", "split", "cut", "hit", "closed", "reset",
+            "frozen", "chosen", "broken", "undone", "overridden", "withdrawn", "drawn", "known", "seen", "gone", "become", "come");
+    static final Map<String, String> codeProblems = new TreeMap<>();
     static final Set<String> BUILT_INS = Set.of("equals", "hashCode", "toString", "values", "valueOf", "compareTo",
             "ordinal", "name", "getClass", "describeConstable", "getDeclaringClass", "main");
     static final Pattern SCANNED_PACKAGE = Pattern.compile("com\\.forcitis\\.one\\.(kernel|.*\\.(domain|api|events|web))(\\..*)?");
@@ -169,9 +182,81 @@ class GlossaryTest {
         }
     }
 
+    @Test
+    void aggregatesAndEventsAreGlossaryTerms() throws IOException {
+        // G40 every aggregate root class has an aggregate term, G41 every domain event class a domain_event term whose name is past tense,
+        // G42 no technical generic word in their names (B2, intent 2026-10-15-171959 items 3, 5, 8: code types can be traced to a term id)
+        List<String> baseline = Files.exists(CODE_BASELINE)
+                ? Files.readAllLines(CODE_BASELINE).stream().map(String::strip).filter(l -> !l.isEmpty() && !l.startsWith("#")).toList() : List.of();
+        List<String> failures = new ArrayList<>();
+        codeProblems.forEach((key, msg) -> {
+            if (!baseline.contains(key)) {
+                failures.add("new problem " + key + ": " + msg);
+            }
+        });
+        baseline.stream().filter(k -> !codeProblems.containsKey(k)).forEach(k -> failures.add(
+                "stale baseline line (fixed, remove it from " + CODE_BASELINE + "): " + k));
+        if (!failures.isEmpty()) {
+            throw new AssertionError("G40-G42 aggregate / domain event classes vs glossary (terms.yaml, proposed/*.yaml):\n  " + String.join("\n  ", failures));
+        }
+    }
+
+    /** Past participle at the end, optionally followed by a particle (WrittenOff) or a prepositional tail (SubmittedForApproval); same rule as term_rules.py. */
+    private static boolean pastTense(List<String> words) {
+        List<String> ws = new ArrayList<>(words);
+        while (ws.size() > 1 && PARTICLES.contains(ws.get(ws.size() - 1))) {
+            ws.remove(ws.size() - 1);
+        }
+        for (int i = ws.size() - 1; i >= 0; i--) {
+            if (ws.get(i).endsWith("ed") || IRREGULAR_PAST.contains(ws.get(i))) {
+                return i == ws.size() - 1 || PREPOSITIONS.contains(ws.get(i + 1));
+            }
+        }
+        return false;
+    }
+
+    private static void collectCodeTermProblems(JavaClasses classes) {
+        Map<String, List<Glossary.Term>> byBcAndSnake = new LinkedHashMap<>();
+        for (Glossary.Term t : terms) {
+            if (t.bc() != null && !t.status().equals("deprecated")) {
+                byBcAndSnake.computeIfAbsent(t.bc() + "|" + t.snake(), k -> new ArrayList<>()).add(t);
+            }
+        }
+        for (JavaClass c : classes) {
+            String pkg = c.getPackageName();
+            if (!pkg.startsWith("com.forcitis.one.") || c.isInterface() || c.isAnonymousClass() || c.getName().contains("$")
+                    || c.getModifiers().contains(JavaModifier.ABSTRACT)) {
+                continue;
+            }
+            boolean aggregate = !c.getName().equals(AGGREGATE_ROOT) && c.isAssignableTo(AGGREGATE_ROOT);
+            boolean event = pkg.matches(".*\\.events(\\..*)?") && c.isAssignableTo(DOMAIN_EVENT);
+            if (!aggregate && !event) {
+                continue;
+            }
+            String bc = bc(pkg);
+            String kind = aggregate ? "aggregate" : "domain_event";
+            List<String> words = split(c.getSimpleName());
+            String who = (aggregate ? "G40 " : "G41 ") + bc + " " + c.getSimpleName();
+            boolean found = byBcAndSnake.getOrDefault(bc + "|" + String.join("_", words), List.of()).stream().anyMatch(t -> kind.equals(t.kind()));
+            if (!found) {
+                codeProblems.put(who + " no " + kind + " term", "no " + kind + " term with snake '" + String.join("_", words) + "' in bc " + bc
+                        + ": add a proposed term (the class name is the English name)");
+            }
+            if (event) {
+                if (!pastTense(words)) {
+                    codeProblems.put(who + " event name not past tense", "domain event names are an aggregate name plus a past-tense business verb");
+                }
+            }
+            if (GENERIC_FIRST.contains(words.get(0)) || (words.size() > 1 && GENERIC_LAST.contains(words.get(words.size() - 1)))) {
+                codeProblems.put("G42 " + bc + " " + c.getSimpleName() + " generic word", "technical generic words (Create / Update / Delete first, Data / Info / Manager / Handler ... last) are not domain names");
+            }
+        }
+    }
+
     private static void scanCode() {
         JavaClasses classes = new ClassFileImporter().withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
                 .importPackages("com.forcitis.one");
+        collectCodeTermProblems(classes);
         for (JavaClass c : classes) {
             if (c.getSimpleName().isEmpty() || c.getName().contains("$$") || c.getSimpleName().equals("package-info")
                     || c.getModifiers().contains(JavaModifier.SYNTHETIC) || c.isAnonymousClass()) {

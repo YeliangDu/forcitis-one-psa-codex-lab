@@ -18,13 +18,15 @@ import org.yaml.snakeyaml.Yaml;
 final class Glossary {
     static final Path FILE = Path.of("glossary/terms.yaml");
     static final Path OFFICIAL = Path.of("../docs/modernization/glossary/terms.yaml");
+    /** Bounded-context register: the names of external systems (kind: system) are registered words, they are no longer terms (B2). */
+    static final Path CONTEXTS = Path.of("../docs/modernization/glossary/bcs.yaml");
     /** One file per module so parallel work never edits the same file. */
     static final Path PROPOSED_DIR = Path.of("glossary/proposed");
     static final Set<String> STATUSES = Set.of("approved", "proposed", "deprecated");
     static final List<String> FIELDS = List.of("id", "zh", "en", "snake", "kind", "bc", "definition", "standard_ref",
             "confidence", "aliases", "forbidden", "status");
 
-    record Term(String id, String zh, String en, String snake, String status, Map<String, List<String>> forbidden) {
+    record Term(String id, String zh, String en, String snake, String status, Map<String, List<String>> forbidden, String kind, String bc) {
         List<String> words() {
             Set<String> words = new LinkedHashSet<>(split(en));
             words.addAll(split(snake));
@@ -102,6 +104,23 @@ final class Glossary {
         for (Path file : files) {
             load(file, ids);
         }
+        if (Files.exists(CONTEXTS)) {
+            loadContexts();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void loadContexts() throws IOException {
+        Map<String, Object> root;
+        try (InputStream in = Files.newInputStream(CONTEXTS)) {
+            root = new Yaml().load(in);
+        }
+        for (Map<String, Object> raw : (List<Map<String, Object>>) root.getOrDefault("bcs", List.of())) {
+            if ("system".equals(raw.get("kind")) && raw.get("en") != null) {
+                String en = String.valueOf(raw.get("en"));
+                TERMS.add(new Term("bcs:" + raw.get("id"), String.valueOf(raw.get("zh")), en, String.join("_", split(en)), "approved", Map.of(), "system", null));
+            }
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -145,7 +164,11 @@ final class Glossary {
                     }
                 });
             }
-            TERMS.add(new Term(id, String.valueOf(raw.get("zh")), en, snake, status, forbidden));
+            TERMS.add(new Term(id, String.valueOf(raw.get("zh")), en, snake, status, forbidden, String.valueOf(raw.get("kind")), String.valueOf(raw.get("bc"))));
+            for (Map<String, Object> attr : (List<Map<String, Object>>) raw.getOrDefault("attributes", List.of())) {
+                String attrEn = String.valueOf(attr.get("en"));
+                TERMS.add(new Term(id + "." + attr.get("snake"), String.valueOf(attr.get("zh")), attrEn, String.valueOf(attr.get("snake")), status, Map.of(), "value_object", String.valueOf(raw.get("bc"))));
+            }
         }
     }
 

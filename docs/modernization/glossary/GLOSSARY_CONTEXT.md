@@ -38,7 +38,7 @@
 |---|---|
 | 积压 | 以 `glossary/ISSUES.md` 首段为准（门槛只算业务用语；错误码单列归 R-5，用户 2026-10-15） |
 | 已知重复 | 中文名重复 5 组（§5 起因）；同义错误码 4 组（R-5 卡） |
-| 在途 | 已合：#212（第三轮与 ACL 写回，正式 580 条；改名卡 42 张已派：后端随 R-2a 由 one-1a-next-3、界面由 one-1a-par，QT/TS/JV 3 张随 R-2a）、#214（「项目」样例卡、R-1b-0 撤 G06/G07）。合并队列：#234（B1：scope/bc 必填、同 bc 查重，存量基线 107 条）。本 PR：R-1b-0 G01–G03 写回（G03 同 migration_tie_out 不另立）。「项目」22 条答复齐（PJ-02、PJ-19 在 B1 会话答，确认页提交未落库）待写回 |
+| 在途 | B2（分支 claude/one-glossary-b2）：类别统一为 DDD 十种（判定表 `glossary/b2/kind-judgement.json`，subdomain/module/system 移入 bcs.yaml，属性挂 attributes），term_rules 加 kind 与命名规则，GlossaryTest 加 G40–G42（聚合根/领域事件反查词条，基线 `backend/glossary/code-term-baseline.txt`），59 条缺失的聚合与事件登记为提议（`proposed/code-aggregates-events.yaml`）；待用户确认清单在共享笔记 b2-confirm-list.md。已合：#212、#214、#234（B1）、#236 |
 | 下一步 | /clear 后先读本文件与 sessions/one-glossary.md，核对 #234 与本 PR 已合并（`gh pr list --author @me`）。① 「项目」卡写回（答复在 B1 共享笔记 answers-C-PROJECT-R-1b-0-2026-10-15.json；按 B1 规则带 scope、同名互列；沿用已有词条的不另立）② provider_kind / external_subject / external_identity 迁 platform.integration、scope acl 过渡期，provider_kind 取值 WECOM_USER_ID、SEEYON_LOGIN_NAME（RULING-P3B-7、P3B-9）③ B2：kind 定 DDD 战术分类、聚合与事件反查词条（材料 b1-kind-judgement.json；opus 复审）④ 交来的后续：platform_identity_login_name_unknown 定义含外部名；G39 不分 bc 会误报（开卡）⑤ 发确认页后先请用户刷新，收到提交即核对是否落库 |
 | 用语规范 | evidence 只用于「证据」义（fact_evidence 等）；判定结果用 verdict（在职判定 EmploymentVerdict） |
 | 定时 | 每周积压检查（会话内定时任务，开会话后设，记在画像） |
