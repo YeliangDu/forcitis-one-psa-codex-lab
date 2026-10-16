@@ -53,8 +53,8 @@ class OwnLoginRecordsBySubjectIT extends P5Support {
         MockHttpServletResponse own = mvc.perform(get(OWN).with(person(31, Permission.Codes.PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ))).andReturn().getResponse();
 
         assertThat(own.getStatus()).as(own.getContentAsString()).isEqualTo(200);
-        List<String> actions = JsonPath.read(own.getContentAsString(), "$[*].action");
-        List<String> addresses = JsonPath.read(own.getContentAsString(), "$[*].sourceAddress");
+        List<String> actions = JsonPath.read(own.getContentAsString(), "$.items[*].action");
+        List<String> addresses = JsonPath.read(own.getContentAsString(), "$.items[*].sourceAddress");
         assertThat(actions).containsExactlyInAnyOrder(SUCCEEDED, FAILED, LOGOUT);
         assertThat(addresses).containsExactlyInAnyOrder("10.1.0.1", "10.1.0.2", "10.1.0.3");
         assertThat(addresses).as("an entry of another kind with the same id is not mine").doesNotContain("10.9.9.9", "10.9.9.8");
@@ -72,9 +72,9 @@ class OwnLoginRecordsBySubjectIT extends P5Support {
         MockHttpServletResponse own = mvc.perform(get(OWN).with(person(33, Permission.Codes.PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ))).andReturn().getResponse();
         MockHttpServletResponse theirs = mvc.perform(get(OWN).with(person(34, Permission.Codes.PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ))).andReturn().getResponse();
 
-        List<Map<String, Object>> mine = JsonPath.read(own.getContentAsString(), "$");
+        List<Map<String, Object>> mine = JsonPath.read(own.getContentAsString(), "$.items");
         assertThat(mine).hasSize(1);
         assertThat(mine.getFirst().keySet()).containsExactlyInAnyOrderElementsOf(Set.of("occurredAt", "action", "outcome", "sourceAddress", "loginMethod"));
-        assertThat((List<String>) JsonPath.read(theirs.getContentAsString(), "$[*].sourceAddress")).containsExactly("10.4.0.1");
+        assertThat((List<String>) JsonPath.read(theirs.getContentAsString(), "$.items[*].sourceAddress")).containsExactly("10.4.0.1");
     }
 }
