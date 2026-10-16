@@ -3389,7 +3389,8 @@ commands:
     desc: 只追加新版本
   raci_A:
     resolve: type
-    role: 财务负责人
+    role: SH-M1
+    function: 财务负责人
   raci_R:
   - SH-E6
   idempotency_key: 计划周期 + 滚动序号
@@ -3415,7 +3416,8 @@ commands:
     desc: 各账户额度合计不超基线额度总额（预算分解）
   raci_A:
     resolve: type
-    role: 财务负责人
+    role: SH-M1
+    function: 财务负责人
   raci_R:
   - SH-E6
   idempotency_key: 预算基线版本ID + 预算主体 + 预算期间
@@ -3436,7 +3438,8 @@ commands:
     desc: 只在该预算基线已定额度总额内调剂；超出或要改目标值即拒绝并提示走新版本（INV-101 路径）；留审计
   raci_A:
     resolve: type
-    role: 财务负责人
+    role: SH-M1
+    function: 财务负责人
   raci_R:
   - SH-E6
   idempotency_key: 调整请求ID
@@ -3462,7 +3465,8 @@ commands:
     desc: 超预算只预警，不审批
   raci_A:
     resolve: type
-    role: 财务负责人
+    role: SH-M1
+    function: 财务负责人
   raci_R:
   - system（B-11 供方协议、B-12 费用报销经 api 调用）
   idempotency_key: 占用方类型 + 占用方单据ID + 行号
@@ -3487,7 +3491,8 @@ commands:
     desc: 占用中
   raci_A:
     resolve: type
-    role: 财务负责人
+    role: SH-M1
+    function: 财务负责人
   raci_R:
   - system（B-11、B-12 驳回、作废、终止时；孤儿占用定时释放与对账）
   idempotency_key: 占用ID
@@ -3515,7 +3520,8 @@ commands:
     desc: 调整后超可用额度只预警、不拦截
   raci_A:
     resolve: type
-    role: 财务负责人
+    role: SH-M1
+    function: 财务负责人
   raci_R:
   - system（B-11 PRC-71 分包变更经 api 调用）
   idempotency_key: 分包变更ID
@@ -3538,7 +3544,8 @@ commands:
     desc: 占用中
   raci_A:
     resolve: type
-    role: 财务负责人
+    role: SH-M1
+    function: 财务负责人
   raci_R:
   - system
   idempotency_key: 占用ID + 消耗事件ID
@@ -3561,7 +3568,8 @@ commands:
     desc: 无占用中的占用行
   raci_A:
     resolve: type
-    role: 财务负责人
+    role: SH-M1
+    function: 财务负责人
   raci_R:
   - system
   - SH-E6

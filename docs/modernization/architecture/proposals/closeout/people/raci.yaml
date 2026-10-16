@@ -1794,32 +1794,6 @@ entries:
   sensitive: false
   source_part: vs0911
 - object: AGG-79
-  command: 经营计划审批（platform.approval 任务，回调命令为〔缺〕通过 / 驳回经营计划审批）
-  approver: cost_object_owner
-  raci:
-    A:
-      resolve: instance
-      field: 经营计划版本.归属组织单元.负责人
-    R:
-    - SH-M1
-    C:
-    - SH-E6
-    I:
-    - SH-O1
-  boundary:
-    limit_rule: 无（计划不是金额单据，AR-01、02 不适用）
-    segregation:
-    - 提交人 ≠ A
-    delegate:
-      when: AR-11
-      to: 汇报线上级
-    escalate:
-      when: AR-12
-      to: 上级组织负责人
-  why_human: 目标值与资源取舍是否合理、是否可达，需要责任人凭经营判断
-  sensitive: false
-  source_part: vs0911
-- object: AGG-79
   command: 〔缺〕通过经营计划审批
   raci:
     A:
@@ -1831,8 +1805,19 @@ entries:
     I:
     - SH-M1
   boundary:
-    note: 回调命令，不另设审批；审批权在上一条
+    limit_rule: 无（计划不是金额单据，AR-01、02 不适用）
+    segregation:
+    - 提交人 ≠ A
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
   sensitive: false
+  approver: cost_object_owner
+  why_human: 目标值与资源取舍是否合理、是否可达，需要责任人凭经营判断
+  note: 审批平台任务「经营计划审批」的结果由本命令落地；原「经营计划审批」伪命令条目已并入本条（one-architecture 2026-10-16）
   source_part: vs0911
 - object: AGG-79
   command: 〔缺〕驳回经营计划审批
@@ -1899,7 +1884,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C:
@@ -1915,7 +1901,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1930,7 +1917,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1946,7 +1934,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system（B-11、B-12 调用）
     C: []
@@ -1961,7 +1950,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system（B-11、B-12、定时对账）
     C: []
@@ -1974,7 +1964,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system（B-11 PRC-71 经 api 调用）
     C: []
@@ -1989,7 +1980,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -2003,7 +1995,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     - SH-E6
