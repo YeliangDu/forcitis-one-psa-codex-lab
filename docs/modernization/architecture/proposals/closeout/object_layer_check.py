@@ -48,17 +48,33 @@ def cap_index(caps_doc):
 
 
 def stage_objects(vs_doc):
-    out, caps, sname, order = {}, {}, {}, []
+    out, caps, sname, order, disp = {}, {}, {}, [], {}
     for vs in vs_doc["value_streams"]:
         pa = vs.get("stage_pattern") or {}
-        for s in vs["stages"]:
+        for i, s in enumerate(sorted(vs["stages"], key=lambda x: x.get("order", 0)), 1):
+            disp[s["id"]] = (vs["id"][3:], s.get("order", i))
             refs = [lf.get("ref") for lf in sac.leaves(sac.expand(s.get("exit") or {"all": []}, pa))
                     if str(lf.get("ref", "")).startswith("OBJ-")]
             out[s["id"]] = list(dict.fromkeys(refs))
             caps[s["id"]] = list(s.get("capabilities") or [])
             sname[s["id"]] = s["name"]
             order.append(s["id"])
-    return out, caps, sname, order
+    return out, caps, sname, order, disp
+
+
+def display_numbers(rows, catalog, disp):
+    """展示编号（只供阅读，PROCESS_METHOD_DRAFT §11）：主展示段 = 所标段中展示序最小者；段内按目录 order、再按永久编号。"""
+    cat = {p["id"]: p for p in catalog}
+    by_stage = {}
+    for r in rows:
+        st = [s for s in r["stages"] if s in disp]
+        if st:
+            home = min(st, key=lambda s: (disp[s][0], disp[s][1]))
+            by_stage.setdefault(home, []).append(r)
+    for s, rs in by_stage.items():
+        rs.sort(key=lambda r: (cat[r["id"]].get("order", 10 ** 6), num(r["id"])))
+        for i, r in enumerate(rs, 1):
+            r["display"] = f"{disp[s][0]}.{disp[s][1]}.{i:02d}"
 
 
 def written_objs(pobj_doc, agg_objs):
@@ -90,7 +106,7 @@ def propose(p, written, hits, st_objs):
 
 
 def analyse(catalog, pobj_doc, agg_objs, vs_doc, caps_doc, hits):
-    st_objs, st_caps, sname, order = stage_objects(vs_doc)
+    st_objs, st_caps, sname, order, disp = stage_objects(vs_doc)
     cidx = cap_index(caps_doc)
     written = written_objs(pobj_doc, agg_objs)
     rows = []
@@ -112,6 +128,7 @@ def analyse(catalog, pobj_doc, agg_objs, vs_doc, caps_doc, hits):
                      "primary_object": prim, "status": status, "level": lv, "candidates": cand,
                      "writes": sorted(written.get(p["id"], set()), key=num),
                      "capability_l1": cap[0] if cap else None, "capability": cap[1] if cap else None})
+    display_numbers(rows, catalog, disp)
     by_obj = collections.defaultdict(list)
     for r in rows:
         if r["primary_object"]:
@@ -129,14 +146,15 @@ def analyse(catalog, pobj_doc, agg_objs, vs_doc, caps_doc, hits):
             D["no_cap"].append(r)
         elif r["stages"] and not any(r["capability_l1"] in st_caps.get(s, []) for s in r["stages"]):
             D["cap_off"].append(r)
-    return {"rows": rows, "D": D, "st_objs": st_objs, "st_caps": st_caps, "sname": sname, "order": order}
+    return {"rows": rows, "D": D, "st_objs": st_objs, "st_caps": st_caps, "sname": sname, "order": order, "disp": disp}
 
 
 def render_yaml(A):
     doc = {"note": "object_layer_check.py 生成，勿手改；status：confirmed 三组确认（目录 primary_object）/ proposed 脚本提议 / candidates 多候选 / none 无候选 / read_model 读模型不提议",
-           "stages": [{"id": s, "name": A["sname"][s], "objects": A["st_objs"][s], "capabilities": A["st_caps"][s]} for s in A["order"]],
-           "processes": [{k: r[k] for k in ("id", "name", "group", "stages", "primary_object", "status", "candidates", "capability_l1", "capability")
-                          if r[k] not in (None, [])} for r in A["rows"]]}
+           "stages": [{"id": s, "display": "%s.%s" % A["disp"][s], "order": A["disp"][s][1], "name": A["sname"][s], "objects": A["st_objs"][s],
+                       "capabilities": A["st_caps"][s]} for s in A["order"]],
+           "processes": [{k: r.get(k) for k in ("id", "display", "name", "group", "stages", "primary_object", "status", "candidates", "capability_l1", "capability")
+                          if r.get(k) not in (None, [])} for r in A["rows"]]}
     return yaml.safe_dump(doc, allow_unicode=True, sort_keys=False, width=200)
 
 
@@ -197,6 +215,7 @@ def self_test():
            ok("触发命中不作依据，唯一写入取第 5 档", r["P3"]["primary_object"] == "OBJ-02" and r["P3"]["level"] == 5),
            ok("目录确认值优先", r["P4"]["status"] == "confirmed" and r["P4"]["capability_l1"] == "CAP-009"),
            ok("支撑流程不计", "P5" not in r),
+           ok("展示编号按段内顺序", r["P1"]["display"] == "X.1.01" and r["P4"]["display"] == "X.1.04"),
            ok("① 无主对象", [x["id"] for x in A["D"]["no_primary"]] == ["P2"]),
            ok("② 承载对象无主流程", ("VS-X.2", "OBJ-03") in A["D"]["uncarried"] and ("VS-X.1", "OBJ-01") not in A["D"]["uncarried"]),
            ok("④ 二级能力上溯一级后核对", any(x["id"] == "P4" for x in A["D"]["cap_off"]) and not any(x["id"] == "P3" for x in A["D"]["cap_off"]))]

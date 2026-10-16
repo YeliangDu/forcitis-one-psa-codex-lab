@@ -90,6 +90,7 @@ value_streams:
     - {ref: OBJ-18, state: 丢单 / 放弃, note: 价值流停止（G178 §2.2 每段后可停止）}
   stages:
     - id: VS-01.1
+      order: 1
       name: 市场与线索
       capabilities: [CAP-001, CAP-016, CAP-017, CAP-018]
       manual_stage: BD0 市场
@@ -107,6 +108,7 @@ value_streams:
       value_item: 客户需求被识别并有人负责跟进。
       notes: 门 = 线索「已确认」→ 商机新建（STAGE_TYPES_DRAFT §3.1）；可跳过（客户直接邀标或委托时直接从第 2 段进入）。
     - id: VS-01.2
+      order: 2
       name: 业务拓展
       capabilities: [CAP-018, CAP-019, CAP-024, CAP-026]
       manual_stage: BD1 业务拓展（投标前、投标、投标后作商机「跟进中」内部阶段，不升格，§3.1）
@@ -182,6 +184,7 @@ value_streams:
     gate_rule: 门只预警；需审定的门走审批，未完成不挡下一阶段（S2）；阶段并行、倒序、跳段是常态（S2 取证 89.5% 有重叠），故不以前一段退出作为后一段进入。退出只用交付侧事实，视为同意的期满判定在收入确认段（D-8）。
   stages:
     - id: VS-02.0
+      order: 1
       name: 启动
       capabilities: [CAP-029]
       manual_stage: 1 启动
@@ -204,6 +207,7 @@ value_streams:
       value_item: 客户与我方对范围、计划和团队有一致的基线。
       notes: 进入条件同价值流起始条件；立项是本段的结果，不是 BD1 → 启动的门（STAGE_TYPES_DRAFT §3.1）；启动会纪要作证据类型「会议纪要」（OBJ-53）。
     - id: VS-02.1
+      order: 2
       name: 概念
       capabilities: [CAP-029]
       manual_stage: 目录阶段「概念」（景观线用；手册七段之外的目录候选，S1）
@@ -218,6 +222,7 @@ value_streams:
       value_item: 客户选定设计方向。
       notes: 进入条件同 VS-02.2 要求发包人资料「已提供」（AEC 通行：概念设计也需任务书与基础资料；SD-01 用户裁定 2026-10-16）。
     - id: VS-02.2
+      order: 3
       name: 方案
       capabilities: [CAP-029]
       manual_stage: 2 方案（照明「方案初步」占此位）
@@ -232,6 +237,7 @@ value_streams:
         - {ref: OBJ-37, state: 通过, note: 签发前内审}
       value_item: 客户确认的方案，可据以推进报规与初设。
     - id: VS-02.3
+      order: 4
       name: 初设
       capabilities: [CAP-029]
       manual_stage: 3 初设（照明「方案深化」占此位；景观无此段）
@@ -247,6 +253,7 @@ value_streams:
       value_item: 可报审的初步设计。
       notes: 施工图审查配合是本段与深化段的报审配合活动，工程审批机构只作阶段参与者（STAKEHOLDERS.md 干系人表）。
     - id: VS-02.4
+      order: 5
       name: 深化
       capabilities: [CAP-029]
       manual_stage: 4 深化（照明「图纸深化」占此位）
@@ -262,6 +269,7 @@ value_streams:
         - {ref: OBJ-53, state: 已关联, note: 证据类型「施工图审查意见与合格书」，挂交付物或阶段（用户答复 U-4 选 a，intent 2026-10-16-090004；MS-16 消除）；审查不通过只能以无证据表达}
       value_item: 可招标、可施工的深化图纸与技术要求，通过施工图审查。
     - id: VS-02.5
+      order: 6
       name: 招采
       capabilities: [CAP-029]
       manual_stage: 5 招采
@@ -271,6 +279,7 @@ value_streams:
       exit: {pattern: exit_common}
       value_item: 客户选定满足设计意图的施工单位与产品。
     - id: VS-02.6
+      order: 7
       name: 施工
       capabilities: [CAP-029, CAP-046]
       manual_stage: 6 施工
@@ -286,6 +295,7 @@ value_streams:
         - {ref: OBJ-46, state: 在建 / 已竣工（在用）, note: 外部引用对象，只记录、不控制，不作门（STEP3 C-20）}
       value_item: 按设计意图建成，外立面与照明安全、效果达标（社会公众的非货币价值在此兑现）。
     - id: VS-02.7
+      order: 8
       name: 收尾
       capabilities: [CAP-029, CAP-053]
       manual_stage: 7 收尾（移交与结项、复盘；用户 2026-10-16 改名，原名「结算」专指 VS-04.5 最终价款确认，词表 closing「收尾」）
@@ -324,6 +334,7 @@ value_streams:
     - {ref: OBJ-48, state: 不再受托, note: 周期检查终止}
   stages:
     - id: VS-03.1
+      order: 1
       name: 检查策划
       capabilities: [CAP-029, CAP-046]
       description: 确定受检建设工程与部位、检查表模板与频次，安排检查。
@@ -343,6 +354,7 @@ value_streams:
       value_item: 委托方确认检查范围、时间与方法。
       notes: 本段起五段为阶段类型目录「检查」类的自有阶段（用户答复 Q-A 选 a，intent 2026-10-16-082311）；运营期周期检查同样适用，不套招采、施工段。
     - id: VS-03.2
+      order: 2
       name: 现场检查
       capabilities: [CAP-029]
       description: 现场检查、记录与审核。
@@ -357,6 +369,7 @@ value_streams:
         - {ref: OBJ-38, state: 已识别, note: 客户资产类不符合项在现场检查中识别；VS-03.3 以其进入，原无产出阶段（STEP3 C-24）}
       value_item: 受检对象的现状被客观记录并经审核。
     - id: VS-03.3
+      order: 3
       name: 发现发布
       capabilities: [CAP-029]
       description: 复核并发布客户资产类不符合项，建议外部检测。
@@ -371,6 +384,7 @@ value_streams:
         - {ref: OBJ-52, state: 已建议, note: 如需外部检测；原写作单项 any，等于必备条件，改为段内状态（STEP3 C-05）}
       value_item: 委托方收到分级的风险发现与处置建议。
     - id: VS-03.4
+      order: 4
       name: 整改跟踪
       capabilities: [CAP-029]
       description: 跟踪整改申报与复查，采信或不采信外部检测报告。
@@ -388,6 +402,7 @@ value_streams:
       value_item: 风险得到处置或被有依据地接受。
       notes: 可跳过（尽调类无整改跟踪）；复查不通过回到「整改中」重入本段。
     - id: VS-03.5
+      order: 5
       name: 报告认可
       capabilities: [CAP-029]
       description: 编制、签发检查或尽调报告，客户认可。
@@ -419,6 +434,7 @@ value_streams:
     - {ref: OBJ-05, state: 已终止（原因必填）, note: 停止；终止清算}
   stages:
     - id: VS-04.1
+      order: 1
       name: 合同签订
       capabilities: [CAP-005]
       description: 起草协议（复制承诺快照）、登记合同—项目关联与范围挂 WBS、登记视为同意参数与发包人代表、回签生效；变更与签证经协议变更产生新基线。
@@ -435,6 +451,7 @@ value_streams:
       value_item: 客户与我方对范围、价款、付款条件与认可方式有生效的约定。
       notes: 退出条件不含履约义务 OBJ-08「未履行」：它是 B-08 计算的派生值，无存储状态，阶段门不引用派生值（RD-11；METHOD 第 ④ 步第 7 条）；履约义务划分待 Q21。协议变更（OBJ-09）、索赔（OBJ-10）改在 VS-04.6 履约重入（SD-02 用户裁定 2026-10-16；原 STEP3 C-07 在本段重入）；依法招标的项目合同须与投标承诺比对（不变量）。
     - id: VS-04.6
+      order: 2
       name: 履约
       capabilities: [CAP-005]  # STEP3 后新增段，按阶段描述映射（one-architecture 提议）
       description: 协议生效后履行期内的协议变更、签证、索赔与框架协议下的任务订单；与收入确认、开票、回款在时间上并行。
@@ -452,6 +469,7 @@ value_streams:
       value_item: 履行期内的变更、签证与索赔有据可依，价款与范围的调整被及时确认。
       notes: 本段与 VS-04.2 收入确认、VS-04.3 开票、VS-04.4 回款在时间上并行，可重入（SD-02 用户裁定 2026-10-16）；增设本段前 VS-04.1 与 VS-04.5 之间没有履约阶段，变更、索赔、任务订单只能挂在合同签订上。
     - id: VS-04.2
+      order: 3
       name: 收入确认
       capabilities: [CAP-053]
       description: 依客户认可的交付侧事实确认收入（规则层，无状态，ADR-0016 决定 4），形成合同资产；视为同意的期满判定在本段，判定记在 B-08 收入确认行上（D-8、AGG-44）。
@@ -470,6 +488,7 @@ value_streams:
       value_item: 已交付并被认可的价值在账上可见。
       notes: 退出条件改为「收入确认事实已过账」（SD-08 用户裁定 2026-10-16：过账由 finance 的过账服务 PRC-92 完成、服务全部价值流，不给 PRC-92 逐段加标；收入线只提交过账候选）；此前曾改用存储状态 OBJ-98「已记账」（J 检查 J2.4，L-1）：原写 OBJ-08「部分履行 / 已履行」是 B-08 按累计确认与分摊价格之比计算的派生值（AG §2.2 派生值清单，RD-11），门不引用派生值；ADR-0016 决定 4 定收入确认为无状态规则层，OBJ-81 无可作门的状态，与 STEP3 C-16 的写法（VS-10 输入为「收入确认行提交过账候选」、不引用 OBJ-81）一致；账上可见即 value_item。进入用与 VS-02 退出同一组交付侧事实；「视为同意已成立」是存在收入确认行上的判定（按合同审查期与送达日，D-8、AGG-44），不是读模型派生，也不是对象状态，故不入条件；门只留 OBJ-08；期满无结论且无声明的情形如何进入，见 STEP1 第 6 节第 8 条。
     - id: VS-04.3
+      order: 4
       name: 开票
       capabilities: [CAP-103]
       description: 开票申请准入，开具销项发票并改写在制余额。
@@ -485,6 +504,7 @@ value_streams:
       value_item: 客户取得与约定一致的合规发票。
       notes: 红冲（OBJ-83「红冲确认中 / 部分红冲 / 全额红冲」）后在本段重入。
     - id: VS-04.4
+      order: 5
       name: 回款
       capabilities: [CAP-103]
       description: 由发票形成应收，跟踪账龄与催收，认领收款并核销。
@@ -503,6 +523,7 @@ value_streams:
         - {ref: 派生, state: 质保金到期可收, note: 质保金类型应收（OBJ-85「未结」）按到期日在读模型派生的提示，不是对象状态，不作门，不重入 VS-04.5（STEP3 C-10 改）}
       notes: 质保金类型应收（OBJ-85 类型「质保金」，状态「未结」）已被本段进入条件覆盖，到期收回在本段完成；预收款（OBJ-85 类型「预收」）可先于第 2、3 段，之后核销时重入；争议（OBJ-85「争议」）回到本段。 法律纠纷不新增对象（用户答复 Q-E 第 2 项选 b，intent 2026-10-16-090004）：往来款项（OBJ-85）「争议」状态加处置分类「诉讼」，起诉状、判决书、律师函作证据（OBJ-53）类型，案件过程线下。商业汇票不单独成对象：收款方式「商票」（OBJ-86 方式）带到期日与兑付状态（收到 → 已兑付 / 已逾期），属资金收付属性，不作本段门。
     - id: VS-04.5
+      order: 6
       name: 最终价款确认
       capabilities: [CAP-005]
       description: 竣工或协议完成后编制结算书、双方确认最终价款；质保金收回归回款段（VS-04.4）。
@@ -530,6 +551,7 @@ value_streams:
     - {ref: OBJ-05, state: 已结算 / 已终止, note: 供方类型协议（分包、采购、租赁、职业责任保险单、居间、劳务派遣）}
   stages:
     - id: VS-05.1
+      order: 1
       name: 供方准入
       capabilities: [CAP-001]
       description: 登记往来单位与供应商角色，核验资质。
@@ -545,6 +567,7 @@ value_streams:
       value_item: 需求方可从合格供方中选择。
       notes: 已合格的供方跳过；角色「暂停 / 停用」时回到本段。
     - id: VS-05.2
+      order: 2
       name: 供方签约
       capabilities: [CAP-005]
       description: 起草供方协议、审批、生效，建立履约额度与预算占用。
@@ -560,6 +583,7 @@ value_streams:
           - {ref: OBJ-05, state: 已签署生效, note: 供方类型}
       value_item: 双方对范围、价款与验收方式有生效约定。
     - id: VS-05.3
+      order: 3
       name: 履约确认
       capabilities: [CAP-005]
       description: 专人验收供方履约并确认。
@@ -572,6 +596,7 @@ value_streams:
           - {ref: OBJ-87, state: 已确认, caveat: SC-07}
       value_item: 需求方得到经验收的成果或产品。
     - id: VS-05.4
+      order: 4
       name: 应付确认
       capabilities: [CAP-103]
       description: 取得并查验进项发票（可后取），确认应付。
@@ -585,6 +610,7 @@ value_streams:
           - {ref: OBJ-83, state: 已用途确认 → 已入账, note: 适用条件：有票时（进项）；无票暂估时不适用，取得后重入；原写作单项 any，改为 all 并注适用条件（STEP3 C-12）}
       value_item: 需求方的应付义务被确认。
     - id: VS-05.5
+      order: 5
       name: 付款
       capabilities: [CAP-103]
       description: 发起、审批、执行付款，登记银行结果。
@@ -599,6 +625,7 @@ value_streams:
       value_item: 需求方按约完成付款。
       notes: 退票（OBJ-86「已失败」）释放核销占用，重入本段。 商业汇票不另有对象状态（用户答复商业汇票题，intent 2026-10-16-090004）：取证近 24 个月只有收款侧商票，无付款侧，故本段不引用票据状态。
     - id: VS-05.6
+      order: 6
       name: 供方结算
       capabilities: [CAP-005]
       description: 编制并确认供方结算，或登记终止与结论。
@@ -623,6 +650,7 @@ value_streams:
   value_receivers: [SH-R2]
   stages:
     - id: VS-06.1
+      order: 1
       name: 申报缴款
       capabilities: [CAP-103]
       description: 按所属期编制、提交申报并缴款，必要时更正申报。
@@ -636,6 +664,7 @@ value_streams:
       value_item: 申报与税款按期到达监管机构。
       notes: 更正申报在本段重入。进入条件由「待申报」改为「法定申报期已到」（SD-06 用户裁定 2026-10-16）。
     - id: VS-06.2
+      order: 2
       name: 资质维护
       capabilities: [CAP-054]
       description: 企业资质与注册执业证书的年检、动态核查、延续与变更。
@@ -671,6 +700,7 @@ value_streams:
     - {ref: OBJ-56, state: 未录用, note: 候选阶段终态，停止}
   stages:
     - id: VS-07.1
+      order: 1
       name: 招聘需求
       capabilities: [CAP-056, CAP-058]
       description: 提出、批准、关闭招聘需求。
@@ -686,6 +716,7 @@ value_streams:
       value_item: 用人需要被确认并有编制依据。
       notes: 调入等非招聘入职跳过本段。
     - id: VS-07.2
+      order: 2
       name: 应聘录用
       capabilities: [CAP-056]
       description: 候选人登记、面试、录用决定。
@@ -699,6 +730,7 @@ value_streams:
           - {ref: OBJ-56, state: 未录用, note: 停止}
       value_item: 候选人得到明确的录用结果。
     - id: VS-07.3
+      order: 3
       name: 入职任职
       capabilities: [CAP-005, CAP-056]
       description: 登记入职、建立任职、签订劳动合同、参保增员、建立薪酬档案。
@@ -727,6 +759,7 @@ value_streams:
     - {ref: OBJ-85, state: 已结清, note: 其他应收「员工借款」类型}
   stages:
     - id: VS-08.0
+      order: 1
       name: 事前申请
       capabilities: [CAP-056]  # STEP3 后新增段，按阶段描述映射（one-architecture 提议）
       description: 员工对需事前申请的费用类别（业务招待、差旅等）在支出前申请额度或出差，经批准后才可占用。
@@ -742,6 +775,7 @@ value_streams:
       value_item: 员工在支出前已取得额度或出差批准，报销时有据可依。
       notes: 只对需事前申请的类别；其余报销直接从 VS-08.1 开始（SD-03 用户裁定 2026-10-16）。
     - id: VS-08.1
+      order: 2
       name: 借支
       capabilities: [CAP-056, CAP-103]
       description: 员工借款发放与还款（借款与报销各自结算，Q24）。
@@ -755,6 +789,7 @@ value_streams:
           - {ref: OBJ-85, state: 已结清, agg: AGG-49}
       value_item: 员工无须自垫大额公务支出。
     - id: VS-08.2
+      order: 3
       name: 报销核定
       capabilities: [CAP-056, CAP-103]
       description: 提交报销、审批、核定所属期间，占用进项发票。
@@ -769,6 +804,7 @@ value_streams:
       value_item: 垫付被认定为公司费用。
       notes: 驳回后回到草稿重入。
     - id: VS-08.3
+      order: 4
       name: 报销付款
       capabilities: [CAP-056, CAP-103]
       description: 形成报销应付并付款。
@@ -793,6 +829,7 @@ value_streams:
   value_receivers: [SH-M1, SH-O1]
   stages:
     - id: VS-09.1
+      order: 1
       name: 计划编制
       capabilities: [CAP-100]
       description: 编制并批准经营计划与预算基线。
@@ -805,6 +842,7 @@ value_streams:
           - {ref: OBJ-100, state: 基线（不可变）, note: 计划与预算类型}
       value_item: 组织 × 期间 × 指标的目标与预算额度确定。
     - id: VS-09.2
+      order: 2
       name: 滚动预测
       capabilities: [CAP-100]
       description: 销售预测承诺（周）、现金流预测。
@@ -818,6 +856,7 @@ value_streams:
       value_item: 管理层看到对目标的最新预期。
       notes: 周期性重入；新版本经审批成为新基线后可再次进入本段。
     - id: VS-09.3
+      order: 3
       name: 经营复盘
       capabilities: [CAP-100]
       description: 关账后对比目标与实际，解释偏差，确定经营动作；需要时调整计划（新版本）。
@@ -881,6 +920,7 @@ value_streams:
         - {ref: OBJ-97, state: 已关账}
   stages:
     - id: VS-10.1
+      order: 1
       name: 期间关账
       capabilities: [CAP-103]
       description: 期末结转完成后做前置检查与勾稽，发起与确认关账（两人）。
@@ -895,6 +935,7 @@ value_streams:
       value_item: 期间数据冻结，之后不再改变。
       notes: 前置检查未通过退回「开放」重入；12 月与第 13 期一次关账（ADR-0046）；期间余额快照随关账生成，不另设门。
     - id: VS-10.2
+      order: 2
       name: 报表发布
       capabilities: [CAP-103]
       description: 关账后出具三大报表与经营月报。
@@ -919,6 +960,7 @@ value_streams:
   value_receivers: [SH-E3, SH-E2, SH-E5, SH-E4]
   stages:
     - id: VS-11.1
+      order: 1
       name: 知识起草
       capabilities: [CAP-110]
       description: 从复盘或专业积累起草知识条目。
@@ -932,6 +974,7 @@ value_streams:
           - {ref: OBJ-110, state: 评审}
       value_item: 经验被写成可评审的内容。
     - id: VS-11.2
+      order: 2
       name: 评审发布
       capabilities: [CAP-110]
       description: 评审并发布知识条目。
@@ -944,6 +987,7 @@ value_streams:
           - {ref: OBJ-110, state: 发布}
       value_item: 员工可引用经审定的知识。
     - id: VS-11.3
+      order: 3
       name: 修订废止
       capabilities: [CAP-110]
       description: 按适用范围与有效期修订（新版本）或废止。
@@ -968,6 +1012,7 @@ value_streams:
   value_receivers: [SH-O1]
   stages:
     - id: VS-12.1
+      order: 1
       name: 出资到账
       capabilities: [CAP-054]
       description: 认缴、实缴到账。
@@ -980,6 +1025,7 @@ value_streams:
           - {ref: OBJ-91, state: 实缴（到账）}
       value_item: 出资被确认并形成权益。
     - id: VS-12.2
+      order: 2
       name: 利润分配
       capabilities: [CAP-054, CAP-103]
       description: 年度利润分配决议与支付。
@@ -995,6 +1041,7 @@ value_streams:
       value_item: 股东和合伙人取得回报。
       notes: 分配额不得超过所属年度已关账的可分配利润（INV-117）；部分支付时停在「部分支付」，后续支付重入本段；自然人股东的股息红利个税经 OBJ-92 个税扣缴类型申报（VS-13.4 同一对象类型分工，不另设门）。
     - id: VS-12.3
+      order: 3
       name: 出资退回
       capabilities: [CAP-054]
       description: 部分或全部退回出资。
@@ -1020,6 +1067,7 @@ value_streams:
     - {ref: OBJ-56, state: 已离职}
   stages:
     - id: VS-13.1
+      order: 1
       name: 考勤确认
       capabilities: [CAP-028, CAP-056]
       description: 考勤记录、请假、加班汇入月度考勤，员工确认后锁定。
@@ -1036,6 +1084,7 @@ value_streams:
       value_item: 员工确认当月出勤，作为计薪依据。
       notes: 锁定后的变动计入下月并标原月份，不重开当月（INV-105）；月度考勤确认经第 ② 步回补为信息图 OBJ-111（人员的次级），MS-01 消除。
     - id: VS-13.2
+      order: 2
       name: 绩效激励
       capabilities: [CAP-056, CAP-074]
       description: 绩效评估与奖金核定。
@@ -1051,6 +1100,7 @@ value_streams:
           - {ref: OBJ-104, state: 已核定}
       value_item: 员工的贡献得到评价与激励。
     - id: VS-13.3
+      order: 3
       name: 薪酬结算
       capabilities: [CAP-054, CAP-056]
       description: 计算、审核、批准法人当月薪酬。
@@ -1066,6 +1116,7 @@ value_streams:
         - {ref: OBJ-104, state: 已核定, note: 奖金，可无（聚合稿 §4.3.2 第 4 步）（STEP3 C-18）}
       value_item: 薪酬结果准确并经批准。
     - id: VS-13.4
+      order: 4
       name: 申报缴纳
       capabilities: [CAP-054, CAP-056, CAP-103]
       description: 个税扣缴、社保公积金申报与缴款。
@@ -1080,6 +1131,7 @@ value_streams:
       value_item: 员工的法定保障与纳税义务按期履行。
       notes: 与 VS-13.5 并行。
     - id: VS-13.5
+      order: 5
       name: 薪酬发放
       capabilities: [CAP-054, CAP-056, CAP-103]
       description: 提交应付薪酬、代发付款、发放后过账。
@@ -1095,6 +1147,7 @@ value_streams:
       value_item: 员工按时足额收到工资。
       notes: 退票时付款「已失败」、薪酬保持「已批准」，重入本段。
     - id: VS-13.6
+      order: 6
       name: 离职结清
       capabilities: [CAP-005, CAP-056]
       description: 离职申请、减员、劳动合同终止，最后一期薪酬随月度结算发放。
