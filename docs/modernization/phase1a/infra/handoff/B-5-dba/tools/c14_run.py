@@ -300,10 +300,10 @@ def create_account(secret):
 
 
 def database_listed(name):
-    """True / False, or None when the listing cannot be read. One database by name, exact match on the parsed answer."""
-    rc, out, _ = rds('DescribeDatabases', '--DBName', name)
+    """True / False, or None when the listing cannot be read. One database by name, exact match on the parsed answer; a NotFound answer is False."""
+    rc, out, err = rds('DescribeDatabases', '--DBName', name)
     if rc != 0:
-        return None
+        return False if 'NotFound' in out + err else None
     try:
         return any(x.get('DBName') == name for x in json.loads(out)['Databases']['Database'])
     except (ValueError, KeyError, TypeError):
@@ -312,21 +312,36 @@ def database_listed(name):
 
 def delete_databases():
     """A database RDS has put under mirroring (a few minutes after it was made) cannot be dropped with T-SQL (3743); the RDS API does it. Only the probe's own.
-    Each is tried whether or not the listing could be read: DeleteDatabase on a database that is not there only fails."""
+    Each is tried whether or not the listing could be read; one failing does not skip the other. Returns the names still listed at the end."""
+    left = []
     for name in (DB2, DB):
-        listed = database_listed(name)
-        if listed is False:
-            continue
-        rc, out, err = rds('DeleteDatabase', '--DBName', name)
-        request = re.findall(r'"RequestId":\s*"([0-9A-F-]+)"', out)
-        code = re.findall(r'ErrorCode: (\S+)', out + err)
-        gone = False
-        for _ in range(30):
-            if database_listed(name) is False:
-                gone = True
-                break
-            time.sleep(10)
-        record(step='rds delete database', database=name, rc=rc, request_id=request[0] if request else None, error_code=code[0] if code else None, gone=gone)
+        try:
+            listed = database_listed(name)
+            if listed is False:
+                record(step='rds delete database', database=name, outcome='not listed')
+                continue
+            rc, request, code = None, None, None
+            for _ in range(3):
+                rc, out, err = rds('DeleteDatabase', '--DBName', name)
+                request = re.findall(r'"RequestId":\s*"([0-9A-F-]+)"', out)
+                code = re.findall(r'ErrorCode: (\S+)', out + err)
+                if rc == 0:
+                    break
+                time.sleep(10)
+            last, polls = None, 0
+            for polls in range(1, 31):
+                last = database_listed(name)
+                if last is False:
+                    break
+                time.sleep(10)
+            record(step='rds delete database', database=name, rc=rc, request_id=request[0] if request else None, error_code=code[0] if code else None,
+                   polls=polls, last_listed=last, gone=last is False)
+            if last is not False:
+                left.append(name)
+        except BaseException as failure:  # noqa: BLE001 the other database is still tried
+            record(step='rds delete database', database=name, exception=type(failure).__name__)
+            left.append(name)
+    return left
 
 
 def delete_account():
@@ -455,9 +470,11 @@ def cleanup():
             record(step='cleanup', db=db, exception=type(failure).__name__)
             clean = False
     try:
-        delete_databases()
-    except BaseException as failure:  # noqa: BLE001 the readback below decides
+        if delete_databases():
+            clean = False
+    except BaseException as failure:  # noqa: BLE001
         record(step='rds delete databases', exception=type(failure).__name__)
+        clean = False
     try:
         clean = delete_account() and clean
     except BaseException as failure:  # noqa: BLE001
@@ -560,6 +577,12 @@ def main(target, jar_sha256):
             errors = apply(f'item {number} deviation', deviation)
             if errors:
                 if number in PLATFORM_REFUSAL_ITEMS and len(errors) == 1 and errors[0] in PLATFORM_REFUSALS[number]:
+                    if errors[0] == 15151:  # "not found or no permission" names no object: show that sa is what the execution account cannot see, not the probe
+                        rc, _, out = legacy_sql(f'item {number} login visibility', 'master', f"SELECT ISNULL(SUSER_ID(N'sa'), 0) AS sa, ISNULL(SUSER_ID(N'{LOGIN}'), 0) AS probe;", mode='ro')
+                        seen = numbers(out)
+                        record(step=f'item {number} login visibility', sa_probe=seen[-1] if seen else None)
+                        if rc != 0 or not seen or seen[-1][0] != 0 or seen[-1][1] == 0:
+                            raise Stop(f'item {number}: 15151 is not explained by sa being invisible to the execution account')
                     record(item=number, expected=expected, outcome='platform cannot construct', sql_errors=errors)
                     if counts(f'item {number} counts') != control or fingerprint(f'item {number} fingerprint') != control_fingerprint:
                         raise Stop(f'item {number}: state changed after a refused deviation')
