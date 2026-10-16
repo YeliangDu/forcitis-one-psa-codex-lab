@@ -170,6 +170,12 @@ bcs:
   kind: bc
   business_owner: 用户兼任
   description: ""
+- id: organization.administration
+  zh: 行政事务
+  subdomain: organization
+  kind: bc
+  business_owner: 用户兼任
+  description: "用印、印章等行政事务（B-31；用户 intent 2026-10-16-152807 选新增行政事务 BC）"
 - id: accounting
   zh: 财务
   subdomain: accounting
