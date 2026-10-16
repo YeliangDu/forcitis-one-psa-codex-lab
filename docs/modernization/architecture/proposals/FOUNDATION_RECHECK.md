@@ -1,5 +1,7 @@
 # 地基清单重核与地基批范围（2026-10-16）
 
+> **状态**：opus 首轮评审「改后再交」（`FOUNDATION_RECHECK_REVIEW.md`：F3 放 eventing 会成环、F6 依赖写反、F0 与 DDL-11 冲突、漏通用错误码、「须用户定：无」不成立等）。按 one-coordinator 2026-10-16，地基批派工暂不出，本稿并入架构收尾计划第 ③ 项「地基需求矩阵」，届时按评审意见改写。
+
 依据：one-coordinator 派工，用户原话「派，把地基打好了，才能建高楼。」；校准切片范围 `CALIBRATION_SLICE.md`；施工方案第 2 轮答复（intent `2026-10-16-144943`）。基线 origin/main `cf3b9a3e`。逐条证据见 `FOUNDATION_RECHECK_STATUS.md`（原矩阵地基）与 `FOUNDATION_NEW_ITEMS.md`（新增四项），本稿只做汇总、分组与估算。车道周均为结构估计，无实测；地基批本身计入校准实测。
 
 ## 1. 结论
