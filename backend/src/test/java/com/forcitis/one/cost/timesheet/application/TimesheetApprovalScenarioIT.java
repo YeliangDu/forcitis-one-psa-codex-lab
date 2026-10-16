@@ -153,14 +153,15 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         DocumentReference document = documentOf(id);
         scenario.stimulate(() -> answer.updateAndGet(previous -> submit(id, workDate, hours)))
                 .andWaitForEventOfType(TaskAssigned.class).matching(e -> e.document().equals(document)).toArrive();
-        awaitApprovalCommitted(document);
+        awaitApprovalCommitted(document, 1);
         return answer.get();
     }
 
-    /** TaskAssigned is published inside the listener's transaction, so a second thread can still find no approval request when the event arrives. */
-    void awaitApprovalCommitted(DocumentReference document) {
+    /** TaskAssigned is published inside the listener's transaction, so a second thread can still find no approval of that round when the event arrives. */
+    void awaitApprovalCommitted(DocumentReference document, int round) {
         org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(15)).pollInterval(java.time.Duration.ofMillis(50))
-                .until(() -> approvalProcesses.progress(ProcessKey.COST_TIMESHEET_APPROVAL, document).isPresent());
+                .until(() -> approvalProcesses.progress(ProcessKey.COST_TIMESHEET_APPROVAL, document)
+                        .filter(progress -> progress.round().equals(new RoundNumber(round))).isPresent());
     }
 
     TimesheetView submitAndAwaitApproval(Scenario scenario, TimesheetId id, String hours) {
@@ -313,6 +314,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         assertThatThrownBy(() -> submit(id, workDate.minusDays(1), "7.5")).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_WORK_DATE_FIXED));
         scenario.stimulate(() -> submit(id, "7.5")).andWaitForEventOfType(TaskAssigned.class)
                 .matching(e -> e.document().equals(document) && !e.taskId().equals(task)).toArrive();
+        awaitApprovalCommitted(document, 2);
         assertThat(view(id).round()).isEqualTo(2);
         assertThat(view(id).workDate()).as("submitting again does not move the hours to another day").isEqualTo(workDate);
         ApprovalTaskId secondTask = taskOf(id);

@@ -89,5 +89,5 @@
 - **根因**：`submitAndAwaitApproval` 只用 `Scenario.andWaitForEventOfType(TaskAssigned)` 等事件；该事件在审批监听器的事务内发布，事件到达时请求可能还没提交，测试线程随即取消就查不到（读代码推断，未实测复现）。等待条件不是「审批已可见」，违反 CS-5.6 的精神。
 - **拦下于**：CI 才发现（push 到 main 后失败）。
 - **漏过于**：作者自审、独立评审（该类早先的评审没查“事件到达 ≠ 数据已提交”）。
-- **新增检查项**：`awaitApprovalCommitted`（Awaitility 等 `ApprovalProcesses.progress` 有值）；评审模板 `review-briefs/01-code-card.md` C6 的 CS-5.6 判据补一句：事件到达不等于数据已提交，等待条件必须是读到的数据。
-- **状态**：已落实（本 PR 合入后）
+- **新增检查项**：`awaitApprovalCommitted(document, round)`（Awaitility 等 `ApprovalProcesses.progress` 在该轮次可见；第 1 轮与重提的第 2 轮两处）；评审模板 `review-briefs/01-code-card.md` C6 的 CS-5.6 判据补一句：事件到达不等于数据已提交，等待条件必须是读到的数据。
+- **状态**：待落实（#326 合入后改为已落实）
