@@ -78,7 +78,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         for (long person : new long[] {9001, 9002, 9003}) {
             jdbc.sql("insert into platform_identity.user_accounts (user_id, employee_id) values (" + TestAccounts.sql(person) + "::uuid, " + sqlEmployee(person) + ") on conflict do nothing").update();
         }
-        jdbc.sql("insert into platform_identity.account_roles (user_id, role_id) select " + TestAccounts.sql(9002) + "::uuid, role_id from platform_identity.roles where code = 'org_data_admin' on conflict do nothing").update();
+        jdbc.sql("insert into platform_identity.account_roles (account_role_id, user_id, role_id) select uuidv7(), " + TestAccounts.sql(9002) + "::uuid, role_id from platform_identity.roles where code = 'org_data_admin' on conflict do nothing").update();
     }
 
     @org.junit.jupiter.api.AfterEach

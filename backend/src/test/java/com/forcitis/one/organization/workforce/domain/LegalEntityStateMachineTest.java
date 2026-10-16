@@ -61,7 +61,7 @@ class LegalEntityStateMachineTest {
     @Test
     @DisplayName("registering announces LegalEntityRegistered with the id the repository gave, the code and the legal entity in the envelope")
     void registering() {
-        LegalEntity saved = LegalEntity.register(new LegalEntityCode("FST"), "  Synthetic  ").withId(ID);
+        LegalEntity saved = LegalEntity.register(ID, new LegalEntityCode("FST"), "  Synthetic  ");
 
         assertThat(saved.name()).isEqualTo("Synthetic");
         assertThat(saved.status()).isEqualTo(ACTIVE);

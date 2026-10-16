@@ -53,13 +53,15 @@ COMMENT ON COLUMN platform_identity.roles.version IS '乐观锁版本';
 COMMENT ON COLUMN platform_identity.roles.event_count IS '事件序号：该聚合已发出的事件数，每发一个事件加 1，作为事件信封的 aggregateVersion；与乐观锁 version 分开';
 
 CREATE TABLE platform_identity.role_permissions (
+    role_permission_id uuid     PRIMARY KEY,
     role_id         uuid        NOT NULL REFERENCES platform_identity.roles (role_id) ON DELETE CASCADE,
     permission_code text        NOT NULL,
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (role_id, permission_code)
+    CONSTRAINT uk_role_permissions_role_id_permission_code UNIQUE (role_id, permission_code)
 );
 COMMENT ON TABLE platform_identity.role_permissions IS '角色—权限：权限码取自 Permission 目录；整组替换（RULE-346）。粒度：每个角色的每个权限码一行';
+COMMENT ON COLUMN platform_identity.role_permissions.role_permission_id IS '角色权限 ID（UUIDv7）';
 COMMENT ON COLUMN platform_identity.role_permissions.role_id IS '角色 ID';
 COMMENT ON COLUMN platform_identity.role_permissions.permission_code IS '权限码：{子域}.{BC}:{资源}:{动作}';
 COMMENT ON COLUMN platform_identity.role_permissions.created_at IS '创建时间';
@@ -67,15 +69,17 @@ COMMENT ON COLUMN platform_identity.role_permissions.updated_at IS '更新时间
 
 -- 账号仍持有的角色不得被删除：删角色时由外键拒绝，而不是悄悄把账号的授权带走。
 CREATE TABLE platform_identity.account_roles (
+    account_role_id uuid   PRIMARY KEY,
     user_id    uuid        NOT NULL REFERENCES platform_identity.user_accounts (user_id) ON DELETE CASCADE,
     role_id    uuid        NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (user_id, role_id),
+    CONSTRAINT uk_account_roles_user_id_role_id UNIQUE (user_id, role_id),
     CONSTRAINT fk_account_roles_role_id FOREIGN KEY (role_id) REFERENCES platform_identity.roles (role_id) ON DELETE RESTRICT
 );
 CREATE INDEX ix_account_roles_role ON platform_identity.account_roles (role_id);
 COMMENT ON TABLE platform_identity.account_roles IS '账号—角色：整组替换（RULE-346）；默认角色只在建档时显式授予一次（RULE-344）；离职时全部删除（ADR-0027）。粒度：每个账号的每个角色一行';
+COMMENT ON COLUMN platform_identity.account_roles.account_role_id IS '账号角色 ID（UUIDv7）';
 COMMENT ON COLUMN platform_identity.account_roles.user_id IS '用户 ID';
 COMMENT ON COLUMN platform_identity.account_roles.role_id IS '角色 ID';
 COMMENT ON COLUMN platform_identity.account_roles.created_at IS '创建时间';
@@ -307,8 +311,8 @@ INSERT INTO platform_identity.roles (role_id, code, name, kind, status, access_s
     ('019a0000-0000-7000-8000-000000000101', 'super_admin', '超级管理员', 'SYSTEM', 'ENABLED', 'ALL', true),
     ('019a0000-0000-7000-8000-000000000102', 'employee', '员工', 'SYSTEM', 'ENABLED', 'SELF', false);
 
-INSERT INTO platform_identity.role_permissions (role_id, permission_code)
-SELECT roles.role_id, grants.permission_code
+INSERT INTO platform_identity.role_permissions (role_permission_id, role_id, permission_code)
+SELECT uuidv7(), roles.role_id, grants.permission_code
   FROM platform_identity.roles roles
  CROSS JOIN (VALUES ('platform.approval:task:read'), ('platform.approval:task:approve')) AS grants (permission_code)
  WHERE roles.code = 'employee';
@@ -331,8 +335,8 @@ INSERT INTO platform_identity.roles (role_id, code, name, kind, status, access_s
     ('019a0000-0000-7000-8000-000000000105', 'business_admin', '业务管理员', 'SYSTEM', 'ENABLED', 'SELF', false),
     ('019a0000-0000-7000-8000-000000000106', 'security_auditor', '安全审计员', 'SYSTEM', 'ENABLED', 'ALL', false);
 
-INSERT INTO platform_identity.role_permissions (role_id, permission_code)
-SELECT roles.role_id, grants.permission_code
+INSERT INTO platform_identity.role_permissions (role_permission_id, role_id, permission_code)
+SELECT uuidv7(), roles.role_id, grants.permission_code
   FROM platform_identity.roles roles
   JOIN (VALUES
       ('org_data_admin', 'organization.workforce:org-unit:read'),
@@ -354,13 +358,13 @@ SELECT roles.role_id, grants.permission_code
   ) AS grants (role_code, permission_code) ON grants.role_code = roles.code;
 
 -- ADR-0028：安全审计员在普通会话里也能放行管理员离职造成的同步暂停。
-INSERT INTO platform_identity.role_permissions (role_id, permission_code)
-SELECT role_id, 'organization.workforce:separation-hold:approve'
+INSERT INTO platform_identity.role_permissions (role_permission_id, role_id, permission_code)
+SELECT uuidv7(), role_id, 'organization.workforce:separation-hold:approve'
   FROM platform_identity.roles
  WHERE code = 'security_auditor';
 
 -- RULE-385：组织数据管理员可更正法人归属的历史记录；更正只增不改，本权限不在敏感权限之列。
-INSERT INTO platform_identity.role_permissions (role_id, permission_code)
-SELECT role_id, 'organization.workforce:legal-entity-attribution-correction:create'
+INSERT INTO platform_identity.role_permissions (role_permission_id, role_id, permission_code)
+SELECT uuidv7(), role_id, 'organization.workforce:legal-entity-attribution-correction:create'
   FROM platform_identity.roles
  WHERE code = 'org_data_admin';

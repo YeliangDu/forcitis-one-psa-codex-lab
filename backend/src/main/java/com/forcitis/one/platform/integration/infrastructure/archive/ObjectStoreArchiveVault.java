@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.integration.infrastructure.archive;
 
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.platform.integration.api.ArchiveVault;
 import com.forcitis.one.platform.integration.api.ArchivedObject;
 import com.forcitis.one.platform.integration.domain.ObjectStore;
@@ -20,7 +21,6 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.zip.GZIPOutputStream;
@@ -58,7 +58,7 @@ final class ObjectStoreArchiveVault implements ArchiveVault {
     @Override
     public ArchivedObject archive(String kind, List<String> lines) {
         Path directory = kindDirectory(kind);
-        Path pending = directory.resolve("pending-" + UUID.randomUUID() + ".ndjson.gz");
+        Path pending = directory.resolve("pending-" + Uuids.timeOrdered(clock) + ".ndjson.gz");
         try {
             Files.createDirectories(directory);
             String sha256 = write(pending, lines);

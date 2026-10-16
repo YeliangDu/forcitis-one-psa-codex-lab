@@ -115,7 +115,7 @@ class IdentityStateMachineTest {
                 .containsExactly(RoleRevised.class.getSimpleName(), RoleDisabled.class.getSimpleName(), RoleEnabled.class.getSimpleName(),
                         RoleDeleted.class.getSimpleName());
 
-        Role created = Role.newCustom(new RoleCode("analyst"), "Analyst", Set.of()).withId(new RoleId(TestIds.uuid(11)));
+        Role created = Role.newCustom(new RoleId(TestIds.uuid(11)), new RoleCode("analyst"), "Analyst", Set.of());
         assertThat(created.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(RoleCreated.class,
                 e -> assertThat(e.roleId()).isEqualTo(new RoleId(TestIds.uuid(11))));
     }

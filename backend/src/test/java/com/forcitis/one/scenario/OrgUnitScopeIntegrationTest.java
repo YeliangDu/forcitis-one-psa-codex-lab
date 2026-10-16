@@ -57,7 +57,7 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
     private void customRole(String code, String scope) {
         jdbc.sql("insert into platform_identity.roles (role_id, code, name, kind, status, access_scope, is_administrative) values (uuidv7(), :code, :code, 'CUSTOM', 'ENABLED', :scope, false)")
                 .param("code", code).param("scope", scope).update();
-        jdbc.sql("insert into platform_identity.role_permissions (role_id, permission_code) select role_id, 'organization.workforce:org-unit:read' from platform_identity.roles where code = :code")
+        jdbc.sql("insert into platform_identity.role_permissions (role_permission_id, role_id, permission_code) select uuidv7(), role_id, 'organization.workforce:org-unit:read' from platform_identity.roles where code = :code")
                 .param("code", code).update();
     }
 

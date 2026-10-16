@@ -442,15 +442,18 @@ COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.cr
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.updated_at IS '更新时间（行不可更新，恒等于创建时间）';
 
 CREATE TABLE organization_workforce.sync_run_held_separations (
+    sync_run_held_separation_id uuid NOT NULL,
     sync_run_id uuid        NOT NULL,
     employee_id uuid        NOT NULL,
     created_at  timestamptz NOT NULL DEFAULT now(),
     updated_at  timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT pk_sync_run_held_separations PRIMARY KEY (sync_run_id, employee_id),
+    CONSTRAINT pk_sync_run_held_separations PRIMARY KEY (sync_run_held_separation_id),
+    CONSTRAINT uk_sync_run_held_separations_sync_run_id_employee_id UNIQUE (sync_run_id, employee_id),
     CONSTRAINT fk_sync_run_held_separations_sync_run_id FOREIGN KEY (sync_run_id) REFERENCES organization_workforce.sync_runs (id) ON DELETE CASCADE,
     CONSTRAINT fk_sync_run_held_separations_employee_id FOREIGN KEY (employee_id) REFERENCES organization_workforce.employees (id)
 );
 COMMENT ON TABLE organization_workforce.sync_run_held_separations IS '被暂停的同步运行当时的离职名单：放行重跑时比对是否出现新的管理员离职，并供有放行权限的人只读查看。粒度：每个暂停的运行的每个待离职员工一行';
+COMMENT ON COLUMN organization_workforce.sync_run_held_separations.sync_run_held_separation_id IS '暂停同步待离职员工 ID（UUIDv7）';
 COMMENT ON COLUMN organization_workforce.sync_run_held_separations.sync_run_id IS '同步记录 ID：被暂停的同步';
 COMMENT ON COLUMN organization_workforce.sync_run_held_separations.employee_id IS '员工 ID：待离职';
 COMMENT ON COLUMN organization_workforce.sync_run_held_separations.created_at IS '创建时间';

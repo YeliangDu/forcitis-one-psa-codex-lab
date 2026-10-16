@@ -91,7 +91,7 @@ class EventSequenceContinuityTest {
     @Test
     @DisplayName("Role: events are numbered 1..n")
     void role() {
-        checkMany(() -> Role.newCustom(new RoleCode("analyst"), "Analyst", Set.of()).withId(new RoleId(TestIds.uuid(7))), List.of(
+        checkMany(() -> Role.newCustom(new RoleId(TestIds.uuid(7)), new RoleCode("analyst"), "Analyst", Set.of()), List.of(
                 Role::enable, Role::disable, r -> r.declareEnabled(true), r -> r.revise("Renamed", AccessScopeKind.SELF, Set.of())));
     }
 
@@ -114,7 +114,7 @@ class EventSequenceContinuityTest {
     @Test
     @DisplayName("LegalEntity: events are numbered 1..n")
     void legalEntity() {
-        checkMany(() -> LegalEntity.register(new LegalEntityCode("FST"), "Synthetic").withId(new LegalEntityId(TestIds.uuid(1))), List.of(
+        checkMany(() -> LegalEntity.register(new LegalEntityId(TestIds.uuid(1)), new LegalEntityCode("FST"), "Synthetic"), List.of(
                 LegalEntity::activate, LegalEntity::deactivate, e -> e.rename("Other"), e -> e.rename("Synthetic"),
                 e -> e.correctCode(new LegalEntityCode("FIT"), false), e -> e.declareStatus("ACTIVE")));
     }

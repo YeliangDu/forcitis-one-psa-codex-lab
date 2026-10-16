@@ -10,17 +10,18 @@ import com.aliyun.oss.model.ObjectMetadata;
 import com.aliyun.oss.model.PutObjectRequest;
 import com.aliyun.oss.model.StorageClass;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.platform.integration.api.ArchivedObject;
 import com.forcitis.one.platform.integration.domain.ObjectStore;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.HexFormat;
-import java.util.UUID;
 
 /**
  * One archive object is written once: archive storage class, no overwrite, Content-MD5 checked by OSS and the SHA-256 kept as user
@@ -33,8 +34,10 @@ final class OssObjectStore implements ObjectStore {
 
     private final OSS client;
     private final ArchiveStoreProperties properties;
+    private final Clock clock;
 
-    OssObjectStore(OSS client, ArchiveStoreProperties properties) {
+    OssObjectStore(OSS client, ArchiveStoreProperties properties, Clock clock) {
+        this.clock = clock;
         this.client = client;
         this.properties = properties;
     }
@@ -82,7 +85,7 @@ final class OssObjectStore implements ObjectStore {
                 throw new ExternalSystemUnavailableException("the archive bucket has WORM " + worm.getWormState() + " for " + worm.getRetentionPeriodInDays()
                         + " days; Locked and exactly " + properties.wormLockDays() + " days are required: change worm-lock-days and total-keep-years together with the bucket");
             }
-            String probeKey = properties.prefix() + "/probe/" + UUID.randomUUID();
+            String probeKey = properties.prefix() + "/probe/" + Uuids.timeOrdered(clock);
             String uploadId = client.initiateMultipartUpload(new InitiateMultipartUploadRequest(properties.bucket(), probeKey)).getUploadId();
             client.abortMultipartUpload(new AbortMultipartUploadRequest(properties.bucket(), probeKey, uploadId));
         } catch (OSSException | ClientException failure) {

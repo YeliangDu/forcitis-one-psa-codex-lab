@@ -135,4 +135,137 @@ class EventCatalogueTest {
         fromFragments.values().forEach(message -> types.add((String) ((Map<String, Object>) message.get("x-event")).get("eventType")));
         assertThat(addresses).isEqualTo(types);
     }
+
+    // ADR-0033 guard 8 (event part) and D-17
+
+    /** The envelope has no source, and its aggregateId, the related aggregates' aggregateId and its actorId are uuids. */
+    @SuppressWarnings("unchecked")
+    static List<String> envelopeProblems(Map<String, Object> envelope) {
+        List<String> problems = new ArrayList<>();
+        Map<String, Map<String, Object>> properties = (Map<String, Map<String, Object>>) envelope.get("properties");
+        if (properties.containsKey("source") || ((List<String>) envelope.get("required")).contains("source")) {
+            problems.add("the envelope still has source");
+        }
+        for (String name : List.of("aggregateId", "actorId")) {
+            if (properties.get(name) == null || !"uuid".equals(properties.get(name).get("format"))) {
+                problems.add("envelope " + name + " is not format: uuid");
+            }
+        }
+        Map<String, Object> related = (Map<String, Object>) ((Map<String, Object>) properties.get("relatedAggregates").get("items")).get("properties");
+        if (!"uuid".equals(((Map<String, Object>) related.get("aggregateId")).get("format"))) {
+            problems.add("relatedAggregates[].aggregateId is not format: uuid");
+        }
+        return problems;
+    }
+
+    /** Every payload field whose x-type is a typed id (ends with Id) is format: uuid. */
+    @SuppressWarnings("unchecked")
+    static List<String> typedIdProblems(String where, Object node) {
+        List<String> problems = new ArrayList<>();
+        if (node instanceof Map<?, ?> map) {
+            if (map.get("x-type") instanceof String type && type.endsWith("Id")) {
+                Map<String, Object> schema = (Map<String, Object>) ("array".equals(map.get("type")) && map.get("items") instanceof Map<?, ?> items ? items : map);
+                if (!"uuid".equals(schema.get("format"))) {
+                    problems.add(where + " (" + type + ") is not format: uuid");
+                }
+            }
+            map.values().forEach(value -> problems.addAll(typedIdProblems(where, value)));
+        } else if (node instanceof List<?> list) {
+            list.forEach(item -> problems.addAll(typedIdProblems(where, item)));
+        }
+        return problems;
+    }
+
+    /** Every aggregate the catalogue names has an audit subject kind, and the kinds of the database CHECK are the enum's. */
+    static List<String> auditKindProblems(Set<String> aggregates, String checkSql) {
+        List<String> problems = new ArrayList<>();
+        for (String aggregate : aggregates) {
+            try {
+                com.forcitis.one.platform.audit.api.AuditSubjectKind.ofAggregateType(aggregate);
+            } catch (IllegalArgumentException unknown) {
+                problems.add("aggregate " + aggregate + " has no AuditSubjectKind: add the kind (enum and CHECK) before the aggregate");
+            }
+        }
+        java.util.regex.Matcher check = java.util.regex.Pattern.compile("ck_audit_entries_subject_kind CHECK \\(subject_kind IN \\(([^)]*)\\)\\)").matcher(checkSql);
+        if (!check.find()) {
+            problems.add("ck_audit_entries_subject_kind is not in the baseline");
+            return problems;
+        }
+        Set<String> inSql = new TreeSet<>();
+        for (String value : check.group(1).split(",")) {
+            inSql.add(value.strip().replace("'", ""));
+        }
+        Set<String> inEnum = new TreeSet<>();
+        for (com.forcitis.one.platform.audit.api.AuditSubjectKind kind : com.forcitis.one.platform.audit.api.AuditSubjectKind.values()) {
+            inEnum.add(kind.name());
+        }
+        if (!inSql.equals(inEnum)) {
+            problems.add("the CHECK of audit_entries.subject_kind lists " + inSql + " but AuditSubjectKind has " + inEnum);
+        }
+        return problems;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void gatherAggregates(Object node, Set<String> aggregates) {
+        if (node instanceof Map<?, ?> map) {
+            if (map.get("aggregate") instanceof String aggregate) {
+                aggregates.add(aggregate);
+            }
+            map.values().forEach(value -> gatherAggregates(value, aggregates));
+        } else if (node instanceof List<?> list) {
+            list.forEach(item -> gatherAggregates(item, aggregates));
+        }
+    }
+
+    @Test
+    @DisplayName("ADR-0033 guard 8 / ADR-0039: the catalogue envelope has no source and uuid ids; every typed id of a payload is a uuid; every aggregate has an audit subject kind that the database CHECK lists")
+    @SuppressWarnings("unchecked")
+    void ids_and_kinds_of_the_catalogue() throws IOException {
+        Map<String, Object> document;
+        try (InputStream in = Files.newInputStream(EVENTS.resolve("asyncapi.yaml"))) {
+            document = new Yaml().load(in);
+        }
+        Map<String, Object> schemas = (Map<String, Object>) ((Map<String, Object>) document.get("components")).get("schemas");
+        List<String> problems = new ArrayList<>(envelopeProblems((Map<String, Object>) schemas.get("EventEnvelope")));
+        Set<String> aggregates = new TreeSet<>();
+        for (Map.Entry<String, Map<String, Object>> message : fragmentMessages().entrySet()) {
+            problems.addAll(typedIdProblems(message.getKey(), message.getValue().get("payload")));
+            gatherAggregates(message.getValue(), aggregates);
+        }
+        assertThat(aggregates).as("aggregates named by the fragments").isNotEmpty();
+        problems.addAll(auditKindProblems(aggregates, Files.readString(Path.of("src/main/resources/db/migration/platform_audit/V20261014134000__platform_audit_baseline.sql"))));
+        none("catalogue ids and audit kinds", problems);
+    }
+
+    @Test
+    @DisplayName("injected: an envelope with source or a text aggregateId, a typed id without format: uuid, an aggregate without a kind and a CHECK that differs from the enum are caught")
+    void catalogueGuardsCatchInjectedSamples() {
+        Map<String, Object> envelope = new Yaml().load("""
+                required: [eventId, source]
+                properties:
+                  aggregateId: {type: string}
+                  actorId: {type: string, format: uuid}
+                  source: {type: object}
+                  relatedAggregates:
+                    items:
+                      properties:
+                        aggregateId: {type: string}
+                """);
+        assertThat(envelopeProblems(envelope)).containsExactlyInAnyOrder("the envelope still has source", "envelope aggregateId is not format: uuid",
+                "relatedAggregates[].aggregateId is not format: uuid");
+
+        Object payload = new Yaml().load("""
+                properties:
+                  roleId: {type: string, x-type: RoleId}
+                  roleIds: {type: array, x-type: RoleId, items: {type: string, format: uuid}}
+                  loose: {type: array, items: {type: string, x-type: RoleId}}
+                  fine: {type: string, format: uuid, x-type: RoleId}
+                """);
+        assertThat(typedIdProblems("Sample", payload)).containsExactlyInAnyOrder("Sample (RoleId) is not format: uuid", "Sample (RoleId) is not format: uuid");
+
+        String check = "ck_audit_entries_subject_kind CHECK (subject_kind IN ('USER_ACCOUNT', 'ROLE'))";
+        assertThat(auditKindProblems(Set.of("NoSuchThing"), check)).anyMatch(p -> p.startsWith("aggregate NoSuchThing has no AuditSubjectKind"))
+                .anyMatch(p -> p.startsWith("the CHECK of audit_entries.subject_kind lists"));
+        assertThat(auditKindProblems(Set.of("UserAccount"), "no check here")).containsExactly("ck_audit_entries_subject_kind is not in the baseline");
+    }
 }

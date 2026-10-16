@@ -106,8 +106,8 @@ class JdbcSyncRunRepository implements SyncRunRepository {
         }
         jdbc.sql("delete from organization_workforce.sync_run_held_separations where sync_run_id = :id").param("id", run.syncRunId().value()).update();
         for (var person : run.heldSeparations()) {
-            jdbc.sql("insert into organization_workforce.sync_run_held_separations (sync_run_id, employee_id) values (:id, :employee)")
-                    .param("id", run.syncRunId().value()).param("employee", person.value()).update();
+            jdbc.sql("insert into organization_workforce.sync_run_held_separations (sync_run_held_separation_id, sync_run_id, employee_id) values (:rowId, :id, :employee)")
+                    .param("rowId", ids.next()).param("id", run.syncRunId().value()).param("employee", person.value()).update();
         }
     }
 
