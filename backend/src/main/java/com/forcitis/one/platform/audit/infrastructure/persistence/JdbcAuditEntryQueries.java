@@ -9,7 +9,7 @@ import com.forcitis.one.platform.audit.domain.AuditEntryId;
 import com.forcitis.one.platform.audit.domain.AuditEntryQueries;
 import com.forcitis.one.platform.audit.domain.AuditPage;
 import com.forcitis.one.platform.audit.domain.AuditFilter;
-import com.forcitis.one.platform.audit.domain.AuditPosition;
+import com.forcitis.one.platform.audit.domain.AuditPageMark;
 import com.forcitis.one.platform.audit.domain.AuditRecord;
 import com.forcitis.one.platform.audit.domain.OwnLoginRecord;
 import com.forcitis.one.platform.audit.domain.OwnLoginRecordPage;
@@ -36,7 +36,7 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
     }
 
     @Override
-    public AuditPage findPage(AuditFilter filter, AuditPosition after, int limit) {
+    public AuditPage findPage(AuditFilter filter, AuditPageMark after, int limit) {
         Map<String, Object> params = new HashMap<>();
         String where = after(where(filter, params), after, params);
         List<AuditRecord> items = jdbc.sql("select " + COLUMNS + " from platform_audit.audit_entries" + where + """
@@ -50,7 +50,7 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
         }
         List<AuditRecord> page = items.subList(0, limit);
         AuditRecord last = page.getLast();
-        return new AuditPage(page, new AuditPosition(last.createdAt(), last.entryId()));
+        return new AuditPage(page, new AuditPageMark(last.createdAt(), last.entryId()));
     }
 
     @Override
@@ -62,7 +62,7 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
     }
 
     @Override
-    public OwnLoginRecordPage findOwnLoginRecords(UserId subject, AuditPosition after, int limit) {
+    public OwnLoginRecordPage findOwnLoginRecords(UserId subject, AuditPageMark after, int limit) {
         Map<String, Object> params = new HashMap<>();
         params.put("subjectKind", AuditSubjectKind.USER_ACCOUNT.name());
         params.put("subject", subject.value());
@@ -85,16 +85,16 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
         }
         List<OwnLoginRecord> page = items.subList(0, limit);
         OwnLoginRecord last = page.getLast();
-        return new OwnLoginRecordPage(page, new AuditPosition(last.occurredAt(), last.entryId()));
+        return new OwnLoginRecordPage(page, new AuditPageMark(last.occurredAt(), last.entryId()));
     }
 
-    private static String after(String where, AuditPosition after, Map<String, Object> params) {
+    private static String after(String where, AuditPageMark after, Map<String, Object> params) {
         if (after == null) {
             return where;
         }
         params.put("afterAt", Timestamp.from(after.createdAt()));
         params.put("afterId", after.entryId().value());
-        return where + (where.isEmpty() ? " where " : " and ") + "(created_at, id) < (:afterAt, :afterId)";
+        return where + (where.isEmpty() ? " where " : " and ") + "created_at <= :afterAt and (created_at, id) < (:afterAt, :afterId)";
     }
 
     private static String where(AuditFilter query, Map<String, Object> params) {
