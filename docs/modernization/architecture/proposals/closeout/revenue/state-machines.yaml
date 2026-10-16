@@ -20,6 +20,9 @@ machines:
     command: 标记不再受托
     guard:
     - 拟规则：原因必填
+    kind: reverse
+    reverse_of: 生效检查计划
+    note: 客户不再委托，撤回计划的生效；原因必填（C_DEFAULTS VS03-18）
 - aggregate: AGG-35
   name: 检查
   initial: 已计划
@@ -1240,9 +1243,8 @@ machines:
     note: 过账时点取收票或兑付待财务定
 - aggregate: AGG-51
   name: 保证金与押金
-  initial: 待缴
+  initial: 已缴
   states:
-  - 待缴
   - 已缴
   - name: 已退
     terminal: true
@@ -1254,13 +1256,6 @@ machines:
   - name: 被索赔
     terminal: true
   transitions:
-  - from: null
-    to: 待缴
-    command: 登记保证金应缴
-    note: 拟命令
-  - from: 待缴
-    to: 已缴
-    command: 登记保证金缴纳
   - from: null
     to: 已缴
     command: 登记保证金缴纳
@@ -1279,6 +1274,9 @@ machines:
     guard:
     - INV-20
     - AR-09（RULE-410）
+    kind: reverse
+    reverse_of: 登记保证金缴纳
+    note: 退还是缴纳的资金逆向（INV-20 与没收互斥各一次）
   - from: 已缴
     to: 被没收
     command: 没收保证金
@@ -1309,6 +1307,7 @@ machines:
     command: 提交过账候选
     guard:
     - INV-92
+  note: ；只留一个现金创建入口「登记保证金缴纳」（null → 已缴），删去未被骨架使用的拟命令「登记保证金应缴」（接缝复核）；保函另由「登记保函开立」创建
 - aggregate: AGG-01
   name: 往来单位
   note: 一台机承载三类实例：档案（待核实、有效、已合并、停用）、需准入的角色（角色·前缀，INV-02；客户角色无准入状态）、银行账户版本（生效、被取代：变更即追加新版本，旧版本被取代，不覆盖）
@@ -1476,6 +1475,9 @@ machines:
   - from: 已发布
     to: 已停用
     command: 停用服务产品版本
+    kind: reverse
+    reverse_of: 发布服务产品版本
+    note: 停用撤回已发布版本的可用性；不追溯已引用的报价与合同
 - aggregate: AGG-04
   name: 阶段类型版本
   note: 版本化：各版本并行，「启用」= 该版本已发布，「停用」= 已停用（逐版本映射，不是新版取代旧版）
@@ -1557,7 +1559,9 @@ machines:
   - from: 已生效
     to: 被取代
     command: 生效计费系数版本
-    note: 同事务：被新生效版本取代（旧版本实例）
+    note: 新版本生效同事务取代旧版，即旧版生效的逆向；不追溯（D15）
+    kind: reverse
+    reverse_of: 生效计费系数版本
 - aggregate: AGG-07
   name: 协议价目版本
   note: 版本化：待生效 → 已生效 → 被取代；已生效的版本不可改（INV-36）。批准随费率版本一并走审批平台（建议，见 NOTES）
@@ -1697,6 +1701,9 @@ machines:
   - from: 推进中
     to: 已放弃
     command: 放弃商机
+    kind: reverse
+    reverse_of: 新建商机
+    note: 我方主动撤回商机；丢单是外部结果，不算逆向
 - aggregate: AGG-11
   name: 投标
   note: 已撤销不是终态：撤回或撤销后商机若不再跟进，登记放弃投标（PRC-08 步 11→12）；商机继续跟进的，投标停在已撤销
@@ -2125,6 +2132,9 @@ machines:
   - from: 已提出
     to: 已关闭
     command: 关闭资源需求
+    kind: reverse
+    reverse_of: 提出资源需求
+    note: 需求不再需要时撤回（原因必填，S-33）
 - aggregate: AGG-26
   name: 资源分配
   note: 分配调整、释放无命令（见 NOTES）
@@ -2445,6 +2455,9 @@ machines:
   - from: 已登记
     to: 已关闭
     command: 关闭风险与问题
+    kind: reverse
+    reverse_of: 登记风险与问题
+    note: 未采取应对即关闭＝撤回登记（登记有误或不再适用）
   - from: 应对中
     to: 已关闭
     command: 关闭风险与问题

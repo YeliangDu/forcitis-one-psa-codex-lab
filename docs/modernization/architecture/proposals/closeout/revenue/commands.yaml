@@ -1589,22 +1589,6 @@ commands:
   - 收款ID
   - 过账类型
   emits: []
-- name: 登记保证金应缴
-  aggregate: AGG-51
-  proposed: true
-  proposed_basis: NOTES VS-04（PRC-10 缺命令 4）：「待缴」状态无创建命令
-  params:
-  - 保证金性质与方向
-  - 形式
-  - 金额
-  - 来源（投标或协议）
-  authority:
-    A: 待定（权责表未登）
-  idempotency_key:
-  - 来源ID
-  - 性质
-  emits: []
-  unused_ok: 拟命令：骨架未写
 - name: 登记保证金缴纳
   aggregate: AGG-51
   params:
