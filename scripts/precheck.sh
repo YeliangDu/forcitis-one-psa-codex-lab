@@ -59,7 +59,8 @@ frontend_missing() {
 backend_classes() {
   local classes=$1 class
   for class in $(printf '%s' "$classes" | tr ',' ' '); do rm -f backend/target/surefire-reports/*"$class".* backend/target/surefire-reports/TEST-*."$class".xml; done
-  (cd backend && ./mvnw -q test -Dtest="$classes") || return 1
+  # surefire:test after test-compile, not the test phase: pom.xml binds the export-openapi execution (OpenApiExportTest: a PostgreSQL container, rewrites openapi.json) to process-test-classes, and -Dtest cannot switch it off
+  (cd backend && ./mvnw -q test-compile surefire:test -Dtest="$classes") || return 1
   for class in $(printf '%s' "$classes" | tr ',' ' '); do
     ls backend/target/surefire-reports/TEST-*."$class".xml >/dev/null 2>&1 || { echo "$class produced no report: it did not run"; return 1; }
   done
@@ -202,9 +203,15 @@ else
   report SKIP "glossary: check:copy, test:scripts, term tests" "terms.yaml, bcs.yaml and backend/glossary unchanged"
 fi
 
+guard_pattern='^backend/src/test/java/.*(Guard|ArchitectureRules|Modularity|ModuleDependency|NamingSurface|Glossary|DdlNaming|LegacyShape)[A-Za-z]*Test\.java$'
 guard_classes="ArchitectureRulesTest,ModularityTest,ModuleDependencyTest,NamingSurfaceTest,GlossaryTest,ErrorCodeGlossaryTest,DdlNamingTest,LegacyShapeTest,TimeSourceGuardTest,TestIsolationGuardTest,TestContainerGuardTest"
-if touches '^(backend/architecture/|backend/src/test/java/com/forcitis/one/[A-Za-z]*(Guard|ArchitectureRules|Modularity|ModuleDependency|NamingSurface|Glossary|DdlNaming|LegacyShape)[A-Za-z]*Test\.java$)'; then
-  run_step "guards: backend guard tests" backend_classes "$guard_classes"
+if touches '^backend/architecture/'; then
+  guard_run="$guard_classes"
+else
+  guard_run=$(grep -E "$guard_pattern" "$work/changed" | sed 's#.*/##; s#\.java$##' | sort -u | paste -sd, -)
+fi
+if [ -n "$guard_run" ]; then
+  run_step "guards: backend guard tests" backend_classes "$guard_run"
 else
   report SKIP "guards: backend guard tests" "no guard test or architecture list changed"
 fi
@@ -276,10 +283,10 @@ if $builds_relevant; then
       echo "      run the full suite: scripts/ci/backend_verify.sh (Testcontainers: ask the user before starting containers)"
     fi
   elif $run_backend; then
-    run_step "backend tests (affected + guards)" sh -c 'cd backend && ./mvnw -q test -Dtest="$1" -Dsurefire.failIfNoSpecifiedTests=false' precheck "$tests"
+    run_step "backend tests (affected + guards)" sh -c 'cd backend && ./mvnw -q test-compile surefire:test -Dtest="$1" -Dsurefire.failIfNoSpecifiedTests=false' precheck "$tests"
   else
     report SKIP "backend tests" "not run by default; $scope"
-    echo "      run: (cd backend && ./mvnw -q test -Dtest='$tests' -Dsurefire.failIfNoSpecifiedTests=false)"
+    echo "      run: (cd backend && ./mvnw -q test-compile surefire:test -Dtest='$tests' -Dsurefire.failIfNoSpecifiedTests=false)"
     echo "      before delivery run everything: scripts/ci/backend_verify.sh (Testcontainers: ask the user before starting containers)"
   fi
   if touches '^backend/src/main/java/.*/(web|api)/' && ! touches '^frontend/packages/api/openapi\.json$'; then

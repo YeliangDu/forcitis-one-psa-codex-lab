@@ -3,11 +3,12 @@
 
 标准输入是钩子的 JSON（tool_input.command）；退出码 2 + 标准错误 = 拒绝，0 = 放行。命令不是 `gh pr create` 时立刻放行。
 precheck 本身失败（FAIL 或前端依赖缺失需先问用户）时，把它的输出末尾带回给会话。
+注册到 .claude/settings.json 时必须显式写 "timeout": 1500 以上：命令钩子默认 600 秒就被终止，终止不拦截。
 用法：precheck_before_pr.py  |  precheck_before_pr.py --self-test
 """
 import json, os, re, subprocess, sys
 
-PR_CREATE = re.compile(r"(?:^|[;&|(\s])gh\s+pr\s+create(?![\w-])")
+PR_CREATE = re.compile(r"(?:^|[;&|(\s\"'`/])gh\s+pr\s+(?:create|new)(?![\w-])")
 TIMEOUT_SECONDS = 1500
 
 
@@ -23,6 +24,12 @@ def verdict(output, returncode):
     return f"precheck.sh 未全过（退出码 {returncode}），不能提 PR。先修好或按提示问用户，再重新 gh pr create：\n{tail}"
 
 
+def repository_of(cwd):
+    """The checkout the session works in (a worktree is not the main checkout), so precheck judges that branch."""
+    top = subprocess.run(["git", "-C", cwd, "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    return top.stdout.strip() if top.returncode == 0 and top.stdout.strip() else cwd
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -30,9 +37,9 @@ def main():
         return 0
     if payload.get("tool_name", "Bash") != "Bash" or not is_pr_create((payload.get("tool_input") or {}).get("command")):
         return 0
-    root = os.environ.get("CLAUDE_PROJECT_DIR") or payload.get("cwd") or "."
+    root = repository_of(payload.get("cwd") or os.getcwd())
     try:
-        run = subprocess.run(["scripts/precheck.sh"], cwd=root, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
+        run = subprocess.run([os.path.join(root, "scripts", "precheck.sh")], cwd=root, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
         print(f"precheck.sh 超过 {TIMEOUT_SECONDS} 秒未结束，不能提 PR", file=sys.stderr)
         return 2
@@ -44,7 +51,7 @@ def main():
 
 
 def self_test():
-    for command in ("gh pr create --title x", "cd a && gh pr create", "git push; gh  pr  create --base main", "(gh pr create)"):
+    for command in ("gh pr create --title x", "gh pr new", "bash -c \"gh pr create\"", "/opt/homebrew/bin/gh pr create", "cd a && gh pr create", "git push; gh  pr  create --base main", "(gh pr create)"):
         assert is_pr_create(command), command
     for command in ("gh pr view 3", "gh pr create-not", "gh pr created", "", None):
         assert not is_pr_create(command), command

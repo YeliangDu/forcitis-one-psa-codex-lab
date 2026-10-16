@@ -29,7 +29,7 @@
 ## 输出
 
 - 资源与执行结果的回读报告 → one-coordinator；剧本与脚本 → 仓库 PR。
-- 发布包 → ECS；取证结果（只出计数或聚合）→ 登记 `phase1a/infra/LEGACY_READ_REGISTER.md`。
+- 发布包 → ECS；取证结果（只出计数或聚合）→ 用 `phase1a/infra/new_legacy_read.py` 登记片段（总表 `LEGACY_READ_REGISTER.md` 由 build_all 生成）。
 
 ## 触发与节奏
 
