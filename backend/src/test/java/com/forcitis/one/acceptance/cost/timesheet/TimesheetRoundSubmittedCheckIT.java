@@ -166,6 +166,7 @@ class TimesheetRoundSubmittedCheckIT extends ApprovalIntegrationSupport {
         assertThat(view(id).status()).isEqualTo(TimesheetStatus.SUBMITTED);
         assertThat(roundOf(id)).isEqualTo(1);
         assertThat(submittedDateOf(id)).isBetween(days[0], days[1]);
+        awaitApprovalRound(id, 1);
     }
 
     @Test
@@ -184,6 +185,7 @@ class TimesheetRoundSubmittedCheckIT extends ApprovalIntegrationSupport {
         assertThat(view(id).status()).isEqualTo(TimesheetStatus.SUBMITTED);
         assertThat(roundOf(id)).isEqualTo(2);
         assertThat(submittedDateOf(id)).isBetween(days[0], days[1]);
+        awaitApprovalRound(id, 2);
     }
 
     @Test
@@ -203,6 +205,7 @@ class TimesheetRoundSubmittedCheckIT extends ApprovalIntegrationSupport {
         assertThat(view(id).status()).isEqualTo(TimesheetStatus.SUBMITTED);
         assertThat(roundOf(id)).isEqualTo(2);
         assertThat(submittedDateOf(id)).isBetween(days[0], days[1]);
+        awaitApprovalRound(id, 2);
     }
 
     @Test
@@ -225,6 +228,7 @@ class TimesheetRoundSubmittedCheckIT extends ApprovalIntegrationSupport {
         assertThat(view(id).status()).isEqualTo(TimesheetStatus.SUBMITTED);
         assertThat(roundOf(id)).isEqualTo(2);
         assertThat(submittedDateOf(id)).isBetween(days[0], days[1]);
+        awaitApprovalRound(id, 2);
     }
 
     @Test
