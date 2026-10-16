@@ -16,9 +16,9 @@ import importlib.util, os, subprocess, sys
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 GLOSSARY_INDEX = os.path.join("..", "..", "backend", "glossary", "proposed", "README.md")
-STEPS = ["build_records.py", "build_sessions.py", "glossary/build_issues.py", "adr/build_adrs.py", "rules/build_brief.py",
+STEPS = ["build_records.py", "build_sessions.py", "glossary/build_issues.py", "adr/build_adrs.py", "rules/build_brief.py", "quality/defect-bank/defect_bank_check.py",
          "phase1a/infra/build_legacy_read_register.py", "../../backend/glossary/build_proposed_index.py"]
-SELF_TESTED = ["build_sessions.py", "../../scripts/hooks/session_context.py", "glossary/build_issues.py", "glossary/term_rules.py",
+SELF_TESTED = ["build_sessions.py", "quality/defect-bank/defect_bank_check.py", "../../scripts/hooks/session_context.py", "glossary/build_issues.py", "glossary/term_rules.py",
                "phase1a/infra/build_legacy_read_register.py", STEPS[-1]]
 # 正式术语 glossary/terms.yaml 由 build_terms.py 生成，--check 要求可复现；PyYAML 依赖登记于 SUPPLY_CHAIN.md S1
 if importlib.util.find_spec("yaml"):
