@@ -4143,6 +4143,9 @@ processes:
   - VS-02.7
   primary_object: OBJ-29
   primary_object_note: 结局「已归档」是项目 VS-02.7 退出；交付物、证据的「已封存」是同一编排的前置步骤
+  secondary_objects:
+  - OBJ-35
+  - OBJ-53
   owner_bc: B-29
   human_orchestration: true
   human_note: 结项审批；审批通过前任一拒绝项不满足即退回
@@ -5834,6 +5837,8 @@ processes:
   - VS-04.1
   primary_object: OBJ-05
   primary_object_note: 付款条件项 OBJ-07「生效」随协议回签同时生效（VS-04.1 退出），不另设流程
+  secondary_objects:
+  - OBJ-07
   owner_bc: B-05
   human_orchestration: true
   human_note: 合同评审（一级责任人审批，命中加审规则再加一级）；客户回签；依法招标项目须比对中标承诺
@@ -6947,6 +6952,8 @@ processes:
   - VS-04.3
   primary_object: OBJ-83
   primary_object_note: 结局「已开具」是 VS-04.3 退出；开票申请 OBJ-82「已开票」是同一流程的前置单据
+  secondary_objects:
+  - OBJ-82
   owner_bc: B-08
   human_orchestration: true
   human_note: 开票申请由系统按规则自动准入（协议依据、可开票额度），命中金额阈值或关联方才转人工审批；驳回、撤回；税务平台开具结果
@@ -7555,6 +7562,8 @@ processes:
   - VS-04.4
   primary_object: OBJ-85
   primary_object_note: 结局「已核销」使往来款项「已结清」（VS-04.4 退出）；资金收付 OBJ-86「已分配」是同一流程的认领步骤
+  secondary_objects:
+  - OBJ-86
   owner_bc: B-09
   human_orchestration: true
   migration: 历史收款、分配行与核销记录全部迁入（U-4）；投产时待认领的流水按当前状态迁入，已部分核销的应收带已核销额迁入
@@ -8452,6 +8461,8 @@ processes:
   - VS-05.1
   primary_object: OBJ-02
   primary_object_note: 结局「往来单位角色合格」是 VS-05.1 退出；资质证书 OBJ-65 为需资质供方的附加条件
+  secondary_objects:
+  - OBJ-65
   owner_bc: B-01
   human_orchestration: false
   triggers:

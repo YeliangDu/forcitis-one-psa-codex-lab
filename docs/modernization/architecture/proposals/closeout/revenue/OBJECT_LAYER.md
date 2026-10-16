@@ -60,3 +60,7 @@
 | PRC-56、152 | OBJ-07 → CAP-005 协议管理（CAP-005.007） | VS-04.3 仅 CAP-103 | 付款条件项达成是开票段的起点，段能力清单疑漏 CAP-005 |
 
 以上 5 条（PRC-23、41、42、56、152）由 one-architecture 一并列入用户待认可（段能力清单补映射）；PRC-91 随归段定。
+
+## 5. 次要对象（secondary_objects）
+
+按 one-architecture 新增字段，第 2 节 5 项写入骨架：PRC-36 [OBJ-35, OBJ-53]、PRC-47 [OBJ-07]、PRC-57 [OBJ-82]、PRC-60 [OBJ-86]、PRC-69 [OBJ-65]。PRC-47 的 OBJ-07 检查器暂判「非本流程写入」：付款条件项在协议聚合 AGG-13 内，回签命令同时使其「生效」（结局「协议已签署生效、付款条件项生效」），process-objects 只把 AGG-13 映射到 OBJ-05，交 one-architecture 看对象映射。
