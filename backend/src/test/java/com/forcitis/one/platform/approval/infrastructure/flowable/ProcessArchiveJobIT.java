@@ -196,6 +196,45 @@ class ProcessArchiveJobIT {
     }
 
     @Test
+    @DisplayName("DATA-REPAIR-approval AP-08 a failed delete is logged and recorded by its class names only; the engine message reaches neither the log nor the table")
+    void theEngineMessageIsNeitherLoggedNorStored() {
+        String bad = finishedProbe();
+        doThrow(new IllegalStateException("secret-detail", new java.io.UncheckedIOException("deeper-secret", new java.io.IOException("x"))))
+                .when(history).deleteHistoricProcessInstance(bad);
+        clock.set(after3Years());
+        ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(ProcessArchiveJob.class);
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> captured = new ch.qos.logback.core.read.ListAppender<>();
+        captured.start();
+        logger.addAppender(captured);
+        try {
+            job.run();
+        } finally {
+            logger.detachAppender(captured);
+            Mockito.reset(history);
+        }
+
+        String stored = jdbc.sql("select failure_message from platform_approval.process_archive_skips where process_instance_id = cast(:id as uuid)")
+                .param("id", bad).query(String.class).single();
+        assertThat(stored).isEqualTo("java.lang.IllegalStateException <- java.io.UncheckedIOException <- java.io.IOException");
+        assertThat(captured.list).filteredOn(e -> e.getLevel() == ch.qos.logback.classic.Level.ERROR).isNotEmpty().allSatisfy(e -> {
+            assertThat(e.getFormattedMessage()).doesNotContain("secret-detail").doesNotContain("deeper-secret");
+            assertThat(e.getThrowableProxy()).isNull();
+        });
+        assertThat(captured.list).anySatisfy(e -> assertThat(e.getFormattedMessage()).contains("ALERT").contains("IllegalStateException"));
+        history.deleteHistoricProcessInstance(bad);
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-approval AP-08 the class-name chain stops at 5 levels")
+    void theClassNameChainStopsAtFiveLevels() {
+        Throwable chain = new RuntimeException();
+        for (int i = 0; i < 9; i++) {
+            chain = new RuntimeException(chain);
+        }
+        assertThat(ProcessArchiveJob.failureKind(chain).split(" <- ")).hasSize(5);
+    }
+
+    @Test
     @DisplayName("T3 an instance whose engine id is not a canonical UUID is alerted and left alone; the others of the batch are archived and removed")
     void aForeignIdDoesNotStopTheBatch() {
         String foreign = finishedProbe();
