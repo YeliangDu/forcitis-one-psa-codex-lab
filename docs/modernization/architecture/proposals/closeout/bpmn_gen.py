@@ -148,6 +148,12 @@ class Process:
         return [{"type": kind, "name": t.get("desc")}]
 
     def outcome_for(self, step, when, goto):
+        decs_ = step.get("decision") or []
+        for dd in decs_:
+            if dd.get("when") == when and dd.get("outcome"):
+                return dd["outcome"]
+        if when is None and len(decs_) == 1 and decs_[0].get("outcome"):
+            return decs_[0]["outcome"]
         if step.get("outcome"):
             return step["outcome"]
         outcomes = self.p.get("outcomes") or []
@@ -306,7 +312,7 @@ class Process:
                 outs = list(decs)
                 if not any(w == "otherwise" for w, _ in outs):
                     outs.append(("otherwise", nxt))
-                if len({t for _, t in outs}) == 1:
+                if len({t for _, t in outs}) == 1 and len({dd.get("outcome") for dd in (s.get("decision") or [])}) <= 1:
                     outs = [(None, outs[0][1])]
                 elif not any(w == "otherwise" for w, _ in decs):
                     self.warn("decision 缺 otherwise，已补「其他」流向下一步")
@@ -331,7 +337,7 @@ class Process:
                        doc=f"升级给 {t.get('escalate_to')}；期限 {t.get('after')}")
         if esc_lane == lane:
             self.warn("超时升级任务与原任务同泳道，布局上主线穿过升级任务")
-        info["timeout"] = (bd.id, esc.id)
+        info["timeout"] = (bd.id, esc.id, bool(t.get("interrupting", True)), esc_lane)
 
     # ---- 第二遍：顺序流 ----
     def target_node(self, tgt, step, when, src_lane):
@@ -365,10 +371,14 @@ class Process:
                 node_id = self.target_node(tgt, info["step"], when, info["lane"])
                 self.flow(tail, node_id, label)
             if "timeout" in info:
-                bd, esc = info["timeout"]
+                bd, esc, interrupting, esc_lane = info["timeout"]
                 self.flow(bd, esc)
-                first = next(f for f in self.flows if f["src"] == info["main"])
-                self.flow(esc, first["tgt"])
+                if interrupting:
+                    first = next(f for f in self.flows if f["src"] == info["main"])
+                    self.flow(esc, first["tgt"])
+                else:
+                    end = self.add("endEvent", "已提醒", esc_lane, prefix="End")
+                    self.flow(esc, end.id)
         for f in self.flows:
             incoming.add(f["tgt"])
         for info in self.plan:
