@@ -68,7 +68,7 @@ final class SingleOperatorModeStartup implements BeanPostProcessor, SmartInitial
         if (database == null) {
             throw new IllegalStateException(SingleOperatorModeListener.KEY + ": the mode is on but no database was checked (ADR-0030)");
         }
-        LOG.warn("SINGLE OPERATOR MODE IS ON (ADR-0030): profiles={} database={}; the two-person rules of the operations commands are relaxed", profiles, database);
+        LOG.warn("SINGLE OPERATOR MODE IS ON (ADR-0030): profiles={} database={}; this mode must never run outside dev", profiles, database);
         audit.getObject().recordIndependently(new AuditEntry("platform.identity.single-operator-mode.enabled", null, null, AuditSubject.without(AuditSubjectKind.OPERATION), "profile=" + profiles));
     }
 }
