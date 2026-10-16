@@ -133,6 +133,10 @@ def run(b):
     bad("轻量档不得取代", mk(no="0101", tier="轻量", status="已采纳", extra={**quote, "取代": ["ADR-0100"]}, secs=light), mk(no="0100", status="已被 ADR-0101 取代"))
     # R-5 小节
     ok(mk(status="提议", secs={"背景": "x", "决定": "y"}))
+    ok(mk(status="搁置", extra={**quote_only, "理由": "重启条件：x"}, secs={"背景": "x"}))
+    ok(mk(status="已拒绝", extra={**quote_only, "理由": "x"}, secs={"背景": "x"}))
+    ok(mk(status="已撤回", extra={"理由": "x"}, secs={"背景": "x"}))
+    bad("缺少小节", mk(status="已废弃", extra={**quote_only, "理由": "x"}, secs={"背景": "x"}))
     bad("缺少小节「后果」", mk(status="已采纳", extra=quote, secs={k: v for k, v in SECS.items() if k != "后果"}))
     bad("缺少小节「证据」", mk(status="已采纳", tier="轻量", extra=quote, secs={k: v for k, v in light.items() if k != "证据"}))
     ok(mk(status="已采纳", tier="轻量", extra=quote, secs={**light, "背景": "x", "后果": "y"}))

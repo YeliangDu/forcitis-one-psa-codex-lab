@@ -241,7 +241,7 @@ def validate_new(a, status_of, by_no, ctx):
             errors.append(f"{tag}: 状态为已被 ADR-{sup.group(1)} 取代，但其须为已采纳且「取代」整份列有 ADR-{no}")
     # 小节
     names = a["secs"]
-    if not proposal:
+    if status in ("已采纳", "已废弃") or SUPERSEDED.fullmatch(status):
         need_secs = ORDER if tier == "正式" else LIGHT_REQUIRED
         errors += [f"{tag}: 缺少小节「{n}」" for n in need_secs if not names.get(n, "").strip()]
     # 大小
