@@ -233,3 +233,9 @@
   - 第 3、7 节中与原 D-12 建议相关的表结构项（三张表主键改法）以本条为准；预期表结构 diff 随之增加三张表的代理主键列与唯一约束（名称以 `DdlNamingTest` 与术语门禁为准）。
 - 开工条件：第 11 节新词经 one-glossary 定稿；D-12 已认可。体量若超出 sonnet 能力（实现中途），停下报告，可按「信封与审计」「守护与 G-A1 收尾」拆两个 PR，不缩小范围。
 - 新词定稿（one-glossary，2026-10-16）：`ApprovalTaskBecameOverdue` 中文名保留「任务已超时」，id / snake `approval_task_became_overdue`；`audit_subject` 定义已由 one-glossary 改（「被审计的业务对象，由对象类别与对象 ID 共同标识；没有对象的审计类别对象 ID 为空」）；**审计对象类别 `AuditSubjectKind`（kind state，bc platform.audit，领域）进用户确认单——确认前不派实现**，取值 16 个对象类别 + `REQUEST`、`OPERATION`、`LOGIN_ATTEMPT`，与 `DeliverySubjectKind` 各自独立（列名同名同义、注释同一句「对象类别：被记录或被投递的业务对象的类别」）；`subject_id` 列注释写明「为空表示这条记录没有对象」；`first_entry_created_at`、`last_entry_created_at`、`NumberingCounterId` 同意。
+
+## 14. 验收阶段裁定（one-1a-next-4，2026-10-16）
+- RULING-P5-1 范围含 `ApprovalIdContractTest`：D-13 后 `OTHER_ID_NAMES` = {`InboxItemResponse.taskId`, `SyncDiffResponse.subjectKey`}，两个契约验收同口径改。
+- RULING-P5-2：列注释口径——`subject_kind`「对象类别：被记录或被投递的业务对象的类别」；`audit_entries.subject_id`「对象 ID：被记录或被投递的业务对象的自有 ID；为空表示这条记录没有对象」（P4 `outbound_deliveries.subject_id` 无空值，不加后半句）。验收只断言共同片段与「为空」。
+- RULING-P5-3：既有验收物随 P5 机械适配，由测试代理改、断言含义不变——`AccountsAcceptanceSupport.grantRole` 写 `account_roles` 带新主键（D-12）；卡第 4 节点名引用 `subjectKey`、`EventSource` 的旧验收用例改为新列与新信封。
+- 采纳测试代理对第 3（超时事件 `@NotAudited`，只验事件登记表与提醒卡）、4、5、6、7、9 项的弱断言处理：卡未定的文案与取值不锁死。
