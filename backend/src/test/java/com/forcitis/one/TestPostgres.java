@@ -30,11 +30,12 @@ public final class TestPostgres {
     static final String LOGIN_TIMEOUT = "30";
     static final String INITDB_ARGS = "--locale-provider=builtin --locale=C.UTF-8 --builtin-locale=C.UTF-8";
     /**
-     * CI saw a container that was up but whose connections were cut during SSL set-up for the whole wait (121 s, a startup failure for the class), and one whose connection broke mid-run. The wait is
-     * shortened and repeated: a container that does not answer within START_TIMEOUT_SECONDS is thrown away and a fresh one started, START_ATTEMPTS times. An infrastructure retry; no assertion is relaxed.
+     * CI saw a container that was up but whose connections were cut during SSL set-up for the whole wait (121 s, a startup failure for the class), and one whose connection broke mid-run. The wait for the
+     * first JDBC connection (the init script of a class, 120 s by default) is shortened and repeated: a container that does not answer within START_CONNECT_SECONDS is thrown away and a fresh one started,
+     * START_ATTEMPTS times; the wait for the "ready" log line (60 s) is left as it is. An infrastructure retry; no assertion is relaxed.
      */
     static final int START_ATTEMPTS = 3;
-    static final int START_TIMEOUT_SECONDS = 90;
+    static final int START_CONNECT_SECONDS = 90;
     static final int LOG_LINES = 40;
     /** Every cached Spring context keeps its connection pool open on the shared instance until the fork ends. */
     static final String MAX_CONNECTIONS = "500";
@@ -55,17 +56,17 @@ public final class TestPostgres {
     public static PostgreSQLContainer container() {
         return new Diagnosed(TestImages.startingWith("postgres:")).withEnv("POSTGRES_INITDB_ARGS", INITDB_ARGS)
                 .withUrlParam("connectTimeout", CONNECT_TIMEOUT).withUrlParam("socketTimeout", SOCKET_TIMEOUT)
-                .withUrlParam("loginTimeout", LOGIN_TIMEOUT).withStartupAttempts(START_ATTEMPTS).withStartupTimeoutSeconds(START_TIMEOUT_SECONDS);
+                .withUrlParam("loginTimeout", LOGIN_TIMEOUT).withStartupAttempts(START_ATTEMPTS).withConnectTimeoutSeconds(START_CONNECT_SECONDS);
     }
 
     /** What an exhausted start says: the cause, the last lines the container wrote (a removed container has no logs left to ask for), and how loaded the Docker engine was. */
-    static String describeFailure(String image, int attempts, int seconds, Throwable cause, List<String> logTail, String docker) {
+    static String describeFailure(String image, int attempts, int connectSeconds, Throwable cause, List<String> logTail, String docker) {
         List<String> tail = logTail.size() > LOG_LINES ? logTail.subList(logTail.size() - LOG_LINES, logTail.size()) : logTail;
         Throwable root = cause;
         while (root.getCause() != null && root.getCause() != root) {
             root = root.getCause();
         }
-        return "container " + image + " did not become usable in " + attempts + " attempts of " + seconds + " s: " + root + "\n--- docker: " + docker
+        return "container " + image + " did not become usable in " + attempts + " attempts (connection wait " + connectSeconds + " s each): " + root + "\n--- docker: " + docker
                 + "\n--- last " + tail.size() + " container log lines" + (logTail.size() > tail.size() ? " (of " + logTail.size() + ")" : "") + " ---\n"
                 + String.join("\n", tail);
     }
@@ -81,7 +82,7 @@ public final class TestPostgres {
         }
     }
 
-    /** Remembers the last lines the container wrote across all attempts, because Testcontainers removes a failed attempt's container before the next one. */
+    /** Remembers the last lines any attempt's container wrote (80 kept, the last 40 shown), because Testcontainers removes a failed attempt's container before the next one. */
     static final class Diagnosed extends PostgreSQLContainer {
         private final Deque<String> tail = new ArrayDeque<>();
         private final String image;
@@ -92,7 +93,7 @@ public final class TestPostgres {
             withLogConsumer(frame -> remember(frame.getUtf8String()));
         }
 
-        private synchronized void remember(String text) {
+        synchronized void remember(String text) {
             for (String line : text.split("\\R")) {
                 if (!line.isBlank()) {
                     tail.addLast(line);
@@ -103,16 +104,28 @@ public final class TestPostgres {
             }
         }
 
+        /** What this container actually waits for a first JDBC connection, in seconds. */
+        int connectSeconds() {
+            return getConnectTimeoutSeconds();
+        }
+
+        private Runnable starter = super::start;
+
+        /** Replaces the real start so that a test can fail it without Docker (a test must not subclass the container: TestContainerGuardTest). */
+        void startWith(Runnable replacement) {
+            starter = replacement;
+        }
+
         @Override
         public void start() {
             try {
-                super.start();
+                starter.run();
             } catch (RuntimeException e) {
                 List<String> lines;
                 synchronized (this) {
                     lines = List.copyOf(tail);
                 }
-                throw new IllegalStateException(describeFailure(image, START_ATTEMPTS, START_TIMEOUT_SECONDS, e, lines, dockerSummary()), e);
+                throw new IllegalStateException(describeFailure(image, getStartupAttempts(), connectSeconds(), e, lines, dockerSummary()), e);
             }
         }
     }

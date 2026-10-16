@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Evidence for a CI job that failed on a test container: written to a directory CI uploads as an artifact (scripts/ci/docker_diagnostics.py, ci.yml backend job, `if: failure()`).
 
-Usage: docker_diagnostics.py <out dir> <job start, epoch seconds>  |  docker_diagnostics.py --self-test
+Usage: docker_diagnostics.py <out dir> <job start, epoch seconds> [<events file>]  |  docker_diagnostics.py --self-test
 
-Writes docker-info.txt (engine summary, disk use), containers.txt (every container: image, state, exit code, OOM flag, creation time), events.txt (`docker events` from the job start to now: create, start,
-die, oom, kill) and logs/<name>.txt (the last 200 lines of every PostgreSQL, SQL Server and Ryuk container created since the job started, from any job: the engine is shared by all runners).
+Writes docker-info.txt (engine summary, disk use), containers.txt (every container: image, state, exit code, OOM flag, creation time), events.txt and logs/<name>.txt (the last 200 lines of every PostgreSQL,
+SQL Server and Ryuk container still there that was created since the job started, from any job: the engine is shared by all runners; the container of a failed start attempt is already removed, its last log
+lines are in the test's own exception, TestPostgres.Diagnosed). events.txt is the events file the job recorded from its start (ci.yml starts `docker events` in the background) when one is given; otherwise `docker events
+--since`, which the engine answers only from its last 256 events, so on a busy shared engine it no longer reaches back to the job start.
 Only names, images, states and logs are read: `docker inspect` is asked for a fixed format, never dumped, because a container's environment holds its passwords.
 It never fails the job it documents: every call has a time limit, an error is written into the file instead, the exit code is 0.
 """
@@ -52,17 +54,27 @@ def safe_name(name):
     return re.sub(r"[^A-Za-z0-9_.-]", "_", name)[:80] or "container"
 
 
-def collect(out, since, run=docker, now=None):
+def collect(out, since, run=docker, now=None, events_file=None):
     os.makedirs(os.path.join(out, "logs"), exist_ok=True)
     now = int(now if now is not None else datetime.datetime.now().timestamp())
     info = run("info", "--format", "{{.ServerVersion}} | {{.NCPU}} CPUs | {{.MemTotal}} bytes | containers {{.Containers}} (running {{.ContainersRunning}}, paused {{.ContainersPaused}}, stopped {{.ContainersStopped}}) | {{.OperatingSystem}}")
     write(out, "docker-info.txt", info + "\n" + run("system", "df"))
-    ids = run("ps", "-aq", "--no-trunc").split()
+    ids = [x for x in run("ps", "-aq", "--no-trunc").split() if re.fullmatch(r"[0-9a-f]{12,64}", x)]
     rows = parse_containers(run("inspect", "--format", FORMAT, *ids)) if ids else []
     write(out, "containers.txt", "\n".join("\t".join(map(str, r[:6])) + "\t" + datetime.datetime.fromtimestamp(r[6], datetime.timezone.utc).isoformat() for r in sorted(rows, key=lambda r: r[6])) + "\n")
-    write(out, "events.txt", run("events", "--since", str(int(since)), "--until", str(now), "--format", "{{.Time}} {{.Type}} {{.Action}} {{.Actor.Attributes.name}} {{.Actor.Attributes.image}}"))
+    recorded = read_events(events_file)
+    write(out, "events.txt", recorded if recorded is not None else run("events", "--since", str(int(since)), "--until", str(now), "--format", "{{.Time}} {{.Type}} {{.Action}} {{.Actor.Attributes.name}} {{.Actor.Attributes.image}}"))
     for row in wanted(rows, since):
         write(out, f"logs/{safe_name(row[1])}.txt", f"{row[2]} {row[3]} exit={row[4]} oom={row[5]}\n" + run("logs", "--tail", LOG_LINES, row[0]))
+
+
+def read_events(path):
+    """The events the job recorded itself, or None when there is no such file (the job never got to start it)."""
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            return f.read()
+    except (OSError, TypeError):
+        return None
 
 
 def write(out, name, text):
@@ -86,9 +98,9 @@ def self_test():
     def fake(*args, timeout=60):
         calls.append(args)
         if args[0] == "ps":
-            return "id1\nid2\n"
+            return "aaaaaaaaaaaa\nbbbbbbbbbbbb\nError response from daemon: x\n"
         if args[0] == "inspect":
-            assert "--format" in args and "{{json" not in " ".join(args) and args[-2:] == ("id1", "id2"), "a fixed format, never a dump"
+            assert "--format" in args and "{{json" not in " ".join(args) and args[-2:] == ("aaaaaaaaaaaa", "bbbbbbbbbbbb"), "a fixed format, never a dump"
             return f"id1\t/pg-1\tpostgres:18\trunning\t0\tfalse\t{ts}\nid2\t/old\tpostgres:18\texited\t137\ttrue\t2026-10-16T10:00:00Z\n"
         if args[0] == "logs":
             return "last line\n"
@@ -103,6 +115,24 @@ def self_test():
         collect(out, since, run=lambda *a, timeout=60: "[docker could not run: no docker]", now=1)
         assert "no docker" in open(os.path.join(out, "docker-info.txt")).read() and open(os.path.join(out, "containers.txt")).read().strip() == ""
     assert docker("definitely-not-a-subcommand-xyz", timeout=30).startswith(("[docker ", "[docker")), "a failing docker call is reported in the text, not raised"
+    with tempfile.TemporaryDirectory() as out:   # a recorded events file wins over the engine's last-256 answer; a missing one falls back
+        rec = os.path.join(out, "rec.log")
+        write(out, "rec.log", "recorded event\n")
+        collect(os.path.join(out, "a"), since, run=fake, now=int(epoch) + 600, events_file=rec)
+        assert open(os.path.join(out, "a", "events.txt")).read() == "recorded event\n"
+        collect(os.path.join(out, "b"), since, run=fake, now=int(epoch) + 600, events_file=os.path.join(out, "missing"))
+        assert open(os.path.join(out, "b", "events.txt")).read() == "events output\n"
+    real_run = subprocess.run
+    try:
+        subprocess.run = lambda *a, **k: (_ for _ in ()).throw(FileNotFoundError("no docker binary"))
+        assert docker("ps").startswith("[docker ps could not run: ")
+        subprocess.run = lambda *a, **k: (_ for _ in ()).throw(subprocess.TimeoutExpired("docker", 1))
+        assert docker("logs").startswith("[docker logs could not run: ")
+        seen = []
+        subprocess.run = lambda cmd, **k: (seen.append((cmd, k.get("timeout"))), subprocess.CompletedProcess(cmd, 0, "ok", ""))[1]
+        assert docker("logs", "--tail", LOG_LINES, "c1") == "ok" and seen == [(["docker", "logs", "--tail", "200", "c1"], 60)], seen
+    finally:
+        subprocess.run = real_run
     bad = subprocess.run([sys.executable, __file__, "/dev/null/not-a-directory", "1"], capture_output=True, text=True)
     assert bad.returncode == 0 and "incomplete" in bad.stderr, (bad.returncode, bad.stderr)   # an error while collecting never fails the job
     print("docker_diagnostics self-test: ok")
@@ -112,10 +142,10 @@ def main():
     if sys.argv[1:] == ["--self-test"]:
         self_test()
         return
-    if len(sys.argv) != 3 or not sys.argv[2].isdigit():
+    if len(sys.argv) not in (3, 4) or not sys.argv[2].isdigit():
         sys.exit(__doc__)
     try:
-        collect(sys.argv[1], int(sys.argv[2]))
+        collect(sys.argv[1], int(sys.argv[2]), events_file=sys.argv[3] if len(sys.argv) == 4 else None)
     except Exception as e:   # never fail the job this documents
         print(f"docker diagnostics incomplete: {e}", file=sys.stderr)
 
