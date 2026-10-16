@@ -385,7 +385,7 @@ processes:
       events: [{event: Employed, aggregate: AGG-62}]
       desc: 触发事件的发出时机见 PG-01；Q-03 无首日兜底，应早于入职生效日开通，建议改由登记时发出的新事件触发
     stages: [VS-07.3]
-    owner_bc: B-13
+    owner_bc: platform.identity   # S-14（one-architecture 同意 J-1）
     human_orchestration: false
     new: true
     basis: intent 2026-10-16-134134 Q-03；IDENTITY_LIFECYCLE.md（招聘入职是人力过程，企业微信是信息过程，有前后顺序）
@@ -432,7 +432,7 @@ processes:
       events: [{event: Separated, aggregate: AGG-62}]
       desc: 与 PRC-129（吊销会话）互补；离职生效即时，不等企业微信账号停用
     stages: [VS-13.6]
-    owner_bc: B-13
+    owner_bc: platform.identity   # S-14（one-architecture 同意 J-1）
     human_orchestration: false
     new: true
     basis: intent 2026-10-16-134134 Q-03；规则卡 RULE-363；ADR-0027 第 1 项（删除全部角色授予、停用应急账号、吊销会话）；IDENTITY_LIFECYCLE.md §对 C1 设计的含义第 3 条（在职判断以人事离职为准，不以企业微信账号是否存在为准）

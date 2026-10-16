@@ -109,7 +109,7 @@
     type: event
     events: [{event: 〔缺〕入职已登记, aggregate: AGG-62}]
   stages: [VS-07.3]
-  owner_bc: B-13            # one-architecture 给号时定；编排实际在 platform.identity，建议改 owner（接缝 J-1）
+  owner_bc: platform.identity   # J-1 / S-14 one-architecture 同意
   human_orchestration: false
   roles:
     - {id: SH-E6, as: performer}      # 信息（IT）
@@ -329,6 +329,6 @@
 
 ## 6. 接缝（交 one-architecture）
 
-- J-1 PRC-137 的步骤全在 `platform.identity`，owner 写 B-13 与「编排放在下游」口径不符，建议 owner 改 `platform.identity`（同 PRC-129）。
+- J-1 PRC-137、PRC-138 owner 改 `platform.identity`（同 PRC-129），沿用现有边——one-architecture 已同意（S-14）。
 - J-2 `platform.identity` 订阅 B-13 的「入职已登记」「Employed」「任职已变更」沿现有边 `platform.identity → organization.workforce`，方向一致，无需新边；聚合稿 AGG-62、63 的订阅方列需补 platform.identity。
 - J-3 PRC-84 不变；B-15 订阅 Employed 已在聚合稿登记。
