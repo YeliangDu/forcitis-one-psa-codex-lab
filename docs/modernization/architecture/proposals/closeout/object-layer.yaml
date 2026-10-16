@@ -2695,6 +2695,10 @@ processes:
   name: 开放可触发收入确认的证据类型
   group: revenue
   type: single_aggregate
+  supports:
+  - VS-04.2
+  supports_basis:
+    VS-04.2: 使用
   primary_object: AGG-92
   status: support_proposed
 - id: PRC-64
@@ -2780,6 +2784,10 @@ processes:
   name: 评审并生效报表行定义版本
   group: finance
   type: business
+  supports:
+  - VS-10.2
+  supports_basis:
+    VS-10.2: 使用
   primary_object: OBJ-99
   status: support
   capability_l1: CAP-103
@@ -3032,12 +3040,14 @@ processes:
   - VS-09.1
   - VS-09.2
   - VS-09.3
+  - VS-10.2
   supports_basis:
     VS-05.2: 条件
     VS-08.2: 使用
     VS-09.1: 条件
     VS-09.2: 条件
     VS-09.3: 条件
+    VS-10.2: 使用
   primary_object: OBJ-100
   status: support
   capability_l1: CAP-100
@@ -3384,6 +3394,7 @@ processes:
   - VS-02.6
   - VS-03.1
   - VS-03.2
+  - VS-04.2
   - VS-04.3
   - VS-05.4
   - VS-05.5
@@ -3413,6 +3424,7 @@ processes:
     VS-02.6: 使用
     VS-03.1: 使用
     VS-03.2: 使用
+    VS-04.2: 使用
     VS-04.3: 条件
     VS-05.4: 条件
     VS-05.5: 使用
@@ -3486,11 +3498,13 @@ processes:
   feeds:
   - OBJ-83
   supports:
+  - VS-04.2
   - VS-04.3
   - VS-05.4
   - VS-06.1
   - VS-08.2
   supports_basis:
+    VS-04.2: 使用
     VS-04.3: 条件
     VS-05.4: 条件
     VS-06.1: 使用

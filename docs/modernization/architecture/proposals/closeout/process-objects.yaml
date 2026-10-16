@@ -335,6 +335,60 @@ processes:
     aggregates:
     - AGG-20
     ops: UD
+- id: PRC-22
+  name: 阶段门预警
+  group: revenue
+  objects:
+  - obj: AGG-44
+    name: 开票与收入额度
+    aggregates:
+    - AGG-44
+    ops: R
+  - obj: OBJ-29
+    name: 项目
+    aggregates:
+    - AGG-19
+    ops: R
+  - obj: OBJ-30
+    name: WBS 节点
+    aggregates:
+    - AGG-20
+    ops: R
+  - obj: OBJ-31
+    name: 交付计划
+    aggregates:
+    - AGG-21
+    ops: R
+  - obj: OBJ-32
+    name: 项目预算
+    aggregates:
+    - AGG-22
+    ops: R
+  - obj: OBJ-35
+    name: 交付物
+    aggregates:
+    - AGG-27
+    ops: R
+  - obj: OBJ-38
+    name: 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32）
+    aggregates:
+    - AGG-28
+    ops: R
+  - obj: OBJ-53
+    name: 证据
+    aggregates:
+    - AGG-38
+    ops: R
+  - obj: OBJ-106
+    name: 客户满意度调查
+    aggregates:
+    - AGG-105
+    ops: R
+  - obj: OBJ-107
+    name: 项目复盘
+    aggregates:
+    - AGG-103
+    ops: R
 - id: PRC-23
   name: 填报并审批工时
   group: revenue
@@ -839,6 +893,24 @@ processes:
     aggregates:
     - AGG-44
     ops: U
+  - obj: AGG-92
+    name: 可触发确认的证据类型开放配置版本
+    aggregates:
+    - AGG-92
+    ops: R
+  - obj: OBJ-05
+    name: 协议
+    aggregates:
+    - AGG-07
+    - AGG-13
+    - AGG-55
+    - AGG-67
+    ops: R
+  - obj: OBJ-53
+    name: 证据
+    aggregates:
+    - AGG-38
+    ops: R
 - id: PRC-54
   name: 视为同意期满处理
   group: revenue
@@ -976,6 +1048,16 @@ processes:
     - AGG-49
     - AGG-52
     ops: UD
+- id: PRC-62
+  name: 质量保证金到期提示
+  group: revenue
+  objects:
+  - obj: OBJ-85
+    name: 往来款项
+    aggregates:
+    - AGG-49
+    - AGG-52
+    ops: R
 - id: PRC-63
   name: 商业汇票兑付与逾期
   group: revenue
@@ -1464,6 +1546,21 @@ processes:
     - AGG-79
     - AGG-80
     ops: U
+- id: PRC-90
+  name: 出具经营月报并复盘
+  group: finance
+  objects:
+  - obj: AGG-100
+    name: 期间余额快照
+    aggregates:
+    - AGG-100
+    ops: R
+  - obj: OBJ-100
+    name: 经营计划
+    aggregates:
+    - AGG-79
+    - AGG-80
+    ops: R
 - id: PRC-91
   name: 认定工时有效性
   group: revenue
@@ -1768,6 +1865,30 @@ processes:
     aggregates:
     - AGG-86
     ops: CUD
+- id: PRC-106
+  name: 出具三大报表
+  group: finance
+  objects:
+  - obj: AGG-100
+    name: 期间余额快照
+    aggregates:
+    - AGG-100
+    ops: R
+  - obj: AGG-101
+    name: 外部法定账对账
+    aggregates:
+    - AGG-101
+    ops: R
+  - obj: OBJ-97
+    name: 会计期间
+    aggregates:
+    - AGG-81
+    ops: R
+  - obj: OBJ-99
+    name: 报表行定义
+    aggregates:
+    - AGG-86
+    ops: R
 - id: PRC-107
   name: 知识条目的起草、评审、发布与修订废止
   group: people
@@ -2144,6 +2265,12 @@ processes:
   name: 应付结清后报销置已付
   group: finance
   objects:
+  - obj: OBJ-85
+    name: 往来款项
+    aggregates:
+    - AGG-49
+    - AGG-52
+    ops: R
   - obj: OBJ-88
     name: 费用报销
     aggregates:
@@ -2361,6 +2488,34 @@ processes:
     aggregates:
     - AGG-88
     ops: R
+- id: PRC-154
+  name: 收入三口径对照
+  group: revenue
+  objects:
+  - obj: AGG-44
+    name: 开票与收入额度
+    aggregates:
+    - AGG-44
+    ops: R
+  - obj: OBJ-05
+    name: 协议
+    aggregates:
+    - AGG-07
+    - AGG-13
+    - AGG-55
+    - AGG-67
+    ops: R
+  - obj: OBJ-33
+    name: 完工估算
+    aggregates:
+    - AGG-23
+    ops: R
+  - obj: OBJ-83
+    name: 增值税发票
+    aggregates:
+    - AGG-46
+    - AGG-89
+    ops: R
 - id: PRC-155
   name: IT 资产调拨
   group: people
@@ -2444,6 +2599,12 @@ processes:
   name: 应付结清后登记利润分配支付
   group: finance
   objects:
+  - obj: OBJ-85
+    name: 往来款项
+    aggregates:
+    - AGG-49
+    - AGG-52
+    ops: R
   - obj: OBJ-112
     name: 利润分配
     aggregates:
@@ -2500,6 +2661,11 @@ processes:
   name: 处置勾稽差异案
   group: finance
   objects:
+  - obj: AGG-78
+    name: 口径版本
+    aggregates:
+    - AGG-78
+    ops: R
   - obj: AGG-126
     name: 勾稽差异案
     aggregates:
@@ -2668,3 +2834,27 @@ processes:
     - AGG-80
     ops: UD
     proposed_only: UD
+- id: PRC-182
+  name: 知识条目使用情况
+  group: people
+  objects:
+  - obj: OBJ-21
+    name: 报价
+    aggregates:
+    - AGG-12
+    ops: R
+  - obj: OBJ-24
+    name: 服务产品
+    aggregates:
+    - AGG-03
+    ops: R
+  - obj: OBJ-35
+    name: 交付物
+    aggregates:
+    - AGG-27
+    ops: R
+  - obj: OBJ-110
+    name: 知识条目
+    aggregates:
+    - AGG-107
+    ops: R

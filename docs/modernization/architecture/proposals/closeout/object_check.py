@@ -218,6 +218,8 @@ def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None, catalog_cmds=
             if u.get("aggregate") and (u.get("states") or u.get("transitions")):
                 agg_states[u["aggregate"]].append((uid, list(u.get("states") or []), list(u.get("transitions") or [])))
             steps = cc.unit_steps(u)
+            if u.get("reads"):   # 读模型等单元级 reads：只读
+                steps = steps + [{"reads": [x for x in u["reads"] if isinstance(x, str)], "actor": "x", "where": "in_system"}]
             seen_uc, uc_aggs = set(), set()
             for c in (u.get("commands") or []) + (u.get("transitions") or []):
                 cmd = c.get("command") if isinstance(c, dict) else c
