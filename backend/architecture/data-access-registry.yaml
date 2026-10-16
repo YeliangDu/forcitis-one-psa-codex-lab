@@ -287,6 +287,7 @@ tables:
     lineage: {source: NEW}
     readers: [platform.identity]
   platform_identity.emergency_admins:
+    # PERMANENT by user decision: ADR-0043 U-12 item (a) accepts permanent retention of the emergency account name (PI) with a registered reason; source intent 2026-10-15-225255. The reason text moves into a registry field once DG-0 adds it.
     role: AGGREGATE_ROOT
     aggregate: EmergencyAdmin
     mutability: CONDITIONAL_UPDATE
