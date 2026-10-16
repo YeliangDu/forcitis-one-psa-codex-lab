@@ -108,7 +108,7 @@ def git_paths(old, new, cwd=None):
     a path with a line separator other than the newline counts as code through the sentinel."""
     out = subprocess.run(["git", "-c", "core.quotepath=off", "diff", "--no-renames", "--name-only", "-z", old, new], check=True, capture_output=True, cwd=cwd).stdout
     paths = [x.decode("utf-8", "replace") for x in out.split(b"\0") if x]
-    return [path if len(path.splitlines()) == 1 else "backend/" + path.replace("\n", " ") for path in paths]
+    return [path if path.splitlines() == [path] else "backend/" + " ".join(path.split()) for path in paths]
 
 
 def pr_run_proves(runs, pull, head, repository, jobs_of):
@@ -139,8 +139,13 @@ def schedule_run_proves(runs, sha, jobs_of):
 
 def prove_code(sha, api):
     """[] when the heavy steps are proven for the code of sha, else the reasons. api: pull_of(x), head_ok(pull, x), paths(old, new), first_parent(x),
-    pr_run(pull), schedule(x)."""
+    pr_run(pull), other_base(pull), schedule(x). A schedule run of the very tree of x also proves it, so it is tried before every refusal."""
     x = sha
+
+    def refuse(reason):
+        scheduled = api.schedule(x)
+        return [] if not scheduled else [reason]
+
     for _ in range(MAX_WALK):
         pull = api.pull_of(x)
         if pull is None:
@@ -148,16 +153,19 @@ def prove_code(sha, api):
             return [] if not problems else [f"{x[:12]}: no merging pull request, and {problems[0]}"]
         head = pull["head"]["sha"]
         if not api.head_ok(pull, x):
-            return [f"{x[:12]}: pull request #{pull['number']} head {head[:12]} is not available to compare with"]
+            return refuse(f"{x[:12]}: pull request #{pull['number']} head {head[:12]} is not available to compare with")
+        others = api.other_base(pull)
+        if others:
+            return [f"{x[:12]}: the head of pull request #{pull['number']} also heads pull request(s) {others} against another base; refusing (a run could belong to them)"]
         if any_relevant(api.paths(head, x)):
-            return [f"{x[:12]}: differs from the head of pull request #{pull['number']} in code"]
+            return refuse(f"{x[:12]}: differs from the head of pull request #{pull['number']} in code")
         parent = api.first_parent(x)
         added_code = parent is None or any_relevant(api.paths(parent, x))
         run_problems_ = api.pr_run(pull)
         if not run_problems_:
             return []
         if added_code:
-            return [f"{x[:12]}: pull request #{pull['number']} changed code and {run_problems_[0]}"]
+            return refuse(f"{x[:12]}: pull request #{pull['number']} changed code and {run_problems_[0]}")
         x = parent
     return [f"no proven commit within {MAX_WALK} first parents back from {sha[:12]}"]
 
@@ -198,11 +206,19 @@ class GitHubApi:
         if not token:
             return False
         header = "AUTHORIZATION: basic " + base64.b64encode(f"x-access-token:{token}".encode()).decode()
-        return subprocess.run(["git", "-c", f"http.extraheader={header}", "fetch", "-q", "origin", f"refs/pull/{pull['number']}/head"], capture_output=True,
-                              timeout=120, env=dict(os.environ, GIT_TERMINAL_PROMPT="0")).returncode == 0
+        # the header travels in the environment, not in argv where ps could show it
+        env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GIT_CONFIG_COUNT="1", GIT_CONFIG_KEY_0="http.extraheader", GIT_CONFIG_VALUE_0=header)
+        try:
+            return subprocess.run(["git", "fetch", "-q", "origin", f"refs/pull/{pull['number']}/head"], capture_output=True, timeout=120, env=env).returncode == 0
+        except subprocess.TimeoutExpired:
+            return False
 
     def paths(self, old, new):
         return git_paths(old, new)
+
+    def other_base(self, pull):
+        pulls = [p for page in gh_json(f"repos/{self.repository}/commits/{pull['head']['sha']}/pulls?per_page=100") for p in page]
+        return sorted(p["number"] for p in pulls if (p.get("base") or {}).get("ref") != "main" and p.get("number") != pull["number"])
 
     def first_parent(self, x):
         out = subprocess.run(["git", "rev-parse", "--verify", "-q", f"{x}^1"], capture_output=True, text=True)
@@ -273,7 +289,6 @@ def self_test():
         return {"name": name, "conclusion": "success", "steps": [{"name": n, "conclusion": c} for n, c in steps]}
     ran = [(REQUIRED_JOBS[0], [("surefire and failsafe, side by side", "success")]), (REQUIRED_JOBS[1], [("Run pnpm verify", "success")]), (REQUIRED_JOBS[2], [])]
     full = [job(n, st) for n, st in ran]
-    skipped = [job(n, [(step, "skipped")] if n in dict(HEAVY_STEPS) else []) for n, step in [(REQUIRED_JOBS[0], HEAVY_STEPS[0][1]), (REQUIRED_JOBS[1], HEAVY_STEPS[1][1]), (REQUIRED_JOBS[2], "")]]
     skipped = [job(REQUIRED_JOBS[0], [(HEAVY_STEPS[0][1], "skipped")]), job(REQUIRED_JOBS[1], [(HEAVY_STEPS[1][1], "skipped")]), job(REQUIRED_JOBS[2])]
     light = [dict(job(n, st), name=n + " (light)") for n, st in ran[:2]] + [job(REQUIRED_JOBS[2])]
     assert heavy_run_problems(full) == []
@@ -326,6 +341,9 @@ def self_test():
             return self.pulls.get(x, (None, None))[1]
         def pr_run(self, pull):
             return [] if pull["number"] in self.proven else ["no run"]
+        other = ()
+        def other_base(self, pull):
+            return list(self.other)
         def schedule(self, x):
             return [] if x in self.scheduled else ["no schedule run"]
     def pr(n, head):
@@ -343,9 +361,14 @@ def self_test():
     assert prove_code(m3, Fake(chain, {(h3, m3): [], (m2, m3): docs, (h2, m2): code, (m1, m2): code}, set())), "a docs pull request (heavy steps skipped) over an unproven code merge fails"
     # ... but on top of a proven one it passes by walking back
     assert prove_code(m3, Fake(chain, {(h3, m3): [], (m2, m3): docs, (h2, m2): [], (m1, m2): code}, {2})) == [], "a docs pull request over a proven code merge passes"
+    other = Fake(chain, {(h1, m1): [], (None, m1): code}, {1})
+    other.other = (99,)
+    assert prove_code(m1, other), "a head that also heads a pull request against another base is refused"
+    assert prove_code(m1, Fake(chain, {(h1, m1): code, (None, m1): code}, {1}, {m1})) == [], "a schedule run of the commit itself rescues a pull request that cannot be matched"
     assert prove_code("4" * 40, Fake({}, {}, set())), "a commit without a pull request and without a schedule run is refused"
     assert prove_code("4" * 40, Fake({}, {}, set(), {"4" * 40})) == [], "a schedule run proves a commit without a pull request"
-    names_in_ci = open(CI_WORKFLOW, encoding="utf-8").read()
+    with open(CI_WORKFLOW, encoding="utf-8") as handle:
+        names_in_ci = handle.read()
     assert HEAVY_STEPS[0][1] in names_in_ci and "run: pnpm verify" in names_in_ci, "the heavy step names drifted from ci.yml"
     with open(CI_WORKFLOW, encoding="utf-8") as handle:
         names = declared_job_names(handle.read())
