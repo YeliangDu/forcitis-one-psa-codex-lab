@@ -544,3 +544,26 @@ event_policies:
       cross_bc:
         - {mode: event, direction: in, bc: B-13, name: Separated}
     notes: B-15 → B-13 边已有。
+
+  - id: PRC-145
+    name: 员工法人三口径不一致预警
+    trigger:
+      type: event
+      events:
+        - {event: 劳动合同已签订, aggregate: AGG-67}
+        - {event: 〔缺〕法人归属已变更, aggregate: AGG-117}
+        - {event: 薪酬档案已变更, aggregate: AGG-93}
+    stages: [VS-07.3]
+    owner_bc: B-15
+    basis: S-20（one-architecture）；用户 Q-09（intent 2026-10-16-134134）
+    roles:
+      - {id: SH-E6, as: informed}       # 人力
+    step:
+      actor: system
+      where: automatic
+      desc: 比对劳动合同用人单位（AGG-67）、数据范围法人（AGG-117）、个税扣缴义务人（AGG-93），按同一业务日期取当时有效版本；不一致只预警人力，不拒绝
+      cross_bc:
+        - {mode: event, direction: in, bc: B-13, name: 劳动合同已签订}
+        - {mode: event, direction: in, bc: B-13, name: 〔缺〕法人归属已变更}
+        - {mode: api, direction: out, bc: B-13, name: 读取劳动合同用人单位与数据范围法人}
+    notes: B-15 → B-13（api、事件）已有边；扣缴义务人在本 BC。
