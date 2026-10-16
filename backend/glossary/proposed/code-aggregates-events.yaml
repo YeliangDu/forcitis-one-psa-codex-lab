@@ -56,7 +56,7 @@ terms:
   acl_class: 过渡期
   definition: 有人试图人工登记只能由同步或导入写入的来源对照而被拒绝的一次记录；不存储任何对照，事件本身就是记录，使审计能看到是谁试过
   standard_ref:
-  - events/integration.yaml (SourceReferenceRegistrationRefused)
+  - events/integration.yaml (SourceReferenceRefused)
   confidence: low
   aliases: []
   forbidden: []
@@ -77,10 +77,10 @@ terms:
   forbidden: []
   status: proposed
   note: 形成成本事实的是后续过账事件，本事件是否使用待阶段二定
-- id: timesheet_cancelled
-  zh: 工时单审批已撤销
-  en: TimesheetCancelled
-  snake: timesheet_cancelled
+- id: timesheet_approval_withdrawn
+  zh: 工时单已撤回审批
+  en: TimesheetApprovalWithdrawn
+  snake: timesheet_approval_withdrawn
   kind: domain_event
   bc: cost.timesheet
   scope: domain
@@ -408,10 +408,10 @@ terms:
   forbidden: []
   status: proposed
   note: 聚合 ApprovalRequest
-- id: approval_task_overdue
+- id: approval_task_became_overdue
   zh: 任务已超时
-  en: ApprovalTaskOverdue
-  snake: approval_task_overdue
+  en: ApprovalTaskBecameOverdue
+  snake: approval_task_became_overdue
   kind: domain_event
   bc: platform.approval
   scope: domain
@@ -422,7 +422,6 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 类名 Overdue 是形容词而非过去式，是否改为 ApprovalTaskTimedOut 待确认
 - id: document_submitted_for_approval
   zh: 单据已请求审批
   en: DocumentSubmittedForApproval
@@ -498,21 +497,6 @@ terms:
   forbidden: []
   status: proposed
   note: 聚合 ApprovalRequest
-- id: task_resulted
-  zh: 任务已出结果
-  en: TaskResulted
-  snake: task_resulted
-  kind: domain_event
-  bc: platform.approval
-  scope: domain
-  definition: 任务被办理（通过、驳回、退回），或系统自动通过；加签人的驳回只记意见，不结束本轮
-  standard_ref:
-  - events/approval.yaml (RULE-273, RULE-291, RULE-302)
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 类名与已确认用语冲突：第三轮 R3-AP-60 已定为「任务已办理 / TaskHandled」，该词条已在词表；代码类名应改为 TaskHandled，改名后本条作废
 - id: task_transferred
   zh: 任务已转交
   en: TaskTransferred
@@ -798,10 +782,10 @@ terms:
   forbidden: []
   status: proposed
   note: 聚合 SourceReference
-- id: source_reference_registration_refused
+- id: source_reference_refused
   zh: 来源对照登记已被拒绝
-  en: SourceReferenceRegistrationRefused
-  snake: source_reference_registration_refused
+  en: SourceReferenceRefused
+  snake: source_reference_refused
   kind: domain_event
   bc: platform.integration
   scope: domain

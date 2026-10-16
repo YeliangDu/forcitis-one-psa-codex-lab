@@ -5,7 +5,7 @@ import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.events.TimesheetApproved;
-import com.forcitis.one.cost.timesheet.events.TimesheetCancelled;
+import com.forcitis.one.cost.timesheet.events.TimesheetApprovalWithdrawn;
 import com.forcitis.one.cost.timesheet.events.TimesheetRejected;
 import com.forcitis.one.cost.timesheet.events.TimesheetReturned;
 import com.forcitis.one.cost.timesheet.events.TimesheetSubmitted;
@@ -168,7 +168,7 @@ public final class Timesheet extends AggregateRoot {
     public void cancelSubmission(Reason reason) {
         status = MACHINE.require(status, TimesheetStatus.DRAFT, TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL);
         Snapshot at = snapshot();
-        record("cost.timesheet.TimesheetCancelled", envelope -> new TimesheetCancelled(envelope, at.document(), at.employee(),
+        record("cost.timesheet.TimesheetApprovalWithdrawn", envelope -> new TimesheetApprovalWithdrawn(envelope, at.document(), at.employee(),
                 at.submittedHours(), new RoundNumber(at.round()), reason));
     }
 

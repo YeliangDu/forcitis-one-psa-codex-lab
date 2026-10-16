@@ -31,7 +31,7 @@ B2 登记：代码里的聚合根与领域事件各自要有词条（G40、G41�
 | `approval_request` | 审批请求 | ApprovalRequest | 领域 · platform.approval | 对同一种审批流程中的同一张单据所发起的审批，一张单据在一种流程下只有一个；每一轮审批有自己的流程实例，本轮的审批任务归它管理，只能通过它修改 |  | 来源：聚合源码说明；与词表「审批实例」「审批轮次」的边界待确认 |
 | `source_reference_refusal` | 来源对照被拒登记 | SourceReferenceRefusal | ACL（过渡期） · platform.integration | 有人试图人工登记只能由同步或导入写入的来源对照而被拒绝的一次记录；不存储任何对照，事件本身就是记录，使审计能看到是谁试过 |  | 中文名待确认；聚合承载的只是一次被拒事实 |
 | `timesheet_approved` | 工时单已批准 | TimesheetApproved | 领域 · cost.timesheet | 工时单审批通过，工时成立；过程里程碑，以工作日期记业务日 |  | 形成成本事实的是后续过账事件，本事件是否使用待阶段二定 |
-| `timesheet_cancelled` | 工时单审批已撤销 | TimesheetCancelled | 领域 · cost.timesheet | 填报人撤销审批，工时单回到草稿；不记为驳回；以工作日期记业务日 |  | 类名 Cancelled 与「撤销审批」略不符，类名是否改为 ApprovalWithdrawn 之类待确认 |
+| `timesheet_approval_withdrawn` | 工时单已撤回审批 | TimesheetApprovalWithdrawn | 领域 · cost.timesheet | 填报人撤销审批，工时单回到草稿；不记为驳回；以工作日期记业务日 |  | 类名 Cancelled 与「撤销审批」略不符，类名是否改为 ApprovalWithdrawn 之类待确认 |
 | `timesheet_rejected` | 工时单已驳回 | TimesheetRejected | 领域 · cost.timesheet | 工时单被驳回，工时不成立；以工作日期记业务日 |  | 来源：事件目录 |
 | `timesheet_returned` | 工时单已退回 | TimesheetReturned | 领域 · cost.timesheet | 审批人退回或填报人撤回，工时单回到可修改状态，下一轮重新提交；以工作日期记业务日 |  | 来源：事件目录 |
 | `timesheet_submitted` | 工时单已提交审批 | TimesheetSubmitted | 领域 · cost.timesheet | 填报人把工时单提交审批，工时单进入新一轮审批；以工作日期记业务日，提交日另记；只陈述事实，不过账 |  | 来源：事件目录 |
@@ -53,13 +53,12 @@ B2 登记：代码里的聚合根与领域事件各自要有词条（G40、G41�
 | `sync_run_succeeded` | 同步记录已成功 | SyncRunSucceeded | 领域 · organization.workforce | 一次组织同步运行成功 |  | 来源：事件目录；该事件按设计不进审计 |
 | `approval_round_started` | 审批轮次已开始 | ApprovalRoundStarted | 领域 · platform.approval | 审批开始新一轮：首次发起，或退回、驳回、撤销之后重新发起；过程里程碑 |  | 聚合 ApprovalRequest；词表已有实体「审批轮次」 |
 | `approval_task_escalated` | 任务已升级 | ApprovalTaskEscalated | 领域 · platform.approval | 任务超时仍未处理，已升级给审批人的上级；取不到上级则交流程管理员 |  | 聚合 ApprovalRequest |
-| `approval_task_overdue` | 任务已超时 | ApprovalTaskOverdue | 领域 · platform.approval | 任务超过审批时限仍未处理；只提醒，不自动通过，计入时效统计 |  | 类名 Overdue 是形容词而非过去式，是否改为 ApprovalTaskTimedOut 待确认 |
+| `approval_task_became_overdue` | 任务已超时 | ApprovalTaskBecameOverdue | 领域 · platform.approval | 任务超过审批时限仍未处理；只提醒，不自动通过，计入时效统计 |  |  |
 | `document_submitted_for_approval` | 单据已请求审批 | DocumentSubmittedForApproval | 领域 · platform.approval | 单据的所有者请审批模块发起一轮审批，并带齐发起所需的全部信息；同一单据同一轮重复收到只发起一次 |  | 类型归审批模块，由申请审批的模块的聚合（现为工时单）发布；中文名与「工时单已提交审批」的区别见事件目录 |
 | `task_claimed` | 任务已认领 | TaskClaimed | 领域 · platform.approval | 任务被候选人之一认领，其他候选人的待办随之改为已处理 |  | 聚合 ApprovalRequest |
 | `task_closed` | 任务已关闭 | TaskClosed | 领域 · platform.approval | 本轮在任务办结前结束（驳回、退回、撤回、撤销），任务关闭，未办理的候选人失去办理权 |  | 聚合 ApprovalRequest |
 | `task_reassigned` | 任务已改派 | TaskReassigned | 领域 · platform.approval | 流程管理员把任务改派给另一个人，填写原因并留痕 |  | 聚合 ApprovalRequest |
 | `task_released` | 任务已退回候选组 | TaskReleased | 领域 · platform.approval | 任务的处理人把任务退回候选组，候选人可以再次认领 |  | 聚合 ApprovalRequest |
-| `task_resulted` | 任务已出结果 | TaskResulted | 领域 · platform.approval | 任务被办理（通过、驳回、退回），或系统自动通过；加签人的驳回只记意见，不结束本轮 |  | 类名与已确认用语冲突：第三轮 R3-AP-60 已定为「任务已办理 / TaskHandled」，该词条已在词表；代码类名应改为 TaskHandled，改名后本条作废 |
 | `task_transferred` | 任务已转交 | TaskTransferred | 领域 · platform.approval | 任务的当前处理人把任务转交给他人 |  | 聚合 ApprovalRequest |
 | `account_enabled` | 用户账号已启用 | AccountEnabled | 领域 · platform.identity | 一个用户账号被启用，可以登录使用 |  | 聚合 UserAccount |
 | `account_opened` | 用户账号已开立 | AccountOpened | 领域 · platform.identity | 为一个人开立用户账号，包含开立时授予的角色 |  | 聚合 UserAccount |
@@ -79,7 +78,7 @@ B2 登记：代码里的聚合根与领域事件各自要有词条（G40、G41�
 | `role_revised` | 角色已修订 | RoleRevised | 领域 · platform.identity | 角色的名称、数据范围或权限被修改 |  | 聚合 Role |
 | `source_reference_confirmed` | 来源对照已确认 | SourceReferenceConfirmed | 领域 · platform.integration | 另一个人确认了登记的来源对照，从生效日起用于出站 |  | 聚合 SourceReference |
 | `source_reference_registered` | 来源对照已登记 | SourceReferenceRegistered | 领域 · platform.integration | 有人登记了一条来源对照（核算组织编码），等待他人确认 |  | 聚合 SourceReference |
-| `source_reference_registration_refused` | 来源对照登记已被拒绝 | SourceReferenceRegistrationRefused | 领域 · platform.integration | 有人试图人工登记只能由同步或导入写入的来源对照，被拒绝，未存储任何对照 |  | 聚合 SourceReferenceRefusal；类名 RegistrationRefused 与聚合名有重复 |
+| `source_reference_refused` | 来源对照登记已被拒绝 | SourceReferenceRefused | 领域 · platform.integration | 有人试图人工登记只能由同步或导入写入的来源对照，被拒绝，未存储任何对照 |  | 聚合 SourceReferenceRefusal；类名 RegistrationRefused 与聚合名有重复 |
 | `source_reference_rejected` | 来源对照已拒绝 | SourceReferenceRejected | 领域 · platform.integration | 另一个人拒绝了登记的来源对照；已生效的对照不变 |  | 聚合 SourceReference |
 | `source_reference_superseded` | 来源对照已被取代 | SourceReferenceSuperseded | 领域 · platform.integration | 生效中的来源对照，在后继对照的生效日结束 |  | 聚合 SourceReference |
 | `numbering_rule_confirmation_given` | 编号规则已获一次确认 | NumberingRuleConfirmationGiven | 领域 · platform.numbering | 编号规则的模板版本得到业务或财务其中一方的一次确认 |  | 类名 ConfirmationGiven 不是「聚合+过去式动词」形式，是否改为 NumberingRuleConfirmationRecorded 待确认 |

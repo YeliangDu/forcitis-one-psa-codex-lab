@@ -10,7 +10,7 @@ import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.events.TimesheetApproved;
-import com.forcitis.one.cost.timesheet.events.TimesheetCancelled;
+import com.forcitis.one.cost.timesheet.events.TimesheetApprovalWithdrawn;
 import com.forcitis.one.cost.timesheet.events.TimesheetRejected;
 import com.forcitis.one.cost.timesheet.events.TimesheetReturned;
 import com.forcitis.one.cost.timesheet.events.TimesheetSubmitted;
@@ -126,7 +126,7 @@ class TimesheetStateMachineTest {
         timesheet.cancelSubmission(new Reason("wrong hours"));
         assertThat(timesheet.status()).isEqualTo(TimesheetStatus.DRAFT);
         assertThat(timesheet.status().isEditable()).isTrue();
-        assertThat(timesheet.drainEvents(ENVELOPES)).extracting(e -> e.envelope().eventType()).containsExactly("cost.timesheet.TimesheetCancelled");
+        assertThat(timesheet.drainEvents(ENVELOPES)).extracting(e -> e.envelope().eventType()).containsExactly("cost.timesheet.TimesheetApprovalWithdrawn");
     }
 
     @Test
@@ -202,7 +202,7 @@ class TimesheetStateMachineTest {
 
         Timesheet cancelled = in(TimesheetStatus.SUBMITTED);
         cancelled.cancelSubmission(new Reason("duplicate"));
-        assertThat(((TimesheetCancelled) cancelled.drainEvents(ENVELOPES).getFirst()).reason()).isEqualTo(new Reason("duplicate"));
+        assertThat(((TimesheetApprovalWithdrawn) cancelled.drainEvents(ENVELOPES).getFirst()).reason()).isEqualTo(new Reason("duplicate"));
     }
 
     @Test

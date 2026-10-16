@@ -11,7 +11,7 @@ import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
 import com.forcitis.one.cost.timesheet.events.TimesheetApproved;
-import com.forcitis.one.cost.timesheet.events.TimesheetCancelled;
+import com.forcitis.one.cost.timesheet.events.TimesheetApprovalWithdrawn;
 import com.forcitis.one.cost.timesheet.events.TimesheetRejected;
 import com.forcitis.one.cost.timesheet.events.TimesheetReturned;
 import com.forcitis.one.cost.timesheet.events.TimesheetSubmitted;
@@ -361,7 +361,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         scenario.stimulate(() -> {
             signInAs(employee);
             cancelTimesheet.execute(id, "duplicate", java.util.OptionalLong.empty());
-        }).andWaitForEventOfType(TimesheetCancelled.class).matching(e -> e.document().equals(document))
+        }).andWaitForEventOfType(TimesheetApprovalWithdrawn.class).matching(e -> e.document().equals(document))
                 .toArriveAndVerify(e -> assertThat(e.reason()).isEqualTo(new Reason("duplicate")));
 
         assertThat(view(id).status()).isEqualTo(TimesheetStatus.DRAFT);

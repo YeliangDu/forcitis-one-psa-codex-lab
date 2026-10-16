@@ -31,13 +31,13 @@ import com.forcitis.one.platform.approval.api.WithdrawCheck;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import com.forcitis.one.platform.approval.events.ApprovalRoundStarted;
 import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
-import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
+import com.forcitis.one.platform.approval.events.ApprovalTaskBecameOverdue;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
 import com.forcitis.one.platform.approval.events.TaskClaimed;
 import com.forcitis.one.platform.approval.events.TaskClosed;
 import com.forcitis.one.platform.approval.events.TaskReassigned;
 import com.forcitis.one.platform.approval.events.TaskReleased;
-import com.forcitis.one.platform.approval.events.TaskResulted;
+import com.forcitis.one.platform.approval.events.TaskHandled;
 import com.forcitis.one.platform.approval.events.TaskTransferred;
 import java.time.Instant;
 import com.forcitis.one.platform.approval.api.TaskRecordAction;
@@ -218,7 +218,7 @@ public final class ApprovalRequest extends AggregateRoot {
         Instant due = task.deadline().orElseThrow().dueAt();
         ApprovalInstanceId instance = task.instanceId();
         NodeKey node = task.nodeKey();
-        emit("ApprovalTaskOverdue", now, envelope -> new ApprovalTaskOverdue(envelope, taskId, instance, document, node, due, reminded));
+        emit("ApprovalTaskBecameOverdue", now, envelope -> new ApprovalTaskBecameOverdue(envelope, taskId, instance, document, node, due, reminded));
     }
 
     public void escalateTask(ApprovalTaskId taskId, List<UserId> escalatedTo, boolean toProcessAdministrator, Moment now) {
@@ -318,7 +318,7 @@ public final class ApprovalRequest extends AggregateRoot {
 
     private void emitResult(ApprovalTaskId taskId, ApprovalInstanceId instance, NodeKey node, UserId by, TaskOutcome outcome,
             TaskEffect effect, Reason reason, Moment now) {
-        emit("TaskResulted", now, envelope -> new TaskResulted(envelope, taskId, instance, processKey, document, node, by, outcome,
+        emit("TaskHandled", now, envelope -> new TaskHandled(envelope, taskId, instance, processKey, document, node, by, outcome,
                 effect, reason));
     }
 

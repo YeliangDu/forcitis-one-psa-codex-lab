@@ -26,7 +26,7 @@ import com.forcitis.one.platform.approval.application.DecisionOutcome;
 import com.forcitis.one.platform.approval.application.EnforceDeadlines;
 import com.forcitis.one.platform.approval.application.TaskDecision;
 import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
-import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
+import com.forcitis.one.platform.approval.events.ApprovalTaskBecameOverdue;
 import com.forcitis.one.platform.approval.events.TaskClosed;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
@@ -246,7 +246,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
                 .isEqualTo("PENDING");
         assertThat(requestStatus(s.key())).isEqualTo("RUNNING");
         assertThat(approvals.isFinished(s.instance())).isFalse();
-        List<ApprovalTaskOverdue> overdue = events.overdue().stream().filter(e -> e.taskId().equals(s.task())).toList();
+        List<ApprovalTaskBecameOverdue> overdue = events.overdue().stream().filter(e -> e.taskId().equals(s.task())).toList();
         assertThat(overdue).hasSize(1);
         assertThat(overdue.getFirst().holders()).containsExactly(TestAccounts.account(s.manager()));
         assertThat(overdue.getFirst().dueAt()).isEqualTo(dueOf(s));
