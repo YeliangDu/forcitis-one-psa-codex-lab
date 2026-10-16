@@ -1,0 +1,13 @@
+# 权责对照表（结构见 RESPONSIBILITY_MATRIX_SPEC.md A 节）。初稿由 raci_build.py --write 生成；
+# A 为 {resolve: type, basis: ...} 的条目是手登的类型级例外（CONVENTIONS 第 5 节），重新生成时保留。
+entries:
+  - object: AGG-44
+    command: 占用收入额度
+    raci:
+      A: {resolve: type, role: SH-E6, basis: "ADR-0047 U-2 (a)：收入确认由财务复核"}
+      R: []
+      C: []
+      I: []
+    sensitive: false
+    sources: ["revenue:PRC-53#2(审批)"]
+roles: {}

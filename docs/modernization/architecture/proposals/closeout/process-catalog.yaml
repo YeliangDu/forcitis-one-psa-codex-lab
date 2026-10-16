@@ -68,7 +68,7 @@ processes:
     human_orchestration: true
     bpmn: ~
   - id: PRC-08
-    name: "参加投标，登记结果并处理保证金"
+    name: "参加投标，缴纳保证金并登记结果"
     type: business
     stages: [VS-01.2]
     owner_bc: "B-03"
@@ -600,7 +600,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-66
-    name: "判定履约完成，确认最终价款并结算协议"
+    name: "发起结算，确认最终价款并结算协议"
     type: business
     stages: [VS-04.5]
     owner_bc: "B-08"
@@ -782,7 +782,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-86
-    name: "发放与归还员工借款"
+    name: "发放、归还与催还员工借款"
     type: business
     stages: [VS-08.1]
     owner_bc: "B-09"
@@ -1357,7 +1357,7 @@ processes:
   - id: PRC-149
     name: "冲销收入确认"
     type: business
-    stages: []
+    stages: [VS-04.2, VS-04.5]
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -1366,7 +1366,7 @@ processes:
   - id: PRC-150
     name: "发票红冲后冲减应收"
     type: event_policy
-    stages: []
+    stages: [VS-04.4]
     owner_bc: "B-09"
     group: revenue
     status: draft
@@ -1375,7 +1375,7 @@ processes:
   - id: PRC-151
     name: "填报经营产值"
     type: business
-    stages: []
+    stages: [VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
     owner_bc: "B-04"
     group: revenue
     status: draft
@@ -1384,7 +1384,7 @@ processes:
   - id: PRC-152
     name: "登记付款条件达成"
     type: business
-    stages: []
+    stages: [VS-04.3, VS-04.4]
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -1393,7 +1393,7 @@ processes:
   - id: PRC-153
     name: "退还投标保证金"
     type: business
-    stages: [VS-01.2]
+    stages: [VS-01.2, VS-04.1]
     owner_bc: "B-09"
     group: revenue
     status: draft
@@ -1402,7 +1402,7 @@ processes:
   - id: PRC-154
     name: "收入三口径对照"
     type: read_model
-    stages: []
+    stages: [VS-04.2, VS-04.3]
     owner_bc: "reporting"
     group: revenue
     status: draft

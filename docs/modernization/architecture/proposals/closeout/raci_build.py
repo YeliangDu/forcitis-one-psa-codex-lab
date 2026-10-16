@@ -3,7 +3,8 @@
 Usage: python3 -I raci_build.py [--local] [--write] [--all]
   default  read processes.<group>.yaml from origin/claude/one-arch-<group>-closeout, print a report (first 12 findings per item; --all lists all)
   --local  read closeout/<group>/ in this working tree
-  --write  write RESPONSIBILITY_MATRIX.yaml next to this script (draft; never overwrites without this flag)
+  --write  write RESPONSIBILITY_MATRIX.yaml next to this script (draft; never overwrites without this flag);
+           entries already there with A {resolve: type, basis: ...} are hand-registered and kept
   --self-test
 
 Rules: one entry per (aggregate, command) of steps with aggregate and command (also `inner`), platform steps excluded.
@@ -44,7 +45,7 @@ def collect(docs):
                     if r.get("org_needs"):
                         if r["org_needs"] not in roles[r["id"]]["org_needs"]:
                             roles[r["id"]]["org_needs"].append(r["org_needs"])
-            steps = cc.unit_steps(u)
+            steps = cc.unit_steps(u) + cc.transition_approvals(u)
             for i, s in enumerate(steps):
                 if s.get("read") or s.get("actor") == "platform" or s.get("platform_task"):
                     pass
@@ -91,12 +92,30 @@ def collect(docs):
     return ent, roles, st
 
 
-def build(ent, roles):
+def load_type_entries(path):
+    """Hand-registered type-level A (CONVENTIONS 第 5 节「类型级例外」); kept across --write."""
+    if not path.exists():
+        return {}
+    doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    keep = {}
+    for e in doc.get("entries") or []:
+        a = (e.get("raci") or {}).get("A") or {}
+        if a.get("resolve") == "type" and a.get("basis"):
+            keep[(e["object"], cc.base_cmd(e["command"]))] = a
+    return keep
+
+
+def build(ent, roles, typed=None):
+    typed = typed or {}
     entries = []
     issues = {"缺 A（无审批节点）": [], "A 为固定角色（应改 cost_object_owner 或类型级登记）": [], "多个不同 A": []}
     for (agg, cmd), e in sorted(ent.items(), key=lambda kv: (int(re.sub(r"\D", "", kv[0][0]) or 0), kv[0][1])):
         As = e["A"]
-        if not As:
+        if (agg, cmd) in typed:
+            a = dict(typed[(agg, cmd)])
+            if len(As) > 1:
+                issues["多个不同 A"].append((agg, cmd, As))
+        elif not As:
             a = dict(TODO_A)
             issues["缺 A（无审批节点）"].append((agg, cmd))
         else:
@@ -139,8 +158,8 @@ def report(doc, issues, st, show_all):
     lim = None if show_all else 12
     out = ["# 权责对照表初稿（raci_build，只报告）", ""]
     n = len(ents)
-    byA = collections.Counter("instance" if e["raci"]["A"].get("resolve") == "instance" else ("固定角色" if e["raci"]["A"].get("role") else "缺 A") for e in ents)
-    out.append(f"- 对象×命令 {n} 条；A：责任人实例 {byA['instance']}、固定角色待改 {byA['固定角色']}、缺 A {byA['缺 A']}；R 为空 {sum(1 for e in ents if not e['raci']['R'])}（系统自动或平台步骤）；I 非空 {sum(1 for e in ents if e['raci']['I'])}")
+    byA = collections.Counter(e["raci"]["A"]["resolve"] if e["raci"]["A"].get("resolve") in ("instance", "type") else ("固定角色" if e["raci"]["A"].get("role") else "缺 A") for e in ents)
+    out.append(f"- 对象×命令 {n} 条；A：责任人实例 {byA['instance']}、类型级 {byA['type']}、固定角色待改 {byA['固定角色']}、缺 A {byA['缺 A']}；R 为空 {sum(1 for e in ents if not e['raci']['R'])}（系统自动或平台步骤）；I 非空 {sum(1 for e in ents if e['raci']['I'])}")
     out.append(f"- 审批节点：无法定位对象×命令 {st['approval_no_target']}，外部（客户）审批不入 A {st['approval_external']}")
     nr = len(doc["roles"])
     withn = sum(1 for r in doc["roles"].values() if r["org_needs"])
@@ -181,6 +200,12 @@ def self_test():
         len(issues["缺 A（无审批节点）"]) == 2 and len(issues["多个不同 A"]) == 0,
         doc["roles"]["SH-E1"]["org_needs"] == [{"responsibility": "制单"}],
     ]
+    doc2, issues2 = build(ent, roles, {("AGG-2", "确认付款"): {"resolve": "type", "role": "SH-M1", "basis": "ADR-x"}})
+    by2 = {(e["object"], e["command"]): e for e in doc2["entries"]}
+    checks += [
+        by2[("AGG-2", "确认付款")]["raci"]["A"] == {"resolve": "type", "role": "SH-M1", "basis": "ADR-x"},
+        not any(x[0] == "AGG-2" for x in issues2["A 为固定角色（应改 cost_object_owner 或类型级登记）"]),
+    ]
     for i, c in enumerate(checks, 1):
         print(f"自测 {i}: {'通过' if c else '失败'}")
     print("自测", "通过" if all(checks) else "失败")
@@ -199,7 +224,7 @@ def main(argv):
             continue
         docs[g] = yaml.safe_load(t)
     ent, roles, st = collect(docs)
-    doc, issues = build(ent, roles)
+    doc, issues = build(ent, roles, load_type_entries(HERE / "RESPONSIBILITY_MATRIX.yaml"))
     print(report(doc, issues, st, "--all" in argv))
     if "--write" in argv:
         head = "# 权责对照表初稿（raci_build.py 从三组骨架生成；A 含 TODO 的待补；结构见 RESPONSIBILITY_MATRIX_SPEC.md A 节）\n"

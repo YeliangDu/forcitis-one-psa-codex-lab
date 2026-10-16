@@ -39,9 +39,9 @@
 | 价值流 | 数量 |
 |---|---|
 | VS-01 | 7 |
-| VS-02 | 18 |
+| VS-02 | 19 |
 | VS-03 | 7 |
-| VS-04 | 13 |
+| VS-04 | 16 |
 | VS-05 | 9 |
 | VS-06 | 3 |
 | VS-07 | 6 |
@@ -51,9 +51,9 @@
 | VS-11 | 1 |
 | VS-12 | 3 |
 | VS-13 | 12 |
-| 合计 | 97 |
+| 合计 | 101 |
 
-业务流程中尚未填 stages：15 条。
+业务流程中尚未填 stages：12 条。
 
 ## 总表
 
@@ -66,7 +66,7 @@
 | PRC-05 | 维护往来单位档案 | single_aggregate |  | VS-01.1, VS-05.1 | B-01 | revenue | draft | 否 |  |
 | PRC-06 | 做独立性检查 | single_aggregate |  | VS-01.2 | B-03 | revenue | draft | 否 |  |
 | PRC-07 | 编制并生效报价 | business |  | VS-01.2 | B-03 | revenue | draft | 是 |  |
-| PRC-08 | 参加投标，登记结果并处理保证金 | business |  | VS-01.2 | B-03 | revenue | draft | 是 |  |
+| PRC-08 | 参加投标，缴纳保证金并登记结果 | business |  | VS-01.2 | B-03 | revenue | draft | 是 |  |
 | PRC-09 | 投标、结果、保证金：中标赢单与未中标丢单是投标结果的事件策略，委托赢单与放弃是同一商机上的人工分支 | merged | PRC-08 |  |  | revenue | draft | 待定 |  |
 | PRC-10 | 收付保证金与保函 | single_aggregate |  | VS-01.2, VS-04.1 | B-09 | revenue | draft | 否 |  |
 | PRC-11 | 投标、结果、保证金：未中标后退还保证金是下游 BC 订阅投标未中标的反应 | merged | PRC-08 |  |  | revenue | draft | 待定 |  |
@@ -124,7 +124,7 @@
 | PRC-63 | 商业汇票兑付与逾期 | business |  | VS-04.4 | B-09 | revenue | draft | 否 |  |
 | PRC-64 | 导入银行流水 | business |  | VS-04.4, VS-05.5 | B-22 | finance | draft | 否 |  |
 | PRC-65 | 维护资金账户 | single_aggregate |  | VS-04.4, VS-05.5 | B-22 | finance | draft | 否 |  |
-| PRC-66 | 判定履约完成，确认最终价款并结算协议 | business |  | VS-04.5 | B-08 | revenue | draft | 否 |  |
+| PRC-66 | 发起结算，确认最终价款并结算协议 | business |  | VS-04.5 | B-08 | revenue | draft | 否 |  |
 | PRC-67 | 履约完成到结算：协议已完成后编制结算书、确认最终价款、结算 | merged | PRC-66 |  |  | revenue | draft | 待定 |  |
 | PRC-68 | 终止协议 | single_aggregate |  | VS-04.5 | B-05 | revenue | draft | 否 |  |
 | PRC-69 | 供应商准入与资质核验 | business |  | VS-05.1 | B-01 | revenue | draft | 否 |  |
@@ -144,7 +144,7 @@
 | PRC-83 | 办理入职与任职 | business |  | VS-07.3 | B-13 | people | user_confirmed | 否 |  |
 | PRC-84 | 入职后参保增员与建立薪酬档案 | business |  | VS-07.3 | B-15 | people | user_confirmed | 否 |  |
 | PRC-85 | 试用期评估与转正 | business |  | VS-07.3, VS-13.2 | B-13 | people | draft | 否 |  |
-| PRC-86 | 发放与归还员工借款 | business |  | VS-08.1 | B-09 | revenue | draft | 否 |  |
+| PRC-86 | 发放、归还与催还员工借款 | business |  | VS-08.1 | B-09 | revenue | draft | 否 |  |
 | PRC-87 | 提交、核定并确认报销应付 | business |  | VS-08.2 | B-12 | finance | user_confirmed | 是 |  |
 | PRC-88 | 编制、批准并基线化经营计划与预算 | business |  | VS-09.1, VS-09.3 | B-18 | people | draft | 是 |  |
 | PRC-89 | 编制滚动预测 | business |  | VS-09.2 | B-18 | people | draft | 否 |  |
@@ -207,12 +207,12 @@
 | PRC-146 | 协议借阅逾期催还 | event_policy |  |  | B-05 | revenue | draft | 否 |  |
 | PRC-147 | 费用报销核定后冲抵员工借款并确认应付 | event_policy |  | VS-08.2 | B-09 | revenue | draft | 否 |  |
 | PRC-148 | 收入确认审批通过后占用转实并提交过账 | event_policy |  | VS-04.2 | B-08 | revenue | draft | 否 |  |
-| PRC-149 | 冲销收入确认 | business |  |  | B-08 | revenue | draft | 是 |  |
-| PRC-150 | 发票红冲后冲减应收 | event_policy |  |  | B-09 | revenue | draft | 否 |  |
-| PRC-151 | 填报经营产值 | business |  |  | B-04 | revenue | draft | 否 |  |
-| PRC-152 | 登记付款条件达成 | business |  |  | B-05 | revenue | draft | 否 |  |
-| PRC-153 | 退还投标保证金 | business |  | VS-01.2 | B-09 | revenue | draft | 否 |  |
-| PRC-154 | 收入三口径对照 | read_model |  |  | reporting | revenue | draft | 否 |  |
+| PRC-149 | 冲销收入确认 | business |  | VS-04.2, VS-04.5 | B-08 | revenue | draft | 是 |  |
+| PRC-150 | 发票红冲后冲减应收 | event_policy |  | VS-04.4 | B-09 | revenue | draft | 否 |  |
+| PRC-151 | 填报经营产值 | business |  | VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6 | B-04 | revenue | draft | 否 |  |
+| PRC-152 | 登记付款条件达成 | business |  | VS-04.3, VS-04.4 | B-05 | revenue | draft | 否 |  |
+| PRC-153 | 退还投标保证金 | business |  | VS-01.2, VS-04.1 | B-09 | revenue | draft | 否 |  |
+| PRC-154 | 收入三口径对照 | read_model |  | VS-04.2, VS-04.3 | reporting | revenue | draft | 否 |  |
 | PRC-155 | IT 资产调拨 | business |  |  | B-31 | people | draft | 否 |  |
 | PRC-156 | IT 资产归还 | business |  |  | B-31 | people | draft | 否 |  |
 | PRC-157 | IT 资产报修与维修登记 | business |  |  | B-31 | people | draft | 否 |  |

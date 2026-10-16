@@ -155,6 +155,16 @@ def unit_steps(u):
     return steps
 
 
+def transition_approvals(u):
+    """Single-aggregate transitions that carry an approval, as self-contained steps on the unit's aggregate (CONVENTIONS section 5)."""
+    out = []
+    for t in u.get("transitions") or []:
+        if isinstance(t, dict) and t.get("approval"):
+            out.append({"aggregate": u.get("aggregate"), "command": t.get("command"), "actor": t.get("actor") or (t.get("by") or [None])[0],
+                        "approval": t["approval"], "transition": f"{t.get('from')}→{t.get('to')}"})
+    return out
+
+
 def classify(step, unit):
     if step.get("read") is True:
         return "read"
@@ -572,7 +582,7 @@ def qc(local, matrix_path, show_all):
         termstat = collections.Counter()
         missing_terms = set()
         for key, u in units_of(doc):
-            steps = unit_steps(u)
+            steps = unit_steps(u) + transition_approvals(u)
             uscen = [json_text(x) for x in (scen or {}).get(u["id"], [])] if isinstance(scen, dict) else None
             for n, s in enumerate(steps, 1):
                 ap = s.get("approval")
@@ -585,7 +595,7 @@ def qc(local, matrix_path, show_all):
                     eng = ap.get("engine")
                     if eng == "external":
                         pass
-                    elif eng == "aggregate" and isinstance(appr, str) and appr.startswith("SH-") and not matrix:
+                    elif eng == "aggregate" and isinstance(appr, str) and appr.startswith("SH-") and not (tgt and (tgt[0], tgt[1]) in matrix):
                         pass
                     elif appr != "cost_object_owner":
                         entry = matrix.get((tgt[0], tgt[1])) if tgt else None
