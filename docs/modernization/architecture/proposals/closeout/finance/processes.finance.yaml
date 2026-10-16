@@ -70,8 +70,9 @@ processes:
       bc: platform.scheduling
       name: 登记定时（到点调售前投入转费用）
     reads:
-    - AGG-123
     - AGG-122
+    - AGG-123
+    reads_note: 配置读取（版本按业务日期取当时有效版本，D17 第 5、6 条）
   - actor: system
     where: automatic
     command: 提交过账候选
@@ -142,8 +143,8 @@ processes:
     legal_entity: 承担法人
   notes: 转费用不依赖收入确认时点，INV-88 不是前置。
   stages_note: 事件策略按触发状态归段（#421）：商机已丢单、已放弃=OBJ-18「丢单 / 放弃」，是 VS-01.2 退出条件；超期未签约的定时触发无对象状态，随同一策略归 VS-01.2。
-  primary_object: AGG-43
-  primary_object_note: 结局「售前投入已转费用」改变成本结转批次（AGG-43）；AGG-122 只是归属登记的辅助
+  primary_object: none
+  primary_object_note: 成本结转属流程与事实，信息图 OBJ-80 成本结转批次已去掉；售前投入是派生度量（信息图 §度量），不改业务对象状态，价值落在过账事实与账簿余额
 - id: PRC-25
   name: 转入售前投入
   type: event_policy
@@ -338,8 +339,8 @@ processes:
     legal_entity: 承担法人
   notes: 触发语义为合同签回且项目已建立两者齐备，赢单不转入（intent 120544 P-2，C-53）。立项后回签前的投入按 A7 先挂合同履约成本；超 N 个月未签约转费用见 PRC-15。
   stages_note: 事件策略按触发状态归段（#421）：项目已建立=OBJ-29「已立项」，是 VS-02.0 退出条件；合同已签回（ContractSigned）=OBJ-05「已签署生效」，是 VS-04.1 退出条件。两段在不同价值流，是按触发状态跨价值流归两段，不是跳段。触发名用事件名而非状态原文，检查器因此匹配不上。
-  primary_object: AGG-43
-  primary_object_note: 结局「售前投入已转入」由成本结转批次（AGG-43）产生；AGG-122 是辅助登记
+  primary_object: none
+  primary_object_note: 同 PRC-15：转入售前投入是成本结转，不改业务对象状态
 - id: PRC-35
   name: 项目或协议终止、结项后清算成本
   type: event_policy
@@ -467,8 +468,8 @@ processes:
     metric_event: true
   notes: 订阅关系 B-07 → B-04、B-05（事件）已有。
   stages_note: 按触发状态「项目已结项」归段；终止类结局不归段（SD-10）
-  primary_object: AGG-43
-  primary_object_note: 无 OBJ 的聚合，随信息层处理
+  primary_object: none
+  primary_object_note: 同 PRC-15：终止或结项清算是成本结转，不改业务对象状态
 - id: PRC-55
   name: 结转合同履约成本
   type: event_policy
@@ -591,8 +592,8 @@ processes:
     metric_event: true
   notes: 依赖收入确认时点（A1、Q-04）与 AGG-57 形态（Q20）；两者定后重核转出金额的配对口径。
   stages_note: 事件策略按触发状态归段（#421）：触发是收入确认类型分录的过账回执，对应 OBJ-98「已记账（不可逆）」，是 VS-04.2 退出条件（收入确认类型分录）。触发名是事件名，检查器匹配不上。
-  primary_object: AGG-43
-  primary_object_note: 无 OBJ 的聚合，随信息层处理
+  primary_object: none
+  primary_object_note: 同 PRC-15：结转合同履约成本是成本结转，不改业务对象状态
 - id: PRC-64
   name: 导入银行流水
   type: business
@@ -707,6 +708,7 @@ processes:
     legal_entity: 资金账户所属法人
   notes: 匹配记在收款、付款上，流水不引用下游。步骤 2 只对利息与手续费行提交，其余流水行不过账。
   support: 导入银行流水是资金数据的采集，结局（流水已导入）不造出任何阶段的退出条件；为付款、回款的匹配提供依据（#421 判据①不支持归段）
+  primary_object: OBJ-90
 - id: PRC-65
   name: 维护资金账户
   type: single_aggregate
@@ -940,6 +942,7 @@ processes:
       goto: end
       outcome: 已销户
   support: 资金账户是主数据维护，不推进任何价值流对象的阶段状态（#421 判据①不支持归段）
+  primary_object: OBJ-89
 - id: PRC-70
   name: 起草并生效供方协议
   type: business
@@ -2887,12 +2890,12 @@ processes:
     where: in_system
     read: true
     reads:
-    - AGG-19
     - AGG-10
-    - AGG-62
     - AGG-130
     - AGG-132
     - AGG-133
+    - AGG-19
+    - AGG-62
     desc: 选择报销类型（日常 / 差旅 / 业务招待），读项目或商机与人员；业务招待读费用事前申请（AGG-130）的额度并在超额时只预警（P-37），已用尽由报销累计置位；差旅补贴行按已批出差申请（AGG-132）的类型与天数生成、标准取出差补贴标准版本（AGG-133），同 BC 读取（S-31 SQ-26、28）
     decision:
     - when: 所归属项目已结项、已终止或已取消（INV-39）
@@ -2918,6 +2921,7 @@ processes:
     permission: 报销.填写
     page: 报销单编辑页
     command: 读取项目与人员
+    reads_note: 配置读取（版本按业务日期取当时有效版本，D17 第 5、6 条）
   - actor: SH-E3
     where: external:税务
     evidence:
@@ -3243,6 +3247,8 @@ processes:
   type: business
   primary_object: OBJ-88
   primary_object_note: 多候选中取 OBJ-88 费用报销：结局「已核定」是 VS-08.2 主退出条件；OBJ-83 发票入账是同步占用，非主对象
+  secondary_objects:
+  - OBJ-83
 - id: PRC-90
   name: 出具经营月报并复盘
   type: read_model
@@ -3552,8 +3558,9 @@ processes:
   - PRC-92-S16
   - PRC-92-S17
   - PRC-92-S18
-  primary_object: AGG-77
-  primary_object_note: 无 OBJ 的聚合，随信息层处理
+  primary_object: none
+  primary_object_note: 过账事实是设计构件，信息图 OBJ-75 经营事实已去掉（BIZBOK p197）；过账不改业务对象状态
+  reads_note: 过账管道不读总账配置：业务 BC 与过账管道不认识科目（ADR-0016 决定 3，守护 G35）；科目映射只在 PRC-93 生成分录时读
 - id: PRC-93
   name: 生成会计分录
   type: event_policy
@@ -3622,6 +3629,13 @@ processes:
       direction: out
       bc: B-19
       name: 读会计期间
+    reads:
+    - AGG-127
+    - AGG-129
+    - AGG-82
+    - AGG-85
+    - AGG-94
+    reads_note: 配置读取（版本按业务日期取当时有效版本，D17 第 5、6 条）
   - actor: system
     where: external:U8C
     command: 推送与重投
@@ -3950,9 +3964,11 @@ processes:
     where: automatic
     read: true
     reads:
+    - AGG-128
     - AGG-84
     desc: 读本期分录与余额，作为结转依据
     command: 读取本期分录与余额
+    reads_note: 配置读取（版本按业务日期取当时有效版本，D17 第 5、6 条）
   - actor: SH-E6
     where: in_system
     command: 生成期末结转运行
@@ -4122,8 +4138,8 @@ processes:
   - PRC-95-S14
   - PRC-95-S15
   - PRC-95-S16
-  primary_object: AGG-99
-  primary_object_note: 期末结转运行（AGG-99），无 OBJ，随信息层
+  primary_object: none
+  primary_object_note: 期末结转运行属流程与事实，结转凭证经过账生成 OBJ-98 会计分录，由 PRC-93 承载
 - id: PRC-96
   name: 分配人工成本
   type: business
@@ -4421,8 +4437,8 @@ processes:
     - performer
     - approver
     rule: 试算人与确认人不得为同一人（提议）
-  primary_object: AGG-41
-  primary_object_note: 人工成本分配运行（AGG-41），无 OBJ，随信息层
+  primary_object: none
+  primary_object_note: 人工成本分配属流程与事实，信息图 OBJ-76 已去掉
 - id: PRC-97
   name: 批准并生效分摊规则版本
   type: business
@@ -4561,6 +4577,7 @@ processes:
       name: 审批已通过
   notes: 被引用版本不可改。
   support: 分摊规则版本是配置，供 VS-10 的分摊运行使用，本身不造出阶段退出条件（#421）
+  primary_object: OBJ-78
 - id: PRC-98
   name: 分摊间接成本
   type: business
@@ -4647,6 +4664,9 @@ processes:
       direction: out
       bc: B-19
       name: 读会计期间
+    reads:
+    - AGG-40
+    reads_note: 配置读取（版本按业务日期取当时有效版本，D17 第 5、6 条）
   - actor: SH-E6
     where: in_system
     command: 生效分摊运行
@@ -4769,8 +4789,8 @@ processes:
       name: 冲销并重过账
     legal_entity: 承担法人
   notes: 冲销按原比例（冲销命令缺，见结构问题）。试算后确认无超时或退回分支，按非人工编排（⑥a 评审 M1）。管理口径运行不过账，只受期间闸门约束。
-  primary_object: AGG-42
-  primary_object_note: 分摊运行（AGG-42），无 OBJ，随信息层
+  primary_object: none
+  primary_object_note: 分摊运行属流程与事实，信息图 OBJ-79 已去掉
 - id: PRC-99
   name: 计提折旧并处置公司资产
   type: business
@@ -4840,6 +4860,7 @@ processes:
     where: in_system
     read: true
     reads:
+    - AGG-124
     - AGG-55
     desc: 读采购或租赁协议；IT 资产采购是否属非项目采购、是否经供方协议入账待财务 T-4
     decision:
@@ -4859,6 +4880,7 @@ processes:
       bc: B-11
       name: 读采购或租赁协议
     command: 读取供方协议
+    reads_note: 配置读取（版本按业务日期取当时有效版本，D17 第 5、6 条）
   - actor: SH-E6
     where: in_system
     command: 登记公司资产
@@ -5302,6 +5324,8 @@ processes:
   - PRC-100-S17
   - PRC-100-S18
   support: 科目表、映射表、授权表版本是总账配置，不造出阶段退出条件（#421）
+  primary_object: OBJ-95
+  primary_object_note: 科目表版本；映射表、授权表是技术配置（AGG-85、94），无对象
 - id: PRC-101
   name: 月结检查并关账
   trigger:
@@ -5343,11 +5367,12 @@ processes:
     where: in_system
     read: true
     reads:
+    - AGG-126
+    - AGG-77
+    - AGG-78
+    - AGG-81
     - AGG-84
     - AGG-99
-    - AGG-77
-    - AGG-81
-    - AGG-126
     command: 月结检查
     checks:
     - 过账队列与分录生成队列为空，且过账拒收记录已处置（B-16 队列与拒收记录经 PRC-158 处置、B-20 待处理队列）
@@ -5389,6 +5414,7 @@ processes:
     pending:
     - SQ-52
     rule: INV-100（S-29 SQ-54 扩展检查项，不另编号）
+    reads_note: 配置读取（版本按业务日期取当时有效版本，D17 第 5、6 条）
   - actor: SH-E6
     where: in_system
     command: 发起关账
@@ -5583,6 +5609,7 @@ processes:
     pending:
     - P-003
     command: 读取第 13 期启用登记
+    reads_note: 配置读取（版本按业务日期取当时有效版本，D17 第 5、6 条）
   - actor: SH-E6
     where: in_system
     command: 登记第 13 期启用
@@ -5891,6 +5918,9 @@ processes:
       direction: in
       bc: B-19
       name: AccountingPeriodClosed
+    reads:
+    - AGG-125
+    reads_note: 配置读取（版本按业务日期取当时有效版本，D17 第 5、6 条）
   migration: 在途：无。历史：历史期间不发关账事件（ADR-0036 第 6 条），不经本策略生成快照；投产期初余额按迁入余额载入（ADR-0022 决定 11）；投产前最近两个已结期间以重算比对（U-10）。
   notes: 订阅方向 B-20 → B-19（事件）；快照生成后触发同 BC 的对账（PRC-104）。
   scenarios:
@@ -5899,8 +5929,8 @@ processes:
   - PRC-103-S03
   - PRC-103-S04
   stages_note: 事件策略按触发状态「会计期间已关账」归段（#421 判据②），该状态是 VS-10.1 期间关账的退出条件
-  primary_object: AGG-100
-  primary_object_note: 无 OBJ 的聚合，随信息层处理
+  primary_object: none
+  primary_object_note: 期间余额快照是派生、只追加的技术聚合，不改业务对象状态
 - id: PRC-104
   name: 外部法定账对账与签字
   trigger:
@@ -6058,8 +6088,8 @@ processes:
   - PRC-104-S09
   - PRC-104-S10
   stages_note: 外部法定账对账完成是 VS-10.2 退出条件改定后的「外部法定账对账已完成」（SD 已裁定的 VS-10.2 退出条件）；改定前检查器匹配不上。
-  primary_object: AGG-101
-  primary_object_note: 外部法定账对账（AGG-101），无 OBJ，随信息层；OBJ-98 只读
+  primary_object: none
+  primary_object_note: 外部法定账对账是运行单据（技术聚合），只读会计分录与快照；对账结论作关账与出表的依据，不改业务对象状态
 - id: PRC-105
   name: 评审并生效报表行定义版本
   trigger:
@@ -6159,6 +6189,7 @@ processes:
   - PRC-105-S06
   - PRC-105-S07
   support: 报表行定义版本是配置，供出具报表使用，不造出阶段退出条件（#421）
+  primary_object: OBJ-99
 - id: PRC-106
   name: 出具三大报表
   type: read_model
@@ -6166,9 +6197,9 @@ processes:
   stages:
   - VS-10.2
   reads:
-  - AGG-81
   - AGG-100
   - AGG-101
+  - AGG-81
   - AGG-86
   subscribes: []
   query: 对已关账的（法人，期间）按需查询（不订阅关账事件，经 api 读 B-19 期间状态与 B-20 快照）：取期间余额快照，按生效的报表行定义版本映射生成资产负债表、利润表、现金流量表；INV-107 为查询前置：收付口径报表须对账已完成（差异清零或已签字接受）才返回，权责口径关账后即可返回；已启用第 13 期的年度须 12 月与第 13 期两期都关账后才返回年度报表，12 月未关账前只出标注「未关账」的报表。投产后法定账仍是
@@ -7278,8 +7309,8 @@ processes:
   - PRC-158-S05
   - PRC-158-S06
   stages_note: VS-10.1：「拒收记录已处置」是 VS-10.1 期间关账的前置检查项（S-29 SQ-54，INV-100）；期间内记账段 VS-10.0 待 SD-11 裁定，定后改归 VS-10.0
-  primary_object: AGG-77
-  primary_object_note: 无 OBJ 的聚合，随信息层处理
+  primary_object: none
+  primary_object_note: 同 PRC-92：拒收记录是过账管道的技术记录
 - id: PRC-159
   name: 申报已提交后确认税费应付
   type: event_policy
@@ -7544,8 +7575,8 @@ processes:
   - PRC-164-S08
   - PRC-164-S09
   stages_note: 收入确认冲销后冲回已配对的成本结转，随收入确认所在阶段（VS-04.2，revenue 价值流）；触发是收入确认类型过账事实被冲销并重过账，对应 OBJ-98「已记账（不可逆）」，是 VS-04.2 退出条件（触发名是事件名，检查器匹配不上）
-  primary_object: AGG-43
-  primary_object_note: 无 OBJ 的聚合，随信息层处理
+  primary_object: none
+  primary_object_note: 同 PRC-15：冲回已配对成本结转，不改业务对象状态
 - id: PRC-165
   name: 发布成本核算参数版本
   type: single_aggregate
@@ -7644,6 +7675,8 @@ processes:
     desc: 新版本生效时原生效版本置已取代，已生效版本不可改
     audit: true
   support: 成本核算参数是配置版本，供 VS-10.1 的成本分配与分摊使用，本身不推进任何阶段的对象状态
+  primary_object: none
+  primary_object_note: 成本核算参数版本（AGG-123）是配置，信息图无对象
 - id: PRC-166
   name: 发布资产类别与折旧政策版本
   type: single_aggregate
@@ -7745,6 +7778,8 @@ processes:
     desc: 新版本生效时原生效版本置已取代，已生效版本不可改
     audit: true
   support: 资产类别与折旧政策是配置版本，供 PRC-99 计提折旧使用，不推进阶段
+  primary_object: none
+  primary_object_note: 资产类别与折旧政策版本（AGG-124）是配置，信息图无对象
 - id: PRC-167
   name: 编制并签字确认期初余额
   type: single_aggregate
@@ -7877,6 +7912,8 @@ processes:
     - A1-02
     - S-05
   support: 期初余额只在投产时编制一次（ADR-0022 决定 11），是上线初始化，不是周期性价值流阶段
+  primary_object: none
+  primary_object_note: 期初余额（AGG-125）是投产初始化的余额载体，信息图无对象
 - id: PRC-168
   name: 发布口径版本
   type: single_aggregate
@@ -7977,6 +8014,8 @@ processes:
     desc: 新版本生效时原生效版本置已取代，已生效版本不可改
     audit: true
   support: 口径版本是勾稽侧配置（ADR-0023 决定 2），不推进阶段
+  primary_object: none
+  primary_object_note: 口径版本（AGG-78）：信息图 OBJ-102 指标定义已去掉，移入第 11 步指标元数据
 - id: PRC-169
   name: 处置勾稽差异案
   type: single_aggregate
@@ -8141,8 +8180,11 @@ processes:
       rule: INV-135
       outcome: 已豁免关闭
   stages_note: VS-10.1：勾稽差异案须在关账前处置，是 VS-10.1 期间关账的前置检查（INV-100 扩展项，S-29 SQ-54；ADR-0016 决定 1 勾稽等式）；期间内记账段 VS-10.0 待 SD-11 裁定，定后再判是否改归 VS-10.0
-  primary_object: AGG-126
-  primary_object_note: 无 OBJ 的聚合，随信息层处理
+  primary_object: none
+  primary_object_note: 勾稽差异案在词表是聚合（operations.policy），信息图没有对象；是否立对象随信息层定
+  reads:
+  - AGG-78
+  reads_note: 按差异所属口径版本处置（AGG-78）
 - id: PRC-170
   name: 申请费用事前额度
   type: business
@@ -8373,8 +8415,8 @@ processes:
   - PRC-170-S12
   - PRC-170-S13
   stages_note: 按判据归 VS-08.0 事前申请（SD-03）：费用事前额度批准是该阶段的退出条件
-  primary_object: AGG-130
-  primary_object_note: 无 OBJ 的聚合，随信息层处理
+  primary_object: none
+  primary_object_note: 费用事前申请是真实业务单据（A8 业务招待申请表），信息图缺对象；建议信息层补对象「费用事前申请」后改填
 - id: PRC-171
   name: 核对差旅服务商月账单并确认应付
   type: business
@@ -8850,8 +8892,8 @@ processes:
   - PRC-172-S12
   - PRC-172-S13
   stages_note: 按判据归 VS-08.0 事前申请（SD-03）：出差申请批准是该阶段的退出条件
-  primary_object: AGG-132
-  primary_object_note: 无 OBJ 的聚合，随信息层处理
+  primary_object: none
+  primary_object_note: 出差申请是真实业务单据，信息图缺对象；建议信息层补对象「出差申请」后改填
 - id: PRC-173
   name: 审批差旅超标订单
   type: business
@@ -9023,8 +9065,8 @@ processes:
   - PRC-173-S12
   - PRC-173-S13
   stages_note: 按判据归 VS-08.0 事前申请（SD-03）：超标订单审批是下单前的事前申请
-  primary_object: AGG-131
-  primary_object_note: 超标审批记录挂在差旅订单账单（AGG-131，数据模型 business_trip_over_standard_reviews），无 OBJ，随信息层
+  primary_object: none
+  primary_object_note: 差旅订单（分贝通直付）是真实业务对象，信息图缺对象；建议信息层补对象「差旅订单」后改填
 - id: PRC-174
   name: 发布出差补贴标准版本
   type: single_aggregate
@@ -9126,6 +9168,8 @@ processes:
     desc: 新版本生效时原生效版本置已取代，已生效版本不可改
     audit: true
   support: 出差补贴标准是配置版本，供 PRC-87 生成补贴行使用，不推进阶段
+  primary_object: none
+  primary_object_note: 出差补贴标准版本（AGG-133）是配置，信息图无对象
 - id: PRC-175
   name: 直接付款申请
   type: business
