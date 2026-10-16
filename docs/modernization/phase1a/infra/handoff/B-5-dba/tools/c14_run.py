@@ -110,8 +110,10 @@ MSDB_OBSERVE = (f"SELECT (SELECT COUNT(*) FROM sys.database_principals WHERE nam
                 f"         WHERE u.name = N'{LOGIN}') AS roles;")
 MSDB_ROLES = (f"SELECT r.name AS role_name FROM sys.database_role_members rm JOIN sys.database_principals u ON u.principal_id = rm.member_principal_id\n"
               f"  JOIN sys.database_principals r ON r.principal_id = rm.role_principal_id WHERE u.name = N'{LOGIN}' ORDER BY r.name;")
-VISIBILITY_CONTROL = ("SELECT (SELECT COUNT(*) FROM msdb.sys.database_principals WHERE name = N'one_evidence_ro') AS msdb_evidence_user,\n"
-                      "       (SELECT COUNT(*) FROM rdscore.sys.database_principals WHERE name = N'one_evidence_ro') AS rdscore_evidence_user;")
+# Control for the readback: right after the login exists RDS has made the probe its own users in msdb and rdscore, and the execution account must see both;
+# if it does not, a zero in the final readback would only mean "not visible"
+VISIBILITY_CONTROL = (f"SELECT (SELECT COUNT(*) FROM msdb.sys.database_principals WHERE name = N'{LOGIN}') AS msdb_probe_user,\n"
+                      f"       (SELECT COUNT(*) FROM rdscore.sys.database_principals WHERE name = N'{LOGIN}') AS rdscore_probe_user;")
 MSDB_DROP_MEMBER = f"ALTER ROLE SQLAgentOperatorRole DROP MEMBER {P};"
 KNOWN_ROLES = {'SQLAgentUserRole', 'SQLAgentReaderRole', 'SQLAgentOperatorRole', 'db_owner', 'db_datareader', 'db_datawriter', 'public'}
 # The execution account's view of everything an item may change, as one row of numbers; compared with the control after every revert
@@ -337,12 +339,6 @@ def preflight(jar_sha256):
         rc, _, out = legacy_sql(f'preflight connect {system_database}', system_database, 'SELECT 1 AS reachable;', mode='ro')
         if rc != 0 or (1,) not in numbers(out):
             refuse(f'preflight: the execution account cannot open {system_database}, the cleanup could not remove the probe user there; nothing was changed')
-    # Control: the evidence account's own users in msdb and rdscore must be visible to u8c, else a "0" for the probe would only mean "not visible"
-    rc, _, out = legacy_sql('preflight visibility control', 'master', VISIBILITY_CONTROL, mode='ro')
-    rows = numbers(out)
-    record(step='preflight visibility', evidence_users_in_msdb_rdscore=rows[-1] if rows else None)
-    if rc != 0 or not rows or rows[-1] != (1, 1):
-        refuse('preflight: the execution account does not see the evidence account\'s users in msdb and rdscore, so a zero in the readback would prove nothing; nothing was changed')
     invoke, status, _, out = ecs(f'test -e {PROBE_ENV} && echo ENV_LEFT; [ "$(sha256sum {W}/app.jar 2>/dev/null | cut -d" " -f1)" = "{jar_sha256}" ] && echo JAR_OK')
     record(step='preflight ecs', invoke=invoke, env_left='ENV_LEFT' in out, jar_ok='JAR_OK' in out)
     if 'ENV_LEFT' in out or 'JAR_OK' not in out:
@@ -426,6 +422,11 @@ def main(target, jar_sha256, msdb_trial=False):
         rc, errors, _ = legacy_sql('prepare user and grants', DB, PREPARE_DB)
         if rc != 0:
             raise Stop('prepare failed (user and grants)')
+        rc, _, out = legacy_sql('visibility control', 'master', VISIBILITY_CONTROL, mode='ro')
+        rows = numbers(out)
+        record(step='visibility control', probe_users_in_msdb_rdscore=rows[-1] if rows else None)
+        if rc != 0 or not rows or rows[-1] != (1, 1):
+            raise Stop('visibility control: the execution account does not see the probe\'s own users in msdb and rdscore, so a zero in the readback would prove nothing')
         setup_ecs(cipher[0], jar_sha256)
         control = counts('control counts')
         control_fingerprint = fingerprint('control fingerprint')
