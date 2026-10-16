@@ -11,3 +11,5 @@
 | SD-05 | finance STAGES.md 末节 | VS-10.2 | 退出条件改为「三大报表已出具、对账已完成」，关账与记账两项移到进入条件 | finance 提议 | 待交 |
 | SD-06 | finance STAGES.md 末节 | VS-06.1 | 进入条件改为「法定申报期已到」 | finance 提议 | 待交 |
 | SD-07 | finance STAGES.md 末节 | VS-06.2（流程为 revenue PRC-78） | 进入条件改为「年检或核查通知已到、或有效期临近」 | finance 提议；须 revenue 复核 | 待交 |
+| SD-08 | revenue STAGE_ALIGN.md 第 4 节（1974c2ed） | VS-04.2 收入确认 | 退出条件「会计分录已记账」由 finance 的过账流程 PRC-92 产生，收入线只提交过账候选；可选：给 PRC-92 加标 VS-04.2，或把退出条件改为「收入确认事实已过账」 | 架构倾向改退出条件（过账服务全部价值流，逐段加标会让对齐图失真） | 待交 |
+| SD-09 | revenue STAGE_ALIGN.md 第 4 节 | VS-02.7 结算 | 进入条件「项目收尾中」现无流程产生，随 Q09 定 | 随 Q09 | 待交 |
