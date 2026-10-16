@@ -2169,6 +2169,7 @@ processes:
     desc: 项目经理按工作包提资源需求
   stages:
   - VS-02.0
+  - VS-02.1
   - VS-02.2
   - VS-02.3
   - VS-02.4
@@ -2317,6 +2318,7 @@ processes:
       goto: end
       outcome: 已关闭
   notes: 具名人员、时段与工作包；审批在聚合自身状态（已计划 → 已确认），未走 platform.approval（G-02 已明确），故不算引擎调度的人工编排。部分满足时项目经理就缺口另提需求或调整后再分配（回第 1 步）。
+  stages_note: 改标：补 VS-02.1，概念阶段同样提出资源需求，原先漏标
 - id: PRC-23
   name: 填报并审批工时
   trigger:
@@ -2986,6 +2988,7 @@ processes:
     - to: SH-E2
       how: 企业微信消息（发包人资料被退回，请通知发包人补充）
   notes: 资料不合格是设计变更与延期的起因；P-26 逾期未提供提醒。
+  stages_note: 理由：VS-02.2–.4 入口要求 OBJ-42 发包人资料「已提供」，VS-02.1 概念入口不要求，故不标 .1；概念阶段是否也应要求提资属阶段定义，单列交 one-architecture
 - id: PRC-28
   name: 编制、评审并签发交付物，送达并登记客户认可
   trigger:
@@ -4792,7 +4795,6 @@ processes:
   stages:
   - VS-03.1
   - VS-03.2
-  - VS-03.5
   - VS-02.6
   owner_bc: B-26
   human_orchestration: false
@@ -5076,6 +5078,7 @@ processes:
       goto: end
       outcome: 已锁定
       p: 1.0
+  stages_note: 改标：删 VS-03.5，本流程止于检查锁定（VS-03.2 出口）；报告认可由 PRC-28 承担（VS-03.5）。VS-02.6 为施工期检查的跨价值流映射
 - id: PRC-44
   name: 发布客户资产类不符合项并建议外部检测
   trigger:
@@ -6490,6 +6493,7 @@ processes:
       p90_min: 30
   notes: P-08 索赔时限临近提醒。是否补「索赔提交审批」见 NOTES 待用户定（原 D9，仍待定）。
   frequency_ref: 待取证（E-B1）；经验估计：每月约 2 份
+  stages_note: 理由：索赔在履约中提出、在最终价款确认时认定或并入结算；VS-04.2–.4（收入确认、开票、回款）与索赔无关。VS-04 在合同签订与最终价款确认之间没有「履约」阶段，是否补阶段属阶段定义，单列交 one-architecture
 - id: PRC-50
   name: 占用框架限额并提交任务订单
   trigger:
@@ -9107,9 +9111,7 @@ processes:
   trigger:
     type: human
     desc: 员工因投标、诉讼、审计或结算需要借阅已归档的合同原件或复印件
-  stages:
-  - VS-04.1
-  - VS-04.5
+  stages: []
   owner_bc: B-05
   human_orchestration: true
   migration: 历史借阅登记（借阅人、借出与归还日、经办人）全部迁入（U-4）；投产时未归还的借出按当前状态迁入，预计归还日沿用原值；已逾期的由迁入编排模块的一次性离线命令补发一次「协议借阅已逾期」触发催还（迁入不发事件）
@@ -9297,6 +9299,7 @@ processes:
       goto: 3
     gap: 命令缺口：SCR 聚合稿 §2.2 的 AGG-13 命令列与事件列均未列「标记协议借阅逾期」「协议借阅已逾期」（回补 NOTES 称已列，待 one-architecture 核对）
   frequency_ref: 待取证（E-B1）；经验估计：每月约 4 笔
+  support: 行政支持活动：只处理已归档合同原件的保管与流转，不改变任何价值流阶段的进入或退出对象状态（VS-04.1 出口为协议已签署生效，归档与借阅不影响）；C-4 已定走通用审批（intent 144943）
 - id: PRC-141
   name: 销售合同归档
   trigger:
@@ -9305,8 +9308,7 @@ processes:
     - aggregate: AGG-13
       event: ContractSigned
     desc: 协议回签后原件移交归档
-  stages:
-  - VS-04.1
+  stages: []
   owner_bc: B-05
   human_orchestration: false
   migration: 历史已回签协议的归档记录（原件类型、份数、存放位置、归档日、扫描件引用）全部迁入（U-4）；投产时已回签未归档的协议，由迁入编排模块的一次性离线命令生成归档待办（迁入不发 ContractSigned，策略不会触发），原件实物按线下盘点登记
@@ -9386,6 +9388,7 @@ processes:
       typical_min: 15
       p90_min: 30
   frequency_ref: 待取证（E-B1）；经验估计：每月约 15 份
+  support: 行政支持活动：合同回签后原件移交档案，不改变 VS-04.1 出口状态（协议已签署生效）；C-4 归档并入合同模块档案功能（intent 144943）
 - id: PRC-149
   name: 冲销收入确认
   added_in: closeout
@@ -9657,6 +9660,7 @@ processes:
   - PRC-149-S14
   - PRC-149-S15
   - PRC-149-S16
+  stages_note: 理由：冲销是收入确认的逆向，人工更正随时可发起（VS-04.2），结算审减或协议终止触发的属 VS-04.5；不经开票与回款阶段
 - id: PRC-151
   name: 填报经营产值
   trigger:
@@ -10120,6 +10124,7 @@ event_policies:
       aggregate: AGG-13
   stages:
   - VS-04.1
+  - VS-04.2
   - VS-04.3
   owner_bc: B-08
   migration: 迁入协议的额度行由迁入事实重放建立：累计开票额与累计确认额取自迁入的发票与确认事实（U-4），不重复发事件；投产前已回签的协议，由迁入编排模块的一次性离线命令在迁入完成时建额度；额度改动只追加变动行（data-model 补丁 L7）
@@ -10164,6 +10169,7 @@ event_policies:
   - PRC-51-S05
   notes: 协议已终止、协议已结算的订阅反应见 PRC-149（冲销收入确认，H2）；额度调整留变动行，记因哪个基线版本、谁、何时改。
   frequency_ref: 待取证（E-B1）；经验估计：每月约 15 次
+  stages_note: 改标：补 VS-04.2，额度同时是收入确认的履约义务额度（INV-22），不只服务开票
 - id: PRC-53
   name: 确认收入
   pending: Q-04
@@ -10534,6 +10540,7 @@ event_policies:
       department_hint: 行政或档案部门
       position_hint: 档案管理员
   frequency_ref: 待取证（E-B1）；经验估计：每月约 2 次
+  support: 行政支持活动：借阅逾期催还，随 PRC-140，不改变任何阶段状态
 - id: PRC-147
   name: 费用报销核定后冲抵员工借款并确认应付
   trigger:
@@ -12305,6 +12312,7 @@ single_aggregate:
       p90_min: 15
   desc: 检查员、项目经理或设计师采集证据
   notes: 证据位置与保存期随 Q29、Q34；施工图审查意见与合格书作证据类型（R-06）。送达回执与阶段签认是用户点名的缺口（R-5），由 PRC-28、PRC-18、PRC-26、PRC-31、PRC-32、PRC-34 的线下步骤经 calls 登记到本流程。关联证据、解除证据关联属 AGG-110 证据关联（技术聚合，同 B-28；intent 114200 F-1），其余命令属 AGG-38。
+  stages_note: 理由：证据采集是贯穿活动（STEP3 cross_stage_activities），所列阶段是证据作为门槛输入的阶段（VS-02.4 深化成果、VS-02.7 结算封存、VS-03.2 现场检查、VS-04.2 收入证据），其余阶段也可采集但不是门槛
 - id: PRC-42
   name: 发布检查表模板版本
   type: single_aggregate
