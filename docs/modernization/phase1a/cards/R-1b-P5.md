@@ -155,7 +155,7 @@
 ## 7. 预期表结构 diff（SESSION_PLAYBOOK §12.2）
 - 方法：两个空库分别执行改动前（P4 合并后的 main）、后的基线，`pg_dump --schema-only`（带 / 不带权限）对比，种子另做 `--data-only` 对比
 - 预期差异只能是：
-  - `platform_audit.audit_entries`：删列 `subject_key`；新增列 `subject_kind text NOT NULL`、`subject_id uuid`（可空性按 D-5）；新增约束 `ck_audit_entries_subject_kind`、（D-5 可空时）`ck_audit_entries_subject_id`；索引 `audit_entries_subject_idx` 列改为 `(subject_kind, subject_id, created_at DESC)`，名称不变；列注释
+  - `platform_audit.audit_entries`：删列 `subject_key`；新增列 `subject_kind text NOT NULL`、`subject_id uuid`（可空性按 D-5）；新增约束 `ck_audit_entries_subject_kind`、（D-5 可空时）`ck_audit_entries_subject_id`；索引 `audit_entries_subject_idx` 列改为 `(subject_kind, subject_id, created_at DESC)`，名称不变；`audit_entries_created_idx` 换为 `ix_audit_entries_created_at_id (created_at, id)`（one-data M-1）；列注释
   - （D-7 采纳时）`platform_audit.audit_archive_batches`：新增 `first_entry_created_at timestamptz NOT NULL`、`last_entry_created_at timestamptz NOT NULL` 与列注释；`uk_audit_archive_batches_last_entry_id`、`ck_audit_archive_batches_range` 是否改写由实现按新水位定，PR 逐项列出
 - 不得出现的差异：`audit_entries`、`audit_archive_batches` 与 RULING-P5-D12 三张表主键改法以外任何表的变化（含 `sync_runs`、`sync_diffs`）；保留约束、索引、触发器的改名或删除；`audit_entries` 其他列的类型、默认值、可空性变化；种子数据变化
 
@@ -248,3 +248,55 @@
 - 实现中的卡外落法（知悉）：`LegalEntity`、`Role` 的 ID 原由仓储生成，D-14 守护拦下，一并改为调用方取 ID；`subjectId` 查询参数须与 `subjectKind` 同给，否则 400。`ApprovalTaskBecameOverdue` 仍被 G41 / `term_rules.py` 判为非过去式，基线行改为新名保留、count 不降，口径交 one-glossary。
 - 终审后修复与未修 Low 理由（one-1a-next-4，2026-10-16）：M-A（管理员模式读授权数据的审计附路径中的规范 uuid）、M-B（Flowable 业务键改单据 uuid 文本，删 `businessKey` 变量）、M-C（根 ID 守护正向识别）已修。未修 Low：L-2 `ArchitectureRulesTest` 类型化 ID 约束——回退正确，不加；L-4 api 方法数已满足，挪动涉及跨模块，不动；L-9 内联主键默认名由 ddl-naming-baseline 统一处理（R-2a 改名）；L-11 守护盲区（`SqlOrderByGuardTest`、`OpenApiExportTest`、`LegacyShapeTest`）登记余项，交后续守护卡；L-13 卡外文件在 PR 中写明。单列的断言改动：`OrgDataAdminRoleIntegrationTest` 期望随 M-A 改为「模板 + `userId=<uuid>`」；`TestIsolationGuardTest.schemaOf` 对 `acceptance/<area>/X.java` 返回哨兵 `acceptance`；`AuditIdContractTest:114` 的轻微放宽（zod getter 写法）归测试代理收紧。
 - RULING-P5-8：终审 Low——`AuditIdContractTest:114` 的轻微放宽收紧回原强度；本分支新增验收行中的全限定类名改 import（`P5Support`、`HeldSeparationReleaseIT`、`AuditArchiveOrderIT`、`OpenApiUuidParametersIT`、`EventEnvelopeContractTest`、`AccountsAcceptanceSupport` 等），断言不变。
+
+## 15. 数据设计补审闭合（one-data，2026-10-16）
+补审报告：`one-data-review-r1b-p5`（无阻断、无高；M-1..M-3 与 L-1..L-6）。M-1、M-2 已改基线，M-3 与 L 项落在本节。
+
+### 15.1 不变量 → 约束
+| 不变量 | 约束 / 守护 | 保证者 |
+|---|---|---|
+| 审计对象类别只取枚举内的值 | `ck_audit_entries_subject_kind`（取值 = `AuditSubjectKind`） | `EventCatalogueTest`（D-17：CHECK 取值与枚举逐项一致，且事件目录每个聚合都换算得到类别，新增聚合漏改 CHECK 即失败）；`AuditSubjectColumnsIT` |
+| 无对象类别（`REQUEST`、`OPERATION`、`LOGIN_ATTEMPT`）的 `subject_id` 为空，其余类别必填 | `ck_audit_entries_subject_id`：`(subject_id IS NULL) = (subject_kind IN (…))`；括号内三个值与枚举 `hasObject=false` 的几项一致 | `AuditSubjectColumnsIT`；`AuditLogIT`（无对象类别的条目写入） |
+| 审计条目只追加 | 触发器 `audit_entries_reject_update_delete`、`audit_entries_reject_truncate` | `DataArchitectureTest`（只追加表登记）；`unversioned-table-writes.txt` 登记 |
+| 同一领域事件至多一条审计条目 | `uk_audit_entries_event_id` | `AuditDomainEventsIT` |
+| 审计条目主键是 UUIDv7 | `audit_entries.id uuid` 主键 | `PrimaryKeyTypeGuardTest`；`AuditIdContractTest` |
+| 审计归档按「时刻 + ID」取批、批次区间有序且不为空 | `ck_audit_archive_batches_range`、`uk_audit_archive_batches_last_entry_id`；取批与对账走 `ix_audit_entries_created_at_id` | `AuditArchiveOrderIT`；`AuditArchiveJobIT`；`SqlOrderByGuardTest`（不只按主键排序） |
+| 事件信封 `aggregateId` 是该聚合自己的主键，且为 UUID；信封无 `source` | 事件目录 `format: uuid`（无数据库约束） | `EventCatalogueTest`（`envelopeProblems`）；`EventEnvelopeContractTest`；`EventEnvelopeAggregateIdIT` |
+| 三张子表单列 UUIDv7 主键，业务唯一性仍保证 | `pk_role_permissions` + `uk_role_permissions_role_id_permission_code`；`pk_account_roles` + `uk_account_roles_user_id_role_id`；`pk_sync_run_held_separations` + `uk_sync_run_held_separations_sync_run_id_employee_id` | `PrimaryKeyTypeGuardTest`；`SingleColumnPrimaryKeysIT`；`OwnIdColumnsIT` |
+| 被暂停运行的离职名单随运行删除，员工必须存在 | `fk_sync_run_held_separations_sync_run_id`（`ON DELETE CASCADE`）、`fk_sync_run_held_separations_employee_id`；外键列有索引 `ix_sync_run_held_separations_employee_id` | `HeldSeparationReleaseIT`；`DdlNamingTest` |
+| 框架表之外的表都有单列 uuid 主键 | `primary-key-exemptions.txt` 只剩 ADR-0033 第 1 项第 8 条的 5 张表，过期行失败 | `PrimaryKeyTypeGuardTest` |
+
+### 15.2 `subject_kind` ↔ 聚合类型
+换算规则：聚合类型驼峰转大写下划线（`UserAccount` → `USER_ACCOUNT`），`AuditDomainEvents` 换算不到即失败并 ALERT（`AuditSubjectKind.ofAggregateType`）。守护：`EventCatalogueTest`（D-17）逐个检查事件目录里的聚合类型都有类别、`ck_audit_entries_subject_kind` 的取值集合等于枚举；新增聚合必须先加枚举与 CHECK。
+
+| 取值 | 对象 | 来源 |
+|---|---|---|
+| `USER_ACCOUNT` | 用户账号 `UserAccount`（用户 ID） | 事件 + 直接审计 |
+| `EMPLOYEE` | 员工 `Employee`（员工 ID） | 事件 + 直接审计 |
+| `ORG_UNIT` | 部门（部门 ID） | 直接审计（读取、访问拒绝）；法人归属访问拒绝时记被归属的部门（D-4） |
+| `EMERGENCY_ADMIN` | `EmergencyAdmin`（用户 ID） | 事件 + 直接审计 |
+| `ROLE` | `Role`（角色 ID） | 事件 + 直接审计 |
+| `APPROVAL_TASK` | 审批任务（任务 ID） | 直接审计（重新指派、任务闸门） |
+| `APPROVAL_REQUEST` | `ApprovalRequest`（审批请求 ID） | 事件 + 直接审计 |
+| `SYNC_RUN` | `SyncRun`（同步运行 ID） | 事件 + 直接审计（放行记录） |
+| `LEGAL_ENTITY` | `LegalEntity`（法人主体 ID） | 事件 |
+| `LEGAL_ENTITY_ATTRIBUTION` | `LegalEntityAttribution`（`AttributionId`） | 事件 |
+| `TIMESHEET` | `Timesheet`（工时单 ID） | 事件 |
+| `WORK_CALENDAR_YEAR` | `WorkCalendarYear`（年度行 ID） | 事件 |
+| `NUMBERING_RULE` | `NumberingRule`（`numbering_rule_id`） | 事件 |
+| `SOURCE_REFERENCE` | `SourceReference`（来源对照 ID） | 事件 |
+| `SOURCE_REFERENCE_REFUSAL` | `SourceReferenceRefusal` | 事件 |
+| `AUTHORIZATION_REQUEST` | `AuthorizationRequest` | 事件 |
+| `REQUEST` | 无对象：越权或特权请求（`subject_id` 空） | 直接审计（`AccessDeniedAudit`、`PrivilegedRequestAudit`） |
+| `OPERATION` | 无对象：被拒绝的操作（`subject_id` 空） | 直接审计（`AccessDeniedAudit`） |
+| `LOGIN_ATTEMPT` | 无对象：未识别到人的登录尝试（`subject_id` 空） | 直接审计（`LoginAdmission`） |
+
+### 15.3 其余补审项
+- L-1（逐表出处）：本卡三张 D-12 表与 `audit_entries` 的出处——`audit_entries` 依 ADR-0033 第 7 项第 2 条、第 6 条；`account_roles`、`role_permissions`、`sync_run_held_separations` 依 ADR-0033 第 1 项第 8 条与 RULING-P5-D12。血缘 `NEW`，写入者见 `data-access-registry.yaml`。
+- L-2（已修）：`role_permission_id`、`account_role_id` 改为 `CONSTRAINT pk_… PRIMARY KEY`，删 `ddl-naming-baseline.txt` 中两条 `*_pkey` 改名行。
+- L-3（PR 补）：三张 D-12 表的预期 diff 逐列——`account_roles`：新增 `account_role_id uuid NOT NULL`（主键 `pk_account_roles`），原主键 `(user_id, role_id)` 改为 `uk_account_roles_user_id_role_id`；`role_permissions`：新增 `role_permission_id uuid`（`pk_role_permissions`），原主键 `(role_id, permission_code)` 改为 `uk_role_permissions_role_id_permission_code`；`sync_run_held_separations`：新增 `sync_run_held_separation_id uuid`（`pk_sync_run_held_separations`），原主键改为 `uk_sync_run_held_separations_sync_run_id_employee_id`，新增 `ix_sync_run_held_separations_employee_id`；三表各加主键列注释。PR 描述照此列出并贴实际 `pg_dump` 对比。
+- L-4（不改代码）：`audit_entries.detail` 记请求路径时，路径只含模板与规范 uuid（M-A），uuid 是系统自有 ID，不是个人信息；查询串、请求体、令牌不进 `detail`；列注释已写「不含密钥和个人敏感信息」。
+- L-5（已修）：`sync_diffs.subject_key` 列注释示例改为 uuid 形式。该列拆分 a 才重做，卡不扩范围。
+- L-6：基线改动后 dev 库按 `phase1a/infra/runbooks/dev-db-rebuild.md` 重建（本批改了已有基线文件，触发条件成立；用户批准前 dev 不重建，见该剧本首段）。
+- M-1 落法：`audit_entries_created_idx (created_at DESC)` 删除，换为 `ix_audit_entries_created_at_id (created_at, id)`。依据：归档取批（`created_at, id` 升序）、对账（行值比较）与四处倒序查询（`created_at desc, id desc`）都能由它前向或反向扫描满足，旧索引是它的前缀，不留冗余（§2.4a 第 2 条、G-DDL3）；`ddl-naming-baseline.txt` 对应改名行同删。
+- M-2 落法：`ix_sync_run_held_separations_employee_id`；数据访问注册表不登记索引，无需同步。
