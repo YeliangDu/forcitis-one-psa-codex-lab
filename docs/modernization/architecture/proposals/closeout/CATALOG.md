@@ -86,7 +86,7 @@
 | PRC-25 | 转入售前投入 | event_policy |  | VS-02.0, VS-04.1 | B-07 | finance | draft | 否 |  |
 | PRC-26 | 接收并确认发包人提供资料 | business |  | VS-02.0, VS-02.2, VS-02.3, VS-02.4 | B-28 | revenue | draft | 是 |  |
 | PRC-27 | 登记并处置项目风险与问题 | single_aggregate |  | VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7 | B-04 | revenue | draft | 否 |  |
-| PRC-28 | 编制、评审并签发交付物，送达并登记客户认可 | business |  | VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-03.5 | B-28 | revenue | sample | 是 |  |
+| PRC-28 | 编制、评审并签发交付物，送达并登记客户认可 | business |  | VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-03.5 | B-28 | revenue | user_confirmed | 是 |  |
 | PRC-29 | 签发到认可：交付物签发后送达与登记客户认可是同一交付物的连续步骤 | merged | PRC-28 |  |  | revenue | draft | 待定 |  |
 | PRC-30 | 提出并批准完工估算 | business |  | VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6 | B-04 | revenue | draft | 否 |  |
 | PRC-31 | 提出并发出设计变更 | business |  | VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6 | B-28 | revenue | draft | 否 |  |
@@ -141,11 +141,11 @@
 | PRC-80 | 维护法人、组织与岗位 | business |  | VS-07.1, VS-07.3 | B-13 | people | draft | 否 |  |
 | PRC-81 | 提出并批准招聘需求 | business |  | VS-07.1 | B-13 | people | draft | 是 |  |
 | PRC-82 | 登记候选人并作出录用决定 | business |  | VS-07.2 | B-13 | people | draft | 否 |  |
-| PRC-83 | 办理入职与任职 | business |  | VS-07.3 | B-13 | people | sample | 否 |  |
-| PRC-84 | 入职后参保增员与建立薪酬档案 | business |  | VS-07.3 | B-15 | people | sample | 否 |  |
+| PRC-83 | 办理入职与任职 | business |  | VS-07.3 | B-13 | people | user_confirmed | 否 |  |
+| PRC-84 | 入职后参保增员与建立薪酬档案 | business |  | VS-07.3 | B-15 | people | user_confirmed | 否 |  |
 | PRC-85 | 试用期评估与转正 | business |  | VS-07.3, VS-13.2 | B-13 | people | draft | 否 |  |
 | PRC-86 | 发放与归还员工借款 | business |  | VS-08.1 | B-09 | revenue | draft | 否 |  |
-| PRC-87 | 提交、核定并确认报销应付 | business |  | VS-08.2 | B-12 | finance | sample | 是 |  |
+| PRC-87 | 提交、核定并确认报销应付 | business |  | VS-08.2 | B-12 | finance | user_confirmed | 是 |  |
 | PRC-88 | 编制、批准并基线化经营计划与预算 | business |  | VS-09.1, VS-09.3 | B-18 | people | draft | 是 |  |
 | PRC-89 | 编制滚动预测 | business |  | VS-09.2 | B-18 | people | draft | 否 |  |
 | PRC-90 | 出具经营月报并复盘 | read_model |  | VS-09.3, VS-10.2 | reporting | finance | draft | 否 |  |
@@ -195,7 +195,7 @@
 | PRC-134 | 薪酬事实已过账置位 | event_policy |  | VS-13.3 | B-15 | people | draft | 否 |  |
 | PRC-135 | 处理会计分录待处理队列与推送重投 | single_aggregate |  | VS-10.1 | B-20 | finance | draft | 否 |  |
 | PRC-136 | 调岗（任职变更，按人事业务生效日，触发数据范围复核） | business |  |  | B-13 | people | draft | 待定 |  |
-| PRC-137 | 入职开通企业微信账号并绑定外部身份 | business |  |  | platform.identity | people | sample | 待定 |  |
+| PRC-137 | 入职开通企业微信账号并绑定外部身份 | business |  |  | platform.identity | people | user_confirmed | 待定 |  |
 | PRC-138 | 离职停用企业微信账号并解绑 | business |  |  | platform.identity | people | draft | 待定 |  |
 | PRC-139 | 用印申请与用印登记 | business |  |  | B-31 | people | draft | 待定 |  |
 | PRC-140 | 合同借阅 | business |  |  | B-05 | revenue | draft | 待定 |  |

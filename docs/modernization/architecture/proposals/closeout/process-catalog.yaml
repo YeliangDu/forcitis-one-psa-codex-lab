@@ -257,7 +257,7 @@ processes:
     stages: [VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-03.5]
     owner_bc: "B-28"
     group: revenue
-    status: sample
+    status: user_confirmed
     human_orchestration: true
     bpmn: ~
   - id: PRC-29
@@ -760,7 +760,7 @@ processes:
     stages: [VS-07.3]
     owner_bc: "B-13"
     group: people
-    status: sample
+    status: user_confirmed
     human_orchestration: false
     bpmn: ~
   - id: PRC-84
@@ -769,7 +769,7 @@ processes:
     stages: [VS-07.3]
     owner_bc: "B-15"
     group: people
-    status: sample
+    status: user_confirmed
     human_orchestration: false
     bpmn: ~
   - id: PRC-85
@@ -796,7 +796,7 @@ processes:
     stages: [VS-08.2]
     owner_bc: "B-12"
     group: finance
-    status: sample
+    status: user_confirmed
     human_orchestration: true
     bpmn: ~
   - id: PRC-88
@@ -1252,7 +1252,7 @@ processes:
     stages: []
     owner_bc: "platform.identity"
     group: people
-    status: sample
+    status: user_confirmed
     human_orchestration: ~
     bpmn: ~
   - id: PRC-138
