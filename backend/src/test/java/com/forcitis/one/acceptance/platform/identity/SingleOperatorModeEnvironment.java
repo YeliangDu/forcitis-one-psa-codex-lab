@@ -187,7 +187,11 @@ final class SingleOperatorModeEnvironment {
         return arguments;
     }
 
-    record Outcome(boolean started, int exitCode, List<String> lines) {
+    static final int MAX_PORT_ATTEMPTS = 5;
+    private static final String SERVER_PORT = "--server.port=";
+
+    /** port is the one the last attempt was started with (-1 when the arguments name none). */
+    record Outcome(boolean started, int exitCode, List<String> lines, int port) {
         String output() {
             return String.join("\n", lines);
         }
@@ -195,6 +199,43 @@ final class SingleOperatorModeEnvironment {
 
     /** Starts the launcher in a child JVM; returns when the application reports it started (and stops it) or the process ends; a process that does neither in time fails the test. */
     static Outcome launch(List<String> arguments) throws IOException, InterruptedException {
+        return launch(arguments, SingleOperatorModeEnvironment::launchOnce);
+    }
+
+    /**
+     * A port taken between choosing it and listening on it (another process on the machine) makes the start fail with "already in use", which says
+     * nothing about the application: only that failure, and only when the process did not start, is repeated with a new port, at most
+     * MAX_PORT_ATTEMPTS times. Every other outcome is returned as it is.
+     */
+    static Outcome launch(List<String> arguments, Launch launch) throws IOException, InterruptedException {
+        List<String> current = new ArrayList<>(arguments);
+        Outcome outcome = null;
+        for (int attempt = 1; attempt <= MAX_PORT_ATTEMPTS; attempt++) {
+            outcome = launch.run(current);
+            int index = portArgument(current);
+            if (outcome.started() || index < 0 || !outcome.output().contains("Port " + outcome.port() + " was already in use")) {
+                return outcome;
+            }
+            current.set(index, SERVER_PORT + freePort());
+        }
+        return outcome;
+    }
+
+    @FunctionalInterface
+    interface Launch {
+        Outcome run(List<String> arguments) throws IOException, InterruptedException;
+    }
+
+    private static int portArgument(List<String> arguments) {
+        for (int i = 0; i < arguments.size(); i++) {
+            if (arguments.get(i).startsWith(SERVER_PORT) && !arguments.get(i).equals(SERVER_PORT + "0")) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private static Outcome launchOnce(List<String> arguments) throws IOException, InterruptedException {
         List<String> command = new ArrayList<>(List.of(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-Duser.timezone=UTC", "-cp",
                 System.getProperty("java.class.path"), SingleOperatorModeLauncher.class.getName()));
         command.addAll(arguments);
@@ -228,6 +269,7 @@ final class SingleOperatorModeEnvironment {
         }
         assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the process ends").isTrue();
         reader.join(10_000);
-        return new Outcome(up, up ? 0 : process.exitValue(), List.copyOf(lines));
+        int index = portArgument(arguments);
+        return new Outcome(up, up ? 0 : process.exitValue(), List.copyOf(lines), index < 0 ? -1 : Integer.parseInt(arguments.get(index).substring(SERVER_PORT.length())));
     }
 }
