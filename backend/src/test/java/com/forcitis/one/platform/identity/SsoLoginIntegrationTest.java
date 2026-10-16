@@ -203,16 +203,19 @@ class SsoLoginIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("a refusal at a path that looks like a secret, or is longer than an audit text, is still an audit entry and carries no raw path")
     void refusalAtOddPathsIsStillAudited() throws Exception {
-        portalSays("T5", new SsoVerdict.LoginName("13800000000"));
-        personWithLoginName("13800000000", 1005, EmploymentStatus.EMPLOYED);
-        String session = cookie(redeem("T5"), "SESSION");
-
-        for (String path : new String[] {"/api/v1/platform/roles/token:1", "/api/v1/platform/roles/" + "y".repeat(2500)}) {
-            assertThat(mvc.perform(get(path).cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn().getResponse().getStatus())
+        // The same refusal text from the same session inside a minute is written once, so each path gets its own session.
+        String[] paths = {"/api/v1/platform/roles/token:1", "/api/v1/platform/roles/" + "y".repeat(2500)};
+        for (int i = 0; i < paths.length; i++) {
+            String token = "T5" + i;
+            String loginName = "1380000000" + i;
+            portalSays(token, new SsoVerdict.LoginName(loginName));
+            personWithLoginName(loginName, 1005 + i, EmploymentStatus.EMPLOYED);
+            String session = cookie(redeem(token), "SESSION");
+            assertThat(mvc.perform(get(paths[i]).cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn().getResponse().getStatus())
                     .isEqualTo(403);
         }
 
-        assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.access.denied")).isNotEmpty()
+        assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.access.denied")).hasSize(2)
                 .allSatisfy(entry -> assertThat(entry.detail()).isEqualTo("access refused: GET unmatched").doesNotContain("token:").doesNotContain("yyyy"));
     }
 }

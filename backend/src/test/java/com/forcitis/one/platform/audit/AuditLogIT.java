@@ -219,6 +219,9 @@ class AuditLogIT {
                 .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_CURSOR_INVALID"));
         mvc.perform(get(ENTRIES).param("from", "2026-02-01T00:00:00Z").param("to", "2026-01-01T00:00:00Z").with(READER))
                 .andExpect(status().isBadRequest());
+        mvc.perform(get(ENTRIES).param("subjectId", UUID.randomUUID().toString()).with(READER)).andExpect(status().isBadRequest());
+        mvc.perform(get(ENTRIES).param("subjectKind", "REQUEST").param("subjectId", UUID.randomUUID().toString()).with(READER))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
