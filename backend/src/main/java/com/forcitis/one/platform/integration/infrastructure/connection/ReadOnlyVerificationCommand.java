@@ -248,8 +248,9 @@ final class ReadOnlyVerificationCommand implements ApplicationListener<Applicati
     }
 
     /**
-     * Never the problem text: it names roles and databases. Below an item line come its locator lines (READONLY_VERIFY_ACCEPTANCE.md section
-     * 3a), the only place a database, schema, object, permission or grantee name is printed.
+     * Never the problem text: it names roles and databases. Below an item line come its locator lines and, under (f), the roles of the login's
+     * own users in the system databases (READONLY_VERIFY_ACCEPTANCE.md section 3a), the only place a database, schema, object, permission,
+     * grantee or role name is printed.
      */
     static void report(Verdict verdict, PrintStream out) {
         Map<Character, Unmet> byItem = verdict.unmet().stream().collect(Collectors.toMap(Unmet::item, Function.identity()));
@@ -261,6 +262,9 @@ final class ReadOnlyVerificationCommand implements ApplicationListener<Applicati
                 out.println("(" + item + ") " + (unmet.confirmed() ? "VIOLATED" : "UNDETERMINED") + details(unmet.findings()));
                 new TreeSet<>(unmet.findings().stream().flatMap(f -> f.locators().stream().map(l -> LocatorLines.violation(item, f.reason(), l))).toList())
                         .forEach(out::println);
+            }
+            if (item == 'f') {
+                new TreeSet<>(verdict.ownUsers().stream().map(LocatorLines::ownUser).toList()).forEach(out::println);
             }
             if (item == 'g') {
                 new TreeSet<>(verdict.overridden().stream().map(LocatorLines::overridden).toList()).forEach(out::println);
