@@ -22,6 +22,15 @@ CI（`.github/workflows/ci.yml`、`generated-docs.yml`）全部跑在本机自�
 - backend 作业运行 `scripts/ci/backend_verify.sh`：先编译，再同时运行 surefire 与 failsafe，各 4 个 fork，不带 jacoco 代理（CI 不读覆盖率，本地 `./mvnw verify` 仍生成报告）（`backend/pom.xml` 的 `test.forks`，`-Dtest.forks=1` 恢复串行）。
 - 测试容器（postgres:18）由 Testcontainers 的 ryuk（`testcontainers/ryuk:0.14.0`）在 JVM 退出时回收；作业开始前若本机没有这两个镜像会先拉取。查残留：`docker ps`，应只剩与 CI 无关的常驻容器。
 
+## 重步骤何时跑（合并队列标签 `queued`）
+
+用户 2026-10-16 决定（保留 strict，main push 运行只跑轻量；重步骤只在入队时跑）。`scripts/ci/heavy_gate.py` 决定后端测试、OpenAPI 检查、SQL Server 测试、前端 verify 这些重步骤是否运行：
+
+- pull request：只有带标签 `queued` 才跑。调度（合并队列脚本）在 PR 排到队首、已与 main 同步之后给它打这个标签，打标签（`labeled` 事件）启动重步骤；之后因落后 main 而更新分支（`synchronize`），标签仍在，重步骤自动再跑。没有标签的 PR 只跑轻量检查（密钥扫描、文档与发布脚本检查、迁移与验收守护、断言漂移），作业都报告并结束为绿，所以必需检查照常上报——**绿不等于重步骤已跑**，合并前须确认标签在且标签之后的运行已通过。
+- push 到 main：不跑重步骤。strict 下合入的树就是带标签的 PR 刚测过的树；每晚 `nightly-legacy-it.yml` 全量覆盖 main。
+- 除 `queued` 以外不要给 PR 打别的标签：别的标签的 `labeled` 事件也会触发一次运行（它有独立的并发组，不会取消在途的重步骤运行，但会多一次轻量运行）。
+- 发布门禁 `scripts/release/ci_passed.py` 读的是 main 的 push 运行，现在它只证明轻量检查通过；重步骤的证据是合入前带标签的 PR 运行与当晚 nightly，见交接给 one-ops 的说明。
+
 ## 日常操作
 
 ```
