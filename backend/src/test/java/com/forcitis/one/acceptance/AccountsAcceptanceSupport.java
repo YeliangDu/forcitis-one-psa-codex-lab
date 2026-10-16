@@ -262,13 +262,19 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
     protected static final String WITNESS_ID = "01900000-0000-7000-8000-00000000a002";
 
     /**
-     * Makes sure the operator and the witness exist as employees (no assignment, no WeCom id, so no other lookup sees them); safe to call
+     * Makes sure the operator and the witness exist as employees (with an assignment in a unit of their own, because the directory lookup joins it; no WeCom id, so no other lookup sees them); safe to call
      * again, and again after a test cleared the snapshot. Call it before every operations command.
      */
     protected void ensureAttestors() {
         try (Connection workforce = schemaConnection("organization_workforce"); PreparedStatement insert = workforce.prepareStatement("""
                 insert into employees (id, employee_code, display_name, employment_status) values (?::uuid, ?, ?, 'EMPLOYED')
                 on conflict (id) do nothing""")) {
+            String unit = "01900000-0000-7000-8000-00000000b001";
+            try (PreparedStatement orgUnit = workforce.prepareStatement(
+                    "insert into org_units (id, name, status) values (?::uuid, 'Synthetic attestor unit', 'ACTIVE') on conflict (id) do nothing")) {
+                orgUnit.setString(1, unit);
+                orgUnit.executeUpdate();
+            }
             String[] ids = {OPERATOR_ID, WITNESS_ID};
             String[] codes = {"ATT-A001", "ATT-A002"};
             for (int i = 0; i < ids.length; i++) {
@@ -276,6 +282,12 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
                 insert.setString(2, codes[i]);
                 insert.setString(3, "Synthetic attestor " + codes[i]);
                 insert.executeUpdate();
+                try (PreparedStatement assignment = workforce.prepareStatement(
+                        "insert into assignments (employee_id, org_unit_id) values (?::uuid, ?::uuid) on conflict (employee_id) do nothing")) {
+                    assignment.setString(1, ids[i]);
+                    assignment.setString(2, unit);
+                    assignment.executeUpdate();
+                }
             }
         } catch (SQLException failure) {
             throw new AssertionError("could not make the operator and the witness exist", failure);
