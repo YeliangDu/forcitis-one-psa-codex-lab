@@ -1,0 +1,32 @@
+{
+ "A1~A1-01": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "a1-main",
+  "label": "维持 A1：设计成果按时点；每期进度估计只作经营产值，与收入分开记",
+  "no": "A1-01",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T14:13:43.554Z"
+ },
+ "A1~A1-02": {
+  "choice": 1,
+  "defaulted": false,
+  "group": "a1-main",
+  "label": "只由财务负责人书面确认并留档",
+  "no": "A1-02",
+  "note": "",
+  "recommended": false,
+  "submitted": "2026-10-16T14:13:43.554Z"
+ },
+ "A1~A1-03": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "a1-main",
+  "label": "每年一次，另在计价模式或合同范本重大变化时临时复核",
+  "no": "A1-03",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T14:13:43.554Z"
+ }
+}

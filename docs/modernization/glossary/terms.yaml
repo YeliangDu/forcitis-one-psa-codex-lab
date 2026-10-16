@@ -7916,7 +7916,7 @@ terms:
   en: Attendance
   snake: attendance
   kind: entity
-  bc: organization.attendance
+  bc: organization.leave
   definition: 考勤与休假限界上下文；1a 只含工作日历，请假与打卡后做（用户 2026-10-14：BC 提前到 1a 建）
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md §2
@@ -7929,7 +7929,7 @@ terms:
   - 考勤
   status: approved
   note: 用语确认第三轮转正式（原提议 organization_attendance.yaml#attendance，R3-AT-04）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；用户 2026-10-16 待决定收件箱 2026-10-16-one-glossary-bc-names 按推荐改名：词条「考勤与休假」改挂 organization.leave，该 bc 中文名改「考勤与休假」，原 organization.attendance 改「工作日历与标准工时」（intent 见该事项）（用户裁定，rulings.yaml）
   scope: domain
 - id: work_calendar_locked_days_changed
   zh: 工作日历锁定日期被修改
@@ -9724,7 +9724,7 @@ terms:
   en: BudgetBaseline
   snake: budget_baseline
   kind: aggregate
-  bc: operations.budgeting
+  bc: operations.planning
   definition: 预算年度 × 预算主体的版本化编制结果；生效后不可变，调整产生新版本
   standard_ref:
   - 《管理会计应用指引第 200 号——预算管理》（财政部）
@@ -9733,14 +9733,14 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_baseline，R3-RN-18）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；2026-10-15（用户，B2 类别判定）；ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）（用户裁定，rulings.yaml）
   scope: domain
 - id: budget_preparation
   zh: 预算编制
   en: BudgetPreparation
   snake: budget_preparation
   kind: command
-  bc: operations.budgeting
+  bc: operations.planning
   definition: 依据计划目标值（目标类型：预算）形成预算基线的过程
   standard_ref:
   - 《管理会计应用指引第 200 号——预算管理》（财政部）
@@ -9749,14 +9749,14 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_preparation，R3-RN-19）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）（用户裁定，rulings.yaml）
   scope: domain
 - id: budget_breakdown
   zh: 预算分解
   en: BudgetBreakdown
   snake: budget_breakdown
   kind: command
-  bc: operations.budgeting
+  bc: operations.planning
   definition: 预算基线按维度树逐级生成预算账户
   standard_ref:
   - 《管理会计应用指引第 200 号——预算管理》（财政部）
@@ -9765,14 +9765,14 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_breakdown，R3-RN-20）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）（用户裁定，rulings.yaml）
   scope: domain
 - id: budget_unit
   zh: 预算主体
   en: BudgetUnit
   snake: budget_unit
   kind: value_object
-  bc: operations.budgeting
+  bc: operations.planning
   definition: 预算账户的归属维度（法人、BU、项目、部门）
   standard_ref:
   - 《管理会计应用指引第 200 号——预算管理》（财政部）
@@ -9781,14 +9781,14 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_subject，R3-RN-21）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）（用户裁定，rulings.yaml）
   scope: domain
 - id: budget_reserved
   zh: 预算占用
   en: BudgetReserved
   snake: budget_reserved
   kind: domain_event
-  bc: operations.budgeting
+  bc: operations.planning
   definition: 业务单据驱动的额度预留，可用额度即时扣减
   standard_ref:
   - 《管理会计应用指引第 200 号——预算管理》（财政部）；ERP 资金管理（funds reservation / commitment）通行写法
@@ -9797,14 +9797,14 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_reserved，R3-RN-22）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）（用户裁定，rulings.yaml）
   scope: domain
 - id: budget_released
   zh: 预算释放
   en: BudgetReleased
   snake: budget_released
   kind: domain_event
-  bc: operations.budgeting
+  bc: operations.planning
   definition: 引用占用记录的额度归还
   standard_ref:
   - 《管理会计应用指引第 200 号——预算管理》（财政部）
@@ -9813,14 +9813,14 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_released，R3-RN-23）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）（用户裁定，rulings.yaml）
   scope: domain
 - id: budget_consumed
   zh: 预算消耗
   en: BudgetConsumed
   snake: budget_consumed
   kind: domain_event
-  bc: operations.budgeting
+  bc: operations.planning
   definition: 实际发生事实对占用的冲减
   standard_ref:
   - 《管理会计应用指引第 200 号——预算管理》（财政部）
@@ -9829,14 +9829,14 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_consumed，R3-RN-24）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）（用户裁定，rulings.yaml）
   scope: domain
 - id: available_budget
   zh: 可用额度
   en: AvailableBudget
   snake: available_budget
   kind: metric
-  bc: operations.budgeting
+  bc: operations.planning
   definition: 分解额 − 生效占用 − 已消耗 + 已释放，恒可复算
   standard_ref:
   - 《管理会计应用指引第 200 号——预算管理》（财政部）；ERP 预算可用性控制（available budget）通行写法
@@ -9845,14 +9845,14 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-available_budget，R3-RN-25）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）（用户裁定，rulings.yaml）
   scope: domain
 - id: budget_adjusted
   zh: 预算调整
   en: BudgetAdjusted
   snake: budget_adjusted
   kind: domain_event
-  bc: operations.budgeting
+  bc: operations.planning
   definition: 产生预算基线新版本的受控变更
   standard_ref:
   - 《管理会计应用指引第 200 号——预算管理》（财政部）
@@ -9861,14 +9861,14 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_adjusted，R3-RN-26）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）（用户裁定，rulings.yaml）
   scope: domain
 - id: budget_overrun_approval
   zh: 超预算审批
   en: BudgetOverrunApproval
   snake: budget_overrun_approval
   kind: aggregate
-  bc: operations.budgeting
+  bc: operations.planning
   definition: 额度 + 期限 + 责任方三要素的超预算例外授权
   standard_ref:
   - 《管理会计应用指引第 200 号——预算管理》（财政部）
@@ -9877,14 +9877,14 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_overrun_approval，R3-RN-27）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；2026-10-15（用户，B2 类别判定）；ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）（用户裁定，rulings.yaml）
   scope: domain
 - id: budget_freeze
   zh: 预算冻结
   en: BudgetFreeze
   snake: budget_freeze
   kind: state
-  bc: operations.budgeting
+  bc: operations.planning
   definition: 账户级禁止新增占用的管控状态
   standard_ref:
   - 《管理会计应用指引第 200 号——预算管理》（财政部）
@@ -9893,14 +9893,14 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_freeze，R3-RN-28）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）（用户裁定，rulings.yaml）
   scope: domain
 - id: budget_execution
   zh: 预算执行
   en: BudgetExecution
   snake: budget_execution
   kind: entity
-  bc: operations.budgeting
+  bc: operations.planning
   definition: 占用、消耗、可用的执行事实与查询视图
   standard_ref:
   - 《管理会计应用指引第 200 号——预算管理》（财政部）
@@ -9909,14 +9909,14 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_execution，R3-RN-29）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）（用户裁定，rulings.yaml）
   scope: domain
 - id: budget_category
   zh: 预算科目
   en: BudgetCategory
   snake: budget_category
   kind: value_object
-  bc: operations.budgeting
+  bc: operations.planning
   definition: 预算账户的科目维度（可映射会计科目，但不等同）
   standard_ref:
   - 《管理会计应用指引第 200 号——预算管理》（财政部）
@@ -9925,7 +9925,7 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_category，R3-RN-30）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）（用户裁定，rulings.yaml）
   scope: domain
 - id: plan_target_value
   zh: 计划目标值
@@ -10025,7 +10025,7 @@ terms:
   en: BudgetConsumptionRate
   snake: budget_consumption_rate
   kind: metric
-  bc: operations.budgeting
+  bc: operations.planning
   definition: 已消耗 ÷ 预算基线（同一预算账户、同一期间）
   standard_ref:
   - 《管理会计应用指引第 200 号——预算管理》（财政部）；OAT canonical_symbol BURN
@@ -10034,7 +10034,7 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-budget_burn_rate，R3-RN-36）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）（用户裁定，rulings.yaml）
   scope: domain
 - id: new_contract_value
   zh: 新签合同额
@@ -10088,17 +10088,21 @@ terms:
   zh: 商业承兑汇票
   en: CommercialAcceptanceBill
   snake: commercial_acceptance_bill
-  kind: aggregate
+  kind: entity
   bc: receivables.collection
-  definition: 客户以商业承兑汇票支付的票据，签收计入回款并单列，到期兑付时计现金流入（FD-40 推荐）；报表列应收票据
+  definition: 客户以商业承兑汇票支付的票据，作回款方式「商票」，加到期日与兑付状态，不单独成对象（内含于回款单）；签收计入回款并单列，到期兑付时计现金流入（FD-40 推荐）
   standard_ref:
   - 《中华人民共和国票据法》（汇票）；《商业汇票承兑、贴现与再贴现管理办法》（中国人民银行、原银保监会）；财会〔2019〕6 号（应收票据）
   confidence: medium
-  aliases: []
+  aliases:
+  - name: 商票
+    type: standard-zh
+    deprecated: true
+    source: 用户 2026-10-16 ADR-0048 确认页选推荐（intent 2026-10-16-090004，one-architecture）：商业汇票作收款方式「商票」，不单独成对象
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-commercial_acceptance_bill，R3-RN-41）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；2026-10-15（用户，B2 类别判定）；用户 2026-10-16 ADR-0048 确认页选推荐（intent 2026-10-16-090004，one-architecture）：商业汇票作收款方式「商票」，不单独成对象（用户裁定，rulings.yaml）
   scope: domain
 - id: aged_receivable
   zh: 账龄超 N 天应收
@@ -11780,7 +11784,7 @@ terms:
   en: ConsortiumAgreement
   snake: consortium_agreement
   kind: value_object
-  bc: contract.agreement
+  bc: presales.opportunity
   scope: domain
   definition: 联合体各成员共同投标、共同履约的协议（共同投标协议）
   standard_ref:
@@ -11789,13 +11793,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）；ADR-0051 决定 5：联合体协议在
+    presales.opportunity（投标的次级对象）；P-059（用户裁定，rulings.yaml）
 - id: agreement_type__labor_dispatch_agreement
   zh: 劳务派遣协议
   en: LaborDispatchAgreement
   snake: labor_dispatch_agreement
   kind: value_object
-  bc: contract.agreement
+  bc: procurement.subcontracting
   scope: domain
   definition: 用工单位与劳务派遣单位之间约定劳务派遣事项的协议
   standard_ref:
@@ -11804,13 +11809,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）；ADR-0051 决定 5：劳务派遣协议、居间协议、租赁合同、职业责任保险单在
+    procurement.subcontracting（供方协议）；P-059（用户裁定，rulings.yaml）
 - id: agreement_type__brokerage_agreement
   zh: 居间协议
   en: BrokerageAgreement
   snake: brokerage_agreement
   kind: value_object
-  bc: contract.agreement
+  bc: procurement.subcontracting
   scope: domain
   definition: 居间人向委托人报告订立合同的机会、委托人支付报酬的协议；合规敏感
   standard_ref:
@@ -11819,13 +11825,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）；ADR-0051 决定 5：劳务派遣协议、居间协议、租赁合同、职业责任保险单在
+    procurement.subcontracting（供方协议）；P-059（用户裁定，rulings.yaml）
 - id: agreement_type__lease_contract
   zh: 租赁合同
   en: LeaseContract
   snake: lease_contract
   kind: value_object
-  bc: contract.agreement
+  bc: procurement.subcontracting
   scope: domain
   definition: 出租人将租赁物交付承租人使用、收益，承租人支付租金的合同
   standard_ref:
@@ -11834,13 +11841,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）；ADR-0051 决定 5：劳务派遣协议、居间协议、租赁合同、职业责任保险单在
+    procurement.subcontracting（供方协议）；P-059（用户裁定，rulings.yaml）
 - id: agreement_type__professional_liability_insurance_policy
   zh: 职业责任保险单
   en: ProfessionalLiabilityInsurancePolicy
   snake: professional_liability_insurance_policy
   kind: value_object
-  bc: contract.agreement
+  bc: procurement.subcontracting
   scope: domain
   definition: 承保职业责任风险的保险单据
   standard_ref:
@@ -11850,7 +11858,8 @@ terms:
   forbidden: []
   note: 依据待核原文（one-architecture 补）
   status: approved
-  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）；ADR-0051 决定 5：劳务派遣协议、居间协议、租赁合同、职业责任保险单在
+    procurement.subcontracting（供方协议）；P-059（用户裁定，rulings.yaml）
 - id: org_unit_type
   zh: 组织单元类型
   en: OrgUnitType
@@ -12106,6 +12115,23 @@ terms:
   note: 事件含义（协议最终价款确认）是 one-architecture 草案的推断，请财务确认（B2-X11）
   status: approved
   confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
+- id: audit_subject_kind
+  zh: 审计对象类别
+  en: AuditSubjectKind
+  snake: audit_subject_kind
+  kind: state
+  bc: platform.audit
+  scope: domain
+  definition: 审计记录针对的对象的类别，与对象 ID 一起标识审计对象（subject_kind + subject_id）；取值 16 个对象类别 USER_ACCOUNT、EMPLOYEE、ORG_UNIT、EMERGENCY_ADMIN、ROLE、APPROVAL_TASK、APPROVAL_REQUEST、SYNC_RUN、LEGAL_ENTITY、LEGAL_ENTITY_ATTRIBUTION、TIMESHEET、WORK_CALENDAR_YEAR、NUMBERING_RULE、SOURCE_REFERENCE、SOURCE_REFERENCE_REFUSAL、AUTHORIZATION_REQUEST，加
+    3 个无对象类别 REQUEST（受访问控制的请求）、OPERATION（受方法级授权的操作）、LOGIN_ATTEMPT（未识别到人的登录尝试），无对象类别的对象 ID 为空；与外发投递的对象类别列名同义，各自有取值类型
+  standard_ref:
+  - architecture/proposals R-1b P5 卡第 11、13 节
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-16（用户，R-1b P5 门禁）
+  note: 用户裁定转正式：用户 2026-10-16 对 R-1b P5 新用语「审计对象类别」答「同意 (Recommended)」（intent 2026-10-16-061803-one-1a-next-4-同意-Recommended-问，one-1a-next-4 会话）
 common_words:
 - Id
 - Uuid
