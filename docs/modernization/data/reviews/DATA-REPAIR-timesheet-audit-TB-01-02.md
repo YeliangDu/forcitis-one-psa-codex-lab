@@ -13,3 +13,10 @@
 - 豁免与待用户决定：U-7b（见证人、操作人姓名写入 `detail`：改写员工 ID 或保留姓名）与到期日，已登记收件箱，答复前以带到期日例外登记。
 - 结论：通过
 - 数据设计：通过（one-data，2026-10-16，依据 `DATA-REPAIR-timesheet-audit.md` TB-01 第 2、3 步与 TB-02，分支提交 1279b69c，含上述裁定）
+
+## 更正（2026-10-16，U-7b 用户已答）
+用户答「改写员工 ID，阅读时再解析姓名」（收件箱 2026-10-16-one-data-u7b-attestation-names，intent `2026-10-16-…-one-data-操作登记的见证人`）。据此修改上面的 TB-01 裁定：
+- `OperationAttestation` 的操作人、见证人改写员工 ID（运维命令入参改员工 ID），`detail` 不再含姓名；
+- **不再需要** `audit-detail-exceptions.txt` 的 U-7b 例外行，也不需要该文件及到期日守护（c）；`AuditDetailGuardTest` 只保留拼接点禁字与格式检查，禁字表加 `operator=`、`witness=` 姓名拼接；允许写入清单第 14、15 行改为「代理键」，不再是 PI；
+- 第 14 行的 `loginName=` 仍删；
+- 签发行有效，范围按本更正缩小；其余裁定不变。
