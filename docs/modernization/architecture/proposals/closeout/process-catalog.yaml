@@ -182,7 +182,8 @@ processes:
   - id: PRC-20
     name: "提出并满足资源需求"
     type: business
-    stages: [VS-02.0, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
+    stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
+    stages_note: "改标：补 VS-02.1，概念阶段同样提出资源需求，原先漏标"
     owner_bc: "B-04"
     group: revenue
     status: draft
@@ -237,6 +238,7 @@ processes:
     name: "接收并确认发包人提供资料"
     type: business
     stages: [VS-02.0, VS-02.2, VS-02.3, VS-02.4]
+    stages_note: "理由：VS-02.2–.4 入口要求 OBJ-42 发包人资料「已提供」，VS-02.1 概念入口不要求，故不标 .1；概念阶段是否也应要求提资属阶段定义，单列交 one-architecture"
     owner_bc: "B-28"
     group: revenue
     status: draft
@@ -302,6 +304,7 @@ processes:
     name: "采集、关联并封存证据"
     type: single_aggregate
     stages: [VS-02.4, VS-02.7, VS-03.2, VS-04.2]
+    stages_note: "理由：证据采集是贯穿活动（STEP3 cross_stage_activities），所列阶段是证据作为门槛输入的阶段（VS-02.4 深化成果、VS-02.7 结算封存、VS-03.2 现场检查、VS-04.2 收入证据），其余阶段也可采集但不是门槛"
     owner_bc: "B-28"
     group: revenue
     status: draft
@@ -395,7 +398,8 @@ processes:
   - id: PRC-43
     name: "实施现场检查并锁定"
     type: business
-    stages: [VS-03.1, VS-03.2, VS-03.5, VS-02.6]
+    stages: [VS-03.1, VS-03.2, VS-02.6]
+    stages_note: "改标：删 VS-03.5，本流程止于检查锁定（VS-03.2 出口）；报告认可由 PRC-28 承担（VS-03.5）。VS-02.6 为施工期检查的跨价值流映射"
     owner_bc: "B-26"
     group: revenue
     status: draft
@@ -450,6 +454,7 @@ processes:
     name: "提出并认定索赔"
     type: business
     stages: [VS-04.1, VS-04.5]
+    stages_note: "理由：索赔在履约中提出、在最终价款确认时认定或并入结算；VS-04.2–.4（收入确认、开票、回款）与索赔无关。VS-04 在合同签订与最终价款确认之间没有「履约」阶段，是否补阶段属阶段定义，单列交 one-architecture"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -467,7 +472,8 @@ processes:
   - id: PRC-51
     name: "建立并更新开票与收入额度"
     type: event_policy
-    stages: [VS-04.1, VS-04.3]
+    stages: [VS-04.1, VS-04.2, VS-04.3]
+    stages_note: "改标：补 VS-04.2，额度同时是收入确认的履约义务额度（INV-22），不只服务开票"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -1278,6 +1284,7 @@ processes:
     name: "合同借阅"
     type: business
     stages: []
+    support: "行政支持活动：只处理已归档合同原件的保管与流转，不改变任何价值流阶段的进入或退出对象状态（VS-04.1 出口为协议已签署生效，归档与借阅不影响）；C-4 已定走通用审批（intent 144943）"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -1287,6 +1294,7 @@ processes:
     name: "销售合同归档"
     type: business
     stages: []
+    support: "行政支持活动：合同回签后原件移交档案，不改变 VS-04.1 出口状态（协议已签署生效）；C-4 归档并入合同模块档案功能（intent 144943）"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -1335,6 +1343,7 @@ processes:
     name: "协议借阅逾期催还"
     type: event_policy
     stages: []
+    support: "行政支持活动：借阅逾期催还，随 PRC-140，不改变任何阶段状态"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -1362,6 +1371,7 @@ processes:
     name: "冲销收入确认"
     type: business
     stages: [VS-04.2, VS-04.5]
+    stages_note: "理由：冲销是收入确认的逆向，人工更正随时可发起（VS-04.2），结算审减或协议终止触发的属 VS-04.5；不经开票与回款阶段"
     owner_bc: "B-08"
     group: revenue
     status: draft

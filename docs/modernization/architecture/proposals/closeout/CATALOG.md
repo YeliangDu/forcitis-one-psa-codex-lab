@@ -51,10 +51,10 @@
 | VS-11 | 1 |
 | VS-12 | 3 |
 | VS-13 | 12 |
-| 支撑（不在价值流上） | 7 |
-| 合计 | 108 |
+| 支撑（不在价值流上） | 9 |
+| 合计 | 110 |
 
-业务流程中尚未填 stages：10 条。
+业务流程中尚未填 stages：8 条。
 
 ## 总表
 
@@ -79,7 +79,7 @@
 | PRC-17 | 建立项目并组建团队 | business |  | VS-02.0, VS-03.1 | B-04 | revenue | draft | 否 |  |
 | PRC-18 | 编制并批准交付计划 | business |  | VS-02.0 | B-04 | revenue | draft | 否 |  |
 | PRC-19 | 编制并锁定项目预算 | business |  | VS-02.0 | B-04 | revenue | draft | 是 |  |
-| PRC-20 | 提出并满足资源需求 | business |  | VS-02.0, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6 | B-04 | revenue | draft | 否 |  |
+| PRC-20 | 提出并满足资源需求 | business |  | VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6 | B-04 | revenue | draft | 否 |  |
 | PRC-21 | 推进阶段与工作包 | single_aggregate |  | VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6 | B-04 | revenue | draft | 否 |  |
 | PRC-22 | 阶段门预警 | read_model |  | VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7 | reporting | revenue | draft | 否 |  |
 | PRC-23 | 填报并审批工时 | business |  | VS-01.2, VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6 | B-06 | revenue | draft | 是 |  |
@@ -102,7 +102,7 @@
 | PRC-40 | 结项含封存与归档：项目已结项后归档 | merged | PRC-36 |  |  | revenue | draft | 待定 |  |
 | PRC-41 | 制定检查计划并使其生效 | business |  | VS-03.1 | B-26 | revenue | draft | 否 |  |
 | PRC-42 | 发布检查表模板版本 | single_aggregate |  | VS-03.1 | B-26 | revenue | draft | 否 |  |
-| PRC-43 | 实施现场检查并锁定 | business |  | VS-03.1, VS-03.2, VS-03.5, VS-02.6 | B-26 | revenue | draft | 否 |  |
+| PRC-43 | 实施现场检查并锁定 | business |  | VS-03.1, VS-03.2, VS-02.6 | B-26 | revenue | draft | 否 |  |
 | PRC-44 | 发布客户资产类不符合项并建议外部检测 | business |  | VS-03.2, VS-03.3 | B-26 | revenue | draft | 否 |  |
 | PRC-45 | 跟踪整改并复查闭合 | business |  | VS-03.4 | B-26 | revenue | draft | 是 |  |
 | PRC-46 | 采信外部检测报告 | business |  | VS-03.4 | B-26 | revenue | draft | 否 |  |
@@ -110,7 +110,7 @@
 | PRC-48 | 提出并生效协议变更或签证 | business |  | VS-04.1 | B-05 | revenue | draft | 是 |  |
 | PRC-49 | 提出并认定索赔 | business |  | VS-04.1, VS-04.5 | B-05 | revenue | draft | 是 |  |
 | PRC-50 | 占用框架限额并提交任务订单 | business |  | VS-04.1 | B-05 | revenue | draft | 是 |  |
-| PRC-51 | 建立并更新开票与收入额度 | event_policy |  | VS-04.1, VS-04.3 | B-08 | revenue | draft | 否 |  |
+| PRC-51 | 建立并更新开票与收入额度 | event_policy |  | VS-04.1, VS-04.2, VS-04.3 | B-08 | revenue | draft | 否 |  |
 | PRC-52 | 开放可触发收入确认的证据类型 | single_aggregate |  | VS-04.2 | B-08 | revenue | draft | 否 |  |
 | PRC-53 | 确认收入 | event_policy |  | VS-04.2 | B-08 | revenue | draft | 否 |  |
 | PRC-54 | 视为同意期满处理 | business |  | VS-04.2 | B-08 | revenue | draft | 是 |  |
