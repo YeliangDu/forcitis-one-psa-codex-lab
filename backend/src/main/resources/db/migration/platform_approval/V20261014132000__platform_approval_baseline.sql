@@ -7,8 +7,8 @@ CREATE TABLE platform_approval.approval_requests (
     process_key         text        NOT NULL,
     document_id         uuid        NOT NULL,
     initiator_id        uuid        NOT NULL,
-    current_round       integer     NOT NULL CHECK (current_round >= 0),
-    current_instance_id uuid,
+    current_round       integer     NOT NULL,
+    current_instance_id uuid        NOT NULL,
     status              text        NOT NULL CHECK (status IN ('RUNNING', 'RETURNED', 'APPROVED', 'REJECTED', 'CANCELLED')),
     result_reason       text,
     created_at          timestamptz NOT NULL DEFAULT now(),
@@ -19,18 +19,22 @@ CREATE TABLE platform_approval.approval_requests (
     event_count         bigint      NOT NULL DEFAULT 0,
     summary_text        text        NOT NULL,
     CONSTRAINT uq_approval_requests_document UNIQUE (process_key, document_id),
-    CONSTRAINT ck_approval_requests_event_count CHECK (event_count >= 0)
+    CONSTRAINT ck_approval_requests_event_count CHECK (event_count >= 0),
+    CONSTRAINT ck_approval_requests_current_round CHECK (current_round >= 1),
+    CONSTRAINT ck_approval_requests_result_reason CHECK (
+        (status IN ('REJECTED', 'RETURNED', 'CANCELLED')) = (result_reason IS NOT NULL)
+        AND (result_reason IS NULL OR result_reason <> ''))
 );
-CREATE UNIQUE INDEX uk_approval_requests_current_instance_id ON platform_approval.approval_requests (current_instance_id) WHERE current_instance_id IS NOT NULL;
+CREATE UNIQUE INDEX uk_approval_requests_current_instance_id ON platform_approval.approval_requests (current_instance_id);
 COMMENT ON TABLE platform_approval.approval_requests IS '审批请求：聚合根；粒度：每个流程类型的每张业务单据一行，记录当前轮次、当前流程实例与状态，本轮的任务属于它';
 COMMENT ON COLUMN platform_approval.approval_requests.id IS '主键（UUIDv7）';
 COMMENT ON COLUMN platform_approval.approval_requests.process_key IS '流程标识（ProcessKey 枚举名）；与单据 ID 一起唯一，保证幂等发起（RULE-264/266）';
 COMMENT ON COLUMN platform_approval.approval_requests.document_id IS '单据 ID：拥有该单据的业务模块的自有 ID，与单据类型一起定位单据';
 COMMENT ON COLUMN platform_approval.approval_requests.initiator_id IS '发起人（员工 ID）：由拥有该单据的业务模块传入的当前用户；只有该人能开新一轮（I-5）';
-COMMENT ON COLUMN platform_approval.approval_requests.current_round IS '当前轮次：从 1 开始，每次重新发起加 1（RULE-278）；0 表示刚建立、尚未发起';
-COMMENT ON COLUMN platform_approval.approval_requests.current_instance_id IS '当前（或最近一轮）流程实例 ID（UUID）；每一轮有自己的实例，历史按轮次保留；同一实例至多属于一个审批请求';
+COMMENT ON COLUMN platform_approval.approval_requests.current_round IS '当前轮次：从 1 开始，每次重新发起加 1（RULE-278）';
+COMMENT ON COLUMN platform_approval.approval_requests.current_instance_id IS '当前（或最近一轮）流程实例 ID（UUID）；每一轮有自己的实例，历史按轮次保留；同一实例至多属于一个审批请求；不为空，指向发起轮次表中该请求最大轮次那一行的实例';
 COMMENT ON COLUMN platform_approval.approval_requests.status IS '审批状态：RUNNING / RETURNED（本轮已退回并结束，重提开新一轮）/ APPROVED / REJECTED / CANCELLED（RULE-289），用枚举不靠文案';
-COMMENT ON COLUMN platform_approval.approval_requests.result_reason IS '驳回、退回原因';
+COMMENT ON COLUMN platform_approval.approval_requests.result_reason IS '驳回、退回、撤销的原因；为空表示状态为运行中或已通过';
 COMMENT ON COLUMN platform_approval.approval_requests.created_at IS '创建时间';
 COMMENT ON COLUMN platform_approval.approval_requests.updated_at IS '更新时间';
 COMMENT ON COLUMN platform_approval.approval_requests.version IS '乐观锁版本';
@@ -53,7 +57,7 @@ CREATE TABLE platform_approval.start_rounds (
     CONSTRAINT uk_start_rounds_instance_id UNIQUE (instance_id),
     CONSTRAINT fk_start_rounds_approval_request_id FOREIGN KEY (approval_request_id) REFERENCES platform_approval.approval_requests (id)
 );
-COMMENT ON TABLE platform_approval.start_rounds IS '发起轮次：粒度：每个审批请求的每一轮一行；唯一约束消除并发重号（RULE-278）';
+COMMENT ON TABLE platform_approval.start_rounds IS '发起轮次：只追加；粒度：每个审批请求的每一轮一行；唯一约束消除并发重号（RULE-278）';
 COMMENT ON COLUMN platform_approval.start_rounds.id IS '主键（UUIDv7）';
 COMMENT ON COLUMN platform_approval.start_rounds.approval_request_id IS '审批请求 ID：这一轮属于哪个审批请求';
 COMMENT ON COLUMN platform_approval.start_rounds.round_number IS '轮次：同一单据内从 1 递增';
@@ -62,6 +66,21 @@ COMMENT ON COLUMN platform_approval.start_rounds.instance_id IS '该轮的流程
 COMMENT ON COLUMN platform_approval.start_rounds.created_at IS '创建时间';
 COMMENT ON COLUMN platform_approval.start_rounds.updated_at IS '更新时间';
 COMMENT ON COLUMN platform_approval.start_rounds.trigger_event_id IS '触发该轮发起的事件 ID：同一事件重复投递只开一轮（幂等）';
+
+CREATE FUNCTION platform_approval.reject_start_round_change() RETURNS trigger
+    LANGUAGE plpgsql AS $$
+BEGIN
+    RAISE EXCEPTION 'platform_approval.start_rounds is append-only: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
+END;
+$$;
+CREATE TRIGGER start_rounds_reject_update_delete BEFORE UPDATE OR DELETE ON platform_approval.start_rounds
+    FOR EACH ROW EXECUTE FUNCTION platform_approval.reject_start_round_change();
+CREATE TRIGGER start_rounds_reject_truncate BEFORE TRUNCATE ON platform_approval.start_rounds
+    FOR EACH STATEMENT EXECUTE FUNCTION platform_approval.reject_start_round_change();
+
+-- 请求先于首轮写入，同一事务提交时才检查
+ALTER TABLE platform_approval.approval_requests ADD CONSTRAINT fk_approval_requests_current_instance_id
+    FOREIGN KEY (current_instance_id) REFERENCES platform_approval.start_rounds (instance_id) DEFERRABLE INITIALLY DEFERRED;
 
 -- 审批任务属于审批请求聚合：随请求加锁、保存，不单独发事件；候选人仍由引擎持有。
 CREATE TABLE platform_approval.approval_tasks (
@@ -92,7 +111,20 @@ CREATE TABLE platform_approval.approval_tasks (
         CHECK (status <> 'CLAIMED' OR (assignee_id IS NOT NULL AND claimed_at IS NOT NULL)),
     CONSTRAINT ck_approval_tasks_completed
         CHECK (status <> 'COMPLETED' OR (completed_at IS NOT NULL AND outcome_kind IS NOT NULL AND effect_kind IS NOT NULL)),
-    CONSTRAINT fk_approval_tasks_approval_request_id FOREIGN KEY (approval_request_id) REFERENCES platform_approval.approval_requests (id)
+    CONSTRAINT fk_approval_tasks_approval_request_id FOREIGN KEY (approval_request_id) REFERENCES platform_approval.approval_requests (id),
+    CONSTRAINT fk_approval_tasks_instance_id FOREIGN KEY (instance_id) REFERENCES platform_approval.start_rounds (instance_id),
+    CONSTRAINT uk_approval_tasks_task_id_approval_request_id UNIQUE (task_id, approval_request_id),
+    CONSTRAINT ck_approval_tasks_pending_unassigned CHECK (status <> 'PENDING' OR (assignee_id IS NULL AND claimed_at IS NULL)),
+    CONSTRAINT ck_approval_tasks_outcome_effect CHECK ((outcome_kind IS NULL) = (effect_kind IS NULL)),
+    CONSTRAINT ck_approval_tasks_automatic CHECK (effect_kind IS DISTINCT FROM 'AUTOMATIC' OR outcome_kind = 'APPROVED'),
+    CONSTRAINT ck_approval_tasks_approved_hash CHECK (approved_hash IS NULL OR (outcome_kind = 'APPROVED' AND effect_kind = 'BINDING')),
+    CONSTRAINT ck_approval_tasks_overdue CHECK (overdue_at IS NULL OR due_at IS NOT NULL),
+    CONSTRAINT ck_approval_tasks_escalated CHECK (escalated_at IS NULL OR overdue_at IS NOT NULL),
+    CONSTRAINT ck_approval_tasks_not_completed CHECK (status = 'COMPLETED' OR (completed_at IS NULL AND outcome_kind IS NULL
+        AND effect_kind IS NULL AND result_reason IS NULL AND approved_hash IS NULL)),
+    CONSTRAINT ck_approval_tasks_result_reason CHECK (
+        (outcome_kind IS NULL OR outcome_kind NOT IN ('REJECTED', 'RETURNED') OR result_reason IS NOT NULL)
+        AND (result_reason IS NULL OR result_reason <> ''))
 );
 CREATE INDEX ix_approval_tasks_instance_id ON platform_approval.approval_tasks (instance_id);
 CREATE INDEX ix_approval_tasks_due_at ON platform_approval.approval_tasks (due_at) WHERE status IN ('PENDING', 'CLAIMED');
@@ -120,7 +152,7 @@ COMMENT ON COLUMN platform_approval.approval_tasks.claimed_at IS '认领时刻�
 COMMENT ON COLUMN platform_approval.approval_tasks.completed_at IS '办理时刻：任务办结的时间（含系统自动通过）；审批时效据此统计';
 COMMENT ON COLUMN platform_approval.approval_tasks.outcome_kind IS '办理结果：APPROVED 通过 / REJECTED 驳回 / RETURNED 退回；未办结为空，用枚举不靠文案';
 COMMENT ON COLUMN platform_approval.approval_tasks.effect_kind IS '办理效力：BINDING 正式 / ADVISORY 加签人的建议 / AUTOMATIC 系统自动通过（同一审批人同一节点内容未变）';
-COMMENT ON COLUMN platform_approval.approval_tasks.result_reason IS '办理意见：审批人填写的意见；没填就为空，不补默认值（RULE-280）';
+COMMENT ON COLUMN platform_approval.approval_tasks.result_reason IS '办理意见：审批人填写的意见；为空表示没填（通过时可不填，驳回、退回必填），不补默认值（RULE-280）';
 COMMENT ON COLUMN platform_approval.approval_tasks.node_name IS '节点名称：任务创建时流程图里该节点的显示名；办理记录与已办列表直接用它';
 
 
@@ -143,9 +175,14 @@ CREATE TABLE platform_approval.approval_task_records (
     created_at       timestamptz NOT NULL DEFAULT now(),
     updated_at       timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_approval_task_records PRIMARY KEY (record_id),
-    CONSTRAINT fk_approval_task_records_task_id FOREIGN KEY (task_id) REFERENCES platform_approval.approval_tasks (task_id),
+    CONSTRAINT fk_approval_task_records_task_id FOREIGN KEY (task_id, approval_request_id)
+        REFERENCES platform_approval.approval_tasks (task_id, approval_request_id),
     CONSTRAINT fk_approval_task_records_approval_request_id FOREIGN KEY (approval_request_id) REFERENCES platform_approval.approval_requests (id),
-    CONSTRAINT uk_approval_task_records_record_number UNIQUE (approval_request_id, record_number)
+    CONSTRAINT fk_approval_task_records_instance_id FOREIGN KEY (instance_id) REFERENCES platform_approval.start_rounds (instance_id),
+    CONSTRAINT uk_approval_task_records_record_number UNIQUE (approval_request_id, record_number),
+    CONSTRAINT ck_approval_task_records_record_reason CHECK (
+        (action_kind NOT IN ('REJECTED', 'RETURNED', 'TRANSFERRED', 'REASSIGNED') OR record_reason IS NOT NULL)
+        AND (record_reason IS NULL OR record_reason <> ''))
 );
 COMMENT ON TABLE platform_approval.approval_task_records IS '任务办理记录：只追加；粒度：每次对任务的认领、释放、办理、转交、改派一行；已办列表与逐轮历史从这里查，不更新、不删除';
 COMMENT ON COLUMN platform_approval.approval_task_records.record_id IS '记录标识（UUIDv7）；不表示先后，先后看办理记录序号';
@@ -160,7 +197,7 @@ COMMENT ON COLUMN platform_approval.approval_task_records.action_kind IS '办理
 COMMENT ON COLUMN platform_approval.approval_task_records.actor_id IS '操作人（用户 ID）：做这件事的人；系统自动通过时是被自动通过的审批人';
 COMMENT ON COLUMN platform_approval.approval_task_records.on_behalf_of_id IS '被代理人（用户 ID）：操作人替谁办（流程管理员改派时是原处理人）；不是代办就为空';
 COMMENT ON COLUMN platform_approval.approval_task_records.assignee_id IS '处理人（用户 ID）：转交、改派之后持有任务的人；其他动作为空';
-COMMENT ON COLUMN platform_approval.approval_task_records.record_reason IS '意见或原因：办理人填写的；没填就为空，不补默认值（RULE-280）';
+COMMENT ON COLUMN platform_approval.approval_task_records.record_reason IS '意见或原因：办理人填写的；为空表示没填（驳回、退回、转交、改派必填，其余可不填），不补默认值（RULE-280）';
 COMMENT ON COLUMN platform_approval.approval_task_records.created_at IS '创建时间';
 COMMENT ON COLUMN platform_approval.approval_task_records.updated_at IS '更新时间';
 COMMENT ON COLUMN platform_approval.approval_task_records.decided_at IS '办理时刻：这件事发生的时间';
@@ -168,6 +205,7 @@ COMMENT ON COLUMN platform_approval.approval_task_records.decided_at IS '办理�
 CREATE INDEX ix_approval_task_records_actor_id ON platform_approval.approval_task_records (actor_id, decided_at DESC, record_id DESC)
     WHERE action_kind <> 'PASSED_AUTOMATICALLY';
 CREATE INDEX ix_approval_task_records_task_id ON platform_approval.approval_task_records (task_id);
+CREATE INDEX ix_approval_task_records_instance_id ON platform_approval.approval_task_records (instance_id);
 
 CREATE FUNCTION platform_approval.reject_task_record_change() RETURNS trigger
     LANGUAGE plpgsql AS $$
@@ -195,13 +233,14 @@ CREATE TABLE platform_approval.process_archive_skips (
     created_at          timestamptz NOT NULL DEFAULT now(),
     updated_at          timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_process_archive_skips PRIMARY KEY (process_archive_skip_id),
-    CONSTRAINT uk_process_archive_skips_process_instance_id UNIQUE (process_instance_id)
+    CONSTRAINT uk_process_archive_skips_process_instance_id UNIQUE (process_instance_id),
+    CONSTRAINT ck_process_archive_skips_failure_message CHECK (char_length(failure_message) BETWEEN 1 AND 2000)
 );
 COMMENT ON TABLE platform_approval.process_archive_skips IS '被跳过的流程实例：已写入归档库但引擎删除失败，不再重复归档，只追加；粒度：每个被跳过的流程实例一行';
 COMMENT ON COLUMN platform_approval.process_archive_skips.process_archive_skip_id IS '主键（UUIDv7）';
 COMMENT ON COLUMN platform_approval.process_archive_skips.process_instance_id IS '流程实例 ID（UUID）；同一实例只记一次跳过';
 COMMENT ON COLUMN platform_approval.process_archive_skips.object_key IS '归档库中包含该实例的对象键';
-COMMENT ON COLUMN platform_approval.process_archive_skips.failure_message IS '引擎删除失败的原因';
+COMMENT ON COLUMN platform_approval.process_archive_skips.failure_message IS '引擎删除失败的异常类名链（由外到内，至多 5 层），不含消息；消息可能带数据库服务端错误详情（GUIDING_PRINCIPLES §11 O-3）';
 COMMENT ON COLUMN platform_approval.process_archive_skips.skipped_at IS '被跳过的时间';
 COMMENT ON COLUMN platform_approval.process_archive_skips.created_at IS '创建时间';
 COMMENT ON COLUMN platform_approval.process_archive_skips.updated_at IS '更新时间';
