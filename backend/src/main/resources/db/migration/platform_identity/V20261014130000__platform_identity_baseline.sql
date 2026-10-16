@@ -184,7 +184,10 @@ CREATE TABLE platform_identity.emergency_admins (
     created_at            timestamptz NOT NULL DEFAULT now(),
     updated_at            timestamptz NOT NULL DEFAULT now(),
     version               bigint      NOT NULL DEFAULT 0,
-    event_count           bigint      NOT NULL DEFAULT 0
+    event_count           bigint      NOT NULL DEFAULT 0,
+    CONSTRAINT ck_emergency_admins_account_name CHECK (account_name ~ '^[a-z][a-z0-9._-]{2,31}$'),
+    CONSTRAINT ck_emergency_admins_failed_attempts CHECK (failed_attempts >= 0),
+    CONSTRAINT ck_emergency_admins_last_totp_step CHECK (last_totp_step >= 0)
 );
 COMMENT ON TABLE platform_identity.emergency_admins IS '应急管理员：独立凭据（Argon2id + TOTP），只能从内网登录，5 次失败锁 15 分钟（RULE-316/317）；user_id 是绑定的超级管理员持有人，每人至多一个，登记至少两个（ADR-0027 第 1 项）。粒度：每个绑定的超级管理员持有人一个应急账号一行';
 COMMENT ON COLUMN platform_identity.emergency_admins.user_id IS '用户 ID：对应的员工账号，会话与权限走该账号的角色';

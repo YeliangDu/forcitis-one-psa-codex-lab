@@ -37,4 +37,31 @@ class IdentityBaselineConstraintsIntegrationTest extends IdentityIntegrationTest
         }
         insertRole("a".repeat(64), "CUSTOM");
     }
+
+    private void insertEmergencyAdmin(long person, String accountName, int failedAttempts, long totpStep) {
+        createAccount(person);
+        jdbc.sql("""
+                insert into platform_identity.emergency_admins (user_id, account_name, password_hash, totp_secret_encrypted, failed_attempts, last_totp_step)
+                values (:user, :name, 'h', 's', :failed, :step)
+                """).param("user", com.forcitis.one.fixture.doubles.TestAccounts.account(person).value()).param("name", accountName)
+                .param("failed", failedAttempts).param("step", totpStep).update();
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-identity ID-08 the emergency account name follows the registration format")
+    void id08AccountName() {
+        for (String bad : new String[] {"Admin1", "ab", "1admin", "has space", "a".repeat(33)}) {
+            refused(() -> insertEmergencyAdmin(101, bad, 0, 0), "ck_emergency_admins_account_name");
+        }
+        insertEmergencyAdmin(102, "ops.admin-1_a", 0, 0);
+        insertEmergencyAdmin(103, "a" + "b".repeat(31), 0, 0);
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-identity ID-08 the failure counter and the TOTP step are never negative")
+    void id08Counters() {
+        refused(() -> insertEmergencyAdmin(104, "counter-neg", -1, 0), "ck_emergency_admins_failed_attempts");
+        refused(() -> insertEmergencyAdmin(105, "step-neg", 0, -1), "ck_emergency_admins_last_totp_step");
+        insertEmergencyAdmin(106, "counter-ok", 5, 123456789L);
+    }
 }
