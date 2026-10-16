@@ -43,8 +43,8 @@ LOGIN = 'one_readonly_probe'
 DB = 'one_readonly_probe_db'
 DB2 = 'one_readonly_probe_db2'
 P = f'[{LOGIN}]'
-PLATFORM_REFUSAL = 4613
-PLATFORM_REFUSAL_ITEMS = (10, 15)
+PLATFORM_REFUSALS = {10: (4613,), 15: (4613, 15151)}  # 4613: no server-level DENY / GRANT here; 15151 on item 15: the login sa cannot be seen by the execution account
+PLATFORM_REFUSAL_ITEMS = tuple(PLATFORM_REFUSALS)
 
 PREPARE_MASTER = f"""CREATE DATABASE [{DB}];
 GO
@@ -79,7 +79,7 @@ ITEMS = [
     (12, [(DB, f'GRANT TAKE OWNERSHIP ON OBJECT::dbo.probe_t TO {P};')], [(DB, f'REVOKE TAKE OWNERSHIP ON OBJECT::dbo.probe_t FROM {P};')], '(g)'),
     (13, [(DB, f'GRANT CONTROL ON SCHEMA::dbo TO {P};')], [(DB, f'REVOKE CONTROL ON SCHEMA::dbo FROM {P};')], '(g), maybe (a)'),
     (14, [(DB, 'GRANT UPDATE ON OBJECT::dbo.probe_t TO public;')], [(DB, 'REVOKE UPDATE ON OBJECT::dbo.probe_t FROM public;')], '(g) public'),
-    (15, [('master', f'GRANT IMPERSONATE ON LOGIN::sa TO {P};')], [('master', f'REVOKE IMPERSONATE ON LOGIN::sa FROM {P};')], 'platform 4613, else (d)'),
+    (15, [('master', f'GRANT IMPERSONATE ON LOGIN::sa TO {P};')], [('master', f'REVOKE IMPERSONATE ON LOGIN::sa FROM {P};')], 'platform 4613 (item 15 also 15151), else (d)'),
     (17, [('master', f'CREATE USER {P} FOR LOGIN {P};')], [('master', f'DROP USER {P};')], '(f)'),
 ]
 
@@ -299,6 +299,51 @@ def create_account(secret):
     raise Stop('the probe account did not become Available in 5 minutes')
 
 
+def database_listed(name):
+    """True / False, or None when the listing cannot be read. One database by name, exact match on the parsed answer; a NotFound answer is False."""
+    rc, out, err = rds('DescribeDatabases', '--DBName', name)
+    if rc != 0:
+        return False if 'NotFound' in out + err else None
+    try:
+        return any(x.get('DBName') == name for x in json.loads(out)['Databases']['Database'])
+    except (ValueError, KeyError, TypeError):
+        return None
+
+
+def delete_databases():
+    """A database RDS has put under mirroring (a few minutes after it was made) cannot be dropped with T-SQL (3743); the RDS API does it. Only the probe's own.
+    Each is tried whether or not the listing could be read; one failing does not skip the other. Returns the names still listed at the end."""
+    left = []
+    for name in (DB2, DB):
+        try:
+            listed = database_listed(name)
+            if listed is False:
+                record(step='rds delete database', database=name, outcome='not listed')
+                continue
+            rc, request, code = None, None, None
+            for _ in range(3):
+                rc, out, err = rds('DeleteDatabase', '--DBName', name)
+                request = re.findall(r'"RequestId":\s*"([0-9A-F-]+)"', out)
+                code = re.findall(r'ErrorCode: (\S+)', out + err)
+                if rc == 0:
+                    break
+                time.sleep(10)
+            last, polls = None, 0
+            for polls in range(1, 31):
+                last = database_listed(name)
+                if last is False:
+                    break
+                time.sleep(10)
+            record(step='rds delete database', database=name, rc=rc, request_id=request[0] if request else None, error_code=code[0] if code else None,
+                   polls=polls, last_listed=last, gone=last is False)
+            if last is not False:
+                left.append(name)
+        except BaseException as failure:  # noqa: BLE001 the other database is still tried
+            record(step='rds delete database', database=name, exception=type(failure).__name__)
+            left.append(name)
+    return left
+
+
 def delete_account():
     status = account_status_retried()
     if status == '' and requested:
@@ -419,11 +464,17 @@ def cleanup():
     for db, sql in CLEANUP:
         try:
             rc, errors, _ = legacy_sql('cleanup', db, sql)
-            if rc != 0 and db != DB2 and sql != KILL_SESSIONS:
+            if rc != 0 and db != DB2 and sql != KILL_SESSIONS and 'DROP DATABASE' not in sql:  # a refused DROP DATABASE (3743: mirrored) goes through the API below
                 clean = False
         except BaseException as failure:  # noqa: BLE001 every step runs whatever the previous one did
             record(step='cleanup', db=db, exception=type(failure).__name__)
             clean = False
+    try:
+        if delete_databases():
+            clean = False
+    except BaseException as failure:  # noqa: BLE001
+        record(step='rds delete databases', exception=type(failure).__name__)
+        clean = False
     try:
         clean = delete_account() and clean
     except BaseException as failure:  # noqa: BLE001
@@ -525,7 +576,13 @@ def main(target, jar_sha256):
                     raise Stop('item 14: the probe does not see public grants on user objects, (g) public is not effective here; reported to one-coordinator and one-1a-next-2, as the runbook says')
             errors = apply(f'item {number} deviation', deviation)
             if errors:
-                if number in PLATFORM_REFUSAL_ITEMS and errors == [PLATFORM_REFUSAL]:
+                if number in PLATFORM_REFUSAL_ITEMS and len(errors) == 1 and errors[0] in PLATFORM_REFUSALS[number]:
+                    if errors[0] == 15151:  # "not found or no permission" names no object: show that sa is what the execution account cannot see, not the probe
+                        rc, _, out = legacy_sql(f'item {number} login visibility', 'master', f"SELECT ISNULL(SUSER_ID(N'sa'), 0) AS sa, ISNULL(SUSER_ID(N'{LOGIN}'), 0) AS probe;", mode='ro')
+                        seen = numbers(out)
+                        record(step=f'item {number} login visibility', sa_probe=seen[-1] if seen else None)
+                        if rc != 0 or not seen or seen[-1][0] != 0 or seen[-1][1] == 0:
+                            raise Stop(f'item {number}: 15151 is not explained by sa being invisible to the execution account')
                     record(item=number, expected=expected, outcome='platform cannot construct', sql_errors=errors)
                     if counts(f'item {number} counts') != control or fingerprint(f'item {number} fingerprint') != control_fingerprint:
                         raise Stop(f'item {number}: state changed after a refused deviation')
