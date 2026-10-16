@@ -15,3 +15,4 @@
 | S-11 | revenue 样板 | PRC-53 触发含「无异议已声明」，与 ADR-0049 决定 2「先认定、后确认」不一致 | 改为由 PRC-54 认定视为同意成立后触发确认 | revenue 组改；聚合稿修订 |
 | S-12 | revenue 样板 | approval 无法区分审批平台与聚合内校审 | CONVENTIONS 加 `approval.engine`（platform.approval / aggregate / external） | 已改 CONVENTIONS |
 | S-13 | revenue 样板 | AGG-110 证据关联加提交轮次与合同引用，超出聚合稿内含 | 采纳，属细化（诉讼证据关联性键，intent 141725）；回写聚合稿 | 聚合稿修订 |
+| S-14 | people 样板 J-1 | PRC-137、138 由谁编排 | owner 改 platform.identity：订阅 B-13 入职 / 离职事件，沿用现有边，无新边；CONVENTIONS 允许 owner_bc 写平台模块 | 已改 PRC_ALLOCATIONS、CONVENTIONS |

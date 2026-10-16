@@ -9,7 +9,7 @@
 | 流程 | `PRC-NN` | `processes.v1.yaml`；新增流程先向 one-architecture 要号 |
 | 价值流阶段 | `VS-NN.N` | `value-streams.v2.yaml` |
 | 角色 | `SH-XN`（如 `SH-C1`、`SH-E2`、`SH-M1`） | `value-streams.v2.yaml` 顶部 `stakeholders:`；系统自动步骤写 `system`；平台人工任务写 `platform` |
-| BC | `B-NN` | `ENTERPRISE_AGGREGATES_DRAFT.md` §3.2；不写模块名（模块名由 B-NN 唯一映射） |
+| BC | `B-NN` | `ENTERPRISE_AGGREGATES_DRAFT.md` §3.2；不写模块名（模块名由 B-NN 唯一映射）。平台模块编排的流程（如账号开通）`owner_bc` 写平台模块名 `platform.xxx` |
 | 聚合 | `AGG-NN` | 聚合稿 §2.2 |
 | 命令、事件 | 聚合稿 §2.2 命令列原文（中文） | 不自造；缺的写 NOTES「新用语」 |
 | 不变量 | `INV-NN` | 聚合稿 §1.2 |
