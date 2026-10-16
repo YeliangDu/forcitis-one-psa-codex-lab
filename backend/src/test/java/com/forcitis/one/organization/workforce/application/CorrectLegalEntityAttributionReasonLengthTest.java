@@ -62,8 +62,23 @@ class CorrectLegalEntityAttributionReasonLengthTest {
     }
 
     @Test
+    @DisplayName("200 code points including supplementary characters pass although UTF-16 is longer")
+    void codePointsAreCountedNotUtf16Units() {
+        String atLimit = "\uD83D\uDE00".repeat(200);
+        assertThatThrownBy(() -> run(atLimit)).isSameAs(REACHED_SUBJECT_LOOKUP);
+        String overLimit = "\uD83D\uDE00".repeat(201);
+        assertThatThrownBy(() -> run(overLimit)).isInstanceOf(DomainException.class);
+    }
+
+    @Test
     @DisplayName("surrounding blanks count, since the stored value is the original")
     void blanksCount() {
-        assertThatThrownBy(() -> run(" ".repeat(100) + "x" + " ".repeat(100))).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> run(" ".repeat(100) + "x" + " ".repeat(100)))
+                .isInstanceOfSatisfying(DomainException.class, e -> {
+                    org.assertj.core.api.Assertions.assertThat(e.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED);
+                    org.assertj.core.api.Assertions.assertThat(e.kind()).isEqualTo(ErrorKind.UNPROCESSABLE);
+                });
+        verifyNoInteractions(attributions);
+        verify(subjects, org.mockito.Mockito.never()).require(any(), any());
     }
 }

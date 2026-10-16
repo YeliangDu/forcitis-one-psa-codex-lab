@@ -63,7 +63,7 @@ public class CorrectLegalEntityAttribution {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED, ErrorKind.UNPROCESSABLE,
                     "a correction needs the reason");
         }
-        if (reason.value().length() > MAX_REASON_LENGTH) {
+        if (reason.value().codePointCount(0, reason.value().length()) > MAX_REASON_LENGTH) {
             LOG.error("ALERT organization.workforce the reason to correct an attribution of {} {} by user {} exceeds {} characters: refused", kind, subjectId,
                     correctedBy.value(), MAX_REASON_LENGTH);
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED, ErrorKind.UNPROCESSABLE,
