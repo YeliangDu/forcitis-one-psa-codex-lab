@@ -165,6 +165,12 @@ class RoleSeparatedDeploymentIT {
         assertThat(jdbc.sql("select to_regclass(:name) is not null").param("name", "platform_audit.audit_entries_p" + ahead.toString().replace("-", "")).query(Boolean.class).single())
                 .as("created by AuditPartitionJob at start-up, with the grant of the roles script").isTrue();
         assertThat(jdbc.sql("select platform_audit.create_audit_entry_partitions(date '2026-10-01', date '2026-10-01')").query(Long.class).single()).isZero();
+        assertThat(jdbc.sql("select platform_audit.create_audit_entry_partitions(date '2027-06-01', date '2027-06-01')").query(Long.class).single()).as("a month outside the baseline is created by the runtime account").isEqualTo(1L);
+        assertThat(jdbc.sql("select pg_get_userbyid(relowner) from pg_class where oid = 'platform_audit.audit_entries_p202706'::regclass").query(String.class).single())
+                .as("the new partition belongs to the owner, not to the runtime account").isEqualTo("one_dev_owner");
+        for (String privilege : List.of("TRUNCATE", "UPDATE", "DELETE")) {
+            assertThat(jdbc.sql("select has_table_privilege('one_dev_app', 'platform_audit.audit_entries_p202706', '" + privilege + "')").query(Boolean.class).single()).as(privilege).isFalse();
+        }
 
         assertThatThrownBy(() -> jdbc.sql("select platform_audit.drop_archived_audit_entry_partition(date '2026-10-01')").query(Long.class).single()).rootCause().hasMessageContaining("permission denied");
         assertThatThrownBy(() -> jdbc.sql("alter table platform_audit.audit_entries detach partition platform_audit.audit_entries_p202610").update()).rootCause().hasMessageContaining("must be owner");

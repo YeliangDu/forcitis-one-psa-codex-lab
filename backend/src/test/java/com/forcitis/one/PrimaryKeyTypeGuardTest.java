@@ -74,7 +74,7 @@ class PrimaryKeyTypeGuardTest {
 
     /** ADR-0048 decision 5: the key is exactly (id uuid, created_at timestamptz) and created_at is the range partition key. */
     private static void partitionShape(String table, DdlNamingTest.Table t, List<String> problems) {
-        if (t.partitionKey == null) {
+        if (t.partitionKey == null || !"RANGE".equals(t.partitionMethod)) {
             problems.add(table + ": registered as a partitioned table in architecture/primary-key-exemptions.txt but is not PARTITION BY RANGE");
         }
         boolean keyOk = t.primaryKey.equals(List.of("id", "created_at"))
@@ -186,5 +186,8 @@ class PrimaryKeyTypeGuardTest {
         assertThat(problems(Map.of("V1__x.sql", PARTITIONED.replace("created_at timestamptz NOT NULL,", "created_at timestamptz NOT NULL,\n    other_at timestamptz,").replace("RANGE (created_at)", "RANGE (other_at)")), registered))
                 .anyMatch(p -> p.contains("created_at must be the range partition key"));
         assertThat(problems(Map.of("V1__x.sql", PARTITIONED.replace("\nPARTITION BY RANGE (created_at)", "")), registered)).anyMatch(p -> p.contains("is not PARTITION BY RANGE"));
+        String listed = PARTITIONED.replace("RANGE (created_at)", "LIST (created_at)");
+        assertThat(problems(Map.of("V1__x.sql", listed), registered)).anyMatch(p -> p.contains("is not PARTITION BY RANGE"));
+        assertThat(problems(Map.of("V1__x.sql", listed), Set.of())).as("a LIST table is seen as partitioned, so it is not waved through as an ordinary table").anyMatch(p -> p.contains("must be listed in architecture/primary-key-exemptions.txt"));
     }
 }

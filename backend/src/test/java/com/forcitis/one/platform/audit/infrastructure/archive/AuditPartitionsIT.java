@@ -55,6 +55,9 @@ class AuditPartitionsIT {
     JdbcClient jdbc;
 
     @Autowired
+    javax.sql.DataSource dataSource;
+
+    @Autowired
     AuditEntryRepository repository;
 
     @Autowired
@@ -170,7 +173,8 @@ class AuditPartitionsIT {
 
         UUID e1 = insertEntry("2026-10-05T00:00:00Z");
         insertBatch(e1, "2026-10-05T00:00:00Z", e1, "2026-10-05T00:00:00Z", 1);
-        assertThatThrownBy(() -> created("2026-03-01", "2026-03-01")).as("a month before the archived position").hasMessageContaining("already within the archived position");
+        assertThatThrownBy(() -> created("2026-03-01", "2026-03-01")).as("a month before the archived position").hasMessageContaining("already within the archived position")
+                .rootCause().isInstanceOfSatisfying(java.sql.SQLException.class, e -> assertThat(e.getSQLState()).isEqualTo("55000"));
         assertThat(created("2026-10-01", "2026-12-01")).as("an existing partition is skipped, not refused").isZero();
         assertThat(exists("audit_entries_p202603")).isFalse();
     }
@@ -324,5 +328,58 @@ class AuditPartitionsIT {
         invalid.accept(null);
         invalid.accept(0);
         invalid.accept(-1);
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-07 the drop function waits for an uncommitted insert into the month and fails on the lock timeout; the row survives, and once it is committed the check refuses the drop")
+    void aRowInFlightIsNeitherLostNorDropped() throws Exception {
+        created("2033-02-01", "2033-02-01");
+        UUID archived = insertEntry("2033-02-03T00:00:00Z");
+        insertBatch(archived, "2033-02-03T00:00:00Z", archived, "2033-02-03T00:00:00Z", 1);
+
+        try (java.sql.Connection writer = dataSource.getConnection()) {
+            writer.setAutoCommit(false);
+            try (var statement = writer.createStatement()) {
+                statement.execute("insert into platform_audit.audit_entries (id, created_at, updated_at, action, subject_kind, subject_id) values (uuidv7(), '2033-02-10T00:00:00Z', '2033-02-10T00:00:00Z', 'test.audit.inflight', 'USER_ACCOUNT', gen_random_uuid())");
+
+                assertThatThrownBy(() -> drop("2033-02-01")).rootCause().isInstanceOfSatisfying(java.sql.SQLException.class, e -> assertThat(e.getSQLState()).as("lock_not_available").isEqualTo("55P03"));
+                statement.execute("lock table platform_audit.audit_entries in share update exclusive mode");
+                assertThatThrownBy(() -> created("2033-08-01", "2033-08-01")).as("a partition being created needs a lock that conflicts with the one held on the table, so it times out as well")
+                        .rootCause().isInstanceOfSatisfying(java.sql.SQLException.class, e -> assertThat(e.getSQLState()).isEqualTo("55P03"));
+                assertThat(exists("audit_entries_p203308")).isFalse();
+                writer.commit();
+            }
+        }
+
+        assertThat(exists("audit_entries_p203302")).isTrue();
+        assertThat(jdbc.sql("select count(*) from " + ENTRIES + " where action = 'test.audit.inflight'").query(Long.class).single()).isEqualTo(1L);
+        assertThatThrownBy(() -> drop("2033-02-01")).hasMessageContaining("after the archived position");
+        assertThat(exists("audit_entries_p203302")).isTrue();
+        assertThat(jdbc.sql("select count(*) from " + ENTRIES + " where action = 'test.audit.inflight'").query(Long.class).single()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-07 two instances creating the same month at the same time both succeed and the partition is created once")
+    void concurrentCreationsCreateOnce() throws Exception {
+        var pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        var start = new java.util.concurrent.CountDownLatch(1);
+        try {
+            List<java.util.concurrent.Future<Long>> calls = new java.util.ArrayList<>();
+            for (int i = 0; i < 2; i++) {
+                calls.add(pool.submit(() -> {
+                    start.await();
+                    return created("2033-05-01", "2033-05-01");
+                }));
+            }
+            start.countDown();
+            long total = 0;
+            for (var call : calls) {
+                total += call.get(30, java.util.concurrent.TimeUnit.SECONDS);
+            }
+            assertThat(total).isEqualTo(1L);
+        } finally {
+            pool.shutdownNow();
+        }
+        assertThat(exists("audit_entries_p203305")).isTrue();
     }
 }

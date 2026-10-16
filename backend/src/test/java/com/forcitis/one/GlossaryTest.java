@@ -49,7 +49,7 @@ class GlossaryTest {
     static final Set<String> BUILT_INS = Set.of("equals", "hashCode", "toString", "values", "valueOf", "compareTo",
             "ordinal", "name", "getClass", "describeConstable", "getDeclaringClass", "main");
     static final Pattern SCANNED_PACKAGE = Pattern.compile("com\\.forcitis\\.one\\.(kernel|.*\\.(domain|api|events|web))(\\..*)?");
-    static final Pattern CREATE_TABLE = Pattern.compile("CREATE TABLE\\s+(?:IF NOT EXISTS\\s+)?([a-z0-9_]+)\\.([a-z0-9_]+)\\s*\\((.*?)\\n\\)(?:\\s*PARTITION BY RANGE\\s*\\([a-z0-9_]+\\))?;",
+    static final Pattern CREATE_TABLE = Pattern.compile("CREATE TABLE\\s+(?:IF NOT EXISTS\\s+)?([a-z0-9_]+)\\.([a-z0-9_]+)\\s*\\((.*?)\\n\\)(?:\\s*PARTITION BY\\s+(?:RANGE|LIST|HASH)\\s*\\(\\s*[a-z0-9_]+\\s*\\))?\\s*;",
             Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
     static final Pattern ADD_COLUMN = Pattern.compile("ALTER TABLE\\s+([a-z0-9_]+)\\.([a-z0-9_]+)\\s+ADD COLUMN\\s+(?:IF NOT EXISTS\\s+)?([A-Za-z0-9_]+)",
             Pattern.CASE_INSENSITIVE);

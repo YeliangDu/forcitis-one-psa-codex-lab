@@ -21,8 +21,9 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
     private static final Logger LOG = LoggerFactory.getLogger(JdbcAuditEntryRepository.class);
     private static final int MAX_ADDRESS_LENGTH = 64;
     private static final String NO_PARTITION_STATE = "23514";
-    private static final Pattern ADDRESS_SHAPE = Pattern.compile(
-            "(?:[0-9]{1,3}(?:\\.[0-9]{1,3}){3}|(?=[^:]*:[^:]*:)(?!.*:::)[0-9A-Fa-f.:]+)(?:%[0-9A-Za-z._-]+)?");
+    private static final Pattern IPV4 = Pattern.compile("(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?:\\.(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}");
+    private static final Pattern IPV6_CHARS = Pattern.compile("[0-9A-Fa-f.:]*:[0-9A-Fa-f.:]*:[0-9A-Fa-f.:]*");
+    private static final Pattern ZONE = Pattern.compile("[0-9A-Za-z._-]+");
 
     private final JdbcClient jdbc;
     private final IdGenerator ids;
@@ -105,12 +106,21 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
     /** A late event or a missing pre-created month fails the write (no catch-all partition); the alert names the month and the event id, never the content. */
     private static void alertWhenNoPartition(DataAccessException failure, String what, UUID eventId, Instant createdAt) {
         for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-            if (cause instanceof SQLException sql && NO_PARTITION_STATE.equals(sql.getSQLState()) && sql.getMessage() != null
-                    && sql.getMessage().contains("no partition")) {
+            if (cause instanceof SQLException sql && NO_PARTITION_STATE.equals(sql.getSQLState()) && isNoPartition(sql)) {
                 LOG.error("ALERT platform.audit late {} {} for {}: no audit partition", what, eventId == null ? "" : eventId,
                         createdAt.atOffset(ZoneOffset.UTC).toLocalDate().withDayOfMonth(1));
                 return;
             }
+        }
+    }
+
+    /** The row fits no partition: a check violation (23514) that names no constraint; a violated CHECK constraint always names its constraint. The driver is a runtime dependency, so its server error is read reflectively. */
+    private static boolean isNoPartition(SQLException sql) {
+        try {
+            Object server = sql.getClass().getMethod("getServerErrorMessage").invoke(sql);
+            return server == null || server.getClass().getMethod("getConstraint").invoke(server) == null;
+        } catch (ReflectiveOperationException notTheDriver) {
+            return true;
         }
     }
 
@@ -119,10 +129,30 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
         if (address == null) {
             return null;
         }
-        if (address.length() <= MAX_ADDRESS_LENGTH && ADDRESS_SHAPE.matcher(address).matches()) {
+        if (address.length() <= MAX_ADDRESS_LENGTH && isAddress(address)) {
             return address;
         }
         LOG.error("ALERT platform.audit source address not recorded: not an address (length {})", address.length());
         return null;
+    }
+
+    /** IPv4 with four parts of 0-255, or an IPv6 literal (parsed without any name lookup), each optionally followed by a zone id. */
+    static boolean isAddress(String address) {
+        int zoneAt = address.indexOf('%');
+        String host = zoneAt < 0 ? address : address.substring(0, zoneAt);
+        if (zoneAt >= 0 && !ZONE.matcher(address.substring(zoneAt + 1)).matches()) {
+            return false;
+        }
+        if (IPV4.matcher(host).matches()) {
+            return true;
+        }
+        if (!IPV6_CHARS.matcher(host).matches()) {
+            return false;
+        }
+        try {
+            return java.net.InetAddress.getByName(host) instanceof java.net.Inet6Address || host.contains(".");
+        } catch (java.net.UnknownHostException invalid) {
+            return false;
+        }
     }
 }

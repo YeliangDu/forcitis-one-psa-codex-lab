@@ -117,7 +117,7 @@ CREATE TRIGGER tg_audit_archive_batches_append_only_truncate BEFORE TRUNCATE ON 
 -- 按月分区（UTC 月初为界，分区名 audit_entries_pYYYYMM）：为 [p_from, p_through] 内缺失的月份建分区并加 TRUNCATE 触发器，已有的跳过，返回新建个数。
 -- 不读数据库时钟：调用方（预建作业）按注入的时钟给出月份。月份已在归档位置之内的不再建分区，以免迟到的行进入已归档或已删除的区间。
 CREATE FUNCTION platform_audit.create_audit_entry_partitions(p_from date, p_through date) RETURNS integer
-    LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, platform_audit AS $$
+    LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, platform_audit, pg_temp SET lock_timeout = '5s' AS $$
 DECLARE
     v_month    date;
     v_next     date;
@@ -137,6 +137,7 @@ BEGIN
     IF (extract(year FROM p_through) * 12 + extract(month FROM p_through)) - (extract(year FROM p_from) * 12 + extract(month FROM p_from)) + 1 > 24 THEN
         RAISE EXCEPTION 'create_audit_entry_partitions: % to % is more than 24 months', p_from, p_through USING ERRCODE = 'invalid_parameter_value';
     END IF;
+    PERFORM pg_advisory_xact_lock(hashtext('platform_audit.audit_entry_partitions'));
     SELECT max(last_entry_created_at) INTO v_archived FROM platform_audit.audit_archive_batches;
     v_month := p_from;
     WHILE v_month <= p_through LOOP
@@ -144,7 +145,7 @@ BEGIN
         v_name := 'audit_entries_p' || to_char(v_month, 'YYYYMM');
         IF to_regclass(format('%I.%I', 'platform_audit', v_name)) IS NULL THEN
             IF v_archived IS NOT NULL AND make_timestamptz(extract(year FROM v_next)::int, extract(month FROM v_next)::int, 1, 0, 0, 0, 'UTC') <= v_archived THEN
-                RAISE EXCEPTION 'create_audit_entry_partitions: month % is already within the archived position %', v_month, v_archived USING ERRCODE = 'invalid_parameter_value';
+                RAISE EXCEPTION 'create_audit_entry_partitions: month % is already within the archived position %', v_month, v_archived USING ERRCODE = 'object_not_in_prerequisite_state';
             END IF;
             EXECUTE format('CREATE TABLE %I.%I PARTITION OF %I.%I FOR VALUES FROM (%L) TO (%L)', 'platform_audit', v_name, 'platform_audit', 'audit_entries',
                            to_char(v_month, 'YYYY-MM-DD') || ' 00:00:00+00', to_char(v_next, 'YYYY-MM-DD') || ' 00:00:00+00');
@@ -163,7 +164,7 @@ COMMENT ON FUNCTION platform_audit.create_audit_entry_partitions(date, date) IS 
 -- 维护角色删除在线分区（O-8，只追加约束的登记例外）：分区存在、整月在归档位置之内、行数等于首末条都落在该月的归档批次条目数之和，三者都成立才摘除并删除，返回删除的行数；任一不符报错，不删。
 -- 只授予维护角色，运行角色不能执行，也不是属主，因而不能 DETACH 或 DROP；应用代码不调用本函数。
 CREATE FUNCTION platform_audit.drop_archived_audit_entry_partition(p_month date) RETURNS bigint
-    LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, platform_audit AS $$
+    LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, platform_audit, pg_temp SET lock_timeout = '5s' AS $$
 DECLARE
     v_name     text;
     v_nextday  date;
@@ -175,6 +176,7 @@ DECLARE
     v_beyond   bigint;
     v_archived bigint;
 BEGIN
+    LOCK TABLE platform_audit.audit_archive_batches IN SHARE MODE;
     IF p_month IS NULL OR extract(day FROM p_month) <> 1 THEN
         RAISE EXCEPTION 'drop_archived_audit_entry_partition: % must be the first day of a month', p_month USING ERRCODE = 'invalid_parameter_value';
     END IF;
@@ -185,13 +187,15 @@ BEGIN
     v_nextday := (p_month + interval '1 month')::date;
     v_start := make_timestamptz(extract(year FROM p_month)::int, extract(month FROM p_month)::int, 1, 0, 0, 0, 'UTC');
     v_next := make_timestamptz(extract(year FROM v_nextday)::int, extract(month FROM v_nextday)::int, 1, 0, 0, 0, 'UTC');
+    -- 先父后子锁住父表与分区，之后才取位置、计数和核对：未提交的插入使本函数等待至超时，已提交的在核对中计入。
+    EXECUTE format('LOCK TABLE %I.%I, %I.%I IN ACCESS EXCLUSIVE MODE', 'platform_audit', 'audit_entries', 'platform_audit', v_name);
     SELECT last_entry_created_at, last_entry_id INTO v_pos_at, v_pos_id
       FROM platform_audit.audit_archive_batches ORDER BY last_entry_created_at DESC, last_entry_id DESC LIMIT 1;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'drop_archived_audit_entry_partition: nothing has been archived yet' USING ERRCODE = 'object_not_in_prerequisite_state';
     END IF;
-    EXECUTE format('SELECT count(*), count(*) FILTER (WHERE (created_at, id) > (%L, %L)) FROM %I.%I', v_pos_at, v_pos_id, 'platform_audit', v_name)
-        INTO v_rows, v_beyond;
+    EXECUTE format('SELECT count(*), count(*) FILTER (WHERE (created_at, id) > ($1, $2)) FROM %I.%I', 'platform_audit', v_name)
+        INTO v_rows, v_beyond USING v_pos_at, v_pos_id;
     IF v_beyond > 0 THEN
         RAISE EXCEPTION 'drop_archived_audit_entry_partition: % holds % entries after the archived position', v_name, v_beyond USING ERRCODE = 'object_not_in_prerequisite_state';
     END IF;

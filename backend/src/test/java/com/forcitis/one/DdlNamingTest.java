@@ -25,8 +25,10 @@ class DdlNamingTest {
     static final Path BASELINE = Path.of("architecture/ddl-naming-baseline.txt");
     static final Path CLASSIFICATION = Path.of("architecture/data-classification.txt");
     static final Pattern FILE = Pattern.compile("V(\\d{14})__([a-z]+_[a-z]+)_[a-z0-9_]+\\.sql");
-    /** Group 4 is the range partition key of a partitioned table (ADR-0048), absent otherwise. */
-    static final Pattern CREATE_TABLE = Pattern.compile("CREATE TABLE\\s+([a-z0-9_]+)\\.([a-z0-9_]+)\\s*\\((.*?)\\n\\)(?:\\s*PARTITION BY RANGE\\s*\\(\\s*([a-z0-9_]+)\\s*\\))?\\s*;", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+    /** Groups 4 and 5 are the partition method (RANGE, LIST or HASH) and key of a partitioned table (ADR-0048), absent otherwise. */
+    static final Pattern CREATE_TABLE = Pattern.compile("CREATE TABLE\\s+([a-z0-9_]+)\\.([a-z0-9_]+)\\s*\\((.*?)\\n\\)(?:\\s*PARTITION BY\\s+(RANGE|LIST|HASH)\\s*\\(\\s*([a-z0-9_]+)\\s*\\))?\\s*;", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+    /** Every table definition in a migration, whatever its shape; a partition (PARTITION OF) is not a definition of its own. */
+    static final Pattern ANY_CREATE_TABLE = Pattern.compile("CREATE\\s+TABLE\\s+(?:IF\\s+NOT\\s+EXISTS\\s+)?[a-z0-9_]+\\.[a-z0-9_]++\\s*+(?!PARTITION\\s+OF\\b)", Pattern.CASE_INSENSITIVE);
     static final Pattern SNAKE = Pattern.compile("[a-z][a-z0-9]*(_[a-z0-9]+)*");
     static final Set<String> BANNED = Set.of("psa", "cuvalue", "manhour", "man_hour", "works", "biget", "arbad", "ohproject",
             "flag", "info", "data", "temp", "tmp", "bd", "pm", "u8c", "fst");
@@ -102,6 +104,7 @@ class DdlNamingTest {
         final Map<String, Column> columns = new LinkedHashMap<>();
         final Map<String, Constraint> constraints = new LinkedHashMap<>();
         final List<String> primaryKey = new ArrayList<>();
+        String partitionMethod;
         String partitionKey;
     }
 
@@ -127,6 +130,32 @@ class DdlNamingTest {
         if (!problems.isEmpty()) {
             throw new AssertionError("DDL violates NAMING_STANDARD.md §2.3:\n  " + String.join("\n  ", problems));
         }
+    }
+
+    @Test
+    @DisplayName("every CREATE TABLE of a migration is read by the model: a table the parser cannot see would escape the naming, key and glossary guards")
+    void everyTableDefinitionIsParsed() throws IOException {
+        for (Map.Entry<String, String> migration : readMigrations().entrySet()) {
+            assertThat(undeclared(migration.getValue())).as(migration.getKey()).isZero();
+        }
+    }
+
+    @Test
+    @DisplayName("the parser guard counts a table the model cannot read (a LIST table is read, a table with an unknown clause after the column list is not)")
+    void theParserGuardCountsWhatTheModelMisses() {
+        String list = "CREATE TABLE platform_sample.things (\n    id uuid NOT NULL\n)\nPARTITION BY LIST (id);\n";
+        assertThat(undeclared(list)).isZero();
+        assertThat(model(Map.of("V1__x.sql", list)).get("platform_sample").tables.get("things").partitionMethod).isEqualTo("LIST");
+        assertThat(undeclared("CREATE TABLE platform_sample.things (\n    id uuid NOT NULL\n)\nWITH (fillfactor = 70);\n")).isEqualTo(1);
+        assertThat(undeclared("CREATE TABLE platform_sample.part PARTITION OF platform_sample.things FOR VALUES IN (1);\n-- CREATE TABLE platform_sample.c (\n")).isZero();
+    }
+
+    /** Table definitions in the text that the strict pattern did not match. */
+    static long undeclared(String sql) {
+        String code = sql.replaceAll("(?m)--.*$", "");
+        long any = ANY_CREATE_TABLE.matcher(code).results().count();
+        long parsed = CREATE_TABLE.matcher(code).results().count();
+        return any - parsed;
     }
 
     @Test
@@ -290,7 +319,8 @@ class DdlNamingTest {
             String table = t.group(2);
             Table model = schema.tables.computeIfAbsent(table, n -> new Table());
             if (t.group(4) != null) {
-                model.partitionKey = t.group(4).toLowerCase(Locale.ROOT);
+                model.partitionMethod = t.group(4).toUpperCase(Locale.ROOT);
+                model.partitionKey = t.group(5).toLowerCase(Locale.ROOT);
             }
             for (String raw : t.group(3).split(",\\s*\\n")) {
                 String line = raw.trim().replaceAll("\\s+", " ");
