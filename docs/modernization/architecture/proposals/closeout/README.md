@@ -24,43 +24,9 @@
 - 不改 `processes.v1.yaml`、聚合稿与任何 SSOT；合并成 `processes.v2.yaml`、`data-model.v1.yaml` 由 one-architecture 做。
 - 分支：每组在自己的 worktree 分支上开 PR，标题前缀 `docs(closeout-<组>)`，报 one-architecture 审后入 one-coordinator 队列。
 
-## 3. 流程骨架片段格式（在 v1 字段上增补，不删 v1 字段）
+## 3–4. 字段约定
 
-```yaml
-- id: PRC-03                 # 与 v1 同号；不新编号，新增流程先交 one-architecture 定号
-  roles:                     # 参与角色，取 value-streams.v2.yaml 的干系人 SH-
-    - {id: SH-C1, as: 发起}
-  steps:                     # 沿用 v1 steps，每步补：
-    - command: 提交报价版本
-      aggregate: AGG-12
-      actor: SH-E2           # 人工步骤填干系人；系统策略填 system
-      decision:              # 判断点（可空）：条件与各分支去向
-        - {when: 金额超授权, goto: 审批}
-      approval:              # 人工审批节点（可空）：走 platform.approval，写单据类型（暂名）与审批人角色
-        doc_type: 报价审批
-        approver: SH-M1
-      cross_bc:              # 跨 BC（可空）：方式 event / api，对方 BC，事件或接口名
-        - {mode: event, to: B-05, name: 报价已通过}
-```
-
-规则：判断点只写业务条件，不写字段；审批单据类型名先用中文暂名，汇总交 one-glossary；`cross_bc` 的方向必须与 `ENTERPRISE_AGGREGATES_DRAFT.md` §4.1 依赖边一致，不一致写进 `NOTES.md` 的接缝问题，不自行改边。
-
-## 4. 表级片段格式（全貌级，不到字段）
-
-```yaml
-- aggregate: AGG-39
-  bc: B-06
-  tables:
-    - name: timesheets              # 表名按 NAMING_STANDARD（snake_case 复数），schema 前缀由 BC 定
-      role: root                    # root / child / version / link / staging
-      key: uuid_v7                  # 自有表 UUIDv7（§14.1）
-      references:                   # 同聚合内外键；跨聚合只记 ID 引用
-        - {to: AGG-19, by: project_id, cross_bc: true}
-      versioned: false              # D6 / D17：主数据或配置要版本化写 true 并注明区间口径
-      history_migration: full       # full / open_items / none（U-3、U-4：默认 full；例外写理由）
-      sensitivity: internal         # 初判，取 data-classification.txt 级别名；不确定写 tbd
-      column_families: [条目, 状态, 费率版本引用, 审计列]   # 列族，不列字段
-```
+统一以 `CONVENTIONS.md` 为准（流程骨架片段、表级片段、标识、NOTES 小节）。
 
 ## 5. 接缝规则
 
