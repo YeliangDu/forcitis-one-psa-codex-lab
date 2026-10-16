@@ -50,8 +50,9 @@ def skeleton_usage(docs):
         for _k, u in cc.units_of(doc):
             for c in u.get("commands") or []:
                 cmd = c.get("command") if isinstance(c, dict) else c
-                if u.get("aggregate") and cmd:
-                    used[(u["aggregate"], cc.base_cmd(cmd))].append(f"{g}:{u['id']}")
+                agg = (c.get("aggregate") if isinstance(c, dict) else None) or u.get("aggregate")
+                if agg and cmd:
+                    used[(agg, cc.base_cmd(cmd))].append(f"{g}:{u['id']}")
             steps = cc.unit_steps(u)
             for i, s in enumerate(steps, 1):
                 kind = cc.classify(s, u)
@@ -206,7 +207,8 @@ S_DOCS = {"g": {"processes": [{"id": "PRC-90", "steps": [
     {"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-1", "command": "批准"},
     {"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-1", "command": "未登记命令"},
     {"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-2", "command": "别的聚合命令"},
-    {"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-3", "command": "运行"}]}]}}
+    {"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-3", "command": "运行"}]},
+    {"id": "PRC-91", "type": "single_aggregate", "aggregate": "AGG-1", "commands": [{"command": "孤儿命令", "aggregate": "AGG-5"}]}]}}
 
 
 def self_test():
@@ -214,7 +216,7 @@ def self_test():
     r = run(S_CMDS, S_MACH, used, changing)
     exp = {
         "孤儿命令（目录有、骨架无人用）": ["AGG-1 冲销", "AGG-1 孤儿命令"],
-        "骨架命令未入目录": ["AGG-1 未登记命令", "AGG-2 别的聚合命令", "AGG-3 运行"],
+        "骨架命令未入目录": ["AGG-1 未登记命令", "AGG-2 别的聚合命令", "AGG-3 运行", "AGG-5 孤儿命令"],
         "无状态未写理由": ["AGG-4"],
         "标了无状态却写了状态或转换": ["AGG-4"],
         "转换引用未声明的状态": ["AGG-1: ['未声明']"],

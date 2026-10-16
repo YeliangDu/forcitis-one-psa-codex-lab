@@ -156,11 +156,12 @@ def unit_steps(u):
 
 
 def transition_approvals(u):
-    """Single-aggregate transitions that carry an approval, as self-contained steps on the unit's aggregate (CONVENTIONS section 5)."""
-    out = []
-    for t in u.get("transitions") or []:
-        if isinstance(t, dict) and t.get("approval"):
-            out.append({"aggregate": u.get("aggregate"), "command": t.get("command"), "actor": t.get("actor") or (t.get("by") or [None])[0],
+    """Single-aggregate commands / transitions that carry an approval, as self-contained steps (CONVENTIONS section 5)."""
+    out, seen = [], set()
+    for t in (u.get("commands") or []) + (u.get("transitions") or []):
+        if isinstance(t, dict) and t.get("approval") and (t.get("aggregate"), t.get("command")) not in seen:
+            seen.add((t.get("aggregate"), t.get("command")))
+            out.append({"aggregate": t.get("aggregate") or u.get("aggregate"), "command": t.get("command"), "actor": t.get("actor") or (t.get("by") or [None])[0],
                         "approval": t["approval"], "transition": f"{t.get('from')}→{t.get('to')}"})
     return out
 
