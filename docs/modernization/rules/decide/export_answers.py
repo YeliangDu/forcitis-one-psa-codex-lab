@@ -3,7 +3,8 @@
 只认用户点过「确认提交」的答复：先用 ArtifactData list 把集合 answers 与 answers-submit 存到同一个 out_dir，再运行
 python3 docs/modernization/rules/decide/export_answers.py <单子> <out_dir>
 提交记录有两种：新版整页「检查答案」一次提交（文档 id 即提交编号，picks 含全部题）与旧版按组提交（文档 id 为组 id）。
-同一题有多次提交时取最晚的一次；该次提交之后答复又改过的题算草稿，导出失败并列出，须请用户重新提交。"""
+同一题有多次提交时取最晚的一次（按提交时刻 at，缺 at 的旧记录排最前）；提交后答复的选择或说明与提交记录不一致的题算草稿，导出失败并列出，须请用户重新提交。
+比较按内容，不比较时间（设备时钟可能不一致）；答复文档被删（用户点了「恢复推荐」）视为回到推荐项、说明为空。"""
 import glob, json, os, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -23,14 +24,19 @@ def export(sheet, base):
         d = load(f)
         d["_id"] = os.path.basename(f)[:-5]
         subs.append(d)
-    subs.sort(key=lambda d: d.get("at", ""))
+    subs.sort(key=lambda d: d.get("at") or "")
     out, stale = {}, []
     for d in subs:
         for k, v in (d.get("picks") or {}).items():
             if k.startswith(sheet + "~"):
-                out[k] = dict(v, submission=d.get("number") or d["_id"], submitted=d["at"])
+                out[k] = dict(v, submission=d.get("number") or d["_id"], submitted=d.get("at") or "")
     for k, v in out.items():
-        if answers.get(k, {}).get("at", "") > v["submitted"]:
+        a = answers.get(k)
+        if a is None:
+            changed = (not v.get("recommended")) or bool(v.get("note"))   # 答复文档不在：回到推荐项、说明为空
+        else:
+            changed = a.get("choice") != v.get("choice") or (a.get("note") or "") != (v.get("note") or "")
+        if changed:
             stale.append(k)
     return out, sorted(stale)
 
