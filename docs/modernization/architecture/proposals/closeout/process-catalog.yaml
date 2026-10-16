@@ -1327,3 +1327,12 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
+  - id: PRC-146
+    name: "协议借阅逾期催还"
+    type: event_policy
+    stages: []
+    owner_bc: "B-05"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
