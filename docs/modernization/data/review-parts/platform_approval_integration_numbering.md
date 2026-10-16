@@ -9,21 +9,21 @@
 
 | 表 | 结论 | 阻断 | 高 | 中 | 低 |
 |---|---|---|---|---|---|
-| platform_approval.approval_requests | 需修改 | 0 | 1 | 3 | 1 |
+| platform_approval.approval_requests | 需修改 | 0 | 0 | 4 | 1 |
 | platform_approval.start_rounds | 需修改 | 0 | 0 | 1 | 0 |
 | platform_approval.approval_tasks | 需修改 | 0 | 0 | 1 | 3 |
 | platform_approval.approval_task_records | 需修改 | 0 | 0 | 1 | 2 |
 | platform_approval.process_archive_skips | 需修改 | 0 | 0 | 2 | 0 |
 | platform_integration.event_publication | 通过（框架表，注册表 FRAMEWORK） | 0 | 0 | 0 | 0 |
 | platform_integration.event_publication_archive | 需修改（仅注释） | 0 | 0 | 0 | 1 |
-| platform_integration.outbound_deliveries | 需修改 | 0 | 0 | 3 | 4 |
+| platform_integration.outbound_deliveries | 需修改 | 0 | 0 | 4 | 3 |
 | platform_integration.source_references | 需修改 | 0 | 0 | 1 | 2 |
 | platform_numbering.numbering_rules | 需修改 | 0 | 0 | 1 | 2 |
-| platform_numbering.numbering_rule_versions | 需修改 | 0 | 0 | 2 | 1 |
-| platform_numbering.numbering_counters | 需修改 | 0 | 0 | 0 | 1 |
-| platform_numbering.legacy_numbers | 需修改 | 0 | 0 | 1 | 1 |
-| 跨表共性（不计入各表） | — | 0 | 0 | 4 | 2 |
-| 合计 | | 0 | 1 | 20 | 20 |
+| platform_numbering.numbering_rule_versions | 需修改 | 0 | 1 | 1 | 1 |
+| platform_numbering.numbering_counters | 需修改 | 0 | 0 | 1 | 0 |
+| platform_numbering.legacy_numbers | 需修改 | 0 | 0 | 2 | 0 |
+| 跨表共性（不计入各表） | — | 0 | 1 | 3 | 2 |
+| 合计 | | 0 | 2 | 22 | 17 |
 
 整体判断：主键（O2）、外键索引（O10 的外键部分）、乐观锁（O5）、时间类型、`timestamptz`、无 PG `ENUM`、无 `CASCADE`、无软删除标志（`numbering_rules.is_active` 除外，见 NR-2）、表注释含粒度（框架表除外）、状态 `CHECK` 取值与 Java 枚举一致（B3a 取值层面）都通过。主要问题集中在「状态与字段成对约束没有落到库里」（B3 / B5）、「同 schema 内引用缺外键」（B4）、保留期与分级的口径（C3 / C4，多项要用户定）。
 
@@ -31,7 +31,7 @@
 
 ### platform_approval.approval_requests
 
-**AR-1（高）B3 / B5：「拒、退回、撤销必须有原因」只在应用里保证，库里没有成对 CHECK**
+**AR-1（中）B3 / B5：「拒、退回、撤销必须有原因」只在应用里保证，库里没有成对 CHECK**
 - 证据：`V20261014132000__platform_approval_baseline.sql:12-13`（`status` 含 REJECTED / RETURNED / CANCELLED，`result_reason` 可空，无成对 CHECK）；应用侧承担者 `DecideTasks.java:108`（驳回须有原因）、`ReturnToInitiator.java:42`、`ApprovalRequest.java:285,342-345`（撤回、撤销、转交、改派须有原因）；用户决定见 `BUSINESS_RULES.md` RULE-280 修订段「Rejects and returns still require a reason」（2026-10-14）。
 - 反向也缺：`RUNNING`、`APPROVED` 时 `result_reason` 必须为空（`ApprovalRequest.restart` 把它置空、`approve` 传 null），库里没约束。
 - 同类缺口还在 `approval_tasks`（`outcome_kind IN ('REJECTED','RETURNED')` 且 `effect_kind = 'BINDING'` 时 `result_reason` 应非空）与 `approval_task_records`（`action_kind IN ('REJECTED','RETURNED','TRANSFERRED','REASSIGNED')` 时 `record_reason` 应非空；`ApprovalRequest.java:188,198`）。三处合并成本条，不另计。
@@ -141,7 +141,7 @@
 - 证据：`OutboundDeliveryPurgeJob.java` 的 DELETE 按 `status IN (...) AND updated_at < ?` 过滤；现有索引只有 `outbound_deliveries_due_idx`（PENDING）与 `outbound_deliveries_dead_idx`（`status` 上只含 DEAD_LETTER）。每日一次、行数小，仅记录。
 - 建议：数据量大于预期时加 `(status, updated_at)` 部分索引。依据：O10。
 
-**OD-6（低）C4：分级登记与 ADR-0043 第 3 项表不一致，自由文本列未判**
+**OD-6（中）C4：分级登记与 ADR-0043 第 3 项表不一致，自由文本列未判**
 - 证据：`data-classification.txt:23-24` 仍为 `SENSITIVE`，ADR-0043 第 3 项表为 `INTERNAL + PI`（用户 U-4(b)，已定）；该文件改四段格式前，本条作为卡内分级表登记：`recipient_codes`、`skipped_recipient_codes`：INTERNAL、PI、用途「向审批人推送待办卡片」。`last_error`（外部接口返回文本，可能带收件人 ID）、`handled_note`、`title`、`description` 未判（待用户决定第 5 项）。
 - 依据：C4、ADR-0043 第 1–3 项。
 
@@ -181,7 +181,7 @@
 - 证据：迁移 `:94-120` 有版本号、生效日、作者、确认人、确认时间，没有 `decision_ref`；`SESSION_PLAYBOOK.md:286`（配置类版本表须含批准人、决定出处）、`:409`。
 - 建议：加 `decision_ref text`（含义：用户决定的 intent 或 ADR 编号；种子行写 ADR-0010 第 5 项）与长度、非空串 CHECK。依据：D15、D17 细则 2。
 
-**NV-2（中）B3 / B5：`CONFIRMED` 状态不要求有确认人与确认时间**
+**NV-2（高）B3 / B5：`CONFIRMED` 状态不要求有确认人与确认时间**
 - 证据：迁移 `:104,:114-119` 只约束「作者不得确认自己的版本」「两个确认人不同」「确认人与确认时间成对」；`JdbcNumberingRuleRepository.update`（`:148-166`）写入状态与确认列；触发器 `guard_rule_version_change`（`:141-163`）只管状态流转，不管 `CONFIRMED` 必须有确认。`NumberingRule.completeIfAllGiven`（`NumberingRule.java:187-193`）在业务确认齐全后才置 `CONFIRMED`，凭证号另需财务确认。
 - 建议：加 `ck_numbering_rule_versions_confirmed`：`status <> 'CONFIRMED' OR confirmed_by IS NOT NULL`；凭证号需要财务确认的条件依赖单据类型，库里可在触发器内查 `numbering_rules.document_type`，落不成 CHECK 则在注册表写明由聚合保证。依据：B3、B5、ADR-0027 第 2 项第 4 条。
 
@@ -191,7 +191,7 @@
 
 ### platform_numbering.numbering_counters
 
-**NC-1（低）O4 / O8：取值与格式约束不全**
+**NC-1（中）O4 / O8：取值与格式约束不全**
 - 证据：迁移 `:34-45`：`document_type` 无 CHECK 也无指向 `numbering_rules(document_type)` 的外键（`uk_numbering_rules_document_type` 可作被引用键，注册表基线登记其为「可扩展登记项」）；`period_key` 注释写了 `- / 2026 / 202610 / 20261014`，无格式 CHECK；`last_value` 无 `>= 1`（`start_value` 恒 ≥ 1）。
 - 建议：加外键或 CHECK；`period_key ~ '^(-|[0-9]{4}|[0-9]{6}|[0-9]{8})$'`；`last_value >= 1`。依据：O4、O8（`_key` 格式）、§2.4a-5。
 
@@ -201,7 +201,7 @@
 - 证据：`JdbcLegacyNumberRepository.java:47-57`（`source_system = ? AND document_type = ? AND starts_with(legacy_number, ?) AND legacy_number > ? ORDER BY legacy_number LIMIT ?`）；现有索引 `uk_legacy_numbers_...`（`:68`）为 `(source_system, document_type, legacy_number)`，`starts_with` 不是索引条件，只能从范围起点或游标处顺序扫描并过滤；老单据量（仅工时单近 24 个月已 12 万张，`ENTERPRISE_INFO_MAP_DRAFT.md` OBJ-66）下前缀靠后的检索接近全范围扫描。数据库排序规则未核，建在默认排序规则上的 B 树对 `LIKE 'x%'` 同样不可用。
 - 建议：为该路径建 `text_pattern_ops` 索引并把条件改成可用索引的前缀写法，或在查询里用范围条件 `legacy_number >= prefix AND legacy_number < prefix_upper`；先 EXPLAIN。依据：O10、§14.1 D19。
 
-**LN-2（低）B7 / O8：取值与单据类型约束**
+**LN-2（中）B7 / O8：取值与单据类型约束**
 - 证据：迁移 `:59`（`source_system` 取值含 `ORG_SOURCE`，组织源不持有单据编号，对单据原编号无意义）；`:60`（`document_type` 无 CHECK，基线已登记）。
 - 建议：`source_system` 取值收窄到有单据编号的来源；`document_type` 补 CHECK 或外键。依据：B7、CS-1.8。
 
@@ -226,7 +226,7 @@
 - 证据：`ENTERPRISE_INFO_MAP_DRAFT.md` 全文检索无审批请求、编号规则、来源对照、外发投递对应的 OBJ（只有 OBJ-28 工作日历提到「审批时限」）；注册表角色为 `AGGREGATE_ROOT`（`approval_requests`、`source_references`）、`CONFIG_VERSIONED`（`numbering_rules`）属业务类。
 - 建议：交 one-architecture 判：补「平台对象」，或把这几张表在注册表改登记为技术表并写服务于哪个用例。B1 规定业务类表缺对象时「停，交 one-architecture，不自行建表」，这些表已建，按补审处理，不回滚。依据：B1。
 
-**X-6（中）D7 / D17 细则 6：使用方不记所用编号规则版本**
+**X-6（高）D7 / D17 细则 6：使用方不记所用编号规则版本**
 - 证据：全库 `db/migration` 里除 `platform_numbering` 外没有 `numbering_rule_version_id` 一列（`grep` 无结果）；`cost_timesheet.timesheets` 有 `timesheet_number` 但不记发号所用版本；ADR-0033 第 1 项第 5 条、K11 都要求「已发的编号可追溯到版本」。目前靠 `inForceOn(业务日期)` 重算，不可审计。
 - 建议：单据表带 `numbering_rule_version_id`（该卡属 `cost.timesheet`，建议由 one-data 转 `cost.timesheet` 的下一张涉数据卡）。依据：D7、D17 细则 6、ADR-0033。
 
