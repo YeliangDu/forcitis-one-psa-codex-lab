@@ -20,10 +20,10 @@
 
 | 项 | 值 |
 |---|---|
-| 在途 PR | #258 ADR-0043/0044/0045（已采纳，排队；ADR-0044 须在 one-rules #249 之后合并）；#222 ADR-0041（排队）→ #224 ADR-0042；#226 intent。排队分支不得再推 |
-| 等用户 | 全企业业务对象确认页 https://claude.ai/artifact/Nmexu1PxCx5bqbbZiAbSLA（一级 19 / 次级 61 / 非对象 21，39 题；答复读 db `answers`、`answers-submit`） |
-| 答复后 | 回溯统一售前段口径（PRESALES_*，冲突 C-38）→ METHOD 第 4–5 步（不变量 → 聚合 → BC），全部段做到聚合和 BC（用户定） |
-| #258 合并后 | 通知 one-1a-par 收紧 F-1 验收（Q1 c、Q3 a、Q4 b 员工 ID、Q5 d）；起草 ADR-0046 期间模型含第 13 期（opus 一次 + 评审一轮，Phase 2 accounting.period 骨架 PR 前定稿；建议见 `proposals/FD46_RECOMMENDATION.md`） |
+| 在途 PR | 本 PR（ADR-0046、0047 草稿与批准页、用语草案、ACL_BOUNDARY D-8）；#258、#264 已合入 |
+| 等用户 | ADR-0046、0047 批准页 https://claude.ai/artifact/CtoezQ9CY25i9xmPWGkp1F （5 题，db `answers-submit`）；Q06 阶段类型（用户另行提供）；Q13 项目团队名册须调研 |
+| 下一步 | 信息图已答复（intent 233152、234418，草案冲突 C-41–C-52）：回溯统一售前段口径（PRESALES_*，C-38）→ METHOD 第 4–5 步（不变量 → 聚合 → BC）；ADR-0046 批准后起草「第 13 期启用与法定账切换衔接」后续 ADR（G1 第一个 ledger PR 前）；ADR-0047 批准后 F-1–F-8 经 one-rules 交财务、法务、审计师 |
+| 已转交 | 财务两事（企业规模、A7 的 N）→ one-rules；新词与 C-41 → one-glossary（确认单等 #263）；F-1 验收收紧 → one-1a-par；R-1b P4 D-4 判分阶段落地、P5 主键例外判偏离（照原文改），落地记录以卡为准 |
 | 方法第 4 稿 | 依 intent 221201（按对象命名的能力图、法律事实例外、全部段到 BC、子域 = 命名空间）、222319 / 222350（BIZBOK 五项 + G178/G190/G211，冲突以 BIZBOK 为准）；草案 `METHOD_V3_DRAFT.md`、`FRAMEWORKS_V3_ADDITIONS_DRAFT.md` 与 opus 评审意见；随最终一次性 ADR 落地（intent 211634） |
 | 其他待办 | #222 合并后 C1 卡补到期端口 ExternalSubjectEmployees 与 SSOT `expiring_ports`；「区域」数据范围维度随信息图组织单元类型题定后排期；身份生命周期 C1 确认页未出 |
 | 新规矩 | 选型先做适配研究；交用户前按性质对抗检查；子代理 haiku 取数、sonnet 调研起草复核做页、opus 只做 ADR 起草与首轮评审、安全判定、结构设计；行业通行做法为主、生产数据只作参考；取证子代理只用 one_evidence_ro 与既有通道 |

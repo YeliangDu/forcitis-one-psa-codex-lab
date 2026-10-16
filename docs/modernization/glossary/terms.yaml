@@ -129,7 +129,6 @@ terms:
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
   homonyms:
-  - contract_riskdelivery__responsible_party
   - contract_changeorder__responsible_party
 - id: business_period
   zh: 经营期间
@@ -444,7 +443,7 @@ terms:
   en: Contract
   snake: contract
   kind: aggregate
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 与客户的收入合同（采购/分包合同另属采购子域，独立语义）；四形态：独立合同/框架协议/任务订单/内部结算协议
   standard_ref:
   - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
@@ -460,14 +459,14 @@ terms:
   - 销售合同
   status: approved
   note: CAS 14 / IFRS 15 第一步「识别与客户订立的合同」；收入合同
-  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_type
   zh: 合同形态
   en: ContractType
   snake: contract_type
   kind: value_object
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 独立合同 / 框架协议 / 任务订单 / 内部结算协议 四形态枚举（决定必填要件与主体规则）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -475,14 +474,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_draft
   zh: 合同草案
   en: ContractDraft
   snake: contract_draft
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 未审批签署的合同工作态（可修改；基线化后转不可变演进）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -496,14 +495,14 @@ terms:
   forbidden:
   - 待签合约
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_source_ref
   zh: 合同来源
   en: ContractSourceRef
   snake: contract_source_ref
   kind: value_object
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 草案来源：赢单转化 / 直建（例外原因+审批必填）/ 历史导入（LEGACY_MIGRATION 标记，豁免承诺比对）/ 框架下任务订单
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -511,14 +510,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: customer_party
   zh: 客户方主体
   en: CustomerParty
   snake: customer_party
   kind: role
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 合同甲方的客户引用与签约瞬间冻结快照（customerId 稳定引用 + 名称/法定标识快照——历史基线不随客户主数据演变漂移；内部结算协议形态为空、改用关联法人对）；付款/开票/项目业主主体同构引用（缺省=客户方主体）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -526,14 +525,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: signature_evidence
   zh: 签署证据
   en: SignatureEvidence
   snake: signature_evidence
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 合同签署的证据留存（签署文件、时间、主体、方式——经电子合同防腐层接入）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -541,14 +540,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: approval_evidence
   zh: 审批证据
   en: ApprovalEvidence
   snake: approval_evidence
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 合同审批结果事实（审批实例、结论、审批人），取自 FORCITIS one 的审批流程
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -556,14 +555,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: active_baseline_version
   zh: 当前有效基线
   en: ActiveBaselineVersion
   snake: active_baseline_version
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 同一合同同一时间唯一生效的基线版本（新版本生效旧版本原子转被取代态）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -571,14 +570,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: deviation_disposition
   zh: 承诺差异处理结论
   en: DeviationDisposition
   snake: deviation_disposition
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 承诺差异的处理终态：已接受/已拒绝/已豁免（不利差异处于待处理时禁止基线化）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -586,14 +585,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_gap_item
   zh: 合同缺口项
   en: ContractGapItem
   snake: contract_gap_item
   kind: aggregate
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 单条缺口的生命周期实体（识别→处理中→已解除 / 已豁免；豁免=风险被授权接受≠缺口不存在）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -601,14 +600,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: waive_contract_gap
   zh: 缺口豁免
   en: WaiveContractGap
   snake: waive_contract_gap
   kind: command
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 管理层授权接受缺口风险的显式动作（审批留痕，缺口事实仍可审计）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -616,14 +615,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_gap_waived
   zh: 合同缺口已豁免
   en: ContractGapWaived
   snake: contract_gap_waived
   kind: domain_event
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 管理层授权接受缺口风险的显式动作（审批留痕，缺口事实仍可审计）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -635,14 +634,14 @@ terms:
     source: B1 决策页 NM-02 改名；旧名是另一条词条的名字或泛称，不列入禁用
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: tm_cap
   zh: T&M 封顶
   en: TmCap
   snake: tm_cap
   kind: value_object
-  bc: contract.baseline
+  bc: contract.agreement
   definition: T&M 合同的可选计费上限（有 cap 时开票准入执行硬检查，Q5 业主确认）
   standard_ref:
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
@@ -654,12 +653,13 @@ terms:
   forbidden: []
   status: approved
   scope: domain
+  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: framework_capacity_reservation
   zh: 框架限额占用
   en: FrameworkCapacityReservation
   snake: framework_capacity_reservation
   kind: aggregate
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 任务订单登记对框架协议金额限额的占用（占用→创建→失败释放的编排补偿；Q4 限额可选）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -667,14 +667,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: payment_term_item
   zh: 付款条件项
   en: PaymentTermItem
   snake: payment_term_item
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 付款周期、账期、付款前置条件、逾期条款的合约侧定义
   standard_ref:
   - 中华人民共和国民法典·合同编
@@ -689,14 +689,14 @@ terms:
   - 付款条件档案
   status: approved
   note: IFRS 15 重大融资成分判断需读付款条件
-  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: import_legacy_contract_baseline
   zh: 历史合同导入
   en: ImportLegacyContractBaseline
   snake: import_legacy_contract_baseline
   kind: command
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 存量合同的受控迁移入口（LEGACY_MIGRATION 来源标记、豁免承诺比对、审计可辨）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -704,7 +704,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: acl
   acl_class: 过渡期
 - id: contract_signed
@@ -712,7 +712,7 @@ terms:
   en: ContractSigned
   snake: contract_signed
   kind: domain_event
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 签署完成的经营事实事件（签约额指标的事实来源；语义护栏：仅签署事实、不作交付/WIP/开票充分依据）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -720,14 +720,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: scope_item
   zh: 合同范围条目
   en: ScopeItem
   snake: scope_item
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 工作条款内的范围行（服务阶段/交付成果/排除项/客户输入责任）
   standard_ref:
   - PMI PMBOK Guide
@@ -736,12 +736,13 @@ terms:
   forbidden: []
   status: approved
   scope: domain
+  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: framework_link
   zh: 框架挂靠信息
   en: FrameworkLink
   snake: framework_link
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 任务订单对框架协议的挂靠引用（框架 ID+订单编号+占用金额）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -749,14 +750,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: internal_settlement_term
   zh: 内部结算条款
   en: InternalSettlementTerm
   snake: internal_settlement_term
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 内部结算协议的关联法人对与结算口径引用（ADR-011，只登记不计算）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -764,14 +765,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_period
   zh: 合同期间
   en: ContractPeriod
   snake: contract_period
   kind: value_object
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 合同起止日（任务订单期间须落框架期间内）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -779,14 +780,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: baseline_version_no
   zh: 基线版本号
   en: BaselineVersionNo
   snake: baseline_version_no
   kind: value_object
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 单调递增的基线版本标识
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -794,14 +795,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_completeness_result
   zh: 合同完备度结论
   en: ContractCompletenessResult
   snake: contract_completeness_result
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 六项判定（签署/范围/金额/期限/计价要件/主体清晰）的结论与缺口清单
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -809,14 +810,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: legal_entity_ref
   zh: 我方法人引用
   en: LegalEntityRef
   snake: legal_entity_ref
   kind: value_object
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 签约法人+交付法人的结构载体（词表概念 ContractingLegalEntity 的实现形态，共享内核 LegalEntityId）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -824,14 +825,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: change_order_ref
   zh: 变更引用
   en: ChangeOrderRef
   snake: change_order_ref
   kind: value_object
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 基线版本 2+ 的变更批准事实引用（变更编号+event_id）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -839,14 +840,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: opportunity_accepted_snapshot
   zh: 赢单预填快照
   en: OpportunityAcceptedSnapshot
   snake: opportunity_accepted_snapshot
   kind: value_object
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 赢单来源草案绑定的 OpportunityAccepted 本地快照
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -854,14 +855,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: proposal_commitment_snapshot
   zh: 承诺比对基准快照
   en: ProposalCommitmentSnapshot
   snake: proposal_commitment_snapshot
   kind: value_object
-  bc: contract.baseline
+  bc: contract.agreement
   definition: ProposalCommitted 的本地快照（承诺差异比对基准）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -869,14 +870,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: project_owner_party
   zh: 项目业主主体
   en: ProjectOwnerParty
   snake: project_owner_party
   kind: role
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 合同上的项目业主客户引用（客户 BC 多主体之一的合约侧登记；开票主体合约侧统一沿用客户 BC 码名 InvoicedParty、不另造 InvoiceTitleParty——评估 D-06 双码名裁决 2026-07-07）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -884,14 +885,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_working_terms
   zh: 合同工作条款
   en: ContractWorkingTerms
   snake: contract_working_terms
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 当前可编辑的合同条款容器（范围/开票计划/费率/付款条件）；与基线快照分离——基线生效时复制生成不可变快照（定稿审查 P0-5）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -899,14 +900,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_signing_exception
   zh: 签署例外
   en: ContractSigningException
   snake: contract_signing_exception
   kind: aggregate
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 签署前客户转黑名单的唯一放行通道（例外类型+管理层审批+证据留痕；特批通道开放性待 Q59）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -914,14 +915,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: legacy_baseline_quality
   zh: 历史导入质量等级
   en: LegacyBaselineQuality
   snake: legacy_baseline_quality
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: LEGACY_MIGRATION 数据质量四级：COMPLETE/PARTIAL/MINIMAL/UNVERIFIED——UNVERIFIED 不得作 WIP 与开票依据（定稿审查 P1-4）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -929,7 +930,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: acl
   acl_class: 过渡期
 - id: correct_contract_party
@@ -937,7 +938,7 @@ terms:
   en: CorrectContractParty
   snake: correct_contract_party
   kind: command
-  bc: contract.baseline
+  bc: contract.agreement
   definition: DRAFT 限定的主体修正命令（留痕；合并重绑建议的人工确认入口——合并不静默切换合同主体）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -945,14 +946,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_baseline
   zh: 合同基线
   en: ContractBaseline
   snake: contract_baseline
   kind: aggregate
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 签署审批后生效的合同事实真相版本
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -966,14 +967,14 @@ terms:
   status: approved
   change_ref: G-29
   note: 实体 ContractBaseline，事件 ContractBaselined 保留
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: baseline_version
   zh: 基线版本
   en: BaselineVersion
   snake: baseline_version
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 单调递增、历史不可变的基线快照（版本2+仅由已批准变更产生）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -981,14 +982,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_scope
   zh: 合同范围
   en: ContractScope
   snake: contract_scope
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 基线内的范围条目，WBS 挂接与超范围判断的基准
   standard_ref:
   - PMI PMBOK Guide
@@ -997,12 +998,13 @@ terms:
   forbidden: []
   status: approved
   scope: domain
+  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: performance_condition
   zh: 履约条件
   en: PerformanceCondition
   snake: performance_condition
   kind: value_object
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 合同约定的交付、质量、验收条件
   standard_ref:
   - 中华人民共和国民法典·合同编
@@ -1011,12 +1013,13 @@ terms:
   forbidden: []
   status: approved
   scope: domain
+  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: pricing_model
   zh: 计价模式
   en: PricingModel
   snake: pricing_model
   kind: value_object
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 现役三种：固定总价 / T&M / 成本加酬金（**形态与计价正交** P0-1；Q6 三种履约计量方式佐证）；**封闭枚举+开放规格**：新计价类型经扩展协议注册（词表定名→规格注册→WIP 计量确认→schema 扩值→ADR），即插即用（业主需求 2026-07-06）
   standard_ref:
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
@@ -1026,12 +1029,13 @@ terms:
   forbidden: []
   status: approved
   scope: domain
+  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: pricing_model_spec
   zh: 计价模式规格
   en: PricingModelSpec
   snake: pricing_model_spec
   kind: value_object
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 每种计价模式的行为契约：必备商务条件集、履约计量方法、开票准入档案、基线快照字段集、数理守恒规则——不变式通用化校验的策略载体；新模式必须 ADR+策略实现、不做运行时配置
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1039,14 +1043,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: fixed_price
   zh: 固定总价
   en: FixedPrice
   snake: fixed_price
   kind: value_object
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 按里程碑/节点开票计划计价的模式
   standard_ref:
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
@@ -1056,12 +1060,13 @@ terms:
   forbidden: []
   status: approved
   scope: domain
+  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: time_and_materials
   zh: T&M 工时计费
   en: TimeAndMaterials
   snake: time_and_materials
   kind: value_object
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 可计费工时×费率计价的模式（须有费率表）
   standard_ref:
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
@@ -1072,12 +1077,13 @@ terms:
   status: approved
   note: IFRS 15 B16 「有权开票金额」实务简化常用于 T&M
   scope: domain
+  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: framework_agreement
   zh: 框架协议
   en: FrameworkAgreement
   snake: framework_agreement
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 挂靠任务订单的框架合同（限额按合同约定，Q4 已确认）
   standard_ref:
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
@@ -1086,12 +1092,13 @@ terms:
   forbidden: []
   status: approved
   scope: domain
+  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: task_order
   zh: 任务订单
   en: TaskOrder
   snake: task_order
   kind: aggregate
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 挂靠已生效框架协议的独立聚合实例
   standard_ref:
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
@@ -1105,14 +1112,14 @@ terms:
   status: approved
   change_ref: G-29
   note: 词表以事件名充当实体名；实体 TaskOrder，事件 TaskOrderRegistered 保留
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: cost_plus
   zh: 成本加酬金
   en: CostPlus
   snake: cost_plus
   kind: value_object
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 成本实报实销+约定酬金的计价模式
   standard_ref:
   - AACE International RP 10S-90 Cost Engineering Terminology
@@ -1121,12 +1128,13 @@ terms:
   forbidden: []
   status: approved
   scope: domain
+  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: rate_card_item
   zh: 费率表
   en: RateCardItem
   snake: rate_card_item
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: T&M 计费的职级/角色费率清单（含币种与有效期）
   standard_ref:
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
@@ -1142,12 +1150,13 @@ terms:
   status: approved
   core: true
   scope: domain
+  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: contract_clause
   zh: 合同条款
   en: ContractClause
   snake: contract_clause
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 合同的结算条款实体（固定总价阶段款 FIXED_LUMP_SUM——98% 主形态 / 按量结算款 UNIT_RATE——品控按次月结；业主口述 2026-07-07）：clauseId 为**经济事实挂接锚点**（收入/成本/开票/回款按条款挂载，业主裁决）；聚合内实体非独立聚合根（生命周期依附+总额守恒聚合内自证）；轻状态机 PENDING→ACTIVE→SETTLEABLE→SUPERSEDED/VOIDED（开票/结清为读模型投影态）；原
     BillingScheduleItem 升级并入
   standard_ref:
@@ -1185,14 +1194,14 @@ terms:
   note: 条款是收入 / 成本 / 开票的挂接锚点，语义接近准则「履约义务」，又兼作付款节点；需财务确认二者关系，见 G-21
   old_codes: []
   core: true
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: evidence_level
   zh: 证据效力等级
   en: EvidenceLevel
   snake: evidence_level
   kind: value_object
-  bc: contract.riskdelivery
+  bc: contract.agreement
   definition: 预开工/风险交付证据的司法效力四级分级（一级盖章文件/二级官方邮箱确认+交付回执/三级沟通与履约痕迹/四级口头——系统判定不可人工改；项目部章须授权佐证方判一级）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1200,14 +1209,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contracting_legal_entity
   zh: 签约法人
   en: ContractingLegalEntity
   snake: contracting_legal_entity
   kind: role
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 合同的我方法人主体（与交付法人可不同，均必填）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1215,14 +1224,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: commitment_deviation
   zh: 承诺差异
   en: CommitmentDeviation
   snake: commitment_deviation
   kind: aggregate
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 顾问建议书承诺快照与合同基线的差异记录（比对为基线生效前置、不利差异须有处理结论；记录事实发布 CommitmentDeviationRecorded）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1230,14 +1239,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_completeness
   zh: 合同完备度
   en: ContractCompleteness
   snake: contract_completeness
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 签署/范围/金额/期限/计价要件的完备结论
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1245,14 +1254,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_gap_identified
   zh: 合同缺口
   en: ContractGapIdentified
   snake: contract_gap_identified
   kind: domain_event
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 完备度缺陷的显式风险事实（承载于合同缺口项实体，非主状态；是否允许缺口下交付归风险交付 BC）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1260,14 +1269,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: change_order
   zh: 变更
   en: ChangeOrder
   snake: change_order
   kind: aggregate
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 合同范围/价格/工期的正式修改（增补协议是落地形式之一）
   standard_ref:
   - GB/T 50500《建设工程工程量清单计价标准》（原 GB 50500-2013 规范）
@@ -1301,14 +1310,14 @@ terms:
   - 销售合同变更
   status: approved
   note: 国标「工程变更」，FIDIC Cl.13 Variation；进入核算时对应 CAS 14 / IFRS 15「合同变更」(contract modification)
-  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: change_order_draft
   zh: 变更意向
   en: ChangeOrderDraft
   snake: change_order_draft
   kind: entity
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 变更的识别登记态（影响评估的前置）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1316,14 +1325,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: impact_assessment
   zh: 影响评估
   en: ImpactAssessment
   snake: impact_assessment
   kind: entity
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 变更的范围/成本/工期/价格影响（ΔCO，F038 分量）
   standard_ref:
   - PMI PMBOK Guide
@@ -1332,13 +1341,13 @@ terms:
   forbidden: []
   status: approved
   scope: domain
-  confirmed: 2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: unapproved_work_flag
   zh: 未批先干
   en: UnapprovedWorkFlag
   snake: unapproved_work_flag
   kind: entity
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 已执行未获批的变更风险标记（F170 落地率分母差，必须可视）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1346,14 +1355,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: supplemental_agreement
   zh: 增补
   en: SupplementalAgreement
   snake: supplemental_agreement
   kind: entity
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 以增补协议落地的重大变更形式
   standard_ref:
   - 中华人民共和国民法典·合同编
@@ -1362,13 +1371,13 @@ terms:
   forbidden: []
   status: approved
   scope: domain
-  confirmed: 2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: site_visa
   zh: 现场签证
   en: SiteVisa
   snake: site_visa
   kind: aggregate
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 现场事实的客户签认（证据，不必然改基线）
   standard_ref:
   - GB/T 50500《建设工程工程量清单计价标准》（原 GB 50500-2013 规范）
@@ -1382,14 +1391,14 @@ terms:
   status: approved
   change_ref: G-26
   note: 中文改用国标原文「现场签证」；英文 SiteVisa 为业主确认的中国 AEC 方言（03 词表），FIDIC 无对等术语，暂保留
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: site_visa_time_window
   zh: 现场签证时效
   en: SiteVisaTimeWindow
   snake: site_visa_time_window
   kind: value_object
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 签认的时间窗口（按项目类型配置、默认 14 天，超窗标记取证风险，Q18 已确认）
   standard_ref:
   - GB/T 50500《建设工程工程量清单计价标准》（原 GB 50500-2013 规范）
@@ -1401,14 +1410,14 @@ terms:
   forbidden:
   - 签证时效
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: claim
   zh: 索赔
   en: Claim
   snake: claim
   kind: aggregate
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 一方对另一方的补偿主张（双向：我方主张/客户主张）
   standard_ref:
   - GB/T 50500《建设工程工程量清单计价标准》（原 GB 50500-2013 规范）
@@ -1419,13 +1428,13 @@ terms:
   status: approved
   note: FIDIC 2017 Cl.20 Employer's and Contractor's Claims
   scope: domain
-  confirmed: 2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: claim_asserted
   zh: 索赔通知
   en: ClaimAsserted
   snake: claim_asserted
   kind: domain_event
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 合同时限内的正式主张通知（超时限记时限风险）
   standard_ref:
   - FIDIC Conditions of Contract for Construction 2017（Red Book）
@@ -1434,12 +1443,13 @@ terms:
   forbidden: []
   status: approved
   scope: domain
+  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: claim_time_bar
   zh: 索赔时限
   en: ClaimTimeBar
   snake: claim_time_bar
   kind: value_object
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 合同约定的索赔通知期限
   standard_ref:
   - FIDIC Conditions of Contract for Construction 2017（Red Book）
@@ -1448,12 +1458,13 @@ terms:
   forbidden: []
   status: approved
   scope: domain
+  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: risk_delivery
   zh: 风险交付
   en: RiskDelivery
   snake: risk_delivery
   kind: aggregate
-  bc: contract.riskdelivery
+  bc: contract.agreement
   definition: 合同不完备或越界状态下的受控例外交付
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1461,14 +1472,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: risk_delivery_authorization
   zh: 风险交付授权
   en: RiskDeliveryAuthorization
   snake: risk_delivery_authorization
   kind: aggregate
-  bc: contract.riskdelivery
+  bc: contract.agreement
   definition: 额度+期限+责任方三要素的例外授权（同项目同类型同时段唯一）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1476,14 +1487,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: uncontracted_delivery
   zh: 无合同交付
   en: UncontractedDelivery
   snake: uncontracted_delivery
   kind: state
-  bc: contract.riskdelivery
+  bc: contract.agreement
   definition: 交付启动时无生效合同基线（起算锚点，F169 证据，Q1 已确认从严口径）
   standard_ref:
   - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
@@ -1493,12 +1504,13 @@ terms:
   status: approved
   note: CAS 14 合同成立五条件未满足时不得确认收入
   scope: domain
+  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: out_of_scope_delivery
   zh: 超范围交付
   en: OutOfScopeDelivery
   snake: out_of_scope_delivery
   kind: aggregate
-  bc: contract.riskdelivery
+  bc: contract.agreement
   definition: 超出基线范围+已批准变更的先行投入
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1506,14 +1518,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: scope_creep_identified
   zh: 无签证范围蔓延
   en: ScopeCreepIdentified
   snake: scope_creep_identified
   kind: domain_event
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 未正式化的隐性范围扩张（F171，交付侧闸口为 OutOfScopeWorkDetected）
   standard_ref:
   - PMI PMBOK Guide
@@ -1522,12 +1534,13 @@ terms:
   forbidden: []
   status: approved
   scope: domain
+  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: contract_risk
   zh: 合约风险
   en: ContractRisk
   snake: contract_risk
   kind: entity
-  bc: contract.riskdelivery
+  bc: contract.agreement
   definition: 合约子域风险事实的统称（敞口对齐 F127A）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1535,14 +1548,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: risk_type
   zh: 风险类型
   en: RiskType
   snake: risk_type
   kind: value_object
-  bc: contract.riskdelivery
+  bc: contract.agreement
   definition: 无合同/合同缺口/超范围/前端高风险承接四类
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1550,14 +1563,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: risk_level
   zh: 风险等级
   en: RiskLevel
   snake: risk_level
   kind: value_object
-  bc: contract.riskdelivery
+  bc: contract.agreement
   definition: 授权审批层级路由的风险分档
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1565,14 +1578,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: authorized_limit
   zh: 授权额度
   en: AuthorizedLimit
   snake: authorized_limit
   kind: entity
-  bc: contract.riskdelivery
+  bc: contract.agreement
   definition: 风险交付授权的三要素之二（成本口径上限与起止日）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1580,14 +1593,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: authorization_period
   zh: 授权期限
   en: AuthorizationPeriod
   snake: authorization_period
   kind: value_object
-  bc: contract.riskdelivery
+  bc: contract.agreement
   definition: 风险交付授权的三要素之二（成本口径上限与起止日）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1595,32 +1608,34 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_riskdelivery__responsible_party
   zh: 责任承担方
-  en: ResponsibleParty
-  snake: responsible_party
+  en: AuthorizationResponsibleParty
+  snake: authorization_responsible_party
   kind: role
-  bc: contract.riskdelivery
-  definition: 授权三要素之三（BU/法人/责任人）
+  bc: contract.agreement
+  definition: 授权三要素之三（BU / 法人 / 责任人）；合同 BC 合并后与变更中的「责任方」区别开，故英文名加授权前缀
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
   confidence: high
-  aliases: []
+  aliases:
+  - name: ResponsibleParty
+    type: old-code
+    deprecated: true
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后同 bc 内 ResponsibleParty 两条之一改名
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）；GL2 确认单（用户 2026-10-16 逐组提交，11
+    题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后同 bc 内 ResponsibleParty 两条之一改名（用户裁定，rulings.yaml）
   scope: domain
-  homonyms:
-  - operations_facts__responsible_party
-  - contract_changeorder__responsible_party
 - id: uncontracted_exposure
   zh: 无合同风险敞口
   en: UncontractedExposure
   snake: uncontracted_exposure
   kind: metric
-  bc: contract.riskdelivery
+  bc: contract.agreement
   definition: NR+CA+AR 三段合计的无合同敞口（F127A）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1644,14 +1659,14 @@ terms:
   status: approved
   change_ref: G-27
   note: 定义专指无合同敞口（NR+CA+AR，F127A），通用名 RiskExposure 与其它风险敞口歧义；且无合同时不存在准则口径合同资产，CA 段应为未开票在制
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: regularized
   zh: 转正
   en: Regularized
   snake: regularized
   kind: domain_event
-  bc: contract.riskdelivery
+  bc: contract.agreement
   definition: 合同生效/变更批准后的授权复核关闭
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1659,14 +1674,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: halted
   zh: 叫停
   en: Halted
   snake: halted
   kind: domain_event
-  bc: contract.riskdelivery
+  bc: contract.agreement
   definition: 风险交付的主动终止（通知交付侧）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1674,14 +1689,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: scope_changed
   zh: 范围变化
   en: ScopeChanged
   snake: scope_changed
   kind: domain_event
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 变更认定的范围影响事实
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1689,14 +1704,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: change_order_approved
   zh: 变更批准
   en: ChangeOrderApproved
   snake: change_order_approved
   kind: domain_event
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 客户批准变更（携批准证据与 ΔCO）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1704,14 +1719,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: site_visa_confirmed
   zh: 现场签证签认
   en: SiteVisaConfirmed
   snake: site_visa_confirmed
   kind: domain_event
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 客户代表对签证的确认动作
   standard_ref:
   - GB/T 50500《建设工程工程量清单计价标准》（原 GB 50500-2013 规范）
@@ -1723,14 +1738,14 @@ terms:
   forbidden:
   - 签认
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_changeorder__responsible_party
   zh: 责任方
   en: ResponsibleParty
   snake: responsible_party
   kind: role
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 变更/签证/索赔的归因必填维度（对齐 dim_scope）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1738,17 +1753,16 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
   homonyms:
   - operations_facts__responsible_party
-  - contract_riskdelivery__responsible_party
 - id: reason_category
   zh: 原因分类
   en: ReasonCategory
   snake: reason_category
   kind: value_object
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 变更/签证/索赔的归因必填维度（对齐 dim_scope）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
@@ -1756,14 +1770,14 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: claim_settled
   zh: 达成
   en: ClaimSettled
   snake: claim_settled
   kind: domain_event
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 索赔谈判的结案（携 SETTLE_AMT）
   standard_ref:
   - FIDIC Conditions of Contract for Construction 2017（Red Book）
@@ -1772,12 +1786,13 @@ terms:
   forbidden: []
   status: approved
   scope: domain
+  confirmed: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
 - id: liquidated_damages
   zh: 违约金
   en: LiquidatedDamages
   snake: liquidated_damages
   kind: value_object
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 客户主张的扣罚（PEN，认定在本 BC、贷项执行在 AR，Q19 已确认）
   standard_ref:
   - 中华人民共和国民法典·合同编
@@ -1802,7 +1817,7 @@ terms:
   status: approved
   change_ref: G-20
   note: 「罚款」在中文法律语境指行政处罚；合同扣罚为违约金（民法典第五百八十五条），FIDIC Cl.8.8 Delay Damages；核算上属可变对价
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: wbs_node
   zh: WBS
@@ -2234,36 +2249,52 @@ terms:
   status: approved
   confirmed: 2026-10-14（业务 Admin，用语确认页）
   scope: domain
-- id: quality_issue
-  zh: 质量问题
-  en: QualityIssue
-  snake: quality_issue
+- id: nonconformity
+  zh: 不符合项
+  en: Nonconformity
+  snake: nonconformity
   kind: aggregate
   bc: delivery.acceptance
-  definition: 识别→确认→处置→关闭的质量缺陷生命周期
+  definition: 我方成果或客户资产（含第三方工作）未满足规定要求的事项，类型区分我方成果与客户资产；识别、确认、处置、关闭的生命周期；原「质量问题」「发现」并入
   standard_ref:
   - GB/T 19000-2016 / ISO 9000:2015 质量管理体系 基础和术语
   confidence: medium
-  aliases: []
+  aliases:
+  - name: 质量问题
+    type: standard-zh
+    deprecated: true
+    source: GL 确认单 B2-E01（用户 2026-10-16 同意）；全企业业务对象 Q32；依据 GB/T 19000（ISO 9000）不合格
+  - name: QualityIssue
+    type: old-code
+    deprecated: true
+    source: GL 确认单 B2-E01（用户 2026-10-16 同意）；全企业业务对象 Q32；依据 GB/T 19000（ISO 9000）不合格
   forbidden: []
   status: approved
   note: ISO 9000 nonconformity
   scope: domain
-  confirmed: 2026-10-15（用户，B2 类别判定）
-- id: blocking_quality_issue
-  zh: 阻断性质量问题
-  en: BlockingQualityIssue
-  snake: blocking_quality_issue
+  confirmed: 2026-10-15（用户，B2 类别判定）；GL 确认单 B2-E01（用户 2026-10-16 同意）；全企业业务对象 Q32；依据 GB/T 19000（ISO 9000）不合格（用户裁定，rulings.yaml）
+- id: blocking_nonconformity
+  zh: 阻断性不符合项
+  en: BlockingNonconformity
+  snake: blocking_nonconformity
   kind: entity
   bc: delivery.acceptance
-  definition: 未关闭则阻断验收通过的质量问题
+  definition: 未关闭则阻断验收通过的不符合项
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
   confidence: high
-  aliases: []
+  aliases:
+  - name: 阻断性质量问题
+    type: standard-zh
+    deprecated: true
+    source: GL 确认单 B2-E01（用户 2026-10-16 同意）；随不符合项连带改名
+  - name: BlockingQualityIssue
+    type: old-code
+    deprecated: true
+    source: GL 确认单 B2-E01（用户 2026-10-16 同意）；随不符合项连带改名
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL 确认单 B2-E01（用户 2026-10-16 同意）；随不符合项连带改名（用户裁定，rulings.yaml）
   scope: domain
 - id: concession_acceptance
   zh: 让步接受
@@ -2330,14 +2361,14 @@ terms:
   snake: quality_loss
   kind: metric
   bc: delivery.acceptance
-  definition: 挂质量问题与责任方的损失金额（QL）
+  definition: 挂不符合项与责任方的损失金额（QL）
   standard_ref:
   - FORCITIS 03-通用语言（内部概念，准则 / 国标无对应条目）
   confidence: medium
   aliases: []
   forbidden: []
   status: approved
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL 确认单 B2-E01（用户 2026-10-16 同意）；随不符合项连带改定义（用户裁定，rulings.yaml）
   scope: domain
 - id: rework_rate
   zh: 返工率
@@ -3415,12 +3446,12 @@ terms:
   note: 无合同即不满足 CAS 14 合同成立条件：永不进入 ContractAsset，只存在于管理口径未开票在制
   scope: domain
 - id: revenue_recognition
-  zh: 收入确认单
+  zh: 收入确认
   en: RevenueRecognition
   snake: revenue_recognition
-  kind: aggregate
+  kind: business_rule
   bc: receivables.wip
-  definition: 凭客户确认（验收单、邮件确认、签字日期）按合同条款确认收入的单据；审批通过即确认收入，收入期间取客户签字日所在月；法定入账另为 StatutoryRevenueBooked
+  definition: 按客户确认的事实与合同条款确认收入的规则（时点与金额的判定口径），在开票与收入额度聚合内逐行执行，每行是一条收入确认行；不是一张单据；审批通过即确认收入，收入期间取客户签字日所在月；法定入账另为 StatutoryRevenueBooked
   standard_ref:
   - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
   - IFRS 15 Revenue from Contracts with Customers
@@ -3464,6 +3495,10 @@ terms:
   - name: ProgressRecognition
     type: old-code
     deprecated: true
+  - name: 收入确认单
+    type: dialect
+    deprecated: true
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X06：类别改 business_rule，原「收入确认单」列为方言别名
   forbidden:
   - CuValue
   - Cuvalue
@@ -3478,12 +3513,13 @@ terms:
   - 已确认产值
   - 客户产值
   - ProgressRecognition
+  - 收入确认单
   status: approved
   change_ref: G-12
   note: 用户 2026-10-14 裁定：「产值确认单就是收入确认单，系统用收入确认这个语言，现在的叫法可以归为方言」。ACC-R01：客户价值确认是确认收入的唯一触发点。事件名 RevenueRecognized
   core: true
   scope: domain
-  confirmed: 2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X06：类别改 business_rule，原「收入确认单」列为方言别名（用户裁定，rulings.yaml）
 - id: period_adjustment
   zh: 期间调整
   en: PeriodAdjustment
@@ -3542,9 +3578,12 @@ terms:
   confidence: high
   aliases: []
   forbidden: []
-  status: approved
+  status: deprecated
   scope: domain
-  confirmed: 2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X04（用户裁定，rulings.yaml）
+  replaced_by: receivable
+  until: 应收款项聚合落地（随收入链 bc 排期）；需与 one-architecture 确认 AGG-49 去掉质保金类
+  owner: one-architecture
 - id: cash_received
   zh: 回款
   en: CashReceived
@@ -4338,7 +4377,7 @@ terms:
   en: Quote
   snake: quote
   kind: aggregate
-  bc: presales.quoting
+  bc: presales.opportunity
   definition: 报价编制、审批与定价的独立聚合（2026-07-05 聚合根严格评估拆出）：工时估算×职级费率、五分量全成本、折扣管控、版本链（**每版本一个聚合实例**：调整产生新实例携前版引用，SUPERSEDED/VOIDED 为实例终态——冷启动提问 5 显式化 2026-07-07）；草拟→提交→BU 审定→生效流转
   standard_ref:
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
@@ -4360,14 +4399,14 @@ terms:
   - 报价档案
   status: approved
   core: true
-  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
   scope: domain
 - id: cost_estimate_node
   zh: 成本估算树
   en: CostEstimateNode
   snake: cost_estimate_node
   kind: entity
-  bc: presales.quoting
+  bc: presales.opportunity
   definition: 报价成本估算树的节点（分量 × 层级）
   standard_ref:
   - AACE International RP 10S-90 Cost Engineering Terminology
@@ -4383,14 +4422,14 @@ terms:
   status: approved
   change_ref: G-5
   core: true
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
   scope: domain
 - id: labor_estimate_line
   zh: 工时估算明细
   en: LaborEstimateLine
   snake: labor_estimate_line
   kind: entity
-  bc: presales.quoting
+  bc: presales.opportunity
   definition: 报价内按职级的预估工时明细行（职级 × 工时 × 费率 = 人工小计）
   standard_ref:
   - AACE International RP 10S-90 Cost Engineering Terminology
@@ -4406,14 +4445,14 @@ terms:
   status: approved
   change_ref: G-1
   core: true
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
   scope: domain
 - id: opportunity
   zh: 商机
   en: Opportunity
   snake: opportunity
   kind: aggregate
-  bc: presales.quoting
+  bc: presales.opportunity
   definition: 立项跟进的销售机会，评估→报价→承诺→转化的全生命周期对象
   standard_ref:
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
@@ -4429,13 +4468,13 @@ terms:
   status: approved
   core: true
   scope: domain
-  confirmed: 2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
 - id: customer
   zh: 客户
   en: Customer
   snake: customer
   kind: aggregate
-  bc: presales.customer
+  bc: presales.opportunity
   definition: 具备独立签约与付款主体资格的法律责任实体的主数据档案（判定标准=能否独立签合同、独立承担付款义务，业主报告 2026-07-06）；唯一法定标识，合并保留历史
   standard_ref:
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
@@ -4449,16 +4488,20 @@ terms:
     type: legacy-table
     deprecated: true
   forbidden: []
-  status: approved
+  status: deprecated
   core: true
   scope: domain
-  confirmed: 2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）；GL2 确认单（用户 2026-10-16 逐组提交，11
+    题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X02（用户裁定，rulings.yaml）
+  replaced_by: customer_role
+  until: 往来单位 BC 落地（须新 ADR 取代 ADR-0017 决定 1），代码里还没有客户相关类型
+  owner: one-architecture
 - id: rate_card
   zh: 费率卡
   en: RateCard
   snake: rate_card
   kind: aggregate
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 合同约定的计费费率集合（RateCardItem 的聚合）
   standard_ref:
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
@@ -4482,7 +4525,7 @@ terms:
   status: approved
   core: true
   change_ref: G-3
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: project
   zh: 项目
@@ -5048,7 +5091,7 @@ terms:
   en: PerformanceObligation
   snake: performance_obligation
   kind: entity
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 合同中向客户转让可明确区分商品或服务的承诺，收入确认的计量单元
   standard_ref:
   - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
@@ -5062,14 +5105,14 @@ terms:
   - 合同条款（若财务确认等同）
   status: approved
   change_ref: G-21
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: transaction_price
   zh: 交易价格
   en: TransactionPrice
   snake: transaction_price
   kind: value_object
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 企业因向客户转让商品或服务而预期有权收取的对价金额，含可变对价估计
   standard_ref:
   - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
@@ -5090,14 +5133,14 @@ terms:
   - 合同额
   status: approved
   change_ref: G-21
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: variable_consideration
   zh: 可变对价
   en: VariableConsideration
   snake: variable_consideration
   kind: value_object
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 交易价格中随折让、违约金、奖励、索赔结果等变动的部分
   standard_ref:
   - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
@@ -5107,14 +5150,14 @@ terms:
   forbidden: []
   status: approved
   change_ref: G-20
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: contract_modification
   zh: 合同变更（会计口径）
   en: ContractModification
   snake: contract_modification
   kind: domain_event
-  bc: contract.changeorder
+  bc: contract.agreement
   definition: 经批准的合同范围或价格变更在收入核算上的处理事实（单独合同 / 原合同终止新立 / 累积追加调整）
   standard_ref:
   - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
@@ -5124,7 +5167,7 @@ terms:
   forbidden: []
   status: approved
   change_ref: G-21
-  confirmed: 2026-10-14（业务 Admin，用语确认页）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: costs_to_obtain_contract
   zh: 合同取得成本
@@ -5226,7 +5269,7 @@ terms:
   en: RemainingPerformanceObligation
   snake: remaining_performance_obligation
   kind: metric
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 已签约未履约部分分摊的交易价格（行业称在手合同额 / backlog）
   standard_ref:
   - 企业会计准则第 14 号——收入（财会〔2017〕22 号）
@@ -5252,7 +5295,7 @@ terms:
   - 合约储备
   status: approved
   change_ref: G-21
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，用语确认第三轮）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: onerous_contract
   zh: 亏损合同
@@ -5585,7 +5628,7 @@ terms:
   en: BillRateCard
   snake: bill_rate_card
   kind: aggregate
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 对客计费费率卡（与成本费率卡 StandardCostRateCard 对称）
   standard_ref:
   - PSA 行业通行写法（Kantata / Certinia / Deltek 等）
@@ -5594,7 +5637,7 @@ terms:
   forbidden: []
   status: approved
   change_ref: G-3
-  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页）；2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: utilization_rate
   zh: 利用率
@@ -6379,7 +6422,7 @@ terms:
   snake: audit_subject
   kind: value_object
   bc: platform.audit
-  definition: 被审计的业务对象，键形如 {type}:{id}
+  definition: 被审计的业务对象，由对象类别与对象 ID 共同标识（subject_kind + subject_id）；没有对象的审计类别（受访问控制的请求、受方法级授权的操作、未识别到人的登录尝试）对象 ID 为空
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md（Phase 1a）
   confidence: medium
@@ -6390,7 +6433,7 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#subject）
-  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，B2 类别判定）；R-1b P5 卡第 11 节开工前术语门禁（one-1a-next-4 提出，one-glossary 2026-10-16 预判；技术性对齐，改掉原定义里的键形式 {type}:{id}）（用户裁定，rulings.yaml）
   scope: domain
 - id: business_owner
   zh: 业务负责人
@@ -8084,7 +8127,7 @@ terms:
   en: TailAdjustment
   snake: tail_adjustment
   kind: value_object
-  bc: presales.quoting
+  bc: presales.opportunity
   definition: 报价整单的人工调整额：最终报价 = 行合计 + 尾调，审批单显示尾调金额及其占行合计的比例（RULE-142）；与舍入产生的舍入差是两个概念
   standard_ref:
   - RULE-142
@@ -8099,7 +8142,7 @@ terms:
   - 尾差
   status: approved
   note: 用语确认第三轮转正式（原提议 kernel.yaml#tail_adjustment，R3-FI-08）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
   scope: domain
 - id: witness
   zh: 见证人
@@ -9998,7 +10041,7 @@ terms:
   en: NewContractValue
   snake: new_contract_value
   kind: metric
-  bc: contract.baseline
+  bc: contract.agreement
   definition: 合同签署日落在期间内的合同交易价格之和（不含税为主，含税另列且名称带「含税」）；不扣转付成本，扣预计分包与外包的另设「新签净额」（FD-42）
   standard_ref:
   - 企业会计准则第 14 号——收入（财会〔2017〕22 号） 第十四条（交易价格）；国家统计局建筑业统计报表制度（本年新签合同额）；OAT canonical_symbol SIGNED_NET_BOOKINGS（变体）
@@ -10007,7 +10050,7 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-new_contract_value，R3-RN-37）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
   scope: domain
 - id: project_initiation_value
   zh: 项目立项金额
@@ -10245,7 +10288,7 @@ terms:
   snake: org_unit_level
   kind: state
   bc: organization.workforce
-  definition: 组织单元的层级与类型（区域、事业部、交付中心、客户服务中心等，K14）；层级名由组织维度设计确定
+  definition: 组织单元在组织树上的层级（第几层）；类型（区域、事业部、交付中心、客户服务中心等）见组织单元类型（org_unit_type）
   standard_ref:
   - FORCITIS one 内部概念（准则 / 国标无对应条目）
   confidence: medium
@@ -10253,14 +10296,14 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-org_unit_level，R3-RN-52）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL 确认单 B2-E08（用户 2026-10-16 同意）；全企业业务对象 Q37a、Q37b；C-51（用户裁定，rulings.yaml）
   scope: domain
 - id: customer_group
   zh: 客户集团
   en: CustomerGroup
   snake: customer_group
   kind: aggregate
-  bc: presales.customer
+  bc: masterdata.counterparty
   definition: 同一实际控制方下的客户集合；参考主数据轻聚合，本身不是客户、不承载业务单据，只作统计与规则继承维度；客户以集团归属单归属引用
   standard_ref:
   - 企业会计准则第 33 号——合并财务报表（控制）；FORCITIS one 内部概念（准则 / 国标无对应条目）
@@ -10269,14 +10312,15 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-customer_group，R3-RN-53）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）；GL2
+    确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X02：客户集团、客户分级迁往来单位 bc（用户裁定，rulings.yaml）
   scope: domain
 - id: customer_tier
   zh: 客户分级
   en: CustomerTier
   snake: customer_tier
   kind: state
-  bc: presales.customer
+  bc: masterdata.counterparty
   definition: 按分级规则版本评定的客户分层（GLOSSARY：S 战略 / A 重点 / B 机会 / C 交易 / D 风险）；评定维度含合同额占比、贡献毛利率、应收周转天数；黑名单是客户关系状态，不是分级
   standard_ref:
   - FORCITIS one 内部概念（准则 / 国标无对应条目）
@@ -10285,14 +10329,15 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-customer_tier，R3-RN-54）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）；GL2
+    确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X02：客户集团、客户分级迁往来单位 bc（用户裁定，rulings.yaml）
   scope: domain
 - id: pipeline_value
   zh: 商机管道金额
   en: PipelineValue
   snake: pipeline_value
   kind: metric
-  bc: presales.quoting
+  bc: presales.opportunity
   definition: 未关闭商机的金额；加权口径（× 赢单概率）另列，名称带「加权」
   standard_ref:
   - OAT canonical_symbol PIPE；CRM 行业通行写法（sales pipeline）
@@ -10301,14 +10346,14 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-pipeline_value，R3-RN-55）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
   scope: domain
 - id: win_rate
   zh: 赢单率
   en: WinRate
   snake: win_rate
   kind: metric
-  bc: presales.quoting
+  bc: presales.opportunity
   definition: 赢单数 ÷（赢单数 + 丢单数）；金额口径另列
   standard_ref:
   - OAT canonical_symbol WR；CRM 行业通行写法（win rate）
@@ -10317,14 +10362,14 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-win_rate，R3-RN-56）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
   scope: domain
 - id: lead_conversion_rate
   zh: 线索转化率
   en: LeadConversionRate
   snake: lead_conversion_rate
   kind: metric
-  bc: presales.customer
+  bc: presales.opportunity
   definition: 期间内转为商机的线索数 ÷ 期间线索数
   standard_ref:
   - OAT canonical_symbol CONV；CRM 行业通行写法（lead conversion rate）
@@ -10333,7 +10378,7 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-lead_conversion_rate，R3-RN-57）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
   scope: domain
 - id: business_line
   zh: 业务线
@@ -10356,7 +10401,7 @@ terms:
   en: ExternalReferenceDataset
   snake: external_reference_dataset
   kind: aggregate
-  bc: presales.customer
+  bc: presales.opportunity
   definition: 土拍、规划许可证、宏观等外部数据，登记来源与维护人、按期导入，只用于市占率等分析，不进入指标目录的口径主权
   standard_ref:
   - FORCITIS one 内部概念（准则 / 国标无对应条目）
@@ -10365,7 +10410,7 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-external_reference_dataset，R3-RN-59）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；2026-10-15（用户，B2 类别判定）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）（用户裁定，rulings.yaml）
   scope: domain
 - id: expense_payment
   zh: 费用支付
@@ -10747,6 +10792,1320 @@ terms:
   status: approved
   confirmed: 2026-10-15（用户，财务口径决策页 FD-01）
   note: 用户裁定转正式：用户 2026-10-15 财务口径决策页 FD-01 选定名称「历史期间」（intent 2026-10-15-221430-one-rules-财务口径决策页-FD-01-新系）；含义不变，沿用提议定义
+- id: legal_entity_attribution
+  zh: 法人归属
+  en: LegalEntityAttribution
+  snake: legal_entity_attribution
+  kind: aggregate
+  bc: organization.workforce
+  scope: domain
+  definition: 一个部门或一名员工在某段时间内归属于哪个法人主体的记录；各段期间互不重叠，历史只能关闭、不能改写，新的归属只能从最近一段的开始日之后起算
+  standard_ref:
+  - events/workforce.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 来源：聚合源码说明与事件目录（B2 登记，GL 确认单 2026-10-16 用户同意）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: registered_employee
+  zh: 登记员工
+  en: RegisteredEmployee
+  snake: registered_employee
+  kind: aggregate
+  bc: organization.workforce
+  scope: domain
+  definition: 员工首次登录时，在组织来源里找到、但下一次同步尚未把他带入组织快照的人；登记后他即可使用系统
+  standard_ref:
+  - events/workforce.yaml (EmployeeRegistered)
+  confidence: low
+  aliases: []
+  forbidden: []
+  note: 中文名待确认：与词表「员工」是同一个人的两个阶段，是否应并入「员工」聚合由用户裁定
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: approval_request
+  zh: 审批请求
+  en: ApprovalRequest
+  snake: approval_request
+  kind: aggregate
+  bc: platform.approval
+  scope: domain
+  definition: 对同一种审批流程中的同一张单据所发起的审批，一张单据在一种流程下只有一个；每一轮审批有自己的流程实例，本轮的审批任务归它管理，只能通过它修改
+  standard_ref:
+  - events/approval.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 来源：聚合源码说明与事件目录（B2 登记，GL 确认单 2026-10-16 用户同意）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: source_reference_refusal
+  zh: 来源对照被拒登记
+  en: SourceReferenceRefusal
+  snake: source_reference_refusal
+  kind: aggregate
+  bc: platform.integration
+  scope: acl
+  acl_class: 过渡期
+  definition: 有人试图人工登记只能由同步或导入写入的来源对照而被拒绝的一次记录；不存储任何对照，事件本身就是记录，使审计能看到是谁试过
+  standard_ref:
+  - events/integration.yaml (SourceReferenceRegistrationRefused)
+  confidence: low
+  aliases: []
+  forbidden: []
+  note: 中文名待确认；聚合承载的只是一次被拒事实
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: timesheet_approved
+  zh: 工时单已批准
+  en: TimesheetApproved
+  snake: timesheet_approved
+  kind: domain_event
+  bc: cost.timesheet
+  scope: domain
+  definition: 工时单审批通过，工时成立；过程里程碑，以工作日期记业务日
+  standard_ref:
+  - events/timesheet.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 形成成本事实的是后续过账事件，本事件是否使用待阶段二定
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: timesheet_rejected
+  zh: 工时单已驳回
+  en: TimesheetRejected
+  snake: timesheet_rejected
+  kind: domain_event
+  bc: cost.timesheet
+  scope: domain
+  definition: 工时单被驳回，工时不成立；以工作日期记业务日
+  standard_ref:
+  - events/timesheet.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 来源：聚合源码说明与事件目录（B2 登记，GL 确认单 2026-10-16 用户同意）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: timesheet_returned
+  zh: 工时单已退回
+  en: TimesheetReturned
+  snake: timesheet_returned
+  kind: domain_event
+  bc: cost.timesheet
+  scope: domain
+  definition: 审批人退回或填报人撤回，工时单回到可修改状态，下一轮重新提交；以工作日期记业务日
+  standard_ref:
+  - events/timesheet.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 来源：聚合源码说明与事件目录（B2 登记，GL 确认单 2026-10-16 用户同意）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: timesheet_submitted
+  zh: 工时单已提交审批
+  en: TimesheetSubmitted
+  snake: timesheet_submitted
+  kind: domain_event
+  bc: cost.timesheet
+  scope: domain
+  definition: 填报人把工时单提交审批，工时单进入新一轮审批；以工作日期记业务日，提交日另记；只陈述事实，不过账
+  standard_ref:
+  - events/timesheet.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 来源：聚合源码说明与事件目录（B2 登记，GL 确认单 2026-10-16 用户同意）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: work_calendar_year_maintained
+  zh: 工作日历年度已维护
+  en: WorkCalendarYearMaintained
+  snake: work_calendar_year_maintained
+  kind: domain_event
+  bc: organization.attendance
+  scope: domain
+  definition: 某一年的工作日历被保存：有日期被加入、去掉或改了日类型，或该年只是被重新核对；记下变动的日期
+  standard_ref:
+  - events/attendance.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 来源：聚合源码说明与事件目录（B2 登记，GL 确认单 2026-10-16 用户同意）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: employee_registered
+  zh: 员工已登记
+  en: EmployeeRegistered
+  snake: employee_registered
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 员工第一次登录时，被登记进组织快照；此后下一次同步会带入完整信息
+  standard_ref:
+  - events/workforce.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 Employee，中文名与「员工」一致
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: legal_entity_activated
+  zh: 法人主体已启用
+  en: LegalEntityActivated
+  snake: legal_entity_activated
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 一个法人主体被启用，可以开始作为法人使用
+  standard_ref:
+  - events/workforce.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 来源：聚合源码说明与事件目录（B2 登记，GL 确认单 2026-10-16 用户同意）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: legal_entity_attributed
+  zh: 法人归属已确立
+  en: LegalEntityAttributed
+  snake: legal_entity_attributed
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 部门或员工从某日起归属于某个法人主体
+  standard_ref:
+  - events/workforce.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 来源：聚合源码说明与事件目录（B2 登记，GL 确认单 2026-10-16 用户同意）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: legal_entity_attribution_corrected
+  zh: 法人归属结束日已更正
+  en: LegalEntityAttributionCorrected
+  snake: legal_entity_attribution_corrected
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 已关闭的法人归属期间的结束日被更正
+  standard_ref:
+  - events/workforce.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 来源：聚合源码说明与事件目录（B2 登记，GL 确认单 2026-10-16 用户同意）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: legal_entity_attribution_ended
+  zh: 法人归属已结束
+  en: LegalEntityAttributionEnded
+  snake: legal_entity_attribution_ended
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 部门或员工对某个法人主体的归属在某日结束
+  standard_ref:
+  - events/workforce.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 来源：聚合源码说明与事件目录（B2 登记，GL 确认单 2026-10-16 用户同意）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: legal_entity_code_corrected
+  zh: 法人主体代码已更正
+  en: LegalEntityCodeCorrected
+  snake: legal_entity_code_corrected
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 法人主体的代码被更正；仅在尚未发过号时允许
+  standard_ref:
+  - events/workforce.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 来源：聚合源码说明与事件目录（B2 登记，GL 确认单 2026-10-16 用户同意）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: legal_entity_deactivated
+  zh: 法人主体已停用
+  en: LegalEntityDeactivated
+  snake: legal_entity_deactivated
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 一个法人主体被停用，不再作为法人使用
+  standard_ref:
+  - events/workforce.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 来源：聚合源码说明与事件目录（B2 登记，GL 确认单 2026-10-16 用户同意）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: legal_entity_registered
+  zh: 法人主体已登记
+  en: LegalEntityRegistered
+  snake: legal_entity_registered
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 一个新的法人主体被登记进组织人事
+  standard_ref:
+  - events/workforce.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 事件目录称「法人新增」，按不用泛词的规则改为「已登记」
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: legal_entity_renamed
+  zh: 法人主体已更名
+  en: LegalEntityRenamed
+  snake: legal_entity_renamed
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 法人主体的名称被改变
+  standard_ref:
+  - events/workforce.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 来源：聚合源码说明与事件目录（B2 登记，GL 确认单 2026-10-16 用户同意）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: org_snapshot_changed
+  zh: 组织快照已变化
+  en: OrgSnapshotChanged
+  snake: org_snapshot_changed
+  kind: domain_event
+  bc: organization.workforce
+  scope: acl
+  acl_class: 过渡期
+  definition: 一次组织同步使组织快照发生了变化；离职人员的会话据此被收回；业务日为快照截止日，生效日同截止日
+  standard_ref:
+  - events/workforce.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 事件目录所属聚合为 SyncRun，故 scope 与「同步记录」一致取 acl 过渡期；若归入「组织快照」聚合则应为 domain，待确认
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: sync_run_failed
+  zh: 同步记录已失败
+  en: SyncRunFailed
+  snake: sync_run_failed
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 一次组织同步运行失败
+  standard_ref:
+  - events/workforce.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 来源：聚合源码说明与事件目录（B2 登记，GL 确认单 2026-10-16 用户同意）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: sync_run_held
+  zh: 同步记录已被暂停
+  en: SyncRunHeld
+  snake: sync_run_held
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 一次组织同步因缩水保护而被中止并保持暂停，等待有权的人放行
+  standard_ref:
+  - events/workforce.yaml (RULE-358)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 来源：聚合源码说明与事件目录（B2 登记，GL 确认单 2026-10-16 用户同意）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: sync_run_hold_released
+  zh: 同步记录一类暂停已解除
+  en: SyncRunHoldReleased
+  snake: sync_run_hold_released
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 被暂停的同步，其中一类暂停被有权的人解除；另一类暂停仍在时，运行保持暂停
+  standard_ref:
+  - events/workforce.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 来源：聚合源码说明与事件目录（B2 登记，GL 确认单 2026-10-16 用户同意）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: sync_run_released
+  zh: 同步记录已放行
+  en: SyncRunReleased
+  snake: sync_run_released
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 被中止的同步已由管理员放行，或被后续成功的同步取代；记下接替的运行与管理员给出的原因
+  standard_ref:
+  - events/workforce.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 来源：聚合源码说明与事件目录（B2 登记，GL 确认单 2026-10-16 用户同意）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: sync_run_succeeded
+  zh: 同步记录已成功
+  en: SyncRunSucceeded
+  snake: sync_run_succeeded
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 一次组织同步运行成功
+  standard_ref:
+  - events/workforce.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 来源：聚合源码说明与事件目录（B2 登记，GL 确认单 2026-10-16 用户同意）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: approval_round_started
+  zh: 审批轮次已开始
+  en: ApprovalRoundStarted
+  snake: approval_round_started
+  kind: domain_event
+  bc: platform.approval
+  scope: domain
+  definition: 审批开始新一轮：首次发起，或退回、驳回、撤销之后重新发起；过程里程碑
+  standard_ref:
+  - events/approval.yaml (D-1a-78)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 ApprovalRequest；词表已有实体「审批轮次」
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: approval_task_escalated
+  zh: 任务已升级
+  en: ApprovalTaskEscalated
+  snake: approval_task_escalated
+  kind: domain_event
+  bc: platform.approval
+  scope: domain
+  definition: 任务超时仍未处理，已升级给审批人的上级；取不到上级则交流程管理员
+  standard_ref:
+  - events/approval.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 ApprovalRequest
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: document_submitted_for_approval
+  zh: 单据已请求审批
+  en: DocumentSubmittedForApproval
+  snake: document_submitted_for_approval
+  kind: domain_event
+  bc: platform.approval
+  scope: domain
+  definition: 单据的所有者请审批模块发起一轮审批，并带齐发起所需的全部信息；同一单据同一轮重复收到只发起一次
+  standard_ref:
+  - events/approval.yaml (H-1)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 类型归审批模块，由申请审批的模块的聚合（现为工时单）发布；中文名与「工时单已提交审批」的区别见事件目录
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: task_claimed
+  zh: 任务已认领
+  en: TaskClaimed
+  snake: task_claimed
+  kind: domain_event
+  bc: platform.approval
+  scope: domain
+  definition: 任务被候选人之一认领，其他候选人的待办随之改为已处理
+  standard_ref:
+  - events/approval.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 ApprovalRequest
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: task_closed
+  zh: 任务已关闭
+  en: TaskClosed
+  snake: task_closed
+  kind: domain_event
+  bc: platform.approval
+  scope: domain
+  definition: 本轮在任务办结前结束（驳回、退回、撤回、撤销），任务关闭，未办理的候选人失去办理权
+  standard_ref:
+  - events/approval.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 ApprovalRequest
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: task_reassigned
+  zh: 任务已改派
+  en: TaskReassigned
+  snake: task_reassigned
+  kind: domain_event
+  bc: platform.approval
+  scope: domain
+  definition: 流程管理员把任务改派给另一个人，填写原因并留痕
+  standard_ref:
+  - events/approval.yaml (D-1a-61)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 ApprovalRequest
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: task_released
+  zh: 任务已退回候选组
+  en: TaskReleased
+  snake: task_released
+  kind: domain_event
+  bc: platform.approval
+  scope: domain
+  definition: 任务的处理人把任务退回候选组，候选人可以再次认领
+  standard_ref:
+  - events/approval.yaml (M-6)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 ApprovalRequest
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: task_transferred
+  zh: 任务已转交
+  en: TaskTransferred
+  snake: task_transferred
+  kind: domain_event
+  bc: platform.approval
+  scope: domain
+  definition: 任务的当前处理人把任务转交给他人
+  standard_ref:
+  - events/approval.yaml (RULE-285)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 ApprovalRequest
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: account_enabled
+  zh: 用户账号已启用
+  en: AccountEnabled
+  snake: account_enabled
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 一个用户账号被启用，可以登录使用
+  standard_ref:
+  - events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 UserAccount
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: account_opened
+  zh: 用户账号已开立
+  en: AccountOpened
+  snake: account_opened
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 为一个人开立用户账号，包含开立时授予的角色
+  standard_ref:
+  - events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 UserAccount
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: account_roles_replaced
+  zh: 用户账号角色已替换
+  en: AccountRolesReplaced
+  snake: account_roles_replaced
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 一个用户账号的角色被整体替换为新的一组
+  standard_ref:
+  - events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 UserAccount
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: account_separated
+  zh: 用户账号已因离职收回角色
+  en: AccountSeparated
+  snake: account_separated
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 账号的本人离职，账号收回全部角色；挂在账号上的东西（如应急账号）随这一事实处理
+  standard_ref:
+  - events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 UserAccount
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: authorization_confirmed
+  zh: 授权申请已确认
+  en: AuthorizationConfirmed
+  snake: authorization_confirmed
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 敏感授权申请被另一个人确认
+  standard_ref:
+  - events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 AuthorizationRequest
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: authorization_opened
+  zh: 授权申请已开立
+  en: AuthorizationOpened
+  snake: authorization_opened
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 一个敏感授权申请被提出，等待另一个人确认
+  standard_ref:
+  - events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 AuthorizationRequest
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: authorization_rejected
+  zh: 授权申请已拒绝
+  en: AuthorizationRejected
+  snake: authorization_rejected
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 敏感授权申请被拒绝，或被申请人撤回
+  standard_ref:
+  - events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 AuthorizationRequest；拒绝与撤回是否分设两个事件待确认
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: emergency_admin_credentials_reset
+  zh: 应急管理员凭据已重置
+  en: EmergencyAdminCredentialsReset
+  snake: emergency_admin_credentials_reset
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 应急管理员的登录凭据被重置
+  standard_ref:
+  - events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 EmergencyAdmin
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: emergency_admin_disabled
+  zh: 应急管理员已停用
+  en: EmergencyAdminDisabled
+  snake: emergency_admin_disabled
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 应急管理员因离职或运维命令而被停用
+  standard_ref:
+  - events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 EmergencyAdmin
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: emergency_admin_enabled
+  zh: 应急管理员已启用
+  en: EmergencyAdminEnabled
+  snake: emergency_admin_enabled
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 应急管理员被启用，可作为应急入口使用
+  standard_ref:
+  - events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 EmergencyAdmin
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: emergency_admin_registered
+  zh: 应急管理员已登记
+  en: EmergencyAdminRegistered
+  snake: emergency_admin_registered
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 一名应急管理员被登记
+  standard_ref:
+  - events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 EmergencyAdmin
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: role_created
+  zh: 角色已设立
+  en: RoleCreated
+  snake: role_created
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 新设立一个角色
+  standard_ref:
+  - events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 事件目录称「角色新增」，避开泛词改为「设立」；类名 Created 是否改为 Established 待确认
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: role_disabled
+  zh: 角色已停用
+  en: RoleDisabled
+  snake: role_disabled
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 一个角色被停用
+  standard_ref:
+  - events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 Role
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: role_enabled
+  zh: 角色已启用
+  en: RoleEnabled
+  snake: role_enabled
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 一个角色被启用
+  standard_ref:
+  - events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 Role
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: role_revised
+  zh: 角色已修订
+  en: RoleRevised
+  snake: role_revised
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 角色的名称、数据范围或权限被修改
+  standard_ref:
+  - events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 Role
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: source_reference_confirmed
+  zh: 来源对照已确认
+  en: SourceReferenceConfirmed
+  snake: source_reference_confirmed
+  kind: domain_event
+  bc: platform.integration
+  scope: domain
+  definition: 另一个人确认了登记的来源对照，从生效日起用于出站
+  standard_ref:
+  - events/integration.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 SourceReference
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: source_reference_registered
+  zh: 来源对照已登记
+  en: SourceReferenceRegistered
+  snake: source_reference_registered
+  kind: domain_event
+  bc: platform.integration
+  scope: domain
+  definition: 有人登记了一条来源对照（核算组织编码），等待他人确认
+  standard_ref:
+  - events/integration.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 SourceReference
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: source_reference_rejected
+  zh: 来源对照已拒绝
+  en: SourceReferenceRejected
+  snake: source_reference_rejected
+  kind: domain_event
+  bc: platform.integration
+  scope: domain
+  definition: 另一个人拒绝了登记的来源对照；已生效的对照不变
+  standard_ref:
+  - events/integration.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 SourceReference
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: source_reference_superseded
+  zh: 来源对照已被取代
+  en: SourceReferenceSuperseded
+  snake: source_reference_superseded
+  kind: domain_event
+  bc: platform.integration
+  scope: domain
+  definition: 生效中的来源对照，在后继对照的生效日结束
+  standard_ref:
+  - events/integration.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 SourceReference
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: numbering_rule_confirmation_given
+  zh: 编号规则已获一次确认
+  en: NumberingRuleConfirmationGiven
+  snake: numbering_rule_confirmation_given
+  kind: domain_event
+  bc: platform.numbering
+  scope: domain
+  definition: 编号规则的模板版本得到业务或财务其中一方的一次确认
+  standard_ref:
+  - events/numbering.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 类名 ConfirmationGiven 不是「聚合+过去式动词」形式，是否改为 NumberingRuleConfirmationRecorded 待确认
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: numbering_rule_confirmed
+  zh: 编号规则已确认
+  en: NumberingRuleConfirmed
+  snake: numbering_rule_confirmed
+  kind: domain_event
+  bc: platform.numbering
+  scope: domain
+  definition: 编号规则的模板版本已确认齐全，从此开始发号
+  standard_ref:
+  - events/numbering.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 NumberingRule
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: numbering_rule_reconfigured
+  zh: 编号规则已重新设置
+  en: NumberingRuleReconfigured
+  snake: numbering_rule_reconfigured
+  kind: domain_event
+  bc: platform.numbering
+  scope: domain
+  definition: 编号规则保存了新的模板版本，等待他人确认
+  standard_ref:
+  - events/numbering.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 NumberingRule
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: delivery_purpose
+  zh: 投递用途
+  en: DeliveryPurpose
+  snake: delivery_purpose
+  kind: state
+  bc: platform.integration
+  scope: acl
+  acl_class: 长期
+  definition: 一张外发卡片为什么发：任务指派、任务转交、任务改派、任务超时、任务升级、审批完成；与对象类别、对象 ID（可再加触发事件 ID）一起决定一张卡
+  standard_ref:
+  - ADR-0033 第 7 项第 3 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: R-1b P4 登记；取值 TASK_ASSIGNED / TASK_TRANSFERRED / TASK_REASSIGNED / TASK_OVERDUE / TASK_ESCALATED / APPROVAL_COMPLETED
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: user_account_disabled
+  zh: 用户账号已停用
+  en: UserAccountDisabled
+  snake: user_account_disabled
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 一个用户账号被停用，不能再登录使用
+  standard_ref:
+  - events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: B2-B01：事件类由 AccountDisabled 改名为 UserAccountDisabled（改名卡），避免与状态词条 account_disabled 同名
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: person
+  zh: 人员
+  en: Person
+  snake: person
+  kind: entity
+  bc: organization.workforce
+  scope: domain
+  definition: 与我方法人存在劳动或劳务关系、或处于招聘过程中的自然人；类型含员工、候选人等；「员工」保持现名，作为人员的一种类型
+  standard_ref:
+  - 全企业业务对象确认页 Q38
+  - architecture/proposals/ENTERPRISE_INFO_MAP_ANSWERS.md 用语草案
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: B2-E02：员工保留现名作为人员的一种类型，代码标识不动；原提议「人员 / StaffEmployee」让名为「员工任职快照」
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: salary_step
+  zh: 薪档
+  en: SalaryStep
+  snake: salary_step
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 同一职级内的薪酬档位；标准成本费率的定价键之一（职级 × 薪档 × 城市类别）；涉薪酬敏感，分级与可见性按 C-49
+  standard_ref:
+  - 全企业业务对象确认页 Q17
+  - architecture/proposals/ENTERPRISE_INFO_MAP_ANSWERS.md 用语草案
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: B2-E04
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: city_category
+  zh: 城市类别
+  en: CityCategory
+  snake: city_category
+  kind: value_object
+  bc: cost.costing
+  scope: domain
+  definition: 按用工成本水平划分的城市分组；标准成本费率的定价键之一；取值清单待财务给出
+  standard_ref:
+  - 全企业业务对象确认页 Q17
+  - architecture/proposals/ENTERPRISE_INFO_MAP_ANSWERS.md 用语草案
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: B2-E05
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: agreement
+  zh: 协议
+  en: Agreement
+  snake: agreement
+  kind: entity
+  bc: contract.agreement
+  scope: domain
+  definition: 各类协议的统称，信息图一级对象；类型有合同（项目合同）、框架协议、任务订单、联合体协议、劳务派遣协议、居间协议、租赁合同、职业责任保险单等；「合同」是协议下的一种类型
+  standard_ref:
+  - 全企业业务对象确认页 Q01
+  - architecture/proposals/ENTERPRISE_INFO_MAP_ANSWERS.md 用语草案
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: B2-E06：协议是更宽的信息图一级对象，合同保留为其中一种类型，代码不改名
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+- id: agreement_type
+  zh: 协议类型
+  en: AgreementType
+  snake: agreement_type
+  kind: state
+  bc: contract.agreement
+  scope: domain
+  definition: 协议的类型维度；与「合同形态」不是一回事（合同形态区分独立合同、框架协议、任务订单、内部结算协议）；内部结算协议不放进协议类型枚举（集团内部结算，不是对外协议，C-41）
+  standard_ref:
+  - 全企业业务对象确认页 Q01
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: B2-E06、B2-E07
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+- id: agreement_type__consortium_agreement
+  zh: 联合体协议
+  en: ConsortiumAgreement
+  snake: consortium_agreement
+  kind: value_object
+  bc: contract.agreement
+  scope: domain
+  definition: 联合体各成员共同投标、共同履约的协议（共同投标协议）
+  standard_ref:
+  - 招标投标法第 31 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+- id: agreement_type__labor_dispatch_agreement
+  zh: 劳务派遣协议
+  en: LaborDispatchAgreement
+  snake: labor_dispatch_agreement
+  kind: value_object
+  bc: contract.agreement
+  scope: domain
+  definition: 用工单位与劳务派遣单位之间约定劳务派遣事项的协议
+  standard_ref:
+  - 劳动合同法第五章第二节（劳务派遣）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+- id: agreement_type__brokerage_agreement
+  zh: 居间协议
+  en: BrokerageAgreement
+  snake: brokerage_agreement
+  kind: value_object
+  bc: contract.agreement
+  scope: domain
+  definition: 居间人向委托人报告订立合同的机会、委托人支付报酬的协议；合规敏感
+  standard_ref:
+  - 民法典合同编第二十三章（居间合同）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+- id: agreement_type__lease_contract
+  zh: 租赁合同
+  en: LeaseContract
+  snake: lease_contract
+  kind: value_object
+  bc: contract.agreement
+  scope: domain
+  definition: 出租人将租赁物交付承租人使用、收益，承租人支付租金的合同
+  standard_ref:
+  - 民法典合同编第十四章（租赁合同）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+- id: agreement_type__professional_liability_insurance_policy
+  zh: 职业责任保险单
+  en: ProfessionalLiabilityInsurancePolicy
+  snake: professional_liability_insurance_policy
+  kind: value_object
+  bc: contract.agreement
+  scope: domain
+  definition: 承保职业责任风险的保险单据
+  standard_ref:
+  - 保险法第 65 条（责任保险，待核原文）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 依据待核原文（one-architecture 补）
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）；GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）（用户裁定，rulings.yaml）
+- id: org_unit_type
+  zh: 组织单元类型
+  en: OrgUnitType
+  snake: org_unit_type
+  kind: state
+  bc: organization.workforce
+  scope: domain
+  definition: 组织单元的类型：区域、事业部、交付中心、客户服务中心等；区域与事业部是同一维度的两种类型；区域负责人是区域类组织单元的负责人
+  standard_ref:
+  - 全企业业务对象确认页 Q37a、Q37b；C-51
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: B2-E08：自「组织单元层级」拆出类型；层级只表示在组织树上的第几层
+  status: approved
+  confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: customer_role
+  zh: 客户
+  en: CustomerRole
+  snake: customer_role
+  kind: role
+  bc: masterdata.counterparty
+  scope: domain
+  definition: 往来单位承担的客户角色：具备独立签约与付款主体资格，带准入状态；主数据只有一份（往来单位），客户是它的一个角色，不是另一个主体
+  standard_ref:
+  - GL2 B2-X02
+  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-01
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: B2-X02：取代已弃用的 customer（客户，presales.customer）
+  status: approved
+  confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
+- id: receivable
+  zh: 应收款项
+  en: Receivable
+  snake: receivable
+  kind: aggregate
+  bc: receivables.collection
+  scope: domain
+  definition: 应收账款与其他应收款的往来款项；开票产生是它的一种来源；不含质量保证金、保证金（各自是聚合）
+  standard_ref:
+  - 企业会计准则第 22 号——金融工具确认和计量（应收款项）
+  - GL2 B2-X04
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: B2-X04：取代已弃用的 ar_item（应收单）
+  status: approved
+  confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
+- id: payable
+  zh: 应付款项
+  en: Payable
+  snake: payable
+  kind: aggregate
+  bc: payables.payment
+  scope: domain
+  definition: 应付账款与其他应付款的往来款项，与应收款项对称
+  standard_ref:
+  - 企业会计准则第 22 号——金融工具确认和计量（应付款项）
+  - GL2 B2-X04
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
+- id: cash_payment
+  zh: 付款单
+  en: CashPayment
+  snake: cash_payment
+  kind: aggregate
+  bc: payables.payment
+  scope: domain
+  definition: 付方向的资金凭证：我方向供方、居间人等支付的一笔款项及其核销；与收方向的回款单（CashReceipt）对称
+  standard_ref:
+  - GL2 B2-X05
+  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-53
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
+- id: delivery_record
+  zh: 送达记录
+  en: DeliveryRecord
+  snake: delivery_record
+  kind: entity
+  bc: delivery.acceptance
+  scope: domain
+  definition: 把一次提交轮次送到发包人手中并起算审查期的记录；送达是起算审查期的事实，交付是项目成果移交，二者不同
+  standard_ref:
+  - ADR-0047（提议词 service_record 改此名）
+  - GL2 B2-X07
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: B2-X07：不与「服务」相混
+  status: approved
+  confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
+- id: deliverable_delivered
+  zh: 交付物已送达
+  en: DeliverableDelivered
+  snake: deliverable_delivered
+  kind: domain_event
+  bc: delivery.acceptance
+  scope: domain
+  definition: 一项交付物的提交轮次已送达发包人，审查期从送达日起算
+  standard_ref:
+  - GL2 B2-X07
+  - ENTERPRISE_AGGREGATES_DRAFT.md §2.2
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
+- id: phase_type
+  zh: 阶段类型
+  en: PhaseType
+  snake: phase_type
+  kind: entity
+  bc: masterdata.catalog
+  scope: domain
+  definition: 服务产品下的阶段类目（版本化目录条目）；内部英文一律 Phase，外部码表（如 RIBA）照其原文 Stage，只在对照码表里出现
+  standard_ref:
+  - PMBOK
+  - GL2 B2-X09
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: B2-X09
+  status: approved
+  confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
+- id: preliminary_design
+  zh: 初步设计
+  en: PreliminaryDesign
+  snake: preliminary_design
+  kind: value_object
+  bc: masterdata.catalog
+  scope: domain
+  definition: 设计阶段类型之一，介于方案设计与施工图设计之间；「扩初设计」不并入，是景观等产品线在深化阶段内的子阶段名，不进阶段类型目录
+  standard_ref:
+  - 建筑工程设计文件编制深度规定
+  - GB/T 50326
+  - GL2 B2-X10
+  confidence: medium
+  aliases:
+  - name: 初设
+    type: standard-zh
+    deprecated: false
+    source: 缩写别名，不进代码与界面（GL2 B2-X10）
+  forbidden: []
+  note: B2-X10
+  status: approved
+  confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
+- id: closing
+  zh: 收尾
+  en: Closing
+  snake: closing
+  kind: value_object
+  bc: masterdata.catalog
+  scope: domain
+  definition: 项目的最后一个阶段类型（阶段 7）：收尾与归档；「结算」作其别名，造价线的竣工结算审核另有其名
+  standard_ref:
+  - PMBOK（收尾过程组）
+  - GL2 B2-X11
+  confidence: medium
+  aliases:
+  - name: 结算
+    type: standard-zh
+    deprecated: false
+    source: 别名，「结算」一词只留给竣工结算（GL2 B2-X11）
+  forbidden: []
+  note: B2-X11
+  status: approved
+  confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
+- id: investment_estimate
+  zh: 投资估算
+  en: InvestmentEstimate
+  snake: investment_estimate
+  kind: value_object
+  bc: masterdata.catalog
+  scope: domain
+  definition: 造价线的子阶段之一：项目建议书与可行性研究阶段的投资估算
+  standard_ref:
+  - 建设项目投资估算编审规程（CECA/GC 1）
+  - GL2 B2-X11
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
+- id: design_budget_estimate
+  zh: 设计概算
+  en: DesignBudgetEstimate
+  snake: design_budget_estimate
+  kind: value_object
+  bc: masterdata.catalog
+  scope: domain
+  definition: 造价线的子阶段之一：初步设计阶段的设计概算
+  standard_ref:
+  - 建设工程工程量清单计价规范 GB 50500
+  - GL2 B2-X11
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
+- id: construction_drawing_budget
+  zh: 施工图预算
+  en: ConstructionDrawingBudget
+  snake: construction_drawing_budget
+  kind: value_object
+  bc: masterdata.catalog
+  scope: domain
+  definition: 造价线的子阶段之一：施工图设计完成后的施工图预算
+  standard_ref:
+  - 建设工程工程量清单计价规范 GB 50500
+  - GL2 B2-X11
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
+- id: final_account_review
+  zh: 竣工结算审核
+  en: FinalAccountReview
+  snake: final_account_review
+  kind: value_object
+  bc: masterdata.catalog
+  scope: domain
+  definition: 造价线的子阶段之一：对竣工结算的审核；与成本口径的估算、与协议的竣工结算确认不同
+  standard_ref:
+  - 建设工程工程量清单计价规范 GB 50500
+  - GL2 B2-X11
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
+- id: agreement_final_account_confirmed
+  zh: 协议竣工结算已确认
+  en: AgreementFinalAccountConfirmed
+  snake: agreement_final_account_confirmed
+  kind: domain_event
+  bc: contract.agreement
+  scope: domain
+  definition: 一份协议的最终价款（竣工结算）已确认；复用竣工结算（final_account）
+  standard_ref:
+  - GL2 B2-X11
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 事件含义（协议最终价款确认）是 one-architecture 草案的推断，请财务确认（B2-X11）
+  status: approved
+  confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
 common_words:
 - Id
 - Uuid

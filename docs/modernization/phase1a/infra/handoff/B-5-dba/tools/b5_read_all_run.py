@@ -17,7 +17,7 @@ TOOLS = Path(__file__).resolve().parent
 READ_ALL = TOOLS.parent / 'read-all'
 ONE_WORK = '/root/one-ops-b5-read-all'
 ACCOUNTS = (('A8', 'one_a8_views_ro', 'a8_db', 'A8_DB_PASSWORD', 'a8'),
-            ('INBOX', 'psa_one_legacy_ro', 'ruoyi-vue-pro', 'FORCITIS_PLATFORM_APPROVAL_LEGACY_PASSWORD', 'legacy'),
+            ('INBOX', 'psa_one_legacy_ro', 'ruoyi-vue-pro', 'FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_PASSWORD', 'legacy'),
             ('NAMES', 'one_legacy_names_ro', 'ruoyi-vue-pro', 'LEGACY_DB_RO_PASSWORD', 'legacy'))
 
 ENCRYPT_FROM_ENV = r'''

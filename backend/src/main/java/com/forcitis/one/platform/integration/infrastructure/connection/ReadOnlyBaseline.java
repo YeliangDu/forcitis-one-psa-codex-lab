@@ -3,6 +3,7 @@ package com.forcitis.one.platform.integration.infrastructure.connection;
 import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.DatabaseLocator;
 import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.Locator;
 import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.OverriddenGrant;
+import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.OwnUserRole;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -94,6 +95,8 @@ final class ReadOnlyBaseline {
         DATABASE_PRINCIPAL_GRANT,
         OTHER_DATABASE_REACHABLE,
         SYSTEM_DATABASE_OWN_USER,
+        SYSTEM_DATABASE_OWN_USER_PRIVILEGE,
+        OWNS_AGENT_JOB,
         SECURABLE_GRANT_BEYOND_SELECT,
         CATALOG_QUERY_FAILED,
         CHECK_FAILED,
@@ -161,11 +164,12 @@ final class ReadOnlyBaseline {
         }
     }
 
-    record Verdict(List<Unmet> unmet, List<OverriddenGrant> overridden) {
+    record Verdict(List<Unmet> unmet, List<OverriddenGrant> overridden, List<OwnUserRole> ownUsers) {
 
         Verdict {
             unmet = List.copyOf(unmet);
             overridden = List.copyOf(overridden);
+            ownUsers = List.copyOf(ownUsers);
         }
 
         boolean passed() {
@@ -182,7 +186,7 @@ final class ReadOnlyBaseline {
 
         @Override
         public String toString() {
-            return "Verdict[unmet=" + unmet + ", overridden=" + overridden + "]";
+            return "Verdict[unmet=" + unmet + ", overridden=" + overridden + ", ownUsers=" + ownUsers.size() + "]";
         }
     }
 
@@ -192,18 +196,22 @@ final class ReadOnlyBaseline {
     static Verdict check(ReadOnlyCatalog catalog) {
         List<Unmet> unmet = new ArrayList<>();
         List<OverriddenGrant> overridden = new ArrayList<>();
+        List<OwnUserRole> ownUsers = new ArrayList<>();
         item(unmet, 'a', found -> found.ask(catalog::databasePermissions)
                 .ifPresent(permissions -> sameAs(found, "database-level effective permissions", permissions, DATABASE_PERMISSIONS)));
         item(unmet, 'b', found -> found.ask(catalog::databaseLevelPermissions).ifPresent(rows -> databaseLevel(found, rows)));
         item(unmet, 'c', found -> found.ask(catalog::roles).ifPresent(roles -> onlyPublic(found, roles)));
         item(unmet, 'd', found -> server(found, catalog));
         item(unmet, 'e', found -> found.ask(catalog::ownership).ifPresent(ownership -> ownsNothing(found, ownership)));
-        item(unmet, 'f', found -> reachable(found, catalog));
+        item(unmet, 'f', found -> {
+            reachable(found, catalog);
+            ownUsers.addAll(found.ownUsers);
+        });
         item(unmet, 'g', found -> {
             found.ask(catalog::securablePermissionRows).ifPresent(rows -> EffectiveGrants.belowTheDatabase(found, rows, catalog));
             overridden.addAll(found.overridden);
         });
-        return new Verdict(unmet, overridden);
+        return new Verdict(unmet, overridden, ownUsers);
     }
 
     /** Each entry starts with the item it breaks, "(a)" to "(g)". */
@@ -354,7 +362,7 @@ final class ReadOnlyBaseline {
             return;
         }
         Set<String> beyond = new TreeSet<>();
-        Set<String> withOwnUser = new TreeSet<>();
+        List<ReachableDatabase> system = new ArrayList<>();
         boolean ownReachable = false;
         for (ReachableDatabase database : reachable.get()) {
             if (database.name().equals(own.get())) {
@@ -362,23 +370,17 @@ final class ReadOnlyBaseline {
             } else if (!database.system()) {
                 beyond.add(database.name());
             } else {
-                found.ask(() -> catalog.ownUsers(database.name())).filter(users -> users > 0).ifPresent(users -> withOwnUser.add(database.name()));
+                system.add(database);
             }
         }
         if (!ownReachable) {
             found.unknown(Reason.OWN_DATABASE_NOT_LISTED, 1, "HAS_DBACCESS does not list the login's own database, cannot be determined");
         }
         if (!beyond.isEmpty()) {
-            found.violated(Reason.OTHER_DATABASE_REACHABLE, beyond.size(), "the login can also enter the databases " + beyond, located(beyond));
+            found.violated(Reason.OTHER_DATABASE_REACHABLE, beyond.size(), "the login can also enter the databases " + beyond,
+                    beyond.stream().map(DatabaseLocator::new).toList());
         }
-        if (!withOwnUser.isEmpty()) {
-            found.violated(Reason.SYSTEM_DATABASE_OWN_USER, withOwnUser.size(), "the login has a user of its own in the system databases " + withOwnUser
-                    + ", only guest is allowed there", located(withOwnUser));
-        }
-    }
-
-    private static List<DatabaseLocator> located(Set<String> databases) {
-        return databases.stream().map(DatabaseLocator::new).toList();
+        SystemDatabaseUsers.check(found, catalog, system);
     }
 
     private static int count(long value) {

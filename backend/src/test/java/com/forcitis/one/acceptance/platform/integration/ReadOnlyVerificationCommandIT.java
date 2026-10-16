@@ -33,6 +33,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -71,9 +72,10 @@ class ReadOnlyVerificationCommandIT {
 
     /** READONLY_VERIFY_ACCEPTANCE.md section 3a: a quoted value is a catalog name with escapes, a bare one is a code or a placeholder. */
     static final String LOCATOR_VALUE = "(?:\"(?:[^\"\\\\\\p{Cntrl}\\u2028\\u2029]|\\\\[\"\\\\nrt]|\\\\u[0-9A-F]{4})*\"|[A-Z0-9_-]+)";
-    static final Pattern LOCATOR_LINE = Pattern.compile("^  \\(([fg])\\) (violation|overridden)((?: [a-zA-Z]+=" + LOCATOR_VALUE + ")+)$");
+    static final Pattern LOCATOR_LINE = Pattern.compile("^  \\(([fg])\\) (violation|overridden|ownUser)((?: [a-zA-Z]+=" + LOCATOR_VALUE + ")+)$");
     static final Pattern LOCATOR_FIELD = Pattern.compile(" ([a-zA-Z]+)=(" + LOCATOR_VALUE + ")");
     static final List<String> SYSTEM_DATABASE_FIELDS = List.of("reason", "database");
+    static final List<String> OWN_USER_FIELDS = List.of("database", "role");
     static final List<String> VIOLATION_FIELDS = List.of("reason", "class", "schema", "object", "objectId", "permission", "state", "grantee", "granteeType");
     static final List<String> OVERRIDDEN_FIELDS = List.of("class", "schema", "object", "objectId", "permission", "state", "grantee", "granteeType", "by");
     static final AtomicInteger ISOLATED_DATABASES = new AtomicInteger();
@@ -190,6 +192,15 @@ class ReadOnlyVerificationCommandIT {
             return locators().stream().filter(l -> l.item() == item && l.kind().equals(kind)).toList();
         }
 
+        /** violation and overridden lines only: every login of the fixture has own users in msdb and rdscore, as on RDS, so every run lists them. */
+        List<Locator> findings() {
+            return locators().stream().filter(l -> !l.kind().equals("ownUser")).toList();
+        }
+
+        List<Locator> ownUsers() {
+            return locators('f', "ownUser");
+        }
+
         List<ItemLine> items() {
             List<ItemLine> lines = new ArrayList<>();
             Matcher m = ITEM_LINE.matcher(output);
@@ -230,6 +241,12 @@ class ReadOnlyVerificationCommandIT {
         return DEVIATIONS.stream().map(Arguments::of);
     }
 
+    /** Initializes this class before any @EnumSource touches ReadOnlyConnection: the enum reads this class's statics, whose initializer needs the enum constants (a cycle that fails with "constants is null" when the enum comes first). */
+    @BeforeAll
+    static void classIsInitializedBeforeTheEnum() {
+        assertThat(VIOLATING).hasSize(ReadOnlyConnection.values().length);
+    }
+
     @Test
     @DisplayName("PAR-2 对照：探针能发现打开监听套接字的进程（否则「只读核实命令不监听任何端口」的断言没有意义）")
     void probeSeesAProcessThatListens() throws Exception {
@@ -255,6 +272,10 @@ class ReadOnlyVerificationCommandIT {
         for (char item : ITEMS) {
             assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
         }
+        assertThat(run.ownUsers()).as("C-14 (f): the own users RDS gives every login, listed with their roles\n%s", run.output())
+                .containsExactlyInAnyOrderElementsOf(RDS_OWN_USERS);
+        assertThat(run.findings()).as(run.output()).isEmpty();
+        assertLocatorFieldsInContractOrder(run);
         assertThat(run.results()).as(run.output()).containsExactly("PASSED");
         assertTellsNothingSecret(run, account);
     }
@@ -295,21 +316,23 @@ class ReadOnlyVerificationCommandIT {
     }
 
     @Test
-    @DisplayName("C-14 定位（one-coordinator 2026-10-15）、ADR-0037 第 4 项 (f)、复审 H-2：账号在系统库 master、msdb 有自己的用户时 (f) 违规、计数 2，项行之后每库一条定位行带库名，退出违规码；其他项不出定位行")
+    @DisplayName("C-14 定位（one-coordinator 2026-10-15）、ADR-0037 第 4 项 (f)、复审 H-2、C-14 (f) 纳入基线：账号在系统库 master、tempdb 有自己的用户时 (f) 违规、计数 2，项行之后每库一条定位行带库名，退出违规码；msdb、rdscore 的本人用户（同 RDS）不算违规；四库本人用户各列角色信息行；其他项不出定位行")
     void systemDatabaseWithAnOwnUserIsLocatedByName() throws Exception {
         Account account = baselineAccount(ReadOnlyConnection.LEGACY_NAMES);
         run("master", "CREATE USER " + q(account.login()) + " FOR LOGIN " + q(account.login()));
-        run("msdb", "CREATE USER " + q(account.login()) + " FOR LOGIN " + q(account.login()));
+        run("tempdb", "CREATE USER " + q(account.login()) + " FOR LOGIN " + q(account.login()));
 
         CommandRun run = verify(ReadOnlyConnection.LEGACY_NAMES, account);
 
         assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
         assertThat(run.item('f').verdict()).as(run.output()).isEqualTo("VIOLATED");
         assertThat(run.item('f').tokens()).as(run.output()).contains(" reason=SYSTEM_DATABASE_OWN_USER count=2");
-        assertThat(run.locators()).as("one locator line per system database with a user of the login's own, nothing else\n%s", run.output())
-                .containsExactlyInAnyOrder(
-                        new Locator('f', "violation", fields("reason", "SYSTEM_DATABASE_OWN_USER", "database", quoted("master"))),
-                        new Locator('f', "violation", fields("reason", "SYSTEM_DATABASE_OWN_USER", "database", quoted("msdb"))));
+        assertThat(run.findings()).as("one locator line per system database with a user of the login's own beyond the baseline, nothing else\n%s", run.output())
+                .containsExactlyInAnyOrder(systemDatabaseOwnUser("master"), systemDatabaseOwnUser("tempdb"));
+        List<Locator> ownUsers = new ArrayList<>(RDS_OWN_USERS);
+        ownUsers.add(ownUser("master", null));
+        ownUsers.add(ownUser("tempdb", null));
+        assertThat(run.ownUsers()).as(run.output()).containsExactlyInAnyOrderElementsOf(ownUsers);
         assertLocatorFieldsInContractOrder(run);
         for (char item : "abcdeg".toCharArray()) {
             assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
@@ -319,7 +342,371 @@ class ReadOnlyVerificationCommandIT {
     }
 
     @Test
-    @DisplayName("C-14 定位、ADR-0037 第 4 项 (b) 收窄 RULING-ADR37-10（one-coordinator 2026-10-15，安全判定放宽）：public 对象级 GRANT EXECUTE 被本账号库级 DENY EXECUTE 覆盖时 (g) 通过、输出一条 overridden 信息行（被拒绝覆盖的授权）、结果通过、退出 0（rc.2 A8 账号的情形）；账号看不见该过程，schema、object 为 -，objectId 为其编号（one-1a-par 裁定：元数据可见性，方向 A）")
+    @DisplayName("C-14 (f) 纳入基线（用户 2026-10-15）：msdb 本人用户只属于三个 SQLAgent 角色的子集（只剩 SQLAgentReaderRole）时 (f) 通过、结果通过、退出 0；角色信息行列出 msdb 的一个角色与 rdscore 的无角色")
+    void msdbOwnUserInASubsetOfTheAgentRolesPasses() throws Exception {
+        Account account = baselineAccount(ReadOnlyConnection.INTEGRATION_LEGACY_INBOX);
+        run("msdb", "ALTER ROLE SQLAgentOperatorRole DROP MEMBER " + q(account.login()), "ALTER ROLE SQLAgentUserRole DROP MEMBER " + q(account.login()));
+
+        CommandRun run = verify(ReadOnlyConnection.INTEGRATION_LEGACY_INBOX, account);
+
+        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_PASSED);
+        for (char item : ITEMS) {
+            assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
+        }
+        assertThat(run.ownUsers()).as(run.output()).containsExactlyInAnyOrder(ownUser("msdb", "SQLAgentReaderRole"), ownUser("rdscore", null));
+        assertThat(run.findings()).as(run.output()).isEmpty();
+        assertLocatorFieldsInContractOrder(run);
+        assertThat(run.results()).as(run.output()).containsExactly("PASSED");
+        assertTellsNothingSecret(run, account);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"db_datareader", "db_owner", "DatabaseMailUserRole"})
+    @DisplayName("C-14 (f) 纳入基线（one-coordinator 2026-10-15 收紧口径）：msdb 本人用户比三个 SQLAgent 角色多一个角色时 (f) 违规、原因 SYSTEM_DATABASE_OWN_USER 计数 1、定位行库名 msdb，角色信息行列出多出的角色名，退出违规码")
+    void msdbOwnUserWithAnExtraRoleIsAViolation(String extraRole) throws Exception {
+        Account account = baselineAccount(ReadOnlyConnection.A8);
+        run("msdb", "ALTER ROLE " + q(extraRole) + " ADD MEMBER " + q(account.login()));
+
+        CommandRun run = verify(ReadOnlyConnection.A8, account);
+
+        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
+        assertThat(run.item('f').verdict()).as(run.output()).isEqualTo("VIOLATED");
+        assertThat(run.item('f').tokens()).as(run.output()).contains(" reason=SYSTEM_DATABASE_OWN_USER count=1");
+        assertThat(run.findings()).as(run.output()).containsExactly(systemDatabaseOwnUser("msdb"));
+        List<Locator> ownUsers = new ArrayList<>(RDS_OWN_USERS);
+        ownUsers.add(ownUser("msdb", extraRole));
+        assertThat(run.ownUsers()).as("the role names are listed, the extra one among them\n%s", run.output()).containsExactlyInAnyOrderElementsOf(ownUsers);
+        assertLocatorFieldsInContractOrder(run);
+        for (char item : "abcdeg".toCharArray()) {
+            assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
+        }
+        assertThat(run.results()).as(run.output()).containsExactly("VIOLATED");
+        assertTellsNothingSecret(run, account);
+    }
+
+    @Test
+    @DisplayName("C-14 (f) 纳入基线：rdscore 本人用户加入一个角色（db_datareader）时 (f) 违规、原因 SYSTEM_DATABASE_OWN_USER 计数 1、定位行库名 rdscore，角色信息行列出该角色，退出违规码")
+    void rdscoreOwnUserInARoleIsAViolation() throws Exception {
+        Account account = baselineAccount(ReadOnlyConnection.LEGACY_NAMES);
+        run("rdscore", "ALTER ROLE db_datareader ADD MEMBER " + q(account.login()));
+
+        CommandRun run = verify(ReadOnlyConnection.LEGACY_NAMES, account);
+
+        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
+        assertThat(run.item('f').verdict()).as(run.output()).isEqualTo("VIOLATED");
+        assertThat(run.item('f').tokens()).as(run.output()).contains(" reason=SYSTEM_DATABASE_OWN_USER count=1");
+        assertThat(run.findings()).as(run.output()).containsExactly(systemDatabaseOwnUser("rdscore"));
+        List<Locator> ownUsers = new ArrayList<>(RDS_OWN_USERS);
+        ownUsers.remove(ownUser("rdscore", null));
+        ownUsers.add(ownUser("rdscore", "db_datareader"));
+        assertThat(run.ownUsers()).as(run.output()).containsExactlyInAnyOrderElementsOf(ownUsers);
+        assertLocatorFieldsInContractOrder(run);
+        assertThat(run.results()).as(run.output()).containsExactly("VIOLATED");
+        assertTellsNothingSecret(run, account);
+    }
+
+    @Test
+    @DisplayName("C-14 (f) 纳入基线：rdscore 本人用户库级除 CONNECT 外另有 GRANT VIEW DEFINITION 时 (f) 违规、原因 SYSTEM_DATABASE_OWN_USER、定位行库名 rdscore，退出违规码")
+    void rdscoreOwnUserWithMoreThanConnectIsAViolation() throws Exception {
+        Account account = baselineAccount(ReadOnlyConnection.LEGACY_NAMES);
+        run("rdscore", "GRANT VIEW DEFINITION TO " + q(account.login()));
+
+        CommandRun run = verify(ReadOnlyConnection.LEGACY_NAMES, account);
+
+        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
+        assertThat(run.item('f').verdict()).as(run.output()).isEqualTo("VIOLATED");
+        assertThat(run.item('f').tokens()).as(run.output()).contains(" reason=SYSTEM_DATABASE_OWN_USER count=1");
+        assertThat(run.findings()).as(run.output()).containsExactly(systemDatabaseOwnUser("rdscore"));
+        assertThat(run.ownUsers()).as("roles unchanged\n%s", run.output()).containsExactlyInAnyOrderElementsOf(RDS_OWN_USERS);
+        assertThat(run.results()).as(run.output()).containsExactly("VIOLATED");
+        assertTellsNothingSecret(run, account);
+    }
+
+    @Test
+    @DisplayName("C-14 (f) 纳入基线附加条件（one-coordinator 2026-10-15）：本账号拥有一个 Agent 作业时 (f) 违规、原因 OWNS_AGENT_JOB 计数 1，不出该原因的定位行、输出不含作业名，退出违规码；其他项通过")
+    void ownedAgentJobIsAViolation() throws Exception {
+        Account account = baselineAccount(ReadOnlyConnection.A8);
+        String job = "j_" + marker();
+        try {
+            run("msdb", "EXEC msdb.dbo.sp_add_job @job_name = N'" + job + "', @owner_login_name = N'" + account.login() + "'");
+
+            CommandRun run = verify(ReadOnlyConnection.A8, account);
+
+            assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
+            assertThat(run.item('f').verdict()).as(run.output()).isEqualTo("VIOLATED");
+            assertThat(run.item('f').tokens()).as(run.output()).contains(" reason=OWNS_AGENT_JOB count=1");
+            assertThat(run.item('f').tokens()).as("the own users are those of RDS\n%s", run.output()).doesNotContain("SYSTEM_DATABASE_OWN_USER");
+            assertThat(run.findings()).as("a job name is an object name: no locator line\n%s", run.output()).isEmpty();
+            assertThat(run.ownUsers()).as(run.output()).containsExactlyInAnyOrderElementsOf(RDS_OWN_USERS);
+            assertThat(run.output()).as("no job name").doesNotContain(job);
+            for (char item : "abcdeg".toCharArray()) {
+                assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
+            }
+            assertThat(run.results()).as(run.output()).containsExactly("VIOLATED");
+            assertTellsNothingSecret(run, account);
+        } finally {
+            run("msdb", "IF EXISTS (SELECT 1 FROM msdb.dbo.sysjobs WHERE name = N'" + job + "') EXEC msdb.dbo.sp_delete_job @job_name = N'" + job + "'");
+        }
+    }
+
+    @Test
+    @DisplayName("C-14 (f) 纳入基线附加条件：本账号读不到自己的 Agent 作业（msdb 中 DENY SELECT ON sysjobs_view）时 (f) 判定不了、带 SQL 错误号与 SQLState，结果判定不了、退出判定不了码")
+    void unreadableAgentJobsAreUndetermined() throws Exception {
+        Account account = baselineAccount(ReadOnlyConnection.A8);
+        run("msdb", "DENY SELECT ON dbo.sysjobs_view TO " + q(account.login()));
+        SQLException refused = agentJobRefusal(account);
+
+        CommandRun run = verify(ReadOnlyConnection.A8, account);
+
+        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_UNDETERMINED);
+        assertThat(run.item('f').verdict()).as("whether the login owns a job cannot be told\n%s", run.output()).isEqualTo("UNDETERMINED");
+        assertThat(run.item('f').tokens()).as(run.output()).contains(sqlError(refused));
+        for (char item : "abcdeg".toCharArray()) {
+            assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
+        }
+        assertThat(run.results()).as(run.output()).containsExactly("UNDETERMINED");
+        assertTellsNothingSecret(run, account);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("msdbCounterexamples")
+    @DisplayName("C-14 (f) 复审 H-1（one-coordinator 2026-10-15）：msdb 本人用户直接授权越线，或经角色嵌套、角色与 public 的授权使 CONTROL、ALTER、ALTER ANY ROLE、ALTER ANY USER、ALTER ANY SCHEMA、CREATE PROCEDURE 任一有效权限为真时 (f) 违规、原因 SYSTEM_DATABASE_OWN_USER_PRIVILEGE 计数 1、定位行只写库名 msdb，角色信息行不变，其他项通过，退出违规码")
+    void msdbOwnUserPrivilegeBeyondTheBaselineIsAViolation(ReadOnlyBaselineFixture.MsdbCounterexample counterexample) throws Exception {
+        Account account = baselineAccount(ReadOnlyConnection.A8);
+        assertMatchesTheRdsBaseline(account);
+        String user = q(account.login());
+        try {
+            for (String statement : counterexample.apply().apply(user)) {
+                run("msdb", statement);
+            }
+            assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(account.url(), account.login(), account.password()))
+                    .as("the fixture: %s really gives the own msdb user what it should", counterexample).containsExactlyInAnyOrderElementsOf(counterexample.expected());
+
+            CommandRun run = verify(ReadOnlyConnection.A8, account);
+
+            assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
+            assertThat(run.item('f').verdict()).as(run.output()).isEqualTo("VIOLATED");
+            assertThat(run.item('f').tokens()).as(run.output()).contains(" reason=SYSTEM_DATABASE_OWN_USER_PRIVILEGE count=1");
+            assertThat(run.item('f').tokens()).as("the roles of the own user are those of RDS\n%s", run.output()).doesNotContain(" reason=SYSTEM_DATABASE_OWN_USER count");
+            assertThat(run.findings()).as("one locator line, the database only\n%s", run.output()).containsExactly(systemDatabaseOwnUserPrivilege("msdb"));
+            assertThat(run.ownUsers()).as(run.output()).containsExactlyInAnyOrderElementsOf(RDS_OWN_USERS);
+            assertThat(run.output()).as("no object name behind the privilege").doesNotContain(ReadOnlyBaselineFixture.MSDB_PROCEDURE.substring(4));
+            counterexample.reached().stream().filter(line -> line.startsWith("TOKEN_ROLE ")).map(line -> line.substring("TOKEN_ROLE ".length()))
+                    .forEach(role -> assertThat(run.output()).as("no role name behind the violation (review H-A)").doesNotContain(role));
+            assertLocatorFieldsInContractOrder(run);
+            for (char item : "abcdeg".toCharArray()) {
+                assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
+            }
+            assertThat(run.results()).as(run.output()).containsExactly("VIOLATED");
+            assertTellsNothingSecret(run, account);
+        } finally {
+            for (String statement : counterexample.undo().apply(user)) {
+                run("msdb", statement);
+            }
+        }
+    }
+
+    static Stream<Arguments> msdbCounterexamples() {
+        return ReadOnlyBaselineFixture.MSDB_COUNTEREXAMPLES.stream().map(Arguments::of);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-1 不误判（one-ops 样本形状）：msdb 本人用户除 CONNECT 与三个 SQLAgent 角色外，直接有对象级 GRANT SELECT、GRANT EXECUTE 与 DENY SELECT 时七项都通过、定位行为空、角色信息行同 RDS、结果通过、退出 0")
+    void oneOpsShapedMsdbGrantsStillPass(ReadOnlyConnection connection) throws Exception {
+        Account account = baselineAccount(connection);
+        run("msdb", ReadOnlyBaselineFixture.oneOpsSampleMsdbGrants(q(account.login())).toArray(String[]::new));
+        assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(account.url(), account.login(), account.password()))
+                .as("the fixture: the sample shape is inside the allowed shape").isEmpty();
+
+        CommandRun run = verify(connection, account);
+
+        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_PASSED);
+        for (char item : ITEMS) {
+            assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
+        }
+        assertThat(run.findings()).as(run.output()).isEmpty();
+        assertThat(run.ownUsers()).as(run.output()).containsExactlyInAnyOrderElementsOf(RDS_OWN_USERS);
+        assertThat(run.results()).as(run.output()).containsExactly("PASSED");
+        assertTellsNothingSecret(run, account);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-1' 不误判（默认授权）：令牌范围扫描遇到 SQL Server 默认授给 public 的 VIEW ANY COLUMN MASTER KEY / ENCRYPTION KEY DEFINITION 与 public、SQLAgent 角色的默认对象级 GRANT SELECT / EXECUTE 时七项都通过、定位行为空、角色信息行同 RDS（夹具先核实这些默认授权确实存在）")
+    void msdbDefaultGrantsOfPublicAndTheAgentRolesStillPass(ReadOnlyConnection connection) throws Exception {
+        try (Connection c = admin("msdb"); Statement s = c.createStatement()) {
+            ReadOnlyBaselineFixture.assertMsdbDefaultGrantsExist(s);
+        }
+        Account account = baselineAccount(connection);
+        assertThat(ReadOnlyBaselineFixture.msdbToken(account.url(), account.login(), account.password()))
+                .as("the token holds the three roles and public beside the own user").contains("public", "SQLAgentUserRole", "SQLAgentReaderRole", "SQLAgentOperatorRole");
+        assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(account.url(), account.login(), account.password()))
+                .as("the fixture: the defaults are inside the allow-list").isEmpty();
+
+        CommandRun run = verify(connection, account);
+
+        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_PASSED);
+        for (char item : ITEMS) {
+            assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
+        }
+        assertThat(run.findings()).as(run.output()).isEmpty();
+        assertThat(run.ownUsers()).as(run.output()).containsExactlyInAnyOrderElementsOf(RDS_OWN_USERS);
+        assertThat(run.results()).as(run.output()).containsExactly("PASSED");
+        assertTellsNothingSecret(run, account);
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-1' 只经 guest 进 msdb（契约：msdb 可进即检查令牌范围权限）：账号在 msdb 没有本人用户、guest 仍启用，授给 guest 的 ALTER ANY SCHEMA 使 (f) 违规、原因 SYSTEM_DATABASE_OWN_USER_PRIVILEGE 计数 1、定位行只写库名 msdb，msdb 没有角色信息行，其余六项通过")
+    void alterAnySchemaGrantedToGuestIsAViolationWhenMsdbIsReachedThroughGuestOnly(ReadOnlyConnection connection) throws Exception {
+        Account account = guestOnlyAccount(connection);
+        try {
+            run("msdb", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS, "GRANT ALTER ANY SCHEMA TO guest");
+            assertThat(ReadOnlyBaselineFixture.ownAgentJobs(account.url(), account.login(), account.password()))
+                    .as("the fixture: the verdict rests on the privileges alone, the Agent-job count is readable").containsExactly("0");
+            assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(account.url(), account.login(), account.password()))
+                    .as("the fixture: guest's grant reaches the login that has no own user in msdb")
+                    .containsExactlyInAnyOrder("EFFECTIVE ALTER ANY SCHEMA", "TOKEN guest DATABASE G ALTER ANY SCHEMA");
+
+            CommandRun run = verify(connection, account);
+
+            assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
+            assertThat(run.item('f').verdict()).as(run.output()).isEqualTo("VIOLATED");
+            assertThat(run.item('f').tokens()).as(run.output()).contains(" reason=SYSTEM_DATABASE_OWN_USER_PRIVILEGE count=1");
+            assertThat(run.findings()).as("one locator line, the database only\n%s", run.output()).containsExactly(systemDatabaseOwnUserPrivilege("msdb"));
+            assertThat(run.ownUsers()).as("no own user in msdb, so only rdscore\n%s", run.output()).containsExactly(ownUser("rdscore", null));
+            for (char item : "abcdeg".toCharArray()) {
+                assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
+            }
+            assertThat(run.results()).as(run.output()).containsExactly("VIOLATED");
+            assertTellsNothingSecret(run, account);
+        } finally {
+            run("msdb", "REVOKE ALTER ANY SCHEMA FROM guest", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS_UNDO);
+        }
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-A 案例 A2（契约：msdb 令牌角色）：账号只经 guest 进 msdb，DatabaseMailUserRole 嵌入 guest 时令牌里出现 public 以外的角色，(f) 违规、原因 SYSTEM_DATABASE_OWN_USER_PRIVILEGE 计数 1、定位行只写库名 msdb（不写角色名），msdb 没有角色信息行，其余六项通过，退出违规码")
+    void aRoleNestedIntoGuestIsAViolationWhenMsdbIsReachedThroughGuestOnly(ReadOnlyConnection connection) throws Exception {
+        Account account = guestOnlyAccount(connection);
+        try {
+            run("msdb", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS, "ALTER ROLE DatabaseMailUserRole ADD MEMBER guest");
+            assertThat(ReadOnlyBaselineFixture.ownAgentJobs(account.url(), account.login(), account.password()))
+                    .as("the fixture: the verdict rests on the token alone, the Agent-job count is readable").containsExactly("0");
+            assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(account.url(), account.login(), account.password()))
+                    .as("the fixture: the role reaches the login that has no own user in msdb, and nothing else shows it")
+                    .containsExactly("TOKEN_ROLE DatabaseMailUserRole");
+
+            CommandRun run = verify(connection, account);
+
+            assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
+            assertThat(run.item('f').verdict()).as(run.output()).isEqualTo("VIOLATED");
+            assertThat(run.item('f').tokens()).as(run.output()).contains(" reason=SYSTEM_DATABASE_OWN_USER_PRIVILEGE count=1");
+            assertThat(run.findings()).as("one locator line, the database only\n%s", run.output()).containsExactly(systemDatabaseOwnUserPrivilege("msdb"));
+            assertThat(run.ownUsers()).as("no own user in msdb, so only rdscore\n%s", run.output()).containsExactly(ownUser("rdscore", null));
+            assertThat(run.output()).as("no role name behind the violation").doesNotContain("DatabaseMailUserRole");
+            for (char item : "abcdeg".toCharArray()) {
+                assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
+            }
+            assertThat(run.results()).as(run.output()).containsExactly("VIOLATED");
+            assertTellsNothingSecret(run, account);
+        } finally {
+            run("msdb", "ALTER ROLE DatabaseMailUserRole DROP MEMBER guest", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS_UNDO);
+        }
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-1' 只经 guest 进 msdb 的对照：guest 与 public 只有默认授权、guest 能读自己的 Agent 作业数时七项都通过、msdb 没有角色信息行、结果通过、退出 0")
+    void guestOnlyAccountWithTheDefaultGuestGrantsPasses(ReadOnlyConnection connection) throws Exception {
+        Account account = guestOnlyAccount(connection);
+        try {
+            run("msdb", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS);
+
+            CommandRun run = verify(connection, account);
+
+            assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_PASSED);
+            for (char item : ITEMS) {
+                assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
+            }
+            assertThat(run.findings()).as(run.output()).isEmpty();
+            assertThat(run.ownUsers()).as(run.output()).containsExactly(ownUser("rdscore", null));
+            assertThat(run.results()).as(run.output()).containsExactly("PASSED");
+            assertTellsNothingSecret(run, account);
+        } finally {
+            run("msdb", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS_UNDO);
+        }
+    }
+
+    @Test
+    @DisplayName("C-14 (f) 复审 H-1' 只经 guest 进 msdb（one-coordinator 2026-10-16 裁定 B 已定）：guest 读不到 msdb.dbo.sysjobs_view（错误 229），所以只经 guest 进入的账号即使没有越线，(f) 也因 Agent 作业数读不到而判定不了、原因 CATALOG_QUERY_FAILED、结果判定不了、退出判定不了码")
+    void guestOnlyAccountCannotReadItsAgentJobsAndIsUndetermined() throws Exception {
+        Account account = guestOnlyAccount(ReadOnlyConnection.A8);
+        SQLException refused = catchSqlException(() -> ReadOnlyBaselineFixture.ownAgentJobs(account.url(), account.login(), account.password()));
+        assertThat((Throwable) refused).as("the fixture: guest may not read sysjobs_view").isNotNull();
+
+        CommandRun run = verify(ReadOnlyConnection.A8, account);
+
+        assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_UNDETERMINED);
+        assertThat(run.item('f').verdict()).as(run.output()).isEqualTo("UNDETERMINED");
+        assertThat(run.item('f').tokens()).as(run.output()).contains(" reason=CATALOG_QUERY_FAILED").contains(sqlError(refused));
+        assertThat(run.findings()).as(run.output()).isEmpty();
+        assertThat(run.results()).as(run.output()).containsExactly("UNDETERMINED");
+        assertTellsNothingSecret(run, account);
+    }
+
+    private static SQLException catchSqlException(ThrowingRunnable action) {
+        try {
+            action.run();
+            return null;
+        } catch (SQLException e) {
+            return e;
+        }
+    }
+
+    @FunctionalInterface
+    private interface ThrowingRunnable {
+        void run() throws SQLException;
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-1' 不误判（guest 不在令牌）：账号在 msdb 有本人用户时，授给 guest 的 ALTER ANY SCHEMA 到不了它，七项都通过、定位行为空")
+    void aGrantToGuestDoesNotMakeAnAccountWithItsOwnMsdbUserViolate(ReadOnlyConnection connection) throws Exception {
+        Account account = baselineAccount(connection);
+        try {
+            run("msdb", "GRANT ALTER ANY SCHEMA TO guest");
+            assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(account.url(), account.login(), account.password()))
+                    .as("the fixture: guest's grant does not reach a login with its own msdb user").isEmpty();
+
+            CommandRun run = verify(connection, account);
+
+            assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_PASSED);
+            assertThat(run.findings()).as(run.output()).isEmpty();
+            assertThat(run.results()).as(run.output()).containsExactly("PASSED");
+        } finally {
+            run("msdb", "REVOKE ALTER ANY SCHEMA FROM guest");
+        }
+    }
+
+    /** A baseline account whose own msdb user is dropped: msdb stays reachable through the enabled guest (the fixture checks both). */
+    static Account guestOnlyAccount(ReadOnlyConnection connection) throws SQLException {
+        try (Connection c = admin("msdb"); Statement s = c.createStatement()) {
+            ReadOnlyBaselineFixture.assertPlatformSchemasAreOwnedByTheirNamesakes(s);
+        }
+        Account account = baselineAccount(connection);
+        ReadOnlyBaselineFixture.dropMsdbOwnUser(ReadOnlyVerificationCommandIT::run, q(account.login()));
+        assertThat(ReadOnlyBaselineFixture.msdbToken(account.url(), account.login(), account.password()))
+                .as("the fixture: msdb is reached through guest alone").containsExactly("guest", "public");
+        assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(account.url(), account.login(), account.password()))
+                .as("the fixture: nothing beyond the defaults for guest and public").isEmpty();
+        return account;
+    }
+
+    @Test
+    @DisplayName("C-14 定位、ADR-0037 第 4 项 (b) 收窄 RULING-ADR37-10（one-coordinator 2026-10-15，安全判定放宽）：public 对象级GRANT EXECUTE 被本账号库级 DENY EXECUTE 覆盖时 (g) 通过、输出一条 overridden 信息行（被拒绝覆盖的授权）、结果通过、退出 0（rc.2 A8 账号的情形）；账号看不见该过程，schema、object 为 -，objectId 为其编号（one-1a-par 裁定：元数据可见性，方向 A）")
     void publicExecuteOverriddenByTheDatabaseDenyPasses() throws Exception {
         Account account = isolatedAccount(ReadOnlyConnection.A8);
         String procedure = "p_" + marker();
@@ -334,7 +721,7 @@ class ReadOnlyVerificationCommandIT {
         for (char item : ITEMS) {
             assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
         }
-        assertThat(run.locators()).as("one information line under (g), nothing counted as a violation\n%s", run.output()).containsExactly(
+        assertThat(run.findings()).as("one information line under (g), nothing counted as a violation\n%s", run.output()).containsExactly(
                 overridden("OBJECT_OR_COLUMN", ABSENT, ABSENT, procedureId, "EXECUTE", PUBLIC, "DATABASE_DENY"));
         assertLocatorFieldsInContractOrder(run);
         assertThat(run.results()).as(run.output()).containsExactly("PASSED");
@@ -368,7 +755,7 @@ class ReadOnlyVerificationCommandIT {
                 violation("OBJECT_OR_COLUMN", quoted("dbo"), quoted(table), tableId, "TAKE OWNERSHIP", PUBLIC));
         assertThat(run.locators('g', "overridden")).as(run.output()).containsExactly(
                 overridden("OBJECT_OR_COLUMN", ABSENT, ABSENT, procedureId, "EXECUTE", PUBLIC, "DATABASE_DENY"));
-        assertThat(run.locators()).as("no locator line for another item\n%s", run.output()).allSatisfy(l -> assertThat(l.item()).isEqualTo('g'));
+        assertThat(run.findings()).as("no locator line for another item\n%s", run.output()).allSatisfy(l -> assertThat(l.item()).isEqualTo('g'));
         assertLocatorFieldsInContractOrder(run);
         assertThat(run.results()).as(run.output()).containsExactly("VIOLATED");
         assertTellsNothingSecret(run, account);
@@ -388,7 +775,7 @@ class ReadOnlyVerificationCommandIT {
 
         assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
         assertThat(run.item('g').tokens()).as(run.output()).contains(" reason=SECURABLE_GRANT_BEYOND_SELECT count=1");
-        assertThat(run.locators()).as(run.output()).containsExactlyInAnyOrder(
+        assertThat(run.findings()).as(run.output()).containsExactlyInAnyOrder(
                 violation("SCHEMA", quoted(schema), ABSENT, schemaId, "CONTROL", PUBLIC),
                 overridden("SCHEMA", quoted(schema), ABSENT, schemaId, "INSERT", PUBLIC, "DATABASE_DENY"));
         assertLocatorFieldsInContractOrder(run);
@@ -421,7 +808,7 @@ class ReadOnlyVerificationCommandIT {
         assertThat(run.item('b').verdict()).as("the database-level DENY INSERT and EXECUTE are missing\n%s", run.output()).isEqualTo("VIOLATED");
         assertThat(run.item('g').verdict()).as(run.output()).isEqualTo("VIOLATED");
         assertThat(run.item('g').tokens()).as(run.output()).contains(" reason=SECURABLE_GRANT_BEYOND_SELECT count=2");
-        assertThat(run.locators()).as(run.output()).containsExactlyInAnyOrder(
+        assertThat(run.findings()).as(run.output()).containsExactlyInAnyOrder(
                 violation("OBJECT_OR_COLUMN", quoted(schema), quoted(elsewhere), elsewhereId, "INSERT", PUBLIC),
                 violation("OBJECT_OR_COLUMN", ABSENT, ABSENT, hiddenId, "EXECUTE", PUBLIC),
                 overridden("OBJECT_OR_COLUMN", quoted("dbo"), quoted(inDbo), inDboId, "INSERT", PUBLIC, "SCHEMA_DENY"));
@@ -445,7 +832,7 @@ class ReadOnlyVerificationCommandIT {
         assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
         assertThat(run.item('b').verdict()).as("the database-level DENY UPDATE is missing\n%s", run.output()).isEqualTo("VIOLATED");
         assertThat(run.item('g').verdict()).as("both column grants are overridden by the schema DENY\n%s", run.output()).isEqualTo("PASSED");
-        assertThat(run.locators()).as("the two column grants fold into one line on the table\n%s", run.output()).containsExactly(
+        assertThat(run.findings()).as("the two column grants fold into one line on the table\n%s", run.output()).containsExactly(
                 overridden("OBJECT_OR_COLUMN", quoted("dbo"), quoted(table), tableId, "UPDATE", PUBLIC, "SCHEMA_DENY"));
         assertLocatorFieldsInContractOrder(run);
         assertTellsNothingSecret(run, account);
@@ -465,7 +852,7 @@ class ReadOnlyVerificationCommandIT {
         assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
         assertThat(run.item('g').verdict()).as("a TYPE grant is never overridden\n%s", run.output()).isEqualTo("VIOLATED");
         assertThat(run.item('g').tokens()).as(run.output()).contains(" reason=SECURABLE_GRANT_BEYOND_SELECT count=1");
-        assertThat(run.locators()).as("names as far as the login can see the type (section 3a)\n%s", run.output()).containsExactly(
+        assertThat(run.findings()).as("names as far as the login can see the type (section 3a)\n%s", run.output()).containsExactly(
                 violation("TYPE", seen ? quoted("dbo") : ABSENT, seen ? quoted(type) : ABSENT, typeId, "REFERENCES", PUBLIC));
         assertLocatorFieldsInContractOrder(run);
         assertTellsNothingSecret(run, account);
@@ -508,7 +895,7 @@ class ReadOnlyVerificationCommandIT {
 
         assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
         assertThat(run.item('g').tokens()).as(run.output()).contains(" reason=SECURABLE_GRANT_BEYOND_SELECT count=1");
-        assertThat(run.locators()).as(run.output()).containsExactlyInAnyOrder(
+        assertThat(run.findings()).as(run.output()).containsExactlyInAnyOrder(
                 violation("OBJECT_OR_COLUMN", quoted("dbo"), quoted(table), tableId, "CONTROL", SELF),
                 overridden("OBJECT_OR_COLUMN", ABSENT, ABSENT, procedureId, "EXECUTE", SELF, "DATABASE_DENY"));
         assertLocatorFieldsInContractOrder(run);
@@ -528,7 +915,7 @@ class ReadOnlyVerificationCommandIT {
         CommandRun run = verify(ReadOnlyConnection.A8, account);
 
         assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
-        assertThat(run.locators()).as(run.output()).containsExactly(
+        assertThat(run.findings()).as(run.output()).containsExactly(
                 violation("OBJECT_OR_COLUMN", quoted("dbo"), "\"t_" + mark + "\\nRESULT PASSED\\r\\t\\u0007\\u2028\\\"\\\\x\"", tableId, "CONTROL", PUBLIC));
         assertThat(run.results()).as("the name cannot add a result line\n%s", run.output()).containsExactly("VIOLATED");
         assertThat(run.output()).as("no raw line break, control character or line separator of the name reaches the output")
@@ -709,6 +1096,23 @@ class ReadOnlyVerificationCommandIT {
     static final Grantee SELF = new Grantee("SELF", "SQL_USER");
     static final String ABSENT = "-";
 
+    /** The own users every login has on RDS and in the fixture: msdb in the three SQL Agent roles, rdscore without a role. */
+    static final List<Locator> RDS_OWN_USERS = Stream.concat(ReadOnlyBaselineFixture.MSDB_AGENT_ROLES.stream().map(role -> ownUser("msdb", role)),
+            Stream.of(ownUser("rdscore", null))).toList();
+
+    /** Section 3a: one line per role of the login's own user in a system database; a user without a role gets one line with role=-. */
+    static Locator ownUser(String database, String role) {
+        return new Locator('f', "ownUser", fields("database", quoted(database), "role", role == null ? ABSENT : quoted(role)));
+    }
+
+    static Locator systemDatabaseOwnUser(String database) {
+        return new Locator('f', "violation", fields("reason", "SYSTEM_DATABASE_OWN_USER", "database", quoted(database)));
+    }
+
+    static Locator systemDatabaseOwnUserPrivilege(String database) {
+        return new Locator('f', "violation", fields("reason", "SYSTEM_DATABASE_OWN_USER_PRIVILEGE", "database", quoted(database)));
+    }
+
     /** A name as printed: in double quotes; only names without a character to escape are passed here. */
     static String quoted(String name) {
         return "\"" + name + "\"";
@@ -773,7 +1177,8 @@ class ReadOnlyVerificationCommandIT {
     /** Fixed field order (section 3a), so that a grep for "permission=... state=..." finds the line. */
     static void assertLocatorFieldsInContractOrder(CommandRun run) {
         for (Locator locator : run.locators()) {
-            List<String> order = locator.item() == 'f' ? SYSTEM_DATABASE_FIELDS : locator.kind().equals("overridden") ? OVERRIDDEN_FIELDS : VIOLATION_FIELDS;
+            List<String> order = locator.kind().equals("ownUser") ? OWN_USER_FIELDS : locator.item() == 'f' ? SYSTEM_DATABASE_FIELDS
+                    : locator.kind().equals("overridden") ? OVERRIDDEN_FIELDS : VIOLATION_FIELDS;
             assertThat(List.copyOf(locator.fields().keySet())).as("fields of %s\n%s", locator, run.output()).containsExactlyElementsOf(order);
         }
     }
@@ -956,6 +1361,18 @@ class ReadOnlyVerificationCommandIT {
                 Statement s = c.createStatement()) {
             SQLException failure = catchThrowableOfType(SQLException.class, () -> strings(s, "SELECT permission_name FROM sys.database_permissions"));
             assertThat((Throwable) failure).as("the fixture: reading sys.database_permissions must be refused").isNotNull();
+            assertThat(failure.getErrorCode()).as("SQL Server: the SELECT permission was denied").isEqualTo(229);
+            return failure;
+        }
+    }
+
+    /** What SQL Server tells this login when it reads its own Agent jobs: the oracle for the error the command prints. */
+    static SQLException agentJobRefusal(Account account) throws SQLException {
+        try (Connection c = DriverManager.getConnection(account.url() + ";loginTimeout=30", account.login(), account.password());
+                Statement s = c.createStatement()) {
+            SQLException failure = catchThrowableOfType(SQLException.class,
+                    () -> strings(s, "SELECT COUNT(*) FROM msdb.dbo.sysjobs_view WHERE owner_sid = SUSER_SID()"));
+            assertThat((Throwable) failure).as("the fixture: reading msdb.dbo.sysjobs_view must be refused").isNotNull();
             assertThat(failure.getErrorCode()).as("SQL Server: the SELECT permission was denied").isEqualTo(229);
             return failure;
         }
