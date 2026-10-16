@@ -1716,7 +1716,7 @@ processes:
   - VS-03.5
   owner_bc: B-28
   human_orchestration: true
-  human_note: 内部评审不通过须整改后复审；客户审查期、退回修改、轮次与书面声明
+  human_note: 校审不通过须整改后复审；客户审查期、退回修改、轮次与无异议声明
   merged_from:
   - PRC-29
   steps:
@@ -1750,16 +1750,16 @@ processes:
     actor_v1: 技术专家
     command: 登记内部评审结论
     aggregate: AGG-27
-    desc: 未通过内部评审即交付为 P-22 写入前预警
+    desc: 校对、审核、审定逐级登记结论（级数按项目类别配置，待用户定）；记在交付物内评审记录，不走 platform.approval；未经校审即签发为 P-22 写入前预警
     decision:
-    - when: 内部评审通过
+    - when: 各级校审通过
       goto: 4
     - when: otherwise
       goto: 2
     approval:
-      doc_type: 交付物内部评审
+      doc_type: 交付物校审
       approver: SH-E4
-      multi_level: false
+      multi_level: true
       on_reject: 2
   - actor: SH-E7
     actor_v1: 注册执业人员
@@ -1767,40 +1767,43 @@ processes:
     aggregate: AGG-27
     emits:
     - 交付物已签发
+    decision:
+    - when: 签发人执业证书有效且专业、等级符合
+      goto: 5
+    - when: otherwise
+      goto: end
   - actor: SH-E2
     actor_v1: 项目经理
     command: 登记提交轮次送达
     aggregate: AGG-27
     emits:
     - 交付物已送达
-    desc: 项目经理向客户送达交付物（合并原 PRC-29，⑥a 评审 H2 c、M2）
+    desc: 项目经理按合同通知条款送达，并把送达回执（签收单、快递妥投、邮件进入对方系统、平台回执）作为证据登记，挂本轮提交（ADR-0047 第 5 条第 2 点；R-5 补强交付回执）
     decision:
-    - when: 客户书面认可
+    - when: 客户书面认可（签收单、审查同意意见、邮件确认、阶段签认等）
       goto: 6
-    - when: 客户退回修改
+    - when: 客户书面不同意并退回修改
       goto: 7
-    - when: 审查期满且未收到发包人书面异议
+    - when: 合同约定审查期且期满前未收到书面异议
       goto: 8
+    - when: otherwise
+      goto: end
     cross_bc:
     - mode: event
       direction: out
       bc: B-08
       name: 交付物已送达
+    calls: PRC-33
   - actor: SH-E2
     actor_v1: 项目经理
     command: 登记客户认可
     aggregate: AGG-27
     emits:
     - 交付物已认可
-    desc: 有阻断性不符合项时拒绝（INV-48）
+    desc: 登记认可证据类型与认可日，签认人须是合同登记的发包人代表或授权人（ADR-0047 第 2 条共同规则 2）；有阻断性不符合项时拒绝（INV-48）
     decision:
     - when: otherwise
       goto: end
-    approval:
-      doc_type: 交付物客户认可
-      approver: SH-C6a
-      multi_level: false
-      on_reject: 7
     cross_bc:
     - mode: event
       direction: out
@@ -1810,6 +1813,7 @@ processes:
       direction: out
       bc: B-05
       name: 交付物已认可
+    calls: PRC-33
   - actor: SH-E2
     actor_v1: 项目经理
     command: 登记客户退回
@@ -1817,7 +1821,7 @@ processes:
     branch: 退回
     emits:
     - AcceptanceReturned
-    desc: 轮次加 1
+    desc: 退回意见作证据登记；轮次加 1，修改后重新报送、审查期从新送达日重算（ADR-0047 第 5 条第 5 点）
     decision:
     - when: otherwise
       goto: 2
@@ -1826,6 +1830,7 @@ processes:
       direction: out
       bc: B-08
       name: AcceptanceReturned
+    calls: PRC-33
   - actor: SH-E2
     actor_v1: 项目经理
     command: 登记项目经理的无异议声明
@@ -1841,6 +1846,8 @@ processes:
       direction: out
       bc: B-08
       name: 无异议已声明
+    calls: PRC-33
+    desc: 期满后项目经理检索往来函件，声明期满前未收到书面异议，检索记录作证据；交付侧不判期满，期满判定与视为同意认定在 B-08（ADR-0049 决定 1、5）；财务复核在收入确认审批中（ADR-0047 U-2 (a)）
   notes: 合并原 PRC-29。检查报告走同一流程（INV-51 同 BC 前置读不符合项）；已发布版本不可改，只出新版本（INV-46）。交付侧不判断视为同意，期满判定在 B-08（D-8）。订阅方 B-08、B-05。
   roles:
   - id: SH-E3
@@ -1853,6 +1860,10 @@ processes:
     as: performer
   - id: SH-C6a
     as: external
+  - id: SH-C6e
+    as: external
+  - id: SH-E6
+    as: informed
 - id: PRC-30
   name: 提出并批准完工估算
   trigger:
