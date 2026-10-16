@@ -137,6 +137,13 @@ else
   run_step "generated docs (build_all --check)" py docs/modernization/build_all.py --check
 fi
 run_step "legacy system name" py docs/modernization/check_legacy_name.py
+if touches 'rules/decide/(build_decision_page\.py|page-template\.html)$'; then
+  run_step "decision page generator (self-test)" py docs/modernization/rules/decide/build_decision_page.py --self-test
+fi
+if touches 'architecture/decision-page/[^/]+\.json$|rules/decide/sheets/[^/]+\.json$|architecture/decision-page/check_pages\.py$'; then
+  run_step "decision pages: question rules (self-test)" py docs/modernization/architecture/decision-page/check_pages.py --self-test
+  run_step "decision pages: question rules" py docs/modernization/architecture/decision-page/check_pages.py --changed "$base"
+fi
 
 if touches '^(backend/src/(main/resources/db/migration|test/resources/db/testdata)/|backend/architecture/migration-baseline-open|backend/src/main/resources/application.*\.(properties|ya?ml)$|scripts/ci/(migrations_immutable|ci_git)\.py$)'; then
   run_step "migrations immutable (self-test)" py scripts/ci/migrations_immutable.py --self-test
@@ -245,13 +252,14 @@ if [ -n "$guard_run" ]; then
 else
   report SKIP "guards: backend guard tests" "no guard test or architecture list changed"
 fi
-if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(precheck_before_pr|pre_push_gate)\.py|scripts/ci/light_unit_classes\.py|\.claude/settings\.json)$'; then
+if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(precheck_before_pr|pre_push_gate)\.py|scripts/ci/(light_unit_classes|heavy_gate)\.py|\.claude/settings\.json)$'; then
   for guard in migrations_immutable acceptance_guard acceptance_reports db_scripts_aligned relevant_change assertion_drift; do
     run_step "guards: $guard (self-test)" py "scripts/ci/$guard.py" --self-test
   done
   run_step "guards: precheck_before_pr (self-test)" py scripts/hooks/precheck_before_pr.py --self-test
   run_step "guards: pre_push_gate (self-test)" py scripts/hooks/pre_push_gate.py --self-test
   run_step "guards: light_unit_classes (self-test)" py scripts/ci/light_unit_classes.py --self-test
+  run_step "guards: heavy_gate (self-test)" py scripts/ci/heavy_gate.py --self-test
 fi
 
 if [ "$builds_relevant" = true ]; then
