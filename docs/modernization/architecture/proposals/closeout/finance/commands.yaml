@@ -1,0 +1,750 @@
+# 命令目录（finance 组，提议稿）：名称取聚合稿 §2.2 命令列；发令权取权责表 A；proposed 为骨架标〔缺〕的命令。
+commands:
+- name: 批准分摊规则版本
+  aggregate: AGG-40
+  params: [规则版本引用, 审批单引用]
+  preconditions: []
+  authority: {A: 实例级：费用归属对象.责任人}
+  idempotency_key: [规则版本引用]
+  emits: []
+- name: 生效分摊规则版本
+  aggregate: AGG-40
+  params: [规则版本引用, 审批结果]
+  preconditions: [INV-91]
+  authority: {A: 财务负责人}
+  idempotency_key: [规则版本引用]
+  emits: [分摊规则已生效]
+- name: 编制分摊规则版本
+  aggregate: AGG-40
+  params: [法人, 池的职能类别, 基数, 档位, 费率, 生效日]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [法人, 版本号]
+  emits: []
+  proposed: true
+  proposed_reason: 骨架 PRC-97 步 1〔缺〕
+- name: 试算人工成本分配
+  aggregate: AGG-41
+  params: [法人, 会计年度, 期间序号]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [法人, 期间, 运行序号]
+  emits: []
+- name: 确认人工成本分配
+  aggregate: AGG-41
+  params: [运行引用]
+  preconditions: [INV-89]
+  authority: {A: 财务负责人}
+  idempotency_key: [运行引用]
+  emits: []
+- name: 提交过账候选
+  aggregate: AGG-41
+  params: [运行引用]
+  preconditions: [INV-92, INV-93]
+  authority: {A: 财务负责人}
+  idempotency_key: [运行引用]
+  emits: [人工成本分配已过账]
+- name: 试算分摊运行
+  aggregate: AGG-42
+  params: [法人, 会计年度, 期间序号, 规则版本引用]
+  preconditions: [INV-90, INV-91]
+  authority: {A: 财务负责人}
+  idempotency_key: [法人, 期间, 运行序号]
+  emits: []
+- name: 生效分摊运行
+  aggregate: AGG-42
+  params: [运行引用]
+  preconditions: [INV-90]
+  authority: {A: 财务负责人}
+  idempotency_key: [运行引用]
+  emits: [分摊已生效]
+- name: 售前投入转费用
+  aggregate: AGG-43
+  params: [来源对象(项目或协议), 期间]
+  preconditions: [INV-92, INV-94]
+  authority: {A: 财务负责人}
+  idempotency_key: [来源对象, 结转类型, 期间]
+  emits: [成本结转已过账]
+- name: 提交过账候选
+  aggregate: AGG-43
+  params: [结转批次引用]
+  preconditions: []
+  authority: {A: 待定（权责表无条目）}
+  idempotency_key: [结转批次引用]
+  emits: []
+- name: 转入售前投入
+  aggregate: AGG-43
+  params: [项目引用, 协议引用]
+  preconditions: [INV-92, INV-94]
+  authority: {A: 财务负责人}
+  idempotency_key: [来源对象, 结转类型, 期间]
+  emits: [成本结转已过账]
+- name: 终止清算成本
+  aggregate: AGG-43
+  params: [项目或协议引用, 终止原因]
+  preconditions: [INV-92, INV-94]
+  authority: {A: 财务负责人}
+  idempotency_key: [来源对象, 结转类型, 期间]
+  emits: [成本结转已过账]
+- name: 结转合同履约成本
+  aggregate: AGG-43
+  params: [过账事实引用(收入确认类型)]
+  preconditions: [INV-88, INV-92, INV-94]
+  authority: {A: 财务负责人}
+  idempotency_key: [过账事实引用]
+  emits: [成本结转已过账]
+- name: 确认应付
+  aggregate: AGG-52
+  params: [来源单据引用, 承担法人, 往来对象, 金额(外部来源已定), 应付类型]
+  preconditions: [INV-74, INV-75a]
+  authority: {A: 财务负责人}
+  idempotency_key: [来源单据ID]
+  emits: [应付已确认]
+  also_used_by: revenue:PRC-147
+- name: 提交过账候选
+  aggregate: AGG-52
+  params: [应付引用]
+  preconditions: [INV-92, INV-93]
+  authority: {A: 财务负责人}
+  idempotency_key: [应付引用]
+  emits: []
+- name: 在应付上核销占用
+  aggregate: AGG-52
+  params: [应付引用, 付款分配行]
+  preconditions: [INV-79]
+  authority: {A: 待定（权责表无条目）}
+  idempotency_key: [付款分配行ID]
+  emits: []
+- name: 释放核销占用
+  aggregate: AGG-52
+  params: [核销占用引用, 释放原因]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [核销占用ID]
+  emits: []
+- name: 核销应付
+  aggregate: AGG-52
+  params: [应付引用, 付款引用, 核销金额]
+  preconditions: [INV-77a]
+  authority: {A: 财务负责人}
+  idempotency_key: [付款ID, 应付ID]
+  emits: [应付已核销, 应付已结清]
+- name: 提交应付利润
+  aggregate: AGG-52
+  params: [利润分配引用, 分配行]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [利润分配行ID]
+  emits: [应付已确认]
+- name: 提交应付薪酬
+  aggregate: AGG-52
+  params: [月度薪酬结算引用, 法人]
+  preconditions: []
+  authority: {A: 待定（权责表无条目）}
+  idempotency_key: [薪酬结算ID]
+  emits: [应付已确认]
+  also_used_by: people:PRC-126
+  unused_ok: 由 people 组 PRC-126（B-15）调用，本组骨架无此步
+- name: 发起付款
+  aggregate: AGG-53
+  params: [分配行(应付引用与金额), 资金账户, 收款账户, 发起人]
+  preconditions: [INV-79]
+  authority: {A: 实例级：费用归属对象.责任人}
+  idempotency_key: [发起请求号]
+  emits: []
+  also_used_by: revenue:PRC-08
+- name: 登记银行结果
+  aggregate: AGG-53
+  params: [付款引用, 银行回单, 银行流水行引用]
+  preconditions: [INV-78a, INV-81]
+  authority: {A: 财务负责人}
+  idempotency_key: [付款ID, 银行回单号]
+  emits: [付款已成功]
+- name: 登记付款失败
+  aggregate: AGG-53
+  params: [付款引用, 失败或退票原因, 银行回单]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [付款ID, 银行回单号]
+  emits: [付款已失败]
+- name: 置付款已核销
+  aggregate: AGG-53
+  params: [付款引用]
+  preconditions: [INV-92, INV-93]
+  authority: {A: 财务负责人}
+  idempotency_key: [付款ID]
+  emits: []
+- name: 提交过账候选
+  aggregate: AGG-53
+  params: [付款引用]
+  preconditions: [INV-92, INV-93]
+  authority: {A: 待定（权责表无条目）}
+  idempotency_key: [付款ID]
+  emits: []
+- name: 登记出资认缴
+  aggregate: AGG-54
+  params: [法人, 出资人, 认缴额, 出资协议依据]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [法人, 出资人, 认缴依据编号]
+  emits: []
+- name: 登记出资实缴
+  aggregate: AGG-54
+  params: [出资引用, 实缴额, 银行流水行引用]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [银行流水行ID]
+  emits: [出资已实缴]
+- name: 提交过账候选
+  aggregate: AGG-54
+  params: [出资引用, 事实类型]
+  preconditions: [INV-92, INV-93]
+  authority: {A: 财务负责人}
+  idempotency_key: [出资ID, 事实类型, 序号]
+  emits: []
+- name: 登记出资退回
+  aggregate: AGG-54
+  params: [出资引用, 退回额, 减资或退伙决议依据]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [退回依据编号]
+  emits: [出资已退回]
+- name: 草拟利润分配
+  aggregate: AGG-109
+  params: [法人, 会计年度, 分配行]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [法人, 会计年度, 草拟序号]
+  emits: []
+- name: 决议利润分配
+  aggregate: AGG-109
+  params: [利润分配引用, 决议依据, 被取代决议引用]
+  preconditions: [INV-117]
+  authority: {A: SH-O1}
+  idempotency_key: [利润分配ID, 决议编号]
+  emits: [利润分配已决议]
+- name: 登记利润分配支付
+  aggregate: AGG-109
+  params: [利润分配引用, 应付核销引用]
+  preconditions: [INV-117]
+  authority: {A: 财务负责人}
+  idempotency_key: [应付核销ID]
+  emits: [利润分配已支付]
+- name: 提交过账候选
+  aggregate: AGG-109
+  params: [利润分配引用, 事实类型]
+  preconditions: [INV-92, INV-93]
+  authority: {A: 财务负责人}
+  idempotency_key: [利润分配ID, 事实类型]
+  emits: []
+- name: 起草供方协议
+  aggregate: AGG-55
+  params: [协议类型, 相对方, 项目或部门, 基线, 付款条件, 质保金条款]
+  preconditions: [INV-13]
+  authority: {A: 实例级：费用归属对象.责任人}
+  idempotency_key: [请求号]
+  emits: []
+- name: 生效供方协议
+  aggregate: AGG-55
+  params: [协议引用, 审批结果]
+  preconditions: [INV-13]
+  authority: {A: 实例级：费用归属对象.责任人}
+  idempotency_key: [协议引用]
+  emits: [分包协议已生效, 采购协议已生效]
+- name: 完成供方协议
+  aggregate: AGG-55
+  params: [协议引用]
+  preconditions: []
+  authority: {A: 采购与分包负责人}
+  idempotency_key: [协议引用]
+  emits: []
+- name: 结算供方协议
+  aggregate: AGG-55
+  params: [协议引用, 结算结论, 最终价款]
+  preconditions: []
+  authority: {A: 实例级：费用归属对象.责任人}
+  idempotency_key: [协议引用]
+  emits: [供方协议已结算]
+- name: 终止供方协议
+  aggregate: AGG-55
+  params: [协议引用, 终止原因, 结算结论]
+  preconditions: []
+  authority: {A: 实例级：费用归属对象.责任人}
+  idempotency_key: [协议引用]
+  emits: [供方协议已终止]
+- name: 提出分包变更
+  aggregate: AGG-56
+  params: [协议引用, 变更内容, 影响评估]
+  preconditions: []
+  authority: {A: 实例级：费用归属对象.责任人}
+  idempotency_key: [请求号]
+  emits: []
+- name: 生效分包变更
+  aggregate: AGG-56
+  params: [变更引用, 审批结果]
+  preconditions: [INV-16b, INV-82]
+  authority: {A: 实例级：费用归属对象.责任人}
+  idempotency_key: [变更引用]
+  emits: [分包变更已生效]
+- name: 确认供方履约
+  aggregate: AGG-57
+  params: [协议引用, 确认行, 确认人]
+  preconditions: [INV-83]
+  authority: {A: 实例级：费用归属对象.责任人}
+  idempotency_key: [协议引用, 确认单号]
+  emits: [供方履约已确认]
+- name: 提交过账候选
+  aggregate: AGG-57
+  params: [履约确认引用]
+  preconditions: [INV-92, INV-93]
+  authority: {A: 财务负责人}
+  idempotency_key: [履约确认ID]
+  emits: []
+- name: 建立履约额度
+  aggregate: AGG-58
+  params: [协议引用, 协议金额]
+  preconditions: []
+  authority: {A: 采购与分包负责人}
+  idempotency_key: [协议引用]
+  emits: []
+- name: 供方额度更新
+  aggregate: AGG-58
+  params: [协议引用, 变更后金额]
+  preconditions: []
+  authority: {A: 采购与分包负责人}
+  idempotency_key: [协议引用, 变更引用]
+  emits: []
+- name: 占用履约额度
+  aggregate: AGG-58
+  params: [协议引用, 占用金额, 占用方引用]
+  preconditions: [INV-82]
+  authority: {A: 采购与分包负责人}
+  idempotency_key: [占用方引用]
+  emits: []
+- name: 释放履约额度
+  aggregate: AGG-58
+  params: [占用引用, 释放原因]
+  preconditions: []
+  authority: {A: 采购与分包负责人}
+  idempotency_key: [占用引用]
+  emits: []
+  proposed: true
+  proposed_reason: 骨架 PRC-72 步 5〔缺〕（SQ-43）
+- name: 提交费用报销
+  aggregate: AGG-59
+  params: [报销人, 明细(项目或商机), 发票占用引用, 预算占用引用]
+  preconditions: [INV-84]
+  authority: {A: 实例级：费用归属对象.责任人}
+  idempotency_key: [报销单号]
+  emits: []
+- name: 核定费用报销
+  aggregate: AGG-59
+  params: [报销引用, 审批结果]
+  preconditions: []
+  authority: {A: 实例级：费用归属对象.责任人}
+  idempotency_key: [报销引用]
+  emits: [费用报销已核定]
+- name: 提交过账候选
+  aggregate: AGG-59
+  params: [报销引用]
+  preconditions: [INV-92, INV-93]
+  authority: {A: 财务负责人}
+  idempotency_key: [报销ID]
+  emits: []
+- name: 标记费用报销已付
+  aggregate: AGG-59
+  params: [报销引用, 结清方式(付款结清/借款冲抵)]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [报销ID, 应付结清引用]
+  emits: []
+  also_used_by: revenue:PRC-147
+- name: 过账
+  aggregate: AGG-77
+  params: [过账候选(类型化), 法人, 来源单据引用, 业务日期]
+  preconditions: [INV-93, INV-94]
+  authority: {A: 财务负责人}
+  idempotency_key: [来源单据ID, 事实类型, 来源序号]
+  emits: [BusinessFactAttributed]
+- name: 冲销并重过账
+  aggregate: AGG-77
+  params: [原事实引用, 更正后候选, 更正原因]
+  preconditions: [INV-92, INV-93, INV-94, INV-95]
+  authority: {A: 财务负责人}
+  idempotency_key: [原事实引用, 更正序号]
+  emits: [BusinessFactRestated]
+- name: 发起关账
+  aggregate: AGG-81
+  params: [法人, 会计年度, 期间序号, 发起人]
+  preconditions: [INV-99]
+  authority: {A: 财务负责人}
+  idempotency_key: [法人, 期间]
+  emits: []
+- name: 确认关账
+  aggregate: AGG-81
+  params: [期间引用, 确认人]
+  preconditions: [INV-100]
+  authority: {A: SH-M1}
+  idempotency_key: [期间引用, 关账轮次]
+  emits: [AccountingPeriodClosed]
+- name: 退回开放
+  aggregate: AGG-81
+  params: [期间引用, 退回原因(前置检查未过)]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [期间引用, 关账轮次]
+  emits: []
+- name: 开放第 13 期
+  aggregate: AGG-81
+  params: [法人, 会计年度, 第 13 期启用登记引用]
+  preconditions: [INV-104]
+  authority: {A: 财务负责人}
+  idempotency_key: [法人, 会计年度]
+  emits: []
+- name: 发起年末关账
+  aggregate: AGG-81
+  params: [法人, 会计年度, 发起人]
+  preconditions: [INV-99]
+  authority: {A: 财务负责人}
+  idempotency_key: [法人, 会计年度]
+  emits: []
+- name: 确认年末关账
+  aggregate: AGG-81
+  params: [期间引用(12 期与第 13 期), 确认人]
+  preconditions: [INV-100, INV-99]
+  authority: {A: SH-M1}
+  idempotency_key: [法人, 会计年度, 关账轮次]
+  emits: [AccountingPeriodClosed]
+- name: 登记第 13 期启用
+  aggregate: AGG-96
+  params: [会计年度, 生效日, 财务批准人, 决定出处]
+  preconditions: [INV-104]
+  authority: {A: SH-M1}
+  idempotency_key: [会计年度, 版本号]
+  emits: [第 13 期启用登记已生效]
+- name: 发布科目表版本
+  aggregate: AGG-82
+  params: [科目表版本引用, 批准人]
+  preconditions: []
+  authority: {A: SH-M1}
+  idempotency_key: [科目表版本引用]
+  emits: [科目表版本已生效]
+- name: 起草科目表版本
+  aggregate: AGG-82
+  params: [账簿类型(权责/收付), 科目, 生效日]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [账簿类型, 版本号]
+  emits: []
+  proposed: true
+  proposed_reason: 骨架 PRC-100 步 1〔缺〕
+- name: 生成分录
+  aggregate: AGG-84
+  params: [过账事实引用, 账簿, 科目表版本, 映射表版本]
+  preconditions: [INV-96, INV-98]
+  authority: {A: 财务负责人}
+  idempotency_key: [过账事实ID, 账簿]
+  emits: [分录已记账]
+- name: 处理待处理队列
+  aggregate: AGG-84
+  params: [分录引用, 补充的授权或映射版本]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [分录ID]
+  emits: []
+- name: 推送与重投
+  aggregate: AGG-84
+  params: [分录引用或批次, 重投原因]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [分录ID, 推送批次号]
+  emits: []
+- name: 登记外部记账确认
+  aggregate: AGG-84
+  params: [分录引用, U8C 凭证号, 对账读取批次]
+  preconditions: []
+  authority: {A: 待定（权责表无条目）}
+  idempotency_key: [分录ID, U8C 凭证号]
+  emits: []
+  proposed: true
+  proposed_reason: 骨架 PRC-135 状态转换引用〔缺〕
+  unused_ok: PRC-135 状态转换引用、未列入该流程命令；见 NOTES 收敛节
+- name: 发布映射表版本
+  aggregate: AGG-85
+  params: [映射表版本引用, 批准人]
+  preconditions: []
+  authority: {A: SH-M1}
+  idempotency_key: [映射表版本引用]
+  emits: [映射表版本已生效]
+- name: 起草映射表版本
+  aggregate: AGG-85
+  params: [映射行, 对账类别, 生效日]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [版本号]
+  emits: []
+  proposed: true
+  proposed_reason: 骨架 PRC-100 步 3〔缺〕
+- name: 发布授权表版本
+  aggregate: AGG-94
+  params: [授权表版本引用, 批准人]
+  preconditions: []
+  authority: {A: SH-M1}
+  idempotency_key: [授权表版本引用]
+  emits: [授权表版本已生效]
+- name: 起草授权表版本
+  aggregate: AGG-94
+  params: [科目, 事实类型, 通道, 生效日]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [版本号]
+  emits: []
+  proposed: true
+  proposed_reason: 骨架 PRC-100 步 5〔缺〕
+- name: 制单手工凭证
+  aggregate: AGG-98
+  params: [法人, 凭证类别, 分录行, 理由, 附件, 差异类别代码, 显式落账期间(仅第 13 期审计调整)]
+  preconditions: [INV-108, INV-97]
+  authority: {A: 财务负责人}
+  idempotency_key: [请求号]
+  emits: []
+- name: 复核手工凭证
+  aggregate: AGG-98
+  params: [凭证引用, 复核人]
+  preconditions: [INV-108]
+  authority: {A: 财务负责人}
+  idempotency_key: [凭证引用]
+  emits: []
+- name: 提交过账候选
+  aggregate: AGG-98
+  params: [凭证引用, 审批结果]
+  preconditions: [INV-92, INV-93]
+  authority: {A: 实例级：费用归属对象.责任人}
+  idempotency_key: [凭证引用]
+  emits: [手工凭证已提交过账]
+- name: 生成期末结转运行
+  aggregate: AGG-99
+  params: [法人, 会计年度, 期间序号, 模板版本]
+  preconditions: [INV-109, INV-92]
+  authority: {A: 财务负责人}
+  idempotency_key: [法人, 期间, 模板版本]
+  emits: []
+- name: 提交过账候选
+  aggregate: AGG-99
+  params: [运行引用]
+  preconditions: [INV-93]
+  authority: {A: 财务负责人}
+  idempotency_key: [运行引用]
+  emits: [期末结转已过账]
+- name: 生成快照
+  aggregate: AGG-100
+  params: [法人, 账簿, 期间引用]
+  preconditions: [INV-106]
+  authority: {A: 财务负责人}
+  idempotency_key: [法人, 账簿, 期间]
+  emits: [期间余额快照已生成]
+- name: 登记对账差异
+  aggregate: AGG-101
+  params: [法人, 期间, 差异行, 已推送未记账清单]
+  preconditions: [INV-107]
+  authority: {A: 财务负责人}
+  idempotency_key: [法人, 期间, 差异批次号]
+  emits: []
+- name: 签字接受差异
+  aggregate: AGG-101
+  params: [对账引用, 签字人, 签字结论]
+  preconditions: [INV-107]
+  authority: {A: SH-M1}
+  idempotency_key: [对账引用]
+  emits: [对账已完成]
+- name: 建立期初余额表
+  aggregate: AGG-新-F1
+  params: [法人, 账簿, 启用日, 来源说明(U8C 上年末余额), 余额行]
+  preconditions: []
+  authority: {A: 待定（权责表无条目）}
+  idempotency_key: [法人, 账簿, 启用日]
+  emits: []
+  proposed: true
+  proposed_reason: 占位聚合 AGG-新-F1，数据模型 DM-1
+  unused_ok: 占位聚合，投产准入流程未建骨架（G-2、G-3）
+- name: 签字期初余额
+  aggregate: AGG-新-F1
+  params: [期初余额表引用, 财务负责人签字]
+  preconditions: []
+  authority: {A: 待定（权责表无条目）}
+  idempotency_key: [期初余额表引用]
+  emits: []
+  proposed: true
+  proposed_reason: 占位聚合，G-2：财务负责人书面确认
+  unused_ok: 占位聚合，投产准入流程未建骨架（G-2、G-3）
+- name: 复核期初余额
+  aggregate: AGG-新-F1
+  params: [期初余额表引用, 内部审计复核引用]
+  preconditions: []
+  authority: {A: 待定（权责表无条目）}
+  idempotency_key: [期初余额表引用]
+  emits: []
+  proposed: true
+  proposed_reason: 占位聚合，G-2：内部审计复核
+  unused_ok: 占位聚合，投产准入流程未建骨架（G-2、G-3）
+- name: 编制报表行定义版本
+  aggregate: AGG-86
+  params: [报表行, 行到科目映射, 生效日]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [版本号]
+  emits: []
+- name: 生效报表行定义版本
+  aggregate: AGG-86
+  params: [版本引用, 评审人]
+  preconditions: [INV-91a]
+  authority: {A: SH-M1}
+  idempotency_key: [版本引用]
+  emits: []
+- name: 开立资金账户
+  aggregate: AGG-87
+  params: [法人, 开户行与账号, 开户日, 开户证明]
+  preconditions: []
+  authority: {A: SH-M1}
+  idempotency_key: [法人, 账号]
+  emits: [资金账户已开立]
+- name: 冻结资金账户
+  aggregate: AGG-87
+  params: [资金账户引用, 冻结依据]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [资金账户引用, 冻结通知号]
+  emits: [资金账户已冻结]
+- name: 销户资金账户
+  aggregate: AGG-87
+  params: [资金账户引用, 销户日]
+  preconditions: []
+  authority: {A: SH-M1}
+  idempotency_key: [资金账户引用]
+  emits: [资金账户已销户]
+- name: 导入银行流水
+  aggregate: AGG-88
+  params: [资金账户引用, 流水文件, 文件校验和]
+  preconditions: [INV-85]
+  authority: {A: 财务负责人}
+  idempotency_key: [资金账户, 流水文件校验和]
+  emits: [流水已导入]
+- name: 提交过账候选
+  aggregate: AGG-88
+  params: [流水行引用(仅利息与手续费行)]
+  preconditions: [INV-92, INV-93]
+  authority: {A: 财务负责人}
+  idempotency_key: [流水行ID]
+  emits: []
+- name: 登记进项发票
+  aggregate: AGG-89
+  params: [开票方, 发票号码与代码, 金额与税额, 开票日]
+  preconditions: [INV-74, INV-75]
+  authority: {A: 财务负责人}
+  idempotency_key: [发票代码, 发票号码]
+  emits: []
+- name: 查验进项发票
+  aggregate: AGG-89
+  params: [发票引用, 查验结果]
+  preconditions: [INV-74, INV-75, INV-75a]
+  authority: {A: 财务负责人}
+  idempotency_key: [发票引用, 查验批次]
+  emits: []
+- name: 确认进项发票用途
+  aggregate: AGG-89
+  params: [发票引用, 用途]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [发票引用]
+  emits: [进项发票已用途确认]
+- name: 进项转出
+  aggregate: AGG-89
+  params: [发票引用, 转出原因]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [发票引用, 转出序号]
+  emits: [进项已转出]
+- name: 提交过账候选
+  aggregate: AGG-89
+  params: [发票引用, 事实类型]
+  preconditions: [INV-92, INV-93]
+  authority: {A: 财务负责人}
+  idempotency_key: [发票ID, 事实类型, 序号]
+  emits: []
+- name: 占用进项发票入账
+  aggregate: AGG-89
+  params: [发票引用, 占用方引用(报销或供方来源应付)]
+  preconditions: [INV-74, INV-75, INV-75a]
+  authority: {A: 财务负责人}
+  idempotency_key: [占用方引用]
+  emits: []
+- name: 驳回释放
+  aggregate: AGG-89
+  params: [发票引用, 占用方引用]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [占用方引用]
+  emits: []
+- name: 生成申报
+  aggregate: AGG-90
+  params: [法人, 税种, 所属期]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [法人, 税种, 所属期, 申报序号]
+  emits: []
+- name: 提交申报
+  aggregate: AGG-90
+  params: [申报引用, 复核人]
+  preconditions: []
+  authority: {A: SH-M1}
+  idempotency_key: [申报引用]
+  emits: [申报已提交]
+- name: 登记缴款
+  aggregate: AGG-90
+  params: [申报引用, 缴款凭证]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [申报引用, 缴款凭证号]
+  emits: [税款已缴纳]
+- name: 更正申报
+  aggregate: AGG-90
+  params: [原申报引用, 更正内容]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [原申报引用, 更正序号]
+  emits: []
+- name: 提交过账候选
+  aggregate: AGG-90
+  params: [申报引用, 事实类型]
+  preconditions: [INV-92, INV-93]
+  authority: {A: 财务负责人}
+  idempotency_key: [申报ID, 事实类型]
+  emits: []
+- name: 登记公司资产
+  aggregate: AGG-91
+  params: [法人, 来源协议引用, 原值, 启用日]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [来源协议引用, 资产序号]
+  emits: []
+- name: 计提折旧与摊销
+  aggregate: AGG-91
+  params: [法人, 期间]
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [资产ID, 期间]
+  emits: []
+- name: 处置资产
+  aggregate: AGG-91
+  params: [资产引用, 处置方式, 残值, 审批结果]
+  preconditions: []
+  authority: {A: 实例级：费用归属对象.责任人}
+  idempotency_key: [资产引用]
+  emits: [资产已处置]
+- name: 提交过账候选
+  aggregate: AGG-91
+  params: [资产引用, 事实类型]
+  preconditions: [INV-92, INV-93]
+  authority: {A: 财务负责人}
+  idempotency_key: [资产ID, 事实类型, 期间]
+  emits: []
