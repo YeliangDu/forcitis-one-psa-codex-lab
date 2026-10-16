@@ -290,6 +290,8 @@ platform.identity 新增术语（proposed，待业务评审，ADR-0018）。登�
 | `external_identity` | 外部身份 | ExternalIdentity | ACL（长期） · platform.identity | 用户账号在某个身份提供方（企业微信、致远登录）中的标识与该账号的绑定，带绑定区间；登录只经此绑定解析用户 |  | ADR-0033（提议）登记，待用语确认 |
 | `provider_kind` | 身份提供方类别 | ProviderKind | ACL（长期） · platform.identity | 外部身份所属的身份提供方类别，如企业微信用户 ID、致远登录名 |  | ADR-0033（提议）登记，待用语确认 |
 | `external_subject` | 外部主体标识 | ExternalSubject | ACL（长期） · platform.identity | 身份提供方给出的用户标识文本（企业微信 userid、致远登录名），只存于外部身份绑定 |  | ADR-0033（提议）登记，待用语确认 |
+| `single_operator_mode` | 单人运维模式 | SingleOperatorMode | 领域 · platform.identity | 仅 dev 环境、仅在进程启动时按配置读定的运行方式：运维命令可省略见证人，应急账号与超级管理员下限按 1 计，并可经运维命令起草无作者的编号模板版本；放宽项封闭为单人运维放宽项的取值，每次放宽都写标注审计（ADR-0030） |  | 登记会话 one-1a-par（派工卡 SINGLE-OP）；配置键 forcitis.platform.identity.single-operator-mode；查重：terms.yaml 与 proposed 中同一 bc 无同名、同中文名 |
+| `single_operator_relaxation` | 单人运维放宽项 | SingleOperatorRelaxation | 领域 · platform.identity | 单人运维模式下被放宽的规则，封闭为四个取值：见证人省略、应急账号下限一个、超级管理员下限一个（只改同步暂停原因文本）、模板版本无作者；写入标注审计的 detail；新增取值须另立 ADR（ADR-0030 第 2 项） |  | 登记会话 one-1a-par（派工卡 SINGLE-OP）；四个取值的标识符与中文名由派工卡第 11 节列出，实现 PR 前由 one-glossary 确认 |
 
 另有错误码 3 个（kind 为 `error_code`）、技术词 107 个（`common_words`），不在表中。
 
@@ -327,7 +329,7 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 | `ts` | 工时单据类型代码 | Ts | 领域 · platform.numbering | 工时（DocumentType.TIMESHEET）的单据类型代码 TS，沿用种子模板中的前缀字母，正式词表尚无对应词 |  | 例 TS-FST-202610-0001；模板待管理员确认 |
 | `jv` | 记账凭证单据类型代码 | Jv | 领域 · platform.numbering | 记账凭证（DocumentType.JOURNAL_VOUCHER）的单据类型代码 JV，沿用种子模板中的前缀字母，正式词表尚无对应词 |  | 例 JV-FST-202610-0001；模板待管理员确认 |
 
-另有错误码 4 个（kind 为 `error_code`）、技术词 3 个（`common_words`），不在表中。
+另有错误码 5 个（kind 为 `error_code`）、技术词 3 个（`common_words`），不在表中。
 
 ## platform.web（`platform-web.yaml`）
 
