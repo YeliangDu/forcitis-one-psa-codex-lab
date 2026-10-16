@@ -1,7 +1,7 @@
 # 对象层与能力层对齐报告（object_layer_check.py 生成，勿手改）
 
-非支撑流程 142 条：已确认 0、提议 114、多候选 7、无候选 15、读模型 6。
-检查：① 无主对象 22；② 阶段承载对象无主流程 9；③ 主对象多流程 23；④ 能力不在所标段清单 9（另主对象无能力 16）。
+非支撑流程 142 条：已确认 106、提议 24、多候选 2、无候选 4、读模型 6。
+检查：① 无主对象 6；② 阶段承载对象无主流程 9；③ 主对象多流程 24；④ 能力不在所标段清单 8（另主对象无能力 23）。
 
 提议口径：第 1 档 所标段退出条件精确命中；第 2 档 所标段段内状态精确命中；第 3 档 退出或段内近似命中；第 4 档 所标段退出条件引用；第 5 档 唯一写入对象。只取本流程写入的对象；第 4、5 档把握低，组确认时重点看。
 
@@ -11,50 +11,50 @@
 
 | 流程 | 类型 | 所标段 | 主对象 | 状态 | 依据档 | 候选 / 写入对象 | 一级能力 |
 |---|---|---|---|---|---|---|---|
-| PRC-15 未签约的售前投入转费用 | event_policy | VS-01.2 | — | none | — | AGG-43、AGG-122 | — |
-| PRC-25 转入售前投入 | event_policy | VS-02.0、VS-04.1 | — | none | — | AGG-43、AGG-122 | — |
-| PRC-35 项目或协议终止、结项后清算成本 | event_policy | VS-02.7 | AGG-43 | proposed | 5 | AGG-43 | — |
-| PRC-55 结转合同履约成本 | event_policy | VS-04.2 | AGG-43 | proposed | 5 | AGG-43 | — |
-| PRC-70 起草并生效供方协议 | business | VS-05.2 | OBJ-05 协议 | proposed | 3 | AGG-58、OBJ-05 协议、OBJ-100 经营计划 | CAP-005 |
-| PRC-71 生效分包变更 | business | VS-05.2 | — | none | — | AGG-58、OBJ-09 协议变更、OBJ-100 经营计划 | — |
-| PRC-72 确认供方履约 | business | VS-05.3 | OBJ-87 供方履约确认 | proposed | 1 | AGG-58、AGG-77、OBJ-87 供方履约确认 | CAP-005 |
-| PRC-73 登记并查验进项发票 | business | VS-05.4 | OBJ-83 增值税发票 | proposed | 1 | OBJ-83 增值税发票 | CAP-103 |
-| PRC-74 提交供方应付 | business | VS-05.4 | OBJ-85 往来款项 | proposed | 1 | OBJ-83 增值税发票、OBJ-85 往来款项 | CAP-103 |
-| PRC-75 发起、审批并执行付款 | business | VS-05.5、VS-08.3、VS-13.5 | OBJ-86 资金收付 | proposed | 1 | AGG-77、OBJ-85 往来款项、OBJ-86 资金收付 | CAP-103 |
-| PRC-76 完成并结算供方协议 | business | VS-05.6 | OBJ-05 协议 | proposed | 1 | OBJ-05 协议 | CAP-005 |
-| PRC-77 申报并缴纳增值税、附加税与企业所得税 | business | VS-06.1 | OBJ-92 法定申报 | proposed | 1 | OBJ-92 法定申报 | CAP-103 |
-| PRC-87 提交、核定并确认报销应付 | business | VS-08.2 | — | candidates | 1 | OBJ-83 增值税发票、OBJ-88 费用报销 | — |
+| PRC-15 未签约的售前投入转费用 | event_policy | VS-01.2 | AGG-43 | confirmed | — | AGG-43、AGG-122 | — |
+| PRC-25 转入售前投入 | event_policy | VS-02.0、VS-04.1 | AGG-43 | confirmed | — | AGG-43、AGG-122 | — |
+| PRC-35 项目或协议终止、结项后清算成本 | event_policy | VS-02.7 | AGG-43 | confirmed | 5 | AGG-43 | — |
+| PRC-55 结转合同履约成本 | event_policy | VS-04.2 | AGG-43 | confirmed | 5 | AGG-43 | — |
+| PRC-70 起草并生效供方协议 | business | VS-05.2 | OBJ-05 协议 | confirmed | 3 | AGG-58、OBJ-05 协议、OBJ-100 经营计划 | CAP-005 |
+| PRC-71 生效分包变更 | business | VS-05.2 | OBJ-09 协议变更 | confirmed | — | AGG-58、OBJ-09 协议变更、OBJ-100 经营计划 | CAP-005 |
+| PRC-72 确认供方履约 | business | VS-05.3 | OBJ-87 供方履约确认 | confirmed | 1 | AGG-58、AGG-77、OBJ-87 供方履约确认 | CAP-005 |
+| PRC-73 登记并查验进项发票 | business | VS-05.4 | OBJ-83 增值税发票 | confirmed | 1 | OBJ-83 增值税发票 | CAP-103 |
+| PRC-74 提交供方应付 | business | VS-05.4 | OBJ-85 往来款项 | confirmed | 1 | OBJ-83 增值税发票、OBJ-85 往来款项 | CAP-103 |
+| PRC-75 发起、审批并执行付款 | business | VS-05.5、VS-08.3、VS-13.5 | OBJ-86 资金收付 | confirmed | 1 | AGG-77、OBJ-85 往来款项、OBJ-86 资金收付 | CAP-103 |
+| PRC-76 完成并结算供方协议 | business | VS-05.6 | OBJ-05 协议 | confirmed | 1 | OBJ-05 协议 | CAP-005 |
+| PRC-77 申报并缴纳增值税、附加税与企业所得税 | business | VS-06.1 | OBJ-92 法定申报 | confirmed | 1 | OBJ-92 法定申报 | CAP-103 |
+| PRC-87 提交、核定并确认报销应付 | business | VS-08.2 | OBJ-88 费用报销 | confirmed | 1 | AGG-77、OBJ-83 增值税发票、OBJ-88 费用报销、OBJ-100 经营计划 | CAP-056 |
 | PRC-90 出具经营月报 | read_model | VS-09.3、VS-10.2 | — | read_model | — |  | — |
-| PRC-92 过账业务事实 | business | VS-10.1 | AGG-77 | proposed | 5 | AGG-77 | — |
-| PRC-93 生成会计分录 | event_policy | VS-10.1 | OBJ-98 会计分录 | proposed | 5 | OBJ-98 会计分录 | CAP-103 |
-| PRC-94 制单并过账受控手工凭证 | business | VS-10.1 | OBJ-98 会计分录 | proposed | 5 | OBJ-98 会计分录 | CAP-103 |
-| PRC-95 期末结转 | business | VS-10.1 | — | none | — | AGG-77、AGG-99 | — |
-| PRC-96 分配人工成本 | business | VS-10.1 | — | none | — | AGG-41、AGG-77 | — |
-| PRC-98 分摊间接成本 | business | VS-10.1 | — | none | — | AGG-42、AGG-77 | — |
-| PRC-99 计提折旧并处置公司资产 | business | VS-10.1 | OBJ-93 公司资产 | proposed | 5 | OBJ-93 公司资产 | CAP-093 |
-| PRC-101 月结检查并关账 | business | VS-10.1 | OBJ-97 会计期间 | proposed | 1 | OBJ-97 会计期间 | CAP-103 |
-| PRC-102 启用第 13 期并年末关账 | business | VS-10.1 | OBJ-97 会计期间 | proposed | 1 | AGG-96、OBJ-97 会计期间 | CAP-103 |
-| PRC-103 生成期间余额快照 | event_policy | VS-10.1 | AGG-100 | proposed | 5 | AGG-100 | — |
-| PRC-104 外部法定账对账与签字 | business | VS-10.2 | — | none | — | AGG-101、OBJ-98 会计分录 | — |
+| PRC-92 过账业务事实 | business | VS-10.1 | AGG-77 | confirmed | 5 | AGG-77 | — |
+| PRC-93 生成会计分录 | event_policy | VS-10.1 | OBJ-98 会计分录 | confirmed | 5 | OBJ-98 会计分录 | CAP-103 |
+| PRC-94 制单并过账受控手工凭证 | business | VS-10.1 | OBJ-98 会计分录 | confirmed | 5 | OBJ-98 会计分录 | CAP-103 |
+| PRC-95 期末结转 | business | VS-10.1 | AGG-99 | confirmed | — | AGG-77、AGG-99 | — |
+| PRC-96 分配人工成本 | business | VS-10.1 | AGG-41 | confirmed | — | AGG-41、AGG-77 | — |
+| PRC-98 分摊间接成本 | business | VS-10.1 | AGG-42 | confirmed | — | AGG-42、AGG-77 | — |
+| PRC-99 计提折旧并处置公司资产 | business | VS-10.1 | OBJ-93 公司资产 | confirmed | 5 | OBJ-93 公司资产 | CAP-093 |
+| PRC-101 月结检查并关账 | business | VS-10.1 | OBJ-97 会计期间 | confirmed | 1 | OBJ-97 会计期间 | CAP-103 |
+| PRC-102 启用第 13 期并年末关账 | business | VS-10.1 | OBJ-97 会计期间 | confirmed | 1 | AGG-96、OBJ-97 会计期间 | CAP-103 |
+| PRC-103 生成期间余额快照 | event_policy | VS-10.1 | AGG-100 | confirmed | 5 | AGG-100 | — |
+| PRC-104 外部法定账对账与签字 | business | VS-10.2 | AGG-101 | confirmed | — | AGG-101、OBJ-98 会计分录 | — |
 | PRC-106 出具三大报表 | read_model | VS-10.2 | — | read_model | — |  | — |
-| PRC-111 认缴并实缴出资 | single_aggregate | VS-12.1 | OBJ-91 合伙人出资 | proposed | 1 | OBJ-91 合伙人出资 | CAP-054 |
-| PRC-112 决议并支付利润分配 | business | VS-12.2 | OBJ-112 利润分配 | proposed | 1 | AGG-77、OBJ-85 往来款项、OBJ-112 利润分配 | CAP-054 |
-| PRC-114 退回出资 | business | VS-12.3 | OBJ-91 合伙人出资 | proposed | 1 | OBJ-85 往来款项、OBJ-91 合伙人出资 | CAP-054 |
-| PRC-131 付款成功后核销应付 | event_policy | VS-05.5、VS-08.3、VS-13.5 | OBJ-85 往来款项 | proposed | 4 | OBJ-85 往来款项 | CAP-103 |
-| PRC-132 应付核销后置付款已核销并提交过账候选 | event_policy | VS-05.5、VS-08.3、VS-13.5 | OBJ-86 资金收付 | proposed | 4 | OBJ-86 资金收付 | CAP-103 |
-| PRC-133 应付结清后报销置已付 | event_policy | VS-08.3 | OBJ-88 费用报销 | proposed | 4 | OBJ-88 费用报销 | CAP-056 |
-| PRC-135 处理会计分录待处理队列与推送重投 | single_aggregate | VS-10.1 | OBJ-98 会计分录 | proposed | 5 | OBJ-98 会计分录 | CAP-103 |
-| PRC-158 处置过账拒收记录 | single_aggregate | VS-10.1 | AGG-77 | proposed | 5 | AGG-77 | — |
-| PRC-159 申报已提交后确认税费应付 | event_policy | VS-06.1 | OBJ-85 往来款项 | proposed | 5 | OBJ-85 往来款项 | CAP-103 |
-| PRC-163 应付结清后登记利润分配支付 | event_policy | VS-12.2 | OBJ-112 利润分配 | proposed | 4 | OBJ-112 利润分配 | CAP-054 |
-| PRC-164 收入确认冲销后冲回已配对成本结转 | event_policy | VS-04.2 | AGG-43 | proposed | 5 | AGG-43 | — |
-| PRC-169 处置勾稽差异案 | single_aggregate | VS-10.1 | AGG-126 | proposed | 5 | AGG-126 | — |
-| PRC-170 申请费用事前额度 | business | VS-08.0 | AGG-130 | proposed | 5 | AGG-130 | — |
-| PRC-171 核对差旅服务商月账单并确认应付 | business | VS-05.4 | OBJ-85 往来款项 | proposed | 4 | AGG-131、OBJ-85 往来款项 | CAP-103 |
-| PRC-172 申请出差并同步差旅服务商 | business | VS-08.0 | AGG-132 | proposed | 5 | AGG-132 | — |
-| PRC-173 审批差旅超标订单 | business | VS-08.0 | AGG-131 | proposed | 5 | AGG-131 | — |
-| PRC-175 直接付款申请 | business | VS-05.5 | OBJ-85 往来款项 | proposed | 4 | OBJ-85 往来款项 | CAP-103 |
-| PRC-176 预付款核销 | single_aggregate | VS-05.5 | OBJ-85 往来款项 | proposed | 1 | OBJ-85 往来款项 | CAP-103 |
+| PRC-111 认缴并实缴出资 | single_aggregate | VS-12.1 | OBJ-91 合伙人出资 | confirmed | 1 | OBJ-91 合伙人出资 | CAP-054 |
+| PRC-112 决议并支付利润分配 | business | VS-12.2 | OBJ-112 利润分配 | confirmed | 1 | AGG-77、OBJ-85 往来款项、OBJ-112 利润分配 | CAP-054 |
+| PRC-114 退回出资 | business | VS-12.3 | OBJ-91 合伙人出资 | confirmed | 1 | OBJ-85 往来款项、OBJ-91 合伙人出资 | CAP-054 |
+| PRC-131 付款成功后核销应付 | event_policy | VS-05.5、VS-08.3、VS-13.5 | OBJ-85 往来款项 | confirmed | 4 | OBJ-85 往来款项 | CAP-103 |
+| PRC-132 应付核销后置付款已核销并提交过账候选 | event_policy | VS-05.5、VS-08.3、VS-13.5 | OBJ-86 资金收付 | confirmed | 4 | OBJ-86 资金收付 | CAP-103 |
+| PRC-133 应付结清后报销置已付 | event_policy | VS-08.3 | OBJ-88 费用报销 | confirmed | 4 | OBJ-88 费用报销 | CAP-056 |
+| PRC-135 处理会计分录待处理队列与推送重投 | single_aggregate | VS-10.1 | OBJ-98 会计分录 | confirmed | 5 | OBJ-98 会计分录 | CAP-103 |
+| PRC-158 处置过账拒收记录 | single_aggregate | VS-10.1 | AGG-77 | confirmed | 5 | AGG-77 | — |
+| PRC-159 申报已提交后确认税费应付 | event_policy | VS-06.1 | OBJ-85 往来款项 | confirmed | 5 | OBJ-85 往来款项 | CAP-103 |
+| PRC-163 应付结清后登记利润分配支付 | event_policy | VS-12.2 | OBJ-112 利润分配 | confirmed | 4 | OBJ-112 利润分配 | CAP-054 |
+| PRC-164 收入确认冲销后冲回已配对成本结转 | event_policy | VS-04.2 | AGG-43 | confirmed | 5 | AGG-43 | — |
+| PRC-169 处置勾稽差异案 | single_aggregate | VS-10.1 | AGG-126 | confirmed | 5 | AGG-126 | — |
+| PRC-170 申请费用事前额度 | business | VS-08.0 | AGG-130 | confirmed | 5 | AGG-130 | — |
+| PRC-171 核对差旅服务商月账单并确认应付 | business | VS-05.4 | OBJ-85 往来款项 | confirmed | 4 | AGG-131、OBJ-85 往来款项 | CAP-103 |
+| PRC-172 申请出差并同步差旅服务商 | business | VS-08.0 | AGG-132 | confirmed | 5 | AGG-132 | — |
+| PRC-173 审批差旅超标订单 | business | VS-08.0 | AGG-131 | confirmed | 5 | AGG-131 | — |
+| PRC-175 直接付款申请 | business | VS-05.5 | OBJ-85 往来款项 | confirmed | 4 | OBJ-85 往来款项 | CAP-103 |
+| PRC-176 预付款核销 | single_aggregate | VS-05.5 | OBJ-85 往来款项 | confirmed | 1 | OBJ-85 往来款项 | CAP-103 |
 
 ### people
 
@@ -96,73 +96,73 @@
 
 | 流程 | 类型 | 所标段 | 主对象 | 状态 | 依据档 | 候选 / 写入对象 | 一级能力 |
 |---|---|---|---|---|---|---|---|
-| PRC-01 举办市场活动 | single_aggregate | VS-01.1 | OBJ-16 市场活动 | proposed | 5 | OBJ-16 市场活动 | CAP-016 |
-| PRC-02 计划并完成客户活动 | single_aggregate | VS-01.1 | OBJ-105 客户活动 | proposed | 5 | OBJ-105 客户活动 | CAP-001 |
-| PRC-03 登记并跟进线索，转为商机 | business | VS-01.1、VS-01.2 | OBJ-17 线索 | proposed | 1 | OBJ-17 线索、OBJ-18 商机 | CAP-017 |
-| PRC-05 维护往来单位档案 | single_aggregate | VS-01.1、VS-05.1 | OBJ-01 往来单位 | proposed | 5 | OBJ-01 往来单位 | CAP-001 |
-| PRC-06 做独立性检查 | single_aggregate | VS-01.2 | OBJ-23 独立性检查 | proposed | 2 | OBJ-23 独立性检查 | CAP-018 |
-| PRC-07 编制并生效报价 | business | VS-01.2 | OBJ-21 报价 | proposed | 2 | OBJ-21 报价 | CAP-018 |
-| PRC-08 参加投标，缴纳保证金并登记结果 | business | VS-01.2 | OBJ-18 商机 | proposed | 1 | OBJ-13 保证金与押金、OBJ-18 商机、OBJ-20 投标、OBJ-86 资金收付 | CAP-018 |
-| PRC-10 收付保证金与保函 | single_aggregate | VS-01.2、VS-04.1 | OBJ-13 保证金与押金 | proposed | 5 | OBJ-13 保证金与押金 | CAP-005 |
-| PRC-12 发布服务产品与阶段类型版本 | single_aggregate | VS-01.2 | — | none | — | OBJ-24 服务产品、OBJ-25 阶段类型 | — |
-| PRC-13 批准并生效费率、计费系数与协议价目版本 | business | VS-01.2、VS-02.0 | — | none | — | OBJ-05 协议、OBJ-26 标准成本费率表、OBJ-27 计费系数 | — |
-| PRC-14 登记建设工程与招标项目 | single_aggregate | VS-01.2、VS-02.6、VS-03.1 | — | candidates | 2 | OBJ-19 招标项目、OBJ-46 建设工程 | — |
-| PRC-16 申请并转正风险交付授权 | business | VS-01.2、VS-02.0、VS-04.1 | OBJ-12 风险交付授权 | proposed | 1 | OBJ-12 风险交付授权 | CAP-018 |
-| PRC-17 建立项目并组建团队 | business | VS-02.0、VS-03.1 | OBJ-29 项目 | proposed | 1 | OBJ-29 项目、OBJ-30 WBS 节点、OBJ-34 项目团队成员、OBJ-46 建设工程 | CAP-029 |
-| PRC-18 编制并批准交付计划 | business | VS-02.0 | OBJ-31 交付计划 | proposed | 4 | OBJ-31 交付计划 | CAP-029 |
-| PRC-19 编制并锁定项目预算 | business | VS-02.0 | OBJ-32 项目预算 | proposed | 1 | OBJ-32 项目预算 | CAP-029 |
-| PRC-20 提出并满足资源需求 | business | VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | — | none | — | OBJ-44 资源需求、OBJ-45 资源分配 | — |
-| PRC-21 推进阶段与工作包 | single_aggregate | VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-30 WBS 节点 | proposed | 1 | OBJ-30 WBS 节点 | CAP-029 |
+| PRC-01 举办市场活动 | single_aggregate | VS-01.1 | OBJ-16 市场活动 | confirmed | 5 | OBJ-16 市场活动 | CAP-016 |
+| PRC-02 计划并完成客户活动 | single_aggregate | VS-01.1 | OBJ-105 客户活动 | confirmed | 5 | OBJ-105 客户活动 | CAP-001 |
+| PRC-03 登记并跟进线索，转为商机 | business | VS-01.1、VS-01.2 | OBJ-17 线索 | confirmed | 1 | OBJ-17 线索、OBJ-18 商机 | CAP-017 |
+| PRC-05 维护往来单位档案 | single_aggregate | VS-01.1、VS-05.1 | OBJ-01 往来单位 | confirmed | 5 | OBJ-01 往来单位 | CAP-001 |
+| PRC-06 做独立性检查 | single_aggregate | VS-01.2 | OBJ-23 独立性检查 | confirmed | 2 | OBJ-23 独立性检查 | CAP-018 |
+| PRC-07 编制并生效报价 | business | VS-01.2 | OBJ-21 报价 | confirmed | 2 | OBJ-21 报价 | CAP-018 |
+| PRC-08 参加投标，缴纳保证金并登记结果 | business | VS-01.2 | OBJ-18 商机 | confirmed | 1 | OBJ-13 保证金与押金、OBJ-18 商机、OBJ-20 投标、OBJ-86 资金收付 | CAP-018 |
+| PRC-10 收付保证金与保函 | single_aggregate | VS-01.2、VS-04.1 | OBJ-13 保证金与押金 | confirmed | 5 | OBJ-13 保证金与押金 | CAP-005 |
+| PRC-12 发布服务产品与阶段类型版本 | single_aggregate | VS-01.2 | OBJ-24 服务产品 | confirmed | — | OBJ-24 服务产品、OBJ-25 阶段类型 | CAP-024 |
+| PRC-13 批准并生效费率、计费系数与协议价目版本 | business | VS-01.2、VS-02.0 | OBJ-26 标准成本费率表 | confirmed | — | OBJ-05 协议、OBJ-26 标准成本费率表、OBJ-27 计费系数 | CAP-026 |
+| PRC-14 登记建设工程与招标项目 | single_aggregate | VS-01.2、VS-02.6、VS-03.1 | OBJ-46 建设工程 | confirmed | 2 | OBJ-19 招标项目、OBJ-46 建设工程 | CAP-046 |
+| PRC-16 申请并转正风险交付授权 | business | VS-01.2、VS-02.0、VS-04.1 | OBJ-12 风险交付授权 | confirmed | 1 | OBJ-12 风险交付授权 | CAP-018 |
+| PRC-17 建立项目并组建团队 | business | VS-02.0、VS-03.1 | OBJ-29 项目 | confirmed | 1 | OBJ-29 项目、OBJ-30 WBS 节点、OBJ-34 项目团队成员、OBJ-46 建设工程 | CAP-029 |
+| PRC-18 编制并批准交付计划 | business | VS-02.0 | OBJ-31 交付计划 | confirmed | 4 | OBJ-31 交付计划 | CAP-029 |
+| PRC-19 编制并锁定项目预算 | business | VS-02.0 | OBJ-32 项目预算 | confirmed | 1 | OBJ-32 项目预算 | CAP-029 |
+| PRC-20 提出并满足资源需求 | business | VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-44 资源需求 | confirmed | — | OBJ-44 资源需求、OBJ-45 资源分配 | CAP-029 |
+| PRC-21 推进阶段与工作包 | single_aggregate | VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-30 WBS 节点 | confirmed | 1 | OBJ-30 WBS 节点 | CAP-029 |
 | PRC-22 阶段门预警 | read_model | VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7 | — | read_model | — |  | — |
-| PRC-23 填报并审批工时 | business | VS-01.2、VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-66 工时单 | proposed | 5 | OBJ-66 工时单 | CAP-056 |
-| PRC-24 暂停、恢复、终止或取消项目 | business | VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7 | OBJ-29 项目 | proposed | 1 | OBJ-29 项目 | CAP-029 |
-| PRC-26 接收并确认发包人提供资料 | business | VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4 | OBJ-42 发包人提供资料 | proposed | 2 | OBJ-42 发包人提供资料 | CAP-029 |
-| PRC-27 登记并处置项目风险与问题 | single_aggregate | VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7 | OBJ-108 项目风险与问题 | proposed | 5 | OBJ-108 项目风险与问题 | CAP-029 |
-| PRC-28 编制、评审并签发交付物，送达并登记客户认可 | business | VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-03.5 | OBJ-35 交付物 | proposed | 1 | OBJ-35 交付物 | CAP-029 |
-| PRC-30 提出并批准完工估算 | business | VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-33 完工估算 | proposed | 5 | OBJ-33 完工估算 | CAP-029 |
-| PRC-31 提出并发出设计变更 | business | VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-40 设计变更 | proposed | 5 | OBJ-40 设计变更 | CAP-029 |
-| PRC-32 申请并答复延期 | business | VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-41 延期申请 | proposed | 5 | OBJ-41 延期申请 | CAP-029 |
-| PRC-33 采集、关联并封存证据 | single_aggregate | VS-02.4、VS-02.7、VS-03.2、VS-04.2 | OBJ-53 证据 | proposed | 1 | AGG-110、OBJ-53 证据 | CAP-053 |
-| PRC-34 处置我方成果不符合项 | business | VS-02.6、VS-02.7 | OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32） | proposed | 1 | OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32）、OBJ-39 返工认定 | CAP-029 |
-| PRC-36 封存成果、结项并归档项目 | business | VS-02.7 | — | candidates | 1 | OBJ-29 项目、OBJ-35 交付物、OBJ-53 证据 | — |
-| PRC-37 回访客户满意度 | business | VS-02.7 | OBJ-106 客户满意度调查 | proposed | 1 | OBJ-106 客户满意度调查、OBJ-108 项目风险与问题 | CAP-029 |
-| PRC-38 编制并发布项目复盘 | business | VS-02.7 | OBJ-107 项目复盘 | proposed | 1 | OBJ-107 项目复盘 | CAP-029 |
-| PRC-41 制定检查计划并使其生效 | business | VS-03.1 | OBJ-48 检查计划 | proposed | 5 | OBJ-48 检查计划 | CAP-005 |
-| PRC-42 发布检查表模板版本 | single_aggregate | VS-03.1 | OBJ-50 检查表模板 | proposed | 5 | OBJ-50 检查表模板 | CAP-024 |
-| PRC-43 实施现场检查并锁定 | business | VS-03.1、VS-03.2、VS-02.6 | OBJ-49 检查 | proposed | 1 | AGG-110、OBJ-49 检查、OBJ-53 证据 | CAP-029 |
-| PRC-44 发布客户资产类不符合项并建议外部检测 | business | VS-03.2、VS-03.3 | OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32） | proposed | 1 | AGG-110、OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32）、OBJ-52 外部检测 | CAP-029 |
-| PRC-45 跟踪整改并复查闭合 | business | VS-03.4 | OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32） | proposed | 1 | AGG-110、OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32）、OBJ-49 检查、OBJ-53 证据 | CAP-029 |
-| PRC-46 采信外部检测报告 | business | VS-03.4 | OBJ-52 外部检测 | proposed | 3 | OBJ-52 外部检测、OBJ-53 证据 | CAP-029 |
-| PRC-47 起草、评审并回签协议 | business | VS-04.1 | OBJ-05 协议 | proposed | 1 | OBJ-05 协议 | CAP-005 |
-| PRC-48 提出并生效协议变更或签证 | business | VS-04.6 | OBJ-09 协议变更 | proposed | 2 | OBJ-05 协议、OBJ-09 协议变更 | CAP-005 |
-| PRC-49 提出并认定索赔 | business | VS-04.6、VS-04.5 | OBJ-10 索赔 | proposed | 2 | OBJ-10 索赔 | CAP-005 |
-| PRC-50 占用框架限额并提交任务订单 | business | VS-04.6 | OBJ-05 协议 | proposed | 3 | AGG-14、OBJ-05 协议 | CAP-005 |
-| PRC-51 建立并更新开票与收入额度 | event_policy | VS-04.1、VS-04.2、VS-04.3 | AGG-44 | proposed | 5 | AGG-44 | — |
-| PRC-53 确认收入 | event_policy | VS-04.2 | AGG-44 | proposed | 5 | AGG-44 | — |
-| PRC-54 视为同意期满处理 | business | VS-04.2 | — | none | — | AGG-44、OBJ-05 协议 | — |
-| PRC-56 付款条件项转为可结算 | event_policy | VS-04.3 | OBJ-05 协议 | proposed | 5 | OBJ-05 协议 | CAP-005 |
-| PRC-57 申请并开具销项发票 | business | VS-04.3 | — | candidates | 1 | OBJ-82 开票申请、OBJ-83 增值税发票 | — |
-| PRC-58 红冲销项发票 | business | VS-04.3 | OBJ-83 增值税发票 | proposed | 4 | AGG-44、OBJ-83 增值税发票 | CAP-103 |
-| PRC-59 由销项发票创建应收 | event_policy | VS-04.4 | OBJ-85 往来款项 | proposed | 4 | OBJ-85 往来款项 | CAP-103 |
-| PRC-60 认领收款并核销应收 | business | VS-04.4 | — | candidates | 1 | OBJ-85 往来款项、OBJ-86 资金收付 | — |
-| PRC-61 检测应收逾期并催收 | business | VS-04.4 | OBJ-85 往来款项 | proposed | 3 | OBJ-85 往来款项 | CAP-103 |
+| PRC-23 填报并审批工时 | business | VS-01.2、VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-66 工时单 | confirmed | 5 | OBJ-66 工时单 | CAP-056 |
+| PRC-24 暂停、恢复、终止或取消项目 | business | VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7 | OBJ-29 项目 | confirmed | 1 | OBJ-29 项目 | CAP-029 |
+| PRC-26 接收并确认发包人提供资料 | business | VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4 | OBJ-42 发包人提供资料 | confirmed | 2 | OBJ-42 发包人提供资料 | CAP-029 |
+| PRC-27 登记并处置项目风险与问题 | single_aggregate | VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7 | OBJ-108 项目风险与问题 | confirmed | 5 | OBJ-108 项目风险与问题 | CAP-029 |
+| PRC-28 编制、评审并签发交付物，送达并登记客户认可 | business | VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-03.5 | OBJ-35 交付物 | confirmed | 1 | OBJ-35 交付物 | CAP-029 |
+| PRC-30 提出并批准完工估算 | business | VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-33 完工估算 | confirmed | 5 | OBJ-33 完工估算 | CAP-029 |
+| PRC-31 提出并发出设计变更 | business | VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-40 设计变更 | confirmed | 5 | OBJ-40 设计变更 | CAP-029 |
+| PRC-32 申请并答复延期 | business | VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-41 延期申请 | confirmed | 5 | OBJ-41 延期申请 | CAP-029 |
+| PRC-33 采集、关联并封存证据 | single_aggregate | VS-02.4、VS-02.7、VS-03.2、VS-04.2 | OBJ-53 证据 | confirmed | 1 | AGG-110、OBJ-53 证据 | CAP-053 |
+| PRC-34 处置我方成果不符合项 | business | VS-02.6、VS-02.7 | OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32） | confirmed | 1 | OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32）、OBJ-39 返工认定 | CAP-029 |
+| PRC-36 封存成果、结项并归档项目 | business | VS-02.7 | OBJ-29 项目 | confirmed | 1 | OBJ-29 项目、OBJ-35 交付物、OBJ-53 证据 | CAP-029 |
+| PRC-37 回访客户满意度 | business | VS-02.7 | OBJ-106 客户满意度调查 | confirmed | 1 | OBJ-106 客户满意度调查、OBJ-108 项目风险与问题 | CAP-029 |
+| PRC-38 编制并发布项目复盘 | business | VS-02.7 | OBJ-107 项目复盘 | confirmed | 1 | OBJ-107 项目复盘 | CAP-029 |
+| PRC-41 制定检查计划并使其生效 | business | VS-03.1 | OBJ-48 检查计划 | confirmed | 5 | OBJ-48 检查计划 | CAP-005 |
+| PRC-42 发布检查表模板版本 | single_aggregate | VS-03.1 | OBJ-50 检查表模板 | confirmed | 5 | OBJ-50 检查表模板 | CAP-024 |
+| PRC-43 实施现场检查并锁定 | business | VS-03.1、VS-03.2、VS-02.6 | OBJ-49 检查 | confirmed | 1 | AGG-110、OBJ-49 检查、OBJ-53 证据 | CAP-029 |
+| PRC-44 发布客户资产类不符合项并建议外部检测 | business | VS-03.2、VS-03.3 | OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32） | confirmed | 1 | AGG-110、OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32）、OBJ-52 外部检测 | CAP-029 |
+| PRC-45 跟踪整改并复查闭合 | business | VS-03.4 | OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32） | confirmed | 1 | AGG-110、OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32）、OBJ-49 检查、OBJ-53 证据 | CAP-029 |
+| PRC-46 采信外部检测报告 | business | VS-03.4 | OBJ-52 外部检测 | confirmed | 3 | OBJ-52 外部检测、OBJ-53 证据 | CAP-029 |
+| PRC-47 起草、评审并回签协议 | business | VS-04.1 | OBJ-05 协议 | confirmed | 1 | OBJ-05 协议 | CAP-005 |
+| PRC-48 提出并生效协议变更或签证 | business | VS-04.6 | OBJ-09 协议变更 | confirmed | 2 | OBJ-05 协议、OBJ-09 协议变更 | CAP-005 |
+| PRC-49 提出并认定索赔 | business | VS-04.6、VS-04.5 | OBJ-10 索赔 | confirmed | 2 | OBJ-10 索赔 | CAP-005 |
+| PRC-50 占用框架限额并提交任务订单 | business | VS-04.6 | OBJ-05 协议 | confirmed | 3 | AGG-14、OBJ-05 协议 | CAP-005 |
+| PRC-51 建立并更新开票与收入额度 | event_policy | VS-04.1、VS-04.2、VS-04.3 | AGG-44 | confirmed | 5 | AGG-44 | — |
+| PRC-53 确认收入 | event_policy | VS-04.2 | AGG-44 | confirmed | 5 | AGG-44 | — |
+| PRC-54 视为同意期满处理 | business | VS-04.2 | AGG-44 | confirmed | — | AGG-44、OBJ-05 协议 | — |
+| PRC-56 付款条件项转为可结算 | event_policy | VS-04.3 | OBJ-07 付款条件项 | confirmed | 5 | OBJ-05 协议 | CAP-005 |
+| PRC-57 申请并开具销项发票 | business | VS-04.3 | OBJ-83 增值税发票 | confirmed | 1 | OBJ-82 开票申请、OBJ-83 增值税发票 | CAP-103 |
+| PRC-58 红冲销项发票 | business | VS-04.3 | OBJ-83 增值税发票 | confirmed | 4 | AGG-44、OBJ-83 增值税发票 | CAP-103 |
+| PRC-59 由销项发票创建应收 | event_policy | VS-04.4 | OBJ-85 往来款项 | confirmed | 4 | OBJ-85 往来款项 | CAP-103 |
+| PRC-60 认领收款并核销应收 | business | VS-04.4 | OBJ-85 往来款项 | confirmed | 1 | OBJ-85 往来款项、OBJ-86 资金收付 | CAP-103 |
+| PRC-61 检测应收逾期并催收 | business | VS-04.4 | OBJ-85 往来款项 | confirmed | 3 | OBJ-85 往来款项 | CAP-103 |
 | PRC-62 质量保证金到期提示 | read_model | VS-04.4 | — | read_model | — |  | — |
-| PRC-63 商业汇票兑付与逾期 | business | VS-04.4 | OBJ-85 往来款项 | proposed | 3 | OBJ-85 往来款项、OBJ-86 资金收付 | CAP-103 |
-| PRC-66 发起结算，确认最终价款并结算协议 | business | VS-04.5、VS-04.6 | OBJ-05 协议 | proposed | 1 | OBJ-05 协议 | CAP-005 |
-| PRC-68 终止协议 | single_aggregate | VS-04.5 | OBJ-05 协议 | proposed | 4 | OBJ-05 协议 | CAP-005 |
-| PRC-69 供应商准入与资质核验 | business | VS-05.1 | OBJ-65 资质证书 | proposed | 1 | OBJ-01 往来单位、OBJ-65 资质证书 | CAP-054 |
-| PRC-78 年检、核查与延续企业资质 | business | VS-06.2 | OBJ-65 资质证书 | proposed | 1 | OBJ-65 资质证书 | CAP-054 |
-| PRC-86 发放、归还与催还员工借款 | business | VS-08.1 | OBJ-85 往来款项 | proposed | 1 | OBJ-85 往来款项、OBJ-86 资金收付 | CAP-103 |
-| PRC-91 认定工时有效性 | event_policy | VS-10.1 | OBJ-66 工时单 | proposed | 5 | OBJ-66 工时单 | CAP-056 |
-| PRC-147 费用报销核定后冲抵员工借款并确认应付 | event_policy | VS-08.2 | OBJ-88 费用报销 | proposed | 4 | OBJ-85 往来款项、OBJ-88 费用报销 | CAP-056 |
-| PRC-148 收入确认审批通过后占用转实并提交过账 | event_policy | VS-04.2 | AGG-44 | proposed | 5 | AGG-44 | — |
-| PRC-149 冲销收入确认 | business | VS-04.2、VS-04.5 | AGG-44 | proposed | 5 | AGG-44 | — |
-| PRC-150 发票红冲后冲减应收 | event_policy | VS-04.4 | OBJ-85 往来款项 | proposed | 4 | OBJ-85 往来款项 | CAP-103 |
-| PRC-151 填报经营产值 | business | VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-33 完工估算 | proposed | 5 | OBJ-33 完工估算 | CAP-029 |
-| PRC-152 登记付款条件达成 | business | VS-04.3 | OBJ-05 协议 | proposed | 5 | OBJ-05 协议 | CAP-005 |
-| PRC-153 退还投标保证金 | business | VS-01.2、VS-04.1 | OBJ-13 保证金与押金 | proposed | 5 | OBJ-13 保证金与押金 | CAP-005 |
+| PRC-63 商业汇票兑付与逾期 | business | VS-04.4 | OBJ-85 往来款项 | confirmed | 3 | OBJ-85 往来款项、OBJ-86 资金收付 | CAP-103 |
+| PRC-66 发起结算，确认最终价款并结算协议 | business | VS-04.5、VS-04.6 | OBJ-05 协议 | confirmed | 1 | OBJ-05 协议 | CAP-005 |
+| PRC-68 终止协议 | single_aggregate | VS-04.5 | OBJ-05 协议 | confirmed | 4 | OBJ-05 协议 | CAP-005 |
+| PRC-69 供应商准入与资质核验 | business | VS-05.1 | OBJ-02 往来单位角色 | confirmed | 1 | OBJ-01 往来单位、OBJ-65 资质证书 | CAP-001 |
+| PRC-78 年检、核查与延续企业资质 | business | VS-06.2 | OBJ-65 资质证书 | confirmed | 1 | OBJ-65 资质证书 | CAP-054 |
+| PRC-86 发放、归还与催还员工借款 | business | VS-08.1 | OBJ-85 往来款项 | confirmed | 1 | OBJ-85 往来款项、OBJ-86 资金收付 | CAP-103 |
+| PRC-91 认定工时有效性 | event_policy | VS-10.1 | OBJ-66 工时单 | confirmed | 5 | OBJ-66 工时单 | CAP-056 |
+| PRC-147 费用报销核定后冲抵员工借款并确认应付 | event_policy | VS-08.2 | OBJ-88 费用报销 | confirmed | 4 | OBJ-85 往来款项、OBJ-88 费用报销 | CAP-056 |
+| PRC-148 收入确认审批通过后占用转实并提交过账 | event_policy | VS-04.2 | AGG-44 | confirmed | 5 | AGG-44 | — |
+| PRC-149 冲销收入确认 | business | VS-04.2、VS-04.5 | AGG-44 | confirmed | 5 | AGG-44 | — |
+| PRC-150 发票红冲后冲减应收 | event_policy | VS-04.4 | OBJ-85 往来款项 | confirmed | 4 | OBJ-85 往来款项 | CAP-103 |
+| PRC-151 填报经营产值 | business | VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-33 完工估算 | confirmed | 5 | OBJ-33 完工估算 | CAP-029 |
+| PRC-152 登记付款条件达成 | business | VS-04.3 | OBJ-07 付款条件项 | confirmed | 5 | OBJ-05 协议 | CAP-005 |
+| PRC-153 退还投标保证金 | business | VS-01.2、VS-04.1 | OBJ-13 保证金与押金 | confirmed | 5 | OBJ-13 保证金与押金 | CAP-005 |
 | PRC-154 收入三口径对照 | read_model | VS-04.2、VS-04.3 | — | read_model | — |  | — |
-| PRC-179 项目开始执行后协议转入履行中 | event_policy | VS-04.6 | OBJ-05 协议 | proposed | 4 | OBJ-05 协议 | CAP-005 |
+| PRC-179 项目开始执行后协议转入履行中 | event_policy | VS-04.6 | OBJ-05 协议 | confirmed | 4 | OBJ-05 协议 | CAP-005 |
 
 ## ② 阶段承载对象在该段无流程以它为主对象
 
@@ -170,7 +170,7 @@
 - VS-04.1 合同签订：OBJ-07 付款条件项
 - VS-04.3 开票：OBJ-82 开票申请
 - VS-04.4 回款：OBJ-86 资金收付
-- VS-05.1 供方准入：OBJ-02 往来单位角色
+- VS-05.1 供方准入：OBJ-65 资质证书
 - VS-07.3 入职任职：OBJ-56 员工
 - VS-08.2 报销核定：OBJ-83 增值税发票
 - VS-13.1 考勤确认：OBJ-111 月度考勤确认
@@ -178,50 +178,57 @@
 
 ## ③ 同一主对象被多条流程使用（判断重复或合理分工）
 
-- AGG-43：PRC-35 项目或协议终止、结项后清算成本（VS-02.7，proposed）；PRC-55 结转合同履约成本（VS-04.2，proposed）；PRC-164 收入确认冲销后冲回已配对成本结转（VS-04.2，proposed）
-- AGG-44：PRC-51 建立并更新开票与收入额度（VS-04.1、VS-04.2、VS-04.3，proposed）；PRC-53 确认收入（VS-04.2，proposed）；PRC-148 收入确认审批通过后占用转实并提交过账（VS-04.2，proposed）；PRC-149 冲销收入确认（VS-04.2、VS-04.5，proposed）
-- AGG-77：PRC-92 过账业务事实（VS-10.1，proposed）；PRC-158 处置过账拒收记录（VS-10.1，proposed）
-- OBJ-05 协议：PRC-47 起草、评审并回签协议（VS-04.1，proposed）；PRC-50 占用框架限额并提交任务订单（VS-04.6，proposed）；PRC-56 付款条件项转为可结算（VS-04.3，proposed）；PRC-66 发起结算，确认最终价款并结算协议（VS-04.5、VS-04.6，proposed）；PRC-68 终止协议（VS-04.5，proposed）；PRC-70 起草并生效供方协议（VS-05.2，proposed）；PRC-76 完成并结算供方协议（VS-05.6，proposed）；PRC-128 办理离职（VS-13.6，proposed）；PRC-136 调岗（任职变更，按人事业务生效日，触发数据范围复核）（VS-07.3，proposed）；PRC-152 登记付款条件达成（VS-04.3，proposed）；PRC-179 项目开始执行后协议转入履行中（VS-04.6，proposed）
-- OBJ-13 保证金与押金：PRC-10 收付保证金与保函（VS-01.2、VS-04.1，proposed）；PRC-153 退还投标保证金（VS-01.2、VS-04.1，proposed）
-- OBJ-29 项目：PRC-17 建立项目并组建团队（VS-02.0、VS-03.1，proposed）；PRC-24 暂停、恢复、终止或取消项目（VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7，proposed）
-- OBJ-33 完工估算：PRC-30 提出并批准完工估算（VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6，proposed）；PRC-151 填报经营产值（VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6，proposed）
-- OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32）：PRC-34 处置我方成果不符合项（VS-02.6、VS-02.7，proposed）；PRC-44 发布客户资产类不符合项并建议外部检测（VS-03.2、VS-03.3，proposed）；PRC-45 跟踪整改并复查闭合（VS-03.4，proposed）
+- AGG-43：PRC-15 未签约的售前投入转费用（VS-01.2，confirmed）；PRC-25 转入售前投入（VS-02.0、VS-04.1，confirmed）；PRC-35 项目或协议终止、结项后清算成本（VS-02.7，confirmed）；PRC-55 结转合同履约成本（VS-04.2，confirmed）；PRC-164 收入确认冲销后冲回已配对成本结转（VS-04.2，confirmed）
+- AGG-44：PRC-51 建立并更新开票与收入额度（VS-04.1、VS-04.2、VS-04.3，confirmed）；PRC-53 确认收入（VS-04.2，confirmed）；PRC-54 视为同意期满处理（VS-04.2，confirmed）；PRC-148 收入确认审批通过后占用转实并提交过账（VS-04.2，confirmed）；PRC-149 冲销收入确认（VS-04.2、VS-04.5，confirmed）
+- AGG-77：PRC-92 过账业务事实（VS-10.1，confirmed）；PRC-158 处置过账拒收记录（VS-10.1，confirmed）
+- OBJ-05 协议：PRC-47 起草、评审并回签协议（VS-04.1，confirmed）；PRC-50 占用框架限额并提交任务订单（VS-04.6，confirmed）；PRC-66 发起结算，确认最终价款并结算协议（VS-04.5、VS-04.6，confirmed）；PRC-68 终止协议（VS-04.5，confirmed）；PRC-70 起草并生效供方协议（VS-05.2，confirmed）；PRC-76 完成并结算供方协议（VS-05.6，confirmed）；PRC-128 办理离职（VS-13.6，proposed）；PRC-136 调岗（任职变更，按人事业务生效日，触发数据范围复核）（VS-07.3，proposed）；PRC-179 项目开始执行后协议转入履行中（VS-04.6，confirmed）
+- OBJ-07 付款条件项：PRC-56 付款条件项转为可结算（VS-04.3，confirmed）；PRC-152 登记付款条件达成（VS-04.3，confirmed）
+- OBJ-09 协议变更：PRC-48 提出并生效协议变更或签证（VS-04.6，confirmed）；PRC-71 生效分包变更（VS-05.2，confirmed）
+- OBJ-13 保证金与押金：PRC-10 收付保证金与保函（VS-01.2、VS-04.1，confirmed）；PRC-153 退还投标保证金（VS-01.2、VS-04.1，confirmed）
+- OBJ-29 项目：PRC-17 建立项目并组建团队（VS-02.0、VS-03.1，confirmed）；PRC-24 暂停、恢复、终止或取消项目（VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7，confirmed）；PRC-36 封存成果、结项并归档项目（VS-02.7，confirmed）
+- OBJ-33 完工估算：PRC-30 提出并批准完工估算（VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6，confirmed）；PRC-151 填报经营产值（VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6，confirmed）
+- OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32）：PRC-34 处置我方成果不符合项（VS-02.6、VS-02.7，confirmed）；PRC-44 发布客户资产类不符合项并建议外部检测（VS-03.2、VS-03.3，confirmed）；PRC-45 跟踪整改并复查闭合（VS-03.4，confirmed）
 - OBJ-62 社保与公积金参保：PRC-84 入职后参保增员与建立薪酬档案（VS-07.3，proposed）；PRC-130 离职后参保减员（VS-13.6，proposed）
-- OBJ-65 资质证书：PRC-69 供应商准入与资质核验（VS-05.1，proposed）；PRC-78 年检、核查与延续企业资质（VS-06.2，proposed）
-- OBJ-66 工时单：PRC-23 填报并审批工时（VS-01.2、VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6，proposed）；PRC-91 认定工时有效性（VS-10.1，proposed）
+- OBJ-66 工时单：PRC-23 填报并审批工时（VS-01.2、VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6，confirmed）；PRC-91 认定工时有效性（VS-10.1，confirmed）
 - OBJ-73 算薪运行：PRC-124 计算、审核并批准月度薪酬（VS-13.3，proposed）；PRC-127 薪酬发放完成（VS-13.5，proposed）；PRC-134 薪酬事实已过账置位（VS-13.5，proposed）
-- OBJ-83 增值税发票：PRC-58 红冲销项发票（VS-04.3，proposed）；PRC-73 登记并查验进项发票（VS-05.4，proposed）
-- OBJ-85 往来款项：PRC-59 由销项发票创建应收（VS-04.4，proposed）；PRC-61 检测应收逾期并催收（VS-04.4，proposed）；PRC-63 商业汇票兑付与逾期（VS-04.4，proposed）；PRC-74 提交供方应付（VS-05.4，proposed）；PRC-86 发放、归还与催还员工借款（VS-08.1，proposed）；PRC-126 提交应付薪酬（VS-13.5，proposed）；PRC-131 付款成功后核销应付（VS-05.5、VS-08.3、VS-13.5，proposed）；PRC-150 发票红冲后冲减应收（VS-04.4，proposed）；PRC-159 申报已提交后确认税费应付（VS-06.1，proposed）；PRC-171 核对差旅服务商月账单并确认应付（VS-05.4，proposed）；PRC-175 直接付款申请（VS-05.5，proposed）；PRC-176 预付款核销（VS-05.5，proposed）
-- OBJ-86 资金收付：PRC-75 发起、审批并执行付款（VS-05.5、VS-08.3、VS-13.5，proposed）；PRC-132 应付核销后置付款已核销并提交过账候选（VS-05.5、VS-08.3、VS-13.5，proposed）
-- OBJ-88 费用报销：PRC-133 应付结清后报销置已付（VS-08.3，proposed）；PRC-147 费用报销核定后冲抵员工借款并确认应付（VS-08.2，proposed）
-- OBJ-91 合伙人出资：PRC-111 认缴并实缴出资（VS-12.1，proposed）；PRC-114 退回出资（VS-12.3，proposed）
-- OBJ-92 法定申报：PRC-77 申报并缴纳增值税、附加税与企业所得税（VS-06.1，proposed）；PRC-113 并入股息红利个税扣缴申报（VS-12.2，proposed）；PRC-125 申报个税扣缴与社保公积金（VS-13.4、VS-06.1，proposed）
-- OBJ-97 会计期间：PRC-101 月结检查并关账（VS-10.1，proposed）；PRC-102 启用第 13 期并年末关账（VS-10.1，proposed）
-- OBJ-98 会计分录：PRC-93 生成会计分录（VS-10.1，proposed）；PRC-94 制单并过账受控手工凭证（VS-10.1，proposed）；PRC-135 处理会计分录待处理队列与推送重投（VS-10.1，proposed）
+- OBJ-83 增值税发票：PRC-57 申请并开具销项发票（VS-04.3，confirmed）；PRC-58 红冲销项发票（VS-04.3，confirmed）；PRC-73 登记并查验进项发票（VS-05.4，confirmed）
+- OBJ-85 往来款项：PRC-59 由销项发票创建应收（VS-04.4，confirmed）；PRC-60 认领收款并核销应收（VS-04.4，confirmed）；PRC-61 检测应收逾期并催收（VS-04.4，confirmed）；PRC-63 商业汇票兑付与逾期（VS-04.4，confirmed）；PRC-74 提交供方应付（VS-05.4，confirmed）；PRC-86 发放、归还与催还员工借款（VS-08.1，confirmed）；PRC-126 提交应付薪酬（VS-13.5，proposed）；PRC-131 付款成功后核销应付（VS-05.5、VS-08.3、VS-13.5，confirmed）；PRC-150 发票红冲后冲减应收（VS-04.4，confirmed）；PRC-159 申报已提交后确认税费应付（VS-06.1，confirmed）；PRC-171 核对差旅服务商月账单并确认应付（VS-05.4，confirmed）；PRC-175 直接付款申请（VS-05.5，confirmed）；PRC-176 预付款核销（VS-05.5，confirmed）
+- OBJ-86 资金收付：PRC-75 发起、审批并执行付款（VS-05.5、VS-08.3、VS-13.5，confirmed）；PRC-132 应付核销后置付款已核销并提交过账候选（VS-05.5、VS-08.3、VS-13.5，confirmed）
+- OBJ-88 费用报销：PRC-87 提交、核定并确认报销应付（VS-08.2，confirmed）；PRC-133 应付结清后报销置已付（VS-08.3，confirmed）；PRC-147 费用报销核定后冲抵员工借款并确认应付（VS-08.2，confirmed）
+- OBJ-91 合伙人出资：PRC-111 认缴并实缴出资（VS-12.1，confirmed）；PRC-114 退回出资（VS-12.3，confirmed）
+- OBJ-92 法定申报：PRC-77 申报并缴纳增值税、附加税与企业所得税（VS-06.1，confirmed）；PRC-113 并入股息红利个税扣缴申报（VS-12.2，proposed）；PRC-125 申报个税扣缴与社保公积金（VS-13.4、VS-06.1，proposed）
+- OBJ-97 会计期间：PRC-101 月结检查并关账（VS-10.1，confirmed）；PRC-102 启用第 13 期并年末关账（VS-10.1，confirmed）
+- OBJ-98 会计分录：PRC-93 生成会计分录（VS-10.1，confirmed）；PRC-94 制单并过账受控手工凭证（VS-10.1，confirmed）；PRC-135 处理会计分录待处理队列与推送重投（VS-10.1，confirmed）
 - OBJ-100 经营计划：PRC-88 编制、批准并基线化经营计划与预算（VS-09.1、VS-09.3，proposed）；PRC-89 编制滚动预测（VS-09.2，proposed）；PRC-181 记录经营复盘并跟踪经营动作（VS-09.3，proposed）
 - OBJ-109 绩效评估：PRC-85 试用期评估与转正（VS-07.3、VS-13.2，proposed）；PRC-120 评估月度绩效（VS-13.2，proposed）
-- OBJ-112 利润分配：PRC-112 决议并支付利润分配（VS-12.2，proposed）；PRC-163 应付结清后登记利润分配支付（VS-12.2，proposed）
+- OBJ-112 利润分配：PRC-112 决议并支付利润分配（VS-12.2，confirmed）；PRC-163 应付结清后登记利润分配支付（VS-12.2，confirmed）
 
 ## ④ 主对象推出的一级能力不在所标段的能力清单
 
 - PRC-23 填报并审批工时：OBJ-66 工时单 → CAP-056；所标段 VS-01.2 ['CAP-018', 'CAP-019', 'CAP-024', 'CAP-026']、VS-02.0 ['CAP-029']、VS-02.1 ['CAP-029']、VS-02.2 ['CAP-029']、VS-02.3 ['CAP-029']、VS-02.4 ['CAP-029']、VS-02.5 ['CAP-029']、VS-02.6 ['CAP-029', 'CAP-046']
 - PRC-41 制定检查计划并使其生效：OBJ-48 检查计划 → CAP-005；所标段 VS-03.1 ['CAP-029', 'CAP-046']
 - PRC-42 发布检查表模板版本：OBJ-50 检查表模板 → CAP-024；所标段 VS-03.1 ['CAP-029', 'CAP-046']
-- PRC-56 付款条件项转为可结算：OBJ-05 协议 → CAP-005；所标段 VS-04.3 ['CAP-103']
-- PRC-69 供应商准入与资质核验：OBJ-65 资质证书 → CAP-054；所标段 VS-05.1 ['CAP-001']
+- PRC-56 付款条件项转为可结算：OBJ-07 付款条件项 → CAP-005；所标段 VS-04.3 ['CAP-103']
 - PRC-79 登记继续教育并延续注册执业证书：OBJ-64 注册执业证书 → CAP-056；所标段 VS-06.2 ['CAP-054']
 - PRC-91 认定工时有效性：OBJ-66 工时单 → CAP-056；所标段 VS-10.1 ['CAP-103']
 - PRC-99 计提折旧并处置公司资产：OBJ-93 公司资产 → CAP-093；所标段 VS-10.1 ['CAP-103']
-- PRC-152 登记付款条件达成：OBJ-05 协议 → CAP-005；所标段 VS-04.3 ['CAP-103']
+- PRC-152 登记付款条件达成：OBJ-07 付款条件项 → CAP-005；所标段 VS-04.3 ['CAP-103']
 
 ### 主对象无对应能力（无 OBJ 的聚合，或对象未入能力图）
 
+- PRC-15 未签约的售前投入转费用：AGG-43
+- PRC-25 转入售前投入：AGG-43
 - PRC-35 项目或协议终止、结项后清算成本：AGG-43
 - PRC-51 建立并更新开票与收入额度：AGG-44
 - PRC-53 确认收入：AGG-44
+- PRC-54 视为同意期满处理：AGG-44
 - PRC-55 结转合同履约成本：AGG-43
 - PRC-92 过账业务事实：AGG-77
+- PRC-95 期末结转：AGG-99
+- PRC-96 分配人工成本：AGG-41
+- PRC-98 分摊间接成本：AGG-42
 - PRC-103 生成期间余额快照：AGG-100
+- PRC-104 外部法定账对账与签字：AGG-101
 - PRC-148 收入确认审批通过后占用转实并提交过账：AGG-44
 - PRC-149 冲销收入确认：AGG-44
 - PRC-158 处置过账拒收记录：AGG-77

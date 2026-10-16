@@ -16,7 +16,7 @@ _spec = importlib.util.spec_from_file_location("closeout_check", HERE / "closeou
 cc = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(cc)
 CATALOG = HERE / "process-catalog.yaml"
-FIELDS = ("support", "stages_note", "primary_object")
+FIELDS = ("support", "stages_note", "primary_object", "primary_object_note")
 
 
 def skeleton_units(doc):

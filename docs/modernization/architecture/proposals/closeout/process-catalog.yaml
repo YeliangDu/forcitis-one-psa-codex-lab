@@ -7,6 +7,7 @@ processes:
     type: single_aggregate
     stages: [VS-01.1]
     stages_note: "判据不覆盖、按阶段描述归段：VS-01.1 描述明列「经市场活动、客户活动……形成线索」，本流程是该段的工作内容；其结局（市场活动「进行中」）只是 VS-01.1 的进入状态，不造出退出（线索已确认 / 已关闭），按 #421 进入条件不作归段依据，故以本说明保留 VS-01.1"
+    primary_object: "OBJ-16"
     owner_bc: "B-03"
     group: revenue
     status: draft
@@ -17,6 +18,7 @@ processes:
     type: single_aggregate
     stages: [VS-01.1]
     stages_note: "判据不覆盖、按阶段描述归段：VS-01.1 描述明列「经市场活动、客户活动……形成线索」，本流程是该段的工作内容；其结局（客户活动「计划」）只是 VS-01.1 的进入状态，不造出退出（线索已确认 / 已关闭），按 #421 进入条件不作归段依据，故以本说明保留 VS-01.1。字面误判另记：「已完成」被匹到 VS-02.0 的 WBS 阶段节点，是不同对象"
+    primary_object: "OBJ-105"
     owner_bc: "B-03"
     group: revenue
     status: draft
@@ -27,6 +29,7 @@ processes:
     type: business
     stages: [VS-01.1, VS-01.2]
     stages_note: "判据：结局「已转商机」（线索已确认）造出 VS-01.1 退出；结局「商机跟进中」造出 VS-01.2 进入条件（OBJ-18 跟进中），故保留 VS-01.2。其余近似项是通用状态词撞名，不改"
+    primary_object: "OBJ-17"
     owner_bc: "B-03"
     group: revenue
     status: draft
@@ -48,6 +51,7 @@ processes:
     type: single_aggregate
     stages: [VS-01.1, VS-05.1]
     stages_note: "判据：本流程不造任何段的退出条件；档案核实是 PRC-03 新建商机的前置读（P-3，VS-01.1 衔接 VS-01.2）和申请供方角色（PRC-69，VS-05.1 进入）的前置，属门槛输入。近似项「有效」是不同对象状态撞名，不改"
+    primary_object: "OBJ-01"
     owner_bc: "B-01"
     group: revenue
     status: draft
@@ -58,6 +62,7 @@ processes:
     type: single_aggregate
     stages: [VS-01.2]
     stages_note: "判据：登记独立性检查结论使 OBJ-23 到「无冲突」或「有冲突已获书面同意」，即 VS-01.2 段内状态（售前拦截，是不变量不是门）"
+    primary_object: "OBJ-23"
     owner_bc: "B-03"
     group: revenue
     status: draft
@@ -68,6 +73,7 @@ processes:
     type: business
     stages: [VS-01.2]
     stages_note: "判据：通过报价评审使报价（OBJ-21）到「已通过」，即 VS-01.2 段内状态。字面误判：「报价已生效」被匹到 VS-04.1 退出的付款条件项「生效」，是不同对象"
+    primary_object: "OBJ-21"
     owner_bc: "B-03"
     group: revenue
     status: draft
@@ -77,6 +83,8 @@ processes:
     name: "参加投标，缴纳保证金并登记结果"
     type: business
     stages: [VS-01.2]
+    primary_object: "OBJ-18"
+    primary_object_note: "结局赢单 / 丢单 / 放弃是 VS-01.2 退出；投标 OBJ-20、保证金 OBJ-13 为过程对象"
     owner_bc: "B-03"
     group: revenue
     status: draft
@@ -98,6 +106,7 @@ processes:
     type: single_aggregate
     stages: [VS-01.2, VS-04.1]
     stages_note: "VS-01.2、VS-04.1 的条件与段内状态都没有保证金与押金（OBJ-13）：投标保证金是递交投标（VS-01.2）的前置，履约保证金随协议签订（VS-04.1）。不改骨架，单列交 one-architecture（阶段定义）；近似项「到期」是 VS-06.2 的资质状态，不同对象"
+    primary_object: "OBJ-13"
     owner_bc: "B-09"
     group: revenue
     status: draft
@@ -119,6 +128,8 @@ processes:
     type: single_aggregate
     stages: [VS-01.2]
     stages_note: "判据：发布服务产品版本即 OBJ-24「启用」（启用 = 版本已发布），是 VS-01.2 进入条件之一。近似项「已发布」是不同对象状态撞名，不改"
+    primary_object: "OBJ-24"
+    primary_object_note: "服务产品与阶段类型版本同批发布，取服务产品（VS-01.2 能力 CAP-024）；所标段无该对象退出条件，归段待 SD-14"
     owner_bc: "B-02"
     group: revenue
     status: draft
@@ -129,6 +140,8 @@ processes:
     type: business
     stages: [VS-01.2, VS-02.0]
     stages_note: "判据：生效费率版本使 OBJ-26「生效」，是 VS-01.2 进入条件；同一费率版本是 VS-02.0 预算编制的输入（PRC-19 第 1 步），服务该段退出条件 OBJ-32「已锁定」。近似项 VS-04.1（付款条件项「生效」）是不同对象，不改"
+    primary_object: "OBJ-26"
+    primary_object_note: "三类版本中费率表是预算与报价的计价基础（VS-01.2 能力 CAP-026）；计费系数 OBJ-27、协议价目随同生效；所标段无该对象退出条件，归段待 SD-14"
     owner_bc: "B-02"
     group: revenue
     status: draft
@@ -139,6 +152,8 @@ processes:
     type: single_aggregate
     stages: [VS-01.2, VS-02.6, VS-03.1]
     stages_note: "判据：登记建设工程与招标项目、更新外部状态，造出外部引用对象的段内状态：OBJ-19（VS-01.2）、OBJ-46（VS-02.6、VS-03.1），STEP3 C-20 定为只记录、不作门"
+    primary_object: "OBJ-46"
+    primary_object_note: "所标三段中两段（VS-02.6、VS-03.1）承载建设工程；招标项目 OBJ-19 为次要对象"
     owner_bc: "B-01"
     group: revenue
     status: draft
@@ -149,6 +164,8 @@ processes:
     type: event_policy
     stages: [VS-01.2]
     stages_note: "事件策略按触发状态归段（#421）：商机已丢单、已放弃=OBJ-18「丢单 / 放弃」，是 VS-01.2 退出条件；超期未签约的定时触发无对象状态，随同一策略归 VS-01.2。"
+    primary_object: "AGG-43"
+    primary_object_note: "结局「售前投入已转费用」改变成本结转批次（AGG-43）；AGG-122 只是归属登记的辅助"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -159,6 +176,7 @@ processes:
     type: business
     stages: [VS-01.2, VS-02.0, VS-04.1]
     stages_note: "判据：申请使风险交付授权（OBJ-12）到「申请」、批准到「批准」，是 VS-01.2 段内状态和 VS-02.0 进入条件；转正是 VS-04.1 退出（OBJ-12 转正）。三段均有依据"
+    primary_object: "OBJ-12"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -169,6 +187,7 @@ processes:
     type: business
     stages: [VS-02.0, VS-03.1]
     stages_note: "判据：建立项目、开始执行使项目（OBJ-29）到「已立项 / 执行中」，是 VS-02.0 退出；结局「执行中」同时是 VS-03.1 进入条件之一（OBJ-29 执行中），故保留 VS-03.1"
+    primary_object: "OBJ-29"
     owner_bc: "B-04"
     group: revenue
     status: draft
@@ -178,6 +197,7 @@ processes:
     name: "编制并批准交付计划"
     type: business
     stages: [VS-02.0]
+    primary_object: "OBJ-31"
     owner_bc: "B-04"
     group: revenue
     status: draft
@@ -187,6 +207,7 @@ processes:
     name: "编制并锁定项目预算"
     type: business
     stages: [VS-02.0]
+    primary_object: "OBJ-32"
     owner_bc: "B-04"
     group: revenue
     status: draft
@@ -197,6 +218,8 @@ processes:
     type: business
     stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
     stages_note: "贯穿 VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：判据：资源需求与分配（OBJ-44、45）是 VS-02 贯穿活动「资源与工时」的产出，不属某一段的退出条件；各段均可提出，含 VS-02.1（概念同样提出资源需求）。近似项是通用状态词撞名，不改"
+    primary_object: "OBJ-44"
+    primary_object_note: "结局「资源需求已满足 / 已关闭」；资源分配 OBJ-45 是满足需求的手段；贯穿活动，非段退出条件"
     owner_bc: "B-04"
     group: revenue
     status: draft
@@ -207,6 +230,7 @@ processes:
     type: single_aggregate
     stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
     stages_note: "字面误判：开始阶段→进行中、完成阶段→已完成，即 VS-02 各段 entry_common（OBJ-30 未开始 / 进行中）、exit_common 和 VS-02.0 退出的 OBJ-30「已完成」；状态按 WBS 阶段节点登记，无对象名，脚本也未展开 pattern"
+    primary_object: "OBJ-30"
     owner_bc: "B-04"
     group: revenue
     status: draft
@@ -226,6 +250,7 @@ processes:
     type: business
     stages: [VS-01.2, VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
     stages_note: "贯穿 VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：判据：工时（OBJ-66）「已通过」是 VS-02 贯穿活动「资源与工时」的产出；VS-01.2 保留是因商机是售前工时的归集目标（OBJ-18）。字面误判：结局「已通过」无对象名，未匹到 OBJ-66"
+    primary_object: "OBJ-66"
     owner_bc: "B-06"
     group: revenue
     status: draft
@@ -236,6 +261,7 @@ processes:
     type: business
     stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7]
     stages_note: "判据：终止、取消使项目（OBJ-29）到「已终止 / 已取消」，是 VS-02 价值流 ends_in；暂停、恢复可在任一段发生，恢复→「执行中」是 VS-02.0 退出。字面误判：「已终止」匹到的 VS-05.6、VS-13.6 是供方协议和员工，不同对象"
+    primary_object: "OBJ-29"
     owner_bc: "B-04"
     group: revenue
     status: draft
@@ -246,6 +272,8 @@ processes:
     type: event_policy
     stages: [VS-02.0, VS-04.1]
     stages_note: "事件策略按触发状态归段（#421）：项目已建立=OBJ-29「已立项」，是 VS-02.0 退出条件；合同已签回（ContractSigned）=OBJ-05「已签署生效」，是 VS-04.1 退出条件。两段在不同价值流，是按触发状态跨价值流归两段，不是跳段。触发名用事件名而非状态原文，检查器因此匹配不上。"
+    primary_object: "AGG-43"
+    primary_object_note: "结局「售前投入已转入」由成本结转批次（AGG-43）产生；AGG-122 是辅助登记"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -256,6 +284,7 @@ processes:
     type: business
     stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4]
     stages_note: "SD-01：概念阶段入口也要求发包人资料已提供，补标 VS-02.1。判据：登记资料已提供使 OBJ-42「已提供」，是 VS-02.0 段内状态和 VS-02.1–.4 进入条件。近似项「已确认」是不同对象撞名，不改"
+    primary_object: "OBJ-42"
     owner_bc: "B-28"
     group: revenue
     status: draft
@@ -266,6 +295,7 @@ processes:
     type: single_aggregate
     stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7]
     stages_note: "贯穿 VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7：判据：风险与问题（OBJ-108）「已关闭 / 已接受」是 VS-02 贯穿活动「变更、延期与风险」的产出，各段均可登记；近似项「已关闭」是不同对象撞名，不改"
+    primary_object: "OBJ-108"
     owner_bc: "B-04"
     group: revenue
     status: draft
@@ -276,6 +306,7 @@ processes:
     type: business
     stages: [VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-03.5]
     stages_note: "字面误判：结局「已认可」「已声明无异议」即 exit_common 的 OBJ-35「已认可」/「已声明」（VS-02.1–.6 经 pattern 引用）；VS-03.5 退出为 OBJ-35「已签发 → 已认可」，报告类交付物走同一流程"
+    primary_object: "OBJ-35"
     owner_bc: "B-28"
     group: revenue
     status: user_confirmed
@@ -297,6 +328,7 @@ processes:
     type: business
     stages: [VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
     stages_note: "完工估算（OBJ-33）不在 VS-02 的进出条件和贯穿活动里，只是项目总监在阶段门处更新；不改骨架，单列交 one-architecture（阶段定义：贯穿活动是否补完工估算与经营产值）。近似项「已批准」是不同对象撞名"
+    primary_object: "OBJ-33"
     owner_bc: "B-04"
     group: revenue
     status: draft
@@ -307,6 +339,7 @@ processes:
     type: business
     stages: [VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
     stages_note: "贯穿 VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：判据：设计变更（OBJ-40）「关闭」是 VS-02 贯穿活动「变更、延期与风险」的产出；字面误判：结局「已关闭」无对象名，未匹到 OBJ-40"
+    primary_object: "OBJ-40"
     owner_bc: "B-28"
     group: revenue
     status: draft
@@ -317,6 +350,7 @@ processes:
     type: business
     stages: [VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
     stages_note: "贯穿 VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：判据：延期申请（OBJ-41）「已批准 / 已拒绝 / 视为批准」是 VS-02 贯穿活动「变更、延期与风险」的产出，结局用语与之一致，未匹到只因无对象名"
+    primary_object: "OBJ-41"
     owner_bc: "B-04"
     group: revenue
     status: draft
@@ -327,6 +361,7 @@ processes:
     type: single_aggregate
     stages: [VS-02.4, VS-02.7, VS-03.2, VS-04.2]
     stages_note: "判据：关联证据使 OBJ-53 到「已关联」（施工图审查意见与合格书），是 VS-02.4 段内状态；封存证据使其到「已封存」，是 VS-02.7 退出。VS-03.2 现场检查证据是检查审核（OBJ-49 已审核）的输入；VS-04.2 收入证据是进入条件的输入（PRC-52 开放证据类型）。证据采集贯穿各段，所列是证据作门槛输入的阶段"
+    primary_object: "OBJ-53"
     owner_bc: "B-28"
     group: revenue
     status: draft
@@ -337,6 +372,7 @@ processes:
     type: business
     stages: [VS-02.6, VS-02.7]
     stages_note: "判据：关闭不符合项使 OBJ-38「关闭」，是 VS-02.6 退出（我方成果类）；VS-02.7 保留是因收尾回访发现的成果问题归不符合项（VS-02.7 说明），不作门"
+    primary_object: "OBJ-38"
     owner_bc: "B-28"
     group: revenue
     status: draft
@@ -347,6 +383,8 @@ processes:
     type: event_policy
     stages: [VS-02.7]
     stages_note: "按触发状态「项目已结项」归段；终止类结局不归段（SD-10）"
+    primary_object: "AGG-43"
+    primary_object_note: "无 OBJ 的聚合，随信息层处理"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -356,6 +394,8 @@ processes:
     name: "封存成果、结项并归档项目"
     type: business
     stages: [VS-02.7]
+    primary_object: "OBJ-29"
+    primary_object_note: "结局「已归档」是项目 VS-02.7 退出；交付物、证据的「已封存」是同一编排的前置步骤"
     owner_bc: "B-29"
     group: revenue
     status: draft
@@ -365,6 +405,7 @@ processes:
     name: "回访客户满意度"
     type: business
     stages: [VS-02.7]
+    primary_object: "OBJ-106"
     owner_bc: "B-28"
     group: revenue
     status: draft
@@ -374,6 +415,7 @@ processes:
     name: "编制并发布项目复盘"
     type: business
     stages: [VS-02.7]
+    primary_object: "OBJ-107"
     owner_bc: "B-04"
     group: revenue
     status: draft
@@ -406,6 +448,7 @@ processes:
     type: business
     stages: [VS-03.1]
     stages_note: "判据：生效检查计划使 OBJ-48「生效」，是 VS-03.1 进入条件。字面误判：「计划已生效」被匹到 VS-04.1 退出的付款条件项「生效」，是不同对象"
+    primary_object: "OBJ-48"
     owner_bc: "B-26"
     group: revenue
     status: draft
@@ -416,6 +459,7 @@ processes:
     type: single_aggregate
     stages: [VS-03.1]
     stages_note: "VS-03.1 的说明把检查表模板列为本段确定的内容，但进入条件和段内状态没有检查表模板版本的状态（对照 VS-01.2 对服务产品「启用」的写法）。不改骨架，单列交 one-architecture（阶段定义）；近似项 VS-04.1「生效」是付款条件项，不同对象"
+    primary_object: "OBJ-50"
     owner_bc: "B-26"
     group: revenue
     status: draft
@@ -426,6 +470,7 @@ processes:
     type: business
     stages: [VS-03.1, VS-03.2, VS-02.6]
     stages_note: "改标：删 VS-03.5，本流程止于检查锁定（VS-03.2 出口）；报告认可由 PRC-28 承担（VS-03.5）。判据：指派检查人员使检查（OBJ-49）到「已安排」，是 VS-03.1 退出；审核、锁定是 VS-03.2 退出；VS-02.6 保留是因品控类施工期检查的 OBJ-49「已锁定」是该段段内状态。字面误判：「封存证据→已封存」是检查证据，VS-02.7 退出的「已封存」是项目收尾时的证据与交付物封存，不加 VS-02.7"
+    primary_object: "OBJ-49"
     owner_bc: "B-26"
     group: revenue
     status: draft
@@ -436,6 +481,7 @@ processes:
     type: business
     stages: [VS-03.2, VS-03.3]
     stages_note: "判据：登记不符合项使客户资产类 OBJ-38 到「已识别」，是 VS-03.2 段内状态和 VS-03.3 进入条件；发布不符合项是 VS-03.3 退出。字面误判：「关闭不符合项→已关闭」匹到的 VS-02.6 退出限我方成果类，本流程是客户资产类，不加 VS-02.6"
+    primary_object: "OBJ-38"
     owner_bc: "B-26"
     group: revenue
     status: draft
@@ -445,6 +491,7 @@ processes:
     name: "跟踪整改并复查闭合"
     type: business
     stages: [VS-03.4]
+    primary_object: "OBJ-38"
     owner_bc: "B-26"
     group: revenue
     status: draft
@@ -455,6 +502,7 @@ processes:
     type: business
     stages: [VS-03.4]
     stages_note: "判据：采信、不采信外部检测报告使 OBJ-52 到「已采信 / 未采信」，是 VS-03.4 段内状态，结局用语与之一致"
+    primary_object: "OBJ-52"
     owner_bc: "B-26"
     group: revenue
     status: draft
@@ -465,6 +513,8 @@ processes:
     type: business
     stages: [VS-04.1]
     stages_note: "判据：回签使协议（OBJ-05）到「已签署生效」，是 VS-04.1 退出。字面误判：匹到的 VS-05.2、VS-07.3 退出限供方类型协议、劳动合同类型，本流程是客户协议，不加"
+    primary_object: "OBJ-05"
+    primary_object_note: "付款条件项 OBJ-07「生效」随协议回签同时生效（VS-04.1 退出），不另设流程"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -475,6 +525,7 @@ processes:
     type: business
     stages: [VS-04.6]
     stages_note: "SD-02：新段 VS-04.6「履约」，协议变更和签证在本段重入，不再挂 VS-04.1。判据：新基线已生效 / 驳回使协议变更（OBJ-09）到「已生效（新基线）/ 驳回」，是 VS-04.6 段内状态。字面误判：「应用变更→已签署生效」协议状态不变，匹到的 VS-04.1 退出不成立，VS-05.2、VS-07.3 限供方类型协议、劳动合同类型"
+    primary_object: "OBJ-09"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -485,6 +536,7 @@ processes:
     type: business
     stages: [VS-04.6, VS-04.5]
     stages_note: "SD-02：新段 VS-04.6「履约」，索赔在本段重入，不再挂 VS-04.1。判据：认定 / 拒绝 / 撤回使索赔（OBJ-10）到「已认定 / 已拒绝 / 撤回」，是 VS-04.6 段内状态；保留 VS-04.5：结算中双方未能确认最终价款时转索赔（PRC-66，H3），并入最终价款确认。VS-04.2–.4 与索赔无关"
+    primary_object: "OBJ-10"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -495,6 +547,8 @@ processes:
     type: business
     stages: [VS-04.6]
     stages_note: "SD-02：新段 VS-04.6「履约」；判据：提交任务订单使任务订单（OBJ-05）到「已签署生效」，是 VS-04.6 段内状态（框架任务订单在本段占用限额并提交），stages 只留 VS-04.6。字面误判：匹到的 VS-04.1 退出对应主协议，VS-05.2、VS-07.3 限供方类型协议、劳动合同类型，不加"
+    primary_object: "OBJ-05"
+    primary_object_note: "任务订单是协议 OBJ-05 的类型"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -505,6 +559,8 @@ processes:
     type: event_policy
     stages: [VS-04.1, VS-04.2, VS-04.3]
     stages_note: "判据（事件策略看触发状态）：触发事件 ContractSigned 对应 VS-04.1 退出（协议已签署生效）；新基线已生效随协议变更，在 VS-04.6 重入。VS-04.2、VS-04.3 保留：额度是收入确认（INV-22）与开票的占用额度，服务两段（PRC-53 第 1 步、PRC-57）。VS-04.6 是否补标待 one-architecture 随阶段定义定"
+    primary_object: "AGG-44"
+    primary_object_note: "开票与收入额度；无 OBJ，信息层待定（Q20、Q-04）"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -525,6 +581,8 @@ processes:
     type: event_policy
     stages: [VS-04.2]
     stages_note: "判据（事件策略看触发状态）：触发状态「交付物已认可」是 VS-04.2 进入条件（OBJ-35 已认可），策略是该段进入后的反应，故留在 VS-04.2。脚本只在退出条件里找触发状态，所以报 VS-03.5（及 VS-02 各段 exit_common）；是否改按退出所在段归，待用户确认"
+    primary_object: "AGG-44"
+    primary_object_note: "收入确认行在开票与收入额度上；无 OBJ，信息层待定（Q20、Q-04）"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -535,6 +593,8 @@ processes:
     type: business
     stages: [VS-04.2]
     stages_note: "判据：阶段说明写明视为同意的期满判定在 VS-04.2（D-8），判定记在收入确认行上，不是对象状态。字面误判：「标记付款条件项可结算」在协议上是状态不变（已签署生效 / 履行中 / 已完成各自保持），不造 VS-04.1 退出、VS-04.6 退出，更不属 VS-05.2、VS-07.3"
+    primary_object: "AGG-44"
+    primary_object_note: "认定记在收入确认行上（AGG-44）；VS-04.2 退出缺对象状态（MS-17），信息层待定"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -545,6 +605,8 @@ processes:
     type: event_policy
     stages: [VS-04.2]
     stages_note: "事件策略按触发状态归段（#421）：触发是收入确认类型分录的过账回执，对应 OBJ-98「已记账（不可逆）」，是 VS-04.2 退出条件（收入确认类型分录）。触发名是事件名，检查器匹配不上。"
+    primary_object: "AGG-43"
+    primary_object_note: "无 OBJ 的聚合，随信息层处理"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -555,6 +617,8 @@ processes:
     type: event_policy
     stages: [VS-04.3]
     stages_note: "判据②：开票侧反应。本策略把以认可为条件的付款条件项置为「可结算」，即 VS-04.3 进入条件 OBJ-07「可结算」；VS-04.3 进入条件的说明写明该状态在交付物「已认可」时产生，触发状态即该进入条件的前提。不归 VS-04.2：收入确认由 PRC-53 承接，本策略不碰收入"
+    primary_object: "OBJ-07"
+    primary_object_note: "结局使付款条件项「可结算」（VS-04.3 进入条件）；VS-04.3 退出是开票对象，本策略不写"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -564,6 +628,8 @@ processes:
     name: "申请并开具销项发票"
     type: business
     stages: [VS-04.3]
+    primary_object: "OBJ-83"
+    primary_object_note: "结局「已开具」是 VS-04.3 退出；开票申请 OBJ-82「已开票」是同一流程的前置单据"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -574,6 +640,7 @@ processes:
     type: business
     stages: [VS-04.3]
     stages_note: "判据①的逆向：红冲撤销 VS-04.3 退出状态（销项发票「已开具」→「已红冲」，OBJ-83），开票段因此重入；「已红冲」是同一对象在本段的状态，不属其他段"
+    primary_object: "OBJ-83"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -584,6 +651,7 @@ processes:
     type: event_policy
     stages: [VS-04.4]
     stages_note: "判据②（与 PRC-56 同口径）：触发状态发票 OBJ-83「已开具」是 VS-04.3 退出、VS-04.4 进入；本策略创建应收（OBJ-85「未结」），是收款段的起点，不归 VS-04.3：开票段到「已开具」即结束，本策略不碰发票"
+    primary_object: "OBJ-85"
     owner_bc: "B-09"
     group: revenue
     status: draft
@@ -594,6 +662,8 @@ processes:
     type: business
     stages: [VS-04.4]
     stages_note: "判据：核销应收使往来款项（OBJ-85）到「已结清」、记收款分配（OBJ-86 已分配），是 VS-04.4 退出。字面误判：匹到的 VS-05.5、VS-08.1、VS-08.3、VS-13.5 是应付、员工借款、报销、薪酬类型，本流程是销售应收"
+    primary_object: "OBJ-85"
+    primary_object_note: "结局「已核销」使往来款项「已结清」（VS-04.4 退出）；资金收付 OBJ-86「已分配」是同一流程的认领步骤"
     owner_bc: "B-09"
     group: revenue
     status: draft
@@ -604,6 +674,7 @@ processes:
     type: business
     stages: [VS-04.4]
     stages_note: "判据：检测逾期、核销坏账使 OBJ-85 到「已核销（坏账）」，是 VS-04.4 退出的第二路。字面误判：匹到的 VS-05.4、VS-05.5、VS-08.1、VS-08.3、VS-13.5 是应付、员工借款、报销、薪酬类型"
+    primary_object: "OBJ-85"
     owner_bc: "B-09"
     group: revenue
     status: draft
@@ -623,6 +694,7 @@ processes:
     type: business
     stages: [VS-04.4]
     stages_note: "判据：商票逾期时释放占用、恢复应收，使应收回到「未结」，是 VS-04.4 进入条件（重入）。字面误判：VS-05.4 退出的「未结」限应付方向"
+    primary_object: "OBJ-85"
     owner_bc: "B-09"
     group: revenue
     status: draft
@@ -653,6 +725,7 @@ processes:
     type: business
     stages: [VS-04.5, VS-04.6]
     stages_note: "改标：补 VS-04.6。判据：完成协议使协议（OBJ-05）到「已完成」，是 VS-04.6 退出和 VS-04.5 进入；结算协议到「已结算」是 VS-04.5 退出。字面误判：VS-05.6 退出的「已结算」限供方类型协议"
+    primary_object: "OBJ-05"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -674,6 +747,7 @@ processes:
     type: single_aggregate
     stages: [VS-04.5]
     stages_note: "判据：终止协议使协议（OBJ-05）到「已终止」，是 VS-04 价值流 ends_in 的停止出口；VS-04.5 的退出条件没有「已终止」（VS-05.6 有），单列交 one-architecture（阶段定义），骨架不改。字面误判：匹到的 VS-05.6、VS-13.6 限供方类型协议、劳动合同类型"
+    primary_object: "OBJ-05"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -684,6 +758,8 @@ processes:
     type: business
     stages: [VS-05.1]
     stages_note: "判据：核准角色合格使 OBJ-02 到「合格」、登记资质证书使 OBJ-65 到「有效」，是 VS-05.1 退出。字面误判：VS-06.2 的「有效」是年检、延续后的退出，本流程是初次登记，不加"
+    primary_object: "OBJ-02"
+    primary_object_note: "结局「往来单位角色合格」是 VS-05.1 退出；资质证书 OBJ-65 为需资质供方的附加条件"
     owner_bc: "B-01"
     group: revenue
     status: draft
@@ -693,6 +769,7 @@ processes:
     name: "起草并生效供方协议"
     type: business
     stages: [VS-05.2]
+    primary_object: "OBJ-05"
     owner_bc: "B-11"
     group: finance
     status: draft
@@ -703,6 +780,8 @@ processes:
     type: business
     stages: [VS-05.2]
     stages_note: "分包变更（AGG-56）生效即供方协议内容再次「已签署生效」，对应 OBJ-05（供方类型）「已签署生效」，是 VS-05.2 退出条件；与收入侧协议变更（PRC-48）对称。AGG-56 状态名「已生效」与 OBJ-05 状态名字面不同，检查器匹配不上。"
+    primary_object: "OBJ-09"
+    primary_object_note: "分包变更（AGG-56）对应 OBJ-09 协议变更"
     owner_bc: "B-11"
     group: finance
     status: draft
@@ -712,6 +791,7 @@ processes:
     name: "确认供方履约"
     type: business
     stages: [VS-05.3]
+    primary_object: "OBJ-87"
     owner_bc: "B-11"
     group: finance
     status: draft
@@ -722,6 +802,7 @@ processes:
     type: business
     stages: [VS-05.4]
     stages_note: "结局「进项发票已用途确认 / 已入账」造出 VS-05.4 应付确认的退出条件（#421 判据①）"
+    primary_object: "OBJ-83"
     owner_bc: "B-23"
     group: finance
     status: draft
@@ -731,6 +812,7 @@ processes:
     name: "提交供方应付"
     type: business
     stages: [VS-05.4]
+    primary_object: "OBJ-85"
     owner_bc: "B-11"
     group: finance
     status: draft
@@ -741,6 +823,7 @@ processes:
     type: business
     stages: [VS-05.5, VS-08.3, VS-13.5]
     stages_note: "结局「付款已成功 / 已核销」造出 VS-05.5 付款、VS-08.3 报销付款、VS-13.5 的退出条件（#421 判据①）；借款发放不让借款结清，不归 VS-08.1；利润分配与出资退回的退出条件由 PRC-163、PRC-114 造出"
+    primary_object: "OBJ-86"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -750,6 +833,7 @@ processes:
     name: "完成并结算供方协议"
     type: business
     stages: [VS-05.6]
+    primary_object: "OBJ-05"
     owner_bc: "B-11"
     group: finance
     status: draft
@@ -759,6 +843,7 @@ processes:
     name: "申报并缴纳增值税、附加税与企业所得税"
     type: business
     stages: [VS-06.1]
+    primary_object: "OBJ-92"
     owner_bc: "B-23"
     group: finance
     status: draft
@@ -769,6 +854,7 @@ processes:
     type: business
     stages: [VS-06.2]
     stages_note: "判据：登记核查结果、延续使资质证书（OBJ-65）到「有效 / 降级 / 撤销 / 到期」，是 VS-06.2 退出。字面误判：VS-05.1 退出的「有效」是供方初次准入，本流程核查既有证书，不加"
+    primary_object: "OBJ-65"
     owner_bc: "B-01"
     group: revenue
     status: draft
@@ -844,6 +930,7 @@ processes:
     type: business
     stages: [VS-08.1]
     stages_note: "判据：归还核销使往来款项（OBJ-85，其他应收「员工借款」）到「已结清」，是 VS-08.1 退出。字面误判：匹到的 VS-04.4、VS-05.4、VS-05.5、VS-08.3、VS-13.5 是销售应收、应付、报销、薪酬类型"
+    primary_object: "OBJ-85"
     owner_bc: "B-09"
     group: revenue
     status: draft
@@ -853,6 +940,8 @@ processes:
     name: "提交、核定并确认报销应付"
     type: business
     stages: [VS-08.2]
+    primary_object: "OBJ-88"
+    primary_object_note: "多候选中取 OBJ-88 费用报销：结局「已核定」是 VS-08.2 主退出条件；OBJ-83 发票入账是同步占用，非主对象"
     owner_bc: "B-12"
     group: finance
     status: user_confirmed
@@ -891,6 +980,7 @@ processes:
     name: "认定工时有效性"
     type: event_policy
     stages: [VS-10.1]
+    primary_object: "OBJ-66"
     owner_bc: "B-06"
     group: revenue
     status: draft
@@ -900,6 +990,8 @@ processes:
     name: "过账业务事实"
     type: business
     stages: [VS-10.1]
+    primary_object: "AGG-77"
+    primary_object_note: "无 OBJ 的聚合，随信息层处理"
     owner_bc: "B-16"
     group: finance
     status: draft
@@ -909,6 +1001,7 @@ processes:
     name: "生成会计分录"
     type: event_policy
     stages: [VS-10.1]
+    primary_object: "OBJ-98"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -918,6 +1011,7 @@ processes:
     name: "制单并过账受控手工凭证"
     type: business
     stages: [VS-10.1]
+    primary_object: "OBJ-98"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -927,6 +1021,8 @@ processes:
     name: "期末结转"
     type: business
     stages: [VS-10.1]
+    primary_object: "AGG-99"
+    primary_object_note: "期末结转运行（AGG-99），无 OBJ，随信息层"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -936,6 +1032,8 @@ processes:
     name: "分配人工成本"
     type: business
     stages: [VS-10.1]
+    primary_object: "AGG-41"
+    primary_object_note: "人工成本分配运行（AGG-41），无 OBJ，随信息层"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -955,6 +1053,8 @@ processes:
     name: "分摊间接成本"
     type: business
     stages: [VS-10.1]
+    primary_object: "AGG-42"
+    primary_object_note: "分摊运行（AGG-42），无 OBJ，随信息层"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -964,6 +1064,7 @@ processes:
     name: "计提折旧并处置公司资产"
     type: business
     stages: [VS-10.1]
+    primary_object: "OBJ-93"
     owner_bc: "B-24"
     group: finance
     status: draft
@@ -983,6 +1084,7 @@ processes:
     name: "月结检查并关账"
     type: business
     stages: [VS-10.1]
+    primary_object: "OBJ-97"
     owner_bc: "B-17"
     group: finance
     status: draft
@@ -992,6 +1094,7 @@ processes:
     name: "启用第 13 期并年末关账"
     type: business
     stages: [VS-10.1]
+    primary_object: "OBJ-97"
     owner_bc: "B-17"
     group: finance
     status: draft
@@ -1002,6 +1105,8 @@ processes:
     type: event_policy
     stages: [VS-10.1]
     stages_note: "事件策略按触发状态「会计期间已关账」归段（#421 判据②），该状态是 VS-10.1 期间关账的退出条件"
+    primary_object: "AGG-100"
+    primary_object_note: "无 OBJ 的聚合，随信息层处理"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -1012,6 +1117,8 @@ processes:
     type: business
     stages: [VS-10.2]
     stages_note: "外部法定账对账完成是 VS-10.2 退出条件改定后的「外部法定账对账已完成」（SD 已裁定的 VS-10.2 退出条件）；改定前检查器匹配不上。"
+    primary_object: "AGG-101"
+    primary_object_note: "外部法定账对账（AGG-101），无 OBJ，随信息层；OBJ-98 只读"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -1083,6 +1190,7 @@ processes:
     name: "认缴并实缴出资"
     type: single_aggregate
     stages: [VS-12.1]
+    primary_object: "OBJ-91"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1092,6 +1200,7 @@ processes:
     name: "决议并支付利润分配"
     type: business
     stages: [VS-12.2]
+    primary_object: "OBJ-112"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1110,6 +1219,7 @@ processes:
     name: "退回出资"
     type: business
     stages: [VS-12.3]
+    primary_object: "OBJ-91"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1269,6 +1379,7 @@ processes:
     type: event_policy
     stages: [VS-05.5, VS-08.3, VS-13.5]
     stages_note: "事件策略按触发状态「付款已成功」归段（#421 判据②），该状态是 VS-05.5、VS-08.3、VS-13.5 的退出条件"
+    primary_object: "OBJ-85"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1279,6 +1390,7 @@ processes:
     type: event_policy
     stages: [VS-05.5, VS-08.3, VS-13.5]
     stages_note: "VS-05.5、VS-08.3、VS-13.5：事件策略按触发状态归段（#421 判据②）——触发「应付已核销」是 AGG-52 往来款项走向「已结清 / 部分结」的一步，供方应付对应 VS-05.5 付款、报销应付对应 VS-08.3 报销付款、薪酬应付对应 VS-13.5 的退出条件；与 PRC-131 同段"
+    primary_object: "OBJ-86"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1289,6 +1401,7 @@ processes:
     type: event_policy
     stages: [VS-08.3]
     stages_note: "VS-08.3：事件策略按触发状态归段（#421 判据②）——触发「应付已结清」限于报销类型的应付（AGG-52），正是 VS-08.3 报销付款退出条件 OBJ-85「已结清」（agg AGG-52，应付「报销」）；本策略再把 OBJ-88 置「已付」，补齐 VS-08.3 的另一退出条件"
+    primary_object: "OBJ-88"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1309,6 +1422,7 @@ processes:
     type: single_aggregate
     stages: [VS-10.1]
     stages_note: "VS-10.1：待处理队列为空、推送死信为空是 VS-10.1 期间关账的前置检查（ADR-0022 决定 10、INV-100）；本流程清理队列与死信，是关账得以达成的必要环节。期间内记账与结转段 VS-10.0 待 SD-11 裁定，定后改归 VS-10.0"
+    primary_object: "OBJ-98"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -1426,6 +1540,7 @@ processes:
     name: "费用报销核定后冲抵员工借款并确认应付"
     type: event_policy
     stages: [VS-08.2]
+    primary_object: "OBJ-88"
     owner_bc: "B-09"
     group: revenue
     status: draft
@@ -1436,6 +1551,8 @@ processes:
     type: event_policy
     stages: [VS-04.2]
     stages_note: "SD-08：本流程出口结局由「收入已确认」改为「收入确认事实已过账」（outcomes、decision.outcome、scenarios PRC-148-S01 同改）；过账经 B-16 过账管道（PRC-92）完成。VS-04.2 退出现为「缺对象状态」（MS-17），脚本不能匹配，故仍报不支持，待对象状态定后复跑。近似项（审批已通过）是不同对象撞名，不改"
+    primary_object: "AGG-44"
+    primary_object_note: "收入确认行占用转实；无 OBJ，信息层待定（Q20、Q-04）"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -1446,6 +1563,8 @@ processes:
     type: business
     stages: [VS-04.2, VS-04.5]
     stages_note: "理由：冲销是收入确认的逆向（VS-04.2 退出「收入确认事实已过账」的反向，追加冲销行并提交过账），人工更正随时可发起（VS-04.2），结算审减或协议终止触发的属 VS-04.5；不经开票与回款阶段。近似项是通用状态词撞名，不改"
+    primary_object: "AGG-44"
+    primary_object_note: "冲销收入确认行；无 OBJ，信息层待定（Q20、Q-04）"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -1455,6 +1574,7 @@ processes:
     name: "发票红冲后冲减应收"
     type: event_policy
     stages: [VS-04.4]
+    primary_object: "OBJ-85"
     owner_bc: "B-09"
     group: revenue
     status: draft
@@ -1465,6 +1585,8 @@ processes:
     type: business
     stages: [VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
     stages_note: "产值估计写在完工估算（OBJ-33）上，不在 VS-02 的进出条件和贯穿活动里；不改骨架，单列交 one-architecture（阶段定义：同 PRC-30）"
+    primary_object: "OBJ-33"
+    primary_object_note: "产值估计写入完工估算的只追加子表 progress_estimates，不改估算的批准状态"
     owner_bc: "B-04"
     group: revenue
     status: draft
@@ -1475,6 +1597,8 @@ processes:
     type: business
     stages: [VS-04.3]
     stages_note: "改标：删 VS-04.4。判据：登记付款条件达成使付款条件项（OBJ-07）到「可结算」，是 VS-04.3 进入条件；本流程不造应收（VS-04.4 进入是 OBJ-85 未结）。字面误判：匹到的 VS-04.1、VS-04.6、VS-05.2、VS-07.3 是协议状态不变，不造退出"
+    primary_object: "OBJ-07"
+    primary_object_note: "结局使付款条件项「可结算」（VS-04.3 进入条件）"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -1485,6 +1609,7 @@ processes:
     type: business
     stages: [VS-01.2, VS-04.1]
     stages_note: "VS-01.2、VS-04.1 的条件与段内状态没有保证金与押金（OBJ-13）：未中标、废标、撤销后退还属 VS-01.2 之后，中标方签约后退还属 VS-04.1。不改骨架，单列交 one-architecture（阶段定义，同 PRC-10）"
+    primary_object: "OBJ-13"
     owner_bc: "B-09"
     group: revenue
     status: draft
@@ -1534,6 +1659,8 @@ processes:
     type: single_aggregate
     stages: [VS-10.1]
     stages_note: "VS-10.1：「拒收记录已处置」是 VS-10.1 期间关账的前置检查项（S-29 SQ-54，INV-100）；期间内记账段 VS-10.0 待 SD-11 裁定，定后改归 VS-10.0"
+    primary_object: "AGG-77"
+    primary_object_note: "无 OBJ 的聚合，随信息层处理"
     owner_bc: "B-16"
     group: finance
     status: draft
@@ -1544,6 +1671,7 @@ processes:
     type: event_policy
     stages: [VS-06.1]
     stages_note: "VS-06.1：事件策略按触发状态归段（#421 判据②）——触发「申报已提交」即 OBJ-92 法定申报（agg AGG-90）「已申报」，是 VS-06.1 申报缴款退出条件「已申报 → 已缴款」的前半；本策略确认税费应付，后接 PRC-75 缴款完成后半"
+    primary_object: "OBJ-85"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1584,6 +1712,7 @@ processes:
     type: event_policy
     stages: [VS-12.2]
     stages_note: "利润分配支付是「利润分配」阶段出口（应付股利结清）的一部分；触发「应付已结清」按来源限定为利润分配应付；结局造出 OBJ-112「已支付」，是 VS-12.2 退出条件（检查器没解析「已决议 → 已支付」）"
+    primary_object: "OBJ-112"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1595,6 +1724,8 @@ processes:
     type: event_policy
     stages: [VS-04.2]
     stages_note: "收入确认冲销后冲回已配对的成本结转，随收入确认所在阶段（VS-04.2，revenue 价值流）；触发是收入确认类型过账事实被冲销并重过账，对应 OBJ-98「已记账（不可逆）」，是 VS-04.2 退出条件（触发名是事件名，检查器匹配不上）"
+    primary_object: "AGG-43"
+    primary_object_note: "无 OBJ 的聚合，随信息层处理"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1650,6 +1781,8 @@ processes:
     type: single_aggregate
     stages: [VS-10.1]
     stages_note: "VS-10.1：勾稽差异案须在关账前处置，是 VS-10.1 期间关账的前置检查（INV-100 扩展项，S-29 SQ-54；ADR-0016 决定 1 勾稽等式）；期间内记账段 VS-10.0 待 SD-11 裁定，定后再判是否改归 VS-10.0"
+    primary_object: "AGG-126"
+    primary_object_note: "无 OBJ 的聚合，随信息层处理"
     owner_bc: "B-17"
     group: finance
     status: draft
@@ -1661,6 +1794,8 @@ processes:
     type: business
     stages: [VS-08.0]
     stages_note: "按判据归 VS-08.0 事前申请（SD-03）：费用事前额度批准是该阶段的退出条件"
+    primary_object: "AGG-130"
+    primary_object_note: "无 OBJ 的聚合，随信息层处理"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1672,6 +1807,7 @@ processes:
     type: business
     stages: [VS-05.4]
     stages_note: "公司直付分贝通订单：核对月账单后确认供方应付，属「应付确认」；之后付款进 VS-05.5（PRC-75）；结局「应付已确认」即 OBJ-85「未结」（应付方向），是 VS-05.4 退出条件（同 PRC-74 的写法，检查器因结局没写「未结」匹配不上）"
+    primary_object: "OBJ-85"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1683,6 +1819,8 @@ processes:
     type: business
     stages: [VS-08.0]
     stages_note: "按判据归 VS-08.0 事前申请（SD-03）：出差申请批准是该阶段的退出条件"
+    primary_object: "AGG-132"
+    primary_object_note: "无 OBJ 的聚合，随信息层处理"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1694,6 +1832,8 @@ processes:
     type: business
     stages: [VS-08.0]
     stages_note: "按判据归 VS-08.0 事前申请（SD-03）：超标订单审批是下单前的事前申请"
+    primary_object: "AGG-131"
+    primary_object_note: "超标审批记录挂在差旅订单账单（AGG-131，数据模型 business_trip_over_standard_reviews），无 OBJ，随信息层"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1716,6 +1856,7 @@ processes:
     type: business
     stages: [VS-05.5]
     stages_note: "VS-05.5：豁免清单内的直接付款不经 VS-05.4 应付确认（无发票或来源单据，RULE-407 豁免，S-34 ④）；本流程登记应付后即进入 PRC-75 付款，结局随 PRC-75 达成 VS-05.5 付款的退出条件「已成功 / 已核销」与「已结清」（#421 判据①经同段付款完成）"
+    primary_object: "OBJ-85"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1727,6 +1868,7 @@ processes:
     type: single_aggregate
     stages: [VS-05.5]
     stages_note: "预付款核销使应付「已结清 / 部分结」，造出 VS-05.5 付款的退出条件（#421 判据①）"
+    primary_object: "OBJ-85"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1760,6 +1902,7 @@ processes:
     type: event_policy
     stages: [VS-04.6]
     stages_note: "判据①：结局「协议已转入履行中」造出 VS-04.6 的进入与段内状态（one-architecture 裁定）；不造出 VS-04.1 退出（已签署生效由回签产生），故不标 VS-04.1"
+    primary_object: "OBJ-05"
     owner_bc: "B-05"
     group: revenue
     status: draft

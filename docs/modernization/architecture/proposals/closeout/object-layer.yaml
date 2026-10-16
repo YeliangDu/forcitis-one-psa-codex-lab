@@ -486,7 +486,7 @@ processes:
   stages:
   - VS-01.1
   primary_object: OBJ-16
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-16
   capability_l1: CAP-016
@@ -498,7 +498,7 @@ processes:
   stages:
   - VS-01.1
   primary_object: OBJ-105
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-105
   capability_l1: CAP-001
@@ -511,7 +511,7 @@ processes:
   - VS-01.1
   - VS-01.2
   primary_object: OBJ-17
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-17
   capability_l1: CAP-017
@@ -524,7 +524,7 @@ processes:
   - VS-01.1
   - VS-05.1
   primary_object: OBJ-01
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-01
   capability_l1: CAP-001
@@ -536,7 +536,7 @@ processes:
   stages:
   - VS-01.2
   primary_object: OBJ-23
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-23
   capability_l1: CAP-018
@@ -548,7 +548,7 @@ processes:
   stages:
   - VS-01.2
   primary_object: OBJ-21
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-21
   capability_l1: CAP-018
@@ -560,7 +560,7 @@ processes:
   stages:
   - VS-01.2
   primary_object: OBJ-18
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-18
   capability_l1: CAP-018
@@ -573,7 +573,7 @@ processes:
   - VS-01.2
   - VS-04.1
   primary_object: OBJ-13
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-13
   capability_l1: CAP-005
@@ -584,7 +584,10 @@ processes:
   group: revenue
   stages:
   - VS-01.2
-  status: none
+  primary_object: OBJ-24
+  status: confirmed
+  capability_l1: CAP-024
+  capability: CAP-024
 - id: PRC-13
   display: 01.2.06
   name: 批准并生效费率、计费系数与协议价目版本
@@ -592,7 +595,10 @@ processes:
   stages:
   - VS-01.2
   - VS-02.0
-  status: none
+  primary_object: OBJ-26
+  status: confirmed
+  capability_l1: CAP-026
+  capability: CAP-026
 - id: PRC-14
   display: 01.2.07
   name: 登记建设工程与招标项目
@@ -601,17 +607,21 @@ processes:
   - VS-01.2
   - VS-02.6
   - VS-03.1
-  status: candidates
+  primary_object: OBJ-46
+  status: confirmed
   candidates:
   - OBJ-19
   - OBJ-46
+  capability_l1: CAP-046
+  capability: CAP-046
 - id: PRC-15
   display: 01.2.08
   name: 未签约的售前投入转费用
   group: finance
   stages:
   - VS-01.2
-  status: none
+  primary_object: AGG-43
+  status: confirmed
 - id: PRC-16
   display: 01.2.09
   name: 申请并转正风险交付授权
@@ -621,7 +631,7 @@ processes:
   - VS-02.0
   - VS-04.1
   primary_object: OBJ-12
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-12
   capability_l1: CAP-018
@@ -634,7 +644,7 @@ processes:
   - VS-02.0
   - VS-03.1
   primary_object: OBJ-29
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-29
   capability_l1: CAP-029
@@ -646,7 +656,7 @@ processes:
   stages:
   - VS-02.0
   primary_object: OBJ-31
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-31
   capability_l1: CAP-029
@@ -658,7 +668,7 @@ processes:
   stages:
   - VS-02.0
   primary_object: OBJ-32
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-32
   capability_l1: CAP-029
@@ -675,7 +685,10 @@ processes:
   - VS-02.4
   - VS-02.5
   - VS-02.6
-  status: none
+  primary_object: OBJ-44
+  status: confirmed
+  capability_l1: CAP-029
+  capability: CAP-029.044
 - id: PRC-21
   display: 02.1.05
   name: 推进阶段与工作包
@@ -689,7 +702,7 @@ processes:
   - VS-02.5
   - VS-02.6
   primary_object: OBJ-30
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-30
   capability_l1: CAP-029
@@ -722,7 +735,7 @@ processes:
   - VS-02.5
   - VS-02.6
   primary_object: OBJ-66
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-66
   capability_l1: CAP-056
@@ -741,7 +754,7 @@ processes:
   - VS-02.6
   - VS-02.7
   primary_object: OBJ-29
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-29
   capability_l1: CAP-029
@@ -753,7 +766,8 @@ processes:
   stages:
   - VS-02.0
   - VS-04.1
-  status: none
+  primary_object: AGG-43
+  status: confirmed
 - id: PRC-26
   display: 02.1.09
   name: 接收并确认发包人提供资料
@@ -765,7 +779,7 @@ processes:
   - VS-02.3
   - VS-02.4
   primary_object: OBJ-42
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-42
   capability_l1: CAP-029
@@ -784,7 +798,7 @@ processes:
   - VS-02.6
   - VS-02.7
   primary_object: OBJ-108
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-108
   capability_l1: CAP-029
@@ -802,7 +816,7 @@ processes:
   - VS-02.6
   - VS-03.5
   primary_object: OBJ-35
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-35
   capability_l1: CAP-029
@@ -818,7 +832,7 @@ processes:
   - VS-02.5
   - VS-02.6
   primary_object: OBJ-33
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-33
   capability_l1: CAP-029
@@ -834,7 +848,7 @@ processes:
   - VS-02.5
   - VS-02.6
   primary_object: OBJ-40
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-40
   capability_l1: CAP-029
@@ -850,7 +864,7 @@ processes:
   - VS-02.5
   - VS-02.6
   primary_object: OBJ-41
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-41
   capability_l1: CAP-029
@@ -865,7 +879,7 @@ processes:
   - VS-03.2
   - VS-04.2
   primary_object: OBJ-53
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-53
   capability_l1: CAP-053
@@ -878,7 +892,7 @@ processes:
   - VS-02.6
   - VS-02.7
   primary_object: OBJ-38
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-38
   capability_l1: CAP-029
@@ -890,7 +904,7 @@ processes:
   stages:
   - VS-02.7
   primary_object: AGG-43
-  status: proposed
+  status: confirmed
   candidates:
   - AGG-43
 - id: PRC-36
@@ -899,11 +913,14 @@ processes:
   group: revenue
   stages:
   - VS-02.7
-  status: candidates
+  primary_object: OBJ-29
+  status: confirmed
   candidates:
   - OBJ-29
   - OBJ-35
   - OBJ-53
+  capability_l1: CAP-029
+  capability: CAP-029
 - id: PRC-37
   display: 02.8.03
   name: 回访客户满意度
@@ -911,7 +928,7 @@ processes:
   stages:
   - VS-02.7
   primary_object: OBJ-106
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-106
   capability_l1: CAP-029
@@ -923,7 +940,7 @@ processes:
   stages:
   - VS-02.7
   primary_object: OBJ-107
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-107
   capability_l1: CAP-029
@@ -935,7 +952,7 @@ processes:
   stages:
   - VS-03.1
   primary_object: OBJ-48
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-48
   capability_l1: CAP-005
@@ -947,7 +964,7 @@ processes:
   stages:
   - VS-03.1
   primary_object: OBJ-50
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-50
   capability_l1: CAP-024
@@ -961,7 +978,7 @@ processes:
   - VS-03.2
   - VS-02.6
   primary_object: OBJ-49
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-49
   capability_l1: CAP-029
@@ -974,7 +991,7 @@ processes:
   - VS-03.2
   - VS-03.3
   primary_object: OBJ-38
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-38
   capability_l1: CAP-029
@@ -986,7 +1003,7 @@ processes:
   stages:
   - VS-03.4
   primary_object: OBJ-38
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-38
   capability_l1: CAP-029
@@ -998,7 +1015,7 @@ processes:
   stages:
   - VS-03.4
   primary_object: OBJ-52
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-52
   capability_l1: CAP-029
@@ -1010,7 +1027,7 @@ processes:
   stages:
   - VS-04.1
   primary_object: OBJ-05
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-05
   capability_l1: CAP-005
@@ -1022,7 +1039,7 @@ processes:
   stages:
   - VS-04.6
   primary_object: OBJ-09
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-09
   capability_l1: CAP-005
@@ -1035,7 +1052,7 @@ processes:
   - VS-04.6
   - VS-04.5
   primary_object: OBJ-10
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-10
   capability_l1: CAP-005
@@ -1047,7 +1064,7 @@ processes:
   stages:
   - VS-04.6
   primary_object: OBJ-05
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-05
   capability_l1: CAP-005
@@ -1061,7 +1078,7 @@ processes:
   - VS-04.2
   - VS-04.3
   primary_object: AGG-44
-  status: proposed
+  status: confirmed
   candidates:
   - AGG-44
 - id: PRC-53
@@ -1071,7 +1088,7 @@ processes:
   stages:
   - VS-04.2
   primary_object: AGG-44
-  status: proposed
+  status: confirmed
   candidates:
   - AGG-44
 - id: PRC-54
@@ -1080,7 +1097,8 @@ processes:
   group: revenue
   stages:
   - VS-04.2
-  status: none
+  primary_object: AGG-44
+  status: confirmed
 - id: PRC-55
   display: 04.3.03
   name: 结转合同履约成本
@@ -1088,7 +1106,7 @@ processes:
   stages:
   - VS-04.2
   primary_object: AGG-43
-  status: proposed
+  status: confirmed
   candidates:
   - AGG-43
 - id: PRC-56
@@ -1097,22 +1115,25 @@ processes:
   group: revenue
   stages:
   - VS-04.3
-  primary_object: OBJ-05
-  status: proposed
+  primary_object: OBJ-07
+  status: confirmed
   candidates:
   - OBJ-05
   capability_l1: CAP-005
-  capability: CAP-005
+  capability: CAP-005.007
 - id: PRC-57
   display: 04.4.02
   name: 申请并开具销项发票
   group: revenue
   stages:
   - VS-04.3
-  status: candidates
+  primary_object: OBJ-83
+  status: confirmed
   candidates:
   - OBJ-82
   - OBJ-83
+  capability_l1: CAP-103
+  capability: CAP-103.083
 - id: PRC-58
   display: 04.4.03
   name: 红冲销项发票
@@ -1120,7 +1141,7 @@ processes:
   stages:
   - VS-04.3
   primary_object: OBJ-83
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-83
   capability_l1: CAP-103
@@ -1132,7 +1153,7 @@ processes:
   stages:
   - VS-04.4
   primary_object: OBJ-85
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-85
   capability_l1: CAP-103
@@ -1143,10 +1164,13 @@ processes:
   group: revenue
   stages:
   - VS-04.4
-  status: candidates
+  primary_object: OBJ-85
+  status: confirmed
   candidates:
   - OBJ-85
   - OBJ-86
+  capability_l1: CAP-103
+  capability: CAP-103.085
 - id: PRC-61
   display: 04.5.03
   name: 检测应收逾期并催收
@@ -1154,7 +1178,7 @@ processes:
   stages:
   - VS-04.4
   primary_object: OBJ-85
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-85
   capability_l1: CAP-103
@@ -1173,7 +1197,7 @@ processes:
   stages:
   - VS-04.4
   primary_object: OBJ-85
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-85
   capability_l1: CAP-103
@@ -1186,7 +1210,7 @@ processes:
   - VS-04.5
   - VS-04.6
   primary_object: OBJ-05
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-05
   capability_l1: CAP-005
@@ -1198,7 +1222,7 @@ processes:
   stages:
   - VS-04.5
   primary_object: OBJ-05
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-05
   capability_l1: CAP-005
@@ -1209,12 +1233,12 @@ processes:
   group: revenue
   stages:
   - VS-05.1
-  primary_object: OBJ-65
-  status: proposed
+  primary_object: OBJ-02
+  status: confirmed
   candidates:
   - OBJ-65
-  capability_l1: CAP-054
-  capability: CAP-054.065
+  capability_l1: CAP-001
+  capability: CAP-001.002
 - id: PRC-70
   display: 05.2.01
   name: 起草并生效供方协议
@@ -1222,7 +1246,7 @@ processes:
   stages:
   - VS-05.2
   primary_object: OBJ-05
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-05
   capability_l1: CAP-005
@@ -1233,7 +1257,10 @@ processes:
   group: finance
   stages:
   - VS-05.2
-  status: none
+  primary_object: OBJ-09
+  status: confirmed
+  capability_l1: CAP-005
+  capability: CAP-005.009
 - id: PRC-72
   display: 05.3.01
   name: 确认供方履约
@@ -1241,7 +1268,7 @@ processes:
   stages:
   - VS-05.3
   primary_object: OBJ-87
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-87
   capability_l1: CAP-005
@@ -1253,7 +1280,7 @@ processes:
   stages:
   - VS-05.4
   primary_object: OBJ-83
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-83
   capability_l1: CAP-103
@@ -1265,7 +1292,7 @@ processes:
   stages:
   - VS-05.4
   primary_object: OBJ-85
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-85
   capability_l1: CAP-103
@@ -1279,7 +1306,7 @@ processes:
   - VS-08.3
   - VS-13.5
   primary_object: OBJ-86
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-86
   capability_l1: CAP-103
@@ -1291,7 +1318,7 @@ processes:
   stages:
   - VS-05.6
   primary_object: OBJ-05
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-05
   capability_l1: CAP-005
@@ -1303,7 +1330,7 @@ processes:
   stages:
   - VS-06.1
   primary_object: OBJ-92
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-92
   capability_l1: CAP-103
@@ -1315,7 +1342,7 @@ processes:
   stages:
   - VS-06.2
   primary_object: OBJ-65
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-65
   capability_l1: CAP-054
@@ -1398,7 +1425,7 @@ processes:
   stages:
   - VS-08.1
   primary_object: OBJ-85
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-85
   capability_l1: CAP-103
@@ -1409,10 +1436,13 @@ processes:
   group: finance
   stages:
   - VS-08.2
-  status: candidates
+  primary_object: OBJ-88
+  status: confirmed
   candidates:
   - OBJ-83
   - OBJ-88
+  capability_l1: CAP-056
+  capability: CAP-056.088
 - id: PRC-88
   display: 09.1.01
   name: 编制、批准并基线化经营计划与预算
@@ -1453,7 +1483,7 @@ processes:
   stages:
   - VS-10.1
   primary_object: OBJ-66
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-66
   capability_l1: CAP-056
@@ -1465,7 +1495,7 @@ processes:
   stages:
   - VS-10.1
   primary_object: AGG-77
-  status: proposed
+  status: confirmed
   candidates:
   - AGG-77
 - id: PRC-93
@@ -1475,7 +1505,7 @@ processes:
   stages:
   - VS-10.1
   primary_object: OBJ-98
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-98
   capability_l1: CAP-103
@@ -1487,7 +1517,7 @@ processes:
   stages:
   - VS-10.1
   primary_object: OBJ-98
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-98
   capability_l1: CAP-103
@@ -1498,21 +1528,24 @@ processes:
   group: finance
   stages:
   - VS-10.1
-  status: none
+  primary_object: AGG-99
+  status: confirmed
 - id: PRC-96
   display: 10.1.06
   name: 分配人工成本
   group: finance
   stages:
   - VS-10.1
-  status: none
+  primary_object: AGG-41
+  status: confirmed
 - id: PRC-98
   display: 10.1.07
   name: 分摊间接成本
   group: finance
   stages:
   - VS-10.1
-  status: none
+  primary_object: AGG-42
+  status: confirmed
 - id: PRC-99
   display: 10.1.08
   name: 计提折旧并处置公司资产
@@ -1520,7 +1553,7 @@ processes:
   stages:
   - VS-10.1
   primary_object: OBJ-93
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-93
   capability_l1: CAP-093
@@ -1532,7 +1565,7 @@ processes:
   stages:
   - VS-10.1
   primary_object: OBJ-97
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-97
   capability_l1: CAP-103
@@ -1544,7 +1577,7 @@ processes:
   stages:
   - VS-10.1
   primary_object: OBJ-97
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-97
   capability_l1: CAP-103
@@ -1556,7 +1589,7 @@ processes:
   stages:
   - VS-10.1
   primary_object: AGG-100
-  status: proposed
+  status: confirmed
   candidates:
   - AGG-100
 - id: PRC-104
@@ -1565,7 +1598,8 @@ processes:
   group: finance
   stages:
   - VS-10.2
-  status: none
+  primary_object: AGG-101
+  status: confirmed
 - id: PRC-106
   display: 10.2.02
   name: 出具三大报表
@@ -1594,7 +1628,7 @@ processes:
   stages:
   - VS-12.1
   primary_object: OBJ-91
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-91
   capability_l1: CAP-054
@@ -1606,7 +1640,7 @@ processes:
   stages:
   - VS-12.2
   primary_object: OBJ-112
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-112
   capability_l1: CAP-054
@@ -1630,7 +1664,7 @@ processes:
   stages:
   - VS-12.3
   primary_object: OBJ-91
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-91
   capability_l1: CAP-054
@@ -1782,7 +1816,7 @@ processes:
   - VS-08.3
   - VS-13.5
   primary_object: OBJ-85
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-85
   capability_l1: CAP-103
@@ -1796,7 +1830,7 @@ processes:
   - VS-08.3
   - VS-13.5
   primary_object: OBJ-86
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-86
   capability_l1: CAP-103
@@ -1808,7 +1842,7 @@ processes:
   stages:
   - VS-08.3
   primary_object: OBJ-88
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-88
   capability_l1: CAP-056
@@ -1832,7 +1866,7 @@ processes:
   stages:
   - VS-10.1
   primary_object: OBJ-98
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-98
   capability_l1: CAP-103
@@ -1877,7 +1911,7 @@ processes:
   stages:
   - VS-08.2
   primary_object: OBJ-88
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-88
   capability_l1: CAP-056
@@ -1889,7 +1923,7 @@ processes:
   stages:
   - VS-04.2
   primary_object: AGG-44
-  status: proposed
+  status: confirmed
   candidates:
   - AGG-44
 - id: PRC-149
@@ -1900,7 +1934,7 @@ processes:
   - VS-04.2
   - VS-04.5
   primary_object: AGG-44
-  status: proposed
+  status: confirmed
   candidates:
   - AGG-44
 - id: PRC-150
@@ -1910,7 +1944,7 @@ processes:
   stages:
   - VS-04.4
   primary_object: OBJ-85
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-85
   capability_l1: CAP-103
@@ -1926,7 +1960,7 @@ processes:
   - VS-02.5
   - VS-02.6
   primary_object: OBJ-33
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-33
   capability_l1: CAP-029
@@ -1937,12 +1971,12 @@ processes:
   group: revenue
   stages:
   - VS-04.3
-  primary_object: OBJ-05
-  status: proposed
+  primary_object: OBJ-07
+  status: confirmed
   candidates:
   - OBJ-05
   capability_l1: CAP-005
-  capability: CAP-005
+  capability: CAP-005.007
 - id: PRC-153
   display: 01.2.11
   name: 退还投标保证金
@@ -1951,7 +1985,7 @@ processes:
   - VS-01.2
   - VS-04.1
   primary_object: OBJ-13
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-13
   capability_l1: CAP-005
@@ -1971,7 +2005,7 @@ processes:
   stages:
   - VS-10.1
   primary_object: AGG-77
-  status: proposed
+  status: confirmed
   candidates:
   - AGG-77
 - id: PRC-159
@@ -1981,7 +2015,7 @@ processes:
   stages:
   - VS-06.1
   primary_object: OBJ-85
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-85
   capability_l1: CAP-103
@@ -2003,7 +2037,7 @@ processes:
   stages:
   - VS-12.2
   primary_object: OBJ-112
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-112
   capability_l1: CAP-054
@@ -2015,7 +2049,7 @@ processes:
   stages:
   - VS-04.2
   primary_object: AGG-43
-  status: proposed
+  status: confirmed
   candidates:
   - AGG-43
 - id: PRC-169
@@ -2025,7 +2059,7 @@ processes:
   stages:
   - VS-10.1
   primary_object: AGG-126
-  status: proposed
+  status: confirmed
   candidates:
   - AGG-126
 - id: PRC-170
@@ -2035,7 +2069,7 @@ processes:
   stages:
   - VS-08.0
   primary_object: AGG-130
-  status: proposed
+  status: confirmed
   candidates:
   - AGG-130
 - id: PRC-171
@@ -2045,7 +2079,7 @@ processes:
   stages:
   - VS-05.4
   primary_object: OBJ-85
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-85
   capability_l1: CAP-103
@@ -2057,7 +2091,7 @@ processes:
   stages:
   - VS-08.0
   primary_object: AGG-132
-  status: proposed
+  status: confirmed
   candidates:
   - AGG-132
 - id: PRC-173
@@ -2067,7 +2101,7 @@ processes:
   stages:
   - VS-08.0
   primary_object: AGG-131
-  status: proposed
+  status: confirmed
   candidates:
   - AGG-131
 - id: PRC-175
@@ -2077,7 +2111,7 @@ processes:
   stages:
   - VS-05.5
   primary_object: OBJ-85
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-85
   capability_l1: CAP-103
@@ -2089,7 +2123,7 @@ processes:
   stages:
   - VS-05.5
   primary_object: OBJ-85
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-85
   capability_l1: CAP-103
@@ -2111,7 +2145,7 @@ processes:
   stages:
   - VS-04.6
   primary_object: OBJ-05
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-05
   capability_l1: CAP-005
