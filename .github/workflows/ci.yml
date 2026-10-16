@@ -217,3 +217,8 @@ jobs:
           fetch-depth: 0
       - run: python3 scripts/ci/assertion_drift.py --self-test
       - run: python3 scripts/ci/assertion_drift.py origin/${{ github.base_ref }}
+      # report only (SCAN_SUPPLEMENT, one-data): never fails the job; the self-test does
+      - name: baseline DDL scan (report only)
+        run: |
+          python3 scripts/ci/baseline_ddl_scan.py --self-test
+          python3 scripts/ci/baseline_ddl_scan.py | grep '^=='
