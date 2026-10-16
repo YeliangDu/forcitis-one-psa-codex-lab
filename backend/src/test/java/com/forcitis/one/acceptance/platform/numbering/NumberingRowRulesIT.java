@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
  * carry event_count 0; narrowing approval requests to TIMESHEET leaves numbering untouched; counters carry a period-key format, a
  * last_value range and a document-type set. Each refused statement breaks exactly one rule.
  */
-class NumberingRowConstraintsPr7IT {
+class NumberingRowRulesIT {
 
     private static final UUID TIMESHEET_RULE = UUID.fromString("019a0000-0000-7000-8000-000000000302");
     private static final String VERSION = "insert into platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id,"
