@@ -137,3 +137,12 @@ rules:
   guard: approval
   why: 须判断代收代付的真实性与合规
   note: 未附三方协议或委托书的按 RULE-410 拒绝（intent 171147 V-3）
+
+- id: AR-16
+  name: 无来源单据的高风险用印
+  condition: 授权委托书，或公章、法定代表人名章用于无来源审批实例的文件（证明、介绍信等）
+  level: abnormal
+  escalate_to: 总经理
+  guard: approval
+  why: 无来源单据时用印的对外效力须由最高负责人判断
+  note: 待用户在人员线续答 PB31-01 确认；有来源审批实例的用印经 platform.approval 校验，不人审（S-40、S-41）

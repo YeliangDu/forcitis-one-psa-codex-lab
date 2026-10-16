@@ -1637,3 +1637,13 @@ processes:
     human_orchestration: false
     bpmn: ~
     note: "S-31；阶段由 people 组铺开时填"
+  - id: PRC-178
+    name: "补休到期未休或离职时转计发加班工资"
+    type: event_policy
+    stages: [VS-13.3]
+    owner_bc: "B-15"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+    note: "S-41；两个入口：B-27「补休已到期未休」、B-13 Separated"
