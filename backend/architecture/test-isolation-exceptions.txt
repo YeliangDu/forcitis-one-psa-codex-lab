@@ -1,7 +1,5 @@
 # A test of one module whose SQL names the schema of another: <path under src/test/java/com/forcitis/one>#<schema>  # why.
 # TestIsolationGuardTest fails for a reference outside this list and for a line here that is no longer needed. Framework tables
 # (Spring Session, Modulith event publication, ShedLock) are not another module's data. Cross-module scenarios belong in scenario/.
-acceptance/platform/approval/ApprovalOwnIdColumnsIT.java#platform_approval  # R-1b P4 acceptance: reads the approval and integration tables from the catalogue to prove the final column shapes; no module api shows column types
-acceptance/platform/approval/ApprovalOwnIdColumnsIT.java#platform_integration  # R-1b P4 acceptance: same, for outbound_deliveries
-acceptance/platform/integration/OutboundDeliveryKeysIT.java#platform_integration  # R-1b P4 acceptance: the delivery rows and their key columns are the thing under test; the gateway api has no read side
-acceptance/platform/audit/AuditSubjectColumnsIT.java#platform_audit  # R-1b P5 acceptance: reads the audit_entries and audit_archive_batches catalogue and inserts rolled-back rows to prove the subject columns and their CHECKs; no module api shows column types
+# A test under acceptance/<area>/<module>/ belongs to that module, so its own schema needs no line.
+acceptance/platform/approval/ApprovalOwnIdColumnsIT.java#platform_integration  # R-1b P4 acceptance: reads outbound_deliveries from the catalogue to prove the final column shapes; no module api shows column types

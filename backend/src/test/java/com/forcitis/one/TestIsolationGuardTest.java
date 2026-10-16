@@ -31,6 +31,9 @@ class TestIsolationGuardTest {
         if (relative.getNameCount() < 3) {
             return null;
         }
+        if (relative.getName(0).toString().equals("acceptance")) {
+            return relative.getNameCount() < 4 ? null : relative.getName(1) + "_" + relative.getName(2);
+        }
         return relative.getName(0) + "_" + relative.getName(1);
     }
 
@@ -78,6 +81,14 @@ class TestIsolationGuardTest {
         }
         assertThat(problems).isEmpty();
         assertThat(allowed).as("an exception that is no longer needed must be deleted from " + EXCEPTIONS).isEqualTo(found);
+    }
+
+    @Test
+    @DisplayName("an acceptance test belongs to the module of its directory, not to a module called acceptance")
+    void acceptanceTestsBelongToTheirModule() {
+        assertThat(schemaOf(TESTS.resolve("acceptance/platform/audit/AuditSubjectColumnsIT.java"))).isEqualTo("platform_audit");
+        assertThat(schemaOf(TESTS.resolve("platform/audit/AuditLogIT.java"))).isEqualTo("platform_audit");
+        assertThat(schemaOf(TESTS.resolve("acceptance/P5Names.java"))).isNull();
     }
 
     @Test
