@@ -23,6 +23,7 @@ import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelope;
+import com.forcitis.one.kernel.event.NotAudited;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
@@ -116,6 +117,7 @@ class CorrelationIT {
     @Autowired
     com.forcitis.one.platform.integration.application.DeliverWecomCards deliver;
 
+    @NotAudited(reason = "a probe event of this test; it is about no business object")
     record Thing(EventEnvelope envelope, UserId userId) implements DomainEvent {
     }
 
