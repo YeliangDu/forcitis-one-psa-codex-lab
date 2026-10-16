@@ -257,6 +257,31 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
         }
     }
 
+    /** DR-TB01-FU1: the operator and the witness of an operations command are employees that exist in the organisation snapshot. */
+    protected static final String OPERATOR_ID = "01900000-0000-7000-8000-00000000a001";
+    protected static final String WITNESS_ID = "01900000-0000-7000-8000-00000000a002";
+
+    /**
+     * Makes sure the operator and the witness exist as employees (no assignment, no WeCom id, so no other lookup sees them); safe to call
+     * again, and again after a test cleared the snapshot. Call it before every operations command.
+     */
+    protected void ensureAttestors() {
+        try (Connection workforce = schemaConnection("organization_workforce"); PreparedStatement insert = workforce.prepareStatement("""
+                insert into employees (id, employee_code, display_name, employment_status) values (?::uuid, ?, ?, 'EMPLOYED')
+                on conflict (id) do nothing""")) {
+            String[] ids = {OPERATOR_ID, WITNESS_ID};
+            String[] codes = {"ATT-A001", "ATT-A002"};
+            for (int i = 0; i < ids.length; i++) {
+                insert.setString(1, ids[i]);
+                insert.setString(2, codes[i]);
+                insert.setString(3, "Synthetic attestor " + codes[i]);
+                insert.executeUpdate();
+            }
+        } catch (SQLException failure) {
+            throw new AssertionError("could not make the operator and the witness exist", failure);
+        }
+    }
+
     /** Takes the person out of the organisation snapshot, as if the source no longer listed them. */
     protected void removeFromSnapshot(UUID employeeId) throws SQLException {
         try (Connection workforce = schemaConnection("organization_workforce")) {
@@ -429,6 +454,7 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
     protected void grantByOperations(UUID employeeId, String roleCode) {
         java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
         java.io.ByteArrayOutputStream err = new java.io.ByteArrayOutputStream();
+        ensureAttestors();
         int exit = operationsCommands.run(new org.springframework.boot.DefaultApplicationArguments("--operation=grant-role", "--employee-id=" + text(employeeId),
                 "--role-code=" + roleCode, "--operator=01900000-0000-7000-8000-00000000a001", "--witness=01900000-0000-7000-8000-00000000a002"),
                 new java.io.PrintStream(out, true, java.nio.charset.StandardCharsets.UTF_8), new java.io.PrintStream(err, true, java.nio.charset.StandardCharsets.UTF_8));

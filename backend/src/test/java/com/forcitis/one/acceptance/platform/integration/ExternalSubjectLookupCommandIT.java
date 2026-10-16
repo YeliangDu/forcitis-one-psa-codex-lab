@@ -77,6 +77,7 @@ class ExternalSubjectLookupCommandIT extends AccountsAcceptanceSupport {
         List<String> line = new ArrayList<>(List.of("--operation=" + FIND_ACCOUNTS, "--operator=01900000-0000-7000-8000-00000000a001", "--witness=01900000-0000-7000-8000-00000000a002"));
         line.addAll(List.of(options));
         ApplicationArguments arguments = new DefaultApplicationArguments(line.toArray(String[]::new));
+        ensureAttestors();
         int exit = runCommand(arguments, new PrintStream(out, true, StandardCharsets.UTF_8), new PrintStream(err, true, StandardCharsets.UTF_8));
         return new Outcome(exit, out.toString(StandardCharsets.UTF_8), err.toString(StandardCharsets.UTF_8));
     }

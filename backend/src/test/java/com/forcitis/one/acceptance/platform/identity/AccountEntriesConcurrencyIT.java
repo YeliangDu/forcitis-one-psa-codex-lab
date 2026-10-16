@@ -118,6 +118,7 @@ class AccountEntriesConcurrencyIT extends AccountsAcceptanceSupport {
     private String grantRoleByOperations(UUID employee) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
+        ensureAttestors();
         int exit = operations.run(new DefaultApplicationArguments("--operation=grant-role", "--employee-id=" + text(employee), "--role-code=business_admin",
                 "--operator=01900000-0000-7000-8000-00000000a001", "--witness=01900000-0000-7000-8000-00000000a002"), new PrintStream(out, true, StandardCharsets.UTF_8),
                 new PrintStream(err, true, StandardCharsets.UTF_8));
