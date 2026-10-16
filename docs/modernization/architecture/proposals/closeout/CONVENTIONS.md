@@ -103,3 +103,4 @@
 - **已采纳的扩展字段**：`decision[].outcome`（出口直接结束时的结局词）；事件策略可写多步 `steps`；单聚合维护写 `states`、`transitions`；读模型写 `query`、`dimensions`、`permission`、`page`；`pending: <题号>` 标注待用户定事项影响的步骤。
 - **负担与时间分析参数**（`BURDEN_ANALYSIS_PLAN.md`）：步骤 `effort: {typical_min, p90_min}`、`wait: {typical_h, p90_h}`（可空），判断出口 `p`（出口概率估计）；流程级 `frequency_ref`（取证编号）。铺开时按经验先估，取证后校准。
 - **组织信息收集**（用户「我们现在就来确定流程需要的信息，最终统一修改一次」）：泳道先按角色；每个角色在流程级 `roles` 里补 `org_needs: {responsibility, approval_right, department_hint, position_hint}`，汇总作岗位体系重梳的输入，岗位体系定后一次性改泳道与映射。
+- **审批人口径按 engine 区分**：`platform.approval`（费用与业务审批）→ `approver: cost_object_owner`（实例级 A）；`aggregate`（专业复核：交付物校审、检查记录审核、设计变更内审、不符合项关闭、复盘评审等）→ `approver` 写类型级专业角色（SH- 编号），权责对照表登 `resolve: type`；`external`（客户认可、发包人批准、延期答复等系统外意见）→ 不登 A，脚本跳过，但步骤须写 `evidence`。

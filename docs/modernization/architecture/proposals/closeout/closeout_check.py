@@ -582,7 +582,12 @@ def qc(local, matrix_path, show_all):
                         hit("1 why_human 为空", g, u["id"], n, f"{ap.get('doc_type')}")
                     appr = ap.get("approver")
                     tgt = gated_target(steps, n - 1)
-                    if appr != "cost_object_owner":
+                    eng = ap.get("engine")
+                    if eng == "external":
+                        pass
+                    elif eng == "aggregate" and isinstance(appr, str) and appr.startswith("SH-") and not matrix:
+                        pass
+                    elif appr != "cost_object_owner":
                         entry = matrix.get((tgt[0], tgt[1])) if tgt else None
                         if not a_matches(appr, entry):
                             why = "权责对照表无此对象×命令" if entry is None else "不等于表中的 A"

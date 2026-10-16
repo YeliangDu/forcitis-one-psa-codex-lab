@@ -80,6 +80,8 @@ def collect(docs):
                         st["approval_external"] += 1
                         continue
                     a = ap.get("approver")
+                    if ap.get("engine") == "aggregate" and a != "cost_object_owner":
+                        a = "type:" + str(a)
                     if a not in e["A"]:
                         e["A"].append(a)
                     e["esc"].update(ap.get("escalation_rules") or [])
@@ -98,8 +100,13 @@ def build(ent, roles):
             a = dict(TODO_A)
             issues["缺 A（无审批节点）"].append((agg, cmd))
         else:
-            a = {"resolve": "instance", "field": "费用归属对象.责任人"} if As[0] == "cost_object_owner" else {"resolve": "TODO", "role": As[0]}
-            if As[0] != "cost_object_owner":
+            if As[0] == "cost_object_owner":
+                a = {"resolve": "instance", "field": "费用归属对象.责任人"}
+            elif str(As[0]).startswith("type:"):
+                a = {"resolve": "type", "role": As[0][5:]}
+            else:
+                a = {"resolve": "TODO", "role": As[0]}
+            if As[0] != "cost_object_owner" and not str(As[0]).startswith("type:"):
                 issues["A 为固定角色（应改 cost_object_owner 或类型级登记）"].append((agg, cmd, As[0]))
             if len(As) > 1:
                 issues["多个不同 A"].append((agg, cmd, As))
