@@ -18,7 +18,7 @@ import build_records
 
 QUOTE_CAP = 220
 SECOND_RATIO, SECOND_MIN = 0.7, 3
-REVERSAL = ("取代", "改选", "作废", "看错了", "先等等", "不作为最终", "改为", "推翻", "撤销前")
+REVERSAL = ("改选", "看错了", "先等等", "不作为最终", "推翻", "已被", "作废")
 REF = re.compile(r"[A-Za-z]+-[\dA-Za-z-]*\d[\w-]*|PR\s*#\d+|§[\d.]+|[\w./-]+\.(?:md|py|yaml|json|html|txt|yml)")
 SECTION = re.compile(r"## 原话\n\n(.*?)\n\n## 落点\n\n(.*?)(?:\n\n## 取代\n\n(.*?))?\n", re.S)
 
@@ -226,7 +226,7 @@ def self_test():
         assert "## 待用户裁定" in text and "冲抵之争" in text
         assert all(l.count("|") == 5 for l in text.splitlines() if l.startswith("| ") and not l.startswith("| 落点摘句")), "竖线未转义"
         assert suspects == 0, suspects
-        frag("2026-10-04-000003-a-疑.md", "改为只预警", "预算超额只预警")
+        frag("2026-10-04-000003-a-疑.md", "改选为只预警", "预算超额只预警")
         assert run(intent, topics, rel, None)[2] == 1, "含推翻字样但未登记应告警"
         os.remove(os.path.join(intent, "2026-10-04-000003-a-疑.md"))
         # 两个主题：次高分列出
