@@ -64,126 +64,6 @@
    "key": "APR~A-1"
   },
   {
-   "no": "AR-03",
-   "grp": "rules",
-   "title": "超出预算",
-   "src": "",
-   "ctx": "条件：占用后预算余额 < 0。 注意：报销已定「只预警」（F-Q2，intent 162821），故草拟为不加审；是否对其他单据加审由用户确认",
-   "opts": [
-    {
-     "label": "异常：加一级审批（预算负责人）",
-     "effect": "多一个审批节点",
-     "rec": false,
-     "sug": false
-    },
-    {
-     "label": "特殊：加两级审批（预算负责人及总经理）",
-     "effect": "多两个审批节点",
-     "rec": false,
-     "sug": false
-    },
-    {
-     "label": "不加审，只预警并事后抽查",
-     "effect": "最快；靠预警与抽查补偿",
-     "rec": true,
-     "sug": true
-    },
-    {
-     "label": "暂不定（我先不选）",
-     "effect": "不预设，留待以后",
-     "rec": false,
-     "sug": false
-    }
-   ],
-   "basis": [
-    "APPROVAL_RULES.yaml AR-03"
-   ],
-   "practice": [],
-   "now": "",
-   "check": "",
-   "key": "APR~AR-03"
-  },
-  {
-   "no": "AR-04",
-   "grp": "rules",
-   "title": "无合同或协议依据",
-   "src": "",
-   "ctx": "条件：开票、付款、采购等单据未引用生效的合同或协议。",
-   "opts": [
-    {
-     "label": "异常：加一级审批（财务负责人）",
-     "effect": "多一个审批节点",
-     "rec": true,
-     "sug": true
-    },
-    {
-     "label": "特殊：加两级审批（财务负责人及总经理）",
-     "effect": "多两个审批节点",
-     "rec": false,
-     "sug": false
-    },
-    {
-     "label": "不加审，只预警并事后抽查",
-     "effect": "最快；靠预警与抽查补偿",
-     "rec": false,
-     "sug": false
-    },
-    {
-     "label": "暂不定（我先不选）",
-     "effect": "不预设，留待以后",
-     "rec": false,
-     "sug": false
-    }
-   ],
-   "basis": [
-    "APPROVAL_RULES.yaml AR-04"
-   ],
-   "practice": [],
-   "now": "",
-   "check": "",
-   "key": "APR~AR-04"
-  },
-  {
-   "no": "AR-05",
-   "grp": "rules",
-   "title": "业务日期落在已关账期间",
-   "src": "",
-   "ctx": "条件：业务日期所在期间已关账，按 ADR-0045 落开放期间并标原期间。",
-   "opts": [
-    {
-     "label": "异常：加一级审批（财务负责人）",
-     "effect": "多一个审批节点",
-     "rec": false,
-     "sug": false
-    },
-    {
-     "label": "特殊：加两级审批（财务负责人、总经理）",
-     "effect": "多两个审批节点",
-     "rec": true,
-     "sug": true
-    },
-    {
-     "label": "不加审，只预警并事后抽查",
-     "effect": "最快；靠预警与抽查补偿",
-     "rec": false,
-     "sug": false
-    },
-    {
-     "label": "暂不定（我先不选）",
-     "effect": "不预设，留待以后",
-     "rec": false,
-     "sug": false
-    }
-   ],
-   "basis": [
-    "APPROVAL_RULES.yaml AR-05"
-   ],
-   "practice": [],
-   "now": "",
-   "check": "",
-   "key": "APR~AR-05"
-  },
-  {
    "no": "AR-06",
    "grp": "rules",
    "title": "冲销或红冲已过账事实",
@@ -262,126 +142,6 @@
    "now": "",
    "check": "",
    "key": "APR~AR-07"
-  },
-  {
-   "no": "AR-08",
-   "grp": "rules",
-   "title": "首次合作的往来单位",
-   "src": "",
-   "ctx": "条件：往来单位此前无已完成的同类单据。",
-   "opts": [
-    {
-     "label": "异常：加一级审批（部门负责人）",
-     "effect": "多一个审批节点",
-     "rec": true,
-     "sug": true
-    },
-    {
-     "label": "特殊：加两级审批（部门负责人及总经理）",
-     "effect": "多两个审批节点",
-     "rec": false,
-     "sug": false
-    },
-    {
-     "label": "不加审，只预警并事后抽查",
-     "effect": "最快；靠预警与抽查补偿",
-     "rec": false,
-     "sug": false
-    },
-    {
-     "label": "暂不定（我先不选）",
-     "effect": "不预设，留待以后",
-     "rec": false,
-     "sug": false
-    }
-   ],
-   "basis": [
-    "APPROVAL_RULES.yaml AR-08"
-   ],
-   "practice": [],
-   "now": "",
-   "check": "",
-   "key": "APR~AR-08"
-  },
-  {
-   "no": "AR-09",
-   "grp": "rules",
-   "title": "收款或付款对象与合同相对方不一致",
-   "src": "",
-   "ctx": "条件：付款收款人不是合同登记的相对方或其登记账户。",
-   "opts": [
-    {
-     "label": "异常：加一级审批（财务负责人）",
-     "effect": "多一个审批节点",
-     "rec": false,
-     "sug": false
-    },
-    {
-     "label": "特殊：加两级审批（财务负责人、总经理）",
-     "effect": "多两个审批节点",
-     "rec": true,
-     "sug": true
-    },
-    {
-     "label": "不加审，只预警并事后抽查",
-     "effect": "最快；靠预警与抽查补偿",
-     "rec": false,
-     "sug": false
-    },
-    {
-     "label": "暂不定（我先不选）",
-     "effect": "不预设，留待以后",
-     "rec": false,
-     "sug": false
-    }
-   ],
-   "basis": [
-    "APPROVAL_RULES.yaml AR-09"
-   ],
-   "practice": [],
-   "now": "",
-   "check": "",
-   "key": "APR~AR-09"
-  },
-  {
-   "no": "AR-10",
-   "grp": "rules",
-   "title": "合同回签前开票",
-   "src": "",
-   "ctx": "条件：协议未生效即开票（P-1 已定可凭证据先开，intent 120544）。",
-   "opts": [
-    {
-     "label": "异常：加一级审批（财务负责人）",
-     "effect": "多一个审批节点",
-     "rec": true,
-     "sug": true
-    },
-    {
-     "label": "特殊：加两级审批（财务负责人及总经理）",
-     "effect": "多两个审批节点",
-     "rec": false,
-     "sug": false
-    },
-    {
-     "label": "不加审，只预警并事后抽查",
-     "effect": "最快；靠预警与抽查补偿",
-     "rec": false,
-     "sug": false
-    },
-    {
-     "label": "暂不定（我先不选）",
-     "effect": "不预设，留待以后",
-     "rec": false,
-     "sug": false
-    }
-   ],
-   "basis": [
-    "APPROVAL_RULES.yaml AR-10"
-   ],
-   "practice": [],
-   "now": "",
-   "check": "",
-   "key": "APR~AR-10"
   },
   {
    "no": "AR-11",
@@ -522,6 +282,18 @@
     "你提出权责发生制下流程要少、要快：正常单人审批，异常加一个节点，特殊加两个；审批人看谁对费用负责。",
     "三组铺开流程时，审批一律画成「一级审批 → 条件加审（最多两级）」，加审规则作为配置数据（本页确认后生效），由系统按客观条件判定，事后抽查与预警补偿。",
     "推荐项为我按常见内控做法草拟，已预选并带标签，同意就不用动；阈值请在说明里写。"
+   ]
+  },
+  {
+   "title": "按你「能通过规则和不变量守卫的就不要人来守」，下列情形改由系统规则守，不设审批",
+   "lines": [
+    "超出预算：预警（F-Q2 只预警），不审批",
+    "无合同或协议依据：无生效合同或协议引用即拒绝（例外按 P-1 凭证据先开的规则）",
+    "业务日期落在已关账期间：按 ADR-0045 自动落开放期间并标原期间，不审批",
+    "首次合作的往来单位：走往来单位准入（供应商、分包须准入，客户不准入，P-3），未准入即拒绝",
+    "收款或付款对象与合同相对方不一致：只能付往合同相对方的登记账户，否则拒绝",
+    "合同回签前开票：按 P-1：须有回签前开票的证据，否则拒绝",
+    "这些规则交 one-rules 出规则卡，铺开流程时写成拒绝或预警分支，不画审批节点。"
    ]
   }
  ],

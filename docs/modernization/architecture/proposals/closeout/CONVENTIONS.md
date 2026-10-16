@@ -1,4 +1,4 @@
-# 架构收尾统一字段约定（三组共用，one-architecture 定，2026-10-16；修订：approval.engine（收入线样板）；segregation、pi、added_in（财务线样板））
+# 架构收尾统一字段约定（三组共用，one-architecture 定，2026-10-16；修订：approval.engine（收入线样板）；segregation、pi、added_in（财务线样板）；第 5 节补充（铺开 VS-03、VS-04 与用户新原则））
 
 本文件是唯一字段约定；`closeout/README.md` 第 3、4 节以本文件为准，各组 `closeout/<组>/` 下自写的约定一律以本文件替换。要加字段或取值，写进本组 `NOTES.md`「格式问题」，one-architecture 裁定后改本文件并通知三组。
 
@@ -92,3 +92,12 @@
 ## 4. NOTES.md 固定小节
 
 `接缝问题`、`结构问题`、`新用语`、`格式问题`、`待用户定`（交 one-architecture 合成确认页，不自行出页）。
+
+## 5. 补充（2026-10-16 铺开中裁定）
+
+- **审批回调**：走审批平台的审批，审批结果统一写成下一步的 `cross_bc: {mode: event, direction: in, bc: platform.approval, name: 审批已通过 / 审批已驳回}`（同 cost.timesheet 接审批的做法）。
+- **人工审批须说明理由**：`approval.why_human` 必填（为何不能由规则或不变量守卫，用户原则）；`approval.approver` 一律 `cost_object_owner`（谁负责谁批），加审只引用 `APPROVAL_RULES.yaml` 中 `guard: approval` 的规则。
+- **通知不是步骤**：通知写在步骤的 `notify` 属性；确需单列的平台通知步骤写 `actor: platform`、`where: automatic`、`platform_task: true`，不计命令缺口。
+- **期间闸门**：系统自动触账的步骤遇期间已关账，按 ADR-0045 与 INV-92 路由到开放期间并标原期间，不拒绝；人工发起的触账单据按规则卡提示（不设审批）。
+- **可撤回**：步骤 `withdraw: {to: 步骤序号 | end, outcome: 已撤回}`。
+- **已采纳的扩展字段**：`decision[].outcome`（出口直接结束时的结局词）；事件策略可写多步 `steps`；单聚合维护写 `states`、`transitions`；读模型写 `query`、`dimensions`、`permission`、`page`；`pending: <题号>` 标注待用户定事项影响的步骤。
