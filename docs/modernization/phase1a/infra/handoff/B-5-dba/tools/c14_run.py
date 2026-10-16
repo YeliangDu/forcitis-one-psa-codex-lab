@@ -43,7 +43,7 @@ LOGIN = 'one_readonly_probe'
 DB = 'one_readonly_probe_db'
 DB2 = 'one_readonly_probe_db2'
 P = f'[{LOGIN}]'
-PLATFORM_REFUSALS = {10: (4613,), 15: (4613, 15151)}  # 4613: no server-level DENY / GRANT here; 15151 on item 15: the login sa cannot be seen by the execution account
+PLATFORM_REFUSALS = {10: (4613,), 15: (4613, 15151)}  # 4613: no server-level DENY / GRANT here; 15151 on item 15 with the probe login visible: sa is invisible or the execution account may not grant IMPERSONATE on it, both platform limits
 PLATFORM_REFUSAL_ITEMS = tuple(PLATFORM_REFUSALS)
 
 PREPARE_MASTER = f"""CREATE DATABASE [{DB}];
@@ -579,10 +579,11 @@ def main(target, jar_sha256):
                 if number in PLATFORM_REFUSAL_ITEMS and len(errors) == 1 and errors[0] in PLATFORM_REFUSALS[number]:
                     if errors[0] == 15151:  # "not found, or no permission": the probe login must be visible to the execution account, else the error says nothing about sa
                         rc, _, out = legacy_sql(f'item {number} login visibility', 'master',
-                                                f"SELECT (SELECT COUNT(*) FROM sys.server_principals WHERE name = N'sa') AS sa, (SELECT COUNT(*) FROM sys.server_principals WHERE name = N'{LOGIN}') AS probe;", mode='ro')
+                                                f"SELECT (SELECT COUNT(*) FROM sys.server_principals WHERE name = N'sa') AS sa, (SELECT COUNT(*) FROM sys.server_principals WHERE name = N'{LOGIN}') AS probe, "
+                                                "ISNULL(HAS_PERMS_BY_NAME(NULL, NULL, N'CONTROL SERVER'), 0) AS control_server, ISNULL(HAS_PERMS_BY_NAME(N'sa', N'LOGIN', N'CONTROL'), 0) AS control_sa;", mode='ro')
                         seen = numbers(out)
-                        record(step=f'item {number} login visibility', sa_probe=seen[-1] if seen else None)
-                        if rc != 0 or not seen or seen[-1][1] != 1:
+                        record(step=f'item {number} login visibility', sa_probe_control_server_control_sa=seen[-1] if seen else None)
+                        if rc != 0 or not seen or len(seen[-1]) != 4 or seen[-1][1] != 1:
                             raise Stop(f'item {number}: 15151 cannot be told apart from the probe login being invisible to the execution account')
                     record(item=number, expected=expected, outcome='platform cannot construct', sql_errors=errors)
                     if counts(f'item {number} counts') != control or fingerprint(f'item {number} fingerprint') != control_fingerprint:
