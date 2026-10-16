@@ -362,7 +362,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | G-MG9 | 编号一致：迁入单据的编号列与 `legacy_numbers` 中的原编号一致，不一致即告警（以 `legacy_numbers` 为准） | ADR-0036 第 4 条 | 同上 | 同上 |
 | G-MG10 | 迁入入口：各 BC 的迁入入口只能被 `platform.migration` 调用（ArchUnit）；迁入入口声明 `Propagation.MANDATORY`，迁入路径上没有 `REQUIRES_NEW` | ADR-0036 第 1 条 | 同上 | 同上 |
 | G-D12 | 枚举 `CHECK` 已命名为 `ck_<表>_<列>`，取值集合与对应 Java 枚举一致（与 G-DDL8 同一测试） | §2.4、§2.4a 第 6 条 | 首次部署前 | R-2a |
-| G-DDL1 | 交易、主数据、参考、配置表在注册表登记 `business_key` 且有对应唯一约束；外键目标必须是主键 | §2.4a 第 1 条；DDL 审计（2026-10-15）守护 G1 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
+| G-DDL1 | 交易、主数据、参考、配置表在注册表登记 `business_key` 且有对应唯一约束；外键目标须为主键或仅由 uuid 列组成的唯一约束（复合外键保证同行，不以业务键作外键；one-architecture 2026-10-16 判定，数据修复卡 AP-04、WF-12） | §2.4a 第 1 条；DDL 审计（2026-10-15）守护 G1 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
 | G-DDL2 | 外键列有以该列开头的索引 | §2.4a 第 2 条；DDL 审计（2026-10-15）守护 G2 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
 | G-DDL3 | 没有重复或冗余索引（前缀相同、与唯一约束重复） | §2.4a 第 2 条；DDL 审计（2026-10-15）守护 G3 | 首次部署前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
 | G-DDL4 | 查询路径登记且 `EXPLAIN` 走索引（与 G-P3 合并为一个测试；依赖 G-DDL12） | §2.4a 第 2 条、SESSION_PLAYBOOK §14.1 D19；DDL 审计（2026-10-15）守护 G4 | 1b 前 | one-1a-next-2 排定（初拟：基线 DDL 收紧） |
