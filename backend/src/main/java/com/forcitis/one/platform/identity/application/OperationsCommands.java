@@ -3,6 +3,7 @@ package com.forcitis.one.platform.identity.application;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WorkContext;
+import com.forcitis.one.platform.identity.api.SingleOperatorMode;
 import java.io.PrintStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -12,7 +13,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * The commands of ADR-0027 section 1 for operations: register, reset, disable and enable an emergency account, and grant a role to a
- * person (the first administrators). Each needs --operator and a different --witness, which the audit entry records. A password and a
+ * person (the first administrators). Each needs --operator and a different --witness, which the audit entry records; in the single operator mode the witness may be left out. A password and a
  * one-time-code secret exist only in the output stream handed in here, never in a log line, a file or an argument.
  * Exit code: 0 done or nothing to do, 1 refused, 2 wrong usage.
  */
@@ -31,14 +32,16 @@ public class OperationsCommands {
     private final DisableEmergencyAdmin disable;
     private final EnableEmergencyAdmin enable;
     private final GrantRoleByOperations grant;
+    private final SingleOperatorMode mode;
 
     OperationsCommands(RegisterEmergencyAdmin register, ResetEmergencyAdminCredentials reset, DisableEmergencyAdmin disable,
-            EnableEmergencyAdmin enable, GrantRoleByOperations grant) {
+            EnableEmergencyAdmin enable, GrantRoleByOperations grant, SingleOperatorMode mode) {
         this.register = register;
         this.reset = reset;
         this.disable = disable;
         this.enable = enable;
         this.grant = grant;
+        this.mode = mode;
     }
 
     public int run(ApplicationArguments arguments, PrintStream out, PrintStream err) {
@@ -49,7 +52,7 @@ public class OperationsCommands {
             return 2;
         }
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "platform.identity.operations")) {
-            OperationAttestation attestation = OperationAttestation.of(single(arguments, OPERATOR), single(arguments, WITNESS));
+            OperationAttestation attestation = attestation(arguments);
             EmployeeId employeeId = employeeId(arguments);
             return switch (operation) {
                 case "register-emergency-admin" -> registerAdmin(attestation, employeeId, single(arguments, LOGIN_NAME), out);
@@ -72,6 +75,14 @@ public class OperationsCommands {
         }
     }
 
+    /** The witness may be left out only in the single operator mode and only when the option is not on the command line at all; given twice, empty or invalid it is refused. */
+    private OperationAttestation attestation(ApplicationArguments arguments) {
+        if (mode.enabled() && !arguments.containsOption(WITNESS)) {
+            return OperationAttestation.withoutWitness(single(arguments, OPERATOR));
+        }
+        return OperationAttestation.of(single(arguments, OPERATOR), single(arguments, WITNESS));
+    }
+
     private int registerAdmin(OperationAttestation attestation, EmployeeId employeeId, String loginName, PrintStream out) {
         switch (register.execute(attestation, employeeId, loginName)) {
             case RegisterEmergencyAdmin.Outcome.Registered registered -> {
@@ -86,9 +97,10 @@ public class OperationsCommands {
         return 0;
     }
 
-    private static void warnIfTooFew(int usable, PrintStream out) {
-        if (usable < 2) {
-            out.println("WARNING: only " + usable + " usable emergency account(s); at least 2, bound to different super_admin holders, are required");
+    private void warnIfTooFew(int usable, PrintStream out) {
+        int minimum = ReconcileEmergencyAdmins.minimumUsable(mode);
+        if (usable < minimum) {
+            out.println("WARNING: only " + usable + " usable emergency account(s); at least " + minimum + ", bound to super_admin holders, are required");
         }
     }
 
