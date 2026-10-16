@@ -20,7 +20,7 @@ import tempfile
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "backend", "src", "test", "java"))
 SPRING = re.compile(r"@SpringBootTest|@ContextConfiguration|@WebMvcTest|@DataJdbcTest")
 MOCK_FIELD = re.compile(r"@(?:MockitoBean|MockBean|MockitoSpyBean|SpyBean)\b[^;{]*?\b(?:protected\s+|public\s+|private\s+)?(?:final\s+)?([\w.<>]+)\s+(\w+)\s*;", re.S)
-BROAD = re.compile(r"^(?:org\.mockito\.ArgumentMatchers\.|ArgumentMatchers\.|Mockito\.)?(?:any\w*\(\s*(?:[\w.]+\.class)?\s*\)|isNull\(\)|isA\([\w.]+\.class\)|\w+\.capture\(\))$")
+BROAD = re.compile(r"^(?:org\.mockito\.ArgumentMatchers\.|ArgumentMatchers\.|Mockito\.)?(?:<[\w.<>, ?]+>)?(?:any\w*\(\s*(?:[\w.]+\.class)?\s*\)|isNull\(\)|notNull\(\)|nullable\([\w.]+\.class\)|isA\([\w.]+\.class\)|\w+\.capture\(\))$")
 
 
 def strip_comments(text):
@@ -28,8 +28,16 @@ def strip_comments(text):
 
 
 def split_args(text):
-    out, depth, cur, quote = [], 0, "", False
+    out, depth, cur, quote, escaped = [], 0, "", False, False
     for ch in text:
+        if quote and escaped:
+            cur += ch
+            escaped = False
+            continue
+        if quote and ch == "\\":
+            escaped = True
+            cur += ch
+            continue
         if ch == '"':
             quote = not quote
         if not quote and ch in "([{":
@@ -51,6 +59,9 @@ def call_after(text, start):
     depth, quote, i = 0, False, start
     while i < len(text):
         ch = text[i]
+        if quote and ch == "\\":
+            i += 2
+            continue
         if ch == '"':
             quote = not quote
         elif not quote and ch == "(":
@@ -115,7 +126,9 @@ def scan(root):
             if not tail:
                 continue
             call_args, _ = call_after(text, end + tail.end() - 1)
-            args = split_args(call_args or "")
+            if call_args is None:
+                continue
+            args = split_args(call_args)
             if all(BROAD.match(a) for a in args):
                 findings.append({"class": name, "line": line, "mock": target, "type": mocks[target], "kind": kind, "call": f"{target}.{tail.group(1)}({', '.join(args)})", "mode": mode or "default times(1)"})
     return sorted(findings, key=lambda f: (f["class"], f["line"]))
@@ -123,9 +136,12 @@ def scan(root):
 
 def self_test():
     sources = {
-        "BaseSupport": "@SpringBootTest abstract class BaseSupport { @MockitoBean protected AuditLog audit; @MockitoBean WecomGateway wecom; }",
-        "FlakyTest": "class FlakyTest extends BaseSupport { void a() { verify(audit).record(entry.capture()); verify(wecom, never()).send(any()); verify(wecom, timeout(1000)).send(any(Card.class)); Mockito.verify(audit, times(1)).record(anyString()); verifyNoMoreInteractions(audit); verify(audit, times(0)).record(isNull()); } }",
-        "SafeTest": "class SafeTest extends BaseSupport { void a() { verify(audit).record(argThat(e -> e.action().equals(x))); verify(wecom, never()).send(argThat(c -> c.id().equals(id))); verify(audit, atLeastOnce()).record(captor.capture()); verify(wecom).markHandled(eq(key), note); verify(wecom).resolve(\"c1\", ENTRY); verify(audit, atMost(2)).record(any()); } }",
+        "BaseSupport": "@SpringBootTest abstract class BaseSupport { @MockitoBean protected AuditLog audit; @MockitoBean WecomGateway wecom; @MockitoSpyBean Mailer mailer; }",
+        "FlakyTest": "class FlakyTest extends BaseSupport { void a() { verify(audit).m1(entry.capture()); verify(wecom, never()).m2(any()); verify(wecom, timeout(1000)).m3(any(Card.class)); Mockito.verify(audit, times(1)).m4(anyString());"
+                     " verifyNoMoreInteractions(audit); verify(audit, times(0)).m5(isNull()); verify(audit).m6(isA(Entry.class)); verify(audit).m7(notNull()); verify(audit).m8(ArgumentMatchers.<Entry>any());"
+                     " verify(audit).m9(nullable(String.class)); verify(mailer).m10(any()); verify(audit, only()).m11(captor.capture(), any()); }}",
+        "SafeTest": "class SafeTest extends BaseSupport { void a() { verify(audit).record(argThat(e -> e.action().equals(x))); verify(wecom, never()).send(argThat(c -> c.id().equals(id))); verify(audit, atLeastOnce()).record(captor.capture());"
+                    " verify(wecom).markHandled(eq(key), note); verify(wecom).resolve(\"c1\", ENTRY); verify(audit, atMost(2)).record(any()); verify(audit).record(argThat(e -> e.detail().startsWith(\"say \\\"x\\\"\"))); verify(audit).other(any(), 5); } }",
         "PlainUnitTest": "class PlainUnitTest { @Mock AuditLog audit; void a() { verify(audit).record(any()); } }",
         "NotAMockTest": "@SpringBootTest class NotAMockTest { Helper h; void a() { verify(h).run(); } }",
         "NoArgTest": "@SpringBootTest class NoArgTest { @MockitoBean Scheduler jobs; void a() { verify(jobs).runDue(); verify(jobs, never()).stop(); } }",
@@ -136,11 +152,13 @@ def self_test():
             open(os.path.join(root, name + ".java"), "w", encoding="utf-8").write(text)
         found = scan(root)
     got = {(f["class"], f["kind"], f["call"].split("(")[0]) for f in found}
-    assert ("FlakyTest", "exact", "audit.record") in got, found
-    assert ("FlakyTest", "never", "wecom.send") in got and ("FlakyTest", "exact", "wecom.send") in got, found
-    assert ("FlakyTest", "no-interactions", "verifyNoMoreInteractions") in got and ("FlakyTest", "never", "audit.record") in got, found
+    for method, kind, mock in (("m1", "exact", "audit"), ("m2", "never", "wecom"), ("m3", "exact", "wecom"), ("m4", "exact", "audit"), ("m5", "never", "audit"), ("m6", "exact", "audit"), ("m7", "exact", "audit"),
+                               ("m8", "exact", "audit"), ("m9", "exact", "audit"), ("m10", "exact", "mailer"), ("m11", "exact", "audit")):
+        assert ("FlakyTest", kind, f"{mock}.{method}") in got, f"{method} must be flagged: {sorted(got)}"
+    assert ("FlakyTest", "no-interactions", "verifyNoMoreInteractions") in got, "verifyNoMoreInteractions on a shared mock"
     assert ("NoArgTest", "exact", "jobs.runDue") in got and ("NoArgTest", "never", "jobs.stop") in got, "a call with no argument cannot be told apart from another module's call"
-    assert not [f for f in found if f["class"] in ("SafeTest", "PlainUnitTest", "NotAMockTest", "CommentedTest")], [f for f in found if f["class"] in ("SafeTest", "PlainUnitTest", "NotAMockTest", "CommentedTest")]
+    safe = [f for f in found if f["class"] in ("SafeTest", "PlainUnitTest", "NotAMockTest", "CommentedTest")]
+    assert not safe, safe
     print("shared_mock_verify_scan self-test: ok")
 
 
