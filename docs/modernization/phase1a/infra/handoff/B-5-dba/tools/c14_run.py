@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""FORCITIS one · C-14 · 只读启动校验拒绝路径的真实登录核实，探针部分（运维机上运行，阿里云 Python SDK；剧本 runbooks/C-14-readonly-probe.md）。
+"""FORCITIS one · C-14 · 只读启动校验拒绝路径的真实登录核实，探针部分（运维机上运行，阿里云 Python SDK 与 aliyun CLI；剧本 runbooks/C-14-readonly-probe.md）。
 
 偏离与回退以老系统主数据源经老系统服务器上的 OneSql 执行（只用于授权变更，ADR-0037 第 5 项第 4 条）；校验以探针登录在新 ECS 上运行 rc.3 起的
 只读核实命令（--connection=probe），有效权限计数也以探针登录在新 ECS 上取。探针账号经 RDS 云接口（aliyun rds CreateAccount / DeleteAccount）创建与删除：
 RDS 托管的删除会清掉它在 msdb 里自动建的用户，T-SQL 的 CREATE / DROP LOGIN 则不会，且执行账号在 msdb、rdscore 无权删用户（2026-10-16 实测）。
-口令在本进程内存里运行时生成，只经云接口命令行（本机，创建的一瞬间）和以新 ECS 临时公钥加密的密文，写入 /etc/forcitis-one/readonly-probe.env（root 0600），不落盘、不打印。
+口令在本进程内存里运行时生成，只经云接口命令行（本机，创建命令执行期间 ps 可见）和以新 ECS 临时公钥加密的密文，写入 /etc/forcitis-one/readonly-probe.env（root 0600），不落盘、不打印。
 rdscore 里同名用户是平台对任何账号的固有残留（删账号也不清，同名重建沿用同一用户号，不累积）：登记为永久已知残留，回读不要求它为 0。
 回读用 USER_ID（不受元数据可见性限制）：探针登录、探针库、master / msdb 用户为 0，rdscore 用户记录但不判。
 前提：新 ECS 的 /root/one-ops-c14/app.jar 是已验签发布包里的 jar，其 SHA-256 作为参数传入。
@@ -253,54 +253,77 @@ def rds(*args, secret=None):
     """aliyun rds <action> on the instance; the output is returned with the secret removed and is never printed."""
     result = subprocess.run(['aliyun', 'rds', *args, '--profile', 'forcitis-production', '--region', 'cn-hangzhou', '--DBInstanceId', INSTANCE],
                             capture_output=True, text=True, timeout=300)
-    text = (result.stdout or '') + (result.stderr or '')
-    return result.returncode, (text.replace(secret, '***') if secret else text)
+    out, err = result.stdout or '', result.stderr or ''
+    if secret:
+        out, err = out.replace(secret, '***'), err.replace(secret, '***')
+    return result.returncode, out, err
 
 
 def account_status():
-    rc, text = rds('DescribeAccounts', '--AccountName', LOGIN)
+    """Status of the probe account on the instance: '' when there is none, None when it cannot be read. Only stdout is parsed."""
+    rc, out, _ = rds('DescribeAccounts', '--AccountName', LOGIN)
     if rc != 0:
         return None
     try:
-        accounts = json.loads(text)['Accounts']['DBInstanceAccount']
+        accounts = [a for a in json.loads(out)['Accounts']['DBInstanceAccount'] if a.get('AccountName') == LOGIN]
     except (ValueError, KeyError, TypeError):
         return None
     return accounts[0]['AccountStatus'] if accounts else ''
 
 
+def account_status_retried():
+    for _ in range(4):
+        status = account_status()
+        if status is not None:
+            return status
+        time.sleep(5)
+    return None
+
+
+rdscore_user = []  # the rdscore user number seen before the run or right after the account exists; the run must not end with another one
+requested = []  # the creation call was made, so an empty status right after may only mean it is still on its way
+
+
 def create_account(secret):
-    rc, text = rds('CreateAccount', '--AccountName', LOGIN, '--AccountPassword', secret, '--AccountType', 'Normal', secret=secret)
-    request = re.findall(r'"RequestId":\s*"([0-9A-F-]+)"', text)
-    code = re.findall(r'ErrorCode: (\S+)', text)
+    requested.append(True)
+    rc, out, err = rds('CreateAccount', '--AccountName', LOGIN, '--AccountPassword', secret, '--AccountType', 'Normal', secret=secret)
+    request = re.findall(r'"RequestId":\s*"([0-9A-F-]+)"', out)
+    code = re.findall(r'ErrorCode: (\S+)', out + err)
     record(step='rds create account', rc=rc, request_id=request[0] if request else None, error_code=code[0] if code else None)
     if rc != 0:
         raise Stop('creating the probe account through RDS failed')
     for _ in range(30):
-        status = account_status()
-        if status == 'Available':
+        if account_status() == 'Available':
             return
         time.sleep(10)
     raise Stop('the probe account did not become Available in 5 minutes')
 
 
 def delete_account():
-    status = account_status()
-    if status is None:
-        record(step='rds delete account', outcome='status unreadable')
-        return False
+    status = account_status_retried()
+    if status == '' and requested:
+        for _ in range(6):  # a creation that was interrupted may still be running on the server
+            time.sleep(10)
+            status = account_status_retried()
+            if status != '':
+                break
     if status == '':
         record(step='rds delete account', outcome='no such account')
         return True
-    rc, text = rds('DeleteAccount', '--AccountName', LOGIN)
-    request = re.findall(r'"RequestId":\s*"([0-9A-F-]+)"', text)
-    code = re.findall(r'ErrorCode: (\S+)', text)
+    rc, request, code = None, None, None
+    for _ in range(3):  # also when the status could not be read: the delete is tried all the same
+        rc, out, err = rds('DeleteAccount', '--AccountName', LOGIN)
+        request = re.findall(r'"RequestId":\s*"([0-9A-F-]+)"', out)
+        code = re.findall(r'ErrorCode: (\S+)', out + err)
+        if rc == 0:
+            break
+        time.sleep(10)
+    left = None
     for _ in range(30):
         left = account_status()
         if left == '':
             break
         time.sleep(10)
-    else:
-        left = None
     record(step='rds delete account', rc=rc, request_id=request[0] if request else None, error_code=code[0] if code else None, gone=left == '')
     return left == ''
 
@@ -367,6 +390,8 @@ print('PROBE_ENV_MODE', oct(os.stat({PROBE_ENV!r}).st_mode & 0o777))
 def preflight(jar_sha256):
     rows = readback('preflight readback')
     record(step='preflight', readback=rows)
+    if rows is not None and rows[4]:
+        rdscore_user.append(rows[4])
     if rows is None or rows[:4] != CLEAN_READBACK:
         refuse('preflight: probe objects already exist or the readback failed; clean up by hand first, nothing was changed')
     if account_status() != '':
@@ -406,8 +431,13 @@ def cleanup():
         clean = False
     try:
         rows = readback('readback')
+        for _ in range(6):  # RDS may remove the msdb user a little after the account
+            if rows is not None and rows[:4] == CLEAN_READBACK:
+                break
+            time.sleep(10)
+            rows = readback('readback again')
         record(step='readback', logins_databases_master_msdb_rdscore_users=rows)
-        clean = clean and rows is not None and rows[:4] == CLEAN_READBACK
+        clean = clean and rows is not None and rows[:4] == CLEAN_READBACK and rows[4] in (0, *rdscore_user)
     except BaseException as failure:  # noqa: BLE001
         record(step='readback', exception=type(failure).__name__)
         clean = False
@@ -467,9 +497,11 @@ def main(target, jar_sha256):
             raise Stop('prepare failed (user and grants)')
         rows = readback('readback control')
         record(step='readback control', readback=rows)
-        if rows is None or not rows[2] == 0 or rows[3] <= 0 or rows[4] <= 0 or rows[0] != 1:
+        if rows is None or rows[0] != 1 or rows[1] != 1 or rows[2] != 0 or rows[3] <= 0 or rows[4] <= 0 or (rdscore_user and rows[4] != rdscore_user[0]):
             control_failed.append(True)
-            raise Stop('readback control: right after the account exists the readback must show the login and the RDS-made msdb and rdscore users, else a zero would prove nothing')
+            raise Stop('readback control: right after the account exists the readback must show the login, the probe database and the RDS-made msdb and rdscore users (the rdscore one as before), else a zero would prove nothing')
+        if not rdscore_user:
+            rdscore_user.append(rows[4])
         setup_ecs(cipher, jar_sha256)
         control = counts('control counts')
         control_fingerprint = fingerprint('control fingerprint')
@@ -542,5 +574,5 @@ def main(target, jar_sha256):
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:
-        refuse(__doc__.strip().splitlines()[-4])
+        refuse(next(line for line in __doc__.splitlines() if line.startswith('用法：')))
     main(sys.argv[1], sys.argv[2])
