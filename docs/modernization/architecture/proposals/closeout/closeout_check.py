@@ -9,6 +9,12 @@ Checks per step (a: aggregate exists in section 2.2 of ENTERPRISE_AGGREGATES_DRA
 b: command is in the aggregate's command column; c: aggregate -> information-map object correspondence; d: PRC-136-144 and AGG-113-116 present).
 Steps with actor platform / platform_task / bc platform.* and read-only steps count as no command. Commands marked 〔缺〕 count as proposed new commands.
 Findings only, no judgement of design quality; exit code is always 0.
+
+--qc  quality-checklist items instead (PROCESS_QUALITY_CHECKLIST.md): approval.why_human non-empty; approval.approver is cost_object_owner or the A of
+      the object x command in RESPONSIBILITY_MATRIX.yaml (--matrix PATH, default closeout/RESPONSIBILITY_MATRIX.yaml); escalation_rules only guard: approval
+      rules of APPROVAL_RULES.yaml; user tasks (actor SH-*, where in_system) have permission and page; every decision exit / timeout / outcome has a scenario
+      in scenarios.<group>.yaml (heuristic text match, only if the file exists); task and command names in glossary terms.yaml or in the group's NOTES
+      "新用语" sections (report only). Report only, exit code 0; --all lists every finding instead of the first 12 per item.
 """
 import collections
 import difflib
@@ -126,7 +132,7 @@ def git_show(branch, path):
 
 def read_group_file(group, kind, local):
     base = "docs/modernization/architecture/proposals/closeout/" + group
-    name = {"proc": f"processes.{group}.yaml", "dm": f"data-model.{group}.yaml", "sample": "SAMPLE.md"}[kind]
+    name = {"proc": f"processes.{group}.yaml", "dm": f"data-model.{group}.yaml", "sample": "SAMPLE.md", "scen": f"scenarios.{group}.yaml"}[kind]
     if local:
         p = HERE / group / name
         return p.read_text(encoding="utf-8") if p.exists() else None
@@ -435,7 +441,233 @@ def render(R):
     return "\n".join(out) + "\n"
 
 
+# ---------------------------------------------------------------- --qc
+
+GLOSSARY = REPO / "docs/modernization/glossary/terms.yaml"
+RULES = HERE / "APPROVAL_RULES.yaml"
+MATRIX = HERE / "RESPONSIBILITY_MATRIX.yaml"
+SCENARIO_KW = ("超时", "逾期", "到期", "提醒", "升级")
+
+
+def base_cmd(c):
+    return re.split(r"[（(]", str(c).replace(MISSING, ""), 1)[0].strip()
+
+
+def gated_target(steps, i):
+    """(aggregate, command) that step i acts on; approval steps without their own command point at the next command step (CONVENTIONS section 5)."""
+    def own(s):
+        return s.get("aggregate") and s.get("command") and s.get("actor") != "platform" and not s.get("platform_task")
+    if own(steps[i]):
+        return steps[i]["aggregate"], base_cmd(steps[i]["command"])
+    for j in list(range(i + 1, len(steps))) + list(range(i - 1, -1, -1)):
+        if own(steps[j]):
+            return steps[j]["aggregate"], base_cmd(steps[j]["command"])
+    return None
+
+
+def read_group_aux(group, local, pred):
+    """Text of the group's files whose name satisfies pred (NOTES etc.), local or from the origin branch."""
+    base = "docs/modernization/architecture/proposals/closeout/" + group
+    texts = []
+    if local:
+        for f in sorted((HERE / group).rglob("*.md")):
+            if pred(f.name):
+                texts.append(f.read_text(encoding="utf-8"))
+        return texts
+    r = subprocess.run(["git", "-C", str(REPO), "ls-tree", "-r", "--name-only", f"origin/claude/one-arch-{group}-closeout", "--", base],
+                       capture_output=True, text=True)
+    for name in r.stdout.split():
+        if name.endswith(".md") and pred(Path(name).name):
+            t = git_show(f"claude/one-arch-{group}-closeout", name)
+            if t:
+                texts.append(t)
+    return texts
+
+
+def new_term_text(texts):
+    out = []
+    for t in texts:
+        cap, lvl = False, 0
+        for line in t.splitlines():
+            m = re.match(r"^(#+)\s*(.*)", line)
+            if m:
+                n = len(m.group(1))
+                if "新用语" in m.group(2):
+                    if not cap or n <= lvl:
+                        cap, lvl = True, n
+                elif cap and n <= lvl:
+                    cap = False
+            if cap:
+                out.append(line)
+    return "\n".join(out)
+
+
+def load_terms():
+    names = set()
+    d = yaml.safe_load(GLOSSARY.read_text(encoding="utf-8"))
+    for t in d.get("terms", []):
+        if t.get("zh"):
+            names.add(str(t["zh"]))
+        for a in t.get("aliases") or []:
+            if isinstance(a, dict) and a.get("name") and not a.get("deprecated"):
+                names.add(str(a["name"]))
+    return names
+
+
+def bigrams(t):
+    t = re.sub(r"\W", "", t)
+    return {t[i:i + 2] for i in range(len(t) - 1)} or {t}
+
+
+def text_covers(target, texts, need_kw=False, thr=0.4):
+    tb = bigrams(target)
+    for tx in texts:
+        if need_kw and not any(k in tx for k in SCENARIO_KW):
+            continue
+        if target and target in tx:
+            return True
+        if tb and len(tb & bigrams(tx)) / len(tb) >= thr:
+            return True
+    return False
+
+
+def a_matches(approver, entry):
+    a = (entry or {}).get("raci", {}).get("A")
+    if a is None:
+        return False
+    if isinstance(a, str):
+        return a == approver
+    if a.get("resolve") == "instance":
+        return approver == "cost_object_owner"
+    return approver in (a.get("role"), a.get("id"))
+
+
+def qc(local, matrix_path, show_all):
+    rules = {r["id"]: r for r in yaml.safe_load(RULES.read_text(encoding="utf-8"))["rules"]}
+    matrix = {}
+    if matrix_path and Path(matrix_path).exists():
+        for e in (yaml.safe_load(Path(matrix_path).read_text(encoding="utf-8")) or {}).get("entries", []):
+            matrix[(e["object"], base_cmd(e["command"]))] = e
+    terms = load_terms()
+    lim = None if show_all else 12
+    out = [f"# 流程质量检查（脚本项，只报告）  权责对照表：{'有 ' + str(len(matrix)) + ' 条' if matrix else '无（只认 cost_object_owner）'}", ""]
+    summary = []
+    detail = collections.defaultdict(list)
+
+    def hit(item, g, pid, n, msg):
+        detail[item].append(f"{g} {pid} 第{n}步：{msg}")
+        cnt[item] += 1
+
+    for g in GROUPS:
+        text = read_group_file(g, "proc", local)
+        if text is None:
+            out.append(f"- {g}: 取不到 processes.{g}.yaml")
+            continue
+        doc = yaml.safe_load(text)
+        sc_text = read_group_file(g, "scen", local)
+        scen = yaml.safe_load(sc_text) if sc_text else None
+        notes = new_term_text(read_group_aux(g, local, lambda n: "notes" in n.lower()))
+        cnt = collections.Counter()
+        tot = collections.Counter()
+        termstat = collections.Counter()
+        missing_terms = set()
+        for key, u in units_of(doc):
+            steps = unit_steps(u)
+            uscen = [json_text(x) for x in (scen or {}).get(u["id"], [])] if isinstance(scen, dict) else None
+            for n, s in enumerate(steps, 1):
+                ap = s.get("approval")
+                if ap:
+                    tot["approval"] += 1
+                    if not str(ap.get("why_human") or "").strip():
+                        hit("1 why_human 为空", g, u["id"], n, f"{ap.get('doc_type')}")
+                    appr = ap.get("approver")
+                    tgt = gated_target(steps, n - 1)
+                    if appr != "cost_object_owner":
+                        entry = matrix.get((tgt[0], tgt[1])) if tgt else None
+                        if not a_matches(appr, entry):
+                            why = "权责对照表无此对象×命令" if entry is None else "不等于表中的 A"
+                            hit("2 approver 不是 cost_object_owner 也不等于 A 表", g, u["id"], n,
+                                f"{ap.get('doc_type')} approver={appr}；对象×命令={tgt}；{why}")
+                    for rid in ap.get("escalation_rules") or []:
+                        r = rules.get(rid)
+                        if r is None:
+                            hit("3 escalation_rules 引用无效", g, u["id"], n, f"{rid} 不在 APPROVAL_RULES")
+                        elif r.get("guard") != "approval":
+                            hit("3 escalation_rules 引用无效", g, u["id"], n, f"{rid} guard={r.get('guard')}，应交规则卡而非审批")
+                    if "escalation_rules" not in ap and "escalation" not in ap:
+                        tot["no_escalation_field"] += 1
+                if str(s.get("actor", "")).startswith("SH-") and s.get("where") == "in_system" and not s.get("read"):
+                    tot["user_task"] += 1
+                    for f in ("permission", "page"):
+                        if not str(s.get(f) or "").strip():
+                            hit(f"4 用户任务缺 {f}", g, u["id"], n, str(s.get("command") or s.get("desc") or "")[:30])
+                if uscen is not None:
+                    for d in s.get("decision") or []:
+                        w = str(d.get("when"))
+                        if w == "otherwise" and not d.get("outcome"):
+                            continue
+                        tot["exit"] += 1
+                        if not text_covers(w if w != "otherwise" else str(d.get("outcome")), uscen):
+                            hit("5 判断出口无场景", g, u["id"], n, w[:40])
+                    if s.get("timeout"):
+                        tot["timeout"] += 1
+                        tt = str(s.get("command") or s.get("desc") or "")
+                        if not text_covers(tt, uscen, need_kw=True, thr=0.3):
+                            hit("5 超时无场景", g, u["id"], n, tt[:40])
+                for nm in {base_cmd(s["command"]) if s.get("command") else None, (ap or {}).get("doc_type")} - {None, ""}:
+                    tot["term"] += 1
+                    if nm in terms:
+                        termstat["词表命中"] += 1
+                    elif nm in notes:
+                        termstat["NOTES 新用语"] += 1
+                    elif any(len(t) >= 3 and t in nm for t in terms):
+                        termstat["含词表词"] += 1
+                    else:
+                        termstat["无"] += 1
+                        missing_terms.add(nm)
+            if uscen is not None:
+                for o in u.get("outcomes") or []:
+                    tot["outcome"] += 1
+                    if not text_covers(str(o), uscen, thr=0.99):
+                        hit("5 结局无场景", g, u["id"], 0, str(o))
+        sc_note = "有场景文件" if scen is not None else f"无 scenarios.{g}.yaml，场景项跳过"
+        summary.append((g, tot, cnt, termstat, sc_note))
+        detail[("term", g)] = sorted(missing_terms)
+    out += ["| 组 | 人工审批 | 无 why_human | approver 不符 | 加审引用无效 | 用户任务 | 缺 permission/page | 出口（无场景） | 超时（无场景） | 结局（无场景） | 场景 |",
+            "|---|---|---|---|---|---|---|---|---|---|---|"]
+    for g, tot, cnt, ts, note in summary:
+        out.append(f"| {g} | {tot['approval']} | {cnt['1 why_human 为空']} | {cnt['2 approver 不是 cost_object_owner 也不等于 A 表']} | {cnt['3 escalation_rules 引用无效']} | "
+                   f"{tot['user_task']} | {cnt['4 用户任务缺 permission'] + cnt['4 用户任务缺 page']} | {tot['exit']}（{cnt['5 判断出口无场景']}） | {tot['timeout']}（{cnt['5 超时无场景']}） | {tot['outcome']}（{cnt['5 结局无场景']}） | {note} |")
+    out += ["", "用语（任务名=命令名与审批单据类型名）：", "", "| 组 | 总数 | 词表命中 | NOTES 新用语 | 仅含词表词 | 无 |", "|---|---|---|---|---|---|"]
+    for g, tot, cnt, ts, note in summary:
+        out.append(f"| {g} | {tot['term']} | {ts['词表命中']} | {ts['NOTES 新用语']} | {ts['含词表词']} | {ts['无']} |")
+    out.append("")
+    for item in sorted(k for k in detail if isinstance(k, str)):
+        rows = detail[item]
+        out.append(f"## {item}（{len(rows)}）")
+        for r in rows[:lim]:
+            out.append(f"- {r}")
+        if lim and len(rows) > lim:
+            out.append(f"- …另 {len(rows) - lim} 条（--all 全列）")
+        out.append("")
+    for g, *_ in summary:
+        rows = detail[("term", g)]
+        out.append(f"## 6 用语无着落：{g}（{len(rows)} 个，词表无命中也不在 NOTES）")
+        out.append("、".join(rows[:lim or None]) + (" …" if lim and len(rows) > lim else ""))
+        out.append("")
+    out.append("说明：场景匹配为文本启发（条件文本与场景 path/covers/expect/outcome 的二字组重合度，或直接包含），只作线索；缺失字段 approval.why_human、escalation_rules 在初稿分支里尚未铺开，属预期缺口。")
+    return "\n".join(out) + "\n"
+
+
+def json_text(x):
+    return " ".join(str(v) for v in x.values()) if isinstance(x, dict) else str(x)
+
+
 if __name__ == "__main__":
+    if "--qc" in sys.argv:
+        mp = sys.argv[sys.argv.index("--matrix") + 1] if "--matrix" in sys.argv else MATRIX
+        print(qc("--local" in sys.argv, mp, "--all" in sys.argv))
+        sys.exit(0)
     R = main()
     text = render(R)
     print(text)

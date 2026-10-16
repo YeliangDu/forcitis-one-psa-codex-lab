@@ -224,7 +224,164 @@ def check_descriptive(root, catalog):
             if ns(el.tag) == BPMN and local(el.tag) in DI_REQUIRED and el.get("id"):
                 if el.get("id") not in drawn:
                     errors.append(f"[R09] {local(el.tag)} {el.get('id')} 没有 BPMNShape/BPMNEdge")
+    check_flow_quality(root, errors, warnings)
     return errors, warnings
+
+
+SCOPE_NODES = FLOW_NODES - {"dataStoreReference", "dataObjectReference"}
+MAX_ELEMENTS = 50
+MAX_STATES = 20000
+
+
+def scope_graph(scope):
+    nodes = {c.get("id"): c for c in scope if ns(c.tag) == BPMN and local(c.tag) in SCOPE_NODES and c.get("id")}
+    flows = [c for c in scope if ns(c.tag) == BPMN and local(c.tag) == "sequenceFlow"]
+    return nodes, flows
+
+
+def check_soundness(scope, label, errors, warnings):
+    """R13 无死路、R14 无死锁（令牌模拟：并行网关取全部入口，其余取任一入口；每条顺序流至多 1 个令牌，循环内重复触发的节点不计）。"""
+    nodes, flows = scope_graph(scope)
+    if not nodes:
+        return
+    out, inn = {n: [] for n in nodes}, {n: [] for n in nodes}
+    ends_of = {}
+    for f in flows:
+        s, t = f.get("sourceRef"), f.get("targetRef")
+        if s in nodes and t in nodes:
+            out[s].append(f.get("id"))
+            inn[t].append(f.get("id"))
+            ends_of[f.get("id")] = (s, t)
+    boundary = {}
+    for n, el in nodes.items():
+        if local(el.tag) == "boundaryEvent" and el.get("attachedToRef") in nodes:
+            boundary.setdefault(el.get("attachedToRef"), []).append(n)
+    starts = [n for n, el in nodes.items() if local(el.tag) == "startEvent"]
+    roots = starts + [n for n, el in nodes.items()
+                      if local(el.tag) == "subProcess" and el.get("triggeredByEvent") == "true"]
+    ends = [n for n, el in nodes.items() if local(el.tag) == "endEvent"]
+    succ = {n: [ends_of[f][1] for f in out[n]] + boundary.get(n, []) for n in nodes}
+    pred = {n: [] for n in nodes}
+    for n, ts in succ.items():
+        for t in ts:
+            pred[t].append(n)
+
+    def reach(seeds, nxt):
+        seen, stack = set(seeds), list(seeds)
+        while stack:
+            for m in nxt[stack.pop()]:
+                if m not in seen:
+                    seen.add(m)
+                    stack.append(m)
+        return seen
+
+    def name(n):
+        return f"{local(nodes[n].tag)} {n}" + (f"「{nodes[n].get('name')}」" if nodes[n].get("name") else "")
+
+    if starts:
+        fwd = reach(roots, succ)
+        for n in nodes:
+            if n not in fwd:
+                errors.append(f"[R13] {label} {name(n)} 从开始事件不可达")
+    if ends:
+        back = reach(ends, pred)
+        for n in nodes:
+            if n not in back:
+                errors.append(f"[R13] {label} {name(n)} 无法到达任何结束事件（死路）")
+    if not starts:
+        return
+
+    def options(n):
+        t = local(nodes[n].tag)
+        outs = out[n]
+        if t == "endEvent":
+            return [[]]
+        if t in ("exclusiveGateway", "eventBasedGateway", "inclusiveGateway") and len(outs) >= 2:
+            return [[f] for f in outs]
+        opts = [outs]
+        for b in boundary.get(n, []):
+            if nodes[b].get("cancelActivity") == "false":
+                opts.append(outs + list(out[b]))
+            else:
+                opts.append(list(out[b]))
+        return opts
+
+    cyc = {}
+
+    def on_cycle(n):
+        """n lies on a cycle or downstream of one (repeated firing is then expected)."""
+        if not cyc:
+            loop = [m for m in nodes if m in reach(succ[m], succ)]
+            cyc["down"] = reach(loop, succ) if loop else set()
+        return n in cyc["down"]
+
+    reported = set()
+
+    def report(key, msg):
+        if key not in reported:
+            reported.add(key)
+            errors.append(msg)
+
+    def run(start):
+        init = frozenset(out[start])
+        seen, stack, count = {init}, [init], 0
+        while stack:
+            m = stack.pop()
+            count += 1
+            if count > MAX_STATES:
+                warnings.append(f"[R14] {label} 状态空间超过 {MAX_STATES}，死锁检查未完成")
+                return
+            fired = False
+            for n, el in nodes.items():
+                if not inn[n] or local(el.tag) == "startEvent":
+                    continue
+                par = local(el.tag) == "parallelGateway"
+                if par:
+                    if not all(f in m for f in inn[n]):
+                        continue
+                    srcs = [tuple(inn[n])]
+                else:
+                    srcs = [(f,) for f in inn[n] if f in m]
+                for consume in srcs:
+                    fired = True
+                    base = set(m) - set(consume)
+                    for opt in options(n):
+                        clash = [f for f in opt if f in base]
+                        if clash:
+                            if on_cycle(n):
+                                continue
+                            t = ends_of[clash[0]][1]
+                            report(("U", t), f"[R14] {label} {name(t)} 会同时收到两个令牌"
+                                             "（并行分叉与合流不成对，或并行分支被排他网关合并）")
+                            continue
+                        nm = frozenset(base | set(opt))
+                        if nm not in seen:
+                            seen.add(nm)
+                            stack.append(nm)
+            if not fired and m:
+                for n in nodes:
+                    if local(nodes[n].tag) == "parallelGateway" and len(inn[n]) >= 2:
+                        have = [f for f in inn[n] if f in m]
+                        if have and len(have) < len(inn[n]):
+                            report(("D", n), f"[R14] {label} 并行合流 {name(n)} 的部分入口永远等不到令牌"
+                                             "（排他分支进入并行合流，或分叉与合流不成对）")
+
+    for s in starts:
+        run(s)
+
+
+def check_flow_quality(root, errors, warnings):
+    for p in children(root, "process"):
+        pid = p.get("id") or ""
+        total = sum(1 for el in p.iter() if ns(el.tag) == BPMN and local(el.tag) in SCOPE_NODES)
+        if total > MAX_ELEMENTS:
+            warnings.append(f"[R15] process {pid} 流程元素 {total} 个（> {MAX_ELEMENTS}），宜拆子流程")
+        scopes = [(p, f"process {pid}")]
+        for el in p.iter():
+            if ns(el.tag) == BPMN and local(el.tag) in ("subProcess", "transaction"):
+                scopes.append((el, f"子流程 {el.get('id')}"))
+        for sc, label in scopes:
+            check_soundness(sc, label, errors, warnings)
 
 
 def check_file(path, catalog):
@@ -346,6 +503,72 @@ def codes(msgs):
     return sorted(out)
 
 
+def mk(nodes, flows, pid="PRC-01"):
+    """夹具：nodes = [(标签, id, name)]，flows = [(源, 目标, name)]；自动补 BPMNDiagram，使 R08/R09 不介入。"""
+    ids = []
+    body = []
+    for tag, i, nm in nodes:
+        body.append(f'<{tag} id="{i}"' + (f' name="{nm}"' if nm else "") + "/>")
+        ids.append(i)
+    for k, (a, b, nm) in enumerate(flows, 1):
+        body.append(f'<sequenceFlow id="F{k}" sourceRef="{a}" targetRef="{b}"' + (f' name="{nm}"' if nm else "") + "/>")
+        ids.append(f"F{k}")
+    di = "".join(f'<bpmndi:BPMNShape id="d{k}" bpmnElement="{i}"/>' for k, i in enumerate(ids))
+    return ('<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" '
+            'xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" id="d">'
+            f'<process id="{pid}" name="举办市场活动">' + "".join(body) + "</process>"
+            '<bpmndi:BPMNDiagram id="DG"><bpmndi:BPMNPlane id="PL" bpmnElement="c">' + di
+            + "</bpmndi:BPMNPlane></bpmndi:BPMNDiagram></definitions>")
+
+
+def chain(n_tasks):
+    nodes = [("startEvent", "S", "开始")] + [("userTask", f"T{i}", f"任务{i}") for i in range(n_tasks)] + [("endEvent", "E", "结束")]
+    ids = [x[1] for x in nodes]
+    return mk(nodes, [(a, b, "") for a, b in zip(ids, ids[1:])])
+
+
+PAR_OK = mk([("startEvent", "S", "开始"), ("parallelGateway", "P1", ""), ("userTask", "A", "甲"), ("userTask", "B", "乙"),
+             ("parallelGateway", "P2", ""), ("endEvent", "E", "结束")],
+            [("S", "P1", ""), ("P1", "A", ""), ("P1", "B", ""), ("A", "P2", ""), ("B", "P2", ""), ("P2", "E", "")])
+XOR_TO_PAR = mk([("startEvent", "S", "开始"), ("exclusiveGateway", "G", ""), ("userTask", "A", "甲"), ("userTask", "B", "乙"),
+                 ("parallelGateway", "P2", ""), ("endEvent", "E", "结束")],
+                [("S", "G", ""), ("G", "A", "是"), ("G", "B", "否"), ("A", "P2", ""), ("B", "P2", ""), ("P2", "E", "")])
+PAR_TO_XOR = mk([("startEvent", "S", "开始"), ("parallelGateway", "P1", ""), ("userTask", "A", "甲"), ("userTask", "B", "乙"),
+                 ("exclusiveGateway", "G", ""), ("endEvent", "E", "结束")],
+                [("S", "P1", ""), ("P1", "A", ""), ("P1", "B", ""), ("A", "G", ""), ("B", "G", ""), ("G", "E", "")])
+DEAD_END = mk([("startEvent", "S", "开始"), ("userTask", "A", "甲"), ("endEvent", "E", "结束")],
+              [("S", "E", "")])
+ORPHAN = mk([("startEvent", "S", "开始"), ("userTask", "A", "甲"), ("endEvent", "E", "结束")],
+            [("S", "E", ""), ("A", "E", "")])
+LOOP = mk([("startEvent", "S", "开始"), ("exclusiveGateway", "G", ""), ("userTask", "A", "甲"), ("userTask", "B", "乙"),
+           ("endEvent", "E", "结束")],
+          [("S", "G", ""), ("G", "E", "结束"), ("G", "A", "循环"), ("A", "B", ""), ("B", "A", "")])
+
+
+def self_test_flow():
+    ok = True
+    cases = [
+        ("R13/R14 并行成对合规", PAR_OK, [], []),
+        ("R14 排他分支进入并行合流", XOR_TO_PAR, ["R14"], []),
+        ("R14 并行分支被排他合并", PAR_TO_XOR, ["R14"], []),
+        ("R13 甲无出口且结束不可达", DEAD_END, ["R13", "R13"], []),
+        ("R13 孤立任务不可达", ORPHAN, ["R13"], []),
+        ("R13 循环出不去", LOOP, ["R13", "R13"], []),
+        ("R15 50 个节点不报", chain(48), [], []),
+        ("R15 51 个节点报警告", chain(49), [], ["R15"]),
+    ]
+    catalog = {"PRC-01": "举办市场活动"}
+    for name, xml, exp_e, exp_w in cases:
+        errors, warnings = check_root(ET.fromstring(xml), False, catalog)
+        good = codes(errors) == sorted(exp_e) and codes(warnings) == sorted(exp_w)
+        ok &= good
+        print(f"{name}: {'通过' if good else '失败'} 期望 {exp_e}/{exp_w} 实得 {codes(errors)}/{codes(warnings)}")
+        if not good:
+            for m in errors + warnings:
+                print("   ", m)
+    return ok
+
+
 def self_test():
     catalog = {"PRC-01": "举办市场活动"}
     cases = [
@@ -353,7 +576,7 @@ def self_test():
         ("R09 缺 BPMNShape", GOOD.replace('<bpmndi:BPMNShape id="x5" bpmnElement="G"/>', ""), False, ["R09"]),
         ("违规（描述级）", BAD, False,
          ["R01"] * 3 + ["R02"] + ["R03"] + ["R04"] * 2 + ["R05"] * 7 + ["R06"]
-         + ["R07"] * 2 + ["R08"] + ["R10"] + ["R11"] + ["R12"]),
+         + ["R07"] * 2 + ["R08"] + ["R10"] + ["R11"] + ["R12"] + ["R13"] * 13),
         ("两个已命名开始事件", TWO_STARTS, False, []),
         ("两个开始事件其一无 name", TWO_STARTS.replace(' name="另一触发"', ""), False, ["R01"]),
         ("违规（可执行）", EXEC_BAD, True, ["X01"] * 2 + ["X02", "X03", "X04", "X05", "X05"]),
@@ -371,6 +594,7 @@ def self_test():
     _, w = check_root(ET.fromstring(EXEC_BAD), True, catalog)
     ok &= not w
     print(f"可执行无警告: {'通过' if not w else '失败'}")
+    ok &= self_test_flow()
     print("自测", "通过" if ok else "失败")
     return 0 if ok else 1
 
