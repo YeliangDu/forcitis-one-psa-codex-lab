@@ -672,7 +672,7 @@ processes:
     desc: 占用第 2 步
     decision:
     - when: 可用预算不足且口径为拦截
-      goto: 10
+      goto: 11
     - when: otherwise
       goto: 4
     cross_bc:
@@ -688,7 +688,7 @@ processes:
     desc: 占用第 3 步；原始凭证要素齐全（INV-84）。占用中途失败按相反顺序补偿：第 3 步失败先释放预算占用再释放发票占用；第 2 步失败只释放发票占用
     decision:
     - when: 原始凭证要素不全（INV-84）
-      goto: 9
+      goto: 10
     - when: otherwise
       goto: 5
   - actor: platform
@@ -701,7 +701,7 @@ processes:
       doc_type: 费用报销审批
       approver: SH-E1
       multi_level: false
-      on_reject: 9
+      on_reject: 10
     cross_bc:
     - mode: api
       direction: out
@@ -714,25 +714,12 @@ processes:
     aggregate: AGG-59
     emits:
     - 费用报销已核定
-    desc: 确定所属期间；超事前预批额度 P-37 预警；B-09 订阅本事件冲抵员工借款（Q-10，intent 134134）
+    desc: 确定所属期间；超事前预批额度 P-37 预警
     cross_bc:
     - mode: event
       direction: out
       bc: B-09
       name: 费用报销已核定
-  - actor: system
-    command: 确认应付
-    aggregate: AGG-52
-    emits:
-    - 应付已确认
-    desc: 报销应付，引用来源报销（AGG-59）；发票占用留在报销上，应付不再占用（符合性审查 G-17）；与员工借款的对冲方式待定（S-16 续）
-    cross_bc:
-    - mode: api
-      direction: out
-      bc: B-10
-      name: 确认应付
-    pending:
-    - S-16-对冲
   - actor: system
     command: 提交过账候选
     aggregate: AGG-59
@@ -742,9 +729,32 @@ processes:
       direction: out
       bc: B-16
       name: 提交过账候选（PostingCandidate）
+  - actor: system
+    bc: B-09
+    command: 冲抵员工借款
+    aggregate: AGG-49
+    branch: 订阅费用报销已核定
+    desc: 〔订阅费用报销已核定〕B-09 按报销人未结借款冲抵；无未结借款时冲抵额为零（Q-10，intent 134134；S-17）
+    decision:
+    - when: 冲抵后报销净额为零
+      goto: end
+    - when: otherwise
+      goto: 9
+  - actor: system
+    bc: B-09
+    command: 确认应付
+    aggregate: AGG-52
+    emits:
+    - 应付已确认
+    desc: B-09 按冲抵后的净额调 B-10 确认应付，引用来源报销（AGG-59）；发票占用留在报销上（G-17）；B-12 不直接调 B-10（S-17）
     decision:
     - when: otherwise
       goto: end
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-10
+      name: 确认应付
   - actor: system
     command: 释放预算占用
     aggregate: AGG-80
@@ -770,7 +780,7 @@ processes:
       direction: out
       bc: B-23
       name: 驳回释放
-  notes: 报销「已付」由应付已结清经事件策略 PRC-133 置位（G-09；⑥a 复核）；发票占用只在 B-12 提交前占用一次，报销产生的应付引用报销、不再占用（G-17 已处理）；付款由 B-10 内 PRC-75 订阅应付已确认发起。
+  notes: 报销核定后由 B-09 编排冲抵借款并按净额确认应付（S-17）；报销「已付」由应付已结清经事件策略 PRC-133 置位（G-09）；发票占用只在 B-12 提交前占用一次（G-17 已处理）。
 - id: PRC-92
   name: 过账业务事实
   trigger:
