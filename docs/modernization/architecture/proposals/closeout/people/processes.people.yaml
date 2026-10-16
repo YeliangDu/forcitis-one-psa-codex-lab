@@ -241,7 +241,7 @@ processes:
         cross_bc:
           - {mode: event, direction: in, bc: B-13, name: Employed}
         decision:
-          - {when: 用工类型不需参保（如退休返聘、实习）, goto: 2}   # 清单待用户 T-4
+          - {when: 用工类型为退休返聘或实习, goto: 2}   # 不参保（用户已定 T-4）
           - {when: otherwise, goto: 2}
       - actor: SH-E6
         where: in_system
@@ -420,12 +420,12 @@ processes:
         desc: 以人员 ID 为键；拟定企业微信 userid = 工号（S6）；登录放行起点 = 入职日（S4）
         cross_bc:
           - {mode: event, direction: in, bc: B-13, name: 〔缺〕入职已登记}
-      - actor: SH-E6                    # 信息；或系统自动，见待用户 T-1
+      - actor: system                   # 用户已定 T-1：本系统在登记入职后自动开通（intent 2026-10-16-162821）
         where: external:企业微信
         evidence: [企业微信返回的成员 userid, 开通时间]
         bc: platform.identity
         command: 〔缺〕开通企业微信成员
-        desc: 经 platform.integration 的企业微信适配器开通成员（按 T-1 选项：自动调接口或信息部门手工开通后在本系统确认）
+        desc: 经 platform.integration 的企业微信适配器自动开通成员；入职日前 3 个工作日开通（提前登记时排到该日，晚于该日登记的立即开通）（用户已定 T-1、T-2）
         cross_bc:
           - {mode: api, direction: out, bc: platform.integration, name: 〔缺〕开通企业微信成员}
         decision:
@@ -443,7 +443,7 @@ processes:
       - actor: system
         where: automatic
         on_time: 开通失败，或入职日已到仍未绑定
-        desc: 告警信息部门与人力，不静默（S8）；时限待用户 T-2
+        desc: 告警信息部门与人力，不静默（S8）；开通失败由信息部门 1 个工作日内处理（用户已定 T-2）
         decision:
           - {when: 已修正并重试, goto: 2}
           - {when: otherwise, goto: end}

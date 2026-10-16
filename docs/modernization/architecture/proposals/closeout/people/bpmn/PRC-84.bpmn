@@ -33,7 +33,7 @@
       <signalEventDefinition id="ED_Start_1" signalRef="Sig_employed"/>
     </startEvent>
     <exclusiveGateway id="G_need" name="该用工类型需要参保？">
-      <documentation>清单待用户 T-4</documentation>
+      <documentation>退休返聘与实习不参保（用户已定 T-4）</documentation>
       <incoming>F1</incoming>
       <outgoing>F2</outgoing>
       <outgoing>F3</outgoing>

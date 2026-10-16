@@ -43,7 +43,7 @@
       <outgoing>F2</outgoing>
     </serviceTask>
     <sendTask id="T_open" name="开通企业微信成员">
-      <documentation>platform.identity 〔缺〕开通企业微信成员，经 platform.integration 企业微信适配器（external:企业微信）。T-1 待用户：自动调接口（本图）或信息部门手工开通后确认</documentation>
+      <documentation>platform.identity 〔缺〕开通企业微信成员，经 platform.integration 企业微信适配器（external:企业微信）；入职日前 3 个工作日自动开通（用户已定 T-1、T-2）</documentation>
       <incoming>F2</incoming>
       <incoming>F7</incoming>
       <outgoing>F3</outgoing>
@@ -78,16 +78,16 @@
       <incoming>F10</incoming>
     </endEvent>
     <userTask id="T_fix" name="处理开通失败">
-      <documentation>信息部门修正（如 userid 被占用、接口报错）后重试</documentation>
+      <documentation>信息部门 1 个工作日内修正（如 userid 被占用、接口报错）后重试（用户已定 T-2）</documentation>
       <incoming>F6</incoming>
       <outgoing>F7</outgoing>
     </userTask>
-    <boundaryEvent id="B_due" name="入职日已到仍未开通" attachedToRef="T_fix" cancelActivity="false">
+    <boundaryEvent id="B_due" name="1 个工作日未处理" attachedToRef="T_fix" cancelActivity="false">
       <outgoing>F11</outgoing>
-      <timerEventDefinition id="ED_B_due"><timeDate xsi:type="tFormalExpression">入职日</timeDate></timerEventDefinition>
+      <timerEventDefinition id="ED_B_due"><timeDate xsi:type="tFormalExpression">失败后 1 个工作日</timeDate></timerEventDefinition>
     </boundaryEvent>
     <serviceTask id="T_alarm" name="告警人力与信息部门">
-      <documentation>不静默（CLAUDE.md 第 6 条）；时限待用户 T-2</documentation>
+      <documentation>不静默（CLAUDE.md 第 6 条）</documentation>
       <incoming>F11</incoming>
       <outgoing>F12</outgoing>
     </serviceTask>
@@ -106,7 +106,7 @@
     <sequenceFlow id="F10" sourceRef="T_allow" targetRef="End_ok"/>
     <sequenceFlow id="F11" sourceRef="B_due" targetRef="T_alarm"/>
     <sequenceFlow id="F12" sourceRef="T_alarm" targetRef="End_alarm"/>
-    <textAnnotation id="A_t1"><text>T-1 待用户：自动开通（本图）或信息部门在企业微信后台手工开通后在本系统确认</text></textAnnotation>
+    <textAnnotation id="A_t1"><text>用户已定：入职日前 3 个工作日自动开通；失败由信息部门 1 个工作日内处理</text></textAnnotation>
     <association id="As_A_t1" sourceRef="T_open" targetRef="A_t1"/>
   </process>
   <bpmndi:BPMNDiagram id="Diagram_PRC_137">

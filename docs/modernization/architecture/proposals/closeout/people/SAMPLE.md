@@ -130,12 +130,12 @@
       desc: 以人员 ID 为键；拟定企业微信 userid = 工号（S6）；登录放行起点 = 入职日（S4）
       cross_bc:
         - {mode: event, direction: in, bc: B-13, name: 〔缺〕入职已登记}
-    - actor: SH-E6                    # 信息；或系统自动，见待用户 T-1
+    - actor: system                   # 用户已定 T-1：本系统在登记入职后自动开通（intent 2026-10-16-162821）
       where: external:企业微信
       evidence: [企业微信返回的成员 userid, 开通时间]
       bc: platform.identity
       command: 〔缺〕开通企业微信成员
-      desc: 经 platform.integration 的企业微信适配器开通成员（按 T-1 选项：自动调接口或信息部门手工开通后在本系统确认）
+      desc: 经 platform.integration 的企业微信适配器自动开通成员；入职日前 3 个工作日开通（提前登记时排到该日，晚于该日登记的立即开通）（用户已定 T-1、T-2）
       cross_bc:
         - {mode: api, direction: out, bc: platform.integration, name: 〔缺〕开通企业微信成员}
       decision:
@@ -153,7 +153,7 @@
     - actor: system
       where: automatic
       on_time: 开通失败，或入职日已到仍未绑定
-      desc: 告警信息部门与人力，不静默（S8）；时限待用户 T-2
+      desc: 告警信息部门与人力，不静默（S8）；开通失败由信息部门 1 个工作日内处理（用户已定 T-2）
       decision:
         - {when: 已修正并重试, goto: 2}
         - {when: otherwise, goto: end}
@@ -179,7 +179,7 @@
       cross_bc:
         - {mode: event, direction: in, bc: B-13, name: Employed}
       decision:
-        - {when: 用工类型不需参保（如退休返聘、实习）, goto: 2}   # 清单待用户 T-4
+        - {when: 用工类型为退休返聘或实习, goto: 2}   # 不参保（用户已定 T-4）
         - {when: otherwise, goto: 2}
     - actor: SH-E6
       where: in_system
@@ -241,10 +241,10 @@
       key: uuid_v7
       references: [{to: AGG-62, by: employee_id}, {to: AGG-65, by: recruitment_requisition_id}, {to: AGG-64, by: job_id}]
       versioned: none
-      history_migration: none
+      history_migration: full
       sensitivity: SENSITIVE
       column_families: [录用结论, 拟入职日, 拟任职位与职级, 决定人与时间]
-      reason: "已入职者的结果已在 employment_versions、assignment_versions；候选阶段历史不迁（待 one-data 核对迁入口径，见第 5 节 T-5）"
+      reason: "用户已定 T-5：候选人面试与录用记录迁入，加个人信息保护（分级与访问按 ADR-0043，含未入职候选人，访问限招聘相关角色，保留期待 one-data 按 D12 登记）"
 
 - aggregate: AGG-63            # 任职
   bc: B-13
@@ -354,13 +354,13 @@
 | 驳回劳动合同 | AGG-67 | 批准有退回分支却无命令（PG-09） |
 | 员工法人三口径不一致预警 | PRC-145，B-15 事件策略 | S13；S-20 定放 B-15（扣缴义务人在 AGG-93，B-15 → B-13 已有边） |
 
-## 5. 请用户看的问题
+## 5. 用户答复（intent 2026-10-16-162820、162821，方法与样板已批准）
 
-- T-1 企业微信成员怎么开通：a) FORCITIS one 在「入职已登记」后自动调企业微信接口开通，信息部门只处理失败（推荐：时差最小、userid 由系统定、可追溯）；b) 信息部门在企业微信后台手工开通后，在 FORCITIS one 确认 userid。依据：`IDENTITY_LIFECYCLE.md`、Q-03。
-- T-2 入职日前多少天开通、开通失败或入职日未绑定时谁在多长时间内处理。
-- T-3 是否同意「提前开通、入职日才放行登录」（S4）。
-- T-4 哪些用工类型不参保（退休返聘、实习等）。
-- T-5 招聘阶段的面试、录用记录历史是否迁入（全部历史迁入的范围是否含未入职候选人；含个人信息，最小化原则倾向不迁）。
+- T-1 本系统在登记入职后自动开通企业微信成员。
+- T-2 入职日前 3 个工作日开通；开通失败由信息部门 1 个工作日内处理。
+- T-3 同意提前开通、入职日才放行登录。
+- T-4 退休返聘与实习不参保。
+- T-5 候选人面试与录用记录迁入，须加个人信息保护措施，分级与访问按 ADR-0043。
 
 ## 6. 接缝（交 one-architecture）
 

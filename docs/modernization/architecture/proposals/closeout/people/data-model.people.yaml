@@ -138,10 +138,10 @@
         - {to: AGG-62, by: employee_id}
         - {to: AGG-65, by: recruitment_requisition_id}
       versioned: none
-      history_migration: none
+      history_migration: full
       sensitivity: SENSITIVE
       column_families: [面试轮次, 面试时间, 面试人, 评价与结论]
-      reason: "versioned none：单一记录，审计可还原；history_migration none：候选阶段记录不迁（旧系统用人申请只作证据，来源 OA 表单未建对照，待 one-data 取证确认）；PI 标记：PI（候选人评价），SPI 与否交 U-11"
+      reason: "用户已定 T-5（intent 2026-10-16-162821）：候选人面试与录用记录迁入，加个人信息保护，分级与访问按 ADR-0043（访问限招聘相关角色）；来源与保留期待 one-data 核对；PI 标记：PI（候选人评价）"
     - name: hiring_decisions
       role: child
       key: uuid_v7
@@ -150,10 +150,10 @@
         - {to: AGG-65, by: recruitment_requisition_id}
         - {to: AGG-64, by: job_id}
       versioned: none
-      history_migration: none
+      history_migration: full
       sensitivity: SENSITIVE
       column_families: [录用结论（录用 / 未录用）, 拟入职日, 拟任职位与职级, 决定人与时间]
-      reason: "versioned none：单一记录，审计可还原；history_migration none：已入职者的结果已体现在 employment_versions 与 assignment_versions；PI 标记：PI"
+      reason: "用户已定 T-5（intent 2026-10-16-162821）：候选人面试与录用记录迁入，加个人信息保护，分级与访问按 ADR-0043（访问限招聘相关角色）；来源与保留期待 one-data 核对；PI 标记：PI（候选人评价）"
     - name: separation_requests
       role: child
       key: uuid_v7
