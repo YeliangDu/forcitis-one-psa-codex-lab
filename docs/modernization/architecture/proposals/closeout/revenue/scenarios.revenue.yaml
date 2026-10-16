@@ -507,22 +507,40 @@ PRC-13:
 PRC-14:
 - id: PRC-14-S01
   path: 登记建设工程
-  outcome: 已登记
+  outcome: 建设工程已登记
   covers:
   - 转移「登记建设工程」
   expect: 发建设工程已登记（仅分析）；政府平台编号只作外部标识
 - id: PRC-14-S02
   path: 登记招标项目
-  outcome: 已登记
+  outcome: 招标项目已登记
   covers:
   - 转移「登记招标项目」
   expect: 招标项目登记 ID + 标段可作 INV-28 唯一键
 - id: PRC-14-S03
   path: 更新外部状态
-  outcome: 已登记
+  outcome: 招标项目已公告
   covers:
   - 转移「更新外部状态」
-  expect: 外部状态只记录并带登记日期与来源，不作阶段门
+  expect: 招标人公告后登记外部状态「已公告」；外部状态只记录并带登记日期与来源，聚合状态仍为已登记，不作阶段门
+- id: PRC-14-S04
+  path: 更新外部状态
+  outcome: 招标项目已定标
+  covers:
+  - 转移「更新外部状态」
+  expect: 定标结果公示后登记外部状态「定标」；外部状态只记录并带登记日期与来源，聚合状态仍为已登记，不作阶段门
+- id: PRC-14-S05
+  path: 更新外部状态
+  outcome: 建设工程在建
+  covers:
+  - 转移「更新外部状态」
+  expect: 建设工程开工后登记外部状态「在建」；外部状态只记录并带登记日期与来源，聚合状态仍为已登记，不作阶段门
+- id: PRC-14-S06
+  path: 更新外部状态
+  outcome: 建设工程已竣工（在用）
+  covers:
+  - 转移「更新外部状态」
+  expect: 竣工后登记外部状态「已竣工（在用）」，供检查线引用；外部状态只记录并带登记日期与来源，聚合状态仍为已登记，不作阶段门
 PRC-16:
 - id: PRC-16-S01
   path: 1→2→3 审批通过→5 otherwise
@@ -1179,27 +1197,27 @@ PRC-33:
 PRC-34:
 - id: PRC-34-S01
   path: 1→2 确认→6 关闭
-  outcome: 已关闭
+  outcome: 不符合项已关闭
   covers:
   - 第 2 步 otherwise
   - 第 6 步 otherwise
   expect: 发「不符合项已确认」「不符合项已关闭」（仅分析）
 - id: PRC-34-S02
   path: 2 造成返工→3 认定返工→6
-  outcome: 已关闭
+  outcome: 不符合项已关闭
   covers:
   - 第 2 步「不符合项造成返工」
   - 第 3 步 otherwise
   expect: 发「返工已认定」；工时模块只在此认定下记返工工时（INV-53）
 - id: PRC-34-S03
   path: 3 返工认定被撤销→4→6
-  outcome: 已关闭
+  outcome: 不符合项已关闭
   covers:
   - 第 3 步「返工认定被撤销」
   expect: 发「返工认定已撤销」；已记返工工时保留，分类由 PRC-91 调整
 - id: PRC-34-S04
   path: 2 客户书面确认让步接受→5→6
-  outcome: 已关闭
+  outcome: 不符合项已关闭
   covers:
   - 第 2 步「客户书面确认让步接受」
   expect: 让步接受须有客户书面确认材料（INV-49），材料经 PRC-33 登记
@@ -1707,7 +1725,7 @@ PRC-49:
 PRC-50:
 - id: PRC-50-S01
   path: 1→2 审批通过
-  outcome: 订单已提交并通过审批
+  outcome: 任务订单已签署生效
   covers:
   - 第 1 步 otherwise
   - 第 2 步「审批通过」

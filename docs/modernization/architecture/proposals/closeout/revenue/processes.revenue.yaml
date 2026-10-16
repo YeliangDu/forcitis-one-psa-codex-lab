@@ -3921,7 +3921,7 @@ processes:
   - type: human
     name: 评审、检查或客户反馈发现我方成果问题，设计师登记
   outcomes:
-  - 已关闭
+  - 不符合项已关闭
   scenarios:
   - PRC-34-S01
   - PRC-34-S02
@@ -4096,7 +4096,7 @@ processes:
     - when: otherwise
       goto: end
       p: 0.9
-      outcome: 已关闭
+      outcome: 不符合项已关闭
     approval:
       engine: aggregate
       doc_type: 不符合项关闭
@@ -6530,7 +6530,7 @@ processes:
     name: 商务按框架协议起草任务订单
   outcomes:
   - 占用被拒
-  - 订单已提交并通过审批
+  - 任务订单已签署生效
   - 限额已释放
   scenarios:
   - PRC-50-S01
@@ -6607,7 +6607,7 @@ processes:
     decision:
     - when: 审批通过
       goto: end
-      outcome: 订单已提交并通过审批
+      outcome: 任务订单已签署生效
       p: 0.88
     - when: 提交人撤回订单
       goto: 3
@@ -11849,6 +11849,13 @@ single_aggregate:
   - VS-02.6
   - VS-03.1
   desc: 客户经理或项目经理登记受检对象或招标信息
+  outcomes:
+  - 建设工程已登记
+  - 招标项目已登记
+  - 招标项目已公告
+  - 招标项目已定标
+  - 建设工程在建
+  - 建设工程已竣工（在用）
   commands:
   - actor_v1: 市场和客户经理
     command: 登记建设工程
@@ -11931,6 +11938,9 @@ single_aggregate:
   - PRC-14-S01
   - PRC-14-S02
   - PRC-14-S03
+  - PRC-14-S04
+  - PRC-14-S05
+  - PRC-14-S06
   notes: 外部引用对象只记录、不控制，不作阶段门。由业务流程移入单聚合维护（intent 120544 P-5；回溯检查 RD-12）。聚合稿 REF-01 已有命令「登记招标项目」，v1 的 G-06 标注留作追溯。
   roles:
   - id: SH-E2
