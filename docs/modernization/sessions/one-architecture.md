@@ -69,4 +69,4 @@
 
 ## 当前状态
 
-2026-10-16 深夜：架构收尾进行中——三组按价值流铺开流程骨架（方法已批，intent 162820），本会话把关接缝、审批口径与权责表、聚合收敛与 CRUD 校验、负担分析与方法 SSOT。详见 `architecture/proposals/HANDOFF_2026-10-16-NIGHT.md`。
+2026-10-16 晚：业务架构逐层对齐的「阶段」层收尾中（SD-01–10 已落地，SD-11–15 待交用户），CRUD 缺口清零暂停，确认页待改题；详见 `architecture/proposals/HANDOFF_2026-10-16-LATE.md`。
