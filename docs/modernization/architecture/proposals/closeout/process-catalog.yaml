@@ -1,0 +1,1320 @@
+# 流程目录（提议稿，唯一手写来源；CATALOG.md 由 build_catalog.py 生成）
+# 初值：processes.v1.yaml 五类 135 条 + PRC_ALLOCATIONS.md 的 PRC-136–144；stages 为空的条目待各组补；human_orchestration 为 null 表示待定。
+
+processes:
+  - id: PRC-01
+    name: "举办市场活动"
+    type: single_aggregate
+    stages: [VS-01.1]
+    owner_bc: "B-03"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-02
+    name: "计划并完成客户活动"
+    type: single_aggregate
+    stages: [VS-01.1]
+    owner_bc: "B-03"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-03
+    name: "登记并跟进线索，转为商机"
+    type: business
+    stages: [VS-01.1, VS-01.2]
+    owner_bc: "B-03"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-04
+    name: "线索到商机：线索已确认后的下一步就是新建商机"
+    type: merged
+    merged_into: PRC-03
+    stages: []
+    owner_bc: ~
+    group: revenue
+    status: draft
+    human_orchestration: ~
+    bpmn: ~
+    note: "线索到商机：线索已确认后的下一步就是新建商机"
+  - id: PRC-05
+    name: "维护往来单位档案"
+    type: single_aggregate
+    stages: [VS-01.1, VS-05.1]
+    owner_bc: "B-01"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-06
+    name: "做独立性检查"
+    type: single_aggregate
+    stages: [VS-01.2]
+    owner_bc: "B-03"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-07
+    name: "编制并生效报价"
+    type: business
+    stages: [VS-01.2]
+    owner_bc: "B-03"
+    group: revenue
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-08
+    name: "参加投标，登记结果并处理保证金"
+    type: business
+    stages: [VS-01.2]
+    owner_bc: "B-03"
+    group: revenue
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-09
+    name: "投标、结果、保证金：中标赢单与未中标丢单是投标结果的事件策略，委托赢单与放弃是同一商机上的人工分支"
+    type: merged
+    merged_into: PRC-08
+    stages: []
+    owner_bc: ~
+    group: revenue
+    status: draft
+    human_orchestration: ~
+    bpmn: ~
+    note: "投标、结果、保证金：中标赢单与未中标丢单是投标结果的事件策略，委托赢单与放弃是同一商机上的人工分支"
+  - id: PRC-10
+    name: "收付保证金与保函"
+    type: single_aggregate
+    stages: [VS-01.2, VS-04.1]
+    owner_bc: "B-09"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-11
+    name: "投标、结果、保证金：未中标后退还保证金是下游 BC 订阅投标未中标的反应"
+    type: merged
+    merged_into: PRC-08
+    stages: []
+    owner_bc: ~
+    group: revenue
+    status: draft
+    human_orchestration: ~
+    bpmn: ~
+    note: "投标、结果、保证金：未中标后退还保证金是下游 BC 订阅投标未中标的反应"
+  - id: PRC-12
+    name: "发布服务产品与阶段类型版本"
+    type: single_aggregate
+    stages: [VS-01.2]
+    owner_bc: "B-02"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-13
+    name: "批准并生效费率、计费系数与协议价目版本"
+    type: business
+    stages: [VS-01.2, VS-02.0]
+    owner_bc: "B-02"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-14
+    name: "登记建设工程与招标项目"
+    type: single_aggregate
+    stages: [VS-01.2, VS-02.6, VS-03.1]
+    owner_bc: "B-01"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-15
+    name: "未签约的售前投入转费用"
+    type: event_policy
+    stages: [VS-01.2]
+    owner_bc: "B-07"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-16
+    name: "申请并转正风险交付授权"
+    type: business
+    stages: [VS-01.2, VS-02.0, VS-04.1]
+    owner_bc: "B-05"
+    group: revenue
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-17
+    name: "建立项目并组建团队"
+    type: business
+    stages: [VS-02.0, VS-03.1]
+    owner_bc: "B-04"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-18
+    name: "编制并批准交付计划"
+    type: business
+    stages: [VS-02.0]
+    owner_bc: "B-04"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-19
+    name: "编制并锁定项目预算"
+    type: business
+    stages: [VS-02.0]
+    owner_bc: "B-04"
+    group: revenue
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-20
+    name: "提出并满足资源需求"
+    type: business
+    stages: [VS-02.0, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
+    owner_bc: "B-04"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-21
+    name: "推进阶段与工作包"
+    type: single_aggregate
+    stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
+    owner_bc: "B-04"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-22
+    name: "阶段门预警"
+    type: read_model
+    stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7]
+    owner_bc: "reporting"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-23
+    name: "填报并审批工时"
+    type: business
+    stages: [VS-01.2, VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
+    owner_bc: "B-06"
+    group: revenue
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-24
+    name: "暂停、恢复、终止或取消项目"
+    type: business
+    stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7]
+    owner_bc: "B-04"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-25
+    name: "转入售前投入"
+    type: event_policy
+    stages: [VS-02.0, VS-04.1]
+    owner_bc: "B-07"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-26
+    name: "接收并确认发包人提供资料"
+    type: business
+    stages: [VS-02.0, VS-02.2, VS-02.3, VS-02.4]
+    owner_bc: "B-28"
+    group: revenue
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-27
+    name: "登记并处置项目风险与问题"
+    type: single_aggregate
+    stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7]
+    owner_bc: "B-04"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-28
+    name: "编制、评审并签发交付物，送达并登记客户认可"
+    type: business
+    stages: [VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-03.5]
+    owner_bc: "B-28"
+    group: revenue
+    status: sample
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-29
+    name: "签发到认可：交付物签发后送达与登记客户认可是同一交付物的连续步骤"
+    type: merged
+    merged_into: PRC-28
+    stages: []
+    owner_bc: ~
+    group: revenue
+    status: draft
+    human_orchestration: ~
+    bpmn: ~
+    note: "签发到认可：交付物签发后送达与登记客户认可是同一交付物的连续步骤"
+  - id: PRC-30
+    name: "提出并批准完工估算"
+    type: business
+    stages: [VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
+    owner_bc: "B-04"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-31
+    name: "提出并发出设计变更"
+    type: business
+    stages: [VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
+    owner_bc: "B-28"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-32
+    name: "申请并答复延期"
+    type: business
+    stages: [VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
+    owner_bc: "B-04"
+    group: revenue
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-33
+    name: "采集、关联并封存证据"
+    type: single_aggregate
+    stages: [VS-02.4, VS-02.7, VS-03.2, VS-04.2]
+    owner_bc: "B-28"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-34
+    name: "处置我方成果不符合项"
+    type: business
+    stages: [VS-02.6, VS-02.7]
+    owner_bc: "B-28"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-35
+    name: "项目或协议终止、结项后清算成本"
+    type: event_policy
+    stages: [VS-02.7, VS-04.5]
+    owner_bc: "B-07"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-36
+    name: "封存成果、结项并归档项目"
+    type: business
+    stages: [VS-02.7]
+    owner_bc: "B-29"
+    group: revenue
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-37
+    name: "回访客户满意度"
+    type: business
+    stages: [VS-02.7]
+    owner_bc: "B-28"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-38
+    name: "编制并发布项目复盘"
+    type: business
+    stages: [VS-02.7]
+    owner_bc: "B-04"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-39
+    name: "结项含封存与归档：封存成果、结项检查与审批、结项"
+    type: merged
+    merged_into: PRC-36
+    stages: []
+    owner_bc: ~
+    group: revenue
+    status: draft
+    human_orchestration: ~
+    bpmn: ~
+    note: "结项含封存与归档：封存成果、结项检查与审批、结项"
+  - id: PRC-40
+    name: "结项含封存与归档：项目已结项后归档"
+    type: merged
+    merged_into: PRC-36
+    stages: []
+    owner_bc: ~
+    group: revenue
+    status: draft
+    human_orchestration: ~
+    bpmn: ~
+    note: "结项含封存与归档：项目已结项后归档"
+  - id: PRC-41
+    name: "制定检查计划并使其生效"
+    type: business
+    stages: [VS-03.1]
+    owner_bc: "B-26"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-42
+    name: "发布检查表模板版本"
+    type: single_aggregate
+    stages: [VS-03.1]
+    owner_bc: "B-26"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-43
+    name: "实施现场检查并锁定"
+    type: business
+    stages: [VS-03.1, VS-03.2, VS-03.5, VS-02.6]
+    owner_bc: "B-26"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-44
+    name: "发布客户资产类不符合项并建议外部检测"
+    type: business
+    stages: [VS-03.2, VS-03.3]
+    owner_bc: "B-26"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-45
+    name: "跟踪整改并复查闭合"
+    type: business
+    stages: [VS-03.4]
+    owner_bc: "B-26"
+    group: revenue
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-46
+    name: "采信外部检测报告"
+    type: business
+    stages: [VS-03.4]
+    owner_bc: "B-26"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-47
+    name: "起草、评审并回签协议"
+    type: business
+    stages: [VS-04.1]
+    owner_bc: "B-05"
+    group: revenue
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-48
+    name: "提出并生效协议变更或签证"
+    type: business
+    stages: [VS-04.1]
+    owner_bc: "B-05"
+    group: revenue
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-49
+    name: "提出并认定索赔"
+    type: business
+    stages: [VS-04.1, VS-04.5]
+    owner_bc: "B-05"
+    group: revenue
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-50
+    name: "占用框架限额并提交任务订单"
+    type: business
+    stages: [VS-04.1]
+    owner_bc: "B-05"
+    group: revenue
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-51
+    name: "建立并更新开票与收入额度"
+    type: event_policy
+    stages: [VS-04.1, VS-04.3]
+    owner_bc: "B-08"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-52
+    name: "开放可触发收入确认的证据类型"
+    type: single_aggregate
+    stages: [VS-04.2]
+    owner_bc: "B-08"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-53
+    name: "确认收入"
+    type: event_policy
+    stages: [VS-04.2]
+    owner_bc: "B-08"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-54
+    name: "视为同意期满处理"
+    type: business
+    stages: [VS-04.2]
+    owner_bc: "B-08"
+    group: revenue
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-55
+    name: "结转合同履约成本"
+    type: event_policy
+    stages: [VS-04.2]
+    owner_bc: "B-07"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-56
+    name: "付款条件项转为可结算"
+    type: event_policy
+    stages: [VS-04.3]
+    owner_bc: "B-05"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-57
+    name: "申请并开具销项发票"
+    type: business
+    stages: [VS-04.3]
+    owner_bc: "B-08"
+    group: revenue
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-58
+    name: "红冲销项发票"
+    type: business
+    stages: [VS-04.3]
+    owner_bc: "B-08"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-59
+    name: "由销项发票创建应收"
+    type: event_policy
+    stages: [VS-04.4]
+    owner_bc: "B-09"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-60
+    name: "认领收款并核销应收"
+    type: business
+    stages: [VS-04.4]
+    owner_bc: "B-09"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-61
+    name: "检测应收逾期并催收"
+    type: business
+    stages: [VS-04.4]
+    owner_bc: "B-09"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-62
+    name: "质量保证金到期提示"
+    type: read_model
+    stages: [VS-04.4]
+    owner_bc: "B-09"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-63
+    name: "商业汇票兑付与逾期"
+    type: business
+    stages: [VS-04.4]
+    owner_bc: "B-09"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-64
+    name: "导入银行流水"
+    type: business
+    stages: [VS-04.4, VS-05.5]
+    owner_bc: "B-22"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-65
+    name: "维护资金账户"
+    type: single_aggregate
+    stages: [VS-04.4, VS-05.5]
+    owner_bc: "B-22"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-66
+    name: "判定履约完成，确认最终价款并结算协议"
+    type: business
+    stages: [VS-04.5]
+    owner_bc: "B-08"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-67
+    name: "履约完成到结算：协议已完成后编制结算书、确认最终价款、结算"
+    type: merged
+    merged_into: PRC-66
+    stages: []
+    owner_bc: ~
+    group: revenue
+    status: draft
+    human_orchestration: ~
+    bpmn: ~
+    note: "履约完成到结算：协议已完成后编制结算书、确认最终价款、结算"
+  - id: PRC-68
+    name: "终止协议"
+    type: single_aggregate
+    stages: [VS-04.5]
+    owner_bc: "B-05"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-69
+    name: "供应商准入与资质核验"
+    type: business
+    stages: [VS-05.1]
+    owner_bc: "B-01"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-70
+    name: "起草并生效供方协议"
+    type: business
+    stages: [VS-05.2]
+    owner_bc: "B-11"
+    group: finance
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-71
+    name: "生效分包变更"
+    type: business
+    stages: [VS-05.2]
+    owner_bc: "B-11"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-72
+    name: "确认供方履约"
+    type: business
+    stages: [VS-05.3]
+    owner_bc: "B-11"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-73
+    name: "登记并查验进项发票"
+    type: business
+    stages: [VS-05.4, VS-08.2]
+    owner_bc: "B-23"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-74
+    name: "提交供方应付"
+    type: business
+    stages: [VS-05.4]
+    owner_bc: "B-11"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-75
+    name: "发起、审批并执行付款"
+    type: business
+    stages: [VS-05.5, VS-08.1, VS-08.3, VS-12.2, VS-12.3, VS-13.5]
+    owner_bc: "B-10"
+    group: finance
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-76
+    name: "完成并结算供方协议"
+    type: business
+    stages: [VS-05.6]
+    owner_bc: "B-11"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-77
+    name: "申报并缴纳增值税、附加税与企业所得税"
+    type: business
+    stages: [VS-06.1]
+    owner_bc: "B-23"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-78
+    name: "年检、核查与延续企业资质"
+    type: business
+    stages: [VS-06.2]
+    owner_bc: "B-01"
+    group: revenue
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-79
+    name: "登记继续教育并延续注册执业证书"
+    type: single_aggregate
+    stages: [VS-06.2]
+    owner_bc: "B-13"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-80
+    name: "维护法人、组织与岗位"
+    type: business
+    stages: [VS-07.1, VS-07.3]
+    owner_bc: "B-13"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-81
+    name: "提出并批准招聘需求"
+    type: business
+    stages: [VS-07.1]
+    owner_bc: "B-13"
+    group: people
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-82
+    name: "登记候选人并作出录用决定"
+    type: business
+    stages: [VS-07.2]
+    owner_bc: "B-13"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-83
+    name: "办理入职与任职"
+    type: business
+    stages: [VS-07.3]
+    owner_bc: "B-13"
+    group: people
+    status: sample
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-84
+    name: "入职后参保增员与建立薪酬档案"
+    type: business
+    stages: [VS-07.3]
+    owner_bc: "B-15"
+    group: people
+    status: sample
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-85
+    name: "试用期评估与转正"
+    type: business
+    stages: [VS-07.3, VS-13.2]
+    owner_bc: "B-13"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-86
+    name: "发放与归还员工借款"
+    type: business
+    stages: [VS-08.1]
+    owner_bc: "B-09"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-87
+    name: "提交、核定并确认报销应付"
+    type: business
+    stages: [VS-08.2]
+    owner_bc: "B-12"
+    group: finance
+    status: sample
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-88
+    name: "编制、批准并基线化经营计划与预算"
+    type: business
+    stages: [VS-09.1, VS-09.3]
+    owner_bc: "B-18"
+    group: people
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-89
+    name: "编制滚动预测"
+    type: business
+    stages: [VS-09.2]
+    owner_bc: "B-18"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-90
+    name: "出具经营月报并复盘"
+    type: read_model
+    stages: [VS-09.3, VS-10.2]
+    owner_bc: "reporting"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-91
+    name: "认定工时有效性"
+    type: event_policy
+    stages: [VS-10.1]
+    owner_bc: "B-06"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-92
+    name: "过账业务事实"
+    type: business
+    stages: [VS-10.1]
+    owner_bc: "B-16"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-93
+    name: "生成会计分录"
+    type: event_policy
+    stages: [VS-10.1]
+    owner_bc: "B-20"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-94
+    name: "制单并过账受控手工凭证"
+    type: business
+    stages: [VS-10.1]
+    owner_bc: "B-20"
+    group: finance
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-95
+    name: "期末结转"
+    type: business
+    stages: [VS-10.1]
+    owner_bc: "B-20"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-96
+    name: "分配人工成本"
+    type: business
+    stages: [VS-10.1]
+    owner_bc: "B-07"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-97
+    name: "批准并生效分摊规则版本"
+    type: business
+    stages: [VS-10.1]
+    owner_bc: "B-07"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-98
+    name: "分摊间接成本"
+    type: business
+    stages: [VS-10.1]
+    owner_bc: "B-07"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-99
+    name: "计提折旧并处置公司资产"
+    type: business
+    stages: [VS-10.1]
+    owner_bc: "B-24"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-100
+    name: "发布总账配置版本"
+    type: business
+    stages: [VS-10.1]
+    owner_bc: "B-20"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-101
+    name: "月结检查并关账"
+    type: business
+    stages: [VS-10.1]
+    owner_bc: "B-17"
+    group: finance
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-102
+    name: "启用第 13 期并年末关账"
+    type: business
+    stages: [VS-10.1]
+    owner_bc: "B-17"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-103
+    name: "生成期间余额快照"
+    type: event_policy
+    stages: [VS-10.2]
+    owner_bc: "B-20"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-104
+    name: "外部法定账对账与签字"
+    type: business
+    stages: [VS-10.2]
+    owner_bc: "B-20"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-105
+    name: "评审并生效报表行定义版本"
+    type: business
+    stages: [VS-10.2]
+    owner_bc: "B-21"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-106
+    name: "出具三大报表"
+    type: read_model
+    stages: [VS-10.2]
+    owner_bc: "B-21"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-107
+    name: "知识条目的起草、评审、发布与修订废止"
+    type: business
+    stages: [VS-11.1, VS-11.2, VS-11.3]
+    owner_bc: "B-30"
+    group: people
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-108
+    name: "知识条目生命周期：从复盘提炼是创建知识条目的另一入口"
+    type: merged
+    merged_into: PRC-107
+    stages: []
+    owner_bc: ~
+    group: people
+    status: draft
+    human_orchestration: ~
+    bpmn: ~
+    note: "知识条目生命周期：从复盘提炼是创建知识条目的另一入口"
+  - id: PRC-109
+    name: "知识条目生命周期：评审并发布"
+    type: merged
+    merged_into: PRC-107
+    stages: []
+    owner_bc: ~
+    group: people
+    status: draft
+    human_orchestration: ~
+    bpmn: ~
+    note: "知识条目生命周期：评审并发布"
+  - id: PRC-110
+    name: "知识条目生命周期：修订或废止"
+    type: merged
+    merged_into: PRC-107
+    stages: []
+    owner_bc: ~
+    group: people
+    status: draft
+    human_orchestration: ~
+    bpmn: ~
+    note: "知识条目生命周期：修订或废止"
+  - id: PRC-111
+    name: "认缴并实缴出资"
+    type: single_aggregate
+    stages: [VS-12.1]
+    owner_bc: "B-10"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-112
+    name: "决议并支付利润分配"
+    type: business
+    stages: [VS-12.2]
+    owner_bc: "B-10"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-113
+    name: "并入股息红利个税扣缴申报"
+    type: event_policy
+    stages: [VS-12.2, VS-13.4]
+    owner_bc: "B-15"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-114
+    name: "退回出资"
+    type: business
+    stages: [VS-12.3]
+    owner_bc: "B-10"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-115
+    name: "导入考勤记录并补卡"
+    type: business
+    stages: [VS-13.1]
+    owner_bc: "B-27"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-116
+    name: "申请并审批请假"
+    type: business
+    stages: [VS-13.1]
+    owner_bc: "B-27"
+    group: people
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-117
+    name: "申请并批准加班"
+    type: business
+    stages: [VS-13.1]
+    owner_bc: "B-27"
+    group: people
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-118
+    name: "生成、确认并锁定月度考勤"
+    type: business
+    stages: [VS-13.1]
+    owner_bc: "B-27"
+    group: people
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-119
+    name: "维护工作日历与标准工时版本"
+    type: single_aggregate
+    stages: [VS-13.1]
+    owner_bc: "B-14"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-120
+    name: "评估月度绩效"
+    type: business
+    stages: [VS-13.2]
+    owner_bc: "B-13"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-121
+    name: "制定激励方案"
+    type: business
+    stages: [VS-13.2]
+    owner_bc: "B-15"
+    group: people
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-122
+    name: "核定奖金"
+    type: business
+    stages: [VS-13.2]
+    owner_bc: "B-15"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-123
+    name: "调整薪酬档案与专项附加扣除"
+    type: single_aggregate
+    stages: [VS-13.3, VS-13.4]
+    owner_bc: "B-15"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-124
+    name: "计算、审核并批准月度薪酬"
+    type: business
+    stages: [VS-13.3]
+    owner_bc: "B-15"
+    group: people
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-125
+    name: "申报个税扣缴与社保公积金"
+    type: business
+    stages: [VS-13.4, VS-06.1]
+    owner_bc: "B-15"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-126
+    name: "提交应付薪酬"
+    type: event_policy
+    stages: [VS-13.5]
+    owner_bc: "B-15"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-127
+    name: "薪酬发放完成"
+    type: event_policy
+    stages: [VS-13.5]
+    owner_bc: "B-15"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-128
+    name: "办理离职"
+    type: business
+    stages: [VS-13.6]
+    owner_bc: "B-13"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-129
+    name: "离职后吊销会话"
+    type: event_policy
+    stages: [VS-13.6]
+    owner_bc: "platform.identity"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-130
+    name: "离职后参保减员"
+    type: event_policy
+    stages: [VS-13.6]
+    owner_bc: "B-15"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-131
+    name: "付款成功后核销应付"
+    type: event_policy
+    stages: [VS-05.5, VS-08.1, VS-08.3, VS-12.2, VS-12.3, VS-13.5]
+    owner_bc: "B-10"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-132
+    name: "应付核销后置付款已核销并提交过账候选"
+    type: event_policy
+    stages: [VS-05.5, VS-08.1, VS-08.3, VS-12.2, VS-12.3, VS-13.5]
+    owner_bc: "B-10"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-133
+    name: "应付结清后报销置已付"
+    type: event_policy
+    stages: [VS-08.3]
+    owner_bc: "B-12"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-134
+    name: "薪酬事实已过账置位"
+    type: event_policy
+    stages: [VS-13.3]
+    owner_bc: "B-15"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-135
+    name: "处理会计分录待处理队列与推送重投"
+    type: single_aggregate
+    stages: [VS-10.1]
+    owner_bc: "B-20"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-136
+    name: "调岗（任职变更，按人事业务生效日，触发数据范围复核）"
+    type: business
+    stages: []
+    owner_bc: "B-13"
+    group: people
+    status: draft
+    human_orchestration: ~
+    bpmn: ~
+  - id: PRC-137
+    name: "入职开通企业微信账号并绑定外部身份"
+    type: business
+    stages: []
+    owner_bc: "platform.identity"
+    group: people
+    status: sample
+    human_orchestration: ~
+    bpmn: ~
+  - id: PRC-138
+    name: "离职停用企业微信账号并解绑"
+    type: business
+    stages: []
+    owner_bc: "platform.identity"
+    group: people
+    status: draft
+    human_orchestration: ~
+    bpmn: ~
+  - id: PRC-139
+    name: "用印申请与用印登记"
+    type: business
+    stages: []
+    owner_bc: "B-31"
+    group: people
+    status: draft
+    human_orchestration: ~
+    bpmn: ~
+  - id: PRC-140
+    name: "合同借阅"
+    type: business
+    stages: []
+    owner_bc: "B-05"
+    group: revenue
+    status: draft
+    human_orchestration: ~
+    bpmn: ~
+  - id: PRC-141
+    name: "销售合同归档"
+    type: business
+    stages: []
+    owner_bc: "B-05"
+    group: revenue
+    status: draft
+    human_orchestration: ~
+    bpmn: ~
+  - id: PRC-142
+    name: "IT 需求工单"
+    type: business
+    stages: []
+    owner_bc: "B-31"
+    group: people
+    status: draft
+    human_orchestration: ~
+    bpmn: ~
+  - id: PRC-143
+    name: "IT 资产领用、调拨、报修、报废、盘点与采购申请"
+    type: business
+    stages: []
+    owner_bc: "B-31"
+    group: people
+    status: draft
+    human_orchestration: ~
+    bpmn: ~
+  - id: PRC-144
+    name: "员工活动类申请（周年贺卡、节日活动、创新项目发布）"
+    type: business
+    stages: []
+    owner_bc: "B-31"
+    group: people
+    status: draft
+    human_orchestration: ~
+    bpmn: ~
