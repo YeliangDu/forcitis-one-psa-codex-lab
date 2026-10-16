@@ -35,6 +35,8 @@ rules:
   note: 报销已定「只预警」（F-Q2，intent 162821），故草拟为不加审；是否对其他单据加审由用户确认
   guard: rule
   rule_handling: 预警（F-Q2 只预警），不审批
+  rule_card: RULE-406
+  review: 只覆盖报销（F-Q2）；其他单据超预算是否只预警待用户
 - id: AR-04
   name: 无合同或协议依据
   condition: 开票、付款、采购等单据未引用生效的合同或协议
@@ -42,6 +44,8 @@ rules:
   escalate_to: 财务负责人
   guard: rule
   rule_handling: 无生效合同或协议引用即拒绝（例外按 P-1 凭证据先开的规则）
+  rule_card: RULE-407
+  review: 用户只定了收入确认与开票；付款、采购须协议生效为提议，待用户
 - id: AR-05
   name: 业务日期落在已关账期间
   condition: 业务日期所在期间已关账，按 ADR-0045 落开放期间并标原期间
@@ -51,6 +55,8 @@ rules:
   - 总经理
   guard: rule
   rule_handling: 按 ADR-0045 自动落开放期间并标原期间，不审批
+  rule_card: RULE-408
+  review: 跨年按 ADR-0045 U-2 未定，规则暂为拒绝并告警
 - id: AR-06
   name: 冲销或红冲已过账事实
   condition: 单据为冲销、红字或更正，引用已过账事实
@@ -72,6 +78,7 @@ rules:
   escalate_to: 部门负责人
   guard: rule
   rule_handling: 走往来单位准入（供应商、分包须准入，客户不准入，P-3），未准入即拒绝
+  rule_card: RULE-409
 - id: AR-09
   name: 收款或付款对象与合同相对方不一致
   condition: 付款收款人不是合同登记的相对方或其登记账户
@@ -81,13 +88,17 @@ rules:
   - 总经理
   guard: rule
   rule_handling: 只能付往合同相对方的登记账户，否则拒绝
+  rule_card: RULE-410
+  review: 用户未定过；第三方代收付情形待用户
 - id: AR-10
   name: 合同回签前开票
-  condition: 协议未生效即开票（P-1 已定可凭证据先开，intent 120544）
+  condition: 协议未生效即开票（P-1，intent 2026-10-16-074053：仅预收或首付款类型且附委托或中标证据可先于回签，其余拒绝；历史
+    31 个合同迁入标例外）
   level: abnormal
   escalate_to: 财务负责人
   guard: rule
-  rule_handling: 按 P-1：须有回签前开票的证据，否则拒绝
+  rule_handling: 按 P-1（intent 074053）：仅预收或首付款类型且附委托或中标证据可先开，其余拒绝
+  rule_card: RULE-411
 - id: AR-11
   name: 责任人就是提交人本人
   condition: 解析出的基础审批人＝提交人
