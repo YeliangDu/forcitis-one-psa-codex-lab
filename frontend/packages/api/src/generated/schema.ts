@@ -2122,10 +2122,7 @@ export interface operations {
     release_1: {
         parameters: {
             query?: never;
-            header?: {
-                /** @description The same key with the same request within 24 hours gets the first answer again */
-                "Idempotency-Key"?: string;
-            };
+            header?: never;
             path: {
                 syncRunId: string;
             };
@@ -2160,10 +2157,7 @@ export interface operations {
     reconcile: {
         parameters: {
             query?: never;
-            header?: {
-                /** @description The same key with the same request within 24 hours gets the first answer again */
-                "Idempotency-Key"?: string;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -4330,10 +4324,7 @@ export interface operations {
     register: {
         parameters: {
             query?: never;
-            header?: {
-                /** @description The same key with the same request within 24 hours gets the first answer again */
-                "Idempotency-Key"?: string;
-            };
+            header?: never;
             path?: never;
             cookie?: never;
         };
@@ -4366,10 +4357,7 @@ export interface operations {
     confirm: {
         parameters: {
             query?: never;
-            header?: {
-                /** @description The same key with the same request within 24 hours gets the first answer again */
-                "Idempotency-Key"?: string;
-            };
+            header?: never;
             path: {
                 sourceReferenceId: string;
             };
@@ -4400,10 +4388,7 @@ export interface operations {
     reject: {
         parameters: {
             query?: never;
-            header?: {
-                /** @description The same key with the same request within 24 hours gets the first answer again */
-                "Idempotency-Key"?: string;
-            };
+            header?: never;
             path: {
                 sourceReferenceId: string;
             };

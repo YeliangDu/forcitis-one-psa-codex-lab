@@ -2490,14 +2490,6 @@
             "format" : "uuid",
             "type" : "string"
           }
-        }, {
-          "description" : "The same key with the same request within 24 hours gets the first answer again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
         } ],
         "requestBody" : {
           "content" : {
@@ -2537,15 +2529,6 @@
     "/api/v1/organization/sync-runs:reconcile" : {
       "post" : {
         "operationId" : "reconcile",
-        "parameters" : [ {
-          "description" : "The same key with the same request within 24 hours gets the first answer again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
         "responses" : {
           "200" : {
             "content" : {
@@ -5384,15 +5367,6 @@
       },
       "post" : {
         "operationId" : "register",
-        "parameters" : [ {
-          "description" : "The same key with the same request within 24 hours gets the first answer again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
-        } ],
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -5439,14 +5413,6 @@
             "format" : "uuid",
             "type" : "string"
           }
-        }, {
-          "description" : "The same key with the same request within 24 hours gets the first answer again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
-            "type" : "string"
-          }
         } ],
         "responses" : {
           "200" : {
@@ -5482,14 +5448,6 @@
           "required" : true,
           "schema" : {
             "format" : "uuid",
-            "type" : "string"
-          }
-        }, {
-          "description" : "The same key with the same request within 24 hours gets the first answer again",
-          "in" : "header",
-          "name" : "Idempotency-Key",
-          "required" : false,
-          "schema" : {
             "type" : "string"
           }
         } ],

@@ -8,6 +8,9 @@ import java.util.Optional;
 /** The stored answers to requests that carried an Idempotency-Key (kept by platform.idempotency). */
 public interface IdempotentResponses {
 
+    /** The most characters of an answer that are stored; the same number is in the CHECK of the table. */
+    int MAX_RESPONSE_LENGTH = 32768;
+
     record Stored(String requestHash, Integer responseNumber, String responseName, String responseText, Map<String, String> responseHeaders) {
         public boolean finished() {
             return responseNumber != null;
@@ -25,6 +28,9 @@ public interface IdempotentResponses {
     void finish(UserId userId, String key, int responseNumber, String responseName, String responseText, Map<String, String> responseHeaders);
 
     void release(UserId userId, String key);
+
+    /** The answer was too long to store: the claim stays "in progress" until the key expires and is not taken over after reclaimAfter. */
+    void holdUntilExpiry(UserId userId, String key);
 
     int purgeExpired(Instant now);
 }
