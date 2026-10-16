@@ -22,3 +22,5 @@
 | AGG-116 | 员工活动申请 | B-31 | people | S-09；PRC-144 | 2026-10-16 |
 | AGG-117 | 法人归属（已建 `organization_workforce.legal_entity_attributions`） | B-13 | people | 已建表补登聚合号（Q-09 法人三口径） | 2026-10-16 |
 | AGG-118 | 假期类型与额度规则（配置型，版本化） | B-27 | people | 聚合稿漏登，补号 | 2026-10-16 |
+
+> 2026-10-16 起新号以 `process-catalog.yaml` 为准，本表只作历史记录。PRC-145 员工法人三口径不一致预警（事件策略，B-15，S-20）已直接登记于目录。

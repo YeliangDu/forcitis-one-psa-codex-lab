@@ -1318,3 +1318,12 @@ processes:
     status: draft
     human_orchestration: ~
     bpmn: ~
+  - id: PRC-145
+    name: "员工法人三口径不一致预警"
+    type: event_policy
+    stages: [VS-07.3]
+    owner_bc: "B-15"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
