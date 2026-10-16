@@ -2758,9 +2758,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 项目.项目负责人
+      field: 项目.项目经理
       field_status: proposed
-      note: 复审：按 VS02-05 页推荐取项目负责人（intent 163556）
+      note: 复审：统一写项目经理（VS02-05，intent 163556）
     R:
     - SH-M1
     C: []
@@ -2775,9 +2775,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 项目.项目负责人
+      field: 项目.项目经理
       field_status: proposed
-      note: 复审：按 VS02-05 页推荐取项目负责人（intent 163556）
+      note: 复审：统一写项目经理（VS02-05，intent 163556）
     R:
     - SH-M1
     C: []
@@ -2791,9 +2791,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 项目.项目负责人
+      field: 项目.项目经理
       field_status: proposed
-      note: 复审：按 VS02-05 页推荐取项目负责人（intent 163556）
+      note: 复审：统一写项目经理（VS02-05，intent 163556）
     R:
     - SH-M1
     C: []
@@ -2807,9 +2807,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 项目.项目负责人
+      field: 项目.项目经理
       field_status: proposed
-      note: 复审：按 VS02-05 页推荐取项目负责人（intent 163556）
+      note: 复审：统一写项目经理（VS02-05，intent 163556）
     R:
     - SH-M1
     C: []
