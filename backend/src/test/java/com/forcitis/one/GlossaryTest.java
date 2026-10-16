@@ -214,7 +214,7 @@ class GlossaryTest {
         }
     }
 
-    /** Past participle at the end, optionally followed by a particle (WrittenOff) or a prepositional tail (SubmittedForApproval); same rule as term_rules.py. */
+    /** Past participle at the end, optionally followed by a particle (WrittenOff) or a prepositional tail (SubmittedForApproval), or a linking verb in the past plus one complement (BecameOverdue); same rule as term_rules.py. */
     private static boolean pastTense(List<String> words) {
         List<String> ws = new ArrayList<>(words);
         while (ws.size() > 1 && PARTICLES.contains(ws.get(ws.size() - 1))) {

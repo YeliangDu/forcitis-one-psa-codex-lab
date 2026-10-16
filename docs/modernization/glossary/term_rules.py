@@ -35,7 +35,7 @@ IMPERATIVE_ED_ING = ("proceed", "exceed", "succeed", "feed", "embed", "need", "s
 
 
 def past_tense(ws):
-    """名字以过去分词结尾，可后跟小品词（WrittenOff）或介词短语（SubmittedForApproval）。"""
+    """名字以过去分词结尾，可后跟小品词（WrittenOff）或介词短语（SubmittedForApproval）；也可是系动词过去式加一个补语（BecameOverdue）。"""
     ws = list(ws) or [""]
     while len(ws) > 1 and ws[-1] in PARTICLES:
         ws = ws[:-1]
@@ -235,6 +235,8 @@ def self_test():
     want("事件名过去式", rules(term("a", kind="domain_event", en="TimesheetApproved")), set())
     want("事件名含小品词", rules(term("a", kind="domain_event", en="ArWrittenOff")), set())
     want("事件名系动词加补语", rules(term("a", kind="domain_event", en="ApprovalTaskBecameOverdue")), set())
+    want("事件名只有系动词不算", rules(term("a", kind="domain_event", en="ApprovalTaskBecame")), {"event_name"})
+    want("事件名系动词在末尾不算", rules(term("a", kind="domain_event", en="BecameTask")), {"event_name"})
     want("事件名系动词后多于一个词不算", rules(term("a", kind="domain_event", en="ApprovalTaskBecameVeryOverdue")), {"event_name"})
     want("事件名含介词短语", rules(term("a", kind="domain_event", en="DocumentSubmittedForApproval")), set())
     want("事件名不是过去式", rules(term("a", kind="domain_event", en="TimesheetApproval")), {"event_name"})
