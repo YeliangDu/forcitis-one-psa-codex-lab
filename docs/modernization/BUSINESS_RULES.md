@@ -4470,7 +4470,7 @@ Within that city, the role's standard cost rate comes from today's active scheme
 **Category:** Validation
 **Priority:** P0
 **Source:** `psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/task/BpmTaskServiceImpl.java:863-975`
-**Plain English:** One submission can decide several of the approver's own tasks, but only within a single process instance. Each decision must be approve (2) or reject (3). A rejection needs a reason unless the node delegates that check to a business pre-check hook. Every business pre-check must pass before any task is completed.
+**Plain English:** One submission can decide several of the approver's own tasks, but only within a single process instance. Each decision must be approve (2) or reject (3). A rejection always needs a reason: a node with a business pre-check hook is not exempt (user decision 2026-10-16, intent 2026-10-16-085331-one-data-审批被驳回-被撤销后能不能再发起.md: the exemption is removed; a hook that wants a reason supplies it). Every business pre-check must pass before any task is completed.
 **Specification:**
   Given approver 2002 submits decisions {T1 on node A: approve, T2 on node B: reject with an empty reason}, both in instance P, and node B has no BEFORE hook
   When  decide is called
@@ -4478,7 +4478,7 @@ Within that city, the role's standard cost rate comes from today's active scheme
   Given the same submission with reason "数量错误"
   Then  the node-A group is completed first and the node-B (reject) group last; for a non-row node exactly 1 decision per node is allowed
 **Parameters:** allowed results {2,3}
-**Edge cases handled:** tasks from different instances are refused (TASK_DECIDE_FAIL_CROSS_INSTANCE). More than one decision for a non-row node is refused (TASK_DECIDE_FAIL_SINGLE_ONLY). If a BEFORE hook asks for interaction, nothing is committed and the hook's dialog is returned. Groups that contain a rejection run last, so the sub-process cancellation cannot delete tasks that are still being approved.
+**Edge cases handled:** a rejection with an empty reason fails on every node, with or without a hook (old system: nodes with a hook were exempt; not carried over). Tasks from different instances are refused (TASK_DECIDE_FAIL_CROSS_INSTANCE). More than one decision for a non-row node is refused (TASK_DECIDE_FAIL_SINGLE_ONLY). If a BEFORE hook asks for interaction, nothing is committed and the hook's dialog is returned. Groups that contain a rejection run last, so the sub-process cancellation cannot delete tasks that are still being approved.
 **Confidence:** High.
 **Also stated by:** approval-routing — “Unified decide: same instance only, reject reason required, rejecting nodes processed last” (`psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/task/BpmTaskServiceImpl.java:865-975`); approval-validation — “Unified decide: same instance, result must be pass/fail, a reject needs a reason, one decision per non-row node” (`psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/task/BpmTaskServiceImpl.java:865-975`)
 
@@ -4486,7 +4486,7 @@ Within that city, the role's standard cost rate comes from today's active scheme
 **Category:** Validation
 **Priority:** P0
 **Source:** `psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/task/BpmTaskServiceImpl.java:982-1040`
-**Plain English:** If a person added by countersign votes "fail", their opinion is recorded but the process is not terminated and no result message is sent. Only originally assigned approvers can truly reject.
+**Plain English:** If a person added by countersign votes "fail", their opinion is recorded but the process is not terminated and no result message is sent. Only originally assigned approvers can truly reject. The countersigner's rejection also needs a reason; an empty reason is refused (user decision 2026-10-16, intent 2026-10-16-085331-one-data-审批被驳回-被撤销后能不能再发起.md).
 **Specification:**
   Given task T-5 has `bpm_task_ext.countersign=1`
   When its assignee decides 3 with reason "价格偏高"
