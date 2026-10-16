@@ -29,7 +29,7 @@
 
 - 约 75 分钟，工作日非高峰（建议 12:00–13:00 或 18:30 以后），提前告知 one-coordinator。
 - 影响：实例上临时多一个登录、两个空库，以及第 17 项在 master 中一个短暂存在的探针用户（做完即删），另有 RDS 自动给探针在 msdb、rdscore 建的用户（收尾删）（几 MB，进入实例备份，删库后随备份保留期过期）；所有偏离只在探针库内或针对探针登录；不改 public、不改其他库，对 a8_db、ruoyi-vue-pro、it_portal 等库没有锁与授权变化。第 10 项的服务器级 DENY 预期被平台拒绝（4613），不产生变更。
-- 停止条件：任一回退后计数不回到对照值、对照项不通过、出现对探针库以外对象的任何变更、第 14 项之前的可见性核实读不到或为 0 → 立即停下（脚本先回退当前项并执行收尾）报 one-coordinator。
+- 停止条件：任一回退后计数不回到对照值、对照项不通过、可见性对照不通过、出现对探针库以外对象的任何变更、第 14 项之前的可见性核实读不到或为 0 → 立即停下（脚本先回退当前项并执行收尾）报 one-coordinator。
 
 ## 准备（批准后执行）
 
@@ -49,6 +49,10 @@ DENY INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VI
   ON DATABASE::[one_readonly_probe_db] TO [one_readonly_probe];
 ```
 
+## 可见性对照（准备之后、任何偏离之前；失败退出码 2）
+
+RDS 已给探针在 msdb、rdscore 各建一个用户，执行账号必须数到恰为 (1, 1)（与收尾回读同类的查询，看不见、多于、少于各一个都停）。不通过：Stop，照常收尾，但**强制退出码 2 并告警**——此时 msdb、rdscore 里的探针用户可能删不掉、也无从验证，须人工清理，不当作已收尾。依据：2026-10-16 预检发现执行账号看不见取证账号在这两库的用户（取证账号自己看得见），原对照（数取证账号的用户）作废，one-coordinator 决定改为探针自己的用户；opus 复审指出失败路径不得报告干净。
+
 ## 正式运行时账号核实（逐项之前）
 
 - 用只读命令对 one_a8_views_ro、psa_one_legacy_ro、one_legacy_names_ro 各跑一次，连接参数与口令取自 `/etc/forcitis-one/one.env`；不改任何授权，不在探针库里做。
@@ -59,7 +63,8 @@ DENY INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VI
 
 - 结果文件是新名字且可写（已存在则拒绝，不覆盖旧结果）；运行方式：tmux 或 nohup，输出重定向到文件，不经管道（终端断开时收尾也要能做完）。
 - `app.jar` 的 SHA-256 与参数一致；ECS 上没有残留的 `readonly-probe.env`。
-- 执行账号能打开 msdb、rdscore（收尾要在这两库删探针自己的用户）；并且能看到取证账号 `one_evidence_ro` 在这两库的用户（对照），否则回读的「0」可能只是看不见，不能证明已删。
+- 执行账号能打开 msdb、rdscore（收尾要在这两库删探针自己的用户）。
+- 执行账号在 msdb、rdscore 各有 VIEW DEFINITION 与 ALTER ANY USER（`HAS_PERMS_BY_NAME`，只查不改，缺任何一项拒绝，退出码 3）：否则它既看不见也删不掉 RDS 给探针自动建的用户。
 - 回读五项（探针登录、探针库、master / msdb / rdscore 里的探针用户）开工前必须全为 0。
 - 收尾顺序：先停 ECS 上的 `one-c14-probe-*` 单元，再杀探针登录的会话，然后逐条删除探针对象，回读五项为 0；任何一步失败都继续做下一步，最后不干净则告警、退出码 2。收到 SIGTERM / SIGHUP / Ctrl-C 也走同一条收尾。
 
