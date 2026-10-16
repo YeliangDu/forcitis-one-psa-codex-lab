@@ -23,5 +23,5 @@ organization_workforce.employees.employee_code | SENSITIVE | 个人信息：工�
 platform_integration.outbound_deliveries.recipient_codes | SENSITIVE | 个人信息：收件人的企业微信用户 ID
 platform_integration.outbound_deliveries.skipped_recipient_codes | SENSITIVE | 个人信息：被跳过收件人的企业微信用户 ID
 platform_identity.browser_identifiers.identifier_hash | SENSITIVE | 浏览器标识的摘要：可用于判断某浏览器是否已被本人确认
-platform_identity.sessions.session_id | RESTRICTED | 会话标识，等同 Cookie 持有凭据（第二维 NONE，四段化随 ADR-0043 实施 PR）
-platform_identity.sessions.primary_id | RESTRICTED | 会话主标识，等同会话凭据（第二维 NONE，四段化随 ADR-0043 实施 PR）
+platform_identity.sessions.session_id | RESTRICTED | 会话标识，等同 Cookie 持有凭据（个人信息标记待 one-data / U-11 裁定，四段化随 ADR-0043 实施 PR）
+platform_identity.sessions.primary_id | RESTRICTED | 框架内部主键，不进 Cookie，可关联会话内容；按用户决定与 session_id 同级（个人信息标记待 one-data / U-11 裁定，四段化随 ADR-0043 实施 PR）
