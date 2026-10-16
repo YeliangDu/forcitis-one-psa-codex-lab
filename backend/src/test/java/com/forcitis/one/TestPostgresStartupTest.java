@@ -29,9 +29,8 @@ class TestPostgresStartupTest {
         });
         container.withStartupAttempts(2).withConnectTimeoutSeconds(45);
 
-        assertThatThrownBy(container::start).isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("postgres:18", "2 attempts (connection wait 45 s each)", "java.io.EOFException: cut", "--- docker: ", "boom 1\nboom 2")
-                .hasCauseInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(container::start).isInstanceOf(IllegalStateException.class).hasCauseInstanceOf(IllegalStateException.class)
+                .message().contains("postgres:18", "2 attempts (connection wait 45 s each)", "java.io.EOFException: cut", "--- docker: ", "boom 1\nboom 2");
     }
 
     @Test
