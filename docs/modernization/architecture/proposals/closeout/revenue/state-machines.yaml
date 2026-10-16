@@ -61,13 +61,15 @@ machines:
   - from: 已安排
     to: 记录已提交
     command: 提交检查记录
-    guard: &id001
+    guard:
     - INV-55
     - 拟规则-VS03-01
   - from: 现场进行中
     to: 记录已提交
     command: 提交检查记录
-    guard: *id001
+    guard:
+    - INV-55
+    - 拟规则-VS03-01
   - from: 记录已提交
     to: 已审核
     command: 审核检查记录
@@ -346,17 +348,21 @@ machines:
   - from: 草案
     to: 草案
     command: 登记合同—项目关联与范围挂 WBS
-    guard: &id002
+    guard:
     - INV-09
     - INV-08
   - from: 已签署生效
     to: 已签署生效
     command: 登记合同—项目关联与范围挂 WBS
-    guard: *id002
+    guard:
+    - INV-09
+    - INV-08
   - from: 履行中
     to: 履行中
     command: 登记合同—项目关联与范围挂 WBS
-    guard: *id002
+    guard:
+    - INV-09
+    - INV-08
   - from: 草案
     to: 草案
     command: 登记视为同意参数与发包人代表
@@ -391,23 +397,27 @@ machines:
   - from: 已签署生效
     to: 已签署生效
     command: 应用变更
-    guard: &id003
+    guard:
     - INV-07
     - INV-08
   - from: 履行中
     to: 履行中
     command: 应用变更
-    guard: *id003
+    guard:
+    - INV-07
+    - INV-08
   - from: 已签署生效
     to: 已签署生效
     command: 提交任务订单
-    guard: &id004
+    guard:
     - INV-10
     - INV-03a
   - from: 履行中
     to: 履行中
     command: 提交任务订单
-    guard: *id004
+    guard:
+    - INV-10
+    - INV-03a
   - from: 已签署生效
     to: 已签署生效
     command: 标记付款条件项可结算
@@ -941,39 +951,51 @@ machines:
   - from: 未结
     to: 已结清
     command: 在应收上核销占用
-    guard: &id005
+    guard:
     - INV-77
     - 核销合计=未结余额
   - from: 部分结清
     to: 已结清
     command: 在应收上核销占用
-    guard: *id005
+    guard:
+    - INV-77
+    - 核销合计=未结余额
   - from: 逾期
     to: 已结清
     command: 在应收上核销占用
-    guard: *id005
+    guard:
+    - INV-77
+    - 核销合计=未结余额
   - from: 争议中
     to: 已结清
     command: 在应收上核销占用
-    guard: *id005
+    guard:
+    - INV-77
+    - 核销合计=未结余额
   - from: 未结
     to: 部分结清
     command: 在应收上核销占用
-    guard: &id006
+    guard:
     - INV-77
     - 核销合计<未结余额
   - from: 部分结清
     to: 部分结清
     command: 在应收上核销占用
-    guard: *id006
+    guard:
+    - INV-77
+    - 核销合计<未结余额
   - from: 逾期
     to: 部分结清
     command: 在应收上核销占用
-    guard: *id006
+    guard:
+    - INV-77
+    - 核销合计<未结余额
   - from: 争议中
     to: 部分结清
     command: 在应收上核销占用
-    guard: *id006
+    guard:
+    - INV-77
+    - 核销合计<未结余额
   - from: 未结
     to: 逾期
     command: 检测应收逾期
@@ -1007,23 +1029,27 @@ machines:
   - from: 未结
     to: 已结清
     command: 冲抵员工借款
-    guard: &id007
+    guard:
     - INV-77
     - 冲抵额=未结余额
   - from: 部分结清
     to: 已结清
     command: 冲抵员工借款
-    guard: *id007
+    guard:
+    - INV-77
+    - 冲抵额=未结余额
   - from: 未结
     to: 部分结清
     command: 冲抵员工借款
-    guard: &id008
+    guard:
     - INV-77
     - 冲抵额<未结余额
   - from: 部分结清
     to: 部分结清
     command: 冲抵员工借款
-    guard: *id008
+    guard:
+    - INV-77
+    - 冲抵额<未结余额
   - from: 未结
     to: 已冲减
     command: 冲减应收
@@ -1359,17 +1385,21 @@ machines:
   - from: 角色申请中
     to: 角色停用
     command: 停用往来单位角色
-    guard: &id009
+    guard:
     - INV-02
     - 原因必填
   - from: 角色合格
     to: 角色停用
     command: 停用往来单位角色
-    guard: *id009
+    guard:
+    - INV-02
+    - 原因必填
   - from: 角色暂停
     to: 角色停用
     command: 停用往来单位角色
-    guard: *id009
+    guard:
+    - INV-02
+    - 原因必填
 - aggregate: AGG-02
   name: 资质证书
   note: 版本化：延续或降级后登记的是新有效期或新等级版本，旧版本被取代；已撤销、已到期不再恢复
@@ -1611,18 +1641,24 @@ machines:
   - from: 待认领
     to: 已关闭
     command: 关闭线索
-    guard: &id010
+    guard:
     - INV-24
     - 原因必填
     - 已确认的线索不可关闭
   - from: 跟进中
     to: 已关闭
     command: 关闭线索
-    guard: *id010
+    guard:
+    - INV-24
+    - 原因必填
+    - 已确认的线索不可关闭
   - from: 挂起
     to: 已关闭
     command: 关闭线索
-    guard: *id010
+    guard:
+    - INV-24
+    - 原因必填
+    - 已确认的线索不可关闭
 - aggregate: AGG-10
   name: 商机
   initial: 推进中
@@ -1821,13 +1857,15 @@ machines:
   - from: 计划
     to: 已完成
     command: 完成客户活动
-    guard: &id011
+    guard:
     - INV-110
     - 结果反馈必填
   - from: 已变更
     to: 已完成
     command: 完成客户活动
-    guard: *id011
+    guard:
+    - INV-110
+    - 结果反馈必填
   - from: 计划
     to: 已取消
     command: 取消客户活动
@@ -1882,17 +1920,21 @@ machines:
   - from: 已立项
     to: 已取消
     command: 取消项目
-    guard: &id012
+    guard:
     - 原因必填
     - 无任何投入
   - from: 执行中
     to: 已取消
     command: 取消项目
-    guard: *id012
+    guard:
+    - 原因必填
+    - 无任何投入
   - from: 暂停
     to: 已取消
     command: 取消项目
-    guard: *id012
+    guard:
+    - 原因必填
+    - 无任何投入
   - from: 执行中
     to: 已结项
     command: 结项
@@ -2139,13 +2181,15 @@ machines:
   - from: 已送达
     to: 已认可
     command: 登记客户认可
-    guard: &id013
+    guard:
     - INV-48
     - INV-51
   - from: 已声明
     to: 已认可
     command: 登记客户认可
-    guard: *id013
+    guard:
+    - INV-48
+    - INV-51
   - from: 已送达
     to: 已退回
     command: 登记客户退回
@@ -2459,14 +2503,17 @@ machines:
   - from: 草稿
     to: 已提交
     command: 提交工时单
-    guard: &id014
+    guard:
     - INV-39
     - INV-64
     - INV-65
   - from: 已退回
     to: 已提交
     command: 提交工时单
-    guard: *id014
+    guard:
+    - INV-39
+    - INV-64
+    - INV-65
   - from: 已提交
     to: 已通过
     command: 通过工时单

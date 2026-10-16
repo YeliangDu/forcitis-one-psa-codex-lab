@@ -11473,7 +11473,7 @@ single_aggregate:
       engine: platform.approval
       approver: cost_object_owner
       owner_object: 保证金所属协议或商机的责任人（项目经理、商机负责人或部门负责人）
-      escalation_rules: &id001
+      escalation_rules:
       - AR-01
       - AR-02
       on_reject: 转移不发生，保证金保持已缴
@@ -11507,7 +11507,9 @@ single_aggregate:
       engine: platform.approval
       approver: cost_object_owner
       owner_object: 保证金所属协议或商机的责任人（项目经理、商机负责人或部门负责人）
-      escalation_rules: *id001
+      escalation_rules:
+      - AR-01
+      - AR-02
       on_reject: 转移不发生，保证金保持已缴
   - from: 已开立
     to: 到期
