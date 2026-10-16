@@ -1,0 +1,1920 @@
+{
+ "sheet": "GL",
+ "title": "词表待确认事项",
+ "lede": "共 8 组、76 题，每题已预选推荐，同意就不用动；要改就选别的选项并在说明里写理由。每组底部「提交本组」，确认后才算数。聚合与事件那 4 条有争议的（登记员工、来源对照被拒登记、角色已废除、任务已出结果）已并入 B 组对应的题，不再重复。",
+ "groups": [
+  {
+   "id": "gl-b",
+   "title": "B2 的名字与类别（12 题）",
+   "desc": "代码里的命名和词表冲突、或名字不合规则的地方，推荐都是改代码，由各模块负责会话随卡改。"
+  },
+  {
+   "id": "gl-p4",
+   "title": "R-1b P4：投递用途（1 题）",
+   "desc": "外发投递表里一张卡为什么发。"
+  },
+  {
+   "id": "gl-e",
+   "title": "全企业业务对象引出的用语（8 题）",
+   "desc": "来自 one-architecture 的全企业业务对象确认页：你的答复落到词表需要定的事。"
+  },
+  {
+   "id": "gl-a-ts",
+   "title": "工时（5 题）",
+   "desc": "代码里已有、词表里缺词条的聚合和领域事件。每题推荐同意，不同意的写说明。"
+  },
+  {
+   "id": "gl-a-org",
+   "title": "组织人事与工作日历（17 题）",
+   "desc": "代码里已有、词表里缺词条的聚合和领域事件。每题推荐同意，不同意的写说明。"
+  },
+  {
+   "id": "gl-a-appr",
+   "title": "审批（10 题）",
+   "desc": "代码里已有、词表里缺词条的聚合和领域事件。每题推荐同意，不同意的写说明。"
+  },
+  {
+   "id": "gl-a-ident",
+   "title": "身份与授权（15 题）",
+   "desc": "代码里已有、词表里缺词条的聚合和领域事件。每题推荐同意，不同意的写说明。"
+  },
+  {
+   "id": "gl-a-integ",
+   "title": "来源对照与编号（8 题）",
+   "desc": "代码里已有、词表里缺词条的聚合和领域事件。每题推荐同意，不同意的写说明。"
+  }
+ ],
+ "items": [
+  {
+   "no": "B2-B01",
+   "grp": "gl-b",
+   "title": "账号停用：状态词条与事件同名",
+   "src": "B2-B01",
+   "ctx": "词表已有状态词条「账号停用 / AccountDisabled」；代码里同名的 AccountDisabled 是领域事件。同一个英文名不能既是状态又是事件。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "事件类改名 UserAccountDisabled，状态词条不动",
+     "effect": "事件改名代价小，状态值已写在表的 CHECK 里；改名由身份模块负责会话做",
+     "rec": true
+    },
+    {
+     "label": "状态词条改叫「账号停用状态」，事件保持 AccountDisabled",
+     "effect": "要改表 CHECK 里的取值和接口，代价较大",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-B02",
+   "grp": "gl-b",
+   "title": "审批任务逾期（ApprovalTaskOverdue）",
+   "src": "B2-B02",
+   "ctx": "事件类名是形容词「逾期」，事件名应为过去式业务动词。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "类名改 ApprovalTaskBecameOverdue，中文「任务已超时」不变",
+     "effect": "符合事件命名规则；改名交审批模块负责会话",
+     "rec": true
+    },
+    {
+     "label": "保持原名，登记为命名规则的例外",
+     "effect": "例外清单只减不增，不推荐",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-B03",
+   "grp": "gl-b",
+   "title": "任务已办理 TaskHandled 与代码里的 TaskResulted",
+   "src": "B2-B03",
+   "ctx": "第三轮 R3-AP-60 已定「任务已办理 / TaskHandled」，词表里有这条；代码事件类仍叫 TaskResulted，新登记曾暂写「任务已出结果」。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "事件类改名 TaskHandled，不再登记「任务已出结果」",
+     "effect": "与第三轮你已定的一致；改名交审批模块负责会话",
+     "rec": true
+    },
+    {
+     "label": "保留代码名 TaskResulted，把第三轮已定的「任务已办理」改成「任务已出结果」",
+     "effect": "推翻你第三轮的答复，不推荐",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-B04",
+   "grp": "gl-b",
+   "title": "登记员工（RegisteredEmployee）是否并入「员工」",
+   "src": "B2-B04",
+   "ctx": "员工首次登录时，在组织来源里找到、但下一次同步尚未带入组织快照的人，登记后即可使用系统。它和词表里的「员工」是同一个人的两个阶段。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "保留为独立聚合「登记员工」，不并入员工",
+     "effect": "代码里它是独立的聚合根，生命周期和员工不同（首次登录登记，同步后并入快照）",
+     "rec": true
+    },
+    {
+     "label": "并入「员工」聚合，作为员工的一个状态",
+     "effect": "需要改代码结构，一人一个聚合，更简洁但改动大",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-B05",
+   "grp": "gl-b",
+   "title": "来源对照被拒登记（SourceReferenceRefusal）",
+   "src": "B2-B05",
+   "ctx": "一次「有人试图人工登记只能由同步或导入写入的来源对照而被拒」的记录，不存储任何对照；代码里是聚合根。同名词根的事件 SourceReferenceRegistrationRefused 词根重复。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "保留为聚合，属防腐层过渡期用语；事件类名改 SourceReferenceRefused",
+     "effect": "聚合只承载一次被拒事实，保留是为了审计看得到是谁试过",
+     "rec": true
+    },
+    {
+     "label": "不作聚合根，只保留事件",
+     "effect": "要改代码，把它变成纯事件",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-B06",
+   "grp": "gl-b",
+   "title": "角色删除 RoleDeleted",
+   "src": "B2-B06",
+   "ctx": "事件目录写「角色删除」，「删除」是技术泛词，业务上说的是角色不再可用。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "中文用「角色已废除」；类名 RoleDeleted 改 RoleAbolished",
+     "effect": "业务不说删除",
+     "rec": true
+    },
+    {
+     "label": "保持「角色已删除 / RoleDeleted」",
+     "effect": "接受技术用语，把删除作为这个事件的业务说法",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-B07",
+   "grp": "gl-b",
+   "title": "工时单撤销审批 TimesheetCancelled",
+   "src": "B2-B07",
+   "ctx": "类名容易被读成「工时单被取消」，实际含义是填报人撤销审批、工时单回到草稿。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "类名改 TimesheetApprovalWithdrawn，中文「工时单已撤回审批」",
+     "effect": "名字与含义一致；改名交工时模块负责会话",
+     "rec": true
+    },
+    {
+     "label": "保持 TimesheetCancelled，中文「工时单审批已撤销」",
+     "effect": "名字不变，靠定义说明",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-B08",
+   "grp": "gl-b",
+   "title": "外部读取登记 ExternalReadRegister 的类别",
+   "src": "B2-B08",
+   "ctx": "R-1b-0 刚登记的「外部读取登记」，原来是 document。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "类别定为 entity（登记册）",
+     "effect": "有身份、被维护，但不随业务单据流转，不是业务聚合",
+     "rec": true
+    },
+    {
+     "label": "类别定为 aggregate",
+     "effect": "作为聚合根管理，要求有完整的命令和事件",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-B09",
+   "grp": "gl-b",
+   "title": "5 条事件名是名词",
+   "src": "B2-B09",
+   "ctx": "合同变更 ContractModification、预期信用损失预警 EclAlert、质保金到期 RetentionMoneyReleaseDue、收入冲减 RevenueReduction、规则执行 RuleExecution。事件名应是过去式业务动词。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "改为 ContractModified、EclAlerted、RetentionMoneyReleaseDueReached、RevenueReduced、RuleExecuted；中文「合同已变更」等",
+     "effect": "事件名统一为过去式；改名交各自模块负责会话",
+     "rec": true
+    },
+    {
+     "label": "保持现名",
+     "effect": "事件名既有名词又有过去式，一致性差",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-B10",
+   "grp": "gl-b",
+   "title": "强制登出 ForcedLogout",
+   "src": "B2-B10",
+   "ctx": "这是一个命令，名字是过去分词；命令应用祈使。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "改 ForceLogout",
+     "effect": "命令用祈使",
+     "rec": true
+    },
+    {
+     "label": "保持 ForcedLogout",
+     "effect": "不推荐",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-B12",
+   "grp": "gl-b",
+   "title": "来源记录状态的取值「有效」改叫「来源有效」",
+   "src": "前端 check:copy 守护；one-coordinator",
+   "ctx": "R-1b-0 的「来源记录状态」取值你原来确认的是「有效 / 已停用 / 已删除」。其中「有效」是界面通用词，集成层用语登记了同名词条后，前端用语检查失败：已登记的术语不得留在界面通用词清单里。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "把这个取值改叫「来源有效」，英文 Active 不变，界面通用词「有效」不动",
+     "effect": "防腐层用语不给界面文字背书；已先按这个合入，你改了再写回",
+     "rec": true
+    },
+    {
+     "label": "取值保持「有效」，把界面通用词「有效」从放行清单删掉，界面上的「有效」另登一个领域术语",
+     "effect": "界面的「有效」要有正式定义，改动大",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-B11",
+   "grp": "gl-b",
+   "title": "角色名里带 Manager（如项目经理 ProjectManager）",
+   "src": "B2-B11",
+   "ctx": "「技术泛词不作领域名」的规则里列了 Manager。项目经理是业务角色称谓。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "允许：作为角色称谓的 Manager 不算技术泛词",
+     "effect": "项目经理、客户经理都是通行的角色名",
+     "rec": true
+    },
+    {
+     "label": "一律不允许，改称「负责人」等",
+     "effect": "影响面大，需要逐个改名",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-P01",
+   "grp": "gl-p4",
+   "title": "投递用途 DeliveryPurpose（一张外发卡为什么发）",
+   "src": "R-1b P4 派工卡第 11 节；one-1a-next-4",
+   "ctx": "外发投递表的 purpose_kind 取值：任务已分配、转交、改派、已超时、升级、审批已完成，英文取值 TASK_ASSIGNED、TASK_TRANSFERRED、TASK_REASSIGNED、TASK_OVERDUE、TASK_ESCALATED、APPROVAL_COMPLETED，都对应审批模块已有的词。整组是新的业务用语，归防腐层，属企业微信长期对接。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "登记为「投递用途 / DeliveryPurpose」，取值照上面写",
+     "effect": "取值和审批事件一一对应，名字都已有",
+     "rec": true
+    },
+    {
+     "label": "不登记，作为技术枚举处理",
+     "effect": "字面常量不进词表，但新增取值就没人把关",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-E01",
+   "grp": "gl-e",
+   "title": "不符合项（质量问题与「发现」合一）",
+   "src": "全企业业务对象 Q32；one-architecture",
+   "ctx": "你选了「按推荐：合为不符合项，类型区分我方成果 / 客户资产」。词表里有质量问题、阻断性质量问题、质量损失，都在交付验收。",
+   "now": "",
+   "check": "",
+   "basis": [
+    "GB/T 19000-2016（ISO 9000:2015）术语：不合格（nonconformity），质量管理通行说法"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "登记「不符合项 / Nonconformity」；质量问题并入它，旧名作别名；阻断性质量问题改为「阻断性不符合项」，质量损失改挂不符合项",
+     "effect": "依据 GB/T 19000「不合格」概念（ISO 9000 nonconformity）；代码里的 QualityIssue 开改名卡",
+     "rec": true
+    },
+    {
+     "label": "保留「质量问题」作正式名，「不符合项」只作别名",
+     "effect": "不改代码，但与你选的名字不一致",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-E02",
+   "grp": "gl-e",
+   "title": "人员（原「员工」）与让名",
+   "src": "全企业业务对象 Q38；one-architecture",
+   "ctx": "你认可「员工改名为人员」。波及代码里的 Employee、EmployeeId（kernel、DDL、接口都在用）；同一模块里还有一条提议「人员 / StaffEmployee」同名。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "「人员」作信息图一级对象，下分员工、候选人等类型；词表里「员工」保持现名作其中一种类型，代码标识不动；提议「人员」让名为「员工任职快照」",
+     "effect": "one-architecture 已同意；不动代码，改动小",
+     "rec": true
+    },
+    {
+     "label": "全部改名：词表与代码的员工统一改成人员（含 Employee、EmployeeId）",
+     "effect": "一致，但要开大改名卡，波及面大",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-E03",
+   "grp": "gl-e",
+   "title": "财务（汇聚对象）",
+   "src": "全企业业务对象 Q38；one-architecture",
+   "ctx": "会计科目、账簿、期间、分录、资金收付、增值税发票聚在一个名下，本身没有类型、状态、关系。「财务」已经是界面通用词。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "不登记业务术语，只作会计子域的说明文字",
+     "effect": "按 DDD 它不是聚合，也不是实体",
+     "rec": true
+    },
+    {
+     "label": "登记为聚合「财务」",
+     "effect": "会和「财务」这个通用词、财务部门混在一起",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-E04",
+   "grp": "gl-e",
+   "title": "薪档 SalaryStep",
+   "src": "全企业业务对象 Q17；one-architecture",
+   "ctx": "标准成本费率的定价键是 职级 × 薪档 × 城市类别。词表里有职级（job_grade），没有薪档。薪档涉及薪酬敏感，分级和可见性由 one-architecture 处理。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "登记「薪档 / SalaryStep」，归组织人事，值对象，领域用语",
+     "effect": "薪档与职级配合定薪，行业通行说法",
+     "rec": true
+    },
+    {
+     "label": "不单独登记，作为职级的属性",
+     "effect": "不推荐：费率键里有它，要有自己的定义",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-E05",
+   "grp": "gl-e",
+   "title": "城市类别 CityCategory",
+   "src": "全企业业务对象 Q17；one-architecture",
+   "ctx": "费率定价键之一：按城市类别区分成本水平。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "登记「城市类别 / CityCategory」，归成本核算，值对象，领域用语",
+     "effect": "与你选的名字一致",
+     "rec": true
+    },
+    {
+     "label": "改叫「城市等级 / CityTier」",
+     "effect": "行业也有这种说法，但与你选的名字不一致",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-E06",
+   "grp": "gl-e",
+   "title": "协议类型五个取值；协议与合同的关系",
+   "src": "全企业业务对象 Q01；one-architecture",
+   "ctx": "你在协议类型里增了联合体协议、劳务派遣协议、居间协议、租赁合同、职业责任保险单。词表里已有「合同形态 ContractType」（独立合同、框架协议、任务订单、内部结算协议），那是另一条维度。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "登记「协议类型 / AgreementType」及五个取值；「协议」是更宽的信息图一级对象，「合同」保留为协议下的一种类型，代码不改名",
+     "effect": "依据：联合体协议见招标投标法第 31 条，居间合同、租赁合同见民法典合同编，劳务派遣见劳动合同法第五章；职业责任保险单依据待补（保险法第 65 条，待核）",
+     "rec": true
+    },
+    {
+     "label": "协议与合同同义，统一叫「合同」，协议类型改叫「合同类型」",
+     "effect": "与「合同形态」更难区分",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-E07",
+   "grp": "gl-e",
+   "title": "内部结算协议（C-41）",
+   "src": "全企业业务对象 Q01；one-architecture",
+   "ctx": "你在协议类型里没有选内部结算协议，但词表里 contract_type 的取值、internal_settlement_term 都有它，ADR-0011 已落地。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "保持词表和 ADR 不变；内部结算协议只是不放进协议类型枚举，因为它是集团内部结算，不是对外协议",
+     "effect": "你没有说要删除，只是没选",
+     "rec": true
+    },
+    {
+     "label": "从「合同形态」里去掉内部结算协议，并改 ADR-0011",
+     "effect": "影响已落地的设计，需要大改",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-E08",
+   "grp": "gl-e",
+   "title": "组织单元类型与层级拆分",
+   "src": "全企业业务对象 Q37a；one-architecture",
+   "ctx": "你定区域与事业部是同一维度的两种组织单元类型。现有词条「组织单元层级 / OrgUnitLevel」把层级和类型混在一起（区域、事业部、交付中心、客户服务中心等）。",
+   "now": "",
+   "check": "",
+   "basis": [],
+   "practice": [],
+   "opts": [
+    {
+     "label": "拆成两个词：「组织单元类型」（区域、事业部、交付中心、客户服务中心）和「层级」（树上的第几层）；「区域负责人」保持为区域类组织单元的负责人",
+     "effect": "对应 one-architecture 的 C-51",
+     "rec": true
+    },
+    {
+     "label": "保持合一，只改定义说明",
+     "effect": "类型与层级仍混在一个词里",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A01",
+   "grp": "gl-a-ts",
+   "title": "工时单已批准（TimesheetApproved）",
+   "src": "B2 清单 B2-A01；cost.timesheet；领域事件；领域用语",
+   "ctx": "工时单审批通过，工时成立；过程里程碑，以工作日期记业务日",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A02",
+   "grp": "gl-a-ts",
+   "title": "工时单审批已撤销（TimesheetCancelled）",
+   "src": "B2 清单 B2-A02；cost.timesheet；领域事件；领域用语",
+   "ctx": "填报人撤销审批，工时单回到草稿；不记为驳回；以工作日期记业务日",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A03",
+   "grp": "gl-a-ts",
+   "title": "工时单已驳回（TimesheetRejected）",
+   "src": "B2 清单 B2-A03；cost.timesheet；领域事件；领域用语",
+   "ctx": "工时单被驳回，工时不成立；以工作日期记业务日",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A04",
+   "grp": "gl-a-ts",
+   "title": "工时单已退回（TimesheetReturned）",
+   "src": "B2 清单 B2-A04；cost.timesheet；领域事件；领域用语",
+   "ctx": "审批人退回或填报人撤回，工时单回到可修改状态，下一轮重新提交；以工作日期记业务日",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A05",
+   "grp": "gl-a-ts",
+   "title": "工时单已提交审批（TimesheetSubmitted）",
+   "src": "B2 清单 B2-A05；cost.timesheet；领域事件；领域用语",
+   "ctx": "填报人把工时单提交审批，工时单进入新一轮审批；以工作日期记业务日，提交日另记；只陈述事实，不过账",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A06",
+   "grp": "gl-a-org",
+   "title": "工作日历年度已维护（WorkCalendarYearMaintained）",
+   "src": "B2 清单 B2-A06；organization.attendance；领域事件；领域用语",
+   "ctx": "某一年的工作日历被保存：有日期被加入、去掉或改了日类型，或该年只是被重新核对；记下变动的日期",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A07",
+   "grp": "gl-a-org",
+   "title": "法人归属（LegalEntityAttribution）",
+   "src": "B2 清单 B2-A07；organization.workforce；聚合；领域用语",
+   "ctx": "一个部门或一名员工在某段时间内归属于哪个法人主体的记录；各段期间互不重叠，历史只能关闭、不能改写，新的归属只能从最近一段的开始日之后起算",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个聚合，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A09",
+   "grp": "gl-a-org",
+   "title": "员工已登记（EmployeeRegistered）",
+   "src": "B2 清单 B2-A09；organization.workforce；领域事件；领域用语",
+   "ctx": "员工第一次登录时，被登记进组织快照；此后下一次同步会带入完整信息",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A10",
+   "grp": "gl-a-org",
+   "title": "法人主体已启用（LegalEntityActivated）",
+   "src": "B2 清单 B2-A10；organization.workforce；领域事件；领域用语",
+   "ctx": "一个法人主体被启用，可以开始作为法人使用",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A11",
+   "grp": "gl-a-org",
+   "title": "法人归属已确立（LegalEntityAttributed）",
+   "src": "B2 清单 B2-A11；organization.workforce；领域事件；领域用语",
+   "ctx": "部门或员工从某日起归属于某个法人主体",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A12",
+   "grp": "gl-a-org",
+   "title": "法人归属结束日已更正（LegalEntityAttributionCorrected）",
+   "src": "B2 清单 B2-A12；organization.workforce；领域事件；领域用语",
+   "ctx": "已关闭的法人归属期间的结束日被更正",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A13",
+   "grp": "gl-a-org",
+   "title": "法人归属已结束（LegalEntityAttributionEnded）",
+   "src": "B2 清单 B2-A13；organization.workforce；领域事件；领域用语",
+   "ctx": "部门或员工对某个法人主体的归属在某日结束",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A14",
+   "grp": "gl-a-org",
+   "title": "法人主体代码已更正（LegalEntityCodeCorrected）",
+   "src": "B2 清单 B2-A14；organization.workforce；领域事件；领域用语",
+   "ctx": "法人主体的代码被更正；仅在尚未发过号时允许",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A15",
+   "grp": "gl-a-org",
+   "title": "法人主体已停用（LegalEntityDeactivated）",
+   "src": "B2 清单 B2-A15；organization.workforce；领域事件；领域用语",
+   "ctx": "一个法人主体被停用，不再作为法人使用",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A16",
+   "grp": "gl-a-org",
+   "title": "法人主体已登记（LegalEntityRegistered）",
+   "src": "B2 清单 B2-A16；organization.workforce；领域事件；领域用语",
+   "ctx": "一个新的法人主体被登记进组织人事",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A17",
+   "grp": "gl-a-org",
+   "title": "法人主体已更名（LegalEntityRenamed）",
+   "src": "B2 清单 B2-A17；organization.workforce；领域事件；领域用语",
+   "ctx": "法人主体的名称被改变",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A18",
+   "grp": "gl-a-org",
+   "title": "组织快照已变化（OrgSnapshotChanged）",
+   "src": "B2 清单 B2-A18；organization.workforce；领域事件；防腐层用语（过渡期）",
+   "ctx": "一次组织同步使组织快照发生了变化；离职人员的会话据此被收回；业务日为快照截止日，生效日同截止日",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A19",
+   "grp": "gl-a-org",
+   "title": "同步记录已失败（SyncRunFailed）",
+   "src": "B2 清单 B2-A19；organization.workforce；领域事件；领域用语",
+   "ctx": "一次组织同步运行失败",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A20",
+   "grp": "gl-a-org",
+   "title": "同步记录已被暂停（SyncRunHeld）",
+   "src": "B2 清单 B2-A20；organization.workforce；领域事件；领域用语",
+   "ctx": "一次组织同步因缩水保护而被中止并保持暂停，等待有权的人放行",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A21",
+   "grp": "gl-a-org",
+   "title": "同步记录一类暂停已解除（SyncRunHoldReleased）",
+   "src": "B2 清单 B2-A21；organization.workforce；领域事件；领域用语",
+   "ctx": "被暂停的同步，其中一类暂停被有权的人解除；另一类暂停仍在时，运行保持暂停",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A22",
+   "grp": "gl-a-org",
+   "title": "同步记录已放行（SyncRunReleased）",
+   "src": "B2 清单 B2-A22；organization.workforce；领域事件；领域用语",
+   "ctx": "被中止的同步已由管理员放行，或被后续成功的同步取代；记下接替的运行与管理员给出的原因",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A23",
+   "grp": "gl-a-org",
+   "title": "同步记录已成功（SyncRunSucceeded）",
+   "src": "B2 清单 B2-A23；organization.workforce；领域事件；领域用语",
+   "ctx": "一次组织同步运行成功",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A24",
+   "grp": "gl-a-appr",
+   "title": "审批请求（ApprovalRequest）",
+   "src": "B2 清单 B2-A24；platform.approval；聚合；领域用语",
+   "ctx": "对同一种审批流程中的同一张单据所发起的审批，一张单据在一种流程下只有一个；每一轮审批有自己的流程实例，本轮的审批任务归它管理，只能通过它修改",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个聚合，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A25",
+   "grp": "gl-a-appr",
+   "title": "审批轮次已开始（ApprovalRoundStarted）",
+   "src": "B2 清单 B2-A25；platform.approval；领域事件；领域用语",
+   "ctx": "审批开始新一轮：首次发起，或退回、驳回、撤销之后重新发起；过程里程碑",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A26",
+   "grp": "gl-a-appr",
+   "title": "任务已升级（ApprovalTaskEscalated）",
+   "src": "B2 清单 B2-A26；platform.approval；领域事件；领域用语",
+   "ctx": "任务超时仍未处理，已升级给审批人的上级；取不到上级则交流程管理员",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A27",
+   "grp": "gl-a-appr",
+   "title": "任务已超时（ApprovalTaskOverdue）",
+   "src": "B2 清单 B2-A27；platform.approval；领域事件；领域用语",
+   "ctx": "任务超过审批时限仍未处理；只提醒，不自动通过，计入时效统计",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A28",
+   "grp": "gl-a-appr",
+   "title": "单据已请求审批（DocumentSubmittedForApproval）",
+   "src": "B2 清单 B2-A28；platform.approval；领域事件；领域用语",
+   "ctx": "单据的所有者请审批模块发起一轮审批，并带齐发起所需的全部信息；同一单据同一轮重复收到只发起一次",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A29",
+   "grp": "gl-a-appr",
+   "title": "任务已认领（TaskClaimed）",
+   "src": "B2 清单 B2-A29；platform.approval；领域事件；领域用语",
+   "ctx": "任务被候选人之一认领，其他候选人的待办随之改为已处理",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A30",
+   "grp": "gl-a-appr",
+   "title": "任务已关闭（TaskClosed）",
+   "src": "B2 清单 B2-A30；platform.approval；领域事件；领域用语",
+   "ctx": "本轮在任务办结前结束（驳回、退回、撤回、撤销），任务关闭，未办理的候选人失去办理权",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A31",
+   "grp": "gl-a-appr",
+   "title": "任务已改派（TaskReassigned）",
+   "src": "B2 清单 B2-A31；platform.approval；领域事件；领域用语",
+   "ctx": "流程管理员把任务改派给另一个人，填写原因并留痕",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A32",
+   "grp": "gl-a-appr",
+   "title": "任务已退回候选组（TaskReleased）",
+   "src": "B2 清单 B2-A32；platform.approval；领域事件；领域用语",
+   "ctx": "任务的处理人把任务退回候选组，候选人可以再次认领",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A34",
+   "grp": "gl-a-appr",
+   "title": "任务已转交（TaskTransferred）",
+   "src": "B2 清单 B2-A34；platform.approval；领域事件；领域用语",
+   "ctx": "任务的当前处理人把任务转交给他人",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A35",
+   "grp": "gl-a-ident",
+   "title": "用户账号已启用（AccountEnabled）",
+   "src": "B2 清单 B2-A35；platform.identity；领域事件；领域用语",
+   "ctx": "一个用户账号被启用，可以登录使用",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A36",
+   "grp": "gl-a-ident",
+   "title": "用户账号已开立（AccountOpened）",
+   "src": "B2 清单 B2-A36；platform.identity；领域事件；领域用语",
+   "ctx": "为一个人开立用户账号，包含开立时授予的角色",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A37",
+   "grp": "gl-a-ident",
+   "title": "用户账号角色已替换（AccountRolesReplaced）",
+   "src": "B2 清单 B2-A37；platform.identity；领域事件；领域用语",
+   "ctx": "一个用户账号的角色被整体替换为新的一组",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A38",
+   "grp": "gl-a-ident",
+   "title": "用户账号已因离职收回角色（AccountSeparated）",
+   "src": "B2 清单 B2-A38；platform.identity；领域事件；领域用语",
+   "ctx": "账号的本人离职，账号收回全部角色；挂在账号上的东西（如应急账号）随这一事实处理",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A39",
+   "grp": "gl-a-ident",
+   "title": "授权申请已确认（AuthorizationConfirmed）",
+   "src": "B2 清单 B2-A39；platform.identity；领域事件；领域用语",
+   "ctx": "敏感授权申请被另一个人确认",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A40",
+   "grp": "gl-a-ident",
+   "title": "授权申请已开立（AuthorizationOpened）",
+   "src": "B2 清单 B2-A40；platform.identity；领域事件；领域用语",
+   "ctx": "一个敏感授权申请被提出，等待另一个人确认",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A41",
+   "grp": "gl-a-ident",
+   "title": "授权申请已拒绝（AuthorizationRejected）",
+   "src": "B2 清单 B2-A41；platform.identity；领域事件；领域用语",
+   "ctx": "敏感授权申请被拒绝，或被申请人撤回",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A42",
+   "grp": "gl-a-ident",
+   "title": "应急管理员凭据已重置（EmergencyAdminCredentialsReset）",
+   "src": "B2 清单 B2-A42；platform.identity；领域事件；领域用语",
+   "ctx": "应急管理员的登录凭据被重置",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A43",
+   "grp": "gl-a-ident",
+   "title": "应急管理员已停用（EmergencyAdminDisabled）",
+   "src": "B2 清单 B2-A43；platform.identity；领域事件；领域用语",
+   "ctx": "应急管理员因离职或运维命令而被停用",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A44",
+   "grp": "gl-a-ident",
+   "title": "应急管理员已启用（EmergencyAdminEnabled）",
+   "src": "B2 清单 B2-A44；platform.identity；领域事件；领域用语",
+   "ctx": "应急管理员被启用，可作为应急入口使用",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A45",
+   "grp": "gl-a-ident",
+   "title": "应急管理员已登记（EmergencyAdminRegistered）",
+   "src": "B2 清单 B2-A45；platform.identity；领域事件；领域用语",
+   "ctx": "一名应急管理员被登记",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A46",
+   "grp": "gl-a-ident",
+   "title": "角色已设立（RoleCreated）",
+   "src": "B2 清单 B2-A46；platform.identity；领域事件；领域用语",
+   "ctx": "新设立一个角色",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A48",
+   "grp": "gl-a-ident",
+   "title": "角色已停用（RoleDisabled）",
+   "src": "B2 清单 B2-A48；platform.identity；领域事件；领域用语",
+   "ctx": "一个角色被停用",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A49",
+   "grp": "gl-a-ident",
+   "title": "角色已启用（RoleEnabled）",
+   "src": "B2 清单 B2-A49；platform.identity；领域事件；领域用语",
+   "ctx": "一个角色被启用",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A50",
+   "grp": "gl-a-ident",
+   "title": "角色已修订（RoleRevised）",
+   "src": "B2 清单 B2-A50；platform.identity；领域事件；领域用语",
+   "ctx": "角色的名称、数据范围或权限被修改",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A52",
+   "grp": "gl-a-integ",
+   "title": "来源对照已确认（SourceReferenceConfirmed）",
+   "src": "B2 清单 B2-A52；platform.integration；领域事件；领域用语",
+   "ctx": "另一个人确认了登记的来源对照，从生效日起用于出站",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A53",
+   "grp": "gl-a-integ",
+   "title": "来源对照已登记（SourceReferenceRegistered）",
+   "src": "B2 清单 B2-A53；platform.integration；领域事件；领域用语",
+   "ctx": "有人登记了一条来源对照（核算组织编码），等待他人确认",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A54",
+   "grp": "gl-a-integ",
+   "title": "来源对照登记已被拒绝（SourceReferenceRegistrationRefused）",
+   "src": "B2 清单 B2-A54；platform.integration；领域事件；领域用语",
+   "ctx": "有人试图人工登记只能由同步或导入写入的来源对照，被拒绝，未存储任何对照",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A55",
+   "grp": "gl-a-integ",
+   "title": "来源对照已拒绝（SourceReferenceRejected）",
+   "src": "B2 清单 B2-A55；platform.integration；领域事件；领域用语",
+   "ctx": "另一个人拒绝了登记的来源对照；已生效的对照不变",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A56",
+   "grp": "gl-a-integ",
+   "title": "来源对照已被取代（SourceReferenceSuperseded）",
+   "src": "B2 清单 B2-A56；platform.integration；领域事件；领域用语",
+   "ctx": "生效中的来源对照，在后继对照的生效日结束",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A57",
+   "grp": "gl-a-integ",
+   "title": "编号规则已获一次确认（NumberingRuleConfirmationGiven）",
+   "src": "B2 清单 B2-A57；platform.numbering；领域事件；领域用语",
+   "ctx": "编号规则的模板版本得到业务或财务其中一方的一次确认",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A58",
+   "grp": "gl-a-integ",
+   "title": "编号规则已确认（NumberingRuleConfirmed）",
+   "src": "B2 清单 B2-A58；platform.numbering；领域事件；领域用语",
+   "ctx": "编号规则的模板版本已确认齐全，从此开始发号",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-A59",
+   "grp": "gl-a-integ",
+   "title": "编号规则已重新设置（NumberingRuleReconfigured）",
+   "src": "B2 清单 B2-A59；platform.numbering；领域事件；领域用语",
+   "ctx": "编号规则保存了新的模板版本，等待他人确认",
+   "now": "",
+   "check": "",
+   "basis": [
+    "代码里已有这个领域事件，词表里缺词条；命名按 DDD：事件为过去式业务动词（B 规则）"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "同意：按上面登记",
+     "effect": "登记为提议术语，随后转为正式",
+     "rec": true
+    },
+    {
+     "label": "不同意或要改叫法",
+     "effect": "在说明里写你要的中文名和理由",
+     "rec": false
+    }
+   ]
+  }
+ ],
+ "info": [
+  {
+   "title": "这张单子是什么",
+   "lines": [
+    "B2 把代码里缺词条的聚合和事件登记成提议（59 条），其中 4 条有争议并入 B 组，其余 55 条在最后五组，推荐都是同意。",
+    "B 组 12 题是名字或类别要你定的事；全企业业务对象 8 题来自 one-architecture；P4 一题。",
+    "「改代码的」推荐，改名交各模块负责会话开卡，不在词表 PR 里改代码。"
+   ]
+  }
+ ],
+ "side": []
+}
