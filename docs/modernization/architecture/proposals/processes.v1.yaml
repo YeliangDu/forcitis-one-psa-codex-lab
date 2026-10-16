@@ -290,7 +290,7 @@ processes:
       - {actor: 项目经理, command: 登记提交轮次送达, aggregate: AGG-27, emits: [交付物已送达], desc: 项目经理向客户送达交付物（合并原 PRC-29，⑥a 评审 H2 c、M2）}
       - {actor: 项目经理, command: 登记客户认可, aggregate: AGG-27, emits: [交付物已认可], desc: 有阻断性不符合项时拒绝（INV-48）}
       - {actor: 项目经理, command: 登记客户退回, aggregate: AGG-27, branch: 退回, emits: [AcceptanceReturned], desc: 轮次加 1}
-      - {actor: 项目经理, command: 登记客户无异议声明, aggregate: AGG-27, branch: 书面声明, emits: [无异议已声明]}
+      - {actor: 项目经理, command: 登记项目经理的无异议声明, aggregate: AGG-27, branch: 无异议声明, emits: [无异议已声明]}
     notes: 合并原 PRC-29。检查报告走同一流程（INV-51 同 BC 前置读不符合项）；已发布版本不可改，只出新版本（INV-46）。交付侧不判断视为同意，期满判定在 B-08（D-8）。订阅方 B-08、B-05。
 
   - id: PRC-30
@@ -549,10 +549,10 @@ processes:
     stages: [VS-04.2]
     owner_bc: B-08
     human_orchestration: true
-    human_note: 期满待办、项目经理人工声明、期满前退回则取消
+    human_note: 期满待办、项目经理人工确认期满、期满前退回则取消
     steps:
       - {actor: 系统策略, read: true, reads: [AGG-13, AGG-27], command: 计算期满日并生成待办, desc: P-21；核对期满前无退回、声明日不早于期满日}
-      - {actor: 项目经理, command: 登记期满未收异议声明, aggregate: AGG-44, on_time: 送达日起合同审查期满, emits: [视为同意已成立], desc: 附函件检索记录，D-8}
+      - {actor: 项目经理, command: 确认视为同意期满, aggregate: AGG-44, on_time: 送达日起合同审查期满, emits: [视为同意已成立], reads: [AGG-27], desc: 读 AGG-27 的无异议声明与送达日判定期满，D-8}
       - {actor: 系统策略, command: 确认收入, aggregate: AGG-44, emits: [RevenueRecognized]}
       - {actor: 系统策略, command: 提交过账候选, aggregate: AGG-44, calls: PRC-92}
     notes: 视为同意不自动确认收入，须人工声明（ADR-0047 第 5 条）。「AcceptanceReturned」订阅方 B-08 的反应（期满前退回则取消待办）是读检不是命令，记入 G-19。
