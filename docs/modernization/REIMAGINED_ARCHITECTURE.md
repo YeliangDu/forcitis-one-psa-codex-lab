@@ -90,7 +90,7 @@ platform.approval -> platform.identity, organization.workforce, platform.integra
 | **`organization.attendance` 提前到 1a 建**（工作日历） | 「BC 提前到 1a 建；默认日历一份，预留法人专属日历」 | schema `organization_attendance`；`WorkCalendar` 周末休息、其余上班，叠加按年维护的节假日与调休上班日，业务时区 Asia/Shanghai（`forcitis.kernel.business-zone`）；依赖的年份未维护则失败并告警；维护权限 `organization.attendance:work-calendar:update` |
 | **版本只写在路径里**（复审 M3） | 「删除 ApiVersioning，@RequestMapping 写死 /api/v1」 | 控制器直接写 `/api/v1/...`，`/api/1/...` 是 404；破坏性变更另开 `/api/v2/` 控制器 |
 | **审计订阅领域事件** | 「B 审计订阅领域事件 (Recommended)」 | 对外有意义的业务状态变化，审计统一订阅领域事件（事件发布登记表保证不漏记）；安全事件（登录失败、拒绝访问）仍用 `recordIndependently` |
-| **审批时限 T+1 工作日** | 「工时要求T+1 审批完毕……」；T 从提交当天起算，+1 按工作日（需要工作日历）；超时提醒、升级给上级、计入时效统计，不自动通过 | 引擎通用的审批时限能力，时限由 DMN 或配置给出；工作日历由管理员维护；事件 `ApprovalTaskOverdue`、`ApprovalTaskEscalated` |
+| **审批时限 T+1 工作日** | 「工时要求T+1 审批完毕……」；T 从提交当天起算，+1 按工作日（需要工作日历）；超时提醒、升级给上级、计入时效统计，不自动通过 | 引擎通用的审批时限能力，时限由 DMN 或配置给出；工作日历由管理员维护；事件 `ApprovalTaskBecameOverdue`、`ApprovalTaskEscalated` |
 
 无环要点：integration 不认识 FORCITIS one 用户；企业微信 userid 由 workforce 快照持有，identity 在登录时按 userid 查 workforce 的 api（取消 `external_identities` 表，评审 #8）；通知时 approval 从 workforce 取收件人的 userid，再调 integration 发送；审计由各模块调用 audit 的 api。各模块 api 方法数 ≤ 12（`ArchitectureRulesTest`）。
 
@@ -231,10 +231,10 @@ stateDiagram-v2
     [*] --> COMPLETED: assignAutomatically（RULE-302，无卡片无结果事件）
     PENDING --> CLAIMED: claim（TaskClaimed）
     CLAIMED --> CLAIMED: transfer（TaskTransferred）
-    CLAIMED --> COMPLETED: complete（TaskResulted）
+    CLAIMED --> COMPLETED: complete（TaskHandled）
     PENDING --> CLOSED: close（本轮已结束）
     CLAIMED --> CLOSED: close
-    PENDING --> PENDING: markOverdue（ApprovalTaskOverdue，一次）
+    PENDING --> PENDING: markOverdue（ApprovalTaskBecameOverdue，一次）
     CLAIMED --> CLAIMED: markOverdue
     CLAIMED --> PENDING: escalate（ApprovalTaskEscalated：释放认领，一次，须先超时）
     PENDING --> PENDING: escalate
@@ -253,7 +253,7 @@ sequenceDiagram
     R->>A: 异步发起（StartApprovalOnSubmission 调用 ApprovalProcesses.start；按单据 + 轮次 + 触发事件幂等）
     A-->>R: ApprovalRoundStarted、TaskAssigned（每位会签审批人一个任务）
     M->>A: 认领、办理（服务端校验操作人）
-    A-->>R: TaskClaimed、TaskResulted
+    A-->>R: TaskClaimed、TaskHandled
     A-->>R: ApprovalCompleted（APPROVED / REJECTED / RETURNED / CANCELLED）
     R->>T: ApplyApprovalResult（按 eventId 幂等；轮次不符忽略）
     T-->>R: TimesheetApproved / Returned / Rejected / Cancelled
@@ -293,7 +293,7 @@ flowchart LR
 - 通知意图（`TaskAssigned`、`ApprovalCompleted`、知会）→ approval 内部的通知端口（接口隔离；出现第二个使用者时再抽出 `platform.notification`，评审 #17）→ 从 workforce 取 userid → integration 发送 **文本卡片 + 跳转链接，不带按钮**（评审 #10）。`touser` 精确匹配，不带 `@all`。失败记入 `outbound_deliveries`，退避重试，进死信时告警。
 - 卡片按钮回调（C1a-15 的 P1 部分）推迟。原因：企业微信应用只有一个回调地址，目前由老系统占用。等老待办排空，或者新开独立的企业微信应用之后再做。
 - **候选组通知策略待 Q-3**：改为候选组认领后，一个任务会通知 N 个人。
-- 审批时限与转交增加三种卡片：超时提醒（`ApprovalTaskOverdue`，发给处理人）、升级（`ApprovalTaskEscalated`，发给上级或流程管理员）、转交（`TaskTransferred`，发给新处理人）；去重键分别是 `approval-task:{taskId}:overdue`、`:escalated`、`:transfer:{eventId}`。
+- 审批时限与转交增加三种卡片：超时提醒（`ApprovalTaskBecameOverdue`，发给处理人）、升级（`ApprovalTaskEscalated`，发给上级或流程管理员）、转交（`TaskTransferred`，发给新处理人）；去重键分别是 `approval-task:{taskId}:overdue`、`:escalated`、`:transfer:{eventId}`。
 - 非生产环境：收件人改为配置的白名单，agentId 按环境配置（RULE-375）。
 
 ### 3.8 安全验证
