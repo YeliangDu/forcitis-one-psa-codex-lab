@@ -597,7 +597,7 @@
     - 商机名称
     - 正式往来单位引用
     - 委托方式
-    - 状态(跟进/赢单/丢单/放弃)
+    - 状态(跟进/已决定参投/赢单/丢单/放弃)
     - 预计金额
     - 来源线索引用
     - 审计列
@@ -635,6 +635,25 @@
     - 日期
     - 登记人引用
     reason: 直接委托分支，赢单时校验已上传(INV-27)；P-1 下游需要由 AGG-110 登记，不在此引用 B-28
+  - name: opportunity_bid_decisions
+    role: child
+    key: uuid_v7
+    references:
+    - to: AGG-62
+      by: decided_by_person_id
+      cross_bc: true
+    versioned: append_only
+    history_migration: none
+    sensitivity: internal
+    pi: pi
+    column_families:
+    - 判断清单评分(风险/产能/赢率/利润/客户资信)
+    - 理由
+    - 决定(参投/放弃)
+    - 触发的异常条件
+    - 审批实例引用
+    - 决定人引用与时间
+    reason: 参投决策留痕（用户 VS01-10，PRC-183）；驳回后重判追加新行；老系统无此记录，不迁入；pi=pi：决定人引用
   - name: opportunity_loss_records
     role: child
     key: uuid_v7

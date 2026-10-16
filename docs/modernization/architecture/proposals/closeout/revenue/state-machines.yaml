@@ -1668,6 +1668,7 @@ machines:
   initial: 跟进中
   states:
   - 跟进中
+  - 已决定参投
   - name: 已赢单
     terminal: true
   - name: 已丢单
@@ -1690,11 +1691,34 @@ machines:
     to: 跟进中
     command: 维护商机参与团队
   - from: 跟进中
+    to: 跟进中
+    command: 登记参投判断
+    note: 只记判断清单、评分与理由，状态不变（PRC-183）
+  - from: 跟进中
+    to: 已决定参投
+    command: 作出参投决策
+    note: 用户 VS01-10；异常条件时经参投例外审批后生效
+  - from: 已决定参投
+    to: 已决定参投
+    command: 变更商机负责人
+    guard:
+    - INV-26
+  - from: 已决定参投
+    to: 已决定参投
+    command: 维护商机参与团队
+  - from: 已决定参投
     to: 已赢单
     command: 商机赢单
     guard:
     - INV-27
     - INV-33
+    note: 赢单须先作参投决策（用户 VS01-10，适用所有商机）
+  - from: 已决定参投
+    to: 已丢单
+    command: 登记商机丢单
+  - from: 已决定参投
+    to: 已放弃
+    command: 放弃商机
   - from: 跟进中
     to: 已丢单
     command: 登记商机丢单

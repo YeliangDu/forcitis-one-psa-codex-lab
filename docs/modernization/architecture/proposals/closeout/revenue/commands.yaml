@@ -2250,6 +2250,36 @@ commands:
   - 商机ID
   emits:
   - 商机已放弃
+- name: 登记参投判断
+  aggregate: AGG-10
+  params:
+  - 商机
+  - 判断清单评分（风险、产能、赢率、利润、客户资信）
+  - 理由
+  preconditions:
+  - 商机为「跟进中」
+  - 判断清单必填项齐全（规则卡待 one-rules）
+  authority:
+    A: 商机负责人（SH-E5）
+  idempotency_key:
+  - 商机ID
+  - 判断序号
+  emits: []
+- name: 作出参投决策
+  aggregate: AGG-10
+  params:
+  - 商机
+  - 参投判断引用
+  - 审批实例（触发异常条件时）
+  preconditions:
+  - 商机为「跟进中」且已登记参投判断
+  - 触发异常条件（低于毛利底线、超产能、独立性冲突）时须审批已通过
+  authority:
+    A: 商机负责人（SH-E5）；例外时部门负责人（SH-M1）审批
+  idempotency_key:
+  - 商机ID
+  emits:
+  - 商机已决定参投
 - name: 登记资格预审结果
   aggregate: AGG-11
   params:

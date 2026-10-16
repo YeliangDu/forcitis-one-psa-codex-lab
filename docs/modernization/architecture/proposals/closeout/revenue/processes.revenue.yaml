@@ -592,7 +592,7 @@ processes:
   name: 参加投标，缴纳保证金并登记结果
   trigger:
     type: human
-    desc: 收到邀标或招标公告
+    desc: 商机已决定参投（PRC-183）后，收到邀标或招标公告，或直接委托待登记
   stages:
   - VS-01.2
   primary_object: OBJ-18
@@ -655,7 +655,7 @@ processes:
   - id: SH-M1
     as: approver
     org_needs:
-      responsibility: 投标保证金付款审批与是否参投判断（归属对象责任人，商机负责人的部门负责人）
+      responsibility: 投标保证金付款审批（归属对象责任人，商机负责人的部门负责人）；参投判断已移至 PRC-183
       approval_right: 投标保证金付款：一级审批，超额按 AR-01、AR-02 加审
       department_hint: 市场与经营部门或区域事业部
       position_hint: 部门负责人
@@ -757,7 +757,7 @@ processes:
     added_in: closeout
     command: 发起付款
     aggregate: AGG-53
-    desc: 招标文件要求缴纳投标保证金的，商机负责人发起保证金付款；付款走 B-10 付款审批，收款方须为招标人已登记账户（INV-80）、经办与审批与出纳分离（INV-81）。是否参投（go/no-go）一并在此由归属对象责任人判断（建议，待用户定 M15）
+    desc: 招标文件要求缴纳投标保证金的，商机负责人发起保证金付款；付款走 B-10 付款审批，收款方须为招标人已登记账户（INV-80）、经办与审批与出纳分离（INV-81）。参投与否已在 PRC-183 决定（用户 VS01-10），本审批只管资金：金额、收款账户与招标文件依据
     decision:
     - when: otherwise
       goto: 5
@@ -771,7 +771,7 @@ processes:
       - AR-01
       - AR-02
       on_reject: 12
-      why_human: 保证金是否值得缴、是否参投（go/no-go）取决于项目价值、竞争态势与资金占用，系统只能核对金额阈值与收款账户，不能代替这项商业判断。
+      why_human: 保证金金额是否与招标文件要求一致、资金占用是否可承受需要人核对招标文件与资金安排，系统只能核对金额阈值与收款账户；参投判断不在此（PRC-183）。
     permission: 保证金付款.发起
     page: 保证金付款申请页
     audit: true
@@ -1159,6 +1159,167 @@ processes:
     - SH-E5
     - SH-E6
     rule: 保证金付款申请人与出纳登记缴纳不得为同一人（INV-81 经办与出纳分离）
+- id: PRC-183
+  name: 作出参投决策
+  trigger:
+    type: human
+    desc: 商机跟进到需决定是否投入投标或承接时（招标、议标、直接委托均适用）
+  stages:
+  - VS-01.2
+  primary_object: OBJ-18
+  owner_bc: B-03
+  human_orchestration: true
+  human_note: 商机负责人决定并留痕，不设审批；低于毛利底线、超产能、独立性冲突时按异常加一级（部门负责人）
+  triggers:
+  - type: human
+    name: 商机负责人在跟进中的商机上作参投决策
+  outcomes:
+  - 商机已决定参投
+  - 商机已放弃
+  scenarios:
+  - PRC-183-S01
+  - PRC-183-S02
+  - PRC-183-S03
+  - PRC-183-S04
+  - PRC-183-S05
+  roles:
+  - id: SH-E5
+    as: initiator
+    org_needs:
+      responsibility: 商机负责人按判断清单逐项评分、写明理由，决定参投或放弃
+      approval_right: 无审批权
+      department_hint: 市场与经营部门、各区域事业部
+      position_hint: 客户经理、商机负责人
+  - id: SH-M1
+    as: approver
+    org_needs:
+      responsibility: 触发异常条件（低于毛利底线、超产能、独立性冲突）时审批参投决策（商机负责人的部门负责人）
+      approval_right: 参投例外：一级审批
+      department_hint: 市场与经营部门或区域事业部
+      position_hint: 部门负责人
+  migration: 历史商机无参投决策记录，不补造；投产时跟进中的商机按「跟进中」迁入，需投标或承接的由商机负责人在新系统补作参投决策；已赢单、丢单、放弃的商机不补
+  scope: 按商机数据范围：商机负责人与参与团队可见并经办；部门负责人按管理链可见并审批例外
+  steps:
+  - actor: system
+    where: automatic
+    read: true
+    reads:
+    - AGG-10
+    - AGG-01
+    - AGG-18
+    - AGG-12
+    desc: 读商机（委托方式、客户投资限额 / 限价）、往来单位资信、独立性检查结论与报价（预计毛利），供判断清单预填
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-01
+      name: 读往来单位资信
+    audit: false
+    decision:
+    - when: otherwise
+      goto: 2
+      p: 1.0
+  - actor: SH-E5
+    where: in_system
+    command: 登记参投判断
+    aggregate: AGG-10
+    desc: 按判断清单（风险、产能、赢率、利润、客户资信）逐项评分并写明理由，必填项缺失则拒绝登记；清单项、评分口径与异常阈值由规则卡守（one-rules，待给号）；商机须为「跟进中」
+    decision:
+    - when: 决定放弃
+      goto: 5
+      p: 0.2
+    - when: 决定参投且触发异常条件（低于毛利底线、超产能、独立性冲突）
+      goto: 3
+      p: 0.1
+    - when: otherwise
+      goto: 4
+      p: 0.7
+    permission: 商机.登记参投判断
+    page: 商机参投决策页
+    audit: true
+    effort:
+      typical_min: 20
+      p90_min: 60
+  - actor: SH-E5
+    where: in_system
+    command: 作出参投决策
+    aggregate: AGG-10
+    branch: 例外
+    emits:
+    - 商机已决定参投
+    desc: 触发异常条件的参投决策经部门负责人一级审批后生效；驳回回到第 2 步，商机负责人调整判断或决定放弃
+    decision:
+    - when: otherwise
+      goto: end
+      outcome: 商机已决定参投
+      p: 1.0
+    approval:
+      engine: platform.approval
+      doc_type: 参投例外审批
+      approver: cost_object_owner
+      multi_level: false
+      on_reject: 2
+      why_human: 低于毛利底线、超产能或有独立性冲突时仍要参投，是战略取舍（客户关系、市场进入、产能调配），系统只能判断是否触发阈值，不能判断例外是否值得
+    permission: 商机.作出参投决策
+    page: 商机参投决策页
+    audit: true
+    metric_event: true
+    outcome: 商机已决定参投
+    effort:
+      typical_min: 5
+      p90_min: 15
+    wait:
+      typical_h: 24
+      p90_h: 72
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: platform.approval
+      name: 发起审批
+  - actor: SH-E5
+    where: in_system
+    command: 作出参投决策
+    aggregate: AGG-10
+    emits:
+    - 商机已决定参投
+    desc: 未触发异常条件的，商机负责人决定即生效，不设审批；之后投标见 PRC-08、直接委托在 PRC-08 登记委托赢单
+    decision:
+    - when: otherwise
+      goto: end
+      outcome: 商机已决定参投
+      p: 1.0
+    permission: 商机.作出参投决策
+    page: 商机参投决策页
+    audit: true
+    metric_event: true
+    outcome: 商机已决定参投
+    effort:
+      typical_min: 5
+      p90_min: 10
+  - actor: SH-E5
+    where: in_system
+    command: 放弃商机
+    aggregate: AGG-10
+    branch: 放弃
+    emits:
+    - 商机已放弃
+    desc: 决定不参投即放弃商机，原因取参投判断的理由
+    decision:
+    - when: otherwise
+      goto: end
+      outcome: 商机已放弃
+      p: 1.0
+    permission: 商机.放弃
+    page: 商机放弃页
+    audit: true
+    metric_event: true
+    outcome: 商机已放弃
+    effort:
+      typical_min: 5
+      p90_min: 10
+  notes: 用户 VS01-10（one-coordinator 转达，2026-10-16）：每个商机独立作参投决策，适用招标、议标、直接委托；商机负责人决定并留痕、不设审批，触发条件按异常加一级。PRC-08 去掉参投判断，保证金付款审批只管资金。IDI 风险管理机构的独立性冲突未获书面同意仍由 PRC-08 第 2 步按 INV-33 拒绝递交，本流程的「独立性冲突」指其余需关注的冲突，作异常加审。判断清单与阈值的规则卡待 one-rules 给号。
+  frequency_ref: 待取证（E-B1）；经验估计：与商机数同量级，每月约 65 次（近 24 个月 1,566 个商机，〔售证〕§3）
+  stages_note: 判据：作出参投决策使商机（OBJ-18）到「已决定参投」，是 VS-01.2 段内状态；放弃商机到「放弃」，是 VS-01.2 退出
 - id: PRC-13
   name: 批准并生效费率、计费系数与协议价目版本
   trigger:
@@ -6718,8 +6879,8 @@ processes:
     desc: 交付物送达后按合同审查期算期满日并等待；期满后系统自动核对三个条件并认定，项目经理只需在 PRC-28 声明一次，不再重复认定
   stages:
   - VS-04.2
-  primary_object: AGG-44
-  primary_object_note: 认定记在收入确认行上（AGG-44）；VS-04.2 退出缺对象状态（MS-17），信息层待定
+  primary_object: OBJ-81
+  primary_object_note: 视为同意的认定是收入确认的证据成立，认定记在收入确认行上；OBJ-81 形态待定（Q20、Q-04）
   owner_bc: B-08
   human_orchestration: false
   migration: 历史视为同意认定事实全部迁入（U-4），记迁入来源；投产时已送达未期满的交付物，由迁入编排模块的一次性离线命令按原送达日续算期满日并生成期满待办（迁入不发事件，策略不会被触发）
@@ -9202,6 +9363,8 @@ processes:
     type: human
     desc: 员工因投标、诉讼、审计或结算需要借阅已归档的合同原件或复印件
   stages: []
+  primary_object: OBJ-05
+  primary_object_note: 借阅的是已归档协议原件，借阅流转记在协议档案上（AGG-13 子表），协议状态不变
   owner_bc: B-05
   human_orchestration: true
   migration: 历史借阅登记（借阅人、借出与归还日、经办人）全部迁入（U-4）；投产时未归还的借出按当前状态迁入，预计归还日沿用原值；已逾期的由迁入编排模块的一次性离线命令补发一次「协议借阅已逾期」触发催还（迁入不发事件）
@@ -9399,6 +9562,8 @@ processes:
       event: ContractSigned
     desc: 协议回签后原件移交归档
   stages: []
+  primary_object: OBJ-05
+  primary_object_note: 归档记在协议档案上（AGG-13 子表 agreement_archive_records），协议状态不变
   owner_bc: B-05
   human_orchestration: false
   migration: 历史已回签协议的归档记录（原件类型、份数、存放位置、归档日、扫描件引用）全部迁入（U-4）；投产时已回签未归档的协议，由迁入编排模块的一次性离线命令生成归档待办（迁入不发 ContractSigned，策略不会触发），原件实物按线下盘点登记
@@ -9488,8 +9653,8 @@ processes:
   stages:
   - VS-04.2
   - VS-04.5
-  primary_object: AGG-44
-  primary_object_note: 冲销收入确认行；无 OBJ，信息层待定（Q20、Q-04）
+  primary_object: OBJ-81
+  primary_object_note: 冲销收入确认（反向事实）；OBJ-81 形态待定（Q20、Q-04）
   owner_bc: B-08
   human_orchestration: true
   human_note: 冲销已过账的收入事实，须审批（AR-06）；更正只能冲销，不改原确认事实（Q-04 C）
@@ -10225,8 +10390,8 @@ event_policies:
   - VS-04.1
   - VS-04.2
   - VS-04.3
-  primary_object: AGG-44
-  primary_object_note: 开票与收入额度；无 OBJ，信息层待定（Q20、Q-04）
+  primary_object: none
+  primary_object_note: 额度是开票与收入额度（AGG-44）上的技术记录，按履约义务与付款条件项分行；本策略不改任何业务对象的状态，故不设主对象
   owner_bc: B-08
   migration: 迁入协议的额度行由迁入事实重放建立：累计开票额与累计确认额取自迁入的发票与确认事实（U-4），不重复发事件；投产前已回签的协议，由迁入编排模块的一次性离线命令在迁入完成时建额度；额度改动只追加变动行（data-model 补丁 L7）
   triggers:
@@ -10283,8 +10448,8 @@ event_policies:
       event: 视为同意已成立
   stages:
   - VS-04.2
-  primary_object: AGG-44
-  primary_object_note: 收入确认行在开票与收入额度上；无 OBJ，信息层待定（Q20、Q-04）
+  primary_object: OBJ-81
+  primary_object_note: 发起收入确认（占用额度并提交审批），即收入确认进入「审批中」；OBJ-81 形态待定（Q20、Q-04），存储暂在 AGG-44 的收入确认行
   owner_bc: B-08
   reads:
   - AGG-13
@@ -10316,6 +10481,8 @@ event_policies:
   - actor: system
     where: automatic
     command: 占用收入额度
+    reads:
+    - AGG-92
     aggregate: AGG-44
     gap: 新用语：「占用收入额度」随 Q-04（Q04_STORAGE），聚合稿 AGG-44 待订正
     desc: Q-04 C 的第一步：校验证据类型已开放（INV-23）、须附证据齐全、发包人代表或通知联系人匹配并派生认可日；在履约义务额度上占用（INV-22、86）；只由客户确认（认可、视为同意）触发，不由开票、进度估计触发；按交付物提交轮次幂等；证据类型未开放、证据不全或额度不足则失败并告警，不静默跳过；占用金额的取值：交付物 → 付款条件项或履约义务的映射（按协议登记的交付物与履约义务对应），金额
@@ -10603,6 +10770,8 @@ event_policies:
     - event: 协议借阅已逾期
       aggregate: AGG-13
   stages: []
+  primary_object: OBJ-05
+  primary_object_note: 催还对象是借出的协议原件（随 PRC-140），协议状态不变
   owner_bc: B-05
   migration: 投产时未归还且已逾期的借出，由迁入编排模块的一次性离线命令补发一次协议借阅已逾期事件（迁入不发事件）；历史催还记录不迁
   triggers:
@@ -10785,8 +10954,8 @@ event_policies:
       aggregate: platform.approval
   stages:
   - VS-04.2
-  primary_object: AGG-44
-  primary_object_note: 收入确认行占用转实；无 OBJ，信息层待定（Q20、Q-04）
+  primary_object: OBJ-81
+  primary_object_note: 审批通过后收入确认到「已确认（锁定）」并提交过账；OBJ-81 形态待定（Q20、Q-04）
   owner_bc: B-08
   migration: 历史确认事实不经本策略；占用与审批实例不迁入（ADR-0036 第 5 条），投产时处于审批中的收入确认由迁入编排模块的一次性离线命令重新占用并发起审批（PRC-53），通过后在新系统按本策略转实，驳回释放
   triggers:
@@ -10801,6 +10970,8 @@ event_policies:
     where: automatic
     branch: 审批通过
     command: 追加收入确认事实并占用转实
+    reads:
+    - AGG-92
     aggregate: AGG-44
     emits:
     - RevenueRecognized
@@ -12557,6 +12728,8 @@ single_aggregate:
   aggregate: AGG-92
   owner_bc: B-08
   stages: []
+  primary_object: none
+  primary_object_note: 版本化配置（AGG-92 证据类型开放配置版本），无业务对象
   migration: 既有开放配置版本全部迁入（U-4），记生效日、批准人与依据文件；投产初始开放集由首版配置给出
   states:
   - 未开放

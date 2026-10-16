@@ -2385,6 +2385,35 @@ entries:
   sensitive_reason: 含普通个人信息（员工标识），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
   source_part: revenue
 - object: AGG-10
+  command: 登记参投判断
+  raci:
+    A:
+      resolve: instance
+      field: 商机.负责人
+      field_status: proposed
+    R:
+    - SH-E5
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 含普通个人信息（员工标识），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
+  source_part: revenue
+- object: AGG-10
+  command: 作出参投决策
+  raci:
+    A:
+      resolve: instance
+      field: 商机.负责人
+      field_status: proposed
+    R:
+    - SH-E5
+    C: []
+    I: 
+    - SH-M1
+  sensitive: false
+  sensitive_reason: 含普通个人信息（员工标识），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
+  source_part: revenue
+- object: AGG-10
   command: 变更商机负责人
   raci:
     A:

@@ -317,7 +317,7 @@ PRC-08:
   outcome: 商机已放弃
   covers:
   - 第 4 步审批驳回 on_reject
-  expect: 审批驳回即不缴保证金、不参投（go/no-go 否决）；放弃投标后放弃商机
+  expect: 保证金付款审批驳回即不缴保证金（资金审批，参投已在 PRC-183 决定）；放弃投标后放弃商机
 - id: PRC-08-S15
   path: 15 委托赢单时独立性检查有冲突未获书面同意
   outcome: null
@@ -449,6 +449,42 @@ PRC-12:
   - 约束 INV-34
   - INV-34a
   expect: 拒绝并告警，只能增版本
+PRC-183:
+- id: PRC-183-S01
+  path: 1→2 otherwise→4
+  outcome: 商机已决定参投
+  covers:
+  - 第 2 步 otherwise
+  - 第 4 步 otherwise
+  expect: 未触发异常条件，商机负责人决定即生效，商机到「已决定参投」，发商机已决定参投；不发起审批
+- id: PRC-183-S02
+  path: 2 触发异常条件→3 审批通过
+  outcome: 商机已决定参投
+  covers:
+  - 第 2 步「决定参投且触发异常条件（低于毛利底线、超产能、独立性冲突）」
+  - 第 3 步 otherwise
+  expect: 低于毛利底线等异常时由部门负责人一级审批，通过后生效
+- id: PRC-183-S03
+  path: 3 审批驳回→2 决定放弃→5
+  outcome: 商机已放弃
+  covers:
+  - 第 3 步审批驳回 on_reject
+  - 第 2 步「决定放弃」
+  - 第 5 步 otherwise
+  expect: 例外被驳回后回到判断，商机负责人决定放弃，商机到「放弃」（VS-01.2 退出）
+- id: PRC-183-S04
+  path: 2 决定放弃→5
+  outcome: 商机已放弃
+  covers:
+  - 第 2 步「决定放弃」
+  - 第 5 步 otherwise
+  expect: 放弃原因取参投判断的理由，发商机已放弃
+- id: PRC-183-S05
+  path: 2 判断清单必填项缺失
+  outcome: null
+  covers:
+  - 第 2 步必填校验
+  expect: 缺评分或理由则拒绝登记并提示，商机留在「跟进中」（规则卡待 one-rules）
 PRC-13:
 - id: PRC-13-S01
   path: 1→2→3 审批通过→4（审批已通过）→5 仅发布费率版本
