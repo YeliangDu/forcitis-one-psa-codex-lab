@@ -240,3 +240,4 @@
 - RULING-P5-3：既有验收物随 P5 机械适配，由测试代理改、断言含义不变——`AccountsAcceptanceSupport.grantRole` 写 `account_roles` 带新主键（D-12）；卡第 4 节点名引用 `subjectKey`、`EventSource` 的旧验收用例改为新列与新信封。
 - 采纳测试代理对第 3（超时事件 `@NotAudited`，只验事件登记表与提醒卡）、4、5、6、7、9 项的弱断言处理：卡未定的文案与取值不锁死。
 - 改名卡并入（用户已在确认页确认，one-coordinator 派；卡见 `docs/modernization/glossary/b2/GL_RENAME_CARDS.md`，#280）：B2-B02 `ApprovalTaskOverdue` → `ApprovalTaskBecameOverdue`；B2-B03 `TaskResulted` → `TaskHandled`；B2-B05 `SourceReferenceRegistrationRefused` → `SourceReferenceRefused`；B2-B07 `TimesheetCancelled` → `TimesheetApprovalWithdrawn`。同步事件目录、消费方、`aggregates.yaml`、`MUST_AUDIT_ACTIONS.yaml`；同一批删 `code-term-baseline.txt` 与 `term-rules-baseline.json` 对应行并调低 count（按 #280 合入后 main 上的实际行）。B05、B07 的验收由测试代理按 RULING-P5-4 补（同第 4 节第 12 项写法）。
+- RULING-P5-4：B2-B05、B2-B07 改名验收（`SourceReferenceRefusedRenameIT`、`TimesheetApprovalWithdrawnRenameIT`），写法同第 4 节第 12 项。
