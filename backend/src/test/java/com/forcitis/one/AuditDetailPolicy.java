@@ -15,7 +15,7 @@ final class AuditDetailPolicy {
     private static final Pattern CALL_HEAD = Pattern.compile("new\\s+AuditEntry\\s*\\(|\\.reject\\s*\\(|new\\s+(?:Outcome\\.)?Failed\\s*\\(");
     private static final Pattern DESCRIBE_HEAD = Pattern.compile("String\\s+(?:describe|auditDetail)\\s*\\([^)]*\\)\\s*\\{");
     /** A text built first and handed over later: its initializer is audit-bound even where the write is in another file. */
-    private static final Pattern DETAIL_VARIABLE = Pattern.compile("\\bString\\s+\\w*[dD]etail\\w*\\s*=\\s*([^;]*);");
+    private static final Pattern DETAIL_VARIABLE = Pattern.compile("\\bString\\s+\\w*[dD]etail\\w*\\s*=\\s*");
     private static final Pattern IDENTIFIER = Pattern.compile("\\b[a-z]\\w*\\b");
     /** Types whose accessors hold a person's name or contact data: a variable of such a type is a person receiver. */
     private static final List<String> PERSON_TYPES = List.of("EmployeeProfile", "Employee", "SourcePerson", "MemberRow");
@@ -58,9 +58,9 @@ final class AuditDetailPolicy {
             scan(arguments, personVariables, found);
             Matcher name = IDENTIFIER.matcher(arguments);
             while (name.find()) {
-                Matcher built = Pattern.compile("\\bString\\s+" + name.group() + "\\s*=\\s*([^;]*);").matcher(code);
+                Matcher built = Pattern.compile("\\bString\\s+" + name.group() + "\\s*=\\s*").matcher(code);
                 if (built.find()) {
-                    scan(built.group(1), personVariables, found);
+                    scan(code.substring(built.end(), statementEnd(code, built.end())), personVariables, found);
                 }
             }
         }
@@ -70,7 +70,7 @@ final class AuditDetailPolicy {
         }
         Matcher detail = DETAIL_VARIABLE.matcher(code);
         while (detail.find()) {
-            scan(detail.group(1), personVariables, found);
+            scan(code.substring(detail.end(), statementEnd(code, detail.end())), personVariables, found);
         }
         return found;
     }
@@ -138,6 +138,22 @@ final class AuditDetailPolicy {
                 found.add(name.group().strip());
             }
         }
+    }
+
+    /** The index of the {@code ;} that ends the statement starting at {@code from}; a {@code ;} inside a string literal does not count. */
+    private static int statementEnd(String code, int from) {
+        boolean quoted = false;
+        for (int i = from; i < code.length(); i++) {
+            char c = code.charAt(i);
+            if (c == '\\' && quoted) {
+                i++;
+            } else if (c == '"') {
+                quoted = !quoted;
+            } else if (!quoted && c == ';') {
+                return i;
+            }
+        }
+        return code.length();
     }
 
     private static int closing(String code, int open, char up, char down) {

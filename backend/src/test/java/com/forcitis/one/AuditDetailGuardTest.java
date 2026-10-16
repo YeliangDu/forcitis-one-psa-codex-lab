@@ -59,8 +59,8 @@ class AuditDetailGuardTest {
                 .as("an exception message is no audit text").isEmpty();
         assertThat(AuditDetailPolicy.breaches("audit.record(new AuditEntry(\"a\", u, null, s, \"granted to \" + employee.get().name()));")).as("a person name through Optional").isNotEmpty();
         assertThat(AuditDetailPolicy.breaches("audit.record(new AuditEntry(\"a\", u, null, s, \"to \" + directory.findEmployee(id).get().name()));")).as("a person name through a lookup chain").isNotEmpty();
-        assertThat(AuditDetailPolicy.breaches("EmployeeProfile holder = x; audit.record(new AuditEntry(\"a\", u, null, s, holder.name()));")).as("by the declared type").isNotEmpty();
-        assertThat(AuditDetailPolicy.breaches("Optional<EmployeeProfile> p = x; String describe() { return \"by \" + p.get().name(); }")).as("a generic holder").isNotEmpty();
+        assertThat(AuditDetailPolicy.breaches("EmployeeProfile x = y; audit.record(new AuditEntry(\"a\", u, null, s, x.name()));")).as("by the declared type").isNotEmpty();
+        assertThat(AuditDetailPolicy.breaches("Optional<EmployeeProfile> p = y; String describe() { return \"by \" + p.get().name(); }")).as("a generic holder").isNotEmpty();
         assertThat(AuditDetailPolicy.breaches("String describe() { return \"by \" + staff.displayName(); }")).isNotEmpty();
         assertThat(AuditDetailPolicy.breaches("new AuditEntry(\"a\", u, null, s, \"mail \" + user.email())")).isNotEmpty();
         assertThat(AuditDetailPolicy.breaches("new AuditEntry(\"a\", u, null, s, \"code \" + employeeCode)")).isNotEmpty();
@@ -72,9 +72,22 @@ class AuditDetailGuardTest {
         assertThat(AuditDetailPolicy.breaches("String detail = \"by \" + employee.name(); record.execute(id, actor, detail);")).as("built first, handed over later").isNotEmpty();
         assertThat(AuditDetailPolicy.breaches("String text = \"x \" + profile.get().name(); audit.record(new AuditEntry(\"a\", u, null, s, text));")).as("any String handed to an entry").isNotEmpty();
         assertThat(AuditDetailPolicy.breaches("String detail = \"reason: \" + reason.strip() + \"; held: \" + ids; record.execute(id, actor, detail);")).isEmpty();
+        assertThat(AuditDetailPolicy.breaches("String detail = \"a; b \" + employee.name(); record.execute(id, actor, detail);")).as("a ; inside a literal does not end the statement").isNotEmpty();
+        assertThat(AuditDetailPolicy.breaches("String note = \"a; b \" + employee.name(); audit.record(new AuditEntry(\"a\", u, null, s, note));")).as("the same for a text handed to an entry").isNotEmpty();
+        assertThat(AuditDetailPolicy.breaches("String detail = \"reason: \" + r + \"; held: \" + holder.name(); record.execute(id, actor, detail);")).isNotEmpty();
         assertThat(AuditDetailPolicy.breaches("public String auditDetail() { return changes.stream().map(c -> c.before() + c.holder().name()).collect(joining()); }")).as("auditDetail() bodies are scanned").isNotEmpty();
         assertThat(AuditDetailPolicy.breaches("public String auditDetail() { return changes.size() + \" days\"; }")).isEmpty();
         assertThat(AuditDetailPolicy.breaches("// new AuditEntry(\"a\", u, null, s, \"address=\" + a)")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-01 injected: the detail of ReleaseSyncRun is scanned past its \"; session mode: \" literal")
+    void releaseSyncRunDetailIsScannedToTheEnd() throws IOException {
+        String source = Files.readString(MAIN.resolve("com/forcitis/one/organization/workforce/application/ReleaseSyncRun.java"));
+        String marker = "\"; remaining super_admin: \" + ";
+        assertThat(source).contains("\"; session mode: \"").contains(marker);
+        assertThat(AuditDetailPolicy.breaches(source)).isEmpty();
+        assertThat(AuditDetailPolicy.breaches(source.replace(marker, marker + "owner.name() + "))).as("a person name after the literals").isNotEmpty();
     }
 
     @Test
