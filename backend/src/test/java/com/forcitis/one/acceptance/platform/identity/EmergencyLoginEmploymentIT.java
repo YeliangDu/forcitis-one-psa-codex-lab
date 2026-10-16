@@ -91,7 +91,7 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             ByteArrayOutputStream err = new ByteArrayOutputStream();
             int exit = operations.run(new DefaultApplicationArguments("--operation=register-emergency-admin", person, "--login-name=" + loginName,
-                    "--operator=acceptance-operator", "--witness=acceptance-witness"), new PrintStream(out, true, StandardCharsets.UTF_8),
+                    "--operator=01900000-0000-7000-8000-00000000a001", "--witness=01900000-0000-7000-8000-00000000a002"), new PrintStream(out, true, StandardCharsets.UTF_8),
                     new PrintStream(err, true, StandardCharsets.UTF_8));
             if (exit == 0) {
                 String shown = out.toString(StandardCharsets.UTF_8);
