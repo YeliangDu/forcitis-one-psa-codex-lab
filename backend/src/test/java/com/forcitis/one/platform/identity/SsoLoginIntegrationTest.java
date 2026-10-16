@@ -85,6 +85,18 @@ class SsoLoginIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-01: an unknown login name is audited as 'login name unknown', the name itself never reaches detail")
+    void unknownLoginNameStaysOutOfDetail() throws Exception {
+        portalSays("T9", new SsoVerdict.LoginName("ghost-person"));
+        when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByLoginName("ghost-person"))).thenReturn(Optional.empty());
+
+        redeem("T9");
+
+        assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.login.failed")).singleElement()
+                .satisfies(entry -> assertThat(entry.detail()).contains("reason=login name unknown").doesNotContain("ghost-person"));
+    }
+
+    @Test
     @DisplayName("RULE-320 disabled: a disabled account and a separated employee are refused")
     void sameGate() throws Exception {
         portalSays("T3", new SsoVerdict.LoginName("disabled-user"));

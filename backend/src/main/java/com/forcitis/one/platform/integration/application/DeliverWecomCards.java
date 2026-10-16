@@ -112,7 +112,7 @@ public class DeliverWecomCards {
     }
 
     private void fail(OutboundDelivery delivery, RuntimeException failed) {
-        String error = describe(failed);
+        String error = errorText(failed);
         Optional<Instant> next = RetrySchedule.afterFailure(delivery.attemptCount(), clock.instant());
         if (next.isPresent()) {
             log.warn("WeCom delivery {} attempt {} failed, retry at {}: {}", delivery.subject(), delivery.attemptCount(),
@@ -148,7 +148,7 @@ public class DeliverWecomCards {
                 delivery.attemptCount());
     }
 
-    private static String describe(RuntimeException failed) {
+    private static String errorText(RuntimeException failed) {
         String message = failed.getMessage();
         String text = failed.getClass().getSimpleName() + (message == null ? "" : ": " + message);
         return text.length() > 500 ? text.substring(0, 500) : text;

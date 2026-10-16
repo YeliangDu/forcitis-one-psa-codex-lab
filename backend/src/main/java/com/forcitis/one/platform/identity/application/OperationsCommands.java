@@ -45,11 +45,11 @@ public class OperationsCommands {
         String operation = single(arguments, OPERATION);
         if (operation == null) {
             err.println("usage: --operation=<register-emergency-admin|reset-emergency-admin-credentials|disable-emergency-admin|"
-                    + "enable-emergency-admin|grant-role> --employee-id=<id> [--login-name=<name>] [--role-code=<code>] --operator=<name> --witness=<name>");
+                    + "enable-emergency-admin|grant-role> --employee-id=<id> [--login-name=<name>] [--role-code=<code>] --operator=<employee id> --witness=<employee id>");
             return 2;
         }
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "platform.identity.operations")) {
-            OperationAttestation attestation = new OperationAttestation(single(arguments, OPERATOR), single(arguments, WITNESS));
+            OperationAttestation attestation = OperationAttestation.of(single(arguments, OPERATOR), single(arguments, WITNESS));
             EmployeeId employeeId = employeeId(arguments);
             return switch (operation) {
                 case "register-emergency-admin" -> registerAdmin(attestation, employeeId, single(arguments, LOGIN_NAME), out);

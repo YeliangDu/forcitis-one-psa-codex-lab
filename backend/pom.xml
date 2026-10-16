@@ -64,7 +64,7 @@
           <execution><id>report</id><phase>verify</phase><goals><goal>report</goal></goals></execution>
         </executions>
       </plugin>
-      <!-- kernel.SystemActors reads the declared system actors from the class path (RULING-P2-C5); the catalogue stays in architecture/ -->
+      <!-- kernel.SystemActors reads the declared system actors (RULING-P2-C5) and IdempotencyScope the idempotent endpoints from the class path; the catalogue stays in architecture/ -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId><artifactId>maven-resources-plugin</artifactId>
         <executions>
@@ -72,7 +72,7 @@
             <id>system-actor-catalogue</id><phase>process-resources</phase><goals><goal>copy-resources</goal></goals>
             <configuration>
               <outputDirectory>${project.build.outputDirectory}/architecture</outputDirectory>
-              <resources><resource><directory>${project.basedir}/architecture</directory><includes><include>system-actors.txt</include></includes></resource></resources>
+              <resources><resource><directory>${project.basedir}/architecture</directory><includes><include>system-actors.txt</include><include>idempotent-endpoints.txt</include></includes></resource></resources>
             </configuration>
           </execution>
         </executions>

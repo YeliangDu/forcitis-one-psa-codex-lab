@@ -36,7 +36,7 @@ class OpenApiProblems {
     }
 
     @Bean
-    OpenApiCustomizer problemContract() {
+    OpenApiCustomizer problemContract(IdempotencyScope scope) {
         List<String> codes = errorCodes();
         return openApi -> {
             if (openApi.getComponents() == null) {
@@ -61,7 +61,7 @@ class OpenApiProblems {
             openApi.getPaths().forEach((path, item) -> item.readOperationsMap().forEach((method, operation) -> {
                 declareProblem(operation);
                 requireIfMatch(operation);
-                if (IdempotencyScope.applies(method.name(), path)) {
+                if (scope.applies(method.name(), path)) {
                     declareIdempotencyKey(operation);
                 }
             }));

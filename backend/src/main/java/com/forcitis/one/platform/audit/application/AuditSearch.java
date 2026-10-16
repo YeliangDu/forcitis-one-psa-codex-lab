@@ -29,7 +29,7 @@ public record AuditSearch(UUID actorId, UUID onBehalfOfId, String action, String
     String describe() {
         return Stream.of(part("actorId", actorId), part("onBehalfOfId", onBehalfOfId), part("action", blankToNull(action)),
                         part("actionPrefix", blankToNull(actionPrefix)), part("subjectKind", subjectKind), part("subjectId", subjectId),
-                        part("sourceAddress", blankToNull(sourceAddress)), part("outcome", outcome), part("from", from), part("to", to))
+                        part("outcome", outcome), part("from", from), part("to", to))
                 .filter(Objects::nonNull).collect(Collectors.joining(","));
     }
 
