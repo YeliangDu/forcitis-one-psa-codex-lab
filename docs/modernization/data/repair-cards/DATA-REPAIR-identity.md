@@ -93,6 +93,7 @@
 - 预期表结构 diff：无。
 - 验收要点：注册表有 gap，含 owner、到期日、指向 U-12；R-2 守护（随 ADR-0043 实施 PR）不在本卡。
 - 依据：门禁 C3；ADR-0043 R-2、U-12。保留期：SS 与 PI 不另起；清除路径若只置空 `last_login_address`，须与 ID-12 的成对 CHECK 协调（见 ID-12）。
+- one-data 2026-10-16 裁定：接受改为注释；转 gap 挂在 ADR-0043 实施 PR 上（R-2 守护建成后）。
 
 ### ID-07　R-2 + R-3（编码部分）　中　系统角色保留码与角色编码格式只靠 Java
 - 问题：「super_admin 为预留码，只能由迁移脚本建立」只在 `Role.java`（`isReserved`、`requireModifiable`），角色编码无格式约束。
@@ -142,6 +143,8 @@
 - 预期表结构 diff：`user_accounts`：新增 `ck_user_accounts_last_login`、`ck_user_accounts_last_login_address`；列注释补充。
 - 验收要点：首次登录前（两列空）、成功登录（两列有值）通过；只有地址无时间被拒；超长地址被拒；`LoginAdmission` 等写入点原样通过。
 - 依据：门禁 O4、B5、O8；D2；NAMING_STANDARD §2.4a-5；SS §4 第 10 组。
+- one-data 2026-10-16 裁定：选 C（64）+ 应用侧保护；不选 A（违反 §2.4a-5）、不选 B（规范化解析可能触发 DNS、引入新语义）。签发行：数据设计：通过（one-data，2026-10-16，依据 data-pr5 @b429bc80 加本裁定）。
+- 落实：基线加 `ck_user_accounts_last_login_address`（`char_length BETWEEN 1 AND 64`，可空）；`JdbcAccountRepository.recordLogin` 在写入前判定，长度超 64 或不符「十六进制数字、`.`、`:`，可带 `%` 与区域标识」的取值不写、置空并打 ALERT（只记长度，不含原值），登录照常成功，不截断。测试：`IdentityBaselineConstraintsIntegrationTest`、`WecomLoginIntegrationTest` 中名以 `DATA-REPAIR-identity ID-12` 开头者。
 
 #### 数据设计补充（one-1a-next-4，待 one-data 签）
 
