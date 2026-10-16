@@ -1,16 +1,18 @@
-# Timesheet filing duty business rules — RULE-397..RULE-403
+# Timesheet filing duty business rules — RULE-397..RULE-405
 
-Scope: Phase 2 `cost.timesheet` (submission checks, reminders), with leave hours read from the absence system (`organization.attendance` / future leave data). Rule 1 「每人每天最多一张」 is decided and implemented by one-1a-par, not repeated here. These are rules of FORCITIS one, decided by the user on 2026-10-16 on the filing-duty decision page (`rules/decide/sheets/FD2.json`, answers `rules/decide/answers/FD2.json`, intent `2026-10-16-054259-one-rules-工时填报义务决策页-FD2-6.md`), plus two additions the user gave afterwards, relayed by one-coordinator (RULE-400 and RULE-403; their intents are recorded by one-coordinator). Industry practice (SAP CATS, Oracle, Workday, Deltek) was the basis; production totals of the old system (hours dated from 2026-05-01, `phase1a/infra/handoff/B-5-dba/evidence/timesheet_filing_duty.sql`) were only a cross-check. The old system's minimum-hours check is not implemented until Phase 2.
+Scope: Phase 2 `cost.timesheet` (submission checks, reminders), with leave hours read from the absence system (`organization.attendance` / future leave data). Rule 1 「每人每天最多一张」 is decided and implemented by one-1a-par, not repeated here. These are rules of FORCITIS one, decided by the user on 2026-10-16 on the filing-duty decision page (`rules/decide/sheets/FD2.json`, answers `rules/decide/answers/FD2.json`, intent `2026-10-16-054259-one-rules-工时填报义务决策页-FD2-6.md`), plus additions the user gave afterwards, relayed by one-coordinator (RULE-400, RULE-403, and the pending-leave handling in RULE-398, RULE-404, RULE-405; their intents are recorded by one-coordinator). Industry practice (SAP CATS, Oracle, Workday, Deltek) was the basis; production totals of the old system (hours dated from 2026-05-01, `phase1a/infra/handoff/B-5-dba/evidence/timesheet_filing_duty.sql`) were only a cross-check. The old system's minimum-hours check is not implemented until Phase 2.
 
 | ID | Domain | Title | Priority | Review |
 |---|---|---|---|---|
 | RULE-397 | timesheet | A workday must be filed; a non-workday may be filed but never has to be | P0 | No |
-| RULE-398 | timesheet | The minimum hours of a workday are the standard day minus the approved leave hours of that day | P0 | No |
+| RULE-398 | timesheet | The minimum hours of a workday are the standard day minus the approved and pending leave hours of that day | P0 | No |
 | RULE-399 | timesheet | Leave is never a line of the timesheet; it only reduces the hours that must be filed | P0 | No |
 | RULE-400 | timesheet | A full-leave day may be filed voluntarily, with no minimum | P1 | No |
 | RULE-401 | timesheet | Hours on a non-workday are plain time records, not tied to an overtime approval or comp time | P1 | No |
 | RULE-402 | timesheet | A missed workday is blocked at submission when short, and reminded afterwards when not filed | P1 | No |
 | RULE-403 | timesheet | Hours filed plus approved leave hours of one day are at most 15 | P0 | No |
+| RULE-404 | timesheet | A timesheet filed with pending leave is marked 「含待批请假」 and the approver sees it | P1 | No |
+| RULE-405 | timesheet | When pending leave is rejected the day is checked again; a shortfall is reminded to the employee and told to the approver; an approval needs no action | P1 | No |
 
 ### RULE-397: A workday must be filed; a non-workday may be filed but never has to be
 **Category:** Policy
@@ -23,14 +25,15 @@ Scope: Phase 2 `cost.timesheet` (submission checks, reminders), with leave hours
 **Tests:** to be written with the Phase 2 timesheet card.
 **Confidence:** High.
 
-### RULE-398: The minimum hours of a workday are the standard day minus the approved leave hours of that day
+### RULE-398: The minimum hours of a workday are the standard day minus the approved and pending leave hours of that day
 **Category:** Calculation
 **Priority:** P0
-**Source:** user decision FD2-02, 2026-10-16; FD-10 (standard day 7.5 hours, configurable per legal entity)
-**Plain English:** On a workday that has to be filed, the minimum is `max(0, standard day − approved leave hours)`. Submitting fewer hours than that fails. The standard day is the per-entity parameter (7.5 by default).
+**Source:** user decision FD2-02, 2026-10-16 (approved leave); user answer 「采用」 relayed by one-coordinator on 2026-10-16 (pending leave counts too); FD-10 (standard day 7.5 hours, configurable per legal entity)
+**Plain English:** On a workday that has to be filed, the minimum is `max(0, standard day − (approved + pending leave hours))`, and a submission is allowed when it meets it. Submitting fewer hours than that fails. The standard day is the per-entity parameter (7.5 by default).
 **Specification:**
-- Given standard day 7.5 and 3 approved leave hours, When 4.5 hours are submitted, Then the submission passes; with 4.0 it fails.
+- Given standard day 7.5, 2 approved and 1 pending leave hours, When 4.5 hours are submitted, Then the submission passes; with 4.0 it fails.
 **Tests:** to be written with the Phase 2 timesheet card.
+**Dependency:** leave hours and their status (approved, pending, rejected) come from the absence system; no such data source exists yet in the new system, so the rule cannot be implemented before the leave read API is fixed with it.
 **Confidence:** High — leave data source is fixed with the absence system (the old leave table has almost no data before 2026-09 and counts nursing leave and the 「晚到规则」 as leave; not carried over by this rule).
 
 ### RULE-399: Leave is never a line of the timesheet; it only reduces the hours that must be filed
@@ -77,8 +80,33 @@ Scope: Phase 2 `cost.timesheet` (submission checks, reminders), with leave hours
 **Category:** Validation
 **Priority:** P0
 **Source:** user words relayed by one-coordinator on 2026-10-16 (「每天含请假最高不超过 15 小时」); the old system's daily 15-hour check (`ManHourServiceImpl`, per process/1a/TIMESHEET审批.md step 2)
-**Plain English:** For every day (workday, non-workday and leave day alike), submitted hours plus approved leave hours must not exceed 15; otherwise the submission is refused with an alert. **Open point for the user:** one-coordinator reads leave as approved leave; the old system counted any leave record regardless of approval status, and whether its 15-hour check included leave could not be confirmed from the summary. If leave still in approval should count, the rule must say so.
+**Plain English:** For every day (workday, non-workday and leave day alike), submitted hours plus approved leave hours must not exceed 15; otherwise the submission is refused with an alert. Only approved leave counts here (user answer 「采用」 relayed by one-coordinator on 2026-10-16: the 15-hour cap still counts approved leave only, while the minimum of RULE-398 also counts pending leave). The old system counted any leave record regardless of approval status.
 **Specification:**
 - Given 4 approved leave hours, When 11.5 hours are submitted, Then it fails; with 11 it passes.
 **Tests:** to be written with the Phase 2 timesheet card.
-**Confidence:** Medium — approved vs requested leave is open.
+**Dependency:** approved leave hours from the absence system (see RULE-398).
+**Confidence:** High.
+
+### RULE-404: A timesheet filed with pending leave is marked 「含待批请假」 and the approver sees it
+**Category:** Policy
+**Priority:** P1
+**Source:** user answer 「采用」 relayed by one-coordinator, 2026-10-16
+**Plain English:** When the submission passes the minimum of RULE-398 only because of leave that is still pending, it is submitted and carries the mark 「含待批请假」 (a term still to register with one-glossary). Every approver of the timesheet sees the mark with the pending leave hours of that day, no leave reason or type.
+**Specification:**
+- Given standard day 7.5 with 3 pending leave hours, When 4.5 hours are submitted, Then the timesheet is accepted, is marked 「含待批请假」 and its approvers see the mark.
+- Given the same day with all leave approved, Then no mark is set.
+**Tests:** to be written with the Phase 2 timesheet card.
+**Dependency:** leave status from the absence system (see RULE-398).
+**Confidence:** High.
+
+### RULE-405: When pending leave is rejected the day is checked again; a shortfall is reminded to the employee and told to the approver; an approval needs no action
+**Category:** Policy
+**Priority:** P1
+**Source:** user answer 「采用」 relayed by one-coordinator, 2026-10-16
+**Plain English:** When leave that counted toward a submitted day's minimum is rejected, the system checks that day again by RULE-398. If hours are now short, the employee is reminded to file more hours or to request leave again, and the approver of the timesheet is told. When pending leave is approved, nothing happens (it already counted). The timesheet is not reopened or withdrawn by the system.
+**Specification:**
+- Given a day passed with 3 pending leave hours and 4.5 hours filed, When the leave is rejected, Then the day is short by 3 hours, the employee is reminded and the approver is told.
+- Given the same day, When the leave is approved, Then nothing happens.
+**Tests:** to be written with the Phase 2 timesheet card.
+**Dependency:** an event or poll for leave status changes from the absence system; none exists yet.
+**Confidence:** Medium — how the leave status change reaches the timesheet is fixed with the absence system.
