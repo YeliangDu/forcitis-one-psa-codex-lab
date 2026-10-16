@@ -161,6 +161,10 @@ processes:
     name: BusinessFactAttributed（本批次的过账事实）
     bc: B-16
     entry: 6
+  - type: event
+    name: 合同—项目关联已登记
+    bc: B-05
+    entry: 3
   migration: 在途：投产日合同已签回但未转入的，按迁入的权责事实存量由本策略继续处理；历史：已转入的批次由迁入事实承载，不重放事件（M7）
   outcomes:
   - 售前投入已转入
@@ -185,6 +189,7 @@ processes:
   - PRC-25-S12
   - PRC-25-S13
   - PRC-25-S14
+  - PRC-25-S15
   steps:
   - actor: system
     where: automatic
@@ -231,7 +236,7 @@ processes:
     command: 登记售前投入挂接归属
     aggregate: AGG-122
     added_in: closeout
-    desc: 一商机多合同按 WBS 挂接归属（Q12），不按合同额分摊；两事件齐备才进入转入
+    desc: 一商机多合同按 WBS 挂接归属（Q12），不按合同额分摊；两事件齐备才进入转入；挂接归属以「合同—项目关联已登记」为准（接缝 S-42）
     decision:
     - when: 合同未签回或项目未建立（两者齐备才转入，后到者触发）
       goto: end
@@ -241,6 +246,11 @@ processes:
       goto: 4
     audit: true
     legal_entity: 承担法人
+    cross_bc:
+    - mode: event
+      direction: in
+      bc: B-05
+      name: 合同—项目关联已登记
   - actor: system
     where: automatic
     command: 转入售前投入
@@ -2024,6 +2034,7 @@ processes:
   - PRC-75-S30
   - PRC-75-S31
   - PRC-75-S32
+  - PRC-75-S33
   roles:
   - id: SH-E6
     as: initiator
@@ -2078,6 +2089,9 @@ processes:
     - when: 协议付款条件项未到期（提前付款），预警并在审批待办标注
       goto: 3
       rule: 付款条件项到期日（提前付款预警，规则提示不拦；S-29 SQ-54）
+    - when: 收款账户在本次付款前新近变更，且为变更后首笔付款（只预警，审批待办标「收款账户新变更」）
+      goto: 2
+      rule: P-01
     - when: otherwise
       goto: 3
     permission: 付款.查看
