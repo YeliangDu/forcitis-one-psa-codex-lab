@@ -7,7 +7,7 @@
 ## 职责
 
 - 数据修复批（生产前闸门，不挡 dev）：PR-1 审计分区（TB-07、TB-09、TB-05，ADR-0048，已可开）→ PR-3（TB-04、06、08）→ PR-6 审批 → PR-7 编号 → PR-8 workforce（不含 sync_*）；切法见交接报告第 3 节。
-- 承接 one-1a-next-4 留下的小项：#296 合并后删 `ApprovalTaskBecameOverdue` 用语基线行。
+- 承接 one-1a-next-4 留下的小卡：DR-TB01-FU1（运维证明员工 ID 存在性校验）。
 
 ## 独占
 

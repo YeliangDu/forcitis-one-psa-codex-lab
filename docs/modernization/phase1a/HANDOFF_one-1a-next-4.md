@@ -33,7 +33,7 @@
 - **PR-8**：workforce 中不含 sync_* 的条目；WF-09 撤 5 条 fk_exceptions 加外键（已接受）；WF-12 目标为 uuid 唯一约束可放行；B7-2 保留并在注册表写「使用方未建，由同步原样入库」（one-architecture ⑦）。
 - **并入他卡，不单做**：WF-01/02/03/07/08/13/14 → 拆分 a；AP-06/07 → DA-10；ID-01/02/10/13 → W2；TA-02 → 日历版本化；WF-06 → DA-7；TA-01 → one-1a-par（TS-UNIQ 后）。这些卡也都在基线关闭前。
 - **待用户**：ID-04（binding_hash 级别）、U-7b 真到期日已不需要（U-7b 已答改写员工 ID）；ADR-0033 第 9 项第 2 条时点偏离追认（收件箱 calendar-scope-timing）。
-- **其他留下的**：#296 合并后删 `code-term-baseline.txt`、`term-rules-baseline.json` 中 `ApprovalTaskBecameOverdue` 行并调 count；DA-10 必补外发投递收件人唯一约束（P4 RULING-P4-D4）；企业微信 task_id 真机核对（dev 冒烟，one-ops）；ID-06 转 gap 挂 ADR-0043 实施 PR；两账号同一浏览器并发确认死锁（40P01，旧问题，另开卡）；F-2 守护卡承接 P5 L-11 守护盲区。
+- **其他留下的**：DA-10 必补外发投递收件人唯一约束（P4 RULING-P4-D4）；企业微信 task_id 真机核对（dev 冒烟，one-ops）；ID-06 转 gap 挂 ADR-0043 实施 PR；两账号同一浏览器并发确认死锁（40P01，旧问题，另开卡）；F-2 守护卡承接 P5 L-11 守护盲区。
 
 ## 4. 规矩（本会话期间新增，照做）
 
