@@ -30,6 +30,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.transaction.support.TransactionTemplate;
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 
 @DisplayName("SeparationRevokesRoles: ADR-0027 section 1 item 6 (RULE-363)")
 class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
@@ -87,7 +89,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
                 .extracting(AuditEntry::detail)
                 .containsExactlyInAnyOrder("role=employee cause=separation", "role=org_data_admin cause=separation", "role=super_admin cause=separation");
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("platform.identity.account.role.revoked"))
-                .allSatisfy(entry -> assertThat(entry.subject()).isEqualTo(com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.USER_ACCOUNT, accountOf(1001))));
+                .allSatisfy(entry -> assertThat(entry.subject()).isEqualTo(AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, accountOf(1001))));
         assertThat(recorded()).extracting(AuditEntry::action).contains("platform.identity.session.revoked");
         assertThat(domainEvents.of(AccountRolesReplaced.class)).singleElement().satisfies(e -> {
             assertThat(e.userId()).isEqualTo(new com.forcitis.one.kernel.UserId(accountOf(1001)));

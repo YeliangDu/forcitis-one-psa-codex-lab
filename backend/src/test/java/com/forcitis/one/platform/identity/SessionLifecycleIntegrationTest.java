@@ -27,6 +27,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.support.TransactionTemplate;
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 
 class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
 
@@ -144,7 +146,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
                 .satisfies(e -> assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9).value()));
         assertThat(recorded()).filteredOn(e -> e.action().equals("platform.identity.session.revoked")).singleElement()
                 .satisfies(e -> {
-                    assertThat(e.subject()).isEqualTo(com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.USER_ACCOUNT, accountOf(1001)));
+                    assertThat(e.subject()).isEqualTo(AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, accountOf(1001)));
                     assertThat(e.detail()).contains("disabled");
                 });
     }
@@ -174,8 +176,8 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         assertThat(jdbc.sql("select count(*) from platform_identity.sessions").query(Long.class).single()).isEqualTo(1);
         assertThat(recorded()).filteredOn(e -> e.action().equals("platform.identity.session.expired"))
                 .extracting(AuditEntry::subject, AuditEntry::detail)
-                .containsExactlyInAnyOrder(org.assertj.core.groups.Tuple.tuple(com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.USER_ACCOUNT, TestAccounts.account(1001).value()), "cause=IDLE"),
-                        org.assertj.core.groups.Tuple.tuple(com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.USER_ACCOUNT, TestAccounts.account(1002).value()), "cause=ABSOLUTE"));
+                .containsExactlyInAnyOrder(org.assertj.core.groups.Tuple.tuple(AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, TestAccounts.account(1001).value()), "cause=IDLE"),
+                        org.assertj.core.groups.Tuple.tuple(AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, TestAccounts.account(1002).value()), "cause=ABSOLUTE"));
     }
 
     @Test

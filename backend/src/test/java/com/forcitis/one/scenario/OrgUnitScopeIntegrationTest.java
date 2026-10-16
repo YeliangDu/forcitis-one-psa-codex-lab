@@ -17,6 +17,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MvcResult;
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 
 @DisplayName("B1-scope: org units answer only within the caller's scope (ADR-0026 section 1, RULE-350/351/352)")
 class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
@@ -90,7 +92,7 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         assertThat(read(session, "/" + unit(10)).getResponse().getStatus()).isEqualTo(404);
         assertThat(denials()).singleElement().satisfies(entry -> {
             assertThat(entry.actorId()).isEqualTo(TestAccounts.account(21));
-            assertThat(entry.subject()).isEqualTo(com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.ORG_UNIT, java.util.UUID.fromString(unit(10))));
+            assertThat(entry.subject()).isEqualTo(AuditSubject.of(AuditSubjectKind.ORG_UNIT, java.util.UUID.fromString(unit(10))));
         });
     }
 
@@ -104,7 +106,7 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         assertThat(read(session, "/" + unit(10)).getResponse().getStatus()).isEqualTo(200);
         assertThat(read(session, "/" + unit(11)).getResponse().getStatus()).isEqualTo(404);
         assertThat(read(session, "/" + unit(20)).getResponse().getStatus()).isEqualTo(404);
-        assertThat(denials()).extracting(AuditEntry::subject).containsExactlyInAnyOrder(com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.ORG_UNIT, java.util.UUID.fromString(unit(11))), com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.ORG_UNIT, java.util.UUID.fromString(unit(20))));
+        assertThat(denials()).extracting(AuditEntry::subject).containsExactlyInAnyOrder(AuditSubject.of(AuditSubjectKind.ORG_UNIT, java.util.UUID.fromString(unit(11))), AuditSubject.of(AuditSubjectKind.ORG_UNIT, java.util.UUID.fromString(unit(20))));
     }
 
     @Test
@@ -180,7 +182,7 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         assertThat(body(otherUnit).path("errorCode").asString()).as("the same answer as for a unit that does not exist")
                 .isEqualTo(body(missingUnit).path("errorCode").asString());
         assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("organization.workforce.legal-entity-attribution.denied"))
-                .extracting(AuditEntry::subject).containsExactlyInAnyOrder(com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.ORG_UNIT, java.util.UUID.fromString(unit(20))), com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.EMPLOYEE, java.util.UUID.fromString(employee(902))));
+                .extracting(AuditEntry::subject).containsExactlyInAnyOrder(AuditSubject.of(AuditSubjectKind.ORG_UNIT, java.util.UUID.fromString(unit(20))), AuditSubject.of(AuditSubjectKind.EMPLOYEE, java.util.UUID.fromString(employee(902))));
     }
 
     @Test

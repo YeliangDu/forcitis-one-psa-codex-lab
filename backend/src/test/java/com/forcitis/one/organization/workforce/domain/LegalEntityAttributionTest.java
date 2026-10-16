@@ -24,9 +24,10 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import com.forcitis.one.organization.workforce.api.AttributionId;
 
 class LegalEntityAttributionTest {
-    static final com.forcitis.one.organization.workforce.api.AttributionId ATTRIBUTION_ID = new com.forcitis.one.organization.workforce.api.AttributionId(TestIds.uuid(5));
+    static final AttributionId ATTRIBUTION_ID = new AttributionId(TestIds.uuid(5));
     static final LegalEntityId LE1 = new LegalEntityId(TestIds.uuid(1));
     static final LegalEntityId LE2 = new LegalEntityId(TestIds.uuid(2));
     static final LocalDate JAN = LocalDate.of(2026, 1, 1);

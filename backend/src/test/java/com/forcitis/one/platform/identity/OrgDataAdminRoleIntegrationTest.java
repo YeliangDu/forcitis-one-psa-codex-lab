@@ -11,6 +11,8 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 
 @DisplayName("OrgDataAdminRole, AccessDeniedAudit and PrivilegedRequestAudit: ADR-0027 section 2 item 1, ADR-0026 section 5 item 4 and section 6 item 5")
 class OrgDataAdminRoleIntegrationTest extends IdentityIntegrationTest {
@@ -43,7 +45,7 @@ class OrgDataAdminRoleIntegrationTest extends IdentityIntegrationTest {
         assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.access.denied")).hasSize(1)
                 .singleElement().satisfies(entry -> {
                     assertThat(entry.actorId().value()).isEqualTo(accountOf(1771));
-                    assertThat(entry.subject()).isEqualTo(com.forcitis.one.platform.audit.api.AuditSubject.without(com.forcitis.one.platform.audit.api.AuditSubjectKind.OPERATION));
+                    assertThat(entry.subject()).isEqualTo(AuditSubject.without(AuditSubjectKind.OPERATION));
                     assertThat(entry.detail()).startsWith("access refused: RoleController.list");
                 });
     }
@@ -68,8 +70,8 @@ class OrgDataAdminRoleIntegrationTest extends IdentityIntegrationTest {
 
         assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.privileged.request"))
                 .extracting(AuditEntry::subject, AuditEntry::detail)
-                .containsExactly(org.assertj.core.groups.Tuple.tuple(com.forcitis.one.platform.audit.api.AuditSubject.without(com.forcitis.one.platform.audit.api.AuditSubjectKind.REQUEST), "GET /api/v1/platform/roles"),
-                        org.assertj.core.groups.Tuple.tuple(com.forcitis.one.platform.audit.api.AuditSubject.without(com.forcitis.one.platform.audit.api.AuditSubjectKind.REQUEST), "POST /api/v1/platform/user-accounts/{userId}:disable"));
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(AuditSubject.without(AuditSubjectKind.REQUEST), "GET /api/v1/platform/roles"),
+                        org.assertj.core.groups.Tuple.tuple(AuditSubject.without(AuditSubjectKind.REQUEST), "POST /api/v1/platform/user-accounts/{userId}:disable"));
     }
 
     @Test

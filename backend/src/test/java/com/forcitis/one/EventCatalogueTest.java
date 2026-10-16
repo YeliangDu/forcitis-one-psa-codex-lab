@@ -18,6 +18,9 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.yaml.snakeyaml.Yaml;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * docs/modernization/events/asyncapi.yaml is composed from the fragments next to it (build_asyncapi.py) and must describe exactly the
@@ -181,12 +184,12 @@ class EventCatalogueTest {
         List<String> problems = new ArrayList<>();
         for (String aggregate : aggregates) {
             try {
-                com.forcitis.one.platform.audit.api.AuditSubjectKind.ofAggregateType(aggregate);
+                AuditSubjectKind.ofAggregateType(aggregate);
             } catch (IllegalArgumentException unknown) {
                 problems.add("aggregate " + aggregate + " has no AuditSubjectKind: add the kind (enum and CHECK) before the aggregate");
             }
         }
-        java.util.regex.Matcher check = java.util.regex.Pattern.compile("ck_audit_entries_subject_kind CHECK \\(subject_kind IN \\(([^)]*)\\)\\)").matcher(checkSql);
+        Matcher check = Pattern.compile("ck_audit_entries_subject_kind CHECK \\(subject_kind IN \\(([^)]*)\\)\\)").matcher(checkSql);
         if (!check.find()) {
             problems.add("ck_audit_entries_subject_kind is not in the baseline");
             return problems;
@@ -196,7 +199,7 @@ class EventCatalogueTest {
             inSql.add(value.strip().replace("'", ""));
         }
         Set<String> inEnum = new TreeSet<>();
-        for (com.forcitis.one.platform.audit.api.AuditSubjectKind kind : com.forcitis.one.platform.audit.api.AuditSubjectKind.values()) {
+        for (AuditSubjectKind kind : AuditSubjectKind.values()) {
             inEnum.add(kind.name());
         }
         if (!inSql.equals(inEnum)) {

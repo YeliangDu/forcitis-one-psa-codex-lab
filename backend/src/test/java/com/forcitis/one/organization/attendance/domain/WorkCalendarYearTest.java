@@ -24,13 +24,14 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import com.forcitis.one.kernel.SystemActors;
 
 class WorkCalendarYearTest {
     static final EventEnvelopes ENVELOPES = unchecked -> {
         EventDraft draft = CatalogueBusinessDates.check(unchecked);
         return new EventEnvelope(UUID.randomUUID(), draft.eventType(), draft.schemaVersion(),
                 Instant.EPOCH, draft.aggregateType(), draft.aggregateId(), draft.aggregateVersion(), UUID.randomUUID(), null,
-                ActorType.SYSTEM, com.forcitis.one.kernel.SystemActors.idOf("test.envelope"), draft.legalEntityId(), draft.businessDate(), null, draft.relatedAggregates());
+                ActorType.SYSTEM, SystemActors.idOf("test.envelope"), draft.legalEntityId(), draft.businessDate(), null, draft.relatedAggregates());
     };
 
     static final LocalDate TODAY = LocalDate.parse("2026-01-01");

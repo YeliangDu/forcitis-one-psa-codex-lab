@@ -21,6 +21,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import com.forcitis.one.organization.workforce.api.EmployeeLegalEntities;
 
 /**
  * The integration layer's own test base for the to-do inbox of the old system: one PostgreSQL 18 container, a stand-in for the old view with a read-only
@@ -85,7 +86,7 @@ abstract class LegacyInboxSupport {
     protected DocumentNumbers numbers;
 
     @MockitoBean
-    protected com.forcitis.one.organization.workforce.api.EmployeeLegalEntities employeeLegalEntities;
+    protected EmployeeLegalEntities employeeLegalEntities;
 
     protected static long newId() {
         return IDS.incrementAndGet();

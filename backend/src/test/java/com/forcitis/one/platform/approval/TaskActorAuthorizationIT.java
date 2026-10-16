@@ -33,6 +33,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 
 /** Flowable's own complete() checks nothing, so a non-handler must get 404, the same as for a task that is not there, with task, candidates, assignee, status and published results unchanged. */
 class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
@@ -106,7 +108,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
                     .with(approver(outsider)).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"x\"}"), 404));
         }
         verify(audit, atLeastOnce()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.task.denied")
-                && entry.actorId().equals(TestAccounts.account(scene.stranger())) && entry.subject().equals(com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.APPROVAL_TASK, java.util.UUID.fromString(id)))));
+                && entry.actorId().equals(TestAccounts.account(scene.stranger())) && entry.subject().equals(AuditSubject.of(AuditSubjectKind.APPROVAL_TASK, java.util.UUID.fromString(id)))));
     }
 
     @Test

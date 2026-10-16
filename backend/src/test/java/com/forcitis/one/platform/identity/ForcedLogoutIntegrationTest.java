@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 
 @DisplayName("ForcedLogout: ADR-0027 section 3 item 5 (D-1a-163)")
 class ForcedLogoutIntegrationTest extends IdentityIntegrationTest {
@@ -54,7 +56,7 @@ class ForcedLogoutIntegrationTest extends IdentityIntegrationTest {
         assertThat(status(other)).isEqualTo(200);
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("platform.identity.session.revoked")).singleElement().satisfies(entry -> {
             assertThat(entry.actorId().value()).isEqualTo(accountOf(9));
-            assertThat(entry.subject()).isEqualTo(com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.USER_ACCOUNT, accountOf(1001)));
+            assertThat(entry.subject()).isEqualTo(AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, accountOf(1001)));
             assertThat(entry.detail()).contains("lost phone");
             assertThat(entry.sourceAddress()).as("who did it, from where").isEqualTo("127.0.0.1");
             assertThat(entry.outcome()).isEqualTo(AuditOutcome.SUCCEEDED);

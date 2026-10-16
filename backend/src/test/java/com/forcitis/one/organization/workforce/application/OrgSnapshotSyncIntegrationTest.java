@@ -51,6 +51,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.event.ApplicationEvents;
+import com.forcitis.one.kernel.event.AggregateReference;
 
 class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     @Autowired
@@ -87,7 +88,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
                 .as("the guard sees the run and the snapshot written together").contains(java.util.Set.of("OrgSnapshot", "SyncRun"));
         assertThat(com.forcitis.one.fixture.doubles.AggregateWriteGuard.entries(java.nio.file.Files.readAllLines(java.nio.file.Path.of("architecture/multi-aggregate-exceptions.txt"))))
                 .as("and that pair is registered").anyMatch(set -> set.containsAll(java.util.Set.of("OrgSnapshot", "SyncRun")));
-        var snapshot = new com.forcitis.one.kernel.event.AggregateReference("OrgSnapshot", result.syncRunId().value());
+        var snapshot = new AggregateReference("OrgSnapshot", result.syncRunId().value());
         assertThat(events.stream(com.forcitis.one.organization.workforce.events.SyncRunSucceeded.class)).singleElement()
                 .satisfies(e -> assertThat(e.envelope().relatedAggregates()).containsExactly(snapshot));
         assertThat(events.stream(OrgSnapshotChanged.class)).singleElement().satisfies(e -> assertThat(e.envelope().relatedAggregates()).containsExactly(snapshot));

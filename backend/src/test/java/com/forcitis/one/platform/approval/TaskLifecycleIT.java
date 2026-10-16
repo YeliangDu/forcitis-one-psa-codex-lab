@@ -31,6 +31,7 @@ import org.flowable.task.api.Task;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.forcitis.one.kernel.event.DomainEvent;
 
 class TaskLifecycleIT extends ApprovalIntegrationSupport {
 
@@ -133,7 +134,7 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
         decide(s.manager(), review, DecisionOutcome.APPROVE, "");
 
         List<com.forcitis.one.kernel.event.EventEnvelope> mine = events.of(com.forcitis.one.kernel.event.DomainEvent.class).stream()
-                .map(com.forcitis.one.kernel.event.DomainEvent::envelope).filter(e -> e.aggregateId().equals(requestIdOf(key))).toList();
+                .map(DomainEvent::envelope).filter(e -> e.aggregateId().equals(requestIdOf(key))).toList();
         assertThat(mine).extracting(e -> e.eventType()).containsExactly("platform.approval.ApprovalRoundStarted", "platform.approval.TaskAssigned",
                 "platform.approval.TaskClaimed", "platform.approval.TaskHandled", "platform.approval.ApprovalCompleted");
         assertThat(mine).extracting(e -> e.aggregateVersion()).containsExactly(1L, 2L, 3L, 4L, 5L);

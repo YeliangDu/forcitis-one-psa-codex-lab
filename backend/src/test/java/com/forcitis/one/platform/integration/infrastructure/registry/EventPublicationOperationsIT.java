@@ -29,6 +29,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import com.forcitis.one.kernel.SystemActors;
 
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
         "forcitis.platform.integration.event-publication.jobs-enabled=true",
@@ -74,7 +75,7 @@ class EventPublicationOperationsIT {
     @DisplayName("a completed publication moves to the archive table; the cleanup job removes archived rows older than 30 days and keeps newer ones")
     void completedPublicationsAreArchivedThenCleaned() {
         EventEnvelope envelope = new EventEnvelope(UUID.randomUUID(), "organization.workforce.LegalEntityRegistered", 1, Instant.now(), "LegalEntity",
-                TestIds.uuid(701), 1, UUID.randomUUID(), null, ActorType.SYSTEM, com.forcitis.one.kernel.SystemActors.idOf("test.envelope"), new LegalEntityId(TestIds.uuid(701)), null,
+                TestIds.uuid(701), 1, UUID.randomUUID(), null, ActorType.SYSTEM, SystemActors.idOf("test.envelope"), new LegalEntityId(TestIds.uuid(701)), null,
                 null, List.of());
 
         tx.executeWithoutResult(status -> publisher.publishEvent(new LegalEntityRegistered(envelope, new LegalEntityId(TestIds.uuid(701)), new LegalEntityCode("ARC"))));

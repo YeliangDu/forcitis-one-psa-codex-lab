@@ -35,7 +35,7 @@ class AggregateRootTest {
     }
 
     static final EventEnvelopes ENVELOPES = draft -> new EventEnvelope(UUID.randomUUID(), draft.eventType(), 1, Instant.EPOCH,
-            draft.aggregateType(), draft.aggregateId(), draft.aggregateVersion(), UUID.randomUUID(), null, ActorType.SYSTEM, com.forcitis.one.kernel.SystemActors.idOf("test.envelope"),
+            draft.aggregateType(), draft.aggregateId(), draft.aggregateVersion(), UUID.randomUUID(), null, ActorType.SYSTEM, SystemActors.idOf("test.envelope"),
             null, null, null, List.of());
 
     @Test
