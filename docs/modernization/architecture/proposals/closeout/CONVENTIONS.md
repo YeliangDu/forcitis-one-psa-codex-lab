@@ -39,11 +39,11 @@
       decision:                       # 可选；本步之后的判断点，按顺序求值
         - {when: "报价金额超过授权额度", goto: 3, rule: RC-NN}   # goto：步骤序号（从 1 起）、end、或另一流程 PRC-NN；rule：引用的规则卡编号（提议中）
         - {when: otherwise, goto: 4}
-      approval:                       # 可选；人工编排流程中审批节点必填
+      approval:                       # 可选；人工编排流程中审批节点必填。口径（用户 intent 163556）：正常一级＝归属对象责任人；按 APPROVAL_RULES.yaml 条件加审，最多两级；不相容职务另计
         engine: platform.approval     # platform.approval 审批平台 / aggregate 聚合内命令（如交付物内部校审） / external 系统外（客户书面认可等，只登记证据）
         doc_type: 报价审批             # 单据类型中文暂名，汇总交 one-glossary
-        approver: SH-M1               # 审批人角色
-        multi_level: false            # 是否多级
+        approver: cost_object_owner   # 基础审批人：一律「费用或业务归属对象的责任人」（项目经理、部门负责人或成本对象责任人），不写固定角色
+        escalation_rules: [AR-01, AR-04]   # 可能命中的加审规则编号（APPROVAL_RULES.yaml）；图上画「一级审批 → 条件加审（≤2）」
         on_reject: 2                  # 驳回后去向：步骤序号 / end
       permission: 报价.提交            # 用户任务必填（提议中）：权限码暂名
       page: 报价编辑页                 # 用户任务必填（提议中）：页面或页面操作暂名

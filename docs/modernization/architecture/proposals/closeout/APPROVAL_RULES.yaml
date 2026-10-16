@@ -1,0 +1,78 @@
+# 审批加审规则表（配置数据草案；三组铺开统一引用）
+# 依据：用户原则「正常情况上单人审批，异常情况加一个审批节点，特殊情况两个加审节点」（intent 2026-10-16-163556，one-coordinator 分支）。
+# 口径：正常＝提交人之外一人审批；付款制单 / 复核 / 出纳分离等不相容职务另计，不算审批节点。
+# 异常（abnormal）加一级，特殊（special）加两级；同一单据命中多条规则时取最高级，最多加两级。
+# 判定只用客观条件（可由系统计算），事后抽查与预警补偿。投产时作为版本化配置（SESSION_PLAYBOOK §12.2），阈值与级别由用户在确认页定。
+# 基础审批人：费用或业务归属对象的责任人（用户「看谁对费用负责，谁负责谁批」）——项目→项目经理，部门→部门负责人，其他成本对象→其登记的责任人；
+#   按归属对象解析，不按单据类型或提交人部门硬编码。非费用类单据（如开票、合同）取其归属项目或部门的责任人。
+# 本文件 level / threshold 为草拟，用户确认后改。
+
+base_approver:
+  resolve_by: cost_object_owner     # project → 项目经理；org_unit → 部门负责人；other → 成本对象登记的责任人
+
+rules:
+  - id: AR-01
+    name: 金额超过单据类型的第一阈值
+    condition: 单据金额 > 该单据类型阈值一
+    level: abnormal
+    escalate_to: 财务负责人
+    threshold: 待定（按单据类型分别给）
+  - id: AR-02
+    name: 金额超过单据类型的第二阈值
+    condition: 单据金额 > 该单据类型阈值二
+    level: special
+    escalate_to: [财务负责人, 总经理]
+    threshold: 待定
+  - id: AR-03
+    name: 超出预算
+    condition: 占用后预算余额 < 0
+    level: none
+    escalate_to: 预算负责人
+    note: 报销已定「只预警」（F-Q2，intent 162821），故草拟为不加审；是否对其他单据加审由用户确认
+  - id: AR-04
+    name: 无合同或协议依据
+    condition: 开票、付款、采购等单据未引用生效的合同或协议
+    level: abnormal
+    escalate_to: 财务负责人
+  - id: AR-05
+    name: 业务日期落在已关账期间
+    condition: 业务日期所在期间已关账，按 ADR-0045 落开放期间并标原期间
+    level: special
+    escalate_to: [财务负责人, 总经理]
+  - id: AR-06
+    name: 冲销或红冲已过账事实
+    condition: 单据为冲销、红字或更正，引用已过账事实
+    level: abnormal
+    escalate_to: 财务负责人
+  - id: AR-07
+    name: 关联方交易
+    condition: 往来单位标记为关联方
+    level: special
+    escalate_to: [财务负责人, 总经理]
+  - id: AR-08
+    name: 首次合作的往来单位
+    condition: 往来单位此前无已完成的同类单据
+    level: abnormal
+    escalate_to: 部门负责人
+  - id: AR-09
+    name: 收款或付款对象与合同相对方不一致
+    condition: 付款收款人不是合同登记的相对方或其登记账户
+    level: special
+    escalate_to: [财务负责人, 总经理]
+  - id: AR-10
+    name: 合同回签前开票
+    condition: 协议未生效即开票（P-1 已定可凭证据先开，intent 120544）
+    level: abnormal
+    escalate_to: 财务负责人
+  - id: AR-11
+    name: 责任人就是提交人本人
+    condition: 解析出的基础审批人＝提交人
+    level: tbd
+    escalate_to: 责任人的上级（汇报线）
+    note: 处理方式交用户定（上级代批 / 按异常加审 / 只事后抽查）
+  - id: AR-12
+    name: 责任人缺位
+    condition: 归属对象无责任人，或责任人离职、休假超期
+    level: tbd
+    escalate_to: 归属对象的上级组织负责人
+    note: 处理方式交用户定（上级代批 / 指定代理人 / 退回补登责任人）
