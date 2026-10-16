@@ -61,7 +61,7 @@
 | X-6（编号） | timesheets 等使用方 | 使用方不记所用编号规则版本 | ADR-0033 第 1 项第 5 条；D7、D17 细则 6 | 并入 TS-UNIQ |
 | SD-1 | sync_diffs | `subject_key` 把对象类别与 ID 拼成字符串 | ADR-0033 第 7 项第 2 条；O9、O15 | 拆分 a 按最终形态在集成层新建（P5 卡 §3.1）；拆分前仍开放 |
 | WY-3 | work_calendar_years | 日历事件聚合标识是文本 `default:2026` | ADR-0033 第 7 项第 1 条；E1 | main 的 P5 已改；待 P5 合并后核 |
-| P-1 | positions | 无版本表也无「不需要」豁免 | D17 | W2；用户已定做维度型版本表（OBSERVED） |
+| P-1 | positions | 无版本表也无「不需要」豁免 | D17 | W2；用户已定做维度型版本表；生效依据已改为人事业务生效日（DECLARED，intent 2026-10-16-134434，取代同步观察日） |
 | E-1 | employees | 同上；离职时刻字段口径 | D17；DA-7 | W2；同上 |
 | WY-2 | work_calendar_years / days | 整年删除再插入，使用方不记版本 | ADR-0033 第 9 项第 1、3 条；D15 | W2 K-2；基线关闭前完成 |
 | AE-2 | audit_entries | 10 年只追加大表未分区，分区与单列 UUID 主键、`event_id` 唯一冲突 | NAMING_STANDARD §2.4a-8；O-8 | 用户已定（intent `2026-10-15-020820`：主键 (id, created_at)、去重键 (event_id, created_at)）；ADR-0048 由 one-architecture 起草，成文后用户确认 |
@@ -122,3 +122,15 @@
 - 四份报告的 O15（ADR 逐条对照）未完整重做；其余 71 条「中」与 84 条「低」未逐条复核（opus 只抽查了 6 条中级）。
 - 未起数据库，未跑守护测试与 `pg_dump`；表结构全按基线 SQL 文本推算。
 - positions 是否在 W2「主数据版本化 25 张表」清单内；测试夹具是否直接插入「已确认、无确认人」的授权申请或编号版本（加 CHECK 前须 grep `backend/src/test`）；`RunStats` 各字段是否全非空；Spring Session JDBC 能否只存会话标识摘要；生产 PostgreSQL 版本是否 ≥ 15（`NULLS NOT DISTINCT`）；TS-UNIQ 卡正文。
+
+## 9. 更正（2026-10-16，用户「一次投产、老系统加 A8 不接、全量历史迁入」，intent 2026-10-16-133348；one-architecture 判定）
+
+以下条目随「生产不再同步」改变口径；正式改动已采纳 ADR-0039 / 0021 / 0033 等须待 one-architecture 的过渡 ADR（施工方案定稿后起草），**在此之前已建的表与代码不删，只停新增工作**：
+
+| 条目 | 原结论 | 更正 |
+|---|---|---|
+| `sync_runs`、`sync_diffs`、`sync_run_held_separations`（HS-1、HS-2、HS-3、SD-1、O15 缺项 3、4；ADR-0039 拆分 a / b） | 迁 `platform_integration` / 改离职记录 | **取消方向**：不再开新工作；已建表等过渡 ADR 一并退役；dev 测试数据改用一次性导入 |
+| `employees.login_name`（O15 缺项 5） | DA-3 删 | 取消（A8 登录名不再用）；`wecom_user_id` 与 `external_identities` 保留（企业微信仍是外部服务，Q-03：新员工以企业微信登录） |
+| `source_references` 的 `ORG_SOURCE` 类别 | 持续同步对照 | 仅作一次性迁入的来源对照（追溯老编号），不再用于持续同步；人员类保留期仍按 `RETENTION_PROPOSAL.md` |
+| `employees` / `positions` / 组织主数据 | A8 同步快照 | 成为本系统人事登记主数据；版本表生效依据为人事业务生效日（DECLARED，intent 2026-10-16-134434）；`separated_at` 改为人事登记的离职日（业务日期，与 U-12 一致），E-2 按此重定 |
+| 迁入与对账方案 | 分阶段迁入 | 一次性全量迁入（含全部历史明细，U-4）＋对账，另加投产前两个已结期间新系统重算与老结果比对（U-10）；one-data 仍是映射与对账负责方 |

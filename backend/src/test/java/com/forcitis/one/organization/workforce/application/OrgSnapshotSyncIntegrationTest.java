@@ -21,6 +21,7 @@ import static com.forcitis.one.organization.workforce.domain.Fixtures.user;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -278,8 +279,9 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         release.execute(held.syncRunId(), TestAccounts.account(9001L), "line one\nline\ttwo\rend", true, false);
 
         org.mockito.ArgumentCaptor<AuditEntry> entry = org.mockito.ArgumentCaptor.forClass(AuditEntry.class);
-        verify(audit).record(entry.capture());
-        assertThat(entry.getValue().detail()).startsWith("reason: line one line two end; ").doesNotContainPattern("\\p{Cntrl}");
+        verify(audit, atLeastOnce()).record(entry.capture());
+        assertThat(entry.getAllValues()).filteredOn(e -> e.action().equals("organization.workforce.sync-run.released")).singleElement()
+                .satisfies(released -> assertThat(released.detail()).startsWith("reason: line one line two end; ").doesNotContainPattern("\\p{Cntrl}"));
     }
 
     @Test
