@@ -27,6 +27,8 @@ roles:                                                    # 角色 → 职位 �
 - 每个「对象×命令」恰一个 A；A 才持审批权；需审批的命令其骨架 `approval.approver` 必须等于 A。
 - 角色到职位到人的映射在岗位体系重梳前只记 `org_needs` 汇总，不按岗位自动授权（ADR-0029 搁置）。
 
+**A.1 生成与合并（`raci_build.py`）**：以三组流程骨架推出 R、I、审批推出的 A 与 boundary 为底；各组权责片段（people `raci.yaml`、finance `responsibility.finance.yaml`；revenue 无片段）覆盖同一对象×命令的 A，并带上 sensitive、boundary（片段键优先）、note 等字段，C 与 I 取并集，R 骨架为空时取片段。A 的优先级：手登类型级（`a_source: hand`）> 组片段（`group:<组>`）> 骨架（`skeleton`）> 无（`none`，A 为 TODO）。冲突只报告不裁决，全文见 `RACI_MERGE_REPORT.md`：片段 A 与骨架审批不一致、两组片段不一致、platform.approval 类型级 A 缺 basis 或 why_human 出处、角色写法非 SH- 编号（仅当 `value-streams.v2.yaml` 的 stakeholders 能唯一对应时规范为 SH-，原文记 `role_raw`）、片段独有而骨架与命令目录均无。
+
 ## B. 按聚合收敛（每个价值流质检通过后做其涉及的聚合）
 
 | 产物 | 内容 | 检查（脚本） |
