@@ -7,9 +7,10 @@
 每项：对照计数 → 偏离 → 跑校验 → 回退 → 计数复原，并以执行账号回读探针的授权指纹。任何意外即回退当前项后收尾；收尾逐条执行、逐条记录，
 回读不为 0/0/0/0/0 或服务器上有残留即告警并以非零退出。记录只写标记、错误号与计数，不写任何输出原文。
 可选的 --msdb-role-trial（H-2，用户 2026-10-16 批准的一次性例外，只此一次）：全部项做完后，对探针自己的 msdb 用户试一次
-ALTER ROLE SQLAgentOperatorRole DROP MEMBER 并回读；探针的 msdb、rdscore 用户在收尾里一并删除。不带该选项时不碰 msdb。
+ALTER ROLE SQLAgentOperatorRole DROP MEMBER 并回读。不带该选项时不做这一试；但 RDS 自动给探针在 msdb、rdscore 建的用户，收尾始终只按探针名删除
+（用户 2026-10-16 直接确认），预检与回读也只读这两库。
 用法：c14_run.py <结果文件> <app.jar 的 SHA-256> [--msdb-role-trial]
-退出码：0 全部完成且收尾干净；1 中途停止（已收尾）；2 收尾不干净（须人工处理）。
+退出码：0 全部完成且收尾干净；1 中途停止（已收尾）；2 收尾不干净（须人工处理）；3 用法错误或预检失败（什么都没改）。
 """
 import json
 import re
@@ -25,7 +26,8 @@ TOOLS = Path(__file__).resolve().parent
 require_committed(TOOLS / 'OneSql.java', TOOLS / 'b5_evidence_run.py', TOOLS / 'b5_read_all_run.py', TOOLS / 'b5_legacy_run.py', __file__)
 
 W = '/root/one-ops-c14'
-STAGE = f'{LEGACY_WORK}/c14-stage'
+STAGE_PREFIX = f'{LEGACY_WORK}/c14-stage'
+calls = [0]
 PROBE_ENV = '/etc/forcitis-one/readonly-probe.env'
 LOGIN = 'one_readonly_probe'
 DB = 'one_readonly_probe_db'
@@ -78,7 +80,10 @@ ITEMS = [
 
 DROP_USER = f"IF USER_ID(N'{LOGIN}') IS NOT NULL DROP USER {P};"
 # RDS gives every new login a user of its own in msdb and rdscore; dropping the login leaves those users behind, so they go first (only ever the probe's)
+KILL_SESSIONS = (f"DECLARE @k nvarchar(max) = N''; SELECT @k = @k + N'KILL ' + CAST(session_id AS nvarchar(10)) + N';' FROM sys.dm_exec_sessions "
+                 f"WHERE login_name = N'{LOGIN}' AND session_id <> @@SPID; IF LEN(@k) > 0 EXEC (@k);")
 CLEANUP = [
+    ('master', KILL_SESSIONS),
     (DB2, DROP_USER),
     ('master', f"IF DB_ID(N'{DB2}') IS NOT NULL DROP DATABASE [{DB2}];"),
     ('master', DROP_USER),
@@ -102,6 +107,8 @@ MSDB_OBSERVE = (f"SELECT (SELECT COUNT(*) FROM sys.database_principals WHERE nam
                 f"         WHERE u.name = N'{LOGIN}') AS roles;")
 MSDB_ROLES = (f"SELECT r.name AS role_name FROM sys.database_role_members rm JOIN sys.database_principals u ON u.principal_id = rm.member_principal_id\n"
               f"  JOIN sys.database_principals r ON r.principal_id = rm.role_principal_id WHERE u.name = N'{LOGIN}' ORDER BY r.name;")
+VISIBILITY_CONTROL = ("SELECT (SELECT COUNT(*) FROM msdb.sys.database_principals WHERE name = N'one_evidence_ro') AS msdb_evidence_user,\n"
+                      "       (SELECT COUNT(*) FROM rdscore.sys.database_principals WHERE name = N'one_evidence_ro') AS rdscore_evidence_user;")
 MSDB_DROP_MEMBER = f"ALTER ROLE SQLAgentOperatorRole DROP MEMBER {P};"
 KNOWN_ROLES = {'SQLAgentUserRole', 'SQLAgentReaderRole', 'SQLAgentOperatorRole', 'db_owner', 'db_datareader', 'db_datawriter', 'public'}
 # The execution account's view of everything an item may change, as one row of numbers; compared with the control after every revert
@@ -135,12 +142,20 @@ class Stop(Exception):
     pass
 
 
+def refuse(message):
+    """Exit 3: nothing was changed (wrong usage, failed preflight)."""
+    print(message)
+    sys.exit(3)
+
+
 def numbers(out):
     """Rows of a OneSql result made of numbers only, e.g. '  3 | 9'."""
     return [tuple(int(v) for v in row.split(' | ')) for row in re.findall(r'^  (-?\d+(?: \| -?\d+)*)$', out, re.M)]
 
 
 def legacy_sql(label, db, sql, mode='rw', enc_pub=None):
+    calls[0] += 1
+    STAGE = f'{STAGE_PREFIX}-{calls[0]}'
     files = {'OneSql.java': (TOOLS / 'OneSql.java').read_text(), 'step.sql': sql if sql.rstrip().endswith('GO') else sql + '\nGO\n'}
     if enc_pub:
         files['enc.pub'] = enc_pub
@@ -161,10 +176,14 @@ def ecs(script, timeout=600):
 
 
 def verify(label):
-    script = (f'systemd-run --quiet --wait --pipe --collect -p EnvironmentFile={PROBE_ENV} -p WorkingDirectory={W} '
-              f'/usr/bin/java -Duser.timezone=UTC -jar {W}/app.jar --spring.profiles.active=read-only-verification --connection=probe; echo "EXIT=$?"')
+    calls[0] += 1
+    # The command's own output is filtered here to the mark lines, RESULT and the exit code: nothing else (detail lines, URLs) leaves the ECS
+    script = (f'out=$(systemd-run --quiet --wait --pipe --collect --unit=one-c14-probe-{calls[0]} -p RuntimeMaxSec=300 -p EnvironmentFile={PROBE_ENV} -p WorkingDirectory={W} '
+              f'/usr/bin/java -Duser.timezone=UTC -jar {W}/app.jar --spring.profiles.active=read-only-verification --connection=probe 2>&1); code=$?; '
+              f'printf "%s\\n" "$out" | grep -E "^\\([a-g]\\) |^RESULT "; echo "EXIT=$code"')
     invoke, status, _, out = ecs(script)
-    marks = re.findall(r'^\(([a-g])\) (PASSED|VIOLATED|UNDETERMINED)((?: reason=\w+ count=\d+(?: error=\d+ sqlstate=\w+)?)*)\s*$', out, re.M)
+    marks = [(m, s, ''.join(re.findall(r' reason=\w+ count=\d+(?: error=\d+ sqlstate=\w+)?', d)))
+             for m, s, d in re.findall(r'^\(([a-g])\) (PASSED|VIOLATED|UNDETERMINED)\b(.*)$', out, re.M)]
     result = re.findall(r'^RESULT (PASSED|VIOLATED|UNDETERMINED)$', out, re.M)
     code = re.findall(r'^EXIT=(\d+)$', out, re.M)
     entry = dict(step=label, where='ecs', invoke=invoke, status=status, result=result[-1] if result else None,
@@ -287,19 +306,29 @@ def preflight(jar_sha256):
     rows = numbers(out)
     record(step='preflight', readback=rows[-1] if rows else None)
     if rc != 0 or not rows or rows[-1] != CLEAN_READBACK:
-        raise SystemExit('preflight: probe objects already exist or the readback failed; clean up by hand first, nothing was changed')
+        refuse('preflight: probe objects already exist or the readback failed; clean up by hand first, nothing was changed')
+    # Control: the evidence account's own users in msdb and rdscore must be visible to u8c, else a "0" for the probe would only mean "not visible"
+    rc, _, out = legacy_sql('preflight visibility control', 'master', VISIBILITY_CONTROL, mode='ro')
+    rows = numbers(out)
+    record(step='preflight visibility', evidence_users_in_msdb_rdscore=rows[-1] if rows else None)
+    if rc != 0 or not rows or rows[-1] != (1, 1):
+        refuse('preflight: the execution account does not see the evidence account\'s users in msdb and rdscore, so a zero in the readback would prove nothing; nothing was changed')
     invoke, status, _, out = ecs(f'test -e {PROBE_ENV} && echo ENV_LEFT; [ "$(sha256sum {W}/app.jar 2>/dev/null | cut -d" " -f1)" = "{jar_sha256}" ] && echo JAR_OK')
     record(step='preflight ecs', invoke=invoke, env_left='ENV_LEFT' in out, jar_ok='JAR_OK' in out)
     if 'ENV_LEFT' in out or 'JAR_OK' not in out:
-        raise SystemExit('preflight: probe env file left over or app.jar does not match the given SHA-256; nothing was changed')
+        refuse('preflight: probe env file left over or app.jar does not match the given SHA-256; nothing was changed')
 
 
 def cleanup():
     clean = True
+    try:
+        ecs('systemctl stop "one-c14-probe-*.service" 2>/dev/null; true')
+    except BaseException as failure:  # noqa: BLE001
+        record(step='ecs stop units', exception=type(failure).__name__)
     for db, sql in CLEANUP:
         try:
             rc, errors, _ = legacy_sql('cleanup', db, sql)
-            if rc != 0 and db != DB2:
+            if rc != 0 and db != DB2 and sql != KILL_SESSIONS:
                 clean = False
         except BaseException as failure:  # noqa: BLE001 every step runs whatever the previous one did
             record(step='cleanup', db=db, exception=type(failure).__name__)
@@ -314,7 +343,7 @@ def cleanup():
         record(step='readback', exception=type(failure).__name__)
         clean = False
     try:
-        invoke, status, _, out = ecs(f'rm -f {PROBE_ENV} {W}/probe.key {W}/probe.pub {W}/probe.enc {W}/transfer.key {W}/secret.enc {W}/OneSql.java {W}/mssql-jdbc.jar; '
+        invoke, status, _, out = ecs(f'systemctl stop "one-c14-probe-*.service" 2>/dev/null; rm -f {PROBE_ENV} {W}/probe.key {W}/probe.pub {W}/probe.enc {W}/transfer.key {W}/secret.enc {W}/setup.py {W}/q.sql {W}/OneSql.java {W}/mssql-jdbc.jar; '
                                      f'test -e {PROBE_ENV} && echo LEFT || echo CLEAN')
         record(step='ecs cleanup', invoke=invoke, result='CLEAN' if 'CLEAN' in out else 'LEFT')
         clean = clean and 'CLEAN' in out
@@ -322,7 +351,7 @@ def cleanup():
         record(step='ecs cleanup', exception=type(failure).__name__)
         clean = False
     try:
-        invoke, _, _, out = run(LEGACY_SERVER, f'rm -rf {STAGE}; test -e {STAGE} && echo LEFT || echo CLEAN')
+        invoke, _, _, out = run(LEGACY_SERVER, f'rm -rf {STAGE_PREFIX}-*; ls -d {STAGE_PREFIX}-* >/dev/null 2>&1 && echo LEFT || echo CLEAN')
         record(step='legacy cleanup', invoke=invoke, result='CLEAN' if 'CLEAN' in out else 'LEFT')
         clean = clean and 'CLEAN' in out
     except BaseException as failure:  # noqa: BLE001
@@ -335,7 +364,11 @@ def cleanup():
 
 def main(target, jar_sha256, msdb_trial=False):
     if not re.fullmatch(r'[0-9a-f]{64}', jar_sha256):
-        raise SystemExit('the second argument is the SHA-256 of app.jar (64 lowercase hex digits)')
+        refuse('the second argument is the SHA-256 of app.jar (64 lowercase hex digits)')
+    try:
+        save(target)
+    except OSError as failure:
+        refuse(f'the result file cannot be written ({type(failure).__name__}); nothing was changed')
     preflight(jar_sha256)
     stopped = False
     try:
@@ -364,9 +397,10 @@ def main(target, jar_sha256, msdb_trial=False):
                 record(step='visibility', invoke=invoke, public_object_grants=seen)
                 if fingerprint('visibility fingerprint') != control_fingerprint:
                     raise Stop('visibility check did not revert cleanly')
+                if qrc != 0 or seen is None:
+                    raise Stop('item 14: the visibility check could not be read')
                 if not seen:
-                    record(item=14, skipped='the probe does not see public grants on user objects; (g) public is not effective here; report to one-coordinator')
-                    continue
+                    raise Stop('item 14: the probe does not see public grants on user objects, (g) public is not effective here; reported to one-coordinator and one-1a-next-2, as the runbook says')
             errors = apply(f'item {number} deviation', deviation)
             if errors:
                 if number in PLATFORM_REFUSAL_ITEMS and errors == [PLATFORM_REFUSAL]:
@@ -397,9 +431,11 @@ def main(target, jar_sha256, msdb_trial=False):
         record(stop=f'unexpected {type(failure).__name__}')
         stopped = True
     finally:
-        save(target)
         clean = cleanup()
-        save(target)
+        try:
+            save(target)
+        except OSError:
+            print('\n'.join(json.dumps(e, ensure_ascii=False) for e in log))
     if not clean:
         sys.exit(2)
     sys.exit(1 if stopped else 0)
@@ -408,5 +444,5 @@ def main(target, jar_sha256, msdb_trial=False):
 if __name__ == '__main__':
     flags = sys.argv[3:]
     if len(sys.argv) < 3 or flags not in ([], ['--msdb-role-trial']):
-        raise SystemExit(__doc__.strip().splitlines()[-2])
+        refuse(__doc__.strip().splitlines()[-2])
     main(sys.argv[1], sys.argv[2], bool(flags))

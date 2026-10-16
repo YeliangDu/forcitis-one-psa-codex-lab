@@ -28,8 +28,8 @@
 ## 时间窗口与共享实例影响
 
 - 约 75 分钟，工作日非高峰（建议 12:00–13:00 或 18:30 以后），提前告知 one-coordinator。
-- 影响：实例上临时多一个登录、两个空库，以及第 17 项在 master 中一个短暂存在的探针用户（做完即删）（几 MB，进入实例备份，删库后随备份保留期过期）；所有偏离只在探针库内或针对探针登录；不改 public、不改其他库，对 a8_db、ruoyi-vue-pro、it_portal 等库没有锁与授权变化。第 10 项的服务器级 DENY 预期被平台拒绝（4613），不产生变更。
-- 停止条件：任一回退后计数不回到对照值、对照项不通过、出现对探针库以外对象的任何变更 → 立即停下报 one-coordinator。
+- 影响：实例上临时多一个登录、两个空库，以及第 17 项在 master 中一个短暂存在的探针用户（做完即删），另有 RDS 自动给探针在 msdb、rdscore 建的用户（收尾删）（几 MB，进入实例备份，删库后随备份保留期过期）；所有偏离只在探针库内或针对探针登录；不改 public、不改其他库，对 a8_db、ruoyi-vue-pro、it_portal 等库没有锁与授权变化。第 10 项的服务器级 DENY 预期被平台拒绝（4613），不产生变更。
+- 停止条件：任一回退后计数不回到对照值、对照项不通过、出现对探针库以外对象的任何变更、第 14 项之前的可见性核实读不到或为 0 → 立即停下（脚本先回退当前项并执行收尾）报 one-coordinator。
 
 ## 准备（批准后执行）
 
@@ -84,10 +84,10 @@ DENY INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VI
 
 ## H-2：探针的 msdb 用户能否移出 SQLAgentOperatorRole（一次性例外，只此一次）
 
-背景：RDS 在建登录时自动给它在 msdb、rdscore 里各建一个用户（取证账号的这两个用户与登录同一秒创建，从未修改），msdb 用户带 SQLAgentUserRole、SQLAgentReaderRole、SQLAgentOperatorRole 三个角色。(f) 基线要不要接受 SQLAgentOperatorRole，取决于它能不能被移出。依据：用户 2026-10-16 在 one-ops 会话直接选「批准这一次」，并经 one-coordinator 转达为 intent 2026-10-15-234252；这是「共享实例上不动 msdb」的一次性例外，边界如下。
+背景：RDS 在建登录时自动给它在 msdb、rdscore 里各建一个用户（取证账号的这两个用户与登录同一秒创建，从未修改），msdb 用户带 SQLAgentUserRole、SQLAgentReaderRole、SQLAgentOperatorRole 三个角色。(f) 基线要不要接受 SQLAgentOperatorRole，取决于它能不能被移出。依据：用户在 one-ops 会话直接选「批准这一次」（北京时间 2026-10-16，对应 UTC 2026-10-15），并经 one-coordinator 转达为 intent 2026-10-15-234252；这是「共享实例上不动 msdb」的一次性例外，边界如下。
 
 - **只限探针**：语句只含 `[one_readonly_probe]`，不碰任何正式账号和 msdb 里已有的主体与对象；探针用完即删。
-- **执行条件**：只有 `c14_run.py` 带 `--msdb-role-trial` 才做；不带则完全不碰 msdb。其余项都做完、回退并复原计数后才执行。
+- **执行条件**：只有 `c14_run.py` 带 `--msdb-role-trial` 才做这一试，其余项都做完、回退并复原计数后才执行。不带该参数时，msdb 里不做任何授权变更；但 RDS 自动给探针在 msdb、rdscore 建的用户，收尾始终按探针名删除，预检与回读也读这两库（用户 2026-10-16 直接确认：「要删」）。
 - **四步**（每步 `c14_run.py` 逐条记录 rc、错误号与计数，不记输出原文）：
   1. 执行前提（只读）：以 u8c 读 msdb，确认探针用户存在，记其角色集合（只记角色名与个数）及是否在 SQLAgentOperatorRole 里。RDS 没给探针建 msdb 用户，或探针不在该角色里，则记「无需移出」，结束。
   2. 执行语句：在 msdb 上下文以 u8c 执行 `ALTER ROLE SQLAgentOperatorRole DROP MEMBER [one_readonly_probe];`。被拒则记错误号。
