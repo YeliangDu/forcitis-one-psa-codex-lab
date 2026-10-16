@@ -20,12 +20,14 @@ public class EnableEmergencyAdmin {
     private final EmergencyBinding binding;
     private final DomainEvents events;
     private final AuditLog audit;
+    private final SingleOperatorMarks marks;
 
-    EnableEmergencyAdmin(EmergencyAdminRepository admins, EmergencyBinding binding, DomainEvents events, AuditLog audit) {
+    EnableEmergencyAdmin(EmergencyAdminRepository admins, EmergencyBinding binding, DomainEvents events, AuditLog audit, SingleOperatorMarks marks) {
         this.admins = admins;
         this.binding = binding;
         this.events = events;
         this.audit = audit;
+        this.marks = marks;
     }
 
     /** True when the account was disabled and now is enabled. */
@@ -40,8 +42,9 @@ public class EnableEmergencyAdmin {
         admin.enable();
         admins.save(admin);
         events.publish(admin);
-        audit.record(new AuditEntry("platform.identity.operations.emergency-admin.enabled", null, null, AuditSubject.of(AuditSubjectKind.EMERGENCY_ADMIN, person.value()),
-                attestation.describe()));
+        AuditSubject subject = AuditSubject.of(AuditSubjectKind.EMERGENCY_ADMIN, person.value());
+        audit.record(new AuditEntry("platform.identity.operations.emergency-admin.enabled", null, null, subject, attestation.describe()));
+        marks.witnessOmitted(attestation, subject);
         return true;
     }
 }
