@@ -268,6 +268,47 @@ POST /api/v1/platform/approval-tasks/{taskId}:reassign  # 204 无正文
 - 验收要点：全部写入点显式传时钟；不带 `created_at` 的 INSERT 被拒；`AuditArchiveJob` 相关测试通过。
 - 依据：NAMING_STANDARD §2.4a-3；SS §5。
 
+- **数据设计（PR-3：TB-06、TB-08，one-1a-next-5 补，待 one-data 签）**（基线：PR-1 合入后的 `origin/main`；PR-1 已把 `audit_entries` 改为 UTC 月分区、`AuditArchiveJob` 每批只取同一 UTC 月、`reconcile` 只比在线月份，本节与之兼容，两处改同一个基线文件，PR-3 在 PR-1 之后 rebase；TB-04 已移出，归 K-3b-4，本节不含）
+  1. **TB-06　DDL**（改 `V20261014134000__platform_audit_baseline.sql` 中 `audit_archive_batches` 的建表语句，内联具名）：
+     - `CONSTRAINT uk_audit_archive_batches_first_entry_id UNIQUE (first_entry_id)`
+     - `CONSTRAINT uk_audit_archive_batches_object_key UNIQUE (object_key)`
+     - `CONSTRAINT ck_audit_archive_batches_sha256_hash CHECK (sha256_hash ~ '^[0-9a-f]{64}$')`
+     - `sha256_hash` 列注释不改（已写「小写十六进制」）；表注释末尾追加「批次区间不重叠、无缺口由归档作业按位置推进保证、由对账核验（只比在线月份），库内不设排他约束」。
+  2. **TB-06　哈希格式核实**：`sha256_hash` 的值来自 `AuditArchiveJob.insertBatch`（`AuditArchiveJob.java:199`）的 `stored.sha256()`；`ObjectStoreArchiveVault.archive` 先以 `HexFormat.of().formatHex(...)`（`ObjectStoreArchiveVault.java:120`，小写、定长 64）算出 `sha256`，再要求 `sha256.equals(stored.sha256())`，不等则抛 `ExternalSystemUnavailableException`（同文件 `:68-71`），所以入库值必等于本地算出的小写 64 位十六进制，`^[0-9a-f]{64}$` 与实际格式一致。`OssObjectStoreTest` 的 `"abc"`、`ObjectStoreArchiveVaultTest` 的 `"f".repeat(64)` 是金库层替身，不入库，不受影响。
+  3. **TB-06　唯一约束为何成立**：批次由 `archiveOlderThan` 严格按 `(created_at, id)` 推进，下一批的首条必在上一批末条之后，故 `first_entry_id` 不会重复；`object_key` 含 UTC 时刻到秒与内容哈希前 12 位（`ObjectStoreArchiveVault.java:66`），不同批内容不同、哈希不同，同键只会出现在重复登记同一批的错误里，正是要挡的。约束违反发生在金库已写入之后：对象留在归档库而批次行未登记，下一轮作业会从原位置重新取同一批、写新键（现状对任何登记失败都如此，不新增处理，CS-1.8）。
+  4. **TB-06　触发器 `tg_` 前缀改名：已核，未排入 R-2a，本 PR 不做**。证据：`ddl-naming-baseline.txt` 只含列、约束、索引三类，没有触发器行；`DdlNamingTest` 不检查触发器名；`NAMING_STANDARD.md` 没有触发器命名条款（G-D12 是枚举 CHECK）；`NEXT_BATCH_PLAN.md` 第 249 行 R-2a 条目是「79 处命名改名 + DDL-09/10/12/13/14」，不含触发器。基线里 `tg_` 与 `<表>_reject_*` 两种风格并存且 `tg_` 占多数（`organization_workforce` 5 对、`platform_integration` 3 个、`platform_approval`、`platform_numbering`、`platform_audit` 批次表），单改本表只会换一种不一致，且 `AuditArchiveJobIT.java:70,71,168,169` 按旧名禁用与启用触发器。统一须先在 `NAMING_STANDARD` 增触发器条款再一次性改全库，交 **one-data 裁定**：是否另立条目（建议并入 R-2a 之后的命名小卡，本卡 AB-4 的触发器部分关闭为「转卡」）。
+  5. **TB-06　注册表**：`data-access-registry.yaml` 没有自由说明字段，在 `platform_audit.audit_archive_batches` 条目上方加 `#` 注释：「批次区间不重叠、无缺口不设数据库约束：区间由作业按 (created_at, id) 推进产生，由 `AuditArchiveJob.reconcile` 对账（只比在线月份）；分区摘除前由 `drop_archived_audit_entry_partition` 逐月核对批次条数之和。」并诚实写明：已摘除月份的缺口，库内此后无法再核验。`retention: PERMANENT` 与 GUIDING §6「归档保留至满 10 年」不一致属待用户（第 5 节第 2 条），本条不动。
+  6. **TB-06　Java 与测试**：主代码无改动（键、哈希本就合规）。测试在 `AuditArchiveJobIT`（同一容器，`@BeforeEach` 已同时重置金库与清空两表）追加 3 条，名以 `DATA-REPAIR-timesheet-audit TB-06:` 开头：重复 `object_key` 被拒；重复 `first_entry_id` 被拒；`sha256_hash` 为大写、63 位、65 位、含非十六进制字符各被拒，小写 64 位通过。**不改任何现有夹具或断言**，理由：`RecordingArchiveVault` 返回的键 `test/<kind>/<第几批>` 与哈希 `"0".repeat(64)` 都已合规；键靠 `batches.size()` 计数，只要金库与批次表一起重置键就不重复，`AuditArchiveJobIT.java:65-72` 正是这样做的；`acceptance/.../AuditArchiveOrderIT` 只有一条 `@Test`、一个容器、一个金库，键不会重复，验收目录本卡不碰。
+  7. **TB-06　验收要点**：`AuditArchiveJobIT`、`AuditArchiveOrderIT`、`AuditSubjectColumnsIT` 原样通过；三类违反各被具名约束拒绝（错误信息含约束名）。
+  8. **TB-06　预期表结构 diff**：`audit_archive_batches` 新增 `uk_audit_archive_batches_first_entry_id`、`uk_audit_archive_batches_object_key`（各带一个同名索引）、`ck_audit_archive_batches_sha256_hash`；表注释一句。触发器、列、其他表无变化。
+  9. **TB-08　写入点核实**：三列只由 `AuditEntry.withTrace`（`AuditEntry.java:33`）写入，其余构造路径三列恒为空；`withTrace` 共 15 处主代码调用，结果如下（S 成功、F 失败）：
+
+     | 位置 | action | subject_kind | 地址 | 结果 | 方式 |
+     |---|---|---|---|---|---|
+     | `LoginAdmission.java:76-77` | `platform.identity.login.succeeded` | USER_ACCOUNT | 有 | S | 有 |
+     | `LoginAdmission.java:88-90` | `platform.identity.emergency.login` | USER_ACCOUNT | 有 | S | EMERGENCY |
+     | `LoginAdmission.java:97-101` | `platform.identity.login.failed` | LOGIN_ATTEMPT（账号未识别）或 USER_ACCOUNT | 有 | F | 有 |
+     | `BrowserIdentity.java:72-74`、`:81-84` | `…browser-identifier.replayed`、`…login.identity-check` | USER_ACCOUNT | 有 | F 或 S | 有 |
+     | `EnterAdministratorMode.java:79-80`、`:87-88` | `…administrator-mode.entered`、`.refused` | USER_ACCOUNT | 有 | S、F | 有 |
+     | `ExitAdministratorMode.java:42-43`、`SessionGuardFilter.java:92-94` | `…administrator-mode.exited` | USER_ACCOUNT | 有 | S | 有 |
+     | `Logout.java:35-36` | `platform.identity.logout` | USER_ACCOUNT | 有 | S | 有 |
+     | `PrivilegedRequestAudit.java:44-46` | `platform.identity.privileged.request` | REQUEST | 有 | S | 有 |
+     | `ForceUserLogout.java:67-68` | `platform.identity.session.revoked` | USER_ACCOUNT | 有 | S | **空** |
+     | `AccessDeniedAudit.java:77-78` | `platform.identity.access.denied` | OPERATION 或 REQUEST（`:89-97`） | 有 | F | **空** |
+     | `HandleOrgSnapshotChange.java:91-92` | `platform.identity.session.revoked`（系统动作） | USER_ACCOUNT | **空** | S | **空** |
+     | `CorrectLegalEntityAttribution.java:51-53` | `organization.workforce.legal-entity-attribution.correction-refused` | ORG_UNIT 或 EMPLOYEE（`AttributionAuditKinds.java:13-14`） | **空** | F | **空** |
+
+  10. **TB-08　结论一（卡与列注释的前提不成立）**：三列并非「登录与会话类才有」，也并非同空同非空：(a) `outcome_kind` 还写在拒绝访问、特权请求、归属更正被拒这类非登录条目上；(b) 方式为空而结果非空的有 4 处（强制下线、拒绝访问、离职收回会话、归属更正被拒）；(c) 地址为空而结果非空的有 2 处（系统动作、归属更正被拒，二者未传来源）；(d) 失败登录的方式**从不为空**：`LoginAdmission.reject` 的 `method` 是非空参数，全部调用点（`LoginAsEmergencyAdmin.java:65,92,100,106,127`、`LoginWithSignedTicket.java:82,95`、`LoginWithSso.java:45-70`、`LoginWithWecom.java:24-32`）都传入入口对应的方式，账号未识别时只是 `actor` 与 `subject_id` 为空、主体类别为 `LOGIN_ATTEMPT`。因此：「`(outcome_kind IS NULL) = (login_method_kind IS NULL)`」会被 4 处现有写入违反，**不落**；「`source_address` 与另两列同非空」同样不成立（与 PR-1 的置空规则并存更不成立），**不落**；「按 `subject_kind` 限定携带三列」：携带三列的 `subject_kind` 含 USER_ACCOUNT、LOGIN_ATTEMPT、REQUEST、OPERATION、ORG_UNIT、EMPLOYEE，且新增审计点会继续增加，写成枚举就是把应用的审计清单抄进 DDL，**未核实为稳定规则，不落**。
+  11. **TB-08　能落的 CHECK（单向）**：登录方式只对「有结果的条目」有意义，15 处写入点在方式非空时结果必非空，故加 `CONSTRAINT ck_audit_entries_login_method_outcome CHECK (login_method_kind IS NULL OR outcome_kind IS NOT NULL)`，位置在 `audit_entries` 建表语句中 `ck_audit_entries_subject_id` 之后；声明在分区父表上，PG 自动带到每个分区，与 PR-1 的分区键、主键、TB-05 的 CHECK 互不依赖。另在 `AuditEntry` 紧凑构造器加同一断言（`loginMethod != null && outcome == null` 抛 `IllegalArgumentException`），使违反在写入前、带出处地失败，不靠数据库报错（规则 6）。
+  12. **TB-08　可选的第二条（本节不含，待裁定）**：`source_address IS NULL OR outcome_kind IS NOT NULL`（有地址必有结果）。15 处主代码写入都满足，但验收夹具 `P5Support.auditRow` 的调用 `OwnLoginRecordsBySubjectIT.java:48`（`ROLES_REPLACED`，结果与方式为空而地址 `10.1.0.4` 非空）违反；验收目录本卡不碰，且这一行是构造出来的数据，现实中没有对应写入点。要落须先由 one-data 与验收目录归属会话同意把该行地址改为空（该测试断言的是 `ACTIONS` 内三条的地址，改后不影响断言）。建议：**本 PR 不落**。
+  13. **TB-08　列注释**（基线 `COMMENT ON COLUMN`，按核实结果纠正）：`outcome_kind` 改「结果：SUCCEEDED / FAILED；记录动作成败的条目才有（登录与会话、拒绝访问、特权请求、归属更正被拒等），其他条目为空」；`login_method_kind` 改「登录方式：企业微信（工作台、小程序、扫码）、单点登录、签名票据、应急登录；当次会话的登录方式已知的条目才有，有登录方式必有结果」；`source_address` 改「来源地址：请求有来源时的客户端地址（只取受信代理解析后的地址）；系统动作与取不到可信地址时为空」。注意 `RequestClientOrigin.java:22` 在无请求上下文时返回字面量 `"unknown"`，它不是地址，由 PR-1 的「不像地址则置空并 ALERT」兜住，本条不另处理；`SessionGuardFilter.java:93` 取 `request.getRemoteAddr()` 是否经 Tomcat remote-ip 还原属 AE-7，不在本节。
+  14. **TB-08　测试**：新增 `AuditEntryTest`（`platform/audit/api`）：`loginMethod` 非空且 `outcome` 为空构造失败；结果非空而方式为空、三列全空均通过。集成测试（沿用 `AuditLogIT` 的容器）追加一条 `DATA-REPAIR-timesheet-audit TB-08:`：直接 INSERT 方式非空而结果为空，被 `ck_audit_entries_login_method_outcome` 拒；全空、仅结果、结果加方式、结果加地址不加方式四种通过。**现有夹具与断言不改**，理由：逐一核对 `withTrace` 的 15 处主代码调用、测试中全部 `withTrace`（`AuditExportAndOwnRecordsIT.java:92-103`、`AuditLogIT.java:234,236`）与 `P5Support.auditRow` 的 7 次调用（`OwnLoginRecordsBySubjectIT.java:45-51,69-70`），没有任何一行是「方式非空而结果为空」。
+  15. **TB-08　验收要点**：登录成功、失败（账号已识别与未识别）、拒绝访问、强制下线、系统收回会话、归属更正被拒各路径写入通过；`AuditExportAndOwnRecordsIT`、`OwnLoginRecordsBySubjectIT`、`AuditLogIT`、`LoginAuditDetailTest`、`ClientAddressNotLoggedTest` 原样通过。
+  16. **TB-08　预期表结构 diff**：`audit_entries` 新增 `ck_audit_entries_login_method_outcome`（分区后每个分区各带一条继承的同名约束）；三条列注释；无列、索引、其他表变化。
+  - **PR-3 总 diff**：`audit_archive_batches` 2 个唯一约束 + 1 条 CHECK + 表注释；`audit_entries` 1 条 CHECK + 3 条列注释；`data-access-registry.yaml` 一段注释；`AuditEntry` 构造器一处断言；新增测试 `AuditEntryTest`、`AuditArchiveJobIT` 3 条、`AuditLogIT` 或同包 1 条。不得出现：触发器改名、分区或主键变化、`retention` 变化、种子变化。
+  - **与卡原文不一致处**：(1) 卡 TB-08 写「三列应同空同非空、对应登录与会话类 `subject_kind`」，核实后不成立，只落单向一条；(2) 卡 TB-06 写触发器改名「随 R-2a、待核是否已排」，核实未排入，转 one-data；(3) PR-1 写 `source_address` 上限 45，本任务说明写「超 64 字置空」，两个上限需由 PR-1 对齐，本节不涉及。
+  - **请 one-data 裁定**：① 第 10 条：三列不做成对约束、不按 `subject_kind` 限定，是否同意；② 第 11 条：只落「方式非空 ⇒ 结果非空」一条；③ 第 12 条：「地址非空 ⇒ 结果非空」是否另落（需改验收夹具一行）；④ 第 4 条：触发器统一命名是否另立卡及由谁起草 `NAMING_STANDARD` 条款；⑤ 第 5 条：注册表用注释表达「区间不重叠、无缺口由对账承担」是否可接受，或要求登记结构化字段；⑥ 是否给批次表加「首末条同一 UTC 月」的 CHECK（PR-1 约定批次不跨月，写法 `date_trunc('month', first_entry_created_at AT TIME ZONE 'UTC') = date_trunc('month', last_entry_created_at AT TIME ZONE 'UTC')`；本节倾向不落，理由是 PR-1 已写明批次表列与约束不变，且作业与摘除函数已按月核对）。
+
 低级顺带（B 部分，不阻塞）：AE-6（注释）、AE-7（待核：`SessionGuardFilter.java:91` 用 `getRemoteAddr()`，是否已用 Tomcat remote-ip 还原）、IR 注释、SL-1、SL-2、X-3（只追加表的冗余 `updated_at`）。
 
 ## 5. 已定与待用户决定
