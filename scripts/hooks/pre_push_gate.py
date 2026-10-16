@@ -4,7 +4,7 @@
 用户 2026-10-16 在待决定收件箱选「启用」（20261016-one-quality-pre-push-hook）；起因：一个分支连续 3 次在 CI 里挂同一个源码扫描测试，本地从没跑到。
 绕过：`git push --no-verify` 不会触发 git 钩子，所以留痕放在这里——命令含 --no-verify 时必须同时带 `PUSH_BYPASS_REASON="<理由>"`，否则拒绝；
 放行时往 <仓库>/.claude/push-bypass.log（不入仓）追加一行（时间、分支、理由），推送者要在 PR 说明「绕过推送前钩子」一栏写明。
-退出码 2 + 标准错误 = 拒绝，0 = 放行；出错一律拒绝（崩溃的退出码 1 对钩子来说是「不拦截」）。删除分支、--dry-run 的推送不拦。
+退出码 2 + 标准错误 = 拒绝，0 = 放行；出错一律拒绝（崩溃的退出码 1 对钩子来说是「不拦截」）。删除分支、--dry-run 的推送不拦。\n命令按 shell 切段分词，只在 push 段内找选项，理由只认同一段前的环境变量赋值（写在 echo 或注释里的不算）；检查的是工作区对 origin/main 的差异，不严格等于实际推送的提交。
 注册到 .claude/settings.json 时必须写 "timeout": 1500 以上。
 用法：pre_push_gate.py  |  pre_push_gate.py --self-test
 """
@@ -12,6 +12,7 @@ import datetime
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -19,23 +20,96 @@ import tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import precheck_before_pr as pr  # noqa: E402
 
-PUSH = re.compile(r"(?:^|[;&|(\s\"'`/])git(?:\s+-C\s+\S+|\s+-c\s+\S+)*\s+push(?![\w-])")
-SKIP = re.compile(r"--delete\b|\s-d\s|--dry-run\b|\s-n\s|\s:\S+")
-REASON = re.compile(r"PUSH_BYPASS_REASON=(?:\"([^\"]+)\"|'([^']+)'|(\S+))")
-TIMEOUT_SECONDS = 1500
+SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "\n"}
+WRAPPERS = {"command", "env", "time", "exec", "nohup", "sudo", "builtin"}
+GIT_VALUE_OPTIONS = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path", "--super-prefix"}
+ENV = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+TIMEOUT_SECONDS = 1400
 
 
-def decide(command):
-    """('allow', None) | ('bypass', reason) | ('deny', message) | ('run', None)."""
-    if not command or not PUSH.search(command) or SKIP.search(command):
+def segments(command):
+    """The simple commands of a shell line as token lists; None when the line cannot be tokenised."""
+    lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    lexer.commenters = "#"
+    try:
+        tokens = list(lexer)
+    except ValueError:
+        return None
+    out, cur = [], []
+    for token in tokens:
+        if token in SEPARATORS or set(token) <= set(";&|()"):
+            if cur:
+                out.append(cur)
+            cur = []
+        else:
+            cur.append(token)
+    if cur:
+        out.append(cur)
+    return out
+
+
+def pushes(command, cwd="."):
+    """Every `git push` found in a command line: (directory, tokens after `push`, environment assignments of its segment). A line that cannot be tokenised but mentions `git ... push` counts as one push."""
+    found, here = [], cwd
+    segs = segments(command)
+    if segs is None:
+        return [(cwd, [], {})] if re.search(r"\bgit\b.*\bpush\b", command) else []
+    for seg in segs:
+        env, i = {}, 0
+        while i < len(seg) and (ENV.match(seg[i]) or seg[i] in WRAPPERS):
+            if ENV.match(seg[i]):
+                k, v = seg[i].split("=", 1)
+                env[k] = v
+            i += 1
+        rest = seg[i:]
+        if not rest:
+            continue
+        if rest[0] == "cd" and len(rest) > 1:
+            here = os.path.normpath(os.path.join(here, os.path.expanduser(rest[1])))
+            continue
+        if rest[0] in ("bash", "sh", "zsh") and "-c" in rest and rest.index("-c") + 1 < len(rest):
+            found += pushes(rest[rest.index("-c") + 1], here)
+            continue
+        if rest[0] != "git":
+            continue
+        j, where = 1, here
+        while j < len(rest) and rest[j].startswith("-"):
+            opt = rest[j]
+            if opt == "-C" and j + 1 < len(rest):
+                where = os.path.normpath(os.path.join(where, rest[j + 1]))
+            if opt in GIT_VALUE_OPTIONS:
+                j += 1
+            j += 1
+        if j < len(rest) and rest[j] == "push":
+            found.append((where, rest[j + 1:], env))
+    return found
+
+
+def judge(args, env):
+    """One push: 'allow' (nothing to check), 'bypass', 'deny' or 'run'; the second value is the reason or the message."""
+    if any(a in ("--delete", "-d", "--dry-run", "-n") for a in args):
         return "allow", None
-    if "--no-verify" in command:
-        m = REASON.search(command)
-        reason = next((g for g in m.groups() if g), "").strip() if m else ""
-        if not reason:
-            return "deny", "git push --no-verify 要绕过推送前钩子，必须同时在命令里写理由：PUSH_BYPASS_REASON=\"<理由>\" git push --no-verify …（理由会记入 .claude/push-bypass.log，并要在 PR 说明「绕过推送前钩子」一栏写明）"
+    positional = [a for a in args if not a.startswith("-")]
+    refspecs = positional[1:]
+    if refspecs and all(a.startswith(":") for a in refspecs):
+        return "allow", None
+    if "--no-verify" in args:
+        reason = env.get("PUSH_BYPASS_REASON", "").strip()
+        if not reason or reason.startswith("-"):
+            return "deny", "git push --no-verify 要绕过推送前钩子，必须在同一条 push 命令前写理由：PUSH_BYPASS_REASON=\"<理由>\" git push --no-verify …（理由会记入 .claude/push-bypass.log，并要在 PR 说明「绕过推送前钩子」一栏写明）"
         return "bypass", reason
     return "run", None
+
+
+def decide(command, cwd="."):
+    """('allow'|'run'|'bypass'|'deny', info, directory) for a whole command line; deny beats run beats bypass beats allow."""
+    verdicts = [(*judge(args, env), where) for where, args, env in pushes(command or "", cwd)]
+    for kind in ("deny", "run", "bypass"):
+        for v in verdicts:
+            if v[0] == kind:
+                return v
+    return "allow", None, cwd
 
 
 def log_bypass(root, branch, reason, now=None):
@@ -56,16 +130,17 @@ def main():
     try:
         payload = json.load(sys.stdin)
     except ValueError:
-        return 0
+        print("pre_push_gate.py 读不懂钩子输入（不是 JSON），按失败处理", file=sys.stderr)
+        return 2
     if not isinstance(payload, dict) or payload.get("tool_name", "Bash") != "Bash":
         return 0
-    action, info = decide((payload.get("tool_input") or {}).get("command"))
+    action, info, where = decide((payload.get("tool_input") or {}).get("command"), payload.get("cwd") or os.getcwd())
     if action == "allow":
         return 0
     if action == "deny":
         print(info, file=sys.stderr)
         return 2
-    root = pr.repository_of(payload.get("cwd") or os.getcwd())
+    root = pr.repository_of(where)
     if action == "bypass":
         path = log_bypass(root, branch_of(root), info)
         print(f"推送前钩子已按理由绕过并留痕（{path}）：{info}", file=sys.stderr)
@@ -75,6 +150,9 @@ def main():
                              encoding="utf-8", errors="replace", timeout=TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
         print(f"precheck.sh --pre-push 超过 {TIMEOUT_SECONDS} 秒未结束，不能推送", file=sys.stderr)
+        return 2
+    if "unknown option: --pre-push" in run.stdout + run.stderr:
+        print("这个检出的 scripts/precheck.sh 还没有 --pre-push：先把 origin/main 合进当前分支（git merge origin/main）再推送。", file=sys.stderr)
         return 2
     reason = pr.verdict(run.stdout + run.stderr, run.returncode, "推送", "git push")
     if reason:
@@ -92,16 +170,29 @@ def guarded_main():
 
 
 def self_test():
-    for command in ("git push", "git push origin HEAD", "cd x && git push -u origin b", "git -C /a/b push origin c", "git -c core.x=y push", "(git push)", "bash -c \"git push\"", "git push --force-with-lease"):
+    runs = ("git push", "git push origin HEAD", "cd x && git push -u origin b", "git -C /a/b push origin c", "git -c core.x=y push", "(git push)", "bash -c \"git push\"",
+            "git push --force-with-lease", "git push -u origin HEAD 2>&1 | tail -n 20", "git push origin feat :old", "git push x && git push --delete y", "git push && date -d now",
+            "git --no-pager push", "git --git-dir=x push", "git -C 'a b' push", "command git push", "env FOO=1 git push", "GIT_DIR=x git push", "git push origin HEAD:refs/heads/x",
+            "git push 'unbalanced", "sh -c 'git push origin b'", "git push -f")
+    for command in runs:
         assert decide(command)[0] == "run", command
-    for command in ("git pushd", "git status", "git log --oneline", "echo hi", "", None, "git push origin --delete old", "git push --dry-run", "git push origin :old", "git commit -m 'x'", "gh pr create"):
+    allows = ("git pushd", "git status", "git log --oneline", "echo hi", "", None, "git push origin --delete old", "git push --dry-run", "git push -n", "git push origin :old :older", "git commit -m 'x'",
+              "gh pr create", "echo 'git push'", "git commit -m \"then git push\"", "grep -n push file", "git push --delete origin b | tail -n 3")
+    for command in allows:
         assert decide(command)[0] == "allow", command
     assert decide("git push --no-verify")[0] == "deny", "bypass without a reason is refused"
+    assert decide("git push --no-verify origin b | tail -n 3")[0] == "deny", "a pipe and -n of another command do not turn a push into a dry run"
     assert decide("PUSH_BYPASS_REASON= git push --no-verify")[0] == "deny", "an empty reason is no reason"
-    assert decide('PUSH_BYPASS_REASON="CI 已挂在 runner，先推送看日志" git push --no-verify origin b') == ("bypass", "CI 已挂在 runner，先推送看日志")
+    assert decide("echo PUSH_BYPASS_REASON=x; git push --no-verify")[0] == "deny", "a reason written for another command is no reason"
+    assert decide("git push --no-verify # PUSH_BYPASS_REASON=x")[0] == "deny", "a reason in a comment is no reason"
+    assert decide("PUSH_BYPASS_REASON=\"--no-verify\" git push")[0] == "run", "an option-looking reason bypasses nothing"
+    assert decide("PUSH_BYPASS_REASON=--x git push --no-verify")[0] == "deny"
+    assert decide('PUSH_BYPASS_REASON="CI 已挂在 runner，先推送看日志" git push --no-verify origin b')[:2] == ("bypass", "CI 已挂在 runner，先推送看日志")
     assert decide("PUSH_BYPASS_REASON='a b' git push --no-verify")[1] == "a b"
-    assert decide("PUSH_BYPASS_REASON=x git push --no-verify")[1] == "x"
+    assert decide("PUSH_BYPASS_REASON=x git push --no-verify | tail -n 3")[:2] == ("bypass", "x"), "a reason on the push itself counts even when piped"
     assert decide("PUSH_BYPASS_REASON=x git push")[0] == "run", "a reason without --no-verify bypasses nothing"
+    assert decide('PUSH_BYPASS_REASON=x git push --no-verify; git push')[0] == "run", "a second plain push still runs the checks"
+    assert decide("git push origin b", "/r")[2] == "/r" and decide("cd /other && git push", "/r")[2] == "/other" and decide("git -C /w push", "/r")[2] == "/w", "the checks run where the push happens"
     with tempfile.TemporaryDirectory() as root:
         path = log_bypass(root, "claude/b", "理由", datetime.datetime(2026, 10, 16, 12, 0, 0))
         log_bypass(root, "claude/c", "再一次", datetime.datetime(2026, 10, 16, 12, 5, 0))

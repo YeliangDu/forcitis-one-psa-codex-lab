@@ -14,44 +14,44 @@ import tempfile
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "backend", "src", "test", "java"))
 HEAVY = re.compile(r"@SpringBootTest|@Testcontainers|@DataJdbcTest|@WebMvcTest|@AutoConfigureMockMvc|TestPostgres\.(?:container|shared|database)\s*\(|TestMssql\.\w+\s*\(|PostgreSQLContainer|MSSQLServerContainer|GenericContainer|Testcontainers|ApplicationModuleTest")
-EXTENDS = re.compile(r"\bclass\s+(\w+)(?:<[^>]*>)?\s+extends\s+(\w+)")
-CLASS = re.compile(r"\b(?:public\s+)?(abstract\s+)?(?:final\s+)?class\s+(\w+)")
+
+
+def strip_comments(text):
+    text = re.sub(r"/\*.*?\*/", " ", text, flags=re.S)
+    return re.sub(r"//[^\n]*", " ", text)
 
 
 def read_sources(root):
+    """{simple class name: [source text of every file with that name]}; the same simple name can exist in several packages."""
     sources = {}
     for folder, _, files in os.walk(root):
         for name in files:
             if name.endswith(".java"):
-                sources[name[:-5]] = open(os.path.join(folder, name), encoding="utf-8").read()
+                sources.setdefault(name[:-5], []).append(strip_comments(open(os.path.join(folder, name), encoding="utf-8").read()))
     return sources
 
 
 def light_classes(sources):
-    parent = {}
-    for name, text in sources.items():
-        m = re.search(rf"\bclass\s+{re.escape(name)}(?:<[^>]*>)?\s+extends\s+(\w+)", text)
-        if m:
-            parent[name] = m.group(1)
-
     def heavy(name, seen=()):
-        text = sources.get(name)
-        if text is None:
+        texts = sources.get(name)
+        if texts is None:
             return bool(re.search(r"Support$|IntegrationTest$|IT$", name))
-        if HEAVY.search(text):
-            return True
-        if re.search(r"^(?:\s*(?:public|protected)\s+)?(?:abstract\s+)?class\s+\w+(?:<[^>]*>)?\s+extends\s+\w*(?:Support|IntegrationTest)\b", text, re.M):
-            return True
-        up = parent.get(name)
-        return bool(up and up not in seen and heavy(up, seen + (name,)))
+        for text in texts:
+            if HEAVY.search(text) or re.search(r"\bclass\s+\w+(?:<[^>]*>)?\s+extends\s+\w*(?:Support|IntegrationTest)\b", text):
+                return True
+            m = re.search(rf"\bclass\s+{re.escape(name)}(?:<[^>]*>)?\s+extends\s+(\w+)", text)
+            if m and m.group(1) not in seen and heavy(m.group(1), seen + (name,)):
+                return True
+        return False
 
     out = []
-    for name, text in sources.items():
-        m = CLASS.search(text)
-        if not name.endswith("Test") or not m or m.group(1) or re.search(rf"\babstract\s+class\s+{re.escape(name)}\b", text):
+    for name, texts in sources.items():
+        if not name.endswith("Test") or heavy(name):
             continue
-        if not heavy(name):
-            out.append(name)
+        # a file that declares no concrete class of its own name (an interface, an enum, an abstract base) is not a test class
+        if any(re.search(rf"\babstract\s+class\s+{re.escape(name)}\b", t) or not re.search(rf"\bclass\s+{re.escape(name)}\b", t) for t in texts):
+            continue
+        out.append(name)
     return sorted(out)
 
 
@@ -74,10 +74,16 @@ def self_test():
             "NamesTest": "class NamesTest { String n = TestPostgres.databaseName(\"m\", \"a.B\"); }",
             "StartsTest": "class StartsTest { Object d = TestPostgres.database(StartsTest.class, \"m\"); }",
         }
+        files["CommentTest"] = "/** a note about class Foo */ class CommentTest { }"
+        files["EnumTest"] = "enum EnumTest { A }"
         for name, text in files.items():
             open(os.path.join(root, name + ".java"), "w", encoding="utf-8").write(text)
+        os.makedirs(os.path.join(root, "a")); os.makedirs(os.path.join(root, "b"))
+        open(os.path.join(root, "a", "TwinTest.java"), "w", encoding="utf-8").write("package a; class TwinTest { }")
+        open(os.path.join(root, "b", "TwinTest.java"), "w", encoding="utf-8").write("package b; @SpringBootTest class TwinTest { }")
+        open(os.path.join(root, "a", "OnlyLightTwinTest.java"), "w", encoding="utf-8").write("package a; class OnlyLightTwinTest { }")
         got = light_classes(read_sources(root))
-    assert got == ["LightChildTest", "NamesTest", "PlainTest", "ScanTest"], got
+    assert got == ["CommentTest", "LightChildTest", "NamesTest", "OnlyLightTwinTest", "PlainTest", "ScanTest"], got
     real = light_classes(read_sources(ROOT)) if os.path.isdir(ROOT) else []
     assert not os.path.isdir(ROOT) or ("SeeyonSourceScanTest" in real and "ArchitectureRulesTest" in real and "ApplicationIntegrationTest" not in real and "ListPagingGuardTest" not in real), "the real test sources: scan and guard tests are light, container tests are not"
     print("light_unit_classes self-test: ok")
