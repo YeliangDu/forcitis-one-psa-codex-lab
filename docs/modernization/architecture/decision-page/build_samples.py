@@ -47,8 +47,8 @@ def swimlane(lanes, nodes, edges):
             out.append(f'<text x="{mx}" y="{my}" text-anchor="middle" fill="var(--accent)" font-size="10">{escape(lab)}</text>')
     for k, (l, c, text, kind) in nodes.items():
         x, y = pos[k]
-        stroke = {"approval": "var(--changed)", "decision": "var(--defer)", "system": "var(--accent)", "external": "var(--muted)"}.get(kind, "var(--ink)")
-        dash = ' stroke-dasharray="4 3"' if kind == "external" else ""
+        stroke = {"approval": "var(--changed)", "decision": "var(--defer)", "system": "var(--accent)", "external": "var(--accent)", "offline": "var(--muted)"}.get(kind, "var(--ink)")
+        dash = {"external": ' stroke-dasharray="6 3"', "offline": ' stroke-dasharray="2 3"'}.get(kind, "")
         out.append(f'<rect x="{x}" y="{y}" width="{BOXW}" height="{BOXH}" rx="7" fill="var(--paper)" stroke="{stroke}" stroke-width="1.6"{dash}/>')
         lines = wrap(text, 8)[:3]
         for j, t in enumerate(lines):
@@ -57,18 +57,18 @@ def swimlane(lanes, nodes, edges):
     return "".join(out)
 
 
-LEGEND = "图例：黑框＝人工步骤；橙框＝审批；黄框＝判断；绿框＝系统自动；虚线框＝系统外（客户、企业微信）。横向可滑动。"
+LEGEND = "图例：黑框＝用户在本系统操作；橙框＝审批；黄框＝判断；绿实框＝本系统自动；绿长虚线框＝外部系统经集成完成；灰点线框＝线下完成、本系统只登记结果与证据。横向可滑动。"
 
 REVENUE = swimlane(
     ["设计师", "技术专家", "注册执业人员", "项目经理", "客户", "收入侧（系统）"],
     {
-        "a": ("设计师", 0, "编制交付物", "task"),
+        "a": ("设计师", 0, "编制交付物（设计软件）", "offline"),
         "b": ("技术专家", 1, "校对审核审定", "approval"),
         "c": ("注册执业人员", 2, "签发（查执业证书）", "decision"),
-        "d": ("项目经理", 3, "送达并登记回执为证据", "task"),
-        "e": ("客户", 4, "书面认可／退回／不回复", "external"),
-        "f": ("项目经理", 5, "登记客户认可", "task"),
-        "g": ("项目经理", 4, "登记退回，轮次加1", "task"),
+        "d": ("项目经理", 3, "送达并登记回执为证据", "offline"),
+        "e": ("客户", 4, "书面认可／退回／不回复", "offline"),
+        "f": ("项目经理", 5, "登记客户认可", "offline"),
+        "g": ("项目经理", 4, "登记退回，轮次加1", "offline"),
         "h": ("项目经理", 6, "期满后登记无异议声明", "task"),
         "i": ("收入侧（系统）", 7, "确认收入（认可或视为同意）", "system"),
     },
@@ -89,8 +89,8 @@ PEOPLE = swimlane(
         "f": ("身份平台", 5, "放行登录", "system"),
         "g": ("人力", 1, "建立任职（职位职级）", "task"),
         "h": ("人力", 2, "提交并批准劳动合同", "approval"),
-        "k": ("人力", 3, "签订劳动合同", "task"),
-        "m": ("人力（薪酬社保）", 5, "参保增员", "task"),
+        "k": ("人力", 3, "签订劳动合同（线下签）", "offline"),
+        "m": ("人力（薪酬社保）", 5, "参保增员（网办）", "offline"),
         "n": ("人力（薪酬社保）", 6, "建立薪酬档案", "task"),
     },
     [("a", "b", "入职已登记"), ("b", "c", ""), ("c", "d", "成功"), ("c", "x", "失败"), ("a", "g", ""), ("g", "h", ""), ("h", "k", "批准"),
@@ -100,7 +100,7 @@ PEOPLE = swimlane(
 FINANCE = swimlane(
     ["员工", "部门负责人", "财务", "系统"],
     {
-        "a": ("员工", 0, "选项目与发票，占用发票", "task"),
+        "a": ("员工", 0, "发票查验（税务）并占用", "external"),
         "b": ("员工", 1, "占用预算（INV-102）", "decision"),
         "c": ("员工", 2, "提交报销", "task"),
         "d": ("部门负责人", 3, "审批（F-01）", "approval"),
@@ -213,14 +213,22 @@ ITEMS.append(item("F-Q2", "fin", "报销超过预算时，拦截还是只预警"
 for n, (t, b) in enumerate(FIN_POINTS, 1):
     ITEMS.append(point(f"F-{n:02d}", "fin", t, b))
 
-INFO = [{"title": "怎么看这一页", "lines": [
+ITEMS.append(item("W-1", "conv", "每一步标明「在哪发生」，分四类，是否认可", "四类：用户在本系统操作；本系统自动；外部系统经集成完成（企业微信、U8C、银行、税务）；线下完成、本系统只登记结果与证据。外部和线下的步骤必须写明登记什么证据——它们是诉讼取证和历史迁入的关键。三组样板已按此标注，泳道图里用不同框线区分。",
+                  [("认可这四类，铺开时每一步都标", "写进统一约定"), ("要改分法（在说明里写）", "按你的说明改约定")], ["用户问「流程节点哪些是在本系统，设计方位是如何考虑的」；closeout/CONVENTIONS.md where、evidence"]))
+G.insert(0, {"id": "conv", "title": "共通：每一步在哪发生", "desc": "三个样板共用的一条写法：区分本系统操作、本系统自动、外部系统、线下四类。下面列出三个样板里的外部和线下步骤及登记的证据。", "diagram": "", "legend": ""})
+
+INFO = [{"title": "三个样板里的外部与线下步骤", "lines": [
+    "收入线（PRC-28）：编制交付物在设计软件里完成，本系统登记文件版本与哈希；送达、客户书面认可、退回都在线下，本系统登记回执、签认单或退回意见作为证据，并记签认日。",
+    "人员线（PRC-83、137、84）：劳动合同线下签署，登记已签合同扫描件与签署日（以后接电子签可改为外部系统）；参保增员在人社、公积金网办（无接口，待核），登记增员回执与办理日；企业微信账号经接口开通，登记返回的账号号码与开通时间。",
+    "财务线（PRC-87）：发票查验经税务平台，登记发票文件、查验结果与查验时刻；纸质原始凭证线下交财务，财务核定时在本系统登记签收。付款经银行、凭证推送 U8C 在其他流程里。"]},
+    {"title": "怎么看这一页", "lines": [
     "三个架构组各出一个流程样板，看设计是否符合你的想法。每组一个标签页：上面是泳道图（每个角色一条泳道），下面先问整体结论，再问几道待定题，最后逐条列关键设计点和依据。",
     "每条设计点可选「符合」或「要改」，要改的在说明里写；都不预选。",
     "你的意见回来前，三组不铺开其余流程；意见回来后统一改约定再铺开。",
     "已由我裁定、不用你看的格式和接缝问题，记在 closeout/STRUCTURAL_ITEMS.md。"]}]
 
 data = {"items": ITEMS, "groups": [{k: g[k] for k in ("id", "title", "desc")} for g in G], "info": INFO, "side": []}
-diagrams = {g["id"]: {"svg": g["diagram"], "legend": g["legend"]} for g in G}
+diagrams = {g["id"]: {"svg": g["diagram"], "legend": g["legend"]} for g in G if g["diagram"]}
 tpl = (HERE / "u12.html").read_text()
 tpl = tpl.replace("<title>生效日期口径</title>", "<title>流程样板</title>").replace("<h1>员工与岗位的生效日期</h1>", "<h1>流程样板：三组各一（看设计是否符合你的想法）</h1>")
 tpl = re.sub(r'<p class="lede">.*?</p>', '<p class="lede">每题默认「暂不定」，不预选；看完泳道图后逐处给意见，按组提交。</p>', tpl, count=1)
