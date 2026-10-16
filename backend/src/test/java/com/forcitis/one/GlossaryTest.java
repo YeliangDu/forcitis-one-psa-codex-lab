@@ -42,6 +42,8 @@ class GlossaryTest {
             "taken", "given", "written", "shown", "run", "bound", "found", "left", "met", "spent", "split", "cut", "hit", "closed", "reset",
             "frozen", "chosen", "broken", "undone", "overridden", "withdrawn", "drawn", "known", "seen", "gone", "become", "come",
             "won", "done", "sold", "bought", "withheld", "repaid", "prepaid", "overpaid", "underpaid", "told", "brought", "shut", "let", "rebuilt", "overdrawn");
+    // a linking verb in the past plus one complement is an event name too: ApprovalTaskBecameOverdue; same as LINKING_PAST in term_rules.py
+    static final Set<String> LINKING_PAST = Set.of("became");
     static final Set<String> NOT_PARTICIPLES = Set.of("need", "speed", "feed", "seed", "embed", "proceed", "exceed", "succeed", "bed", "red", "shed");
     static final Map<String, String> codeProblems = new TreeMap<>();
     static final Set<String> BUILT_INS = Set.of("equals", "hashCode", "toString", "values", "valueOf", "compareTo",
@@ -212,13 +214,16 @@ class GlossaryTest {
         }
     }
 
-    /** Past participle at the end, optionally followed by a particle (WrittenOff) or a prepositional tail (SubmittedForApproval); same rule as term_rules.py. */
+    /** Past participle at the end, optionally followed by a particle (WrittenOff) or a prepositional tail (SubmittedForApproval), or a linking verb in the past plus one complement (BecameOverdue); same rule as term_rules.py. */
     private static boolean pastTense(List<String> words) {
         List<String> ws = new ArrayList<>(words);
         while (ws.size() > 1 && PARTICLES.contains(ws.get(ws.size() - 1))) {
             ws.remove(ws.size() - 1);
         }
         for (int i = ws.size() - 1; i >= 0; i--) {
+            if (LINKING_PAST.contains(ws.get(i))) {
+                return i == ws.size() - 2;
+            }
             if ((ws.get(i).endsWith("ed") && !NOT_PARTICIPLES.contains(ws.get(i))) || IRREGULAR_PAST.contains(ws.get(i))) {
                 return i == ws.size() - 1 || PREPOSITIONS.contains(ws.get(i + 1));
             }
