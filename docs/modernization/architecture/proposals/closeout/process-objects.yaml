@@ -1496,6 +1496,31 @@ processes:
   name: 生成会计分录
   group: finance
   objects:
+  - obj: AGG-85
+    name: 收付 ↔ 权责科目映射表版本
+    aggregates:
+    - AGG-85
+    ops: R
+  - obj: AGG-94
+    name: 控制科目授权表版本
+    aggregates:
+    - AGG-94
+    ops: R
+  - obj: AGG-127
+    name: 口径转换规则版本
+    aggregates:
+    - AGG-127
+    ops: R
+  - obj: AGG-129
+    name: 现金流量项目表版本
+    aggregates:
+    - AGG-129
+    ops: R
+  - obj: OBJ-95
+    name: 会计科目
+    aggregates:
+    - AGG-82
+    ops: R
   - obj: OBJ-98
     name: 会计分录
     aggregates:
@@ -1526,6 +1551,11 @@ processes:
     aggregates:
     - AGG-99
     ops: CUD
+  - obj: AGG-128
+    name: 期末结转模板版本
+    aggregates:
+    - AGG-128
+    ops: R
   - obj: OBJ-98
     name: 会计分录
     aggregates:
@@ -1574,6 +1604,11 @@ processes:
     aggregates:
     - AGG-77
     ops: D
+  - obj: OBJ-78
+    name: 分摊规则（原「分摊规则版本」）
+    aggregates:
+    - AGG-40
+    ops: R
 - id: PRC-99
   name: 计提折旧并处置公司资产
   group: finance
@@ -1633,6 +1668,11 @@ processes:
     name: 过账
     aggregates:
     - AGG-77
+    ops: R
+  - obj: AGG-78
+    name: 口径版本
+    aggregates:
+    - AGG-78
     ops: R
   - obj: AGG-99
     name: 期末结转运行
@@ -1694,6 +1734,11 @@ processes:
     aggregates:
     - AGG-100
     ops: C
+  - obj: AGG-125
+    name: 期初余额
+    aggregates:
+    - AGG-125
+    ops: R
 - id: PRC-104
   name: 外部法定账对账与签字
   group: finance

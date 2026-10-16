@@ -153,11 +153,12 @@ def analyse(catalog, pobj_doc, agg_objs, vs_doc, caps_doc, hits, children=None, 
             w = sorted(written.get(p["id"], set()), key=num)
             if integ:
                 w = sorted({x for x in feeds if x.startswith("OBJ-")} | set(fed_prim), key=num)
-            prim = conf if conf and str(conf).lower() != "none" else (w[0] if len(w) == 1 or (integ and w) else None)
+            declared_none = isinstance(conf, str) and conf.strip().lower() == "none"
+            prim = None if declared_none else (conf or (w[0] if len(w) == 1 or (integ and w) else None))
             cap = cidx.get(prim) if prim else None
             support_rows.append({"id": p["id"], "name": p["name"], "group": p.get("group"), "type": p.get("type"), "stages": [],
                                  "supports": list(sup), "supports_basis": sup, "primary_object": prim,
-                                 "status": ("integration" if integ else "support") + ("" if conf else ("_proposed" if prim else "_none")),
+                                 "status": ("integration" if integ else "support") + ("_declared_none" if declared_none else "" if conf else ("_proposed" if prim else "_none")),
                                  "external_system": p.get("external_system"), "lifespan": p.get("lifespan"), "feeds": feeds,
                                  "capability_l1": cap[0] if cap else None, "capability": cap[1] if cap else None,
                                  "category": cats.get(cap[0]) if cap else None})

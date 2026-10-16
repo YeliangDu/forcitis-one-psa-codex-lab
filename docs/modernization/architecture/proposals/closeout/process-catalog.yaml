@@ -164,8 +164,8 @@ processes:
     type: event_policy
     stages: [VS-01.2]
     stages_note: "事件策略按触发状态归段（#421）：商机已丢单、已放弃=OBJ-18「丢单 / 放弃」，是 VS-01.2 退出条件；超期未签约的定时触发无对象状态，随同一策略归 VS-01.2。"
-    primary_object: "AGG-43"
-    primary_object_note: "结局「售前投入已转费用」改变成本结转批次（AGG-43）；AGG-122 只是归属登记的辅助"
+    primary_object: "none"
+    primary_object_note: "成本结转属流程与事实，信息图 OBJ-80 成本结转批次已去掉；售前投入是派生度量（信息图 §度量），不改业务对象状态，价值落在过账事实与账簿余额"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -272,8 +272,8 @@ processes:
     type: event_policy
     stages: [VS-02.0, VS-04.1]
     stages_note: "事件策略按触发状态归段（#421）：项目已建立=OBJ-29「已立项」，是 VS-02.0 退出条件；合同已签回（ContractSigned）=OBJ-05「已签署生效」，是 VS-04.1 退出条件。两段在不同价值流，是按触发状态跨价值流归两段，不是跳段。触发名用事件名而非状态原文，检查器因此匹配不上。"
-    primary_object: "AGG-43"
-    primary_object_note: "结局「售前投入已转入」由成本结转批次（AGG-43）产生；AGG-122 是辅助登记"
+    primary_object: "none"
+    primary_object_note: "同 PRC-15：转入售前投入是成本结转，不改业务对象状态"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -383,8 +383,8 @@ processes:
     type: event_policy
     stages: [VS-02.7]
     stages_note: "按触发状态「项目已结项」归段；终止类结局不归段（SD-10）"
-    primary_object: "AGG-43"
-    primary_object_note: "无 OBJ 的聚合，随信息层处理"
+    primary_object: "none"
+    primary_object_note: "同 PRC-15：终止或结项清算是成本结转，不改业务对象状态"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -607,8 +607,8 @@ processes:
     type: event_policy
     stages: [VS-04.2]
     stages_note: "事件策略按触发状态归段（#421）：触发是收入确认类型分录的过账回执，对应 OBJ-98「已记账（不可逆）」，是 VS-04.2 退出条件（收入确认类型分录）。触发名是事件名，检查器匹配不上。"
-    primary_object: "AGG-43"
-    primary_object_note: "无 OBJ 的聚合，随信息层处理"
+    primary_object: "none"
+    primary_object_note: "同 PRC-15：结转合同履约成本是成本结转，不改业务对象状态"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -709,6 +709,7 @@ processes:
     type: business
     stages: []
     support: "导入银行流水是资金数据的采集，结局（流水已导入）不造出任何阶段的退出条件；为付款、回款的匹配提供依据（#421 判据①不支持归段）"
+    primary_object: "OBJ-90"
     owner_bc: "B-22"
     group: finance
     status: draft
@@ -719,6 +720,7 @@ processes:
     type: single_aggregate
     stages: []
     support: "资金账户是主数据维护，不推进任何价值流对象的阶段状态（#421 判据①不支持归段）"
+    primary_object: "OBJ-89"
     owner_bc: "B-22"
     group: finance
     status: draft
@@ -880,6 +882,8 @@ processes:
     type: business
     stages: []
     support: "B-13 主数据维护：法人主体、组织单元、法人归属、职位目录条目的维护，结局不造任何阶段的退出条件（职位「启用」只是 VS-07.1 的进入条件，判据按退出条件归段），服务多条价值流（STAGE_ALIGN.md 归段判据第 6 项）"
+    primary_object: "OBJ-55"
+    secondary_objects: [OBJ-54, OBJ-58]
     owner_bc: "B-13"
     group: people
     status: draft
@@ -955,6 +959,7 @@ processes:
     stages: [VS-08.2]
     primary_object: "OBJ-88"
     primary_object_note: "多候选中取 OBJ-88 费用报销：结局「已核定」是 VS-08.2 主退出条件；OBJ-83 发票入账是同步占用，非主对象"
+    secondary_objects: [OBJ-83]
     owner_bc: "B-12"
     group: finance
     status: user_confirmed
@@ -1005,8 +1010,8 @@ processes:
     name: "过账业务事实"
     type: business
     stages: [VS-10.1]
-    primary_object: "AGG-77"
-    primary_object_note: "无 OBJ 的聚合，随信息层处理"
+    primary_object: "none"
+    primary_object_note: "过账事实是设计构件，信息图 OBJ-75 经营事实已去掉（BIZBOK p197）；过账不改业务对象状态"
     owner_bc: "B-16"
     group: finance
     status: draft
@@ -1036,8 +1041,8 @@ processes:
     name: "期末结转"
     type: business
     stages: [VS-10.1]
-    primary_object: "AGG-99"
-    primary_object_note: "期末结转运行（AGG-99），无 OBJ，随信息层"
+    primary_object: "none"
+    primary_object_note: "期末结转运行属流程与事实，结转凭证经过账生成 OBJ-98 会计分录，由 PRC-93 承载"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -1047,8 +1052,8 @@ processes:
     name: "分配人工成本"
     type: business
     stages: [VS-10.1]
-    primary_object: "AGG-41"
-    primary_object_note: "人工成本分配运行（AGG-41），无 OBJ，随信息层"
+    primary_object: "none"
+    primary_object_note: "人工成本分配属流程与事实，信息图 OBJ-76 已去掉"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1059,6 +1064,7 @@ processes:
     type: business
     stages: []
     support: "分摊规则版本是配置，供 VS-10 的分摊运行使用，本身不造出阶段退出条件（#421）"
+    primary_object: "OBJ-78"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1068,8 +1074,8 @@ processes:
     name: "分摊间接成本"
     type: business
     stages: [VS-10.1]
-    primary_object: "AGG-42"
-    primary_object_note: "分摊运行（AGG-42），无 OBJ，随信息层"
+    primary_object: "none"
+    primary_object_note: "分摊运行属流程与事实，信息图 OBJ-79 已去掉"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1090,6 +1096,8 @@ processes:
     type: business
     stages: []
     support: "科目表、映射表、授权表版本是总账配置，不造出阶段退出条件（#421）"
+    primary_object: "OBJ-95"
+    primary_object_note: "科目表版本；映射表、授权表是技术配置（AGG-85、94），无对象"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -1120,8 +1128,8 @@ processes:
     type: event_policy
     stages: [VS-10.1]
     stages_note: "事件策略按触发状态「会计期间已关账」归段（#421 判据②），该状态是 VS-10.1 期间关账的退出条件"
-    primary_object: "AGG-100"
-    primary_object_note: "无 OBJ 的聚合，随信息层处理"
+    primary_object: "none"
+    primary_object_note: "期间余额快照是派生、只追加的技术聚合，不改业务对象状态"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -1132,8 +1140,8 @@ processes:
     type: business
     stages: [VS-10.2]
     stages_note: "外部法定账对账完成是 VS-10.2 退出条件改定后的「外部法定账对账已完成」（SD 已裁定的 VS-10.2 退出条件）；改定前检查器匹配不上。"
-    primary_object: "AGG-101"
-    primary_object_note: "外部法定账对账（AGG-101），无 OBJ，随信息层；OBJ-98 只读"
+    primary_object: "none"
+    primary_object_note: "外部法定账对账是运行单据（技术聚合），只读会计分录与快照；对账结论作关账与出表的依据，不改业务对象状态"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -1144,6 +1152,7 @@ processes:
     type: business
     stages: []
     support: "报表行定义版本是配置，供出具报表使用，不造出阶段退出条件（#421）"
+    primary_object: "OBJ-99"
     owner_bc: "B-21"
     group: finance
     status: draft
@@ -1247,6 +1256,7 @@ processes:
     type: business
     stages: []
     support: "B-27 考勤原始记录的导入与补卡，是月度考勤确认（PRC-118）的输入，结局（考勤已导入、补卡已记录）不造 VS-13.1 的任一退出条件（月度考勤已锁定、请假已汇入、加班已汇入）（STAGE_ALIGN.md 归段判据第 6 项）"
+    primary_object: "OBJ-70"
     owner_bc: "B-27"
     group: people
     status: draft
@@ -1288,6 +1298,7 @@ processes:
     type: single_aggregate
     stages: []
     support: "B-14 工作日历与标准工时版本的配置维护，结局不造任何阶段的退出条件（工作日历「已维护」是 VS-13.1 的进入条件，判据按退出条件归段）（STAGE_ALIGN.md 归段判据第 6 项）"
+    primary_object: "OBJ-28"
     owner_bc: "B-14"
     group: people
     status: draft
@@ -1308,6 +1319,7 @@ processes:
     type: business
     stages: []
     support: "B-15 激励方案版本的配置维护，结局（已生效）不造 VS-13.2 的退出条件（激励方案「生效」是 VS-13.2 的进入条件；退出是评估已确认、奖金已核定）（STAGE_ALIGN.md 归段判据第 6 项）"
+    primary_object: "OBJ-74"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1328,6 +1340,8 @@ processes:
     type: single_aggregate
     stages: []
     support: "B-15 薪酬档案与专项附加扣除的维护，结局（档案已调整、扣除已更新）不造 VS-13.3、VS-13.4 的任一退出条件（月度薪酬结算已批准、法定申报已申报缴款），服务薪酬结算的输入（STAGE_ALIGN.md 归段判据第 6 项）"
+    primary_object: "none"
+    primary_object_note: "OBJ-61 薪酬档案在信息图定为人员属性版本、非对象；AGG-120 专项附加扣除声明无对象（F-6 随信息层交用户）"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1499,6 +1513,7 @@ processes:
     type: business
     stages: []
     support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    primary_object: "OBJ-113"
     owner_bc: "B-31"
     group: people
     status: draft
@@ -1529,6 +1544,7 @@ processes:
     type: business
     stages: []
     support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    primary_object: "OBJ-114"
     owner_bc: "B-31"
     group: people
     status: draft
@@ -1539,6 +1555,7 @@ processes:
     type: business
     stages: []
     support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    primary_object: "OBJ-115"
     owner_bc: "B-31"
     group: people
     status: draft
@@ -1549,6 +1566,7 @@ processes:
     type: business
     stages: []
     support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    primary_object: "OBJ-116"
     owner_bc: "B-31"
     group: people
     status: draft
@@ -1667,6 +1685,7 @@ processes:
     type: business
     stages: []
     support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    primary_object: "OBJ-115"
     owner_bc: "B-31"
     group: people
     status: draft
@@ -1677,6 +1696,7 @@ processes:
     type: business
     stages: []
     support: "B-31 资产归还：离职生效（Separated）触发的归还待办只是 VS-13.6 退出事件的反应，另有资产管理员人工登记触发（在职换机、收回）；结局不造 VS-13.6 的任一退出条件（人员已离职、参保减员、劳动合同已终止），不挂阶段（STAGE_ALIGN.md 归段判据第 6 项）"
+    primary_object: "OBJ-115"
     owner_bc: "B-31"
     group: people
     status: draft
@@ -1687,6 +1707,8 @@ processes:
     type: business
     stages: []
     support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    primary_object: "OBJ-115"
+    primary_object_note: "AGG-121 维修单是 OBJ-115 的维修工单子生命周期"
     owner_bc: "B-31"
     group: people
     status: draft
@@ -1697,8 +1719,8 @@ processes:
     type: single_aggregate
     stages: [VS-10.1]
     stages_note: "VS-10.1：「拒收记录已处置」是 VS-10.1 期间关账的前置检查项（S-29 SQ-54，INV-100）；期间内记账段 VS-10.0 待 SD-11 裁定，定后改归 VS-10.0"
-    primary_object: "AGG-77"
-    primary_object_note: "无 OBJ 的聚合，随信息层处理"
+    primary_object: "none"
+    primary_object_note: "同 PRC-92：拒收记录是过账管道的技术记录"
     owner_bc: "B-16"
     group: finance
     status: draft
@@ -1731,6 +1753,8 @@ processes:
     type: event_policy
     stages: []
     support: "B-18 预算期届满的定时例行处理：只有定时触发（无对象状态），结局（预算账户已关闭）不造 VS-09.3 的退出条件（OBJ-100 新版本）（STAGE_ALIGN.md 归段判据第 6 项）"
+    primary_object: "OBJ-100"
+    primary_object_note: "预算账户是 OBJ-100 的类型「预算」"
     owner_bc: "B-18"
     group: people
     status: draft
@@ -1741,6 +1765,8 @@ processes:
     type: single_aggregate
     stages: []
     support: "B-27 假期规则版本的配置维护，结局（假期规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
+    primary_object: "none"
+    primary_object_note: "AGG-118 假期类型与额度规则为配置，信息图无对象（假期类型是 OBJ-68 属性、OBJ-69 额度非对象；F-6）"
     owner_bc: "B-27"
     group: people
     status: draft
@@ -1763,8 +1789,8 @@ processes:
     type: event_policy
     stages: [VS-04.2]
     stages_note: "收入确认冲销后冲回已配对的成本结转，随收入确认所在阶段（VS-04.2，revenue 价值流）；触发是收入确认类型过账事实被冲销并重过账，对应 OBJ-98「已记账（不可逆）」，是 VS-04.2 退出条件（触发名是事件名，检查器匹配不上）"
-    primary_object: "AGG-43"
-    primary_object_note: "无 OBJ 的聚合，随信息层处理"
+    primary_object: "none"
+    primary_object_note: "同 PRC-15：冲回已配对成本结转，不改业务对象状态"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1776,6 +1802,8 @@ processes:
     type: single_aggregate
     stages: []
     support: "成本核算参数是配置版本，供 VS-10.1 的成本分配与分摊使用，本身不推进任何阶段的对象状态"
+    primary_object: "none"
+    primary_object_note: "成本核算参数版本（AGG-123）是配置，信息图无对象"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1787,6 +1815,8 @@ processes:
     type: single_aggregate
     stages: []
     support: "资产类别与折旧政策是配置版本，供 PRC-99 计提折旧使用，不推进阶段"
+    primary_object: "none"
+    primary_object_note: "资产类别与折旧政策版本（AGG-124）是配置，信息图无对象"
     owner_bc: "B-24"
     group: finance
     status: draft
@@ -1798,6 +1828,8 @@ processes:
     type: single_aggregate
     stages: []
     support: "期初余额只在投产时编制一次（ADR-0022 决定 11），是上线初始化，不是周期性价值流阶段"
+    primary_object: "none"
+    primary_object_note: "期初余额（AGG-125）是投产初始化的余额载体，信息图无对象"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -1809,6 +1841,8 @@ processes:
     type: single_aggregate
     stages: []
     support: "口径版本是勾稽侧配置（ADR-0023 决定 2），不推进阶段"
+    primary_object: "none"
+    primary_object_note: "口径版本（AGG-78）：信息图 OBJ-102 指标定义已去掉，移入第 11 步指标元数据"
     owner_bc: "B-17"
     group: finance
     status: draft
@@ -1820,8 +1854,8 @@ processes:
     type: single_aggregate
     stages: [VS-10.1]
     stages_note: "VS-10.1：勾稽差异案须在关账前处置，是 VS-10.1 期间关账的前置检查（INV-100 扩展项，S-29 SQ-54；ADR-0016 决定 1 勾稽等式）；期间内记账段 VS-10.0 待 SD-11 裁定，定后再判是否改归 VS-10.0"
-    primary_object: "AGG-126"
-    primary_object_note: "无 OBJ 的聚合，随信息层处理"
+    primary_object: "none"
+    primary_object_note: "勾稽差异案在词表是聚合（operations.policy），信息图没有对象；是否立对象随信息层定"
     owner_bc: "B-17"
     group: finance
     status: draft
@@ -1833,8 +1867,8 @@ processes:
     type: business
     stages: [VS-08.0]
     stages_note: "按判据归 VS-08.0 事前申请（SD-03）：费用事前额度批准是该阶段的退出条件"
-    primary_object: "AGG-130"
-    primary_object_note: "无 OBJ 的聚合，随信息层处理"
+    primary_object: "none"
+    primary_object_note: "费用事前申请是真实业务单据（A8 业务招待申请表），信息图缺对象；建议信息层补对象「费用事前申请」后改填"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1858,8 +1892,8 @@ processes:
     type: business
     stages: [VS-08.0]
     stages_note: "按判据归 VS-08.0 事前申请（SD-03）：出差申请批准是该阶段的退出条件"
-    primary_object: "AGG-132"
-    primary_object_note: "无 OBJ 的聚合，随信息层处理"
+    primary_object: "none"
+    primary_object_note: "出差申请是真实业务单据，信息图缺对象；建议信息层补对象「出差申请」后改填"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1871,8 +1905,8 @@ processes:
     type: business
     stages: [VS-08.0]
     stages_note: "按判据归 VS-08.0 事前申请（SD-03）：超标订单审批是下单前的事前申请"
-    primary_object: "AGG-131"
-    primary_object_note: "超标审批记录挂在差旅订单账单（AGG-131，数据模型 business_trip_over_standard_reviews），无 OBJ，随信息层"
+    primary_object: "none"
+    primary_object_note: "差旅订单（分贝通直付）是真实业务对象，信息图缺对象；建议信息层补对象「差旅订单」后改填"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1884,6 +1918,8 @@ processes:
     type: single_aggregate
     stages: []
     support: "出差补贴标准是配置版本，供 PRC-87 生成补贴行使用，不推进阶段"
+    primary_object: "none"
+    primary_object_note: "出差补贴标准版本（AGG-133）是配置，信息图无对象"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1919,6 +1955,8 @@ processes:
     type: event_policy
     stages: []
     support: "行政支撑：员工与组织的单向同步，服务差旅预订；四个触发分属 VS-07.3 退出、VS-13.6 退出、任职版本变更、组织单元调整，无共同阶段，不在客户或员工价值流的阶段门上（S-31 SQ-31；STAGE_ALIGN.md）"
+    primary_object: "none"
+    primary_object_note: "外部同步（推送员工与组织到差旅服务商），不改任何业务对象状态"
     owner_bc: "B-13"
     group: people
     status: draft
@@ -1954,6 +1992,8 @@ processes:
     type: single_aggregate
     stages: []
     support: "B-15 薪酬规则版本的配置维护，结局（薪酬规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
+    primary_object: "none"
+    primary_object_note: "AGG-119 薪酬规则版本为配置，信息图无对象"
     owner_bc: "B-15"
     group: people
     status: draft

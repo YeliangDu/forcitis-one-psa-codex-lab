@@ -725,8 +725,7 @@ processes:
   type: event_policy
   stages:
   - VS-01.2
-  primary_object: AGG-43
-  status: confirmed
+  status: declared_none
   category: business
   category_by: 价值流
 - id: PRC-16
@@ -901,8 +900,7 @@ processes:
   stages:
   - VS-02.0
   - VS-04.1
-  primary_object: AGG-43
-  status: confirmed
+  status: declared_none
   category: business
   category_by: 价值流
 - id: PRC-26
@@ -1065,8 +1063,7 @@ processes:
   type: event_policy
   stages:
   - VS-02.7
-  primary_object: AGG-43
-  status: confirmed
+  status: declared_none
   candidates:
   - AGG-43
   category: business
@@ -1324,8 +1321,7 @@ processes:
   type: event_policy
   stages:
   - VS-04.2
-  primary_object: AGG-43
-  status: confirmed
+  status: declared_none
   candidates:
   - AGG-43
   category: business
@@ -1753,6 +1749,8 @@ processes:
   stages:
   - VS-08.2
   primary_object: OBJ-88
+  secondary_objects:
+  - OBJ-83
   status: confirmed
   candidates:
   - OBJ-83
@@ -1823,8 +1821,7 @@ processes:
   type: business
   stages:
   - VS-10.1
-  primary_object: AGG-77
-  status: confirmed
+  status: declared_none
   candidates:
   - AGG-77
   category: support
@@ -1866,8 +1863,7 @@ processes:
   type: business
   stages:
   - VS-10.1
-  primary_object: AGG-99
-  status: confirmed
+  status: declared_none
   category: support
   category_by: 价值流
 - id: PRC-96
@@ -1877,8 +1873,7 @@ processes:
   type: business
   stages:
   - VS-10.1
-  primary_object: AGG-41
-  status: confirmed
+  status: declared_none
   category: support
   category_by: 价值流
 - id: PRC-98
@@ -1888,8 +1883,7 @@ processes:
   type: business
   stages:
   - VS-10.1
-  primary_object: AGG-42
-  status: confirmed
+  status: declared_none
   category: support
   category_by: 价值流
 - id: PRC-99
@@ -1944,8 +1938,7 @@ processes:
   type: event_policy
   stages:
   - VS-10.1
-  primary_object: AGG-100
-  status: confirmed
+  status: declared_none
   candidates:
   - AGG-100
   category: support
@@ -1957,8 +1950,7 @@ processes:
   type: business
   stages:
   - VS-10.2
-  primary_object: AGG-101
-  status: confirmed
+  status: declared_none
   category: support
   category_by: 价值流
 - id: PRC-106
@@ -2482,8 +2474,7 @@ processes:
   type: single_aggregate
   stages:
   - VS-10.1
-  primary_object: AGG-77
-  status: confirmed
+  status: declared_none
   candidates:
   - AGG-77
   category: support
@@ -2537,8 +2528,7 @@ processes:
   type: event_policy
   stages:
   - VS-04.2
-  primary_object: AGG-43
-  status: confirmed
+  status: declared_none
   candidates:
   - AGG-43
   category: business
@@ -2550,8 +2540,7 @@ processes:
   type: single_aggregate
   stages:
   - VS-10.1
-  primary_object: AGG-126
-  status: confirmed
+  status: declared_none
   candidates:
   - AGG-126
   category: support
@@ -2563,8 +2552,7 @@ processes:
   type: business
   stages:
   - VS-08.0
-  primary_object: AGG-130
-  status: confirmed
+  status: declared_none
   candidates:
   - AGG-130
   category: support
@@ -2591,8 +2579,7 @@ processes:
   type: business
   stages:
   - VS-08.0
-  primary_object: AGG-132
-  status: confirmed
+  status: declared_none
   candidates:
   - AGG-132
   category: support
@@ -2604,8 +2591,7 @@ processes:
   type: business
   stages:
   - VS-08.0
-  primary_object: AGG-131
-  status: confirmed
+  status: declared_none
   candidates:
   - AGG-131
   category: support
@@ -2730,7 +2716,7 @@ processes:
     VS-08.3: 使用
     VS-13.5: 使用
   primary_object: OBJ-90
-  status: support_proposed
+  status: support
   capability_l1: CAP-103
   capability: CAP-103.090
   category: support
@@ -2749,7 +2735,7 @@ processes:
     VS-08.3: 使用
     VS-13.5: 使用
   primary_object: OBJ-89
-  status: support_proposed
+  status: support
   capability_l1: CAP-103
   capability: CAP-103.089
   category: support
@@ -2765,24 +2751,37 @@ processes:
     VS-05.5: 使用
     VS-06.2: 使用
     VS-07.1: 条件
-  status: support_none
+  primary_object: OBJ-55
+  status: support
 - id: PRC-97
   name: 批准并生效分摊规则版本
   group: finance
   type: business
+  supports:
+  - VS-10.1
+  supports_basis:
+    VS-10.1: 使用
   primary_object: OBJ-78
-  status: support_proposed
+  status: support
 - id: PRC-100
   name: 发布总账配置版本
   group: finance
   type: business
-  status: support_none
+  supports:
+  - VS-10.1
+  supports_basis:
+    VS-10.1: 使用
+  primary_object: OBJ-95
+  status: support
+  capability_l1: CAP-103
+  capability: CAP-103.095
+  category: support
 - id: PRC-105
   name: 评审并生效报表行定义版本
   group: finance
   type: business
   primary_object: OBJ-99
-  status: support_proposed
+  status: support
   capability_l1: CAP-103
   capability: CAP-103.099
   category: support
@@ -2795,7 +2794,7 @@ processes:
   supports_basis:
     VS-13.1: 使用
   primary_object: OBJ-70
-  status: support_proposed
+  status: support
   capability_l1: CAP-056
   capability: CAP-056.070
   category: support
@@ -2824,7 +2823,7 @@ processes:
     VS-02.6: 使用
     VS-13.1: 条件
   primary_object: OBJ-28
-  status: support_proposed
+  status: support
   capability_l1: CAP-028
   capability: CAP-028
   category: support
@@ -2837,7 +2836,7 @@ processes:
   supports_basis:
     VS-13.2: 条件
   primary_object: OBJ-74
-  status: support_proposed
+  status: support
   capability_l1: CAP-074
   capability: CAP-074
   category: management
@@ -2853,13 +2852,13 @@ processes:
     VS-07.3: 使用
     VS-13.3: 使用
     VS-13.6: 使用
-  status: support_none
+  status: support_declared_none
 - id: PRC-139
   name: 用印申请与用印登记
   group: people
   type: business
   primary_object: OBJ-113
-  status: support_proposed
+  status: support
 - id: PRC-140
   name: 合同借阅
   group: revenue
@@ -2939,7 +2938,7 @@ processes:
   group: people
   type: business
   primary_object: OBJ-114
-  status: support_proposed
+  status: support
 - id: PRC-143
   name: IT 资产领用
   group: people
@@ -2948,13 +2947,14 @@ processes:
   - VS-10.1
   supports_basis:
     VS-10.1: 使用
-  status: support_none
+  primary_object: OBJ-115
+  status: support
 - id: PRC-144
   name: 员工活动类申请（周年贺卡、节日活动、创新项目发布）
   group: people
   type: business
   primary_object: OBJ-116
-  status: support_proposed
+  status: support
 - id: PRC-146
   name: 协议借阅逾期催还
   group: revenue
@@ -3000,7 +3000,8 @@ processes:
   - VS-10.1
   supports_basis:
     VS-10.1: 使用
-  status: support_none
+  primary_object: OBJ-115
+  status: support
 - id: PRC-156
   name: IT 资产归还
   group: people
@@ -3009,7 +3010,8 @@ processes:
   - VS-10.1
   supports_basis:
     VS-10.1: 使用
-  status: support_none
+  primary_object: OBJ-115
+  status: support
 - id: PRC-157
   name: IT 资产报修与维修登记
   group: people
@@ -3018,7 +3020,8 @@ processes:
   - VS-10.1
   supports_basis:
     VS-10.1: 使用
-  status: support_none
+  primary_object: OBJ-115
+  status: support
 - id: PRC-161
   name: 年末关闭预算账户
   group: people
@@ -3036,7 +3039,7 @@ processes:
     VS-09.2: 条件
     VS-09.3: 条件
   primary_object: OBJ-100
-  status: support_proposed
+  status: support
   capability_l1: CAP-100
   capability: CAP-100
   category: management
@@ -3048,8 +3051,7 @@ processes:
   - VS-13.1
   supports_basis:
     VS-13.1: 使用
-  primary_object: AGG-118
-  status: support_proposed
+  status: support_declared_none
 - id: PRC-165
   name: 发布成本核算参数版本
   group: finance
@@ -3058,8 +3060,7 @@ processes:
   - VS-01.2
   supports_basis:
     VS-01.2: 使用
-  primary_object: AGG-123
-  status: support_proposed
+  status: support_declared_none
 - id: PRC-166
   name: 发布资产类别与折旧政策版本
   group: finance
@@ -3068,20 +3069,25 @@ processes:
   - VS-10.1
   supports_basis:
     VS-10.1: 使用
-  primary_object: AGG-124
-  status: support_proposed
+  status: support_declared_none
 - id: PRC-167
   name: 编制并签字确认期初余额
   group: finance
   type: single_aggregate
-  primary_object: AGG-125
-  status: support_proposed
+  supports:
+  - VS-10.1
+  supports_basis:
+    VS-10.1: 使用
+  status: support_declared_none
 - id: PRC-168
   name: 发布口径版本
   group: finance
   type: single_aggregate
-  primary_object: AGG-78
-  status: support_proposed
+  supports:
+  - VS-10.1
+  supports_basis:
+    VS-10.1: 使用
+  status: support_declared_none
 - id: PRC-174
   name: 发布出差补贴标准版本
   group: finance
@@ -3090,13 +3096,12 @@ processes:
   - VS-08.2
   supports_basis:
     VS-08.2: 使用
-  primary_object: AGG-133
-  status: support_proposed
+  status: support_declared_none
 - id: PRC-177
   name: 向差旅服务商同步员工与组织
   group: people
   type: event_policy
-  status: support_none
+  status: support_declared_none
 - id: PRC-180
   name: 发布薪酬规则版本
   group: people
@@ -3105,8 +3110,7 @@ processes:
   - VS-13.3
   supports_basis:
     VS-13.3: 使用
-  primary_object: AGG-119
-  status: support_proposed
+  status: support_declared_none
 - id: PRC-184
   name: 同步组织来源数据
   group: platform
