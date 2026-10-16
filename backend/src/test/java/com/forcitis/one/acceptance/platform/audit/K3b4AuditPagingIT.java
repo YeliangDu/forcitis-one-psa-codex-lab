@@ -401,19 +401,26 @@ class K3b4AuditPagingIT extends AcceptanceSupport {
             statement.execute("alter system set log_statement = 'all'");
             statement.execute("select pg_reload_conf()");
         }
-        String startMarker = "k3b4-window-start-" + UUID.randomUUID();
-        String endMarker = "k3b4-window-end-" + UUID.randomUUID();
-        marker(startMarker);
-        awaitLog(startMarker);
+        try {
+            String startMarker = "k3b4-window-start-" + UUID.randomUUID();
+            String endMarker = "k3b4-window-end-" + UUID.randomUUID();
+            marker(startMarker);
+            awaitLog(startMarker);
 
-        MockHttpServletResponse export = call(EXPORT, EXPORTER, "action", "k3b4.nocount");
+            MockHttpServletResponse export = call(EXPORT, EXPORTER, "action", "k3b4.nocount");
 
-        marker(endMarker);
-        String log = awaitLog(endMarker);
-        assertThat(csvEntryIds(export)).hasSize(2);
-        String window = log.substring(log.indexOf(startMarker), log.lastIndexOf(endMarker));
-        assertThat(window).as("the capture works: the export's select on audit_entries is in the log").containsIgnoringCase("from platform_audit.audit_entries");
-        assertThat(window.toLowerCase()).as("no count statement during the export").doesNotContain("count(");
+            marker(endMarker);
+            String log = awaitLog(endMarker);
+            assertThat(csvEntryIds(export)).hasSize(2);
+            String window = log.substring(log.indexOf(startMarker), log.lastIndexOf(endMarker));
+            assertThat(window).as("the capture works: the export's select on audit_entries is in the log").containsIgnoringCase("from platform_audit.audit_entries");
+            assertThat(window.toLowerCase()).as("no count statement during the export").doesNotContain("count(");
+        } finally {
+            try (Connection admin = schemaConnection("platform_audit"); Statement statement = admin.createStatement()) {
+                statement.execute("alter system reset log_statement");
+                statement.execute("select pg_reload_conf()");
+            }
+        }
         Class<?> queries = classNamed("com.forcitis.one.platform.audit.domain.AuditEntryQueries");
         assertThat(Arrays.stream(queries.getMethods()).map(java.lang.reflect.Method::getName)).as("AuditEntryQueries has no count method").doesNotContain("count");
     }
