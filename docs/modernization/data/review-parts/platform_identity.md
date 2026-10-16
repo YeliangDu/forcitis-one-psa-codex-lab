@@ -10,43 +10,43 @@
 
 | 表 | 结论 | 阻断 / 高 / 中 / 低 |
 |---|---|---|
-| user_accounts | 需修改 | 0 / 1 / 0 / 2 |
-| roles | 需修改 | 1 / 0 / 3 / 2 |
-| role_permissions | 需修改 | 1 / 0 / 0 / 1 |
-| account_roles | 需修改 | 1 / 0 / 0 / 0 |
-| navigation_items | 需修改 | 0 / 1 / 2 / 1 |
+| user_accounts | 需修改 | 0 / 0 / 3 / 0 |
+| roles | 需修改 | 0 / 1 / 3 / 2 |
+| role_permissions | 需修改 | 0 / 1 / 0 / 1 |
+| account_roles | 需修改 | 0 / 1 / 0 / 0 |
+| navigation_items | 需修改 | 0 / 1 / 3 / 0 |
 | login_states | 需修改 | 0 / 0 / 1 / 1 |
 | sso_ticket_uses | 需修改 | 0 / 0 / 0 / 1 |
 | ticket_issuers | 需修改 | 0 / 0 / 1 / 2 |
 | emergency_admins | 需修改 | 0 / 0 / 2 / 1 |
-| sessions | 需修改 | 0 / 0 / 1 / 3 |
+| sessions | 需修改 | 0 / 1 / 0 / 3 |
 | sessions_attributes | 需修改 | 0 / 0 / 0 / 2 |
 | browser_identifiers | 需修改 | 0 / 0 / 2 / 2 |
-| authorization_requests | 需修改 | 0 / 2 / 4 / 2 |
-| 跨表共性（另计） | — | 0 / 0 / 5 / 2 |
+| authorization_requests | 需修改 | 0 / 3 / 4 / 1 |
+| 跨表共性（另计） | — | 0 / 0 / 3 / 4 |
 
-合计：阻断 3、高 4、中 21（表内 16 + 跨表 5）、低 22（表内 20 + 跨表 2）。
+合计：阻断 0、高 8、中 22（表内 19 + 跨表 3）、低 20（表内 16 + 跨表 4）。
 
 ## 问题清单
 
 ### user_accounts
 
-#### UA-1 [高] 含 PI 列的表永久保留，且未登记带到期日的 gap
+#### UA-1 [中] 含 PI 列的表永久保留，且未登记带到期日的 gap
 - 条目：C3、C4；ADR-0043 第 6 项 R-2、U-12。
 - 证据：注册表 `data-access-registry.yaml:227-233` 为 `retention: {policy: PERMANENT}`，表内有 `last_login_address`（迁移:6，`data-classification.txt:8` 登记 SENSITIVE，ADR-0043 第 3 项判 PI）；注册表无任何 `gaps:` 条目（文件头 `:15` 只有格式说明）。U-12 用户答复：该列「改为有期限」，期限提出前「以带到期日的 gap 登记」。`JdbcAccountRepository.java` 的 `recordLogin` 只覆盖写入，没有任何清除路径；迁移无清理列。
 - 建议：注册表加带 owner 与到期日的 gap（规则 C3 / R-2）；表结构侧待期限定后加清除办法（例如账号停用或离职后置空该列，列注释写明「为空表示」的含义）。无结构差异可先做。
 - 依据：ADR-0043 第 6 项 R-2、U-12；§14.1 D12、D13。
 
-#### UA-2 [低] 最近登录时间与地址应同空同非空
+#### UA-2 [中] 最近登录时间与地址应同空同非空
 - 条目：O4 / B5。证据：迁移:5-6、20-21；`recordLogin` 同一语句写两列（`JdbcAccountRepository.java` `recordLogin`），RULE-330「成功登录同时盖 IP 与时间」。
 - 建议：加 `ck_user_accounts_last_login`（两列同空同非空）。依据：§14.1 D2。
 
-#### UA-3 [低] `last_login_address` 无长度上限与格式约束
+#### UA-3 [中] `last_login_address` 无长度上限与格式约束
 - 条目：O8。证据：迁移:6 `text`，无 `char_length` CHECK（IPv6 文本最长 45）。建议：加长度上限 CHECK。依据：NAMING_STANDARD §2.4a-5。
 
 ### roles
 
-#### R-1 [阻断] 角色定义未按已采纳的 ADR-0034 版本化，系统角色仍由迁移写入
+#### R-1 [高] 角色定义未按已采纳的 ADR-0034 版本化，系统角色仍由迁移写入
 - 条目：O15、O6、O7、B3a；ADR-0034 第 1 项第 1、2、7 条（状态「已采纳」，`adr/src/ADR-0034.md:3`）。
 - 证据：
   - 迁移:27-39 的 `roles` 仍含 `name`、`status`、`access_scope`；ADR-0034 要求只留 `role_id / code / kind / is_administrative / version / event_count`，其余移入 `role_versions`（`role_version_id`、`version_number`、`effective_from_at / effective_to_at`、`role_name`、`role_status`、`access_scope_kind`、`permission_codes text[]`、变更来源与关闭列，排他约束 `role_id` 与 `lower(role_name)` 各一）；迁移无 `role_versions`。
@@ -78,7 +78,7 @@
 
 ### role_permissions
 
-#### RP-1 [阻断] 复合主键，且 ADR-0034 已取代该表
+#### RP-1 [高] 复合主键，且 ADR-0034 已取代该表
 - 条目：O2、O15、O7；ADR-0033 第 1 项第 2 条、第 8 条，ADR-0034 第 1 项第 3 条。
 - 证据：迁移:55-61 `PRIMARY KEY (role_id, permission_code)`；ADR-0033 第 1 项第 2 条写明「R-1b 合并时若两张旧表仍在，同样按本条改，不登记豁免」，第 8 条「豁免只剩框架自建表」；`primary-key-type-baseline.txt:8` 仍登记该表；`JdbcRoleRepository.java` 的 `savePermissions` 用 `delete … not in` 原地改写，权限变更历史丢失。
 - 建议：删表，权限集合进 `role_versions.permission_codes text[]`（ADR-0034 第 1 项第 3 条）；基线清单删对应行。依据：同上。
@@ -88,7 +88,7 @@
 
 ### account_roles
 
-#### AR-1 [阻断] 复合主键并物理删除授予，授权历史丢失
+#### AR-1 [高] 复合主键并物理删除授予，授权历史丢失
 - 条目：O2、O7、O15、O6；ADR-0033 第 1 项第 2 条，ADR-0034 第 2、3 项，ADR-0026 第 8 项第 7 条。
 - 证据：迁移:69-76 `PRIMARY KEY (user_id, role_id)`；`JdbcAccountRepository.java` 的 `saveRoles` 用 `delete from account_roles … not in`；离职（`recordSeparation` → `replaceRoles(Set.of())`）整组删除；「某人在某时刻持有哪些角色」无法还原（ADR-0034 背景）。ADR-0034 要求 `account_role_grants`：UUIDv7 主键、`user_id`、`role_id`、`effective_from_at / effective_to_at`、开启列（`granted_by`、`grant_channel_kind`、`grant_authorization_request_id`、`migration_batch_id`、`grant_audit_entry_id`）、关闭列（`revoked_by`、`revocation_cause_kind`、`revocation_authorization_request_id`、`revocation_sync_run_id`、`revocation_audit_entry_id`）、排他约束、成对 CHECK、只许关闭的触发器、三个部分 / 时刻索引。迁移均无。
 - 建议：删 `account_roles`，建 `account_role_grants`（按 ADR-0034 第 2 项）；ADR-0026 第 8 项第 7 条的 `migration_batch_id` 随之落在授予行。
@@ -109,7 +109,7 @@
 - 条目：O4、B5；RULE-347。证据：迁移:94 只挡自引用 `parent_item_id <> item_id`；注释迁移:96「目录（无路由）与页面（有路由）」无约束：页面可以挂在页面下，环路无约束，目录可带 `permission_code`。RULE-347 原文「上级必须是目录或菜单」对应新系统的语义待核（新系统以 `route_path` 是否为空区分，未见新规则卡）。
 - 建议：能落约束的落（如 `route_path` 为空的项不得有……由规则确认后定）；环路无法落成约束的，在卡里写明「只能在应用里保证」的理由，并对种子数据加守护测试。依据：§14.1 D2。
 
-#### N-4 [低] `route_path`、`permission_code`、`name` 无格式与长度约束
+#### N-4 [中] `route_path`、`permission_code`、`name` 无格式与长度约束
 - 条目：O8。证据：迁移:87-89。依据：NAMING_STANDARD §2.4a-5。
 
 ### login_states
@@ -153,7 +153,7 @@
 
 ### sessions
 
-#### S-1 [中] `session_id` 是 Cookie 值，未分级
+#### S-1 [高] `session_id` 是 Cookie 值，未分级
 - 条目：C4。证据：迁移:197、212 注释「Cookie 值」；`data-classification.txt` 只登记 `principal_name`（`:17`）与 `sessions_attributes.attribute_bytes`；`session_id`、`primary_id` 未登记，默认 INTERNAL。读库者可凭此冒用会话。
 - 建议：登记 `session_id`（访问级别待决，见待决第 4 项）；`primary_id` 同判。依据：ADR-0043 第 3 项（会话内容 RESTRICTED）；NAMING_STANDARD §2.5。
 
@@ -213,22 +213,22 @@
 #### AQ-5 [中] 保留期未在 GUIDING_PRINCIPLES §6 登记
 - 条目：C3（不通过，待用户决定）。证据：注册表 `:293-301` `PERMANENT`；§6 表无该表。含 `requested_by`、`decided_by` 等用户代理键，属 PI 的代理键，不触发 R-2，但保留期须登记并经用户认可。登记待决收件箱。
 
-#### AQ-6 [中] `role_codes` 以业务键数组引用角色
+#### AQ-6 [高] `role_codes` 以业务键数组引用角色
 - 条目：O2、O9。证据：迁移:268；事件 `AccountRolesReplaced` 载荷用 `roleIds`（`events/identity.yaml`），ADR-0034 第 2 项第 5 条要求申请记「相关角色当时的 `role_version_id` 数组」。建议改为 `role_ids uuid[]`（随 AQ-2 的基准列一并定形态）。依据：ADR-0033 第 1 项第 1 条、门禁 O2。
 
 #### AQ-7 [低] 待处理清单无索引
 - 条目：O10。证据：`findPending`（`where request_status = 'PENDING' order by requested_at`）；`list-paging-gaps.txt:10` 已登记分页缺口。建议：部分索引 `(requested_at, request_id) WHERE request_status = 'PENDING'`，与游标分页一并做。
 
-#### AQ-8 [低] 可空列注释缺「为空表示」，文本列无长度上限
+#### AQ-8 [中] 可空列注释缺「为空表示」，文本列无长度上限
 - 条目：O8、C1。证据：迁移:298-299（`decided_by`、`decided_at`）；`new_role_code`、`role_name` 无格式与长度 CHECK（与 R-3 同口径）。
 
 ### 跨表共性问题
 
-#### X-1 [中] 时间列默认值取数据库时钟，而写入都不传
+#### X-1 [低] 时间列默认值取数据库时钟，而写入都不传
 - 条目：O8（§2.4a-3「业务值与时间一律由应用显式写入」）、O14（时区与时钟）。证据：13 张表的 `created_at`、`updated_at` 均 `DEFAULT now()`（如迁移:11-12、35-36），而 `JdbcRoleRepository.insert`、`JdbcAccountRepository.insertIfAbsent`、`JdbcOneTimeCredentials`、`JdbcBrowserIdentifiers.replace` 的 INSERT 都不写 `created_at`；`sql-database-clock-exceptions.txt` 文件头的原则是「写入时刻取注入的 Clock」。守护只扫 Java 里的 SQL，不扫 DDL 默认值。
 - 建议：去掉 DDL 里的时间默认值，INSERT 显式传 `Clock`（全库口径，建议单独成卡，不只改本 schema）。
 
-#### X-2 [中] 枚举 CHECK 写在列上、没有名字，守护放过
+#### X-2 [低] 枚举 CHECK 写在列上、没有名字，守护放过
 - 条目：O8。证据：迁移:7、31-33、110、263、272、274 的列内 `CHECK` 无 `CONSTRAINT ck_<表>_<列>`；NAMING_STANDARD §2.4 要求一律命名；`DdlNamingTest.java:410-412` 对 `inlineCheck()` 直接 `continue`，基线清单无 `_check` 行（`ddl-naming-baseline.txt` 中 0 处）。G-D12 在 NAMING_STANDARD §4 属「待实现的守护」。
 - 建议：全部改具名（基线开放期直接改基线）。依据：NAMING_STANDARD §2.4；§14.1 D18。
 

@@ -1,0 +1,1090 @@
+# 价值流第 2 版（提议稿，METHOD 第 4 稿第 ① 步；待用户确认；不改现行 togaf/value-streams.yaml）
+# 说明与差距表、覆盖矩阵、共享对象依赖表、需用户定的点见同目录 STEP1_VALUE_STREAMS.md；评审意见处理记录在该文末。
+# 结构依据：G178 §2.1 价值流四要素（名称、描述、触发干系人、价值）、§2.2 阶段六要素（名称、描述、参与干系人、进入条件、退出条件、价值项）（2026-10-16 对照本地原文核对）；
+#   G178 与 BIZBOK 冲突按 BIZBOK（intent 2026-10-15-222350）：阶段可回退、跳过、重入；不拆子价值流；进出条件写对象状态；价值流之间只经共享对象状态相互影响（BIZBOK 第 157 页）。
+# 业务内容：手册交付七段即「获得交付成果」的阶段，门按对象状态重写，工作子阶段不升格（intent 2026-10-16-072440 M-6）；BD0、BD1 是商机的阶段（STAGE_TYPES_DRAFT §3.1）。
+# 已定口径：门只预警留痕，需审定的门走审批、审批未完成不挡下一阶段；对象自身的不变量照常拒绝（intent 061232 S2）；阶段与商务分界脱开（S3）；阶段 ≠ 状态机（METHOD J3）；
+#   视为同意的期满判定放 receivables.wip，交付侧只记送达与无异议声明（D-8，intent 061232）。
+# 条件写法：ref 指信息图 ENTERPRISE_INFO_MAP_DRAFT.md 的 OBJ 编号，state 取该对象「关键状态」列的原值；
+#   all = 全部满足，any = 至少一项满足，可嵌套；pattern 引用本价值流 stage_pattern 的条件，与同处的 all / any 再取「且」；
+#   指不到对象状态的写 ref: 缺对象状态 + gap 编号（见文末 missing_states，第 ② 步回补输入）；
+#   对象状态有冲突或待定的另加 caveat（见文末 state_caveats）；ref: 派生 表示读模型派生的段内状态，不是对象状态，不作门。
+# 门只引用对象状态：运行单据、报表、对账等非对象事实不作门（评审 B3）；对应的工作写在 cross_stage_activities。
+# 跨价值流关系不手写：脚本 vs_links_gen.py 从本文件各段条件生成「对象状态 → 引用它的阶段」共享依赖表（写入 STEP1 第 3.3 节）。
+# 能力字段已去掉：能力图按第 ② 步重建后，在第 ③ 步做能力—阶段对账（METHOD 第 4 稿 ③-2）。
+# 编号：VS-13 由原 VS-07 拆出，编号不重排，以免评审意见引用失效。
+
+meta:
+  version: 2
+  status: proposal
+  date: "2026-10-16"
+  step: "METHOD 第 4 稿第 ①（价值流骨架）；阶段进出条件经第 ③ 步复核（proposals/STEP3_STAGES.md，修正标 STEP3 C-xx）"
+  supersedes_on_adoption: togaf/value-streams.yaml
+  sources:
+    stakeholders: proposals/STAKEHOLDERS.md（用户指定，intent 2026-10-15-213742）
+    objects: proposals/ENTERPRISE_INFO_MAP_DRAFT.md（OBJ-01–OBJ-112；OBJ-111、OBJ-112 为第 ② 步回补新增，intent 2026-10-16-082311）
+    aggregates: proposals/ENTERPRISE_AGGREGATES_DRAFT.md §4.3–§4.3.4（收入链与三条价值流走查）
+    stage_types: proposals/STAGE_TYPES_DRAFT.md（S1–S6 用户已定）
+    bizbok: BIZBOK v11 第 157–158 页（价值流互相独立、只经共享对象状态相互影响；触发者与价值各异者各自成流；触发干系人可为多个）；第 151 页（价值流、能力、信息、组织是并列的架构域）
+  common_rules:
+    - 阶段可回退、跳过、重入，留痕（谁、何时、原因）；G178「上一阶段退出即下一阶段进入」不用。
+    - 门只预警留痕；拒绝只来自对象自身的不变量（第 ④ 步），不是阶段门。
+    - 不拆子价值流；价值流不触发、不指向其他价值流，只因共享同一对象的状态而相互影响（BIZBOK 第 157 页）。
+    - 门只引用对象状态；运行单据、报表、对账不是对象状态，不作门，其工作列为贯穿活动。
+    - 阶段内的人工步骤、审批、退回属业务流程（第 ⑥a 步），与阶段多对多，不在此展开。
+
+stakeholders:
+  # 类型 → 类别 → 具体干系人（BIZBOK §2.8）；关系取 STAKEHOLDERS.md「触 / 参 / 受」（员工类别在原表是类别级「触 / 参 / 受」，成员级关系为本稿推出）。
+  - {id: SH-C1, type: 外部, category: 客户, sub: 开发商, members: 房地产开发商；海外业主和开发商, relation: 触、参、受}
+  - {id: SH-C2, type: 外部, category: 客户, sub: 自用业主, members: 企业自用业主；政府和公共业主（含代建、平台公司）, relation: 触、参、受}
+  - {id: SH-C3, type: 外部, category: 客户, sub: 既有建筑业主, members: 产权人和管理人（业主、业委会、产权单位）；物业代业主委托时归此, relation: 触、参、受}
+  - {id: SH-C4, type: 外部, category: 客户, sub: 发包方, members: 建筑设计院、EPC 总包（把专项交给我们）, relation: 触、参、受}
+  - {id: SH-C5, type: 外部, category: 客户, sub: 资本方, members: 投资方和金融机构（技术尽调）；保险公司（IDI 委托）, relation: 触、参、受}
+  - {id: SH-C6a, type: 外部, category: 客户决策链, sub: 发起人, members: 客户内的项目或设计管理负责人, relation: 触、参}
+  - {id: SH-C6b, type: 外部, category: 客户决策链, sub: 决策人, members: 产品、工程负责人，集团决策层, relation: 参、受}
+  - {id: SH-C6c, type: 外部, category: 客户决策链, sub: 经济买方, members: 招采、成本, relation: 参}
+  - {id: SH-C6d, type: 外部, category: 客户决策链, sub: 付款方, members: 客户财务, relation: 参}
+  - {id: SH-C6e, type: 外部, category: 客户决策链, sub: 使用者, members: 客户的设计管理、工程管理人员, relation: 参、受}
+  - {id: SH-P1, type: 外部, category: 合作伙伴, sub: 交付伙伴, members: 外协设计和顾问单位；海外本地持牌伙伴, relation: 参、受}
+  - {id: SH-P1c, type: 外部, category: 合作伙伴, sub: 交付伙伴, members: 联合体伙伴, relation: 触、参、受}
+  - {id: SH-P2, type: 外部, category: 合作伙伴, sub: 供应商, members: 产品和材料厂商；软件、数据和工具供应商；职业责任保险公司, relation: 参}
+  - {id: SH-P3, type: 外部, category: 合作伙伴, sub: 渠道伙伴, members: 转介绍方（保险公司和 TIS、物业、设计院）, relation: 触（间接）}
+  - {id: SH-R1, type: 外部, category: 监管机构, sub: 工程审批, members: 施工图审查；规划和照明管理；住建质量监督与消防, relation: 参（只作阶段参与者）}
+  - {id: SH-R2, type: 外部, category: 监管机构, sub: 企业监管, members: 住建资质；税务；市场监管、人社社保、统计；注册执业管理；海外注册审批, relation: 触（法定期限）、受 / 参}
+  - {id: SH-H1, type: 外部, category: 人力资源（外部）, sub: —, members: 求职者和候选人, relation: 触、参、受}
+  - {id: SH-S1, type: 外部, category: 社会公众, sub: 最终用户, members: 购房者、住户、租户, relation: 受（非货币价值）}
+  - {id: SH-S2, type: 外部, category: 社会公众, sub: 市民, members: 城市公众, relation: 受（非货币价值）}
+  - {id: SH-M1, type: 内部, category: 管理层, sub: —, members: 执委会；职能高管；区域和事业部负责人, relation: 触、参}
+  - {id: SH-E1, type: 内部, category: 员工, sub: 用人经理, members: 用人经理, relation: 触}
+  - {id: SH-E2, type: 内部, category: 员工, sub: 项目经理, members: 经营项目负责人, relation: 触、参}
+  - {id: SH-E3, type: 内部, category: 员工, sub: 设计师和顾问, members: 设计师和顾问（含驻场）, relation: 参、受}
+  - {id: SH-E4, type: 内部, category: 员工, sub: 技术专家, members: 技术专家（技术委员会）, relation: 参}
+  - {id: SH-E5, type: 内部, category: 员工, sub: 市场和客户经理, members: 市场和客户经理, relation: 参}
+  - {id: SH-E6, type: 内部, category: 员工, sub: 职能人员, members: 财务、人力、行政、信息, relation: 参}
+  - {id: SH-E7, type: 内部, category: 员工, sub: 注册执业人员, members: 注册建筑师、注册工程师等, relation: 参}
+  - {id: SH-O1, type: 内部（类型属性「两者」）, category: 股东和合伙人, sub: —, members: 股东和合伙人, relation: 触、受}
+  # 只在价值阶段记作参与者（不立类别，STAKEHOLDERS.md）
+  - {id: SH-X1, type: 参与者, members: 主体建筑设计院（不作发包方时）}
+  - {id: SH-X2, type: 参与者, members: 施工总包和专业分包}
+  - {id: SH-X3, type: 参与者, members: 监理}
+  - {id: SH-X4, type: 参与者, members: 造价咨询和招标代理}
+  - {id: SH-X5, type: 参与者, members: 保险技术检查机构（TIS）}
+  - {id: SH-X6, type: 参与者, members: 持证检测机构}
+  - {id: SH-X7, type: 参与者, members: 资金监管主办银行}
+  - {id: SH-X8, type: 参与者, members: 物业服务企业（未代业主委托时）}
+
+value_streams:
+
+# ───────────── 外部：客户触发 ─────────────
+
+- id: VS-01
+  name: 选定服务方
+  working_name: 获客到赢单
+  description: 客户为一项建设或检查需求寻找、比较并选定专业服务方，直到以中标或委托确立我方承接；手册售前 BD0、BD1 两段。
+  triggering_stakeholders: [SH-C1, SH-C2, SH-C3, SH-C4, SH-C5, SH-C6a, SH-P3, SH-P1c]
+  trigger_note: 客户发起人询价、邀标或发布招标；渠道伙伴转介绍（间接）；联合体伙伴邀请联合投标。我方市场活动产生的线索同样进入第 1 段。触发干系人可以有多个（BIZBOK 第 158 页）。
+  value: 客户得到可信的方案、报价与承诺，以合理代价选定能胜任的服务方。
+  value_receivers: [SH-C1, SH-C2, SH-C3, SH-C4, SH-C5, SH-C6b]
+  ends_in:
+    - {ref: OBJ-18, state: 赢单}
+    - {ref: OBJ-18, state: 丢单 / 放弃, note: 价值流停止（G178 §2.2 每段后可停止）}
+  stages:
+    - id: VS-01.1
+      name: 市场与线索
+      manual_stage: BD0 市场
+      description: 经市场活动、客户活动、转介绍或客户来询形成线索，跟进核实是否为合格的业务机会。
+      participants: [SH-E5, SH-C6a, SH-P3, SH-P2]
+      entry:
+        any:
+          - {ref: OBJ-17, state: 新建}
+          - {ref: OBJ-16, state: 进行中}
+          - {ref: OBJ-105, state: 计划}
+      exit:
+        any:
+          - {ref: OBJ-17, state: 已确认（转商机）}
+          - {ref: OBJ-17, state: 已关闭（无价值，原因必填）, note: 停止}
+      value_item: 客户需求被识别并有人负责跟进。
+      notes: 门 = 线索「已确认」→ 商机新建（STAGE_TYPES_DRAFT §3.1）；可跳过（客户直接邀标或委托时直接从第 2 段进入）。
+    - id: VS-01.2
+      name: 业务拓展
+      manual_stage: BD1 业务拓展（投标前、投标、投标后作商机「跟进中」内部阶段，不升格，§3.1）
+      description: 理解需求、做独立性检查、编制方案与报价，投标或议标，直到中标或取得委托。
+      participants: [SH-E5, SH-E2, SH-E4, SH-C6a, SH-C6b, SH-C6c, SH-P1c, SH-X4]
+      entry:
+        all:
+          - {ref: OBJ-18, state: 跟进中}
+          - {ref: OBJ-24, state: 启用, note: 报价所据服务产品须为启用（第 ③ 步预警：服务产品原无阶段引用）}
+          - {ref: OBJ-26, state: 生效, note: 报价估算取用的标准成本费率表版本须为生效}
+      exit:
+        any:
+          - {ref: OBJ-18, state: 赢单, note: 须中标或委托证据（I-4）；可伴随 OBJ-20「中标」}
+          - {ref: OBJ-18, state: 丢单 / 放弃, note: 停止}
+      in_stage_states:
+        - {ref: OBJ-23, state: 无冲突 / 有冲突已获书面同意, note: 售前拦截（D-4 b）：是不变量不是门}
+        - {ref: OBJ-21, state: 已通过}
+        - {ref: OBJ-20, state: 已递交}
+        - {ref: OBJ-65, state: 有效, note: 投标引用我方资质}
+        - {ref: OBJ-19, state: 已公告 / 定标, note: 外部引用对象，只记录、不控制，不作门（第 ③ 步补，STEP3 C-20）}
+        - {ref: OBJ-12, state: 申请 / 批准, note: 先行投入授权在赢单前申请与批准（如有）；VS-02、VS-04 以「批准」起始，原无产出阶段（STEP3 C-23）}
+      value_item: 客户收到经我方审定的方案与报价承诺，并据此作出选择。
+      notes: 报价被取代、投标被撤回时在本段内重入；联合体协议是投标的次级对象（OBJ-05 类型）。
+
+- id: VS-02
+  name: 获得交付成果
+  working_name: 交付到认可
+  description: 客户获得按服务产品与协议范围约定的专业成果（设计咨询、品控、造价等），逐段提交、认可，直到项目结算与复盘；阶段即手册交付七段（另含目录中的「概念」），按协议范围在 WBS 上裁剪。品控类服务在施工期做的检查留在施工段（VS-02.6）；资本方或既有建筑业主委托的检查、尽调归 VS-03。
+  triggering_stakeholders: [SH-C1, SH-C2, SH-C3, SH-C4, SH-C6a]
+  trigger_note: 客户发起人在赢单或直接委托后要求开工；与签约先后无关（S3：阶段与商务分界脱开）。
+  value: 客户按约获得可审查、可报审、可施工的专业成果，建成效果与安全达到要求。
+  value_receivers: [SH-C1, SH-C2, SH-C3, SH-C4, SH-C6e, SH-S1, SH-S2]
+  starts_when:
+    any:
+      - {ref: OBJ-18, state: 赢单}
+      - {ref: OBJ-12, state: 批准, note: 先行投入}
+      - {ref: OBJ-05, state: 已签署生效, note: 直接签约的项目合同或任务订单}
+  ends_in:
+    - {ref: OBJ-29, state: 已结项 → 已归档}
+    - {ref: OBJ-29, state: 已终止 / 已取消, note: 停止}
+  cross_stage_activities_note: 资源需求与分配（OBJ-44、45）、工时（OBJ-66）、设计变更（OBJ-40）、延期申请（OBJ-41）、项目风险与问题（OBJ-108）、我方成果不符合项（OBJ-38）贯穿各段，不另立阶段，其流程在第 ⑥a 步按阶段映射。
+  cross_stage_activities:
+    # 第 ③ 步补（STEP3 C-21）：把贯穿活动的产出写成对象状态，使工时等与 VS-10 事实过账的衔接进入共享依赖表；不是门。
+    - name: 资源与工时
+      description: 提出与满足资源需求、确认资源分配，填报并审批工时。
+      inputs:
+        - {ref: OBJ-29, state: 执行中, caveat: SC-04}
+      outputs:
+        - {ref: OBJ-44, state: 部分满足 / 已满足}
+        - {ref: OBJ-45, state: 已确认}
+        - {ref: OBJ-66, state: 已通过}
+    - name: 变更、延期与风险
+      description: 设计变更、延期申请、项目风险与问题、我方成果不符合项的登记与处置。
+      inputs:
+        - {ref: OBJ-29, state: 执行中, caveat: SC-04}
+      outputs:
+        - {ref: OBJ-40, state: 关闭}
+        - {ref: OBJ-41, state: 已批准 / 已拒绝 / 视为批准}
+        - {ref: OBJ-108, state: 已关闭 / 已接受}
+        - {ref: OBJ-38, state: 关闭, note: 我方成果类}
+  stage_pattern:
+    entry_common:
+      all:
+        - {ref: OBJ-30, state: 未开始 / 进行中, note: 该阶段的 WBS 阶段节点已建出且未作废（S1b 按协议范围裁剪）；不依赖启动段的退出}
+    exit_common:
+      all:
+        - any:
+            - {ref: OBJ-35, state: 已认可, note: 该阶段节点下需客户认可的交付物, caveat: SC-02}
+            - all:
+                - {ref: OBJ-35, state: 已交付（签收） / 审查中, note: 交付侧事实（D-8）, caveat: SC-02}
+                - {ref: OBJ-35, state: 无异议声明已登记, note: 交付侧事实（D-8）；期满判定不在交付侧, caveat: SC-02}
+        - {ref: OBJ-30, state: 已完成, caveat: SC-01}
+    gate_rule: 门只预警；需审定的门走审批，未完成不挡下一阶段（S2）；阶段并行、倒序、跳段是常态（S2 取证 89.5% 有重叠），故不以前一段退出作为后一段进入。退出只用交付侧事实，视为同意的期满判定在收入确认段（D-8）。
+  stages:
+    - id: VS-02.0
+      name: 启动
+      manual_stage: 1 启动
+      description: 建立项目、组建团队、编制交付计划与预算，召开启动会，接收发包人首批资料。
+      participants: [SH-E2, SH-M1, SH-E6, SH-C6a, SH-C6e]
+      entry:
+        any:
+          - {ref: OBJ-18, state: 赢单}
+          - {ref: OBJ-12, state: 批准, note: 先行投入}
+          - {ref: OBJ-05, state: 已签署生效, note: 直接签约的项目合同或任务订单}
+      exit:
+        all:
+          - {ref: OBJ-29, state: 已立项 / 执行中, caveat: SC-04, note: 开工后项目即离开「已立项」，只写「已立项」会误报（STEP3 C-01）}
+          - {ref: OBJ-31, state: 已批准（对客）/ 内部锁定}
+          - {ref: OBJ-32, state: 已锁定（成本基线）}
+          - {ref: OBJ-30, state: 已完成, note: 启动阶段节点, caveat: SC-01}
+      in_stage_states:
+        - {ref: OBJ-34, state: 在岗, note: 组建团队；项目团队名册待 Q13，不作门（STEP3 C-02）}
+        - {ref: OBJ-42, state: 已提供, note: 发包人首批资料（STEP3 C-02）}
+      value_item: 客户与我方对范围、计划和团队有一致的基线。
+      notes: 进入条件同价值流起始条件；立项是本段的结果，不是 BD1 → 启动的门（STAGE_TYPES_DRAFT §3.1）；启动会纪要作证据类型「会议纪要」（OBJ-53）。
+    - id: VS-02.1
+      name: 概念
+      manual_stage: 目录阶段「概念」（景观线用；手册七段之外的目录候选，S1）
+      optional: true
+      description: 形成设计概念与方向供客户选择。
+      participants: [SH-E3, SH-E4, SH-E2, SH-C6b, SH-C6e, SH-X1]
+      entry: {pattern: entry_common}
+      exit: {pattern: exit_common}
+      value_item: 客户选定设计方向。
+    - id: VS-02.2
+      name: 方案
+      manual_stage: 2 方案（照明「方案初步」占此位）
+      description: 提资消化、方案设计、客户确认。
+      participants: [SH-E3, SH-E4, SH-E2, SH-C6b, SH-C6e, SH-X1, SH-R1, SH-P1]
+      entry:
+        pattern: entry_common
+        all:
+          - {ref: OBJ-42, state: 已提供, note: 提资；未「已确认」只预警}
+      exit: {pattern: exit_common}
+      in_stage_states:
+        - {ref: OBJ-37, state: 通过, note: 签发前内审}
+      value_item: 客户确认的方案，可据以推进报规与初设。
+    - id: VS-02.3
+      name: 初设
+      manual_stage: 3 初设（照明「方案深化」占此位；景观无此段）
+      description: 提资消化、初步设计、客户确认，配合报审。
+      participants: [SH-E3, SH-E4, SH-E2, SH-E7, SH-C6e, SH-X1, SH-R1, SH-P1]
+      entry:
+        pattern: entry_common
+        all:
+          - {ref: OBJ-42, state: 已提供}
+      exit: {pattern: exit_common}
+      in_stage_states:
+        - {ref: OBJ-37, state: 通过}
+      value_item: 可报审的初步设计。
+      notes: 施工图审查配合是本段与深化段的报审配合活动，工程审批机构只作阶段参与者（STAKEHOLDERS.md 干系人表）。
+    - id: VS-02.4
+      name: 深化
+      manual_stage: 4 深化（照明「图纸深化」占此位）
+      description: 深化设计与施工图配合，含视觉样板、性能测试等工作包（不进阶段目录，S1 §4 第 7 条）。
+      participants: [SH-E3, SH-E4, SH-E2, SH-E7, SH-C6e, SH-X1, SH-R1, SH-P1, SH-P2]
+      entry:
+        pattern: entry_common
+        all:
+          - {ref: OBJ-42, state: 已提供}
+      exit: {pattern: exit_common}
+      in_stage_states:
+        - {ref: OBJ-37, state: 通过}
+        - {ref: 缺对象状态, gap: MS-16, text: 施工图审查「已通过」, note: 价值项写明通过施工图审查，信息图无对象承载审查结论（STEP3 第 1.3 节）}
+      value_item: 可招标、可施工的深化图纸与技术要求，通过施工图审查。
+    - id: VS-02.5
+      name: 招采
+      manual_stage: 5 招采
+      description: 为客户编制招标技术文件、审核投标技术部分与图纸，协助选定施工单位与产品。
+      participants: [SH-E3, SH-E2, SH-C6c, SH-X4, SH-X2, SH-P2]
+      entry: {pattern: entry_common}
+      exit: {pattern: exit_common}
+      value_item: 客户选定满足设计意图的施工单位与产品。
+    - id: VS-02.6
+      name: 施工
+      manual_stage: 6 施工
+      description: 施工配合、样板与现场核查、施工期检查，处理我方成果的不符合项。
+      participants: [SH-E3, SH-E2, SH-C6e, SH-X2, SH-X3, SH-X5, SH-R1, SH-P2]
+      entry: {pattern: entry_common}
+      exit:
+        pattern: exit_common
+        all:
+          - {ref: OBJ-38, state: 关闭, note: 我方成果类不符合项；未关闭只预警}
+      in_stage_states:
+        - {ref: OBJ-49, state: 已锁定, note: 品控类服务在施工期做的检查（M-11 施工期类型），如有；资本方或既有建筑业主委托的检查不在此段}
+        - {ref: OBJ-46, state: 在建 / 已竣工（在用）, note: 外部引用对象，只记录、不控制，不作门（STEP3 C-20）}
+      value_item: 按设计意图建成，外立面与照明安全、效果达标（社会公众的非货币价值在此兑现）。
+    - id: VS-02.7
+      name: 结算
+      manual_stage: 7 结算（项目结算与复盘；与协议「已结算」同名异义，已交 one-glossary，STAGE_TYPES_DRAFT §4 第 10 条）
+      description: 收尾、复盘、满意度回访，封存成果与证据，结项并归档。
+      participants: [SH-E2, SH-E4, SH-M1, SH-C6b, SH-C6c, SH-X4]
+      entry:
+        all:
+          - {ref: OBJ-29, state: 收尾中, caveat: SC-04, note: Q09 不采用「收尾中」时为「执行中」}
+      exit:
+        all:
+          - {ref: OBJ-107, state: 已发布}
+          - {ref: OBJ-106, state: 已回收 / 已评分 / 已跟进, note: 未回收只预警；回收后会继续评分、跟进，只写「已回收」会误报（STEP3 C-03）}
+          - {ref: OBJ-35, state: 已封存, note: 已发布成果}
+          - {ref: OBJ-53, state: 已封存}
+          - {ref: OBJ-29, state: 已结项 → 已归档}
+      in_stage_states:
+        - {ref: OBJ-08, state: 部分履行 / 已履行, note: 结项编排读取「收入覆盖」（INV-40），不是门}
+        - {ref: OBJ-05, state: 已结算 / 已终止, note: 供方类型协议；结项编排读取（INV-40），不是门}
+      value_item: 客户得到完整移交的成果；我方得到复盘结论与可复用知识的来源。
+      notes: 结项的三项拒绝（收入覆盖、供方协议已结算、资料已归档，INV-40）是项目结项编排读取的对象不变量，不是门；它们读取的对象状态是履约义务 OBJ-08 的「部分履行 / 已履行」与供方类型协议 OBJ-05 的「已结算 / 已终止」，见共享依赖表。
+      pending: [待定：Q-E 第 1 项客户反馈与投诉——回访中的客户投诉落不符合项 / 项目风险与问题（b）还是新对象（a，另议客户触发的价值流），未定前本段不引用投诉状态]
+
+- id: VS-03
+  name: 获得风险结论
+  working_name: 检查服务
+  description: 资本方或既有建筑业主为投资、承保或安全合规委托我方做技术尽调、IDI 技术检查、周期检查，获得独立的检查结论与整改闭合状态。独立成价值流【推出】：触发者（资本方、既有建筑业主）与价值（风险结论）都与交付成果不同，BIZBOK 第 157–158 页要求触发者与价值各异的价值流各自独立，只经共享对象状态相互影响。边界：品控类服务在施工期做的检查留在 VS-02.6；资本方或既有建筑业主委托的检查归本价值流。阶段用自有阶段（检查策划、现场检查、发现发布、整改跟踪、报告认可），阶段类型目录另设「检查」类（用户答复 Q-A 选 a，intent 2026-10-16-082311）。
+  triggering_stakeholders: [SH-C5, SH-C3, SH-P3]
+  trigger_note: 投资方或金融机构委托尽调；保险公司委托 IDI 检查；既有建筑业主委托周期检查或专项检查；保险公司和 TIS、物业转介绍（间接）。
+  value: 委托方得到独立、可追溯的风险信息与合规结论，并能跟踪问题整改到闭合。
+  value_receivers: [SH-C5, SH-C3, SH-S1, SH-S2]
+  starts_when:
+    any:
+      - {ref: OBJ-18, state: 赢单}
+      - {ref: OBJ-05, state: 已签署生效}
+      - {ref: OBJ-48, state: 到期提醒, note: IDI 周期检查到期，重入本价值流}
+  ends_in:
+    - {ref: OBJ-35, state: 已认可, note: 检查报告类交付物}
+    - {ref: OBJ-48, state: 不再受托, note: 周期检查终止}
+  stages:
+    - id: VS-03.1
+      name: 检查策划
+      description: 确定受检建设工程与部位、检查表模板与频次，安排检查。
+      participants: [SH-E2, SH-E4, SH-C5, SH-C3, SH-X8]
+      entry:
+        all:
+          - {ref: OBJ-29, state: 执行中, caveat: SC-04}
+        any:
+          - {ref: OBJ-48, state: 生效 / 到期提醒, note: 仅 IDI；周期检查到期重入时检查计划处于「到期提醒」（STEP3 C-04）}
+          - {ref: OBJ-49, state: 已计划}
+      exit:
+        all:
+          - {ref: OBJ-49, state: 已安排}
+      in_stage_states:
+        - {ref: OBJ-46, state: 已竣工（在用）, note: 受检建设工程；外部引用对象，只记录、不控制（R5），不作门（STEP3 C-20）}
+        - {ref: OBJ-47, state: 在用, note: 受检建筑系统与部位（仅 IDI 完整登记，Q31a）}
+      value_item: 委托方确认检查范围、时间与方法。
+      notes: 本段起五段为阶段类型目录「检查」类的自有阶段（用户答复 Q-A 选 a，intent 2026-10-16-082311）；运营期周期检查同样适用，不套招采、施工段。
+    - id: VS-03.2
+      name: 现场检查
+      description: 现场检查、记录与审核。
+      participants: [SH-E3, SH-E4, SH-X5, SH-X2, SH-X8]
+      entry:
+        all:
+          - {ref: OBJ-49, state: 已安排}
+      exit:
+        all:
+          - {ref: OBJ-49, state: 已审核 → 已锁定}
+      in_stage_states:
+        - {ref: OBJ-38, state: 已识别, note: 客户资产类不符合项在现场检查中识别；VS-03.3 以其进入，原无产出阶段（STEP3 C-24）}
+      value_item: 受检对象的现状被客观记录并经审核。
+    - id: VS-03.3
+      name: 发现发布
+      description: 复核并发布客户资产类不符合项，建议外部检测。
+      participants: [SH-E4, SH-C5, SH-C3, SH-X6]
+      entry:
+        all:
+          - {ref: OBJ-38, state: 已识别, note: 客户资产类}
+      exit:
+        all:
+          - {ref: OBJ-38, state: 已发布}
+      in_stage_states:
+        - {ref: OBJ-52, state: 已建议, note: 如需外部检测；原写作单项 any，等于必备条件，改为段内状态（STEP3 C-05）}
+      value_item: 委托方收到分级的风险发现与处置建议。
+    - id: VS-03.4
+      name: 整改跟踪
+      description: 跟踪整改申报与复查，采信或不采信外部检测报告。
+      participants: [SH-E3, SH-X2, SH-X6, SH-X5, SH-C3]
+      entry:
+        all:
+          - {ref: OBJ-38, state: 整改中}
+      exit:
+        any:
+          - {ref: OBJ-38, state: 已闭合（复查通过）}
+          - {ref: OBJ-38, state: 客户书面接受风险}
+          - {ref: OBJ-38, state: 不再跟踪（原因必填）}
+      in_stage_states:
+        - {ref: OBJ-52, state: 已采信 / 未采信（原因）}
+      value_item: 风险得到处置或被有依据地接受。
+      notes: 可跳过（尽调类无整改跟踪）；复查不通过回到「整改中」重入本段。
+    - id: VS-03.5
+      name: 报告认可
+      description: 编制、签发检查或尽调报告，客户认可。
+      participants: [SH-E4, SH-E7, SH-C5, SH-C3]
+      entry:
+        all:
+          - {ref: OBJ-49, state: 已锁定}
+      exit:
+        all:
+          - {ref: OBJ-35, state: 已签发 → 已认可, note: 报告类交付物；评估结论、风险等级是其属性, caveat: SC-02}
+      value_item: 委托方据报告作投资、承保或运维决策。
+
+- id: VS-04
+  name: 约定并支付服务价款
+  working_name: 收入链（签约到回款）
+  description: 客户与我方约定价款与付款条件，按认可的成果确认应付、取得合规发票、付款并最终确认价款；与交付经对象状态衔接，不随交付阶段推进（S3）。
+  triggering_stakeholders: [SH-C1, SH-C2, SH-C3, SH-C4, SH-C5]
+  trigger_note: 客户接受报价或中标结果后签约；客户按付款条件付款。客户决策链的经济买方（SH-C6c）、付款方（SH-C6d）作阶段参与者。
+  value: 客户的权利义务明确，取得合规发票，按约付款，价款可核对、最终确认。
+  value_receivers: [SH-C1, SH-C2, SH-C3, SH-C4, SH-C5]
+  starts_when:
+    any:
+      - {ref: OBJ-18, state: 赢单}
+      - {ref: OBJ-12, state: 批准}
+      - {ref: OBJ-05, state: 已签署生效, note: 框架协议下的任务订单}
+  ends_in:
+    - {ref: OBJ-05, state: 已结算（结算书经双方确认）}
+    - {ref: OBJ-85, state: 已结清, note: 应收方向，含质保金类型}
+    - {ref: OBJ-05, state: 已终止（原因必填）, note: 停止；终止清算}
+  stages:
+    - id: VS-04.1
+      name: 合同签订
+      description: 起草协议（复制承诺快照）、登记合同—项目关联与范围挂 WBS、登记视为同意参数与发包人代表、回签生效；变更与签证经协议变更产生新基线。
+      participants: [SH-E5, SH-E2, SH-E6, SH-C6c, SH-C6b, SH-M1]
+      entry:
+        any:
+          - {ref: OBJ-18, state: 赢单}
+          - {ref: OBJ-12, state: 批准}
+      exit:
+        all:
+          - {ref: OBJ-05, state: 已签署生效（回签即生效，基线 1）}
+          - {ref: OBJ-07, state: 生效}
+          - {ref: OBJ-08, state: 未履行}
+          - {ref: OBJ-12, state: 转正（并入协议）, note: 适用条件：有先行投入时；原写作单项 any，改为 all 并注适用条件（STEP3 C-06）}
+      in_stage_states:
+        - {ref: OBJ-09, state: 已生效（新基线）/ 驳回, note: 协议变更在本段重入（STEP3 C-07）}
+        - {ref: OBJ-10, state: 已认定 / 已拒绝 / 撤回, note: 索赔在本段重入（STEP3 C-07）}
+      value_item: 客户与我方对范围、价款、付款条件与认可方式有生效的约定。
+      notes: 协议变更（OBJ-09「已生效（新基线）」）、索赔（OBJ-10）在本段重入；依法招标的项目合同须与投标承诺比对（不变量）。
+    - id: VS-04.2
+      name: 收入确认
+      description: 依客户认可的交付侧事实确认收入（规则层，无状态，ADR-0016 决定 4），形成合同资产；视为同意的期满判定在本段，判定记在 B-08 收入确认行上（D-8、AGG-44）。
+      participants: [SH-E6, SH-E2, SH-C6e]
+      entry:
+        all:
+          - {ref: OBJ-05, state: 已签署生效 / 履行中 / 已完成, note: 收入确认须协议已生效（intent 2026-10-16-074053 P-1）；协议生效后即转「履行中」，只写「已签署生效」会误报（STEP3 C-08）}
+          - any:
+              - {ref: OBJ-35, state: 已认可, caveat: SC-02}
+              - all:
+                  - {ref: OBJ-35, state: 已交付（签收） / 审查中, caveat: SC-02}
+                  - {ref: OBJ-35, state: 无异议声明已登记, caveat: SC-02}
+      exit:
+        all:
+          - {ref: OBJ-08, state: 部分履行 / 已履行}
+      value_item: 已交付并被认可的价值在账上可见。
+      notes: 进入用与 VS-02 退出同一组交付侧事实；「视为同意已成立」是存在收入确认行上的判定（按合同审查期与送达日，D-8、AGG-44），不是读模型派生，也不是对象状态，故不入条件；门只留 OBJ-08；期满无结论且无声明的情形如何进入，见 STEP1 第 6 节第 8 条。
+    - id: VS-04.3
+      name: 开票
+      description: 开票申请准入，开具销项发票并改写在制余额。
+      participants: [SH-E6, SH-C6d]
+      entry:
+        any:
+          - {ref: OBJ-07, state: 可结算, note: 以认可为条件的付款条件项，在交付物「已认可」（OBJ-35，VS-02 退出）后可结算；其余按日期或里程碑触发，由节点事实决定（STEP3 C-22 改）}
+          - {ref: OBJ-82, state: 草稿, note: 回签前只允许预收 / 首付款类型且附委托或中标证据（intent 074053 P-1）}
+      exit:
+        all:
+          - {ref: OBJ-82, state: 已开票}
+          - {ref: OBJ-83, state: 已开具, note: 销项蓝字}
+      value_item: 客户取得与约定一致的合规发票。
+      notes: 红冲（OBJ-83「红冲确认中 / 部分红冲 / 全额红冲」）后在本段重入。
+    - id: VS-04.4
+      name: 回款
+      description: 由发票形成应收，跟踪账龄与催收，认领收款并核销。
+      participants: [SH-E6, SH-E2, SH-C6d, SH-X7]
+      entry:
+        all:
+          - {ref: OBJ-85, state: 未结 / 部分结 / 争议, note: 应收方向；部分收款后、争议时重入（STEP3 C-09）}
+      exit:
+        any:
+          - all:
+              - {ref: OBJ-85, state: 已结清}
+              - {ref: OBJ-86, state: 已分配, note: 收方向}
+          - {ref: OBJ-85, state: 已核销（坏账）, note: 坏账核销没有收款，原写法要求同时「已分配」，改为两路之一（STEP3 C-09）}
+      value_item: 客户付款被准确认领与核对。
+      in_stage_states:
+        - {ref: 派生, state: 质保金到期可收, note: 质保金类型应收（OBJ-85「未结」）按到期日在读模型派生的提示，不是对象状态，不作门，不重入 VS-04.5（STEP3 C-10 改）}
+      notes: 质保金类型应收（OBJ-85 类型「质保金」，状态「未结」）已被本段进入条件覆盖，到期收回在本段完成；预收款（OBJ-85 类型「预收」）可先于第 2、3 段，之后核销时重入；争议（OBJ-85「争议」）回到本段。
+      pending: [待定：Q-E 第 2 项法律纠纷——选 b 时往来款项「争议」加处置分类「诉讼」，选 a 时新增法律纠纷对象；商业汇票待取证，票据收款是否另有对象状态未定]
+    - id: VS-04.5
+      name: 最终价款确认
+      description: 竣工或协议完成后编制结算书、双方确认最终价款；质保金收回归回款段（VS-04.4）。
+      participants: [SH-E2, SH-E6, SH-C6c, SH-X4]
+      entry:
+        all:
+          - {ref: OBJ-05, state: 已完成}
+      exit:
+        all:
+          - {ref: OBJ-05, state: 已结算（结算书经双方确认）}
+      value_item: 最终交易价格确定，双方债权债务了结。
+      notes: 可跳过（无结算条款的协议）；阶段名避开「结算」，与协议状态「已结算」同名异义问题见 STEP1 第 6 节。
+
+# ───────────── 外部：合作伙伴与监管机构 ─────────────
+
+- id: VS-05
+  name: 获得外部资源
+  working_name: 采购到付款
+  description: 项目或职能部门向合格的交付伙伴与供应商取得分包服务、产品、工具与保险，确认履约、取得发票、确认应付并付款，直到供方协议结算。
+  triggering_stakeholders: [SH-E2, SH-M1]
+  trigger_note: 项目经理提出项目采购或分包需求；职能高管提出公司级采购。交付伙伴、供应商、联合体与渠道伙伴作阶段参与者。
+  value: 需求方及时获得合格、按约履约的外部能力与产品。
+  value_receivers: [SH-E2, SH-M1]
+  ends_in:
+    - {ref: OBJ-05, state: 已结算 / 已终止, note: 供方类型协议（分包、采购、租赁、职业责任保险单、居间、劳务派遣）}
+  stages:
+    - id: VS-05.1
+      name: 供方准入
+      description: 登记往来单位与供应商角色，核验资质。
+      participants: [SH-E6, SH-P1, SH-P2]
+      skippable: true
+      entry:
+        all:
+          - {ref: OBJ-02, state: 申请, note: 供应商角色}
+      exit:
+        all:
+          - {ref: OBJ-02, state: 合格}
+          - {ref: OBJ-65, state: 有效, note: 需资质的供方}
+      value_item: 需求方可从合格供方中选择。
+      notes: 已合格的供方跳过；角色「暂停 / 停用」时回到本段。
+    - id: VS-05.2
+      name: 供方签约
+      description: 起草供方协议、审批、生效，建立履约额度与预算占用。
+      participants: [SH-E2, SH-E6, SH-M1, SH-P1, SH-P1c, SH-P2, SH-P3]
+      entry:
+        all:
+          - {ref: OBJ-02, state: 合格}
+        any:
+          - {ref: OBJ-29, state: 执行中, note: 项目采购, caveat: SC-04}
+          - {ref: OBJ-100, state: 基线（不可变）, note: 公司级采购用预算类型}
+      exit:
+        all:
+          - {ref: OBJ-05, state: 已签署生效, note: 供方类型}
+      value_item: 双方对范围、价款与验收方式有生效约定。
+    - id: VS-05.3
+      name: 履约确认
+      description: 专人验收供方履约并确认。
+      participants: [SH-E2, SH-E3, SH-P1, SH-P2]
+      entry:
+        all:
+          - {ref: OBJ-05, state: 履行中 / 已签署生效, note: 供方类型}
+      exit:
+        all:
+          - {ref: OBJ-87, state: 已确认, caveat: SC-07}
+      value_item: 需求方得到经验收的成果或产品。
+    - id: VS-05.4
+      name: 应付确认
+      description: 取得并查验进项发票（可后取），确认应付。
+      participants: [SH-E6, SH-P1, SH-P2]
+      entry:
+        all:
+          - {ref: OBJ-87, state: 已确认}
+      exit:
+        all:
+          - {ref: OBJ-85, state: 未结, note: 应付方向}
+          - {ref: OBJ-83, state: 已用途确认 → 已入账, note: 适用条件：有票时（进项）；无票暂估时不适用，取得后重入；原写作单项 any，改为 all 并注适用条件（STEP3 C-12）}
+      value_item: 需求方的应付义务被确认。
+    - id: VS-05.5
+      name: 付款
+      description: 发起、审批、执行付款，登记银行结果。
+      participants: [SH-E6, SH-M1, SH-P1, SH-P2]
+      entry:
+        all:
+          - {ref: OBJ-85, state: 未结 / 部分结, note: 应付；预付类型可先于第 3、4 段}
+      exit:
+        all:
+          - {ref: OBJ-86, state: 已成功 / 已核销, note: 付方向；成功后核销即转「已核销」（STEP3 C-13）}
+          - {ref: OBJ-85, state: 已结清 / 部分结}
+      value_item: 需求方按约完成付款。
+      notes: 退票（OBJ-86「已失败」）释放核销占用，重入本段。
+      pending: [待定：商业汇票待取证——以票据付款是否另有对象状态未定]
+    - id: VS-05.6
+      name: 供方结算
+      description: 编制并确认供方结算，或登记终止与结论。
+      participants: [SH-E2, SH-E6, SH-P1]
+      skippable: true
+      entry:
+        all:
+          - {ref: OBJ-05, state: 已完成, note: 供方类型}
+      exit:
+        any:
+          - {ref: OBJ-05, state: 已结算}
+          - {ref: OBJ-05, state: 已终止（原因必填）}
+      value_item: 双方最终价款确定；项目可据此结项。
+
+- id: VS-06
+  name: 确认企业合规
+  working_name: 申报与资质
+  description: 企业监管机构按法定期限要求申报、缴款与资质维护，确认我方按期合规；个税扣缴与社保公积金申报随月度薪酬在 VS-13 完成，本价值流管增值税及附加、企业所得税与资质维护。资质维护纳入；工商年报与统计报送不做（用户答复 Q-D，intent 2026-10-16-082311；不做清单见文末 out_of_scope）。
+  triggering_stakeholders: [SH-R2]
+  trigger_note: 法定申报期、资质年检或动态核查通知到来。
+  value: 监管机构按期收到准确的申报与税款，确认企业持续具备经营与承接资格。
+  value_receivers: [SH-R2]
+  stages:
+    - id: VS-06.1
+      name: 申报缴款
+      description: 按所属期编制、提交申报并缴款，必要时更正申报。
+      participants: [SH-E6, SH-M1, SH-R2]
+      entry:
+        all:
+          - {ref: OBJ-92, state: 待申报, note: 增值税及附加、企业所得税类型}
+      exit:
+        all:
+          - {ref: OBJ-92, state: 已申报 → 已缴款}
+      value_item: 申报与税款按期到达监管机构。
+      notes: 更正申报在本段重入。
+    - id: VS-06.2
+      name: 资质维护
+      description: 企业资质与注册执业证书的年检、动态核查、延续与变更。
+      participants: [SH-E6, SH-E7, SH-M1, SH-R2]
+      entry:
+        any:
+          - {ref: OBJ-65, state: 核查中, note: 年检或动态核查开始}
+          - {ref: OBJ-65, state: 延续中, note: 有效期临近，提出延续}
+      exit:
+        any:
+          - {ref: OBJ-65, state: 有效, note: 核查通过或延续后取得新有效期}
+          - {ref: OBJ-65, state: 降级 / 撤销 / 到期, note: 停止；到期指未延续}
+        all:
+          - {ref: OBJ-64, state: 有效, note: 资质所需的注册执业人员}
+      value_item: 承接资格持续有效，投标与签约可引用。
+      notes: 资质维护纳入（用户答复 Q-D 第 1 项，intent 2026-10-16-082311）；信息图 OBJ-65 已补「核查中」「延续中」两个状态（MS-12 消除）；我方资质的类别范围仍待定（信息图 OBJ-65 范围列）。
+      pending: [待定：Q-E 第 3 项培训——注册执业证书延续所需继续教育学时，选 b 作 OBJ-64 属性，选 a 新增培训对象后本段可引用参训记录状态]
+
+# ───────────── 内部 ─────────────
+
+- id: VS-07
+  name: 任用员工
+  working_name: 招聘到入职
+  description: 用人经理提出用人需要、候选人应聘，经录用决定办理入职，直到新员工开始任职；入职后的考勤、报酬与离职见 VS-13。
+  triggering_stakeholders: [SH-E1, SH-H1]
+  trigger_note: 用人经理提出招聘需求；求职者应聘（含调入等非招聘入职）。
+  value: 用人经理及时得到合格人员；候选人得到明确的录用结果并顺利入职。
+  value_receivers: [SH-E1, SH-H1]
+  ends_in:
+    - {ref: OBJ-56, state: 试用期 / 正式, note: 不约定试用期的直接为「正式」（STEP3 C-14）}
+    - {ref: OBJ-56, state: 未录用, note: 候选阶段终态，停止}
+  stages:
+    - id: VS-07.1
+      name: 招聘需求
+      description: 提出、批准、关闭招聘需求。
+      participants: [SH-E1, SH-E6, SH-M1]
+      skippable: true
+      entry:
+        all:
+          - {ref: OBJ-58, state: 启用}
+      exit:
+        any:
+          - {ref: OBJ-60, state: 已批准, caveat: SC-03}
+          - {ref: OBJ-60, state: 已关闭（录满 / 取消）}
+      value_item: 用人需要被确认并有编制依据。
+      notes: 调入等非招聘入职跳过本段。
+    - id: VS-07.2
+      name: 应聘录用
+      description: 候选人登记、面试、录用决定。
+      participants: [SH-H1, SH-E1, SH-E6]
+      entry:
+        all:
+          - {ref: OBJ-56, state: 已登记（候选）}
+      exit:
+        any:
+          - {ref: OBJ-56, state: 待入职}
+          - {ref: OBJ-56, state: 未录用, note: 停止}
+      value_item: 候选人得到明确的录用结果。
+    - id: VS-07.3
+      name: 入职任职
+      description: 登记入职、建立任职、签订劳动合同、参保增员、建立薪酬档案。
+      participants: [SH-H1, SH-E1, SH-E6]
+      entry:
+        all:
+          - {ref: OBJ-56, state: 待入职}
+      exit:
+        all:
+          - {ref: OBJ-56, state: 试用期 / 正式, note: 不约定试用期的直接为「正式」（STEP3 C-14）}
+          - {ref: OBJ-05, state: 已签署生效 / 履行中, note: 劳动合同类型；未满一个月未签只预警；生效后即转「履行中」（STEP3 C-14）}
+          - {ref: OBJ-62, state: 在缴, note: 增员后的参保状态}
+      value_item: 员工开始工作并有合同与社保保障。
+      notes: 任职（OBJ-57）是按生效区间版本化的对象、没有状态机，主任职生效随登记入职完成，不作门条件。
+
+- id: VS-08
+  name: 报销垫付费用
+  working_name: 报销到付款
+  description: 员工为公务垫付或借支后，提交报销或还款，经核定、入账并付款结清。
+  triggering_stakeholders: [SH-E2, SH-E3, SH-E5, SH-E6]
+  trigger_note: 员工已发生公务费用或需要借支（事前申请是预批单据，不是对象）。
+  value: 员工垫付的公务费用及时足额得到补偿。
+  value_receivers: [SH-E2, SH-E3, SH-E5, SH-E6]
+  ends_in:
+    - {ref: OBJ-88, state: 已付}
+    - {ref: OBJ-85, state: 已结清, note: 其他应收「员工借款」类型}
+  stages:
+    - id: VS-08.1
+      name: 借支
+      description: 员工借款发放与还款（借款与报销各自结算，Q24）。
+      participants: [SH-E3, SH-E6, SH-M1]
+      skippable: true
+      entry:
+        all:
+          - {ref: OBJ-85, state: 未结, note: 其他应收「员工借款」}
+      exit:
+        all:
+          - {ref: OBJ-85, state: 已结清}
+      value_item: 员工无须自垫大额公务支出。
+    - id: VS-08.2
+      name: 报销核定
+      description: 提交报销、审批、核定所属期间，占用进项发票。
+      participants: [SH-E3, SH-E2, SH-E6]
+      entry:
+        all:
+          - {ref: OBJ-88, state: 已提交}
+      exit:
+        all:
+          - {ref: OBJ-88, state: 已核定（所属期间确定）}
+          - {ref: OBJ-83, state: 已入账, note: 适用条件：有票时（进项发票入账占用）；原写作单项 any，改为 all 并注适用条件（STEP3 C-15）}
+      value_item: 垫付被认定为公司费用。
+      notes: 驳回后回到草稿重入。
+    - id: VS-08.3
+      name: 报销付款
+      description: 形成报销应付并付款。
+      participants: [SH-E6, SH-M1]
+      entry:
+        all:
+          - {ref: OBJ-88, state: 已过账}
+      exit:
+        all:
+          - {ref: OBJ-85, state: 已结清, note: 应付「报销」}
+          - {ref: OBJ-86, state: 已成功 / 已核销, note: 成功后核销即转「已核销」（STEP3 C-13）}
+          - {ref: OBJ-88, state: 已付}
+      value_item: 员工收到补偿款。
+
+- id: VS-09
+  name: 达成经营目标
+  working_name: 计划到复盘
+  description: 管理层制定经营计划与预算，滚动预测，按期复盘偏差并确定经营动作。
+  triggering_stakeholders: [SH-M1]
+  trigger_note: 经营计划周期开始（年度、季度）。股东和合伙人的年度回报要求由 VS-12 承接，不在此触发。
+  value: 管理层有明确可追踪的目标，偏差能被解释并转化为行动。
+  value_receivers: [SH-M1, SH-O1]
+  stages:
+    - id: VS-09.1
+      name: 计划编制
+      description: 编制并批准经营计划与预算基线。
+      participants: [SH-M1, SH-E6]
+      entry:
+        all:
+          - {ref: OBJ-100, state: 编制中}
+      exit:
+        all:
+          - {ref: OBJ-100, state: 基线（不可变）, note: 计划与预算类型}
+      value_item: 组织 × 期间 × 指标的目标与预算额度确定。
+    - id: VS-09.2
+      name: 滚动预测
+      description: 销售预测承诺（周）、现金流预测。
+      participants: [SH-M1, SH-E5, SH-E2, SH-E6]
+      entry:
+        all:
+          - {ref: OBJ-100, state: 基线（不可变）}
+      exit:
+        all:
+          - {ref: OBJ-100, state: 新版本, note: 预测类型每次滚动产生新版本（M-8、M-9）}
+      value_item: 管理层看到对目标的最新预期。
+      notes: 周期性重入；新版本经审批成为新基线后可再次进入本段。
+    - id: VS-09.3
+      name: 经营复盘
+      description: 关账后对比目标与实际，解释偏差，确定经营动作；需要时调整计划（新版本）。
+      participants: [SH-M1, SH-E6, SH-O1]
+      entry:
+        all:
+          - {ref: OBJ-97, state: 已关账}
+      exit:
+        all:
+          - {ref: OBJ-100, state: 新版本, note: 经营动作写入计划（OBJ-100 定义含「动作」）}
+      value_item: 偏差有解释、有责任人和动作。
+      notes: 偏差解释是复盘单据，不作门；口径差异案经第 ② 步回补判为非对象（ADR-0025 的勾稽差异案是数据管道对账记录），MS-10 消除。
+
+- id: VS-10
+  name: 获得期间报告
+  working_name: 记录到报告
+  description: 管理层在会计期间结束时关账，取得按权责口径出具的三大报表与经营月报；业务事实过账、成本结转、期末结转与对账是贯穿的活动，门只用会计期间与会计分录的状态。
+  triggering_stakeholders: [SH-M1]
+  trigger_note: 职能高管（财务）在会计期间结束时发起月结。
+  value: 管理层与股东得到按期、可勾稽、关账后不变的权责口径报表与经营报告。
+  value_receivers: [SH-M1, SH-O1]
+  cross_stage_activities:
+    - name: 事实过账
+      description: 来源单据到达可过账状态后经单一过账管道过账（收入确认是无状态规则层，ADR-0016 决定 4，由 B-08 收入确认行提交过账候选，不作对象状态输入），生成两账分录；已关账期间的事实路由到开放期间并标原期间。
+      inputs:
+        - {ref: OBJ-66, state: 已通过}
+        - {ref: OBJ-87, state: 已确认}
+        - {ref: OBJ-83, state: 已开具}
+        - {ref: OBJ-86, state: 已分配}
+        - {ref: OBJ-73, state: 已批准}
+        - {ref: OBJ-88, state: 已核定（所属期间确定）}
+        - {ref: OBJ-98, state: 已审核, note: 受控手工凭证类型}
+        - {ref: OBJ-97, state: 开放}
+        # 以下为第 ③ 步补（STEP3 C-16）：各价值流中提交过账候选、原未列入的来源状态
+        - {ref: OBJ-86, state: 已成功, note: 付方向}
+        - {ref: OBJ-83, state: 已入账, note: 进项}
+        - {ref: OBJ-85, state: 已核销（坏账）}
+        - {ref: OBJ-92, state: 已缴款, note: 税费与个税社保缴款}
+        - {ref: OBJ-91, state: 实缴（到账）}
+        - {ref: OBJ-112, state: 部分支付 / 已支付}
+        - {ref: OBJ-93, state: 处置, note: 资产处置损益}
+      outputs:
+        - {ref: OBJ-98, state: 已记账（不可逆）}
+    - name: 成本结转
+      description: 人工成本分配、间接成本分摊、合同履约成本结转；成果是成本结转类型的会计分录。
+      inputs:
+        - {ref: OBJ-73, state: 已过账}
+        - {ref: OBJ-97, state: 开放}
+      outputs:
+        - {ref: OBJ-98, state: 已记账（不可逆）, note: 成本结转类型分录}
+    - name: 期末结转
+      description: 期末结转前置检查与结转分录。
+      inputs:
+        - {ref: OBJ-97, state: 开放}
+        - {ref: OBJ-93, state: 在用 / 闲置, note: 折旧与摊销按期计提（STEP3 C-16）}
+      outputs:
+        - {ref: OBJ-98, state: 已记账（不可逆）, note: 期末结转类型分录}
+    - name: 对账与报表编制
+      description: 收付口径与外部法定账对账，出具三大报表与经营月报；报表、经营月报、对账差异记录是单据，不是对象状态（用户答复 Q-B 选 a，intent 2026-10-16-082311）。
+      inputs:
+        - {ref: OBJ-97, state: 已关账}
+  stages:
+    - id: VS-10.1
+      name: 期间关账
+      description: 期末结转完成后做前置检查与勾稽，发起与确认关账（两人）。
+      participants: [SH-E6, SH-M1]
+      entry:
+        all:
+          - {ref: OBJ-97, state: 开放}
+          - {ref: OBJ-98, state: 已记账（不可逆）, note: 期末结转类型分录}
+      exit:
+        all:
+          - {ref: OBJ-97, state: 关账中 → 已关账}
+      value_item: 期间数据冻结，之后不再改变。
+      notes: 前置检查未通过退回「开放」重入；12 月与第 13 期一次关账（ADR-0046）；期间余额快照随关账生成，不另设门。
+    - id: VS-10.2
+      name: 报表发布
+      description: 关账后出具三大报表与经营月报。
+      participants: [SH-E6, SH-M1, SH-O1]
+      entry:
+        all:
+          - {ref: OBJ-97, state: 已关账}
+      exit:
+        all:
+          - {ref: OBJ-97, state: 已关账}
+          - {ref: OBJ-98, state: 已记账（不可逆）, note: 期间内分录均已记账}
+      value_item: 管理层与股东拿到可勾稽的期间报告。
+      notes: 用户答复 Q-B 选 a（intent 2026-10-16-082311）：门只用对象状态，本价值流定为期间关账、报表发布两段，过账、成本结转、期末结转、对账为贯穿活动；MS-08、MS-09 消除。
+
+- id: VS-11
+  name: 沉淀复用知识
+  working_name: 知识沉淀
+  description: 技术专家与项目团队把项目复盘与专业积累整理为经评审的知识条目，发布供报价、服务产品与交付引用，按需修订或废止。
+  triggering_stakeholders: [SH-E4, SH-E2]
+  trigger_note: 项目复盘发布后提炼，或技术专家主动起草。
+  value: 员工能找到经审定的做法与案例并在新项目中复用，交付质量与效率提升。
+  value_receivers: [SH-E3, SH-E2, SH-E5, SH-E4]
+  stages:
+    - id: VS-11.1
+      name: 知识起草
+      description: 从复盘或专业积累起草知识条目。
+      participants: [SH-E4, SH-E2, SH-E3]
+      entry:
+        any:
+          - {ref: OBJ-107, state: 已发布}
+          - {ref: OBJ-110, state: 起草}
+      exit:
+        all:
+          - {ref: OBJ-110, state: 评审}
+      value_item: 经验被写成可评审的内容。
+    - id: VS-11.2
+      name: 评审发布
+      description: 评审并发布知识条目。
+      participants: [SH-E4, SH-M1]
+      entry:
+        all:
+          - {ref: OBJ-110, state: 评审}
+      exit:
+        all:
+          - {ref: OBJ-110, state: 发布}
+      value_item: 员工可引用经审定的知识。
+    - id: VS-11.3
+      name: 修订废止
+      description: 按适用范围与有效期修订（新版本）或废止。
+      participants: [SH-E4]
+      skippable: true
+      entry:
+        all:
+          - {ref: OBJ-110, state: 发布}
+      exit:
+        any:
+          - {ref: OBJ-110, state: 修订（新版本）}
+          - {ref: OBJ-110, state: 废止}
+      value_item: 引用的知识保持有效。
+
+- id: VS-12
+  name: 获得投资回报
+  working_name: 出资到回报
+  description: 股东和合伙人出资，按年度经营结果取得回报，必要时退回出资。单列（用户答复 Q-C 选 a，intent 2026-10-16-082311）；利润分配经第 ② 步回补为信息图 OBJ-112（法人主体的次级）。
+  triggering_stakeholders: [SH-O1]
+  trigger_note: 股东和合伙人认缴出资；年度报表出具后提出回报要求。
+  value: 股东和合伙人的出资被准确记录，并按经营结果取得回报。
+  value_receivers: [SH-O1]
+  stages:
+    - id: VS-12.1
+      name: 出资到账
+      description: 认缴、实缴到账。
+      participants: [SH-O1, SH-E6]
+      entry:
+        all:
+          - {ref: OBJ-91, state: 认缴}
+      exit:
+        all:
+          - {ref: OBJ-91, state: 实缴（到账）}
+      value_item: 出资被确认并形成权益。
+    - id: VS-12.2
+      name: 利润分配
+      description: 年度利润分配决议与支付。
+      participants: [SH-O1, SH-M1, SH-E6]
+      entry:
+        all:
+          - {ref: OBJ-97, state: 已关账, note: 年度末期间（含第 13 期，如启用）}
+      exit:
+        all:
+          - {ref: OBJ-112, state: 已决议 → 已支付}
+      in_stage_states:
+        - {ref: OBJ-112, state: 部分支付}
+      value_item: 股东和合伙人取得回报。
+      notes: 分配额不得超过所属年度已关账的可分配利润（INV-117）；部分支付时停在「部分支付」，后续支付重入本段；自然人股东的股息红利个税经 OBJ-92 个税扣缴类型申报（VS-13.4 同一对象类型分工，不另设门）。
+    - id: VS-12.3
+      name: 出资退回
+      description: 部分或全部退回出资。
+      participants: [SH-O1, SH-E6, SH-M1]
+      skippable: true
+      entry:
+        all:
+          - {ref: OBJ-91, state: 实缴（到账）}
+      exit:
+        any:
+          - {ref: OBJ-91, state: 部分退回 / 已退回}
+      value_item: 退出的合伙人取回出资。
+
+- id: VS-13
+  name: 获得报酬
+  working_name: 考勤到发薪（含离职结清）
+  description: 在职员工按月确认考勤、核定激励，薪酬经计算、批准后发放，个税与社保公积金依法申报缴纳；离职时依法结清劳动关系。由原 VS-07 拆出（触发者与价值不同）。
+  triggering_stakeholders: [SH-E1, SH-E2, SH-E3, SH-E4, SH-E5, SH-E6, SH-E7]
+  trigger_note: 在职员工每月出勤并确认考勤，或提出离职；各类在职员工均可触发。
+  value: 员工按时足额获得报酬与法定保障，离职时依法结清。
+  value_receivers: [SH-E1, SH-E2, SH-E3, SH-E4, SH-E5, SH-E6, SH-E7]
+  ends_in:
+    - {ref: OBJ-56, state: 已离职}
+  stages:
+    - id: VS-13.1
+      name: 考勤确认
+      description: 考勤记录、请假、加班汇入月度考勤，员工确认后锁定。
+      participants: [SH-E3, SH-E1, SH-E6]
+      entry:
+        all:
+          - {ref: OBJ-56, state: 试用期 / 正式 / 待离职, note: 离职当月仍须确认考勤（STEP3 C-17）}
+          - {ref: OBJ-28, state: 已维护}
+      exit:
+        all:
+          - {ref: OBJ-111, state: 已锁定}
+          - {ref: OBJ-68, state: 已批准 / 已销假, note: 当月请假已汇入}
+          - {ref: OBJ-72, state: 批准 / 已补偿, note: 当月加班已汇入；「已补偿」由月度考勤确认事件触发，可与锁定同时发生（STEP3 C-17）}
+      value_item: 员工确认当月出勤，作为计薪依据。
+      notes: 锁定后的变动计入下月并标原月份，不重开当月（INV-105）；月度考勤确认经第 ② 步回补为信息图 OBJ-111（人员的次级），MS-01 消除。
+    - id: VS-13.2
+      name: 绩效激励
+      description: 绩效评估与奖金核定。
+      participants: [SH-E1, SH-M1, SH-E6]
+      skippable: true
+      entry:
+        any:
+          - {ref: OBJ-74, state: 生效}
+          - {ref: OBJ-109, state: 草拟}
+      exit:
+        any:
+          - {ref: OBJ-109, state: 已确认, caveat: SC-06}
+          - {ref: OBJ-104, state: 已核定}
+      value_item: 员工的贡献得到评价与激励。
+    - id: VS-13.3
+      name: 薪酬结算
+      description: 计算、审核、批准法人当月薪酬。
+      participants: [SH-E6, SH-M1]
+      entry:
+        all:
+          - {ref: OBJ-111, state: 已锁定, note: 该法人当月在职人员均已锁定}
+          - {ref: OBJ-62, state: 在缴, note: 参保基数已定}
+      exit:
+        all:
+          - {ref: OBJ-73, state: 已批准}
+      in_stage_states:
+        - {ref: OBJ-104, state: 已核定, note: 奖金，可无（聚合稿 §4.3.2 第 4 步）（STEP3 C-18）}
+      value_item: 薪酬结果准确并经批准。
+    - id: VS-13.4
+      name: 申报缴纳
+      description: 个税扣缴、社保公积金申报与缴款。
+      participants: [SH-E6, SH-R2]
+      entry:
+        all:
+          - {ref: OBJ-73, state: 已批准 / 已发放 / 已过账, note: 申报常在发放后，只写「已批准」会误报（STEP3 C-19）}
+          - {ref: OBJ-92, state: 待申报, note: 个税扣缴、社保公积金类型（与 VS-06.1 对称，STEP3 C-19）}
+      exit:
+        all:
+          - {ref: OBJ-92, state: 已申报 → 已缴款, note: 个税扣缴、社保公积金类型}
+      value_item: 员工的法定保障与纳税义务按期履行。
+      notes: 与 VS-13.5 并行。
+    - id: VS-13.5
+      name: 薪酬发放
+      description: 提交应付薪酬、代发付款、发放后过账。
+      participants: [SH-E6, SH-M1, SH-E3]
+      entry:
+        all:
+          - {ref: OBJ-73, state: 已批准}
+      exit:
+        all:
+          - {ref: OBJ-85, state: 已结清, note: 应付薪酬类型（AGG-52 回溯新增）}
+          - {ref: OBJ-86, state: 已成功 / 已核销, note: 成功后核销即转「已核销」（STEP3 C-13）}
+          - {ref: OBJ-73, state: 已发放 → 已过账}
+      value_item: 员工按时足额收到工资。
+      notes: 退票时付款「已失败」、薪酬保持「已批准」，重入本段。
+    - id: VS-13.6
+      name: 离职结清
+      description: 离职申请、减员、劳动合同终止，最后一期薪酬随月度结算发放。
+      participants: [SH-E3, SH-E1, SH-E6]
+      entry:
+        all:
+          - {ref: OBJ-56, state: 待离职}
+      exit:
+        all:
+          - {ref: OBJ-56, state: 已离职}
+          - {ref: OBJ-62, state: 减员（转移 / 封存）}
+          - {ref: OBJ-05, state: 已终止, note: 劳动合同类型}
+      value_item: 员工依法离职、结清权益。
+      notes: 可在任何时点进入；账号停用是平台身份事项，不是业务对象状态；工作交接清单是单据，不作门（用户答复 Q-D 第 3 项不做，intent 2026-10-16-082311）。
+      pending: [待定：Q-E 第 2 项法律纠纷——劳动仲裁选 b 时无处挂（劳动合同不产生往来款项），选 a 时可挂法律纠纷对象]
+
+# 第 ③ 步预警：一级对象未被任何阶段条件引用（脚本核对，列表与脚本结果须一致）
+step3_warnings:
+  - {ref: OBJ-24, status: 已补引用, note: VS-01.2 进入补「启用」}
+  - {ref: OBJ-26, status: 已补引用, note: VS-01.2 进入补「生效」}
+  # 第 ③ 步逐段对账后的裁定见 STEP3_STAGES.md 第 2 节
+  - {ref: OBJ-25, status: 不支撑价值流, reason: 目录型参考数据，给出 VS-02、VS-03 的阶段骨架；自身「启用 / 停用」是服务产品与 WBS 的不变量（INV-34），不是阶段进出事实，也无段内业务理由（STEP3 评审撤回 C-02、C-04 的引用）}
+  - {ref: OBJ-54, status: 经二级能力支撑, reason: 法人主体是各对象的归属维度，自身的筹建 / 存续 / 注销不是任何阶段的进出事实；一级能力 CAP-054 经二级能力（资质证书 VS-06.2、月度薪酬结算 VS-13、合伙人出资与利润分配 VS-12）支撑阶段}
+  - {ref: OBJ-93, status: 已补引用, note: 仅经 VS-10 贯穿活动（事实过账、期末结转）输入引用；无阶段支撑（STEP3 评审撤回 C-11 的 VS-05.3 段内引用），能力对账写「不支撑价值流」}
+  - {ref: OBJ-13, status: 不支撑价值流（候选）, reason: 保证金与押金的收付走资金收付（VS-04.4、VS-05.5），自身的待缴 / 已缴 / 已退不是阶段门；担保关系作协议与投标的属性（次级对象，不计入一级对账）}
+  - {ref: OBJ-01, status: 经二级能力支撑, reason: 往来单位是主数据，角色（OBJ-02）才有准入状态并在 VS-05.1 作门；客户活动（OBJ-105）在 VS-01.1 作进入条件}
+  - {ref: OBJ-19, status: 已补引用, note: 第 ③ 步对账：VS-01.2 段内补外部状态「已公告 / 定标」，只记录、不作门}
+  - {ref: OBJ-46, status: 已补引用, note: 第 ③ 步对账：VS-02.6、VS-03.1 段内补外部状态，只记录、不作门}
+  - {ref: OBJ-103, status: 经二级能力支撑, reason: 财务是汇聚对象，其次级（OBJ-83、85、86、92、97、98）已在条件中引用}
+
+# 缺对象状态（第 ② 步回补输入）：条件指不到信息图中任何对象的状态。仍在条件中使用的 1 项（第 ③ 步复核后）
+missing_states:
+  - {id: MS-16, used_in: [VS-02.4], text: 施工图审查「已通过」, now: VS-02.4 价值项写明通过施工图审查，信息图无对象承载外部审查结论（第 ③ 步发现）, ask: 作证据类型、交付物状态或不进系统（STEP3 用户题 U-4）}
+
+# 随用户题 Q-B 的两项：用户答复选 a（intent 2026-10-16-082311），已移入 resolved_missing_states
+conditional_missing_states: []
+
+# 已重判并消除的缺对象状态（评审 B3 逐项重判）
+resolved_missing_states:
+  - {id: MS-15, was_in: VS-04.5, text: 质保金「到期可收」, disposition: 质保金收回归 VS-04.4（OBJ-85 质保金类型「未结」已覆盖），到期只作 VS-04.4 段内派生提示，不重入 VS-04.5（STEP3 C-10 改）}
+  - {id: MS-02, was_in: VS-10.1, text: 业务事实「已过账」, disposition: 过账是贯穿活动，不是阶段；该阶段取消，成果由 OBJ-98「已记账」承载}
+  - {id: MS-03, was_in: VS-10.2, text: 人工成本分配、分摊运行「已过账 / 生效」, disposition: 成本结转是贯穿活动；成果是成本结转类型的 OBJ-98 分录}
+  - {id: MS-04, was_in: VS-10.2, text: 成本结转批次「已过账」, disposition: 同 MS-03}
+  - {id: MS-05, was_in: VS-10.1, text: 受控手工凭证「已审批」, disposition: 改写为 OBJ-98 受控手工凭证类型的「已审核」（事实过账活动的输入）}
+  - {id: MS-06, was_in: VS-10.3, text: 期末结转运行「已过账」, disposition: 改写为 OBJ-98 期末结转类型的「已记账」}
+  - {id: MS-07, was_in: [VS-10.4, VS-09.3], text: 期间余额快照「已生成」, disposition: 快照随关账生成，门改用 OBJ-97「已关账」}
+  - {id: MS-13, was_in: VS-06.3, text: 工商年报「待报送 / 已报送」, disposition: 用户答复 Q-D 第 2 项不做（intent 2026-10-16-082311）：年报报送段取消，统计报送同}
+  - {id: MS-14, was_in: VS-07.9, text: 离职工作交接「已完成」, disposition: 用户答复 Q-D 第 3 项不做（intent 2026-10-16-082311）：交接清单是单据，不作门，离职段改称「离职结清」}
+  - {id: MS-01, was_in: [VS-13.1, VS-13.3], text: 月度考勤确认「已锁定」, disposition: 第 ② 步回补一级对象检验（intent 2026-10-16-082311）：月度考勤确认有自有状态与锁定规则（INV-105）、被月度薪酬结算引用，依附人员，定为次级对象 OBJ-111；条件改用 OBJ-111「已锁定」}
+  - {id: MS-08, was_in: VS-10.2, text: 外部法定账对账「差异已清零 / 已签字接受」, disposition: 用户答复 Q-B 选 a（intent 2026-10-16-082311）：对账是贯穿活动，不作门}
+  - {id: MS-09, was_in: VS-10.2, text: 期间报告「已发布」, disposition: 用户答复 Q-B 选 a（intent 2026-10-16-082311）：报表是单据，不作门}
+  - {id: MS-10, was_in: VS-09.3, text: 口径差异案「已处置」（偏差已解释）, disposition: 第 ② 步回补一级对象检验（intent 2026-10-16-082311）：判为非对象——ADR-0025 的勾稽差异案是 OLTP 与 OLAP 对账的数据管道记录，经营偏差解释是复盘单据；VS-09.3 退出只用 OBJ-100「新版本」}
+  - {id: MS-11, was_in: VS-12.2, text: 利润分配「已决议 / 已支付」, disposition: 用户答复 Q-C 选 a 后第 ② 步回补（intent 2026-10-16-082311）：利润分配定为法人主体的次级对象 OBJ-112，条件改用其状态}
+  - {id: MS-12, was_in: VS-06.2, text: 资质「年检 / 动态核查 / 延续」, disposition: 用户答复 Q-D 第 1 项纳入（intent 2026-10-16-082311）：信息图 OBJ-65 补「核查中」「延续中」状态与「延续中 → 有效」转移}
+
+# 不做清单（用户答复 Q-D，intent 2026-10-16-082311）：不进信息图、不生成能力、不设价值流阶段
+out_of_scope:
+  - {item: 工商年报与统计报送, reason: 一年一次、无下游对象引用；社保申报已在 VS-13.4；MS-13 消除}
+  - {item: 离职交接（交接完成作门）, reason: 交接清单是单据（信息图 §3），离职段称「离职结清」；MS-14 消除}
+  - {item: 品牌, reason: 本系统不承担品牌事务；品牌、商标使用无业务对象引用（STEP2 §4.2 第 1 项）}
+  - {item: 知识产权, reason: 专利不在范围（完整性检查 M-6）；成果外发限制已是交付物属性（M-16）}
+  - {item: 细分市场, reason: 以商机战略类别、项目业务线属性与参考数据承载，无独立状态与规则}
+  - {item: 对外投资, reason: 小型企业不做对外投资；合伙人出资是进入我方的资本，方向相反（OBJ-91）}
+  - {item: 办公场所, reason: 租用办公场所已以使用权资产（OBJ-93）承载，场所本身无独立状态与规则}
+
+# 对象状态有冲突或待定（不缺对象，但第 ② 步须修订或待用户题定）
+state_caveats:
+  - {id: SC-01, ref: OBJ-30, issue: 信息图阶段节点状态含「成果已提交 → 已认可」，聚合稿 §4.4.1 已定阶段节点只记工作进程（已开始、已完成），认可是交付物的事实, fix: 信息图 OBJ-30 状态改为只记工作进程}
+  - {id: SC-02, ref: OBJ-35, issue: D-8 已定（intent 061232）视为同意的期满判定在 receivables.wip，交付侧只记送达与无异议声明；信息图交付物状态仍含「视为同意」, fix: 已定执行——信息图 OBJ-35 去掉「视为同意」状态，补记「无异议声明已登记」为交付侧登记事实；本稿 VS-02 退出与 VS-04.2 进入已按此写}
+  - {id: SC-03, ref: OBJ-60, issue: 信息图「已提出 → 已批准 → 招聘中 → 已关闭」与 AGG-65「草稿 → 已提交 → 已批准 / 已驳回 → 已关闭」不一致, fix: 统一一处}
+  - {id: SC-04, ref: OBJ-29, issue: 项目状态机 Q09 暂不定（收尾中、已暂停）, fix: 随 Q09}
+  - {id: SC-05, ref: OBJ-81, issue: 收入确认形态待定 Q20（ADR-0016 决定 4 为无状态规则层）；VS-04.2 以 OBJ-08 履约义务状态为主, fix: 随 Q20；STEP3 评审后 VS-04.2 门与 VS-10 输入均不再引用 OBJ-81}
+  - {id: SC-06, ref: OBJ-109, issue: 绩效评估「已确认」为推断，待第 6 步, fix: 第 ④ 步确认}
+  - {id: SC-07, ref: OBJ-87, issue: 供方履约确认形态随 Q20, fix: 随 Q20}

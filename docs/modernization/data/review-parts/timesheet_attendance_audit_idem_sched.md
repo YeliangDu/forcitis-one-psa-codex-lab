@@ -9,22 +9,22 @@
 
 | 表 | 结论 | 阻断 / 高 / 中 / 低 |
 |---|---|---|
-| cost_timesheet.timesheets | 需修改 | 1 / 0 / 4 / 3 |
+| cost_timesheet.timesheets | 需修改 | 0 / 1 / 5 / 2 |
 | cost_timesheet.consumed_events | 需修改 | 0 / 0 / 0 / 2 |
-| organization_attendance.work_calendar_years | 需修改 | 1 / 1 / 1 / 0 |
+| organization_attendance.work_calendar_years | 需修改 | 0 / 3 / 0 / 0 |
 | organization_attendance.work_calendar_days | 需修改 | 0 / 0 / 2 / 2 |
-| platform_audit.audit_entries | 需修改 | 1 / 2 / 2 / 2 |
-| platform_audit.audit_archive_batches | 需修改 | 1 / 0 / 2 / 1 |
-| platform_idempotency.idempotent_responses | 需修改 | 0 / 1 / 2 / 1 |
+| platform_audit.audit_entries | 需修改 | 0 / 3 / 2 / 2 |
+| platform_audit.audit_archive_batches | 需修改 | 0 / 1 / 3 / 0 |
+| platform_idempotency.idempotent_responses | 需修改 | 0 / 0 / 4 / 0 |
 | platform_scheduling.scheduler_locks | 通过（框架表，仅 2 条低级提示） | 0 / 0 / 0 / 2 |
 | 跨表共性（X-1 至 X-4，不计入各表） | — | 0 / 0 / 1 / 3 |
-| **合计** | | **4 / 4 / 14 / 16** |
+| **合计** | | **0 / 8 / 17 / 13** |
 
 ## 问题清单
 
 ### cost_timesheet.timesheets（粒度：每张工时单一行；注册表 `BUSINESS_DOCUMENT`）
 
-**T-1　阻断　O3 / B5 / O4：没有「员工 × 工作日」唯一约束**
+**T-1　高　O3 / B5 / O4：没有「员工 × 工作日」唯一约束**
 - 问题：用户决定「一人一日一单」，库里只有单据编号唯一，同一员工同一天可以存在多张单；应用层也没有按（员工，工作日）查重。
 - 证据：迁移 `cost_timesheet/V20261014140000__cost_timesheet_baseline.sql:24`（只有 `uk_timesheets_timesheet_number`）、`:26`（`ix_timesheets_employee_id (employee_id, work_date)` 为非唯一）；信息图 OBJ-66 行（`ENTERPRISE_INFO_MAP_DRAFT.md:123`，Q15）；`ENTERPRISE_AGGREGATES_DRAFT.md:160`（INV-64，写明按 B 类落部分唯一索引）与 `:996`（N-10 已登记并报 one-coordinator）；规则卡 `rules/raw/timesheet-lifecycle.md:44`（RULE-04，旧系统用过滤唯一索引镜像）；`SubmitTimesheet.java:66-67,80-88`（只按调用方给的工时单 ID 加锁、查找，新建分支不查（员工，日期））。
 - 建议改法：加（`employee_id`，`work_date`）的唯一索引（`uk_timesheets_employee_id_work_date`），谓词（哪些状态排除）见「待用户决定」第 1 条；建成后 `ix_timesheets_employee_id` 成为其前缀冗余，删除。
@@ -57,7 +57,7 @@
 - 建议改法：列表路径出现之前不留；`ix_timesheets_employee_id` 随 T-1 替换。
 - 依据：门禁 O10；CS-1.8。
 
-**T-7　低　C3：`BUSINESS_RECORD` 保留期未在 GUIDING_PRINCIPLES §6 登记**
+**T-7　中　C3：`BUSINESS_RECORD` 保留期未在 GUIDING_PRINCIPLES §6 登记**
 - 证据：注册表 `data-access-registry.yaml:24-31`；`GUIDING_PRINCIPLES.md` §6「Phase 1a 表的保留与归档」无工时单行。登记待用户（见待决第 4 条）。
 
 **T-8　低　C1：列注释与实现不符**
@@ -75,7 +75,7 @@
 
 ### organization_attendance.work_calendar_years（粒度：每个日历的每个年份一行；`AGGREGATE_ROOT`）
 
-**WY-1　阻断　O3 / ADR-0033 第 9 项第 2 条：默认日历用「法人为空 + `NULLS NOT DISTINCT`」，没有 `calendar_scope_kind`**
+**WY-1　高　O3 / ADR-0033 第 9 项第 2 条：默认日历用「法人为空 + `NULLS NOT DISTINCT`」，没有 `calendar_scope_kind`**
 - 问题：ADR 明文要求不用「法人为 NULL」表示默认日历，新增 `calendar_scope_kind`（`DEFAULT` / `LEGAL_ENTITY`，text + 命名 `CHECK`，两者与 `legal_entity_id` 空或非空成对），唯一性用两个部分唯一索引，并注明「并入 R-1b」。现状仍是可空列加 `UNIQUE NULLS NOT DISTINCT`。同时查询用 `legal_entity_id IS NOT DISTINCT FROM :x`，这种谓词用不上 btree 唯一索引（表很小，影响低，但改成部分索引后应拆成两条语句）。
 - 证据：迁移 `organization_attendance/V20261014141000__organization_attendance_baseline.sql:6,13`；`JdbcWorkCalendarQueries.java`（`find`、`findMaintainedYearsBefore` 的 `is not distinct from`）；`JdbcWorkCalendarRepository.java`（`find`）；`WorkCalendarKey.java`（`legalEntityId` 为 null 表示默认）。R-1b 是否已关闭待核。
 - 建议改法：加 `calendar_scope_kind text NOT NULL`（`ck_work_calendar_years_calendar_scope_kind`），成对 `CHECK`（`DEFAULT` ⇒ `legal_entity_id IS NULL`，`LEGAL_ENTITY` ⇒ 非空），把 `uk_work_calendar_years_legal_entity_id_year_number` 换成两个部分唯一索引（`DEFAULT` 按年份、`LEGAL_ENTITY` 按法人 + 年份）。
@@ -87,7 +87,7 @@
 - 建议改法：按 ADR-0033 第 9 项第 3 条建日历版本表（UUIDv7 主键；自然键 = 日历标识 + 版本号唯一；`work_calendar_version_days` 的 `(work_calendar_version_id, calendar_date)` 唯一；配置型版本的作者、确认人、确认时间、`decision_ref`、生效日），年度行并入版本；审批任务等使用方增 `work_calendar_version_id`。
 - 依据：门禁 O6、O15；§14.1 D15、D17 细则 2、6；ADR-0033 第 9 项。
 
-**WY-3　中　E1：日历事件的聚合标识是文本 `default:2026`，不是 UUID**
+**WY-3　高　E1：日历事件的聚合标识是文本 `default:2026`，不是 UUID**
 - 问题：`WorkCalendarYear` 以 `key.asText()`（`default:2026` 或 `<法人 uuid>:2026`）作事件 `aggregateId`；ADR-0033 第 7 项第 1 条要求 `aggregateId` 为 UUID；年度行有自己的 UUIDv7 主键却没有传给聚合。默认日历事件的 `legalEntityId` 为空。
 - 证据：`WorkCalendarYear.java`（两处 `new EventDraft(…, key.asText(), …)`）；`WorkCalendarKey.java asText`；ADR-0033 第 7 项第 1 条。
 - 建议改法：聚合带年度行 ID（版本化后为日历标识的 UUID）作事件聚合标识；事件目录 `aggregateId` 声明 `format: uuid`。
@@ -111,7 +111,7 @@
 
 ### platform_audit.audit_entries（粒度：每个被审计的动作或领域事件一行；`LOG_APPEND_ONLY`）
 
-**AE-1　阻断　O15 / ADR-0033 第 7 项第 2 条：`subject_key` 未拆成「类别 + uuid」**
+**AE-1　高　O15 / ADR-0033 第 7 项第 2 条：`subject_key` 未拆成「类别 + uuid」**
 - 问题：ADR 要求 `audit_entries.subject_key` 拆为 `subject_kind`（text + CHECK）与 `subject_id uuid`，索引 `(subject_kind, subject_id, created_at)`，员工查本人登录记录改按 `subject_kind = USER_ACCOUNT` 与 `subject_id`。基线仍是 `subject_key text`（`{类型}:{id}`），应用到处拼字符串。同一 ADR 在 `platform_integration` 的 `outbound_deliveries` 已落实（迁移 `platform_integration/V20261014133000__platform_integration_baseline.sql:37-38`），审计没有。拆分时要处理不带 ID 的对象：登录失败写 `login:<方式>`（`LoginAdmission.java:94`），拒绝访问写资源路径（`AccessDeniedAudit.java`），所以 `subject_id` 需可空并与类别成对。
 - 证据：迁移 `platform_audit/V20261014134000__platform_audit_baseline.sql:11,26,34`（注释示例 `approval-task:42` 还是旧的整数 ID）；`JdbcAuditEntryQueries.java:75`（`where subject_key = :subject`）及其 `"user-account:" + subject.value()`；`AuditDomainEvents.java`（`aggregateType + ":" + aggregateId`）；`archive-columns.txt`（`subject_key` 一行）。
 - 建议改法：`subject_key` → `subject_kind`（命名 `CHECK`）+ `subject_id uuid NULL`，成对 `CHECK`（`subject_id IS NULL` 仅限登录、资源类类别）；`audit_entries_subject_idx` → `ix_audit_entries_subject (subject_kind, subject_id, created_at DESC, id DESC)`；`archive-columns.txt` 同步。
@@ -148,7 +148,7 @@
 
 ### platform_audit.audit_archive_batches（粒度：每个归档批次一行；`LOG_APPEND_ONLY`）
 
-**AB-1　阻断　O15 / ADR-0033 第 1 项第 10 条：归档进度按 UUID 顺序推进，漏归档只告警，不补**
+**AB-1　高　O15 / ADR-0033 第 1 项第 10 条：归档进度按 UUID 顺序推进，漏归档只告警，不补**
 - 问题：ADR 明文「任何代码不得依赖跨实例的 ID 顺序；归档批次按「时刻列 + 主键」排序」。`AuditArchiveJob` 以 `id > last order by id` 取批、以最后一条 `id` 作进度（`:135-136`），对账以 `id <= last` 计数比对（`:123`）；多实例或时钟回拨时，晚写入但 `id` 更小的条目永远不会被归档，对账只记一次告警和计数（`:124-129`）。归档是将来删除在线行（AE-2）的前提，漏档即丢数据。表只有两个 uuid 边界列，没有时间边界，`first_entry_id <= last_entry_id` 的 `CHECK` 也依赖 UUID 顺序（迁移 `:76`）；任务里还用全零 UUID 作「没有任何条目」的哨兵（`:47`，ADR 第 7 项第 6 条「去掉哨兵」）。
 - 证据：同上；`AuditArchiveJob.java` 类注释（自述 id 顺序与对账）。
 - 建议改法：批次表增 `first_created_at`、`last_created_at`（`timestamptz NOT NULL`），进度按（`created_at`，`id`）边界推进，`CHECK` 用时间边界；若 AE-2 采用按月分区，则一批对应一个分区，边界即分区范围。
@@ -163,12 +163,12 @@
 - 证据：`AuditArchiveJob.java:123`（`select count(*) from audit_entries where id <= :last`）及 `:121`（`sum(entry_count)`）；表按 10 年增长，对账成本随行数线性上升。AB-1 改成按分区或按时间边界后可改为按批次对账。
 - 依据：门禁 O10（语句数 / 扫描量不随行数增长）；§14.1 D19。
 
-**AB-4　低　O8 / C3：命名与保留期**
+**AB-4　中　O8 / C3：命名与保留期**
 - 证据：触发器命名与 `audit_entries` 的 `audit_entries_reject_*` 风格不一，本表用 `tg_` 前缀（迁移 `:95-98`），两处统一即可；`updated_at` 在只追加表上恒等于 `created_at`（`:87`）；注册表 `retention: PERMANENT`（`:216`）与 GUIDING §6「归档保留至满 10 年」不一致，见待决第 4 条。
 
 ### platform_idempotency.idempotent_responses（粒度：每个用户的每个幂等键一行；`IDEMPOTENCY`）
 
-**IR-1　高　C4：整份应答正文落库 24 小时，没有分级、没有内容边界**
+**IR-1　中　C4：整份应答正文落库 24 小时，没有分级、没有内容边界**
 - 问题：`IdempotencyFilter` 对所有非 `/sessions`、`/login-states` 的 POST 保存完整应答正文（`:122-123`，`ContentCachingResponseWrapper` 全量读取），`response_text` 因此是任意接口应答的副本：以后出现工资、证件号、银行卡、姓名邮箱等字段的接口，其数据会复制进这张表；ADR-0043 第 4 项要求 `SENSITIVE`、`RESTRICTED` 列不进 web 出参、`PI` 直接标识受限，这张表绕过了列级登记。`data-classification.txt` 无该列；`IdempotencyScope` 只排除了凭据类路径，不是按「应答不含个人信息」的白名单。正文也无大小上限。
 - 证据：`IdempotencyFilter.java:120-125`；`IdempotencyScope.java`；迁移 `platform_idempotency/V20261014221000__platform_idempotency_baseline.sql:12,28`。
 - 建议改法：①`response_text` 登记第二维（至少 `PI` 可能，级别由用户定，见待决第 5 条）；②写明允许写入范围（按接口白名单，不收含 `SENSITIVE` 列的接口），或只存应答的标识与状态、重放时重新读取；③加 `char_length` 上限。
@@ -183,7 +183,7 @@
 - 建议改法：`response_header_text` 改 `jsonb` 加 `jsonb_typeof = 'object'` 的 `CHECK` 并登记用途，或拆成 `etag`、`location` 两列；`response_number` / `response_name` 改为 `response_status_code`、`response_content_type`（新词先查 `terms.yaml`）；补格式、长度、范围的命名 `CHECK`。
 - 依据：门禁 O8、O9；NAMING_STANDARD §2.4、§2.4a-5、7。
 
-**IR-4　低　O4 / C1：「处理中」状态的成对约束与注释**
+**IR-4　中　O4 / C1：「处理中」状态的成对约束与注释**
 - 证据：处理中时 `response_number`、`response_name`、`response_text`、`response_header_text` 一起为空（`finish` 一次写全，`:64-72`），库里无成对 `CHECK`；后三列为可空却未写「为空表示」（迁移 `:27-29`，只有 `response_number` 写了）。
 - 建议改法：加 `CHECK (response_number IS NOT NULL OR (response_name IS NULL AND response_text IS NULL AND response_header_text IS NULL))`，补注释。
 
