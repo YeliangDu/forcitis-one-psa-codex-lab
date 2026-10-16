@@ -43,17 +43,17 @@
 
 ## 通用必查项与常见盲区（六类模板共用，各模板在自己的位置引用）
 
-下面七条是调度从 2026-10-15/16 一晚上的问题里归纳的、机械检查和作者自审都漏过的类型（B1、B3 的例子来自当晚实际事件，其余的具体案例待调度补充，不得凭印象补写）。每条写「查什么 / 怎么判 / 今晚的例子」。评审员在每份产出上都要**主动找**，不等题目问。
+下面七条是调度从 2026-10-15/16 一晚上的问题里归纳的、机械检查和作者自审都漏过的类型（例子均来自当晚实际事件：B1、B3 为本会话亲历，其余为调度告知；新增案例要有 PR 号、运行号或页面编号，不得凭印象补写）。每条写「查什么 / 怎么判 / 今晚的例子」。评审员在每份产出上都要**主动找**，不等题目问。
 
 | # | 盲区 | 查什么与怎么判 | 今晚的例子 |
 |---|---|---|---|
 | B1 | **前端界面用语** | 产出里用户看得到的文字（界面、错误提示、决策页、邮件 / 消息）逐词对照 `docs/modernization/glossary/terms.yaml`（中文名与英文名都查），方言、同名异义、临时叫法不过；前端另跑 `pnpm run check:copy`（依赖未装则写「未核实：需先问用户安装依赖」，不得略过） | 调度告知：#267、#272 因词表改动缺联动检查（前端 check:copy、后端词表测试）而在合集 CI 中失败过 |
-| B2 | **运行时版本** | 产出里写到的运行时 / 工具 / 镜像版本（Java 25、Node 24、pnpm、PostgreSQL 18、Python 与 PyYAML 6.0.3、gitleaks 8.30.1 等）与 `CI_RUNNERS.md`、`backend/pom.xml`、`frontend/package.json`、`backend/architecture/test-images.txt`、`.pre-commit-config.yaml` 逐个对；「默认版本」「最新版」不过 | 调度列为当晚盲区；具体案例待调度补充 |
+| B2 | **运行时版本** | 产出里写到的运行时 / 工具 / 镜像版本（Java 25、Node 24、pnpm、PostgreSQL 18、Python 与 PyYAML 6.0.3、gitleaks 8.30.1 等）与 `CI_RUNNERS.md`、`backend/pom.xml`、`frontend/package.json`、`backend/architecture/test-images.txt`、`.pre-commit-config.yaml` 逐个对；「默认版本」「最新版」不过。在线页和产物声明的运行时 / 契约版本（artifact contract）要在目标设备（手机宽度）实际打开验证 | 调度告知：ADR-0046/0047 批准页用 contract 0.2.81 打不开，回退 0.2.80 才恢复；收件箱页用 0.2.82 在手机上只显示标题，回退 0.2.80 修好 |
 | B3 | **镜像架构** | 产出用到的容器镜像：运行在什么 CPU 架构上（本机与 runner 为 aarch64）、镜像是否多架构（`docker image inspect --format '{{.Architecture}}'`）、单架构镜像靠什么仿真（Docker Desktop 自带；Colima 需要 Rosetta）；没写运行环境的前提，不过 | SQL Server 2022 镜像只有 linux/amd64，在没装 Rosetta 的 Colima 里起不来，one-4 上三次后端作业失败 |
-| B4 | **ADR 字面与卡的偏离** | 卡、代码、文档里每处引用 ADR 决定，评审员**打开 ADR 原文逐条对**（编号条款、数字、枚举值、例外），不是读卡里的转述；偏离处要么有取代它的 ADR（SESSION_PLAYBOOK §12.1），要么算偏离问题 | 调度列为当晚盲区；具体案例待调度补充 |
-| B5 | **子代理「缺失」误报** | 产出或前一轮评审里出现「X 缺失 / 不存在 / 没实现 / 没登记」，评审员必须自己 `grep` 或打开文件确认——先验证再采信；反过来「已实现 / 已登记」也要看到代码或条目。采信未核实的缺失、或漏掉已存在的东西，都算评审的失败 | 调度列为当晚盲区；具体案例待调度补充 |
-| B6 | **状态与事件不一致** | 状态机的迁移表、发出的领域事件（`events/asyncapi.yaml`、事件目录）、审计动作（`MUST_AUDIT_ACTIONS.yaml`）、读模型 / 投影、界面上的状态名、文档里的状态名，五处对一遍：状态名、迁移条件、事件名与载荷字段、触发时点一致；多出或少了任何一处，不过 | 调度列为当晚盲区；具体案例待调度补充 |
-| B7 | **登记遗漏** | 新增的东西是否进了它该进的登记处：取证登记（`phase1a/infra/legacy-read/` 片段；#298 合入前是 `LEGACY_READ_REGISTER.md` 表里的一行，两种都认）、本机 / 云上资源（`phase1a/infra/RESOURCES.md`）、数据访问注册表（`backend/architecture/data-access-registry.yaml`）、读取列登记（`external-read-registry.yaml`）、必审计动作、测试镜像（`test-images.txt`）、术语（`terms.yaml` 提议术语）、例外清单；**新增一条例外必须有出处** | 调度列为当晚盲区；具体案例待调度补充 |
+| B4 | **ADR 字面与卡的偏离** | 卡、代码、文档里每处引用 ADR 决定，评审员**打开 ADR 原文逐条对**（编号条款、数字、枚举值、例外），不是读卡里的转述；偏离处要么有取代它的 ADR（SESSION_PLAYBOOK §12.1），要么算偏离问题 | 调度告知：R-1b P4 卡 D-4 去重键不含收件人，与 ADR-0033 第 7 项第 3 条不符；R-1b P5 卡 D-12 想把三张表留作主键基线例外，与 ADR-0033 第 1 项第 2 条「不登记豁免」不符；F-1 卡写入「范围复核调动来源由组织数据管理员办理」，与 ADR-0044 第 2 项第 6 条冲突 |
+| B5 | **子代理「缺失」误报** | 产出或前一轮评审里出现「X 缺失 / 不存在 / 没实现 / 没登记」，评审员必须自己 `grep` 或打开文件确认——先验证再采信；反过来「已实现 / 已登记」也要看到代码或条目。采信未核实的缺失、或漏掉已存在的东西，都算评审的失败 | 调度告知：one-data 预审 TS-UNIQ 与填报义务时称「信息图无请假对象」，实际有 OBJ-68，由 one-architecture 指出 |
+| B6 | **状态与事件不一致** | 状态机的迁移表、发出的领域事件（`events/asyncapi.yaml`、事件目录）、审计动作（`MUST_AUDIT_ACTIONS.yaml`）、读模型 / 投影、界面上的状态名、文档里的状态名，五处对一遍：状态名、迁移条件、事件名与载荷字段、触发时点一致；多出或少了任何一处，不过 | 调度告知：cost_timesheet 状态 CHECK 里没有撤回 / 取消，事件目录 `timesheet.yaml:258` 却有 TimesheetCancelled；one-data 补审 TS-UNIQ 时起初漏了这条 |
+| B7 | **登记遗漏** | 新增的东西是否进了它该进的登记处：取证登记（`phase1a/infra/legacy-read/` 片段；#298 合入前是 `LEGACY_READ_REGISTER.md` 表里的一行，两种都认）、本机 / 云上资源（`phase1a/infra/RESOURCES.md`）、数据访问注册表（`backend/architecture/data-access-registry.yaml`）、读取列登记（`external-read-registry.yaml`）、必审计动作、测试镜像（`test-images.txt`）、术语（`terms.yaml` 提议术语）、例外清单；**新增一条例外必须有出处** | 调度告知：#277 新读 `msdb.dbo.sysjobs_view` 没登记，`SeeyonSourceScanTest.integrationSqlNamesOnlyRegisteredObjects` 在 CI 失败 |
 
 ## 反馈回错题本
 
