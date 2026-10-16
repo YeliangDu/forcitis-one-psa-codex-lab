@@ -296,7 +296,7 @@ ADR28-1、ADR28-2 两张卡按 §6.1 第 10 条手术式修复（测试代理先
 
 | 子 PR | 范围 | 前置 | 执行 / 复审 |
 |---|---|---|---|
-| P0 | 只改 `numbering_counters`：`counter_scope_kind` + CHECK + 索引（DDL-03）。日历适用范围（`calendar_scope_kind`）并入 W2 日历版本化（DA-17），不改日历 API；无验收测试，以表结构 diff 为证据 | — | 已合并（#137） |
+| P0 | 只改 `numbering_counters`：`counter_scope_kind` + CHECK + 索引（DDL-03）。日历适用范围（`calendar_scope_kind`）并入 W2 日历版本化（DA-17），不改日历 API（时点偏离 ADR-0033 第 9 项第 2 条「这一项并入 R-1b」，终态不变；one-architecture 2026-10-16 判定，用户已追认（intent `2026-10-16-085333-one-architecture-收件箱-calendar-sco.md`）：随 W2 日历版本化完成，基线关闭前必须完成）；无验收测试，以表结构 diff 为证据 | — | 已合并（#137） |
 | P1 | 语义拆分，不改库：kernel 新增 `EmployeeId(long)` 作过渡；员工语义的引用（`Employee`、工时单、发起人、`AccessScope.ownerIds`、`AttributionSubject`、`SeparationReview`）全部换成 `EmployeeId`；`CurrentUser.employeeId()`；pom 启用 Error Prone，加 ArchUnit「不比较 `.value()`」；G-C5 Jackson 扁平化，事件 yaml 去掉 `{value}` 一层 | #132（已合并）、#139 | sonnet / opus（high）；测试代理 opus |
 | P2 | 用户 ID 底层改 UUID：`user_accounts.user_id` 改 uuid 并加 `employee_id`（过渡为 bigint，带唯一约束）；identity 的 `emergency_admins`、`account_roles`、`browser_identifiers`、`authorization_requests` 三个用户列，`ticket_issuers.key_id` 改名；其他 schema 中存用户 ID 的列一次改完（`idempotent_responses`、`audit_entries.actor_id / on_behalf_of_id`、审批任务与办理记录的人员列、`numbering_rule_versions` 的作者与确认人列、`sync_runs.released_by`、`legal_entity_attribution_corrections.corrected_by_user_id`）；`UserId(UUID)`，13 处 `Long.parseLong` 改 UUID 解析，`ensureAccount` 改 `ON CONFLICT (employee_id)`；路径 `{userId}` 5 条、`requestedBy` / `subjectUserId` | P1 | opus / opus（high）；体量最大，approval、identity 各 60 余个文件，内部按模块分提交；测试代理 opus（含安全闸门） |
 | P3a | 来源对照：`source_references`、确认流程、`legacy_numbers` 改造、法人去核算组织编码 | — | 在途（#139） |

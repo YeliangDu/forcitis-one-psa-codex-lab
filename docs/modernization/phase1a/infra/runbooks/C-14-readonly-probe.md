@@ -102,7 +102,7 @@ DENY INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VI
   3. 回读：以 u8c 再读 msdb.sys.database_role_members，确认探针用户是否还在 SQLAgentOperatorRole 里；成功时再用探针登录跑一次 `--connection=probe`，记 (f) 的结果与标记。
   4. 收尾：不另做恢复。msdb 与 rdscore 里探针的用户在收尾里 `DROP USER`（先于 `DROP LOGIN`，因为删登录不会删库内用户），回读两库探针用户均为 0。
 - **结果怎么用**：能移出——正式账号的处理另报用户批准，不自行去改；移不出——(f) 基线接受该角色，由 one-architecture 写进 ADR-0037。
-- **登记**：执行后在 LEGACY_READ_REGISTER 与 OPS_CONTEXT 各登记一行（语句、回读结果、云助手调用号）。
+- **登记**：执行后用 new_legacy_read.py 登记 LEGACY_READ_REGISTER 片段，并在 OPS_CONTEXT 登记一行（语句、回读结果、云助手调用号）。
 
 ## 收尾
 
