@@ -76,3 +76,45 @@ rulings:
     id: org_unit_level
     definition: 组织单元在组织树上的层级（第几层）；类型（区域、事业部、交付中心、客户服务中心等）见组织单元类型（org_unit_type）
     source: GL 确认单 B2-E08（用户 2026-10-16 同意）；全企业业务对象 Q37a、Q37b；C-51
+  - op: move_bc
+    from: [contract.baseline, contract.changeorder, contract.riskdelivery]
+    to: contract.agreement
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）
+  - op: move_bc
+    from: [presales.quoting, presales.customer]
+    to: presales.opportunity
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）
+  - op: promote_file
+    file: promoted/GL2-2026-10-16.yaml
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json）
+    confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
+  - op: move_to_bc
+    ids: [customer_group, customer_tier]
+    to: masterdata.counterparty
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X02：客户集团、客户分级迁往来单位 bc
+  - op: deprecate
+    id: customer
+    replaced_by: customer_role
+    until: "往来单位 BC 落地（须新 ADR 取代 ADR-0017 决定 1），代码里还没有客户相关类型"
+    owner: one-architecture
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X02
+  - op: deprecate
+    id: ar_item
+    replaced_by: receivable
+    until: "应收款项聚合落地（随收入链 bc 排期）；需与 one-architecture 确认 AGG-49 去掉质保金类"
+    owner: one-architecture
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X04
+  - op: rename
+    id: revenue_recognition
+    zh: 收入确认
+    en: RevenueRecognition
+    kind: business_rule
+    definition: 按客户确认的事实与合同条款确认收入的规则（时点与金额的判定口径），在开票与收入额度聚合内逐行执行，每行是一条收入确认行；不是一张单据；审批通过即确认收入，收入期间取客户签字日所在月；法定入账另为 StatutoryRevenueBooked
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X06：类别改 business_rule，原「收入确认单」列为方言别名
+  - op: rename
+    id: contract_riskdelivery__responsible_party
+    zh: 责任承担方
+    en: AuthorizationResponsibleParty
+    definition: 授权三要素之三（BU / 法人 / 责任人）；合同 BC 合并后与变更中的「责任方」区别开，故英文名加授权前缀
+    forbid_old: false
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后同 bc 内 ResponsibleParty 两条之一改名

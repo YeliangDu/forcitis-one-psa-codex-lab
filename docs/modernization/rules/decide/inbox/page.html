@@ -1,0 +1,183 @@
+<title>待你决定</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one narrow column, sticky tabs on top (待定 / 已定 / 撤回, each with a count); a card per item with ruled option rows; no preselected answers. */
+:root{
+  --bg:#f3f4f2; --paper:#ffffff; --ink:#1c2321; --muted:#5b6865; --line:#d9dfdc; --soft:#ebefed;
+  --accent:#1d5c55; --accent-soft:#dcebe8;
+  --main:#9c3d1c; --main-soft:#f7e6de; --normal:#6b5a10; --normal-soft:#f4efd9; --low:#4a5a68; --low-soft:#e6ecf1;
+  --f-head:"Songti SC","STSong","Noto Serif CJK SC","SimSun",serif;
+  --f-body:"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",system-ui,sans-serif;
+  --f-mono:ui-monospace,"SF Mono","SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111816; --paper:#18211f; --ink:#e3ebe9; --muted:#97a8a5; --line:#2a3633; --soft:#1f2a27;
+  --accent:#7cc7bb; --accent-soft:#1d3632;
+  --main:#f0a07f; --main-soft:#3b231a; --normal:#dcc66a; --normal-soft:#332d14; --low:#9fb4c6; --low-soft:#202d38; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111816; --paper:#18211f; --ink:#e3ebe9; --muted:#97a8a5; --line:#2a3633; --soft:#1f2a27;
+  --accent:#7cc7bb; --accent-soft:#1d3632;
+  --main:#f0a07f; --main-soft:#3b231a; --normal:#dcc66a; --normal-soft:#332d14; --low:#9fb4c6; --low-soft:#202d38; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6}
+.wrap{max-width:760px;margin:0 auto;overflow-x:clip;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 64px;display:grid;gap:14px}
+.wrap,.card,.card>*{min-width:0;max-width:100%}
+.card,.top,.empty,.opt,.row{overflow-wrap:anywhere;word-break:break-word}
+.top{display:grid;gap:2px}
+h1{font-family:var(--f-head);font-size:24px;line-height:1.3;margin:0}
+.sub{color:var(--muted);font-size:13px;margin:0}
+.conn{font-size:12px;color:var(--muted)}
+.conn.off{color:var(--main)}
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:2;background:var(--bg);display:flex;gap:8px;padding-block:6px;overflow-x:auto}
+.tab{flex:0 0 auto;font:inherit;font-size:14px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;padding:6px 14px;cursor:pointer}
+.tab[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 -3px 0 var(--accent)}
+.tab b{font-variant-numeric:tabular-nums;margin-left:6px;color:var(--accent)}
+.list{display:grid;gap:12px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:grid;gap:8px}
+.card[data-u="main"]{border-left:4px solid var(--main)}
+.card[data-u="normal"]{border-left:4px solid var(--normal)}
+.card[data-u="low"]{border-left:4px solid var(--low)}
+.meta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12px;color:var(--muted)}
+.pill{font-size:11.5px;border-radius:999px;padding:1px 9px}
+.pill.main{background:var(--main-soft);color:var(--main)}
+.pill.normal{background:var(--normal-soft);color:var(--normal)}
+.pill.low{background:var(--low-soft);color:var(--low)}
+.src{font-family:var(--f-mono)}
+.title{font-family:var(--f-head);font-size:18px;font-weight:700;line-height:1.35;text-wrap:balance}
+.ask{margin:0}
+.block{font-size:13px;color:var(--muted);margin:0}
+.opts{display:grid;gap:6px}
+.opt{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;text-align:left;font:inherit;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:6px;padding:8px 10px;width:100%;cursor:pointer}
+.opt .dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);margin-top:4px;box-sizing:border-box}
+.opt .eff{grid-column:2;font-size:12.5px;color:var(--muted)}
+.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.opt[aria-pressed="true"] .dot{border:4px solid var(--accent)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+input[type=text],textarea{font:inherit;box-sizing:border-box;width:100%;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:6px;padding:8px 10px}
+textarea{min-height:64px}
+.btn{font:inherit;font-size:14px;border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:6px;padding:6px 14px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.solid{background:var(--accent);color:var(--paper)}
+.btn.quiet{border-color:var(--line);color:var(--muted)}
+.btn[disabled]{opacity:.5;cursor:default}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.answer{background:var(--soft);border-radius:6px;padding:8px 10px;font-size:14px}
+.answer small{color:var(--muted);display:block}
+.empty{color:var(--muted);text-align:center;padding:28px 12px;border:1px dashed var(--line);border-radius:8px}
+.intent{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>待你决定</h1>
+    <p class="sub">所有会话要你定的事都在这一页。选项不预选，选好后点「确认答复」才算数。</p>
+    <div class="conn" id="conn">正在连接存储…</div>
+  </header>
+  <nav class="tabs" id="tabs" aria-label="状态"></nav>
+  <main class="list" id="list"></main>
+</div>
+
+<script>
+// 数据：集合 inbox，文档 id 为事项编号；字段见 rules/decide/inbox/README.md。页面只订阅 inbox 一次。
+const COLL = "inbox";
+const items = new Map();   // id -> data
+let db = null, myId = null, tab = "pending";
+let draft = {};            // id -> {choice, note}
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const URG = {main: ["卡主线", 0], normal: ["一般", 1], low: ["不急", 2]};
+const urg = d => URG[d.urgency] || URG.normal;
+const when = t => { try { return t ? new Date(t).toLocaleString() : ""; } catch(e){ return String(t || ""); } };
+const safeUrl = u => /^https:\/\//.test(u || "") ? u : "";
+const list = st => [...items.entries()].filter(([, d]) => (d.status || "pending") === st);
+const byUrgency = (a, b) => urg(a[1])[1] - urg(b[1])[1] || String(a[1].createdAt || "").localeCompare(String(b[1].createdAt || ""));
+const byDecided = (a, b) => String(b[1].decidedAt || b[1].answer?.at || "").localeCompare(String(a[1].decidedAt || a[1].answer?.at || ""));
+
+function tabsHTML(){
+  const T = [["pending", "待定"], ["decided", "已定"], ["withdrawn", "撤回"]];
+  return T.map(([k, l]) => `<button type="button" class="tab" data-tab="${k}" aria-pressed="${tab === k}">${l}<b>${list(k).length}</b></button>`).join("");
+}
+function optsHTML(id, d){
+  const dr = draft[id] || {};
+  const opts = Array.isArray(d.options) ? d.options : [];
+  const o = opts.map((x, n) => `<button type="button" class="opt" data-opt="${n}" aria-pressed="${dr.choice === n}">
+      <span class="dot" aria-hidden="true"></span><span>${esc(x.label)}</span>${x.effect ? `<span class="eff">${esc(x.effect)}</span>` : ""}</button>`).join("");
+  const ready = dr.choice !== undefined || (dr.note || "").trim();
+  return `${o ? `<div class="opts" role="group" aria-label="选项">${o}</div>` : ""}
+    <textarea id="nt-${esc(id)}" data-note="1" placeholder="${o ? "说明（可选）" : "你的答复"}">${esc(dr.note || "")}</textarea>
+    <div class="row"><button type="button" class="btn solid" data-confirm="1" ${ready ? "" : "disabled"}>确认答复</button></div>`;
+}
+function cardHTML(id, d){
+  const [ul] = urg(d), st = d.status || "pending";
+  const link = safeUrl(d.link) ? `<div class="row"><a class="btn" href="${esc(d.link)}" target="_blank" rel="noopener">打开确认页</a></div>` : "";
+  const ans = d.answer ? `<div class="answer">${esc(d.answer.label || d.answer.text || "")}${d.answer.note ? `<br>${esc(d.answer.note)}` : ""}<small>${esc(when(d.answer.at || d.decidedAt))}</small></div>` : "";
+  const intent = d.intent ? `<div class="intent">intent：${esc(d.intent)}</div>` : "";
+  let body = "";
+  if (st === "pending") body = `${link}${(Array.isArray(d.options) && d.options.length) || !safeUrl(d.link) ? optsHTML(id, d) : ""}`;
+  else if (st === "decided") body = `${ans}${intent}${link}${d.answeredByPage ? `<div class="row"><button type="button" class="btn quiet" data-reopen="1">改回待定</button></div>` : ""}`;
+  else body = `${d.withdrawnReason ? `<p class="block">撤回原因：${esc(d.withdrawnReason)}</p>` : ""}`;
+  return `<article class="card" data-id="${esc(id)}" data-u="${d.urgency || "normal"}">
+    <div class="meta"><span class="pill ${d.urgency || "normal"}">${ul}</span><span class="src">${esc(d.source || "")}</span><span>${esc(when(d.createdAt))}</span></div>
+    <div class="title">${esc(d.title || id)}</div>
+    ${d.ask ? `<p class="ask">${esc(d.ask)}</p>` : ""}
+    ${d.blocker ? `<p class="block">卡住了：${esc(d.blocker)}</p>` : ""}
+    ${body}
+  </article>`;
+}
+function render(){
+  $("#tabs").innerHTML = tabsHTML();
+  const rows = list(tab).sort(tab === "pending" ? byUrgency : byDecided);
+  const empty = {pending: "没有待定事项。会话有事要你定时，会出现在这里。", decided: "还没有已定事项。", withdrawn: "没有撤回的事项。"}[tab];
+  $("#list").innerHTML = rows.length ? rows.map(([id, d]) => cardHTML(id, d)).join("") : `<div class="empty">${empty}</div>`;
+}
+
+async function writeDoc(id, data){
+  if (!db){ $("#conn").textContent = "存储不可用：答复不会保存"; $("#conn").classList.add("off"); return false; }
+  try { await db.collection(COLL).doc(id).set(data); return true; }
+  catch(e){ $("#conn").textContent = "保存失败：" + (e && e.message || "请稍后再试"); $("#conn").classList.add("off"); return false; }
+}
+document.addEventListener("click", async e => {
+  const t = e.target;
+  const tb = t.closest("[data-tab]"); if (tb){ tab = tb.dataset.tab; render(); return; }
+  const card = t.closest(".card"); if (!card) return;
+  const id = card.dataset.id, d = items.get(id); if (!d) return;
+  const o = t.closest("[data-opt]");
+  if (o){ const n = Number(o.dataset.opt); const dr = draft[id] = draft[id] || {}; dr.choice = dr.choice === n ? undefined : n; render(); return; }
+  if (t.closest("[data-confirm]")){
+    const dr = draft[id] || {}, opts = Array.isArray(d.options) ? d.options : [];
+    const label = dr.choice !== undefined ? opts[dr.choice].label : "";
+    const at = new Date().toISOString();
+    const next = {...d, status: "decided", decidedAt: at, answeredByPage: true,
+      answer: {choice: dr.choice === undefined ? null : dr.choice, label, text: dr.choice === undefined ? (dr.note || "") : "", note: dr.choice === undefined ? "" : (dr.note || ""), by: myId, at}};
+    if (await writeDoc(id, next)){ delete draft[id]; items.set(id, next); render(); }
+    return;
+  }
+  if (t.closest("[data-reopen]")){
+    const next = {...d, status: "pending"}; delete next.answer; delete next.decidedAt; delete next.answeredByPage;
+    if (await writeDoc(id, next)){ items.set(id, next); render(); }
+  }
+});
+document.addEventListener("input", e => {
+  if (!e.target.dataset.note) return;
+  const id = e.target.closest(".card").dataset.id;
+  const dr = draft[id] = draft[id] || {}; dr.note = e.target.value;
+  const btn = e.target.closest(".card").querySelector("[data-confirm]");
+  if (btn) btn.disabled = !(dr.choice !== undefined || dr.note.trim());
+});
+
+render();
+(async () => {
+  try { const u = await window.claude?.use?.("user"); myId = u ? await u.id() : null; } catch(e){}
+  try { db = await window.claude?.use?.("db"); } catch(e){ db = null; }
+  if (!db){ $("#conn").textContent = "存储不可用：请登录 claude.ai 后打开本页"; $("#conn").classList.add("off"); return; }
+  $("#conn").textContent = "已连接";
+  let queued = false;
+  db.collection(COLL).onSnapshot(snap => {
+    for (const ch of snap.docChanges()){
+      if (ch.type === "removed") items.delete(ch.doc.id); else items.set(ch.doc.id, ch.doc.data());
+    }
+    if (document.activeElement?.matches?.("textarea[data-note]")){ $("#tabs").innerHTML = tabsHTML(); return; }
+    if (!queued){ queued = true; setTimeout(() => { queued = false; render(); }, 60); }
+  }, err => { $("#conn").textContent = "存储连接中断：" + (err && err.message || ""); $("#conn").classList.add("off"); });
+})();
+</script>
