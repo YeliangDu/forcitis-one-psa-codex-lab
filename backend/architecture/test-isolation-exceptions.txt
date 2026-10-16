@@ -2,4 +2,4 @@
 # TestIsolationGuardTest fails for a reference outside this list and for a line here that is no longer needed. Framework tables
 # (Spring Session, Modulith event publication, ShedLock) are not another module's data. Cross-module scenarios belong in scenario/.
 # A test under acceptance/<area>/<module>/ belongs to that module, so its own schema needs no line.
-acceptance/platform/approval/ApprovalOwnIdColumnsIT.java#platform_integration  # R-1b P4 acceptance: reads outbound_deliveries from the catalogue to prove the final column shapes; no module api shows column types
+acceptance/platform/approval/ApprovalOwnIdColumnsIT.java#platform_integration  # R-1b P4 acceptance: reads outbound_deliveries from the catalogue to prove the final column shapes; no module api shows column types; expires when platform_integration offers a schema-introspection api or the acceptance moves under acceptance/platform/integration/
