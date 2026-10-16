@@ -24,6 +24,10 @@
   scope: "按项目承担部门的数据范围"   # 可选（提议中）：谁能看到、经办
   segregation:                        # 可选；不相容职务约束：同一人不得同时担任所列角色（流程级）
     - {roles: [SH-E5, SH-M2], rule: "制单与审批不得为同一人"}
+  triggers:                           # 必填（提议中）：触发，可多个
+    - {type: human, name: "人工发起"}            # type：human / event（写 signal 事件名与发布 BC）/ time / call
+  outcomes: [已认可, 已退回]            # 必填（提议中）：本流程的结局词（结束事件名），取自阶段出口用语
+  scenarios: [PRC-03-S01]             # 铺开时填：验收场景编号 PRC-NN-Sxx
   roles:                              # 必填；本流程全部参与角色
     - {id: SH-E2, as: initiator}      # as 取值：initiator 发起 / performer 执行 / approver 审批 / reviewer 复核 / informed 知会 / external 外部方
   steps:
@@ -48,6 +52,8 @@
       legal_entity: 承担法人           # 可选：本步按哪个法人口径执行
       audit: true                     # 可选：必须留操作审计
       metric_event: false             # 可选：产生分析事实（总线矩阵的行）
+      timeout: {after: "P5D", escalate_to: SH-M1, interrupting: false}   # 可选（提议中）：期限（ISO 8601 时长）、升级给谁、是否中断
+      outcome: 已认可                  # 本步结束流程时填结局词（须在 outcomes 中）
       cross_bc:                       # 可选；本步跨 BC 的交互，可多条
         - {mode: event, direction: out, bc: B-05, name: 报价已通过}   # mode：event / api；direction：out 本步发出（事件）或调用（api），in 本步由对方触发或读取
 ```

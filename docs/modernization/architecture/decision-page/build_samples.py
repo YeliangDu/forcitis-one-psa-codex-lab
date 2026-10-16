@@ -227,16 +227,17 @@ INFO = [{"title": "三个样板里的外部与线下步骤", "lines": [
     "你的意见回来前，三组不铺开其余流程；意见回来后统一改约定再铺开。",
     "已由我裁定、不用你看的格式和接缝问题，记在 closeout/STRUCTURAL_ITEMS.md。"]}]
 
-data = {"items": ITEMS, "groups": [{k: g[k] for k in ("id", "title", "desc")} for g in G], "info": INFO, "side": []}
-diagrams = {g["id"]: {"svg": g["diagram"], "legend": g["legend"]} for g in G if g["diagram"]}
-tpl = (HERE / "u12.html").read_text()
-tpl = tpl.replace("<title>生效日期口径</title>", "<title>流程样板</title>").replace("<h1>员工与岗位的生效日期</h1>", "<h1>流程样板：三组各一（看设计是否符合你的想法）</h1>")
-tpl = re.sub(r'<p class="lede">.*?</p>', '<p class="lede">每题默认「暂不定」，不预选；看完泳道图后逐处给意见，按组提交。</p>', tpl, count=1)
-tpl = tpl.replace("</style>", ".diag{overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px;-webkit-overflow-scrolling:touch}.diag svg{display:block}.legend2{font-size:12px;color:var(--muted);margin:6px 0 0}\n</style>", 1)
-tpl = re.sub(r"const DATA = .*?;\n", lambda m: "const DATA = " + json.dumps(data, ensure_ascii=False) + ";\nconst DIAGRAMS = " + json.dumps(diagrams, ensure_ascii=False) + ";\n", tpl, count=1)
-anchor = "<p>${esc(g.desc)}</p></div></section>"
-assert anchor in tpl, "模板结构变了"
-tpl = tpl.replace(anchor, "<p>${esc(g.desc)}</p></div>${DIAGRAMS[g.id] ? `<div class=\"diag\">${DIAGRAMS[g.id].svg}</div><p class=\"legend2\">${esc(DIAGRAMS[g.id].legend)}</p>` : \"\"}</section>", 1)
-(HERE / "samples.html").write_text(tpl)
-(HERE / "SAMPLES.json").write_text(json.dumps({"sheet": "SMP", **data}, ensure_ascii=False, indent=1))
-print(len(ITEMS), "items")
+if __name__ == "__main__":
+    data = {"items": ITEMS, "groups": [{k: g[k] for k in ("id", "title", "desc")} for g in G], "info": INFO, "side": []}
+    diagrams = {g["id"]: {"svg": g["diagram"], "legend": g["legend"]} for g in G if g["diagram"]}
+    tpl = (HERE / "u12.html").read_text()
+    tpl = tpl.replace("<title>生效日期口径</title>", "<title>流程样板</title>").replace("<h1>员工与岗位的生效日期</h1>", "<h1>流程样板：三组各一（看设计是否符合你的想法）</h1>")
+    tpl = re.sub(r'<p class="lede">.*?</p>', '<p class="lede">每题默认「暂不定」，不预选；看完泳道图后逐处给意见，按组提交。</p>', tpl, count=1)
+    tpl = tpl.replace("</style>", ".diag{overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px;-webkit-overflow-scrolling:touch}.diag svg{display:block}.legend2{font-size:12px;color:var(--muted);margin:6px 0 0}\n</style>", 1)
+    tpl = re.sub(r"const DATA = .*?;\n", lambda m: "const DATA = " + json.dumps(data, ensure_ascii=False) + ";\nconst DIAGRAMS = " + json.dumps(diagrams, ensure_ascii=False) + ";\n", tpl, count=1)
+    anchor = "<p>${esc(g.desc)}</p></div></section>"
+    assert anchor in tpl, "模板结构变了"
+    tpl = tpl.replace(anchor, "<p>${esc(g.desc)}</p></div>${DIAGRAMS[g.id] ? `<div class=\"diag\">${DIAGRAMS[g.id].svg}</div><p class=\"legend2\">${esc(DIAGRAMS[g.id].legend)}</p>` : \"\"}</section>", 1)
+    (HERE / "samples.html").write_text(tpl)
+    (HERE / "SAMPLES.json").write_text(json.dumps({"sheet": "SMP", **data}, ensure_ascii=False, indent=1))
+    print(len(ITEMS), "items")

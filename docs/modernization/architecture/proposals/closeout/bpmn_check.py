@@ -70,8 +70,8 @@ FW_DEFS = {
                       "cancelEventDefinition", "compensateEventDefinition"},
 }
 FW_DISCOURAGED = {
-    "businessRuleTask": "不建议：业务规则任务（Drools）",
-    "scriptTask": "不建议：脚本任务做业务计算",
+    "businessRuleTask": "可执行版不用业务规则任务（Drools）",
+    "scriptTask": "可执行版不用脚本任务做业务计算",
 }
 FW_NOT_RUNTIME = {
     "participant": "可执行版只留本系统一个参与者，外部方改消息事件或服务任务",
@@ -118,7 +118,8 @@ def check_executable(root):
             errors.append(f"[{code}] Flowable 白名单越界：{t}（{FW_NOT_RUNTIME[t]}）")
             continue
         if t in FW_DISCOURAGED:
-            warnings.append(f"{t}：{FW_DISCOURAGED[t]}")
+            errors.append(f"[X05] {t}：{FW_DISCOURAGED[t]}")
+            continue
         if t.endswith("EventDefinition"):
             continue
         if t not in FW_STRUCT:
@@ -160,8 +161,11 @@ def check_descriptive(root, catalog):
             errors.append(f"[R11] process {pid} 名称「{p.get('name')}」与目录「{catalog[pid]}」不一致")
         starts = children(p, "startEvent")
         ends = children(p, "endEvent")
-        if len(starts) != 1:
-            errors.append(f"[R01] process {pid} 开始事件 {len(starts)} 个（应恰 1 个）")
+        if not starts:
+            errors.append(f"[R01] process {pid} 没有开始事件")
+        for e in starts:
+            if not (e.get("name") or "").strip():
+                errors.append(f"[R01] 开始事件 {e.get('id')} 没有 name")
         if not ends:
             errors.append(f"[R02] process {pid} 没有结束事件")
         for e in ends:
@@ -316,9 +320,22 @@ EXEC_BAD = """<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
   <messageFlow id="M" sourceRef="P1" targetRef="P2"/>
  </collaboration>
  <process id="PRC-01"><startEvent id="s"/><complexGateway id="g"/>
-  <businessRuleTask id="b"/><dataStoreReference id="d"/>
+  <businessRuleTask id="b"/><scriptTask id="sc"/><dataStoreReference id="d"/>
   <endEvent id="e"><escalationEventDefinition/></endEvent>
  </process></definitions>"""
+
+
+TWO_STARTS = GOOD.replace(
+    '<userTask id="T1"',
+    '<startEvent id="S3" name="另一触发"/>\n  <userTask id="T1"',
+).replace(
+    '<sequenceFlow id="F1"',
+    '<sequenceFlow id="F5" sourceRef="S3" targetRef="T1"/>\n  <sequenceFlow id="F1"',
+).replace(
+    '<bpmndi:BPMNEdge id="e1"',
+    '<bpmndi:BPMNShape id="x8" bpmnElement="S3"/><bpmndi:BPMNEdge id="e6" bpmnElement="F5"/>'
+    '<bpmndi:BPMNEdge id="e1"',
+)
 
 
 def codes(msgs):
@@ -335,9 +352,11 @@ def self_test():
         ("合规", GOOD, False, []),
         ("R09 缺 BPMNShape", GOOD.replace('<bpmndi:BPMNShape id="x5" bpmnElement="G"/>', ""), False, ["R09"]),
         ("违规（描述级）", BAD, False,
-         ["R01"] * 2 + ["R02"] + ["R03"] + ["R04"] * 2 + ["R05"] * 7 + ["R06"]
+         ["R01"] * 3 + ["R02"] + ["R03"] + ["R04"] * 2 + ["R05"] * 7 + ["R06"]
          + ["R07"] * 2 + ["R08"] + ["R10"] + ["R11"] + ["R12"]),
-        ("违规（可执行）", EXEC_BAD, True, ["X01"] * 2 + ["X02", "X03", "X04"]),
+        ("两个已命名开始事件", TWO_STARTS, False, []),
+        ("两个开始事件其一无 name", TWO_STARTS.replace(' name="另一触发"', ""), False, ["R01"]),
+        ("违规（可执行）", EXEC_BAD, True, ["X01"] * 2 + ["X02", "X03", "X04", "X05", "X05"]),
     ]
     ok = True
     for name, xml, executable, expect in cases:
@@ -350,9 +369,8 @@ def self_test():
             for m in errors:
                 print("   ", m)
     _, w = check_root(ET.fromstring(EXEC_BAD), True, catalog)
-    wgood = len(w) == 1 and "businessRuleTask" in w[0]
-    ok &= wgood
-    print(f"可执行警告（businessRuleTask）: {'通过' if wgood else '失败'}")
+    ok &= not w
+    print(f"可执行无警告: {'通过' if not w else '失败'}")
     print("自测", "通过" if ok else "失败")
     return 0 if ok else 1
 
