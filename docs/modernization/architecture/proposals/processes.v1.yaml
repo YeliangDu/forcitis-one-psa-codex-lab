@@ -6,10 +6,11 @@
 # 业务流程的口径（⑥a 评审 H2，【裁量】）：同时满足才算业务流程 ① 由业务事件或人的业务决定触发；② 跨两个以上聚合，或跨两个以上角色并有交接；
 #   ③ 结果是某价值流阶段的进入或退出状态。其余分三处放：
 #     processes         业务流程（含合并后的）
+#     read_models       读模型：只读、无命令（⑥a 复核按同一判据移出）；可覆盖阶段，仅当某阶段只有读模型覆盖时在 stages_without_process 标 coverage: 读模型
 #     event_policies    单步事件策略：一个事件、一步命令，不计流程数
 #     single_aggregate  单聚合生命周期或维护：归第 ④ 步状态机，不计流程数
 #     merged            被并入别的流程的编号（merged_into），保留以便追溯；合并后保留最小编号
-#   编号在四处合计唯一且连续（PRC-01 至 PRC-135）。
+#   编号在五处合计唯一且连续（PRC-01 至 PRC-135）。
 #
 # 字段约定
 #   trigger.type：event（领域事件 + 发布聚合）、time（定时）、human（人工发起）、call（被其他流程的步骤调用）
@@ -30,7 +31,7 @@
 #   human_orchestration：含需流程引擎调度的人工任务；为 true 时须有 platform.approval 任务、带超时的分支（on_time 或分支名含「超时」）或退回分支之一（⑥a 评审 M1）
 #   merged_from：本流程合并了哪些原编号
 #   owner_bc：编排所在 BC 或流程模块；步骤涉及的聚合须在 owner_bc 自身或其上游（§4.1，下游调上游）；reporting 只读
-#   stages_without_process：没有业务流程覆盖的阶段，coverage 写 事件策略 / 单聚合维护 / 无需系统支持，并写理由
+#   stages_without_process：没有业务流程覆盖的阶段，coverage 写 事件策略 / 单聚合维护 / 读模型 / 无需系统支持，并写理由
 
 meta:
   version: 2
@@ -229,19 +230,6 @@ processes:
       - {actor: 项目经理, command: 提出资源需求, aggregate: AGG-25, emits: [资源需求已提出]}
       - {actor: 部门负责人, command: 确认资源分配, aggregate: AGG-26, emits: [资源分配已确认], desc: P-27 超产能写入前预警}
     notes: 具名人员、时段与工作包；审批在聚合自身状态（已计划 → 已确认），未走 platform.approval（见 G-02 待核），故不算引擎调度的人工编排。
-
-  - id: PRC-22
-    name: 阶段门预警（读模型）
-    trigger:
-      type: event
-      events: [{event: 阶段已完成, aggregate: AGG-20}]
-      desc: reporting 订阅两侧事件（交付执行的阶段进度、质量与认可的交付物状态）
-    stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7]
-    owner_bc: reporting
-    human_orchestration: false
-    steps:
-      - {actor: reporting 读模型, read: true, reads: [AGG-20, AGG-27], desc: 合并阶段已完成与交付物已认可 / 已声明，产生门预警并留痕，不进聚合}
-    notes: STEP3 R-12；门只预警不拦截（S2）。其余价值流的门预警同此模式，按阶段登记时补。
 
   - id: PRC-23
     name: 填报并审批工时
@@ -552,16 +540,6 @@ processes:
       - {actor: 系统策略, command: 释放框架限额, aggregate: AGG-14, branch: 驳回或作废, emits: [限额已释放], desc: 孤儿占用靠定时释放兜底}
     notes: P-04 回签后超额占用预警。
 
-  - id: PRC-52
-    name: 开放可触发收入确认的证据类型
-    trigger: {type: human, desc: 审计师书面认可后，财务申请逐类开放}
-    stages: [VS-04.2]
-    owner_bc: B-08
-    human_orchestration: false
-    steps:
-      - {actor: 财务, command: 开放证据类型, aggregate: AGG-92, emits: [证据类型已开放]}
-    notes: 批准人与依据文件只是命令输入，无超时与退回分支，按非人工编排（⑥a 评审 M1）。ADR-0047 第 4 条第 4 点；审计师认可前只有带客户签字日的客户价值确认单可触发（INV-23）。
-
   - id: PRC-54
     name: 视为同意期满处理
     trigger:
@@ -640,16 +618,6 @@ processes:
       - {actor: 系统策略, command: 提交过账候选, aggregate: AGG-49, calls: PRC-92}
     notes: P-36 账龄、逾期；「核销」与状态「已核销（坏账）」重名，已交 one-glossary。
 
-  - id: PRC-62
-    name: 质量保证金到期提示
-    trigger: {type: time, desc: 缺陷责任期届满}
-    stages: [VS-04.4]
-    owner_bc: B-09
-    human_orchestration: false
-    steps:
-      - {actor: 系统策略, read: true, reads: [AGG-49], desc: P-11 到期未申请返还提醒；到期可收是读模型按到期日派生的提示，不是状态，不改状态（STEP3 C-10；符合性审查 建-11）}
-    notes: 之后走「认领收款并核销应收」。无改状态命令。
-
   - id: PRC-63
     name: 商业汇票兑付与逾期
     trigger: {type: time, desc: 商票到期日}
@@ -690,17 +658,6 @@ processes:
       - {actor: 商务, bc: B-05, command: 确认最终价款, aggregate: AGG-13, desc: 双方确认；差额经收入冲减或补充确认（G-16）}
       - {actor: 商务, bc: B-05, command: 结算协议, aggregate: AGG-13, emits: [协议已结算], gap: G-16}
     notes: 合并原 PRC-67（⑥a 评审 H2 c、H4）。编排方取 B-08（B-08 → B-05 边已有），结算部分是 B-05 内的反应。协议「已结算」与价值流阶段「结算」同名异义，已交 one-glossary。协议已结算 → B-08 收入冲减无命令，记入 G-19、G-16。
-
-  - id: PRC-68
-    name: 终止协议
-    trigger: {type: human, desc: 协议解除、放弃或违法分包认定，原因必填}
-    stages: [VS-04.5]
-    owner_bc: B-05
-    human_orchestration: false
-    steps:
-      - {actor: 商务, command: 终止协议, aggregate: AGG-13, emits: [协议已终止]}
-    notes: 终止通常需审批，审批未建模，按非人工编排（⑥a 评审 M1）。订阅方 B-07（见「项目或协议终止、结项后清算成本」）、B-08（反应见 G-08）。
-
 
   # ───────────── VS-05 获得外部资源 ─────────────
 
@@ -971,7 +928,7 @@ processes:
       - {actor: 财务, command: 驳回释放, aggregate: AGG-89, branch: 驳回或补偿（占用中途失败）, desc: 释放发票占用}
       - {actor: 系统策略, command: 确认应付, aggregate: AGG-52, emits: [应付已确认], desc: 报销应付，引用来源报销（AGG-59）；发票占用留在报销上，应付不再占用（符合性审查 G-17）}
       - {actor: 系统策略, command: 提交过账候选, aggregate: AGG-59, calls: PRC-92}
-    notes: 报销「已付」由付款已成功经事件策略 PRC-133 置位（G-09）；发票占用只在 B-12 提交前占用一次，报销产生的应付引用报销、不再占用（G-17 已处理）。
+    notes: 报销「已付」由应付已结清经事件策略 PRC-133 置位（G-09；⑥a 复核）；发票占用只在 B-12 提交前占用一次，报销产生的应付引用报销、不再占用（G-17 已处理）。
 
 
   # ───────────── VS-09 达成经营目标 ─────────────
@@ -1002,33 +959,7 @@ processes:
       - {actor: 财务, command: 编制现金流预测, aggregate: AGG-79}
     notes: 迁移时在途 1,212 单提示流程未闭环，只读归档（信息图 M-8）。
 
-  - id: PRC-90
-    name: 出具经营月报并复盘
-    trigger:
-      type: event
-      events: [{event: AccountingPeriodClosed, aggregate: AGG-81}]
-    stages: [VS-09.3, VS-10.2]
-    owner_bc: reporting
-    human_orchestration: false
-    steps:
-      - {actor: reporting 读模型, read: true, reads: [AGG-79, AGG-80, AGG-100], desc: 关账后对比目标与实际，解释偏差；reporting 订阅全部领域事件（ADR-0023）}
-    notes: 管理层复盘会议在系统外，无超时或退回分支，按非人工编排（⑥a 评审 M1）。需要调整计划时转入「编制、批准并基线化经营计划与预算」，reporting 只读，不调用命令。
-
-
   # ───────────── VS-10 获得期间报告 ─────────────
-
-  - id: PRC-91
-    name: 认定工时有效性
-    trigger:
-      type: event
-      events: [{event: TimesheetApproved, aggregate: AGG-39}]
-      gate: 期间闸门——目标期间尚未封期（AGG-81 开放）；期间封期前由项目经理对已审批工时批量认定（⑥a 评审 M7）
-    stages: [VS-10.1]
-    owner_bc: B-06
-    human_orchestration: false
-    steps:
-      - {actor: 项目经理, command: 认定工时有效性, aggregate: AGG-39, emits: [工时已认定], desc: 有效 / 无效 / 返工 / 可计费四类之和等于填报总数}
-    notes: 认定结果是人工成本分配的输入（INV-89 只分配已锁定工时）。项目经理逐项目逐期间确认无超时或退回分支，按非人工编排。
 
   - id: PRC-92
     name: 过账业务事实
@@ -1183,20 +1114,6 @@ processes:
       - {actor: 财务, command: 编制报表行定义版本, aggregate: AGG-86}
       - {actor: 财务主管, command: 生效报表行定义版本, aggregate: AGG-86, desc: 只在期间首日生效（INV-91）}
     notes: 草拟 → 财务评审 → 生效。
-
-  - id: PRC-106
-    name: 出具三大报表
-    trigger:
-      type: event
-      events: [{event: AccountingPeriodClosed, aggregate: AGG-81}]
-      desc: 期间关账后，财务出表
-    stages: [VS-10.2]
-    owner_bc: B-21
-    human_orchestration: false
-    steps:
-      - {actor: 财务, read: true, reads: [AGG-81, AGG-100, AGG-101, AGG-86], desc: 读关账状态、余额快照、对账结论与报表行定义，生成并发布报表（单据，非聚合）}
-    notes: 收付口径须等对账、已启用第 13 期的年度须两期关账后发布，均为读取检查，无引擎调度的等待（⑥a 评审 M1）。报表、经营月报、对账差异记录是单据，不是对象状态（Q-B）。
-
 
   # ───────────── VS-11 沉淀复用知识 ─────────────
 
@@ -1393,20 +1310,6 @@ processes:
       - {actor: 人力, command: 终止任职, aggregate: AGG-63, emits: [任职已变更]}
     notes: 最后一期薪酬随月度结算发放。
 
-  - id: PRC-130
-    name: 离职后参保减员
-    trigger:
-      type: event
-      events: [{event: Separated, aggregate: AGG-62}]
-      desc: 人力收到离职事件后 15 日内办理转移手续（P-32）
-    stages: [VS-13.6]
-    owner_bc: B-15
-    human_orchestration: false
-    steps:
-      - {actor: 人力, command: 参保减员, aggregate: AGG-74, emits: [参保已减员]}
-    notes: Separated 订阅方已补 B-15（B-15 → B-13 边已有，AGG-74 引用加「事件」）。
-
-
 # ═════════════ 事件策略（单步事件策略，不计流程数；⑥a 评审 H2 b）═════════════
 event_policies:
 
@@ -1572,15 +1475,15 @@ event_policies:
     notes: 由原 PRC-75 步骤 7、8 拆出（⑥a 评审 M6）。
 
   - id: PRC-133
-    name: 付款成功后报销置已付
+    name: 应付结清后报销置已付
     trigger:
       type: event
-      events: [{event: 付款已成功, aggregate: AGG-53}]
+      events: [{event: 应付已结清, aggregate: AGG-52}]
     stages: [VS-08.3]
     owner_bc: B-12
     reads: [AGG-52]
-    step: {actor: 系统策略, command: 标记费用报销已付, aggregate: AGG-59, desc: 按来源报销取其应付，应付已结清才置已付，部分付款不置（⑥a 评审 H5，G-09）}
-    notes: AGG-53「付款已成功」订阅方加 B-12，AGG-59 引用 AGG-53（事件）；B-12 → B-10 边已有，只加「事件」方式。
+    step: {actor: 系统策略, command: 标记费用报销已付, aggregate: AGG-59, desc: 按来源报销取其应付；触发事件已是应付已结清，部分付款不触发，故不会置已付（⑥a 评审 H5，G-09；⑥a 复核改触发）}
+    notes: 触发由「付款已成功」改为「应付已结清」（⑥a 复核）：AGG-52「应付已结清」订阅方加 B-12，AGG-53「付款已成功」订阅方去掉 B-12；B-12 → B-10 边已有且含「事件」方式，不新增边。AGG-59 依赖列仍写「AGG-53 付款已成功（事件）」，宜改为「AGG-52 应付已结清（事件）」，待聚合稿同步。
 
   - id: PRC-134
     name: 薪酬事实已过账置位
@@ -1591,6 +1494,28 @@ event_policies:
     owner_bc: B-15
     step: {actor: 系统策略, command: 标记已过账, aggregate: AGG-73, desc: 按来源单据 ID 取薪酬行；已发放与事实已过账两个条件任一后到者触发（符合性审查 断链 7）}
     notes: 由原 PRC-124 末步与 PRC-127 第二步拆出（G-18 已处理）。
+
+  - id: PRC-91
+    name: 认定工时有效性
+    trigger:
+      type: event
+      events: [{event: TimesheetApproved, aggregate: AGG-39}]
+      gate: 期间闸门——目标期间尚未封期（AGG-81 开放）；期间封期前由项目经理对已审批工时批量认定（⑥a 评审 M7）
+    stages: [VS-10.1]
+    owner_bc: B-06
+    step: {actor: 项目经理, command: 认定工时有效性, aggregate: AGG-39, emits: [工时已认定], desc: 有效 / 无效 / 返工 / 可计费四类之和等于填报总数}
+    notes: 认定结果是人工成本分配的输入（INV-89 只分配已锁定工时）。一个事件、一步命令，无超时或退回分支，由业务流程移入事件策略（⑥a 复核）。
+
+  - id: PRC-130
+    name: 离职后参保减员
+    trigger:
+      type: event
+      events: [{event: Separated, aggregate: AGG-62}]
+      desc: 人力收到离职事件后 15 日内办理转移手续（P-32）
+    stages: [VS-13.6]
+    owner_bc: B-15
+    step: {actor: 人力, command: 参保减员, aggregate: AGG-74, emits: [参保已减员]}
+    notes: Separated 订阅方已补 B-15（B-15 → B-13 边已有，AGG-74 引用加「事件」）。一个事件、一步命令，由业务流程移入事件策略（⑥a 复核）。
 
 # ═════════════ 单聚合维护（单聚合生命周期或维护，归第 ④ 步状态机，不计流程数；⑥a 评审 H2 a）═════════════
 single_aggregate:
@@ -1763,6 +1688,66 @@ single_aggregate:
     notes: 由原 PRC-93 的人工部分拆出（⑥a 评审 M1）。
 
 # ═════════════ 被合并的编号（⑥a 评审 H2 c；合并后保留最小编号）═════════════
+
+  - id: PRC-52
+    name: 开放可触发收入确认的证据类型
+    aggregate: AGG-92
+    owner_bc: B-08
+    stages: [VS-04.2]
+    desc: 审计师书面认可后，财务申请逐类开放
+    commands:
+      - {actor: 财务, command: 开放证据类型, emits: [证据类型已开放]}
+    notes: 批准人与依据文件只是命令输入。ADR-0047 第 4 条第 4 点；审计师认可前只有带客户签字日的客户价值确认单可触发（INV-23）。单步单命令，由业务流程移入单聚合维护（⑥a 复核）。
+
+  - id: PRC-68
+    name: 终止协议
+    aggregate: AGG-13
+    owner_bc: B-05
+    stages: [VS-04.5]
+    desc: 协议解除、放弃或违法分包认定，原因必填
+    commands:
+      - {actor: 商务, command: 终止协议, emits: [协议已终止]}
+    notes: 终止通常需审批，审批未建模。订阅方 B-07（见「项目或协议终止、结项后清算成本」）、B-08（反应见 G-08）。单步单命令，由业务流程移入单聚合维护（⑥a 复核）。
+
+# ═════════════ 读模型（只读、无命令，不计流程数；⑥a 复核按 H2 同一判据移出）═════════════
+# 字段：id、name、owner_bc、stages（服务的阶段）、reads（读取的聚合）、events（订阅的事件，可无）、desc（定时等非事件触发的说明）
+read_models:
+
+  - id: PRC-22
+    name: 阶段门预警
+    owner_bc: reporting
+    events: [{event: 阶段已完成, aggregate: AGG-20}]
+    reads: [AGG-20, AGG-27]
+    stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7]
+    desc: STEP3 R-12 的读模型；reporting 订阅阶段已完成，合并交付物已认可 / 已声明，产生门预警并留痕，不进聚合；门只预警不拦截（S2）。其余价值流的门预警同此模式，按阶段登记时补。
+    notes: 只读、无命令，由业务流程移出为读模型（⑥a 复核）。
+
+  - id: PRC-62
+    name: 质量保证金到期提示
+    owner_bc: B-09
+    reads: [AGG-49]
+    stages: [VS-04.4]
+    desc: 定时：缺陷责任期届满。P-11 到期未申请返还提醒；到期可收是读模型按到期日派生的提示，不是状态，不改状态（STEP3 C-10；符合性审查 建-11）；之后走「认领收款并核销应收」。
+    notes: 只读、无命令，由业务流程移出为读模型（⑥a 复核）。
+
+  - id: PRC-90
+    name: 出具经营月报并复盘
+    owner_bc: reporting
+    events: [{event: AccountingPeriodClosed, aggregate: AGG-81}]
+    reads: [AGG-79, AGG-80, AGG-100]
+    stages: [VS-09.3, VS-10.2]
+    desc: 关账后对比目标与实际，解释偏差；reporting 订阅全部领域事件（ADR-0023）。管理层复盘会议在系统外；需要调整计划时转入「编制、批准并基线化经营计划与预算」，reporting 只读，不调用命令。
+    notes: 只读、无命令，由业务流程移出为读模型（⑥a 复核）。
+
+  - id: PRC-106
+    name: 出具三大报表
+    owner_bc: B-21
+    events: [{event: AccountingPeriodClosed, aggregate: AGG-81}]
+    reads: [AGG-81, AGG-100, AGG-101, AGG-86]
+    stages: [VS-10.2]
+    desc: 期间关账后，财务出表：读关账状态、余额快照、对账结论与报表行定义，生成并发布报表（单据，非聚合）。收付口径须等对账、已启用第 13 期的年度须两期关账后发布，均为读取检查，无引擎调度的等待；报表、经营月报、对账差异记录是单据，不是对象状态（Q-B）。
+    notes: 只读、无命令，由业务流程移出为读模型（⑥a 复核）。
+
 merged:
   - {id: PRC-04, merged_into: PRC-03, reason: 线索到商机：线索已确认后的下一步就是新建商机}
   - {id: PRC-09, merged_into: PRC-08, reason: 投标、结果、保证金：中标赢单与未中标丢单是投标结果的事件策略，委托赢单与放弃是同一商机上的人工分支}
@@ -1855,11 +1840,11 @@ gaps:
   - id: G-09
     kind: 缺订阅方
     severity: 中
-    status: 部分处理（⑥a 评审 H5：报销置已付改由「付款已成功」触发，事件策略 PRC-133；聚合稿 AGG-53 该事件订阅方加 B-12，AGG-59 增命令「标记费用报销已付」并引用 AGG-53（事件）；与应付已结清的取舍见说明）
+    status: 部分处理（⑥a 评审 H5：报销置已付由事件策略 PRC-133 回写，AGG-59 增命令「标记费用报销已付」；⑥a 复核：触发改为「应付已结清」，聚合稿 AGG-52 该事件订阅方加 B-12，AGG-53「付款已成功」订阅方去掉 B-12；剩 AGG-59 依赖列仍写 AGG-53（事件），待改为 AGG-52（事件））
     title: 费用报销「已付」状态没有事件来源
     detail: OBJ-88 有「已付」，AGG-59 只提交应付，AGG-52「应付已结清」订阅方只列 B-15。薪酬用「订阅应付已结清」改「已发放」，报销缺同样的订阅。
     back_to: 第 ④ 步
-    change: AGG-53（付款已成功订阅方加 B-12，B-12 → B-10 边已有）、AGG-59（订阅后置「已付」；已处理）
+    change: AGG-52（应付已结清订阅方加 B-12，B-12 → B-10 边已有；已处理）、AGG-53（付款已成功订阅方去掉 B-12；已处理）、AGG-59（订阅后置「已付」；依赖列待改引用 AGG-52）
     flows: [PRC-87, PRC-133]
   - id: G-10
     kind: 缺订阅方
@@ -1947,7 +1932,7 @@ gaps:
     severity: 中
     status: 未处理（⑥a 评审 H3 新增；订阅覆盖 gap 不判违规，脚本逐次计数并与本条登记对照）
     title: 订阅方已声明、订阅后的反应没有命令或流程
-    detail: 聚合稿 §2.2 某事件的订阅方列写了某 BC，本清单却没有以该 BC 为 owner、由该事件触发的流程、事件策略或 on_event 步骤。评审点名的已补齐：无异议已声明（事件策略「确认收入」）、TimesheetApproved（认定工时有效性）、月度考勤已确认（标记加班已补偿）、付款已成功与应付已核销（PRC-131、132、133）。余下 11 条见 subscriptions，原因分三类：① 聚合稿不存在对应命令，不编命令（协议已终止、协议已结算、发票已红冲、合同—项目关联已登记、BusinessFactRestated → B-07）；② 订阅写成了读取（银行账户已变更的 P-01 预警、加班已批准、B-17 对过账事实的订阅，宜改订阅方列为「不订阅，api 读取」）；③ 依赖边未登记（MilestoneAccepted → B-08，需 B-08 → B-04 边，停下不加；AcceptanceReturned 的反应是期满判定时读检）。另有 11 个事件没有任何命令发出（脚本「无命令发出的事件」提示），其中评审点名的 BudgetConsumed（AGG-80）须由消耗预算的命令发出，聚合稿未写。
+    detail: 聚合稿 §2.2 某事件的订阅方列写了某 BC，本清单却没有以该 BC 为 owner、由该事件触发的流程、事件策略或 on_event 步骤。评审点名的已补齐：无异议已声明（事件策略「确认收入」）、TimesheetApproved（认定工时有效性）、月度考勤已确认（标记加班已补偿）、付款已成功、应付已核销与应付已结清（PRC-131、132、133）。余下 11 条见 subscriptions，原因分三类：① 聚合稿不存在对应命令，不编命令（协议已终止、协议已结算、发票已红冲、合同—项目关联已登记、BusinessFactRestated → B-07）；② 订阅写成了读取（银行账户已变更的 P-01 预警、加班已批准、B-17 对过账事实的订阅，宜改订阅方列为「不订阅，api 读取」）；③ 依赖边未登记（MilestoneAccepted → B-08，需 B-08 → B-04 边，停下不加；AcceptanceReturned 的反应是期满判定时读检）。另有 11 个事件没有任何命令发出（脚本「无命令发出的事件」提示），其中评审点名的 BudgetConsumed（AGG-80）须由消耗预算的命令发出，聚合稿未写。
     back_to: 第 ④ 步（事件列与命令列）
     change: AGG-01、13、21、27、46、72、77、80（订阅方列、命令列）
     flows: [PRC-54, PRC-101, PRC-118]

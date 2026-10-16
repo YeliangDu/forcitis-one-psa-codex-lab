@@ -3,8 +3,10 @@
 Read-only. Usage: python3 -I processes_check.py
 Exit code 0 only when there is no violation. Open gaps (the `gaps` list), subscription-coverage gaps and hints are findings, not violations.
 
-The YAML holds three kinds of unit (opus review H2): `processes` (business processes), `event_policies` (one event, one step)
-and `single_aggregate` (maintenance of one aggregate's life cycle); `merged` records the numbers folded into another process.
+The YAML holds four kinds of unit (opus review H2; sonnet re-check added the fourth): `processes` (business processes),
+`event_policies` (one event, one step), `single_aggregate` (maintenance of one aggregate's life cycle) and `read_models`
+(read only, no command; may cover stages, a stage covered by read models alone is listed in stages_without_process with
+coverage 读模型); `merged` records the numbers folded into another process.
 
 Violations
   1. every value-stream stage is covered by a process, or is listed in stages_without_process with its coverage type
@@ -47,7 +49,7 @@ DEPCHECK = HERE / "aggregates_dep_check.py"
 
 TRIGGER_TYPES = {"event", "time", "human", "call"}
 GAP_KINDS = {"缺命令", "缺事件", "缺订阅方", "方向冲突", "缺依赖边", "缺聚合", "待定未决", "文字不一致", "规则冲突"}
-COVERAGE_TYPES = {"事件策略", "单聚合维护", "无需系统支持"}
+COVERAGE_TYPES = {"事件策略", "单聚合维护", "读模型", "无需系统支持"}
 REPORTING = "reporting"
 RETURN_WORDS = ("退回", "驳回", "撤回", "退票", "未通过", "拒绝")
 AGG_ROW = re.compile(r"^\|\s*((?:AGG|REF)-\d+)\s*\|")
@@ -217,6 +219,7 @@ def main():
     procs = data["processes"]
     policies = data.get("event_policies", []) or []
     maint = data.get("single_aggregate", []) or []
+    rmodels = data.get("read_models", []) or []
     merged = data.get("merged", []) or []
     gaps = {g["id"]: g for g in data.get("gaps", [])}
     all_stages = stage_ids(vs)
@@ -234,9 +237,9 @@ def main():
             stage_aggs[s["id"]] = aggs
 
     # unit numbers
-    ids = [u["id"] for u in procs + policies + maint] + [m["id"] for m in merged]
+    ids = [u["id"] for u in procs + policies + maint + rmodels] + [m["id"] for m in merged]
     if len(ids) != len(set(ids)):
-        err("duplicate unit ids across processes, event_policies, single_aggregate and merged")
+        err("duplicate unit ids across processes, event_policies, single_aggregate, read_models and merged")
     nums = sorted(int(i[4:]) for i in set(ids) if re.fullmatch(r"PRC-\d+", i))
     missing = [n for n in range(1, (nums[-1] if nums else 0) + 1) if n not in nums]
     if missing:
@@ -409,7 +412,7 @@ def main():
                 hints.append((uid, s))
 
     stage_hints = []
-    proc_cov, pol_cov, mnt_cov = set(), set(), set()
+    proc_cov, pol_cov, mnt_cov, rm_cov = set(), set(), set(), set()
 
     # ---- business processes
     for p in procs:
@@ -489,6 +492,29 @@ def main():
         mnt_cov |= set(p.get("stages") or [])
         touched_by_unit[pid] = touched
 
+    # ---- read models (read only, no command)
+    for p in rmodels:
+        pid = p["id"]
+        for k in ("name", "owner_bc", "stages", "reads", "desc"):
+            if not p.get(k):
+                err(f"{pid}: read model missing {k}")
+        for k in ("steps", "step", "commands", "trigger"):
+            if k in p:
+                err(f"{pid}: a read model has no {k} (read only, no command)")
+        owner_bc = p.get("owner_bc", "")
+        if owner_bc not in bcs and owner_bc not in services and owner_bc != REPORTING:
+            err(f"{pid}: unknown owner_bc {owner_bc}")
+        touched = set()
+        for a in p.get("reads", []) or []:
+            check_agg(a, f"{pid} reads", owner_bc, "read")
+            touched.add(a)
+        for e in p.get("events", []) or []:
+            event_ref(f"{pid} events", owner_bc, e, as_trigger_of=pid)
+            touched.add(e.get("aggregate"))
+        check_stages(pid, p.get("stages"), touched, stage_hints)
+        rm_cov |= set(p.get("stages") or [])
+        touched_by_unit[pid] = touched
+
     # ---- stage coverage
     swp = {}
     for sw in data.get("stages_without_process", []) or []:
@@ -506,8 +532,10 @@ def main():
             err(f"stages_without_process {st}: no event policy covers it")
         if sw.get("coverage") == "单聚合维护" and st not in mnt_cov:
             err(f"stages_without_process {st}: no single-aggregate maintenance covers it")
+        if sw.get("coverage") == "读模型" and st not in rm_cov:
+            err(f"stages_without_process {st}: no read model covers it")
         swp[st] = sw
-    cov_n = {"业务流程": 0, "事件策略": 0, "单聚合维护": 0, "无需系统支持": 0}
+    cov_n = {"业务流程": 0, "事件策略": 0, "单聚合维护": 0, "读模型": 0, "无需系统支持": 0}
     for s in all_stages:
         if s in proc_cov:
             cov_n["业务流程"] += 1
@@ -585,10 +613,11 @@ def main():
     survivors = sorted({m["merged_into"] for m in merged})
     print(f"业务流程 {len(procs)}（人工编排 {human_n}；触发：" + "，".join(
         f"{k} {sum(1 for p in procs if p['trigger'].get('type') == k)}" for k in sorted(TRIGGER_TYPES)) + "）；"
-          f"事件策略 {len(policies)}；单聚合维护 {len(maint)}；合并：{len(merged)} 个编号并入 {len(survivors)} 个流程；编号共 {len(set(ids))}")
+          f"事件策略 {len(policies)}；单聚合维护 {len(maint)}；读模型 {len(rmodels)}；合并：{len(merged)} 个编号并入 {len(survivors)} 个流程；编号共 {len(set(ids))}")
     print(f"步骤数：{stats['write'] + stats['read'] + stats['task']}（改状态 {stats['write']}，只读 {stats['read']}，平台任务 {stats['task']}）；"
           f"命令列共 {col_total} 个命令，未被任何步骤使用 {unused}（提示，不判违规：命令列由本清单汇入，待第④步独立复核）")
-    print(f"阶段数：{len(all_stages)}；业务流程覆盖 {cov_n['业务流程']}，仅事件策略 {cov_n['事件策略']}，仅单聚合维护 {cov_n['单聚合维护']}，无需系统支持 {cov_n['无需系统支持']}")
+    print(f"阶段数：{len(all_stages)}；业务流程覆盖 {cov_n['业务流程']}，仅事件策略 {cov_n['事件策略']}，仅单聚合维护 {cov_n['单聚合维护']}，仅读模型 {cov_n['读模型']}，无需系统支持 {cov_n['无需系统支持']}；"
+          f"读模型另覆盖（与流程重叠）{len(rm_cov & proc_cov)} 个阶段")
     print(f"gaps 数：{len(gaps)}（" + "，".join(f"{k} {v}" for k, v in sorted(by_kind.items())) + "）")
     print(f"订阅覆盖 gap：{len(sub_gaps)} 条（已在 G-19 登记 {len(sub_gaps) - len(undeclared)}，未登记 {len(undeclared)}；G-19 登记但已不存在 {len(stale)}）")
     for agg, ev, bc in sub_gaps:
