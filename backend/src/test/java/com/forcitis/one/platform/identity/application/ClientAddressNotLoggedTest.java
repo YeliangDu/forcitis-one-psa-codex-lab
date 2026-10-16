@@ -60,6 +60,7 @@ class ClientAddressNotLoggedTest {
     void release() {
         ((Logger) LoggerFactory.getLogger(LoginAdmission.class)).detachAppender(logged);
         ((Logger) LoggerFactory.getLogger(EnterAdministratorMode.class)).detachAppender(logged);
+        logged.stop();
     }
 
     private void assertAlertWithoutAddress() {
@@ -75,10 +76,11 @@ class ClientAddressNotLoggedTest {
         });
     }
 
-    private void assertAuditKeepsAddress() {
+    private void assertAuditKeepsAddress(String action) {
         ArgumentCaptor<AuditEntry> recorded = ArgumentCaptor.forClass(AuditEntry.class);
         verify(audit, atLeastOnce()).record(recorded.capture());
-        assertThat(recorded.getAllValues()).allSatisfy(entry -> assertThat(entry.sourceAddress()).isEqualTo(CLIENT_ADDRESS));
+        assertThat(recorded.getAllValues()).filteredOn(entry -> entry.action().equals(action)).isNotEmpty()
+                .allSatisfy(entry -> assertThat(entry.sourceAddress()).isEqualTo(CLIENT_ADDRESS));
     }
 
     @Test
@@ -92,7 +94,7 @@ class ClientAddressNotLoggedTest {
 
         admission.complete(ACCOUNT, LoginMethod.EMERGENCY);
 
-        assertAuditKeepsAddress();
+        assertAuditKeepsAddress("platform.identity.emergency.login");
         assertAlertWithoutAddress();
     }
 
@@ -121,7 +123,7 @@ class ClientAddressNotLoggedTest {
 
         enter.execute(new WecomLoginCommand("code", "state", "binding", WecomEntry.values()[0]));
 
-        assertAuditKeepsAddress();
+        assertAuditKeepsAddress("platform.identity.administrator-mode.entered");
         assertAlertWithoutAddress();
     }
 }
