@@ -48,7 +48,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
 
     @Override
     public Optional<NumberingRule> findActive(DocumentType type) {
-        return jdbc.sql("select numbering_rule_id, document_type, version, event_count from platform_numbering.numbering_rules where document_type = :type and is_active")
+        return jdbc.sql("select numbering_rule_id, document_type, version, event_count from platform_numbering.numbering_rules where document_type = :type")
                 .param("type", type.name())
                 .query((rs, n) -> new Head(new NumberingRuleId(rs.getObject("numbering_rule_id", UUID.class)), DocumentType.valueOf(rs.getString("document_type")), rs.getLong("version"), rs.getLong("event_count")))
                 .optional().map(head -> rule(head, versionsOf(type.name())));
@@ -56,7 +56,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
 
     @Override
     public List<NumberingRule> findAllActive() {
-        List<Head> heads = jdbc.sql("select numbering_rule_id, document_type, version, event_count from platform_numbering.numbering_rules where is_active order by document_type")
+        List<Head> heads = jdbc.sql("select numbering_rule_id, document_type, version, event_count from platform_numbering.numbering_rules order by document_type")
                 .query((rs, n) -> new Head(new NumberingRuleId(rs.getObject("numbering_rule_id", UUID.class)), DocumentType.valueOf(rs.getString("document_type")), rs.getLong("version"), rs.getLong("event_count")))
                 .list();
         return heads.stream().map(head -> rule(head, versionsOf(head.type().name()))).toList();

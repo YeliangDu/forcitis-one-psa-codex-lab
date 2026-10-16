@@ -14,7 +14,7 @@ CREATE TABLE platform_approval.approval_requests (
     created_at          timestamptz NOT NULL DEFAULT now(),
     updated_at          timestamptz NOT NULL DEFAULT now(),
     version             bigint      NOT NULL DEFAULT 0,
-    document_type       text        NOT NULL CHECK (document_type IN ('QUOTE', 'TIMESHEET', 'JOURNAL_VOUCHER')),
+    document_type       text        NOT NULL CONSTRAINT ck_approval_requests_document_type CHECK (document_type IN ('TIMESHEET')),
     legal_entity_id     uuid        NOT NULL,
     event_count         bigint      NOT NULL DEFAULT 0,
     summary_text        text        NOT NULL,
@@ -23,7 +23,8 @@ CREATE TABLE platform_approval.approval_requests (
     CONSTRAINT ck_approval_requests_current_round CHECK (current_round >= 1),
     CONSTRAINT ck_approval_requests_result_reason CHECK (
         (status IN ('REJECTED', 'RETURNED', 'CANCELLED')) = (result_reason IS NOT NULL)
-        AND (result_reason IS NULL OR result_reason <> ''))
+        AND (result_reason IS NULL OR result_reason <> '')),
+    CONSTRAINT ck_approval_requests_summary_text CHECK (char_length(summary_text) BETWEEN 1 AND 200 AND summary_text ~ '\S')
 );
 CREATE UNIQUE INDEX uk_approval_requests_current_instance_id ON platform_approval.approval_requests (current_instance_id);
 COMMENT ON TABLE platform_approval.approval_requests IS '审批请求：聚合根；粒度：每个流程类型的每张业务单据一行，记录当前轮次、当前流程实例与状态，本轮的任务属于它';
@@ -41,7 +42,7 @@ COMMENT ON COLUMN platform_approval.approval_requests.version IS '乐观锁版�
 COMMENT ON COLUMN platform_approval.approval_requests.document_type IS '单据类型（DocumentType 枚举名）：与流程标识一一对应';
 COMMENT ON COLUMN platform_approval.approval_requests.legal_entity_id IS '法人主体（法人 ID）：由发起方传入，缺失即失败，不设默认';
 COMMENT ON COLUMN platform_approval.approval_requests.event_count IS '事件序号：该聚合已记录的领域事件数，每个事件加一，下一个事件取其加一作信封的聚合版本；与乐观锁版本 version（每次保存加一）是两个计数';
-COMMENT ON COLUMN platform_approval.approval_requests.summary_text IS '业务摘要：发起时由拥有单据的业务模块给出，卡片显示它而不回查单据（本轮）';
+COMMENT ON COLUMN platform_approval.approval_requests.summary_text IS '业务摘要：1 至 200 字符，发起时由拥有单据的业务模块给出，卡片显示它而不回查单据（本轮）；目前内容为单据编号、工作日、工时，写入方新增内容须先评估个人信息';
 
 CREATE TABLE platform_approval.start_rounds (
     id               uuid        PRIMARY KEY,
@@ -182,7 +183,9 @@ CREATE TABLE platform_approval.approval_task_records (
     CONSTRAINT uk_approval_task_records_record_number UNIQUE (approval_request_id, record_number),
     CONSTRAINT ck_approval_task_records_record_reason CHECK (
         (action_kind NOT IN ('REJECTED', 'RETURNED', 'TRANSFERRED', 'REASSIGNED') OR record_reason IS NOT NULL)
-        AND (record_reason IS NULL OR record_reason <> ''))
+        AND (record_reason IS NULL OR record_reason <> '')),
+    CONSTRAINT ck_approval_task_records_assignee CHECK ((action_kind IN ('TRANSFERRED', 'REASSIGNED')) = (assignee_id IS NOT NULL)),
+    CONSTRAINT ck_approval_task_records_on_behalf_of CHECK (on_behalf_of_id IS NULL OR action_kind = 'REASSIGNED')
 );
 COMMENT ON TABLE platform_approval.approval_task_records IS '任务办理记录：只追加；粒度：每次对任务的认领、释放、办理、转交、改派一行；已办列表与逐轮历史从这里查，不更新、不删除';
 COMMENT ON COLUMN platform_approval.approval_task_records.record_id IS '记录标识（UUIDv7）；不表示先后，先后看办理记录序号';
@@ -195,8 +198,8 @@ COMMENT ON COLUMN platform_approval.approval_task_records.node_key IS '节点键
 COMMENT ON COLUMN platform_approval.approval_task_records.node_name IS '节点名称：做这件事时节点的显示名';
 COMMENT ON COLUMN platform_approval.approval_task_records.action_kind IS '办理动作：CLAIMED 认领 / RELEASED 释放 / APPROVED 通过 / REJECTED 驳回 / RETURNED 退回 / ADVISED 加签建议 / PASSED_AUTOMATICALLY 系统自动通过 / TRANSFERRED 转交 / REASSIGNED 改派，用枚举不靠文案';
 COMMENT ON COLUMN platform_approval.approval_task_records.actor_id IS '操作人（用户 ID）：做这件事的人；系统自动通过时是被自动通过的审批人';
-COMMENT ON COLUMN platform_approval.approval_task_records.on_behalf_of_id IS '被代理人（用户 ID）：操作人替谁办（流程管理员改派时是原处理人）；不是代办就为空';
-COMMENT ON COLUMN platform_approval.approval_task_records.assignee_id IS '处理人（用户 ID）：转交、改派之后持有任务的人；其他动作为空';
+COMMENT ON COLUMN platform_approval.approval_task_records.on_behalf_of_id IS '被代理人（用户 ID）：操作人替谁办（流程管理员改派时是原处理人）；不是代办就为空；为空表示不是改派，或改派时任务尚无处理人';
+COMMENT ON COLUMN platform_approval.approval_task_records.assignee_id IS '处理人（用户 ID）：转交、改派之后持有任务的人；其他动作为空；为空表示动作不是转交、改派';
 COMMENT ON COLUMN platform_approval.approval_task_records.record_reason IS '意见或原因：办理人填写的；为空表示没填（驳回、退回、转交、改派必填，其余可不填），不补默认值（RULE-280）';
 COMMENT ON COLUMN platform_approval.approval_task_records.created_at IS '创建时间';
 COMMENT ON COLUMN platform_approval.approval_task_records.updated_at IS '更新时间';
