@@ -10,7 +10,9 @@ CREATE TABLE organization_workforce.positions (
     status     text        NOT NULL CHECK (status IN ('ACTIVE', 'DISABLED', 'DELETED')),
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    version    bigint      NOT NULL DEFAULT 0
+    version    bigint      NOT NULL DEFAULT 0,
+    CONSTRAINT ck_positions_name CHECK (btrim(name) <> ''),
+    CONSTRAINT ck_positions_code CHECK (code IS NULL OR btrim(code) <> '')
 );
 COMMENT ON TABLE organization_workforce.positions IS '岗位：组织源岗位的快照，停用与删除同步（RULE-367）；粒度：每个岗位一行';
 COMMENT ON COLUMN organization_workforce.positions.id IS '岗位 ID（UUIDv7；组织源岗位经来源对照映射）';
@@ -38,7 +40,11 @@ CREATE TABLE organization_workforce.org_units (
     last_sync_run_id                uuid,
     created_at                      timestamptz NOT NULL DEFAULT now(),
     updated_at                      timestamptz NOT NULL DEFAULT now(),
-    version                         bigint      NOT NULL DEFAULT 0
+    version                         bigint      NOT NULL DEFAULT 0,
+    CONSTRAINT ck_org_units_revoked_at CHECK ((status = 'REVOKED') = (revoked_at IS NOT NULL)),
+    CONSTRAINT ck_org_units_name CHECK (btrim(name) <> ''),
+    CONSTRAINT ck_org_units_code CHECK (code IS NULL OR btrim(code) <> ''),
+    CONSTRAINT ck_org_units_short_name CHECK (short_name IS NULL OR btrim(short_name) <> '')
 );
 CREATE INDEX org_units_parent_org_unit_id_idx ON organization_workforce.org_units (parent_org_unit_id);
 COMMENT ON TABLE organization_workforce.org_units IS '组织单元：组织源组织单元的快照；停用（DISABLED）与撤销（REVOKED，组织源不再返回）分开（RULE-355/357）；粒度：每个组织单元一行，变化历史在 org_unit_versions';
@@ -52,8 +58,8 @@ COMMENT ON COLUMN organization_workforce.org_units.head_employee_id IS '部门�
 COMMENT ON COLUMN organization_workforce.org_units.regional_receivables_manager_id IS '区域应收负责人（员工 ID，老系统「区域 AR」，组织源关系）';
 COMMENT ON COLUMN organization_workforce.org_units.region_category IS '总部 / 区域类别：HEADQUARTERS 总部、REGIONAL 区域；组织源未维护为空';
 COMMENT ON COLUMN organization_workforce.org_units.is_delivery_unit IS '是否交付部门（组织源扩展属性）';
-COMMENT ON COLUMN organization_workforce.org_units.short_name IS '部门简称：组织源没有，每天从老系统只读刷新';
-COMMENT ON COLUMN organization_workforce.org_units.revoked_at IS '撤销时间（组织源不再返回该组织单元的时间）';
+COMMENT ON COLUMN organization_workforce.org_units.short_name IS '部门简称：组织源没有，每天从老系统只读刷新；为空表示没有简称';
+COMMENT ON COLUMN organization_workforce.org_units.revoked_at IS '撤销时间（组织源不再返回该组织单元的时间）；为空表示组织单元未被撤销';
 COMMENT ON COLUMN organization_workforce.org_units.last_sync_run_id IS '最近一次改动它的同步记录';
 COMMENT ON COLUMN organization_workforce.org_units.created_at IS '创建时间';
 COMMENT ON COLUMN organization_workforce.org_units.updated_at IS '更新时间';
@@ -74,7 +80,10 @@ CREATE TABLE organization_workforce.employees (
     created_at        timestamptz NOT NULL DEFAULT now(),
     updated_at        timestamptz NOT NULL DEFAULT now(),
     version           bigint      NOT NULL DEFAULT 0,
-    event_count       bigint      NOT NULL DEFAULT 0
+    event_count       bigint      NOT NULL DEFAULT 0,
+    CONSTRAINT ck_employees_employee_code CHECK (btrim(employee_code) <> ''),
+    CONSTRAINT ck_employees_display_name CHECK (btrim(display_name) <> ''),
+    CONSTRAINT ck_employees_email_address CHECK (email IS NULL OR btrim(email) <> '')
 );
 CREATE UNIQUE INDEX employees_wecom_user_id_employed_key ON organization_workforce.employees (wecom_user_id)
     WHERE employment_status = 'EMPLOYED' AND wecom_user_id IS NOT NULL;
@@ -216,7 +225,8 @@ CREATE TABLE organization_workforce.legal_entities (
     updated_at timestamptz NOT NULL DEFAULT now(),
     version    bigint      NOT NULL DEFAULT 0,
     event_count bigint     NOT NULL DEFAULT 0,
-    CONSTRAINT legal_entities_code_format CHECK (code ~ '^[A-Z]{2,10}$')
+    CONSTRAINT legal_entities_code_format CHECK (code ~ '^[A-Z]{2,10}$'),
+    CONSTRAINT ck_legal_entities_name CHECK (char_length(name) <= 100 AND btrim(name) <> '')
 );
 COMMENT ON TABLE organization_workforce.legal_entities IS '法人主体：由管理员在新系统维护的法人小表（约 5 家），不从外部系统同步；粒度：每个法人一行，变化历史在 legal_entity_versions';
 COMMENT ON COLUMN organization_workforce.legal_entities.id IS '法人 ID（UUIDv7）';
@@ -268,6 +278,7 @@ CREATE TABLE organization_workforce.org_unit_legal_entities (
     CONSTRAINT uk_org_unit_legal_entities_effective_from UNIQUE (org_unit_id, effective_from_date),
     CONSTRAINT fk_org_unit_legal_entities_org_unit_id FOREIGN KEY (org_unit_id) REFERENCES organization_workforce.org_units (id),
     CONSTRAINT fk_org_unit_legal_entities_legal_entity_id FOREIGN KEY (legal_entity_id) REFERENCES organization_workforce.legal_entities (id),
+    CONSTRAINT fk_org_unit_legal_entities_root_org_unit_id FOREIGN KEY (org_unit_id) REFERENCES organization_workforce.legal_entity_attributions (org_unit_id),
     CONSTRAINT ck_org_unit_legal_entities_range CHECK (effective_to_date IS NULL OR effective_to_date > effective_from_date),
     CONSTRAINT ex_org_unit_legal_entities_overlap EXCLUDE USING gist (org_unit_id WITH =, daterange(effective_from_date, effective_to_date) WITH &&)
 );
@@ -292,6 +303,7 @@ CREATE TABLE organization_workforce.employee_legal_entities (
     CONSTRAINT uk_employee_legal_entities_effective_from UNIQUE (employee_id, effective_from_date),
     CONSTRAINT fk_employee_legal_entities_employee_id FOREIGN KEY (employee_id) REFERENCES organization_workforce.employees (id),
     CONSTRAINT fk_employee_legal_entities_legal_entity_id FOREIGN KEY (legal_entity_id) REFERENCES organization_workforce.legal_entities (id),
+    CONSTRAINT fk_employee_legal_entities_root_employee_id FOREIGN KEY (employee_id) REFERENCES organization_workforce.legal_entity_attributions (employee_id),
     CONSTRAINT ck_employee_legal_entities_range CHECK (effective_to_date IS NULL OR effective_to_date > effective_from_date),
     CONSTRAINT ex_employee_legal_entities_overlap EXCLUDE USING gist (employee_id WITH =, daterange(effective_from_date, effective_to_date) WITH &&)
 );
@@ -323,6 +335,8 @@ CREATE TABLE organization_workforce.org_unit_versions (
     CONSTRAINT pk_org_unit_versions PRIMARY KEY (org_unit_version_id),
     CONSTRAINT uk_org_unit_versions_revision UNIQUE (org_unit_id, effective_from_date, revision_number),
     CONSTRAINT fk_org_unit_versions_org_unit_id FOREIGN KEY (org_unit_id) REFERENCES organization_workforce.org_units (id),
+    CONSTRAINT ck_org_unit_versions_name CHECK (btrim(name) <> ''),
+    CONSTRAINT ck_org_unit_versions_code CHECK (code IS NULL OR btrim(code) <> ''),
     CONSTRAINT ck_org_unit_versions_range CHECK (effective_to_date IS NULL OR effective_to_date >= effective_from_date),
     CONSTRAINT ex_org_unit_versions_overlap EXCLUDE USING gist (org_unit_id WITH =, daterange(effective_from_date, effective_to_date) WITH &&)
 );
@@ -388,6 +402,8 @@ CREATE TABLE organization_workforce.legal_entity_versions (
     CONSTRAINT pk_legal_entity_versions PRIMARY KEY (legal_entity_version_id),
     CONSTRAINT uk_legal_entity_versions_revision UNIQUE (legal_entity_id, effective_from_date, revision_number),
     CONSTRAINT fk_legal_entity_versions_legal_entity_id FOREIGN KEY (legal_entity_id) REFERENCES organization_workforce.legal_entities (id),
+    CONSTRAINT ck_legal_entity_versions_code_format CHECK (code ~ '^[A-Z]{2,10}$'),
+    CONSTRAINT ck_legal_entity_versions_name CHECK (char_length(name) <= 100 AND btrim(name) <> ''),
     CONSTRAINT ck_legal_entity_versions_range CHECK (effective_to_date IS NULL OR effective_to_date >= effective_from_date),
     CONSTRAINT ex_legal_entity_versions_overlap EXCLUDE USING gist (legal_entity_id WITH =, daterange(effective_from_date, effective_to_date) WITH &&)
 );
@@ -422,6 +438,9 @@ CREATE TABLE organization_workforce.legal_entity_attribution_corrections (
     CONSTRAINT ck_legal_entity_attribution_corrections_reason CHECK (btrim(correction_reason) <> ''),
     CONSTRAINT fk_legal_entity_attribution_corrections_org_unit_id FOREIGN KEY (org_unit_id) REFERENCES organization_workforce.org_units (id),
     CONSTRAINT fk_legal_entity_attribution_corrections_employee_id FOREIGN KEY (employee_id) REFERENCES organization_workforce.employees (id),
+    CONSTRAINT fk_legal_entity_attribution_corrections_root_org_unit_id FOREIGN KEY (org_unit_id) REFERENCES organization_workforce.legal_entity_attributions (org_unit_id),
+    CONSTRAINT fk_legal_entity_attribution_corrections_root_employee_id FOREIGN KEY (employee_id) REFERENCES organization_workforce.legal_entity_attributions (employee_id),
+    CONSTRAINT ck_legal_entity_attribution_corrections_changes CHECK (new_effective_to_date <> previous_effective_to_date),
     CONSTRAINT ck_legal_entity_attribution_corrections_subject CHECK (num_nonnulls(org_unit_id, employee_id) = 1)
 );
 CREATE INDEX ix_legal_entity_attribution_corrections_org_unit_id ON organization_workforce.legal_entity_attribution_corrections
@@ -473,12 +492,31 @@ ALTER TABLE organization_workforce.assignments
     ADD CONSTRAINT fk_assignments_reports_to_employee_id FOREIGN KEY (reports_to_employee_id)
         REFERENCES organization_workforce.employees (id) DEFERRABLE INITIALLY DEFERRED;
 
+ALTER TABLE organization_workforce.org_unit_versions
+    ADD CONSTRAINT fk_org_unit_versions_parent_org_unit_id FOREIGN KEY (parent_org_unit_id)
+        REFERENCES organization_workforce.org_units (id) DEFERRABLE INITIALLY DEFERRED,
+    ADD CONSTRAINT fk_org_unit_versions_head_employee_id FOREIGN KEY (head_employee_id)
+        REFERENCES organization_workforce.employees (id) DEFERRABLE INITIALLY DEFERRED,
+    ADD CONSTRAINT fk_org_unit_versions_regional_receivables_manager_id FOREIGN KEY (regional_receivables_manager_id)
+        REFERENCES organization_workforce.employees (id) DEFERRABLE INITIALLY DEFERRED;
+
+ALTER TABLE organization_workforce.assignment_versions
+    ADD CONSTRAINT fk_assignment_versions_position_id FOREIGN KEY (position_id)
+        REFERENCES organization_workforce.positions (id) DEFERRABLE INITIALLY DEFERRED,
+    ADD CONSTRAINT fk_assignment_versions_reports_to_employee_id FOREIGN KEY (reports_to_employee_id)
+        REFERENCES organization_workforce.employees (id) DEFERRABLE INITIALLY DEFERRED;
+
 CREATE INDEX ix_org_units_head_employee_id ON organization_workforce.org_units (head_employee_id);
 CREATE INDEX ix_org_units_regional_receivables_manager_id ON organization_workforce.org_units (regional_receivables_manager_id);
 CREATE INDEX ix_org_unit_legal_entities_legal_entity_id ON organization_workforce.org_unit_legal_entities (legal_entity_id);
 CREATE INDEX ix_employee_legal_entities_legal_entity_id ON organization_workforce.employee_legal_entities (legal_entity_id);
 CREATE INDEX ix_assignment_versions_org_unit_id ON organization_workforce.assignment_versions (org_unit_id, effective_from_date);
 CREATE INDEX ix_assignments_reports_to_employee_id ON organization_workforce.assignments (reports_to_employee_id);
+CREATE INDEX ix_org_unit_versions_parent_org_unit_id ON organization_workforce.org_unit_versions (parent_org_unit_id);
+CREATE INDEX ix_org_unit_versions_head_employee_id ON organization_workforce.org_unit_versions (head_employee_id);
+CREATE INDEX ix_org_unit_versions_regional_receivables_manager_id ON organization_workforce.org_unit_versions (regional_receivables_manager_id);
+CREATE INDEX ix_assignment_versions_position_id ON organization_workforce.assignment_versions (position_id);
+CREATE INDEX ix_assignment_versions_reports_to_employee_id ON organization_workforce.assignment_versions (reports_to_employee_id);
 
 CREATE FUNCTION organization_workforce.reject_attribution_correction_change() RETURNS trigger
     LANGUAGE plpgsql AS $$

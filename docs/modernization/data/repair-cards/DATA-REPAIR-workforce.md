@@ -25,10 +25,10 @@
 ## 3. 范围与卡上文件
 
 允许改动（越界先停下报告，不先做后报）：
-- `backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql`（只限 `sync_runs`、`sync_diffs`、`org_units`、`assignments`、`assignment_versions`、`org_unit_versions`、`legal_entity_versions` 的约束、索引）
+- `backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql`（只限 `sync_runs`、`sync_diffs`、`org_units`、`assignments`、`assignment_versions`、`org_unit_versions`、`legal_entity_versions`、`positions`、`employees`、`legal_entities`、`org_unit_legal_entities`、`employee_legal_entities`、`legal_entity_attribution_corrections` 的约束、索引；PR-8 经 one-data 裁 8 补入后五张，只加约束，不改列）
 - `backend/architecture/data-access-registry.yaml`（只限 workforce 各表条目：`sync_run_held_separations` 保留期、`legal_entities` 投影登记、快照三表 `business_key` 说明、版本表 `fk_exceptions` 与逐列不进版本的理由）
 - Java：`backend/src/main/java/com/forcitis/one/organization/workforce/` 下 `infrastructure/persistence/JdbcSyncRunQueries.java`（WF-08 若需调整查询）、`domain/Assignment.java`（WF-06 若 `position_id` 改 NOT NULL）；其余只读
-- 测试：`SyncRunStateMachineTest`（只读，用来核对 CHECK 取值）、`organization/workforce` 下新增的 CHECK 集成测试（类名由测试代理定）
+- 测试：`SyncRunStateMachineTest`（只读，用来核对 CHECK 取值）、PR-8 的 `RefreshShortNames` 单元/集成测试与「根表与开放版本一致」补测、`organization/workforce` 下新增的 CHECK 集成测试（类名由测试代理定）
 
 归属：本卡独占上述 workforce 约束与索引片段；`positions`、`employees` 的版本化（P-1、E-1）、`separated_at`（E-2）归 W2（DA-7），不碰这两张表的列。
 
