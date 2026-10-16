@@ -21,6 +21,7 @@ state-machines.yaml (minimal structure, proposal):
       states: [草稿, 已提交, {name: 已核定, terminal: true}]   # string or {name, terminal}
       transitions:
         - {from: 草稿, to: 已提交, command: 提交费用报销, guard: [INV-84], reverse_of: ~}
+    - {aggregate: AGG-43, stateless: true, reason: "运行单据，写下即不可改"}   # no states/transitions; its steps need no transition
         # from: a state, a list of states, or "*" (any state); command may be null for event-triggered transitions
 
 Checks: (1) orphan commands: a catalogue command used by no skeleton step (command or inner) and no single-aggregate commands list;
@@ -131,7 +132,16 @@ def run(cmds, machines, used, changing):
     res["骨架命令未入目录"] = sorted(f"{a} {n}" for (a, n) in used if (a, n) not in catalog) if cmds else []
     mach = {m["aggregate"]: m for m in machines}
     trans_cmds = set()
+    stateless = {a for a, m in mach.items() if m.get("stateless") is True}
+    for a in sorted(stateless):
+        m = mach[a]
+        if not str(m.get("reason") or "").strip():
+            res.setdefault("无状态未写理由", []).append(a)
+        if m.get("states") or m.get("transitions"):
+            res.setdefault("标了无状态却写了状态或转换", []).append(a)
     for a, m in mach.items():
+        if a in stateless:
+            continue
         mc = machine_check(m)
         for t in m.get("transitions") or []:
             if t.get("command"):
@@ -147,7 +157,7 @@ def run(cmds, machines, used, changing):
         if mc["no_terminal_path"] and not mc["no_terminal"]:
             res.setdefault("非终态无法到达终态", []).append(f"{a}: {mc['no_terminal_path']}")
     no_machine = sorted({a for (a, _c) in changing if a not in mach})
-    res["改状态步骤无对应转换"] = sorted(f"{a} {c}（{','.join(changing[(a, c)][:2])}）" for (a, c) in changing if a in mach and (a, c) not in trans_cmds)
+    res["改状态步骤无对应转换"] = sorted(f"{a} {c}（{','.join(changing[(a, c)][:2])}）" for (a, c) in changing if a in mach and a not in stateless and (a, c) not in trans_cmds)
     res["改状态步骤所在聚合无状态机"] = no_machine
     return res
 
@@ -188,12 +198,15 @@ def main(argv):
 S_CMDS = [{"name": n, "aggregate": "AGG-1"} for n in ("提交", "批准", "孤儿命令", "冲销")]
 S_MACH = [{"aggregate": "AGG-1", "initial": "草稿", "states": ["草稿", "已提交", {"name": "已批准", "terminal": True}, "幽灵", "死胡同"],
            "transitions": [{"from": "草稿", "to": "已提交", "command": "提交"}, {"from": "已提交", "to": "已批准", "command": "批准"},
-                           {"from": "已提交", "to": "死胡同"}, {"from": "已批准", "to": "未声明", "command": "冲销"}]}]
+                           {"from": "已提交", "to": "死胡同"}, {"from": "已批准", "to": "未声明", "command": "冲销"}]},
+          {"aggregate": "AGG-3", "stateless": True, "reason": "运行单据"},
+          {"aggregate": "AGG-4", "stateless": True, "states": ["甲"]}]
 S_DOCS = {"g": {"processes": [{"id": "PRC-90", "steps": [
     {"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-1", "command": "提交"},
     {"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-1", "command": "批准"},
     {"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-1", "command": "未登记命令"},
-    {"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-2", "command": "别的聚合命令"}]}]}}
+    {"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-2", "command": "别的聚合命令"},
+    {"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-3", "command": "运行"}]}]}}
 
 
 def self_test():
@@ -201,7 +214,9 @@ def self_test():
     r = run(S_CMDS, S_MACH, used, changing)
     exp = {
         "孤儿命令（目录有、骨架无人用）": ["AGG-1 冲销", "AGG-1 孤儿命令"],
-        "骨架命令未入目录": ["AGG-1 未登记命令", "AGG-2 别的聚合命令"],
+        "骨架命令未入目录": ["AGG-1 未登记命令", "AGG-2 别的聚合命令", "AGG-3 运行"],
+        "无状态未写理由": ["AGG-4"],
+        "标了无状态却写了状态或转换": ["AGG-4"],
         "转换引用未声明的状态": ["AGG-1: ['未声明']"],
         "状态不可达": ["AGG-1: ['幽灵']"],
         "非终态无法到达终态": ["AGG-1: ['幽灵', '死胡同']"],
