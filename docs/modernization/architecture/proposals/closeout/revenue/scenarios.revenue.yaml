@@ -576,7 +576,8 @@ PRC-19:
   path: 3 审批驳回→2
   outcome: null
   covers:
-  - 第 3 步 otherwise
+  - 第 3 步 otherwise（审批已驳回）
+  - 第 2 步接收审批已驳回
   expect: 回编制修改后重提；预算未锁定
 - id: PRC-19-S03
   path: 2 预算毛利低于赢单报价毛利
@@ -596,6 +597,13 @@ PRC-19:
   covers:
   - segregation：编制人与审批人
   expect: 审批平台拒绝同一人审批自己编制的预算
+- id: PRC-19-S06
+  path: 3 提交人撤回审批→end
+  outcome: 已撤回
+  covers:
+  - 第 3 步「提交人已撤回审批」
+  - 第 3 步 withdraw
+  expect: 审批实例结束，预算版本回到编制中，未锁定；项目经理修改后经触发「预算被驳回或提交后撤回，项目经理修改并重新提交」从第 2 步再提
 PRC-20:
 - id: PRC-20-S01
   path: 1→2→3 分配覆盖需求
@@ -693,7 +701,7 @@ PRC-23:
   outcome: 未提交
   covers:
   - 第 2 步「工时所属期间已关账」
-  expect: 拒绝提交，只能冲销或修正（INV-67）
+  expect: 人工提交遇已关账期间只提示并拒绝提交，改走冲销或修正（INV-67），不设审批
 - id: PRC-23-S03
   path: 2 所记项目已暂停（或已结项、已终止、已取消）
   outcome: 未提交
@@ -729,6 +737,8 @@ PRC-23:
   outcome: 已撤回
   covers:
   - 第 3 步「员工撤回本轮或取消审批」
+  - 第 3 步 withdraw
+  - 第 7 步
   expect: 审批实例结束，工时单回到草稿，可修改重提
 - id: PRC-23-S09
   path: 3 分支审批超过 1 个工作日
@@ -737,17 +747,23 @@ PRC-23:
   - 第 3 步超时
   expect: 次日提醒审批人，再 1 个工作日升级；仍未处理不自动通过
 - id: PRC-23-S10
-  path: 8 目标期间已关账
+  path: 8 目标期间已关账（系统自动触账）
   outcome: 已通过
   covers:
-  - 第 8 步「目标期间已关账」
-  expect: 工时单保持已通过，过账候选转冲销或修正并告警财务（INV-67）
+  - 第 8 步「目标期间已关账（路由当前开放期间并标原期间，不拒绝）」
+  expect: 工时单保持已通过；过账候选路由到该法人当前开放期间并标原期间（INV-92，ADR-0045），不拒绝、不设审批；通知财务核对
 - id: PRC-23-S11
   path: 8 缺锁定费率版本
   outcome: 已通过
   covers:
   - 第 8 步「缺锁定费率版本」
   expect: 不得计成本，失败并告警（INV-37）；工时单状态不变
+- id: PRC-23-S12
+  path: 3 项目经理本人的项目工时（责任人就是提交人）→上提一级审批→4
+  outcome: 已通过
+  covers:
+  - 第 3 步审批人解析：AR-11 责任人就是提交人本人
+  expect: 归属对象责任人即提交人，按 AR-11 由其上级（承担部门负责人）审批；审批平台拒绝本人审批本人工时单（segregation）
 PRC-24:
 - id: PRC-24-S01
   path: 1 暂停→2 恢复
@@ -815,8 +831,7 @@ PRC-26:
   path: 1 计划提供日已过仍未收到
   outcome: null
   covers:
-  - 第 1 步超时
-  - 触发：计划提供日已过（P-26）
+  - 第 1 步超时（P-26 计划提供日已过）
   expect: 提醒项目经理催提；不影响资料状态
 PRC-27:
 - id: PRC-27-S01
@@ -886,10 +901,10 @@ PRC-28:
   - 第 5 步超时
   expect: 发「无异议已声明」；交付物无「视为同意」状态
 - id: PRC-28-S06
-  path: 5 未约定审查期、催签周期到
+  path: 5 未约定审查期、催签周期到→5（继续等待）
   outcome: null
   covers:
-  - 第 5 步 otherwise
+  - 第 5 步 otherwise（继续等待，回到本步）
   - 第 5 步超时（催签）
   expect: 提醒项目经理催签认、超期进阶段门预警；不得登记无异议声明
 - id: PRC-28-S07
@@ -1034,6 +1049,7 @@ PRC-34:
   outcome: 已关闭
   covers:
   - 第 2 步 otherwise
+  - 第 6 步 otherwise
   expect: 发「不符合项已确认」「不符合项已关闭」（仅分析）
 - id: PRC-34-S02
   path: 2 造成返工→3 认定返工→6
@@ -1066,6 +1082,12 @@ PRC-34:
   covers:
   - 第 2 步超时（P-23）
   expect: 提醒技术专家并升级部门负责人；期限取等级体系版本配置
+- id: PRC-34-S07
+  path: 6 整改（含返工）复核未通过→2
+  outcome: null
+  covers:
+  - 第 6 步「整改（含返工）复核未通过」
+  expect: 不符合项不关闭，退回第 2 步重新确认并整改；阻断性不符合项仍阻止交付物登记认可（INV-48）
 PRC-36:
 - id: PRC-36-S01
   path: 1→2→3→4 三项拒绝检查均满足→5 审批通过→6→7
@@ -1096,7 +1118,8 @@ PRC-36:
   path: 5 审批驳回或审批通过时复检不满足→3
   outcome: null
   covers:
-  - 第 5 步 otherwise
+  - 第 5 步 otherwise（审批已驳回）
+  - 第 3 步接收审批已驳回
   expect: 退回重新发起检查；审批通过前任一拒绝项不满足即退回
 - id: PRC-36-S06
   path: 6 结项命令重复调用
@@ -1104,6 +1127,13 @@ PRC-36:
   covers:
   - 第 6 步幂等（INV-40）
   expect: 按结项申请 ID 幂等：只结项一次，不重复发事件
+- id: PRC-36-S07
+  path: 5 提交人撤回结项申请→end
+  outcome: 已撤回
+  covers:
+  - 第 5 步「提交人已撤回结项申请」
+  - 第 5 步 withdraw
+  expect: 审批实例结束，项目保持原状态；项目经理可重新发起结项检查；已封存的交付物与证据不受影响
 PRC-37:
 - id: PRC-37-S01
   path: 1→2→3 评分不低于阈值→5
@@ -1977,7 +2007,7 @@ PRC-86:
 PRC-91:
 - id: PRC-91-S01
   path: TimesheetApproved→1 生成待认定清单→2 认定
-  outcome: null
+  outcome: 已认定
   covers:
   - 第 2 步 otherwise
   expect: 发「工时已认定」（仅分析）；四类之和等于填报总数；认定结果供人工成本分配
@@ -1989,13 +2019,13 @@ PRC-91:
   expect: 幂等：只生成一次待认定清单，不重复通知
 - id: PRC-91-S03
   path: 2 目标期间已关账
-  outcome: null
+  outcome: 未认定
   covers:
   - 第 2 步「目标期间已关账」
-  expect: 拒绝认定，只能冲销或修正（INV-67）
+  expect: 人工认定遇已封期间只提示并拒绝，改走冲销或修正（INV-67），不设审批
 - id: PRC-91-S04
   path: 2 四类之和不等于填报总数，或返工条目无返工认定
-  outcome: null
+  outcome: 未认定
   covers:
   - 第 2 步「四类之和不等于填报总数」
   expect: 拒绝（INV-53）
