@@ -3,18 +3,18 @@
 
 由 build_catalog.py 生成，不手改；来源 `process-catalog.yaml`。
 
-共 180 条，编号 PRC-01 至 PRC-180。
+共 182 条，编号 PRC-01 至 PRC-182。
 
 ### 按类型
 
 | 类型 | 数量 |
 |---|---|
-| business | 103 |
+| business | 104 |
 | event_policy | 33 |
 | single_aggregate | 29 |
-| read_model | 5 |
+| read_model | 6 |
 | merged | 10 |
-| 合计 | 180 |
+| 合计 | 182 |
 
 ### 按组（全部类型）
 
@@ -22,8 +22,8 @@
 |---|---|
 | revenue | 78 |
 | finance | 54 |
-| people | 48 |
-| 合计 | 180 |
+| people | 50 |
+| 合计 | 182 |
 
 ### 按组（仅业务流程）
 
@@ -31,8 +31,8 @@
 |---|---|
 | revenue | 45 |
 | finance | 29 |
-| people | 29 |
-| 合计 | 103 |
+| people | 30 |
+| 合计 | 104 |
 
 ### 按价值流（仅业务流程；跨价值流的流程各计一次，故合计大于业务流程数）
 
@@ -44,17 +44,17 @@
 | VS-04 | 16 |
 | VS-05 | 12 |
 | VS-06 | 3 |
-| VS-07 | 6 |
+| VS-07 | 8 |
 | VS-08 | 6 |
-| VS-09 | 2 |
+| VS-09 | 3 |
 | VS-10 | 12 |
 | VS-11 | 1 |
 | VS-12 | 3 |
-| VS-13 | 12 |
-| 支撑（不在价值流上） | 9 |
-| 合计 | 115 |
+| VS-13 | 14 |
+| 支撑（不在价值流上） | 8 |
+| 合计 | 119 |
 
-业务流程中尚未填 stages：3 条。
+业务流程中尚未填 stages：0 条。
 
 ## 总表
 
@@ -139,7 +139,7 @@
 | PRC-77 | 申报并缴纳增值税、附加税与企业所得税 | business |  | VS-06.1 | B-23 | finance | draft | 否 |  |
 | PRC-78 | 年检、核查与延续企业资质 | business |  | VS-06.2 | B-01 | revenue | draft | 是 |  |
 | PRC-79 | 登记继续教育并延续注册执业证书 | single_aggregate |  | VS-06.2 | B-13 | people | draft | 否 |  |
-| PRC-80 | 维护法人、组织与岗位 | business |  | VS-07.1, VS-07.3 | B-13 | people | draft | 否 |  |
+| PRC-80 | 维护法人、组织与岗位 | business |  | VS-07.1 | B-13 | people | draft | 否 |  |
 | PRC-81 | 提出并批准招聘需求 | business |  | VS-07.1 | B-13 | people | draft | 是 |  |
 | PRC-82 | 登记候选人并作出录用决定 | business |  | VS-07.2 | B-13 | people | draft | 否 |  |
 | PRC-83 | 办理入职与任职 | business |  | VS-07.3 | B-13 | people | user_confirmed | 否 |  |
@@ -149,7 +149,7 @@
 | PRC-87 | 提交、核定并确认报销应付 | business |  | VS-08.2 | B-12 | finance | user_confirmed | 是 |  |
 | PRC-88 | 编制、批准并基线化经营计划与预算 | business |  | VS-09.1, VS-09.3 | B-18 | people | draft | 是 |  |
 | PRC-89 | 编制滚动预测 | business |  | VS-09.2 | B-18 | people | draft | 否 |  |
-| PRC-90 | 出具经营月报并复盘 | read_model |  | VS-09.3, VS-10.2 | reporting | finance | draft | 否 |  |
+| PRC-90 | 出具经营月报 | read_model |  | VS-09.3, VS-10.2 | reporting | finance | draft | 否 |  |
 | PRC-91 | 认定工时有效性 | event_policy |  | VS-10.1 | B-06 | revenue | draft | 否 |  |
 | PRC-92 | 过账业务事实 | business |  | VS-10.1 | B-16 | finance | draft | 否 |  |
 | PRC-93 | 生成会计分录 | event_policy |  | VS-10.1 | B-20 | finance | draft | 否 |  |
@@ -195,9 +195,9 @@
 | PRC-133 | 应付结清后报销置已付 | event_policy |  | VS-08.3 | B-12 | finance | draft | 否 |  |
 | PRC-134 | 薪酬事实已过账置位 | event_policy |  | VS-13.3 | B-15 | people | draft | 否 |  |
 | PRC-135 | 处理会计分录待处理队列与推送重投 | single_aggregate |  | VS-10.1 | B-20 | finance | draft | 否 |  |
-| PRC-136 | 调岗（任职变更，按人事业务生效日，触发数据范围复核） | business |  |  | B-13 | people | draft | 待定 |  |
-| PRC-137 | 入职开通企业微信账号并绑定外部身份 | business |  |  | platform.identity | people | user_confirmed | 待定 |  |
-| PRC-138 | 离职停用企业微信账号并解绑 | business |  |  | platform.identity | people | draft | 待定 |  |
+| PRC-136 | 调岗（任职变更，按人事业务生效日，触发数据范围复核） | business |  | VS-07.3 | B-13 | people | draft | 待定 |  |
+| PRC-137 | 入职开通企业微信账号并绑定外部身份 | business |  | VS-07.3 | platform.identity | people | user_confirmed | 待定 |  |
+| PRC-138 | 离职停用企业微信账号并解绑 | business |  | VS-13.6 | platform.identity | people | draft | 待定 |  |
 | PRC-139 | 用印申请与用印登记 | business |  |  | B-31 | people | draft | 待定 |  |
 | PRC-140 | 合同借阅 | business |  |  | B-05 | revenue | draft | 待定 |  |
 | PRC-141 | 销售合同归档 | business |  |  | B-05 | revenue | draft | 待定 |  |
@@ -215,7 +215,7 @@
 | PRC-153 | 退还投标保证金 | business |  | VS-01.2, VS-04.1 | B-09 | revenue | draft | 否 |  |
 | PRC-154 | 收入三口径对照 | read_model |  | VS-04.2, VS-04.3 | reporting | revenue | draft | 否 |  |
 | PRC-155 | IT 资产调拨 | business |  |  | B-31 | people | draft | 否 |  |
-| PRC-156 | IT 资产归还 | business |  |  | B-31 | people | draft | 否 |  |
+| PRC-156 | IT 资产归还 | business |  | VS-13.6 | B-31 | people | draft | 否 |  |
 | PRC-157 | IT 资产报修与维修登记 | business |  |  | B-31 | people | draft | 否 |  |
 | PRC-158 | 处置过账拒收记录 | single_aggregate |  | VS-10.1 | B-16 | finance | draft | 否 |  |
 | PRC-159 | 申报已提交后确认税费应付 | event_policy |  | VS-06.1 | B-10 | finance | draft | 否 |  |
@@ -240,3 +240,5 @@
 | PRC-178 | 补休到期未休或离职时转计发加班工资 | event_policy |  | VS-13.3 | B-15 | people | draft | 否 |  |
 | PRC-179 | 项目开始执行后协议转入履行中 | event_policy |  | VS-04.1 | B-05 | revenue | draft | 否 |  |
 | PRC-180 | 发布薪酬规则版本 | single_aggregate |  | VS-13.3 | B-15 | people | draft | 否 |  |
+| PRC-181 | 记录经营复盘并跟踪经营动作 | business |  | VS-09.3 | B-18 | people | draft | 是 |  |
+| PRC-182 | 知识条目使用情况 | read_model |  | VS-11.3 | reporting | people | draft | 否 |  |

@@ -737,7 +737,7 @@ processes:
   - id: PRC-80
     name: "维护法人、组织与岗位"
     type: business
-    stages: [VS-07.1, VS-07.3]
+    stages: [VS-07.1]
     owner_bc: "B-13"
     group: people
     status: draft
@@ -810,6 +810,7 @@ processes:
     name: "编制、批准并基线化经营计划与预算"
     type: business
     stages: [VS-09.1, VS-09.3]
+    stages_note: "跳过 VS-09.2 有意：VS-09.3 退出条件「经营计划新版本」由本流程第二个触发（复盘后调整计划）产生，该路径不经滚动预测；VS-09.2 的新版本由 PRC-89 产生"
     owner_bc: "B-18"
     group: people
     status: draft
@@ -825,7 +826,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-90
-    name: "出具经营月报并复盘"
+    name: "出具经营月报"
     type: read_model
     stages: [VS-09.3, VS-10.2]
     owner_bc: "reporting"
@@ -1249,7 +1250,7 @@ processes:
   - id: PRC-136
     name: "调岗（任职变更，按人事业务生效日，触发数据范围复核）"
     type: business
-    stages: []
+    stages: [VS-07.3]
     owner_bc: "B-13"
     group: people
     status: draft
@@ -1258,7 +1259,7 @@ processes:
   - id: PRC-137
     name: "入职开通企业微信账号并绑定外部身份"
     type: business
-    stages: []
+    stages: [VS-07.3]
     owner_bc: "platform.identity"
     group: people
     status: user_confirmed
@@ -1267,7 +1268,7 @@ processes:
   - id: PRC-138
     name: "离职停用企业微信账号并解绑"
     type: business
-    stages: []
+    stages: [VS-13.6]
     owner_bc: "platform.identity"
     group: people
     status: draft
@@ -1287,7 +1288,7 @@ processes:
     name: "合同借阅"
     type: business
     stages: []
-    support: "行政支持活动：只处理已归档合同原件的保管与流转，不改变任何价值流阶段的进入或退出对象状态（VS-04.1 出口为协议已签署生效，归档与借阅不影响）；C-4 已定走通用审批（intent 144943）"
+    support: "合同档案支持活动（B-05 合同模块档案功能，C-4，intent 144943）：只处理已归档合同原件的借阅流转，不改变任何价值流阶段的进入或退出对象状态"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -1297,7 +1298,7 @@ processes:
     name: "销售合同归档"
     type: business
     stages: []
-    support: "行政支持活动：合同回签后原件移交档案，不改变 VS-04.1 出口状态（协议已签署生效）；C-4 归档并入合同模块档案功能（intent 144943）"
+    support: "合同档案支持活动（B-05，C-4 归档并入合同模块档案功能，intent 144943）：回签后原件移交档案，不改变 VS-04.1 退出状态"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -1346,7 +1347,7 @@ processes:
     name: "协议借阅逾期催还"
     type: event_policy
     stages: []
-    support: "行政支持活动：借阅逾期催还，随 PRC-140，不改变任何阶段状态"
+    support: "合同档案支持活动（B-05）：借阅逾期催还，随 PRC-140，不改变任何阶段状态"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -1438,8 +1439,7 @@ processes:
   - id: PRC-156
     name: "IT 资产归还"
     type: business
-    stages: []
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    stages: [VS-13.6]
     owner_bc: "B-31"
     group: people
     status: draft
@@ -1504,6 +1504,7 @@ processes:
     name: "应付结清后登记利润分配支付"
     type: event_policy
     stages: [VS-12.2]
+    stages_note: "利润分配支付是「利润分配」阶段出口（应付股利结清）的一部分"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1514,6 +1515,7 @@ processes:
     name: "收入确认冲销后冲回已配对成本结转"
     type: event_policy
     stages: [VS-04.2]
+    stages_note: "收入确认冲销后冲回已配对的成本结转，随收入确认所在阶段（VS-04.2，revenue 价值流）"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1568,6 +1570,7 @@ processes:
     name: "处置勾稽差异案"
     type: single_aggregate
     stages: [VS-10.1]
+    stages_note: "勾稽差异案须在关账前处置（月结前置检查），属「期间关账」"
     owner_bc: "B-17"
     group: finance
     status: draft
@@ -1578,6 +1581,7 @@ processes:
     name: "申请费用事前额度"
     type: business
     stages: [VS-08.2]
+    stages_note: "暂挂「报销核定」：事前额度是报销核定的前置依据；VS-08 没有「事前申请」阶段，见待定 ST-1"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1588,6 +1592,7 @@ processes:
     name: "核对差旅服务商月账单并确认应付"
     type: business
     stages: [VS-05.4]
+    stages_note: "公司直付分贝通订单：核对月账单后确认供方应付，属「应付确认」；之后付款进 VS-05.5（PRC-75）"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1598,6 +1603,7 @@ processes:
     name: "申请出差并同步差旅服务商"
     type: business
     stages: [VS-08.2]
+    stages_note: "暂挂「报销核定」：出差申请是差旅报销与补贴的前置依据；见待定 ST-1"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1608,6 +1614,7 @@ processes:
     name: "审批差旅超标订单"
     type: business
     stages: [VS-05.2]
+    stages_note: "超标订单审批发生在向差旅服务商下单时，是对外部资源的采购决定，挂「供方签约」；见待定 ST-1"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1629,6 +1636,7 @@ processes:
     name: "直接付款申请"
     type: business
     stages: [VS-05.5]
+    stages_note: "直接付款申请（豁免清单内）以付款结束，属「付款」"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1639,6 +1647,7 @@ processes:
     name: "预付款核销"
     type: single_aggregate
     stages: [VS-05.4]
+    stages_note: "预付款在取得发票、确认应付时核销，属「应付确认」（阶段描述「确认应付」）；原挂 VS-05.5 改"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1649,6 +1658,7 @@ processes:
     name: "向差旅服务商同步员工与组织"
     type: event_policy
     stages: []
+    support: "行政支撑：员工与组织的单向同步，服务差旅预订；四个触发分属 VS-07.3 退出、VS-13.6 退出、任职版本变更、组织单元调整，无共同阶段，不在客户或员工价值流的阶段门上（S-31 SQ-31；STAGE_ALIGN.md）"
     owner_bc: "B-13"
     group: people
     status: draft
@@ -1685,3 +1695,23 @@ processes:
     human_orchestration: false
     bpmn: ~
     note: "S-43；AGG-119，INV-139 生效区间不重叠"
+  - id: PRC-181
+    name: "记录经营复盘并跟踪经营动作"
+    type: business
+    stages: [VS-09.3]
+    owner_bc: "B-18"
+    group: people
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+    note: "阶段对齐 J-8（people STAGE_ALIGN.md）；PRC-90 改名去掉「并复盘」"
+  - id: PRC-182
+    name: "知识条目使用情况"
+    type: read_model
+    stages: [VS-11.3]
+    owner_bc: "reporting"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+    note: "阶段对齐 J-8；使用情况作修订废止的依据"
