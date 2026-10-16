@@ -11,6 +11,7 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.platform.numbering.api.ConfirmationKind;
+import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 import com.forcitis.one.platform.numbering.api.NumberingError;
 import com.forcitis.one.platform.numbering.api.ResetPolicy;
 import com.forcitis.one.platform.numbering.api.RuleVersion;
@@ -34,11 +35,11 @@ class NumberingRuleStateMachineTest {
     static final UserId FINANCE = TestAccounts.account(13);
 
     static TemplateVersion pending(int number, UserId author) {
-        return new TemplateVersion(number, TEMPLATE, 1, DAY, author, AT, VersionStatus.PENDING_CONFIRMATION, null, null, null, null);
+        return new TemplateVersion(new NumberingRuleVersionId(TestIds.uuid(41)), number, TEMPLATE, 1, DAY, author, AT, VersionStatus.PENDING_CONFIRMATION, null, null, null, null);
     }
 
     static TemplateVersion confirmed(int number) {
-        return new TemplateVersion(number, TEMPLATE, 1, DAY, AUTHOR, AT, VersionStatus.CONFIRMED, CONFIRMER, AT, null, null);
+        return new TemplateVersion(new NumberingRuleVersionId(TestIds.uuid(42)), number, TEMPLATE, 1, DAY, AUTHOR, AT, VersionStatus.CONFIRMED, CONFIRMER, AT, null, null);
     }
 
     static NumberingRule rule(DocumentType type, TemplateVersion... versions) {
@@ -99,7 +100,7 @@ class NumberingRuleStateMachineTest {
     void aChangeLeavesTheConfirmedVersionInForce() {
         NumberingRule rule = rule(DocumentType.QUOTE, confirmed(1));
 
-        rule.propose(OTHER, 7, DAY, AUTHOR, AT);
+        rule.propose(new NumberingRuleVersionId(TestIds.uuid(61)), OTHER, 7, DAY, AUTHOR, AT);
 
         assertThat(rule.inForce()).hasValueSatisfying(v -> assertThat(v.number()).isEqualTo(1));
         assertThat(rule.pending()).hasValueSatisfying(v -> {
@@ -122,7 +123,7 @@ class NumberingRuleStateMachineTest {
     void aSecondChangeSupersedesTheWaitingVersion() {
         NumberingRule rule = rule(DocumentType.QUOTE, pending(1, AUTHOR));
 
-        rule.propose(OTHER, 7, DAY, AUTHOR, AT);
+        rule.propose(new NumberingRuleVersionId(TestIds.uuid(62)), OTHER, 7, DAY, AUTHOR, AT);
 
         assertThat(rule.versions()).extracting(TemplateVersion::status).containsExactly(VersionStatus.SUPERSEDED, VersionStatus.PENDING_CONFIRMATION);
         assertThat(rule.changedVersions()).hasSize(2);
@@ -201,7 +202,7 @@ class NumberingRuleStateMachineTest {
     void anInvalidProposalChangesNothing() {
         NumberingRule rule = rule(DocumentType.QUOTE, pending(1, null));
 
-        assertThatThrownBy(() -> rule.propose(OTHER, 0, DAY, AUTHOR, AT)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> rule.propose(new NumberingRuleVersionId(TestIds.uuid(63)), OTHER, 0, DAY, AUTHOR, AT)).isInstanceOf(IllegalArgumentException.class);
         assertThat(rule.versions()).hasSize(1);
         assertThat(rule.hasPendingEvents()).isFalse();
     }
@@ -210,7 +211,7 @@ class NumberingRuleStateMachineTest {
     @DisplayName("B1-H1 a confirmation names the version looked at: a different one is refused and confirms nothing")
     void aConfirmationOfAnotherVersionIsRefused() {
         NumberingRule rule = rule(DocumentType.QUOTE, pending(1, null));
-        rule.propose(OTHER, 7, DAY, AUTHOR, AT);
+        rule.propose(new NumberingRuleVersionId(TestIds.uuid(64)), OTHER, 7, DAY, AUTHOR, AT);
 
         assertThat(refusal(() -> rule.confirm(CONFIRMER, AT, DAY, new RuleVersion(1))).errorCode()).isEqualTo(NumberingError.PLATFORM_NUMBERING_VERSION_MISMATCH);
         assertThat(refusal(() -> rule.confirm(CONFIRMER, AT, DAY, new RuleVersion(1))).kind()).isEqualTo(ErrorKind.CONFLICT);
@@ -221,18 +222,18 @@ class NumberingRuleStateMachineTest {
     @DisplayName("B1-H3 a day before the confirmation day is refused, the author's date is kept; the same day and later days pass; a seeded default has no date to refuse")
     void anEffectiveDateBeforeTheConfirmationDayIsRefused() {
         NumberingRule rule = rule(DocumentType.QUOTE, confirmed(1));
-        rule.propose(OTHER, 7, DAY.minusDays(1), AUTHOR, AT);
+        rule.propose(new NumberingRuleVersionId(TestIds.uuid(65)), OTHER, 7, DAY.minusDays(1), AUTHOR, AT);
 
         DomainException refused = refusal(() -> rule.confirm(CONFIRMER, AT, DAY, new RuleVersion(2)));
 
         assertThat(refused.errorCode()).isEqualTo(NumberingError.PLATFORM_NUMBERING_EFFECTIVE_DATE_PASSED);
         assertThat(refused.kind()).isEqualTo(ErrorKind.UNPROCESSABLE);
         assertThat(rule.pending()).hasValueSatisfying(v -> assertThat(v.effectiveFrom()).isEqualTo(DAY.minusDays(1)));
-        rule.propose(OTHER, 7, DAY, AUTHOR, AT);
+        rule.propose(new NumberingRuleVersionId(TestIds.uuid(66)), OTHER, 7, DAY, AUTHOR, AT);
         rule.confirm(CONFIRMER, AT, DAY, new RuleVersion(3));
         assertThat(rule.inForce()).hasValueSatisfying(v -> assertThat(v.number()).isEqualTo(3));
 
-        NumberingRule seeded = rule(DocumentType.QUOTE, new TemplateVersion(1, TEMPLATE, 1, DAY.minusYears(26), null, AT, VersionStatus.PENDING_CONFIRMATION, null, null, null, null));
+        NumberingRule seeded = rule(DocumentType.QUOTE, new TemplateVersion(new NumberingRuleVersionId(TestIds.uuid(43)), 1, TEMPLATE, 1, DAY.minusYears(26), null, AT, VersionStatus.PENDING_CONFIRMATION, null, null, null, null));
         seeded.confirm(CONFIRMER, AT, DAY, new RuleVersion(1));
         assertThat(seeded.inForce()).isPresent();
     }
@@ -240,9 +241,9 @@ class NumberingRuleStateMachineTest {
     @Test
     @DisplayName("B1-H3 the version in force on a business date is the highest confirmed one that has started by then")
     void theVersionInForceFollowsTheBusinessDate() {
-        TemplateVersion first = new TemplateVersion(1, TEMPLATE, 1, DAY, AUTHOR, AT, VersionStatus.CONFIRMED, CONFIRMER, AT, null, null);
-        TemplateVersion second = new TemplateVersion(2, OTHER, 1, DAY.plusDays(10), AUTHOR, AT, VersionStatus.CONFIRMED, CONFIRMER, AT, null, null);
-        TemplateVersion waiting = new TemplateVersion(3, OTHER, 1, DAY.plusDays(5), AUTHOR, AT, VersionStatus.PENDING_CONFIRMATION, null, null, null, null);
+        TemplateVersion first = new TemplateVersion(new NumberingRuleVersionId(TestIds.uuid(44)), 1, TEMPLATE, 1, DAY, AUTHOR, AT, VersionStatus.CONFIRMED, CONFIRMER, AT, null, null);
+        TemplateVersion second = new TemplateVersion(new NumberingRuleVersionId(TestIds.uuid(45)), 2, OTHER, 1, DAY.plusDays(10), AUTHOR, AT, VersionStatus.CONFIRMED, CONFIRMER, AT, null, null);
+        TemplateVersion waiting = new TemplateVersion(new NumberingRuleVersionId(TestIds.uuid(46)), 3, OTHER, 1, DAY.plusDays(5), AUTHOR, AT, VersionStatus.PENDING_CONFIRMATION, null, null, null, null);
         NumberingRule rule = rule(DocumentType.QUOTE, first, second, waiting);
 
         assertThat(rule.inForceOn(DAY.minusDays(1))).isEmpty();
