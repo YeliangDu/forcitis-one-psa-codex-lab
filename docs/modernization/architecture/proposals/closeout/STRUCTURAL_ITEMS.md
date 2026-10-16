@@ -23,3 +23,4 @@
 | S-19 | finance 样板 | 报销被借款全额冲抵、净额为零时不确认应付，PRC-133 不触发，报销停在「已核定」 | 采纳：净额为零时 B-09 经 api 调 B-12「标记费用报销已付」，带结清方式「借款冲抵」（既有边 B-09 → B-12 加 api 方式，无新边）；「已付」是否改称「已结清」交 one-glossary | finance 组改 PRC-87 第 8 步分支 |
 | S-20 | people 回补 | 员工法人三口径不一致预警策略放 B-13 还是 B-15 | 放 B-15：三口径中个税扣缴义务人在 B-15（AGG-93），其余两口径在 B-13，B-15 → B-13 已有依赖可读，放 B-13 则要反向依赖 B-15 | people 组改 PRC-83 第 7 步 |
 | S-21 | people 回补 | B-31 四个新聚合需要信息图对象（暂记 OBJ-新-P1–P4）与新不变量（INV-新-P1–P4） | 合并聚合稿时统一编号：对象接 OBJ-113 起、不变量接聚合稿当前最大号之后；AGG-115 使用期间排他约束的边界问题随 B-31 评审定 | 本会话合并聚合稿时处理 |
+| S-22 | revenue 回补 | 协议借阅催还：新增边 B-05 → platform.integration，还是平台订阅领域事件 | 加边 B-05 → platform.integration：与现有方向一致（业务模块依赖平台模块，如 organization.workforce → platform.integration）；平台订阅业务事件会让平台依赖业务模块，不采用。「申请借阅协议」删去，借阅申请作 platform.approval 载荷，审批结果由 B-05 订阅后执行「登记协议借出」（同 cost.timesheet 接审批的做法，边 B-05 → platform.approval） | revenue 组改；聚合稿与依赖边回补 |
