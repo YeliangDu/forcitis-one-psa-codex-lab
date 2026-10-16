@@ -8,6 +8,7 @@ import com.forcitis.one.kernel.Uuids;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.domain.JavaMethod;
+import com.tngtech.archunit.core.domain.JavaModifier;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -68,6 +69,32 @@ class IdMakingGuardTest {
         return problems;
     }
 
+    /**
+     * The id of an aggregate root is final: a repository cannot hand a root its id later, whether in a method that returns the root, a void save or a
+     * private helper. A field is taken for the root's own id when it is called id, is called after the root, or is called after its own type (userId of
+     * UserId); a typed reference to another aggregate (releasedByRunId) is not. A root whose id is named otherwise is not seen here and stays under the
+     * repository rule above.
+     */
+    static List<String> mutableRootIdProblems(JavaClasses classes) {
+        List<String> problems = new ArrayList<>();
+        for (JavaClass type : classes) {
+            if (!type.isAssignableTo(AggregateRoot.class) || type.isEquivalentTo(AggregateRoot.class)) {
+                continue;
+            }
+            String named = decapitalise(type.getSimpleName()) + "Id";
+            type.getFields().stream()
+                    .filter(field -> !field.getModifiers().contains(JavaModifier.STATIC) && !field.getModifiers().contains(JavaModifier.FINAL))
+                    .filter(field -> field.getName().equals("id") || field.getName().equals(named)
+                            || field.getRawType().getSimpleName().endsWith("Id") && field.getName().equals(decapitalise(field.getRawType().getSimpleName())))
+                    .forEach(field -> problems.add(type.getName() + "." + field.getName() + " is an id that is not final: the id of a root is set when it is built, never later (ADR-0033 section 1 item 9)"));
+        }
+        return problems;
+    }
+
+    private static String decapitalise(String name) {
+        return Character.toLowerCase(name.charAt(0)) + name.substring(1);
+    }
+
     /** Classes other than kernel.Uuids that call UUID.randomUUID. */
     static List<String> randomUuidProblems(JavaClasses classes, Set<String> excepted) {
         List<String> problems = new ArrayList<>();
@@ -93,6 +120,12 @@ class IdMakingGuardTest {
     @DisplayName("no repository makes the id of the aggregate root it returns (ADR-0033 section 1 item 9)")
     void repositoriesDoNotMakeRootIds() throws IOException {
         assertThat(repositoryProblems(ArchitectureRulesTest.CLASSES, type -> type.getPackageName().contains(".infrastructure.persistence"), read(REPOSITORY_EXCEPTIONS))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("the id of every aggregate root is final, so no repository can make it afterwards")
+    void rootIdsAreFinal() {
+        assertThat(mutableRootIdProblems(ArchitectureRulesTest.CLASSES)).isEmpty();
     }
 
     @Test
@@ -124,10 +157,52 @@ class IdMakingGuardTest {
         }
     }
 
+    static final class RootWithAnIdTheRepositoryFills extends AggregateRoot {
+        private UUID id;
+
+        RootWithAnIdTheRepositoryFills() {
+            super(0, 0);
+        }
+    }
+
+    static final class RootWithAFinalId extends AggregateRoot {
+        private final UUID id = null;
+        private String status;
+
+        RootWithAFinalId() {
+            super(0, 0);
+        }
+    }
+
+    static final class VoidSaveFillsTheRootId {
+        private final IdGenerator ids = null;
+
+        void save(RootWithAnIdTheRepositoryFills root) {
+            root.id = ids.next();
+        }
+
+        void save2(RootWithAnIdTheRepositoryFills root) {
+            fill(root);
+        }
+
+        private void fill(RootWithAnIdTheRepositoryFills root) {
+            root.id = ids.next();
+        }
+    }
+
     static final class CallsRandomUuid {
         UUID make() {
             return UUID.randomUUID();
         }
+    }
+
+    @Test
+    @DisplayName("injected: a root whose id is not final is caught however the repository fills it (void save, private helper); a final id and other mutable fields are not")
+    void theRootIdGuardCatchesInjectedSamples() {
+        JavaClasses sample = new ClassFileImporter().importClasses(RootWithAnIdTheRepositoryFills.class, RootWithAFinalId.class, VoidSaveFillsTheRootId.class);
+
+        assertThat(mutableRootIdProblems(sample)).containsExactly(RootWithAnIdTheRepositoryFills.class.getName()
+                + ".id is an id that is not final: the id of a root is set when it is built, never later (ADR-0033 section 1 item 9)");
     }
 
     @Test
