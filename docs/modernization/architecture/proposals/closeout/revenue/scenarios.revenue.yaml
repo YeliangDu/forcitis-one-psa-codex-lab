@@ -1561,7 +1561,7 @@ PRC-46:
 PRC-47:
 - id: PRC-47-S01
   path: 1→2→3→4→5 通过→6 回签
-  outcome: 已签署生效
+  outcome: 协议已签署生效、付款条件项生效
   covers:
   - 第 5 步「审批通过」
   - 第 6 步 otherwise
@@ -1605,7 +1605,7 @@ PRC-47:
   expect: 评审实例撤回，协议保持草案，可修改后另行发起评审
 - id: PRC-47-S08
   path: 5 合同金额超阈值或相对方为关联方→加审后通过→6
-  outcome: 已签署生效
+  outcome: 协议已签署生效、付款条件项生效
   covers:
   - 第 5 步加审（AR-01、AR-02、AR-07）
   expect: 在责任人一级审批后按命中规则加一级（最多两级），通过后进入回签
@@ -2300,7 +2300,7 @@ PRC-68:
 PRC-69:
 - id: PRC-69-S01
   path: 1 otherwise→2 otherwise→3 otherwise
-  outcome: 角色已合格
+  outcome: 往来单位角色合格
   covers:
   - 第 1 步 otherwise
   - 第 2 步 otherwise

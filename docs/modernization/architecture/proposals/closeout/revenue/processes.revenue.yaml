@@ -5804,7 +5804,7 @@ processes:
   - type: human
     name: 直接委托经审批的直建例外，商务起草（INV-06）
   outcomes:
-  - 已签署生效
+  - 协议已签署生效、付款条件项生效
   - 签约被拒
   - 已撤回
   scenarios:
@@ -6033,7 +6033,7 @@ processes:
       name: 审批已通过
     permission: 协议.回签
     page: 协议回签登记页
-    outcome: 已签署生效
+    outcome: 协议已签署生效、付款条件项生效
     audit: true
     metric_event: true
     legal_entity: 承担法人
@@ -8384,7 +8384,7 @@ processes:
   - type: human
     name: 项目经理或职能提出新供方，申请往来单位角色
   outcomes:
-  - 角色已合格
+  - 往来单位角色合格
   - 准入未通过
   - 角色已暂停
   - 角色已停用
@@ -8504,7 +8504,7 @@ processes:
       p: 0.02
     - when: otherwise
       goto: end
-      outcome: 角色已合格
+      outcome: 往来单位角色合格
       p: 0.95
     cross_bc:
     - mode: api
@@ -8520,7 +8520,7 @@ processes:
     page: 往来单位角色核准页
     audit: true
     metric_event: true
-    outcome: 角色已合格
+    outcome: 往来单位角色合格
     effort:
       typical_min: 10
       p90_min: 30
@@ -9299,7 +9299,7 @@ processes:
       goto: 3
     gap: 命令缺口：SCR 聚合稿 §2.2 的 AGG-13 命令列与事件列均未列「标记协议借阅逾期」「协议借阅已逾期」（回补 NOTES 称已列，待 one-architecture 核对）
   frequency_ref: 待取证（E-B1）；经验估计：每月约 4 笔
-  support: 行政支持活动：只处理已归档合同原件的保管与流转，不改变任何价值流阶段的进入或退出对象状态（VS-04.1 出口为协议已签署生效，归档与借阅不影响）；C-4 已定走通用审批（intent 144943）
+  support: 合同档案支持活动（合同模块档案功能，C-4，intent 144943）：只处理已归档合同原件的借阅流转，不改变任何价值流阶段的进入或退出对象状态
 - id: PRC-141
   name: 销售合同归档
   trigger:
@@ -9388,7 +9388,7 @@ processes:
       typical_min: 15
       p90_min: 30
   frequency_ref: 待取证（E-B1）；经验估计：每月约 15 份
-  support: 行政支持活动：合同回签后原件移交档案，不改变 VS-04.1 出口状态（协议已签署生效）；C-4 归档并入合同模块档案功能（intent 144943）
+  support: 合同档案支持活动（C-4 归档并入合同模块档案功能，intent 144943）：回签后原件移交档案，不改变 VS-04.1 退出状态
 - id: PRC-149
   name: 冲销收入确认
   added_in: closeout
@@ -10540,7 +10540,7 @@ event_policies:
       department_hint: 行政或档案部门
       position_hint: 档案管理员
   frequency_ref: 待取证（E-B1）；经验估计：每月约 2 次
-  support: 行政支持活动：借阅逾期催还，随 PRC-140，不改变任何阶段状态
+  support: 合同档案支持活动：借阅逾期催还，随 PRC-140，不改变任何阶段状态
 - id: PRC-147
   name: 费用报销核定后冲抵员工借款并确认应付
   trigger:
