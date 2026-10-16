@@ -26,9 +26,9 @@ final class SingleOperatorModeProcess {
 
     static Ended runToEnd(List<String> arguments) throws IOException, InterruptedException {
         List<String> command = new ArrayList<>(List.of(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-Duser.timezone=UTC", "-cp",
-                System.getProperty("java.class.path"), SingleOperatorModeLauncher.class.getName()));
+                System.getProperty("java.class.path").replaceAll(":$", ""), SingleOperatorModeLauncher.class.getName()));
         command.addAll(arguments);
-        Process process = new ProcessBuilder(command).directory(new java.io.File(System.getProperty("java.io.tmpdir"))).redirectErrorStream(true).start();
+        Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
         List<String> lines = Collections.synchronizedList(new ArrayList<>());
         Thread reader = Thread.ofVirtual().start(() -> {
             try (BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {

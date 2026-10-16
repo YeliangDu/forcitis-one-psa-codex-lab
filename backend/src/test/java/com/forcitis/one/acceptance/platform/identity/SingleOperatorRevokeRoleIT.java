@@ -1,6 +1,7 @@
 package com.forcitis.one.acceptance.platform.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.verify;
 
 import com.forcitis.one.fixture.doubles.TestAccounts;
@@ -29,19 +30,21 @@ class SingleOperatorRevokeRoleIT extends SingleOperatorIdentitySupport {
     }
 
     private long sessionsOf(long id) {
-        return jdbc.sql("select count(*) from platform_identity.sessions where user_id = (select user_id from platform_identity.user_accounts where employee_id = :employee)")
+        return jdbc.sql("select count(*) from platform_identity.sessions where principal_name = (select cast(user_id as text) from platform_identity.user_accounts where employee_id = :employee)")
                 .param("employee", TestAccounts.employee(id).value()).query(Long.class).single();
     }
 
     @Test
     @DisplayName("SINGLE-OP P2-17 revoke-role 收回已持有的角色：账号不再持有，该人全部会话被吊销（他人的不动），权限缓存被清，发布账号角色变更事件，写审计 operations.account.role.revoked（detail 同 grant-role 的格式）")
     void p217_revokingAHeldRole() throws Exception {
+        knownEmployee(1001, EmploymentStatus.EMPLOYED);
         assertThat(run(attested("grant-role", employee(1001), "--role-code=business_admin")).exitCode()).isZero();
         loginWithWecom(1001);
         loginWithWecom(1002);
         assertThat(sessionsOf(1001)).isPositive();
         long othersSessions = sessionsOf(1002);
         assertThat(holds(1001, "business_admin")).isTrue();
+        clearInvocations(cacheSpy);
 
         Result result = run(attested("revoke-role", employee(1001), "--role-code=business_admin"));
 
