@@ -11,7 +11,6 @@ import com.forcitis.one.organization.attendance.domain.CalendarDay;
 import com.forcitis.one.organization.attendance.api.DayKind;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarKey;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarYear;
-import com.forcitis.one.organization.workforce.api.AttributionKind;
 import com.forcitis.one.organization.workforce.api.AttributionSubject;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
@@ -83,10 +82,10 @@ class EventSequenceContinuityTest {
     @Test
     @DisplayName("UserAccount: events are numbered 1..n and a save without events leaves the sequence alone")
     void userAccount() {
-        checkMany(() -> UserAccount.restore(TestAccounts.account(1), new EmployeeId(1), "ENABLED", Set.of(), 0, 0), List.of(
+        checkMany(() -> UserAccount.restore(TestAccounts.account(1), TestAccounts.employee(1), "ENABLED", Set.of(), 0, 0), List.of(
                 UserAccount::enable, UserAccount::disable, a -> a.declareEnabled(true), a -> a.declareEnabled(false),
                 a -> a.replaceRoles(Set.of(new RoleId(TestIds.uuid(2)), new RoleId(TestIds.uuid(3))))));
-        checkMany(() -> UserAccount.open(TestAccounts.account(2), new EmployeeId(2), Set.of(new RoleId(TestIds.uuid(1)))), List.of(UserAccount::disable, UserAccount::enable));
+        checkMany(() -> UserAccount.open(TestAccounts.account(2), TestAccounts.employee(2), Set.of(new RoleId(TestIds.uuid(1)))), List.of(UserAccount::disable, UserAccount::enable));
     }
 
     @Test
@@ -153,7 +152,7 @@ class EventSequenceContinuityTest {
     @DisplayName("LegalEntityAttribution: events are numbered 1..n")
     void legalEntityAttribution() {
         Random dates = new Random(7);
-        checkMany(() -> LegalEntityAttribution.empty(new AttributionSubject(AttributionKind.ORG_UNIT, 3)), List.of(
+        checkMany(() -> LegalEntityAttribution.empty(AttributionSubject.of(com.forcitis.one.fixture.doubles.TestOrgIds.orgUnit(3))), List.of(
                 a -> a.attribute(new LegalEntityId(TestIds.uuid(1 + dates.nextInt(2))), LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(400))),
                 a -> a.end(LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(800))),
                 a -> a.correct(LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(400)), LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(800)),
@@ -163,11 +162,11 @@ class EventSequenceContinuityTest {
     @Test
     @DisplayName("RegisteredEmployee: its one event is numbered after the stored sequence")
     void registeredEmployee() {
-        com.forcitis.one.kernel.EmployeeId id = new com.forcitis.one.kernel.EmployeeId(42);
+        com.forcitis.one.kernel.EmployeeId id = TestAccounts.employee(42);
         var staff = new com.forcitis.one.organization.workforce.domain.StaffEmployee(
                 new com.forcitis.one.organization.workforce.domain.Employee(id, "E42", "Synthetic", "synthetic", null, null, null,
                         com.forcitis.one.organization.workforce.api.EmploymentStatus.EMPLOYED, false),
-                new com.forcitis.one.organization.workforce.domain.Assignment(id, new com.forcitis.one.organization.workforce.api.OrgUnitId(3), null, null));
+                new com.forcitis.one.organization.workforce.domain.Assignment(id, com.forcitis.one.fixture.doubles.TestOrgIds.orgUnit(3), null, null));
         var registered = com.forcitis.one.organization.workforce.domain.RegisteredEmployee.onFirstLogin(staff, 4, 6);
 
         assertThat(registered.drainEvents(TestEnvelopes.INSTANCE)).extracting(e -> e.envelope().aggregateVersion()).containsExactly(7L);
@@ -201,7 +200,7 @@ class EventSequenceContinuityTest {
     @DisplayName("OutboundDelivery: it announces no event, so its sequence stays where it was while the lock version moves")
     void outboundDelivery() {
         checkMany(() -> com.forcitis.one.platform.integration.domain.OutboundDelivery.restore(
-                        new com.forcitis.one.platform.integration.domain.OutboundDeliveryId(TestIds.uuid(1)), "approval-task:42",
+                        new com.forcitis.one.platform.integration.domain.OutboundDeliveryId(TestIds.uuid(1)), com.forcitis.one.platform.integration.api.DeliverySubject.of(com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ASSIGNED, TestIds.uuid(42)),
                         List.of(new WecomUserId("alice")), "title", "description", null, "PENDING", 0, null, null, null,
                         com.forcitis.one.platform.integration.domain.DeliveryKind.CARD, null, java.util.UUID.randomUUID(), 0, 0),
                 List.of(d -> d.markSent("0", NOW), d -> d.scheduleRetry(NOW, "later"), d -> d.deadLetter("gave up"), d -> d.skip("not allowed")));

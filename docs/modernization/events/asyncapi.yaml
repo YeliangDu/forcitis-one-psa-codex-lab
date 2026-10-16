@@ -1356,6 +1356,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           processKey:
             type: string
             enum:
@@ -1363,6 +1364,7 @@ components:
           instanceId:
             type: string
             x-type: ApprovalInstanceId
+            format: uuid
             description: 流程实例 ID
           round:
             type: object
@@ -1389,6 +1391,7 @@ components:
           initiator:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 发起人，完成卡片发给他
           returnSource:
             type: string
@@ -1450,9 +1453,11 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           initiator:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 提交单据的员工，由所有者记录，不取自客户端
           round:
             type: object
@@ -1500,7 +1505,7 @@ components:
     TaskAssigned:
       name: TaskAssigned
       title: 任务已分配（每位会签审批人一个任务）
-      description: 任务已分配，每位会签审批人一个任务；过程事实，不过账。platform.approval 的通知监听器据此给每个候选人发企业微信文本卡片（去重键 approval-task:{taskId}）。系统自动通过的任务（RULE-302）不发此事件，发 TaskResulted（AUTOMATIC）。分析层 L1 以此为审批等待时长的起点。
+      description: 任务已分配，每位会签审批人一个任务；过程事实，不过账。platform.approval 的通知监听器据此给每个候选人发企业微信文本卡片（去重键为对象类别 + 对象 ID + 用途 + 触发事件）。系统自动通过的任务（RULE-302）不发此事件，发 TaskResulted（AUTOMATIC）。分析层 L1 以此为审批等待时长的起点。
       x-event:
         eventType: platform.approval.TaskAssigned
         version: 1
@@ -1537,11 +1542,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           processKey:
             type: string
           processName:
@@ -1566,6 +1573,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -1583,6 +1591,7 @@ components:
           initiator:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           candidates:
             type: array
@@ -1635,11 +1644,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -1655,6 +1666,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           claimedBy:
             type: string
             x-type: UserId
@@ -1698,11 +1710,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           processKey:
             type: string
           document:
@@ -1720,6 +1734,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -1789,11 +1804,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -1809,6 +1826,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -1867,11 +1885,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -1887,6 +1907,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -1940,11 +1961,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -1960,6 +1983,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -2013,11 +2037,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -2033,6 +2059,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -2082,11 +2109,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -2102,6 +2131,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -2158,11 +2188,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -2178,6 +2210,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -2231,6 +2264,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           processKey:
             type: string
             enum:
@@ -2238,6 +2272,7 @@ components:
           instanceId:
             type: string
             x-type: ApprovalInstanceId
+            format: uuid
             description: 本轮流程实例 ID
           round:
             type: object
@@ -2249,6 +2284,7 @@ components:
           initiator:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 发起人
     WorkCalendarYearMaintained:
       name: WorkCalendarYearMaintained
@@ -3310,9 +3346,11 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -3337,6 +3375,7 @@ components:
           projectManager:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 项目经理，工时审批第一道审批人
           submittedOn:
             type: string
@@ -3387,9 +3426,11 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -3450,9 +3491,11 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -3520,9 +3563,11 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -3590,9 +3635,11 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -3827,16 +3874,19 @@ components:
             items:
               type: string
               x-type: EmployeeId
+              format: uuid
           separatedEmployees:
             type: array
             items:
               type: string
               x-type: EmployeeId
+              format: uuid
           changedOrgUnits:
             type: array
             items:
               type: string
               x-type: OrgUnitId
+              format: uuid
           effectiveFrom:
             type: string
             x-type: LocalDate
@@ -4037,6 +4087,7 @@ components:
           employeeId:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
     LegalEntityAttributed:
       name: LegalEntityAttributed
@@ -4060,15 +4111,25 @@ components:
         type: object
         required:
         - envelope
-        - subject
+        - kind
+        - subjectId
         - legalEntityId
         - effectiveFrom
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
-          subject:
+          kind:
             type: string
-            x-type: AttributionSubject
+            enum:
+            - ORG_UNIT
+            - EMPLOYEE
+            x-type: AttributionKind
+            description: 归属对象类别：ORG_UNIT 部门 / EMPLOYEE 员工
+          subjectId:
+            type: string
+            format: uuid
+            x-type: AttributionSubjectId
+            description: 归属对象的自有 ID：部门 ID 或员工 ID（UUID，DA-5、RULING-P3B-D5）
           legalEntityId:
             type: string
             format: uuid
@@ -4098,15 +4159,25 @@ components:
         type: object
         required:
         - envelope
-        - subject
+        - kind
+        - subjectId
         - legalEntityId
         - effectiveTo
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
-          subject:
+          kind:
             type: string
-            x-type: AttributionSubject
+            enum:
+            - ORG_UNIT
+            - EMPLOYEE
+            x-type: AttributionKind
+            description: 归属对象类别：ORG_UNIT 部门 / EMPLOYEE 员工
+          subjectId:
+            type: string
+            format: uuid
+            x-type: AttributionSubjectId
+            description: 归属对象的自有 ID：部门 ID 或员工 ID（UUID，DA-5、RULING-P3B-D5）
           legalEntityId:
             type: string
             format: uuid
@@ -4136,7 +4207,8 @@ components:
         type: object
         required:
         - envelope
-        - subject
+        - kind
+        - subjectId
         - legalEntityId
         - periodFrom
         - previousEffectiveTo
@@ -4145,9 +4217,18 @@ components:
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
-          subject:
+          kind:
             type: string
-            x-type: AttributionSubject
+            enum:
+            - ORG_UNIT
+            - EMPLOYEE
+            x-type: AttributionKind
+            description: 归属对象类别：ORG_UNIT 部门 / EMPLOYEE 员工
+          subjectId:
+            type: string
+            format: uuid
+            x-type: AttributionSubjectId
+            description: 归属对象的自有 ID：部门 ID 或员工 ID（UUID，DA-5、RULING-P3B-D5）
           legalEntityId:
             type: string
             format: uuid

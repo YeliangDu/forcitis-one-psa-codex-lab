@@ -15,8 +15,8 @@
       <sequenceFlow id="toProjectManagerReview" sourceRef="reviewFork" targetRef="projectManagerReview">
         <conditionExpression xsi:type="tFormalExpression">${vars:getOrDefault('routed_projectManagerReview', false)}</conditionExpression>
       </sequenceFlow>
-      <sequenceFlow id="toRegionalHeadReview" sourceRef="reviewFork" targetRef="regionalHeadReview">
-        <conditionExpression xsi:type="tFormalExpression">${vars:getOrDefault('routed_regionalHeadReview', false)}</conditionExpression>
+      <sequenceFlow id="toOrgUnitHeadApproval" sourceRef="reviewFork" targetRef="orgUnitHeadApproval">
+        <conditionExpression xsi:type="tFormalExpression">${vars:getOrDefault('routed_orgUnitHeadApproval', false)}</conditionExpression>
       </sequenceFlow>
       <sequenceFlow id="toSupervisorReview" sourceRef="reviewFork" targetRef="supervisorReview">
         <conditionExpression xsi:type="tFormalExpression">${vars:getOrDefault('routed_supervisorReview', false)}</conditionExpression>
@@ -27,9 +27,9 @@
                                    autoApproveRepeat="true" deadlineWorkdays="1" escalationWorkdays="1"/>
         </extensionElements>
       </userTask>
-      <userTask id="regionalHeadReview" name="区域负责人审批">
+      <userTask id="orgUnitHeadApproval" name="部门负责人审批">
         <extensionElements>
-          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="regionalHeadId" routingFlag="preSalesHours" skipWhenEmpty="true"
+          <forcitis:assignmentRule type="FORM_FIELD_USERS" field="orgUnitHeadId" routingFlag="preSalesHours" skipWhenEmpty="true"
                                    autoApproveRepeat="true" deadlineWorkdays="1" escalationWorkdays="1"/>
         </extensionElements>
       </userTask>
@@ -40,7 +40,7 @@
         </extensionElements>
       </userTask>
       <sequenceFlow id="fromProjectManagerReview" sourceRef="projectManagerReview" targetRef="reviewJoin"/>
-      <sequenceFlow id="fromRegionalHeadReview" sourceRef="regionalHeadReview" targetRef="reviewJoin"/>
+      <sequenceFlow id="fromOrgUnitHeadApproval" sourceRef="orgUnitHeadApproval" targetRef="reviewJoin"/>
       <sequenceFlow id="fromSupervisorReview" sourceRef="supervisorReview" targetRef="reviewJoin"/>
       <inclusiveGateway id="reviewJoin"/>
       <sequenceFlow id="toReviewEnd" sourceRef="reviewJoin" targetRef="reviewEnd"/>

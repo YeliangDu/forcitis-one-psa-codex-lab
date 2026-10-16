@@ -95,13 +95,13 @@ public final class CrossTypeIdComparisons {
     }
 
     public boolean boundaryLongLocals(OrgUnitId user, EmployeeId employee) {
-        long first = user.value();
-        long second = employee.value();
-        return first == second;
+        java.util.UUID first = user.value();
+        java.util.UUID second = employee.value();
+        return first.equals(second);
     }
 
     public boolean boundaryLongCompare(OrgUnitId user, EmployeeId employee) {
-        return Long.compare(user.value(), employee.value()) == 0;
+        return user.value().compareTo(employee.value()) == 0;
     }
 
     public boolean boundaryValueAsText(UserId user, EmployeeId employee) {
@@ -137,8 +137,8 @@ public final class CrossTypeIdComparisons {
         return Optional.of(user).map(unit -> new EmployeeId(unit.value())).orElseThrow();
     }
 
-    public OrgUnitId rightBuiltFromAnythingElse(long number, OrgUnitId user) {
-        return new OrgUnitId(number > 0 ? number : user.value());
+    public OrgUnitId rightBuiltFromAnythingElse(java.util.UUID number, OrgUnitId user) {
+        return new OrgUnitId(number != null ? number : user.value());
     }
 
     public boolean rightSameKindRebuilt(UserId user) {
@@ -161,7 +161,7 @@ public final class CrossTypeIdComparisons {
         return users.contains(anything);
     }
 
-    public boolean rightPlainCollections(Set<String> names, List<Long> numbers, EmployeeId employee) {
+    public boolean rightPlainCollections(Set<String> names, List<java.util.UUID> numbers, EmployeeId employee) {
         return names.contains("x") || numbers.contains(employee.value());
     }
 

@@ -4,7 +4,7 @@ terms:
   zh: 快照日
   en: SnapshotDate
   snake: snapshot_date
-  kind: value
+  kind: value_object
   bc: organization.workforce
   scope: acl
   acl_class: "过渡期"

@@ -1,6 +1,7 @@
 package com.forcitis.one.cost.timesheet.application;
 
 import com.forcitis.one.fixture.doubles.TestAccounts;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -136,7 +137,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     }
 
     static DocumentReference documentOf(TimesheetId id) {
-        return new DocumentReference(DocumentType.TIMESHEET, new DocumentId(String.valueOf(id.value())));
+        return new DocumentReference(DocumentType.TIMESHEET, new DocumentId(id.value()));
     }
 
     TimesheetView submit(TimesheetId id, String hours) {
@@ -145,7 +146,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
 
     TimesheetView submit(TimesheetId id, LocalDate workDate, String hours) {
         signInAs(employee);
-        return submitTimesheet.execute(new SubmitTimesheetCommand(id, workDate, Hours.of(hours), new EmployeeId(manager)));
+        return submitTimesheet.execute(new SubmitTimesheetCommand(id, workDate, Hours.of(hours), TestAccounts.employee(manager)));
     }
 
     /** Submits and waits until the approval has started from the event: its first task has been assigned. */
@@ -167,12 +168,12 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     }
 
     ApprovalTaskId taskOf(TimesheetId id) {
-        return new ApprovalTaskId(inboxOf(id).getFirst().taskId());
+        return new ApprovalTaskId(java.util.UUID.fromString(inboxOf(id).getFirst().taskId()));
     }
 
     List<com.forcitis.one.platform.approval.application.InboxItem> inboxOf(TimesheetId id) {
         return listInbox.execute(TestAccounts.account(manager), com.forcitis.one.platform.approval.application.ListPage.first()).items().stream()
-                .filter(item -> item.documentId().filter(String.valueOf(id.value())::equals).isPresent()).toList();
+                .filter(item -> item.documentId().filter(id.value()::equals).isPresent()).toList();
     }
 
     static void domainError(Throwable thrown, com.forcitis.one.kernel.ErrorCode expected) {
@@ -208,7 +209,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         scenario.stimulate(() -> decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty()))
                 .andWaitForEventOfType(TimesheetApproved.class).matching(e -> e.document().equals(document)).toArriveAndVerify(e -> {
                     assertThat(e.round()).isEqualTo(new RoundNumber(1));
-                    assertThat(e.employee()).isEqualTo(new EmployeeId(employee));
+                    assertThat(e.employee()).isEqualTo(TestAccounts.employee(employee));
                     assertThat(e.submittedHours()).isEqualTo(Hours.of("8"));
                     assertThat(e.envelope().aggregateVersion()).as("submitted = 1, approval requested = 2, approved = 3").isEqualTo(3);
                     assertThat(e.envelope().eventType()).isEqualTo("cost.timesheet.TimesheetApproved");
@@ -268,7 +269,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         EventEnvelope envelope = envelope("platform.approval.ApprovalCompleted", "ApprovalRequest", "TIMESHEET:" + id.value(), 9);
 
         tx.executeWithoutResult(s -> applyApprovalResult.apply(new ApprovalCompleted(envelope, document, ProcessKey.COST_TIMESHEET_APPROVAL,
-                new ApprovalInstanceId("i"), new RoundNumber(7), new EmployeeId(employee), ApprovalOutcome.APPROVED, null, null)));
+                com.forcitis.one.TestApprovalIds.instance("i"), new RoundNumber(7), TestAccounts.employee(employee), ApprovalOutcome.APPROVED, null, null)));
 
         assertThat(view(id).status()).isEqualTo(TimesheetStatus.SUBMITTED);
         assertThat(published.ofType(TimesheetApproved.class).matching(e -> e.document().equals(document))).isEmpty();
@@ -278,11 +279,11 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     @DisplayName("G-1 an approval result that names no timesheet of ours is counted and logged, never thrown into the retry loop")
     void resultsForUnknownTimesheetsAreCounted() {
         double before = meters.counter("forcitis.cost.timesheet.approval.result.unknown").count();
-        for (String documentId : List.of("not-a-number", "999999999")) {
+        for (java.util.UUID documentId : List.of(com.forcitis.one.TestIds.uuid(900001), com.forcitis.one.TestIds.uuid(900002))) {
             EventEnvelope envelope = envelope("platform.approval.ApprovalCompleted", "ApprovalRequest", "TIMESHEET:" + documentId, 1);
             tx.executeWithoutResult(s -> applyApprovalResult.apply(new ApprovalCompleted(envelope,
                     new DocumentReference(DocumentType.TIMESHEET, new DocumentId(documentId)), ProcessKey.COST_TIMESHEET_APPROVAL,
-                    new ApprovalInstanceId("i"), new RoundNumber(1), new EmployeeId(employee), ApprovalOutcome.APPROVED, null, null)));
+                    com.forcitis.one.TestApprovalIds.instance("i"), new RoundNumber(1), TestAccounts.employee(employee), ApprovalOutcome.APPROVED, null, null)));
         }
         assertThat(meters.counter("forcitis.cost.timesheet.approval.result.unknown").count()).isEqualTo(before + 2);
     }
@@ -381,7 +382,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         signInAs(stranger);
 
         assertThatThrownBy(() -> submitTimesheet.execute(new SubmitTimesheetCommand(id, workDay(), Hours.of("1"),
-                new EmployeeId(manager)))).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_NOT_FOUND));
+                TestAccounts.employee(manager)))).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_NOT_FOUND));
         assertThatThrownBy(() -> withdrawTimesheet.execute(id, "mine", java.util.OptionalLong.empty())).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_NOT_FOUND));
         assertThatThrownBy(() -> cancelTimesheet.execute(id, "mine", java.util.OptionalLong.empty())).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_NOT_FOUND));
         assertThatThrownBy(() -> getTimesheet.execute(id)).satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_NOT_FOUND));
@@ -432,7 +433,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         TimesheetView view = submit(id, "1");
 
         assertThat(jdbc.queryForMap("select timesheet_number, org_unit_id, work_date, submitted_date, legal_entity_id from cost_timesheet.timesheets"
-                + " where id = ?", id.value())).containsEntry("timesheet_number", view.number().value()).containsEntry("org_unit_id", 1L)
+                + " where id = ?", id.value())).containsEntry("timesheet_number", view.number().value()).containsEntry("org_unit_id", TestOrgIds.orgUnit(1).value())
                 .containsEntry("work_date", java.sql.Date.valueOf(workDay())).containsEntry("submitted_date", java.sql.Date.valueOf(LocalDate.now(ZONE)))
                 .containsEntry("legal_entity_id", LEGAL_ENTITY.value());
         assertThat(view.period()).isEqualTo(com.forcitis.one.kernel.AccountingPeriod.containing(workDay()));
@@ -457,7 +458,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         signInAs(employee);
         long nobody = newId();
 
-        assertThatThrownBy(() -> submitTimesheet.execute(new SubmitTimesheetCommand(id, workDay(), Hours.of("1"), new EmployeeId(nobody))))
+        assertThatThrownBy(() -> submitTimesheet.execute(new SubmitTimesheetCommand(id, workDay(), Hours.of("1"), TestAccounts.employee(nobody))))
                 .satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_PROJECT_MANAGER_UNKNOWN));
         assertThat(jdbc.queryForObject("select count(*) from cost_timesheet.timesheets where id = ?", Integer.class, id.value())).isZero();
     }
@@ -515,7 +516,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         go.await();
         SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(TestAccounts.account(employee).value().toString(), "x", "ROLE_TEST"));
         try {
-            return submitTimesheet.execute(new SubmitTimesheetCommand(id, workDay(), Hours.of("6"), new EmployeeId(manager)));
+            return submitTimesheet.execute(new SubmitTimesheetCommand(id, workDay(), Hours.of("6"), TestAccounts.employee(manager)));
         } catch (RuntimeException refused) {
             return refused;
         } finally {

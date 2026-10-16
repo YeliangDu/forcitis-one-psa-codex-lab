@@ -23,6 +23,8 @@ import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.integration.api.WecomGateway;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.method.HandlerMethod;
 import com.forcitis.one.platform.identity.api.Permission;
@@ -51,7 +53,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -59,18 +60,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
         // The cached context closes after the container is gone; without a short timeout the engine's close waits 30 s for a connection.
         "spring.datasource.hikari.connection-timeout=2000",
         "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"})
 @AutoConfigureMockMvc
-@Testcontainers
 class ApplicationIntegrationTest {
     // Doubles stand in for the organisation: only the project manager 2002 exists.
     @MockitoBean
@@ -88,11 +86,12 @@ class ApplicationIntegrationTest {
     @MockitoBean
     AuditLog auditLog;
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = TestPostgres.container()
-            .withInitScript("init-schemas.sql")
-            .withUrlParam("currentSchema", "platform_approval");
+    static final TestDatabase postgres = TestPostgres.database(ApplicationIntegrationTest.class, TestPostgres.MIGRATED_TESTDATA).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     /** HTTP header names are fixed by RFC 9110 and the Idempotency-Key convention; they are not JSON names. */
     static final java.util.Set<String> STANDARD_HEADERS = java.util.Set.of("If-Match", "If-None-Match", "Idempotency-Key");
@@ -100,7 +99,7 @@ class ApplicationIntegrationTest {
     static final LegalEntityId LE1 = new LegalEntityId(TestIds.uuid(1));
 
     static final String SUBMIT = "/api/v1/cost/timesheets/7:submit";
-    static final String BODY = "{\"hours\":8,\"projectManagerId\":2002}";
+    static final String BODY = "{\"hours\":8,\"projectManagerId\":\"" + TestAccounts.employee(2002).value() + "\"}";
 
     @Autowired
     MockMvc mvc;
@@ -182,8 +181,8 @@ class ApplicationIntegrationTest {
 
     @BeforeEach
     void projectManagerExists() {
-        org.mockito.Mockito.when(orgDirectory.findEmployee(new EmployeeId(2002))).thenReturn(java.util.Optional.of(new EmployeeProfile(
-                new EmployeeId(2002), "person-2002", new OrgUnitId(1), null, EmploymentStatus.EMPLOYED, false)));
+        org.mockito.Mockito.when(orgDirectory.findEmployee(TestAccounts.employee(2002))).thenReturn(java.util.Optional.of(new EmployeeProfile(
+                TestAccounts.employee(2002), "person-2002", TestOrgIds.orgUnit(1), null, EmploymentStatus.EMPLOYED, false)));
     }
 
     @BeforeEach

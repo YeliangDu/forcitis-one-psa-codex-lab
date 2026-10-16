@@ -11,6 +11,7 @@ import com.forcitis.one.platform.identity.api.Permission;
 import com.jayway.jsonpath.JsonPath;
 import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,8 +39,8 @@ class AuthorizationConfirmerAccountsIT extends AccountsAcceptanceSupport {
     @ServiceConnection
     static PostgreSQLContainer postgres = database();
 
-    private long newAdministrator(long unit) {
-        long person = newEmployeeId();
+    private UUID newAdministrator(UUID unit) {
+        UUID person = newEmployeeId();
         try {
             employee(person, unit, null);
         } catch (java.sql.SQLException failed) {
@@ -49,7 +50,7 @@ class AuthorizationConfirmerAccountsIT extends AccountsAcceptanceSupport {
         return person;
     }
 
-    private SignedIn inAdministratorMode(long person) throws Exception {
+    private SignedIn inAdministratorMode(UUID person) throws Exception {
         return administratorMode(signIn(person));
     }
 
@@ -76,11 +77,11 @@ class AuthorizationConfirmerAccountsIT extends AccountsAcceptanceSupport {
     @Test
     @DisplayName("P2-M2 I-12 后半句（真实账号、生产会话，按用户 ID 比较）：给角色加敏感权限待第二人确认；申请人与该角色的持有人都不能确认（403 PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED），第三人可以")
     void aHolderOfTheChangedRoleCannotConfirm() throws Exception {
-        long unit = newOrgUnitId();
+        UUID unit = newOrgUnitId();
         orgUnit(unit, null, null);
-        long requesterEmployee = newAdministrator(unit);
-        long holderEmployee = newAdministrator(unit);
-        long thirdEmployee = newAdministrator(unit);
+        UUID requesterEmployee = newAdministrator(unit);
+        UUID holderEmployee = newAdministrator(unit);
+        UUID thirdEmployee = newAdministrator(unit);
         SignedIn requester = inAdministratorMode(requesterEmployee);
         MockHttpServletResponse created = mvc.perform(post(ROLES).with(csrf()).with(session(requester)).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"synthetic_task_reader\",\"name\":\"Synthetic task reader\",\"enabled\":true,\"permissionCodes\":[\""
@@ -107,7 +108,7 @@ class AuthorizationConfirmerAccountsIT extends AccountsAcceptanceSupport {
     @Test
     @DisplayName("P2-M2 授权申请的确认人不是申请人（真实账号、生产会话，按用户 ID 比较）：给人授敏感角色待确认；申请人与受益人都不能确认，第三人确认后生效；申请记录的 requestedBy、subjectUserId 是两人的 uuid")
     void theRequesterAndTheBeneficiaryCannotConfirm() throws Exception {
-        long unit = newOrgUnitId();
+        UUID unit = newOrgUnitId();
         orgUnit(unit, null, null);
         SignedIn requester = inAdministratorMode(newAdministrator(unit));
         SignedIn beneficiary = inAdministratorMode(newAdministrator(unit));

@@ -29,7 +29,7 @@ import com.forcitis.one.platform.approval.events.TaskResulted;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.integration.api.ExternalCallKind;
-import com.forcitis.one.platform.integration.api.ExternalConnections;
+import com.forcitis.one.platform.integration.domain.ExternalConnections;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
@@ -110,11 +110,11 @@ public abstract class ApprovalIntegrationSupport {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
-        registry.add("forcitis.platform.approval.legacy.url", POSTGRES::getJdbcUrl);
-        registry.add("forcitis.platform.approval.legacy.username", () -> "legacy_ro");
-        registry.add("forcitis.platform.approval.legacy.password", () -> LEGACY_PASSWORD);
-        registry.add("forcitis.platform.approval.legacy.view-name", () -> "legacy_fixture.v_psa_one_legacy_todo");
-        registry.add("forcitis.platform.approval.legacy.detail-url-template",
+        registry.add("forcitis.platform.integration.legacy.inbox.url", POSTGRES::getJdbcUrl);
+        registry.add("forcitis.platform.integration.legacy.inbox.username", () -> "legacy_ro");
+        registry.add("forcitis.platform.integration.legacy.inbox.password", () -> LEGACY_PASSWORD);
+        registry.add("forcitis.platform.integration.legacy.inbox.view-name", () -> "legacy_fixture.v_psa_one_legacy_todo");
+        registry.add("forcitis.platform.integration.legacy.inbox.detail-url-template",
                 () -> "https://legacy.example.test/bpm/detail?instance={processInstanceId}&task={taskId}");
     }
 
@@ -209,7 +209,7 @@ public abstract class ApprovalIntegrationSupport {
     }
 
     protected static String newKey(String prefix) {
-        return prefix + "-" + newId();
+        return UUID.nameUUIDFromBytes((prefix + "-" + newId()).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
     }
 
     protected ApprovalInstanceId start(String businessKey, long initiator, long manager) {
@@ -222,24 +222,24 @@ public abstract class ApprovalIntegrationSupport {
 
     protected ApprovalInstanceId start(String businessKey, long initiator, long manager, TimesheetRoutingFlag... flags) {
         Set<String> flagNames = java.util.Arrays.stream(flags).map(TimesheetRoutingFlag::flagName).collect(java.util.stream.Collectors.toSet());
-        return tx.execute(status -> approvals.start(startRequest(businessKey, new EmployeeId(initiator), flagNames,
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))))));
+        return tx.execute(status -> approvals.start(startRequest(businessKey, TestAccounts.employee(initiator), flagNames,
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(manager).toString()))))));
     }
 
     protected Task openTask(ApprovalInstanceId instance) {
-        return taskService.createTaskQuery().processInstanceId(instance.value()).singleResult();
+        return taskService.createTaskQuery().processInstanceId(instance.value().toString()).singleResult();
     }
 
     protected Task openTask(ApprovalInstanceId instance, String nodeKey) {
-        return taskService.createTaskQuery().processInstanceId(instance.value()).taskDefinitionKey(nodeKey).singleResult();
+        return taskService.createTaskQuery().processInstanceId(instance.value().toString()).taskDefinitionKey(nodeKey).singleResult();
     }
 
     protected ApprovalTaskId openTaskId(ApprovalInstanceId instance, String nodeKey) {
-        return new ApprovalTaskId(openTask(instance, nodeKey).getId());
+        return new ApprovalTaskId(java.util.UUID.fromString(openTask(instance, nodeKey).getId()));
     }
 
     protected ApprovalTaskId openTaskId(ApprovalInstanceId instance) {
-        return new ApprovalTaskId(openTask(instance).getId());
+        return new ApprovalTaskId(java.util.UUID.fromString(openTask(instance).getId()));
     }
 
     /** The round a person starting the document again would get: the running one while it runs, the next one after it ended. */
@@ -254,7 +254,7 @@ public abstract class ApprovalIntegrationSupport {
 
     protected int nextRoundOf(String key) {
         List<Map<String, Object>> rows = jdbc.queryForList(
-                "select current_round, status from platform_approval.approval_requests where document_key = ?", key);
+                "select current_round, status from platform_approval.approval_requests where document_id = cast(? as uuid)", key);
         if (rows.isEmpty()) {
             return 1;
         }
@@ -269,7 +269,7 @@ public abstract class ApprovalIntegrationSupport {
                     .matcher(request.getRequestURI());
             if (m.find() && request.getHeader("If-Match") == null) {
                 List<Long> versions = jdbc.queryForList("select r.version from platform_approval.approval_requests r join platform_approval.approval_tasks t"
-                        + " on t.process_key = r.process_key and t.document_key = r.document_key where t.task_id = ?", Long.class, m.group(1));
+                        + " on r.id = t.approval_request_id where t.task_id = cast(? as uuid)", Long.class, m.group(1));
                 request.addHeader("If-Match", "\"" + (versions.isEmpty() ? 1L : versions.getFirst()) + "\"");
             }
             return request;
@@ -277,11 +277,11 @@ public abstract class ApprovalIntegrationSupport {
     }
 
     protected static DocumentReference document(String key) {
-        return new DocumentReference(DocumentType.TIMESHEET, new DocumentId(key));
+        return new DocumentReference(DocumentType.TIMESHEET, new DocumentId(UUID.fromString(key)));
     }
 
     protected String requestStatus(String key) {
-        return jdbc.queryForObject("select status from platform_approval.approval_requests where document_key = ?", String.class, key);
+        return jdbc.queryForObject("select status from platform_approval.approval_requests where document_id = cast(? as uuid)", String.class, key);
     }
 
     protected static void eventually(Runnable assertion) {
@@ -350,11 +350,16 @@ public abstract class ApprovalIntegrationSupport {
         }
     }
 
-    /** A business module's listener that fails the first delivery of a document called flaky-*, so the registry's redelivery can be shown. */
+    /** A business module's listener that fails the first delivery of a document registered with flakyDocument, so the registry's redelivery can be shown. */
     @com.forcitis.one.kernel.SystemActorName("test.flaky-listener")
     public static class FlakyListener {
         private final List<ApprovalCompleted> delivered = new CopyOnWriteArrayList<>();
         private final Set<String> failedOnce = java.util.concurrent.ConcurrentHashMap.newKeySet();
+        private final Set<String> flakyDocuments = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+        public void flakyDocument(String key) {
+            flakyDocuments.add(key);
+        }
 
         public List<ApprovalCompleted> delivered() {
             return delivered;
@@ -366,7 +371,8 @@ public abstract class ApprovalIntegrationSupport {
 
         @ApplicationModuleListener
         void on(ApprovalCompleted event) {
-            if (event.document().documentId().value().startsWith("flaky-") && failedOnce.add(event.document().documentId().value())) {
+            String document = event.document().documentId().toString();
+            if (flakyDocuments.contains(document) && failedOnce.add(document)) {
                 throw new IllegalStateException("first delivery fails on purpose");
             }
             delivered.add(event);

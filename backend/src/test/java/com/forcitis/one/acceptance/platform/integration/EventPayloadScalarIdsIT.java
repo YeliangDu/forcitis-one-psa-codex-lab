@@ -193,11 +193,11 @@ class EventPayloadScalarIdsIT {
     @DisplayName("R-1b P1 / G-C5 领域事件负载中的 ID 为标量：AccountDisabled 的 userId 与 AccountRolesReplaced 的 userId、roleIds 是标量，不是 {\"value\": …}；R-1b P2（RULING-P2-1）账号 ID 是 uuid 字符串，不是员工 ID")
     void accountEventsCarryScalarUserAndRoleIds() throws Exception {
         UUID user = UUID.randomUUID();
-        long employee = 75001;
+        UUID employee = UUID.randomUUID();
         try (Connection identity = schemaConnection("platform_identity"); PreparedStatement account = identity.prepareStatement(
                 "insert into user_accounts (user_id, employee_id) values (?, ?) on conflict do nothing")) {
             account.setObject(1, user);
-            account.setLong(2, employee);
+            account.setObject(2, employee);
             account.executeUpdate();
         }
         MockHttpServletResponse role = mvc.perform(post(ROLES).with(csrf()).with(ROLE_ADMINISTRATOR).contentType(MediaType.APPLICATION_JSON)
@@ -225,6 +225,6 @@ class EventPayloadScalarIdsIT {
         assertThat(replacedEvents.getFirst().path("roleIds")).hasSize(1);
         assertThat(UUID.fromString(replacedEvents.getFirst().path("roleIds").get(0).asString())).isNotNull();
         assertThat(replacedEvents.getFirst().path("userId").asString(null)).isEqualTo(user.toString());
-        assertThat(disabledEvents.getFirst().path("userId").asString(null)).isEqualTo(user.toString()).isNotEqualTo(String.valueOf(employee));
+        assertThat(disabledEvents.getFirst().path("userId").asString(null)).isEqualTo(user.toString()).isNotEqualTo(employee.toString());
     }
 }

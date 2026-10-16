@@ -53,10 +53,13 @@ final class ReadOnlyBaselineFixture {
     private ReadOnlyBaselineFixture() {
     }
 
-    /** Once per container, before any login: affects every login but sa, which sysadmin puts above both the grants and the denies. */
+    /**
+     * Before any login, once per container; repeatable, because classes share one container per fork: GRANT and DENY to the same permissions again change
+     * nothing and rdscore is made only when missing. Affects every login but sa, which sysadmin puts above both the grants and the denies.
+     */
     static void createRdsPlatform(Administrator sa) throws SQLException {
         sa.run("master", "GRANT " + PLATFORM_SERVER_GRANTS + " TO public", "DENY " + SQL_SERVER_2022_ONLY + " TO public",
-                "CREATE DATABASE rdscore");
+                "IF DB_ID(N'rdscore') IS NULL CREATE DATABASE rdscore");
         sa.run("rdscore", "GRANT CONNECT TO guest");
     }
 

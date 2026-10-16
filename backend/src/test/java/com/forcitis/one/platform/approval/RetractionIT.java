@@ -55,9 +55,9 @@ class RetractionIT extends ApprovalIntegrationSupport {
     }
 
     ApprovalInstanceId startFor(String key, Staff s) {
-        return tx.execute(status -> approvals.start(startRequest(key, new EmployeeId(s.initiator()),
+        return tx.execute(status -> approvals.start(startRequest(key, TestAccounts.employee(s.initiator()),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(s.manager())))))));
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(s.manager()).toString()))))));
     }
 
     RetractionResult withdraw(String key, long actor, String reason) {
@@ -85,11 +85,11 @@ class RetractionIT extends ApprovalIntegrationSupport {
 
         assertThat(requestStatus(key)).isEqualTo("RETURNED");
         assertThat(approvals.isFinished(first)).isTrue();
-        assertThat(taskService.createTaskQuery().processInstanceId(first.value()).count()).isZero();
+        assertThat(taskService.createTaskQuery().processInstanceId(first.value().toString()).count()).isZero();
         assertThat(jdbc.queryForList("select status from platform_approval.approval_tasks where instance_id = ?", String.class, first.value()))
                 .containsExactly("CLOSED");
         eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
-            assertThat(e.document().documentId().value()).isEqualTo(key);
+            assertThat(e.document().documentId().toString()).isEqualTo(key);
             assertThat(e.outcome()).isEqualTo(ApprovalOutcome.RETURNED);
             assertThat(e.reason()).isEqualTo(new Reason("wrong hours"));
             assertThat(e.round()).isEqualTo(new RoundNumber(1));
@@ -144,12 +144,12 @@ class RetractionIT extends ApprovalIntegrationSupport {
 
         assertThat(requestStatus(key)).isEqualTo("CANCELLED");
         assertThat(approvals.isFinished(instance)).isTrue();
-        assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(instance.value()).count()).isEqualTo(1);
-        assertThat(history.createHistoricTaskInstanceQuery().processInstanceId(instance.value()).count()).isEqualTo(1);
-        assertThat(jdbc.queryForObject("select result_reason from platform_approval.approval_requests where document_key = ?", String.class, key))
+        assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(instance.value().toString()).count()).isEqualTo(1);
+        assertThat(history.createHistoricTaskInstanceQuery().processInstanceId(instance.value().toString()).count()).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select result_reason from platform_approval.approval_requests where document_id = cast(? as uuid)", String.class, key))
                 .isEqualTo("not needed any more");
         eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
-            assertThat(e.document().documentId().value()).isEqualTo(key);
+            assertThat(e.document().documentId().toString()).isEqualTo(key);
             assertThat(e.outcome()).isEqualTo(ApprovalOutcome.CANCELLED);
         }));
         assertThat(startFor(key, s)).as("a cancelled approval can be started again").isNotEqualTo(instance);

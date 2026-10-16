@@ -1,12 +1,10 @@
 package com.forcitis.one.platform.integration.infrastructure.wecom;
 
 import com.forcitis.one.kernel.WecomUserId;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /** Recipients are always exact user ids; no body can address a department, a tag or everyone (I-6). */
@@ -19,7 +17,7 @@ final class WecomMessagePayload {
     }
 
     static Map<String, Object> textNotice(long agentId, List<WecomUserId> recipients, String title, String description,
-                                          String targetUrl, String deduplicationKey) {
+                                          String targetUrl, UUID deliveryId) {
         if (recipients.isEmpty()) {
             throw new IllegalArgumentException("a WeCom message needs at least one recipient");
         }
@@ -27,12 +25,12 @@ final class WecomMessagePayload {
         body.put("touser", recipients.stream().map(WecomUserId::value).collect(Collectors.joining("|")));
         body.put("msgtype", "template_card");
         body.put("agentid", agentId);
-        body.put("template_card", card(title, description, targetUrl, deduplicationKey));
+        body.put("template_card", card(title, description, targetUrl, deliveryId));
         return body;
     }
 
     static Map<String, Object> handledReplacement(long agentId, List<WecomUserId> recipients, String responseCode, String title,
-                                                  String handledNote, String targetUrl, String deduplicationKey) {
+                                                  String handledNote, String targetUrl, UUID deliveryId) {
         if (recipients.isEmpty()) {
             throw new IllegalArgumentException("a WeCom card update needs at least one recipient");
         }
@@ -40,25 +38,16 @@ final class WecomMessagePayload {
         body.put("userids", recipients.stream().map(WecomUserId::value).toList());
         body.put("agentid", agentId);
         body.put("response_code", responseCode);
-        body.put("template_card", card(title, handledNote, targetUrl, deduplicationKey));
+        body.put("template_card", card(title, handledNote, targetUrl, deliveryId));
         return body;
     }
 
-    /** Letters, digits and "-" only, so any deduplication key is a valid WeCom task id; the hash keeps distinct keys distinct. */
-    static String taskId(String deduplicationKey) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256").digest(deduplicationKey.getBytes(StandardCharsets.UTF_8));
-            StringBuilder hex = new StringBuilder("one-");
-            for (int i = 0; i < 16; i++) {
-                hex.append(String.format("%02x", digest[i]));
-            }
-            return hex.toString();
-        } catch (NoSuchAlgorithmException impossible) {
-            throw new IllegalStateException(impossible);
-        }
+    /** Letters, digits and "-" only; a delivery keeps its id through every retry, and each delivery (a card, the note that replaces it) has its own. */
+    static String taskId(UUID deliveryId) {
+        return "one-" + deliveryId;
     }
 
-    private static Map<String, Object> card(String title, String description, String targetUrl, String deduplicationKey) {
+    private static Map<String, Object> card(String title, String description, String targetUrl, UUID deliveryId) {
         Map<String, Object> mainTitle = new LinkedHashMap<>();
         mainTitle.put("title", cut(title, MAX_TITLE_CHARS));
         if (description != null && !description.isBlank()) {
@@ -71,7 +60,7 @@ final class WecomMessagePayload {
         card.put("card_type", "text_notice");
         card.put("main_title", mainTitle);
         card.put("card_action", action);
-        card.put("task_id", taskId(deduplicationKey));
+        card.put("task_id", taskId(deliveryId));
         return card;
     }
 

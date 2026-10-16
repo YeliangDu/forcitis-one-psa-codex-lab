@@ -23,6 +23,7 @@ import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 
 class EmployeeSyncRulesTest {
     @Test
@@ -34,9 +35,9 @@ class EmployeeSyncRulesTest {
 
         assertThat(created.employee().wecomUserId()).isEqualTo(new WecomUserId("wx-2001"));
         assertThat(created.employee().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
-        assertThat(created.assignment().orgUnitId().value()).isEqualTo(2);
+        assertThat(created.assignment().orgUnitId()).isEqualTo(Fixtures.unitId(2));
         assertThat(changes.changedEmployees()).containsExactly(user(2001));
-        assertThat(changes.diffs()).anyMatch(d -> d.changeKind() == ChangeKind.CREATED && d.subjectKey().equals("employee:2001"));
+        assertThat(changes.diffs()).anyMatch(d -> d.changeKind() == ChangeKind.CREATED && d.subjectKey().equals("employee:" + Fixtures.user(2001).value()));
     }
 
     @Test
@@ -49,7 +50,7 @@ class EmployeeSyncRulesTest {
         Reconciliation changes = first(tree(unflagged));
 
         assertThat(employed(staff(apply(OrgSnapshot.empty(), changes), 7))).isTrue();
-        assertThat(issues(changes, IssueKind.NULL_FLAG)).singleElement().satisfies(d -> assertThat(d.subjectKey()).isEqualTo("employee:7"));
+        assertThat(issues(changes, IssueKind.NULL_FLAG)).singleElement().satisfies(d -> assertThat(d.subjectKey()).isEqualTo("employee:" + Fixtures.user(7).value()));
     }
 
     @Test
@@ -79,7 +80,7 @@ class EmployeeSyncRulesTest {
 
         Reconciliation moves = SnapshotReconciler.reconcile(v2, tree(person(2001, 3, 101L, null, null, "wx-2001")));
         OrgSnapshot v3 = apply(v2, moves);
-        assertThat(staff(v3, 2001).assignment().orgUnitId().value()).isEqualTo(3);
+        assertThat(staff(v3, 2001).assignment().orgUnitId()).isEqualTo(Fixtures.unitId(3));
         assertThat(moves.separatedEmployees()).isEmpty();
         assertThat(moves.changedEmployees()).containsExactly(user(2001));
     }
@@ -159,16 +160,16 @@ class EmployeeSyncRulesTest {
     @DisplayName("RULE-367 positions: new ones are added, disabled and deleted ones follow the source, ones no longer returned are deleted")
     void positionStatusFollowsTheSource() {
         OrgSnapshot v1 = apply(OrgSnapshot.empty(), first(tree()));
-        assertThat(v1.positionsById().get(new PositionId(100)).status()).isEqualTo(PositionStatus.ACTIVE);
+        assertThat(v1.positionsById().get(TestOrgIds.position(100)).status()).isEqualTo(PositionStatus.ACTIVE);
 
         SourceOrgSnapshot next = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)), List.of(),
                 List.of(post(100, SourceRecordState.DISABLED), post(102)), List.of());
         Reconciliation changes = SnapshotReconciler.reconcile(v1, next);
         OrgSnapshot v2 = apply(v1, changes);
 
-        assertThat(v2.positionsById().get(new PositionId(100)).status()).isEqualTo(PositionStatus.DISABLED);
-        assertThat(v2.positionsById().get(new PositionId(101)).status()).isEqualTo(PositionStatus.DELETED);
-        assertThat(v2.positionsById().get(new PositionId(102)).status()).isEqualTo(PositionStatus.ACTIVE);
+        assertThat(v2.positionsById().get(TestOrgIds.position(100)).status()).isEqualTo(PositionStatus.DISABLED);
+        assertThat(v2.positionsById().get(TestOrgIds.position(101)).status()).isEqualTo(PositionStatus.DELETED);
+        assertThat(v2.positionsById().get(TestOrgIds.position(102)).status()).isEqualTo(PositionStatus.ACTIVE);
         assertThat(changes.stats().positionChangeCount()).isEqualTo(3);
     }
 
@@ -230,7 +231,7 @@ class EmployeeSyncRulesTest {
         Reconciliation moved = SnapshotReconciler.reconcile(v1, tree(person(2001, 3, 100L, null), person(2002, 2, 100L, null)));
 
         assertThat(moved.changedEmployees()).containsExactly(user(2001));
-        assertThat(moved.diffs()).filteredOn(d -> d.subjectKey().equals("employee:2001"))
+        assertThat(moved.diffs()).filteredOn(d -> d.subjectKey().equals("employee:" + Fixtures.user(2001).value()))
                 .singleElement().satisfies(d -> assertThat(d.changedFields()).containsExactly("orgUnitId"));
         assertThat(SyncedFields.STAFF).extracting(SyncedFields.Field::name)
                 .contains("orgUnitId", "positionId", "reportsToEmployeeId", "employmentStatus", "wecomUserId");

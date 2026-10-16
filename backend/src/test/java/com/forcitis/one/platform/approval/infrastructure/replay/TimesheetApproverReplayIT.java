@@ -43,12 +43,28 @@ class TimesheetApproverReplayIT {
         assertThat(report.differences()).hasSize(5 + 1);
         assertThat(report.differences()).filteredOn(d -> d.verdict() == ReplayVerdict.DEFECT).singleElement().satisfies(d -> {
             assertThat(d.instanceId()).isEqualTo("SYN-8");
-            assertThat(d.nodeKey()).isEqualTo("regionalHeadReview");
+            assertThat(d.nodeKey()).isEqualTo("orgUnitHeadApproval");
             assertThat(d.ruleType()).isEqualTo("FORM_FIELD_USERS");
             assertThat(d.candidates()).containsExactly(110L);
             assertThat(d.actualApprovers()).containsExactly(105L);
         });
         assertThat(report.resolutionCounts().get(ResolutionKind.RESOLVED)).isEqualTo(7);
+    }
+
+    @Test
+    @DisplayName("an export in the old names (regionalHeadReview, regionalHeadId) replays to the same report: the department head node finds its person")
+    void exportInOldNamesReplays() throws IOException {
+        ReplayExport legacy;
+        try (InputStream in = TimesheetApproverReplayIT.class.getResourceAsStream("/replay/synthetic-timesheet-export-legacy-names.json")) {
+            legacy = MAPPER.readValue(in, ReplayExport.class);
+        }
+        ReplayReport report = TimesheetApproverReplay.replay(legacy);
+
+        assertThat(report).isEqualTo(TimesheetApproverReplay.replay(fixture()));
+        assertThat(report.differences()).filteredOn(d -> d.verdict() == ReplayVerdict.DEFECT).singleElement().satisfies(d -> {
+            assertThat(d.nodeKey()).isEqualTo("orgUnitHeadApproval");
+            assertThat(d.candidates()).containsExactly(110L);
+        });
     }
 
     @Test
@@ -108,8 +124,8 @@ class TimesheetApproverReplayIT {
     void nodeSetDifferencesAreDefects() throws IOException {
         ReplayExport all = fixture();
         ReplayExport.InstanceRecord base = all.instances().stream().filter(i -> i.instanceId().equals("SYN-1")).findFirst().orElseThrow();
-        ReplayExport.NodeRecord extra = new ReplayExport.NodeRecord("regionalHeadReview",
-                java.util.Map.of("type", "FORM_FIELD_USERS", "field", "regionalHeadId"), false, List.of(112L));
+        ReplayExport.NodeRecord extra = new ReplayExport.NodeRecord("orgUnitHeadApproval",
+                java.util.Map.of("type", "FORM_FIELD_USERS", "field", "orgUnitHeadId"), false, List.of(112L));
         ReplayExport.InstanceRecord withExtra = new ReplayExport.InstanceRecord("X-1", base.initiatorId(), base.legacyHourTypes(),
                 base.formFields(), base.variables(), List.of(base.nodes().getFirst(), extra));
         ReplayExport.InstanceRecord oldSkipped = new ReplayExport.InstanceRecord("X-2", base.initiatorId(), base.legacyHourTypes(),
@@ -129,7 +145,7 @@ class TimesheetApproverReplayIT {
         assertThat(LegacyVocabulary.flag(2)).isEqualTo("overheadHours");
         assertThat(LegacyVocabulary.HOUR_TYPE_FLAGS.values()).containsExactlyInAnyOrderElementsOf(
                 TimesheetBranches.ALL.stream().map(TimesheetBranches.Branch::flag).toList());
-        assertThat(LegacyVocabulary.NODE_KEYS.values()).containsExactlyInAnyOrderElementsOf(
+        assertThat(LegacyVocabulary.NODE_KEYS.values().stream().distinct().toList()).containsExactlyInAnyOrderElementsOf(
                 TimesheetBranches.ALL.stream().map(TimesheetBranches.Branch::nodeKey).toList());
     }
 

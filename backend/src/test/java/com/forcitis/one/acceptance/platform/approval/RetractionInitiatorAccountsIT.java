@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
-import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.EmployeeId;
@@ -53,13 +52,13 @@ class RetractionInitiatorAccountsIT extends AccountsAcceptanceSupport {
     @Test
     @DisplayName("P2-M2 C4 撤回时发起人的比较（真实账号）：A 发起的审批 B 撤回与撤销都被拒（抛 AccessDeniedException，审批仍在进行），各写一条 platform.approval.request.denied、操作人为 B 的 uuid；A 本人撤回成功")
     void onlyTheInitiatorRetracts() throws Exception {
-        long unit = newOrgUnitId();
+        UUID unit = newOrgUnitId();
         orgUnit(unit, null, null);
-        long maintainer = newEmployeeId();
-        long initiator = newEmployeeId();
-        long stranger = newEmployeeId();
-        long projectManager = newEmployeeId();
-        for (long person : new long[] {maintainer, initiator, stranger, projectManager}) {
+        UUID maintainer = newEmployeeId();
+        UUID initiator = newEmployeeId();
+        UUID stranger = newEmployeeId();
+        UUID projectManager = newEmployeeId();
+        for (UUID person : new UUID[] {maintainer, initiator, stranger, projectManager}) {
             employee(person, unit, null);
         }
         grantByOperations(maintainer, "org_data_admin");
@@ -69,11 +68,11 @@ class RetractionInitiatorAccountsIT extends AccountsAcceptanceSupport {
         signIn(projectManager);
         maintainWorkCalendar(maintainerSession);
         LegalEntityId legalEntity = new LegalEntityId(createLegalEntity(maintainerSession, newLegalEntityCode("RI"), "Synthetic retraction"));
-        DocumentReference document = new DocumentReference(DocumentType.TIMESHEET, new DocumentId("acceptance-" + UUID.randomUUID()));
+        DocumentReference document = new DocumentReference(DocumentType.TIMESHEET, newDocumentId());
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "acceptance.timesheet-submission")) {
-            approvals.start(new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document, legalEntity, new EmployeeId(initiator), new RoundNumber(1),
-                    UUID.randomUUID(), Set.of("projectHours"), List.of(new ApprovalField("projectManagerId", List.of(String.valueOf(projectManager)))),
-                    new ContentHash("synthetic-content"), new ApprovalSummary("Synthetic timesheet " + document.documentId().value())));
+            approvals.start(new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document, legalEntity, employeeIdOf(initiator), new RoundNumber(1),
+                    UUID.randomUUID(), Set.of("projectHours"), List.of(new ApprovalField("projectManagerId", List.of(text(projectManager)))),
+                    new ContentHash("synthetic-content"), new ApprovalSummary("Synthetic timesheet " + document.documentId())));
         }
 
         actInSession(strangerAccount);

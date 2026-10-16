@@ -1,8 +1,6 @@
 package com.forcitis.one.platform.approval.infrastructure.flowable;
 
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
-import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.NodeKey;
 import com.forcitis.one.platform.approval.api.NodeName;
@@ -71,8 +69,8 @@ class TaskAssignmentListener implements FlowableEventListener {
         task.setVariableLocal(FlowableApprovalEngine.VARIABLE_ASSIGNED_AT, clock.millis());
         candidates.forEach(candidate -> task.addCandidateUser(EngineUserIds.text(candidate)));
 
-        boolean passedBySystem = registrar.register(new TaskRegistration(new ApprovalTaskId(task.getId()),
-                new ApprovalInstanceId(task.getProcessInstanceId()),
+        boolean passedBySystem = registrar.register(new TaskRegistration(EngineIds.task(task.getId()),
+                EngineIds.instance(task.getProcessInstanceId()),
                 new ProcessName(ProcessDefinitionUtil.getProcessDefinition(task.getProcessDefinitionId()).getName()),
                 new NodeKey(node.getId()), new NodeName(task.getName()), candidates, policy.autoApproveRepeat(), policy.deadline(),
                 new ContentHash(required(variables, FlowableApprovalEngine.VARIABLE_CONTENT_HASH))));

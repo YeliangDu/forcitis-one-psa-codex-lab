@@ -39,8 +39,8 @@ class StartApprovalOnSubmissionIT extends ApprovalIntegrationSupport {
 
     DocumentSubmittedForApproval request(String key, long initiator, long manager, int round, String flag) {
         EventEnvelope envelope = envelope("platform.approval.DocumentSubmittedForApproval", "Timesheet", key, round);
-        return new DocumentSubmittedForApproval(envelope, ProcessKey.COST_TIMESHEET_APPROVAL, document(key), new EmployeeId(initiator), new RoundNumber(round),
-                List.of(new RoutingFlag(flag)), List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))),
+        return new DocumentSubmittedForApproval(envelope, ProcessKey.COST_TIMESHEET_APPROVAL, document(key), TestAccounts.employee(initiator), new RoundNumber(round),
+                List.of(new RoutingFlag(flag)), List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(manager).toString()))),
                 new ContentHash("hash"), new ApprovalSummary("summary of " + key));
     }
 
@@ -59,12 +59,12 @@ class StartApprovalOnSubmissionIT extends ApprovalIntegrationSupport {
                     assertThat(e.outcome()).isEqualTo(ApprovalOutcome.RETURNED);
                     assertThat(e.returnSource()).isEqualTo(com.forcitis.one.platform.approval.api.ReturnSource.SYSTEM);
                     assertThat(e.round()).isEqualTo(new RoundNumber(1));
-                    assertThat(e.initiator()).isEqualTo(new EmployeeId(initiator));
+                    assertThat(e.initiator()).isEqualTo(TestAccounts.employee(initiator));
                     assertThat(e.reason().value()).contains("PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID");
                 });
 
         assertThat(requestStatus(key)).isEqualTo("RETURNED");
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_tasks where document_key = ?", Integer.class, key)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_tasks where approval_request_id in (select id from platform_approval.approval_requests where document_id = cast(? as uuid))", Integer.class, key)).isZero();
 
         scenario.publish(request(key, initiator, manager, 2, "projectHours")).andWaitForEventOfType(com.forcitis.one.platform.approval.events.TaskAssigned.class)
                 .matching(e -> e.document().equals(document(key))).toArrive();
@@ -84,7 +84,7 @@ class StartApprovalOnSubmissionIT extends ApprovalIntegrationSupport {
         scenario.publish(request(key, initiator, manager, 1, "noSuchFlag")).andWaitForStateChange(
                 () -> meters.counter("forcitis.platform.approval.start.failed").count() > before ? Boolean.TRUE : null);
 
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where document_key = ?", Integer.class, key)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where document_id = cast(? as uuid)", Integer.class, key)).isZero();
     }
 
     @Test
@@ -103,7 +103,7 @@ class StartApprovalOnSubmissionIT extends ApprovalIntegrationSupport {
         scenario.publish(request(key, initiator, manager, 1, "projectHours")).andWaitForStateChange(
                 () -> meters.counter("forcitis.platform.approval.start.ignored").count() > before ? Boolean.TRUE : null);
 
-        assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where document_key = ?", Integer.class, key))
+        assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where document_id = cast(? as uuid)", Integer.class, key))
                 .isEqualTo(2);
     }
 }

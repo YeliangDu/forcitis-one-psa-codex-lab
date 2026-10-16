@@ -6,5 +6,5 @@ import java.util.Map;
 public interface OrgShortNames {
 
     /** A unit without a short name maps to null. */
-    Map<SourceUnitId, String> readShortNames();
+    Map<OwnObjectId, String> readShortNames();
 }

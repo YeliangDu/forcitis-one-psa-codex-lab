@@ -6,6 +6,8 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.platform.integration.api.SourceOrgUnit;
 import com.forcitis.one.platform.integration.api.SourceRecordState;
+import static com.forcitis.one.fixture.doubles.TestOrgIds.sqlOrgUnit;
+import static com.forcitis.one.fixture.doubles.TestOrgIds.sqlEmployee;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.sourceUnit;
 
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
@@ -107,8 +109,8 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(jdbc.sql("select status || ':' || org_unit_change_count || ':' || employee_change_count || ':' || incoming_employed_count from organization_workforce.sync_runs")
                 .query(String.class).single()).isEqualTo("SUCCEEDED:3:3:3");
         assertThat(count("sync_diffs")).isEqualTo(8);
-        assertThat(jdbc.sql("select head_employee_id from organization_workforce.org_units where id = 2").query(Long.class).single()).isEqualTo(1L);
-        assertThat(jdbc.sql("select reports_to_employee_id from organization_workforce.assignments where employee_id = 3").query(Long.class).single()).isEqualTo(1L);
+        assertThat(jdbc.sql("select head_employee_id from organization_workforce.org_units where id = " + sqlOrgUnit(2)).query(UUID.class).single()).isEqualTo(TestAccounts.employee(1).value());
+        assertThat(jdbc.sql("select reports_to_employee_id from organization_workforce.assignments where employee_id = " + sqlEmployee(3)).query(UUID.class).single()).isEqualTo(TestAccounts.employee(1).value());
         assertThat(events.stream(OrgSnapshotChanged.class)).singleElement().satisfies(e -> {
             assertThat(e.changedEmployees()).containsExactlyInAnyOrder(user(1), user(2), user(3));
             assertThat(e.changedOrgUnits()).containsExactlyInAnyOrder(unitId(1), unitId(2), unitId(3));
@@ -174,9 +176,9 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         sync.execute(SyncTrigger.SCHEDULED, false);
         sync.execute(SyncTrigger.SCHEDULED, false);
 
-        assertThat(jdbc.sql("select employment_status from organization_workforce.employees where id = 10").query(String.class).single())
+        assertThat(jdbc.sql("select employment_status from organization_workforce.employees where id = " + sqlEmployee(10)).query(String.class).single())
                 .isEqualTo("SEPARATED");
-        assertThat(jdbc.sql("select separated_at is not null from organization_workforce.employees where id = 10").query(Boolean.class).single()).isTrue();
+        assertThat(jdbc.sql("select separated_at is not null from organization_workforce.employees where id = " + sqlEmployee(10)).query(Boolean.class).single()).isTrue();
         assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> !e.separatedEmployees().isEmpty()))
                 .singleElement().satisfies(e -> assertThat(e.separatedEmployees()).containsExactly(user(10)));
     }
@@ -222,7 +224,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(jdbc.sql("select failure_reason from organization_workforce.sync_runs order by id desc limit 1").query(String.class).single())
                 .contains("ExternalSourceBrokenException");
         assertThat(events.stream(OrgSnapshotChanged.class).count()).isEqualTo(before);
-        assertThat(jdbc.sql("select status from organization_workforce.org_units where id = 2").query(String.class).single()).isEqualTo("ACTIVE");
+        assertThat(jdbc.sql("select status from organization_workforce.org_units where id = " + sqlOrgUnit(2)).query(String.class).single()).isEqualTo("ACTIVE");
     }
 
     @Test
@@ -371,7 +373,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
 
         assertThat(result.status()).isEqualTo(SyncRunStatus.SUCCEEDED);
         assertThat(jdbc.sql("select id from organization_workforce.employees where wecom_user_id = 'wx-shared' and employment_status = 'EMPLOYED'")
-                .query(Long.class).list()).containsExactly(6L);
+                .query(UUID.class).list()).containsExactly(TestAccounts.employee(6).value());
     }
 
     @Test
@@ -389,14 +391,14 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
                 unit(3, 2L)), List.of(), List.of(post(100), post(101)), List.of());
         sync.execute(SyncTrigger.SCHEDULED, false);
 
-        assertThat(jdbc.sql("select name || '/' || short_name from organization_workforce.org_units where id = 2").query(String.class).single())
+        assertThat(jdbc.sql("select name || '/' || short_name from organization_workforce.org_units where id = " + sqlOrgUnit(2)).query(String.class).single())
                 .isEqualTo("Renamed in the source/Delivery");
 
         oldSystem.unavailable = true;
         double failuresBefore = registry.counter("forcitis.organization.workforce.short.name.refresh.failures").count();
         assertThat(refreshShortNames.execute()).isZero();
         assertThat(registry.counter("forcitis.organization.workforce.short.name.refresh.failures").count()).isEqualTo(failuresBefore + 1);
-        assertThat(jdbc.sql("select short_name from organization_workforce.org_units where id = 1").query(String.class).single()).isEqualTo("HQ");
+        assertThat(jdbc.sql("select short_name from organization_workforce.org_units where id = " + sqlOrgUnit(1)).query(String.class).single()).isEqualTo("HQ");
 
         oldSystem.unavailable = false;
         oldSystem.names = Map.of(unitId(1), "HQ", unitId(2), "");

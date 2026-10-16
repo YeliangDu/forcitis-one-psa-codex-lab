@@ -14,9 +14,11 @@ import com.forcitis.one.platform.approval.application.TaskDecision;
 import com.forcitis.one.platform.approval.application.TaskDetail;
 import com.forcitis.one.platform.approval.application.TransferTask;
 import com.forcitis.one.kernel.ExpectedVersion;
+import com.forcitis.one.kernel.InvalidRequestException;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import java.util.List;
 import java.util.OptionalLong;
+import java.util.UUID;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import com.forcitis.one.platform.identity.api.SessionRoles;
@@ -72,28 +74,28 @@ class ApprovalTaskController {
 
     @GetMapping(path = "/{taskId}")
     @PreAuthorize(SIGNED_IN)
-    ResponseEntity<TaskDetailResponse> get(@PathVariable String taskId) {
+    ResponseEntity<TaskDetailResponse> get(@PathVariable UUID taskId) {
         TaskDetail detail = getTaskDetail.execute(new ApprovalTaskId(taskId), currentUser.userId());
         return ResponseEntity.ok().eTag("\"" + detail.version() + "\"").body(TaskDetailResponse.of(detail));
     }
 
     @PostMapping(path = "/{taskId}:claim")
     @PreAuthorize(SIGNED_IN)
-    ResponseEntity<Void> claim(@PathVariable String taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+    ResponseEntity<Void> claim(@PathVariable UUID taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
         claimTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), expectedVersion(ifMatch));
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping(path = "/{taskId}:release")
     @PreAuthorize(SIGNED_IN)
-    ResponseEntity<Void> release(@PathVariable String taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
+    ResponseEntity<Void> release(@PathVariable UUID taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch) {
         releaseTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), expectedVersion(ifMatch));
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping(path = "/{taskId}:decide")
     @PreAuthorize(SIGNED_IN)
-    DecisionResponse decide(@PathVariable String taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
+    DecisionResponse decide(@PathVariable UUID taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
             @RequestBody DecideTaskRequest request) {
         return DecisionResponse.of(decideTasks.execute(currentUser.userId(),
                 List.of(new TaskDecision(new ApprovalTaskId(taskId), request.outcome(), request.reason())), expectedVersion(ifMatch)));
@@ -101,7 +103,7 @@ class ApprovalTaskController {
 
     @PostMapping(path = "/{taskId}:return")
     @PreAuthorize(SIGNED_IN)
-    DecisionResponse returnTask(@PathVariable String taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
+    DecisionResponse returnTask(@PathVariable UUID taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
             @RequestBody ReturnTaskRequest request) {
         return DecisionResponse.of(returnToInitiator.execute(new ApprovalTaskId(taskId), currentUser.userId(), request.reason(),
                 expectedVersion(ifMatch)));
@@ -109,18 +111,18 @@ class ApprovalTaskController {
 
     @PostMapping("/{taskId}:transfer")
     @PreAuthorize(SIGNED_IN)
-    ResponseEntity<Void> transfer(@PathVariable String taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
+    ResponseEntity<Void> transfer(@PathVariable UUID taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
             @RequestBody TransferTaskRequest request) {
-        transferTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), new EmployeeId(request.assigneeId()), request.reason(),
+        transferTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), assignee(request.assigneeId()), request.reason(),
                 expectedVersion(ifMatch));
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{taskId}:reassign")
     @PreAuthorize(SIGNED_IN)
-    ResponseEntity<Void> reassign(@PathVariable String taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
+    ResponseEntity<Void> reassign(@PathVariable UUID taskId, @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
             @RequestBody ReassignTaskRequest request) {
-        reassignTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), new EmployeeId(request.assigneeId()), request.reason(),
+        reassignTask.execute(new ApprovalTaskId(taskId), currentUser.userId(), assignee(request.assigneeId()), request.reason(),
                 expectedVersion(ifMatch));
         return ResponseEntity.noContent().build();
     }
@@ -128,5 +130,12 @@ class ApprovalTaskController {
     /** The version the caller read: the same If-Match rules as every other write (428 without, 400 for a weak or unreadable tag). */
     private static OptionalLong expectedVersion(String ifMatch) {
         return OptionalLong.of(ExpectedVersion.fromHeader(ifMatch).value());
+    }
+
+    private static EmployeeId assignee(UUID assigneeId) {
+        if (assigneeId == null) {
+            throw new InvalidRequestException("assigneeId is required");
+        }
+        return new EmployeeId(assigneeId);
     }
 }

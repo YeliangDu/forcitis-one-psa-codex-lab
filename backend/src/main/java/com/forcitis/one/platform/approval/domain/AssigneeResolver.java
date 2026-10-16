@@ -132,12 +132,15 @@ public final class AssigneeResolver {
         return variables.firstVariable(variable).or(() -> variables.firstFormField(variable)).flatMap(AssigneeResolver::parseUnit);
     }
 
+    /** Blank is no department; any other value that is not an org unit id in its canonical UUID form refuses the assignment. */
     private static Optional<OrgUnitId> parseUnit(String raw) {
-        try {
-            long id = Long.parseLong(raw.trim());
-            return id == 0 ? Optional.empty() : Optional.of(new OrgUnitId(id));
-        } catch (NumberFormatException e) {
+        if (raw.isBlank()) {
             return Optional.empty();
+        }
+        try {
+            return Optional.of(OrgUnitId.parse(raw.trim()));
+        } catch (IllegalArgumentException notAnOrgUnitId) {
+            throw ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID.refusal("a department is named by a value that is not an org unit id");
         }
     }
 

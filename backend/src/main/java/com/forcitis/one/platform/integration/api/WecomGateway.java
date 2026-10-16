@@ -11,5 +11,5 @@ public interface WecomGateway {
     /** Must be called inside the caller's transaction so it is sent only after commit. */
     void send(WecomCard card);
 
-    void markHandled(String deduplicationKey, String handledNote);
+    void markHandled(DeliverySubject subject, String handledNote);
 }

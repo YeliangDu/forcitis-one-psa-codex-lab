@@ -63,7 +63,7 @@ class LegacyNumberController {
             throw new InvalidRequestException("give exactly one of legacyNumberPrefix and documentId");
         }
         if (documentId != null) {
-            List<LegacyNumberResponse> all = findLegacyNumbers.find(new DocumentReference(documentType, new DocumentId(documentId.toString())))
+            List<LegacyNumberResponse> all = findLegacyNumbers.find(new DocumentReference(documentType, new DocumentId(documentId)))
                     .stream().map(LegacyNumberResponse::from).toList();
             return PageRequest.of(limit, cursor, "legacy-numbers").slice(all, LegacyNumberResponse::legacyNumber, "legacy-numbers");
         }

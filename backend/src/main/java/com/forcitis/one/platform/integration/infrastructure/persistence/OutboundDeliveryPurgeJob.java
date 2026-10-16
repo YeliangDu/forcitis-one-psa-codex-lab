@@ -17,7 +17,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Data scorecard K7 (GUIDING_PRINCIPLES section 6): a delivery that was sent or deliberately skipped is kept 90 days, one that
- * failed for good (failed, dead letter) one year. A delivery still pending is never removed.
+ * failed for good (failed, dead letter) one year. A delivery still pending is never removed, and a card stays while a
+ * handled note that replaces it has not yet expired (the note's foreign key to the card).
  */
 @Component
 @EnableConfigurationProperties(OutboundDeliveryPurgeJob.KeepPeriods.class)
@@ -54,15 +55,27 @@ class OutboundDeliveryPurgeJob {
     @Scheduled(cron = "${forcitis.platform.integration.outbound-purge.cron}")
     @SchedulerLock(name = "platform.integration.outbound.purge", lockAtMostFor = "PT30M")
     void purge() {
-        int delivered = delete("('SENT', 'SKIPPED')", keep.deliveredKeepPeriod());
-        int failed = delete("('FAILED', 'DEAD_LETTER')", keep.failedKeepPeriod());
-        LOG.info("platform.integration removed {} delivered deliveries older than {} and {} failed ones older than {}", delivered,
-                keep.deliveredKeepPeriod(), failed, keep.failedKeepPeriod());
+        int removed = delete();
+        LOG.info("platform.integration removed {} deliveries: delivered ones older than {}, failed ones older than {}", removed,
+                keep.deliveredKeepPeriod(), keep.failedKeepPeriod());
     }
 
-    private int delete(String statuses, Period period) {
-        Timestamp cutoff = Timestamp.from(Instant.from(clock.instant().atZone(zone.zone()).minus(period)));
-        return jdbc.sql("delete from platform_integration.outbound_deliveries where status in " + statuses + " and updated_at < :cutoff")
-                .param("cutoff", cutoff).update();
+    private int delete() {
+        return jdbc.sql("""
+                delete from platform_integration.outbound_deliveries c
+                where (c.status in ('SENT', 'SKIPPED') and c.updated_at < :deliveredCutoff
+                       or c.status in ('FAILED', 'DEAD_LETTER') and c.updated_at < :failedCutoff)
+                  and not exists (
+                      select 1 from platform_integration.outbound_deliveries n
+                      where n.target_delivery_id = c.id
+                        and not (n.status in ('SENT', 'SKIPPED') and n.updated_at < :deliveredCutoff
+                                 or n.status in ('FAILED', 'DEAD_LETTER') and n.updated_at < :failedCutoff))
+                """)
+                .param("deliveredCutoff", cutoff(keep.deliveredKeepPeriod()))
+                .param("failedCutoff", cutoff(keep.failedKeepPeriod())).update();
+    }
+
+    private Timestamp cutoff(Period period) {
+        return Timestamp.from(Instant.from(clock.instant().atZone(zone.zone()).minus(period)));
     }
 }

@@ -440,6 +440,7 @@ ADR-0037 已采纳（Q1 选 (c)：现有 6 个视图冻结不动，新读取与 
 | R-1b P2 复审 P2-L2 | `primary-key-type-baseline.txt` 中 `account_roles` 理由「the user id is the employee id」已过时；落点 W2（ADR-0034 实现卡） |
 | R-1b P2 复审 P2-L12 | 前端测试桩数据 `userId: '1001'` 仍为数字形态；落点 P5（G-A1 收尾） |
 | R-1b P2 卡外缺陷 | `OperationsCommands` 用 `UUID.randomUUID()` 作关联号，违反 ADR-0033 第 1 项第 11 条；手术式小卡 OPS-CID，P2 合并后 |
+| R-1b P3b RULING-P3B-9 | C1 落地后按身份模型删除或改形 kernel 端口 `ExternalSubjectEmployees`（集成层只读运维命令按外部主体查快照员工，workforce 实现）及其在 `module-dependencies.txt` 的登记行（DA-3 时复核是否仍需要） |
 | #184 opus 点检 Low | `review_revisions.py` 的 `GITHUB_ACTIONS == "true"` 补自测（true 且无基线失败、false 只告警）；空 `--base` 被拒时先输出一行针对性错误；与 #119 余项同文件，下一张文档工具小卡 |
 
 ### 7.9 子代理工作区约定（运行环境限制，2026-10-15 起）
@@ -537,6 +538,7 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 |---|---|---|---|
 | FLW-2 BPMN 不用引擎计时器与到期 | 守护：流程定义（`processes/**.bpmn20.xml`）不得含计时器事件与 `flowable:dueDate`，时限只由 `approval_tasks` 与定时作业判定（RULE-386）；执行者到时定，opus 复审 | R-1b P4 之后（P4 独占 `EngineWiring`） | FLW-1 复审 L-6；one-coordinator 2026-10-15 排卡 |
 | OPS-PORT 运维命令档案不起 Web（结构性） | `identity-operations` 档案真正不起 Web：单独装配不依赖 Web 应用类型的 JDBC 会话仓库，控制器、安全链与 `CallerUserIdResolver` 等 Web 配置不进该档案上下文；`OperationsProfileSmokeTest` B1-R3 改为断言没有 WebServer（更严，PR 单列）；回归测试 `OperationsProfileListensOnNoPortTest`（分支 `claude/one-1a-par-ops-port`，先红已提交）。起因：one.env 的 `SERVER_PORT` / `MANAGEMENT_SERVER_PORT` 环境变量优先于档案文件；保留 servlet 设 `port=-1` 时 Tomcat 仍开随机端口（B1-R3 断言名不副实，已先改说明）。dev 前兜底：C-5 运行写法加 `UnsetEnvironment` 两端口变量（one-ops），`SERVER_ADDRESS=127.0.0.1` 使随机端口只绑回环；开工前向 one-1a-next-3 确认独占构件、按术语门禁列新词 | R-1b P2 合并后 | one-1a-par 发现；one-coordinator 2026-10-15 裁定方向 A、标结构性 |
+| 数据范围后续维度与能力（F-1 规则对照登记） | 利润中心作为数据范围维度（ADR 登记，与法人同构，随首个带利润中心列的财务事实）；项目角色访问（项目线与职能线取并集，至迟与首个项目事实同期）；带到期日的临时授权；外部顾问 / 分包人员只许项目范围且有到期日；长期休假暂停访问（依赖人事状态）；定期复核上线前，生产前每月出授权历史报表 | 各自阶段，交 one-rules 起草、用户排期 | `phase1a/cards/F-1-aec-check.md`；one-coordinator 2026-10-15 |
 
 **F-1 规格裁定**（one-coordinator 2026-10-15 裁定，验收测试据此写，分支 `claude/one-1a-par-f1-acceptance`，与实现同一 PR 合并）：
 - 自定义部门明细挂在角色版本上，归 `role:update`（已采纳 ADR-0034 第 5 项）；2.4 F-1 行「授予时选范围的权限沿用 `account-role:update`」写于 ADR-0034 采纳前，以 ADR 为准；contract D-1a-58 在 1a 范围内由 ADR-0034 解决。

@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.organization.workforce.api.LoginLookup;
+import static com.forcitis.one.fixture.doubles.TestOrgIds.sqlEmployee;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.manager;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
@@ -73,6 +74,6 @@ class LoginMissTransactionIntegrationTest extends WorkforceIntegrationSupport {
 
         assertThat(lockFreeInsideTheLoginTransaction[0]).as("the snapshot writer lock is not held until the login commits").isTrue();
         assertThat(count("employees")).as("the registration stays: it is not part of the login transaction").isEqualTo(2);
-        assertThat(jdbc.sql("select count(*) from organization_workforce.employees where id = 3001").query(Integer.class).single()).isEqualTo(1);
+        assertThat(jdbc.sql("select count(*) from organization_workforce.employees where id = " + sqlEmployee(3001)).query(Integer.class).single()).isEqualTo(1);
     }
 }

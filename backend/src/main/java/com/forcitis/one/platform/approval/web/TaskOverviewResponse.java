@@ -8,7 +8,7 @@ import java.time.Instant;
 import java.util.UUID;
 import org.springframework.lang.Nullable;
 
-record TaskOverviewResponse(String taskId, ProcessKey processKey, DocumentType documentType, String documentId, String nodeKey, String status,
+record TaskOverviewResponse(UUID taskId, ProcessKey processKey, DocumentType documentType, UUID documentId, String nodeKey, String status,
                             @Nullable UUID assignee, Instant createdAt, @Nullable Instant dueAt, boolean overdue) {
 
     static TaskOverviewResponse of(TaskOverview task) {

@@ -3,19 +3,18 @@ package com.forcitis.one.platform.integration.infrastructure.seeyon;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.forcitis.one.TestImages;
+import com.forcitis.one.TestMssql;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
+import com.forcitis.one.platform.integration.api.SourceOrgUnit;
 import com.forcitis.one.platform.integration.api.SourcePerson;
-import com.forcitis.one.platform.integration.api.SourcePersonId;
 import com.forcitis.one.platform.integration.api.SourceRecordState;
 import com.forcitis.one.platform.integration.api.SourceRegionKind;
 import com.forcitis.one.platform.integration.api.SourceRelationshipKind;
-import com.forcitis.one.platform.integration.api.SourceUnitId;
+import com.forcitis.one.platform.integration.application.InMemorySourceReferences;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -29,17 +28,17 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.mssqlserver.MSSQLServerContainer;
-import org.testcontainers.utility.DockerImageName;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
+import com.forcitis.one.platform.integration.api.StaffLookup;
+import org.testcontainers.containers.GenericContainer;
 
 /** Real SQL Server (Testcontainers), only under Maven profile legacy-it. */
-@Testcontainers
 class SeeyonViewsMssqlIT {
 
-    @Container
-    static MSSQLServerContainer mssql = new MSSQLServerContainer(DockerImageName.parse(TestImages.startingWith(TestImages.MSSQL_PREFIX)).asCompatibleSubstituteFor(TestImages.MSSQL_PREFIX)).acceptLicense();
+    static final GenericContainer<?> mssql = TestMssql.shared();
+
+    static final String SEEYON_DB = TestMssql.database(SeeyonViewsMssqlIT.class, "seeyontest").name();
+    static final String READER_LOGIN = TestMssql.login(SeeyonViewsMssqlIT.class, "forcitis_reader");
 
     static final Path SCRIPT = Path.of("../docs/modernization/phase1a/SEEYON_VIEWS.sql");
     static final SeeyonMapping MAPPING = new SeeyonMapping(-1726439953579618944L, -8187907605834545337L, "-2682590999914657055", "-3267712510147735998", "00000001");
@@ -48,12 +47,11 @@ class SeeyonViewsMssqlIT {
     static JdbcClient reader;
 
     static String url(String database) {
-        return "jdbc:sqlserver://" + mssql.getHost() + ":" + mssql.getMappedPort(1433) + ";databaseName=" + database
-                + ";encrypt=true;trustServerCertificate=true;loginTimeout=30";
+        return TestMssql.url(mssql, database) + ";loginTimeout=30";
     }
 
     static Connection admin(String database) throws SQLException {
-        return DriverManager.getConnection(url(database), mssql.getUsername(), mssql.getPassword());
+        return TestMssql.adminConnection(mssql, database);
     }
 
     static void run(String database, String... statements) throws SQLException {
@@ -66,16 +64,15 @@ class SeeyonViewsMssqlIT {
 
     @BeforeAll
     static void createWorld() throws Exception {
-        run("master", "CREATE DATABASE seeyontest");
         createBaseTables();
         seedBase();
         applyDbaScript();
         widenToTheWholeDatabase();
-        reader = JdbcClient.create(new DriverManagerDataSource(url("seeyontest"), "forcitis_reader", readerPassword));
+        reader = JdbcClient.create(new DriverManagerDataSource(url(SEEYON_DB), READER_LOGIN, readerPassword));
     }
 
     private static void createBaseTables() throws SQLException {
-        run("seeyontest",
+        run(SEEYON_DB,
                 "CREATE TABLE dbo.ORG_UNIT (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, PATH nvarchar(200), TYPE nvarchar(16), IS_DELETED bit, IS_INTERNAL bit, IS_ENABLE bit)",
                 "CREATE TABLE dbo.ORG_MEMBER (ID bigint PRIMARY KEY, NAME nvarchar(64), CODE nvarchar(32), ORG_DEPARTMENT_ID bigint, ORG_POST_ID bigint, EXT_ATTR_37 nvarchar(64), EXT_ATTR_21 date, we_com_id nvarchar(64), IS_INTERNAL bit, IS_DELETED bit)",
                 "CREATE TABLE dbo.ORG_PRINCIPAL (ID bigint IDENTITY PRIMARY KEY, MEMBER_ID bigint, LOGIN_NAME nvarchar(64))",
@@ -90,7 +87,7 @@ class SeeyonViewsMssqlIT {
     }
 
     private static void seedBase() throws SQLException {
-        run("seeyontest",
+        run(SEEYON_DB,
                 "INSERT dbo.ORG_UNIT VALUES (1, 'C1', N'Root', 1, '00000001', 'Account', 0, 1, 1)",
                 "INSERT dbo.ORG_UNIT VALUES (2, 'C2', N'Delivery', 2, '000000010001', 'Department', 0, 1, 1)",
                 "INSERT dbo.ORG_UNIT VALUES (3, 'C3', N'Stopped', 3, '000000010002', 'Department', 0, 1, 0)",
@@ -120,16 +117,16 @@ class SeeyonViewsMssqlIT {
             starts.add(blocks.end());
             names.add(blocks.group(1));
         }
-        run("master", "CREATE LOGIN forcitis_reader WITH PASSWORD = N'" + readerPassword + "', CHECK_POLICY = OFF");
+        run("master", "CREATE LOGIN " + READER_LOGIN + " WITH PASSWORD = N'" + readerPassword + "', CHECK_POLICY = OFF");
         for (String wanted : List.of("schema", "views", "account")) {
             int i = names.indexOf(wanted);
             assertThat(i).as("block " + wanted).isGreaterThanOrEqualTo(0);
             String body = script.substring(starts.get(i), i + 1 < starts.size() ? script.indexOf("-- ==== BLOCK:", starts.get(i)) : script.length());
-            body = body.replace("{{READER_LOGIN}}", "forcitis_reader").replace("{{READER_USER}}", "forcitis_reader");
+            body = body.replace("{{READER_LOGIN}}", READER_LOGIN).replace("{{READER_USER}}", READER_LOGIN);
             for (String batch : body.split("(?m)^GO\\s*$")) {
                 String statements = batch.replaceAll("(?s)/\\*.*?\\*/", "").replaceAll("(?m)--.*$", "").trim();
                 if (!statements.isEmpty()) {
-                    run("seeyontest", batch);
+                    run(SEEYON_DB, batch);
                 }
             }
         }
@@ -137,10 +134,10 @@ class SeeyonViewsMssqlIT {
 
     /** The shape one-ops applied on 2026-10-15 (B-5 read-all/a8_apply.sql, ADR-0037 item 1.2): whole-database SELECT, database-level DENY of every write. */
     private static void widenToTheWholeDatabase() throws SQLException {
-        run("seeyontest", "REVOKE SELECT ON SCHEMA::dbo FROM forcitis_reader", "REVOKE VIEW DEFINITION ON SCHEMA::dbo FROM forcitis_reader",
-                "GRANT SELECT ON DATABASE::seeyontest TO forcitis_reader",
+        run(SEEYON_DB, "REVOKE SELECT ON SCHEMA::dbo FROM " + READER_LOGIN, "REVOKE VIEW DEFINITION ON SCHEMA::dbo FROM " + READER_LOGIN,
+                "GRANT SELECT ON DATABASE::" + SEEYON_DB + " TO " + READER_LOGIN,
                 "DENY INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VIEW, CREATE PROCEDURE, CREATE FUNCTION, CREATE SCHEMA "
-                        + "ON DATABASE::seeyontest TO forcitis_reader");
+                        + "ON DATABASE::" + SEEYON_DB + " TO " + READER_LOGIN);
     }
 
     @Test
@@ -155,37 +152,37 @@ class SeeyonViewsMssqlIT {
     @Test
     @DisplayName("§9a the views are read through the ownership chain and map to the domain with the shared mapper")
     void viewsAreReadAndMapped() {
-        SourceOrgSnapshot snapshot = new SeeyonOrgSource(reader, reader, MAPPING, () -> { }).readSnapshot();
+        SourceOrgSnapshot snapshot = new SeeyonOrgSource(reader, reader, MAPPING, () -> { }, new SourceIdTranslation(new InMemorySourceReferences())).readSnapshot();
 
-        assertThat(snapshot.units()).extracting(u -> u.unitId().value()).containsExactlyInAnyOrder(1L, 2L, 3L);
-        assertThat(snapshot.units().stream().filter(u -> u.unitId().value() == 3).findFirst().orElseThrow().state()).isEqualTo(SourceRecordState.DISABLED);
-        var delivery = snapshot.units().stream().filter(u -> u.unitId().value() == 2).findFirst().orElseThrow();
+        assertThat(snapshot.units()).extracting(SourceOrgUnit::unitId).containsExactlyInAnyOrder(TestOrgIds.ownOrgUnit(1), TestOrgIds.ownOrgUnit(2), TestOrgIds.ownOrgUnit(3));
+        assertThat(snapshot.units().stream().filter(u -> u.unitId().equals(TestOrgIds.ownOrgUnit(3))).findFirst().orElseThrow().state()).isEqualTo(SourceRecordState.DISABLED);
+        var delivery = snapshot.units().stream().filter(u -> u.unitId().equals(TestOrgIds.ownOrgUnit(2))).findFirst().orElseThrow();
         assertThat(delivery.regionKind()).isEqualTo(SourceRegionKind.REGIONAL);
         assertThat(delivery.deliveryUnit()).isTrue();
-        assertThat(snapshot.units().stream().filter(u -> u.unitId().value() == 1).findFirst().orElseThrow().regionKind()).isEqualTo(SourceRegionKind.HEADQUARTERS);
+        assertThat(snapshot.units().stream().filter(u -> u.unitId().equals(TestOrgIds.ownOrgUnit(1))).findFirst().orElseThrow().regionKind()).isEqualTo(SourceRegionKind.HEADQUARTERS);
 
         assertThat(snapshot.relationships()).extracting(r -> r.kind()).containsExactlyInAnyOrder(SourceRelationshipKind.UNIT_HEAD, SourceRelationshipKind.REGIONAL_RECEIVABLES_MANAGER);
         assertThat(snapshot.positions()).hasSize(3);
 
-        assertThat(snapshot.staff()).extracting(m -> m.personId().value()).as("one row per person, in scope only")
-                .containsExactlyInAnyOrder(8001L, 8002L, 8003L);
-        SourcePerson worker = snapshot.staff().stream().filter(m -> m.personId().equals(new SourcePersonId(8002))).findFirst().orElseThrow();
-        assertThat(worker.supervisorId()).isEqualTo(new SourcePersonId(8001));
+        assertThat(snapshot.staff()).extracting(SourcePerson::personId).as("one row per person, in scope only")
+                .containsExactlyInAnyOrder(TestOrgIds.ownEmployee(8001), TestOrgIds.ownEmployee(8002), TestOrgIds.ownEmployee(8003));
+        SourcePerson worker = snapshot.staff().stream().filter(m -> m.personId().equals(TestOrgIds.ownEmployee(8002))).findFirst().orElseThrow();
+        assertThat(worker.supervisorId()).isEqualTo(TestOrgIds.ownEmployee(8001));
         assertThat(worker.loginName()).isEqualTo("13900008002");
         assertThat(worker.email()).isEqualTo("worker@example.test");
         assertThat(worker.feeEarner()).isTrue();
-        assertThat(worker.unitId()).isEqualTo(new SourceUnitId(2));
-        assertThat(snapshot.staff().stream().filter(m -> m.personId().value() == 8003).findFirst().orElseThrow().loginName()).isNull();
+        assertThat(worker.unitId()).isEqualTo(TestOrgIds.ownOrgUnit(2));
+        assertThat(snapshot.staff().stream().filter(m -> m.personId().equals(TestOrgIds.ownEmployee(8003))).findFirst().orElseThrow().loginName()).isNull();
     }
 
     @Test
     @DisplayName("§9a single-person lookup over the real view returns the same person as the bulk read")
     void singleLookup() {
-        SeeyonOrgSource source = new SeeyonOrgSource(reader, reader, MAPPING, () -> { });
+        SeeyonOrgSource source = new SeeyonOrgSource(reader, reader, MAPPING, () -> { }, new SourceIdTranslation(new InMemorySourceReferences()));
 
-        assertThat(source.findStaffByWecomUser(new WecomUserId("wx-8002")))
-                .containsExactly(source.readSnapshot().staff().stream().filter(m -> m.personId().value() == 8002).findFirst().orElseThrow());
-        assertThat(source.findStaffByWecomUser(new WecomUserId("wx-8004"))).as("outside the root path").isEmpty();
+        assertThat(source.findStaffByLogin(new StaffLookup.ByWecomUser(new WecomUserId("wx-8002"))))
+                .containsExactly(source.readSnapshot().staff().stream().filter(m -> m.personId().equals(TestOrgIds.ownEmployee(8002))).findFirst().orElseThrow());
+        assertThat(source.findStaffByLogin(new StaffLookup.ByWecomUser(new WecomUserId("wx-8004")))).as("outside the root path").isEmpty();
     }
 
     @Test
@@ -226,12 +223,12 @@ class SeeyonViewsMssqlIT {
     @Test
     @DisplayName("§9a an extra column in a view (say the birthday) makes the start-up check refuse; a dropped one too")
     void extraColumnIsRefused() throws SQLException {
-        run("seeyontest", "ALTER VIEW forcitis_one.v_org_post AS SELECT P.ID, P.CODE, P.NAME, P.SORT_ID, P.STATUS, P.IS_DELETED, CAST(NULL AS date) AS BIRTHDAY FROM dbo.ORG_POST P");
+        run(SEEYON_DB, "ALTER VIEW forcitis_one.v_org_post AS SELECT P.ID, P.CODE, P.NAME, P.SORT_ID, P.STATUS, P.IS_DELETED, CAST(NULL AS date) AS BIRTHDAY FROM dbo.ORG_POST P");
         try {
             assertThat(new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(reader), MAPPING).problems())
                     .anyMatch(p -> p.contains("V_ORG_POST") && p.contains("outside the whitelist") && p.contains("BIRTHDAY"));
         } finally {
-            run("seeyontest", "ALTER VIEW forcitis_one.v_org_post AS SELECT P.ID, P.CODE, P.NAME, P.SORT_ID, P.STATUS, P.IS_DELETED FROM dbo.ORG_POST P");
+            run(SEEYON_DB, "ALTER VIEW forcitis_one.v_org_post AS SELECT P.ID, P.CODE, P.NAME, P.SORT_ID, P.STATUS, P.IS_DELETED FROM dbo.ORG_POST P");
         }
         assertThat(new SeeyonStartupCheck(new JdbcSeeyonSchemaInspector(reader), MAPPING).problems()).isEmpty();
     }

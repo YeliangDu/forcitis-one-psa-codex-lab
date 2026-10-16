@@ -23,7 +23,7 @@ HEADER = """# 提议术语清单（第三轮用语确认用）
 
 <!-- 本文件由 backend/glossary/build_proposed_index.py 从同目录 *.yaml 生成，不要手改；改 yaml 后运行 python3 docs/modernization/build_all.py 并提交结果。 -->
 
-`terms` 只放业务术语，纯技术词（动词、框架词、值对象方法名等）放同文件的 `common_words`。本表按文件列出除错误码以外的全部提议术语；「是否疑似方言」由条目中类型为方言或待定的别名与禁用写法生成，空表示未登记问题；「备注」为条目 note 原文。
+`terms` 只放业务术语，纯技术词（动词、框架词、值对象方法名等）放同文件的 `common_words`。每条必填使用范围 `scope`（domain 领域 / kernel 共享内核 / acl 防腐层）与 `bc`（取 `docs/modernization/glossary/bcs.yaml` 中的 id）：kernel 另填 `used_by`（使用它的 bc），acl 另填 `acl_class`（过渡期 / 长期），指标另填 `formula`、`grain`、`as_of`，下游 bc 自用词可填 `upstream_term`；同一 bc 内中英文名唯一，跨 bc 同名在 `homonyms` 互列；`kind` 只取 DDD 分类（aggregate 聚合 / entity 实体 / value_object 值对象 / domain_event 领域事件 / command 命令 / business_rule 业务规则 / read_model 读模型 / metric 指标 / role 角色 / state 状态，错误码另列 error_code），事件名为聚合名加过去式业务动词、命令用祈使动词，Create / Update / Delete / Data / Info / Manager 等技术泛词不作领域名（规则与校验见 `glossary/term_rules.py`）。本表按文件列出除错误码以外的全部提议术语；「是否疑似方言」由条目中类型为方言或待定的别名与禁用写法生成，空表示未登记问题；「备注」为条目 note 原文。
 
 修改任何一个 yaml 后运行 `./mvnw -B verify`（GlossaryTest 会校验字段、重名和未登记词）与 `python3 docs/modernization/build_all.py`（重新生成本文件）。
 """
@@ -223,9 +223,9 @@ def section(file_name, text):
         out += [paragraph, ""]
     rows = [t for t in terms if t["kind"] != "error_code"]
     if rows:
-        out += ["| id | zh | en | 定义 | 是否疑似方言 | 备注 |", "|---|---|---|---|---|---|"]
+        out += ["| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |", "|---|---|---|---|---|---|---|"]
         for t in rows:
-            out.append(f"| `{cell(t['id'])}` | {cell(t['zh'])} | {cell(t['en'])} | {cell(t['definition'])} | "
+            out.append(f"| `{cell(t['id'])}` | {cell(t['zh'])} | {cell(t['en'])} | {cell(scope_column(t))} | {cell(t['definition'])} | "
                        f"{cell(dialect_column(t))} | {cell(t.get('note') or '')} |")
         out.append("")
     else:
@@ -239,6 +239,17 @@ def section(file_name, text):
     if counts:
         out += ["另有" + "、".join(counts) + "，不在表中。", ""]
     return out, len(rows)
+
+
+SCOPE_ZH = {"domain": "领域", "kernel": "共享内核", "acl": "ACL"}
+
+
+def scope_column(t):
+    """使用范围：领域 / 共享内核 / ACL（过渡期、长期）加 bc；没填为「未定」（B1 校验在 build_terms.py）。"""
+    scope = SCOPE_ZH.get(t.get("scope") or "", "未定")
+    if t.get("acl_class"):
+        scope += f"（{t['acl_class']}）"
+    return f"{scope} · {t.get('bc') or '未定'}"
 
 
 def render(files):

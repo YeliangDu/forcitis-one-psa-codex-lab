@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.forcitis.one.OneApplication;
-import com.forcitis.one.TestImages;
+import com.forcitis.one.TestMssql;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.kernel.WorkContext;
@@ -16,6 +16,7 @@ import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.platform.integration.api.OrgShortNames;
 import com.forcitis.one.platform.integration.api.OrgSource;
+import com.forcitis.one.platform.integration.api.StaffLookup;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.sql.Connection;
@@ -23,7 +24,6 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -33,8 +33,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
-import org.awaitility.Awaitility;
-import org.awaitility.core.ConditionTimeoutException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,7 +45,6 @@ import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
@@ -65,27 +62,27 @@ class ReadOnlyAccountCheckIT {
     static final long HEAD_TYPE = 7001;
     static final long MANAGER_TYPE = 7002;
 
-    static final String SA_PASSWORD = "Aa1!" + UUID.randomUUID();
+    static final String SA_PASSWORD = TestMssql.SA_PASSWORD;
     static final AtomicInteger LOGINS = new AtomicInteger();
 
     static final PostgreSQLContainer POSTGRES = TestPostgres.container()
             .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
 
-    static final GenericContainer<?> MSSQL = new GenericContainer<>(TestImages.startingWith(TestImages.MSSQL_PREFIX))
-            .withEnv("ACCEPT_EULA", "Y").withEnv("MSSQL_SA_PASSWORD", SA_PASSWORD).withExposedPorts(1433)
-            .withStartupTimeout(Duration.ofMinutes(5))
-            .waitingFor(Wait.forLogMessage(".*SQL Server is now ready for client connections.*", 1));
+    static final GenericContainer<?> MSSQL = TestMssql.shared();
+
+    static final String A8_WORLD = TestMssql.database(ReadOnlyAccountCheckIT.class, "a8world").name();
+    static final String LEGACY_WORLD = TestMssql.database(ReadOnlyAccountCheckIT.class, "legacyworld").name();
+    static final String OTHER_WORLD = TestMssql.database(ReadOnlyAccountCheckIT.class, "otherworld").name();
 
     static {
         POSTGRES.start();
-        MSSQL.start();
         createExternalWorld();
     }
 
     enum ReadOnlyConnection {
-        A8("a8world", "a8_ro", ReadOnlyBaselineFixture.VIEW_SCHEMA, "dbo.ORG_MEMBER"),
-        LEGACY_APPROVAL("legacyworld", "todo_ro", "dbo", "dbo.todo_rows"),
-        LEGACY_NAMES("legacyworld", "names_ro", "dbo", "dbo.short_name_rows");
+        A8(A8_WORLD, "a8_ro", ReadOnlyBaselineFixture.VIEW_SCHEMA, "dbo.ORG_MEMBER"),
+        LEGACY_APPROVAL(LEGACY_WORLD, "todo_ro", "dbo", "dbo.todo_rows"),
+        LEGACY_NAMES(LEGACY_WORLD, "names_ro", "dbo", "dbo.short_name_rows");
 
         final String database;
         final String loginPrefix;
@@ -154,7 +151,7 @@ class ReadOnlyAccountCheckIT {
             new Violation("加入 db_datareader", "c", a -> List.of(
                     new Sql(a.connection().database, "ALTER ROLE db_datareader ADD MEMBER " + q(a.login())))),
             new Violation("能访问基线外的另一个用户库", "f", a -> List.of(
-                    new Sql("otherworld", "CREATE USER " + q(a.login()) + " FOR LOGIN " + q(a.login())))),
+                    new Sql(OTHER_WORLD, "CREATE USER " + q(a.login()) + " FOR LOGIN " + q(a.login())))),
             new Violation("缺少一项：DENY VIEW SERVER STATE（REVOKE 无效：平台授予的 ALTER SERVER STATE 隐含它）", "ad", a -> List.of(
                     new Sql("master", "DENY VIEW SERVER STATE TO " + q(a.login())))),
             new Violation("校验查询失败：sys.database_permissions 被拒绝读取", "be", a -> List.of(
@@ -279,7 +276,7 @@ class ReadOnlyAccountCheckIT {
         String table = q("s_" + mark) + "." + q("t_" + mark);
         Throwable failure;
         try {
-            run("a8world", "CREATE SCHEMA " + q("s_" + mark) + " AUTHORIZATION dbo", "CREATE TABLE " + table + " (id bigint)",
+            run(A8_WORLD, "CREATE SCHEMA " + q("s_" + mark) + " AUTHORIZATION dbo", "CREATE TABLE " + table + " (id bigint)",
                     "GRANT CONTROL ON OBJECT::" + table + " TO public");
             failure = catchThrowable(() -> {
                 try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.A8, account))) {
@@ -287,7 +284,7 @@ class ReadOnlyAccountCheckIT {
                 }
             });
         } finally {
-            run("a8world", "DROP TABLE IF EXISTS " + table, "DROP SCHEMA IF EXISTS " + q("s_" + mark));
+            run(A8_WORLD, "DROP TABLE IF EXISTS " + table, "DROP SCHEMA IF EXISTS " + q("s_" + mark));
         }
 
         assertThat(failure).as("public holds CONTROL on a table: the application started anyway").isNotNull();
@@ -303,7 +300,7 @@ class ReadOnlyAccountCheckIT {
         String mark = marker();
         String table = q("s_" + mark) + "." + q("t_" + mark);
         try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.A8, account))) {
-            run("a8world", "CREATE SCHEMA " + q("s_" + mark) + " AUTHORIZATION dbo", "CREATE TABLE " + table + " (id bigint)",
+            run(A8_WORLD, "CREATE SCHEMA " + q("s_" + mark) + " AUTHORIZATION dbo", "CREATE TABLE " + table + " (id bigint)",
                     "GRANT CONTROL ON OBJECT::" + table + " TO public");
             SyncResult result = runSync(context.getBean(SyncOrgSnapshot.class));
 
@@ -312,7 +309,7 @@ class ReadOnlyAccountCheckIT {
             assertThat(output.getAll()).as("no schema or object name in the ALERT or any log line").doesNotContain(mark);
             assertThat(String.valueOf(result.note())).as("no schema or object name in the sync result").doesNotContain(mark);
         } finally {
-            run("a8world", "DROP TABLE IF EXISTS " + table, "DROP SCHEMA IF EXISTS " + q("s_" + mark));
+            run(A8_WORLD, "DROP TABLE IF EXISTS " + table, "DROP SCHEMA IF EXISTS " + q("s_" + mark));
         }
     }
 
@@ -344,19 +341,19 @@ class ReadOnlyAccountCheckIT {
         Account account = baselineAccount(ReadOnlyConnection.A8);
         try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.A8, account))) {
             OrgSource a8 = context.getBean(OrgSource.class);
-            assertThat(a8.findStaffByLoginName(LOGIN_NAME)).as("the adapter reads before the grant changes").hasSize(1);
+            assertThat(a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME))).as("the adapter reads before the grant changes").hasSize(1);
 
             grantWriteBehindTheDatabaseDeny(account);
-            long readsBefore = baseTableReads("a8world", "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER");
+            long readsBefore = baseTableReads(A8_WORLD, "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER");
             SyncResult result = runSync(context.getBean(SyncOrgSnapshot.class));
 
             assertThat(result.status()).as(result.note()).isEqualTo(SyncRunStatus.FAILED);
             assertThat(output.getAll()).as("the failed re-check raises an ALERT naming item (b)").containsPattern("ALERT[^\\n]*[(（]b[)）]");
-            assertThat(baseTableReads("a8world", "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER"))
+            assertThat(baseTableReads(A8_WORLD, "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER"))
                     .as("nothing is read from A8 once the re-check has failed").isEqualTo(readsBefore);
-            assertThatThrownBy(() -> a8.findStaffByLoginName(LOGIN_NAME)).as("the stopped adapter answers 'unavailable'")
+            assertThatThrownBy(() -> a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME))).as("the stopped adapter answers 'unavailable'")
                     .isInstanceOf(ExternalSystemUnavailableException.class);
-            assertThat(baseTableReads("a8world", "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER")).isEqualTo(readsBefore);
+            assertThat(baseTableReads(A8_WORLD, "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER")).isEqualTo(readsBefore);
         }
     }
 
@@ -366,19 +363,20 @@ class ReadOnlyAccountCheckIT {
         Account account = baselineAccount(ReadOnlyConnection.LEGACY_NAMES);
         try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.LEGACY_NAMES, account))) {
             OrgShortNames names = context.getBean(OrgShortNames.class);
+            legacyReferenceOfTheShortNameUnit(context);
             assertThat(names.readShortNames()).as("the adapter reads before the grant changes").hasSize(1);
 
             grantWriteBehindTheDatabaseDeny(account);
-            long readsBefore = baseTableReads("legacyworld", "short_name_rows");
+            long readsBefore = baseTableReads(LEGACY_WORLD, "short_name_rows");
             double failedBefore = shortNameRefreshFailures(context);
             context.getBean(RefreshShortNames.class).execute();
 
             assertThat(shortNameRefreshFailures(context)).as("the refresh is counted as failed").isEqualTo(failedBefore + 1);
             assertThat(output.getAll()).as("the failed re-check raises an ALERT naming item (b)").containsPattern("ALERT[^\\n]*[(（]b[)）]");
-            assertThat(baseTableReads("legacyworld", "short_name_rows")).as("nothing is read from the old system once the re-check has failed")
+            assertThat(baseTableReads(LEGACY_WORLD, "short_name_rows")).as("nothing is read from the old system once the re-check has failed")
                     .isEqualTo(readsBefore);
             assertThatThrownBy(names::readShortNames).isInstanceOf(ExternalSystemUnavailableException.class);
-            assertThat(baseTableReads("legacyworld", "short_name_rows")).isEqualTo(readsBefore);
+            assertThat(baseTableReads(LEGACY_WORLD, "short_name_rows")).isEqualTo(readsBefore);
         }
     }
 
@@ -394,6 +392,19 @@ class ReadOnlyAccountCheckIT {
         });
 
         assertThat(failure).as("the legacy inbox check could not reach its database: it must refuse, not log and carry on").isNotNull();
+    }
+
+    /**
+     * R-1b P3b (C8, RULING-P3B-3): once the short names are handed out by own id, the old-system department 2 of the fixture needs its
+     * (LEGACY_SYSTEM, ORG_UNIT) reference to be handed out at all; before P3b (EmployeeId still a number) nothing is added.
+     */
+    static void legacyReferenceOfTheShortNameUnit(ConfigurableApplicationContext context) {
+        if (com.forcitis.one.kernel.EmployeeId.class.getRecordComponents()[0].getType() != UUID.class) {
+            return;
+        }
+        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
+            SourceReferencesProbe.of(context).allocate("LEGACY_SYSTEM", "ORG_UNIT", 2);
+        }
     }
 
     static double shortNameRefreshFailures(ConfigurableApplicationContext context) {
@@ -444,7 +455,7 @@ class ReadOnlyAccountCheckIT {
             args.addAll(List.of(legacy + "jdbc-url=" + urlOf.apply(ReadOnlyConnection.LEGACY_NAMES), legacy + "username=" + names.login(), legacy + "password=" + names.password()));
         }
         Account approval = enabled.get(ReadOnlyConnection.LEGACY_APPROVAL);
-        String inbox = "--forcitis.platform.approval.legacy.";
+        String inbox = "--forcitis.platform.integration.legacy.inbox.";
         if (approval != null) {
             args.addAll(List.of(inbox + "url=" + urlOf.apply(ReadOnlyConnection.LEGACY_APPROVAL), inbox + "username=" + approval.login(), inbox + "password=" + approval.password(),
                     inbox + "view-name=dbo.v_psa_one_legacy_todo"));
@@ -467,7 +478,7 @@ class ReadOnlyAccountCheckIT {
 
     /** A fresh login per case: no case can leak a grant into another. */
     static Account baselineAccount(ReadOnlyConnection connection) {
-        String login = connection.loginPrefix + "_" + LOGINS.incrementAndGet();
+        String login = TestMssql.login(ReadOnlyAccountCheckIT.class, connection.loginPrefix + "_" + LOGINS.incrementAndGet());
         String password = "Ro1!" + UUID.randomUUID();
         try {
             if (connection == ReadOnlyConnection.A8) {
@@ -506,12 +517,11 @@ class ReadOnlyAccountCheckIT {
     }
 
     static String url(String database) {
-        return "jdbc:sqlserver://" + MSSQL.getHost() + ":" + MSSQL.getMappedPort(1433) + ";databaseName=" + database
-                + ";encrypt=true;trustServerCertificate=true";
+        return TestMssql.url(MSSQL, database);
     }
 
     static Connection admin(String database) throws SQLException {
-        return DriverManager.getConnection(url(database) + ";loginTimeout=30", "sa", SA_PASSWORD);
+        return TestMssql.adminConnection(MSSQL, database);
     }
 
     static void run(String database, String... statements) throws SQLException {
@@ -524,27 +534,16 @@ class ReadOnlyAccountCheckIT {
 
     private static void createExternalWorld() {
         try {
-            waitForAdministratorLogin();
-            run("master", "CREATE DATABASE a8world", "CREATE DATABASE legacyworld", "CREATE DATABASE otherworld");
             ReadOnlyBaselineFixture.createRdsPlatform(ReadOnlyAccountCheckIT::run);
             createA8World();
             createLegacyWorld();
-        } catch (SQLException | ConditionTimeoutException e) {
+        } catch (SQLException e) {
             throw new IllegalStateException("cannot prepare the external databases; SQL Server log:\n" + MSSQL.getLogs(), e);
         }
     }
 
-    /** Polls in the calling thread: this runs inside the static initializer. */
-    private static void waitForAdministratorLogin() {
-        Awaitility.await("SQL Server accepts the administrator login")
-                .atMost(Duration.ofSeconds(60)).pollInterval(Duration.ofMillis(500)).pollInSameThread().ignoreExceptions().until(() -> {
-                    admin("master").close();
-                    return true;
-                });
-    }
-
     private static void createA8World() throws SQLException {
-        run("a8world", "CREATE SCHEMA " + ReadOnlyBaselineFixture.VIEW_SCHEMA + " AUTHORIZATION dbo",
+        run(A8_WORLD, "CREATE SCHEMA " + ReadOnlyBaselineFixture.VIEW_SCHEMA + " AUTHORIZATION dbo",
                 "CREATE TABLE dbo.ORG_UNIT (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, PATH nvarchar(200), IS_DELETED bit, "
                         + "IS_INTERNAL bit, IS_ENABLE bit, CATEGORY nvarchar(16), DELIVERY_FLAG_ENUM_ID nvarchar(32), TYPE nvarchar(32) NULL)",
                 "CREATE TABLE dbo.relationship_rows (SOURCE_MEMBER_ID bigint, ORG_UNIT_ID bigint, RELATIONSHIP_TYPE_ID bigint, MEMBER_IS_DELETED bit)",
@@ -564,7 +563,7 @@ class ReadOnlyAccountCheckIT {
     }
 
     private static void createLegacyWorld() throws SQLException {
-        run("legacyworld",
+        run(LEGACY_WORLD,
                 "CREATE TABLE dbo.todo_rows (assignee_user_id bigint, task_id nvarchar(64), process_instance_id nvarchar(64), task_def_key nvarchar(64), "
                         + "task_name nvarchar(128), process_title nvarchar(256), created_at datetime2)",
                 "CREATE TABLE dbo.short_name_rows (id bigint, short_name nvarchar(64))",

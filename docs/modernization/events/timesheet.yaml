@@ -22,9 +22,11 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -49,6 +51,7 @@ components:
           projectManager:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 项目经理，工时审批第一道审批人
           submittedOn:
             type: string
@@ -92,9 +95,11 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -146,9 +151,11 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -207,9 +214,11 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -268,9 +277,11 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object

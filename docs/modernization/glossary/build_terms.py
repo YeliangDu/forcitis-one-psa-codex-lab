@@ -703,6 +703,49 @@ print("round3: 新增正式词条", apply_round3.apply(terms))
 _scoped, _unscoped = apply_acl.apply(terms, apply_round3.plan()["id_map"])
 print("acl: 写使用范围", _scoped, "条；尚无归类", len(_unscoped), "条（B1 补齐后必填）")
 
+# 用语登记规则（B1，intent 2026-10-15-171649、171959-one-coordinator）：bc 为 kernel 的领域词条转为 scope kernel，
+# 并入 glossary/term-fields.yaml 的补充字段，再连同 backend/glossary/proposed/*.yaml 逐条校验（glossary/term_rules.py，存量问题见 term-rules-baseline.json）
+# B1 决策页答复（glossary/decisions-b1-2026-10-15.json）：使用范围、同 bc 重名改名，规则在 glossary/b1/apply_b1.py
+sys.path.insert(0, "glossary/b1")
+import apply_b1
+print("b1: 写使用范围 %d 条、改名 %d 条" % apply_b1.apply(terms))
+# 用户裁定（glossary/rulings.yaml）：在各轮写回之后改名、改定义、提议转正，规则在 glossary/apply_rulings.py
+sys.path.insert(0, "glossary")
+import apply_rulings
+print("rulings: 应用用户裁定", apply_rulings.apply(terms), "条")
+# B2：类别统一为 DDD 战术分类（glossary/b2/apply_b2.py，判定表 b2/kind-judgement.json）
+sys.path.insert(0, "glossary/b2")
+import apply_b2
+print("b2: 改类别 %d 条、移出词条 %d 条、挂属性 %d 条" % apply_b2.apply(terms))
+import term_rules
+_bcs = {b["id"]: b["kind"] for b in yaml.safe_load(open("glossary/bcs.yaml", encoding="utf-8"))["bcs"]}
+_extra = yaml.safe_load(open("glossary/term-fields.yaml", encoding="utf-8"))["terms"] or {}
+_ids = {t["id"] for t in terms}
+if set(_extra) - _ids:
+    raise SystemExit("glossary/term-fields.yaml 有不存在的词条 id：" + "、".join(sorted(set(_extra) - _ids)))
+_EXTRA_FIELDS = {"scope", "used_by", "upstream_term", "homonyms", "formula", "grain", "as_of"}
+_to_kernel = []
+for t in terms:
+    _x = _extra.get(t["id"]) or {}
+    if set(_x) - _EXTRA_FIELDS:
+        raise SystemExit(f"glossary/term-fields.yaml {t['id']}：只能写 {'、'.join(sorted(_EXTRA_FIELDS))}，不能写 " + "、".join(sorted(set(_x) - _EXTRA_FIELDS)))
+    if "scope" in _x and t.get("scope"):
+        raise SystemExit(f"glossary/term-fields.yaml {t['id']}：使用范围已由 ACL 归类答复写定（{t['scope']}），不得覆盖")
+    if t["bc"] == "kernel" and t.get("scope") in (None, "domain") and "scope" not in _x:
+        t["scope"] = "kernel"
+        _to_kernel.append(t["id"])
+    t.update(_x)
+print("term_rules: bc 为 kernel 的领域词条转为共享内核", len(_to_kernel), "条：", "、".join(_to_kernel))
+_entries = [("terms.yaml", t) for t in terms]
+_proposed = sorted(glob.glob("../../backend/glossary/proposed/*.yaml"))
+if not _proposed:
+    raise SystemExit("找不到 backend/glossary/proposed/*.yaml（须在 docs/modernization 下运行）")
+for _f in _proposed:
+    for _e in (yaml.safe_load(open(_f, encoding="utf-8")) or {}).get("terms") or []:
+        _entries.append((f"proposed/{os.path.basename(_f)}", _e))
+_left, _by_rule = term_rules.enforce(_entries, _bcs)
+print("term_rules: 存量问题", _left, "条（只减不增）", dict(sorted(_by_rule.items())))
+
 out = collections.OrderedDict(meta=meta, terms=[dict(t) for t in terms], common_words=COMMON)
 
 class D(yaml.SafeDumper): pass

@@ -114,9 +114,9 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
         organisation.unit(unit, null, head).person(head, unit, null).person(initiator, unit, head)
                 .person(manager, unit, managerHasSuperior ? head : null);
         String key = newKey("deadline");
-        ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(key, new EmployeeId(initiator),
+        ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(key, TestAccounts.employee(initiator),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))))));
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(manager).toString()))))));
         return new Scene(key, instance, openTaskId(instance), initiator, manager, head);
     }
 
@@ -147,7 +147,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
     }
 
     List<String> candidatesOf(Scene s) {
-        return taskService.getIdentityLinksForTask(s.task().value()).stream().filter(l -> "candidate".equals(l.getType())).map(l -> l.getUserId())
+        return taskService.getIdentityLinksForTask(s.task().value().toString()).stream().filter(l -> "candidate".equals(l.getType())).map(l -> l.getUserId())
                 .toList();
     }
 
@@ -216,12 +216,12 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
         organisation.unit(unit, null, null).person(initiator, unit, null).person(manager, unit, null);
         String key = newKey("deadline-calendar");
 
-        assertThatThrownBy(() -> tx.executeWithoutResult(s -> approvals.start(startRequest(key, new EmployeeId(initiator),
+        assertThatThrownBy(() -> tx.executeWithoutResult(s -> approvals.start(startRequest(key, TestAccounts.employee(initiator),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager))))))))
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(manager).toString())))))))
                 .hasStackTraceContaining("not maintained");
 
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where document_key = ?", Integer.class, key)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where document_id = cast(? as uuid)", Integer.class, key)).isZero();
         assertThat(runtime.createProcessInstanceQuery().processInstanceBusinessKey("TIMESHEET:" + key).count()).isZero();
     }
 
@@ -233,14 +233,14 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
         clock.set(remindAtOf(s).minusSeconds(1));
         enforceDeadlines.execute();
         assertThat(isOverdue(s)).isFalse();
-        verify(wecom, after(300).times(0)).send(argThat(card -> card.deduplicationKey().equals("approval-task:" + s.task().value() + ":overdue")));
+        verify(wecom, after(300).times(0)).send(argThat(card -> card.subject().equals(com.forcitis.one.platform.integration.api.DeliverySubject.of(com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_OVERDUE, s.task().value()))));
 
         clock.set(remindAtOf(s));
         enforceDeadlines.execute();
         assertThat(isOverdue(s)).isTrue();
         enforceDeadlines.execute();
 
-        verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.deduplicationKey().equals("approval-task:" + s.task().value() + ":overdue")
+        verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.subject().equals(com.forcitis.one.platform.integration.api.DeliverySubject.of(com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_OVERDUE, s.task().value()))
                 && card.wecomUserIds().equals(List.of(new WecomUserId(organisation.wecomOf(s.manager()))))));
         assertThat(jdbc.queryForObject("select status from platform_approval.approval_tasks where task_id = ?", String.class, s.task().value()))
                 .isEqualTo("PENDING");
@@ -283,7 +283,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
         assertThat(openTask(s.instance()).getAssignee()).as("the claim is released so the superior can take it").isNull();
         assertThat(jdbc.queryForObject("select status from platform_approval.approval_tasks where task_id = ?", String.class, s.task().value()))
                 .isEqualTo("PENDING");
-        verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.deduplicationKey().equals("approval-task:" + s.task().value() + ":escalated")
+        verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.subject().equals(com.forcitis.one.platform.integration.api.DeliverySubject.of(com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ESCALATED, s.task().value()))
                 && card.wecomUserIds().equals(List.of(new WecomUserId(organisation.wecomOf(s.head()))))));
         ApprovalTaskEscalated escalated = events.escalated().stream().filter(e -> e.taskId().equals(s.task())).findFirst().orElseThrow();
         assertThat(escalated.escalatedTo()).containsExactly(TestAccounts.account(s.head()));
@@ -312,7 +312,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
         assertThat(escalated.target()).isEqualTo(EscalationTarget.PROCESS_ADMINISTRATOR);
         assertThat(escalated.escalatedTo()).containsExactlyInAnyOrder(TestAccounts.account(ADMINISTRATOR), TestAccounts.account(secondAdministrator));
         assertThat(meters.counter("forcitis.platform.approval.task.escalation.administrator").count()).isEqualTo(before + 1);
-        org.mockito.Mockito.verify(wecom, org.mockito.Mockito.timeout(10_000)).markHandled(org.mockito.ArgumentMatchers.eq("approval-task:" + s.task().value()),
+        org.mockito.Mockito.verify(wecom, org.mockito.Mockito.timeout(10_000)).markHandled(org.mockito.ArgumentMatchers.eq(com.forcitis.one.platform.integration.api.DeliverySubject.of(com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ASSIGNED, s.task().value())),
                 org.mockito.ArgumentMatchers.argThat(note -> note.contains("已超时，已升级给")));
         decideTasks.execute(TestAccounts.account(ADMINISTRATOR), List.of(new TaskDecision(s.task(), DecisionOutcome.APPROVE, "covering")), java.util.OptionalLong.empty());
         assertThat(requestStatus(s.key())).isEqualTo("APPROVED");
@@ -345,8 +345,8 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
 
         assertThat(events.overdue().stream().filter(e -> e.taskId().equals(s.task()))).hasSize(1);
         assertThat(events.escalated().stream().filter(e -> e.taskId().equals(s.task()))).hasSize(1);
-        verify(wecom, after(500).times(1)).send(argThat(card -> card.deduplicationKey().equals("approval-task:" + s.task().value() + ":overdue")));
-        verify(wecom, times(1)).send(argThat(card -> card.deduplicationKey().equals("approval-task:" + s.task().value() + ":escalated")));
+        verify(wecom, after(500).times(1)).send(argThat(card -> card.subject().equals(com.forcitis.one.platform.integration.api.DeliverySubject.of(com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_OVERDUE, s.task().value()))));
+        verify(wecom, times(1)).send(argThat(card -> card.subject().equals(com.forcitis.one.platform.integration.api.DeliverySubject.of(com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ESCALATED, s.task().value()))));
     }
 
     @Test
