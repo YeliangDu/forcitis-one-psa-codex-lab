@@ -138,6 +138,7 @@ processes:
     name: "未签约的售前投入转费用"
     type: event_policy
     stages: [VS-01.2]
+    stages_note: "事件策略按触发状态归段（#421）：商机已丢单、已放弃=OBJ-18「丢单 / 放弃」，是 VS-01.2 退出条件；超期未签约的定时触发无对象状态，随同一策略归 VS-01.2。"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -229,6 +230,7 @@ processes:
     name: "转入售前投入"
     type: event_policy
     stages: [VS-02.0, VS-04.1]
+    stages_note: "事件策略按触发状态归段（#421）：项目已建立=OBJ-29「已立项」，是 VS-02.0 退出条件；合同已签回（ContractSigned）=OBJ-05「已签署生效」，是 VS-04.1 退出条件。两段在不同价值流，是按触发状态跨价值流归两段，不是跳段。触发名用事件名而非状态原文，检查器因此匹配不上。"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -237,8 +239,8 @@ processes:
   - id: PRC-26
     name: "接收并确认发包人提供资料"
     type: business
-    stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4]
-    stages_note: "VS-02.1 概念入口同 VS-02.2–.4 要求 OBJ-42 发包人资料「已提供」，补标 .1（SD-01 用户裁定 2026-10-16）"
+    stages: [VS-02.0, VS-02.2, VS-02.3, VS-02.4]
+    stages_note: "理由：VS-02.2–.4 入口要求 OBJ-42 发包人资料「已提供」，VS-02.1 概念入口不要求，故不标 .1；概念阶段是否也应要求提资属阶段定义，单列交 one-architecture"
     owner_bc: "B-28"
     group: revenue
     status: draft
@@ -323,7 +325,7 @@ processes:
     name: "项目或协议终止、结项后清算成本"
     type: event_policy
     stages: [VS-02.7]
-    stages_note: "按触发状态「项目已结项」归段；终止类结局不归段（SD-10 用户裁定 2026-10-16）"
+    stages_note: "按触发状态「项目已结项」归段；终止类结局不归段（SD-10）"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -445,7 +447,7 @@ processes:
   - id: PRC-48
     name: "提出并生效协议变更或签证"
     type: business
-    stages: [VS-04.6]
+    stages: [VS-04.1]
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -454,8 +456,8 @@ processes:
   - id: PRC-49
     name: "提出并认定索赔"
     type: business
-    stages: [VS-04.6, VS-04.5]
-    stages_note: "理由：索赔在履约（VS-04.6）中提出、在最终价款确认时认定或并入结算；VS-04.2–.4（收入确认、开票、回款）与索赔无关（SD-02 用户裁定 2026-10-16，增设 VS-04.6 履约）"
+    stages: [VS-04.1, VS-04.5]
+    stages_note: "理由：索赔在履约中提出、在最终价款确认时认定或并入结算；VS-04.2–.4（收入确认、开票、回款）与索赔无关。VS-04 在合同签订与最终价款确认之间没有「履约」阶段，是否补阶段属阶段定义，单列交 one-architecture"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -464,7 +466,7 @@ processes:
   - id: PRC-50
     name: "占用框架限额并提交任务订单"
     type: business
-    stages: [VS-04.6]
+    stages: [VS-04.1]
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -511,6 +513,7 @@ processes:
     name: "结转合同履约成本"
     type: event_policy
     stages: [VS-04.2]
+    stages_note: "事件策略按触发状态归段（#421）：触发是收入确认类型分录的过账回执，对应 OBJ-98「已记账（不可逆）」，是 VS-04.2 退出条件（收入确认类型分录）。触发名是事件名，检查器匹配不上。"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -657,6 +660,7 @@ processes:
     name: "生效分包变更"
     type: business
     stages: [VS-05.2]
+    stages_note: "分包变更（AGG-56）生效即供方协议内容再次「已签署生效」，对应 OBJ-05（供方类型）「已签署生效」，是 VS-05.2 退出条件；与收入侧协议变更（PRC-48）对称。AGG-56 状态名「已生效」与 OBJ-05 状态名字面不同，检查器匹配不上。"
     owner_bc: "B-11"
     group: finance
     status: draft
@@ -830,6 +834,7 @@ processes:
     name: "出具经营月报"
     type: read_model
     stages: [VS-09.3, VS-10.2]
+    stages_note: "读模型不造对象状态，按读取的对象状态归段（#421）：读 OBJ-97「已关账」的期间余额与经营计划基线，月报复盘落在 VS-09.3 经营复盘与 VS-10.2 报表发布。"
     owner_bc: "reporting"
     group: finance
     status: draft
@@ -956,6 +961,7 @@ processes:
     name: "外部法定账对账与签字"
     type: business
     stages: [VS-10.2]
+    stages_note: "外部法定账对账完成是 VS-10.2 退出条件改定后的「外部法定账对账已完成」（SD 已裁定的 VS-10.2 退出条件）；改定前检查器匹配不上。"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -974,6 +980,7 @@ processes:
     name: "出具三大报表"
     type: read_model
     stages: [VS-10.2]
+    stages_note: "读模型不造对象状态，按读取的对象状态归段（#421）：读 OBJ-97「已关账」的期间余额与生效的报表行定义，三大报表是 VS-10.2 报表发布的产物（已裁定退出条件「三大报表已出具」）。"
     owner_bc: "B-21"
     group: finance
     status: draft
@@ -1505,7 +1512,7 @@ processes:
     name: "应付结清后登记利润分配支付"
     type: event_policy
     stages: [VS-12.2]
-    stages_note: "利润分配支付是「利润分配」阶段出口（应付股利结清）的一部分"
+    stages_note: "利润分配支付是「利润分配」阶段出口（应付股利结清）的一部分；触发「应付已结清」按来源限定为利润分配应付；结局造出 OBJ-112「已支付」，是 VS-12.2 退出条件（检查器没解析「已决议 → 已支付」）"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1516,7 +1523,7 @@ processes:
     name: "收入确认冲销后冲回已配对成本结转"
     type: event_policy
     stages: [VS-04.2]
-    stages_note: "收入确认冲销后冲回已配对的成本结转，随收入确认所在阶段（VS-04.2，revenue 价值流）"
+    stages_note: "收入确认冲销后冲回已配对的成本结转，随收入确认所在阶段（VS-04.2，revenue 价值流）；触发是收入确认类型过账事实被冲销并重过账，对应 OBJ-98「已记账（不可逆）」，是 VS-04.2 退出条件（触发名是事件名，检查器匹配不上）"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1582,7 +1589,7 @@ processes:
     name: "申请费用事前额度"
     type: business
     stages: [VS-08.0]
-    stages_note: "费用事前额度属「事前申请」（SD-03 用户裁定 2026-10-16）"
+    stages_note: "按判据归 VS-08.0 事前申请（SD-03）：费用事前额度批准是该阶段的退出条件"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1593,7 +1600,7 @@ processes:
     name: "核对差旅服务商月账单并确认应付"
     type: business
     stages: [VS-05.4]
-    stages_note: "公司直付分贝通订单：核对月账单后确认供方应付，属「应付确认」；之后付款进 VS-05.5（PRC-75）"
+    stages_note: "公司直付分贝通订单：核对月账单后确认供方应付，属「应付确认」；之后付款进 VS-05.5（PRC-75）；结局「应付已确认」即 OBJ-85「未结」（应付方向），是 VS-05.4 退出条件（同 PRC-74 的写法，检查器因结局没写「未结」匹配不上）"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1604,7 +1611,7 @@ processes:
     name: "申请出差并同步差旅服务商"
     type: business
     stages: [VS-08.0]
-    stages_note: "出差申请属「事前申请」（SD-03 用户裁定 2026-10-16）"
+    stages_note: "按判据归 VS-08.0 事前申请（SD-03）：出差申请批准是该阶段的退出条件"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1615,7 +1622,7 @@ processes:
     name: "审批差旅超标订单"
     type: business
     stages: [VS-08.0]
-    stages_note: "差旅超标订单审批属「事前申请」（SD-03 用户裁定 2026-10-16）"
+    stages_note: "按判据归 VS-08.0 事前申请（SD-03）：超标订单审批是下单前的事前申请"
     owner_bc: "B-12"
     group: finance
     status: draft
