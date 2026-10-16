@@ -1,6 +1,6 @@
 # one-ops 速查（2026-10-15 19:30）
 
-规矩：持久资源先报再做、回读再报 one-coordinator；不部署（门禁 090 / 100）；不打印密钥；取证登记 [LEGACY_READ_REGISTER](LEGACY_READ_REGISTER.md)。
+规矩：持久资源先报再做、回读再报 one-coordinator；不部署（门禁 090 / 100）；不打印密钥；取证登记 [LEGACY_READ_REGISTER](legacy-read/)（片段；总表由 build_all 生成，不入仓）。
 
 ## 资源
 
