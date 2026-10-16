@@ -515,15 +515,17 @@ def main():
         return
     base = sys.argv[1] if len(sys.argv) > 1 else ""
     event = os.environ.get("GITHUB_EVENT_NAME")
+    tier = tier_lines("code", None)   # push, schedule and anything else: the full run
     if event == "pull_request" and base:
         files = changed_files(base)
         relevant = any(is_relevant(f) for f in files)
         legacy_it = any_legacy_it(files)
         tier = tier_lines(*tier_of(files, Path(__file__).resolve().parents[2]))
         print(f"{len(files)} changed files, relevant={relevant}, legacy_it={legacy_it}, {', '.join(tier)}")
+    elif event == "schedule":
+        relevant, legacy_it = True, False   # the nightly full run of main; the SQL Server tests have their own nightly workflow
     else:
         relevant = True
-        tier = tier_lines("code", None)
         before = os.environ.get("BEFORE", "")
         files = files_since(before) if event == "push" and before and before != NULL_SHA else None
         legacy_it = files is None or any_legacy_it(files)
