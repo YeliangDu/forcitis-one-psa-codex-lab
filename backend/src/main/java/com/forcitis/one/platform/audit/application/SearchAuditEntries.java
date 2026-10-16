@@ -34,7 +34,7 @@ public class SearchAuditEntries {
     public AuditEntryPageView execute(AuditSearch search, UserId actor) {
         AuditPage page = entries.findPage(new AuditQuery(search.actorId() == null ? null : new UserId(search.actorId()),
                 search.onBehalfOfId() == null ? null : new UserId(search.onBehalfOfId()), AuditSearch.blankToNull(search.action()),
-                AuditSearch.blankToNull(search.actionPrefix()), search.subjectKind(), search.subjectId(),
+                AuditSearch.blankToNull(search.actionPrefix()), search.subjectKind(), search.subject(),
                 AuditSearch.blankToNull(search.sourceAddress()), search.outcome(), search.from(), search.to(), position(search.page()),
                 search.page().limit()));
         audit.record(new AuditEntry("platform.audit.audit-entry.searched", actor, null, AuditSubject.without(AuditSubjectKind.OPERATION),

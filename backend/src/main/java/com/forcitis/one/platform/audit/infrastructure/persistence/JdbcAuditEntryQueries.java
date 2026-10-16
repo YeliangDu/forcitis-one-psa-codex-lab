@@ -110,13 +110,14 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
             conditions.add("outcome_kind = :outcome");
             params.put("outcome", query.outcome().name());
         }
-        if (query.subjectKind() != null) {
+        AuditSubjectKind kind = query.subject() != null ? query.subject().kind() : query.subjectKind();
+        if (kind != null) {
             conditions.add("subject_kind = :subjectKind");
-            params.put("subjectKind", query.subjectKind().name());
+            params.put("subjectKind", kind.name());
         }
-        if (query.subjectId() != null) {
+        if (query.subject() != null && query.subject().id() != null) {
             conditions.add("subject_id = :subjectId");
-            params.put("subjectId", query.subjectId());
+            params.put("subjectId", query.subject().id());
         }
         if (query.from() != null) {
             conditions.add("created_at >= :from");
