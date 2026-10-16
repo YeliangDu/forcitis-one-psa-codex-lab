@@ -32,7 +32,7 @@ class TestIsolationGuardTest {
             return null;
         }
         if (relative.getName(0).toString().equals("acceptance")) {
-            return relative.getNameCount() < 4 ? null : relative.getName(1) + "_" + relative.getName(2);
+            return relative.getNameCount() < 4 ? "acceptance" : relative.getName(1) + "_" + relative.getName(2);
         }
         return relative.getName(0) + "_" + relative.getName(1);
     }
@@ -89,6 +89,7 @@ class TestIsolationGuardTest {
         assertThat(schemaOf(TESTS.resolve("acceptance/platform/audit/AuditSubjectColumnsIT.java"))).isEqualTo("platform_audit");
         assertThat(schemaOf(TESTS.resolve("platform/audit/AuditLogIT.java"))).isEqualTo("platform_audit");
         assertThat(schemaOf(TESTS.resolve("acceptance/P5Names.java"))).isNull();
+        assertThat(schemaOf(TESTS.resolve("acceptance/platform/Loose.java"))).as("a file straight under an area is still checked, against no schema").isEqualTo("acceptance");
     }
 
     @Test

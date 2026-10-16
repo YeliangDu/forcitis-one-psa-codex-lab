@@ -7,6 +7,7 @@ import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.Uuids;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.domain.JavaField;
 import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.domain.JavaModifier;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -16,6 +17,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -69,24 +71,40 @@ class IdMakingGuardTest {
         return problems;
     }
 
+    /** Roots whose id field is not called id or <root>Id; every other root must have exactly one of those two. */
+    static final Map<String, String> IRREGULAR_ID_FIELDS = Map.of(
+            "UserAccount", "userId",
+            "EmergencyAdmin", "userId",
+            "AuthorizationRequest", "requestId",
+            "SourceReferenceRefusal", "refusalId",
+            "OutboundDelivery", "deliveryId",
+            "RegisteredEmployee", "staff");
+
     /**
      * The id of an aggregate root is final: a repository cannot hand a root its id later, whether in a method that returns the root, a void save or a
-     * private helper. A field is taken for the root's own id when it is called id, is called after the root, or is called after its own type (userId of
-     * UserId); a typed reference to another aggregate (releasedByRunId) is not. A root whose id is named otherwise is not seen here and stays under the
-     * repository rule above.
+     * private helper. Every root must have exactly one id field, found by name (id, <root>Id, or the explicit entry for an irregular name); a root
+     * with none, or with two, fails, so a root cannot slip past the rule by naming its id oddly. A typed reference to another aggregate is not an id.
      */
-    static List<String> mutableRootIdProblems(JavaClasses classes) {
+    static List<String> mutableRootIdProblems(JavaClasses classes, Map<String, String> irregular) {
         List<String> problems = new ArrayList<>();
         for (JavaClass type : classes) {
             if (!type.isAssignableTo(AggregateRoot.class) || type.isEquivalentTo(AggregateRoot.class)) {
                 continue;
             }
-            String named = decapitalise(type.getSimpleName()) + "Id";
-            type.getFields().stream()
-                    .filter(field -> !field.getModifiers().contains(JavaModifier.STATIC) && !field.getModifiers().contains(JavaModifier.FINAL))
-                    .filter(field -> field.getName().equals("id") || field.getName().equals(named)
-                            || field.getRawType().getSimpleName().endsWith("Id") && field.getName().equals(decapitalise(field.getRawType().getSimpleName())))
-                    .forEach(field -> problems.add(type.getName() + "." + field.getName() + " is an id that is not final: the id of a root is set when it is built, never later (ADR-0033 section 1 item 9)"));
+            Set<String> names = irregular.containsKey(type.getSimpleName())
+                    ? Set.of(irregular.get(type.getSimpleName()))
+                    : Set.of("id", decapitalise(type.getSimpleName()) + "Id");
+            List<JavaField> ids = type.getFields().stream()
+                    .filter(field -> !field.getModifiers().contains(JavaModifier.STATIC) && names.contains(field.getName()))
+                    .toList();
+            if (ids.size() != 1) {
+                problems.add(type.getName() + " has " + ids.size() + " id fields among " + names + ": a root has exactly one; name it id or <root>Id, or list it in IRREGULAR_ID_FIELDS");
+                continue;
+            }
+            JavaField id = ids.getFirst();
+            if (!id.getModifiers().contains(JavaModifier.FINAL)) {
+                problems.add(type.getName() + "." + id.getName() + " is an id that is not final: the id of a root is set when it is built, never later (ADR-0033 section 1 item 9)");
+            }
         }
         return problems;
     }
@@ -125,7 +143,7 @@ class IdMakingGuardTest {
     @Test
     @DisplayName("the id of every aggregate root is final, so no repository can make it afterwards")
     void rootIdsAreFinal() {
-        assertThat(mutableRootIdProblems(ArchitectureRulesTest.CLASSES)).isEmpty();
+        assertThat(mutableRootIdProblems(ArchitectureRulesTest.CLASSES, IRREGULAR_ID_FIELDS)).isEmpty();
     }
 
     @Test
@@ -174,6 +192,23 @@ class IdMakingGuardTest {
         }
     }
 
+    static final class RootWithNoIdField extends AggregateRoot {
+        private String status;
+
+        RootWithNoIdField() {
+            super(0, 0);
+        }
+    }
+
+    static final class RootWithOddlyNamedId extends AggregateRoot {
+        private final UUID key = null;
+        private UUID roleId;
+
+        RootWithOddlyNamedId() {
+            super(0, 0);
+        }
+    }
+
     static final class VoidSaveFillsTheRootId {
         private final IdGenerator ids = null;
 
@@ -201,8 +236,18 @@ class IdMakingGuardTest {
     void theRootIdGuardCatchesInjectedSamples() {
         JavaClasses sample = new ClassFileImporter().importClasses(RootWithAnIdTheRepositoryFills.class, RootWithAFinalId.class, VoidSaveFillsTheRootId.class);
 
-        assertThat(mutableRootIdProblems(sample)).containsExactly(RootWithAnIdTheRepositoryFills.class.getName()
+        assertThat(mutableRootIdProblems(sample, Map.of())).containsExactly(RootWithAnIdTheRepositoryFills.class.getName()
                 + ".id is an id that is not final: the id of a root is set when it is built, never later (ADR-0033 section 1 item 9)");
+    }
+
+    @Test
+    @DisplayName("injected: a root whose id cannot be found fails unless it is listed; a mutable reference to another aggregate is not taken for the id")
+    void theRootIdGuardNeedsExactlyOneIdPerRoot() {
+        JavaClasses sample = new ClassFileImporter().importClasses(RootWithNoIdField.class, RootWithOddlyNamedId.class);
+
+        assertThat(mutableRootIdProblems(sample, Map.of())).hasSize(2).allMatch(problem -> problem.contains("has 0 id fields"));
+        assertThat(mutableRootIdProblems(sample, Map.of("RootWithOddlyNamedId", "key", "RootWithNoIdField", "status")))
+                .containsExactly(RootWithNoIdField.class.getName() + ".status is an id that is not final: the id of a root is set when it is built, never later (ADR-0033 section 1 item 9)");
     }
 
     @Test
