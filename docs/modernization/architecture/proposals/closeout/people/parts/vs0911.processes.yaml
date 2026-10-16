@@ -349,6 +349,7 @@ processes:
       type: event
       desc: 会计期间已关账（经营月报据此出具）；或季度、年度综合复盘到期
     stages: [VS-09.3]
+    stages_note: "留 VS-09.3：复盘是本段的核心工作，但本段退出条件只写「经营计划新版本」（由 PRC-88 第二个触发产生），本流程结局「经营复盘已闭环 / 已转调整计划」不是该状态，按归段判据第 6 项字面不支持；已列 STAGE_ALIGN.md 请 one-architecture 看 VS-09.3 退出条件是否补「经营复盘已闭环」"
     owner_bc: B-18
     human_orchestration: true
     human_note: 偏差解释、经营动作的确定与完成登记由人判断；全过程不设审批，靠规则守卫与逾期提醒
@@ -443,7 +444,8 @@ event_policies:
       desc: 预算期届满（年末）
     triggers:
       - {type: time, name: "预算期届满（B-18 向 platform.scheduling 登记，幂等键 = 聚合 ID + 到期时点）"}
-    stages: [VS-09.3]
+    stages: []
+    support: "B-18 预算期届满的定时例行处理：只有定时触发（无对象状态），结局（预算账户已关闭）不造 VS-09.3 的退出条件（OBJ-100 新版本）（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: B-18
     migration: "迁入不触发（ADR-0036 M7）；迁入时已届满的预算账户按迁入对账核对状态，不回放关闭"
     outcomes: [预算账户已关闭, 关闭待处理]
@@ -469,6 +471,7 @@ read_models:
     name: 知识条目使用情况
     type: read_model
     stages: [VS-11.3]
+    stages_note: "读模型只读 OBJ-110 已发布版本及其引用，不造任何状态；服务本段（修订废止）的复审决策，为旁路读，按其读取的「发布」状态（VS-11.3 进入条件）留在 VS-11.3（归段判据第 6 项）"
     owner_bc: reporting
     reads: [AGG-107, AGG-12, AGG-03, AGG-27]
     migration: "读模型不迁入，随迁入后的知识条目与引用事件重建；老系统没有知识条目实体与引用关系（信息图 OBJ-110 取证，迁入集合为空），投产后起累计"

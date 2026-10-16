@@ -18,7 +18,8 @@ processes:
     triggers:
       - {type: time, name: "每日拉取企业微信打卡记录（platform.scheduling 定时）"}
       - {type: human, name: "人力修复人员对照后重新拉取"}
-    stages: [VS-13.1]
+    stages: []
+    support: "B-27 考勤原始记录的导入与补卡，是月度考勤确认（PRC-118）的输入，结局（考勤已导入、补卡已记录）不造 VS-13.1 的任一退出条件（月度考勤已锁定、请假已汇入、加班已汇入）（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: B-27
     human_orchestration: false
     migration: "历史打卡（老系统约 79.5 万行）与补卡经迁入通道全量迁入为考勤记录，来源对照区分来源系统；迁入不触发导入流程、不发事件（ADR-0036 M7）"
@@ -485,7 +486,8 @@ processes:
       desc: 管理层与人力制定
     triggers:
       - {type: human, name: "人力按管理层要求编制激励方案版本"}
-    stages: [VS-13.2]
+    stages: []
+    support: "B-15 激励方案版本的配置维护，结局（已生效）不造 VS-13.2 的退出条件（激励方案「生效」是 VS-13.2 的进入条件；退出是评估已确认、奖金已核定）（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: B-15
     human_orchestration: true
     human_note: 编制 → 审批 → 到期自动生效
@@ -878,7 +880,7 @@ event_policies:
         - {event: 利润分配已支付, aggregate: AGG-109}
     triggers:
       - {type: event, name: "利润分配已支付（B-10 发布）"}
-    stages: [VS-12.2, VS-13.4]
+    stages: [VS-12.2]
     owner_bc: B-15
     migration: "历史股息红利个税（老系统无独立记录，是否存在待取证）按所属期迁入申报批次；迁入不触发（ADR-0036 M7）"
     outcomes: [已并入申报, 无需扣缴]
@@ -909,7 +911,7 @@ event_policies:
         - {event: 薪酬已批准, aggregate: AGG-73}
     triggers:
       - {type: event, name: "薪酬已批准（同 BC）"}
-    stages: [VS-13.5]
+    stages: [VS-13.3]
     owner_bc: B-15
     migration: "历史薪酬的应付（老系统付款申请单-人事约 1.5 千行）作为已结清应付迁入，只迁结果与证据；迁入不触发（ADR-0036 M7）"
     outcomes: [应付已提交]
@@ -972,7 +974,8 @@ event_policies:
         - {event: BusinessFactAttributed, aggregate: AGG-77, filter: "来源单据为月度薪酬结算"}
     triggers:
       - {type: event, name: "BusinessFactAttributed（B-16 发布；B-15 只处理薪酬来源）"}
-    stages: [VS-13.3]
+    stages: [VS-13.5]
+    stages_note: "触发是过账事实（BusinessFactAttributed），不是任一阶段的对象状态；改按结局归段：置位月度薪酬结算「已过账」，是 VS-13.5 退出条件「已发放 → 已过账」的末端（归段判据第 6 项）"
     owner_bc: B-15
     migration: "迁入不触发（ADR-0036 M7）；历史薪酬的已过账状态随结算迁入"
     outcomes: [已过账, 待发放后再置位]
@@ -1036,7 +1039,8 @@ event_policies:
     triggers:
       - {type: time, name: "每年年初（B-27 向 platform.scheduling 登记，幂等键 = 聚合 ID + 到期时点）"}
       - {type: event, name: "入职生效（年中入职）", event: Employed, bc: B-13}
-    stages: [VS-13.1]
+    stages: [VS-07.3]
+    stages_note: "事件触发「入职生效」（Employed）是 VS-07.3 退出条件「人员试用期 / 正式」的产生事件，按事件策略归 VS-07.3；年初定时触发没有对象状态，不单独归段（归段判据第 6 项）"
     owner_bc: B-27
     migration: "迁入不触发（ADR-0036 M7）；迁入年度的在途额度账户随 AGG-71 迁入，不重新开账"
     outcomes: [年度账户已开立, 结转待处理]
@@ -1077,7 +1081,8 @@ event_policies:
     triggers:
       - {type: event, name: "〔缺〕补休已到期未休（B-27 发布）", event: 补休已到期未休, bc: B-27}
       - {type: event, entry: 2, name: "员工离职生效（B-13 发布 Separated）", event: Separated, bc: B-13}
-    stages: [VS-13.3]
+    stages: [VS-13.6]
+    stages_note: "事件触发「员工离职生效」（Separated）是 VS-13.6 退出条件「人员已离职」的产生事件，按事件策略归 VS-13.6；「补休已到期未休」是 B-27 的事实、没有阶段对象状态，不单独归段（归段判据第 6 项）"
     owner_bc: B-15
     basis: S-41（one-architecture）；用户页 P13-05；劳动法第四十四条（休息日加班不能安排补休的，支付不低于工资 200% 的报酬）、工资支付暂行规定第十三条（以加班工资基数折算）
     migration: "迁入不触发（ADR-0036 M7）；迁入的补偿方式为调休的加班，其未休余额是否迁为补休额度行待取证后定，迁入后到期的补休余额按本策略转计发"
@@ -1128,7 +1133,8 @@ single_aggregate:
     type: single_aggregate
     aggregate: AGG-68
     owner_bc: B-14
-    stages: [VS-13.1]
+    stages: []
+    support: "B-14 工作日历与标准工时版本的配置维护，结局不造任何阶段的退出条件（工作日历「已维护」是 VS-13.1 的进入条件，判据按退出条件归段）（STAGE_ALIGN.md 归段判据第 6 项）"
     desc: 人力每年维护或调整标准工时
     triggers:
       - {type: human, name: "人力每年维护工作日历，或调整标准工时"}
@@ -1174,7 +1180,8 @@ single_aggregate:
     type: single_aggregate
     aggregate: AGG-93
     owner_bc: B-15
-    stages: [VS-13.3, VS-13.4]
+    stages: []
+    support: "B-15 薪酬档案与专项附加扣除的维护，结局（档案已调整、扣除已更新）不造 VS-13.3、VS-13.4 的任一退出条件（月度薪酬结算已批准、法定申报已申报缴款），服务薪酬结算的输入（STAGE_ALIGN.md 归段判据第 6 项）"
     desc: 调薪、年度专项附加扣除更新
     triggers:
       - {type: human, name: "人力按调薪决定登记薪酬档案新版本"}
@@ -1225,7 +1232,8 @@ single_aggregate:
     type: single_aggregate
     aggregate: AGG-118
     owner_bc: B-27
-    stages: [VS-13.1]
+    stages: []
+    support: "B-27 假期规则版本的配置维护，结局（假期规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
     desc: 人力发布假期类型的年度应享、结转与清零规则版本
     triggers:
       - {type: human, name: "人力依据制度或法规变化发布新的假期规则版本"}
@@ -1255,7 +1263,8 @@ single_aggregate:
     type: single_aggregate
     aggregate: AGG-119
     owner_bc: B-15
-    stages: [VS-13.3]
+    stages: []
+    support: "B-15 薪酬规则版本的配置维护，结局（薪酬规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
     desc: 人力编制、财务确认并发布个税、专项附加扣除标准、社保公积金比例与基数、计算口径的薪酬规则版本（S-43）
     triggers:
       - {type: human, name: "人力依据法规或公司制度变化编制并发布新的薪酬规则版本"}

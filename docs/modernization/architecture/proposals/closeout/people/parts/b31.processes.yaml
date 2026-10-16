@@ -470,7 +470,8 @@ processes:
   - id: PRC-156
     name: IT 资产归还
     type: business
-    stages: [VS-13.6]   # 离职事件（Separated）触发的归还待办是离职结清的一部分；人工登记（在职换机、收回）不属本阶段，同一流程两个触发（STAGE_ALIGN.md）
+    stages: []
+    support: "B-31 资产归还：离职生效（Separated）触发的归还待办只是 VS-13.6 退出事件的反应，另有资产管理员人工登记触发（在职换机、收回）；结局不造 VS-13.6 的任一退出条件（人员已离职、参保减员、劳动合同已终止），不挂阶段（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: B-31
     group: people
     status: draft

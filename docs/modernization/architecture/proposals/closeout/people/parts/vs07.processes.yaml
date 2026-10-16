@@ -24,7 +24,8 @@ processes:
       - {type: human, name: "人力更名、停用或启用法人主体"}
       - {type: human, name: "人力新建或修改职位"}
       - {type: human, name: "人力更正法人归属"}
-    stages: [VS-07.1]   # 只有职位目录条目（启用）是 VS-07.1 的进入条件事实；法人、组织单元、法人归属是归属维度，不是任一阶段的进出事实（STAGE_ALIGN.md）
+    stages: []
+    support: "B-13 主数据维护：法人主体、组织单元、法人归属、职位目录条目的维护，结局不造任何阶段的退出条件（职位「启用」只是 VS-07.1 的进入条件，判据按退出条件归段），服务多条价值流（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: B-13
     human_orchestration: false
     type: business
@@ -578,6 +579,7 @@ processes:
     triggers:
       - {type: event, name: "入职已登记", event: 〔缺〕入职已登记, bc: B-13}
     stages: [VS-07.3]
+    stages_note: "留 VS-07.3：纯事件触发（入职已登记 = Employed，即 VS-07.3 退出条件「人员试用期 / 正式」的产生事件）的多步反应，行为等同事件策略；因 type 为 business，脚本按结局归段而判不支持，已列 STAGE_ALIGN.md 请 one-architecture 裁定"
     owner_bc: platform.identity   # J-1 / S-14 one-architecture 同意
     human_orchestration: false
     migration: "不适用（迁入不发事件）；已在职员工的企业微信身份按迁入对账绑定（C-7）"
@@ -1011,6 +1013,7 @@ processes:
     triggers:
       - {type: event, name: "离职已生效", event: Separated, bc: B-13}
     stages: [VS-13.6]
+    stages_note: "留 VS-13.6：纯事件触发（离职已生效 = Separated，即 VS-13.6 退出条件「人员已离职」的产生事件）的多步反应，行为等同事件策略；因 type 为 business，脚本按结局归段而判不支持，已列 STAGE_ALIGN.md 请 one-architecture 裁定"
     owner_bc: platform.identity   # S-14（one-architecture 同意 J-1）
     human_orchestration: false
     basis: intent 2026-10-16-134134 Q-03；规则卡 RULE-363；ADR-0027 第 1 项第 6 点、第 7 点；IDENTITY_LIFECYCLE.md 对 C1 设计的含义第 3 条（在职判断以人事离职为准，不以企业微信账号是否存在为准）；S-14
