@@ -8,6 +8,7 @@
 | D5 工时审批路径（ARCH-D5，6 题） | `sheets/D5.json`（行业做法为主，老系统生产汇总只作核对，取证 `phase1a/infra/handoff/B-5-dba/evidence/arch_d5_timesheet_routing.sql`） | https://claude.ai/artifact/GGz4AuMS63ooyL85itojya（2026-10-15 起） |
 | F1 数据访问范围（F-1 待定 7 题） | `sheets/F1.json`（F-1 行业对照 `phase1a/cards/F-1-aec-check.md`；标准与产品依据 one-rules 调研） | https://claude.ai/artifact/4NMzvH2vxpJUYfckwrfcSJ（2026-10-15 起） |
 | C6 工时审批回放差异（Phase 1a 出口 D-3，2 类） | `sheets/C6.json`（计数取自 `phase1a/infra/runbooks/C-6-legacy-export.md`「回放结果」，one-ops） | https://claude.ai/artifact/Y7ogz8AWPmZdeuE4HCEGqL（2026-10-16 起） |
+| A1 重议后续（A1 维不维持、无法定年审的替代把关，3 题） | `sheets/A1.json`（依据收入事实页 R-1～R-8 的答复） | https://claude.ai/artifact/TaLY2TVGaoqhZCpt7uPMrG（2026-10-16 起，未实看渲染） |
 
 | 步骤 | 做法 |
 |---|---|
