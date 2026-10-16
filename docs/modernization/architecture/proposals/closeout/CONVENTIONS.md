@@ -101,3 +101,5 @@
 - **期间闸门**：系统自动触账的步骤遇期间已关账，按 ADR-0045 与 INV-92 路由到开放期间并标原期间，不拒绝；人工发起的触账单据按规则卡提示（不设审批）。
 - **可撤回**：步骤 `withdraw: {to: 步骤序号 | end, outcome: 已撤回}`。
 - **已采纳的扩展字段**：`decision[].outcome`（出口直接结束时的结局词）；事件策略可写多步 `steps`；单聚合维护写 `states`、`transitions`；读模型写 `query`、`dimensions`、`permission`、`page`；`pending: <题号>` 标注待用户定事项影响的步骤。
+- **负担与时间分析参数**（`BURDEN_ANALYSIS_PLAN.md`）：步骤 `effort: {typical_min, p90_min}`、`wait: {typical_h, p90_h}`（可空），判断出口 `p`（出口概率估计）；流程级 `frequency_ref`（取证编号）。铺开时按经验先估，取证后校准。
+- **组织信息收集**（用户「我们现在就来确定流程需要的信息，最终统一修改一次」）：泳道先按角色；每个角色在流程级 `roles` 里补 `org_needs: {responsibility, approval_right, department_hint, position_hint}`，汇总作岗位体系重梳的输入，岗位体系定后一次性改泳道与映射。
