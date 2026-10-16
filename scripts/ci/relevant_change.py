@@ -39,6 +39,7 @@ NOT_READ_BY_BUILDS = (
 
 # read only by steps of the gitleaks job or the assertion-drift job that run unconditionally, or by scripts/precheck.sh; docs read by scripts/release must be listed in READ_BY_BUILDS
 READ_BY_ALWAYS_RUN_CHECKS = (
+    "docs/modernization/architecture/proposals/j_checks.py",
     "docs/modernization/architecture/togaf/transitions.yaml",
     "docs/modernization/phase1a/infra/runbooks/sql/",
     "docs/modernization/build_all.py",

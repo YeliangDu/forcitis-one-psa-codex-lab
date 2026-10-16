@@ -186,6 +186,9 @@ if touches '(^(backend/src/main/resources/db/migration/|backend/architecture/(da
     printf '%s\n' "$ddl_scan" | tail -n 8 | sed 's/^/      | /'
   fi
 fi
+if touches 'architecture/proposals/(j_checks|aggregates_dep_check|vs_links_gen)\.py$'; then
+  run_step "j_checks (self-test)" py docs/modernization/architecture/proposals/j_checks.py --self-test
+fi
 if touches '^scripts/ci/(assertion_drift|ci_git)\.py$'; then
   run_step "assertion drift (self-test)" py scripts/ci/assertion_drift.py --self-test
 fi
