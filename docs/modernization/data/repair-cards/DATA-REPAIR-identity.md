@@ -143,6 +143,17 @@
 - 验收要点：首次登录前（两列空）、成功登录（两列有值）通过；只有地址无时间被拒；超长地址被拒；`LoginAdmission` 等写入点原样通过。
 - 依据：门禁 O4、B5、O8；D2；NAMING_STANDARD §2.4a-5；SS §4 第 10 组。
 
+#### 数据设计补充（one-1a-next-4，待 one-data 签）
+
+核对 `last_login_address` 的值来源（one-data 签发记录要求：长度上限 45 先核对来源再议）。结论：值是经可信代理解析后的单个地址，但不保证是 45 位内的规范地址文本，长度上限本批不落。
+
+- 写入链：`LoginAdmission.complete`（`LoginAdmission.java:75`）调 `accounts.recordLogin(userId, now, origin.address())`，`JdbcAccountRepository.recordLogin`（`JdbcAccountRepository.java:121`）原样写入；只有登录成功路径写，无其他写入点。
+- 值的出处：`RequestClientOrigin.address()` 返回 `HttpServletRequest.getRemoteAddr()`（`RequestClientOrigin.java:14-18`）；无请求上下文时返回字面量 `"unknown"`（登录路径上不会出现）。
+- `getRemoteAddr()` 是 Tomcat 经可信代理解析后的单个地址，不是原始 `X-Forwarded-For` 整串：`platform_identity.properties:21-22` 配 `server.forward-headers-strategy=native`，只有直连对端匹配 `server.tomcat.remoteip.internal-proxies`（默认仅 127.0.0.1 与 ::1，可由 `FORCITIS_TRUSTED_PROXIES` 改）时，才取 `X-Forwarded-For` 中从右数第一个非可信代理的条目；否则就是 TCP 对端地址。部署样例 `phase1a/infra/runbooks/files/nginx-one.conf:67` 用 `proxy_set_header X-Forwarded-For` 加 nginx 变量 `remote_addr` 覆盖而非追加，正常部署下是 nginx 看到的客户端地址，客户端自带的头被丢弃。
+- 可能取值：正常为 IPv4 点分十进制（最长 15）或 IPv6 文本（含 `::ffff:a.b.c.d` 映射形态，最长 45）。不保证的情形：(1) Tomcat 取出的 `X-Forwarded-For` 条目不做地址语法校验，若某个可信代理转发了带端口（`ip:port`）、带方括号或非地址串的条目，会原样入库；(2) 直连对端为链路本地 IPv6 时，`getHostAddress()` 可带区域标识（如 `fe80::1%eth0`），超过 45；(3) `FORCITIS_TRUSTED_PROXIES` 配宽后，被信任的内部主机可发任意文本。
+- 影响：`recordLogin` 与登录同事务，45 位上限的 CHECK 在上述情形会让合法登录被拒，故本批不落。
+- 供 one-data 定的选项：(A) 不加长度 CHECK，只留成对 CHECK 与注释（本批现状）；(B) 在 `RequestClientOrigin` 用地址字面量解析（去端口、方括号、区域标识，非法则按失败处理并告警，不静默），保证入库值为规范地址后再落 `char_length BETWEEN 1 AND 45`（须另开 Java 改动，不在本卡文件范围）；(C) 只加宽松上限（如 64），仅防异常长串。同一值也写进审计 `source_address`（各处 `.withTrace(origin.address(), …)`），选 B 时与 DATA-REPAIR-timesheet-audit TB-05 同口径处理。
+
 ### ID-13　N-4 + AQ-8　中（统一分级：低→中）　导航项与授权申请的文本列格式、长度，`decided_*` 空值注释
 - 问题：`navigation_items` 的 `route_path`、`permission_code`、`name` 无格式与长度约束；`authorization_requests` 的 `new_role_code`、`role_name` 无格式与长度 CHECK（与 ID-07 的 R-3 同口径）；`decided_by`、`decided_at` 注释缺「为空表示」。
 - 证据：PI N-4（迁移:87-89）；PI AQ-8（迁移:298-299）；SS §1：`navigation_items`（`name:93`、`route_path:94`、`permission_code:95`）、`authorization_requests`（`new_role_code:275`、`role_name:276`、`role_codes:274`、`permission_codes:279`）；SS §3：`authorization_requests` 7 列无空值说明。

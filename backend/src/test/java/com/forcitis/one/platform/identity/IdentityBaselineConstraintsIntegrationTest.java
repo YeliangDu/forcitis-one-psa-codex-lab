@@ -84,4 +84,22 @@ class IdentityBaselineConstraintsIntegrationTest extends IdentityIntegrationTest
             jdbc.sql("delete from platform_identity.navigation_items where name like 'ID11 %'").update();
         }
     }
+
+    private void insertAccount(long person, String lastLoginAt, String address) {
+        jdbc.sql("insert into platform_identity.user_accounts (user_id, employee_id, last_login_at, last_login_address) values (:user, :employee, cast(:at as timestamptz), :address)")
+                .param("user", com.forcitis.one.fixture.doubles.TestAccounts.account(person).value())
+                .param("employee", com.forcitis.one.fixture.doubles.TestAccounts.employee(person).value())
+                .param("at", lastLoginAt).param("address", address).update();
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-identity ID-12 a last login address needs a last login time; the time alone and neither are legal")
+    void id12LoginPair() {
+        refused(() -> insertAccount(201, null, "203.0.113.9"), "ck_user_accounts_last_login");
+        insertAccount(202, null, null);
+        insertAccount(203, "2026-10-16T08:00:00Z", "203.0.113.9");
+        insertAccount(204, "2026-10-16T08:00:00Z", null);
+        refused(() -> jdbc.sql("update platform_identity.user_accounts set last_login_at = null where employee_id = :e")
+                .param("e", com.forcitis.one.fixture.doubles.TestAccounts.employee(203).value()).update(), "ck_user_accounts_last_login");
+    }
 }
