@@ -113,6 +113,12 @@ def machine_class(pm, cmd):
     creates = any(None in froms(t) for t in ts if t.get("kind") != "non_state")
     for t in ts:
         k, to, fr = t.get("kind"), t.get("to"), froms(t)
+        if fr and all(f == to for f in fr):   # self-loop: state unchanged, a modification only
+            if k == "reverse" or t.get("reverse_of"):
+                rev = True
+            letters.add("U")
+            continue
+        fr = [f for f in fr if f != to or f is None]
         if k == "reverse" or t.get("reverse_of"):
             rev = True
         if k == "non_state":
@@ -135,8 +141,13 @@ def load_catalog():
         if not m or m.group(1) in cat:
             continue
         r = cc.cells(line)
-        cat[m.group(1)] = {"name": r[1], "non": ("非对象" in r[2] or "行号保留" in r[2] or "非对象" in r[3]) if len(r) > 3 else False}
+        cat[m.group(1)] = {"name": r[1], "non": is_non_object(r)}
     return cat
+
+
+def is_non_object(r):
+    """Catalogue row cells -> already a non-object: definition keeps only the row number, or the level cell itself starts with 非对象 (a mention elsewhere does not count)."""
+    return len(r) > 3 and ("行号保留" in r[2] or r[3].lstrip("*· ").startswith("非对象"))
 
 
 def vs_names():
@@ -263,6 +274,10 @@ def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None, catalog_cmds=
                     agg_units[a].add(uid)
                     wcmds[a].add(cc.base_cmd(cmd))
                     bc = s.get("bc") or owner
+                    home_bc = aggs.get(a, {}).get("bc")
+                    via_api = [x for x in s.get("cross_bc") or [] if isinstance(x, dict) and x.get("mode") == "api" and x.get("direction") == "out"]
+                    if home_bc and via_api and (any(x.get("bc") == home_bc for x in via_api) or (bc and bc != home_bc)):
+                        bc = home_bc   # orchestrator calls the owning BC's command through its api: the write belongs to the owner
                     if bc:
                         writers[key][str(bc)].add(f"{uid}")
     for a, pm in pms.items():
@@ -325,8 +340,9 @@ def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None, catalog_cmds=
         if k.startswith("OBJ-") and k in cat and cat[k]["non"]:
             continue
         issues["2 对象未被任何流程触及（缺流程，或应为参考数据或属性）"].append(("未触及", f"{k} {names.get(k, '')}（{'、'.join(sorted(ms))}）"))
+    inner_carried = {o: a for a, v in aggs.items() for o in v.get("inner_objs", [])}   # secondary objects held inside an aggregate (内含 column)
     for k, c in sorted(cat.items()):
-        if not c["non"] and k not in members:
+        if not c["non"] and k not in members and k not in inner_carried:
             issues["2 对象无聚合承载（缺流程，或应为参考数据或属性）"].append(("未触及", f"{k} {c['name']}"))
     # 3b state machines
     src = {a: list(v) for a, v in agg_states.items()}
@@ -339,12 +355,14 @@ def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None, catalog_cmds=
         states, edges, termin, nonterm, by_cmd, entry_to = set(), set(), {}, {}, collections.defaultdict(set), set()
         for uid, sts, trs in lst:
             local_states = {x.get('name') if isinstance(x, dict) else x for x in sts}
-            outgoing = set()
+            outgoing, outgoing_any = set(), set()
             for t in trs:
                 for f in froms(t):
                     if f and f != "*":
                         edges.add((f, t.get("to")))
-                        outgoing.add(f)
+                        outgoing_any.add(f)
+                        if f != t.get("to"):   # a self-loop leaves the state unchanged: not an outgoing transition
+                            outgoing.add(f)
                         local_states.add(f)
                         if t.get("command"):
                             by_cmd[cc.base_cmd(t["command"])].add(f)
@@ -355,7 +373,10 @@ def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None, catalog_cmds=
                     entry_to.add(t.get("to"))
             states |= {x for x in local_states if x}
             for st_ in local_states:
-                (nonterm if st_ in outgoing else termin).setdefault(st_, uid)
+                if st_ in outgoing:
+                    nonterm.setdefault(st_, uid)
+                if st_ not in outgoing_any:
+                    termin.setdefault(st_, uid)
         parent = {s: s for s in states}
 
         def find(x):
@@ -645,6 +666,34 @@ def self_test_more():
     check("单聚合维护条目上的审批驳回边计逆向", R["touch"]["OBJ-01"]["PRC-7"] and not iss(R, "6 生命周期缺冲销撤回类逆向"), R["issues"])
     R = _run([], ["AGG-01"], units=[su(transitions=[{"from": "草稿", "to": "已生效", "command": "发布甲"}])])
     check("单聚合维护条目无审批：仍缺逆向", len(iss(R, "6 生命周期缺冲销撤回类逆向")) == 1, R["issues"])
+    # B3 self-loops: a modification only, never an end; not an outgoing transition
+    loop = M("AGG-01", ["a", "b"], [{"from": None, "to": "a", "command": "起甲"}, {"from": "a", "to": "b", "command": "收乙"}, {"from": "b", "to": "b", "command": "循环丙"},
+                                   {"from": ["a", "b"], "to": "b", "command": "收丁"}])
+    pml = prep_machine(loop)
+    check("自环：只算修改，不算创建或结束；from 列表里的非自环项仍算结束",
+          machine_class(pml, "循环丙") == ({"U"}, False) and machine_class(pml, "收丁") == ({"D"}, False) and "b" in pml["term"], (machine_class(pml, "循环丙"), machine_class(pml, "收丁")))
+    lp = lambda unit_trs, mach_trs: iss(_run([], ["AGG-01"], {"AGG-01": M("AGG-01", ["a", "b"], mach_trs)},
+                                           units=[su(transitions=unit_trs)]), "3 状态名冲突")
+    check("自环不算出转换：他处为终点、状态机里只有自环，不报状态名冲突；有真出转换才报",
+          lp([{"from": "a", "to": "b"}], [{"from": "a", "to": "b"}, {"from": "b", "to": "b"}]) == []
+          and len(lp([{"from": "a", "to": "b"}], [{"from": "a", "to": "b"}, {"from": "b", "to": "a"}])) == 1)
+    # B4 orchestrator calling the owning BC through api: the write belongs to the owner
+    api = {"mode": "api", "direction": "out", "bc": "B-01", "name": "x"}
+    w4 = lambda **kw: iss(_run([_st("AGG-01", "登记甲"), _st("AGG-01", "批准乙", bc="B-02", **kw)], ["AGG-01"]), "4 多个 BC 写同一对象")
+    check("经 api 调所属 BC：写入方记所属 BC；无 api 仍报多个 BC", w4(cross_bc=[api]) == [] and len(w4()) == 1, (w4(cross_bc=[api]), w4()))
+    check("经 api 调所属 BC（不指向所属 BC 但步骤 bc 与聚合 BC 不同）也记所属 BC；direction in 不算",
+          w4(cross_bc=[dict(api, bc="B-09")]) == [] and len(w4(cross_bc=[dict(api, direction="in")])) == 1, w4(cross_bc=[dict(api, direction="in")]))
+    # B5 level cell decides non-object
+    row = lambda definition, level: ["", "x", definition, level, "", ""]
+    check("层级格以非对象开头才是非对象；格里提到「非对象」或定义里写非对象不算；行号保留算",
+          not is_non_object(row("定义", "待定（暂列一级：原父对象间接成本池已降为非对象）")) and is_non_object(row("定义", "**非对象**：并入 OBJ-01"))
+          and not is_non_object(row("并入时标非对象", "次级")) and is_non_object(row("【行号保留，已非对象】x", "次级")))
+    # B6 secondary objects held inside an aggregate are carried by it
+    ag = {"AGG-01": {"bc": "B-01", "name": "a", "objs": ["OBJ-01"], "inner_objs": ["OBJ-02"], "commands": [], "kind": "一对一"}}
+    ct = {"OBJ-01": {"name": "a", "non": False}, "OBJ-02": {"name": "b", "non": False}, "OBJ-03": {"name": "c", "non": False}}
+    docs6 = {"g": {"processes": [{"id": "PRC-1", "stages": ["VS-01.1"], "owner_bc": "B-01", "steps": [_st("AGG-01", "登记甲")]}]}}
+    got6 = [t for _v, t in analyse(docs6, ag, {}, ct, None)["issues"].get("2 对象无聚合承载（缺流程，或应为参考数据或属性）", [])]
+    check("内含列的次级对象由该聚合承载，不报无聚合承载；不在内含列的仍报", got6 == ["OBJ-03 c"], got6)
     check("矩阵汇总表有已豁免列", "| 已豁免 |" in render_matrix(apply_exemptions(base(), [ok_e]), {}))
     return all(results)
 
