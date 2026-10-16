@@ -626,6 +626,7 @@ processes:
   - 审批人 ≠ 核定人
   steps:
   - actor: SH-E3
+    where: in_system
     read: true
     reads:
     - AGG-19
@@ -651,6 +652,10 @@ processes:
       bc: B-13
       name: 读人员
   - actor: SH-E3
+    where: external:税务
+    evidence:
+    - 电子发票文件或纸质发票扫描件
+    - 税务平台查验结果与查验时刻
     command: 占用进项发票入账
     aggregate: AGG-89
     desc: 占用第 1 步：提交前占用，已占用则拒（INV-74）
@@ -665,6 +670,7 @@ processes:
       bc: B-23
       name: 占用进项发票入账
   - actor: SH-E3
+    where: automatic
     command: 预算占用
     aggregate: AGG-80
     emits:
@@ -683,6 +689,9 @@ processes:
     pending:
     - INV-102
   - actor: SH-E3
+    where: in_system
+    evidence:
+    - 票据影像（纸质原件另交财务，见第 6 步）
     command: 提交费用报销
     aggregate: AGG-59
     desc: 占用第 3 步；原始凭证要素齐全（INV-84）。占用中途失败按相反顺序补偿：第 3 步失败先释放预算占用再释放发票占用；第 2 步失败只释放发票占用
@@ -692,6 +701,7 @@ processes:
     - when: otherwise
       goto: 5
   - actor: platform
+    where: in_system
     platform_task: true
     service: platform.approval
     command: 报销审批
@@ -710,6 +720,9 @@ processes:
     pending:
     - F-01
   - actor: SH-E6
+    where: in_system
+    evidence:
+    - 纸质原始凭证签收登记（签收人、签收时刻）；全电发票无纸质原件
     command: 核定费用报销
     aggregate: AGG-59
     emits:
@@ -721,6 +734,7 @@ processes:
       bc: B-09
       name: 费用报销已核定
   - actor: system
+    where: automatic
     command: 提交过账候选
     aggregate: AGG-59
     calls: PRC-92
@@ -730,6 +744,7 @@ processes:
       bc: B-16
       name: 提交过账候选（PostingCandidate）
   - actor: system
+    where: automatic
     bc: B-09
     command: 冲抵员工借款
     aggregate: AGG-49
@@ -741,6 +756,7 @@ processes:
     - when: otherwise
       goto: 9
   - actor: system
+    where: automatic
     bc: B-09
     command: 确认应付
     aggregate: AGG-52
@@ -756,6 +772,7 @@ processes:
       bc: B-10
       name: 确认应付
   - actor: system
+    where: automatic
     bc: B-09
     command: 标记费用报销已付
     aggregate: AGG-59
@@ -770,6 +787,7 @@ processes:
       bc: B-12
       name: 标记费用报销已付（结清方式：借款冲抵）
   - actor: system
+    where: automatic
     command: 释放预算占用
     aggregate: AGG-80
     branch: 驳回或补偿（占用中途失败）
@@ -782,6 +800,7 @@ processes:
       bc: B-18
       name: 释放预算占用
   - actor: system
+    where: automatic
     command: 驳回释放
     aggregate: AGG-89
     branch: 驳回或补偿（占用中途失败）
