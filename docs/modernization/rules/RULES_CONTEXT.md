@@ -1,4 +1,4 @@
-# one-rules 速查（2026-10-15）
+# one-rules 速查（2026-10-16 傍晚）
 
 一行一项，过程放链接（SESSION_PLAYBOOK §2.1 第 13 条）。
 
@@ -8,8 +8,27 @@
 
 | 项 | 状态 | 出处 |
 |---|---|---|
-| 财务口径决策单 46 题 + 9 条问财务的事实 | FD-01 已定「历史期间」；其余 45 题待提交（FD-02/03/08 已按推荐由 XD-08/09 先行实施）；A1、A10 待审计师书面意见 | [在线页](https://claude.ai/artifact/UfWUw5PuwVe6HzC5QRn8nB)，`rules/decide/README.md`，数据源 `r0/FINANCE_DECISIONS.md`，#176 |
-| ARCH-D5 工时审批路由 | D5-01～04 已定，写成 RULE-388～391（`rules/TIMESHEET_ROUTING_RULES.md`）；D5-05 整单确认、D5-06 负责人来源待提交；定后请 one-glossary 改「区域负责人」 | [方案页](https://claude.ai/artifact/GGz4AuMS63ooyL85itojya)，`rules/decide/answers/D5.json`，D-1a-127 |
+| 顾问答题单（用户与调度共同答财务、审计、法务类题；用户 2026-10-16 改派，不转发） | 第 1 批已出（W-7、P-001～005）；第 2 批已开头：「A1 重议」草稿（含 CAS 14 第十一至十三、四十一条官方原文核对，已按 one-architecture 的 `Q04_OVER_TIME_PROGRESS_RESEARCH.md` 收窄）。**专题研究已由 one-architecture 完成（`proposals/Q04_AEC_CONTRACT_MODELS.md`，opus 评审结论「改后再出」）；合成页本轮只问事实，已发布（R-1～R-9，Artifact EQg3euo9H7JkW1wAX7iG7y，contract 0.2.80），等用户答复；答复回来由 one-architecture 转我，我写 A–D 口径下一页（含 Q-04 存储方式），并把 R-1、R-3 答案并入 A1 重议**。第 2 批其余照写：W-2、W-3、W-4、W-5、W-6、W-8（见 Q-04 研究稿 §7）与按一次投产路线（2028-01-01、全部历史迁入、U8C 继续做法定账，intent 133348 U-2、U-4、U-6、U-8）改写的 P-003～005，写之前对照 U-1～U-18 | 私有：`~/.modernize/psa/finance/ADVISOR_BATCH_1.md`、`ADVISOR_BATCH_2.md`、`external-drafts/`；W-7、P-001、P-002 已请用户答 |
+| 决策页决定链路 | PR #362（整页「检查答案」一次提交、`decide_sync.py` 对账与回写与 `--check`、不预选开关；用户答 B：业务口径页预选、框架标准选型类不预选）；opus 首轮复审加 sonnet 改后复核都已过，等调度入队；新模板首个新单子发布前须先在手机上看渲染 | `rules/decide/README.md` |
+| 填报义务规则 RULE-397～405 | #286 待入队；实现要等 B-27 请假对象与标准工时版本（AGG-108）落地 | `rules/TIMESHEET_FILING_RULES.md` |
+| 撤销、撤回一律须原因，再发起状态机 | #347 待合并（含 RULE-268、277、288 与步骤 30；#346 已合并） | intent 085331、123736 |
+| 手册 §5 转述前核对原文 | #323 待合并（编号已改为 DATA-001、002、004、005、013） | |
+| RULES_CONTEXT 更新 | #361 待合并，本次再叠一次 | |
+| 财务口径决策单 | 46 题与 9 条事实已写回；F-05、F-10、F-11 与 ADR-0047 八项（F-12～F-19）暂缓不外发；A1、A10 待审计师（A1 重议见上） | `r0/FINANCE_DECISIONS.md` |
+| F-1 数据范围；RULE-387 | F1-01、02 已定（ADR-0044 修订在 one-architecture）；RULE-387 维持条目的业务负责人与有效期待 ADR-0044 Q1；区域维度并入 one-architecture 的组织梳理 | `rules/decide/answers/F1.json` |
 | 规则卡补「类别」 | ADR-0040 第 2 步之后 | ADR-0040 |
 | 规则文档瘦身对照表 | 待用户 | COORDINATOR_LEDGER「待用户」 |
-| F-1 数据范围；RULE-387 | F1-01、F1-02 已定，ADR-0032 修订交 one-architecture、验收第 12、13 条交 one-1a-par（2026-10-15 已通知）；F1-03～07 待提交 | [决策页](https://claude.ai/artifact/4NMzvH2vxpJUYfckwrfcSJ)，`rules/decide/answers/F1.json`，`rules/DATA_SCOPE_RULES.md` |
+| 画像「区域负责人」改名 | 用语已由 one-glossary 处理；1a 审批节点 regionalHeadReview 与字段 regionalHeadId 的改名卡待调度派 | |
+
+## 工作守则要点（画像「权限边界」下有全文）
+
+- 本会话主模型 sonnet；会话上下文 2026-10-16 傍晚到 76%，按手册先更新本文件再 `/clear`；新开后从本文件接续，不凭记忆。
+- 发布决策页固定 `contract: "0.2.80"`；发布后核对真实渲染，没登录就报「未实看」。
+- 要别人定的事直连对方，抄送 one-data 或 one-coordinator；用户待答事项只由调度汇总到收件箱。
+- 写回只写用户原话覆盖的范围；转述的结论先核对原文并标已核实 / 已抽查 / 未核实。
+- 每个 PR 开后立即关 Auto-fix；子代理显式指定模型（haiku 取数，sonnet 调研与草稿，opus 极少）。
+- 错题本 `quality/defect-bank/one-rules.md`，决策页发布前回测。
+
+## 决策页工具
+
+`rules/decide/`：生成器 `build_decision_page.py`、导出 `export_answers.py`、收件箱 `inbox/`；已发布的页面与链接见 `rules/decide/README.md`。
