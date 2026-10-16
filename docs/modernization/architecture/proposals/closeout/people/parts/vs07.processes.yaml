@@ -531,6 +531,7 @@ processes:
     triggers:
       - {type: event, name: "入职生效", event: Employed, bc: B-13}
     stages: [VS-07.3]
+    stages_note: "VS-07.3：触发状态 Employed（试用期 / 正式）是 VS-07.3 的退出条件，参保增员与建薪酬档案是入职任职的收尾；不归 VS-13.1——VS-13.1 进入条件同一状态只是字面重合，本流程不产生考勤确认的任何进出事实（#421 第 6a 项）"
     owner_bc: B-15
     human_orchestration: false
     migration: "历史参保增员记录与薪酬档案随 AGG-74、AGG-93 全量迁入（U-3、U-4），薪酬档案按生效日版本回放；迁入不发事件，不触发本流程（ADR-0036 M7）"
