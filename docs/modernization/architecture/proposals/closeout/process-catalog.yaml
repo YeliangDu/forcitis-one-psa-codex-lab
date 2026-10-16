@@ -196,7 +196,7 @@ processes:
     name: "提出并满足资源需求"
     type: business
     stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
-    stages_note: "判据：资源需求与分配（OBJ-44、45）是 VS-02 贯穿活动「资源与工时」的产出，不属某一段的退出条件；各段均可提出，含 VS-02.1（概念同样提出资源需求）。近似项是通用状态词撞名，不改"
+    stages_note: "贯穿 VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：判据：资源需求与分配（OBJ-44、45）是 VS-02 贯穿活动「资源与工时」的产出，不属某一段的退出条件；各段均可提出，含 VS-02.1（概念同样提出资源需求）。近似项是通用状态词撞名，不改"
     owner_bc: "B-04"
     group: revenue
     status: draft
@@ -225,7 +225,7 @@ processes:
     name: "填报并审批工时"
     type: business
     stages: [VS-01.2, VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
-    stages_note: "判据：工时（OBJ-66）「已通过」是 VS-02 贯穿活动「资源与工时」的产出；VS-01.2 保留是因商机是售前工时的归集目标（OBJ-18）。字面误判：结局「已通过」无对象名，未匹到 OBJ-66"
+    stages_note: "贯穿 VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：判据：工时（OBJ-66）「已通过」是 VS-02 贯穿活动「资源与工时」的产出；VS-01.2 保留是因商机是售前工时的归集目标（OBJ-18）。字面误判：结局「已通过」无对象名，未匹到 OBJ-66"
     owner_bc: "B-06"
     group: revenue
     status: draft
@@ -265,7 +265,7 @@ processes:
     name: "登记并处置项目风险与问题"
     type: single_aggregate
     stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7]
-    stages_note: "判据：风险与问题（OBJ-108）「已关闭 / 已接受」是 VS-02 贯穿活动「变更、延期与风险」的产出，各段均可登记；近似项「已关闭」是不同对象撞名，不改"
+    stages_note: "贯穿 VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7：判据：风险与问题（OBJ-108）「已关闭 / 已接受」是 VS-02 贯穿活动「变更、延期与风险」的产出，各段均可登记；近似项「已关闭」是不同对象撞名，不改"
     owner_bc: "B-04"
     group: revenue
     status: draft
@@ -306,7 +306,7 @@ processes:
     name: "提出并发出设计变更"
     type: business
     stages: [VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
-    stages_note: "判据：设计变更（OBJ-40）「关闭」是 VS-02 贯穿活动「变更、延期与风险」的产出；字面误判：结局「已关闭」无对象名，未匹到 OBJ-40"
+    stages_note: "贯穿 VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：判据：设计变更（OBJ-40）「关闭」是 VS-02 贯穿活动「变更、延期与风险」的产出；字面误判：结局「已关闭」无对象名，未匹到 OBJ-40"
     owner_bc: "B-28"
     group: revenue
     status: draft
@@ -316,7 +316,7 @@ processes:
     name: "申请并答复延期"
     type: business
     stages: [VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
-    stages_note: "判据：延期申请（OBJ-41）「已批准 / 已拒绝 / 视为批准」是 VS-02 贯穿活动「变更、延期与风险」的产出，结局用语与之一致，未匹到只因无对象名"
+    stages_note: "贯穿 VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：判据：延期申请（OBJ-41）「已批准 / 已拒绝 / 视为批准」是 VS-02 贯穿活动「变更、延期与风险」的产出，结局用语与之一致，未匹到只因无对象名"
     owner_bc: "B-04"
     group: revenue
     status: draft
