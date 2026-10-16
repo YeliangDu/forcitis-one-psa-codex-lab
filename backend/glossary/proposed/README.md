@@ -86,7 +86,7 @@ cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）�
 
 ## `enterprise-aggregates.yaml`
 
-涉及模块：`accounting.ledger`、`accounting.tax`、`contract.baseline`、`cost.costing`、`delivery.acceptance`、`delivery.execution`、`masterdata.counterparty`、`organization.leave`、`organization.payroll`、`payables.payment`、`presales.quoting`、`procurement.subcontracting`、`receivables.collection`、`receivables.wip`。
+涉及模块：`accounting.ledger`、`accounting.tax`、`contract.agreement`、`cost.costing`、`delivery.acceptance`、`delivery.execution`、`masterdata.counterparty`、`organization.leave`、`organization.payroll`、`payables.payment`、`presales.opportunity`、`procurement.subcontracting`、`receivables.collection`、`receivables.wip`。
 
 全企业聚合草案 §8 交 one-glossary 的新用语（预判登记稿，proposed，待业务评审，ADR-0018）。
 
@@ -122,19 +122,19 @@ cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）�
 | `no_objection_declared` | 无异议已声明 | NoObjectionDeclared | 领域 · delivery.acceptance | 项目经理作出无异议声明；开票与收入侧订阅，用于视为同意的判定。 |  |  |
 | `design_change_claim_status` | 设计变更主张状态 | DesignChangeClaimStatus | 领域 · delivery.acceptance | 设计变更是否向对方主张：待主张，或不主张（附理由）；是否已主张由合同侧的变更、索赔记录，本 BC 不引用它们。草案称「主张标记」，标记是实现用语，业务上是状态。 |  |  |
 | `deemed_acceptance` | 视为同意 | DeemedAcceptance | 领域 · delivery.acceptance | 提交轮次送达后审查期满而发包人无结论也无异议，按合同约定视为发包人同意的状态；以送达记录、合同条款引用和期满记录成立，认可日取期满日。不同于发包人明确出具的书面认可。 |  |  |
-| `acceptance_date` | 认可日 | AcceptanceDate | 领域 · delivery.acceptance | 客户认可成果的日期，按证据类型取不同的日（签字日、签收日、邮件进入我方邮箱之日、纪要发出日、期满日等），决定收入期间。 |  | 「认可」与词表「验收」的关系见确认单 B2-X08 |
+| `acceptance_date` | 认可日 | AcceptanceDate | 领域 · delivery.acceptance | 客户认可成果的日期，按证据类型取不同的日（签字日、签收日、邮件进入我方邮箱之日、纪要发出日、期满日等），决定收入期间。；认可是客户方接受成果这一事实，由八类证据证明（含邮件、纪要、视为同意），区别于验收（验收单上的裁定行为：通过、退回、有条件通过）；「交付物已认可」是收入证据，「验收通过」是质量裁定（GL2 B2-X08） |  | 「认可」与词表「验收」的关系见确认单 B2-X08 |
 | `review_period` | 审查期 | ReviewPeriod | 领域 · delivery.acceptance | 合同约定发包人审查设计文件的期限（天），期满无结论也无异议视为同意；不同意须书面说明，修改后重新报送、审查期重新起算。 |  |  |
 | `expiry_record` | 期满记录 | ExpiryRecord | 领域 · delivery.acceptance | 审查期届满的记录（期满日、计算所依参数），是视为同意的须附证据之一；期满日的判定在开票与收入侧（用户已定 D-8）。 |  |  |
 | `acceptance_evidence_type` | 客户认可证据类型 | AcceptanceEvidenceType | 领域 · delivery.acceptance | 客户认可成果的八类证据（书面认可文件、两类签收单、邮件确认、两类会议纪要或签认单、检查服务签认或报告签发、视为同意）加「历史迁入」；逐类开放，缺须附证据即拒绝。 |  | bc 随证据（OBJ-53）归属的 Q29 定；暂放 delivery.acceptance |
 | `counterparty_bank_account_changed` | 往来单位银行账户已变更 | CounterpartyBankAccountChanged | 领域 · masterdata.counterparty | 往来单位的收款银行账户变更；应付与付款侧订阅，用于拦截向旧账户付款。草案称「银行账户已变更」，与我方资金账户（银行与现金）相混，故加「往来单位」。 |  |  |
-| `bid` | 投标 | Bid | 领域 · presales.quoting | 一次投标的全过程：招标项目与标段、参与方式、联合体协议、资格预审、投标报价、承诺快照、撤回与撤销。不是商机（opportunity）：一个商机可对应一次或多次投标。 |  |  |
-| `bid_won` | 投标已中标 | BidWon | 领域 · presales.quoting | 投标收到中标通知；同 BC 内转为商机赢单。 |  |  |
-| `bid_lost` | 投标未中标 | BidLost | 领域 · presales.quoting | 投标确认未中标；应收侧订阅，用于退还投标保证金。 |  |  |
-| `opportunity_lost` | 商机已输单 | OpportunityLost | 领域 · presales.quoting | 商机以未赢结束，记录原因、竞争对手、中标单位和中标价；成本核算侧订阅，用于售前投入转费用。与词表「赢单」相对；「丢单」是口语，列为别名。 |  |  |
-| `opportunity_abandoned` | 商机已放弃 | OpportunityAbandoned | 领域 · presales.quoting | 我方主动放弃商机（不参与或中途退出）；成本核算侧订阅，用于售前投入转费用。与输单不同：输单是对手赢，放弃是我方不做。 |  |  |
-| `agreement_terminated` | 协议已终止 | AgreementTerminated | 领域 · contract.baseline | 协议提前终止；成本核算与开票收入侧订阅，用于终止清算和停止开票。与「到期」不同，到期不是终止。 |  |  |
-| `agreement_baseline_activated` | 协议新基线已生效 | AgreementBaselineActivated | 领域 · contract.baseline | 协议的新基线版本生效（变更批准后）；开票收入侧订阅，用于更新付款条件项与履约义务。 |  |  |
-| `agreement_project_linked` | 协议项目关联已登记 | AgreementProjectLinked | 领域 · contract.baseline | 协议与项目的关联（只带生效期）已登记；成本核算侧订阅，用于确定项目归属的协议。 |  |  |
+| `bid` | 投标 | Bid | 领域 · presales.opportunity | 一次投标的全过程：招标项目与标段、参与方式、联合体协议、资格预审、投标报价、承诺快照、撤回与撤销。不是商机（opportunity）：一个商机可对应一次或多次投标。 |  |  |
+| `bid_won` | 投标已中标 | BidWon | 领域 · presales.opportunity | 投标收到中标通知；同 BC 内转为商机赢单。 |  |  |
+| `bid_lost` | 投标未中标 | BidLost | 领域 · presales.opportunity | 投标确认未中标；应收侧订阅，用于退还投标保证金。 |  |  |
+| `opportunity_lost` | 商机已输单 | OpportunityLost | 领域 · presales.opportunity | 商机以未赢结束，记录原因、竞争对手、中标单位和中标价；成本核算侧订阅，用于售前投入转费用。与词表「赢单」相对；「丢单」是口语，列为别名。 |  |  |
+| `opportunity_abandoned` | 商机已放弃 | OpportunityAbandoned | 领域 · presales.opportunity | 我方主动放弃商机（不参与或中途退出）；成本核算侧订阅，用于售前投入转费用。与输单不同：输单是对手赢，放弃是我方不做。 |  |  |
+| `agreement_terminated` | 协议已终止 | AgreementTerminated | 领域 · contract.agreement | 协议提前终止；成本核算与开票收入侧订阅，用于终止清算和停止开票。与「到期」不同，到期不是终止。 |  |  |
+| `agreement_baseline_activated` | 协议新基线已生效 | AgreementBaselineActivated | 领域 · contract.agreement | 协议的新基线版本生效（变更批准后）；开票收入侧订阅，用于更新付款条件项与履约义务。 |  |  |
+| `agreement_project_linked` | 协议项目关联已登记 | AgreementProjectLinked | 领域 · contract.agreement | 协议与项目的关联（只带生效期）已登记；成本核算侧订阅，用于确定项目归属的协议。 |  |  |
 | `project_established` | 项目已建立 | ProjectEstablished | 领域 · delivery.execution | 项目建立（立项）。「立项」是老系统表单叫法，事件取「建立」；成本核算侧订阅，用于售前投入转入。 |  |  |
 | `project_closed` | 项目已结项 | ProjectClosed | 领域 · delivery.execution | 项目完成收尾检查后结项；成本核算侧订阅，用于结项清算。与竣工结算（final_account）不同：结算是与客户对账，结项是我方内部收尾。 |  |  |
 | `project_terminated` | 项目已终止 | ProjectTerminated | 领域 · delivery.execution | 项目在完成前被终止（有成本发生）；成本核算侧订阅，用于终止清算。 |  |  |

@@ -44,42 +44,12 @@ bcs:
   kind: subdomain
   business_owner: 用户兼任
   description: "售前子域"
-- id: presales.customer
-  zh: 客户经营
-  subdomain: presales
-  kind: bc
-  business_owner: 用户兼任
-  description: ""
-- id: presales.quoting
-  zh: 商机评估与报价承诺
-  subdomain: presales
-  kind: bc
-  business_owner: 用户兼任
-  description: ""
 - id: contract
   zh: 合同
   subdomain: contract
   kind: subdomain
   business_owner: 用户兼任
   description: "合同子域"
-- id: contract.baseline
-  zh: 合约基线
-  subdomain: contract
-  kind: bc
-  business_owner: 用户兼任
-  description: ""
-- id: contract.changeorder
-  zh: 变更签证索赔
-  subdomain: contract
-  kind: bc
-  business_owner: 用户兼任
-  description: ""
-- id: contract.riskdelivery
-  zh: 风险交付
-  subdomain: contract
-  kind: bc
-  business_owner: 用户兼任
-  description: ""
 - id: delivery
   zh: 项目交付
   subdomain: delivery
@@ -408,3 +378,15 @@ bcs:
   kind: bc
   business_owner: 用户兼任
   description: "公司资产卡片、折旧、处置（ADR-0022 第 7 条；G1 期间为 accounting.ledger 内的导入通道）"
+- id: contract.agreement
+  zh: 协议与变更索赔
+  subdomain: contract
+  kind: bc
+  business_owner: 用户兼任
+  description: "协议（合同、框架协议、任务订单、联合体协议、劳务派遣协议、居间协议、租赁合同、职业责任保险单等）、变更、签证、索赔、风险交付授权；由合约基线、变更签证索赔、风险交付三个 bc 合并而来（GL2 确认单 B2-X01，用户 2026-10-16 同意）"
+- id: presales.opportunity
+  zh: 商机与投标报价
+  subdomain: presales
+  kind: bc
+  business_owner: 用户兼任
+  description: "线索、商机、投标、报价；由客户经营、商机评估与报价承诺两个 bc 合并而来，客户主数据移到往来单位 bc（GL2 确认单 B2-X01、X02，用户 2026-10-16 同意）"

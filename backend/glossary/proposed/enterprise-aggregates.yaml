@@ -428,7 +428,7 @@ terms:
   kind: value_object
   bc: delivery.acceptance
   scope: domain
-  definition: 客户认可成果的日期，按证据类型取不同的日（签字日、签收日、邮件进入我方邮箱之日、纪要发出日、期满日等），决定收入期间。
+  definition: 客户认可成果的日期，按证据类型取不同的日（签字日、签收日、邮件进入我方邮箱之日、纪要发出日、期满日等），决定收入期间。；认可是客户方接受成果这一事实，由八类证据证明（含邮件、纪要、视为同意），区别于验收（验收单上的裁定行为：通过、退回、有条件通过）；「交付物已认可」是收入证据，「验收通过」是质量裁定（GL2 B2-X08）
   standard_ref:
   - ADR-0047 第 2、3 条
   - 企业会计准则第 14 号——收入
@@ -503,7 +503,7 @@ terms:
   en: Bid
   snake: bid
   kind: aggregate
-  bc: presales.quoting
+  bc: presales.opportunity
   scope: domain
   definition: 一次投标的全过程：招标项目与标段、参与方式、联合体协议、资格预审、投标报价、承诺快照、撤回与撤销。不是商机（opportunity）：一个商机可对应一次或多次投标。
   standard_ref:
@@ -519,7 +519,7 @@ terms:
   en: BidWon
   snake: bid_won
   kind: domain_event
-  bc: presales.quoting
+  bc: presales.opportunity
   scope: domain
   definition: 投标收到中标通知；同 BC 内转为商机赢单。
   standard_ref:
@@ -534,7 +534,7 @@ terms:
   en: BidLost
   snake: bid_lost
   kind: domain_event
-  bc: presales.quoting
+  bc: presales.opportunity
   scope: domain
   definition: 投标确认未中标；应收侧订阅，用于退还投标保证金。
   standard_ref:
@@ -549,7 +549,7 @@ terms:
   en: OpportunityLost
   snake: opportunity_lost
   kind: domain_event
-  bc: presales.quoting
+  bc: presales.opportunity
   scope: domain
   definition: 商机以未赢结束，记录原因、竞争对手、中标单位和中标价；成本核算侧订阅，用于售前投入转费用。与词表「赢单」相对；「丢单」是口语，列为别名。
   standard_ref:
@@ -568,7 +568,7 @@ terms:
   en: OpportunityAbandoned
   snake: opportunity_abandoned
   kind: domain_event
-  bc: presales.quoting
+  bc: presales.opportunity
   scope: domain
   definition: 我方主动放弃商机（不参与或中途退出）；成本核算侧订阅，用于售前投入转费用。与输单不同：输单是对手赢，放弃是我方不做。
   standard_ref:
@@ -583,7 +583,7 @@ terms:
   en: AgreementTerminated
   snake: agreement_terminated
   kind: domain_event
-  bc: contract.baseline
+  bc: contract.agreement
   scope: domain
   definition: 协议提前终止；成本核算与开票收入侧订阅，用于终止清算和停止开票。与「到期」不同，到期不是终止。
   standard_ref:
@@ -598,7 +598,7 @@ terms:
   en: AgreementBaselineActivated
   snake: agreement_baseline_activated
   kind: domain_event
-  bc: contract.baseline
+  bc: contract.agreement
   scope: domain
   definition: 协议的新基线版本生效（变更批准后）；开票收入侧订阅，用于更新付款条件项与履约义务。
   standard_ref:
@@ -613,7 +613,7 @@ terms:
   en: AgreementProjectLinked
   snake: agreement_project_linked
   kind: domain_event
-  bc: contract.baseline
+  bc: contract.agreement
   scope: domain
   definition: 协议与项目的关联（只带生效期）已登记；成本核算侧订阅，用于确定项目归属的协议。
   standard_ref:

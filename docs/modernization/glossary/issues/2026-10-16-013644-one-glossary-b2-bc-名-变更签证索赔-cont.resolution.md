@@ -1,4 +1,4 @@
 ## 处理
 
-- 状态：待用户
-- 处理：已预判：建议把 bc 中文名改为「变更、现场签证与索赔」——变更（FIDIC 的 variation）、现场签证（词表正式词条 site_visa）、索赔（claim）三个概念都是正式叫法，单说「签证」是方言；等用户在下一张确认单上裁定后改 bcs.yaml 的 name（id 不变，代码包名不受影响）
+- 状态：已关闭
+- 处理：已写回：合同三个 bc 合并为 contract.agreement「协议与变更索赔」（GL2 确认单 B2-X01，用户 2026-10-16 同意），bc 名里不再有「签证」；现场签证仍是词表正式词条；本片段的 bc 由 contract.changeorder 随合并改为 contract.agreement
