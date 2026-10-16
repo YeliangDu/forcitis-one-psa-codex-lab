@@ -6,6 +6,7 @@ import com.forcitis.one.platform.identity.domain.BrowserIdentifiers;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -38,15 +39,27 @@ class JdbcBrowserIdentifiers implements BrowserIdentifiers {
                     update platform_identity.browser_identifiers set retired_at = :now, updated_at = :now
                      where identifier_hash = :old and user_id = :user and retired_at is null
                     """).param("now", at).param("old", oldHash).param("user", userId.value()).update();
-            jdbc.sql("""
-                    update platform_identity.browser_identifiers set identifier_hash = :new, updated_at = :now
+            var moved = jdbc.sql("""
+                    update platform_identity.browser_identifiers set retired_at = :now, updated_at = :now
                      where identifier_hash = :old and user_id <> :user and retired_at is null
-                    """).param("now", at).param("old", oldHash).param("new", newHash).param("user", userId.value()).update();
+                    returning user_id, last_login_at
+                    """).param("now", at).param("old", oldHash).param("user", userId.value())
+                    .query((rs, n) -> new Moved(rs.getObject("user_id", UUID.class), rs.getTimestamp("last_login_at"))).list();
+            for (Moved other : moved) {
+                insert(other.userId(), newHash, other.lastLoginAt());
+            }
         }
+        insert(userId.value(), newHash, at);
+    }
+
+    private record Moved(UUID userId, Timestamp lastLoginAt) {
+    }
+
+    private void insert(UUID userId, String hash, Timestamp lastLoginAt) {
         jdbc.sql("""
                 insert into platform_identity.browser_identifiers (browser_identifier_id, user_id, identifier_hash, last_login_at)
-                values (:id, :user, :hash, :now)
-                """).param("id", ids.next()).param("user", userId.value()).param("hash", newHash).param("now", at).update();
+                values (:id, :user, :hash, :at)
+                """).param("id", ids.next()).param("user", userId).param("hash", hash).param("at", lastLoginAt).update();
     }
 
     @Override
