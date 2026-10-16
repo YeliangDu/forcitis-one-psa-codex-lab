@@ -2,10 +2,8 @@ package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
-import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
-import com.forcitis.one.platform.identity.api.IdentityError;
 import java.io.PrintStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -81,8 +79,7 @@ public class OperationsCommands {
     /** Separated employees still count: the snapshot keeps them, and the audit trail must be able to name them. */
     private void requireExisting(OperationAttestation attestation) {
         if (orgDirectory.findEmployee(attestation.operator()).isEmpty() || orgDirectory.findEmployee(attestation.witness()).isEmpty()) {
-            throw new DomainException(IdentityError.PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED, ErrorKind.UNPROCESSABLE,
-                    "an operations command needs an operator and a witness who are two different existing employees, each given as an employee id");
+            throw OperationAttestation.required();
         }
     }
 

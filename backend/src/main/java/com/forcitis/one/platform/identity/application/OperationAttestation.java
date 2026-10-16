@@ -26,7 +26,7 @@ public record OperationAttestation(EmployeeId operator, EmployeeId witness) {
         }
     }
 
-    private static DomainException required() {
+    static DomainException required() {
         return new DomainException(IdentityError.PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED, ErrorKind.UNPROCESSABLE,
                 "an operations command needs an operator and a witness who are two different existing employees, each given as an employee id");
     }
