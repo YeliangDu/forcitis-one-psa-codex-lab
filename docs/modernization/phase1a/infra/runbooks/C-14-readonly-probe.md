@@ -112,3 +112,15 @@ DROP DATABASE [one_readonly_probe_db];
 随后云接口 `DeleteAccount`（删登录并清 msdb 用户）；回读（`USER_ID`）：探针登录、探针库、master 用户、msdb 用户均为 0；rdscore 用户只记录。
 
 ECS 删除 `/etc/forcitis-one/readonly-probe.env` 与临时目录（解开的 jar）；RESOURCES.md 记删除；执行记录写入本文件与 PREDEPLOY_CHECKLIST C-14。
+
+
+## 执行记录（2026-10-16，one-ops；本机结果文件 c14_result_20261016_rds*.jsonl 不进仓库）
+
+- **第一步（rc.4，jar sha 468d229a…）**：正式账号连接 integration-seeyon-background、integration-legacy、integration-legacy-inbox 各 (a)–(g) 全 PASSED，RESULT PASSED，退出码 0（云助手 t-hz0707odaeyqv40、t-hz0707odpgkpwcg、t-hz0707oe4dvvzeo）。
+- **探针逐项**（账号经 RDS 云接口建删；共三次完整运行（结果文件 rds、rds3、rds6），第 1–14 项三次完全一致，第 15、17 项取自最后一次，其创建请求 01A1458F-67B1-51D9-B189-25517BDF928B、删除请求 01A14597-035A-5B68-9D76-4D293AF38112）：第 1 项 PASSED；第 2 项 (b)(g)；第 3 项 (a)(b)；第 4、5 项 (c)；第 6、7 项 (e)；第 8 项 (e)(g)；第 9 项 (f)；第 10 项平台 4613；第 11 项 UNDETERMINED（229，无权读系统目录）；第 12、13 项 (g)；每项回退后有效权限计数与授权指纹复原。
+- **第 14 项**（`public` 在用户对象上授 UPDATE）：预期 (g) public，实测 PASSED（可见性核实通过，探针看得到 public 授权）；推测因库级 DENY UPDATE 已覆盖该授权，(g) 接受「被 DENY 覆盖的 public 授权」，与正式账号 (g) 的 7 个 public EXECUTE 同口径。**口径待 one-1a-par 回答，生产前须定**（one-coordinator 定为不阻塞 dev 与阻塞项 101）。
+- **第 15 项**（`GRANT IMPERSONATE ON LOGIN::sa`）：记「平台不可构造」。证据：被拒 15151；探针登录与 sa 对执行账号可见（计数均为 1）；执行账号无 CONTROL SERVER（0），对 sa 无 CONTROL（0）。
+- **第 17 项**（master 为探针登录建用户）：偏离被拒 15247（无权限），按本剧本「平台拒绝时记平台不可构造、不换方式」记「平台不可构造」；(f) 的反例由第 9 项与正式账号第一步覆盖。第 16 项按用户 2026-10-15 决定不做；H-2 平台不可构造（执行账号在 msdb 无 ALTER ANY ROLE）。
+- **收尾与残留**：每轮收尾后回读（USER_ID）探针登录、探针库、master 与 msdb 用户均为 0；**rdscore 里 `one_readonly_probe` 用户（用户号 30）为永久已知残留**（RDS 对任何账号都不清，同名重建沿用不累积，用户 2026-10-16 决定接受，见 RESOURCES）。ECS 与老系统服务器的暂存文件 CLEAN。
+- **工具演进（同日）**：T-SQL 建删登录会在 msdb、rdscore 留孤儿用户，改经 RDS 云接口建删（msdb 随之清除，#394）；建库约 3 分钟后进 RDS 镜像，T-SQL 删库报 3743，改经 DeleteDatabase（#399）；第 15 项 15151 的判据（#407）。
+- **结论**：C-14 完成（one-coordinator 2026-10-16 认定），阻塞项 101 删除。
