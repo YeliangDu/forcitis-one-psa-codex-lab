@@ -577,12 +577,13 @@ def main(target, jar_sha256):
             errors = apply(f'item {number} deviation', deviation)
             if errors:
                 if number in PLATFORM_REFUSAL_ITEMS and len(errors) == 1 and errors[0] in PLATFORM_REFUSALS[number]:
-                    if errors[0] == 15151:  # "not found or no permission" names no object: show that sa is what the execution account cannot see, not the probe
-                        rc, _, out = legacy_sql(f'item {number} login visibility', 'master', f"SELECT ISNULL(SUSER_ID(N'sa'), 0) AS sa, ISNULL(SUSER_ID(N'{LOGIN}'), 0) AS probe;", mode='ro')
+                    if errors[0] == 15151:  # "not found, or no permission": the probe login must be visible to the execution account, else the error says nothing about sa
+                        rc, _, out = legacy_sql(f'item {number} login visibility', 'master',
+                                                f"SELECT (SELECT COUNT(*) FROM sys.server_principals WHERE name = N'sa') AS sa, (SELECT COUNT(*) FROM sys.server_principals WHERE name = N'{LOGIN}') AS probe;", mode='ro')
                         seen = numbers(out)
                         record(step=f'item {number} login visibility', sa_probe=seen[-1] if seen else None)
-                        if rc != 0 or not seen or seen[-1][0] != 0 or seen[-1][1] == 0:
-                            raise Stop(f'item {number}: 15151 is not explained by sa being invisible to the execution account')
+                        if rc != 0 or not seen or seen[-1][1] != 1:
+                            raise Stop(f'item {number}: 15151 cannot be told apart from the probe login being invisible to the execution account')
                     record(item=number, expected=expected, outcome='platform cannot construct', sql_errors=errors)
                     if counts(f'item {number} counts') != control or fingerprint(f'item {number} fingerprint') != control_fingerprint:
                         raise Stop(f'item {number}: state changed after a refused deviation')
