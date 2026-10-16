@@ -570,7 +570,7 @@ AGG-93 含敏感个人信息与金融账户类信息，按 ADR-0043 在数据访
 
 | # | 聚合 | 内含 | 对应 | 不变量 | 命令（→ 事件；前置 INV） | 对外事件（订阅方） | 引用与依赖方式 |
 |---|---|---|---|---|---|---|---|
-| REF-02 | 项目结项编排（无聚合的流程模块：发起结项检查、提交结项申请、实现审批钩子、审批通过后调 AGG-19「结项」） | 结项检查单（单据，经 `platform.audit` 留痕）；不持有状态 | 无聚合（流程模块） | INV-40（命令方，前置读取） | —（本稿流程无命令写入） | — （不发领域事件；「项目已结项」由 AGG-19 发） | AGG-19 项目（api）；AGG-27 已认可与已封存交付物（api）；AGG-44 收入确认行与结论（api）；AGG-55 供方协议状态（api）；AGG-39 工时单审批状态（api）；AGG-13 协议（api）；AGG-17 风险交付授权（api）；platform.approval 结项审批（api） |
+| REF-02 | 项目结项编排（无聚合的流程模块：发起结项检查、提交结项申请、实现审批钩子、审批通过后调 AGG-19「结项」） | 结项检查单（单据，经 `platform.audit` 留痕）；不持有状态 | 无聚合（流程模块） | INV-40（命令方，前置读取） | —（本稿流程无命令写入） | — （不发领域事件；「项目已结项」由 AGG-19 发） | AGG-19 项目（api）；AGG-27 已认可与已封存交付物（api）；AGG-44 收入确认行与结论（api）；AGG-55 供方协议状态（api）；AGG-39 工时单审批状态（api）；AGG-13 协议（api）；AGG-17 风险交付授权（api）；platform.approval 结项审批（api）；platform.audit 结项检查单留痕（api） |
 
 **B-30 知识**（沿用 `km.knowledge`，由「保持现状、无对象支撑」改为有聚合支撑；用户 intent 074053 K-1；位于 B-02、B-03、B-04、B-28 上游）
 
@@ -680,7 +680,7 @@ AGG-93 含敏感个人信息与金融账户类信息，按 ADR-0043 在数据访
 | B-22 | 银行与现金 | `accounting.cashbank` | **沿用**（ADR-0022；G1 为 ledger 内通道） | AGG-87、88 | 资金账户 | → `platform.integration`：防腐层 | **深**（触账；原稿标薄，按 ADR-0041 决定 1 判据改） |
 | B-23 | 税费 | `accounting.tax` | **沿用，G1 提前独立**（D-7 用户已定 b，修订 ADR-0022 决定 7；G1 只含 AGG-89，AGG-90 到申报阶段） | AGG-89、90 | — | → `platform.integration`：防腐层 | 深（触账） |
 | B-24 | 固定资产 | `accounting.fixedasset` | **沿用**（ADR-0022；G1 为 ledger 内通道） | AGG-91 | 公司资产 | — | **深**（触账；原稿标薄，按 ADR-0041 决定 1 判据改） |
-| B-29 | 项目结项（Closeout） | `delivery.closeout`（项目结项，Closeout；`delivery` 命名空间；intent 114200 F-5） | **流程模块，不计入 BC 数**（符合性审查 建-8；编号沿用 B-29 只为引用方便；D-9 用户已定 a：无聚合的流程模块，须写进一次性 ADR，修订 ADR-0017 决定 1） | REF-02（无聚合） | — | → `platform.approval`：审批钩子由本模块实现 | 薄（流程编排，无聚合） |
+| B-29 | 项目结项（Closeout） | `delivery.closeout`（项目结项，Closeout；`delivery` 命名空间；intent 114200 F-5） | **流程模块，不计入 BC 数**（符合性审查 建-8；编号沿用 B-29 只为引用方便；D-9 用户已定 a：无聚合的流程模块，须写进一次性 ADR，修订 ADR-0017 决定 1） | REF-02（无聚合） | — | → `platform.approval`：审批钩子由本模块实现；→ `platform.audit`：结项检查单留痕 | 薄（流程编排，无聚合） |
 | — | 经营分析 | `reporting` | **沿用**（只读） | 读模型 | — | → 全部业务 BC：遵奉者 | — |
 | — | 平台 | `platform.*`（approval、audit、identity、integration、numbering、scheduling、idempotency、eventing、web、migration） | **沿用**（已建 / ADR-0036） | 已建 | — | 已建边不变 | — |
 | B-30 | 知识 | `km.knowledge` | **沿用，改为有对象支撑**（用户 intent 074053 K-1：建一级对象「知识条目」；此前 intent 072440 M-4 保持现状） | AGG-107 | — | — | 薄（版本与审批，规则少；深 / 薄标记可由用户改） |
@@ -713,13 +713,13 @@ AGG-93 含敏感个人信息与金融账户类信息，按 ADR-0043 在数据访
 
 生成方法：`python3 -I docs/modernization/architecture/proposals/aggregates_dep_check.py`。脚本读 §2.2 每个聚合的「引用与依赖方式」列，按聚合所在 BC 合成 BC 依赖边（api、事件成边，不校验不成边），并入 `backend/architecture/module-dependencies.txt` 的已建边后查环，再按「每个节点只依赖更小层号的节点」分层，与下面的分层块比对。只读，不写仓库其他文件。
 
-运行结果（2026-10-16，intent 114200 F-1 至 F-5 答复落笔后重跑）：
+运行结果（2026-10-16，ADR-0050 / 0051 评审 M-3 补 B-29 → `platform.audit` 后重跑）：
 
 ```
 聚合数（计数）：106；BC 数（§2.2 有标题的）：29
 每个 BC 的聚合数：B-01 3，B-02 5，B-03 7，B-04 11，B-05 5，B-06 1，B-07 4，B-08 4，B-09 3，B-10 4，B-11 4，B-12 1，B-13 9，B-14 2，B-15 6，B-16 1，B-17 0，B-18 2，B-19 2，B-20 8，B-21 1，B-22 2，B-23 2，B-24 1，B-26 4，B-27 5，B-28 8，B-29 0，B-30 1
 引用条目中「不校验」13 条（不成边）
-由 §2.2 推出的 BC 依赖边：141 条；已建边（module-dependencies.txt）：21 条
+由 §2.2 推出的 BC 依赖边：142 条；已建边（module-dependencies.txt）：21 条
 已建边在 §2.2 中未出现（业务 BC 之间）：无
 已建模块的新增规划边（ADR-0041 决定 4：到阶段再登记）：B-06 cost.timesheet -> B-02 masterdata.catalog；B-06 cost.timesheet -> B-03 presales.opportunity；B-06 cost.timesheet -> B-04 delivery.execution；B-06 cost.timesheet -> B-14 organization.attendance；B-06 cost.timesheet -> B-16 operations.facts；B-06 cost.timesheet -> B-27 organization.leave；B-06 cost.timesheet -> B-28 delivery.acceptance
 各业务 BC 的上游（§2.2 推出；括号内为方式）：
@@ -750,7 +750,7 @@ AGG-93 含敏感个人信息与金融账户类信息，按 ADR-0043 在数据访
   B-26 delivery.inspection → B-01（api）、B-02（api）、B-04（api）、B-05（api、事件）、B-13（api）、B-28（api）
   B-27 organization.leave → B-13（api）、B-14（api）、platform.approval（api）、platform.integration（api）
   B-28 delivery.acceptance → B-01（api）、B-04（api）、B-13（api）、B-30（api）
-  B-29 delivery.closeout → B-04（api）、B-05（api）、B-06（api）、B-08（api）、B-11（api）、B-28（api）、platform.approval（api）
+  B-29 delivery.closeout → B-04（api）、B-05（api）、B-06（api）、B-08（api）、B-11（api）、B-28（api）、platform.approval（api）、platform.audit（api）
   B-30 km.knowledge → B-13（api）
 环：无
 §4.1 分层块与生成结果：一致（退出码 0）
@@ -791,6 +791,8 @@ L14: B-24 accounting.fixedasset、B-29 delivery.closeout
 第 ② 步回补后的变化（intent 082311）：新增 AGG-109 利润分配（B-10，与合伙人出资 AGG-54 同处），聚合 104 → 105，B-10 由 3 个变为 4 个；AGG-97 改为一对一对应 OBJ-111，计数不变；INV-117 新增。AGG-109 引用 AGG-81（B-19）与 AGG-100（B-20），新增边 B-10 → B-19、B-10 → B-20，边数 131 → 133；B-19 在 L3、B-20 在 L5，B-10 仍在 L11（已依赖 L10 的 B-23），层位不变；个税扣缴由 B-15 的 AGG-95 订阅「利润分配已支付」，沿已有边 B-15 → B-10，不新增反向边；「不校验」仍 11 条；**无环**，退出码 0。
 
 intent 114200 答复落笔后的变化（F-1、F-2）：F-2 把 AGG-05、12、13、15、17、22、40、45、59、75、79 的引用列补 `platform.approval 审批（api）`，新增 8 条边（B-02、B-03、B-04、B-05、B-07、B-08、B-12、B-18 → `platform.approval`；B-15 已有），边数 133 → 141；`platform.approval` 仍在 L4；B-18 由 L3 降到 L5，B-02 由 L4 降到 L5，B-03 L5 → L6，B-04 L6 → L7，B-28 L7 → L8，B-05、B-06 L8 → L9，B-07、B-08、B-26 L9 → L10，B-09、B-23 L10 → L11，B-10 L11 → L12，B-11、B-12、B-15 L12 → L13，B-24、B-29 L13 → L14，分层由 L0–L13 变为 L0–L14（15 层）；**无环**，退出码 0。F-1 新增 AGG-110（B-28），聚合 105 → 106，B-28 由 7 个变为 8 个，AGG-110 的引用 AGG-38、AGG-27 同 BC、AGG-20 经 B-28 → B-04 已有边，不新增边；「不校验」由 11 条增为 13 条（AGG-38、AGG-110 对 AGG-62 的 ID 引用）。F-3 不加边（劳动合同与离职申请在 B-13 内单级批准）。
+
+ADR-0050 / 0051 独立评审 M-3 落笔后的变化（`ADR_0050_0051_REVIEW.md`）：REF-02 结项检查单经 `platform.audit` 留痕，引用列补 `platform.audit 结项检查单留痕（api）`，新增 1 条边（B-29 → `platform.audit`），边数 141 → 142；`platform.audit` 在 L1，B-29 仍在 L14，分层不变；**无环**，退出码 0。
 
 ### 4.2 骨架的规则
 
