@@ -222,7 +222,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
                 .hasStackTraceContaining("not maintained");
 
         assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where document_id = cast(? as uuid)", Integer.class, key)).isZero();
-        assertThat(runtime.createProcessInstanceQuery().processInstanceBusinessKey("TIMESHEET:" + key).count()).isZero();
+        assertThat(runtime.createProcessInstanceQuery().processInstanceBusinessKey(key).count()).isZero();
     }
 
     @Test
