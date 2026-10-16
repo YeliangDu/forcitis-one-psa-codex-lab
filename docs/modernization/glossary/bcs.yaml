@@ -44,42 +44,12 @@ bcs:
   kind: subdomain
   business_owner: 用户兼任
   description: "售前子域"
-- id: presales.customer
-  zh: 客户经营
-  subdomain: presales
-  kind: bc
-  business_owner: 用户兼任
-  description: ""
-- id: presales.quoting
-  zh: 商机评估与报价承诺
-  subdomain: presales
-  kind: bc
-  business_owner: 用户兼任
-  description: ""
 - id: contract
   zh: 合同
   subdomain: contract
   kind: subdomain
   business_owner: 用户兼任
   description: "合同子域"
-- id: contract.baseline
-  zh: 合约基线
-  subdomain: contract
-  kind: bc
-  business_owner: 用户兼任
-  description: ""
-- id: contract.changeorder
-  zh: 变更签证索赔
-  subdomain: contract
-  kind: bc
-  business_owner: 用户兼任
-  description: ""
-- id: contract.riskdelivery
-  zh: 风险交付
-  subdomain: contract
-  kind: bc
-  business_owner: 用户兼任
-  description: ""
 - id: delivery
   zh: 项目交付
   subdomain: delivery
@@ -93,7 +63,7 @@ bcs:
   business_owner: 用户兼任
   description: ""
 - id: delivery.acceptance
-  zh: 质量返工与验收
+  zh: 质量与认可
   subdomain: delivery
   kind: bc
   business_owner: 用户兼任
@@ -360,3 +330,63 @@ bcs:
   status: proposed
   subdomain: platform
   description: "公司门户，致远单点登录的入口"
+- id: masterdata
+  zh: 主数据
+  subdomain: masterdata
+  kind: subdomain
+  business_owner: 用户兼任
+  description: "主数据子域：被多个业务子域共同引用、位于最上游的参考数据（intent 2026-10-16-061232 D-2，须新 ADR 取代 ADR-0017 决定 1 的「沿用现有子域」）"
+- id: masterdata.counterparty
+  zh: 往来单位与外部工程
+  subdomain: masterdata
+  kind: bc
+  business_owner: 用户兼任
+  description: "往来单位及其角色、联系人、银行账户、资质证书；建设工程、部位、招标项目等外部工程登记（取代 presales.customer 的客户主数据部分）"
+- id: masterdata.catalog
+  zh: 服务与定价目录
+  subdomain: masterdata
+  kind: bc
+  business_owner: 用户兼任
+  description: "服务产品、阶段类型、标准成本费率表、计费系数、协议价目的版本化目录"
+- id: delivery.inspection
+  zh: 检查与检测
+  subdomain: delivery
+  kind: bc
+  business_owner: 用户兼任
+  description: "检查计划、检查、检查表模板、外部检测；与交付执行、质量与认可并列，位于二者下游（D-3）"
+- id: organization.leave
+  zh: 请假与加班
+  subdomain: organization
+  kind: bc
+  business_owner: 用户兼任
+  description: "考勤记录、请假、假期余额、加班（D-5，自 organization.attendance 分出；该 bc 只留工作日历）"
+- id: accounting.cashbank
+  zh: 银行与现金
+  subdomain: accounting
+  kind: bc
+  business_owner: 用户兼任
+  description: "资金账户、银行流水（ADR-0022 第 7 条；G1 期间为 accounting.ledger 内的导入通道）"
+- id: accounting.tax
+  zh: 税费
+  subdomain: accounting
+  kind: bc
+  business_owner: 用户兼任
+  description: "进项发票池与法定申报（ADR-0022 第 7 条；G1 期间为 accounting.ledger 内的导入通道）"
+- id: accounting.fixedasset
+  zh: 固定资产
+  subdomain: accounting
+  kind: bc
+  business_owner: 用户兼任
+  description: "公司资产卡片、折旧、处置（ADR-0022 第 7 条；G1 期间为 accounting.ledger 内的导入通道）"
+- id: contract.agreement
+  zh: 协议与变更索赔
+  subdomain: contract
+  kind: bc
+  business_owner: 用户兼任
+  description: "协议（合同、框架协议、任务订单、联合体协议、劳务派遣协议、居间协议、租赁合同、职业责任保险单等）、变更、签证、索赔、风险交付授权；由合约基线、变更签证索赔、风险交付三个 bc 合并而来（GL2 确认单 B2-X01，用户 2026-10-16 同意）"
+- id: presales.opportunity
+  zh: 商机与投标报价
+  subdomain: presales
+  kind: bc
+  business_owner: 用户兼任
+  description: "线索、商机、投标、报价；由客户经营、商机评估与报价承诺两个 bc 合并而来，客户主数据移到往来单位 bc（GL2 确认单 B2-X01、X02，用户 2026-10-16 同意）"
