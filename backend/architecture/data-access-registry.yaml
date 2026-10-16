@@ -57,7 +57,7 @@ tables:
     lineage: {source: ORG_SOURCE}  # own ids through the confirmed source references of platform.integration (经来源对照, R-1b P3b)
     writers: [organization.workforce]
   # 使用方未建，由同步原样入库 (no consumer built yet, stored as the sync gives them): regional_receivables_manager_id (exposed through
-  # OrgDirectory.findRegionalReceivablesManager, no caller yet) and is_delivery_unit (read-only exposure in OrgUnitResponse). Same for the versions table.
+  # OrgDirectory.findRegionalReceivablesManager, no caller yet) and is_delivery_unit (read-only exposure in OrgUnitResponse).
   organization_workforce.org_units:
     role: SNAPSHOT
     mutability: MUTABLE
@@ -85,6 +85,7 @@ tables:
   # Columns of org_units left out of the versions on purpose: sort_order (only orders siblings for display, nothing reads it by date), short_name (not a source column:
   # a cross-source column refreshed daily from the old system, valid until DA-8 lands, ADR-0033 item 2.6), revoked_at (follows from the start of the REVOKED version),
   # last_sync_run_id (moves to the change set with split a).
+  # 使用方未建，由同步原样入库: regional_receivables_manager_id and is_delivery_unit, as on org_units.
   organization_workforce.org_unit_versions:
     role: DIMENSION_VERSIONED
     mutability: APPEND_ONLY
