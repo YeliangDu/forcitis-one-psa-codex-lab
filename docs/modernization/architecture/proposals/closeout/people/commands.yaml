@@ -1,4 +1,4 @@
-# 人员组收敛产物（提议稿；由 parts/merge_converge.py 从分片合并，改分片后重跑，不手改本文件）
+# 人员组合并产物（由 parts/rebuild.py 从分片生成，不手改；改分片后重跑）
 commands:
 - name: 导入考勤记录
   aggregate: AGG-69
@@ -952,6 +952,7 @@ commands:
   - PRC-124 第 3 步（撤回边 withdraw 回到第 1 步）
   orphan: false
   source_part: vs13pay
+  unused_ok: 由骨架 withdraw 边触发
 - name: 提交过账候选
   aggregate: AGG-73
   entity: payroll_settlements
@@ -1225,6 +1226,7 @@ commands:
   - PRC-121 第 2 步（撤回边 withdraw）
   orphan: false
   source_part: vs13pay
+  unused_ok: 由骨架 withdraw 边触发
 - name: 草拟奖金核定
   aggregate: AGG-76
   entity: bonus_determinations
@@ -1700,6 +1702,7 @@ commands:
   - PRC-88#3（withdraw）
   orphan: false
   source_part: vs0911
+  unused_ok: 由骨架 withdraw 边触发
 - name: 〔缺〕驳回经营计划审批
   aggregate: AGG-79
   status: 〔缺〕（notes 新用语 reject_business_plan；审批平台回调）
@@ -2229,6 +2232,7 @@ commands:
   - PRC-139 第 2 步（撤回边 withdraw）
   orphan: false
   source_part: b31
+  unused_ok: 由骨架 withdraw 边触发
 - name: 登记用印
   aggregate: AGG-113
   entity: seal_usage_records
@@ -2399,6 +2403,7 @@ commands:
   - PRC-142 第 2 步（撤回边 withdraw）
   orphan: false
   source_part: b31
+  unused_ok: 由骨架 withdraw 边触发
 - name: 受理 IT 需求
   aggregate: AGG-114
   entity: it_requests
@@ -2620,6 +2625,7 @@ commands:
   - PRC-143 第 2 步（撤回边 withdraw）
   orphan: false
   source_part: b31
+  unused_ok: 由骨架 withdraw 边触发
 - name: 登记领用
   aggregate: AGG-115
   entity: it_asset_use_periods
@@ -2710,6 +2716,7 @@ commands:
   - PRC-143B 第 1 步（撤回边 withdraw）
   orphan: false
   source_part: b31
+  unused_ok: 由骨架 withdraw 边触发
 - name: 调拨资产
   aggregate: AGG-115
   entity: it_asset_use_periods
@@ -2929,6 +2936,7 @@ commands:
   - PRC-144 第 2 步（撤回边 withdraw）
   orphan: false
   source_part: b31
+  unused_ok: 由骨架 withdraw 边触发
 - name: 完成员工活动
   aggregate: AGG-116
   entity: employee_activity_requests

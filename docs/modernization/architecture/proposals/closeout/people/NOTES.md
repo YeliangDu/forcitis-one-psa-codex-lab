@@ -1,32 +1,33 @@
 # 人员组 NOTES（one-arch-people）
 
-按 `../CONVENTIONS.md` §4 固定小节。每节按来源分：B-13/B-14/B-27 表（试点）与各分片（`parts/*.notes.md` 合并，分片文件保留作底稿）。样板见 `SAMPLE.md`。编号如「V-n」「U-n」「PG-n」为各分片内部编号，合成确认页时由 one-architecture 统一。
+由 `parts/rebuild.py` 从各分片 `parts/*.notes.md` 与手写的 `NOTES.keep.md` 合并，不手改。按 `../CONVENTIONS.md` §4 固定小节，每节按分片分；编号（V-n、U-n、R-B31-n 等）为分片内部编号，合成确认页时由 one-architecture 统一。
 
-## B-13 长期目标（用户 P-01，经 one-architecture 转）
+## B-13 长期目标（用户 P-01）
 
 - 用户原话：「这个 BC 后期要持续建设直至满足 HRM 的总体功能要求。」B-13 `organization.workforce` 的长期目标是覆盖 HRM 总体功能；本期范围按已定口径（入转调离、招聘、劳动合同、执业证书、绩效评估、职位目录与法人归属），不扩。
 
 ## 接缝问题
 
-### B-13、B-14、B-27 表（试点）
+### 入转调离（VS-07、VS-13.6）
+
+1. **B-27 订阅 Separated 缺事件边**：PRC-128 步 7 向 B-27 发 Separated，让 B-27 生成「离职当月考勤待代确认」（待用户 V-3）；§4.1 只有 B-27 → B-13（api）。方向对（下游订阅上游），请补「事件」方式。调岗对请假审批人与在途单据是否联动（PRC-136）同样需要 B-27 订阅「任职已变更」，待 B-27 组确认。
+2. **B-31 订阅 Separated，B-13 不依赖 B-31**：按 NOTES「聚合稿回补」第 1 节的建议处理——B-31 订阅 Separated 生成归还待办（b31 PRC-143 已按此写），PRC-128 只发事件，不读 B-31，不等待归还（工作交接清单是单据不作门，VS-13.6 备注）；B-31 → B-13 现有 api，事件方式随 B-31 新边一并登记。时点上 Separated 在离职日结束才发，归还待办晚于最后一天，建议对外发「离职已登记」让 B-31 提前（待用户 V-15）。
+3. **platform.identity、B-15 对 B-13 事件的订阅登记**：聚合稿 AGG-62、63 的订阅方列需补——platform.identity：Separated（已有）、任职已变更、Employed、入职已登记、〔缺〕法人归属已变更；B-15：Separated（已有）、任职已变更、〔缺〕转正已办理、〔缺〕法人归属已变更。边 platform.identity → B-13、B-15 → B-13 已有，方向一致，不新增边（PG-02）。
+4. **企业微信停用不再产生 integration → B-13 的反向事件（PG-04 对停用不再适用）**：PRC-138 步 6 由 platform.identity 经 api 同步调用 platform.integration 停用成员，边 platform.identity → platform.integration 已有，B-13 不参与，不再需要「企业微信成员已停用」事件。试点稿 PRC-138 的该事件与 `kernel.ExternalSubjectEmployees` 反向端口处理见 IDENTITY_LIFECYCLE「C1 一并要做的实现项」。
+5. **P-31 策略要扩触发**：「标记数据范围待复核并通知区域负责人」现只由组织单元已调整触发（PRC-80 步 6），PRC-136 步 10 需增「任职已变更」触发，生成待调整权限（ADR-0032 第 4 项两类条目）；请 one-architecture 把 P-31 的触发列扩为两个事件，并定该策略归 platform.identity 的编号（目前挂在 PRC-80、136 的步骤里，没有独立 PRC 号）。
+6. **PRC-136 向 B-15 的接缝**：任职已变更 → B-15 调整薪酬档案（AGG-93）；跨法人时还要变更参保缴纳主体（AGG-74 〔缺〕命令）。B-15 → B-13 边已有，AGG-63 订阅方列需补 B-15（PG-07）。
+7. **ADR-0027 第 7 点的载体变了**：该点按「同步运行」写（HELD），B-13 自为记录系统后无同步运行；PRC-138 步 3–4 改成按离职事件判断：涉及超管 / 安全审计员持有人，或会使可用超管少于 2 名，则删除角色授予暂停、人工放行。ADR-0027 的措辞需 one-architecture 或安全组重述（结构问题 11）。
+8. **离职人员的 userid 与工号**：企业微信 userid 取工号（SAMPLE S6）；离职者重新入职（返聘、再入职）是否沿用同一人员 ID 与工号，影响 userid 能否重用与「解绑后保留历史」，请 one-architecture 与 one-data 定（待用户 V-16）。
+9. **审批平台无回调**：本分片的全部人工审批（PRC-81、83、128、136）都是 B-13 聚合内单级批准（F-3，AGG-62、65、67 聚合稿已写），不经 `platform.approval`，故不写 `platform.approval` 事件回调；与 CONVENTIONS §5「走审批平台的审批」不冲突。若用户在 V-18 选择「按异常加一级」，B-13 内无法实现加审，须改走 platform.approval 并面对成环问题（聚合稿 §7 第 12 条），请 one-architecture 备案。
+
+### B-13、B-14、B-27 表
 
 1. **B-14 → B-13 的法人引用无登记边**：`work_calendar_years.legal_entity_id`、`standard_work_hour_versions.legal_entity_id` 引用法人（AGG-60，B-13）；聚合稿 §4.1 只登记 B-14 → platform.audit。按 §2.1，下游引用上游应走 api 成边；B-14 与 B-13 同在 L2，加边是否成环或违层，请 one-architecture 定：加 B-14 → B-13（api）边，或法人 ID 按「不校验」存放并在 AGG-108 发布命令里由调用方保证。
 2. **法人三口径不一致预警的归属**：劳动合同用人单位（B-13 AGG-67）、数据范围法人（B-13）、个税扣缴义务人（B-15 AGG-93 / 95）要比对。B-15 → B-13 有 api 边，预警由 B-15 读 B-13 做最顺；若放 B-13，会出现 B-13 → B-15 的反向读取（聚合稿 §4.1 无此边）。请定预警归属与方向，本稿不新增表。
 3. **考勤记录 AGG-69 的数据入口**：日常打卡来自企业微信，经 platform.integration 进 AGG-69（用户事实 intent 2026-10-16-152603）。B-27 → platform.integration 边已登记；外部打卡记录 ID 只作来源对照。需确认 platform.integration 提供的是拉取适配器（防腐层转换后调用 B-27 api 写入）还是事件，及外部读取的超时与降级（§14.3 I2、I7）。历史打卡（A8，约 79.5 万行）走迁入通道，来源对照要区分来源系统。
 4. **B-06 读请假与标准工时**：INV-65 需要 B-27（已批准 + 待批请假时长）与 B-14（标准工时），§4.1 已登记 B-06 → B-14、B-27；仅提醒请假行的敏感度 tbd（病假）会限制 B-06 读取的出参，应只返回时长，不带假期类型与事由。
 
-### 入转调离（PRC-79–82、85、128–130、136、138）
-
-1. **B-27 订阅 Separated 缺事件边**：PRC-128 步 7 向 B-27 发 Separated，让 B-27 生成「离职当月考勤待代确认」（待用户 V-3）；§4.1 只有 B-27 → B-13（api）。方向对（下游订阅上游），请补「事件」方式。调岗对请假审批人与在途单据是否联动（PRC-136）同样需要 B-27 订阅「任职已变更」，待 B-27 组确认。
-2. **B-31 订阅 Separated，B-13 不依赖 B-31**：按 NOTES「聚合稿回补」第 1 节的建议处理——B-31 订阅 Separated 生成归还待办（b31 PRC-143 已按此写），PRC-128 只发事件，不读 B-31，不等待归还（工作交接清单是单据不作门，VS-13.6 备注）；B-31 → B-13 现有 api，事件方式随 B-31 新边一并登记。时点上 Separated 在离职日结束才发，归还待办晚于最后一天，建议对外发「离职已登记」让 B-31 提前（待用户 V-15）。
-3. **platform.identity、B-15 对 B-13 事件的订阅登记**：聚合稿 AGG-62、63 的订阅方列需补——platform.identity：Separated（已有）、任职已变更、Employed、入职已登记、〔缺〕法人归属已变更；B-15：Separated（已有）、任职已变更、〔缺〕转正已办理、〔缺〕法人归属已变更。边 platform.identity → B-13、B-15 → B-13 已有，方向一致，不新增边（PG-02）。
-4. **企业微信停用不再产生 integration → B-13 的反向事件（PG-04 对停用不再适用）**：PRC-138 步 6 由 platform.identity 经 api 同步调用 platform.integration 停用成员，边 platform.identity → platform.integration 已有，B-13 不参与，不再需要「企业微信成员已停用」事件。试点稿 PRC-138 的该事件与 `kernel.ExternalSubjectEmployees` 反向端口处理见 IDENTITY_LIFECYCLE「C1 一并要做的实现项」。
-5. **P-31 策略要扩触发**：「标记数据范围待复核并通知区域负责人」现只由组织单元已调整触发（PRC-80 步 5），PRC-136 步 11 需增「任职已变更」触发，生成待调整权限（ADR-0032 第 4 项两类条目）；请 one-architecture 把 P-31 的触发列扩为两个事件，并定该策略归 platform.identity 的编号（目前挂在 PRC-80、136 的步骤里，没有独立 PRC 号）。
-6. **PRC-136 向 B-15 的接缝**：任职已变更 → B-15 调整薪酬档案（AGG-93）；跨法人时还要变更参保缴纳主体（AGG-74 〔缺〕命令）。B-15 → B-13 边已有，AGG-63 订阅方列需补 B-15（PG-07）。
-7. **ADR-0027 第 7 点的载体变了**：该点按「同步运行」写（HELD），B-13 自为记录系统后无同步运行；PRC-138 步 3–4 改成按离职事件判断：涉及超管 / 安全审计员持有人，或会使可用超管少于 2 名，则删除角色授予暂停、人工放行。ADR-0027 的措辞需 one-architecture 或安全组重述（结构问题 11）。
-8. **离职人员的 userid 与工号**：企业微信 userid 取工号（SAMPLE S6）；离职者重新入职（返聘、再入职）是否沿用同一人员 ID 与工号，影响 userid 能否重用与「解绑后保留历史」，请 one-architecture 与 one-data 定（待用户 V-16）。
-
-### VS-13 获得报酬（PRC-113、115–127、134、145）
+### VS-13 获得报酬
 
 1. **审批结果回调与取消**：B-15、B-27 → `platform.approval` 在 §4.1 只登记 `api`，而审批通过 / 驳回要回到业务聚合（批准请假、批准加班、批准薪酬等）；平台不能依赖业务模块，只能由业务 BC 订阅平台事件，边需补「事件」方式，事件名〔缺〕「审批已通过」「审批已驳回」。另需平台提供「取消审批实例」（审批中撤销请假，PRC-116 步骤 8）。PRC-116、117、121、124 均受影响。
 2. **定时触发的边**：PRC-115（每日）、118（月末与确认期限届满）、120（评估期末）、125（申报期提醒）都靠 `platform.scheduling`，B-27、B-13、B-15 → `platform.scheduling` 在 §4.1 无登记（STEP6A G-04 未处理）；yaml 不写 cross_bc，待统一约定。
@@ -37,6 +38,25 @@
 7. **审计边**：B-15、B-27 在 §4.1 没有 → `platform.audit` 的边，而本稿多处 `audit: true`（薪酬计算、批准、代确认、调薪）。请确认审计是框架级拦截设施不需边，还是补边。
 8. **B-14 → B-13 法人引用**：沿用 NOTES 数据接缝问题 1（AGG-108 法人可空引用 AGG-60），本稿 PRC-119 未再处理。
 9. **转正与调岗联动薪酬**：沿用 PG-07、PG-10：PRC-85 办理转正、PRC-136 调岗不通知 B-15，PRC-123 的调薪靠人力人工发现；B-15 订阅“任职已变更”的订阅方列待补。
+10. **审批回调与超时升级设施（质检修订追加）**：PRC-116（审批 3 日）、PRC-124（审批 2 日）写了审批超时升级（升级对象暂拟 SH-M1）与审批中撤回（`withdraw`），要求 `platform.approval` 提供超时升级与取消实例；与接缝问题 1 同处理，请 one-architecture 确认平台是否提供。
+11. **请假与资源分配冲突检查（选项，未写入骨架）**：请假日与项目资源分配（AGG-26）冲突时是否转人工审批，需要 B-27 读 AGG-26；聚合稿 §4.1 无此边，本稿不加，列为 U3 的可选条件。
+
+### VS-13 考勤类聚合收敛
+
+1. **VS-07 对 B-27 的两条事件边**：PRC-128 步 7 向 B-27 发 `Separated`，原意是「生成离职当月考勤待代确认」；质检后月度考勤改为期限届满默认确认并自动锁定，不再有代确认待办。本稿把它落成事件策略「离职当月考勤默认确认」（提前对已生成未确认的月度考勤发默认确认，标记已离职），其余留给 PRC-118 第 1 步月末处理。两点请 one-architecture 与 vs07 对齐：① B-27 → B-13 现只有 api 边，须补「事件」方式订阅 `Separated`，`Separated` 的订阅方清单补 B-27（vs07 接缝问题 1 同）；② PRC-128 撤销登记步向 B-27 发的〔缺〕`离职登记已撤销` 不需要：B-27 的处置只在 `Separated` 之后发生，离职日前没有待办可撤，建议删去该边，vs07 的步骤描述「考勤待代确认随事件取消」与 S03 场景同改。若用户改回人力代确认（U6′），则这两处恢复。
+2. **年度开账需订阅 `Employed`**：年中入职的人员须开立当年额度账户（事件策略「年度开账」），B-27 → B-13 事件边与订阅方清单需补；与第 1 条合并为同一条边的两个事件。
+3. **AGG-118 无维护流程**：`发布假期规则版本` 是本组唯一的孤儿命令；PRC-119 只含 AGG-68、AGG-108，PRC-115–118 不涉及规则维护。请 one-architecture 补一个单聚合维护流程（B-27，人力维护），或把 PRC-119 扩为 B-14、B-27 两个 BC 的维护流程。请假「免审批阈值」放 AGG-118 还是独立配置也在此一并裁定（vs13.notes.md 新用语已提，未定）。
+4. **审批回调、撤回与超时升级**：沿用 vs13.notes.md 接缝问题 1、10：B-27 → `platform.approval` 须补「事件」方式（审批已通过、已驳回、已撤回，撤回事件名由平台定，本稿不自造），平台提供取消审批实例与超时升级。本稿只增一点：加班已取消审批，聚合稿 AGG-72 引用列中的「platform.approval 审批（api）」应删。
+5. **订阅方列改动**：聚合稿写 `请假已批准` 为「仅分析」，PRC-116 第 5 步实为同 BC 订阅（批准转已用）；`加班已批准` 聚合稿写「AGG-97 汇入当月」，PRC-118 实为生成时读取，不订阅。两处订阅方列按 `vs13att.events.yaml` 改。
+6. **调岗（PRC-136）对在途请假**：vs07 把「调岗对请假审批人与在途单据是否联动」交 B-27 组确认。本稿结论：不订阅 `任职已变更`，见待用户定 1。
+
+### VS-13 薪酬类聚合收敛
+
+1. **撤回要分两头做**：撤回激励方案版本、撤回薪酬审核是人发起的命令，落地前要先让 platform.approval 取消审批实例（分片接缝问题 10），取消后平台再发撤回事件，事件名由平台定。本稿的事件策略「审批撤回回调」只写效果，不自造事件名；请 one-architecture 定先后与幂等（同一撤回不能既由人命令又由回调各落地一次）。
+2. **他 BC 的命令不进本稿目录**：PRC-126 的提交应付薪酬属 AGG-52（B-10），PRC-85 的办理转正属 AGG-62（B-13），本稿只在 `references_other_bc` 登记，由各自 BC 的命令目录收。B-15 侧要在 AGG-73 回写应付引用（见结构问题 7）。
+3. **PRC-84 步 1 两个分支都指向第 2 步**：退休返聘、实习的用工类型分支与其余分支同样去第 2 步，且没有「无需增员」结局，而 PRC-130 对同类人员有「无需减员」。若退休返聘与实习确实不参保，PRC-84 应增结局；本稿在参保增员的前置条件里按〔推〕写了「用工类型不是退休返聘或实习」，请 one-rules 与财务确认（对应社保规则卡）。
+4. **事件不带金额，订阅方靠 api 读**：按 ADR-0026 第 7 项 L3 字段不进事件，薪酬已批准、奖金已核定、绩效评估已确认的载荷都去掉了金额与结论。后果是 PRC-126（提交应付薪酬）、PRC-122（读评估结论）必须 api 读取，B-15 → B-10、B-15 → B-13 的 api 边已有，无需新增；但读取接口须按 L3 做权限（读取方是系统行为，用系统主体，需 one-rules 定系统主体的读权限登记）。
+5. **PRC-120 步 1 的结局挂错了**：骨架把结局「已确认」写在步骤 1（编制绩效评估），而它实际只是「同一人同期已有已确认评估」这条出口的结局；步骤 1 本身会进入草拟，不结束流程。已按格式问题 14 的做法记录；请 one-architecture 把结局移到 decision（分片格式问题 1、14）。
 
 ### B-15 薪酬表
 
@@ -47,26 +67,48 @@
 5. AGG-73 读 AGG-97「月度考勤已锁定」：B-15 → B-27 边存在（api、事件），无问题。AGG-95 读 AGG-81 会计期间：B-15 → B-19 存在。均已核对。
 6. 扣缴义务人是三口径之一：`payroll_profile_versions.withholding_legal_entity_id` 与 `payroll_settlement_lines.withholding_legal_entity_id` 分别在档案与结算行，结算行是批准时快照；PRC-145 预警读档案版本，不读结算行。无新边。
 
-### VS-09 / VS-11 与 B-18、B-30 表
+### VS-09 / VS-11
 
 1. [流程][数据] AGG-79 引用列缺人员：销售预测承诺的目标值按人员 × 期间 × 指标（PRC-89 步 1，信息图 M-8），聚合稿 §2.2 AGG-79 引用列只有 AGG-61 组织单元和 platform.approval。B-18 → B-13（api）边已有，只需把 AGG-62 人员补进引用列，不加边。表里 `plan_target_values` 已按此建。
 2. [数据] 预算占用方单据的引用：AGG-80 的占用由 B-11（AGG-55 供方协议）、B-12（AGG-59 费用报销）调用。B-18 不能依赖下游，所以占用行里的占用方单据 ID 只能是「不校验」引用；聚合稿 AGG-80 引用列只写了 AGG-79，「不校验」清单（§4.1）也没有这两项。请 one-architecture 补登记并更新「不校验」计数。表里未放进 `references`。
-3. [流程] 审批结果回调方向：PRC-88 步 2 经 platform.approval 审批，结果回调「通过 / 驳回经营计划审批」调 B-18 的命令，而 §4.1 的边是 B-18 → platform.approval（api），回调方向相反。AGG-12 等已用同样写法（intent 114200 F-2），这是各组共性，本稿不改边，请 one-architecture 在审批回调的统一约定里一并说明。
+3. [流程] 审批结果回调方向：PRC-88 步 2–5 经 platform.approval 审批，结果回调「通过 / 驳回经营计划审批」调 B-18 的命令，而 §4.1 的边是 B-18 → platform.approval（api），回调方向相反。AGG-12 等已用同样写法（intent 114200 F-2），这是各组共性，本稿不改边，请 one-architecture 在审批回调的统一约定里一并说明。
 4. [流程] 项目复盘提炼的触发：v1 PRC-107 步 2 写 `on_event: 项目复盘已发布`，好像 B-30 订阅 B-04 的事件。聚合稿 AGG-103 说订阅方是 B-04 自身，由复盘编制人决定后调 B-30 的创建命令；B-04 → B-30（api）边已有，方向一致。所以本稿触发写 `type: call`（调用方 B-04），不写 event，B-30 不订阅任何事件。
 5. [数据] 外部知识平台文件夹引用走 platform.integration 来源对照后，B-30 若要读取来源对照以展示外部链接，需要 B-30 → platform.integration（api）边，聚合稿 §4.1 中 B-30 只依赖 B-13。若不展示外部链接（只作迁入来源），则无需加边，请定。加边的层位影响：platform.integration 在 L0，B-30 在 L3，不改层。
+6. [流程] 新原则（QC 修订）下审批回调同接缝问题 3：PRC-88 步 4、5 写 `cross_bc: {mode: event, direction: in, bc: platform.approval, name: 审批已通过 / 审批已驳回}`，而 §4.1 只有 B-18 → platform.approval（api）。沿用 CONVENTIONS §5 的统一写法，不改边；请 one-architecture 在审批回调约定里确认事件方向。
 
-### B-31 行政事务（PRC-139、142–144，AGG-113–116）
+### B-31 行政事务
 
-1. **维修无法修复后的报废**：PRC-143 步 12 登记维修结果为「无法修复」时，需通知财务在 B-24 走报废。B-31 → B-24 只有 api 读取边；若 B-31 发事件给 B-24，则 B-24 成为订阅方、依赖 B-31，与回补边方向相反（回补：无反向边）。本稿不画 cross_bc，结果只存工单。建议：财务按 B-24 报废流程自行发起，维修结果以读模型（reporting）的「待处置资产」清单呈现；如要事件，需 one-architecture 加 B-24 → B-31 的订阅边并核层级。
+1. **维修无法修复后的报废**：PRC-143D 步 2 登记维修结果为「无法修复」时，需通知财务在 B-24 走报废。B-31 → B-24 只有 api 读取边；若 B-31 发事件给 B-24，则 B-24 成为订阅方、依赖 B-31，与回补边方向相反（回补：无反向边）。本稿不画 cross_bc，结果只存工单。建议：财务按 B-24 报废流程自行发起，维修结果以读模型（reporting）的「待处置资产」清单呈现；如要事件，需 one-architecture 加 B-24 → B-31 的订阅边并核层级。
 2. **盘点读使用记录**：盘点属 B-24（财务组），要核对「谁在用」需读 B-31 的使用期间，这是 B-24 → B-31 的读取，聚合稿无此边。建议同上用读模型，或盘点页面走报表。请 one-architecture 定。
-3. **离职归还待办**：PRC-143 步 9 让 B-31 订阅 B-13 的 `Separated`（回补建议）。方向与 B-31 → B-13 的依赖一致，不违边，但 §4.1 边表与 `Separated` 订阅方清单（`docs/modernization/events/*.yaml`）须补 B-31；PRC-128 的离职交接若要「清单」，由读模型汇集。
+3. **离职归还待办**：PRC-143C 的开始事件让 B-31 订阅 B-13 的 `Separated`（回补建议）。方向与 B-31 → B-13 的依赖一致，不违边，但 §4.1 边表与 `Separated` 订阅方清单（`docs/modernization/events/*.yaml`）须补 B-31；PRC-128 的离职交接若要「清单」，由读模型汇集。
 4. **报价是否需「已用印」才能发出**：A8 盘点说明写「报价用印登记与老系统报价同步相关」。若新系统的报价发出要读 B-31 用印状态，会形成 B-05 → B-31 的依赖，而回补明确来源业务单据「不校验」、B-31 不被业务 BC 依赖。本稿按不校验处理；如业务要求，请 one-architecture 定边或改由用印申请带「来源单据」被动关联。
 5. **审批回调方向**：回补命令列写「批准用印申请…由 platform.approval 回调」，即 platform.approval 调用 B-31 命令。依赖方向是 B-31 → platform.approval，回调实现须按 ADR-0036 / 审批平台已有机制（单据订阅 `DocumentSubmittedForApproval` 与审批结果事件），不得让 platform 依赖业务 BC。请 one-architecture 确认回调走事件或注册的处理器，而不是 platform → B-31 的 api 调用。
 6. **回补新边合计**：B-31 → B-13（api，读法人、员工）、B-31 → platform.approval（api）、B-31 → B-24（api，读卡片）；另加订阅 B-13 `Separated`（事件）。无反向边、不成环。
 
 ## 结构问题
 
-### B-13、B-14、B-27 表（试点）
+### 入转调离（VS-07、VS-13.6）
+
+1. **AGG-62 离职要两段，与入职对称（PG-12）**：聚合稿「办理离职 → Separated」，但 U-12 允许提前登记、到日生效。本稿改为：办理离职（登记离职日，→ 内部）与〔缺〕离职生效（系统定时，离职日结束时执行，→ Separated）。需要与 PRC-83 的「入职生效」同一个「定时命令」约定（STEP6A G-04 未处理）。离职日（最后在职日）、生效时点见待用户 V-1。
+2. **PG-12 的处置选择**：本稿让 Separated 先于终止任职与终止劳动合同发出（PRC-128 步 7→8、9），理由是 RULE-363 安全关键，吊销不得被合同或任职终止的失败拖住；代价是 platform.identity 会先后收到 Separated 与「任职已变更」，必须对已离职人员忽略后者。另一方案是「先终止任职与合同、最后发 Separated」，失败则整体不生效，不采纳（见 PRC-128 步 7 说明）。请 one-architecture 在 AGG-62 / 63 / 67 与 platform.identity 订阅策略上确认。
+3. **AGG-62 缺命令（PG-09）**：〔缺〕批准公司终止、〔缺〕驳回公司终止、〔缺〕撤回离职申请、〔缺〕撤销离职登记、〔缺〕离职生效；AGG-67 缺〔缺〕登记劳动合同终止依据（协议或解除 / 终止通知的线下文件，离职与调动都用）。数据组需在 `separation_requests` 增终止依据与撤销状态（本稿不改表）。
+4. **PRC-82：录用决定已作出的发出点**：聚合稿把事件挂在「作出录用决定」，但 PRC-83 的触发语是「候选人确认入职日后」。本稿在「作出录用决定」之后加〔缺〕登记候选人答复（线下回执，offline），由它发事件。请 one-architecture 在 AGG-62 把「录用决定已作出」改挂到登记答复，或把事件改名为「录用决定已确认」，二选一；候选人放弃、撤销录用（PG-09）同在此处。
+5. **AGG-63 缺调岗申请与原子变更（PG-05）**：本稿新增〔缺〕提交 / 批准 / 驳回调岗申请、〔缺〕变更任职（原子：关旧开新，主任职不重叠）与〔缺〕任职变更生效（定时，在业务生效日发「任职已变更」）。调岗申请放在 AGG-63 次级还是另立聚合，请 one-architecture 定；写入未来版本时 INV-62 的排他约束在提交时校验，与生效日无关。
+6. **「任职已变更」的发出时点同样是业务生效日**（U-12）：提前登记的调岗、离职时的终止任职，事件都应到日发出，而不是写版本时发出（PRC-136 步 6–7）。
+7. **AGG-106 → 转正**：试用期评估已确认事件须带评估类型（月度 / 试用期），PRC-122 的触发事件同源，避免订阅方混淆；〔缺〕转正已办理事件让 B-15 复核转正后薪酬（PG-10）。试用期届满是定时触发（定时命令约定缺）。
+8. **AGG-64 职位目录命令缺**：聚合稿只有「停用岗位」。新建 / 修改职位、职级、职位族的命令缺，PRC-80 只能写停用；Q-08 后「岗位」改称职位目录条目，命令名交 one-glossary。AGG-64 暂不拆（S-10）。
+9. **PRC-136 挂 VS-07.3 是借用**：VS-07.3「入职任职」的进入条件是人员「待入职」，调岗发生在在职期间，价值流没有「在职任职变动」阶段；任职（OBJ-57）是版本化对象，没有状态机，无阶段门可挂。建议 one-architecture 在 VS-07 增一个「任职变动」阶段，或认可流程可只挂 VS-07.3。PRC-138 挂 VS-13.6：阶段备注已写「账号停用是平台身份事项，不是业务对象状态」，不作门。
+10. **PRC-79 的学时达标不在 §1.2**：「达标是延续注册条件」写在 AGG-66 内含里，没有 INV 编号。延续注册是在注册执业管理机构办理后的登记，系统拒绝会丢真实事实，本稿按预警写（待用户 V-14）；是否升为不变量请定。
+11. **ADR-0027 第 1 项第 6 点、第 7 点需重述**：现按「同步把某人标为离职」「同步运行 HELD」措辞，B-13 自为记录系统后改为按 Separated 事件；词表「离职」（bc: platform.identity）的定义已含三项处置，与 B-13 业务词「离职」同名异义，交 one-glossary 登记（见新用语）。
+12. **跨法人调动的合同模型**：AGG-67 没有「变更用人单位」命令，本稿用「终止原合同 + 与新法人另订合同」表达（工龄连续）。若法务要求同一合同变更主体而不终止，AGG-67 需增变更主体命令（待用户 V-7）。
+13. **AGG-62「批准离职申请」范围收窄**：员工提出的离职劳动者有权解除，不设批准（V-20）；批准只剩公司单方终止，聚合稿命令「批准离职申请」应改为〔缺〕批准公司终止，并增驳回命令；「申请离职」增「来源」取值（员工 / 公司终止），公司终止由人力在同一命令发起（原〔缺〕发起公司终止并入，以便两个入口汇合在同一首步）。聚合稿 AGG-62 内含栏「离职申请的批准是本聚合命令」需同步改写。
+14. **cost_object_owner 的解析在 AGG-61**：人事类单据的归属对象是组织单元，其责任人即部门负责人；聚合稿 AGG-61 内含只有「单元类型、层级、生效区间」，没有「责任人」与上级关系的取法。PRC-81、83、128、136 的批准人都要靠它解析（AR-11 责任人即提交人、AR-12 责任人缺位同样要用上级组织），请 one-architecture 在 AGG-61 增「责任人（人员 ID，生效区间）」；B-13 内读取，不跨 BC。
+15. **PRC-83 缺「取消入职」**：登记入职后到入职日前，候选人不到岗或放弃，人员停在「待入职」，没有去向（命令缺），且已发出的「入职已登记」触发的企业微信开通（PRC-137）需要回收。本轮不动样板，请 one-architecture 判断是否随 PG-09 一并补〔缺〕取消入职与对应事件（PRC-137 订阅后停用成员）。
+16. **PRC-84 判断点在步后**：「退休返聘与实习不参保」的判断应在参保增员之前（该类人员不办增员），生成器只支持步后判断，样板暂写成步后两出口汇合；业务不变，图上无分叉效果。
+17. **PRC-82 面试前候选人放弃**：候选人在面试前主动放弃没有去向（只有答复阶段的放弃），与 PG-09 放弃命令缺口同源，随 PG-09 补。
+18. **A8 人事模板与本分片流程的对应缺口**（OA_PROCESS_INVENTORY，只看模板名与用量）：「停薪留职申请单」（第 72 行，累计 14、近 180 天 1）、「劳动合同续签意向征询单」（第 66 行，近 180 天 19、在途 12）、「成长记录维护」（第 77 行，已停用）不在 PRC-79–85、128–130、136–138 内，请 one-architecture 确认归属流程（续签与劳动合同类，可能在 vs13）；「员工交接表」（第 64 行，近 180 天 30）按 Q-D 第 3 项不做。「试用期评估」A8 分第一、第二个月各一份（第 59、61 行，近 180 天 51、39），本稿只有届满前一次评估（V-12 补问）。
+
+### B-13、B-14、B-27 表
 
 1. **B-13 自为人事记录系统的改写后形态（已定事项的落地改写，不是待用户题；用户 2026-10-16 U-1、U-7，one-architecture 裁定）**。请汇入过渡 ADR 与聚合稿修订：
    - 快照来源撤销：AGG-61 / 62 / 64 的「现为同步快照 `OrgSnapshot` / `Position`」改写为新系统自有主数据；注册表 `lineage: ORG_SOURCE`、`role: SNAPSHOT`、`retention: CURRENT_STATE` 对应改为 `NEW`（迁入行经 `migrated_from` + 来源对照）、`AGGREGATE_ROOT`、`PERMANENT`；删除 `last_sync_run_id` 与对应 `fk_exceptions`。
@@ -88,22 +130,7 @@
 11. **`employees` 表名**：词表已有 `employee`（员工，聚合）、`person`（人员，实体）、`registered_employee`（登记员工，聚合）；聚合稿 AGG-62 名称是「人员」，含候选人。表名沿用已建 `employees` 与候选阶段的语义不合（候选人不是员工）；备选改 `people`。请与 one-glossary 一并定。
 12. **工作日历配置型版本化的形状**：见 DATA_MODEL.md 口径 1，若改形会影响 AGG-68 命令「维护工作日历年度」的写法。
 
-### 入转调离（PRC-79–82、85、128–130、136、138）
-
-1. **AGG-62 离职要两段，与入职对称（PG-12）**：聚合稿「办理离职 → Separated」，但 U-12 允许提前登记、到日生效。本稿改为：办理离职（登记离职日，→ 内部）与〔缺〕离职生效（系统定时，离职日结束时执行，→ Separated）。需要与 PRC-83 的「入职生效」同一个「定时命令」约定（STEP6A G-04 未处理）。离职日（最后在职日）、生效时点见待用户 V-1。
-2. **PG-12 的处置选择**：本稿让 Separated 先于终止任职与终止劳动合同发出（PRC-128 步 7→8、9），理由是 RULE-363 安全关键，吊销不得被合同或任职终止的失败拖住；代价是 platform.identity 会先后收到 Separated 与「任职已变更」，必须对已离职人员忽略后者。另一方案是「先终止任职与合同、最后发 Separated」，失败则整体不生效，不采纳（见 PRC-128 步 7 说明）。请 one-architecture 在 AGG-62 / 63 / 67 与 platform.identity 订阅策略上确认。
-3. **AGG-62 缺命令（PG-09）**：〔缺〕发起公司终止、〔缺〕驳回离职申请（含员工撤回）、〔缺〕撤销离职登记、〔缺〕离职生效；AGG-67 缺〔缺〕登记劳动合同终止依据（协议或解除 / 终止通知的线下文件，离职与调动都用）。数据组需在 `separation_requests` 增终止依据与撤销状态（本稿不改表）。
-4. **PRC-82：录用决定已作出的发出点**：聚合稿把事件挂在「作出录用决定」，但 PRC-83 的触发语是「候选人确认入职日后」。本稿在「作出录用决定」之后加〔缺〕登记候选人答复（线下回执，offline），由它发事件。请 one-architecture 在 AGG-62 把「录用决定已作出」改挂到登记答复，或把事件改名为「录用决定已确认」，二选一；候选人放弃、撤销录用（PG-09）同在此处。
-5. **AGG-63 缺调岗申请与原子变更（PG-05）**：本稿新增〔缺〕提交 / 批准 / 驳回调岗申请、〔缺〕变更任职（原子：关旧开新，主任职不重叠）与〔缺〕任职变更生效（定时，在业务生效日发「任职已变更」）。调岗申请放在 AGG-63 次级还是另立聚合，请 one-architecture 定；写入未来版本时 INV-62 的排他约束在提交时校验，与生效日无关。
-6. **「任职已变更」的发出时点同样是业务生效日**（U-12）：提前登记的调岗、离职时的终止任职，事件都应到日发出，而不是写版本时发出（PRC-136 步 7–8）。
-7. **AGG-106 → 转正**：试用期评估已确认事件须带评估类型（月度 / 试用期），PRC-122 的触发事件同源，避免订阅方混淆；〔缺〕转正已办理事件让 B-15 复核转正后薪酬（PG-10）。试用期届满是定时触发（定时命令约定缺）。
-8. **AGG-64 职位目录命令缺**：聚合稿只有「停用岗位」。新建 / 修改职位、职级、职位族的命令缺，PRC-80 只能写停用；Q-08 后「岗位」改称职位目录条目，命令名交 one-glossary。AGG-64 暂不拆（S-10）。
-9. **PRC-136 挂 VS-07.3 是借用**：VS-07.3「入职任职」的进入条件是人员「待入职」，调岗发生在在职期间，价值流没有「在职任职变动」阶段；任职（OBJ-57）是版本化对象，没有状态机，无阶段门可挂。建议 one-architecture 在 VS-07 增一个「任职变动」阶段，或认可流程可只挂 VS-07.3。PRC-138 挂 VS-13.6：阶段备注已写「账号停用是平台身份事项，不是业务对象状态」，不作门。
-10. **PRC-79 的学时达标不在 §1.2**：「达标是延续注册条件」写在 AGG-66 内含里，没有 INV 编号。延续注册是在注册执业管理机构办理后的登记，系统拒绝会丢真实事实，本稿按预警写（待用户 V-14）；是否升为不变量请定。
-11. **ADR-0027 第 1 项第 6 点、第 7 点需重述**：现按「同步把某人标为离职」「同步运行 HELD」措辞，B-13 自为记录系统后改为按 Separated 事件；词表「离职」（bc: platform.identity）的定义已含三项处置，与 B-13 业务词「离职」同名异义，交 one-glossary 登记（见新用语）。
-12. **跨法人调动的合同模型**：AGG-67 没有「变更用人单位」命令，本稿用「终止原合同 + 与新法人另订合同」表达（工龄连续）。若法务要求同一合同变更主体而不终止，AGG-67 需增变更主体命令（待用户 V-7）。
-
-### VS-13 获得报酬（PRC-113、115–127、134、145）
+### VS-13 获得报酬
 
 1. **缺“薪酬规则版本”配置（AGG-73 自算的前提）**：薪酬自算后，计算必须有版本化规则：个人所得税税率表与基本减除费用、专项附加扣除标准、社保公积金个人与单位比例及缴费基数上下限（按城市类别）、计薪天数（月计薪天数 21.75 天，劳社部发〔2008〕3 号〔高〕）、法定代扣项目清单（INV-70）、全年一次性奖金计税方式〔中〕。提议新聚合 **薪酬规则版本**（B-15，配置型，D15，每版本一个聚合 + 生效区间不重叠，沿 AGG-108 的形态；编号待 one-architecture 要号，暂 `AGG-待定-薪酬规则版本`），命令〔缺〕发布薪酬规则版本 → 〔缺〕薪酬规则已生效；AGG-73 按薪酬期间读取生效版本，取不到失败并告警（同 INV-116）。同时 **聚合稿“薪酬汇总导入”口径作废**：AGG-73 引用列中“platform.integration 薪酬汇总导入与个税扣缴端（api）”应删除“薪酬汇总导入”，“个税扣缴端”随申报方式 U1 定（方式 a 无需集成）；AGG-73 命令“计算”的 6e 前注释（FD-30）与 §4.3.2 步骤 4 同改。
 2. **AGG-73 缺命令与行类型**：① 审核驳回的“退回重算”（PRC-124 步骤 4 on_reject，〔缺〕退回薪酬重算）；② 补发补扣行（锁定后更正行、调薪追溯到已批准月份，PRC-123 的 decision；〔缺〕补发补扣行类型）；③ 离职结算项（未休年假折算、经济补偿）是否进月度薪酬未定；④ 代发中个别员工退票：法人 × 月一笔合计下，部分退票时应付“结清”语义不清（PRC-127），需部分失败的处理；⑤ P-41（有工时无薪酬）的触发在 B-07，不在本稿。
@@ -118,6 +145,47 @@
 11. **PRC-125 触发与 AGG-95**：现仅由“薪酬已批准”触发；股息红利并入（PRC-113）后当月若无薪酬批准则无申报触发，本稿加了 time 与 human 触发；AGG-95 缺“申报文件”与“回执附件”的承载（回执、完税凭证只作附件引用，D16）；“合伙人”分配的所得性质因被投资主体而异（合伙企业合伙人一般为经营所得〔中〕），PRC-113 只处理自然人股东的股息红利，其余交财务。
 12. **订阅方列**：“薪酬档案已变更”现为仅分析，PRC-145 订阅它（同 BC，B-15 自己）；“法人归属已变更”（AGG-117）订阅方需补 B-15；“月度考勤已锁定”订阅方 B-15 已有。
 13. **事件策略与单聚合的 yaml 写法**：PRC-127 / 134 在“已发放”与“已过账”任一后到者触发，需 PRC-127 在发放时检查过账事实（`decision` goto PRC-134），否则过账先于发放时置位丢失；聚合稿没有此检查命令。
+14. **规则卡候选（取消人工审批后由规则守卫，交 one-rules 出规则卡）**：
+    - R-a 请假自动通过（PRC-116 步骤 2）：额度内（INV-68）、假期规则版本（AGG-118）允许、单次天数不超免审批阈值、该假别无需证明材料 → 自动批准并知会直属上级，否则转审批；阈值与假别清单待 U3。
+    - R-b 补卡限制（PRC-115 步骤 3）：只能补该日缺失的打卡；每月次数上限；补卡时限；违反即拒绝；待 U4。
+    - R-c 加班登记（PRC-117 步骤 1）：补登期限；加班时段与已批准请假重叠拒绝；补偿方式按加班日类型（法定节假日付加班费，休息日与工作日按补偿政策）；月累计超 36 小时只预警；待 U5。
+    - R-d 加班打卡核实批准（PRC-117 步骤 2）：加班日打卡记录能支持登记时长即批准，以打卡可证实时长为准，否则驳回。
+    - R-e 月度考勤默认确认与自动锁定（PRC-118 步骤 4、7）：确认期限届满或人员已离职，按生成结果默认确认并标记，随后自动锁定；待 U6。
+    - R-f 激励方案生效日不早于已核定奖金所属期，审批通过后到期自动生效（PRC-121 步骤 1、3）。
+    - R-g 奖金按激励方案规则草拟，草拟金额不得超出方案额度（PRC-122 步骤 1；合并结构问题 8）；待 U10。
+    - R-h 薪酬自动计算与异常清单（PRC-124 步骤 1）：月度考勤全部锁定即计算；异常清单规则（环比波动阈值、实发为负、入离职折算、补发补扣行）只提示不拦截。
+    - R-i 申报数据自动生成与校验（PRC-125 步骤 1）：证件信息、金额与薪酬结算一致，不一致失败并告警。
+    - R-j 调薪须引用调薪决定依据（PRC-123 步骤 1）；待 U9。
+15. **保留的人工审批与加审规则（用户新原则）**：PRC-116 请假异常单（AR-11、AR-12）；PRC-121 激励方案（AR-01、AR-02）；PRC-122 奖金核定（AR-01、AR-02、AR-11）；PRC-124 月度薪酬审核（AR-01、AR-02、AR-11）。四处 approver 均为 `cost_object_owner`，解析：请假与奖金 = 申请人 / 被评人所在组织单元的责任人（部门负责人，SH-E1）；激励方案 = 适用范围的责任人（管理层，SH-M1）；薪酬 = 薪酬法人的财务责任人（SH-E6）。权责对照表（RESPONSIBILITY_MATRIX.yaml）在 one-architecture #384 检出中尚未出现，解析规则待其落地后核对。AR-11、AR-12 的处理方式本身在 APPROVAL_RULES 是 tbd（待用户定）。
+16. **PRC-122 评估人与核定人可能是同一人**：被评人所在组织单元的责任人既编制评估（PRC-120）又核定奖金；缓解：奖金由系统按方案规则草拟、核定人只批准或驳回不改额，金额超阈值加审（AR-01、AR-02），核定人就是被核定人本人按 AR-11 上交上级。若用户认为仍不独立，可改由上一级责任人核定，见 U10。
+
+### VS-13 考勤类聚合收敛
+
+1. **AGG-71 缺开账命令**：聚合稿只写「年度开账按规则版本计算应享」，无命令。账户不存在时占用余额按 CLAUDE.md 第 6 条应失败并告警，不隐式开账，故新增〔缺〕`开立年度额度账户`（事件策略「年度开账」触发）。顺带三点聚合稿未说明：① 年度结转与清零由开账时按上年余额与规则版本计算，没有独立的结转 / 清零命令；② 跨年请假要占用两个年度的账户，`占用余额` 与 `leave_balance_holds` 需支持按年度拆分占用；③ 数据模型 `leave_balance_holds` 只有占用时长，销假部分回冲需增「已回冲时长」列（或回冲子表）。
+2. **请假状态「已提交」**：数据模型状态列为「草稿 → 审批中 → 已批准 / 已驳回 → 已销假 / 已撤销」。PRC-116 第 2 步分流后，规则内自动批准的请假直接去第 4 步，把它记成「审批中」会误导（它没有审批实例）；本稿加过渡态 `已提交`（自动路径的瞬时待批），人审路径才进「审批中」。影响：① `leave_requests.状态` 增一个值；② INV-65「已批准 + 待批」中的待批 = 已提交 + 审批中，B-06 经 api 读取时须同取两个状态。
+3. **请假占用顺序**：骨架保留「占用余额在先、提交请假在后」，占用成功而提交失败留孤儿占用，靠事件策略「孤儿占用定时释放」兜底；vs13.notes.md 结构问题 3 建议改为先提交后占用，由请假已提交事件触发占用。本稿按骨架落地，两种顺序命令目录不变，只改状态机中占用行的创建时点；定顺序归 one-architecture。
+4. **加班登记后无撤销，也没有与请假、考勤的引用**：① 员工登记错了、不加班了，PRC-117 没有撤销命令，只能等批准 / 驳回；建议补〔缺〕撤销加班（已申请 → 已撤销），本稿不自造，列此待 one-architecture 与用户定。② R-c「加班时段与已批准请假重叠则拒绝」要读 AGG-70，R-d 要读 AGG-69，同 BC 内的聚合间读取，聚合稿 AGG-72 引用列没有列这两项，须补。③ 数据模型 `overtime_requests` 的「审批流程引用」列在取消审批后可删。
+5. **调休型加班没有额度来源**：加班补偿方式为调休时，应在加班批准后给调休假期类型的账户增加应享额度，聚合稿与流程都没有这条命令；且 PRC-118 第 3 步在月度考勤确认时一律标「已补偿」，与「调休由请假冲抵」不衔接（调休型应以请假实际冲抵为准）。本稿不自造命令，请 one-architecture 与用户定（待用户定 3）。
+6. **假期类型无命令**：AGG-118 含「假期类型」参考数据与额度规则版本，聚合稿只有发布规则版本一条命令；`leave_types` 是受控代码表，只由迁移维护（D17 第一类）。若业务要在线新增假期类型（如新的特殊假别，老系统有特殊假别、年假延期），须改版本化并加命令，待 one-data。
+7. **日历事件两个名字**：聚合稿 `维护工作日历年度` 发 `WorkCalendarLockedDaysChanged`（terms.yaml 中文名「工作日历锁定日期被修改」）；terms.yaml 另有「工作日历年度已维护」。前者字面指「已锁定日期被改」，却由每次维护发出；本稿按聚合稿用前者，请 one-architecture 裁定：每次维护发「已维护」，仅改到锁定日期时才发「被修改」。
+8. **AGG-97 缺属性列**：默认确认需留存「确认方式（员工 / 默认）」与「默认确认原因（逾期未确认 / 已离职）」，`monthly_attendance_confirmations` 现有列不含，须增。
+9. **自动命令的 A**：批准加班、默认确认月度考勤、锁定等已无人审，A 取类型级角色「人力（考勤）」（对规则与结果负责，R=system，不持审批权），沿 b31 对自动命令的口径；若用户认为加班费用应由用人经理负责，改为实例级 cost_object_owner（见待用户定 2）。
+10. **月度考勤的法人汇聚**：沿用 vs13.notes.md 结构问题 6，由 B-27 提供只读查询「法人当月未锁定名单」，不新增事件，本稿不再处理。
+
+### VS-13 薪酬类聚合收敛
+
+1. **数据模型状态列需回填**：本稿新增的状态取值（交 one-data 写回 `data-model.people.yaml`）：AGG-73「已退回」（草稿不用，计算创建即为已计算）；AGG-74「在保、已减员」；AGG-75「草稿、已批准、已撤回」（数据模型为编制 → 审批 → 生效 → 结束）；AGG-76「已驳回」；AGG-93 版本「生效、已结束」与扣除声明「有效、已取代」；AGG-95「已更正」；薪酬规则版本「草稿、已生效、已结束」。
+2. **AGG-76「已发放」无命令**：数据模型状态列为「草拟 → 已核定 → 已发放」，且说明「已发放由 AGG-73 批准后事件置位」，但聚合稿 AGG-76 只有核定奖金一个命令，流程里也没有置位步骤或事件策略。本稿不自造命令，状态机只到已核定（暂作终态）。建议 one-architecture 增事件策略「薪酬批准后标记奖金已发放」（订阅薪酬已批准，按薪酬行里的奖金核定引用 `bonus_determination_id` 置位），并加命令〔缺〕标记奖金已发放；补上后已核定变为非终态。
+3. **薪酬规则版本没有维护流程**：发布薪酬规则版本在本批流程里没有步骤，只被 AGG-73 计算（读生效版本）间接依赖，本稿按「维护」计非孤儿。建议 one-architecture 增单聚合流程（同 PRC-119 工作日历与标准工时的写法），暂用 `AGG-待定-薪酬规则版本`，编号待要号。规则版本由谁编制谁确认见 U7③。
+4. **AGG-73 缺冲销与补发补扣的命令**：数据模型有「结算类型（正常 / 冲销）」「冲销的原结算」和「更正」类行项目，分片结构问题 2② 也提了补发补扣行，但聚合稿 AGG-73 命令列、流程步骤都没有对应命令（冲销已批准结算、锁定后更正、追溯调薪）。本稿不造命令；影响是：调整薪酬档案的生效日早于已批准月份时，对该月的影响无处落地，当前只记新版本、不改已批准结算。代发个别退票的部分失败同样无命令（分片结构问题 2④）。
+5. **AGG-95 并入与更正的边界**：① 并入扣缴申报时若所属期个税申报已是「已申报」，本稿让命令失败并告警（不静默），实际应并入下一期还是走更正申报，要财务定（涉及股息红利的申报所属期，分片结构问题 11）；② 更正申报只允许从「已申报」发起（PRC-125 步 4 的出口），已缴款后发现差错无命令路径，待 U1、U2 定申报方式后再补；③ 三类申报（个税、社保、公积金）各一条申报行，「个税与社保公积金申报已提交」要等三类都到已申报才发，需要在命令里查同期兄弟行，请 one-architecture 确认放在命令内还是事件策略。
+6. **AGG-75 生效分两段**：骨架写「审批通过后到生效日期自动生效」，一个命令（生效激励方案版本）要覆盖审批回调与到期定时两个触发，所以补了「已批准」状态；旧版本的「已结束」没有独立命令，由后继版本生效同事务结束。若 one-architecture 认为定时触发应是独立命令（如〔缺〕到期生效），可拆成两条，状态机不变。
+7. **AGG-73、AGG-95 的引用回写无命令**：`payable_id`（应付引用）、`posting_id`（过账引用）由谁写、用什么命令，聚合稿未写。过账引用本稿算作「提交过账候选」「标记已过账」的属性写入（不改状态，已列 non_state_commands）；应付引用在 PRC-126 提交应付后回写，建议并入事件策略「薪酬批准后提交应付」的效果，不另造命令。
+8. **AGG-106 的三处缺口**：① 已确认后「更正另记」（INV-114）没有命令，本稿机器里已确认无出边；② PRC-85 试用期评估步骤是编制后直接确认、不经提交，PRC-120 月度评估是编制 → 提交 → 确认，本稿让「确认绩效评估」在试用期允许草拟直接确认〔推〕，U11 定接收方后若试用期也要提交，删去这条转换；③ 编制绩效评估与编制试用期绩效评估只差评估类型，是合并候选（一条命令带类型参数），因聚合稿与两个流程均分列，本稿保留，请 one-architecture 裁定。
+9. **AGG-74 缴费基数年度调整、重新入职无命令**：缴费基数每年随工资基数调整一次，数据模型的版本表支持追加，但聚合稿命令只有增员、减员；重新入职本稿按「另建登记」处理（同一人员同缴纳主体至多一个在保），请确认。
+10. **「转正已办理」B-15 当前无处理**：PRC-85 第 3 步向 B-15 发〔缺〕转正已办理，但 B-15 没有订阅处理，转正后调薪仍靠人力人工发现（分片接缝问题 9、PG-07）。要么事件策略生成「检查是否调薪」待办，要么保持仅分析；本稿未建，列在 events 的 external_published。
+11. **同名与裸名命令**：AGG-73 的「计算」「批准」「提交审核」、AGG-95 的「提交申报」「更正申报」是聚合稿原名，脱离聚合看不出对象；提交过账候选在 AGG-73、AGG-95 同名。本稿目录按「聚合 + 名称」唯一，名字不动，请 one-glossary 登记时按聚合分立（同 bc 内同名异义需区分，规则见 CLAUDE.md 第 2 条）。
+12. **命令副作用写在前置条件里**：编制激励方案版本、草拟奖金核定、提交审核「发起审批」（platform.approval api）是命令的副作用，不单列命令；审批实例ID 回写到聚合（`审批引用`列），命令目录用 params 与 idempotency_key 表达，不为发起审批另造命令。
 
 ### B-15 薪酬表
 
@@ -131,31 +199,113 @@
 8. AGG-75 的个人额度：方案版本额度到法人 / 组织单元，不到个人；个人额度即 AGG-76 的核定金额。若方案需提取比例累计（销售提成）跨期结转，需另立累计表，待方案梳理。
 9. 引用 AGG-61 组织单元：额度表引用 B-13 AGG-61，B-15 → B-13 边存在，但聚合稿 AGG-75 引用列只写 platform.approval，需补。
 
-### VS-09 / VS-11 与 B-18、B-30 表
+### VS-09 / VS-11
 
 1. [流程] B-30 评审按聚合内审批（`engine: aggregate`），不经 platform.approval，因为 B-30 没有到 platform.approval 的边。若日后评审要多级或会签而必须走 platform.approval，补边 B-30 → platform.approval 的影响（按聚合稿 §4.1 层位估算，未跑 `check` 脚本，请 one-architecture 验证）：platform.approval 在 L4，且只依赖 B-13、B-14 与平台（聚合稿第 860 行），所以不成环；但 B-30 由 L3 升到 L5，被它引用的 B-02（L5 → L6）、B-03（L6 → L7）、B-04（L7 → L8）、B-28（L8 → L9）都要升一层，逐级带动其下游，层数由 L0–L14 变为约 L0–L15。BC 数、聚合数不变，边数 +1。本稿建议暂不补边（见待用户定 2）。
-2. [流程][数据] 「预算调整」两处口径不一致：`terms.yaml` 的预算调整（budget_adjusted）定义为「产生预算基线新版本的受控变更」，聚合稿 AGG-80 的命令「调整预算」是账户级命令（→ BudgetAdjusted）。若按词表，调整预算就是 AGG-79 的新版本，要走经营计划审批；若按聚合稿，账户额度可由财务直接调。本稿在 PRC-88 步 5 判断点写成「调整改变基线额度或目标值 → 回步 1 出新版本，否则账户级调整」，是折中；请 one-architecture 与 one-glossary 定。
+2. [流程][数据] 「预算调整」两处口径不一致：`terms.yaml` 的预算调整（budget_adjusted）定义为「产生预算基线新版本的受控变更」，聚合稿 AGG-80 的命令「调整预算」是账户级命令（→ BudgetAdjusted）。若按词表，调整预算就是 AGG-79 的新版本，要走经营计划审批；若按聚合稿，账户额度可由财务直接调。本稿在 PRC-88 步 8 判断点写成「调整改变基线额度或目标值 → 回步 1 出新版本，否则账户级调整」，是折中；请 one-architecture 与 one-glossary 定。
 3. [流程] 预测的审批：VS-09.2 的 notes 写「新版本经审批成为新基线后可再次进入本段」，但 PRC-89 的 human_orchestration 为 false，AGG-79 的「编制预测版本」命令只产生内部事件，没有基线化与审批。三者不一致。本稿按 PRC-89 现状（不审批，每次滚动即新版本）写，请定（待用户定 4）。
 4. [数据] 经营动作与复盘的归属：OBJ-100 定义含「动作」，VS-09.3 退出写「经营动作写入计划」，但聚合稿 AGG-79 内含列只写目标值。`terms.yaml` 却有经营复盘（business_review，aggregate）、经营动作（action_item，entity）、承诺清单（commitment_list，aggregate）三个 operations.planning 条目，聚合稿没有对应聚合。本稿暂在 AGG-79 下建 `action_items` 表承载动作，复盘和承诺清单未建表。请定：动作并入 AGG-79 版本；或新增聚合「经营复盘」（含动作）；承诺清单是否对应 PRC-89 的每周销售预测承诺（目标类型「承诺」）。
 5. [数据] AGG-107 内含列写了「外部知识平台文件夹引用」。D16 要求外部 ID 只作来源对照，CLAUDE.md 规则 1 要求领域模块不出现外部系统名。建议聚合稿删去该内含项，改为「迁入来源对照（platform.integration）」；本稿表里没有这个列。
 6. [数据] 词表与 BC 名：`terms.yaml` 里 budget_baseline（预算基线，aggregate）、budget_reserved、budget_adjusted 的 bc 仍是已合并撤销的 `operations.budgeting`；预算基线在聚合稿里是 AGG-79 的类型版本而不是聚合，预算账户（AGG-80）在词表里没有条目。交 one-glossary 用 new_term_issue.py 登记，本稿不自行裁定。
 7. [数据] AGG-80 在拦截方案下才是「额度占用」技术聚合；预警方案下它更像普通次级聚合，聚合稿「对应」列届时需改写（待用户定 1）。
+8. [流程] **B-30 无到 platform.approval 的边的问题保留**（新原则 QC 修订）：评审知识条目保留为人工审批（专业判断，见步 4 `why_human`），仍按聚合内单级写；AR-11（责任人就是起草人）、AR-12（责任人缺位）在聚合内只能靠「系统把审批人改指其上级」实现，没有审批平台的加审与代批能力；若用户要求加审必须走 platform.approval，则补边的影响见本节第 1 条。
+9. [流程][数据] **候选规则卡（交 one-rules）**——按新原则由规则或不变量守卫、不设人工审批的点：
+   - PRC-88 步 8 账户级预算调整：只能在该预算基线已定额度总额内调剂，超出或要改目标值即拒绝并提示走新版本（INV-101 路径）；调整留审计，事后抽查。原稿「账户级调整是否要审批、金额阈值」改为不审批，取消一个潜在审批。
+   - PRC-88 步 6：审批通过后自动基线化，不设人工确认（审批已是人的判断）。
+   - PRC-88 步 7：目标类型为「预算」才自动分流到开立预算账户，其他类型到基线化结束。
+   - PRC-88 步 3：编制人不得审批自己的计划，责任人就是编制人时改指其上级（AR-11，guard approval，保留加审）；责任人缺位（AR-12）同。
+   - PRC-107 步 3：类别、适用范围、有效期缺一不得提交评审（必填校验）；案例类含客户信息须脱敏确认（待用户定 6）。
+   - PRC-107 步 4：评审人不得是起草人本人（拒绝）；已发布版本不得修改（INV-115，已有）。
+   - PRC-89 步 1：逾期未报预测的提醒与升级（预警，不拒绝），期限待用户定 4。
+   - AR-03 超出预算：占用超可用额度的处理与待用户定 1 同题，规则卡取「预警」（AR-03 已标 guard rule），待用户定后出卡。
 
-### B-31 行政事务（PRC-139、142–144，AGG-113–116）
+### B-31 行政事务
 
 1. **四个流程不属现有 13 条价值流的阶段**：目录 stages 为空，yaml 写 `[]`。它们是支撑性行政事务（用印、IT 需求、IT 资产使用、员工活动），不产生权责事实（盘点说明）。建议：不硬挂价值流阶段，在 `processes.yaml` 以 `type: support`（或 `stages: []` 即视为支撑类）标注，并在价值流 v2 的「支撑」处列出；若 one-architecture 想挂，最接近的是用印 → 合同签订/报价相关阶段（只作旁路，不建议）。请裁定标注方式。
-2. **PRC-143 目录名与范围不符**：目录名含报废、盘点、采购申请，但用户已定（intent 2026-10-16-152926）IT 资产是固定资产，这三项属 B-24 / 采购。骨架只画领用、调拨、归还、维修。建议目录改名为「IT 资产领用、调拨、归还与维修」，报废、盘点、采购申请另编号交财务组（采购申请：盘点第 42 行「IT资产采购申请」已在非项目采购 `procurement`）；`IT资产信息变更`（累计 137）按卡片信息变更归 B-24；`IT资产内购`（累计 3）涉及资产处置，归 B-24 / 采购，由财务组决定；`IT资产报废回收流程`（累计 1）归 B-24。
+2. **PRC-143 目录名与范围不符，且为多入口，拆为四个流程**：目录名含报废、盘点、采购申请，但用户已定（intent 2026-10-16-152926）IT 资产是固定资产，这三项属 B-24 / 采购。另外原稿有 5 个触发、4 条入口（领用、调拨、报修、归还、离职事件），生成器只把开始事件接到第 1 步，无法表达，按 CONVENTIONS §5 之外的办法只能拆流程。本稿拆为：PRC-143 IT 资产领用（保留号，建议目录改名）、PRC-143B IT 资产调拨、PRC-143C IT 资产归还（含离职事件触发）、PRC-143D IT 资产报修与维修登记；**请 one-architecture 为 143B、143C、143D 要号并改目录**（生成器对目录外的号会跳过，三个新流程我用 PRC-140、141、138 的号占位跑过生成与检查，全通过、无警告）。报废、盘点、采购申请另编号交财务组；`IT资产信息变更`（累计 137）按卡片信息变更归 B-24；`IT资产内购`（累计 3）涉及资产处置，归 B-24 / 采购，由财务组决定；`IT资产报废回收流程`（累计 1）归 B-24。
 3. **AGG-115 边界**：回补提出「使用期间作根」的备选。本稿取「每卡片一个根 `it_asset_use_ledgers`」，使用期间、申请单、维修工单为次级（见 `b31.DATA_MODEL.md` §3）。理由：INV-新-P4 须在一个事务边界内判定，卡片是一致性键；规模很小（调拨累计 139、领用累计 1），争用可忽略。请 one-architecture 在聚合稿定稿时二选一。
 4. **员工活动类型（参考数据）是否单独成聚合**：`employee_activity_types` 本稿放在 AGG-116 内作次级；先例 AGG-118（B-27 假期类型）是单独技术聚合。若业务要在线增改类型，须改为配置型版本化并单独成聚合。请定。
 5. **信息图缺对象**：OBJ-新-P1–P4 须先在信息图补（回补已说明）；本稿表名按这四个对象。
-6. **目录漏项：合同借阅申请**：盘点第 114 行「合同借阅申请」（营销管理，累计 281、在途 14，留在 OA）不在 PRC-139/142/143/144，也不在 B-31 的四个聚合内；既然 A8 行政流程已改迁入（C-3、C-5），它需要归属：可作 AGG-113 之外的第五个聚合（合同借阅，属 B-05 合同的档案管理？）或并入 B-31。本稿未画，请 one-architecture 与用户定归属并要流程号、聚合号。
-7. **感恩节活动**：A8 感恩节活动（累计 2,106、已停用）归并到 AGG-116 的一个活动类型，见 PRC-144 migration。
-
-- 主会话更正：上文所说「目录漏了合同借阅申请」不成立——借阅为 PRC-140、归档为 PRC-141，已归收入组（closeout/process-catalog.yaml），本组不处理。
+6. **感恩节活动**：A8 感恩节活动（累计 2,106、已停用）归并到 AGG-116 的一个活动类型，见 PRC-144 migration。
+7. **规则卡候选（交 one-rules，用户新原则：能由规则和不变量守卫的不设人审）**：
+   - R-B31-1 用印法人须为申请日有效法人主体，否则拒绝（PRC-139 步 1）；
+   - R-B31-2 用印累计登记份数不得超过批准份数，达到批准份数或经办人确认放弃剩余份数后自动关闭（INV-新-P2，PRC-139 步 4–5）；
+   - R-B31-3 IT 需求类别由受控类别表决定是否进审批，常规类别直接受理（PRC-142 步 1）；
+   - R-B31-4 IT 需求无处理结论不得关闭，解决后超期未确认自动关闭（INV-新-P3，PRC-142 步 5）；
+   - R-B31-5 领用的资产类别在使用人岗位标准配置内，自动通过只登记，超出标准配置才进审批（PRC-143 步 1；岗位标准配置清单是新的受控参考数据，见待用户定 5）；
+   - R-B31-6 同一资产同一时刻只有一个使用人，领用与调拨申请时提前拒绝、登记时兜底拒绝（INV-新-P4，PRC-143、143B）；
+   - R-B31-7 调拨的调入使用人须在调拨日在职，资产无当前使用人的调拨转领用；跨组织单元调拨通知两侧负责人（PRC-143B 步 1）；
+   - R-B31-8 报修人须为该资产当前使用人（PRC-143D 步 1）；
+   - R-B31-9 员工离职后名下仍有未结束使用期间的资产，生成归还待办；逾期未归还提醒原组织单元负责人（PRC-143C，待用户定 7）；
+   - R-B31-10 活动类型由受控类型表决定是否进审批，福利型（周年贺卡）只登记（PRC-144 步 1，待用户定 8）；
+   - R-B31-11 审批人解析：申请人所在组织单元的负责人；就是申请人本人命中 AR-11 上交其上级，责任人缺位命中 AR-12（APPROVAL_RULES，已有）。
 
 ## 新用语
 
-### B-13、B-14、B-27 表（试点）
+### 入转调离（VS-07、VS-13.6）
+
+使用范围 / bc 为提议，英文名由 one-glossary 定稿；未在 `terms.yaml` 逐条查重，建议登记前同 bc 内中英文名都查（尤其「离职」「入职」已有 platform.identity / B-13 两处）。
+
+| 中文 | 建议英文 | 种类 | 使用范围 | bc | 说明 |
+|---|---|---|---|---|---|
+| 离职生效 | TakeSeparationEffect | 命令（系统定时） | 领域 | organization.workforce | 离职日结束时执行，发 Separated；与词表 platform.identity 的「离职」（separation）同名异义，交 one-glossary |
+| 批准公司终止、驳回公司终止 | ApproveCompanyTermination、RejectCompanyTermination | 命令 | 领域 | organization.workforce | 仅公司单方终止需批准（员工提出的离职不批准，V-20）；公司终止的发起并入「申请离职」的来源取值，不单设命令 |
+| 撤回离职申请 | WithdrawSeparationRequest | 命令 | 领域 | organization.workforce | 员工在登记离职日前撤回（取代原「驳回离职申请」） |
+| 撤销离职登记、离职登记已撤销 | CancelSeparationRegistration、SeparationRegistrationCancelled | 命令、事件 | 领域 | organization.workforce | 离职日前撤销 |
+| 登记劳动合同终止依据 | RecordContractTerminationBasis | 命令 | 领域 | organization.workforce | 离职协议或解除 / 终止通知（线下文件） |
+| 登记候选人答复 | RecordCandidateReply | 命令 | 领域 | organization.workforce | 接受 / 放弃录用，发录用决定已作出 |
+| 提交调岗申请、批准调岗申请、驳回调岗申请 | SubmitTransferRequest、ApproveTransferRequest、RejectTransferRequest | 命令 | 领域 | organization.workforce | 调岗（任职变更）的申请与批准 |
+| 变更任职、任职变更生效 | ChangeAssignment、TakeAssignmentChangeEffect | 命令 | 领域 | organization.workforce | 前者原子关旧开新，后者到业务生效日发任职已变更 |
+| 转正已办理 | ProbationConfirmed | 事件 | 领域 | organization.workforce | 供 B-15 复核转正后薪酬 |
+| 指定法人归属、法人归属已变更 | AssignLegalEntityAttribution、LegalEntityAttributionChanged | 命令、事件 | 领域 | organization.workforce | AGG-117 已建，名称以代码为准 |
+| 重算默认角色与数据范围 | RecalculateDefaultGrants | 命令（事件反应） | 共享内核 | platform.identity | 任职已变更触发 |
+| 停用登录身份 | DisableLoginIdentity | 命令 | 共享内核 | platform.identity | 已见 PROCESS_SKELETONS 第 5 节 |
+| 删除全部角色授予 | RevokeAllRoleGrants | 命令 | 共享内核 | platform.identity | ADR-0027 第 1 项第 6 点 |
+| 停用应急账号 | DisableEmergencyAccount | 命令 | 共享内核 | platform.identity | 词表有「应急账号」，命令未登记 |
+| 确认放行离职处置 | ReleaseHeldSeparationDisposal | 命令 | 共享内核 | platform.identity | ADR-0027 第 7 点人工放行 |
+| 招聘需求批准、劳动合同批准、公司终止批准、调岗批准 | （单据类型暂名） | 单据类型 | 领域 | organization.workforce | `approval.doc_type`，B-13 聚合内单级批准，汇总交 one-glossary；英文名待定 |
+| 告警开通未完成 | AlertProvisioningIncomplete | 命令（平台通知步） | 共享内核 | platform.identity | PRC-137 步 4，开通失败或入职日到仍未绑定；已由 notify 与 timeout 表达，作为平台通知步单列（CONVENTIONS §5） |
+| 停用企业微信成员 | DisableWeComMember | 命令（出站） | ACL | platform.integration | 与开通成员对称 |
+| 登记企业微信成员手工停用 | RecordManualWeComDisable | 命令 | 共享内核 | platform.identity | 信息部门后台手工处理的登记 |
+| 变更参保缴纳主体 | ChangeInsuranceContributor | 命令 | 领域 | organization.payroll | 跨法人调动 |
+
+#### 补充新用语（一词一行，任务名 / 命令名未在词表者）
+
+| 中文 | 建议英文 | 种类 | 使用范围 | bc |
+|---|---|---|---|---|
+| 作出录用决定 | MakeHiringDecision | 命令 | 领域 | organization.workforce |
+| 停用岗位 | DeactivatePosition | 命令 | 领域 | organization.workforce |
+| 入职生效 | TakeOnboardingEffect | 命令（系统定时） | 领域 | organization.workforce |
+| 关闭招聘需求 | CloseHiringRequirement | 命令 | 领域 | organization.workforce |
+| 办理离职 | RegisterSeparation | 命令 | 领域 | organization.workforce |
+| 办理转正 | ConfirmProbation | 命令 | 领域 | organization.workforce |
+| 参保减员 | RemoveFromInsurance | 命令 | 领域 | organization.payroll |
+| 参保增员 | EnrollInInsurance | 命令 | 领域 | organization.payroll |
+| 吊销会话 | RevokeSessions | 命令 | 共享内核 | platform.identity |
+| 建立任职 | CreateAssignment | 命令 | 领域 | organization.workforce |
+| 建立待开通登录身份 | CreatePendingLoginIdentity | 命令 | 共享内核 | platform.identity |
+| 建立薪酬档案 | CreateCompensationProfile | 命令 | 领域 | organization.payroll |
+| 开通企业微信成员 | ProvisionWeComMember | 命令（出站） | ACL | platform.integration |
+| 批准劳动合同 | ApproveEmploymentContract | 命令 | 领域 | organization.workforce |
+| 批准招聘需求 | ApproveHiringRequirement | 命令 | 领域 | organization.workforce |
+| 提交劳动合同 | SubmitEmploymentContract | 命令 | 领域 | organization.workforce |
+| 提交招聘需求 | SubmitHiringRequirement | 命令 | 领域 | organization.workforce |
+| 查看法人、组织与职位现状 | ViewLegalEntityOrganizationPositionStatus | 读模型查询 | 领域 | organization.workforce |
+| 标记未录用 | MarkNotHired | 命令 | 领域 | organization.workforce |
+| 登记入职 | RegisterOnboarding | 命令 | 领域 | organization.workforce |
+| 确认绩效评估 | ConfirmPerformanceReview | 命令 | 领域 | organization.performance |
+| 签订劳动合同 | RecordContractSigned | 命令 | 领域 | organization.workforce |
+| 终止任职 | TerminateAssignment | 命令 | 领域 | organization.workforce |
+| 终止劳动合同 | TerminateEmploymentContract | 命令 | 领域 | organization.workforce |
+| 绑定外部身份 | BindExternalIdentity | 命令 | 共享内核 | platform.identity |
+| 编制试用期绩效评估 | DraftProbationReview | 命令 | 领域 | organization.performance |
+| 解绑外部身份 | UnbindExternalIdentity | 命令 | 共享内核 | platform.identity |
+| 记录面试 | RecordInterview | 命令 | 领域 | organization.workforce |
+| 调整薪酬档案 | AdjustCompensationProfile | 命令 | 领域 | organization.payroll |
+
+英文名与 bc 为提议（bc 以 `bcs.yaml` 为准，performance / payroll 的 bc 名由 one-glossary 定稿）；表内中文名在同 bc 内尚未逐条查重。
+
+### B-13、B-14、B-27 表
 
 | 中文 | 建议英文 snake | bc | 说明 |
 |---|---|---|---|
@@ -186,32 +336,7 @@
 | 月度考勤确认 | monthly_attendance_confirmation | organization.leave | AGG-97 |
 | 更正行 | monthly_attendance_adjustment | organization.leave | 锁定后的变动，标原月份 |
 
-### 入转调离（PRC-79–82、85、128–130、136、138）
-
-使用范围 / bc 为提议，英文名由 one-glossary 定稿；未在 `terms.yaml` 逐条查重，建议登记前同 bc 内中英文名都查（尤其「离职」「入职」已有 platform.identity / B-13 两处）。
-
-| 中文 | 建议英文 | 种类 | 使用范围 | bc | 说明 |
-|---|---|---|---|---|---|
-| 离职生效 | TakeSeparationEffect | 命令（系统定时） | 领域 | organization.workforce | 离职日结束时执行，发 Separated；与词表 platform.identity 的「离职」（separation）同名异义，交 one-glossary |
-| 发起公司终止 | InitiateCompanyTermination | 命令 | 领域 | organization.workforce | 公司单方终止劳动关系的发起 |
-| 驳回离职申请 | RejectSeparationRequest | 命令 | 领域 | organization.workforce | 含员工撤回 |
-| 撤销离职登记、离职登记已撤销 | CancelSeparationRegistration、SeparationRegistrationCancelled | 命令、事件 | 领域 | organization.workforce | 离职日前撤销 |
-| 登记劳动合同终止依据 | RecordContractTerminationBasis | 命令 | 领域 | organization.workforce | 离职协议或解除 / 终止通知（线下文件） |
-| 登记候选人答复 | RecordCandidateReply | 命令 | 领域 | organization.workforce | 接受 / 放弃录用，发录用决定已作出 |
-| 提交调岗申请、批准调岗申请、驳回调岗申请 | SubmitTransferRequest、ApproveTransferRequest、RejectTransferRequest | 命令 | 领域 | organization.workforce | 调岗（任职变更）的申请与批准 |
-| 变更任职、任职变更生效 | ChangeAssignment、TakeAssignmentChangeEffect | 命令 | 领域 | organization.workforce | 前者原子关旧开新，后者到业务生效日发任职已变更 |
-| 转正已办理 | ProbationConfirmed | 事件 | 领域 | organization.workforce | 供 B-15 复核转正后薪酬 |
-| 指定法人归属、法人归属已变更 | AssignLegalEntityAttribution、LegalEntityAttributionChanged | 命令、事件 | 领域 | organization.workforce | AGG-117 已建，名称以代码为准 |
-| 重算默认角色与数据范围 | RecalculateDefaultGrants | 命令（事件反应） | 共享内核 | platform.identity | 任职已变更触发 |
-| 停用登录身份 | DisableLoginIdentity | 命令 | 共享内核 | platform.identity | 已见 PROCESS_SKELETONS 第 5 节 |
-| 删除全部角色授予 | RevokeAllRoleGrants | 命令 | 共享内核 | platform.identity | ADR-0027 第 1 项第 6 点 |
-| 停用应急账号 | DisableEmergencyAccount | 命令 | 共享内核 | platform.identity | 词表有「应急账号」，命令未登记 |
-| 确认放行离职处置 | ReleaseHeldSeparationDisposal | 命令 | 共享内核 | platform.identity | ADR-0027 第 7 点人工放行 |
-| 停用企业微信成员 | DisableWeComMember | 命令（出站） | ACL | platform.integration | 与开通成员对称 |
-| 登记企业微信成员手工停用 | RecordManualWeComDisable | 命令 | 共享内核 | platform.identity | 信息部门后台手工处理的登记 |
-| 变更参保缴纳主体 | ChangeInsuranceContributor | 命令 | 领域 | organization.payroll | 跨法人调动 |
-
-### VS-13 获得报酬（PRC-113、115–127、134、145）
+### VS-13 获得报酬
 
 | 中文 | 建议英文 snake | 使用范围 | bc | 说明 |
 |---|---|---|---|---|
@@ -234,8 +359,76 @@
 | 累计预扣 | cumulative_withholding | 领域 | organization.payroll | 个税预扣计算口径 |
 | 申报端对接 | filing_gateway | ACL | platform.integration | 仅方式 b 启用 |
 | 法人归属已变更 | legal_entity_attribution_changed | 领域 | organization.workforce | AGG-117 事件（已在聚合稿回补稿） |
+| 默认确认月度考勤 | confirm_monthly_attendance_by_default | 领域 | organization.leave | AGG-97 命令，系统在确认期限届满或人员已离职时执行；取代人力代员工确认 |
+| 驳回奖金核定 | reject_bonus_determination | 领域 | organization.payroll | AGG-76 命令，审批驳回的回调 |
+| 免审批阈值 | leave_auto_approval_threshold | 领域 | organization.leave | 请假免审批的单次天数上限，版本化配置，放 AGG-118 还是独立待 one-architecture 裁定 |
+| 异常清单 | payroll_exception_list | 领域 | organization.payroll | AGG-73 计算结果的提示项，只提示不拦截 |
+| 补卡 | supplement_clock_in | 领域 | organization.leave | AGG-69 命令；任务名同命令名 |
+| 导入考勤记录 | import_attendance_records | 领域 | organization.leave | AGG-69 命令 |
+| 告警导入失败 | alert_attendance_import_failure | 共享内核 | platform.integration | 平台任务，导入失败告警人力与信息 |
+| 占用余额 | reserve_leave_balance | 领域 | organization.leave | AGG-71 命令 |
+| 提交请假 | submit_leave_request | 领域 | organization.leave | AGG-70 命令 |
+| 请假审批 | leave_request_approval | 领域 | organization.leave | 审批单据类型（platform.approval 实例） |
+| 批准请假 | approve_leave_request | 领域 | organization.leave | AGG-70 命令 |
+| 批准转已用 | convert_reserved_to_used_leave_balance | 领域 | organization.leave | AGG-71 命令，占用转已用 |
+| 撤销请假 | withdraw_leave_request | 领域 | organization.leave | AGG-70 命令 |
+| 销假 | end_leave_early | 领域 | organization.leave | AGG-70 命令，已开始的请假提前结束 |
+| 加班申请 | register_overtime_request | 领域 | organization.leave | AGG-72 命令，登记即事前申请，不设审批 |
+| 批准加班 | approve_overtime_request | 领域 | organization.leave | AGG-72 命令，系统以打卡核实后执行 |
+| 标记加班已补偿 | mark_overtime_compensated | 领域 | organization.leave | AGG-72 命令，订阅月度考勤已确认 |
+| 编制绩效评估 | draft_performance_review | 领域 | organization.workforce | AGG-106 命令 |
+| 提交绩效评估 | submit_performance_review | 领域 | organization.workforce | AGG-106 命令 |
+| 确认绩效评估 | confirm_performance_review | 领域 | organization.workforce | AGG-106 命令 |
+| 编制激励方案版本 | draft_incentive_plan_version | 领域 | organization.payroll | AGG-75 命令 |
+| 激励方案审批 | incentive_plan_approval | 领域 | organization.payroll | 审批单据类型 |
+| 生效激励方案版本 | activate_incentive_plan_version | 领域 | organization.payroll | AGG-75 命令，生效日期到达自动执行 |
+| 核定奖金 | determine_bonus | 领域 | organization.payroll | AGG-76 命令 |
+| 奖金核定审批 | bonus_determination_approval | 领域 | organization.payroll | 审批单据类型 |
+| 提交审核 | submit_payroll_for_review | 领域 | organization.payroll | AGG-73 命令，薪酬岗提交 |
+| 薪酬审核 | payroll_review | 领域 | organization.payroll | 审批步骤任务名，单据类型见下一行 |
+| 月度薪酬审核 | monthly_payroll_review_approval | 领域 | organization.payroll | 审批单据类型 |
+| 批准 | approve_payroll_settlement | 领域 | organization.payroll | AGG-73 命令；名称过泛，建议正式名「批准薪酬结算」，交 one-glossary 裁定 |
+| 提交申报 | submit_filing | 领域 | organization.payroll | AGG-95 命令，个税与社保公积金 |
+| 更正申报 | correct_filing | 领域 | organization.payroll | AGG-95 命令 |
+| 生成申报 | generate_filing | 领域 | organization.payroll | AGG-95 命令，系统生成 |
+| 登记缴款 | record_filing_payment | 领域 | organization.payroll | AGG-95 命令，缴款凭证登记 |
+| 并入扣缴申报 | merge_into_withholding_filing | 领域 | organization.payroll | AGG-95 命令，股息红利并入 |
+| 提交应付薪酬 | submit_payroll_payable | 领域 | organization.payroll | AGG-52 命令（B-10 接收），本 BC 事件策略发起；归属 B-10 命名，登记以 B-10 为准 |
+| 标记薪酬已发放 | mark_payroll_disbursed | 领域 | organization.payroll | AGG-73 命令 |
+| 标记已过账 | mark_payroll_posted | 领域 | organization.payroll | AGG-73 命令 |
 
 “工资条”“月度考勤”等已见聚合稿；“薪酬法人”未登记，沿用“法人”，不另造。
+
+### VS-13 考勤类聚合收敛
+
+使用范围均为「领域」，bc 为 organization.leave（B-27），B-14 无新增；英文 snake 由 one-glossary 复核。聚合稿与 vs13.notes.md 已提的名字（驳回请假、驳回加班、回冲已用额度、重新生成月度考勤、默认确认月度考勤、免审批阈值等）不重列。terms.yaml 目前只登记了工作日历相关词，本稿命令与事件名里的 `提交请假`、`请假已批准`、`月度考勤已锁定` 等来自聚合稿，同样待统一登记，不是本稿新提。
+
+| 中文名 | 建议英文名 | 范围 | bc | 说明 |
+|---|---|---|---|---|
+| 开立年度额度账户 | open_leave_balance_account | 领域 | organization.leave | AGG-71 命令，〔缺〕收敛新增 |
+| 已提交（请假状态） | leave_request_submitted | 领域 | organization.leave | AGG-70 自动批准路径的瞬时状态；同一 bc 内「已提交」不得另作它用 |
+| 批准方式 | approval_mode | 领域 | organization.leave | 请假已批准的载荷：规则自动 / 人审 |
+| 确认方式 | confirmation_method | 领域 | organization.leave | 月度考勤已确认的载荷：员工 / 默认 |
+| 默认确认原因 | default_confirmation_reason | 领域 | organization.leave | 逾期未确认 / 已离职；事件载荷里统一用此名，不再写「默认标记」 |
+| 占用、已转用、已释放 | held、consumed、released | 领域 | organization.leave | 占用行（leave_balance_holds）状态 |
+| 已申请（加班状态）、已记录（考勤记录状态）、已开账（额度账户状态）、已生成（月度考勤状态） | overtime_requested、attendance_recorded、balance_account_opened、attendance_generated | 领域 | organization.leave | 各机器的状态词 |
+
+同名异义互列（同一中文状态词在不同 bc 已登记）：「已锁定」（organization.attendance，ui_locked_day）、「已确认」（platform.numbering，ui_confirmed_state）、「已驳回」（platform.approval）、「已撤销」（organization.workforce，workforce__revoked）与本组 organization.leave 的同名状态含义不同或范围不同，登记时须互列，错误码中文名全局唯一的规则不涉及状态。
+
+### VS-13 薪酬类聚合收敛
+
+| 中文 | 建议英文 snake | 使用范围 | bc | 说明 |
+|---|---|---|---|---|
+| 驳回激励方案版本 | reject_incentive_plan_version | 领域 | organization.payroll | AGG-75 命令，审批驳回回调；收敛新增，命名沿用「驳回 IT 需求」 |
+| 撤回激励方案版本 | withdraw_incentive_plan_version | 领域 | organization.payroll | AGG-75 命令，编制人撤回；收敛新增 |
+| 撤回薪酬审核 | withdraw_payroll_review | 领域 | organization.payroll | AGG-73 命令，提交人撤回；收敛新增 |
+| 已退回（薪酬结算状态） | returned | 领域 | organization.payroll | AGG-73 状态，审批驳回或撤回后待重算；与 organization.workforce 其他「已退回」同名不同义，按 bc 分立 |
+| 已更正（申报状态） | corrected | 领域 | organization.payroll | AGG-95 状态，原申报被更正申报取代 |
+| 在保、已减员 | enrolled、withdrawn_from_insurance | 领域 | organization.payroll | AGG-74 状态 |
+| 已取代 | superseded | 领域 | organization.payroll | AGG-93 专项附加扣除声明状态 |
+| 已批准（激励方案版本状态） | approved | 领域 | organization.payroll | AGG-75 状态，审批通过但生效日期未到；与「已生效」区分 |
+
+已在分片登记、本稿沿用的命令与事件：草拟奖金核定、退回薪酬重算、驳回奖金核定、发布薪酬规则版本、薪酬规则已生效。其余命令事件取自聚合稿，不重复登记。事件策略名（评估确认生成奖金草案、月度考勤锁定后计算薪酬等）是目录内的描述性名称，不进代码，不登记。
 
 ### B-15 薪酬表
 
@@ -262,7 +455,7 @@
 
 「同一 bc 内中英文名都查重」：词表中无薪酬、社保、个税相关词（只有「薪档」「标准费率」），B-15 内未发现重名。
 
-### VS-09 / VS-11 与 B-18、B-30 表
+### VS-09 / VS-11
 
 均为领域用语，bc 为 operations.planning 或 km.knowledge；中英文名需在同 bc 内查重，跨 bc 同名互列。
 
@@ -271,7 +464,7 @@
 | 〔缺〕提交经营计划审批 | submit_business_plan_for_approval | 领域 | operations.planning | PRC-88 步 2；命令 |
 | 〔缺〕通过经营计划审批 | approve_business_plan | 领域 | operations.planning | 审批平台回调命令，写法同「通过报价评审」 |
 | 〔缺〕驳回经营计划审批 | reject_business_plan | 领域 | operations.planning | 同上 |
-| 〔缺〕退回知识条目 | return_knowledge_entry | 领域 | km.knowledge | PRC-107 步 4 评审退回起草，v1 注明无独立命令 |
+| 〔缺〕退回知识条目 | return_knowledge_entry | 领域 | km.knowledge | PRC-107 步 5 评审退回起草，v1 注明无独立命令 |
 | 预算账户 | budget_account | 领域 | operations.planning | AGG-80；词表无条目 |
 | 预算占用行 | budget_reservation | 领域 | operations.planning | 表 `budget_reservations`；与词表事件 budget_reserved（预算占用）关系待 one-glossary 核 |
 | 预算调整记录 | budget_account_adjustment | 领域 | operations.planning | 表 `budget_account_adjustments`；与词表 budget_adjusted（预算调整，事件）同源 |
@@ -282,10 +475,23 @@
 | 适用范围 | applicability_scope | 领域 | km.knowledge | 业务线、项目类型等取值；取值集合待补 |
 | 有效期 | validity_period | 领域 | km.knowledge | 词表若已有同名条目需互列 |
 | 知识类别 | knowledge_category | 领域 | km.knowledge | 标准做法 / 技术案例 / 规范解读（信息图 K-1 举例，取值待补） |
+| 〔缺〕撤回经营计划审批 | withdraw_business_plan_approval | 领域 | operations.planning | PRC-88 步 3 的 `withdraw`：审批中编制人撤回提交；聚合稿 AGG-79 无此命令，平台侧需有取消审批实例的能力（同人员组请假撤销的接缝问题） |
+| 创建知识条目 | create_knowledge_entry | 领域 | km.knowledge | AGG-107 命令；技术专家主动创建或经 B-04 提炼入口调用 |
+| 起草知识条目 | draft_knowledge_entry | 领域 | km.knowledge | AGG-107 命令 |
+| 提交知识条目评审 | submit_knowledge_entry_for_review | 领域 | km.knowledge | AGG-107 命令；类别、适用范围、有效期必填校验 |
+| 评审知识条目 | review_knowledge_entry | 领域 | km.knowledge | AGG-107 命令，聚合内单级评审；也是审批单据类型名（知识条目评审） |
+| 知识条目评审 | knowledge_entry_review_approval | 领域 | km.knowledge | 审批单据类型名，engine aggregate；与表「知识条目评审记录」不同义，英文名区分 |
+| 发布知识条目 | publish_knowledge_entry | 领域 | km.knowledge | AGG-107 命令 |
+| 修订知识条目 | revise_knowledge_entry | 领域 | km.knowledge | AGG-107 命令，产生新版本 |
+| 废止知识条目 | deprecate_knowledge_entry | 领域 | km.knowledge | AGG-107 命令 |
+| 开立预算账户 | open_budget_account | 领域 | operations.planning | AGG-80 命令 |
+| 调整预算 | adjust_budget | 领域 | operations.planning | AGG-80 命令；与词表预算调整（产生基线新版本的受控变更）口径差异见结构问题 2 |
+| 编制预测版本 | compile_forecast_version | 领域 | operations.planning | AGG-79 命令 |
+| 编制现金流预测 | compile_cash_flow_forecast | 领域 | operations.planning | AGG-79 命令 |
 
 `action_items` 表名沿用词表的经营动作（action_item），不是新词。
 
-### B-31 行政事务（PRC-139、142–144，AGG-113–116）
+### B-31 行政事务
 
 聚合稿 §2.2 与回补已有的命令和事件名不重列。下列为本稿新增的〔缺〕命令与需登记的名词，使用范围均为「领域」，bc 为 B-31；词表（terms.yaml）中尚无这些词（已按 `用印`、`IT 需求`、`资产使用`、`员工活动`、`领用` 检索）。同一 bc 内中英文名需查重，登记交 one-glossary。
 
@@ -300,18 +506,59 @@
 | 维修工单 | AssetRepairOrder | 领域 | B-31 | 报修、处理、结果 |
 | 员工活动申请 | EmployeeActivityRequest | 领域 | B-31 | AGG-116 |
 | 活动类型 | EmployeeActivityType | 领域 | B-31 | 参考数据 |
-| 〔缺〕驳回领用 | RejectAssetIssue | 领域 | B-31 | 回补只有「批准领用」，审批驳回须落地命令 |
-| 〔缺〕申请调拨资产 | RequestAssetTransfer | 领域 | B-31 | 回补只有「调拨资产」；调拨须审批〔推〕 |
-| 〔缺〕批准调拨 | ApproveAssetTransfer | 领域 | B-31 | |
-| 〔缺〕驳回调拨 | RejectAssetTransfer | 领域 | B-31 | |
-| 〔缺〕生成归还待办 | GenerateReturnTasks | 领域 | B-31 | 订阅 Separated 的定时 / 事件命令 |
+| 〔缺〕驳回领用 | RejectAssetIssue | 领域 | B-31 | 回补只有「批准领用」，超标配置领用的审批驳回须落地命令 |
+| 〔缺〕申请调拨资产 | RequestAssetTransfer | 领域 | B-31 | 回补只有「调拨资产」；调拨不设人审，由规则守卫 |
 | 〔缺〕撤回用印申请 | WithdrawSealApplication | 领域 | B-31 | 审批中撤回 |
+| 〔缺〕驳回 IT 需求 | RejectItRequest | 领域 | B-31 | 审批驳回回调落地命令（PRC-142 步 7） |
+| 〔缺〕退回 IT 需求 | ReturnItRequest | 领域 | B-31 | 信息部门主动退回；回补命令列若已有同义命令以其为准，请 one-glossary 核 |
+| 岗位标准配置 | AssetStandardIssuance | 领域 | B-31 | 受控参考数据：岗位或职级对应可自动通过的资产类别（待用户定 5） |
+| 提交用印申请 | SubmitSealApplication | 领域 | B-31 | 任务名 / 命令名 |
+| 批准用印申请 | ApproveSealApplication | 领域 | B-31 | 命令名 |
+| 驳回用印申请 | RejectSealApplication | 领域 | B-31 | 命令名（审批驳回回调） |
+| 登记用印 | RecordSealUsage | 领域 | B-31 | 命令名 |
+| 关闭用印申请 | CloseSealApplication | 领域 | B-31 | 命令名（规则自动关闭） |
+| 用印审批 | SealApproval | 领域 | B-31 | 审批单据类型 |
+| 提交 IT 需求 | SubmitItRequest | 领域 | B-31 | 命令名 |
+| 批准 IT 需求 | ApproveItRequest | 领域 | B-31 | 命令名 |
+| 受理 IT 需求 | AcceptItRequest | 领域 | B-31 | 命令名 |
+| 解决 IT 需求 | ResolveItRequest | 领域 | B-31 | 命令名 |
+| 关闭 IT 需求 | CloseItRequest | 领域 | B-31 | 命令名 |
+| IT需求审批 | ItRequestApproval | 领域 | B-31 | 审批单据类型 |
+| 申请领用资产 | RequestAssetIssue | 领域 | B-31 | 命令名 |
+| 登记领用 | RecordAssetIssue | 领域 | B-31 | 命令名 |
+| IT资产领用审批 | AssetIssueApproval | 领域 | B-31 | 审批单据类型 |
+| 归还资产 | ReturnAsset | 领域 | B-31 | 命令名 |
+| 报修资产 | ReportAssetRepair | 领域 | B-31 | 命令名 |
+| 登记维修结果 | RecordAssetRepairResult | 领域 | B-31 | 命令名 |
+| 提交员工活动申请 | SubmitEmployeeActivityRequest | 领域 | B-31 | 命令名 |
+| 驳回员工活动申请 | RejectEmployeeActivityRequest | 领域 | B-31 | 命令名（审批驳回回调） |
+| 批准员工活动申请 | ApproveEmployeeActivityRequest | 领域 | B-31 | 命令名 |
+| 完成员工活动 | CompleteEmployeeActivity | 领域 | B-31 | 命令名 |
+| 员工活动审批 | EmployeeActivityApproval | 领域 | B-31 | 审批单据类型 |
 
 另：「用印法人」与「法人主体」（AGG-60）的关系，建议术语里用印法人 = 引用法人主体，不另造名；「资产卡片」沿用 B-24 词（AGG-91 公司资产）。
 
+本轮取消的〔缺〕命令：批准调拨、驳回调拨（调拨不设审批）、生成归还待办（事件直接启动归还流程实例）；已登记交 one-glossary 的请撤回。
+
 ## 格式问题
 
-### B-13、B-14、B-27 表（试点）
+### 入转调离（VS-07、VS-13.6）
+
+1. **decision 项带 outcome**：`goto: end` 时需要说明是哪个结局词；PRC-130、PRC-79 仍用 `decision[].outcome`（取值在 `outcomes` 内），生成的 `processes` 改用步骤级 `outcome`（见 10）。步骤级 `outcome` 表示本步结束流程。
+2. **并列入口用 `branch`**：PRC-80 的步 2–5 是互不依赖的备选路径（v1 的 `branch` 字段）；其他骨架若有同类，请生成器按「每个 branch 一条独立路径」画，而不是顺序连接。
+3. **同一角色内的职务分离**：改用 cost_object_owner 后，PRC-81、83、128、136 的提交人与批准人分属 SH-E1 / SH-E6 与 SH-M1，`segregation` 已能按不同角色表达；但 SH-E6 不分「人力 / 信息 / 财务」（PG-15）的问题仍在（如 PRC-138 放行人不得是离职者本人只能写在 desc）。建议 stakeholders 拆出 SH-E6 的成员子类（人力、信息、行政、财务）。
+4. **员工泛称缺编号**：申请离职的员工暂取 SH-E3（设计师和顾问），实际是任一类员工；建议 stakeholders 增「员工（泛称）」。
+5. **等待型分支难以在 decision 里表达**：「离职日前撤销」发生在登记之后、生效之前的任意时刻，本稿写成步 6 的 decision 指向备选路径（步 10），语义是「事件中断」；建议约定 `interrupt: {event/时点, goto}` 或事件子流程。
+6. **事件策略的多效果**：PRC-129 单步只登记吊销会话，同源的删除授予、停用应急账号、停用登录身份写在 PRC-138；若 one-architecture 认为它们同属强制事件反应（§1.4 G-2），应并入 PRC-129 并允许 `steps` 列表。
+7. **区域负责人**归 SH-M1（区域和事业部负责人）；SH-M1 在 stakeholders 的「职能高管」同一条内，无法区分用于升级的对象，本稿 `escalate_to` 暂取 SH-M1。
+8. **`type` / `new` / `basis` / `on_time` / `on_event` / `entry_of`** 等扩展键沿用试点稿与 b31 稿的写法，请生成器忽略不识别的键，或在 CONVENTIONS 登记。
+9. **部门负责人用 SH-M1 承载**（现为 B-13 聚合内批准的类型级 approver，见「权责对照条目」）：stakeholders 没有「部门负责人」角色，SH-M1 是「执委会、职能高管、区域和事业部负责人」；人事类审批的 cost_object_owner 是组织单元责任人，本稿暂以 SH-M1 作审批步的泳道与 roles，注释写明。`closeout/RESPONSIBILITY_MATRIX.yaml`（权责对照表）在本检出中尚不存在，其落地后请按它重映射。
+10. **decision[].outcome 生成器尚未读取**：CONVENTIONS §5 已采纳 `decision[].outcome`，但 `bpmn_gen.py` 只认步骤级 `outcome`（及 `when` 文本含结局词）。本稿因此让每个步骤至多一个「到 end 的结局」，规则拒绝一律写成退回本步（goto 本步），不单设「已拒绝」结局；PRC-130、PRC-79 的单步事件策略与单聚合不由生成器生成，仍写 decision[].outcome。
+11. **`withdraw` 生成器不画**：`withdraw` 只是属性；本稿同时在撤回步骤后写一个 decision 出口并指向撤回命令步，图上才有撤回路径（PRC-81 步 2、PRC-128 步 1、PRC-136 步 1）。
+12. **两个人工入口汇合**：PRC-128 的「员工提出」「公司决定终止」是两个开始事件，但生成器把所有开始事件接到第 1 步，故用「来源」取值合并为同一首步；PRC-80 的四类互不依赖的维护同理，写成第 1 步「入口选择」（只读）。建议生成器支持 `start_for: [触发序号]`，届时可还原为各自首步。
+13. **预警类规则无处落位**：规则候选中的「预警」（R-03）在流程图上只能写在 desc，没有字段；建议 CONVENTIONS 增 `warn: [{when, rule}]`。
+
+### B-13、B-14、B-27 表
 
 1. 个人信息标记（NONE / PI / SPI，ADR-0043）无字段：现写在 `reason` 里。建议 `sensitivity` 之外加 `pi_flag`（NONE / PI / SPI）。
 2. `sensitivity` 取值：CONVENTIONS 示例为小写 `internal`，`data-classification.txt` 为大写 `INTERNAL`；本稿用大写，请统一。
@@ -321,18 +568,7 @@
 6. `versioned` 的 `none` 与 D17 豁免类别（四类）无结构化字段，现写 `reason`；`effective_dated` 又分 DECLARED / OBSERVED、配置型 D15 与维度型 D6，建议加 `version_basis`。
 7. `role: version` 与 `child` 对「根下的次级版本」界线：本稿 `org_unit_legal_entities` 引用的是聚合根（归属根），归 `version`；请确认。
 
-### 入转调离（PRC-79–82、85、128–130、136、138）
-
-1. **decision 项带 outcome**：`goto: end` 时需要说明是哪个结局词，以便生成器为不同结束事件命名；本稿在 decision 项增 `outcome`（取值在流程 `outcomes` 内）。步骤级 `outcome` 仍表示本步结束流程。
-2. **并列入口用 `branch`**：PRC-80 的步 1–4 是互不依赖的并列入口（v1 的 `branch` 字段）；其他骨架若有同类，请生成器按「每个 branch 一条独立路径」画，而不是顺序连接。
-3. **同一角色内的职务分离**：公司单方终止、调岗申请的提交与批准都由人力（SH-E6），`segregation.roles` 只能写 `[SH-E6]` 并用 rule 文字说明；SH-E6 不分「人力 / 信息 / 财务」（PG-15）使这类约束无法按角色表达。建议 stakeholders 拆出 SH-E6 的成员子类（人力、信息、行政、财务），或允许 `segregation` 写「同一角色内两个动作」。
-4. **员工泛称缺编号**：申请离职的员工暂取 SH-E3（设计师和顾问），实际是任一类员工；建议 stakeholders 增「员工（泛称）」。
-5. **等待型分支难以在 decision 里表达**：「离职日前撤销」发生在登记之后、生效之前的任意时刻，本稿写成步 6 的 decision 指向备选路径（步 10），语义是「事件中断」；建议约定 `interrupt: {event/时点, goto}` 或事件子流程。
-6. **事件策略的多效果**：PRC-129 单步只登记吊销会话，同源的删除授予、停用应急账号、停用登录身份写在 PRC-138；若 one-architecture 认为它们同属强制事件反应（§1.4 G-2），应并入 PRC-129 并允许 `steps` 列表。
-7. **区域负责人**归 SH-M1（区域和事业部负责人）；SH-M1 在 stakeholders 的「职能高管」同一条内，无法区分用于升级的对象，本稿 `escalate_to` 暂取 SH-M1。
-8. **`type` / `new` / `basis` / `on_time` / `on_event` / `entry_of`** 等扩展键沿用试点稿与 b31 稿的写法，请生成器忽略不识别的键，或在 CONVENTIONS 登记。
-
-### VS-13 获得报酬（PRC-113、115–127、134、145）
+### VS-13 获得报酬
 
 1. `decision` 项加可选 `outcome`：条件分支直接结束流程时需要结局词（如额度不足被拒），否则只能把 `outcome` 挂在步骤上，与“该步不一定结束流程”冲突。
 2. **员工确认算不算审批**：PRC-118 员工确认是员工本人对自己月度考勤的聚合内确认，本稿按 `approval{engine: aggregate, approver: SH-E3}` 写以满足“人工编排必有 approval”；它不是上级审批。请裁定：算 approval，或另加 `confirm` 字段而人工编排判定放宽。
@@ -345,6 +581,36 @@
 9. `read: true` 步骤的 `actor`：读取由系统在用户动作中完成，本稿按用户动作者写；建议读取步骤并入下一个命令步骤，不单列。
 10. 事件策略 `step`（单步）与流程 `steps` 并存：PRC-127 的两个出口写在 `decision`，请确认事件策略允许 `decision` 与 `goto: PRC-xxx`。
 11. 审批回调步骤的 actor 写 `platform`、`where: automatic`（请假批准、薪酬批准）；与试点格式问题 6 同，请确认。
+12. **catalog 的 `human_orchestration` 须随审批取舍调整**：PRC-117 true→false（加班审批取消）；PRC-118 true→false（员工确认不是审批，人力锁定与代确认取消）；PRC-122 false→true（奖金核定改走 platform.approval）；PRC-116、121、124 保持 true。请 one-architecture 改 process-catalog.yaml。
+13. **多入口触发无法指定进入步骤**：生成器把所有触发都接到步骤 1。PRC-115 的“员工补卡”原是独立入口，改写成导入步骤之后的判断出口以免死步骤；PRC-122 的“人力重新草拟”两个触发都进步骤 1，恰好吻合。建议 `triggers` 项加可选 `start_at`（步骤序号）。
+14. **同一步骤有多个不同的结束出口时无法给出各自结局词**：生成器 `outcome_for` 先取步骤级 `outcome`，对该步骤所有出口一律生效，`decision[].outcome` 未被采用；本稿靠让结局词出现在 `when` 文字里（如 PRC-124 步骤 1 的“待锁定”“已中止”）绕过。建议生成器采用 `decision[].outcome`。
+15. **`timeout.escalate_to` 写 system**：PRC-118 步骤 2 员工确认期限届满由系统接管（默认确认），不是升级给某个人；生成器会画一个系统泳道的“处理超时”用户任务。请确认写法或另给 `on_timeout: <步骤序号>`。
+16. **平台通知步骤的 service**：PRC-115 步骤 2 写 `service: platform.integration`（企业微信待办经集成发出）；通知本应写 `notify`，该步骤保留单列只因它是失败分支的独立结局。
+17. **生成器只出 `processes` 下的业务流程图**：PRC-113、126、127、134、145（event_policies）与 PRC-119、123（single_aggregate）不出图，其脚本项检查未覆盖，仅做 yaml 加载与复审。
+18. `pending` 已用于 U1、U2、U3、U4、U5、U6、U7、U9、U10、U11 影响的步骤。
+19. **非中断超时的升级分支与主线并发**：PRC-116 请假审批、PRC-125 提交申报的超时原为 `interrupting: false`，新版生成器 R14（令牌模拟）报“同时收到两个令牌”（升级任务与主线汇入同一下游，仅在带回路的 PRC-124 不报）；改为 `interrupting: true`（升级转上级处理，处理后沿原路径继续）。请 one-architecture 确认非中断升级的合规画法（升级分支应落到终点或另设路径，而不是汇入主线）。
+20. **权责对照条目（脚本无缺口修补）**：本分片 4 个人工审批均为 `engine: platform.approval`、`approver: cost_object_owner`（请假审批、激励方案审批、奖金核定审批、月度薪酬审核），无 `engine: aggregate` 的专业复核，故无需登记 `resolve: type` 的类型级角色；无 `engine: external`。PRC-118 员工确认不是审批，不登 A。
+21. 场景文件 `parts/vs13.scenarios.yaml` 为新增（共 16 个流程 / 事件策略 / 单聚合维护、全部场景 id 与骨架 `scenarios` 一致）；为覆盖全部判断出口补了 PRC-116-S11、PRC-125-S06、PRC-127-S03、PRC-119-S03。每个角色已补 `org_needs`，岗位提示只写职能描述，待岗位体系定后统一改。
+
+### VS-13 考勤类聚合收敛
+
+1. **一条命令多条出边**：提交请假（草稿 → 已提交 / 审批中）、批准请假（已提交 / 审批中 → 已批准）、撤销请假（审批中 / 已批准 → 已撤销）、回冲已用额度（已转用 → 已释放 / 已转用）、默认确认月度考勤，按 b31 先例用守卫区分，各写一行转换。
+2. **状态机文件新增键**：`perpetual`（配置型长期存续的根，无终态，不适用「非终态能到终态」）、`process_steps`（PRC 步骤到转换的逐项映射，带 `also` 第二条出边、`inner` 内部命令、`outcome_on_reject` 前置条件失败的结局词）；命令目录新增 `platform_steps`（平台任务不入目录）、`kind_note`、`orphan_note`；事件目录新增 `not_subscribed`（评估后不订阅的事件）。均为 b31 之外的扩展，请 one-architecture 确认是否并入模板。
+3. **审批任务步不是聚合命令**：PRC-116 第 3 步 `command: 请假审批` 无 `aggregate`，是平台审批任务，结果由批准请假 / 驳回请假 / 撤销请假落到聚合；PRC-115 第 2 步 `告警导入失败` 同。两者列入 `platform_steps`。
+4. **PRC-119 的 `commands` 键**：单聚合流程把命令写在 `commands` 而非 `steps`，且 `emits` 用英文事件名 `WorkCalendarLockedDaysChanged`；自检脚本按 terms.yaml 的 `en` 字段映射为中文名。其余流程 `emits` 为中文名，建议统一。
+5. **inner 命令无步骤号**：PRC-116 第 6、7、8 步的释放 / 回冲写在 `inner`，映射时挂在所属步骤号下；它们改的是 AGG-71，与外层命令不是一个事务（最终一致，聚合稿 §7 第 6 条），建议模板给 inner 一个 `consistency: eventual` 标记。
+6. **跨流程调用**：PRC-118 第 5 步 `calls: PRC-115` 的 `补卡` 同时映射到 PRC-118 第 5 步与 PRC-115 第 3 步，转换相同。
+7. **`timeout.escalate_to: system`**（vs13.notes.md 格式问题 15）：PRC-118 第 2 步期限届满的系统接管，在命令目录里落成事件策略「确认期限届满默认确认」，不是升级给人。
+
+### VS-13 薪酬类聚合收敛
+
+1. **命令目录 `state_change` 与 `non_state_commands`**：b31 范例没有这两项。本稿给每条命令加 `state_change`（文字说明，便于人读），状态机顶层加 `non_state_commands`（提交过账候选两条）。请定是否纳入格式。
+2. **版本型聚合的机器**：AGG-93、AGG-75、薪酬规则版本的根表无生命周期，机器立在版本行或声明行上，`from: null` 表示新版本行创建，旧版本「已结束」与新版本创建写在同一命令的两条转换里（同 b31 的使用期间机器）。请确认版本型聚合是否都这样写。
+3. **一条命令多个触发**：生效激励方案版本既是审批回调又是定时触发，`kind` 只能写一个，本稿写 callback，触发清单放 `idempotency_key` 与事件策略。建议 `kind` 允许多值。
+4. **`used_by` 的步骤引用与审批任务步**：审批任务步骤（激励方案审批、奖金核定审批、薪酬审核）没有命令和聚合，它的出边（批准、驳回、撤回）由回调命令承接；检查脚本把「驳回或撤回类命令的 used_by 指向审批任务步」视为通过。
+5. **RACI 增 `sensitive_reason`、`reminder`、`pending`**：范例没有。`sensitive_reason` 每个 true 必填；`reminder` 记审批超期提醒；`pending` 记未决事项（U9）。请定是否纳入规格。
+6. **RACI 的 A 字段名**：`薪酬结算.薪酬法人.财务责任人`、`激励方案版本.适用范围.责任人`、`绩效评估.评估人` 等为按「谁对费用负责、谁批」写出的路径，字段是否存在待 one-data 核（同 vs0911 做法）。
+7. **事件目录 `external_published`**：本批命令引用的他 BC 事件（应付已确认、转正已办理）单列一节，不归本稿，仅为对账。b31 范例无此节。
 
 ### B-15 薪酬表
 
@@ -354,36 +620,34 @@
 4. 同 BC 跨聚合引用不写 `cross_bc`（CONVENTIONS 规则），但同聚合自引用（`reverses_settlement_id`、`corrects_filing_id`）写法未规定，本稿按同聚合外键写。
 5. `pi` 字段缺「受限于 U-11」的承载位置：本稿对工资类表按 ADR-0043 第 2 项登记 spi，U-11 ③ 确认为 pi 后统一降级；请 CONVENTIONS 增 `pi_pending`（或沿用 tbd + reason）。
 
-### VS-09 / VS-11 与 B-18、B-30 表
+### VS-09 / VS-11
 
-1. [流程] 一个流程有多个入口时，触发与步骤的对应无字段。PRC-89 两个时间触发分别进步 1 与步 2；PRC-107 的触发进步 1、步 2、步 6 与步 7。本稿用步骤上的 `on_time` 加 `triggers` 的名称表示。建议 `triggers` 项加可选 `enters: <步骤序号>`。
+1. [流程] 一个流程有多个入口时，触发与步骤的对应无字段。PRC-89 两个时间触发分别进步 1 与步 2；PRC-107 的触发进步 1 与步 7、8（QC 修订后步 7、8 改由发布步骤的判断进入）。本稿用步骤上的 `on_time` 加 `triggers` 的名称表示。建议 `triggers` 项加可选 `enters: <步骤序号>`。
 2. [数据] 业务单据的版本（经营计划版本、知识条目版本）沿用 D15 形状，但 `versioned` 只有 `append_only`，不能表示「基线 / 发布前行可变、之后不可改」。本稿写 `append_only` 并在 reason 说明。建议加取值，或借用人员组格式问题 6 提议的 `version_basis`。
-3. [流程] 发布后等待定时事件（PRC-107 步 5 的修订、废止分支）没有「等待」写法，本稿把定时分支写进 decision，并在步骤上注 `on_time`。建议 decision 项加 `wait: <事件或期限>`。
+3. [流程] 发布后等待定时事件（PRC-107 步 6 之后的修订、废止分支，现为步 7、8）没有「等待」写法，本稿把定时分支写进 decision，并在步骤上注 `on_time`。建议 decision 项加 `wait: <事件或期限>`。
 4. [流程] `scenarios`（验收场景编号）由谁分配未说明，本稿未填。
 5. [数据] `sensitivity` 取值：CONVENTIONS 为小写，`data-classification.txt` 为大写，本稿用小写。人员组 NOTES 已提同一问题。
 6. [流程] 同一角色在 roles 里重复（SH-M1 既 initiator 又 approver，SH-E4 同）；人员组格式问题 5 已提，请确认允许。
+7. [流程] `withdraw` 字段 bpmn_gen 目前不画：PRC-88 的「已撤回」结局在生成图上没有结束事件，脚本只出 3 个结束事件（已基线化、预算账户已开立、已调整），已撤回写在 yaml 与场景里。请确认生成器是否支持 `withdraw`。
+8. [流程] 一个流程有多入口时（PRC-89 的现金流预测、PRC-107 的有效期届满），QC 修订把现金流预测改为接在当期销售预测之后，把有效期届满改为发布后的定时分支，以消除「没有入口顺序流」警告；这是格式提案 `triggers[].enters` 的替代写法，不是业务变更。
+9. [流程] `segregation.roles` 对同一角色内的两个人（编制人与审批人同属 SH-M1 或 SH-E4）只能写单个角色加规则文字，请确认写法。
 
-### B-31 行政事务（PRC-139、142–144，AGG-113–116）
+### B-31 行政事务
 
 1. **无「全体员工」角色编号**：任一员工发起申请时只能借用 SH-E3（设计师和顾问），不准确。建议在 `value-streams.v2.yaml` 加通用角色（如 `SH-E0 全体员工`）或在 CONVENTIONS 允许 `employee`。
-2. **多入口流程**：PRC-143 有 5 个 trigger，各入口步不是第 1 步。本稿加了步级扩展键 `entry_of: <trigger 名>`（缺省为第 1 步），其他键未动。请 CONVENTIONS 采纳或另给写法。
+2. **多入口流程**：生成器只把开始事件接到第 1 步（`bpmn_gen.py` 的 `wire()`），多入口的流程会报「没有入口顺序流」。上一稿加的 `entry_of` 扩展键已取消，PRC-143 拆为四个流程（结构问题 2）。建议 one-architecture 在生成器支持 `entry_of`（或允许每个触发指定入口步），否则含多入口的流程只能拆；PRC-80、PRC-128 等同类警告也是这个原因。
 3. **SH-E6 多职能**：行政、信息、财务都是 SH-E6，无法区分。沿用试点做法，行尾注释区分；建议拆编号。
 4. **triggers 的 event 写法**：CONVENTIONS 只说「写 signal 事件名与发布 BC」，本稿写 `{type: event, name, event, bc}`。
-5. **v1 `human_orchestration: ~`**：四个流程均有审批，本稿填 `true`（审批走 platform.approval）。
+5. **v1 `human_orchestration: ~`**：PRC-139、142、143、144 有审批，本稿填 `true`（审批走 platform.approval）；PRC-143B、143C、143D 无人审，填 `false`。
 6. **结局词无阶段出口用语**：stages 为空，outcomes 无法取自阶段出口，本稿自拟（已关闭、已驳回、已领用、已调拨、已归还、已维修登记）。
 7. **`timeout.escalate_to: system`**：自动关闭的"升级给谁"填 system，CONVENTIONS 只写 SH 编号；`interrupting: true` 表示到期中断等待并关闭。
-8. **回调式驳回步**：审批驳回由 platform.approval 回调聚合命令，本稿画成 `actor: platform`、`where: automatic` 的独立步（驳回用印申请、驳回领用、驳回调拨、驳回员工活动申请）。
+8. **回调式驳回步**：按 CONVENTIONS §5，审批结果写成下一步的 `cross_bc`（`审批已通过` 写在批准后的第一步，`审批已驳回` 写在驳回步）。驳回仍画成 `actor: platform`、`where: automatic` 的独立步（驳回用印申请、驳回 IT 需求、驳回领用、驳回员工活动申请），审批步的 `decision` 用「审批已驳回」出口接它；生成器不读 `approval.on_reject`，不写 decision 会报没有入口顺序流。
+9. **`withdraw` 生成器未画**：审批步已写 `withdraw: {to: end, outcome: 已撤回}`，生成器忽略此键，图上没有撤回路径，结局词「已撤回」也不出现；请生成器支持，或说明描述级不画。
+10. **`pending` 取值**：待用户定题号在各组 notes 内各自编号，本稿写 `B31-n`（对应本文件「待用户定」第 n 题）。
 
 ## 待用户定
 
-### B-13、B-14、B-27 表（试点）
-
-1. **人员档案范围**：首版人事记录是否装证件号码、出生日期、私人联系方式、学历、紧急联系人等（落入 SPI 或 L3，须单独同意与影响评估，个人信息保护法第二十九、五十五条，ADR-0043）。本稿未建表。
-2. **历史月度考勤确认的迁入**：老系统是月 × 一级部门粒度（1,026 单），与新对象人员 × 月不对应；「全部历史迁入」下，是按人员 × 月回算成已锁定历史确认，还是只迁考勤 / 请假 / 加班原始行、历史确认不迁，只留核对。本稿暂记「不迁」。
-3. **劳动合同、离职申请、加班、注册执业证书的老系统来源**：是否存在、在哪里，尚未取证；取证不需要用户，但若老系统没有这些记录，「全部历史迁入」对它们是空集，请知悉。
-4. **病假等请假事由的个人信息级别**：病假、产假可推断医疗健康、生育信息，按 ADR-0043「拿不准按 SPI」暂记 tbd，交 U-11 法务裁定；若判 SPI，请假表需单独同意与影响评估。
-
-### 入转调离（PRC-79–82、85、128–130、136、138）
+### 入转调离（VS-07、VS-13.6）
 
 每条列选项、依据、推荐；与 PRC-128 的 V-1–V-4、V-15–V-16 同属离职，建议合成一页确认。
 
@@ -403,14 +667,14 @@
 - 推荐 a。
 
 **V-4 公司单方终止的发起与批准**
-- 选项 a：人力发起、人力负责人单级批准，发起与批准分人（本稿）；b：加职能高管批准（多级，B-13 内批准无法多级，须走 platform.approval 会成环，只能线下批准留证据）。
-- 依据：F-3 聚合内单级；终止劳动关系的法律风险较高。
+- 选项 a：人力在「申请离职」以来源=公司终止发起，被终止员工所属组织单元责任人（cost_object_owner，部门负责人）单级批准，发起与批准分人（本稿，依用户新原则改，原稿为人力负责人批）；b：另加人力负责人或职能高管批准（多级，B-13 内批准无法多级，须走 platform.approval 会成环，只能线下批准留证据）。
+- 依据：F-3 聚合内单级；终止劳动关系的法律风险较高；用户原则「谁负责谁批」。
 - 推荐 a，批准证据附线下法务意见文件。
 
 **V-5 调岗是否需批准、谁批、谁发起**（PRC-136）
-- 选项 a：不批准，人力按已定调动登记；b：单级，人力负责人批准（本稿，聚合内）；c：新旧部门负责人会签 + 人力负责人（多级，须线下会签留证据，或另议审批工具）。
+- 选项 a：不批准，人力按已定调动登记；b：单级，新组织单元（调岗后承担人工成本的归属对象）责任人批准，原部门负责人只被通知（本稿，聚合内；依用户新原则改，原稿为人力负责人批）；c：新旧部门负责人会签（多级，APPROVAL_RULES 没有对应的 guard: approval 加审规则，须先由用户加规则，且 B-13 内无法多级）。
 - 依据：调岗改变汇报线、成本归属、授权范围（触发待调整权限）；A8 有「人事异动表」（OA_PROCESS_INVENTORY 第 65 行，仅作证据，审批链未取证）；B-13 聚合内审批只能单级。
-- 推荐 b；发起人维持人力登记，用人经理的提议在线下，不进系统。若选 a，PRC-136 的 human_orchestration 改 false，步 2、3 删。
+- 推荐 b；发起人维持人力登记，用人经理的提议在线下，不进系统。若选 a，PRC-136 的 human_orchestration 改 false，步 2、3 删，步 1 直接进入步 6 或步 4。
 
 **V-6 调岗是否要求员工书面签认**
 - 选项 a：不要求；b：改变合同约定的岗位或薪酬时要求员工书面签认（劳动合同法第 35 条协商变更），登记为线下证据；c：一律要求。
@@ -422,15 +686,15 @@
 - 依据：劳动合同法实施条例第 10 条（非因本人原因被安排到新用人单位工作的，工作年限合并计算）；三口径同时变化（用人单位、数据范围法人、扣缴义务人）由 PRC-145 预警。
 - 推荐 a；需法务确认。
 
-**V-8 录用是否需上级批准**（PRC-82）：聚合稿无命令。选项 a：用人经理决定，人力在登记答复时把关；b：人力负责人批准（聚合内单级）。依据：录用含薪酬谈判，薪酬在 B-15 不在本流程。推荐 a。
+**V-8 录用是否需上级批准**（PRC-82）：聚合稿无命令。选项 a：用人经理在已批准的招聘需求内决定，不另设审批（本稿）；b：归属组织单元责任人批准（聚合内单级）。依据：招聘需求已由部门负责人批准（PRC-81），录用是需求的执行；A8 有「录用审批表」（OA_PROCESS_INVENTORY 第 57 行，近 180 天 62 张，在途 9），迁入后历史保留，新流程是否沿用审批链未取证；薪酬谈判在 B-15 不在本流程。推荐 a。
 
-**V-9 招聘需求批准人**（PRC-81）：选项 a：人力负责人单级（本稿）；b：用人经理的上级；c：多级（须移出 B-13，聚合稿 §7 第 12 条）。推荐 a；提出与批准分人（已写 segregation）。
+**V-9 招聘需求批准人**（PRC-81）：选项 a：需求所在组织单元责任人（部门负责人，cost_object_owner）单级（本稿，依用户新原则改，原稿为人力负责人）；b：人力负责人；c：多级（须移出 B-13，聚合稿 §7 第 12 条）。推荐 a；提出与批准分人（已写 segregation），人力在批准后收到待办。
 
 **V-10 不予转正的处理**（PRC-85）：选项 a：转入 PRC-128，作为公司单方终止，由其批准（本稿）；b：转正流程内独立批准。依据：试用期内解除须证明不符合录用条件（劳动合同法第 39 条），决定应在试用期届满前作出，系统应在届满前提醒。推荐 a。
 
 **V-11 转正是否需批准**：聚合稿「办理转正」无批准。选项 a：不批，人力办理，评估由用人经理确认；b：人力负责人批准。推荐 a。
 
-**V-12 试用期评估的提醒提前量与期限**：本稿暂写届满前 N 日生成待办、7 日内确认。推荐 N = 30。
+**V-12 试用期评估的提醒提前量与期限**：本稿暂写届满前 N 日生成待办、7 日内确认、届满后 3 日内仍未办理转正或终止则升级提醒（PRC-85 步 1、3 的 pending）。推荐 N = 30。另问：A8 在试用期第 1、第 2 个月各有一次评估（第 59、61 行），是否保留分月评估？选项 a：只在届满前评一次（本稿）；b：保留第 1、2 个月的过程评估，届满前再评一次。推荐 b 或 a 由用户定（过程评估有助于提前发现不合格，试用期内解除须在届满前作出，V-10）。
 
 **V-13 企业微信停用的告警时限**（PRC-138）：选项 a：1 个工作日（同入职 T-2）；b：当日。推荐 a。
 
@@ -440,9 +704,28 @@
 
 **V-16 再入职沿用人员 ID 与工号**：选项 a：沿用同一人员 ID，工号新发；b：沿用工号。依据：userid 取工号且解绑后保留历史（PRC-138 步 7）；历史迁入需区分两段任职。推荐 a。交 one-data 一并考虑。
 
-**V-17 ADR-0027 第 7 点是否保留**：超管 / 安全审计员持有人离职转人工放行（防止全员锁死）。选项 a：保留（PRC-138 步 3–4）；b：取消，由运维命令兜底。推荐 a，会话吊销与登录身份停用不受限。
+**V-17 ADR-0027 第 7 点是否保留**：超管 / 安全审计员持有人离职转人工放行（防止全员锁死）。选项 a：保留（PRC-138 步 3–4）；b：取消，由运维命令兜底；c（新，依用户原则「能规则守卫的不设人工」）：不设人工放行，规则拒绝自动收回并告警，待超管补足后事件自动继续（规则候选 R-06）。推荐 a：放行人要确认已有接任的可用超管，规则无法替人选定接任者；会话吊销与登录身份停用不受限。该步是安全联锁，不是业务审批，故未写 approval。
 
-### VS-13 获得报酬（PRC-113、115–127、134、145）
+**V-18 B-13 内批准遇「责任人即提交人」「责任人缺位」怎么办**（PRC-81、83、128、136 的批准步，APPROVAL_RULES AR-11、AR-12，level 均为 tbd）
+- 选项 a：批准人自动取归属组织单元的上级组织负责人，仍为单级（在 B-13 内解析，需 AGG-61 增责任人与上级，结构问题 14）；b：按异常加一级（B-13 内无法多级，须走 platform.approval 并处理成环）；c：只事后抽查，不改批准人。
+- 依据：用户原则「谁负责谁批」；部门负责人本人提出招聘需求、本人被终止、本人调岗时，若仍由本人批准即自批。
+- 推荐 a。
+
+**V-19 录用通知的答复期限**（PRC-82 步 4）：选项 a：7 日，逾期提醒用人经理决定是否撤销录用（本稿暂写）；b：按录用通知载明的期限；c：不设。依据：通知发出后无期限会让「待入职」候选人悬置。推荐 b，缺省 7 日。
+
+**V-20 员工提出的离职是否仍需批准**（PRC-128）
+- 选项 a：不批准，申请后自动受理，通知人力与部门负责人，由人力登记依据与离职日（本稿，依用户新原则取消人工审批）；b：部门负责人单级批准（原稿为人力负责人批）。
+- 依据：劳动者提前书面通知即可解除劳动合同（劳动合同法第 37 条，试用期 3 日、其余 30 日），批准不能改变法律结果，只能影响离职日安排，该安排已由人力与员工协商并登记；A8「员工离职申请」（第 62 行，近 180 天 36 张，在途 22）有审批链，迁入后历史保留。
+- 推荐 a；期望离职日早于法定通知期时预警（规则候选 R-03）。
+
+### B-13、B-14、B-27 表
+
+1. **人员档案范围**：首版人事记录是否装证件号码、出生日期、私人联系方式、学历、紧急联系人等（落入 SPI 或 L3，须单独同意与影响评估，个人信息保护法第二十九、五十五条，ADR-0043）。本稿未建表。
+2. **历史月度考勤确认的迁入**：老系统是月 × 一级部门粒度（1,026 单），与新对象人员 × 月不对应；「全部历史迁入」下，是按人员 × 月回算成已锁定历史确认，还是只迁考勤 / 请假 / 加班原始行、历史确认不迁，只留核对。本稿暂记「不迁」。
+3. **劳动合同、离职申请、加班、注册执业证书的老系统来源**：是否存在、在哪里，尚未取证；取证不需要用户，但若老系统没有这些记录，「全部历史迁入」对它们是空集，请知悉。
+4. **病假等请假事由的个人信息级别**：病假、产假可推断医疗健康、生育信息，按 ADR-0043「拿不准按 SPI」暂记 tbd，交 U-11 法务裁定；若判 SPI，请假表需单独同意与影响评估。
+
+### VS-13 获得报酬
 
 **U1 个税扣缴申报方式**（intent 2026-10-16-152603 只定“个税公司代扣代缴”）。依据：个人所得税法第九条（扣缴义务人依法预扣代扣税款）、第十条（全员全额扣缴申报，次月十五日内〔中，核对原文〕）；《个人所得税扣缴申报管理办法（试行）》（国家税务总局）。
 
@@ -471,6 +754,42 @@
 **U11 绩效评估**：评估模板与指标（三类模板是否保留）、提交的接收方、被评人是否可见 / 申诉。
 **U12 外勤 / 出差考勤**：是否作为考勤记录类型并参与月度考勤；外勤申请是否需审批。推荐纳入，类型随 AGG-69 扩展。
 
+#### 质检修订追加（用户新原则「能规则化就不设人审」，2026-10-16）
+
+**U3′ 请假自动通过的口径**（改 U3）：额度内且假期规则允许的请假自动通过，只有异常单人审。待定：① 免审批的单次天数阈值；② 哪些假别需证明材料（病假、婚丧产假等，必进人审）；③ 审批超期升级对象与期限（骨架暂拟 3 日、SH-M1）；④ 是否加“请假日与项目资源分配冲突转人审”（需 B-27 读 AGG-26，见结构问题 11）。依据：用户原则；AGG-118 假期规则、INV-68；通行做法为额度内免审批、长假与特殊假别审批。推荐：年假、事假、调休在额度内且不超 3 日（阈值请定）自动通过，病假及特殊假别、超阈值、透支进人审（部门负责人单级，责任人本人申请按 AR-11 上交上级），销假与撤销不再审批。
+
+**U4′ 补卡**（改 U4）：骨架已改为规则守卫、不设上级确认：只补缺卡、每月次数上限、补卡时限。待定次数与时限；若用户仍要上级确认，PRC-115 增审批节点（cost_object_owner 单级，why_human：判断补卡事由真实）。推荐规则守卫，次数每月不超 3 次、时限补卡所属日起 7 日内（数值请定），滥用靠月度考勤员工确认与用人经理知会兜底。
+
+**U5′ 加班**（改 U5）：骨架已改为“事前登记 + 加班日后以打卡核实、系统自动批准”，取消人工批准。待定：① 是否允许事后补登及期限；② 补偿方式按日类型由规则定是否接受（法定节假日只能付加班费，劳动法第四十四条〔高〕）；③ 超 36 小时知会谁。若用户仍要事前审批，PRC-117 改回 cost_object_owner 单级审批（why_human：判断加班必要性）。推荐本稿口径：加班费真实性由打卡校验，必要性由超时预警与用人经理知会兜底。
+
+**U6′ 月度考勤**（改 U6）：骨架已改为员工确认或提出更正，期限届满由系统默认确认并自动锁定，离职当月同样默认确认；人力不再手工锁定、不再代确认。待定：确认期限与起算点（暂拟 3 天）；默认确认是否满足“离职当月仍须确认考勤”（STEP3 C-17），不满足则回到人力代确认；用人经理不复核。推荐本稿口径：员工确认保留作劳动争议中的出勤证据，不追办不代确认。
+
+**U9′ 调薪审批**：调整薪酬档案须引用依据已写成规则。待定：调薪决定是否在本系统走 platform.approval（推荐是：approver=cost_object_owner，薪酬标准变更是对个人长期薪酬的承诺、规则无法判断合理性，属高风险；金额超阈值按 AR-01、AR-02 加审，why_human 同前）。若是，PRC-123 由 single_aggregate 改为人工编排的业务流程，需 one-architecture 调整 catalog 类型与编号归属。
+
+**U10′ 激励与奖金**（扩 U10）：① 奖金是否由系统按方案规则自动草拟（本稿）；方案规则里评分到金额的映射不足以自动算时回到人力草拟；② 核定人：被评人所在组织单元责任人（本稿，评估人与核定人可能同一人，见结构问题 16）还是上一级；③ AR-01、AR-02 的金额阈值；④ 激励方案审批是否再按金额加审（本稿引用 AR-01、AR-02）。
+
+**U7′ 薪酬审批阈值**（补 U7）：AR-01、AR-02 对月度薪酬的金额阈值（按薪酬法人分别给）；审批超期升级对象与期限（暂拟 2 日、SH-M1）；薪酬审核人（薪酬法人的财务责任人）如何配置。
+
+### VS-13 考勤类聚合收敛
+
+1. **调岗后在途请假的审批人**（PRC-136 联动）：选项 a：审批实例创建时一次解析审批人，调岗后在途单据不变；b：每次审批前按申请人当前所在组织单元重新解析；c：调岗时在途请假转人力处理。依据：用户原则「谁对费用负责谁批」，请假占用的是用人经理的项目人力，调岗后责任人已变；a 实现最简单且审批实例平台已有，b 更贴原则但在途单据的审批人会变、审计复杂。推荐 b 的简化版：在途请假在审批人变更时重新解析并知会新旧两人，若平台不支持则取 a。
+2. **自动命令的 A**（结构问题 9）：批准加班等自动命令的 A 取「人力（考勤）」（本稿）还是「加班人所在组织单元负责人」。依据：b31 对规则自动命令取执行方角色；用户原则偏向「费用归属方负责」。推荐沿用本稿，加班费用责任由月度考勤知会用人经理体现。
+3. **调休型加班的额度来源**（结构问题 5）：a：加班批准时系统给调休账户增额，请假冲抵时才标已补偿；b：调休由人力手工维护余额。依据：通行做法为加班批准后产生调休额度，到期未休折算为加班费或作废由制度定。推荐 a，并请用户确认调休有效期。
+4. **加班登记后是否可撤销**（结构问题 4）：推荐增〔缺〕撤销加班（仅登记人，已申请状态），不审批。
+5. **默认确认的离职人员口径**（沿用 U6′）：本稿离职生效即对已生成未确认的月度考勤发默认确认，不等期限届满；与 vs07 V-3 的 a–d 选项中 c 一致。若用户选人力代确认，则本稿事件策略「离职当月考勤默认确认」取消、`默认确认月度考勤` 的离职原因取消、恢复〔缺〕代员工确认。
+
+### VS-13 薪酬类聚合收敛
+
+沿用 `vs13.notes.md` 的 U1–U12 及其修订追加（U3′–U10′、U7′），本稿不重复，新增与受影响项如下。
+
+**U7′ 补：薪酬审批阈值与审批人解析**：AR-01、AR-02 对月度薪酬的金额阈值（按薪酬法人分别给）；「薪酬法人的财务责任人」在组织数据里由哪个字段承载（本稿 A 写成 `薪酬结算.薪酬法人.财务责任人`）；审批超期提醒对象与期限（暂拟 P2D、SH-M1）。
+
+**U9 补：调薪审批的建模后果**：若调薪决定走 platform.approval（推荐），调整薪酬档案要拆为「提交调薪」「批准调薪」「驳回调薪」「撤回调薪」四条命令，档案版本机器增加「审批中」状态，A 改为员工所在组织单元负责人；PRC-123 由单聚合流程改为人工编排业务流程（分片 U9′）。本稿按 v1（无审批）收敛，U9 定后重做 AGG-93 的命令与机器。
+
+**U13 敏感权限的颗粒度与授予**（新）：本稿判 true 的 11 条（提交审核、批准、退回薪酬重算、参保增员、草拟奖金核定、核定奖金、驳回奖金核定、建立薪酬档案、调整薪酬档案、提交申报、更正申报）对应用户点名的薪酬查看、调薪、发薪账户三类权限。依据 ADR-0032 第 2 项第 4 条把薪酬与日薪等 L3 敏感读资源登记为双人逐人，只授给人；请确认两点：① 审批人（财务责任人、被核定人所在组织单元负责人）看审批页里的薪酬明细，是否也须逐人授予薪酬查看权限（本稿判是；若走「参与审批即可读」，须 ADR-0026 的审批参与访问另行规定，该机制在 1b 之后）；② 绩效评估与专项附加扣除是 SPI 但不在 ADR-0032 首批登记资源内，是否升为双人逐人（本稿判 false，交 one-rules 复核）。
+
+**U14 奖金已发放的置位方式**（新）：见结构问题 2，选事件策略置位（推荐）还是由薪酬行引用查询得出（不存状态，已核定即终态）。
+
 ### B-15 薪酬表
 
 1. 个税与社保公积金申报方式（最小形态已按「系统生成申报数据、回执与缴款登记回写」建表）：
@@ -487,28 +806,36 @@
 8. 个税申报用证件号码来自何处：与 B-13 NOTES 待用户定 1（人员档案范围）联动。选项：(a) B-13 `employees` 或独立档案表收证件号，B-15 申报时读取（api）；(b) B-15 自存（本稿现状：申报行快照）。推荐 (a)，申报行只留一份快照用于更正追溯。
 9. 保留期（D12、ADR-0043 R-2）：薪酬、参保、申报明细按劳动法与税法的保存年限登记，不得 PERMANENT；交 one-data 与法务（U-11），本稿不定年限。
 
-### VS-09 / VS-11 与 B-18、B-30 表
+### VS-09 / VS-11
 
 1. **预算账户超可用额度时拦截还是预警**（INV-102，〔支研〕问题 11，信息图 OBJ-101 一直未上确认页；影响 B-11 供方协议、B-12 费用报销的命令前置、AGG-80 是否为额度占用技术聚合、B-18 的深浅）：
    - A 拦截：占用超可用额度就拒绝，采购或报销单据提交失败；需孤儿占用释放与对账兜底。
    - B 预警：占用照记，超额放行并预警留痕给财务与管理层；不阻断业务。
    - C 超额须特批：超额占用不直接拒绝，转 platform.approval 特批，批准后放行（B-18 → platform.approval 边已有）。
    - 推荐 B。依据：一次投产，首期没有预算执行的历史习惯可对照；拦截会在投产首期阻断采购与报销，并带来占用补偿与对账的实现成本（CS-1.8 只实现当前阶段）；命令返回「是否超额」标志，之后升级为 A 或 C 不破契约（CS-1.10）。财政部《管理会计应用指引第 200 号》与内控基本规范对预算控制有刚性与柔性之分，信息图所引条文我没有逐条核对，不作为推荐的依据。老系统预算超额时的现行行为未取证，取证不需要用户，可在你定之前补。
-2. **知识条目的评审人与层级**：A 技术委员会（SH-E4）单级，聚合内审批，不补边（推荐，贴合聚合稿 K-1「审批人」一项）；B 管理层（SH-M1）单级；C 多级或会签，须补边 B-30 → platform.approval，影响见结构问题 1。
-3. **经营计划审批的层级与审批人**：谁审批（管理层 SH-M1 的哪一级，例如执委会）、是否多级、编制人与审批人是否必须分离（不相容职务，可加 `segregation`）；预算账户级调整（预算调整）是否要审批、金额阈值多少。推荐：计划与预算基线单级由执委会批准，编制人不得审批自己的计划；账户级调整由财务提交，超阈值走审批，阈值由你定。
+2. **知识条目的评审人与层级**（QC 修订：已按新原则改为归属责任人单级评审，见本节第 7 条；以下为原提问）：A 技术委员会（SH-E4）单级，聚合内审批，不补边（推荐，贴合聚合稿 K-1「审批人」一项）；B 管理层（SH-M1）单级；C 多级或会签，须补边 B-30 → platform.approval，影响见结构问题 1。
+3. **经营计划审批的层级与审批人**（QC 修订：审批人改为归属组织单元责任人、单级，账户级调整不审批，见本节第 7 条；以下为原提问）：谁审批（管理层 SH-M1 的哪一级，例如执委会）、是否多级、编制人与审批人是否必须分离（不相容职务，可加 `segregation`）；预算账户级调整（预算调整）是否要审批、金额阈值多少。推荐：计划与预算基线单级由执委会批准，编制人不得审批自己的计划；账户级调整由财务提交，超阈值走审批，阈值由你定。
 4. **滚动预测**：新版本是否要审批成基线（结构问题 3；推荐不审批，预测是预期不是承诺）；逾期未报的升级对象与期限（本稿暂写 7 天升级给管理层，未经确认）；项目经理（SH-E2）是否参与预测（VS-09.2 参与者含 SH-E2，但骨架无其动作）。
 5. **知识条目历史迁入**：库内没有知识条目实体，「全部历史迁入」对条目是空集；A8 文档中心有 567 份文档（近 24 个月新增 39，使用已衰减，内容未读），项目档案有 203 条知识平台文件夹引用。选项：a 不转条目，只把 203 条文件夹引用迁为来源对照、挂项目，条目从零建（推荐，文档没有经过评审，不是知识条目的历史）；b 由技术专家筛选部分文档，以「起草」状态导入后走评审；c 567 份全部以草稿导入（噪音大）。
 6. **案例类知识条目的客户信息**：技术案例可能带客户、项目、人员信息。选项：a 发布前评审项含脱敏确认（推荐）；b 按项目类型或业务线限制可见范围；c 不限制。结果决定 `knowledge_entry_versions` 的 sensitivity 与 pi 取值（现为 tbd）。
+7. **取消与保留的审批一览**：取消 0 个已有人工审批节点，取消 1 个潜在审批（账户级预算调整不设审批，规则守卫）；保留 2 个（经营计划审批走 platform.approval；知识条目评审走聚合内），审批人一律 `cost_object_owner`——经营计划的归属对象是组织单元，其责任人即部门负责人（公司级为管理层负责人）；知识条目的归属对象是其专业类别对应的组织单元，责任人即技术委员会的专业负责人。原待用户定 2、3 的「评审人是技术委员会还是管理层」「审批人由谁」随之按谁负责谁批改定，层级固定为单级，异常加审只引 AR-11、AR-12；是否仍要多级或会签请用户在确认页复核。
+8. **审批与评审超时**：PRC-88 步 3 的待办逾期由 platform.approval 统一提醒与升级，不在本流程重复建模；PRC-107 步 4 聚合内评审没有逾期机制。请用户定期限与升级对象（推荐 14 天提醒归属责任人、21 天升级其上级，只预警不自动通过）。
+9. **基线化是否需人确认**：PRC-88 步 6 改为审批通过后自动基线化。选项：a 自动（推荐，审批已是判断，少一次交接）；b 保留人工基线化，以便选择生效日。
 
-### B-31 行政事务（PRC-139、142–144，AGG-113–116）
+### B-31 行政事务
 
-1. **用印审批是否按印章类别分级**。依据：通行做法公章、法人章、财务章常需更高一级审批；A8 无节点证据。A：单级行政负责人（简单，现稿）。B：合同章单级、公章 / 法人章 / 财务章加分管领导（两级）。推荐 B，由用户按公司制度定。
-2. **A8 的 IT 资产历史怎么对应到 B-24 卡片**。依据：全部历史迁入（U-1–U-4）；规则 6 不静默跳过。A：A8 表单的资产编号映射到 U8C / B-24 卡片，对应不上的列清单交用户人工补（推荐；需先取证 A8 表单有无资产编号字段）。B：对应不上的以「未关联卡片」迁入只读历史（需聚合允许卡片 ID 为空，破坏 INV-新-P4 判定对象）。C：只迁对应得上的（与全部迁入矛盾）。
-3. **IT 需求时限**：受理 2 个工作日、解决后 5 日不确认自动关闭，均〔推〕。选项：沿用、改数字、不设。推荐沿用，上线后看数据调整。
-4. **审批人**：领用 / 调拨由资产管理员负责人批准（现稿）还是提出人部门负责人批准；员工活动由部门负责人（现稿）还是行政 / 人力批准；IT 需求仅哪些类别需审批。推荐：IT 资产由信息负责人批准，活动按费用预估分级（金额阈值待财务），需审批的 IT 类别由信息部门提清单。
-5. **感恩节活动在途 75 单（已停用，最近使用 2024-11-11）**：选项 A 按 U-4 清空（审结或撤回）后只迁历史（推荐）；B 全部以草稿迁入。
-6. **周年贺卡**：A8 里是员工申请（累计 219）。是否改为系统按入职周年自动生成并通知行政？选项 A 保留申请（现稿）；B 自动生成（需在 B-13 加定时事件）。推荐 A，先对齐行为。
-7. **合同借阅申请归属**：见结构问题 6，需用户定归 B-31 还是合同（B-05）。
+审批人一律取归属对象责任人（申请人所在组织单元的负责人），不再单列「审批人」题。
+
+1. **用印审批是否按印章类别分级**（标 `pending: B31-1`）。依据：通行做法公章、法人章、财务章常需更高一级审批；`APPROVAL_RULES.yaml` 现有 `guard: approval` 规则中没有「印章类别」条件。A：单级，申请人所在组织单元负责人，命中 AR-11、AR-12 才加审（现稿）。B：公章、法人章、财务章加一级（异常），需 one-architecture 在 APPROVAL_RULES 增一条规则（条件：印章类别为公章 / 法人章 / 财务章，加审给总经理或分管领导）。推荐 B，由用户按公司制度定。
+2. **IT 需求时限**（`pending: B31-2`）：受理 2 个工作日、解决后 5 日不确认自动关闭，均〔推〕。选项：沿用、改数字、不设。推荐沿用，上线后看数据调整。
+3. **IT 需求哪些类别需审批**（`pending: B31-3`）：现稿原则是「常规类别不审批，只有受控类别表标为需审批的才进审批」；原稿推断的两类——新增软件采购、权限提升。建议：权限提升保留审批；新增软件采购不在本流程审批，转非项目采购请购（避免两处审批，需采购组给流程号）。请信息部门提类别清单。
+4. **A8 的 IT 资产历史怎么对应到 B-24 卡片**。依据：全部历史迁入（U-1–U-4）；规则 6 不静默跳过。A：A8 表单的资产编号映射到 U8C / B-24 卡片，对应不上的列清单交用户人工补（推荐；需先取证 A8 表单有无资产编号字段）。B：对应不上的以「未关联卡片」迁入只读历史（需聚合允许卡片 ID 为空，破坏 INV-新-P4 判定对象）。C：只迁对应得上的（与全部迁入矛盾）。
+5. **岗位标准配置清单**（`pending: B31-5`）：领用能否自动通过取决于「在使用人岗位标准配置内」，系统里目前没有这份清单（聚合稿无对应对象，建议作 AGG-115 的受控参考数据，或放 B-24 资产类别上）。选项：A：建清单，标准配置内领用自动通过、超配才审批（现稿，推荐）；B：所有领用都只登记不审批，靠资产管理员把关；C：所有领用都审批（与新原则不符）。请信息部门给出清单口径。
+6. **跨组织单元调拨是否要调入方负责人确认**（`pending: B31-6`）：现稿调拨不设人审，只在跨组织单元时通知两侧负责人。资产归属和折旧在 B-24，B-31 只换使用人。选项：A：现稿（推荐）；B：跨组织单元调拨由调入方负责人批准（加一个 cost_object_owner 审批）。
+7. **离职后资产逾期未归还的提醒时限**（`pending: B31-7`）：〔推〕离职后 7 日提醒原组织单元负责人，选项：沿用、改数字、不设。推荐沿用。
+8. **员工活动哪些类型需审批**（`pending: B31-8`）：现稿周年贺卡只登记，节日活动、创新项目发布进审批；费用预估超过单据类型阈值命中 AR-01 加审（阈值待财务）。选项：A：现稿（推荐）；B：全部审批；C：全部只登记，费用在报销时控制。
+9. **感恩节活动在途 75 单（已停用，最近使用 2024-11-11）**：选项 A 按 U-4 清空（审结或撤回）后只迁历史（推荐）；B 全部以草稿迁入。
+10. **周年贺卡**：A8 里是员工申请（累计 219）。是否改为系统按入职周年自动生成并通知行政？选项 A 保留申请（现稿）；B 自动生成（需在 B-13 加定时事件）。推荐 A，先对齐行为。
 
 ## 聚合稿回补（交 one-architecture 并入 `ENTERPRISE_AGGREGATES_DRAFT.md` §2.2）
 
@@ -548,121 +875,128 @@ AGG-62 人员命令列补：登记入职（→ **入职已登记**，原为 → 
 
 另见各分片「新用语」中的〔缺〕命令与事件（如 B-31 的驳回领用、驳回调拨、撤回用印申请等，修正了上文第 1 节）。
 
-## 附：每步在哪里完成（`where`，判据同 SAMPLE §2a）
+## 附：每步在哪里完成
 
-### 入转调离（PRC-79–82、85、128–130、136、138）
+### 入转调离（VS-07、VS-13.6）
 
 判据：业务决定与登记在本系统（in_system）；规则能定的由本系统自动做（automatic）；外部系统有接口、本系统能发起并拿到回执的走集成（external:<系统名>）；只能在系统外完成、没有可用接口的线下办（offline），本系统只登记结果与证据。
 
 | 流程 | 步 | 在哪 | 本系统留下的证据 | 为什么这样放 |
 |---|---|---|---|---|
-| PRC-80 | 1 登记法人主体 | in_system | — | 法人主数据在本系统 |
-| PRC-80 | 2 调整组织单元 | in_system | — | B-13 自为记录系统（U-1） |
-| PRC-80 | 3 指定法人归属 | in_system | — | 三口径之一，规则在本系统 |
-| PRC-80 | 4 停用岗位 | in_system | — | 职位目录在本系统 |
-| PRC-80 | 5 标记数据范围待复核 | automatic | — | P-31 事件反应 |
-| PRC-81 | 1 读职位与组织单元 | in_system | — | 读本 BC |
+| PRC-80 | 1 查看法人、组织与职位现状 | in_system | — | 业务登记在本系统 |
+| PRC-80 | 2 登记法人主体 | in_system | — | 法人主数据在本系统 |
+| PRC-80 | 3 调整组织单元 | in_system | — | B-13 自为记录系统（U-1） |
+| PRC-80 | 4 指定法人归属 | in_system | — | 三口径之一，规则在本系统 |
+| PRC-80 | 5 停用岗位 | in_system | — | 职位目录在本系统 |
+| PRC-80 | 6 标记数据范围待复核并通知区域负责人 | automatic | — | 规则能定，本系统自动执行 |
+| PRC-81 | 1 查看职位目录与组织单元 | in_system | — | 业务登记在本系统 |
 | PRC-81 | 2 提交招聘需求 | in_system | — | 业务单据在本系统 |
 | PRC-81 | 3 批准招聘需求 | in_system | — | 聚合内单级批准（F-3） |
 | PRC-81 | 4 关闭招聘需求 | in_system | — | 同上 |
 | PRC-82 | 1 登记候选人 | in_system | — | 候选人记录在本系统（T-5，个人信息保护） |
 | PRC-82 | 2 记录面试 | in_system | — | 面试本身在系统外进行，本系统登记评价与结论 |
 | PRC-82 | 3 作出录用决定 | in_system | — | 业务决定登记在本系统 |
-| PRC-82 | 4 登记候选人答复 | offline | 候选人回执（邮件或签回的录用通知）、确认日、确认的入职日 | 录用通知和候选人答复在系统外完成 |
+| PRC-82 | 4 登记候选人答复 | offline | 候选人确认入职日的回执（邮件或签回的录用通知）、确认日、确认的入职日 | 录用通知和候选人答复在系统外完成 |
 | PRC-82 | 5 标记未录用 | in_system | — | 结论登记在本系统，通知候选人线下 |
 | PRC-85 | 1 编制试用期绩效评估 | in_system | — | 评估单据在本系统 |
 | PRC-85 | 2 确认绩效评估 | in_system | — | 同上 |
 | PRC-85 | 3 办理转正 | in_system | — | 人事记录在本系统 |
+| PRC-83 | 1 登记入职 | in_system | — | 业务登记在本系统 |
+| PRC-83 | 2 入职生效 | automatic | — | 规则能定，本系统自动执行 |
+| PRC-83 | 3 建立任职 | in_system | — | 业务登记在本系统 |
+| PRC-83 | 4 提交劳动合同 | in_system | — | 业务登记在本系统 |
+| PRC-83 | 5 批准劳动合同 | in_system | — | 业务登记在本系统 |
+| PRC-83 | 6 签订劳动合同 | offline | 已签署劳动合同扫描件、签署日 | 只能在系统外办理，本系统登记结果与证据 |
+| PRC-84 | 1 参保增员 | offline | 社保增员回执、公积金增员回执、办理日 | 只能在系统外办理，本系统登记结果与证据 |
+| PRC-84 | 2 建立薪酬档案 | in_system | — | 业务登记在本系统 |
+| PRC-137 | 1 建立待开通登录身份 | automatic | — | 规则能定，本系统自动执行 |
+| PRC-137 | 2 开通企业微信成员 | external:企业微信 | 企业微信返回的成员 userid、开通时间 | 经集成适配器自动完成或系统外手工处理，本系统登记结果与证据 |
+| PRC-137 | 3 绑定外部身份 | automatic | — | 规则能定，本系统自动执行 |
+| PRC-137 | 4 告警开通未完成 | automatic | — | 规则能定，本系统自动执行 |
 | PRC-128 | 1 申请离职 | in_system | — | 员工在系统内申请（线下提出的由人力代录入） |
-| PRC-128 | 2 发起公司终止 | in_system | — | 同上 |
-| PRC-128 | 3 批准离职申请 | in_system | — | 聚合内单级批准（F-3） |
-| PRC-128 | 4 驳回离职申请 | in_system | — | 同上 |
-| PRC-128 | 5 登记劳动合同终止依据 | offline | 离职协议或解除 / 终止通知扫描件、签署或送达日、离职日 | 协议和通知的签署送达在系统外 |
-| PRC-128 | 6 办理离职（登记） | in_system | — | 人事登记在本系统 |
+| PRC-128 | 2 批准公司终止 | in_system | — | 业务登记在本系统 |
+| PRC-128 | 3 驳回公司终止 | in_system | — | 业务登记在本系统 |
+| PRC-128 | 4 撤回离职申请 | in_system | — | 业务登记在本系统 |
+| PRC-128 | 5 登记劳动合同终止依据 | offline | 离职协议或解除 / 终止通知的扫描件、签署或送达日、离职日 | 协议和通知的签署送达在系统外 |
+| PRC-128 | 6 办理离职 | in_system | — | 业务登记在本系统 |
 | PRC-128 | 7 离职生效 | automatic | — | 到日生效是规则（U-12），发 Separated 即吊销（RULE-363） |
 | PRC-128 | 8 终止任职 | automatic | — | 随离职生效自动 |
 | PRC-128 | 9 终止劳动合同 | automatic | — | 同上，失败告警不回滚 |
 | PRC-128 | 10 撤销离职登记 | in_system | — | 离职日前撤销 |
-| PRC-129 | 吊销会话 | automatic | — | 安全关键事件反应（§1.4 G-2） |
-| PRC-130 | 参保减员 | offline | 社保减员回执、公积金封存或转移回执、办理日 | 人社与公积金网办没有面向本系统的接口，办理后回填（有接口再改 external，待核） |
 | PRC-136 | 1 提交调岗申请 | in_system | — | 人事登记在本系统 |
 | PRC-136 | 2 批准调岗申请 | in_system | — | 聚合内单级批准 |
 | PRC-136 | 3 驳回调岗申请 | in_system | — | 同上 |
-| PRC-136 | 4 提交劳动合同（跨法人） | in_system | — | 合同要素在本系统起草 |
-| PRC-136 | 5 批准劳动合同（跨法人） | in_system | — | 聚合内单级批准 |
-| PRC-136 | 6 签订劳动合同（跨法人） | offline | 三方变更协议或新劳动合同扫描件、签署日 | 目前纸面签署 |
-| PRC-136 | 7 变更任职 | automatic | — | 规则能定，原子写入未来版本 |
-| PRC-136 | 8 任职变更生效 | automatic | — | 到业务生效日发事件（U-12） |
-| PRC-136 | 9 终止劳动合同（原） | automatic | — | 随生效日自动 |
-| PRC-136 | 10 重算默认角色与数据范围 | automatic | — | 事件反应（S10） |
-| PRC-136 | 11 标记数据范围待复核 | automatic | — | 事件反应，只提醒不收回 |
-| PRC-136 | 12 调整薪酬档案 | in_system | — | 薪酬自算，档案是计算依据（B-15） |
-| PRC-136 | 13 变更参保缴纳主体 | offline | 社保增减员回执、公积金缴存单位变更回执、办理日 | 网办平台无面向本系统的接口 |
+| PRC-136 | 4 提交劳动合同 | in_system | — | 业务登记在本系统 |
+| PRC-136 | 5 签订劳动合同 | offline | 三方变更协议或新劳动合同的扫描件、签署日 | 只能在系统外办理，本系统登记结果与证据 |
+| PRC-136 | 6 变更任职 | automatic | — | 规则能定，原子写入未来版本 |
+| PRC-136 | 7 任职变更生效 | automatic | — | 到业务生效日发事件（U-12） |
+| PRC-136 | 8 终止劳动合同 | automatic | — | 规则能定，本系统自动执行 |
+| PRC-136 | 9 重算默认角色与数据范围 | automatic | — | 事件反应（S10） |
+| PRC-136 | 10 标记数据范围待复核并通知区域负责人 | automatic | — | 规则能定，本系统自动执行 |
+| PRC-136 | 11 调整薪酬档案 | in_system | — | 薪酬自算，档案是计算依据（B-15） |
+| PRC-136 | 12 变更参保缴纳主体 | offline | 社保增减员回执、公积金缴存单位变更回执、办理日 | 网办平台无面向本系统的接口 |
 | PRC-138 | 1 吊销会话 | automatic | — | 调用 PRC-129 |
 | PRC-138 | 2 停用登录身份 | automatic | — | 以在职为准（IDENTITY_LIFECYCLE） |
 | PRC-138 | 3 删除全部角色授予 | automatic | — | ADR-0027 第 1 项第 6 点 |
 | PRC-138 | 4 确认放行离职处置 | in_system | — | 防全员锁死，另一名超管人工确认 |
 | PRC-138 | 5 停用应急账号 | automatic | — | 同 ADR-0027 |
-| PRC-138 | 6 停用企业微信成员 | external:企业微信 | 企业微信返回的停用结果、停用时间 | 经 platform.integration 适配器自动停用，与开通对称（T-1） |
+| PRC-138 | 6 停用企业微信成员 | external:企业微信 | 企业微信返回的成员停用结果、停用时间 | 经 platform.integration 适配器自动停用，与开通对称（T-1） |
 | PRC-138 | 7 解绑外部身份 | automatic | — | 按 userid 精确解绑，保留历史 |
-| PRC-138 | 8 逾期告警 | automatic | — | 不静默 |
-| PRC-138 | 9 登记企业微信成员手工停用 | external:企业微信 | 企业微信管理端停用记录、停用时间、经办人 | 自动停用失败时，信息部门在企业微信后台手工处理，本系统只登记并重试 |
-| PRC-79 | 登记继续教育学时 | in_system | — | 注册执业人员录入，学时证明作附件 |
-| PRC-79 | 延续注册执业证书 | offline | 延续注册回执或新证书扫描件、新有效期止 | 在注册执业管理机构办理，无接口 |
-| PRC-79 | 标记执业证书已到期 | automatic | — | 有效期届满是规则 |
+| PRC-138 | 8 登记企业微信成员手工停用 | external:企业微信 | 企业微信管理端的停用记录、停用时间、经办人 | 自动停用失败时，信息部门在企业微信后台手工处理，本系统只登记并重试 |
+| PRC-129 | 1 吊销会话 | automatic | — | 安全关键事件反应（§1.4 G-2） |
+| PRC-130 | 1 参保减员 | offline | 社保减员回执、公积金封存或转移回执、办理日 | 人社与公积金网办没有面向本系统的接口，办理后回填（有接口再改 external，待核） |
+| PRC-79 | 1 登记继续教育学时 | in_system | — | 注册执业人员录入，学时证明作附件 |
+| PRC-79 | 2 延续注册执业证书 | offline | 延续注册的回执或新证书扫描件、新有效期止 | 在注册执业管理机构办理，无接口 |
+| PRC-79 | 3 标记执业证书已到期 | automatic | — | 有效期届满是规则 |
 
-### VS-13 获得报酬（PRC-113、115–127、134、145）
+### VS-13 获得报酬
 
 判据同 SAMPLE 2a：in_system 用户在本系统操作；automatic 本系统规则自动；external:<系统> 经集成由外部完成；offline 线下完成，本系统登记结果与证据。
 
 | 流程 | 步 | 在哪 | 本系统留下的证据 | 为什么这样放 |
 |---|---|---|---|---|
 | PRC-115 | 1 导入考勤记录 | external:企业微信 | 导入批次号、拉取日期、记录条数、校验和 | 企业微信是打卡来源（intent 152603），有接口，经 platform.integration 每日拉取 |
-| PRC-115 | 2 告警人力与信息，不静默； | automatic | — | 规则能定：失败即告警，不静默（CLAUDE.md 第 6 条） |
-| PRC-115 | 3 补卡 | in_system | — | 补卡是员工在本系统登记的事实，原记录不改 |
-| PRC-116 | 1 读工作日历与标准工时版本 | in_system | — | 读工作日历与标准工时是规则 |
-| PRC-116 | 2 占用余额 | in_system | — | 额度占用是员工提交的一部分 |
-| PRC-116 | 3 提交请假 | in_system | — | 申请在本系统提交 |
-| PRC-116 | 4 请假审批 | in_system | — | 通用审批在 platform.approval（C-3–C-7） |
-| PRC-116 | 5 〔缺〕驳回请假 | automatic | — | 审批驳回的回调，规则 |
-| PRC-116 | 6 批准请假 | automatic | — | 审批通过的回调，规则 |
-| PRC-116 | 7 批准转已用 | automatic | — | 同 BC 事件反应，规则 |
-| PRC-116 | 8 撤销请假 | in_system | — | 员工自己的操作 |
-| PRC-116 | 9 销假 | in_system | — | 员工自己的操作 |
-| PRC-117 | 1 加班申请 | in_system | — | 员工或用人经理在本系统提交 |
-| PRC-117 | 2 加班审批 | in_system | — | 通用审批 |
-| PRC-117 | 3 批准加班 | automatic | — | 审批回调，规则 |
-| PRC-117 | 4 〔缺〕驳回加班 | automatic | — | 审批回调，规则 |
-| PRC-118 | 1 汇总考勤、请假、加班；月 | automatic | — | 汇总是规则；缺导入批次则失败告警 |
-| PRC-118 | 2 生成月度考勤 | automatic | — | 月末到期自动生成 |
-| PRC-118 | 3 员工确认 | in_system | — | 员工本人在本系统确认（企业微信入口登录） |
-| PRC-118 | 4 补卡 | in_system | — | 员工在本系统补卡或另提请假 |
-| PRC-118 | 5 〔缺〕重新生成月度考勤 | automatic | — | 更正后自动重新汇总 |
-| PRC-118 | 6 标记加班已补偿 | automatic | — | 事件反应，规则 |
-| PRC-118 | 7 〔缺〕代员工确认 | in_system | — | 离职人员账号已吊销，只能人力代确认 |
-| PRC-118 | 8 锁定 | in_system | — | 人力在本系统锁定（确认期限届满） |
+| PRC-115 | 2 告警导入失败 | automatic | — | 规则能定：失败即告警，不静默（CLAUDE.md 第 6 条） |
+| PRC-115 | 3 补卡 | in_system | — | 补卡是员工在本系统登记的事实，原记录不改；次数与时限由规则守卫，不设上级审批 |
+| PRC-116 | 1 占用余额 | in_system | — | 额度占用是员工提交的一部分，同时读工作日历与标准工时（规则） |
+| PRC-116 | 2 提交请假 | in_system | — | 申请在本系统提交；额度与假期规则内自动分流，不进审批 |
+| PRC-116 | 3 请假审批 | in_system | — | 仅异常单（超阈值、需证明材料、透支）经通用审批 platform.approval（C-3–C-7） |
+| PRC-116 | 4 批准请假 | automatic | — | 自动批准或审批通过的回调，规则 |
+| PRC-116 | 5 批准转已用 | automatic | — | 同 BC 事件反应，规则 |
+| PRC-116 | 6 〔缺〕驳回请假 | automatic | — | 审批驳回的回调，规则 |
+| PRC-116 | 7 撤销请假 | in_system | — | 员工自己的操作 |
+| PRC-116 | 8 销假 | in_system | — | 员工自己的操作，不再审批 |
+| PRC-117 | 1 加班申请 | in_system | — | 员工或用人经理在本系统登记，不设审批 |
+| PRC-117 | 2 批准加班 | automatic | — | 加班日后以打卡记录核实，系统按规则批准 |
+| PRC-117 | 3 〔缺〕驳回加班 | automatic | — | 打卡不支持时系统驳回，规则 |
+| PRC-118 | 1 生成月度考勤 | automatic | — | 汇总是规则；缺导入批次则失败告警 |
+| PRC-118 | 2 员工确认 | in_system | — | 员工本人在本系统确认（企业微信入口登录）；不是审批 |
+| PRC-118 | 3 标记加班已补偿 | automatic | — | 事件反应，规则 |
+| PRC-118 | 4 锁定 | automatic | — | 确认期限届满自动锁定，规则（取消人力手工锁定） |
+| PRC-118 | 5 补卡 | in_system | — | 员工在本系统补卡或另提请假 |
+| PRC-118 | 6 〔缺〕重新生成月度考勤 | automatic | — | 更正后自动重新汇总 |
+| PRC-118 | 7 〔缺〕默认确认月度考勤 | automatic | — | 逾期或已离职（账号已吊销）按生成结果默认确认，规则（取消人力代确认，待 U6） |
 | PRC-120 | 1 编制绩效评估 | in_system | — | 用人经理在本系统评估 |
 | PRC-120 | 2 提交绩效评估 | in_system | — | 同上 |
 | PRC-120 | 3 确认绩效评估 | in_system | — | 同上 |
 | PRC-121 | 1 编制激励方案版本 | in_system | — | 人力在本系统编制 |
 | PRC-121 | 2 激励方案审批 | in_system | — | 通用审批 |
-| PRC-121 | 3 生效激励方案版本 | in_system | — | 人力在本系统生效 |
-| PRC-122 | 1 读激励方案与核定依据的绩 | in_system | — | 读取依据，人力在本系统 |
-| PRC-122 | 2 〔缺〕草拟奖金核定 | in_system | — | 人力在本系统草拟 |
-| PRC-122 | 3 核定奖金 | in_system | — | 管理层在本系统核定 |
-| PRC-124 | 1 读月度考勤已锁定（含锁定 | in_system | — | 读取上游，缺失即告警 |
-| PRC-124 | 2 计算 | in_system | — | 薪酬自算（intent 152603），人力触发，规则版本计算 |
-| PRC-124 | 3 提交审核 | in_system | — | 人力在本系统提交 |
-| PRC-124 | 4 薪酬审核 | in_system | — | 通用审批（财务主管） |
-| PRC-124 | 5 批准 | automatic | — | 审核回调，规则 |
-| PRC-124 | 6 提交过账候选 | automatic | — | 批准即提交一次过账候选 |
-| PRC-125 | 1 读当月参保增减员、薪酬结 | in_system | — | 读取是规则 |
-| PRC-125 | 2 生成申报 | in_system | — | 系统生成申报数据（方式 a，待用户 U1） |
-| PRC-125 | 3 提交申报 | offline | 个税申报回执、申报日、申报明细文件 | 税务申报端没有已核实的面向本系统的接口，人工申报回填回执；若定方式 b 改 external:税务（U1） |
-| PRC-125 | 4 提交申报 | offline | 社保费申报回执、公积金汇缴回执、申报日 | 社保公积金经办渠道各地不同、无已核实接口，人工办理回填回执（U2） |
-| PRC-125 | 5 登记缴款 | offline | 个税缴款凭证、社保费与公积金缴款凭证、缴款日 | 缴款在银行或税务端完成，本系统登记凭证 |
-| PRC-125 | 6 更正申报 | offline | 更正申报回执、更正原因 | 更正在申报端完成，本系统登记回执 |
-| PRC-125 | 7 提交过账候选 | automatic | — | 过账候选是规则 |
+| PRC-121 | 3 生效激励方案版本 | automatic | — | 审批通过后到生效日期自动生效，规则 |
+| PRC-122 | 1 〔缺〕草拟奖金核定 | automatic | — | 按激励方案规则与评估结论草拟，规则 |
+| PRC-122 | 2 奖金核定审批 | in_system | — | 通用审批（责任人） |
+| PRC-122 | 3 核定奖金 | automatic | — | 审批通过的回调，规则 |
+| PRC-122 | 4 〔缺〕驳回奖金核定 | automatic | — | 审批驳回的回调，规则 |
+| PRC-124 | 1 计算 | automatic | — | 薪酬自算（intent 152603），月度考勤全部锁定后系统按规则版本自动计算 |
+| PRC-124 | 2 提交审核 | in_system | — | 薪酬岗核对异常清单后在本系统提交 |
+| PRC-124 | 3 薪酬审核 | in_system | — | 通用审批（财务责任人，高风险保留人审） |
+| PRC-124 | 4 批准 | automatic | — | 审核回调，规则 |
+| PRC-124 | 5 提交过账候选 | automatic | — | 批准即提交一次过账候选 |
+| PRC-125 | 1 生成申报 | automatic | — | 系统生成申报数据（方式 a，待用户 U1），校验失败告警 |
+| PRC-125 | 2 提交申报 | offline | 个税申报回执、申报日、申报明细文件 | 税务申报端没有已核实的面向本系统的接口，人工申报回填回执；若定方式 b 改 external:税务（U1） |
+| PRC-125 | 3 提交申报 | offline | 社保费申报回执、公积金汇缴回执、申报日 | 社保公积金经办渠道各地不同、无已核实接口，人工办理回填回执（U2） |
+| PRC-125 | 4 登记缴款 | offline | 个税缴款凭证、社保费与公积金缴款凭证、缴款日 | 缴款在银行或税务端完成，本系统登记凭证 |
+| PRC-125 | 5 更正申报 | offline | 更正申报回执、更正原因 | 更正在申报端完成，本系统登记回执 |
+| PRC-125 | 6 提交过账候选 | automatic | — | 过账候选是规则 |
 | PRC-113 | 1 并入扣缴申报 | automatic | — | 规则：自然人股东并入扣缴申报 |
 | PRC-126 | 1 提交应付薪酬 | automatic | — | 规则：批准即提交应付 |
 | PRC-127 | 1 标记薪酬已发放 | automatic | — | 规则：应付结清即置已发放 |
@@ -673,92 +1007,275 @@ AGG-62 人员命令列补：登记入职（→ **入职已登记**，原为 → 
 | PRC-123 | 1 调整薪酬档案 | in_system | — | 人力在本系统调整 |
 | PRC-123 | 2 更新专项附加扣除 | in_system | — | 人力在本系统更新（来源见 U9） |
 
-### VS-09 / VS-11 与 B-18、B-30 表
+### VS-09 / VS-11
 
-本组三个流程没有线下（offline）或外部系统（external）步骤，没有必填证据项。
+本组三个流程没有线下（offline）或外部系统（external）步骤，没有必填证据项（QC 修订后步骤已重排）。
 
 | 流程 | 步 | 命令 | 谁 | 在哪里 | 页面或备注 |
 |---|---|---|---|---|---|
 | PRC-88 | 1 | 编制经营计划版本 | SH-M1 管理层 | in_system | 经营计划编辑页 |
-| PRC-88 | 2 | 经营计划审批 | SH-M1 管理层 | in_system | platform.approval 审批待办；企业微信待办通知 |
-| PRC-88 | 3 | 基线化经营计划 | SH-M1 管理层 | in_system | 经营计划详情页 |
-| PRC-88 | 4 | 开立预算账户 | SH-E6 财务 | in_system | 预算账户管理页 |
-| PRC-88 | 5 | 调整预算 | SH-E6 财务 | in_system | 预算账户调整页 |
+| PRC-88 | 2 | 〔缺〕提交经营计划审批 | SH-M1 管理层 | in_system | 经营计划编辑页；企业微信待办通知责任人 |
+| PRC-88 | 3 | 经营计划审批 | 归属组织单元责任人（SH-M1） | in_system | platform.approval 审批待办；可撤回 |
+| PRC-88 | 4 | 〔缺〕驳回经营计划审批 | platform | automatic | 回调，退回步 1 |
+| PRC-88 | 5 | 〔缺〕通过经营计划审批 | platform | automatic | 回调 |
+| PRC-88 | 6 | 基线化经营计划 | system | automatic | 审批通过后自动 |
+| PRC-88 | 7 | 开立预算账户 | SH-E6 财务 | in_system | 预算账户管理页 |
+| PRC-88 | 8 | 调整预算 | SH-E6 财务 | in_system | 预算账户调整页；预算期内出现调整需求时 |
 | PRC-89 | 1 | 编制预测版本 | SH-E5 市场和客户经理 | in_system | 销售预测填报页；每周 |
-| PRC-89 | 2 | 编制现金流预测 | SH-E6 财务 | in_system | 现金流预测编辑页；按期 |
-| PRC-107 | 1 | 起草知识条目 | SH-E4 技术专家 | in_system | 知识条目编辑页 |
-| PRC-107 | 2 | 创建知识条目 | SH-E2 项目经理 | in_system | 页面在 B-04 项目复盘详情页，命令调 B-30 |
+| PRC-89 | 2 | 编制现金流预测 | SH-E6 财务 | in_system | 现金流预测编辑页；预测周期末 |
+| PRC-107 | 1 | 创建知识条目 | SH-E4 技术专家（或经 B-04 提炼入口的 SH-E2） | in_system | 知识条目编辑页；提炼入口页面在 B-04 |
+| PRC-107 | 2 | 起草知识条目 | SH-E4 技术专家 | in_system | 知识条目编辑页 |
 | PRC-107 | 3 | 提交知识条目评审 | SH-E4 技术专家 | in_system | 知识条目详情页 |
-| PRC-107 | 4 | 评审知识条目 | SH-E4 技术专家 | in_system | 知识条目评审页；聚合内审批 |
-| PRC-107 | 5 | 发布知识条目 | SH-E4 技术专家 | in_system | 知识条目详情页 |
-| PRC-107 | 6 | 修订知识条目 | SH-E4 技术专家 | in_system | 有效期届满或适用范围变化时；定时提醒后人工操作 |
-| PRC-107 | 7 | 废止知识条目 | SH-E4 技术专家 | in_system | 有效期届满时；定时提醒后人工操作 |
+| PRC-107 | 4 | 评审知识条目 | 归属专业组织单元责任人（SH-E4） | in_system | 知识条目评审页；聚合内审批 |
+| PRC-107 | 5 | 〔缺〕退回知识条目 | SH-E4 | in_system | 知识条目评审页 |
+| PRC-107 | 6 | 发布知识条目 | SH-E4 技术专家 | in_system | 知识条目详情页 |
+| PRC-107 | 7 | 修订知识条目 | SH-E4 技术专家 | in_system | 有效期届满或适用范围变化时；定时提醒后人工操作 |
+| PRC-107 | 8 | 废止知识条目 | SH-E4 技术专家 | in_system | 有效期届满时；定时提醒后人工操作 |
 
-PRC-107 步 6、7 的「定时」指系统到期提醒（时间触发），修订与废止本身由人操作，所以 `where` 是 in_system，不是 automatic。
+PRC-107 步 7、8 的「定时」指系统到期提醒（时间触发），修订与废止本身由人操作，所以 `where` 是 in_system，不是 automatic。
 
-### B-31 行政事务（PRC-139、142–144，AGG-113–116）
+### B-31 行政事务
 
 | 流程 | 步 | 在哪 | 本系统留下的证据 | 为什么这样放 |
 |---|---|---|---|---|
 | PRC-139 | 1 提交用印申请 | in_system | — | 申请与审批要留痕，来源单据只记 ID |
-| PRC-139 | 2 批准用印申请 | in_system（platform.approval） | — | C-3–C-7 行政流程走通用审批 |
+| PRC-139 | 2 批准用印申请 | in_system（platform.approval） | — | 对外法律效力，人审（B31-1） |
 | PRC-139 | 3 驳回用印申请 | automatic | — | 审批平台回调，规则决定 |
 | PRC-139 | 4 登记用印 | offline | 实际用印时间、份数、经办人、盖章文件扫描件〔推〕 | 实物印章只能系统外盖，本系统登记并卡份数（INV-新-P2） |
-| PRC-139 | 5 关闭用印申请 | in_system | — | 行政确认完成或放弃余量 |
-| PRC-142 | 1 提交 IT 需求 | in_system | — | 工单起点 |
-| PRC-142 | 2 批准 IT 需求 | in_system（platform.approval） | — | 仅需审批的类别 |
+| PRC-139 | 5 关闭用印申请 | automatic | — | 规则关闭，不设人工关闭 |
+| PRC-142 | 1 提交 IT 需求 | in_system | — | 工单起点；常规类别直接受理 |
+| PRC-142 | 2 批准 IT 需求 | in_system（platform.approval） | — | 仅受控类别 |
 | PRC-142 | 3 受理 IT 需求 | in_system | — | 指派处理人，计时 |
 | PRC-142 | 4 解决 IT 需求 | in_system | — | 实际排查在系统外，本系统记过程与结论（INV-新-P3 需结论） |
-| PRC-142 | 5 关闭 IT 需求 | in_system | — | 提出人确认；长期不确认自动关闭〔推〕 |
-| PRC-142 | 6 退回 IT 需求 | in_system | — | 驳回或不成立，写原因 |
-| PRC-143 | 1 申请领用资产 | in_system | — | 引用 B-24 卡片 ID |
-| PRC-143 | 2 批准领用 | in_system（platform.approval） | — | 通用审批 |
-| PRC-143 | 3 驳回领用 | automatic | — | 审批平台回调 |
-| PRC-143 | 4 登记领用 | offline | 领用人签收、交付日期、设备状态〔推〕 | 实物交付在系统外，本系统开使用期间（INV-新-P4） |
-| PRC-143 | 5 申请调拨资产 | in_system | — | 调拨须审批〔推〕 |
-| PRC-143 | 6 批准调拨 | in_system（platform.approval） | — | 通用审批 |
-| PRC-143 | 7 驳回调拨 | automatic | — | 审批平台回调 |
-| PRC-143 | 8 调拨资产 | offline | 调出 / 调入方交接确认、交接日期 | 实物交接在系统外，本系统同事务换使用人 |
-| PRC-143 | 9 生成归还待办 | automatic | — | 订阅 Separated，规则决定 |
-| PRC-143 | 10 归还资产 | offline | 归还验收人、归还日期、设备状态 | 实物验收在系统外 |
-| PRC-143 | 11 报修资产 | in_system | — | 使用人填故障，生成维修工单 |
-| PRC-143 | 12 登记维修结果 | external:维修服务商 | 维修单或发票引用、维修结果、完成日期 | 维修在系统外（含厂商），无接口，只登记结果；无法修复的报废归 B-24 |
-| PRC-144 | 1 提交员工活动申请 | in_system | — | 申请与审批要留痕 |
-| PRC-144 | 2 批准员工活动申请 | in_system（platform.approval） | — | 通用审批 |
-| PRC-144 | 3 驳回员工活动申请 | automatic | — | 审批平台回调 |
-| PRC-144 | 4 完成员工活动 | offline | 活动完成确认、实际参与人〔推〕 | 活动在系统外举办，本系统登记完成 |
+| PRC-142 | 5 关闭 IT 需求 | in_system | — | 提出人确认；超期不确认自动关闭〔推〕 |
+| PRC-142 | 6 退回 IT 需求 | in_system | — | 不成立或无法实现，写原因 |
+| PRC-142 | 7 驳回 IT 需求 | automatic | — | 审批平台回调 |
+| PRC-143 | 1 申请领用资产 | in_system | — | 引用 B-24 卡片 ID；标准配置内规则自动通过 |
+| PRC-143 | 2 批准领用 | in_system（platform.approval） | — | 仅超出标准配置 |
+| PRC-143 | 3 登记领用 | offline | 领用人签收、交付日期、设备状态〔推〕 | 实物交付在系统外，本系统开使用期间（INV-新-P4） |
+| PRC-143 | 4 驳回领用 | automatic | — | 审批平台回调 |
+| PRC-143B | 1 申请调拨资产 | in_system | — | 无人审，规则守卫 |
+| PRC-143B | 2 调拨资产 | offline | 调出 / 调入方交接确认、交接日期 | 实物交接在系统外，本系统同事务换使用人 |
+| PRC-143C | 1 归还资产 | offline | 归还验收人、归还日期、设备状态 | 实物验收在系统外；离职事件直接生成待办 |
+| PRC-143D | 1 报修资产 | in_system | — | 使用人填故障，生成维修工单 |
+| PRC-143D | 2 登记维修结果 | external:维修服务商 | 维修单或发票引用、维修结果、完成日期 | 维修在系统外（含厂商），无接口，只登记结果；无法修复的报废归 B-24 |
+| PRC-144 | 1 提交员工活动申请 | in_system | — | 申请留痕；福利型只登记 |
+| PRC-144 | 2 批准员工活动申请 | in_system（platform.approval） | — | 仅需审批的活动类型 |
+| PRC-144 | 3 完成员工活动 | offline | 活动完成确认、实际参与人〔推〕 | 活动在系统外举办，本系统登记完成 |
+| PRC-144 | 4 驳回员工活动申请 | automatic | — | 审批平台回调 |
 
-## 附：验收场景（入转调离）
+## 附：验收场景
+
+### 入转调离（VS-07、VS-13.6）
+
+场景正文（path、covers、expect、outcome）见 `parts/vs07.scenarios.yaml`；下表为摘要。
+
 
 | 编号 | 场景 |
 |---|---|
-| PRC-80-S01 | 撤销仍有在职任职的组织单元被拒绝（INV-60） |
-| PRC-80-S02 | 调整组织单元后区域负责人收到数据范围待复核提醒，授予不被收回（P-31） |
-| PRC-80-S03 | 同一员工法人归属期间重叠被拒绝 |
-| PRC-81-S01 | 用人经理提交、人力负责人批准；提出人与批准人为同一人被拒绝 |
-| PRC-81-S02 | 驳回后关闭，状态为已关闭 |
-| PRC-82-S01 | 候选人面试通过、录用、登记接受，发出录用决定已作出，PRC-83 启动 |
+| PRC-80-S01 | 撤销仍有在职任职的组织单元被拒绝并退回改正（INV-60） |
+| PRC-80-S02 | 调整组织单元成功，区域负责人收到数据范围待复核提醒，授予不被收回（P-31），结局已维护（全程路径） |
+| PRC-80-S03 | 同一员工法人归属期间重叠被拒绝并退回改正 |
+| PRC-80-S04 | 登记新法人主体，结局已维护 |
+| PRC-80-S05 | 指定法人归属成功，platform.identity 与 B-15 收到事件 |
+| PRC-80-S06 | 停用仍被在职任职引用的职位被拒绝（INV-63） |
+| PRC-80-S07 | 停用无引用的职位成功 |
+| PRC-81-S01 | 用人经理提交，部门负责人批准，人力收到待办，结局已批准（全程路径）；提出人与批准人为同一人被拒绝 |
+| PRC-81-S02 | 部门负责人驳回，关闭，结局已关闭 |
+| PRC-81-S03 | 提出人在批准前撤回，关闭，结局已关闭 |
+| PRC-81-S04 | 提出人本人就是组织单元责任人，按 AR-11 转上级批准（处理方式待 V-18） |
+| PRC-82-S01 | 候选人面试通过、录用、登记接受，发出录用决定已作出，PRC-83 启动（全程路径） |
 | PRC-82-S02 | 候选人放弃，流程以候选人已放弃结束，候选人个人信息仍受访问限制 |
-| PRC-85-S01 | 试用期届满前生成评估待办，确认评估后办理转正，B-15 收到转正已办理 |
-| PRC-85-S02 | 不予转正转入 PRC-128 |
-| PRC-128-S01 | 员工申请、批准、离职日在未来：登记时不发 Separated，离职日结束时发出并吊销会话 |
+| PRC-82-S03 | 面试未通过，标记未录用 |
+| PRC-82-S04 | 录用通知发出后超过答复期限未答复，提醒用人经理（V-19） |
+| PRC-83-S01 | 提前登记入职，入职日到时生效，建立任职，劳动合同提交、批准、签订，结局入职已办理（全程路径） |
+| PRC-83-S02 | 主任职区间与已有区间重叠被拒绝并退回（INV-62） |
+| PRC-83-S03 | 试用期超过法定上限被拒绝并退回（INV-14） |
+| PRC-83-S04 | 部门负责人驳回劳动合同，退回人力修改 |
+| PRC-83-S05 | 用工满一个月仍未签订，提醒不拒绝（P-05） |
+| PRC-83-S06 | 补登入职（入职日不晚于登记日），立即生效 |
+| PRC-84-S01 | 入职生效后办理参保增员并建立薪酬档案，结局薪酬档案已建立（全程路径） |
+| PRC-84-S02 | 退休返聘或实习不参保，只建立薪酬档案（T-4） |
+| PRC-84-S03 | 入职满 30 日仍未办理参保增员，逾期提醒并升级（P-32） |
+| PRC-85-S01 | 试用期届满前生成评估待办，确认评估后办理转正，B-15 收到转正已办理，被评员工收到通知（全程路径） |
+| PRC-85-S02 | 公司决定不予转正，转入 PRC-128（公司单方终止，需批准） |
+| PRC-85-S03 | 评估待办 7 日内未编制，升级提醒（V-12） |
+| PRC-85-S04 | 试用期届满后超期仍未办理转正或终止，升级提醒（V-12） |
+| PRC-128-S01 | 员工申请离职，离职日在未来，不设批准；登记时不发 Separated，离职日结束时发出并吊销会话（全程路径） |
 | PRC-128-S02 | 离职日不晚于登记日：登记即刻生效并吊销 |
-| PRC-128-S03 | 离职日前撤销，状态回在职，B-31 与 B-27 待办取消 |
-| PRC-128-S04 | 公司单方终止，发起人不能批准自己发起的终止 |
-| PRC-129-S01 | 收到 Separated 即吊销全部会话；吊销失败重试并告警 |
-| PRC-130-S01 | 离职后 15 日内回填减员回执；逾期升级 |
+| PRC-128-S03 | 离职日前撤销离职登记，状态回在职，B-31 与 B-27 待办取消 |
+| PRC-128-S04 | 公司单方终止：人力发起，部门负责人批准，登记依据，办理离职（全程路径） |
+| PRC-128-S05 | 公司单方终止被部门负责人驳回，结局终止已驳回 |
+| PRC-128-S06 | 员工在登记离职日前撤回申请，结局离职申请已撤回 |
+| PRC-128-S07 | 公司终止的发起人不能批准自己发起的终止（segregation）；被终止员工即部门负责人时按 AR-11 转上级（V-18） |
+| PRC-128-S08 | 终止劳动合同失败：告警人力并重试，不回滚 Separated |
+| PRC-129-S01 | 收到 Separated 即吊销全部会话 |
+| PRC-129-S02 | 吊销失败重试并告警信息部门，不静默 |
+| PRC-130-S01 | 离职后 15 日内回填减员回执，结局参保已减员 |
 | PRC-130-S02 | 退休返聘或实习离职，无需减员 |
-| PRC-136-S01 | 新职位已停用，调岗被拒绝 |
-| PRC-136-S02 | 提前登记的调岗，写入未来版本，业务生效日才发任职已变更；platform.identity 重算默认授予并生成待调整权限 |
-| PRC-136-S03 | 主任职区间冲突被拒绝（INV-62） |
-| PRC-136-S04 | 跨法人调动：新合同签订、原合同终止、薪酬扣缴义务人与参保缴纳主体变更；三口径不一致时 PRC-145 预警 |
-| PRC-138-S01 | 离职后企业微信成员自动停用并解绑 |
+| PRC-130-S03 | 超过 15 日未回填，升级提醒 |
+| PRC-136-S01 | 新职位已停用，调岗被拒绝并退回改正 |
+| PRC-136-S02 | 同法人调岗：提交、新组织单元责任人批准，写入未来版本；业务生效日才发任职已变更，platform.identity 重算默认授予并生成待调整权限，结局调岗已生效（全程路径） |
+| PRC-136-S03 | 批准人驳回调岗，结局已驳回 |
+| PRC-136-S04 | 提交人在批准前撤回，结局已驳回 |
+| PRC-136-S05 | 跨法人调动：新合同提交（要素与已批准调岗一致）、线下签订、原合同终止、薪酬扣缴义务人与参保缴纳主体变更；三口径不一致时 PRC-145 预警（全程路径） |
+| PRC-136-S06 | 主任职区间冲突被拒绝并退回（INV-62） |
+| PRC-136-S07 | 跨法人合同试用期超限或要素与调岗不一致被拒绝并退回（INV-14、R-04） |
+| PRC-136-S08 | 调岗引起薪酬变化，调整薪酬档案 |
+| PRC-136-S09 | 提前登记的调岗：写入未来版本，业务生效日到时才生效；补登当日立即生效 |
+| PRC-137-S01 | 登记入职后入职日前 3 个工作日自动开通企业微信成员并绑定，入职日放行登录，结局已开通并绑定（全程路径） |
+| PRC-137-S02 | 企业微信返回失败：告警信息部门与人力，修正后重试成功 |
+| PRC-137-S03 | userid 已被占用：失败告警，不静默 |
+| PRC-137-S04 | 入职日已到仍未绑定，告警；1 个工作日内未处理升级（T-2） |
+| PRC-138-S01 | 离职后会话吊销、登录身份停用、授予删除、应急账号停用、企业微信成员停用并解绑（全程路径） |
 | PRC-138-S02 | 企业微信停用失败，告警；信息部门手工停用并登记后重试成功 |
 | PRC-138-S03 | 超管持有人离职：会话吊销与登录身份停用立即执行，角色授予删除等待另一名超管放行 |
-| PRC-79-S01 | 登记继续教育学时并延续注册，回填新有效期 |
-| PRC-79-S02 | 证书有效期届满，系统标记已到期并提醒 |
+| PRC-138-S04 | 手工停用超过规定时限未登记，升级提醒（V-13） |
+| PRC-79-S01 | 登记继续教育学时，结局学时已登记 |
+| PRC-79-S02 | 延续注册执业证书，回填新有效期，结局证书已延续 |
+| PRC-79-S03 | 证书有效期届满，系统标记已到期并提醒，结局执业证书已到期 |
+| PRC-79-S04 | 延续时学时未达标：预警不拒绝登记（V-14） |
 
-## 方法验证 / 推翻（one-arch-people 铺开中随手记，交 one-architecture 汇总进 `closeout/METHOD_VALIDATION_LOG.md`）
+## 附：规则候选
+
+### 入转调离（VS-07、VS-13.6）
+
+| 编号 | 候选规则 | 处理 | 所在流程 | 取代了什么 |
+|---|---|---|---|---|
+| R-01 | 招聘需求提交时职位须启用、组织单元须有效 | 拒绝（退回改正） | PRC-81 步 2 | 同 INV-63、INV-60 类，聚合稿 AGG-65 未列不变量 |
+| R-02 | 录用决定的拟任职位须启用 | 拒绝 | PRC-82 步 3 | — |
+| R-03 | 期望离职日早于法定通知期（试用期 3 日、其余 30 日；劳动合同法第 37 条）且无协商一致依据 | 预警人力，不拒绝 | PRC-128 步 1 | 取代员工提出离职的批准（V-20） |
+| R-04 | 跨法人调动的劳动合同：用人单位须为已批准调岗的新法人、工龄连续、不重设试用期（含 INV-14） | 拒绝（退回改正） | PRC-136 步 4 | 取代原「批准劳动合同」一级审批 |
+| R-05 | 使用标准模板且 INV-14 通过的劳动合同可免人工批准 | 自动放行 | PRC-83 步 5 | 样板已由用户批准保留人工批准，列此供复审，不改 |
+| R-06 | 离职会使可用超管少于 2 名：拒绝自动收回授予并告警，补足后自动继续 | 拒绝 + 事件续跑 | PRC-138 步 3–4 | 取代人工放行（V-17 选项 c） |
+
+## 附：权责对照条目
+
+### 入转调离（VS-07、VS-13.6）
+
+B-13 聚合内批准，engine 为 aggregate，approver 写类型级角色 SH-M1（部门负责人，stakeholders 的「管理层」类；组织单元的责任人即此人）。权责对照表落地后按下列条目登记（每个对象×命令恰一个 A）：
+
+| 对象 | 命令 | A（resolve: type） | R | C | I |
+|---|---|---|---|---|---|
+| AGG-65 | 批准招聘需求 | role: SH-M1 | SH-M1 | SH-E1 | SH-E1、SH-E6 |
+| AGG-67 | 批准劳动合同 | role: SH-M1 | SH-M1 | SH-E6 | SH-E6 |
+| AGG-62 | 〔缺〕批准公司终止 | role: SH-M1 | SH-M1 | SH-E6 | SH-E6、SH-E1 |
+| AGG-63 | 〔缺〕批准调岗申请 | role: SH-M1 | SH-M1 | SH-E6 | SH-E1、SH-E3 |
+
+注：类型级只是权责对照表落地前的占位，业务上仍是「归属组织单元的责任人」；岗位体系定后改为实例级（`resolve: instance, field: 归属组织单元.责任人`）更贴近用户原则，见 V-18。
+
+### VS-09 / VS-11
+
+engine 为 aggregate 的专业复核，approver 写类型级角色，权责对照表登 `resolve: type`：
+
+| 流程 | 步 | 对象 × 命令 | engine | approver | 权责对照表登记 |
+|---|---|---|---|---|---|
+| PRC-107 | 4 | 知识条目 × 评审知识条目 | aggregate | SH-E4（技术专家，技术委员会的专业负责人） | A: {role: SH-E4, resolve: type}；加审 AR-11（评审人就是起草人）、AR-12（专业角色缺位）由聚合内改指上级 |
+
+PRC-88 步 3 经营计划审批走 platform.approval，approver 仍为 cost_object_owner（实例级 A），不在此登 type。
+
+### B-31 行政事务
+
+本组 4 个人工审批的 engine 全为 platform.approval，approver 均为 cost_object_owner（实例级 A，对象的归属组织单元负责人）；没有 engine 为 aggregate 的专业复核，故无 resolve: type 的角色条目。engine external 无。
+
+## 附：收敛自检
+
+### VS-13 考勤类聚合收敛
+
+产物（提议稿）：`vs13att.commands.yaml`（24 条命令、13 条事件策略、1 条已删命令）、`vs13att.state-machines.yaml`（9 台状态机、30 条流程步骤映射）、`vs13att.events.yaml`（发布 10 个、订阅外部 5 个、评估后不订阅 2 个）、`vs13att.raci.yaml`（24 条权责条目 + roles）。均用 `yaml.safe_load` 读通；检查脚本是自写小脚本（状态可达、非终态到终态、终态无出边、流程步骤对转换、孤儿命令、RACI 一一对应、approver 与 A 一致、事件与命令 emits 一致、vs07 步骤是否使用本组聚合），结果：错误 0。脚本放在会话临时目录，未入库；已做一次破坏性验证（删一条 `锁定` 映射，脚本报出 4 项错误后还原）。
+
+| 项 | 结果 |
+|---|---|
+| 命令 | 24 条（AGG-69 2、AGG-70 5、AGG-71 5、AGG-72 4、AGG-97 5、AGG-118 1、AGG-68 1、AGG-108 1）；孤儿 1 条：`发布假期规则版本`（无流程覆盖 AGG-118 维护，交 one-architecture）；〔缺〕6 条（见下） |
+| 状态机 | 9 台：AGG-69 1、AGG-70 1、AGG-71 2（账户根 perpetual、占用行）、AGG-72 1、AGG-97 1、AGG-118 1、AGG-68 1（perpetual）、AGG-108 1；全部状态可达，全部非终态能到某终态（perpetual 两台除外），终态无出边 |
+| 流程步骤对转换 | PRC-115 的 2 个、PRC-116 的 11 个（含 inner 4 个）、PRC-117 的 3 个、PRC-118 的 7 个、PRC-119 的 2 个改状态步骤，各对上一条转换（共 25）；另有事件策略 5 条映射。PRC-115 第 2 步（告警导入失败）与 PRC-116 第 3 步（请假审批）是平台任务，无聚合转换。PRC-116 第 3 步的 withdraw 边 → 撤销请假审批中 → 已撤销，on_reject → 驳回请假；第 5 步判断出口 → 撤销请假、销假；PRC-116 第 1 步结局「额度不足被拒」、PRC-118 第 1 步「已暂缓」、PRC-119 第 2 步「版本被拒」是前置条件失败，不产生转换，已在映射中标注 |
+| VS-07 | PRC-128 等 vs07 步骤不调用本组任何聚合命令，只发 `Separated` 与〔缺〕`离职登记已撤销` 事件给 B-27；前者落成事件策略，后者建议删边（接缝问题 1） |
+| 事件 | 发布 10 个，与命令 emits、PRC-115–119 步骤 emits 一致；订阅方：`请假已批准` → AGG-71（事件策略）、`月度考勤已确认` → AGG-72（事件策略）、`月度考勤已锁定` → B-15 PRC-124，其余仅分析 |
+| 权责 | 24 条一一对应，每条恰一个 A；唯一需审批的命令 `批准请假` 的 `approval.approver = cost_object_owner` 与 A（申请人所在组织单元负责人）和 PRC-116 第 3 步骨架一致；`驳回请假` A 同批准 |
+
+**〔缺〕命令（共 6）**：沿用 vs13.notes.md 提议名 5 条——驳回请假、驳回加班、回冲已用额度、重新生成月度考勤、默认确认月度考勤；收敛新增 1 条——开立年度额度账户。已取消 1 条：代员工确认（被默认确认月度考勤取代）；请登记「代员工确认」「confirm_on_behalf」的 one-glossary 撤回。
+
+**收敛中的取舍，请 one-architecture / one-rules 确认**：
+1. 规则内自动批准与审批回调汇合在同一条命令 `批准请假`（骨架第 4 步如此写），用 `已提交 / 审批中` 两个前置状态区分；也可拆成「自动批准请假」「批准请假」两条，命令名需新提，本稿不拆。
+2. 补卡、导入、加班登记等无生命周期的创建型命令，状态机用「创建即终态」（`已记录`、`已生效`）表示，不假设后续状态；AGG-71 根与 AGG-68 用 perpetual。
+3. 请假撤销（审批中）经审批平台取消实例，撤销请假的前置条件含「同时撤回审批实例」，若平台不提供取消，该守卫无法落地（接缝问题 4）。
+4. RACI 里员工本人的命令 A 取实例级 `field: 员工`，自动命令 A 取类型级「人力（考勤）」；SH-E3 / SH-E1 沿用 b31 的借用口径（无全员角色编号）。
+5. `sensitive` 全部 false，未逐条核对 ADR-0032 敏感权限清单，请 one-rules 复核。
+6. 规则卡候选 R-a…R-e 沿用 vs13.notes.md 结构问题 14 的编号，守卫里直接引用，不另编号；孤儿占用释放的超时时长待 one-rules。
+
+### VS-13 薪酬类聚合收敛
+
+产物（提议稿）：`vs13pay.commands.yaml`（31 条命令、14 条事件策略）、`vs13pay.state-machines.yaml`（9 台状态机、42 条转换）、`vs13pay.events.yaml`（发布 10 个、外部发布引用 2 个、订阅外部 12 个）、`vs13pay.raci.yaml`（31 条权责条目 + roles）。均用 `yaml.safe_load` 读通；检查脚本是自写小脚本（一次性，不入库，在 scratchpad），读上述四件与 `vs13.processes.yaml`、`vs07.processes.yaml`，结果如下，错误 0，警告 3 条（见下）。
+
+| 项 | 结果 |
+|---|---|
+| 命令 | 31 条（AGG-106 4、AGG-73 8、AGG-74 2、AGG-75 4、AGG-76 3、AGG-93 3、AGG-95 6、薪酬规则版本 1），孤儿 0 条（发布薪酬规则版本只被「维护」用到，结构问题 3）；〔缺〕7 条（见下） |
+| 状态机 | 9 台全部状态可达（不可达 0）、全部非终态能到某终态、终态无出边。AGG-76 暂以已核定为终态（结构问题 2） |
+| 流程步骤对转换 | 14 个流程中，凡带命令的步骤共 28 个，命令全在目录；26 个各有 ≥1 条转换，2 个（PRC-124 第 5 步、PRC-125 第 6 步，提交过账候选）只写属性，列入 non_state_commands。3 个审批任务步（PRC-121 第 2 步、PRC-122 第 2 步、PRC-124 第 3 步）没有命令，由批准、驳回、撤回回调命令的转换承接；PRC-121 第 2 步与 PRC-124 第 3 步的 withdraw 边各对上一条撤回转换（撤回激励方案版本、撤回薪酬审核），on_reject 边各对上一条驳回转换（驳回激励方案版本、退回薪酬重算，PRC-122 的驳回即第 4 步） |
+| 点名流程逐项 | PRC-121 步 1、3；PRC-122 步 1、3、4；PRC-123 步 1、2；PRC-124 步 1、2、4（含 5）；PRC-125 步 1–6；PRC-113 步 1；PRC-127 步 1；PRC-134 步 1；PRC-84 步 1、2；PRC-130 步 1；PRC-120 步 1–3；PRC-85 步 1、2 全部对上；PRC-126（命令属 AGG-52）与 PRC-145（只预警，无命令）不改本批聚合状态，不要求转换 |
+| 事件 | 发布 10 个，与命令 emits、骨架 emits 一致；订阅方：薪酬已批准 → PRC-125、126，绩效评估已确认 → PRC-122，薪酬档案已变更 → PRC-145，其余仅分析；载荷无 L3 金额 |
+| 权责 | 31 条一一对应，每条恰一个 A，命令目录的 A 与权责表一致；3 个审批命令（批准、生效激励方案版本、核定奖金）的 `approval.approver = cost_object_owner` 与骨架一致；sensitive 为 true 的 11 条均带理由 |
+
+脚本警告 3 条，均已核对为无误：PRC-120 第 1 步、PRC-125 第 1 步的步骤级结局（「已确认」「已中止」）没有对应状态转换——前者是骨架结局挂错步骤（接缝问题 5），后者是校验失败告警，不建申报也不改状态，符合「失败并告警」；事件策略「薪酬批准后提交应付」调用的提交应付薪酬属 AGG-52（B-10），不在本目录。
+
+**〔缺〕命令（共 7）**：沿用分片提议名 4 条——草拟奖金核定、退回薪酬重算、驳回奖金核定、发布薪酬规则版本；**收敛新增 3 条**——驳回激励方案版本、撤回激励方案版本、撤回薪酬审核（分片只在审批步写了 on_reject / withdraw 边，状态机需要命令落地；命名沿用 b31 模式，名字是我取的，请 one-glossary 登记前确认）。不算〔缺〕：聚合稿已有的命令全部沿用原名。
+
+**收敛中的取舍，请 one-architecture / one-rules 确认**：
+1. 薪酬结算创建即「已计算」，不用数据模型的「草稿」；退回与撤回共用「已退回」状态，回到计算重算（PRC-124 第 3 步两条出边都回第 1 步）。
+2. 「标记已过账」在已批准上有一条只置位的自环（过账先于发放），与 PRC-127 回到 PRC-134 配合，补置已过账；若认为自环难读，可改为 AGG-73 上一个布尔「过账事实已入账」，状态机就只剩已批准 → 已发放 → 已过账。
+3. 驳回激励方案版本回草稿而不是终态（骨架 on_reject 回第 1 步），驳回奖金核定则终态已驳回、重新草拟另建新核定单（骨架第 4 步结局「已驳回」且由人力另行触发重新草拟）。两处口径不同是照骨架，请确认。
+4. 更正申报同时产生两条转换：原申报已申报 → 已更正，新申报行创建 → 已申报，二者同事务。
+5. RACI 非审批命令的 A 取发起或执行方（持发令权，不持审批权）；系统执行的命令 A 取负责角色。`sensitive` 已逐条判并写理由，权限码名与授予方式待 one-rules 在 `permission-grant-modes.txt` 登记，本稿不替它定。
+6. 合并同义命令：未合并（候选：编制绩效评估与编制试用期绩效评估，结构问题 8③；驳回类与退回类的回调命令因发令方与终态不同，保留）。
+
+### VS-09 / VS-11
+
+收敛产物（提议稿）：`vs0911.commands.yaml`、`vs0911.state-machines.yaml`、`vs0911.events.yaml`、`vs0911.raci.yaml`。自检脚本为一次性小检查（不入库），读上述四件与 `vs0911.processes.yaml`，结果如下。
+
+| 检查 | 结果 |
+|---|---|
+| 四个 yaml 可被 `yaml.safe_load` 读入 | 通过 |
+| 流程步骤的命令都在命令目录（步 3 经营计划审批是 platform.approval 任务，除外） | 通过，18 个步骤 |
+| 命令 `used_by` 与步骤互相对得上 | 通过；两处按设计放行：〔缺〕撤回经营计划审批对应 PRC-88#3 的 `withdraw`；预算占用对应 PRC-88#7 的 cross_bc 入口声明 |
+| 无孤儿命令 | 21 条命令中孤儿 1 条：〔缺〕消耗预算占用（聚合稿事件 BudgetConsumed 无命令，本片段无步骤），交 one-architecture；预算占用、释放预算占用的发起步骤在 PRC-70、PRC-87（他组，未核），未标孤儿 |
+| 状态全可达 | 通过：经营计划版本 6 状态、预算占用行 3、知识条目版本 6，预算账户 1，不可达均为 0 |
+| 每个非终态能到某终态 | 通过，唯一豁免：预算账户（已开立）聚合稿与数据模型都没有结束或冻结的命令与状态，标 `open_ended`，不自造终态，交 one-architecture |
+| 每个改状态的流程步骤对得上一条转换 | 通过：PRC-88 步 1–2、4–8，PRC-89 步 1–2，PRC-107 步 1–8 均有转换；PRC-88#3 平台审批任务由撤回转换与步 4、5 回调转换承接 |
+| 事件与命令 emits 一致，步骤 emits 都在事件目录 | 通过，8 条事件 |
+| 每条命令恰有一条权责条目 | 通过，22 条条目（经营计划审批是平台任务，单列一条，approver 与骨架 cost_object_owner 一致） |
+
+收敛中发现、需 one-architecture 裁定的点：
+1. 〔缺〕命令 5 个（提交 / 撤回 / 通过 / 驳回经营计划审批、退回知识条目）加 1 个本稿提议的〔缺〕消耗预算占用，名称未经 one-glossary。
+2. 状态补充：经营计划版本补「已通过」「已编制」，知识条目版本补「已评审通过」，数据模型状态列未列；撤回后回「编制中」而流程结局记「已撤回」。
+3. 预算账户无终态与冻结命令；账户状态机以外，占用行有自己的状态机（占用中 → 已消耗 / 已释放）。
+4. 发令权 A 的字段名（经营计划版本.归属组织单元.负责人、知识条目.归属组织单元.负责人、预测人员.直属上级）为本稿按「谁负责谁批」写出，字段是否存在待 one-data 核；预测的 A 与逾期升级对象未经用户确认（待用户定 4）。
+5. 合并同义命令：未合并任何命令。候选：编制预测版本与编制现金流预测（同形，A 与 R 不同）、退回知识条目并入评审知识条目（结论=退回）、创建与起草知识条目；聚合稿与流程均分列，保留。
+6. 知识条目已修订事件在新版本创建时发出而非发布时，请确认。
+
+### B-31 行政事务
+
+产物（提议稿）：`b31.commands.yaml`（30 条命令、6 条事件策略、3 条已删命令）、`b31.state-machines.yaml`（7 台状态机）、`b31.events.yaml`（发布 7 个、订阅外部 3 个）、`b31.raci.yaml`（30 条权责条目 + roles）。均用 `yaml.safe_load` 读通；检查脚本是自写小脚本（可达性、非终态到终态、流程步骤对转换、事件与命令对应、RACI 一一对应、approver 与 A 一致），结果如下，错误 0。
+
+| 项 | 结果 |
+|---|---|
+| 命令 | 30 条（AGG-113 6、AGG-114 8、AGG-115 11、AGG-116 5），孤儿 0 条；〔缺〕8 条（见下） |
+| 状态机 | AGG-113 1 台、AGG-114 1 台、AGG-115 4 台（领用、调拨、使用期间、维修工单；根 `it_asset_use_ledgers` 只存当前使用人投影，无生命周期）、AGG-116 1 台；全部状态可达、全部非终态能到某终态、终态无出边 |
+| 流程步骤对转换 | b31 骨架 25 个步骤，命令全在目录且各有 ≥1 条转换，带 outcome 的步骤结局与转换终态一致；5 条 withdraw 边各对上一条撤回命令的转换 |
+| 事件 | 发布 7 个，与命令 emits、骨架 emits 一致；订阅方均为「仅分析」 |
+| 权责 | 30 条一一对应，每条恰一个 A；4 个审批步 `approval.approver = cost_object_owner` 与 A（申请人 / 提出人所在组织单元负责人）一致 |
+
+**〔缺〕命令（共 8）**：沿用分片提议名 4 条——撤回用印申请、驳回 IT 需求、驳回领用、申请调拨资产；**收敛新增 4 条**——撤回 IT 需求、撤回领用、撤回员工活动申请、撤销调拨申请（分片只在审批步写了 withdraw 边，状态机需要命令落地；命名沿用「撤回用印申请」模式，名字是我取的，请 one-glossary 登记前确认）。已取消：批准调拨、驳回调拨、生成归还待办（后者改为事件策略「离职生成归还待办」）。「退回 IT 需求」聚合稿已有，不算〔缺〕（分片 notes 把它列为〔缺〕，以聚合稿为准）。
+
+**收敛中的取舍，请 one-architecture / one-rules 确认**：
+1. 「驳回 IT 需求」与「退回 IT 需求」终态同为已退回，但发令方不同（审批回调与信息部门），保留两条；若要合并成一条「退回 IT 需求」（带来源参数），可去掉一条〔缺〕。
+2. IT 需求重开（关闭步「提出人认为未解决」回到受理）没有独立命令，建模为 `已解决 → 处理中`，由「受理 IT 需求」触发，守卫「提出人反馈未解决」，标 reverse。
+3. 登记用印本次份数为 0 仅当确认放弃剩余份数〔推〕，使「批准后完全不用」也能关闭；批准后长期不登记的自动失效仍是遗留项（QC-B-31 遗留项 1）。
+4. 福利型活动、标准配置内领用由规则自动通过，状态机里直接 `草稿 → 已批准 / 已通过`，不经审批中。
+5. AGG-115 分 4 台机器是按本稿的「每卡片一个根」边界；若 one-architecture 选「使用期间作根」，使用期间机器上升为根机器，其余不变（待评审 S-21）。
+6. RACI 非审批命令的 A 取发起或执行方（持发令权，不持审批权）；受理逾期、离职逾期未归还的升级只是提醒，非审批，记在 `boundary.escalate`。`sensitive` 全部 false，未按 ADR-0032 的敏感权限清单逐条核对，请 one-rules 复核。
+7. 审批撤回的回调事件名由 platform.approval 事件目录定，本稿不自造（见 commands 的事件策略「审批撤回回调」）。
+
+## 方法验证 / 推翻
 
 | 做法 | 结论 | 证据 |
 |---|---|---|

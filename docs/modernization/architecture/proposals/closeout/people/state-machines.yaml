@@ -1,13 +1,13 @@
-# 人员组收敛产物（提议稿；由 parts/merge_converge.py 从分片合并，改分片后重跑，不手改本文件）
+# 人员组合并产物（由 parts/rebuild.py 从分片生成，不手改；改分片后重跑）
 machines:
 - aggregate: AGG-69
   machine: attendance_record
   entity: attendance_records
+  note: 只追加不可改（INV-69），记录类型（打卡 / 外勤 / 补卡）是属性不分状态；导入与补卡都是创建，创建即终态
   states:
   - name: 已记录
     terminal: true
   initial: null
-  note: 只追加不可改（INV-69），记录类型（打卡 / 外勤 / 补卡）是属性不分状态；导入与补卡都是创建，创建即终态
   transitions:
   - from: null
     to: 已记录
@@ -27,6 +27,7 @@ machines:
 - aggregate: AGG-70
   machine: leave_request
   entity: leave_requests
+  note: 草稿来自编辑页保存或迁入；已提交 = 规则内自动批准路径的瞬时待批状态（聚合稿与数据模型状态列无此状态，见 vs13att.notes.md 结构问题 2）；已批准休完后仍停在已批准
   states:
   - 草稿
   - 已提交
@@ -39,7 +40,6 @@ machines:
   - name: 已销假
     terminal: true
   initial: 草稿
-  note: 草稿来自编辑页保存或迁入；已提交 = 规则内自动批准路径的瞬时待批状态（聚合稿与数据模型状态列无此状态，见 vs13att.notes.md 结构问题 2）；已批准休完后仍停在已批准
   transitions:
   - from: 草稿
     to: 已提交
@@ -95,92 +95,84 @@ machines:
     kind: reverse
   source_part: vs13att
 - aggregate: AGG-71
-  machine: leave_balance_account
-  entity: leave_balance_accounts
+  sub_machines:
+  - leave_balance_account
+  - leave_balance_hold
   states:
-  - 已开账
-  initial: null
-  perpetual: true
-  note: 根只存应享 / 已用 / 占用计数器（投影，可由请假与规则重算对账），无生命周期；占用 / 转用 / 释放 / 回冲同时改计数器，对应占用行机器的转换
+  - leave_balance_account:已开账
+  - leave_balance_hold:占用
+  - leave_balance_hold:已转用
+  - name: leave_balance_hold:已释放
+    terminal: true
   transitions:
   - from: null
-    to: 已开账
+    to: leave_balance_account:已开账
     command: 开立年度额度账户
     guard:
     - INV-123
     kind: forward
-  - from: 已开账
-    to: 已开账
+  - from: leave_balance_account:已开账
+    to: leave_balance_account:已开账
     command: 占用余额
     guard:
     - INV-68
     kind: forward
     effect: 占用 +
-  - from: 已开账
-    to: 已开账
+  - from: leave_balance_account:已开账
+    to: leave_balance_account:已开账
     command: 批准转已用
     guard: []
     kind: forward
     effect: 占用 −，已用 +
-  - from: 已开账
-    to: 已开账
+  - from: leave_balance_account:已开账
+    to: leave_balance_account:已开账
     command: 释放余额占用
     guard: []
     kind: reverse
     effect: 占用 −
-  - from: 已开账
-    to: 已开账
+  - from: leave_balance_account:已开账
+    to: leave_balance_account:已开账
     command: 回冲已用额度
     guard:
     - 回冲不超已用
     kind: reverse
     effect: 已用 −
-  source_part: vs13att
-- aggregate: AGG-71
-  machine: leave_balance_hold
-  entity: leave_balance_holds
-  states:
-  - 占用
-  - 已转用
-  - name: 已释放
-    terminal: true
-  initial: null
-  note: 一张请假一条占用行；销假部分回冲时行仍为已转用（时长减少）
-  transitions:
   - from: null
-    to: 占用
+    to: leave_balance_hold:占用
     command: 占用余额
     guard:
     - INV-68
     - 账户已开账
     kind: forward
-  - from: 占用
-    to: 已转用
+  - from: leave_balance_hold:占用
+    to: leave_balance_hold:已转用
     command: 批准转已用
     guard: []
     kind: forward
-  - from: 占用
-    to: 已释放
+  - from: leave_balance_hold:占用
+    to: leave_balance_hold:已释放
     command: 释放余额占用
     guard:
     - 驳回 / 审批中撤销 / 孤儿占用
     kind: reverse
-  - from: 已转用
-    to: 已释放
+  - from: leave_balance_hold:已转用
+    to: leave_balance_hold:已释放
     command: 回冲已用额度
     guard:
     - 已批准后撤销：全部回冲
     kind: reverse
-  - from: 已转用
-    to: 已转用
+  - from: leave_balance_hold:已转用
+    to: leave_balance_hold:已转用
     command: 回冲已用额度
     guard:
     - 销假：未休完部分回冲
     kind: reverse
   source_part: vs13att
+  note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
 - aggregate: AGG-72
   machine: overtime_request
   entity: overtime_requests
+  note: 登记即创建（无草稿）；批准由系统以打卡核实代替人工；登记后无撤销命令（见 vs13att.notes.md 结构问题 4）
   states:
   - 已申请
   - 已批准
@@ -189,7 +181,6 @@ machines:
   - name: 已驳回
     terminal: true
   initial: null
-  note: 登记即创建（无草稿）；批准由系统以打卡核实代替人工；登记后无撤销命令（见 vs13att.notes.md 结构问题 4）
   transitions:
   - from: null
     to: 已申请
@@ -219,13 +210,13 @@ machines:
 - aggregate: AGG-97
   machine: monthly_attendance_confirmation
   entity: monthly_attendance_confirmations
+  note: 暂缓（月内有日期导入失败）不创建聚合，是生成命令的前置条件失败；确认方式（员工 / 默认）与默认确认原因（逾期未确认 / 已离职）是属性不分状态；已确认后到确认期限届满前不可重新生成，更正走下月更正行
   states:
   - 已生成
   - 已确认
   - name: 已锁定
     terminal: true
   initial: null
-  note: 暂缓（月内有日期导入失败）不创建聚合，是生成命令的前置条件失败；确认方式（员工 / 默认）与默认确认原因（逾期未确认 / 已离职）是属性不分状态；已确认后到确认期限届满前不可重新生成，更正走下月更正行
   transitions:
   - from: null
     to: 已生成
@@ -265,11 +256,11 @@ machines:
 - aggregate: AGG-118
   machine: leave_entitlement_rule_version
   entity: leave_entitlement_rule_versions
+  note: 每版本一个聚合，发布即生效，生效后不可改（D15），更正另发布新版本；假期类型（leave_types）为受控代码表，只由迁移维护，无命令（见 vs13att.notes.md 结构问题 6）
   states:
   - name: 已生效
     terminal: true
   initial: null
-  note: 每版本一个聚合，发布即生效，生效后不可改（D15），更正另发布新版本；假期类型（leave_types）为受控代码表，只由迁移维护，无命令（见 vs13att.notes.md 结构问题 6）
   transitions:
   - from: null
     to: 已生效
@@ -281,11 +272,11 @@ machines:
 - aggregate: AGG-68
   machine: work_calendar_year
   entity: work_calendar_years
+  perpetual: true
+  note: 可变根 + 审计，过去日期锁定；首次维护创建，之后每年反复维护（现状为整集替换，是否改按配置型版本化待 one-data）
   states:
   - 已建
   initial: null
-  perpetual: true
-  note: 可变根 + 审计，过去日期锁定；首次维护创建，之后每年反复维护（现状为整集替换，是否改按配置型版本化待 one-data）
   transitions:
   - from: null
     to: 已建
@@ -302,11 +293,11 @@ machines:
 - aggregate: AGG-108
   machine: standard_work_hour_version
   entity: standard_work_hour_versions
+  note: 每版本一个聚合，发布即生效，生效后不可改（INV-116）；被新版本取代不改旧版本状态，按日期区间取当日生效版本
   states:
   - name: 已生效
     terminal: true
   initial: null
-  note: 每版本一个聚合，发布即生效，生效后不可改（INV-116）；被新版本取代不改旧版本状态，按日期区间取当日生效版本
   transitions:
   - from: null
     to: 已生效
@@ -318,13 +309,13 @@ machines:
 - aggregate: AGG-106
   machine: performance_review
   entity: performance_reviews
+  note: 已确认后不得改，更正另记（INV-114）；更正没有命令，见 notes 结构问题 8
   states:
   - 草拟
   - 已提交
   - name: 已确认
     terminal: true
   initial: 草拟
-  note: 已确认后不得改，更正另记（INV-114）；更正没有命令，见 notes 结构问题 8
   transitions:
   - from: null
     to: 草拟
@@ -362,6 +353,15 @@ machines:
 - aggregate: AGG-73
   machine: payroll_settlement
   entity: payroll_settlements
+  added_states:
+  - 已退回
+  note: '数据模型状态列为「草稿 → 已计算 → 审核中 → 已批准 → 已发放 → 已过账」。计算由系统自动，没有人工草稿，创建即为已计算，草稿不用；
+
+    审批驳回与提交人撤回后回到第 1 步重算，补「已退回」。已发放与已过账先后不定：过账可先于发放（PRC-134 出口「待发放后再置位」），
+
+    故已批准上有一条只置位的自环；发放时若过账事实已入账，由 PRC-127 回到 PRC-134 补置已过账。结局「待锁定」「已中止」不建结算，不是状态。
+
+    '
   states:
   - 已计算
   - 审核中
@@ -371,18 +371,6 @@ machines:
     terminal: true
   - 已退回
   initial: 已计算
-  added_states:
-  - 已退回
-  non_state_commands:
-  - command: 提交过账候选
-    reason: 只写过账引用；批准时提交一次，「已过账」由事件置位（PRC-134）
-  note: '数据模型状态列为「草稿 → 已计算 → 审核中 → 已批准 → 已发放 → 已过账」。计算由系统自动，没有人工草稿，创建即为已计算，草稿不用；
-
-    审批驳回与提交人撤回后回到第 1 步重算，补「已退回」。已发放与已过账先后不定：过账可先于发放（PRC-134 出口「待发放后再置位」），
-
-    故已批准上有一条只置位的自环；发放时若过账事实已入账，由 PRC-127 回到 PRC-134 补置已过账。结局「待锁定」「已中止」不建结算，不是状态。
-
-    '
   transitions:
   - from: null
     to: 已计算
@@ -454,19 +442,39 @@ machines:
     - 来源单据类型为月度薪酬结算
     kind: forward
     process_outcome: 已过账
+  - from: 已计算
+    to: 已计算
+    command: 提交过账候选
+    kind: non_state
+  - from: 审核中
+    to: 审核中
+    command: 提交过账候选
+    kind: non_state
+  - from: 已批准
+    to: 已批准
+    command: 提交过账候选
+    kind: non_state
+  - from: 已发放
+    to: 已发放
+    command: 提交过账候选
+    kind: non_state
+  - from: 已退回
+    to: 已退回
+    command: 提交过账候选
+    kind: non_state
   source_part: vs13pay
 - aggregate: AGG-74
   machine: insurance_enrollment
   entity: insurance_enrollments
+  added_states:
+  - 在保
+  - 已减员
+  note: 数据模型状态列只写「状态」未列取值，本稿取在保与已减员。重新入职另建登记（同一人员同缴纳主体至多一个在保）。缴费基数年度调整没有命令，见 notes 结构问题 9
   states:
   - 在保
   - name: 已减员
     terminal: true
   initial: 在保
-  added_states:
-  - 在保
-  - 已减员
-  note: 数据模型状态列只写「状态」未列取值，本稿取在保与已减员。重新入职另建登记（同一人员同缴纳主体至多一个在保）。缴费基数年度调整没有命令，见 notes 结构问题 9
   transitions:
   - from: null
     to: 在保
@@ -487,6 +495,15 @@ machines:
 - aggregate: AGG-75
   machine: incentive_plan_version
   entity: incentive_plan_versions
+  added_states:
+  - 草稿
+  - 已批准
+  - 已撤回
+  note: '数据模型状态列为「编制 → 审批 → 生效 → 结束」。草稿即编制页保存（编辑页行为，不是领域命令）；驳回回到草稿再编制（PRC-121 on_reject 回第 1 步）。
+
+    已批准 = 审批通过但生效日期未到，到期由定时触发生效激励方案版本。已结束 = 同方案后继版本生效，旧版本区间同事务结束（D15），没有独立命令。
+
+    '
   states:
   - 草稿
   - 审批中
@@ -497,15 +514,6 @@ machines:
   - name: 已撤回
     terminal: true
   initial: 草稿
-  added_states:
-  - 草稿
-  - 已批准
-  - 已撤回
-  note: '数据模型状态列为「编制 → 审批 → 生效 → 结束」。草稿即编制页保存（编辑页行为，不是领域命令）；驳回回到草稿再编制（PRC-121 on_reject 回第 1 步）。
-
-    已批准 = 审批通过但生效日期未到，到期由定时触发生效激励方案版本。已结束 = 同方案后继版本生效，旧版本区间同事务结束（D15），没有独立命令。
-
-    '
   transitions:
   - from: 草稿
     to: 审批中
@@ -560,13 +568,6 @@ machines:
 - aggregate: AGG-76
   machine: bonus_determination
   entity: bonus_determinations
-  states:
-  - 草拟
-  - name: 已核定
-    terminal: true
-  - name: 已驳回
-    terminal: true
-  initial: 草拟
   added_states:
   - 已驳回
   note: '数据模型状态列为「草拟 → 已核定 → 已发放」。驳回另补「已驳回」；重新草拟另建新核定单（同一人同期无草拟或已核定时）。
@@ -576,6 +577,13 @@ machines:
     该状态补上后，已核定不再是终态。
 
     '
+  states:
+  - 草拟
+  - name: 已核定
+    terminal: true
+  - name: 已驳回
+    terminal: true
+  initial: 草拟
   transitions:
   - from: null
     to: 草拟
@@ -602,20 +610,19 @@ machines:
     process_outcome: 已驳回
   source_part: vs13pay
 - aggregate: AGG-93
-  machine: payroll_profile_version
-  entity: payroll_profile_versions
+  sub_machines:
+  - payroll_profile_version
+  - special_deduction_declaration
   states:
-  - 生效
-  - name: 已结束
+  - payroll_profile_version:生效
+  - name: payroll_profile_version:已结束
     terminal: true
-  initial: 生效
-  added_states:
-  - 生效
-  - 已结束
-  note: 根表 payroll_profiles 无生命周期；版本行按生效区间，调薪追加新版本并结束旧版本（D17）。未来生效日的版本也记为生效（区间决定何时适用）
+  - special_deduction_declaration:有效
+  - name: special_deduction_declaration:已取代
+    terminal: true
   transitions:
   - from: null
-    to: 生效
+    to: payroll_profile_version:生效
     command: 建立薪酬档案
     guard:
     - 人员已入职
@@ -623,50 +630,44 @@ machines:
     kind: forward
     process_outcome: 薪酬档案已建立
   - from: null
-    to: 生效
+    to: payroll_profile_version:生效
     command: 调整薪酬档案
     guard:
     - R-VS13-j：引用调薪决定依据
     - U9
     kind: forward
     process_outcome: 薪酬档案已调整
-  - from: 生效
-    to: 已结束
+  - from: payroll_profile_version:生效
+    to: payroll_profile_version:已结束
     command: 调整薪酬档案
     guard:
     - 同事务结束旧版本区间（D17）
     kind: forward
-  source_part: vs13pay
-- aggregate: AGG-93
-  machine: special_deduction_declaration
-  entity: payroll_special_deduction_declarations
-  states:
-  - 有效
-  - name: 已取代
-    terminal: true
-  initial: 有效
-  added_states:
-  - 有效
-  - 已取代
-  note: 数据模型状态列只写「状态」未列取值，本稿取有效与已取代；年内修改追加新声明并取代旧声明
-  transitions:
   - from: null
-    to: 有效
+    to: special_deduction_declaration:有效
     command: 更新专项附加扣除
     guard:
     - 扣除额不超扣除标准版本
     kind: forward
     process_outcome: 专项附加扣除已更新
-  - from: 有效
-    to: 已取代
+  - from: special_deduction_declaration:有效
+    to: special_deduction_declaration:已取代
     command: 更新专项附加扣除
     guard:
     - 同事务取代旧声明
     kind: forward
   source_part: vs13pay
+  note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
 - aggregate: AGG-95
   machine: tax_social_filing
   entity: tax_social_filings
+  added_states:
+  - 已更正
+  note: '数据模型状态列为「待申报 → 已申报 → 已缴款」，更正通过 corrects_filing_id 另起新行。原申报被更正后补「已更正」（终态），新行从已申报起，再走登记缴款。
+
+    申报类别（个税扣缴、社保、公积金）各一条申报行，三类各自走本机器；「个税与社保公积金申报已提交」在三类均到已申报后发布。
+
+    '
   states:
   - 待申报
   - 已申报
@@ -675,16 +676,6 @@ machines:
   - name: 已更正
     terminal: true
   initial: 待申报
-  added_states:
-  - 已更正
-  non_state_commands:
-  - command: 提交过账候选
-    reason: 只写过账引用；缴款登记后提交，过账结果不回写申报状态
-  note: '数据模型状态列为「待申报 → 已申报 → 已缴款」，更正通过 corrects_filing_id 另起新行。原申报被更正后补「已更正」（终态），新行从已申报起，再走登记缴款。
-
-    申报类别（个税扣缴、社保、公积金）各一条申报行，三类各自走本机器；「个税与社保公积金申报已提交」在三类均到已申报后发布。
-
-    '
   transitions:
   - from: null
     to: 待申报
@@ -738,21 +729,29 @@ machines:
     guard:
     - 引用原申报 corrects_filing_id，与原申报置已更正同事务
     kind: reverse
+  - from: 待申报
+    to: 待申报
+    command: 提交过账候选
+    kind: non_state
+  - from: 已申报
+    to: 已申报
+    command: 提交过账候选
+    kind: non_state
   source_part: vs13pay
 - aggregate: AGG-待定-薪酬规则版本
   machine: payroll_rule_version
   entity: payroll_rule_versions
+  added_states:
+  - 草稿
+  - 已生效
+  - 已结束
+  note: 数据模型「版本状态」列未列取值，本稿取草稿、已生效、已结束；草稿即编制页保存。每版本一个聚合，同类别同适用范围生效区间不重叠（D15）
   states:
   - 草稿
   - 已生效
   - name: 已结束
     terminal: true
   initial: 草稿
-  added_states:
-  - 草稿
-  - 已生效
-  - 已结束
-  note: 数据模型「版本状态」列未列取值，本稿取草稿、已生效、已结束；草稿即编制页保存。每版本一个聚合，同类别同适用范围生效区间不重叠（D15）
   transitions:
   - from: 草稿
     to: 已生效
@@ -770,6 +769,16 @@ machines:
   source_part: vs13pay
 - aggregate: AGG-79
   entity: 经营计划版本（business_plan_versions.状态）
+  platform_task_steps:
+  - step: PRC-88#3
+    desc: 经营计划审批是 platform.approval 的任务，不是聚合命令；其结果由 PRC-88#4、#5 的回调命令承接，撤回由 withdraw 承接
+  reverse_paths:
+  - 撤回（审批中 → 编制中）
+  - 驳回（审批中 → 编制中）
+  no_reverse: 基线不可冲销、不可撤销，更正只出新版本（INV-101）
+  open_questions:
+  - 撤回后版本回到编制中，而流程结局记「已撤回」；是否需要独立「已撤回」状态由 one-architecture 定（编制中的废弃草稿无作废命令）
+  - 预测类型是否经审批成基线（待用户定 4，VS-09.2 notes 与 PRC-89 不一致）
   states:
   - 编制中
   - 审批中
@@ -778,6 +787,7 @@ machines:
   - 已编制
   - name: 被取代
     terminal: true
+  initial: null
   transitions:
   - from: null
     to: 编制中
@@ -864,26 +874,21 @@ machines:
     - PRC-89#1
     cascade: true
     note: 下一次滚动的新版本取代上一版（现金流预测同理，由编制现金流预测触发）
-  platform_task_steps:
-  - step: PRC-88#3
-    desc: 经营计划审批是 platform.approval 的任务，不是聚合命令；其结果由 PRC-88#4、#5 的回调命令承接，撤回由 withdraw 承接
-  reverse_paths:
-  - 撤回（审批中 → 编制中）
-  - 驳回（审批中 → 编制中）
-  no_reverse: 基线不可冲销、不可撤销，更正只出新版本（INV-101）
-  open_questions:
-  - 撤回后版本回到编制中，而流程结局记「已撤回」；是否需要独立「已撤回」状态由 one-architecture 定（编制中的废弃草稿无作废命令）
-  - 预测类型是否经审批成基线（待用户定 4，VS-09.2 notes 与 PRC-89 不一致）
   source_part: vs0911
 - aggregate: AGG-80
-  entity: 预算账户（budget_accounts.状态）
-  open_ended: true
-  open_ended_reason: 账户的结束（预算期届满、冻结）聚合稿与数据模型都没有命令和状态（数据模型仅写「可冻结」）；本稿不自造终态，交 one-architecture 补，自检将其列为豁免
+  sub_machines:
+  - null
+  - null
   states:
-  - 已开立
+  - 预算账户（budget_accounts.状态）:已开立
+  - 预算占用行（budget_reservations.状态）:占用中
+  - name: 预算占用行（budget_reservations.状态）:已消耗
+    terminal: true
+  - name: 预算占用行（budget_reservations.状态）:已释放
+    terminal: true
   transitions:
   - from: null
-    to: 已开立
+    to: 预算账户（budget_accounts.状态）:已开立
     command: 开立预算账户
     guard:
     - INV-101
@@ -891,53 +896,45 @@ machines:
     - 候选规则-额度不超基线
     steps:
     - PRC-88#7
-  - from: 已开立
-    to: 已开立
+  - from: 预算账户（budget_accounts.状态）:已开立
+    to: 预算账户（budget_accounts.状态）:已开立
     command: 调整预算
     guard:
     - 候选规则-额度总额内调剂
     steps:
     - PRC-88#8
     note: 额度调剂，状态不变，记调整记录
-  reverse_paths: []
-  no_reverse: 调整只追加（budget_account_adjustments）；反向调整另记一条
-  source_part: vs0911
-- aggregate: AGG-80
-  entity: 预算占用行（budget_reservations.状态）
-  states:
-  - 占用中
-  - name: 已消耗
-    terminal: true
-  - name: 已释放
-    terminal: true
-  transitions:
   - from: null
-    to: 占用中
+    to: 预算占用行（budget_reservations.状态）:占用中
     command: 预算占用
     guard:
     - G-3 拦截或预警待定
     - AR-03
     steps: []
     note: 发起步骤在 PRC-70、PRC-87（他组），本片段只有 PRC-88#7 入口声明
-  - from: 占用中
-    to: 已释放
+  - from: 预算占用行（budget_reservations.状态）:占用中
+    to: 预算占用行（budget_reservations.状态）:已释放
     command: 释放预算占用
     guard: []
     steps: []
     reverse: 释放
     note: 驳回、作废、终止及孤儿占用定时释放
-  - from: 占用中
-    to: 已消耗
+  - from: 预算占用行（budget_reservations.状态）:占用中
+    to: 预算占用行（budget_reservations.状态）:已消耗
     command: 〔缺〕消耗预算占用
     guard: []
     steps: []
     note: 命令为〔缺〕，孤儿
-  reverse_paths:
-  - 释放（占用中 → 已释放）
-  no_reverse: 已消耗、已释放不可回退；重新占用另建占用行
   source_part: vs0911
+  note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
 - aggregate: AGG-107
   entity: 知识条目版本（knowledge_entry_versions.状态）
+  reverse_paths:
+  - 退回（评审中 → 起草中）
+  - 废止（已发布 → 已废止）
+  no_reverse: 已发布版本不可撤回，更正只出新版本；废止不可恢复，需要时新建条目或新版本
+  open_questions:
+  - 评审中起草人撤回提交、评审逾期无命令（QC-VS-11 缺口，待用户定 8）
   states:
   - 起草中
   - 评审中
@@ -947,6 +944,7 @@ machines:
     terminal: true
   - name: 已废止
     terminal: true
+  initial: null
   transitions:
   - from: null
     to: 起草中
@@ -1019,16 +1017,11 @@ machines:
     steps:
     - PRC-107#8
     reverse: 废止
-  reverse_paths:
-  - 退回（评审中 → 起草中）
-  - 废止（已发布 → 已废止）
-  no_reverse: 已发布版本不可撤回，更正只出新版本；废止不可恢复，需要时新建条目或新版本
-  open_questions:
-  - 评审中起草人撤回提交、评审逾期无命令（QC-VS-11 缺口，待用户定 8）
   source_part: vs0911
 - aggregate: AGG-113
   machine: seal_application
   entity: seal_applications
+  note: 草稿来自编辑页保存或迁入（在途清不完以草稿迁入）；保存草稿是编辑页行为，不是领域命令
   states:
   - 草稿
   - 审批中
@@ -1041,7 +1034,6 @@ machines:
   - name: 已撤回
     terminal: true
   initial: 草稿
-  note: 草稿来自编辑页保存或迁入（在途清不完以草稿迁入）；保存草稿是编辑页行为，不是领域命令
   transitions:
   - from: 草稿
     to: 审批中
@@ -1092,6 +1084,7 @@ machines:
 - aggregate: AGG-114
   machine: it_request
   entity: it_requests
+  note: 已提交 = 待受理（常规类别提交后，或需审批类别批准后）；对应聚合稿状态「已提交」
   states:
   - 草稿
   - 审批中
@@ -1105,7 +1098,6 @@ machines:
   - name: 已撤回
     terminal: true
   initial: 草稿
-  note: 已提交 = 待受理（常规类别提交后，或需审批类别批准后）；对应聚合稿状态「已提交」
   transitions:
   - from: 草稿
     to: 审批中
@@ -1170,165 +1162,159 @@ machines:
     kind: reverse
   source_part: b31
 - aggregate: AGG-115
-  machine: use_request
-  entity: it_asset_use_requests（申请类型=领用）
+  sub_machines:
+  - use_request
+  - transfer_request
+  - use_period
+  - repair_order
   states:
-  - 草稿
-  - 审批中
-  - 已通过
-  - name: 已领用
+  - use_request:草稿
+  - use_request:审批中
+  - use_request:已通过
+  - name: use_request:已领用
     terminal: true
-  - name: 已驳回
+  - name: use_request:已驳回
     terminal: true
-  - name: 已撤回
+  - name: use_request:已撤回
     terminal: true
-  initial: 草稿
-  note: 已通过含标准配置内规则自动通过（未经审批）
+  - transfer_request:草稿
+  - transfer_request:已申请
+  - name: transfer_request:已调拨
+    terminal: true
+  - name: transfer_request:已转领用
+    terminal: true
+  - name: transfer_request:已撤销
+    terminal: true
+  - use_period:在用
+  - name: use_period:已结束
+    terminal: true
+  - repair_order:草稿
+  - repair_order:已报修
+  - name: repair_order:已维修登记
+    terminal: true
   transitions:
-  - from: 草稿
-    to: 审批中
+  - from: use_request:草稿
+    to: use_request:审批中
     command: 申请领用资产
     guard:
     - R-B31-5：超出岗位标准配置
     - R-B31-6
     kind: forward
-  - from: 草稿
-    to: 已通过
+  - from: use_request:草稿
+    to: use_request:已通过
     command: 申请领用资产
     guard:
     - R-B31-5：标准配置内自动通过
     - R-B31-6
     kind: forward
-  - from: 审批中
-    to: 已通过
+  - from: use_request:审批中
+    to: use_request:已通过
     command: 批准领用
     guard:
     - AR-11
     - AR-12
     kind: forward
-  - from: 审批中
-    to: 已驳回
+  - from: use_request:审批中
+    to: use_request:已驳回
     command: 驳回领用
     guard: []
     kind: reverse
-  - from: 审批中
-    to: 已撤回
+  - from: use_request:审批中
+    to: use_request:已撤回
     command: 撤回领用
     guard:
     - 仅申请人
     kind: reverse
-  - from: 已通过
-    to: 已领用
+  - from: use_request:已通过
+    to: use_request:已领用
     command: 登记领用
     guard:
     - INV-121
     - R-B31-6
     kind: forward
-  source_part: b31
-- aggregate: AGG-115
-  machine: transfer_request
-  entity: it_asset_use_requests（申请类型=调拨）
-  states:
-  - 草稿
-  - 已申请
-  - name: 已调拨
-    terminal: true
-  - name: 已转领用
-    terminal: true
-  - name: 已撤销
-    terminal: true
-  initial: 草稿
-  note: 调拨不设人审；已转领用 = 资产无当前使用人，改走 PRC-143 领用
-  transitions:
-  - from: 草稿
-    to: 已申请
+  - from: null
+    to: use_request:草稿
+    command: null
+    kind: entry
+    note: 子生命周期入口
+  - from: transfer_request:草稿
+    to: transfer_request:已申请
     command: 申请调拨资产
     guard:
     - R-B31-6
     - R-B31-7
     kind: forward
-  - from: 草稿
-    to: 已转领用
+  - from: transfer_request:草稿
+    to: transfer_request:已转领用
     command: 申请调拨资产
     guard:
     - R-B31-7：资产无当前使用人
     kind: forward
-  - from: 已申请
-    to: 已调拨
+  - from: transfer_request:已申请
+    to: transfer_request:已调拨
     command: 调拨资产
     guard:
     - INV-121
     - R-B31-6
     kind: forward
-  - from: 已申请
-    to: 已撤销
+  - from: transfer_request:已申请
+    to: transfer_request:已撤销
     command: 撤销调拨申请
     guard:
     - 调出使用人或资产管理员
     kind: reverse
-  source_part: b31
-- aggregate: AGG-115
-  machine: use_period
-  entity: it_asset_use_periods
-  states:
-  - 在用
-  - name: 已结束
-    terminal: true
-  initial: 在用
-  note: 期间由登记领用、调拨资产创建（from 为空表示创建）；同一卡片至多一个在用期间（INV-121，条件排除约束）
-  transitions:
   - from: null
-    to: 在用
+    to: transfer_request:草稿
+    command: null
+    kind: entry
+    note: 子生命周期入口
+  - from: null
+    to: use_period:在用
     command: 登记领用
     guard:
     - INV-121
     kind: forward
   - from: null
-    to: 在用
+    to: use_period:在用
     command: 调拨资产
     guard:
     - INV-121：调入方新期间，与结束旧期间同事务
     kind: forward
-  - from: 在用
-    to: 已结束
+  - from: use_period:在用
+    to: use_period:已结束
     command: 调拨资产
     guard:
     - INV-121：调出方旧期间
     kind: forward
-  - from: 在用
-    to: 已结束
+  - from: use_period:在用
+    to: use_period:已结束
     command: 归还资产
     guard:
     - R-B31-9：须有未结束期间
     kind: reverse
     process_outcome: 已归还
-  source_part: b31
-- aggregate: AGG-115
-  machine: repair_order
-  entity: it_asset_repair_orders
-  states:
-  - 草稿
-  - 已报修
-  - name: 已维修登记
-    terminal: true
-  initial: 草稿
-  note: 维修结果（已修复 / 无法修复）是工单属性，不分状态；无法修复的报废归 B-24
-  transitions:
-  - from: 草稿
-    to: 已报修
+  - from: repair_order:草稿
+    to: repair_order:已报修
     command: 报修资产
     guard:
     - R-B31-8
     kind: forward
-  - from: 已报修
-    to: 已维修登记
+  - from: repair_order:已报修
+    to: repair_order:已维修登记
     command: 登记维修结果
     guard: []
     kind: forward
+  - from: null
+    to: repair_order:草稿
+    command: null
+    kind: entry
+    note: 子生命周期入口
   source_part: b31
+  note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
 - aggregate: AGG-116
   machine: employee_activity
   entity: employee_activity_requests
+  note: 已批准含福利型（周年贺卡）规则自动通过
   states:
   - 草稿
   - 审批中
@@ -1340,7 +1326,6 @@ machines:
   - name: 已撤回
     terminal: true
   initial: 草稿
-  note: 已批准含福利型（周年贺卡）规则自动通过
   transitions:
   - from: 草稿
     to: 审批中

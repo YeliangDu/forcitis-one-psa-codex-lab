@@ -1,4 +1,4 @@
-# 人员组收敛产物（提议稿；由 parts/merge_converge.py 从分片合并，改分片后重跑，不手改本文件）
+# 人员组合并产物（由 parts/rebuild.py 从分片生成，不手改；改分片后重跑）
 entries:
 - object: AGG-69
   command: 导入考勤记录
