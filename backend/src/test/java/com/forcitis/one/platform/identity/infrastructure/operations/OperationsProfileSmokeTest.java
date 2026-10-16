@@ -21,6 +21,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @DisplayName("OperationsProfile: the identity-operations profile starts a context, runs one command and ends without jobs (B1-M12)")
 class OperationsProfileSmokeTest {
+    static final String OPERATOR_ID = "01900000-0000-7000-8000-00000000a001";
+    static final String WITNESS_ID = "01900000-0000-7000-8000-00000000a002";
+
 
     static final PostgreSQLContainer POSTGRES = TestPostgres.container()
             .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
@@ -68,7 +71,7 @@ class OperationsProfileSmokeTest {
     @Test
     @DisplayName("a command line without an operation ends with exit code 2, and the context has no job of identity, workforce or the event registry")
     void noOperationEndsWithTheUsageCode() {
-        Finished finished = run("--operator=alice", "--witness=bob");
+        Finished finished = run("--operator=" + OPERATOR_ID, "--witness=" + WITNESS_ID);
 
         assertThat(finished.exitCode()).isEqualTo(2);
         assertThat(finished.webServerPort()).as("B1-R3 the web part reports port -1; Tomcat still listens on an ephemeral port until OPS-PORT").isEqualTo(-1);
@@ -80,11 +83,11 @@ class OperationsProfileSmokeTest {
     @Test
     @DisplayName("a granting command ends with exit code 0, its event stays in the registry for the running application, and nothing was scheduled")
     void aCommandEndsCleanlyAndItsEventIsNotLost() {
-        run("--operator=alice", "--witness=bob");
+        run("--operator=" + OPERATOR_ID, "--witness=" + WITNESS_ID);
         JdbcClient jdbc = JdbcClient.create(new DriverManagerDataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()));
         jdbc.sql("insert into platform_identity.user_accounts (user_id, employee_id) values (" + com.forcitis.one.fixture.doubles.TestAccounts.sql(7) + "::uuid, " + TestOrgIds.sqlEmployee(7) + "::uuid) on conflict do nothing").update();
 
-        Finished finished = run("--operation=grant-role", "--employee-id=" + TestAccounts.employee(7).value(), "--role-code=business_admin", "--operator=alice", "--witness=bob");
+        Finished finished = run("--operation=grant-role", "--employee-id=" + TestAccounts.employee(7).value(), "--role-code=business_admin", "--operator=" + OPERATOR_ID, "--witness=" + WITNESS_ID);
 
         assertThat(finished.exitCode()).isZero();
         assertThat(finished.anyScheduledTask()).isFalse();
