@@ -1,0 +1,258 @@
+# B-31 状态机（收敛产物，提议稿）。AGG-115 按次级实体分 4 台机器（领用、调拨、使用期间、维修工单），根 it_asset_use_ledgers 只存当前使用人投影，无生命周期。
+# kind：forward 正向；reverse 逆向（驳回、撤回、放弃、重开、归还）。from 为空 = 创建。守卫引用 INV（聚合稿）、R-B31-n（分片 notes 规则卡候选，交 one-rules）、AR（APPROVAL_RULES）。
+# 自检（可达性、非终态到终态、流程步骤对转换）见 b31.notes.md「收敛自检」。
+
+bc: B-31
+machines:
+- aggregate: AGG-113
+  machine: seal_application
+  entity: seal_applications
+  states: [草稿, 审批中, 已批准, 已用印, 已关闭, 已驳回, 已撤回]
+  initial: [草稿]
+  terminal: [已关闭, 已驳回, 已撤回]
+  note: 草稿来自编辑页保存或迁入（在途清不完以草稿迁入）；保存草稿是编辑页行为，不是领域命令
+  transitions:
+  - from: 草稿
+    to: 审批中
+    command: 提交用印申请
+    guard: [R-B31-1]
+    kind: forward
+  - from: 审批中
+    to: 已批准
+    command: 批准用印申请
+    guard: [AR-11, AR-12]
+    kind: forward
+  - from: 审批中
+    to: 已驳回
+    command: 驳回用印申请
+    guard: []
+    kind: reverse
+  - from: 审批中
+    to: 已撤回
+    command: 撤回用印申请
+    guard: [仅申请人]
+    kind: reverse
+  - from: 已批准
+    to: 已用印
+    command: 登记用印
+    guard: [INV-118, INV-119, R-B31-2]
+    kind: forward
+  - from: 已用印
+    to: 已用印
+    command: 登记用印
+    guard: [INV-119, R-B31-2：仍有未用印份数]
+    kind: forward
+  - from: 已用印
+    to: 已关闭
+    command: 关闭用印申请
+    guard: [R-B31-2：份数到齐或确认放弃]
+    kind: forward
+- aggregate: AGG-114
+  machine: it_request
+  entity: it_requests
+  states: [草稿, 审批中, 已提交, 处理中, 已解决, 已关闭, 已退回, 已撤回]
+  initial: [草稿]
+  terminal: [已关闭, 已退回, 已撤回]
+  note: 已提交 = 待受理（常规类别提交后，或需审批类别批准后）；对应聚合稿状态「已提交」
+  transitions:
+  - from: 草稿
+    to: 审批中
+    command: 提交 IT 需求
+    guard: [R-B31-3：类别要求审批]
+    kind: forward
+  - from: 草稿
+    to: 已提交
+    command: 提交 IT 需求
+    guard: [R-B31-3：常规类别]
+    kind: forward
+  - from: 审批中
+    to: 已提交
+    command: 批准 IT 需求
+    guard: [AR-11, AR-12]
+    kind: forward
+  - from: 审批中
+    to: 已退回
+    command: 驳回 IT 需求
+    guard: []
+    kind: reverse
+  - from: 审批中
+    to: 已撤回
+    command: 撤回 IT 需求
+    guard: [仅提出人]
+    kind: reverse
+  - from: 已提交
+    to: 处理中
+    command: 受理 IT 需求
+    guard: [R-B31-4：受理时限〔推〕]
+    kind: forward
+  - from: 处理中
+    to: 已解决
+    command: 解决 IT 需求
+    guard: [INV-120：须有处理结论]
+    kind: forward
+  - from: 处理中
+    to: 已退回
+    command: 退回 IT 需求
+    guard: [需求不成立或无法实现]
+    kind: reverse
+  - from: 已解决
+    to: 已关闭
+    command: 关闭 IT 需求
+    guard: [INV-120, R-B31-4：超期自动关闭〔推〕]
+    kind: forward
+  - from: 已解决
+    to: 处理中
+    command: 受理 IT 需求
+    guard: [提出人反馈未解决（重开）]
+    kind: reverse
+- aggregate: AGG-115
+  machine: use_request
+  entity: it_asset_use_requests（申请类型=领用）
+  states: [草稿, 审批中, 已通过, 已领用, 已驳回, 已撤回]
+  initial: [草稿]
+  terminal: [已领用, 已驳回, 已撤回]
+  note: 已通过含标准配置内规则自动通过（未经审批）
+  transitions:
+  - from: 草稿
+    to: 审批中
+    command: 申请领用资产
+    guard: [R-B31-5：超出岗位标准配置, R-B31-6]
+    kind: forward
+  - from: 草稿
+    to: 已通过
+    command: 申请领用资产
+    guard: [R-B31-5：标准配置内自动通过, R-B31-6]
+    kind: forward
+  - from: 审批中
+    to: 已通过
+    command: 批准领用
+    guard: [AR-11, AR-12]
+    kind: forward
+  - from: 审批中
+    to: 已驳回
+    command: 驳回领用
+    guard: []
+    kind: reverse
+  - from: 审批中
+    to: 已撤回
+    command: 撤回领用
+    guard: [仅申请人]
+    kind: reverse
+  - from: 已通过
+    to: 已领用
+    command: 登记领用
+    guard: [INV-121, R-B31-6]
+    kind: forward
+- aggregate: AGG-115
+  machine: transfer_request
+  entity: it_asset_use_requests（申请类型=调拨）
+  states: [草稿, 已申请, 已调拨, 已转领用, 已撤销]
+  initial: [草稿]
+  terminal: [已调拨, 已转领用, 已撤销]
+  note: 调拨不设人审；已转领用 = 资产无当前使用人，改走 PRC-143 领用
+  transitions:
+  - from: 草稿
+    to: 已申请
+    command: 申请调拨资产
+    guard: [R-B31-6, R-B31-7]
+    kind: forward
+  - from: 草稿
+    to: 已转领用
+    command: 申请调拨资产
+    guard: [R-B31-7：资产无当前使用人]
+    kind: forward
+  - from: 已申请
+    to: 已调拨
+    command: 调拨资产
+    guard: [INV-121, R-B31-6]
+    kind: forward
+  - from: 已申请
+    to: 已撤销
+    command: 撤销调拨申请
+    guard: [调出使用人或资产管理员]
+    kind: reverse
+- aggregate: AGG-115
+  machine: use_period
+  entity: it_asset_use_periods
+  states: [在用, 已结束]
+  initial: [在用]
+  terminal: [已结束]
+  note: 期间由登记领用、调拨资产创建（from 为空表示创建）；同一卡片至多一个在用期间（INV-121，条件排除约束）
+  transitions:
+  - from: null
+    to: 在用
+    command: 登记领用
+    guard: [INV-121]
+    kind: forward
+  - from: null
+    to: 在用
+    command: 调拨资产
+    guard: [INV-121：调入方新期间，与结束旧期间同事务]
+    kind: forward
+  - from: 在用
+    to: 已结束
+    command: 调拨资产
+    guard: [INV-121：调出方旧期间]
+    kind: forward
+  - from: 在用
+    to: 已结束
+    command: 归还资产
+    guard: [R-B31-9：须有未结束期间]
+    kind: reverse
+    process_outcome: 已归还
+- aggregate: AGG-115
+  machine: repair_order
+  entity: it_asset_repair_orders
+  states: [草稿, 已报修, 已维修登记]
+  initial: [草稿]
+  terminal: [已维修登记]
+  note: 维修结果（已修复 / 无法修复）是工单属性，不分状态；无法修复的报废归 B-24
+  transitions:
+  - from: 草稿
+    to: 已报修
+    command: 报修资产
+    guard: [R-B31-8]
+    kind: forward
+  - from: 已报修
+    to: 已维修登记
+    command: 登记维修结果
+    guard: []
+    kind: forward
+- aggregate: AGG-116
+  machine: employee_activity
+  entity: employee_activity_requests
+  states: [草稿, 审批中, 已批准, 已完成, 已驳回, 已撤回]
+  initial: [草稿]
+  terminal: [已完成, 已驳回, 已撤回]
+  note: 已批准含福利型（周年贺卡）规则自动通过
+  transitions:
+  - from: 草稿
+    to: 审批中
+    command: 提交员工活动申请
+    guard: [R-B31-10：类型要求审批]
+    kind: forward
+  - from: 草稿
+    to: 已批准
+    command: 提交员工活动申请
+    guard: [R-B31-10：福利型自动通过]
+    kind: forward
+  - from: 审批中
+    to: 已批准
+    command: 批准员工活动申请
+    guard: [AR-01, AR-11, AR-12]
+    kind: forward
+  - from: 审批中
+    to: 已驳回
+    command: 驳回员工活动申请
+    guard: []
+    kind: reverse
+  - from: 审批中
+    to: 已撤回
+    command: 撤回员工活动申请
+    guard: [仅申请人]
+    kind: reverse
+  - from: 已批准
+    to: 已完成
+    command: 完成员工活动
+    guard: []
+    kind: forward

@@ -1,0 +1,576 @@
+# B-31 命令目录（收敛产物，提议稿；规格见 closeout/RESPONSIBILITY_MATRIX_SPEC.md 第 B 节）
+# 依据：b31.processes.yaml、b31.notes.md、聚合稿 AGG-113–116 命令列、data-model.people.yaml。命令名沿用聚合稿与分片，不自造；
+#   「name_status」非空的是〔缺〕命令：沿用分片提议名的 4 条（撤回用印申请、驳回 IT 需求、驳回领用、申请调拨资产），
+#   以及收敛时新增的 4 条（撤回 IT 需求、撤回领用、撤销调拨申请、撤回员工活动申请：分片只在审批步写了 withdraw 边，状态机需要命令落地）。
+# 发令权 authority 指向 b31.raci.yaml 的条目（A 取 SPEC 第 A 节口径）。kind：human 人发起；callback 审批平台回调；automatic 系统规则。
+# 「孤儿」= 未被任一流程步骤、事件策略或维护用到。本稿 0 个孤儿命令。
+
+bc: B-31
+aggregates: [AGG-113, AGG-114, AGG-115, AGG-116]
+commands:
+- name: 提交用印申请
+  aggregate: AGG-113
+  entity: seal_applications
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params: [印章类别, 用印法人, 用印事由, 用印文件（名称、份数、引用）, 申请份数, 来源业务单据（类型、ID，可空，不校验）]
+  preconditions:
+  - {ref: R-B31-1, text: 用印法人须为申请日有效法人主体，否则拒绝并留在草稿}
+  - {ref: 状态, text: 申请为草稿}
+  authority:
+    ref: raci:AGG-113/提交用印申请
+    A: {resolve: instance, field: 申请人}
+    R: [SH-E3]
+  idempotency_key: 申请ID（客户端预生成 UUIDv7；同一 ID 重复提交返回已有结果）
+  emits: （内部）
+  used_by: [PRC-139 第 1 步]
+  orphan: false
+- name: 批准用印申请
+  aggregate: AGG-113
+  entity: seal_applications
+  kind: callback
+  source: 聚合稿 AGG 命令列
+  params: [审批实例ID, 审批结果（通过）]
+  preconditions:
+  - {ref: 状态, text: 申请为审批中且审批实例ID一致}
+  - {ref: AR-11/AR-12, text: 审批人就是申请人上交其上级；负责人缺位上交上级组织负责人（APPROVAL_RULES，已有）}
+  authority:
+    ref: raci:AGG-113/批准用印申请
+    A: {resolve: instance, field: 申请人所在组织单元.负责人, alias: cost_object_owner}
+    R: [SH-M1]
+    approval: {approver: cost_object_owner, doc_type: 用印审批}
+  idempotency_key: 审批实例ID（同一审批实例重复回调不重复生效）
+  emits: 用印申请已批准
+  used_by: [PRC-139 第 2 步]
+  orphan: false
+- name: 驳回用印申请
+  aggregate: AGG-113
+  entity: seal_applications
+  kind: callback
+  source: 聚合稿 AGG 命令列
+  params: [审批实例ID, 驳回意见]
+  preconditions:
+  - {ref: 状态, text: 申请为审批中且审批实例ID一致}
+  authority:
+    ref: raci:AGG-113/驳回用印申请
+    A: {resolve: instance, field: 申请人所在组织单元.负责人, alias: cost_object_owner}
+    R: [platform.approval]
+  idempotency_key: 审批实例ID
+  emits: （内部）
+  used_by: [PRC-139 第 3 步]
+  orphan: false
+- name: 撤回用印申请
+  aggregate: AGG-113
+  entity: seal_applications
+  kind: human
+  name_status: 〔缺〕沿用分片提议名（notes 新用语）
+  source: 分片 b31.notes.md 新用语〔缺〕撤回用印申请（WithdrawSealApplication）
+  params: [申请ID, 撤回原因]
+  preconditions:
+  - {ref: 状态, text: 申请为审批中}
+  - {ref: 权限, text: 仅申请人本人}
+  authority:
+    ref: raci:AGG-113/撤回用印申请
+    A: {resolve: instance, field: 申请人}
+    R: [SH-E3]
+  idempotency_key: 申请ID（已撤回再撤回无操作）
+  emits: （内部）
+  used_by: [PRC-139 第 2 步（撤回边 withdraw）]
+  orphan: false
+- name: 登记用印
+  aggregate: AGG-113
+  entity: seal_usage_records
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params: [申请ID, 登记请求ID, 实际用印时间, 本次用印份数, 经办人, 盖章文件扫描件引用, 确认放弃剩余份数（是 / 否）]
+  preconditions:
+  - {ref: INV-118, text: 申请须已批准}
+  - {ref: INV-119, text: 累计登记份数不得超过批准份数}
+  - {ref: R-B31-2, text: 本次用印份数为 0 仅当确认放弃剩余份数〔推〕；达到批准份数或确认放弃后触发关闭}
+  - {ref: 职责分离, text: 经办人不得是申请人本人（PRC-139 segregation）}
+  authority:
+    ref: raci:AGG-113/登记用印
+    A: {resolve: type, role: SH-E6, function: 行政经办}
+    R: [SH-E6]
+  idempotency_key: 登记请求ID（客户端预生成 UUIDv7；重复登记返回已有登记行）
+  emits: 已用印
+  used_by: [PRC-139 第 4 步]
+  orphan: false
+- name: 关闭用印申请
+  aggregate: AGG-113
+  entity: seal_applications
+  kind: automatic
+  source: 聚合稿 AGG 命令列
+  params: [申请ID]
+  preconditions:
+  - {ref: R-B31-2, text: 累计登记份数已达批准份数，或经办人已确认放弃剩余份数；不设人工关闭}
+  authority:
+    ref: raci:AGG-113/关闭用印申请
+    A: {resolve: type, role: SH-E6, function: 行政经办}
+    R: [system]
+  idempotency_key: 申请ID（已关闭无操作）
+  emits: （内部）
+  used_by: [PRC-139 第 5 步]
+  orphan: false
+- name: 提交 IT 需求
+  aggregate: AGG-114
+  entity: it_requests
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params: [需求类别, 描述, 优先级]
+  preconditions:
+  - {ref: R-B31-3, text: 需求类别由受控类别表决定进审批（审批中）或直接受理（已提交）}
+  - {ref: 状态, text: 工单为草稿}
+  authority:
+    ref: raci:AGG-114/提交 IT 需求
+    A: {resolve: instance, field: 提出人}
+    R: [SH-E3]
+  idempotency_key: 工单ID（客户端预生成 UUIDv7）
+  emits: （内部）
+  used_by: [PRC-142 第 1 步]
+  orphan: false
+- name: 批准 IT 需求
+  aggregate: AGG-114
+  entity: it_requests
+  kind: callback
+  source: 聚合稿 AGG 命令列
+  params: [审批实例ID, 审批结果（通过）]
+  preconditions:
+  - {ref: 状态, text: 工单为审批中且审批实例ID一致}
+  - {ref: AR-11/AR-12, text: 同用印}
+  authority:
+    ref: raci:AGG-114/批准 IT 需求
+    A: {resolve: instance, field: 提出人所在组织单元.负责人, alias: cost_object_owner}
+    R: [SH-M1]
+    approval: {approver: cost_object_owner, doc_type: IT需求审批}
+  idempotency_key: 审批实例ID
+  emits: （内部）
+  used_by: [PRC-142 第 2 步]
+  orphan: false
+- name: 驳回 IT 需求
+  aggregate: AGG-114
+  entity: it_requests
+  kind: callback
+  name_status: 〔缺〕沿用分片提议名（notes 新用语）
+  source: 分片 b31.notes.md 新用语〔缺〕驳回 IT 需求（RejectItRequest）；与「退回 IT 需求」终态同为已退回，但发令方不同（审批回调 vs 信息部门），保留两条
+  params: [审批实例ID, 驳回意见]
+  preconditions:
+  - {ref: 状态, text: 工单为审批中且审批实例ID一致}
+  authority:
+    ref: raci:AGG-114/驳回 IT 需求
+    A: {resolve: instance, field: 提出人所在组织单元.负责人, alias: cost_object_owner}
+    R: [platform.approval]
+  idempotency_key: 审批实例ID
+  emits: （内部）
+  used_by: [PRC-142 第 7 步]
+  orphan: false
+- name: 撤回 IT 需求
+  aggregate: AGG-114
+  entity: it_requests
+  kind: human
+  name_status: 〔缺〕收敛新增，沿用分片命名模式，待 one-glossary 登记
+  source: 收敛新增（分片仅写 withdraw 边，无命令）
+  params: [工单ID, 撤回原因]
+  preconditions:
+  - {ref: 状态, text: 工单为审批中}
+  - {ref: 权限, text: 仅提出人本人}
+  authority:
+    ref: raci:AGG-114/撤回 IT 需求
+    A: {resolve: instance, field: 提出人}
+    R: [SH-E3]
+  idempotency_key: 工单ID
+  emits: （内部）
+  used_by: [PRC-142 第 2 步（撤回边 withdraw）]
+  orphan: false
+- name: 受理 IT 需求
+  aggregate: AGG-114
+  entity: it_requests
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params: [工单ID, 处理人, 重开说明（提出人反馈未解决时）]
+  preconditions:
+  - {ref: 状态, text: 工单为已提交；或已解决且提出人反馈未解决（重开，回处理中）}
+  - {ref: R-B31-4, text: 受理时限 2 个工作日〔推〕，逾期提醒信息部门负责人（B31-2）}
+  authority:
+    ref: raci:AGG-114/受理 IT 需求
+    A: {resolve: type, role: SH-E6, function: 信息（IT）资产管理员/处理人}
+    R: [SH-E6]
+  idempotency_key: 工单ID + 受理序号（重开后为新序号）
+  emits: （内部）
+  used_by: [PRC-142 第 3 步（重开经 第 5 步 判断出口回到第 3 步）]
+  orphan: false
+- name: 解决 IT 需求
+  aggregate: AGG-114
+  entity: it_request_handlings
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params: [工单ID, 处理时间, 处理说明, 处理结论]
+  preconditions:
+  - {ref: 状态, text: 工单为处理中}
+  - {ref: INV-120, text: 解决须写出处理结论（供关闭时校验）}
+  authority:
+    ref: raci:AGG-114/解决 IT 需求
+    A: {resolve: type, role: SH-E6, function: 信息（IT）资产管理员/处理人}
+    R: [SH-E6]
+  idempotency_key: 工单ID + 处理记录ID（客户端预生成 UUIDv7）
+  emits: IT 需求已解决
+  used_by: [PRC-142 第 4 步]
+  orphan: false
+- name: 关闭 IT 需求
+  aggregate: AGG-114
+  entity: it_requests
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params: [工单ID, 关闭方式（提出人确认 / 超期自动关闭）]
+  preconditions:
+  - {ref: INV-120, text: 关闭须有处理结论}
+  - {ref: R-B31-4, text: 解决后 5 日未确认自动关闭〔推〕（B31-2）}
+  authority:
+    ref: raci:AGG-114/关闭 IT 需求
+    A: {resolve: instance, field: 提出人}
+    R: [SH-E3, system]
+  idempotency_key: 工单ID（已关闭无操作）
+  emits: （内部）
+  used_by: [PRC-142 第 5 步]
+  orphan: false
+- name: 退回 IT 需求
+  aggregate: AGG-114
+  entity: it_requests
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params: [工单ID, 退回原因]
+  preconditions:
+  - {ref: 状态, text: 工单为处理中；需求不成立或无法实现}
+  authority:
+    ref: raci:AGG-114/退回 IT 需求
+    A: {resolve: type, role: SH-E6, function: 信息（IT）资产管理员/处理人}
+    R: [SH-E6]
+  idempotency_key: 工单ID（已退回无操作）
+  emits: （内部）
+  used_by: [PRC-142 第 6 步]
+  orphan: false
+- name: 申请领用资产
+  aggregate: AGG-115
+  entity: it_asset_use_requests
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params: [资产卡片ID（AGG-91，仅引用）, 使用人, 领用说明]
+  preconditions:
+  - {ref: R-B31-5, text: 资产类别在使用人岗位标准配置内则自动通过，超出才进审批（B31-5）}
+  - {ref: R-B31-6, text: 资产无未归还使用人，申请时提前拒绝（INV-121 的提前判定）}
+  - {ref: 卡片有效, text: 卡片存在、未处置、属 IT 资产类别（读 B-24）}
+  authority:
+    ref: raci:AGG-115/申请领用资产
+    A: {resolve: instance, field: 使用人}
+    R: [SH-E3]
+  idempotency_key: 申请ID（客户端预生成 UUIDv7）
+  emits: （内部）
+  used_by: [PRC-143 第 1 步]
+  orphan: false
+- name: 批准领用
+  aggregate: AGG-115
+  entity: it_asset_use_requests
+  kind: callback
+  source: 聚合稿 AGG 命令列
+  params: [审批实例ID, 审批结果（通过）]
+  preconditions:
+  - {ref: 状态, text: 申请为审批中且审批实例ID一致}
+  - {ref: AR-11/AR-12, text: 同用印}
+  authority:
+    ref: raci:AGG-115/批准领用
+    A: {resolve: instance, field: 申请人所在组织单元.负责人, alias: cost_object_owner}
+    R: [SH-M1]
+    approval: {approver: cost_object_owner, doc_type: IT资产领用审批}
+  idempotency_key: 审批实例ID
+  emits: （内部）
+  used_by: [PRC-143 第 2 步]
+  orphan: false
+- name: 驳回领用
+  aggregate: AGG-115
+  entity: it_asset_use_requests
+  kind: callback
+  name_status: 〔缺〕沿用分片提议名（notes 新用语）
+  source: 分片 b31.notes.md 新用语〔缺〕驳回领用（RejectAssetIssue）
+  params: [审批实例ID, 驳回意见]
+  preconditions:
+  - {ref: 状态, text: 申请为审批中且审批实例ID一致}
+  authority:
+    ref: raci:AGG-115/驳回领用
+    A: {resolve: instance, field: 申请人所在组织单元.负责人, alias: cost_object_owner}
+    R: [platform.approval]
+  idempotency_key: 审批实例ID
+  emits: （内部）
+  used_by: [PRC-143 第 4 步]
+  orphan: false
+- name: 撤回领用
+  aggregate: AGG-115
+  entity: it_asset_use_requests
+  kind: human
+  name_status: 〔缺〕收敛新增，沿用分片命名模式，待 one-glossary 登记
+  source: 收敛新增（分片仅写 withdraw 边，无命令）
+  params: [申请ID, 撤回原因]
+  preconditions:
+  - {ref: 状态, text: 申请为审批中}
+  - {ref: 权限, text: 仅申请人本人}
+  authority:
+    ref: raci:AGG-115/撤回领用
+    A: {resolve: instance, field: 使用人}
+    R: [SH-E3]
+  idempotency_key: 申请ID
+  emits: （内部）
+  used_by: [PRC-143 第 2 步（撤回边 withdraw）]
+  orphan: false
+- name: 登记领用
+  aggregate: AGG-115
+  entity: it_asset_use_periods
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params: [申请ID, 领用人签收, 交付日期（使用期间起始日）, 设备实物状态]
+  preconditions:
+  - {ref: INV-121, text: 同一资产同一时刻只有一个使用人，使用期间不重叠}
+  - {ref: R-B31-6, text: 登记时兜底拒绝已有未归还使用人的资产}
+  - {ref: 状态, text: 申请为已通过（标准配置内自动通过，或审批通过）}
+  - {ref: 职责分离, text: 使用人不得登记自己的领用}
+  authority:
+    ref: raci:AGG-115/登记领用
+    A: {resolve: type, role: SH-E6, function: 信息（IT）资产管理员/处理人}
+    R: [SH-E6]
+  idempotency_key: 申请ID（同一申请只开一个使用期间）
+  emits: 资产已领用
+  used_by: [PRC-143 第 3 步]
+  orphan: false
+- name: 申请调拨资产
+  aggregate: AGG-115
+  entity: it_asset_use_requests
+  kind: human
+  name_status: 〔缺〕沿用分片提议名（notes 新用语）
+  source: 分片 b31.notes.md 新用语〔缺〕申请调拨资产（RequestAssetTransfer）
+  params: [资产卡片ID, 调出使用人, 调入使用人, 调拨说明]
+  preconditions:
+  - {ref: R-B31-7, text: 调入使用人须在调拨日在职；资产无当前使用人转领用；跨组织单元通知两侧负责人}
+  - {ref: R-B31-6, text: 调出方须为当前使用人}
+  authority:
+    ref: raci:AGG-115/申请调拨资产
+    A: {resolve: instance, field: 调出使用人}
+    R: [SH-E3]
+  idempotency_key: 申请ID（客户端预生成 UUIDv7）
+  emits: （内部）
+  used_by: [PRC-143B 第 1 步]
+  orphan: false
+- name: 撤销调拨申请
+  aggregate: AGG-115
+  entity: it_asset_use_requests
+  kind: human
+  name_status: 〔缺〕收敛新增，沿用分片命名模式，待 one-glossary 登记
+  source: 收敛新增（分片仅写 withdraw 边，无命令）
+  params: [申请ID, 撤销原因]
+  preconditions:
+  - {ref: 状态, text: 申请为已申请（未登记交接）}
+  - {ref: 权限, text: 调出使用人或资产管理员}
+  authority:
+    ref: raci:AGG-115/撤销调拨申请
+    A: {resolve: instance, field: 调出使用人}
+    R: [SH-E3, SH-E6]
+  idempotency_key: 申请ID
+  emits: （内部）
+  used_by: [PRC-143B 第 1 步（撤回边 withdraw）]
+  orphan: false
+- name: 调拨资产
+  aggregate: AGG-115
+  entity: it_asset_use_periods
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params: [申请ID, 调出方与调入方交接确认, 交接日期]
+  preconditions:
+  - {ref: INV-121, text: 同一事务结束调出方使用期间并开启调入方使用期间}
+  - {ref: R-B31-6, text: 调出方须为该资产当前使用人，否则拒绝}
+  - {ref: 职责分离, text: 调出使用人不得登记自己的调拨}
+  authority:
+    ref: raci:AGG-115/调拨资产
+    A: {resolve: type, role: SH-E6, function: 信息（IT）资产管理员/处理人}
+    R: [SH-E6]
+  idempotency_key: 申请ID（同一申请只换一次使用人）
+  emits: 资产已调拨
+  used_by: [PRC-143B 第 2 步]
+  orphan: false
+- name: 归还资产
+  aggregate: AGG-115
+  entity: it_asset_use_periods
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params: [资产卡片ID, 归还验收人, 归还日期, 归还时设备状态]
+  preconditions:
+  - {ref: R-B31-9, text: 资产须有未结束的使用期间，否则拒绝（待办重复或已先行归还）}
+  - {ref: 职责分离, text: 资产管理员不得验收登记自己名下资产的归还}
+  authority:
+    ref: raci:AGG-115/归还资产
+    A: {resolve: type, role: SH-E6, function: 信息（IT）资产管理员/处理人}
+    R: [SH-E6]
+  idempotency_key: 使用期间ID（已结束无操作）
+  emits: 资产已归还
+  used_by: [PRC-143C 第 1 步]
+  orphan: false
+- name: 报修资产
+  aggregate: AGG-115
+  entity: it_asset_repair_orders
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params: [资产卡片ID, 报修人, 故障描述]
+  preconditions:
+  - {ref: R-B31-8, text: 报修人须为该资产当前使用人（资产管理员代报时选使用人）}
+  authority:
+    ref: raci:AGG-115/报修资产
+    A: {resolve: instance, field: 使用人}
+    R: [SH-E3]
+  idempotency_key: 维修工单ID（客户端预生成 UUIDv7）
+  emits: （内部）
+  used_by: [PRC-143D 第 1 步]
+  orphan: false
+- name: 登记维修结果
+  aggregate: AGG-115
+  entity: it_asset_repair_orders
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params: [维修工单ID, 维修结果（已修复 / 无法修复）, 完成日期, 维修单或发票引用]
+  preconditions:
+  - {ref: 状态, text: 工单为已报修}
+  authority:
+    ref: raci:AGG-115/登记维修结果
+    A: {resolve: type, role: SH-E6, function: 信息（IT）资产管理员/处理人}
+    R: [SH-E6]
+  idempotency_key: 维修工单ID（已登记无操作）
+  emits: （内部）
+  used_by: [PRC-143D 第 2 步]
+  orphan: false
+- name: 提交员工活动申请
+  aggregate: AGG-116
+  entity: employee_activity_requests
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params: [活动类型码, 参与人, 说明, 费用预估引用（只记录）]
+  preconditions:
+  - {ref: R-B31-10, text: 活动类型由受控类型表决定进审批；福利型（周年贺卡）只登记，自动通过（B31-8）}
+  authority:
+    ref: raci:AGG-116/提交员工活动申请
+    A: {resolve: instance, field: 申请人}
+    R: [SH-E3]
+  idempotency_key: 申请ID（客户端预生成 UUIDv7）
+  emits: （内部）
+  used_by: [PRC-144 第 1 步]
+  orphan: false
+- name: 批准员工活动申请
+  aggregate: AGG-116
+  entity: employee_activity_requests
+  kind: callback
+  source: 聚合稿 AGG 命令列
+  params: [审批实例ID, 审批结果（通过）]
+  preconditions:
+  - {ref: 状态, text: 申请为审批中且审批实例ID一致}
+  - {ref: AR-01/AR-11/AR-12, text: 费用预估超单据类型阈值命中 AR-01 加审（阈值待财务）；AR-11、AR-12 同用印}
+  authority:
+    ref: raci:AGG-116/批准员工活动申请
+    A: {resolve: instance, field: 申请人所在组织单元.负责人, alias: cost_object_owner}
+    R: [SH-M1]
+    approval: {approver: cost_object_owner, doc_type: 员工活动审批}
+  idempotency_key: 审批实例ID
+  emits: 员工活动申请已批准
+  used_by: [PRC-144 第 2 步]
+  orphan: false
+- name: 驳回员工活动申请
+  aggregate: AGG-116
+  entity: employee_activity_requests
+  kind: callback
+  source: 聚合稿 AGG 命令列
+  params: [审批实例ID, 驳回意见]
+  preconditions:
+  - {ref: 状态, text: 申请为审批中且审批实例ID一致}
+  authority:
+    ref: raci:AGG-116/驳回员工活动申请
+    A: {resolve: instance, field: 申请人所在组织单元.负责人, alias: cost_object_owner}
+    R: [platform.approval]
+  idempotency_key: 审批实例ID
+  emits: （内部）
+  used_by: [PRC-144 第 4 步]
+  orphan: false
+- name: 撤回员工活动申请
+  aggregate: AGG-116
+  entity: employee_activity_requests
+  kind: human
+  name_status: 〔缺〕收敛新增，沿用分片命名模式，待 one-glossary 登记
+  source: 收敛新增（分片仅写 withdraw 边，无命令）
+  params: [申请ID, 撤回原因]
+  preconditions:
+  - {ref: 状态, text: 申请为审批中}
+  - {ref: 权限, text: 仅申请人本人}
+  authority:
+    ref: raci:AGG-116/撤回员工活动申请
+    A: {resolve: instance, field: 申请人}
+    R: [SH-E3]
+  idempotency_key: 申请ID
+  emits: （内部）
+  used_by: [PRC-144 第 2 步（撤回边 withdraw）]
+  orphan: false
+- name: 完成员工活动
+  aggregate: AGG-116
+  entity: employee_activity_requests
+  kind: human
+  source: 聚合稿 AGG 命令列
+  params: [申请ID, 活动完成确认, 实际参与人〔推〕]
+  preconditions:
+  - {ref: 状态, text: 申请为已批准（审批通过或福利型自动通过）}
+  authority:
+    ref: raci:AGG-116/完成员工活动
+    A: {resolve: type, role: SH-E6, function: 行政}
+    R: [SH-E6]
+  idempotency_key: 申请ID（已完成无操作）
+  emits: （内部）
+  used_by: [PRC-144 第 3 步]
+  orphan: false
+event_policies:
+- name: 离职生成归还待办
+  trigger_event: Separated（B-13 发布）
+  effect: 为该员工名下每件有未结束使用期间的资产生成一个 PRC-143C 实例（归还待办）；非聚合命令，待办出现即第 1 步开始
+  uses_command: 归还资产
+  used_by: [PRC-143C 触发器]
+  rules: [R-B31-9]
+  note: 订阅 B-13 Separated 的边需 one-architecture 补登（分片接缝问题 3）
+- name: 审批通过回调
+  trigger_event: 审批已通过（platform.approval）
+  effect: 调用对应的批准命令
+  uses_command: 批准用印申请 / 批准 IT 需求 / 批准领用 / 批准员工活动申请
+  used_by: [PRC-139、142、143、144 的批准步]
+  rules: []
+  note: 回调走事件或注册处理器，platform 不依赖 B-31（分片接缝问题 5）
+- name: 审批驳回回调
+  trigger_event: 审批已驳回（platform.approval）
+  effect: 调用对应的驳回命令
+  uses_command: 驳回用印申请 / 驳回 IT 需求 / 驳回领用 / 驳回员工活动申请
+  used_by: [PRC-139 第 3 步、PRC-142 第 7 步、PRC-143 第 4 步、PRC-144 第 4 步]
+  rules: []
+  note: ''
+- name: 审批撤回回调
+  trigger_event: 审批已撤回（platform.approval 通用撤回，事件名由 platform 定）
+  effect: 调用对应的撤回命令
+  uses_command: 撤回用印申请 / 撤回 IT 需求 / 撤回领用 / 撤回员工活动申请
+  used_by: [各审批步 withdraw 边]
+  rules: []
+  note: 事件名以 platform.approval 事件目录为准，本稿不自造
+- name: 关闭超时
+  trigger_event: 定时：解决后 P5D 未确认
+  effect: 系统代发关闭 IT 需求（关闭方式=超期自动关闭）
+  uses_command: 关闭 IT 需求
+  used_by: [PRC-142 第 5 步 timeout]
+  rules: [R-B31-4]
+  note: ''
+- name: 用印份数到齐关闭
+  trigger_event: 已用印（本聚合内部）
+  effect: 累计份数达批准份数或确认放弃后系统发关闭用印申请
+  uses_command: 关闭用印申请
+  used_by: [PRC-139 第 5 步]
+  rules: [R-B31-2]
+  note: ''
+removed:
+- {name: 批准调拨, from: 分片 b31.notes.md 新用语（已取消）, reason: 用户新原则：调拨不设人工审批，由规则守卫（PRC-143B）, action: 删除；已登记交 one-glossary 的请撤回}
+- {name: 驳回调拨, from: 同上, reason: 同上, action: 删除；已登记交 one-glossary 的请撤回}
+- {name: 生成归还待办, from: 分片早稿（已取消）, reason: 事件 Separated 直接启动 PRC-143C 实例，不是聚合命令, action: 改为事件策略（见 event_policies）}
+orphans: []

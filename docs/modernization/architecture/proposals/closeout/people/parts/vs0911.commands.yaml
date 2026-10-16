@@ -1,0 +1,307 @@
+# vs0911 命令目录（收敛产物，提议稿）：AGG-79 经营计划版本、AGG-80 预算账户、AGG-107 知识条目。
+# 格式依 RESPONSIBILITY_MATRIX_SPEC 第 B 节。命令名取聚合稿；〔缺〕为聚合稿没有、沿用 vs0911.notes.md「新用语」的提议名。
+# 发令权 raci_A 与 vs0911.raci.yaml 一致（那里是唯一来源，此处只引用）。前置条件：INV 编号 = 聚合稿不变量；「候选规则」= vs0911.notes.md 结构问题 9 的候选规则卡（交 one-rules）。
+# 步骤引用格式 PRC-NN#n = 该流程第 n 步（vs0911.processes.yaml）。
+
+commands:
+
+  # ───────────── AGG-79 经营计划版本 ─────────────
+  - name: 编制经营计划版本
+    aggregate: AGG-79
+    status: 聚合稿已有
+    params: [计划（新建时给目标类型与计划周期）, 归属组织单元, 目标值（组织 × 期间 × 指标）, 经营动作, 被取代版本引用（调整时）]
+    preconditions:
+      - {ref: INV-101, desc: 已基线的版本不得修改；复盘后调整另起新版本}
+      - {ref: 候选规则-编制人不审自己, desc: 见 notes 结构问题 9（属提交与审批，不在本命令）}
+    raci_A: {resolve: instance, field: 经营计划版本.归属组织单元.负责人}
+    raci_R: [SH-M1]
+    idempotency_key: 创建=请求ID；编辑=版本ID + 乐观锁版本
+    emits: []
+    used_by: [PRC-88#1]
+    orphan: false
+
+  - name: 〔缺〕提交经营计划审批
+    aggregate: AGG-79
+    status: 〔缺〕（notes 新用语 submit_business_plan_for_approval；gap G-02）
+    params: [版本ID]
+    preconditions:
+      - {ref: INV-101, desc: 仅编制中的版本可提交}
+      - {ref: 候选规则-目标值完整, desc: 目标值按组织 × 期间 × 指标填齐（沿 PRC-107 提交评审同类必填校验的写法，待 one-rules 定）}
+    raci_A: {resolve: instance, field: 经营计划版本.归属组织单元.负责人}
+    raci_R: [SH-M1]
+    idempotency_key: 版本ID（已审批中则幂等返回）
+    emits: []
+    cross_bc_out: [platform.approval 提交审批]
+    used_by: [PRC-88#2]
+    orphan: false
+
+  - name: 〔缺〕撤回经营计划审批
+    aggregate: AGG-79
+    status: 〔缺〕（notes 新用语 withdraw_business_plan_approval）
+    params: [版本ID]
+    preconditions:
+      - {ref: 版本状态, desc: 审批未结束（审批中）}
+      - {ref: 平台能力, desc: platform.approval 能取消审批实例（接缝问题，同请假撤销）}
+    raci_A: {resolve: instance, field: 经营计划版本.归属组织单元.负责人}
+    raci_R: [SH-M1]
+    idempotency_key: 版本ID + 审批实例ID
+    emits: []
+    used_by: [PRC-88#3（withdraw）]
+    orphan: false
+
+  - name: 〔缺〕驳回经营计划审批
+    aggregate: AGG-79
+    status: 〔缺〕（notes 新用语 reject_business_plan；审批平台回调）
+    params: [版本ID, 审批实例ID, 驳回意见]
+    preconditions:
+      - {ref: 版本状态, desc: 审批中}
+    raci_A: {resolve: instance, field: 经营计划版本.归属组织单元.负责人}
+    raci_R: [platform.approval（回调）]
+    idempotency_key: 审批实例ID
+    emits: []
+    cross_bc_in: [platform.approval 审批已驳回（事件，方向待 one-architecture 确认，notes 接缝问题 3、6）]
+    used_by: [PRC-88#4]
+    orphan: false
+
+  - name: 〔缺〕通过经营计划审批
+    aggregate: AGG-79
+    status: 〔缺〕（notes 新用语 approve_business_plan；审批平台回调）
+    params: [版本ID, 审批实例ID]
+    preconditions:
+      - {ref: 版本状态, desc: 审批中}
+      - {ref: 候选规则-编制人不审自己, desc: 审批人不得是编制人（AR-11 改指上级），由审批平台在派单时守卫，回调只收结果}
+    raci_A: {resolve: instance, field: 经营计划版本.归属组织单元.负责人}
+    raci_R: [platform.approval（回调）]
+    idempotency_key: 审批实例ID
+    emits: []
+    cross_bc_in: [platform.approval 审批已通过（事件）]
+    used_by: [PRC-88#5]
+    orphan: false
+
+  - name: 基线化经营计划
+    aggregate: AGG-79
+    status: 聚合稿已有
+    params: [版本ID]
+    preconditions:
+      - {ref: INV-101, desc: 基线不可变，只出新版本；基线化后同计划上一基线版本变被取代}
+      - {ref: 候选规则-审批通过自动基线化, desc: 审批已通过即自动执行，不设人工确认（待用户定 9）}
+    raci_A: {resolve: instance, field: 经营计划版本.归属组织单元.负责人}
+    raci_R: [system]
+    idempotency_key: 版本ID
+    emits: [经营计划已基线化]
+    used_by: [PRC-88#6]
+    orphan: false
+
+  - name: 编制预测版本
+    aggregate: AGG-79
+    status: 聚合稿已有
+    params: [计划周期, 人员, 目标值（人员 × 期间 × 指标）, 滚动序号]
+    preconditions:
+      - {ref: 候选规则-预测不审批, desc: 预测是预期不是承诺，每次滚动即新版本，不设审批（待用户定 4）}
+      - {ref: INV-101, desc: 只追加新版本，已编制版本不被改写}
+    raci_A: {resolve: instance, field: 预测人员.直属上级}
+    raci_R: [SH-E5]
+    idempotency_key: 人员ID + 计划周期 + 滚动序号
+    emits: []
+    used_by: [PRC-89#1]
+    orphan: false
+
+  - name: 编制现金流预测
+    aggregate: AGG-79
+    status: 聚合稿已有
+    params: [计划周期, 现金流指标目标值, 所依当期销售预测版本引用]
+    preconditions:
+      - {ref: 流程顺序, desc: 在当期销售预测版本之后编制（PRC-89#2 接在#1 之后）}
+      - {ref: INV-101, desc: 只追加新版本}
+    raci_A: {resolve: type, role: 财务负责人}
+    raci_R: [SH-E6]
+    idempotency_key: 计划周期 + 滚动序号
+    emits: []
+    used_by: [PRC-89#2]
+    orphan: false
+
+  # ───────────── AGG-80 预算账户 ─────────────
+  - name: 开立预算账户
+    aggregate: AGG-80
+    status: 聚合稿已有
+    params: [预算基线版本引用, 预算主体（组织单元、预算科目）, 预算期间, 初始额度]
+    preconditions:
+      - {ref: INV-101, desc: 所依版本须为已基线的预算类型版本}
+      - {ref: 候选规则-预算类型分流, desc: 仅目标类型为预算的基线可开立；其他类型不开户（PRC-88#6 分流）}
+      - {ref: 候选规则-额度不超基线, desc: 各账户额度合计不超基线额度总额（预算分解）}
+    raci_A: {resolve: type, role: 财务负责人}
+    raci_R: [SH-E6]
+    idempotency_key: 预算基线版本ID + 预算主体 + 预算期间
+    emits: []
+    used_by: [PRC-88#7]
+    orphan: false
+
+  - name: 调整预算
+    aggregate: AGG-80
+    status: 聚合稿已有（口径待定：词表「预算调整」= 基线新版本，notes 结构问题 2）
+    params: [预算账户, 调整额, 原因]
+    preconditions:
+      - {ref: 候选规则-额度总额内调剂, desc: 只在该预算基线已定额度总额内调剂；超出或要改目标值即拒绝并提示走新版本（INV-101 路径）；留审计}
+    raci_A: {resolve: type, role: 财务负责人}
+    raci_R: [SH-E6]
+    idempotency_key: 调整请求ID
+    emits: [BudgetAdjusted]
+    used_by: [PRC-88#8]
+    orphan: false
+
+  - name: 预算占用
+    aggregate: AGG-80
+    status: 聚合稿已有
+    params: [预算账户, 占用额, 占用方类型, 占用方单据ID（不校验）]
+    preconditions:
+      - {ref: G-3, desc: 超可用额度拦截还是预警待定（待用户定 1；推荐预警：照记并返回是否超额标志；拦截则补 INV-102）}
+      - {ref: AR-03 / RULE-406, desc: 超预算只预警，不审批}
+    raci_A: {resolve: type, role: 财务负责人}
+    raci_R: [system（B-11 供方协议、B-12 费用报销经 api 调用）]
+    idempotency_key: 占用方类型 + 占用方单据ID + 行号
+    emits: [BudgetReserved]
+    used_by: [PRC-88#7（仅 cross_bc 入口声明）, PRC-70（他组，未核）, PRC-87（他组，未核）]
+    orphan: false
+    note: 命令的发起步骤在 B-11、B-12 的流程（PRC-70、PRC-87），不在本片段；合并稿 processes.people.yaml 仅有 PRC-88 的入口声明。
+
+  - name: 释放预算占用
+    aggregate: AGG-80
+    status: 聚合稿已有
+    params: [占用ID, 释放原因]
+    preconditions:
+      - {ref: 占用状态, desc: 占用中}
+    raci_A: {resolve: type, role: 财务负责人}
+    raci_R: [system（B-11、B-12 驳回、作废、终止时；孤儿占用定时释放与对账）]
+    idempotency_key: 占用ID
+    emits: [BudgetReleased]
+    used_by: [PRC-70（他组，未核）, PRC-87（他组，未核）]
+    orphan: false
+    note: 同预算占用，发起步骤不在本片段；额度占用模式要求孤儿占用定时释放与对账兜底（聚合稿 §额度占用）。
+
+  - name: 〔缺〕消耗预算占用
+    aggregate: AGG-80
+    status: 〔缺〕（聚合稿事件列有 BudgetConsumed，命令列无对应命令；名为本稿提议，沿用事件名译，待 one-glossary 核）
+    params: [占用ID, 消耗额]
+    preconditions:
+      - {ref: 占用状态, desc: 占用中}
+    raci_A: {resolve: type, role: 财务负责人}
+    raci_R: [system]
+    idempotency_key: 占用ID + 消耗事件ID
+    emits: [BudgetConsumed]
+    used_by: []
+    orphan: true
+    note: 孤儿：本片段无步骤，PRC-70、PRC-87 是否有消耗步骤未核；交 one-architecture 定命令名与归属。
+
+  # ───────────── AGG-107 知识条目 ─────────────
+  - name: 创建知识条目
+    aggregate: AGG-107
+    status: 聚合稿已有
+    params: [类别, 来源复盘ID（可选，只记录不校验）]
+    preconditions:
+      - {ref: 必填, desc: 类别必填}
+    raci_A: {resolve: instance, field: 知识条目.归属组织单元.负责人}
+    raci_R: [SH-E4, SH-E2（经 B-04 提炼入口调用同一命令）]
+    idempotency_key: 请求ID（提炼入口用 来源复盘ID + 请求ID）
+    emits: []
+    cross_bc_in: [B-04 创建知识条目（api）]
+    used_by: [PRC-107#1]
+    orphan: false
+    merge_note: 与「起草知识条目」不合并：创建出条目与首版本，起草是改版本内容；聚合稿分列，流程也分两步。
+
+  - name: 起草知识条目
+    aggregate: AGG-107
+    status: 聚合稿已有
+    params: [版本ID, 标题与内容, 适用范围, 有效期]
+    preconditions:
+      - {ref: INV-115, desc: 已发布的版本不得修改（只能起草中版本）}
+    raci_A: {resolve: instance, field: 知识条目.归属组织单元.负责人}
+    raci_R: [SH-E4, SH-E3]
+    idempotency_key: 版本ID + 乐观锁版本
+    emits: []
+    used_by: [PRC-107#2]
+    orphan: false
+
+  - name: 提交知识条目评审
+    aggregate: AGG-107
+    status: 聚合稿已有
+    params: [版本ID]
+    preconditions:
+      - {ref: 候选规则-必填校验, desc: 类别、适用范围、有效期缺一不得提交；案例类含客户信息须脱敏确认（待用户定 6）}
+    raci_A: {resolve: instance, field: 知识条目.归属组织单元.负责人}
+    raci_R: [SH-E4]
+    idempotency_key: 版本ID（已评审中则幂等返回）
+    emits: []
+    used_by: [PRC-107#3]
+    orphan: false
+
+  - name: 评审知识条目
+    aggregate: AGG-107
+    status: 聚合稿已有
+    params: [版本ID, 评审结论（通过 / 退回）, 意见]
+    preconditions:
+      - {ref: 候选规则-评审人不是起草人, desc: 评审人不得是起草人本人；责任人就是起草人时由系统改指其上级（AR-11），责任人缺位改指上级组织负责人（AR-12）}
+      - {ref: INV-115, desc: 已发布版本不得修改}
+    raci_A: {resolve: instance, field: 知识条目.归属组织单元.负责人}
+    raci_R: [SH-E4]
+    idempotency_key: 版本ID + 评审轮次
+    emits: []
+    cross_bc_out: [B-13 读取审批人（api）]
+    used_by: [PRC-107#4]
+    orphan: false
+    note: 聚合内单级评审，不经 platform.approval（notes 结构问题 1、8）。
+
+  - name: 〔缺〕退回知识条目
+    aggregate: AGG-107
+    status: 〔缺〕（notes 新用语 return_knowledge_entry；v1 注明无独立命令）
+    params: [版本ID, 退回意见]
+    preconditions:
+      - {ref: 版本状态, desc: 评审中}
+    raci_A: {resolve: instance, field: 知识条目.归属组织单元.负责人}
+    raci_R: [SH-E4]
+    idempotency_key: 版本ID + 评审轮次
+    emits: []
+    used_by: [PRC-107#5]
+    orphan: false
+    merge_note: 可并入「评审知识条目」（结论=退回）；聚合稿未并，保留独立命令等 one-architecture 裁定。
+
+  - name: 发布知识条目
+    aggregate: AGG-107
+    status: 聚合稿已有
+    params: [版本ID]
+    preconditions:
+      - {ref: INV-115, desc: 已发布版本不得修改；发布新版本时其引用的被取代版本变被取代}
+      - {ref: 版本状态, desc: 已评审通过}
+    raci_A: {resolve: instance, field: 知识条目.归属组织单元.负责人}
+    raci_R: [SH-E4]
+    idempotency_key: 版本ID
+    emits: [知识条目已发布]
+    cross_bc_in: [B-02、B-03、B-04、B-28 校验知识条目版本存在且未废止（api）]
+    used_by: [PRC-107#6]
+    orphan: false
+
+  - name: 修订知识条目
+    aggregate: AGG-107
+    status: 聚合稿已有
+    params: [被取代版本引用, 修订原因]
+    preconditions:
+      - {ref: INV-115, desc: 只能由已发布版本修订，产生新版本，须重新评审}
+    raci_A: {resolve: instance, field: 知识条目.归属组织单元.负责人}
+    raci_R: [SH-E4]
+    idempotency_key: 被取代版本ID + 请求ID
+    emits: [知识条目已修订]
+    used_by: [PRC-107#7]
+    orphan: false
+
+  - name: 废止知识条目
+    aggregate: AGG-107
+    status: 聚合稿已有
+    params: [版本ID, 废止原因]
+    preconditions:
+      - {ref: INV-115, desc: 废止后不得被新引用，已有引用不受影响}
+      - {ref: 版本状态, desc: 已发布}
+    raci_A: {resolve: instance, field: 知识条目.归属组织单元.负责人}
+    raci_R: [SH-E4]
+    idempotency_key: 版本ID
+    emits: [知识条目已废止]
+    used_by: [PRC-107#8]
+    orphan: false

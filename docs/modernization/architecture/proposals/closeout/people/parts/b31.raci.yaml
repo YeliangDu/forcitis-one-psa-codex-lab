@@ -1,0 +1,309 @@
+# B-31 权责对照条目（收敛产物，提议稿；格式依 closeout/RESPONSIBILITY_MATRIX_SPEC.md 第 A 节）
+# 口径：每个「对象×命令」恰一个 A。审批类命令（批准用印申请、批准 IT 需求、批准领用、批准员工活动申请）A = 实例级 cost_object_owner
+#   （申请人 / 提出人所在组织单元的负责人），与 b31.processes.yaml 骨架 approval.approver 一致，escalation_rules 对应 boundary.delegate=AR-11、escalate=AR-12。
+#   驳回类命令是审批人决定的回调落地，A 同批准，R=platform.approval。非审批命令 A 取发起或执行方（A 持发令权，不持审批权）。
+#   本组无命令属 ADR-0032 敏感权限（sensitive 全 false，待 one-rules / 安全复核）。岗位到人的映射待岗位体系重梳（ADR-0029 搁置），roles 只记 org_needs。
+
+entries:
+- object: AGG-113
+  command: 提交用印申请
+  raci:
+    A: {resolve: instance, field: 申请人}
+    R: [SH-E3]
+    C: []
+    I: []
+  sensitive: false
+- object: AGG-113
+  command: 批准用印申请
+  raci:
+    A: {resolve: instance, field: 申请人所在组织单元.负责人, alias: cost_object_owner}
+    R: [SH-M1]
+    C: []
+    I: [SH-E3]
+  boundary:
+    limit_rule: （无金额限额）
+    pending: 'B31-1：是否按印章类别加一级（需新增 guard: approval 规则）'
+    segregation: [提交人 ≠ A]
+    delegate: {when: AR-11, to: 汇报线上级}
+    escalate: {when: AR-12, to: 上级组织负责人}
+  sensitive: false
+  approval: {approver: cost_object_owner, doc_type: 用印审批}
+- object: AGG-113
+  command: 驳回用印申请
+  raci:
+    A: {resolve: instance, field: 申请人所在组织单元.负责人, alias: cost_object_owner}
+    R: [platform.approval]
+    C: []
+    I: [SH-E3]
+  sensitive: false
+  note: 审批人的驳回决定经审批平台回调落地，A 同批准
+- object: AGG-113
+  command: 撤回用印申请
+  raci:
+    A: {resolve: instance, field: 申请人}
+    R: [SH-E3]
+    C: []
+    I: []
+  sensitive: false
+- object: AGG-113
+  command: 登记用印
+  raci:
+    A: {resolve: type, role: SH-E6, function: 行政经办}
+    R: [SH-E6]
+    C: []
+    I: [SH-E3]
+  boundary:
+    segregation: [经办人 ≠ 申请人]
+  sensitive: false
+  note: 盖章在系统外，系统登记并卡份数（INV-119）
+- object: AGG-113
+  command: 关闭用印申请
+  raci:
+    A: {resolve: type, role: SH-E6, function: 行政经办}
+    R: [system]
+    C: []
+    I: [SH-E3]
+  sensitive: false
+  note: 规则自动关闭，不设人工关闭；A 为对用印登记负责的行政经办角色
+- object: AGG-114
+  command: 提交 IT 需求
+  raci:
+    A: {resolve: instance, field: 提出人}
+    R: [SH-E3]
+    C: []
+    I: []
+  sensitive: false
+- object: AGG-114
+  command: 批准 IT 需求
+  raci:
+    A: {resolve: instance, field: 提出人所在组织单元.负责人, alias: cost_object_owner}
+    R: [SH-M1]
+    C: []
+    I: [SH-E3]
+  boundary:
+    segregation: [提交人 ≠ A]
+    delegate: {when: AR-11, to: 汇报线上级}
+    escalate: {when: AR-12, to: 上级组织负责人}
+  sensitive: false
+  approval: {approver: cost_object_owner, doc_type: IT需求审批}
+- object: AGG-114
+  command: 驳回 IT 需求
+  raci:
+    A: {resolve: instance, field: 提出人所在组织单元.负责人, alias: cost_object_owner}
+    R: [platform.approval]
+    C: []
+    I: [SH-E3]
+  sensitive: false
+- object: AGG-114
+  command: 撤回 IT 需求
+  raci:
+    A: {resolve: instance, field: 提出人}
+    R: [SH-E3]
+    C: []
+    I: []
+  sensitive: false
+- object: AGG-114
+  command: 受理 IT 需求
+  raci:
+    A: {resolve: type, role: SH-E6, function: 信息（IT）资产管理员/处理人}
+    R: [SH-E6]
+    C: []
+    I: [SH-E3]
+  boundary:
+    escalate: {when: 受理逾期 P2D〔推〕, to: 信息部门负责人（SH-M1）提醒，非审批}
+  sensitive: false
+- object: AGG-114
+  command: 解决 IT 需求
+  raci:
+    A: {resolve: type, role: SH-E6, function: 信息（IT）资产管理员/处理人}
+    R: [SH-E6]
+    C: []
+    I: [SH-E3]
+  sensitive: false
+- object: AGG-114
+  command: 关闭 IT 需求
+  raci:
+    A: {resolve: instance, field: 提出人}
+    R: [SH-E3, system]
+    C: []
+    I: [SH-E6]
+  sensitive: false
+  note: 提出人确认关闭；解决后 P5D 未确认由 system 代关〔推〕
+- object: AGG-114
+  command: 退回 IT 需求
+  raci:
+    A: {resolve: type, role: SH-E6, function: 信息（IT）资产管理员/处理人}
+    R: [SH-E6]
+    C: []
+    I: [SH-E3]
+  sensitive: false
+- object: AGG-115
+  command: 申请领用资产
+  raci:
+    A: {resolve: instance, field: 使用人}
+    R: [SH-E3]
+    C: [SH-E6]
+    I: []
+  sensitive: false
+- object: AGG-115
+  command: 批准领用
+  raci:
+    A: {resolve: instance, field: 申请人所在组织单元.负责人, alias: cost_object_owner}
+    R: [SH-M1]
+    C: []
+    I: [SH-E3]
+  boundary:
+    limit_rule: 岗位标准配置（R-B31-5）：仅超出标准配置才进审批
+    segregation: [提交人 ≠ A]
+    delegate: {when: AR-11, to: 汇报线上级}
+    escalate: {when: AR-12, to: 上级组织负责人}
+  sensitive: false
+  approval: {approver: cost_object_owner, doc_type: IT资产领用审批}
+- object: AGG-115
+  command: 驳回领用
+  raci:
+    A: {resolve: instance, field: 申请人所在组织单元.负责人, alias: cost_object_owner}
+    R: [platform.approval]
+    C: []
+    I: [SH-E3]
+  sensitive: false
+- object: AGG-115
+  command: 撤回领用
+  raci:
+    A: {resolve: instance, field: 使用人}
+    R: [SH-E3]
+    C: []
+    I: []
+  sensitive: false
+- object: AGG-115
+  command: 登记领用
+  raci:
+    A: {resolve: type, role: SH-E6, function: 信息（IT）资产管理员/处理人}
+    R: [SH-E6]
+    C: []
+    I: [SH-E3]
+  boundary:
+    segregation: [登记人 ≠ 使用人]
+  sensitive: false
+- object: AGG-115
+  command: 申请调拨资产
+  raci:
+    A: {resolve: instance, field: 调出使用人}
+    R: [SH-E3]
+    C: [SH-E6]
+    I: [SH-M1]
+  sensitive: false
+  note: 调拨不设人审，由规则守卫；跨组织单元时知会两侧负责人（B31-6 待用户定是否改为调入方负责人批准）
+- object: AGG-115
+  command: 撤销调拨申请
+  raci:
+    A: {resolve: instance, field: 调出使用人}
+    R: [SH-E3, SH-E6]
+    C: []
+    I: []
+  sensitive: false
+- object: AGG-115
+  command: 调拨资产
+  raci:
+    A: {resolve: type, role: SH-E6, function: 信息（IT）资产管理员/处理人}
+    R: [SH-E6]
+    C: []
+    I: [SH-E3, SH-M1]
+  boundary:
+    segregation: [登记人 ≠ 调出使用人]
+  sensitive: false
+- object: AGG-115
+  command: 归还资产
+  raci:
+    A: {resolve: type, role: SH-E6, function: 信息（IT）资产管理员/处理人}
+    R: [SH-E6]
+    C: []
+    I: [SH-E3, SH-M1]
+  boundary:
+    segregation: [验收人 ≠ 归还人]
+    escalate: {when: 离职后逾期未归还 P7D〔推〕, to: 原组织单元负责人（SH-M1）提醒，非审批}
+  sensitive: false
+- object: AGG-115
+  command: 报修资产
+  raci:
+    A: {resolve: instance, field: 使用人}
+    R: [SH-E3]
+    C: []
+    I: [SH-E6]
+  sensitive: false
+- object: AGG-115
+  command: 登记维修结果
+  raci:
+    A: {resolve: type, role: SH-E6, function: 信息（IT）资产管理员/处理人}
+    R: [SH-E6]
+    C: ['external:维修服务商']
+    I: [SH-E3]
+  sensitive: false
+  note: 无法修复的报废归 B-24，B-31 不发起
+- object: AGG-116
+  command: 提交员工活动申请
+  raci:
+    A: {resolve: instance, field: 申请人}
+    R: [SH-E3]
+    C: []
+    I: []
+  sensitive: false
+- object: AGG-116
+  command: 批准员工活动申请
+  raci:
+    A: {resolve: instance, field: 申请人所在组织单元.负责人, alias: cost_object_owner}
+    R: [SH-M1]
+    C: []
+    I: [SH-E3, SH-E6]
+  boundary:
+    limit_rule: AR-01
+    segregation: [提交人 ≠ A]
+    delegate: {when: AR-11, to: 汇报线上级}
+    escalate: {when: AR-12, to: 上级组织负责人}
+  sensitive: false
+  approval: {approver: cost_object_owner, doc_type: 员工活动审批}
+- object: AGG-116
+  command: 驳回员工活动申请
+  raci:
+    A: {resolve: instance, field: 申请人所在组织单元.负责人, alias: cost_object_owner}
+    R: [platform.approval]
+    C: []
+    I: [SH-E3]
+  sensitive: false
+- object: AGG-116
+  command: 撤回员工活动申请
+  raci:
+    A: {resolve: instance, field: 申请人}
+    R: [SH-E3]
+    C: []
+    I: []
+  sensitive: false
+- object: AGG-116
+  command: 完成员工活动
+  raci:
+    A: {resolve: type, role: SH-E6, function: 行政}
+    R: [SH-E6]
+    C: []
+    I: [SH-E3]
+  sensitive: false
+roles:
+  SH-E3:
+    positions: [待岗位体系定]
+    note: 任一在职员工（申请人、提出人、使用人）；无全员角色编号，借用 SH-E3（分片格式问题 1）
+    org_needs: [全部在职员工（B-13 员工引用）可发起用印、IT 需求、领用、报修、员工活动, 需通用角色 SH-E0 全体员工，待 one-architecture 定]
+  SH-M1:
+    positions: [待岗位体系定]
+    note: A 的实例级解析：申请人（提出人）所在组织单元的负责人 = cost_object_owner
+    org_needs: [每个组织单元恰有一名负责人字段（责任人），AR-12 判缺位, 汇报线上级（AR-11 上交对象）与上级组织负责人（AR-12 上交对象）, 另：信息部门负责人收超时提醒（受理逾期、离职逾期未归还），非审批]
+  SH-E6:
+    positions: [待岗位体系定]
+    note: 本组三个职能：行政经办、信息（IT）资产管理员 / 处理人、行政（活动）；SH-E6 无法区分，按 function 区分（分片格式问题 3）
+    functions:
+      行政经办:
+        org_needs: [保管并使用印章的经办人，至少 2 人（经办人不得登记自己申请的用印）, 用印法人数据范围]
+      信息（IT）资产管理员/处理人:
+        org_needs: [IT 服务台受理与解决人员, 资产管理员至少 2 人（归还验收不得验收自己名下资产）, 读 B-24 资产卡片]
+      行政:
+        org_needs: [组织员工活动并确认完成的行政人员]
+  system: {note: 规则自动执行（自动关闭、规则自动通过），非人}
+  platform.approval: {note: 审批平台回调落地批准 / 驳回命令，非人；审批结果的责任归 A（cost_object_owner）}

@@ -1,0 +1,65 @@
+# B-31 事件目录（收敛产物，提议稿）。事件名取聚合稿 AGG-113–116「事件」列与分片 emits，不自造；负载只含 ID 与值对象（金额、份数、日期、代码）。
+# 聚合稿其余命令的「（内部）」不发布事件。subscribers 当前均为「仅分析」，本组无流程订阅 B-31 自身事件。
+# consumed 为 B-31 订阅的外部事件。复用 EventCatalogueTest 口径与 processes_check.py 的校验待 one-architecture 并入。
+
+bc: B-31
+published:
+- name: 用印申请已批准
+  published_by: AGG-113
+  by_command: 批准用印申请
+  payload: [用印申请ID, 印章类别码, 用印法人ID, 申请人ID, 批准份数, 审批实例ID, 批准时间]
+  subscribers:
+  - {type: 仅分析}
+- name: 已用印
+  published_by: AGG-113
+  by_command: 登记用印
+  payload: [用印申请ID, 用印登记行ID, 经办人ID, 本次用印份数, 累计用印份数, 实际用印时间]
+  subscribers:
+  - {type: 仅分析}
+  note: 每次登记发布一次
+- name: IT 需求已解决
+  published_by: AGG-114
+  by_command: 解决 IT 需求
+  payload: [IT需求ID, 需求类别码, 提出人ID, 处理人ID, 解决时间]
+  subscribers:
+  - {type: 仅分析}
+- name: 资产已领用
+  published_by: AGG-115
+  by_command: 登记领用
+  payload: [资产卡片ID, 使用期间ID, 使用人ID, 起始日, 来源申请ID]
+  subscribers:
+  - {type: 仅分析}
+  note: 离职交接（PRC-128）经读模型读取，不订阅事件（分片接缝问题 3）
+- name: 资产已调拨
+  published_by: AGG-115
+  by_command: 调拨资产
+  payload: [资产卡片ID, 调出使用期间ID, 调入使用期间ID, 调出使用人ID, 调入使用人ID, 调拨日, 来源申请ID]
+  subscribers:
+  - {type: 仅分析}
+- name: 资产已归还
+  published_by: AGG-115
+  by_command: 归还资产
+  payload: [资产卡片ID, 使用期间ID, 使用人ID, 归还日, 归还时状态码]
+  subscribers:
+  - {type: 仅分析}
+  note: 离职交接（PRC-128）经读模型读取
+- name: 员工活动申请已批准
+  published_by: AGG-116
+  by_command: 批准员工活动申请
+  payload: [员工活动申请ID, 活动类型码, 申请人ID, 审批实例ID, 批准时间]
+  subscribers:
+  - {type: 仅分析}
+consumed:
+- name: 审批已通过
+  from: platform.approval
+  handled_by: [批准用印申请, 批准 IT 需求, 批准领用, 批准员工活动申请]
+  used_by: [PRC-139 第 4 步入口, PRC-142 第 3 步入口, PRC-143 第 3 步入口, PRC-144 第 3 步入口]
+- name: 审批已驳回
+  from: platform.approval
+  handled_by: [驳回用印申请, 驳回 IT 需求, 驳回领用, 驳回员工活动申请]
+  used_by: [PRC-139 第 3 步, PRC-142 第 7 步, PRC-143 第 4 步, PRC-144 第 4 步]
+- name: Separated
+  from: B-13
+  handled_by: [事件策略「离职生成归还待办」→ 归还资产]
+  used_by: [PRC-143C 触发器]
+  note: B-31 → B-13 订阅边及 events/*.yaml 的订阅方清单需补登（分片接缝问题 3）
