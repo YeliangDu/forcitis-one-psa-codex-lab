@@ -560,6 +560,7 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
             own_entry[s["id"]] = [lf for lf in leaves(expand(s.get("entry") or {"all": []}, vpa)) if isobj(lf)]
             own_inner[s["id"]] = [lf for lf in s.get("in_stage_states") or [] if isinstance(lf, dict) and isobj(lf)]
     P = {"unsupported": [], "explained": [], "missing": [], "uncertain": [], "role": [], "ok": 0, "ok_approx": 0}
+    R["hit_refs"] = {}   # pid -> [(stage, tier, OBJ, 依据)]：归段判据命中的条件对象，供对象层（主对象提议）读
     for p in procs:
         if p.get("support"):
             P["support_skipped"] = P.get("support_skipped", 0) + 1   # 已声明支撑的不归段
@@ -568,7 +569,11 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
         cat = [x for x in (p.get("stages") or []) if x in stage_pos]
         exact, approx, why, unres = {}, {}, [], False
 
-        def put(sid, tier, ev):
+        hit_log = R["hit_refs"].setdefault(p["id"], [])
+
+        def put(sid, tier, ev, lf=None, src=""):
+            if tier and lf is not None:
+                hit_log.append((sid, tier, lf.get("ref"), src))
             d = exact if tier == "exact" else approx
             if tier and sid not in d:
                 d[sid] = ev
@@ -622,7 +627,7 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
                     hits = ent   # 触发状态同时是别段的退出、本价值流某段的进入：归以它为进入的那一段
                 hit = bool(hits)
                 for sid, (tier, lf) in hits.items():
-                    put(sid, tier, [(p["id"], "触发状态", f"{t['name']} ≈ {leaf_txt(lf, onames)}")])
+                    put(sid, tier, [(p["id"], "触发状态", f"{t['name']} ≈ {leaf_txt(lf, onames)}")], lf, "trigger")
                 hit_any = hit_any or hit
                 if not hit:
                     why.append(f"触发事件「{t['name']}」对不上任何段退出条件里的对象状态")
@@ -634,6 +639,7 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
         else:
             for sid in own_exit:
                 for lf in own_exit[sid] + own_inner[sid]:   # 退出条件 + 段内状态；进入条件不作归段依据
+                    src = "exit" if any(lf is x for x in own_exit[sid]) else "inner"
                     tier, ev = find_in([p["id"]], lf, use_name=False, stage=sid)
                     if tier == "exact" and ev[0][1] != "步骤到达":
                         on_ = norm(re.sub(r"[（(].*?[）)]", "", onames.get(lf.get("ref"), "")))
@@ -643,7 +649,7 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
                         elif named:
                             ev = named + [e for e in ev if e not in named]
                     if tier:
-                        put(sid, tier, ev)
+                        put(sid, tier, ev, lf, src)
         sup = set(exact) | set(approx)
         row = {"id": p["id"], "name": p["name"], "type": p["type"], "cat": cat, "exact": exact, "approx": approx, "why": why,
                "support": bool(p.get("support"))}

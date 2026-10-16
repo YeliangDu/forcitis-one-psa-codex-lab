@@ -1,4 +1,4 @@
-"""Copy stages / support / stages_note from the three group skeletons into process-catalog.yaml (the catalog is the SSOT for stage placement).
+"""Copy stages / support / stages_note / primary_object from the three group skeletons into process-catalog.yaml (the catalog is the SSOT for stage placement).
 
 Usage: python3 -I sync_catalog_stages.py [--local] [--dry-run]   |   --self-test
   reads processes.<group>.yaml like closeout_check.py (origin/claude/one-arch-<group>-closeout, or closeout/<group>/ with --local);
@@ -16,7 +16,7 @@ _spec = importlib.util.spec_from_file_location("closeout_check", HERE / "closeou
 cc = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(cc)
 CATALOG = HERE / "process-catalog.yaml"
-FIELDS = ("support", "stages_note")
+FIELDS = ("support", "stages_note", "primary_object")
 
 
 def skeleton_units(doc):

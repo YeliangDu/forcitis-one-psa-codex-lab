@@ -11,6 +11,8 @@ Usage: python3 -I object_check.py [--local] [--write] [--exemptions PATH] [--mat
              an issue whose check text equals `check`, whose text names `object` and contains `detail` is exempted: not counted, listed separately;
              an entry without reason or ruling is an error and does not apply; an entry matching nothing is reported as stale
   --write:   write CRUD_MATRIX.md (sections by value stream: VS-NN of the first stage of the process) next to this script
+  --objects-yaml: write process-objects.yaml next to this script: PRC -> [{obj, name, aggregates, ops, proposed_only}] from the same matrix
+             (obj = the aggregate's first OBJ-NN, or the aggregate id when it has none; ops in CUD?R order; proposed_only = letters only from 〔缺〕)
 
 Command class (per aggregate x command), in this order:
   1 state machine of the aggregate, when it has a transition of that command: from null = C (create); to a terminal state from another state = D (end,
@@ -745,6 +747,22 @@ def yaml_items(key, given, name, local):
     return [x for t in texts if t for x in (yaml.safe_load(t) or {}).get(key) or []]
 
 
+def render_objects_yaml(R):
+    touch, firm, names, members, ui = R["touch"], R["firm"], R["names"], R["members"], R["unit_info"]
+    by_unit = collections.defaultdict(list)
+    for k, us in touch.items():
+        for uid, L in us.items():
+            ops = sorted(L, key="CUD?R".index)
+            by_unit[uid].append({"obj": k, "name": names.get(k, k), "aggregates": sorted(members.get(k, [])) or [k], "ops": "".join(ops),
+                                 "proposed_only": "".join(c for c in ops if c != "R" and c not in firm[k][uid])})
+    num = lambda x: (x[:3], int(re.sub(r"\D", "", x) or 0))
+    doc = {"note": "object_check.py --objects-yaml 生成，勿手改；ops：C 创建、U 修改、D 结束或归档（含冲销撤回）、R 只读、? 判不出；proposed_only 为只来自提议命令（〔缺〕）的字母",
+           "processes": [{"id": uid, "name": ui[uid][2], "group": ui[uid][0],
+                          "objects": [{k: v for k, v in o.items() if v or k == "ops"} for o in sorted(by_unit[uid], key=lambda o: num(o["obj"]))]}
+                         for uid in sorted(by_unit, key=num)]}
+    return yaml.safe_dump(doc, allow_unicode=True, sort_keys=False, width=200)
+
+
 def main(argv):
     if "--self-test" in argv:
         return self_test()
@@ -778,6 +796,9 @@ def main(argv):
     if "--write" in argv:
         (HERE / "CRUD_MATRIX.md").write_text(render_matrix(R, vs_names()), encoding="utf-8")
         print("已写 CRUD_MATRIX.md")
+    if "--objects-yaml" in argv:
+        (HERE / "process-objects.yaml").write_text(render_objects_yaml(R), encoding="utf-8")
+        print("已写 process-objects.yaml")
     return 0
 
 

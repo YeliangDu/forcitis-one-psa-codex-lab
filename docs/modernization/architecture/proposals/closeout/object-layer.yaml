@@ -1,0 +1,1889 @@
+note: object_layer_check.py 生成，勿手改；status：confirmed 三组确认（目录 primary_object）/ proposed 脚本提议 / candidates 多候选 / none 无候选 / read_model 读模型不提议
+stages:
+- id: VS-01.1
+  name: 市场与线索
+  objects:
+  - OBJ-17
+  capabilities:
+  - CAP-001
+  - CAP-016
+  - CAP-017
+  - CAP-018
+- id: VS-01.2
+  name: 业务拓展
+  objects:
+  - OBJ-18
+  capabilities:
+  - CAP-018
+  - CAP-019
+  - CAP-024
+  - CAP-026
+- id: VS-02.0
+  name: 启动
+  objects:
+  - OBJ-29
+  - OBJ-31
+  - OBJ-32
+  - OBJ-30
+  capabilities:
+  - CAP-029
+- id: VS-02.1
+  name: 概念
+  objects:
+  - OBJ-35
+  - OBJ-30
+  capabilities:
+  - CAP-029
+- id: VS-02.2
+  name: 方案
+  objects:
+  - OBJ-35
+  - OBJ-30
+  capabilities:
+  - CAP-029
+- id: VS-02.3
+  name: 初设
+  objects:
+  - OBJ-35
+  - OBJ-30
+  capabilities:
+  - CAP-029
+- id: VS-02.4
+  name: 深化
+  objects:
+  - OBJ-35
+  - OBJ-30
+  capabilities:
+  - CAP-029
+- id: VS-02.5
+  name: 招采
+  objects:
+  - OBJ-35
+  - OBJ-30
+  capabilities:
+  - CAP-029
+- id: VS-02.6
+  name: 施工
+  objects:
+  - OBJ-35
+  - OBJ-30
+  - OBJ-38
+  capabilities:
+  - CAP-029
+  - CAP-046
+- id: VS-02.7
+  name: 收尾
+  objects:
+  - OBJ-107
+  - OBJ-106
+  - OBJ-35
+  - OBJ-53
+  - OBJ-29
+  capabilities:
+  - CAP-029
+  - CAP-053
+- id: VS-03.1
+  name: 检查策划
+  objects:
+  - OBJ-49
+  capabilities:
+  - CAP-029
+  - CAP-046
+- id: VS-03.2
+  name: 现场检查
+  objects:
+  - OBJ-49
+  capabilities:
+  - CAP-029
+- id: VS-03.3
+  name: 发现发布
+  objects:
+  - OBJ-38
+  capabilities:
+  - CAP-029
+- id: VS-03.4
+  name: 整改跟踪
+  objects:
+  - OBJ-38
+  capabilities:
+  - CAP-029
+- id: VS-03.5
+  name: 报告认可
+  objects:
+  - OBJ-35
+  capabilities:
+  - CAP-029
+- id: VS-04.1
+  name: 合同签订
+  objects:
+  - OBJ-05
+  - OBJ-07
+  - OBJ-12
+  capabilities:
+  - CAP-005
+- id: VS-04.6
+  name: 履约
+  objects:
+  - OBJ-05
+  capabilities:
+  - CAP-005
+- id: VS-04.2
+  name: 收入确认
+  objects: []
+  capabilities:
+  - CAP-053
+- id: VS-04.3
+  name: 开票
+  objects:
+  - OBJ-82
+  - OBJ-83
+  capabilities:
+  - CAP-103
+- id: VS-04.4
+  name: 回款
+  objects:
+  - OBJ-85
+  - OBJ-86
+  capabilities:
+  - CAP-103
+- id: VS-04.5
+  name: 最终价款确认
+  objects:
+  - OBJ-05
+  capabilities:
+  - CAP-005
+- id: VS-05.1
+  name: 供方准入
+  objects:
+  - OBJ-02
+  - OBJ-65
+  capabilities:
+  - CAP-001
+- id: VS-05.2
+  name: 供方签约
+  objects:
+  - OBJ-05
+  capabilities:
+  - CAP-005
+- id: VS-05.3
+  name: 履约确认
+  objects:
+  - OBJ-87
+  capabilities:
+  - CAP-005
+- id: VS-05.4
+  name: 应付确认
+  objects:
+  - OBJ-85
+  - OBJ-83
+  capabilities:
+  - CAP-103
+- id: VS-05.5
+  name: 付款
+  objects:
+  - OBJ-86
+  - OBJ-85
+  capabilities:
+  - CAP-103
+- id: VS-05.6
+  name: 供方结算
+  objects:
+  - OBJ-05
+  capabilities:
+  - CAP-005
+- id: VS-06.1
+  name: 申报缴款
+  objects:
+  - OBJ-92
+  capabilities:
+  - CAP-103
+- id: VS-06.2
+  name: 资质维护
+  objects:
+  - OBJ-64
+  - OBJ-65
+  capabilities:
+  - CAP-054
+- id: VS-07.1
+  name: 招聘需求
+  objects:
+  - OBJ-60
+  capabilities:
+  - CAP-056
+  - CAP-058
+- id: VS-07.2
+  name: 应聘录用
+  objects:
+  - OBJ-56
+  capabilities:
+  - CAP-056
+- id: VS-07.3
+  name: 入职任职
+  objects:
+  - OBJ-56
+  - OBJ-05
+  - OBJ-62
+  capabilities:
+  - CAP-005
+  - CAP-056
+- id: VS-08.0
+  name: 事前申请
+  objects: []
+  capabilities:
+  - CAP-056
+- id: VS-08.1
+  name: 借支
+  objects:
+  - OBJ-85
+  capabilities:
+  - CAP-056
+  - CAP-103
+- id: VS-08.2
+  name: 报销核定
+  objects:
+  - OBJ-88
+  - OBJ-83
+  capabilities:
+  - CAP-056
+  - CAP-103
+- id: VS-08.3
+  name: 报销付款
+  objects:
+  - OBJ-85
+  - OBJ-86
+  - OBJ-88
+  capabilities:
+  - CAP-056
+  - CAP-103
+- id: VS-09.1
+  name: 计划编制
+  objects:
+  - OBJ-100
+  capabilities:
+  - CAP-100
+- id: VS-09.2
+  name: 滚动预测
+  objects:
+  - OBJ-100
+  capabilities:
+  - CAP-100
+- id: VS-09.3
+  name: 经营复盘
+  objects:
+  - OBJ-100
+  capabilities:
+  - CAP-100
+- id: VS-10.1
+  name: 期间关账
+  objects:
+  - OBJ-97
+  capabilities:
+  - CAP-103
+- id: VS-10.2
+  name: 报表发布
+  objects: []
+  capabilities:
+  - CAP-103
+- id: VS-11.1
+  name: 知识起草
+  objects:
+  - OBJ-110
+  capabilities:
+  - CAP-110
+- id: VS-11.2
+  name: 评审发布
+  objects:
+  - OBJ-110
+  capabilities:
+  - CAP-110
+- id: VS-11.3
+  name: 修订废止
+  objects:
+  - OBJ-110
+  capabilities:
+  - CAP-110
+- id: VS-12.1
+  name: 出资到账
+  objects:
+  - OBJ-91
+  capabilities:
+  - CAP-054
+- id: VS-12.2
+  name: 利润分配
+  objects:
+  - OBJ-112
+  capabilities:
+  - CAP-054
+  - CAP-103
+- id: VS-12.3
+  name: 出资退回
+  objects:
+  - OBJ-91
+  capabilities:
+  - CAP-054
+- id: VS-13.1
+  name: 考勤确认
+  objects:
+  - OBJ-111
+  - OBJ-68
+  - OBJ-72
+  capabilities:
+  - CAP-028
+  - CAP-056
+- id: VS-13.2
+  name: 绩效激励
+  objects:
+  - OBJ-109
+  - OBJ-104
+  capabilities:
+  - CAP-056
+  - CAP-074
+- id: VS-13.3
+  name: 薪酬结算
+  objects:
+  - OBJ-73
+  capabilities:
+  - CAP-054
+  - CAP-056
+- id: VS-13.4
+  name: 申报缴纳
+  objects:
+  - OBJ-92
+  capabilities:
+  - CAP-054
+  - CAP-056
+  - CAP-103
+- id: VS-13.5
+  name: 薪酬发放
+  objects:
+  - OBJ-85
+  - OBJ-86
+  - OBJ-73
+  capabilities:
+  - CAP-054
+  - CAP-056
+  - CAP-103
+- id: VS-13.6
+  name: 离职结清
+  objects:
+  - OBJ-56
+  - OBJ-62
+  - OBJ-05
+  capabilities:
+  - CAP-005
+  - CAP-056
+processes:
+- id: PRC-01
+  name: 举办市场活动
+  group: revenue
+  stages:
+  - VS-01.1
+  primary_object: OBJ-16
+  status: proposed
+  candidates:
+  - OBJ-16
+  capability_l1: CAP-016
+  capability: CAP-016
+- id: PRC-02
+  name: 计划并完成客户活动
+  group: revenue
+  stages:
+  - VS-01.1
+  primary_object: OBJ-105
+  status: proposed
+  candidates:
+  - OBJ-105
+  capability_l1: CAP-001
+  capability: CAP-001.105
+- id: PRC-03
+  name: 登记并跟进线索，转为商机
+  group: revenue
+  stages:
+  - VS-01.1
+  - VS-01.2
+  primary_object: OBJ-17
+  status: proposed
+  candidates:
+  - OBJ-17
+  capability_l1: CAP-017
+  capability: CAP-017
+- id: PRC-05
+  name: 维护往来单位档案
+  group: revenue
+  stages:
+  - VS-01.1
+  - VS-05.1
+  primary_object: OBJ-01
+  status: proposed
+  candidates:
+  - OBJ-01
+  capability_l1: CAP-001
+  capability: CAP-001
+- id: PRC-06
+  name: 做独立性检查
+  group: revenue
+  stages:
+  - VS-01.2
+  primary_object: OBJ-23
+  status: proposed
+  candidates:
+  - OBJ-23
+  capability_l1: CAP-018
+  capability: CAP-018.023
+- id: PRC-07
+  name: 编制并生效报价
+  group: revenue
+  stages:
+  - VS-01.2
+  primary_object: OBJ-21
+  status: proposed
+  candidates:
+  - OBJ-21
+  capability_l1: CAP-018
+  capability: CAP-018.021
+- id: PRC-08
+  name: 参加投标，缴纳保证金并登记结果
+  group: revenue
+  stages:
+  - VS-01.2
+  primary_object: OBJ-18
+  status: proposed
+  candidates:
+  - OBJ-18
+  capability_l1: CAP-018
+  capability: CAP-018
+- id: PRC-10
+  name: 收付保证金与保函
+  group: revenue
+  stages:
+  - VS-01.2
+  - VS-04.1
+  primary_object: OBJ-13
+  status: proposed
+  candidates:
+  - OBJ-13
+  capability_l1: CAP-005
+  capability: CAP-005.013
+- id: PRC-12
+  name: 发布服务产品与阶段类型版本
+  group: revenue
+  stages:
+  - VS-01.2
+  status: none
+- id: PRC-13
+  name: 批准并生效费率、计费系数与协议价目版本
+  group: revenue
+  stages:
+  - VS-01.2
+  - VS-02.0
+  status: none
+- id: PRC-14
+  name: 登记建设工程与招标项目
+  group: revenue
+  stages:
+  - VS-01.2
+  - VS-02.6
+  - VS-03.1
+  status: candidates
+  candidates:
+  - OBJ-19
+  - OBJ-46
+- id: PRC-15
+  name: 未签约的售前投入转费用
+  group: finance
+  stages:
+  - VS-01.2
+  status: none
+- id: PRC-16
+  name: 申请并转正风险交付授权
+  group: revenue
+  stages:
+  - VS-01.2
+  - VS-02.0
+  - VS-04.1
+  primary_object: OBJ-12
+  status: proposed
+  candidates:
+  - OBJ-12
+  capability_l1: CAP-018
+  capability: CAP-018.012
+- id: PRC-17
+  name: 建立项目并组建团队
+  group: revenue
+  stages:
+  - VS-02.0
+  - VS-03.1
+  primary_object: OBJ-29
+  status: proposed
+  candidates:
+  - OBJ-29
+  capability_l1: CAP-029
+  capability: CAP-029
+- id: PRC-18
+  name: 编制并批准交付计划
+  group: revenue
+  stages:
+  - VS-02.0
+  primary_object: OBJ-31
+  status: proposed
+  candidates:
+  - OBJ-31
+  capability_l1: CAP-029
+  capability: CAP-029.031
+- id: PRC-19
+  name: 编制并锁定项目预算
+  group: revenue
+  stages:
+  - VS-02.0
+  primary_object: OBJ-32
+  status: proposed
+  candidates:
+  - OBJ-32
+  capability_l1: CAP-029
+  capability: CAP-029.032
+- id: PRC-20
+  name: 提出并满足资源需求
+  group: revenue
+  stages:
+  - VS-02.0
+  - VS-02.1
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  status: none
+- id: PRC-21
+  name: 推进阶段与工作包
+  group: revenue
+  stages:
+  - VS-02.0
+  - VS-02.1
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  primary_object: OBJ-30
+  status: proposed
+  candidates:
+  - OBJ-30
+  capability_l1: CAP-029
+  capability: CAP-029.030
+- id: PRC-22
+  name: 阶段门预警
+  group: revenue
+  stages:
+  - VS-02.0
+  - VS-02.1
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  - VS-02.7
+  status: read_model
+- id: PRC-23
+  name: 填报并审批工时
+  group: revenue
+  stages:
+  - VS-01.2
+  - VS-02.0
+  - VS-02.1
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  primary_object: OBJ-66
+  status: proposed
+  candidates:
+  - OBJ-66
+  capability_l1: CAP-056
+  capability: CAP-056.066
+- id: PRC-24
+  name: 暂停、恢复、终止或取消项目
+  group: revenue
+  stages:
+  - VS-02.0
+  - VS-02.1
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  - VS-02.7
+  primary_object: OBJ-29
+  status: proposed
+  candidates:
+  - OBJ-29
+  capability_l1: CAP-029
+  capability: CAP-029
+- id: PRC-25
+  name: 转入售前投入
+  group: finance
+  stages:
+  - VS-02.0
+  - VS-04.1
+  status: none
+- id: PRC-26
+  name: 接收并确认发包人提供资料
+  group: revenue
+  stages:
+  - VS-02.0
+  - VS-02.1
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  primary_object: OBJ-42
+  status: proposed
+  candidates:
+  - OBJ-42
+  capability_l1: CAP-029
+  capability: CAP-029.042
+- id: PRC-27
+  name: 登记并处置项目风险与问题
+  group: revenue
+  stages:
+  - VS-02.0
+  - VS-02.1
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  - VS-02.7
+  primary_object: OBJ-108
+  status: proposed
+  candidates:
+  - OBJ-108
+  capability_l1: CAP-029
+  capability: CAP-029.108
+- id: PRC-28
+  name: 编制、评审并签发交付物，送达并登记客户认可
+  group: revenue
+  stages:
+  - VS-02.1
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  - VS-03.5
+  primary_object: OBJ-35
+  status: proposed
+  candidates:
+  - OBJ-35
+  capability_l1: CAP-029
+  capability: CAP-029.035
+- id: PRC-30
+  name: 提出并批准完工估算
+  group: revenue
+  stages:
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  primary_object: OBJ-33
+  status: proposed
+  candidates:
+  - OBJ-33
+  capability_l1: CAP-029
+  capability: CAP-029.033
+- id: PRC-31
+  name: 提出并发出设计变更
+  group: revenue
+  stages:
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  primary_object: OBJ-40
+  status: proposed
+  candidates:
+  - OBJ-40
+  capability_l1: CAP-029
+  capability: CAP-029.040
+- id: PRC-32
+  name: 申请并答复延期
+  group: revenue
+  stages:
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  primary_object: OBJ-41
+  status: proposed
+  candidates:
+  - OBJ-41
+  capability_l1: CAP-029
+  capability: CAP-029.041
+- id: PRC-33
+  name: 采集、关联并封存证据
+  group: revenue
+  stages:
+  - VS-02.4
+  - VS-02.7
+  - VS-03.2
+  - VS-04.2
+  primary_object: OBJ-53
+  status: proposed
+  candidates:
+  - OBJ-53
+  capability_l1: CAP-053
+  capability: CAP-053
+- id: PRC-34
+  name: 处置我方成果不符合项
+  group: revenue
+  stages:
+  - VS-02.6
+  - VS-02.7
+  primary_object: OBJ-38
+  status: proposed
+  candidates:
+  - OBJ-38
+  capability_l1: CAP-029
+  capability: CAP-029.038
+- id: PRC-35
+  name: 项目或协议终止、结项后清算成本
+  group: finance
+  stages:
+  - VS-02.7
+  primary_object: AGG-43
+  status: proposed
+  candidates:
+  - AGG-43
+- id: PRC-36
+  name: 封存成果、结项并归档项目
+  group: revenue
+  stages:
+  - VS-02.7
+  status: candidates
+  candidates:
+  - OBJ-29
+  - OBJ-35
+  - OBJ-53
+- id: PRC-37
+  name: 回访客户满意度
+  group: revenue
+  stages:
+  - VS-02.7
+  primary_object: OBJ-106
+  status: proposed
+  candidates:
+  - OBJ-106
+  capability_l1: CAP-029
+  capability: CAP-029.106
+- id: PRC-38
+  name: 编制并发布项目复盘
+  group: revenue
+  stages:
+  - VS-02.7
+  primary_object: OBJ-107
+  status: proposed
+  candidates:
+  - OBJ-107
+  capability_l1: CAP-029
+  capability: CAP-029.107
+- id: PRC-41
+  name: 制定检查计划并使其生效
+  group: revenue
+  stages:
+  - VS-03.1
+  primary_object: OBJ-48
+  status: proposed
+  candidates:
+  - OBJ-48
+  capability_l1: CAP-005
+  capability: CAP-005.048
+- id: PRC-42
+  name: 发布检查表模板版本
+  group: revenue
+  stages:
+  - VS-03.1
+  primary_object: OBJ-50
+  status: proposed
+  candidates:
+  - OBJ-50
+  capability_l1: CAP-024
+  capability: CAP-024.050
+- id: PRC-43
+  name: 实施现场检查并锁定
+  group: revenue
+  stages:
+  - VS-03.1
+  - VS-03.2
+  - VS-02.6
+  primary_object: OBJ-49
+  status: proposed
+  candidates:
+  - OBJ-49
+  capability_l1: CAP-029
+  capability: CAP-029.049
+- id: PRC-44
+  name: 发布客户资产类不符合项并建议外部检测
+  group: revenue
+  stages:
+  - VS-03.2
+  - VS-03.3
+  primary_object: OBJ-38
+  status: proposed
+  candidates:
+  - OBJ-38
+  capability_l1: CAP-029
+  capability: CAP-029.038
+- id: PRC-45
+  name: 跟踪整改并复查闭合
+  group: revenue
+  stages:
+  - VS-03.4
+  primary_object: OBJ-38
+  status: proposed
+  candidates:
+  - OBJ-38
+  capability_l1: CAP-029
+  capability: CAP-029.038
+- id: PRC-46
+  name: 采信外部检测报告
+  group: revenue
+  stages:
+  - VS-03.4
+  primary_object: OBJ-52
+  status: proposed
+  candidates:
+  - OBJ-52
+  capability_l1: CAP-029
+  capability: CAP-029.052
+- id: PRC-47
+  name: 起草、评审并回签协议
+  group: revenue
+  stages:
+  - VS-04.1
+  primary_object: OBJ-05
+  status: proposed
+  candidates:
+  - OBJ-05
+  capability_l1: CAP-005
+  capability: CAP-005
+- id: PRC-48
+  name: 提出并生效协议变更或签证
+  group: revenue
+  stages:
+  - VS-04.6
+  primary_object: OBJ-09
+  status: proposed
+  candidates:
+  - OBJ-09
+  capability_l1: CAP-005
+  capability: CAP-005.009
+- id: PRC-49
+  name: 提出并认定索赔
+  group: revenue
+  stages:
+  - VS-04.6
+  - VS-04.5
+  primary_object: OBJ-10
+  status: proposed
+  candidates:
+  - OBJ-10
+  capability_l1: CAP-005
+  capability: CAP-005.010
+- id: PRC-50
+  name: 占用框架限额并提交任务订单
+  group: revenue
+  stages:
+  - VS-04.6
+  primary_object: OBJ-05
+  status: proposed
+  candidates:
+  - OBJ-05
+  capability_l1: CAP-005
+  capability: CAP-005
+- id: PRC-51
+  name: 建立并更新开票与收入额度
+  group: revenue
+  stages:
+  - VS-04.1
+  - VS-04.2
+  - VS-04.3
+  primary_object: AGG-44
+  status: proposed
+  candidates:
+  - AGG-44
+- id: PRC-53
+  name: 确认收入
+  group: revenue
+  stages:
+  - VS-04.2
+  primary_object: AGG-44
+  status: proposed
+  candidates:
+  - AGG-44
+- id: PRC-54
+  name: 视为同意期满处理
+  group: revenue
+  stages:
+  - VS-04.2
+  status: none
+- id: PRC-55
+  name: 结转合同履约成本
+  group: finance
+  stages:
+  - VS-04.2
+  primary_object: AGG-43
+  status: proposed
+  candidates:
+  - AGG-43
+- id: PRC-56
+  name: 付款条件项转为可结算
+  group: revenue
+  stages:
+  - VS-04.3
+  primary_object: OBJ-05
+  status: proposed
+  candidates:
+  - OBJ-05
+  capability_l1: CAP-005
+  capability: CAP-005
+- id: PRC-57
+  name: 申请并开具销项发票
+  group: revenue
+  stages:
+  - VS-04.3
+  status: candidates
+  candidates:
+  - OBJ-82
+  - OBJ-83
+- id: PRC-58
+  name: 红冲销项发票
+  group: revenue
+  stages:
+  - VS-04.3
+  primary_object: OBJ-83
+  status: proposed
+  candidates:
+  - OBJ-83
+  capability_l1: CAP-103
+  capability: CAP-103.083
+- id: PRC-59
+  name: 由销项发票创建应收
+  group: revenue
+  stages:
+  - VS-04.4
+  primary_object: OBJ-85
+  status: proposed
+  candidates:
+  - OBJ-85
+  capability_l1: CAP-103
+  capability: CAP-103.085
+- id: PRC-60
+  name: 认领收款并核销应收
+  group: revenue
+  stages:
+  - VS-04.4
+  status: candidates
+  candidates:
+  - OBJ-85
+  - OBJ-86
+- id: PRC-61
+  name: 检测应收逾期并催收
+  group: revenue
+  stages:
+  - VS-04.4
+  primary_object: OBJ-85
+  status: proposed
+  candidates:
+  - OBJ-85
+  capability_l1: CAP-103
+  capability: CAP-103.085
+- id: PRC-62
+  name: 质量保证金到期提示
+  group: revenue
+  stages:
+  - VS-04.4
+  status: read_model
+- id: PRC-63
+  name: 商业汇票兑付与逾期
+  group: revenue
+  stages:
+  - VS-04.4
+  primary_object: OBJ-85
+  status: proposed
+  candidates:
+  - OBJ-85
+  capability_l1: CAP-103
+  capability: CAP-103.085
+- id: PRC-66
+  name: 发起结算，确认最终价款并结算协议
+  group: revenue
+  stages:
+  - VS-04.5
+  - VS-04.6
+  primary_object: OBJ-05
+  status: proposed
+  candidates:
+  - OBJ-05
+  capability_l1: CAP-005
+  capability: CAP-005
+- id: PRC-68
+  name: 终止协议
+  group: revenue
+  stages:
+  - VS-04.5
+  primary_object: OBJ-05
+  status: proposed
+  candidates:
+  - OBJ-05
+  capability_l1: CAP-005
+  capability: CAP-005
+- id: PRC-69
+  name: 供应商准入与资质核验
+  group: revenue
+  stages:
+  - VS-05.1
+  primary_object: OBJ-65
+  status: proposed
+  candidates:
+  - OBJ-65
+  capability_l1: CAP-054
+  capability: CAP-054.065
+- id: PRC-70
+  name: 起草并生效供方协议
+  group: finance
+  stages:
+  - VS-05.2
+  primary_object: OBJ-05
+  status: proposed
+  candidates:
+  - OBJ-05
+  capability_l1: CAP-005
+  capability: CAP-005
+- id: PRC-71
+  name: 生效分包变更
+  group: finance
+  stages:
+  - VS-05.2
+  status: none
+- id: PRC-72
+  name: 确认供方履约
+  group: finance
+  stages:
+  - VS-05.3
+  primary_object: OBJ-87
+  status: proposed
+  candidates:
+  - OBJ-87
+  capability_l1: CAP-005
+  capability: CAP-005.087
+- id: PRC-73
+  name: 登记并查验进项发票
+  group: finance
+  stages:
+  - VS-05.4
+  primary_object: OBJ-83
+  status: proposed
+  candidates:
+  - OBJ-83
+  capability_l1: CAP-103
+  capability: CAP-103.083
+- id: PRC-74
+  name: 提交供方应付
+  group: finance
+  stages:
+  - VS-05.4
+  primary_object: OBJ-85
+  status: proposed
+  candidates:
+  - OBJ-85
+  capability_l1: CAP-103
+  capability: CAP-103.085
+- id: PRC-75
+  name: 发起、审批并执行付款
+  group: finance
+  stages:
+  - VS-05.5
+  - VS-08.3
+  - VS-13.5
+  primary_object: OBJ-86
+  status: proposed
+  candidates:
+  - OBJ-86
+  capability_l1: CAP-103
+  capability: CAP-103.086
+- id: PRC-76
+  name: 完成并结算供方协议
+  group: finance
+  stages:
+  - VS-05.6
+  primary_object: OBJ-05
+  status: proposed
+  candidates:
+  - OBJ-05
+  capability_l1: CAP-005
+  capability: CAP-005
+- id: PRC-77
+  name: 申报并缴纳增值税、附加税与企业所得税
+  group: finance
+  stages:
+  - VS-06.1
+  primary_object: OBJ-92
+  status: proposed
+  candidates:
+  - OBJ-92
+  capability_l1: CAP-103
+  capability: CAP-103.092
+- id: PRC-78
+  name: 年检、核查与延续企业资质
+  group: revenue
+  stages:
+  - VS-06.2
+  primary_object: OBJ-65
+  status: proposed
+  candidates:
+  - OBJ-65
+  capability_l1: CAP-054
+  capability: CAP-054.065
+- id: PRC-79
+  name: 登记继续教育并延续注册执业证书
+  group: people
+  stages:
+  - VS-06.2
+  primary_object: OBJ-64
+  status: proposed
+  candidates:
+  - OBJ-64
+  capability_l1: CAP-056
+  capability: CAP-056.064
+- id: PRC-81
+  name: 提出并批准招聘需求
+  group: people
+  stages:
+  - VS-07.1
+  primary_object: OBJ-60
+  status: proposed
+  candidates:
+  - OBJ-60
+  capability_l1: CAP-058
+  capability: CAP-058.060
+- id: PRC-82
+  name: 登记候选人并作出录用决定
+  group: people
+  stages:
+  - VS-07.2
+  primary_object: OBJ-56
+  status: proposed
+  candidates:
+  - OBJ-56
+  capability_l1: CAP-056
+  capability: CAP-056
+- id: PRC-83
+  name: 办理入职与任职
+  group: people
+  stages:
+  - VS-07.3
+  status: candidates
+  candidates:
+  - OBJ-05
+  - OBJ-56
+- id: PRC-84
+  name: 入职后参保增员与建立薪酬档案
+  group: people
+  stages:
+  - VS-07.3
+  primary_object: OBJ-62
+  status: proposed
+  candidates:
+  - OBJ-62
+  capability_l1: CAP-056
+  capability: CAP-056.062
+- id: PRC-85
+  name: 试用期评估与转正
+  group: people
+  stages:
+  - VS-07.3
+  - VS-13.2
+  primary_object: OBJ-109
+  status: proposed
+  candidates:
+  - OBJ-109
+  capability_l1: CAP-056
+  capability: CAP-056.109
+- id: PRC-86
+  name: 发放、归还与催还员工借款
+  group: revenue
+  stages:
+  - VS-08.1
+  primary_object: OBJ-85
+  status: proposed
+  candidates:
+  - OBJ-85
+  capability_l1: CAP-103
+  capability: CAP-103.085
+- id: PRC-87
+  name: 提交、核定并确认报销应付
+  group: finance
+  stages:
+  - VS-08.2
+  status: candidates
+  candidates:
+  - OBJ-83
+  - OBJ-88
+- id: PRC-88
+  name: 编制、批准并基线化经营计划与预算
+  group: people
+  stages:
+  - VS-09.1
+  - VS-09.3
+  primary_object: OBJ-100
+  status: proposed
+  candidates:
+  - OBJ-100
+  capability_l1: CAP-100
+  capability: CAP-100
+- id: PRC-89
+  name: 编制滚动预测
+  group: people
+  stages:
+  - VS-09.2
+  primary_object: OBJ-100
+  status: proposed
+  candidates:
+  - OBJ-100
+  capability_l1: CAP-100
+  capability: CAP-100
+- id: PRC-90
+  name: 出具经营月报
+  group: finance
+  stages:
+  - VS-09.3
+  - VS-10.2
+  status: read_model
+- id: PRC-91
+  name: 认定工时有效性
+  group: revenue
+  stages:
+  - VS-10.1
+  primary_object: OBJ-66
+  status: proposed
+  candidates:
+  - OBJ-66
+  capability_l1: CAP-056
+  capability: CAP-056.066
+- id: PRC-92
+  name: 过账业务事实
+  group: finance
+  stages:
+  - VS-10.1
+  primary_object: AGG-77
+  status: proposed
+  candidates:
+  - AGG-77
+- id: PRC-93
+  name: 生成会计分录
+  group: finance
+  stages:
+  - VS-10.1
+  primary_object: OBJ-98
+  status: proposed
+  candidates:
+  - OBJ-98
+  capability_l1: CAP-103
+  capability: CAP-103.098
+- id: PRC-94
+  name: 制单并过账受控手工凭证
+  group: finance
+  stages:
+  - VS-10.1
+  primary_object: OBJ-98
+  status: proposed
+  candidates:
+  - OBJ-98
+  capability_l1: CAP-103
+  capability: CAP-103.098
+- id: PRC-95
+  name: 期末结转
+  group: finance
+  stages:
+  - VS-10.1
+  status: none
+- id: PRC-96
+  name: 分配人工成本
+  group: finance
+  stages:
+  - VS-10.1
+  status: none
+- id: PRC-98
+  name: 分摊间接成本
+  group: finance
+  stages:
+  - VS-10.1
+  status: none
+- id: PRC-99
+  name: 计提折旧并处置公司资产
+  group: finance
+  stages:
+  - VS-10.1
+  primary_object: OBJ-93
+  status: proposed
+  candidates:
+  - OBJ-93
+  capability_l1: CAP-093
+  capability: CAP-093
+- id: PRC-101
+  name: 月结检查并关账
+  group: finance
+  stages:
+  - VS-10.1
+  primary_object: OBJ-97
+  status: proposed
+  candidates:
+  - OBJ-97
+  capability_l1: CAP-103
+  capability: CAP-103.097
+- id: PRC-102
+  name: 启用第 13 期并年末关账
+  group: finance
+  stages:
+  - VS-10.1
+  primary_object: OBJ-97
+  status: proposed
+  candidates:
+  - OBJ-97
+  capability_l1: CAP-103
+  capability: CAP-103.097
+- id: PRC-103
+  name: 生成期间余额快照
+  group: finance
+  stages:
+  - VS-10.1
+  primary_object: AGG-100
+  status: proposed
+  candidates:
+  - AGG-100
+- id: PRC-104
+  name: 外部法定账对账与签字
+  group: finance
+  stages:
+  - VS-10.2
+  status: none
+- id: PRC-106
+  name: 出具三大报表
+  group: finance
+  stages:
+  - VS-10.2
+  status: read_model
+- id: PRC-107
+  name: 知识条目的起草、评审、发布与修订废止
+  group: people
+  stages:
+  - VS-11.1
+  - VS-11.2
+  - VS-11.3
+  primary_object: OBJ-110
+  status: proposed
+  candidates:
+  - OBJ-110
+  capability_l1: CAP-110
+  capability: CAP-110
+- id: PRC-111
+  name: 认缴并实缴出资
+  group: finance
+  stages:
+  - VS-12.1
+  primary_object: OBJ-91
+  status: proposed
+  candidates:
+  - OBJ-91
+  capability_l1: CAP-054
+  capability: CAP-054.091
+- id: PRC-112
+  name: 决议并支付利润分配
+  group: finance
+  stages:
+  - VS-12.2
+  primary_object: OBJ-112
+  status: proposed
+  candidates:
+  - OBJ-112
+  capability_l1: CAP-054
+  capability: CAP-054.112
+- id: PRC-113
+  name: 并入股息红利个税扣缴申报
+  group: people
+  stages:
+  - VS-12.2
+  primary_object: OBJ-92
+  status: proposed
+  candidates:
+  - OBJ-92
+  capability_l1: CAP-103
+  capability: CAP-103.092
+- id: PRC-114
+  name: 退回出资
+  group: finance
+  stages:
+  - VS-12.3
+  primary_object: OBJ-91
+  status: proposed
+  candidates:
+  - OBJ-91
+  capability_l1: CAP-054
+  capability: CAP-054.091
+- id: PRC-116
+  name: 申请并审批请假
+  group: people
+  stages:
+  - VS-13.1
+  primary_object: OBJ-68
+  status: proposed
+  candidates:
+  - OBJ-68
+  capability_l1: CAP-056
+  capability: CAP-056.068
+- id: PRC-117
+  name: 申请并批准加班
+  group: people
+  stages:
+  - VS-13.1
+  primary_object: OBJ-72
+  status: proposed
+  candidates:
+  - OBJ-72
+  capability_l1: CAP-056
+  capability: CAP-056.072
+- id: PRC-118
+  name: 生成、确认并锁定月度考勤
+  group: people
+  stages:
+  - VS-13.1
+  status: candidates
+  candidates:
+  - OBJ-72
+  - OBJ-111
+- id: PRC-120
+  name: 评估月度绩效
+  group: people
+  stages:
+  - VS-13.2
+  primary_object: OBJ-109
+  status: proposed
+  candidates:
+  - OBJ-109
+  capability_l1: CAP-056
+  capability: CAP-056.109
+- id: PRC-122
+  name: 核定奖金
+  group: people
+  stages:
+  - VS-13.2
+  primary_object: OBJ-104
+  status: proposed
+  candidates:
+  - OBJ-104
+  capability_l1: CAP-074
+  capability: CAP-074.104
+- id: PRC-124
+  name: 计算、审核并批准月度薪酬
+  group: people
+  stages:
+  - VS-13.3
+  primary_object: OBJ-73
+  status: proposed
+  candidates:
+  - OBJ-73
+  capability_l1: CAP-054
+  capability: CAP-054.073
+- id: PRC-125
+  name: 申报个税扣缴与社保公积金
+  group: people
+  stages:
+  - VS-13.4
+  - VS-06.1
+  primary_object: OBJ-92
+  status: proposed
+  candidates:
+  - OBJ-92
+  capability_l1: CAP-103
+  capability: CAP-103.092
+- id: PRC-126
+  name: 提交应付薪酬
+  group: people
+  stages:
+  - VS-13.5
+  primary_object: OBJ-85
+  status: proposed
+  candidates:
+  - OBJ-85
+  capability_l1: CAP-103
+  capability: CAP-103.085
+- id: PRC-127
+  name: 薪酬发放完成
+  group: people
+  stages:
+  - VS-13.5
+  primary_object: OBJ-73
+  status: proposed
+  candidates:
+  - OBJ-73
+  capability_l1: CAP-054
+  capability: CAP-054.073
+- id: PRC-128
+  name: 办理离职
+  group: people
+  stages:
+  - VS-13.6
+  primary_object: OBJ-05
+  status: proposed
+  candidates:
+  - OBJ-05
+  capability_l1: CAP-005
+  capability: CAP-005
+- id: PRC-129
+  name: 离职后吊销会话
+  group: people
+  stages:
+  - VS-13.6
+  status: none
+- id: PRC-130
+  name: 离职后参保减员
+  group: people
+  stages:
+  - VS-13.6
+  primary_object: OBJ-62
+  status: proposed
+  candidates:
+  - OBJ-62
+  capability_l1: CAP-056
+  capability: CAP-056.062
+- id: PRC-131
+  name: 付款成功后核销应付
+  group: finance
+  stages:
+  - VS-05.5
+  - VS-08.3
+  - VS-13.5
+  primary_object: OBJ-85
+  status: proposed
+  candidates:
+  - OBJ-85
+  capability_l1: CAP-103
+  capability: CAP-103.085
+- id: PRC-132
+  name: 应付核销后置付款已核销并提交过账候选
+  group: finance
+  stages:
+  - VS-05.5
+  - VS-08.3
+  - VS-13.5
+  primary_object: OBJ-86
+  status: proposed
+  candidates:
+  - OBJ-86
+  capability_l1: CAP-103
+  capability: CAP-103.086
+- id: PRC-133
+  name: 应付结清后报销置已付
+  group: finance
+  stages:
+  - VS-08.3
+  primary_object: OBJ-88
+  status: proposed
+  candidates:
+  - OBJ-88
+  capability_l1: CAP-056
+  capability: CAP-056.088
+- id: PRC-134
+  name: 薪酬事实已过账置位
+  group: people
+  stages:
+  - VS-13.5
+  primary_object: OBJ-73
+  status: proposed
+  candidates:
+  - OBJ-73
+  capability_l1: CAP-054
+  capability: CAP-054.073
+- id: PRC-135
+  name: 处理会计分录待处理队列与推送重投
+  group: finance
+  stages:
+  - VS-10.1
+  primary_object: OBJ-98
+  status: proposed
+  candidates:
+  - OBJ-98
+  capability_l1: CAP-103
+  capability: CAP-103.098
+- id: PRC-136
+  name: 调岗（任职变更，按人事业务生效日，触发数据范围复核）
+  group: people
+  stages:
+  - VS-07.3
+  primary_object: OBJ-05
+  status: proposed
+  candidates:
+  - OBJ-05
+  capability_l1: CAP-005
+  capability: CAP-005
+- id: PRC-137
+  name: 入职开通企业微信账号并绑定外部身份
+  group: people
+  stages:
+  - VS-07.3
+  status: none
+- id: PRC-138
+  name: 离职停用企业微信账号并解绑
+  group: people
+  stages:
+  - VS-13.6
+  status: none
+- id: PRC-145
+  name: 员工法人三口径不一致预警
+  group: people
+  stages:
+  - VS-07.3
+  status: none
+- id: PRC-147
+  name: 费用报销核定后冲抵员工借款并确认应付
+  group: revenue
+  stages:
+  - VS-08.2
+  primary_object: OBJ-88
+  status: proposed
+  candidates:
+  - OBJ-88
+  capability_l1: CAP-056
+  capability: CAP-056.088
+- id: PRC-148
+  name: 收入确认审批通过后占用转实并提交过账
+  group: revenue
+  stages:
+  - VS-04.2
+  primary_object: AGG-44
+  status: proposed
+  candidates:
+  - AGG-44
+- id: PRC-149
+  name: 冲销收入确认
+  group: revenue
+  stages:
+  - VS-04.2
+  - VS-04.5
+  primary_object: AGG-44
+  status: proposed
+  candidates:
+  - AGG-44
+- id: PRC-150
+  name: 发票红冲后冲减应收
+  group: revenue
+  stages:
+  - VS-04.4
+  primary_object: OBJ-85
+  status: proposed
+  candidates:
+  - OBJ-85
+  capability_l1: CAP-103
+  capability: CAP-103.085
+- id: PRC-151
+  name: 填报经营产值
+  group: revenue
+  stages:
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  primary_object: OBJ-33
+  status: proposed
+  candidates:
+  - OBJ-33
+  capability_l1: CAP-029
+  capability: CAP-029.033
+- id: PRC-152
+  name: 登记付款条件达成
+  group: revenue
+  stages:
+  - VS-04.3
+  primary_object: OBJ-05
+  status: proposed
+  candidates:
+  - OBJ-05
+  capability_l1: CAP-005
+  capability: CAP-005
+- id: PRC-153
+  name: 退还投标保证金
+  group: revenue
+  stages:
+  - VS-01.2
+  - VS-04.1
+  primary_object: OBJ-13
+  status: proposed
+  candidates:
+  - OBJ-13
+  capability_l1: CAP-005
+  capability: CAP-005.013
+- id: PRC-154
+  name: 收入三口径对照
+  group: revenue
+  stages:
+  - VS-04.2
+  - VS-04.3
+  status: read_model
+- id: PRC-158
+  name: 处置过账拒收记录
+  group: finance
+  stages:
+  - VS-10.1
+  primary_object: AGG-77
+  status: proposed
+  candidates:
+  - AGG-77
+- id: PRC-159
+  name: 申报已提交后确认税费应付
+  group: finance
+  stages:
+  - VS-06.1
+  primary_object: OBJ-85
+  status: proposed
+  candidates:
+  - OBJ-85
+  capability_l1: CAP-103
+  capability: CAP-103.085
+- id: PRC-160
+  name: 开立年度假期额度账户
+  group: people
+  stages:
+  - VS-07.3
+  primary_object: AGG-71
+  status: proposed
+  candidates:
+  - AGG-71
+- id: PRC-163
+  name: 应付结清后登记利润分配支付
+  group: finance
+  stages:
+  - VS-12.2
+  primary_object: OBJ-112
+  status: proposed
+  candidates:
+  - OBJ-112
+  capability_l1: CAP-054
+  capability: CAP-054.112
+- id: PRC-164
+  name: 收入确认冲销后冲回已配对成本结转
+  group: finance
+  stages:
+  - VS-04.2
+  primary_object: AGG-43
+  status: proposed
+  candidates:
+  - AGG-43
+- id: PRC-169
+  name: 处置勾稽差异案
+  group: finance
+  stages:
+  - VS-10.1
+  primary_object: AGG-126
+  status: proposed
+  candidates:
+  - AGG-126
+- id: PRC-170
+  name: 申请费用事前额度
+  group: finance
+  stages:
+  - VS-08.0
+  primary_object: AGG-130
+  status: proposed
+  candidates:
+  - AGG-130
+- id: PRC-171
+  name: 核对差旅服务商月账单并确认应付
+  group: finance
+  stages:
+  - VS-05.4
+  primary_object: OBJ-85
+  status: proposed
+  candidates:
+  - OBJ-85
+  capability_l1: CAP-103
+  capability: CAP-103.085
+- id: PRC-172
+  name: 申请出差并同步差旅服务商
+  group: finance
+  stages:
+  - VS-08.0
+  primary_object: AGG-132
+  status: proposed
+  candidates:
+  - AGG-132
+- id: PRC-173
+  name: 审批差旅超标订单
+  group: finance
+  stages:
+  - VS-08.0
+  primary_object: AGG-131
+  status: proposed
+  candidates:
+  - AGG-131
+- id: PRC-175
+  name: 直接付款申请
+  group: finance
+  stages:
+  - VS-05.5
+  primary_object: OBJ-85
+  status: proposed
+  candidates:
+  - OBJ-85
+  capability_l1: CAP-103
+  capability: CAP-103.085
+- id: PRC-176
+  name: 预付款核销
+  group: finance
+  stages:
+  - VS-05.5
+  primary_object: OBJ-85
+  status: proposed
+  candidates:
+  - OBJ-85
+  capability_l1: CAP-103
+  capability: CAP-103.085
+- id: PRC-178
+  name: 补休到期未休或离职时转计发加班工资
+  group: people
+  stages:
+  - VS-13.6
+  primary_object: AGG-93
+  status: proposed
+  candidates:
+  - AGG-93
+- id: PRC-179
+  name: 项目开始执行后协议转入履行中
+  group: revenue
+  stages:
+  - VS-04.6
+  primary_object: OBJ-05
+  status: proposed
+  candidates:
+  - OBJ-05
+  capability_l1: CAP-005
+  capability: CAP-005
+- id: PRC-181
+  name: 记录经营复盘并跟踪经营动作
+  group: people
+  stages:
+  - VS-09.3
+  primary_object: OBJ-100
+  status: proposed
+  candidates:
+  - OBJ-100
+  capability_l1: CAP-100
+  capability: CAP-100
+- id: PRC-182
+  name: 知识条目使用情况
+  group: people
+  stages:
+  - VS-11.3
+  status: read_model
