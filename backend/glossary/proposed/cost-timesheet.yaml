@@ -180,6 +180,21 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: error__cost_timesheet_work_date_duplicate
+  zh: 工作日期已有工时单
+  en: CostTimesheetWorkDateDuplicate
+  snake: cost_timesheet_work_date_duplicate
+  kind: error_code
+  bc: cost.timesheet
+  scope: domain
+  definition: 同一员工在该工作日期已有一张工时单（任何状态），不能再建；每人每个工作日只有一张（409）
+  standard_ref:
+  - phase1a/cards/TS-UNIQ.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 common_words:
 - revise
 - revised

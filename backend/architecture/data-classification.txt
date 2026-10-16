@@ -29,3 +29,5 @@ platform_audit.audit_entries.before_text | INTERNAL | 用途：被变更字段�
 platform_audit.audit_entries.after_text | INTERNAL | 用途：被变更字段的新值；个人信息 PI；同 before_text
 platform_idempotency.idempotent_responses.response_text | INTERNAL | 用途：重放幂等请求的第一次应答；个人信息 PI（三段格式下以此为准，四段化随 ADR-0043 实施 PR）；正文仅限 idempotent-endpoints.txt 的接口，不含直接标识，可含自有 UUID（代理键仍是个人信息，ADR-0043 第 4 项第 2 条）
 platform_integration.source_references.source_id | INTERNAL | 用途：来源系统中该对象的标识；个人信息 PI（来源对象类为 EMPLOYEE 时是外部系统的员工编号，等同工号类直接标识；其余类不是）；应答不得进幂等应答表
+platform_identity.sessions.session_id | RESTRICTED | 会话标识，等同 Cookie 持有凭据（个人信息标记待 one-data / U-11 裁定，四段化随 ADR-0043 实施 PR）
+platform_identity.sessions.primary_id | RESTRICTED | 框架内部主键，不进 Cookie，可关联会话内容；按用户决定与 session_id 同级（个人信息标记待 one-data / U-11 裁定，四段化随 ADR-0043 实施 PR）

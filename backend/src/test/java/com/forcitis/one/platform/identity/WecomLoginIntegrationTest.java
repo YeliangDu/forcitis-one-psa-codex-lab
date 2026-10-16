@@ -21,6 +21,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MvcResult;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 
 class WecomLoginIntegrationTest extends IdentityIntegrationTest {
 
@@ -273,5 +275,54 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
         MvcResult own = postLogin(LOGIN, body, state);
         assertThat(own.getResponse().getStatus()).as("the state was not burnt by the attacker's attempts").isEqualTo(200);
         assertThat(setCookieHeader(own, "loginBinding")).as("the binding is cleared after the login").contains("Max-Age=0");
+    }
+
+    private String lastLoginAddress() {
+        return jdbc.sql("select last_login_address from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(1001))
+                .query(String.class).optional().orElse(null);
+    }
+
+    private ListAppender<ILoggingEvent> watchAlerts() {
+        ListAppender<ILoggingEvent> logged = new ListAppender<>();
+        logged.start();
+        ((ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(
+                "com.forcitis.one.platform.identity.infrastructure.persistence.JdbcAccountRepository")).addAppender(logged);
+        return logged;
+    }
+
+    private void unwatch(ListAppender<ILoggingEvent> logged) {
+        ((ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(
+                "com.forcitis.one.platform.identity.infrastructure.persistence.JdbcAccountRepository")).detachAppender(logged);
+    }
+
+    private MvcResult loginFrom(String address) throws Exception {
+        knownEmployee(1001, EmploymentStatus.EMPLOYED);
+        wecomAccepts("c1", WecomEntry.WORKBENCH, 1001);
+        String state = newState("WORKBENCH");
+        return postLogin(LOGIN, "{\"code\":\"c1\",\"state\":\"" + state + "\",\"entry\":\"WORKBENCH\"}", state, address);
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-identity ID-12 a 70-character or non-address client address: the login succeeds, no address is stored and an ALERT is logged")
+    void id12UnusableAddressDoesNotFailTheLogin() throws Exception {
+        for (String bad : new String[] {"7".repeat(70), "not-an-address", "203.0.113.9:8080 junk"}) {
+            ListAppender<ILoggingEvent> logged = watchAlerts();
+            try {
+                assertThat(loginFrom(bad).getResponse().getStatus()).isEqualTo(200);
+                assertThat(lastLoginAddress()).isNull();
+                assertThat(jdbc.sql("select last_login_at is not null from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(1001))
+                        .query(Boolean.class).single()).isTrue();
+                assertThat(logged.list).anySatisfy(event -> assertThat(event.getFormattedMessage()).startsWith("ALERT ").doesNotContain(bad));
+            } finally {
+                unwatch(logged);
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-identity ID-12 an IPv6 address with a zone id is stored as it is")
+    void id12ZonedIpv6IsStored() throws Exception {
+        assertThat(loginFrom("fe80::1%eth0").getResponse().getStatus()).isEqualTo(200);
+        assertThat(lastLoginAddress()).isEqualTo("fe80::1%eth0");
     }
 }
