@@ -1,0 +1,912 @@
+# 状态机·收入链 VS-03/VS-04 本批聚合（提议稿）。from: ~ 表示新建；command: null 表示事件触发；note 标「拟命令」者对应 commands.yaml 的 proposed: true。
+machines:
+- aggregate: AGG-34
+  name: 检查计划
+  initial: 已登记
+  states:
+  - 已登记
+  - 生效
+  - {name: 不再受托, terminal: true}
+  transitions:
+  - {from: null, to: 已登记, command: 登记检查计划}
+  - {from: 已登记, to: 生效, command: 生效检查计划}
+  - from: 生效
+    to: 不再受托
+    command: 标记不再受托
+    guard: [拟规则：原因必填]
+- aggregate: AGG-35
+  name: 检查
+  initial: 已计划
+  states:
+  - 已计划
+  - 已安排
+  - 现场进行中
+  - 记录已提交
+  - 已审核
+  - {name: 已锁定, terminal: true}
+  - {name: 已取消, terminal: true}
+  transitions:
+  - {from: null, to: 已计划, command: 安排检查}
+  - from: null
+    to: 已计划
+    command: 复查检查
+    guard: [拟规则-VS03-03]
+    note: 复查是一次新的检查
+  - from: 已计划
+    to: 已安排
+    command: 指派检查人员
+    guard: [INV-56]
+  - from: 已安排
+    to: 已安排
+    command: 指派检查人员
+    guard: [INV-56]
+    note: 调整指派
+  - {from: 已安排, to: 现场进行中, command: 开始现场检查, note: 拟命令}
+  - from: 已安排
+    to: 记录已提交
+    command: 提交检查记录
+    guard: &id001 [INV-55, 拟规则-VS03-01]
+  - from: 现场进行中
+    to: 记录已提交
+    command: 提交检查记录
+    guard: *id001
+  - from: 记录已提交
+    to: 已审核
+    command: 审核检查记录
+    guard: [提交人≠审核人]
+  - from: 记录已提交
+    to: 现场进行中
+    command: 审核检查记录
+    guard: [审核不通过，退回补录]
+    reverse_of: 提交检查记录
+  - from: 已审核
+    to: 已锁定
+    command: 锁定检查
+    guard: [INV-55]
+  - {from: 已锁定, to: 已锁定, command: 关联检查报告}
+  - {from: 已计划, to: 已取消, command: 取消检查, reverse_of: 安排检查, note: 拟命令}
+  - {from: 已安排, to: 已取消, command: 取消检查, reverse_of: 安排检查, note: 拟命令}
+  - {from: 现场进行中, to: 已取消, command: 取消检查, reverse_of: 安排检查, note: 拟命令}
+- aggregate: AGG-36
+  name: 检查表模板版本
+  initial: 已生效
+  states:
+  - 已生效
+  - {name: 已停用, terminal: true}
+  transitions:
+  - from: null
+    to: 已生效
+    command: 发布检查表模板版本
+    guard: [INV-34b]
+  - from: 已生效
+    to: 已停用
+    command: 停用检查表模板版本
+    guard: [INV-34b]
+    reverse_of: 发布检查表模板版本
+    note: 拟命令
+- aggregate: AGG-37
+  name: 外部检测
+  initial: 已建议
+  states:
+  - 已建议
+  - 已委托
+  - 报告已登记
+  - {name: 报告已采信, terminal: true}
+  - {name: 报告未采信, terminal: true}
+  transitions:
+  - {from: null, to: 已建议, command: 建议外部检测}
+  - {from: 已建议, to: 已委托, command: 登记业主委托外部检测}
+  - from: 已委托
+    to: 报告已登记
+    command: 登记外部检测报告
+    guard: [INV-57]
+  - from: 报告已登记
+    to: 报告已采信
+    command: 采信外部检测报告
+    guard: [INV-57]
+  - from: 报告已登记
+    to: 报告未采信
+    command: 不采信外部检测报告
+    guard: [INV-57]
+- aggregate: AGG-28
+  name: 不符合项
+  note: 一台机承载两条路径：我方成果（登记→确认→让步接受或返工→关闭，PRC-34）与客户资产（登记→复核→发布→整改→闭合，PRC-44、45）
+  initial: 已登记
+  states:
+  - 已登记
+  - 已确认
+  - 让步已接受
+  - 已复核
+  - 已发布
+  - 整改中
+  - 整改已申报
+  - {name: 已关闭, terminal: true}
+  - {name: 已闭合, terminal: true}
+  - {name: 风险已保留, terminal: true}
+  - {name: 已停止跟踪, terminal: true}
+  transitions:
+  - from: null
+    to: 已登记
+    command: 登记不符合项
+    guard: [拟规则-VS03-02]
+  - {from: 已登记, to: 已确认, command: 确认不符合项}
+  - from: 已确认
+    to: 让步已接受
+    command: 让步接受不符合项
+    guard: [INV-49]
+  - from: 已登记
+    to: 已关闭
+    command: 关闭不符合项
+    guard: [INV-48]
+    note: 客户资产复核不成立也走关闭（待用户定 5）
+  - from: 已确认
+    to: 已关闭
+    command: 关闭不符合项
+    guard: [INV-48]
+    note: 客户资产复核不成立也走关闭（待用户定 5）
+  - from: 让步已接受
+    to: 已关闭
+    command: 关闭不符合项
+    guard: [INV-48]
+    note: 客户资产复核不成立也走关闭（待用户定 5）
+  - from: 已登记
+    to: 已复核
+    command: 复核不符合项
+    guard: [登记人≠复核人]
+  - from: 已登记
+    to: 已登记
+    command: 记录重大险情已报告
+    guard: [INV-52]
+    note: 拟命令
+  - from: 已复核
+    to: 已复核
+    command: 记录重大险情已报告
+    guard: [INV-52]
+    note: 拟命令
+  - from: 已复核
+    to: 已发布
+    command: 发布不符合项
+    guard: [INV-50, INV-52]
+  - {from: 已发布, to: 已发布, command: 登记不符合项送达, note: 拟命令}
+  - {from: 已发布, to: 整改中, command: 开始整改}
+  - {from: 整改中, to: 整改已申报, command: 登记整改申报}
+  - from: 整改已申报
+    to: 已闭合
+    command: 闭合不符合项
+    guard: [INV-50, 拟规则-VS03-04]
+  - from: 整改已申报
+    to: 整改中
+    command: 退回整改
+    guard: [拟规则-VS03-03]
+    reverse_of: 登记整改申报
+  - {from: 整改中, to: 风险已保留, command: 登记客户接受风险}
+  - {from: 整改已申报, to: 风险已保留, command: 登记客户接受风险}
+  - from: 已发布
+    to: 已停止跟踪
+    command: 停止跟踪不符合项
+    guard: [拟规则：原因必填]
+  - from: 整改中
+    to: 已停止跟踪
+    command: 停止跟踪不符合项
+    guard: [拟规则：原因必填]
+  - from: 整改已申报
+    to: 已停止跟踪
+    command: 停止跟踪不符合项
+    guard: [拟规则：原因必填]
+- aggregate: AGG-38
+  name: 证据
+  initial: 已采集
+  states:
+  - 已采集
+  - {name: 已封存, terminal: true}
+  - {name: 已作废, terminal: true}
+  transitions:
+  - from: null
+    to: 已采集
+    command: 采集证据
+    guard: [INV-58]
+  - from: 已采集
+    to: 已采集
+    command: 上传证据摘要
+    guard: [INV-58]
+  - from: 已采集
+    to: 已封存
+    command: 封存证据
+    guard: [INV-58]
+  - from: 已采集
+    to: 已作废
+    command: 作废证据
+    guard: [INV-58]
+- aggregate: AGG-110
+  name: 证据关联行
+  note: 技术聚合：状态在关联行上，关联与解除各追加一行不物理删除
+  initial: 已关联
+  states:
+  - 已关联
+  - {name: 已解除, terminal: true}
+  transitions:
+  - from: null
+    to: 已关联
+    command: 关联证据
+    guard: [INV-58]
+  - from: 已关联
+    to: 已解除
+    command: 解除证据关联
+    guard: [INV-58]
+    reverse_of: 关联证据
+- aggregate: AGG-13
+  name: 协议
+  initial: 草案
+  states:
+  - 草案
+  - 审批中
+  - 已签署生效
+  - 履行中
+  - 已完成
+  - {name: 已结算, terminal: true}
+  - {name: 已终止, terminal: true}
+  transitions:
+  - from: null
+    to: 草案
+    command: 起草协议
+    guard: [INV-03a, INV-06]
+  - from: 草案
+    to: 草案
+    command: 登记合同—项目关联与范围挂 WBS
+    guard: &id002 [INV-09, INV-08]
+  - from: 已签署生效
+    to: 已签署生效
+    command: 登记合同—项目关联与范围挂 WBS
+    guard: *id002
+  - from: 履行中
+    to: 履行中
+    command: 登记合同—项目关联与范围挂 WBS
+    guard: *id002
+  - {from: 草案, to: 草案, command: 登记视为同意参数与发包人代表}
+  - {from: 草案, to: 审批中, command: 提交合同评审, note: 拟命令}
+  - {from: 审批中, to: 审批中, command: 通过合同评审, note: 拟命令；记评审通过，回签的前置}
+  - {from: 审批中, to: 草案, command: 驳回合同评审, reverse_of: 提交合同评审, note: 拟命令；提交人撤回评审同样回草案（平台一侧）}
+  - from: 审批中
+    to: 已签署生效
+    command: 回签
+    guard: [INV-05, INV-06, INV-07, INV-33]
+  - from: 已签署生效
+    to: 履行中
+    command: null
+    guard: [事件触发：履行启动（触发条件待定，见 NOTES 结构 3）]
+  - from: 已签署生效
+    to: 已签署生效
+    command: 应用变更
+    guard: &id003 [INV-07, INV-08]
+  - from: 履行中
+    to: 履行中
+    command: 应用变更
+    guard: *id003
+  - from: 已签署生效
+    to: 已签署生效
+    command: 提交任务订单
+    guard: &id004 [INV-10, INV-03a]
+  - from: 履行中
+    to: 履行中
+    command: 提交任务订单
+    guard: *id004
+  - {from: 已签署生效, to: 已签署生效, command: 标记付款条件项可结算}
+  - {from: 履行中, to: 履行中, command: 标记付款条件项可结算}
+  - {from: 已完成, to: 已完成, command: 标记付款条件项可结算}
+  - {from: 已签署生效, to: 已签署生效, command: 登记付款条件达成, note: 拟命令}
+  - {from: 履行中, to: 履行中, command: 登记付款条件达成, note: 拟命令}
+  - {from: 已完成, to: 已完成, command: 登记付款条件达成, note: 拟命令}
+  - from: 履行中
+    to: 已完成
+    command: 完成协议
+    guard: [B-08 报告全部履约义务已履行]
+  - {from: 已完成, to: 已完成, command: 编制结算书}
+  - from: 已完成
+    to: 已完成
+    command: 确认最终价款
+    guard: [低于协议价须先过让价审批]
+  - from: 已完成
+    to: 已结算
+    command: 结算协议
+    guard: [最终价款已确认]
+  - from: 已签署生效
+    to: 已终止
+    command: 终止协议
+    guard: [原因必填]
+  - from: 履行中
+    to: 已终止
+    command: 终止协议
+    guard: [原因必填]
+  - from: 已签署生效
+    to: 已签署生效
+    command: 归档协议
+    guard: [INV-124]
+  - from: 履行中
+    to: 履行中
+    command: 归档协议
+    guard: [INV-124]
+  - from: 已完成
+    to: 已完成
+    command: 归档协议
+    guard: [INV-124]
+  - from: 已结算
+    to: 已结算
+    command: 归档协议
+    guard: [INV-124]
+  - from: 已终止
+    to: 已终止
+    command: 归档协议
+    guard: [INV-124]
+  - from: 已签署生效
+    to: 已签署生效
+    command: 登记协议借出
+    guard: [INV-125]
+  - from: 履行中
+    to: 履行中
+    command: 登记协议借出
+    guard: [INV-125]
+  - from: 已完成
+    to: 已完成
+    command: 登记协议借出
+    guard: [INV-125]
+  - from: 已结算
+    to: 已结算
+    command: 登记协议借出
+    guard: [INV-125]
+  - from: 已终止
+    to: 已终止
+    command: 登记协议借出
+    guard: [INV-125]
+  - from: 已签署生效
+    to: 已签署生效
+    command: 登记协议归还
+    guard: [INV-126]
+  - from: 履行中
+    to: 履行中
+    command: 登记协议归还
+    guard: [INV-126]
+  - from: 已完成
+    to: 已完成
+    command: 登记协议归还
+    guard: [INV-126]
+  - from: 已结算
+    to: 已结算
+    command: 登记协议归还
+    guard: [INV-126]
+  - from: 已终止
+    to: 已终止
+    command: 登记协议归还
+    guard: [INV-126]
+  - {from: 已签署生效, to: 已签署生效, command: 标记协议借阅逾期}
+  - {from: 履行中, to: 履行中, command: 标记协议借阅逾期}
+  - {from: 已完成, to: 已完成, command: 标记协议借阅逾期}
+  - {from: 已结算, to: 已结算, command: 标记协议借阅逾期}
+  - {from: 已终止, to: 已终止, command: 标记协议借阅逾期}
+- aggregate: AGG-14
+  name: 框架限额占用行
+  note: 技术聚合：占用行状态；被拒不落行，只发事件框架限额占用被拒
+  initial: 占用中
+  states:
+  - 占用中
+  - {name: 已释放, terminal: true}
+  transitions:
+  - from: null
+    to: 占用中
+    command: 占用框架限额
+    guard: [INV-10]
+  - from: 占用中
+    to: 占用中
+    command: 占用框架限额
+    guard: [INV-10]
+    note: 变更按增减额重占
+  - from: 占用中
+    to: 已释放
+    command: 释放框架限额
+    guard: [INV-10]
+    reverse_of: 占用框架限额
+- aggregate: AGG-15
+  name: 协议变更
+  initial: 已提出
+  states:
+  - 已提出
+  - 已评估
+  - 变更审批中
+  - 内部审批已通过
+  - 已获发包人同意
+  - {name: 已生效, terminal: true}
+  - {name: 未获同意, terminal: true}
+  - {name: 现场签证已确认, terminal: true}
+  transitions:
+  - {from: null, to: 已提出, command: 提出协议变更}
+  - {from: 已提出, to: 已评估, command: 评估变更影响}
+  - {from: 已评估, to: 变更审批中, command: 提交协议变更审批, note: 拟命令}
+  - {from: 变更审批中, to: 内部审批已通过, command: 通过协议变更审批, note: 拟命令}
+  - {from: 变更审批中, to: 已评估, command: 驳回协议变更审批, reverse_of: 提交协议变更审批, note: 拟命令；修订后可再提交}
+  - from: 内部审批已通过
+    to: 已获发包人同意
+    command: 登记发包人书面同意
+    guard: [书面同意附件已上传]
+    note: 拟命令
+  - from: 内部审批已通过
+    to: 未获同意
+    command: 登记发包人书面同意
+    guard: [发包人拒绝或逾期未答复]
+    note: 拟命令
+  - from: 已获发包人同意
+    to: 已生效
+    command: 生效协议变更
+    guard: [INV-16a]
+  - from: 已获发包人同意
+    to: 现场签证已确认
+    command: 确认现场签证
+    guard: [INV-16a]
+- aggregate: AGG-16
+  name: 索赔
+  initial: 已提出
+  states:
+  - 已提出
+  - {name: 已认定, terminal: true}
+  - {name: 已拒绝或撤回, terminal: true}
+  transitions:
+  - from: null
+    to: 已提出
+    command: 提出索赔
+    guard: [INV-17]
+  - {from: 已提出, to: 已认定, command: 认定索赔}
+  - {from: 已提出, to: 已拒绝或撤回, command: 拒绝或撤回索赔, reverse_of: 提出索赔}
+- aggregate: AGG-17
+  name: 风险交付授权
+  initial: 已申请
+  states:
+  - 已申请
+  - 审批中
+  - 已批准
+  - {name: 已转正, terminal: true}
+  - {name: 已叫停, terminal: true}
+  - {name: 已驳回, terminal: true}
+  - {name: 已撤回, terminal: true}
+  transitions:
+  - from: null
+    to: 已申请
+    command: 申请风险交付授权
+    guard: [INV-18]
+  - {from: 已申请, to: 审批中, command: 提交风险交付授权审批, note: 拟命令}
+  - {from: 审批中, to: 已批准, command: 批准风险交付授权}
+  - {from: 审批中, to: 已驳回, command: 驳回风险交付授权, note: 拟命令}
+  - {from: 已申请, to: 已撤回, command: 撤回风险交付授权申请, reverse_of: 申请风险交付授权, note: 拟命令}
+  - {from: 审批中, to: 已撤回, command: 撤回风险交付授权申请, reverse_of: 申请风险交付授权, note: 拟命令}
+  - from: 已批准
+    to: 已转正
+    command: 转正风险交付授权
+    guard: [INV-19]
+  - from: 已批准
+    to: 已叫停
+    command: 叫停风险交付授权
+    guard: [INV-19]
+- aggregate: AGG-44
+  name: 开票与收入额度（占用行与只追加事实）
+  note: 技术聚合，一台机承载各子表行的生命周期：额度变动行与视为同意认定行、确认事实行只追加；开票占用、收入确认占用、冲销占用各为一类占用行。状态名带前缀区分行类。
+  initial: 额度变动已追加
+  states:
+  - {name: 额度变动已追加, terminal: true}
+  - 开票占用已转实
+  - {name: 开票占用已回冲, terminal: true}
+  - 收入占用中
+  - {name: 收入占用已转实, terminal: true}
+  - {name: 收入占用已释放, terminal: true}
+  - {name: 视为同意已认定, terminal: true}
+  - {name: 收入确认事实已追加, terminal: true}
+  - 冲销申请已登记
+  - 冲销占用中
+  - {name: 冲销已转实, terminal: true}
+  - {name: 冲销已释放, terminal: true}
+  transitions:
+  - from: null
+    to: 额度变动已追加
+    command: 更新开票与收入额度
+    guard: [INV-21, INV-22]
+  - from: null
+    to: 开票占用已转实
+    command: 开具销项发票并改写 WIP
+    guard: [INV-21, INV-73]
+    note: AGG-46 同名命令的同事务改写
+  - from: 开票占用已转实
+    to: 开票占用已回冲
+    command: 回冲开票额度
+    guard: [INV-73]
+    reverse_of: 开具销项发票并改写 WIP
+  - from: null
+    to: 视为同意已认定
+    command: 认定视为同意成立
+    guard: [ADR-0049 决定 1、2、5]
+  - from: null
+    to: 收入占用中
+    command: 占用收入额度
+    guard: [INV-23, INV-22, INV-86]
+  - from: 收入占用中
+    to: 收入占用已转实
+    command: 追加收入确认事实并占用转实
+    guard: [INV-23, RULE-222]
+  - from: null
+    to: 收入确认事实已追加
+    command: 追加收入确认事实并占用转实
+    guard: [INV-23, RULE-222]
+    note: 与占用转实同事务追加不可改的确认事实
+  - from: 收入占用中
+    to: 收入占用已释放
+    command: 释放收入额度占用
+    guard: [审批驳回、撤回或二次校验失败]
+    reverse_of: 占用收入额度
+  - from: null
+    to: 冲销申请已登记
+    command: 冲销收入确认
+    guard: [冲销额≤原确认事实未冲销余额]
+    note: 拟命令
+  - from: 冲销申请已登记
+    to: 冲销占用中
+    command: 占用冲销额度
+    guard: [在途冲销合计≤未冲销余额]
+    note: 拟命令
+  - from: 冲销占用中
+    to: 冲销已转实
+    command: 追加冲销行并占用转实
+    guard: [INV-22, RULE-222]
+    reverse_of: 追加收入确认事实并占用转实
+    note: 拟命令
+  - from: 冲销占用中
+    to: 冲销已释放
+    command: 释放收入额度占用
+    guard: [审批驳回、撤回或二次校验失败]
+    reverse_of: 占用冲销额度
+  - from: 收入确认事实已追加
+    to: 收入确认事实已追加
+    command: 提交过账候选
+    guard: [INV-92]
+  - from: 冲销已转实
+    to: 冲销已转实
+    command: 提交过账候选
+    guard: [INV-92]
+- aggregate: AGG-45
+  name: 开票申请
+  initial: 已提交
+  states:
+  - 已提交
+  - 已准入
+  - {name: 已开具, terminal: true}
+  - {name: 已驳回, terminal: true}
+  - {name: 已作废, terminal: true}
+  transitions:
+  - {from: null, to: 已提交, command: 提交开票申请}
+  - from: 已提交
+    to: 已准入
+    command: 开票申请准入
+    guard: [INV-71, RULE-407, RULE-411, INV-21]
+  - {from: 已提交, to: 已驳回, command: 驳回开票申请}
+  - {from: 已准入, to: 已驳回, command: 驳回开票申请}
+  - from: 已提交
+    to: 已作废
+    command: 作废开票申请
+    guard: [INV-71（只在开具前）]
+    reverse_of: 提交开票申请
+  - from: 已准入
+    to: 已作废
+    command: 作废开票申请
+    guard: [INV-71（只在开具前）]
+    reverse_of: 提交开票申请
+  - from: 已准入
+    to: 已开具
+    command: null
+    guard: [事件触发：InvoiceIssued（AGG-46，同 BC）]
+- aggregate: AGG-46
+  name: 销项发票
+  initial: 已开具
+  states:
+  - 已开具
+  - 红冲确认中
+  - {name: 已红冲, terminal: true}
+  transitions:
+  - from: null
+    to: 已开具
+    command: 开具销项发票并改写 WIP
+    guard: [INV-72, INV-73]
+  - from: 已开具
+    to: 已开具
+    command: 提交过账候选
+    guard: [INV-92]
+  - from: 已红冲
+    to: 已红冲
+    command: 提交过账候选
+    guard: [INV-92]
+  - from: 已开具
+    to: 红冲确认中
+    command: 发起红字信息确认
+    guard: [INV-72]
+  - {from: 红冲确认中, to: 已开具, command: 撤销红字信息确认, reverse_of: 发起红字信息确认, note: 拟命令}
+  - from: 红冲确认中
+    to: 已红冲
+    command: 红冲发票
+    guard: [INV-72]
+- aggregate: AGG-92
+  name: 证据类型配置版本
+  note: 每版本一个聚合；关闭或撤销已开放类型的命令缺，见 NOTES
+  initial: 未开放
+  states:
+  - 未开放
+  - {name: 已开放, terminal: true}
+  transitions:
+  - {from: 未开放, to: 已开放, command: 开放证据类型}
+- aggregate: AGG-49
+  name: 应收往来款项
+  note: 逾期与争议在业务上与结清程度正交，这里为简化按互斥状态建模，见 NOTES 结构 5
+  initial: 未结
+  states:
+  - 未结
+  - 部分结清
+  - 逾期
+  - 争议中
+  - {name: 已结清, terminal: true}
+  - {name: 坏账已核销, terminal: true}
+  - {name: 已冲减, terminal: true}
+  - {name: 已转预收或待退, terminal: true}
+  transitions:
+  - from: null
+    to: 未结
+    command: 创建应收
+    guard: [INV-76]
+  - from: 未结
+    to: 已结清
+    command: 在应收上核销占用
+    guard: &id005 [INV-77, 核销合计=未结余额]
+  - from: 部分结清
+    to: 已结清
+    command: 在应收上核销占用
+    guard: *id005
+  - from: 逾期
+    to: 已结清
+    command: 在应收上核销占用
+    guard: *id005
+  - from: 争议中
+    to: 已结清
+    command: 在应收上核销占用
+    guard: *id005
+  - from: 未结
+    to: 部分结清
+    command: 在应收上核销占用
+    guard: &id006 [INV-77, 核销合计<未结余额]
+  - from: 部分结清
+    to: 部分结清
+    command: 在应收上核销占用
+    guard: *id006
+  - from: 逾期
+    to: 部分结清
+    command: 在应收上核销占用
+    guard: *id006
+  - from: 争议中
+    to: 部分结清
+    command: 在应收上核销占用
+    guard: *id006
+  - {from: 未结, to: 逾期, command: 检测应收逾期}
+  - {from: 部分结清, to: 逾期, command: 检测应收逾期}
+  - {from: 未结, to: 争议中, command: 登记争议与处置分类}
+  - {from: 部分结清, to: 争议中, command: 登记争议与处置分类}
+  - {from: 逾期, to: 争议中, command: 登记争议与处置分类}
+  - from: 部分结清
+    to: 坏账已核销
+    command: 核销坏账
+    guard: [拟规则：坏账核销审批]
+  - from: 逾期
+    to: 坏账已核销
+    command: 核销坏账
+    guard: [拟规则：坏账核销审批]
+  - from: 争议中
+    to: 坏账已核销
+    command: 核销坏账
+    guard: [拟规则：坏账核销审批]
+  - from: 未结
+    to: 已结清
+    command: 冲抵员工借款
+    guard: &id007 [INV-77, 冲抵额=未结余额]
+  - from: 部分结清
+    to: 已结清
+    command: 冲抵员工借款
+    guard: *id007
+  - from: 未结
+    to: 部分结清
+    command: 冲抵员工借款
+    guard: &id008 [INV-77, 冲抵额<未结余额]
+  - from: 部分结清
+    to: 部分结清
+    command: 冲抵员工借款
+    guard: *id008
+  - from: 未结
+    to: 已冲减
+    command: 冲减应收
+    guard: [红冲额=未结余额]
+  - from: 部分结清
+    to: 已冲减
+    command: 冲减应收
+    guard: [红冲额=未结余额]
+  - from: 逾期
+    to: 已冲减
+    command: 冲减应收
+    guard: [红冲额=未结余额]
+  - from: 争议中
+    to: 已冲减
+    command: 冲减应收
+    guard: [红冲额=未结余额]
+  - from: 未结
+    to: 部分结清
+    command: 冲减应收
+    guard: [红冲额<未结余额]
+  - from: 部分结清
+    to: 部分结清
+    command: 冲减应收
+    guard: [红冲额<未结余额]
+  - from: 逾期
+    to: 部分结清
+    command: 冲减应收
+    guard: [红冲额<未结余额]
+  - from: 争议中
+    to: 部分结清
+    command: 冲减应收
+    guard: [红冲额<未结余额]
+  - from: 已结清
+    to: 已转预收或待退
+    command: 转预收或待退
+    guard: [红冲额超过未结余额]
+    reverse_of: 在应收上核销占用
+  - from: 已结清
+    to: 未结
+    command: 释放占用、恢复应收
+    guard: [释放后无其他核销]
+    reverse_of: 在应收上核销占用
+  - from: 部分结清
+    to: 未结
+    command: 释放占用、恢复应收
+    guard: [释放后无其他核销]
+    reverse_of: 在应收上核销占用
+  - from: 已结清
+    to: 部分结清
+    command: 释放占用、恢复应收
+    guard: [释放后仍有其他核销]
+    reverse_of: 在应收上核销占用
+  - from: 部分结清
+    to: 部分结清
+    command: 释放占用、恢复应收
+    guard: [释放后仍有其他核销]
+    reverse_of: 在应收上核销占用
+  - from: 未结
+    to: 未结
+    command: 提交过账候选
+    guard: [INV-92]
+    note: 不改变业务状态，只追加过账候选提交事实
+  - from: 部分结清
+    to: 部分结清
+    command: 提交过账候选
+    guard: [INV-92]
+    note: 不改变业务状态，只追加过账候选提交事实
+  - from: 逾期
+    to: 逾期
+    command: 提交过账候选
+    guard: [INV-92]
+    note: 不改变业务状态，只追加过账候选提交事实
+  - from: 争议中
+    to: 争议中
+    command: 提交过账候选
+    guard: [INV-92]
+    note: 不改变业务状态，只追加过账候选提交事实
+  - from: 已结清
+    to: 已结清
+    command: 提交过账候选
+    guard: [INV-92]
+    note: 不改变业务状态，只追加过账候选提交事实
+  - from: 坏账已核销
+    to: 坏账已核销
+    command: 提交过账候选
+    guard: [INV-92]
+    note: 不改变业务状态，只追加过账候选提交事实
+  - from: 已冲减
+    to: 已冲减
+    command: 提交过账候选
+    guard: [INV-92]
+    note: 不改变业务状态，只追加过账候选提交事实
+  - from: 已转预收或待退
+    to: 已转预收或待退
+    command: 提交过账候选
+    guard: [INV-92]
+    note: 不改变业务状态，只追加过账候选提交事实
+- aggregate: AGG-50
+  name: 收款
+  note: 商票兑付状态与分配状态正交，这里用前缀状态并列建模
+  initial: 已认领
+  states:
+  - 待认领
+  - 已认领
+  - {name: 已分配, terminal: true}
+  - {name: 已处置, terminal: true}
+  - 商票已收到
+  - 商票已逾期
+  - {name: 商票已兑付, terminal: true}
+  transitions:
+  - from: null
+    to: 已认领
+    command: 收款认领
+    guard: [AR-09, RULE-410, AR-15]
+  - from: null
+    to: 待认领
+    command: 收款认领
+    guard: [流水行无法对应应收，挂账待认领]
+  - from: 待认领
+    to: 已认领
+    command: 收款认领
+    guard: [AR-09, RULE-410, AR-15]
+  - from: null
+    to: 商票已收到
+    command: 收款认领
+    guard: [收款方式=商票，收票时尚未到账]
+  - from: 已认领
+    to: 已分配
+    command: 记分配行与流水行
+    guard: [INV-78]
+  - {from: 待认领, to: 已处置, command: 处置待认领流水, note: 拟命令}
+  - {from: 商票已收到, to: 商票已兑付, command: 登记商票兑付}
+  - {from: 商票已收到, to: 商票已逾期, command: 标记商票已逾期}
+  - {from: 商票已逾期, to: 商票已兑付, command: 登记商票兑付}
+  - from: 已分配
+    to: 已分配
+    command: 提交过账候选
+    guard: [INV-92]
+    note: 过账时点取收票或兑付待财务定
+  - from: 商票已兑付
+    to: 商票已兑付
+    command: 提交过账候选
+    guard: [INV-92]
+    note: 过账时点取收票或兑付待财务定
+- aggregate: AGG-51
+  name: 保证金与押金
+  initial: 待缴
+  states:
+  - 待缴
+  - 已缴
+  - {name: 已退, terminal: true}
+  - {name: 被没收, terminal: true}
+  - 已开立
+  - {name: 到期, terminal: true}
+  - {name: 被索赔, terminal: true}
+  transitions:
+  - {from: null, to: 待缴, command: 登记保证金应缴, note: 拟命令}
+  - {from: 待缴, to: 已缴, command: 登记保证金缴纳}
+  - {from: null, to: 已缴, command: 登记保证金缴纳, note: 直接缴纳无应缴登记}
+  - {from: null, to: 已开立, command: 登记保函开立}
+  - from: 已缴
+    to: 已缴
+    command: 扣减保证金
+    guard: [INV-20]
+  - from: 已缴
+    to: 已退
+    command: 退还保证金
+    guard: [INV-20, AR-09（RULE-410）]
+  - from: 已缴
+    to: 被没收
+    command: 没收保证金
+    guard: [INV-20]
+  - from: 已开立
+    to: 到期
+    command: 登记保函到期或索赔
+    guard: [结果=到期]
+  - from: 已开立
+    to: 被索赔
+    command: 登记保函到期或索赔
+    guard: [结果=被索赔]
+  - from: 已缴
+    to: 已缴
+    command: 提交过账候选
+    guard: [INV-92]
+  - from: 已退
+    to: 已退
+    command: 提交过账候选
+    guard: [INV-92]
+  - from: 被没收
+    to: 被没收
+    command: 提交过账候选
+    guard: [INV-92]
