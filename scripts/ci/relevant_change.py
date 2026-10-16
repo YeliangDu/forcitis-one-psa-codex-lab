@@ -45,6 +45,8 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     # session profiles: checked by build_all.py --check, injected by scripts/hooks/session_context.py
     "docs/modernization/sessions/",
     "docs/modernization/check_legacy_name.py",
+    # decision page question rules: run by scripts/precheck.sh when a decision page changes
+    "docs/modernization/architecture/decision-page/check_pages.py",
 )
 
 
