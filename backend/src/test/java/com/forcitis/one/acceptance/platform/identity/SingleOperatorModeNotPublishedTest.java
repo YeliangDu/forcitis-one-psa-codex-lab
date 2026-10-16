@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -23,6 +24,7 @@ class SingleOperatorModeNotPublishedTest {
 
     static final Pattern PUBLISHED = Pattern.compile("(?i)single[-_.]?operator");
     static final Pattern KEY_FORMS = Pattern.compile("(?i)single[-_.]?operator[-_.]?mode");
+    static final Pattern STRING_LITERAL = Pattern.compile("\"\"\"(.*?)\"\"\"|\"(?:[^\"\\\\\\n]|\\\\.)*\"", Pattern.DOTALL);
     static final Pattern PUBLIC_TYPE = Pattern.compile("(?m)^public\\s+(?:(?:final|abstract|sealed)\\s+)*(?:class|record|interface|enum)\\s");
 
     static List<String> publishedIn(Map<String, String> files) {
@@ -35,10 +37,20 @@ class SingleOperatorModeNotPublishedTest {
         return problems;
     }
 
+    static boolean namesTheKeyInAStringLiteral(String source) {
+        Matcher literal = STRING_LITERAL.matcher(source);
+        while (literal.find()) {
+            if (KEY_FORMS.matcher(literal.group()).find()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     static List<String> keyOutsideIdentity(Map<String, String> sources) {
         List<String> problems = new ArrayList<>();
         sources.forEach((name, text) -> {
-            if (!name.replace('\\', '/').contains("com/forcitis/one/platform/identity/") && KEY_FORMS.matcher(text).find()) {
+            if (!name.replace('\\', '/').contains("com/forcitis/one/platform/identity/") && namesTheKeyInAStringLiteral(text)) {
                 problems.add(name);
             }
         });
@@ -95,15 +107,16 @@ class SingleOperatorModeNotPublishedTest {
     }
 
     @Test
-    @DisplayName("SINGLE-OP P1-19 扫描函数对注入的样例能报出（各种写法），并放过 platform.identity 内的同名文本")
+    @DisplayName("SINGLE-OP P1-19 扫描函数对注入的样例能报出（字符串字面量里的各种写法），放过 platform.identity 内的同名文本，也放过类型引用与 import（api.SingleOperatorMode）")
     void theSourceScanReportsInjectedSamples() {
         Map<String, String> samples = new LinkedHashMap<>();
         String dir = "src/main/java/com/forcitis/one/";
         samples.put(dir + "platform/numbering/A.java", "\"forcitis.platform.identity.single-operator-mode\"");
         samples.put(dir + "platform/numbering/B.java", "\"FORCITIS_PLATFORM_IDENTITY_SINGLE_OPERATOR_MODE\"");
-        samples.put(dir + "kernel/C.java", "boolean singleOperatorMode;");
+        samples.put(dir + "kernel/C.java", "String key = \"forcitis.platform.identity.singleOperatorMode\";");
         samples.put(dir + "cost/D.java", "\"single_operator_mode\"");
         samples.put(dir + "platform/identity/infrastructure/startup/E.java", "\"forcitis.platform.identity.single-operator-mode\"");
+        samples.put(dir + "platform/numbering/Type.java", "import com.forcitis.one.platform.identity.api.SingleOperatorMode;\nclass Type { SingleOperatorMode mode; boolean singleOperatorMode; }");
         samples.put(dir + "kernel/Clean.java", "class Clean {}");
 
         assertThat(keyOutsideIdentity(samples)).containsExactly(dir + "platform/numbering/A.java", dir + "platform/numbering/B.java", dir + "kernel/C.java",

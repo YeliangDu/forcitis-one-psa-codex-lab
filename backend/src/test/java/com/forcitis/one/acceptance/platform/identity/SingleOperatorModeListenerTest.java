@@ -209,4 +209,47 @@ class SingleOperatorModeListenerTest {
         }
     }
 
+
+    static StandardEnvironment byDefaultProfiles(String value, String... defaults) {
+        StandardEnvironment environment = value == null ? withoutKey() : withKey(value);
+        environment.setDefaultProfiles(defaults);
+        return environment;
+    }
+
+    @ParameterizedTest(name = "[{index}] \"{0}\"")
+    @ValueSource(strings = {"true", "false", "", "garbage", " true"})
+    @DisplayName("SINGLE-OP P1-06 没有激活 profile 时 default profile 起作用：default 含 prod 且键存在（任何取值，含 false）即启动失败")
+    void p106_defaultProfileProdWithKeyFails(String value) {
+        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(byDefaultProfiles(value, "prod"))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(byDefaultProfiles(value, "dev", "prod"))).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    @DisplayName("SINGLE-OP P1-06 default profile 含 prod 而键未设置：通过，模式为关闭")
+    void p106_defaultProfileProdWithoutKeyPasses() {
+        assertThat(SingleOperatorModeListener.resolve(byDefaultProfiles(null, "prod"))).isFalse();
+    }
+
+    @ParameterizedTest(name = "[{index}] key={0}")
+    @ValueSource(strings = {"unset", "false"})
+    @DisplayName("SINGLE-OP P1-08 没有激活 profile、default profile 含 identity-operations 而 default 不含 dev 或 prod：启动失败")
+    void p108_defaultProfileIdentityOperationsAloneFails(String key) {
+        String value = key.equals("unset") ? null : key;
+        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(byDefaultProfiles(value, "identity-operations"))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(byDefaultProfiles(value, "identity-operations", "test"))).isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    @DisplayName("SINGLE-OP P1-08 没有激活 profile、default profile 含 identity-operations,dev（或 identity-operations,prod）在键未设置时通过，模式为关闭")
+    void p108_defaultProfileIdentityOperationsWithEnvironmentPasses() {
+        assertThat(SingleOperatorModeListener.resolve(byDefaultProfiles(null, "identity-operations", "dev"))).isFalse();
+        assertThat(SingleOperatorModeListener.resolve(byDefaultProfiles(null, "identity-operations", "prod"))).isFalse();
+    }
+
+    @Test
+    @DisplayName("SINGLE-OP P1-07 值为 true 时仍要求激活 profile 显式含 dev：default 里的 dev 不算开启")
+    void p107_devInTheDefaultProfilesDoesNotEnable() {
+        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(byDefaultProfiles("true", "dev"))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(byDefaultProfiles("true", "identity-operations", "dev"))).isInstanceOf(IllegalStateException.class);
+    }
 }
