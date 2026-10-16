@@ -14,11 +14,7 @@
 
 ### 待用户决定（采纳前须答）
 
-- **A-1 `ddd/contexts.yaml` 既有 planned 条目怎么处理**（与 ADR-0051 决定 1 同题）。现状：`contexts.yaml` 登记了全部规划业务 BC（status planned），文件头写「新 BC 先在此登记（status: planned）」；其中 7 个标识已被 ADR-0051 退役。L-5「全企业提议稿不进 SSOT」是否追溯这些既有条目，用户未答。选项：
-  - a：7 个旧标识改 `retired` 并写去向，其余 planned 条目保留，新 BC 到阶段开工再登记；
-  - b：全删，只留已建与在建；
-  - c：全企业 28 个 BC 全部登记为 planned。
-  本 ADR 决定 3 留占位【待用户 A-1】。
+- **A-1 已答（c）**：用户选「按 ADR-0051 把全企业 28 个 BC 全部登记为规划（旧标识改退役）」，附注「我认可的规划，要进SSOT」（intent `2026-10-16-124649`）。该答复修订 L-5（intent `2026-10-16-112800`）「全企业提议稿不进 SSOT」：用户认可的规划进 SSOT，未经用户认可的提议稿内容仍留 `proposals/`。BC 清单随 ADR-0051 采纳进 `ddd/contexts.yaml`；规划依赖边与聚合的处理见决定 3 与后果。
 - **A-2 ⑥a「业务流程」三条判据的地位**。现状：判据在 `STEP6A_PROCESSES.md` §0.3 标【裁量】，⑥a 清单状态为「待用户确认」；用户只在售前回溯 P-5 按此口径移入三项（intent `2026-10-16-120544`），这不等于确认了判据。选项：
   - a：判据写进 ADR，⑥a 清单逐阶段确认；
   - b：判据与 ⑥a 清单一起交用户确认后再进 ADR；
@@ -27,9 +23,9 @@
 
 ### 依据标记
 
-每条决定注明依据：
+涉及 SSOT 登记范围的条目（决定 3 及后果）依据 intent `2026-10-16-124649`。每条决定注明依据：
 - **用户**：用户在所引 intent 中的决定。
-- **推出（L-11 已认可）**：只限 L-11 认可页列出的 10 项（`architecture/decision-page/LOCK.json` L-11 原文）：已采纳的不变量 ADR 优先；全企业提议稿不进 SSOT；不拆子价值流、跨价值流只经对象状态衔接；能力只作视图、能力文件禁 BC 字段；阶段不做成大状态机；流程与阶段多对多；每个事件只由一个聚合发出；BC 按统一语言划分；对象 ≠ 聚合（五种对应）；回溯检查。
+- **推出（L-11 已认可）**：只限 L-11 认可页列出的 10 项（`architecture/decision-page/LOCK.json` L-11 原文）：已采纳的不变量 ADR 优先；全企业提议稿不进 SSOT（后经 intent 124649 修订）；不拆子价值流、跨价值流只经对象状态衔接；能力只作视图、能力文件禁 BC 字段；阶段不做成大状态机；流程与阶段多对多；每个事件只由一个聚合发出；BC 按统一语言划分；对象 ≠ 聚合（五种对应）；回溯检查。
 - **推出（未经用户过目）**：由已定事项或已采纳 ADR 推出、但不在上述 10 项之内的条目。这些条目在采纳前随 A-1、A-2 一并交确认页过目。
 - **裁量**：起草会话的实现选择；L-2 已把其中的聚合实现做法升为用户决定。
 
@@ -77,8 +73,10 @@
 
 3. **范围规则**：第 ①–⑤ 步与 ⑥a 做全企业（用户：intent `2026-10-15-221201`「全部段都做到聚合和 BC」；`2026-10-15-211634`）；⑥b、⑦ 按阶段做。分两层登记：
    - **业务层**（①②③ 的价值流、信息图、能力图）定稿后进 SSOT，三份文件放新建的 `docs/modernization/architecture/business/`，不放 `togaf/`（用户：intent `2026-10-16-112800` L-3，改选非推荐项）。
-   - **领域层**（④⑤⑥a 的聚合、BC、依赖边、业务流程清单）全企业产出留在 `proposals/` 作提议稿，不进 SSOT；各阶段开工时按本方法复核，登记本阶段在建部分（用户：L-5；推出（L-11 已认可）；与 ADR-0041 决定 4 一致；CS-1.8）。
-   - **既有 planned 条目**：`ddd/contexts.yaml` 现已登记全部规划业务 BC（status planned），L-5 是否追溯这些条目、它们改 `retired`、删除还是补齐：【待用户 A-1】（选项见背景）。
+   - **领域层**（④⑤⑥a 的聚合、BC、依赖边、业务流程清单）全企业产出先作提议稿留在 `proposals/`。**用户认可的规划进 SSOT，未经用户认可的提议稿内容仍留 `proposals/`**（用户：intent `2026-10-16-124649`「我认可的规划，要进SSOT」，修订 L-5 的「全企业提议稿不进 SSOT」）。落实到各类内容：
+     - **BC 清单**：用户经 ADR-0051 认可，采纳时全部登记进 `ddd/contexts.yaml`（决定见 ADR-0051 决定 1）。
+     - **规划依赖边**（`ddd/context-map.yaml`、`module-dependencies.txt`）与**聚合**（`aggregates.yaml`）：用户尚未就这两类内容单独认可，不因 BC 清单被认可而预先进 SSOT；待用户认可相应内容后登记。在此之前，各阶段开工时仍按本方法复核，登记本阶段在建部分（ADR-0041 决定 4；CS-1.8）。
+   - **既有 planned 条目**：`ddd/contexts.yaml` 现有 planned 条目按 A-1 答复 c 处理：7 个被合并的旧标识改 `retired` 并写去向，全企业 28 个业务 BC 登记为 planned，细则见 ADR-0051 决定 1。
 
 ### 二、业务层规则（第 ①–③ 步）
 
@@ -216,7 +214,7 @@
     | `architecture/business/information-map.yaml` | `proposals/ENTERPRISE_INFO_MAP_DRAFT.md` 转写 | 新增；对象、级别、主父对象（次级对象的依附对象，供能力结构校验）、类型、关键状态（含派生标注，决定 23）、关系、规则、来源、范围与阶段、词表 |
     | `architecture/business/capabilities.yaml` | `proposals/capabilities.v2.yaml`（用户 intent `2026-10-16-082311` 确认第 ② 步） | 重建，替换 `togaf/capabilities.yaml`；手写名称与定义，结构由 CI 与信息图比对；含 `unsupported_reason` |
 
-    `togaf/` 只留 `transitions.yaml`、`vision.yaml`（阶段出口度量，ADR-0041 决定 4）；`togaf/capabilities.yaml`、`togaf/value-streams.yaml` 删除（git 历史可取回）（推出（未经用户过目））。`togaf/capabilities.yaml` 中按 ADR-0047 影响面补引 ADR-0047 的条目（「收到客户价值确认单是确认收入的唯一触发点」一条），迁入后在 `business/information-map.yaml` 对应对象的规则中保留对 ADR-0047 的引用（评审 L-5）。聚合稿同样转写为 YAML，但留在 `proposals/`，不进 SSOT（L-5）；校验读 YAML，不再解析 Markdown 表格。
+    `togaf/` 只留 `transitions.yaml`、`vision.yaml`（阶段出口度量，ADR-0041 决定 4）；`togaf/capabilities.yaml`、`togaf/value-streams.yaml` 删除（git 历史可取回）（推出（未经用户过目））。`togaf/capabilities.yaml` 中按 ADR-0047 影响面补引 ADR-0047 的条目（「收到客户价值确认单是确认收入的唯一触发点」一条），迁入后在 `business/information-map.yaml` 对应对象的规则中保留对 ADR-0047 的引用（评审 L-5）。聚合稿同样转写为 YAML，但留在 `proposals/`（用户尚未认可聚合内容，不进 SSOT，见决定 3；intent 124649 修订 L-5）；校验读 YAML，不再解析 Markdown 表格。
 
 23. **新校验并入 `build_all.py --check`**（用户：L-4；推出（未经用户过目）：intent `2026-10-15-222319` 纳入页所列代价「须加 CI 规则阻止能力决定 BC 或子域」；用户 M-3）：能力文件禁用字段；阶段门引用的对象与状态在信息图中存在、门不引用派生值、无拦截类键；能力—阶段对账；一级对象与一级能力一一对应；BC 依赖边查环与分层；每个有聚合的 BC 恰属一个命名空间（例外见决定 13）；不变量类别、C 类引 ADR、对象—聚合对应五种之一；事件订阅覆盖。逐条落点与 PR 见「需同步修改的守护规则」。
     - **派生值清单的机读位置**（评审 H-5）：现为聚合稿 §2.2 末「派生值清单」（`对象｜状态｜计算所在`）；转 YAML 时并入 `business/information-map.yaml`，作为对象关键状态上的派生标注（字段名在 PR-2 定，值为计算所在 BC）。「门不引用派生值」只读 `business/` 下的 SSOT，不依附提议稿；提议稿归档后此项校验不受影响。
@@ -248,7 +246,7 @@
    2. 信息图 `ENTERPRISE_INFO_MAP_DRAFT.md` 转写为 `business/information-map.yaml`（含主父对象与派生标注），Markdown 改为由 YAML 生成或降为说明文档（不再两处手写）；能力文件、价值流文件的 `ref` 改指 `information-map.yaml`；ADR-0047 的引用随对应对象迁入；
    3. 删除 `togaf/capabilities.yaml`、`togaf/value-streams.yaml`；
    4. `vs_links_gen.py` 等脚本改路径，`build_architecture.py` 读 `business/`；
-   5. `ddd/subdomains.yaml` 去掉分类字段；`ddd/contexts.yaml` 按 A-1 的答复处理。
+   5. `ddd/subdomains.yaml` 去掉分类字段；`ddd/contexts.yaml` 按 A-1 答复 c 处理（28 个 BC 登记为 planned、7 个旧标识改 `retired`）。
 3. **PR-3 校验（one-architecture 与 one-quality）**：聚合稿转写 `proposals/aggregates.yaml`、⑥a 已是 `proposals/processes.v1.yaml`；查环、流程、J1–J7 检查改读 YAML，并入 `build_all.py --check`，各带 `--self-test` 拦截与放行用例；`scripts/precheck.sh` 随 `build_all.py` 生效。
 4. **PR-4 GUIDING_PRINCIPLES 指针化（one-coordinator 派工）**：沿用 ADR-0041 决定 4 的派工。
 5. **按阶段**：方向规则的 ArchUnit 测试随相关 BC 的首个 PR 落地（具体模块对见 ADR-0051）；`ddd/contexts.yaml` 加深浅标记字段随阶段登记。
@@ -288,7 +286,8 @@ PR-2 与 PR-3 可并行，但 PR-3 的 `build_all.py --check` 接线在 PR-2 合
 
 ### 已知限制与未定事项
 
-1. **A-1、A-2 未答**：决定 3、决定 15 留占位，采纳前须答（选项见背景）。
+1. **A-2 未答**：决定 15 留占位，采纳前须答（选项见背景）。
+   **A-1 已答 c 带来的已知事项**（intent 124649）：规划依赖边与聚合尚未获用户认可，仍留 `proposals/`，与「用户认可的规划进 SSOT」的原则并存；二者何时、以何种粒度认可后进 SSOT，由用户在相应内容的确认中定。在此之前 SSOT 中有 28 个规划 BC 而无规划边与聚合，`contexts.yaml` 与 `context-map.yaml` 的覆盖不对等，守护不得要求规划 BC 必有边。
 2. **「推出（未经用户过目）」条目**：决定 1 末段、4（先外部后内部）、5 第 1、4 条、6（结构校验与不用项）、7（不构成循环）、8 第 4 条后半、9、13（命名空间一致与例外）、16、17（迭代与对抗检查）、18（G190、G211 范围与进出条件）、21 防漂移补充、22（删 `togaf/value-streams.yaml`）、23（校验覆盖提议稿）须随 A-1、A-2 交确认页过目；裁量条目（决定 12 第 2 条 ID 放置、第 3 条手写位置分工）同样列入。
 3. **J 检查脚本尚未入仓**：one-quality 按 `J_CHECKS.md` 写脚本的派工（intent `2026-10-16-100750` 第 ② 项）在本分支未见产出；守护 5 在脚本入仓前不生效。
 4. **独立符合性审查建-10（触账 BC 的 REA 复审表）未处理**：不阻断；属 ADR-0051 或第 ⑤ 步收尾。
@@ -298,21 +297,21 @@ PR-2 与 PR-3 可并行，但 PR-3 的 `build_all.py --check` 接线在 PR-2 合
 
 - **放在本 ADR**：方法、框架、判据与通用规则（七步、优先级、范围、对象判据、能力图、阶段规则、不变量与实现做法、两层映射、事件规则、依赖方式与方向、证据规则的通则、子域即命名空间、深浅判据、⑥a 判据（待 A-2）、接缝、框架与偏离、SSOT 文件与校验）。
 - **放在 ADR-0051**（草目 8.2 条目 15–30）：BC 清单与合并、新增、拆分；新命名空间及其名称；逐个 BC 的深浅标记；协议类型归属；阶段类型落点（S1–S6）；具体依赖方向（合同在交付执行与质量与认可下游、主数据最上游、应付由来源 BC 提交）与具体禁止边；证据关联聚合（F-1）；`cost.costing` 读已过账事实（L-8）；`delivery.closeout`（D-9、F-5）；`accounting.tax` 提前独立（D-7）；与阶段编号无关的依赖次序约束；对 ADR-0016、0017、0021、0022、0023、0024、0031 的修订。过渡阶段与排期不在两份 ADR 中，由施工方案（`proposals/CONSTRUCTION_PLAN_DRAFT.md`）承载、由用户定。
-- ADR-0051 引用本 ADR 的决定编号作推导依据；两份同一轮评审、同一轮批准；A-1 两份同题，答复须同时写入。
+- ADR-0051 引用本 ADR 的决定编号作推导依据；两份同一轮评审、同一轮批准；A-1 两份同题，答复 c 已同时写入。
 
 ## 证据
 
 - 用户决定：intent `2026-10-15-163920`、`195827`、`202634`、`211634`、`215658`、`220121`、`221201`、`222319`、`222350`；`2026-10-16-061232`（S1–S6）、`072440`（M-1–M-7、Q29）、`082311`（Q-A–Q-D）、`112800`（L-1–L-12；L-11 认可页原文见 `decision-page/LOCK.json`）、`114200`（F-1–F-5）、`120544`（P-1–P-5）；`2026-10-16-122043`（自成体系，初步思考、非定案，PR #344 分支）。
 - 提议稿：`proposals/METHOD_V4_DRAFT.md`（第 2–5 节、第 8.1 节草目条目 1–14、第 10.2 节）、`FRAMEWORKS_V4_DRAFT.md`（第 0 节「已由用户决定的偏离」）、`J_CHECKS.md`、`STEP6A_PROCESSES.md` §0.3、`STEP1_VALUE_STREAMS.md`、`STEP2_CAPABILITIES.md`、`STEP3_STAGES.md`、`RETRO_PRESALES.md`、`ENTERPRISE_AGGREGATES_DRAFT.md` §1.1、§2.2 末派生值清单、§4.1；`CONSTRUCTION_PLAN_DRAFT.md`。
 - 评审：第 3 稿 opus 评审（Blocker 3 / High 7，处置见 `METHOD_V4_DRAFT.md` 第 9 节）；第 4 稿 opus 评审（处理见第 10 节）；适配评审 `decision-page/frameworks-fit.html`；独立符合性审查 `proposals/FIT_AUDIT_2026-10-16.md` 及文末处理记录（必-1–必-9 已处理）。
-- 本 ADR 的 opus 首轮对抗评审：`proposals/ADR_0050_0051_REVIEW.md`（2026-10-16）。处理：B-1 按生成器改小节与「取代」行（`build_adrs.py` 实测通过）；B-2 删错误事实、留 A-1 占位；H-3 决定 15 降为「裁量，待用户 A-2」；H-4 依据标记分「L-11 已认可」与「未经用户过目」；H-5 决定 12 第 3 条、决定 16、23 写清手写位置与派生值位置；M-1 决定 3 改指列入取代；M-2 决定 13 例外；M-4 决定 12 第 2 条；M-5 决定 6、16、22；M-9 守护表单一落点与负责会话；M-10 合并顺序；L-1 决定 13；L-3 决定 20；L-5 决定 22；L-6 取代行删去子域分类落点、改为背景说明；L-7 影响面会话画像。sonnet 改后复核：待做。
+- 本 ADR 的 opus 首轮对抗评审：`proposals/ADR_0050_0051_REVIEW.md`（2026-10-16）。处理：B-1 按生成器改小节与「取代」行（`build_adrs.py` 实测通过）；B-2 删错误事实（A-1 已按 c 写定）；H-3 决定 15 降为「裁量，待用户 A-2」；H-4 依据标记分「L-11 已认可」与「未经用户过目」；H-5 决定 12 第 3 条、决定 16、23 写清手写位置与派生值位置；M-1 决定 3 改指列入取代；M-2 决定 13 例外；M-4 决定 12 第 2 条；M-5 决定 6、16、22；M-9 守护表单一落点与负责会话；M-10 合并顺序；L-1 决定 13；L-3 决定 20；L-5 决定 22；L-6 取代行删去子域分类落点、改为背景说明；L-7 影响面会话画像。sonnet 改后复核：待做。
 
 ## 备选方案（未采用）
 
 - **一份 ADR 收全部条目**：用户题⑦ 未选（M-7 选两份）。
 - **保持现行六步**：用户题① 未选（M-1）。
 - **三份业务层文件放 `togaf/`**：L-3 推荐项，用户改选 `business/`。
-- **全企业 BC 先登记进 SSOT（标 planned）**：L-5 未选；既有 planned 条目的处理另见 A-1。
+- **全企业 BC 先登记进 SSOT（标 planned）**：L-5 原未选；用户在 A-1 选 c（intent 124649）后采用，见决定 3。
 - **逐条部分取代 ADR-0041 决定 2**：决定 2 是整条流程，整条取代更清楚。
 - **保留 Markdown 表、脚本继续解析**：L-4 未选。
 - **能力文件改为完全生成（定义字段移进信息图）**：能力名称与定义有独立的写法要求（「对象 + 管理」、不抄 BIZBOK 定义），手写名称与定义、结构由 CI 比对即可满足「一个事实只手写一处」（评审 M-5 的两种改法之一，裁量）。

@@ -14,15 +14,11 @@
 
 ### 待用户决定（采纳前须答）
 
-- **A-1 `ddd/contexts.yaml` 既有 planned 条目怎么处理**（与 ADR-0050 决定 3 同题）。现状：`contexts.yaml` 登记了全部规划业务 BC（status planned），文件头写「新 BC 先在此登记（status: planned）」；其中 7 个标识已被本 ADR 退役（`presales.customer`、`presales.quoting`、`contract.baseline`、`contract.changeorder`、`contract.riskdelivery`、`operations.budgeting`、`organization.incentive`），`togaf/transitions.yaml` 的 `delivers` 也引用它们，而 `build_architecture.py` 要求 `delivers` 引用 `contexts.yaml` 已有的标识（已接受 `retired`）。选项：
-  - a：7 个旧标识改 `retired` 并写去向，其余 planned 条目保留，新 BC 到阶段开工再登记；
-  - b：全删，只留已建与在建；
-  - c：全企业 28 个 BC 全部登记为 planned。
-  本 ADR 决定 1 第 2 条、影响面与迁移方案留占位【待用户 A-1】。
+- **A-1 已答（c）**：用户选「按 ADR-0051 把全企业 28 个 BC 全部登记为规划（旧标识改退役）」，附注「我认可的规划，要进SSOT」（intent `2026-10-16-124649`）。起草时的三个选项为：a 仅 7 个旧标识改 `retired`、新 BC 到阶段开工再登记；b 全删只留已建与在建；c 全企业 28 个 BC 全部登记为 planned。该答复修订 L-5（intent `2026-10-16-112800`）：用户认可的规划进 SSOT，未经认可的提议稿内容仍留 `proposals/`。现状供参考：`contexts.yaml` 已登记全部规划业务 BC（status planned），其中 7 个标识被本 ADR 退役，`togaf/transitions.yaml` 的 `delivers` 也引用它们，而 `build_architecture.py` 要求 `delivers` 引用 `contexts.yaml` 已有标识（已接受 `retired`）。
 
 ### 依据标记
 
-同 ADR-0050 背景「依据标记」：「用户」为用户在所引 intent 中的决定；「推出（L-11 已认可）」只限 L-11 认可页列出的 10 项；「推出（未经用户过目）」随 A-1 交确认页过目；「裁量」为起草会话的实现选择。决定 3 表「依据」列中的 D-x、C-x、F-x、P-x、Q-x、GL2、i210513 均为用户决定。
+同 ADR-0050 背景「依据标记」；决定 1 第 2 条及影响面中 SSOT 登记的依据为 intent `2026-10-16-124649`：「用户」为用户在所引 intent 中的决定；「推出（L-11 已认可）」只限 L-11 认可页列出的 10 项；「推出（未经用户过目）」随 A-1 交确认页过目；「裁量」为起草会话的实现选择。决定 3 表「依据」列中的 D-x、C-x、F-x、P-x、Q-x、GL2、i210513 均为用户决定。
 
 ## 决定
 
@@ -32,7 +28,7 @@
    - **规范性**：BC 清单中的模块标识、命名空间、BC 的合并与新增、深 / 薄标记（决定 2、决定 3 表的「模块标识」「命名空间」「深 / 薄」列与决定 4）；协议类型归属（决定 5）；方向规则与方向事实（决定 7 第 2 条）；禁止边（「需同步修改的守护规则」第 1–3 条）；依赖次序约束（决定 9）。
    - **参考性快照**：决定 3 表的「所含聚合」列、聚合计数、决定 7 第 1 条的分层快照与边数。它们随阶段复核在提议稿中直接更新，不需新 ADR。
    - 各阶段开工时按 ADR-0050 的方法复核本阶段的 BC、聚合与边；**「一致」指规范性部分一致**。一致的直接登记；规范性部分不一致的，另开 ADR 取代本 ADR 的相应条款并附新证据（ADR-0041 决定 3 的同一做法）。
-2. **SSOT 与本 ADR 的关系**：本 ADR 的 BC 表、依赖骨架与分层是提议稿的定稿快照，供阶段复核对照，本身不是 SSOT（用户 L-5「全企业提议稿不进 SSOT」，intent `2026-10-16-112800`；推出（L-11 已认可））。规划边不登记进 `ddd/context-map.yaml` 与 `backend/architecture/module-dependencies.txt`，到阶段建边时再登记（ADR-0041 决定 4）。`ddd/contexts.yaml` 中既有 planned 条目与本 ADR 新标识如何登记：【待用户 A-1】（选项见背景）。
+2. **SSOT 与本 ADR 的关系**：本 ADR 的 BC 清单经用户认可，采纳时进 SSOT：`ddd/contexts.yaml` 登记全企业 28 个业务 BC 为 `planned`（另 `delivery.closeout` 按其 kind 登记），7 个被合并的旧标识（`presales.customer`、`presales.quoting`、`contract.baseline`、`contract.changeorder`、`contract.riskdelivery`、`operations.budgeting`、`organization.incentive`）改 `retired` 并写去向（去向见决定 3 表后的退役标识说明）（用户 A-1 选 c，intent `2026-10-16-124649`，修订 L-5）。依赖骨架与分层仍是提议稿的定稿快照，供阶段复核对照；规划边不登记进 `ddd/context-map.yaml` 与 `backend/architecture/module-dependencies.txt`，到阶段建边时再登记（ADR-0041 决定 4），用户尚未单独认可规划边。聚合同理留在提议稿。
 3. 已建模块以代码为准（`backend/architecture/module-dependencies.txt` 与 `backend/src/main/java/com/forcitis/one/`）：现已建业务模块为 `cost.timesheet`、`organization.workforce`、`organization.attendance`，本 ADR 不改它们的标识与包路径；`delivery.execution` 曾建、已删（`retired-module-schemas.txt` 登记 `delivery_execution`），按本 ADR 重建。
 
 ### 2. 命名空间（修订 ADR-0017 决定 1）
@@ -170,10 +166,10 @@
 - **已建模块**（以代码为准）：`cost.timesheet`、`organization.workforce`、`organization.attendance` 与 10 个平台模块不改名、不合并、不拆分，**无须另开改名 ADR 或迁移卡**。`organization.attendance` 的范围收窄只涉及规划（请假等从未在该模块实现）；其中文名「考勤与休假」与新范围不符，交 one-glossary。`delivery.execution` 重建时须从 `backend/architecture/retired-module-schemas.txt` 删去 `delivery_execution` 一行，在其首个 PR 中处理。
 - **规划 BC**：合并 4 组（售前 2→1、合同 3→1、计划与预算 2→1、激励并入薪酬），新增 4 个 BC 与 1 个流程模块，职责扩大 2 个（`delivery.acceptance`、`organization.workforce`），提前独立 1 个（`accounting.tax`）。规划 BC 均无代码，无数据迁移。
 - **SSOT 文件**：
-  - `ddd/contexts.yaml`：既有 planned 条目（含 7 个退役标识）与新标识的处理【待用户 A-1】；`delivery.acceptance` 的 `blueprint_bc` 在其首个 PR 登记。
+  - `ddd/contexts.yaml`：登记全企业 28 个业务 BC 为 planned（另 `delivery.closeout` 按其 kind），7 个退役标识改 `retired` 并写去向（A-1 c，intent 124649）；`delivery.acceptance` 的 `blueprint_bc` 在其首个 PR 登记。
   - `ddd/context-map.yaml`：只在建边时随阶段 PR 登记（ADR-0041 决定 4），status built 的边与 `module-dependencies.txt` 一致（A1）。
   - `ddd/subdomains.yaml`：`masterdata` 在其第一个 BC 开工时登记；`classification` 字段的处理属 ADR-0050。
-  - `togaf/transitions.yaml`：`delivers` 中的旧标识与交付排期随施工方案改（施工方案 C-10），须与 A-1 的答复一致（`delivers` 只能引用 `contexts.yaml` 已有标识）。
+  - `togaf/transitions.yaml`：`delivers` 中的旧标识与交付排期随施工方案改（施工方案 C-10），须与 A-1 答复 c 一致（`delivers` 只能引用 `contexts.yaml` 已有标识，旧标识为 `retired`，新标识为 `planned`）。
   - `backend/architecture/module-dependencies.txt`：各阶段 PR 登记本阶段在建的边，经 CODEOWNERS 评审（ADR-0003 决定 3）。
 - **词表与现行文档**（评审 M-6；「读作新标识」只适用于冻结的 ADR 正文，下列文件须逐处改）：
   - one-glossary 负责：`glossary/terms.yaml`（14 条 `bc:` 字段指向退役 BC：`contract.baseline`、`contract.changeorder`、`contract.riskdelivery`、`operations.budgeting`、`presales.customer`；`customer` 条目的 `until: 往来单位 BC 落地（须新 ADR 取代 ADR-0017 决定 1）` 由本 ADR 满足前提，词条去留由 one-glossary 定）；`glossary/build_terms.py`（`KEY_BCS` 硬编码退役标识）；`glossary/bcs.yaml`（仍登记 `operations.budgeting`、`organization.incentive`，若干中文名与描述不一致，见后果「已知限制」第 5 条；`delivery.closeout` 在 PR #339）。
@@ -184,14 +180,14 @@
 ## 迁移方案
 
 1. **无数据迁移**：本 ADR 涉及的合并、新增、拆分全部发生在未建的规划 BC 上，任何环境都没有对应的表与数据；已建模块不动。
-2. **合并顺序**（评审 M-10）：one-glossary PR #339（`delivery.closeout` 登记进 `bcs.yaml`）与 ADR-0049 先合并 → ADR-0050 PR-1 → 本 ADR 的采纳 PR。采纳前须先得到用户对 A-1 的答复。
-3. **采纳 PR**（one-architecture）：本 ADR 源文件 `adr/src/ADR-0051.md`；被取代 ADR 的状态行追加记录；聚合稿 §3.2、§4.4.2 与 METHOD 草目 §8.2 标注「已由 ADR-0051 采纳」；`ddd/contexts.yaml` 按 A-1 的答复处理【待用户 A-1】；影响面「词表与现行文档」中 one-architecture 负责的文件在同一 PR 或紧随的 PR 中改，one-glossary 负责的文件由 one-coordinator 派工。
+2. **合并顺序**（评审 M-10）：one-glossary PR #339（`delivery.closeout` 登记进 `bcs.yaml`）与 ADR-0049 先合并 → ADR-0050 PR-1 → 本 ADR 的采纳 PR。A-1 已答（intent 124649）。
+3. **采纳 PR**（one-architecture）：本 ADR 源文件 `adr/src/ADR-0051.md`；被取代 ADR 的状态行追加记录；聚合稿 §3.2、§4.4.2 与 METHOD 草目 §8.2 标注「已由 ADR-0051 采纳」；`ddd/contexts.yaml` 按 A-1 答复 c 登记 28 个 BC 为 planned、7 个旧标识改 `retired` 并写去向；影响面「词表与现行文档」中 one-architecture 负责的文件在同一 PR 或紧随的 PR 中改，one-glossary 负责的文件由 one-coordinator 派工。
 4. **各阶段开工**：按 ADR-0050 复核本阶段 BC、聚合与边 → 与本 ADR 规范性部分对照 → 一致的在阶段 PR 中登记 `contexts.yaml`、`context-map.yaml`、`aggregates.yaml`、`module-dependencies.txt`；不一致的先另开 ADR。`transitions.yaml` 随施工方案改。
 5. **在途单据**：无（规划 BC 均未上线）。
 
 ## 回滚方案
 
-- **采纳后、任何阶段登记前**：本 ADR 改为已废弃，被取代 ADR 的状态行删去追加的部分取代记录，恢复原文效力；聚合稿与 METHOD 草目的「已采纳」标注撤回；按 A-1 答复对 `contexts.yaml` 所作改动按 git 历史恢复。无代码、无数据，回滚边界只到文档与 SSOT。
+- **采纳后、任何阶段登记前**：本 ADR 改为已废弃，被取代 ADR 的状态行删去追加的部分取代记录，恢复原文效力；聚合稿与 METHOD 草目的「已采纳」标注撤回；按 A-1 答复 c 对 `contexts.yaml` 所作登记与退役改动按 git 历史恢复。无代码、无数据，回滚边界只到文档与 SSOT。
 - **某阶段已按本 ADR 登记并建模块后**：不整体回滚；对该阶段已建 BC 的调整另开 ADR 取代本 ADR 的相应条款，按 SESSION_PLAYBOOK §12 变更治理迁移代码与数据（例如合并后的 BC 若要再拆，须另开 ADR 并写迁移卡）。
 - 回滚后 ADR-0017 决定 1 重新生效，与用户已定的 D-2、D-3、D-5、D-7、D-9 及 i210513 的合并决定不一致，须报用户。
 
@@ -217,7 +213,7 @@
 
 ### 已知限制与未定事项
 
-1. **A-1 未答**：决定 1 第 2 条、影响面、迁移方案留占位，采纳前须答。
+1. **A-1 已答 c 带来的已知事项**（intent 124649）：BC 清单进 SSOT，规划依赖边与聚合尚未获用户认可，仍留 `proposals/`（见 ADR-0050 决定 3 与后果）；`contexts.yaml` 将有 28 个规划 BC 而 `context-map.yaml` 无对应规划边，守护不得要求规划 BC 必有边。
 2. **交施工方案（由用户定）**：过渡架构中下游早于上游的边（按现 `transitions.yaml` 试算有 11 个 BC 依赖排在更晚阶段的上游，施工方案 §2.5 C-01–C-11）；`km.knowledge`、`delivery.inspection`、`delivery.closeout` 的交付阶段；保证金（AGG-51）与 `accounting.tax`（AGG-89）的具体交付阶段；`transitions.yaml` 的 `delivers` 改用新标识（施工方案 C-10）。
 3. **`operations.planning` 的深 / 薄待定**：聚合稿标「薄（预算账户若拦截则深）」，预算账户拦截还是预警尚未定（AGG-80），按 M-5 判据须待其定后标注。
 4. **聚合层仍待定、可能牵动 BC 边的题**：Q20（收入确认若为有状态对象，须另开 ADR 修订 ADR-0016 决定 4）；G-11 员工借款发放与自动冲抵（`STEP6A_PROCESSES.md`，可能需 `payables.payment` 与 `receivables.collection` 之间的新边）；招聘需求若要多级审批须移出 `organization.workforce`（聚合稿 §7 第 12 条）；薪酬代发是否经 `payables.payment` 待财务确认（§7 第 14 条）。只改聚合归属或边、不改规范性部分的，在提议稿中直接更新；改动规范性部分的按决定 1 第 1 条另开 ADR。
@@ -233,10 +229,10 @@
 
 ## 证据
 
-- 用户决定：intent `2026-10-15-210513`、`2026-10-15-211634`、`2026-10-15-221201`、`2026-10-15-233152`（Q01、Q28）；`2026-10-16-053630`、`2026-10-16-061232`（D-1–D-9、S1–S6）、`2026-10-16-072440`（M-1–M-7、D-7、D-9、C-1–C-8）、`2026-10-16-074053`（K-1）、`2026-10-16-082311`（Q-A、Q-C）、`2026-10-16-090004`、`2026-10-16-112800`（L-5、L-8、L-11）、`2026-10-16-114200`（F-1–F-5）、`2026-10-16-120544`（P-1–P-5）；`2026-10-16-122043`（自成体系，初步思考、非定案，PR #344 分支）；GL2 答复（`glossary/bcs.yaml`）。
+- 用户决定：intent `2026-10-15-210513`、`2026-10-15-211634`、`2026-10-15-221201`、`2026-10-15-233152`（Q01、Q28）；`2026-10-16-053630`、`2026-10-16-061232`（D-1–D-9、S1–S6）、`2026-10-16-072440`（M-1–M-7、D-7、D-9、C-1–C-8）、`2026-10-16-074053`（K-1）、`2026-10-16-082311`（Q-A、Q-C）、`2026-10-16-090004`、`2026-10-16-112800`（L-5、L-8、L-11）、`2026-10-16-114200`（F-1–F-5）、`2026-10-16-120544`（P-1–P-5）；`2026-10-16-124649`（A-1 选 c）；`2026-10-16-122043`（自成体系，初步思考、非定案，PR #344 分支）；GL2 答复（`glossary/bcs.yaml`）。
 - 提议稿：`ENTERPRISE_AGGREGATES_DRAFT.md` §2.2、§3.2、§4.1（运行结果与分层块）、§4.2、§4.4（D-1–D-9）、§4.4.1、§4.4.2、§4.6、§9 续九、续十；`METHOD_V4_DRAFT.md` §8.2 条目 15–30；`STAGE_TYPES_DRAFT.md`；`STEP6A_PROCESSES.md`；`FIT_AUDIT_2026-10-16.md` 与处理记录；`RETRO_PRESALES.md`；`CONSTRUCTION_PLAN_DRAFT.md`。
 - 代码：`backend/architecture/module-dependencies.txt`（21 条已建边）；`backend/architecture/retired-module-schemas.txt`；`SubdomainModuleDetection.java`。
-- 评审：opus 首轮对抗评审 `proposals/ADR_0050_0051_REVIEW.md`（2026-10-16）。处理：B-1 按生成器改小节与「取代」行（`build_adrs.py` 实测通过）；B-2 删去「只登记已建与本阶段在建」的错误陈述，留 A-1 占位；H-1、M-7 取代行补 ADR-0021 决定 3、ADR-0022 决定 6，决定 4 第 7 条补销项发票的落点；H-2 决定 9 改为与阶段编号无关的依赖次序约束，删去 G1、6a–6f、TA-x 与「按 ADR-0021 切换规则」等写法，排期交施工方案，守护时点改为「随相应 BC 首个 PR」；H-4 B-14 依据分开 D-5 与 AGG-108 裁量，B-18 深 / 薄改「待定」；H-5 决定 7 第 1 条改引 ADR-0050 决定 12 第 3 条；H-6 决定 1 第 1 条分规范性与参考性；M-2 决定 2 第 3 条例外；M-3 补 `delivery.closeout → platform.audit`，边数 141 → 142；M-6 影响面「词表与现行文档」；M-8 决定 4 第 9 条、决定 7 第 2 条第 8 点；M-9 守护单一落点与负责会话、4 条禁止边、传递闭包标裁量；M-10 合并顺序；L-2 决定 7 第 2 条第 1 点；L-4 决定 6 第 6 条。sonnet 改后复核：待做。
+- 评审：opus 首轮对抗评审 `proposals/ADR_0050_0051_REVIEW.md`（2026-10-16）。处理：B-1 按生成器改小节与「取代」行（`build_adrs.py` 实测通过）；B-2 删去「只登记已建与本阶段在建」的错误陈述（A-1 已按 c 写定）；H-1、M-7 取代行补 ADR-0021 决定 3、ADR-0022 决定 6，决定 4 第 7 条补销项发票的落点；H-2 决定 9 改为与阶段编号无关的依赖次序约束，删去 G1、6a–6f、TA-x 与「按 ADR-0021 切换规则」等写法，排期交施工方案，守护时点改为「随相应 BC 首个 PR」；H-4 B-14 依据分开 D-5 与 AGG-108 裁量，B-18 深 / 薄改「待定」；H-5 决定 7 第 1 条改引 ADR-0050 决定 12 第 3 条；H-6 决定 1 第 1 条分规范性与参考性；M-2 决定 2 第 3 条例外；M-3 补 `delivery.closeout → platform.audit`，边数 141 → 142；M-6 影响面「词表与现行文档」；M-8 决定 4 第 9 条、决定 7 第 2 条第 8 点；M-9 守护单一落点与负责会话、4 条禁止边、传递闭包标裁量；M-10 合并顺序；L-2 决定 7 第 2 条第 1 点；L-4 决定 6 第 6 条。sonnet 改后复核：待做。
 
 ## 备选方案（未采用）
 
@@ -247,5 +243,5 @@
 - **结项编排放 `operations.policy` 或 `platform.approval`**（D-9 b；c 成环）：用户选 a。
 - **证据上移为独立上游 BC**（符合性审查必-1 的一条路）：用户 F-1 选留在 `delivery.acceptance` 加证据关联。
 - **撤 `km.knowledge`**（METHOD 草目条目 23）：用户 M-4 选保持现状，条目取消。
-- **把全企业规划边一次登记进 SSOT**：违反 ADR-0041 决定 4 与 L-5。
+- **把全企业规划边一次登记进 SSOT**：违反 ADR-0041 决定 4，且用户只认可了 BC 清单、未认可规划边（intent 124649）。
 - **在本 ADR 中按现行阶段编号写过渡调整**（原稿决定 9）：会预先锁定「逐阶段迁入、新老并存」路线，与用户尚未定案的「自成体系」思路冲突（评审 H-2），改为依赖次序约束，排期交施工方案。
