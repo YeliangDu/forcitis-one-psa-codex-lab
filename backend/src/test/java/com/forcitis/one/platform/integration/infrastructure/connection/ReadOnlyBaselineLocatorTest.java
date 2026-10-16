@@ -59,7 +59,13 @@ class ReadOnlyBaselineLocatorTest {
             Map.entry("an owned role", "[(e) owns 1 role(s)] [e:true:[OWNS_ROLE/1/null]]"),
             Map.entry("a grant on a database principal", "[(e) holds 1 grant(s) on database principals such as IMPERSONATE] [e:true:[DATABASE_PRINCIPAL_GRANT/1/null]]"),
             Map.entry("another user database", "[(f) the login can also enter the databases [otherworld]] [f:true:[OTHER_DATABASE_REACHABLE/1/null]]"),
-            Map.entry("an own user in msdb", "[(f) the login has a user of its own in the system databases [msdb], only guest is allowed there] [f:true:[SYSTEM_DATABASE_OWN_USER/1/null]]"),
+            Map.entry("an own user in master", "[(f) the login has a user of its own in the system databases [master] beyond the msdb and rdscore users the platform "
+                    + "gives every login, only guest is allowed there otherwise] [f:true:[SYSTEM_DATABASE_OWN_USER/1/null]]"),
+            Map.entry("an owned Agent job", "[(f) the login owns 1 SQL Agent job(s)] [f:true:[OWNS_AGENT_JOB/1/null]]"),
+            Map.entry("an msdb privilege of the own user", "[(f) the login in msdb holds permissions beyond those the platform gives every login] "
+                    + "[f:true:[SYSTEM_DATABASE_OWN_USER_PRIVILEGE/1/null]]"),
+            Map.entry("an msdb grant of the token beyond the allow-list", "[(f) the login in msdb holds permissions beyond those the platform gives every "
+                    + "login] [f:true:[SYSTEM_DATABASE_OWN_USER_PRIVILEGE/1/null]]"),
             Map.entry("a row the rule cannot read", "[(b) cannot be determined (NullPointerException, no SQL error, innermost NullPointerException)] [b:false:[CHECK_FAILED/1/null]]"),
             Map.entry("no answer", "[(c) cannot be determined (no answer)] [c:false:[NO_ANSWER/1/null]]"),
             Map.entry("an empty answer", "[(d) server-level effective permissions came back empty, cannot be determined] [d:false:[EMPTY_ANSWER/1/null]]"),
@@ -137,7 +143,7 @@ class ReadOnlyBaselineLocatorTest {
     @Test
     @DisplayName("opus 安全复审 Low-5：Verdict、Unmet、Finding、定位与被拒绝覆盖的授权的 toString 不含库名、schema 名、对象名与 grantee 名，只有原因码、计数与 objectId")
     void toStringNamesNothing() {
-        catalog.ownUsers.put("msdb", 1L);
+        catalog.rdsOwnUsers().ownUser("master", "role_secret_marker");
         catalog.reachableDatabases.add("db_secret_marker");
         catalog.roles.add("role_secret_marker");
         catalog.securablePermissionRows.add(new SecurablePermissionRow("OBJECT_OR_COLUMN", 4242, "G", "CONTROL", true, DBO, "s_secret_marker",
@@ -241,8 +247,8 @@ class ReadOnlyBaselineLocatorTest {
     @Test
     @DisplayName("C-14 定位裁定：(f) 两种原因都按库带定位，计数等于定位个数；problem 文本、拒绝原因中不出现 schema 名与对象名")
     void databasesAreLocatedAndNamesStayOutOfTheProblem() {
-        catalog.ownUsers.put("master", 1L);
-        catalog.ownUsers.put("msdb", 1L);
+        catalog.ownUser("master");
+        catalog.ownUser("tempdb");
         catalog.reachableDatabases.add("otherworld");
         catalog.securablePermissionRows.add(toPublic("CONTROL", "G", DBO, "s_secret_marker", "t_secret_marker"));
 
@@ -251,7 +257,7 @@ class ReadOnlyBaselineLocatorTest {
         assertThat(f.findings()).extracting(Finding::reason, Finding::count).containsExactly(
                 tuple(Reason.OTHER_DATABASE_REACHABLE, 1), tuple(Reason.SYSTEM_DATABASE_OWN_USER, 2));
         assertThat(f.findings().get(0).locators()).containsExactly(new DatabaseLocator("otherworld"));
-        assertThat(f.findings().get(1).locators()).containsExactly(new DatabaseLocator("master"), new DatabaseLocator("msdb"));
+        assertThat(f.findings().get(1).locators()).containsExactly(new DatabaseLocator("master"), new DatabaseLocator("tempdb"));
         assertThat(ReadOnlyBaseline.violations(catalog)).allSatisfy(problem -> assertThat(problem).doesNotContain("secret_marker"));
     }
 }
