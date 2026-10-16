@@ -114,19 +114,19 @@ rules:
 - id: AR-13
   name: 交付物校审：项目重要性 V 级
   condition: 项目重要性级别为 V
-  level: tbd
+  level: abnormal
   escalate_to: 质量督查
   guard: approval
   why: 技术质量判断须专业人员
-  note: N 级项目团队自审（项目总监审核）；V、S 的高低待老系统生产数据核实（intent 171147 D-1）
+  note: N 级项目团队自审（项目总监审核）（intent 171147 D-1）；高低已核实：A8 枚举值序 N<V<S，近年校审记录 S、V 级由总工程师审核的占比高于 N 级（one-ops 取证 2026-10-16，nvs_review.sql，ADR-0037）；各字母含义系统无定义
 - id: AR-14
   name: 交付物校审：项目重要性 S 级
   condition: 项目重要性级别为 S
-  level: tbd
+  level: special
   escalate_to: 副总工程师及以上
   guard: approval
   why: 技术质量判断须专业人员
-  note: 同 AR-13
+  note: 同 AR-13（S 为最高级）
 - id: AR-15
   name: 第三方代收代付
   condition: 收付款对象不是合同相对方，附三方协议或委托书
