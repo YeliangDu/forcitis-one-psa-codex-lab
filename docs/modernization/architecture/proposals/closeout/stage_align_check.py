@@ -222,6 +222,26 @@ def load_machines(local):
     return out
 
 
+def is_self_loop(tr):
+    f = tr.get("from")
+    f = f if isinstance(f, list) else [f]
+    return tr.get("to") is not None and len(f) == 1 and f[0] == tr.get("to")
+
+
+def split_objects(aggs):
+    """一拆多对象：{OBJ: {聚合}}。同一信息图对象被 ≥ 2 个聚合承载，且至少一个的「对应」列写了一拆多。"""
+    by = {}
+    for a, v in aggs.items():
+        for o in v.get("objs") or []:
+            by.setdefault(o, {})[a] = v
+    return {o: set(m) for o, m in by.items() if len(m) >= 2 and any("一拆多" in str(v.get("corr", "")) for v in m.values())}
+
+
+def leaf_aggs(leaf):
+    a = leaf.get("agg")
+    return None if not a else ({a} if isinstance(a, str) else set(a))
+
+
 def arrivals_of(unit, steps, machines, aggs):
     """流程改状态步骤经状态机到达的状态：[(to, 对象集合, 说明)]。聚合 + 命令在状态机里查 command 相同的转换取 to。"""
     import closeout_check as cc
@@ -245,9 +265,11 @@ def arrivals_of(unit, steps, machines, aggs):
             continue
         bc = cc.base_cmd(cmd)
         for t in m.get("transitions") or []:
+            if is_self_loop(t):
+                continue   # 自环（from == to，如提交过账候选）不改业务状态，不算到达
             if t.get("command") and cc.base_cmd(t["command"]) == bc and t.get("to") and (agg, bc, t["to"]) not in seen:
                 seen.add((agg, bc, t["to"]))
-                out.append((str(t["to"]), objs, f"{bc}→{t['to']}"))
+                out.append((str(t["to"]), objs, f"{bc}→{t['to']}", agg))
     return out
 
 
@@ -274,7 +296,7 @@ def texts_of(unit, steps):
     for st in unit.get("states") or []:
         add("状态", st.get("name") if isinstance(st, dict) else st)
     for tr in unit.get("transitions") or []:
-        if isinstance(tr, dict):
+        if isinstance(tr, dict) and not is_self_loop(tr):
             add("状态", tr.get("to"))
     return out
 
@@ -284,6 +306,8 @@ def texts_of(unit, steps):
 def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=None):
     norm = Norm(alias_map)
     machines, aggs = machines or {}, aggs or {}
+    split = split_objects(aggs)
+    agg_missing = {}
     patterns = {}
     vss = vs_doc["value_streams"]
     stage_pos = {}
@@ -295,7 +319,7 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
     procs = [p for p in catalog if p.get("type") != "merged"]
     pby = {p["id"]: p for p in procs}
     R = {"vs": {}, "unstaged": [], "support": [], "gaps": [], "gaps_noted": [], "unknown_stage": [], "exit": [], "entry": [], "sparse": [],
-         "skel_diff": [], "no_skeleton_stage": 0}
+         "skel_diff": [], "no_skeleton_stage": 0, "agg_missing": agg_missing, "split": split}
 
     cand, arr = {}, {}
     for p in procs:
@@ -308,12 +332,30 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
             if sk and sk != set(p.get("stages") or []):
                 R["skel_diff"].append((p["id"], p["name"], sorted(sk), list(p.get("stages") or [])))
 
-    def find_in(proc_ids, leaf, use_name=True, with_arr=True):
+    def arr_ok(leaf, stage):
+        """一拆多对象的步骤到达只在聚合一致时算：返回允许的聚合集合，None 表示不限，空集表示待人工（不计步骤到达）。"""
+        want = leaf_aggs(leaf)
+        if want:
+            return want
+        ref = leaf.get("ref")
+        if ref not in split or not stage:
+            return None
+        on = onames.get(ref, "")
+        cands = {a for p in procs if any(stage_vs.get(x) == stage_vs[stage] for x in p.get("stages") or [])
+                 for to, objs, _d, a in arr[p["id"]] if ref in objs and a in split[ref] and match_atom(on, leaf.get("state"), to, norm)}
+        if len(cands) == 1:
+            return cands
+        if len(cands) > 1:
+            agg_missing.setdefault((stage, ref, str(leaf.get("state"))), set()).update(cands)
+        return set() if cands else None
+
+    def find_in(proc_ids, leaf, use_name=True, with_arr=True, stage=None):
         best, ev = None, []
         on = onames.get(leaf.get("ref"), "")
+        okagg = arr_ok(leaf, stage) if with_arr else None
         for pid in proc_ids:
-            for to, objs, desc in (arr[pid] if with_arr else []):
-                if leaf.get("ref") not in objs:
+            for to, objs, desc, agg in (arr[pid] if with_arr else []):
+                if leaf.get("ref") not in objs or (okagg is not None and agg not in okagg):
                     continue
                 tier = match_atom(on, leaf.get("state"), to, norm)
                 if tier and RANK[tier] > RANK[best]:
@@ -394,10 +436,10 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
                 R["sparse"].append(("empty_stage", vs["id"], s["id"], s["name"]))
             # 退出
             ex = expand(s.get("exit") or {"all": []}, pa)
-            tier, bad = evaluate(ex, lambda lf: find_in(ps, lf))
+            tier, bad = evaluate(ex, lambda lf: find_in(ps, lf, stage=s["id"]))
             outs = list(dict.fromkeys([(pid, "", t) for pid in ps for k, t in cand[pid] if k != "名称"] +
-                                      [(pid, "", "→" + d) for pid in ps for _t, _o, d in arr[pid]]))
-            ev_all = _evidence(ex, lambda lf: find_in(ps, lf))
+                                      [(pid, "", "→" + d) for pid in ps for _t, _o, d, _a in arr[pid]]))
+            ev_all = _evidence(ex, lambda lf: find_in(ps, lf, stage=s["id"]))
             ev_out = {id(lf): tr for lf, tr, _ in _evidence(ex, lambda lf: find_in(ps, lf, with_arr=False))}
             by_arr = [(lf, tr, e) for lf, tr, e in ev_all if RANK[tr] > RANK[ev_out.get(id(lf))] and e[1] == "步骤到达"]
             if ex.get("all") == [] and "leaf" not in ex and "any" not in ex:
@@ -410,7 +452,7 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
             allp = [p["id"] for p in procs]
 
             def fe(lf, _s=s):
-                tier, ev = find_in(allp, lf)
+                tier, ev = find_in(allp, lf, stage=_s["id"])
                 return tier, ev
             etier, ebad = evaluate(en, fe)
             etier0, _ = evaluate(en, lambda lf: find_in(allp, lf, with_arr=False))
@@ -419,7 +461,7 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
             for lf in leaves(en):
                 if str(lf.get("ref")) in SKIP_REFS or not str(lf.get("ref", "")).startswith("OBJ-"):
                     continue
-                t2, ev = find_in(allp, lf)
+                t2, ev = find_in(allp, lf, stage=s["id"])
                 t0, _ = find_in(allp, lf, with_arr=False)
                 if t2 and RANK[t2] > RANK[t0]:
                     e_by_arr.append((lf, t2, ev[0]))
@@ -446,10 +488,19 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
     # 6 归段
     part = {s["id"]: set(s.get("participants") or []) for vs in vss for s in vs["stages"]}
     sname = {s["id"]: s["name"] for vs in vss for s in vs["stages"]}
-    own_exit = {}
+    own_exit, own_inner, own_entry = {}, {}, {}
+    isobj = lambda lf: str(lf.get("ref", "")).startswith("OBJ-")
+    bc_vs = {}
+    for q in procs:
+        for x in q.get("stages") or []:
+            if x in stage_vs and q.get("owner_bc"):
+                bc_vs.setdefault(q["owner_bc"], set()).add(stage_vs[x])
     for vs in vss:
         for s in vs["stages"]:
-            own_exit[s["id"]] = [lf for lf in leaves(expand(s.get("exit") or {"all": []}, {})) if str(lf.get("ref", "")).startswith("OBJ-")]
+            vpa = vs.get("stage_pattern") or {}   # 展开 exit_common / entry_common
+            own_exit[s["id"]] = [lf for lf in leaves(expand(s.get("exit") or {"all": []}, vpa)) if isobj(lf)]
+            own_entry[s["id"]] = [lf for lf in leaves(expand(s.get("entry") or {"all": []}, vpa)) if isobj(lf)]
+            own_inner[s["id"]] = [lf for lf in s.get("in_stage_states") or [] if isinstance(lf, dict) and isobj(lf)]
     P = {"unsupported": [], "missing": [], "uncertain": [], "role": [], "ok": 0, "ok_approx": 0}
     for p in procs:
         if p.get("support"):
@@ -474,17 +525,29 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
         elif p["type"] == "event_policy":
             trig = [t for t in u[0].get("triggers") or [] if isinstance(t, dict) and t.get("type") == "event" and t.get("name")]
             hit_any = False
-            for t in trig:
-                hit = False
-                for sid, lfs in own_exit.items():
+            own_vs = bc_vs.get(p.get("owner_bc")) or {stage_vs[x] for x in cat}
+
+            def trig_hits(src, name, vs_only=None):
+                out = {}
+                for sid, lfs in src.items():
+                    if vs_only is not None and stage_vs[sid] not in vs_only:
+                        continue
                     for lf in lfs:
-                        tier = match_atom(onames.get(lf.get("ref"), ""), lf.get("state"), t["name"], norm)
+                        tier = match_atom(onames.get(lf.get("ref"), ""), lf.get("state"), name, norm)
                         on_ = norm(re.sub(r"[（(].*?[）)]", "", onames.get(lf.get("ref"), "")))
-                        if tier == "exact" and on_ and on_ not in norm(t["name"]):
+                        if tier == "exact" and on_ and on_ not in norm(name):
                             tier = "approx"
-                        if tier:
-                            hit = True
-                            put(sid, tier, [(p["id"], "触发状态", f"{t['name']} ≈ {leaf_txt(lf, onames)}")])
+                        if tier and RANK[tier] > RANK[(out.get(sid) or (None,))[0]]:
+                            out[sid] = (tier, lf)
+                return out
+            for t in trig:
+                hits = trig_hits(own_exit, t["name"])
+                ent = trig_hits(own_entry, t["name"], own_vs)
+                if hits and ent:
+                    hits = ent   # 触发状态同时是别段的退出、本价值流某段的进入：归以它为进入的那一段
+                hit = bool(hits)
+                for sid, (tier, lf) in hits.items():
+                    put(sid, tier, [(p["id"], "触发状态", f"{t['name']} ≈ {leaf_txt(lf, onames)}")])
                 hit_any = hit_any or hit
                 if not hit:
                     why.append(f"触发事件「{t['name']}」对不上任何段退出条件里的对象状态")
@@ -494,9 +557,9 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
                 why.append("全部触发事件都对不上对象状态")
             unres = not hit_any
         else:
-            for sid, lfs in own_exit.items():
-                for lf in lfs:
-                    tier, ev = find_in([p["id"]], lf, use_name=False)
+            for sid in own_exit:
+                for lf in own_exit[sid] + own_inner[sid]:   # 退出条件 + 段内状态；进入条件不作归段依据
+                    tier, ev = find_in([p["id"]], lf, use_name=False, stage=sid)
                     if tier == "exact" and ev[0][1] != "步骤到达":
                         on_ = norm(re.sub(r"[（(].*?[）)]", "", onames.get(lf.get("ref"), "")))
                         if on_ and on_ not in norm(ev[0][2]):
@@ -547,8 +610,8 @@ def _evidence(t, find):
 
 # ---------------------------------------------------------------- 报告
 
-CRITERION = """- 主判据：流程（或其步骤经状态机到达的状态）造出某段的退出条件，就归该段。
-- 事件策略（type event_policy）看触发状态（触发事件对应的对象状态）所在段：触发状态是哪段的退出条件，策略就归那段。
+CRITERION = """- 主判据：流程（或其步骤经状态机到达的状态）造出某段的退出条件（已展开价值流级 exit_common / entry_common）或该段 in_stage_states 所列的段内状态，就归该段；进入条件不作归段依据。
+- 事件策略（type event_policy）看触发状态（触发事件对应的对象状态）所在段：触发状态是哪段的退出条件，策略就归那段；若它同时是本价值流（按流程 owner_bc 所属价值流，取不到时按目录已标的价值流）某段的进入条件，归以它为进入条件的那一段。
 - 流程参与者（骨架 roles / 步骤 actor 的 SH- 编号）应在该段参与者中（价值流阶段的 participants 字段）。
 - 不按部门或时间先后归段。
 （用户 2026-10-16，经 one-coordinator，intent 已记，#421）"""
@@ -584,6 +647,7 @@ def render(R, onames, pby, skel_n, total_skel):
     w(f"| 6 归段：目录标了但判据不支持 / 判据支持但目录没标 / 待人工 / 参与者不在该段 | "
       f"{len(P['unsupported'])} / {len(P['missing'])} / {len(P['uncertain'])} / {len(P['role'])} |")
     w(f"| 附 骨架阶段与目录阶段不一致 | {len(R['skel_diff'])} |")
+    w(f"| 附 一拆多对象缺 agg 限定（待人工） | {len(R['agg_missing'])} |")
     w("")
     w("## 价值流概览（流程数 = 去重后落在该价值流的非合并流程）\n")
     w("| 价值流 | 流程数 | 各段流程数 | 退出匹配不上 | 进入找不到 |\n|---|---|---|---|---|")
@@ -733,6 +797,17 @@ def render(R, onames, pby, skel_n, total_skel):
             w(f"| {r['id']} | {r['name']} | {r['type']} | {'、'.join(r['stages'])} | {'、'.join(r['bad'])} |")
     w("")
 
+    w(f"## 附 一拆多对象缺 agg 限定（{len(R['agg_missing'])}）\n")
+    w("一个信息图对象由多个聚合承载时，阶段条件叶子应写 `agg: AGG-xx` 限定；没写、且按本价值流推不出唯一聚合的，其「步骤到达」不计入匹配（避免串段），标待人工。"
+      f"一拆多对象：{'、'.join(f'{o}（{ ' '.join(sorted(a))}）' for o, a in sorted(R['split'].items()))}。\n")
+    if R["agg_missing"]:
+        w("| 阶段 | 叶子 | 可能的聚合 |\n|---|---|---|")
+        for (sid, ref, st), cands in sorted(R["agg_missing"].items()):
+            w(f"| {sid} | {ref}{onames.get(ref, '')}「{st}」 | {'、'.join(sorted(cands))} |")
+    else:
+        w("无。")
+    w("")
+
     if R["skel_diff"]:
         w("## 附 骨架阶段与目录阶段不一致（以目录为准）\n")
         for pid, n, a, b in R["skel_diff"]:
@@ -748,11 +823,14 @@ def render(R, onames, pby, skel_n, total_skel):
 - 精确：说法与结局相等；或说法包含于结局且对象名也在结局里；或结局 = 对象名 + 说法。
 - 近似：说法包含于结局（缺对象名）；结局（≥ 3 字）包含于说法；说法的二字组被结局覆盖 ≥ 60%%；流程名称命中。拿不准的都落在近似。
 - 匹配来源：「结局」类 = 上一条的结局文本；「步骤到达」= 流程的每个改状态步骤（aggregate + command，含 inner 与单聚合 commands[] / transitions[] 条目，条目 aggregate 优先），在三组 state-machines.yaml 里查该聚合 command 相同的转换，取其 to 状态；仅当条件的对象（OBJ）属于该聚合的对象时参与，状态说法同样按下述精确 / 近似规则比对。步骤到达同时参与退出条件（本段流程）与进入条件产生方（全部流程）；3a / 4a 列出只靠它匹配上的叶子。
+- 自环：状态机里 from == to 的转换（如提交过账候选）与单聚合骨架 `transitions` 的自环不改业务状态，其 to 不算「步骤到达」，不参与第 3、4、6 项。
+- 一拆多：同一 OBJ 被 ≥ 2 个聚合的「聚合」列承载且至少一个「对应」列写一拆多者。阶段条件叶子可带可选 `agg: AGG-xx`（或列表），步骤到达只在到达状态所属聚合在其中时才算；没带 agg 的一拆多叶子，取本价值流内匹配该状态的步骤到达所属聚合，唯一则采用，多个则标待人工并不计步骤到达（列在「缺 agg 限定」清单），没有则无步骤到达可算。结局文本类匹配不受影响。
 - 退出条件「满足」= 存在落在本段的某条流程的某个结局匹配；整体 tier 取 any 的最好者、all 的最差者。
 - 进入条件的产生方在全部非合并流程里找（含别的价值流），并标注与本段的关系（同价值流前段 / 本段 / 后段 / 别的价值流 / 未落阶段）。
 - 状态名与结局用词不同（如「赢单」与「商机已转赢单」）、结局只写在 notes 里、事件用英文名，都会被判为匹配不上；它们提示的是用语对齐问题，不一定是流程缺失。
 - 稀少：价值流流程数 ≤ %d 或某段 0 条流程。
-- 归段（第 6 项）：「造出退出条件」= 流程的结局文本或步骤到达的状态匹配某段退出条件的某个叶子（只取该段自己写的叶子，不含 pattern 展开的公共叶子；不用流程名称匹配）。事件策略只看骨架 `triggers` 里 type 为 event 的事件名，与各段退出叶子按同一精确 / 近似规则比对，命中的段即触发状态所在段（不再看其结局）；非对象状态的事件（如过账事实）对不上则不参与，全部对不上进待人工。读模型与无骨架流程进待人工。事件对应的状态同时是多段退出条件时，这些段都算。
+- 归段（第 6 项）补充三条（revenue 复跑发现，one-architecture 裁定）：① 各段退出、进入条件展开价值流级 `stage_pattern` 的 exit_common / entry_common（引用处展开，第 3、4、6 项同口径）；② 主判据扩到段内状态：流程结局或步骤到达的状态是某段 `in_stage_states` 所列状态，也算支持归该段，进入条件不算归段依据；③ 事件策略的触发状态若同时是别段的退出、本价值流某段的进入，归本价值流里以它为进入条件的那一段；本价值流取流程 owner_bc 所属价值流（目录里同 owner_bc 流程所标价值流的并集），取不到时按该流程目录已标的价值流。
+- 归段（第 6 项）：「造出退出条件」= 流程的结局文本或步骤到达的状态匹配某段退出条件的某个叶子（含引用展开的公共叶子与 in_stage_states；不用流程名称匹配）。事件策略只看骨架 `triggers` 里 type 为 event 的事件名，与各段退出叶子按同一精确 / 近似规则比对，命中的段即触发状态所在段（不再看其结局）；非对象状态的事件（如过账事实）对不上则不参与，全部对不上进待人工。读模型与无骨架流程进待人工。事件对应的状态同时是多段退出条件时，这些段都算。
 
 ## 归段判据（原文）
 
@@ -828,6 +906,7 @@ def console(R, onames, skel_n, total_skel):
          f"4 进入找不到产生方 {len(en_bad)} / 近似 {sum(1 for e in R['entry'] if e['tier'] == 'approx')} / 共 {len(R['entry'])}",
          f"5 空阶段 {sum(1 for x in R['sparse'] if x[0] == 'empty_stage')}；流程数 ≤ {SMALL_VS} 的价值流 {sum(1 for x in R['sparse'] if x[0] == 'small_vs')}",
          f"6 归段 目录标了但判据不支持 {len(R['place']['unsupported'])} / 判据支持但目录没标 {len(R['place']['missing'])} / 待人工 {len(R['place']['uncertain'])} / 参与者不在该段 {len(R['place']['role'])}（目录所标段精确支持 {R['place']['ok']}，仅近似 {R['place']['ok_approx']}）",
+         f"附 一拆多对象缺 agg 限定 {len(R['agg_missing'])}",
          "最值得注意的 10 条："]
     L += [f"  {i}. {t}" for i, t in enumerate(top_findings(R, onames), 1)]
     L.append("第 6 项最值得注意的 10 条：")
@@ -905,6 +984,34 @@ def self_test():
     R3b = analyze(vs3, cat3, sk3, on, {}, {}, {})   # 无状态机：不参与，退出不匹配
     assert {e["stage"]: e for e in R3b["exit"]}["VS-Y.1"]["tier"] is None
     assert "步骤到达" in render(R3, on, {}, 2, 2)
+    # 自环与一拆多 agg 限定
+    vs7 = {"value_streams": [{"id": "VS-W", "name": "w", "stages": [
+        {"id": "VS-W.1", "name": "甲", "exit": {"all": [{"ref": "OBJ-1", "state": "已生效", "agg": "AGG-A"}]}},
+        {"id": "VS-W.2", "name": "乙", "exit": {"all": [{"ref": "OBJ-1", "state": "已生效"}]}},
+        {"id": "VS-W.3", "name": "丙", "exit": {"all": [{"ref": "OBJ-1", "state": "已结清"}]}},
+        {"id": "VS-W.4", "name": "丁", "exit": {"all": [{"ref": "OBJ-2", "state": "已关闭"}]}}]}]}
+    cat7 = [{"id": "W1", "name": "做甲", "type": "business", "stages": ["VS-W.1"], "owner_bc": "B-1"},
+            {"id": "W2", "name": "做乙", "type": "business", "stages": ["VS-W.2"], "owner_bc": "B-1"},
+            {"id": "W3", "name": "过账", "type": "business", "stages": ["VS-W.3"], "owner_bc": "B-1"},
+            {"id": "W4", "name": "关闭", "type": "business", "stages": ["VS-W.4"], "owner_bc": "B-1"}]
+    def sk7(a, c):
+        return ({"outcomes": ["无关"], "stages": []}, [{"actor": "SH-E1", "where": "in_system", "aggregate": a, "command": c}])
+    skw = {"W1": sk7("AGG-A", "生效A"), "W2": sk7("AGG-B", "生效B"), "W3": sk7("AGG-A", "提交过账候选"), "W4": sk7("AGG-C", "关闭C")}
+    skw["W1"][0]["stages"] = ["VS-W.1"]; skw["W2"][0]["stages"] = ["VS-W.2"]; skw["W3"][0]["stages"] = ["VS-W.3"]; skw["W4"][0]["stages"] = ["VS-W.4"]
+    machw = {"AGG-A": {"aggregate": "AGG-A", "transitions": [{"from": "x", "to": "已生效", "command": "生效A"},
+                                                          {"from": "已结清", "to": "已结清", "command": "提交过账候选"}]},
+             "AGG-B": {"aggregate": "AGG-B", "transitions": [{"from": "x", "to": "已生效", "command": "生效B"}]},
+             "AGG-C": {"aggregate": "AGG-C", "transitions": [{"from": ["a", "b"], "to": "已关闭", "command": "关闭C"}]}}
+    aggw = {"AGG-A": {"objs": ["OBJ-1"], "corr": "一拆多"}, "AGG-B": {"objs": ["OBJ-1"], "corr": "一拆多"}, "AGG-C": {"objs": ["OBJ-2"], "corr": ""}}
+    Rw = analyze(vs7, cat7, skw, {"OBJ-1": "协议", "OBJ-2": "单"}, {}, machw, aggw)
+    xw = {e["stage"]: e for e in Rw["exit"]}
+    assert Rw["split"] == {"OBJ-1": {"AGG-A", "AGG-B"}}, Rw["split"]
+    assert xw["VS-W.1"]["tier"] == "exact" and xw["VS-W.1"]["by_arr"], xw["VS-W.1"]       # agg 限定匹配
+    assert xw["VS-W.2"]["tier"] is None, xw["VS-W.2"]                                     # 缺限定且本价值流有两个聚合：待人工，不计步骤到达
+    assert list(Rw["agg_missing"]) == [("VS-W.2", "OBJ-1", "已生效")] and Rw["agg_missing"][("VS-W.2", "OBJ-1", "已生效")] == {"AGG-A", "AGG-B"}
+    assert xw["VS-W.3"]["tier"] is None, xw["VS-W.3"]                                     # 自环到达的「已结清」不算
+    assert xw["VS-W.4"]["tier"] == "exact", xw["VS-W.4"]                                  # 非一拆多对象不受影响
+    assert "缺 agg 限定" in render(Rw, {"OBJ-1": "协议"}, {}, 4, 4)
     n = Norm({"销售合同": "合同"})
     assert n("销售合同已生效") == "合同生效"
     assert match_atom("商机", "已确认（转商机）", "已转商机", n) == "exact"
@@ -942,6 +1049,28 @@ def self_test():
     assert P6["ok"] == 1
     t6 = render(analyze(vs6, cat6, sk6, on6, {}), on6, {}, 6, 6)
     assert "## 归段判据（原文）" in t6 and "不按部门或时间先后归段" in t6
+    # 6 补充三条：展开 exit_common、段内状态、事件策略归进入段
+    vsq = {"value_streams": [
+        {"id": "VS-Q", "name": "q", "stage_pattern": {"exit_common": {"all": [{"ref": "OBJ-1", "state": "已认可"}]}}, "stages": [
+            {"id": "VS-Q.1", "name": "甲", "participants": [], "exit": {"pattern": "exit_common"}},
+            {"id": "VS-Q.2", "name": "乙", "participants": [], "exit": {"all": [{"ref": "OBJ-3", "state": "已发布"}]},
+             "in_stage_states": [{"ref": "OBJ-2", "state": "已备案"}]}]},
+        {"id": "VS-R", "name": "r", "stages": [
+            {"id": "VS-R.1", "name": "丙", "participants": [], "entry": {"all": [{"ref": "OBJ-1", "state": "已认可"}]}, "exit": {"all": [{"ref": "OBJ-4", "state": "已确认"}]}},
+            {"id": "VS-R.2", "name": "丁", "participants": [], "exit": {"all": [{"ref": "OBJ-5", "state": "已入账"}]}}]}]}
+    catq = [{"id": "Q1", "name": "认可", "type": "business", "stages": ["VS-Q.1"], "owner_bc": "B-1"},
+            {"id": "Q2", "name": "备案", "type": "business", "stages": ["VS-Q.2"], "owner_bc": "B-1"},
+            {"id": "Q3", "name": "确认", "type": "event_policy", "stages": ["VS-R.1"], "owner_bc": "B-2"},
+            {"id": "Q4", "name": "占位", "type": "business", "stages": ["VS-R.2"], "owner_bc": "B-2"}]
+    skq = {"Q1": ({"outcomes": ["交付物已认可"], "stages": ["VS-Q.1"]}, []),
+           "Q2": ({"outcomes": ["项目已备案"], "stages": ["VS-Q.2"]}, []),
+           "Q3": ({"outcomes": ["x"], "stages": ["VS-R.1"], "triggers": [{"type": "event", "name": "交付物已认可"}]}, []),
+           "Q4": ({"outcomes": ["x"], "stages": ["VS-R.2"]}, [])}
+    onq = {"OBJ-1": "交付物", "OBJ-2": "项目", "OBJ-3": "报告", "OBJ-4": "收入", "OBJ-5": "分录"}
+    Pq = analyze(vsq, catq, skq, onq, {})["place"]
+    unq = {r["id"] for r in Pq["unsupported"]}
+    assert "Q1" not in unq and "Q2" not in unq, Pq["unsupported"]   # exit_common 展开；段内状态支持
+    assert "Q3" not in unq and not [r for r in Pq["missing"] if r["id"] == "Q3"], (Pq["unsupported"], Pq["missing"])   # 触发状态归以它为进入的 VS-R.1，不归 VS-Q.1
     txt = render(R, on, {}, 2, 6)
     assert "匹配口径" in txt and "VS-X.3" in txt
     print("self-test 通过")
