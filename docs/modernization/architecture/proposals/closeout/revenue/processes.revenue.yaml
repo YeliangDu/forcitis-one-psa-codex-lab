@@ -2184,10 +2184,13 @@ processes:
     name: 项目经理按工作包提出资源需求
   outcomes:
   - 已满足
+  - 已关闭
   scenarios:
   - PRC-20-S01
   - PRC-20-S02
   - PRC-20-S03
+  - PRC-20-S04
+  - PRC-20-S05
   roles:
   - id: SH-E2
     as: initiator
@@ -2254,8 +2257,11 @@ processes:
     desc: 部门负责人单级确认，不走 platform.approval（G-02）；超过可用产能时写入前预警（P-27），只警不拦
     decision:
     - when: 分配覆盖需求的全部时段与工时
-      goto: end
-      p: 0.8
+      goto: 4
+      p: 0.75
+    - when: 需求不再需要（范围变更、改外协）
+      goto: 5
+      p: 0.05
     - when: otherwise
       goto: 1
       p: 0.2
@@ -2277,12 +2283,39 @@ processes:
     permission: 资源分配.确认
     page: 资源分配确认页
     audit: true
-    outcome: 已满足
     notify:
     - to: SH-M1
       how: 企业微信消息（分配超过可用产能，P-27 预警）
     - to: SH-E3
       how: 企业微信消息（已被分配到项目工作包）
+  - command: 标记资源需求已满足
+    aggregate: AGG-25
+    actor: system
+    where: automatic
+    added_in: closeout
+    outcome: 已满足
+    desc: 资源分配已确认、累计达到需求工时时由系统标记（S-33；同 BC 事件「资源分配已确认」）
+    decision:
+    - when: otherwise
+      goto: end
+      outcome: 已满足
+  - command: 关闭资源需求
+    aggregate: AGG-25
+    actor: SH-E2
+    where: in_system
+    added_in: closeout
+    permission: 资源需求.关闭
+    page: 资源需求页
+    audit: true
+    outcome: 已关闭
+    effort:
+      typical_min: 3
+      p90_min: 10
+    desc: 关闭原因必填：不再需要 / 范围变更 / 改外协（S-33）
+    decision:
+    - when: otherwise
+      goto: end
+      outcome: 已关闭
   notes: 具名人员、时段与工作包；审批在聚合自身状态（已计划 → 已确认），未走 platform.approval（G-02 已明确），故不算引擎调度的人工编排。部分满足时项目经理就缺口另提需求或调整后再分配（回第 1 步）。
 - id: PRC-23
   name: 填报并审批工时
@@ -11229,6 +11262,11 @@ single_aggregate:
   - VS-01.2
   desc: 我方为 IDI 风险管理机构时，商机进入跟进后由技术专家登记检查结论（读建设工程与我方参与记录、既有结论为前置读，不另列步骤）
   commands:
+  - command: 创建独立性检查
+    actor: system
+    aggregate: AGG-18
+    trigger_event: 独立性检查要求（AGG-10 新建商机时，服务产品要求独立性才发；同 BC）
+    desc: S-33：检查记录由事件创建，按商机幂等
   - actor_v1: 技术专家
     command: 登记独立性检查结论
     emits:
@@ -11242,6 +11280,10 @@ single_aggregate:
   - 有冲突已获书面同意
   - 有冲突不得承接
   transitions:
+  - from: null
+    to: 待查
+    command: 创建独立性检查
+    by: system
   - from: 待查
     to: 无冲突
     command: 登记独立性检查结论

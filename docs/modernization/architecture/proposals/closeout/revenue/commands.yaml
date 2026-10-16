@@ -2198,7 +2198,11 @@ commands:
   - 来源线索ID
   - 往来单位ID
   - 商机序号
-  emits: []
+  emits:
+  - 独立性检查要求
+  event_subscribers:
+    独立性检查要求:
+    - B-03 同 BC：AGG-18 创建独立性检查（服务产品要求独立性时才发，如 IDI、TIS 检查）
 - name: 变更商机负责人
   aggregate: AGG-10
   params:
@@ -2527,6 +2531,9 @@ commands:
   - 项目ID
   emits:
   - 项目已开始执行
+  event_subscribers:
+    项目已开始执行:
+    - B-05（AGG-13 已签署生效 → 履行中，S-33）
 - name: 暂停项目
   aggregate: AGG-19
   params:
@@ -3371,3 +3378,42 @@ commands:
   - 费率版本ID
   emits:
   - 工时已过账
+- name: 创建独立性检查
+  aggregate: AGG-18
+  proposed: true
+  trigger_event: 独立性检查要求（AGG-10，同 BC）
+  params:
+  - 商机
+  - 服务产品
+  - 往来单位
+  preconditions: []
+  authority:
+    A: 系统（事件触发）
+  idempotency_key:
+  - 商机ID
+  emits: []
+- name: 标记资源需求已满足
+  aggregate: AGG-25
+  proposed: true
+  trigger_event: 资源分配已确认（AGG-26，同 BC；分配工时累计达到需求工时）
+  params:
+  - 资源需求
+  - 资源分配
+  preconditions: []
+  authority:
+    A: 系统（事件触发）
+  idempotency_key:
+  - 资源需求ID
+  emits: []
+- name: 关闭资源需求
+  aggregate: AGG-25
+  proposed: true
+  params:
+  - 资源需求
+  - 关闭原因（必填：不再需要 / 范围变更 / 改外协）
+  preconditions: []
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 资源需求ID
+  emits: []

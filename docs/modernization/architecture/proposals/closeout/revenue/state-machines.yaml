@@ -1775,8 +1775,9 @@ machines:
   transitions:
   - from: null
     to: 待查
-    command: null
+    command: 创建独立性检查
     note: 事件触发：创建检查（触发条件待定）
+    event: 独立性检查要求（AGG-10，同 BC）
   - from: 待查
     to: 无冲突
     command: 登记独立性检查结论
@@ -2064,15 +2065,24 @@ machines:
     command: 维护项目团队成员
 - aggregate: AGG-25
   name: 资源需求
-  note: 需求的满足情况由资源分配侧登记，需求本身无后续状态（见 NOTES）
+  note: S-33：加「已满足」（资源分配累计达到需求，由事件触发）与「已关闭」（人工，原因必填）
   initial: 已提出
   states:
   - name: 已提出
+  - name: 已满足
+    terminal: true
+  - name: 已关闭
     terminal: true
   transitions:
   - from: null
     to: 已提出
     command: 提出资源需求
+  - from: 已提出
+    to: 已满足
+    command: 标记资源需求已满足
+  - from: 已提出
+    to: 已关闭
+    command: 关闭资源需求
 - aggregate: AGG-26
   name: 资源分配
   note: 分配调整、释放无命令（见 NOTES）
