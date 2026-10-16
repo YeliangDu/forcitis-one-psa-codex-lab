@@ -113,12 +113,12 @@ GIT = ("git", "-c", "core.quotepath=off")
 
 
 def changed_files(base):
-    out = subprocess.run([*GIT, "diff", "--name-only", "--no-renames", f"origin/{base}...HEAD"], capture_output=True, text=True, encoding="utf-8", check=True)
+    out = subprocess.run([*GIT, "diff", "--no-renames", "--name-only", f"origin/{base}...HEAD"], capture_output=True, text=True, encoding="utf-8", check=True)
     return out.stdout.splitlines()
 
 
 def files_since(before):
-    out = subprocess.run([*GIT, "diff", "--name-only", "--no-renames", before, "HEAD"], capture_output=True, text=True, encoding="utf-8")
+    out = subprocess.run([*GIT, "diff", "--no-renames", "--name-only", before, "HEAD"], capture_output=True, text=True, encoding="utf-8")
     return out.stdout.splitlines() if out.returncode == 0 else None
 
 
@@ -164,10 +164,7 @@ WIDE_NOT_READERS = {"scripts/ci/heavy_gate.py": "the test strings use \"docs\" a
 GUARDED_FRONTEND = ("frontend/scripts/check-copy-glossary.mjs", "frontend/scripts/copy-glossary.mjs", "frontend/scripts/copy-glossary.test.mjs")
 # Heavy (container or Spring) test classes that read a guarded doc and may be left out of the middle tier, with the reason. Hand-kept on purpose and checked by the self-test (a stale entry fails):
 # every entry is a decision to run less, so it needs the coordinator's approval. Key: (doc path prefix, simple class name).
-EXEMPT_HEAVY_READERS = {
-    ("docs/modernization/glossary/", "ApplicationIntegrationTest"):
-        "checks that OpenAPI schema names and serialized event keys are registered glossary words; the same identifiers are checked at source level by GlossaryTest, NamingSurfaceTest and OutwardTextGuardTest",
-}
+EXEMPT_HEAVY_READERS = {}   # none approved: the coordinator decided that every heavy reader of a doc makes it tier code (2026-10-16)
 
 
 CODE_TOKEN = re.compile(r'''"""(?:.|\n)*?"""|"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`|/\*(?:.|\n)*?\*/|//[^\n]*''')
@@ -402,14 +399,23 @@ def tiers_self_test(root):
             assert tier_of(["docs/modernization/status/blockers/zz.md"], tmp2)[1]["classes"] == {"SegDirTest"}, "a directory named by path segments"
         write(tmp, t + "EventsApplicationIntegrationTest.java", "x")
         write(tmp, t + "ApplicationIntegrationTest.java", '@SpringBootTest class ApplicationIntegrationTest { String p = "docs/modernization/glossary/terms.yaml"; String q = "docs/modernization/events/other.yaml"; }')
-        assert tier(ev + "other.yaml") == ("code", None), "the exemption is limited to its doc prefix"
+        EXEMPT_HEAVY_READERS[(gl, "ApplicationIntegrationTest")] = "test only"
+        try:
+            assert tier(ev + "other.yaml") == ("code", None), "the exemption is limited to its doc prefix"
+        finally:
+            EXEMPT_HEAVY_READERS.clear()
         kind, plan = tier(gl + "front.yaml")
         assert kind == "guarded" and plan["frontend"] and not plan["classes"]
         assert tier(gl + "app.yaml") == ("code", None), "a frontend source outside frontend/scripts reads it"
         kind, plan = tier("docs/modernization/status/blockers/x.md")
         assert kind == "guarded" and plan["release"]
-        kind, plan = tier(gl + "terms.yaml")
-        assert kind == "guarded" and plan["classes"] == {"GlossaryRelatedTest"} and plan["exempt"] == {"ApplicationIntegrationTest"}, (kind, plan)
+        assert tier(gl + "terms.yaml") == ("code", None), "a heavy test reads it and no exemption is approved"
+        EXEMPT_HEAVY_READERS[(gl, "ApplicationIntegrationTest")] = "test only"
+        try:
+            kind, plan = tier(gl + "terms.yaml")
+            assert kind == "guarded" and plan["classes"] == {"GlossaryRelatedTest"} and plan["exempt"] == {"ApplicationIntegrationTest"}, (kind, plan)
+        finally:
+            EXEMPT_HEAVY_READERS.clear()
         # mixed changes
         assert tier(ev + "light.yaml", "backend/pom.xml") == ("code", None)
         assert tier(ev + "light.yaml", "docs/modernization/adr/src/ADR-0001.md")[0] == "guarded"
@@ -484,8 +490,6 @@ def real_tiers_self_test(root):
             assert rel in ALWAYS_RUN_READERS or rel in GUARDED_FRONTEND or rel.startswith((TEST_ROOT, "scripts/release/")), f"{path}: reader {rel} is not one the middle tier runs"
     assert guarded, "every doc went to the full run: the middle tier is empty"
     expected = {
-        "docs/modernization/glossary/terms.yaml": {"GlossaryTest"},
-        "docs/modernization/glossary/bcs.yaml": {"GlossaryTest"},
         "docs/modernization/phase1a/infra/INFRA_RUNBOOK.md": {"ReadOnlyCheckSwitchGuardTest"},
         "docs/modernization/phase1a/infra/handoff/B-5-dba/evidence/credential_columns.csv": {"CredentialColumnGuardTest"},
     }
@@ -493,6 +497,8 @@ def real_tiers_self_test(root):
         plan = plan_for([path], index, light)
         assert plan is not None and classes <= plan["classes"], f"{path} must trigger {sorted(classes)}, plans {plan}"
     assert plan_for(["docs/modernization/events/asyncapi.yaml"], index, light) is None, "ITs read the event catalogue: full run"
+    for path in ("docs/modernization/glossary/terms.yaml", "docs/modernization/glossary/bcs.yaml"):
+        assert plan_for([path], index, light) is None, f"{path}: a heavy test (ApplicationIntegrationTest) reads it and no exemption is approved: full run"
     assert plan_for(["docs/modernization/status/blockers/080-1a-no-deploy-until-fix.md"], index, light)["release"]
 
 
