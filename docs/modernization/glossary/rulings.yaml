@@ -118,3 +118,7 @@ rulings:
     definition: 授权三要素之三（BU / 法人 / 责任人）；合同 BC 合并后与变更中的「责任方」区别开，故英文名加授权前缀
     forbid_old: false
     source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后同 bc 内 ResponsibleParty 两条之一改名
+  - op: move_to_bc
+    ids: [attendance]
+    to: organization.leave
+    source: 用户 2026-10-16 待决定收件箱 2026-10-16-one-glossary-bc-names 按推荐改名：词条「考勤与休假」改挂 organization.leave，该 bc 中文名改「考勤与休假」，原 organization.attendance 改「工作日历与标准工时」（intent 见该事项）

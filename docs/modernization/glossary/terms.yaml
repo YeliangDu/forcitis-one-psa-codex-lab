@@ -7916,7 +7916,7 @@ terms:
   en: Attendance
   snake: attendance
   kind: entity
-  bc: organization.attendance
+  bc: organization.leave
   definition: 考勤与休假限界上下文；1a 只含工作日历，请假与打卡后做（用户 2026-10-14：BC 提前到 1a 建）
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md §2
@@ -7929,7 +7929,7 @@ terms:
   - 考勤
   status: approved
   note: 用语确认第三轮转正式（原提议 organization_attendance.yaml#attendance，R3-AT-04）
-  confirmed: 2026-10-15（用户，用语确认第三轮）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；用户 2026-10-16 待决定收件箱 2026-10-16-one-glossary-bc-names 按推荐改名：词条「考勤与休假」改挂 organization.leave，该 bc 中文名改「考勤与休假」，原 organization.attendance 改「工作日历与标准工时」（intent 见该事项）（用户裁定，rulings.yaml）
   scope: domain
 - id: work_calendar_locked_days_changed
   zh: 工作日历锁定日期被修改
