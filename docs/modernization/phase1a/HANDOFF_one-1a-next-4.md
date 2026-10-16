@@ -9,7 +9,7 @@
 1. 本报告；`docs/modernization/quality/defect-bank/one-1a-next-4.md`（错题本，交付前逐条回测）。
 2. 数据修复卡 `docs/modernization/data/repair-cards/`（README 与四张卡）、`DATA_DESIGN_GATE.md`（数据设计门禁，§13）、one-data 签发记录 `docs/modernization/data/reviews/`。
 3. 排序与切 PR 方案：`~/Library/Application Support/Claude/side-session-notes/local_10f279cb-81c7-4628-9080-2d5b1efd622d/one-1a-next-4-data-repair-plan.md`。
-4. ADR-0048（审计分区，用户已批准；正文随 one-architecture 的 #324 合入）、ADR-0043、ADR-0033。
+4. ADR-0048（审计分区，用户已批准；正文已随 #324 合入）、ADR-0043、ADR-0033。
 5. 私有证据 `~/.modernize/psa/handoff/one-1a-next-4/notes.md`（按时间的决定与待办，不入仓）。
 
 ## 2. 本会话完成
@@ -25,7 +25,7 @@
 
 ## 3. 在途与下一步（数据修复批，生产前闸门，不挡 dev；one-coordinator 裁定 D1–D5）
 
-- **PR-1 审计分区**（TB-07 + TB-09 + TB-05，ADR-0048）：等 #324（ADR-0048 正文）合入后开。one-architecture 判定：TB-09 选删 `created_at DEFAULT`，列注释「审计事实发生的时间：事件条目取事件信封的发生时刻，直接审计取注入的时钟」。体量最大；opus 首轮 + opus 终审（守护、凭据）。须 one-data 逐条签。
+- **PR-1 审计分区**（TB-07 + TB-09 + TB-05，ADR-0048）：前置已满足：#324 已合入，ADR-0048 正文在 `adr/src/ADR-0048.md`，可直接开（先请 one-data 逐条签）。one-architecture 判定：TB-09 选删 `created_at DEFAULT`，列注释「审计事实发生的时间：事件条目取事件信封的发生时刻，直接审计取注入的时钟」。体量最大；opus 首轮 + opus 终审（守护、凭据）。须 one-data 逐条签。
 - **PR-3**：TB-04（导出去 count，先核 K-3b-4 是否已做）、TB-06、TB-08。
 - **PR-6**：审批 AP-01、02、03、05、08（AP-01 指向 `start_rounds(instance_id)`，若非 uuid 同 AP-17 处理）；AP-04 目标为 uuid 唯一约束可放行（one-architecture ④）。
 - **PR-7**：编号 AP-09 等；AP-14 只留 TIMESHEET（删 QUOTE、JOURNAL_VOUCHER 种子与财务确认列，one-architecture ⑤）；AP-17 改 CHECK 不作外键。
