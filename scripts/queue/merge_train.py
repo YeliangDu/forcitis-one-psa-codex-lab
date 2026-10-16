@@ -8,7 +8,7 @@
   merge_train.py docs   --branch claude/one-coordinator-docs-0616 [--max 20] [--push [--open-pr]] <会话分支>@<提交号> [<会话分支>@<提交号> ...]
         collect documentation commits that sessions pushed to their own branches (no pull request of their own): fetch each branch, require the commit to be on it and not yet in main,
         require that what the commit brings (diff origin/main...commit) touches only docs/, merge the commits ONE BY ONE with --no-ff (never an octopus merge: that fires the acceptance-test
-        signature guard), re-check docs/-only on the result, add a commit that records "Train-Doc: <branch> <sha>". --push / --open-pr as for build.
+        signature guard), re-check docs/-only on the result (a commit brings its unlisted ancestors on that branch too; list older commits first), add a commit that records "Train-Doc: <branch> <sha>". --push / --open-pr as for build.
   merge_train.py split  --pr <failed-train-pr> --prefix claude/one-coordinator-train-14       members from the train pull request body; prints the two `build` commands for the halves
   merge_train.py finish --pr <merged-train-pr> [--squashed]
         close the member pull requests GitHub did not mark merged. A member is closed only when its head still is the recorded one (a member that got new commits after the train was built
@@ -148,12 +148,12 @@ def build(args, gh, repo="."):
             git(repo, "branch", "-D", args.branch, check=False)   # the scratch branch lives in the pushed ref, not here
 
 
-SPEC = re.compile(r"^([A-Za-z0-9._/-]+)@([0-9a-f]{7,40})$")
+SPEC = re.compile(r"([A-Za-z0-9._/-]+)@([0-9a-f]{7,40})")
 
 
-def non_docs(repo, ref):
-    """Paths that origin/main...ref (what `ref` brings in since its merge base) changes outside docs/."""
-    out = git(repo, "diff", "--name-only", "-z", "origin/main...%s" % ref).stdout
+def non_docs(repo, *rng):
+    """Paths a `git diff` range changes outside docs/. --no-renames: a file moved into docs/ must still list the path it left."""
+    out = git(repo, "diff", "--name-only", "--no-renames", "-z", *rng).stdout
     return [p for p in out.split("\0") if p and not p.startswith("docs/")]
 
 
@@ -180,7 +180,7 @@ def build_docs(args, gh, repo="."):
         raise SystemExit("--open-pr needs --push")
     specs = []
     for x in args.specs:
-        m = SPEC.match(x)
+        m = SPEC.fullmatch(x)
         if not m:
             raise SystemExit(f"{x!r}: write <session branch>@<commit sha>")
         specs.append(m.groups())
@@ -191,9 +191,12 @@ def build_docs(args, gh, repo="."):
     members = []
     for branch, short in specs:
         sha = fetch_branch_commit(repo, branch, short)
-        bad = non_docs(repo, sha)
+        bad = non_docs(repo, f"origin/main...{sha}")
         if bad:
             raise SystemExit(f"{branch}@{short} touches files outside docs/ ({', '.join(bad[:5])}{' ...' if len(bad) > 5 else ''}): code goes in a pull request, not into a docs train")
+        for ob, osha in members:
+            if git(repo, "merge-base", "--is-ancestor", sha, osha, check=False).returncode == 0:
+                raise SystemExit(f"{branch}@{short} is already contained in {ob}@{osha[:10]} listed before it (the same commit twice, or a newer commit first): list older commits first")
         members.append((branch, sha))
     wt = None
     try:
@@ -202,6 +205,10 @@ def build_docs(args, gh, repo="."):
         ok, why = merge_members(wt, "origin/main", args.branch, [(f"{b}@{sha[:10]}", sha) for b, sha in members])
         if not ok:
             raise SystemExit(f"no docs train built: {why}; take that commit out or have its branch updated from main")
+        # the three-dot check above uses one merge base only; what lands on main is the two-dot difference
+        bad = non_docs(wt, "origin/main", "HEAD")
+        if bad:
+            raise SystemExit(f"the merged result differs from origin/main outside docs/ ({', '.join(bad[:5])}{' ...' if len(bad) > 5 else ''}): take the commit out or have its branch updated from main")
         msg = f"docs train {args.branch}: " + ", ".join(f"{b}@{sha[:10]}" for b, sha in members) + "\n\n" + "\n".join(f"Train-Doc: {b} {sha}" for b, sha in members) + "\n"
         git(wt, "commit", "-q", "--allow-empty", "-m", msg)
         commit = git(wt, "rev-parse", "HEAD").stdout.strip()
@@ -368,6 +375,8 @@ def self_test():
         fails(docs("docs-2", ["d1"]), "write <session branch>@<commit sha>")
         fails(docs("docs-1", [f"d1@{d1}"]), "already exists on origin")
         fails(docs("docs-2", [f"d1@{d1}", f"d2@{d2}"], max=1), "at most 1")
+        fails(docs("docs-2", [f"d1@{d1}", f"d1@{d1}"]), "is already contained in d1@")
+        fails(docs("docs-2", [f"d1@{d1}\n"]), "write <session branch>@<commit sha>")
         fails(docs("docs-2", [f"d1@{d1}"], open_pr=True), "--open-pr needs --push")
         assert branch_exists(work, "docs-2") is None and sh(work, "git", "worktree", "list", "--porcelain").count("worktree ") == 1, "nothing is left behind"
         # main moving on with a code change must not make an older docs commit look like a code change (three-dot diff)
@@ -379,7 +388,31 @@ def self_test():
         sh(work, "git", "push", "-q", "-f", "origin", f"{base_sha}:main")
         sh(work, "git", "branch", "-D", "advance")
         sh(work, "git", "fetch", "-q", "origin")
-        assert non_docs(work, d1) == [] and non_docs(work, d4) == ["code/y.py"]
+        assert non_docs(work, f"origin/main...{d1}") == [] and non_docs(work, f"origin/main...{d4}") == ["code/y.py"]
+        # two merge bases (criss-cross): the three-dot diff sees only one of them, the two-dot check on the merged result still catches the code revert
+        sh(work, "git", "checkout", "-q", "-B", "x2", "main"); commit("base.txt", "changed\n", "x2 code"); sh(work, "git", "push", "-q", "origin", "x2")
+        sh(work, "git", "checkout", "-q", "-B", "x1", "main"); os.makedirs(os.path.join(work, "docs"), exist_ok=True); open(os.path.join(work, "docs/m1.md"), "w").write("m1\n")
+        sh(work, "git", "add", "docs/m1.md"); sh(work, "env", "GIT_COMMITTER_DATE=2099-01-01T00:00:00", "git", "commit", "-q", "-m", "x1")   # newest, so the three-dot diff picks it as THE merge base
+        sh(work, "git", "push", "-q", "origin", "x1")
+        sh(work, "git", "checkout", "-q", "-B", "advance2", "main"); sh(work, "git", "merge", "-q", "--no-ff", "--no-edit", "x1"); sh(work, "git", "merge", "-q", "--no-ff", "--no-edit", "x2")
+        sh(work, "git", "push", "-q", "origin", "advance2:main")
+        sh(work, "git", "checkout", "-q", "-B", "crisscross", "x2"); sh(work, "git", "merge", "-q", "--no-ff", "--no-edit", "x1")
+        commit("base.txt", "base\n", "revert the code change"); dcc = commit("docs/s.md", "s\n", "doc")
+        sh(work, "git", "push", "-q", "origin", "crisscross")
+        sh(work, "git", "checkout", "-q", "main"); sh(work, "git", "fetch", "-q", "origin")
+        fails(docs("docs-2", [f"crisscross@{dcc}"]), "the merged result differs from origin/main outside docs/ (base.txt)")
+        sh(work, "git", "push", "-q", "-f", "origin", f"{base_sha}:main")
+        sh(work, "git", "branch", "-D", "x1", "x2", "advance2", "crisscross")
+        sh(work, "git", "fetch", "-q", "origin")
+        # a code file moved into docs/ must be caught (rename detection would list only the new path)
+        sh(work, "git", "checkout", "-q", "-B", "mv", "main")
+        os.makedirs(os.path.join(work, "docs"), exist_ok=True)
+        sh(work, "git", "mv", "base.txt", "docs/base.txt"); sh(work, "git", "commit", "-q", "-m", "move code into docs")
+        sh(work, "git", "push", "-q", "origin", "mv")
+        dmv = sh(work, "git", "rev-parse", "HEAD")
+        sh(work, "git", "checkout", "-q", "main")
+        fails(docs("docs-2", [f"mv@{dmv}"]), f"mv@{dmv} touches files outside docs/ (base.txt)")
+        sh(work, "git", "branch", "-D", "mv")
         # split reads the pull request body, so a strict update (extra commit on the branch) does not matter
         gh.prs[900] = dict(headRefOid="a" * 40, state="OPEN", isDraft=False, baseRefName="main", body=gh.created[0][2])
         import io, contextlib
