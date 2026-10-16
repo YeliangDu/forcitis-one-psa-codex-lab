@@ -301,8 +301,9 @@ platform.identity 新增术语（proposed，待业务评审，ADR-0018）。登�
 | `external_subject` | 外部主体标识 | ExternalSubject | ACL（长期） · platform.identity | 身份提供方给出的用户标识文本（企业微信 userid、致远登录名），只存于外部身份绑定 |  | ADR-0033（提议）登记，待用语确认 |
 | `single_operator_mode` | 单人运维模式 | SingleOperatorMode | 领域 · platform.identity | 仅 dev 环境、仅在进程启动时按配置读定的运行方式：运维命令可省略见证人，应急账号与超级管理员下限按 1 计，并可经运维命令起草无作者的编号模板版本；放宽项封闭为单人运维放宽项的取值，每次放宽都写标注审计（ADR-0030） |  | 登记会话 one-1a-par（派工卡 SINGLE-OP）；配置键 forcitis.platform.identity.single-operator-mode；查重：terms.yaml 与 proposed 中同一 bc 无同名、同中文名 |
 | `single_operator_relaxation` | 单人运维放宽项 | SingleOperatorRelaxation | 领域 · platform.identity | 单人运维模式下被放宽的规则，封闭为四个取值：见证人省略、应急账号下限一个、超级管理员下限一个（只改同步暂停原因文本）、模板版本无作者；写入标注审计的 detail；新增取值须另立 ADR（ADR-0030 第 2 项） |  | 登记会话 one-1a-par（派工卡 SINGLE-OP）；四个取值的标识符与中文名由派工卡第 11 节列出，实现 PR 前由 one-glossary 确认 |
+| `super_admin` | 超级管理员 | SuperAdmin | 领域 · platform.identity | 持有全部平台管理权限的内置角色的角色码；单人运维放宽项「超级管理员下限一个」的取值名由它构成（ADR-0027、ADR-0030） |  | 登记会话 one-1a-par（派工卡 SINGLE-OP P2）；G37 要求枚举取值 SUPER_ADMIN_MINIMUM_ONE 的词；查重：terms.yaml 与 proposed 中同一 bc 无同名、同中文名 |
 
-另有错误码 3 个（kind 为 `error_code`）、技术词 109 个（`common_words`），不在表中。
+另有错误码 3 个（kind 为 `error_code`）、技术词 108 个（`common_words`），不在表中。
 
 ## platform.integration（`platform-integration.yaml`）
 
