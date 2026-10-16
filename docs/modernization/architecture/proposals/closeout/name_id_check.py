@@ -26,6 +26,7 @@ PROC_MAX, STAGE_MAX = 12, 6
 VERBS = tuple(("选定 获得 约定 支付 确认 任用 报销 达成 沉淀 签订 开具 开票 收回 回款 付款 申报 缴纳 维护 招聘 录用 入职 申请 借支 核定 编制 预测 复盘 "
          "关账 发布 起草 评审 修订 废止 出资 分配 退回 结算 发放 结清 启动 策划 检查 整改 跟踪 认可 准入 签约 履约 履行 登记 提出 建立 处置 获取 "
          "交付 完成 形成 拓展 投标 考勤 计算 考核 评估 归档 封存 设计 施工 招采 深化 确定").split())
+ACTIVITY = re.compile(r"(检查|评审|确认|核定|评估|结算|申报|复盘|申请|审批|登记|核验|盘点)$")   # 活动名收尾：业务对象不用活动名
 COND = re.compile(r"^(当|若|如果|如|在|待)|^[^并、]{1,8}?(后|时)(?=[一-鿿]{2})")
 
 
@@ -45,9 +46,9 @@ def inactive(p):
     return p.get("type") == "merged" or p.get("status") == "retired" or bool(p.get("split_into"))
 
 
-def check(catalog, base, vs_doc, caps_doc, primary, onames):
+def check(catalog, base, vs_doc, caps_doc, primary, onames, objects=None):
     I = {"dup": [], "deleted": [], "reused": [], "gaps": [], "dest": [], "proc_len": [], "proc_cond": [], "proc_acts": [], "proc_list": [],
-         "proc_obj": [], "stage_len": [], "verb": [], "cap": [], "base_note": ""}
+         "proc_obj": [], "stage_len": [], "verb": [], "cap": [], "obj_activity": [], "base_note": ""}
     ids = [p["id"] for p in catalog]
     seen = set()
     for i in ids:
@@ -102,6 +103,9 @@ def check(catalog, base, vs_doc, caps_doc, primary, onames):
                 I["stage_len"].append(f"{s['id']} {sn}（{len(sn)} 字）")
             if not sn.startswith(VERBS):
                 I["verb"].append(f"{s['id']} {sn}")
+    for o, nm in sorted((objects or {}).items(), key=lambda x: num(x[0])):
+        if ACTIVITY.search(re.sub(r"[（(].*", "", nm).strip()):
+            I["obj_activity"].append(f"{o} {re.sub(r'[（(].*', '', nm).strip()}")
     for c in caps_doc.get("capabilities") or []:
         for x in [c] + list(c.get("l2") or []):
             if not str(x.get("name", "")).endswith("管理"):
@@ -112,7 +116,7 @@ def check(catalog, base, vs_doc, caps_doc, primary, onames):
 SECTIONS = [("dup", "编号 重号"), ("deleted", "编号 删号（应标 retired）"), ("reused", "编号 复用"), ("dest", "去向 不齐"),
             ("proc_len", f"流程名超过 {PROC_MAX} 字"), ("proc_cond", "流程名以条件开头"), ("proc_acts", "流程名动作超过两个"),
             ("proc_list", "流程名含「、」（多动作或多对象，复核）"), ("proc_obj", "流程名不含主对象名"),
-            ("stage_len", f"阶段名超过 {STAGE_MAX} 字"), ("verb", "价值流、阶段名不以词表动词开头（人工判动宾）"), ("cap", "能力名不以「管理」结尾")]
+            ("stage_len", f"阶段名超过 {STAGE_MAX} 字"), ("verb", "价值流、阶段名不以词表动词开头（人工判动宾）"), ("cap", "能力名不以「管理」结尾"), ("obj_activity", "业务对象名是活动名（应为结果或记录名）")]
 
 
 def render(I):
@@ -133,14 +137,14 @@ def self_test():
     base = [{"id": "PRC-03", "name": "已删"}, {"id": "PRC-07", "name": "旧", "type": "merged", "merged_into": "PRC-01"}]
     vs = {"value_streams": [{"id": "VS-X", "name": "获得交付成果", "stages": [{"id": "VS-X.1", "name": "市场与线索"}, {"id": "VS-X.2", "name": "签订合同并归档文件"}]}]}
     caps = {"capabilities": [{"id": "CAP-1", "name": "协议管理", "l2": [{"id": "CAP-1.2", "name": "协议"}]}]}
-    I = check(cat, base, vs, caps, {"PRC-01": "OBJ-81"}, {"OBJ-81": "收入确认（说明）"})
+    I = check(cat, base, vs, caps, {"PRC-01": "OBJ-81"}, {"OBJ-81": "收入确认（说明）"}, {"OBJ-81": "收入确认（说明）", "OBJ-01": "往来单位"})
     ok = lambda n, c: print(f"自测 {n}: {'通过' if c else '失败'}") or c
     res = [ok("重号", I["dup"] == ["PRC-01"]), ok("删号", I["deleted"] == ["PRC-03 已删"]), ok("复用", len(I["reused"]) == 1),
            ok("去向", any("PRC-02" in x for x in I["dest"]) and any("PRC-06" in x for x in I["dest"])),
            ok("条件开头", I["proc_cond"] == ["PRC-04 入职后参保增员与建立薪酬档案"]), ok("超长", any("PRC-04" in x for x in I["proc_len"])),
            ok("动作超过两个", I["proc_acts"] == ["PRC-05 申请并审批并支付费用"]), ok("主对象名（括注去掉后比）", I["proc_obj"][0] == "PRC-01 确认收入：主对象 OBJ-81 收入确认"),
            ok("阶段名", any("VS-X.1" in x for x in I["verb"]) and any("VS-X.2" in x for x in I["stage_len"]) and not any("VS-X " in x for x in I["verb"])),
-           ok("能力名", I["cap"] == ["CAP-1.2 协议"]), ok("空缺", I["gaps"] == ["PRC-03"])]
+           ok("能力名", I["cap"] == ["CAP-1.2 协议"]), ok("对象活动名", I["obj_activity"] == ["OBJ-81 收入确认"]), ok("空缺", I["gaps"] == ["PRC-03"])]
     if not all(res):
         sys.exit(1)
     print("自测 通过")
@@ -162,7 +166,10 @@ def main(argv):
     base = load_base(ref)
     if base is None and "--base" not in argv:
         ref, base = "HEAD", load_base("HEAD")   # 目录未进 main 前对照本分支上次提交
-    I = check(catalog, base, yaml.safe_load(VS_FILE.read_text(encoding="utf-8")), yaml.safe_load(CAPS.read_text(encoding="utf-8")), primary, onames)
+    nonobj = {m.group(1) for m in (re.match(r"^\|\s*(OBJ-\d+)\s*\|[^|]*\|\s*([^|]*)\|", l) for l in INFO_MAP.read_text(encoding="utf-8").splitlines())
+              if m and re.search(r"非对象|行号保留", m.group(2))}
+    I = check(catalog, base, yaml.safe_load(VS_FILE.read_text(encoding="utf-8")), yaml.safe_load(CAPS.read_text(encoding="utf-8")), primary, onames,
+              {o: n for o, n in onames.items() if o not in nonobj})
     md = render(I)
     if "--no-write" not in argv:
         (HERE / "NAME_ID_REPORT.md").write_text(md, encoding="utf-8")
