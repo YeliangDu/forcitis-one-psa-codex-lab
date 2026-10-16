@@ -200,6 +200,7 @@ def self_test():
     assert ok(mk("A", "完成"), mk("B", after="A"), mk("C", after="A, B"))
     ready = ready_unclaimed([mk("A", "完成"), mk("B", after="A"), mk("C", after="B"), mk("D", "待派", "one-a", "A"), mk("E")])
     assert sorted(c["id"] for c in ready) == ["B", "E"], ready
+    assert "标｜题".replace("｜", "／") in render([card("---\n卡号: A\n状态: 待派\n---\n# 标|题\n")], [])
     assert {c["id"] for c in ready_unclaimed([mk("A", "并入", "", "", "B"), mk("B"), mk("C", after="A")])} == {"B", "C"}
     board = render([mk("A", "完成"), mk("B", after="A"), mk("C", "暂缓", "", "", "", "原因|竖线")], ["old.md"])
     assert "可开工但没人认领（1）" in board and "| B |" in board and "原因／竖线" in board and "old.md" in board
