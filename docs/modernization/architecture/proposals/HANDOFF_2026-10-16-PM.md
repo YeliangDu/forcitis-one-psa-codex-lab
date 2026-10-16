@@ -48,3 +48,9 @@
 - 收入事实答复（intent 144613）：每期估进度只作经营产值（Q-04 否决条件 1 不触发，回原四选项）；客户格式合同为主；企业会计准则；**没有法定年审**（A1 与 ADR-0047「审计师书面认可」前提落空，one-rules 在 A1 下一页给替代把关选项，ADR-0047 侧修订由本会话起草）；诉讼卡在缺客户签认；R-6 印象未写。
 - 下一步：等 one-rules A1 下一页→合并 Q-04 原四选项重出；起草 ADR-0047 把关前提修订（过渡或修订 ADR）；过渡 ADR「一次投产路线」；SSOT 落地 PR；岗位体系 J 系列确认页（含 one-data 职业通道 4 类取证）。
 - 收入研究文件：Q04_REVENUE_OBJECT_RESEARCH、Q04_OVER_TIME_PROGRESS_RESEARCH、Q04_LITIGATION_EVIDENCE_RESEARCH、Q04_AEC_CONTRACT_MODELS（定稿）、Q04_AEC_MODELS_REVIEW、Q04_A1_RULES_SUMMARY。
+
+## 架构收尾（用户「确认」，intent 151644，PR #384）
+
+- 计划 ARCH_CLOSEOUT_PLAN.md；分组说明 closeout/README.md、assignments.yaml（82 流程：revenue 39、finance 24、people 19）。三个临时会话 one-arch-revenue / finance / people 已由调度开；本会话把关接缝，做 ③ 地基需求矩阵（并入 FOUNDATION_RECHECK* 与其 opus 评审）、④ 过渡 ADR（施工方案 34 条＋ADR-0050 决定 3 范围＋ADR-0036 决定 10＋ADR-0047 把关）、⑤ SSOT、⑥ 重估。
+- 地基批与校准车道暂停（CALIBRATION_SLICE 保留作参考）。
+- 已定：投产准入判据（intent 150646）、施工方案第 2 轮（144943）、收入事实（144613、R-9 只记定性）。等用户：A1 后续页 https://claude.ai/artifact/TaLY2TVGaoqhZCpt7uPMrG 。
