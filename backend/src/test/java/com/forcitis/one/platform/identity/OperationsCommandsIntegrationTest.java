@@ -84,7 +84,7 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
                 .doesNotContain(secret);
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("platform.identity.operations.emergency-admin.registered")).singleElement()
                 .satisfies(entry -> {
-                    assertThat(entry.detail()).contains("operator=alice", "witness=bob", "loginName=breakglass").doesNotContain(password).doesNotContain(secret);
+                    assertThat(entry.detail()).contains("operator=alice", "witness=bob").doesNotContain("loginName=", "breakglass").doesNotContain(password).doesNotContain(secret);
                     assertThat(entry.subject()).isEqualTo(AuditSubject.of(AuditSubjectKind.EMERGENCY_ADMIN, accountOf(7)));
                 });
         assertThat(logs.getAll()).as("a secret never reaches a log line").doesNotContain(password).doesNotContain(secret);

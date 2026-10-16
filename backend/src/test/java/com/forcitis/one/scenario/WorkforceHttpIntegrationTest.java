@@ -289,6 +289,26 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-01: a release reason of 201 characters is refused with 400 and leaves the run held; 200 characters pass")
+    void releaseReasonIsBounded() throws Exception {
+        List<SourcePerson> ten = new ArrayList<>();
+        for (int i = 1; i <= 10; i++) {
+            ten.add(person(i, 2, 100L, null));
+        }
+        orgSource.snapshot = tree(ten.toArray(SourcePerson[]::new));
+        sync.execute(SyncTrigger.SCHEDULED, false);
+        orgSource.snapshot = tree(ten.subList(0, 6).toArray(SourcePerson[]::new));
+        var held = sync.execute(SyncTrigger.SCHEDULED, false);
+        String path = SYNC_RUNS + "/" + held.syncRunId().value() + ":release";
+
+        mvc.perform(post(path).with(csrf()).with(EXECUTE).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"" + "x".repeat(201) + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED"));
+        mvc.perform(post(path).with(csrf()).with(EXECUTE).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"" + "x".repeat(200) + "\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("D-1a-164 a release without a reason is refused; the reason of an accepted release reaches the audit trail through the event")
     void releaseNeedsAReason() throws Exception {
         List<SourcePerson> ten = new ArrayList<>();

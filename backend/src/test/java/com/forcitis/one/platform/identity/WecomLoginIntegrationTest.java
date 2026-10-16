@@ -109,6 +109,18 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-01: an unbound WeCom user is audited as 'wecom user not bound', the WeCom user id never reaches detail")
+    void unboundWecomUserStaysOutOfDetail() throws Exception {
+        when(wecomGateway.resolveWecomUserId("c1", WecomEntry.WORKBENCH)).thenReturn(Optional.of(new WecomUserId("stranger-id")));
+        when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("stranger-id")))).thenReturn(Optional.empty());
+
+        login("c1", newState("WORKBENCH"), "WORKBENCH");
+
+        assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.login.failed")).singleElement()
+                .satisfies(entry -> assertThat(entry.detail()).contains("reason=wecom user not bound").doesNotContain("stranger-id"));
+    }
+
+    @Test
     @DisplayName("RULE-322 a code WeCom rejects is refused")
     void rejectedCode() throws Exception {
         when(wecomGateway.resolveWecomUserId("bad", WecomEntry.WORKBENCH)).thenReturn(Optional.empty());

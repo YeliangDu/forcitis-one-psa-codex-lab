@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class ReleaseSyncRun {
+    static final int MAX_REASON_LENGTH = 200;
     private static final Logger LOG = LoggerFactory.getLogger(ReleaseSyncRun.class);
 
     private final SyncRunRepository runs;
@@ -46,6 +47,12 @@ public class ReleaseSyncRun {
         if (reason == null || reason.isBlank()) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED, ErrorKind.INVALID,
                     "a reason is required to release a held sync run");
+        }
+        if (reason.strip().length() > MAX_REASON_LENGTH) {
+            LOG.error("ALERT organization.workforce the reason to release sync run {} by user {} exceeds {} characters: refused", held.value(), actor.value(),
+                    MAX_REASON_LENGTH);
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED, ErrorKind.INVALID,
+                    "a reason of 1.." + MAX_REASON_LENGTH + " characters is required to release a held sync run");
         }
         Optional<SyncRun> run = runs.find(held);
         if (run.isEmpty()) {
