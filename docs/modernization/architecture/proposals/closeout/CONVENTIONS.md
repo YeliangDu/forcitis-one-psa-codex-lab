@@ -28,6 +28,8 @@
     - command: 提交报价版本            # v1 原字段不动；收尾新增的步骤加 added_in: closeout
       aggregate: AGG-12
       actor: SH-E2                    # 必填；SH- 编号 / system / platform
+      where: in_system                # 必填（提议中，随样板页请用户确认）：in_system 用户在本系统操作 / automatic 本系统自动 / external:<系统名> 经集成由外部系统完成（如 external:企业微信、external:U8C、external:银行、external:税务）/ offline 线下完成、本系统只登记结果
+      evidence: []                    # where 为 offline 或 external 时必填：本系统登记的结果与证据（如「客户签认单扫描件＋签认日」「银行回单」）
       decision:                       # 可选；本步之后的判断点，按顺序求值
         - {when: "报价金额超过授权额度", goto: 3}       # goto：步骤序号（从 1 起）、end、或另一流程 PRC-NN
         - {when: otherwise, goto: 4}
