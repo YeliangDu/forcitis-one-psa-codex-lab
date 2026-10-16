@@ -106,3 +106,5 @@
 ## 脚本无缺口修补（2026-10-16）
 
 场景已写入 `parts/vs0911.scenarios.yaml`（PRC-88 八条、PRC-89 三条），covers 与骨架判断出口、超时、结局文字逐字一致；roles 全部补 `org_needs`；用户任务 permission 与 page 齐全；新用语已列 NOTES。`closeout_check --qc` 的 people 行：出口、超时、结局无场景均为 0，用语无着落 0。PRC-89 步 1 的超时由 `interrupting: false` 改为 `true`：新版生成器对非中断超时报 R14（两个令牌），改后逾期即转由 SH-M1 处理，修改后全部检查通过、0 警告；业务含义变化（升级后由管理层接手提醒，而非并行等待）已在待用户定 4 范围内，期限仍待定。
+
+- S-35 落实（one-architecture 裁定）：作废经营计划草稿（AGG-79）归 PRC-88 放弃分支（步 1 判断「编制人放弃编制中的草稿」→ 步 9，结局「已作废」，场景 PRC-88-S09）；命令撤 unused_ok，状态机转换补 steps。

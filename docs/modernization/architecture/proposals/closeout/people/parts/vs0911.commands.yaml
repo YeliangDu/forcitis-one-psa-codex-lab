@@ -211,7 +211,6 @@ commands:
 
   - name: 作废经营计划草稿
     aggregate: AGG-79
-    unused_ok: "维护类命令：编制人放弃编制中的废弃草稿，不在 PRC-88 主线上；S-32 未给流程号，归属流程待 one-architecture 定"
     status: 〔缺〕（S-32 裁定新增，待回补聚合稿，名待 one-glossary 核；notes 结构问题 10(a)）
     params: [版本ID, 作废原因]
     preconditions:
@@ -220,7 +219,7 @@ commands:
     raci_R: [SH-M1]
     idempotency_key: 版本ID（已作废无操作）
     emits: []
-    used_by: []
+    used_by: [PRC-88 第 9 步]
     orphan: false
 
   # ───────────── AGG-107 知识条目 ─────────────

@@ -1448,7 +1448,8 @@ machines:
     command: 作废经营计划草稿
     guard:
     - INV-101：仅编制中，审批中须先撤回
-    steps: []
+    steps:
+    - PRC-88#9
     reverse: 作废
   - from: 编制中
     to: 审批中

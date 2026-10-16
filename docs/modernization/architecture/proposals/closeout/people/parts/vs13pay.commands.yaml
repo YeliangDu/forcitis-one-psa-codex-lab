@@ -93,7 +93,6 @@ commands:
   orphan: false
 - name: 登记绩效更正
   aggregate: AGG-106
-  unused_ok: "更正类维护命令：已确认评估发现差错后由评估人事后发起，不在 PRC-85、PRC-120 主线上；S-32 未给流程号，归属流程待 one-architecture 定"
   entity: performance_review_corrections
   kind: human
   name_status: 〔缺〕S-32 裁定新增，待回补聚合稿，待 one-glossary 登记（register_performance_correction）
@@ -101,7 +100,7 @@ commands:
   params: [原评估ID, 更正项, 更正后结论, 更正原因, 依据引用]
   preconditions:
   - {ref: INV-114, text: 原评估须已确认；更正追加一条记录引用原评估，不改原评估}
-  - {ref: 下游, text: 原评估已被奖金核定引用的，更正登记后提示 B-15 复核奖金核定（不自动改已核定奖金，经 api 读取）}
+  - {ref: 下游, text: 原评估已被奖金核定引用的，更正登记后通知人力核对，由人力在 PRC-122 人力触发入口重新草拟（不自动改已核定奖金；S-35）}
   authority:
     ref: raci:AGG-106/登记绩效更正
     A: {resolve: instance, field: 绩效评估.评估人}
@@ -109,7 +108,7 @@ commands:
   idempotency_key: 原评估ID + 更正序号（同序号重复提交返回已有）
   state_change: 已确认 → 已确认（追加更正记录，不改状态）
   emits: （内部）
-  used_by: []
+  used_by: [PRC-120 第 4 步]
   orphan: false
 
 # ───────────── AGG-73 月度薪酬结算 ─────────────
@@ -328,7 +327,6 @@ commands:
   orphan: false
 - name: 调整缴费基数
   aggregate: AGG-74
-  unused_ok: "年度维护类命令：每年随社保公积金缴费基数核定通知办理，不在 PRC-84、130、136 主线上；S-32 未给流程号，归属流程待 one-architecture 定"
   entity: insurance_enrollment_versions
   kind: human
   name_status: 〔缺〕S-32 裁定新增，待回补聚合稿，待 one-glossary 登记（adjust_contribution_base）
@@ -345,7 +343,7 @@ commands:
   idempotency_key: 参保登记ID + 缴费年度（同键返回已有版本）
   state_change: 在保 → 在保（追加新版本，不改状态）
   emits: （内部）
-  used_by: []
+  used_by: [PRC-125 第 7 步]
   orphan: false
 
 # ───────────── AGG-75 激励方案版本 ─────────────
@@ -625,7 +623,7 @@ commands:
   idempotency_key: 申报ID（已申报再提交无操作）
   state_change: 待申报 → 已申报
   emits: 个税与社保公积金申报已提交
-  used_by: [PRC-125 第 2 步（个税）, PRC-125 第 3 步（社保公积金）]
+  used_by: [PRC-125 第 2 步（个税）, PRC-125 第 3 步（社保公积金）, PRC-125 第 8 步（年度基数调整）]
   orphan: false
 - name: 登记缴款
   aggregate: AGG-95

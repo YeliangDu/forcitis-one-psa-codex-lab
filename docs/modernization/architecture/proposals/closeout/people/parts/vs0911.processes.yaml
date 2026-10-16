@@ -22,8 +22,8 @@ processes:
     triggers:
       - {type: time, name: 经营计划周期开始（年度、季度）}
       - {type: human, name: 经营复盘后调整计划（VS-09.3 退出条件：计划新版本）}
-    outcomes: [已基线化, 预算账户已开立, 已调整, 已撤回]
-    scenarios: [PRC-88-S01, PRC-88-S02, PRC-88-S03, PRC-88-S04, PRC-88-S05, PRC-88-S06, PRC-88-S07, PRC-88-S08]
+    outcomes: [已基线化, 预算账户已开立, 已调整, 已撤回, 已作废]
+    scenarios: [PRC-88-S01, PRC-88-S02, PRC-88-S03, PRC-88-S04, PRC-88-S05, PRC-88-S06, PRC-88-S07, PRC-88-S08, PRC-88-S09]
     roles:
       - {id: SH-M1, as: initiator, org_needs: {responsibility: 编制所辖组织单元的经营计划版本并提交审批, approval_right: 无（编制与提交）, department_hint: 计划归属组织单元（部门、事业部；公司级为管理层）, position_hint: 组织单元负责人或其指定的计划编制人}}
       - {id: SH-M1, as: approver, org_needs: {responsibility: 对本组织单元经营计划的可达性与资源取舍负责, approval_right: 经营计划审批（实例级，计划归属组织单元的责任人）, department_hint: 计划归属组织单元（公司级为管理层）, position_hint: 组织单元负责人（部门负责人）；公司级为管理层负责人}}        # 审批人是计划归属组织单元的责任人，与编制人分离见 segregation
@@ -38,6 +38,7 @@ processes:
         permission: 经营计划.编制
         page: 经营计划编辑页
         decision:
+          - {when: 编制人放弃编制中的草稿, goto: 9}
           - {when: otherwise, goto: 2}
 
       - actor: SH-M1
@@ -139,6 +140,20 @@ processes:
           - {when: 调整超出基线额度总额或要改目标值（规则拒绝）, goto: 1}   # 受控变更走新版本，INV-101
           - {when: otherwise, goto: end}
         outcome: 已调整
+
+      - actor: SH-M1
+        where: in_system
+        entry: 编制人放弃编制中的草稿
+        branch: 放弃
+        command: 作废经营计划草稿
+        aggregate: AGG-79
+        desc: 仅编制中的版本可放弃（INV-101）：审批中须先撤回再作废，基线不可作废（只出新版本）；草稿未提交、无下游引用，编制人自行作废，不设审批，原因必填并留审计；作废为终态，不再进入审批，要继续须另起新版本
+        permission: 经营计划.作废
+        page: 经营计划编辑页
+        audit: true
+        decision:
+          - {when: otherwise, goto: end}
+        outcome: 已作废
     notes: 基线不可变，只出新版本（INV-101）；复盘后调整计划也走本流程。预算账户拦截或预警未定（INV-102、〔支研〕问题 11），影响占用步骤，见 NOTES 待用户定 1。账户级预算调整不设审批：额度总额内由财务调剂并留审计，超出由规则拒绝并改走新版本审批。
 
   - id: PRC-89

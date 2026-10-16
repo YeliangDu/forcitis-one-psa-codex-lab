@@ -390,8 +390,8 @@ processes:
     human_orchestration: false
     migration: "历史月度评估（老系统月度评估表 三类模板）全量迁入为已确认评估，不发事件、不触发奖金核定（ADR-0036 M7）"
     scope: "被评人员本人、其用人经理与上级、人力；评估结论按个人信息分级（ADR-0043）"
-    outcomes: [已确认]
-    scenarios: [PRC-120-S01, PRC-120-S02]   # S01 编制、提交、确认；S02 同人同期同类型已有已确认评估被拒
+    outcomes: [已确认, 已更正]
+    scenarios: [PRC-120-S01, PRC-120-S02, PRC-120-S03, PRC-120-S04]   # S01 编制、提交、确认；S02 同人同期同类型已有已确认评估被拒；S03 已确认评估发现错误，评估人追加更正记录（未涉及已核定奖金）；S04 更正涉及已核定奖金，人力转 PRC-122 重新草拟
     roles:
       - {id: SH-E1, as: performer, org_needs: {responsibility: "编制、提交并确认下属月度绩效评估，对评估结论负责", approval_right: "无（评估是专业判断）", department_hint: "员工所在组织单元", position_hint: "部门负责人、用人经理"}}
       - {id: SH-E6, as: informed, org_needs: {responsibility: "接收系统告警与知会并跟进处理", approval_right: "无", department_hint: "人力资源部（薪酬事项含财务部）", position_hint: "人力资源专员、薪酬岗"}}       # 人力：评估完成知会
@@ -426,10 +426,28 @@ processes:
         permission: 绩效评估.确认
         page: 绩效评估编辑页
         audit: true
+        decision:
+          - {when: 已确认评估发现错误, goto: 4}
+          - {when: otherwise, goto: end}
         outcome: 已确认
         cross_bc:
           - {mode: event, direction: out, bc: B-15, name: 绩效评估已确认}
-    notes: 状态流转由用户定，细则为推断，待流程梳理确认（v1）。试用期评估是 PRC-85 的步骤，不在本流程。
+      - actor: SH-E1
+        where: in_system
+        entry: 已确认评估发现错误
+        branch: 更正
+        command: 登记绩效更正
+        aggregate: AGG-106
+        desc: 已确认评估不改（INV-114），评估人追加一条更正记录引用原评估，写明更正项、更正后结论、原因与依据；不设审批：更正是评估人对自己评估的专业修正，留痕在更正记录与审计，原评估与奖金核定的复核由规则守卫（须引用原评估、原因必填）与下游人力知会兜底；更正后若该评估已被奖金核定引用，人力在 PRC-122 人力触发入口重新草拟，系统不自动改已核定奖金
+        permission: 绩效评估.更正
+        page: 绩效评估更正页
+        audit: true
+        notify: [{to: SH-E6, how: 企业微信待办}]      # 人力核对是否涉及已核定奖金
+        decision:
+          - {when: 更正的评估已被奖金核定引用, goto: PRC-122}
+          - {when: otherwise, goto: end}
+        outcome: 已更正
+    notes: 状态流转由用户定，细则为推断，待流程梳理确认（v1）。试用期评估是 PRC-85 的步骤，不在本流程。S-35：更正分支承载 AGG-106 登记绩效更正；不设人审的理由见步 4 desc，若用户认为更正须上级复核再加 approval（cost_object_owner）。
 
   - id: PRC-121
     name: 制定激励方案
@@ -710,6 +728,7 @@ processes:
       - {type: event, name: "薪酬已批准（同 BC）"}
       - {type: time, name: "每月申报期前提醒（P-39，platform.scheduling）；股息红利并入后无薪酬批准时也须有触发"}
       - {type: human, name: "人力发起本月申报批次"}
+      - {type: time, entry: 7, name: "年度缴费基数调整期（社保公积金缴费基数核定通知后；B-15 向 platform.scheduling 登记定时，按 CONVENTIONS 定时约定）"}
     stages: [VS-13.4, VS-06.1]
     owner_bc: B-15
     human_orchestration: false
@@ -717,8 +736,8 @@ processes:
     scope: "按扣缴义务人法人；申报明细含证件号码等个人信息，仅人力薪酬岗可见"
     segregation:
       - {roles: [SH-E6, SH-E6], rule: "申报登记与缴款资金支出（出纳，B-10）不得为同一人；申报数据由系统生成，人工只做外部申报与登记回执（SH-E6 内部分岗）"}
-    outcomes: [已申报缴款, 已中止, 已提醒]
-    scenarios: [PRC-125-S01, PRC-125-S02, PRC-125-S03, PRC-125-S04, PRC-125-S05, PRC-125-S06]   # S01 系统生成申报数据，线下申报，登记回执与缴款（全程）；S02 证件信息缺失或金额不一致，已中止并告警；S03 申报被退回更正；S04 股息红利并入同期个税申报；S05 个税申报期限提醒升级（非中断，结局已提醒，主线照常）；S06 所属会计期间已关账，过账路由到开放期间
+    outcomes: [已申报缴款, 已中止, 已提醒, 基数已调整]
+    scenarios: [PRC-125-S01, PRC-125-S02, PRC-125-S03, PRC-125-S04, PRC-125-S05, PRC-125-S06, PRC-125-S07]   # S01 系统生成申报数据，线下申报，登记回执与缴款（全程）；S02 证件信息缺失或金额不一致，已中止并告警；S03 申报被退回更正；S04 股息红利并入同期个税申报；S05 个税申报期限提醒升级（非中断，结局已提醒，主线照常）；S06 所属会计期间已关账，过账路由到开放期间；S07 年度缴费基数调整：登记新参保版本后向社保公积金经办平台申报并回填回执
     roles:
       - {id: SH-E6, as: performer, org_needs: {responsibility: "核对系统生成的申报数据，在外部渠道办理申报与缴款并登记回执", approval_right: "无（人工只做外部申报与登记；缴款资金支出由出纳另行执行）", department_hint: "人力资源部（薪酬、申报岗）", position_hint: "薪酬岗、申报岗"}}      # 人力
       - {id: SH-M1, as: informed, org_needs: {responsibility: "申报期限提醒的升级对象", approval_right: "无", department_hint: "公司管理层", position_hint: "分管副总"}}       # 申报期限提醒升级对象
@@ -795,7 +814,30 @@ processes:
         outcome: 已申报缴款
         cross_bc:
           - {mode: api, direction: out, bc: B-16, name: 提交过账候选}
-    notes: 申报方式用户未定（intent 2026-10-16-152603 只定“个税公司代扣代缴”），骨架先按 a) 画：系统生成申报数据，人工在外部申报端申报并回填回执（offline + 证据）。“生成申报”由人力手工改为系统自动（质检修订）；v1“申报端回执、更正申报无超时或退回分支，按非人工编排（⑥a 评审 M1）”保留。
+      - actor: SH-E6               # 人力
+        where: in_system
+        entry: 年度缴费基数调整期到达
+        branch: 年度基数调整
+        command: 调整缴费基数
+        aggregate: AGG-74
+        desc: 每年缴费年度起始前后，社保公积金缴费基数按核定通知（上年度月平均工资）调整；定时（platform.scheduling）到点生成待办提醒人力；人力核对基数核定依据后在系统登记新参保版本，追加新版本并结束旧版本区间（D17），已减员登记不调整，同一登记同一缴费年度至多一次，更正另出新版本；之后在经办平台申报
+        permission: 参保登记.调整缴费基数
+        page: 参保登记调整页
+        audit: true
+        notify: [{to: SH-E6, how: 企业微信待办}]
+        decision:
+          - {when: otherwise, goto: 8}
+      - actor: SH-E6               # 人力
+        where: offline
+        evidence: [社保费基数申报回执, 公积金基数调整回执, 办理日]
+        command: 提交申报
+        aggregate: AGG-95
+        desc: 新参保版本出后，人力在社保与公积金经办平台办理基数申报与调整（各地渠道不同〔中〕），办理后回填回执；之后每月参保明细按新版本基数生成
+        audit: true
+        decision:
+          - {when: otherwise, goto: end}
+        outcome: 基数已调整
+    notes: 申报方式用户未定（intent 2026-10-16-152603 只定“个税公司代扣代缴”），骨架先按 a) 画：系统生成申报数据，人工在外部申报端申报并回填回执（offline + 证据）。“生成申报”由人力手工改为系统自动（质检修订）；S-35：年度基数调整分支（步 7、8）承载 AGG-74 调整缴费基数，年度调整期由定时触发，办理在经办平台（offline 带回执），回填后出新参保版本；v1“申报端回执、更正申报无超时或退回分支，按非人工编排（⑥a 评审 M1）”保留。
 
 event_policies:
 

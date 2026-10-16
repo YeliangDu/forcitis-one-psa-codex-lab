@@ -17,7 +17,7 @@ state_machines:
     transitions:
       - {from: "[新建]", to: 编制中, command: 编制经营计划版本, guard: [INV-101], steps: [PRC-88#1]}
       - {from: 编制中, to: 编制中, command: 编制经营计划版本, guard: [INV-101], steps: [PRC-88#1], note: 编辑}
-      - {from: 编制中, to: 已作废, command: 作废经营计划草稿, guard: [INV-101：仅编制中，审批中须先撤回], steps: [], reverse: 作废}
+      - {from: 编制中, to: 已作废, command: 作废经营计划草稿, guard: [INV-101：仅编制中，审批中须先撤回], steps: [PRC-88#9], reverse: 作废}
       - {from: 编制中, to: 审批中, command: 〔缺〕提交经营计划审批, guard: [候选规则-目标值完整], steps: [PRC-88#2]}
       - {from: 审批中, to: 编制中, command: 〔缺〕撤回经营计划审批, guard: [平台可取消审批实例], steps: ["PRC-88#3(withdraw)"], reverse: 撤回}
       - {from: 审批中, to: 编制中, command: 〔缺〕驳回经营计划审批, guard: [], steps: [PRC-88#4], reverse: 驳回}
