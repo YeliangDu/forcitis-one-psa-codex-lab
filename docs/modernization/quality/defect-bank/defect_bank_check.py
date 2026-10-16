@@ -20,31 +20,47 @@ FIELDS = ("日期", "类别", "现象", "根因", "拦下于", "漏过于", "新
 STRICT_SOFT = False
 OVERDUE_DAYS = 7
 HEADING = re.compile(r"### ([A-Z0-9]+)-(\d{3})　(.+)")
-PATH = re.compile(r"`([^`\s]+)[^`]*`")
+PATH = re.compile(r"`([^`]+)`")
+LOOSE_HEADING = re.compile(r"#{2,4}\s*[A-Za-z0-9]+-\d+\b.*")
+BASES = ("", "docs/modernization", "docs/modernization/quality", "scripts", "scripts/ci", "scripts/hooks", "backend")
 
 
 def parse_book(name, text):
-    """-> (前缀, [条目 dict]) 或 None（不是本格式的册，如表格册）。"""
-    if not re.search(r"(?m)^### ", text):
+    """-> (前缀, [条目 dict], [格式错误]) 或 None（不是本格式的册，如表格册）。标题长得像条目却不合格式（半角空格、小写前缀、四位编号、写成 ##）算格式错误，不静默丢弃。"""
+    text = text.lstrip("\ufeff").replace("\r\n", "\n")
+    loose = [l for l in text.split("\n") if LOOSE_HEADING.fullmatch(l) and not HEADING.fullmatch(l)]
+    if not re.search(r"(?m)^### ", text) and not loose:
         return None
-    prefix = re.search(r"(?m)^前缀：`([A-Z0-9]+)`", text)
-    entries, current = [], None
+    prefixes = re.findall(r"(?m)^前缀：`([^`]*)`", text)
+    problems = [f"标题格式不对（须为「### 前缀-NNN　标题」，全角空格）：{l[:30]}" for l in loose]
+    if len(prefixes) > 1:
+        problems.append(f"前缀声明有 {len(prefixes)} 处，只能一处")
+    entries, current, last = [], None, None
     for line in text.split("\n"):
         h = HEADING.fullmatch(line)
         if h:
             current = dict(prefix=h.group(1), no=h.group(2), title=h.group(3), fields={}, order=[])
-            entries.append(current)
+            entries.append(current); last = None
         elif current is not None and (m := re.fullmatch(r"- \*\*([^*]+)\*\*：(.*)", line)):
-            current["fields"][m.group(1)] = m.group(2).strip()
-            current["order"].append(m.group(1))
-    return (prefix.group(1) if prefix else None), entries
+            current["fields"][m.group(1)] = m.group(2).strip(); current["order"].append(m.group(1)); last = m.group(1)
+        elif current is not None and last and re.fullmatch(r"\s{2,}\S.*", line):
+            current["fields"][last] += " " + line.strip()
+        elif current is not None and line.startswith("- **"):
+            problems.append(f"{current['prefix']}-{current['no']}：字段行格式不对（须为「- **名**：值」，全角冒号）：{line[:30]}")
+    return (prefixes[0] if prefixes else None), entries, problems
 
 
 def path_exists(token, root=ROOT):
-    token = token.rstrip(",;。")
+    token = re.sub(r":\d+(-\d+)?$", "", token.strip().rstrip(",;。）)"))
+    if not token or os.path.isabs(token) or ".." in token.split("/"):
+        return False
     if not ("/" in token or re.search(r"\.(py|md|sh|java|yml|yaml|json|txt|sql|html)$", token)):
         return False
-    return any(os.path.exists(os.path.join(root, base, token)) for base in ("", "docs/modernization", "docs/modernization/quality"))
+    for base in BASES:
+        candidate = os.path.join(root, base, token)
+        if os.path.isfile(candidate) and os.path.realpath(candidate).startswith(os.path.realpath(root) + os.sep):
+            return True
+    return False
 
 
 def check_entry(book, prefix, e, today, root=ROOT):
@@ -71,11 +87,19 @@ def check_entry(book, prefix, e, today, root=ROOT):
     if not m:
         errors.append(f"{tag}：状态须以 已落实 / 待落实 / 不适用 开头：{status[:20]}")
         return errors, soft, warns
-    if m.group(1) == "已落实" and not any(path_exists(t.group(1), root) for t in PATH.finditer(f["新增检查项"])):
+    if m.group(1) == "已落实" and not any(path_exists(tok, root) for t in PATH.finditer(f["新增检查项"]) for tok in t.group(1).split()):
         soft.append(f"{tag}：已落实，但“新增检查项”里没有存在的路径（脚本、守护、检查项的仓库内位置）")
     if m.group(1) == "待落实":
-        if not re.search(r"负责[:：]\s*\S+", f["新增检查项"] + status) or not re.search(r"\d{4}-\d{2}-\d{2}", f["新增检查项"] + status):
-            soft.append(f"{tag}：待落实须在“新增检查项”或状态里写“负责：<会话>”和日期")
+        text = f["新增检查项"] + " " + status
+        owner = re.search(r"负责人?[:：]\s*([^\s（(，,；;]+)", text) or re.search(r"由\s*(one-[a-z0-9-]+)\s*负责", text)
+        dates = []
+        for d in re.findall(r"\d{4}-\d{2}-\d{2}", text):
+            try:
+                dates.append(datetime.date.fromisoformat(d))
+            except ValueError:
+                pass
+        if not owner or not re.fullmatch(r"one-[a-z0-9-]+|用户", owner.group(1)) or not dates:
+            soft.append(f"{tag}：待落实须在“新增检查项”或状态里写“负责：<one-会话名>”和有效日期")
         if date and (today - date).days > OVERDUE_DAYS:
             warns.append(f"{tag}：待落实已 {(today - date).days} 天")
     if m.group(1) == "不适用" and not re.search(r"[（(].+[）)]", status):
@@ -93,7 +117,8 @@ def scan(folder=HERE, today=None, root=ROOT):
         if parsed is None:
             legacy.append(f)
             continue
-        prefix, entries = parsed
+        prefix, entries, problems = parsed
+        errors += [f"{f}：{p}" for p in problems]
         if not prefix:
             errors.append(f"{f}：缺“前缀：`XXX`”声明")
         for e in entries:
@@ -118,8 +143,10 @@ def main(argv):
     for w in warns:
         print("警告：" + w, file=sys.stderr)
     if soft:
-        kinds = {"缺类别或类别不合规": sum("类别" in x for x in soft), "已落实无可定位路径": sum("没有存在的路径" in x for x in soft), "待落实缺负责人或日期": sum("待落实须" in x for x in soft)}
-        print("报告：软检查未通过（迁移完成后转为失败）：" + "；".join(f"{k} {v} 条" for k, v in kinds.items() if v), file=sys.stderr)
+        kinds = {"缺类别或类别不合规": [x for x in soft if "类别" in x], "已落实无可定位路径": [x for x in soft if "没有存在的路径" in x], "待落实缺负责人或日期": [x for x in soft if "待落实须" in x]}
+        for k, v in kinds.items():
+            if v:
+                print(f"报告：{k} {len(v)} 条（迁移完成后转为失败）：" + "、".join(x.split("：")[0].split()[-1] for x in v[:12]) + ("…" if len(v) > 12 else ""), file=sys.stderr)
     if legacy:
         print(f"报告：表格册（待迁移）{len(legacy)} 个：{'、'.join(legacy)}", file=sys.stderr)
     for c, books in sorted(repeated.items()):
@@ -169,6 +196,18 @@ def self_test():
         r = run(("a.md", book(entry())), ("b.md", book(entry(), prefix="OTH")))
         assert r[4] == {"转述未核": {"a": ["TST-001"], "b": ["OTH-001"]}}, r[4]
         assert not run(("a.md", book(entry(类别="其他"))), ("b.md", book(entry(类别="其他"), prefix="OTH")))[4]
+        for bad_heading in ("### TST-001 半角空格", "### tst-001　小写", "### TST-0001　四位", "## TST-001　两个井号", "###TST-001　无空格"):
+            assert run(("a.md", f"# x\n\n前缀：`TST`\n\n{bad_heading}\n\n" + entry()))[0], bad_heading
+        assert run(("a.md", book(entry()).replace("- **现象**：", "- **现象**:")))[0]
+        assert run(("a.md", book(entry()) + "前缀：`OTH`\n"))[0]
+        two = book(entry()).replace("- **类别**：转述未核\n", "").replace("- **日期**：2026-10-16\n", "- **类别**：转述未核\n- **日期**：2026-10-16\n")
+        assert run(("a.md", two))[0]
+        assert run(("a.md", book(entry()).replace("- **状态**：已落实\n", "- **状态**：已落实\n- **状态**：已落实\n")))[0]
+        assert not run(("a.md", book(entry(现象="第一行\n  续行内容"))))[0]
+        for cmd, ok_ in (("`python3 scripts/precheck.sh`", True), ("`scripts/precheck.sh:12`", True), ("`precheck.sh`", True), ("`/etc/hosts`", False), ("`../../etc/passwd`", False), ("`scripts/`", False), ("`python3 -m x`", False)):
+            assert bool(run(("a.md", book(entry(新增检查项=cmd))))[1]) != ok_, cmd
+        for owner_text, ok_ in (("待补，负责：one-quality 2026-10-20", True), ("待补，由 one-quality 负责，2026-10-20", True), ("待补，负责：（待定）2026-10-20", False), ("待补，负责：one-quality 2026-99-99", False), ("待补 2026-10-20", False), ("待补，负责：TODO 2026-10-20", False), ("待补，负责：用户 2026-10-20", True)):
+            assert bool(run(("a.md", book(entry(新增检查项=owner_text, 状态="待落实", 日期="2026-10-29"))))[1]) != ok_, owner_text
         assert run(("t.md", "# x 错题本\n\n| 编号 | 现象 |\n|---|---|\n| RB-01 | y |\n"))[3] == ["t.md"]
     errors, soft, warns, legacy, repeated = scan()
     assert not errors, errors   # 真实目录现状不得失败
