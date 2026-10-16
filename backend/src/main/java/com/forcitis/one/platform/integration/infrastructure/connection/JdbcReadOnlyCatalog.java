@@ -64,6 +64,14 @@ final class JdbcReadOnlyCatalog implements ReadOnlyCatalog {
     static final String MSDB_TOKEN_PERMISSIONS = "EXEC msdb.sys.sp_executesql N'SELECT CASE WHEN p.grantee_principal_id = 0 THEN 1 ELSE 0 END, "
             + "p.class_desc COLLATE DATABASE_DEFAULT, p.state COLLATE DATABASE_DEFAULT, p.permission_name COLLATE DATABASE_DEFAULT "
             + "FROM sys.database_permissions p WHERE p.grantee_principal_id IN (SELECT principal_id FROM sys.user_token)'";
+    /** Through msdb's sp_executesql, so that sys.user_token is the login's token in msdb. */
+    static final String MSDB_TOKEN_ROLES = "EXEC msdb.sys.sp_executesql N'SELECT name COLLATE DATABASE_DEFAULT FROM sys.user_token WHERE type = ''ROLE'''";
+    /** Counts only: the schema guest and each SQL Agent role own under their own names are the platform's, the token owning anything else is not. */
+    static final String MSDB_OWNED_BY_TOKEN = "EXEC msdb.sys.sp_executesql N'SELECT (SELECT COUNT(*) FROM sys.schemas s JOIN sys.database_principals o "
+            + "ON o.principal_id = s.principal_id WHERE s.principal_id IN (SELECT principal_id FROM sys.user_token) AND NOT (s.name = o.name AND o.name IN ("
+            + MsdbPrivileges.PLATFORM_SCHEMA_OWNERS.stream().sorted().map(n -> "N''" + n + "''").collect(Collectors.joining(", ")) + "))) "
+            + "+ (SELECT COUNT(*) FROM sys.objects WHERE principal_id IN (SELECT principal_id FROM sys.user_token)) "
+            + "+ (SELECT COUNT(*) FROM sys.database_principals WHERE owning_principal_id IN (SELECT principal_id FROM sys.user_token))'";
     static final String CURRENT_DATABASE = "SELECT DB_NAME()";
 
     private final JdbcClient jdbc;
@@ -154,6 +162,16 @@ final class JdbcReadOnlyCatalog implements ReadOnlyCatalog {
     public List<TokenPermission> msdbTokenPermissions() {
         return jdbc.sql(MSDB_TOKEN_PERMISSIONS)
                 .query((rs, n) -> new TokenPermission(rs.getInt(1) == 1, rs.getString(2), rs.getString(3), rs.getString(4))).list();
+    }
+
+    @Override
+    public List<String> msdbTokenRoles() {
+        return jdbc.sql(MSDB_TOKEN_ROLES).query((rs, n) -> rs.getString(1)).list();
+    }
+
+    @Override
+    public Long msdbOwnedByToken() {
+        return jdbc.sql(MSDB_OWNED_BY_TOKEN).query((rs, n) -> rs.getLong(1)).single();
     }
 
     @Override

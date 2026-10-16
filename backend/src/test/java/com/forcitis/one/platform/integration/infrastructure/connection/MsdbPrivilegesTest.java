@@ -65,8 +65,8 @@ class MsdbPrivilegesTest {
     }
 
     @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = {"DATABASE G CONTROL", "DATABASE G ALTER ANY ROLE", "DATABASE G CREATE PROCEDURE", "DATABASE G SELECT", "DATABASE D CONNECT",
-            "DATABASE W CONNECT", "DATABASE_PRINCIPAL G IMPERSONATE", "SCHEMA G ALTER", "SCHEMA D ALTER", "OBJECT_OR_COLUMN W EXECUTE", "OBJECT_OR_COLUMN W SELECT",
+    @ValueSource(strings = {"DATABASE G CONTROL", "DATABASE G ALTER ANY ROLE", "DATABASE G CREATE PROCEDURE", "DATABASE G SELECT",
+            "DATABASE W CONNECT", "DATABASE_PRINCIPAL G IMPERSONATE", "SCHEMA G ALTER", "OBJECT_OR_COLUMN W EXECUTE", "OBJECT_OR_COLUMN W SELECT",
             "OBJECT_OR_COLUMN G UPDATE", "OBJECT_OR_COLUMN G CONTROL", "TYPE G REFERENCES"})
     @DisplayName("复审 H-1 直接授权类别清单：DATABASE 只许 G CONNECT，OBJECT_OR_COLUMN 只许 G SELECT、G EXECUTE 与任意 D，其他 class 与带转授权一律违规（有效权限全假也违规）")
     void aDirectRowOutsideTheAllowListIsAViolation(String row) {
@@ -225,7 +225,7 @@ class MsdbPrivilegesTest {
 
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {"DATABASE G TAKE OWNERSHIP", "DATABASE G ALTER ANY DATABASE DDL TRIGGER", "DATABASE G CREATE FUNCTION", "DATABASE G CREATE ASSEMBLY",
-            "DATABASE G CREATE TYPE", "DATABASE G CREATE VIEW", "DATABASE G CREATE TABLE", "DATABASE D CONNECT", "DATABASE W CONNECT",
+            "DATABASE G CREATE TYPE", "DATABASE G CREATE VIEW", "DATABASE G CREATE TABLE", "DATABASE W CONNECT",
             "DATABASE_PRINCIPAL G IMPERSONATE", "SCHEMA G ALTER", "SCHEMA G CONTROL", "OBJECT_OR_COLUMN G ALTER", "OBJECT_OR_COLUMN W EXECUTE", "TYPE G REFERENCES"})
     @DisplayName("复审 H-1′ 令牌范围：授给令牌内角色或 public 的授权套同一份类别清单，清单外即违规（六项与 IMPERSONATE 全假、本人用户直接授权在清单内也违规）")
     void aTokenRowOutsideTheAllowListIsAViolation(String row) {
@@ -387,5 +387,166 @@ class MsdbPrivilegesTest {
         assertThat(row.toString()).doesNotContain("TAKE OWNERSHIP").doesNotContain("DATABASE");
         assertThat(f().problem()).doesNotContain("ALTER").doesNotContain("SCHEMA").doesNotContain("SQLAgent").doesNotContain("public");
         assertThat(report()).doesNotContain("SCHEMA").doesNotContain("ALTER");
+    }
+
+    private FakeCatalog guestOnly() {
+        return new FakeCatalog().ownUser("rdscore");
+    }
+
+    private static void assertViolationOnly(FakeCatalog from) {
+        Unmet f = ReadOnlyBaseline.check(from).unmet().getFirst();
+        assertThat(f.confirmed()).isTrue();
+        assertThat(f.findings()).extracting(Finding::reason, Finding::count, Finding::locators)
+                .containsExactly(tuple(Reason.SYSTEM_DATABASE_OWN_USER_PRIVILEGE, 1, List.of(new DatabaseLocator("msdb"))));
+    }
+
+    private static CannotGetJdbcConnectionException refused() {
+        return new CannotGetJdbcConnectionException("msdb", new SQLException("denied", "S0001", 229));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"db_ssisadmin", "DatabaseMailUserRole", "db_owner", "forcitis_nested_role", "sqlagentuserrole", "SQLAgentUserRole ", "dc_admin"})
+    @DisplayName("复审 H-A：令牌里出现 public 与三个 SQLAgent 角色以外的任何角色即违规，按名称精确匹配（大小写、空格不同也违规），本人用户存在与只经 guest 两种进入都查")
+    void aTokenRoleBeyondTheAllowedFourIsAViolation(String role) {
+        catalog.msdbTokenRoles.add(role);
+        assertPrivilegeViolation();
+
+        FakeCatalog guest = guestOnly();
+        guest.msdbTokenRoles = new java.util.ArrayList<>(List.of("public", role));
+        assertViolationOnly(guest);
+    }
+
+    @Test
+    @DisplayName("复审 H-A 不误判：令牌只有 public 与三个 SQLAgent 角色的任意子集（含只经 guest 的 public 单独一个）通过")
+    void theAllowedTokenRolesPass() {
+        assertThat(ReadOnlyBaseline.check(catalog).passed()).isTrue();
+
+        FakeCatalog guest = guestOnly();
+        guest.msdbTokenRoles = new java.util.ArrayList<>(List.of("public"));
+        assertThat(ReadOnlyBaseline.check(guest).passed()).isTrue();
+        guest.msdbTokenRoles = new java.util.ArrayList<>(List.of("SQLAgentReaderRole", "public"));
+        assertThat(ReadOnlyBaseline.check(guest).passed()).isTrue();
+    }
+
+    @Test
+    @DisplayName("复审 H-A 判定不了：令牌角色为空列表 EMPTY_ANSWER、答 NULL NO_ANSWER、某名称缺答 NO_ANSWER（计缺答个数），不按通过")
+    void unansweredTokenRolesAreUndetermined() {
+        catalog.msdbTokenRoles.clear();
+        assertThat(f().findings()).extracting(Finding::reason, Finding::count).containsExactly(tuple(Reason.EMPTY_ANSWER, 1));
+
+        catalog.msdbTokenRoles = null;
+        assertThat(f().findings()).extracting(Finding::reason, Finding::count).containsExactly(tuple(Reason.NO_ANSWER, 1));
+
+        catalog.msdbTokenRoles = new java.util.ArrayList<>(java.util.Arrays.asList("public", null, null));
+        Unmet f = f();
+        assertThat(f.confirmed()).isFalse();
+        assertThat(f.findings()).extracting(Finding::reason, Finding::count).containsExactly(tuple(Reason.NO_ANSWER, 2));
+    }
+
+    @Test
+    @DisplayName("复审 H-A：令牌角色读不到判定不了（CATALOG_QUERY_FAILED，带错误号）；另有确认越线的角色或拥有关系时违规优先")
+    void anUnreadableTokenRoleListIsUndeterminedUnlessAViolationIsConfirmed() {
+        FakeCatalog rolesRefused = new FakeCatalog() {
+            @Override
+            public List<String> msdbTokenRoles() {
+                throw refused();
+            }
+        }.rdsOwnUsers();
+
+        Unmet f = ReadOnlyBaseline.check(rolesRefused).unmet().getFirst();
+        assertThat(f.confirmed()).isFalse();
+        assertThat(f.findings()).extracting(Finding::reason, Finding::failure).containsExactly(tuple(Reason.CATALOG_QUERY_FAILED, new SqlError(229, "S0001")));
+
+        rolesRefused.msdbOwnedByToken = 1L;
+        f = ReadOnlyBaseline.check(rolesRefused).unmet().getFirst();
+        assertThat(f.confirmed()).isTrue();
+        assertThat(f.findings()).extracting(Finding::reason)
+                .containsExactlyInAnyOrder(Reason.SYSTEM_DATABASE_OWN_USER_PRIVILEGE, Reason.CATALOG_QUERY_FAILED);
+    }
+
+    @Test
+    @DisplayName("复审 H-A：违规优先于其他项判定不了（角色越线，同时拥有关系答 NULL）")
+    void aRoleViolationOutweighsAnUnansweredOwnership() {
+        catalog.msdbTokenRoles.add("db_ssisadmin");
+        catalog.msdbOwnedByToken = null;
+
+        Unmet f = f();
+
+        assertThat(f.confirmed()).isTrue();
+        assertThat(f.findings()).extracting(Finding::reason).containsExactlyInAnyOrder(Reason.SYSTEM_DATABASE_OWN_USER_PRIVILEGE, Reason.NO_ANSWER);
+    }
+
+    @Test
+    @DisplayName("复审 H-A：problem、定位行与核实命令输出不含令牌角色名")
+    void aTokenRoleNamesNothing() {
+        catalog.msdbTokenRoles.add("role_secret_marker");
+
+        assertThat(f().problem()).doesNotContain("secret_marker");
+        assertThat(report()).doesNotContain("secret_marker");
+        assertThat(ReadOnlyBaseline.check(catalog).toString()).doesNotContain("secret_marker");
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(longs = {1, 2, 100})
+    @DisplayName("复审 M-A：令牌内主体在 msdb 拥有的 schema、对象、角色（平台默认的同名 schema 除外）个数大于 0 即违规，本人用户存在与只经 guest 两种进入都查")
+    void whatTheTokenOwnsIsAViolation(long owned) {
+        catalog.msdbOwnedByToken = owned;
+        assertPrivilegeViolation();
+
+        FakeCatalog guest = guestOnly();
+        guest.msdbOwnedByToken = owned;
+        assertViolationOnly(guest);
+    }
+
+    @Test
+    @DisplayName("复审 M-A 判定不了：拥有关系答 NULL（NO_ANSWER）、读不到（CATALOG_QUERY_FAILED，带错误号）不按通过")
+    void unansweredOwnershipIsUndetermined() {
+        catalog.msdbOwnedByToken = null;
+        Unmet f = f();
+        assertThat(f.confirmed()).isFalse();
+        assertThat(f.findings()).extracting(Finding::reason, Finding::count).containsExactly(tuple(Reason.NO_ANSWER, 1));
+
+        FakeCatalog refusedOwnership = new FakeCatalog() {
+            @Override
+            public Long msdbOwnedByToken() {
+                throw refused();
+            }
+        }.rdsOwnUsers();
+        f = ReadOnlyBaseline.check(refusedOwnership).unmet().getFirst();
+        assertThat(f.confirmed()).isFalse();
+        assertThat(f.findings()).extracting(Finding::reason, Finding::failure).containsExactly(tuple(Reason.CATALOG_QUERY_FAILED, new SqlError(229, "S0001")));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @ValueSource(strings = {"DATABASE D CONNECT", "SCHEMA D ALTER", "DATABASE_PRINCIPAL D IMPERSONATE", "DATABASE D CONTROL", "TYPE D REFERENCES"})
+    @DisplayName("复审 Low-1：DENY 在任何 class 都放行（DENY 不会提权），本人用户直接授权与令牌范围两处一致")
+    void aDenyOfAnyClassPasses(String row) {
+        direct(row);
+        token(false, row);
+        token(true, row);
+
+        Verdict verdict = ReadOnlyBaseline.check(catalog);
+
+        assertThat(verdict.passed()).as(verdict.described().toString()).isTrue();
+    }
+
+    @Test
+    @DisplayName("复审 Low-1：DENY 放行不波及转授权与 GRANT（同类 GRANT、W 仍违规）")
+    void aDenyDoesNotLetTheGrantOfTheSameClassPass() {
+        token(false, "SCHEMA G ALTER");
+
+        assertPrivilegeViolation();
+    }
+
+    @Test
+    @DisplayName("复审 Low-3：提示文字写「the login in msdb」，不再称本人用户（只经 guest 进入时也适用）")
+    void theProblemSpeaksOfTheLoginInMsdb() {
+        catalog.msdbEffectivePermissions.put("CONTROL", 1);
+        catalog.msdbEffectivePermissions.put("ALTER", null);
+
+        Unmet f = f();
+
+        assertThat(f.problem()).contains("the login in msdb holds permissions beyond").doesNotContain("own user");
+        assertThat(f.problem()).contains("effective permissions of the login in msdb cannot be determined");
     }
 }

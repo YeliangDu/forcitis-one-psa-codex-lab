@@ -57,6 +57,15 @@ interface ReadOnlyCatalog {
     /** The rows of sys.database_permissions in msdb of every principal of sys.user_token there, asked as the login inside msdb. */
     List<TokenPermission> msdbTokenPermissions();
 
+    /** The names of the roles in the login's token in msdb (sys.user_token, type ROLE), asked as the login inside msdb; a name may be null where the server withholds it. */
+    List<String> msdbTokenRoles();
+
+    /**
+     * How many schemas, objects and roles in msdb the principals of the login's token own, not counting the schema guest and each SQL Agent role own
+     * under their own names; null where the server cannot tell.
+     */
+    Long msdbOwnedByToken();
+
     /** The SQL Agent jobs the login owns, as msdb.dbo.sysjobs_view shows them to it. */
     long ownedAgentJobs();
 

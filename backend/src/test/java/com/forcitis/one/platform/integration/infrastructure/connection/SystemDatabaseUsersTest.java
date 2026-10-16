@@ -240,4 +240,29 @@ class SystemDatabaseUsersTest {
         assertThat(ReadOnlyBaseline.check(readable).unmet()).singleElement()
                 .satisfies(u -> assertThat(u.findings()).extracting(Finding::reason).containsExactly(Reason.OWNS_AGENT_JOB));
     }
+
+    @Test
+    @DisplayName("复审 Low-4：rdscore 本人用户的授权行有 null 列时不抛 NPE，该行记 NO_ANSWER（计行数）；同时另有越线行时违规优先")
+    void anRdscoreGrantRowWithANullColumnIsUndetermined() {
+        catalog.ownUserPermissions.get("rdscore").addAll(List.of(new OwnUserPermission(null, "G", "CONNECT"), new OwnUserPermission("DATABASE", null, "CONNECT"),
+                new OwnUserPermission("DATABASE", "G", null)));
+
+        Unmet f = f();
+
+        assertThat(f.confirmed()).isFalse();
+        assertThat(f.findings()).extracting(Finding::reason, Finding::count).containsExactly(tuple(Reason.NO_ANSWER, 3));
+
+        catalog.ownUserPermissions.get("rdscore").add(new OwnUserPermission("DATABASE", "G", "VIEW DEFINITION"));
+        f = f();
+
+        assertThat(f.confirmed()).isTrue();
+        assertThat(f.findings()).extracting(Finding::reason, Finding::locators)
+                .containsExactlyInAnyOrder(tuple(Reason.NO_ANSWER, List.of()), tuple(Reason.SYSTEM_DATABASE_OWN_USER, List.of(new DatabaseLocator("rdscore"))));
+    }
+
+    @Test
+    @DisplayName("复审 Low-5：OwnUserPermission 的 toString 不含 class、权限名")
+    void anOwnUserPermissionNamesNothing() {
+        assertThat(new OwnUserPermission("DATABASE", "G", "VIEW DEFINITION").toString()).doesNotContain("DATABASE").doesNotContain("VIEW DEFINITION");
+    }
 }

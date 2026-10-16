@@ -49,6 +49,10 @@ class FakeCatalog implements ReadOnlyCatalog {
             new TokenPermission(true, "DATABASE", "G", "VIEW ANY COLUMN MASTER KEY DEFINITION"),
             new TokenPermission(true, "DATABASE", "G", "VIEW ANY COLUMN ENCRYPTION KEY DEFINITION"), new TokenPermission(true, "OBJECT_OR_COLUMN", "G", "SELECT"),
             new TokenPermission(true, "OBJECT_OR_COLUMN", "G", "EXECUTE"), new TokenPermission(false, "OBJECT_OR_COLUMN", "G", "EXECUTE")));
+    /** The roles of the token in msdb as the baseline login has them: public and the three SQL Agent roles. */
+    List<String> msdbTokenRoles = new ArrayList<>(List.of("public", "SQLAgentOperatorRole", "SQLAgentReaderRole", "SQLAgentUserRole"));
+    /** What the token owns in msdb beyond the schemas of the platform. */
+    Long msdbOwnedByToken = 0L;
     long ownedAgentJobs;
     String currentDatabase = "legacyworld";
 
@@ -173,6 +177,16 @@ class FakeCatalog implements ReadOnlyCatalog {
     @Override
     public List<TokenPermission> msdbTokenPermissions() {
         return answer(() -> msdbTokenPermissions);
+    }
+
+    @Override
+    public List<String> msdbTokenRoles() {
+        return answer(() -> msdbTokenRoles);
+    }
+
+    @Override
+    public Long msdbOwnedByToken() {
+        return answer(() -> msdbOwnedByToken);
     }
 
     @Override

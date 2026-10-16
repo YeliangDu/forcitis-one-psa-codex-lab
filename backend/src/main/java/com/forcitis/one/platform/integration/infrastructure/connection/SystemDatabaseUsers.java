@@ -10,12 +10,9 @@ import java.util.TreeSet;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The login's own users in the system databases under item (f) of {@link ReadOnlyBaseline}, as taken into the baseline (user 2026-10-15
- * 「纳入基线」, narrowed by one-coordinator, checked on RDS by one-ops): RDS gives every login a user in msdb, in a subset of the three SQL Agent
- * roles, and one in rdscore without a role and with CONNECT only. Any other own user, role or rdscore grant is a violation, and so is an Agent
- * job the login owns. What the login holds in msdb, through its own user, roles, public or guest, is judged by {@link MsdbPrivileges} whenever msdb
- * is reachable. The Agent jobs are asked whenever (f) gets that far; a login that reaches msdb through guest alone may not read sysjobs_view (229),
- * so (f) cannot be determined for it (one-coordinator ruling B, CLAUDE.md rule 6: no silent skip).
+ * RDS gives every login a user in msdb in a subset of the three SQL Agent roles and one in rdscore with CONNECT only (user 2026-10-15); anything
+ * else, and an Agent job the login owns, is a violation. What it holds in msdb is {@link MsdbPrivileges}'. A login reaching msdb through guest
+ * alone may be refused sysjobs_view (229); that is not determinable, never skipped (one-coordinator ruling B, CLAUDE.md rule 6).
  */
 final class SystemDatabaseUsers {
 
@@ -34,7 +31,12 @@ final class SystemDatabaseUsers {
     }
 
     /** A row of sys.database_permissions granted to or denied the login's own user. */
-    record OwnUserPermission(String classDescription, String state, String permission) {
+    record OwnUserPermission(@Nullable String classDescription, @Nullable String state, @Nullable String permission) {
+
+        @Override
+        public String toString() {
+            return "OwnUserPermission";
+        }
     }
 
     /** What the read-only verification command lists under (f); role is null for an own user without a role. */
@@ -108,8 +110,15 @@ final class SystemDatabaseUsers {
                 found.unknown(Reason.EMPTY_ANSWER, 1, "the permissions of the login's own user in " + database.name() + " came back empty, cannot be determined");
                 return Shape.UNDETERMINED;
             }
-            return permissions.get().stream().allMatch(p -> RDS_DATABASE_PERMISSION.equals(
-                    p.classDescription().trim() + " " + p.state().trim() + " " + ReadOnlyBaseline.upper(p.permission()))) ? Shape.ALLOWED : Shape.BEYOND;
+            List<OwnUserPermission> answered = permissions.get().stream()
+                    .filter(p -> p.classDescription() != null && p.state() != null && p.permission() != null).toList();
+            boolean beyond = answered.stream().anyMatch(p -> !RDS_DATABASE_PERMISSION.equals(
+                    p.classDescription().trim() + " " + p.state().trim() + " " + ReadOnlyBaseline.upper(p.permission())));
+            long unanswered = permissions.get().size() - answered.size();
+            if (unanswered > 0) {
+                found.unknown(Reason.NO_ANSWER, (int) unanswered, "the permissions of the login's own user in " + database.name() + " cannot be determined");
+            }
+            return beyond ? Shape.BEYOND : unanswered > 0 ? Shape.UNDETERMINED : Shape.ALLOWED;
         }
         if (roles.stream().anyMatch(row -> row.role() != null && !MSDB_AGENT_ROLES.contains(row.role()))) {
             return Shape.BEYOND;
