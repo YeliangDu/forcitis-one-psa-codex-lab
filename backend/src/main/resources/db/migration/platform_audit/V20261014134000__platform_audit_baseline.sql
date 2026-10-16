@@ -26,7 +26,7 @@ CREATE TABLE platform_audit.audit_entries (
 CREATE INDEX audit_entries_actor_idx ON platform_audit.audit_entries (actor_id, created_at DESC);
 CREATE INDEX audit_entries_action_idx ON platform_audit.audit_entries (action, created_at DESC);
 CREATE INDEX audit_entries_subject_idx ON platform_audit.audit_entries (subject_kind, subject_id, created_at DESC);
-CREATE INDEX audit_entries_created_idx ON platform_audit.audit_entries (created_at DESC);
+CREATE INDEX ix_audit_entries_created_at_id ON platform_audit.audit_entries (created_at, id);
 CREATE UNIQUE INDEX uk_audit_entries_event_id ON platform_audit.audit_entries (event_id);
 COMMENT ON TABLE platform_audit.audit_entries IS '审计条目：只追加，数据库触发器禁止修改和删除（G34）；粒度：每个被审计的动作或领域事件一行';
 COMMENT ON COLUMN platform_audit.audit_entries.id IS '审计条目 ID（UUIDv7）';

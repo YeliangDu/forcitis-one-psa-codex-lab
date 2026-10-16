@@ -67,7 +67,6 @@ index organization_workforce.sync_runs_started_at_idx | ALTER INDEX organization
 index organization_workforce.sync_runs_status_idx | ALTER INDEX organization_workforce.sync_runs_status_idx RENAME TO ix_sync_runs_status
 index platform_audit.audit_entries_action_idx | ALTER INDEX platform_audit.audit_entries_action_idx RENAME TO ix_audit_entries_action
 index platform_audit.audit_entries_actor_idx | ALTER INDEX platform_audit.audit_entries_actor_idx RENAME TO ix_audit_entries_actor
-index platform_audit.audit_entries_created_idx | ALTER INDEX platform_audit.audit_entries_created_idx RENAME TO ix_audit_entries_created
 index platform_audit.audit_entries_subject_idx | ALTER INDEX platform_audit.audit_entries_subject_idx RENAME TO ix_audit_entries_subject
 index platform_identity.uq_roles_code | ALTER INDEX platform_identity.uq_roles_code RENAME TO uk_roles_code
 index platform_identity.uq_roles_name | ALTER INDEX platform_identity.uq_roles_name RENAME TO uk_roles_name
