@@ -64,4 +64,24 @@ class IdentityBaselineConstraintsIntegrationTest extends IdentityIntegrationTest
         refused(() -> insertEmergencyAdmin(105, "step-neg", 0, -1), "ck_emergency_admins_last_totp_step");
         insertEmergencyAdmin(106, "counter-ok", 5, 123456789L);
     }
+
+    private void insertNavigationItem(String parent, String name) {
+        jdbc.sql("insert into platform_identity.navigation_items (item_id, parent_item_id, name) values (uuidv7(), cast(:parent as uuid), :name)")
+                .param("parent", parent).param("name", name).update();
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-identity ID-11 a navigation item name is unique under its parent, top level included")
+    void id11NameUniqueUnderParent() {
+        String top = jdbc.sql("select item_id::text from platform_identity.navigation_items where parent_item_id is null limit 1").query(String.class).single();
+        try {
+            insertNavigationItem(null, "ID11 top");
+            insertNavigationItem(top, "ID11 child");
+            refused(() -> insertNavigationItem(null, "ID11 top"), "uk_navigation_items_parent_item_id_name");
+            refused(() -> insertNavigationItem(top, "ID11 child"), "uk_navigation_items_parent_item_id_name");
+            insertNavigationItem(null, "ID11 child");
+        } finally {
+            jdbc.sql("delete from platform_identity.navigation_items where name like 'ID11 %'").update();
+        }
+    }
 }

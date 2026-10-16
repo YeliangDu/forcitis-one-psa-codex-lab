@@ -99,7 +99,8 @@ CREATE TABLE platform_identity.navigation_items (
     is_enabled      boolean     NOT NULL DEFAULT true,
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT ck_navigation_items_parent CHECK (parent_item_id IS NULL OR parent_item_id <> item_id)
+    CONSTRAINT ck_navigation_items_parent CHECK (parent_item_id IS NULL OR parent_item_id <> item_id),
+    CONSTRAINT uk_navigation_items_parent_item_id_name UNIQUE NULLS NOT DISTINCT (parent_item_id, name)
 );
 COMMENT ON TABLE platform_identity.navigation_items IS '导航项：目录（无路由）与页面（有路由）；页面按所需权限码对持有者可见（RULE-348）。粒度：每个导航项一行';
 COMMENT ON COLUMN platform_identity.navigation_items.item_id IS '导航项 ID（UUIDv7）';

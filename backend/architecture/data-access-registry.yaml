@@ -256,6 +256,7 @@ tables:
     lineage: {source: NEW}
     writers: [platform.identity]
   platform_identity.navigation_items:
+    # uk_navigation_items_parent_item_id_name (parent_item_id, name) is the business key and also serves as the index of the parent_item_id foreign key (DATA-REPAIR-identity ID-11).
     role: CONFIG
     mutability: MIGRATION_ONLY
     retention: {policy: PERMANENT}
