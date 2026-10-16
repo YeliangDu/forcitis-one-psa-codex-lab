@@ -196,4 +196,59 @@ class SingleOperatorEmergencyMinimumIT extends SingleOperatorIdentitySupport {
         assertThat(result.err()).contains("PLATFORM_IDENTITY_EMERGENCY_BINDING_INVALID");
         assertThat(applied()).isEmpty();
     }
+
+    private static final String MARK = "relaxation=EMERGENCY_ACCOUNT_MINIMUM_ONE";
+
+    @Test
+    @DisplayName("SINGLE-OP P2-11 模式开启且可用恰为 1：每日核对恰写一条标注 platform.identity.single-operator-mode.applied，detail 恰为 relaxation=EMERGENCY_ACCOUNT_MINIMUM_ONE")
+    void p211_oneUsableWithTheModeOnWritesExactlyOneMark() {
+        emergencyAccount(7, "breakglass");
+        mode(true);
+
+        assertThat(reconcile.execute()).isEmpty();
+
+        assertThat(applied()).singleElement().satisfies(entry -> assertThat(entry.detail()).isEqualTo(MARK));
+    }
+
+    @Test
+    @DisplayName("SINGLE-OP P2-11 可用为 0、可用为 2（模式开启）与模式关闭（可用 0、1、2）：每日核对都不写该标注")
+    void p211_otherCasesWriteNoMark() {
+        mode(true);
+        reconcile.execute();
+        emergencyAccount(7, "breakglass-a");
+        emergencyAccount(8, "breakglass-b");
+        mode(true);
+        assertThat(reconcile.execute()).isEmpty();
+        assertThat(applied()).as("mode on: zero and two usable").isEmpty();
+
+        mode(false);
+        reconcile.execute();
+        assertThat(applied()).as("mode off: two usable").isEmpty();
+        jdbc.sql("delete from platform_identity.emergency_admins where user_id = :user").param("user", accountOf(8)).update();
+        reconcile.execute();
+        assertThat(applied()).as("mode off: one usable").isEmpty();
+        jdbc.sql("delete from platform_identity.emergency_admins").update();
+        reconcile.execute();
+        assertThat(applied()).as("mode off: none usable").isEmpty();
+    }
+
+    static final String ORIGINAL_WARNING = "WARNING: only 1 usable emergency account(s); at least 2, bound to different super_admin holders, are required";
+
+    @Test
+    @DisplayName("SINGLE-OP P2-13 模式关闭时登记提示的完整文本与 P2 之前逐字相同（含 bound to different super_admin holders）；模式开启时没有任何含 at least 2 的 WARNING 行")
+    void p213_theWarningTextIsKeptWithTheModeOff() {
+        createAccount(7, "super_admin");
+        createAccount(8, "super_admin");
+        knownEmployee(7, EmploymentStatus.EMPLOYED);
+        knownEmployee(8, EmploymentStatus.EMPLOYED);
+
+        Result off = run(attested("register-emergency-admin", employee(7), "--login-name=breakglass-off"));
+        Result offAgain = run(attested("register-emergency-admin", employee(7), "--login-name=breakglass-off"));
+        mode(true);
+        Result on = run(alone("register-emergency-admin", employee(8), "--login-name=breakglass-on"));
+
+        assertThat(off.out().split("\n")).contains(ORIGINAL_WARNING);
+        assertThat(offAgain.out().split("\n")).contains(ORIGINAL_WARNING);
+        assertThat(on.out().split("\n")).noneMatch(line -> line.startsWith("WARNING") && line.contains("at least 2"));
+    }
 }

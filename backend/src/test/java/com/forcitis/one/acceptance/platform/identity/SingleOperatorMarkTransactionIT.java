@@ -32,6 +32,13 @@ class SingleOperatorMarkTransactionIT extends AccountsAcceptanceSupport {
     @ServiceConnection
     static PostgreSQLContainer postgres = database();
 
+    @org.springframework.test.context.DynamicPropertySource
+    static void totpKey(org.springframework.test.context.DynamicPropertyRegistry registry) {
+        byte[] key = new byte[32];
+        new java.security.SecureRandom().nextBytes(key);
+        registry.add("forcitis.platform.identity.emergency.totp-encryption-key", () -> java.util.Base64.getEncoder().encodeToString(key));
+    }
+
     @Autowired
     SingleOperatorIdentitySupport.ModeSwitch modeSwitch;
 
@@ -111,5 +118,102 @@ class SingleOperatorMarkTransactionIT extends AccountsAcceptanceSupport {
         assertThat(accountsOfEmployee(person)).as("no account, so no grant").isEmpty();
         assertThat(entries("platform.identity.operations.account.role.granted")).noneMatch(entry -> String.valueOf(entry.get("detail")).contains(operator.toString()));
         assertThat(marks()).as("no mark either").isEqualTo(marksBefore);
+    }
+
+    private com.forcitis.one.kernel.EmployeeId operatorWithoutWitnessId(UUID operator) {
+        return com.forcitis.one.kernel.EmployeeId.parse(operator.toString());
+    }
+
+    private static void inWorkContext(Runnable action) {
+        try (com.forcitis.one.kernel.WorkContext.Scope scope = com.forcitis.one.kernel.WorkContext.enter(UUID.randomUUID(), null, "platform.identity.operations")) {
+            action.run();
+        }
+    }
+
+    private int attestedCommand(String... arguments) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        int exit = commands.run(new DefaultApplicationArguments(arguments), new PrintStream(out, true, StandardCharsets.UTF_8), new PrintStream(out, true, StandardCharsets.UTF_8));
+        assertThat(exit).as(out.toString(StandardCharsets.UTF_8)).isZero();
+        return exit;
+    }
+
+    private long rolesHeld(UUID employee, String roleCode) throws Exception {
+        try (java.sql.Connection identity = schemaConnection("platform_identity"); java.sql.PreparedStatement count = identity.prepareStatement("""
+                select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id
+                 join platform_identity.user_accounts ua on ua.user_id = ar.user_id where ua.employee_id = ? and r.code = ?""")) {
+            count.setObject(1, stored(employee));
+            count.setString(2, roleCode);
+            try (java.sql.ResultSet rs = count.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
+    }
+
+    private static final String WITNESS = "01900000-0000-7000-8000-00000000a002";
+    private static final String BOTH = "--witness=" + WITNESS;
+
+    @Autowired
+    com.forcitis.one.platform.identity.application.GrantRoleByOperations grant;
+
+    @Autowired
+    com.forcitis.one.platform.identity.application.RevokeRoleByOperations revoke;
+
+    @Autowired
+    com.forcitis.one.platform.identity.application.DisableEmergencyAdmin disable;
+
+    @Test
+    @DisplayName("SINGLE-OP P2-02 模式关闭时无见证人的 OperationAttestation 直接调用 GrantRoleByOperations.execute：被拒（IllegalStateException），无账号、无授予、无正常审计、无标注，事务整体回滚")
+    void p202_grantWithoutWitnessIsRefusedWithTheModeOff() throws Exception {
+        modeSwitch.turn(false);
+        UUID person = newPerson();
+        UUID operator = UUID.randomUUID();
+        long marksBefore = marks();
+
+        assertThatThrownBy(() -> inWorkContext(() -> grant.execute(new com.forcitis.one.platform.identity.application.OperationAttestation(operatorWithoutWitnessId(operator), null),
+                employeeIdOf(person), "business_admin"))).isInstanceOf(IllegalStateException.class);
+
+        assertThat(accountsOfEmployee(person)).isEmpty();
+        assertThat(entries("platform.identity.operations.account.role.granted")).noneMatch(entry -> String.valueOf(entry.get("detail")).contains(operator.toString()));
+        assertThat(marks()).isEqualTo(marksBefore);
+    }
+
+    @Test
+    @DisplayName("SINGLE-OP P2-02 模式关闭时无见证人直接调用 RevokeRoleByOperations.execute：被拒，角色仍被持有，无收回审计、无标注")
+    void p202_revokeWithoutWitnessIsRefusedWithTheModeOff() throws Exception {
+        modeSwitch.turn(false);
+        UUID person = newPerson();
+        attestedCommand("--operation=grant-role", "--employee-id=" + text(person), "--role-code=business_admin", "--operator=" + UUID.randomUUID(), BOTH);
+        UUID operator = UUID.randomUUID();
+        long marksBefore = marks();
+
+        assertThatThrownBy(() -> inWorkContext(() -> revoke.execute(new com.forcitis.one.platform.identity.application.OperationAttestation(operatorWithoutWitnessId(operator), null),
+                employeeIdOf(person), "business_admin"))).isInstanceOf(IllegalStateException.class);
+
+        assertThat(rolesHeld(person, "business_admin")).isEqualTo(1);
+        assertThat(entries("platform.identity.operations.account.role.revoked")).noneMatch(entry -> String.valueOf(entry.get("detail")).contains(operator.toString()));
+        assertThat(marks()).isEqualTo(marksBefore);
+    }
+
+    @Test
+    @DisplayName("SINGLE-OP P2-02 模式关闭时无见证人直接调用 DisableEmergencyAdmin.execute：被拒，应急账号仍启用（随后带见证人的 disable 仍得到「disabled」而非「already disabled」），无停用审计、无标注")
+    void p202_disableWithoutWitnessIsRefusedWithTheModeOff() throws Exception {
+        modeSwitch.turn(false);
+        UUID person = newPerson();
+        attestedCommand("--operation=grant-role", "--employee-id=" + text(person), "--role-code=super_admin", "--operator=" + UUID.randomUUID(), BOTH);
+        attestedCommand("--operation=register-emergency-admin", "--employee-id=" + text(person), "--login-name=breakglass", "--operator=" + UUID.randomUUID(), BOTH);
+        UUID operator = UUID.randomUUID();
+        long marksBefore = marks();
+
+        assertThatThrownBy(() -> inWorkContext(() -> disable.execute(new com.forcitis.one.platform.identity.application.OperationAttestation(operatorWithoutWitnessId(operator), null),
+                employeeIdOf(person)))).isInstanceOf(IllegalStateException.class);
+
+        assertThat(entries("platform.identity.operations.emergency-admin.disabled")).noneMatch(entry -> String.valueOf(entry.get("detail")).contains(operator.toString()));
+        assertThat(marks()).isEqualTo(marksBefore);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        int exit = commands.run(new DefaultApplicationArguments("--operation=disable-emergency-admin", "--employee-id=" + text(person), "--operator=" + UUID.randomUUID(), BOTH),
+                new PrintStream(out, true, StandardCharsets.UTF_8), new PrintStream(out, true, StandardCharsets.UTF_8));
+        assertThat(exit).isZero();
+        assertThat(out.toString(StandardCharsets.UTF_8)).isEqualTo("disabled\n");
     }
 }

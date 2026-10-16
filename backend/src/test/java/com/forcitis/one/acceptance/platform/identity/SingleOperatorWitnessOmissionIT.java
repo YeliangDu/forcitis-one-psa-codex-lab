@@ -295,4 +295,28 @@ class SingleOperatorWitnessOmissionIT extends SingleOperatorIdentitySupport {
         assertThat(result.err()).contains("revoke-role", "grant-role", "register-emergency-admin", "reset-emergency-admin-credentials", "disable-emergency-admin",
                 "enable-emergency-admin");
     }
+
+    @ParameterizedTest(name = "[{index}] {0}")
+    @ValueSource(strings = {"--Witness=01900000-0000-7000-8000-00000000a002", "--witnes=01900000-0000-7000-8000-00000000a002",
+            "-witness=01900000-0000-7000-8000-00000000a002", "witness=01900000-0000-7000-8000-00000000a002", "--wtiness=01900000-0000-7000-8000-00000000a002",
+            "--witness-id=01900000-0000-7000-8000-00000000a002", "stray"})
+    @DisplayName("SINGLE-OP P2-07 命令行出现未知选项或非选项参数（选项名写错、少横线、多余词）一律按用法错误拒绝：退出码 2，无变化、无审计、无标注，不被当作省略见证人")
+    void p207_aMisspeltOptionIsWrongUsageNotAnOmission(String stray) {
+        knownEmployee(33, EmploymentStatus.EMPLOYED);
+        List<Long> before = identityRows();
+
+        for (boolean modeOn : new boolean[] {true, false}) {
+            mode(modeOn);
+            Result withoutWitness = run(join(alone("grant-role", employee(33), "--role-code=business_admin"), stray));
+            Result withWitness = run(join(attested("grant-role", employee(33), "--role-code=business_admin"), stray));
+
+            assertThat(withoutWitness.exitCode()).as("mode on=%s, no witness, %s: %s", modeOn, stray, withoutWitness.err()).isIn(WRONG_USAGE, REFUSED);
+            assertThat(withWitness.exitCode()).as("mode on=%s, witness given, %s: %s", modeOn, stray, withWitness.err()).isEqualTo(WRONG_USAGE);
+        }
+        mode(true);
+        Result omitted = run(join(alone("grant-role", employee(33), "--role-code=business_admin"), stray));
+        assertThat(omitted.exitCode()).as("mode on, witness left out, %s", stray).isEqualTo(WRONG_USAGE);
+        assertNothingChanged(before);
+        assertThat(recorded()).as("nothing audited").isEmpty();
+    }
 }

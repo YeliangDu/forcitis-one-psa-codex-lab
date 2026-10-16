@@ -181,4 +181,24 @@ class SingleOperatorRelaxationRegisterTest {
             assertThat(Files.exists(Path.of("src/test/java/com/forcitis/one").resolve(file))).as(file).isTrue();
         }
     }
+
+    @Test
+    @DisplayName("SINGLE-OP P2-20 SingleOperatorMarks 的全部方法与构造器没有任何 String 参数：枚举参数以外不接受自由文本，且至少一个方法收放宽项枚举")
+    void p220_theMarkWriterTakesNoStringAtAll() throws Exception {
+        Class<?> marks = Class.forName("com.forcitis.one.platform.identity.application.SingleOperatorMarks");
+        Class<?> relaxation = relaxationType();
+        List<Executable> executables = new ArrayList<>(Arrays.<Executable>asList(marks.getDeclaredMethods()));
+        executables.addAll(Arrays.<Executable>asList(marks.getDeclaredConstructors()));
+        boolean takesTheEnum = false;
+        for (Executable executable : executables) {
+            if (executable instanceof java.lang.reflect.Method method && method.isSynthetic()) {
+                continue;
+            }
+            for (Class<?> type : executable.getParameterTypes()) {
+                assertThat(type).as("%s.%s", marks.getSimpleName(), executable.getName()).isNotEqualTo(String.class).isNotEqualTo(CharSequence.class);
+                takesTheEnum |= type == relaxation;
+            }
+        }
+        assertThat(takesTheEnum).isTrue();
+    }
 }
