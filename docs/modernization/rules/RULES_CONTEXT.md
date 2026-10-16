@@ -8,7 +8,7 @@
 
 | 项 | 状态 | 出处 |
 |---|---|---|
-| 顾问答题单（用户与调度共同答财务、审计、法务类题；用户 2026-10-16 改派，不转发） | 第 1 批已出（W-7、P-001～005）；第 2 批已开头：「A1 重议」草稿（含 CAS 14 第十一至十三、四十一条官方原文核对，已按 one-architecture 的 `Q04_OVER_TIME_PROGRESS_RESEARCH.md` 收窄）。**用户要求先做收入确认专题研究（AEC 合同计价模式：固定总价里程碑、计次等）再定 A1 与 Q-04，A1 重议先停在草稿，专题结论出来后与 one-architecture 合并成一张确认页**。第 2 批其余照写：W-2、W-3、W-4、W-5、W-6、W-8（见 Q-04 研究稿 §7）与按一次投产路线（2028-01-01、全部历史迁入、U8C 继续做法定账，intent 133348 U-2、U-4、U-6、U-8）改写的 P-003～005，写之前对照 U-1～U-18 | 私有：`~/.modernize/psa/finance/ADVISOR_BATCH_1.md`、`ADVISOR_BATCH_2.md`、`external-drafts/`；W-7、P-001、P-002 已请用户答 |
+| 顾问答题单（用户与调度共同答财务、审计、法务类题；用户 2026-10-16 改派，不转发） | 第 1 批已出（W-7、P-001～005）；第 2 批已开头：「A1 重议」草稿（含 CAS 14 第十一至十三、四十一条官方原文核对，已按 one-architecture 的 `Q04_OVER_TIME_PROGRESS_RESEARCH.md` 收窄）。**专题研究已由 one-architecture 完成（`proposals/Q04_AEC_CONTRACT_MODELS.md`，opus 评审结论「改后再出」）；合成页本轮只问事实，已发布（R-1～R-9，Artifact EQg3euo9H7JkW1wAX7iG7y，contract 0.2.80），等用户答复；答复回来由 one-architecture 转我，我写 A–D 口径下一页（含 Q-04 存储方式），并把 R-1、R-3 答案并入 A1 重议**。第 2 批其余照写：W-2、W-3、W-4、W-5、W-6、W-8（见 Q-04 研究稿 §7）与按一次投产路线（2028-01-01、全部历史迁入、U8C 继续做法定账，intent 133348 U-2、U-4、U-6、U-8）改写的 P-003～005，写之前对照 U-1～U-18 | 私有：`~/.modernize/psa/finance/ADVISOR_BATCH_1.md`、`ADVISOR_BATCH_2.md`、`external-drafts/`；W-7、P-001、P-002 已请用户答 |
 | 决策页决定链路 | PR #362（整页「检查答案」一次提交、`decide_sync.py` 对账与回写与 `--check`、不预选开关；用户答 B：业务口径页预选、框架标准选型类不预选）；opus 首轮复审加 sonnet 改后复核都已过，等调度入队；新模板首个新单子发布前须先在手机上看渲染 | `rules/decide/README.md` |
 | 填报义务规则 RULE-397～405 | #286 待入队；实现要等 B-27 请假对象与标准工时版本（AGG-108）落地 | `rules/TIMESHEET_FILING_RULES.md` |
 | 撤销、撤回一律须原因，再发起状态机 | #347 待合并（含 RULE-268、277、288 与步骤 30；#346 已合并） | intent 085331、123736 |
