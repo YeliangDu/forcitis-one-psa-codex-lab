@@ -8,8 +8,6 @@ import com.forcitis.one.fixture.doubles.CatalogueBusinessDates;
 import com.forcitis.one.fixture.domain.ClockReadingSample;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.event.EventDraft;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
@@ -83,7 +81,7 @@ class EventBusinessDateGuardTest {
             "Dated", "归属的生效日（effectiveFrom）");
 
     static EventDraft draft(String name, LocalDate businessDate) {
-        return new EventDraft("organization.workforce." + name, 1, "X", "1", 1, null, businessDate, new EventSource(SourceSystem.ONE, null),
+        return new EventDraft("organization.workforce." + name, 1, "X", TestIds.uuid(1), 1, null, businessDate,
                 List.of());
     }
 

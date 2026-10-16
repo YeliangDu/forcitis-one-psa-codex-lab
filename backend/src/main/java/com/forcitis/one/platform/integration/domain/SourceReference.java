@@ -7,8 +7,6 @@ import com.forcitis.one.kernel.StateMachine;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.AggregateReference;
 import com.forcitis.one.kernel.event.EventDraft;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.platform.integration.api.ConfirmationStatus;
 import com.forcitis.one.platform.integration.api.ExternalSource;
 import com.forcitis.one.platform.integration.api.IntegrationError;
@@ -121,7 +119,7 @@ public final class SourceReference extends AggregateRoot {
         requireNotTheRegistrant(confirmer);
         this.status = MACHINE.require(status, ConfirmationStatus.CONFIRMED, IntegrationError.PLATFORM_INTEGRATION_SOURCE_REFERENCE_ALREADY_DECIDED);
         decide(confirmer, at);
-        List<AggregateReference> related = superseded == null ? List.of() : List.of(new AggregateReference(AGGREGATE_TYPE, superseded.toString()));
+        List<AggregateReference> related = superseded == null ? List.of() : List.of(new AggregateReference(AGGREGATE_TYPE, superseded.value()));
         record((envelopes, version) -> new SourceReferenceConfirmed(envelopes.wrap(draft("SourceReferenceConfirmed", version, null, related)), system, kind, ownId));
     }
 
@@ -217,7 +215,6 @@ public final class SourceReference extends AggregateRoot {
     }
 
     private EventDraft draft(String eventName, long version, @Nullable LocalDate businessDate, List<AggregateReference> related) {
-        return new EventDraft("platform.integration." + eventName, 1, AGGREGATE_TYPE, sourceReferenceId.toString(), version, null, businessDate,
-                new EventSource(SourceSystem.ONE, null), related);
+        return new EventDraft("platform.integration." + eventName, 1, AGGREGATE_TYPE, sourceReferenceId.value(), version, null, businessDate, related);
     }
 }

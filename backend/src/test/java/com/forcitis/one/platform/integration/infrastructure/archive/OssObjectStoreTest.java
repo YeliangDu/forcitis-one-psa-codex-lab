@@ -35,7 +35,7 @@ class OssObjectStoreTest {
     private final OSS client = mock(OSS.class);
     private final ArchiveStoreProperties properties = new ArchiveStoreProperties("archive-bucket", "cn-hangzhou", "one", Path.of("/data/archive"), 2557, 10, true,
             "key-id", "key-secret", null);
-    private final OssObjectStore store = new OssObjectStore(client, properties);
+    private final OssObjectStore store = new OssObjectStore(client, properties, java.time.Clock.fixed(java.time.Instant.parse("2026-10-16T02:00:00Z"), java.time.ZoneOffset.UTC));
 
     private static final String CONTENT_MD5 = "9a0364b9e99bb480dd25e1f0284c8555";
 

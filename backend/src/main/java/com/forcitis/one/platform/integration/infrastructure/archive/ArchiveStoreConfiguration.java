@@ -22,8 +22,8 @@ class ArchiveStoreConfiguration {
     }
 
     @Bean
-    ObjectStore archiveObjectStore(OSS archiveStoreClient, ArchiveStoreProperties properties) {
-        return new OssObjectStore(archiveStoreClient, properties);
+    ObjectStore archiveObjectStore(OSS archiveStoreClient, ArchiveStoreProperties properties, Clock clock) {
+        return new OssObjectStore(archiveStoreClient, properties, clock);
     }
 
     @Bean

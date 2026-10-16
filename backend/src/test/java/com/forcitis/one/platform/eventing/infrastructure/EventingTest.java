@@ -15,8 +15,6 @@ import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelope;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import java.time.Clock;
 import java.time.Instant;
@@ -36,8 +34,7 @@ class EventingTest {
     static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
 
     static EventDraft draft() {
-        return new EventDraft("platform.eventing.Probe", 1, "Probe", "7", 3, new LegalEntityId(TestIds.uuid(1)), LocalDate.of(2026, 10, 14),
-                new EventSource(SourceSystem.ONE, null), List.of());
+        return new EventDraft("platform.eventing.Probe", 1, "Probe", TestIds.uuid(7), 3, new LegalEntityId(TestIds.uuid(1)), LocalDate.of(2026, 10, 14), List.of());
     }
 
     static StaticListableBeanFactory beans(Object... beans) {
@@ -71,7 +68,7 @@ class EventingTest {
             assertThat(Uuids.instantOf(envelope.eventId())).isEqualTo(NOW);
             assertThat(envelope.occurredAt()).isEqualTo(NOW);
             assertThat(envelope.eventType()).isEqualTo("platform.eventing.Probe");
-            assertThat(envelope.aggregateId()).isEqualTo("7");
+            assertThat(envelope.aggregateId()).isEqualTo(TestIds.uuid(7));
             assertThat(envelope.aggregateVersion()).isEqualTo(3);
             assertThat(envelope.legalEntityId()).isEqualTo(new LegalEntityId(TestIds.uuid(1)));
             assertThat(envelope.businessDate()).isEqualTo(LocalDate.of(2026, 10, 14));
@@ -87,14 +84,14 @@ class EventingTest {
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, null)) {
             EventEnvelope byUser = envelopes(signedIn(9001)).wrap(draft());
             assertThat(byUser.actorType()).isEqualTo(ActorType.USER);
-            assertThat(byUser.actorId()).isEqualTo(TestAccounts.account(9001).value().toString());
+            assertThat(byUser.actorId()).isEqualTo(TestAccounts.account(9001).value());
         }
         UUID cause = UUID.randomUUID();
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), cause, "organization.workforce.snapshot.sync")) {
             EventEnvelope byJob = envelopes(signedIn(9001)).wrap(draft());
             assertThat(byJob.actorType()).isEqualTo(ActorType.SYSTEM);
-            assertThat(byJob.actorId()).isEqualTo(SystemActors.idOf("organization.workforce.snapshot.sync").toString());
-            assertThat(SystemActors.nameOf(UUID.fromString(byJob.actorId()))).contains("organization.workforce.snapshot.sync");
+            assertThat(byJob.actorId()).isEqualTo(SystemActors.idOf("organization.workforce.snapshot.sync"));
+            assertThat(SystemActors.nameOf(byJob.actorId())).contains("organization.workforce.snapshot.sync");
             assertThat(byJob.causationId()).as("the handled event is the cause").isEqualTo(cause);
         }
     }

@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
@@ -63,7 +65,7 @@ public class GrantRoleByOperations {
         events.publish(account);
         sessions.revokeAll(person);
         cache.evict(person);
-        audit.record(new AuditEntry("platform.identity.operations.account.role.granted", null, null, "user-account:" + person.value(),
+        audit.record(new AuditEntry("platform.identity.operations.account.role.granted", null, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, person.value()),
                 attestation.describe() + " role=" + role.code().value()));
         return true;
     }

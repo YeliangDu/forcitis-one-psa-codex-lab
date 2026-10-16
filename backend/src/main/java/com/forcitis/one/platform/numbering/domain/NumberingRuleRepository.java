@@ -20,5 +20,5 @@ public interface NumberingRuleRepository {
     void save(NumberingRule rule);
 
     /** Atomically reserves the next value of the counter (row lock until the surrounding transaction ends). */
-    long reserveNext(DocumentType type, CounterScope scope, String periodKey, long startValue);
+    ReservedValue reserveNext(DocumentType type, CounterScope scope, String periodKey, long startValue);
 }

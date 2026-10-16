@@ -7,7 +7,8 @@ id | ARCHIVE | INTERNAL | the entry's number, the archive's progress marker
 action | ARCHIVE | INTERNAL | what was done
 actor_id | ARCHIVE | INTERNAL | who did it (an id, no name)
 on_behalf_of_id | ARCHIVE | INTERNAL | on whose behalf, for explicit proxy actions
-subject_key | ARCHIVE | INTERNAL | what it was done to ({type}:{id})
+subject_kind | ARCHIVE | INTERNAL | the kind of what it was done to
+subject_id | ARCHIVE | INTERNAL | the id of what it was done to, empty for the kinds that have no object
 detail | ARCHIVE | INTERNAL | one-line description without keys or personal data
 event_id | ARCHIVE | INTERNAL | the domain event that caused the entry, the idempotency key
 correlation_id | ARCHIVE | INTERNAL | ties the entry to the request or job run

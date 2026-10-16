@@ -1,10 +1,10 @@
 # B2 登记：代码里的聚合根与领域事件各自要有词条（G40、G41）；
 # 登记会话 one-glossary，2026-10-15，中文名待用户确认。
 terms:
-- id: timesheet_cancelled
-  zh: 工时单审批已撤销
-  en: TimesheetCancelled
-  snake: timesheet_cancelled
+- id: timesheet_approval_withdrawn
+  zh: 工时单已撤回审批
+  en: TimesheetApprovalWithdrawn
+  snake: timesheet_approval_withdrawn
   kind: domain_event
   bc: cost.timesheet
   scope: domain
@@ -15,11 +15,10 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 类名 Cancelled 与「撤销审批」略不符，类名是否改为 ApprovalWithdrawn 之类待确认
-- id: approval_task_overdue
+- id: approval_task_became_overdue
   zh: 任务已超时
-  en: ApprovalTaskOverdue
-  snake: approval_task_overdue
+  en: ApprovalTaskBecameOverdue
+  snake: approval_task_became_overdue
   kind: domain_event
   bc: platform.approval
   scope: domain
@@ -30,22 +29,6 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 类名 Overdue 是形容词而非过去式，是否改为 ApprovalTaskTimedOut 待确认
-- id: task_resulted
-  zh: 任务已出结果
-  en: TaskResulted
-  snake: task_resulted
-  kind: domain_event
-  bc: platform.approval
-  scope: domain
-  definition: 任务被办理（通过、驳回、退回），或系统自动通过；加签人的驳回只记意见，不结束本轮
-  standard_ref:
-  - events/approval.yaml (RULE-273, RULE-291, RULE-302)
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 类名与已确认用语冲突：第三轮 R3-AP-60 已定为「任务已办理 / TaskHandled」，该词条已在词表；代码类名应改为 TaskHandled，改名后本条作废
 - id: role_deleted
   zh: 角色已废除
   en: RoleDeleted
@@ -61,10 +44,10 @@ terms:
   forbidden: []
   status: proposed
   note: 事件目录称「角色删除」；「删除」属技术泛词，业务说法（废除/撤销）待用户确认
-- id: source_reference_registration_refused
+- id: source_reference_refused
   zh: 来源对照登记已被拒绝
-  en: SourceReferenceRegistrationRefused
-  snake: source_reference_registration_refused
+  en: SourceReferenceRefused
+  snake: source_reference_refused
   kind: domain_event
   bc: platform.integration
   scope: domain
@@ -75,4 +58,4 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 聚合 SourceReferenceRefusal；类名 RegistrationRefused 与聚合名有重复
+  note: 聚合 SourceReferenceRefusal

@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.domain.AccessProfile;
@@ -61,7 +63,7 @@ public class ReconcileEmergencyAdmins {
         }
         if (!problems.isEmpty()) {
             String detail = String.join("; ", problems);
-            audit.record(new AuditEntry("platform.identity.emergency-admin.check-failed", null, null, "emergency-admin:daily-check", detail));
+            audit.record(new AuditEntry("platform.identity.emergency-admin.check-failed", null, null, AuditSubject.without(AuditSubjectKind.OPERATION), detail));
             meters.counter("forcitis.platform.identity.emergency.check.failures").increment();
             log.error("ALERT platform.identity emergency account check failed: {}", detail);
         }

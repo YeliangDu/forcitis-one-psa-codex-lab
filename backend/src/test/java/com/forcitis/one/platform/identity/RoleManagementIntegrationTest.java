@@ -227,9 +227,9 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
     @DisplayName("RULE-345 nobody can hand out more than they hold: no escalation through role editing")
     void noEscalation() throws Exception {
         jdbc.sql("insert into platform_identity.roles (role_id, code, name) values (uuidv7(), 'role-editor', 'Role editor')").update();
-        jdbc.sql("insert into platform_identity.role_permissions (role_id, permission_code) select role_id, :p from platform_identity.roles where code = 'role-editor'")
+        jdbc.sql("insert into platform_identity.role_permissions (role_permission_id, role_id, permission_code) select uuidv7(), role_id, :p from platform_identity.roles where code = 'role-editor'")
                 .param("p", Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE).update();
-        jdbc.sql("insert into platform_identity.role_permissions (role_id, permission_code) select role_id, :p from platform_identity.roles where code = 'role-editor'")
+        jdbc.sql("insert into platform_identity.role_permissions (role_permission_id, role_id, permission_code) select uuidv7(), role_id, :p from platform_identity.roles where code = 'role-editor'")
                 .param("p", Permission.Codes.PLATFORM_APPROVAL_TASK_READ).update();
         createAccount(5, "role-editor");
         createAccount(1001);
@@ -347,7 +347,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         jdbc.sql("insert into platform_identity.roles (role_id, code, name) values (uuidv7(), 'legacy-editor', 'Legacy editor')").update();
         for (String code : new String[] {Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE,
                 Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE, Permission.Codes.PLATFORM_IDENTITY_ROLE_READ, Permission.Codes.PLATFORM_APPROVAL_TASK_READ}) {
-            jdbc.sql("insert into platform_identity.role_permissions (role_id, permission_code) select role_id, :p from platform_identity.roles where code = 'legacy-editor'")
+            jdbc.sql("insert into platform_identity.role_permissions (role_permission_id, role_id, permission_code) select uuidv7(), role_id, :p from platform_identity.roles where code = 'legacy-editor'")
                     .param("p", code).update();
         }
         createAccount(1001, "employee", "legacy-editor");

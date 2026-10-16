@@ -37,7 +37,7 @@ describe('新引擎任务详情的操作按钮', () => {
   });
 
   it('已认领的任务不显示认领，但仍可通过、驳回、退回', async () => {
-    stubServer({ 'GET sessions:current': { body: currentUserBody([READ, APPROVE]) }, 'GET approval-tasks/t-1': { body: { ...TASK, assignee: '1001', assigneeName: '张三' } } });
+    stubServer({ 'GET sessions:current': { body: currentUserBody([READ, APPROVE]) }, 'GET approval-tasks/t-1': { body: { ...TASK, assignee: '019a0000-0000-7000-8000-000000001001', assigneeName: '张三' } } });
     render();
 
     expect(await screen.findByRole('button', { name: '通过' })).toBeInTheDocument();

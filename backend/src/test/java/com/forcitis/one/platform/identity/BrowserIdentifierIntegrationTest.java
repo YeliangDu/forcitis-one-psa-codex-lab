@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.organization.workforce.api.LoginLookup;
 import com.forcitis.one.fixture.doubles.TestAccounts;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
+import com.forcitis.one.kernel.event.TestEnvelopes;
 
 /** C-M7: a ticket login skips the question "is this your account" only on a browser that holds a current identifier of that very account. */
 class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
@@ -201,7 +203,7 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
         assertThat(storedIdentifiers(1001)).isPositive();
         com.forcitis.one.kernel.EmployeeId separated = TestAccounts.employee(1001);
         var snapshot = new com.forcitis.one.organization.workforce.events.OrgSnapshotChanged(
-                com.forcitis.one.kernel.event.TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), List.of(), List.of(separated),
+                TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", TestIds.uuid(1)), List.of(), List.of(separated),
                 List.of(), java.time.LocalDate.of(2026, 10, 15));
 
         tx.executeWithoutResult(status -> events.publishEvent(snapshot));
@@ -218,7 +220,7 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
         jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").update();
         assertThat(storedIdentifiers(1001)).isPositive();
         var snapshot = new com.forcitis.one.organization.workforce.events.OrgSnapshotChanged(
-                com.forcitis.one.kernel.event.TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "2"), List.of(),
+                TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", TestIds.uuid(2)), List.of(),
                 List.of(TestAccounts.employee(1001)), List.of(), java.time.LocalDate.of(2026, 10, 15));
 
         tx.executeWithoutResult(status -> events.publishEvent(snapshot));

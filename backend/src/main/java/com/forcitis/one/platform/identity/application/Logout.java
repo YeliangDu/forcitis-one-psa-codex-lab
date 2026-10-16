@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
@@ -30,7 +32,7 @@ public class Logout {
         UserId userId = currentUser.userId();
         String method = session.loginMethod().name();
         sessions.end();
-        audit.record(new AuditEntry("platform.identity.logout", userId, null, "user-account:" + userId.value(), "logout by the user")
+        audit.record(new AuditEntry("platform.identity.logout", userId, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()), "logout by the user")
                 .withTrace(origin.address(), AuditOutcome.SUCCEEDED, method));
     }
 }

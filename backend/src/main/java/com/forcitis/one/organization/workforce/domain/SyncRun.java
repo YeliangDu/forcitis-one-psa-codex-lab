@@ -7,8 +7,6 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.AggregateReference;
 import com.forcitis.one.kernel.event.EventDraft;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.organization.workforce.api.HoldKind;
@@ -239,8 +237,7 @@ public final class SyncRun extends AggregateRoot {
 
     /** A successful run applies the snapshot in the same transaction (ApplySourceSnapshot, registered in multi-aggregate-exceptions.txt); its events say so. */
     private EventDraft draftWithSnapshot(String eventName, long version, LocalDate businessDate) {
-        return new EventDraft("organization.workforce." + eventName, 1, AGGREGATE, String.valueOf(syncRunId.value()), version, null, businessDate,
-                new EventSource(SourceSystem.ONE, null), List.of(new AggregateReference("OrgSnapshot", String.valueOf(syncRunId.value()))));
+        return new EventDraft("organization.workforce." + eventName, 1, AGGREGATE, syncRunId.value(), version, null, businessDate, List.of(new AggregateReference("OrgSnapshot", syncRunId.value())));
     }
 
     private EventDraft draft(String eventName, long version) {
@@ -248,7 +245,7 @@ public final class SyncRun extends AggregateRoot {
     }
 
     private EventDraft draft(String eventName, long version, LocalDate businessDate) {
-        return new EventDraft("organization.workforce." + eventName, 1, AGGREGATE, String.valueOf(syncRunId.value()), version, null,
-                businessDate, new EventSource(SourceSystem.ONE, null), List.of());
+        return new EventDraft("organization.workforce." + eventName, 1, AGGREGATE, syncRunId.value(), version, null,
+                businessDate, List.of());
     }
 }

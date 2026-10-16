@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.Reason;
@@ -46,7 +48,7 @@ public class ReassignTask {
     @Transactional
     public void execute(ApprovalTaskId taskId, UserId actor, EmployeeId to, String reason, OptionalLong expectedVersion) {
         if (!administrator.isAdministrator(actor)) {
-            denials.record(new AuditEntry("platform.approval.task.denied", actor, null, "approval-task:" + taskId.value(), "reassign"));
+            denials.record(new AuditEntry("platform.approval.task.denied", actor, null, AuditSubject.of(AuditSubjectKind.APPROVAL_TASK, taskId.value()), "reassign"));
             throw new AccessDeniedException("User " + actor.value() + " is not the process administrator");
         }
         TaskView first = guard.requireTask(taskId);

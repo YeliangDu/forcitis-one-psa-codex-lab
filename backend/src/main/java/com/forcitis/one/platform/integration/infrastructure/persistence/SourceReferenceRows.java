@@ -15,7 +15,7 @@ import java.util.UUID;
 
 final class SourceReferenceRows {
 
-    static final String COLUMNS = "source_reference_id, source_system, source_object_kind, source_id, own_id, confirmation_status, "
+    static final String COLUMNS = "source_reference_id, created_at, source_system, source_object_kind, source_id, own_id, confirmation_status, "
             + "effective_from_date, effective_to_date, created_by, decided_by, decided_at, version, event_count";
 
     private SourceReferenceRows() {

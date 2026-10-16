@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.DomainException;
@@ -86,7 +88,7 @@ public class HandleOrgSnapshotChange {
         sessions.revokeAll(userId);
         revokeBrowserIdentifiers.execute(userId);
         cache.evict(userId);
-        audit.record(new AuditEntry("platform.identity.session.revoked", null, null, "user-account:" + userId.value(), reason)
+        audit.record(new AuditEntry("platform.identity.session.revoked", null, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()), reason)
                 .withTrace(null, AuditOutcome.SUCCEEDED, null));
     }
 
@@ -110,7 +112,7 @@ public class HandleOrgSnapshotChange {
             }
             events.publish(account);
             held.stream().map(RoleCode::value).sorted(Comparator.naturalOrder()).forEach(code -> audit.record(new AuditEntry(
-                    "platform.identity.account.role.revoked", null, null, "user-account:" + userId.value(), "role=" + code + " cause=separation")));
+                    "platform.identity.account.role.revoked", null, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()), "role=" + code + " cause=separation")));
             return;
         }
     }

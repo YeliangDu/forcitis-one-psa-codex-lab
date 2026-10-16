@@ -33,11 +33,28 @@ class SnapshotFreshness {
         this.staleAfter = staleAfter;
     }
 
+    /** The longest gap between two triggers within a week, so a cron with uneven gaps counts by its longest; a cron that fires less than twice a week is refused. */
     static Duration cycleOf(String cron) {
         CronExpression expression = CronExpression.parse(cron);
-        LocalDateTime first = expression.next(LocalDateTime.of(2026, 1, 1, 0, 0));
-        LocalDateTime second = expression.next(first);
-        return Duration.between(first.toInstant(ZoneOffset.UTC), second.toInstant(ZoneOffset.UTC));
+        LocalDateTime windowStart = LocalDateTime.of(2026, 1, 1, 0, 0);
+        LocalDateTime windowEnd = windowStart.plusDays(7);
+        Duration longest = null;
+        LocalDateTime previous = expression.next(windowStart);
+        while (previous != null && previous.isBefore(windowEnd)) {
+            LocalDateTime next = expression.next(previous);
+            if (next == null || !next.isBefore(windowEnd)) {
+                break;
+            }
+            Duration gap = Duration.between(previous.toInstant(ZoneOffset.UTC), next.toInstant(ZoneOffset.UTC));
+            if (longest == null || gap.compareTo(longest) > 0) {
+                longest = gap;
+            }
+            previous = next;
+        }
+        if (longest == null) {
+            throw new IllegalArgumentException("forcitis.organization.workforce.sync.cron '" + cron + "' fires less than twice in a week: the sync lag cannot be judged from it");
+        }
+        return longest;
     }
 
     boolean isCurrent() {

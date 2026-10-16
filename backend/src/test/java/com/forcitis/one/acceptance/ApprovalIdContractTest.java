@@ -34,6 +34,9 @@ class ApprovalIdContractTest {
     /** The one id left as it is (RULING-P4-D6), by full name. */
     static final String D6_EXCEPTION = "InboxItemResponse.taskId";
 
+    /** RULING-P5-1 (card R-1b P5 D-13): the "type:id" text key of a sync difference, until split a. */
+    static final String P5_EXCEPTION = "SyncDiffResponse.subjectKey";
+
     static final List<String> TASK_PATHS = List.of("/api/v1/platform/approval-tasks/{taskId}", "/api/v1/platform/approval-tasks/{taskId}:claim",
             "/api/v1/platform/approval-tasks/{taskId}:decide", "/api/v1/platform/approval-tasks/{taskId}:reassign",
             "/api/v1/platform/approval-tasks/{taskId}:release", "/api/v1/platform/approval-tasks/{taskId}:return",
@@ -134,7 +137,7 @@ class ApprovalIdContractTest {
             allowed.add(literal.group(1));
         }
 
-        assertThat(allowed).as("names the guard lets through").doesNotContain("taskId", "instanceId", "documentId").allMatch(name -> name.equals(D6_EXCEPTION));
+        assertThat(allowed).as("names the guard lets through").doesNotContain("taskId", "instanceId", "documentId").allMatch(name -> name.equals(D6_EXCEPTION) || name.equals(P5_EXCEPTION));
         Matcher ownFields = Pattern.compile("OWN_ID_FIELDS\\s*=\\s*[^;]*?Set\\.of\\(([^;]*?)\\);", Pattern.DOTALL).matcher(source);
         assertThat(ownFields.find()).isTrue();
         for (String property : UUID_PROPERTIES) {

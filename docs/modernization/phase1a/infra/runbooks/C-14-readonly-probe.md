@@ -57,7 +57,8 @@ DENY INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VI
 
 ## 预检与停止（`c14_run.py` 开工前，什么都没改，失败退出码 3）
 
-- 结果文件可写；`app.jar` 的 SHA-256 与参数一致；ECS 上没有残留的 `readonly-probe.env`。
+- 结果文件是新名字且可写（已存在则拒绝，不覆盖旧结果）；运行方式：tmux 或 nohup，输出重定向到文件，不经管道（终端断开时收尾也要能做完）。
+- `app.jar` 的 SHA-256 与参数一致；ECS 上没有残留的 `readonly-probe.env`。
 - 执行账号能打开 msdb、rdscore（收尾要在这两库删探针自己的用户）；并且能看到取证账号 `one_evidence_ro` 在这两库的用户（对照），否则回读的「0」可能只是看不见，不能证明已删。
 - 回读五项（探针登录、探针库、master / msdb / rdscore 里的探针用户）开工前必须全为 0。
 - 收尾顺序：先停 ECS 上的 `one-c14-probe-*` 单元，再杀探针登录的会话，然后逐条删除探针对象，回读五项为 0；任何一步失败都继续做下一步，最后不干净则告警、退出码 2。收到 SIGTERM / SIGHUP / Ctrl-C 也走同一条收尾。
@@ -82,7 +83,7 @@ DENY INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VI
 | 12 | `GRANT TAKE OWNERSHIP ON OBJECT::dbo.probe_t TO [one_readonly_probe];` | (g) | `REVOKE TAKE OWNERSHIP ON OBJECT::dbo.probe_t FROM [one_readonly_probe];` |
 | 13 | `GRANT CONTROL ON SCHEMA::dbo TO [one_readonly_probe];` | (g)，可能另有 (a) | `REVOKE CONTROL ON SCHEMA::dbo FROM [one_readonly_probe];` |
 | 14 | `GRANT UPDATE ON OBJECT::dbo.probe_t TO public;` | (g)（public 主体） | `REVOKE UPDATE ON OBJECT::dbo.probe_t FROM public;` |
-| 15 | master：`GRANT IMPERSONATE ON LOGIN::sa TO [one_readonly_probe];` | 预期平台报 4613 → 记「平台不可构造」；若成功则预期 (d) | 成功时：`REVOKE IMPERSONATE ON LOGIN::sa FROM [one_readonly_probe];` |
+| 15 | master：`GRANT IMPERSONATE ON LOGIN::sa TO [one_readonly_probe];` | 预期平台报 4613 → 记「平台不可构造」；若成功则预期 (d)；RDS 上没有 sa 登录时报 15151，脚本按意外失败停下，此时在执行记录写明「sa 不存在，该项不可构造」，其余项另行重跑（需 one-coordinator 同意） | 成功时：`REVOKE IMPERSONATE ON LOGIN::sa FROM [one_readonly_probe];` |
 | 17 | master：`CREATE USER [one_readonly_probe] FOR LOGIN [one_readonly_probe];`（用户 2026-10-15 追加批准，在原批准范围外） | (f) | master：`DROP USER [one_readonly_probe];` |
 
 **可见性核实（第 14 项之前做，结论决定 (g) 在 RDS 上是否有效）**：在探针库 `GRANT SELECT ON OBJECT::dbo.probe_t TO public;`，以探针登录执行 `SELECT COUNT(*) FROM sys.database_permissions WHERE grantee_principal_id = 0 AND class <> 0`，再 `REVOKE SELECT ON OBJECT::dbo.probe_t FROM public;`。计数为 0（SQL Server 2016 上运行时账号看不到 public 在用户对象上的授权，而容器 2022 上能看到）→ **停下报 one-coordinator 与 one-1a-next-2**，不做第 14 项。

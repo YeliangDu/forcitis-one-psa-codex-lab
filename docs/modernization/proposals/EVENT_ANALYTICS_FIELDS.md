@@ -12,8 +12,7 @@
 |---|---|---|
 | 保留 | `eventId`、`eventType`、`schemaVersion`、`occurredAt`、`recordedAt`、`aggregateType`、`aggregateId`、`aggregateVersion`、`correlationId`、`causationId` | 见 §2 |
 | **新增** | `businessDate` | 期间归属看业务日期（客户签字日、开票日、工时日、支付日），不看系统发生时间。没有它，迟到事件和补录会落进错误的期间（K12「新签」按哪个日期判定，就是这类问题） |
-| **新增** | `source`（`system` + `documentRef`） | 区分新系统原生事件与历史迁入（ADR-0024「带来源标记」）；对账时按来源单号与老系统逐笔核对 |
-| 修改 | `actor` → `actorType` + `actorId` | 分析只需要「谁」的稳定 ID 与类型（用户 / 系统 / 迁入），不放姓名 |
+| 修改 | `actor` → `actorType` + `actorId` | 分析只需要「谁」的稳定 ID 与类型（用户 / 系统，§6 第 5 条），不放姓名 |
 | 修改 | `accountingPeriod` | 只在过账管道发布的事件上出现，由 `accounting.period` 判定后写入，**生产者不得自填**；业务单据事件只带 `businessDate` |
 | 修改 | `legalEntityId` | 从「适用时」改为：凡属于某个法人的聚合一律必填，只有平台级（身份、编号规则）可空 |
 | 移到负载 | 过账序号、冲销关系、原期间、税额拆分、维度引用、规则版本 | 这些只对会形成事实的事件有意义，放在过账事件的负载契约里（§3），不扩大所有事件的信封 |
@@ -28,16 +27,14 @@
 | `occurredAt` | 时间戳（带时区，取自 Clock） | 否 | 状态变化在系统中发生的时刻；用于事件顺序与延迟监控，**不用于期间归属** |
 | `recordedAt` | 时间戳 | 否 | 写入事件发布登记表的时刻；L1 的增量水位按 (`recordedAt`, `eventId`) 推进，迟到事件靠它被发现 |
 | `aggregateType` | 文本 | 否 | 与 `aggregateId` 组成实体键 |
-| `aggregateId` | 类型化 ID 的字符串形式 | 否 | 累积快照（合同、商机、条款）按它更新同一行 |
+| `aggregateId` | UUID（该聚合自己的主键，§6 第 10 条） | 否 | 累积快照（合同、商机、条款）按它更新同一行 |
 | `aggregateVersion` | 长整数，按聚合单调递增 | 否 | 乱序检测：L1 只接受 version = 已处理 + 1；出现空洞时挂起该聚合，等补齐或触发全量对账 |
 | `correlationId` | UUID | 否 | 同一业务操作的全部事件串起来（例如审批通过 → 收入确认 → 过账），用于血缘与「为什么这个数变了」 |
 | `causationId` | UUID | 是（根事件为空） | 直接上游事件 |
-| `actorType` | 枚举：`USER`、`SYSTEM`、`MIGRATION` | 否 | 区分人工操作、系统作业与历史迁入 |
-| `actorId` | 文本 | `SYSTEM` 时可为作业名；不可空 | 稳定 ID；**不带姓名** |
+| `actorType` | 枚举：`USER`、`SYSTEM` | 否 | 区分人工操作与系统作业；历史迁入不再单列（§6 第 5、10 条） |
+| `actorId` | UUID | 否 | 稳定 ID；`USER` 时为账号 ID，`SYSTEM` 时为系统主体目录里名字的 UUIDv5；**不带姓名** |
 | `legalEntityId` | 类型化 ID | 仅平台级事件可空 | 法人是期间、账簿、授权的共同维度；L1 和 L2 都按 (期间, 法人) 分区 |
 | `businessDate` | 日期 | 只有不形成业务事实的事件可空（例如登录、通知） | 期间归属；累积快照的里程碑日期 |
-| `source.system` | 枚举：`ONE`、`MIGRATION` | 否 | 原生还是迁入 |
-| `source.documentRef` | 文本 | `MIGRATION` 时必填 | 老系统或 A8 的原单号，用于逐笔对账（ADR-0024 第 4 条、ADR-0021 第 4 条第 5 款） |
 
 ## 3. 过账事件的负载契约（`operations.facts` 发布的事实事件）
 
@@ -84,11 +81,12 @@ architecture-critic（opus）评审 C-9、C-16 之后，ADR-0025 改为：财务
    - 一个事件涉及多个业务日期（费用的权责日与支付日、开票日与到期日、合同签订日、生效日与回签日）时，`businessDate` 取 AsyncAPI 中为该事件类型声明的那一个，其余日期放在负载中，同样在 AsyncAPI 中声明。
 3. **`aggregateVersion` 定义**：
    - 按聚合计数的事件序号，存在聚合上，每发一个事件加一；同一事务内对同一聚合发多个事件时连续编号；
-   - 定时器或流程引擎触发的事件（如 `ApprovalTaskOverdue`）取所属任务聚合的序号；
+   - 定时器或流程引擎触发的事件（如 `ApprovalTaskBecameOverdue`）取所属任务聚合的序号；
    - L1 **不做**版本连续性检查（乱序时从 OLTP 读当前态），它只用于对账与排查。
 4. **跨聚合事件**：信封的 `aggregateType` / `aggregateId` 是主聚合；同一事务中改变的其他聚合列在负载 `relatedAggregates`（类型 + ID）中。例如开票同时改写 WIP（ADR-0016 第 5 条）。
-5. **`actorType` 只取 `USER`、`SYSTEM`**：历史迁入由 `source.system = MIGRATION` 表示，不再重复。
-6. **`source.documentRef` 与 `documentNumber` 的区别**：前者是老系统或 A8 的原单号，只在迁入时有值；后者是新系统的业务编号（ADR-0010）。
+5. **`actorType` 只取 `USER`、`SYSTEM`**。
+6. **`documentNumber`** 是新系统的业务编号（ADR-0010），用于从分析下钻到单据；老系统或 A8 的原单号不进信封（见第 10 条）。
 7. **`schemaVersion`** 只用于消费方解析在途事件；重建与回填一律从 OLTP 读，不重放旧事件。
-8. **可推导约束**：信封与负载中的分析字段（`businessDate`、`source.*`、`documentNumber`、`ruleVersion`）必须同时落在 OLTP 的业务行上，保证 L1 从 OLTP 重建时不丢字段。
+8. **可推导约束**：信封与负载中的分析字段（`businessDate`、`documentNumber`、`ruleVersion`）必须同时落在 OLTP 的业务行上，保证 L1 从 OLTP 重建时不丢字段。
 9. 过账事件仍按 §3 发布，供其他消费方使用；L1 不依赖它。
+10. **信封不带来源标记**（ADR-0039 第 5 条第 1 款，R-1b P5 落地）：原生与迁入的区分、与老系统逐笔对账，由迁入专项的批次与核对表承担，不进事件信封；`aggregateId` 与 `actorId` 在信封中都是 UUID（ADR-0033 第 7 项第 1 条）。

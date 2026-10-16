@@ -95,8 +95,8 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(events.stream(LegalEntityRegistered.class)).singleElement().satisfies(e -> {
             assertThat(e.code()).isEqualTo(new LegalEntityCode("FST"));
             assertThat(e.envelope().actorType()).isEqualTo(ActorType.USER);
-            assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value().toString());
-            assertThat(e.envelope().aggregateId()).isEqualTo(e.legalEntityId().value().toString());
+            assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value());
+            assertThat(e.envelope().aggregateId()).isEqualTo(e.legalEntityId().value());
             assertThat(e.envelope().legalEntityId()).isEqualTo(e.legalEntityId());
         });
     }

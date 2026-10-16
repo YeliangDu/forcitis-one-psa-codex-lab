@@ -2,8 +2,6 @@ package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.event.EventDraft;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.organization.workforce.events.EmployeeRegistered;
 import java.util.List;
 import java.util.Objects;
@@ -20,8 +18,7 @@ public final class RegisteredEmployee extends AggregateRoot {
     public static RegisteredEmployee onFirstLogin(StaffEmployee staff, long version, long eventSequence) {
         RegisteredEmployee registered = new RegisteredEmployee(staff, version, eventSequence);
         registered.record((envelopes, sequence) -> new EmployeeRegistered(envelopes.wrap(new EventDraft(
-                "organization.workforce.EmployeeRegistered", 1, "Employee", String.valueOf(staff.employeeId().value()), sequence, null, null,
-                new EventSource(SourceSystem.ONE, null), List.of())), staff.employeeId()));
+                "organization.workforce.EmployeeRegistered", 1, "Employee", staff.employeeId().value(), sequence, null, null, List.of())), staff.employeeId()));
         return registered;
     }
 

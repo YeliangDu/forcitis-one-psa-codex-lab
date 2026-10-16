@@ -7,8 +7,6 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.EventEnvelope;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalOutcome;
@@ -38,7 +36,7 @@ class StartApprovalOnSubmissionIT extends ApprovalIntegrationSupport {
     MeterRegistry meters;
 
     DocumentSubmittedForApproval request(String key, long initiator, long manager, int round, String flag) {
-        EventEnvelope envelope = envelope("platform.approval.DocumentSubmittedForApproval", "Timesheet", key, round);
+        EventEnvelope envelope = envelope("platform.approval.DocumentSubmittedForApproval", "Timesheet", UUID.fromString(key), round);
         return new DocumentSubmittedForApproval(envelope, ProcessKey.COST_TIMESHEET_APPROVAL, document(key), TestAccounts.employee(initiator), new RoundNumber(round),
                 List.of(new RoutingFlag(flag)), List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(manager).toString()))),
                 new ContentHash("hash"), new ApprovalSummary("summary of " + key));

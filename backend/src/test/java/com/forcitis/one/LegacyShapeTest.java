@@ -33,10 +33,25 @@ class LegacyShapeTest {
             "src/test/java/com/forcitis/one/platform/integration/infrastructure/seeyon/",
             "src/main/java/com/forcitis/one/platform/integration/infrastructure/legacy/",
             "src/test/java/com/forcitis/one/platform/integration/infrastructure/legacy/",
-            "src/main/java/com/forcitis/one/platform/approval/infrastructure/legacy/",
-            "src/test/java/com/forcitis/one/platform/approval/infrastructure/legacy/",
             "src/main/java/com/forcitis/one/platform/approval/infrastructure/replay/",
             "src/test/java/com/forcitis/one/platform/approval/infrastructure/replay/");
+
+    static List<String> missingAreas(List<String> areas) {
+        return areas.stream().filter(area -> !Files.isDirectory(Path.of(area))).toList();
+    }
+
+    @Test
+    @DisplayName("every approved anti-corruption area is a directory that exists; a moved or deleted one is removed from APPROVED_AREAS")
+    void approvedAreasExist() {
+        assertThat(missingAreas(APPROVED_AREAS)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("injected: a directory that does not exist is caught by the check of approved areas, an existing one is not")
+    void aMissingAreaIsCaught() {
+        assertThat(missingAreas(List.of("src/main/java/com/forcitis/one/platform/approval/infrastructure/legacy/", "src/main/java/com/forcitis/one/platform/approval/infrastructure/replay/")))
+                .containsExactly("src/main/java/com/forcitis/one/platform/approval/infrastructure/legacy/");
+    }
 
     enum Rule {
         OLD_URL_PREFIX("old URL prefix /admin-api/ /app-api/ /rpc-api/"),
