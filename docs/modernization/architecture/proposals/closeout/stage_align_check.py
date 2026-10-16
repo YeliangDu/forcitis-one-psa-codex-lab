@@ -42,7 +42,8 @@ class Norm:
             if a in t:
                 t = t.replace(a, z)
         t = re.sub(r"[\s（()）【】\[\]，,。；;：:、/→\-—_·「」\"']", "", t)
-        return t.replace("已", "").replace("被", "")
+        stripped = t.replace("已", "").replace("被", "")
+        return stripped if len(stripped) >= 2 else t   # 「已付」去掉「已」只剩一字，退回原文整体比对
 
 
 def variants(state, norm):
@@ -498,7 +499,7 @@ def render(R, onames, pby, skel_n, total_skel):
     w("""- 流程范围：目录里 type 不为 merged 的条目；阶段归属以目录 `stages` 为准，骨架的 `stages` 不一致者列在附录。
 - 结局文本：骨架的 `outcomes`、步骤的 `outcome`、`decision[].outcome`、`emits`、单聚合的 `states` / `transitions[].to`；没有骨架的流程只用目录里的名称，且名称命中一律标近似。
 - 条件原子：`{ref: OBJ-nn, state: …}`；`ref` 为「派生」「缺对象状态」的不作门，视为满足；`pattern` 展开（与同处 all / any 取且）；all / any 按原结构求值。
-- 规范化：词表 `terms.yaml` 里的别名（长度 ≥ 3 的中文别名）先换成正式用语；再去掉空白、标点、「已」「被」；对象名取信息图 ENTERPRISE_INFO_MAP_DRAFT.md 的名称（去括号）。
+- 规范化：词表 `terms.yaml` 里的别名（长度 ≥ 3 的中文别名）先换成正式用语；再去掉空白、标点、「已」「被」（去掉后不足两字的保留原文整体比对）；对象名取信息图 ENTERPRISE_INFO_MAP_DRAFT.md 的名称（去括号）。
 - 状态说法：状态原文按 `/`、`→` 拆开，括号内外分开，整体与各部分各取一个说法（≥ 2 个字）。
 - 精确：说法与结局相等；或说法包含于结局且对象名也在结局里；或结局 = 对象名 + 说法。
 - 近似：说法包含于结局（缺对象名）；结局（≥ 3 字）包含于说法；说法的二字组被结局覆盖 ≥ 60%%；流程名称命中。拿不准的都落在近似。
