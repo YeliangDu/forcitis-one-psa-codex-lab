@@ -28,6 +28,13 @@
 
 A1 后续页已答（intent 2026-10-16-162827）：维持按时点；无法定年审，把关改为财务负责人书面确认并留档，每年复核加重大变化临时复核；GL-026 已写回，ADR-0047 修订由 one-architecture 写。Q-04 收窄稿（`Q04_STORAGE.md`，one-arch-revenue）已按我四点意见改，VS-04 用户页出稿前再给我过目；开票口径待财务核对是否符合所执行准则，不作已定规则。
 
+## 2026-10-16 晚进度
+
+- #418 已决策速查表（`build_decision_digest.py`、`decision-digest/`）已入队：新决定推翻旧决定时用 `new_intent.py --supersedes=`；疑似取代未登记 17 条待补；未分类约 123 条待增补 topics.txt；Q24（intent 2026-10-15-233152）与 Q-10（intent 2026-10-16-134134，现仅在 claude/one-architecture-adr-governance 分支，one-architecture 拆小 PR 合入 main 后）的借款冲抵矛盾行待加到 `decision-digest/relations.txt`。
+- 规则卡：RULE-406～411（`APPROVAL_CONTROL_RULES.md`，406/407/410 已按用户答复去 Review）、RULE-412～413（`OVERTIME_SEAM_RULES.md`，413 待 people 设计采纳）。N/V/S 校审级别待 one-ops 取 S 与 V 高低后写卡。
+- #419（one-quality）合入后：#362 同步 main 解冲突；FD 的 9 条「向财务核实的事实」是否改 kind: fact（需重发页面）由我定。
+- 待：补休与最低时数（RULE-413）等 one-arch-people 定稿；Q-04 收窄稿（VS-04 用户页）出稿前再给我过目。
+
 ## 工作守则要点（画像「权限边界」下有全文）
 
 - 本会话主模型 sonnet；会话上下文 2026-10-16 傍晚到 76%，按手册先更新本文件再 `/clear`；新开后从本文件接续，不凭记忆。
