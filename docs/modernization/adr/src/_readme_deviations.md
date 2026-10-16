@@ -22,6 +22,7 @@
 | E-002 | ADR-0033「取代」行 | 状态行已记 U-4 已答（拒绝并告警），「取代」行仍残留「（待用户决定 U-4）」（474de44e） | 以状态行为准 | intent `2026-10-15-020346-one-coordinator-ADR-0033-#119-与.md`（拒绝并告警）；one-coordinator 2026-10-15 | 2026-10-15 |
 | E-003 | ADR-0051 决定 3 BC 表中的中文名 | 中文名以 `docs/modernization/glossary/bcs.yaml` 为准（用户 2026-10-16 按推荐改名；模块标识不变，不改变决定含义） | 以 `bcs.yaml` 为准 | 用户 2026-10-16 按推荐改名；收件箱 `2026-10-16-one-glossary-bc-names` | 2026-10-16 |
 | E-004 | ADR-0030 第 2 节表第 1 行「审计记 `witness=none`」 | 审计 detail 的键名按 U-7b（操作人、见证人一律记员工 ID，不记姓名）与 `AuditDetailPolicy` 禁止模式，落地为 `witnessId=none`；含义（未设见证人并写标注）不变 | 读作 `witnessId=none` | one-architecture 判定落地细化（2026-10-16，one-1a-par 实现 SINGLE-OP P2 时提出）；U-7b 用户答「改写员工 ID，阅读时再解析姓名」（收件箱 `2026-10-16-one-data-u7b-attestation-names`） | 2026-10-16 |
+| E-005 | ADR-0030 第 1 节第 7 条、第 2 节表第 6 行「原因文本：标注」 | SINGLE-OP P2（#437）中「模式开启且剩余超管恰为 1」时原因文本下限放宽为 1 已生效，但暂未写标注审计：放宽判定在只读的 `AdministratorSeparationReview`（无审计上下文），补标注须改 organization.workforce，P2 卡 §3 禁止 | 决定不变，分阶段落地：枚举值 `SUPER_ADMIN_MINIMUM_ONE` 保留、P2-20 锁三值；后续小卡在 `ReleaseSyncRunHolds` 放行事务内写标注（与放行正常审计同一事务、subjectKey 同为该同步运行、detail = `SUPER_ADMIN_MINIMUM_ONE`，仅模式开启且剩余超管恰为 1 时），在下一阶段出口前或下一个单人模式放宽项上线前合入，以先到者为准；补齐前按标注查询会漏这一类放宽 | one-architecture 裁定 H1（2026-10-16，one-coordinator 转 one-1a-par 与 opus 提议） | 2026-10-16 |
 
 ### 3. 性质登记（不改正文）
 
