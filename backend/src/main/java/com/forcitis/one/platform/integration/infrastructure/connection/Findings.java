@@ -6,6 +6,7 @@ import com.forcitis.one.platform.integration.infrastructure.connection.Effective
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Finding;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Reason;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.SqlError;
+import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.OwnUserRole;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -13,7 +14,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 
-/** What one item of {@link ReadOnlyBaseline} found: confirmed and undeterminable problems with their findings, and the overridden grants of (g). */
+/** What one item of {@link ReadOnlyBaseline} found: confirmed and undeterminable problems with their findings, the own users of (f) and the overridden grants of (g). */
 final class Findings {
 
     final Set<String> confirmed = new LinkedHashSet<>();
@@ -21,6 +22,7 @@ final class Findings {
     final List<Finding> confirmedFindings = new ArrayList<>();
     final List<Finding> undeterminableFindings = new ArrayList<>();
     final Set<OverriddenGrant> overridden = new LinkedHashSet<>();
+    final Set<OwnUserRole> ownUsers = new LinkedHashSet<>();
 
     void violated(Reason reason, int count, String problem) {
         violated(reason, count, problem, List.of());

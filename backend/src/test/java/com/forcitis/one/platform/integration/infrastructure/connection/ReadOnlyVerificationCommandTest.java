@@ -104,8 +104,8 @@ class ReadOnlyVerificationCommandTest {
             + "先 violation 后 overridden 各按字典序，count 等于 violation 行数；项通过时也出 overridden 行")
     void locatorLines() {
         FakeCatalog catalog = new FakeCatalog();
-        catalog.ownUsers.put("msdb", 1L);
-        catalog.ownUsers.put("master", 1L);
+        catalog.ownUser("tempdb");
+        catalog.ownUser("master");
         catalog.reachableDatabases.add("other\"world");
         catalog.securablePermissionRows.add(new SecurablePermissionRow("OBJECT_OR_COLUMN", 42, "G", "CONTROL", true, 1L, "dbo", "t\n\u2028\u202E\\x",
                 "public", "DATABASE_ROLE"));
@@ -122,7 +122,9 @@ class ReadOnlyVerificationCommandTest {
                 "(f) VIOLATED reason=OTHER_DATABASE_REACHABLE count=1 reason=SYSTEM_DATABASE_OWN_USER count=2",
                 "  (f) violation reason=OTHER_DATABASE_REACHABLE database=\"other\\\"world\"",
                 "  (f) violation reason=SYSTEM_DATABASE_OWN_USER database=\"master\"",
-                "  (f) violation reason=SYSTEM_DATABASE_OWN_USER database=\"msdb\"",
+                "  (f) violation reason=SYSTEM_DATABASE_OWN_USER database=\"tempdb\"",
+                "  (f) ownUser database=\"master\" role=-",
+                "  (f) ownUser database=\"tempdb\" role=-",
                 "(g) VIOLATED reason=SECURABLE_GRANT_BEYOND_SELECT count=3",
                 "  (g) violation reason=SECURABLE_GRANT_BEYOND_SELECT class=OBJECT_OR_COLUMN schema=\"dbo\" object=\"t\\n\\u2028\\u202E\\\\x\" objectId=42 "
                         + "permission=\"CONTROL\" state=GRANT grantee=\"public\" granteeType=DATABASE_ROLE",
