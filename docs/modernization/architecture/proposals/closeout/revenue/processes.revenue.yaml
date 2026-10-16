@@ -21,7 +21,7 @@ processes:
   - 已转商机
   - 线索已关闭
   - 已挂起
-  - 商机已新建
+  - 商机跟进中
   - 商机已维护
   scenarios:
   - PRC-03-S01
@@ -199,7 +199,7 @@ processes:
       p: 0.07
     - when: 没有来源线索（直接邀标或委托）
       goto: end
-      outcome: 商机已新建
+      outcome: 商机跟进中
       p: 0.2
     - when: otherwise
       goto: 8
@@ -214,7 +214,7 @@ processes:
       how: 企业微信待办（仅因往来单位档案未核实被拒时：请核实档案，见 PRC-05）
     - to: SH-E5
       how: 企业微信消息（仅没有来源线索时：商机已新建，请开始跟进；报价见 PRC-07）
-    outcome: 商机已新建
+    outcome: 商机跟进中
     effort:
       typical_min: 15
       p90_min: 45
@@ -5804,7 +5804,7 @@ processes:
   - type: human
     name: 直接委托经审批的直建例外，商务起草（INV-06）
   outcomes:
-  - 已回签生效
+  - 已签署生效
   - 签约被拒
   - 已撤回
   scenarios:
@@ -6033,7 +6033,7 @@ processes:
       name: 审批已通过
     permission: 协议.回签
     page: 协议回签登记页
-    outcome: 已回签生效
+    outcome: 已签署生效
     audit: true
     metric_event: true
     legal_entity: 承担法人

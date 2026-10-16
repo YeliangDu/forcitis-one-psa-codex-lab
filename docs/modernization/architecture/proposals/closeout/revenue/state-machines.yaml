@@ -162,10 +162,10 @@ machines:
     - INV-57
 - aggregate: AGG-28
   name: 不符合项
-  note: 一台机承载两条路径：我方成果（登记→确认→让步接受或返工→关闭，PRC-34）与客户资产（登记→复核→发布→整改→闭合，PRC-44、45）
-  initial: 已登记
+  note: 一台机承载两条路径：我方成果（登记→确认→让步接受或返工→关闭，PRC-34）与客户资产（登记→复核→发布→整改→闭合，PRC-44、45）；状态名「已登记」改为「已识别」，与价值流阶段条件同名（阶段对齐）
+  initial: 已识别
   states:
-  - 已登记
+  - 已识别
   - 已确认
   - 让步已接受
   - 已复核
@@ -182,11 +182,11 @@ machines:
     terminal: true
   transitions:
   - from: null
-    to: 已登记
+    to: 已识别
     command: 登记不符合项
     guard:
     - 拟规则-VS03-02
-  - from: 已登记
+  - from: 已识别
     to: 已确认
     command: 确认不符合项
   - from: 已确认
@@ -194,7 +194,7 @@ machines:
     command: 让步接受不符合项
     guard:
     - INV-49
-  - from: 已登记
+  - from: 已识别
     to: 已关闭
     command: 关闭不符合项
     guard:
@@ -212,13 +212,13 @@ machines:
     guard:
     - INV-48
     note: 客户资产复核不成立也走关闭（待用户定 5）
-  - from: 已登记
+  - from: 已识别
     to: 已复核
     command: 复核不符合项
     guard:
     - 登记人≠复核人
-  - from: 已登记
-    to: 已登记
+  - from: 已识别
+    to: 已识别
     command: 记录重大险情已报告
     guard:
     - INV-52
@@ -1665,9 +1665,9 @@ machines:
     - 已确认的线索不可关闭
 - aggregate: AGG-10
   name: 商机
-  initial: 推进中
+  initial: 跟进中
   states:
-  - 推进中
+  - 跟进中
   - name: 已赢单
     terminal: true
   - name: 已丢单
@@ -1676,34 +1676,35 @@ machines:
     terminal: true
   transitions:
   - from: null
-    to: 推进中
+    to: 跟进中
     command: 新建商机
     guard:
     - INV-25
     - INV-26
-  - from: 推进中
-    to: 推进中
+  - from: 跟进中
+    to: 跟进中
     command: 变更商机负责人
     guard:
     - INV-26
-  - from: 推进中
-    to: 推进中
+  - from: 跟进中
+    to: 跟进中
     command: 维护商机参与团队
-  - from: 推进中
+  - from: 跟进中
     to: 已赢单
     command: 商机赢单
     guard:
     - INV-27
     - INV-33
-  - from: 推进中
+  - from: 跟进中
     to: 已丢单
     command: 登记商机丢单
-  - from: 推进中
+  - from: 跟进中
     to: 已放弃
     command: 放弃商机
     kind: reverse
     reverse_of: 新建商机
     note: 我方主动撤回商机；丢单是外部结果，不算逆向
+  note: ；状态名「推进中」改为「跟进中」，与价值流阶段条件同名（阶段对齐）
 - aggregate: AGG-11
   name: 投标
   note: 已撤销不是终态：撤回或撤销后商机若不再跟进，登记放弃投标（PRC-08 步 11→12）；商机继续跟进的，投标停在已撤销
