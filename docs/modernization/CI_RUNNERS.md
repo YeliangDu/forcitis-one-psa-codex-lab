@@ -26,10 +26,12 @@ CI（`.github/workflows/ci.yml`、`generated-docs.yml`）全部跑在本机自�
 
 用户 2026-10-16 决定（保留 strict，main push 运行只跑轻量；重步骤只在入队时跑）。`scripts/ci/heavy_gate.py` 决定后端测试、OpenAPI 检查、SQL Server 测试、前端 verify 这些重步骤是否运行：
 
-- pull request：只有带标签 `queued` 才跑。调度（合并队列脚本）在 PR 排到队首、已与 main 同步之后给它打这个标签，打标签（`labeled` 事件）启动重步骤；之后因落后 main 而更新分支（`synchronize`），标签仍在，重步骤自动再跑。没有标签的 PR 只跑轻量检查（密钥扫描、文档与发布脚本检查、迁移与验收守护、断言漂移），作业都报告并结束为绿，所以必需检查照常上报——**绿不等于重步骤已跑**，合并前须确认标签在且标签之后的运行已通过。
-- push 到 main：不跑重步骤。strict 下合入的树就是带标签的 PR 刚测过的树；每晚 `nightly-legacy-it.yml` 全量覆盖 main。
-- 除 `queued` 以外不要给 PR 打别的标签：别的标签的 `labeled` 事件也会触发一次运行（它有独立的并发组，不会取消在途的重步骤运行，但会多一次轻量运行）。
-- 发布门禁 `scripts/release/ci_passed.py` 读的是 main 的 push 运行，现在它只证明轻量检查通过；重步骤的证据是合入前带标签的 PR 运行与当晚 nightly，见交接给 one-ops 的说明。
+- pull request：只有带标签 `queued` 才跑。调度（合并队列脚本）在 PR 排到队首、已与 main 同步之后给它打这个标签（`gh pr edit <n> --add-label queued`），`labeled` 事件启动重步骤；之后因落后 main 而更新分支（`synchronize`），标签仍在，重步骤自动再跑。
+- 没有标签的 PR 只跑轻量检查（密钥扫描、文档与发布脚本检查、迁移与验收守护、断言漂移）。此时 backend、frontend 两个作业的检查名带后缀「 (light)」，与分支保护要求的检查名不同，所以必需检查停在「等待状态」，**未入队的 PR 合不了**；打上 `queued` 后检查名恢复，重步骤通过才算数。docs 类 PR 同样要打标签（重步骤因无相关改动自动跳过，几分钟即绿）。
+- 给 PR 打 `queued` 以外的标签：只跑一次轻量运行，检查名同样带「 (light)」，不会重复也不会覆盖重步骤的结果，并发组独立，不取消在途运行。
+- push 到 main：不跑重步骤。strict 下合入的树就是带标签的 PR 刚测过的树。
+- 每晚 21:03 UTC（`ci.yml` 的 `schedule`）在 main 上全量跑一遍 ci（含前端 verify 与 OpenAPI 比对，不含 SQL Server 测试，那个由 `nightly-legacy-it.yml` 在 19:23 UTC 跑）。
+- 发布门禁 `scripts/release/ci_passed.py` 读的是 main 的 push 运行，它现在只证明轻量检查通过；重步骤的证据是合入前带标签的 PR 运行与当晚的定时全量运行，是否让发布门禁另核由 one-ops 定。
 
 ## 日常操作
 

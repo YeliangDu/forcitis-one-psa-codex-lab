@@ -24,7 +24,8 @@ SHA = re.compile(r"[0-9a-f]{40}")
 
 
 def declared_job_names(workflow_text):
-    return set(re.findall(r"^    name: (.+)$", workflow_text, flags=re.MULTILINE))
+    """Job names as ci.yml declares them; a trailing ${{ ... }} expression (the ' (light)' suffix of pull request runs) is not part of the push run's name."""
+    return {re.sub(r"\$\{\{.*?\}\}", "", name).rstrip() for name in re.findall(r"^    name: (.+)$", workflow_text, flags=re.MULTILINE)}
 
 
 def on_first_parent(sha, first_parent_shas):
@@ -105,6 +106,7 @@ def self_test():
            "conclusion": "success", "run_number": 5, "run_attempt": 1}
     jobs = [{"name": n, "status": "completed", "conclusion": "success"} for n in REQUIRED_JOBS]
     assert run_problems(ci_run([run], sha), jobs) == []
+    assert declared_job_names("    name: a b${{ github.event_name == 'x' && ' (light)' || '' }}\n    name: c\n  name: no\n") == {"a b", "c"}, "a ${{ }} suffix is not part of the job name"
     assert on_first_parent(sha, {sha}) and not on_first_parent(sha, {"b" * 40}), "a commit off the first-parent chain must be refused"
     assert ci_run([dict(run, event="pull_request")], sha) is None, "pull_request runs do not count"
     assert ci_run([dict(run, head_branch="feature")], sha) is None, "runs on other branches do not count"
