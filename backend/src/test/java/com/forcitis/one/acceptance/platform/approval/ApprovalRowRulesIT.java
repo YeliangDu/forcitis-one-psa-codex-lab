@@ -142,9 +142,12 @@ class ApprovalRowRulesIT extends ApprovalP4Support {
         return new Started(document, requestIdOf(document), openTaskIds(document).getFirst());
     }
 
-    private static final String COPY_CLAIMED_RECORD = "insert into approval_task_records (record_id, approval_request_id, record_number, round_number, task_id,"
-            + " instance_id, node_key, node_name, action_kind, actor_id, decided_at, record_reason) select ?, ?, 90, round_number, task_id, instance_id,"
-            + " node_key, node_name, ?, actor_id, decided_at, ? from approval_task_records where task_id = ? and action_kind = 'CLAIMED'";
+    // 参数顺序：动作、记录标识、请求标识、原因、任务；转交与改派按 ck_approval_task_records_assignee 带处理人，其余动作不带，使 record_reason 约束可单独触发
+    private static final String COPY_CLAIMED_RECORD = "with p(action) as (select cast(? as varchar)) insert into approval_task_records (record_id, approval_request_id,"
+            + " record_number, round_number, task_id, instance_id, node_key, node_name, action_kind, actor_id, decided_at, record_reason, assignee_id)"
+            + " select ?, ?, 90, round_number, task_id, instance_id, node_key, node_name, p.action, actor_id, decided_at, ?,"
+            + " case when p.action in ('TRANSFERRED', 'REASSIGNED') then actor_id end"
+            + " from approval_task_records cross join p where task_id = ? and action_kind = 'CLAIMED'";
 
     // ---- AP-01 ------------------------------------------------------------------------------------------------
 
@@ -298,12 +301,12 @@ class ApprovalRowRulesIT extends ApprovalP4Support {
     void aHandlingRecordNeedsItsReasonInTheDatabase() throws Exception {
         Started c = claimed();
         for (String action : List.of("REJECTED", "RETURNED", "TRANSFERRED", "REASSIGNED")) {
-            assertRefused(() -> execute(COPY_CLAIMED_RECORD, UUID.randomUUID(), c.request(), action, null, c.task()), "23514", "ck_approval_task_records_record_reason");
-            assertRefused(() -> execute(COPY_CLAIMED_RECORD, UUID.randomUUID(), c.request(), action, "", c.task()), "23514", "ck_approval_task_records_record_reason");
+            assertRefused(() -> execute(COPY_CLAIMED_RECORD, action, UUID.randomUUID(), c.request(), null, c.task()), "23514", "ck_approval_task_records_record_reason");
+            assertRefused(() -> execute(COPY_CLAIMED_RECORD, action, UUID.randomUUID(), c.request(), "", c.task()), "23514", "ck_approval_task_records_record_reason");
         }
-        assertRefused(() -> execute(COPY_CLAIMED_RECORD, UUID.randomUUID(), c.request(), "RELEASED", "", c.task()), "23514", "ck_approval_task_records_record_reason");
+        assertRefused(() -> execute(COPY_CLAIMED_RECORD, "RELEASED", UUID.randomUUID(), c.request(), "", c.task()), "23514", "ck_approval_task_records_record_reason");
 
-        execute(COPY_CLAIMED_RECORD, UUID.randomUUID(), c.request(), "APPROVED", null, c.task());
+        execute(COPY_CLAIMED_RECORD, "APPROVED", UUID.randomUUID(), c.request(), null, c.task());
         assertThat(rows("select 1 from approval_task_records where task_id = ? and action_kind = 'APPROVED'", c.task())).hasSize(1);
     }
 
