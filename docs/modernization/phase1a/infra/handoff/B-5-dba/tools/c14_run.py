@@ -5,8 +5,8 @@
 只读核实命令（--connection=probe），有效权限计数也以探针登录在新 ECS 上取。探针账号经 RDS 云接口（aliyun rds CreateAccount / DeleteAccount）创建与删除：
 RDS 托管的删除会清掉它在 msdb 里自动建的用户，T-SQL 的 CREATE / DROP LOGIN 则不会，且执行账号在 msdb、rdscore 无权删用户（2026-10-16 实测）。
 口令在本进程内存里运行时生成，只经云接口命令行（本机，创建命令执行期间 ps 可见）和以新 ECS 临时公钥加密的密文，写入 /etc/forcitis-one/readonly-probe.env（root 0600），不落盘、不打印。
-rdscore 里同名用户是平台对任何账号的固有残留（删账号也不清，同名重建沿用同一用户号，不累积）：登记为永久已知残留，回读不要求它为 0。
-回读用 USER_ID（不受元数据可见性限制）：探针登录、探针库、master / msdb 用户为 0，rdscore 用户记录但不判。
+rdscore 里同名用户是平台对任何账号的固有残留（删账号也不清，同名重建沿用同一用户号，不累积）：登记为永久已知残留，回读不要求它为 0，但须为 0 或与预检、对照时记下的用户号相同（还没记下时只记录）。
+回读用 USER_ID（不受元数据可见性限制）：探针登录、探针库、master / msdb 用户为 0，rdscore 用户须为 0 或与基线同号。
 前提：新 ECS 的 /root/one-ops-c14/app.jar 是已验签发布包里的 jar，其 SHA-256 作为参数传入。
 每项：对照计数 → 偏离 → 跑校验 → 回退 → 计数复原，并以执行账号回读探针的授权指纹。任何意外即回退当前项后收尾；收尾逐条执行、逐条记录，
 回读不干净或服务器上有残留即告警并以非零退出。记录只写标记、错误号与计数，不写任何输出原文。
@@ -98,7 +98,7 @@ READBACK = (f"SELECT (SELECT COUNT(*) FROM sys.server_principals WHERE name = N'
             f"       (SELECT COUNT(*) FROM sys.databases WHERE name LIKE N'one[_]readonly[_]probe[_]db%') AS probe_databases,\n"
             f"       ISNULL(USER_ID(N'{LOGIN}'), 0) AS master_user;")
 USER_ID_QUERY = f"SELECT ISNULL(USER_ID(N'{LOGIN}'), 0) AS user_id;"
-CLEAN_READBACK = (0, 0, 0, 0)  # logins, probe databases, master user, msdb user; the rdscore user is the platform's known residue and is only recorded
+CLEAN_READBACK = (0, 0, 0, 0)  # logins, probe databases, master user, msdb user; the rdscore user is the platform's known residue: it must be 0 or the baseline number
 INSTANCE = 'rm-bp1690ep53t9778dp'
 # The execution account's view of everything an item may change, as one row of numbers; compared with the control after every revert
 FINGERPRINT = (f"SELECT (SELECT COUNT(*) FROM sys.database_permissions WHERE grantee_principal_id = USER_ID(N'{LOGIN}')) AS user_permissions,\n"
@@ -437,7 +437,7 @@ def cleanup():
             time.sleep(10)
             rows = readback('readback again')
         record(step='readback', logins_databases_master_msdb_rdscore_users=rows)
-        clean = clean and rows is not None and rows[:4] == CLEAN_READBACK and rows[4] in (0, *rdscore_user)
+        clean = clean and rows is not None and rows[:4] == CLEAN_READBACK and (not rdscore_user or rows[4] in (0, *rdscore_user))
     except BaseException as failure:  # noqa: BLE001
         record(step='readback', exception=type(failure).__name__)
         clean = False
