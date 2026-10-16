@@ -19,6 +19,9 @@ public record AuditEntry(String action, UserId actorId, UserId onBehalfOfId, Aud
     public AuditEntry {
         Objects.requireNonNull(action, "action");
         Objects.requireNonNull(subject, "subject");
+        if (loginMethod != null && outcome == null) {
+            throw new IllegalArgumentException("an audit entry with a login method carries an outcome (ck_audit_entries_login_method_outcome): " + action);
+        }
         for (String text : new String[] {detail, changeReason, beforeText, afterText}) {
             if (text != null && (text.length() > MAX_TEXT || SECRET.matcher(text).find())) {
                 throw new IllegalArgumentException("an audit text is at most " + MAX_TEXT + " characters and carries no secret");

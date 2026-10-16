@@ -25,6 +25,7 @@ CREATE TABLE platform_audit.audit_entries (
     CONSTRAINT pk_audit_entries PRIMARY KEY (id, created_at),
     CONSTRAINT uk_audit_entries_event_id_created_at UNIQUE (event_id, created_at),
     CONSTRAINT ck_audit_entries_subject_id CHECK ((subject_id IS NULL) = (subject_kind IN ('REQUEST', 'OPERATION', 'LOGIN_ATTEMPT'))),
+    CONSTRAINT ck_audit_entries_login_method_outcome CHECK (login_method_kind IS NULL OR outcome_kind IS NOT NULL),
     CONSTRAINT ck_audit_entries_action_length CHECK (char_length(action) BETWEEN 1 AND 2000),
     CONSTRAINT ck_audit_entries_detail_length CHECK (char_length(detail) BETWEEN 1 AND 2000),
     CONSTRAINT ck_audit_entries_change_reason_length CHECK (char_length(change_reason) BETWEEN 1 AND 2000),
@@ -52,9 +53,9 @@ COMMENT ON COLUMN platform_audit.audit_entries.correlation_id IS '关联号：�
 COMMENT ON COLUMN platform_audit.audit_entries.change_reason IS '变更说明：操作人填写的原因（放行、强制下线等必填原因的动作）';
 COMMENT ON COLUMN platform_audit.audit_entries.before_text IS '变更前的值：只写业务值，不含密钥和个人敏感信息（L3 / L4 不进审计）';
 COMMENT ON COLUMN platform_audit.audit_entries.after_text IS '变更后的值：规则同变更前';
-COMMENT ON COLUMN platform_audit.audit_entries.source_address IS '来源地址：登录与会话类条目的客户端地址（只取受信代理解析后的地址）；其他条目为空';
-COMMENT ON COLUMN platform_audit.audit_entries.outcome_kind IS '结果：SUCCEEDED / FAILED；登录与会话类条目才有，其他条目为空';
-COMMENT ON COLUMN platform_audit.audit_entries.login_method_kind IS '登录方式：企业微信（工作台、小程序、扫码）、单点登录、签名票据、应急登录；其他条目为空';
+COMMENT ON COLUMN platform_audit.audit_entries.source_address IS '来源地址：请求有来源时的客户端地址（只取受信代理解析后的地址）；系统动作与取不到可信地址时为空';
+COMMENT ON COLUMN platform_audit.audit_entries.outcome_kind IS '结果：SUCCEEDED / FAILED；记录动作成败的条目才有（登录与会话、拒绝访问、特权请求、归属更正被拒等），其他条目为空';
+COMMENT ON COLUMN platform_audit.audit_entries.login_method_kind IS '登录方式：企业微信（工作台、小程序、扫码）、单点登录、签名票据、应急登录；当次会话的登录方式已知的条目才有，有登录方式必有结果';
 
 CREATE FUNCTION platform_audit.reject_audit_entry_change() RETURNS trigger
     LANGUAGE plpgsql AS $$
@@ -87,10 +88,13 @@ CREATE TABLE platform_audit.audit_archive_batches (
     created_at     timestamptz NOT NULL DEFAULT now(),
     updated_at     timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_audit_archive_batches PRIMARY KEY (id),
+    CONSTRAINT uk_audit_archive_batches_first_entry_id UNIQUE (first_entry_id),
     CONSTRAINT uk_audit_archive_batches_last_entry_id UNIQUE (last_entry_id),
+    CONSTRAINT uk_audit_archive_batches_object_key UNIQUE (object_key),
+    CONSTRAINT ck_audit_archive_batches_sha256_hash CHECK (sha256_hash ~ '^[0-9a-f]{64}$'),
     CONSTRAINT ck_audit_archive_batches_range CHECK ((first_entry_created_at, first_entry_id) <= (last_entry_created_at, last_entry_id) AND entry_count > 0)
 );
-COMMENT ON TABLE platform_audit.audit_archive_batches IS '审计归档批次：已写入归档库的审计条目范围，只追加；粒度：每个归档批次一行';
+COMMENT ON TABLE platform_audit.audit_archive_batches IS '审计归档批次：已写入归档库的审计条目范围，只追加；粒度：每个归档批次一行；批次区间不重叠、无缺口由归档作业按位置推进保证、由对账核验（只比在线月份），库内不设排他约束';
 COMMENT ON COLUMN platform_audit.audit_archive_batches.id IS '归档批次 ID（UUIDv7）';
 COMMENT ON COLUMN platform_audit.audit_archive_batches.first_entry_id IS '本批第一条审计条目的 ID（按创建时刻、ID 排序的第一条）';
 COMMENT ON COLUMN platform_audit.audit_archive_batches.first_entry_created_at IS '本批第一条审计条目的创建时间';
