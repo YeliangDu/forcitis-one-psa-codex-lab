@@ -23,21 +23,20 @@ events:
   subscribers: [仅分析]
 - name: 应付已确认
   publisher: AGG-52
-  emitted_by: 确认应付、提交应付利润、提交应付薪酬
+  emitted_by: 确认应付、提交应付利润、提交应付薪酬、登记其他应付
   subscribers: [B-10 PRC-75]
 - name: 应付已核销
   publisher: AGG-52
   emitted_by: 核销应付
-  subscribers: [B-10 PRC-112, B-10 PRC-132]
+  subscribers: [B-10 PRC-132]
 - name: 应付已结清
   publisher: AGG-52
   emitted_by: 核销应付
-  subscribers: [B-12 PRC-133, B-15 PRC-127]
+  subscribers: [B-12 PRC-133, B-15 PRC-127, B-10 PRC-163（来源为利润分配的应付，单一触发，S-34 ③）]
 - name: 付款已成功
   publisher: AGG-53
   emitted_by: 登记银行结果
-  subscribers: [B-10 PRC-131, B-03 PRC-08]
-  mismatch: 骨架多出订阅方 B-03，聚合稿未列
+  subscribers: [B-10 PRC-131]
 - name: 付款已失败
   publisher: AGG-53
   emitted_by: 登记付款失败
@@ -60,7 +59,7 @@ events:
   subscribers: [仅分析]
 - name: 利润分配已支付
   publisher: AGG-109
-  emitted_by: 登记利润分配支付
+  emitted_by: 登记利润分配支付（PRC-163）
   subscribers: [B-15 PRC-113]
 - name: 分包协议已生效
   publisher: AGG-55
@@ -93,17 +92,15 @@ events:
 - name: BusinessFactAttributed
   publisher: AGG-77
   emitted_by: 过账
-  subscribers: [B-07 PRC-15、PRC-25、PRC-35、PRC-55, B-20 PRC-93, B-15 PRC-134, B-17（骨架无订阅流程）]
-  mismatch: 骨架 cross_bc 向 B-17 发出但无订阅流程
+  subscribers: [B-07 PRC-15、PRC-25、PRC-35、PRC-55, B-20 PRC-93, B-15 PRC-134]
 - name: BusinessFactRestated
   publisher: AGG-77
   emitted_by: 冲销并重过账
-  subscribers: [B-20 PRC-93, B-07（骨架无订阅流程）, B-17（骨架无订阅流程）]
-  mismatch: 骨架 cross_bc 向 B-07、B-17 发出但无订阅流程
+  subscribers: [B-20 PRC-93, B-07 PRC-164]
 - name: AccountingPeriodClosed
   publisher: AGG-81
   emitted_by: 确认关账、确认年末关账
-  subscribers: [reporting PRC-90, B-20 PRC-103, B-21 PRC-106]
+  subscribers: [reporting PRC-90, B-20 PRC-103]
 - name: 第 13 期启用登记已生效
   publisher: AGG-96
   emitted_by: 登记第 13 期启用
@@ -191,7 +188,59 @@ events:
   publisher: AGG-91
   emitted_by: 处置资产
   subscribers: [仅分析]
-- name: 外部法定账记账回执已到达
+- name: 口径版本已生效
+  publisher: AGG-78
+  emitted_by: 发布口径版本
+  subscribers: [仅分析]
+- name: 成本核算参数版本已生效
+  publisher: AGG-123
+  emitted_by: 发布成本核算参数版本
+  subscribers: [仅分析（AGG-122、43 同 BC 按 ID 与日期读取，不订阅）]
+- name: 资产类别与折旧政策版本已生效
+  publisher: AGG-124
+  emitted_by: 发布资产类别与折旧政策版本
+  subscribers: [仅分析（AGG-91 同 BC 按 ID 与日期读取，不订阅）]
+- name: 期初余额已生效
+  publisher: AGG-125
+  emitted_by: 签字确认期初余额
+  subscribers: [B-20（余额起点，同 BC；S-31 SQ-21，协调会话追加 ③）]
+- name: 勾稽差异案已关闭
+  publisher: AGG-126
+  emitted_by: 解释勾稽差异案、修正勾稽差异案、豁免勾稽差异案
+  subscribers: [仅分析（关账前置检查经 api 读状态）]
+- name: 期末结转模板版本已生效
+  publisher: AGG-128
+  emitted_by: 发布期末结转模板版本
+  subscribers: [仅分析]
+- name: 现金流量项目表版本已生效
+  publisher: AGG-129
+  emitted_by: 发布现金流量项目表版本
+  subscribers: [仅分析]
+- name: 费用事前申请已批准
+  publisher: AGG-130
+  emitted_by: 批准费用事前申请
+  subscribers: [仅分析（报销引用事前申请，同 BC 读取）]
+- name: 差旅月账单已核对
+  publisher: AGG-131
+  emitted_by: 核对差旅月账单
+  subscribers: [仅分析]
+- name: 出差申请已批准
+  publisher: AGG-132
+  emitted_by: 批准出差申请
+  subscribers: [仅分析（报销与差旅账单同 BC 读取）]
+- name: 出差补贴标准版本已生效
+  publisher: AGG-133
+  emitted_by: 发布出差补贴标准版本
+  subscribers: [仅分析（AGG-59 同 BC 读取，不订阅）]
+- name: 差旅订单已推送
   publisher: platform.integration
   emitted_by: null
-  subscribers: [B-20 PRC-93（步 3，登记外部记账确认）]
+  subscribers: [B-12 PRC-171]
+- name: 差旅月账单已推送
+  publisher: platform.integration
+  emitted_by: null
+  subscribers: [B-12 PRC-171]
+- name: 超标订单待审批
+  publisher: platform.integration
+  emitted_by: null
+  subscribers: [B-12 PRC-173]

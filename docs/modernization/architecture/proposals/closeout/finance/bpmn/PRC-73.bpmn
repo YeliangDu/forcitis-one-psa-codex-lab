@@ -32,6 +32,7 @@
         <flowNodeRef>End_16</flowNodeRef>
         <flowNodeRef>End_19</flowNodeRef>
         <flowNodeRef>End_20</flowNodeRef>
+        <flowNodeRef>End_21</flowNodeRef>
         <flowNodeRef>S2_5_bd_6</flowNodeRef>
       </lane>
     </laneSet>
@@ -145,6 +146,7 @@
       <outgoing>Flow_20</outgoing>
       <outgoing>Flow_21</outgoing>
       <outgoing>Flow_22</outgoing>
+      <outgoing>Flow_23</outgoing>
     </exclusiveGateway>
     <endEvent id="End_15" name="已拒收">
       <incoming>Flow_4</incoming>
@@ -160,12 +162,15 @@
     <endEvent id="End_18" name="已用途确认">
       <incoming>Flow_17</incoming>
     </endEvent>
-    <endEvent id="End_19" name="已转出">
+    <endEvent id="End_19" name="期间关账中待重试">
       <incoming>Flow_20</incoming>
-      <incoming>Flow_22</incoming>
     </endEvent>
-    <endEvent id="End_20" name="过账被拒收">
+    <endEvent id="End_20" name="已转出">
       <incoming>Flow_21</incoming>
+      <incoming>Flow_23</incoming>
+    </endEvent>
+    <endEvent id="End_21" name="过账被拒收">
+      <incoming>Flow_22</incoming>
     </endEvent>
     <sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="S1_2"/>
     <sequenceFlow id="Flow_2" sourceRef="S1_2" targetRef="S1_api_3"/>
@@ -186,9 +191,10 @@
     <sequenceFlow id="Flow_17" name="其他" sourceRef="S3_gw_11" targetRef="End_18"/>
     <sequenceFlow id="Flow_18" sourceRef="S4_12" targetRef="S5_13"/>
     <sequenceFlow id="Flow_19" sourceRef="S5_13" targetRef="S5_gw_14"/>
-    <sequenceFlow id="Flow_20" name="所属期间已关账，自动落当前开放期间并标原期间（系统触账不拒绝）" sourceRef="S5_gw_14" targetRef="End_19"/>
-    <sequenceFlow id="Flow_21" name="过账管道拒收（该法人无开放期间、借贷不平或法人不一致），拒收并告警" sourceRef="S5_gw_14" targetRef="End_20"/>
-    <sequenceFlow id="Flow_22" name="其他" sourceRef="S5_gw_14" targetRef="End_19"/>
+    <sequenceFlow id="Flow_20" name="所属期间在关账中（已发起关账、未确认），本期过账不接受：返回「期间关账中、可重试」，不进拒收记录，由来源 BC 投递重试" sourceRef="S5_gw_14" targetRef="End_19"/>
+    <sequenceFlow id="Flow_21" name="所属期间已关账，自动落当前开放期间并标原期间（系统触账不拒绝）" sourceRef="S5_gw_14" targetRef="End_20"/>
+    <sequenceFlow id="Flow_22" name="过账管道拒收（该法人无开放期间、借贷不平或法人不一致），拒收并告警" sourceRef="S5_gw_14" targetRef="End_21"/>
+    <sequenceFlow id="Flow_23" name="其他" sourceRef="S5_gw_14" targetRef="End_20"/>
     <dataStoreReference id="SR_S1_2_w1" name="AGG-89" dataStoreRef="DS_AGG-89"/>
     <dataStoreReference id="SR_S2_5_w1" name="AGG-89" dataStoreRef="DS_AGG-89"/>
     <dataObject id="DObj_OR_S2_5_1"/>
@@ -200,13 +206,13 @@
   <bpmndi:BPMNDiagram id="Diagram_PRC-73">
     <bpmndi:BPMNPlane id="Plane_PRC-73" bpmnElement="Collab_PRC-73">
       <bpmndi:BPMNShape id="Shape_P_main" bpmnElement="P_main" isHorizontal="true">
-        <dc:Bounds x="0" y="0" width="2360" height="260"/>
+        <dc:Bounds x="0" y="0" width="2450" height="260"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Lane_SH-E6" bpmnElement="Lane_SH-E6" isHorizontal="true">
-        <dc:Bounds x="30" y="0" width="2330" height="130"/>
+        <dc:Bounds x="30" y="0" width="2420" height="130"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Lane_system" bpmnElement="Lane_system" isHorizontal="true">
-        <dc:Bounds x="30" y="130" width="2330" height="130"/>
+        <dc:Bounds x="30" y="130" width="2420" height="130"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Pool_1" bpmnElement="Pool_1" isHorizontal="true">
         <dc:Bounds x="595" y="320" width="440" height="80"/>
@@ -274,6 +280,9 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_End_20" bpmnElement="End_20">
         <dc:Bounds x="2267" y="177" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_21" bpmnElement="End_21">
+        <dc:Bounds x="2357" y="177" width="36" height="36"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_SR_S1_2_w1" bpmnElement="SR_S1_2_w1">
         <dc:Bounds x="217" y="4" width="36" height="26"/>
@@ -408,8 +417,14 @@
       <bpmndi:BPMNEdge id="Edge_Flow_22" bpmnElement="Flow_22">
         <di:waypoint x="1745" y="220"/>
         <di:waypoint x="1745" y="244"/>
-        <di:waypoint x="2195" y="244"/>
-        <di:waypoint x="2195" y="213"/>
+        <di:waypoint x="2375" y="244"/>
+        <di:waypoint x="2375" y="213"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_23" bpmnElement="Flow_23">
+        <di:waypoint x="1745" y="220"/>
+        <di:waypoint x="1745" y="254"/>
+        <di:waypoint x="2285" y="254"/>
+        <di:waypoint x="2285" y="213"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Msg_1" bpmnElement="Msg_1">
         <di:waypoint x="665" y="225"/>

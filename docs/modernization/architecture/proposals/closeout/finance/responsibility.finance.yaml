@@ -4,13 +4,15 @@
 # 他组聚合命令（AGG-80 预算占用、释放预算占用）不在本片段，见 notes。
 # 修后（2026-10-16）：aggregate 引擎的审批 A 改为类型级 SH-M1（PRC-100、101、102、104、105、77 提交申报、65 开立与销户）；platform.approval 的 手工凭证、分摊规则、资产处置 A 改为实例级 费用归属对象.责任人；新增 释放履约额度（draft_gap）。
 # S-29/S-30 补（2026-10-16）：新增命令的 A 行（draft_gap: true 待聚合稿回补）；AGG-87 开立、销户 A 改为财务负责人，确认开立、解冻、确认销户 A 为类型级 SH-M1。
+# S-31 / S-36 补（2026-10-16）：新增命令的 A 行；A 的 role 只写 SH- 编号，职能名写 function（S-36 ①）；AGG-40 生效分摊规则版本改实例级（S-36 ②）；AGG-53 付款审批挂「发起付款」，登记银行结果不是审批对象（S-36 ②）。
 entries:
 - object: AGG-43
   command: 售前投入转费用
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -22,7 +24,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -34,7 +37,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -46,7 +50,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -58,20 +63,21 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
     I: []
   boundary: {}
   sensitive: false
-  draft_gap: true
 - object: AGG-41
   command: 试算人工成本分配
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -83,7 +89,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -97,7 +104,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -109,14 +117,14 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
     I: []
   boundary: {}
   sensitive: false
-  draft_gap: true
 - object: AGG-40
   command: 批准分摊规则版本
   raci:
@@ -142,20 +150,30 @@ entries:
   command: 生效分摊规则版本
   raci:
     A:
-      resolve: type
-      role: 财务负责人
+      resolve: instance
+      field: 费用归属对象.责任人
     R:
     - SH-E6
     C: []
     I: []
-  boundary: {}
+  boundary:
+    segregation:
+    - 编制人 ≠ 批准人（INV-131）
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+    note: 费用归属对象取间接成本池归属部门（财务部门）的负责人，解析见 SQ-51（S-36 ②）
   sensitive: false
 - object: AGG-42
   command: 试算分摊运行
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -167,7 +185,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -179,7 +198,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -191,7 +211,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -203,7 +224,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -215,7 +237,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -227,7 +250,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -239,20 +263,21 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
     I: []
   boundary: {}
   sensitive: false
-  draft_gap: true
 - object: AGG-52
   command: 人工处置核销差异
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -261,7 +286,6 @@ entries:
     segregation:
     - 处置人 ≠ 原付款发起人、审批人、出纳（INV-81 同类）
   sensitive: false
-  draft_gap: true
 - object: AGG-53
   command: 发起付款
   raci:
@@ -294,7 +318,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -308,7 +333,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -322,7 +348,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -334,7 +361,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -343,13 +371,13 @@ entries:
     segregation:
     - 出纳 ≠ 发起人、审批人（INV-81）
   sensitive: false
-  draft_gap: true
 - object: AGG-54
   command: 登记出资认缴
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -361,7 +389,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -373,7 +402,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -385,7 +415,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -393,24 +424,25 @@ entries:
   boundary: {}
   sensitive: true
 - object: AGG-54
-  command: 更正出资实缴
+  command: 更正出资登记
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
     I: []
   boundary: {}
   sensitive: true
-  draft_gap: true
 - object: AGG-109
   command: 草拟利润分配
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -435,7 +467,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -447,7 +480,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -467,7 +501,6 @@ entries:
     - SH-E6
   boundary: {}
   sensitive: true
-  draft_gap: true
 - object: AGG-55
   command: 起草供方协议
   raci:
@@ -506,7 +539,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 采购与分包负责人
+      role: SH-M1
+      function: 采购与分包负责人
     R:
     - system
     C: []
@@ -573,7 +607,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -593,13 +628,13 @@ entries:
   boundary:
     limit_rule: AR-06
   sensitive: false
-  draft_gap: true
 - object: AGG-58
   command: 建立履约额度
   raci:
     A:
       resolve: type
-      role: 采购与分包负责人
+      role: SH-M1
+      function: 采购与分包负责人
     R:
     - system
     C: []
@@ -611,7 +646,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 采购与分包负责人
+      role: SH-M1
+      function: 采购与分包负责人
     R:
     - system
     C: []
@@ -623,7 +659,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 采购与分包负责人
+      role: SH-M1
+      function: 采购与分包负责人
     R:
     - system
     C: []
@@ -680,7 +717,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -692,7 +730,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -719,13 +758,13 @@ entries:
       when: AR-12
       to: 上级组织负责人
   sensitive: false
-  draft_gap: true
 - object: AGG-77
   command: 过账
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -737,7 +776,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -750,7 +790,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -764,7 +805,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -777,7 +819,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -792,6 +835,7 @@ entries:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-M1
     C: []
@@ -805,7 +849,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -817,7 +862,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -829,7 +875,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -844,6 +891,7 @@ entries:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-M1
     C: []
@@ -857,20 +905,21 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
     I: []
   boundary: {}
   sensitive: false
-  draft_gap: true
 - object: AGG-96
   command: 登记第 13 期启用
   raci:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -882,20 +931,21 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
     I: []
   boundary: {}
   sensitive: false
-  draft_gap: true
 - object: AGG-82
   command: 发布科目表版本
   raci:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -909,20 +959,21 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
     I: []
   boundary: {}
   sensitive: false
-  draft_gap: true
 - object: AGG-85
   command: 发布映射表版本
   raci:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -936,20 +987,21 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
     I: []
   boundary: {}
   sensitive: true
-  draft_gap: true
 - object: AGG-94
   command: 发布授权表版本
   raci:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -963,7 +1015,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -975,7 +1028,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -987,7 +1041,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     - SH-E6
@@ -1000,20 +1055,21 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
     I: []
   boundary: {}
   sensitive: false
-  draft_gap: true
 - object: AGG-98
   command: 制单手工凭证
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1027,7 +1083,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1066,20 +1123,21 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
     I: []
   boundary: {}
   sensitive: true
-  draft_gap: true
 - object: AGG-99
   command: 生成期末结转运行
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1091,7 +1149,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -1103,7 +1162,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -1115,7 +1175,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1130,6 +1191,7 @@ entries:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-M1
     C: []
@@ -1143,7 +1205,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1158,6 +1221,7 @@ entries:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-M1
     C: []
@@ -1171,7 +1235,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1183,7 +1248,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1195,7 +1261,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1208,6 +1275,7 @@ entries:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-M1
     C: []
@@ -1216,13 +1284,13 @@ entries:
     segregation:
     - 确认人 ≠ 开立经办
   sensitive: true
-  draft_gap: true
 - object: AGG-87
   command: 解冻资金账户
   raci:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1231,13 +1299,13 @@ entries:
     segregation:
     - 确认人 ≠ 解冻经办
   sensitive: true
-  draft_gap: true
 - object: AGG-87
   command: 确认销户资金账户
   raci:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-M1
     C: []
@@ -1246,13 +1314,13 @@ entries:
     segregation:
     - 确认人 ≠ 销户经办
   sensitive: true
-  draft_gap: true
 - object: AGG-88
   command: 导入银行流水
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -1264,7 +1332,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -1276,7 +1345,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1288,7 +1358,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1300,7 +1371,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1312,7 +1384,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1324,7 +1397,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -1336,7 +1410,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E3
     - system
@@ -1349,7 +1424,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -1361,7 +1437,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1374,6 +1451,7 @@ entries:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1385,7 +1463,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1397,7 +1476,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1409,7 +1489,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -1421,7 +1502,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1435,7 +1517,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -1462,7 +1545,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -1474,7 +1558,164 @@ entries:
   raci:
     A:
       resolve: type
-      role: 采购与分包负责人
+      role: SH-M1
+      function: 采购与分包负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-41
+  command: 作废人工成本分配运行
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-41
+  command: 冲销人工成本分配运行
+  raci:
+    A: &id002
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    limit_rule: AR-06
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+  sensitive: false
+- object: AGG-42
+  command: 冲销分摊运行
+  raci:
+    A: *id002
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    limit_rule: AR-06
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+  sensitive: false
+- object: AGG-99
+  command: 冲销期末结转运行
+  raci:
+    A: *id002
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    limit_rule: AR-06
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+  sensitive: false
+- object: AGG-43
+  command: 冲回成本结转
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-52
+  command: 登记其他应付
+  raci:
+    A: *id002
+    R:
+    - SH-E3
+    C: []
+    I:
+    - SH-E6
+  boundary:
+    limit_rule: AR-01
+    extra_rules:
+    - AR-02
+    - AR-07
+    - AR-15
+    segregation:
+    - 申请人 ≠ 审批人（AR-11）
+    - 申请人 ≠ PRC-75 付款发起人、出纳（INV-81 同类，提议）
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+  sensitive: false
+- object: AGG-52
+  command: 登记预付款
+  raci:
+    A: *id002
+    R:
+    - SH-E3
+    C: []
+    I:
+    - SH-E6
+  boundary:
+    limit_rule: AR-01
+    extra_rules:
+    - AR-02
+    - AR-07
+    - AR-15
+    segregation:
+    - 申请人 ≠ 审批人（AR-11）
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+  sensitive: false
+- object: AGG-52
+  command: 预付款冲抵应付
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 冲抵经办 ≠ 该预付款的出纳（INV-81 同类，提议）
+  sensitive: false
+- object: AGG-52
+  command: 冲销应付利润
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -1482,6 +1723,666 @@ entries:
   boundary: {}
   sensitive: false
   draft_gap: true
+- object: AGG-78
+  command: 编制口径版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+  draft_gap: true
+- object: AGG-78
+  command: 发布口径版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 起草人 ≠ 批准人（INV-131）
+  sensitive: false
+- object: AGG-122
+  command: 登记合同已签回
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-122
+  command: 登记项目已建立
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-122
+  command: 登记售前投入挂接归属
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-122
+  command: 标记售前投入已转入
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-122
+  command: 标记售前投入已转费用
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-123
+  command: 编制成本核算参数版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-123
+  command: 发布成本核算参数版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 起草人 ≠ 批准人（INV-131）
+  sensitive: false
+- object: AGG-124
+  command: 编制资产类别与折旧政策版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+  draft_gap: true
+- object: AGG-124
+  command: 发布资产类别与折旧政策版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 起草人 ≠ 批准人（INV-131）
+  sensitive: false
+- object: AGG-125
+  command: 编制期初余额
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary: {}
+  sensitive: true
+- object: AGG-125
+  command: 签字确认期初余额
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-M1
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 编制人 ≠ 签字人（ADR-0022 决定 11）
+  sensitive: true
+- object: AGG-126
+  command: 登记勾稽差异案
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-126
+  command: 解释勾稽差异案
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-126
+  command: 修正勾稽差异案
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-126
+  command: 豁免勾稽差异案
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-M1
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 处置人 ≠ 豁免确认人（INV-135）
+  sensitive: false
+- object: AGG-127
+  command: 登记口径转换规则版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-128
+  command: 起草期末结转模板版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-128
+  command: 发布期末结转模板版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 起草人 ≠ 批准人（INV-131）
+  sensitive: false
+- object: AGG-129
+  command: 起草现金流量项目表版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-129
+  command: 发布现金流量项目表版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 起草人 ≠ 批准人（INV-131）
+  sensitive: false
+- object: AGG-130
+  command: 提交费用事前申请
+  raci:
+    A: *id002
+    R:
+    - SH-E3
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 提交人 ≠ A（责任人即提交人按 AR-11 处理）
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+  sensitive: false
+- object: AGG-130
+  command: 批准费用事前申请
+  raci:
+    A: *id002
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+  boundary:
+    limit_rule: AR-01
+    extra_rules:
+    - AR-02
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+  sensitive: false
+- object: AGG-130
+  command: 驳回费用事前申请
+  raci:
+    A: *id002
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+  boundary: {}
+  sensitive: false
+- object: AGG-130
+  command: 撤回费用事前申请
+  raci:
+    A: *id002
+    R:
+    - SH-E3
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-130
+  command: 关闭费用事前申请
+  raci:
+    A: *id002
+    R:
+    - SH-E3
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-130
+  command: 标记费用事前申请已用尽
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+  draft_gap: true
+- object: AGG-131
+  command: 登记差旅订单与月账单
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-131
+  command: 归属差旅订单
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-131
+  command: 核对差旅月账单
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 核对人 ≠ PRC-75 发起该应付付款的人（INV-81 同类，提议）
+  sensitive: false
+- object: AGG-131
+  command: 处理账单差异
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+  draft_gap: true
+- object: AGG-131
+  command: 确认差旅账单应付
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-131
+  command: 提交过账候选
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-131
+  command: 登记超标订单待审批
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-131
+  command: 批准差旅超标订单
+  raci:
+    A: *id002
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+  boundary:
+    limit_rule: AR-01
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+  sensitive: false
+- object: AGG-131
+  command: 驳回差旅超标订单
+  raci:
+    A: *id002
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+  boundary: {}
+  sensitive: false
+- object: AGG-132
+  command: 提交出差申请
+  raci:
+    A: *id002
+    R:
+    - SH-E3
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 提交人 ≠ A（责任人即提交人按 AR-11 处理）
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+  sensitive: false
+- object: AGG-132
+  command: 批准出差申请
+  raci:
+    A: *id002
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+  boundary:
+    limit_rule: AR-01
+    extra_rules:
+    - AR-02
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+  sensitive: false
+- object: AGG-132
+  command: 驳回出差申请
+  raci:
+    A: *id002
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+  boundary: {}
+  sensitive: false
+- object: AGG-132
+  command: 撤回出差申请
+  raci:
+    A: *id002
+    R:
+    - SH-E3
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-132
+  command: 登记出差申请已同步
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-133
+  command: 编制出差补贴标准版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-133
+  command: 发布出差补贴标准版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 起草人 ≠ 批准人（INV-131）
+  sensitive: false
+- object: AGG-43
+  command: 提交过账候选
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-52
+  command: 在应付上核销占用
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-52
+  command: 提交应付薪酬
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+- object: AGG-53
+  command: 提交过账候选
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
 roles:
   SH-E2:
     positions:

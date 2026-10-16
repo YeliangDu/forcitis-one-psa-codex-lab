@@ -33,8 +33,8 @@
     <startEvent id="Start_1" name="财务编制分摊规则版本（按期间首日发布）">
       <outgoing>Flow_1</outgoing>
     </startEvent>
-    <userTask id="S1_2" name="〔缺〕编制分摊规则版本">
-      <documentation>AGG-40 〔缺〕编制分摊规则版本；B-07；in_system；成本.分摊规则编制；分摊规则编辑页</documentation>
+    <userTask id="S1_2" name="编制分摊规则版本">
+      <documentation>AGG-40 编制分摊规则版本；B-07；in_system；成本.分摊规则编制；分摊规则编辑页</documentation>
       <incoming>Flow_1</incoming>
       <outgoing>Flow_2</outgoing>
       <ioSpecification id="IO_S1_2">
@@ -52,7 +52,7 @@
         <outputSet></outputSet>
       </ioSpecification>
     </serviceTask>
-    <exclusiveGateway id="S1_gw_4" name="〔缺〕编制分摊规则版本？">
+    <exclusiveGateway id="S1_gw_4" name="编制分摊规则版本？">
       <incoming>Flow_3</incoming>
       <outgoing>Flow_4</outgoing>
       <outgoing>Flow_5</outgoing>
@@ -60,6 +60,7 @@
     <userTask id="S2_5" name="批准分摊规则版本">
       <documentation>AGG-40 批准分摊规则版本；B-07；in_system；分摊规则.审批；审批待办（审批平台）；审批平台：分摊规则审批</documentation>
       <incoming>Flow_5</incoming>
+      <incoming>Flow_8</incoming>
       <outgoing>Flow_6</outgoing>
       <ioSpecification id="IO_S2_5">
         <dataOutput id="DOut_S2_5_1"/>
@@ -69,13 +70,13 @@
       <dataOutputAssociation id="DOA_S2_5_1"><sourceRef>DOut_S2_5_1</sourceRef><targetRef>SR_S2_5_w1</targetRef></dataOutputAssociation>
     </userTask>
     <boundaryEvent id="S2_5_bd_6" name="期限 P3D" cancelActivity="false" attachedToRef="S2_5">
-      <outgoing>Flow_11</outgoing>
+      <outgoing>Flow_12</outgoing>
       <timerEventDefinition><timeDuration>P3D</timeDuration></timerEventDefinition>
     </boundaryEvent>
     <userTask id="S2_5_esc_7" name="处理超时：批准分摊规则版本">
       <documentation>升级给 审批人上级；期限 P3D</documentation>
-      <incoming>Flow_11</incoming>
-      <outgoing>Flow_12</outgoing>
+      <incoming>Flow_12</incoming>
+      <outgoing>Flow_13</outgoing>
       <ioSpecification id="IO_S2_5_esc_7">
         <inputSet></inputSet>
         <outputSet></outputSet>
@@ -94,11 +95,12 @@
       <outgoing>Flow_8</outgoing>
       <outgoing>Flow_9</outgoing>
       <outgoing>Flow_10</outgoing>
+      <outgoing>Flow_11</outgoing>
     </exclusiveGateway>
     <userTask id="S3_10" name="生效分摊规则版本">
       <documentation>AGG-40 生效分摊规则版本；B-07；in_system；成本.分摊规则生效；分摊规则生效页</documentation>
-      <incoming>Flow_8</incoming>
-      <outgoing>Flow_13</outgoing>
+      <incoming>Flow_9</incoming>
+      <outgoing>Flow_14</outgoing>
       <ioSpecification id="IO_S3_10">
         <dataOutput id="DOut_S3_10_1"/>
         <inputSet></inputSet>
@@ -107,25 +109,25 @@
       <dataOutputAssociation id="DOA_S3_10_1"><sourceRef>DOut_S3_10_1</sourceRef><targetRef>SR_S3_10_w1</targetRef></dataOutputAssociation>
     </userTask>
     <exclusiveGateway id="S3_gw_11" name="生效分摊规则版本？">
-      <incoming>Flow_13</incoming>
-      <outgoing>Flow_14</outgoing>
+      <incoming>Flow_14</incoming>
       <outgoing>Flow_15</outgoing>
+      <outgoing>Flow_16</outgoing>
     </exclusiveGateway>
     <endEvent id="End_12" name="已拒收">
       <incoming>Flow_4</incoming>
-      <incoming>Flow_14</incoming>
+      <incoming>Flow_15</incoming>
     </endEvent>
     <endEvent id="End_13" name="已驳回">
-      <incoming>Flow_9</incoming>
-    </endEvent>
-    <endEvent id="End_14" name="已撤回">
       <incoming>Flow_10</incoming>
     </endEvent>
+    <endEvent id="End_14" name="已撤回">
+      <incoming>Flow_11</incoming>
+    </endEvent>
     <endEvent id="End_15" name="已提醒">
-      <incoming>Flow_12</incoming>
+      <incoming>Flow_13</incoming>
     </endEvent>
     <endEvent id="End_16" name="分摊规则已生效">
-      <incoming>Flow_15</incoming>
+      <incoming>Flow_16</incoming>
     </endEvent>
     <sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="S1_2"/>
     <sequenceFlow id="Flow_2" sourceRef="S1_2" targetRef="S1_api_3"/>
@@ -134,14 +136,15 @@
     <sequenceFlow id="Flow_5" name="其他" sourceRef="S1_gw_4" targetRef="S2_5"/>
     <sequenceFlow id="Flow_6" sourceRef="S2_5" targetRef="S2_api_8"/>
     <sequenceFlow id="Flow_7" sourceRef="S2_api_8" targetRef="S2_gw_9"/>
-    <sequenceFlow id="Flow_8" name="通过" sourceRef="S2_gw_9" targetRef="S3_10"/>
-    <sequenceFlow id="Flow_9" name="驳回" sourceRef="S2_gw_9" targetRef="End_13"/>
-    <sequenceFlow id="Flow_10" name="撤回" sourceRef="S2_gw_9" targetRef="End_14"/>
-    <sequenceFlow id="Flow_11" sourceRef="S2_5_bd_6" targetRef="S2_5_esc_7"/>
-    <sequenceFlow id="Flow_12" sourceRef="S2_5_esc_7" targetRef="End_15"/>
-    <sequenceFlow id="Flow_13" sourceRef="S3_10" targetRef="S3_gw_11"/>
-    <sequenceFlow id="Flow_14" name="生效日不是期间首日或早于当前开放期间首日（不追溯），拒收并告警" sourceRef="S3_gw_11" targetRef="End_12"/>
-    <sequenceFlow id="Flow_15" name="其他" sourceRef="S3_gw_11" targetRef="End_16"/>
+    <sequenceFlow id="Flow_8" name="批准人与编制人为同一人，命令被拒，改由他人批准" sourceRef="S2_gw_9" targetRef="S2_5"/>
+    <sequenceFlow id="Flow_9" name="其他" sourceRef="S2_gw_9" targetRef="S3_10"/>
+    <sequenceFlow id="Flow_10" name="驳回" sourceRef="S2_gw_9" targetRef="End_13"/>
+    <sequenceFlow id="Flow_11" name="撤回" sourceRef="S2_gw_9" targetRef="End_14"/>
+    <sequenceFlow id="Flow_12" sourceRef="S2_5_bd_6" targetRef="S2_5_esc_7"/>
+    <sequenceFlow id="Flow_13" sourceRef="S2_5_esc_7" targetRef="End_15"/>
+    <sequenceFlow id="Flow_14" sourceRef="S3_10" targetRef="S3_gw_11"/>
+    <sequenceFlow id="Flow_15" name="生效日不是期间首日或早于当前开放期间首日（不追溯），拒收并告警" sourceRef="S3_gw_11" targetRef="End_12"/>
+    <sequenceFlow id="Flow_16" name="其他" sourceRef="S3_gw_11" targetRef="End_16"/>
     <dataStoreReference id="SR_S1_2_w1" name="AGG-40" dataStoreRef="DS_AGG-40"/>
     <dataStoreReference id="SR_S2_5_w1" name="AGG-40" dataStoreRef="DS_AGG-40"/>
     <dataStoreReference id="SR_S3_10_w1" name="AGG-40" dataStoreRef="DS_AGG-40"/>
@@ -256,39 +259,45 @@
         <di:waypoint x="1110" y="325"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_8" bpmnElement="Flow_8">
+        <di:waypoint x="1135" y="350"/>
+        <di:waypoint x="1135" y="384"/>
+        <di:waypoint x="665" y="384"/>
+        <di:waypoint x="665" y="355"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_9" bpmnElement="Flow_9">
         <di:waypoint x="1135" y="300"/>
         <di:waypoint x="1135" y="65"/>
         <di:waypoint x="1215" y="65"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_9" bpmnElement="Flow_9">
+      <bpmndi:BPMNEdge id="Edge_Flow_10" bpmnElement="Flow_10">
         <di:waypoint x="1160" y="325"/>
         <di:waypoint x="1557" y="325"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_10" bpmnElement="Flow_10">
+      <bpmndi:BPMNEdge id="Edge_Flow_11" bpmnElement="Flow_11">
         <di:waypoint x="1135" y="350"/>
-        <di:waypoint x="1135" y="384"/>
-        <di:waypoint x="1665" y="384"/>
+        <di:waypoint x="1135" y="379"/>
+        <di:waypoint x="1665" y="379"/>
         <di:waypoint x="1665" y="343"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_11" bpmnElement="Flow_11">
+      <bpmndi:BPMNEdge id="Edge_Flow_12" bpmnElement="Flow_12">
         <di:waypoint x="690" y="373"/>
         <di:waypoint x="690" y="384"/>
         <di:waypoint x="835" y="384"/>
         <di:waypoint x="835" y="225"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_12" bpmnElement="Flow_12">
+      <bpmndi:BPMNEdge id="Edge_Flow_13" bpmnElement="Flow_13">
         <di:waypoint x="885" y="195"/>
         <di:waypoint x="1737" y="195"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_13" bpmnElement="Flow_13">
+      <bpmndi:BPMNEdge id="Edge_Flow_14" bpmnElement="Flow_14">
         <di:waypoint x="1315" y="65"/>
         <di:waypoint x="1370" y="65"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_14" bpmnElement="Flow_14">
+      <bpmndi:BPMNEdge id="Edge_Flow_15" bpmnElement="Flow_15">
         <di:waypoint x="1420" y="65"/>
         <di:waypoint x="1467" y="65"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_15" bpmnElement="Flow_15">
+      <bpmndi:BPMNEdge id="Edge_Flow_16" bpmnElement="Flow_16">
         <di:waypoint x="1395" y="90"/>
         <di:waypoint x="1395" y="119"/>
         <di:waypoint x="1845" y="119"/>

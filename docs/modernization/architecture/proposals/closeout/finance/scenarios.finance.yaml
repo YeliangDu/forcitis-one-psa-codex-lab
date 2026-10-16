@@ -71,6 +71,19 @@ PRC-15:
   covers:
   - 步 3 幂等
   expect: 步 3 幂等
+- id: PRC-15-S12
+  path: 转费用结果登记到归属登记，同一商机已转入合同履约成本则不再转费用（INV-132）
+  outcome: 已转费用（幂等）
+  covers:
+  - 步 4 出口：INV-132
+  expect: 步 4 出口：INV-132
+- id: PRC-15-S13
+  path: 第 2 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 2 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 2 出口：期间关账中；结局「期间关账中待重试」
 PRC-25:
 - id: PRC-25-S01
   path: 项目先建立、合同后签回，后到者触发转入
@@ -106,9 +119,9 @@ PRC-25:
   path: 该法人无开放期间可落（管道拒收）
   outcome: 已拒收
   covers:
-  - 步 2 出口 INV-92
+  - 步 5 出口 INV-92
   - 结局「已拒收」
-  expect: 步 2 出口 INV-92；结局「已拒收」
+  expect: 步 5 出口 INV-92；结局「已拒收」
 - id: PRC-25-S07
   path: 落账期间已关账、该法人有开放期间：落当前开放期间并标原期间，照常过账
   outcome: 已提交过账
@@ -120,22 +133,47 @@ PRC-25:
   path: 转入售前投入：提交过账候选成功，等待过账结果 → 结束（已提交过账）
   outcome: 已提交过账
   covers:
-  - 步 2 出口：提交过账候选成功
+  - 步 5 出口：提交过账候选成功
   - 结局「已提交过账」
-  expect: 步 2 出口：提交过账候选成功；结局「已提交过账」
+  expect: 步 5 出口：提交过账候选成功；结局「已提交过账」
 - id: PRC-25-S09
   path: 订阅 BusinessFactAttributed，标记已过账并发成本结转已过账 → 结束（售前投入已转入）
   outcome: 售前投入已转入
   covers:
-  - 步 3 订阅过账结果标记已过账
+  - 步 6 订阅过账结果标记已过账
   - 第三个触发事件
-  expect: 步 3 订阅过账结果标记已过账；第三个触发事件
+  expect: 步 6 订阅过账结果标记已过账；第三个触发事件
 - id: PRC-25-S10
   path: 同一过账事件重复投递，标记已过账按幂等键不重复置位
   outcome: 售前投入已转入
   covers:
-  - 步 3 幂等
-  expect: 步 3 幂等
+  - 步 6 幂等
+  expect: 步 6 幂等
+- id: PRC-25-S11
+  path: 合同已签回登记到归属登记，项目尚未建立 → 等待齐备
+  outcome: 等待齐备
+  covers:
+  - 步 1、3
+  expect: 步 1、3
+- id: PRC-25-S12
+  path: 项目已建立登记到归属登记，合同尚未签回 → 等待齐备
+  outcome: 等待齐备
+  covers:
+  - 步 2、3
+  expect: 步 2、3
+- id: PRC-25-S13
+  path: 同一商机已转出（INV-132），重复事件幂等
+  outcome: 已转入（幂等）
+  covers:
+  - 步 1 出口：INV-132
+  expect: 步 1 出口：INV-132
+- id: PRC-25-S14
+  path: 第 5 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 5 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 5 出口：期间关账中；结局「期间关账中待重试」
 PRC-35:
 - id: PRC-35-S01
   path: 项目已终止（或取消），有余额 → 清算过账
@@ -195,6 +233,13 @@ PRC-35:
   covers:
   - 步 3 幂等
   expect: 步 3 幂等
+- id: PRC-35-S10
+  path: 第 2 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 2 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 2 出口：期间关账中；结局「期间关账中待重试」
 PRC-55:
 - id: PRC-55-S01
   path: 收入确认事实 → 配对结转合同履约成本（A1、Q-04、Q20 定后断言金额口径）
@@ -260,6 +305,13 @@ PRC-55:
   covers:
   - 步 3 幂等
   expect: 步 3 幂等
+- id: PRC-55-S11
+  path: 第 2 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 2 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 2 出口：期间关账中；结局「期间关账中待重试」
 PRC-64:
 - id: PRC-64-S01
   path: 文件到达、导入成功、含利息手续费行、过账成功
@@ -322,6 +374,13 @@ PRC-64:
   covers:
   - 步 1 超时
   expect: 发出提醒，不自动通过、不中断
+- id: PRC-64-S10
+  path: 第 2 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 2 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 2 出口：期间关账中；结局「期间关账中待重试」
 PRC-65:
 - id: PRC-65-S01
   path: 开立资金账户：开户证明齐全，财务负责人确认
@@ -615,6 +674,19 @@ PRC-71:
   covers:
   - 步 3 出口：变更后协议金额低于已确认的履约累计（INV-82，AGG-58 一侧校验，生效前先读）
   expect: 结束（已拒收）；告警
+- id: PRC-71-S18
+  path: 变更后价款增加：按增减额调整预算占用，预算不足只预警不拦截
+  outcome: 分包变更已生效
+  covers:
+  - 步 4 otherwise
+  - INV-102 预警
+  expect: 步 4 otherwise；INV-102 预警
+- id: PRC-71-S19
+  path: 变更后价款无增减：无需调整预算占用
+  outcome: 分包变更已生效
+  covers:
+  - 步 4 出口：无增减
+  expect: 步 4 出口：无增减
 PRC-72:
 - id: PRC-72-S01
   path: 读项目、占用额度、确认、过账成功
@@ -704,6 +776,20 @@ PRC-72:
   covers:
   - 步 9 otherwise
   expect: 步 9 otherwise
+- id: PRC-72-S14
+  path: 第 4 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 4 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 4 出口：期间关账中；结局「期间关账中待重试」
+- id: PRC-72-S15
+  path: 冲销审批提交后审批前撤回 → 结束（已撤回）
+  outcome: 已撤回
+  covers:
+  - 步 6 撤回
+  - 结局「已撤回」
+  expect: 步 6 撤回；结局「已撤回」
 PRC-73:
 - id: PRC-73-S01
   path: 登记、查验通过、可抵扣、确认用途
@@ -784,6 +870,13 @@ PRC-73:
   covers:
   - 步 2 超时
   expect: 发出提醒，不自动通过、不中断
+- id: PRC-73-S13
+  path: 第 5 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 5 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 5 出口：期间关账中；结局「期间关账中待重试」
 PRC-74:
 - id: PRC-74-S01
   path: 履约确认后确认应付并过账
@@ -807,11 +900,12 @@ PRC-74:
   - 已拒收
   expect: 步 1 INV-74、75；已拒收
 - id: PRC-74-S04
-  path: 无票暂估
-  outcome: null
+  path: 无票：履约确认已过账暂估，不确认应付，等待发票
+  outcome: 等待发票
   covers:
-  - 步 1 暂估分支（待 P1-Q2）
-  expect: 步 1 暂估分支（待 P1-Q2）
+  - 步 1 暂估出口（待 U-25）
+  - 结局「等待发票」
+  expect: 结束于「等待发票」
 - id: PRC-74-S05
   path: 过账时期间已关账：落开放期间并标原期间
   outcome: 应付已确认
@@ -827,11 +921,12 @@ PRC-74:
   - 结局「过账被拒收」
   expect: 管道拒收；结局「过账被拒收」
 - id: PRC-74-S07
-  path: 端到端：确认应付 → 提交过账候选 → 结局「暂估应付已确认」
-  outcome: 暂估应付已确认
+  path: 无票暂估：履约确认过账暂估，取得发票后经 PRC-73 用途确认事件再入，确认应付并占用发票
+  outcome: 应付已确认
   covers:
-  - 结局「暂估应付已确认」
-  expect: 结束于「暂估应付已确认」
+  - 发票到达后再入
+  - 结局「应付已确认」
+  expect: 结束于「应付已确认」
 - id: PRC-74-S08
   path: 确认应付：来源单据已确认过应付（幂等） → 结束（重复事件已忽略）
   outcome: 重复事件已忽略
@@ -845,11 +940,18 @@ PRC-74:
   - 步 1 出口：发票查验不合规或已被占用（INV-74、INV-75a）→ 拒收并告警，退回供方换票，换票经 PRC-73 用途确认后由事件再入
   expect: 结束（已拒收）；告警
 - id: PRC-74-S10
-  path: 确认应付：来源为供方履约确认且发票未到（无票暂估，取得发票后经 PRC-73 重入占用） → 转步 2
-  outcome: null
+  path: 确认应付：来源为供方履约确认且发票未到 → 不确认应付，结束（等待发票）
+  outcome: 等待发票
   covers:
-  - 步 1 出口：来源为供方履约确认且发票未到（无票暂估，取得发票后经 PRC-73 重入占用）
-  expect: 转步 2
+  - 步 1 出口：来源为供方履约确认且发票未到（暂估已在履约确认过账）
+  expect: 结束（等待发票）
+- id: PRC-74-S11
+  path: 第 2 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 2 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 2 出口：期间关账中；结局「期间关账中待重试」
 PRC-75:
 - id: PRC-75-S01
   path: 读账户、发起、审批通过、出纳登记成功
@@ -869,30 +971,30 @@ PRC-75:
   path: 付款超过未付余额
   outcome: null
   covers:
-  - 步 2 INV-79
+  - 步 3 INV-79
   - 已拒收
-  expect: 步 2 INV-79；已拒收
+  expect: 步 3 INV-79；已拒收
 - id: PRC-75-S04
   path: 占用成功建付款失败，补偿释放
   outcome: null
   covers:
-  - 步 2 → 步 3
+  - 步 3 → 步 4
   - 发起失败已补偿
-  expect: 步 2 → 步 3；发起失败已补偿
+  expect: 步 3 → 步 4；发起失败已补偿
 - id: PRC-75-S05
   path: 审批驳回，释放占用
   outcome: null
   covers:
-  - 步 4 on_reject → 步 3
+  - 步 2 on_reject → 步 4
   - 已驳回
-  expect: 步 4 on_reject → 步 3；已驳回
+  expect: 步 2 on_reject → 步 4；已驳回
 - id: PRC-75-S06
   path: 审批人即发起人
   outcome: null
   covers:
-  - 步 4 INV-81 → 步 3
+  - 步 2 INV-81 → 步 4
   - 已驳回
-  expect: 步 4 INV-81 → 步 3；已驳回
+  expect: 步 2 INV-81 → 步 4；已驳回
 - id: PRC-75-S07
   path: 出纳即发起人或审批人
   outcome: null
@@ -909,8 +1011,8 @@ PRC-75:
   path: 退票后重新发起
   outcome: null
   covers:
-  - 步 5 失败 → 步 6 → 步 2
-  expect: 步 5 失败 → 步 6 → 步 2
+  - 步 5 失败 → 步 6 → 步 3
+  expect: 步 5 失败 → 步 6 → 步 3
 - id: PRC-75-S10
   path: 退票后放弃
   outcome: null
@@ -948,9 +1050,9 @@ PRC-75:
   path: 审批中发起人撤回，释放核销占用
   outcome: 已撤回
   covers:
-  - 步 4 撤回 → 步 3
+  - 步 2 撤回 → 步 4
   - 结局「已撤回」
-  expect: 步 4 撤回 → 步 3；结局「已撤回」
+  expect: 步 2 撤回 → 步 4；结局「已撤回」
 - id: PRC-75-S16
   path: 金额超过阈值或收款方为关联方：责任人批后加审
   outcome: null
@@ -976,11 +1078,11 @@ PRC-75:
   - 步 1 出口：应付存在未决争议（AGG-52 争议状态）
   expect: 结束（已拒收）；告警
 - id: PRC-75-S20
-  path: 读取收款账户与资金账户：协议付款条件项未到期（提前付款），预警并在审批待办标注 → 转步 2
+  path: 读取收款账户与资金账户：协议付款条件项未到期（提前付款），预警并在审批待办标注 → 转步 3
   outcome: null
   covers:
   - 步 1 出口：协议付款条件项未到期（提前付款），预警并在审批待办标注
-  expect: 转步 2
+  expect: 转步 3
 - id: PRC-75-S21
   path: 审批付款：责任人就是提交人本人，审批上提汇报线上级（AR-11，处理方式待用户定）
   outcome: null
@@ -1053,6 +1155,13 @@ PRC-75:
   covers:
   - 步 9 出口：过账管道拒收（原事实不存在或已被冲销、该法人无开放期间、借贷不平），拒收并告警
   expect: 步 9 出口：过账管道拒收（原事实不存在或已被冲销、该法人无开放期间、借贷不平），拒收并告警
+- id: PRC-75-S32
+  path: 第 9 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 9 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 9 出口：期间关账中；结局「期间关账中待重试」
 PRC-76:
 - id: PRC-76-S05
   path: 端到端：完成供方协议 → 提交审批 → 结算供方协议 → 结局「已结算」
@@ -1196,6 +1305,13 @@ PRC-77:
   covers:
   - 步 5 出口：申报端无法更正，经办人登记放弃及原因（留痕）
   expect: 结束（已放弃申报）；告警
+- id: PRC-77-S19
+  path: 第 6 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 6 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 6 出口：期间关账中；结局「期间关账中待重试」
 PRC-87:
 - id: PRC-87-S01
   path: 部门日常费用，预算够，部门负责人批，财务核定，过账
@@ -1360,6 +1476,13 @@ PRC-87:
   covers:
   - 步 12 otherwise
   expect: 步 12 otherwise
+- id: PRC-87-S27
+  path: 第 7 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 7 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 7 出口：期间关账中；结局「期间关账中待重试」
 PRC-90:
 - id: PRC-90-S01
   path: 期间未关账：查询不出数
@@ -1481,6 +1604,26 @@ PRC-92:
   covers:
   - 端到端：已更正
   expect: 端到端：已更正
+- id: PRC-92-S16
+  path: 业务日期所在期间在关账中：返回「期间关账中、可重试」，不进拒收记录
+  outcome: 期间关账中待重试
+  covers:
+  - 步 1 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 1 出口：期间关账中；结局「期间关账中待重试」
+- id: PRC-92-S17
+  path: 更正所落的开放期间在关账中：返回可重试
+  outcome: 期间关账中待重试
+  covers:
+  - 步 3 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 3 出口：期间关账中；结局「期间关账中待重试」
+- id: PRC-92-S18
+  path: 受控手工凭证显式指定的期间在关账中：拒绝并告警（未开放含关账中）
+  outcome: 已拒收
+  covers:
+  - 步 1 出口：显式指定期间未开放
+  expect: 步 1 出口：显式指定期间未开放
 PRC-93:
 - id: PRC-93-S01
   path: 第 1 步：同一事实的分录已生成（重复事件） → 结束（重复事件已忽略）
@@ -1555,21 +1698,6 @@ PRC-93:
   covers:
   - 幂等：重复事件已忽略
   expect: 幂等：重复事件已忽略
-- id: PRC-93-S12
-  path: 外部法定账记账回执到达，已推送凭证置已确认记账 → 结束（已确认记账）
-  outcome: 已确认记账
-  covers:
-  - 回执触发入口
-  - 步 3 otherwise
-  - 结局「已确认记账」
-  expect: 回执触发入口；步 3 otherwise；结局「已确认记账」
-- id: PRC-93-S13
-  path: 回执对应的凭证未推送或外部键不符 → 结束（回执已拒收）
-  outcome: 回执已拒收
-  covers:
-  - 步 3 出口：回执对应的凭证未推送或外部键不符
-  - 结局「回执已拒收」
-  expect: 步 3 出口：回执对应的凭证未推送或外部键不符；结局「回执已拒收」
 - id: PRC-93-S14
   path: 凭证依赖的主数据尚未同步，推送状态置挂起，每日定时重投
   outcome: 已挂起待重投
@@ -1719,6 +1847,19 @@ PRC-94:
   - 步 5 作废手工凭证草稿
   - 结局「已作废」
   expect: 步 1 出口：制单人放弃，作废草稿；步 5 作废手工凭证草稿；结局「已作废」
+- id: PRC-94-S23
+  path: 第 4 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 4 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 4 出口：期间关账中；结局「期间关账中待重试」
+- id: PRC-94-S24
+  path: 提交过账候选：所属期间在关账中（已发起关账、未确认），本期过账不接受：返回「期间关账中、可重试」，凭证保持待提交，待确认关账或退回开放后再提交
+  outcome: 期间关账中待重试
+  covers:
+  - 步 4 出口：所属期间在关账中（已发起关账、未确认），本期过账不接受：返回「期间关账中、可重试」，凭证保持待提交，待确认关账或退回开放后再提交
+  expect: 结束（期间关账中待重试）
 PRC-95:
 - id: PRC-95-S01
   path: 第 2 步：本法人本期间本模板已有有效运行 → 结束（已有有效运行）
@@ -1766,6 +1907,62 @@ PRC-95:
   covers:
   - 步 2 出口：目标期间已关账：规则提示，期末凭证不得路由到其他期间（INV-92 例外，待 one-architecture 确认，见结构问题），不能生成
   expect: 结束（已拒收）；告警
+- id: PRC-95-S08
+  path: 已过账的期末结转运行有误，经审批冲销并重过账 → 结束（期末结转已冲销）
+  outcome: 期末结转已冲销
+  covers:
+  - 冲销入口
+  - 结局「期末结转已冲销」
+  expect: 冲销入口；结局「期末结转已冲销」
+- id: PRC-95-S09
+  path: 期末结转运行冲销审批驳回
+  outcome: 冲销已驳回
+  covers:
+  - 冲销审批驳回
+  expect: 冲销审批驳回
+- id: PRC-95-S10
+  path: 期末结转运行冲销审批前撤回
+  outcome: 已撤回
+  covers:
+  - 冲销审批撤回
+  expect: 冲销审批撤回
+- id: PRC-95-S11
+  path: 原运行所属期间已关账：不再冲原运行，差额进下期运行（ADR-0045 决定 2）
+  outcome: 差额进下期运行
+  covers:
+  - 步 5 出口：原运行所属期间已关账
+  expect: 步 5 出口：原运行所属期间已关账
+- id: PRC-95-S12
+  path: 期末结转运行已冲销过，再次冲销被拒
+  outcome: 已拒收
+  covers:
+  - 步 5 出口：该运行已冲销过
+  expect: 步 5 出口：该运行已冲销过
+- id: PRC-95-S13
+  path: 期末结转运行冲销时期间已关账：落开放期间并标原期间
+  outcome: 期末结转已冲销
+  covers:
+  - 步 6 期间闸门路由
+  expect: 步 6 期间闸门路由
+- id: PRC-95-S14
+  path: 期末结转运行冲销被过账管道拒收
+  outcome: 过账被拒收
+  covers:
+  - 步 6 出口：过账管道拒收
+  expect: 步 6 出口：过账管道拒收
+- id: PRC-95-S15
+  path: 第 6 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 6 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 6 出口：期间关账中；结局「期间关账中待重试」
+- id: PRC-95-S16
+  path: 生成期末结转运行：期末结转运行按（法人, 期间, 模板）显式指定期间，所指期间未开放（已关账或关账中），拒绝并告警（INV-92 写法，不是例外）
+  outcome: 已拒收
+  covers:
+  - 步 2 出口：期末结转运行按（法人, 期间, 模板）显式指定期间，所指期间未开放（已关账或关账中），拒绝并告警（INV-92 写法，不是例外）
+  expect: 结束（已拒收）
 PRC-96:
 - id: PRC-96-S01
   path: 事实齐备、期间开放 → 试算 → 确认 → 过账
@@ -1824,6 +2021,81 @@ PRC-96:
   covers:
   - 步 1 期间闸门路由 → 步 2
   expect: 步 1 期间闸门路由 → 步 2
+- id: PRC-96-S10
+  path: 试算后未过账前发现有误，作废人工成本分配运行
+  outcome: 人工成本分配已作废
+  covers:
+  - 步 5 otherwise
+  - 结局「人工成本分配已作废」
+  expect: 步 5 otherwise；结局「人工成本分配已作废」
+- id: PRC-96-S11
+  path: 作废时该运行已过账，拒绝（改走冲销）
+  outcome: 已拒收
+  covers:
+  - 步 5 出口：该运行已过账
+  expect: 步 5 出口：该运行已过账
+- id: PRC-96-S12
+  path: 作废后本期可再跑一次有效运行（INV-89 一次有效按作废后失效计）
+  outcome: 人工成本分配已过账
+  covers:
+  - 作废后重跑
+  expect: 作废后重跑
+- id: PRC-96-S13
+  path: 已过账的人工成本分配运行有误，经审批冲销并重过账 → 结束（人工成本分配已冲销）
+  outcome: 人工成本分配已冲销
+  covers:
+  - 冲销入口
+  - 结局「人工成本分配已冲销」
+  expect: 冲销入口；结局「人工成本分配已冲销」
+- id: PRC-96-S14
+  path: 人工成本分配运行冲销审批驳回
+  outcome: 冲销已驳回
+  covers:
+  - 冲销审批驳回
+  expect: 冲销审批驳回
+- id: PRC-96-S15
+  path: 人工成本分配运行冲销审批前撤回
+  outcome: 已撤回
+  covers:
+  - 冲销审批撤回
+  expect: 冲销审批撤回
+- id: PRC-96-S16
+  path: 原运行所属期间已关账：不再冲原运行，差额进下期运行（ADR-0045 决定 2）
+  outcome: 差额进下期运行
+  covers:
+  - 步 7 出口：原运行所属期间已关账
+  expect: 步 7 出口：原运行所属期间已关账
+- id: PRC-96-S17
+  path: 人工成本分配运行已冲销过，再次冲销被拒
+  outcome: 已拒收
+  covers:
+  - 步 7 出口：该运行已冲销过
+  expect: 步 7 出口：该运行已冲销过
+- id: PRC-96-S18
+  path: 人工成本分配运行冲销时期间已关账：落开放期间并标原期间
+  outcome: 人工成本分配已冲销
+  covers:
+  - 步 8 期间闸门路由
+  expect: 步 8 期间闸门路由
+- id: PRC-96-S19
+  path: 人工成本分配运行冲销被过账管道拒收
+  outcome: 过账被拒收
+  covers:
+  - 步 8 出口：过账管道拒收
+  expect: 步 8 出口：过账管道拒收
+- id: PRC-96-S20
+  path: 第 4 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 4 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 4 出口：期间关账中；结局「期间关账中待重试」
+- id: PRC-96-S21
+  path: 冲销并重过账：过账管道拒收（原事实不存在或已被冲销、该法人无开放期间、借贷不平），拒收并告警
+  outcome: 过账被拒收
+  covers:
+  - 步 8 出口：过账管道拒收（原事实不存在或已被冲销、该法人无开放期间、借贷不平），拒收并告警
+  expect: 结束（过账被拒收）
 PRC-97:
 - id: PRC-97-S01
   path: 编制 → 财务负责人批准 → 期间首日生效
@@ -1880,6 +2152,12 @@ PRC-97:
   covers:
   - AR-12
   expect: 按 AR-12 路由审批
+- id: PRC-97-S10
+  path: 批准人与编制人为同一人：命令被拒，改由他人批准（INV-131）
+  outcome: null
+  covers:
+  - 步 2 出口：批准人与编制人为同一人
+  expect: 步 2 出口：批准人与编制人为同一人
 PRC-98:
 - id: PRC-98-S01
   path: 试算 → 合计等于池金额 → 生效
@@ -1924,6 +2202,62 @@ PRC-98:
   - 步 2 规则提示（不设审批）
   - 结局「分摊已生效」
   expect: 步 2 规则提示（不设审批）；结局「分摊已生效」
+- id: PRC-98-S08
+  path: 已过账的分摊运行有误，经审批冲销并重过账 → 结束（分摊已冲销）
+  outcome: 分摊已冲销
+  covers:
+  - 冲销入口
+  - 结局「分摊已冲销」
+  expect: 冲销入口；结局「分摊已冲销」
+- id: PRC-98-S09
+  path: 分摊运行冲销审批驳回
+  outcome: 冲销已驳回
+  covers:
+  - 冲销审批驳回
+  expect: 冲销审批驳回
+- id: PRC-98-S10
+  path: 分摊运行冲销审批前撤回
+  outcome: 已撤回
+  covers:
+  - 冲销审批撤回
+  expect: 冲销审批撤回
+- id: PRC-98-S11
+  path: 原运行所属期间已关账：不再冲原运行，差额进下期运行（ADR-0045 决定 2）
+  outcome: 差额进下期运行
+  covers:
+  - 步 4 出口：原运行所属期间已关账
+  expect: 步 4 出口：原运行所属期间已关账
+- id: PRC-98-S12
+  path: 分摊运行已冲销过，再次冲销被拒
+  outcome: 已拒收
+  covers:
+  - 步 4 出口：该运行已冲销过
+  expect: 步 4 出口：该运行已冲销过
+- id: PRC-98-S13
+  path: 分摊运行冲销时期间已关账：落开放期间并标原期间
+  outcome: 分摊已冲销
+  covers:
+  - 步 5 期间闸门路由
+  expect: 步 5 期间闸门路由
+- id: PRC-98-S14
+  path: 分摊运行冲销被过账管道拒收
+  outcome: 过账被拒收
+  covers:
+  - 步 5 出口：过账管道拒收
+  expect: 步 5 出口：过账管道拒收
+- id: PRC-98-S15
+  path: 第 5 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 5 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 5 出口：期间关账中；结局「期间关账中待重试」
+- id: PRC-98-S16
+  path: 冲销并重过账：过账管道拒收（原事实不存在或已被冲销、该法人无开放期间、借贷不平），拒收并告警
+  outcome: 过账被拒收
+  covers:
+  - 步 5 出口：过账管道拒收（原事实不存在或已被冲销、该法人无开放期间、借贷不平），拒收并告警
+  expect: 结束（过账被拒收）
 PRC-99:
 - id: PRC-99-S01
   path: 非 IT 资产建卡（读协议 → 登记公司资产）
@@ -2027,6 +2361,13 @@ PRC-99:
   covers:
   - 步 6 出口：该法人无开放期间可落（过账管道拒收），拒收并告警
   expect: 结束（已拒收）；告警
+- id: PRC-99-S27
+  path: 第 6 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 6 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 6 出口：期间关账中；结局「期间关账中待重试」
 PRC-100:
 - id: PRC-100-S01
   path: 第 2 步：批准人与起草人为同一人，命令被拒，改由他人批准 → 转第 2 步
@@ -2106,6 +2447,44 @@ PRC-100:
   covers:
   - 端到端：已发布
   expect: 端到端：已发布
+- id: PRC-100-S13
+  path: 起草并发布期末结转模板版本（生效日为期间首日）
+  outcome: 已发布
+  covers:
+  - 步 7、8
+  - INV-136
+  expect: 步 7、8；INV-136
+- id: PRC-100-S14
+  path: 期末结转模板版本：批准人与起草人为同一人，命令被拒（INV-131）
+  outcome: null
+  covers:
+  - 步 8 出口：批准人与起草人为同一人
+  expect: 步 8 出口：批准人与起草人为同一人
+- id: PRC-100-S15
+  path: 期末结转模板版本：生效日不是期间首日，拒收（INV-136）
+  outcome: 已拒收
+  covers:
+  - 步 8 出口：生效日不是期间首日
+  expect: 步 8 出口：生效日不是期间首日
+- id: PRC-100-S16
+  path: 起草并发布现金流量项目表版本（两账共用，生效日为期间首日）
+  outcome: 已发布
+  covers:
+  - 步 9、10
+  - INV-136
+  expect: 步 9、10；INV-136
+- id: PRC-100-S17
+  path: 现金流量项目表版本：批准人与起草人为同一人，命令被拒（INV-131）
+  outcome: null
+  covers:
+  - 步 10 出口：批准人与起草人为同一人
+  expect: 步 10 出口：批准人与起草人为同一人
+- id: PRC-100-S18
+  path: 现金流量项目表版本：生效日不是期间首日或期间已关账，拒收
+  outcome: 已拒收
+  covers:
+  - 步 10 出口：生效日不是期间首日
+  expect: 步 10 出口：生效日不是期间首日
 PRC-101:
 - id: PRC-101-S01
   path: 第 1 步：前置检查未通过 → 结束（检查未通过保持开放）
@@ -2182,6 +2561,26 @@ PRC-101:
   covers:
   - 步 3 超时
   expect: 发出提醒，不自动通过、不中断
+- id: PRC-101-S13
+  path: 确认关账：带检查结果摘要，B-19 写审计记录（B-19 → platform.audit）
+  outcome: 已关账
+  covers:
+  - 步 3 结局「已关账」
+  - 审计记录
+  expect: 步 3 结局「已关账」；审计记录
+- id: PRC-101-S14
+  path: 存在未关闭的超容差勾稽差异案：检查未通过（INV-135）
+  outcome: 检查未通过保持开放
+  covers:
+  - 步 1 出口：前置检查未通过
+  - INV-135
+  expect: 步 1 出口：前置检查未通过；INV-135
+- id: PRC-101-S15
+  path: 发起关账后到确认前，本期业务日期的过账候选返回可重试（INV-92），确认后重试落开放期间并标原期间
+  outcome: null
+  covers:
+  - INV-92 新写法
+  expect: INV-92 新写法
 PRC-102:
 - id: PRC-102-S01
   path: 第 1 步：本年度已有生效的第 13 期启用登记 → 转第 3 步
@@ -2347,38 +2746,38 @@ PRC-104:
   - 结局 对账未完成
   expect: 出口 1.分支；结局 对账未完成
 - id: PRC-104-S02
-  path: 第 1 步：上述均不成立 → 转第 2 步
+  path: 第 1 步：上述均不成立 → 转第 3 步
   outcome: null
   covers:
   - 出口 1.otherwise
   expect: 出口 1.otherwise
 - id: PRC-104-S03
-  path: 第 2 步：差异清零 → 结束（差异已清零）
+  path: 第 3 步：差异清零 → 结束（差异已清零）
   outcome: null
   covers:
   - 出口 2.分支
   - 结局 差异已清零
   expect: 出口 2.分支；结局 差异已清零
 - id: PRC-104-S04
-  path: 第 2 步：上述均不成立 → 转第 3 步
+  path: 第 3 步：上述均不成立 → 转第 4 步
   outcome: null
   covers:
   - 出口 2.otherwise
   expect: 出口 2.otherwise
 - id: PRC-104-S05
-  path: 第 3 步：签字人与登记差异者为同一人，命令被拒，改由他人签字 → 转第 3 步
+  path: 第 4 步：签字人与登记差异者为同一人，命令被拒，改由他人签字 → 转第 4 步
   outcome: null
   covers:
   - 出口 3.分支
   expect: 出口 3.分支
 - id: PRC-104-S06
-  path: 第 3 步：不接受差异，退回重新查明并登记 → 转第 2 步
+  path: 第 4 步：不接受差异，退回重新查明并登记 → 转第 3 步
   outcome: null
   covers:
   - 出口 3.分支
   expect: 出口 3.分支
 - id: PRC-104-S07
-  path: 第 3 步：上述均不成立 → 结束（已签字接受）
+  path: 第 4 步：上述均不成立 → 结束（已签字接受）
   outcome: null
   covers:
   - 出口 3.otherwise
@@ -2390,6 +2789,19 @@ PRC-104:
   covers:
   - 端到端：已签字接受
   expect: 端到端：已签字接受
+- id: PRC-104-S09
+  path: 对账读到 U8C 记账结果，已推送凭证置已确认记账（已推送 → 已确认记账）
+  outcome: null
+  covers:
+  - 步 2 otherwise
+  - 登记外部记账确认
+  expect: 步 2 otherwise；登记外部记账确认
+- id: PRC-104-S10
+  path: 记账结果对应的凭证未推送或外部键不符：不置已确认，计入对账差异
+  outcome: null
+  covers:
+  - 步 2 出口：凭证未推送或外部键不符
+  expect: 步 2 出口：凭证未推送或外部键不符
 PRC-105:
 - id: PRC-105-S01
   path: 第 1 步：映射的科目在所引用的科目表版本中不存在，拒收并告警 → 结束（已拒收）
@@ -2532,18 +2944,18 @@ PRC-111:
   expect: 步 3 otherwise；结局「出资实缴已更正」
 PRC-112:
 - id: PRC-112-S01
-  path: 读、草拟、决议、应付、全额支付、过账
+  path: 读、草拟、决议、确认应付、过账（决议时点确认应付股利）
   outcome: null
   covers:
   - 主路径
-  - 已支付
-  expect: 主路径；已支付
+  - 已决议待支付
+  expect: 主路径；已决议待支付
 - id: PRC-112-S07
   path: 过账时期间已关账：落开放期间并标原期间
-  outcome: 已支付
+  outcome: 已决议待支付
   covers:
   - 期间闸门路由
-  - 结局「已支付」
+  - 结局「已决议待支付」
   expect: 期间闸门路由；结局「已支付」
 - id: PRC-112-S08
   path: 过账被管道拒收（该法人无开放期间、借贷不平或法人不一致）
@@ -2558,12 +2970,6 @@ PRC-112:
   covers:
   - 结局「已决议待支付」
   expect: 结束于「已决议待支付」
-- id: PRC-112-S10
-  path: 端到端：登记利润分配支付 → 结局「已部分支付」
-  outcome: 已部分支付
-  covers:
-  - 结局「已部分支付」
-  expect: 结束于「已部分支付」
 - id: PRC-112-S11
   path: 端到端：读取已关账年度与可分配利润 → 草拟利润分配 → 决议利润分配 → 结局「决议未通过」
   outcome: 决议未通过
@@ -2582,39 +2988,59 @@ PRC-112:
   covers:
   - 步 3 出口：决议额超过所属年度可分配利润（INV-117）→ 拒收并告警
   expect: 结束（已拒收）；告警
-- id: PRC-112-S14
-  path: 登记利润分配支付：支付合计小于决议金额 → 结束（已部分支付）
-  outcome: 已部分支付
-  covers:
-  - 步 6 出口：支付合计小于决议金额
-  expect: 结束（已部分支付）
 - id: PRC-112-S15
-  path: 登记利润分配支付超时：超过 P90D 未处理，提醒并升级给 SH-M1（非中断，主线照常）
+  path: 提交应付利润超时：决议后超过 P90D 应付仍未结清，提醒并升级给 SH-M1（非中断，主线照常）
   outcome: null
   covers:
-  - 步 6 超时
-  expect: 发出提醒，不自动通过、不中断
+  - 步 4 超时
+  expect: 步 4 超时
 - id: PRC-112-S16
-  path: 股东会撤销利润分配决议，财务登记 → 结束（决议已撤销）
+  path: 股东会撤销利润分配决议，财务登记 → 注销应付 → 冲销过账 → 结束（决议已撤销）
   outcome: 决议已撤销
   covers:
   - 撤销触发入口
-  - 步 7 otherwise
-  - 结局「决议已撤销」
-  expect: 撤销触发入口；步 7 otherwise；结局「决议已撤销」
+  - 步 6 otherwise
+  - 步 8 结局「决议已撤销」
+  expect: 撤销触发入口；步 6 otherwise；结局「决议已撤销」
 - id: PRC-112-S17
   path: 撤销决议未通过 → 结束（撤销未通过）
   outcome: 撤销未通过
   covers:
-  - 步 7 出口：撤销决议未通过
+  - 步 6 出口：撤销决议未通过
   - 结局「撤销未通过」
-  expect: 步 7 出口：撤销决议未通过；结局「撤销未通过」
+  expect: 步 6 出口：撤销决议未通过；结局「撤销未通过」
 - id: PRC-112-S18
   path: 撤销利润分配决议：已有支付（部分支付或已支付），不可撤销 → 结束（已拒收）
   outcome: 已拒收
   covers:
-  - 步 7 出口：已有支付（部分支付或已支付），不可撤销，拒收并告警
-  expect: 步 7 出口：已有支付（部分支付或已支付），不可撤销，拒收并告警
+  - 步 6 出口：已有支付（部分支付或已支付），不可撤销，拒收并告警
+  expect: 步 6 出口：已有支付（部分支付或已支付），不可撤销，拒收并告警
+- id: PRC-112-S19
+  path: 撤销决议后注销未付应付；该决议的应付已有核销，拒收（S-34 ②）
+  outcome: 已拒收
+  covers:
+  - 步 7 出口：应付已有核销
+  expect: 步 7 出口：应付已有核销
+- id: PRC-112-S20
+  path: 撤销决议后冲销过账被管道拒收
+  outcome: 过账被拒收
+  covers:
+  - 步 8 出口：过账管道拒收
+  - 结局「过账被拒收」
+  expect: 步 8 出口：过账管道拒收；结局「过账被拒收」
+- id: PRC-112-S21
+  path: 撤销后利润分配置「已撤销」，不用「已冲销」（S-34 ②）
+  outcome: 决议已撤销
+  covers:
+  - 状态机：已撤销
+  expect: 状态机：已撤销
+- id: PRC-112-S22
+  path: 第 5 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 5 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 5 出口：期间关账中；结局「期间关账中待重试」
 PRC-114:
 - id: PRC-114-S07
   path: 端到端：登记出资退回 → 确认应付 → 提交过账候选 → 结局「已退回」
@@ -2670,6 +3096,13 @@ PRC-114:
   covers:
   - 步 3 出口：所属期间已关账且退回后已实缴余额为零，自动落当前开放期间并标原期间
   expect: 结束（已退回）
+- id: PRC-114-S16
+  path: 第 3 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 3 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 3 出口：期间关账中；结局「期间关账中待重试」
 PRC-131:
 - id: PRC-131-S01
   path: 付款成功，全额核销
@@ -2751,6 +3184,13 @@ PRC-132:
   - 管道拒收
   - 结局「过账被拒收」
   expect: 管道拒收；结局「过账被拒收」
+- id: PRC-132-S05
+  path: 第 1 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 1 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 1 出口：期间关账中；结局「期间关账中待重试」
 PRC-133:
 - id: PRC-133-S01
   path: 报销应付已结清，置已付
@@ -2897,3 +3337,904 @@ PRC-159:
   covers:
   - 步 2 出口：过账管道拒收（该法人无开放期间、借贷不平或法人不一致），拒收并告警
   expect: 步 2 出口：过账管道拒收（该法人无开放期间、借贷不平或法人不一致），拒收并告警
+- id: PRC-159-S09
+  path: 第 2 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 2 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 2 出口：期间关账中；结局「期间关账中待重试」
+PRC-163:
+- id: PRC-163-S01
+  path: 应付已结清，来源为利润分配，该股东分配额全部付清，置已支付
+  outcome: 已支付
+  covers:
+  - 结局已支付
+  expect: 结局已支付
+- id: PRC-163-S02
+  path: 单张应付只部分付款，只发「应付已核销」，本策略不触发，利润分配状态不变
+  outcome: null
+  covers:
+  - 单一触发（S-34 ③）；部分付款不触发
+  expect: 单一触发（S-34 ③）；部分付款不触发
+- id: PRC-163-S03
+  path: 同一应付事件重复到达，按应付 ID 幂等
+  outcome: 重复事件已忽略
+  covers:
+  - 结局重复事件已忽略
+  expect: 结局重复事件已忽略
+- id: PRC-163-S04
+  path: 应付来源是供方、薪酬等，非利润分配
+  outcome: 已忽略非利润分配来源
+  covers:
+  - 结局已忽略非利润分配来源
+  expect: 结局已忽略非利润分配来源
+- id: PRC-163-S05
+  path: 读不到应付或来源利润分配，拒收并告警
+  outcome: 已拒收
+  covers:
+  - 结局已拒收（读不到）
+  expect: 结局已拒收（读不到）
+- id: PRC-163-S06
+  path: 利润分配不在已决议或部分支付（决议已撤销），拒收并告警
+  outcome: 已拒收
+  covers:
+  - 结局已拒收（状态不符）
+  expect: 结局已拒收（状态不符）
+- id: PRC-163-S07
+  path: 已结清但仍有其他股东未支付的分配额
+  outcome: 已部分支付
+  covers:
+  - 出口登记后仍有未支付的分配额；结局已部分支付
+  expect: 出口登记后仍有未支付的分配额；结局已部分支付
+- id: PRC-163-S08
+  path: 结清使支付合计超过决议金额（INV-117）→ 拒收并告警
+  outcome: 已拒收
+  covers:
+  - 出口：支付合计超过决议金额
+  expect: 出口：支付合计超过决议金额
+PRC-164:
+- id: PRC-164-S01
+  path: 收入确认类事实被冲销并重过账，已有配对结转，冲回
+  outcome: 已冲回成本结转
+  covers:
+  - 结局已冲回成本结转
+  expect: 结局已冲回成本结转
+- id: PRC-164-S02
+  path: 被更正的事实是非收入确认类型
+  outcome: 非收入确认事实
+  covers:
+  - 结局非收入确认事实
+  expect: 结局非收入确认事实
+- id: PRC-164-S03
+  path: 同一事实的更正事件重复到达
+  outcome: 已冲回（幂等）
+  covers:
+  - 结局已冲回（幂等）
+  expect: 结局已冲回（幂等）
+- id: PRC-164-S04
+  path: 该事实没有已配对的成本结转
+  outcome: 无需冲回
+  covers:
+  - 结局无需冲回
+  expect: 结局无需冲回
+- id: PRC-164-S05
+  path: 冲回所属期间已关账且有开放期间，落开放期间并标原期间
+  outcome: null
+  covers:
+  - 期间闸门（ADR-0045 决定 2）
+  expect: 期间闸门（ADR-0045 决定 2）
+- id: PRC-164-S06
+  path: 该法人无开放期间，过账管道拒收并告警
+  outcome: 已拒收
+  covers:
+  - 结局已拒收
+  expect: 结局已拒收
+- id: PRC-164-S07
+  path: INV-88 待定（Q20）下配对口径按现稿冲回，定后复测
+  outcome: null
+  covers:
+  - 待定 Q20 的路径
+  expect: 待定 Q20 的路径
+- id: PRC-164-S08
+  path: 第 1 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 1 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 1 出口：期间关账中；结局「期间关账中待重试」
+- id: PRC-164-S09
+  path: 冲回成本结转：该事实的已配对结转已冲回过（重复事件，幂等）
+  outcome: 已冲回（幂等）
+  covers:
+  - 步 1 出口：该事实的已配对结转已冲回过（重复事件，幂等）
+  expect: 结束（已冲回（幂等））
+PRC-165:
+- id: PRC-165-S01
+  path: 编制 N=6 个月并由财务负责人批准，版本生效
+  outcome: 版本草稿已编制
+  covers:
+  - 结局版本草稿已编制、版本已生效
+  expect: 结局版本草稿已编制、版本已生效
+- id: PRC-165-S02
+  path: N 缺失或不是正整数月
+  outcome: 已拒收
+  covers:
+  - 结局已拒收
+  expect: 结局已拒收
+- id: PRC-165-S03
+  path: 批准人就是编制人
+  outcome: 已拒收
+  covers:
+  - 不相容职务；结局已拒收
+  expect: 不相容职务；结局已拒收
+- id: PRC-165-S04
+  path: 财务负责人退回草稿
+  outcome: 已退回
+  covers:
+  - 结局已退回
+  expect: 结局已退回
+- id: PRC-165-S05
+  path: 新版本生效，原生效版本置已取代
+  outcome: null
+  covers:
+  - 状态已取代
+  expect: 状态已取代
+- id: PRC-165-S06
+  path: PRC-15 按起算日所在版本的 N 判定超期
+  outcome: null
+  covers:
+  - 跨流程联动；生效日不追溯
+  expect: 跨流程联动；生效日不追溯
+PRC-166:
+- id: PRC-166-S01
+  path: 编制类别折旧政策并批准，版本生效
+  outcome: 版本草稿已编制
+  covers:
+  - 结局版本草稿已编制、版本已生效
+  expect: 结局版本草稿已编制、版本已生效
+- id: PRC-166-S02
+  path: 折旧方法、年限或残值率缺失
+  outcome: 已拒收
+  covers:
+  - 结局已拒收
+  expect: 结局已拒收
+- id: PRC-166-S03
+  path: 批准人就是编制人
+  outcome: 已拒收
+  covers:
+  - 不相容职务；结局已拒收
+  expect: 不相容职务；结局已拒收
+- id: PRC-166-S04
+  path: 财务负责人退回
+  outcome: 已退回
+  covers:
+  - 结局已退回
+  expect: 结局已退回
+- id: PRC-166-S05
+  path: 新版本生效，原版本置已取代
+  outcome: null
+  covers:
+  - 状态已取代
+  expect: 状态已取代
+- id: PRC-166-S06
+  path: 投产日在用资产初始化（SQ-25）后按当前版本计提
+  outcome: null
+  covers:
+  - 迁入边界，待 SQ-25
+  expect: 迁入边界，待 SQ-25
+PRC-167:
+- id: PRC-167-S01
+  path: 财务编制期初余额，财务负责人签字，生效
+  outcome: 期初余额已编制
+  covers:
+  - 结局期初余额已编制、期初余额已生效
+  expect: 结局期初余额已编制、期初余额已生效
+- id: PRC-167-S02
+  path: 该法人与账簿已有生效期初余额，再编制
+  outcome: 已拒收
+  covers:
+  - INV-133；结局已拒收
+  expect: INV-133；结局已拒收
+- id: PRC-167-S03
+  path: 借贷不平衡
+  outcome: 已拒收
+  covers:
+  - INV-134；结局已拒收
+  expect: INV-134；结局已拒收
+- id: PRC-167-S04
+  path: 项目拆分合计不等于法人 × 科目余额
+  outcome: 已拒收
+  covers:
+  - INV-134；结局已拒收
+  expect: INV-134；结局已拒收
+- id: PRC-167-S05
+  path: 签字人就是编制人
+  outcome: 已拒收
+  covers:
+  - 不相容职务；结局已拒收
+  expect: 不相容职务；结局已拒收
+- id: PRC-167-S06
+  path: 财务负责人退回，回编制中
+  outcome: 已退回
+  covers:
+  - 结局已退回
+  expect: 结局已退回
+- id: PRC-167-S07
+  path: 签字时数据已变致借贷不平
+  outcome: 已拒收
+  covers:
+  - 签字出口 INV-134；结局已拒收
+  expect: 签字出口 INV-134；结局已拒收
+- id: PRC-167-S08
+  path: U8C 年结后出现差额，生效后不改，走 AGG-98 期初调整
+  outcome: null
+  covers:
+  - INV-133 边界，生效后不改
+  expect: INV-133 边界，生效后不改
+PRC-168:
+- id: PRC-168-S01
+  path: 编制口径版本并批准，版本生效
+  outcome: 版本草稿已编制
+  covers:
+  - 结局版本草稿已编制、版本已生效
+  expect: 结局版本草稿已编制、版本已生效
+- id: PRC-168-S02
+  path: 口径内指标映射不完整
+  outcome: 已拒收
+  covers:
+  - 结局已拒收
+  expect: 结局已拒收
+- id: PRC-168-S03
+  path: 批准人就是编制人
+  outcome: 已拒收
+  covers:
+  - 不相容职务；结局已拒收
+  expect: 不相容职务；结局已拒收
+- id: PRC-168-S04
+  path: 批准人角色待 U-17 答复，暂由财务负责人批
+  outcome: null
+  covers:
+  - 待定 U-17 路径
+  expect: 待定 U-17 路径
+- id: PRC-168-S05
+  path: 财务负责人退回
+  outcome: 已退回
+  covers:
+  - 结局已退回
+  expect: 结局已退回
+- id: PRC-168-S06
+  path: 新版本生效，原版本置已取代
+  outcome: null
+  covers:
+  - 状态已取代
+  expect: 状态已取代
+PRC-169:
+- id: PRC-169-S01
+  path: 逐期勾稽发现超容差差异，开案
+  outcome: 差异案已登记
+  covers:
+  - 结局差异案已登记
+  expect: 结局差异案已登记
+- id: PRC-169-S02
+  path: 同一勾稽项已有未关闭差异案，重复登记
+  outcome: 重复登记已忽略
+  covers:
+  - 结局重复登记已忽略
+  expect: 结局重复登记已忽略
+- id: PRC-169-S03
+  path: 财务解释差异，关闭
+  outcome: 已解释关闭
+  covers:
+  - 结局已解释关闭
+  expect: 结局已解释关闭
+- id: PRC-169-S04
+  path: 财务更正（冲销并重过账）后差异清零，关闭
+  outcome: 已修正关闭
+  covers:
+  - 结局已修正关闭
+  expect: 结局已修正关闭
+- id: PRC-169-S05
+  path: 更正后差异仍超容差
+  outcome: 已拒收
+  covers:
+  - 结局已拒收
+  expect: 结局已拒收
+- id: PRC-169-S06
+  path: 对已关闭差异案再次处置
+  outcome: 已拒收
+  covers:
+  - 结局已拒收
+  expect: 结局已拒收
+- id: PRC-169-S07
+  path: 豁免经财务负责人确认，关闭
+  outcome: 已豁免关闭
+  covers:
+  - 结局已豁免关闭
+  expect: 结局已豁免关闭
+- id: PRC-169-S08
+  path: 豁免处置人与确认人为同一人
+  outcome: 已拒收
+  covers:
+  - 不相容职务；结局已拒收
+  expect: 不相容职务；结局已拒收
+- id: PRC-169-S09
+  path: 财务负责人不同意豁免，退回
+  outcome: 已退回
+  covers:
+  - 结局已退回
+  expect: 结局已退回
+- id: PRC-169-S10
+  path: 存在未关闭差异案，PRC-101 关账前置检查不通过
+  outcome: null
+  covers:
+  - INV-135 联动
+  expect: INV-135 联动
+PRC-170:
+- id: PRC-170-S01
+  path: 部门费用，部门负责人批准
+  outcome: 已批准
+  covers:
+  - 结局已批准；责任人解析（部门）
+  expect: 结局已批准；责任人解析（部门）
+- id: PRC-170-S02
+  path: 项目费用，项目经理批准
+  outcome: null
+  covers:
+  - 责任人解析（项目）
+  expect: 责任人解析（项目）
+- id: PRC-170-S03
+  path: 额度超过阈值，加审财务负责人
+  outcome: null
+  covers:
+  - AR-01 加审（阈值待定）
+  expect: AR-01 加审（阈值待定）
+- id: PRC-170-S04
+  path: 审批驳回（驳回命令独立：驳回费用事前申请）
+  outcome: 已驳回
+  covers:
+  - 结局已驳回
+  expect: 结局已驳回
+- id: PRC-170-S05
+  path: 提交后审批前撤回
+  outcome: 已撤回
+  covers:
+  - 结局已撤回
+  expect: 结局已撤回
+- id: PRC-170-S06
+  path: 所归属项目已结项
+  outcome: 已拒收（项目已关闭）
+  covers:
+  - 结局已拒收（项目已关闭）
+  expect: 结局已拒收（项目已关闭）
+- id: PRC-170-S07
+  path: 费用类别不是业务招待
+  outcome: 已拒收（类别不在范围）
+  covers:
+  - 结局已拒收（类别不在范围），U-34
+  expect: 结局已拒收（类别不在范围），U-34
+- id: PRC-170-S08
+  path: 审批超过期限，提醒并升级上级
+  outcome: null
+  covers:
+  - 超时（T-01）
+  expect: 超时（T-01）
+- id: PRC-170-S09
+  path: 责任人就是申请人本人
+  outcome: null
+  covers:
+  - AR-11（待用户定）
+  expect: AR-11（待用户定）
+- id: PRC-170-S10
+  path: 归属对象无责任人或责任人缺位
+  outcome: null
+  covers:
+  - AR-12（待用户定）
+  expect: AR-12（待用户定）
+- id: PRC-170-S11
+  path: 已批准的事前申请，申请人关闭
+  outcome: 已关闭
+  covers:
+  - 结局已关闭
+  expect: 结局已关闭
+- id: PRC-170-S12
+  path: 对未批准的事前申请执行关闭
+  outcome: 已拒收（状态不符）
+  covers:
+  - 结局已拒收（状态不符）
+  expect: 结局已拒收（状态不符）
+- id: PRC-170-S13
+  path: 费用事前申请审批超时：超过 P3D 未处理，提醒并升级给 审批人上级（非中断，主线照常）
+  outcome: null
+  covers:
+  - 步 3 超时：费用事前申请审批
+  expect: 步 3 超时
+PRC-171:
+- id: PRC-171-S01
+  path: 订单到达，按已批出差申请自动归属
+  outcome: 订单已登记
+  covers:
+  - 结局订单已登记
+  expect: 结局订单已登记
+- id: PRC-171-S02
+  path: 同一订单消息重复到达
+  outcome: 重复订单已忽略
+  covers:
+  - 结局重复订单已忽略
+  expect: 结局重复订单已忽略
+- id: PRC-171-S03
+  path: 订单无对应已批出差申请，财务人工归属
+  outcome: 订单已登记
+  covers:
+  - 出口无法自动归属；结局订单已登记
+  expect: 出口无法自动归属；结局订单已登记
+- id: PRC-171-S04
+  path: 同一月账单文件重复到达
+  outcome: 重复账单已忽略
+  covers:
+  - 结局重复账单已忽略
+  expect: 结局重复账单已忽略
+- id: PRC-171-S05
+  path: 月账单无法解析或与订单严重不符
+  outcome: 账单已拒收
+  covers:
+  - 结局账单已拒收
+  expect: 结局账单已拒收
+- id: PRC-171-S06
+  path: 核对无差异，确认应付，过账
+  outcome: 应付已确认
+  covers:
+  - 结局应付已确认
+  expect: 结局应付已确认
+- id: PRC-171-S07
+  path: 核对有差异，与服务商确认并更正账单后重核
+  outcome: 应付已确认
+  covers:
+  - 差异出口与回环；结局应付已确认
+  expect: 差异出口与回环；结局应付已确认
+- id: PRC-171-S08
+  path: 差异确认不予结算，剔除订单后继续
+  outcome: null
+  covers:
+  - 差异处理出口
+  expect: 差异处理出口
+- id: PRC-171-S09
+  path: 订单已被员工报销占用，从账单剔除
+  outcome: null
+  covers:
+  - INV-137
+  expect: INV-137
+- id: PRC-171-S10
+  path: 剔除后无可结算订单或退改后应付为零
+  outcome: 无需确认应付
+  covers:
+  - 结局无需确认应付
+  expect: 结局无需确认应付
+- id: PRC-171-S11
+  path: 差旅服务商未作为供方准入合格
+  outcome: 已拒收（服务商未准入）
+  covers:
+  - 结局已拒收（服务商未准入）
+  expect: 结局已拒收（服务商未准入）
+- id: PRC-171-S12
+  path: 所属期间已关账，落开放期间并标原期间
+  outcome: null
+  covers:
+  - 期间闸门
+  expect: 期间闸门
+- id: PRC-171-S13
+  path: 过账管道拒收
+  outcome: 过账被拒收
+  covers:
+  - 结局过账被拒收
+  expect: 结局过账被拒收
+- id: PRC-171-S14
+  path: 账单到达后超过期限仍未核对，升级财务负责人
+  outcome: null
+  covers:
+  - 超时（T-01）
+  expect: 超时（T-01）
+- id: PRC-171-S15
+  path: 付款方式为预充值而非月结
+  outcome: null
+  covers:
+  - 待定 U-39 路径
+  expect: 待定 U-39 路径
+- id: PRC-171-S16
+  path: 第 7 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 7 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 7 出口：期间关账中；结局「期间关账中待重试」
+- id: PRC-171-S17
+  path: 登记差旅订单与月账单：订单已登记过（消息重复，按订单标识幂等）
+  outcome: 重复订单已忽略
+  covers:
+  - 步 1 出口：订单已登记过（消息重复，按订单标识幂等）
+  expect: 结束（重复订单已忽略）
+- id: PRC-171-S18
+  path: 核对差旅月账单：存在账单行无订单、订单无账单行、金额不符或订单已被员工报销
+  outcome: null
+  covers:
+  - 步 4 出口：存在账单行无订单、订单无账单行、金额不符或订单已被员工报销
+  expect: 转步 5
+- id: PRC-171-S19
+  path: 提交过账候选：过账管道拒收（该法人无开放期间、借贷不平或法人不一致），拒收并告警
+  outcome: 过账被拒收
+  covers:
+  - 步 7 出口：过账管道拒收（该法人无开放期间、借贷不平或法人不一致），拒收并告警
+  expect: 结束（过账被拒收）
+PRC-172:
+- id: PRC-172-S01
+  path: 出差申请经审批、批准、同步成功
+  outcome: 出差申请已同步
+  covers:
+  - 结局出差申请已同步
+  expect: 结局出差申请已同步
+- id: PRC-172-S02
+  path: 审批驳回（驳回命令独立：驳回出差申请）
+  outcome: 已驳回
+  covers:
+  - 结局已驳回
+  expect: 结局已驳回
+- id: PRC-172-S03
+  path: 提交后审批前撤回
+  outcome: 已撤回
+  covers:
+  - 结局已撤回
+  expect: 结局已撤回
+- id: PRC-172-S04
+  path: 所归属项目已结项
+  outcome: 已拒收（项目已关闭）
+  covers:
+  - 结局已拒收（项目已关闭）
+  expect: 结局已拒收（项目已关闭）
+- id: PRC-172-S05
+  path: 同步差旅服务商失败
+  outcome: 同步失败（已告警，可重试）
+  covers:
+  - 结局同步失败（已告警，可重试）
+  expect: 结局同步失败（已告警，可重试）
+- id: PRC-172-S06
+  path: 审批超过期限，提醒并升级上级
+  outcome: null
+  covers:
+  - 超时（T-01）
+  expect: 超时（T-01）
+- id: PRC-172-S07
+  path: 费用估算超阈值，加审
+  outcome: null
+  covers:
+  - AR-01 加审（阈值待定）
+  expect: AR-01 加审（阈值待定）
+- id: PRC-172-S08
+  path: 责任人就是申请人本人
+  outcome: null
+  covers:
+  - AR-11（待用户定）
+  expect: AR-11（待用户定）
+- id: PRC-172-S09
+  path: 归属对象无责任人或责任人缺位
+  outcome: null
+  covers:
+  - AR-12（待用户定）
+  expect: AR-12（待用户定）
+- id: PRC-172-S10
+  path: 同步超过 1 小时未完成，告警财务
+  outcome: null
+  covers:
+  - 超时（把握低）
+  expect: 超时（把握低）
+- id: PRC-172-S11
+  path: 登记出差申请已同步：推送失败（服务商不可达或拒收）→ 告警并可重试
+  outcome: 同步失败（已告警，可重试）
+  covers:
+  - 步 5 出口：推送失败（服务商不可达或拒收）→ 告警并可重试
+  expect: 结束（同步失败（已告警，可重试））
+- id: PRC-172-S12
+  path: 出差申请审批超时：超过 P3D 未处理，提醒并升级给 审批人上级（非中断，主线照常）
+  outcome: null
+  covers:
+  - 步 3 超时：出差申请审批
+  expect: 步 3 超时
+- id: PRC-172-S13
+  path: 登记出差申请已同步超时：超过 PT1H 未处理，提醒并升级给 SH-E6（非中断，主线照常）
+  outcome: null
+  covers:
+  - 步 5 超时：登记出差申请已同步
+  expect: 步 5 超时
+PRC-173:
+- id: PRC-173-S01
+  path: 超标订单对应已批出差申请，责任人批准并回写
+  outcome: 已批准并回写
+  covers:
+  - 结局已批准并回写
+  expect: 结局已批准并回写
+- id: PRC-173-S02
+  path: 责任人驳回并回写
+  outcome: 已驳回并回写
+  covers:
+  - 结局已驳回并回写
+  expect: 结局已驳回并回写
+- id: PRC-173-S03
+  path: 订单无对应已批出差申请，规则拒绝并回写
+  outcome: 已回写拒绝（无已批出差申请）
+  covers:
+  - 结局已回写拒绝（无已批出差申请）
+  expect: 结局已回写拒绝（无已批出差申请）
+- id: PRC-173-S04
+  path: 回写失败，告警可重试
+  outcome: 回写失败（已告警，可重试）
+  covers:
+  - 结局回写失败（已告警，可重试）
+  expect: 结局回写失败（已告警，可重试）
+- id: PRC-173-S05
+  path: 同一超标订单消息重复到达
+  outcome: 重复事件已忽略
+  covers:
+  - 结局重复事件已忽略
+  expect: 结局重复事件已忽略
+- id: PRC-173-S06
+  path: 审批超过期限，升级上级
+  outcome: null
+  covers:
+  - 超时（T-01，把握低）
+  expect: 超时（T-01，把握低）
+- id: PRC-173-S07
+  path: 责任人就是出差人本人
+  outcome: null
+  covers:
+  - AR-11（待用户定）
+  expect: AR-11（待用户定）
+- id: PRC-173-S08
+  path: 超标金额超阈值，加审
+  outcome: null
+  covers:
+  - AR-01 加审（阈值待定）
+  expect: AR-01 加审（阈值待定）
+- id: PRC-173-S09
+  path: 登记超标订单待审批：该超标订单已登记过（消息重复，按订单标识幂等）
+  outcome: 重复事件已忽略
+  covers:
+  - 步 1 出口：该超标订单已登记过（消息重复，按订单标识幂等）
+  expect: 结束（重复事件已忽略）
+- id: PRC-173-S10
+  path: 登记超标订单待审批：订单对应的出差申请不存在或未批准（规则拒绝，不设人审）
+  outcome: null
+  covers:
+  - 步 1 出口：订单对应的出差申请不存在或未批准（规则拒绝，不设人审）
+  expect: 转步 4
+- id: PRC-173-S11
+  path: 批准差旅超标订单：回写失败（服务商不可达或拒收）→ 告警并可重试
+  outcome: 回写失败（已告警，可重试）
+  covers:
+  - 步 3 出口：回写失败（服务商不可达或拒收）→ 告警并可重试
+  expect: 结束（回写失败（已告警，可重试））
+- id: PRC-173-S12
+  path: 批准差旅超标订单：审批结论为驳回
+  outcome: 已驳回并回写
+  covers:
+  - 步 3 出口：审批结论为驳回
+  expect: 结束（已驳回并回写）
+- id: PRC-173-S13
+  path: 差旅超标订单审批超时：超过 PT12H 未处理，提醒并升级给 审批人上级（非中断，主线照常）
+  outcome: null
+  covers:
+  - 步 2 超时：差旅超标订单审批
+  expect: 步 2 超时
+PRC-174:
+- id: PRC-174-S01
+  path: 编制标准并批准，版本生效
+  outcome: 版本草稿已编制
+  covers:
+  - 结局版本草稿已编制、版本已生效
+  expect: 结局版本草稿已编制、版本已生效
+- id: PRC-174-S02
+  path: 标准缺差旅类型或天数档位
+  outcome: 已拒收
+  covers:
+  - 结局已拒收
+  expect: 结局已拒收
+- id: PRC-174-S03
+  path: 批准人就是编制人
+  outcome: 已拒收
+  covers:
+  - 不相容职务；结局已拒收
+  expect: 不相容职务；结局已拒收
+- id: PRC-174-S04
+  path: 财务负责人退回
+  outcome: 已退回
+  covers:
+  - 结局已退回
+  expect: 结局已退回
+- id: PRC-174-S05
+  path: 新版本生效，原版本置已取代
+  outcome: null
+  covers:
+  - 状态已取代
+  expect: 状态已取代
+- id: PRC-174-S06
+  path: 标准取值与定标人待 U-35 答复
+  outcome: null
+  covers:
+  - 待定 U-35 路径
+  expect: 待定 U-35 路径
+- id: PRC-174-S07
+  path: 报销补贴行取生效日所在版本
+  outcome: null
+  covers:
+  - 跨流程联动 PRC-87
+  expect: 跨流程联动 PRC-87
+PRC-175:
+- id: PRC-175-S01
+  path: 其他应付，责任人批准，登记应付已确认，过账
+  outcome: 其他应付已登记待付
+  covers:
+  - 结局其他应付已登记待付
+  expect: 结局其他应付已登记待付
+- id: PRC-175-S02
+  path: 预付款，责任人批准，登记预付款
+  outcome: 预付款已登记待付
+  covers:
+  - 结局预付款已登记待付
+  expect: 结局预付款已登记待付
+- id: PRC-175-S03
+  path: 审批驳回
+  outcome: 已驳回
+  covers:
+  - 结局已驳回
+  expect: 结局已驳回
+- id: PRC-175-S04
+  path: 提交后审批前撤回
+  outcome: 已撤回
+  covers:
+  - 结局已撤回
+  expect: 结局已撤回
+- id: PRC-175-S05
+  path: 往来方未登记、停用或供方角色未合格
+  outcome: 已拒收
+  covers:
+  - 结局已拒收
+  expect: 结局已拒收
+- id: PRC-175-S06
+  path: 付款类别不在 RULE-407 豁免清单内，照 AR-04 拒绝
+  outcome: 已拒收
+  covers:
+  - 出口豁免清单外；结局已拒收；SQ-29-豁免清单
+  expect: 出口豁免清单外；结局已拒收；SQ-29-豁免清单
+- id: PRC-175-S07
+  path: 付款对象为个人且性质为劳务报酬（外部代发）
+  outcome: 已拒收
+  covers:
+  - 出口外部代发；结局已拒收；SQ-29-外部代发
+  expect: 出口外部代发；结局已拒收；SQ-29-外部代发
+- id: PRC-175-S08
+  path: 金额超阈值，加审
+  outcome: null
+  covers:
+  - AR-01、AR-02 加审（阈值待定）
+  expect: AR-01、AR-02 加审（阈值待定）
+- id: PRC-175-S09
+  path: 收付款对象为第三方，附三方协议
+  outcome: null
+  covers:
+  - AR-15 加审
+  expect: AR-15 加审
+- id: PRC-175-S10
+  path: 往来方为关联方
+  outcome: null
+  covers:
+  - AR-07 加审
+  expect: AR-07 加审
+- id: PRC-175-S11
+  path: 所属期间已关账，落开放期间并标原期间
+  outcome: null
+  covers:
+  - 期间闸门
+  expect: 期间闸门
+- id: PRC-175-S12
+  path: 过账管道拒收
+  outcome: 过账被拒收
+  covers:
+  - 结局过账被拒收
+  expect: 结局过账被拒收
+- id: PRC-175-S13
+  path: 审批超过期限，升级上级
+  outcome: null
+  covers:
+  - 超时（T-01）
+  expect: 超时（T-01）
+- id: PRC-175-S14
+  path: 责任人就是申请人本人
+  outcome: null
+  covers:
+  - AR-11（待用户定）
+  expect: AR-11（待用户定）
+- id: PRC-175-S15
+  path: 归属组织单元或法人的责任人无法解析（缺位）
+  outcome: null
+  covers:
+  - AR-12、U-19（待用户定）
+  expect: AR-12、U-19（待用户定）
+- id: PRC-175-S16
+  path: 付款归属对象为项目，须从项目侧来源单据发起，拒收
+  outcome: 已拒收
+  covers:
+  - 出口归属对象为项目；结局已拒收（S-34 ④）
+  expect: 出口归属对象为项目；结局已拒收（S-34 ④）
+- id: PRC-175-S17
+  path: 第 6 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 6 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 6 出口：期间关账中；结局「期间关账中待重试」
+- id: PRC-175-S18
+  path: 直接付款审批：申请类型为预付款
+  outcome: null
+  covers:
+  - 步 3 出口：申请类型为预付款
+  expect: 转步 5
+- id: PRC-175-S19
+  path: 提交过账候选：过账管道拒收（该法人无开放期间、借贷不平或法人不一致），拒收并告警
+  outcome: 过账被拒收
+  covers:
+  - 步 6 出口：过账管道拒收（该法人无开放期间、借贷不平或法人不一致），拒收并告警
+  expect: 结束（过账被拒收）
+- id: PRC-175-S20
+  path: 直接付款审批超时：超过 P3D 未处理，提醒并升级给 审批人上级（非中断，主线照常）
+  outcome: null
+  covers:
+  - 步 3 超时：直接付款审批
+  expect: 步 3 超时
+PRC-176:
+- id: PRC-176-S01
+  path: 预付款冲抵一部分应付，预付款有余额
+  outcome: 预付款已部分冲抵
+  covers:
+  - 结局预付款已部分冲抵
+  expect: 结局预付款已部分冲抵
+- id: PRC-176-S02
+  path: 预付款全部冲抵
+  outcome: 预付款已冲抵
+  covers:
+  - 结局预付款已冲抵
+  expect: 结局预付款已冲抵
+- id: PRC-176-S03
+  path: 冲抵额超过预付款余额或应付未付余额
+  outcome: 已拒收
+  covers:
+  - INV-77a；结局已拒收
+  expect: INV-77a；结局已拒收
+- id: PRC-176-S04
+  path: 应付在争议中
+  outcome: 已拒收
+  covers:
+  - INV-130；结局已拒收
+  expect: INV-130；结局已拒收
+- id: PRC-176-S05
+  path: 预付款与应付往来方不一致
+  outcome: 已拒收
+  covers:
+  - 结局已拒收；S31-结构-8
+  expect: 结局已拒收；S31-结构-8
+- id: PRC-176-S06
+  path: 所属期间已关账，落开放期间并标原期间
+  outcome: null
+  covers:
+  - 期间闸门
+  expect: 期间闸门
+- id: PRC-176-S07
+  path: 过账管道拒收
+  outcome: 过账被拒收
+  covers:
+  - 结局过账被拒收
+  expect: 结局过账被拒收
+- id: PRC-176-S08
+  path: 第 2 步过账时本期正在关账中：返回「期间关账中、可重试」，不进拒收记录，重试后落开放期间并标原期间
+  outcome: 期间关账中待重试
+  covers:
+  - 步 2 出口：期间关账中
+  - 结局「期间关账中待重试」
+  expect: 步 2 出口：期间关账中；结局「期间关账中待重试」

@@ -94,7 +94,7 @@
     <sequenceFlow id="Flow_7" sourceRef="S2_api_6" targetRef="S2_gw_7"/>
     <sequenceFlow id="Flow_8" name="评审生效人与编制人为同一人，命令被拒，改由他人评审" sourceRef="S2_gw_7" targetRef="S2_5"/>
     <sequenceFlow id="Flow_9" name="评审不通过，退回编制" sourceRef="S2_gw_7" targetRef="S1_2"/>
-    <sequenceFlow id="Flow_10" name="生效日不是期间首日，或该期间已关账，拒收并告警" sourceRef="S2_gw_7" targetRef="End_8"/>
+    <sequenceFlow id="Flow_10" name="生效日不是期间首日，或该期间已关账（含关账中），拒收并告警" sourceRef="S2_gw_7" targetRef="End_8"/>
     <sequenceFlow id="Flow_11" name="其他" sourceRef="S2_gw_7" targetRef="End_9"/>
     <dataStoreReference id="SR_S1_2_w1" name="AGG-86" dataStoreRef="DS_AGG-86"/>
     <dataStoreReference id="SR_S2_5_w1" name="AGG-86" dataStoreRef="DS_AGG-86"/>

@@ -22,6 +22,7 @@
         <flowNodeRef>End_10</flowNodeRef>
         <flowNodeRef>End_11</flowNodeRef>
         <flowNodeRef>End_12</flowNodeRef>
+        <flowNodeRef>End_13</flowNodeRef>
       </lane>
     </laneSet>
     <startEvent id="Start_1" name="供方履约已确认">
@@ -32,7 +33,7 @@
       <outgoing>Flow_2</outgoing>
       <signalEventDefinition signalRef="Signal_2"/>
     </startEvent>
-    <startEvent id="Start_3" name="财务对被拒收或暂估的应付人工重提">
+    <startEvent id="Start_3" name="财务对被拒收的应付人工重提">
       <outgoing>Flow_3</outgoing>
     </startEvent>
     <serviceTask id="S1_4" name="确认应付 → B-10">
@@ -57,7 +58,6 @@
     </exclusiveGateway>
     <serviceTask id="S2_6" name="提交过账候选 → B-16">
       <documentation>AGG-52 提交过账候选；B-11；automatic；调用 PRC-92</documentation>
-      <incoming>Flow_7</incoming>
       <incoming>Flow_8</incoming>
       <outgoing>Flow_9</outgoing>
       <ioSpecification id="IO_S2_6">
@@ -80,14 +80,17 @@
     <endEvent id="End_9" name="已拒收">
       <incoming>Flow_6</incoming>
     </endEvent>
-    <endEvent id="End_10" name="暂估应付已确认">
+    <endEvent id="End_10" name="等待发票">
+      <incoming>Flow_7</incoming>
+    </endEvent>
+    <endEvent id="End_11" name="期间关账中待重试">
       <incoming>Flow_10</incoming>
     </endEvent>
-    <endEvent id="End_11" name="应付已确认">
+    <endEvent id="End_12" name="应付已确认">
       <incoming>Flow_11</incoming>
       <incoming>Flow_13</incoming>
     </endEvent>
-    <endEvent id="End_12" name="过账被拒收">
+    <endEvent id="End_13" name="过账被拒收">
       <incoming>Flow_12</incoming>
     </endEvent>
     <sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="S1_4"/>
@@ -96,23 +99,23 @@
     <sequenceFlow id="Flow_4" sourceRef="S1_4" targetRef="S1_gw_5"/>
     <sequenceFlow id="Flow_5" name="来源单据已确认过应付（幂等）" sourceRef="S1_gw_5" targetRef="End_8"/>
     <sequenceFlow id="Flow_6" name="发票查验不合规或已被占用（INV-74、INV-75a）→ 拒收并告警，退回供方换票，换票经 PRC-73 用途确认后由事件再入" sourceRef="S1_gw_5" targetRef="End_9"/>
-    <sequenceFlow id="Flow_7" name="来源为供方履约确认且发票未到（无票暂估，取得发票后经 PRC-73 重入占用）" sourceRef="S1_gw_5" targetRef="S2_6"/>
+    <sequenceFlow id="Flow_7" name="来源为供方履约确认且发票未到：不确认应付，暂估已在履约确认过账时贷记（AGG-52 的占用前置不变，不做无票应付），取得发票经 PRC-73 用途确认后由事件再入" sourceRef="S1_gw_5" targetRef="End_10"/>
     <sequenceFlow id="Flow_8" name="其他" sourceRef="S1_gw_5" targetRef="S2_6"/>
     <sequenceFlow id="Flow_9" sourceRef="S2_6" targetRef="S2_gw_7"/>
-    <sequenceFlow id="Flow_10" name="来源为无票暂估" sourceRef="S2_gw_7" targetRef="End_10"/>
-    <sequenceFlow id="Flow_11" name="所属期间已关账，自动落当前开放期间并标原期间（系统触账不拒绝）" sourceRef="S2_gw_7" targetRef="End_11"/>
-    <sequenceFlow id="Flow_12" name="过账管道拒收（该法人无开放期间、借贷不平或法人不一致），拒收并告警" sourceRef="S2_gw_7" targetRef="End_12"/>
-    <sequenceFlow id="Flow_13" name="其他" sourceRef="S2_gw_7" targetRef="End_11"/>
+    <sequenceFlow id="Flow_10" name="所属期间在关账中（已发起关账、未确认），本期过账不接受：返回「期间关账中、可重试」，不进拒收记录，由来源 BC 投递重试" sourceRef="S2_gw_7" targetRef="End_11"/>
+    <sequenceFlow id="Flow_11" name="所属期间已关账，自动落当前开放期间并标原期间（系统触账不拒绝）" sourceRef="S2_gw_7" targetRef="End_12"/>
+    <sequenceFlow id="Flow_12" name="过账管道拒收（该法人无开放期间、借贷不平或法人不一致），拒收并告警" sourceRef="S2_gw_7" targetRef="End_13"/>
+    <sequenceFlow id="Flow_13" name="其他" sourceRef="S2_gw_7" targetRef="End_12"/>
     <dataStoreReference id="SR_S1_4_w1" name="AGG-52" dataStoreRef="DS_AGG-52"/>
     <dataStoreReference id="SR_S2_6_w1" name="AGG-52" dataStoreRef="DS_AGG-52"/>
   </process>
   <bpmndi:BPMNDiagram id="Diagram_PRC-74">
     <bpmndi:BPMNPlane id="Plane_PRC-74" bpmnElement="Collab_PRC-74">
       <bpmndi:BPMNShape id="Shape_P_main" bpmnElement="P_main" isHorizontal="true">
-        <dc:Bounds x="0" y="0" width="1330" height="130"/>
+        <dc:Bounds x="0" y="0" width="1420" height="130"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Lane_system" bpmnElement="Lane_system" isHorizontal="true">
-        <dc:Bounds x="30" y="0" width="1300" height="130"/>
+        <dc:Bounds x="30" y="0" width="1390" height="130"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Start_1" bpmnElement="Start_1">
         <dc:Bounds x="87" y="47" width="36" height="36"/>
@@ -151,6 +154,9 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_End_12" bpmnElement="End_12">
         <dc:Bounds x="1237" y="47" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_13" bpmnElement="End_13">
+        <dc:Bounds x="1327" y="47" width="36" height="36"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_SR_S1_4_w1" bpmnElement="SR_S1_4_w1">
         <dc:Bounds x="397" y="4" width="36" height="26"/>
@@ -191,8 +197,10 @@
         <di:waypoint x="985" y="83"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_7" bpmnElement="Flow_7">
-        <di:waypoint x="570" y="65"/>
-        <di:waypoint x="625" y="65"/>
+        <di:waypoint x="545" y="90"/>
+        <di:waypoint x="545" y="119"/>
+        <di:waypoint x="1075" y="119"/>
+        <di:waypoint x="1075" y="83"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_8" bpmnElement="Flow_8">
         <di:waypoint x="570" y="65"/>
@@ -204,27 +212,27 @@
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_10" bpmnElement="Flow_10">
         <di:waypoint x="805" y="90"/>
-        <di:waypoint x="805" y="119"/>
-        <di:waypoint x="1075" y="119"/>
-        <di:waypoint x="1075" y="83"/>
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_11" bpmnElement="Flow_11">
-        <di:waypoint x="805" y="90"/>
         <di:waypoint x="805" y="114"/>
         <di:waypoint x="1165" y="114"/>
         <di:waypoint x="1165" y="83"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_12" bpmnElement="Flow_12">
+      <bpmndi:BPMNEdge id="Edge_Flow_11" bpmnElement="Flow_11">
         <di:waypoint x="805" y="90"/>
         <di:waypoint x="805" y="124"/>
         <di:waypoint x="1255" y="124"/>
         <di:waypoint x="1255" y="83"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_Flow_13" bpmnElement="Flow_13">
+      <bpmndi:BPMNEdge id="Edge_Flow_12" bpmnElement="Flow_12">
         <di:waypoint x="805" y="90"/>
         <di:waypoint x="805" y="119"/>
-        <di:waypoint x="1165" y="119"/>
-        <di:waypoint x="1165" y="83"/>
+        <di:waypoint x="1345" y="119"/>
+        <di:waypoint x="1345" y="83"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_13" bpmnElement="Flow_13">
+        <di:waypoint x="805" y="90"/>
+        <di:waypoint x="805" y="114"/>
+        <di:waypoint x="1255" y="114"/>
+        <di:waypoint x="1255" y="83"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_DOA_S1_4_1" bpmnElement="DOA_S1_4_1">
         <di:waypoint x="415" y="35"/>

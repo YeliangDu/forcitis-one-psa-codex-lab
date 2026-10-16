@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Defs_PRC-99" targetNamespace="https://forcitis.one/bpmn/PRC-99" exporter="bpmn_gen" exporterVersion="1">
   <dataStore id="DS_AGG-55" name="AGG-55"/>
+  <dataStore id="DS_AGG-124" name="AGG-124"/>
   <dataStore id="DS_AGG-91" name="AGG-91"/>
   <collaboration id="Collab_PRC-99">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-99"/>
@@ -40,6 +41,7 @@
         <flowNodeRef>End_24</flowNodeRef>
         <flowNodeRef>End_25</flowNodeRef>
         <flowNodeRef>End_26</flowNodeRef>
+        <flowNodeRef>End_29</flowNodeRef>
         <flowNodeRef>S4_13_bd_14</flowNodeRef>
       </lane>
     </laneSet>
@@ -85,10 +87,12 @@
       <incoming>Flow_8</incoming>
       <outgoing>Flow_9</outgoing>
       <ioSpecification id="IO_S2_8">
+        <dataInput id="DIn_S2_8_1"/>
         <dataOutput id="DOut_S2_8_1"/>
-        <inputSet></inputSet>
+        <inputSet><dataInputRefs>DIn_S2_8_1</dataInputRefs></inputSet>
         <outputSet><dataOutputRefs>DOut_S2_8_1</dataOutputRefs></outputSet>
       </ioSpecification>
+      <dataInputAssociation id="DIA_S2_8_1"><sourceRef>SR_S2_8_r1</sourceRef><targetRef>DIn_S2_8_1</targetRef></dataInputAssociation>
       <dataOutputAssociation id="DOA_S2_8_1"><sourceRef>DOut_S2_8_1</sourceRef><targetRef>SR_S2_8_w1</targetRef></dataOutputAssociation>
     </userTask>
     <serviceTask id="S2_api_9" name="读法人主体 → B-13">
@@ -192,13 +196,14 @@
       <outgoing>Flow_29</outgoing>
       <outgoing>Flow_30</outgoing>
       <outgoing>Flow_31</outgoing>
+      <outgoing>Flow_32</outgoing>
     </exclusiveGateway>
     <endEvent id="End_22" name="已拒收">
       <incoming>Flow_7</incoming>
       <incoming>Flow_11</incoming>
       <incoming>Flow_24</incoming>
-      <incoming>Flow_29</incoming>
       <incoming>Flow_30</incoming>
+      <incoming>Flow_31</incoming>
     </endEvent>
     <endEvent id="End_23" name="资产已建卡">
       <incoming>Flow_12</incoming>
@@ -217,8 +222,11 @@
     </endEvent>
     <endEvent id="End_28" name="已过账">
       <incoming>Flow_25</incoming>
+      <incoming>Flow_29</incoming>
+      <incoming>Flow_32</incoming>
+    </endEvent>
+    <endEvent id="End_29" name="期间关账中待重试">
       <incoming>Flow_28</incoming>
-      <incoming>Flow_31</incoming>
     </endEvent>
     <sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="S1_5"/>
     <sequenceFlow id="Flow_2" sourceRef="Start_2" targetRef="S3_11"/>
@@ -247,12 +255,14 @@
     <sequenceFlow id="Flow_25" name="资产卡片已处置（重复调用，幂等返回原结果）" sourceRef="S5_gw_19" targetRef="End_28"/>
     <sequenceFlow id="Flow_26" name="其他" sourceRef="S5_gw_19" targetRef="S6_20"/>
     <sequenceFlow id="Flow_27" sourceRef="S6_20" targetRef="S6_gw_21"/>
-    <sequenceFlow id="Flow_28" name="落账期间已关账且该法人有开放期间，自动落当前开放期间并标原期间" sourceRef="S6_gw_21" targetRef="End_28"/>
-    <sequenceFlow id="Flow_29" name="该法人无开放期间可落（过账管道拒收），拒收并告警" sourceRef="S6_gw_21" targetRef="End_22"/>
-    <sequenceFlow id="Flow_30" name="过账管道拒收（借贷不平或法人不一致），拒收并告警" sourceRef="S6_gw_21" targetRef="End_22"/>
-    <sequenceFlow id="Flow_31" name="其他" sourceRef="S6_gw_21" targetRef="End_28"/>
+    <sequenceFlow id="Flow_28" name="所属期间在关账中（已发起关账、未确认），本期过账不接受：返回「期间关账中、可重试」，不进拒收记录，由来源 BC 投递重试" sourceRef="S6_gw_21" targetRef="End_29"/>
+    <sequenceFlow id="Flow_29" name="落账期间已关账且该法人有开放期间，自动落当前开放期间并标原期间" sourceRef="S6_gw_21" targetRef="End_28"/>
+    <sequenceFlow id="Flow_30" name="该法人无开放期间可落（过账管道拒收），拒收并告警" sourceRef="S6_gw_21" targetRef="End_22"/>
+    <sequenceFlow id="Flow_31" name="过账管道拒收（借贷不平或法人不一致），拒收并告警" sourceRef="S6_gw_21" targetRef="End_22"/>
+    <sequenceFlow id="Flow_32" name="其他" sourceRef="S6_gw_21" targetRef="End_28"/>
     <dataStoreReference id="SR_S1_5_r1" name="AGG-55" dataStoreRef="DS_AGG-55"/>
     <dataStoreReference id="SR_S2_8_w1" name="AGG-91" dataStoreRef="DS_AGG-91"/>
+    <dataStoreReference id="SR_S2_8_r1" name="AGG-124" dataStoreRef="DS_AGG-124"/>
     <dataStoreReference id="SR_S3_11_w1" name="AGG-91" dataStoreRef="DS_AGG-91"/>
     <dataStoreReference id="SR_S5_18_w1" name="AGG-91" dataStoreRef="DS_AGG-91"/>
     <dataStoreReference id="SR_S6_20_w1" name="AGG-91" dataStoreRef="DS_AGG-91"/>
@@ -262,16 +272,16 @@
   <bpmndi:BPMNDiagram id="Diagram_PRC-99">
     <bpmndi:BPMNPlane id="Plane_PRC-99" bpmnElement="Collab_PRC-99">
       <bpmndi:BPMNShape id="Shape_P_main" bpmnElement="P_main" isHorizontal="true">
-        <dc:Bounds x="0" y="0" width="3320" height="390"/>
+        <dc:Bounds x="0" y="0" width="3410" height="390"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Lane_SH-E6" bpmnElement="Lane_SH-E6" isHorizontal="true">
-        <dc:Bounds x="30" y="0" width="3290" height="130"/>
+        <dc:Bounds x="30" y="0" width="3380" height="130"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Lane_审批人上级" bpmnElement="Lane_审批人上级" isHorizontal="true">
-        <dc:Bounds x="30" y="130" width="3290" height="130"/>
+        <dc:Bounds x="30" y="130" width="3380" height="130"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Lane_system" bpmnElement="Lane_system" isHorizontal="true">
-        <dc:Bounds x="30" y="260" width="3290" height="130"/>
+        <dc:Bounds x="30" y="260" width="3380" height="130"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Start_1" bpmnElement="Start_1">
         <dc:Bounds x="87" y="47" width="36" height="36"/>
@@ -363,11 +373,17 @@
       <bpmndi:BPMNShape id="Shape_End_28" bpmnElement="End_28">
         <dc:Bounds x="3227" y="47" width="36" height="36"/>
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_29" bpmnElement="End_29">
+        <dc:Bounds x="3317" y="307" width="36" height="36"/>
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_SR_S1_5_r1" bpmnElement="SR_S1_5_r1">
         <dc:Bounds x="217" y="4" width="36" height="26"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_SR_S2_8_w1" bpmnElement="SR_S2_8_w1">
-        <dc:Bounds x="647" y="4" width="36" height="26"/>
+        <dc:Bounds x="626" y="4" width="36" height="26"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_SR_S2_8_r1" bpmnElement="SR_S2_8_r1">
+        <dc:Bounds x="668" y="4" width="36" height="26"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_SR_S3_11_w1" bpmnElement="SR_S3_11_w1">
         <dc:Bounds x="1167" y="264" width="36" height="26"/>
@@ -521,13 +537,14 @@
       <bpmndi:BPMNEdge id="Edge_Flow_28" bpmnElement="Flow_28">
         <di:waypoint x="2615" y="350"/>
         <di:waypoint x="2615" y="379"/>
-        <di:waypoint x="3245" y="379"/>
-        <di:waypoint x="3245" y="83"/>
+        <di:waypoint x="3335" y="379"/>
+        <di:waypoint x="3335" y="343"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_29" bpmnElement="Flow_29">
-        <di:waypoint x="2615" y="300"/>
-        <di:waypoint x="2615" y="65"/>
-        <di:waypoint x="2687" y="65"/>
+        <di:waypoint x="2615" y="350"/>
+        <di:waypoint x="2615" y="374"/>
+        <di:waypoint x="3245" y="374"/>
+        <di:waypoint x="3245" y="83"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_30" bpmnElement="Flow_30">
         <di:waypoint x="2615" y="300"/>
@@ -535,9 +552,14 @@
         <di:waypoint x="2687" y="65"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_31" bpmnElement="Flow_31">
+        <di:waypoint x="2615" y="300"/>
+        <di:waypoint x="2615" y="65"/>
+        <di:waypoint x="2687" y="65"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_32" bpmnElement="Flow_32">
         <di:waypoint x="2615" y="350"/>
-        <di:waypoint x="2615" y="374"/>
-        <di:waypoint x="3245" y="374"/>
+        <di:waypoint x="2615" y="384"/>
+        <di:waypoint x="3245" y="384"/>
         <di:waypoint x="3245" y="83"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Assoc_Ann_1" bpmnElement="Assoc_Ann_1">
@@ -548,9 +570,13 @@
         <di:waypoint x="235" y="30"/>
         <di:waypoint x="235" y="35"/>
       </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_DIA_S2_8_1" bpmnElement="DIA_S2_8_1">
+        <di:waypoint x="686" y="30"/>
+        <di:waypoint x="686" y="35"/>
+      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_DOA_S2_8_1" bpmnElement="DOA_S2_8_1">
-        <di:waypoint x="665" y="35"/>
-        <di:waypoint x="665" y="30"/>
+        <di:waypoint x="644" y="35"/>
+        <di:waypoint x="644" y="30"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_DOA_S3_11_1" bpmnElement="DOA_S3_11_1">
         <di:waypoint x="1185" y="295"/>

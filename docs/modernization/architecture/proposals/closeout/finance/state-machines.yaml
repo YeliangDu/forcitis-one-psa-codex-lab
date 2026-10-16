@@ -51,7 +51,9 @@ machines:
   states:
   - 已试算
   - 已确认
-  - {name: 已过账, terminal: true}
+  - 已过账
+  - {name: 已作废, terminal: true}
+  - {name: 已冲销, terminal: true}
   transitions:
   - from: null
     to: 已试算
@@ -74,13 +76,26 @@ machines:
     command: 提交过账候选
     guard: [期间开放或落当前开放期间]
     reverse_of: null
+  - command: 作废人工成本分配运行
+    from: [已试算, 已确认]
+    guard: []
+    reverse_of: 试算人工成本分配
+    to: 已作废
+    note: 未过账前作废（S-31 SQ-17）
+  - command: 冲销人工成本分配运行
+    from: 已过账
+    guard: [INV-95, AR-06 加审]
+    reverse_of: 提交过账候选
+    to: 已冲销
+    note: 所属期间已关账的不再冲原运行，差额进下期运行（ADR-0045 决定 2）
   reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
   note: 口径待 FD-09
 - aggregate: AGG-42
   initial: 已试算
   states:
   - 已试算
-  - {name: 已生效, terminal: true}
+  - 已生效
+  - {name: 已冲销, terminal: true}
   transitions:
   - from: null
     to: 已试算
@@ -98,6 +113,11 @@ machines:
     command: 生效分摊运行
     guard: [INV-90]
     reverse_of: null
+  - command: 冲销分摊运行
+    from: 已生效
+    guard: [INV-95, AR-06 加审]
+    reverse_of: 生效分摊运行
+    to: 已冲销
   reversal_note: 管理口径、不过账；更正以新运行追加，已生效运行状态不变
 - aggregate: AGG-43
   initial: 已生成
@@ -137,6 +157,13 @@ machines:
     guard: [订阅 BusinessFactAttributed，幂等键相同]
     reverse_of: null
     on_event: BusinessFactAttributed
+  - command: 冲回成本结转
+    from: 已过账
+    guard: [INV-94, INV-95]
+    reverse_of: 结转合同履约成本
+    to: 已生成
+    on_event: BusinessFactRestated
+    note: S-31 SQ-04：订阅 BusinessFactRestated，只取收入确认类事实，据原单回冲已配对结转；再经提交过账候选、标记已过账回到已过账；pending Q20
   reversal_note: 已过账的运行单据被更正：原单置「已冲销」，新单引用原单（S-30 ③；冲销命令范围随 SQ-17 回补，本稿暂不加状态）
   note: 四个结转命令只在批次内记结转行（→（内部）），提交过账候选 → B-16，订阅过账结果后标记已过账并发成本结转已过账（S-30 ①）
 - aggregate: AGG-52
@@ -144,7 +171,11 @@ machines:
   states:
   - 已确认
   - 部分结清
-  - {name: 已结清, terminal: true}
+  - 已结清
+  - {name: 已冲销, terminal: true}
+  - 预付款已登记
+  - 部分冲抵
+  - {name: 已冲抵, terminal: true}
   transitions:
   - from: null
     to: 已确认
@@ -250,6 +281,65 @@ machines:
     guard: [余额为零]
     reverse_of: null
     note: S-29 SQ-49：人工核销
+  - command: 登记其他应付
+    from: null
+    guard: [RULE-407 豁免清单, INV-03c]
+    reverse_of: null
+    to: 已确认
+    note: S-31 SQ-29；S-34 ④
+  - command: 登记预付款
+    from: null
+    guard: [RULE-407 豁免清单, INV-03c]
+    reverse_of: null
+    to: 预付款已登记
+    note: S-31 SQ-29；预付款进待付清单的触发待补
+  - command: 预付款冲抵应付
+    from: 预付款已登记
+    guard: [INV-77a, INV-130, 冲抵后预付款余额大于零]
+    reverse_of: null
+    to: 部分冲抵
+  - command: 预付款冲抵应付
+    from: 预付款已登记
+    guard: [INV-77a, INV-130, 冲抵后预付款余额为零]
+    reverse_of: null
+    to: 已冲抵
+  - command: 预付款冲抵应付
+    from: 部分冲抵
+    guard: [INV-77a, 冲抵后预付款余额大于零]
+    reverse_of: 预付款冲抵应付
+    to: 部分冲抵
+  - command: 预付款冲抵应付
+    from: 部分冲抵
+    guard: [INV-77a, 冲抵后预付款余额为零]
+    reverse_of: 预付款冲抵应付
+    to: 已冲抵
+  - command: 冲销应付利润
+    from: 已确认
+    guard: [无核销]
+    reverse_of: 提交应付利润
+    to: 已冲销
+    note: S-34 ②：撤销利润分配决议后注销未付应付；提议命令
+  - command: 预付款冲抵应付
+    from: 已确认
+    guard: [INV-77a, 冲抵后应付余额大于零]
+    reverse_of: null
+    to: 部分结清
+    note: 冲抵同时核销被冲抵的应付（S-31 SQ-29）
+  - command: 预付款冲抵应付
+    from: 已确认
+    guard: [INV-77a, 冲抵后应付余额为零]
+    reverse_of: null
+    to: 已结清
+  - command: 预付款冲抵应付
+    from: 部分结清
+    guard: [INV-77a, 冲抵后应付余额大于零]
+    reverse_of: null
+    to: 部分结清
+  - command: 预付款冲抵应付
+    from: 部分结清
+    guard: [INV-77a, 冲抵后应付余额为零]
+    reverse_of: null
+    to: 已结清
   reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
   note: 争议状态与处置分类聚合稿无命令，见 NOTES 收敛节；暂估应付是标记不是状态；应付类型含税费（PRC-159 订阅申报已提交确认）
 - aggregate: AGG-53
@@ -399,17 +489,17 @@ machines:
     reverse_of: null
   - from: 实缴（到账）
     to: 部分实缴
-    command: 更正出资实缴
+    command: 更正出资登记
     guard: [更正后累计实缴小于认缴额（INV-127）]
     reverse_of: 登记出资实缴
   - from: 部分实缴
     to: 认缴
-    command: 更正出资实缴
+    command: 更正出资登记
     guard: [更正后累计实缴为零]
     reverse_of: 登记出资实缴
   - from: 部分实缴
     to: 部分实缴
-    command: 更正出资实缴
+    command: 更正出资登记
     guard: [更正后累计实缴仍大于零且小于认缴额]
     reverse_of: 登记出资实缴
   - from: 部分实缴
@@ -436,7 +526,6 @@ machines:
   - 已决议
   - 部分支付
   - {name: 已支付, terminal: true}
-  - {name: 已冲销, terminal: true}
   - {name: 已撤销, terminal: true}
   transitions:
   - from: null
@@ -472,35 +561,39 @@ machines:
     command: 登记利润分配支付
     guard: [支付额小于决议额]
     reverse_of: null
+    note: 由 PRC-163 订阅 AGG-52「应付已结清」后调用（S-34 ③ 单一触发）
   - from: 已决议
     to: 已支付
     command: 登记利润分配支付
     guard: [支付额等于决议额]
     reverse_of: null
+    note: 由 PRC-163 订阅 AGG-52「应付已结清」后调用（S-34 ③ 单一触发）
   - from: 部分支付
     to: 部分支付
     command: 登记利润分配支付
     guard: [累计支付小于决议额]
     reverse_of: null
+    note: 由 PRC-163 订阅 AGG-52「应付已结清」后调用（S-34 ③ 单一触发）
   - from: 部分支付
     to: 已支付
     command: 登记利润分配支付
     guard: [累计支付等于决议额]
     reverse_of: null
+    note: 由 PRC-163 订阅 AGG-52「应付已结清」后调用（S-34 ③ 单一触发）
   - from: [已决议, 部分支付]
-    to: 已冲销
+    to: 已撤销
     command: null
     guard: []
     reverse_of: 决议利润分配
     on_event: 后继决议已登记
-    note: 被取代决议引用；原单置已冲销（S-30 ③），已支付部分以后继决议承接
+    note: 决议被后继决议取代时，以新决议撤销原决议、留原决议（S-34 ②）；已支付部分以后继决议承接
   - from: 已决议
     to: 已撤销
     command: 撤销利润分配决议
     guard: [尚无支付]
     reverse_of: 决议利润分配
-    note: S-29 SQ-48：股东会或合伙人会议撤销决议
-  reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
+    note: S-29 SQ-48：股东会或合伙人会议撤销决议；置「已撤销」，决议不是运行单据，不用「已冲销」；已过账的应付股利经冲销过账更正（S-34 ②）
+  reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变；决议撤销置「已撤销」（S-34 ②）
 - aggregate: AGG-55
   initial: 草拟
   states:
@@ -835,7 +928,7 @@ machines:
   - from: 已推送
     to: 已确认记账
     command: 登记外部记账确认
-    guard: [U8C 记账回执到达（platform.integration），对账读取作兜底]
+    guard: [对账（AGG-101）经 platform.integration 读到 U8C 记账结果后登记（S-31 SQ-11）]
     reverse_of: null
   - from: 已推送
     to: 死信
@@ -864,7 +957,7 @@ machines:
     guard: [U8C 拒收，带返回码]
     reverse_of: null
   reversal_note: 分录冲销以新行（红字）表达，原行状态不变
-  note: 记账状态与推送状态合并为一台平面机；权责口径不推送
+  note: 待处理队列放 AGG-84 下作无父行技术表，分录本身只追加、不改状态，状态只在队列项上（INV-95a，S-31 SQ-23）
 - aggregate: AGG-85
   initial: 草稿
   states:
@@ -983,7 +1076,8 @@ machines:
   initial: 已生成
   states:
   - 已生成
-  - {name: 已过账, terminal: true}
+  - 已过账
+  - {name: 已冲销, terminal: true}
   transitions:
   - from: null
     to: 已生成
@@ -1001,6 +1095,12 @@ machines:
     command: 提交过账候选
     guard: []
     reverse_of: null
+  - command: 冲销期末结转运行
+    from: 已过账
+    guard: [INV-95, AR-06 加审]
+    reverse_of: 提交过账候选
+    to: 已冲销
+    note: 所属期间已关账的不再冲原运行，差额进下期运行
   reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
 - aggregate: AGG-100
   stateless: true
@@ -1260,33 +1360,444 @@ machines:
     reverse_of: null
     note: 折旧过账不改业务状态
   reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
-- aggregate: AGG-新-F1
+- aggregate: AGG-78
   initial: 草稿
+  note: 发布含 SH-M1 批准（聚合内审批）；草稿另存，版本行在批准时才写入（R-31，D15）
   states:
   - 草稿
-  - 已签字
-  - {name: 已复核, terminal: true}
+  - 已生效
+  - {name: 已取代, terminal: true}
   transitions:
-  - from: null
-    to: 草稿
-    command: 建立期初余额表
+  - command: 编制口径版本
+    from: null
     guard: []
     reverse_of: null
-  - from: 草稿
-    to: 已签字
-    command: 签字期初余额
-    guard: [财务负责人书面确认（G-2）]
-    reverse_of: null
-  - from: 已签字
-    to: 已复核
-    command: 复核期初余额
-    guard: [内部审计复核（G-2、G-3）]
-    reverse_of: null
-  - from: 已签字
     to: 草稿
-    command: null
+  - command: 发布口径版本
+    from: 草稿
+    guard: [INV-131（起草与批准分离）, INV-91]
+    reverse_of: null
+    to: 已生效
+  - command: null
+    from: 草稿
     guard: []
-    reverse_of: 签字期初余额
-    on_event: 复核退回
-    note: 复核不通过退回草稿
-  note: 占位聚合；投产时一次性建立
+    reverse_of: 发布口径版本
+    to: 草稿
+    on_event: 批准被拒
+    note: 批准人驳回，退回起草
+  - command: null
+    from: 已生效
+    guard: [同类型后继版本已生效（只一个生效）]
+    reverse_of: null
+    to: 已取代
+    on_event: 后继版本已生效
+    note: 已生效版本不可改，只被取代
+- aggregate: AGG-123
+  initial: 草稿
+  note: 发布含 SH-M1 批准（聚合内审批）；草稿另存，版本行在批准时才写入（R-31，D15）
+  states:
+  - 草稿
+  - 已生效
+  - {name: 已取代, terminal: true}
+  transitions:
+  - command: 编制成本核算参数版本
+    from: null
+    guard: []
+    reverse_of: null
+    to: 草稿
+  - command: 发布成本核算参数版本
+    from: 草稿
+    guard: [INV-131（起草与批准分离）, INV-91]
+    reverse_of: null
+    to: 已生效
+  - command: null
+    from: 草稿
+    guard: []
+    reverse_of: 发布成本核算参数版本
+    to: 草稿
+    on_event: 批准被拒
+    note: 批准人驳回，退回起草
+  - command: null
+    from: 已生效
+    guard: [同类型后继版本已生效（只一个生效）]
+    reverse_of: null
+    to: 已取代
+    on_event: 后继版本已生效
+    note: 已生效版本不可改，只被取代
+- aggregate: AGG-124
+  initial: 草稿
+  note: 发布含 SH-M1 批准（聚合内审批）；草稿另存，版本行在批准时才写入（R-31，D15）
+  states:
+  - 草稿
+  - 已生效
+  - {name: 已取代, terminal: true}
+  transitions:
+  - command: 编制资产类别与折旧政策版本
+    from: null
+    guard: []
+    reverse_of: null
+    to: 草稿
+  - command: 发布资产类别与折旧政策版本
+    from: 草稿
+    guard: [INV-131（起草与批准分离）, INV-91]
+    reverse_of: null
+    to: 已生效
+  - command: null
+    from: 草稿
+    guard: []
+    reverse_of: 发布资产类别与折旧政策版本
+    to: 草稿
+    on_event: 批准被拒
+    note: 批准人驳回，退回起草
+  - command: null
+    from: 已生效
+    guard: [同类型后继版本已生效（只一个生效）]
+    reverse_of: null
+    to: 已取代
+    on_event: 后继版本已生效
+    note: 已生效版本不可改，只被取代
+- aggregate: AGG-128
+  initial: 草稿
+  note: 发布含 SH-M1 批准（聚合内审批）；草稿另存，版本行在批准时才写入（R-31，D15）
+  states:
+  - 草稿
+  - 已生效
+  - {name: 已取代, terminal: true}
+  transitions:
+  - command: 起草期末结转模板版本
+    from: null
+    guard: []
+    reverse_of: null
+    to: 草稿
+  - command: 发布期末结转模板版本
+    from: 草稿
+    guard: [INV-131（起草与批准分离）, INV-91, INV-136]
+    reverse_of: null
+    to: 已生效
+  - command: null
+    from: 草稿
+    guard: []
+    reverse_of: 发布期末结转模板版本
+    to: 草稿
+    on_event: 批准被拒
+    note: 批准人驳回，退回起草
+  - command: null
+    from: 已生效
+    guard: [同类型后继版本已生效（只一个生效）]
+    reverse_of: null
+    to: 已取代
+    on_event: 后继版本已生效
+    note: 已生效版本不可改，只被取代
+- aggregate: AGG-129
+  initial: 草稿
+  note: 发布含 SH-M1 批准（聚合内审批）；草稿另存，版本行在批准时才写入（R-31，D15）
+  states:
+  - 草稿
+  - 已生效
+  - {name: 已取代, terminal: true}
+  transitions:
+  - command: 起草现金流量项目表版本
+    from: null
+    guard: []
+    reverse_of: null
+    to: 草稿
+  - command: 发布现金流量项目表版本
+    from: 草稿
+    guard: [INV-131（起草与批准分离）, INV-91, INV-136]
+    reverse_of: null
+    to: 已生效
+  - command: null
+    from: 草稿
+    guard: []
+    reverse_of: 发布现金流量项目表版本
+    to: 草稿
+    on_event: 批准被拒
+    note: 批准人驳回，退回起草
+  - command: null
+    from: 已生效
+    guard: [同类型后继版本已生效（只一个生效）]
+    reverse_of: null
+    to: 已取代
+    on_event: 后继版本已生效
+    note: 已生效版本不可改，只被取代
+- aggregate: AGG-133
+  initial: 草稿
+  note: 发布含 SH-M1 批准（聚合内审批）；草稿另存，版本行在批准时才写入（R-31，D15）
+  states:
+  - 草稿
+  - 已生效
+  - {name: 已取代, terminal: true}
+  transitions:
+  - command: 编制出差补贴标准版本
+    from: null
+    guard: []
+    reverse_of: null
+    to: 草稿
+  - command: 发布出差补贴标准版本
+    from: 草稿
+    guard: [INV-131（起草与批准分离）, INV-91]
+    reverse_of: null
+    to: 已生效
+  - command: null
+    from: 草稿
+    guard: []
+    reverse_of: 发布出差补贴标准版本
+    to: 草稿
+    on_event: 批准被拒
+    note: 批准人驳回，退回起草
+  - command: null
+    from: 已生效
+    guard: [同类型后继版本已生效（只一个生效）]
+    reverse_of: null
+    to: 已取代
+    on_event: 后继版本已生效
+    note: 已生效版本不可改，只被取代
+- aggregate: AGG-125
+  initial: 编制中
+  note: 投产时一次性建立；生效后不改，U8C 年结差额走 AGG-98「期初调整」类受控手工凭证（S-31 SQ-21）；签字之外的把关方式待 A1-02（S-06）
+  states:
+  - 编制中
+  - {name: 已生效, terminal: true}
+  transitions:
+  - command: 编制期初余额
+    from: null
+    guard: [INV-134]
+    reverse_of: null
+    to: 编制中
+  - command: 编制期初余额
+    from: 编制中
+    guard: [INV-134]
+    reverse_of: 编制期初余额
+    to: 编制中
+    note: 可反复编制
+  - command: 签字确认期初余额
+    from: 编制中
+    guard: [INV-133, INV-134, 财务负责人书面确认（G-2）]
+    reverse_of: null
+    to: 已生效
+  - command: null
+    from: 编制中
+    guard: []
+    reverse_of: 签字确认期初余额
+    to: 编制中
+    on_event: 签字退回
+    note: 财务负责人退回，回编制中
+- aggregate: AGG-126
+  initial: 未关闭
+  note: 未关闭的超容差差异案使关账前置检查不通过（INV-135）
+  states:
+  - 未关闭
+  - {name: 已解释, terminal: true}
+  - {name: 已修正, terminal: true}
+  - {name: 已豁免, terminal: true}
+  transitions:
+  - command: 登记勾稽差异案
+    from: null
+    guard: [INV-135]
+    reverse_of: null
+    to: 未关闭
+  - command: 解释勾稽差异案
+    from: 未关闭
+    guard: [INV-135]
+    reverse_of: null
+    to: 已解释
+  - command: 修正勾稽差异案
+    from: 未关闭
+    guard: [INV-135, INV-95]
+    reverse_of: null
+    to: 已修正
+    note: 更正经原流程冲销并重过账
+  - command: 豁免勾稽差异案
+    from: 未关闭
+    guard: [INV-135, 豁免须财务负责人确认]
+    reverse_of: null
+    to: 已豁免
+- aggregate: AGG-127
+  stateless: true
+  reason: 配置型版本行随代码发布登记，只追加，无业务状态（S-31 SQ-24）
+  transitions: []
+- aggregate: AGG-122
+  initial: 等待齐备
+  note: 每商机一个；两事件分别到达，不要求同时（S-31 SQ-18）
+  states:
+  - 等待齐备
+  - {name: 已转入, terminal: true}
+  - {name: 已转费用, terminal: true}
+  transitions:
+  - command: 登记合同已签回
+    from: null
+    guard: [INV-132]
+    reverse_of: null
+    to: 等待齐备
+  - command: 登记合同已签回
+    from: 等待齐备
+    guard: [INV-132]
+    reverse_of: 登记合同已签回
+    to: 等待齐备
+  - command: 登记项目已建立
+    from: null
+    guard: [INV-132]
+    reverse_of: null
+    to: 等待齐备
+  - command: 登记项目已建立
+    from: 等待齐备
+    guard: [INV-132]
+    reverse_of: 登记项目已建立
+    to: 等待齐备
+  - command: 登记售前投入挂接归属
+    from: 等待齐备
+    guard: [INV-132]
+    reverse_of: null
+    to: 等待齐备
+  - command: 标记售前投入已转入
+    from: 等待齐备
+    guard: [INV-132, 合同已签回且项目已建立]
+    reverse_of: null
+    to: 已转入
+  - command: 标记售前投入已转费用
+    from: 等待齐备
+    guard: [INV-132]
+    reverse_of: null
+    to: 已转费用
+- aggregate: AGG-130
+  initial: 已提交
+  note: 本期只做业务招待一类；是否扩到全部费用类别 pending U-34
+  states:
+  - 已提交
+  - 已批准
+  - {name: 已驳回, terminal: true}
+  - {name: 已撤回, terminal: true}
+  - {name: 已用尽, terminal: true}
+  - {name: 已关闭, terminal: true}
+  transitions:
+  - command: 提交费用事前申请
+    from: null
+    guard: []
+    reverse_of: null
+    to: 已提交
+  - command: 批准费用事前申请
+    from: 已提交
+    guard: []
+    reverse_of: null
+    to: 已批准
+    on_event: 审批已通过
+  - command: 驳回费用事前申请
+    from: 已提交
+    guard: []
+    reverse_of: null
+    to: 已驳回
+    on_event: 审批已驳回
+  - command: 撤回费用事前申请
+    from: 已提交
+    guard: []
+    reverse_of: null
+    to: 已撤回
+  - command: 标记费用事前申请已用尽
+    from: 已批准
+    guard: [报销累计达额度]
+    reverse_of: null
+    to: 已用尽
+    note: 提议命令，由报销累计触发
+  - command: 关闭费用事前申请
+    from: 已批准
+    guard: []
+    reverse_of: null
+    to: 已关闭
+- aggregate: AGG-132
+  initial: 已提交
+  states:
+  - 已提交
+  - 已批准
+  - {name: 已驳回, terminal: true}
+  - {name: 已撤回, terminal: true}
+  - {name: 已同步, terminal: true}
+  transitions:
+  - command: 提交出差申请
+    from: null
+    guard: []
+    reverse_of: null
+    to: 已提交
+  - command: 批准出差申请
+    from: 已提交
+    guard: []
+    reverse_of: null
+    to: 已批准
+    on_event: 审批已通过
+  - command: 驳回出差申请
+    from: 已提交
+    guard: []
+    reverse_of: null
+    to: 已驳回
+    on_event: 审批已驳回
+  - command: 撤回出差申请
+    from: 已提交
+    guard: []
+    reverse_of: null
+    to: 已撤回
+  - command: 登记出差申请已同步
+    from: 已批准
+    guard: [差旅服务商推送成功]
+    reverse_of: null
+    to: 已同步
+- aggregate: AGG-131
+  initial: 已登记
+  note: 付款方式（预充值或月结）pending U-39，暂只写月结形态
+  states:
+  - 已登记
+  - 已核对
+  - {name: 已确认应付, terminal: true}
+  transitions:
+  - command: 登记差旅订单与月账单
+    from: null
+    guard: [INV-137]
+    reverse_of: null
+    to: 已登记
+  - command: 登记差旅订单与月账单
+    from: 已登记
+    guard: [INV-137]
+    reverse_of: 登记差旅订单与月账单
+    to: 已登记
+    note: 订单与账单分别到达
+  - command: 归属差旅订单
+    from: 已登记
+    guard: []
+    reverse_of: null
+    to: 已登记
+  - command: 登记超标订单待审批
+    from: 已登记
+    guard: []
+    reverse_of: null
+    to: 已登记
+    note: 超标订单审批状态在订单行上
+  - command: 批准差旅超标订单
+    from: 已登记
+    guard: []
+    reverse_of: 登记超标订单待审批
+    to: 已登记
+  - command: 驳回差旅超标订单
+    from: 已登记
+    guard: []
+    reverse_of: 登记超标订单待审批
+    to: 已登记
+  - command: 核对差旅月账单
+    from: 已登记
+    guard: [INV-137]
+    reverse_of: null
+    to: 已核对
+  - command: 处理账单差异
+    from: 已核对
+    guard: [INV-137]
+    reverse_of: 核对差旅月账单
+    to: 已登记
+    note: 更正账单后回到核对；提议命令
+  - command: 确认差旅账单应付
+    from: 已核对
+    guard: [INV-137]
+    reverse_of: null
+    to: 已确认应付
+  - command: 提交过账候选
+    from: 已确认应付
+    guard: []
+    reverse_of: null
+    to: 已确认应付
+    note: 过账不改业务状态
