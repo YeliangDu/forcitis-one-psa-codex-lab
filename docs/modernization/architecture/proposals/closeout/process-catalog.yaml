@@ -864,6 +864,7 @@ processes:
     name: "登记继续教育并延续注册执业证书"
     type: single_aggregate
     stages: [VS-06.2]
+    primary_object: "OBJ-64"
     owner_bc: "B-13"
     group: people
     status: draft
@@ -883,6 +884,7 @@ processes:
     name: "提出并批准招聘需求"
     type: business
     stages: [VS-07.1]
+    primary_object: "OBJ-60"
     owner_bc: "B-13"
     group: people
     status: draft
@@ -892,6 +894,7 @@ processes:
     name: "登记候选人并作出录用决定"
     type: business
     stages: [VS-07.2]
+    primary_object: "OBJ-56"
     owner_bc: "B-13"
     group: people
     status: draft
@@ -901,6 +904,7 @@ processes:
     name: "办理入职与任职"
     type: business
     stages: [VS-07.3]
+    primary_object: "OBJ-56"
     owner_bc: "B-13"
     group: people
     status: user_confirmed
@@ -911,6 +915,7 @@ processes:
     type: business
     stages: [VS-07.3]
     stages_note: "VS-07.3：触发状态 Employed（试用期 / 正式）是 VS-07.3 的退出条件，参保增员与建薪酬档案是入职任职的收尾；不归 VS-13.1——VS-13.1 进入条件同一状态只是字面重合，本流程不产生考勤确认的任何进出事实（#421 第 6a 项）"
+    primary_object: "OBJ-62"
     owner_bc: "B-15"
     group: people
     status: user_confirmed
@@ -920,6 +925,7 @@ processes:
     name: "试用期评估与转正"
     type: business
     stages: [VS-07.3, VS-13.2]
+    primary_object: "OBJ-56"
     owner_bc: "B-13"
     group: people
     status: draft
@@ -952,6 +958,7 @@ processes:
     type: business
     stages: [VS-09.1, VS-09.3]
     stages_note: "跳过 VS-09.2 有意：VS-09.3 退出条件「经营计划新版本」由本流程第二个触发（复盘后调整计划）产生，该路径不经滚动预测；VS-09.2 的新版本由 PRC-89 产生"
+    primary_object: "OBJ-100"
     owner_bc: "B-18"
     group: people
     status: draft
@@ -961,6 +968,7 @@ processes:
     name: "编制滚动预测"
     type: business
     stages: [VS-09.2]
+    primary_object: "OBJ-100"
     owner_bc: "B-18"
     group: people
     status: draft
@@ -1148,6 +1156,7 @@ processes:
     name: "知识条目的起草、评审、发布与修订废止"
     type: business
     stages: [VS-11.1, VS-11.2, VS-11.3]
+    primary_object: "OBJ-110"
     owner_bc: "B-30"
     group: people
     status: draft
@@ -1210,6 +1219,7 @@ processes:
     name: "并入股息红利个税扣缴申报"
     type: event_policy
     stages: [VS-12.2]
+    primary_object: "OBJ-92"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1239,6 +1249,7 @@ processes:
     name: "申请并审批请假"
     type: business
     stages: [VS-13.1]
+    primary_object: "OBJ-68"
     owner_bc: "B-27"
     group: people
     status: draft
@@ -1248,6 +1259,7 @@ processes:
     name: "申请并批准加班"
     type: business
     stages: [VS-13.1]
+    primary_object: "OBJ-72"
     owner_bc: "B-27"
     group: people
     status: draft
@@ -1257,6 +1269,7 @@ processes:
     name: "生成、确认并锁定月度考勤"
     type: business
     stages: [VS-13.1]
+    primary_object: "OBJ-111"
     owner_bc: "B-27"
     group: people
     status: draft
@@ -1276,6 +1289,7 @@ processes:
     name: "评估月度绩效"
     type: business
     stages: [VS-13.2]
+    primary_object: "OBJ-109"
     owner_bc: "B-13"
     group: people
     status: draft
@@ -1295,6 +1309,7 @@ processes:
     name: "核定奖金"
     type: business
     stages: [VS-13.2]
+    primary_object: "OBJ-104"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1314,6 +1329,7 @@ processes:
     name: "计算、审核并批准月度薪酬"
     type: business
     stages: [VS-13.3]
+    primary_object: "OBJ-73"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1323,6 +1339,7 @@ processes:
     name: "申报个税扣缴与社保公积金"
     type: business
     stages: [VS-13.4, VS-06.1]
+    primary_object: "OBJ-92"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1333,6 +1350,7 @@ processes:
     type: event_policy
     stages: [VS-13.5]
     stages_note: "VS-13.5：触发状态「已批准」（OBJ-73）是 VS-13.5 的进入条件，本策略提交应付薪酬正是 VS-13.5「提交应付薪酬、代发付款」的第一步，结局应付已确认导向 VS-13.5 退出「已结清」；不归 VS-13.4——VS-13.4 申报缴纳与应付无关，同为「已批准」进入只是字面重合；原挂 VS-13.3（触发状态所在段的退出）按 #421 第 6a 项改（2026-10-16）"
+    primary_object: "OBJ-85"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1342,6 +1360,7 @@ processes:
     name: "薪酬发放完成"
     type: event_policy
     stages: [VS-13.5]
+    primary_object: "OBJ-73"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1351,6 +1370,7 @@ processes:
     name: "办理离职"
     type: business
     stages: [VS-13.6]
+    primary_object: "OBJ-56"
     owner_bc: "B-13"
     group: people
     status: draft
@@ -1360,6 +1380,7 @@ processes:
     name: "离职后吊销会话"
     type: event_policy
     stages: [VS-13.6]
+    primary_object: "none"
     owner_bc: "platform.identity"
     group: people
     status: draft
@@ -1369,6 +1390,7 @@ processes:
     name: "离职后参保减员"
     type: event_policy
     stages: [VS-13.6]
+    primary_object: "OBJ-62"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1412,6 +1434,7 @@ processes:
     type: event_policy
     stages: [VS-13.5]
     stages_note: "触发是过账事实（BusinessFactAttributed），不是任一阶段的对象状态；改按结局归段：置位月度薪酬结算「已过账」，是 VS-13.5 退出条件「已发放 → 已过账」的末端（归段判据第 6 项）"
+    primary_object: "OBJ-73"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1432,6 +1455,7 @@ processes:
     name: "调岗（任职变更，按人事业务生效日，触发数据范围复核）"
     type: business
     stages: [VS-07.3]
+    primary_object: "OBJ-57"
     owner_bc: "B-13"
     group: people
     status: draft
@@ -1442,6 +1466,7 @@ processes:
     type: business
     stages: [VS-07.3]
     stages_note: "留 VS-07.3：纯事件触发（入职已登记 = Employed，即 VS-07.3 退出条件「人员试用期 / 正式」的产生事件）的多步反应，行为等同事件策略；因 type 为 business，脚本按结局归段而判不支持，已列 STAGE_ALIGN.md 请 one-architecture 裁定"
+    primary_object: "none"
     owner_bc: "platform.identity"
     group: people
     status: user_confirmed
@@ -1452,6 +1477,7 @@ processes:
     type: business
     stages: [VS-13.6]
     stages_note: "留 VS-13.6：纯事件触发（离职已生效 = Separated，即 VS-13.6 退出条件「人员已离职」的产生事件）的多步反应，行为等同事件策略；因 type 为 business，脚本按结局归段而判不支持，已列 STAGE_ALIGN.md 请 one-architecture 裁定"
+    primary_object: "none"
     owner_bc: "platform.identity"
     group: people
     status: draft
@@ -1521,6 +1547,7 @@ processes:
     name: "员工法人三口径不一致预警"
     type: event_policy
     stages: [VS-07.3]
+    primary_object: "none"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1682,6 +1709,7 @@ processes:
     type: event_policy
     stages: [VS-07.3]
     stages_note: "事件触发「入职生效」（Employed）是 VS-07.3 退出条件「人员试用期 / 正式」的产生事件，按事件策略归 VS-07.3；年初定时触发没有对象状态，不单独归段（归段判据第 6 项）"
+    primary_object: "none"
     owner_bc: "B-27"
     group: people
     status: draft
@@ -1891,6 +1919,7 @@ processes:
     type: event_policy
     stages: [VS-13.6]
     stages_note: "事件触发「员工离职生效」（Separated）是 VS-13.6 退出条件「人员已离职」的产生事件，按事件策略归 VS-13.6；「补休已到期未休」是 B-27 的事实、没有阶段对象状态，不单独归段（归段判据第 6 项）"
+    primary_object: "none"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1925,6 +1954,7 @@ processes:
     type: business
     stages: [VS-09.3]
     stages_note: "留 VS-09.3：复盘是本段的核心工作，但本段退出条件只写「经营计划新版本」（由 PRC-88 第二个触发产生），本流程结局「经营复盘已闭环 / 已转调整计划」不是该状态，按归段判据第 6 项字面不支持；已列 STAGE_ALIGN.md 请 one-architecture 看 VS-09.3 退出条件是否补「经营复盘已闭环」"
+    primary_object: "OBJ-100"
     owner_bc: "B-18"
     group: people
     status: draft

@@ -1,7 +1,7 @@
 # 对象层与能力层对齐报告（object_layer_check.py 生成，勿手改）
 
-非支撑流程 142 条：已确认 106、提议 24、多候选 2、无候选 4、读模型 6。
-检查：① 无主对象 6；② 阶段承载对象无主流程 9；③ 主对象多流程 24；④ 能力不在所标段清单 8（另主对象无能力 23）。
+非支撑流程 142 条：已确认 130、声明无业务对象 6、提议 0、多候选 0、无候选 0、读模型 6。
+检查：① 无主对象 0；② 阶段承载对象无主流程 8；③ 主对象多流程 24；④ 能力不在所标段清单 8（另主对象无能力 21）。
 
 提议口径：第 1 档 所标段退出条件精确命中；第 2 档 所标段段内状态精确命中；第 3 档 退出或段内近似命中；第 4 档 所标段退出条件引用；第 5 档 唯一写入对象。只取本流程写入的对象；第 4、5 档把握低，组确认时重点看。
 
@@ -60,36 +60,36 @@
 
 | 流程 | 类型 | 所标段 | 主对象 | 状态 | 依据档 | 候选 / 写入对象 | 一级能力 |
 |---|---|---|---|---|---|---|---|
-| PRC-79 登记继续教育并延续注册执业证书 | single_aggregate | VS-06.2 | OBJ-64 注册执业证书 | proposed | 1 | OBJ-64 注册执业证书 | CAP-056 |
-| PRC-81 提出并批准招聘需求 | business | VS-07.1 | OBJ-60 招聘需求 | proposed | 1 | OBJ-60 招聘需求 | CAP-058 |
-| PRC-82 登记候选人并作出录用决定 | business | VS-07.2 | OBJ-56 员工 | proposed | 3 | OBJ-56 员工 | CAP-056 |
-| PRC-83 办理入职与任职 | business | VS-07.3 | — | candidates | 4 | OBJ-05 协议、OBJ-56 员工 | — |
-| PRC-84 入职后参保增员与建立薪酬档案 | business | VS-07.3 | OBJ-62 社保与公积金参保 | proposed | 4 | AGG-93、OBJ-62 社保与公积金参保 | CAP-056 |
-| PRC-85 试用期评估与转正 | business | VS-07.3、VS-13.2 | OBJ-109 绩效评估 | proposed | 1 | OBJ-56 员工、OBJ-109 绩效评估 | CAP-056 |
-| PRC-88 编制、批准并基线化经营计划与预算 | business | VS-09.1、VS-09.3 | OBJ-100 经营计划 | proposed | 1 | OBJ-100 经营计划 | CAP-100 |
-| PRC-89 编制滚动预测 | business | VS-09.2 | OBJ-100 经营计划 | proposed | 1 | OBJ-100 经营计划 | CAP-100 |
-| PRC-107 知识条目的起草、评审、发布与修订废止 | business | VS-11.1、VS-11.2、VS-11.3 | OBJ-110 知识条目 | proposed | 1 | OBJ-110 知识条目 | CAP-110 |
-| PRC-113 并入股息红利个税扣缴申报 | event_policy | VS-12.2 | OBJ-92 法定申报 | proposed | 5 | OBJ-92 法定申报 | CAP-103 |
-| PRC-116 申请并审批请假 | business | VS-13.1 | OBJ-68 请假 | proposed | 1 | AGG-71、OBJ-68 请假 | CAP-056 |
-| PRC-117 申请并批准加班 | business | VS-13.1 | OBJ-72 加班 | proposed | 1 | AGG-71、OBJ-68 请假、OBJ-72 加班 | CAP-056 |
-| PRC-118 生成、确认并锁定月度考勤 | business | VS-13.1 | — | candidates | 1 | OBJ-72 加班、OBJ-111 月度考勤确认 | — |
-| PRC-120 评估月度绩效 | business | VS-13.2 | OBJ-109 绩效评估 | proposed | 1 | OBJ-109 绩效评估 | CAP-056 |
-| PRC-122 核定奖金 | business | VS-13.2 | OBJ-104 奖金核定 | proposed | 1 | OBJ-104 奖金核定 | CAP-074 |
-| PRC-124 计算、审核并批准月度薪酬 | business | VS-13.3 | OBJ-73 算薪运行 | proposed | 1 | OBJ-73 算薪运行 | CAP-054 |
-| PRC-125 申报个税扣缴与社保公积金 | business | VS-13.4、VS-06.1 | OBJ-92 法定申报 | proposed | 1 | OBJ-62 社保与公积金参保、OBJ-92 法定申报 | CAP-103 |
-| PRC-126 提交应付薪酬 | event_policy | VS-13.5 | OBJ-85 往来款项 | proposed | 4 | OBJ-85 往来款项 | CAP-103 |
-| PRC-127 薪酬发放完成 | event_policy | VS-13.5 | OBJ-73 算薪运行 | proposed | 4 | OBJ-73 算薪运行 | CAP-054 |
-| PRC-128 办理离职 | business | VS-13.6 | OBJ-05 协议 | proposed | 1 | OBJ-05 协议、OBJ-56 员工、OBJ-57 任职 | CAP-005 |
-| PRC-129 离职后吊销会话 | event_policy | VS-13.6 | — | none | — |  | — |
-| PRC-130 离职后参保减员 | event_policy | VS-13.6 | OBJ-62 社保与公积金参保 | proposed | 4 | AGG-93、OBJ-62 社保与公积金参保 | CAP-056 |
-| PRC-134 薪酬事实已过账置位 | event_policy | VS-13.5 | OBJ-73 算薪运行 | proposed | 4 | OBJ-73 算薪运行 | CAP-054 |
-| PRC-136 调岗（任职变更，按人事业务生效日，触发数据范围复核） | business | VS-07.3 | OBJ-05 协议 | proposed | 1 | AGG-93、OBJ-05 协议、OBJ-57 任职、OBJ-62 社保与公积金参保 | CAP-005 |
-| PRC-137 入职开通企业微信账号并绑定外部身份 | business | VS-07.3 | — | none | — |  | — |
-| PRC-138 离职停用企业微信账号并解绑 | business | VS-13.6 | — | none | — |  | — |
-| PRC-145 员工法人三口径不一致预警 | event_policy | VS-07.3 | — | none | — |  | — |
-| PRC-160 开立年度假期额度账户 | event_policy | VS-07.3 | AGG-71 | proposed | 5 | AGG-71 | — |
-| PRC-178 补休到期未休或离职时转计发加班工资 | event_policy | VS-13.6 | AGG-93 | proposed | 5 | AGG-93 | — |
-| PRC-181 记录经营复盘并跟踪经营动作 | business | VS-09.3 | OBJ-100 经营计划 | proposed | 4 | OBJ-100 经营计划 | CAP-100 |
+| PRC-79 登记继续教育并延续注册执业证书 | single_aggregate | VS-06.2 | OBJ-64 注册执业证书 | confirmed | 1 | OBJ-64 注册执业证书 | CAP-056 |
+| PRC-81 提出并批准招聘需求 | business | VS-07.1 | OBJ-60 招聘需求 | confirmed | 1 | OBJ-60 招聘需求 | CAP-058 |
+| PRC-82 登记候选人并作出录用决定 | business | VS-07.2 | OBJ-56 员工 | confirmed | 3 | OBJ-56 员工 | CAP-056 |
+| PRC-83 办理入职与任职 | business | VS-07.3 | OBJ-56 员工 | confirmed | 4 | OBJ-05 协议、OBJ-56 员工、OBJ-57 任职 | CAP-056 |
+| PRC-84 入职后参保增员与建立薪酬档案 | business | VS-07.3 | OBJ-62 社保与公积金参保 | confirmed | 4 | AGG-93、OBJ-62 社保与公积金参保 | CAP-056 |
+| PRC-85 试用期评估与转正 | business | VS-07.3、VS-13.2 | OBJ-56 员工 | confirmed | 1 | OBJ-56 员工、OBJ-109 绩效评估 | CAP-056 |
+| PRC-88 编制、批准并基线化经营计划与预算 | business | VS-09.1、VS-09.3 | OBJ-100 经营计划 | confirmed | 1 | OBJ-100 经营计划 | CAP-100 |
+| PRC-89 编制滚动预测 | business | VS-09.2 | OBJ-100 经营计划 | confirmed | 1 | OBJ-100 经营计划 | CAP-100 |
+| PRC-107 知识条目的起草、评审、发布与修订废止 | business | VS-11.1、VS-11.2、VS-11.3 | OBJ-110 知识条目 | confirmed | 1 | OBJ-110 知识条目 | CAP-110 |
+| PRC-113 并入股息红利个税扣缴申报 | event_policy | VS-12.2 | OBJ-92 法定申报 | confirmed | 5 | OBJ-92 法定申报 | CAP-103 |
+| PRC-116 申请并审批请假 | business | VS-13.1 | OBJ-68 请假 | confirmed | 1 | AGG-71、OBJ-68 请假 | CAP-056 |
+| PRC-117 申请并批准加班 | business | VS-13.1 | OBJ-72 加班 | confirmed | 1 | AGG-71、OBJ-68 请假、OBJ-72 加班 | CAP-056 |
+| PRC-118 生成、确认并锁定月度考勤 | business | VS-13.1 | OBJ-111 月度考勤确认 | confirmed | 1 | OBJ-70 考勤记录、OBJ-72 加班、OBJ-111 月度考勤确认 | CAP-056 |
+| PRC-120 评估月度绩效 | business | VS-13.2 | OBJ-109 绩效评估 | confirmed | 1 | OBJ-109 绩效评估 | CAP-056 |
+| PRC-122 核定奖金 | business | VS-13.2 | OBJ-104 奖金核定 | confirmed | 1 | OBJ-104 奖金核定 | CAP-074 |
+| PRC-124 计算、审核并批准月度薪酬 | business | VS-13.3 | OBJ-73 算薪运行 | confirmed | 1 | OBJ-73 算薪运行 | CAP-054 |
+| PRC-125 申报个税扣缴与社保公积金 | business | VS-13.4、VS-06.1 | OBJ-92 法定申报 | confirmed | 1 | OBJ-62 社保与公积金参保、OBJ-92 法定申报 | CAP-103 |
+| PRC-126 提交应付薪酬 | event_policy | VS-13.5 | OBJ-85 往来款项 | confirmed | 4 | OBJ-85 往来款项 | CAP-103 |
+| PRC-127 薪酬发放完成 | event_policy | VS-13.5 | OBJ-73 算薪运行 | confirmed | 4 | OBJ-73 算薪运行 | CAP-054 |
+| PRC-128 办理离职 | business | VS-13.6 | OBJ-56 员工 | confirmed | 1 | OBJ-05 协议、OBJ-56 员工、OBJ-57 任职 | CAP-056 |
+| PRC-129 离职后吊销会话 | event_policy | VS-13.6 | — | declared_none | — |  | — |
+| PRC-130 离职后参保减员 | event_policy | VS-13.6 | OBJ-62 社保与公积金参保 | confirmed | 4 | AGG-93、OBJ-62 社保与公积金参保 | CAP-056 |
+| PRC-134 薪酬事实已过账置位 | event_policy | VS-13.5 | OBJ-73 算薪运行 | confirmed | 4 | OBJ-73 算薪运行 | CAP-054 |
+| PRC-136 调岗（任职变更，按人事业务生效日，触发数据范围复核） | business | VS-07.3 | OBJ-57 任职 | confirmed | 1 | AGG-93、OBJ-05 协议、OBJ-57 任职、OBJ-62 社保与公积金参保 | CAP-056 |
+| PRC-137 入职开通企业微信账号并绑定外部身份 | business | VS-07.3 | — | declared_none | — |  | — |
+| PRC-138 离职停用企业微信账号并解绑 | business | VS-13.6 | — | declared_none | — |  | — |
+| PRC-145 员工法人三口径不一致预警 | event_policy | VS-07.3 | — | declared_none | — |  | — |
+| PRC-160 开立年度假期额度账户 | event_policy | VS-07.3 | — | declared_none | 5 | AGG-71 | — |
+| PRC-178 补休到期未休或离职时转计发加班工资 | event_policy | VS-13.6 | — | declared_none | 5 | AGG-93 | — |
+| PRC-181 记录经营复盘并跟踪经营动作 | business | VS-09.3 | OBJ-100 经营计划 | confirmed | 4 | OBJ-100 经营计划 | CAP-100 |
 | PRC-182 知识条目使用情况 | read_model | VS-11.3 | — | read_model | — |  | — |
 
 ### revenue
@@ -164,43 +164,42 @@
 | PRC-154 收入三口径对照 | read_model | VS-04.2、VS-04.3 | — | read_model | — |  | — |
 | PRC-179 项目开始执行后协议转入履行中 | event_policy | VS-04.6 | OBJ-05 协议 | confirmed | 4 | OBJ-05 协议 | CAP-005 |
 
-## ② 阶段承载对象在该段无流程以它为主对象
+## ② 阶段承载对象在该段无流程以它为主对象或次要对象
 
 - VS-02.7 收尾：OBJ-35 交付物
 - VS-04.1 合同签订：OBJ-07 付款条件项
 - VS-04.3 开票：OBJ-82 开票申请
 - VS-04.4 回款：OBJ-86 资金收付
 - VS-05.1 供方准入：OBJ-65 资质证书
-- VS-07.3 入职任职：OBJ-56 员工
+- VS-07.3 入职任职：OBJ-05 协议
 - VS-08.2 报销核定：OBJ-83 增值税发票
-- VS-13.1 考勤确认：OBJ-111 月度考勤确认
-- VS-13.6 离职结清：OBJ-56 员工
+- VS-13.6 离职结清：OBJ-05 协议
 
 ## ③ 同一主对象被多条流程使用（判断重复或合理分工）
 
 - AGG-43：PRC-15 未签约的售前投入转费用（VS-01.2，confirmed）；PRC-25 转入售前投入（VS-02.0、VS-04.1，confirmed）；PRC-35 项目或协议终止、结项后清算成本（VS-02.7，confirmed）；PRC-55 结转合同履约成本（VS-04.2，confirmed）；PRC-164 收入确认冲销后冲回已配对成本结转（VS-04.2，confirmed）
 - AGG-44：PRC-51 建立并更新开票与收入额度（VS-04.1、VS-04.2、VS-04.3，confirmed）；PRC-53 确认收入（VS-04.2，confirmed）；PRC-54 视为同意期满处理（VS-04.2，confirmed）；PRC-148 收入确认审批通过后占用转实并提交过账（VS-04.2，confirmed）；PRC-149 冲销收入确认（VS-04.2、VS-04.5，confirmed）
 - AGG-77：PRC-92 过账业务事实（VS-10.1，confirmed）；PRC-158 处置过账拒收记录（VS-10.1，confirmed）
-- OBJ-05 协议：PRC-47 起草、评审并回签协议（VS-04.1，confirmed）；PRC-50 占用框架限额并提交任务订单（VS-04.6，confirmed）；PRC-66 发起结算，确认最终价款并结算协议（VS-04.5、VS-04.6，confirmed）；PRC-68 终止协议（VS-04.5，confirmed）；PRC-70 起草并生效供方协议（VS-05.2，confirmed）；PRC-76 完成并结算供方协议（VS-05.6，confirmed）；PRC-128 办理离职（VS-13.6，proposed）；PRC-136 调岗（任职变更，按人事业务生效日，触发数据范围复核）（VS-07.3，proposed）；PRC-179 项目开始执行后协议转入履行中（VS-04.6，confirmed）
+- OBJ-05 协议：PRC-47 起草、评审并回签协议（VS-04.1，confirmed）；PRC-50 占用框架限额并提交任务订单（VS-04.6，confirmed）；PRC-66 发起结算，确认最终价款并结算协议（VS-04.5、VS-04.6，confirmed）；PRC-68 终止协议（VS-04.5，confirmed）；PRC-70 起草并生效供方协议（VS-05.2，confirmed）；PRC-76 完成并结算供方协议（VS-05.6，confirmed）；PRC-179 项目开始执行后协议转入履行中（VS-04.6，confirmed）
 - OBJ-07 付款条件项：PRC-56 付款条件项转为可结算（VS-04.3，confirmed）；PRC-152 登记付款条件达成（VS-04.3，confirmed）
 - OBJ-09 协议变更：PRC-48 提出并生效协议变更或签证（VS-04.6，confirmed）；PRC-71 生效分包变更（VS-05.2，confirmed）
 - OBJ-13 保证金与押金：PRC-10 收付保证金与保函（VS-01.2、VS-04.1，confirmed）；PRC-153 退还投标保证金（VS-01.2、VS-04.1，confirmed）
 - OBJ-29 项目：PRC-17 建立项目并组建团队（VS-02.0、VS-03.1，confirmed）；PRC-24 暂停、恢复、终止或取消项目（VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7，confirmed）；PRC-36 封存成果、结项并归档项目（VS-02.7，confirmed）
 - OBJ-33 完工估算：PRC-30 提出并批准完工估算（VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6，confirmed）；PRC-151 填报经营产值（VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6，confirmed）
 - OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32）：PRC-34 处置我方成果不符合项（VS-02.6、VS-02.7，confirmed）；PRC-44 发布客户资产类不符合项并建议外部检测（VS-03.2、VS-03.3，confirmed）；PRC-45 跟踪整改并复查闭合（VS-03.4，confirmed）
-- OBJ-62 社保与公积金参保：PRC-84 入职后参保增员与建立薪酬档案（VS-07.3，proposed）；PRC-130 离职后参保减员（VS-13.6，proposed）
+- OBJ-56 员工：PRC-82 登记候选人并作出录用决定（VS-07.2，confirmed）；PRC-83 办理入职与任职（VS-07.3，confirmed）；PRC-85 试用期评估与转正（VS-07.3、VS-13.2，confirmed）；PRC-128 办理离职（VS-13.6，confirmed）
+- OBJ-62 社保与公积金参保：PRC-84 入职后参保增员与建立薪酬档案（VS-07.3，confirmed）；PRC-130 离职后参保减员（VS-13.6，confirmed）
 - OBJ-66 工时单：PRC-23 填报并审批工时（VS-01.2、VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6，confirmed）；PRC-91 认定工时有效性（VS-10.1，confirmed）
-- OBJ-73 算薪运行：PRC-124 计算、审核并批准月度薪酬（VS-13.3，proposed）；PRC-127 薪酬发放完成（VS-13.5，proposed）；PRC-134 薪酬事实已过账置位（VS-13.5，proposed）
+- OBJ-73 算薪运行：PRC-124 计算、审核并批准月度薪酬（VS-13.3，confirmed）；PRC-127 薪酬发放完成（VS-13.5，confirmed）；PRC-134 薪酬事实已过账置位（VS-13.5，confirmed）
 - OBJ-83 增值税发票：PRC-57 申请并开具销项发票（VS-04.3，confirmed）；PRC-58 红冲销项发票（VS-04.3，confirmed）；PRC-73 登记并查验进项发票（VS-05.4，confirmed）
-- OBJ-85 往来款项：PRC-59 由销项发票创建应收（VS-04.4，confirmed）；PRC-60 认领收款并核销应收（VS-04.4，confirmed）；PRC-61 检测应收逾期并催收（VS-04.4，confirmed）；PRC-63 商业汇票兑付与逾期（VS-04.4，confirmed）；PRC-74 提交供方应付（VS-05.4，confirmed）；PRC-86 发放、归还与催还员工借款（VS-08.1，confirmed）；PRC-126 提交应付薪酬（VS-13.5，proposed）；PRC-131 付款成功后核销应付（VS-05.5、VS-08.3、VS-13.5，confirmed）；PRC-150 发票红冲后冲减应收（VS-04.4，confirmed）；PRC-159 申报已提交后确认税费应付（VS-06.1，confirmed）；PRC-171 核对差旅服务商月账单并确认应付（VS-05.4，confirmed）；PRC-175 直接付款申请（VS-05.5，confirmed）；PRC-176 预付款核销（VS-05.5，confirmed）
+- OBJ-85 往来款项：PRC-59 由销项发票创建应收（VS-04.4，confirmed）；PRC-60 认领收款并核销应收（VS-04.4，confirmed）；PRC-61 检测应收逾期并催收（VS-04.4，confirmed）；PRC-63 商业汇票兑付与逾期（VS-04.4，confirmed）；PRC-74 提交供方应付（VS-05.4，confirmed）；PRC-86 发放、归还与催还员工借款（VS-08.1，confirmed）；PRC-126 提交应付薪酬（VS-13.5，confirmed）；PRC-131 付款成功后核销应付（VS-05.5、VS-08.3、VS-13.5，confirmed）；PRC-150 发票红冲后冲减应收（VS-04.4，confirmed）；PRC-159 申报已提交后确认税费应付（VS-06.1，confirmed）；PRC-171 核对差旅服务商月账单并确认应付（VS-05.4，confirmed）；PRC-175 直接付款申请（VS-05.5，confirmed）；PRC-176 预付款核销（VS-05.5，confirmed）
 - OBJ-86 资金收付：PRC-75 发起、审批并执行付款（VS-05.5、VS-08.3、VS-13.5，confirmed）；PRC-132 应付核销后置付款已核销并提交过账候选（VS-05.5、VS-08.3、VS-13.5，confirmed）
 - OBJ-88 费用报销：PRC-87 提交、核定并确认报销应付（VS-08.2，confirmed）；PRC-133 应付结清后报销置已付（VS-08.3，confirmed）；PRC-147 费用报销核定后冲抵员工借款并确认应付（VS-08.2，confirmed）
 - OBJ-91 合伙人出资：PRC-111 认缴并实缴出资（VS-12.1，confirmed）；PRC-114 退回出资（VS-12.3，confirmed）
-- OBJ-92 法定申报：PRC-77 申报并缴纳增值税、附加税与企业所得税（VS-06.1，confirmed）；PRC-113 并入股息红利个税扣缴申报（VS-12.2，proposed）；PRC-125 申报个税扣缴与社保公积金（VS-13.4、VS-06.1，proposed）
+- OBJ-92 法定申报：PRC-77 申报并缴纳增值税、附加税与企业所得税（VS-06.1，confirmed）；PRC-113 并入股息红利个税扣缴申报（VS-12.2，confirmed）；PRC-125 申报个税扣缴与社保公积金（VS-13.4、VS-06.1，confirmed）
 - OBJ-97 会计期间：PRC-101 月结检查并关账（VS-10.1，confirmed）；PRC-102 启用第 13 期并年末关账（VS-10.1，confirmed）
 - OBJ-98 会计分录：PRC-93 生成会计分录（VS-10.1，confirmed）；PRC-94 制单并过账受控手工凭证（VS-10.1，confirmed）；PRC-135 处理会计分录待处理队列与推送重投（VS-10.1，confirmed）
-- OBJ-100 经营计划：PRC-88 编制、批准并基线化经营计划与预算（VS-09.1、VS-09.3，proposed）；PRC-89 编制滚动预测（VS-09.2，proposed）；PRC-181 记录经营复盘并跟踪经营动作（VS-09.3，proposed）
-- OBJ-109 绩效评估：PRC-85 试用期评估与转正（VS-07.3、VS-13.2，proposed）；PRC-120 评估月度绩效（VS-13.2，proposed）
+- OBJ-100 经营计划：PRC-88 编制、批准并基线化经营计划与预算（VS-09.1、VS-09.3，confirmed）；PRC-89 编制滚动预测（VS-09.2，confirmed）；PRC-181 记录经营复盘并跟踪经营动作（VS-09.3，confirmed）
 - OBJ-112 利润分配：PRC-112 决议并支付利润分配（VS-12.2，confirmed）；PRC-163 应付结清后登记利润分配支付（VS-12.2，confirmed）
 
 ## ④ 主对象推出的一级能力不在所标段的能力清单
@@ -232,13 +231,11 @@
 - PRC-148 收入确认审批通过后占用转实并提交过账：AGG-44
 - PRC-149 冲销收入确认：AGG-44
 - PRC-158 处置过账拒收记录：AGG-77
-- PRC-160 开立年度假期额度账户：AGG-71
 - PRC-164 收入确认冲销后冲回已配对成本结转：AGG-43
 - PRC-169 处置勾稽差异案：AGG-126
 - PRC-170 申请费用事前额度：AGG-130
 - PRC-172 申请出差并同步差旅服务商：AGG-132
 - PRC-173 审批差旅超标订单：AGG-131
-- PRC-178 补休到期未休或离职时转计发加班工资：AGG-93
 
 ## E 需用户判断（候选，经组与本会话筛过再交）
 

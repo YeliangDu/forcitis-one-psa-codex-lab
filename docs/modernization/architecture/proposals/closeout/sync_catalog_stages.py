@@ -16,7 +16,7 @@ _spec = importlib.util.spec_from_file_location("closeout_check", HERE / "closeou
 cc = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(cc)
 CATALOG = HERE / "process-catalog.yaml"
-FIELDS = ("support", "stages_note", "primary_object", "primary_object_note")
+FIELDS = ("support", "stages_note", "primary_object", "primary_object_note", "secondary_objects")
 
 
 def skeleton_units(doc):
@@ -28,6 +28,8 @@ def skeleton_units(doc):
 
 
 def quote(v):
+    if isinstance(v, list):
+        return "[" + ", ".join(str(x) for x in v) + "]"
     return '"' + str(v).replace('"', "'").replace("\n", " ").strip() + '"'
 
 
@@ -35,7 +37,7 @@ def patch_block(blk, unit):
     stages = [str(s) for s in unit.get("stages") or []]
     nb = re.sub(r"    stages: \[.*?\]", "    stages: [" + ", ".join(stages) + "]", blk, count=1)
     for f in FIELDS:
-        nb = re.sub(r"\n    %s: \".*?\"" % f, "", nb)
+        nb = re.sub(r"\n    %s: (\".*?\"|\[.*?\])" % f, "", nb)
     extra = "".join(f"\n    {f}: {quote(unit[f])}" for f in FIELDS if str(unit.get(f) or "").strip())
     return re.sub(r"(    stages: \[.*?\])", lambda m: m.group(1) + extra, nb, count=1)
 

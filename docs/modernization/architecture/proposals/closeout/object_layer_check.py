@@ -9,7 +9,8 @@
 主对象提议（目录未填 primary_object 时）：只取本流程写入（C/U/D）的对象，按档取第一档非空者——
   1 所标段退出条件精确命中；2 所标段段内状态精确命中；3 退出或段内近似命中；4 所标段退出条件引用到的对象；5 唯一写入对象。
   事件策略的触发命中是触发方对象，不作主对象依据。一档内多于一个 = 多候选，交组选。读模型不改对象状态，不提议、不计入 ①（组可手填其主读对象）。
-检查：① 非支撑流程无主对象；② 阶段承载对象（退出条件引用的对象）在该段无流程以它为主对象；
+primary_object: none 为组声明的「无业务对象」（须附理由），不计入 ①③④；secondary_objects 为次要对象（须是本流程写入的对象）。
+检查：① 非支撑流程无主对象；② 阶段承载对象（退出条件引用的对象）在该段无流程以它为主对象或次要对象；
       ③ 同一主对象被多条流程使用（列出，判断重复或分工）；④ 流程主对象推出的一级能力不在所标段的能力清单。
 """
 import collections
@@ -115,7 +116,9 @@ def analyse(catalog, pobj_doc, agg_objs, vs_doc, caps_doc, hits):
             continue
         conf = p.get("primary_object")
         lv, cand = propose(p, written, hits, st_objs)
-        if conf:
+        if isinstance(conf, str) and conf.strip().lower() == "none":
+            status, prim = "declared_none", None
+        elif conf:
             status, prim = "confirmed", conf
         elif p.get("type") == "read_model":
             status, prim = "read_model", None
@@ -124,7 +127,9 @@ def analyse(catalog, pobj_doc, agg_objs, vs_doc, caps_doc, hits):
         else:
             status, prim = ("candidates" if cand else "none"), None
         cap = cidx.get(prim) if prim else None
+        sec = [o for o in p.get("secondary_objects") or []]
         rows.append({"id": p["id"], "name": p["name"], "group": p.get("group"), "type": p.get("type"), "stages": list(p.get("stages") or []),
+                     "secondary_objects": sec, "secondary_unwritten": [o for o in sec if o not in written.get(p["id"], set())],
                      "primary_object": prim, "status": status, "level": lv, "candidates": cand,
                      "writes": sorted(written.get(p["id"], set()), key=num),
                      "capability_l1": cap[0] if cap else None, "capability": cap[1] if cap else None})
@@ -133,10 +138,16 @@ def analyse(catalog, pobj_doc, agg_objs, vs_doc, caps_doc, hits):
     for r in rows:
         if r["primary_object"]:
             by_obj[r["primary_object"]].append(r)
-    D = {"no_primary": [r for r in rows if not r["primary_object"] and r["status"] != "read_model"], "uncarried": [], "shared": [], "cap_off": [], "no_cap": []}
+    D = {"no_primary": [r for r in rows if not r["primary_object"] and r["status"] not in ("read_model", "declared_none")], "uncarried": [], "shared": [], "cap_off": [], "no_cap": []}
+    by_sec = collections.defaultdict(list)
+    for r in rows:
+        for o in r["secondary_objects"]:
+            if o not in r["secondary_unwritten"]:
+                by_sec[o].append(r)
+    D["sec_bad"] = [r for r in rows if r["secondary_unwritten"]]
     for s in order:
         for o in st_objs[s]:
-            if not any(s in r["stages"] for r in by_obj.get(o, [])):
+            if not any(s in r["stages"] for r in by_obj.get(o, []) + by_sec.get(o, [])):
                 D["uncarried"].append((s, o))
     D["shared"] = sorted(((o, rs) for o, rs in by_obj.items() if len(rs) > 1), key=lambda x: num(x[0]))
     for r in rows:
@@ -153,7 +164,7 @@ def render_yaml(A):
     doc = {"note": "object_layer_check.py 生成，勿手改；status：confirmed 三组确认（目录 primary_object）/ proposed 脚本提议 / candidates 多候选 / none 无候选 / read_model 读模型不提议",
            "stages": [{"id": s, "display": "%s.%s" % A["disp"][s], "order": A["disp"][s][1], "name": A["sname"][s], "objects": A["st_objs"][s],
                        "capabilities": A["st_caps"][s]} for s in A["order"]],
-           "processes": [{k: r.get(k) for k in ("id", "display", "name", "group", "stages", "primary_object", "status", "candidates", "capability_l1", "capability")
+           "processes": [{k: r.get(k) for k in ("id", "display", "name", "group", "stages", "primary_object", "secondary_objects", "status", "candidates", "capability_l1", "capability")
                           if r.get(k) not in (None, [])} for r in A["rows"]]}
     return yaml.safe_dump(doc, allow_unicode=True, sort_keys=False, width=200)
 
@@ -163,7 +174,7 @@ def render_md(A, onames):
     on = lambda o: f"{o} {onames.get(o, '')}".strip()
     cnt = collections.Counter(r["status"] for r in rows)
     out = ["# 对象层与能力层对齐报告（object_layer_check.py 生成，勿手改）", "",
-           f"非支撑流程 {len(rows)} 条：已确认 {cnt['confirmed']}、提议 {cnt['proposed']}、多候选 {cnt['candidates']}、无候选 {cnt['none']}、读模型 {cnt['read_model']}。",
+           f"非支撑流程 {len(rows)} 条：已确认 {cnt['confirmed']}、声明无业务对象 {cnt['declared_none']}、提议 {cnt['proposed']}、多候选 {cnt['candidates']}、无候选 {cnt['none']}、读模型 {cnt['read_model']}。",
            f"检查：① 无主对象 {len(D['no_primary'])}；② 阶段承载对象无主流程 {len(D['uncarried'])}；③ 主对象多流程 {len(D['shared'])}；"
            f"④ 能力不在所标段清单 {len(D['cap_off'])}（另主对象无能力 {len(D['no_cap'])}）。", "",
            "提议口径：" + "；".join(f"第 {k} 档 {v}" for k, v in LEVELS.items()) + "。只取本流程写入的对象；第 4、5 档把握低，组确认时重点看。", ""]
@@ -175,8 +186,10 @@ def render_md(A, onames):
             out.append(f"| {r['id']} {r['name']} | {r['type']} | {'、'.join(r['stages'])} | {on(r['primary_object']) if r['primary_object'] else '—'} | "
                        f"{r['status']} | {r['level'] or '—'} | {extra} | {r['capability_l1'] or '—'} |")
         out.append("")
-    out += ["## ② 阶段承载对象在该段无流程以它为主对象", ""]
+    out += ["## ② 阶段承载对象在该段无流程以它为主对象或次要对象", ""]
     out += [f"- {s} {A['sname'][s]}：{on(o)}" for s, o in D["uncarried"]] or ["无"]
+    if D["sec_bad"]:
+        out += ["", "### 次要对象不是本流程写入的对象（不计承载）", ""] + [f"- {r['id']} {r['name']}：{'、'.join(on(o) for o in r['secondary_unwritten'])}" for r in D["sec_bad"]]
     out += ["", "## ③ 同一主对象被多条流程使用（判断重复或合理分工）", ""]
     out += [f"- {on(o)}：" + "；".join(f"{r['id']} {r['name']}（{'、'.join(r['stages'])}，{r['status']}）" for r in rs) for o, rs in D["shared"]] or ["无"]
     out += ["", "## ④ 主对象推出的一级能力不在所标段的能力清单", ""]
@@ -201,11 +214,14 @@ def self_test():
            {"id": "P2", "name": "b", "type": "business", "stages": ["VS-X.1"]},
            {"id": "P3", "name": "c", "type": "event_policy", "stages": ["VS-X.1"]},
            {"id": "P4", "name": "d", "type": "business", "stages": ["VS-X.1"], "primary_object": "OBJ-09"},
-           {"id": "P5", "name": "e", "type": "business", "stages": [], "support": "支撑"}]
+           {"id": "P5", "name": "e", "type": "business", "stages": [], "support": "支撑"},
+           {"id": "P6", "name": "f", "type": "business", "stages": ["VS-X.2"], "primary_object": "none", "secondary_objects": ["OBJ-03"]},
+           {"id": "P7", "name": "g", "type": "business", "stages": ["VS-X.2"], "secondary_objects": ["OBJ-01"]}]
     pobj = {"processes": [{"id": "P1", "objects": [{"obj": "OBJ-01", "ops": "CU", "aggregates": ["AGG-1"]}, {"obj": "OBJ-02", "ops": "U", "aggregates": ["AGG-2"]}]},
                           {"id": "P2", "objects": [{"obj": "OBJ-02", "ops": "C", "aggregates": ["AGG-2"]}, {"obj": "OBJ-05", "ops": "U", "aggregates": ["AGG-5"]}]},
+                          {"id": "P6", "objects": [{"obj": "OBJ-03", "ops": "U", "aggregates": ["AGG-3"]}]},
                           {"id": "P3", "objects": [{"obj": "OBJ-02", "ops": "U", "aggregates": ["AGG-2"]}, {"obj": "OBJ-01", "ops": "R", "aggregates": ["AGG-1"]}]}]}
-    aggo = {"AGG-1": ["OBJ-01"], "AGG-2": ["OBJ-02"], "AGG-5": ["OBJ-05"]}
+    aggo = {"AGG-1": ["OBJ-01"], "AGG-2": ["OBJ-02"], "AGG-3": ["OBJ-03"], "AGG-5": ["OBJ-05"]}
     hits = {"P1": [("VS-X.1", "exact", "OBJ-01", "exit")], "P3": [("VS-X.1", "exact", "OBJ-01", "trigger")]}
     A = analyse(cat, pobj, aggo, vs, caps, hits)
     r = {x["id"]: x for x in A["rows"]}
@@ -216,8 +232,9 @@ def self_test():
            ok("目录确认值优先", r["P4"]["status"] == "confirmed" and r["P4"]["capability_l1"] == "CAP-009"),
            ok("支撑流程不计", "P5" not in r),
            ok("展示编号按段内顺序", r["P1"]["display"] == "X.1.01" and r["P4"]["display"] == "X.1.04"),
-           ok("① 无主对象", [x["id"] for x in A["D"]["no_primary"]] == ["P2"]),
-           ok("② 承载对象无主流程", ("VS-X.2", "OBJ-03") in A["D"]["uncarried"] and ("VS-X.1", "OBJ-01") not in A["D"]["uncarried"]),
+           ok("① 无主对象（none 声明不计）", [x["id"] for x in A["D"]["no_primary"]] == ["P2", "P7"] and r["P6"]["status"] == "declared_none"),
+           ok("② 次要对象算承载", ("VS-X.2", "OBJ-03") not in A["D"]["uncarried"] and ("VS-X.1", "OBJ-01") not in A["D"]["uncarried"]),
+           ok("次要对象须本流程写入", [x["id"] for x in A["D"]["sec_bad"]] == ["P7"]),
            ok("④ 二级能力上溯一级后核对", any(x["id"] == "P4" for x in A["D"]["cap_off"]) and not any(x["id"] == "P3" for x in A["D"]["cap_off"]))]
     if not all(res):
         sys.exit(1)

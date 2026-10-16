@@ -1354,7 +1354,7 @@ processes:
   stages:
   - VS-06.2
   primary_object: OBJ-64
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-64
   capability_l1: CAP-056
@@ -1366,7 +1366,7 @@ processes:
   stages:
   - VS-07.1
   primary_object: OBJ-60
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-60
   capability_l1: CAP-058
@@ -1378,7 +1378,7 @@ processes:
   stages:
   - VS-07.2
   primary_object: OBJ-56
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-56
   capability_l1: CAP-056
@@ -1389,10 +1389,13 @@ processes:
   group: people
   stages:
   - VS-07.3
-  status: candidates
+  primary_object: OBJ-56
+  status: confirmed
   candidates:
   - OBJ-05
   - OBJ-56
+  capability_l1: CAP-056
+  capability: CAP-056
 - id: PRC-84
   display: 07.3.02
   name: 入职后参保增员与建立薪酬档案
@@ -1400,7 +1403,7 @@ processes:
   stages:
   - VS-07.3
   primary_object: OBJ-62
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-62
   capability_l1: CAP-056
@@ -1412,12 +1415,12 @@ processes:
   stages:
   - VS-07.3
   - VS-13.2
-  primary_object: OBJ-109
-  status: proposed
+  primary_object: OBJ-56
+  status: confirmed
   candidates:
   - OBJ-109
   capability_l1: CAP-056
-  capability: CAP-056.109
+  capability: CAP-056
 - id: PRC-86
   display: 08.2.01
   name: 发放、归还与催还员工借款
@@ -1451,7 +1454,7 @@ processes:
   - VS-09.1
   - VS-09.3
   primary_object: OBJ-100
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-100
   capability_l1: CAP-100
@@ -1463,7 +1466,7 @@ processes:
   stages:
   - VS-09.2
   primary_object: OBJ-100
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-100
   capability_l1: CAP-100
@@ -1616,7 +1619,7 @@ processes:
   - VS-11.2
   - VS-11.3
   primary_object: OBJ-110
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-110
   capability_l1: CAP-110
@@ -1652,7 +1655,7 @@ processes:
   stages:
   - VS-12.2
   primary_object: OBJ-92
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-92
   capability_l1: CAP-103
@@ -1676,7 +1679,7 @@ processes:
   stages:
   - VS-13.1
   primary_object: OBJ-68
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-68
   capability_l1: CAP-056
@@ -1688,7 +1691,7 @@ processes:
   stages:
   - VS-13.1
   primary_object: OBJ-72
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-72
   capability_l1: CAP-056
@@ -1699,10 +1702,13 @@ processes:
   group: people
   stages:
   - VS-13.1
-  status: candidates
+  primary_object: OBJ-111
+  status: confirmed
   candidates:
   - OBJ-72
   - OBJ-111
+  capability_l1: CAP-056
+  capability: CAP-056.111
 - id: PRC-120
   display: 13.2.01
   name: 评估月度绩效
@@ -1710,7 +1716,7 @@ processes:
   stages:
   - VS-13.2
   primary_object: OBJ-109
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-109
   capability_l1: CAP-056
@@ -1722,7 +1728,7 @@ processes:
   stages:
   - VS-13.2
   primary_object: OBJ-104
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-104
   capability_l1: CAP-074
@@ -1734,7 +1740,7 @@ processes:
   stages:
   - VS-13.3
   primary_object: OBJ-73
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-73
   capability_l1: CAP-054
@@ -1747,7 +1753,7 @@ processes:
   - VS-13.4
   - VS-06.1
   primary_object: OBJ-92
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-92
   capability_l1: CAP-103
@@ -1759,7 +1765,7 @@ processes:
   stages:
   - VS-13.5
   primary_object: OBJ-85
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-85
   capability_l1: CAP-103
@@ -1771,7 +1777,7 @@ processes:
   stages:
   - VS-13.5
   primary_object: OBJ-73
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-73
   capability_l1: CAP-054
@@ -1782,19 +1788,19 @@ processes:
   group: people
   stages:
   - VS-13.6
-  primary_object: OBJ-05
-  status: proposed
+  primary_object: OBJ-56
+  status: confirmed
   candidates:
   - OBJ-05
-  capability_l1: CAP-005
-  capability: CAP-005
+  capability_l1: CAP-056
+  capability: CAP-056
 - id: PRC-129
   display: 13.6.02
   name: 离职后吊销会话
   group: people
   stages:
   - VS-13.6
-  status: none
+  status: declared_none
 - id: PRC-130
   display: 13.6.03
   name: 离职后参保减员
@@ -1802,7 +1808,7 @@ processes:
   stages:
   - VS-13.6
   primary_object: OBJ-62
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-62
   capability_l1: CAP-056
@@ -1854,7 +1860,7 @@ processes:
   stages:
   - VS-13.5
   primary_object: OBJ-73
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-73
   capability_l1: CAP-054
@@ -1877,33 +1883,33 @@ processes:
   group: people
   stages:
   - VS-07.3
-  primary_object: OBJ-05
-  status: proposed
+  primary_object: OBJ-57
+  status: confirmed
   candidates:
   - OBJ-05
-  capability_l1: CAP-005
-  capability: CAP-005
+  capability_l1: CAP-056
+  capability: CAP-056.057
 - id: PRC-137
   display: 07.3.05
   name: 入职开通企业微信账号并绑定外部身份
   group: people
   stages:
   - VS-07.3
-  status: none
+  status: declared_none
 - id: PRC-138
   display: 13.6.04
   name: 离职停用企业微信账号并解绑
   group: people
   stages:
   - VS-13.6
-  status: none
+  status: declared_none
 - id: PRC-145
   display: 07.3.06
   name: 员工法人三口径不一致预警
   group: people
   stages:
   - VS-07.3
-  status: none
+  status: declared_none
 - id: PRC-147
   display: 08.3.02
   name: 费用报销核定后冲抵员工借款并确认应付
@@ -2026,8 +2032,7 @@ processes:
   group: people
   stages:
   - VS-07.3
-  primary_object: AGG-71
-  status: proposed
+  status: declared_none
   candidates:
   - AGG-71
 - id: PRC-163
@@ -2134,8 +2139,7 @@ processes:
   group: people
   stages:
   - VS-13.6
-  primary_object: AGG-93
-  status: proposed
+  status: declared_none
   candidates:
   - AGG-93
 - id: PRC-179
@@ -2157,7 +2161,7 @@ processes:
   stages:
   - VS-09.3
   primary_object: OBJ-100
-  status: proposed
+  status: confirmed
   candidates:
   - OBJ-100
   capability_l1: CAP-100
