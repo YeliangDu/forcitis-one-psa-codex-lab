@@ -199,7 +199,7 @@ COMMENT ON COLUMN organization_workforce.sync_diffs.id IS '差异 ID（UUIDv7）
 COMMENT ON COLUMN organization_workforce.sync_diffs.sync_run_id IS '同步记录 ID';
 COMMENT ON COLUMN organization_workforce.sync_diffs.diff_number IS '差异序号：在同一次同步内按发现顺序从 1 起编号，显示顺序按它排';
 COMMENT ON COLUMN organization_workforce.sync_diffs.entity_kind IS '对象类别：ORG_UNIT / EMPLOYEE / POSITION';
-COMMENT ON COLUMN organization_workforce.sync_diffs.subject_key IS '对象键，如 employee:2001';
+COMMENT ON COLUMN organization_workforce.sync_diffs.subject_key IS '对象键，如 employee:0192f3a4-7b1c-7d2e-8f30-5a6b7c8d9e01（类别 + 自有 ID）';
 COMMENT ON COLUMN organization_workforce.sync_diffs.change_kind IS '变更类别：CREATED / UPDATED / SEPARATED / REHIRED / REVOKED / REVIVED / ISSUE（数据例外）';
 COMMENT ON COLUMN organization_workforce.sync_diffs.issue_kind IS '数据例外类别（仅 ISSUE 行）';
 COMMENT ON COLUMN organization_workforce.sync_diffs.detail IS '说明';

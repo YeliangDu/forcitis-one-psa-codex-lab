@@ -53,11 +53,12 @@ COMMENT ON COLUMN platform_identity.roles.version IS '乐观锁版本';
 COMMENT ON COLUMN platform_identity.roles.event_count IS '事件序号：该聚合已发出的事件数，每发一个事件加 1，作为事件信封的 aggregateVersion；与乐观锁 version 分开';
 
 CREATE TABLE platform_identity.role_permissions (
-    role_permission_id uuid     PRIMARY KEY,
+    role_permission_id uuid     NOT NULL,
     role_id         uuid        NOT NULL REFERENCES platform_identity.roles (role_id) ON DELETE CASCADE,
     permission_code text        NOT NULL,
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_role_permissions PRIMARY KEY (role_permission_id),
     CONSTRAINT uk_role_permissions_role_id_permission_code UNIQUE (role_id, permission_code)
 );
 COMMENT ON TABLE platform_identity.role_permissions IS '角色—权限：权限码取自 Permission 目录；整组替换（RULE-346）。粒度：每个角色的每个权限码一行';
@@ -69,11 +70,12 @@ COMMENT ON COLUMN platform_identity.role_permissions.updated_at IS '更新时间
 
 -- 账号仍持有的角色不得被删除：删角色时由外键拒绝，而不是悄悄把账号的授权带走。
 CREATE TABLE platform_identity.account_roles (
-    account_role_id uuid   PRIMARY KEY,
+    account_role_id uuid   NOT NULL,
     user_id    uuid        NOT NULL REFERENCES platform_identity.user_accounts (user_id) ON DELETE CASCADE,
     role_id    uuid        NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_account_roles PRIMARY KEY (account_role_id),
     CONSTRAINT uk_account_roles_user_id_role_id UNIQUE (user_id, role_id),
     CONSTRAINT fk_account_roles_role_id FOREIGN KEY (role_id) REFERENCES platform_identity.roles (role_id) ON DELETE RESTRICT
 );
