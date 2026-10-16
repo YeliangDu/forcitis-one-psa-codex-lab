@@ -6,6 +6,7 @@
 #              LOG_APPEND_ONLY | QUEUE | ONE_TIME | LINEAGE | COUNTER | IDEMPOTENCY | FRAMEWORK | PLACEHOLDER
 # mutability   MUTABLE (needs a version column) | CONDITIONAL_UPDATE (needs `condition`) | REPLACE_SET | APPEND_ONLY | INSERT_DELETE |
 #              MIGRATION_ONLY | FRAMEWORK
+# retention    (an optional failed_policy <n>d | <n>y is the second tier of a two-tier purge)
 # retention    policy PERMANENT | BUSINESS_RECORD | CURRENT_STATE | FRAMEWORK | EXPIRY | <n>d | <n>y; a time-bound policy names the ShedLock job (`job`)
 # lineage      source NEW | ORG_SOURCE | MIGRATION | FRAMEWORK; migrated_from lists the old-system objects, via says how they are traced (legacy_numbers | ONE_OFF_IMPORT)
 # writers      modules whose code writes the table; readers: modules that only read it. A module outside the schema's own module needs `cross_module`.
@@ -333,15 +334,15 @@ tables:
     role: QUEUE
     aggregate: OutboundDelivery
     mutability: MUTABLE
-    retention: {policy: 90d, job: platform.integration.outbound.purge}
+    retention: {policy: 90d, failed_policy: 1y, job: platform.integration.outbound.purge}  # policy: SENT、SKIPPED；failed_policy: FAILED、DEAD_LETTER（OutboundDeliveryPurgeJob）；PENDING 不删
     lineage: {source: NEW}
     writers: [platform.integration]
   platform_integration.source_references:
     role: AGGREGATE_ROOT
     aggregate: SourceReference
     mutability: MUTABLE
-    retention: {policy: PERMANENT}
-    lineage: {source: NEW}
+    retention: {policy: PERMANENT}  # 人员类 source_id 按 RETENTION_PROPOSAL 离职满 10 年删除，清理作业另卡；R-2 守护建成后转 gap
+    lineage: {source: ORG_SOURCE, migrated_from: [老系统人员与部门对照], via: ONE_OFF_IMPORT}
     writers: [platform.integration]
 
   platform_numbering.numbering_rules:
@@ -352,6 +353,8 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: [platform.numbering]
+  # AP-09: the database only checks CONFIRMED has a business confirmer; a JOURNAL_VOUCHER version also needs the finance confirmation,
+  # which depends on the document type and is enforced by the aggregate (NumberingRule.completeIfAllGiven), not by a CHECK.
   platform_numbering.numbering_rule_versions:
     role: AGGREGATE_CHILD
     aggregate: NumberingRule
