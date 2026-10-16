@@ -52,7 +52,6 @@ aggregates:
     - 单据编号
     - 落账期间（会计年度、期间序号）
     - 状态
-    - 口径版本引用
     - version
     - 审计列
     notes: 每期间一次有效（部分唯一索引）
@@ -759,7 +758,6 @@ aggregates:
     - 来源 BC 与来源单据引用（不校验）
     - 冲销关联
     - 金额与币种
-    - 所用口径版本引用
     - 写入通道（管道 / 迁入）
   - name: posting_rejections
     role: child
