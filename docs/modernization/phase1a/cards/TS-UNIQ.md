@@ -1,6 +1,6 @@
 # 派工卡 TS-UNIQ：工时单「每人每个工作日一张」唯一约束、驳回后改原单再提交、唯一冲突的错误码、状态与事件对齐、记所用编号规则版本
 
-- 草稿：one-1a-par 起草助手，2026-10-16，基线 origin/main bd73edd2。**未经 one-data 签发，不得派测试代理与实现代理**（`DATA_DESIGN_GATE.md` §1.2）。
+- 草稿：one-1a-par 起草助手，2026-10-16，基线 origin/main bd73edd2。数据设计已由 one-data 签发（见「数据设计」一节首行）；测试代理与实现代理开工前仍须核对签发有效（`DATA_DESIGN_GATE.md` §1.2、§1.3）。
 - 「待核」表示手头证据不足，开工前由实现者或 one-data 先核实再改，见第 13 节。
 
 ## 1. 卡号与类别
@@ -10,8 +10,8 @@
 - 不含（已有归属，本卡不做）：
   - 工时填报义务（哪天须填、最低时数、请假是否入单、非工作日加班是否关联审批或调休）：交 one-rules 取证后出决策页，定之前不实现任何最低时数拦截（用户 2026-10-16，intent `2026-10-16-052923-one-coordinator-工时单唯一与填报义务-我的想法是.md`）
   - `DATA-REPAIR-timesheet-audit` 的 TA-01（状态与轮次、提交日成对 CHECK）、TA-02：排在本卡合并之后。**TA-01 依赖本卡定稿的状态集合**：集合不变，仍为 `DRAFT / SUBMITTED / RETURNED / APPROVED / REJECTED` 五个，TA-01 据此写「提交过」的集合，不另加状态
-  - T-4（`org_unit_id` 取创建时部门还是工作日所在部门）、T-5（表粒度与信息图 OBJ-66 的差异，Phase 2）、T-7（保留期，见第 13 节）、T-8 中 `legal_entity_id` 注释：不动
-  - 状态列内联 `CHECK` 的具名（`ck_timesheets_status`）：随 G-D12 / R-2a 一次改基线（`SCAN_SUPPLEMENT.md` §6），本卡不动该 `CHECK`，见第 13 节第 3 条
+  - T-4（`org_unit_id` 取创建时部门还是工作日所在部门）、T-5（表粒度与信息图 OBJ-66 的差异，Phase 2）、T-7（保留期登记与归档作业归 `DATA-REPAIR-timesheet-audit` 新增的 TA-03，A 部分，one-1a-par，不在本卡，见第 13 节第 5 条）、T-8 中 `legal_entity_id` 注释：不动
+  - 状态列内联 `CHECK` 的具名（`ck_timesheets_status`）：随 G-D12 / R-2a 一次改基线（`SCAN_SUPPLEMENT.md` §6），本卡不动该 `CHECK`，已由 one-data 裁定留给 G-D12（R-2a），见第 13 节第 3 条
   - 事件改名 `TimesheetCancelled` → `TimesheetApprovalWithdrawn`（B2-B07）：**已由 R-1b P5 完成并合入 main**（提交 `95ced398`），见第 2 节核对结果第 4 条；本卡只对齐、不重复改
 
 ## 2. 依据与出处核对
@@ -41,7 +41,7 @@
 | 3a | 新建分支先查业务错误 | **属实，现状缺**：`OPUS_VERIFY.md` 第 64 行「新建分支要先查（员工，日期）给出业务错误，唯一冲突只作最后防线」 | 即第 3.2 节第 2、3 条 |
 | 4 | 状态 CHECK、事件目录、状态机、枚举 | 五个取值一致，见数据设计一节的对照表；**改名已完成**：`TimesheetApprovalWithdrawn` 已在事件类、`events/timesheet.yaml:258`、`events/asyncapi.yaml`、`architecture/ddd/aggregates.yaml`、`audit/MUST_AUDIT_ACTIONS.yaml`、`backend/glossary/proposed/code-aggregates-events.yaml`（词条 `timesheet_approval_withdrawn`，中文「工时单已撤回审批」）；验收物 `acceptance/cost/timesheet/TimesheetApprovalWithdrawnRenameIT` 已在 main | `grep TimesheetCancelled` 在 main 上只剩历史文档与验收测试里的「旧名不得出现」断言（`P5Names.OLD_CANCELLED_EVENT`） |
 | 4a | 撤回 = `SUBMITTED → DRAFT` | **属实** | `Timesheet.java:53-58` 的 `.allow(SUBMITTED, …, DRAFT)`；`cancelSubmission` 发 `TimesheetApprovalWithdrawn`；类注释写「a cancel gives it back as a draft」；`backend/glossary/proposed/README.md` 与 `code-aggregates-events.yaml` 的定义「填报人撤销审批，工时单回到草稿；不记为驳回」。注意代码里 `WithdrawTimesheet`（退回自己重改，审批轮次以 RETURNED 结束，工时单 → `RETURNED`）与 `CancelTimesheet`（撤销整个审批，工时单 → `DRAFT`，发 `TimesheetApprovalWithdrawn`）两个用例名与事件名的「撤回」含义对调，**只记不改**，见第 13 节第 6 条 |
-| 5 | X-6 记 `numbering_rule_version_id` | **属实** | 全库 `db/migration` 除 `platform_numbering` 外无此列；`DocumentNumbers.next` 返回的 `IssuedNumber` 只含号码与计数格 ID（`platform/numbering/api/IssuedNumber.java`），**不含版本 ID**；`TemplateVersion` 无 ID 字段。故 X-6 需扩 `platform.numbering` 的对外类型，见第 3.2 节第 5 条与第 13 节 |
+| 5 | X-6 记 `numbering_rule_version_id` | **属实** | 全库 `db/migration` 除 `platform_numbering` 外无此列；`DocumentNumbers.next` 返回的 `IssuedNumber` 只含号码与计数格 ID（`platform/numbering/api/IssuedNumber.java`），**不含版本 ID**；`TemplateVersion` 无 ID 字段。故 X-6 需扩 `platform.numbering` 的对外类型，见第 3.2 节第 6 条与第 13 节第 1 条 |
 | 6 | 「121,453 张、一人一日一单」口径 | **口径不明确，只能确认出处**：信息图 `ENTERPRISE_INFO_MAP_DRAFT.md:124`（OBJ-66）写「近 24 个月 121,453 张」，出处为另一外部系统的表与〔交证〕§13，不是老系统库的（人员，日期）去重计数；规则卡 `rules/raw/timesheet-lifecycle.md` RULE-04 说明老系统用「未删除」过滤唯一索引，**已取消的单据也占用该日**；RULE-08 说明工时行有类型 0 项目 / 1 售前 / 2 OH（及混合） | 第 3.4 节 |
 | 7 | `data-classification.txt` 无工时条目 | **属实**；`employee_id` 属系统代理键（ADR-0043 第 4 项第 2 条）、`numbering_rule_version_id` 同属代理键引用，按 C4 不登记（未登记默认 `INTERNAL`），本卡不补登记；「工时数据整体是否按 `PI` 登记」是 `DATA-REPAIR-timesheet-audit` 第 5 节待用户决定第 2 条，本卡不替它定 | 数据设计一节分级表 |
 | 8 | CC-T01 时区口径 | **矩阵该行不是「待决」**：`CROSS_CUTTING_MATRIX.md` CC-T01 类别为「地基 · 本批处理中（B2b fix-time-zone）」；业务时区 `Asia/Shanghai` 与 `BusinessZone.today(Clock)` 已在 `kernel`；`SubmitTimesheet.java` 的 `today` 取 `zone.today(clock)`。本卡按下述口径写，无需等该行 | 数据设计一节横切口径 |
@@ -53,14 +53,14 @@
 文件：`backend/src/main/resources/db/migration/cost_timesheet/V20261014140000__cost_timesheet_baseline.sql`，只限 `cost_timesheet.timesheets`，不碰 `consumed_events`。
 1. 增 `CONSTRAINT uk_timesheets_employee_id_work_date UNIQUE (employee_id, work_date)`：全表唯一、无谓词、对所有状态生效（用户 intent `2026-10-16-052923`）；不用部分唯一索引。
 2. 删 `CREATE INDEX ix_timesheets_employee_id`（与上一条的唯一约束前缀相同，冗余；G-DDL3）。
-3. 增列 `numbering_rule_version_id uuid NOT NULL`（X-6；NOT NULL 对迁入行的影响见第 13 节第 2 条）。跨 BC 只存 ID，不建外键（B4）。
+3. 增列 `numbering_rule_version_id uuid`（可空，不设默认值；X-6）。可空是因为迁入单据沿用原编号、未经本系统发号，该列为空；新建单必填由应用保证（见数据设计一节不变量表）。已由 one-data 裁定（2026-10-16，`data/reviews/TS-UNIQ.md`）。跨 BC 只存 ID，不建外键（B4）。
 4. 表注释的粒度改为「每人每个工作日一行，含非工作日，所有状态」；`employee_id`、`work_date` 两列注释补写与唯一约束的关系；新列注释以「编号规则版本」开头（G39，词条 `numbering_rule_version`）。注释草稿见数据设计一节。
 5. 其余一律不动：包括 `status` 内联 `CHECK`、`ix_timesheets_org_unit_id`、`ix_timesheets_status`、其余列与约束。
 
 ### 3.2 Java（实现 PR）
 1. `backend/src/main/java/com/forcitis/one/cost/timesheet/domain/Timesheet.java`：
    - `MACHINE` 增 `.allow(TimesheetStatus.REJECTED, TimesheetStatus.SUBMITTED)`；`revise` 允许 `REJECTED`；类注释改为与新流转一致（驳回后可改原单再提交）。
-   - 新增 `numberingRuleVersionId`（类型见第 5 条）：`draft` 取得、`restore` 读出，创建后不改。
+   - 新增 `numberingRuleVersionId`（类型见第 6 条）：`draft` 必填，缺失即失败并告警，不写空值；`restore` 读出，迁入行为空；创建后不改。
    - 不改 `cancelSubmission` 与事件名。
 2. `backend/src/main/java/com/forcitis/one/cost/timesheet/api/TimesheetStatus.java`：`isEditable()` 含 `REJECTED`；类注释同步。
 3. `backend/src/main/java/com/forcitis/one/cost/timesheet/application/SubmitTimesheet.java`：新建分支在取号**之前**按（员工，工作日期）查已有工时单，已有（任何状态）即抛新错误码，不消耗单据编号；类注释「refused cannot be submitted at all」改为与新流转一致。仓储接口 `domain/TimesheetRepository.java` 增一个只读查询。
@@ -76,7 +76,7 @@
      | 其他或取不到约束名 | 不吞：原样抛出并记一条 `ALERT` 日志，**日志不带冲突值**（D1-2 同口径），不得默认当并发修改 |
    - 更新语句路径（`updated != 1`）仍为并发修改，不动。
 5. `backend/src/main/java/com/forcitis/one/cost/timesheet/api/TimesheetError.java`：增 `COST_TIMESHEET_WORK_DATE_DUPLICATE(ErrorKind.CONFLICT)`。
-6. X-6 取得版本 ID（**`platform.numbering` 是他卡的模块，归属待确认，见第 13 节第 1 条**）：`platform/numbering/api/IssuedNumber.java` 增版本行 ID（新类型 `NumberingRuleVersionId`，放 `platform/numbering/api/`），`application/IssueDocumentNumber.java` 填入发号时 `inForceOn` 选中的那一版；`TemplateVersion` 带 ID 还是仓储按（类型，版本号）取 ID，由实现者在 `platform.numbering` 内选改动最小的一种，**先报告再动手**。测试里直接构造 `IssuedNumber` 的两处（`platform/approval/ApprovalIntegrationSupport.java`、`cost/timesheet/application/TimesheetOwnerGateTest.java`）只补参数，不改断言。
+6. X-6 取得版本 ID（**前置：numbering 小卡，待 one-coordinator 指定负责会话；`platform.numbering` 的 API 扩展不由本卡带做，该小卡合并后本卡实现 PR 才开工，见第 13 节第 1 条**）。小卡的内容是：`platform/numbering/api/IssuedNumber.java` 增版本行 ID（新类型 `NumberingRuleVersionId`，放 `platform/numbering/api/`），`application/IssueDocumentNumber.java` 填入发号时 `inForceOn` 选中的那一版；`TemplateVersion` 带 ID 还是仓储按（类型，版本号）取 ID，由实现者在 `platform.numbering` 内选改动最小的一种，**先报告再动手**。测试里直接构造 `IssuedNumber` 的两处（`platform/approval/ApprovalIntegrationSupport.java`、`cost/timesheet/application/TimesheetOwnerGateTest.java`）只补参数，不改断言（以上随小卡走，不在本卡 PR）。本卡只消费小卡提供的 `IssuedNumber` 版本 ID。
 7. 前端：`frontend/packages/core/src/error-messages.ts` 增 `COST_TIMESHEET_WORK_DATE_DUPLICATE` 一条（该表对 OpenAPI 的每个 `ErrorCode` 逐条要求，缺则类型检查失败）；`frontend/packages/api/openapi.json` 与 `src/generated/*` 为生成物，按生成脚本重新生成，不手改。
 8. 文档与目录（与代码同 PR）：
    - `docs/modernization/events/timesheet.yaml`：`TimesheetRejected` 的描述补「驳回后填报人可改原单再提交」；改后运行 `build_asyncapi.py` 重新生成 `events/asyncapi.yaml`（`EventCatalogueTest` 校验两者一致）。
@@ -85,12 +85,12 @@
 9. 现有测试的夹具与断言（PR 单列，附理由）：
    - `cost/timesheet/domain/TimesheetStateMachineTest.java` 的 `everyOperationInEveryStatus`：`revise` 增 `REJECTED → REJECTED`、`submit` 增 `REJECTED → SUBMITTED`。理由：用户决定「驳回后改原单再提交」（intent `2026-10-16-052923`）。这是**业务规则变更引起的断言变更**，不是放宽。
    - 基线加唯一约束后，同一测试类内对同一员工、同一 `workDay()` 建多张工时单的夹具会撞约束（`cost/timesheet/application/TimesheetApprovalScenarioIT`、`acceptance/cost/timesheet/TimesheetOwnerAccountsIT`、`TimesheetApprovalWithdrawnRenameIT`、`acceptance/platform/eventing/EventEnvelopeAggregateIdIT`、`scenario/EventSequencePersistenceIT`，**待核**哪些真的撞）：只改夹具的员工或工作日期，使每张单（员工，工作日）互异，不改断言。
-10. `backend/architecture/data-access-registry.yaml`：本卡不改条目（`business_key` 等字段在 DG-0 建成前写在第「数据设计」一节）；保留期登记见第 13 节第 5 条。
+10. `backend/architecture/data-access-registry.yaml`：本卡不改条目（`business_key` 等字段在 DG-0 建成前写在第「数据设计」一节）；保留期登记与归档作业归 TA-03，不在本卡（第 13 节第 5 条）。
 
 ### 3.3 归属与不碰
 - 归属：本卡独占 `cost_timesheet.timesheets` 的唯一约束、`numbering_rule_version_id` 列、状态集合与流转、新错误码。
 - 不碰：验收测试目录（由测试代理写）；`consumed_events`；`platform_approval` 的任何文件（approval 侧已支持，只补测试不改代码）；他卡文件；`kernel` 共享构件。
-- `platform.numbering` 的 API 扩展若归他卡负责人，改动前停下报告（第 13 节第 1 条）。
+- 不改 `platform.numbering`：其 API 扩展由 numbering 小卡负责（待 one-coordinator 指定会话，第 13 节第 1 条）；本卡实现 PR 在该小卡合并前不开工，需要该模块再改动时停下报告。
 
 ### 3.4 前置并行事项：迁入违约取证（T3 / E3，**不是本卡执行者要做的事**）
 - 背景：信息图「一人一日一单、121,453 张」的口径不明，不能当作「老系统数据无重复」的证据；老系统工时行有类型 0 项目 / 1 售前 / 2 OH（RULE-08），若按类型分单，同一人同一日可有多条；老账号合并到同一员工后也会撞（员工，工作日期）。
@@ -108,11 +108,11 @@
   4. `TS-UNIQ 工时单被驳回后，填报人可修改原单并再次提交：状态 REJECTED→SUBMITTED，仍是同一张单，轮次加一，审批发起新一轮；已通过的工时单不能再提交`（覆盖 `platform.approval` 在 `REJECTED` 起点上的第二轮端到端）
   5. `TS-UNIQ REJECTED 与 DRAFT、RETURNED 一样可编辑，APPROVED 与 SUBMITTED 不可编辑`
   6. `TS-UNIQ 撤销审批使 SUBMITTED→DRAFT，发布的事件类型为 cost.timesheet.TimesheetApprovalWithdrawn，旧名不存在`（已有 `TimesheetApprovalWithdrawnRenameIT` 覆盖事件名；本条另断言状态转换，二者都须通过）
-  7. `TS-UNIQ 表结构守护：timesheets 上存在唯一约束 uk_timesheets_employee_id_work_date，列为（employee_id, work_date），无谓词；ix_timesheets_employee_id 不存在；uk_timesheets_timesheet_number 仍在`（读 `pg_constraint`、`pg_index`）
+  7. `TS-UNIQ 表结构守护：timesheets 上存在唯一约束 uk_timesheets_employee_id_work_date，列为（employee_id, work_date），无谓词；ix_timesheets_employee_id 不存在；uk_timesheets_timesheet_number 仍在；numbering_rule_version_id 列存在、类型 uuid、可空`（读 `pg_constraint`、`pg_index`）
   8. `TS-UNIQ timesheet_number 冲突仍映射为 COST_TIMESHEET_CONCURRENT_CHANGE`（直接用已有单据编号插入另一员工的单）
   9. `TS-UNIQ 其他约束名的重复键异常不被当作并发修改：原样抛出，且日志不含冲突值`（注入一个未知约束名）
   10. `TS-UNIQ 状态 CHECK 取值 = TimesheetStatus 枚举 = Timesheet.MACHINE 的状态集合 = 事件目录各转换事件的目标状态集合，每个取值都有进入它的转换（初始状态除外）`（B3a 三方一致，写一次，不依赖 G-D12 建成）
-  11. `TS-UNIQ 新建的工时单记录发号时所用的编号规则版本 ID，且等于发号时生效的已确认版本；该列不可空`
+  11. `TS-UNIQ 新建的工时单记录发号时所用的编号规则版本 ID，且等于发号时生效的已确认版本；新建路径取不到版本 ID 时失败并告警，不写空值（库内该列可空，为迁入行保留）`
   12. `TS-UNIQ 工作日期按自然日保存不做时区转换；「不晚于今天」按上海业务日判断（固定 Clock 在 UTC 前一日 16:30 时，上海次日的工作日期被接受）`
   13. `TS-UNIQ TimesheetStateMachineTest 原样重跑`（含第 3.2 节第 9 条所列的有理由的断言扩充，PR 单列）
 - 实现方认为验收测试有误：停下报告，由复审裁定（`Acceptance-Ruling: RULING-TS-UNIQ-n`），不自行修改
@@ -121,7 +121,7 @@
 - 测试代理：`code-modernization:test-engineer`，**sonnet**
 - 实现：子代理，**sonnet**
 - 首轮复审：**opus 一次**，推理强度 high（涉数据完整性与错误映射；§14、§14.1 全部条目 + 本卡专查项）；修后复核 **sonnet**；最多两轮，之后新发现的非 High 列为残余项在 PR 单列（SESSION_PLAYBOOK §11 第 6 条）
-- 数据设计门禁（`DATA_DESIGN_GATE.md` §1.2）：本卡发 one-data 审查 → **签发** → 表结构 PR（预期 diff，one-data 复核，合并）→ 验收测试 → 实现。验收与实现开工前核对签发有效（§1.3）
+- 数据设计门禁（`DATA_DESIGN_GATE.md` §1.2）：本卡发 one-data 审查 → **签发（已于 2026-10-16 完成）** → 表结构 PR（预期 diff，one-data 复核，合并）→ 验收测试 → 实现。验收与实现开工前核对签发有效（§1.3）
 - 工作区：独立 worktree，分支 `claude/one-1a-par-ts-uniq`（表结构 PR）、`claude/one-1a-par-ts-uniq-impl`（实现 PR，名字以负责会话为准），基线为当时的 main
 - 不交 Codex：含数据完整性判断与跨模块 API 扩展
 
@@ -139,18 +139,18 @@
 ## 7. 预期表结构 diff（SESSION_PLAYBOOK §12.2）
 - 方法：两个空库分别执行改动前（main）、后的基线，`pg_dump --schema-only` 对比，种子另做 `--data-only` 对比
 - 预期差异**只能是**（全部在 `cost_timesheet.timesheets`）：
-  - 新增列 `numbering_rule_version_id uuid NOT NULL`（位置在 `timesheet_number` 之后；无默认值），及其列注释
+  - 新增列 `numbering_rule_version_id uuid`（可空；位置在 `timesheet_number` 之后；无默认值），及其列注释
   - 新增约束 `uk_timesheets_employee_id_work_date UNIQUE (employee_id, work_date)`
   - 删除索引 `ix_timesheets_employee_id`
   - 表注释改（粒度）；列注释改：`employee_id`、`work_date`
-- **不得出现**的差异：`timesheets` 其他列、类型、可空性、默认值的变化；`status` `CHECK` 取值或名称的变化；`ix_timesheets_org_unit_id`、`ix_timesheets_status`、`pk_timesheets`、`uk_timesheets_timesheet_number`、`ck_timesheets_*` 的任何变化；`cost_timesheet.consumed_events` 的任何变化；任何部分唯一索引；任何外键（含到 `platform_numbering` 的）；其他 schema 的任何变化；种子数据变化
+- **不得出现**的差异：`timesheets` 其他列、类型、可空性、默认值的变化；`status` `CHECK` 取值或名称的变化；`ix_timesheets_org_unit_id`、`ix_timesheets_status`、`pk_timesheets`、`uk_timesheets_timesheet_number`、`ck_timesheets_*` 的任何变化；`cost_timesheet.consumed_events` 的任何变化；任何部分唯一索引；新列带非空约束或默认值；任何外键（含到 `platform_numbering` 的）；其他 schema 的任何变化；种子数据变化
 
 ## 8. 交付物与自查
-- 交付物：基线 DDL；Java（状态机、可编辑、预检、约束名映射、新错误码、版本 ID 的取得与写入）；前端文案一条与生成物；事件目录与流程文档的相应句子；验收与单元测试；提议术语一条
+- 交付物：基线 DDL；Java（状态机、可编辑、预检、约束名映射、新错误码、版本 ID 的写入；取得由 numbering 小卡提供）；前端文案一条与生成物；事件目录与流程文档的相应句子；验收与单元测试；提议术语一条
 - 守护文件：`data-access-registry.yaml`、`data-classification.txt` 本卡不改；`ddl-naming-baseline.txt`、`primary-key-exemptions.txt`、各 `*-exceptions.txt` 不新增条目
 - 自查：`scripts/precheck.sh origin/main` 全部 PASS 或有理由的 SKIP，输出贴进报告与 PR「precheck.sh 输出」；`pre-commit install`；报告前 gitleaks 8.30.1 扫全历史
 - 受影响模块测试：precheck 给出的命令；交付前全量 `scripts/ci/backend_verify.sh` 与前端 `pnpm verify`（起容器的只用白名单镜像）
-- PR 正文单列：预期与实际表结构 diff；签发行（`数据设计：通过（one-data，…）`，DG-1）；改动的断言与夹具及理由；`platform.numbering` 扩展的范围与归属确认
+- PR 正文单列：预期与实际表结构 diff；签发行（`数据设计：通过（one-data，…）`，DG-1）；改动的断言与夹具及理由；numbering 小卡的卡号与合并确认
 - 报告分开写「已验证」与「未运行」
 
 ## 9. 复审要求（§6.1 第 4、11 条）
@@ -168,39 +168,41 @@
 | 标识符 | 中文名 | 种类 | 使用范围 | bc | 说明 |
 |---|---|---|---|---|---|
 | `COST_TIMESHEET_WORK_DATE_DUPLICATE`（词条 `error__cost_timesheet_work_date_duplicate`，en `CostTimesheetWorkDateDuplicate`，snake `cost_timesheet_work_date_duplicate`） | 工作日期已有工时单 | 错误码 | 领域 | `cost.timesheet` | 同一员工在该工作日期已有一张工时单（任何状态），不能再建（409）。中文名全局唯一已核（同类 `日期重复` 属 `organization.attendance`，含义不同）；命名遵循既有 `*_DUPLICATE_*` 与 `COST_TIMESHEET_WORK_DATE_*` 写法 |
-| `NumberingRuleVersionId` | 编号规则版本 ID | 值对象（类型化 ID） | 领域 | `platform.numbering` | 由词 `numbering_rule_version` + `id` 组成；列名 `numbering_rule_version_id` 已是 ADR-0033 第 1 项第 5 条点名的列名，且 `platform_numbering.numbering_rule_versions` 主键同名。注意既有词条 `numbering_rule_version` 的定义是「版本号值对象」，与「版本行 ID」不同，G39 只要求列注释以词条中文名「编号规则版本」开头，已满足；是否需要把词条定义补一句交 one-glossary（用 `docs/modernization/glossary/new_term_issue.py` 登记，不自行裁定） |
+| `NumberingRuleVersionId` | 编号规则版本 ID | 值对象（类型化 ID） | 领域 | `platform.numbering` | 由词 `numbering_rule_version` + `id` 组成；列名 `numbering_rule_version_id` 已是 ADR-0033 第 1 项第 5 条点名的列名，且 `platform_numbering.numbering_rule_versions` 主键同名。由 numbering 小卡引入，本卡消费。注意既有词条 `numbering_rule_version` 的定义是「版本号值对象」，与「版本行 ID」不同，G39 只要求列注释以词条中文名「编号规则版本」开头，已满足；是否需要把词条定义补一句交 one-glossary（用 `docs/modernization/glossary/new_term_issue.py` 登记，不自行裁定） |
 | `uk_timesheets_employee_id_work_date` | — | 约束名 | — | `cost.timesheet` | 按 NAMING_STANDARD §2.4 `uk_<表>_<列>`，列取自 `employee_id`、`work_date` |
 
 ## 12. 顺序与前置
-1. 本卡 → one-coordinator 看 → one-data 审查并签发（`数据设计：通过（one-data，日期，依据 <卡提交号>）`）
+1. 本卡 → one-coordinator 看 → one-data 审查并签发（`数据设计：通过（one-data，日期，依据 <卡提交号>）`）；**已完成**，见数据设计一节首行
 2. 并行：第 3.4 节取证（one-ops），不阻塞 3
-3. 表结构 PR：基线 DDL + 注册表无改 + 守护全绿；one-data 复核预期 diff；合并。**注意**：新增 `NOT NULL` 列与唯一约束会令 CI 中写工时单的现有测试在 Java 未改前失败，表结构 PR 怎样保持 CI 绿见第 13 节第 8 条
+3. 表结构 PR：基线 DDL + 注册表无改 + 守护全绿；one-data 复核预期 diff；合并。新增的是可空列，表结构 PR 不需带 Java、不需顺序豁免（one-data 裁定）。唯一约束对现有测试夹具的影响见第 3.2 节第 9 条的待核；若确有测试撞约束，停下报告 one-data，不自行在表结构 PR 里改 Java
 4. 测试代理写验收（第 4 节），先于实现提交
-5. 实现 PR（第 3.2 节），opus 首轮复审，sonnet 复核
-6. 合并后：通知 `DATA-REPAIR-timesheet-audit` A 部分（TA-01 依赖本卡定稿的状态集合，集合不变）；one-architecture 同步信息图 OBJ-66 与聚合草稿 INV-64 / N-10（第 13 节第 4 条）
+5. 实现 PR（第 3.2 节），opus 首轮复审，sonnet 复核。**前置：numbering 小卡（`IssuedNumber` 带版本 ID），待 one-coordinator 指定负责会话**；它是实现 PR 的前置，不是表结构 PR 的前置
+6. 合并后：通知 `DATA-REPAIR-timesheet-audit` A 部分（TA-01 依赖本卡定稿的状态集合，集合不变）；信息图 OBJ-66 与聚合草稿 INV-64 / N-10 已由 one-data 另发 one-architecture 改写，不阻塞（第 13 节第 4 条）
 
 ## 13. 待核事项与需要决定的点
 
 ### 待核（证据不足，开工前先核实）
-1. `platform.numbering` 现由哪个会话负责、其 API 扩展（`IssuedNumber` 增版本 ID）是否允许本卡带做；`TemplateVersion` 是否带 ID 的取舍。
-2. 迁入行的 `numbering_rule_version_id`：本卡按 NOT NULL 写（Phase 1a 的工时单全部经 `DocumentNumbers.next` 发号）；迁入工时单沿用原编号、没有发号版本，迁入阶段是否要改可空、列注释写「为空表示迁入单据」，属 T3 / E3 的迁入阶段问题，**现无证据，不在本卡定**。
-3. 状态列内联 `CHECK` 具名：`DATA-REPAIR-timesheet-audit.md` 第 10 节 §6 行与 `README.md` 写「随 TS-UNIQ 的状态集合改，不单做」，而本卡按用户指示预期 diff 不含该项；状态集合未变，故留给 G-D12 / R-2a。请 one-data 确认。
-4. 信息图 OBJ-66 与聚合草稿的文字与本卡决定不一致：OBJ-66 状态列写「草稿 → 已提交 → 审批中 → 已通过 / 已退回 / 已撤回 → 已过账」，表粒度为「员工 × 填报期间」；`ENTERPRISE_AGGREGATES_DRAFT.md` INV-64 / N-10 写「部分唯一索引，排除已驳回、已取消」且称 `CHECK` 缺 `CANCELLED`。本卡以用户 2026-10-16 决定为准（全表无谓词、无取消终态）。B3 要求信息图关键状态都在 `CHECK` 内，故需 one-architecture 把「已撤回」改为转换而非状态、「审批中」并入已提交、「已过账」注明属 Phase 2。`TimesheetRejected` 标题「工时不成立」是否改，同交 one-architecture。
-5. 保留期：用户已认可 `timesheets` 10 年、归档到对象存储后在线删除（`data/RETENTION_PROPOSAL.md`，intent 随 #319），其「落点」写「timesheet-audit 卡 A 部分（TS-UNIQ 同批登记）」，但两张卡的条目里都没有登记注册表 `retention` 与归档 / 清理作业，GUIDING_PRINCIPLES §6 也无该行。C3 要求非永久的写明作业，故现判**不通过**，请 one-data / one-coordinator 指定归哪张卡。财务是否认定工时单为会计档案原始凭证（改 30 年）待财务确认。
+1. **前置：numbering 小卡，待 one-coordinator 指定负责会话**：`platform.numbering` 的 API 扩展（`IssuedNumber` 增版本 ID，`TemplateVersion` 是否带 ID 的取舍）先开小卡做，是本卡实现 PR 的前置，不是表结构 PR 的前置；不再由本卡带做。
+2. 迁入行的 `numbering_rule_version_id` 可空：**已由 one-data 裁定**（2026-10-16，`data/reviews/TS-UNIQ.md`）：列可空，空表示迁入单据，新建单必填由应用保证；表结构 PR 不需带 Java、不需顺序豁免。
+3. 状态列内联 `CHECK` 具名：**已由 one-data 裁定**留给 G-D12（R-2a），本卡不改（`DATA-REPAIR-timesheet-audit.md` 第 10 节 §6 行与 `README.md` 的「随 TS-UNIQ 改」表述以此为准，由对应卡同步）。
+4. 信息图 OBJ-66（状态列含「审批中」「已撤回」「已过账」、粒度「员工 × 填报期间」）与 `ENTERPRISE_AGGREGATES_DRAFT.md` INV-64 / N-10（部分唯一索引、`CANCELLED`）和本卡决定不一致：**已由 one-data 另发 one-architecture 改写**，B3 按「信息图过期」判通过，不阻塞本卡；本卡以用户 2026-10-16 决定为准（全表无谓词、无取消终态）。`TimesheetRejected` 标题「工时不成立」是否改，同交 one-architecture。
+5. 保留期：用户已认可 `timesheets` 10 年、归档到对象存储后在线删除（`data/RETENTION_PROPOSAL.md`）；**注册表 `retention` 登记与归档 / 清理作业归 `DATA-REPAIR-timesheet-audit` 新增的 TA-03（A 部分，one-1a-par），不在本卡，C3 对本卡不适用**（one-data 裁定）。财务是否认定工时单为会计档案原始凭证（改 30 年）仍待财务确认，转到 TA-03，不在本卡。
 6. `WithdrawTimesheet` / `CancelTimesheet` 两个用例名与事件名里的「撤回」含义对调（`WithdrawTimesheet` 令审批以 `RETURNED` 结束，`CancelTimesheet` 令工时单回草稿并发 `TimesheetApprovalWithdrawn`）；本卡不改名（缺陷卡不得改名），登记给 one-glossary。
 7. `pk_timesheets` 冲突映射为并发修改是否合适，交 opus 首轮复审。
 8. 其余索引 `ix_timesheets_org_unit_id`、`ix_timesheets_status` 在代码里没有查询路径（T-6），本卡不删，留待列表路径出现或另卡。
 
 ### 需要用户或 one-architecture 决定的点（不预选，走待决定收件箱）
 1. **迁入违约取证结果不为 0 时的处理办法**（用户或 one-rules；3.4 节）。
-2. **表结构 PR 怎样保持 CI 绿**（门禁 §1.2 要求表结构先合并、业务代码后写，而新增 `NOT NULL` 列使现有插入语句失败）：选项 (a) 表结构 PR 中新列先可空、实现 PR 再改基线为 NOT NULL；(b) 表结构 PR 带最小 Java 改动（只让插入写该列）；(c) 本卡的表结构 PR 与实现 PR 合为一个 PR 并在门禁里记一条顺序豁免。须 one-data 与 one-coordinator 定（门禁 §5：偏离顺序不由卡作者决定）。
-3. **`platform.numbering` 的 API 扩展由本卡带做，还是先开一张 numbering 小卡**（one-coordinator / one-architecture；待核第 1 条）。
-4. **迁入工时单的 `numbering_rule_version_id` 可空与否**（one-architecture / one-data；待核第 2 条）。
-5. **`timesheets` 保留期登记与归档作业归哪张卡**，以及是否按会计档案改 30 年（one-coordinator / one-data；待核第 5 条；30 年部分待财务）。
-6. **信息图 OBJ-66 与聚合草稿 INV-64 / N-10 的改写**（one-architecture；待核第 4 条）。
-7. **新错误码的中文名「工作日期已有工时单」与 HTTP 409**（one-glossary 确认词条；用户无需决定）。
+2. 表结构 PR 怎样保持 CI 绿：已由 one-data 裁定（新增可空列，不需带 Java、不需顺序豁免），不再是决定点。
+3. `platform.numbering` 的 API 扩展：已定为先开 numbering 小卡，负责会话由 one-coordinator 指定（待核第 1 条），不再由本卡带做。
+4. 迁入工时单的 `numbering_rule_version_id` 可空与否：已由 one-data 裁定为可空（待核第 2 条）。
+5. `timesheets` 保留期登记与归档作业：已定归 TA-03（待核第 5 条）；30 年是否会计档案仍待财务，转到 TA-03。
+6. 信息图 OBJ-66 与聚合草稿 INV-64 / N-10 的改写：已由 one-data 另发 one-architecture，不阻塞（待核第 4 条）。
+7. **新错误码的中文名「工作日期已有工时单」与 HTTP 409**：交 one-glossary 确认词条；用户无需决定。
 
 ## 数据设计（DATA_DESIGN_GATE.md 附录 A；材料按条目号对应）
+
+数据设计：通过（one-data，2026-10-16，依据 TS-UNIQ.md @40edf239，含上述裁定），记录 data/reviews/TS-UNIQ.md。
 
 ### 涉数据
 是。§1.1 第 1 项（列、约束、索引、基线 `db/migration` 改动）；第 2 项事件载荷**无变化**（只对齐，不改字段；改名已由 P5 完成）；第 3、4、5 项无（迁入映射仅有前置取证，不在本卡；无指标；`data-classification.txt` 与注册表条目不改）。
@@ -225,8 +227,8 @@ schema 归属：`cost_timesheet`，BC `cost.timesheet`，子行无。
 
 - 事件 5 个（`TimesheetSubmitted`、`TimesheetApproved`、`TimesheetRejected`、`TimesheetReturned`、`TimesheetApprovalWithdrawn`）与转换一一对应：①每个事件目标状态都在 `CHECK` 内；②`CHECK` 每个取值都有进入它的转换；③三份状态集合相同（验收第 10 条自动比对）；④改名在事件目录、事件类、`aggregates.yaml`、`MUST_AUDIT_ACTIONS.yaml`、提议术语同步（P5 已做），状态列注释不含事件名，无需改。
 - 撤回 = `SUBMITTED → DRAFT`，**没有「撤回」状态**，`CHECK` 不改；`TimesheetApprovalWithdrawn` 载荷不变（文档引用、员工、填报工时、轮次、原因）。
-- 与信息图 OBJ-66 关键状态的差异（已撤回、审批中、已过账）见第 13 节待核第 4 条，B3 的这几处现判**不通过（待 one-architecture 改信息图）**，不是本卡能改的。
-- 关系与基数（B4）：`employee_id`、`legal_entity_id`、`org_unit_id`、`project_manager_id` 均跨 BC，只存 ID、不建外键；新增 `numbering_rule_version_id` 同理（跨 BC `platform.numbering`），不建外键；各列均为 `NOT NULL`（基数 1）；无 `0..1`、无 N↔N。
+- 与信息图 OBJ-66 关键状态的差异（已撤回、审批中、已过账）见第 13 节待核第 4 条，B3 的这几处按「信息图过期」判通过（one-data 裁定；信息图与聚合草稿已另发 one-architecture 改写），不阻塞本卡。
+- 关系与基数（B4）：`employee_id`、`legal_entity_id`、`org_unit_id`、`project_manager_id` 均跨 BC，只存 ID、不建外键；新增 `numbering_rule_version_id` 同理（跨 BC `platform.numbering`），不建外键；新列 `numbering_rule_version_id` 可空（`0..1`，空表示迁入单据）；其余各列均为 `NOT NULL`（基数 1）；无 N↔N。
 
 ### 不变量 → 约束清单（B5、O4）
 | 不变量（来源） | 承担者 | 无法落约束时的理由 |
@@ -240,7 +242,7 @@ schema 归属：`cost_timesheet`，BC `cost.timesheet`，子行无。
 | 工作日期创建后不改 | 聚合 `revise`（`COST_TIMESHEET_WORK_DATE_FIXED`） | 需触发器才能落库，当前无必要（CS-1.8） |
 | 工作日期不晚于今天（上海业务日） | 聚合 `draft`（`COST_TIMESHEET_WORK_DATE_IN_FUTURE`） | 取决于时钟，不能落 CHECK |
 | 只有填报人能改、提交、撤回、撤销 | 聚合 `requireOwner` 与用例的本人闸门 | 权限判定，非数据约束 |
-| 已发编号可追溯到所用规则版本（ADR-0033 第 1 项第 5 条；D17 细则 6） | `numbering_rule_version_id NOT NULL`；写入的值取自发号时实际选中的版本 | 该版本属 `TIMESHEET` 规则、生效日不晚于发号业务日，跨 BC 无法库内约束，由验收第 11 条断言 |
+| 已发编号可追溯到所用规则版本（ADR-0033 第 1 项第 5 条；D17 细则 6） | **新建路径由应用层保证必填**：`Timesheet.draft` 取不到版本 ID 即失败并告警；写入的值取自发号时实际选中的版本 | 库内该列可空（迁入单据沿用原编号、未经本系统发号，该列为空），故 DB 无法落非空约束，承担者只能是应用层；该版本属 `TIMESHEET` 规则、生效日不晚于发号业务日，跨 BC 无法库内约束，由验收第 11 条断言 |
 
 ### 用例 → 聚合 → 表（O1）
 | 用例 | 聚合 | 表 |
@@ -268,7 +270,7 @@ schema 归属：`cost_timesheet`，BC `cost.timesheet`，子行无。
 - **时区（CC-T01）**：`work_date` 是员工填写的自然日（`date`），**不做时区转换**；「不晚于今天」用注入 `Clock` 经 `BusinessZone`（`Asia/Shanghai`）取上海业务日；`submitted_date` 同口径；时刻列 `timestamptz`。矩阵 CC-T01 现状为「地基 · 本批处理中」，非待决，不阻塞本卡（O14 通过，若 B2b 改了 `BusinessZone` 的接口，实现时跟随）。
 - **幂等（CC-C01）**：同一工时单 ID 的重复提交在 `SubmitTimesheet` 内按 ID 加锁并返回已有结果；不同 ID 的同人同日重复由新约束拒绝。
 - **并发（CC-C02、CC-C04）**：乐观锁 `version` 与更新语句 `status = :previous` 条件不变；新建的并发由唯一约束兜底。
-- **保留期（CC-P02）**：见第 13 节待核第 5 条，现判不通过。
+- **保留期（CC-P02）**：登记与归档作业归 TA-03，不在本卡，C3 对本卡不适用（第 13 节待核第 5 条）。
 - **金额、舍入、分页**：本卡不涉及；工时为 `numeric(10,2)` 的 `Hours`（CC-N09 属 Phase 2，不动）。
 - **法人与期间（O13）**：`legal_entity_id NOT NULL`，由提交人在工作日期所属的法人解析（`EmployeeLegalEntities.on(employee, workDate)`），缺失即失败，不设默认；会计期间闸门属 Phase 2（CC-T05），本卡不带期间列。
 
@@ -276,7 +278,7 @@ schema 归属：`cost_timesheet`，BC `cost.timesheet`，子行无。
 | ADR 条款 | 规定的列 / 键 / 约束 | 预期 diff 位置或「不适用（理由）」 |
 |---|---|---|
 | ADR-0033 第 1 项第 1、2 条 | 单列 uuid 主键，应用侧生成 | 已含：`pk_timesheets (id uuid)`，不变 |
-| ADR-0033 第 1 项第 5 条 | 引用版本行的 UUIDv7 主键，列名 `numbering_rule_version_id` | **已含**：新增列 `numbering_rule_version_id uuid NOT NULL` |
+| ADR-0033 第 1 项第 5 条 | 引用版本行的 UUIDv7 主键，列名 `numbering_rule_version_id` | **已含**：新增列 `numbering_rule_version_id uuid`（可空，迁入行为空） |
 | ADR-0033 第 1 项第 10、11 条 | 排序不依赖 ID 次序；类型化 ID 包 `UUID` | 已含：本卡无排序；`NumberingRuleVersionId` 包 `UUID` |
 | ADR-0033 第 7 项（事件载荷与去重键） | 事件载荷用结构化 ID；去重键拆列 | 不适用（理由：本卡不改载荷；`timesheets` 无去重键） |
 | ADR-0036 / ADR-0033 `legacy_numbers` | 迁入数据不在业务表加 `legacy_id`；原单号进 `legacy_numbers` | 已含：不加 `legacy_id`；注册表 lineage 已写 `via: legacy_numbers` |
@@ -285,7 +287,7 @@ schema 归属：`cost_timesheet`，BC `cost.timesheet`，子行无。
 | ADR-0026 第 9 条 | 业务事实的部门取事实发生时的部门 | 不适用（理由：T-4 单列待用户决定，本卡不动 `org_unit_id`） |
 
 ### 值对象、`detail` / 自由文本 / `jsonb`（O16、C4）
-- 值对象：`Hours`（`numeric(10,2)`，非负，两位小数，已有）、`DocumentNumber`、类型化 ID（`TimesheetId`、`EmployeeId`、`LegalEntityId`、`OrgUnitId`，已有）；新增 `NumberingRuleVersionId`（`UUID`，构造处非空校验）。Java 侧无 `double`、`float`。
+- 值对象：`Hours`（`numeric(10,2)`，非负，两位小数，已有）、`DocumentNumber`、类型化 ID（`TimesheetId`、`EmployeeId`、`LegalEntityId`、`OrgUnitId`，已有）；新增 `NumberingRuleVersionId`（`UUID`，构造处非空校验；聚合上迁入行以无值表示，不构造空 ID）。Java 侧无 `double`、`float`。
 - 本表无 `detail`、自由文本、`jsonb` 列；事件 `reason` 字段在事件目录，载荷不变。
 
 ### 注册表条目草稿（C2、C3、C5）
@@ -294,7 +296,7 @@ schema 归属：`cost_timesheet`，BC `cost.timesheet`，子行无。
 | role / mutability | `BUSINESS_DOCUMENT` / `MUTABLE`（不变） |
 | business_key（DG-0 前写在卡里） | `(employee_id, work_date)`；`timesheet_number` |
 | business_date_column / document_number_column | `work_date` / `timesheet_number`（不变） |
-| retention | 现 `BUSINESS_RECORD`；用户已认可 10 年、归档到对象存储后在线删除（`data/RETENTION_PROPOSAL.md`）；**注册表登记与归档作业归属待定**（待核第 5 条），本卡不改注册表 |
+| retention | 现 `BUSINESS_RECORD`；用户已认可 10 年、归档到对象存储后在线删除（`data/RETENTION_PROPOSAL.md`）；**注册表登记与归档作业归 TA-03**（A 部分，one-1a-par；待核第 5 条），本卡不改注册表 |
 | lineage | `{source: NEW, migrated_from: [old timesheet rows], via: legacy_numbers}`（不变） |
 | writers / readers | `[cost.timesheet]`；无其他 BC 读本表，`platform.audit` 只消费事件；依赖 `cost.timesheet → platform.numbering`、`→ platform.approval` 已在 `module-dependencies.txt` |
 
@@ -309,7 +311,7 @@ schema 归属：`cost_timesheet`，BC `cost.timesheet`，子行无。
 - 表：`工时单：聚合根；粒度：每人每个工作日一行，含非工作日，所有状态的工时单都占用该日；状态机在聚合内，审批结果经审批完成事件回写`
 - `employee_id`：`员工（员工 ID）：填报人，只有填报人能提交、撤回、撤销；与工作日期合起来唯一`
 - `work_date`：`工作日期：员工填写的、工时发生的那一天，自然日，不做时区转换，非工作日也可填报；与员工合起来唯一；创建时校验不得晚于今天（按上海业务日，取决于时钟，只在应用里保证），之后不再改写；事件的业务日期取它`
-- `numbering_rule_version_id`：`编号规则版本 ID：创建时发号所用的编号规则版本（platform.numbering 版本行的 UUIDv7），随取号写入，之后不改；跨模块只存 ID，不建外键`
+- `numbering_rule_version_id`：`编号规则版本 ID：创建时发号所用的编号规则版本（platform.numbering 版本行的 UUIDv7），随取号写入，之后不改；为空表示迁入单据，原编号作展示号，未经本系统发号；新建单由应用保证必填；跨模块只存 ID，不建外键`
 
 ### 分析事实（A1–A8）
 无分析事实：本卡不新增事件载荷字段、读模型、指标。（现有事件 `TimesheetSubmitted` 等将被分析层订阅，粒度与口径在 Phase 2 工时规格中定，N-10。）A6 对本表判：法人（`legal_entity_id`）、业务日期（`work_date`）、单据编号（`timesheet_number`）已有；用到可配置规则（编号规则）的记规则版本 ID，**本卡新增**；迁入行可经 `legacy_numbers` 追到原单号（lineage 已登记）。
@@ -323,7 +325,7 @@ schema 归属：`cost_timesheet`，BC `cost.timesheet`，子行无。
 ### 专项（E1–E3）
 - E1 事件载荷：无字段变化。`TimesheetApprovalWithdrawn` 载荷（`EventEnvelope`、`DocumentReference`、`EmployeeId`、`Hours`、`RoundNumber`、`Reason`）无 `SENSITIVE`、`RESTRICTED` 列、无直接标识（只带 ID）；`reason` 为人填原因文本，其在事件载荷中的允许范围是已登记的悬而未决项（`review-parts/timesheet_attendance_audit_idem_sched.md` 待决，E1 与 ADR-0043 第 4 项对「原因全文」无明确条文），本卡不改。
 - E2 读模型：无。
-- E3 迁入映射：无（见 T3）。迁入违约取证见第 3.4 节。
+- E3 迁入映射：迁入行的 `numbering_rule_version_id` 为空（原编号写入 `legacy_numbers` 并作展示号，未经本系统发号）；迁入批次与映射代码不在本卡（见 T3）。迁入违约取证见第 3.4 节，结果不为 0 的处理办法由用户或 one-rules 定，不阻塞本卡。
 
 ### 预期表结构 diff
 见第 7 节。
