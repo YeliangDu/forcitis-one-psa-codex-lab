@@ -69,19 +69,14 @@ B 部分（one-1a-next-4）允许改动：
 - 证据：TS `LoginAdmission.java:108-114`（`describe`，被 `:75,98` 调用）；`AuditSearch.java:16-21`；`OperationAttestation.java:32-34`；`AuditEntry.java:16-23`；`data-classification.txt` 无这四列；OV：`one-1a-par-log-ip` 已合入只改了日志，P5 同行仍在（P5 :115）；U-7b 的带到期日例外在 `backend/architecture/` 未找到登记。
 - 改法：
   1. `LoginAdmission.describe` 去掉 `address=` 与 `agent=`，IP 只留 `source_address`；`AuditSearch` 的 `sourceAddress` 条件同样不再拼进 `detail`（待核：检索与导出审计是否在本卡范围，ADR-0043 第 4 项第 5 条原文为准）。
-  2. U-7b（`OperationAttestation` 把操作人、见证人姓名写进 `detail`）未定：按 ADR-0043 写带到期日例外登记（owner、到期日、指向 U-7b），到期日由用户给（第 5 节待决 3）。
+  2. U-7b 用户已答（2026-10-16）「改写员工 ID，阅读时再解析姓名」：`OperationAttestation` 的操作人、见证人改写员工 ID（运维命令入参 `--operator`、`--witness` 改为员工 ID），`detail` 记 `operatorId=`、`witnessId=`；**不建**例外登记与到期日守护（one-data 更正，见 `reviews/DATA-REPAIR-timesheet-audit-TB-01-02.md` 末尾）。运维面（INFRA_RUNBOOK §6、C-5、PREDEPLOY C-13）已同步，交 one-ops 复核。
   3. 本卡内写「允许写入内容清单」草稿（`detail`、`before_text`、`after_text`、`change_reason`：字段名、来源、是否可能含个人信息；U-7(b) 允许 `before_text` / `after_text` 记被变更字段自身的 L2 个人信息原值），**待核**并交用户确认；四列的访问级别与 PI 标记登记待用户（第 5 节待决 2）与 ADR-0043 实施 PR（文件仍三段格式，U-13）。
 - 预期表结构 diff：无 DDL 变化（Java、登记文件变化）。
 - 验收要点：登录成功与失败后 `detail` 不含 `address=`、`agent=`、IP 串；`source_address` 仍有值；例外登记含到期日；静态扫描禁止写入点拼 `address=`、`getMessage()` 直写（OV 建议新增规则 5，守护归 one-quality）。
 - 依据：门禁 C4、E1；ADR-0043 第 4 项第 1、5 条、U-7；ADR-0026 第 7 项第 3 条。
 - **数据设计（one-1a-next-4 补，待 one-data 签）**（基线：`origin/claude/one-1a-next-4-data-pr2`；写入点以 `git grep "new AuditEntry("` 与 `AuditEntry.withChange` 核实，`new AuditEntry(` 共 41 处、35 个文件，`withChange` 仅 `AuditDomainEvents.java:56` 一处）
-  - **① U-7b 带到期日例外登记**
-    - 现状核实：`backend/architecture/` 下 28 个登记文件没有一个带到期日列（`typed-text-key-exceptions.txt` 只在注释里写「随拆分过期」，`source-type-exceptions.txt` 的「去向」列写「拆分 a」，皆非日期）；`sensitive-response-exceptions.txt`、`status-write-exceptions.txt`、`random-uuid-exceptions.txt` 是「对象 + `  # 理由`」一行一项，过期行由守护测试判失败。
-    - 选定登记处：**新建 `backend/architecture/audit-detail-exceptions.txt`**（审计文本内容规则一份独立登记，不并入他规则的文件，沿 `*-exceptions.txt` 命名；与 `status-write-exceptions.txt` 同样「改动需设计评审、过期行与无需行判失败」）。行格式（竖线分段，比现有文件多「到期日」「接受人」两段，因 `DATA_DESIGN_GATE.md` C4 要求到期日必须在登记里）：`<相对 backend/ 的路径> | <规则> | <出处> | <到期日 YYYY-MM-DD> | <接受人>`。
-    - 要登记的行（仅此一行）：
-      `src/main/java/com/forcitis/one/platform/identity/application/OperationAttestation.java | DIRECT_IDENTIFIER_IN_DETAIL | ADR-0043 第 4 项第 5 条、U-7(b)（暂不定；出处 ADR-0027 第 1 项第 1 条） | 2026-12-31 | one-coordinator`
-      该文件的 `describe()`（`:32-34`）被 5 个用例调用：`GrantRoleByOperations:68`、`RegisterEmergencyAdmin:79`、`EnableEmergencyAdmin:43`、`DisableEmergencyAdmin:50`、`ResetEmergencyAdminCredentials:49`，一行覆盖。到期日 2026-12-31 是**建议值**（对齐基线关闭前），真正的日期属第 5 节待决 3，由用户给；用户定为 ① 改写员工 ID 或 ② 保留姓名后，本行随修复 PR 删除或改为永久例外并换出处。
-    - 守护：新增 `AuditDetailGuardTest`（`backend/src/test/java/com/forcitis/one/`，与 `StateWriteGuardTest` 同型的源码扫描）：(a) `src/main` 中凡把 `origin.address()`、`userAgent()`、`getRemoteAddr()`、字面量 `address=`、`agent=`、`loginName=`、`operator=`、`witness=`、`login name`、`WeCom user id` 拼进 `AuditEntry` 的 `detail` 的文件，必须在本登记；(b) 登记行所指文件已不再命中则失败；(c) 到期日早于当天则失败（取日期的办法见「拿不准」：`TimeSourceGuardTest` 只管 main 类，测试可用固定 `Clock`，但需 one-quality 确认）；(d) 格式不符失败。登记文件首行注释写明「每行须有出处与到期日」。
+  - **① U-7b 例外登记：已取消**（用户答改写员工 ID，不再有例外；`audit-detail-exceptions.txt` 与到期日守护不做）。原例外说明已删。
+    - 守护：`AuditDetailGuardTest`（`backend/src/test/java/com/forcitis/one/`，源码扫描）：`new AuditEntry(`、`.reject(`、`new Outcome.Failed(` 的实参与 `describe()` 方法体里，不得出现 `address=`、`agent=`、`loginName=`、`operator=`、`witness=` 拼接，`.address()`、`userAgent()`、`getRemoteAddr()`、`loginName`、`wecomUserId`，不得把登录名、企业微信 ID 拼在 `login name`、`WeCom user id` 之后；没有例外。
   - **② 允许写入内容清单**（`detail`、`before_text`、`after_text`、`change_reason`；PI 栏按 ADR-0043 口径：`PI` = 含直接标识或可能含；`代理键` = 只含自有 UUID，仍是 PI 但按第 4 项第 2 条允许；`否` = 无个人信息）
 
 | # | 列 | 写入点（类:行） | 来源与示例形态 | 个人信息 | 处置 |
@@ -99,8 +94,8 @@ B 部分（one-1a-next-4）允许改动：
 | 11 | detail | `BrowserIdentity:72`、`:81` | `risk=HIGH identifier=<哈希前 8 位> …`；`outcome=SKIPPED\|CONFIRMATION_REQUIRED reason=<枚举> identifier=<前 8 位>` | 不确定：`identifier_hash` 登记为 PI（ADR-0043 第 3 项表），8 位前缀是其截断 | 建议允许（截断后无法还原、不能单独指向某人），请 one-data 确认 |
 | 12 | detail | `LoginAdmission:100` 的 `reason`，来自 `LoginWithSso:65-66` | `no employee for login name <登录名>`（登录名由请求方输入，可能是任何字符串） | **PI**（登录名，ADR-0043 第 3 项表 U-2） | 禁；改 `login name unknown`。**本项不在 ADR 第 4 项第 5 条三处之列，属本次核实新发现** |
 | 13 | detail | `LoginAdmission:100` 的 `reason`，来自 `WecomIdentification:57-58`（经 `LoginWithWecom:28`） | `no employee for WeCom user id <企业微信 ID>` | **PI**（企业微信 ID） | 禁；改 `wecom user not bound`。**新发现** |
-| 14 | detail | `RegisterEmergencyAdmin:79` | `operator=<姓名> witness=<姓名> loginName=<登录名>` | **PI**（姓名属 U-7b；`loginName=` 是登录名，不在 U-7b 例外内） | 姓名按 U-7b 例外；`loginName=` 删，主体已是应急账号 ID（`AuditSubject`），读时再解析。**新发现** |
-| 15 | detail | `GrantRoleByOperations:68`、`EnableEmergencyAdmin:43`、`DisableEmergencyAdmin:50`、`ResetEmergencyAdminCredentials:49` | `OperationAttestation.describe()`：`operator=<姓名> witness=<姓名>`（`GrantRoleByOperations` 另加 `role=<角色码>`）；姓名由命令行/运维入参，正则 `[\p{L}\p{N}][\p{L}\p{N} ._-]{0,63}` | **PI**（姓名） | U-7b 例外（第 ① 条登记行），到期日前不改 |
+| 14 | detail | `RegisterEmergencyAdmin:79` | `operator=<姓名> witness=<姓名> loginName=<登录名>` | 代理键（姓名已改员工 ID） | `loginName=` 删，主体已是应急账号 ID（`AuditSubject`），读时再解析。**新发现** |
+| 15 | detail | `GrantRoleByOperations:68`、`EnableEmergencyAdmin:43`、`DisableEmergencyAdmin:50`、`ResetEmergencyAdminCredentials:49` | `OperationAttestation.describe()`：`operator=<姓名> witness=<姓名>`（`GrantRoleByOperations` 另加 `role=<角色码>`）；姓名由命令行/运维入参，正则 `[\p{L}\p{N}][\p{L}\p{N} ._-]{0,63}` | 代理键（员工 ID） | 改写员工 ID：`operatorId=<UUID> witnessId=<UUID>` |
 | 16 | detail | `ForceUserLogout:67` | `forced logout: <原因>`，原因由人填，去控制字符，1 至 200 字（`MAX_REASON_LENGTH`） | 可能（人填自由文本） | 允许，与 `change_reason` 同口径：只提示不拦截（ADR-0043 第 4 项第 1 条表） |
 | 17 | detail | `RecordSyncRunRelease:38`（调用方 `ReleaseSyncRun:67-70`） | `reason: <人填原因>; session mode: …; held: <UUID 列表>; applied: <UUID 列表>; remaining super_admin: <数>` | 可能（人填原因）；其余代理键与计数 | 允许；原因无长度上限，超 2000 字 `AuditEntry` 构造会抛 `IllegalArgumentException`，见「拿不准」 |
 | 18 | change_reason | `AuditDomainEvents:56`（`withChange(reason, null, null)`，唯一调用） | 事件实现 `Reasoned` 时取 `reason().value()`：目前 `SyncRunReleased`、`LegalEntityAttributionCorrected`，人填自由文本 | 可能 | 允许，只提示不拦截（U-7(b)） |
@@ -112,7 +107,7 @@ B 部分（one-1a-next-4）允许改动：
       `platform_audit.audit_entries.change_reason | INTERNAL | PI | 用途：人填的变更理由；只提示不拦截`
       `platform_audit.audit_entries.before_text | INTERNAL | PI | 用途：被变更字段的原值；仅 L2 个人信息原值，L3 及以上与 SPI 不记`
       `platform_audit.audit_entries.after_text | INTERNAL | PI | 用途：被变更字段的新值；同 before_text`
-  - **守护锁定**（三层）：① 上述 `AuditDetailGuardTest`（拼接点禁字）；② 新增 `AuditWritePointsGuardTest`（沿 `ApplicationIntegrationTest` 对 `public-endpoints.txt` 的双向快照办法）：`src/main` 中 `new AuditEntry(` 与 `withChange(` 的调用点文件集合（35 个）须与新建 `backend/architecture/audit-text-writers.txt`（`<路径> | <本表行号> | <个人信息：否\|代理键\|可能\|PI>`）逐行一致，新增写入点必须登记其所属行；③ 集成测试 `LoginAuditDetailIT`（`TB-01 …` 开头）：登录成功、失败、拒绝访问后 `detail` 不含 `address=`、`agent=`、IP 串、登录名，`source_address` 有值；检索与导出审计 `detail` 不含 `sourceAddress=`。
+  - **守护锁定**（三层）：① 上述 `AuditDetailGuardTest`（拼接点禁字）；② 新增 `AuditWritePointsGuardTest`（沿 `ApplicationIntegrationTest` 对 `public-endpoints.txt` 的双向快照办法）：`src/main` 中 `new AuditEntry(` 与 `withChange(` 的调用点文件集合（35 个）须与新建 `backend/architecture/audit-text-writers.txt`（`<路径> | <本表行号> | <个人信息：否\|代理键\|可能\|PI>`）逐行一致，新增写入点必须登记其所属行；③ 测试（`TB-01 …` 开头；与 `LoginAuditDetailTest` 重复故不另建 `LoginAuditDetailIT`，并入 `SsoLoginIntegrationTest`、`WecomLoginIntegrationTest`、`AuditSearchDescribeTest`）：登录成功、失败、拒绝访问后 `detail` 不含 `address=`、`agent=`、IP 串、登录名，`source_address` 有值；检索与导出审计 `detail` 不含 `sourceAddress=`。
   - **拿不准的点**（请 one-data 裁）：(1) 到期日 2026-12-31 只是建议；`AuditDetailGuardTest` 需要「当天」，`TimeSourceGuardTest` 的规则只约束 main 类，测试可用固定 `Clock`，但是否允许测试读系统日期请 one-quality 确认。(2) 第 12、13、14 行是本次读代码新发现的直接标识写入，ADR-0043 第 4 项第 5 条只列三处，是否并入本条或另起条目，请裁。(3) 第 11 行哈希前 8 位按「允许」写的，属判断。(4) 第 17 行 `ReleaseSyncRun` 的人填原因无长度限制，超 2000 字时审计构造抛异常发生在放行之后，建议在 `ReleaseSyncRun` 入口限 1 至 200 字（与 `ForceUserLogout` 一致），本卡未列此改法，请裁是否加。
 
 #### TB-02　IR-1　高（OV 确认）　整份应答正文落库 24 小时，无分级、无内容边界、无长度上限

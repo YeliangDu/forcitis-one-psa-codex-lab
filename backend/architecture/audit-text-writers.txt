@@ -1,0 +1,42 @@
+# Snapshot of the places that write the free-text columns of an audit entry (detail, change_reason, before_text, after_text): every main file that calls
+# `new AuditEntry(` or `.withChange(`. AuditWritePointsGuardTest fails when this file and the code differ in either direction, in the file set or in a count.
+# Format: <path under backend/> | <writes: number of `new AuditEntry(` plus `.withChange(` calls> | <rows of the allowed-content table> | <personal data>.
+# Rows are the numbers of the table in docs/modernization/data/repair-cards/DATA-REPAIR-timesheet-audit.md, TB-01 item 2 (row 19: before_text and
+# after_text are never written non-null). Personal data after the TB-01 repair: NONE | SURROGATE (only own ids, still personal data under ADR-0043
+# section 4 item 2, allowed) | POSSIBLE (free text typed by a person; shown, not blocked) | PI (never allowed in a new writer without design review).
+# A new writer must name the row it belongs to, or add a row to the card first. Changes need design review.
+src/main/java/com/forcitis/one/organization/workforce/application/CorrectLegalEntityAttribution.java | 1 | 4 | NONE
+src/main/java/com/forcitis/one/organization/workforce/application/GetLegalEntityAttribution.java | 1 | 1 | NONE
+src/main/java/com/forcitis/one/organization/workforce/application/GetOrgUnit.java | 1 | 1 | NONE
+src/main/java/com/forcitis/one/organization/workforce/application/OwnAttributionGuard.java | 1 | 1 | NONE
+src/main/java/com/forcitis/one/organization/workforce/application/RecordSyncRunRelease.java | 1 | 17 | POSSIBLE
+src/main/java/com/forcitis/one/platform/approval/application/ListAllTasks.java | 2 | 1,2 | NONE
+src/main/java/com/forcitis/one/platform/approval/application/ReassignTask.java | 1 | 1 | NONE
+src/main/java/com/forcitis/one/platform/approval/application/Retraction.java | 1 | 1 | NONE
+src/main/java/com/forcitis/one/platform/approval/application/StartApproval.java | 1 | 1 | NONE
+src/main/java/com/forcitis/one/platform/approval/application/TaskGuard.java | 1 | 3 | NONE
+src/main/java/com/forcitis/one/platform/audit/application/AuditDomainEvents.java | 2 | 9,18,19 | POSSIBLE
+src/main/java/com/forcitis/one/platform/audit/application/ExportAuditEntries.java | 1 | 8 | SURROGATE
+src/main/java/com/forcitis/one/platform/audit/application/SearchAuditEntries.java | 1 | 8 | SURROGATE
+src/main/java/com/forcitis/one/platform/identity/application/BrowserIdentity.java | 2 | 11 | SURROGATE
+src/main/java/com/forcitis/one/platform/identity/application/ConfirmIdentity.java | 1 | 1 | NONE
+src/main/java/com/forcitis/one/platform/identity/application/DeleteRole.java | 1 | 1 | NONE
+src/main/java/com/forcitis/one/platform/identity/application/DisableEmergencyAdmin.java | 1 | 15 | SURROGATE
+src/main/java/com/forcitis/one/platform/identity/application/EnableEmergencyAdmin.java | 1 | 15 | SURROGATE
+src/main/java/com/forcitis/one/platform/identity/application/EnterAdministratorMode.java | 2 | 4,5 | NONE
+src/main/java/com/forcitis/one/platform/identity/application/ExitAdministratorMode.java | 1 | 2 | NONE
+src/main/java/com/forcitis/one/platform/identity/application/ForceUserLogout.java | 1 | 16 | POSSIBLE
+src/main/java/com/forcitis/one/platform/identity/application/GrantRoleByOperations.java | 1 | 15 | SURROGATE
+src/main/java/com/forcitis/one/platform/identity/application/HandleOrgSnapshotChange.java | 2 | 4,5 | NONE
+src/main/java/com/forcitis/one/platform/identity/application/LoginAdmission.java | 3 | 4,10,12,13 | NONE
+src/main/java/com/forcitis/one/platform/identity/application/Logout.java | 1 | 1 | NONE
+src/main/java/com/forcitis/one/platform/identity/application/PurgeExpiredSessions.java | 1 | 4 | NONE
+src/main/java/com/forcitis/one/platform/identity/application/ReconcileEmergencyAdmins.java | 1 | 6 | SURROGATE
+src/main/java/com/forcitis/one/platform/identity/application/RegisterEmergencyAdmin.java | 1 | 14 | SURROGATE
+src/main/java/com/forcitis/one/platform/identity/application/ReplaceAccountRoles.java | 1 | 1 | NONE
+src/main/java/com/forcitis/one/platform/identity/application/ResetEmergencyAdminCredentials.java | 1 | 15 | SURROGATE
+src/main/java/com/forcitis/one/platform/identity/application/SessionRevocation.java | 1 | 5 | NONE
+src/main/java/com/forcitis/one/platform/identity/application/UpdateRole.java | 1 | 1 | NONE
+src/main/java/com/forcitis/one/platform/identity/infrastructure/security/AccessDeniedAudit.java | 1 | 7 | SURROGATE
+src/main/java/com/forcitis/one/platform/identity/infrastructure/security/PrivilegedRequestAudit.java | 1 | 7 | SURROGATE
+src/main/java/com/forcitis/one/platform/identity/infrastructure/security/SessionGuardFilter.java | 1 | 4 | NONE
