@@ -1,0 +1,139 @@
+# 信息图 ADR-0048 确认页（用户 2026-10-16 选推荐）带来的新用语：one-architecture 交，one-glossary 2026-10-16 查重后登记；争议状态与争议应收是否同义待用户裁定（待决定收件箱）。
+terms:
+- id: bill_redemption_status
+  zh: 兑付状态
+  en: BillRedemptionStatus
+  snake: bill_redemption_status
+  kind: state
+  bc: receivables.collection
+  scope: domain
+  definition: 商业承兑汇票从收到到兑付的状态：收到 → 已兑付 / 逾期；到期日到而未兑付为逾期
+  standard_ref:
+  - 票据法（商业汇票）
+  - intent 2026-10-16-090004（ADR-0048 确认页，one-architecture）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: OBJ-35 之外：商票作回款方式、加到期日与兑付状态，不单独成对象
+- id: bill_redemption_status__received
+  zh: 收到
+  en: Received
+  snake: received
+  kind: value_object
+  bc: receivables.collection
+  scope: domain
+  definition: 商业承兑汇票已收到，尚未到期兑付
+  standard_ref:
+  - intent 2026-10-16-090004（ADR-0048 确认页，one-architecture）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+- id: bill_redemption_status__redeemed
+  zh: 已兑付
+  en: Redeemed
+  snake: redeemed
+  kind: value_object
+  bc: receivables.collection
+  scope: domain
+  definition: 商业承兑汇票到期已兑付，计现金流入（FD-40）
+  standard_ref:
+  - intent 2026-10-16-090004（ADR-0048 确认页，one-architecture）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+- id: bill_redemption_status__overdue
+  zh: 已逾期
+  en: BillOverdue
+  snake: bill_overdue
+  kind: value_object
+  bc: receivables.collection
+  scope: domain
+  definition: 商业承兑汇票到期日已过而未兑付；与应收账款的逾期（逾期应收）、审批任务的已超时不同
+  standard_ref:
+  - intent 2026-10-16-090004（ADR-0048 确认页，one-architecture）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+- id: receivable_disposition_category
+  zh: 往来款项处置分类
+  en: ReceivableDispositionCategory
+  snake: receivable_disposition_category
+  kind: state
+  bc: receivables.collection
+  scope: domain
+  definition: 应收、应付往来款项出现争议或无法正常收付时的处置分类，诉讼是其中一类；其余取值未定（信息图候选：复工、结算、诉讼、核销，待用户确认页定）
+  standard_ref:
+  - intent 2026-10-16-090004（ADR-0048 确认页，one-architecture）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 信息图候选取值：复工、结算、诉讼、核销，待用户确认页定，目前只登记诉讼
+- id: litigation
+  zh: 诉讼
+  en: Litigation
+  snake: litigation
+  kind: value_object
+  bc: receivables.collection
+  scope: domain
+  definition: 往来款项处置分类之一：已进入诉讼或仲裁程序
+  standard_ref:
+  - intent 2026-10-16-090004（ADR-0048 确认页，one-architecture）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+- id: continuing_education_hours
+  zh: 继续教育学时
+  en: ContinuingEducationHours
+  snake: continuing_education_hours
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 注册执业证书的属性：持证人在注册有效期内累计完成的继续教育学时，分必修与选修；达标是延续注册的条件
+  standard_ref:
+  - 注册建筑师条例实施细则（建设部令第 167 号）第三十四、三十五条与注建〔2022〕3 号
+  - 勘察设计注册工程师管理规定（建设部令第 137 号，2016 修正）第二十四、二十五条
+  - 注册监理工程师管理规定（建设部令第 147 号）第二十三条
+  - 注册建造师管理规定（建设部令第 153 号）第二十三条
+  - intent 2026-10-16-090004（ADR-0048 确认页，one-architecture）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 依据已由 one-architecture 核对原文（2026-10-16）
+- id: drawing_review_opinion
+  zh: 施工图审查意见
+  en: DrawingReviewOpinion
+  snake: drawing_review_opinion
+  kind: value_object
+  bc: delivery.acceptance
+  scope: domain
+  definition: 施工图审查机构对施工图出具的审查意见，作证据类型
+  standard_ref:
+  - 建设工程质量管理条例（施工图审查）
+  - intent 2026-10-16-090004（ADR-0048 确认页，one-architecture）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 随证据（Q29）暂不定的部分一并确认
+- id: drawing_review_certificate
+  zh: 施工图审查合格书
+  en: DrawingReviewCertificate
+  snake: drawing_review_certificate
+  kind: value_object
+  bc: delivery.acceptance
+  scope: domain
+  definition: 施工图审查通过后出具的合格书，作证据类型
+  standard_ref:
+  - 建设工程质量管理条例（施工图审查）
+  - intent 2026-10-16-090004（ADR-0048 确认页，one-architecture）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed

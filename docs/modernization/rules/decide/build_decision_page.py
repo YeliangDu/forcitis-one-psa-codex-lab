@@ -17,6 +17,8 @@ FD_GROUPS = {
     "G1 前": ("fd-g1", "G1（新系统接管管理账）前要定：月结、与 U8C 的分工、经营分析指标口径。"),
     "G2 前": ("fd-g2", "G2（法定账切换）前要定。"),
 }
+KINDS = ("choice", "approve", "selection", "fact", "param")   # 题型，同 architecture/decision-page/check_pages.py
+NO_DEFAULT_KINDS = ("fact", "selection")                      # 事实题、选型题没有默认项：页面显示「未答」，挡住整组提交，不能一键认可
 FACT_OPTS = [{"label": "请财务核实", "effect": "由 one-rules 汇总发财务，答复后写回规则卡", "rec": True},
              {"label": "我直接答", "effect": "把答案写在说明里，不再问财务", "rec": False}]
 
@@ -72,8 +74,16 @@ def validate(sheets):
             for k in ("basis", "practice"):
                 if not isinstance(i.get(k), list):
                     errs.append(f"{key}：{k} 须是数组（可以为空），缺了页面脚本会抛错、整页空白")
-            if len(i["opts"]) < 2 or sum(bool(o.get("rec")) for o in i["opts"]) != 1:
-                errs.append(f"{key}：须至少两个选项且恰好一个推荐")
+            kind = i.get("kind", "choice")
+            if kind not in KINDS:
+                errs.append(f"{key}：kind 须取自 {'、'.join(KINDS)}：{kind}")
+            recs = sum(bool(o.get("rec")) for o in i["opts"])
+            if len(i["opts"]) < 2:
+                errs.append(f"{key}：须至少两个选项")
+            elif kind in NO_DEFAULT_KINDS and recs != 0:
+                errs.append(f"{key}：{kind} 题没有默认项（rec 都为假）：事实题、选型题不预选，用户必须逐题选一项或点「暂不定」")
+            elif kind not in NO_DEFAULT_KINDS and recs != 1:
+                errs.append(f"{key}：须恰好一个推荐")
         for g in sh["groups"]:
             n = sum(1 for i in sh["items"] if i["grp"] == g["id"])
             if n > 40:
@@ -84,7 +94,38 @@ def validate(sheets):
         sys.exit("决策页校验失败：\n" + "\n".join(errs))
 
 
+def self_test():
+    def sheet(kind, recs):
+        item = {"no": "1", "grp": "g", "title": "t", "basis": [], "practice": [], "opts": [{"label": "a", "effect": "", "rec": recs[0]}, {"label": "b", "effect": "", "rec": recs[1]}]}
+        if kind:
+            item["kind"] = kind
+        return [{"sheet": "T", "groups": [{"id": "g", "title": "g", "desc": ""}], "items": [item]}]
+
+    def ok(kind, recs):
+        validate(sheet(kind, recs))
+
+    def bad(kind, recs, fragment):
+        try:
+            validate(sheet(kind, recs))
+        except SystemExit as e:
+            assert fragment in str(e), (fragment, str(e))
+            return
+        raise AssertionError(f"{kind} {recs} 应失败：{fragment}")
+
+    ok(None, (True, False)); ok("choice", (True, False)); ok("approve", (True, False)); ok("param", (False, True))
+    ok("fact", (False, False)); ok("selection", (False, False))                     # 事实题、选型题没有默认项
+    bad(None, (False, False), "恰好一个推荐"); bad("choice", (True, True), "恰好一个推荐")
+    bad("fact", (True, False), "没有默认项"); bad("selection", (False, True), "没有默认项"); bad("bogus", (True, False), "kind 须取自")
+    template = (HERE / "page-template.html").read_text(encoding="utf-8")
+    for needle in ('"none"', '"answered"', "未答", "recOf(i) < 0 && pick(i).choice === null", "blocked === 0"):
+        assert needle in template, f"page-template.html 缺少无默认项题的处理：{needle}"
+    print("build_decision_page self-test: ok")
+
+
 def main():
+    if sys.argv[1:] == ["--self-test"]:
+        self_test()
+        return
     if len(sys.argv) != 3:
         sys.exit("用法：build_decision_page.py <单子>[,<单子>...] <输出路径>")
     sheets = [load(n) for n in sys.argv[1].split(",")]

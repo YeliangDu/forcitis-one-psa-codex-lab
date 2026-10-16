@@ -58,6 +58,7 @@ details.info ul{margin:8px 0 0;padding-left:18px;display:grid;gap:4px;font-size:
 .q{content-visibility:auto;contain-intrinsic-size:auto 360px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:grid;gap:8px}
 .q[data-state="changed"]{box-shadow:inset 3px 0 0 var(--changed)}
 .q[data-state="defer"]{box-shadow:inset 3px 0 0 var(--defer)}
+.q[data-state="none"],.q[data-state="open"]{box-shadow:inset 3px 0 0 var(--changed)}
 .qh{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
 .no{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
 .qt{font-family:var(--f-head);font-size:17px;font-weight:700;text-wrap:balance}
@@ -149,10 +150,10 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;
 const recOf = it => it.opts.findIndex(o => o.rec);
 function pick(it){
   const d = decisions.get(it.key);
-  if (!d) return PRESELECT ? {choice: recOf(it), note: "", defaulted: true} : {choice: null, note: "", defaulted: true, unanswered: true};
-  return {choice: d.choice, note: d.note || "", defaulted: false};
+  if (!d) return PRESELECT && recOf(it) >= 0 ? {choice: recOf(it), note: "", defaulted: true} : {choice: null, note: "", defaulted: true, unanswered: true};   // 事实题、选型题没有推荐项：不预选，必须由用户选或点「暂不定」
+  return {choice: d.choice ?? null, note: d.note || "", defaulted: false};
 }
-const kind = (it, p) => p.choice === null ? "none" : p.choice === "defer" ? "defer" : p.choice === recOf(it) ? "rec" : "changed";
+const kind = (it, p) => p.choice === null ? "none" : p.choice === "defer" ? "defer" : p.choice === recOf(it) ? "rec" : recOf(it) < 0 ? "answered" : "changed";
 const labelOf = (it, p) => p.choice === null ? "未作答" : p.choice === "defer" ? "暂不定" : it.opts[p.choice].label;
 
 // 一题是否已被某次提交覆盖，且提交后没有再改
@@ -170,8 +171,8 @@ function qHTML(it){
       <span class="dot" aria-hidden="true"></span><span><b>${esc(o.label)}</b>${o.rec ? `<span class="tag">推荐</span>` : ""}</span>
       ${o.effect ? `<span class="eff">${esc(o.effect)}</span>` : ""}</button>`).join("");
   const more = [...(it.basis || []).map(t => "依据：" + t), ...(it.practice || []).map(t => "实践：" + t)];
-  const st = k === "none" ? `<span class="st defer">未作答</span>` : k === "defer" ? `<span class="st defer">暂不定</span>` : k === "changed" ? `<span class="st changed">已改选</span>`
-    : p.defaulted ? `<span class="st">${PRESELECT ? "推荐预选，同意就不用动" : "未作答"}</span>` : `<span class="st">已确认推荐</span>`;
+  const st = k === "none" ? `<span class="st changed">${recOf(it) < 0 ? "未答：请选一项或点「暂不定」（没有默认项，不能一键认可）" : "未作答"}</span>` : k === "defer" ? `<span class="st defer">暂不定</span>` : k === "answered" ? `<span class="st">已选（没有默认项的题）</span>` : k === "changed" ? `<span class="st changed">已改选</span>`
+    : p.defaulted ? `<span class="st">推荐预选，同意就不用动</span>` : `<span class="st">已确认推荐</span>`;
   return `<article class="q" data-key="${esc(it.key)}" data-state="${k}">
     <div class="qh"><span class="no">${esc(it.no)}</span><span class="qt">${esc(it.title)}</span></div>
     ${it.ctx ? `<p class="ctx">${esc(it.ctx)}</p>` : ""}
@@ -182,7 +183,7 @@ function qHTML(it){
     <div class="row">
       <input type="text" id="nt-${esc(it.key)}" data-note="1" placeholder="说明（改选时请写理由，可空）" value="${esc(p.note)}">
       <button type="button" class="chip" data-defer="1" aria-pressed="${k === "defer"}">暂不定</button>
-      ${p.defaulted ? "" : `<button type="button" class="chip" data-reset="1">${PRESELECT ? "恢复推荐" : "清除选择"}</button>`}
+      ${p.defaulted || k === "none" ? "" : `<button type="button" class="chip" data-reset="1">${PRESELECT && recOf(it) >= 0 ? "恢复推荐" : "清除选择"}</button>`}
     </div>
     <div class="meta">${it.src ? "来源：" + esc(it.src) + " · " : ""}${st}</div>
   </article>`;
@@ -191,16 +192,16 @@ function tableHTML(t){
   return `<div class="tw"><table><thead><tr>${t[0].map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${t.slice(1).map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 function groupSummary(gid){
-  const c = {rec: 0, def: 0, changed: 0, defer: 0, none: 0, notes: 0};
+  const c = {rec: 0, def: 0, changed: 0, defer: 0, none: 0, answered: 0, notes: 0};
   for (const it of ITEMS.filter(i => i.grp === gid)){ const p = pick(it), k = kind(it, p); if (k === "rec") p.defaulted ? c.def++ : c.rec++; else c[k]++; if (p.note) c.notes++; }
   return PRESELECT ? `按推荐 ${c.rec + c.def} 题（其中没动过 ${c.def} 题）、改选 ${c.changed} 题、暂不定 ${c.defer} 题、写了说明 ${c.notes} 题`
     : `选了推荐项 ${c.rec} 题、选了其他项 ${c.changed} 题、暂不定 ${c.defer} 题、未作答 ${c.none} 题、写了说明 ${c.notes} 题`;
 }
 function totalSummary(){
-  let rec = 0, def = 0, chg = 0, dfr = 0, none = 0, nt = 0;
-  for (const it of ITEMS){ const p = pick(it), k = kind(it, p); if (k === "rec") p.defaulted ? def++ : rec++; else if (k === "changed") chg++; else if (k === "none") none++; else dfr++; if (p.note) nt++; }
-  return PRESELECT ? `按推荐 ${rec + def} 题（其中没动过 ${def} 题）、改选 ${chg} 题、暂不定 ${dfr} 题、写了说明 ${nt} 题`
-    : `选了推荐项 ${rec} 题、选了其他项 ${chg} 题、暂不定 ${dfr} 题、未作答 ${none} 题、写了说明 ${nt} 题`;
+  let rec = 0, def = 0, chg = 0, dfr = 0, none = 0, ans = 0, nt = 0;
+  for (const it of ITEMS){ const p = pick(it), k = kind(it, p); if (k === "rec") p.defaulted ? def++ : rec++; else if (k === "changed") chg++; else if (k === "answered") ans++; else if (k === "none") none++; else dfr++; if (p.note) nt++; }
+  return PRESELECT ? `按推荐 ${rec + def} 题（其中没动过 ${def} 题）、改选 ${chg} 题、暂不定 ${dfr} 题、写了说明 ${nt} 题${ans ? `、没有默认项的题已选 ${ans} 题` : ""}${none ? `、未答 ${none} 题` : ""}`
+    : `选了推荐项 ${rec} 题、选了其他项 ${chg} 题、暂不定 ${dfr} 题、未作答 ${none} 题、写了说明 ${nt} 题${ans ? `、没有默认项的题已选 ${ans} 题` : ""}`;
 }
 
 function checkHTML(){
@@ -215,8 +216,9 @@ function checkHTML(){
         <button type="button" class="chip" data-goto="${esc(it.key)}">改这题</button></div>`; }).join("");
     return `<section class="chk-g"><h3>${n + 1}. ${esc(g.title)}<span class="sum">${groupSummary(g.id)}</span></h3>${rows}</section>`;
   }).join("");
-  const ready = loaded.ans && loaded.sub && !submitting;
-  const btn = done ? "" : `<div class="row"><button type="button" class="btn solid" data-final="1" ${ready ? "" : "disabled"}>${submitting ? "正在提交…" : ready ? `确认提交（全部 ${ITEMS.length} 题）` : "正在读取你已选的答案…"}</button></div>
+  const blocked = ITEMS.filter(i => recOf(i) < 0 && pick(i).choice === null).length;   // 没有默认项的题（事实题、选型题）未答，挡住提交
+  const ready = loaded.ans && loaded.sub && !submitting && blocked === 0;
+  const btn = done ? "" : `<div class="row"><button type="button" class="btn solid" data-final="1" ${ready ? "" : "disabled"}>${submitting ? "正在提交…" : ready ? `确认提交（全部 ${ITEMS.length} 题）` : blocked ? `还有 ${blocked} 题没有默认项且未答，请选一项或点「暂不定」` : "正在读取你已选的答案…"}</button></div>
     <p class="saved">${esc(totalSummary())}。${PRESELECT ? "没动过的题按推荐预选提交；" : "未作答的题记为未作答，不会按推荐处理；"}暂不定的题留待以后。</p>`;
   return `${banner}<section><div class="ghead"><h2>检查答案<span>${ITEMS.length} 题</span></h2><p>逐项核对，不对的点「改这题」。确认后一次提交全部答案，并得到一个提交编号。</p></div></section>${groups}${btn}`;
 }
@@ -239,7 +241,7 @@ function render(){
 }
 function stats(){
   let r = 0, c = 0, d = 0;
-  for (const it of ITEMS){ const k = kind(it, pick(it)); if (k === "rec") r++; else if (k === "changed") c++; else d++; }   // 暂不定与未作答合并显示
+  for (const it of ITEMS){ const k = kind(it, pick(it)); if (k === "rec" || k === "answered") r++; else if (k === "changed") c++; else d++; }   // 暂不定与未作答合并显示
   $("#nRec").textContent = r; $("#nChg").textContent = c; $("#nDef").textContent = d;
   const pct = n => (100 * n / ITEMS.length).toFixed(2) + "%";
   $("#bar").innerHTML = `<i style="width:${pct(r)};background:var(--pick)"></i><i style="width:${pct(c)};background:var(--changed)"></i><i style="width:${pct(d)};background:var(--defer)"></i>`;
@@ -262,6 +264,7 @@ function setChoice(it, choice, note){
 const stamp = () => { const d = new Date(), z = n => String(n).padStart(2, "0"); return `${d.getFullYear()}${z(d.getMonth() + 1)}${z(d.getDate())}-${z(d.getHours())}${z(d.getMinutes())}${z(d.getSeconds())}`; };
 async function finalSubmit(){
   if (!db){ flash = "存储不可用，未能提交"; render(); return; }
+  if (ITEMS.some(i => recOf(i) < 0 && pick(i).choice === null)){ flash = "还有没有默认项的题未答，未能提交"; render(); return; }
   if (!(loaded.ans && loaded.sub) || submitting) return;   // 读到已选答案之前提交会把没读到的选择当成没动过；提交中不重入
   for (const [k, t] of [...pending]){   // 防抖里还没写入的备注先落实，免得提交漏掉
     clearTimeout(t); pending.delete(k);
@@ -290,7 +293,10 @@ document.addEventListener("click", e => {
   if (it){
     const o = t.closest("[data-opt]");
     if (o){ setChoice(it, Number(o.dataset.opt)); return; }
-    if (t.closest("[data-defer]")){ setChoice(it, pick(it).choice === "defer" ? recOf(it) : "defer"); return; }
+    if (t.closest("[data-defer]")){
+      if (pick(it).choice === "defer" && !(PRESELECT && recOf(it) >= 0)){ decisions.delete(it.key); render(); store(it.key, null); return; }   // 不预选或没有推荐项的题：取消「暂不定」回到未答
+      setChoice(it, pick(it).choice === "defer" ? recOf(it) : "defer"); return;
+    }
     if (t.closest("[data-reset]")){ decisions.delete(it.key); render(); store(it.key, null); return; }
   }
 });

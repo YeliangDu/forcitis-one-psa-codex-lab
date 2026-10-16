@@ -4390,12 +4390,12 @@ Within that city, the role's standard cost rate comes from today's active scheme
 **Category:** Validation
 **Priority:** P0
 **Source:** `psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/task/BpmProcessInstanceServiceImpl.java:239-278`
-**Plain English:** Cancelling a running approval is allowed only to the user who started it and only before any node marked "撤回截止" has completed. A reason is required unless a process-level BEFORE hook decides. After a cancel, the Flowable history is deleted unless the model says to keep it.
+**Plain English:** Cancelling a running approval is allowed only to the user who started it and only before any node marked "撤回截止" has completed. A reason is always required, with or without a BEFORE hook (user decision 2026-10-16: cancel and withdraw follow the same rule as reject; the old system let a process-level hook decide). After a cancel, the Flowable history is deleted unless the model says to keep it.
 **Specification:**
   Given PI-A was started by 2048 and its cutoff node "财务确认" has not completed
   When 3001 cancels it
   Then the request is rejected with PROCESS_INSTANCE_CANCEL_FAIL_NOT_SELF
-  When 2048 cancels it with reason "" and no beforeHookKey
+  When 2048 cancels it with reason "" (with or without a beforeHookKey)
   Then it fails with 400 "取消原因不能为空"
   When "财务确认" has completed
   Then it fails with 1009004011 "已越过「财务确认」节点"
@@ -4470,7 +4470,7 @@ Within that city, the role's standard cost rate comes from today's active scheme
 **Category:** Validation
 **Priority:** P0
 **Source:** `psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/task/BpmTaskServiceImpl.java:863-975`
-**Plain English:** One submission can decide several of the approver's own tasks, but only within a single process instance. Each decision must be approve (2) or reject (3). A rejection needs a reason unless the node delegates that check to a business pre-check hook. Every business pre-check must pass before any task is completed.
+**Plain English:** One submission can decide several of the approver's own tasks, but only within a single process instance. Each decision must be approve (2) or reject (3). A rejection always needs a reason: a node with a business pre-check hook is not exempt (user decision 2026-10-16, intent 2026-10-16-085331-one-data-审批被驳回-被撤销后能不能再发起.md: the exemption is removed; a hook that wants a reason supplies it). Every business pre-check must pass before any task is completed.
 **Specification:**
   Given approver 2002 submits decisions {T1 on node A: approve, T2 on node B: reject with an empty reason}, both in instance P, and node B has no BEFORE hook
   When  decide is called
@@ -4478,7 +4478,7 @@ Within that city, the role's standard cost rate comes from today's active scheme
   Given the same submission with reason "数量错误"
   Then  the node-A group is completed first and the node-B (reject) group last; for a non-row node exactly 1 decision per node is allowed
 **Parameters:** allowed results {2,3}
-**Edge cases handled:** tasks from different instances are refused (TASK_DECIDE_FAIL_CROSS_INSTANCE). More than one decision for a non-row node is refused (TASK_DECIDE_FAIL_SINGLE_ONLY). If a BEFORE hook asks for interaction, nothing is committed and the hook's dialog is returned. Groups that contain a rejection run last, so the sub-process cancellation cannot delete tasks that are still being approved.
+**Edge cases handled:** a rejection with an empty reason fails on every node, with or without a hook (old system: nodes with a hook were exempt; not carried over). Tasks from different instances are refused (TASK_DECIDE_FAIL_CROSS_INSTANCE). More than one decision for a non-row node is refused (TASK_DECIDE_FAIL_SINGLE_ONLY). If a BEFORE hook asks for interaction, nothing is committed and the hook's dialog is returned. Groups that contain a rejection run last, so the sub-process cancellation cannot delete tasks that are still being approved.
 **Confidence:** High.
 **Also stated by:** approval-routing — “Unified decide: same instance only, reject reason required, rejecting nodes processed last” (`psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/task/BpmTaskServiceImpl.java:865-975`); approval-validation — “Unified decide: same instance, result must be pass/fail, a reject needs a reason, one decision per non-row node” (`psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/task/BpmTaskServiceImpl.java:865-975`)
 
@@ -4486,7 +4486,7 @@ Within that city, the role's standard cost rate comes from today's active scheme
 **Category:** Validation
 **Priority:** P0
 **Source:** `psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/task/BpmTaskServiceImpl.java:982-1040`
-**Plain English:** If a person added by countersign votes "fail", their opinion is recorded but the process is not terminated and no result message is sent. Only originally assigned approvers can truly reject.
+**Plain English:** If a person added by countersign votes "fail", their opinion is recorded but the process is not terminated and no result message is sent. Only originally assigned approvers can truly reject. The countersigner's rejection also needs a reason; an empty reason is refused (user decision 2026-10-16, intent 2026-10-16-085331-one-data-审批被驳回-被撤销后能不能再发起.md).
 **Specification:**
   Given task T-5 has `bpm_task_ext.countersign=1`
   When its assignee decides 3 with reason "价格偏高"
@@ -4544,9 +4544,9 @@ Within that city, the role's standard cost rate comes from today's active scheme
 **Category:** Validation
 **Priority:** P0
 **Source:** `psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/task/WorkflowHookBeforeGate.java:16-38`
-**Plain English:** A configured business hook can stop an approval action. Only "allow" or "not_applicable" lets it proceed. For cancel/withdraw the action also needs a reason or an explicit action value; task actions keep BPM's own reason rules.
+**Plain English:** A configured business hook can stop an approval action. Only "allow" or "not_applicable" lets it proceed. For cancel/withdraw the action also needs a reason (an explicit action value does not replace it; user decision 2026-10-16); task actions keep BPM's own reason rules, and a rejection always needs a reason (RULE-272).
 **Specification:**
-  Given a cancel with hook outcome "allow", reason "", and actionValue ""
+  Given a cancel with hook outcome "allow", reason "", and any actionValue
   Then it is not committed
   Given outcome "warn", "reject" or "supplement"
   Then it is never committed
@@ -4753,12 +4753,12 @@ If permissions cannot be loaded, approval is refused. A pass defaults its reason
 **Category:** Lifecycle
 **Priority:** P0
 **Source:** `psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/task/BpmProcessInstanceServiceImpl.java:237-356`
-**Plain English:** Only the initiator can cancel, and only before the withdraw cutoff. Without a business pre-check a reason is mandatory. With a pre-check, the hook must allow it (or not apply) and a reason or a confirmed action value is needed. Cancelling marks open tasks as cancelled, ends the instance, and deletes its engine history unless the model says to keep it.
+**Plain English:** Only the initiator can cancel, and only before the withdraw cutoff. A reason is always mandatory (user decision 2026-10-16), with or without a business pre-check; with a pre-check the hook must also allow it (or not apply). Cancelling marks open tasks as cancelled, ends the instance, and deletes its engine history unless the model says to keep it.
 **Specification:**
   Given user 1001 started instance P with no BEFORE hook, and P is before any cutoff
   When  1001 cancels with reason "重复提交"
   Then  active tasks get result=4 with reason "主动取消任务，原因：重复提交", the instance is deleted (the record becomes FINISH/CANCEL via RULE-01), and the Flowable history is deleted unless the process attribute retain-history-on-cancel is "true"
-  Given P has a BEFORE hook (for example travel) that returns ALLOW and the user picked a cancelAction
+  Given P has a BEFORE hook (for example travel) that returns ALLOW and the user picked a cancelAction and gave a reason
   Then  a process-result outbox row (result=4, cancelAction, reason, afterHookKey) is written in the same transaction before the deletion
 **Parameters:** process attributes BEFORE_HOOK_KEY, AFTER_HOOK_KEY, RETAIN_HISTORY_ON_CANCEL. The reason falls back to `inputs["reason"]`.
 **Edge cases handled:** in a batch cancel (lines 280-304), an instance that has already ended, was started by the same user and has ext result=4 is skipped (idempotent); any batch item not committed aborts the whole batch. When the hook does not commit, the dialog comes back with committed=false. A startup job (`BpmWithdrawnHistoryCleanupRunner`) removes leftover history of cancelled instances.

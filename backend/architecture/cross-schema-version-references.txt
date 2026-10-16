@@ -1,0 +1,5 @@
+# Registry of *_version_id columns that point at a version table in another schema. Across schemas a reference is by ID only and has no foreign key (SESSION_PLAYBOOK §14 D2, B4).
+# This is a permanent registry, not an exemption list: a line stays valid as long as its table has the column, and is deleted when the table or column goes (PrimaryKeyTypeGuardTest fails on a stale line).
+# A line is added only after a report to one-coordinator. A registered column must not have a foreign key, and an unregistered cross-schema *_version_id fails the guard.
+# Format: <schema.table.column> -> <target schema.version table>  # source / note
+cost_timesheet.timesheets.numbering_rule_version_id -> platform_numbering.numbering_rule_versions  # ADR-0033 第 1 项第 5 条；D2 跨 schema 只按 ID；为空表示迁入单据
