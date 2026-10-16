@@ -67,6 +67,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.platform.numbering.api.IssuedNumber;
 import com.forcitis.one.platform.numbering.api.NumberingCounterId;
+import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 
 /** One PostgreSQL 18 container per test JVM and a cached application context; the Flowable schema is created by the engine only in tests; other modules' dependencies are doubles. */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "forcitis.platform.approval.deadline.enabled=false", "flowable.database-schema-update=true",
@@ -208,7 +209,7 @@ public abstract class ApprovalIntegrationSupport {
         organisation.person(ADMINISTRATOR, 1, null).role("process_administrator", ADMINISTRATOR);
         org.mockito.Mockito.when(numbers.next(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
                 .thenAnswer(call -> new IssuedNumber(new DocumentNumber("TS-T-" + NUMBERS.incrementAndGet()),
-                        new NumberingCounterId(UUID.randomUUID())));
+                        new NumberingCounterId(UUID.randomUUID()), new NumberingRuleVersionId(UUID.randomUUID())));
     }
 
     /** Unique ids so tests sharing database and context cannot see each other's data. */

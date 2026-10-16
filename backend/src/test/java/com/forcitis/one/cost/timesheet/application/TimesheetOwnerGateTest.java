@@ -46,6 +46,7 @@ import org.junit.jupiter.api.Test;
 import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.platform.numbering.api.IssuedNumber;
 import com.forcitis.one.platform.numbering.api.NumberingCounterId;
+import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 
 /**
  * "whose timesheet is it" is answered on the employee side. The caller's account and employee carry different
@@ -147,7 +148,7 @@ class TimesheetOwnerGateTest {
         when(directory.findEmployee(TestAccounts.employee(40))).thenReturn(Optional.of(manager));
         LegalEntityId legalEntity = new LegalEntityId(TestIds.uuid(1));
         when(legalEntities.on(eq(EMPLOYEE), any())).thenReturn(legalEntity);
-        when(numbers.next(eq(DocumentType.TIMESHEET), eq(legalEntity), any())).thenReturn(new IssuedNumber(new DocumentNumber("TS-ABC-202610-0007"), new NumberingCounterId(TestIds.uuid(11))));
+        when(numbers.next(eq(DocumentType.TIMESHEET), eq(legalEntity), any())).thenReturn(new IssuedNumber(new DocumentNumber("TS-ABC-202610-0007"), new NumberingCounterId(TestIds.uuid(11)), new NumberingRuleVersionId(TestIds.uuid(12))));
 
         submit.execute(command);
 
