@@ -6,6 +6,7 @@ entries:
     A: &id001
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -42,6 +43,7 @@ entries:
     A: &id002
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -177,6 +179,7 @@ entries:
     A: &id004
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -234,6 +237,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E3
     C: []
@@ -262,6 +266,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -303,6 +308,7 @@ entries:
     A: &id005
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -405,6 +411,7 @@ entries:
     A: &id006
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E3
     - SH-E4
@@ -430,6 +437,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -454,6 +462,7 @@ entries:
     A: &id007
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E3
     C: []
@@ -478,6 +487,7 @@ entries:
     A: &id008
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -674,6 +684,7 @@ entries:
     A:
       resolve: instance
       field: 借阅人.所属部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -713,6 +724,7 @@ entries:
     A: &id009
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -737,6 +749,7 @@ entries:
     A: &id010
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -827,6 +840,7 @@ entries:
     A: &id011
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -862,6 +876,7 @@ entries:
     A: &id012
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -1032,6 +1047,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - system
     C: []
@@ -1053,11 +1069,16 @@ entries:
 - object: AGG-44
   command: 回冲开票额度
   raci:
-    A: *id013
+    A:
+      resolve: instance
+      field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - system
     C: []
-    I: []
+    I:
+    - SH-E2
   sensitive: true
   sensitive_reason: 红冲回冲开票额度
   source_part: revenue
@@ -1075,47 +1096,65 @@ entries:
 - object: AGG-45
   command: 提交开票申请
   raci:
-    A: &id014
+    A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - SH-E5
     C: []
-    I: []
+    I:
+    - SH-E2
   sensitive: false
   sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
   source_part: revenue
 - object: AGG-45
   command: 开票申请准入
   raci:
-    A: *id013
+    A:
+      resolve: instance
+      field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - system
     C: []
-    I: []
+    I:
+    - SH-E2
   sensitive: false
   sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
   source_part: revenue
 - object: AGG-45
   command: 驳回开票申请
   raci:
-    A: *id014
+    A:
+      resolve: instance
+      field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - system
     C: []
     I:
     - SH-E5
+    - SH-E2
   sensitive: false
   sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
   source_part: revenue
 - object: AGG-45
   command: 作废开票申请
   raci:
-    A: *id014
+    A:
+      resolve: instance
+      field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - SH-E6
     C: []
-    I: []
+    I:
+    - SH-E2
   sensitive: false
   sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
   source_part: revenue
@@ -1123,60 +1162,80 @@ entries:
   command: 开具销项发票并改写 WIP
   raci:
     A:
-      resolve: type
-      role: SH-E6
-      function: 开票会计
+      resolve: instance
+      field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - SH-E6
     C: []
     I:
     - SH-E5
+    - SH-E2
   sensitive: true
   sensitive_reason: 发票含购买方开户行与账号（sales_invoices，sensitive/pi）
   source_part: revenue
 - object: AGG-46
   command: 提交过账候选
   raci:
-    A: *id013
+    A:
+      resolve: instance
+      field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - system
     C: []
-    I: []
+    I:
+    - SH-E2
   sensitive: false
   sensitive_reason: 本命令不写敏感列与资金权限；含普通个人信息（员工标识），对象最高分级 SENSITIVE，按数据范围可见（ADR-0026）
   source_part: revenue
 - object: AGG-46
   command: 发起红字信息确认
   raci:
-    A: &id015
+    A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - SH-E6
     C: []
-    I: []
+    I:
+    - SH-E2
   sensitive: true
   sensitive_reason: 红冲（红字信息确认）
   source_part: revenue
 - object: AGG-46
   command: 撤销红字信息确认
   raci:
-    A: *id015
+    A:
+      resolve: instance
+      field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - SH-E6
     C: []
-    I: []
+    I:
+    - SH-E2
   sensitive: false
   sensitive_reason: 本命令不写敏感列与资金权限；含普通个人信息（员工标识），对象最高分级 SENSITIVE，按数据范围可见（ADR-0026）
   source_part: revenue
 - object: AGG-46
   command: 红冲发票
   raci:
-    A: *id015
+    A:
+      resolve: instance
+      field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - SH-E6
     C: []
-    I: []
+    I:
+    - SH-E2
   sensitive: true
   sensitive_reason: 红冲
   source_part: revenue
@@ -1194,9 +1253,10 @@ entries:
 - object: AGG-49
   command: 创建应收
   raci:
-    A: &id016
+    A: &id014
       resolve: instance
       field: 往来款项.承担部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -1207,7 +1267,7 @@ entries:
 - object: AGG-49
   command: 在应收上核销占用
   raci:
-    A: *id016
+    A: *id014
     R:
     - SH-E6
     C: []
@@ -1218,7 +1278,7 @@ entries:
 - object: AGG-49
   command: 检测应收逾期
   raci:
-    A: *id016
+    A: *id014
     R:
     - system
     C: []
@@ -1231,7 +1291,7 @@ entries:
 - object: AGG-49
   command: 登记争议与处置分类
   raci:
-    A: *id016
+    A: *id014
     R:
     - SH-E6
     C: []
@@ -1244,11 +1304,14 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 往来款项.承担部门负责人
+      field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - SH-E6
     C: []
-    I: []
+    I:
+    - SH-E2
   sensitive: true
   sensitive_reason: 坏账核销，一经过账不可逆
   source_part: revenue
@@ -1266,7 +1329,7 @@ entries:
 - object: AGG-49
   command: 释放占用、恢复应收
   raci:
-    A: *id016
+    A: *id014
     R:
     - system
     C: []
@@ -1277,7 +1340,7 @@ entries:
 - object: AGG-49
   command: 冲抵员工借款
   raci:
-    A: *id016
+    A: *id014
     R:
     - SH-E6
     C: []
@@ -1288,18 +1351,23 @@ entries:
 - object: AGG-49
   command: 冲减应收
   raci:
-    A: *id016
+    A:
+      resolve: instance
+      field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - system
     C: []
-    I: []
+    I:
+    - SH-E2
   sensitive: true
   sensitive_reason: 冲减应收涉及资金
   source_part: revenue
 - object: AGG-49
   command: 转预收或待退
   raci:
-    A: *id016
+    A: *id014
     R:
     - system
     C: []
@@ -1377,9 +1445,10 @@ entries:
 - object: AGG-51
   command: 登记保证金应缴
   raci:
-    A: &id017
+    A: &id015
       resolve: instance
       field: 保证金.承担部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -1390,7 +1459,7 @@ entries:
 - object: AGG-51
   command: 登记保证金缴纳
   raci:
-    A: *id017
+    A: *id015
     R:
     - SH-E6
     C: []
@@ -1401,7 +1470,7 @@ entries:
 - object: AGG-51
   command: 登记保函开立
   raci:
-    A: *id017
+    A: *id015
     R:
     - SH-E6
     C: []
@@ -1412,7 +1481,7 @@ entries:
 - object: AGG-51
   command: 扣减保证金
   raci:
-    A: *id017
+    A: *id015
     R:
     - SH-E6
     C: []
@@ -1423,7 +1492,7 @@ entries:
 - object: AGG-51
   command: 退还保证金
   raci:
-    A: *id017
+    A: *id015
     R:
     - SH-E6
     C: []
@@ -1434,7 +1503,7 @@ entries:
 - object: AGG-51
   command: 没收保证金
   raci:
-    A: *id017
+    A: *id015
     R:
     - SH-E6
     C: []
@@ -1445,7 +1514,7 @@ entries:
 - object: AGG-51
   command: 登记保函到期或索赔
   raci:
-    A: *id017
+    A: *id015
     R:
     - SH-E6
     C: []
@@ -1467,7 +1536,7 @@ entries:
 - object: AGG-01
   command: 登记往来单位
   raci:
-    A: &id018
+    A: &id016
       resolve: type
       role: SH-E6
       function: 往来单位管理
@@ -1492,7 +1561,7 @@ entries:
 - object: AGG-01
   command: 核实往来单位档案
   raci:
-    A: *id018
+    A: *id016
     R:
     - SH-E6
     C: []
@@ -1503,7 +1572,7 @@ entries:
 - object: AGG-01
   command: 合并往来单位
   raci:
-    A: *id018
+    A: *id016
     R:
     - SH-E6
     C: []
@@ -1514,7 +1583,7 @@ entries:
 - object: AGG-01
   command: 停用往来单位
   raci:
-    A: *id018
+    A: *id016
     R:
     - SH-E6
     C: []
@@ -1540,7 +1609,7 @@ entries:
 - object: AGG-01
   command: 核准往来单位角色合格
   raci:
-    A: *id018
+    A: *id016
     R:
     - SH-E6
     C: []
@@ -1551,7 +1620,7 @@ entries:
 - object: AGG-01
   command: 暂停往来单位角色
   raci:
-    A: *id018
+    A: *id016
     R:
     - SH-E6
     C: []
@@ -1562,7 +1631,7 @@ entries:
 - object: AGG-01
   command: 停用往来单位角色
   raci:
-    A: *id018
+    A: *id016
     R:
     - SH-E6
     C: []
@@ -1573,7 +1642,7 @@ entries:
 - object: AGG-02
   command: 登记资质证书
   raci:
-    A: &id019
+    A: &id017
       resolve: type
       role: SH-E6
       function: 资质管理
@@ -1588,7 +1657,7 @@ entries:
 - object: AGG-02
   command: 发起资质核查
   raci:
-    A: *id019
+    A: *id017
     R:
     - SH-E6
     C: []
@@ -1599,7 +1668,7 @@ entries:
 - object: AGG-02
   command: 登记核查结果
   raci:
-    A: *id019
+    A: *id017
     R:
     - SH-E6
     C: []
@@ -1624,7 +1693,7 @@ entries:
 - object: AGG-02
   command: 标记资质已到期
   raci:
-    A: *id019
+    A: *id017
     R:
     - system
     C: []
@@ -1636,7 +1705,7 @@ entries:
 - object: AGG-33
   command: 登记建设工程
   raci:
-    A: &id020
+    A: &id018
       resolve: type
       role: SH-E5
       function: 市场经理
@@ -1650,7 +1719,7 @@ entries:
 - object: AGG-33
   command: 更新外部状态
   raci:
-    A: *id020
+    A: *id018
     R:
     - SH-E5
     C: []
@@ -1664,6 +1733,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - system
     C: []
@@ -1688,7 +1758,7 @@ entries:
 - object: AGG-03
   command: 发布服务产品版本
   raci:
-    A: &id021
+    A: &id019
       resolve: type
       role: SH-M1
       function: 分管副总
@@ -1702,7 +1772,7 @@ entries:
 - object: AGG-03
   command: 停用服务产品版本
   raci:
-    A: *id021
+    A: *id019
     R:
     - SH-M1
     C: []
@@ -1713,7 +1783,7 @@ entries:
 - object: AGG-04
   command: 发布阶段类型版本
   raci:
-    A: &id022
+    A: &id020
       resolve: type
       role: SH-M1
       function: 分管副总
@@ -1727,7 +1797,7 @@ entries:
 - object: AGG-04
   command: 停用阶段类型版本
   raci:
-    A: *id022
+    A: *id020
     R:
     - SH-M1
     C: []
@@ -1738,9 +1808,10 @@ entries:
 - object: AGG-05
   command: 编制费率版本
   raci:
-    A: &id023
+    A: &id021
       resolve: instance
       field: 标准成本费率表.维护部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -1751,7 +1822,7 @@ entries:
 - object: AGG-05
   command: 批准费率版本
   raci:
-    A: *id023
+    A: *id021
     R:
     - system
     C: []
@@ -1763,7 +1834,7 @@ entries:
 - object: AGG-05
   command: 生效费率版本
   raci:
-    A: *id023
+    A: *id021
     R:
     - SH-E6
     C: []
@@ -1774,9 +1845,10 @@ entries:
 - object: AGG-06
   command: 编制计费系数版本
   raci:
-    A: &id024
+    A: &id022
       resolve: instance
       field: 计费系数.维护部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -1787,7 +1859,7 @@ entries:
 - object: AGG-06
   command: 生效计费系数版本
   raci:
-    A: *id024
+    A: *id022
     R:
     - SH-E6
     C: []
@@ -1798,9 +1870,10 @@ entries:
 - object: AGG-07
   command: 编制协议价目版本
   raci:
-    A: &id025
+    A: &id023
       resolve: instance
       field: 协议价目.维护部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1811,7 +1884,7 @@ entries:
 - object: AGG-07
   command: 生效协议价目版本
   raci:
-    A: *id025
+    A: *id023
     R:
     - SH-E5
     C: []
@@ -1822,9 +1895,10 @@ entries:
 - object: AGG-08
   command: 计划市场活动
   raci:
-    A: &id026
+    A: &id024
       resolve: instance
       field: 市场活动.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1835,7 +1909,7 @@ entries:
 - object: AGG-08
   command: 开展市场活动
   raci:
-    A: *id026
+    A: *id024
     R:
     - SH-E5
     C: []
@@ -1846,7 +1920,7 @@ entries:
 - object: AGG-08
   command: 结束市场活动
   raci:
-    A: *id026
+    A: *id024
     R:
     - SH-E5
     C: []
@@ -1885,9 +1959,10 @@ entries:
 - object: AGG-09
   command: 挂起线索
   raci:
-    A: &id027
+    A: &id025
       resolve: instance
       field: 线索.认领人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1898,7 +1973,7 @@ entries:
 - object: AGG-09
   command: 恢复线索
   raci:
-    A: *id027
+    A: *id025
     R:
     - SH-E5
     C: []
@@ -1909,7 +1984,7 @@ entries:
 - object: AGG-09
   command: 确认线索
   raci:
-    A: *id027
+    A: *id025
     R:
     - SH-E5
     C: []
@@ -1920,7 +1995,7 @@ entries:
 - object: AGG-09
   command: 关闭线索
   raci:
-    A: *id027
+    A: *id025
     R:
     - SH-E5
     C: []
@@ -1931,9 +2006,10 @@ entries:
 - object: AGG-10
   command: 新建商机
   raci:
-    A: &id028
+    A: &id026
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1945,7 +2021,7 @@ entries:
 - object: AGG-10
   command: 变更商机负责人
   raci:
-    A: *id028
+    A: *id026
     R:
     - SH-E5
     C: []
@@ -1956,7 +2032,7 @@ entries:
 - object: AGG-10
   command: 维护商机参与团队
   raci:
-    A: *id028
+    A: *id026
     R:
     - SH-E5
     C: []
@@ -1967,7 +2043,7 @@ entries:
 - object: AGG-10
   command: 商机赢单
   raci:
-    A: *id028
+    A: *id026
     R:
     - SH-E5
     C: []
@@ -1979,7 +2055,7 @@ entries:
 - object: AGG-10
   command: 登记商机丢单
   raci:
-    A: *id028
+    A: *id026
     R:
     - SH-E5
     C: []
@@ -1990,7 +2066,7 @@ entries:
 - object: AGG-10
   command: 放弃商机
   raci:
-    A: *id028
+    A: *id026
     R:
     - SH-E5
     C: []
@@ -2001,9 +2077,10 @@ entries:
 - object: AGG-11
   command: 登记资格预审结果
   raci:
-    A: &id029
+    A: &id027
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -2014,7 +2091,7 @@ entries:
 - object: AGG-11
   command: 递交投标
   raci:
-    A: *id029
+    A: *id027
     R:
     - SH-E5
     C: []
@@ -2025,7 +2102,7 @@ entries:
 - object: AGG-11
   command: 登记中标
   raci:
-    A: *id029
+    A: *id027
     R:
     - SH-E5
     C: []
@@ -2036,7 +2113,7 @@ entries:
 - object: AGG-11
   command: 登记未中标
   raci:
-    A: *id029
+    A: *id027
     R:
     - SH-E5
     C: []
@@ -2047,7 +2124,7 @@ entries:
 - object: AGG-11
   command: 登记废标
   raci:
-    A: *id029
+    A: *id027
     R:
     - SH-E5
     C: []
@@ -2058,7 +2135,7 @@ entries:
 - object: AGG-11
   command: 撤回或撤销投标
   raci:
-    A: *id029
+    A: *id027
     R:
     - SH-E5
     C: []
@@ -2069,7 +2146,7 @@ entries:
 - object: AGG-11
   command: 放弃投标
   raci:
-    A: *id029
+    A: *id027
     R:
     - SH-E5
     C: []
@@ -2080,9 +2157,10 @@ entries:
 - object: AGG-12
   command: 编制报价版本
   raci:
-    A: &id030
+    A: &id028
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -2093,7 +2171,7 @@ entries:
 - object: AGG-12
   command: 提交报价评审
   raci:
-    A: *id030
+    A: *id028
     R:
     - SH-E5
     C: []
@@ -2104,7 +2182,7 @@ entries:
 - object: AGG-12
   command: 通过报价评审
   raci:
-    A: *id030
+    A: *id028
     R:
     - system
     C: []
@@ -2116,7 +2194,7 @@ entries:
 - object: AGG-12
   command: 驳回报价评审
   raci:
-    A: *id030
+    A: *id028
     R:
     - system
     C: []
@@ -2128,7 +2206,7 @@ entries:
 - object: AGG-12
   command: 生效报价版本
   raci:
-    A: *id030
+    A: *id028
     R:
     - SH-E5
     C: []
@@ -2139,7 +2217,7 @@ entries:
 - object: AGG-12
   command: 作废报价版本
   raci:
-    A: *id030
+    A: *id028
     R:
     - SH-E5
     C: []
@@ -2150,7 +2228,7 @@ entries:
 - object: AGG-18
   command: 登记独立性检查结论
   raci:
-    A: &id046
+    A: &id044
       resolve: type
       role: SH-M1
       function: 独立性复核
@@ -2164,9 +2242,10 @@ entries:
 - object: AGG-102
   command: 计划客户活动
   raci:
-    A: &id031
+    A: &id029
       resolve: instance
       field: 客户活动.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -2177,7 +2256,7 @@ entries:
 - object: AGG-102
   command: 变更客户活动
   raci:
-    A: *id031
+    A: *id029
     R:
     - SH-E5
     C: []
@@ -2188,7 +2267,7 @@ entries:
 - object: AGG-102
   command: 完成客户活动
   raci:
-    A: *id031
+    A: *id029
     R:
     - SH-E5
     C: []
@@ -2199,7 +2278,7 @@ entries:
 - object: AGG-102
   command: 取消客户活动
   raci:
-    A: *id031
+    A: *id029
     R:
     - SH-E5
     C: []
@@ -2210,9 +2289,10 @@ entries:
 - object: AGG-19
   command: 建立项目
   raci:
-    A: &id032
+    A: &id030
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2223,7 +2303,7 @@ entries:
 - object: AGG-19
   command: 开始执行
   raci:
-    A: *id032
+    A: *id030
     R:
     - SH-E2
     C: []
@@ -2238,6 +2318,7 @@ entries:
     A:
       resolve: instance
       field: 项目.承担部门负责人
+      field_status: proposed
     R:
     - SH-M1
     C: []
@@ -2253,6 +2334,7 @@ entries:
     A:
       resolve: instance
       field: 项目.承担部门负责人
+      field_status: proposed
     R:
     - SH-M1
     C: []
@@ -2267,6 +2349,7 @@ entries:
     A:
       resolve: instance
       field: 项目.承担部门负责人
+      field_status: proposed
     R:
     - SH-M1
     C: []
@@ -2281,6 +2364,7 @@ entries:
     A:
       resolve: instance
       field: 项目.承担部门负责人
+      field_status: proposed
     R:
     - SH-M1
     C: []
@@ -2291,7 +2375,7 @@ entries:
 - object: AGG-19
   command: 结项
   raci:
-    A: *id032
+    A: *id030
     R:
     - system
     C: []
@@ -2302,7 +2386,7 @@ entries:
 - object: AGG-19
   command: 归档项目
   raci:
-    A: *id032
+    A: *id030
     R:
     - SH-E2
     C: []
@@ -2313,9 +2397,10 @@ entries:
 - object: AGG-20
   command: 建立项目 WBS
   raci:
-    A: &id033
+    A: &id031
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2326,7 +2411,7 @@ entries:
 - object: AGG-20
   command: 开始阶段
   raci:
-    A: *id033
+    A: *id031
     R:
     - SH-E2
     C: []
@@ -2337,7 +2422,7 @@ entries:
 - object: AGG-20
   command: 完成阶段
   raci:
-    A: *id033
+    A: *id031
     R:
     - SH-E2
     C: []
@@ -2348,7 +2433,7 @@ entries:
 - object: AGG-20
   command: 锁定工作包
   raci:
-    A: *id033
+    A: *id031
     R:
     - SH-E2
     C: []
@@ -2359,7 +2444,7 @@ entries:
 - object: AGG-20
   command: 作废工作包
   raci:
-    A: *id033
+    A: *id031
     R:
     - SH-E2
     C: []
@@ -2370,9 +2455,10 @@ entries:
 - object: AGG-21
   command: 编制交付计划版本
   raci:
-    A: &id034
+    A: &id032
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2383,7 +2469,7 @@ entries:
 - object: AGG-21
   command: 批准交付计划
   raci:
-    A: *id034
+    A: *id032
     R:
     - SH-E2
     C: []
@@ -2394,9 +2480,10 @@ entries:
 - object: AGG-22
   command: 编制项目预算版本
   raci:
-    A: &id035
+    A: &id033
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2408,7 +2495,7 @@ entries:
 - object: AGG-22
   command: 锁定项目预算
   raci:
-    A: *id035
+    A: *id033
     R:
     - SH-E2
     C: []
@@ -2419,9 +2506,10 @@ entries:
 - object: AGG-23
   command: 提出完工估算
   raci:
-    A: &id036
+    A: &id034
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-M1
     C: []
@@ -2446,7 +2534,7 @@ entries:
 - object: AGG-23
   command: 填报产值估计
   raci:
-    A: *id036
+    A: *id034
     R:
     - SH-E2
     C: []
@@ -2461,6 +2549,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2472,9 +2561,10 @@ entries:
 - object: AGG-25
   command: 提出资源需求
   raci:
-    A: &id047
+    A: &id045
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2501,9 +2591,10 @@ entries:
 - object: AGG-27
   command: 编制交付物
   raci:
-    A: &id037
+    A: &id035
       resolve: instance
       field: 交付物.项目经理
+      field_status: proposed
     R:
     - SH-E3
     C: []
@@ -2543,7 +2634,7 @@ entries:
 - object: AGG-27
   command: 登记提交轮次送达
   raci:
-    A: *id037
+    A: *id035
     R:
     - SH-E2
     C: []
@@ -2554,7 +2645,7 @@ entries:
 - object: AGG-27
   command: 登记客户认可
   raci:
-    A: *id037
+    A: *id035
     R:
     - SH-E2
     C: []
@@ -2565,7 +2656,7 @@ entries:
 - object: AGG-27
   command: 登记客户退回
   raci:
-    A: *id037
+    A: *id035
     R:
     - SH-E2
     C: []
@@ -2576,7 +2667,7 @@ entries:
 - object: AGG-27
   command: 登记项目经理的无异议声明
   raci:
-    A: *id037
+    A: *id035
     R:
     - SH-E2
     C: []
@@ -2588,7 +2679,7 @@ entries:
 - object: AGG-27
   command: 封存交付物
   raci:
-    A: *id037
+    A: *id035
     R:
     - SH-E2
     C: []
@@ -2599,7 +2690,7 @@ entries:
 - object: AGG-29
   command: 认定返工
   raci:
-    A: &id038
+    A: &id036
       resolve: type
       role: SH-E4
       function: 质量审核人
@@ -2613,7 +2704,7 @@ entries:
 - object: AGG-29
   command: 撤销返工认定
   raci:
-    A: *id038
+    A: *id036
     R:
     - SH-E4
     C: []
@@ -2624,9 +2715,10 @@ entries:
 - object: AGG-30
   command: 提出设计变更
   raci:
-    A: &id039
+    A: &id037
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E3
     C: []
@@ -2665,7 +2757,7 @@ entries:
 - object: AGG-30
   command: 发出设计变更
   raci:
-    A: *id039
+    A: *id037
     R:
     - SH-E2
     C: []
@@ -2676,7 +2768,7 @@ entries:
 - object: AGG-30
   command: 标记待主张
   raci:
-    A: *id039
+    A: *id037
     R:
     - SH-E2
     C: []
@@ -2687,7 +2779,7 @@ entries:
 - object: AGG-30
   command: 关闭设计变更
   raci:
-    A: *id039
+    A: *id037
     R:
     - SH-E2
     C: []
@@ -2698,9 +2790,10 @@ entries:
 - object: AGG-31
   command: 通知延期
   raci:
-    A: &id040
+    A: &id038
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2711,7 +2804,7 @@ entries:
 - object: AGG-31
   command: 提交延期详细说明
   raci:
-    A: *id040
+    A: *id038
     R:
     - SH-E2
     C: []
@@ -2722,7 +2815,7 @@ entries:
 - object: AGG-31
   command: 登记延期批准
   raci:
-    A: *id040
+    A: *id038
     R:
     - SH-E2
     C: []
@@ -2733,7 +2826,7 @@ entries:
 - object: AGG-31
   command: 登记延期拒绝
   raci:
-    A: *id040
+    A: *id038
     R:
     - SH-E2
     C: []
@@ -2744,7 +2837,7 @@ entries:
 - object: AGG-31
   command: 登记延期视为批准
   raci:
-    A: *id040
+    A: *id038
     R:
     - system
     C: []
@@ -2756,9 +2849,10 @@ entries:
 - object: AGG-32
   command: 登记资料需求
   raci:
-    A: &id041
+    A: &id039
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2769,7 +2863,7 @@ entries:
 - object: AGG-32
   command: 登记资料已提供
   raci:
-    A: *id041
+    A: *id039
     R:
     - SH-E2
     C: []
@@ -2809,9 +2903,10 @@ entries:
 - object: AGG-103
   command: 编制项目复盘
   raci:
-    A: &id042
+    A: &id040
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2836,7 +2931,7 @@ entries:
 - object: AGG-103
   command: 发布项目复盘
   raci:
-    A: *id042
+    A: *id040
     R:
     - SH-E2
     C: []
@@ -2847,9 +2942,10 @@ entries:
 - object: AGG-104
   command: 登记风险与问题
   raci:
-    A: &id043
+    A: &id041
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - system
     C: []
@@ -2861,7 +2957,7 @@ entries:
 - object: AGG-104
   command: 记录应对措施
   raci:
-    A: *id043
+    A: *id041
     R:
     - SH-E2
     C: []
@@ -2872,7 +2968,7 @@ entries:
 - object: AGG-104
   command: 关闭风险与问题
   raci:
-    A: *id043
+    A: *id041
     R:
     - SH-E2
     C: []
@@ -2883,7 +2979,7 @@ entries:
 - object: AGG-104
   command: 接受风险与问题
   raci:
-    A: *id043
+    A: *id041
     R:
     - system
     C: []
@@ -2894,9 +2990,10 @@ entries:
 - object: AGG-105
   command: 发出满意度调查
   raci:
-    A: &id044
+    A: &id042
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2907,7 +3004,7 @@ entries:
 - object: AGG-105
   command: 登记调查回收
   raci:
-    A: *id044
+    A: *id042
     R:
     - SH-E2
     C: []
@@ -2918,7 +3015,7 @@ entries:
 - object: AGG-105
   command: 评分满意度调查
   raci:
-    A: *id044
+    A: *id042
     R:
     - SH-E2
     C: []
@@ -2929,7 +3026,7 @@ entries:
 - object: AGG-105
   command: 登记满意度跟进
   raci:
-    A: *id044
+    A: *id042
     R:
     - SH-E2
     C: []
@@ -2940,9 +3037,10 @@ entries:
 - object: AGG-39
   command: 起草工时单
   raci:
-    A: &id045
+    A: &id043
       resolve: instance
       field: 工时单.项目经理
+      field_status: proposed
     R:
     - SH-E3
     C: []
@@ -2953,7 +3051,7 @@ entries:
 - object: AGG-39
   command: 提交工时单
   raci:
-    A: *id045
+    A: *id043
     R:
     - SH-E3
     C: []
@@ -2964,7 +3062,7 @@ entries:
 - object: AGG-39
   command: 通过工时单
   raci:
-    A: *id045
+    A: *id043
     R:
     - system
     C: []
@@ -2975,7 +3073,7 @@ entries:
 - object: AGG-39
   command: 退回工时单
   raci:
-    A: *id045
+    A: *id043
     R:
     - system
     C: []
@@ -2987,7 +3085,7 @@ entries:
 - object: AGG-39
   command: 驳回工时单
   raci:
-    A: *id045
+    A: *id043
     R:
     - system
     C: []
@@ -2999,7 +3097,7 @@ entries:
 - object: AGG-39
   command: 撤回工时单
   raci:
-    A: *id045
+    A: *id043
     R:
     - system
     C: []
@@ -3010,7 +3108,7 @@ entries:
 - object: AGG-39
   command: 认定工时有效性
   raci:
-    A: *id045
+    A: *id043
     R:
     - SH-E2
     C: []
@@ -3033,7 +3131,7 @@ entries:
 - object: AGG-18
   command: 创建独立性检查
   raci:
-    A: *id046
+    A: *id044
     R:
     - system
     C: []
@@ -3044,7 +3142,7 @@ entries:
 - object: AGG-25
   command: 标记资源需求已满足
   raci:
-    A: *id047
+    A: *id045
     R:
     - system
     C: []
@@ -3055,11 +3153,39 @@ entries:
 - object: AGG-25
   command: 关闭资源需求
   raci:
-    A: *id047
+    A: *id045
     R:
     - SH-E2
     C: []
     I: []
   sensitive: false
   sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
+  source_part: revenue
+- object: AGG-30
+  command: 撤销设计变更
+  raci:
+    A:
+      resolve: instance
+      field: 项目.项目经理
+      field_status: proposed
+    R:
+    - SH-E2
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 业务记录，无个人信息
+  source_part: revenue
+- object: AGG-31
+  command: 撤回延期通知
+  raci:
+    A:
+      resolve: instance
+      field: 项目.项目经理
+      field_status: proposed
+    R:
+    - SH-E2
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 业务记录，无个人信息
   source_part: revenue

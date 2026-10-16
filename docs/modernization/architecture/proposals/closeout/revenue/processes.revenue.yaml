@@ -3483,12 +3483,14 @@ processes:
     name: 设计、发包人或现场原因引起设计变更，设计师发起
   outcomes:
   - 已关闭
+  - 已撤销
   scenarios:
   - PRC-31-S01
   - PRC-31-S02
   - PRC-31-S03
   - PRC-31-S04
   - PRC-31-S05
+  - PRC-31-S06
   roles:
   - id: SH-E3
     as: initiator
@@ -3618,6 +3620,9 @@ processes:
     page: 设计变更发出登记页
     audit: true
     metric_event: true
+    withdraw:
+      to: 7
+      outcome: 已撤销
   - actor: SH-E2
     where: in_system
     actor_v1: 项目经理
@@ -3646,6 +3651,26 @@ processes:
     page: 设计变更关闭页
     audit: true
     outcome: 已关闭
+    decision:
+    - when: otherwise
+      goto: end
+      outcome: 已关闭
+  - command: 撤销设计变更
+    aggregate: AGG-30
+    actor: SH-E2
+    where: in_system
+    added_in: closeout
+    permission: 设计变更.撤销
+    page: 设计变更页
+    audit: true
+    effort:
+      typical_min: 5
+      p90_min: 15
+    desc: S-37：设计变更发出后线下撤销的，登记撤销原因与依据，只追加撤销记录、不删原记录
+    decision:
+    - when: otherwise
+      goto: end
+      outcome: 已撤销
   notes: 合同侧的协议变更、索赔单向引用设计变更 ID；交付不读合同。「不主张」没有独立命令，同「标记待主张」按参数记（见 NOTES 新用语）。
 - id: PRC-32
   name: 申请并答复延期
@@ -3674,6 +3699,7 @@ processes:
   - 已批准
   - 已拒绝
   - 视为批准
+  - 已撤回
   scenarios:
   - PRC-32-S01
   - PRC-32-S02
@@ -3681,6 +3707,7 @@ processes:
   - PRC-32-S04
   - PRC-32-S05
   - PRC-32-S06
+  - PRC-32-S07
   roles:
   - id: SH-E2
     as: initiator
@@ -3727,6 +3754,9 @@ processes:
     notify:
     - to: SH-E2
       how: 企业微信待办（延期通知期限临近，P-25）
+    withdraw:
+      to: 6
+      outcome: 已撤回
   - actor: SH-E2
     where: offline
     evidence:
@@ -3837,6 +3867,22 @@ processes:
     notify:
     - to: SH-E2
       how: 企业微信消息（发包人答复期满，延期按合同视为批准）
+  - command: 撤回延期通知
+    aggregate: AGG-31
+    actor: SH-E2
+    where: in_system
+    added_in: closeout
+    permission: 延期申请.撤回
+    page: 延期申请页
+    audit: true
+    effort:
+      typical_min: 5
+      p90_min: 15
+    desc: S-37：延期通知发出后线下撤销的，登记撤销原因与依据，只追加撤销记录、不删原记录
+    decision:
+    - when: otherwise
+      goto: end
+      outcome: 已撤回
   notes: P-25 期限临近提醒；合同侧协议变更、索赔引用延期申请。AGG-31 没有 platform.approval 依赖，发包人答复是外部方答复，只登记证据。
 - id: PRC-34
   name: 处置我方成果不符合项
@@ -7000,7 +7046,7 @@ processes:
       engine: platform.approval
       doc_type: 开票申请审批
       approver: cost_object_owner
-      owner_object: 协议所属项目
+      owner_object: 协议（承担部门负责人，S-38）
       why_human: 开票金额超阈值或购买方为关联方时，需要人判断开票内容与金额是否与交易实质相符、是否公允；协议依据与可开票额度已由准入规则守卫，不在审批中核对。
       escalation_rules:
       - AR-01
@@ -7263,7 +7309,7 @@ processes:
       engine: platform.approval
       doc_type: 红冲申请审批单
       approver: cost_object_owner
-      owner_object: 协议所属项目
+      owner_object: 协议（承担部门负责人，S-38）
       why_human: 原发票是否确属错误、业务是否确已取消，需要项目责任人按业务事实判断；系统只能核对发票状态和是否已用途确认，不能判断红冲理由是否成立。
       escalation_rules:
       - AR-06
@@ -7855,7 +7901,7 @@ processes:
       engine: platform.approval
       doc_type: 坏账核销审批单
       approver: cost_object_owner
-      owner_object: 协议所属项目
+      owner_object: 协议（承担部门负责人，S-38）
       why_human: 款项是否确已无法收回（可回收性）需要人结合催收记录、对方经营与诉讼状态判断，系统只能算账龄；核销一经过账不可逆。
       escalation_rules:
       - AR-01

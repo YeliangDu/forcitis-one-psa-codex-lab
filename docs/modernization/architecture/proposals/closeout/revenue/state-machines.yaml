@@ -2198,6 +2198,8 @@ machines:
   - 不主张
   - name: 已关闭
     terminal: true
+  - name: 已撤销
+    terminal: true
   transitions:
   - from: null
     to: 已提出
@@ -2240,6 +2242,12 @@ machines:
   - from: 不主张
     to: 已关闭
     command: 关闭设计变更
+  - from:
+    - 已发出
+    - 待主张
+    to: 已撤销
+    command: 撤销设计变更
+    reverse_of: 发出设计变更
 - aggregate: AGG-31
   name: 延期申请
   initial: 已通知
@@ -2251,6 +2259,8 @@ machines:
   - name: 已拒绝
     terminal: true
   - name: 视为批准
+    terminal: true
+  - name: 已撤回
     terminal: true
   transitions:
   - from: null
@@ -2270,6 +2280,12 @@ machines:
     command: 登记延期视为批准
     guard:
     - 合同约定答复期满仍无书面答复
+  - from:
+    - 已通知
+    - 已提交说明
+    to: 已撤回
+    command: 撤回延期通知
+    reverse_of: 通知延期
 - aggregate: AGG-32
   name: 发包人提供资料
   initial: 待提供

@@ -3417,3 +3417,31 @@ commands:
   idempotency_key:
   - 资源需求ID
   emits: []
+- name: 撤销设计变更
+  aggregate: AGG-30
+  proposed: true
+  params:
+  - 原记录
+  - 撤销原因与依据
+  preconditions:
+  - 原记录已发出且未关闭
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 原记录ID
+  emits: []
+  note: S-37 采纳
+- name: 撤回延期通知
+  aggregate: AGG-31
+  proposed: true
+  params:
+  - 原记录
+  - 撤销原因与依据
+  preconditions:
+  - 原记录已发出且未关闭
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 原记录ID
+  emits: []
+  note: S-37 采纳

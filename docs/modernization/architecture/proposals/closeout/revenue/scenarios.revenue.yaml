@@ -1090,6 +1090,13 @@ PRC-31:
   covers:
   - segregation：提出人与内审人
   expect: 拒绝同一人提出并内审同一设计变更
+- id: PRC-31-S06
+  path: 第 4 步之后撤销→第 7 步
+  outcome: 已撤销
+  covers:
+  - 第 4 步 withdraw
+  - 撤销设计变更
+  expect: 须写撤销原因；原记录保留，状态转撤销终态；重复撤销幂等
 PRC-32:
 - id: PRC-32-S01
   path: 1→2 发包人书面批准→3
@@ -1128,6 +1135,13 @@ PRC-32:
   covers:
   - 触发：定时命令重复
   expect: 按延期申请 ID 幂等：只登记一次视为批准，不重复发事件
+- id: PRC-32-S07
+  path: 第 1 步之后撤销→第 6 步
+  outcome: 已撤回
+  covers:
+  - 第 1 步 withdraw
+  - 撤回延期通知
+  expect: 须写撤销原因；原记录保留，状态转撤销终态；重复撤销幂等
 PRC-33:
 - id: PRC-33-S01
   path: 采集 → 上传摘要 → 关联 → 封存
