@@ -244,7 +244,7 @@ def declared_pairs(path):
             if not line.strip() or line.startswith("#"):
                 continue
             parts = [part.strip() for part in line.split("|")]
-            if len(parts) != 3 or not re.fullmatch(r"[a-z0-9_]+\.[a-z0-9_]+", parts[0]) or not all(parts[1].split(",")) or not parts[2]:
+            if len(parts) != 3 or not re.fullmatch(r"[a-z0-9_]+\.[a-z0-9_]+", parts[0]) or not all(c.strip() for c in parts[1].split(",")) or not parts[2]:
                 raise SystemExit(f"{path}:{number}: expected `<schema.table> | <column>, <column> | <why>`")
             pairs.append((parts[0], [c.strip() for c in parts[1].split(",")], parts[2]))
     return pairs
@@ -463,6 +463,19 @@ CREATE TABLE cost_timesheet.timesheets (id uuid PRIMARY KEY, submitted_date date
         fixed, _ = scan(ft2, fi2, set(), set(), [("cost_timesheet.timesheets", ["submitted_date", "round_number"], "x")])
     assert not [i for i in fixed["paired_nullable"] if "declared" in i["group"]], "class 4 declared: a CHECK naming all columns satisfies the group"
     assert any("declared column does not exist" in i["missing"] for i in stale["paired_nullable"]), "class 4 declared: a stale declaration is reported"
+    with tempfile.TemporaryDirectory() as folder:
+        open(os.path.join(folder, "V1__f.sql"), "w", encoding="utf-8").write(fixture.replace("submitted_date date,", "submitted_date date CHECK (submitted_date IS NULL OR round_number > 0),"))
+        ft3, fi3, _ = load(folder)
+        inline, _ = scan(ft3, fi3, set(), set(), [("cost_timesheet.timesheets", ["submitted_date", "round_number"], "x")])
+    assert not [i for i in inline["paired_nullable"] if "declared" in i["group"]], "class 4 declared: a column-level CHECK naming all columns satisfies the group"
+    path = os.path.join(tempfile.mkdtemp(), "pairs.txt")
+    open(path, "w", encoding="utf-8").write("a.b | c, , d | why\n")
+    try:
+        declared_pairs(path)
+    except SystemExit:
+        pass
+    else:
+        raise AssertionError("class 4 declared: a blank column name in the list must be refused")
     kinds_all = {i["column"]: i["wording"] for i in result["null_meaning"]}
     assert kinds_all[f"{ar}.released_at"] == "none", "class 3"
     assert any(i["where"] == "seed platform_approval.approval_requests" and i["value"] == "QUOTE" for i in result["unbuilt_value"]), "class 7: a seed row holding QUOTE"
