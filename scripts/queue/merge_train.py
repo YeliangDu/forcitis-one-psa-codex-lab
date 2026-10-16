@@ -157,8 +157,11 @@ def finish(args, gh, repo="."):
     train = gh.pr(args.pr)
     if train["state"] != "MERGED":
         raise SystemExit(f"train pull request #{args.pr} is {train['state']}, not MERGED")
+    members = members_of(train["body"])
+    if not members:
+        raise SystemExit(f"#{args.pr} lists no Train-Member lines (was the body edited?): nothing closed")
     git(repo, "fetch", "-q", "origin", "main")
-    for n, sha in members_of(train["body"]):
+    for n, sha in members:
         d = gh.pr(n)
         if d["state"] != "OPEN":
             print(f"#{n} already {d['state']}")
@@ -269,6 +272,8 @@ def self_test():
         with contextlib.redirect_stdout(out):
             finish(argparse.Namespace(pr=900, squashed=False), gh, work)
         assert gh.closed == [3] and "#1 already MERGED" in out.getvalue() and "#2 KEPT OPEN" in out.getvalue(), (gh.closed, out.getvalue())
+        gh.prs[903] = dict(gh.prs[900], body="edited by hand")
+        fails(lambda: finish(argparse.Namespace(pr=903, squashed=False), gh, work), "lists no Train-Member lines")
         gh.prs[902] = dict(gh.prs[900], state="OPEN")
         fails(lambda: finish(argparse.Namespace(pr=902, squashed=False), gh, work), "not MERGED")
         # a squash-merged train: member heads are not in main, so the plain run keeps them open and --squashed decides on the recorded head
