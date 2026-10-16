@@ -53,6 +53,10 @@ public abstract class SingleOperatorIdentitySupport extends IdentityIntegrationT
         public boolean enabled() {
             return on;
         }
+
+        void turn(boolean value) {
+            on = value;
+        }
     }
 
     public static final class EventLog {
@@ -96,11 +100,11 @@ public abstract class SingleOperatorIdentitySupport extends IdentityIntegrationT
 
     @BeforeEach
     void startWithTheModeOff() {
-        modeSwitch.on = false;
+        modeSwitch.turn(false);
     }
 
     void mode(boolean on) {
-        modeSwitch.on = on;
+        modeSwitch.turn(on);
     }
 
     Result run(String... arguments) {
