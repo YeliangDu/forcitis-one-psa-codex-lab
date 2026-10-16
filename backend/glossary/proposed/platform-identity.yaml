@@ -171,6 +171,21 @@ terms:
   forbidden: []
   status: proposed
   note: 登记会话 one-1a-par（派工卡 SINGLE-OP）；四个取值的标识符与中文名由派工卡第 11 节列出，实现 PR 前由 one-glossary 确认
+- id: super_admin
+  zh: 超级管理员
+  en: SuperAdmin
+  snake: super_admin
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 持有全部平台管理权限的内置角色的角色码；单人运维放宽项「超级管理员下限一个」的取值名由它构成（ADR-0027、ADR-0030）
+  standard_ref:
+  - adr/src/ADR-0030.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 登记会话 one-1a-par（派工卡 SINGLE-OP P2）；G37 要求枚举取值 SUPER_ADMIN_MINIMUM_ONE 的词；查重：terms.yaml 与 proposed 中同一 bc 无同名、同中文名
 common_words:
 - absent
 - absolute
@@ -280,4 +295,3 @@ common_words:
 - revised
 - reach
 - omitted
-- super
