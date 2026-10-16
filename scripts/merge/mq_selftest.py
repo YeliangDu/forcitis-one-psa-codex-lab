@@ -708,6 +708,26 @@ def _signals(mq, d):
     proc.sleep = lambda sec: (slept.append(sec), flag["during_wait"].append(94 in proc.code_testing) if sec == 30 and len(slept) > 3 else None)
     assert proc.process(94) == "MERGED" and flag["during_update"] is False and any(flag["during_wait"]) and 94 not in proc.code_testing, flag
 
+    # checks not registered yet (an empty list) are waited for, not a HOLD at once; the flag is cleared when main moved and the pull request is brought up to date again
+    gh = FakeGh(); gh.add(97)
+    proc, q, log, slept = _proc(mq, d, "s11f", gh, [97])
+    real_checks = gh.checks
+    polls = {"n": 0}
+    seen_flag = []
+    real_update = gh.update_branch
+
+    def late_checks(n):
+        polls["n"] += 1
+        if polls["n"] == 23:   # the checks end green; main moves before the merge is decided
+            gh.prs[97]["behind"] = 1
+        return [] if polls["n"] <= 22 else real_checks(n)   # nothing listed through the registration wait (20 polls) and two more
+
+    def update(n):
+        seen_flag.append(n in proc.code_testing)
+        return real_update(n)
+    gh.checks, gh.update_branch = late_checks, update
+    assert proc.process(97) == "MERGED" and "BEHIND-AT-MERGE" in events(log) and seen_flag == [False], (events(log), seen_flag)
+
     # the docs lane's wait for the code lane ends at the CI timeout even if the flag never clears
     gh = FakeGh(); gh.add(95)
     proc, q, log, slept = _proc(mq, d, "s11d", gh, [95], lane=lambda g, n: "docs", ci_timeout=120)
