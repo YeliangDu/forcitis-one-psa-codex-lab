@@ -6,8 +6,8 @@
 - 动基础设施前过「兼容性预检清单」（Colima 试点事故，QUAL-004）；耗时类改动先按步骤拆数据；新增自测先破坏验证；接钩子/CI 的脚本端到端各跑一次放行与拦截；评审意见先核实再采信；交出前回测错题本。
 - 子代理显式指定模型：取数 sonnet/haiku，首轮复审 opus，改后复核 sonnet；子代理用中文。
 - **推送前钩子在整条命令执行前检查**：改动/提交与 `git push` 分两条命令；`cd` 用绝对路径、不用 `$变量`；检查在命令所在目录的仓库上跑。
-- 每会话同时打开的 PR ≤3（SESSION_PLAYBOOK §11 第 13 条），调度派工可免；PR 开出必须报 one-coordinator；开 PR 后确认 Auto-fix 关闭。
-- 文档类 PR 不单独入队（调度每天中午、晚上打包）；工具一个工作单元一个 PR，复审齐备即入队。
+- 新开 PR 规则（用户 2026-10-16 采纳）：文档不开 PR，在制代码 PR ≤1，一个提交不混文档与代码；代码 PR 只在工作单元完成（验收、实现、opus 复审齐）时开，中间只提交；PR 开出必须报 one-coordinator；Auto-fix 已由用户在 app 统一关闭。
+- 文档提交推到会话分支 `claude/one-quality-docs` 后报「分支 + 提交号」，调度每天中午、晚上收进合集（`merge_train.py docs`，逐个合并、只许 docs/）；合集合入后同步一次 main；工具一个工作单元一个 PR，复审齐备即入队。
 
 ## 已合入的工具（main）
 工作看板 `build_work_board.py`（#371）、研究报告（#357）、ProcessArchiveJobIT 时间炸弹修复（#413）、确认页出题检查 `architecture/decision-page/check_pages.py` + 生成器无默认项题型（#419）、此前的 assertion_drift、TestPostgres、precheck 与推送前钩子等（见画像与错题本）。
