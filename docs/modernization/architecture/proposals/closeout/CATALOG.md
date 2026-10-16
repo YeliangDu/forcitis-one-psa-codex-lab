@@ -3,27 +3,27 @@
 
 由 build_catalog.py 生成，不手改；来源 `process-catalog.yaml`。
 
-共 157 条，编号 PRC-01 至 PRC-157。
+共 159 条，编号 PRC-01 至 PRC-159。
 
 ### 按类型
 
 | 类型 | 数量 |
 |---|---|
 | business | 98 |
-| event_policy | 25 |
-| single_aggregate | 19 |
+| event_policy | 26 |
+| single_aggregate | 20 |
 | read_model | 5 |
 | merged | 10 |
-| 合计 | 157 |
+| 合计 | 159 |
 
 ### 按组（全部类型）
 
 | 组 | 数量 |
 |---|---|
 | revenue | 77 |
-| finance | 38 |
+| finance | 40 |
 | people | 42 |
-| 合计 | 157 |
+| 合计 | 159 |
 
 ### 按组（仅业务流程）
 
@@ -216,3 +216,5 @@
 | PRC-155 | IT 资产调拨 | business |  |  | B-31 | people | draft | 否 |  |
 | PRC-156 | IT 资产归还 | business |  |  | B-31 | people | draft | 否 |  |
 | PRC-157 | IT 资产报修与维修登记 | business |  |  | B-31 | people | draft | 否 |  |
+| PRC-158 | 处置过账拒收记录 | single_aggregate |  | VS-10.1 | B-16 | finance | draft | 否 |  |
+| PRC-159 | 申报已提交后确认税费应付 | event_policy |  | VS-06.1 | B-10 | finance | draft | 否 |  |

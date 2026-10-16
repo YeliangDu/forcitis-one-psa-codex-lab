@@ -1435,3 +1435,21 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
+  - id: PRC-158
+    name: "处置过账拒收记录"
+    type: single_aggregate
+    stages: [VS-10.1]
+    owner_bc: "B-16"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-159
+    name: "申报已提交后确认税费应付"
+    type: event_policy
+    stages: [VS-06.1]
+    owner_bc: "B-10"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
