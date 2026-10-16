@@ -127,6 +127,9 @@ def run(b):
     bad("属用户指派", mk(status="已撤回", extra={"理由": "x"}, secs={**SECS, "背景": "为2026-10-16-131918-x.md所述事项。"}))
     bad("属用户指派", mk(status="已撤回", extra={"理由": "x"}, secs={**SECS, "背景": "用户要求起草。"}))
     assert "无" in b.status_section([], ctx) and "ADR-0100" in b.status_section([adr(mk(date="2026-10-01"))], ctx)
+    bad("整份列有", mk(no="0100", status="已被 ADR-0101 取代"), mk(no="0101", status="已采纳", extra=quote))
+    bad("整份列有", mk(no="0100", status="已被 ADR-0101 取代"), mk(no="0101", status="已采纳", extra={**quote, "取代": ["ADR-0100 决定 1"]}))
+    bad("重启条件", mk(status="搁置", extra={**quote_only, "理由": "重启条件：待定"}))
     # 轻量档不得取代
     light = {k: SECS[k] for k in b.LIGHT_REQUIRED}
     ok(mk(tier="轻量", status="已采纳", extra=quote, secs=light))
@@ -189,6 +192,8 @@ def run(b):
     assert any("不一致" in e for e in cat(dict(entry, partially_superseded=[])))
     assert any("不一致" in e for e in cat(dict(entry, partially_superseded=["ADR-0102 决定 1"])))
     assert any("重复" in e for e in cat(entry, entry))
+    assert any("不能为空" in e for e in cat(dict(entry, bc=[])))
+    assert any("不能为空" in e for e in cat(dict(entry, stage=[])))
     new_in = [adr(mk(no="0100"))]
     assert any("不是旧稿" in e for e in b.validate_catalog(new_in, dict(ctx, catalog=[dict(entry, id="0100")]))[0])
     # R-8 视图可重现，现行有效剔除非采纳，ADR-0020 标注
@@ -203,4 +208,6 @@ def run(b):
         if os.path.exists(generated):
             assert b.render(a) == open(generated, encoding="utf-8").read(), f"ADR-{a['no']} 产物与重新渲染不一致"
         assert b.render(a) == open(os.path.join(b.BASE, "src", f"ADR-{a['no']}.md"), encoding="utf-8").read(), f"ADR-{a['no']} 源文件与渲染不一致"
+    real_ctx = b.load_context()
+    assert not b.validate(adrs, real_ctx) and not b.numbering_errors(adrs), "真实 src 与旁表应全部通过校验"
     print(f"build_adrs self-test: ok（{len(adrs)} 份真实 ADR 渲染与源文件逐字节一致）")

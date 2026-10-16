@@ -208,7 +208,7 @@ def validate_new(a, status_of, by_no, ctx):
     if status == "已采纳":
         need("用户原话", a["quotes"]); need("批准证据", a["evidence"])
     elif status == "搁置":
-        need("理由（含「重启条件：…」）", re.search(r"(?<!无)(?<!没有)重启条件[：:]\s*\S", a["reason"])); need("用户原话", a["quotes"])
+        need("理由（含「重启条件：…」）", re.search(r"(?<!无)(?<!没有)重启条件[：:]\s*(?!无\b|待定)\S", a["reason"])); need("用户原话", a["quotes"])
     elif status in ("已拒绝", "已废弃"):
         need("理由", a["reason"]); need("用户原话", a["quotes"])
     elif status == "已撤回":
@@ -450,6 +450,8 @@ def load_adrs(src):
 
 
 def main(argv):
+    if argv not in ([], ["--catalog-skeleton"]):
+        sys.exit(__doc__)
     src = os.path.join(BASE, "src")
     try:
         adrs = load_adrs(src)
