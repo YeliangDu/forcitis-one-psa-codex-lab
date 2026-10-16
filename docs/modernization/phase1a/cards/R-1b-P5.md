@@ -242,3 +242,7 @@
 - 改名卡并入（用户已在确认页确认，one-coordinator 派；卡见 `docs/modernization/glossary/b2/GL_RENAME_CARDS.md`，#280）：B2-B02 `ApprovalTaskOverdue` → `ApprovalTaskBecameOverdue`；B2-B03 `TaskResulted` → `TaskHandled`；B2-B05 `SourceReferenceRegistrationRefused` → `SourceReferenceRefused`；B2-B07 `TimesheetCancelled` → `TimesheetApprovalWithdrawn`。同步事件目录、消费方、`aggregates.yaml`、`MUST_AUDIT_ACTIONS.yaml`；同一批删 `code-term-baseline.txt` 与 `term-rules-baseline.json` 对应行并调低 count（按 #280 合入后 main 上的实际行）。B05、B07 的验收由测试代理按 RULING-P5-4 补（同第 4 节第 12 项写法）。
 - RULING-P5-4：B2-B05、B2-B07 改名验收（`SourceReferenceRefusedRenameIT`、`TimesheetApprovalWithdrawnRenameIT`），写法同第 4 节第 12 项。
 - 用户 2026-10-16 在 one-1a-next-4 会话中确认「审计对象类别」AuditSubjectKind（答「同意 (Recommended)」，intent 已记）；第 11 节新词全部定稿，实现可派。
+- RULING-P5-5：`AuditIdContractTest` 按仓库约定（`ModelResolver.enumsAsRef = true`，枚举一律 `$ref`）解析 `subjectKind` 的 `$ref`，validators 正则容许 getter 写法；不为验收改全局约定。
+- RULING-P5-6：`EventEnvelopeAggregateIdIT.everyAggregateIdIsThePrimaryKeyOfItsAggregate` 只取本用例产生的事件（同类共用容器，其他用例的审批请求会混入），断言含义不变。
+- RULING-P5-7：P3b 旧验收 `HeldSeparationReleaseIT`（直接 insert）与 `OwnIdColumnsIT.theHeldSeparationsKeepTheirKeyUntilSplitB`（断言复合主键）随 RULING-P5-D12 适配：insert 带新主键；后者改为断言单列 uuid 主键 + `(sync_run_id, employee_id)` 命名唯一约束（原断言所依的「留到拆分 b」已被 D12 改判取代，PR 单列）。
+- 实现中的卡外落法（知悉）：`LegalEntity`、`Role` 的 ID 原由仓储生成，D-14 守护拦下，一并改为调用方取 ID；`subjectId` 查询参数须与 `subjectKind` 同给，否则 400。`ApprovalTaskBecameOverdue` 仍被 G41 / `term_rules.py` 判为非过去式，基线行改为新名保留、count 不降，口径交 one-glossary。
