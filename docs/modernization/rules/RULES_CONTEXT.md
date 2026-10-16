@@ -30,7 +30,7 @@ A1 后续页已答（intent 2026-10-16-162827）：维持按时点；无法定�
 
 ## 2026-10-16 晚进度
 
-- #418 已决策速查表（`build_decision_digest.py`、`decision-digest/`）已入队：新决定推翻旧决定时用 `new_intent.py --supersedes=`；疑似取代未登记 17 条待补；未分类约 123 条待增补 topics.txt；Q24 与 Q-10 借款冲抵矛盾行等 #416 合入后补。
+- #418 已决策速查表（`build_decision_digest.py`、`decision-digest/`）已入队：新决定推翻旧决定时用 `new_intent.py --supersedes=`；疑似取代未登记 17 条待补；未分类约 123 条待增补 topics.txt；Q24（intent 2026-10-15-233152）与 Q-10（intent 2026-10-16-134134，现仅在 claude/one-architecture-adr-governance 分支，one-architecture 拆小 PR 合入 main 后）的借款冲抵矛盾行待加到 `decision-digest/relations.txt`。
 - 规则卡：RULE-406～411（`APPROVAL_CONTROL_RULES.md`，406/407/410 已按用户答复去 Review）、RULE-412～413（`OVERTIME_SEAM_RULES.md`，413 待 people 设计采纳）。N/V/S 校审级别待 one-ops 取 S 与 V 高低后写卡。
 - #419（one-quality）合入后：#362 同步 main 解冲突；FD 的 9 条「向财务核实的事实」是否改 kind: fact（需重发页面）由我定。
 - 待：补休与最低时数（RULE-413）等 one-arch-people 定稿；Q-04 收窄稿（VS-04 用户页）出稿前再给我过目。
