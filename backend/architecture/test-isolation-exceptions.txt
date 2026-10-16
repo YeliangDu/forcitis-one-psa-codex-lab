@@ -3,3 +3,5 @@
 # (Spring Session, Modulith event publication, ShedLock) are not another module's data. Cross-module scenarios belong in scenario/.
 # A test under acceptance/<area>/<module>/ belongs to that module, so its own schema needs no line.
 acceptance/platform/approval/ApprovalOwnIdColumnsIT.java#platform_integration  # R-1b P4 acceptance: reads outbound_deliveries from the catalogue to prove the final column shapes; no module api shows column types; expires when platform_integration offers a schema-introspection api or the acceptance moves under acceptance/platform/integration/
+acceptance/platform/identity/SingleOperatorModeEnvironment.java#platform_audit  # P1-14 黑盒系统级启动验收：读行数证明被拒的启动没有任何副作用，只读，限本测试类；调度 one-coordinator 批准的破例（SINGLE-OP P1 M6）
+acceptance/platform/identity/SingleOperatorModeStartupIT.java#platform_audit  # P1-14 黑盒系统级启动验收：读行数证明被拒的启动没有任何副作用，只读，限本测试类；调度 one-coordinator 批准的破例（SINGLE-OP P1 M6）
