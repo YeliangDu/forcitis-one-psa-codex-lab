@@ -47,7 +47,7 @@ conflicts_route_d:
   - {id: C-10, edges: 0, summary: "transitions.yaml delivers 仍是旧 BC 名", recommend: 机械更新}
   - {id: C-11, edges: 0, summary: "brief Phase 2 入口要 B-16、B-19，transitions 放在 TA-4", recommend: a 移到 TA-2（同时消解 B-06、B-08、B-09 → B-16 三条字面边）}
 conflicts_note: "按聚合稿依赖边 23 条（C-01–C-08）；按 transitions.yaml 字面另有 3 条（合计 26），由 C-11 消解。确认页逐项作答、默认不选（U-15）。"
-routes: [一次投产, 逐阶段按模块, 按法人或组织分批, 先取证再定]
+routes: [一次投产, 逐阶段按模块, 按法人或组织分批]  # 复核：删「先取证再定」，T-1 直接取证（CLAUDE.md 第 4 条），路线题待 T-1 后出题
 opening_balance_options: [a 从零开始, b 主数据 + 期初余额, "b′1 + 未结对象期初累计", "b′2 + 未结对象全部明细", c 全部历史明细]
 eventing:
   registry: platform_integration.event_publication（每事件每监听者一行，进程内投递，至少一次）
@@ -57,24 +57,25 @@ eventing:
   enterprise_estimate: {aggregates: 109, external_events: 179, events_with_business_subscribers: 44, business_subscription_pairs: 58, analytics_only: 116, same_bc: 10}
   quarantine: "ADR-0035 决定 6 已采纳，event_quarantines 未建"
   broker_criteria_met_now: []
-evidence_pending: [T-1 跨法人耦合, T-2 拒收率, T-3 未结对象量, T-4 A8 行政流程组织依赖, T-5 薪酬期初, T-6 审计师要求, T-7 未结判据（财务）, T-8 档案办法附表原件, T-9 12 号对自研软件适用, T-10 补录量, T-11 社保基数调整月份, T-12 事件量]
+evidence_pending: [T-1 跨法人耦合（直接取证，不逐次请示，登记一行）, T-2 拒收率, T-3 未结对象量, T-4 A8 行政流程组织依赖, T-5 薪酬期初, T-6 审计师要求, T-7 未结判据（财务）, T-8 档案办法附表原件, T-9 12 号对自研软件适用, T-10 补录量, T-11 社保基数调整月份, T-12 事件量]
+# 复核后第 3 版题号（18 题，分七组）；未结判定口径交财务定（ADR-0018），不上确认页。
 user_questions:
-  - {id: U-1, topic: 「自称体系」读法, recommend: null}
-  - {id: U-2, topic: 「老系统」范围, old: Q-1, recommend: null}
-  - {id: U-3, topic: 路线, old: Q-5, recommend: null}
-  - {id: U-4, topic: 期初口径, old: Q-2, when: "U-3 ∈ {一次投产, 法人分批}", recommend: "b′2"}
-  - {id: U-5, topic: 未结判定口径, when: "U-4 ∈ {b′1, b′2}", recommend: null}
-  - {id: U-6, topic: 投产时点, old: Q-6, when: "U-3 ∈ {一次投产, 法人分批}", recommend: a 会计年度首日}
-  - {id: U-7, topic: 首次投产范围, old: Q-7, when: "U-3 ∈ {一次投产, 法人分批}", recommend: c}
-  - {id: U-8, topic: B-30 引用改不校验, old: Q-8, recommend: a}
-  - {id: U-9, topic: A8 去向, old: Q-3, when: "U-2 ∈ {b, c}", recommend: null}
-  - {id: U-10, topic: 法定账, old: Q-4, when: "U-2 ≠ c", recommend: a}
-  - {id: U-11, topic: 老库归档, old: Q-9, when: "U-3 ∈ {一次投产, 法人分批}", recommend: a}
-  - {id: U-12, topic: 在途工作处置, old: Q-10, recommend: a}
-  - {id: U-13, topic: W2 生效依据, when: "U-3 ∈ {一次投产, 法人分批}", recommend: null}
-  - {id: U-14, topic: 并行验证, when: "U-3 ∈ {一次投产, 法人分批}", recommend: a}
-  - {id: U-15, topic: 逐阶段冲突逐项, old: Q-11, when: "U-3 = 逐阶段按模块", recommend: null}
-  - {id: U-16, topic: 事件积压与死信处理, recommend: null}
-  - {id: U-17, topic: 事件重放工具, recommend: null}
-  - {id: U-18, topic: 幂等消费统一做法, recommend: c}
-  - {id: U-19, topic: 是否引入消息中间件, recommend: a}
+  - {id: U-1, group: 1 原意与范围, topic: 「自称体系」读法与「老系统」范围（原 U-1 与 U-2 合并）, recommend: null, note: "选项 a 与 ADR-0021:37、U-5 含 B-15 薪酬矛盾，W0 须做人事记录系统"}
+  - {id: U-2, group: 2 路线, topic: 路线, old: U-3, when: "T-1 取证结果出来之后", options: [一次投产, 逐阶段按模块, 按法人或组织分批], recommend: null}
+  - {id: U-3, group: 3 原则与口径, topic: "前置题：是否推翻「权责事实一律进交易库」（intent 2026-10-14-100-ADR-0025-待决-2026.md；ADR-0024 决定 4；ADR-0025 决定 6）", when: "U-2 ∈ {一次投产, 法人分批}", recommend: null, new: true}
+  - {id: U-4, group: 3 原则与口径, topic: 期初口径, old: U-4, when: "U-3 = 推翻", recommend: null, research_leaning: "b′（把握中）；b′1 与 b′2 之分是本稿推断"}
+  - {id: U-5, group: 3 原则与口径, topic: 首次投产范围, old: U-7, when: "U-2 ∈ {一次投产, 法人分批}", recommend: null}
+  - {id: U-6, group: 3 原则与口径, topic: 投产时点, old: U-6, when: "U-2 ∈ {一次投产, 法人分批}", recommend: a 会计年度首日}
+  - {id: U-7, group: 4 投产后外部系统, topic: A8 去向, old: U-9, when: "U-1 ∈ {b, c}", recommend: null}
+  - {id: U-8, group: 4 投产后外部系统, topic: 法定账, old: U-10, when: "U-1 ∉ {c, d}", options: [按 G1 推送收付口径凭证, 不推送财务手工制证], recommend: a}
+  - {id: U-9, group: 4 投产后外部系统, topic: 老库归档, old: U-11, when: "U-2 ∈ {一次投产, 法人分批}", recommend: a}
+  - {id: U-10, group: 5 验证与在途, topic: 并行验证, old: U-14, when: "U-2 ∈ {一次投产, 法人分批}", recommend: a}
+  - {id: U-11, group: 5 验证与在途, topic: 在途工作处置, old: U-12, when: "U-2 之后", recommend: null}
+  - {id: U-12, group: 5 验证与在途, topic: W2 生效依据, old: U-13, when: "U-2 ∈ {一次投产, 法人分批}", recommend: null}
+  - {id: U-13, group: 5 验证与在途, topic: B-30 引用改不校验, old: U-8, recommend: null}
+  - {id: U-14, group: 6 逐阶段冲突, topic: 逐阶段冲突逐项, old: U-15, when: "U-2 = 逐阶段按模块", recommend: null}
+  - {id: U-15, group: 7 事件机制, topic: 是否引入消息中间件, old: U-19, recommend: a}
+  - {id: U-16, group: 7 事件机制, topic: 幂等消费统一做法, old: U-18, recommend: c}
+  - {id: U-17, group: 7 事件机制, topic: 事件重放工具, old: U-17, recommend: null}
+  - {id: U-18, group: 7 事件机制, topic: 事件积压与死信（三项：运维页面 / 责任人与时限 / 分析侧死信放行部署）, old: U-16, recommend: null}
+referred_to_finance: [未结判定口径（原 U-5，ADR-0018）]
