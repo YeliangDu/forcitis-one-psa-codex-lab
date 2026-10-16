@@ -11,8 +11,8 @@ CREATE TABLE organization_workforce.positions (
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
     version    bigint      NOT NULL DEFAULT 0,
-    CONSTRAINT ck_positions_name CHECK (btrim(name) <> ''),
-    CONSTRAINT ck_positions_code CHECK (code IS NULL OR btrim(code) <> '')
+    CONSTRAINT ck_positions_name CHECK (char_length(name) <= 500 AND btrim(name) <> ''),
+    CONSTRAINT ck_positions_code CHECK (code IS NULL OR (char_length(code) <= 500 AND btrim(code) <> ''))
 );
 COMMENT ON TABLE organization_workforce.positions IS '岗位：组织源岗位的快照，停用与删除同步（RULE-367）；粒度：每个岗位一行';
 COMMENT ON COLUMN organization_workforce.positions.id IS '岗位 ID（UUIDv7；组织源岗位经来源对照映射）';
@@ -42,9 +42,9 @@ CREATE TABLE organization_workforce.org_units (
     updated_at                      timestamptz NOT NULL DEFAULT now(),
     version                         bigint      NOT NULL DEFAULT 0,
     CONSTRAINT ck_org_units_revoked_at CHECK ((status = 'REVOKED') = (revoked_at IS NOT NULL)),
-    CONSTRAINT ck_org_units_name CHECK (btrim(name) <> ''),
-    CONSTRAINT ck_org_units_code CHECK (code IS NULL OR btrim(code) <> ''),
-    CONSTRAINT ck_org_units_short_name CHECK (short_name IS NULL OR btrim(short_name) <> '')
+    CONSTRAINT ck_org_units_name CHECK (char_length(name) <= 500 AND btrim(name) <> ''),
+    CONSTRAINT ck_org_units_code CHECK (code IS NULL OR (char_length(code) <= 500 AND btrim(code) <> '')),
+    CONSTRAINT ck_org_units_short_name CHECK (short_name IS NULL OR (char_length(short_name) <= 255 AND btrim(short_name) <> ''))
 );
 CREATE INDEX org_units_parent_org_unit_id_idx ON organization_workforce.org_units (parent_org_unit_id);
 COMMENT ON TABLE organization_workforce.org_units IS '组织单元：组织源组织单元的快照；停用（DISABLED）与撤销（REVOKED，组织源不再返回）分开（RULE-355/357）；粒度：每个组织单元一行，变化历史在 org_unit_versions';
@@ -81,9 +81,9 @@ CREATE TABLE organization_workforce.employees (
     updated_at        timestamptz NOT NULL DEFAULT now(),
     version           bigint      NOT NULL DEFAULT 0,
     event_count       bigint      NOT NULL DEFAULT 0,
-    CONSTRAINT ck_employees_employee_code CHECK (btrim(employee_code) <> ''),
-    CONSTRAINT ck_employees_display_name CHECK (btrim(display_name) <> ''),
-    CONSTRAINT ck_employees_email_address CHECK (email IS NULL OR btrim(email) <> '')
+    CONSTRAINT ck_employees_employee_code CHECK (char_length(employee_code) <= 500 AND btrim(employee_code) <> ''),
+    CONSTRAINT ck_employees_display_name CHECK (char_length(display_name) <= 500 AND btrim(display_name) <> ''),
+    CONSTRAINT ck_employees_email_address CHECK (email IS NULL OR (char_length(email) <= 100 AND btrim(email) <> ''))
 );
 CREATE UNIQUE INDEX employees_wecom_user_id_employed_key ON organization_workforce.employees (wecom_user_id)
     WHERE employment_status = 'EMPLOYED' AND wecom_user_id IS NOT NULL;
@@ -335,8 +335,8 @@ CREATE TABLE organization_workforce.org_unit_versions (
     CONSTRAINT pk_org_unit_versions PRIMARY KEY (org_unit_version_id),
     CONSTRAINT uk_org_unit_versions_revision UNIQUE (org_unit_id, effective_from_date, revision_number),
     CONSTRAINT fk_org_unit_versions_org_unit_id FOREIGN KEY (org_unit_id) REFERENCES organization_workforce.org_units (id),
-    CONSTRAINT ck_org_unit_versions_name CHECK (btrim(name) <> ''),
-    CONSTRAINT ck_org_unit_versions_code CHECK (code IS NULL OR btrim(code) <> ''),
+    CONSTRAINT ck_org_unit_versions_name CHECK (char_length(name) <= 500 AND btrim(name) <> ''),
+    CONSTRAINT ck_org_unit_versions_code CHECK (code IS NULL OR (char_length(code) <= 500 AND btrim(code) <> '')),
     CONSTRAINT ck_org_unit_versions_range CHECK (effective_to_date IS NULL OR effective_to_date >= effective_from_date),
     CONSTRAINT ex_org_unit_versions_overlap EXCLUDE USING gist (org_unit_id WITH =, daterange(effective_from_date, effective_to_date) WITH &&)
 );
@@ -435,7 +435,7 @@ CREATE TABLE organization_workforce.legal_entity_attribution_corrections (
     CONSTRAINT pk_legal_entity_attribution_corrections PRIMARY KEY (correction_id),
     CONSTRAINT uk_legal_entity_attribution_corrections_correction_number UNIQUE (correction_number),
     CONSTRAINT ck_legal_entity_attribution_corrections_range CHECK (new_effective_to_date > period_effective_from_date),
-    CONSTRAINT ck_legal_entity_attribution_corrections_reason CHECK (btrim(correction_reason) <> ''),
+    CONSTRAINT ck_legal_entity_attribution_corrections_reason CHECK (char_length(correction_reason) <= 200 AND btrim(correction_reason) <> ''),
     CONSTRAINT fk_legal_entity_attribution_corrections_org_unit_id FOREIGN KEY (org_unit_id) REFERENCES organization_workforce.org_units (id),
     CONSTRAINT fk_legal_entity_attribution_corrections_employee_id FOREIGN KEY (employee_id) REFERENCES organization_workforce.employees (id),
     CONSTRAINT fk_legal_entity_attribution_corrections_root_org_unit_id FOREIGN KEY (org_unit_id) REFERENCES organization_workforce.legal_entity_attributions (org_unit_id),
@@ -455,7 +455,7 @@ COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.em
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.period_effective_from_date IS '被更正期间的生效日（含）：与期间表中该期间的生效日相同';
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.previous_effective_to_date IS '更正前的结束日（不含）';
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.new_effective_to_date IS '更正后的结束日（不含）';
-COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.correction_reason IS '更正原因：操作人填写，不得为空';
+COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.correction_reason IS '更正原因：操作人填写，不得为空，最多 200 个字符';
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.corrected_by_user_id IS '操作人用户 ID：来自登录会话';
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.created_at IS '创建时间';
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.updated_at IS '更新时间（行不可更新，恒等于创建时间）';

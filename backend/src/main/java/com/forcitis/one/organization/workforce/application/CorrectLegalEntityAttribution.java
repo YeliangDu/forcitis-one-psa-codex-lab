@@ -17,6 +17,8 @@ import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.LegalEntityAttribution;
 import com.forcitis.one.organization.workforce.domain.LegalEntityAttributionRepository;
 import java.time.LocalDate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
@@ -25,6 +27,8 @@ import java.util.UUID;
 @Service
 public class CorrectLegalEntityAttribution {
     static final String PERMISSION = "organization.workforce:legal-entity-attribution-correction:create";
+    static final int MAX_REASON_LENGTH = 200;
+    private static final Logger LOG = LoggerFactory.getLogger(CorrectLegalEntityAttribution.class);
 
     private final LegalEntityAttributionRepository attributions;
     private final AttributionSubjects subjects;
@@ -58,6 +62,12 @@ public class CorrectLegalEntityAttribution {
         if (reason == null) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED, ErrorKind.UNPROCESSABLE,
                     "a correction needs the reason");
+        }
+        if (reason.value().length() > MAX_REASON_LENGTH) {
+            LOG.error("ALERT organization.workforce the reason to correct an attribution of {} {} by user {} exceeds {} characters: refused", kind, subjectId,
+                    correctedBy.value(), MAX_REASON_LENGTH);
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED, ErrorKind.UNPROCESSABLE,
+                    "a reason of 1.." + MAX_REASON_LENGTH + " characters is required");
         }
         if (periodFrom == null || newEffectiveTo == null) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID, ErrorKind.UNPROCESSABLE,
