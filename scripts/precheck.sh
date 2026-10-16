@@ -235,8 +235,13 @@ guard_pattern='^backend/src/test/java/.*(Guard|ArchitectureRules|Modularity|Modu
 guard_classes="ArchitectureRulesTest,ModularityTest,ModuleDependencyTest,NamingSurfaceTest,GlossaryTest,ErrorCodeGlossaryTest,DdlNamingTest,LegacyShapeTest,TimeSourceGuardTest,TestIsolationGuardTest,TestContainerGuardTest"
 if touches '^backend/architecture/'; then
   # every light class that reads backend/architecture, found in the sources (a hand-kept list left out PrimaryKeyTypeGuardTest and about twenty more), plus the fixed guards
-  guard_run="$guard_classes,$(py scripts/ci/light_unit_classes.py --reading architecture/)"
-  guard_container_note=$(py scripts/ci/light_unit_classes.py --reading architecture/ --heavy)
+  if readers=$(py scripts/ci/light_unit_classes.py --reading architecture) && [ -n "$readers" ]; then
+    guard_run="$guard_classes,$readers"
+  else
+    report FAIL "guards: architecture readers" "scripts/ci/light_unit_classes.py --reading architecture failed or found no class: only the fixed guards would run"
+    guard_run="$guard_classes"
+  fi
+  guard_container_note=$(py scripts/ci/light_unit_classes.py --reading architecture --heavy) || guard_container_note=""
 else
   # present files only (a deleted guard has nothing to run) and no container-starting classes (*IntegrationTest, *IT): CI runs those
   guard_run=$(grep -E "$guard_pattern" "$work/changed" | grep -vE '(IntegrationTest|IT)\.java$' | while IFS= read -r file; do [ -f "$file" ] && printf '%s\n' "$file"; done \
