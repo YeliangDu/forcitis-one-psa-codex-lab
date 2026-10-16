@@ -1,29 +1,29 @@
 # Approval control rules replacing manual approval steps — RULE-406..RULE-411
 
-Scope: Phase 2 documents that go through `platform.approval` (reimbursement, invoicing, payment, procurement, receipts). These are rules of FORCITIS one. Basis: user principle 「能通过规则和不变量守卫的就不要人来守」 (relayed by one-coordinator, 2026-10-16) and the approval escalation table `architecture/proposals/closeout/APPROVAL_RULES.yaml` (branch one-architecture-adr-governance), where AR-03, AR-04, AR-05, AR-08, AR-09, AR-10 no longer add an approval node (`guard: rule`). Where the user has not decided a scope, the rule says so and is marked Review = Yes; nothing is extended from a neighbouring decision.
+Scope: Phase 2 documents that go through `platform.approval` (reimbursement, invoicing, payment, procurement, receipts). These are rules of FORCITIS one. Basis: user principle 「能通过规则和不变量守卫的就不要人来守」 (relayed by one-coordinator, 2026-10-16) and the approval escalation table `architecture/proposals/closeout/APPROVAL_RULES.yaml` (branch one-architecture-adr-governance), where AR-03, AR-04, AR-05, AR-08, AR-09, AR-10 no longer add an approval node (`guard: rule`). Where the user has not decided a scope, the rule says so; nothing is extended from a neighbouring decision.
 
 Each rule is checked by the system when the document is submitted and again when it is committed; a failed check refuses with its own error code (to be allocated in the kernel/ module catalog) or, for RULE-406, only warns. None of them approves, rejects on behalf of a person, or skips the base approver.
 
 | ID | Domain | Title | Priority | Review |
 |---|---|---|---|---|
-| RULE-406 | approval | A reimbursement that exceeds its budget only warns; it never blocks or adds an approval node | P1 | Yes |
-| RULE-407 | approval | A document that needs a contract or agreement is refused when it cites none that is in force | P0 | Yes |
+| RULE-406 | approval | A document that exceeds its budget only warns; it never blocks or adds an approval node | P1 | No |
+| RULE-407 | approval | A document that needs a contract or agreement is refused when it cites none that is in force | P0 | No |
 | RULE-408 | approval | A business date in a closed period is booked into the open period and keeps the original period as a mark | P0 | No |
 | RULE-409 | approval | A first-time supplier or subcontractor must have passed counterparty admission; a customer needs a verified record only | P0 | No |
-| RULE-410 | approval | A payee or receipt party that is not the contract counterparty's registered account is refused | P0 | Yes |
+| RULE-410 | approval | A payee or receipt party that is not the contract counterparty's registered account is refused | P0 | No |
 | RULE-411 | approval | An invoice before the agreement is countersigned is allowed only for the advance or first-payment type with commission or award evidence | P0 | No |
 
-### RULE-406: A reimbursement that exceeds its budget only warns; it never blocks or adds an approval node
+### RULE-406: A document that exceeds its budget only warns; it never blocks or adds an approval node
 **Category:** Policy
 **Priority:** P1
-**Source:** user decision F-Q2, 2026-10-16 (intent `2026-10-16-162821-one-architecture-流程样板页提交-三组整体均-符合.md`, 「只预警」; INV-102); AR-03
-**Plain English:** When the budget balance after reserving the document is below zero, the system shows a warning to the submitter, the approver and the budget owner and records it. It does not refuse and does not add an approval level.
+**Source:** user decision F-Q2, 2026-10-16 (intent `2026-10-16-162821-one-architecture-流程样板页提交-三组整体均-符合.md`, 「只预警」; INV-102), widened to purchase, payment and subcontract by the threshold and scope page, intent `2026-10-16-171147` (relayed by one-architecture; the fragment file was not yet in any branch when this was written); AR-03
+**Plain English:** When the budget balance after reserving the document is below zero, the system shows a warning to the submitter, the approver (who sees an over-budget notice on the task) and the budget owner and records it. It does not refuse and does not add an approval level.
 **Specification:**
 - Given a reimbursement whose reserved amount makes the budget balance negative, When it is submitted, Then it is accepted with a warning event and the usual base approval path.
 - Given the budget owner, Then they receive the warning; no approval task is created for them.
-**Open (Review):** the user answered for reimbursement. Whether other documents (procurement, payment) also only warn is not decided; until then they are out of this rule.
+**Scope:** reimbursement, purchase, payment and subcontract documents alike.
 **Tests:** to be written with the Phase 2 reimbursement card.
-**Confidence:** High for reimbursement; open for other documents.
+**Confidence:** High.
 
 ### RULE-407: A document that needs a contract or agreement is refused when it cites none that is in force
 **Category:** Validation
@@ -34,9 +34,9 @@ Each rule is checked by the system when the document is submitted and again when
 - Given a revenue recognition citing an agreement that is not yet in force, Then it is refused.
 - Given one of the 31 migrated historical contracts marked as an exception, Then the check passes and the exception mark is kept on the document.
 - Given an invoice request of the advance or first-payment type with the evidence of RULE-411, Then RULE-407 does not refuse it.
-**Open (Review):** the user decided revenue recognition and invoicing only. Payment and procurement needing an agreement in force is a proposal from the approval table; ask the user before it is enforced.
+**Payment and purchase:** also require an agreement in force, decided on the threshold and scope page (intent `2026-10-16-171147` (relayed by one-architecture; the fragment file was not yet in any branch when this was written)). Small incidental purchases are exempt; the amount below which a purchase counts as small is **threshold to be decided** after one-ops has read the amount distribution (summary only, registered per ADR-0037). Until then no purchase is exempt.
 **Tests:** to be written with the invoicing and revenue card.
-**Confidence:** High for revenue and invoicing; medium for payment and procurement.
+**Confidence:** High; the small-purchase threshold is open.
 
 ### RULE-408: A business date in a closed period is booked into the open period and keeps the original period as a mark
 **Category:** Policy
@@ -63,14 +63,15 @@ Each rule is checked by the system when the document is submitted and again when
 ### RULE-410: A payee or receipt party that is not the contract counterparty's registered account is refused
 **Category:** Validation
 **Priority:** P0
-**Source:** AR-09 (proposed from the user principle; no separate user decision)
-**Plain English:** The payee of a payment, or the party named on a receipt, must be the counterparty of the cited agreement or a bank account registered for that counterparty. Anything else is refused. Correcting it means registering the account through the counterparty record, which has its own control.
+**Source:** AR-09; user decision on the threshold and scope page, intent `2026-10-16-171147` (relayed by one-architecture; the fragment file was not yet in any branch when this was written); AR-15
+**Plain English:** The payee of a payment, or the party named on a receipt, must be the counterparty of the cited agreement or a bank account registered for that counterparty. Anything else is refused. A third-party payee or receipt party (collection or payment on behalf) is allowed only with a three-party agreement or a power of attorney attached, and then the document adds two approval levels (special, approval-table rule AR-15, `guard: approval`); that approval is a person's judgement and is not part of this rule's automatic check. Otherwise correcting it means registering the account through the counterparty record, which has its own control.
 **Specification:**
 - Given a payment whose account is not registered for the agreement's counterparty, Then it is refused.
 - Given a payment to a registered account of the counterparty, Then it passes.
-**Open (Review):** not decided by the user. Cases that need a third party payee (assignment of claims, payment on behalf) are not described; ask before enforcing.
+- Given a payment to a third party with a three-party agreement attached, Then it is not refused by this rule and it goes to the two extra approval levels of AR-15.
+- Given a payment to a third party with nothing attached, Then it is refused.
 **Tests:** to be written with the payment card.
-**Confidence:** Medium.
+**Confidence:** High.
 
 ### RULE-411: An invoice before the agreement is countersigned is allowed only for the advance or first-payment type with commission or award evidence
 **Category:** Policy
