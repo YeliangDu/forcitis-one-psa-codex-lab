@@ -1,7 +1,7 @@
 package com.forcitis.one;
 
-import java.io.IOException;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.io.IOException;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -11,6 +11,7 @@ import java.lang.reflect.WildcardType;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -23,6 +24,7 @@ import java.util.regex.Pattern;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -71,8 +73,12 @@ final class IdempotentEndpointScan {
 
     private static void collect(Type type, Set<Class<?>> types, Handler handler) throws IOException {
         if (type instanceof ParameterizedType parameterized) {
-            if (parameterized.getRawType() instanceof Class<?> raw && Map.class.isAssignableFrom(raw)) {
+            Class<?> raw = (Class<?>) parameterized.getRawType();
+            if (!transparent(raw)) {
                 throw unsupported(handler, type);
+            }
+            if (raw.isRecord()) {
+                types.add(raw);
             }
             for (Type argument : parameterized.getActualTypeArguments()) {
                 collect(argument, types, handler);
@@ -98,6 +104,11 @@ final class IdempotentEndpointScan {
         }
     }
 
+    /** A parameterized type the guard can look through to its type arguments: a record (opened up by its components), Optional, ResponseEntity or a collection. */
+    private static boolean transparent(Class<?> raw) {
+        return raw.isRecord() || raw.equals(Optional.class) || raw.equals(ResponseEntity.class) || Collection.class.isAssignableFrom(raw);
+    }
+
     private static IllegalStateException unsupported(Handler handler, Type type) {
         return new IllegalStateException(handler.template() + " answers with " + type.getTypeName()
                 + ", which the guard cannot open up: use a record (or a sealed interface of records), or take the endpoint off the list");
@@ -105,8 +116,13 @@ final class IdempotentEndpointScan {
 
     private static void wildcardRecords(Handler handler, Set<Class<?>> types) throws IOException {
         String source = Files.readString(Path.of("src/main/java", handler.controller().getName().replace('.', '/') + ".java"));
+        wildcardRecords(handler, source, handler.method().getName(), types);
+    }
+
+    /** The same on the given controller source text and handler method name. */
+    static void wildcardRecords(Handler handler, String source, String methodName, Set<Class<?>> types) throws IOException {
         String code = JavaCode.withoutComments(source);
-        String method = methodText(code, handler.method().getName());
+        String method = methodText(code, methodName);
         int before = types.size();
         Matcher named = ANSWER_NAME.matcher(method);
         while (named.find()) {
@@ -117,6 +133,9 @@ final class IdempotentEndpointScan {
                         types.add(found);
                     } else if (found.isSealed()) {
                         collect(found, types, handler);
+                    } else {
+                        throw new IllegalStateException(handler.template() + " returns ResponseEntity<?> and its source names " + found.getName()
+                                + ", which is neither a record nor a sealed interface: the guard cannot open it up");
                     }
                     break;
                 } catch (ClassNotFoundException notThere) {
@@ -218,7 +237,7 @@ final class IdempotentEndpointScan {
         }
         if (type instanceof ParameterizedType parameterized) {
             Class<?> raw = (Class<?>) parameterized.getRawType();
-            if (Map.class.isAssignableFrom(raw)) {
+            if (!transparent(raw)) {
                 reach.unsupported().add(type.getTypeName());
             } else {
                 if (raw.isRecord()) {

@@ -1,6 +1,7 @@
 package com.forcitis.one;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -176,7 +177,7 @@ class IdempotentEndpointGuardTest {
     record Plain(Object any) {
     }
 
-    record Boxed(com.fasterxml.jackson.databind.JsonNode node) {
+    record Boxed(tools.jackson.databind.JsonNode node) {
     }
 
     static class Pojo {
@@ -211,6 +212,47 @@ class IdempotentEndpointGuardTest {
         assertThat(forbiddenIn(Set.of(Many.class), forbidden)).as("through an array").containsExactly("loginName");
         assertThat(forbiddenIn(Set.of(Contact.class), forbidden)).containsExactlyInAnyOrder("mobile", "ip", "userAgent");
         assertThat(forbiddenIn(Set.of(Wrap.class), forbidden)).as("through the alternatives of a sealed interface").containsExactly("loginName");
+    }
+
+    static class Page<T> {
+        public List<T> items;
+    }
+
+    record Paged(Page<Clean> page) {
+    }
+
+    private static final String WILDCARD_SOURCE = "ResponseEntity<?> probe() { return ResponseEntity.ok().body(new %s(\"x\")); }";
+
+    private static IdempotentEndpointScan.Handler probeHandler() throws NoSuchMethodException {
+        return new IdempotentEndpointScan.Handler("/probe", IdempotentEndpointGuardTest.class.getDeclaredMethod("probe"), IdempotentEndpointGuardTest.class);
+    }
+
+    void probe() {
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-02 injected: a ResponseEntity of a wildcard is opened up by the record its source names; a named class that is no record fails")
+    void wildcardAnswersAreOpenedUpOrFail() throws Exception {
+        Set<Class<?>> types = new LinkedHashSet<>();
+        IdempotentEndpointScan.wildcardRecords(probeHandler(), String.format(WILDCARD_SOURCE, "ProbeLeaky"), "probe", types);
+        assertThat(forbiddenIn(types, forbiddenNames(List.of()))).as("the record named in .body(...)").containsExactly("loginName");
+
+        assertThatThrownBy(() -> IdempotentEndpointScan.wildcardRecords(probeHandler(), String.format(WILDCARD_SOURCE, "ProbePlain"), "probe", new LinkedHashSet<>()))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("neither a record nor a sealed interface");
+        assertThatThrownBy(() -> IdempotentEndpointScan.wildcardRecords(probeHandler(), "ResponseEntity<?> probe() { return ResponseEntity.ok().build(); }", "probe", new LinkedHashSet<>()))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("names no record");
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-02 injected: a generic class that is no record, as the answer or inside one, is a failure")
+    void genericClassesFail() throws Exception {
+        assertThat(forbiddenIn(Set.of(Paged.class), forbiddenNames(List.of()))).anyMatch(found -> found.startsWith("cannot open up"));
+        IdempotentEndpointScan.Handler handler = new IdempotentEndpointScan.Handler("/page", IdempotentEndpointGuardTest.class.getDeclaredMethod("pageOf"), IdempotentEndpointGuardTest.class);
+        assertThatThrownBy(() -> IdempotentEndpointScan.answerTypes(handler)).isInstanceOf(IllegalStateException.class).hasMessageContaining("cannot open up");
+    }
+
+    Page<Clean> pageOf() {
+        return null;
     }
 
     @Test
