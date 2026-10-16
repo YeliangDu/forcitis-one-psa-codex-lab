@@ -52,10 +52,10 @@ export const getOrganizationSyncRunsBySyncRunId = (...[args, options]: Call<path
   request<Result<paths['/api/v1/organization/sync-runs/{syncRunId}']['get']>>('get', '/api/v1/organization/sync-runs/{syncRunId}', args, options, responseSchemas.getOrganizationSyncRunsBySyncRunId);
 
 export const postOrganizationSyncRunsBySyncRunIdRelease = (...[args, options]: Call<paths['/api/v1/organization/sync-runs/{syncRunId}:release']['post']>) =>
-  request<Result<paths['/api/v1/organization/sync-runs/{syncRunId}:release']['post']>>('post', '/api/v1/organization/sync-runs/{syncRunId}:release', args, options, responseSchemas.postOrganizationSyncRunsBySyncRunIdRelease, { idempotent: true });
+  request<Result<paths['/api/v1/organization/sync-runs/{syncRunId}:release']['post']>>('post', '/api/v1/organization/sync-runs/{syncRunId}:release', args, options, responseSchemas.postOrganizationSyncRunsBySyncRunIdRelease);
 
 export const postOrganizationSyncRunsReconcile = (...[args, options]: Call<paths['/api/v1/organization/sync-runs:reconcile']['post']>) =>
-  request<Result<paths['/api/v1/organization/sync-runs:reconcile']['post']>>('post', '/api/v1/organization/sync-runs:reconcile', args, options, responseSchemas.postOrganizationSyncRunsReconcile, { idempotent: true });
+  request<Result<paths['/api/v1/organization/sync-runs:reconcile']['post']>>('post', '/api/v1/organization/sync-runs:reconcile', args, options, responseSchemas.postOrganizationSyncRunsReconcile);
 
 export const getOrganizationWorkCalendars = (...[args, options]: Call<paths['/api/v1/organization/work-calendars']['get']>) =>
   request<Result<paths['/api/v1/organization/work-calendars']['get']>>('get', '/api/v1/organization/work-calendars', args, options, responseSchemas.getOrganizationWorkCalendars);
@@ -184,13 +184,13 @@ export const getPlatformSourceReferences = (...[args, options]: Call<paths['/api
   request<Result<paths['/api/v1/platform/source-references']['get']>>('get', '/api/v1/platform/source-references', args, options, responseSchemas.getPlatformSourceReferences);
 
 export const postPlatformSourceReferences = (...[args, options]: Call<paths['/api/v1/platform/source-references']['post']>) =>
-  request<Result<paths['/api/v1/platform/source-references']['post']>>('post', '/api/v1/platform/source-references', args, options, responseSchemas.postPlatformSourceReferences, { idempotent: true });
+  request<Result<paths['/api/v1/platform/source-references']['post']>>('post', '/api/v1/platform/source-references', args, options, responseSchemas.postPlatformSourceReferences);
 
 export const postPlatformSourceReferencesBySourceReferenceIdConfirm = (...[args, options]: Call<paths['/api/v1/platform/source-references/{sourceReferenceId}:confirm']['post']>) =>
-  request<Result<paths['/api/v1/platform/source-references/{sourceReferenceId}:confirm']['post']>>('post', '/api/v1/platform/source-references/{sourceReferenceId}:confirm', args, options, responseSchemas.postPlatformSourceReferencesBySourceReferenceIdConfirm, { idempotent: true });
+  request<Result<paths['/api/v1/platform/source-references/{sourceReferenceId}:confirm']['post']>>('post', '/api/v1/platform/source-references/{sourceReferenceId}:confirm', args, options, responseSchemas.postPlatformSourceReferencesBySourceReferenceIdConfirm);
 
 export const postPlatformSourceReferencesBySourceReferenceIdReject = (...[args, options]: Call<paths['/api/v1/platform/source-references/{sourceReferenceId}:reject']['post']>) =>
-  request<Result<paths['/api/v1/platform/source-references/{sourceReferenceId}:reject']['post']>>('post', '/api/v1/platform/source-references/{sourceReferenceId}:reject', args, options, responseSchemas.postPlatformSourceReferencesBySourceReferenceIdReject, { idempotent: true });
+  request<Result<paths['/api/v1/platform/source-references/{sourceReferenceId}:reject']['post']>>('post', '/api/v1/platform/source-references/{sourceReferenceId}:reject', args, options, responseSchemas.postPlatformSourceReferencesBySourceReferenceIdReject);
 
 export const getPlatformUserAccountsByUserId = (...[args, options]: Call<paths['/api/v1/platform/user-accounts/{userId}']['get']>) =>
   request<Result<paths['/api/v1/platform/user-accounts/{userId}']['get']>>('get', '/api/v1/platform/user-accounts/{userId}', args, options, responseSchemas.getPlatformUserAccountsByUserId);

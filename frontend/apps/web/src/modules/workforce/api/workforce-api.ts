@@ -12,6 +12,6 @@ export function fetchSyncRun(syncRunId: string) {
   return operations.getOrganizationSyncRunsBySyncRunId({ path: { syncRunId } });
 }
 
-export function releaseSyncRun(syncRunId: string, reason: string, idempotencyKey: string) {
-  return operations.postOrganizationSyncRunsBySyncRunIdRelease({ path: { syncRunId }, body: { reason } }, { idempotencyKey });
+export function releaseSyncRun(syncRunId: string, reason: string) {
+  return operations.postOrganizationSyncRunsBySyncRunIdRelease({ path: { syncRunId }, body: { reason } });
 }
