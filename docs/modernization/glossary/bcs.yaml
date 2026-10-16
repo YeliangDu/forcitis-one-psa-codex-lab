@@ -276,7 +276,7 @@ bcs:
   kind: system
   status: proposed
   subdomain: platform
-  description: "致远；组织主数据与单点登录验票的外部系统，由集成模块的防腐层读取"
+  description: "致远（产品 A8 协同办公）；组织主数据与单点登录验票的外部系统，由集成模块的防腐层读取"
 - id: org_source
   zh: 组织源
   en: OrgSource
@@ -290,7 +290,7 @@ bcs:
   kind: system
   status: proposed
   subdomain: platform
-  description: "接收凭证的核算系统，来源系统取值 ACCOUNTING_SYSTEM；法人在其中的数字编码（核算组织编码）登记在来源对照里"
+  description: "接收凭证的核算系统（用友 U8C），来源系统取值 ACCOUNTING_SYSTEM；法人在其中的数字编码（核算组织编码）登记在来源对照里"
 - id: legacy_system
   zh: 老系统
   en: LegacySystem
@@ -312,20 +312,6 @@ bcs:
   status: proposed
   subdomain: platform
   description: "公司门户，致远单点登录的入口"
-- id: u8c
-  zh: U8C 财务核算系统
-  en: U8C
-  kind: system
-  status: proposed
-  subdomain: platform
-  description: "财务核算外部系统；只在防腐层与集成册出现，领域模块不出现其名称（#432 架构用语门禁报告建议登记）"
-- id: a8
-  zh: A8 协同办公系统
-  en: A8
-  kind: system
-  status: proposed
-  subdomain: platform
-  description: "协同办公外部系统；只在防腐层与集成册出现，领域模块不出现其名称（#432 架构用语门禁报告建议登记）"
 - id: fenbeitong
   zh: 分贝通
   en: Fenbeitong
