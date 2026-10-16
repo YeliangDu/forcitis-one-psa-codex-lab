@@ -1,17 +1,21 @@
 # one-coordinator 台账（速查）
 
-只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-16 21:45（one-coordinator）
+只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-17 00:25（one-coordinator）
 
 ## 作战图（派工前先看；SESSION_PLAYBOOK §11「战队协作」第 5 条）
 | 主线 | 负责 | 当前 | 下一步 | 阻塞 |
 |---|---|---|---|---|
-| dev | one-ops / one-1a-par | rc.4 运行；用户已用企业微信扫码登录成功（WECOM_ENABLED=true，用户批准）；C-14 完成、101 已删；SINGLE-OP P1 #415 已合 | P2 → 新 rc → grant-role 用户本人（员工 ID 末 6cd894）process_administrator+super_admin → 删 PROCESS_ADMINISTRATOR_REQUIRED=false 开关重启 | P2 在写 |
+| dev | one-ops / one-1a-par | rc.5 已发布（含 #437 SINGLE-OP P2、#438 新发布门禁、#440），未装 | 用户批准后：中转装 rc.5（停服 2–3 分）→ 开单人模式 → grant-role super_admin、process_administrator → 删 PROCESS_ADMINISTRATOR_REQUIRED=false 重启 | 等用户批准 |
 | 流程与业务架构对齐 | one-architecture + 三组 | 阶段层：SD-01～10 已裁（#422）；对象层：主对象脚本提议、三组确认中；VS01-10 定独立流程「作出参投决策」（#428）；已派五件（#429）：支撑本段、配置补读关系、内部服务价值流评估、集成类型、业务/管理/支撑分类 | 数据到后刷新对齐图（scratchpad(e1ce474b)/align/refresh.sh 后以同 file_path+files 重发；流程栏按业务/管理/支撑分三行，归属实线、支撑虚线，集成单列） | — |
 | 命名与用语 | one-architecture / one-glossary / one-quality | 规则在 PROCESS_METHOD_DRAFT §11、name_id_check.py；用户定「先规范再登记」（#430）：架构产物只用规范名，改名对照表与用语决策单合并交用户，认可后再登记、再定稿；对象名一律名词（结果或记录）；86 个对象未登记 | #431 拆分：审计报告与用语问题先合，提议稿改为规范名+原名别名后随页交用户；one-quality 写架构用语检查 | — |
 | 确认页 | one-architecture | 7 页在收件箱，用户暂不作答，待对齐与命名后一次改版 | PAGE_IMPACT.md | 对齐完成 |
-| CI 与合并 | 调度 / one-quality | 队列串行；merge_pr.sh 打 queued；#406（重步骤入队才跑）在队；合集 #411 #412 #405 在队 | #406 合入后核后缀 | — |
+| CI 与合并 | 调度批准 / one-merge 执行（跟班阶段，队列仍由调度运行）/ one-quality 写脚本 | 新规：文档不开 PR、按分支+提交号收合集（next-docs-train.txt）；队列在跑（见 merge.queue）；#442 CI 三档、#441 队列第一步（mq.py，快慢两道、合并锁、落后自查、红即暂停）在队 | #441 合入→迁队列给 one-merge；#442+#441 合入→报用户→关 strict 试行 2 天（intent 224143，main 因并行合入变红一次即恢复）；后续：自动批量、乐观并行、错题本三件（strict 检查、每晚复发检测、新测试重复 3 遍） | — |
 
 ## 调度惯例（本日新增）
+- 合并：用户 10-16 定——文档不开 PR（会话报分支+提交号）；代码一工作单元一 PR、在制 ≤1（代码合集化暂不动）；main 只经队列合入；Auto-fix 已由用户在 app 统一关闭。
+- 积压 PR：one-merge 每天两次盘点五类报调度，调度定去向（intent 222637）。
+- 错题本：只抓两主线（落实须有真实检查、每晚复发检测）+ 新测试重复跑（intent 235811）。
+- 不稳定测试：不隔离、不放宽；外部失败找测试作者修。
 - 不向会话要排期、不向用户转报估算（记忆 no-schedule-relay）。
 - 会话报完成点即 get_usage 兜底查用量（≥75% 准备、≥85% 立即在批次边界交接）。
 - 对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL 只读源文件原样副本（src/），不在页里做人工映射。
