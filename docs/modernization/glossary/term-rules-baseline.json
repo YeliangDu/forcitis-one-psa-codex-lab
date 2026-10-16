@@ -18,7 +18,7 @@
   },
   "event_name": {
    "owner": "one-glossary",
-   "where": "B2 存量：这 5 条是经营事件的名词写法，改名须业务确认；下一张用语决策单一并给用户（推荐如 ContractModified、EclAlerted、RetentionMoneyReleaseDueReached、RevenueReduced、RuleExecuted）；另含代码类 ApprovalTaskOverdue（审批任务逾期，类名为形容词，改名交审批模块负责会话，开卡）",
+   "where": "B2 存量：这 5 条是经营事件的名词写法，改名须业务确认；下一张用语决策单一并给用户（推荐如 ContractModified、EclAlerted、RetentionMoneyReleaseDueReached、RevenueReduced、RuleExecuted）；另含代码类 ApprovalTaskBecameOverdue（审批任务已超时；已按 B2-B02 改名，「Became + 形容词」的写法检查器仍判为非过去式，等 one-glossary 定检查器口径后删此行）",
    "count": 6
   },
   "command_name": {
@@ -137,6 +137,6 @@
   "terms.yaml#revenue_reduction:event_name": "领域事件名须以过去分词结尾，现为「RevenueReduction」",
   "terms.yaml#rule_execution:event_name": "领域事件名须以过去分词结尾，现为「RuleExecution」",
   "terms.yaml#forced_logout:command_name": "命令名须以祈使动词开头，现为「ForcedLogout」",
-  "proposed/code-aggregates-events.yaml#approval_task_overdue:event_name": "领域事件名须以过去分词结尾，现为「ApprovalTaskOverdue」（代码类名）"
+  "proposed/code-aggregates-events.yaml#approval_task_became_overdue:event_name": "领域事件名须以过去分词结尾，现为「ApprovalTaskBecameOverdue」（代码类名；Became + 形容词，等 one-glossary 定检查器口径）"
  }
 }

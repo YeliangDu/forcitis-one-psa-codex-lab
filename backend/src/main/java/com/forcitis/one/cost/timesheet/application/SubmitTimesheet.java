@@ -19,7 +19,7 @@ import com.forcitis.one.platform.approval.api.ApprovalProgress;
 import com.forcitis.one.platform.approval.api.ApprovalStatus;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.identity.api.CurrentUser;
-import com.forcitis.one.platform.numbering.api.DocumentNumber;
+import com.forcitis.one.platform.numbering.api.IssuedNumber;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -81,8 +81,8 @@ public class SubmitTimesheet {
             OrgUnitId orgUnit = org.findEmployee(employee).map(profile -> profile.orgUnitId()).orElseThrow(
                     () -> TimesheetError.COST_TIMESHEET_EMPLOYEE_UNKNOWN.refusal("User " + employee.value() + " is not in the organisation"));
             LegalEntityId legalEntity = legalEntities.on(employee, command.workDate());
-            DocumentNumber number = numbers.next(DocumentType.TIMESHEET, legalEntity, today);
-            timesheet = Timesheet.draft(command.timesheetId(), number, new AggregateReference("NumberingRule", DocumentType.TIMESHEET.name()),
+            IssuedNumber issued = numbers.next(DocumentType.TIMESHEET, legalEntity, today);
+            timesheet = Timesheet.draft(command.timesheetId(), issued.number(), new AggregateReference("NumberingCounter", issued.counterId().value()),
                     employee, legalEntity, orgUnit, command.workDate(), command.hours(),
                     command.projectManager(), today);
         }

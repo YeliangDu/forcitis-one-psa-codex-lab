@@ -14,7 +14,7 @@ public class TestEventEnvelopes implements EventEnvelopes {
     public EventEnvelope wrap(EventDraft unchecked) {
         EventDraft draft = CatalogueBusinessDates.check(unchecked);
         return new EventEnvelope(UUID.randomUUID(), draft.eventType(), draft.schemaVersion(), Instant.now(), draft.aggregateType(),
-                draft.aggregateId(), draft.aggregateVersion(), UUID.randomUUID(), null, ActorType.USER, TestAccounts.account(1).value().toString(), draft.legalEntityId(),
-                draft.businessDate(), draft.source(), null, draft.relatedAggregates());
+                draft.aggregateId(), draft.aggregateVersion(), UUID.randomUUID(), null, ActorType.USER, TestAccounts.account(1).value(), draft.legalEntityId(),
+                draft.businessDate(), null, draft.relatedAggregates());
     }
 }

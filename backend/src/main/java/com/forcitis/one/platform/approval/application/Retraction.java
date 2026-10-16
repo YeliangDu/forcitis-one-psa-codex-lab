@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.EmployeeId;
@@ -92,9 +94,9 @@ class Retraction {
 
     private void requireInitiator(ApprovalRequest request, EmployeeId employee, UserId actor) {
         if (!request.initiator().equals(employee)) {
-            denials.record(new AuditEntry("platform.approval.request.denied", actor, null, "approval-request:" + request.aggregateId(),
+            denials.record(new AuditEntry("platform.approval.request.denied", actor, null, AuditSubject.of(AuditSubjectKind.APPROVAL_REQUEST, request.id().value()),
                     "not the initiator"));
-            throw new AccessDeniedException("User " + actor.value() + " did not start the approval of " + request.aggregateId());
+            throw new AccessDeniedException("User " + actor.value() + " did not start the approval of " + request.id().value());
         }
     }
 

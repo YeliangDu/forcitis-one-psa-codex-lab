@@ -208,10 +208,13 @@ class OwnIdColumnsIT extends AcceptanceSupport {
     }
 
     @Test
-    @DisplayName("R-1b P3b 卡第 3.5 节：sync_run_held_separations 只改 employee_id 类型，主键仍为 (sync_run_id, employee_id)，外键仍指向员工（拆分 b 换表）")
-    void theHeldSeparationsKeepTheirKeyUntilSplitB() throws Exception {
+    @DisplayName("R-1b P5 RULING-P5-D12 / ADR-0033：sync_run_held_separations 为 uuid 单列主键，(sync_run_id, employee_id) 是命名唯一约束，外键仍指向员工，employee_id 为 uuid")
+    void theHeldSeparationsHaveASingleUuidKeyAndAUniquePair() throws Exception {
         try (Connection catalogue = schemaConnection("public")) {
             assertThat(constraintColumns(catalogue, "sync_run_held_separations", "pk_sync_run_held_separations", "p"))
+                    .isEqualTo("sync_run_held_separation_id");
+            assertThat(typeOf(catalogue, WORKFORCE, "sync_run_held_separations", "sync_run_held_separation_id")).isEqualTo("uuid");
+            assertThat(constraintColumns(catalogue, "sync_run_held_separations", "uk_sync_run_held_separations_sync_run_id_employee_id", "u"))
                     .isEqualTo("sync_run_id,employee_id");
             assertThat(constraintColumns(catalogue, "sync_run_held_separations", "fk_sync_run_held_separations_employee_id", "f"))
                     .isEqualTo("employee_id");

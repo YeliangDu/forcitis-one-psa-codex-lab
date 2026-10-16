@@ -82,7 +82,7 @@ class SyncRunStateMachineTest {
         assertThat(events.get(1)).isInstanceOfSatisfying(OrgSnapshotChanged.class, e -> {
             assertThat(e.separatedEmployees()).containsExactly(TestAccounts.employee(2));
             assertThat(e.envelope().aggregateType()).isEqualTo("SyncRun");
-            assertThat(e.envelope().aggregateId()).isEqualTo(TestIds.uuid(5).toString());
+            assertThat(e.envelope().aggregateId()).isEqualTo(TestIds.uuid(5));
         });
         assertThat(events.get(0).envelope().businessDate()).as("a sync run is not a dated milestone").isNull();
         assertThat(events).extracting(e -> e.envelope().aggregateVersion()).containsExactly(4L, 5L);

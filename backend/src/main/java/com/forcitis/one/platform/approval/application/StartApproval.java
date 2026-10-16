@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.platform.identity.api.CurrentUser;
@@ -69,18 +71,18 @@ public class StartApproval {
             ApprovalRequest current = existing.get();
             if (!current.initiator().equals(request.initiator())) {
                 audit.record(new AuditEntry("platform.approval.start.denied", caller(), null,
-                        "approval-request:" + request.processKey() + ":" + current.aggregateId(), "not the initiator"));
-                throw new AccessDeniedException("The approval of " + current.aggregateId() + " was started by another user");
+                        AuditSubject.of(AuditSubjectKind.APPROVAL_REQUEST, current.id().value()), "not the initiator"));
+                throw new AccessDeniedException("The approval of " + current.id().value() + " was started by another user");
             }
             if (request.round().value() == current.round()) {
                 return current.instanceId();
             }
             if (request.round().value() != current.round() + 1) {
-                throw ApprovalError.PLATFORM_APPROVAL_ROUND_MISMATCH.refusal(current.aggregateId() + " is in round " + current.round()
+                throw ApprovalError.PLATFORM_APPROVAL_ROUND_MISMATCH.refusal(current.id().value() + " is in round " + current.round()
                         + ", round " + request.round().value() + " was asked for");
             }
             if (current.status() == ApprovalStatus.APPROVED) {
-                throw ApprovalError.PLATFORM_APPROVAL_ALREADY_APPROVED.refusal(current.aggregateId() + " is approved; it cannot be started again");
+                throw ApprovalError.PLATFORM_APPROVAL_ALREADY_APPROVED.refusal(current.id().value() + " is approved; it cannot be started again");
             }
         } else if (request.round().value() != 1) {
             throw ApprovalError.PLATFORM_APPROVAL_ROUND_MISMATCH.refusal("No approval of " + request.document().documentId().value()

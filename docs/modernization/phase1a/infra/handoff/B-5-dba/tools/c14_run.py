@@ -10,9 +10,11 @@
 ALTER ROLE SQLAgentOperatorRole DROP MEMBER 并回读。不带该选项时不做这一试；但 RDS 自动给探针在 msdb、rdscore 建的用户，收尾始终只按探针名删除
 （用户 2026-10-16 直接确认），预检与回读也只读这两库。
 用法：c14_run.py <结果文件> <app.jar 的 SHA-256> [--msdb-role-trial]
+运行方式：在 tmux 或 nohup 下，输出重定向到文件，不要经管道（| tee）运行；结果文件必须是新名字（已存在则拒绝运行）。
 退出码：0 全部完成且收尾干净；1 中途停止（已收尾）；2 收尾不干净（须人工处理）；3 用法错误或预检失败（什么都没改）。
 """
 import json
+import os
 import re
 import signal
 import sys
@@ -130,13 +132,27 @@ VISIBILITY = 'SELECT COUNT(*) AS public_object_grants FROM sys.database_permissi
 log = []
 
 
+result_file = []
+
+
 def record(**entry):
+    """A broken terminal (SIGHUP, closed pipe) must never stop the cleanup: the line also goes to the result file, and a failing print is ignored."""
     log.append(entry)
-    print(json.dumps(entry, ensure_ascii=False), flush=True)
+    line = json.dumps(entry, ensure_ascii=False)
+    try:
+        print(line, flush=True)
+    except OSError:
+        pass
+    if result_file:
+        try:
+            with open(result_file[0], 'a', encoding='utf-8') as handle:
+                handle.write(line + '\n')
+        except OSError:
+            pass
 
 
 def save(target):
-    Path(target).write_text('\n'.join(json.dumps(e, ensure_ascii=False) for e in log) + '\n')
+    Path(target).write_text('\n'.join(json.dumps(e, ensure_ascii=False, default=str) for e in log) + '\n')
 
 
 class Stop(Exception):
@@ -335,6 +351,10 @@ def preflight(jar_sha256):
 
 def cleanup():
     clean = True
+    signals = {signal.SIGINT, signal.SIGTERM, signal.SIGHUP}
+    signal.pthread_sigmask(signal.SIG_BLOCK, signals)  # blocked first, so that no signal slips in between the three settings below
+    for number in signals:
+        signal.signal(number, signal.SIG_IGN)  # a second Ctrl-C must not skip a DROP
     try:
         ecs('systemctl stop "one-c14-probe-*.service" 2>/dev/null; true')
     except BaseException as failure:  # noqa: BLE001
@@ -379,14 +399,19 @@ def cleanup():
 def main(target, jar_sha256, msdb_trial=False):
     if not re.fullmatch(r'[0-9a-f]{64}', jar_sha256):
         refuse('the second argument is the SHA-256 of app.jar (64 lowercase hex digits)')
+    if Path(target).exists():
+        refuse('the result file exists; give a new name so that an earlier result is never overwritten; nothing was changed')
     try:
         save(target)
     except OSError as failure:
         refuse(f'the result file cannot be written ({type(failure).__name__}); nothing was changed')
+    result_file.append(target)
     try:
         preflight(jar_sha256)
-    except SystemExit:
-        raise
+    except SystemExit as stop:
+        if stop.code == 3:
+            raise
+        refuse(f'preflight stopped ({stop.code}); nothing was changed')
     except BaseException as failure:  # noqa: BLE001 nothing has been changed yet
         refuse(f'preflight failed ({type(failure).__name__}); nothing was changed')
     for number in (signal.SIGTERM, signal.SIGHUP):
@@ -455,11 +480,19 @@ def main(target, jar_sha256, msdb_trial=False):
         clean = cleanup()
         try:
             save(target)
-        except OSError:
-            print('\n'.join(json.dumps(e, ensure_ascii=False) for e in log))
-    if not clean:
-        sys.exit(2)
-    sys.exit(1 if stopped else 0)
+        except Exception:  # noqa: BLE001 the records are in the result file already (record() appends); this is only the tidy rewrite
+            try:
+                print('\n'.join(json.dumps(e, ensure_ascii=False, default=str) for e in log))
+            except Exception:  # noqa: BLE001
+                pass
+    code = 2 if not clean else (1 if stopped else 0)
+    try:
+        sys.stdout.flush()
+        sys.stderr.flush()
+    except OSError:
+        # A closed terminal: without this the interpreter's own flush at exit would turn the exit code into 120
+        sys.stdout = sys.stderr = open(os.devnull, 'w')
+    sys.exit(code)
 
 
 if __name__ == '__main__':

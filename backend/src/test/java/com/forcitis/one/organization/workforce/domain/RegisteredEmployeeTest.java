@@ -32,7 +32,7 @@ class RegisteredEmployeeTest {
         assertThat(events).singleElement().isInstanceOfSatisfying(EmployeeRegistered.class, e -> {
             assertThat(e.employeeId()).isEqualTo(TestAccounts.employee(42));
             assertThat(e.envelope().aggregateType()).isEqualTo("Employee");
-            assertThat(e.envelope().aggregateId()).isEqualTo(TestAccounts.employee(42).value().toString());
+            assertThat(e.envelope().aggregateId()).isEqualTo(TestAccounts.employee(42).value());
             assertThat(e.envelope().aggregateVersion()).isEqualTo(1);
         });
         assertThat(registered.eventSequence()).isEqualTo(1);

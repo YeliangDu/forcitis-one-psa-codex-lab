@@ -7,11 +7,10 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.StateMachine;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.EventDraft;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.platform.numbering.api.ConfirmationKind;
 import com.forcitis.one.platform.numbering.api.ConfirmationStatus;
 import com.forcitis.one.platform.numbering.api.NumberingError;
+import com.forcitis.one.platform.numbering.api.NumberingRuleId;
 import com.forcitis.one.platform.numbering.api.RuleVersion;
 import com.forcitis.one.platform.numbering.events.NumberingRuleConfirmationGiven;
 import com.forcitis.one.platform.numbering.events.NumberingRuleConfirmed;
@@ -37,12 +36,14 @@ public final class NumberingRule extends AggregateRoot {
             .allow(VersionStatus.PENDING_CONFIRMATION, VersionStatus.CONFIRMED, VersionStatus.SUPERSEDED)
             .build();
 
+    private final NumberingRuleId numberingRuleId;
     private final DocumentType documentType;
     private final List<TemplateVersion> loaded;
     private List<TemplateVersion> versions;
 
-    private NumberingRule(DocumentType documentType, List<TemplateVersion> versions, long version, long eventSequence) {
+    private NumberingRule(NumberingRuleId numberingRuleId, DocumentType documentType, List<TemplateVersion> versions, long version, long eventSequence) {
         super(version, eventSequence);
+        this.numberingRuleId = Objects.requireNonNull(numberingRuleId, "numberingRuleId");
         this.documentType = Objects.requireNonNull(documentType, "documentType");
         if (versions.isEmpty()) {
             throw new IllegalArgumentException("a numbering rule has at least its seeded version");
@@ -51,8 +52,12 @@ public final class NumberingRule extends AggregateRoot {
         this.loaded = this.versions;
     }
 
-    public static NumberingRule restore(DocumentType documentType, List<TemplateVersion> versions, long version, long eventSequence) {
-        return new NumberingRule(documentType, versions, version, eventSequence);
+    public static NumberingRule restore(NumberingRuleId numberingRuleId, DocumentType documentType, List<TemplateVersion> versions, long version, long eventSequence) {
+        return new NumberingRule(numberingRuleId, documentType, versions, version, eventSequence);
+    }
+
+    public NumberingRuleId numberingRuleId() {
+        return numberingRuleId;
     }
 
     public DocumentType documentType() {
@@ -213,7 +218,6 @@ public final class NumberingRule extends AggregateRoot {
     }
 
     private EventDraft draft(String eventName, long version, LocalDate businessDate) {
-        return new EventDraft("platform.numbering." + eventName, 1, "NumberingRule", documentType.name(), version, null, businessDate,
-                new EventSource(SourceSystem.ONE, null), List.of());
+        return new EventDraft("platform.numbering." + eventName, 1, "NumberingRule", numberingRuleId.value(), version, null, businessDate, List.of());
     }
 }

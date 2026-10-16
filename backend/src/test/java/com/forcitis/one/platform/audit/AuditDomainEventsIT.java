@@ -11,8 +11,6 @@ import com.forcitis.one.kernel.SystemActors;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelope;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
@@ -66,13 +64,13 @@ class AuditDomainEventsIT {
     @Autowired
     JdbcClient jdbc;
 
-    private static EventEnvelope envelope(String type, String aggregateId, ActorType actorType, String actorId, UUID correlationId) {
+    private static EventEnvelope envelope(String type, UUID aggregateId, ActorType actorType, UUID actorId, UUID correlationId) {
         return new EventEnvelope(UUID.randomUUID(), type, 1, Instant.parse("2026-10-14T02:00:00Z"), "LegalEntity", aggregateId, 1,
-                correlationId, null, actorType, actorId, new LegalEntityId(TestIds.uuid(1)), null, new EventSource(SourceSystem.ONE, null), null, List.of());
+                correlationId, null, actorType, actorId, new LegalEntityId(TestIds.uuid(1)), null, null, List.of());
     }
 
-    private List<Map<String, Object>> entriesOf(String subject) {
-        return jdbc.sql("select action, actor_id, detail, event_id, correlation_id, created_at from platform_audit.audit_entries where subject_key = :subject")
+    private List<Map<String, Object>> entriesOf(UUID subject) {
+        return jdbc.sql("select action, actor_id, detail, event_id, correlation_id, created_at from platform_audit.audit_entries where subject_kind = 'LEGAL_ENTITY' and subject_id = :subject")
                 .param("subject", subject).query().listOfRows();
     }
 
@@ -80,15 +78,15 @@ class AuditDomainEventsIT {
     @DisplayName("a published domain event is audited with its type, subject, user and correlation id; a redelivery writes nothing twice")
     void auditsAnEventOnceByItsEventId() {
         UUID correlation = UUID.randomUUID();
-        LegalEntityRegistered event = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "501", ActorType.USER, TestAccounts.account(9001).value().toString(), correlation),
+        LegalEntityRegistered event = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", TestIds.uuid(501), ActorType.USER, TestAccounts.account(9001).value(), correlation),
                 new LegalEntityId(TestIds.uuid(501)), new LegalEntityCode("AUD"));
 
         tx.executeWithoutResult(status -> publisher.publishEvent(event));
-        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(entriesOf("LegalEntity:501")).hasSize(1));
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(entriesOf(TestIds.uuid(501))).hasSize(1));
         tx.executeWithoutResult(status -> publisher.publishEvent(event));
-        await().pollDelay(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertThat(entriesOf("LegalEntity:501")).hasSize(1));
+        await().pollDelay(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertThat(entriesOf(TestIds.uuid(501))).hasSize(1));
 
-        Map<String, Object> entry = entriesOf("LegalEntity:501").getFirst();
+        Map<String, Object> entry = entriesOf(TestIds.uuid(501)).getFirst();
         assertThat(entry.get("action")).isEqualTo("organization.workforce.LegalEntityRegistered");
         assertThat(entry.get("actor_id")).isEqualTo(TestAccounts.account(9001).value());
         assertThat(entry.get("event_id")).isEqualTo(event.envelope().eventId());
@@ -98,13 +96,13 @@ class AuditDomainEventsIT {
     @Test
     @DisplayName("a system actor is recorded in the detail by its job name (looked up from its fixed UUID, C5), not as a user")
     void systemActorsAreNamedInTheDetail() {
-        LegalEntityRegistered event = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "502", ActorType.SYSTEM,
-                SystemActors.idOf("organization.workforce.snapshot.sync").toString(), UUID.randomUUID()), new LegalEntityId(TestIds.uuid(502)), new LegalEntityCode("SYS"));
+        LegalEntityRegistered event = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", TestIds.uuid(502), ActorType.SYSTEM,
+                SystemActors.idOf("organization.workforce.snapshot.sync"), UUID.randomUUID()), new LegalEntityId(TestIds.uuid(502)), new LegalEntityCode("SYS"));
 
         tx.executeWithoutResult(status -> publisher.publishEvent(event));
 
-        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(entriesOf("LegalEntity:502")).hasSize(1));
-        Map<String, Object> entry = entriesOf("LegalEntity:502").getFirst();
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(entriesOf(TestIds.uuid(502))).hasSize(1));
+        Map<String, Object> entry = entriesOf(TestIds.uuid(502)).getFirst();
         assertThat(entry.get("actor_id")).isNull();
         assertThat(entry.get("detail")).isEqualTo("by organization.workforce.snapshot.sync");
     }
@@ -112,9 +110,9 @@ class AuditDomainEventsIT {
     @Test
     @DisplayName("an event whose record says @NotAudited writes no entry, and its neighbour in the same minute still does")
     void notAuditedEventsAreSkipped() {
-        SyncRunSucceeded skipped = new SyncRunSucceeded(envelope("organization.workforce.SyncRunSucceeded", "601", ActorType.SYSTEM, SystemActors.idOf("platform.approval.deadline.enforce").toString(), UUID.randomUUID()),
+        SyncRunSucceeded skipped = new SyncRunSucceeded(envelope("organization.workforce.SyncRunSucceeded", TestIds.uuid(601), ActorType.SYSTEM, SystemActors.idOf("platform.approval.deadline.enforce"), UUID.randomUUID()),
                 new SyncRunId(TestIds.uuid(601)));
-        LegalEntityRegistered audited = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "603", ActorType.SYSTEM, SystemActors.idOf("platform.approval.deadline.enforce").toString(), UUID.randomUUID()),
+        LegalEntityRegistered audited = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", TestIds.uuid(603), ActorType.SYSTEM, SystemActors.idOf("platform.approval.deadline.enforce"), UUID.randomUUID()),
                 new LegalEntityId(TestIds.uuid(603)), new LegalEntityCode("NEI"));
 
         tx.executeWithoutResult(status -> {
@@ -122,17 +120,17 @@ class AuditDomainEventsIT {
             publisher.publishEvent(audited);
         });
 
-        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(entriesOf("LegalEntity:603")).hasSize(1));
-        assertThat(entriesOf("LegalEntity:601")).isEmpty();
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(entriesOf(TestIds.uuid(603))).hasSize(1));
+        assertThat(entriesOf(TestIds.uuid(601))).isEmpty();
     }
 
     @Test
     @DisplayName("one handling leaves one audit entry per event it raised, all with its correlation id, however often the registry redelivers them")
     void oneHandlingLeavesOneEntryPerEvent() {
         UUID correlation = UUID.randomUUID();
-        LegalEntityRegistered first = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "701", ActorType.USER, TestAccounts.account(9001).value().toString(), correlation),
+        LegalEntityRegistered first = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", TestIds.uuid(701), ActorType.USER, TestAccounts.account(9001).value(), correlation),
                 new LegalEntityId(TestIds.uuid(701)), new LegalEntityCode("ONE"));
-        LegalEntityRegistered second = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", "702", ActorType.USER, TestAccounts.account(9001).value().toString(), correlation),
+        LegalEntityRegistered second = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", TestIds.uuid(702), ActorType.USER, TestAccounts.account(9001).value(), correlation),
                 new LegalEntityId(TestIds.uuid(702)), new LegalEntityCode("TWO"));
 
         tx.executeWithoutResult(status -> {
@@ -140,8 +138,8 @@ class AuditDomainEventsIT {
             publisher.publishEvent(second);
         });
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
-            assertThat(entriesOf("LegalEntity:701")).hasSize(1);
-            assertThat(entriesOf("LegalEntity:702")).hasSize(1);
+            assertThat(entriesOf(TestIds.uuid(701))).hasSize(1);
+            assertThat(entriesOf(TestIds.uuid(702))).hasSize(1);
         });
         for (int redelivery = 0; redelivery < 2; redelivery++) {
             tx.executeWithoutResult(status -> {
@@ -150,8 +148,8 @@ class AuditDomainEventsIT {
             });
         }
         await().pollDelay(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
-            assertThat(entriesOf("LegalEntity:701")).hasSize(1);
-            assertThat(entriesOf("LegalEntity:702")).hasSize(1);
+            assertThat(entriesOf(TestIds.uuid(701))).hasSize(1);
+            assertThat(entriesOf(TestIds.uuid(702))).hasSize(1);
         });
         assertThat(jdbc.sql("select count(*) from platform_audit.audit_entries where correlation_id = :c").param("c", correlation)
                 .query(Long.class).single()).isEqualTo(2L);

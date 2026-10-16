@@ -166,7 +166,7 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
                 java.util.Set.of(com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                 List.of(new com.forcitis.one.platform.approval.api.ApprovalField(
                         com.forcitis.one.cost.timesheet.api.TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(first).toString(), TestAccounts.employee(second).toString()))))));
-        ApprovalTaskId task = new ApprovalTaskId(java.util.UUID.fromString(taskService.createTaskQuery().processInstanceBusinessKey("TIMESHEET:" + key)
+        ApprovalTaskId task = new ApprovalTaskId(java.util.UUID.fromString(taskService.createTaskQuery().processInstanceBusinessKey(key)
                 .taskCandidateOrAssigned(TestAccounts.account(first).value().toString()).singleResult().getId()));
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> reassignTask.execute(task, TestAccounts.account(ADMINISTRATOR), TestAccounts.employee(second), "swap", OptionalLong.empty()))

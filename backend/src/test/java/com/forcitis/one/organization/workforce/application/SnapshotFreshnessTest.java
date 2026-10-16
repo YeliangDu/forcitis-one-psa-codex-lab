@@ -34,7 +34,11 @@ class SnapshotFreshnessTest {
     final SyncRunQueries runs = mock(SyncRunQueries.class);
 
     private SnapshotFreshness freshness(Instant now, Duration staleAfter) {
-        return new SnapshotFreshness(runs, Clock.fixed(now, ZoneOffset.UTC), staleAfter, EVERY_FIVE_MINUTES);
+        return freshness(now, staleAfter, EVERY_FIVE_MINUTES);
+    }
+
+    private SnapshotFreshness freshness(Instant now, Duration staleAfter, String cron) {
+        return new SnapshotFreshness(runs, Clock.fixed(now, ZoneOffset.UTC), staleAfter, cron);
     }
 
     @Test
@@ -56,6 +60,17 @@ class SnapshotFreshnessTest {
         assertThatThrownBy(() -> freshness(NOW, Duration.ofMinutes(61))).isInstanceOf(IllegalArgumentException.class);
         assertThat(freshness(NOW, Duration.ofMinutes(10))).isNotNull();
         assertThat(freshness(NOW, Duration.ofHours(1))).isNotNull();
+    }
+
+    @Test
+    @DisplayName("L-8 the cycle of a cron is its longest gap within a week: even, uneven and too rare crons")
+    void L8_cycleIsTheLongestGap() {
+        assertThat(SnapshotFreshness.cycleOf(EVERY_FIVE_MINUTES)).isEqualTo(Duration.ofMinutes(5));
+        assertThat(SnapshotFreshness.cycleOf("0 0 8,20 * * *")).as("08:00 and 20:00: the night gap is 12 hours, the day gap 12 hours").isEqualTo(Duration.ofHours(12));
+        assertThat(SnapshotFreshness.cycleOf("0 0 8,10 * * *")).as("the gap from 10:00 to 08:00 the next day is 22 hours, not the first gap of 2 hours").isEqualTo(Duration.ofHours(22));
+        assertThat(SnapshotFreshness.cycleOf("0 0 8 * * MON,THU")).as("Monday to Thursday is 3 days, Thursday to Monday 4").isEqualTo(Duration.ofDays(4));
+        assertThatThrownBy(() -> SnapshotFreshness.cycleOf("0 0 8 1 * *")).as("monthly").isInstanceOf(IllegalArgumentException.class).hasMessageContaining("less than twice");
+        assertThatThrownBy(() -> freshness(NOW, Duration.ofMinutes(10), "0 0 8 1 * *")).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

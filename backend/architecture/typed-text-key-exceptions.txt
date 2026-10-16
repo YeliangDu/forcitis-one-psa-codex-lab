@@ -1,0 +1,5 @@
+# Columns that keep a "{type}:{id}" text (a text key naming a kind and an id in one value) although ADR-0033 section 7 item 2 forbids it for our own objects.
+# DdlNamingTest finds such columns by the names subject_key and deduplication_key, and by a comment that spells "{type}:" or "{类型}:".
+# A line goes when its column is gone; a line whose column no longer exists fails the test, so the exception expires with the split that replaces the table.
+# Format: <schema.table.column>  # reason and expiry
+organization_workforce.sync_diffs.subject_key  # the synchronisation names a difference by "employee:<id>", "org-unit:<id>", "position:<id>"; ends with split a, which gives the differences their own kind and id columns (NEXT_BATCH_PLAN 7.11)

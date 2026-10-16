@@ -51,7 +51,7 @@ class JdbcEmergencyAdminRepository implements EmergencyAdminRepository {
 
     @Override
     public List<EmergencyAdmin> findAll() {
-        return jdbc.sql("select " + COLUMNS + " from platform_identity.emergency_admins order by user_id").query((rs, n) -> row(rs)).list();
+        return jdbc.sql("select " + COLUMNS + " from platform_identity.emergency_admins order by created_at, user_id").query((rs, n) -> row(rs)).list();
     }
 
     private static EmergencyAdmin row(ResultSet rs) throws SQLException {

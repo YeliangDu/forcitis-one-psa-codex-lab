@@ -64,7 +64,7 @@ class EventSequencePersistenceIT extends ApprovalIntegrationSupport {
             TimesheetId id = new TimesheetId(TestIds.uuid(IDS.incrementAndGet()));
             LocalDate today = LocalDate.now();
             EmployeeId owner = TestAccounts.employee(newId());
-            Timesheet created = Timesheet.draft(id, new DocumentNumber("TS-SEQ-" + id.value()), new AggregateReference("NumberingRule", "TIMESHEET"),
+            Timesheet created = Timesheet.draft(id, new DocumentNumber("TS-SEQ-" + id.value()), new AggregateReference("NumberingCounter", TestIds.uuid(11)),
                     owner, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(1), today.minusDays(1), Hours.of("8"), TestAccounts.employee(newId()), today);
             List<Long> numbers = new ArrayList<>();
             tx.executeWithoutResult(s -> timesheets.save(created));
@@ -123,13 +123,13 @@ class EventSequencePersistenceIT extends ApprovalIntegrationSupport {
                 // a refused move records nothing
             }
             List<Long> numbers = recorded.stream(DomainEvent.class)
-                    .filter(event -> event.envelope().aggregateType().equals("ApprovalRequest") && event.envelope().aggregateId().equals("TIMESHEET:" + key))
+                    .filter(event -> event.envelope().aggregateType().equals("ApprovalRequest") && event.envelope().aggregateId().equals(requestIdOf(key)))
                     .map(event -> event.envelope().aggregateVersion()).toList();
             assertThat(jdbc.queryForObject("select event_count from platform_approval.approval_requests where document_id = cast(? as uuid)", Long.class, key))
                     .as("step %s", step).isEqualTo((long) numbers.size());
         }
         List<Long> numbers = recorded.stream(DomainEvent.class)
-                .filter(event -> event.envelope().aggregateType().equals("ApprovalRequest") && event.envelope().aggregateId().equals("TIMESHEET:" + key))
+                .filter(event -> event.envelope().aggregateType().equals("ApprovalRequest") && event.envelope().aggregateId().equals(requestIdOf(key)))
                 .map(event -> event.envelope().aggregateVersion()).sorted().toList();
         for (int i = 0; i < numbers.size(); i++) {
             assertThat(numbers.get(i)).isEqualTo(i + 1L);

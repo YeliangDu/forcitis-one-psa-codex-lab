@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
@@ -71,7 +73,7 @@ class LoginAdmission {
     private LoginResult complete(UserId userId, LoginMethod method, boolean identityConfirmed, @Nullable String browserIdentifier) {
         Instant now = clock.instant();
         accounts.recordLogin(userId, now, origin.address());
-        audit.record(new AuditEntry("platform.identity.login.succeeded", userId, null, "user-account:" + userId.value(),
+        audit.record(new AuditEntry("platform.identity.login.succeeded", userId, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()),
                 describe(method, null)).withTrace(origin.address(), AuditOutcome.SUCCEEDED, method.name()));
         StartedSession started = sessions.start(userId, method, identityConfirmed);
         meters.counter("forcitis.platform.identity.login", "method", method.name(), "outcome", "success").increment();
@@ -83,7 +85,7 @@ class LoginAdmission {
     }
 
     private void announceEmergencyLogin(UserId userId, Instant administratorModeExpiresAt) {
-        audit.record(new AuditEntry("platform.identity.emergency.login", userId, null, "user-account:" + userId.value(),
+        audit.record(new AuditEntry("platform.identity.emergency.login", userId, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()),
                 "administrator mode until " + administratorModeExpiresAt).withTrace(origin.address(), AuditOutcome.SUCCEEDED,
                 LoginMethod.EMERGENCY.name()));
         meters.counter("forcitis.platform.identity.emergency.logins").increment();
@@ -93,7 +95,7 @@ class LoginAdmission {
 
     /** reason is for the audit trail only; it never reaches the caller. */
     LoginResult reject(IdentityError error, LoginMethod method, UserId actor, String reason) {
-        String subject = actor == null ? "login:" + method.name() : "user-account:" + actor.value();
+        AuditSubject subject = actor == null ? AuditSubject.without(AuditSubjectKind.LOGIN_ATTEMPT) : AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, actor.value());
         try {
             audit.recordIndependently(new AuditEntry("platform.identity.login.failed", actor, null, subject, describe(method, reason))
                     .withTrace(origin.address(), AuditOutcome.FAILED, method.name()));
