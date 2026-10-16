@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+"""PreToolUse 钩子（Bash）：`gh pr create` 之前运行 scripts/precheck.sh，没有以「ready」收尾就拒绝提 PR（SESSION_PLAYBOOK §11）。
+
+标准输入是钩子的 JSON（tool_input.command）；退出码 2 + 标准错误 = 拒绝，0 = 放行。命令不是 `gh pr create` 时立刻放行。
+precheck 本身失败（FAIL 或前端依赖缺失需先问用户）时，把它的输出末尾带回给会话。
+用法：precheck_before_pr.py  |  precheck_before_pr.py --self-test
+"""
+import json, os, re, subprocess, sys
+
+PR_CREATE = re.compile(r"(?:^|[;&|(\s])gh\s+pr\s+create(?![\w-])")
+TIMEOUT_SECONDS = 1500
+
+
+def is_pr_create(command):
+    return bool(PR_CREATE.search(command or ""))
+
+
+def verdict(output, returncode):
+    last = [line for line in output.splitlines() if line.startswith("SUMMARY:")]
+    if returncode == 0 and last and last[-1].endswith("— ready"):
+        return None
+    tail = "\n".join(output.splitlines()[-40:])
+    return f"precheck.sh 未全过（退出码 {returncode}），不能提 PR。先修好或按提示问用户，再重新 gh pr create：\n{tail}"
+
+
+def main():
+    try:
+        payload = json.load(sys.stdin)
+    except ValueError:
+        return 0
+    if payload.get("tool_name", "Bash") != "Bash" or not is_pr_create((payload.get("tool_input") or {}).get("command")):
+        return 0
+    root = os.environ.get("CLAUDE_PROJECT_DIR") or payload.get("cwd") or "."
+    try:
+        run = subprocess.run(["scripts/precheck.sh"], cwd=root, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        print(f"precheck.sh 超过 {TIMEOUT_SECONDS} 秒未结束，不能提 PR", file=sys.stderr)
+        return 2
+    reason = verdict(run.stdout + run.stderr, run.returncode)
+    if reason:
+        print(reason, file=sys.stderr)
+        return 2
+    return 0
+
+
+def self_test():
+    for command in ("gh pr create --title x", "cd a && gh pr create", "git push; gh  pr  create --base main", "(gh pr create)"):
+        assert is_pr_create(command), command
+    for command in ("gh pr view 3", "gh pr create-not", "gh pr created", "", None):
+        assert not is_pr_create(command), command
+    assert verdict("x\nSUMMARY: 7 PASS, 0 FAIL, 7 SKIP (base origin/main) — ready\n", 0) is None
+    assert verdict("SUMMARY: 6 PASS, 1 FAIL, 7 SKIP (base origin/main) — not ready\n", 1)
+    assert verdict("SUMMARY: 7 PASS, 0 FAIL, 7 SKIP (base origin/main) — ready\n", 1), "退出码非 0 即拒绝"
+    assert verdict("没有 SUMMARY 行\n", 0), "没有 SUMMARY 行即拒绝"
+    print("precheck_before_pr self-test: ok")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(self_test() if sys.argv[1:] == ["--self-test"] else main())
