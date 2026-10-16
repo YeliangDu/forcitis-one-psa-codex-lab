@@ -8,6 +8,7 @@ processes:
   stages:
   - VS-01.1
   - VS-01.2
+  primary_object: OBJ-17
   owner_bc: B-03
   human_orchestration: false
   merged_from:
@@ -337,6 +338,7 @@ processes:
     desc: 商机跟进中，客户询价或邀标
   stages:
   - VS-01.2
+  primary_object: OBJ-21
   owner_bc: B-03
   human_orchestration: true
   human_note: 报价评审（草拟 → 审批中 → 已通过 / 驳回）
@@ -593,6 +595,8 @@ processes:
     desc: 收到邀标或招标公告
   stages:
   - VS-01.2
+  primary_object: OBJ-18
+  primary_object_note: 结局赢单 / 丢单 / 放弃是 VS-01.2 退出；投标 OBJ-20、保证金 OBJ-13 为过程对象
   owner_bc: B-03
   human_orchestration: true
   human_note: 截止时间、开标公示等外部等待，可撤回或撤销；投标保证金缴纳走付款审批；保证金退还由 PRC-153 订阅本流程的投标未中标、已废标、已撤销事件接续
@@ -1163,6 +1167,8 @@ processes:
   stages:
   - VS-01.2
   - VS-02.0
+  primary_object: OBJ-26
+  primary_object_note: 三类版本中费率表是预算与报价的计价基础（VS-01.2 能力 CAP-026）；计费系数 OBJ-27、协议价目随同生效；所标段无该对象退出条件，归段待 SD-14
   owner_bc: B-02
   human_orchestration: true
   triggers:
@@ -1425,6 +1431,7 @@ processes:
   - VS-01.2
   - VS-02.0
   - VS-04.1
+  primary_object: OBJ-12
   owner_bc: B-05
   human_orchestration: true
   human_note: 申请 → 批准 → 转正或叫停
@@ -1685,6 +1692,7 @@ processes:
   stages:
   - VS-02.0
   - VS-03.1
+  primary_object: OBJ-29
   owner_bc: B-04
   human_orchestration: false
   migration: 全部历史项目（含已结项、已归档、已终止、已取消）连同承担法人、团队名册、WBS 迁入（U-3、U-4），记迁入来源与原始时间；投产时在途项目按当前状态迁入（已立项、执行中、暂停、收尾中）；老项目若挂多个法人，迁入前按 Q-06 拆为一项目一承担法人（拆分口径待取证，见 NOTES 待用户定）
@@ -1872,6 +1880,7 @@ processes:
     desc: 项目建立后项目经理编制交付计划
   stages:
   - VS-02.0
+  primary_object: OBJ-31
   owner_bc: B-04
   human_orchestration: false
   migration: 全部历史交付计划版本（含被取代版本及修订原因）迁入（U-4）；投产时在途的编制中版本按当前状态迁入，已批准或已锁定版本作生效基线迁入
@@ -2007,6 +2016,7 @@ processes:
     desc: 项目建立后项目经理编制成本基线
   stages:
   - VS-02.0
+  primary_object: OBJ-32
   owner_bc: B-04
   human_orchestration: true
   human_note: 编制中 → 审批中 → 已锁定
@@ -2180,6 +2190,8 @@ processes:
   - VS-02.4
   - VS-02.5
   - VS-02.6
+  primary_object: OBJ-44
+  primary_object_note: 结局「资源需求已满足 / 已关闭」；资源分配 OBJ-45 是满足需求的手段；贯穿活动，非段退出条件
   owner_bc: B-04
   human_orchestration: false
   migration: 全部历史资源需求与资源分配迁入（U-4）；投产时未满足的需求与已计划未确认的分配按当前状态迁入，具名人员按迁入后的人员主键映射
@@ -2338,6 +2350,7 @@ processes:
   - VS-02.4
   - VS-02.5
   - VS-02.6
+  primary_object: OBJ-66
   owner_bc: B-06
   human_orchestration: true
   human_note: 提交 → 审批 → 通过 / 退回 / 驳回，可撤回
@@ -2680,6 +2693,7 @@ processes:
   - VS-02.5
   - VS-02.6
   - VS-02.7
+  primary_object: OBJ-29
   owner_bc: B-04
   human_orchestration: false
   migration: 全部历史项目的暂停、恢复、终止、取消记录（含原因）迁入（U-4）；投产时处于暂停的项目按「暂停」迁入，暂停起始日取原始时间；已终止、已取消项目只迁结局、原因与时间
@@ -2854,6 +2868,7 @@ processes:
   - VS-02.2
   - VS-02.3
   - VS-02.4
+  primary_object: OBJ-42
   owner_bc: B-28
   human_orchestration: true
   human_note: 确认或退回缺陷资料，逾期提醒
@@ -3010,6 +3025,7 @@ processes:
   - VS-02.5
   - VS-02.6
   - VS-03.5
+  primary_object: OBJ-35
   owner_bc: B-28
   human_orchestration: true
   human_note: 校审不通过须整改后复审；客户审查期、退回修改、轮次与无异议声明
@@ -3376,6 +3392,7 @@ processes:
   - VS-02.4
   - VS-02.5
   - VS-02.6
+  primary_object: OBJ-33
   owner_bc: B-04
   human_orchestration: false
   migration: 全部历史完工估算版本（ETC、EAC、提出人与批准人、批准日）迁入（U-4）；投产时待批准的估算按「已提出」迁入；估算只作项目管理，不迁入任何收入或过账
@@ -3481,6 +3498,7 @@ processes:
   - VS-02.4
   - VS-02.5
   - VS-02.6
+  primary_object: OBJ-40
   owner_bc: B-28
   human_orchestration: false
   migration: 全部历史设计变更（含归因、影响、发出通知与待主张标记、不主张理由）迁入（U-4）；投产时处于提出、内审、已发出未关闭的按当前状态迁入，已发出变更的发出证据原件作证据迁入
@@ -3697,6 +3715,7 @@ processes:
   - VS-02.4
   - VS-02.5
   - VS-02.6
+  primary_object: OBJ-41
   owner_bc: B-04
   human_orchestration: true
   human_note: 5 天内通知、10 天内提交说明，发包人 5 天未答复视为批准
@@ -3907,6 +3926,7 @@ processes:
   stages:
   - VS-02.6
   - VS-02.7
+  primary_object: OBJ-38
   owner_bc: B-28
   human_orchestration: false
   migration: 全部历史我方成果不符合项（含等级、部位、处置结论、让步接受的客户书面确认、返工认定）迁入（U-4）；投产时未关闭的按当前状态迁入，责任方与部位按迁入后的往来单位、建设工程映射
@@ -4121,6 +4141,8 @@ processes:
     desc: 项目经理收尾，结项前封存已发布交付物并发起结项检查
   stages:
   - VS-02.7
+  primary_object: OBJ-29
+  primary_object_note: 结局「已归档」是项目 VS-02.7 退出；交付物、证据的「已封存」是同一编排的前置步骤
   owner_bc: B-29
   human_orchestration: true
   human_note: 结项审批；审批通过前任一拒绝项不满足即退回
@@ -4377,6 +4399,7 @@ processes:
     desc: 项目收尾，项目经理发出满意度调查
   stages:
   - VS-02.7
+  primary_object: OBJ-106
   owner_bc: B-28
   human_orchestration: false
   migration: 全部历史满意度调查（调查对象联系人、回收材料、评分、跟进说明）迁入（U-4），联系人按迁入后的往来单位联系人映射；投产时已发出未回收的按「已发出」迁入，已回收未评分的按「已回收」迁入
@@ -4535,6 +4558,7 @@ processes:
     desc: 项目进入收尾，项目经理编制复盘
   stages:
   - VS-02.7
+  primary_object: OBJ-107
   owner_bc: B-04
   human_orchestration: false
   migration: 全部历史项目复盘（含版本链与评审记录）迁入（U-4）；投产时编制中、评审中的按当前状态迁入，已发布的作不可改版本迁入
@@ -4646,6 +4670,7 @@ processes:
     desc: 协议回签生效后，检查负责人制定周期检查计划
   stages:
   - VS-03.1
+  primary_object: OBJ-48
   owner_bc: B-26
   human_orchestration: false
   frequency_ref: 待取证（E-B1）；经验估计：每月 3–8 份含 IDI 检查服务的协议回签
@@ -4810,6 +4835,7 @@ processes:
   - VS-03.1
   - VS-03.2
   - VS-02.6
+  primary_object: OBJ-49
   owner_bc: B-26
   human_orchestration: false
   frequency_ref: 待取证（E-B1）；经验估计：每月 15–30 次现场检查
@@ -5105,6 +5131,7 @@ processes:
   stages:
   - VS-03.2
   - VS-03.3
+  primary_object: OBJ-38
   owner_bc: B-26
   human_orchestration: false
   frequency_ref: 待取证（E-B1）；经验估计：每月 5–15 条客户资产类不符合项
@@ -5341,6 +5368,7 @@ processes:
     desc: 业主整改后申报，检查负责人复查
   stages:
   - VS-03.4
+  primary_object: OBJ-38
   owner_bc: B-26
   human_orchestration: true
   human_note: 整改申报、复查通过或回整改，反复多轮，逾期提醒（P-23）
@@ -5636,6 +5664,7 @@ processes:
     desc: 业主委托外部检测并取得报告
   stages:
   - VS-03.4
+  primary_object: OBJ-52
   owner_bc: B-26
   human_orchestration: false
   frequency_ref: 待取证（E-B1）；经验估计：每月 1–4 份外部检测报告
@@ -5803,6 +5832,8 @@ processes:
     desc: 商机赢单（含直接委托）后商务起草项目合同或任务订单
   stages:
   - VS-04.1
+  primary_object: OBJ-05
+  primary_object_note: 付款条件项 OBJ-07「生效」随协议回签同时生效（VS-04.1 退出），不另设流程
   owner_bc: B-05
   human_orchestration: true
   human_note: 合同评审（一级责任人审批，命中加审规则再加一级）；客户回签；依法招标项目须比对中标承诺
@@ -6073,6 +6104,7 @@ processes:
     desc: 范围、价款、工期变化，或现场发生签证事项
   stages:
   - VS-04.6
+  primary_object: OBJ-09
   owner_bc: B-05
   human_orchestration: true
   human_note: 提出 → 影响评估 → 内部审批（是否向发包人提出）→ 取得发包人书面同意 → 生效；现场签证取得发包人签认后生效；发包人拒绝、拒签、驳回、撤回各有出口
@@ -6369,6 +6401,7 @@ processes:
   stages:
   - VS-04.6
   - VS-04.5
+  primary_object: OBJ-10
   owner_bc: B-05
   human_orchestration: true
   human_note: 已通知 → 已提交 → 已认定 / 已拒绝 / 撤回，索赔时限
@@ -6520,6 +6553,8 @@ processes:
     desc: 商务按框架协议起草任务订单
   stages:
   - VS-04.6
+  primary_object: OBJ-05
+  primary_object_note: 任务订单是协议 OBJ-05 的类型
   owner_bc: B-05
   human_orchestration: true
   human_note: 占用被拒则订单不得提交；审批驳回、撤回、作废、终止释放
@@ -6678,6 +6713,8 @@ processes:
     desc: 交付物送达后按合同审查期算期满日并等待；期满后系统自动核对三个条件并认定，项目经理只需在 PRC-28 声明一次，不再重复认定
   stages:
   - VS-04.2
+  primary_object: AGG-44
+  primary_object_note: 认定记在收入确认行上（AGG-44）；VS-04.2 退出缺对象状态（MS-17），信息层待定
   owner_bc: B-08
   human_orchestration: false
   migration: 历史视为同意认定事实全部迁入（U-4），记迁入来源；投产时已送达未期满的交付物，由迁入编排模块的一次性离线命令按原送达日续算期满日并生成期满待办（迁入不发事件，策略不会被触发）
@@ -6908,6 +6945,8 @@ processes:
     desc: 付款条件项转为可结算后项目经理或商务提出开票；预收款等先于回签的开票由人工发起（INV-71 例外）
   stages:
   - VS-04.3
+  primary_object: OBJ-83
+  primary_object_note: 结局「已开具」是 VS-04.3 退出；开票申请 OBJ-82「已开票」是同一流程的前置单据
   owner_bc: B-08
   human_orchestration: true
   human_note: 开票申请由系统按规则自动准入（协议依据、可开票额度），命中金额阈值或关联方才转人工审批；驳回、撤回；税务平台开具结果
@@ -7252,6 +7291,7 @@ processes:
     desc: 开票有误或业务取消，财务发起红冲
   stages:
   - VS-04.3
+  primary_object: OBJ-83
   owner_bc: B-08
   human_orchestration: true
   migration: 历史红字发票及红字信息确认记录全部迁入（U-4）；投产时红字信息确认中的单据按税务平台当前状态迁入，等待期从原发起时间续算；审批中的红冲申请不迁审批实例，由迁入编排模块的一次性离线命令重新发起
@@ -7513,6 +7553,8 @@ processes:
     desc: 出纳每日认领到账流水
   stages:
   - VS-04.4
+  primary_object: OBJ-85
+  primary_object_note: 结局「已核销」使往来款项「已结清」（VS-04.4 退出）；资金收付 OBJ-86「已分配」是同一流程的认领步骤
   owner_bc: B-09
   human_orchestration: true
   migration: 历史收款、分配行与核销记录全部迁入（U-4）；投产时待认领的流水按当前状态迁入，已部分核销的应收带已核销额迁入
@@ -7804,6 +7846,7 @@ processes:
     desc: 每日定时检测账龄与到期
   stages:
   - VS-04.4
+  primary_object: OBJ-85
   owner_bc: B-09
   human_orchestration: true
   migration: 历史逾期、争议处置与坏账核销记录全部迁入（U-4）；投产时处于争议中的应收带处置分类迁入，账龄从原到期日续算；审批中的坏账核销不迁审批实例，由迁入编排模块的一次性离线命令重新发起
@@ -8037,6 +8080,7 @@ processes:
     desc: 商票到期日
   stages:
   - VS-04.4
+  primary_object: OBJ-85
   owner_bc: B-09
   human_orchestration: false
   migration: 历史商票的到期日、兑付与逾期状态全部迁入（U-4）；投产时未到期与已逾期未兑付的商票按当前状态迁入，占用与应收状态一并迁入
@@ -8154,6 +8198,7 @@ processes:
   stages:
   - VS-04.5
   - VS-04.6
+  primary_object: OBJ-05
   owner_bc: B-08
   human_orchestration: true
   merged_from:
@@ -8405,6 +8450,8 @@ processes:
     desc: 项目经理或职能提出新供方，财务发起准入
   stages:
   - VS-05.1
+  primary_object: OBJ-02
+  primary_object_note: 结局「往来单位角色合格」是 VS-05.1 退出；资质证书 OBJ-65 为需资质供方的附加条件
   owner_bc: B-01
   human_orchestration: false
   triggers:
@@ -8607,6 +8654,7 @@ processes:
     desc: 资质年检、动态核查通知或到期临近（P-02）
   stages:
   - VS-06.2
+  primary_object: OBJ-65
   owner_bc: B-01
   human_orchestration: true
   human_note: 核查结论、降级撤销、延续审批
@@ -8812,6 +8860,7 @@ processes:
     desc: 员工事前申请借支，审批后财务发放；归还与到期催还是各自独立的实例
   stages:
   - VS-08.1
+  primary_object: OBJ-85
   owner_bc: B-09
   human_orchestration: true
   migration: 历史借款、发放、归还与冲抵记录全部迁入（U-4）；投产时未结借款按未结余额与借款人迁入；审批中的借款申请不迁审批实例，由迁入编排模块的一次性离线命令重新发起；迁入后的一次性对账命令按报销 ID 去重补做冲抵（见 PRC-147）
@@ -9428,6 +9477,8 @@ processes:
   stages:
   - VS-04.2
   - VS-04.5
+  primary_object: AGG-44
+  primary_object_note: 冲销收入确认行；无 OBJ，信息层待定（Q20、Q-04）
   owner_bc: B-08
   human_orchestration: true
   human_note: 冲销已过账的收入事实，须审批（AR-06）；更正只能冲销，不改原确认事实（Q-04 C）
@@ -9702,6 +9753,8 @@ processes:
   - VS-02.4
   - VS-02.5
   - VS-02.6
+  primary_object: OBJ-33
+  primary_object_note: 产值估计写入完工估算的只追加子表 progress_estimates，不改估算的批准状态
   owner_bc: B-04
   human_orchestration: false
   desc: 每期由项目经理按项目 × 协议填报当期累计产值估计（经营产值，内部管理口径）；写入完工估算聚合的只追加子表 progress_estimates，不过账、不占开票与收入额度、不进财务，也不触发或依赖收入确认（用户口径：每期估进度只是内部管理产值）。
@@ -9806,6 +9859,8 @@ processes:
     desc: 付款条件为非成果认可型节点（预付、施工图审查通过、竣工验收、结算审定、质保期满）达成时，商务附外部证据登记；时间型节点（按月、按季度）到期自动达成
   stages:
   - VS-04.3
+  primary_object: OBJ-07
+  primary_object_note: 结局使付款条件项「可结算」（VS-04.3 进入条件）
   owner_bc: B-05
   human_orchestration: true
   human_note: 登记须附与条件类型对应的外部证据（规则校验），无审批；时间型节点由定时触发
@@ -9951,6 +10006,7 @@ processes:
   stages:
   - VS-01.2
   - VS-04.1
+  primary_object: OBJ-13
   owner_bc: B-09
   human_orchestration: true
   human_note: 等待招标人退款到账，逾期催退，到账后登记退还并过账；招标人不退或没收的转没收登记
@@ -10158,6 +10214,8 @@ event_policies:
   - VS-04.1
   - VS-04.2
   - VS-04.3
+  primary_object: AGG-44
+  primary_object_note: 开票与收入额度；无 OBJ，信息层待定（Q20、Q-04）
   owner_bc: B-08
   migration: 迁入协议的额度行由迁入事实重放建立：累计开票额与累计确认额取自迁入的发票与确认事实（U-4），不重复发事件；投产前已回签的协议，由迁入编排模块的一次性离线命令在迁入完成时建额度；额度改动只追加变动行（data-model 补丁 L7）
   triggers:
@@ -10214,6 +10272,8 @@ event_policies:
       event: 视为同意已成立
   stages:
   - VS-04.2
+  primary_object: AGG-44
+  primary_object_note: 收入确认行在开票与收入额度上；无 OBJ，信息层待定（Q20、Q-04）
   owner_bc: B-08
   reads:
   - AGG-13
@@ -10346,6 +10406,8 @@ event_policies:
       aggregate: AGG-27
   stages:
   - VS-04.3
+  primary_object: OBJ-07
+  primary_object_note: 结局使付款条件项「可结算」（VS-04.3 进入条件）；VS-04.3 退出是开票对象，本策略不写
   owner_bc: B-05
   migration: 迁入协议的付款条件项状态按迁入时的条件满足情况迁入（已可结算的保留），不重复发事件（U-4）
   triggers:
@@ -10387,6 +10449,7 @@ event_policies:
       aggregate: AGG-46
   stages:
   - VS-04.4
+  primary_object: OBJ-85
   stages_note: 判据②（与 PRC-56 同口径）：触发状态发票 OBJ-83「已开具」是 VS-04.3 退出、VS-04.4 进入；本策略创建应收（OBJ-85「未结」），是收款段的起点，不归 VS-04.3：开票段到「已开具」即结束，本策略不碰发票
   owner_bc: B-09
   migration: 历史蓝字发票对应的应收随历史应收全部迁入（U-4），不重复发事件；投产时已开票未结清的应收按未结余额迁入
@@ -10427,6 +10490,7 @@ event_policies:
     gate: 期间闸门——目标期间尚未封期（AGG-81 开放）；期间封期前由项目经理对已审批工时批量认定（⑥a 评审 M7）
   stages:
   - VS-10.1
+  primary_object: OBJ-66
   owner_bc: B-06
   migration: 全部历史工时条目的分类结果（有效、无效、返工、可计费）随工时单迁入（U-3、U-4）；投产时已通过未认定的工时按「待认定」迁入，进入项目经理待办，期间已封存的按已有分类迁入不再认定
   scope: 项目经理按本项目的数据范围认定；部门负责人可见本部门
@@ -10585,6 +10649,7 @@ event_policies:
       aggregate: AGG-59
   stages:
   - VS-08.2
+  primary_object: OBJ-88
   owner_bc: B-09
   migration: 历史冲抵记录随历史应收迁入（U-4），不重复发事件；迁入不发「费用报销已核定」，策略不会被触发：迁入完成后由迁入编排模块执行一次性对账命令，对已核定未付的报销按报销 ID 去重，并与老系统冲抵记录比对后补冲抵并确认应付
   triggers:
@@ -10709,6 +10774,8 @@ event_policies:
       aggregate: platform.approval
   stages:
   - VS-04.2
+  primary_object: AGG-44
+  primary_object_note: 收入确认行占用转实；无 OBJ，信息层待定（Q20、Q-04）
   owner_bc: B-08
   migration: 历史确认事实不经本策略；占用与审批实例不迁入（ADR-0036 第 5 条），投产时处于审批中的收入确认由迁入编排模块的一次性离线命令重新占用并发起审批（PRC-53），通过后在新系统按本策略转实，驳回释放
   triggers:
@@ -10880,6 +10947,7 @@ event_policies:
       aggregate: AGG-46
   stages:
   - VS-04.4
+  primary_object: OBJ-85
   owner_bc: B-09
   migration: 历史红冲对应的应收冲减随历史应收迁入（U-4），不重复发事件；投产时红冲已发生未冲减的，由迁入编排模块的一次性离线命令对已迁入的红字发票补做冲减（按红冲发票 ID 幂等）
   triggers:
@@ -10979,6 +11047,7 @@ event_policies:
   owner_bc: B-05
   stages:
   - VS-04.6
+  primary_object: OBJ-05
   triggers:
   - type: event
     name: 项目已开始执行
@@ -11030,6 +11099,7 @@ single_aggregate:
   owner_bc: B-03
   stages:
   - VS-01.1
+  primary_object: OBJ-16
   desc: 市场部立项并开展活动
   commands:
   - actor_v1: 市场和客户经理
@@ -11109,6 +11179,7 @@ single_aggregate:
   owner_bc: B-03
   stages:
   - VS-01.1
+  primary_object: OBJ-105
   desc: 客户经理为拜访或跟进排计划
   commands:
   - actor_v1: 市场和客户经理
@@ -11253,6 +11324,7 @@ single_aggregate:
   stages:
   - VS-01.1
   - VS-05.1
+  primary_object: OBJ-01
   desc: 业务人员登记新客户或供方，或档案信息变更
   commands:
   - actor_v1: 市场和客户经理
@@ -11415,6 +11487,7 @@ single_aggregate:
   owner_bc: B-03
   stages:
   - VS-01.2
+  primary_object: OBJ-23
   desc: 我方为 IDI 风险管理机构时，商机进入跟进后由技术专家登记检查结论（读建设工程与我方参与记录、既有结论为前置读，不另列步骤）
   commands:
   - command: 创建独立性检查
@@ -11494,6 +11567,7 @@ single_aggregate:
   stages:
   - VS-01.2
   - VS-04.1
+  primary_object: OBJ-13
   desc: 投标、履约或质保需缴纳或收取保证金、开立保函。方向分两类：我方缴纳（投标、履约保证金，资金流出，缴纳经 B-10 付款审批后登记；退回我方的登记见 PRC-153 和本流程退还）；我方收取（客户押金等，资金流入，退还出去须经 B-10 付款）
   commands:
   - actor_v1: 出纳
@@ -11734,6 +11808,8 @@ single_aggregate:
   owner_bc: B-02
   stages:
   - VS-01.2
+  primary_object: OBJ-24
+  primary_object_note: 服务产品与阶段类型版本同批发布，取服务产品（VS-01.2 能力 CAP-024）；所标段无该对象退出条件，归段待 SD-14
   desc: 目录管理员发布新版本
   commands:
   - actor_v1: 技术专家
@@ -11849,6 +11925,8 @@ single_aggregate:
   - VS-01.2
   - VS-02.6
   - VS-03.1
+  primary_object: OBJ-46
+  primary_object_note: 所标三段中两段（VS-02.6、VS-03.1）承载建设工程；招标项目 OBJ-19 为次要对象
   desc: 客户经理或项目经理登记受检对象或招标信息
   outcomes:
   - 建设工程已登记
@@ -11970,6 +12048,7 @@ single_aggregate:
   - VS-02.4
   - VS-02.5
   - VS-02.6
+  primary_object: OBJ-30
   aggregate: AGG-20
   owner_bc: B-04
   migration: 全部历史 WBS（阶段节点与工作包及其状态、起止时间）迁入（U-4）；投产时进行中的阶段按「进行中」迁入，工作包按迁入时的发布状态迁入；已作废的工作包保留并带作废原因
@@ -12096,6 +12175,7 @@ single_aggregate:
   - VS-02.5
   - VS-02.6
   - VS-02.7
+  primary_object: OBJ-108
   aggregate: AGG-104
   owner_bc: B-04
   migration: 全部历史风险与问题记录（含运营记录表、项目操作内审表单据、应对措施、接受人与依据）迁入（U-4）；投产时未关闭的按「应对中」迁入，已关闭、已接受的作不可改记录迁入
@@ -12228,6 +12308,7 @@ single_aggregate:
   - VS-02.7
   - VS-03.2
   - VS-04.2
+  primary_object: OBJ-53
   aggregate: AGG-38
   also_aggregates:
   - AGG-110
@@ -12376,6 +12457,7 @@ single_aggregate:
   owner_bc: B-26
   stages:
   - VS-03.1
+  primary_object: OBJ-50
   human_orchestration: false
   frequency_ref: 待取证（E-B1）；经验估计：每年 2–6 次新版本发布
   trigger:
@@ -12522,6 +12604,7 @@ single_aggregate:
   owner_bc: B-05
   stages:
   - VS-04.5
+  primary_object: OBJ-05
   migration: 已终止的协议及终止原因、依据文件全部迁入（U-4）；投产时处于终止办理中的协议按当前状态迁入，审批中的终止申请不迁审批实例（ADR-0036 第 5 条），由迁入编排模块的一次性离线命令重新发起
   states:
   - 已签署生效
