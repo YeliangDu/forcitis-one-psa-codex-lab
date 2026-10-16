@@ -3439,7 +3439,7 @@ components:
     TimesheetRejected:
       name: TimesheetRejected
       title: 工时单被驳回，工时不成立
-      description: 工时单被驳回，工时不成立；过程里程碑。现行 TIMESHEET 流程的三路都在子流程内，驳回即退回，所以这个事件目前只在流程以 REJECTED 结束时才会出现。businessDate 为工作日期。
+      description: 工时单被驳回，工时不成立；过程里程碑。现行 TIMESHEET 流程的三路都在子流程内，驳回即退回，所以这个事件目前只在流程以 REJECTED 结束时才会出现；驳回后填报人可改原单再提交。businessDate 为工作日期。
       x-event:
         eventType: cost.timesheet.TimesheetRejected
         version: 1

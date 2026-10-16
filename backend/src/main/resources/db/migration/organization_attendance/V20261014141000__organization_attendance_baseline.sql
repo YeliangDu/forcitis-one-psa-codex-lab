@@ -32,7 +32,8 @@ CREATE TABLE organization_attendance.work_calendar_days (
     CONSTRAINT pk_work_calendar_days PRIMARY KEY (id),
     CONSTRAINT fk_work_calendar_days_work_calendar_year_id FOREIGN KEY (work_calendar_year_id)
         REFERENCES organization_attendance.work_calendar_years (id) ON DELETE CASCADE,
-    CONSTRAINT uk_work_calendar_days_work_calendar_year_id_calendar_date UNIQUE (work_calendar_year_id, calendar_date)
+    CONSTRAINT uk_work_calendar_days_work_calendar_year_id_calendar_date UNIQUE (work_calendar_year_id, calendar_date),
+    CONSTRAINT ck_work_calendar_days_make_up_weekend CHECK (day_kind <> 'MAKE_UP_WORKDAY' OR EXTRACT(ISODOW FROM calendar_date) IN (6, 7))
 );
 COMMENT ON TABLE organization_attendance.work_calendar_days IS '工作日历日期：周一至周五上班、周末休息之外的例外日期；粒度：每个年份内每个例外日期一行';
 COMMENT ON COLUMN organization_attendance.work_calendar_days.id IS '工作日历日期 ID（UUIDv7）';

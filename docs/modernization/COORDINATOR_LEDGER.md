@@ -1,16 +1,17 @@
 # one-coordinator 台账（速查）
 
-只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-16 07:05（one-coordinator）
+只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-16 18:05（one-coordinator）
 
 ## 作战图（派工前先看；SESSION_PLAYBOOK §11「战队协作」第 5 条）
 | 主线 | 负责 | 当前 | 下一步 | 阻塞 |
 |---|---|---|---|---|
-| dev 首次部署 · 代码 | one-1a-next-4 | P5 实现（sonnet）中；P4 已合 | P5 → opus 复审 → 合；F-1（one-1a-par） | — |
-| dev 首次部署 · C-14 | one-ops | (f) #277、探针 #242 已合；msdb 实测 7 项通过；one.env 三键已改名 | 出 rc（含 P3b 键与标签改名）→ C-14 第一步 → 探针 → 删 101 | 待 rc；C-19 白名单与 SLS 行动策略是否已答待核 |
-| 工时规则 | one-1a-par / one-rules | TS-UNIQ 卡；填报义务已定（intent 本日） | 规则卡写回 → 派实现；日志 IP 缺陷卡 | — |
-| 架构 · METHOD | one-architecture | 业务对象四项独立检查（手册对照先） | 检查报告 + 确认页 → 第 1、4、5 步 → 9–11 → 回溯 → 一次性 ADR | — |
-| 用语 | one-glossary | GL2 已写回（#292） | 随架构检查新词 | — |
-| 协作改进 | one-quality / one-rules / 调度 | 八条（intent 070317） | precheck 选跑、登记片段化（quality）；收件箱页（rules 建，调度维护）；每日早报（调度） | — |
+| dev 首次部署 · C-14 | one-ops | rc.4 经法兰克福 OSS 中转到 ECS；C-14 第一步三账号全 PASSED；探针被预检拦：u8c 在 msdb、rdscore 无 VIEW DEFINITION/ALTER ANY USER，RDS 删登录不清系统库用户（两库各留孤儿 one_readonly_probe）；用户选 B（RDS 接口建删同名账号试清理） | B 成功→改 c14_run 用 USER_ID 回读、opus 复审→跑探针→删 101→用户批准→北京夜里部署；B 失败→用户控制台手工删（A） | 安装器只认 GitHub（部署后改卡：本地预置包+签名校验） |
+| 架构收尾（全貌级） | one-architecture + one-arch-revenue / finance / people（临时，已解绑顶层） | 收尾计划 #384 已合；三组初稿已出（未评审）；样板页 5TrrTc7…（待用户）；用户要求先定「流程设计方法」：唯一流程目录、标准 BPMN 2.0.2（.bpmn+bpmn-js）、上下游追溯 | 方法稿+研究→opus→批准页；批准前三组不铺开（intent 155312/155412） | 约 3 个工作日 |
+| 收入确认专题 | one-architecture / one-rules / one-arch-revenue | 用户事实：对外财报与增值税按开票；权责以客户确认为准；进度估计只作内部产值；无法定审计；企业会计准则 | A1 后续页 TaLY2… 待用户；Q-04 合并页；ADR-0047 无外部审计修订 | — |
+| 数据修复批 | one-1a-next-5 | 全部 PR 已开：#349 #354 #366 #369 #370 #377 #383 #387 在队；#388 文档 | 依序合入 | 签发 #343 已合 |
+| 工时唯一 TS-UNIQ | one-1a-par | #335 已合；#340 实现在队（CI 环境偶发重排） | 合入后重建开发库→TA 部分 | — |
+| 质量与工具 | one-quality | 工件治理工具 #371 #374 #375 #376 #381 在队；#392 偶发测试根因修复在队；合并队列评估：Team 套餐不可用，不迁 | 错题本迁移；小批量合集脚本（PR 额度降下后） | 在制 PR 超 3 |
+| 用语 / 岗位 | one-glossary / one-data | 用语 PR #320 #339 #355 #358 #389 未报→入今晚合集；岗位映射 #363 已合 | J-1/J-2 职级页 | — |
 
 ## 授权与边界
 - 合并 PR、开会话、派子代理：调度自定（「合 PR 交给你审核，决定权给你」）。不替用户定：部署、生产变更、购买、对外账号、ADR 变更。
@@ -57,6 +58,13 @@
 - CI runner mac-one-1..4（~/actions-runners/one-N）与部署 runner mac-one-deploy（/opt/forcitis-one-runner）；main 分支保护 strict。
 - 私有文件：~/.modernize/psa/ 下 infra/role_holders.md、finance/（问卷 v2/v3、财务答复、FINANCE_DECISIONS.html）、audit/、codex/、handoff/。
 - 会话内定时任务：无（用户 2026-10-16 停掉上下文巡检，各会话批次边界自查）。
+
+## 暂缓清单（用户定生产口径前不开工，intent「生产自成体系」#344）
+- R-1b P6 老系统对照导入（one-ops）；WF-03（拆分 a）；AP-12、AP-18；新开以老系统为数据源的生产期功能卡；地基批与校准车道（等架构全貌，intent #380）；三组流程铺开（等流程设计方法批准）。
+
+## 合并队列（18:05）
+- 规则：SESSION_PLAYBOOK §11 第 13 条（#393）：代码逐个入队；文档每天中午、晚上打包合集；提议稿到里程碑再合；每会话在制 PR ≤3；未报不入队。队列文件与脚本见「合并」节；合入后待办在 scratchpad on-merge.txt，下一合集候选在 next-docs-train.txt（357 320 339 355 358 389 393 286）。文档合集 #386（15 个）在队。
+- 调度自检：合集推送前跑完整 precheck；答应「合入后通知」的挂 Monitor（每 30 分钟重挂）；开出的会话立即解绑顶层并改 one-* 标题；派工前查是否已有负责会话；对用户报「待答」前先核收件箱与页面 answers-submit。
 
 ## 排定后续（指针）
 - 04:50 现状（以此为准）：
