@@ -147,7 +147,13 @@ fi
 
 if touches '(^(backend/src/main/resources/db/migration/|backend/architecture/(data-classification\.txt|module-dependencies\.txt)|scripts/ci/baseline_ddl_scan\.py)|/togaf/transitions\.yaml$)'; then
   run_step "baseline DDL scan (self-test)" py scripts/ci/baseline_ddl_scan.py --self-test
-  report PASS "baseline DDL scan (report only)" "$(py scripts/ci/baseline_ddl_scan.py 2>&1 | grep '^== [1-7]' | sed -E 's/^== ([1-7]) [^:]*: ([0-9]+).*/\1=\2/' | paste -sd' ' -) (class=findings; details: python3 scripts/ci/baseline_ddl_scan.py)"
+  ddl_scan=$(py scripts/ci/baseline_ddl_scan.py 2>&1) && ddl_counts=$(printf '%s\n' "$ddl_scan" | grep '^== [1-8]' | sed -E 's/^== ([1-8]) [^:]*: ([0-9]+).*/\1=\2/' | paste -sd' ' -)
+  if [ -n "${ddl_counts:-}" ]; then
+    report PASS "baseline DDL scan (report only)" "${ddl_counts} (class=count; 8 must stay 0; details: python3 scripts/ci/baseline_ddl_scan.py)"
+  else
+    report FAIL "baseline DDL scan (report only)" "the scan itself failed:"
+    printf '%s\n' "$ddl_scan" | tail -n 8 | sed 's/^/      | /'
+  fi
 fi
 if touches '^scripts/ci/(assertion_drift|ci_git)\.py$'; then
   run_step "assertion drift (self-test)" py scripts/ci/assertion_drift.py --self-test

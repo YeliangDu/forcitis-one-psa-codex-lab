@@ -12,6 +12,7 @@ Seven classes, each listed in full as `schema.table.column`:
   7 enumeration CHECK or seed row holding a value that belongs to a module not built yet (VALUE_OWNER below against togaf/transitions.yaml: delivers of stages that are done or in progress count as built)
 
 Usage: baseline_ddl_scan.py [--json] [--migrations DIR] | baseline_ddl_scan.py --self-test
+Class 8 counts statements the scan does not model (ALTER / DROP forms, LIKE, PARTITION OF, comments on unknown columns): it must stay 0 for the other counts to be complete.
 Exit status is always 0 for a report; non-zero only if the SQL cannot be read. Regress by `table.column`, not by line number: line numbers drift as the baseline changes.
 Framework tables (event_publication*, sessions*, scheduler_locks) are not scanned.
 """
@@ -47,7 +48,6 @@ def unbuilt(value, where_table, built):
 NULL_WORDS = re.compile(r"为空|留空|空表示|NULL|未设置|没有则空")
 IMPLICIT = re.compile(r"才有|仅|清空")
 FORMAT_CHECK = re.compile(r"char_length|length\s*\(|~|similar to|\bIN\s*\(|=\s*ANY\s*\(\s*ARRAY|<@|=\s*'", re.I)
-WEAK_CHECK = re.compile(r"btrim|<>\s*''|IS NOT NULL", re.I)
 
 
 def strip_statements(sql):
@@ -66,6 +66,13 @@ def strip_statements(sql):
         elif ch == "'":
             quote = True
             buf.append(ch)
+        elif ch == "$" and re.match(r"\$[A-Za-z_0-9]*\$", sql[i:]):
+            tag = re.match(r"\$[A-Za-z_0-9]*\$", sql[i:]).group(0)
+            end = sql.find(tag, i + len(tag))
+            end = n if end < 0 else end + len(tag)
+            buf.append(sql[i:end])
+            i = end
+            continue
         elif sql.startswith("--", i):
             while i < n and sql[i] != "\n":
                 i += 1
@@ -189,13 +196,17 @@ def load(migrations):
     for path in files:
         for stmt in strip_statements(open(path, encoding="utf-8").read()):
             m = re.match(r"CREATE TABLE\s+(?:IF NOT EXISTS\s+)?([a-z0-9_]+\.[a-z0-9_]+)\s*\(", stmt, re.I)
+            if m and re.search(r"\bPARTITION OF\b|\bAS\s+SELECT\b", stmt, re.I):
+                m = None
             if m:
                 name = m.group(1)
                 start = stmt.index("(", m.end() - 1)
                 body = stmt[start + 1:balanced(stmt, start)]
                 table = {"columns": {}, "order": [], "checks": [], "file": os.path.basename(path)}
                 for element in split_top(body):
-                    if re.match(r"(CONSTRAINT\b|PRIMARY KEY\b|UNIQUE\b|CHECK\b|FOREIGN KEY\b|EXCLUDE\b|LIKE\b)", element, re.I):
+                    if re.match(r"LIKE\b", element, re.I):
+                        unsupported.append(f"{os.path.basename(path)}: {name} inherits columns with LIKE")
+                    elif re.match(r"(CONSTRAINT\b|PRIMARY KEY\b|UNIQUE\b|CHECK\b|FOREIGN KEY\b|EXCLUDE\b)", element, re.I):
                         table["checks"] += read_checks(element)
                     else:
                         col = parse_column(element)
@@ -208,16 +219,22 @@ def load(migrations):
                 t = tables.get(m.group(1))
                 if t and m.group(2) in t["columns"]:
                     t["columns"][m.group(2)]["comment"] = m.group(3).replace("''", "'")
+                else:
+                    unsupported.append(f"{os.path.basename(path)}: COMMENT on a column the scan does not know: {m.group(1)}.{m.group(2)}")
                 continue
-            m = re.match(r"ALTER TABLE\s+(?:ONLY\s+)?([a-z0-9_]+\.[a-z0-9_]+)\s+ADD\s+(CONSTRAINT.*|CHECK.*)", stmt, re.I | re.S)
-            if m and m.group(1) in tables:
-                tables[m.group(1)]["checks"] += read_checks(m.group(2))
+            m = re.match(r"ALTER TABLE\s+(?:ONLY\s+)?([a-z0-9_]+\.[a-z0-9_]+)\s+(.*)", stmt, re.I | re.S)
+            if m:
+                clauses = split_top(m.group(2))
+                if m.group(1) in tables and all(re.match(r"ADD\s+(CONSTRAINT\b|CHECK\b)", c, re.I) for c in clauses):
+                    for c in clauses:
+                        tables[m.group(1)]["checks"] += read_checks(c)
+                else:
+                    unsupported.append(f"{os.path.basename(path)}: {stmt[:90]!r}")
                 continue
             if re.match(r"INSERT INTO", stmt, re.I):
                 inserts.append((os.path.basename(path), stmt))
-            elif re.match(r"ALTER TABLE|DROP|CREATE (UNIQUE )?INDEX|COMMENT ON (TABLE|SCHEMA)|CREATE SCHEMA|CREATE (OR REPLACE )?(VIEW|FUNCTION)|GRANT|REVOKE|SET\b", stmt, re.I):
-                if re.match(r"ALTER TABLE.*\b(ADD COLUMN|DROP|RENAME|ALTER COLUMN)\b", stmt, re.I | re.S) or re.match(r"DROP", stmt, re.I):
-                    unsupported.append(f"{os.path.basename(path)}: {stmt[:80]!r}")
+            elif re.match(r"CREATE TABLE", stmt, re.I) or re.match(r"(DROP|ALTER|RENAME|TRUNCATE|UPDATE|DELETE)\b", stmt, re.I):
+                unsupported.append(f"{os.path.basename(path)}: {stmt[:90]!r}")
     return tables, inserts, unsupported
 
 
@@ -231,18 +248,16 @@ def classification(path):
 
 
 def built_modules(path):
+    """Modules delivered by stages that are done or in progress; `delivers: [...]` may continue over several lines."""
     modules = set()
-    if os.path.exists(path):
-        current = None
-        for line in open(path, encoding="utf-8"):
-            m = re.match(r"\s*status:\s*(\S+)", line)
-            if m:
-                current = m.group(1)
-            m = re.match(r"\s*delivers:\s*\[(.*)", line)
-            if m:
-                block = m.group(1)
-                if current in ("done", "in-progress"):
-                    modules.update(re.findall(r"[a-z]+\.[a-z]+", block))
+    if not os.path.exists(path):
+        return modules
+    text = open(path, encoding="utf-8").read()
+    for block in re.split(r"(?m)^- id:", text)[1:]:
+        status = re.search(r"(?m)^\s*status:\s*(\S+)", block)
+        delivers = re.search(r"delivers:\s*\[(.*?)\]", block, re.S)
+        if status and delivers and status.group(1) in ("done", "in-progress"):
+            modules.update(re.findall(r"[a-z]+\.[a-z]+", re.sub(r"#.*", "", delivers.group(1))))
     return modules
 
 
@@ -258,10 +273,11 @@ def scan(tables, inserts, registered, built):
             key = f"{tname}.{cname}"
             col_checks = col["checks"] + [c for c in table["checks"] if re.search(rf"\b{cname}\b", c[1])]
             if col["type"] in ("text", "text[]"):
-                strong = any(FORMAT_CHECK.search(expr) and not WEAK_CHECK.fullmatch(expr.strip()) for _, expr in col_checks)
+                # a CHECK that only mentions the column (a comparison, a denial of one value) is no format; FORMAT_CHECK errs towards "constrained" for `col = 'X'` conditions
+                strong = any(FORMAT_CHECK.search(expr) for _, expr in col_checks)
                 if not strong:
                     r["text_no_format"].append({"column": key, "nullable": col["nullable"], "array": col["type"] == "text[]",
-                                                "registered": key in registered, "weak_check_only": bool(col_checks)})
+                                                "registered": key in registered, "has_other_check": bool(col_checks)})
             d = col["default"]
             if d is not None:
                 if re.fullmatch(r"(now\(\)|clock_timestamp\(\)|current_timestamp)", d, re.I):
@@ -295,18 +311,22 @@ def scan(tables, inserts, registered, built):
                     owner = unbuilt(value, tname, built)
                     if owner:
                         r["unbuilt_value"].append({"where": f"{tname} ({name or 'unnamed'})", "value": value, "module": owner})
+        pair_at = set()
         for cname in table["order"]:
             col = table["columns"][cname]
             m = re.fullmatch(r"(.+)_by", cname)
             if m and f"{m.group(1)}_at" in table["columns"] and col["nullable"] and table["columns"][f"{m.group(1)}_at"]["nullable"]:
                 if not any(re.search(rf"\b{cname}\b", e) and re.search(rf"\b{m.group(1)}_at\b", e) for _, e in all_checks):
                     r["paired_nullable"].append({"group": f"{tname}.{m.group(1)}_by/_at", "missing": "paired CHECK"})
+                    pair_at.add(f"{tname}.{m.group(1)}_at")
         status = [c for c in table["order"] if re.fullmatch(r"(status|[a-z]+_status|[a-z]+_kind)", c) and not table["columns"][c]["nullable"]]
         for cname in table["order"]:
             col = table["columns"][cname]
-            if col["nullable"] and (re.search(r"(reason|_at|_kind)$", cname) and cname not in ("created_at", "updated_at")) and status:
+            if col["nullable"] and (re.search(r"(reason|_at|_kind)$", cname) and cname not in ("created_at", "updated_at")) and status and f"{tname}.{cname}" not in pair_at:
                 if not any(re.search(rf"\b{cname}\b", e) and any(re.search(rf"\b{s}\b", e) for s in status) for _, e in all_checks):
                     r["paired_nullable"].append({"group": f"{tname}.{cname} with status", "missing": "CHECK tying it to " + "/".join(status)})
+    seen = set()
+    r["paired_nullable"] = [i for i in r["paired_nullable"] if not (i["group"] in seen or seen.add(i["group"]))]
     for file, stmt in inserts:
         if re.search(r"\bnow\(\)", stmt, re.I):
             m = re.match(r"INSERT INTO\s+([a-z0-9_.]+)", stmt, re.I)
@@ -347,8 +367,9 @@ def report(result, extra, unsupported, as_json):
         print("== INSERTs calling now():")
         for line in extra["now_in_insert"]:
             print("  " + line)
+    print(f"== 8 statements not modelled by this scan (a finding may hide behind them): {len(unsupported)}")
     for line in unsupported:
-        print(f"notice: statement not modelled by this scan: {line}")
+        print("  " + line)
 
 
 def run(migrations=MIGRATIONS):
@@ -379,6 +400,7 @@ CREATE TABLE platform_identity.user_accounts (
     version bigint NOT NULL DEFAULT 0
 );
 INSERT INTO platform_approval.approval_requests (id, created_at, document_type) VALUES ('x', now(), 'QUOTE');
+ALTER TABLE platform_approval.approval_requests ADD CONSTRAINT ck_approval_requests_pair CHECK (plain IS NOT NULL);
 """
     with tempfile.TemporaryDirectory() as folder:
         os.makedirs(os.path.join(folder, "a"))
@@ -403,6 +425,31 @@ INSERT INTO platform_approval.approval_requests (id, created_at, document_type) 
     assert unbuilt("QUOTE", "x.y", {"presales.quoting"}) is None, "class 7: once the module is built the value is fine"
     assert any("released_by" in i["group"] for i in result["paired_nullable"]), "class 4: released_by/_at without a paired CHECK"
     assert strip_statements("SELECT 'a;b'; -- x; y\nSELECT 2") == ["SELECT 'a;b'", "SELECT 2"], "statement splitting respects quotes and comments"
+    kinds_all = {i["column"]: i["wording"] for i in result["null_meaning"]}
+    assert kinds_all[f"{ar}.released_at"] == "none", "class 3"
+    assert any(i["where"] == "seed platform_approval.approval_requests" and i["value"] == "QUOTE" for i in result["unbuilt_value"]), "class 7: a seed row holding QUOTE"
+    assert any(i["group"] == f"{ar}.released_by/_at" for i in result["paired_nullable"]) and sum(i["group"].startswith(f"{ar}.released_at") for i in result["paired_nullable"]) == 0, "class 4: a _by/_at pair is reported once"
+    assert any(i["group"] == f"{ar}.result_reason with status" for i in result["paired_nullable"]), "class 4: a nullable reason of a table with a status column and no CHECK tying them"
+    assert len(unsupported) == 0, unsupported
+    hidden = """
+CREATE TABLE platform_x.t (id uuid PRIMARY KEY, note text);
+ALTER TABLE platform_x.t ADD CONSTRAINT ck_t_note CHECK (char_length(note) < 5), ALTER COLUMN note SET DEFAULT 'a';
+ALTER TABLE platform_x.t ADD note2 text;
+ALTER TABLE platform_x.u ADD CONSTRAINT ck_u CHECK (true);
+CREATE TABLE platform_x.v (LIKE platform_x.t);
+CREATE TABLE platform_x.w PARTITION OF platform_x.t FOR VALUES IN (1);
+COMMENT ON COLUMN platform_x.t.ghost IS 'x';
+CREATE FUNCTION f() RETURNS void AS $$ BEGIN PERFORM 1; END; $$ LANGUAGE plpgsql;
+DROP TABLE platform_x.old;
+"""
+    with tempfile.TemporaryDirectory() as folder:
+        open(os.path.join(folder, "V1__x.sql"), "w", encoding="utf-8").write(hidden)
+        _, _, lost = load(folder)
+    assert len(lost) == 7, f"each statement form the scan cannot model must be reported, not skipped: {lost}"
+    assert strip_statements("SELECT $$a;b$$; SELECT 2") == ["SELECT $$a;b$$", "SELECT 2"], "dollar-quoted bodies are not split"
+    transitions = built_modules(TRANSITIONS)
+    assert {"platform.approval", "organization.workforce", "cost.timesheet"} <= transitions, f"delivers lists that continue over lines are read in full: {sorted(transitions)}"
+    assert "presales.quoting" not in transitions, "a not-started stage delivers nothing yet"
     print("baseline_ddl_scan self-test: ok")
 
 
