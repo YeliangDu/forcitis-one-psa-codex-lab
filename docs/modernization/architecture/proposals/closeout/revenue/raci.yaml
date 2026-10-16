@@ -5,8 +5,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E4
     C: []
@@ -19,8 +20,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E4
     C: []
@@ -34,8 +36,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E4
     C: []
@@ -558,8 +561,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -572,8 +576,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -586,8 +591,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -600,8 +606,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -614,8 +621,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - system
     C: []
@@ -628,8 +636,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - system
     C: []
@@ -642,8 +651,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -657,8 +667,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - system
     C: []
@@ -671,8 +682,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -686,8 +698,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - system
     C: []
@@ -701,8 +714,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -715,8 +729,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -729,8 +744,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -743,8 +759,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -757,8 +774,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -771,8 +789,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -829,8 +848,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - system
     C: []
@@ -843,8 +863,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -857,8 +878,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - system
     C: []
@@ -871,8 +893,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -885,8 +908,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -899,8 +923,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -913,8 +938,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - system
     C: []
@@ -927,8 +953,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - system
     C: []
@@ -941,8 +968,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -955,8 +983,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -969,8 +998,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -983,8 +1013,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -997,8 +1028,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -1011,8 +1043,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -1226,8 +1259,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - system
     C: []
@@ -1254,9 +1288,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
-      note: S-38：开票、红冲、坏账链的 A 归协议责任人
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - system
     C: []
@@ -1284,9 +1318,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
-      note: S-38：开票、红冲、坏账链的 A 归协议责任人
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E5
     C: []
@@ -1300,9 +1334,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
-      note: S-38：开票、红冲、坏账链的 A 归协议责任人
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - system
     C: []
@@ -1316,9 +1350,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
-      note: S-38：开票、红冲、坏账链的 A 归协议责任人
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - system
     C: []
@@ -1333,9 +1367,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
-      note: S-38：开票、红冲、坏账链的 A 归协议责任人
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E6
     C: []
@@ -1349,9 +1383,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
-      note: S-38：开票、红冲、坏账链的 A 归协议责任人
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E6
     C: []
@@ -1366,9 +1400,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
-      note: S-38：开票、红冲、坏账链的 A 归协议责任人
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - system
     C: []
@@ -1382,9 +1416,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
-      note: S-38：开票、红冲、坏账链的 A 归协议责任人
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E6
     C: []
@@ -1393,14 +1427,20 @@ entries:
   sensitive: true
   sensitive_reason: 红冲（红字信息确认）
   source_part: revenue
+  boundary:
+    escalate:
+    - rule: AR-06
+      to: 财务负责人
+    - rule: AR-07
+      to: 总经理（关联方）
 - object: AGG-46
   command: 撤销红字信息确认
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
-      note: S-38：开票、红冲、坏账链的 A 归协议责任人
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E6
     C: []
@@ -1414,9 +1454,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
-      note: S-38：开票、红冲、坏账链的 A 归协议责任人
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E6
     C: []
@@ -1425,6 +1465,12 @@ entries:
   sensitive: true
   sensitive_reason: 红冲
   source_part: revenue
+  boundary:
+    escalate:
+    - rule: AR-06
+      to: 财务负责人
+    - rule: AR-07
+      to: 总经理（关联方）
 - object: AGG-92
   command: 开放证据类型
   raci:
@@ -1444,8 +1490,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 往来款项.承担部门负责人
+      field: 往来款项.所属协议.合同负责人（员工借款类取借款审批的负责人）
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E6
     C: []
@@ -1458,8 +1505,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 往来款项.承担部门负责人
+      field: 往来款项.所属协议.合同负责人（员工借款类取借款审批的负责人）
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E6
     C: []
@@ -1472,8 +1520,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 往来款项.承担部门负责人
+      field: 往来款项.所属协议.合同负责人（员工借款类取借款审批的负责人）
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - system
     C: []
@@ -1488,8 +1537,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 往来款项.承担部门负责人
+      field: 往来款项.所属协议.合同负责人（员工借款类取借款审批的负责人）
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E6
     C: []
@@ -1502,9 +1552,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
-      note: S-38：开票、红冲、坏账链的 A 归协议责任人
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E6
     C: []
@@ -1513,6 +1563,12 @@ entries:
   sensitive: true
   sensitive_reason: 坏账核销，一经过账不可逆
   source_part: revenue
+  boundary:
+    escalate:
+    - rule: AR-06
+      to: 财务负责人
+    - rule: AR-07
+      to: 总经理（关联方）
 - object: AGG-49
   command: 提交过账候选
   raci:
@@ -1532,8 +1588,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 往来款项.承担部门负责人
+      field: 往来款项.所属协议.合同负责人（员工借款类取借款审批的负责人）
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - system
     C: []
@@ -1546,8 +1603,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 往来款项.承担部门负责人
+      field: 往来款项.所属协议.合同负责人（员工借款类取借款审批的负责人）
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E6
     C: []
@@ -1560,9 +1618,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 协议.承担部门负责人
+      field: 协议.合同负责人
       field_status: proposed
-      note: S-38：开票、红冲、坏账链的 A 归协议责任人
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - system
     C: []
@@ -1576,8 +1634,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 往来款项.承担部门负责人
+      field: 往来款项.所属协议.合同负责人（员工借款类取借款审批的负责人）
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - system
     C: []
@@ -1675,8 +1734,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 保证金.承担部门负责人
+      field: 保证金.所属对象负责人（投标保证金取商机.负责人，履约与质量保证金取协议.合同负责人）
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E6
     C: []
@@ -1689,8 +1749,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 保证金.承担部门负责人
+      field: 保证金.所属对象负责人（投标保证金取商机.负责人，履约与质量保证金取协议.合同负责人）
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E6
     C: []
@@ -1703,8 +1764,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 保证金.承担部门负责人
+      field: 保证金.所属对象负责人（投标保证金取商机.负责人，履约与质量保证金取协议.合同负责人）
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E6
     C: []
@@ -1717,8 +1779,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 保证金.承担部门负责人
+      field: 保证金.所属对象负责人（投标保证金取商机.负责人，履约与质量保证金取协议.合同负责人）
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E6
     C: []
@@ -1731,8 +1794,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 保证金.承担部门负责人
+      field: 保证金.所属对象负责人（投标保证金取商机.负责人，履约与质量保证金取协议.合同负责人）
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E6
     C: []
@@ -1745,8 +1809,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 保证金.承担部门负责人
+      field: 保证金.所属对象负责人（投标保证金取商机.负责人，履约与质量保证金取协议.合同负责人）
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E6
     C: []
@@ -1759,8 +1824,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 保证金.承担部门负责人
+      field: 保证金.所属对象负责人（投标保证金取商机.负责人，履约与质量保证金取协议.合同负责人）
       field_status: proposed
+      pending: 新题「合同负责人是谁」（REV 复审，intent 163556 谁负责谁批）
     R:
     - SH-E6
     C: []
@@ -2692,8 +2758,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 项目.承担部门负责人
+      field: 项目.项目负责人
       field_status: proposed
+      note: 复审：按 VS02-05 页推荐取项目负责人（intent 163556）
     R:
     - SH-M1
     C: []
@@ -2708,8 +2775,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 项目.承担部门负责人
+      field: 项目.项目负责人
       field_status: proposed
+      note: 复审：按 VS02-05 页推荐取项目负责人（intent 163556）
     R:
     - SH-M1
     C: []
@@ -2723,8 +2791,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 项目.承担部门负责人
+      field: 项目.项目负责人
       field_status: proposed
+      note: 复审：按 VS02-05 页推荐取项目负责人（intent 163556）
     R:
     - SH-M1
     C: []
@@ -2738,8 +2807,9 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 项目.承担部门负责人
+      field: 项目.项目负责人
       field_status: proposed
+      note: 复审：按 VS02-05 页推荐取项目负责人（intent 163556）
     R:
     - SH-M1
     C: []
