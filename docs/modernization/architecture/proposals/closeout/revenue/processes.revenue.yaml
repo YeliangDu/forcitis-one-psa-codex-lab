@@ -701,478 +701,6 @@ processes:
     - Halted
     actor_v1: 管理层
   notes: 口径与转正时点待流程梳理（C-56）。
-- id: PRC-47
-  name: 起草、评审并回签协议
-  trigger:
-    type: event
-    events:
-    - event: OpportunityAccepted
-      aggregate: AGG-10
-    desc: 商机赢单（含直接委托）后商务起草项目合同或任务订单
-  stages:
-  - VS-04.1
-  owner_bc: B-05
-  human_orchestration: true
-  human_note: 合同评审审批；客户回签；依法招标项目须比对中标承诺
-  roles:
-  - id: SH-E5
-    as: initiator
-  - id: SH-E6
-    as: approver
-  - id: SH-C6b
-    as: external
-  steps:
-  - actor: SH-E5
-    read: true
-    reads:
-    - AGG-10
-    - AGG-11
-    - AGG-12
-    - AGG-18
-    - AGG-19
-    - AGG-20
-    desc: 读商机、承诺快照、报价版本、独立性检查结论、项目与 WBS 节点
-    cross_bc:
-    - mode: event
-      direction: in
-      bc: B-03
-      name: OpportunityAccepted
-    - mode: api
-      direction: out
-      bc: B-03
-      name: 读商机、承诺快照、报价版本与独立性检查结论
-    - mode: api
-      direction: out
-      bc: B-04
-      name: 读项目与WBS节点
-    actor_v1: 商务
-  - actor: SH-E5
-    command: 起草协议
-    aggregate: AGG-13
-    desc: 复制承诺快照
-    cross_bc:
-    - mode: api
-      direction: out
-      bc: B-01
-      name: 读往来单位
-    - mode: api
-      direction: out
-      bc: B-13
-      name: 读承担法人
-    actor_v1: 商务
-  - actor: SH-E5
-    command: 登记合同—项目关联与范围挂 WBS
-    aggregate: AGG-13
-    emits:
-    - 合同—项目关联已登记
-    cross_bc:
-    - mode: api
-      direction: out
-      bc: B-04
-      name: 校验项目与WBS节点
-    - mode: event
-      direction: out
-      bc: B-07
-      name: 合同—项目关联已登记
-    actor_v1: 商务
-  - actor: SH-E5
-    command: 登记视为同意参数与发包人代表
-    aggregate: AGG-13
-    desc: ADR-0047 第 5 条第 1 点
-    actor_v1: 商务
-  - actor: platform
-    platform_task: true
-    service: platform.approval
-    command: 合同评审
-    gap: G-02
-    approval:
-      doc_type: 合同评审单
-      approver: SH-E6
-      multi_level: true
-      on_reject: 2
-    cross_bc:
-    - *id001
-    actor_v1: 法务
-  - actor: SH-E5
-    command: 回签
-    aggregate: AGG-13
-    emits:
-    - ContractSigned
-    desc: 回签即生效；基线化前比对承诺（INV-05、07）
-    decision:
-    - when: 客户拒绝回签，或依法招标项目与中标承诺实质背离
-      goto: 2
-    - when: otherwise
-      goto: end
-    cross_bc:
-    - mode: api
-      direction: out
-      bc: B-03
-      name: 签约前再读独立性检查结论
-    - mode: event
-      direction: out
-      bc: B-07
-      name: ContractSigned
-    - mode: event
-      direction: out
-      bc: B-08
-      name: ContractSigned
-    - mode: event
-      direction: out
-      bc: B-26
-      name: ContractSigned
-    actor_v1: 商务
-  notes: 直建例外须经审批（INV-06）；订阅方 B-07、B-08、B-26。报价版本已生效、独立性检查已有结论无事件消费者，签约时读取，可接受（⑥a 评审 L3）。
-- id: PRC-48
-  name: 提出并生效协议变更或签证
-  trigger:
-    type: human
-    desc: 范围、价款、工期变化，或现场发生签证事项
-  stages:
-  - VS-04.1
-  owner_bc: B-05
-  human_orchestration: true
-  human_note: 提出 → 影响评估 → 审批 → 已生效 / 驳回
-  roles:
-  - id: SH-E5
-    as: initiator
-  - id: SH-M1
-    as: approver
-  - id: SH-C6b
-    as: external
-  steps:
-  - actor: SH-E5
-    read: true
-    reads:
-    - AGG-30
-    - AGG-31
-    - AGG-13
-    desc: 读所主张的设计变更与延期申请
-    cross_bc:
-    - mode: api
-      direction: out
-      bc: B-28
-      name: 读所主张的设计变更
-    - mode: api
-      direction: out
-      bc: B-04
-      name: 读所主张的延期申请
-    actor_v1: 商务
-  - actor: SH-E5
-    command: 提出协议变更
-    aggregate: AGG-15
-    decision:
-    - when: 现场签证事项
-      goto: 6
-    - when: otherwise
-      goto: 3
-    actor_v1: 商务
-  - actor: SH-E5
-    command: 评估变更影响
-    aggregate: AGG-15
-    actor_v1: 商务
-  - actor: platform
-    platform_task: true
-    service: platform.approval
-    command: 协议变更审批
-    gap: G-02
-    approval:
-      doc_type: 协议变更审批单
-      approver: SH-M1
-      multi_level: true
-      on_reject: end
-    cross_bc:
-    - *id001
-    actor_v1: 项目总监
-  - actor: SH-E5
-    command: 生效协议变更
-    aggregate: AGG-15
-    emits:
-    - ChangeOrderApproved
-    decision:
-    - when: otherwise
-      goto: 7
-    actor_v1: 商务
-  - actor: SH-E5
-    command: 确认现场签证
-    aggregate: AGG-15
-    branch: 签证
-    emits:
-    - SiteVisaConfirmed
-    decision:
-    - when: otherwise
-      goto: 7
-    actor_v1: 商务
-  - actor: system
-    command: 应用变更
-    aggregate: AGG-13
-    on_event:
-    - aggregate: AGG-15
-      event: ChangeOrderApproved
-    - aggregate: AGG-15
-      event: SiteVisaConfirmed
-    emits:
-    - 新基线已生效
-    desc: 订阅协议变更生效与签证确认（同 BC）；按变更 ID 幂等
-    cross_bc:
-    - mode: event
-      direction: out
-      bc: B-08
-      name: 新基线已生效
-    actor_v1: 系统策略
-  notes: 生效后只能经协议变更产生新基线（INV-07、16）；B-08 订阅新基线更新开票与收入额度。
-- id: PRC-49
-  name: 提出并认定索赔
-  trigger:
-    type: human
-    desc: 对方或我方出现可索赔事项，在时限内通知
-  stages:
-  - VS-04.1
-  - VS-04.5
-  owner_bc: B-05
-  human_orchestration: true
-  human_note: 已通知 → 已提交 → 已认定 / 已拒绝 / 撤回，索赔时限
-  roles:
-  - id: SH-E5
-    as: initiator
-  - id: SH-C6b
-    as: external
-  steps:
-  - actor: SH-E5
-    read: true
-    reads:
-    - AGG-30
-    - AGG-31
-    desc: 读所引用的设计变更与延期申请
-    cross_bc:
-    - mode: api
-      direction: out
-      bc: B-28
-      name: 读所引用的设计变更
-    - mode: api
-      direction: out
-      bc: B-04
-      name: 读所引用的延期申请
-    actor_v1: 商务
-  - actor: SH-E5
-    command: 提出索赔
-    aggregate: AGG-16
-    emits:
-    - ClaimAsserted
-    desc: 超时限须注明理由（INV-17）
-    decision:
-    - when: 对方认定索赔
-      goto: 3
-    - when: 对方拒绝，或我方撤回
-      goto: 4
-    - when: otherwise
-      goto: end
-    actor_v1: 商务
-  - actor: SH-E5
-    command: 认定索赔
-    aggregate: AGG-16
-    emits:
-    - ClaimSettled
-    decision:
-    - when: otherwise
-      goto: end
-    actor_v1: 商务
-  - actor: SH-E5
-    command: 拒绝或撤回索赔
-    aggregate: AGG-16
-    branch: 拒绝或撤回
-    actor_v1: 商务
-  notes: P-08 索赔时限临近提醒。
-- id: PRC-50
-  name: 占用框架限额并提交任务订单
-  trigger:
-    type: human
-    desc: 商务按框架协议起草任务订单
-  stages:
-  - VS-04.1
-  owner_bc: B-05
-  human_orchestration: true
-  human_note: 占用被拒则订单不得提交；驳回、作废、终止释放
-  roles:
-  - id: SH-E5
-    as: initiator
-  - id: SH-M1
-    as: approver
-  steps:
-  - actor: SH-E5
-    command: 占用框架限额
-    aggregate: AGG-14
-    emits:
-    - 限额已占用
-    - 框架限额占用被拒
-    decision:
-    - when: 占用被拒
-      goto: end
-    - when: otherwise
-      goto: 2
-    actor_v1: 商务
-  - actor: SH-E5
-    command: 提交任务订单
-    aggregate: AGG-13
-    desc: 引用占用 ID
-    decision:
-    - when: 订单被作废或终止
-      goto: 3
-    - when: otherwise
-      goto: end
-    approval:
-      doc_type: 任务订单审批单
-      approver: SH-M1
-      multi_level: false
-      on_reject: 3
-    cross_bc:
-    - *id001
-    actor_v1: 商务
-  - actor: system
-    command: 释放框架限额
-    aggregate: AGG-14
-    branch: 驳回或作废
-    emits:
-    - 限额已释放
-    desc: 孤儿占用靠定时释放兜底
-    actor_v1: 系统策略
-  notes: P-04 回签后超额占用预警。
-- id: PRC-69
-  name: 供应商准入与资质核验
-  trigger:
-    type: human
-    desc: 项目经理或职能提出新供方，财务发起准入
-  stages:
-  - VS-05.1
-  owner_bc: B-01
-  human_orchestration: false
-  roles:
-  - id: SH-E2
-    as: initiator
-  - id: SH-E6
-    as: performer
-  - id: SH-P2
-    as: external
-  - id: SH-P1
-    as: external
-  steps:
-  - actor: SH-E2
-    command: 申请往来单位角色
-    aggregate: AGG-01
-    actor_v1: 项目经理
-  - actor: SH-E6
-    command: 登记资质证书
-    aggregate: AGG-02
-    decision:
-    - when: 资质核验未通过
-      goto: end
-    - when: otherwise
-      goto: 3
-    actor_v1: 财务
-  - actor: SH-E6
-    command: 核准往来单位角色合格
-    aggregate: AGG-01
-    emits:
-    - 角色已合格
-    decision:
-    - when: 合作期间资质撤销或到期未延续
-      goto: 4
-    - when: 合作终止或严重失信
-      goto: 5
-    - when: otherwise
-      goto: end
-    cross_bc:
-    - mode: api
-      direction: in
-      bc: B-11
-      name: 读取角色准入状态
-    - mode: api
-      direction: in
-      bc: B-10
-      name: 读取角色准入状态
-    actor_v1: 财务
-  - actor: SH-E6
-    command: 暂停往来单位角色
-    aggregate: AGG-01
-    branch: 暂停
-    emits:
-    - 角色已暂停
-    decision:
-    - when: 暂停原因消除
-      goto: 3
-    - when: otherwise
-      goto: end
-    actor_v1: 财务
-  - actor: SH-E6
-    command: 停用往来单位角色
-    aggregate: AGG-01
-    branch: 停用
-    emits:
-    - 角色已停用
-    actor_v1: 财务
-  notes: 角色准入命令的参数为角色，只适用于供应商、分包等需准入的角色，客户角色不走准入（intent 120544 P-3）。未合格或已停用的供应商不得签分包、采购协议或付款（INV-04）；资质到期见「年检、核查与延续企业资质」。
-- id: PRC-78
-  name: 年检、核查与延续企业资质
-  trigger:
-    type: time
-    desc: 资质年检、动态核查通知或到期临近（P-02）
-  stages:
-  - VS-06.2
-  owner_bc: B-01
-  human_orchestration: true
-  human_note: 核查结论、降级撤销、延续审批
-  roles:
-  - id: SH-E6
-    as: initiator
-  - id: SH-M1
-    as: approver
-  - id: SH-R2
-    as: external
-  steps:
-  - actor: SH-E6
-    command: 发起资质核查
-    aggregate: AGG-02
-    cross_bc:
-    - mode: api
-      direction: out
-      bc: B-13
-      name: 读持证法人主体
-    actor_v1: 职能人员
-  - actor: SH-E6
-    command: 登记核查结果
-    aggregate: AGG-02
-    emits:
-    - 资质已撤销
-    desc: 结果为有效 / 降级 / 撤销，撤销时发事件
-    decision:
-    - when: 核查结论为撤销
-      goto: end
-    - when: 到期临近需延续
-      goto: 3
-    - when: otherwise
-      goto: end
-    actor_v1: 职能人员
-  - actor: SH-E6
-    command: 延续资质
-    aggregate: AGG-02
-    decision:
-    - when: otherwise
-      goto: end
-    approval:
-      doc_type: 资质延续审批单
-      approver: SH-M1
-      multi_level: false
-      on_reject: 4
-    actor_v1: 职能人员
-  - actor: system
-    command: 标记资质已到期
-    aggregate: AGG-02
-    branch: 未延续
-    on_time: 到期日届满
-    emits:
-    - 资质已到期
-    actor_v1: 系统策略
-  notes: 持证方含我方法人，位置见聚合稿 §7 第 3 条。
 - id: PRC-17
   name: 建立项目并组建团队
   trigger:
@@ -2482,18 +2010,39 @@ processes:
   - VS-03.1
   owner_bc: B-26
   human_orchestration: false
+  migration: 在途检查计划按当前状态迁入（已登记、生效），到期日与来源协议引用保留；已标记不再受托的只迁结局与标记原因；历史计划全部迁入（U-4）。不接老系统，迁入对账以生产数据为证据
+  scope: 按承担部门的数据范围：检查负责人可见并经办本部门受托协议的检查计划；委托方（保险公司等）不登录本系统
+  triggers:
+  - type: event
+    name: ContractSigned
+    bc: B-05
+  outcomes:
+  - 计划已生效
+  - 不再受托
+  - 无需检查计划
+  scenarios:
+  - PRC-41-S01
+  - PRC-41-S02
+  - PRC-41-S03
+  - PRC-41-S04
+  - PRC-41-S05
   roles:
   - id: SH-E4
-    as: performer
+    as: initiator
   - id: SH-E5
     as: informed
+  - id: SH-C5
+    as: external
+  notes: 检查计划仅 IDI（AGG-34 / OBJ-48）；非 IDI 的周期检查不建计划，由检查负责人直接「安排检查」（PRC-43），到期只作提醒（U-3）。到期提醒是派生 / 策略（P-28），不存状态；人工转线索后另起「登记并跟进线索」，上游不订阅下游事件。按周期结算用协议付款条件项。
   steps:
-  - actor: SH-E4
+  - actor: system
+    where: automatic
+    actor_v1: 检查负责人
     read: true
     reads:
     - AGG-13
     - AGG-33
-    desc: 读协议与受检部位
+    desc: 读协议与受检部位；协议范围不含 IDI 检查服务的，不建计划
     cross_bc:
     - mode: event
       direction: in
@@ -2507,18 +2056,39 @@ processes:
       direction: out
       bc: B-01
       name: 读受检部位
-    actor_v1: 检查负责人
+    decision:
+    - when: 协议范围含 IDI 检查服务
+      goto: 2
+    - when: otherwise
+      goto: end
+    outcome: 无需检查计划
+    notify:
+    - to: SH-E4
+      how: 企业微信待办（协议已回签，请制定检查计划）
   - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
     command: 登记检查计划
     aggregate: AGG-34
     desc: 只有到期日，到期提醒是派生 / 策略（R-04）
-    actor_v1: 检查负责人
+    permission: 检查计划.登记
+    page: 检查计划编辑页
+    audit: true
   - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
     command: 生效检查计划
     aggregate: AGG-34
     desc: 已登记 → 生效；VS-03.1 进入条件（符合性审查 必-6）
-    actor_v1: 检查负责人
+    permission: 检查计划.生效
+    page: 检查计划页
+    audit: true
+    notify:
+    - to: SH-E2
+      how: 企业微信消息（检查计划已生效）
   - actor: system
+    where: automatic
+    actor_v1: 系统策略
     read: true
     reads:
     - AGG-34
@@ -2528,14 +2098,30 @@ processes:
       goto: 5
     - when: otherwise
       goto: end
-    actor_v1: 系统策略
+    outcome: 计划已生效
+    timeout:
+      after: 计划到期日前的提醒提前量（配置参数）；到期日后仍未委托的逾期提醒周期（配置参数）
+      escalate_to: SH-E4
+      interrupting: false
+    notify:
+    - to: SH-E4
+      how: 企业微信待办（检查计划即将到期或已逾期未委托，请转线索）
+    - to: SH-E5
+      how: 企业微信消息（计划到期，可跟进续做线索）
   - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
     command: 标记不再受托
     aggregate: AGG-34
     branch: 不再受托
-    desc: 生效 → 不再受托，VS-03 ends_in 状态（符合性审查 必-6）
-    actor_v1: 检查负责人
-  notes: 到期提醒是读模型，不是状态（用户 U-3）；人工转线索后另起「登记并跟进线索」；按周期结算用协议付款条件项。
+    desc: 生效 → 不再受托，VS-03 ends_in 状态（符合性审查 必-6）；原因建议必填（待用户定）
+    permission: 检查计划.标记不再受托
+    page: 检查计划页
+    audit: true
+    decision:
+    - when: otherwise
+      goto: end
+    outcome: 不再受托
 - id: PRC-43
   name: 实施现场检查并锁定
   trigger:
@@ -2548,13 +2134,45 @@ processes:
   - VS-02.6
   owner_bc: B-26
   human_orchestration: false
+  migration: 在途检查按当前状态迁入（已计划、已安排、现场进行中、记录已提交、已审核）；已锁定检查迁结局、检查项结果、更正记录与引用证据；证据原件、采集时间、采集人、地点与哈希原样迁入，迁入后同样只追加不可改（诉讼证据要求，intent 141725）；全部历史迁入（U-4）
+  scope: 按项目的数据范围：检查负责人可见并经办本项目检查；检查人员只见被指派的检查；证据按采集人与项目控制可见
+  segregation:
+  - roles:
+    - SH-E3
+    - SH-E4
+    rule: 检查记录的提交人与审核人不得为同一人
+  triggers:
+  - type: human
+    name: 检查负责人按检查计划、合同节点或客户要求安排检查
+  outcomes:
+  - 已锁定
+  scenarios:
+  - PRC-43-S01
+  - PRC-43-S02
+  - PRC-43-S03
+  - PRC-43-S04
+  - PRC-43-S05
+  - PRC-43-S06
+  - PRC-43-S07
   roles:
   - id: SH-E4
     as: initiator
+  - id: SH-E4
+    as: reviewer
   - id: SH-E3
     as: performer
+  - id: SH-C5
+    as: informed
+  - id: SH-C3
+    as: external
+  - id: SH-X5
+    as: external
+  notes: 品控类服务在施工期做的检查同此流程（M-11 施工期类型）。检查报告的编制、校审、签发、送达与客户认可走 PRC-28 同一流程（INV-51 同 BC 前置读不符合项）；检查服务的收入证据为 ADR-0047 第 5 类（检查完成经客户签认，或报告签发；可登记、不触发）。现场采集的照片、视频、量测数据与签认单均作证据，只追加、计内容哈希、记采集时间与地点，不得删改（intent 141725）。我方为
+    TIS 时负责人兼项受限（INV-56 / P-44）；我方是 TIS 专项分包或直接受托时不受此限（Q30，待用户确认）。
   steps:
-  - actor: SH-E4
+  - actor: system
+    where: automatic
+    actor_v1: 检查负责人
     read: true
     reads:
     - AGG-19
@@ -2562,7 +2180,7 @@ processes:
     - AGG-36
     - AGG-62
     - AGG-34
-    desc: 读项目、部位、模板、检查人员资质（P-29）
+    desc: 读项目、部位、模板、检查人员资质（P-29，资质不符是写入前预警，不拒绝）
     cross_bc:
     - mode: api
       direction: out
@@ -2576,59 +2194,140 @@ processes:
       direction: out
       bc: B-13
       name: 读检查人员资质
-    actor_v1: 检查负责人
   - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
     command: 安排检查
     aggregate: AGG-35
-    desc: 新建检查，状态已计划（VS-03.1 进入条件；符合性审查 必-6）
-    actor_v1: 检查负责人
+    desc: 新建检查，状态已计划（VS-03.1 进入条件；符合性审查 必-6）；选定检查表模板版本、受检部位范围与我方法律角色
+    permission: 检查.安排
+    page: 检查安排页
+    legal_entity: 承担法人
+    audit: true
   - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
     command: 指派检查人员
     aggregate: AGG-35
-    desc: 已计划 → 已安排；TIS 负责人兼项限制 P-44
-    actor_v1: 检查负责人
-  - actor: SH-E3
-    command: 提交检查记录
-    aggregate: AGG-35
-    desc: 每个检查项须有结果或未检原因（INV-55）
-    actor_v1: 检查人员
-  - actor: SH-E4
-    command: 审核检查记录
-    aggregate: AGG-35
+    desc: 已计划 → 已安排；TIS 负责人兼项限制 P-44（INV-56 前置检查，竞态由 P-44 定时复核兜底）
     decision:
-    - when: 检查记录有缺项或未检原因不充分
-      goto: 4
+    - when: 我方为 TIS 且负责人兼项数超过上限
+      goto: 3
+      rule: INV-56
     - when: otherwise
-      goto: 6
-    actor_v1: 检查负责人
-  - actor: SH-E4
-    command: 锁定检查
-    aggregate: AGG-35
-    emits:
-    - 检查已锁定
-    desc: 锁定后只能追加更正
-    actor_v1: 检查负责人
-  - actor: SH-E4
-    command: 关联检查报告
-    aggregate: AGG-35
-    desc: 记检查报告（AGG-27 交付物）的 ID，B-26 → B-28 api，关联记在下游一侧（符合性审查 必-6）
-    cross_bc:
-    - mode: api
-      direction: out
-      bc: B-28
-      name: 关联检查报告（交付物 ID）
-    actor_v1: 检查负责人
+      goto: 4
+    permission: 检查.指派
+    page: 检查指派页
+    audit: true
+    notify:
+    - to: SH-E3
+      how: 企业微信待办（已指派现场检查）
   - actor: SH-E3
+    where: offline
+    actor_v1: 检查人员
     command: 采集证据
     aggregate: AGG-38
-    desc: B-26 → B-28 api
+    desc: 现场检查：拍照、摄像、量测、填写现场记录并取得客户现场签认；现场可无网络，手机端离线暂存，联网后补传，系统记设备采集时间与服务端接收时间两个时间；上传即计内容哈希，只追加，不可修改或删除（作废只加作废标记）；B-26 → B-28 api
+    evidence:
+    - 现场照片与视频原件（采集时间、受检部位与坐标、采集人、设备、内容哈希）
+    - 量测与检测原始数据（仪器编号、量测时间、量测人）
+    - 现场检查记录表与客户现场签认单（ADR-0047 第 5 类证据之一；签认人与签认日）
+    - 未能进入部位的原因记录（天气、通行条件、在场人员）
     cross_bc:
     - mode: api
       direction: out
       bc: B-28
       name: 采集证据
+    permission: 证据.采集
+    page: 现场证据采集页
+    audit: true
+  - actor: SH-E3
+    where: in_system
     actor_v1: 检查人员
-  notes: 品控类服务在施工期做的检查同此流程（M-11 施工期类型）。
+    command: 提交检查记录
+    aggregate: AGG-35
+    desc: 逐项登记检查结果并引用证据；每个检查项须有结果或未检原因（INV-55）；状态到记录已提交
+    decision:
+    - when: 有检查项既无结果也无未检原因
+      goto: 5
+      rule: INV-55
+    - when: otherwise
+      goto: 6
+    permission: 检查记录.提交
+    page: 检查记录填报页
+    audit: true
+    timeout:
+      after: 现场检查结束后的记录提交期限（合同参数；未约定时 P3D，待用户定）
+      escalate_to: SH-E4
+      interrupting: false
+    notify:
+    - to: SH-E4
+      how: 企业微信待办（检查记录已提交，待审核）
+  - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
+    command: 审核检查记录
+    aggregate: AGG-35
+    desc: 审核检查项结果与证据是否支撑；有缺项或未检原因不充分的退回检查人员补全
+    decision:
+    - when: 检查记录有缺项或未检原因不充分
+      goto: 5
+    - when: otherwise
+      goto: 7
+    approval:
+      engine: aggregate
+      doc_type: 检查记录审核
+      approver: SH-E4
+      multi_level: false
+      on_reject: 5
+    permission: 检查记录.审核
+    page: 检查记录审核页
+    audit: true
+  - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
+    command: 锁定检查
+    aggregate: AGG-35
+    emits:
+    - 检查已锁定
+    desc: 锁定后只能追加更正，不改原记录（INV-55，ADR-0016 只追加）
+    permission: 检查.锁定
+    page: 检查锁定页
+    audit: true
+    metric_event: true
+    notify:
+    - to: SH-E3
+      how: 企业微信待办（检查已锁定，可编制检查报告）
+  - actor: system
+    where: automatic
+    added_in: closeout
+    command: 封存证据
+    aggregate: AGG-38
+    desc: 检查锁定后封存本次检查引用的全部证据，封存后不可修改或删除（INV-58）；B-26 → B-28 api；封存时间记入证据
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-28
+      name: 封存证据
+    audit: true
+  - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
+    command: 关联检查报告
+    aggregate: AGG-35
+    desc: 检查报告（AGG-27 交付物）按 PRC-28 编制、校审、签发、送达、客户认可；本步在交付物建立后记其 ID，B-26 → B-28 api，关联记在下游一侧（符合性审查 必-6）
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-28
+      name: 关联检查报告（交付物 ID）
+    permission: 检查.关联报告
+    page: 检查报告关联页
+    audit: true
+    decision:
+    - when: otherwise
+      goto: end
+    outcome: 已锁定
 - id: PRC-44
   name: 发布客户资产类不符合项并建议外部检测
   trigger:
@@ -2642,53 +2341,154 @@ processes:
   - VS-03.3
   owner_bc: B-26
   human_orchestration: false
+  migration: 在途不符合项按当前状态迁入（已识别、已复核、已发布）；已发布的保留等级体系版本、等级值、部位、整改责任方与证据引用；已建议的外部检测一并迁入；历史全部迁入（U-4）
+  scope: 按项目的数据范围；发现与证据对委托方的可见范围随报告送达，本系统不开放客户登录
+  segregation:
+  - roles:
+    - SH-E3
+    - SH-E4
+    rule: 不符合项的登记人与复核人不得为同一人
+  triggers:
+  - type: event
+    name: 检查已锁定
+    bc: B-26
+  - type: human
+    name: 现场检查中识别到客户资产类问题，检查人员当场登记
+  outcomes:
+  - 已发布
+  - 已发布并建议外部检测
+  - 已关闭
+  scenarios:
+  - PRC-44-S01
+  - PRC-44-S02
+  - PRC-44-S03
+  - PRC-44-S04
+  - PRC-44-S05
   roles:
   - id: SH-E3
     as: performer
   - id: SH-E4
     as: reviewer
+  - id: SH-C5
+    as: informed
+  - id: SH-C3
+    as: informed
+  - id: SH-X6
+    as: informed
+  notes: R-07：不拆聚合，跨 BC 经 api 的代价由本流程体现；来源检查 ID 只作回溯线索。IDI 的等级为正常、轻微、中等、严重、风险保留五级；等级体系按服务类型版本化（见 NOTES 结构问题）。重大险情须记录已报告（INV-52）。发布后的送达必须留送达回执，作诉讼证据。
   steps:
   - actor: SH-E3
+    where: in_system
+    actor_v1: 检查人员
     command: 登记不符合项
     aggregate: AGG-28
-    desc: 经质量与认可 api 发起，来源检查 ID 只作回溯线索
+    desc: 经质量与认可 api 发起，来源检查 ID 只作回溯线索；记等级体系版本与等级值、部位、整改责任方；引用本次检查采集的证据
     cross_bc:
     - mode: api
       direction: out
       bc: B-28
       name: 登记不符合项
-    actor_v1: 检查人员
+    permission: 不符合项.登记
+    page: 不符合项登记页
+    audit: true
   - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
     command: 复核不符合项
     aggregate: AGG-28
+    desc: 复核发现是否成立、等级是否恰当；不成立的走关闭（待用户定）
+    decision:
+    - when: 复核认定发现不成立
+      goto: 6
+    - when: otherwise
+      goto: 3
+    approval:
+      engine: aggregate
+      doc_type: 不符合项复核
+      approver: SH-E4
+      multi_level: false
+      on_reject: 6
     cross_bc:
     - mode: api
       direction: out
       bc: B-28
       name: 复核不符合项
-    actor_v1: 检查负责人
+    permission: 不符合项.复核
+    page: 不符合项复核页
+    audit: true
   - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
     command: 发布不符合项
     aggregate: AGG-28
     emits:
     - 不符合项已发布
-    desc: 发布前至少引用一条证据（INV-50）
+    desc: 发布前至少引用一条证据（INV-50）；重大险情另须记录已报告（INV-52）
     decision:
-    - when: 不符合项属客户资产且需第三方检测佐证
-      goto: 4
+    - when: 未引用任何证据
+      goto: 1
+      rule: INV-50
     - when: otherwise
-      goto: end
+      goto: 4
     cross_bc:
     - mode: api
       direction: out
       bc: B-28
       name: 发布不符合项
-    actor_v1: 检查负责人
+    permission: 不符合项.发布
+    page: 不符合项发布页
+    legal_entity: 承担法人
+    audit: true
+    metric_event: true
   - actor: SH-E4
+    where: offline
+    added_in: closeout
+    gap: 聚合稿 AGG-28 无「登记不符合项送达」类命令，送达回执暂无登记落点（NOTES 新用语）；重大险情「已报告」同缺命令（INV-52）
+    desc: 把已发布的发现与处置建议书面送达委托方（保险公司、业主等）并取得回执；重大险情当场电话或书面报告并留痕
+    evidence:
+    - 送达回执：签收单扫描件、快递妥投记录、邮件原始报文（含信头）或平台回执之一
+    - 送达日与签收人；重大险情的报告时间、报告对象与方式
+    decision:
+    - when: 不符合项属客户资产且需第三方检测佐证
+      goto: 5
+    - when: otherwise
+      goto: end
+    permission: 不符合项.登记送达
+    page: 不符合项送达登记页
+    audit: true
+    outcome: 已发布
+  - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
     command: 建议外部检测
     aggregate: AGG-37
-    actor_v1: 检查负责人
-  notes: R-07：不拆聚合，跨 BC 经 api 的代价由本流程体现。
+    desc: 建议业主委托持证检测机构做第三方检测；检测由业主委托，我方不代签
+    permission: 外部检测.建议
+    page: 外部检测建议页
+    audit: true
+    decision:
+    - when: otherwise
+      goto: end
+    outcome: 已发布并建议外部检测
+  - actor: SH-E4
+    where: in_system
+    added_in: closeout
+    command: 关闭不符合项
+    aggregate: AGG-28
+    branch: 复核不成立
+    desc: 复核认定发现不成立的，关闭并写明理由；暂无「作废」命令，用关闭承接（待用户定）
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-28
+      name: 关闭不符合项
+    permission: 不符合项.关闭
+    page: 不符合项复核页
+    audit: true
+    decision:
+    - when: otherwise
+      goto: end
+    outcome: 已关闭
 - id: PRC-45
   name: 跟踪整改并复查闭合
   trigger:
@@ -2699,60 +2499,135 @@ processes:
   owner_bc: B-26
   human_orchestration: true
   human_note: 整改申报、复查通过或回整改，反复多轮，逾期提醒（P-23）
+  migration: 在途不符合项按当前状态迁入（整改中、整改已申报），整改期限、历次申报与复查记录、轮次保留；已闭合、客户接受风险、不再跟踪的只迁结局与证据；历史全部迁入（U-4）
+  scope: 按项目的数据范围；整改责任方不登录本系统，申报材料由检查负责人登记
+  triggers:
+  - type: human
+    name: 不符合项已发布，检查负责人开始整改跟踪
+  - type: human
+    name: 业主提交整改申报材料
+  outcomes:
+  - 已闭合
+  - 客户书面接受风险
+  - 不再跟踪
+  scenarios:
+  - PRC-45-S01
+  - PRC-45-S02
+  - PRC-45-S03
+  - PRC-45-S04
+  - PRC-45-S05
+  - PRC-45-S06
+  - PRC-45-S07
   roles:
   - id: SH-E4
     as: performer
   - id: SH-E4
     as: approver
+  - id: SH-E3
+    as: performer
   - id: SH-C3
     as: external
+  - id: SH-C5
+    as: informed
+  notes: 严重等级未闭合不得签发竣工最终风险评估报告（INV-51，在交付物签发处读）。整改复查结论不走 platform.approval（B-26、B-28 无到它的边，见 NOTES 接缝问题），由 AGG-28 的「闭合不符合项」「退回整改」承载。风险保留须有委托人书面确认；闭合须引用复查或整改证据（INV-50）；复查证据同样只追加、哈希、时间戳（intent 141725）。
   steps:
   - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
     command: 开始整改
     aggregate: AGG-28
-    desc: 已发布 → 整改中；VS-03.4 进入条件（符合性审查 必-6）
+    desc: 已发布 → 整改中；VS-03.4 进入条件（符合性审查 必-6）；通知整改责任方并记整改期限
     cross_bc:
     - mode: api
       direction: out
       bc: B-28
       name: 开始整改
-    actor_v1: 检查负责人
-  - actor: SH-C3
+    permission: 不符合项.开始整改
+    page: 整改跟踪页
+    audit: true
+  - actor: SH-E4
+    where: offline
+    actor_v1: 业主代表
     command: 登记整改申报
     aggregate: AGG-28
-    desc: 整改中 → 整改已申报
+    desc: 整改中 → 整改已申报；整改由业主（整改责任方）完成并书面申报，检查负责人收到后在本系统登记（业主无本系统账号）
+    evidence:
+    - 业主整改申报函或整改完成说明（扫描件、邮件原始报文）
+    - 整改后现场照片、验收或检测材料（计内容哈希，只追加）
+    - 申报日与申报人
     cross_bc:
     - mode: api
       direction: out
       bc: B-28
       name: 登记整改申报
-    actor_v1: 业主代表
+    permission: 不符合项.登记整改申报
+    page: 整改申报登记页
+    audit: true
+    timeout:
+      after: 整改期限（按等级与合同约定）；到期未申报提醒（P-23）
+      escalate_to: SH-E4
+      interrupting: false
+    notify:
+    - to: SH-E4
+      how: 企业微信待办（整改期限已到仍未申报）
+  - actor: SH-E3
+    where: offline
+    added_in: closeout
+    command: 采集证据
+    aggregate: AGG-38
+    desc: 复查：到场或凭资料核验整改结果，拍照、量测、填复查记录并取得客户签认；证据只追加、计哈希，B-26 → B-28 api
+    evidence:
+    - 复查现场照片与视频（采集时间、部位与坐标、采集人、内容哈希）
+    - 复查量测数据与复查记录表
+    - 客户复查签认单（签认人与签认日）
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-28
+      name: 采集证据
+    permission: 证据.采集
+    page: 现场证据采集页
+    audit: true
   - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
     command: 复查检查
     aggregate: AGG-35
     desc: 复查是一次新的检查，经本 BC 检查命令
     decision:
     - when: 客户书面接受风险
-      goto: 6
-    - when: 确认不再跟踪
       goto: 7
+    - when: 确认不再跟踪
+      goto: 8
     - when: 复查未通过
-      goto: 5
+      goto: 6
     - when: otherwise
-      goto: 4
+      goto: 5
     approval:
+      engine: aggregate
       doc_type: 整改复查结论
       approver: SH-E4
       multi_level: false
-      on_reject: 5
-    actor_v1: 检查负责人
+      on_reject: 6
+    permission: 检查.复查
+    page: 整改复查页
+    audit: true
+    timeout:
+      after: 收到整改申报后的复查期限（合同参数；未约定时 P10D，待用户定）
+      escalate_to: SH-E4
+      interrupting: false
   - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
     command: 闭合不符合项
     aggregate: AGG-28
     emits:
     - 不符合项已闭合
     desc: 须引用复查或整改证据（INV-50）
     decision:
+    - when: 未引用复查或整改证据
+      goto: 3
+      rule: INV-50
     - when: otherwise
       goto: end
     cross_bc:
@@ -2760,11 +2635,21 @@ processes:
       direction: out
       bc: B-28
       name: 闭合不符合项
-    actor_v1: 检查负责人
+    permission: 不符合项.闭合
+    page: 整改复查页
+    audit: true
+    metric_event: true
+    outcome: 已闭合
+    notify:
+    - to: SH-E2
+      how: 企业微信消息（不符合项已闭合；报告签发前检查 INV-51）
   - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
     command: 退回整改
     aggregate: AGG-28
     branch: 复查未通过
+    desc: 整改中；记未通过原因与新整改期限，轮次加 1
     decision:
     - when: otherwise
       goto: 2
@@ -2773,11 +2658,19 @@ processes:
       direction: out
       bc: B-28
       name: 退回整改
-    actor_v1: 检查负责人
+    permission: 不符合项.退回整改
+    page: 整改复查页
+    audit: true
   - actor: SH-E4
+    where: offline
+    actor_v1: 检查负责人
     command: 登记客户接受风险
     aggregate: AGG-28
     branch: 客户书面接受风险
+    desc: 风险保留须有委托人书面确认；书面确认扫描件作证据登记
+    evidence:
+    - 委托人或业主书面接受风险函（扫描件、邮件原始报文）
+    - 确认日与确认人（须为合同登记的委托人代表或授权人）
     decision:
     - when: otherwise
       goto: end
@@ -2786,8 +2679,13 @@ processes:
       direction: out
       bc: B-28
       name: 登记客户接受风险
-    actor_v1: 检查负责人
+    permission: 不符合项.登记客户接受风险
+    page: 客户接受风险登记页
+    audit: true
+    outcome: 客户书面接受风险
   - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
     command: 停止跟踪不符合项
     aggregate: AGG-28
     branch: 不再跟踪
@@ -2800,8 +2698,10 @@ processes:
       direction: out
       bc: B-28
       name: 停止跟踪不符合项
-    actor_v1: 检查负责人
-  notes: 严重等级未闭合不得签发竣工最终风险评估报告（INV-51，在交付物签发处读）。
+    permission: 不符合项.停止跟踪
+    page: 整改跟踪页
+    audit: true
+    outcome: 不再跟踪
 - id: PRC-46
   name: 采信外部检测报告
   trigger:
@@ -2811,6 +2711,18 @@ processes:
   - VS-03.4
   owner_bc: B-26
   human_orchestration: false
+  migration: 在途外部检测按当前状态迁入（已建议、已委托、已登记报告）；已采信或未采信的迁结局、原因与报告证据引用；报告原件与哈希迁入后只引用、不修改；历史全部迁入（U-4）
+  scope: 按项目的数据范围；外部检测机构不登录本系统
+  triggers:
+  - type: human
+    name: 业主委托外部检测并取得报告，检查负责人登记
+  outcomes:
+  - 已采信
+  - 未采信
+  scenarios:
+  - PRC-46-S01
+  - PRC-46-S02
+  - PRC-46-S03
   roles:
   - id: SH-E4
     as: performer
@@ -2818,19 +2730,58 @@ processes:
     as: external
   - id: SH-X6
     as: external
+  notes: 外部检测报告只引用、不修改（INV-57）。检测由业主委托，我方只登记与采信。
   steps:
   - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
     command: 登记业主委托外部检测
     aggregate: AGG-37
-    actor_v1: 检查负责人
+    desc: 登记业主委托的检测机构、委托日与约定出具期限
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-01
+      name: 读检测机构
+    permission: 外部检测.登记委托
+    page: 外部检测登记页
+    audit: true
+    timeout:
+      after: 约定的报告出具期限（业主委托函约定；未约定时 P30D，待用户定）
+      escalate_to: SH-E4
+      interrupting: false
+    notify:
+    - to: SH-E4
+      how: 企业微信待办（外部检测报告超期未取得）
   - actor: SH-E4
+    where: offline
+    added_in: closeout
+    command: 采集证据
+    aggregate: AGG-38
+    desc: 收到业主转交的外部检测报告原件，作外部报告类证据采集；证据本身只引用、不修改；B-26 → B-28 api
+    evidence:
+    - 外部检测报告原件（电子文件或纸质扫描，计内容哈希）
+    - 收到日、转交人与出具机构资质证明
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-28
+      name: 采集证据
+    permission: 证据.采集
+    page: 证据上传页
+    audit: true
+  - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
     command: 登记外部检测报告
     aggregate: AGG-37
+    desc: 引用外部检测报告证据（INV-57 只引用）；核对出具机构与业主委托机构一致、报告内容完整；非业主委托机构的报告为 P-30 写入前预警
     decision:
     - when: 报告出具机构为业主委托机构且内容完整
-      goto: 3
-    - when: otherwise
       goto: 4
+      rule: P-30
+    - when: otherwise
+      goto: 5
     cross_bc:
     - mode: api
       direction: out
@@ -2840,22 +2791,377 @@ processes:
       direction: out
       bc: B-28
       name: 引用报告证据
-    actor_v1: 检查负责人
+    permission: 外部检测.登记报告
+    page: 外部检测登记页
+    audit: true
   - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
     command: 采信外部检测报告
     aggregate: AGG-37
     emits:
     - 外部检测报告已采信
-    actor_v1: 检查负责人
+    desc: 采信后检测结论可作为复查与闭合的依据（PRC-45）
+    permission: 外部检测.采信
+    page: 外部检测采信页
+    audit: true
+    metric_event: true
+    decision:
+    - when: otherwise
+      goto: end
+    outcome: 已采信
   - actor: SH-E4
+    where: in_system
+    actor_v1: 检查负责人
     command: 不采信外部检测报告
     aggregate: AGG-37
     branch: 不采信
     emits:
     - 外部检测报告未采信
     desc: 原因必填；非业主委托机构的报告为 P-30 写入前预警
-    actor_v1: 检查负责人
-  notes: 外部检测报告只引用、不修改（INV-57）。
+    permission: 外部检测.不采信
+    page: 外部检测采信页
+    audit: true
+    decision:
+    - when: otherwise
+      goto: end
+    outcome: 未采信
+- id: PRC-47
+  name: 起草、评审并回签协议
+  trigger:
+    type: event
+    events:
+    - event: OpportunityAccepted
+      aggregate: AGG-10
+    desc: 商机赢单（含直接委托）后商务起草项目合同或任务订单
+  stages:
+  - VS-04.1
+  owner_bc: B-05
+  human_orchestration: true
+  human_note: 合同评审审批；客户回签；依法招标项目须比对中标承诺
+  roles:
+  - id: SH-E5
+    as: initiator
+  - id: SH-E6
+    as: approver
+  - id: SH-C6b
+    as: external
+  steps:
+  - actor: SH-E5
+    read: true
+    reads:
+    - AGG-10
+    - AGG-11
+    - AGG-12
+    - AGG-18
+    - AGG-19
+    - AGG-20
+    desc: 读商机、承诺快照、报价版本、独立性检查结论、项目与 WBS 节点
+    cross_bc:
+    - mode: event
+      direction: in
+      bc: B-03
+      name: OpportunityAccepted
+    - mode: api
+      direction: out
+      bc: B-03
+      name: 读商机、承诺快照、报价版本与独立性检查结论
+    - mode: api
+      direction: out
+      bc: B-04
+      name: 读项目与WBS节点
+    actor_v1: 商务
+  - actor: SH-E5
+    command: 起草协议
+    aggregate: AGG-13
+    desc: 复制承诺快照
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-01
+      name: 读往来单位
+    - mode: api
+      direction: out
+      bc: B-13
+      name: 读承担法人
+    actor_v1: 商务
+  - actor: SH-E5
+    command: 登记合同—项目关联与范围挂 WBS
+    aggregate: AGG-13
+    emits:
+    - 合同—项目关联已登记
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-04
+      name: 校验项目与WBS节点
+    - mode: event
+      direction: out
+      bc: B-07
+      name: 合同—项目关联已登记
+    actor_v1: 商务
+  - actor: SH-E5
+    command: 登记视为同意参数与发包人代表
+    aggregate: AGG-13
+    desc: ADR-0047 第 5 条第 1 点
+    actor_v1: 商务
+  - actor: platform
+    platform_task: true
+    service: platform.approval
+    command: 合同评审
+    gap: G-02
+    approval:
+      doc_type: 合同评审单
+      approver: SH-E6
+      multi_level: true
+      on_reject: 2
+    cross_bc:
+    - *id001
+    actor_v1: 法务
+  - actor: SH-E5
+    command: 回签
+    aggregate: AGG-13
+    emits:
+    - ContractSigned
+    desc: 回签即生效；基线化前比对承诺（INV-05、07）
+    decision:
+    - when: 客户拒绝回签，或依法招标项目与中标承诺实质背离
+      goto: 2
+    - when: otherwise
+      goto: end
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-03
+      name: 签约前再读独立性检查结论
+    - mode: event
+      direction: out
+      bc: B-07
+      name: ContractSigned
+    - mode: event
+      direction: out
+      bc: B-08
+      name: ContractSigned
+    - mode: event
+      direction: out
+      bc: B-26
+      name: ContractSigned
+    actor_v1: 商务
+  notes: 直建例外须经审批（INV-06）；订阅方 B-07、B-08、B-26。报价版本已生效、独立性检查已有结论无事件消费者，签约时读取，可接受（⑥a 评审 L3）。
+- id: PRC-48
+  name: 提出并生效协议变更或签证
+  trigger:
+    type: human
+    desc: 范围、价款、工期变化，或现场发生签证事项
+  stages:
+  - VS-04.1
+  owner_bc: B-05
+  human_orchestration: true
+  human_note: 提出 → 影响评估 → 审批 → 已生效 / 驳回
+  roles:
+  - id: SH-E5
+    as: initiator
+  - id: SH-M1
+    as: approver
+  - id: SH-C6b
+    as: external
+  steps:
+  - actor: SH-E5
+    read: true
+    reads:
+    - AGG-30
+    - AGG-31
+    - AGG-13
+    desc: 读所主张的设计变更与延期申请
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-28
+      name: 读所主张的设计变更
+    - mode: api
+      direction: out
+      bc: B-04
+      name: 读所主张的延期申请
+    actor_v1: 商务
+  - actor: SH-E5
+    command: 提出协议变更
+    aggregate: AGG-15
+    decision:
+    - when: 现场签证事项
+      goto: 6
+    - when: otherwise
+      goto: 3
+    actor_v1: 商务
+  - actor: SH-E5
+    command: 评估变更影响
+    aggregate: AGG-15
+    actor_v1: 商务
+  - actor: platform
+    platform_task: true
+    service: platform.approval
+    command: 协议变更审批
+    gap: G-02
+    approval:
+      doc_type: 协议变更审批单
+      approver: SH-M1
+      multi_level: true
+      on_reject: end
+    cross_bc:
+    - *id001
+    actor_v1: 项目总监
+  - actor: SH-E5
+    command: 生效协议变更
+    aggregate: AGG-15
+    emits:
+    - ChangeOrderApproved
+    decision:
+    - when: otherwise
+      goto: 7
+    actor_v1: 商务
+  - actor: SH-E5
+    command: 确认现场签证
+    aggregate: AGG-15
+    branch: 签证
+    emits:
+    - SiteVisaConfirmed
+    decision:
+    - when: otherwise
+      goto: 7
+    actor_v1: 商务
+  - actor: system
+    command: 应用变更
+    aggregate: AGG-13
+    on_event:
+    - aggregate: AGG-15
+      event: ChangeOrderApproved
+    - aggregate: AGG-15
+      event: SiteVisaConfirmed
+    emits:
+    - 新基线已生效
+    desc: 订阅协议变更生效与签证确认（同 BC）；按变更 ID 幂等
+    cross_bc:
+    - mode: event
+      direction: out
+      bc: B-08
+      name: 新基线已生效
+    actor_v1: 系统策略
+  notes: 生效后只能经协议变更产生新基线（INV-07、16）；B-08 订阅新基线更新开票与收入额度。
+- id: PRC-49
+  name: 提出并认定索赔
+  trigger:
+    type: human
+    desc: 对方或我方出现可索赔事项，在时限内通知
+  stages:
+  - VS-04.1
+  - VS-04.5
+  owner_bc: B-05
+  human_orchestration: true
+  human_note: 已通知 → 已提交 → 已认定 / 已拒绝 / 撤回，索赔时限
+  roles:
+  - id: SH-E5
+    as: initiator
+  - id: SH-C6b
+    as: external
+  steps:
+  - actor: SH-E5
+    read: true
+    reads:
+    - AGG-30
+    - AGG-31
+    desc: 读所引用的设计变更与延期申请
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-28
+      name: 读所引用的设计变更
+    - mode: api
+      direction: out
+      bc: B-04
+      name: 读所引用的延期申请
+    actor_v1: 商务
+  - actor: SH-E5
+    command: 提出索赔
+    aggregate: AGG-16
+    emits:
+    - ClaimAsserted
+    desc: 超时限须注明理由（INV-17）
+    decision:
+    - when: 对方认定索赔
+      goto: 3
+    - when: 对方拒绝，或我方撤回
+      goto: 4
+    - when: otherwise
+      goto: end
+    actor_v1: 商务
+  - actor: SH-E5
+    command: 认定索赔
+    aggregate: AGG-16
+    emits:
+    - ClaimSettled
+    decision:
+    - when: otherwise
+      goto: end
+    actor_v1: 商务
+  - actor: SH-E5
+    command: 拒绝或撤回索赔
+    aggregate: AGG-16
+    branch: 拒绝或撤回
+    actor_v1: 商务
+  notes: P-08 索赔时限临近提醒。
+- id: PRC-50
+  name: 占用框架限额并提交任务订单
+  trigger:
+    type: human
+    desc: 商务按框架协议起草任务订单
+  stages:
+  - VS-04.1
+  owner_bc: B-05
+  human_orchestration: true
+  human_note: 占用被拒则订单不得提交；驳回、作废、终止释放
+  roles:
+  - id: SH-E5
+    as: initiator
+  - id: SH-M1
+    as: approver
+  steps:
+  - actor: SH-E5
+    command: 占用框架限额
+    aggregate: AGG-14
+    emits:
+    - 限额已占用
+    - 框架限额占用被拒
+    decision:
+    - when: 占用被拒
+      goto: end
+    - when: otherwise
+      goto: 2
+    actor_v1: 商务
+  - actor: SH-E5
+    command: 提交任务订单
+    aggregate: AGG-13
+    desc: 引用占用 ID
+    decision:
+    - when: 订单被作废或终止
+      goto: 3
+    - when: otherwise
+      goto: end
+    approval:
+      doc_type: 任务订单审批单
+      approver: SH-M1
+      multi_level: false
+      on_reject: 3
+    cross_bc:
+    - *id001
+    actor_v1: 商务
+  - actor: system
+    command: 释放框架限额
+    aggregate: AGG-14
+    branch: 驳回或作废
+    emits:
+    - 限额已释放
+    desc: 孤儿占用靠定时释放兜底
+    actor_v1: 系统策略
+  notes: P-04 回签后超额占用预警。
 - id: PRC-54
   name: 视为同意期满处理
   trigger:
@@ -3416,6 +3722,142 @@ processes:
       name: 协议已结算
     actor_v1: 商务
   notes: 合并原 PRC-67（⑥a 评审 H2 c、H4）。编排方取 B-08（B-08 → B-05 边已有），结算部分是 B-05 内的反应。协议「已结算」与价值流阶段「结算」同名异义，已交 one-glossary。协议已结算 → B-08 收入冲减无命令，记入 G-19、G-16。
+- id: PRC-69
+  name: 供应商准入与资质核验
+  trigger:
+    type: human
+    desc: 项目经理或职能提出新供方，财务发起准入
+  stages:
+  - VS-05.1
+  owner_bc: B-01
+  human_orchestration: false
+  roles:
+  - id: SH-E2
+    as: initiator
+  - id: SH-E6
+    as: performer
+  - id: SH-P2
+    as: external
+  - id: SH-P1
+    as: external
+  steps:
+  - actor: SH-E2
+    command: 申请往来单位角色
+    aggregate: AGG-01
+    actor_v1: 项目经理
+  - actor: SH-E6
+    command: 登记资质证书
+    aggregate: AGG-02
+    decision:
+    - when: 资质核验未通过
+      goto: end
+    - when: otherwise
+      goto: 3
+    actor_v1: 财务
+  - actor: SH-E6
+    command: 核准往来单位角色合格
+    aggregate: AGG-01
+    emits:
+    - 角色已合格
+    decision:
+    - when: 合作期间资质撤销或到期未延续
+      goto: 4
+    - when: 合作终止或严重失信
+      goto: 5
+    - when: otherwise
+      goto: end
+    cross_bc:
+    - mode: api
+      direction: in
+      bc: B-11
+      name: 读取角色准入状态
+    - mode: api
+      direction: in
+      bc: B-10
+      name: 读取角色准入状态
+    actor_v1: 财务
+  - actor: SH-E6
+    command: 暂停往来单位角色
+    aggregate: AGG-01
+    branch: 暂停
+    emits:
+    - 角色已暂停
+    decision:
+    - when: 暂停原因消除
+      goto: 3
+    - when: otherwise
+      goto: end
+    actor_v1: 财务
+  - actor: SH-E6
+    command: 停用往来单位角色
+    aggregate: AGG-01
+    branch: 停用
+    emits:
+    - 角色已停用
+    actor_v1: 财务
+  notes: 角色准入命令的参数为角色，只适用于供应商、分包等需准入的角色，客户角色不走准入（intent 120544 P-3）。未合格或已停用的供应商不得签分包、采购协议或付款（INV-04）；资质到期见「年检、核查与延续企业资质」。
+- id: PRC-78
+  name: 年检、核查与延续企业资质
+  trigger:
+    type: time
+    desc: 资质年检、动态核查通知或到期临近（P-02）
+  stages:
+  - VS-06.2
+  owner_bc: B-01
+  human_orchestration: true
+  human_note: 核查结论、降级撤销、延续审批
+  roles:
+  - id: SH-E6
+    as: initiator
+  - id: SH-M1
+    as: approver
+  - id: SH-R2
+    as: external
+  steps:
+  - actor: SH-E6
+    command: 发起资质核查
+    aggregate: AGG-02
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-13
+      name: 读持证法人主体
+    actor_v1: 职能人员
+  - actor: SH-E6
+    command: 登记核查结果
+    aggregate: AGG-02
+    emits:
+    - 资质已撤销
+    desc: 结果为有效 / 降级 / 撤销，撤销时发事件
+    decision:
+    - when: 核查结论为撤销
+      goto: end
+    - when: 到期临近需延续
+      goto: 3
+    - when: otherwise
+      goto: end
+    actor_v1: 职能人员
+  - actor: SH-E6
+    command: 延续资质
+    aggregate: AGG-02
+    decision:
+    - when: otherwise
+      goto: end
+    approval:
+      doc_type: 资质延续审批单
+      approver: SH-M1
+      multi_level: false
+      on_reject: 4
+    actor_v1: 职能人员
+  - actor: system
+    command: 标记资质已到期
+    aggregate: AGG-02
+    branch: 未延续
+    on_time: 到期日届满
+    emits:
+    - 资质已到期
+    actor_v1: 系统策略
+  notes: 持证方含我方法人，位置见聚合稿 §7 第 3 条。
 - id: PRC-86
   name: 发放与归还员工借款
   trigger:
@@ -3751,3 +4193,77 @@ event_policies:
       bc: B-01
       name: 读购买方
   notes: §4.3 步 8 写事件「应收已创建」，AGG-49 事件列无此名，见 G-08。
+single_aggregate:
+- id: PRC-42
+  name: 发布检查表模板版本
+  type: single_aggregate
+  aggregate: AGG-36
+  owner_bc: B-26
+  stages:
+  - VS-03.1
+  human_orchestration: false
+  trigger:
+    type: human
+    desc: 检查表模板管理员（技术专家）发布新版本
+  triggers:
+  - type: human
+    name: 检查标准或检查要点变更，技术专家发布新版本
+  roles:
+  - id: SH-E4
+    as: initiator
+  - id: SH-E3
+    as: informed
+  migration: 全部模板版本及其检查项迁入（U-4），每个版本保持原生效日期与版本序号；被历史检查引用的版本不可改、不可删，迁入后仍只追加；老系统模板与新系统版本的对应在迁入对账中核对
+  scope: 全公司共用的版本化参考数据，所有检查负责人与检查人员可读；发布限技术专家
+  states:
+  - 已生效
+  transitions:
+  - from: null
+    to: 已生效
+    command: 发布检查表模板版本
+    by: SH-E4
+    emits:
+    - 检查表模板版本已生效
+    permission: 检查表模板.发布
+    page: 检查表模板版本发布页
+    rule: INV-34b
+  pages:
+  - name: 检查表模板版本发布页
+    permission: 检查表模板.发布
+    desc: 编辑检查项（检查内容、依据标准条文、判定方式、等级映射）后一次发布；发布后不可改，只出新版本
+  - name: 检查表模板版本列表页
+    permission: 检查表模板.查看
+    desc: 按检查类型列出各版本与生效日期，可比较相邻版本差异
+  - name: 检查表模板版本详情页
+    permission: 检查表模板.查看
+    desc: 只读；显示被哪些检查引用
+  permissions:
+  - 检查表模板.发布
+  - 检查表模板.查看
+  scenarios:
+  - PRC-42-S01
+  - PRC-42-S02
+  desc: 检查表模板管理员发布新版本
+  notes: 被引用版本不可改（INV-34b，D15 版本化）；新版本不影响已安排、已锁定检查所引用的旧版本；发布走聚合内命令，不走 platform.approval（AGG-36 无审批状态，F-2 不适用，是否加技术委员会复核见 NOTES 待用户定）。
+  steps:
+  - actor: SH-E4
+    where: in_system
+    actor_v1: 技术专家
+    command: 发布检查表模板版本
+    aggregate: AGG-36
+    emits:
+    - 检查表模板版本已生效
+    desc: 模板版本一经发布即生效；草拟阶段在页面本地保存，不入库（OBJ-50 的草拟、停用状态聚合稿无命令，见 NOTES）
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-02
+      name: 读服务产品
+    permission: 检查表模板.发布
+    page: 检查表模板版本发布页
+    audit: true
+    decision:
+    - when: otherwise
+      goto: end
+    outcome: 已生效
+read_models: []
