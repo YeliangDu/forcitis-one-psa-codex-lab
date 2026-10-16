@@ -1,4 +1,4 @@
-# 收入线组表级数据模型片段（one-arch-revenue；格式按 closeout/CONVENTIONS.md 第 3 节）；FIX123 补 pi（M10）
+# 收入线组表级数据模型片段（one-arch-revenue；格式按 closeout/CONVENTIONS.md 第 3 节）；FIX123 补 pi（M10）；FIX04 低 7（付款条件达成事实、额度变动行、冲销）
 - aggregate: AGG-01
   bc: B-01
   tables:
@@ -1030,9 +1030,9 @@
     - 付款条件
     - 账期
     - 条款金额
-    - 条件状态(可结算)
     - 取代标记
-    reason: 可开票额度金额在 AGG-44，此处只记条件状态；条件状态标记可结算后不回退，审计可还原
+    - 条件类型（成果认可、预付、审图通过、竣工验收、按期、结算审定、质保期满）
+    reason: 条件项只经协议变更修改（取代标记）；条件是否达成见 payment_term_fulfillments，「可结算」由未作废的达成行派生（评审低 7）
   - name: agreement_performance_obligations
     role: child
     key: uuid_v7
@@ -1153,6 +1153,30 @@
     - 归档日期与归档人
     - 存档状态
     reason: C-4 归档并入合同模块档案功能；借阅走通用审批，不另建借阅表；聚合稿 §2.2 AGG-13 无归档命令，见 NOTES 结构问题
+  - name: payment_term_fulfillments
+    role: child
+    key: uuid_v7
+    references:
+    - to: agreement_payment_term_items
+      by: payment_term_id
+    - to: AGG-38
+      by: evidence_id
+      cross_bc: true
+    - to: AGG-27
+      by: submission_round_id
+      cross_bc: true
+    versioned: append_only
+    history_migration: full
+    sensitivity: internal
+    pi: none
+    column_families:
+    - 达成方式（交付物认可 / 视为同意 / 人工登记 / 定时）
+    - 证据类型与引用
+    - 达成日
+    - 登记人与登记时间
+    - 作废标记（更正追加作废行）
+    - 审计列
+    reason: 达成是不可改事实；可结算＝存在未作废达成行，不存状态（D8；PRC-56、54、152）
 - aggregate: AGG-14
   bc: B-05
   tables:
@@ -2650,7 +2674,7 @@
     - 条款金额（随协议变更生效更新，PRC-51）
     - 累计开票
     - 审计列
-    reason: ''
+    reason: 当前值是变动行的可重算投影，改动只经 payment_term_capacity_changes 追加（D1；评审低 7）
   - name: performance_obligation_capacities
     role: child
     key: uuid_v7
@@ -2670,7 +2694,7 @@
     - 分摊的交易价格
     - 累计确认（含税、不含税、税额）
     - 审计列
-    reason: ''
+    reason: 当前值是变动行的可重算投影，改动只经 performance_obligation_capacity_changes 追加（D1；评审低 7）
   - name: billing_reservations
     role: child
     key: uuid_v7
@@ -2691,7 +2715,7 @@
     - 开票申请与发票引用
     - 时间点
     - 审计列
-    reason: 开票与红冲同事务改写（INV-73，C 类例外）
+    reason: 开票与红冲同事务改写（INV-73，C 类例外）；红冲（PRC-58）同事务回冲，变动行记「回冲」
   - name: revenue_recognition_reservations
     role: child
     key: uuid_v7
@@ -2712,7 +2736,8 @@
     - 转实后的确认事实引用
     - 时间点
     - 审计列
-    reason: Q-04 选 C：审批中的金额单独占额度，只记金额、审批实例、状态，证据与拟认可日在审批载荷；迁入的历史确认直接写确认事实（ADR-0036 迁入不启动流程实例，M7），不产生占用行，故 none
+    - 占用方向（确认 / 冲销）
+    reason: 占用与审批实例不迁，投产时由迁入编排的一次性离线命令对在途项重新占用并发起审批（ADR-0036 第 5 条；评审 M2）
   - name: deemed_acceptance_determinations
     role: child
     key: uuid_v7
@@ -2768,6 +2793,7 @@
     - 审批实例引用
     - 内容摘要（哈希）
     - 记录时间点与记录人
+    - 冲销原因与冲销审批实例引用（PRC-149：客户撤回认可、证据失效、误批、范围缩减、协议终止、结算审减）
     reason: Q-04 选 C 的不可改确认事实；数据库层禁止 UPDATE / DELETE（D8、G34），更正只靠冲销行；进度估计不写这里（管理产值，情形甲）
   - name: revenue_recognition_evidences
     role: link
@@ -2791,6 +2817,56 @@
     - 提交轮次引用
     - 引用时的证据摘要快照（哈希）
     reason: 认可前证据先关联提交轮次（AGG-110），确认事实形成时再引用（ADR-0047 U-1 (a) 细化，须让用户知情）；历史迁入行证据类型记「历史迁入」，可无证据行
+  - name: payment_term_capacity_changes
+    role: child
+    key: uuid_v7
+    references:
+    - to: payment_term_capacities
+      by: payment_term_capacitie_id
+    - to: AGG-13
+      by: baseline_version_id
+      cross_bc: true
+    - to: billing_reservations
+      by: reservation_id
+    versioned: append_only
+    history_migration: full
+    sensitivity: internal
+    pi: none
+    column_families:
+    - 变动类型（建立 / 基线调整 / 占用 / 转实 / 释放 / 回冲）
+    - 变动金额（带符号）
+    - 变动后额度
+    - 因由引用（基线、开票申请、发票、确认事实）
+    - 操作人或系统
+    - 时间点
+    - 审计列
+    reason: 额度改动只追加变动行；历史迁入时由迁入编排按历史开票与确认事实重放生成
+  - name: performance_obligation_capacity_changes
+    role: child
+    key: uuid_v7
+    references:
+    - to: performance_obligation_capacities
+      by: performance_obligation_capacitie_id
+    - to: AGG-13
+      by: baseline_version_id
+      cross_bc: true
+    - to: revenue_recognition_reservations
+      by: reservation_id
+    - to: revenue_recognitions
+      by: recognition_id
+    versioned: append_only
+    history_migration: full
+    sensitivity: internal
+    pi: none
+    column_families:
+    - 变动类型（建立 / 基线调整 / 占用 / 转实 / 释放 / 冲销占用 / 冲销转实）
+    - 变动金额（带符号）
+    - 变动后额度
+    - 因由引用（基线、开票申请、发票、确认事实）
+    - 操作人或系统
+    - 时间点
+    - 审计列
+    reason: 额度改动只追加变动行；历史迁入时由迁入编排按历史开票与确认事实重放生成
 - aggregate: AGG-45
   bc: B-08
   tables:

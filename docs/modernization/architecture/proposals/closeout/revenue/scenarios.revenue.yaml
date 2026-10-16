@@ -357,17 +357,17 @@ PRC-10:
   - 转移「登记保证金缴纳」
   expect: 发保证金已缴（仅分析）；提交过账候选；P-10 比例判定
 - id: PRC-10-S02
-  path: 已缴→已缴（扣减）
+  path: 已缴→扣减审批通过→已缴（扣减）
   outcome: null
   covers:
   - 转移「扣减保证金」
-  expect: 履约保证金可部分扣减（INV-20）；留操作审计
+  expect: 责任人审批违约事实与金额后登记；履约保证金可部分扣减（INV-20）；留操作审计
 - id: PRC-10-S03
-  path: 已缴→已退
+  path: 已缴→已退（我方收取的保证金，经 B-10 付款退还）
   outcome: 已退
   covers:
   - 转移「退还保证金」
-  expect: 退还与没收互斥各只一次（INV-20）；提交过账候选
+  expect: 退还与没收互斥各只一次（INV-20）；收款账户须为原缴纳方账户（AR-09）；付款经 B-10；提交过账候选
 - id: PRC-10-S04
   path: 已没收后退还，或已退后没收
   outcome: null
@@ -393,6 +393,34 @@ PRC-10:
   covers:
   - 转移「登记保证金缴纳」等人工登记的期间提示
   expect: 按规则卡提示（不设审批，不拒绝），登记后提交过账候选按 INV-92 路由
+- id: PRC-10-S08
+  path: 已缴→没收审批通过→被没收
+  outcome: 被没收
+  expect: 责任人审批违约事实与金额；发保证金已没收（仅分析）；提交过账候选
+- id: PRC-10-S09
+  path: 扣减或没收审批驳回
+  outcome: null
+  expect: 收到「审批已驳回」，转移不发生，保证金保持已缴
+- id: PRC-10-S10
+  path: 扣减或没收金额超阈值或相对方为关联方→加审后通过
+  outcome: null
+  expect: 责任人一级审批后按 AR-01、AR-02 加审
+- id: PRC-10-S11
+  path: 退还收款账户不是原缴纳方登记账户
+  outcome: null
+  expect: 拒绝并告警（AR-09，RULE-410）
+- id: PRC-10-S12
+  path: 待缴→B-10 付款审批通过并付款成功→已缴
+  outcome: 已缴
+  expect: 我方缴纳的保证金经 B-10 付款审批，付款成功后登记缴纳
+- id: PRC-10-S13
+  path: 提交过账候选时原期间所在年度已年结
+  outcome: null
+  expect: 暂挂并告警，待 ADR-0045 U-2
+- id: PRC-10-S14
+  path: 迁入后审批中的扣减或没收
+  outcome: null
+  expect: 迁入编排的离线命令重新发起审批，不迁审批实例
 PRC-12:
 - id: PRC-12-S01
   path: 发布服务产品版本、发布阶段类型版本
@@ -1547,45 +1575,59 @@ PRC-47:
   covers:
   - 第 5 步加审（AR-01、AR-02、AR-07）
   expect: 在责任人一级审批后按命中规则加一级（最多两级），通过后进入回签
+- id: PRC-47-S09
+  path: 迁入后评审中的协议
+  outcome: null
+  expect: 迁入编排的离线命令对评审中的协议重新发起合同评审审批，不迁审批实例
 PRC-48:
 - id: PRC-48-S01
-  path: 1→2→3→4 通过→5→7
+  path: 1→2→3→4 通过→5 发包人同意→6→8
   outcome: 新基线已生效
-  covers:
-  - 第 2 步 otherwise
-  - 第 4 步「审批通过」
-  expect: 收到「审批已通过」；发 ChangeOrderApproved；应用变更后发「新基线已生效」，订阅方 B-08
+  expect: 收到「审批已通过」；登记发包人书面同意后发 ChangeOrderApproved；应用变更后发「新基线已生效」，订阅方 B-08
 - id: PRC-48-S02
-  path: 2 现场签证→6→7
+  path: 2 现场签证→7 签认→8
   outcome: 新基线已生效
-  covers:
-  - 第 2 步「现场签证事项」
   expect: 发 SiteVisaConfirmed；签证单作证据；按变更 ID 幂等应用
 - id: PRC-48-S03
   path: 4 驳回
   outcome: 变更已驳回
-  covers:
-  - 第 4 步 otherwise
   expect: 收到「审批已驳回」；变更不生效，基线不变（INV-07）
 - id: PRC-48-S04
-  path: 7 重复收到同一变更生效事件
+  path: 8 重复收到同一变更生效事件
   outcome: 新基线已生效
-  covers:
-  - 第 7 步幂等
   expect: 按变更 ID 幂等，不产生第二个基线
 - id: PRC-48-S05
   path: 4 提出人撤回变更→end
   outcome: 已撤回
-  covers:
-  - 第 4 步「提出人撤回变更」
-  - 第 4 步撤回
   expect: 审批实例撤回，变更不生效，基线不变
 - id: PRC-48-S06
   path: 4 变更影响金额超阈值→加审后通过→5
   outcome: 新基线已生效
-  covers:
-  - 第 4 步加审（AR-01、AR-02、AR-07）
-  expect: 责任人一级审批后加一级，通过后生效变更
+  expect: 责任人一级审批后加一级，通过后向发包人提出
+- id: PRC-48-S07
+  path: 5 发包人拒绝变更
+  outcome: 变更未获发包人同意
+  expect: 登记拒绝，变更不生效，基线与开票、收入额度不变（H4）
+- id: PRC-48-S08
+  path: 第 5 步「登记发包人书面同意」答复期届满未答复（合同约定；未约定 P30D）
+  outcome: 变更未获发包人同意
+  expect: 先升级给 SH-M1（非中断）；仍无答复则登记为未获同意，额度不抬高
+- id: PRC-48-S09
+  path: 5 尚无发包人书面同意即点生效 6
+  outcome: null
+  expect: 拒绝并告警：生效须引用已登记的发包人书面同意
+- id: PRC-48-S10
+  path: 7 发包人代表拒签现场签证
+  outcome: 签证被拒签
+  expect: 登记拒签，不发 SiteVisaConfirmed，基线不变
+- id: PRC-48-S11
+  path: 第 7 步「确认现场签证」签认期届满未签认（P14D）
+  outcome: 签证被拒签
+  expect: 升级给 SH-M1（非中断）；仍无签认则登记拒签
+- id: PRC-48-S12
+  path: 迁入后审批中的变更
+  outcome: null
+  expect: 迁入编排的离线命令重新发起协议变更审批，不迁审批实例
 PRC-49:
 - id: PRC-49-S01
   path: 1→2→3
@@ -1624,6 +1666,10 @@ PRC-49:
   - 第 2 步撤回
   - 第 4 步 otherwise
   expect: 登记撤回函，索赔结束；结局记为已撤回的索赔
+- id: PRC-49-S07
+  path: PRC-66 第 4 步未能确认最终价款，转索赔→1→2
+  outcome: 已提交待答复
+  expect: 被 PRC-66 调用后从第 1 步起走；引用结算书与未确认的价款差额作为索赔事项
 PRC-50:
 - id: PRC-50-S01
   path: 1→2 审批通过
@@ -1645,7 +1691,7 @@ PRC-50:
   - 第 2 步 otherwise
   expect: 收到「审批已驳回」；发「限额已释放」
 - id: PRC-50-S04
-  path: 2 占用有效期满无提交→3
+  path: 第 2 步「提交任务订单」占用有效期届满无提交→3
   outcome: 限额已释放
   covers:
   - 第 2 步超时
@@ -1658,12 +1704,9 @@ PRC-50:
   - 第 2 步撤回
   expect: 审批实例撤回，释放占用，订单不生效
 - id: PRC-50-S06
-  path: 第 2 步「提交任务订单」期限届满（占用有效期（配置，待用户定））
+  path: 迁入后在途订单
   outcome: null
-  covers:
-  - 第 2 步超时
-  - 提交任务订单
-  expect: 按期限升级或提醒 SH-E5（中断）；未办结前不推进下一步
+  expect: 迁入编排的离线命令重新占用并发起审批，不迁占用行与审批实例
 PRC-51:
 - id: PRC-51-S01
   path: 收到 ContractSigned→更新额度
@@ -1689,6 +1732,10 @@ PRC-51:
   covers:
   - 失败路径
   expect: 失败并告警，不静默跳过
+- id: PRC-51-S05
+  path: 迁入完成后对已回签协议一次性建额度
+  outcome: null
+  expect: 迁入编排的离线命令建额度，累计取自迁入事实，不发事件
 PRC-52:
 - id: PRC-52-S01
   path: 开放一类证据类型
@@ -1741,51 +1788,60 @@ PRC-53:
   - 第 1 步「证据类型未开放、证据不全，或额度不足」（INV-22、86）
   expect: 拒绝占用并告警；开票、进度估计均不触发本策略
 - id: PRC-53-S06
-  path: 2 审批 P5D 未处理
+  path: 第 2 步「收入确认审批」P5D 未处理
   outcome: null
   covers:
   - 第 2 步超时
-  expect: 升级知会 SH-M1，非中断，审批仍可继续
+  expect: 升级给 SH-M1（财务负责人的上级，非中断），审批仍可继续
 - id: PRC-53-S07
-  path: 第 2 步「收入确认审批」期限届满（P5D）
+  path: 1 部分认可，认可部分占比 40%→2
   outcome: null
-  covers:
-  - 第 2 步超时
-  - 收入确认审批
-  expect: 按期限升级或提醒 SH-M1（不中断）；未办结前不推进下一步
+  expect: 占用按分摊价格 × 认可部分占比，余部分待后续认可再占用
+- id: PRC-53-S08
+  path: 1 一份成果对应两个履约义务→2
+  outcome: null
+  expect: 按分摊比例拆为两行分别占用，两行共用一次审批
+- id: PRC-53-S09
+  path: 迁入后在途的收入确认
+  outcome: null
+  expect: 迁入编排的离线命令对在途项重新占用并发起审批；占用行与审批实例不迁
 PRC-54:
 - id: PRC-54-S01
-  path: 1→2 期满、无退回、声明日不早于期满日
+  path: 1→3 期满定时先到→5 期满时已有无异议声明且该轮未被退回→7→8
   outcome: 视为同意已成立
-  covers:
-  - 第 1 步 otherwise
-  - 第 2 步「期满日前无退回且声明日不早于期满日」
-  expect: 项目经理认定视为同意成立，追加认定事实并发「视为同意已成立」，触发 PRC-53；交付物不出现「视为同意」状态
+  expect: 系统自动认定并追加认定事实，发「视为同意已成立」，触发 PRC-53；同时标记付款条件项可结算；交付物不出现「视为同意」状态；项目经理没有人工认定步骤
 - id: PRC-54-S02
-  path: 1 期满日前收到客户退回
+  path: 3 期满前先收到客户退回→4
   outcome: 待办已取消
-  covers:
-  - 第 1 步「期满日前已收到客户退回」
   expect: 取消期满待办，不认定
 - id: PRC-54-S03
-  path: 2 声明日早于期满日
+  path: 5 声明日早于期满日
   outcome: 视为同意未成立
-  covers:
-  - 第 2 步 otherwise
   expect: 不认定，不触发收入确认，告警提示
 - id: PRC-54-S04
-  path: 2 期满待办逾期 P7D 未处理
-  outcome: null
-  covers:
-  - 第 2 步超时
-  expect: 升级知会 SH-E6，不自动认定
+  path: 5 期满时尚无声明→6 催办，催办期内登记声明→5→7→8
+  outcome: 视为同意已成立
+  expect: 催办项目经理并向阶段门预警；声明登记后回到第 5 步重新核对，三条件齐备则认定
 - id: PRC-54-S05
-  path: 第 2 步「认定视为同意成立」期限届满（P7D）
+  path: 第 6 步「催办项目经理登记无异议声明」催办期届满（P3D）仍无声明
+  outcome: 视为同意未成立
+  expect: 升级给 SH-M1（非中断）；本轮不成立，不自动认定；之后登记声明会由「无异议已声明」重新触发本策略
+- id: PRC-54-S06
+  path: 1 同一交付物重新报送，新送达→2 作废旧待办→3
   outcome: null
-  covers:
-  - 第 2 步超时
-  - 认定视为同意成立
-  expect: 按期限升级或提醒 SH-E6（不中断）；未办结前不推进下一步
+  expect: 上一轮待办与催办作废，以新送达日重新计期，旧轮次声明不再有效
+- id: PRC-54-S07
+  path: 7 认定时发现该轮已被退回
+  outcome: 视为同意未成立
+  expect: 不认定，不触发 PRC-53，告警
+- id: PRC-54-S08
+  path: 8 找不到对应付款条件项
+  outcome: null
+  expect: 失败并告警，认定事实不回滚
+- id: PRC-54-S09
+  path: 迁入后已送达未期满的交付物
+  outcome: null
+  expect: 迁入编排的离线命令按原送达日续算期满日并生成待办，不依赖事件
 PRC-56:
 - id: PRC-56-S01
   path: 收到交付物已认可，找到付款条件项
@@ -1805,6 +1861,10 @@ PRC-56:
   covers:
   - 失败路径
   expect: 失败并告警
+- id: PRC-56-S04
+  path: 收到交付物已认可，但对应付款条件项不是成果认可型
+  outcome: null
+  expect: 不标记可结算，由 PRC-152 登记达成
 PRC-57:
 - id: PRC-57-S01
   path: 1→2→3 自动准入→6→8
@@ -1853,20 +1913,20 @@ PRC-57:
   - 第 4 步撤回
   expect: 审批实例撤回，申请不再开具
 - id: PRC-57-S08
-  path: 4 审批 P3D 未处理
+  path: 第 4 步「开票申请审批」期限 P3D 届满未处理
   outcome: null
   covers:
   - 第 4 步超时
   expect: 升级给 SH-M1，非中断
 - id: PRC-57-S09
-  path: 6 税务平台开具失败→7
-  outcome: 已作废
+  path: 6 税务平台暂时不可用或应答超时→重试 6
+  outcome: 已开具
   covers:
   - 第 6 步「税务平台开具失败」
   - 第 7 步 otherwise
-  expect: 发「开票申请已作废」；额度不改写
+  expect: 自动重试并告警 SH-E6，重试成功后开具；不作废申请，额度不改写
 - id: PRC-57-S10
-  path: 6 税务平台应答超过 PT30M
+  path: 第 6 步「开具销项发票并改写 WIP」应答超过 PT30M
   outcome: null
   covers:
   - 第 6 步超时
@@ -1879,61 +1939,84 @@ PRC-57:
   - 第 8 步 INV-92
   expect: 只提示，落开放期间并标原期间（INV-92），不拒绝、不审批
 - id: PRC-57-S12
-  path: 第 4 步「开票申请审批」期限届满（P3D）
-  outcome: null
-  covers:
-  - 第 4 步超时
-  - 开票申请审批
-  expect: 按期限升级或提醒 SH-M1（不中断）；未办结前不推进下一步
+  path: 6 税务平台业务拒绝（税号错误等）→2
+  outcome: 已驳回
+  expect: 退回申请人修改后重新提交，申请不作废；若申请人放弃则按主动作废处理
 - id: PRC-57-S13
-  path: 第 6 步「开具销项发票并改写 WIP」期限届满（PT30M）
+  path: 6 申请人或财务开具前主动作废→7
+  outcome: 已作废
+  expect: 发「开票申请已作废」；额度不改写
+- id: PRC-57-S14
+  path: 8 原期间所在年度已年结
+  outcome: 暂挂待跨年处理
+  expect: 不提交过账候选，告警；待 ADR-0045 U-2 定后处理
+- id: PRC-57-S15
+  path: 迁入后审批中的开票申请
   outcome: null
-  covers:
-  - 第 6 步超时
-  - 开具销项发票并改写 WIP
-  expect: 按期限升级或提醒 SH-E6（不中断）；未办结前不推进下一步
+  expect: 迁入编排的离线命令重新发起开票申请审批，不迁审批实例
 PRC-58:
 - id: PRC-58-S01
-  path: 1 蓝字已用途确认→对方确认→2→3→4
+  path: 1 审批通过→2 蓝字已用途确认→对方确认→3→4→5
   outcome: 已红冲
   covers:
   - 第 1 步 otherwise
   - 第 2 步 otherwise
   expect: 发「发票已红冲」，订阅方 B-09；回冲开票额度，不冲减收入
 - id: PRC-58-S02
-  path: 1 蓝字未用途确认或入账→2
+  path: 2 蓝字未用途确认或入账→3
   outcome: 已红冲
   covers:
   - 第 1 步「蓝字发票尚未用途确认或入账」
   expect: 无需对方确认直接红冲
 - id: PRC-58-S03
-  path: 1 购买方 72 小时内未确认
+  path: 2 购买方 72 小时内未确认
   outcome: 红字确认已作废
   covers:
   - 第 1 步「购买方在 72 小时内未确认…」
   - 第 1 步超时
   expect: 税务平台自动作废，不红冲，蓝字保持有效
 - id: PRC-58-S04
-  path: 1 财务撤销红字信息确认
+  path: 2 财务撤销红字信息确认
   outcome: 已撤回
   covers:
   - 第 1 步「财务撤销红字信息确认」
   - 第 1 步撤回
   expect: 撤销红字信息表，不红冲，蓝字保持有效
 - id: PRC-58-S05
-  path: 2 业务日期所在期间已关账→3→4
+  path: 4 业务日期所在期间已关账→5
   outcome: 已红冲
   covers:
   - 第 2 步期间闸门
   - 第 4 步 INV-92
   expect: 只提示，落开放期间并标原期间（INV-92），不拒绝
 - id: PRC-58-S06
-  path: 第 1 步「发起红字信息确认」期限届满（PT72H）
+  path: 1 红冲申请审批驳回→end
+  outcome: 红冲被驳回
+  expect: 收到「审批已驳回」；不发起红字确认，蓝字保持有效
+- id: PRC-58-S07
+  path: 1 提交人撤回红冲申请→end
+  outcome: 已撤回
+  expect: 审批实例撤回，不发起红字确认
+- id: PRC-58-S08
+  path: 1 审批 P3D 未处理
   outcome: null
-  covers:
-  - 第 1 步超时
-  - 发起红字信息确认
-  expect: 按期限升级或提醒 SH-E6（不中断）；未办结前不推进下一步
+  expect: 升级给 SH-M1（非中断），审批仍可继续
+- id: PRC-58-S09
+  path: 1 红冲申请命中 AR-06 加审后通过→2
+  outcome: 已红冲
+  expect: 责任人一级审批后加财务负责人一级（AR-06），通过后发起红字确认
+- id: PRC-58-S10
+  path: 2 红字信息确认等待 PT72H 期满
+  outcome: 红字确认已作废
+  expect: 升级知会 SH-E6（非中断）；税务平台自动作废，蓝字保持有效
+- id: PRC-58-S11
+  path: 5 原期间所在年度已年结
+  outcome: 暂挂待跨年处理
+  expect: 不提交过账候选，告警；待 ADR-0045 U-2
+- id: PRC-58-S12
+  path: 迁入后审批中的红冲申请
+  outcome: null
+  expect: 迁入编排的离线命令重新发起红冲审批，不迁审批实例
 PRC-59:
 - id: PRC-59-S01
   path: 收到 InvoiceIssued（蓝字）
@@ -1955,64 +2038,102 @@ PRC-59:
   expect: 失败并告警，不创建应收
 PRC-60:
 - id: PRC-60-S01
-  path: 1→2→3→4→5
+  path: 1→2→4→5→6
   outcome: 已核销
-  covers:
-  - 第 2 步 otherwise
-  - 第 3 步 otherwise
   expect: 发 CashReceived、应收已结清、收款已分配；分配合计等于到账金额（INV-78）；不确认收入
 - id: PRC-60-S02
-  path: 2 流水无法对应任何应收
-  outcome: 待认领
-  covers:
-  - 第 2 步「流水行无法对应任何应收」
-  expect: 流水保持待认领
+  path: 2 流水无法对应任何应收→7 确认为误付或无归属，需退回付款方
+  outcome: 待退回
+  expect: 经 B-10 发起退款付款；不核销任何应收
 - id: PRC-60-S03
-  path: 3 到账金额大于该笔未结余额→再核销下一笔→4
+  path: 7 联系到付款方并确认对应应收→2
   outcome: 已核销
-  covers:
-  - 第 3 步「到账金额大于该笔应收未结余额…」
-  expect: 逐笔核销，合计不超过各笔未结余额（INV-77）
+  expect: 回到认领，逐笔核销
 - id: PRC-60-S04
-  path: 3 业务日期所在期间已关账→4→5
+  path: 7 挂账未处理（P30D 超期）
+  outcome: 待认领
+  expect: 升级给 SH-M1（非中断），流水保持待认领
+- id: PRC-60-S05
+  path: 4 到账金额大于该笔未结余额→再核销下一笔→5
   outcome: 已核销
-  covers:
-  - 第 3 步期间闸门
-  - 第 5 步 INV-92
+  expect: 逐笔核销，合计不超过各笔未结余额（INV-77）
+- id: PRC-60-S06
+  path: 4 到账金额大于全部应收未结余额（超收）→5
+  outcome: 已核销
+  expect: 超收部分在分配行记为预收或待退并通知财务，不核销，不确认收入
+- id: PRC-60-S07
+  path: 4 业务日期所在期间已关账→5→6
+  outcome: 已核销
   expect: 只提示，落开放期间并标原期间（INV-92），不拒绝
+- id: PRC-60-S08
+  path: 2 付款方不是合同相对方且无委托付款函
+  outcome: 认领被拒
+  expect: 拒绝认领并告警（AR-09，RULE-410）
+- id: PRC-60-S09
+  path: 2 付款方是第三方，附委托付款函→3 审批通过→4
+  outcome: 已核销
+  expect: 经责任人一级审批并按 AR-15 加审后认领
+- id: PRC-60-S10
+  path: 3 第三方代付审批驳回
+  outcome: 认领被拒
+  expect: 收到「审批已驳回」，流水保持待认领，通知出纳
+- id: PRC-60-S11
+  path: 第 3 步「第三方代付认领审批」P3D 未处理
+  outcome: null
+  expect: 升级给 SH-M1（非中断），审批仍可继续
+- id: PRC-60-S12
+  path: 2 收款方式为商业汇票（收票）
+  outcome: 已收票待兑付
+  expect: 登记收票并带到期日，不核销应收；到期兑付由 PRC-63 处理
+- id: PRC-60-S13
+  path: 6 原期间所在年度已年结
+  outcome: 暂挂待跨年处理
+  expect: 不提交过账候选，告警；待 ADR-0045 U-2
 PRC-61:
 - id: PRC-61-S01
   path: 1 无逾期应收
   outcome: 无逾期
-  covers:
-  - 第 1 步「无逾期应收」
   expect: 不发事件
 - id: PRC-61-S02
   path: 1→2 登记处置，款项仍可收回
   outcome: 已登记处置
-  covers:
-  - 第 1 步 otherwise
-  - 第 2 步 otherwise
-  expect: 发 ArOverdueDetected 并经平台向责任项目经理与财务发催收提醒；登记争议与处置分类
+  expect: 发 ArOverdueDetected 并经平台通知责任项目经理与财务催收提醒；登记争议与处置分类
 - id: PRC-61-S03
-  path: 2 确认无法收回→3→4
+  path: 2 确认无法收回→3 审批通过→4→5
   outcome: 坏账已核销
-  covers:
-  - 第 2 步「确认款项无法收回」
   expect: 发 ArWrittenOff，提交过账候选
 - id: PRC-61-S04
-  path: 3 业务日期所在期间已关账→4
-  outcome: 坏账已核销
-  covers:
-  - 第 3 步期间闸门
-  - 第 4 步 INV-92
-  expect: 只提示，落开放期间并标原期间（INV-92），不拒绝
+  path: 3 坏账核销审批驳回
+  outcome: 坏账核销被驳回
+  expect: 收到「审批已驳回」；应收保持争议状态，不核销
 - id: PRC-61-S05
+  path: 3 提交人撤回核销申请
+  outcome: 已登记处置
+  expect: 审批实例撤回，应收保持争议状态
+- id: PRC-61-S06
+  path: 第 3 步「坏账核销审批」P5D 未处理
+  outcome: null
+  expect: 升级给 SH-M1（非中断），审批仍可继续
+- id: PRC-61-S07
+  path: 3 核销金额超阈值或债务人为关联方→加审后通过→4
+  outcome: 坏账已核销
+  expect: 责任人一级审批后按 AR-01、AR-02、AR-07 加审，通过后核销
+- id: PRC-61-S08
+  path: 4 业务日期所在期间已关账→5
+  outcome: 坏账已核销
+  expect: 只提示，落开放期间并标原期间（INV-92），不拒绝
+- id: PRC-61-S09
   path: 2 逾期 P30D 未登记处置
   outcome: null
-  covers:
-  - 第 2 步超时
   expect: 升级给 SH-M1，非中断
+- id: PRC-61-S10
+  path: 5 原期间所在年度已年结
+  outcome: 暂挂待跨年处理
+  expect: 不提交过账候选，告警；待 ADR-0045 U-2
+- id: PRC-61-S11
+  path: 迁入后审批中的坏账核销
+  outcome: null
+  expect: 迁入编排的离线命令重新发起坏账核销审批，不迁审批实例
 PRC-62:
 - id: PRC-62-S01
   path: 缺陷责任期届满且质保金未结
@@ -2026,6 +2147,10 @@ PRC-62:
   covers:
   - 已结清
   expect: 提示行消失
+- id: PRC-62-S03
+  path: 缺陷责任期届满，项目经理登记缺陷责任期终止证书
+  outcome: null
+  expect: 转 PRC-152 使质保金付款条件项可结算；本读模型提示行随应收核销消失
 PRC-63:
 - id: PRC-63-S01
   path: 1 到期日按时兑付
@@ -2046,46 +2171,70 @@ PRC-63:
   covers:
   - 第 1 步期间闸门
   expect: 只提示，落开放期间并标原期间（INV-92），不拒绝
+- id: PRC-63-S04
+  path: 1 到期前已贴现或背书转让
+  outcome: 商票已贴现或背书转让
+  expect: 不再登记兑付，不标逾期；转让或贴现的账务处理见待用户定
+- id: PRC-63-S05
+  path: 1 商票到期日当天未登记兑付
+  outcome: null
+  expect: 升级给 SH-M1（财务负责人的上级，非中断），不再升级给本人
+- id: PRC-63-S06
+  path: 1 原期间所在年度已年结
+  outcome: 暂挂待跨年处理
+  expect: 不提交过账候选，告警；待 ADR-0045 U-2
 PRC-66:
 - id: PRC-66-S01
-  path: 1→2→3→4→5
+  path: 1→2→3→4 价款不低于协议价→6
   outcome: 协议已结算
-  covers:
-  - 第 1 步「全部履约义务累计确认等于分摊价格」
-  - 第 4 步 otherwise
-  expect: 发「协议已完成」「协议已结算」，订阅方 B-08
+  expect: 发「协议已完成」「协议已结算」，订阅方 B-08；累计确认未达分摊价格时只提示，不阻断
 - id: PRC-66-S02
-  path: 1 累计确认小于分摊价格
-  outcome: 履约未完成
-  covers:
-  - 第 1 步 otherwise
-  expect: 不完成协议
+  path: 1 累计确认小于分摊价格仍发起结算→2
+  outcome: null
+  expect: 提示商务但不阻断，结算可继续（H3，避免审减死锁）
 - id: PRC-66-S03
-  path: 4 双方未能确认最终价款→3
+  path: 4 未能确认，修订结算书→3
   outcome: 协议已结算
-  covers:
-  - 第 4 步「双方未能确认最终价款」
   expect: 回到编制结算书，修订后再确认
 - id: PRC-66-S04
-  path: 4 结算确认期 P30D 未确认
-  outcome: null
-  covers:
-  - 第 4 步超时
-  expect: 升级给 SH-M1，非中断
+  path: 4 未能确认，转索赔→PRC-49
+  outcome: 转索赔
+  expect: 调用 PRC-49，以结算书与价款差额作索赔事项
 - id: PRC-66-S05
-  path: 第 4 步「确认最终价款」期限届满（合同约定结算确认期；未约定时 P30D）
+  path: 4 未能确认，转争议处理
+  outcome: 转争议处理
+  expect: 结束本流程，诉讼或仲裁另行办理；协议保持已完成未结算
+- id: PRC-66-S06
+  path: 4 最终价款低于协议价→5 审批通过→6
+  outcome: 协议已结算
+  expect: 责任人一级审批，按 AR-01、AR-02 加审；通过后结算，差额交 PRC-149
+- id: PRC-66-S07
+  path: 5 让价审批驳回→3
   outcome: null
-  covers:
-  - 第 4 步超时
-  - 确认最终价款
-  expect: 按期限升级或提醒 SH-M1（不中断）；未办结前不推进下一步
+  expect: 收到「审批已驳回」，回到修订结算书再谈
+- id: PRC-66-S08
+  path: 5 提交人撤回让价审批→end
+  outcome: 已撤回
+  expect: 审批实例撤回，协议保持已完成未结算
+- id: PRC-66-S09
+  path: 第 5 步「最终价款让价审批」P5D 未处理
+  outcome: null
+  expect: 升级给 SH-M1（非中断），审批仍可继续
+- id: PRC-66-S10
+  path: 第 4 步「确认最终价款」结算确认期届满（合同约定；未约定 P30D）
+  outcome: null
+  expect: 升级给 SH-M1（非中断），等待继续
+- id: PRC-66-S11
+  path: 迁入后让价审批中的结算
+  outcome: null
+  expect: 迁入编排的离线命令重新发起让价审批，不迁审批实例
 PRC-68:
 - id: PRC-68-S01
   path: 已签署生效的协议终止
   outcome: null
   covers:
   - 已签署生效→已终止
-  expect: 原因必填；发「协议已终止」，订阅方 B-07、B-08
+  expect: 责任人审批后执行；原因必填；发「协议已终止」，订阅方 B-07、B-08
 - id: PRC-68-S02
   path: 履行中的协议终止
   outcome: null
@@ -2098,6 +2247,22 @@ PRC-68:
   covers:
   - 失败路径
   expect: 拒绝并告警
+- id: PRC-68-S04
+  path: 终止审批驳回
+  outcome: null
+  expect: 收到「审批已驳回」，协议保持原状态
+- id: PRC-68-S05
+  path: 终止金额影响超阈值或相对方为关联方→加审后通过
+  outcome: null
+  expect: 责任人一级审批后按 AR-01、AR-02、AR-07 加审
+- id: PRC-68-S06
+  path: 协议已终止事件到达 B-08
+  outcome: null
+  expect: 由 PRC-149 判定是否冲销收入确认
+- id: PRC-68-S07
+  path: 迁入后审批中的终止申请
+  outcome: null
+  expect: 迁入编排的离线命令重新发起终止审批，不迁审批实例
 PRC-69:
 - id: PRC-69-S01
   path: 1 otherwise→2 otherwise→3 otherwise
@@ -2193,45 +2358,53 @@ PRC-78:
   expect: 定时标记资质已到期，发资质已到期（仅分析），通知职能人员
 PRC-86:
 - id: PRC-86-S01
-  path: 1→2→3→4 otherwise
+  path: 1→2 审批通过→3→4→5
   outcome: 借款已发放
-  covers:
-  - 第 2 步 otherwise
-  - 第 4 步 otherwise
-  expect: 创建其他应收（员工借款），付款成功后提交过账候选
+  expect: 创建其他应收（员工借款），向 B-10 发起借款付款，付款成功后提交过账候选
 - id: PRC-86-S02
-  path: 4 员工现金归还→5→6→7
-  outcome: 借款已结清
-  covers:
-  - 第 4 步「员工以现金归还」
-  - 第 6 步 otherwise
-  expect: 收款认领、核销到未结余额为零，应收已结清
+  path: 1 借款人有未结借款或申请额超限额
+  outcome: 借款被拒
+  expect: 规则拒绝并告警，不发起审批
 - id: PRC-86-S03
-  path: 4 手工冲抵→8→7
-  outcome: 借款已结清
-  covers:
-  - 第 4 步「报销手工冲抵」
-  - 第 8 步 otherwise
-  expect: 依据报销 ID 冲抵，应收已结清
+  path: 2 借款审批驳回
+  outcome: 借款被拒
+  expect: 收到「审批已驳回」，不创建应收
 - id: PRC-86-S04
-  path: 2 发放时业务日期所在期间已关账→3
-  outcome: 借款已发放
-  covers:
-  - 第 2 步期间闸门
-  expect: 只提示，落开放期间并标原期间（INV-92），不拒绝
+  path: 2 借款人撤回申请
+  outcome: 已撤回
+  expect: 审批实例撤回，不创建应收
 - id: PRC-86-S05
-  path: 6 或 8 期间已关账→7
-  outcome: 借款已结清
-  covers:
-  - 第 6 步期间闸门
-  - 第 8 步期间闸门
-  expect: 只提示，落开放期间并标原期间（INV-92），不拒绝
-- id: PRC-86-S06
-  path: 第 4 步出口「报销手工冲抵（自动冲抵未覆盖的例外）」→ 8
+  path: 第 2 步「员工借款审批」P3D 未处理
   outcome: null
-  covers:
-  - 第 4 步「报销手工冲抵（自动冲抵未覆盖的例外）」
-  expect: 走「报销手工冲抵（自动冲抵未覆盖的例外）」分支，去向 8
+  expect: 升级给 SH-M1（非中断），审批仍可继续
+- id: PRC-86-S06
+  path: 1 本次触发为出纳认领员工归还流水→6→7→8
+  outcome: 借款已结清
+  expect: 收款认领、核销到未结余额为零，应收已结清
+- id: PRC-86-S07
+  path: 1 本次触发为财务手工冲抵→9→8
+  outcome: 借款已结清
+  expect: 依据报销 ID 冲抵，应收已结清；冲抵限同一法人
+- id: PRC-86-S08
+  path: 3 发放时业务日期所在期间已关账→5
+  outcome: 借款已发放
+  expect: 只提示，落开放期间并标原期间（INV-92），不拒绝
+- id: PRC-86-S09
+  path: 7 期间已关账→8
+  outcome: 借款已结清
+  expect: 只提示，落开放期间并标原期间（INV-92），不拒绝
+- id: PRC-86-S10
+  path: 5 原期间所在年度已年结
+  outcome: 暂挂待跨年处理
+  expect: 不提交过账候选，告警；待 ADR-0045 U-2
+- id: PRC-86-S11
+  path: 1 借款到期检测→10
+  outcome: 已催还
+  expect: 提醒借款人与财务催还，通知借款人所在部门负责人
+- id: PRC-86-S12
+  path: 迁入后审批中的借款申请
+  outcome: null
+  expect: 迁入编排的离线命令重新发起借款审批，不迁审批实例
 PRC-91:
 - id: PRC-91-S01
   path: TimesheetApproved→1 生成待认定清单→2 认定
@@ -2300,7 +2473,7 @@ PRC-140:
   - 第 3 步超时
   expect: 发「协议借阅已逾期」，由 PRC-146 催还；归还后登记
 - id: PRC-140-S05
-  path: 审批 P3D 未处理
+  path: 第 1 步「借阅人选已归档协议，在审批载荷中写借阅目的、借阅形式」审批 P3D 未处理
   outcome: null
   covers:
   - 第 1 步超时
@@ -2319,12 +2492,9 @@ PRC-140:
   - 第 1 步加审（AR-11）
   expect: 责任人与申请人同一人时转上级审批（处理方式待用户定，AR-11）
 - id: PRC-140-S08
-  path: 第 1 步「借阅人选已归档协议，在审批载荷中写借阅目的、借阅形式（原件 / 复印件）与预计归」期限届满（P3D）
+  path: 迁入后已逾期未归还的借出
   outcome: null
-  covers:
-  - 第 1 步超时
-  - 借阅人选已归档协议，在审批载荷中写借阅目的、借阅形式（原件 / 复印件）与预计归
-  expect: 按期限升级或提醒 SH-M1（不中断）；未办结前不推进下一步
+  expect: 迁入编排的离线命令补发一次协议借阅已逾期，由 PRC-146 催还
 PRC-141:
 - id: PRC-141-S01
   path: 1→2 齐全
@@ -2339,18 +2509,15 @@ PRC-141:
   - 第 2 步「原件份数或签章不全」
   expect: 拒绝归档并告警（INV-124），通知项目经理补齐后重回第 1 步
 - id: PRC-141-S03
-  path: 1 回签后 P30D 未移交
+  path: 第 1 步「项目经理或商务把回签原件移交档案管理人」回签后 P30D 未移交
   outcome: null
   covers:
   - 第 1 步超时
   expect: 升级给 SH-E6，非中断
 - id: PRC-141-S04
-  path: 第 1 步「项目经理或商务把回签原件移交档案管理人」期限届满（P30D）
+  path: 迁入后已回签未归档的协议
   outcome: null
-  covers:
-  - 第 1 步超时
-  - 项目经理或商务把回签原件移交档案管理人
-  expect: 按期限升级或提醒 SH-E6（不中断）；未办结前不推进下一步
+  expect: 迁入编排的离线命令生成归档待办，进入第 1 步
 PRC-146:
 - id: PRC-146-S01
   path: 收到协议借阅已逾期，借出未归还
@@ -2370,6 +2537,10 @@ PRC-146:
   covers:
   - 已归还
   expect: 不提醒
+- id: PRC-146-S04
+  path: 迁入后已逾期未归还的借出
+  outcome: null
+  expect: 迁入编排的离线命令补发事件，触发催还
 PRC-147:
 - id: PRC-147-S01
   path: 报销核定，员工有未结借款，净额大于零：1→2→3
@@ -2397,38 +2568,145 @@ PRC-147:
   covers:
   - 幂等
   expect: 按报销 ID 幂等，不重复冲抵、不重复确认应付
+- id: PRC-147-S05
+  path: 1 借款所属法人与报销承担法人不同→3
+  outcome: 应付已确认
+  expect: 冲抵额为零并告警，按核定金额确认应付，借款不动（M4）
+- id: PRC-147-S06
+  path: 2 原期间所在年度已年结
+  outcome: 暂挂待跨年处理
+  expect: 不提交过账候选，告警；待 ADR-0045 U-2
+- id: PRC-147-S07
+  path: 迁入完成后的一次性对账
+  outcome: null
+  expect: 迁入编排命令对已核定未付的报销按报销 ID 去重补冲抵，与老系统冲抵记录比对，不重复冲抵
 PRC-148:
 - id: PRC-148-S01
   path: 收到审批已通过，二次校验通过→1→2
   outcome: 收入已确认
-  covers:
-  - 触发 审批已通过
-  - 第 1 步 otherwise
   expect: 追加不可改确认事实、占用转实，发 RevenueRecognized，提交过账候选
 - id: PRC-148-S02
   path: 收到审批已驳回→3
   outcome: 占用已释放
-  covers:
-  - 触发 审批已驳回
   expect: 释放占用，不留确认事实，通知项目经理
 - id: PRC-148-S03
   path: 重复收到同一审批实例的通过事件
   outcome: null
-  covers:
-  - 幂等
   expect: 按审批实例幂等，不产生第二条确认事实
 - id: PRC-148-S04
-  path: 审批通过但二次校验失败
-  outcome: 转实失败待处置
-  covers:
-  - 第 1 步「二次校验失败」
-  expect: 不转实并告警，占用保持待处置（RULE-222）
+  path: 1 二次校验失败（额度不足或证据已失效）→4 处置为释放占用
+  outcome: 占用已释放
+  expect: 不转实并告警，占用保持待处置；财务负责人释放占用
 - id: PRC-148-S05
-  path: 第 1 步出口「二次校验失败（额度不足或证据已失效）」→ end
-  outcome: 转实失败待处置
-  covers:
-  - 第 1 步「二次校验失败（额度不足或证据已失效）」
-  expect: 走「二次校验失败（额度不足或证据已失效）」分支，去向 end
+  path: 4 处置为补证据后重新发起审批→PRC-53
+  outcome: 已重新发起审批
+  expect: 释放原占用后重新占用并发起审批，原审批实例留痕
+- id: PRC-148-S06
+  path: 第 4 步「释放收入额度占用」处置期届满（P5D）
+  outcome: null
+  expect: 升级给 SH-M1（非中断），占用保持待处置
+- id: PRC-148-S07
+  path: 2 原期间所在年度已年结
+  outcome: 暂挂待跨年处理
+  expect: 确认事实已写，不提交过账候选，告警；待 ADR-0045 U-2
+- id: PRC-148-S08
+  path: 迁入后审批中的收入确认
+  outcome: null
+  expect: 迁入编排的离线命令重新占用并发起审批，不迁占用行与审批实例
+PRC-149:
+- id: PRC-149-S01
+  path: 人工发起 1→2→3→4 通过→5→6
+  outcome: 收入已冲销
+  expect: 追加冲销行指向原确认事实，发收入确认已冲销，提交过账候选；原确认事实不改
+- id: PRC-149-S02
+  path: 1 协议已结算且差额为负（最终价款低于累计确认）→3→4→5→6
+  outcome: 收入已冲销
+  expect: 事件触发，冲销额取差额，经审批后冲销；PRC-66 让价审批已通过也仍需本审批（对象不同）
+- id: PRC-149-S03
+  path: 1 协议已终止，已确认部分不再成立→3
+  outcome: 收入已冲销
+  expect: 事件触发，冲销额取不再成立部分
+- id: PRC-149-S04
+  path: 1 协议已结算且最终价款高于累计确认
+  outcome: 转补充确认
+  expect: 调用 PRC-53 补充确认，本流程结束
+- id: PRC-149-S05
+  path: 1 协议已结算且最终价款不低于累计确认
+  outcome: 无需冲销
+  expect: 不冲销，结束
+- id: PRC-149-S06
+  path: 2 冲销额超过原确认事实未冲销余额
+  outcome: 冲销被拒
+  expect: 拒绝并告警
+- id: PRC-149-S07
+  path: 3 在途冲销与已冲销合计超过原确认事实
+  outcome: 冲销被拒
+  expect: 拒绝占用并告警，避免重复冲销
+- id: PRC-149-S08
+  path: 4 审批驳回→7
+  outcome: 冲销已驳回
+  expect: 收到「审批已驳回」，释放反向占用，通知申请人
+- id: PRC-149-S09
+  path: 4 提交人撤回冲销申请→7
+  outcome: 冲销已驳回
+  expect: 审批实例撤回，释放反向占用
+- id: PRC-149-S10
+  path: 第 4 步「收入冲销审批」P5D 未处理
+  outcome: null
+  expect: 升级给 SH-M1（非中断），审批仍可继续
+- id: PRC-149-S11
+  path: 4 命中 AR-06 加审，金额超阈值再加一级后通过→5
+  outcome: 收入已冲销
+  expect: 责任人一级审批，AR-06 加财务负责人，AR-02 加总经理，最多两级
+- id: PRC-149-S12
+  path: 5 二次校验失败（原确认事实已被其他冲销占满）→7
+  outcome: 冲销已驳回
+  expect: 不追加冲销行，释放占用并告警
+- id: PRC-149-S13
+  path: 5 重复收到同一审批实例的通过事件
+  outcome: null
+  expect: 按审批实例幂等，不产生第二条冲销行
+- id: PRC-149-S14
+  path: 6 业务日期所在期间已关账
+  outcome: null
+  expect: 路由开放期间并标原期间（INV-92），不拒绝
+- id: PRC-149-S15
+  path: 6 原期间所在年度已年结
+  outcome: 暂挂待跨年处理
+  expect: 冲销行已写，不提交过账候选，告警；待 ADR-0045 U-2
+- id: PRC-149-S16
+  path: 迁入后审批中的冲销
+  outcome: null
+  expect: 迁入编排的离线命令重新占用冲销额度并发起审批，不迁审批实例
+PRC-150:
+- id: PRC-150-S01
+  path: 收到发票已红冲，应收未结余额足够→1→3
+  outcome: 应收已冲减
+  expect: 冲减对应应收未结余额，提交过账候选；账龄与催收不再误报
+- id: PRC-150-S02
+  path: 收到发票已红冲，红冲额超过应收未结余额（已收款后再红冲）→1→2→3
+  outcome: 已转预收或待退
+  expect: 未结部分冲减，已核销部分转预收或待退，通知财务
+- id: PRC-150-S03
+  path: 1 找不到蓝字发票对应的应收
+  outcome: 应收未找到
+  expect: 失败并告警，不静默跳过
+- id: PRC-150-S04
+  path: 重复收到同一红冲发票事件
+  outcome: null
+  expect: 按红冲发票 ID 幂等，不重复冲减
+- id: PRC-150-S05
+  path: 3 业务日期所在期间已关账
+  outcome: null
+  expect: 路由开放期间并标原期间（INV-92），不拒绝
+- id: PRC-150-S06
+  path: 3 原期间所在年度已年结
+  outcome: 暂挂待跨年处理
+  expect: 不提交过账候选，告警；待 ADR-0045 U-2
+- id: PRC-150-S07
+  path: 迁入后已红冲未冲减的红字发票
+  outcome: null
+  expect: 迁入编排的离线命令补做冲减，按红冲发票 ID 幂等
 PRC-151:
 - id: PRC-151-S01
   path: 1 otherwise→end
@@ -2455,6 +2733,72 @@ PRC-151:
   covers:
   - 第 1 步 timeout
   expect: 提醒部门负责人（SH-M1）；不改变任何收入或过账状态
+PRC-152:
+- id: PRC-152-S01
+  path: 1→2 登记竣工验收证书→3
+  outcome: 条件已达成并可结算
+  expect: 发「付款条件项已可结算」，订阅方 B-08；通知项目经理可提出开票
+- id: PRC-152-S02
+  path: 1 时间型节点到期日已届→3
+  outcome: 条件已达成并可结算
+  expect: 定时触发，免登记，直接标可结算
+- id: PRC-152-S03
+  path: 1 缺陷责任期届满，商务登记缺陷责任期终止证书→2→3
+  outcome: 条件已达成并可结算
+  expect: 质保金付款条件项可结算，通知项目经理申请返还并开票或出收据
+- id: PRC-152-S04
+  path: 2 证据缺失
+  outcome: 登记被拒
+  expect: 拒绝并告警
+- id: PRC-152-S05
+  path: 2 证据类型与条件类型不符（如用审图合格书登记竣工验收）
+  outcome: 登记被拒
+  expect: 拒绝并告警（PAY-R1）
+- id: PRC-152-S06
+  path: 1 付款条件项已是可结算
+  outcome: 条件已是可结算
+  expect: 幂等，不重复发事件
+- id: PRC-152-S07
+  path: 3 重复收到同一付款条件项的达成登记
+  outcome: null
+  expect: 按付款条件项 ID 幂等，不重复发事件
+- id: PRC-152-S08
+  path: 迁入后时间型节点
+  outcome: null
+  expect: 迁入编排的离线命令登记下一个到期日定时，不依赖事件
+PRC-153:
+- id: PRC-153-S01
+  path: 1→2 招标人按期退款到账→4→5
+  outcome: 保证金已退
+  expect: 登记退还，发保证金已退（仅分析），提交过账候选
+- id: PRC-153-S02
+  path: 1 保证金已退还或已没收
+  outcome: 退还被拒
+  expect: 拒绝并告警（INV-20）
+- id: PRC-153-S03
+  path: 2 超过约定退还期限仍未到账→3 催退→2
+  outcome: 保证金已退
+  expect: 提醒出纳并由商务催退，到账后登记退还
+- id: PRC-153-S04
+  path: 第 2 步「等待招标人退款到账；约定期限内未到账则提醒」P5D 未到账
+  outcome: null
+  expect: 升级给 SH-M1（非中断），继续等待
+- id: PRC-153-S05
+  path: 3 招标人明确不予退还或没收
+  outcome: 转没收登记
+  expect: 转 PRC-10 没收保证金（经审批）
+- id: PRC-153-S06
+  path: 5 业务日期所在期间已关账
+  outcome: null
+  expect: 路由开放期间并标原期间（INV-92），不拒绝
+- id: PRC-153-S07
+  path: 5 原期间所在年度已年结
+  outcome: 暂挂待跨年处理
+  expect: 不提交过账候选，告警；待 ADR-0045 U-2
+- id: PRC-153-S08
+  path: 迁入后已触发待退未到账的保证金
+  outcome: null
+  expect: 迁入编排的离线命令补发信号事件，进入第 1 步
 PRC-154:
 - id: PRC-154-S01
   path: 三口径均有数据的协议 × 期间
