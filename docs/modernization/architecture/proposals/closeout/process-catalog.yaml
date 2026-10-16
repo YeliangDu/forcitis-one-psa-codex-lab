@@ -1301,7 +1301,7 @@ processes:
     human_orchestration: ~
     bpmn: ~
   - id: PRC-143
-    name: "IT 资产领用、调拨、报修、报废、盘点与采购申请"
+    name: "IT 资产领用"
     type: business
     stages: []
     owner_bc: "B-31"
@@ -1405,6 +1405,33 @@ processes:
     stages: []
     owner_bc: "reporting"
     group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-155
+    name: "IT 资产调拨"
+    type: business
+    stages: []
+    owner_bc: "B-31"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-156
+    name: "IT 资产归还"
+    type: business
+    stages: []
+    owner_bc: "B-31"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-157
+    name: "IT 资产报修与维修登记"
+    type: business
+    stages: []
+    owner_bc: "B-31"
+    group: people
     status: draft
     human_orchestration: false
     bpmn: ~

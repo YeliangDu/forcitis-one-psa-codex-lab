@@ -3,18 +3,18 @@
 
 由 build_catalog.py 生成，不手改；来源 `process-catalog.yaml`。
 
-共 154 条，编号 PRC-01 至 PRC-154。
+共 157 条，编号 PRC-01 至 PRC-157。
 
 ### 按类型
 
 | 类型 | 数量 |
 |---|---|
-| business | 95 |
+| business | 98 |
 | event_policy | 25 |
 | single_aggregate | 19 |
 | read_model | 5 |
 | merged | 10 |
-| 合计 | 154 |
+| 合计 | 157 |
 
 ### 按组（全部类型）
 
@@ -22,8 +22,8 @@
 |---|---|
 | revenue | 77 |
 | finance | 38 |
-| people | 39 |
-| 合计 | 154 |
+| people | 42 |
+| 合计 | 157 |
 
 ### 按组（仅业务流程）
 
@@ -31,8 +31,8 @@
 |---|---|
 | revenue | 45 |
 | finance | 24 |
-| people | 26 |
-| 合计 | 95 |
+| people | 29 |
+| 合计 | 98 |
 
 ### 按价值流（仅业务流程；跨价值流的流程各计一次，故合计大于业务流程数）
 
@@ -53,7 +53,7 @@
 | VS-13 | 12 |
 | 合计 | 97 |
 
-业务流程中尚未填 stages：12 条。
+业务流程中尚未填 stages：15 条。
 
 ## 总表
 
@@ -201,7 +201,7 @@
 | PRC-140 | 合同借阅 | business |  |  | B-05 | revenue | draft | 待定 |  |
 | PRC-141 | 销售合同归档 | business |  |  | B-05 | revenue | draft | 待定 |  |
 | PRC-142 | IT 需求工单 | business |  |  | B-31 | people | draft | 待定 |  |
-| PRC-143 | IT 资产领用、调拨、报修、报废、盘点与采购申请 | business |  |  | B-31 | people | draft | 待定 |  |
+| PRC-143 | IT 资产领用 | business |  |  | B-31 | people | draft | 待定 |  |
 | PRC-144 | 员工活动类申请（周年贺卡、节日活动、创新项目发布） | business |  |  | B-31 | people | draft | 待定 |  |
 | PRC-145 | 员工法人三口径不一致预警 | event_policy |  | VS-07.3 | B-15 | people | draft | 否 |  |
 | PRC-146 | 协议借阅逾期催还 | event_policy |  |  | B-05 | revenue | draft | 否 |  |
@@ -213,3 +213,6 @@
 | PRC-152 | 登记付款条件达成 | business |  |  | B-05 | revenue | draft | 否 |  |
 | PRC-153 | 退还投标保证金 | business |  | VS-01.2 | B-09 | revenue | draft | 否 |  |
 | PRC-154 | 收入三口径对照 | read_model |  |  | reporting | revenue | draft | 否 |  |
+| PRC-155 | IT 资产调拨 | business |  |  | B-31 | people | draft | 否 |  |
+| PRC-156 | IT 资产归还 | business |  |  | B-31 | people | draft | 否 |  |
+| PRC-157 | IT 资产报修与维修登记 | business |  |  | B-31 | people | draft | 否 |  |
