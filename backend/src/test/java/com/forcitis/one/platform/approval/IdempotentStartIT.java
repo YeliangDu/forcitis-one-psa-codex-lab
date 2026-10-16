@@ -136,11 +136,9 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
     @DisplayName("RULE-278 the database itself refuses a duplicate (process type, document, round) and a second round started by the same event")
     void roundsAreUniqueInTheDatabase() {
         String key = newKey("unique");
-        jdbc.update("insert into platform_approval.approval_requests (id, process_key, document_type, document_id, legal_entity_id, initiator_id,"
-                + " current_round, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', cast(? as uuid), '" + LEGAL_ENTITY.value() + "', " + TestOrgIds.sqlEmployee(5) + ", 1, 'RUNNING', 's')", key);
         String event = java.util.UUID.randomUUID().toString();
-        jdbc.update("insert into platform_approval.start_rounds (id, approval_request_id, round_number, initiator_id, instance_id,"
-                + " trigger_event_id) values (uuidv7(), (select id from platform_approval.approval_requests where document_id = cast(? as uuid)), 1, " + TestOrgIds.sqlEmployee(5) + ", uuidv7(), ?::uuid)", key, event);
+        String instance = java.util.UUID.randomUUID().toString();
+        insertRequestWithFirstRound(key, instance, event);
         assertThatThrownBy(() -> jdbc.update("insert into platform_approval.start_rounds (id, approval_request_id, round_number,"
                 + " initiator_id, instance_id, trigger_event_id) values (uuidv7(), (select id from platform_approval.approval_requests where document_id = cast(? as uuid)), 1, " + TestOrgIds.sqlEmployee(5) + ", uuidv7(), gen_random_uuid())", key))
                 .isInstanceOf(DuplicateKeyException.class);
@@ -153,11 +151,17 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
     @DisplayName("RULE-264 the request table is unique per (process type, document)")
     void requestsAreUniqueInTheDatabase() {
         String key = newKey("unique-request");
-        jdbc.update("insert into platform_approval.approval_requests (id, process_key, document_type, document_id, legal_entity_id, initiator_id,"
-                + " current_round, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', cast(? as uuid), '" + LEGAL_ENTITY.value() + "', " + TestOrgIds.sqlEmployee(5) + ", 1, 'RUNNING', 's')", key);
+        insertRequestWithFirstRound(key, java.util.UUID.randomUUID().toString(), java.util.UUID.randomUUID().toString());
         assertThatThrownBy(() -> jdbc.update("insert into platform_approval.approval_requests (id, process_key, document_type, document_id,"
-                + " legal_entity_id, initiator_id, current_round, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', cast(? as uuid), '" + LEGAL_ENTITY.value() + "', " + TestOrgIds.sqlEmployee(6) + ", 1,"
-                + " 'RUNNING', 's')", key)).isInstanceOf(DuplicateKeyException.class);
+                + " legal_entity_id, initiator_id, current_round, current_instance_id, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', cast(? as uuid), '" + LEGAL_ENTITY.value() + "', " + TestOrgIds.sqlEmployee(6) + ", 1,"
+                + " uuidv7(), 'RUNNING', 's')", key)).isInstanceOf(DuplicateKeyException.class);
+    }
+
+    private void insertRequestWithFirstRound(String key, String instance, String event) {
+        jdbc.update("with r as (insert into platform_approval.approval_requests (id, process_key, document_type, document_id, legal_entity_id, initiator_id,"
+                + " current_round, current_instance_id, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', cast(? as uuid), '" + LEGAL_ENTITY.value() + "', " + TestOrgIds.sqlEmployee(5)
+                + ", 1, cast(? as uuid), 'RUNNING', 's') returning id) insert into platform_approval.start_rounds (id, approval_request_id, round_number, initiator_id, instance_id,"
+                + " trigger_event_id) select uuidv7(), r.id, 1, " + TestOrgIds.sqlEmployee(5) + ", cast(? as uuid), cast(? as uuid) from r", key, instance, instance, event);
     }
 
     @Test
@@ -189,7 +193,7 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
         for (String ended : List.of("RETURNED", "REJECTED", "CANCELLED")) {
             String key = newKey("again-" + ended.toLowerCase());
             start(key, initiator, manager);
-            jdbc.update("update platform_approval.approval_requests set status = ? where document_id = cast(? as uuid)", ended, key);
+            jdbc.update("update platform_approval.approval_requests set status = ?, result_reason = 'synthetic: ended' where document_id = cast(? as uuid)", ended, key);
             assertThat(start(key, initiator, manager)).as(ended).isNotNull();
             assertThat(requestStatus(key)).as(ended).isEqualTo("RUNNING");
             assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where document_id = cast(? as uuid)", Integer.class, key))

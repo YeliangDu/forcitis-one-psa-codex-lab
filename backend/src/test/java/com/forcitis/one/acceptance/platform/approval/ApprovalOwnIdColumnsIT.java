@@ -177,7 +177,9 @@ class ApprovalOwnIdColumnsIT extends AcceptanceSupport {
 
             String currentInstance = indexDefinition(catalogue, "platform_approval", P4Names.UK_REQUEST_CURRENT_INSTANCE);
             assertThat(currentInstance).as(P4Names.UK_REQUEST_CURRENT_INSTANCE).isNotNull().contains("UNIQUE").contains("(current_instance_id)")
-                    .containsIgnoringCase("WHERE (current_instance_id IS NOT NULL)");
+                    .doesNotContainIgnoringCase("WHERE");
+            assertThat(scalar(catalogue, "select is_nullable from information_schema.columns where table_schema = 'platform_approval'"
+                    + " and table_name = 'approval_requests' and column_name = 'current_instance_id'")).as("current_instance_id nullable").isEqualTo("NO");
             assertThat(indexDefinition(catalogue, "platform_approval", "ix_approval_requests_instance")).as("the plain instance index is replaced").isNull();
 
             String open = indexDefinition(catalogue, "platform_approval", P4Names.IX_TASKS_OPEN);
