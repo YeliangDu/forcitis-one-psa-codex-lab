@@ -1,0 +1,762 @@
+{
+ "GL~B2-A01": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ts",
+  "label": "同意：按上面登记",
+  "no": "B2-A01",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:36.619Z"
+ },
+ "GL~B2-A02": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ts",
+  "label": "同意：按上面登记",
+  "no": "B2-A02",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:36.619Z"
+ },
+ "GL~B2-A03": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ts",
+  "label": "同意：按上面登记",
+  "no": "B2-A03",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:36.619Z"
+ },
+ "GL~B2-A04": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ts",
+  "label": "同意：按上面登记",
+  "no": "B2-A04",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:36.619Z"
+ },
+ "GL~B2-A05": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ts",
+  "label": "同意：按上面登记",
+  "no": "B2-A05",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:36.619Z"
+ },
+ "GL~B2-A06": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-org",
+  "label": "同意：按上面登记",
+  "no": "B2-A06",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:48.308Z"
+ },
+ "GL~B2-A07": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-org",
+  "label": "同意：按上面登记",
+  "no": "B2-A07",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:48.308Z"
+ },
+ "GL~B2-A09": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-org",
+  "label": "同意：按上面登记",
+  "no": "B2-A09",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:48.308Z"
+ },
+ "GL~B2-A10": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-org",
+  "label": "同意：按上面登记",
+  "no": "B2-A10",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:48.308Z"
+ },
+ "GL~B2-A11": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-org",
+  "label": "同意：按上面登记",
+  "no": "B2-A11",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:48.308Z"
+ },
+ "GL~B2-A12": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-org",
+  "label": "同意：按上面登记",
+  "no": "B2-A12",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:48.308Z"
+ },
+ "GL~B2-A13": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-org",
+  "label": "同意：按上面登记",
+  "no": "B2-A13",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:48.308Z"
+ },
+ "GL~B2-A14": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-org",
+  "label": "同意：按上面登记",
+  "no": "B2-A14",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:48.308Z"
+ },
+ "GL~B2-A15": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-org",
+  "label": "同意：按上面登记",
+  "no": "B2-A15",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:48.308Z"
+ },
+ "GL~B2-A16": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-org",
+  "label": "同意：按上面登记",
+  "no": "B2-A16",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:48.308Z"
+ },
+ "GL~B2-A17": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-org",
+  "label": "同意：按上面登记",
+  "no": "B2-A17",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:48.308Z"
+ },
+ "GL~B2-A18": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-org",
+  "label": "同意：按上面登记",
+  "no": "B2-A18",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:48.308Z"
+ },
+ "GL~B2-A19": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-org",
+  "label": "同意：按上面登记",
+  "no": "B2-A19",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:48.308Z"
+ },
+ "GL~B2-A20": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-org",
+  "label": "同意：按上面登记",
+  "no": "B2-A20",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:48.308Z"
+ },
+ "GL~B2-A21": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-org",
+  "label": "同意：按上面登记",
+  "no": "B2-A21",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:48.308Z"
+ },
+ "GL~B2-A22": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-org",
+  "label": "同意：按上面登记",
+  "no": "B2-A22",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:48.308Z"
+ },
+ "GL~B2-A23": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-org",
+  "label": "同意：按上面登记",
+  "no": "B2-A23",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:48.308Z"
+ },
+ "GL~B2-A24": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-appr",
+  "label": "同意：按上面登记",
+  "no": "B2-A24",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:00.900Z"
+ },
+ "GL~B2-A25": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-appr",
+  "label": "同意：按上面登记",
+  "no": "B2-A25",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:00.900Z"
+ },
+ "GL~B2-A26": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-appr",
+  "label": "同意：按上面登记",
+  "no": "B2-A26",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:00.900Z"
+ },
+ "GL~B2-A27": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-appr",
+  "label": "同意：按上面登记",
+  "no": "B2-A27",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:00.900Z"
+ },
+ "GL~B2-A28": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-appr",
+  "label": "同意：按上面登记",
+  "no": "B2-A28",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:00.900Z"
+ },
+ "GL~B2-A29": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-appr",
+  "label": "同意：按上面登记",
+  "no": "B2-A29",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:00.900Z"
+ },
+ "GL~B2-A30": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-appr",
+  "label": "同意：按上面登记",
+  "no": "B2-A30",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:00.900Z"
+ },
+ "GL~B2-A31": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-appr",
+  "label": "同意：按上面登记",
+  "no": "B2-A31",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:00.900Z"
+ },
+ "GL~B2-A32": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-appr",
+  "label": "同意：按上面登记",
+  "no": "B2-A32",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:00.900Z"
+ },
+ "GL~B2-A34": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-appr",
+  "label": "同意：按上面登记",
+  "no": "B2-A34",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:00.900Z"
+ },
+ "GL~B2-A35": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ident",
+  "label": "同意：按上面登记",
+  "no": "B2-A35",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:15.872Z"
+ },
+ "GL~B2-A36": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ident",
+  "label": "同意：按上面登记",
+  "no": "B2-A36",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:15.872Z"
+ },
+ "GL~B2-A37": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ident",
+  "label": "同意：按上面登记",
+  "no": "B2-A37",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:15.872Z"
+ },
+ "GL~B2-A38": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ident",
+  "label": "同意：按上面登记",
+  "no": "B2-A38",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:15.872Z"
+ },
+ "GL~B2-A39": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ident",
+  "label": "同意：按上面登记",
+  "no": "B2-A39",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:15.872Z"
+ },
+ "GL~B2-A40": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ident",
+  "label": "同意：按上面登记",
+  "no": "B2-A40",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:15.872Z"
+ },
+ "GL~B2-A41": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ident",
+  "label": "同意：按上面登记",
+  "no": "B2-A41",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:15.872Z"
+ },
+ "GL~B2-A42": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ident",
+  "label": "同意：按上面登记",
+  "no": "B2-A42",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:15.872Z"
+ },
+ "GL~B2-A43": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ident",
+  "label": "同意：按上面登记",
+  "no": "B2-A43",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:15.872Z"
+ },
+ "GL~B2-A44": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ident",
+  "label": "同意：按上面登记",
+  "no": "B2-A44",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:15.872Z"
+ },
+ "GL~B2-A45": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ident",
+  "label": "同意：按上面登记",
+  "no": "B2-A45",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:15.872Z"
+ },
+ "GL~B2-A46": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ident",
+  "label": "同意：按上面登记",
+  "no": "B2-A46",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:15.872Z"
+ },
+ "GL~B2-A48": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ident",
+  "label": "同意：按上面登记",
+  "no": "B2-A48",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:15.872Z"
+ },
+ "GL~B2-A49": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ident",
+  "label": "同意：按上面登记",
+  "no": "B2-A49",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:15.872Z"
+ },
+ "GL~B2-A50": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-ident",
+  "label": "同意：按上面登记",
+  "no": "B2-A50",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:15.872Z"
+ },
+ "GL~B2-A52": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-integ",
+  "label": "同意：按上面登记",
+  "no": "B2-A52",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:22.632Z"
+ },
+ "GL~B2-A53": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-integ",
+  "label": "同意：按上面登记",
+  "no": "B2-A53",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:22.632Z"
+ },
+ "GL~B2-A54": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-integ",
+  "label": "同意：按上面登记",
+  "no": "B2-A54",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:22.632Z"
+ },
+ "GL~B2-A55": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-integ",
+  "label": "同意：按上面登记",
+  "no": "B2-A55",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:22.632Z"
+ },
+ "GL~B2-A56": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-integ",
+  "label": "同意：按上面登记",
+  "no": "B2-A56",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:22.632Z"
+ },
+ "GL~B2-A57": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-integ",
+  "label": "同意：按上面登记",
+  "no": "B2-A57",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:22.632Z"
+ },
+ "GL~B2-A58": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-integ",
+  "label": "同意：按上面登记",
+  "no": "B2-A58",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:22.632Z"
+ },
+ "GL~B2-A59": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-a-integ",
+  "label": "同意：按上面登记",
+  "no": "B2-A59",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:01:22.632Z"
+ },
+ "GL~B2-B01": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-b",
+  "label": "事件类改名 UserAccountDisabled，状态词条不动",
+  "no": "B2-B01",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T02:59:19.256Z"
+ },
+ "GL~B2-B02": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-b",
+  "label": "类名改 ApprovalTaskBecameOverdue，中文「任务已超时」不变",
+  "no": "B2-B02",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T02:59:19.256Z"
+ },
+ "GL~B2-B03": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-b",
+  "label": "事件类改名 TaskHandled，不再登记「任务已出结果」",
+  "no": "B2-B03",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T02:59:19.256Z"
+ },
+ "GL~B2-B04": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-b",
+  "label": "保留为独立聚合「登记员工」，不并入员工",
+  "no": "B2-B04",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T02:59:19.256Z"
+ },
+ "GL~B2-B05": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-b",
+  "label": "保留为聚合，属防腐层过渡期用语；事件类名改 SourceReferenceRefused",
+  "no": "B2-B05",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T02:59:19.256Z"
+ },
+ "GL~B2-B06": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-b",
+  "label": "中文用「角色已废除」；类名 RoleDeleted 改 RoleAbolished",
+  "no": "B2-B06",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T02:59:19.256Z"
+ },
+ "GL~B2-B07": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-b",
+  "label": "类名改 TimesheetApprovalWithdrawn，中文「工时单已撤回审批」",
+  "no": "B2-B07",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T02:59:19.256Z"
+ },
+ "GL~B2-B08": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-b",
+  "label": "类别定为 entity（登记册）",
+  "no": "B2-B08",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T02:59:19.256Z"
+ },
+ "GL~B2-B09": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-b",
+  "label": "改为 ContractModified、EclAlerted、RetentionMoneyReleaseDueReached、RevenueReduced、RuleExecuted；中文「合同已变更」等",
+  "no": "B2-B09",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T02:59:19.256Z"
+ },
+ "GL~B2-B10": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-b",
+  "label": "改 ForceLogout",
+  "no": "B2-B10",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T02:59:19.256Z"
+ },
+ "GL~B2-B11": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-b",
+  "label": "允许：作为角色称谓的 Manager 不算技术泛词",
+  "no": "B2-B11",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T02:59:19.256Z"
+ },
+ "GL~B2-B12": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-b",
+  "label": "把这个取值改叫「来源有效」，英文 Active 不变，界面通用词「有效」不动",
+  "no": "B2-B12",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T02:59:19.256Z"
+ },
+ "GL~B2-E01": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-e",
+  "label": "登记「不符合项 / Nonconformity」；质量问题并入它，旧名作别名；阻断性质量问题改为「阻断性不符合项」，质量损失改挂不符合项",
+  "no": "B2-E01",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:22.352Z"
+ },
+ "GL~B2-E02": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-e",
+  "label": "「人员」作信息图一级对象，下分员工、候选人等类型；词表里「员工」保持现名作其中一种类型，代码标识不动；提议「人员」让名为「员工任职快照」",
+  "no": "B2-E02",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:22.352Z"
+ },
+ "GL~B2-E03": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-e",
+  "label": "不登记业务术语，只作会计子域的说明文字",
+  "no": "B2-E03",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:22.352Z"
+ },
+ "GL~B2-E04": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-e",
+  "label": "登记「薪档 / SalaryStep」，归组织人事，值对象，领域用语",
+  "no": "B2-E04",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:22.352Z"
+ },
+ "GL~B2-E05": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-e",
+  "label": "登记「城市类别 / CityCategory」，归成本核算，值对象，领域用语",
+  "no": "B2-E05",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:22.352Z"
+ },
+ "GL~B2-E06": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-e",
+  "label": "登记「协议类型 / AgreementType」及五个取值；「协议」是更宽的信息图一级对象，「合同」保留为协议下的一种类型，代码不改名",
+  "no": "B2-E06",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:22.352Z"
+ },
+ "GL~B2-E07": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-e",
+  "label": "保持词表和 ADR 不变；内部结算协议只是不放进协议类型枚举，因为它是集团内部结算，不是对外协议",
+  "no": "B2-E07",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:22.352Z"
+ },
+ "GL~B2-E08": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-e",
+  "label": "拆成两个词：「组织单元类型」（区域、事业部、交付中心、客户服务中心）和「层级」（树上的第几层）；「区域负责人」保持为区域类组织单元的负责人",
+  "no": "B2-E08",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:00:22.352Z"
+ },
+ "GL~B2-P01": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl-p4",
+  "label": "登记为「投递用途 / DeliveryPurpose」，取值照上面写",
+  "no": "B2-P01",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T02:59:32.252Z"
+ }
+}

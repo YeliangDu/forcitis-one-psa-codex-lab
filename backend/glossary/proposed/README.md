@@ -18,7 +18,7 @@ ADR-0039（防腐层边界）引入的术语（proposed，待业务评审，ADR-
 
 ## `code-aggregates-events.yaml`
 
-涉及模块：`cost.timesheet`、`organization.attendance`、`organization.workforce`、`platform.approval`、`platform.identity`、`platform.integration`、`platform.numbering`。
+涉及模块：`cost.timesheet`、`platform.approval`、`platform.identity`、`platform.integration`。
 
 B2 登记：代码里的聚合根与领域事件各自要有词条（G40、G41）；
 
@@ -26,65 +26,11 @@ B2 登记：代码里的聚合根与领域事件各自要有词条（G40、G41�
 
 | id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|---|
-| `legal_entity_attribution` | 法人归属 | LegalEntityAttribution | 领域 · organization.workforce | 一个部门或一名员工在某段时间内归属于哪个法人主体的记录；各段期间互不重叠，历史只能关闭、不能改写，新的归属只能从最近一段的开始日之后起算 |  | 来源：聚合源码说明与事件目录 |
-| `registered_employee` | 登记员工 | RegisteredEmployee | 领域 · organization.workforce | 员工首次登录时，在组织来源里找到、但下一次同步尚未把他带入组织快照的人；登记后他即可使用系统 |  | 中文名待确认：与词表「员工」是同一个人的两个阶段，是否应并入「员工」聚合由用户裁定 |
-| `approval_request` | 审批请求 | ApprovalRequest | 领域 · platform.approval | 对同一种审批流程中的同一张单据所发起的审批，一张单据在一种流程下只有一个；每一轮审批有自己的流程实例，本轮的审批任务归它管理，只能通过它修改 |  | 来源：聚合源码说明；与词表「审批实例」「审批轮次」的边界待确认 |
-| `source_reference_refusal` | 来源对照被拒登记 | SourceReferenceRefusal | ACL（过渡期） · platform.integration | 有人试图人工登记只能由同步或导入写入的来源对照而被拒绝的一次记录；不存储任何对照，事件本身就是记录，使审计能看到是谁试过 |  | 中文名待确认；聚合承载的只是一次被拒事实 |
-| `timesheet_approved` | 工时单已批准 | TimesheetApproved | 领域 · cost.timesheet | 工时单审批通过，工时成立；过程里程碑，以工作日期记业务日 |  | 形成成本事实的是后续过账事件，本事件是否使用待阶段二定 |
 | `timesheet_cancelled` | 工时单审批已撤销 | TimesheetCancelled | 领域 · cost.timesheet | 填报人撤销审批，工时单回到草稿；不记为驳回；以工作日期记业务日 |  | 类名 Cancelled 与「撤销审批」略不符，类名是否改为 ApprovalWithdrawn 之类待确认 |
-| `timesheet_rejected` | 工时单已驳回 | TimesheetRejected | 领域 · cost.timesheet | 工时单被驳回，工时不成立；以工作日期记业务日 |  | 来源：事件目录 |
-| `timesheet_returned` | 工时单已退回 | TimesheetReturned | 领域 · cost.timesheet | 审批人退回或填报人撤回，工时单回到可修改状态，下一轮重新提交；以工作日期记业务日 |  | 来源：事件目录 |
-| `timesheet_submitted` | 工时单已提交审批 | TimesheetSubmitted | 领域 · cost.timesheet | 填报人把工时单提交审批，工时单进入新一轮审批；以工作日期记业务日，提交日另记；只陈述事实，不过账 |  | 来源：事件目录 |
-| `work_calendar_year_maintained` | 工作日历年度已维护 | WorkCalendarYearMaintained | 领域 · organization.attendance | 某一年的工作日历被保存：有日期被加入、去掉或改了日类型，或该年只是被重新核对；记下变动的日期 |  | 来源：事件目录与事件类说明 |
-| `employee_registered` | 员工已登记 | EmployeeRegistered | 领域 · organization.workforce | 员工第一次登录时，被登记进组织快照；此后下一次同步会带入完整信息 |  | 聚合 Employee，中文名与「员工」一致 |
-| `legal_entity_activated` | 法人主体已启用 | LegalEntityActivated | 领域 · organization.workforce | 一个法人主体被启用，可以开始作为法人使用 |  | 来源：事件目录 |
-| `legal_entity_attributed` | 法人归属已确立 | LegalEntityAttributed | 领域 · organization.workforce | 部门或员工从某日起归属于某个法人主体 |  | 来源：事件目录 |
-| `legal_entity_attribution_corrected` | 法人归属结束日已更正 | LegalEntityAttributionCorrected | 领域 · organization.workforce | 已关闭的法人归属期间的结束日被更正 |  | 来源：事件目录 |
-| `legal_entity_attribution_ended` | 法人归属已结束 | LegalEntityAttributionEnded | 领域 · organization.workforce | 部门或员工对某个法人主体的归属在某日结束 |  | 来源：事件目录 |
-| `legal_entity_code_corrected` | 法人主体代码已更正 | LegalEntityCodeCorrected | 领域 · organization.workforce | 法人主体的代码被更正；仅在尚未发过号时允许 |  | 来源：事件目录 |
-| `legal_entity_deactivated` | 法人主体已停用 | LegalEntityDeactivated | 领域 · organization.workforce | 一个法人主体被停用，不再作为法人使用 |  | 来源：事件目录 |
-| `legal_entity_registered` | 法人主体已登记 | LegalEntityRegistered | 领域 · organization.workforce | 一个新的法人主体被登记进组织人事 |  | 事件目录称「法人新增」，按不用泛词的规则改为「已登记」 |
-| `legal_entity_renamed` | 法人主体已更名 | LegalEntityRenamed | 领域 · organization.workforce | 法人主体的名称被改变 |  | 来源：事件目录 |
-| `org_snapshot_changed` | 组织快照已变化 | OrgSnapshotChanged | ACL（过渡期） · organization.workforce | 一次组织同步使组织快照发生了变化；离职人员的会话据此被收回；业务日为快照截止日，生效日同截止日 |  | 事件目录所属聚合为 SyncRun，故 scope 与「同步记录」一致取 acl 过渡期；若归入「组织快照」聚合则应为 domain，待确认 |
-| `sync_run_failed` | 同步记录已失败 | SyncRunFailed | 领域 · organization.workforce | 一次组织同步运行失败 |  | 来源：事件目录 |
-| `sync_run_held` | 同步记录已被暂停 | SyncRunHeld | 领域 · organization.workforce | 一次组织同步因缩水保护而被中止并保持暂停，等待有权的人放行 |  | 来源：事件目录 |
-| `sync_run_hold_released` | 同步记录一类暂停已解除 | SyncRunHoldReleased | 领域 · organization.workforce | 被暂停的同步，其中一类暂停被有权的人解除；另一类暂停仍在时，运行保持暂停 |  | 来源：事件目录与事件类说明 |
-| `sync_run_released` | 同步记录已放行 | SyncRunReleased | 领域 · organization.workforce | 被中止的同步已由管理员放行，或被后续成功的同步取代；记下接替的运行与管理员给出的原因 |  | 来源：事件目录与事件类说明 |
-| `sync_run_succeeded` | 同步记录已成功 | SyncRunSucceeded | 领域 · organization.workforce | 一次组织同步运行成功 |  | 来源：事件目录；该事件按设计不进审计 |
-| `approval_round_started` | 审批轮次已开始 | ApprovalRoundStarted | 领域 · platform.approval | 审批开始新一轮：首次发起，或退回、驳回、撤销之后重新发起；过程里程碑 |  | 聚合 ApprovalRequest；词表已有实体「审批轮次」 |
-| `approval_task_escalated` | 任务已升级 | ApprovalTaskEscalated | 领域 · platform.approval | 任务超时仍未处理，已升级给审批人的上级；取不到上级则交流程管理员 |  | 聚合 ApprovalRequest |
 | `approval_task_overdue` | 任务已超时 | ApprovalTaskOverdue | 领域 · platform.approval | 任务超过审批时限仍未处理；只提醒，不自动通过，计入时效统计 |  | 类名 Overdue 是形容词而非过去式，是否改为 ApprovalTaskTimedOut 待确认 |
-| `document_submitted_for_approval` | 单据已请求审批 | DocumentSubmittedForApproval | 领域 · platform.approval | 单据的所有者请审批模块发起一轮审批，并带齐发起所需的全部信息；同一单据同一轮重复收到只发起一次 |  | 类型归审批模块，由申请审批的模块的聚合（现为工时单）发布；中文名与「工时单已提交审批」的区别见事件目录 |
-| `task_claimed` | 任务已认领 | TaskClaimed | 领域 · platform.approval | 任务被候选人之一认领，其他候选人的待办随之改为已处理 |  | 聚合 ApprovalRequest |
-| `task_closed` | 任务已关闭 | TaskClosed | 领域 · platform.approval | 本轮在任务办结前结束（驳回、退回、撤回、撤销），任务关闭，未办理的候选人失去办理权 |  | 聚合 ApprovalRequest |
-| `task_reassigned` | 任务已改派 | TaskReassigned | 领域 · platform.approval | 流程管理员把任务改派给另一个人，填写原因并留痕 |  | 聚合 ApprovalRequest |
-| `task_released` | 任务已退回候选组 | TaskReleased | 领域 · platform.approval | 任务的处理人把任务退回候选组，候选人可以再次认领 |  | 聚合 ApprovalRequest |
 | `task_resulted` | 任务已出结果 | TaskResulted | 领域 · platform.approval | 任务被办理（通过、驳回、退回），或系统自动通过；加签人的驳回只记意见，不结束本轮 |  | 类名与已确认用语冲突：第三轮 R3-AP-60 已定为「任务已办理 / TaskHandled」，该词条已在词表；代码类名应改为 TaskHandled，改名后本条作废 |
-| `task_transferred` | 任务已转交 | TaskTransferred | 领域 · platform.approval | 任务的当前处理人把任务转交给他人 |  | 聚合 ApprovalRequest |
-| `account_enabled` | 用户账号已启用 | AccountEnabled | 领域 · platform.identity | 一个用户账号被启用，可以登录使用 |  | 聚合 UserAccount |
-| `account_opened` | 用户账号已开立 | AccountOpened | 领域 · platform.identity | 为一个人开立用户账号，包含开立时授予的角色 |  | 聚合 UserAccount |
-| `account_roles_replaced` | 用户账号角色已替换 | AccountRolesReplaced | 领域 · platform.identity | 一个用户账号的角色被整体替换为新的一组 |  | 聚合 UserAccount |
-| `account_separated` | 用户账号已因离职收回角色 | AccountSeparated | 领域 · platform.identity | 账号的本人离职，账号收回全部角色；挂在账号上的东西（如应急账号）随这一事实处理 |  | 聚合 UserAccount |
-| `authorization_confirmed` | 授权申请已确认 | AuthorizationConfirmed | 领域 · platform.identity | 敏感授权申请被另一个人确认 |  | 聚合 AuthorizationRequest |
-| `authorization_opened` | 授权申请已开立 | AuthorizationOpened | 领域 · platform.identity | 一个敏感授权申请被提出，等待另一个人确认 |  | 聚合 AuthorizationRequest |
-| `authorization_rejected` | 授权申请已拒绝 | AuthorizationRejected | 领域 · platform.identity | 敏感授权申请被拒绝，或被申请人撤回 |  | 聚合 AuthorizationRequest；拒绝与撤回是否分设两个事件待确认 |
-| `emergency_admin_credentials_reset` | 应急管理员凭据已重置 | EmergencyAdminCredentialsReset | 领域 · platform.identity | 应急管理员的登录凭据被重置 |  | 聚合 EmergencyAdmin |
-| `emergency_admin_disabled` | 应急管理员已停用 | EmergencyAdminDisabled | 领域 · platform.identity | 应急管理员因离职或运维命令而被停用 |  | 聚合 EmergencyAdmin |
-| `emergency_admin_enabled` | 应急管理员已启用 | EmergencyAdminEnabled | 领域 · platform.identity | 应急管理员被启用，可作为应急入口使用 |  | 聚合 EmergencyAdmin |
-| `emergency_admin_registered` | 应急管理员已登记 | EmergencyAdminRegistered | 领域 · platform.identity | 一名应急管理员被登记 |  | 聚合 EmergencyAdmin |
-| `role_created` | 角色已设立 | RoleCreated | 领域 · platform.identity | 新设立一个角色 |  | 事件目录称「角色新增」，避开泛词改为「设立」；类名 Created 是否改为 Established 待确认 |
 | `role_deleted` | 角色已废除 | RoleDeleted | 领域 · platform.identity | 一个角色被废除，不再可用 |  | 事件目录称「角色删除」；「删除」属技术泛词，业务说法（废除/撤销）待用户确认 |
-| `role_disabled` | 角色已停用 | RoleDisabled | 领域 · platform.identity | 一个角色被停用 |  | 聚合 Role |
-| `role_enabled` | 角色已启用 | RoleEnabled | 领域 · platform.identity | 一个角色被启用 |  | 聚合 Role |
-| `role_revised` | 角色已修订 | RoleRevised | 领域 · platform.identity | 角色的名称、数据范围或权限被修改 |  | 聚合 Role |
-| `source_reference_confirmed` | 来源对照已确认 | SourceReferenceConfirmed | 领域 · platform.integration | 另一个人确认了登记的来源对照，从生效日起用于出站 |  | 聚合 SourceReference |
-| `source_reference_registered` | 来源对照已登记 | SourceReferenceRegistered | 领域 · platform.integration | 有人登记了一条来源对照（核算组织编码），等待他人确认 |  | 聚合 SourceReference |
 | `source_reference_registration_refused` | 来源对照登记已被拒绝 | SourceReferenceRegistrationRefused | 领域 · platform.integration | 有人试图人工登记只能由同步或导入写入的来源对照，被拒绝，未存储任何对照 |  | 聚合 SourceReferenceRefusal；类名 RegistrationRefused 与聚合名有重复 |
-| `source_reference_rejected` | 来源对照已拒绝 | SourceReferenceRejected | 领域 · platform.integration | 另一个人拒绝了登记的来源对照；已生效的对照不变 |  | 聚合 SourceReference |
-| `source_reference_superseded` | 来源对照已被取代 | SourceReferenceSuperseded | 领域 · platform.integration | 生效中的来源对照，在后继对照的生效日结束 |  | 聚合 SourceReference |
-| `numbering_rule_confirmation_given` | 编号规则已获一次确认 | NumberingRuleConfirmationGiven | 领域 · platform.numbering | 编号规则的模板版本得到业务或财务其中一方的一次确认 |  | 类名 ConfirmationGiven 不是「聚合+过去式动词」形式，是否改为 NumberingRuleConfirmationRecorded 待确认 |
-| `numbering_rule_confirmed` | 编号规则已确认 | NumberingRuleConfirmed | 领域 · platform.numbering | 编号规则的模板版本已确认齐全，从此开始发号 |  | 聚合 NumberingRule |
-| `numbering_rule_reconfigured` | 编号规则已重新设置 | NumberingRuleReconfigured | 领域 · platform.numbering | 编号规则保存了新的模板版本，等待他人确认 |  | 聚合 NumberingRule |
 
 ## `contract-evolution.yaml`
 
@@ -262,7 +208,7 @@ Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-
 | `workforce__isolated_row` | 被隔离的行 | IsolatedRow | ACL（过渡期） · organization.workforce | 缺部门或缺岗位的人员行：不写入、告警，不中断整批同步 |  |  |
 | `workforce__broken_org_tree` | 断裂的组织树 | BrokenOrgTree | ACL（过渡期） · organization.workforce | A8 返回的部门缺少上级路径；整次同步中止，什么都不写 |  |  |
 | `workforce__login_name` | 登录名 | LoginName | ACL（过渡期） · platform.integration | 员工在组织源的登录名（手机号）；没有即离职（RULE-363） |  |  |
-| `workforce__staff_employee` | 人员 | StaffEmployee | ACL（过渡期） · organization.workforce | 一名员工连同其任职，是同步比较与写入的单位 |  |  |
+| `workforce__staff_employee` | 员工任职快照 | StaffEmployee | ACL（过渡期） · organization.workforce | 一名员工连同其任职，是同步比较与写入的单位 |  |  |
 | `workforce__relationship` | 关系 | Relationship | ACL（过渡期） · platform.integration | A8 中人员与组织单元之间的关系（部门负责人、区域应收负责人），类型 ID 为配置项 |  |  |
 | `separation_observed_at` | 离职观察时间 | SeparationObservedAt | ACL（过渡期） · platform.integration | 组织同步第一次把员工判为离职、并写入快照的那一轮同步的提交时刻；只表示新系统这样判定了，不是人事生效日 | 「离职日期」已禁用；「separation_date」已禁用 | 单说离职日期有歧义，须写明预计离职日期或离职观察时间 |
 | `attribution_subject` | 法人归属对象 | AttributionSubject | 领域 · organization.workforce | 法人归属所指的对象，是一个组织单元或一名员工，由对象类别与对象 ID 共同确定；同一对象在同一时点只归属一个法人 |  | 类型 AttributionSubjectId 为它的标识（kind + subjectId，events/workforce.yaml x-type）；落库按 DA-5 拆为 org_unit_id / employee_id 两列 |
@@ -313,7 +259,6 @@ platform.integration 提议术语（proposed，待业务评审，ADR-0018）。
 | `read_only_verification_result__violated` | 确认违规 | Violated | ACL（过渡期） · platform.integration | 只读核实结果的取值：数据库目录确实显示该项超出或缺少基线（与「判定不了」相对） |  | PAR-2 验收测试登记，待用语确认 |
 | `read_only_verification_result__undetermined` | 判定不了 | Undetermined | ACL（过渡期） · platform.integration | 只读核实结果的取值：查询出错、超时、连不上或返回为空，该项无法判定；启动时同样拒绝启动（ADR-0037 第 4 项第 2 条） |  | PAR-2 验收测试登记，待用语确认 |
 | `overridden_grant` | 被拒绝覆盖的授权 | OverriddenGrant | ACL（过渡期） · platform.integration | 已授予、但被同级或更高层级的 DENY 覆盖、实际不生效的权限；只读核实按有效权限判定时不算违规，只作提示。 |  | one-glossary 术语门禁结论（one-coordinator 2026-10-15 转达）；只读核实命令定位行种类 overridden，by 写被哪条 DENY 覆盖（DATABASE_DENY / SCHEMA_DENY） |
-| `delivery_purpose` | 投递用途 | DeliveryPurpose | ACL（长期） · platform.integration | 一张外发卡片为什么发：任务指派、任务转交、任务改派、任务超时、任务升级、审批完成；与对象类别、对象 ID（可再加触发事件 ID）一起决定一张卡 |  | R-1b P4 登记；取值 TASK_ASSIGNED / TASK_TRANSFERRED / TASK_REASSIGNED / TASK_OVERDUE / TASK_ESCALATED / APPROVAL_COMPLETED |
 
 另有错误码 7 个（kind 为 `error_code`）、技术词 25 个（`common_words`），不在表中。
 

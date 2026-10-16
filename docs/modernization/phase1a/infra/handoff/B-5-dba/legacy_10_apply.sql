@@ -5,7 +5,7 @@
 -- 必须是两个账号：应用对每个连接启动时都校验「能 SELECT 的对象恰好只有本视图」（I-1），一个账号读两个视图会两边都拒绝启动；
 -- 授权必须直接给用户，不经数据库角色（information_schema 看不到经角色得到的授权，应用据此禁止角色成员）。
 -- 账号名须与应用的环境变量一致：
---   INBOX_LOGIN  → FORCITIS_PLATFORM_APPROVAL_LEGACY_USERNAME（合并待办，platform.approval）
+--   INBOX_LOGIN  → FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_USERNAME（合并待办，platform.approval）
 --   NAMES_LOGIN  → LEGACY_DB_RO_USERNAME（部门简称，platform.integration）
 :setvar INBOX_LOGIN psa_one_legacy_ro
 :setvar NAMES_LOGIN one_legacy_names_ro
@@ -57,7 +57,7 @@ GO
 -- 托管实例不允许 T-SQL 建登录时，改在 RDS 控制台建同名登录、≥ 32 位随机口令，跳过本步。
 -- CHECK_EXPIRATION 关闭：服务账号口令到期会让合并待办与简称同步中断；按 90 天由 DBA 计划轮换（runbooks/C-8）。
 DECLARE @logins TABLE (login_name sysname, env_name sysname);
-INSERT INTO @logins VALUES (N'$(INBOX_LOGIN)', N'FORCITIS_PLATFORM_APPROVAL_LEGACY_PASSWORD'),
+INSERT INTO @logins VALUES (N'$(INBOX_LOGIN)', N'FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_PASSWORD'),
                            (N'$(NAMES_LOGIN)', N'LEGACY_DB_RO_PASSWORD');
 DECLARE @shown TABLE (login_name sysname, env_name sysname, one_time_secret nvarchar(64));
 DECLARE @login sysname, @env sysname, @secret nvarchar(64), @ddl nvarchar(max);

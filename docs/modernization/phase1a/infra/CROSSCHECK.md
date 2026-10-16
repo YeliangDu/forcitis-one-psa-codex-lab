@@ -6,7 +6,7 @@
 
 | # | 不一致 | 位置 | 处理 |
 |---|---|---|---|
-| 1 | 合并待办读老待办视图的连接变量是 `FORCITIS_PLATFORM_APPROVAL_LEGACY_URL/_USERNAME/_PASSWORD/_DETAIL_URL_TEMPLATE`；运行手册写成 `LEGACY_DB_RO_*` 与 `INTEGRATION_LEGACY_ENABLED`，而后两者实际是**部门简称**视图的连接与开关 | `INFRA_RUNBOOK.md` §5 原 104–106 行；代码 `backend/src/main/resources/config/platform_approval.properties:12-15`、`platform_integration.properties:25-30` | 已改（§5 表） |
+| 1 | 合并待办读老待办视图的连接变量是 `FORCITIS_PLATFORM_APPROVAL_LEGACY_URL/_USERNAME/_PASSWORD/_DETAIL_URL_TEMPLATE`；运行手册写成 `LEGACY_DB_RO_*` 与 `INTEGRATION_LEGACY_ENABLED`，而后两者实际是**部门简称**视图的连接与开关 | `INFRA_RUNBOOK.md` §5 原 104–106 行；代码 `backend/src/main/resources/config/platform_approval.properties:12-15`、`platform_integration.properties:25-30` | 已改（§5 表） （R-1b P3b 起这三个变量改名为 `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL/_USERNAME/_PASSWORD`，旧名留在 one.env 会拒绝启动）|
 | 2 | 老系统两个视图必须用两个账号：两个模块各自在启动时校验「能 SELECT 的对象恰好一个」，共用账号两边都会拒绝启动；运行手册写「同上或另设」 | `INFRA_RUNBOOK.md` §4 原 71 行；代码 `platform/approval/infrastructure/legacy/LegacyAccessGuard.java`、`platform/integration/infrastructure/legacy/SingleObjectGuard.java` | 已改（§4 表）；B-5 脚本建两个账号 |
 | 3 | E-7 要求应用只听 127.0.0.1:8080、管理端点 127.0.0.1:8081 并开放 prometheus；代码未设 `server.address`、`management.server.port`，且只暴露 `health` | `INFRA_RUNBOOK.md` E-7（53 行）；`config/platform_identity.properties:21` | 已改：以环境变量补齐（`one.env.template`），不改代码 |
 | 4 | E-10 把 H5 放在 `/h5`，但 H5 构建 `publicPath: '/'`，放在子路径下静态资源会 404；企业微信应用主页地址随之未定 | `INFRA_RUNBOOK.md` E-10（56 行）；`frontend/apps/h5/config/index.ts:33` | 已解决：H5 子路径为代码常量 `/h5/`（INT-G3，#72） |
