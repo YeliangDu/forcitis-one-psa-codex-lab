@@ -3529,6 +3529,7 @@ processes:
   - VS-03.1
   owner_bc: B-26
   human_orchestration: false
+  frequency_ref: 待取证（E-B1）；经验估计：每月 3–8 份含 IDI 检查服务的协议回签
   migration: 在途检查计划按当前状态迁入（已登记、生效），到期日与来源协议引用保留；已标记不再受托的只迁结局与标记原因；历史计划全部迁入（U-4）。不接老系统，迁入对账以生产数据为证据
   scope: 按承担部门的数据范围：检查负责人可见并经办本部门受托协议的检查计划；委托方（保险公司等）不登录本系统
   triggers:
@@ -3548,10 +3549,32 @@ processes:
   roles:
   - id: SH-E4
     as: initiator
+    org_needs:
+      responsibility: 对受托 IDI 检查的计划负责：协议回签后制定并生效检查计划，到期前判断是否续做或停止受托
+      approval_right: 无（登记、生效、标记不再受托均为本人经办，不是审批）
+      department_hint: 承担检查业务的技术部门
+      position_hint: 检查负责人（技术专家，持技术委员会资格）
   - id: SH-E5
     as: informed
+    org_needs:
+      responsibility: 收到计划到期知会后跟进续做线索（另起「登记并跟进线索」）
+      approval_right: 无
+      department_hint: 市场与客户经营部门
+      position_hint: 市场和客户经理
+  - id: SH-E2
+    as: informed
+    org_needs:
+      responsibility: 知悉检查计划已生效，对项目整体交付节奏负责
+      approval_right: 无
+      department_hint: 承担项目的业务部门
+      position_hint: 项目经理
   - id: SH-C5
     as: external
+    org_needs:
+      responsibility: 委托方（保险公司等），不登录本系统
+      approval_right: 无（线下委托）
+      department_hint: 外部，不在本系统组织内
+      position_hint: —
   notes: 检查计划仅 IDI（AGG-34 / OBJ-48）；非 IDI 的周期检查不建计划，由检查负责人直接「安排检查」（PRC-43），到期只作提醒（U-3）。到期提醒是派生 / 策略（P-28），不存状态；人工转线索后另起「登记并跟进线索」，上游不订阅下游事件。按周期结算用协议付款条件项。
   steps:
   - actor: system
@@ -3578,9 +3601,11 @@ processes:
     decision:
     - when: 协议范围含 IDI 检查服务
       goto: 2
+      p: 0.8
     - when: otherwise
       goto: end
-    outcome: 无需检查计划
+      outcome: 无需检查计划
+      p: 0.2
     notify:
     - to: SH-E4
       how: 企业微信待办（协议已回签，请制定检查计划）
@@ -3593,6 +3618,12 @@ processes:
     permission: 检查计划.登记
     page: 检查计划编辑页
     audit: true
+    effort:
+      typical_min: 10
+      p90_min: 20
+    wait:
+      typical_h: 24
+      p90_h: 72
   - actor: SH-E4
     where: in_system
     actor_v1: 检查负责人
@@ -3602,6 +3633,9 @@ processes:
     permission: 检查计划.生效
     page: 检查计划页
     audit: true
+    effort:
+      typical_min: 5
+      p90_min: 10
     notify:
     - to: SH-E2
       how: 企业微信消息（检查计划已生效）
@@ -3611,15 +3645,17 @@ processes:
     read: true
     reads:
     - AGG-34
-    desc: P-28 到期提醒与逾期未委托提醒，读模型派生，不存状态；由人工转线索，上游不订阅下游事件（符合性审查 建-12）
+    desc: P-28 到期提醒与逾期未委托提醒，读模型派生，不存状态；由人工转线索，上游不订阅下游事件（符合性审查 建-12）。提醒提前量与逾期提醒周期为配置参数，P30D 为经验估计
     decision:
     - when: 协议到期或客户不再委托
       goto: 5
+      p: 0.15
     - when: otherwise
       goto: end
-    outcome: 计划已生效
+      outcome: 计划已生效
+      p: 0.85
     timeout:
-      after: 计划到期日前的提醒提前量（配置参数）；到期日后仍未委托的逾期提醒周期（配置参数）
+      after: P30D
       escalate_to: SH-E4
       interrupting: false
     notify:
@@ -3637,10 +3673,14 @@ processes:
     permission: 检查计划.标记不再受托
     page: 检查计划页
     audit: true
+    effort:
+      typical_min: 5
+      p90_min: 10
     decision:
     - when: otherwise
       goto: end
-    outcome: 不再受托
+      outcome: 不再受托
+      p: 1.0
 - id: PRC-43
   name: 实施现场检查并锁定
   trigger:
@@ -3653,7 +3693,8 @@ processes:
   - VS-02.6
   owner_bc: B-26
   human_orchestration: false
-  migration: 在途检查按当前状态迁入（已计划、已安排、现场进行中、记录已提交、已审核）；已锁定检查迁结局、检查项结果、更正记录与引用证据；证据原件、采集时间、采集人、地点与哈希原样迁入，迁入后同样只追加不可改（诉讼证据要求，intent 141725）；全部历史迁入（U-4）
+  frequency_ref: 待取证（E-B1）；经验估计：每月 15–30 次现场检查
+  migration: 在途检查按当前状态迁入（已计划、已安排、现场进行中、记录已提交、已审核）；已锁定检查迁结局、检查项结果、更正记录与引用证据；证据原件、采集时间、采集人、地点与哈希原样迁入，迁入后同样只追加不可改（诉讼证据要求，intent 141725）；证据关联（含合同引用）一并迁入；全部历史迁入（U-4）
   scope: 按项目的数据范围：检查负责人可见并经办本项目检查；检查人员只见被指派的检查；证据按采集人与项目控制可见
   segregation:
   - roles:
@@ -3673,21 +3714,53 @@ processes:
   - PRC-43-S05
   - PRC-43-S06
   - PRC-43-S07
+  - PRC-43-S08
+  - PRC-43-S09
   roles:
   - id: SH-E4
     as: initiator
+    org_needs:
+      responsibility: 对检查的专业质量与结论负责：安排与指派、审核检查记录、锁定、关联检查报告
+      approval_right: 检查记录审核（专业复核，不涉资金，aggregate 内单级）；回避：不得审核本人提交的记录
+      department_hint: 承担检查业务的技术部门
+      position_hint: 检查负责人（技术专家，持技术委员会资格）
   - id: SH-E4
     as: reviewer
+    org_needs:
+      responsibility: 审核检查项结果与证据是否支撑、未检原因是否充分
+      approval_right: 同上（检查记录审核）
+      department_hint: 承担检查业务的技术部门
+      position_hint: 检查负责人（技术专家）
   - id: SH-E3
     as: performer
+    org_needs:
+      responsibility: 现场检查、采集证据（系统自动关联到检查）、逐项填写并提交检查记录
+      approval_right: 无
+      department_hint: 承担检查业务的部门
+      position_hint: 检查人员（设计师和顾问，含驻场；资质经 B-13 读取）
   - id: SH-C5
     as: informed
+    org_needs:
+      responsibility: 委托方（保险公司等）接收检查报告与发现，不登录本系统
+      approval_right: 无
+      department_hint: 外部，不在本系统组织内
+      position_hint: —
   - id: SH-C3
     as: external
+    org_needs:
+      responsibility: 业主方在现场签认检查记录，不登录本系统
+      approval_right: 无（现场签认作证据）
+      department_hint: 外部，不在本系统组织内
+      position_hint: 业主代表
   - id: SH-X5
     as: external
-  notes: 品控类服务在施工期做的检查同此流程（M-11 施工期类型）。检查报告的编制、校审、签发、送达与客户认可走 PRC-28 同一流程（INV-51 同 BC 前置读不符合项）；检查服务的收入证据为 ADR-0047 第 5 类（检查完成经客户签认，或报告签发；可登记、不触发）。现场采集的照片、视频、量测数据与签认单均作证据，只追加、计内容哈希、记采集时间与地点，不得删改（intent 141725）。我方为
-    TIS 时负责人兼项受限（INV-56 / P-44）；我方是 TIS 专项分包或直接受托时不受此限（Q30，待用户确认）。
+    org_needs:
+      responsibility: 我方为 TIS 专项分包时的上游保险技术检查机构
+      approval_right: 无
+      department_hint: 外部，不在本系统组织内
+      position_hint: —
+  notes: 品控类服务在施工期做的检查同此流程（M-11 施工期类型）。检查报告的编制、校审、签发、送达与客户认可走 PRC-28 同一流程（INV-51 同 BC 前置读不符合项）；检查服务的收入证据为 ADR-0047 第 5 类（检查完成经客户签认，或报告签发；可登记、不触发）。现场采集的照片、视频、量测数据与签认单均作证据，只追加、计内容哈希、记采集时间与地点，不得删改（intent 141725）；证据挂检查由证据关联（AGG-110，S-25
+    加挂目标「检查」）记，合同引用为诉讼关联键。我方为 TIS 时负责人兼项受限（INV-56 / P-44）；我方是 TIS 专项分包或直接受托时不受此限（Q30，待用户确认）。检查记录审核保留人工：只留「证据是否支撑结论、未检原因是否充分」的专业判断，机械项已拆为规则（见 NOTES 规则化）。
   steps:
   - actor: system
     where: automatic
@@ -3723,6 +3796,9 @@ processes:
     page: 检查安排页
     legal_entity: 承担法人
     audit: true
+    effort:
+      typical_min: 15
+      p90_min: 30
   - actor: SH-E4
     where: in_system
     actor_v1: 检查负责人
@@ -3733,11 +3809,16 @@ processes:
     - when: 我方为 TIS 且负责人兼项数超过上限
       goto: 3
       rule: INV-56
+      p: 0.03
     - when: otherwise
       goto: 4
+      p: 0.97
     permission: 检查.指派
     page: 检查指派页
     audit: true
+    effort:
+      typical_min: 5
+      p90_min: 10
     notify:
     - to: SH-E3
       how: 企业微信待办（已指派现场检查）
@@ -3760,23 +3841,50 @@ processes:
     permission: 证据.采集
     page: 现场证据采集页
     audit: true
+    effort:
+      typical_min: 180
+      p90_min: 420
+    wait:
+      typical_h: 24
+      p90_h: 72
+  - actor: system
+    where: automatic
+    added_in: closeout
+    command: 关联证据
+    aggregate: AGG-110
+    desc: 采集证据成功后系统自动把该证据挂到本次检查（挂接目标类型：检查，S-25），关联人取采集人，记合同引用，作诉讼证据的关联性键（intent 141725），不让检查人员重复录入；证据本身不动。B-26 → B-28 api；目标 ID 在 B-28 侧只存、不校验（检查在下游 B-26）
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-28
+      name: 关联证据
+    audit: true
   - actor: SH-E3
     where: in_system
     actor_v1: 检查人员
     command: 提交检查记录
     aggregate: AGG-35
-    desc: 逐项登记检查结果并引用证据；每个检查项须有结果或未检原因（INV-55）；状态到记录已提交
+    desc: 逐项登记检查结果并引用证据；每个检查项须有结果或未检原因（INV-55）；有判定结果的检查项须引用至少一条本检查已关联的证据（拟规则 VS03-01），未检项须选原因类型并写说明；状态到记录已提交
     decision:
     - when: 有检查项既无结果也无未检原因
-      goto: 5
-      rule: INV-55
-    - when: otherwise
       goto: 6
+      rule: INV-55
+      p: 0.06
+    - when: 有判定结果的检查项未引用任何证据或未检项未选原因类型
+      goto: 4
+      rule: 拟规则-VS03-01
+      p: 0.06
+    - when: otherwise
+      goto: 7
+      p: 0.88
     permission: 检查记录.提交
     page: 检查记录填报页
     audit: true
+    effort:
+      typical_min: 45
+      p90_min: 120
     timeout:
-      after: 现场检查结束后的记录提交期限（合同参数；未约定时 P3D，待用户定）
+      after: P3D
       escalate_to: SH-E4
       interrupting: false
     notify:
@@ -3787,21 +3895,29 @@ processes:
     actor_v1: 检查负责人
     command: 审核检查记录
     aggregate: AGG-35
-    desc: 审核检查项结果与证据是否支撑；有缺项或未检原因不充分的退回检查人员补全
+    desc: 专业复核（同 PRC-28 校审，不走 platform.approval）：判断检查项结果是否被所引证据支撑、未检原因是否充分；缺项与缺证据已由规则拒绝，提交人与审核人为同一人时拒绝审核
     decision:
-    - when: 检查记录有缺项或未检原因不充分
-      goto: 5
+    - when: 检查项结果不被证据支撑或未检原因不充分
+      goto: 6
+      p: 0.15
     - when: otherwise
-      goto: 7
+      goto: 8
+      p: 0.85
     approval:
       engine: aggregate
       doc_type: 检查记录审核
       approver: SH-E4
-      multi_level: false
-      on_reject: 5
+      why_human: 证据是否足以支撑检查结论、未检原因是否合理，需要懂检查标准的人按现场情况判断，系统只能核对「有没有」，不能核对「够不够」。
+      on_reject: 6
     permission: 检查记录.审核
     page: 检查记录审核页
     audit: true
+    effort:
+      typical_min: 30
+      p90_min: 90
+    wait:
+      typical_h: 8
+      p90_h: 24
   - actor: SH-E4
     where: in_system
     actor_v1: 检查负责人
@@ -3814,6 +3930,9 @@ processes:
     page: 检查锁定页
     audit: true
     metric_event: true
+    effort:
+      typical_min: 5
+      p90_min: 10
     notify:
     - to: SH-E3
       how: 企业微信待办（检查已锁定，可编制检查报告）
@@ -3843,10 +3962,14 @@ processes:
     permission: 检查.关联报告
     page: 检查报告关联页
     audit: true
+    effort:
+      typical_min: 5
+      p90_min: 10
     decision:
     - when: otherwise
       goto: end
-    outcome: 已锁定
+      outcome: 已锁定
+      p: 1.0
 - id: PRC-44
   name: 发布客户资产类不符合项并建议外部检测
   trigger:
@@ -3860,7 +3983,8 @@ processes:
   - VS-03.3
   owner_bc: B-26
   human_orchestration: false
-  migration: 在途不符合项按当前状态迁入（已识别、已复核、已发布）；已发布的保留等级体系版本、等级值、部位、整改责任方与证据引用；已建议的外部检测一并迁入；历史全部迁入（U-4）
+  frequency_ref: 待取证（E-B1）；经验估计：每月 5–15 条客户资产类不符合项
+  migration: 在途不符合项按当前状态迁入（已识别、已复核、已发布）；已发布的保留等级体系版本、等级值、部位、整改责任方与证据引用（含证据关联）；已建议的外部检测一并迁入；历史全部迁入（U-4）
   scope: 按项目的数据范围；发现与证据对委托方的可见范围随报告送达，本系统不开放客户登录
   segregation:
   - roles:
@@ -3883,25 +4007,53 @@ processes:
   - PRC-44-S03
   - PRC-44-S04
   - PRC-44-S05
+  - PRC-44-S06
+  - PRC-44-S07
   roles:
   - id: SH-E3
     as: performer
+    org_needs:
+      responsibility: 登记发现并关联证据
+      approval_right: 无
+      department_hint: 承担检查业务的部门
+      position_hint: 检查人员（设计师和顾问）
   - id: SH-E4
     as: reviewer
+    org_needs:
+      responsibility: 复核发现是否成立、等级是否恰当，发布并送达，决定是否建议外部检测
+      approval_right: 不符合项复核（专业复核，不涉资金，aggregate 内单级）；回避：不得复核本人登记的发现
+      department_hint: 承担检查业务的技术部门
+      position_hint: 检查负责人（技术专家，持技术委员会资格）
   - id: SH-C5
     as: informed
+    org_needs:
+      responsibility: 委托方（保险公司等）接收发现，不登录本系统
+      approval_right: 无
+      department_hint: 外部，不在本系统组织内
+      position_hint: —
   - id: SH-C3
     as: informed
+    org_needs:
+      responsibility: 业主作为整改责任方接收发现，不登录本系统
+      approval_right: 无
+      department_hint: 外部，不在本系统组织内
+      position_hint: 业主代表
   - id: SH-X6
     as: informed
-  notes: R-07：不拆聚合，跨 BC 经 api 的代价由本流程体现；来源检查 ID 只作回溯线索。IDI 的等级为正常、轻微、中等、严重、风险保留五级；等级体系按服务类型版本化（见 NOTES 结构问题）。重大险情须记录已报告（INV-52）。发布后的送达必须留送达回执，作诉讼证据。
+    org_needs:
+      responsibility: 持证检测机构，受业主委托做第三方检测
+      approval_right: 无
+      department_hint: 外部，不在本系统组织内
+      position_hint: —
+  notes: R-07：不拆聚合，跨 BC 经 api 的代价由本流程体现；来源检查 ID 只作回溯线索。IDI 的等级为正常、轻微、中等、严重、风险保留五级；等级体系按服务类型版本化（见 NOTES 结构问题）。重大险情须记录已报告（INV-52）。发布后的送达必须留送达回执，作诉讼证据。证据挂不符合项由证据关联（AGG-110，S-25 加挂目标「不符合项」）记。复核保留人工：只留「发现是否成立」的专业判断，等级默认取模板映射、证据齐全由规则守（见
+    NOTES 规则化）。
   steps:
   - actor: SH-E3
     where: in_system
     actor_v1: 检查人员
     command: 登记不符合项
     aggregate: AGG-28
-    desc: 经质量与认可 api 发起，来源检查 ID 只作回溯线索；记等级体系版本与等级值、部位、整改责任方；引用本次检查采集的证据
+    desc: 经质量与认可 api 发起，来源检查 ID 只作回溯线索；记等级体系版本与等级值（默认取检查表模板的等级映射，改动须写理由，拟规则 VS03-02）、部位、整改责任方
     cross_bc:
     - mode: api
       direction: out
@@ -3910,23 +4062,45 @@ processes:
     permission: 不符合项.登记
     page: 不符合项登记页
     audit: true
+    effort:
+      typical_min: 20
+      p90_min: 45
+  - actor: SH-E3
+    where: in_system
+    added_in: closeout
+    command: 关联证据
+    aggregate: AGG-110
+    desc: 把本次检查采集的证据挂到这条不符合项（挂接目标类型：不符合项，S-25），记合同引用，作诉讼证据关联键；发布前至少一条（INV-50）
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-28
+      name: 关联证据
+    permission: 证据.关联
+    page: 证据关联页
+    audit: true
+    effort:
+      typical_min: 10
+      p90_min: 20
   - actor: SH-E4
     where: in_system
     actor_v1: 检查负责人
     command: 复核不符合项
     aggregate: AGG-28
-    desc: 复核发现是否成立、等级是否恰当；不成立的走关闭（待用户定）
+    desc: 专业复核：判断发现是否成立、偏离模板映射的等级是否恰当；不成立的走关闭（待用户定）；登记人与复核人为同一人时拒绝复核
     decision:
     - when: 复核认定发现不成立
-      goto: 6
+      goto: 7
+      p: 0.1
     - when: otherwise
-      goto: 3
+      goto: 4
+      p: 0.9
     approval:
       engine: aggregate
       doc_type: 不符合项复核
       approver: SH-E4
-      multi_level: false
-      on_reject: 6
+      why_human: 发现是否成立、等级偏离模板映射是否有理，取决于现场情况与检查标准的理解，需要专业判断；证据齐全、等级默认值与回避已由规则处理。
+      on_reject: 7
     cross_bc:
     - mode: api
       direction: out
@@ -3935,6 +4109,12 @@ processes:
     permission: 不符合项.复核
     page: 不符合项复核页
     audit: true
+    effort:
+      typical_min: 20
+      p90_min: 45
+    wait:
+      typical_h: 8
+      p90_h: 24
   - actor: SH-E4
     where: in_system
     actor_v1: 检查负责人
@@ -3945,10 +4125,12 @@ processes:
     desc: 发布前至少引用一条证据（INV-50）；重大险情另须记录已报告（INV-52）
     decision:
     - when: 未引用任何证据
-      goto: 1
+      goto: 2
       rule: INV-50
+      p: 0.03
     - when: otherwise
-      goto: 4
+      goto: 5
+      p: 0.97
     cross_bc:
     - mode: api
       direction: out
@@ -3959,23 +4141,34 @@ processes:
     legal_entity: 承担法人
     audit: true
     metric_event: true
+    effort:
+      typical_min: 10
+      p90_min: 20
   - actor: SH-E4
     where: offline
     added_in: closeout
-    gap: 聚合稿 AGG-28 无「登记不符合项送达」类命令，送达回执暂无登记落点（NOTES 新用语）；重大险情「已报告」同缺命令（INV-52）
+    gap: 聚合稿 AGG-28 无「登记不符合项送达」类命令，送达回执暂无登记落点（NOTES 命令缺口）；重大险情「已报告」同缺命令（INV-52）
     desc: 把已发布的发现与处置建议书面送达委托方（保险公司、业主等）并取得回执；重大险情当场电话或书面报告并留痕
     evidence:
     - 送达回执：签收单扫描件、快递妥投记录、邮件原始报文（含信头）或平台回执之一
     - 送达日与签收人；重大险情的报告时间、报告对象与方式
     decision:
     - when: 不符合项属客户资产且需第三方检测佐证
-      goto: 5
+      goto: 6
+      p: 0.2
     - when: otherwise
       goto: end
+      outcome: 已发布
+      p: 0.8
     permission: 不符合项.登记送达
     page: 不符合项送达登记页
     audit: true
-    outcome: 已发布
+    effort:
+      typical_min: 30
+      p90_min: 90
+    wait:
+      typical_h: 24
+      p90_h: 72
   - actor: SH-E4
     where: in_system
     actor_v1: 检查负责人
@@ -3985,10 +4178,14 @@ processes:
     permission: 外部检测.建议
     page: 外部检测建议页
     audit: true
+    effort:
+      typical_min: 15
+      p90_min: 30
     decision:
     - when: otherwise
       goto: end
-    outcome: 已发布并建议外部检测
+      outcome: 已发布并建议外部检测
+      p: 1.0
   - actor: SH-E4
     where: in_system
     added_in: closeout
@@ -4004,10 +4201,14 @@ processes:
     permission: 不符合项.关闭
     page: 不符合项复核页
     audit: true
+    effort:
+      typical_min: 10
+      p90_min: 20
     decision:
     - when: otherwise
       goto: end
-    outcome: 已关闭
+      outcome: 已关闭
+      p: 1.0
 - id: PRC-45
   name: 跟踪整改并复查闭合
   trigger:
@@ -4018,7 +4219,8 @@ processes:
   owner_bc: B-26
   human_orchestration: true
   human_note: 整改申报、复查通过或回整改，反复多轮，逾期提醒（P-23）
-  migration: 在途不符合项按当前状态迁入（整改中、整改已申报），整改期限、历次申报与复查记录、轮次保留；已闭合、客户接受风险、不再跟踪的只迁结局与证据；历史全部迁入（U-4）
+  frequency_ref: 待取证（E-B1）；经验估计：每月 5–15 条不符合项进入整改跟踪，平均 1.3 轮
+  migration: 在途不符合项按当前状态迁入（整改中、整改已申报），整改期限、历次申报与复查记录、轮次保留；已闭合、客户接受风险、不再跟踪的只迁结局与证据（含证据关联）；历史全部迁入（U-4）
   scope: 按项目的数据范围；整改责任方不登录本系统，申报材料由检查负责人登记
   triggers:
   - type: human
@@ -4037,18 +4239,45 @@ processes:
   - PRC-45-S05
   - PRC-45-S06
   - PRC-45-S07
+  - PRC-45-S08
   roles:
   - id: SH-E4
     as: performer
+    org_needs:
+      responsibility: 开始整改、登记申报、复查、闭合或退回、登记客户接受风险、停止跟踪
+      approval_right: 整改复查结论（专业复核，不涉资金，aggregate 内单级）
+      department_hint: 承担检查业务的技术部门
+      position_hint: 检查负责人（技术专家，持技术委员会资格）
   - id: SH-E4
     as: approver
+    org_needs:
+      responsibility: 判断整改是否满足该等级不符合项的要求
+      approval_right: 同上（整改复查结论）
+      department_hint: 承担检查业务的技术部门
+      position_hint: 检查负责人（技术专家）
   - id: SH-E3
     as: performer
+    org_needs:
+      responsibility: 复查时到场或凭资料核验整改结果，采集复查证据（系统自动关联到不符合项）
+      approval_right: 无
+      department_hint: 承担检查业务的部门
+      position_hint: 检查人员（设计师和顾问）
   - id: SH-C3
     as: external
+    org_needs:
+      responsibility: 整改责任方（业主）：按期整改并书面申报；风险保留时书面确认，不登录本系统
+      approval_right: 书面接受风险（线下，委托人代表或授权人）
+      department_hint: 外部，不在本系统组织内
+      position_hint: 业主代表
   - id: SH-C5
     as: informed
-  notes: 严重等级未闭合不得签发竣工最终风险评估报告（INV-51，在交付物签发处读）。整改复查结论不走 platform.approval（B-26、B-28 无到它的边，见 NOTES 接缝问题），由 AGG-28 的「闭合不符合项」「退回整改」承载。风险保留须有委托人书面确认；闭合须引用复查或整改证据（INV-50）；复查证据同样只追加、哈希、时间戳（intent 141725）。
+    org_needs:
+      responsibility: 委托方（保险公司等）知悉整改与闭合结果，不登录本系统
+      approval_right: 无
+      department_hint: 外部，不在本系统组织内
+      position_hint: —
+  notes: 严重等级未闭合不得签发竣工最终风险评估报告（INV-51，在交付物签发处读）。整改复查结论保留人工专业复核（aggregate 内单级，由 AGG-28 的「闭合不符合项」「退回整改」承载），不涉资金，按 PRC-28 校审同类处理；是否需走 platform.approval 见 NOTES 接缝问题。风险保留须有委托人书面确认；闭合须引用复查或整改证据（INV-50）；复查证据同样只追加、哈希、时间戳（intent
+    141725），并经证据关联（AGG-110，目标「不符合项」，记整改轮次）挂到不符合项。
   steps:
   - actor: SH-E4
     where: in_system
@@ -4064,12 +4293,15 @@ processes:
     permission: 不符合项.开始整改
     page: 整改跟踪页
     audit: true
+    effort:
+      typical_min: 10
+      p90_min: 20
   - actor: SH-E4
     where: offline
     actor_v1: 业主代表
     command: 登记整改申报
     aggregate: AGG-28
-    desc: 整改中 → 整改已申报；整改由业主（整改责任方）完成并书面申报，检查负责人收到后在本系统登记（业主无本系统账号）
+    desc: 整改中 → 整改已申报；整改由业主（整改责任方）完成并书面申报，检查负责人收到后在本系统登记（业主无本系统账号）。整改期限按等级与合同约定，无默认值，P14D 为占位
     evidence:
     - 业主整改申报函或整改完成说明（扫描件、邮件原始报文）
     - 整改后现场照片、验收或检测材料（计内容哈希，只追加）
@@ -4082,8 +4314,14 @@ processes:
     permission: 不符合项.登记整改申报
     page: 整改申报登记页
     audit: true
+    effort:
+      typical_min: 15
+      p90_min: 30
+    wait:
+      typical_h: 240
+      p90_h: 720
     timeout:
-      after: 整改期限（按等级与合同约定）；到期未申报提醒（P-23）
+      after: P14D
       escalate_to: SH-E4
       interrupting: false
     notify:
@@ -4107,32 +4345,60 @@ processes:
     permission: 证据.采集
     page: 现场证据采集页
     audit: true
+    effort:
+      typical_min: 120
+      p90_min: 300
+    wait:
+      typical_h: 48
+      p90_h: 120
+  - actor: system
+    where: automatic
+    added_in: closeout
+    command: 关联证据
+    aggregate: AGG-110
+    desc: 采集复查证据成功后系统自动把该证据挂到这条不符合项（挂接目标类型：不符合项，S-25），记提交轮次引用（整改轮次）与合同引用，不让检查人员重复录入
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-28
+      name: 关联证据
+    audit: true
   - actor: SH-E4
     where: in_system
     actor_v1: 检查负责人
     command: 复查检查
     aggregate: AGG-35
-    desc: 复查是一次新的检查，经本 BC 检查命令
+    desc: 复查是一次新的检查，经本 BC 检查命令；专业复核整改是否满足要求。未通过时系统自动生成「退回整改」待办，带出原因、新整改期限与轮次加 1（拟规则 VS03-03），不由人另行决定去向
     decision:
     - when: 客户书面接受风险
-      goto: 7
-    - when: 确认不再跟踪
       goto: 8
+      p: 0.05
+    - when: 确认不再跟踪
+      goto: 9
+      p: 0.03
     - when: 复查未通过
-      goto: 6
+      goto: 7
+      p: 0.25
     - when: otherwise
-      goto: 5
+      goto: 6
+      p: 0.67
     approval:
       engine: aggregate
       doc_type: 整改复查结论
       approver: SH-E4
-      multi_level: false
-      on_reject: 6
+      why_human: 整改是否真正满足该等级不符合项的要求（含部分整改能否接受），需要结合现场证据与检查标准做专业判断；证据齐全、轮次、期限与未通过后的流转已由规则处理。
+      on_reject: 7
     permission: 检查.复查
     page: 整改复查页
     audit: true
+    effort:
+      typical_min: 30
+      p90_min: 60
+    wait:
+      typical_h: 4
+      p90_h: 16
     timeout:
-      after: 收到整改申报后的复查期限（合同参数；未约定时 P10D，待用户定）
+      after: P10D
       escalate_to: SH-E4
       interrupting: false
   - actor: SH-E4
@@ -4142,13 +4408,16 @@ processes:
     aggregate: AGG-28
     emits:
     - 不符合项已闭合
-    desc: 须引用复查或整改证据（INV-50）
+    desc: 须引用复查或整改证据（INV-50）；复查证据采集时间不早于整改申报日（拟规则 VS03-04）
     decision:
-    - when: 未引用复查或整改证据
+    - when: 未引用复查或整改证据，或复查证据早于整改申报日
       goto: 3
       rule: INV-50
+      p: 0.03
     - when: otherwise
       goto: end
+      outcome: 已闭合
+      p: 0.97
     cross_bc:
     - mode: api
       direction: out
@@ -4158,7 +4427,9 @@ processes:
     page: 整改复查页
     audit: true
     metric_event: true
-    outcome: 已闭合
+    effort:
+      typical_min: 5
+      p90_min: 10
     notify:
     - to: SH-E2
       how: 企业微信消息（不符合项已闭合；报告签发前检查 INV-51）
@@ -4172,6 +4443,7 @@ processes:
     decision:
     - when: otherwise
       goto: 2
+      p: 1.0
     cross_bc:
     - mode: api
       direction: out
@@ -4180,6 +4452,9 @@ processes:
     permission: 不符合项.退回整改
     page: 整改复查页
     audit: true
+    effort:
+      typical_min: 10
+      p90_min: 20
   - actor: SH-E4
     where: offline
     actor_v1: 检查负责人
@@ -4193,6 +4468,8 @@ processes:
     decision:
     - when: otherwise
       goto: end
+      outcome: 客户书面接受风险
+      p: 1.0
     cross_bc:
     - mode: api
       direction: out
@@ -4201,7 +4478,9 @@ processes:
     permission: 不符合项.登记客户接受风险
     page: 客户接受风险登记页
     audit: true
-    outcome: 客户书面接受风险
+    effort:
+      typical_min: 15
+      p90_min: 30
   - actor: SH-E4
     where: in_system
     actor_v1: 检查负责人
@@ -4212,6 +4491,8 @@ processes:
     decision:
     - when: otherwise
       goto: end
+      outcome: 不再跟踪
+      p: 1.0
     cross_bc:
     - mode: api
       direction: out
@@ -4220,7 +4501,9 @@ processes:
     permission: 不符合项.停止跟踪
     page: 整改跟踪页
     audit: true
-    outcome: 不再跟踪
+    effort:
+      typical_min: 10
+      p90_min: 20
 - id: PRC-46
   name: 采信外部检测报告
   trigger:
@@ -4230,6 +4513,7 @@ processes:
   - VS-03.4
   owner_bc: B-26
   human_orchestration: false
+  frequency_ref: 待取证（E-B1）；经验估计：每月 1–4 份外部检测报告
   migration: 在途外部检测按当前状态迁入（已建议、已委托、已登记报告）；已采信或未采信的迁结局、原因与报告证据引用；报告原件与哈希迁入后只引用、不修改；历史全部迁入（U-4）
   scope: 按项目的数据范围；外部检测机构不登录本系统
   triggers:
@@ -4245,11 +4529,26 @@ processes:
   roles:
   - id: SH-E4
     as: performer
+    org_needs:
+      responsibility: 登记业主委托与报告，核对出具机构，决定采信与否
+      approval_right: 采信决定（技术判断，本人决定，无第二人审批，不涉资金）
+      department_hint: 承担检查业务的技术部门
+      position_hint: 检查负责人（技术专家，持技术委员会资格）
   - id: SH-C3
     as: external
+    org_needs:
+      responsibility: 业主委托检测机构并转交报告，不登录本系统
+      approval_right: 无
+      department_hint: 外部，不在本系统组织内
+      position_hint: 业主代表
   - id: SH-X6
     as: external
-  notes: 外部检测报告只引用、不修改（INV-57）。检测由业主委托，我方只登记与采信。
+    org_needs:
+      responsibility: 持证检测机构出具报告
+      approval_right: 无
+      department_hint: 外部，不在本系统组织内
+      position_hint: —
+  notes: 外部检测报告只引用、不修改（INV-57）。检测由业主委托，我方只登记与采信。采信是检查负责人本人的技术判断，不是审批，无第二人节点。机构一致由 P-30 预警，内容完整性与技术可采信性是判断。
   steps:
   - actor: SH-E4
     where: in_system
@@ -4265,19 +4564,15 @@ processes:
     permission: 外部检测.登记委托
     page: 外部检测登记页
     audit: true
-    timeout:
-      after: 约定的报告出具期限（业主委托函约定；未约定时 P30D，待用户定）
-      escalate_to: SH-E4
-      interrupting: false
-    notify:
-    - to: SH-E4
-      how: 企业微信待办（外部检测报告超期未取得）
+    effort:
+      typical_min: 10
+      p90_min: 20
   - actor: SH-E4
     where: offline
     added_in: closeout
     command: 采集证据
     aggregate: AGG-38
-    desc: 收到业主转交的外部检测报告原件，作外部报告类证据采集；证据本身只引用、不修改；B-26 → B-28 api
+    desc: 收到业主转交的外部检测报告原件，作外部报告类证据采集；证据本身只引用、不修改；B-26 → B-28 api。等待报告期间受约定出具期限约束，未约定时 P30D（待用户定）
     evidence:
     - 外部检测报告原件（电子文件或纸质扫描，计内容哈希）
     - 收到日、转交人与出具机构资质证明
@@ -4289,6 +4584,19 @@ processes:
     permission: 证据.采集
     page: 证据上传页
     audit: true
+    effort:
+      typical_min: 15
+      p90_min: 30
+    wait:
+      typical_h: 360
+      p90_h: 720
+    timeout:
+      after: P30D
+      escalate_to: SH-E4
+      interrupting: false
+    notify:
+    - to: SH-E4
+      how: 企业微信待办（外部检测报告超期未取得）
   - actor: SH-E4
     where: in_system
     actor_v1: 检查负责人
@@ -4299,8 +4607,10 @@ processes:
     - when: 报告出具机构为业主委托机构且内容完整
       goto: 4
       rule: P-30
+      p: 0.85
     - when: otherwise
       goto: 5
+      p: 0.15
     cross_bc:
     - mode: api
       direction: out
@@ -4313,6 +4623,9 @@ processes:
     permission: 外部检测.登记报告
     page: 外部检测登记页
     audit: true
+    effort:
+      typical_min: 20
+      p90_min: 45
   - actor: SH-E4
     where: in_system
     actor_v1: 检查负责人
@@ -4325,10 +4638,14 @@ processes:
     page: 外部检测采信页
     audit: true
     metric_event: true
+    effort:
+      typical_min: 10
+      p90_min: 20
     decision:
     - when: otherwise
       goto: end
-    outcome: 已采信
+      outcome: 已采信
+      p: 1.0
   - actor: SH-E4
     where: in_system
     actor_v1: 检查负责人
@@ -4341,10 +4658,14 @@ processes:
     permission: 外部检测.不采信
     page: 外部检测采信页
     audit: true
+    effort:
+      typical_min: 10
+      p90_min: 20
     decision:
     - when: otherwise
       goto: end
-    outcome: 未采信
+      outcome: 未采信
+      p: 1.0
 - id: PRC-47
   name: 起草、评审并回签协议
   trigger:
@@ -7984,17 +8305,30 @@ single_aggregate:
   stages:
   - VS-03.1
   human_orchestration: false
+  frequency_ref: 待取证（E-B1）；经验估计：每年 2–6 次新版本发布
   trigger:
     type: human
     desc: 检查表模板管理员（技术专家）发布新版本
   triggers:
   - type: human
     name: 检查标准或检查要点变更，技术专家发布新版本
+  outcomes:
+  - 已生效
   roles:
   - id: SH-E4
     as: initiator
+    org_needs:
+      responsibility: 维护检查表模板：随检查标准变化编辑检查项并发布新版本
+      approval_right: 无（本人发布，聚合内命令；是否加技术委员会复核待用户定）
+      department_hint: 承担检查业务的技术部门（技术委员会）
+      position_hint: 检查表模板管理员（技术专家）
   - id: SH-E3
     as: informed
+    org_needs:
+      responsibility: 按新版本模板执行后续检查
+      approval_right: 无
+      department_hint: 承担检查业务的部门
+      position_hint: 检查人员（设计师和顾问）
   migration: 全部模板版本及其检查项迁入（U-4），每个版本保持原生效日期与版本序号；被历史检查引用的版本不可改、不可删，迁入后仍只追加；老系统模板与新系统版本的对应在迁入对账中核对
   scope: 全公司共用的版本化参考数据，所有检查负责人与检查人员可读；发布限技术专家
   states:
@@ -8044,10 +8378,14 @@ single_aggregate:
     permission: 检查表模板.发布
     page: 检查表模板版本发布页
     audit: true
+    effort:
+      typical_min: 60
+      p90_min: 240
     decision:
     - when: otherwise
       goto: end
-    outcome: 已生效
+      outcome: 已生效
+      p: 1.0
 - id: PRC-52
   name: 开放可触发收入确认的证据类型
   aggregate: AGG-92

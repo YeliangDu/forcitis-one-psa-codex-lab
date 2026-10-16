@@ -1173,12 +1173,13 @@ PRC-41:
   outcome: 不再受托
   covers:
   - 第 4 步「协议到期或客户不再委托」
+  - 第 5 步 otherwise
   expect: 计划由生效变为不再受托；不再产生到期提醒
 - id: PRC-41-S04
   path: 4 计划到期日前提醒提前量到、到期后仍未委托的逾期提醒周期到
   outcome: null
   covers:
-  - 第 4 步超时（提前提醒与逾期提醒）
+  - 第 4 步超时
   expect: 向检查负责人与市场和客户经理发待办；不改计划状态；上游不订阅下游事件，由人工转线索
 - id: PRC-41-S05
   path: ContractSigned 事件重复投递
@@ -1191,6 +1192,7 @@ PRC-42:
   path: 发布检查表模板版本
   outcome: 已生效
   covers:
+  - 第 1 步 otherwise
   - 状态转换 无→已生效
   expect: 发「检查表模板版本已生效」；已安排或已锁定检查所引用的旧版本不变
 - id: PRC-42-S02
@@ -1201,13 +1203,14 @@ PRC-42:
   expect: 拒绝并告警，只能发布新版本
 PRC-43:
 - id: PRC-43-S01
-  path: 1→2→3→4→5→6→7→8→9
+  path: 1→2→3→4→5→6→7→8→9→10
   outcome: 已锁定
   covers:
   - 第 3 步 otherwise
-  - 第 5 步 otherwise
   - 第 6 步 otherwise
-  expect: 发「检查已锁定」；证据全部封存；检查报告交付物 ID 记入检查
+  - 第 7 步 otherwise
+  - 第 10 步 otherwise
+  expect: 发「检查已锁定」；证据全部封存；检查报告交付物 ID 记入检查；证据关联记检查 ID 与合同引用
 - id: PRC-43-S02
   path: 3 我方为 TIS 且负责人兼项数超过上限→3
   outcome: null
@@ -1215,22 +1218,22 @@ PRC-43:
   - 第 3 步「我方为 TIS 且负责人兼项数超过上限」
   expect: 拒绝指派并告警（INV-56 / P-44）；换人后重试
 - id: PRC-43-S03
-  path: 5 有检查项既无结果也无未检原因→5
+  path: 6 有检查项既无结果也无未检原因→6
   outcome: null
   covers:
-  - 第 5 步「有检查项既无结果也无未检原因」
+  - 第 6 步「有检查项既无结果也无未检原因」
   expect: 拒绝提交（INV-55），提示缺项
 - id: PRC-43-S04
-  path: 6 检查记录有缺项或未检原因不充分→5→6
+  path: 7 检查项结果不被证据支撑或未检原因不充分→6→7
   outcome: null
   covers:
-  - 第 6 步「检查记录有缺项或未检原因不充分」
+  - 第 7 步「检查项结果不被证据支撑或未检原因不充分」
   expect: 退回检查人员；提交人与审核人为同一人时拒绝审核
 - id: PRC-43-S05
-  path: 5 现场检查结束后超过记录提交期限
+  path: 6 现场检查结束后超过记录提交期限
   outcome: null
   covers:
-  - 第 5 步超时
+  - 第 6 步超时
   expect: 向检查负责人升级提醒，不中断；不自动提交
 - id: PRC-43-S06
   path: 4 无网络现场暂存、联网后补传；上传后尝试修改或删除证据
@@ -1239,79 +1242,106 @@ PRC-43:
   - 第 4 步离线采集
   expect: 补传证据同时记设备采集时间与服务端接收时间及内容哈希；修改或删除被拒绝（只追加，intent 141725）
 - id: PRC-43-S07
-  path: 7 锁定后更正记录；8 封存后修改证据
+  path: 8 锁定后更正记录；9 封存后修改证据
   outcome: null
   covers:
-  - 第 7 步锁定后只追加更正
-  - 第 8 步封存
+  - 第 8 步锁定后只追加更正
+  - 第 9 步封存
   expect: 更正以追加更正记录生效，原记录不变（INV-55）；封存后的证据修改被拒绝（INV-58）
+- id: PRC-43-S08
+  path: 6 有判定结果的检查项未引用任何证据，或未检项未选原因类型→4
+  outcome: null
+  covers:
+  - 第 6 步「有判定结果的检查项未引用任何证据或未检项未选原因类型」
+  expect: 拒绝提交并提示缺证据项（拟规则 VS03-01），转回采集证据补采（采集后自动关联）；不进入人工审核
+- id: PRC-43-S09
+  path: 5 采集后系统自动把证据关联到检查，查询诉讼证据链
+  outcome: null
+  covers:
+  - 第 5 步证据关联
+  expect: 按检查 ID 能查到全部证据、采集人、采集时间、哈希与合同引用；检查锁定、证据封存后关联不可解除（INV-58）
 PRC-44:
 - id: PRC-44-S01
-  path: 1→2→3→4 不需第三方检测佐证
+  path: 1→2→3→4→5 不需第三方检测佐证
   outcome: 已发布
   covers:
-  - 第 2 步 otherwise
   - 第 3 步 otherwise
   - 第 4 步 otherwise
+  - 第 5 步 otherwise
   expect: 发「不符合项已发布」；送达回执登记为证据（命令缺口见 NOTES）
 - id: PRC-44-S02
-  path: 4 不符合项属客户资产且需第三方检测佐证→5
+  path: 5 不符合项属客户资产且需第三方检测佐证→6
   outcome: 已发布并建议外部检测
   covers:
-  - 第 4 步「不符合项属客户资产且需第三方检测佐证」
+  - 第 5 步「不符合项属客户资产且需第三方检测佐证」
+  - 第 6 步 otherwise
   expect: 外部检测记录为已建议
 - id: PRC-44-S03
-  path: 2 复核认定发现不成立→6
+  path: 3 复核认定发现不成立→7
   outcome: 已关闭
   covers:
-  - 第 2 步「复核认定发现不成立」
+  - 第 3 步「复核认定发现不成立」
+  - 第 7 步 otherwise
   expect: 不符合项关闭并写明理由；登记人与复核人为同一人时拒绝复核
 - id: PRC-44-S04
-  path: 3 未引用任何证据→1
+  path: 4 未引用任何证据→2
   outcome: null
   covers:
-  - 第 3 步「未引用任何证据」
-  expect: 拒绝发布并告警（INV-50）；补充证据后重试
+  - 第 4 步「未引用任何证据」
+  expect: 拒绝发布并告警（INV-50）；转回关联证据补充后重试
 - id: PRC-44-S05
   path: 「检查已锁定」事件重复投递
   outcome: null
   covers:
   - 触发事件幂等
   expect: 同一检查只产生一份待办，不重复登记不符合项
+- id: PRC-44-S06
+  path: 1 登记人改动等级默认值
+  outcome: null
+  covers:
+  - 第 1 步 等级默认取模板映射
+  expect: 等级值默认取检查表模板的等级映射；改动须写理由，复核页标示偏离项（拟规则 VS03-02）；未写理由拒绝登记
+- id: PRC-44-S07
+  path: 2 证据关联到不符合项
+  outcome: null
+  covers:
+  - 第 2 步证据关联
+  expect: 不符合项下列出关联证据与合同引用；发布后证据已封存的不可解除关联
 PRC-45:
 - id: PRC-45-S01
-  path: 1→2→3→4 复查通过→5
+  path: 1→2→3→4→5 复查通过→6
   outcome: 已闭合
   covers:
-  - 第 4 步 otherwise
   - 第 5 步 otherwise
+  - 第 6 步 otherwise
   expect: 发「不符合项已闭合」，闭合引用复查证据
 - id: PRC-45-S02
-  path: 4 复查未通过→6→2
+  path: 5 复查未通过→7→2
   outcome: null
   covers:
-  - 第 4 步「复查未通过」
-  - 第 6 步
-  expect: 退回整改，轮次加 1，状态回整改中；未发闭合事件
+  - 第 5 步「复查未通过」
+  - 第 7 步 otherwise
+  expect: 系统自动生成退回整改待办；退回整改后轮次加 1，状态回整改中；未发闭合事件（拟规则 VS03-03）
 - id: PRC-45-S03
-  path: 4 客户书面接受风险→7
+  path: 5 客户书面接受风险→8
   outcome: 客户书面接受风险
   covers:
-  - 第 4 步「客户书面接受风险」
-  - 第 7 步
+  - 第 5 步「客户书面接受风险」
+  - 第 8 步 otherwise
   expect: 无委托人书面确认证据时拒绝登记
 - id: PRC-45-S04
-  path: 4 确认不再跟踪→8
+  path: 5 确认不再跟踪→9
   outcome: 不再跟踪
   covers:
-  - 第 4 步「确认不再跟踪」
+  - 第 5 步「确认不再跟踪」
+  - 第 9 步 otherwise
   expect: 原因缺失时拒绝
 - id: PRC-45-S05
-  path: 5 未引用复查或整改证据→3
+  path: 6 未引用复查或整改证据，或复查证据早于整改申报日→3
   outcome: null
   covers:
-  - 第 5 步「未引用复查或整改证据」
-  expect: 拒绝闭合并告警（INV-50）
+  - 第 6 步「未引用复查或整改证据，或复查证据早于整改申报日」
+  expect: 拒绝闭合并告警（INV-50，拟规则 VS03-04）；转回采集证据
 - id: PRC-45-S06
   path: 2 整改期限到仍未申报
   outcome: null
@@ -1319,29 +1349,37 @@ PRC-45:
   - 第 2 步超时
   expect: 向检查负责人发逾期待办（P-23）；不改状态
 - id: PRC-45-S07
-  path: 4 收到申报后超过复查期限
+  path: 5 收到申报后超过复查期限
   outcome: null
   covers:
-  - 第 4 步超时
+  - 第 5 步超时
   expect: 向检查负责人升级提醒，不中断
+- id: PRC-45-S08
+  path: 4 复查证据采集后自动关联到不符合项并记整改轮次
+  outcome: null
+  covers:
+  - 第 4 步证据关联
+  expect: 每轮复查证据按整改轮次挂到同一不符合项，历次轮次可回溯
 PRC-46:
 - id: PRC-46-S01
   path: 1→2→3 出具机构为业主委托机构且内容完整→4
   outcome: 已采信
   covers:
   - 第 3 步「报告出具机构为业主委托机构且内容完整」
+  - 第 4 步 otherwise
   expect: 发「外部检测报告已采信」；报告原件只引用不修改（INV-57）
 - id: PRC-46-S02
   path: 3 出具机构非业主委托机构或内容不完整→5
   outcome: 未采信
   covers:
   - 第 3 步 otherwise
+  - 第 5 步 otherwise
   expect: 发「外部检测报告未采信」；原因必填；P-30 预警
 - id: PRC-46-S03
-  path: 1 超过约定出具期限仍未取得报告
+  path: 2 超过约定出具期限仍未取得报告
   outcome: null
   covers:
-  - 第 1 步超时
+  - 第 2 步超时
   expect: 向检查负责人发待办；不改状态
 PRC-47:
 - id: PRC-47-S01
