@@ -98,8 +98,12 @@ class TimesheetOwnerAccountsIT extends AccountsAcceptanceSupport {
     }
 
     private TimesheetView submit(SignedIn as, TimesheetId timesheet) {
+        return submit(as, timesheet, workDay());
+    }
+
+    private TimesheetView submit(SignedIn as, TimesheetId timesheet, LocalDate day) {
         actInSession(as);
-        return submitTimesheet.execute(new SubmitTimesheetCommand(timesheet, workDay(), Hours.of("8"), employeeIdOf(projectManager)));
+        return submitTimesheet.execute(new SubmitTimesheetCommand(timesheet, day, Hours.of("8"), employeeIdOf(projectManager)));
     }
 
     /** The approval starts from the submitted event, after the commit: waits until withdrawing is offered to the owner. */
@@ -122,7 +126,7 @@ class TimesheetOwnerAccountsIT extends AccountsAcceptanceSupport {
         TimesheetId cancelled = new TimesheetId(UUID.randomUUID());
         TimesheetView submitted = submit(other, withdrawn);
         assertThat(submitted.status()).isEqualTo(TimesheetStatus.SUBMITTED);
-        submit(other, cancelled);
+        submit(other, cancelled, workDay().minusDays(1));
         awaitApprovalOf(other, withdrawn);
         awaitApprovalOf(other, cancelled);
 
