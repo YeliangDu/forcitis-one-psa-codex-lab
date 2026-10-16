@@ -68,18 +68,6 @@ processes:
       - {actor: 市场和客户经理, command: 维护商机参与团队, aggregate: AGG-10, branch: 维护}
     notes: 线索可跳过（客户直接邀标或委托时从新建商机开始）；线索挂起与恢复属线索自身状态转换。「线索已确认」订阅方仅分析，本流程内顺序衔接，不另作事件触发。顺序为新建商机在先、确认线索在后（回溯检查 RD-01，与信息图 OBJ-17 状态机一致：只有商机建成才进入「已确认」）。新建商机只发内部事件，无外部消费者（⑥a 评审 L3，可接受）。
 
-  - id: PRC-06
-    name: 做独立性检查
-    trigger: {type: human, desc: 我方为 IDI 风险管理机构时，商机进入跟进后发起}
-    stages: [VS-01.2]
-    owner_bc: B-03
-    human_orchestration: false
-    steps:
-      - {actor: 市场和客户经理, read: true, reads: [AGG-33], desc: 读建设工程与我方参与记录}
-      - {actor: 市场和客户经理, read: true, reads: [AGG-18], desc: 读既有检查结论（INV-33：有冲突不得承接，或已获书面同意）}
-      - {actor: 技术专家, command: 登记独立性检查结论, aggregate: AGG-18, emits: [独立性检查已有结论]}
-    notes: 有冲突时须取得并登记书面同意，结论写入后无超时或退回分支。「独立性检查已有结论」无事件消费者：拦截点在递交投标、直接委托赢单（售前，D-4 b）与签约前读取（INV-33，见「参加投标，登记结果并处理保证金」「起草、评审并回签协议」），可接受（⑥a 评审 L3）。
-
   - id: PRC-07
     name: 编制并生效报价
     trigger: {type: human, desc: 商机跟进中，客户询价或邀标}
@@ -126,22 +114,6 @@ processes:
       - {actor: 系统策略, read: true, reads: [AGG-11], desc: P-13 投标截止临近提醒}
     notes: 合并原 PRC-09（商机赢单或丢单）、PRC-11（投标未中标后退还保证金）（⑥a 评审 H2 c）；步骤带 bc 的是下游 BC 订阅事件后的反应（编舞），不是 B-03 的命令。联合体协议作投标的次级对象，不放合同。OpportunityAccepted 的订阅方 B-04、B-05、B-07 见「建立项目并组建团队」「起草、评审并回签协议」及事件策略「转入售前投入」。
 
-  - id: PRC-10
-    name: 收付保证金与保函
-    trigger: {type: human, desc: 投标、履约或质保需缴纳或收取保证金、开立保函}
-    stages: [VS-01.2, VS-04.1]
-    owner_bc: B-09
-    human_orchestration: false
-    steps:
-      - {actor: 出纳, command: 登记保证金缴纳, aggregate: AGG-51, emits: [保证金已缴]}
-      - {actor: 出纳, command: 登记保函开立, aggregate: AGG-51, branch: 保函}
-      - {actor: 出纳, command: 扣减保证金, aggregate: AGG-51, branch: 扣减, desc: 履约保证金可部分扣减（INV-20）}
-      - {actor: 出纳, command: 退还保证金, aggregate: AGG-51, emits: [保证金已退]}
-      - {actor: 出纳, command: 没收保证金, aggregate: AGG-51, branch: 没收, emits: [保证金已没收]}
-      - {actor: 出纳, command: 登记保函到期或索赔, aggregate: AGG-51, branch: 保函, emits: [保函已到期]}
-      - {actor: 系统策略, command: 提交过账候选, aggregate: AGG-51, calls: PRC-92}
-    notes: 退还与没收互斥各只一次（INV-20）；P-10 保证金比例与退还时限为判定加提醒。
-
   - id: PRC-13
     name: 批准并生效费率、计费系数与协议价目版本
     trigger: {type: human, desc: 财务或经营管理发起新费率、系数或协议价目版本}
@@ -154,18 +126,6 @@ processes:
       - {actor: 财务, command: 生效计费系数版本, aggregate: AGG-06, emits: [计费系数版本已生效], desc: 粒度待定 Q18}
       - {actor: 市场和客户经理, command: 生效协议价目版本, aggregate: AGG-07, emits: [协议价目版本已生效]}
     notes: 批准环节须财务审定，但批准是聚合命令，无退回、超时分支，审批走平台与否待 G-02。报价与项目预算读取这些版本（INV-32、INV-44）。
-
-  - id: PRC-14
-    name: 登记建设工程与招标项目
-    trigger: {type: human, desc: 客户经理或项目经理登记受检对象或招标信息}
-    stages: [VS-01.2, VS-02.6, VS-03.1]
-    owner_bc: B-01
-    human_orchestration: false
-    steps:
-      - {actor: 市场和客户经理, command: 登记建设工程, aggregate: AGG-33, emits: [建设工程已登记]}
-      - {actor: 市场和客户经理, command: 登记招标项目, aggregate: REF-01, gap: G-06}
-      - {actor: 市场和客户经理, command: 更新外部状态, aggregate: AGG-33, desc: 只记录并带登记日期与来源（R-08）}
-    notes: 外部引用对象只记录、不控制，不作阶段门。
 
   - id: PRC-16
     name: 申请并转正风险交付授权
@@ -684,12 +644,12 @@ processes:
     owner_bc: B-01
     human_orchestration: false
     steps:
-      - {actor: 项目经理, command: 申请供应商角色, aggregate: AGG-01}
+      - {actor: 项目经理, command: 申请往来单位角色, aggregate: AGG-01}
       - {actor: 财务, command: 登记资质证书, aggregate: AGG-02}
-      - {actor: 财务, command: 核准供应商角色合格, aggregate: AGG-01, emits: [角色已合格]}
-      - {actor: 财务, command: 暂停供应商角色, aggregate: AGG-01, branch: 暂停, emits: [角色已暂停]}
-      - {actor: 财务, command: 停用供应商角色, aggregate: AGG-01, branch: 停用, emits: [角色已停用]}
-    notes: 未合格或已停用的供应商不得签分包、采购协议或付款（INV-04）；资质到期见「年检、核查与延续企业资质」。
+      - {actor: 财务, command: 核准往来单位角色合格, aggregate: AGG-01, emits: [角色已合格]}
+      - {actor: 财务, command: 暂停往来单位角色, aggregate: AGG-01, branch: 暂停, emits: [角色已暂停]}
+      - {actor: 财务, command: 停用往来单位角色, aggregate: AGG-01, branch: 停用, emits: [角色已停用]}
+    notes: 角色准入命令的参数为角色，只适用于供应商、分包等需准入的角色，客户角色不走准入（intent 120544 P-3）。未合格或已停用的供应商不得签分包、采购协议或付款（INV-04）；资质到期见「年检、核查与延续企业资质」。
 
   - id: PRC-70
     name: 起草并生效供方协议
@@ -1340,17 +1300,18 @@ event_policies:
     stages: [VS-01.2]
     owner_bc: B-07
     step: {actor: 系统策略, command: 售前投入转费用, aggregate: AGG-43, emits: [成本结转已过账], post: true, calls: PRC-92, desc: P-43}
-    notes: 另有定时分支：超过 N 个月未签约转费用（G-04 的定时命令约定未定）。
+    notes: 另有定时分支：立项后回签前先挂合同履约成本（A7）的投入，超过 N 个月未签约转费用，N 交财务（待财务，intent 120544 P-2；G-04 的定时命令约定未定）。
 
   - id: PRC-25
     name: 转入售前投入
     trigger:
       type: event
-      events: [{event: OpportunityAccepted, aggregate: AGG-10}, {event: ContractSigned, aggregate: AGG-13}, {event: 项目已建立, aggregate: AGG-19}]
+      events: [{event: ContractSigned, aggregate: AGG-13}, {event: 项目已建立, aggregate: AGG-19}]
+      gate: 合同已签回（ContractSigned）且项目已建立，两者齐备才转入，后到者触发，按商机与合同幂等；赢单（OpportunityAccepted）不触发（intent 120544 P-2）
     stages: [VS-02.0, VS-04.1]
     owner_bc: B-07
-    step: {actor: 系统策略, command: 转入售前投入, aggregate: AGG-43, emits: [成本结转已过账], post: true, calls: PRC-92, desc: 赢单、回签、项目已建立后按冲销加新事实转入（P-43）}
-    notes: 口径见 C-53。
+    step: {actor: 系统策略, command: 转入售前投入, aggregate: AGG-43, emits: [成本结转已过账], post: true, calls: PRC-92, desc: 合同签回且项目已建立后按冲销加新事实转入（P-43）；一商机多合同按 WBS 挂接归属（Q12）转入各合同对应项目，不按合同额分摊（intent 120544 P-2）}
+    notes: 触发语义为「合同签回且项目已建立」两者齐备，赢单不转入（intent 120544 P-2，C-53）。立项后回签前的投入按 A7 先挂合同履约成本；超 N 个月未签约转费用，N 交财务（待财务）。
 
   - id: PRC-35
     name: 项目或协议终止、结项后清算成本
@@ -1539,6 +1500,44 @@ event_policies:
 # ═════════════ 单聚合维护（单聚合生命周期或维护，归第 ④ 步状态机，不计流程数；⑥a 评审 H2 a）═════════════
 single_aggregate:
 
+  - id: PRC-06
+    name: 做独立性检查
+    aggregate: AGG-18
+    owner_bc: B-03
+    stages: [VS-01.2]
+    desc: 我方为 IDI 风险管理机构时，商机进入跟进后由技术专家登记检查结论（读建设工程与我方参与记录、既有结论为前置读，不另列步骤）
+    commands:
+      - {actor: 技术专家, command: 登记独立性检查结论, emits: [独立性检查已有结论]}
+    notes: 有冲突时须取得并登记书面同意（本聚合附件）。拦截点在递交投标、直接委托赢单（售前，D-4 b）与签约前读取（INV-33，见「参加投标，登记结果并处理保证金」「起草、评审并回签协议」）。由业务流程移入单聚合维护（intent 120544 P-5；回溯检查 RD-12）。
+
+  - id: PRC-10
+    name: 收付保证金与保函
+    aggregate: AGG-51
+    owner_bc: B-09
+    stages: [VS-01.2, VS-04.1]
+    desc: 投标、履约或质保需缴纳或收取保证金、开立保函
+    commands:
+      - {actor: 出纳, command: 登记保证金缴纳, emits: [保证金已缴]}
+      - {actor: 出纳, command: 登记保函开立, branch: 保函}
+      - {actor: 出纳, command: 扣减保证金, branch: 扣减, desc: 履约保证金可部分扣减（INV-20）}
+      - {actor: 出纳, command: 退还保证金, emits: [保证金已退]}
+      - {actor: 出纳, command: 没收保证金, branch: 没收, emits: [保证金已没收]}
+      - {actor: 出纳, command: 登记保函到期或索赔, branch: 保函, emits: [保函已到期]}
+      - {actor: 系统策略, command: 提交过账候选, calls: PRC-92}
+    notes: 退还与没收互斥各只一次（INV-20）；P-10 保证金比例与退还时限为判定加提醒。由业务流程移入单聚合维护（intent 120544 P-5；回溯检查 RD-12）。
+
+  - id: PRC-14
+    name: 登记建设工程与招标项目
+    aggregate: REF-01
+    owner_bc: B-01
+    stages: [VS-01.2, VS-02.6, VS-03.1]
+    desc: 客户经理或项目经理登记受检对象或招标信息
+    commands:
+      - {actor: 市场和客户经理, command: 登记建设工程, aggregate: AGG-33, emits: [建设工程已登记]}
+      - {actor: 市场和客户经理, command: 登记招标项目, gap: G-06}
+      - {actor: 市场和客户经理, command: 更新外部状态, aggregate: AGG-33, desc: 只记录并带登记日期与来源（R-08）}
+    notes: 外部引用对象只记录、不控制，不作阶段门。由业务流程移入单聚合维护（intent 120544 P-5；回溯检查 RD-12）。
+
   - id: PRC-01
     name: 举办市场活动
     aggregate: AGG-08
@@ -1572,6 +1571,7 @@ single_aggregate:
     desc: 业务人员登记新客户或供方，或档案信息变更
     commands:
       - {actor: 市场和客户经理, command: 登记往来单位, emits: [往来单位已登记]}
+      - {actor: 财务, command: 核实往来单位档案, emits: [往来单位已核实], desc: 核实后档案进入「有效」，商机方可引用（INV-26，intent 120544 P-3）}
       - {actor: 财务, command: 变更银行账户, emits: [银行账户已变更], desc: 订阅方 B-10 付款写入前做 P-01 预警}
       - {actor: 财务, command: 合并往来单位, branch: 合并, emits: [往来单位已合并]}
       - {actor: 财务, command: 停用往来单位, branch: 停用, emits: [往来单位已停用]}
