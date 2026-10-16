@@ -16,6 +16,97 @@ ADR-0039（防腐层边界）引入的术语（proposed，待业务评审，ADR-
 | `apply_org_change_set` | 应用组织变更 | ApplyOrgChangeSet | 领域 · organization.workforce | 组织人事 api 中唯一的同步入口：应用一份组织变更集，管理员离职挂为待放行离职，其余变更照常生效；同一变更集重复调用返回上次结果 |  |  |
 | `separation_hold` | 待放行离职 | SeparationHold | 领域 · organization.workforce | 会使可用超级管理员少于 2 名、或涉及超级管理员与安全审计员持有人的离职，被单独挂起等待另一名持有人放行的记录（ADR-0027 第 1 项第 7 条、ADR-0028） |  | 权限码 organization.workforce:separation-hold:approve 已用此词（ADR-0028 第 2 条） |
 
+## `architecture-objects.yaml`
+
+涉及模块：`accounting.cashbank`、`accounting.fixedasset`、`accounting.ledger`、`accounting.period`、`accounting.reporting`、`accounting.tax`、`contract.agreement`、`cost.costing`、`delivery.acceptance`、`delivery.execution`、`delivery.inspection`、`expense.spend`、`km.knowledge`、`masterdata.catalog`、`masterdata.counterparty`、`operations.facts`、`organization`、`organization.leave`、`organization.payroll`、`organization.workforce`、`payables.payment`、`presales.opportunity`、`procurement.subcontracting`、`receivables.collection`、`receivables.wip`。
+
+全企业聚合草案中已有对象但尚未登记的 83 项架构业务对象（预判登记稿，proposed，待业务评审，ADR-0018）。
+
+出处：ENTERPRISE_AGGREGATES_DRAFT.md 的 AGG 编号；英文名与定义为起草稿，zh 取对象名去括注，旧称在 note 中标出，是否方言由用户裁定。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `it_asset_usage_record` | IT 资产使用记录 | ItAssetUsageRecord | 领域 · organization | 员工领用、归还公司信息技术设备的使用记录：记领用人、设备、起止时间；不含资产卡片本身（公司资产） |  | 原 bc 为 organization.administration，尚未在 bcs.yaml 登记，待补登 |
+| `it_service_ticket` | IT 需求工单 | ItServiceTicket | 领域 · organization | 员工提出的信息技术服务需求工单：从受理、处理到关闭的全过程；不含设备领用 |  | 原 bc 为 organization.administration，尚未在 bcs.yaml 登记，待补登 |
+| `special_additional_deduction_declaration` | 专项附加扣除声明 | SpecialAdditionalDeductionDeclaration | 领域 · organization.payroll | 人员按个人所得税规定填报的专项附加扣除声明：扣除项目、金额与适用期间，供薪酬计税使用 |  |  |
+| `labor_cost_allocation_run` | 人工成本分配运行 | LaborCostAllocationRun | 领域 · cost.costing | 一次将人工成本按工时分配到项目的运行：固定期间、输入快照与分配结果，可追溯、可重跑 |  |  |
+| `journal_entry` | 会计分录 | JournalEntry | 领域 · accounting.ledger | 会计分录：一借一贷或多借多贷的记账行集合，借贷平衡，是凭证的组成部分 |  |  |
+| `account_title` | 会计科目 | AccountTitle | 领域 · accounting.ledger | 会计科目：总账中按会计准则与企业会计科目表设立的核算类别，含编码、性质与余额方向 |  |  |
+| `supplier_performance_confirmation` | 供方履约确认 | SupplierPerformanceConfirmation | 领域 · procurement.subcontracting | 对供方（分包、协作单位）已完成履约量与质量的确认记录，作为付款与对账依据 |  | 活动名当对象名，待改名（见 arch-naming/ARCH_NAME_AUDIT.md） |
+| `bond_and_deposit` | 保证金与押金 | BondAndDeposit | 领域 · receivables.collection | 投标保证金、履约保证金与押金等因业务约定暂存于对方或我方的款项：收取、占用、退还的全过程 |  |  |
+| `leave_balance_account` | 假期余额账户 | LeaveBalanceAccount | 领域 · organization.leave | 人员按假期类型持有的余额账户：额度发放、占用、扣减与失效的累计 |  |  |
+| `leave_type_and_quota_rule` | 假期类型与额度规则 | LeaveTypeAndQuotaRule | 领域 · organization.leave | 假期类型及其额度、发放与结转规则的版本化配置 |  |  |
+| `company_asset` | 公司资产 | CompanyAsset | 领域 · accounting.fixedasset | 公司持有的固定资产卡片：原值、类别、使用部门、折旧状态与处置记录 |  |  |
+| `business_trip_request` | 出差申请 | BusinessTripRequest | 领域 · expense.spend | 员工出差事前申请：目的、行程、预计费用与审批状态，是出差费用报销的前置 |  |  |
+| `business_trip_allowance_standard_version` | 出差补贴标准版本 | BusinessTripAllowanceStandardVersion | 领域 · expense.spend | 出差补贴标准的版本：按职级与地区的补贴额度及生效期间 |  |  |
+| `allocation_rule` | 分摊规则 | AllocationRule | 领域 · cost.costing | 成本分摊规则：分摊对象、分摊基础与生效期间，按版本管理 |  | 旧称/括注：（原「分摊规则版本」） |
+| `allocation_run` | 分摊运行 | AllocationRun | 领域 · cost.costing | 一次成本分摊运行：对某期间按分摊规则计算并产出分摊结果，可追溯、可重跑 |  |  |
+| `profit_distribution` | 利润分配 | ProfitDistribution | 领域 · payables.payment | 合伙企业按合伙协议向合伙人分配利润的决议与支付记录（待业务确认） |  |  |
+| `overtime` | 加班 | Overtime | 领域 · organization.leave | 人员的加班申请与确认：日期、时长、类型及补休或计薪方式 |  |  |
+| `agreement_change` | 协议变更 | AgreementChange | 领域 · contract.agreement | 对已签协议的变更：变更内容、金额与期限调整及生效依据，覆盖销售协议与采购协议两类 |  | kind 待判；涉及 bc：contract.agreement、procurement.subcontracting |
+| `client_supplied_material` | 发包人提供资料 | ClientSuppliedMaterial | 领域 · delivery.acceptance | 发包人按协议向我方提供的资料及其接收、缺失状态，影响交付进度与责任划分 |  |  |
+| `confirmation_evidence_type_config_version` | 可触发确认的证据类型开放配置版本 | ConfirmationEvidenceTypeConfigVersion | 领域 · receivables.wip | 可触发收入确认的证据类型之开放配置版本：哪些证据类型可触发确认及生效期间（待业务确认） |  |  |
+| `partner_capital_contribution` | 合伙人出资 | PartnerCapitalContribution | 领域 · payables.payment | 合伙人按合伙协议对合伙企业的出资：认缴、实缴与变更记录 |  |  |
+| `employee_activity_request` | 员工活动申请 | EmployeeActivityRequest | 领域 · organization | 员工活动（团建、培训聚餐等）的申请：事由、人数、预算与审批状态 |  | 原 bc 为 organization.administration，尚未在 bcs.yaml 登记，待补登；活动名当对象名，待改名（见 arch-naming/ARCH_NAME_AUDIT.md） |
+| `presales_investment_attribution` | 售前投入归属登记 | PresalesInvestmentAttribution | 领域 · cost.costing | 售前阶段投入的成本归属登记：投入记到哪个商机，及后续转入项目的归属依据 |  |  |
+| `vat_invoice` | 增值税发票 | VatInvoice | 领域 · accounting.tax | 增值税发票：销项（我方开出）与进项（取得）两类，含票号、金额、税额与状态 |  | kind 待判；涉及 bc：accounting.tax、receivables.wip |
+| `external_testing` | 外部检测 | ExternalTesting | 领域 · delivery.inspection | 委托外部机构对工程实体或材料进行的检测：委托、报告与结论 |  |  |
+| `statutory_ledger_reconciliation` | 外部法定账对账 | StatutoryLedgerReconciliation | 领域 · accounting.ledger | 我方账与外部法定账之间的对账：对账期间、差异项与调整结论（待业务确认） |  |  |
+| `bonus_determination` | 奖金核定 | BonusDetermination | 领域 · organization.payroll | 对人员奖金的核定：依据激励方案与考核结果确定的金额与审批 |  | 活动名当对象名，待改名（见 arch-naming/ARCH_NAME_AUDIT.md） |
+| `customer_activity` | 客户活动 | CustomerActivity | 领域 · presales.opportunity | 面向客户开展的拜访、交流、接待等活动记录，用于客户关系维护与商机线索 |  |  |
+| `customer_satisfaction_survey` | 客户满意度调查 | CustomerSatisfactionSurvey | 领域 · delivery.acceptance | 项目验收前后对客户开展的满意度调查：问卷、结果与改进事项 |  |  |
+| `travel_order_monthly_statement` | 差旅订单月账单 | TravelOrderMonthlyStatement | 领域 · expense.spend | 差旅订单的月度账单：供应商按月汇总的机票、住宿等订单及对账状态 |  |  |
+| `marketing_campaign` | 市场活动 | MarketingCampaign | 领域 · presales.opportunity | 为获取线索或提升品牌而开展的市场活动：主题、预算、时间与产出线索 |  |  |
+| `extension_request` | 延期申请 | ExtensionRequest | 领域 · delivery.execution | 对项目或任务计划期限的延期申请：原因、新期限与审批结论 |  | 活动名当对象名，待改名（见 arch-naming/ARCH_NAME_AUDIT.md） |
+| `receivable_and_payable_item` | 往来款项 | ReceivableAndPayableItem | 领域 · payables.payment | 与往来单位之间的应收、应付款项：形成依据、金额、账龄与结清状态 |  | kind 待判；涉及 bc：payables.payment、receivables.collection |
+| `costing_parameter_version` | 成本核算参数版本 | CostingParameterVersion | 领域 · cost.costing | 成本核算参数的版本：核算口径所用的比率与系数及生效期间 |  |  |
+| `quotation` | 报价 | Quotation | 领域 · presales.opportunity | 向客户提供的报价：含版本、金额、有效期与承诺内容，投标报价引用其版本 |  |  |
+| `report_line_definition` | 报表行定义 | ReportLineDefinition | 领域 · accounting.reporting | 财务报表行的定义：行次、名称与取数公式，按版本管理 |  |  |
+| `recruitment_requisition` | 招聘需求 | RecruitmentRequisition | 领域 · organization.workforce | 招聘需求：岗位、人数、理由与审批状态，是招聘与入职的起点 |  |  |
+| `control_account_authorization_table_version` | 控制科目授权表版本 | ControlAccountAuthorizationTableVersion | 领域 · accounting.ledger | 控制科目授权表的版本：哪些科目只能由特定业务来源记账及生效期间（待业务确认） |  |  |
+| `cash_accrual_account_mapping_version` | 收付 ↔ 权责科目映射表版本 | CashAccrualAccountMappingVersion | 领域 · accounting.ledger | 收付实现制科目与权责发生制科目之间映射表的版本及生效期间（待业务确认） |  |  |
+| `monthly_attendance_confirmation` | 月度考勤确认 | MonthlyAttendanceConfirmation | 领域 · organization.leave | 人员本月考勤结果的确认：确认人、确认时间与异议处理，是月度薪酬结算的前置 |  | 活动名当对象名，待改名（见 arch-naming/ARCH_NAME_AUDIT.md） |
+| `monthly_payroll_settlement` | 月度薪酬结算 | MonthlyPayrollSettlement | 领域 · organization.payroll | 按月对人员薪酬进行计算、审核与确认的一次结算：期间、薪酬规则版本与结果 |  | 旧称/括注：（原「算薪运行」）；活动名当对象名，待改名（见 arch-naming/ARCH_NAME_AUDIT.md） |
+| `service_product` | 服务产品 | ServiceProduct | 领域 · masterdata.catalog | 我方对外提供的标准化服务产品：编码、范围、阶段类型与定价基础 |  |  |
+| `opening_balance` | 期初余额 | OpeningBalance | 领域 · accounting.ledger | 账套启用或期间启用时导入的期初余额：科目、法人与期间维度的余额 |  | kind 待判 |
+| `period_end_carry_forward_template_version` | 期末结转模板版本 | PeriodEndCarryForwardTemplateVersion | 领域 · accounting.ledger | 期末结转模板的版本：结转哪些科目到哪些科目及生效期间 |  |  |
+| `period_end_carry_forward_run` | 期末结转运行 | PeriodEndCarryForwardRun | 领域 · accounting.ledger | 一次期末结转运行：按结转模板对某期间自动生成结转分录 |  |  |
+| `period_balance_snapshot` | 期间余额快照 | PeriodBalanceSnapshot | 领域 · accounting.ledger | 关账时固化的期间余额快照：按科目与法人保存期末余额，供报表与对账使用 |  | kind 待判 |
+| `standard_cost_rate_table` | 标准成本费率表 | StandardCostRateTable | 领域 · masterdata.catalog | 标准成本费率表：按岗位或职级的小时成本费率及生效期间 |  |  |
+| `framework_agreement_limit` | 框架协议限额 | FrameworkAgreementLimit | 领域 · contract.agreement | 框架协议下可累计签订金额的限额及占用情况 |  |  |
+| `inspection_checklist_template` | 检查表模板 | InspectionChecklistTemplate | 领域 · delivery.inspection | 检查表模板：检查项、判定标准与适用范围，按版本管理 |  |  |
+| `inspection_plan` | 检查计划 | InspectionPlan | 领域 · delivery.inspection | 检查计划：对象、频次、检查表与责任人，据此生成检查任务 |  |  |
+| `statutory_filing` | 法定申报 | StatutoryFiling | 领域 · accounting.tax | 向税务、社保等主管机关做的法定申报：申报类型、期间、金额与回执 |  | kind 待判；涉及 bc：accounting.tax、organization.payroll；活动名当对象名，待改名（见 arch-naming/ARCH_NAME_AUDIT.md） |
+| `registered_practice_certificate` | 注册执业证书 | RegisteredPracticeCertificate | 领域 · organization.workforce | 人员持有的注册执业资格证书：证书类型、编号、有效期与注册单位 |  |  |
+| `incentive_plan` | 激励方案 | IncentivePlan | 领域 · organization.payroll | 激励方案：适用对象、计提与发放规则及考核指标，按期间生效 |  |  |
+| `independence_check` | 独立性检查 | IndependenceCheck | 领域 · presales.opportunity | 接受业务前对我方与委托方、关联方之间利益冲突与独立性的检查及结论 |  | 活动名当对象名，待改名（见 arch-naming/ARCH_NAME_AUDIT.md） |
+| `cash_flow_item_table_version` | 现金流量项目表版本 | CashFlowItemTableVersion | 领域 · accounting.ledger | 现金流量项目表的版本：项目及其与科目的对应及生效期间 |  |  |
+| `seal_usage_request` | 用印申请 | SealUsageRequest | 领域 · organization | 用印申请：文件、用印类型、事由与审批状态，用印后登记 |  | 原 bc 为 organization.administration，尚未在 bcs.yaml 登记，待补登；活动名当对象名，待改名（见 arch-naming/ARCH_NAME_AUDIT.md） |
+| `knowledge_item` | 知识条目 | KnowledgeItem | 领域 · km.knowledge | 沉淀可复用的经验、模板与案例的知识条目：分类、正文、附件与发布状态 |  |  |
+| `social_insurance_enrollment` | 社保与公积金参保 | SocialInsuranceEnrollment | 领域 · organization.payroll | 人员的社会保险与住房公积金参保：险种、基数、缴纳主体与起止月份 |  |  |
+| `thirteenth_period_activation` | 十三期启用登记 | ThirteenthPeriodActivation | 领域 · accounting.period | 某法人某会计年度第 13 期（调整期）的启用登记；12 月关账后不再改变 |  |  |
+| `lead` | 线索 | Lead | 领域 · presales.opportunity | 尚未形成商机的销售线索：来源、联系人与跟进状态，跟进中才可转为商机 |  |  |
+| `performance_appraisal` | 绩效评估 | PerformanceAppraisal | 领域 · organization.workforce | 对人员阶段性工作表现的绩效评估：周期、评价结果与确认 |  | 活动名当对象名，待改名（见 arch-naming/ARCH_NAME_AUDIT.md） |
+| `attendance_record` | 考勤记录 | AttendanceRecord | 领域 · organization.leave | 人员的考勤记录：日期、打卡与出勤状态，是请假、加班与月度确认的事实基础 |  |  |
+| `payroll_rule_version` | 薪酬规则版本 | PayrollRuleVersion | 领域 · organization.payroll | 薪酬规则的版本：工资项目、计算公式与扣缴规则及生效期间 |  |  |
+| `design_change` | 设计变更 | DesignChange | 领域 · delivery.acceptance | 设计成果交付后发生的设计变更：原因、范围、影响与审批，影响验收与费用 |  |  |
+| `acceptance_evidence` | 证据 | AcceptanceEvidence | 领域 · delivery.acceptance | 证明工作成果或事实的证据：类型、采集时间与人、摘要，可封存；挂接对象由证据关联记录 |  | 英文名取 AcceptanceEvidence 以避开 platform.integration 的 Evidence（取证） |
+| `evidence_link` | 证据关联 | EvidenceLink | 领域 · delivery.acceptance | 证据与交付物、项目阶段节点之间的挂接记录；证据本身不在此处 |  | 技术聚合 |
+| `leave_request` | 请假 | LeaveRequest | 领域 · organization.leave | 人员的请假申请：假期类型、起止时间、天数与审批状态，批准后扣减假期余额 |  |  |
+| `expense_pre_application` | 费用事前申请 | ExpensePreApplication | 领域 · expense.spend | 费用发生前的事前申请：事由、预计金额与预算占用，批准后方可报销 |  |  |
+| `expense_reimbursement` | 费用报销 | ExpenseReimbursement | 领域 · expense.spend | 费用报销：报销人、费用明细、凭据与审批，批准后形成付款 |  |  |
+| `asset_category_and_depreciation_policy_version` | 资产类别与折旧政策版本 | AssetCategoryAndDepreciationPolicyVersion | 领域 · accounting.fixedasset | 资产类别及对应折旧政策（年限、残值率、方法）的版本及生效期间 |  |  |
+| `resource_assignment` | 资源分配 | ResourceAssignment | 领域 · delivery.execution | 将人员分配到项目或任务的资源分配：起止时间、投入比例与角色 |  |  |
+| `resource_requirement` | 资源需求 | ResourceRequirement | 领域 · delivery.execution | 项目对人员资源的需求：岗位、人数、时间段与技能要求，待分配满足 |  |  |
+| `qualification_certificate` | 资质证书 | QualificationCertificate | 领域 · masterdata.counterparty | 我方或往来单位持有的资质证书：类型、等级、有效期与发证机关 |  |  |
+| `funds_receipt_and_payment` | 资金收付 | FundsReceiptAndPayment | 领域 · payables.payment | 资金的收取与支付：方向、金额、账户与对应业务单据 |  | kind 待判；涉及 bc：payables.payment、receivables.collection |
+| `fund_account` | 资金账户 | FundAccount | 领域 · accounting.cashbank | 公司的银行或现金资金账户：账号、币种、开户机构与状态 |  |  |
+| `posting` | 过账 | Posting | 领域 · operations.facts | 业务事实过账：把业务事件转为借贷平衡、法人一致的记账指令，按幂等键只记一次 |  |  |
+| `bank_statement_line` | 银行流水 | BankStatementLine | 领域 · accounting.cashbank | 银行流水：账户的一笔入账或出账明细，作为对账与收付核销的依据 |  | kind 待判 |
+| `project_team_member` | 项目团队成员 | ProjectTeamMember | 领域 · delivery.execution | 项目团队成员：人员在项目中承担的角色及起止时间 |  |  |
+| `project_retrospective` | 项目复盘 | ProjectRetrospective | 领域 · delivery.execution | 项目结束后的复盘：目标达成、经验教训与改进事项 |  | 活动名当对象名，待改名（见 arch-naming/ARCH_NAME_AUDIT.md） |
+| `project_risk_and_issue` | 项目风险与问题 | ProjectRiskAndIssue | 领域 · delivery.execution | 项目风险与问题登记：描述、影响、应对措施、责任人与状态 |  |  |
+
 ## `code-aggregates-events.yaml`
 
 涉及模块：`cost.timesheet`、`platform.approval`、`platform.identity`、`platform.integration`。
@@ -120,7 +211,8 @@ cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）�
 | `no_objection_declaration` | 无异议声明 | NoObjectionDeclaration | 领域 · delivery.acceptance | 交付物内由项目经理作出的声明：截至某日未收到发包人的书面异议，附函件检索记录；是视为同意成立的须附证据之一。 |  |  |
 | `no_objection_declared` | 无异议已声明 | NoObjectionDeclared | 领域 · delivery.acceptance | 项目经理作出无异议声明；开票与收入侧订阅，用于视为同意的判定。 |  |  |
 | `design_change_claim_status` | 设计变更主张状态 | DesignChangeClaimStatus | 领域 · delivery.acceptance | 设计变更是否向对方主张：待主张，或不主张（附理由）；是否已主张由合同侧的变更、索赔记录，本 BC 不引用它们。草案称「主张标记」，标记是实现用语，业务上是状态。 |  |  |
-| `deemed_acceptance` | 视为同意 | DeemedAcceptance | 领域 · delivery.acceptance | 提交轮次送达后审查期满而发包人无结论也无异议，按合同约定视为发包人同意的状态；以送达记录、合同条款引用和期满记录成立，认可日取期满日。不同于发包人明确出具的书面认可。 |  |  |
+| `deemed_acceptance` | 视为同意 | DeemedAcceptance | 领域 · delivery.acceptance | 提交轮次送达后审查期满而发包人无结论也无异议，按合同约定视为发包人同意的状态；以送达记录、合同条款引用和期满记录成立，认可日取期满日。不同于发包人明确出具的书面认可。 |  | 定义写成交付物状态，与 ADR-0049 决定 1 不一致（交付物没有「视为同意」状态，认定在 receivables.wip，界面由 reporting 派生显示）；待用户答复后撤回或改写为派生显示 |
+| `receivables_wip__deemed_acceptance_determination` | 视为同意认定 | DeemedAcceptanceDetermination | 领域 · receivables.wip | 审查期满且交付侧已有项目经理的无异议声明、该轮未被退回时，由收入侧作出的视为同意认定；是第 6 类收入确认证据，认可日取期满日（表 deemed_acceptance_determinations） |  | 与 delivery.acceptance 的「视为同意」互列 homonyms |
 | `acceptance_date` | 认可日 | AcceptanceDate | 领域 · delivery.acceptance | 客户认可成果的日期，按证据类型取不同的日（签字日、签收日、邮件进入我方邮箱之日、纪要发出日、期满日等），决定收入期间。；认可是客户方接受成果这一事实，由八类证据证明（含邮件、纪要、视为同意），区别于验收（验收单上的裁定行为：通过、退回、有条件通过）；「交付物已认可」是收入证据，「验收通过」是质量裁定（GL2 B2-X08） |  | 「认可」与词表「验收」的关系见确认单 B2-X08 |
 | `review_period` | 审查期 | ReviewPeriod | 领域 · delivery.acceptance | 合同约定发包人审查设计文件的期限（天），期满无结论也无异议视为同意；不同意须书面说明，修改后重新报送、审查期重新起算。 |  |  |
 | `expiry_record` | 期满记录 | ExpiryRecord | 领域 · delivery.acceptance | 审查期届满的记录（期满日、计算所依参数），是视为同意的须附证据之一；期满日的判定在开票与收入侧（用户已定 D-8）。 |  |  |
@@ -270,6 +362,22 @@ Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-
 
 另有错误码 10 个（kind 为 `error_code`）、技术词 86 个（`common_words`），不在表中。
 
+## `people-closeout.yaml`
+
+涉及模块：`organization`、`organization.leave`、`organization.payroll`、`organization.workforce`。
+
+人员组收口交来的提议术语（one-arch-people，预判登记稿，proposed，待用户答复）。
+
+B-31 的 bc organization.administration 尚不在 bcs.yaml，暂挂 organization，待 one-architecture 补登 bc 后迁移。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `compensatory_leave` | 补休 | CompensatoryLeave | 领域 · organization.leave | 加班后以安排休息代替加班费的休假 |  | 与词表「调休」（工作日历中的调休上班日，B-14）同名异义，用语问题已登记，待用户裁定 |
+| `legal_representative_seal` | 法定代表人名章 | LegalRepresentativeSeal | 领域 · organization | 印章类别取值：法定代表人个人名章 |  | bc 暂挂 organization（B-31 organization.administration 待补登） |
+| `contract_seal` | 合同专用章 | ContractSeal | 领域 · organization | 印章类别取值：用于合同签署的专用章 |  | bc 暂挂 organization（B-31 organization.administration 待补登） |
+| `severance_compensation` | 经济补偿 | SeveranceCompensation | 领域 · organization.payroll | 解除或终止劳动合同时用人单位依法支付的补偿，单独计税结算 |  | B-15 |
+| `emergency_contact` | 紧急联系人 | EmergencyContact | 领域 · organization.workforce | 人员档案中登记的紧急情况联系人 |  | 个人信息 |
+
 ## platform.approval（`platform-approval.yaml`）
 
 platform.approval 提议术语（proposed，待业务评审，ADR-0018）。单词级术语：服务于代码标识、URL、事件键、错误码的命名守护。
@@ -334,6 +442,24 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 无错误码以外的术语。
 
 另有错误码 5 个（kind 为 `error_code`）、技术词 13 个（`common_words`），不在表中。
+
+## `revenue-closeout-roles.yaml`
+
+涉及模块：`contract.agreement`、`delivery.acceptance`、`delivery.inspection`、`masterdata.catalog`、`presales.opportunity`。
+
+收入线确认页审题交来的角色与目录用语（one-arch-revenue，预判登记稿，proposed，待用户答复）。
+
+出处：分支 claude/one-arch-revenue-closeout 的 closeout/revenue/raci.yaml 与 processes.revenue.yaml。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `contract_owner` | 合同负责人 | ContractOwner | 领域 · contract.agreement | 协议的唯一负责人，开票、红冲、坏账链的 A；取代「承担部门负责人」 |  | 具体由谁担任待新题确认 |
+| `opportunity_owner` | 商机负责人 | OpportunityOwner | 领域 · presales.opportunity | 商机的唯一负责人，报价评审的 A |  |  |
+| `project_director` | 项目总监 | ProjectDirector | 领域 · delivery.acceptance | 交付物校审的基础审核人，并批准完工估算 |  |  |
+| `inspection_owner` | 检查负责人 | InspectionOwner | 领域 · delivery.inspection | 检查任务的负责人，审核检查记录、采信外部检测 |  |  |
+| `quality_owner` | 质量负责人 | QualityOwner | 领域 · delivery.acceptance | V 级质量督查（AR-13）的责任人 |  | 与「质量督查」是否同义待判，同义则并入而不另立 |
+| `agreement_price_list` | 协议价目 | AgreementPriceList | 领域 · masterdata.catalog | 按单个客户议定的价格表（AGG-07） |  |  |
+| `billing_coefficient` | 计费系数 | BillingCoefficient | 领域 · masterdata.catalog | 按业务线与客户分级决定的计费系数（AGG-06，Q-07） |  |  |
 
 ## `round3-pending-renames.yaml`
 
