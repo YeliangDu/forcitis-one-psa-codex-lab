@@ -36,6 +36,7 @@ REPORT = HERE / "SEAM_REPORT.md"
 GROUPS = ["revenue", "finance", "people"]
 MAX_LINES = 30
 SIM = 0.75
+NOT_SUB_RE = re.compile(r"不订阅|经 ?api 调用|api 读")   # a clause that says the BC reads or calls instead of subscribing
 BC_RE = re.compile(r"B-\d+")
 PLAT_RE = re.compile(r"platform\.[a-z]+")
 
@@ -114,7 +115,8 @@ def parse_draft(text):
                 if item.startswith("—"):
                     continue
                 name, _, paren = item.partition("（")
-                subs = BC_RE.findall(paren) + PLAT_RE.findall(paren)
+                kept = "；".join(c for c in paren.split("；") if not NOT_SUB_RE.search(c))
+                subs = BC_RE.findall(kept) + PLAT_RE.findall(kept)
                 only = "仅分析" in paren
                 names = [n.strip() for n in name.split("/") if n.strip()]
                 if len(names) > 1:
