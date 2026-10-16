@@ -112,6 +112,8 @@ B 部分（one-1a-next-4）允许改动：
 
 - RULING-DR-TB01-1（one-1a-next-4，2026-10-16）：用户答 U-7b「改写员工 ID，阅读时再解析姓名」后，运维命令 `--operator`、`--witness` 入参改为员工 ID；5 个验收文件中这两个参数的取值随之机械改为员工 ID，断言未动。
 
+- 后续小卡 DR-TB01-FU1（one-data 2026-10-16 准许移出 PR-2，交 one-1a-next-5）：运维证明的操作人、见证人员工 ID 须为存在员工（不存在 → 用法错误退出码 2，不写审计）；需在 5 个验收文件造出操作人 / 见证人员工（测试代理按 Acceptance-Ruling 改）。PR-2 暂未校验存在，「阅读时再解析姓名」可能遇到解析不到的 ID。
+
 #### TB-02　IR-1　高（OV 确认）　整份应答正文落库 24 小时，无分级、无内容边界、无长度上限
 - 问题：`IdempotencyFilter` 对所有非 `/sessions`、`/login-states` 的 POST 保存完整应答正文（黑名单），`response_text` 是任意接口应答副本；`data-classification.txt` 无该列。
 - 证据：TS `IdempotencyFilter.java:113-125`（`ContentCachingResponseWrapper` 全量读取，:122-123）；`IdempotencyScope.java`；迁移 `:12,:28`；OV：当前未发现返回密钥或 `SENSITIVE` 列的 POST（审计导出是 GET），属前向风险。
@@ -169,6 +171,8 @@ POST /api/v1/platform/approval-tasks/{taskId}:reassign  # 204 无正文
     - 登记 `response_text`：`platform_idempotency.idempotent_responses.response_text | INTERNAL | PI | 用途：重放幂等请求的第一次应答；正文仅限白名单接口，不含直接标识，可含自有 UUID（代理键仍是个人信息，ADR-0043 第 4 项第 2 条）`（保守取 PI，OV 建议；文件仍三段格式时，第二维写在本卡）。
     - 同表其余文本列随 TB-03 处理，本条不动。
   - **拿不准的点**（请 one-data 裁）：(1) N 为估算值，未起容器实测；`IdempotentResponseSizeTest` 落地后才有实测数。(2) 把 `:reconcile`、`:release`、`source-references` 三类移出白名单会改变它们对 `Idempotency-Key` 的行为（带键请求不再重放），如要保留幂等，只能给无界应答设上限，请裁。(3) 超限「不存、告警、仍返回应答」是我对卡上「失败并告警」的解读，若要求返回错误则写操作已提交的情况下会误导调用方。(4) `sourceId` 按外部员工编号论是判断，`data-classification.txt` 里没有登记它。
+
+- 超限计数器名：`forcitis.platform.web.idempotency.response.oversize`（NamingSurfaceTest G46 要求以声明模块 `platform.web` 开头，one-data 2026-10-16 认可以实现为准）。
 
 #### TB-03　IR-2 + IR-3 + IR-4　中　幂等表的登记、格式与成对约束
 - 问题：注册表登记 `INSERT_DELETE`，实际 `finish` 有条件更新；`request_hash`、`idempotency_key`、`response_number` 无格式、长度、范围约束；「处理中」状态四列无成对约束。
