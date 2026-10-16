@@ -34,7 +34,8 @@ class JdbcAccountRepository implements AccountRepository {
 
     private static final Logger LOG = LoggerFactory.getLogger(JdbcAccountRepository.class);
     private static final int MAX_ADDRESS_LENGTH = 64;
-    private static final Pattern ADDRESS_SHAPE = Pattern.compile("[0-9A-Fa-f.:]+(%[0-9A-Za-z._-]+)?");
+    private static final Pattern ADDRESS_SHAPE = Pattern.compile(
+            "(?:[0-9]{1,3}(?:\\.[0-9]{1,3}){3}|(?=[^:]*:[^:]*:)(?!.*:::)[0-9A-Fa-f.:]+)(?:%[0-9A-Za-z._-]+)?");
 
     private final JdbcClient jdbc;
     private final Clock clock;
@@ -138,7 +139,7 @@ class JdbcAccountRepository implements AccountRepository {
     }
 
     /** An address the column constraint would refuse is left empty rather than cut or allowed to fail a login that already succeeded. */
-    private static String storableAddress(String address) {
+    static String storableAddress(String address) {
         if (address != null && address.length() <= MAX_ADDRESS_LENGTH && ADDRESS_SHAPE.matcher(address).matches()) {
             return address;
         }
