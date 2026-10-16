@@ -616,12 +616,16 @@ processes:
   roles:
   - id: SH-E3
     as: initiator
+  - id: SH-E2
+    as: approver
   - id: SH-E1
+    as: approver
+  - id: SH-M1
     as: approver
   - id: SH-E6
     as: reviewer
   segregation:
-  - 报销人 ≠ 审批人
+  - 报销人 ≠ 任一级审批人
   - 报销人 ≠ 核定人
   - 审批人 ≠ 核定人
   steps:
@@ -675,10 +679,8 @@ processes:
     aggregate: AGG-80
     emits:
     - BudgetReserved
-    desc: 占用第 2 步
+    desc: 占用第 2 步；预算不足只预警不拦截（INV-102 定为预警，用户 F-Q2，intent 2026-10-16-162821）
     decision:
-    - when: 可用预算不足且口径为拦截
-      goto: 9
     - when: otherwise
       goto: 4
     cross_bc:
@@ -686,8 +688,9 @@ processes:
       direction: out
       bc: B-18
       name: 预算占用
-    pending:
-    - INV-102
+    notify:
+    - to: SH-E1
+      how: 审批待办中标注「超预算」
   - actor: SH-E3
     where: in_system
     evidence:
@@ -710,15 +713,22 @@ processes:
       engine: platform.approval
       doc_type: 费用报销审批
       approver: SH-E1
-      multi_level: false
+      multi_level: true
       on_reject: 8
+      levels:
+      - approver: SH-E2
+        when: 费用归属项目
+      - approver: SH-E1
+        when: otherwise
+      - approver: SH-M1
+        when: 报销金额超过阈值（阈值待用户定，F-Q1）
     cross_bc:
     - mode: api
       direction: out
       bc: platform.approval
       name: 提交审批
     pending:
-    - F-01
+    - F-Q1-阈值
   - actor: SH-E6
     where: in_system
     evidence:

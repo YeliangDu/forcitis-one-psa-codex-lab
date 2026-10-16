@@ -10,7 +10,7 @@
     <messageFlow id="mf2" name="发票查验结果" sourceRef="Pool_tax" targetRef="C_result" />
     <textAnnotation id="Ann_signal"><text>B-09 应收与收款订阅：冲抵员工借款（AGG-49）；净额不为零时调 B-10 确认应付，为零时调 B-12 标记报销已付（结清方式：借款冲抵）。见事件策略 PRC-147（B-09，S-16、S-17、S-19、S-24）</text></textAnnotation>
     <association id="Assoc_signal" sourceRef="S_confirmed" targetRef="Ann_signal" />
-    <textAnnotation id="Ann_budget"><text>INV-102 待定：预算不够时拦截还是预警</text></textAnnotation>
+    <textAnnotation id="Ann_budget"><text>INV-102 已定只预警：审批待办标「超预算」后继续</text></textAnnotation>
     <association id="Assoc_budget" sourceRef="G_budget" targetRef="Ann_budget" />
   </collaboration>
   <process id="PRC-87" name="提交、核定并确认报销应付" isExecutable="false">
@@ -100,11 +100,10 @@
       <dataOutputAssociation id="DA_T_budget_DS_80a"><targetRef>DS_80a</targetRef></dataOutputAssociation>
     </serviceTask>
     <exclusiveGateway id="G_budget" name="预算够用？">
-      <documentation>INV-102 待定：拦截还是预警，两种出口都画</documentation>
+      <documentation>INV-102：只预警不拦截（用户 F-Q2）</documentation>
       <incoming>f10</incoming>
       <outgoing>f11</outgoing>
       <outgoing>f12</outgoing>
-      <outgoing>f13</outgoing>
     </exclusiveGateway>
     <exclusiveGateway id="M_submit">
       <incoming>f11</incoming>
@@ -123,7 +122,7 @@
       <outgoing>f17</outgoing>
     </exclusiveGateway>
     <userTask id="T_approve" name="审批报销">
-      <documentation>审批平台：费用报销（单据类型暂名「费用报销审批」）；platform.approval；审批人分级待定 F-01；审批人 ≠ 报销人</documentation>
+      <documentation>审批平台：费用报销（多级：项目费用加项目经理 SH-E2，部门负责人 SH-E1，超过阈值加财务负责人 SH-M1，阈值待定 F-Q1）；审批人 ≠ 报销人</documentation>
       <incoming>f17</incoming>
       <outgoing>f18</outgoing>
     </userTask>
@@ -171,7 +170,6 @@
       <dataOutputAssociation id="DA_T_rel_budget_DS_80b"><targetRef>DS_80b</targetRef></dataOutputAssociation>
     </serviceTask>
     <exclusiveGateway id="M_release">
-      <incoming>f13</incoming>
       <incoming>f26</incoming>
       <outgoing>f27</outgoing>
     </exclusiveGateway>
@@ -196,8 +194,7 @@
     <sequenceFlow id="f9" name="可用" sourceRef="G_invoice" targetRef="T_budget" />
     <sequenceFlow id="f10" sourceRef="T_budget" targetRef="G_budget" />
     <sequenceFlow id="f11" name="够用" sourceRef="G_budget" targetRef="M_submit" />
-    <sequenceFlow id="f12" name="不够（预警口径）" sourceRef="G_budget" targetRef="M_submit" />
-    <sequenceFlow id="f13" name="不够（拦截口径）" sourceRef="G_budget" targetRef="M_release" />
+    <sequenceFlow id="f12" name="不够（预警后继续）" sourceRef="G_budget" targetRef="M_submit" />
     <sequenceFlow id="f14" sourceRef="M_submit" targetRef="T_submit" />
     <sequenceFlow id="f15" sourceRef="T_submit" targetRef="G_complete" />
     <sequenceFlow id="f16" name="不全" sourceRef="G_complete" targetRef="M_reject" />
@@ -311,12 +308,6 @@
         <di:waypoint x="1475" y="165" />
         <di:waypoint x="1430" y="165" />
         <di:waypoint x="1430" y="145" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="f13_di" bpmnElement="f13">
-        <di:waypoint x="1430" y="625" />
-        <di:waypoint x="1430" y="668" />
-        <di:waypoint x="2390" y="668" />
-        <di:waypoint x="2390" y="625" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="f14_di" bpmnElement="f14">
         <di:waypoint x="1455" y="120" />
