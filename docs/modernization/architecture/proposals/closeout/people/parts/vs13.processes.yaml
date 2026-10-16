@@ -26,9 +26,9 @@ processes:
     outcomes: [考勤已导入, 导入失败已告警, 补卡已记录]
     scenarios: [PRC-115-S01, PRC-115-S02, PRC-115-S03, PRC-115-S04, PRC-115-S05]   # S01 每日导入成功；S02 拉取失败或批次不完整，告警后人力重拉；S03 存在无法对应人员的记录，整批告警；S04 员工补卡，原记录不改，所属月已锁定则计入下月更正行；S05 补卡超次数或时限，被拒回补卡页
     roles:
-      - {id: SH-E3, as: initiator}      # 补卡发起人（员工）
-      - {id: SH-E6, as: informed}       # 人力、信息：导入失败告警
-      - {id: SH-E1, as: informed}       # 用人经理：补卡知会
+      - {id: SH-E3, as: initiator, org_needs: {responsibility: "提出并对本人申请事项的真实性负责", approval_right: "无（本人申请不得自批）", department_hint: "员工所在部门", position_hint: "全体在职员工"}}      # 补卡发起人（员工）
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "接收导入失败告警，修复人员对照后重新拉取", approval_right: "无", department_hint: "人力资源部、信息部门", position_hint: "人力资源专员、考勤管理员"}}       # 人力、信息：导入失败告警
+      - {id: SH-E1, as: informed, org_needs: {responsibility: "知悉下属补卡", approval_right: "无（补卡不设审批，由次数与时限规则守卫）", department_hint: "员工所在组织单元", position_hint: "部门负责人、用人经理"}}       # 用人经理：补卡知会
     steps:
       - actor: system
         where: external:企业微信
@@ -86,12 +86,12 @@ processes:
     segregation:
       - {roles: [SH-E3, SH-E1], rule: "申请人不得审批本人请假（申请人本身是部门负责人时，按 AR-11 由其上级审批）"}
     outcomes: [已批准, 已驳回, 已撤销, 已销假, 额度不足被拒]
-    scenarios: [PRC-116-S01, PRC-116-S02, PRC-116-S03, PRC-116-S04, PRC-116-S05, PRC-116-S06, PRC-116-S07, PRC-116-S08, PRC-116-S09, PRC-116-S10]   # S01 额度不足被拒；S02 额度内年假自动批准；S03 超阈值长假进入审批并批准；S04 审批驳回释放占用；S05 审批中员工撤回；S06 审批 3 日无人处理升级；S07 已批准未开始，员工撤销回冲；S08 请假已开始提前销假回冲；S09 申请人本人是部门负责人，由其上级审批（AR-11）；S10 政策允许透支，进入审批
+    scenarios: [PRC-116-S01, PRC-116-S02, PRC-116-S03, PRC-116-S04, PRC-116-S05, PRC-116-S06, PRC-116-S07, PRC-116-S08, PRC-116-S09, PRC-116-S10, PRC-116-S11]   # S01 额度不足被拒；S02 额度内年假自动批准；S03 超阈值长假进入审批并批准；S04 审批驳回释放占用；S05 审批中员工撤回；S06 审批 3 日无人处理升级；S07 已批准未开始，员工撤销回冲；S08 请假已开始提前销假回冲；S09 申请人本人是部门负责人，由其上级审批（AR-11）；S10 政策允许透支，进入审批；S11 请假已开始后员工点撤销，转为销假办理
     roles:
-      - {id: SH-E3, as: initiator}
-      - {id: SH-E1, as: approver}       # 申请人所在组织单元的责任人（cost_object_owner 解析结果）
-      - {id: SH-M1, as: informed}       # 审批超期升级对象；暂拟，待 U3
-      - {id: SH-E6, as: informed}       # 人力：额度与假期规则维护方，知会
+      - {id: SH-E3, as: initiator, org_needs: {responsibility: "提出并对本人申请事项的真实性负责", approval_right: "无（本人申请不得自批）", department_hint: "员工所在部门", position_hint: "全体在职员工"}}
+      - {id: SH-E1, as: approver, org_needs: {responsibility: "作为申请人所在组织单元的责任人，判断异常请假能否离岗", approval_right: "正常一级审批（cost_object_owner 解析结果）；超阈值时 AR-11、AR-12 加审", department_hint: "员工所在组织单元", position_hint: "部门负责人、用人经理"}}       # 申请人所在组织单元的责任人（cost_object_owner 解析结果）
+      - {id: SH-M1, as: informed, org_needs: {responsibility: "接收审批超期或期限提醒的升级，必要时督办", approval_right: "无（升级只提醒，不替代审批人）", department_hint: "公司管理层", position_hint: "总经理、分管副总"}}       # 审批超期升级对象；暂拟，待 U3
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "维护额度与假期规则，接收请假知会", approval_right: "无", department_hint: "人力资源部", position_hint: "人力资源专员"}}       # 人力：额度与假期规则维护方，知会
     steps:
       - actor: SH-E3
         where: in_system
@@ -139,7 +139,7 @@ processes:
         permission: 请假.审批
         page: 审批待办页
         notify: [{to: SH-E1, how: 企业微信待办}]
-        timeout: {after: "P3D", escalate_to: SH-M1, interrupting: false}   # 暂拟 3 日无人处理升级，待 U3
+        timeout: {after: "P3D", escalate_to: SH-M1, interrupting: true}   # 暂拟 3 日无人处理升级转管理层处理，待 U3；写中断是因非中断的升级分支会与主线在下游并发（生成器 R14）
         withdraw: {to: 7}
         decision:
           - {when: 审批驳回, goto: 6}
@@ -231,9 +231,9 @@ processes:
     outcomes: [已批准, 已驳回]
     scenarios: [PRC-117-S01, PRC-117-S02, PRC-117-S03, PRC-117-S04]   # S01 登记、加班日后打卡核实、自动批准；S02 打卡不支持登记的加班时长，驳回；S03 当月累计超 36 小时预警并知会、不拦截；S04 补登超过允许期限，被拒回登记页
     roles:
-      - {id: SH-E3, as: initiator}
-      - {id: SH-E1, as: informed}       # 用人经理：登记知会；也可代员工登记
-      - {id: SH-E6, as: informed}       # 人力：当月超 36 小时预警知会
+      - {id: SH-E3, as: initiator, org_needs: {responsibility: "提出并对本人申请事项的真实性负责", approval_right: "无（本人申请不得自批）", department_hint: "员工所在部门", position_hint: "全体在职员工"}}
+      - {id: SH-E1, as: informed, org_needs: {responsibility: "知悉下属加班登记，也可代员工登记", approval_right: "无（加班不设审批，由打卡核实）", department_hint: "员工所在组织单元", position_hint: "部门负责人、用人经理"}}       # 用人经理：登记知会；也可代员工登记
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "接收当月加班超 36 小时的预警", approval_right: "无", department_hint: "人力资源部", position_hint: "人力资源专员"}}       # 人力：当月超 36 小时预警知会
     steps:
       - actor: SH-E3
         where: in_system
@@ -289,9 +289,9 @@ processes:
     outcomes: [已锁定, 已暂缓]
     scenarios: [PRC-118-S01, PRC-118-S02, PRC-118-S03, PRC-118-S04, PRC-118-S05]   # S01 员工确认后期限届满自动锁定；S02 员工提出更正，补卡后重新生成再确认；S03 逾期未确认，默认确认并锁定、标记；S04 离职当月，账号已吊销，默认确认并锁定；S05 当月有日期导入失败，暂缓生成
     roles:
-      - {id: SH-E3, as: performer}      # 员工：确认或更正本人月度考勤
-      - {id: SH-E1, as: informed}       # 用人经理：逾期未确认名单知会
-      - {id: SH-E6, as: informed}       # 人力：导入失败暂缓知会
+      - {id: SH-E3, as: performer, org_needs: {responsibility: "核对并确认本人当月出勤、请假、加班，有异议提出更正", approval_right: "无（确认是数据主体对自己事实的确认，不是审批）", department_hint: "员工所在部门", position_hint: "全体在职员工"}}      # 员工：确认或更正本人月度考勤
+      - {id: SH-E1, as: informed, org_needs: {responsibility: "接收逾期未确认名单，必要时提醒下属", approval_right: "无", department_hint: "员工所在组织单元", position_hint: "部门负责人、用人经理"}}       # 用人经理：逾期未确认名单知会
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "接收系统告警与知会并跟进处理", approval_right: "无", department_hint: "人力资源部（薪酬事项含财务部）", position_hint: "人力资源专员、薪酬岗"}}       # 人力：导入失败暂缓知会
     steps:
       - actor: system
         where: automatic
@@ -393,8 +393,8 @@ processes:
     outcomes: [已确认]
     scenarios: [PRC-120-S01, PRC-120-S02]   # S01 编制、提交、确认；S02 同人同期同类型已有已确认评估被拒
     roles:
-      - {id: SH-E1, as: performer}
-      - {id: SH-E6, as: informed}       # 人力：评估完成知会
+      - {id: SH-E1, as: performer, org_needs: {responsibility: "编制、提交并确认下属月度绩效评估，对评估结论负责", approval_right: "无（评估是专业判断）", department_hint: "员工所在组织单元", position_hint: "部门负责人、用人经理"}}
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "接收系统告警与知会并跟进处理", approval_right: "无", department_hint: "人力资源部（薪酬事项含财务部）", position_hint: "人力资源专员、薪酬岗"}}       # 人力：评估完成知会
     steps:
       - actor: SH-E1
         where: in_system
@@ -449,8 +449,8 @@ processes:
     outcomes: [已生效, 已撤回]
     scenarios: [PRC-121-S01, PRC-121-S02, PRC-121-S03, PRC-121-S04, PRC-121-S05]   # S01 编制、审批通过、到期自动生效；S02 审批驳回退回修改；S03 编制人在审批中撤回；S04 生效日早于已核定奖金所属期，被拒回编制；S05 方案额度合计超阈值，加一级（AR-01）
     roles:
-      - {id: SH-E6, as: initiator}      # 人力
-      - {id: SH-M1, as: approver}       # 管理层：方案适用范围（法人或事业部）的责任人
+      - {id: SH-E6, as: initiator, org_needs: {responsibility: "按管理层要求编制激励方案版本（规则与额度），对内容完整性负责", approval_right: "无（编制人不得审批本人编制的方案）", department_hint: "人力资源部", position_hint: "人力资源负责人、薪酬岗"}}      # 人力
+      - {id: SH-M1, as: approver, org_needs: {responsibility: "作为方案适用范围的责任人，对经营取舍负责", approval_right: "正常一级审批（cost_object_owner 解析结果）；金额超阈值时上加一级", department_hint: "公司管理层", position_hint: "总经理、分管副总、事业部负责人"}}       # 管理层：方案适用范围（法人或事业部）的责任人
     steps:
       - actor: SH-E6               # 人力
         where: in_system
@@ -521,9 +521,9 @@ processes:
     outcomes: [已核定, 无需核定, 已中止, 已驳回]
     scenarios: [PRC-122-S01, PRC-122-S02, PRC-122-S03, PRC-122-S04, PRC-122-S05]   # S01 月度评估确认后草拟并核定（全程）；S02 试用期评估确认不触发；S03 没有生效方案或草拟金额超方案额度，已中止并告警人力；S04 责任人驳回；S05 奖金金额超阈值，加一级或两级（AR-01、AR-02）
     roles:
-      - {id: SH-E1, as: approver}       # 被评人所在组织单元的责任人（cost_object_owner 解析结果）
-      - {id: SH-M1, as: approver}       # 金额超阈值时加审（AR-02 总经理一级）
-      - {id: SH-E6, as: informed}       # 人力：已中止告警
+      - {id: SH-E1, as: approver, org_needs: {responsibility: "作为被评人所在组织单元的责任人，核对草拟奖金是否有规则看不到的情况", approval_right: "正常一级审批（cost_object_owner 解析结果）；本人是被核定人时由上级核定", department_hint: "被评人所在组织单元", position_hint: "部门负责人、用人经理"}}       # 被评人所在组织单元的责任人（cost_object_owner 解析结果）
+      - {id: SH-M1, as: approver, org_needs: {responsibility: "奖金金额超阈值时的上一级责任人", approval_right: "加审一级（AR-02 总经理）", department_hint: "公司管理层", position_hint: "总经理"}}       # 金额超阈值时加审（AR-02 总经理一级）
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "接收奖金草拟已中止或被驳回的告警，调整方案或评估后重新草拟", approval_right: "无", department_hint: "人力资源部", position_hint: "人力资源专员、薪酬岗"}}       # 人力：已中止告警
     steps:
       - actor: system
         where: automatic
@@ -610,9 +610,9 @@ processes:
     outcomes: [已批准, 待锁定, 已中止]
     scenarios: [PRC-124-S01, PRC-124-S02, PRC-124-S03, PRC-124-S04, PRC-124-S05, PRC-124-S06, PRC-124-S07, PRC-124-S08, PRC-124-S09]   # S01 全部锁定后计算、提交、审批、批准、提交过账候选（全程）；S02 审批驳回退回重算；S03 有人员未锁定，待锁定；S04 缺薪酬档案或规则版本，已中止并告警；S05 审批 2 日无人处理升级；S06 提交人撤回审批；S07 薪酬岗核对异常清单后重算；S08 薪酬总额超阈值，加一级或两级（AR-01、AR-02）；S09 所属期间已关账，过账路由到开放期间并标原期间
     roles:
-      - {id: SH-E6, as: performer}      # 人力（薪酬岗）：核对异常清单、提交审核
-      - {id: SH-E6, as: approver}       # 财务（薪酬法人的责任人 / 财务主管）：审批
-      - {id: SH-M1, as: informed}       # 管理层：薪酬总额知会；审批超期升级对象（VS-13.3 participants）
+      - {id: SH-E6, as: performer, org_needs: {responsibility: "核对系统计算结果与异常清单，确认无误后提交审核，对输入修正负责", approval_right: "无（提交人不得审批同一份结算）", department_hint: "人力资源部（薪酬岗）", position_hint: "薪酬岗"}}      # 人力（薪酬岗）：核对异常清单、提交审核
+      - {id: SH-E6, as: approver, org_needs: {responsibility: "作为薪酬法人的财务责任人，对薪酬支付依据的合理性负责", approval_right: "正常一级审批（cost_object_owner 解析结果）；金额超阈值加审", department_hint: "财务部", position_hint: "财务负责人、财务主管"}}       # 财务（薪酬法人的责任人 / 财务主管）：审批
+      - {id: SH-M1, as: informed, org_needs: {responsibility: "知悉薪酬总额；审批超期时接收升级提醒", approval_right: "无（升级只提醒，不替代审批人）", department_hint: "公司管理层", position_hint: "总经理、分管副总"}}       # 管理层：薪酬总额知会；审批超期升级对象（VS-13.3 participants）
     steps:
       - actor: system
         where: automatic
@@ -719,11 +719,11 @@ processes:
     segregation:
       - {roles: [SH-E6, SH-E6], rule: "申报登记与缴款资金支出（出纳，B-10）不得为同一人；申报数据由系统生成，人工只做外部申报与登记回执（SH-E6 内部分岗）"}
     outcomes: [已申报缴款, 已中止]
-    scenarios: [PRC-125-S01, PRC-125-S02, PRC-125-S03, PRC-125-S04, PRC-125-S05]   # S01 系统生成申报数据，线下申报，登记回执与缴款（全程）；S02 证件信息缺失或金额不一致，已中止并告警；S03 申报被退回更正；S04 股息红利并入同期个税申报；S05 个税申报期限提醒升级
+    scenarios: [PRC-125-S01, PRC-125-S02, PRC-125-S03, PRC-125-S04, PRC-125-S05, PRC-125-S06]   # S01 系统生成申报数据，线下申报，登记回执与缴款（全程）；S02 证件信息缺失或金额不一致，已中止并告警；S03 申报被退回更正；S04 股息红利并入同期个税申报；S05 个税申报期限提醒升级；S06 所属会计期间已关账，过账路由到开放期间
     roles:
-      - {id: SH-E6, as: performer}      # 人力
-      - {id: SH-M1, as: informed}       # 申报期限提醒升级对象
-      - {id: SH-R2, as: external}       # 税务、社保、公积金经办机构
+      - {id: SH-E6, as: performer, org_needs: {responsibility: "核对系统生成的申报数据，在外部渠道办理申报与缴款并登记回执", approval_right: "无（人工只做外部申报与登记；缴款资金支出由出纳另行执行）", department_hint: "人力资源部（薪酬、申报岗）", position_hint: "薪酬岗、申报岗"}}      # 人力
+      - {id: SH-M1, as: informed, org_needs: {responsibility: "申报期限提醒的升级对象", approval_right: "无", department_hint: "公司管理层", position_hint: "分管副总"}}       # 申报期限提醒升级对象
+      - {id: SH-R2, as: external, org_needs: {responsibility: "受理申报并出具回执", approval_right: "无（外部机构，系统外）", department_hint: "外部（税务、社保、公积金经办机构）", position_hint: "不适用"}}       # 税务、社保、公积金经办机构
     steps:
       - actor: system
         where: automatic
@@ -750,7 +750,7 @@ processes:
         pending: U1
         desc: 个税：人力在扣缴客户端导入申报数据并申报，本系统登记申报回执（个人所得税法第九条、第十条；个人所得税扣缴申报管理办法）。法定期限为次月十五日内〔中，核对原文〕（P-39）
         period_gate: false
-        timeout: {after: "P15D", escalate_to: SH-M1, interrupting: false}   # 自次月 1 日起算，P-39 提醒
+        timeout: {after: "P15D", escalate_to: SH-M1, interrupting: true}   # 自次月 1 日起算，P-39 提醒并升级转管理层督办；写中断同 PRC-116（R14）
         notify: [{to: SH-E6, how: 企业微信待办}]
         audit: true
         cross_bc:
@@ -814,8 +814,8 @@ event_policies:
     outcomes: [已并入申报, 无需扣缴]
     scenarios: [PRC-113-S01, PRC-113-S02]   # S01 自然人股东分红并入当期个税申报；S02 法人股东不扣缴个税
     roles:
-      - {id: SH-E6, as: informed}       # 人力：申报批次中出现并入项
-      - {id: SH-O1, as: external}       # 股东：自然人股东是纳税人
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "知悉申报批次中出现股息红利并入项", approval_right: "无", department_hint: "人力资源部（薪酬、申报岗）", position_hint: "薪酬岗、申报岗"}}       # 人力：申报批次中出现并入项
+      - {id: SH-O1, as: external, org_needs: {responsibility: "自然人股东是个税纳税人，法人股东自行处理所得", approval_right: "无（外部相关方）", department_hint: "外部（股东）", position_hint: "不适用"}}       # 股东：自然人股东是纳税人
     step:
       actor: system
       where: automatic
@@ -845,7 +845,7 @@ event_policies:
     outcomes: [应付已提交]
     scenarios: [PRC-126-S01, PRC-126-S02]   # S01 薪酬批准后提交法人 × 月一笔实发合计；S02 重复触发幂等不重复提交
     roles:
-      - {id: SH-E6, as: informed}       # 财务：待付清单出现应付薪酬
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "财务知悉待付清单出现应付薪酬，按付款流程办理", approval_right: "无", department_hint: "财务部", position_hint: "出纳、应付会计"}}       # 财务：待付清单出现应付薪酬
     step:
       actor: system
       where: automatic
@@ -874,10 +874,10 @@ event_policies:
     owner_bc: B-15
     migration: "迁入不触发（ADR-0036 M7）；历史薪酬的发放状态随结算迁入"
     outcomes: [已发放]
-    scenarios: [PRC-127-S01, PRC-127-S02]   # S01 应付结清后置已发放并通知工资条；S02 退票时付款已失败，薪酬保持已批准
+    scenarios: [PRC-127-S01, PRC-127-S02, PRC-127-S03]   # S01 应付结清后置已发放并通知工资条；S02 退票时付款已失败，薪酬保持已批准；S03 置已发放时过账事实已入账，转 PRC-134
     roles:
-      - {id: SH-E3, as: informed}       # 员工：工资条可查看
-      - {id: SH-E6, as: informed}
+      - {id: SH-E3, as: informed, org_needs: {responsibility: "查看本人工资条", approval_right: "无", department_hint: "员工所在部门", position_hint: "全体在职员工"}}       # 员工：工资条可查看
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "知悉薪酬已发放", approval_right: "无", department_hint: "财务部、人力资源部", position_hint: "薪酬岗、财务"}}
     step:
       actor: system
       where: automatic
@@ -908,7 +908,7 @@ event_policies:
     outcomes: [已过账, 待发放后再置位]
     scenarios: [PRC-134-S01, PRC-134-S02]   # S01 已发放后过账完成置已过账；S02 过账先于发放，记标志待 PRC-127 触发
     roles:
-      - {id: SH-E6, as: informed}
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "知悉薪酬已过账", approval_right: "无", department_hint: "财务部", position_hint: "总账会计"}}
     step:
       actor: system
       where: automatic
@@ -942,7 +942,7 @@ event_policies:
     outcomes: [三口径一致, 已预警]
     scenarios: [PRC-145-S01, PRC-145-S02]   # S01 三口径一致不预警；S02 入职后劳动合同用人单位与扣缴义务人不一致，预警人力
     roles:
-      - {id: SH-E6, as: informed}       # 人力
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "接收三口径不一致预警并核对更正", approval_right: "无", department_hint: "人力资源部", position_hint: "人力资源专员、薪酬岗"}}       # 人力
     step:
       actor: system
       where: automatic
@@ -971,9 +971,9 @@ single_aggregate:
     migration: "历史工作日历年度与标准工时版本（已建 AGG-68 / AGG-108）按生效区间迁入；迁入不发事件（ADR-0036 M7）"
     scope: "人力维护；全员可读"
     outcomes: [工作日历已维护, 标准工时版本已发布, 版本被拒]
-    scenarios: [PRC-119-S01, PRC-119-S02]   # S01 年度维护日历；S02 发布新标准工时版本，与现有版本区间重叠被拒
+    scenarios: [PRC-119-S01, PRC-119-S02, PRC-119-S03]   # S01 年度维护日历；S02 发布新标准工时版本，与现有版本区间重叠被拒；S03 新标准工时版本区间不重叠，发布成功
     roles:
-      - {id: SH-E6, as: performer}      # 人力
+      - {id: SH-E6, as: performer, org_needs: {responsibility: "每年维护工作日历与标准工时版本，对依据文件的准确性负责", approval_right: "无（版本区间由不变量守卫）", department_hint: "人力资源部", position_hint: "人力资源专员、考勤管理员"}}      # 人力
     commands:
       - actor: SH-E6
         where: in_system
@@ -1020,8 +1020,8 @@ single_aggregate:
     outcomes: [薪酬档案已调整, 专项附加扣除已更新, 调整被拒]
     scenarios: [PRC-123-S01, PRC-123-S02, PRC-123-S03, PRC-123-S04]   # S01 调薪生效日在未结月份；S02 生效日早于已批准薪酬所属月，补发补扣走下月；S03 年度更新专项附加扣除；S04 未引用调薪决定依据，调整被拒
     roles:
-      - {id: SH-E6, as: performer}      # 人力（薪酬岗）
-      - {id: SH-E3, as: informed}       # 员工：本人薪酬变更通知
+      - {id: SH-E6, as: performer, org_needs: {responsibility: "依据调薪决定登记薪酬档案版本，年度更新专项附加扣除，对依据完整性负责", approval_right: "无（无依据即由规则拒绝；调薪决定是否进审批待用户定 U9）", department_hint: "人力资源部（薪酬岗）", position_hint: "薪酬岗"}}      # 人力（薪酬岗）
+      - {id: SH-E3, as: informed, org_needs: {responsibility: "接收本人薪酬变更通知并核对", approval_right: "无", department_hint: "员工所在部门", position_hint: "全体在职员工"}}       # 员工：本人薪酬变更通知
     commands:
       - actor: SH-E6
         where: in_system

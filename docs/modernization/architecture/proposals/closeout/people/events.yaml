@@ -1,0 +1,639 @@
+# 人员组收敛产物（提议稿；由 parts/merge_converge.py 从分片合并，改分片后重跑，不手改本文件）
+by_part:
+  vs13att:
+    bc:
+    - B-27
+    - B-14
+    published:
+    - name: 请假已批准
+      published_by: AGG-70
+      by_command: 批准请假
+      payload:
+      - 请假ID
+      - 员工ID
+      - 假期类型码
+      - 起止时刻
+      - 时长（分钟）
+      - 批准方式（规则自动 / 人审）
+      - 审批实例ID（可空）
+      - 批准时间
+      subscribers:
+      - type: 事件策略
+        who: AGG-71 批准转已用
+        via: 请假批准后转已用
+        used_by: PRC-116 第 5 步
+      - type: 仅分析
+      note: 聚合稿写「仅分析」，本流程同 BC 订阅，订阅方列须改；B-06 工时单最低时数经 api 读取已批准与待批请假（INV-65），不订阅
+    - name: 请假已撤销
+      published_by: AGG-70
+      by_command: 撤销请假
+      payload:
+      - 请假ID
+      - 员工ID
+      - 撤销前状态（审批中 / 已批准）
+      - 撤销时间
+      subscribers:
+      - type: 仅分析
+      note: 额度释放与回冲由 PRC-116 同一步骤的 inner 命令完成，不靠订阅此事件
+    - name: 请假已销假
+      published_by: AGG-70
+      by_command: 销假
+      payload:
+      - 请假ID
+      - 员工ID
+      - 实际结束时刻
+      - 回冲时长（分钟）
+      subscribers:
+      - type: 仅分析
+    - name: 加班已批准
+      published_by: AGG-72
+      by_command: 批准加班
+      payload:
+      - 加班ID
+      - 员工ID
+      - 加班日期
+      - 批准时长（分钟）
+      - 加班类型码
+      - 补偿方式码
+      subscribers:
+      - type: 仅分析
+      note: 聚合稿写「同 BC：AGG-97 汇入当月」，PRC-118 实为生成时读取（api），不订阅
+    - name: 加班已补偿
+      published_by: AGG-72
+      by_command: 标记加班已补偿
+      payload:
+      - 加班ID
+      - 员工ID
+      - 补偿方式码
+      - 月度考勤确认ID
+      subscribers:
+      - type: 仅分析
+      note: 加班费计入薪酬由 B-15 经 api 读取月度考勤，不订阅此事件
+    - name: 月度考勤已确认
+      published_by: AGG-97
+      by_command: 员工确认 / 默认确认月度考勤
+      payload:
+      - 月度考勤确认ID
+      - 员工ID
+      - 月份
+      - 确认方式（员工 / 默认）
+      - 默认确认原因（逾期未确认 / 已离职，可空）
+      - 确认时间
+      subscribers:
+      - type: 事件策略
+        who: AGG-72 标记加班已补偿
+        via: 月度考勤确认后标记加班补偿
+        used_by: PRC-118 第 3 步
+      note: 两条命令发同一事件，订阅方凭确认方式区分
+    - name: 月度考勤已锁定
+      published_by: AGG-97
+      by_command: 锁定
+      payload:
+      - 月度考勤确认ID
+      - 员工ID
+      - 月份
+      - 默认确认原因（可空）
+      - 锁定时间
+      subscribers:
+      - type: 流程
+        who: B-15
+        used_by: PRC-124 触发器
+      note: 按人员 × 月发出；法人当月在职人员全部锁定才能算薪，汇聚由 B-27 只读查询承载（vs13.notes.md 结构问题 6）
+    - name: 标准工时版本已生效
+      published_by: AGG-108
+      by_command: 发布标准工时版本
+      payload:
+      - 标准工时版本ID
+      - 法人ID（可空）
+      - 生效区间
+      - 确认人ID
+      subscribers:
+      - type: 仅分析
+      note: B-06 与 B-27 按 ID 与日期经 api 读取，不订阅
+    - name: 假期规则已生效
+      published_by: AGG-118
+      by_command: 发布假期规则版本
+      payload:
+      - 假期规则版本ID
+      - 假期类型码
+      - 适用范围
+      - 生效日
+      subscribers:
+      - type: 仅分析
+      note: 聚合稿：AGG-71 年度开账按 ID 与日期读取，不订阅
+    - name: 工作日历锁定日期被修改
+      published_by: AGG-68
+      by_command: 维护工作日历年度
+      payload:
+      - 日历年度
+      - 法人ID（可空）
+      - 变更日期集合
+      subscribers:
+      - type: 仅分析
+      note: 订阅方以代码为准（聚合稿）；术语表另有「工作日历年度已维护」（WorkCalendarYearMaintained），两者关系见 vs13att.notes.md 结构问题 7
+    consumed:
+    - name: 审批已通过
+      from: platform.approval
+      handled_by:
+      - 批准请假
+      used_by:
+      - PRC-116 第 4 步入口
+    - name: 审批已驳回
+      from: platform.approval
+      handled_by:
+      - 驳回请假
+      used_by:
+      - PRC-116 第 6 步
+    - name: 审批已撤回
+      from: platform.approval
+      handled_by:
+      - 撤销请假
+      used_by:
+      - PRC-116 第 3 步 withdraw 边
+      note: 事件名由 platform.approval 事件目录定，本稿不自造
+    - name: Separated
+      from: B-13
+      handled_by:
+      - 事件策略「离职当月考勤默认确认」→ 默认确认月度考勤
+      used_by:
+      - PRC-128 第 7 步（vs07）
+      note: B-27 订阅 B-13 的边及 B-13 事件的订阅方清单需补登（vs07 接缝问题 1）
+    - name: Employed
+      from: B-13
+      handled_by:
+      - 事件策略「年度开账」→ 开立年度额度账户
+      used_by:
+      - 年中入职开账
+      note: 提议订阅，边需补登
+    not_subscribed:
+    - name: 离职登记已撤销（〔缺〕，vs07 提议）
+      from: B-13
+      reason: B-27 的离职处置只在 Separated 之后发生（离职日前无待办可撤），撤销登记无需通知 B-27；建议删去 vs07 PRC-128 撤销步骤向 B-27 发该事件的边
+    - name: 任职已变更
+      from: B-13
+      reason: 在途请假审批人是否随调岗重新解析待用户定（vs13att.notes.md 待用户定 1）；未定前不订阅
+  vs13pay:
+    bc: B-15
+    also_bc:
+      AGG-106: B-13
+    published:
+    - name: 绩效评估已确认
+      published_by: AGG-106
+      publishing_bc: B-13
+      by_command: 确认绩效评估
+      payload:
+      - 绩效评估ID
+      - 被评人ID
+      - 评估类型码
+      - 评估期间
+      - 确认时间
+      subscribers:
+      - type: 流程
+        ref: PRC-122
+        filter: 评估类型为月度
+        handled_by: 草拟奖金核定
+      - type: 仅分析
+      note: 评估结论不入载荷（个人评价为敏感信息）；PRC-122 经 api 读取结论。试用期评估由 PRC-85 发出，B-15 不处理，转正读 AGG-106（P-46）
+    - name: 激励方案已生效
+      published_by: AGG-75
+      by_command: 生效激励方案版本
+      payload:
+      - 激励方案ID
+      - 方案版本ID
+      - 方案类型码
+      - 生效区间
+      - 审批实例ID
+      subscribers:
+      - type: 仅分析
+      note: 仅在版本变为已生效时发布，已批准（生效日期未到）不发布
+    - name: 奖金已核定
+      published_by: AGG-76
+      by_command: 核定奖金
+      payload:
+      - 奖金核定ID
+      - 被核定人员ID
+      - 法人ID
+      - 核定期间
+      - 激励方案版本ID
+      - 审批实例ID
+      - 核定时间
+      subscribers:
+      - type: 仅分析
+      note: 金额不入载荷；PRC-124 在同 BC 内读已核定奖金，不订阅
+    - name: 薪酬已批准
+      published_by: AGG-73
+      by_command: 批准
+      payload:
+      - 薪酬结算ID
+      - 法人ID
+      - 薪酬月份
+      - 人员行数
+      - 审批实例ID
+      - 批准时间
+      subscribers:
+      - type: 流程
+        ref: PRC-125
+        handled_by: 生成申报
+      - type: 流程
+        ref: PRC-126
+        handled_by: 提交应付薪酬（B-10 AGG-52）
+      note: 实发合计不入载荷，PRC-126 经 api 提交应付时带金额
+    - name: 薪酬已发放
+      published_by: AGG-73
+      by_command: 标记薪酬已发放
+      payload:
+      - 薪酬结算ID
+      - 法人ID
+      - 薪酬月份
+      - 应付ID
+      - 发放日
+      subscribers:
+      - type: 仅分析
+      note: 「已过账」不发事件；发放与过账的先后由 PRC-127 回到 PRC-134 处理
+    - name: 参保已增员
+      published_by: AGG-74
+      by_command: 参保增员
+      payload:
+      - 参保登记ID
+      - 人员ID
+      - 缴纳主体法人ID
+      - 险种码
+      - 增员生效日
+      subscribers:
+      - type: 仅分析
+      note: 缴费基数不入载荷；入职阶段门（聚合稿阶段 2）读参保状态，不订阅
+    - name: 参保已减员
+      published_by: AGG-74
+      by_command: 参保减员
+      payload:
+      - 参保登记ID
+      - 人员ID
+      - 缴纳主体法人ID
+      - 减员生效日
+      subscribers:
+      - type: 仅分析
+    - name: 薪酬档案已变更
+      published_by: AGG-93
+      by_command: 建立薪酬档案 / 调整薪酬档案
+      payload:
+      - 薪酬档案ID
+      - 档案版本ID
+      - 人员ID
+      - 变更类别码（建立、调整）
+      - 生效日
+      - 扣缴义务人法人ID
+      subscribers:
+      - type: 流程
+        ref: PRC-145
+        handled_by: 三口径比对预警（同 BC）
+      note: 薪资标准与发薪账户不入载荷。聚合稿原写订阅方「仅分析」，本稿补 PRC-145 订阅（vs13.notes.md 结构问题 12）
+    - name: 个税与社保公积金申报已提交
+      published_by: AGG-95
+      by_command: 提交申报
+      payload:
+      - 扣缴义务人法人ID
+      - 所属期
+      - 申报ID列表
+      - 申报日
+      subscribers:
+      - type: 仅分析
+      note: 个税、社保、公积金三类均已提交后发布一次。缴款与银行流水对账的订阅方未定（vs13.notes.md 接缝问题 5：B-22 订阅或 B-15 经 api 读取流水）
+    - name: 薪酬规则已生效
+      name_status: 〔缺〕沿用分片提议名（vs13.notes.md 新用语 payroll_rule_version_published）
+      published_by: AGG-待定-薪酬规则版本
+      by_command: 发布薪酬规则版本
+      payload:
+      - 规则版本ID
+      - 规则类别码
+      - 适用范围
+      - 生效区间
+      subscribers:
+      - type: 仅分析
+      note: AGG-73 计算时按薪酬期间读取生效版本，不订阅
+    external_published:
+    - name: 应付已确认
+      published_by: AGG-52
+      bc: B-10
+      by_command: 提交应付薪酬
+      used_by: PRC-126 第 1 步
+      note: 属 B-10 事件目录，本稿不收
+    - name: 转正已办理
+      name_status: 〔缺〕分片提议名
+      published_by: AGG-62
+      bc: B-13
+      by_command: 办理转正
+      used_by: PRC-85 第 3 步（出边到 B-15）
+      note: 属 B-13 事件目录，B-15 当前无处理（结构问题 10）
+    consumed:
+    - name: 审批已通过
+      from: platform.approval
+      handled_by:
+      - 生效激励方案版本
+      - 核定奖金
+      - 批准
+      used_by:
+      - PRC-121 第 3 步入口
+      - PRC-122 第 3 步入口
+      - PRC-124 第 4 步入口
+    - name: 审批已驳回
+      from: platform.approval
+      handled_by:
+      - 驳回激励方案版本
+      - 驳回奖金核定
+      - 退回薪酬重算
+      used_by:
+      - PRC-121 第 2 步 on_reject
+      - PRC-122 第 4 步
+      - PRC-124 第 3 步 on_reject
+    - name: 审批已撤回
+      from: platform.approval
+      name_status: 事件名由 platform.approval 事件目录定，本稿不自造
+      handled_by:
+      - 撤回激励方案版本
+      - 撤回薪酬审核
+      used_by:
+      - PRC-121 第 2 步 withdraw
+      - PRC-124 第 3 步 withdraw
+    - name: 绩效评估已确认
+      from: B-13
+      handled_by:
+      - 草拟奖金核定
+      used_by:
+      - PRC-122 触发器
+      note: 仅月度评估；订阅方按评估类型过滤
+    - name: 月度考勤已锁定
+      from: B-27
+      handled_by:
+      - 计算
+      used_by:
+      - PRC-124 触发器
+      note: 按人员 × 月发出，法人级汇聚由计算的前置条件检查
+    - name: 应付已结清
+      from: B-10
+      handled_by:
+      - 标记薪酬已发放
+      used_by:
+      - PRC-127 触发器
+      note: B-15 与 B-12 都订阅，按应付类型过滤只处理应付薪酬
+    - name: BusinessFactAttributed
+      from: B-16
+      handled_by:
+      - 标记已过账
+      used_by:
+      - PRC-134 触发器
+      note: 按来源单据类型过滤只处理月度薪酬结算
+    - name: 利润分配已支付
+      from: B-10
+      handled_by:
+      - 并入扣缴申报
+      used_by:
+      - PRC-113 触发器
+    - name: Employed
+      from: B-13
+      handled_by:
+      - 事件策略「入职后办理参保与建档」→ 参保增员、建立薪酬档案
+      used_by:
+      - PRC-84 触发器
+    - name: Separated
+      from: B-13
+      handled_by:
+      - 事件策略「离职后办理参保减员」→ 参保减员
+      used_by:
+      - PRC-130 触发器
+    - name: 劳动合同已签订
+      from: B-13
+      handled_by:
+      - 事件策略「三口径比对预警」（无聚合命令）
+      used_by:
+      - PRC-145 触发器
+    - name: 法人归属已变更
+      name_status: 〔缺〕B-13 AGG-117 事件（已在聚合稿回补稿）
+      from: B-13
+      handled_by:
+      - 事件策略「三口径比对预警」（无聚合命令）
+      used_by:
+      - PRC-145 触发器
+      note: 订阅方列需补 B-15（vs13.notes.md 结构问题 12）
+  vs0911:
+    events:
+    - name: 经营计划已基线化
+      publisher: AGG-79
+      emitted_by: 基线化经营计划
+      payload:
+      - 计划ID
+      - 版本ID
+      - 被取代版本ID（可空）
+      - 目标类型
+      - 基线生效日
+      subscribers:
+      - 仅分析
+      note: PRC-88#7（开立预算账户）由
+    - name: BudgetReserved
+      publisher: AGG-80
+      emitted_by: 预算占用
+      payload:
+      - 预算账户ID
+      - 占用ID
+      - 占用额（金额值对象）
+      - 占用方类型
+      - 占用方单据ID（不校验）
+      - 是否超额
+      subscribers:
+      - 仅分析
+      note: 超额预警（AR-03 / RULE-406）若采预警方案，由命令返回标志加预警策略承接，策略归属待用户定 1 后定。
+    - name: BudgetReleased
+      publisher: AGG-80
+      emitted_by: 释放预算占用
+      payload:
+      - 预算账户ID
+      - 占用ID
+      - 释放额（金额值对象）
+      - 释放原因代码
+      subscribers:
+      - 仅分析
+    - name: BudgetConsumed
+      publisher: AGG-80
+      emitted_by: 〔缺〕消耗预算占用
+      payload:
+      - 预算账户ID
+      - 占用ID
+      - 消耗额（金额值对象）
+      subscribers:
+      - 仅分析
+      note: 聚合稿事件列有，命令列无发出它的命令；命令为〔缺〕提议（孤儿）。
+    - name: BudgetAdjusted
+      publisher: AGG-80
+      emitted_by: 调整预算
+      payload:
+      - 预算账户ID
+      - 调整记录ID
+      - 调整额（金额值对象）
+      - 调整后额度（金额值对象）
+      subscribers:
+      - 仅分析
+      note: 词表预算调整（budget_adjusted）定义为基线新版本的受控变更，口径待 one-glossary 与 one-architecture 定（notes 结构问题 2）。
+    - name: 知识条目已发布
+      publisher: AGG-107
+      emitted_by: 发布知识条目
+      payload:
+      - 条目ID
+      - 版本ID
+      - 类别
+      - 适用范围（取值）
+      - 有效期（值对象）
+      subscribers:
+      - 仅分析
+      note: 引用方（B-02、B-03、B-04、B-28）按 ID 与版本引用，不订阅（INV-115）。
+    - name: 知识条目已修订
+      publisher: AGG-107
+      emitted_by: 修订知识条目
+      payload:
+      - 条目ID
+      - 新版本ID
+      - 被取代版本ID
+      subscribers:
+      - 仅分析
+      note: 发出时机是新版本创建（起草中），不是发布；聚合稿如此，待 one-architecture 确认是否应在新版本发布时发。
+    - name: 知识条目已废止
+      publisher: AGG-107
+      emitted_by: 废止知识条目
+      payload:
+      - 条目ID
+      - 版本ID
+      subscribers:
+      - 仅分析
+    inbound_events:
+    - name: 审批已通过
+      publisher: platform.approval
+      subscriber_commands:
+      - 〔缺〕通过经营计划审批
+      steps:
+      - PRC-88#5
+      note: 方向待 one-architecture 在审批回调约定中确认（notes 接缝问题 3、6）
+    - name: 审批已驳回
+      publisher: platform.approval
+      subscriber_commands:
+      - 〔缺〕驳回经营计划审批
+      steps:
+      - PRC-88#4
+      note: 同上
+  b31:
+    bc: B-31
+    published:
+    - name: 用印申请已批准
+      published_by: AGG-113
+      by_command: 批准用印申请
+      payload:
+      - 用印申请ID
+      - 印章类别码
+      - 用印法人ID
+      - 申请人ID
+      - 批准份数
+      - 审批实例ID
+      - 批准时间
+      subscribers:
+      - type: 仅分析
+    - name: 已用印
+      published_by: AGG-113
+      by_command: 登记用印
+      payload:
+      - 用印申请ID
+      - 用印登记行ID
+      - 经办人ID
+      - 本次用印份数
+      - 累计用印份数
+      - 实际用印时间
+      subscribers:
+      - type: 仅分析
+      note: 每次登记发布一次
+    - name: IT 需求已解决
+      published_by: AGG-114
+      by_command: 解决 IT 需求
+      payload:
+      - IT需求ID
+      - 需求类别码
+      - 提出人ID
+      - 处理人ID
+      - 解决时间
+      subscribers:
+      - type: 仅分析
+    - name: 资产已领用
+      published_by: AGG-115
+      by_command: 登记领用
+      payload:
+      - 资产卡片ID
+      - 使用期间ID
+      - 使用人ID
+      - 起始日
+      - 来源申请ID
+      subscribers:
+      - type: 仅分析
+      note: 离职交接（PRC-128）经读模型读取，不订阅事件（分片接缝问题 3）
+    - name: 资产已调拨
+      published_by: AGG-115
+      by_command: 调拨资产
+      payload:
+      - 资产卡片ID
+      - 调出使用期间ID
+      - 调入使用期间ID
+      - 调出使用人ID
+      - 调入使用人ID
+      - 调拨日
+      - 来源申请ID
+      subscribers:
+      - type: 仅分析
+    - name: 资产已归还
+      published_by: AGG-115
+      by_command: 归还资产
+      payload:
+      - 资产卡片ID
+      - 使用期间ID
+      - 使用人ID
+      - 归还日
+      - 归还时状态码
+      subscribers:
+      - type: 仅分析
+      note: 离职交接（PRC-128）经读模型读取
+    - name: 员工活动申请已批准
+      published_by: AGG-116
+      by_command: 批准员工活动申请
+      payload:
+      - 员工活动申请ID
+      - 活动类型码
+      - 申请人ID
+      - 审批实例ID
+      - 批准时间
+      subscribers:
+      - type: 仅分析
+    consumed:
+    - name: 审批已通过
+      from: platform.approval
+      handled_by:
+      - 批准用印申请
+      - 批准 IT 需求
+      - 批准领用
+      - 批准员工活动申请
+      used_by:
+      - PRC-139 第 4 步入口
+      - PRC-142 第 3 步入口
+      - PRC-143 第 3 步入口
+      - PRC-144 第 3 步入口
+    - name: 审批已驳回
+      from: platform.approval
+      handled_by:
+      - 驳回用印申请
+      - 驳回 IT 需求
+      - 驳回领用
+      - 驳回员工活动申请
+      used_by:
+      - PRC-139 第 3 步
+      - PRC-142 第 7 步
+      - PRC-143 第 4 步
+      - PRC-144 第 4 步
+    - name: Separated
+      from: B-13
+      handled_by:
+      - 事件策略「离职生成归还待办」→ 归还资产
+      used_by:
+      - PRC-143C 触发器
+      note: B-31 → B-13 订阅边及 events/*.yaml 的订阅方清单需补登（分片接缝问题 3）

@@ -187,3 +187,10 @@
 - **待用户定影响的步骤**：已标 pending U1、U2、U3、U4、U5、U6、U7、U9、U10、U11（共 18 处，见 yaml）。
 - **遗留项（交 one-architecture）**：catalog 的 human_orchestration 须改 PRC-117、118 为 false、PRC-122 为 true；平台审批的超时升级与撤回设施；生成器的 `start_at` 与 `decision[].outcome`；权责对照表落地后核对 `cost_object_owner` 的解析。
 - **结论：可交。** 前提：上列 pending 项和遗留项随确认页一并交用户与 one-architecture。
+
+## 脚本无缺口修补（2026-10-16）
+
+- 场景：新增 `parts/vs13.scenarios.yaml`，16 个流程 / 事件策略 / 单聚合维护共 70 条场景；判断出口 42、超时 4、结局 38 均已被场景 covers 逐字覆盖（closeout_check --qc 三项缺口均为 0）。为覆盖出口补 PRC-116-S11、PRC-125-S06、PRC-127-S03、PRC-119-S03。
+- 审批人口径：4 个人工审批均为 platform.approval + cost_object_owner，无 aggregate / external 审批；各角色补 `org_needs`；用户任务 permission / page 缺口 0。
+- 用语：33 个未入词表的任务名与审批单据类型名已登记 notes「新用语」，无着落为 0。
+- 生成：PRC-116、PRC-125 的非中断超时升级触发 R14（两个令牌），改为中断升级；其余通过，0 警告。

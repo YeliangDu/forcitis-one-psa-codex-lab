@@ -28,11 +28,29 @@ processes:
     triggers:
       - {type: human, name: "员工申请用印"}
     outcomes: [已关闭, 已驳回, 已撤回]
-    scenarios: [PRC-139-S01, PRC-139-S02, PRC-139-S03, PRC-139-S04, PRC-139-S05, PRC-139-S06, PRC-139-S07, PRC-139-S08]
+    scenarios: [PRC-139-S01, PRC-139-S02, PRC-139-S03, PRC-139-S04, PRC-139-S05, PRC-139-S06, PRC-139-S07, PRC-139-S08, PRC-139-S09]
     roles:
-      - {id: SH-E3, as: initiator}      # 任一员工（报价、合同、证明等用印需求方）；无全员编号，见 notes 格式问题 1
-      - {id: SH-M1, as: approver}       # 申请人所在组织单元的负责人（cost_object_owner）
-      - {id: SH-E6, as: performer}      # 行政经办：保管印章并登记用印
+      - id: SH-E3
+        as: initiator      # 任一员工（报价、合同、证明等用印需求方）；无全员编号，见 notes 格式问题 1
+        org_needs:
+          responsibility: "提出用印申请，写明印章类别、用印法人、文件与份数，并对来源文件的真实性负责"
+          approval_right: "无（只提交，不批准、不登记）"
+          department_hint: "申请人所在组织单元（全部门）"
+          position_hint: "任一在职员工，不限职位"
+      - id: SH-M1
+        as: approver      # 申请人所在组织单元的负责人（cost_object_owner）
+        org_needs:
+          responsibility: "对本组织单元员工提出的用印申请，判断文件是否应当盖章、内部评审是否已完成"
+          approval_right: "批准本组织单元员工的用印申请（审批平台，加审按 AR-11、AR-12）"
+          department_hint: "申请人所在组织单元"
+          position_hint: "组织单元负责人（部门负责人）；岗位体系未定，按职能描述"
+      - id: SH-E6
+        as: performer      # 行政经办：保管印章并登记用印
+        org_needs:
+          responsibility: "保管印章，按批准内容实际盖章并登记用印时间、份数、经办人，归档扫描件"
+          approval_right: "登记用印（不批准申请）"
+          department_hint: "行政"
+          position_hint: "印章保管与行政事务经办人员；岗位体系未定，按职能描述"
     steps:
       - actor: SH-E3
         where: in_system
@@ -130,9 +148,27 @@ processes:
     outcomes: [已关闭, 已退回, 已撤回]
     scenarios: [PRC-142-S01, PRC-142-S02, PRC-142-S03, PRC-142-S04, PRC-142-S05, PRC-142-S06, PRC-142-S07, PRC-142-S08, PRC-142-S09]
     roles:
-      - {id: SH-E3, as: initiator}      # 任一员工，见 notes 格式问题 1
-      - {id: SH-M1, as: approver}       # 提出人所在组织单元的负责人（仅受控类别表标为需审批的类别）
-      - {id: SH-E6, as: performer}      # 信息（IT）：受理与解决
+      - id: SH-E3
+        as: initiator      # 任一员工，见 notes 格式问题 1
+        org_needs:
+          responsibility: "提出 IT 需求，描述问题与优先级，解决后确认关闭"
+          approval_right: "无（只提交与确认）"
+          department_hint: "需求提出人所在组织单元（全部门）"
+          position_hint: "任一在职员工，不限职位"
+      - id: SH-M1
+        as: approver      # 提出人所在组织单元的负责人（仅受控类别表标为需审批的类别）
+        org_needs:
+          responsibility: "对本组织单元员工提出的受控类别 IT 需求（如权限提升），判断业务必要性与范围"
+          approval_right: "批准受控类别 IT 需求（审批平台，加审按 AR-11、AR-12）；并作为受理超时的提醒对象（信息部门负责人）"
+          department_hint: "提出人所在组织单元；超时提醒对象为信息（IT）部门"
+          position_hint: "组织单元负责人（部门负责人），超时提醒对象为信息部门负责人；岗位体系未定，按职能描述"
+      - id: SH-E6
+        as: performer      # 信息（IT）：受理与解决
+        org_needs:
+          responsibility: "受理、处理并解决 IT 需求，登记处理过程与结论，不成立时退回提出人"
+          approval_right: "受理、解决、退回 IT 需求（不审批）"
+          department_hint: "信息（IT）"
+          position_hint: "IT 服务台与运维人员；岗位体系未定，按职能描述"
     steps:
       - actor: SH-E3
         where: in_system
@@ -250,9 +286,27 @@ processes:
     outcomes: [已领用, 已驳回, 已撤回]
     scenarios: [PRC-143-S01, PRC-143-S02, PRC-143-S03, PRC-143-S04, PRC-143-S05, PRC-143-S06, PRC-143-S07]
     roles:
-      - {id: SH-E3, as: initiator}      # 使用人（任一员工），见 notes 格式问题 1
-      - {id: SH-M1, as: approver}       # 申请人所在组织单元的负责人（仅超出岗位标准配置时）
-      - {id: SH-E6, as: performer}      # 信息（IT）资产管理员：交付、登记
+      - id: SH-E3
+        as: initiator      # 使用人（任一员工），见 notes 格式问题 1
+        org_needs:
+          responsibility: "申请领用 IT 资产，签收设备，并对名下资产负责"
+          approval_right: "无（只申请）"
+          department_hint: "使用人所在组织单元（全部门）"
+          position_hint: "任一在职员工，不限职位"
+      - id: SH-M1
+        as: approver      # 申请人所在组织单元的负责人（仅超出岗位标准配置时）
+        org_needs:
+          responsibility: "对本组织单元员工超出岗位标准配置的领用，判断业务需要是否成立"
+          approval_right: "批准超出岗位标准配置的领用（审批平台，加审按 AR-11、AR-12）"
+          department_hint: "申请人所在组织单元"
+          position_hint: "组织单元负责人（部门负责人）；岗位体系未定，按职能描述"
+      - id: SH-E6
+        as: performer      # 信息（IT）资产管理员：交付、登记
+        org_needs:
+          responsibility: "交付设备并登记领用，保证同一资产同一时刻只有一个使用人"
+          approval_right: "登记领用（不批准申请）"
+          department_hint: "信息（IT）"
+          position_hint: "IT 资产管理员；岗位体系未定，按职能描述"
     steps:
       - actor: SH-E3
         where: in_system
@@ -345,9 +399,27 @@ processes:
     outcomes: [已调拨, 已转领用, 已撤销]
     scenarios: [PRC-143B-S01, PRC-143B-S02, PRC-143B-S03, PRC-143B-S04, PRC-143B-S05]
     roles:
-      - {id: SH-E3, as: initiator}      # 调出使用人
-      - {id: SH-E6, as: performer}      # 信息（IT）资产管理员：核对并登记交接
-      - {id: SH-M1, as: informed}       # 调出、调入使用人所在组织单元的负责人：知悉
+      - id: SH-E3
+        as: initiator      # 调出使用人
+        org_needs:
+          responsibility: "发起调拨，选定调入使用人，配合交接"
+          approval_right: "无（只申请，调拨由规则守卫、不设审批）"
+          department_hint: "调出使用人所在组织单元"
+          position_hint: "任一在职员工，不限职位"
+      - id: SH-E6
+        as: performer      # 信息（IT）资产管理员：核对并登记交接
+        org_needs:
+          responsibility: "核对并登记交接，结束调出方使用期间并开启调入方使用期间"
+          approval_right: "登记调拨（不批准申请）"
+          department_hint: "信息（IT）"
+          position_hint: "IT 资产管理员；岗位体系未定，按职能描述"
+      - id: SH-M1
+        as: informed      # 调出、调入使用人所在组织单元的负责人：知悉
+        org_needs:
+          responsibility: "知悉跨组织单元的调拨，对本单元资产使用情况负责"
+          approval_right: "无（只知悉；是否改为调入方确认见 notes 待用户定 6）"
+          department_hint: "调出方、调入方所在组织单元"
+          position_hint: "组织单元负责人（部门负责人）；岗位体系未定，按职能描述"
     steps:
       - actor: SH-E3
         where: in_system
@@ -407,9 +479,27 @@ processes:
     outcomes: [已归还]
     scenarios: [PRC-143C-S01, PRC-143C-S02, PRC-143C-S03, PRC-143C-S04]
     roles:
-      - {id: SH-E6, as: performer}      # 信息（IT）资产管理员：验收并登记
-      - {id: SH-E3, as: informed}       # 使用人
-      - {id: SH-M1, as: informed}       # 离职员工原组织单元负责人：逾期未归还时收到提醒
+      - id: SH-E6
+        as: performer      # 信息（IT）资产管理员：验收并登记
+        org_needs:
+          responsibility: "验收归还的设备并登记归还日，处理离职触发的归还待办"
+          approval_right: "登记归还（验收人不得是名下资产自己的管理员）"
+          department_hint: "信息（IT）"
+          position_hint: "IT 资产管理员；岗位体系未定，按职能描述"
+      - id: SH-E3
+        as: informed      # 使用人
+        org_needs:
+          responsibility: "按要求归还设备，对归还前的资产负责"
+          approval_right: "无（只知悉）"
+          department_hint: "使用人所在组织单元（全部门）"
+          position_hint: "任一在职员工，不限职位"
+      - id: SH-M1
+        as: informed      # 离职员工原组织单元负责人：逾期未归还时收到提醒
+        org_needs:
+          responsibility: "离职员工原组织单元负责人，对逾期未归还的资产收到提醒并督促"
+          approval_right: "无（只接收提醒）"
+          department_hint: "离职员工原组织单元"
+          position_hint: "组织单元负责人（部门负责人）；岗位体系未定，按职能描述"
     steps:
       - actor: SH-E6
         where: offline
@@ -453,9 +543,27 @@ processes:
     outcomes: [已维修登记]
     scenarios: [PRC-143D-S01, PRC-143D-S02, PRC-143D-S03]
     roles:
-      - {id: SH-E3, as: initiator}      # 使用人
-      - {id: SH-E6, as: performer}      # 信息（IT）资产管理员：送修并登记维修结果
-      - {id: SH-E6, as: informed}       # 财务（B-24 资产卡片维护人），知悉维修无法修复的结果
+      - id: SH-E3
+        as: initiator      # 使用人
+        org_needs:
+          responsibility: "发现设备故障时报修，描述故障"
+          approval_right: "无（只报修）"
+          department_hint: "使用人所在组织单元（全部门）"
+          position_hint: "任一在职员工，不限职位"
+      - id: SH-E6
+        as: performer      # 信息（IT）资产管理员：送修并登记维修结果
+        org_needs:
+          responsibility: "送修或内部处理，并登记维修结果与证据"
+          approval_right: "登记维修结果（不审批）"
+          department_hint: "信息（IT）"
+          position_hint: "IT 资产管理员；岗位体系未定，按职能描述"
+      - id: SH-E6
+        as: informed      # 财务（B-24 资产卡片维护人），知悉维修无法修复的结果
+        org_needs:
+          responsibility: "作为 B-24 资产卡片维护人，知悉维修无法修复的结果并另行发起报废"
+          approval_right: "无（只知悉，报废由财务在 B-24 发起）"
+          department_hint: "财务"
+          position_hint: "固定资产核算与卡片维护人员；岗位体系未定，按职能描述"
     steps:
       - actor: SH-E3
         where: in_system
@@ -502,9 +610,27 @@ processes:
     outcomes: [已完成, 已驳回, 已撤回]
     scenarios: [PRC-144-S01, PRC-144-S02, PRC-144-S03, PRC-144-S04, PRC-144-S05, PRC-144-S06]
     roles:
-      - {id: SH-E3, as: initiator}      # 任一员工，见 notes 格式问题 1
-      - {id: SH-M1, as: approver}       # 申请人所在组织单元的负责人（仅受控活动类型表标为需审批的类型）
-      - {id: SH-E6, as: performer}      # 行政：组织实施、确认完成
+      - id: SH-E3
+        as: initiator      # 任一员工，见 notes 格式问题 1
+        org_needs:
+          responsibility: "提出员工活动申请，写明活动类型、参与人与费用预估"
+          approval_right: "无（只提交）"
+          department_hint: "申请人所在组织单元（全部门）"
+          position_hint: "任一在职员工，不限职位"
+      - id: SH-M1
+        as: approver      # 申请人所在组织单元的负责人（仅受控活动类型表标为需审批的类型）
+        org_needs:
+          responsibility: "对本组织单元提出的节日活动、创新项目发布，判断是否举办与规模"
+          approval_right: "批准节日活动、创新项目发布申请（审批平台，加审按 AR-01、AR-11、AR-12）"
+          department_hint: "申请人所在组织单元"
+          position_hint: "组织单元负责人（部门负责人）；岗位体系未定，按职能描述"
+      - id: SH-E6
+        as: performer      # 行政：组织实施、确认完成
+        org_needs:
+          responsibility: "组织实施活动并确认完成"
+          approval_right: "确认完成（不审批）"
+          department_hint: "行政"
+          position_hint: "行政事务经办人员；岗位体系未定，按职能描述"
     steps:
       - actor: SH-E3
         where: in_system

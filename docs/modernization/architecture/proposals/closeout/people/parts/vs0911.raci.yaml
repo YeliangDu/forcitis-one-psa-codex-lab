@@ -1,7 +1,7 @@
 # vs0911 权责对照条目（收敛产物，提议稿）。格式依 RESPONSIBILITY_MATRIX_SPEC 第 A 节。
-# A 唯一；approver 与骨架 approval.approver 一致：骨架写 cost_object_owner，在此展开为
+# A 唯一；approver 与骨架 approval.approver 一致：platform.approval 的骨架写 cost_object_owner，在此展开为
 #   经营计划：归属对象 = 经营计划版本的归属组织单元，A = {resolve: instance, field: 经营计划版本.归属组织单元.负责人}（公司级计划为管理层负责人）；
-#   知识条目：归属对象 = 知识条目所属专业类别对应的组织单元，A = {resolve: instance, field: 知识条目.归属组织单元.负责人}（技术委员会的专业负责人）。
+#   知识条目评审（engine aggregate，专业复核）：approver 写类型级角色 SH-E4，A = {resolve: type, role: SH-E4}（技术委员会的专业负责人）；知识条目其余命令的问责 A 仍按实例解析为归属组织单元负责人。
 # 边界：AR-01、02 金额阈值不适用；AR-11 责任人就是提交人本人 → 汇报线上级；AR-12 责任人缺位 → 上级组织负责人（二者 guard: approval，处理方式交用户定）。
 # 无审批的命令只有执行与问责（A），boundary 写规则守卫而非加审。
 
@@ -45,9 +45,9 @@ entries:
   - {object: AGG-107, command: 提交知识条目评审, raci: {A: {resolve: instance, field: 知识条目.归属组织单元.负责人}, R: [SH-E4], C: [], I: []}, boundary: {rule: 候选规则-必填校验}, sensitive: false}
   - object: AGG-107
     command: 评审知识条目
-    approver: cost_object_owner
+    approver: SH-E4
     raci:
-      A: {resolve: instance, field: 知识条目.归属组织单元.负责人}
+      A: {resolve: type, role: SH-E4}
       R: [SH-E4]
       C: []
       I: [SH-M1]

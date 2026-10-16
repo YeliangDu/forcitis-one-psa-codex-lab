@@ -25,10 +25,10 @@ processes:
     outcomes: [已基线化, 预算账户已开立, 已调整, 已撤回]
     scenarios: [PRC-88-S01, PRC-88-S02, PRC-88-S03, PRC-88-S04, PRC-88-S05, PRC-88-S06, PRC-88-S07, PRC-88-S08]
     roles:
-      - {id: SH-M1, as: initiator}
-      - {id: SH-M1, as: approver}        # 审批人是计划归属组织单元的责任人（部门负责人；公司级为管理层负责人），与编制人分离见 segregation
-      - {id: SH-E6, as: performer}       # 财务
-      - {id: SH-O1, as: informed}        # VS-09 价值接收方；不参与动作
+      - {id: SH-M1, as: initiator, org_needs: {responsibility: 编制所辖组织单元的经营计划版本并提交审批, approval_right: 无（编制与提交）, department_hint: 计划归属组织单元（部门、事业部；公司级为管理层）, position_hint: 组织单元负责人或其指定的计划编制人}}
+      - {id: SH-M1, as: approver, org_needs: {responsibility: 对本组织单元经营计划的可达性与资源取舍负责, approval_right: 经营计划审批（实例级，计划归属组织单元的责任人）, department_hint: 计划归属组织单元（公司级为管理层）, position_hint: 组织单元负责人（部门负责人）；公司级为管理层负责人}}        # 审批人是计划归属组织单元的责任人，与编制人分离见 segregation
+      - {id: SH-E6, as: performer, org_needs: {responsibility: 为预算类基线开立预算账户，在基线额度总额内调剂账户额度, approval_right: 无（账户级调剂由规则守卫，不设审批）, department_hint: 财务部门, position_hint: 预算管理与预算会计职能岗}}       # 财务
+      - {id: SH-O1, as: informed, org_needs: {responsibility: 获知经营计划基线, approval_right: 无, department_hint: 不适用（股东和合伙人）, position_hint: 不适用}}        # VS-09 价值接收方；不参与动作
     steps:
       - actor: SH-M1
         where: in_system
@@ -157,10 +157,10 @@ processes:
     outcomes: [预测版本已编制, 现金流预测已编制]
     scenarios: [PRC-89-S01, PRC-89-S02, PRC-89-S03]
     roles:
-      - {id: SH-E5, as: initiator}       # 市场和客户经理
-      - {id: SH-E6, as: performer}       # 财务
-      - {id: SH-E2, as: performer}       # VS-09.2 参与者含项目经理；本骨架无其动作，待用户确认（NOTES 待用户定 4）
-      - {id: SH-M1, as: informed}
+      - {id: SH-E5, as: initiator, org_needs: {responsibility: 按周编制本人的销售预测版本, approval_right: 无（预测不审批）, department_hint: 市场与客户部门, position_hint: 市场和客户经理职能岗}}       # 市场和客户经理
+      - {id: SH-E6, as: performer, org_needs: {responsibility: 在预测周期末编制现金流预测, approval_right: 无, department_hint: 财务部门, position_hint: 现金流与资金预测职能岗}}       # 财务
+      - {id: SH-E2, as: performer, org_needs: {responsibility: VS-09.2 参与者；本骨架无其动作，待用户确认, approval_right: 无, department_hint: 项目管理相关部门, position_hint: 项目经理职能岗}}       # VS-09.2 参与者含项目经理；本骨架无其动作，待用户确认（NOTES 待用户定 4）
+      - {id: SH-M1, as: informed, org_needs: {responsibility: 获知预测与逾期未报升级, approval_right: 无, department_hint: 管理层, position_hint: 管理层负责人}}
     steps:
       - actor: SH-E5
         where: in_system
@@ -172,7 +172,7 @@ processes:
         page: 销售预测填报页
         cross_bc:
           - {mode: api, direction: out, bc: B-13, name: 读取人员与组织单元}   # B-18 → B-13 api 边已有；AGG-79 引用列缺人员，见 NOTES 接缝问题 1
-        timeout: {after: "P7D", escalate_to: SH-M1, interrupting: false}      # 逾期未报的升级对象与期限：待用户定（NOTES 待用户定 4）
+        timeout: {after: "P7D", escalate_to: SH-M1, interrupting: true}      # 逾期未报的升级对象与期限：待用户定（NOTES 待用户定 4）
         pending: vs0911-待定4
         decision:
           - {when: 本期为现金流预测期, goto: 2}
@@ -209,11 +209,11 @@ processes:
     outcomes: [已发布, 已废止]
     scenarios: [PRC-107-S01, PRC-107-S02, PRC-107-S03, PRC-107-S04, PRC-107-S05, PRC-107-S06]
     roles:
-      - {id: SH-E4, as: initiator}       # 技术专家（技术委员会）
-      - {id: SH-E4, as: approver}        # 评审人：知识条目归属专业组织单元的责任人（技术委员会的专业负责人），与起草人分离见 segregation
-      - {id: SH-E2, as: initiator}       # 项目经理：复盘编制人，从复盘提炼
-      - {id: SH-E3, as: performer}       # 设计师和顾问，VS-11.1 参与起草
-      - {id: SH-M1, as: informed}        # VS-11.2 参与者含管理层；评审不由管理层做（按新原则谁负责谁批）
+      - {id: SH-E4, as: initiator, org_needs: {responsibility: 起草、提交、发布、修订与废止知识条目, approval_right: 无（起草与发布；评审由他人）, department_hint: 技术委员会及各专业组织单元, position_hint: 技术专家（专业组成员）}}       # 技术专家（技术委员会）
+      - {id: SH-E4, as: approver, org_needs: {responsibility: 对知识条目的技术正确性、适用范围与有效期负专业责任, approval_right: 知识条目评审（类型级专业角色，聚合内单级评审）, department_hint: 知识条目所属专业类别对应的组织单元（技术委员会）, position_hint: 专业负责人（技术委员会的专业负责人）}}        # 评审人：类型级专业角色（resolve: type），与起草人分离见 segregation
+      - {id: SH-E2, as: initiator, org_needs: {responsibility: 在项目复盘后决定提炼并从提炼入口创建知识条目, approval_right: 无, department_hint: 项目管理相关部门, position_hint: 项目经理职能岗（复盘编制人）}}       # 项目经理：复盘编制人，从复盘提炼
+      - {id: SH-E3, as: performer, org_needs: {responsibility: 参与起草（VS-11.1）, approval_right: 无, department_hint: 设计与咨询相关部门, position_hint: 设计师和顾问}}       # 设计师和顾问，VS-11.1 参与起草
+      - {id: SH-M1, as: informed, org_needs: {responsibility: 获知知识条目发布情况, approval_right: 无（评审不由管理层做）, department_hint: 管理层, position_hint: 管理层负责人}}        # VS-11.2 参与者含管理层；评审不由管理层做
     steps:
       - actor: SH-E4
         where: in_system
@@ -251,9 +251,9 @@ processes:
         desc: 审批人与审批记录在聚合内（审批人经 api 读人员）；B-30 无到 platform.approval 的边，评审是聚合内单级命令（见 NOTES 结构问题 1）
         approval:
           engine: aggregate
-          doc_type: 知识条目评审（B-30 聚合内单级评审命令，不经 platform.approval）
-          approver: cost_object_owner     # 归属对象是知识条目所属专业类别对应的组织单元，其责任人即专业负责人（技术委员会）
-          escalation_rules: [AR-11, AR-12]  # 责任人就是起草人本人 / 责任人缺位：聚合内由系统改指其上级为审批人；金额类规则不适用
+          doc_type: 知识条目评审           # B-30 聚合内单级评审命令，不经 platform.approval
+          approver: SH-E4                 # 类型级专业角色（resolve: type）：知识条目所属专业类别对应的技术委员会专业负责人
+          escalation_rules: [AR-11, AR-12]  # 评审人就是起草人本人 / 专业角色缺位：聚合内由系统改指其上级为审批人；金额类规则不适用
           why_human: 知识内容的技术正确性、适用范围与有效期是否恰当属专业判断，规则只能校验必填项、评审人不是起草人、已发布不可改（INV-115），不能替代
           on_reject: 5
         permission: 知识条目.评审

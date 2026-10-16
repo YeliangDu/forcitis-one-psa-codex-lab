@@ -63,3 +63,7 @@
 ## 结论
 
 **可交**，附遗留项：（1）权责对照表缺失；（2）B-30 无到 platform.approval 的边的问题保留（NOTES 结构问题 1、8）；（3）评审撤回与逾期无命令、期限待用户定（NOTES 待用户定 8）；（4）案例类客户信息（待用户定 6）与历史迁入（待用户定 5）；（5）〔缺〕退回知识条目待聚合稿回补。
+
+## 脚本无缺口修补（2026-10-16）
+
+PRC-107 步 4 评审（engine aggregate，专业复核）的 approver 由 `cost_object_owner` 改为类型级角色 SH-E4（`resolve: type`，登记见 NOTES「权责对照条目」；`vs0911.raci.yaml`、`vs0911.commands.yaml` 已同步，加审仍引 AR-11、AR-12）。doc_type 精简为「知识条目评审」。场景写入 `parts/vs0911.scenarios.yaml`（PRC-107 六条），roles 补 `org_needs`；`closeout_check --qc` 的 people 行：出口、结局无场景均为 0，用语无着落 0；bpmn_gen 通过、0 警告。

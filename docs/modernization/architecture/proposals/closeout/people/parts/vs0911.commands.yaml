@@ -241,7 +241,7 @@ commands:
     preconditions:
       - {ref: 候选规则-评审人不是起草人, desc: 评审人不得是起草人本人；责任人就是起草人时由系统改指其上级（AR-11），责任人缺位改指上级组织负责人（AR-12）}
       - {ref: INV-115, desc: 已发布版本不得修改}
-    raci_A: {resolve: instance, field: 知识条目.归属组织单元.负责人}
+    raci_A: {resolve: type, role: SH-E4}
     raci_R: [SH-E4]
     idempotency_key: 版本ID + 评审轮次
     emits: []
