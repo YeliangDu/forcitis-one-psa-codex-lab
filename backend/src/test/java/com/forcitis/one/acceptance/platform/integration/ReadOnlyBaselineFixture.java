@@ -51,6 +51,8 @@ final class ReadOnlyBaselineFixture {
     static final String VIEW_SCHEMA = "forcitis_one";
 
     /** Review H-A: a role of our own, made and dropped by the nesting counterexample; createRdsPlatform drops it again if a killed JVM left it. */
+    static final String SCHEMA_OWNED_PROCEDURE = "forcitis_schema_owned_proc";
+
     static final String NESTED_ROLE = "forcitis_nested_role";
 
     /** Review H-A: the only roles the msdb token may hold beside the own user (or guest): public and the three SQL Agent roles. */
@@ -85,6 +87,7 @@ final class ReadOnlyBaselineFixture {
                 // review H-A: the nesting counterexamples undo themselves too
                 "IF IS_ROLEMEMBER('db_ssisadmin', 'SQLAgentUserRole') = 1 ALTER ROLE db_ssisadmin DROP MEMBER SQLAgentUserRole",
                 "IF IS_ROLEMEMBER('" + NESTED_ROLE + "', 'SQLAgentUserRole') = 1 ALTER ROLE " + NESTED_ROLE + " DROP MEMBER SQLAgentUserRole",
+                "DROP PROCEDURE IF EXISTS SQLAgentUserRole." + SCHEMA_OWNED_PROCEDURE,
                 "DROP ROLE IF EXISTS " + NESTED_ROLE, "IF IS_ROLEMEMBER('DatabaseMailUserRole', 'guest') = 1 ALTER ROLE DatabaseMailUserRole DROP MEMBER guest");
     }
 
@@ -195,7 +198,8 @@ final class ReadOnlyBaselineFixture {
             + MSDB_TOKEN_ROLES_ALLOWED.stream().map(r -> "N'" + r + "'").collect(java.util.stream.Collectors.joining(", ")) + "))";
 
     /**
-     * Review M-A: a principal of the token owns a role, a schema or an object in msdb. "OWNS ROLE" / "OWNS SCHEMA" / "OWNS OBJECT" (kind only, fixture only).
+     * Review M-A: a principal of the token owns a role, a schema or an object in msdb. "OWNS ROLE" / "OWNS SCHEMA" / "OWNS OBJECT" and, review M-1, "OWNS CERTIFICATE" / "OWNS KEY" / "OWNS ASSEMBLY" / "OWNS TYPE" /
+     * "OWNS XML_SCHEMA_COLLECTION" / "OWNS SCHEMA_OBJECT" (kind only, fixture only). The fixture counts only the own user (or guest) and the allowed roles; production counts the whole token, so it is the stricter.
      * The platform default stays out: guest owns the schema guest and each SQL Agent role the schema of its own name (checked by {@link #assertPlatformSchemasAreOwnedByTheirNamesakes});
      * dbo and the rest are owned by dbo, which no token holds. A schema named like its owner is not exempt in general, only those four.
      */
@@ -203,7 +207,17 @@ final class ReadOnlyBaselineFixture {
             + "UNION ALL SELECT 'OWNS SCHEMA' WHERE EXISTS (SELECT 1 FROM sys.schemas s JOIN sys.database_principals o ON o.principal_id = s.principal_id "
             + "WHERE s.principal_id IN " + OWNING_TOKEN_MEMBERS + " AND NOT (s.name COLLATE DATABASE_DEFAULT = o.name COLLATE DATABASE_DEFAULT AND o.name COLLATE DATABASE_DEFAULT IN ("
             + PLATFORM_SELF_SCHEMA_OWNERS.stream().map(r -> "N'" + r + "'").collect(java.util.stream.Collectors.joining(", ")) + "))) "
-            + "UNION ALL SELECT 'OWNS OBJECT' WHERE EXISTS (SELECT 1 FROM sys.objects WHERE principal_id IN " + OWNING_TOKEN_MEMBERS + ")";
+            + "UNION ALL SELECT 'OWNS OBJECT' WHERE EXISTS (SELECT 1 FROM sys.objects WHERE principal_id IN " + OWNING_TOKEN_MEMBERS + ") "
+            // review M-1: the other securables an owner holds CONTROL on
+            + "UNION ALL SELECT 'OWNS CERTIFICATE' WHERE EXISTS (SELECT 1 FROM sys.certificates WHERE principal_id IN " + OWNING_TOKEN_MEMBERS + ") "
+            + "UNION ALL SELECT 'OWNS KEY' WHERE EXISTS (SELECT 1 FROM sys.asymmetric_keys WHERE principal_id IN " + OWNING_TOKEN_MEMBERS + ") "
+            + "OR EXISTS (SELECT 1 FROM sys.symmetric_keys WHERE principal_id IN " + OWNING_TOKEN_MEMBERS + ") "
+            + "UNION ALL SELECT 'OWNS ASSEMBLY' WHERE EXISTS (SELECT 1 FROM sys.assemblies WHERE principal_id IN " + OWNING_TOKEN_MEMBERS + ") "
+            + "UNION ALL SELECT 'OWNS TYPE' WHERE EXISTS (SELECT 1 FROM sys.types WHERE is_user_defined = 1 AND principal_id IN " + OWNING_TOKEN_MEMBERS + ") "
+            + "UNION ALL SELECT 'OWNS XML_SCHEMA_COLLECTION' WHERE EXISTS (SELECT 1 FROM sys.xml_schema_collections WHERE principal_id IN " + OWNING_TOKEN_MEMBERS + ") "
+            // an object in one of the four allowed schemas has principal_id NULL and belongs to the schema's owner, who is in the token
+            + "UNION ALL SELECT 'OWNS SCHEMA_OBJECT' WHERE EXISTS (SELECT 1 FROM sys.objects o JOIN sys.schemas s ON s.schema_id = o.schema_id WHERE o.principal_id IS NULL "
+            + "AND s.name COLLATE DATABASE_DEFAULT IN (" + PLATFORM_SELF_SCHEMA_OWNERS.stream().map(r -> "N'" + r + "'").collect(java.util.stream.Collectors.joining(", ")) + "))";
 
     /** Review M-A, asked as sa in msdb: the default ownerships the check must let through really exist (guest and the SQL Agent roles each own the schema of their name). */
     static void assertPlatformSchemasAreOwnedByTheirNamesakes(Statement sa) throws SQLException {
@@ -368,7 +382,22 @@ final class ReadOnlyBaselineFixture {
                     Set.of("OWNS ROLE")),
             new MsdbCounterexample("(19) the account owns a schema of msdb (review M-A case M2)", false,
                     u -> List.of("CREATE SCHEMA " + owned(u, "schema") + " AUTHORIZATION " + u), u -> List.of("DROP SCHEMA " + owned(u, "schema")), Set.of(), Set.of(),
-                    Set.of("OWNS SCHEMA")));
+                    Set.of("OWNS SCHEMA")),
+            // Review M-1: the securables the first count missed; the certificate and the type belong to the account, the procedure to the schema of SQLAgentUserRole.
+            new MsdbCounterexample("(20) the account owns a certificate of msdb (review M-1)", false,
+                    u -> List.of("CREATE CERTIFICATE " + owned(u, "cert") + " AUTHORIZATION " + u + " ENCRYPTION BY PASSWORD = '" + throwawayPassword() + "' WITH SUBJECT = 'forcitis fixture'"),
+                    u -> List.of("DROP CERTIFICATE " + owned(u, "cert")), Set.of(), Set.of(), Set.of("OWNS CERTIFICATE")),
+            new MsdbCounterexample("(21) the account owns a user-defined type of msdb (review M-1)", false,
+                    u -> List.of("CREATE TYPE dbo." + owned(u, "type") + " FROM int", "ALTER AUTHORIZATION ON TYPE::dbo." + owned(u, "type") + " TO " + u),
+                    u -> List.of("DROP TYPE dbo." + owned(u, "type")), Set.of(), Set.of(), Set.of("OWNS TYPE")),
+            new MsdbCounterexample("(22) an object in the allowed schema SQLAgentUserRole, owned through the schema (review M-1)", true,
+                    u -> List.of("CREATE PROCEDURE SQLAgentUserRole." + SCHEMA_OWNED_PROCEDURE + " AS SELECT 1"),
+                    u -> List.of("DROP PROCEDURE IF EXISTS SQLAgentUserRole." + SCHEMA_OWNED_PROCEDURE), Set.of(), Set.of(), Set.of("OWNS SCHEMA_OBJECT")));
+
+    /** A password for a certificate that is dropped at once, made at run time so no secret literal sits in the source. */
+    private static String throwawayPassword() {
+        return "Fx!" + java.util.UUID.randomUUID().toString().replace("-", "");
+    }
 
     /** "[login_kind]" from "[login]": a name of our own beside the login, unique per account. */
     private static String owned(String quotedUser, String kind) {
