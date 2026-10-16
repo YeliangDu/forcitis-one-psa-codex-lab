@@ -27,7 +27,7 @@
 | AGG-95 | `tax_social_filing_lines`（次级） | 新建 | 事实 | 期间快照，提交后不改 | 同上 | SENSITIVE / spi：含证件号码 |
 | AGG-95 | `tax_social_filing_receipts`（次级） | 新建 | 事实 | 只追加：外部回执事实 | 同上 | INTERNAL / 无 |
 | AGG-95 | `tax_social_payments`（次级） | 新建 | 事实 | 只追加，冲销另记 | 同上 | INTERNAL / 无 |
-| AGG-待定-薪酬规则版本 | `payroll_rule_versions`（根，每版本一聚合，同 AGG-108 写法） | 新建（提议） | 配置 | D15 配置型 + 类别 × 范围 × 生效区间不重叠 | 不迁：首版按现行法规与公司制度初始化录入；历史版本回补待用户定 | INTERNAL / 无 |
+| AGG-119 | `payroll_rule_versions`（根，每版本一聚合，同 AGG-108 写法） | 新建（提议） | 配置 | D15 配置型 + 类别 × 范围 × 生效区间不重叠 | 不迁：首版按现行法规与公司制度初始化录入；历史版本回补待用户定 | INTERNAL / 无 |
 | 同上 | `income_tax_brackets`（次级） | 新建 | 配置 | 随版本 | 同上 | INTERNAL / 无 |
 | 同上 | `tax_deduction_standards`（次级） | 新建 | 配置 | 随版本 | 同上 | INTERNAL / 无 |
 | 同上 | `contribution_rate_rules`（次级） | 新建 | 配置 | 随版本 | 同上 | INTERNAL / 无 |

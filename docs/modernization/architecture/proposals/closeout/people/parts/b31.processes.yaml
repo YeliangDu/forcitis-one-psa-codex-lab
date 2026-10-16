@@ -5,7 +5,7 @@
 #   IT 资产是固定资产，卡片、折旧、报废账务在 B-24 AGG-91，B-31 只记使用记录（intent 2026-10-16-152926）。
 # 用户新原则（修订，2026-10-16）：能由规则和不变量守卫的不设人工审批；保留的人审 approver 一律 cost_object_owner（申请人所在组织单元的负责人），
 #   加审只引用 APPROVAL_RULES.yaml 中 guard: approval 的规则（本组可命中 AR-01、AR-11、AR-12），每个人审写 why_human。
-# 多入口：PRC-143 原有 5 个触发、4 条入口，生成器只把开始事件接到第 1 步，故拆为 4 个流程；新增三个流程暂用 PRC-143B、143C、143D，待 one-architecture 要号（notes 结构问题 2）。
+# 多入口：PRC-143 原有 5 个触发、4 条入口，生成器只把开始事件接到第 1 步，故拆为 4 个流程；新增三个流程暂用 PRC-155、143C、143D，待 one-architecture 要号（notes 结构问题 2）。
 
 processes:
 
@@ -276,7 +276,7 @@ processes:
     status: draft
     human_orchestration: true
     bpmn: ~
-    migration: "全部历史迁入（U-1–U-4）：A8 的 IT 资产领用（累计 1）、调拨（139）、报修（128）三类表单迁入使用记录与维修工单（调拨、报修见 PRC-143B、143D），须能对应到 B-24 资产卡片（对应方法待取证，见 notes 待用户定 4）；信息变更（137）、内购（3）、报废回收（1）、采购申请不属 B-31，归 B-24 / 采购，由财务组处理；在途调拨 0、报修 2、内购 1 按 ADR-0036 第 5 条 / U-4；A8 早于投产日停用（C-7）"
+    migration: "全部历史迁入（U-1–U-4）：A8 的 IT 资产领用（累计 1）、调拨（139）、报修（128）三类表单迁入使用记录与维修工单（调拨、报修见 PRC-155、143D），须能对应到 B-24 资产卡片（对应方法待取证，见 notes 待用户定 4）；信息变更（137）、内购（3）、报废回收（1）、采购申请不属 B-31，归 B-24 / 采购，由财务组处理；在途调拨 0、报修 2、内购 1 按 ADR-0036 第 5 条 / U-4；A8 早于投产日停用（C-7）"
     scope: "使用人看自己名下资产；信息部门（资产管理员）看全部"
     segregation:
       - {roles: [SH-E3, SH-E6], rule: "使用人不得登记自己的领用（领用登记由资产管理员完成）"}
@@ -375,13 +375,13 @@ processes:
         outcome: 已驳回
     notes: >
       本流程只画 B-31 领用部分（用户 intent 2026-10-16-152926：IT 资产是固定资产）。
-      原 PRC-143 的调拨、归还、报修拆为 PRC-143B、143C、143D（多入口，生成器只支持第 1 步入口）；
+      原 PRC-143 的调拨、归还、报修拆为 PRC-155、143C、143D（多入口，生成器只支持第 1 步入口）；
       报废、盘点、采购申请归 B-24 / 采购（财务组），不在本文件。
       盘点只读 B-31 使用记录核对，建议由财务组在 B-24 流程里写读取（B-24 不依赖 B-31，见接缝问题 2）。
 
   # ───────────── IT 资产使用：调拨 ─────────────
 
-  - id: PRC-143B
+  - id: PRC-155
     name: IT 资产调拨
     type: business
     stages: []
@@ -397,7 +397,7 @@ processes:
     triggers:
       - {type: human, name: "申请调拨"}
     outcomes: [已调拨, 已转领用, 已撤销]
-    scenarios: [PRC-143B-S01, PRC-143B-S02, PRC-143B-S03, PRC-143B-S04, PRC-143B-S05]
+    scenarios: [PRC-155-S01, PRC-155-S02, PRC-155-S03, PRC-155-S04, PRC-155-S05]
     roles:
       - id: SH-E3
         as: initiator      # 调出使用人
@@ -460,7 +460,7 @@ processes:
 
   # ───────────── IT 资产使用：归还 ─────────────
 
-  - id: PRC-143C
+  - id: PRC-156
     name: IT 资产归还
     type: business
     stages: []
@@ -477,7 +477,7 @@ processes:
       - {type: human, name: "资产管理员登记归还"}
       - {type: event, name: "员工已离职", event: Separated, bc: B-13}
     outcomes: [已归还]
-    scenarios: [PRC-143C-S01, PRC-143C-S02, PRC-143C-S03, PRC-143C-S04]
+    scenarios: [PRC-156-S01, PRC-156-S02, PRC-156-S03, PRC-156-S04]
     roles:
       - id: SH-E6
         as: performer      # 信息（IT）资产管理员：验收并登记
@@ -527,7 +527,7 @@ processes:
 
   # ───────────── IT 资产使用：报修 ─────────────
 
-  - id: PRC-143D
+  - id: PRC-157
     name: IT 资产报修与维修登记
     type: business
     stages: []
@@ -541,7 +541,7 @@ processes:
     triggers:
       - {type: human, name: "报修"}
     outcomes: [已维修登记]
-    scenarios: [PRC-143D-S01, PRC-143D-S02, PRC-143D-S03]
+    scenarios: [PRC-157-S01, PRC-157-S02, PRC-157-S03]
     roles:
       - id: SH-E3
         as: initiator      # 使用人

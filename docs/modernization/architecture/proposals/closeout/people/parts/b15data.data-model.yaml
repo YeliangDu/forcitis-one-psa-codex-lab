@@ -26,7 +26,7 @@
       key: uuid_v7
       references:
         - {to: AGG-73, by: payroll_settlement_id}
-        - {to: AGG-待定-薪酬规则版本, by: payroll_rule_version_id}
+        - {to: AGG-119, by: payroll_rule_version_id}
       versioned: snapshot
       history_migration: full
       sensitivity: INTERNAL
@@ -201,7 +201,7 @@
       key: uuid_v7
       references:
         - {to: AGG-93, by: payroll_special_deduction_declaration_id}
-        - {to: AGG-待定-薪酬规则版本, by: deduction_standard_version_id}
+        - {to: AGG-119, by: deduction_standard_version_id}
       versioned: none
       history_migration: full
       sensitivity: SENSITIVE
@@ -264,8 +264,8 @@
       column_families: [缴款日, 缴款金额, 缴款渠道, 银行回单引用, 过账引用]
       reason: "缴款登记，只追加，冲销另记；个税与社保公积金过账只存 AGG-77 的 ID（B-15 → B-16）"
 
-# ───────────────────────── AGG-待定-薪酬规则版本（提议新聚合，配置型 D15） ─────────────────────────
-- aggregate: AGG-待定-薪酬规则版本
+# ───────────────────────── AGG-119（提议新聚合，配置型 D15） ─────────────────────────
+- aggregate: AGG-119
   bc: B-15
   tables:
     - name: payroll_rule_versions
@@ -283,7 +283,7 @@
       role: child
       key: uuid_v7
       references:
-        - {to: AGG-待定-薪酬规则版本, by: payroll_rule_version_id}
+        - {to: AGG-119, by: payroll_rule_version_id}
       versioned: none
       history_migration: none
       sensitivity: INTERNAL
@@ -294,7 +294,7 @@
       role: child
       key: uuid_v7
       references:
-        - {to: AGG-待定-薪酬规则版本, by: payroll_rule_version_id}
+        - {to: AGG-119, by: payroll_rule_version_id}
       versioned: none
       history_migration: none
       sensitivity: INTERNAL
@@ -305,7 +305,7 @@
       role: child
       key: uuid_v7
       references:
-        - {to: AGG-待定-薪酬规则版本, by: payroll_rule_version_id}
+        - {to: AGG-119, by: payroll_rule_version_id}
       versioned: none
       history_migration: none
       sensitivity: INTERNAL
@@ -316,7 +316,7 @@
       role: child
       key: uuid_v7
       references:
-        - {to: AGG-待定-薪酬规则版本, by: payroll_rule_version_id}
+        - {to: AGG-119, by: payroll_rule_version_id}
       versioned: none
       history_migration: none
       sensitivity: INTERNAL

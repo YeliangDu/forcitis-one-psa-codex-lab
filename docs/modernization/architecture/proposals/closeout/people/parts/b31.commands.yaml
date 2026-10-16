@@ -355,7 +355,7 @@ commands:
     R: [SH-E3]
   idempotency_key: 申请ID（客户端预生成 UUIDv7）
   emits: （内部）
-  used_by: [PRC-143B 第 1 步]
+  used_by: [PRC-155 第 1 步]
   orphan: false
 - name: 撤销调拨申请
   aggregate: AGG-115
@@ -373,7 +373,7 @@ commands:
     R: [SH-E3, SH-E6]
   idempotency_key: 申请ID
   emits: （内部）
-  used_by: [PRC-143B 第 1 步（撤回边 withdraw）]
+  used_by: [PRC-155 第 1 步（撤回边 withdraw）]
   orphan: false
 - name: 调拨资产
   aggregate: AGG-115
@@ -391,7 +391,7 @@ commands:
     R: [SH-E6]
   idempotency_key: 申请ID（同一申请只换一次使用人）
   emits: 资产已调拨
-  used_by: [PRC-143B 第 2 步]
+  used_by: [PRC-155 第 2 步]
   orphan: false
 - name: 归还资产
   aggregate: AGG-115
@@ -408,7 +408,7 @@ commands:
     R: [SH-E6]
   idempotency_key: 使用期间ID（已结束无操作）
   emits: 资产已归还
-  used_by: [PRC-143C 第 1 步]
+  used_by: [PRC-156 第 1 步]
   orphan: false
 - name: 报修资产
   aggregate: AGG-115
@@ -424,7 +424,7 @@ commands:
     R: [SH-E3]
   idempotency_key: 维修工单ID（客户端预生成 UUIDv7）
   emits: （内部）
-  used_by: [PRC-143D 第 1 步]
+  used_by: [PRC-157 第 1 步]
   orphan: false
 - name: 登记维修结果
   aggregate: AGG-115
@@ -440,7 +440,7 @@ commands:
     R: [SH-E6]
   idempotency_key: 维修工单ID（已登记无操作）
   emits: （内部）
-  used_by: [PRC-143D 第 2 步]
+  used_by: [PRC-157 第 2 步]
   orphan: false
 - name: 提交员工活动申请
   aggregate: AGG-116
@@ -529,9 +529,9 @@ commands:
 event_policies:
 - name: 离职生成归还待办
   trigger_event: Separated（B-13 发布）
-  effect: 为该员工名下每件有未结束使用期间的资产生成一个 PRC-143C 实例（归还待办）；非聚合命令，待办出现即第 1 步开始
+  effect: 为该员工名下每件有未结束使用期间的资产生成一个 PRC-156 实例（归还待办）；非聚合命令，待办出现即第 1 步开始
   uses_command: 归还资产
-  used_by: [PRC-143C 触发器]
+  used_by: [PRC-156 触发器]
   rules: [R-B31-9]
   note: 订阅 B-13 Separated 的边需 one-architecture 补登（分片接缝问题 3）
 - name: 审批通过回调
@@ -570,7 +570,7 @@ event_policies:
   rules: [R-B31-2]
   note: ''
 removed:
-- {name: 批准调拨, from: 分片 b31.notes.md 新用语（已取消）, reason: 用户新原则：调拨不设人工审批，由规则守卫（PRC-143B）, action: 删除；已登记交 one-glossary 的请撤回}
+- {name: 批准调拨, from: 分片 b31.notes.md 新用语（已取消）, reason: 用户新原则：调拨不设人工审批，由规则守卫（PRC-155）, action: 删除；已登记交 one-glossary 的请撤回}
 - {name: 驳回调拨, from: 同上, reason: 同上, action: 删除；已登记交 one-glossary 的请撤回}
-- {name: 生成归还待办, from: 分片早稿（已取消）, reason: 事件 Separated 直接启动 PRC-143C 实例，不是聚合命令, action: 改为事件策略（见 event_policies）}
+- {name: 生成归还待办, from: 分片早稿（已取消）, reason: 事件 Separated 直接启动 PRC-156 实例，不是聚合命令, action: 改为事件策略（见 event_policies）}
 orphans: []
