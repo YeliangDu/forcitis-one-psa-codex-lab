@@ -108,11 +108,6 @@ class LoginAdmission {
     }
 
     private String describe(LoginMethod method, String reason) {
-        String agent = origin.userAgent() == null ? "" : origin.userAgent().replaceAll("[\\p{Cntrl}]", " ");
-        if (agent.length() > 200) {
-            agent = agent.substring(0, 200);
-        }
-        return "method=" + method + " address=" + origin.address() + (reason == null ? "" : " reason=" + reason)
-                + " agent=" + agent;
+        return "method=" + method + (reason == null ? "" : " reason=" + reason);
     }
 }

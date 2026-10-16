@@ -315,7 +315,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 
   ```
   java -jar forcitis-one.jar --spring.profiles.active=identity-operations --operation=<命令> --employee-id=<员工 ID> \
-       [--login-name=<应急账号名>] [--role-code=<角色码>] --operator=<操作人> --witness=<见证人>
+       [--login-name=<应急账号名>] [--role-code=<角色码>] --operator=<操作人员工 ID> --witness=<见证人员工 ID>
   ```
 
   - 人员以 `--employee-id`（员工 ID，小写规范 uuid 文本）指定：命令按员工取得其账号，员工在职而尚无账号时当场开通（ADR-0033 第 3 项第 6 条）；格式不对（整数、负数、大写 uuid 等）为用法错误、退出码 2，员工不存在时退出码 1，都不写任何数据。原 `--user-id` 已删除。
@@ -326,7 +326,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
     ```
     每个匹配输出一行 `employee-id=<uuid> user-id=<uuid 或 (no account)>`；退出码 0 找到、1 无人匹配、2 用法错误。不按员工编号查（员工编号不作键，ADR-0033 第 6 项）。端口与 F-12 的注意事项同上。
   - 命令：`register-emergency-admin`（需 `--login-name`）、`reset-emergency-admin-credentials`、`disable-emergency-admin`、`enable-emergency-admin`、`grant-role`（需 `--role-code`，用于首批超级管理员、业务管理员、组织数据管理员）。
-  - **双人在场**：`--operator` 与 `--witness` 必填且必须是两个不同的人（比较前去掉首尾空白、折叠空格、不分大小写、全角按半角），两人都记入审计；缺一或相同则命令拒绝，什么也不做。
+  - **双人在场**：`--operator` 与 `--witness` 必填，各为员工 ID（小写规范 uuid 文本），且必须是两个不同的员工；运维证明的员工 ID 暂不校验是否存在（后续小卡 DR-TB01-FU1），执行前须人工核对；两人的员工 ID 记入审计 `detail`（`operatorId=`、`witnessId=`，姓名不入审计，读时再解析；ADR-0043 U-7b）；缺一、不是员工 ID 或相同则命令拒绝（退出码 1，错误码 `PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED`），什么也不做。原先填姓名的写法作废。
   - 口令与 TOTP 密钥由命令**生成**，只在这一次输出里显示（口令、base32 密钥、认证器链接），库里只存口令的 Argon2id 哈希与加密后的密钥；不要把输出复制进文件或聊天。口令强度与密钥长度由代码保证，不经命令行参数传入。
   - 档案关闭所有定时任务（`forcitis.platform.scheduling.jobs-enabled=false` 及各任务自己的开关；总开关生效的前提是 Spring Modulith 的 `MomentsAutoConfiguration` 已被排除，#228 起，见 §9），Web 部分只监听本机随机端口，几秒钟后随进程结束；命令发布的事件若监听器没来得及处理，仍留在事件发布登记表里，由常驻应用的重投作业接手（§9）。
   - 退出码：0 成功（含「已是该状态，未改变」）；1 被拒绝（错误码在标准错误输出）；2 用法错误。

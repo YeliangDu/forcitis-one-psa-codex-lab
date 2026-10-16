@@ -1,0 +1,26 @@
+# The POST endpoints whose answer may be stored for 24 hours under an Idempotency-Key (ADR-0043 section 4, DATA-REPAIR-timesheet-audit TB-02).
+# Only these accept the header and have it in the OpenAPI contract; every other endpoint runs the request without storing an answer.
+# An endpoint belongs here only when its answer carries no personal direct identifier and no SENSITIVE or RESTRICTED column, and has a bounded size
+# (the stored text is at most 32768 characters). IdempotentEndpointGuardTest keeps this file equal to the endpoints the code lists, checks every
+# type of every answer against data-classification.txt and the direct-identifier names, and needs each answer type named in the comment.
+# Format: METHOD path-template  # answer type(s); what was checked. Adding a line needs design review.
+POST /api/v1/organization/legal-entities  # LegalEntityResponse(legalEntityId, code, name, status); no personal data
+POST /api/v1/organization/org-unit-legal-entities/{orgUnitId}:end  # LegalEntityAttributionResponse(kind, subjectId, periods[legalEntityId, dates]); only ids and dates
+POST /api/v1/organization/employee-legal-entities/{employeeId}:end  # LegalEntityAttributionResponse; same
+POST /api/v1/organization/org-unit-legal-entities/{orgUnitId}:correct  # LegalEntityAttributionResponse; same
+POST /api/v1/organization/employee-legal-entities/{employeeId}:correct  # LegalEntityAttributionResponse; same
+POST /api/v1/platform/authorization-requests/{requestId}:confirm  # 204 without a body
+POST /api/v1/platform/authorization-requests/{requestId}:reject  # 204 without a body
+POST /api/v1/platform/user-accounts/{userId}:force-logout  # 204 without a body
+POST /api/v1/platform/roles  # RoleResponse(roleId, code, name, kind, enabled, accessScope, administrative, permissionCodes) or AwaitingConfirmationResponse(requestId); no personal data
+POST /api/v1/platform/user-accounts/{userId}:replace-roles  # 204 or AwaitingConfirmationResponse(requestId)
+POST /api/v1/platform/user-accounts/{userId}:enable  # 204 without a body
+POST /api/v1/platform/user-accounts/{userId}:disable  # 204 without a body
+POST /api/v1/platform/numbering-rules/{documentType}:confirm  # NumberingRuleResponse; authorId and confirmedBy are own user ids
+POST /api/v1/platform/numbering-rules/{documentType}:confirm-finance  # NumberingRuleResponse; same
+POST /api/v1/platform/approval-tasks/{taskId}:claim  # 204 without a body
+POST /api/v1/platform/approval-tasks/{taskId}:release  # 204 without a body
+POST /api/v1/platform/approval-tasks/{taskId}:decide  # DecisionResponse(instanceId, status)
+POST /api/v1/platform/approval-tasks/{taskId}:return  # DecisionResponse
+POST /api/v1/platform/approval-tasks/{taskId}:transfer  # 204 without a body
+POST /api/v1/platform/approval-tasks/{taskId}:reassign  # 204 without a body
