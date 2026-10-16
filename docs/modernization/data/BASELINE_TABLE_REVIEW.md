@@ -61,7 +61,7 @@
 | X-6（编号） | timesheets 等使用方 | 使用方不记所用编号规则版本 | ADR-0033 第 1 项第 5 条；D7、D17 细则 6 | 并入 TS-UNIQ |
 | SD-1 | sync_diffs | `subject_key` 把对象类别与 ID 拼成字符串 | ADR-0033 第 7 项第 2 条；O9、O15 | 拆分 a 按最终形态在集成层新建（P5 卡 §3.1）；拆分前仍开放 |
 | WY-3 | work_calendar_years | 日历事件聚合标识是文本 `default:2026` | ADR-0033 第 7 项第 1 条；E1 | main 的 P5 已改；待 P5 合并后核 |
-| P-1 | positions | 无版本表也无「不需要」豁免 | D17 | W2；用户已定做维度型版本表（OBSERVED） |
+| P-1 | positions | 无版本表也无「不需要」豁免 | D17 | W2；用户已定做维度型版本表；生效依据已改为人事业务生效日（DECLARED，intent 2026-10-16-134434，取代同步观察日） |
 | E-1 | employees | 同上；离职时刻字段口径 | D17；DA-7 | W2；同上 |
 | WY-2 | work_calendar_years / days | 整年删除再插入，使用方不记版本 | ADR-0033 第 9 项第 1、3 条；D15 | W2 K-2；基线关闭前完成 |
 | AE-2 | audit_entries | 10 年只追加大表未分区，分区与单列 UUID 主键、`event_id` 唯一冲突 | NAMING_STANDARD §2.4a-8；O-8 | 用户已定（intent `2026-10-15-020820`：主键 (id, created_at)、去重键 (event_id, created_at)）；ADR-0048 由 one-architecture 起草，成文后用户确认 |
