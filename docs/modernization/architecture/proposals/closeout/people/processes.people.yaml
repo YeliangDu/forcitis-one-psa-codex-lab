@@ -72,6 +72,7 @@ meta:
 
 
 
+
 processes:
 
   - id: PRC-80
@@ -425,6 +426,7 @@ processes:
       - {type: event, name: "录用决定已作出", event: 录用决定已作出, bc: B-13}
     stages: [VS-07.3]
     primary_object: OBJ-56
+    secondary_objects: [OBJ-05, OBJ-57]   # F-1：本流程写入的次要对象（自 notes 迁来）
     notes: "次要对象：OBJ-05 协议（劳动合同类型，签订后生效）、OBJ-57 任职（版本化、无状态机，不作退出条件）。"
     owner_bc: B-13
     human_orchestration: false
@@ -585,6 +587,7 @@ processes:
       - {type: time, name: "试用期届满前 N 日生成评估待办（N 待用户定）"}
     stages: [VS-07.3, VS-13.2]
     primary_object: OBJ-56
+    secondary_objects: [OBJ-109]   # F-1：本流程写入的次要对象（自 notes 迁来）
     owner_bc: B-13
     human_orchestration: false
     type: business
@@ -1281,6 +1284,7 @@ processes:
       - {type: event, entry: 7, name: "员工离职生效（B-13 发布 Separated；S-42）", event: Separated, bc: B-13}
     stages: [VS-13.1]
     primary_object: OBJ-111
+    secondary_objects: [OBJ-72]   # F-1：本流程写入的次要对象（自 notes 迁来）
     owner_bc: B-27
     human_orchestration: false
     human_note: 员工确认或更正，逾期默认确认并自动锁定（人力不再手工锁定、不再代确认；质检修订）
@@ -1737,6 +1741,7 @@ processes:
       - {type: time, entry: 7, name: "年度缴费基数调整期（社保公积金缴费基数核定通知后；B-15 向 platform.scheduling 登记定时，按 CONVENTIONS 定时约定）"}
     stages: [VS-13.4, VS-06.1]
     primary_object: OBJ-92
+    secondary_objects: [OBJ-62]   # F-1：本流程写入的次要对象（自 notes 迁来）
     owner_bc: B-15
     human_orchestration: false
     migration: "历史申报与缴款（老系统税金计算与申报记录）按所属期 × 类型迁入为已缴款；迁入不触发申报、不重新过账（ADR-0036 M7）"
@@ -1854,6 +1859,7 @@ processes:
       - {type: human, name: "公司决定终止"}
     stages: [VS-13.6]
     primary_object: OBJ-56
+    secondary_objects: [OBJ-05, OBJ-57]   # F-1：本流程写入的次要对象（自 notes 迁来）
     owner_bc: B-13
     human_orchestration: false
     type: business
@@ -2018,6 +2024,7 @@ processes:
       - {type: human, name: "人力登记调岗、职级调整或汇报线变更"}
     stages: [VS-07.3]
     primary_object: OBJ-57
+    secondary_objects: [OBJ-05, OBJ-62]   # F-1：本流程写入的次要对象（自 notes 迁来）
     owner_bc: B-13
     human_orchestration: true
     human_note: 调岗申请需批准（推荐，待用户定），批准为本聚合命令（F-3）

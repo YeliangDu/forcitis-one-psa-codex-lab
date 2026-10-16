@@ -312,6 +312,7 @@ processes:
       - {type: event, entry: 7, name: "员工离职生效（B-13 发布 Separated；S-42）", event: Separated, bc: B-13}
     stages: [VS-13.1]
     primary_object: OBJ-111
+    secondary_objects: [OBJ-72]   # F-1：本流程写入的次要对象（自 notes 迁来）
     owner_bc: B-27
     human_orchestration: false
     human_note: 员工确认或更正，逾期默认确认并自动锁定（人力不再手工锁定、不再代确认；质检修订）
@@ -768,6 +769,7 @@ processes:
       - {type: time, entry: 7, name: "年度缴费基数调整期（社保公积金缴费基数核定通知后；B-15 向 platform.scheduling 登记定时，按 CONVENTIONS 定时约定）"}
     stages: [VS-13.4, VS-06.1]
     primary_object: OBJ-92
+    secondary_objects: [OBJ-62]   # F-1：本流程写入的次要对象（自 notes 迁来）
     owner_bc: B-15
     human_orchestration: false
     migration: "历史申报与缴款（老系统税金计算与申报记录）按所属期 × 类型迁入为已缴款；迁入不触发申报、不重新过账（ADR-0036 M7）"
