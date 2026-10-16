@@ -137,8 +137,9 @@ const DATA = /*__DATA__*/null;
 // 内含全部题的选择。打开时只订阅 answers 一次、提交记录只读一次（glossary/gate/README.md：按组或按单订阅会让手机一直停在加载中）。
 const ANSWERS = "answers", SUBMITS = "answers-submit", CHECK = "__check";
 const ITEMS = DATA.items, GROUPS = DATA.groups;
-// 默认不预选（ADR-0041 决定 6），没作答的题记为「未作答」；单子里写 "preselect": true 才预选推荐项。预选是否也用于业务口径单，等用户裁定（调度已问）
-const PRESELECT = DATA.preselect === true;
+// 两类单子（用户 2026-10-16 答「B」，经 one-coordinator）：业务口径单预选推荐项；框架、标准、选型类单子不预选，没作答的题记为「未作答」（ADR-0041 决定 6：决策页写明代价，不预选推荐项）。
+// 由单子里的 "preselect" 决定，缺省为 true；框架、标准、选型类单子必须写 "preselect": false
+const PRESELECT = DATA.preselect !== false;
 const SHEETS = [...new Set(ITEMS.map(i => i.key.split("~")[0]))];
 const decisions = new Map();   // key -> {choice: 选项序号或 "defer", note, by, at}
 let subs = [];                 // 已读到的提交记录（含旧版按组提交的记录）
