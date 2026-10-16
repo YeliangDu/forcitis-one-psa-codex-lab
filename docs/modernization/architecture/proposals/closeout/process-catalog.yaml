@@ -396,6 +396,7 @@ processes:
     stages: [VS-02.7]
     primary_object: "OBJ-29"
     primary_object_note: "结局「已归档」是项目 VS-02.7 退出；交付物、证据的「已封存」是同一编排的前置步骤"
+    secondary_objects: [OBJ-35, OBJ-53]
     owner_bc: "B-29"
     group: revenue
     status: draft
@@ -515,6 +516,7 @@ processes:
     stages_note: "判据：回签使协议（OBJ-05）到「已签署生效」，是 VS-04.1 退出。字面误判：匹到的 VS-05.2、VS-07.3 退出限供方类型协议、劳动合同类型，本流程是客户协议，不加"
     primary_object: "OBJ-05"
     primary_object_note: "付款条件项 OBJ-07「生效」随协议回签同时生效（VS-04.1 退出），不另设流程"
+    secondary_objects: [OBJ-07]
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -630,6 +632,7 @@ processes:
     stages: [VS-04.3]
     primary_object: "OBJ-83"
     primary_object_note: "结局「已开具」是 VS-04.3 退出；开票申请 OBJ-82「已开票」是同一流程的前置单据"
+    secondary_objects: [OBJ-82]
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -664,6 +667,7 @@ processes:
     stages_note: "判据：核销应收使往来款项（OBJ-85）到「已结清」、记收款分配（OBJ-86 已分配），是 VS-04.4 退出。字面误判：匹到的 VS-05.5、VS-08.1、VS-08.3、VS-13.5 是应付、员工借款、报销、薪酬类型，本流程是销售应收"
     primary_object: "OBJ-85"
     primary_object_note: "结局「已核销」使往来款项「已结清」（VS-04.4 退出）；资金收付 OBJ-86「已分配」是同一流程的认领步骤"
+    secondary_objects: [OBJ-86]
     owner_bc: "B-09"
     group: revenue
     status: draft
@@ -760,6 +764,7 @@ processes:
     stages_note: "判据：核准角色合格使 OBJ-02 到「合格」、登记资质证书使 OBJ-65 到「有效」，是 VS-05.1 退出。字面误判：VS-06.2 的「有效」是年检、延续后的退出，本流程是初次登记，不加"
     primary_object: "OBJ-02"
     primary_object_note: "结局「往来单位角色合格」是 VS-05.1 退出；资质证书 OBJ-65 为需资质供方的附加条件"
+    secondary_objects: [OBJ-65]
     owner_bc: "B-01"
     group: revenue
     status: draft
@@ -905,6 +910,7 @@ processes:
     type: business
     stages: [VS-07.3]
     primary_object: "OBJ-56"
+    secondary_objects: [OBJ-05, OBJ-57]
     owner_bc: "B-13"
     group: people
     status: user_confirmed
@@ -926,6 +932,7 @@ processes:
     type: business
     stages: [VS-07.3, VS-13.2]
     primary_object: "OBJ-56"
+    secondary_objects: [OBJ-109]
     owner_bc: "B-13"
     group: people
     status: draft
@@ -1270,6 +1277,7 @@ processes:
     type: business
     stages: [VS-13.1]
     primary_object: "OBJ-111"
+    secondary_objects: [OBJ-72]
     owner_bc: "B-27"
     group: people
     status: draft
@@ -1340,6 +1348,7 @@ processes:
     type: business
     stages: [VS-13.4, VS-06.1]
     primary_object: "OBJ-92"
+    secondary_objects: [OBJ-62]
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1371,6 +1380,7 @@ processes:
     type: business
     stages: [VS-13.6]
     primary_object: "OBJ-56"
+    secondary_objects: [OBJ-05, OBJ-57]
     owner_bc: "B-13"
     group: people
     status: draft
@@ -1456,6 +1466,7 @@ processes:
     type: business
     stages: [VS-07.3]
     primary_object: "OBJ-57"
+    secondary_objects: [OBJ-05, OBJ-62]
     owner_bc: "B-13"
     group: people
     status: draft

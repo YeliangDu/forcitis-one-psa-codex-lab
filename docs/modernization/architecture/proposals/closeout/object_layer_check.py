@@ -9,6 +9,7 @@
 主对象提议（目录未填 primary_object 时）：只取本流程写入（C/U/D）的对象，按档取第一档非空者——
   1 所标段退出条件精确命中；2 所标段段内状态精确命中；3 退出或段内近似命中；4 所标段退出条件引用到的对象；5 唯一写入对象。
   事件策略的触发命中是触发方对象，不作主对象依据。一档内多于一个 = 多候选，交组选。读模型不改对象状态，不提议、不计入 ①（组可手填其主读对象）。
+聚合内实体（信息图次级对象、自身不由任何聚合承载）随父对象的聚合一并视为写入，可作次要对象。
 primary_object: none 为组声明的「无业务对象」（须附理由），不计入 ①③④；secondary_objects 为次要对象（须是本流程写入的对象）。
 检查：① 非支撑流程无主对象；② 阶段承载对象（退出条件引用的对象）在该段无流程以它为主对象或次要对象；
       ③ 同一主对象被多条流程使用（列出，判断重复或分工）；④ 流程主对象推出的一级能力不在所标段的能力清单。
@@ -106,10 +107,25 @@ def propose(p, written, hits, st_objs):
     return 0, []
 
 
-def analyse(catalog, pobj_doc, agg_objs, vs_doc, caps_doc, hits):
+def inner_children(info_map_text, agg_objs):
+    """聚合内实体：信息图「次级（父对象）」且自身不是任何聚合承载的对象 → {子: 父}。"""
+    rows = [re.match(r"^\|\s*(OBJ-\d+)\s*\|\s*([^|]+?)\s*\|[^|]*\|\s*次级（([^，；×）]+)", l) for l in info_map_text.splitlines()]
+    rows = [m.groups() for m in rows if m]
+    by_name = {}
+    for l in info_map_text.splitlines():
+        m = re.match(r"^\|\s*(OBJ-\d+)\s*\|\s*([^|（(]+)", l)
+        if m:
+            by_name.setdefault(m.group(2).strip(), m.group(1))
+    carried = {o for objs in agg_objs.values() for o in objs}
+    return {o: by_name[par.strip()] for o, _n, par in rows if o not in carried and par.strip() in by_name}
+
+
+def analyse(catalog, pobj_doc, agg_objs, vs_doc, caps_doc, hits, children=None):
     st_objs, st_caps, sname, order, disp = stage_objects(vs_doc)
     cidx = cap_index(caps_doc)
     written = written_objs(pobj_doc, agg_objs)
+    for pid, ws in written.items():   # 写入父对象的聚合时，其聚合内实体（次级对象）随之可作次要对象
+        ws |= {c for c, par in (children or {}).items() if par in ws}
     rows = []
     for p in catalog:
         if p.get("type") == "merged" or p.get("support"):
@@ -145,6 +161,7 @@ def analyse(catalog, pobj_doc, agg_objs, vs_doc, caps_doc, hits):
             if o not in r["secondary_unwritten"]:
                 by_sec[o].append(r)
     D["sec_bad"] = [r for r in rows if r["secondary_unwritten"]]
+    D["not_obj"] = [r for r in rows if r["primary_object"] and not str(r["primary_object"]).startswith("OBJ-")]
     for s in order:
         for o in st_objs[s]:
             if not any(s in r["stages"] for r in by_obj.get(o, []) + by_sec.get(o, [])):
@@ -176,7 +193,7 @@ def render_md(A, onames):
     out = ["# 对象层与能力层对齐报告（object_layer_check.py 生成，勿手改）", "",
            f"非支撑流程 {len(rows)} 条：已确认 {cnt['confirmed']}、声明无业务对象 {cnt['declared_none']}、提议 {cnt['proposed']}、多候选 {cnt['candidates']}、无候选 {cnt['none']}、读模型 {cnt['read_model']}。",
            f"检查：① 无主对象 {len(D['no_primary'])}；② 阶段承载对象无主流程 {len(D['uncarried'])}；③ 主对象多流程 {len(D['shared'])}；"
-           f"④ 能力不在所标段清单 {len(D['cap_off'])}（另主对象无能力 {len(D['no_cap'])}）。", "",
+           f"④ 能力不在所标段清单 {len(D['cap_off'])}（另主对象无能力 {len(D['no_cap'])}）；主对象不是业务对象 {len(D['not_obj'])}。", "",
            "提议口径：" + "；".join(f"第 {k} 档 {v}" for k, v in LEVELS.items()) + "。只取本流程写入的对象；第 4、5 档把握低，组确认时重点看。", ""]
     out += ["## 主对象（按组）", ""]
     for g in sorted({r["group"] for r in rows}, key=str):
@@ -190,6 +207,8 @@ def render_md(A, onames):
     out += [f"- {s} {A['sname'][s]}：{on(o)}" for s, o in D["uncarried"]] or ["无"]
     if D["sec_bad"]:
         out += ["", "### 次要对象不是本流程写入的对象（不计承载）", ""] + [f"- {r['id']} {r['name']}：{'、'.join(on(o) for o in r['secondary_unwritten'])}" for r in D["sec_bad"]]
+    out += ["", "## 主对象不是业务对象（技术聚合不承载价值项：改为业务对象，或写 none 并说明）", ""]
+    out += [f"- {r['id']} {r['name']}（{r['group']}）：{r['primary_object']}" for r in D["not_obj"]] or ["无"]
     out += ["", "## ③ 同一主对象被多条流程使用（判断重复或合理分工）", ""]
     out += [f"- {on(o)}：" + "；".join(f"{r['id']} {r['name']}（{'、'.join(r['stages'])}，{r['status']}）" for r in rs) for o, rs in D["shared"]] or ["无"]
     out += ["", "## ④ 主对象推出的一级能力不在所标段的能力清单", ""]
@@ -216,14 +235,16 @@ def self_test():
            {"id": "P4", "name": "d", "type": "business", "stages": ["VS-X.1"], "primary_object": "OBJ-09"},
            {"id": "P5", "name": "e", "type": "business", "stages": [], "support": "支撑"},
            {"id": "P6", "name": "f", "type": "business", "stages": ["VS-X.2"], "primary_object": "none", "secondary_objects": ["OBJ-03"]},
-           {"id": "P7", "name": "g", "type": "business", "stages": ["VS-X.2"], "secondary_objects": ["OBJ-01"]}]
+           {"id": "P7", "name": "g", "type": "business", "stages": ["VS-X.2"], "secondary_objects": ["OBJ-01"]},
+           {"id": "P8", "name": "h", "type": "business", "stages": ["VS-X.1"], "primary_object": "OBJ-01", "secondary_objects": ["OBJ-08"]}]
     pobj = {"processes": [{"id": "P1", "objects": [{"obj": "OBJ-01", "ops": "CU", "aggregates": ["AGG-1"]}, {"obj": "OBJ-02", "ops": "U", "aggregates": ["AGG-2"]}]},
                           {"id": "P2", "objects": [{"obj": "OBJ-02", "ops": "C", "aggregates": ["AGG-2"]}, {"obj": "OBJ-05", "ops": "U", "aggregates": ["AGG-5"]}]},
+                          {"id": "P8", "objects": [{"obj": "OBJ-01", "ops": "U", "aggregates": ["AGG-1"]}]},
                           {"id": "P6", "objects": [{"obj": "OBJ-03", "ops": "U", "aggregates": ["AGG-3"]}]},
                           {"id": "P3", "objects": [{"obj": "OBJ-02", "ops": "U", "aggregates": ["AGG-2"]}, {"obj": "OBJ-01", "ops": "R", "aggregates": ["AGG-1"]}]}]}
     aggo = {"AGG-1": ["OBJ-01"], "AGG-2": ["OBJ-02"], "AGG-3": ["OBJ-03"], "AGG-5": ["OBJ-05"]}
     hits = {"P1": [("VS-X.1", "exact", "OBJ-01", "exit")], "P3": [("VS-X.1", "exact", "OBJ-01", "trigger")]}
-    A = analyse(cat, pobj, aggo, vs, caps, hits)
+    A = analyse(cat, pobj, aggo, vs, caps, hits, inner_children("| OBJ-08 | 子 | x | 次级（甲） |\n| OBJ-01 | 甲 | y |", aggo))
     r = {x["id"]: x for x in A["rows"]}
     ok = lambda n, c: print(f"自测 {n}: {'通过' if c else '失败'}") or c
     res = [ok("退出精确命中取第 1 档", r["P1"]["primary_object"] == "OBJ-01" and r["P1"]["level"] == 1),
@@ -255,7 +276,8 @@ def main(argv):
     R = sac.analyze(vs_doc, catalog, sac.load_skeletons(local), onames, sac.load_alias_map(), machines, aggs,
                     sac.load_event_map(local, machines, aggs))
     A = analyse(catalog, yaml.safe_load(POBJ.read_text(encoding="utf-8")), {a: v.get("objs") or [] for a, v in aggs.items()},
-                vs_doc, yaml.safe_load(CAPS.read_text(encoding="utf-8")), R["hit_refs"])
+                vs_doc, yaml.safe_load(CAPS.read_text(encoding="utf-8")), R["hit_refs"],
+                inner_children(sac.INFO_MAP.read_text(encoding="utf-8"), {a: v.get("objs") or [] for a, v in aggs.items()}))
     md = render_md(A, onames)
     if "--no-write" not in argv:
         OUT_YAML.write_text(render_yaml(A), encoding="utf-8")

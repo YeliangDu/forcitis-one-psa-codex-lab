@@ -526,7 +526,7 @@ processes:
   primary_object: OBJ-01
   status: confirmed
   candidates:
-  - OBJ-01
+  - OBJ-02
   capability_l1: CAP-001
   capability: CAP-001
 - id: PRC-06
@@ -914,6 +914,9 @@ processes:
   stages:
   - VS-02.7
   primary_object: OBJ-29
+  secondary_objects:
+  - OBJ-35
+  - OBJ-53
   status: confirmed
   candidates:
   - OBJ-29
@@ -1027,9 +1030,12 @@ processes:
   stages:
   - VS-04.1
   primary_object: OBJ-05
+  secondary_objects:
+  - OBJ-07
   status: confirmed
   candidates:
   - OBJ-05
+  - OBJ-07
   capability_l1: CAP-005
   capability: CAP-005
 - id: PRC-48
@@ -1117,8 +1123,6 @@ processes:
   - VS-04.3
   primary_object: OBJ-07
   status: confirmed
-  candidates:
-  - OBJ-05
   capability_l1: CAP-005
   capability: CAP-005.007
 - id: PRC-57
@@ -1128,6 +1132,8 @@ processes:
   stages:
   - VS-04.3
   primary_object: OBJ-83
+  secondary_objects:
+  - OBJ-82
   status: confirmed
   candidates:
   - OBJ-82
@@ -1165,6 +1171,8 @@ processes:
   stages:
   - VS-04.4
   primary_object: OBJ-85
+  secondary_objects:
+  - OBJ-86
   status: confirmed
   candidates:
   - OBJ-85
@@ -1234,8 +1242,11 @@ processes:
   stages:
   - VS-05.1
   primary_object: OBJ-02
+  secondary_objects:
+  - OBJ-65
   status: confirmed
   candidates:
+  - OBJ-02
   - OBJ-65
   capability_l1: CAP-001
   capability: CAP-001.002
@@ -1390,6 +1401,9 @@ processes:
   stages:
   - VS-07.3
   primary_object: OBJ-56
+  secondary_objects:
+  - OBJ-05
+  - OBJ-57
   status: confirmed
   candidates:
   - OBJ-05
@@ -1416,6 +1430,8 @@ processes:
   - VS-07.3
   - VS-13.2
   primary_object: OBJ-56
+  secondary_objects:
+  - OBJ-109
   status: confirmed
   candidates:
   - OBJ-109
@@ -1703,6 +1719,8 @@ processes:
   stages:
   - VS-13.1
   primary_object: OBJ-111
+  secondary_objects:
+  - OBJ-72
   status: confirmed
   candidates:
   - OBJ-72
@@ -1753,6 +1771,8 @@ processes:
   - VS-13.4
   - VS-06.1
   primary_object: OBJ-92
+  secondary_objects:
+  - OBJ-62
   status: confirmed
   candidates:
   - OBJ-92
@@ -1789,6 +1809,9 @@ processes:
   stages:
   - VS-13.6
   primary_object: OBJ-56
+  secondary_objects:
+  - OBJ-05
+  - OBJ-57
   status: confirmed
   candidates:
   - OBJ-05
@@ -1884,6 +1907,9 @@ processes:
   stages:
   - VS-07.3
   primary_object: OBJ-57
+  secondary_objects:
+  - OBJ-05
+  - OBJ-62
   status: confirmed
   candidates:
   - OBJ-05
@@ -1979,8 +2005,6 @@ processes:
   - VS-04.3
   primary_object: OBJ-07
   status: confirmed
-  candidates:
-  - OBJ-05
   capability_l1: CAP-005
   capability: CAP-005.007
 - id: PRC-153

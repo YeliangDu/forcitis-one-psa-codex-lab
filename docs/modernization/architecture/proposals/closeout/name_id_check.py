@@ -156,11 +156,9 @@ def main(argv):
         primary = {p["id"]: p["primary_object"] for p in yaml.safe_load(LAYER.read_text(encoding="utf-8")).get("processes") or [] if p.get("primary_object")}
     onames = {}
     for line in INFO_MAP.read_text(encoding="utf-8").splitlines():
-        m = re.match(r"\|\s*(OBJ-\d+)\s*\|\s*([^|]+?)\s*\|", line) or re.match(r"\|\s*([^|]+?)\s*\|\s*(OBJ-\d+)\s*\|", line)
+        m = re.match(r"\|\s*(OBJ-\d+)\s*\|\s*([^|]+?)\s*\|", line)   # 只认对象总表行（OBJ 在首列）；「| M-16 | OBJ-35 |」类对照行不是名称
         if m:
-            a, b = m.groups()
-            o, nm = (a, b) if a.startswith("OBJ-") else (b, a)
-            onames.setdefault(o, nm)
+            onames.setdefault(m.group(1), m.group(2))
     base = load_base(ref)
     if base is None and "--base" not in argv:
         ref, base = "HEAD", load_base("HEAD")   # 目录未进 main 前对照本分支上次提交
