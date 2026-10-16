@@ -1,9 +1,11 @@
 package com.forcitis.one;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -15,10 +17,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * ADR-0033 guard 1: every table of ours has a one-column uuid primary key that the application makes (IdGenerator), never a sequence, an identity column
- * or a database default; a natural or composite key is a named unique constraint. A table with a validity interval has an exclusion constraint on its
- * natural key and the interval; a column named *_version_id points at the primary key of a version row, by foreign key inside its schema and by registration in architecture/cross-schema-version-references.txt across schemas. Only the five tables of architecture/primary-key-exemptions.txt,
- * whose key a framework owns, are left out.
+ * ADR-0033 guard 1: every table of ours has a one-column uuid primary key that the application makes (IdGenerator), never a sequence, an identity
+ * column or a database default; a natural or composite key is a named unique constraint. A table with a validity interval has an exclusion
+ * constraint on its natural key and the interval; a column named *_version_id points at the primary key of a version row, by foreign key inside
+ * its schema and by registration in architecture/cross-schema-version-references.txt across schemas. Only the five tables of
+ * architecture/primary-key-exemptions.txt, whose key a framework owns, are left out.
  */
 class PrimaryKeyTypeGuardTest {
     static final Pattern GENERATED = Pattern.compile("(?i)\\bGENERATED\\b.*\\bAS IDENTITY\\b|\\b(big|small)?serial\\b|\\bDEFAULT\\b");
@@ -45,6 +48,7 @@ class PrimaryKeyTypeGuardTest {
         exempt.stream().filter(e -> !tables.contains(e))
                 .forEach(e -> problems.add(e + ": listed in architecture/primary-key-exemptions.txt but the table is gone; delete the line"));
 
+        Map<String, List<Reference>> foreignKeys = foreignKeys(migrations);
         migrations.values().forEach(sql -> {
             Matcher table = DdlNamingTest.CREATE_TABLE.matcher(sql);
             while (table.find()) {
@@ -52,7 +56,7 @@ class PrimaryKeyTypeGuardTest {
                 if (exempt.contains(qualified)) {
                     continue;
                 }
-                checkLines(qualified, table.group(3), model.get(table.group(1)).tables.get(table.group(2)), crossSchema, problems);
+                checkLines(qualified, table.group(3), model.get(table.group(1)).tables.get(table.group(2)), model, foreignKeys, crossSchema, problems);
             }
         });
         registryProblems(model, crossSchema, problems);
@@ -83,10 +87,23 @@ class PrimaryKeyTypeGuardTest {
             if (key == null || !key.type().equals("uuid")) {
                 problems.add(source + ": the target " + target + " does not exist or its primary key is not one uuid column");
             }
+            if (key != null && !s[2].equals(key.name()) && !s[2].endsWith("_" + key.name())) {
+                problems.add(source + ": the column name does not end with the primary key " + key.name() + " of the target " + target + "; the column must carry the key name of the version row it points at");
+            }
+            if (model.containsKey(s[0])) {
+                model.get(s[0]).tables.forEach((name, other) -> {
+                    String own = other.primaryKey.size() == 1 ? other.primaryKey.getFirst() : "";
+                    if (own.endsWith("_version_id") && (s[2].equals(own) || s[2].endsWith("_" + own))) {
+                        problems.add(source + ": " + (name.equals(s[1]) ? "the column is the primary key of its own table" : "schema " + s[0] + " has the version table " + name
+                                + " with key " + own + ", so the column needs a foreign key there instead") + "; delete the line");
+                    }
+                });
+            }
         });
     }
 
-    private static void checkLines(String table, String body, DdlNamingTest.Table model, Map<String, String> crossSchema, List<String> problems) {
+    private static void checkLines(String table, String body, DdlNamingTest.Table model, Map<String, DdlNamingTest.Schema> schemas,
+            Map<String, List<Reference>> foreignKeys, Map<String, String> crossSchema, List<String> problems) {
         boolean from = false;
         boolean to = false;
         boolean exclusion = false;
@@ -102,7 +119,7 @@ class PrimaryKeyTypeGuardTest {
                 problems.add(table + "." + name + ": a primary key or *_id column is made by a sequence, an identity or a default; the application makes it with IdGenerator");
             }
             if (name.endsWith("_version_id") && !model.primaryKey.contains(name)) {
-                versionReference(table, name, line, body, crossSchema, problems);
+                versionReference(table, name, schemas, foreignKeys, crossSchema, problems);
             }
             from |= name.startsWith("effective_from_");
             to |= name.startsWith("effective_to_");
@@ -112,28 +129,72 @@ class PrimaryKeyTypeGuardTest {
         }
     }
 
-    private static final String REFERENCES = "REFERENCES\\s+([a-z0-9_]+)(?:\\.([a-z0-9_]+))?";
+    private static final String REFERENCES = "REFERENCES\\s+\"?([a-z0-9_]+)\"?(?:\\.\"?([a-z0-9_]+)\"?)?";
+    private static final Pattern TABLE_FOREIGN_KEY = Pattern.compile("FOREIGN KEY\\s*\\(([^)]*)\\)\\s*" + REFERENCES, Pattern.CASE_INSENSITIVE);
+    private static final Pattern INLINE_REFERENCE = Pattern.compile(REFERENCES, Pattern.CASE_INSENSITIVE);
+    private static final Pattern ALTER_FOREIGN_KEY = Pattern.compile("ALTER TABLE\\s+(?:ONLY\\s+)?(?:IF EXISTS\\s+)?\"?([a-z0-9_]+)\"?\\.\"?([a-z0-9_]+)\"?\\s+ADD\\s+(?:CONSTRAINT\\s+\"?[a-z0-9_]+\"?\\s+)?"
+            + TABLE_FOREIGN_KEY.pattern(), Pattern.CASE_INSENSITIVE);
 
-    private static void versionReference(String table, String column, String line, String body, Map<String, String> crossSchema, List<String> problems) {
-        String schema = table.substring(0, table.indexOf('.'));
-        Matcher reference = Pattern.compile(REFERENCES, Pattern.CASE_INSENSITIVE).matcher(line);
-        if (!reference.find()) {
-            reference = Pattern.compile("FOREIGN KEY\\s*\\(" + column + "\\)\\s*" + REFERENCES, Pattern.CASE_INSENSITIVE).matcher(body);
-            if (!reference.find()) {
-                reference = null;
+    private record Reference(String schema, String table, boolean qualified) {
+        static Reference of(String sourceSchema, String first, String second) {
+            return second == null ? new Reference(sourceSchema, first.toLowerCase(Locale.ROOT), false)
+                    : new Reference(first.toLowerCase(Locale.ROOT), second.toLowerCase(Locale.ROOT), true);
+        }
+    }
+
+    private static void addReference(Map<String, List<Reference>> found, String table, String columns, Reference reference) {
+        for (String column : columns.split(",")) {
+            found.computeIfAbsent(table + "." + column.strip().replace("\"", "").toLowerCase(Locale.ROOT), k -> new ArrayList<>()).add(reference);
+        }
+    }
+
+    /** Foreign keys per schema.table.column from inline REFERENCES, table-level FOREIGN KEY and ALTER TABLE ... ADD FOREIGN KEY, over the whole migration text. */
+    private static Map<String, List<Reference>> foreignKeys(Map<String, String> migrations) {
+        Map<String, List<Reference>> found = new HashMap<>();
+        for (String sql : migrations.values()) {
+            Matcher table = DdlNamingTest.CREATE_TABLE.matcher(sql);
+            while (table.find()) {
+                String qualified = (table.group(1) + "." + table.group(2)).toLowerCase(Locale.ROOT);
+                String schema = table.group(1).toLowerCase(Locale.ROOT);
+                Matcher foreignKey = TABLE_FOREIGN_KEY.matcher(table.group(3));
+                while (foreignKey.find()) {
+                    addReference(found, qualified, foreignKey.group(1), Reference.of(schema, foreignKey.group(2), foreignKey.group(3)));
+                }
+                for (String raw : table.group(3).split(",\\s*\\n")) {
+                    String line = raw.trim().replaceAll("\\s+", " ");
+                    Matcher inline = INLINE_REFERENCE.matcher(line);
+                    if (!line.matches("(?i)(CONSTRAINT [a-z0-9_]+ )?FOREIGN\\b.*") && inline.find()) {
+                        addReference(found, qualified, line.split(" ")[0], Reference.of(schema, inline.group(1), inline.group(2)));
+                    }
+                }
+            }
+            Matcher alter = ALTER_FOREIGN_KEY.matcher(sql);
+            while (alter.find()) {
+                String schema = alter.group(1).toLowerCase(Locale.ROOT);
+                addReference(found, schema + "." + alter.group(2).toLowerCase(Locale.ROOT), alter.group(3), Reference.of(schema, alter.group(4), alter.group(5)));
             }
         }
+        return found;
+    }
+
+    private static void versionReference(String table, String column, Map<String, DdlNamingTest.Schema> model, Map<String, List<Reference>> foreignKeys,
+            Map<String, String> crossSchema, List<String> problems) {
+        String schema = table.substring(0, table.indexOf('.'));
+        List<Reference> references = foreignKeys.getOrDefault(table + "." + column, List.of());
         boolean registered = crossSchema.containsKey(table + "." + column);
-        if (reference == null) {
+        if (references.isEmpty()) {
             if (!registered) {
                 problems.add(table + "." + column + ": a *_version_id column must reference the primary key of a version row; add a foreign key in the same schema,"
                         + " or for another schema register it in architecture/cross-schema-version-references.txt");
             }
             return;
         }
-        String targetSchema = reference.group(2) == null ? schema : reference.group(1).toLowerCase(Locale.ROOT);
-        if (!targetSchema.equals(schema)) {
-            problems.add(table + "." + column + ": a *_version_id across schemas must not have a foreign key; register it in architecture/cross-schema-version-references.txt instead");
+        for (Reference reference : references) {
+            if (!reference.schema().equals(schema)) {
+                problems.add(table + "." + column + ": a *_version_id across schemas must not have a foreign key; register it in architecture/cross-schema-version-references.txt instead");
+            } else if (!reference.qualified() && !(model.containsKey(schema) && model.get(schema).tables.containsKey(reference.table()))) {
+                problems.add(table + "." + column + ": its REFERENCES names no schema and the table " + reference.table() + " is not in schema " + schema);
+            }
         }
         if (registered) {
             problems.add(table + "." + column + ": registered in architecture/cross-schema-version-references.txt but has a foreign key; a cross-schema reference is by ID only (D2)");
@@ -141,7 +202,7 @@ class PrimaryKeyTypeGuardTest {
     }
 
     @Test
-    @DisplayName("every table has one uuid primary key made by the application, intervals are excluded from overlapping, *_version_id points at a version row; only the five framework tables are exempt")
+    @DisplayName("every table has one uuid primary key made by the application, intervals are excluded from overlapping, *_version_id points at a version row or is in the cross-schema registry; only the five framework tables are exempt")
     void everyKeyIsOneUuidColumnTheApplicationMakes() throws IOException {
         Map<String, String> exemptions = PrimaryKeyExemptions.read();
 
@@ -216,5 +277,65 @@ class PrimaryKeyTypeGuardTest {
         assertThat(cross(CROSS, Map.of(SOURCE, "platform_sample.things"))).anyMatch(p -> p.contains("target is in the same schema"));
         assertThat(cross(SAMPLE, registered)).anyMatch(p -> p.contains("the table or column is gone; delete the line"));
         assertThat(cross(CROSS, Map.of("platform_sample.things.owner_id", "platform_other.thing_versions"))).anyMatch(p -> p.contains("does not end with _version_id"));
+    }
+
+    private static final String OWN_VERSIONS = """
+            CREATE TABLE platform_sample.thing_versions (
+                thing_version_id uuid NOT NULL,
+                CONSTRAINT pk_thing_versions PRIMARY KEY (thing_version_id)
+            );
+            """;
+    private static final String TAIL_FK = "thing_version_id uuid,\n    CONSTRAINT fk_things_version FOREIGN KEY (thing_version_id) REFERENCES %s (thing_version_id),";
+    private static final String ALTER = "\nALTER TABLE platform_sample.things ADD CONSTRAINT fk_things_version FOREIGN KEY (thing_version_id) REFERENCES %s (thing_version_id);\n";
+
+    private static List<String> same(String sample, String extra) {
+        return problems(Map.of("V1__x.sql", sample, "V2__y.sql", OWN_VERSIONS + extra), Set.of(), Map.of());
+    }
+
+    @Test
+    @DisplayName("injected: a table-level or ALTER foreign key to the same schema passes, a schemaless REFERENCES counts as the same schema and needs the table there, a cross-schema ALTER foreign key is caught")
+    void theGuardReadsForeignKeysOutsideTheColumnLine() {
+        assertThat(same(CROSS.replace("thing_version_id uuid,", TAIL_FK.formatted("platform_sample.thing_versions")), "")).noneMatch(p -> p.contains("_version_id"));
+        assertThat(same(CROSS, ALTER.formatted("platform_sample.thing_versions"))).noneMatch(p -> p.contains("_version_id"));
+        assertThat(same(CROSS.replace("thing_version_id uuid,", "thing_version_id uuid REFERENCES \"platform_sample\".\"thing_versions\" (thing_version_id),"), "")).noneMatch(p -> p.contains("_version_id"));
+        assertThat(same(CROSS.replace("thing_version_id uuid,", TAIL_FK.formatted("thing_versions")), "")).noneMatch(p -> p.contains("_version_id"));
+        assertThat(same(CROSS.replace("thing_version_id uuid,", TAIL_FK.formatted("thing_gone")), "")).anyMatch(p -> p.contains("names no schema and the table thing_gone"));
+        assertThat(same(CROSS, ALTER.formatted("thing_gone"))).anyMatch(p -> p.contains("names no schema"));
+        assertThat(cross(CROSS.replace("thing_version_id uuid,", TAIL_FK.formatted("platform_other.thing_versions")), Map.of()))
+                .anyMatch(p -> p.contains("across schemas must not have a foreign key"));
+        assertThat(cross(CROSS + ALTER.formatted("platform_other.thing_versions"), Map.of())).anyMatch(p -> p.contains("across schemas must not have a foreign key"));
+        assertThat(cross(CROSS + ALTER.formatted("platform_other.thing_versions"), Map.of(SOURCE, "platform_other.thing_versions")))
+                .anyMatch(p -> p.contains("registered in architecture/cross-schema-version-references.txt but has a foreign key"));
+    }
+
+    @Test
+    @DisplayName("injected: a registry line whose column does not carry the target key name, or which is a version key or has a version table in its own schema, or whose target key is not uuid is caught")
+    void theGuardCatchesMisleadingRegistryLines() {
+        Map<String, String> registered = Map.of(SOURCE, "platform_other.thing_versions");
+
+        assertThat(cross(CROSS.replace("thing_version_id", "owner_version_id"), Map.of("platform_sample.things.owner_version_id", "platform_other.thing_versions")))
+                .anyMatch(p -> p.contains("does not end with the primary key thing_version_id"));
+        assertThat(cross(CROSS.replace("thing_version_id", "source_thing_version_id"), Map.of("platform_sample.things.source_thing_version_id", "platform_other.thing_versions")))
+                .isEmpty();
+        assertThat(problems(Map.of("V1__x.sql", CROSS, "V2__y.sql", VERSIONS, "V3__z.sql", OWN_VERSIONS), Set.of(), registered))
+                .anyMatch(p -> p.contains("has the version table thing_versions with key thing_version_id"));
+        assertThat(cross(OWN_VERSIONS, Map.of("platform_sample.thing_versions.thing_version_id", "platform_other.thing_versions")))
+                .anyMatch(p -> p.contains("the column is the primary key of its own table"));
+        assertThat(problems(Map.of("V1__x.sql", CROSS, "V2__y.sql", VERSIONS.replace("thing_version_id uuid", "thing_version_id text")), Set.of(), registered))
+                .anyMatch(p -> p.contains("primary key is not one uuid column"));
+    }
+
+    @Test
+    @DisplayName("injected: the registry file refuses a repeated column, a line without a note, without -> or with two ->, and accepts a well-formed one")
+    void theRegistryReaderRefusesMalformedLines() {
+        String line = "platform_sample.things.thing_version_id -> platform_other.thing_versions  # note";
+
+        assertThat(CrossSchemaVersionReferences.parse(List.of("# comment", "", line))).containsExactly(Map.entry(SOURCE, "platform_other.thing_versions"));
+        assertThatThrownBy(() -> CrossSchemaVersionReferences.parse(List.of(line, line))).isInstanceOf(IllegalStateException.class).hasMessageContaining("listed twice");
+        assertThatThrownBy(() -> CrossSchemaVersionReferences.parse(List.of("platform_sample.things.thing_version_id -> platform_other.thing_versions")))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("needs <schema.table.column>");
+        assertThatThrownBy(() -> CrossSchemaVersionReferences.parse(List.of("platform_sample.things.thing_version_id platform_other.thing_versions  # note")))
+                .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> CrossSchemaVersionReferences.parse(List.of("a.b.c_version_id -> d.e -> f.g  # note"))).isInstanceOf(IllegalStateException.class);
     }
 }
