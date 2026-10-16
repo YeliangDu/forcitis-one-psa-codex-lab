@@ -25,7 +25,8 @@ FIELDS = ["类型", "职责", "独占", "不碰", "输入", "输出", "触发与
 KINDS = ("长期", "工作")
 STALE_HOURS = 24
 REQUIRE_TIMESTAMP = False   # 画像迁移完成后改为 True，无时间戳即失败
-STAMP = re.compile(r"(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})")
+STAMP = re.compile(r"(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})([+-]\d{2}:\d{2})?")
+MAX_ZONE_SKEW_HOURS = 14   # 不带时区的时刻按本机本地时间算；CI 在 UTC 上生成，相差不超过 14 小时的“未来”不算错
 HANDOFF_STATES = ("有效", "已接手")
 HANDOFF_DIR = "handoffs"
 OLD_HANDOFFS = ("phase1a", "architecture/proposals")
@@ -77,8 +78,8 @@ def parse_profile(text, file_name):
     if body["类型"] not in KINDS:
         raise ProfileError(f"{file_name}：类型须为「长期」或「工作」")
     one_line(body["当前状态"], f"{file_name} 当前状态")
-    if "已交接" in body["当前状态"]:
-        raise ProfileError(f"{file_name}：当前状态写了「已交接」，已交接的会话改入 _retired.md，画像不再保留（SESSION_PLAYBOOK §2.1）")
+    if re.match(r"(?:\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?:[+-]\d{2}:\d{2})?\s*)?已交接", body["当前状态"]):
+        raise ProfileError(f"{file_name}：当前状态以「已交接」开头，已交接的会话改入 _retired.md，画像不再保留（SESSION_PLAYBOOK §2.1）")
     return {"name": stem, **body}
 
 
@@ -113,7 +114,8 @@ def check(profiles, retired, exists):
 
 
 def freshness(status, now):
-    """当前状态须以 YYYY-MM-DD HH:MM 开头；返回 (标记, 说明)。标记：ok / stale（超 STALE_HOURS 小时）/ missing（无时间戳）/ invalid（时刻无效或在未来）。"""
+    """当前状态须以 YYYY-MM-DD HH:MM[+HH:MM] 开头（建议带时区，如 2026-10-16 17:30+02:00；不带则按生成机器的本地时间，允许最多 14 小时的时区偏差）。
+    返回 (标记, 说明)：ok / stale（超 STALE_HOURS 小时）/ missing（无时间戳）/ invalid（时刻无效或明显在未来）。"""
     m = STAMP.match(status)
     if not m:
         return "missing", "当前状态未以 YYYY-MM-DD HH:MM 开头"
@@ -121,14 +123,21 @@ def freshness(status, now):
         at = datetime.datetime.strptime(f"{m.group(1)} {m.group(2)}", "%Y-%m-%d %H:%M")
     except ValueError:
         return "invalid", f"时刻无效：{m.group(0)}"
+    if m.group(3):
+        sign = 1 if m.group(3)[0] == "+" else -1
+        hours, minutes = int(m.group(3)[1:3]), int(m.group(3)[4:6])
+        at = at.replace(tzinfo=datetime.timezone(sign * datetime.timedelta(hours=hours, minutes=minutes)))
+        now = now.astimezone() if now.tzinfo is None else now
+    elif now.tzinfo is not None:
+        at = at.replace(tzinfo=now.tzinfo)
     age = (now - at).total_seconds() / 3600
-    if age < -1:
+    if age < -(0 if m.group(3) else MAX_ZONE_SKEW_HOURS) - 0.02:
         return "invalid", f"时刻在未来：{m.group(0)}"
     return ("stale", f"已 {age:.0f} 小时未更新") if age > STALE_HOURS else ("ok", "")
 
 
 def handoff_problems(base):
-    """交接文件头（写于、基线提交、状态、触发原因）与“不写上下文百分比”。handoffs/ 下的新文件违规即错，旧位置的文件只告警。"""
+    """交接文件头（写于、基线提交、状态、触发原因）与“不写上下文百分比”。handoffs/ 下的新文件违规即错（含命名），旧位置的文件只告警。"""
     errors, warns = [], []
     places = [(HANDOFF_DIR, True)] + [(d, False) for d in OLD_HANDOFFS]
     for folder, strict in places:
@@ -136,15 +145,28 @@ def handoff_problems(base):
         if not os.path.isdir(full):
             continue
         for f in sorted(os.listdir(full)):
-            if not (f.startswith("HANDOFF") and f.endswith(".md")):
+            if f.startswith(".") or not f.endswith(".md"):
                 continue
-            head = "\n".join(open(os.path.join(full, f), encoding="utf-8").read().split("\n")[:14])
+            if not f.startswith("HANDOFF"):
+                if strict:
+                    errors.append(f"{folder}/{f}：文件名须为 HANDOFF_<原会话>_<YYYY-MM-DD>.md")
+                continue
             found = []
-            for key, pattern in (("写于", r"- 写于：\d{4}-\d{2}-\d{2} \d{2}:\d{2}"), ("基线提交", r"- 基线提交：[0-9a-f]{7,40}"),
-                                 ("状态", rf"- 状态：({'|'.join(HANDOFF_STATES)})"), ("触发原因", r"- 触发原因：\S")):
-                if not re.search(pattern, head):
-                    found.append(f"缺「{key}」")
-            if re.search(r"上下文(约|已用|占用)?\s*\d+\s*%", head):
+            if strict and not re.fullmatch(r"HANDOFF_[a-z0-9-]+_\d{4}-\d{2}-\d{2}\.md", f):
+                found.append("文件名须为 HANDOFF_<原会话>_<YYYY-MM-DD>.md")
+            text = open(os.path.join(full, f), encoding="utf-8").read()
+            head = text.split("\n## ")[0]   # 第一个二级标题之前
+            for key, pattern in (("写于", r"(?m)^- 写于：(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\s*$"), ("基线提交", r"(?m)^- 基线提交：[0-9a-f]{7,40}\s*$"),
+                                 ("状态", rf"(?m)^- 状态：({'|'.join(HANDOFF_STATES)})\s*$"), ("触发原因", r"(?m)^- 触发原因：\S.*$")):
+                m = re.search(pattern, head)
+                if not m:
+                    found.append(f"缺「{key}」或写法不合规")
+                elif key == "写于":
+                    try:
+                        datetime.datetime.strptime(m.group(1), "%Y-%m-%d %H:%M")
+                    except ValueError:
+                        found.append(f"写于时刻无效：{m.group(1)}")
+            if re.search(r"上下文.{0,6}\d+\s*[%％]", head):
                 found.append("写了上下文百分比（只写触发原因）")
             if found:
                 (errors if strict else warns).append(f"{folder}/{f}：{'；'.join(found)}")
@@ -216,9 +238,11 @@ def self_test():
     rejects("长期会话缺上下文文档", lambda: check([long_lived], [], yes))
     check([dict(long_lived, 上下文文档=f"- `docs/a.md`\n- `{own}`")], [], yes)
     rejects("画像写已交接", lambda: parse_profile(good.rstrip("\n").rsplit("\n", 1)[0] + "\n已交接给 one-y\n", "one-x.md"))
-    now = datetime.datetime(2026, 10, 16, 12, 0)
-    for status, mark in (("2026-10-16 11:30 在岗", "ok"), ("2026-10-15 11:00 在岗", "stale"), ("2026-10-15 12:00 在岗", "ok"), ("在岗", "missing"), ("2026-13-40 25:61 x", "invalid"),
-                         ("2026-10-17 12:00 在岗", "invalid")):
+    rejects("画像带时间戳写已交接", lambda: parse_profile(good.rstrip("\n").rsplit("\n", 1)[0] + "\n2026-10-16 12:00+02:00 已交接给 one-y\n", "one-x.md"))
+    parse_profile(good.rstrip("\n").rsplit("\n", 1)[0] + "\n接手 one-y 已交接的 P2\n", "one-x.md")   # 合法：不是以已交接开头
+    now = datetime.datetime(2026, 10, 16, 12, 0, tzinfo=datetime.timezone.utc)
+    for status, mark in (("2026-10-16 11:30+00:00 在岗", "ok"), ("2026-10-16 11:30 在岗", "ok"), ("2026-10-15 11:00 在岗", "stale"), ("2026-10-15 12:00 在岗", "ok"), ("在岗", "missing"), ("2026-13-40 25:61 x", "invalid"),
+                         ("2026-10-17 12:00 在岗", "invalid"), ("2026-10-16 23:00 在岗", "ok"), ("2026-10-16 14:30+02:00 在岗", "invalid"), ("2026-10-16 12:30+13:00 在岗", "ok")):
         if freshness(status, now)[0] != mark:
             failures.append(f"freshness({status!r}) 应为 {mark}：{freshness(status, now)}")
     if "【过期" not in render([dict(p, 当前状态="2026-10-10 10:00 旧", 上下文文档=f"`{own}`")], [], now) or "【无时间戳】" not in render([dict(p, 上下文文档=f"`{own}`")], [], now):
@@ -236,6 +260,19 @@ def self_test():
         errors, _ = handoff_problems(d)
         if len(errors) != 1 or "缺「状态」" not in errors[0] or "百分比" not in errors[0]:
             failures.append(f"交接文件检查：新目录违规应报错：{errors}")
+        os.remove(os.path.join(d, HANDOFF_DIR, "HANDOFF_bad.md"))
+        for name, text in (("HANDOFF_c_2026-10-16.md", ok_head.replace("基线提交：abc1234", "基线提交：abc1234zz")), ("HANDOFF_d_2026-10-16.md", ok_head.replace("状态：有效", "状态：有效中")),
+                           ("HANDOFF_e_2026-10-16.md", ok_head.replace("2026-10-16 12:00", "2026-13-40 99:99")), ("HANDOFF_f_2026-10-16.md", ok_head.replace("- 基线提交：abc1234\n", "")),
+                           ("HANDOFF_g_2026-10-16.md", ok_head + "\n上下文用了 75％\n"), ("HANDOFF_h.md", ok_head), ("notes.md", ok_head),
+                           ("HANDOFF_i_2026-10-16.md", ok_head.replace("触发原因：批次边界", "触发原因：批次边界，上下文约 80%"))):
+            open(os.path.join(d, HANDOFF_DIR, name), "w", encoding="utf-8").write(text)
+        errors, _ = handoff_problems(d)
+        flagged = sorted(e.split("：")[0].split("/")[1] for e in errors)
+        if flagged != ["HANDOFF_c_2026-10-16.md", "HANDOFF_d_2026-10-16.md", "HANDOFF_e_2026-10-16.md", "HANDOFF_f_2026-10-16.md", "HANDOFF_g_2026-10-16.md", "HANDOFF_h.md", "HANDOFF_i_2026-10-16.md", "notes.md"]:
+            failures.append(f"交接文件检查：违规文件应逐个报出：{flagged}")
+        open(os.path.join(d, HANDOFF_DIR, "HANDOFF_g_2026-10-16.md"), "w", encoding="utf-8").write(ok_head + "\n## 1. 先读\n\n上下文用了 75%\n")   # 正文里提到百分比不算头部违规
+        if any("HANDOFF_g" in e for e in handoff_problems(d)[0]):
+            failures.append("交接文件检查：只查头部（第一个二级标题之前）的百分比")
     rejects("退役行格式", lambda: parse_retired("- one-a 已交接\n"))
     if parse_retired("<!-- 注释 -->\n- psa-coordinator-1：已交接\n") != [("psa-coordinator-1", "已交接")]:
         failures.append("退役行解析不对")
