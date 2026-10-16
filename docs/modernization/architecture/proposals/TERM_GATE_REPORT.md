@@ -1,48 +1,58 @@
-<!-- 快照 2026-10-16：流程目录取自 one-architecture 分支 claude/one-architecture-adr-governance（尚未合入 main）。重新生成：python3 -I docs/modernization/architecture/proposals/term_gate_check.py --catalog <流程目录> --out 本文件 -->
+<!-- 快照 2026-10-16：流程目录取自 one-architecture 分支 claude/one-architecture-adr-governance（尚未合入 main）；重新生成见 term_gate_check.py 文件头 -->
 # 架构用语门禁报告（term_gate_check.py 生成）
 
 
-检查名字 1592 个（去重后 1278 个），违规 1194 条。
+检查名字 1599 个（去重后 1256 个），违规 1159 条。
 
-| 来源 | 项 | 检查数 | 外部系统 | 方言 | 弃用词 | acl 词 | 待确认 | 未登记 | 提议中 | kind 不符 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| 价值流 | 价值流 | 13 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| 价值流 | 阶段 | 51 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
-| 信息图 | 对象 | 89 | 0 | 0 | 0 | 0 | 0 | 59 | 4 | 0 |
-| 信息图 | 状态 | 401 | 0 | 13 | 0 | 0 | 0 | 330 | 6 | 0 |
-| 流程目录 | 流程 | 190 | 7 | 9 | 0 | 0 | 0 | 0 | 0 | 0 |
-| 聚合稿 | 事件 | 259 | 0 | 0 | 0 | 0 | 0 | 247 | 10 | 0 |
-| 聚合稿 | 命令 | 392 | 0 | 0 | 0 | 0 | 0 | 391 | 0 | 1 |
-| 聚合稿 | 聚合 | 109 | 0 | 0 | 0 | 0 | 0 | 78 | 10 | 9 |
-| 能力 | 能力 | 88 | 0 | 0 | 0 | 0 | 0 | 59 | 4 | 0 |
+| 来源 | 项 | 检查数 | 外部系统 | 方言 | 弃用词 | acl 词 | 待确认 | 未登记 | 提议中 | kind 不符 | 跨 bc 待判 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 价值流 | 价值流 | 13 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| 价值流 | 阶段 | 51 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| 信息图 | 对象 | 90 | 0 | 0 | 0 | 0 | 0 | 60 | 4 | 0 | 0 |
+| 信息图 | 状态 | 418 | 0 | 0 | 0 | 0 | 0 | 346 | 6 | 0 | 13 |
+| 流程目录 | 流程 | 190 | 12 | 11 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| 聚合稿 | 事件 | 242 | 0 | 2 | 0 | 1 | 0 | 192 | 11 | 2 | 0 |
+| 聚合稿 | 命令 | 395 | 0 | 0 | 0 | 0 | 0 | 394 | 0 | 1 | 0 |
+| 聚合稿 | 外部引用 | 3 | 0 | 0 | 0 | 0 | 0 | 3 | 0 | 0 | 0 |
+| 聚合稿 | 聚合 | 109 | 0 | 0 | 0 | 0 | 0 | 78 | 10 | 9 | 0 |
+| 能力 | 能力 | 88 | 0 | 0 | 0 | 0 | 0 | 59 | 4 | 0 | 0 |
 
-## 外部系统（7）
+## 外部系统（12）
 
 - 流程目录·流程「入职开通企业微信账号并绑定外部身份」含外部系统用语「企业微信」（PRC-137）
+- 流程目录·流程「同步U8C主数据」含外部系统用语「U8C」（PRC-195）
+- 流程目录·流程「向差旅服务商同步员工与组织」含外部系统用语「差旅服务商」（PRC-177）
 - 流程目录·流程「投递企业微信通知」含外部系统用语「企业微信」（PRC-189）
 - 流程目录·流程「拉取企业微信打卡记录」含外部系统用语「企业微信」（PRC-200）
+- 流程目录·流程「推送凭证到U8C」含外部系统用语「U8C」（PRC-194）
 - 流程目录·流程「校验致远单点登录票据」含外部系统用语「致远」（PRC-187）
+- 流程目录·流程「核对差旅服务商月账单并确认应付」含外部系统用语「差旅服务商」（PRC-171）
+- 流程目录·流程「申请出差并同步差旅服务商」含外部系统用语「差旅服务商」（PRC-172）
 - 流程目录·流程「离职停用企业微信账号并解绑」含外部系统用语「企业微信」（PRC-138）
 - 流程目录·流程「识别企业微信登录身份」含外部系统用语「企业微信」（PRC-188）
 - 流程目录·流程「读取老系统待办」含外部系统用语「老系统」（PRC-192）
 
-## 方言（23）
+## 方言（14）
 
-- 价值流·阶段「考勤确认」含方言「考勤」，应作「考勤与休假」（词条属 organization.leave，词条按 bc 分立，跨 bc 同名时人工判）（VS-13.1）
-- 信息图·状态「停用」方言，应作「账号停用」（词条属 platform.identity，词条按 bc 分立，跨 bc 同名时人工判）（OBJ-01, OBJ-02, OBJ-03, OBJ-24, OBJ-25, OBJ-50…共 9 处）
-- 信息图·状态「已分配」方言，应作「任务已分配」（词条属 platform.approval，词条按 bc 分立，跨 bc 同名时人工判）（OBJ-86）
-- 信息图·状态「已完成」方言，应作「审批已完成」（词条属 platform.approval，词条按 bc 分立，跨 bc 同名时人工判）（OBJ-05, OBJ-30, OBJ-105）
-- 流程目录·流程「发布假期规则版本」含方言「规则版本」，应作「编号规则版本」（词条属 platform.numbering，词条按 bc 分立，跨 bc 同名时人工判）（PRC-162）
-- 流程目录·流程「发布薪酬规则版本」含方言「规则版本」，应作「编号规则版本」（词条属 platform.numbering，词条按 bc 分立，跨 bc 同名时人工判）（PRC-180）
-- 流程目录·流程「发票红冲后冲减应收」含方言「红冲」，应作「冲销」（词条属 operations.facts，词条按 bc 分立，跨 bc 同名时人工判）（PRC-150）
-- 流程目录·流程「填报经营产值」含方言「产值」，应作「收入确认」（词条属 receivables.wip，词条按 bc 分立，跨 bc 同名时人工判）（PRC-151）
-- 流程目录·流程「导入考勤记录并补卡」含方言「考勤」，应作「考勤与休假」（词条属 organization.leave，词条按 bc 分立，跨 bc 同名时人工判）（PRC-115）
-- 流程目录·流程「批准并生效分摊规则版本」含方言「规则版本」，应作「编号规则版本」（词条属 platform.numbering，词条按 bc 分立，跨 bc 同名时人工判）（PRC-97）
-- 流程目录·流程「提出并生效协议变更或签证」含方言「签证」，应作「现场签证」（词条属 contract.agreement，词条按 bc 分立，跨 bc 同名时人工判）（PRC-48）
-- 流程目录·流程「生成、确认并锁定月度考勤」含方言「考勤」，应作「考勤与休假」（词条属 organization.leave，词条按 bc 分立，跨 bc 同名时人工判）（PRC-118）
-- 流程目录·流程「登记候选人并作出录用决定」含方言「决定」，应作「审批决定」（词条属 platform.approval，词条按 bc 分立，跨 bc 同名时人工判）（PRC-82）
+- 价值流·阶段「考勤确认」含「考勤」，应作「考勤与休假」（词条属 organization.leave）（VS-13.1）
+- 流程目录·流程「发布假期规则版本」含「规则版本」，应作「编号规则版本」（词条属 platform.numbering）（PRC-162）
+- 流程目录·流程「发布薪酬规则版本」含「规则版本」，应作「编号规则版本」（词条属 platform.numbering）（PRC-180）
+- 流程目录·流程「发票红冲后冲减应收」含「红冲」，应作「冲销」（词条属 operations.facts）（PRC-150）
+- 流程目录·流程「填报经营产值」含「产值」，应作「收入确认」（词条属 receivables.wip）（PRC-151）
+- 流程目录·流程「导入考勤记录并补卡」含「考勤」，应作「考勤与休假」（词条属 organization.leave）（PRC-115）
+- 流程目录·流程「批准并生效分摊规则版本」含「规则版本」，应作「编号规则版本」（词条属 platform.numbering）（PRC-97）
+- 流程目录·流程「提出并生效协议变更或签证」含「签证」，应作「现场签证」（词条属 contract.agreement）（PRC-48）
+- 流程目录·流程「生成、确认并锁定月度考勤」含「考勤」，应作「考勤与休假」（词条属 organization.leave）（PRC-118）
+- 流程目录·流程「登记候选人并作出录用决定」含「决定」，应作「审批决定」（词条属 platform.approval）（PRC-82）
+- 流程目录·流程「红冲销项发票」含「红冲」，应作「冲销」（词条属 operations.facts）（PRC-58）
+- 流程目录·流程「销售合同归档」含「销售合同」，应作「合同」（词条属 contract.agreement）（PRC-141）
+- 聚合稿·事件「已完成」应作「审批已完成」（词条属 platform.approval）（AGG-102, AGG-20）
 
-## 未登记（1164）
+## acl 词（1）
+
+- 聚合稿·事件「已停用」只有防腐层（acl）词条，不进领域（AGG-01）
+
+## 未登记（1132）
 
 - 信息图·对象「WBS 节点」terms.yaml 与 bcs words 均无此名（OBJ-30）
 - 信息图·对象「会计分录」terms.yaml 与 bcs words 均无此名（OBJ-98）
@@ -51,6 +61,7 @@
 - 信息图·对象「保证金与押金」terms.yaml 与 bcs words 均无此名（OBJ-13）
 - 信息图·对象「公司资产」terms.yaml 与 bcs words 均无此名（OBJ-93）
 - 信息图·对象「内部评审」terms.yaml 与 bcs words 均无此名（OBJ-37）
+- 信息图·对象「分摊规则」terms.yaml 与 bcs words 均无此名（OBJ-78）
 - 信息图·对象「利润分配」terms.yaml 与 bcs words 均无此名（OBJ-112）
 - 信息图·对象「加班」terms.yaml 与 bcs words 均无此名（OBJ-72）
 - 信息图·对象「协议变更」terms.yaml 与 bcs words 均无此名（OBJ-09）
@@ -163,6 +174,7 @@
 - 信息图·状态「已交付」terms.yaml 与 bcs words 均无此名（OBJ-35）
 - 信息图·状态「已付」terms.yaml 与 bcs words 均无此名（OBJ-88）
 - 信息图·状态「已入账」terms.yaml 与 bcs words 均无此名（OBJ-83）
+- 信息图·状态「已公告」terms.yaml 与 bcs words 均无此名（OBJ-19）
 - 信息图·状态「已关联」terms.yaml 与 bcs words 均无此名（OBJ-53）
 - 信息图·状态「已关账」terms.yaml 与 bcs words 均无此名（OBJ-97）
 - 信息图·状态「已关闭」terms.yaml 与 bcs words 均无此名（OBJ-17, OBJ-60, OBJ-108）
@@ -171,6 +183,7 @@
 - 信息图·状态「已发出」terms.yaml 与 bcs words 均无此名（OBJ-106）
 - 信息图·状态「已发布」terms.yaml 与 bcs words 均无此名（OBJ-38, OBJ-107）
 - 信息图·状态「已发放」terms.yaml 与 bcs words 均无此名（OBJ-73, OBJ-104）
+- 信息图·状态「已发起」terms.yaml 与 bcs words 均无此名（OBJ-86）
 - 信息图·状态「已取得」terms.yaml 与 bcs words 均无此名（OBJ-83）
 - 信息图·状态「已取消」terms.yaml 与 bcs words 均无此名（OBJ-29, OBJ-44）
 - 信息图·状态「已变更」terms.yaml 与 bcs words 均无此名（OBJ-105）
@@ -188,9 +201,10 @@
 - 信息图·状态「已开具」terms.yaml 与 bcs words 均无此名（OBJ-83）
 - 信息图·状态「已开标」terms.yaml 与 bcs words 均无此名（OBJ-20）
 - 信息图·状态「已开票」terms.yaml 与 bcs words 均无此名（OBJ-82）
+- 信息图·状态「已开立」terms.yaml 与 bcs words 均无此名（OBJ-13）
 - 信息图·状态「已成功」terms.yaml 与 bcs words 均无此名（OBJ-86）
 - 信息图·状态「已执行」terms.yaml 与 bcs words 均无此名（OBJ-48）
-- 信息图·状态「已批准」terms.yaml 与 bcs words 均无此名（OBJ-26, OBJ-27, OBJ-31, OBJ-33, OBJ-41, OBJ-60…共 8 处）
+- 信息图·状态「已批准」terms.yaml 与 bcs words 均无此名（OBJ-26, OBJ-27, OBJ-31, OBJ-33, OBJ-41, OBJ-60…共 9 处）
 - 信息图·状态「已接受」terms.yaml 与 bcs words 均无此名（OBJ-108）
 - 信息图·状态「已提交」terms.yaml 与 bcs words 均无此名（OBJ-10, OBJ-60, OBJ-66, OBJ-88, OBJ-109）
 - 信息图·状态「已提交详细说明」terms.yaml 与 bcs words 均无此名（OBJ-41）
@@ -198,6 +212,7 @@
 - 信息图·状态「已提出」terms.yaml 与 bcs words 均无此名（OBJ-44）
 - 信息图·状态「已撤出」terms.yaml 与 bcs words 均无此名（OBJ-34）
 - 信息图·状态「已支付」terms.yaml 与 bcs words 均无此名（OBJ-112）
+- 信息图·状态「已暂停」terms.yaml 与 bcs words 均无此名（OBJ-29）
 - 信息图·状态「已核定」terms.yaml 与 bcs words 均无此名（OBJ-88, OBJ-104）
 - 信息图·状态「已核销」terms.yaml 与 bcs words 均无此名（OBJ-85, OBJ-86）
 - 信息图·状态「已满足」terms.yaml 与 bcs words 均无此名（OBJ-44）
@@ -249,15 +264,18 @@
 - 信息图·状态「待生效」terms.yaml 与 bcs words 均无此名（OBJ-07）
 - 信息图·状态「待申报」terms.yaml 与 bcs words 均无此名（OBJ-92）
 - 信息图·状态「待离职」terms.yaml 与 bcs words 均无此名（OBJ-56）
+- 信息图·状态「待缴」terms.yaml 与 bcs words 均无此名（OBJ-13）
 - 信息图·状态「待评审」terms.yaml 与 bcs words 均无此名（OBJ-37）
 - 信息图·状态「截止」terms.yaml 与 bcs words 均无此名（OBJ-19）
 - 信息图·状态「截止前撤回」terms.yaml 与 bcs words 均无此名（OBJ-20）
 - 信息图·状态「截止后撤销」terms.yaml 与 bcs words 均无此名（OBJ-20）
+- 信息图·状态「执行中」terms.yaml 与 bcs words 均无此名（OBJ-29）
 - 信息图·状态「批准」terms.yaml 与 bcs words 均无此名（OBJ-12, OBJ-72）
 - 信息图·状态「报告已收到」terms.yaml 与 bcs words 均无此名（OBJ-52）
 - 信息图·状态「拆除」terms.yaml 与 bcs words 均无此名（OBJ-46, OBJ-47）
 - 信息图·状态「招聘中」terms.yaml 与 bcs words 均无此名（OBJ-60）
 - 信息图·状态「拟派」terms.yaml 与 bcs words 均无此名（OBJ-34）
+- 信息图·状态「挂起」terms.yaml 与 bcs words 均无此名（OBJ-17）
 - 信息图·状态「提交」terms.yaml 与 bcs words 均无此名（OBJ-87）
 - 信息图·状态「提出」terms.yaml 与 bcs words 均无此名（OBJ-09, OBJ-33, OBJ-40）
 - 信息图·状态「撤回是转换」terms.yaml 与 bcs words 均无此名（OBJ-66）
@@ -280,8 +298,10 @@
 - 信息图·状态「未匹配」terms.yaml 与 bcs words 均无此名（OBJ-90）
 - 信息图·状态「未履行」terms.yaml 与 bcs words 均无此名（OBJ-08）
 - 信息图·状态「未开」terms.yaml 与 bcs words 均无此名（OBJ-97）
+- 信息图·状态「未开始」terms.yaml 与 bcs words 均无此名（OBJ-30）
 - 信息图·状态「未录用」terms.yaml 与 bcs words 均无此名（OBJ-56）
 - 信息图·状态「未结」terms.yaml 与 bcs words 均无此名（OBJ-85）
+- 信息图·状态「未维护」terms.yaml 与 bcs words 均无此名（OBJ-28）
 - 信息图·状态「未采信」terms.yaml 与 bcs words 均无此名（OBJ-52）
 - 信息图·状态「权限用的在职」terms.yaml 与 bcs words 均无此名（OBJ-56）
 - 信息图·状态「核查中」terms.yaml 与 bcs words 均无此名（OBJ-65）
@@ -289,7 +309,7 @@
 - 信息图·状态「注销」terms.yaml 与 bcs words 均无此名（OBJ-54, OBJ-64）
 - 信息图·状态「版本化」terms.yaml 与 bcs words 均无此名（OBJ-24, OBJ-25）
 - 信息图·状态「现场进行中」terms.yaml 与 bcs words 均无此名（OBJ-49）
-- 信息图·状态「生效」terms.yaml 与 bcs words 均无此名（OBJ-07, OBJ-26, OBJ-27, OBJ-48, OBJ-50, OBJ-74…共 7 处）
+- 信息图·状态「生效」terms.yaml 与 bcs words 均无此名（OBJ-07, OBJ-26, OBJ-27, OBJ-48, OBJ-50, OBJ-74…共 8 处）
 - 信息图·状态「生效区间版本」terms.yaml 与 bcs words 均无此名（OBJ-57）
 - 信息图·状态「申请」terms.yaml 与 bcs words 均无此名（OBJ-02, OBJ-12, OBJ-72）
 - 信息图·状态「确认」terms.yaml 与 bcs words 均无此名（OBJ-38）
@@ -303,11 +323,12 @@
 - 信息图·状态「编制中」terms.yaml 与 bcs words 均无此名（OBJ-32, OBJ-35, OBJ-100）
 - 信息图·状态「草拟」terms.yaml 与 bcs words 均无此名（OBJ-21, OBJ-26, OBJ-27, OBJ-31, OBJ-39, OBJ-44…共 12 处）
 - 信息图·状态「草案」terms.yaml 与 bcs words 均无此名（OBJ-05）
-- 信息图·状态「草稿」terms.yaml 与 bcs words 均无此名（OBJ-60, OBJ-66, OBJ-68, OBJ-73, OBJ-82, OBJ-88…共 7 处）
+- 信息图·状态「草稿」terms.yaml 与 bcs words 均无此名（OBJ-60, OBJ-66, OBJ-68, OBJ-73, OBJ-78, OBJ-81…共 9 处）
 - 信息图·状态「被修订版取代」terms.yaml 与 bcs words 均无此名（OBJ-31）
-- 信息图·状态「被取代」terms.yaml 与 bcs words 均无此名（OBJ-06, OBJ-07, OBJ-21, OBJ-26, OBJ-27, OBJ-35…共 7 处）
+- 信息图·状态「被取代」terms.yaml 与 bcs words 均无此名（OBJ-06, OBJ-07, OBJ-21, OBJ-26, OBJ-27, OBJ-35…共 8 处）
 - 信息图·状态「被没收」terms.yaml 与 bcs words 均无此名（OBJ-13）
 - 信息图·状态「被索赔」terms.yaml 与 bcs words 均无此名（OBJ-13）
+- 信息图·状态「规划」terms.yaml 与 bcs words 均无此名（OBJ-46）
 - 信息图·状态「视为批准」terms.yaml 与 bcs words 均无此名（OBJ-41）
 - 信息图·状态「计划」terms.yaml 与 bcs words 均无此名（OBJ-16, OBJ-105）
 - 信息图·状态「认缴」terms.yaml 与 bcs words 均无此名（OBJ-91）
@@ -320,7 +341,7 @@
 - 信息图·状态「起草」terms.yaml 与 bcs words 均无此名（OBJ-110）
 - 信息图·状态「超年限」terms.yaml 与 bcs words 均无此名（OBJ-47）
 - 信息图·状态「超设计使用年限」terms.yaml 与 bcs words 均无此名（OBJ-46）
-- 信息图·状态「跟进中」terms.yaml 与 bcs words 均无此名（OBJ-18）
+- 信息图·状态「跟进中」terms.yaml 与 bcs words 均无此名（OBJ-17, OBJ-18）
 - 信息图·状态「过去日期锁定」terms.yaml 与 bcs words 均无此名（OBJ-28）
 - 信息图·状态「返工中」terms.yaml 与 bcs words 均无此名（OBJ-30）
 - 信息图·状态「进项转出」terms.yaml 与 bcs words 均无此名（OBJ-83）
@@ -342,72 +363,16 @@
 - 信息图·状态「降级」terms.yaml 与 bcs words 均无此名（OBJ-65）
 - 信息图·状态「随报价版本冻结」terms.yaml 与 bcs words 均无此名（OBJ-22）
 - 信息图·状态「面试中」terms.yaml 与 bcs words 均无此名（OBJ-56）
-- 聚合稿·事件「AcceptanceReturned」terms.yaml 与 bcs words 均无此名（AGG-27）
-- 聚合稿·事件「AccountingPeriodClosed」terms.yaml 与 bcs words 均无此名（AGG-81）
-- 聚合稿·事件「ArOverdueDetected」terms.yaml 与 bcs words 均无此名（AGG-49）
-- 聚合稿·事件「ArWrittenOff」terms.yaml 与 bcs words 均无此名（AGG-49）
-- 聚合稿·事件「BudgetAdjusted」terms.yaml 与 bcs words 均无此名（AGG-80）
-- 聚合稿·事件「BudgetReleased」terms.yaml 与 bcs words 均无此名（AGG-80）
-- 聚合稿·事件「BudgetReserved」terms.yaml 与 bcs words 均无此名（AGG-80）
-- 聚合稿·事件「BusinessFactAttributed」terms.yaml 与 bcs words 均无此名（AGG-77）
-- 聚合稿·事件「BusinessFactRestated」terms.yaml 与 bcs words 均无此名（AGG-77）
-- 聚合稿·事件「CashReceived」terms.yaml 与 bcs words 均无此名（AGG-50）
-- 聚合稿·事件「ChangeOrderApproved」terms.yaml 与 bcs words 均无此名（AGG-15）
-- 聚合稿·事件「ClaimAsserted」terms.yaml 与 bcs words 均无此名（AGG-16）
-- 聚合稿·事件「ClaimSettled」terms.yaml 与 bcs words 均无此名（AGG-16）
-- 聚合稿·事件「ContractSigned」terms.yaml 与 bcs words 均无此名（AGG-13）
-- 聚合稿·事件「Employed」terms.yaml 与 bcs words 均无此名（AGG-62）
-- 聚合稿·事件「Halted」terms.yaml 与 bcs words 均无此名（AGG-17）
-- 聚合稿·事件「InvoiceEligibilityConfirmed」terms.yaml 与 bcs words 均无此名（AGG-45）
-- 聚合稿·事件「InvoiceIssued」terms.yaml 与 bcs words 均无此名（AGG-46）
-- 聚合稿·事件「OpportunityAccepted」terms.yaml 与 bcs words 均无此名（AGG-10）
-- 聚合稿·事件「Regularized」terms.yaml 与 bcs words 均无此名（AGG-17）
-- 聚合稿·事件「RevenueRecognized」terms.yaml 与 bcs words 均无此名（AGG-44）
-- 聚合稿·事件「Separated」terms.yaml 与 bcs words 均无此名（AGG-62）
-- 聚合稿·事件「SiteVisaConfirmed」terms.yaml 与 bcs words 均无此名（AGG-15）
-- 聚合稿·事件「TimesheetApproved」terms.yaml 与 bcs words 均无此名（AGG-39）
-- 聚合稿·事件「TimesheetRejected」terms.yaml 与 bcs words 均无此名（AGG-39）
-- 聚合稿·事件「TimesheetReturned」terms.yaml 与 bcs words 均无此名（AGG-39）
-- 聚合稿·事件「TimesheetSubmitted」terms.yaml 与 bcs words 均无此名（AGG-39）
-- 聚合稿·事件「WorkCalendarLockedDaysChanged」terms.yaml 与 bcs words 均无此名（AGG-68）
-- 聚合稿·事件「`AcceptanceReturned`」terms.yaml 与 bcs words 均无此名（AGG-27）
-- 聚合稿·事件「`AccountingPeriodClosed`」terms.yaml 与 bcs words 均无此名（AGG-81）
-- 聚合稿·事件「`ArOverdueDetected`」terms.yaml 与 bcs words 均无此名（AGG-49）
-- 聚合稿·事件「`ArWrittenOff`」terms.yaml 与 bcs words 均无此名（AGG-49）
-- 聚合稿·事件「`BudgetAdjusted`」terms.yaml 与 bcs words 均无此名（AGG-80）
-- 聚合稿·事件「`BudgetConsumed`」terms.yaml 与 bcs words 均无此名（AGG-80）
-- 聚合稿·事件「`BudgetReleased`」terms.yaml 与 bcs words 均无此名（AGG-80）
-- 聚合稿·事件「`BudgetReserved`」terms.yaml 与 bcs words 均无此名（AGG-80）
-- 聚合稿·事件「`BusinessFactAttributed`」terms.yaml 与 bcs words 均无此名（AGG-77）
-- 聚合稿·事件「`BusinessFactRestated`」terms.yaml 与 bcs words 均无此名（AGG-77）
-- 聚合稿·事件「`CashReceived`」terms.yaml 与 bcs words 均无此名（AGG-50）
-- 聚合稿·事件「`ChangeOrderApproved`」terms.yaml 与 bcs words 均无此名（AGG-15）
-- 聚合稿·事件「`ClaimAsserted`」terms.yaml 与 bcs words 均无此名（AGG-16）
-- 聚合稿·事件「`ClaimSettled`」terms.yaml 与 bcs words 均无此名（AGG-16）
-- 聚合稿·事件「`ContractSigned`」terms.yaml 与 bcs words 均无此名（AGG-13）
-- 聚合稿·事件「`CostAccumulated`」terms.yaml 与 bcs words 均无此名（AGG-43）
-- 聚合稿·事件「`Employed`」terms.yaml 与 bcs words 均无此名（AGG-62）
-- 聚合稿·事件「`Halted`」terms.yaml 与 bcs words 均无此名（AGG-17）
-- 聚合稿·事件「`ImpairmentBooked`；草案：分录已记账」terms.yaml 与 bcs words 均无此名（AGG-84）
-- 聚合稿·事件「`InvoiceEligibilityConfirmed`」terms.yaml 与 bcs words 均无此名（AGG-45）
-- 聚合稿·事件「`InvoiceIssued`」terms.yaml 与 bcs words 均无此名（AGG-46）
-- 聚合稿·事件「`MilestoneAccepted`」terms.yaml 与 bcs words 均无此名（AGG-21）
-- 聚合稿·事件「`OpportunityAccepted`」terms.yaml 与 bcs words 均无此名（AGG-10）
-- 聚合稿·事件「`ProposalCommitted`」terms.yaml 与 bcs words 均无此名（AGG-11）
-- 聚合稿·事件「`Regularized`」terms.yaml 与 bcs words 均无此名（AGG-17）
-- 聚合稿·事件「`RetentionMoneyReleaseDue`」terms.yaml 与 bcs words 均无此名（AGG-49）
-- 聚合稿·事件「`RevenueRecognized`」terms.yaml 与 bcs words 均无此名（AGG-44）
-- 聚合稿·事件「`Separated`；草案：人员已登记」terms.yaml 与 bcs words 均无此名（AGG-62）
-- 聚合稿·事件「`SiteVisaConfirmed`」terms.yaml 与 bcs words 均无此名（AGG-15）
-- 聚合稿·事件「`StatutoryRevenueBooked`」terms.yaml 与 bcs words 均无此名（AGG-84）
-- 聚合稿·事件「`TimesheetApproved`；新增草案：工时已过账」terms.yaml 与 bcs words 均无此名（AGG-39）
-- 聚合稿·事件「`WorkCalendarLockedDaysChanged`」terms.yaml 与 bcs words 均无此名（AGG-68）
+- 聚合稿·事件「Approved」英文名不在 terms.yaml 的 en 中（AGG-39）
+- 聚合稿·事件「Cancelled」英文名不在 terms.yaml 的 en 中（AGG-39）
+- 聚合稿·事件「OpportunityAccepted」英文名不在 terms.yaml 的 en 中（AGG-10）
+- 聚合稿·事件「ProposalCommitted」英文名不在 terms.yaml 的 en 中（AGG-11）
+- 聚合稿·事件「Rejected」英文名不在 terms.yaml 的 en 中（AGG-39）
+- 聚合稿·事件「Returned」英文名不在 terms.yaml 的 en 中（AGG-39）
 - 聚合稿·事件「不符合项已关闭」terms.yaml 与 bcs words 均无此名（AGG-28）
 - 聚合稿·事件「不符合项已发布」terms.yaml 与 bcs words 均无此名（AGG-28）
 - 聚合稿·事件「不符合项已确认」terms.yaml 与 bcs words 均无此名（AGG-28）
-- 聚合稿·事件「不符合项已确认 / 已发布 / 已关闭 / 已闭合」terms.yaml 与 bcs words 均无此名（AGG-28）
 - 聚合稿·事件「不符合项已闭合」terms.yaml 与 bcs words 均无此名（AGG-28）
-- 聚合稿·事件「个税与社保公积金申报已提交」terms.yaml 与 bcs words 均无此名（AGG-95）
 - 聚合稿·事件「交付物已封存」terms.yaml 与 bcs words 均无此名（AGG-27）
 - 聚合稿·事件「交付物已签发」terms.yaml 与 bcs words 均无此名（AGG-27）
 - 聚合稿·事件「交付物已认可」terms.yaml 与 bcs words 均无此名（AGG-27）
@@ -422,10 +387,8 @@
 - 聚合稿·事件「供方协议已结算」terms.yaml 与 bcs words 均无此名（AGG-55）
 - 聚合稿·事件「供方履约已确认」terms.yaml 与 bcs words 均无此名（AGG-57）
 - 聚合稿·事件「保函已到期」terms.yaml 与 bcs words 均无此名（AGG-51）
-- 聚合稿·事件「保函已到期 / 已被索赔」terms.yaml 与 bcs words 均无此名（AGG-51）
 - 聚合稿·事件「保证金已没收」terms.yaml 与 bcs words 均无此名（AGG-51）
 - 聚合稿·事件「保证金已缴」terms.yaml 与 bcs words 均无此名（AGG-51）
-- 聚合稿·事件「保证金已缴 / 已退 / 已没收」terms.yaml 与 bcs words 均无此名（AGG-51）
 - 聚合稿·事件「保证金已退」terms.yaml 与 bcs words 均无此名（AGG-51）
 - 聚合稿·事件「出资已实缴」terms.yaml 与 bcs words 均无此名（AGG-54）
 - 聚合稿·事件「出资已退回」terms.yaml 与 bcs words 均无此名（AGG-54）
@@ -438,24 +401,19 @@
 - 聚合稿·事件「加班已批准」terms.yaml 与 bcs words 均无此名（AGG-72）
 - 聚合稿·事件「加班已补偿」terms.yaml 与 bcs words 均无此名（AGG-72）
 - 聚合稿·事件「劳动合同已签订」terms.yaml 与 bcs words 均无此名（AGG-67）
-- 聚合稿·事件「劳动合同已签订 / 已终止」terms.yaml 与 bcs words 均无此名（AGG-67）
 - 聚合稿·事件「劳动合同已终止」terms.yaml 与 bcs words 均无此名（AGG-67）
 - 聚合稿·事件「协议价目版本已生效」terms.yaml 与 bcs words 均无此名（AGG-07）
 - 聚合稿·事件「协议已完成」terms.yaml 与 bcs words 均无此名（AGG-13）
 - 聚合稿·事件「协议已结算」terms.yaml 与 bcs words 均无此名（AGG-13）
 - 聚合稿·事件「参保已减员」terms.yaml 与 bcs words 均无此名（AGG-74）
 - 聚合稿·事件「参保已增员」terms.yaml 与 bcs words 均无此名（AGG-74）
-- 聚合稿·事件「参保已增员 / 已减员」terms.yaml 与 bcs words 均无此名（AGG-74）
 - 聚合稿·事件「发包人资料已确认」terms.yaml 与 bcs words 均无此名（AGG-32）
-- 聚合稿·事件「发包人资料已确认 / 已退回」terms.yaml 与 bcs words 均无此名（AGG-32）
 - 聚合稿·事件「发包人资料已退回」terms.yaml 与 bcs words 均无此名（AGG-32）
 - 聚合稿·事件「发票已红冲」terms.yaml 与 bcs words 均无此名（AGG-46）
 - 聚合稿·事件「可开票额度已更新」terms.yaml 与 bcs words 均无此名（AGG-44）
-- 聚合稿·事件「合同—项目关联已登记」terms.yaml 与 bcs words 均无此名（AGG-13）
 - 聚合稿·事件「商机已丢单」terms.yaml 与 bcs words 均无此名（AGG-10）
 - 聚合稿·事件「商票已逾期」terms.yaml 与 bcs words 均无此名（AGG-50）
 - 聚合稿·事件「外部检测报告已采信」terms.yaml 与 bcs words 均无此名（AGG-37）
-- 聚合稿·事件「外部检测报告已采信 / 未采信」terms.yaml 与 bcs words 均无此名（AGG-37）
 - 聚合稿·事件「外部检测报告未采信」terms.yaml 与 bcs words 均无此名（AGG-37）
 - 聚合稿·事件「奖金已核定」terms.yaml 与 bcs words 均无此名（AGG-76）
 - 聚合稿·事件「完工估算已批准」terms.yaml 与 bcs words 均无此名（AGG-23）
@@ -463,29 +421,43 @@
 - 聚合稿·事件「客户活动已变更」terms.yaml 与 bcs words 均无此名（AGG-102）
 - 聚合稿·事件「客户活动已完成」terms.yaml 与 bcs words 均无此名（AGG-102）
 - 聚合稿·事件「客户活动已计划」terms.yaml 与 bcs words 均无此名（AGG-102）
-- 聚合稿·事件「客户活动已计划 / 已变更 / 已完成 / 已取消」terms.yaml 与 bcs words 均无此名（AGG-102）
 - 聚合稿·事件「对账已完成」terms.yaml 与 bcs words 均无此名（AGG-101）
 - 聚合稿·事件「岗位已停用」terms.yaml 与 bcs words 均无此名（AGG-64）
 - 聚合稿·事件「工作包已作废」terms.yaml 与 bcs words 均无此名（AGG-20）
 - 聚合稿·事件「工作包已锁定」terms.yaml 与 bcs words 均无此名（AGG-20）
 - 聚合稿·事件「工时已认定」terms.yaml 与 bcs words 均无此名（AGG-39）
 - 聚合稿·事件「工时已过账」terms.yaml 与 bcs words 均无此名（AGG-39）
-- 聚合稿·事件「已有」terms.yaml 与 bcs words 均无此名（AGG-60）
-- 聚合稿·事件「已有 `TimesheetSubmitted/Approved/Returned/Rejected/Cancelled`」terms.yaml 与 bcs words 均无此名（AGG-39）
-- 聚合稿·事件「已有；草案：组织单元已调整」terms.yaml 与 bcs words 均无此名（AGG-61）
+- 聚合稿·事件「已作废」terms.yaml 与 bcs words 均无此名（AGG-45）
+- 聚合稿·事件「已修订」terms.yaml 与 bcs words 均无此名（AGG-107）
+- 聚合稿·事件「已关闭」terms.yaml 与 bcs words 均无此名（AGG-104, AGG-28, AGG-65）
+- 聚合稿·事件「已冻结」terms.yaml 与 bcs words 均无此名（AGG-87）
+- 聚合稿·事件「已减员」terms.yaml 与 bcs words 均无此名（AGG-74）
+- 聚合稿·事件「已发布」terms.yaml 与 bcs words 均无此名（AGG-28）
+- 聚合稿·事件「已取消」terms.yaml 与 bcs words 均无此名（AGG-102）
+- 聚合稿·事件「已变更」terms.yaml 与 bcs words 均无此名（AGG-102）
+- 聚合稿·事件「已废止」terms.yaml 与 bcs words 均无此名（AGG-107）
+- 聚合稿·事件「已恢复」terms.yaml 与 bcs words 均无此名（AGG-19）
+- 聚合稿·事件「已接受」terms.yaml 与 bcs words 均无此名（AGG-104）
+- 聚合稿·事件「已暂停」terms.yaml 与 bcs words 均无此名（AGG-01）
+- 聚合稿·事件「已没收」terms.yaml 与 bcs words 均无此名（AGG-51）
+- 聚合稿·事件「已终止」terms.yaml 与 bcs words 均无此名（AGG-67）
+- 聚合稿·事件「已被索赔」terms.yaml 与 bcs words 均无此名（AGG-51）
+- 聚合稿·事件「已跟进」terms.yaml 与 bcs words 均无此名（AGG-105）
+- 聚合稿·事件「已退」terms.yaml 与 bcs words 均无此名（AGG-51）
+- 聚合稿·事件「已销假」terms.yaml 与 bcs words 均无此名（AGG-70）
+- 聚合稿·事件「已销户」terms.yaml 与 bcs words 均无此名（AGG-87）
+- 聚合稿·事件「已闭合」terms.yaml 与 bcs words 均无此名（AGG-28）
 - 聚合稿·事件「市场活动已结束」terms.yaml 与 bcs words 均无此名（AGG-08）
 - 聚合稿·事件「应付已核销」terms.yaml 与 bcs words 均无此名（AGG-52）
 - 聚合稿·事件「应付已确认」terms.yaml 与 bcs words 均无此名（AGG-52）
 - 聚合稿·事件「应付已结清」terms.yaml 与 bcs words 均无此名（AGG-52）
 - 聚合稿·事件「应收已结清」terms.yaml 与 bcs words 均无此名（AGG-49）
 - 聚合稿·事件「延期已批准」terms.yaml 与 bcs words 均无此名（AGG-31）
-- 聚合稿·事件「延期已批准 / 已拒绝 / 视为批准」terms.yaml 与 bcs words 均无此名（AGG-31）
 - 聚合稿·事件「延期已拒绝」terms.yaml 与 bcs words 均无此名（AGG-31）
 - 聚合稿·事件「延期视为批准」terms.yaml 与 bcs words 均无此名（AGG-31）
 - 聚合稿·事件「建设工程已登记」terms.yaml 与 bcs words 均无此名（AGG-33）
 - 聚合稿·事件「开票申请已作废」terms.yaml 与 bcs words 均无此名（AGG-45）
 - 聚合稿·事件「开票申请已驳回」terms.yaml 与 bcs words 均无此名（AGG-45）
-- 聚合稿·事件「开票申请已驳回 / 已作废」terms.yaml 与 bcs words 均无此名（AGG-45）
 - 聚合稿·事件「录用决定已作出」terms.yaml 与 bcs words 均无此名（AGG-62）
 - 聚合稿·事件「往来单位已停用」terms.yaml 与 bcs words 均无此名（AGG-01）
 - 聚合稿·事件「往来单位已合并」terms.yaml 与 bcs words 均无此名（AGG-01）
@@ -503,7 +475,6 @@
 - 聚合稿·事件「报价版本已被取代」terms.yaml 与 bcs words 均无此名（AGG-12）
 - 聚合稿·事件「招聘需求已关闭」terms.yaml 与 bcs words 均无此名（AGG-65）
 - 聚合稿·事件「招聘需求已批准」terms.yaml 与 bcs words 均无此名（AGG-65）
-- 聚合稿·事件「招聘需求已批准 / 已关闭」terms.yaml 与 bcs words 均无此名（AGG-65）
 - 聚合稿·事件「授权表版本已生效」terms.yaml 与 bcs words 均无此名（AGG-94）
 - 聚合稿·事件「收款已分配」terms.yaml 与 bcs words 均无此名（AGG-50）
 - 聚合稿·事件「新基线已生效」terms.yaml 与 bcs words 均无此名（AGG-13）
@@ -513,6 +484,7 @@
 - 聚合稿·事件「服务产品版本已发布」terms.yaml 与 bcs words 均无此名（AGG-03）
 - 聚合稿·事件「期末结转已过账」terms.yaml 与 bcs words 均无此名（AGG-99）
 - 聚合稿·事件「期间余额快照已生成」terms.yaml 与 bcs words 均无此名（AGG-100）
+- 聚合稿·事件「未采信」terms.yaml 与 bcs words 均无此名（AGG-37）
 - 聚合稿·事件「标准工时版本已生效」terms.yaml 与 bcs words 均无此名（AGG-108）
 - 聚合稿·事件「框架限额占用被拒」terms.yaml 与 bcs words 均无此名（AGG-14）
 - 聚合稿·事件「检查已到期」terms.yaml 与 bcs words 均无此名（AGG-34）
@@ -521,18 +493,15 @@
 - 聚合稿·事件「检查表模板版本已生效」terms.yaml 与 bcs words 均无此名（AGG-36）
 - 聚合稿·事件「流水已导入」terms.yaml 与 bcs words 均无此名（AGG-88）
 - 聚合稿·事件「满意度调查已评分」terms.yaml 与 bcs words 均无此名（AGG-105）
-- 聚合稿·事件「满意度调查已评分 / 已跟进」terms.yaml 与 bcs words 均无此名（AGG-105）
 - 聚合稿·事件「满意度调查已跟进」terms.yaml 与 bcs words 均无此名（AGG-105）
 - 聚合稿·事件「激励方案已生效」terms.yaml 与 bcs words 均无此名（AGG-75）
 - 聚合稿·事件「独立性检查已有结论」terms.yaml 与 bcs words 均无此名（AGG-18）
 - 聚合稿·事件「申报已提交」terms.yaml 与 bcs words 均无此名（AGG-90）
 - 聚合稿·事件「知识条目已修订」terms.yaml 与 bcs words 均无此名（AGG-107）
 - 聚合稿·事件「知识条目已发布」terms.yaml 与 bcs words 均无此名（AGG-107）
-- 聚合稿·事件「知识条目已发布 / 已修订 / 已废止」terms.yaml 与 bcs words 均无此名（AGG-107）
 - 聚合稿·事件「知识条目已废止」terms.yaml 与 bcs words 均无此名（AGG-107）
 - 聚合稿·事件「科目表版本已生效」terms.yaml 与 bcs words 均无此名（AGG-82）
 - 聚合稿·事件「税款已缴纳」terms.yaml 与 bcs words 均无此名（AGG-90）
-- 聚合稿·事件「第 13 期启用登记已生效」terms.yaml 与 bcs words 均无此名（AGG-96）
 - 聚合稿·事件「线索已关闭」terms.yaml 与 bcs words 均无此名（AGG-09）
 - 聚合稿·事件「线索已确认」terms.yaml 与 bcs words 均无此名（AGG-09）
 - 聚合稿·事件「组织单元已调整」terms.yaml 与 bcs words 均无此名（AGG-61）
@@ -542,15 +511,14 @@
 - 聚合稿·事件「薪酬已批准」terms.yaml 与 bcs words 均无此名（AGG-73）
 - 聚合稿·事件「薪酬档案已变更」terms.yaml 与 bcs words 均无此名（AGG-93）
 - 聚合稿·事件「视为同意已成立」terms.yaml 与 bcs words 均无此名（AGG-44）
+- 聚合稿·事件「视为批准」terms.yaml 与 bcs words 均无此名（AGG-31）
 - 聚合稿·事件「角色已合格」terms.yaml 与 bcs words 均无此名（AGG-01）
-- 聚合稿·事件「角色已合格 / 已暂停 / 已停用」terms.yaml 与 bcs words 均无此名（AGG-01）
 - 聚合稿·事件「角色已暂停」terms.yaml 与 bcs words 均无此名（AGG-01）
 - 聚合稿·事件「计费系数版本已生效」terms.yaml 与 bcs words 均无此名（AGG-06）
 - 聚合稿·事件「设计变更已发出」terms.yaml 与 bcs words 均无此名（AGG-30）
 - 聚合稿·事件「证据已封存」terms.yaml 与 bcs words 均无此名（AGG-38）
 - 聚合稿·事件「证据类型已开放」terms.yaml 与 bcs words 均无此名（AGG-92）
 - 聚合稿·事件「请假已批准」terms.yaml 与 bcs words 均无此名（AGG-70）
-- 聚合稿·事件「请假已批准 / 已销假 / 已撤销」terms.yaml 与 bcs words 均无此名（AGG-70）
 - 聚合稿·事件「请假已撤销」terms.yaml 与 bcs words 均无此名（AGG-70）
 - 聚合稿·事件「请假已销假」terms.yaml 与 bcs words 均无此名（AGG-70）
 - 聚合稿·事件「费率版本已生效」terms.yaml 与 bcs words 均无此名（AGG-05）
@@ -563,7 +531,6 @@
 - 聚合稿·事件「资质已撤销」terms.yaml 与 bcs words 均无此名（AGG-02）
 - 聚合稿·事件「资金账户已冻结」terms.yaml 与 bcs words 均无此名（AGG-87）
 - 聚合稿·事件「资金账户已开立」terms.yaml 与 bcs words 均无此名（AGG-87）
-- 聚合稿·事件「资金账户已开立 / 已冻结 / 已销户」terms.yaml 与 bcs words 均无此名（AGG-87）
 - 聚合稿·事件「资金账户已销户」terms.yaml 与 bcs words 均无此名（AGG-87）
 - 聚合稿·事件「返工已认定」terms.yaml 与 bcs words 均无此名（AGG-29）
 - 聚合稿·事件「返工认定已撤销」terms.yaml 与 bcs words 均无此名（AGG-29）
@@ -573,7 +540,6 @@
 - 聚合稿·事件「银行账户已变更」terms.yaml 与 bcs words 均无此名（AGG-01）
 - 聚合稿·事件「阶段已完成」terms.yaml 与 bcs words 均无此名（AGG-20）
 - 聚合稿·事件「阶段已开始」terms.yaml 与 bcs words 均无此名（AGG-20）
-- 聚合稿·事件「阶段已开始 / 已完成」terms.yaml 与 bcs words 均无此名（AGG-20）
 - 聚合稿·事件「阶段类型版本已发布」terms.yaml 与 bcs words 均无此名（AGG-04）
 - 聚合稿·事件「限额已占用」terms.yaml 与 bcs words 均无此名（AGG-14）
 - 聚合稿·事件「限额已释放」terms.yaml 与 bcs words 均无此名（AGG-14）
@@ -582,14 +548,12 @@
 - 聚合稿·事件「项目已归档」terms.yaml 与 bcs words 均无此名（AGG-19）
 - 聚合稿·事件「项目已恢复」terms.yaml 与 bcs words 均无此名（AGG-19）
 - 聚合稿·事件「项目已暂停」terms.yaml 与 bcs words 均无此名（AGG-19）
-- 聚合稿·事件「项目已暂停 / 已恢复」terms.yaml 与 bcs words 均无此名（AGG-19）
 - 聚合稿·事件「项目预算已锁定」terms.yaml 与 bcs words 均无此名（AGG-22）
 - 聚合稿·事件「风险与问题已关闭」terms.yaml 与 bcs words 均无此名（AGG-104）
 - 聚合稿·事件「风险与问题已接受」terms.yaml 与 bcs words 均无此名（AGG-104）
 - 聚合稿·事件「风险与问题已登记」terms.yaml 与 bcs words 均无此名（AGG-104）
-- 聚合稿·事件「风险与问题已登记 / 已关闭 / 已接受」terms.yaml 与 bcs words 均无此名（AGG-104）
 - 聚合稿·事件「风险交付授权已批准」terms.yaml 与 bcs words 均无此名（AGG-17）
-- 聚合稿·命令「—」terms.yaml 与 bcs words 均无此名（AGG-47, AGG-78, AGG-83）
+- 聚合稿·命令「—」terms.yaml 与 bcs words 均无此名（AGG-47, AGG-78, AGG-83, REF-03, REF-02）
 - 聚合稿·命令「上传证据摘要」terms.yaml 与 bcs words 均无此名（AGG-38）
 - 聚合稿·命令「不采信外部检测报告」terms.yaml 与 bcs words 均无此名（AGG-37）
 - 聚合稿·命令「作出录用决定」terms.yaml 与 bcs words 均无此名（AGG-62）
@@ -825,6 +789,7 @@
 - 聚合稿·命令「登记建设工程」terms.yaml 与 bcs words 均无此名（AGG-33）
 - 聚合稿·命令「登记往来单位」terms.yaml 与 bcs words 均无此名（AGG-01）
 - 聚合稿·命令「登记我方参与记录」terms.yaml 与 bcs words 均无此名（AGG-33）
+- 聚合稿·命令「登记招标项目」terms.yaml 与 bcs words 均无此名（REF-01）
 - 聚合稿·命令「登记提交轮次送达」terms.yaml 与 bcs words 均无此名（AGG-27）
 - 聚合稿·命令「登记整改申报」terms.yaml 与 bcs words 均无此名（AGG-28）
 - 聚合稿·命令「登记未中标」terms.yaml 与 bcs words 均无此名（AGG-11）
@@ -952,6 +917,9 @@
 - 聚合稿·命令「驳回开票申请」terms.yaml 与 bcs words 均无此名（AGG-45）
 - 聚合稿·命令「驳回报价评审」terms.yaml 与 bcs words 均无此名（AGG-12）
 - 聚合稿·命令「驳回释放」terms.yaml 与 bcs words 均无此名（AGG-89）
+- 聚合稿·外部引用「招标项目登记」terms.yaml 与 bcs words 均无此名（REF-01）
+- 聚合稿·外部引用「财务」terms.yaml 与 bcs words 均无此名（REF-03）
+- 聚合稿·外部引用「项目结项编排」terms.yaml 与 bcs words 均无此名（REF-02）
 - 聚合稿·聚合「个税扣缴与社保公积金申报」terms.yaml 与 bcs words 均无此名（AGG-95）
 - 聚合稿·聚合「交付计划版本」terms.yaml 与 bcs words 均无此名（AGG-21）
 - 聚合稿·聚合「人员薪酬档案」terms.yaml 与 bcs words 均无此名（AGG-93）
@@ -1090,7 +1058,7 @@
 - 能力·能力「项目预算」terms.yaml 与 bcs words 均无此名（CAP-029.032）
 - 能力·能力「项目风险与问题」terms.yaml 与 bcs words 均无此名（CAP-029.108）
 
-## 提议中（34），提示项不计违规
+## 提议中（35），提示项不计违规
 
 - 信息图·对象「建设工程」提议术语，待 one-glossary 登记（OBJ-46）
 - 信息图·对象「往来单位」提议术语，待 one-glossary 登记（OBJ-01）
@@ -1103,6 +1071,7 @@
 - 聚合稿·事件「分包变更已生效」提议术语，待 one-glossary 登记（AGG-56）
 - 聚合稿·事件「协议已终止」提议术语，待 one-glossary 登记（AGG-13）
 - 聚合稿·事件「商机已放弃」提议术语，待 one-glossary 登记（AGG-10）
+- 聚合稿·事件「已拒绝」提议术语，待 one-glossary 登记（AGG-31）
 - 聚合稿·事件「投标已中标」提议术语，待 one-glossary 登记（AGG-11）
 - 聚合稿·事件「投标未中标」提议术语，待 one-glossary 登记（AGG-11）
 - 聚合稿·事件「无异议已声明」提议术语，待 one-glossary 登记（AGG-27）
@@ -1125,8 +1094,10 @@
 - 能力·能力「投标」提议术语，待 one-glossary 登记（CAP-018.020）
 - 能力·能力「招标项目」提议术语，待 one-glossary 登记（CAP-019）
 
-## kind 不符（10），提示项不计违规
+## kind 不符（12），提示项不计违规
 
+- 聚合稿·事件「已撤销」词条 kind 为 value_object，用作事件名（AGG-70）
+- 聚合稿·事件「已退回」词条 kind 为 state，用作事件名（AGG-32）
 - 聚合稿·命令「预算占用」词条 kind 为 domain_event，用作命令名（AGG-80）
 - 聚合稿·聚合「交付物」词条 kind 为 entity，用作聚合名（AGG-27）
 - 聚合稿·聚合「人员」词条 kind 为 entity，用作聚合名（AGG-62）
@@ -1137,3 +1108,9 @@
 - 聚合稿·聚合「收入确认」词条 kind 为 business_rule，用作聚合名（AGG-47）
 - 聚合稿·聚合「组织单元」词条 kind 为 entity，用作聚合名（AGG-61）
 - 聚合稿·聚合「账簿」词条 kind 为 entity，用作聚合名（AGG-83）
+
+## 跨 bc 待判（13），提示项不计违规
+
+- 信息图·状态「停用」方言：应作「账号停用」（词条属 platform.identity，状态名按 bc 分立）（OBJ-01, OBJ-02, OBJ-03, OBJ-24, OBJ-25, OBJ-50…共 9 处）
+- 信息图·状态「已分配」方言：应作「任务已分配」（词条属 platform.approval，状态名按 bc 分立）（OBJ-86）
+- 信息图·状态「已完成」方言：应作「审批已完成」（词条属 platform.approval，状态名按 bc 分立）（OBJ-05, OBJ-30, OBJ-105）

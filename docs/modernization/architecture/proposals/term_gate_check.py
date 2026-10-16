@@ -37,6 +37,8 @@ CAP_FILE = HERE / "capabilities.v2.yaml"
 CATALOG = HERE / "closeout" / "process-catalog.yaml"
 KIND_FOR = {"command": ("command",), "event": ("domain_event",), "aggregate": ("aggregate",)}
 ORDER = ("外部系统", "方言", "弃用词", "acl 词", "待确认", "未登记")
+HINTS = ("提议中", "kind 不符", "跨 bc 待判")
+KIND_ZH = {"command": "命令", "event": "事件", "aggregate": "聚合"}
 STATE_MAX = 8
 
 
@@ -60,41 +62,59 @@ def split_top(s, seps="；;"):
     return out + [cur]
 
 
+def catalog_systems(doc):
+    """流程目录 external_system 字段里的系统名（自由文本：「A8（致远协同）」「老系统、A8」），补 bcs.yaml 登记不全的缺口。"""
+    out = set()
+    for p in (doc or {}).get("processes") or []:
+        v = p.get("external_system")
+        for raw in ([v] if isinstance(v, str) else v or []):
+            for part in split_top(str(raw), "、,，"):
+                n = strip_note(part)
+                if n and n not in ("无", "—"):
+                    out.add(n)
+                    out.update(x for x in re.findall(r"[（(]([^）)]{2,8})[）)]", part) if not re.search(r"[，。；：、]|只读|按", x))
+    return out
+
+
 class Vocab:
-    def __init__(self, terms, bcs, proposed=()):
-        self.formal, self.deprecated, self.acl, self.kinds = set(), set(), set(), defaultdict(set)
-        self.dialect, self.undetermined, self.systems, self.proposed = {}, set(), {}, {t["zh"] for t in proposed if t.get("zh")}
+    def __init__(self, terms, bcs, proposed=(), extra_systems=()):
+        self.formal, self.acl, self.en = set(), set(), set()
+        self.kinds, self.bad = defaultdict(set), {}
+        self.systems, self.words = {}, set()
+        self.proposed = {t["zh"] for t in proposed if t.get("zh")}
+        self.en |= {t["en"] for t in proposed if t.get("en")}
         for t in terms:
             zh = t.get("zh")
             if not zh:
                 continue
+            if t.get("en"):
+                self.en.add(t["en"])
             if t.get("status") == "deprecated":
-                self.deprecated.add(zh)
+                self.bad[zh] = ("弃用词", "已弃用词条" + (f"，应作「{t['replaced_by']}」" if t.get("replaced_by") else ""), t.get("bc"))
             elif t.get("scope") == "acl":
                 self.acl.add(zh)
             else:
                 self.formal.add(zh)
                 self.kinds[zh].add(t.get("kind"))
             for a in t.get("aliases") or []:
-                if isinstance(a, dict) and a.get("type") == "dialect" and a.get("name"):
-                    self.dialect[a["name"]] = (zh, t.get("bc"))
-                elif isinstance(a, dict) and a.get("type") == "undetermined" and a.get("name"):
-                    self.undetermined.add(a["name"])
+                if isinstance(a, dict) and a.get("name") and a.get("type") == "dialect":
+                    self.bad[a["name"]] = ("方言", f"应作「{zh}」", t.get("bc"))
+                elif isinstance(a, dict) and a.get("name") and a.get("type") == "undetermined":
+                    self.bad[a["name"]] = ("待确认", f"叫法待确认（对应「{zh}」）", t.get("bc"))
             for f in t.get("forbidden") or []:
-                self.dialect[f] = (zh, t.get("bc"))
-        self.words = set()
+                self.bad[f] = ("方言", f"应作「{zh}」", t.get("bc"))
         for b in bcs:
-            if b.get("kind") == "system":
+            if b.get("kind") == "system" and b.get("id") != "new_system":
                 for k in ("zh", "en"):
                     if b.get(k):
                         self.systems[b[k]] = b["zh"]
             self.words.update(b.get("words") or [])
-        for zh in self.formal:
-            self.dialect.pop(zh, None)
-        self.known = sorted(self.formal | self.words, key=len, reverse=True)
-
-    def bc_note(self, alias):
-        return f"（词条属 {self.dialect[alias][1]}，词条按 bc 分立，跨 bc 同名时人工判）"
+        for x in extra_systems:
+            self.systems.setdefault(x, x)
+        known = self.formal | self.words
+        for zh in known:
+            self.bad.pop(zh, None)
+        self.known = sorted(known, key=len, reverse=True)
 
     def system_hit(self, name):
         for s in sorted(self.systems, key=len, reverse=True):
@@ -102,36 +122,43 @@ class Vocab:
                 return s
         return None
 
+    def phrase_hit(self, name):
+        """名字里被已登记词条完整包住的叫法放行（「现场签证」包住「签证」），否则取最长的一个叫法。"""
+        covers = [m.span() for w in self.known if w in name for m in re.finditer(re.escape(w), name)]
+        for d in sorted(self.bad, key=len, reverse=True):
+            if len(d) < 2:
+                continue
+            for m in re.finditer(re.escape(d), name):
+                i, j = m.span()
+                if not any(a <= i and j <= b and (b - a) > (j - i) for a, b in covers):
+                    return d
+        return None
+
     def classify(self, name, exact, kind=None):
-        """(类别, 说明)；通过返回 (None, None)，提议中返回 ('提议中', ...)。"""
+        """(类别, 说明)；通过返回 (None, None)。kind：aggregate / command / event / state。"""
         hit = self.system_hit(name)
         if hit:
             return "外部系统", f"含外部系统用语「{hit}」"
-        if exact:
-            if name in self.dialect:
-                return "方言", f"方言，应作「{self.dialect[name][0]}」{self.bc_note(name)}"
-            if name in self.deprecated:
-                return "弃用词", "已弃用词条"
-            if name in self.undetermined:
-                return "待确认", "叫法待确认（undetermined）"
-            if name in self.formal:
-                if kind in KIND_FOR and not self.kinds[name] & set(KIND_FOR[kind]):
-                    return "kind 不符", f"词条 kind 为 {'、'.join(sorted(map(str, self.kinds[name])))}，用作{ {'command': '命令', 'event': '事件', 'aggregate': '聚合'}[kind] }名"
-                return None, None
-            if name in self.words:
-                return None, None
-            if name in self.acl:
-                return "acl 词", "只有防腐层（acl）词条，不进领域"
-            if name in self.proposed:
-                return "提议中", "提议术语，待 one-glossary 登记"
-            return "未登记", "terms.yaml 与 bcs words 均无此名"
-        rest = name
-        for w in self.known:
-            rest = rest.replace(w, "·")
-        for d in sorted(self.dialect, key=len, reverse=True):
-            if len(d) >= 2 and d in rest:
-                return "方言", f"含方言「{d}」，应作「{self.dialect[d][0]}」{self.bc_note(d)}"
-        return None, None
+        if not exact:
+            d = self.phrase_hit(name)
+            return (self.bad[d][0], f"含「{d}」，{self.bad[d][1]}（词条属 {self.bad[d][2]}）") if d else (None, None)
+        if name.isascii():
+            return (None, None) if name in self.en else ("未登记", "英文名不在 terms.yaml 的 en 中")
+        if name in self.formal:
+            if kind in KIND_FOR and not self.kinds[name] & set(KIND_FOR[kind]):
+                return "kind 不符", f"词条 kind 为 {'、'.join(sorted(map(str, self.kinds[name])))}，用作{KIND_ZH[kind]}名"
+            return None, None
+        if name in self.words:
+            return None, None
+        if name in self.bad:
+            cat, why, bc = self.bad[name]
+            # 状态词是 bc 内的局部用语，别的 bc 词条的方言不能直接当作本 bc 状态的违规
+            return ("跨 bc 待判", f"{cat}：{why}（词条属 {bc}，状态名按 bc 分立）") if kind == "state" else (cat, f"{why}（词条属 {bc}）")
+        if name in self.acl:
+            return "acl 词", "只有防腐层（acl）词条，不进领域"
+        if name in self.proposed:
+            return "提议中", "提议术语，待 one-glossary 登记"
+        return "未登记", "terms.yaml 与 bcs words 均无此名"
 
 
 def parse_info_map(text):
@@ -139,15 +166,25 @@ def parse_info_map(text):
     rows = []
     for line in text.splitlines():
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(cells) < 6 or not re.fullmatch(r"OBJ-\d+", cells[0]) or "非对象" in cells[3]:
+        if len(cells) < 6 or not re.fullmatch(r"OBJ-\d+", cells[0]) or re.match(r"[\s*]*非对象", cells[3]):
             continue
         states = []
-        for tok in re.split(r"[→／/；;、，,]", re.sub(r"[（(][^）)]*[）)]", "", cells[5])):
-            tok = tok.strip().strip("「」\"'` ")
+        for tok in re.split(r"[→⇄／/；;、，,]", re.sub(r"[（(][^）)]*[）)]", "", cells[5])):
+            tok = re.split(r"[：:]", tok)[-1].strip().strip("「」\"'` ")
             if re.fullmatch(r"[一-鿿]{2,%d}" % STATE_MAX, tok) and tok != "无":
                 states.append(tok)
         rows.append((cells[0], strip_note(cells[1]), list(dict.fromkeys(states))))
     return rows
+
+
+def event_names(text):
+    """「角色已合格 / 已暂停」「`TimesheetSubmitted`」这类写法拆成单个事件名；「（内部）」与带说明的整段不取。"""
+    out = []
+    for e in re.split(r"[、,，/／]", text):
+        e = re.split(r"[：:]", e)[-1].strip().strip("`「」 ")
+        if e and not e.startswith(("（", "(", "已有", "—", "-")) and re.fullmatch(r"[一-鿿]{2,12}|[A-Za-z][A-Za-z0-9]*", e):
+            out.append(e)
+    return out
 
 
 def parse_aggregates(text):
@@ -155,7 +192,7 @@ def parse_aggregates(text):
     rows = []
     for line in text.splitlines():
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(cells) < 7 or not re.fullmatch(r"AGG-\d+", cells[0]):
+        if len(cells) < 7 or not re.fullmatch(r"(?:AGG|REF)-\d+", cells[0]):
             continue
         cmds, evs = [], []
         for item in split_top(cells[5]):
@@ -167,13 +204,8 @@ def parse_aggregates(text):
                 cmds.append(name)
             m = re.search(r"[（(]\s*→\s*([^）)；;]*)", item)
             if m:
-                for e in re.split(r"[、,，]", m.group(1)):
-                    e = e.strip()
-                    if e and not e.startswith(("（", "(")):
-                        evs.append(e)
-        for e in re.split(r"[、]", re.sub(r"[（(][^）)]*[）)]", "", cells[6])):
-            if e.strip() and e.strip() not in ("—", "-"):
-                evs.append(e.strip())
+                evs += event_names(m.group(1))
+        evs += event_names(re.sub(r"[（(][^）)]*[）)]", "", cells[6]))
         rows.append((cells[0], strip_note(cells[1]), list(dict.fromkeys(cmds)), list(dict.fromkeys(evs))))
     return rows
 
@@ -183,9 +215,9 @@ def collect(im_text, ag_text, vs_doc, cap_doc, catalog_doc):
     items = []
     for oid, name, states in parse_info_map(im_text or ""):
         items.append(("信息图", "对象", oid, name, True, None))
-        items += [("信息图", "状态", oid, s, True, None) for s in states]
+        items += [("信息图", "状态", oid, s, True, "state") for s in states]
     for aid, name, cmds, evs in parse_aggregates(ag_text or ""):
-        items.append(("聚合稿", "聚合", aid, name, True, "aggregate"))
+        items.append(("聚合稿", "聚合" if aid.startswith("AGG") else "外部引用", aid, name, True, "aggregate" if aid.startswith("AGG") else None))
         items += [("聚合稿", "命令", aid, c, True, "command") for c in cmds]
         items += [("聚合稿", "事件", aid, e, True, "event") for e in evs]
     for c in (cap_doc or {}).get("capabilities") or []:
@@ -201,6 +233,18 @@ def collect(im_text, ag_text, vs_doc, cap_doc, catalog_doc):
             continue
         items.append(("流程目录", "流程", p.get("id", ""), str(p.get("name", "")), False, None))
     return items
+
+
+def gaps(inputs, items, paths):
+    """输入文件不存在，或存在却一项都没解析出来（改了表头、改了顶层键），都算未检查。"""
+    have = Counter(i[0] for i in items)
+    out = []
+    for k, path in paths.items():
+        if inputs[k] is None:
+            out.append(f"{k}（{path} 不存在）")
+        elif not have[k]:
+            out.append(f"{k}（{path} 存在但一项都没解析出来，格式可能变了）")
+    return out
 
 
 def run(vocab, items):
@@ -226,15 +270,15 @@ def render(items, found, missing):
     lines += [f"- **未检查（输入缺失）**：{m}" for m in missing] or []
     total = Counter((i[0], i[1]) for i in items)
     lines += ["", f"检查名字 {len(items)} 个（去重后 {len({(i[3], i[4]) for i in items})} 个），违规 {len(violations)} 条。", "",
-              "| 来源 | 项 | 检查数 | " + " | ".join(ORDER) + " | 提议中 | kind 不符 |", "|---|---|---|" + "---|" * (len(ORDER) + 2)]
+              "| 来源 | 项 | 检查数 | " + " | ".join(ORDER) + " | " + " | ".join(HINTS) + " |", "|---|---|---|" + "---|" * (len(ORDER) + len(HINTS))]
     by = Counter((f[1], f[2], f[0]) for f in found)
     for (src, kd), n in sorted(total.items()):
-        lines.append(f"| {src} | {kd} | {n} | " + " | ".join(str(by.get((src, kd, c), 0)) for c in ORDER + ("提议中", "kind 不符")) + " |")
-    for cat in ORDER + ("提议中", "kind 不符"):
+        lines.append(f"| {src} | {kd} | {n} | " + " | ".join(str(by.get((src, kd, c), 0)) for c in ORDER + HINTS) + " |")
+    for cat in ORDER + HINTS:
         rows = [f for f in found if f[0] == cat]
         if not rows:
             continue
-        lines += ["", f"## {cat}（{len(rows)}）" + ("，提示项不计违规" if cat in ("提议中", "kind 不符") else ""), ""]
+        lines += ["", f"## {cat}（{len(rows)}）" + ("，提示项不计违规" if cat in HINTS else ""), ""]
         uniq = defaultdict(list)
         for _, src, kd, ident, name, why in rows:
             uniq[(src, kd, name, why)].append(ident)
@@ -244,35 +288,58 @@ def render(items, found, missing):
 
 
 def self_test():
-    terms = [{"zh": "往来单位", "kind": "aggregate", "scope": "domain", "status": "approved", "aliases": [{"name": "客商", "type": "dialect"}, {"name": "待定叫法", "type": "undetermined"}], "forbidden": ["客户供应商"]},
-             {"zh": "登记往来单位", "kind": "command", "scope": "domain", "status": "approved"},
-             {"zh": "往来单位已登记", "kind": "domain_event", "scope": "domain", "status": "approved"},
-             {"zh": "旧词", "kind": "entity", "scope": "domain", "status": "deprecated"},
-             {"zh": "致远流程", "kind": "entity", "scope": "acl", "status": "approved"},
-             {"zh": "合同变更", "kind": "entity", "scope": "domain", "status": "approved"},
-             {"zh": "变更单", "kind": "entity", "scope": "domain", "status": "approved", "aliases": [{"name": "变更", "type": "dialect"}]}]
-    bcs = [{"id": "x", "zh": "x", "kind": "bc", "words": ["通用用语"]}, {"id": "seeyon", "zh": "致远", "en": "Seeyon", "kind": "system"}]
-    v = Vocab(terms, bcs, [{"zh": "提议词"}])
+    T = lambda zh, kind="entity", **kw: {"zh": zh, "kind": kind, "scope": "domain", "status": "approved", "bc": "b1", **kw}
+    terms = [T("往来单位", "aggregate", en="Counterparty", aliases=[{"name": "客商", "type": "dialect"}, {"name": "待定叫法", "type": "undetermined"}], forbidden=["客户供应商"]),
+             T("登记往来单位", "command"), T("往来单位已登记", "domain_event", en="CounterpartyRegistered"), T("旧词", status="deprecated", replaced_by="往来单位"),
+             T("防腐词", scope="acl"), T("合同"), T("现场签证", aliases=[{"name": "签证", "type": "dialect"}]),
+             T("合同变更", aliases=[{"name": "销售合同", "type": "dialect"}]), T("变更单", aliases=[{"name": "变更", "type": "dialect"}]),
+             T("客户", status="deprecated", bc="presales"), T("客户", bc="masterdata"), T("账号停用", "state", aliases=[{"name": "停用", "type": "dialect"}], bc="identity"),
+             T("账单", aliases=[{"name": "单", "type": "dialect"}]), T("规则版本"), T("编号规则版本", aliases=[{"name": "规则版本", "type": "dialect"}], bc="numbering")]
+    bcs = [{"id": "x", "zh": "x", "kind": "bc", "words": ["通用用语"]}, {"id": "seeyon", "zh": "致远", "en": "Seeyon", "kind": "system"}, {"id": "new_system", "zh": "新系统", "kind": "system"}]
+    v = Vocab(terms, bcs, [{"zh": "提议词", "en": "Proposed"}], {"U8C", "分贝通"})
     cases = [("往来单位", True, None, None), ("客商", True, None, "方言"), ("客户供应商", True, None, "方言"), ("旧词", True, None, "弃用词"), ("待定叫法", True, None, "待确认"),
-             ("没登记的名", True, None, "未登记"), ("提议词", True, None, "提议中"), ("通用用语", True, None, None), ("致远流程", True, None, "外部系统"),
-             ("往来单位", True, "command", "kind 不符"), ("登记往来单位", True, "command", None), ("往来单位已登记", True, "event", None),
-             ("往来单位已登记", True, "command", "kind 不符"), ("核对客商档案", False, None, "方言"), ("核对往来单位档案", False, None, None), ("提交合同变更", False, None, None), ("提交变更", False, None, "方言"),
-             ("同步 Seeyon 组织", False, None, "外部系统")]
+             ("没登记的名", True, None, "未登记"), ("提议词", True, None, "提议中"), ("通用用语", True, None, None), ("防腐词", True, None, "acl 词"), ("致远", True, None, "外部系统"),
+             ("往来单位", True, "command", "kind 不符"), ("登记往来单位", True, "command", None), ("往来单位已登记", True, "event", None), ("往来单位已登记", True, "command", "kind 不符"),
+             ("客户", True, None, None), ("停用", True, "state", "跨 bc 待判"), ("停用", True, "aggregate", "方言"),
+             ("CounterpartyRegistered", True, "event", None), ("CounterpartyRegisted", True, "event", "未登记"),
+             ("核对客商档案", False, None, "方言"), ("核对往来单位档案", False, None, None), ("提交合同变更", False, None, None), ("提交变更", False, None, "方言"),
+             ("签订销售合同", False, None, "方言"), ("核对现场签证", False, None, None), ("核对签证", False, None, "方言"), ("登记旧词", False, None, "弃用词"),
+             ("同步 Seeyon 组织", False, None, "外部系统"), ("推送凭证到U8C", False, None, "外部系统"), ("使用新系统登记", False, None, None), ("登记U8Cx", False, None, None), ("核对单据", False, None, None), ("发布规则版本", False, None, None), ("规则版本", True, None, None)]
     for name, exact, kind, want in cases:
         got = v.classify(name, exact, kind)[0]
-        assert got == want, (name, got, want)
+        assert got == want, (name, exact, kind, got, want)
     assert Vocab([], [], []).classify("任意名", True)[0] == "未登记"
-    im = "| OBJ-01 | 往来单位（含上级） | 定义 | 一级 | 类型 | 待核实 → 有效（档案已核实）→ 已合并 / 停用；档案按 D17 版本化 | 关系 | 规则 | 事实 | 来源 | 词表 | 范围 |\n| OBJ-02 | 备注 | 定义 | 非对象 | 类型 | 有效 | 关系 | 规则 | 事实 | 来源 | 词表 | 范围 |"
-    assert parse_info_map(im) == [("OBJ-01", "往来单位", ["待核实", "有效", "已合并", "停用"])], parse_info_map(im)
-    assert parse_info_map(im.replace("版本化", "版本化（D-8、PR #3）"))[0][2] == ["待核实", "有效", "已合并", "停用"]
-    ag = "| AGG-01 | 往来单位（OBJ-01） | 内含 | 次级在内 | INV-01 | 登记往来单位（→ 往来单位已登记）；停用往来单位（→ （内部））；核准（→ 甲已核准、乙已核准；前置 INV-02） | 往来单位已登记（仅分析）、甲已核准（订阅方） | 依赖 |"
-    assert parse_aggregates(ag) == [("AGG-01", "往来单位", ["登记往来单位", "停用往来单位", "核准"], ["往来单位已登记", "甲已核准", "乙已核准"])], parse_aggregates(ag)
-    items = collect(im, ag, {"value_streams": [{"id": "VS-01", "name": "获得客商", "stages": [{"id": "VS-01.1", "name": "启动"}]}]},
-                    {"capabilities": [{"id": "CAP-001", "name": "往来单位管理"}]}, {"processes": [{"id": "PRC-01", "name": "举办", "type": "merged"}, {"id": "PRC-02", "name": "核对客商"}]})
+    im = ("| OBJ-01 | 往来单位（含上级） | 定义 | 一级 | 类型 | 待核实 → 有效（档案已核实）→ 已合并 / 停用；档案按 D17 版本化（D-8、PR #3） | 关系 | 规则 | 事实 | 来源 | 词表 | 范围 |\n"
+          "| OBJ-02 | 备注 | 定义 | 非对象 | 类型 | 有效 | 关系 | 规则 | 事实 | 来源 | 词表 | 范围 |\n"
+          "| OBJ-03 | 分摊规则 | 定义 | **待定**（暂列一级：原为非对象） | 类型 | 现金：待缴 ⇄ 已暂停 | 关系 | 规则 | 事实 | 来源 | 词表 | 范围 |\n"
+          "| OBJ-04 | 备注二 | 定义 | **非对象**（说明） | 类型 | 有效 | 关系 | 规则 | 事实 | 来源 | 词表 | 范围 |")
+    assert parse_info_map(im) == [("OBJ-01", "往来单位", ["待核实", "有效", "已合并", "停用"]), ("OBJ-03", "分摊规则", ["待缴", "已暂停"])], parse_info_map(im)
+    ag = ("| AGG-01 | 往来单位（OBJ-01） | 内含 | 次级在内 | INV-01 | 登记往来单位（→ 往来单位已登记）；停用往来单位（→ （内部））；核准（→ 甲已核准、乙已核准；前置 INV-02）；暂停（→ 角色已合格 / 已暂停） | "
+          "往来单位已登记（仅分析）、`CounterpartyRegistered`（订阅方）、已有 `X`、新增草案：丙已登记、这是一个很长的说明文字不算事件名 | 依赖 |\n| REF-01 | 招标项目登记（OBJ-19） | 内含 | 无聚合 | — | 登记招标项目（→ （内部）） | — | — |")
+    got = parse_aggregates(ag)
+    assert got[0] == ("AGG-01", "往来单位", ["登记往来单位", "停用往来单位", "核准", "暂停"], ["往来单位已登记", "甲已核准", "乙已核准", "角色已合格", "已暂停", "CounterpartyRegistered", "丙已登记"]), got[0]
+    assert got[1] == ("REF-01", "招标项目登记", ["登记招标项目"], []), got[1]
+    vs = {"value_streams": [{"id": "VS-01", "name": "获得客商", "stages": [{"id": "VS-01.1", "name": "启动"}]}]}
+    cat = {"processes": [{"id": "PRC-01", "name": "举办", "type": "merged"}, {"id": "PRC-02", "name": "核对客商", "external_system": "A8（致远协同）、无"}, {"id": "PRC-03", "name": "x", "status": "retired"}]}
+    assert catalog_systems(cat) == {"A8", "致远协同"}, catalog_systems(cat)
+    items = collect(im, ag, vs, {"capabilities": [{"id": "CAP-001", "name": "往来单位管理"}]}, cat)
     found = {(f[0], f[2], f[4]) for f in run(v, items)}
-    assert ("方言", "价值流", "获得客商") in found and ("方言", "流程", "核对客商") in found and ("未登记", "命令", "核准") in found
-    assert ("未登记", "状态", "待核实") in found and not any(f[4] == "举办" for f in run(v, items)) and not any(f[4] == "往来单位" and f[0] == "未登记" for f in run(v, items))
+    assert ("方言", "价值流", "获得客商") in found and ("方言", "流程", "核对客商") in found and ("未登记", "命令", "核准") in found and ("未登记", "状态", "待核实") in found
+    assert not any(f[4] == "举办" for f in run(v, items)) and ("未登记", "能力", "往来单位") not in found and ("未登记", "外部引用", "招标项目登记") in found
+    inputs = {"信息图": im, "聚合稿": ag, "价值流": vs, "能力": {"capabilities": []}, "流程目录": None}
+    paths = {k: f"/{k}" for k in inputs}
+    g = gaps(inputs, collect(im, ag, vs, {"capabilities": []}, None), paths)
+    assert len(g) == 2 and "能力" in g[0] and "一项都没解析出来" in g[0] and "流程目录" in g[1] and "不存在" in g[1], g
+    assert gaps({"信息图": im, "聚合稿": ag, "价值流": vs, "能力": {"capabilities": [{"id": "C", "name": "往来单位管理"}]}, "流程目录": cat}, items, paths) == []
     assert "违规 " in render(items, run(v, items), ["x"]) and "未检查" in render(items, [], ["x"])
+    import subprocess, tempfile
+    with tempfile.TemporaryDirectory() as d:
+        bad = Path(d) / "c.yaml"
+        bad.write_text("process_list: []\n", encoding="utf-8")
+        r = subprocess.run([sys.executable, "-I", __file__, "--enforce", "--catalog", str(bad)], capture_output=True, text=True)
+        assert r.returncode == 1 and "一项都没解析出来" in r.stdout, (r.returncode, r.stdout[:300], r.stderr[-300:])
+        r = subprocess.run([sys.executable, "-I", __file__, "--catalog", str(bad)], capture_output=True, text=True)
+        assert r.returncode == 0, r.stderr[-300:]
     print("self-test ok")
 
 
@@ -281,6 +348,7 @@ def main():
     ap.add_argument("--enforce", action="store_true")
     ap.add_argument("--out")
     ap.add_argument("--catalog", default=str(CATALOG))
+    ap.add_argument("--note", help="写在报告首行的 HTML 注释（来源、快照日期）")
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
     if args.self_test:
@@ -291,13 +359,13 @@ def main():
     terms, bcs = load_yaml(TERMS), load_yaml(BCS)
     if not terms or not bcs:
         sys.exit(f"词表缺失：{TERMS}、{BCS} 必须存在")
-    vocab = Vocab(terms["terms"], bcs["bcs"], proposed)
     catalog = Path(args.catalog)
     inputs = {"信息图": load_text(IM_FILE), "聚合稿": load_text(AG_FILE), "价值流": load_yaml(VS_FILE), "能力": load_yaml(CAP_FILE), "流程目录": load_yaml(catalog)}
-    missing = [f"{k}（{p}）" for k, p in (("信息图", IM_FILE), ("聚合稿", AG_FILE), ("价值流", VS_FILE), ("能力", CAP_FILE), ("流程目录", catalog)) if inputs[k] is None]
+    vocab = Vocab(terms["terms"], bcs["bcs"], proposed, catalog_systems(inputs["流程目录"]))
     items = collect(inputs["信息图"], inputs["聚合稿"], inputs["价值流"], inputs["能力"], inputs["流程目录"])
+    missing = gaps(inputs, items, {"信息图": IM_FILE, "聚合稿": AG_FILE, "价值流": VS_FILE, "能力": CAP_FILE, "流程目录": catalog})
     found = run(vocab, items)
-    report = render(items, found, missing)
+    report = (f"<!-- {args.note} -->\n" if args.note else "") + render(items, found, missing)
     if args.out:
         Path(args.out).write_text(report, encoding="utf-8")
     else:
