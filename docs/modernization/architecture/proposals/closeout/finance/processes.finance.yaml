@@ -672,7 +672,7 @@ processes:
     desc: 占用第 2 步
     decision:
     - when: 可用预算不足且口径为拦截
-      goto: 11
+      goto: 10
     - when: otherwise
       goto: 4
     cross_bc:
@@ -688,7 +688,7 @@ processes:
     desc: 占用第 3 步；原始凭证要素齐全（INV-84）。占用中途失败按相反顺序补偿：第 3 步失败先释放预算占用再释放发票占用；第 2 步失败只释放发票占用
     decision:
     - when: 原始凭证要素不全（INV-84）
-      goto: 10
+      goto: 9
     - when: otherwise
       goto: 5
   - actor: platform
@@ -701,7 +701,7 @@ processes:
       doc_type: 费用报销审批
       approver: SH-E1
       multi_level: false
-      on_reject: 10
+      on_reject: 9
     cross_bc:
     - mode: api
       direction: out
@@ -714,41 +714,25 @@ processes:
     aggregate: AGG-59
     emits:
     - 费用报销已核定
-    desc: 确定所属期间；超事前预批额度 P-37 预警
-    decision:
-    - when: 报销人有未结员工借款
-      goto: 7
-    - when: otherwise
-      goto: 8
-  - actor: system
-    command: 冲抵员工借款
-    aggregate: AGG-49
-    branch: 报销冲抵借款
-    desc: 按报销人未结借款冲抵，余额进应付（intent 134134 Q-10 新增边；本步为对 v1 的增补）
-    decision:
-    - when: 冲抵后应付净额为零
-      goto: 9
-    - when: otherwise
-      goto: 8
+    desc: 确定所属期间；超事前预批额度 P-37 预警；B-09 订阅本事件冲抵员工借款（Q-10，intent 134134）
     cross_bc:
-    - mode: api
+    - mode: event
       direction: out
       bc: B-09
-      name: 冲抵员工借款
-    pending:
-    - Q-10-方向
-    added_in: closeout
+      name: 费用报销已核定
   - actor: system
     command: 确认应付
     aggregate: AGG-52
     emits:
     - 应付已确认
-    desc: 报销应付，引用来源报销（AGG-59）；发票占用留在报销上，应付不再占用（符合性审查 G-17）；金额为冲抵借款后的净额
+    desc: 报销应付，引用来源报销（AGG-59）；发票占用留在报销上，应付不再占用（符合性审查 G-17）；与员工借款的对冲方式待定（S-16 续）
     cross_bc:
     - mode: api
       direction: out
       bc: B-10
       name: 确认应付
+    pending:
+    - S-16-对冲
   - actor: system
     command: 提交过账候选
     aggregate: AGG-59

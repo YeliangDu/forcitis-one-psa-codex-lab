@@ -183,7 +183,7 @@ aggregates:
     versioned: none
     history_migration: full
     sensitivity: internal
-    pi: pi
+    pi: true
     reason: 来源 A8 付款与报销、老系统分包应付；报销与应付薪酬按人员 ID 引用（ADR-0043 第 4 项第 2 条）
     column_families:
     - 法人
@@ -215,6 +215,7 @@ aggregates:
     - 来源单据类型
     - 来源单据引用（不校验）
     - 来源金额
+    pi: false
   - name: payable_application_holds
     role: child
     key: uuid_v7
@@ -231,6 +232,7 @@ aggregates:
     - 状态（占用 / 释放 / 已转核销）
     - 幂等键
     - version
+    pi: false
   - name: payable_applications
     role: child
     key: uuid_v7
@@ -246,6 +248,7 @@ aggregates:
     - 核销日期
     - 落账期间（会计年度、期间序号）
     - 冲销关联
+    pi: false
   - name: payable_dispute_records
     role: child
     key: uuid_v7
@@ -257,6 +260,7 @@ aggregates:
     - 处置分类（取值待用户定，只确认「诉讼」）
     - 诉讼文书附件引用
     - 作者与时刻
+    pi: false
 - aggregate: AGG-53
   bc: B-10
   tables:
@@ -638,7 +642,7 @@ aggregates:
     versioned: none
     history_migration: full
     sensitivity: internal
-    pi: pi
+    pi: true
     reason: 来源 A8 报销表单（ADR-0022 决定 6、ADR-0021 6a–6c），经 ADR-0036 迁入用例；按人员 ID 引用，代理键属个人信息（ADR-0043 第 4 项第 2 条）
     column_families:
     - 法人
@@ -669,6 +673,7 @@ aggregates:
     - 项目或商机归属
     - 金额与税额
     - 票据附件引用
+    pi: false
   - name: expense_claim_invoice_refs
     role: child
     key: uuid_v7
@@ -681,6 +686,7 @@ aggregates:
     sensitivity: internal
     column_families:
     - 进项发票引用
+    pi: false
 - aggregate: AGG-77
   bc: B-16
   tables:
@@ -723,6 +729,7 @@ aggregates:
     - 拒收原因代码
     - 幂等键
     - 时刻
+    pi: false
   - name: post_sequence_counters
     role: child
     key: uuid_v7
@@ -734,6 +741,7 @@ aggregates:
     - 法人
     - 序号当前值
     - version
+    pi: false
 - aggregate: AGG-78
   bc: B-17
   tables:
@@ -1344,6 +1352,7 @@ aggregates:
     - 状态
     - version
     - 审计列
+    pi: false
   - name: input_invoice_holds
     role: child
     key: uuid_v7
@@ -1362,6 +1371,7 @@ aggregates:
     - 占用方引用
     - 占用金额
     - 状态（占用 / 释放）
+    pi: false
   - name: input_invoice_transfers_out
     role: child
     key: uuid_v7
@@ -1372,6 +1382,7 @@ aggregates:
     - 转出金额
     - 原因
     - 落账期间（会计年度、期间序号）
+    pi: false
 - aggregate: AGG-90
   bc: B-23
   tables:
