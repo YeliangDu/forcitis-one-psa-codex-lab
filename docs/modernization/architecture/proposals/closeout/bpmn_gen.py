@@ -2,6 +2,7 @@
 """流程骨架 yaml -> 描述级 BPMN 2.0.2 协作图（含 BPMNDI）。
 
 用法：python3 -I bpmn_gen.py <processes.<组>.yaml> --out <目录> [--only PRC-NN]
+     python3 -I bpmn_gen.py --self-test
 画法见 BPMN_STYLE.md，字段见 CONVENTIONS.md；输出后自动调用 bpmn_check.py 校验。
 """
 import argparse
@@ -168,6 +169,52 @@ class Process:
         self.warn("缺 outcomes，结束事件名用缺省「已完成（顺序走完）/ 已结束（otherwise）/ 已终止（条件）」")
         return "已完成" if when is None else "已结束" if when == "otherwise" else "已终止"
 
+    def add_exits(self, step, outs, n, info):
+        """驳回与撤回出口。已由 decision 画出的不重复：出口目标相同，或 decision 的条件含「驳回/撤回」且目标相同。"""
+        decs_ = step.get("decision") or []
+
+        def end_name(when):
+            for dd in decs_:
+                if dd.get("when") == when and dd.get("outcome"):
+                    return dd["outcome"]
+            return None
+
+        def drawn(tgt, word, name):
+            for when, t in outs:
+                if t != tgt:
+                    continue
+                if tgt != "end":
+                    return True
+                if word in str(when or "") or end_name(when) == name:
+                    return True
+            return False
+
+        extra = []
+        ap = step.get("approval") or {}
+        if ap and ap.get("on_reject") is not None:
+            r = ap["on_reject"]
+            tgt = self.norm_goto(r, n) if isinstance(r, int) or str(r).strip().isdigit() else "end"
+            name = ap.get("on_reject_outcome") or "已驳回"
+            if not drawn(tgt, "驳回", name):
+                extra.append(("驳回", tgt, name))
+        w = step.get("withdraw")
+        if w and w.get("to") is not None:
+            tgt = self.norm_goto(w["to"], n)
+            name = w.get("outcome") or "已撤回"
+            if not drawn(tgt, "撤回", name):
+                extra.append(("撤回", tgt, name))
+        if not extra:
+            return outs
+        base = list(outs)
+        if len(base) == 1 and base[0][0] is None:
+            base = [("otherwise", base[0][1])]
+            if ap:
+                info["labels"] = {"otherwise": "通过"}
+        for label, tgt, name in extra:
+            base.append((label, tgt))
+            info["exit_names"][label] = name
+        return base
+
     def norm_goto(self, g, n):
         if isinstance(g, int) and 1 <= g <= n:
             return g
@@ -187,9 +234,19 @@ class Process:
         self.steps = steps
         self.plan = []
         trigs = self.triggers()
-        first_lane = self.lane_of(steps[0].get("actor")) if steps else SYSTEM
         self.starts = []
+        self.entries = []
         for t in trigs:
+            e = t.get("entry", 1)
+            if isinstance(e, str) and e.strip().isdigit():
+                e = int(e)
+            if not (isinstance(e, int) and not isinstance(e, bool) and 1 <= e <= max(n, 1)):
+                self.warn(f"trigger.entry「{e}」不是有效步骤序号，连第 1 步")
+                e = 1
+            self.entries.append(e)
+        entry_set = set(self.entries)
+        for t, e in zip(trigs, self.entries):
+            first_lane = self.lane_of(steps[e - 1].get("actor")) if steps else SYSTEM
             kind = t.get("type") or "human"
             name = t.get("name") or {"human": "人工发起", "time": "到期", "event": "事件发生", "call": "被调用"}.get(kind, "开始")
             if not t.get("name"):
@@ -247,7 +304,7 @@ class Process:
                 parts.append(f"调用 {s['calls']}")
             doc = "；".join(str(x) for x in parts if x)
             chain = []
-            info = {"i": i, "lane": lane, "chain": chain}
+            info = {"i": i, "lane": lane, "chain": chain, "exit_names": {}, "labels": {}}
             if s.get("on_time"):
                 chain.append(self.add("intermediateCatchEvent", s["on_time"], lane, prefix=f"S{i}_time", defn="timer").id)
             service_like = kind in ("serviceTask", "sendTask")
@@ -305,7 +362,8 @@ class Process:
                 reg_n.objs.append(clip(head(s["evidence"][0]), 12))
             # 判断
             decs = [(d.get("when"), self.norm_goto(d.get("goto"), n)) for d in (s.get("decision") or [])]
-            nxt = i + 1 if i < n and (not steps[i].get("branch") or s.get("branch")) else "end"
+            head_of_entry = i > 1 and i in entry_set
+            nxt = i + 1 if i < n and (not steps[i].get("branch") or s.get("branch") or head_of_entry) else "end"
             if not decs:
                 outs = [(None, nxt)]
             else:
@@ -316,6 +374,7 @@ class Process:
                     outs = [(None, outs[0][1])]
                 elif not any(w == "otherwise" for w, _ in decs):
                     self.warn("decision 缺 otherwise，已补「其他」流向下一步")
+            outs = self.add_exits(s, outs, n, info)
             info["outs"] = outs
             if len(outs) > 1:
                 gname = (cmd if len(cmd) < 14 else head(cmd)) + "？"
@@ -323,6 +382,10 @@ class Process:
                 chain.append(g.id)
             info["step"] = s
             self.plan.append(info)
+        for st, e in zip(self.starts, self.entries):
+            if e > 1:
+                self.order.remove(st.id)
+                self.order.insert(self.order.index(self.plan[e - 1]["chain"][0]), st.id)
 
     def timeout_for(self, s, main, lane, cmd, info):
         t = s.get("timeout")
@@ -340,11 +403,11 @@ class Process:
         info["timeout"] = (bd.id, esc.id, bool(t.get("interrupting", True)), esc_lane)
 
     # ---- 第二遍：顺序流 ----
-    def target_node(self, tgt, step, when, src_lane):
+    def target_node(self, tgt, step, when, src_lane, exit_names=None):
         if isinstance(tgt, int):
             return self.plan[tgt - 1]["chain"][0]
         if tgt == "end":
-            name = self.outcome_for(step, when, tgt)
+            name = (exit_names or {}).get(when) or self.outcome_for(step, when, tgt)
         else:
             name = f"已转 {tgt}"
         if name not in self.ends:
@@ -355,8 +418,8 @@ class Process:
         return self.ends[name]
 
     def wire(self):
-        for st in self.starts:
-            self.flow(st.id, self.plan[0]["chain"][0] if self.plan else None)
+        for st, e in zip(self.starts, self.entries):
+            self.flow(st.id, self.plan[e - 1]["chain"][0] if self.plan else None)
         incoming = {st.id for st in self.starts}
         for info in self.plan:
             ch = info["chain"]
@@ -367,8 +430,8 @@ class Process:
             for when, tgt in outs:
                 label = ""
                 if when is not None:
-                    label = "其他" if when == "otherwise" else str(when)
-                node_id = self.target_node(tgt, info["step"], when, info["lane"])
+                    label = info["labels"].get(when) or ("其他" if when == "otherwise" else str(when))
+                node_id = self.target_node(tgt, info["step"], when, info["lane"], info["exit_names"])
                 self.flow(tail, node_id, label)
             if "timeout" in info:
                 bd, esc, interrupting, esc_lane = info["timeout"]
@@ -695,7 +758,65 @@ def load_checker():
     return mod
 
 
+def build_xml(p, cat, stake):
+    pr = Process(p, cat[p["id"]]["name"], stake)
+    pr.build()
+    pr.wire()
+    pr.layout()
+    return pr, ET.fromstring(pr.xml())
+
+
+def flow_edges(root):
+    ns = "{http://www.omg.org/spec/BPMN/20100524/MODEL}"
+    names = {e.get("id"): e.get("name") for e in root.iter() if e.get("id")}
+    return [(names[f.get("sourceRef")], f.get("name"), names[f.get("targetRef")]) for f in root.iter(ns + "sequenceFlow")]
+
+
+def self_test():
+    catalog = yaml.safe_load(CATALOG.read_text(encoding="utf-8"))["processes"]
+    cat = {c["id"]: c for c in catalog}
+    stake = load_stakeholders()
+    checker = load_checker()
+    cmap = checker.load_catalog()
+    fx = HERE / "bpmn_gen_fixtures"
+    ok = True
+
+    def expect(cond, text):
+        nonlocal ok
+        if not cond:
+            ok = False
+            print(f"失败：{text}")
+
+    def run(name):
+        p = yaml.safe_load((fx / name).read_text(encoding="utf-8"))["processes"][0]
+        pr, root = build_xml(p, cat, stake)
+        errors, _ = checker.check_root(root, False, cmap)
+        expect(not errors, f"{name} 检查有错误：{errors}")
+        return pr, flow_edges(root)
+
+    pr, edges = run("mini.yaml")
+    expect(len(pr.starts) == 4, "mini 应有 4 个开始事件")
+
+    pr, edges = run("entry.yaml")
+    expect(("发起乙", None, "办乙前") in edges, "entry: 3 的开始事件应连第 3 步")
+    expect(("发起甲", None, "办甲") in edges, "无 entry 的开始事件应连第 1 步")
+    expect(("办乙前", None, "办乙") in edges, "入口步骤的下一步带 branch 时仍应连接")
+
+    pr, edges = run("exits.yaml")
+    got = {(a, b, c) for a, b, c in edges if b in ("驳回", "撤回")}
+    expect(("申请甲？", "驳回", "被拒") in got, "on_reject: end 取 on_reject_outcome 作结束事件名")
+    expect(("申请甲？", "撤回", "已撤回") in got, "withdraw.to=end 接结束事件")
+    expect(("申请乙？", "驳回", "已驳回") in got, "说明文字的 on_reject 当作 end，缺省名「已驳回」")
+    expect(not any(a.startswith("申请丙") and b in ("驳回", "撤回") for a, b, _ in got), "decision 已画出的驳回、撤回不重复")
+    expect(("申请丁？", "驳回", "申请甲") in got, "on_reject 为序号时连回该步骤")
+    expect(("申请丁？", "撤回", "申请乙") in got, "withdraw.to 为序号时连回该步骤")
+    print("bpmn_gen 自测：" + ("全部通过" if ok else "有失败"))
+    return 0 if ok else 1
+
+
 def main(argv):
+    if "--self-test" in argv:
+        return self_test()
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("skeleton")
     ap.add_argument("--out", required=True)
