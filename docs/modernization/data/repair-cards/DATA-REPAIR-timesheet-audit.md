@@ -72,7 +72,7 @@ B 部分（one-1a-next-4）允许改动：
   2. U-7b 用户已答（2026-10-16）「改写员工 ID，阅读时再解析姓名」：`OperationAttestation` 的操作人、见证人改写员工 ID（运维命令入参 `--operator`、`--witness` 改为员工 ID），`detail` 记 `operatorId=`、`witnessId=`；**不建**例外登记与到期日守护（one-data 更正，见 `reviews/DATA-REPAIR-timesheet-audit-TB-01-02.md` 末尾）。运维面（INFRA_RUNBOOK §6、C-5、PREDEPLOY C-13）已同步，交 one-ops 复核。
   3. 本卡内写「允许写入内容清单」草稿（`detail`、`before_text`、`after_text`、`change_reason`：字段名、来源、是否可能含个人信息；U-7(b) 允许 `before_text` / `after_text` 记被变更字段自身的 L2 个人信息原值），**待核**并交用户确认；四列的访问级别与 PI 标记登记待用户（第 5 节待决 2）与 ADR-0043 实施 PR（文件仍三段格式，U-13）。
 - 预期表结构 diff：无 DDL 变化（Java、登记文件变化）。
-- 验收要点：登录成功与失败后 `detail` 不含 `address=`、`agent=`、IP 串；`source_address` 仍有值；例外登记含到期日；静态扫描禁止写入点拼 `address=`、`getMessage()` 直写（OV 建议新增规则 5，守护归 one-quality）。
+- 验收要点：登录成功与失败后 `detail` 不含 `address=`、`agent=`、IP 串；`source_address` 仍有值；U-7b 例外已取消，无例外登记；静态扫描禁止写入点拼 `address=`、`getMessage()` 直写，姓名与联系方式在审计文本中一律不允许（OV 建议新增规则 5，守护归 one-quality）。
 - 依据：门禁 C4、E1；ADR-0043 第 4 项第 1、5 条、U-7；ADR-0026 第 7 项第 3 条。
 - **数据设计（one-1a-next-4 补，待 one-data 签）**（基线：`origin/claude/one-1a-next-4-data-pr2`；写入点以 `git grep "new AuditEntry("` 与 `AuditEntry.withChange` 核实，`new AuditEntry(` 共 41 处、35 个文件，`withChange` 仅 `AuditDomainEvents.java:56` 一处）
   - **① U-7b 例外登记：已取消**（用户答改写员工 ID，不再有例外；`audit-detail-exceptions.txt` 与到期日守护不做）。原例外说明已删。
@@ -103,16 +103,16 @@ B 部分（one-1a-next-4）允许改动：
 
   - 清单共 19 行（`detail` 17 行、`change_reason` 1 行、`before_text` / `after_text` 合 1 行）；覆盖全部 41 处 `new AuditEntry(`。所有写入点另受 `AuditEntry` 构造的既有限制：每段至多 2000 字，含 `password|secret|token|…=` 样式文本即拒绝（`AuditEntry.java:15-25`）。
   - **登记四列分级**（建议，待用户第 5 节待决 2 与 ADR-0043 实施 PR 的四段格式；落地前按本表视为已登记，C4 末句）：
-      `platform_audit.audit_entries.detail | INTERNAL | PI | 用途：说明动作的上下文；不得含直接标识（IP、登录名、企业微信 ID），姓名仅限 U-7b 例外登记行`
+      `platform_audit.audit_entries.detail | INTERNAL | PI | 用途：说明动作的上下文；不得含直接标识（IP、登录名、企业微信 ID）与人名，操作人、见证人只记员工 ID`
       `platform_audit.audit_entries.change_reason | INTERNAL | PI | 用途：人填的变更理由；只提示不拦截`
       `platform_audit.audit_entries.before_text | INTERNAL | PI | 用途：被变更字段的原值；仅 L2 个人信息原值，L3 及以上与 SPI 不记`
       `platform_audit.audit_entries.after_text | INTERNAL | PI | 用途：被变更字段的新值；同 before_text`
   - **守护锁定**（三层）：① 上述 `AuditDetailGuardTest`（拼接点禁字）；② 新增 `AuditWritePointsGuardTest`（沿 `ApplicationIntegrationTest` 对 `public-endpoints.txt` 的双向快照办法）：`src/main` 中 `new AuditEntry(` 与 `withChange(` 的调用点文件集合（35 个）须与新建 `backend/architecture/audit-text-writers.txt`（`<路径> | <本表行号> | <个人信息：否\|代理键\|可能\|PI>`）逐行一致，新增写入点必须登记其所属行；③ 测试（`TB-01 …` 开头；与 `LoginAuditDetailTest` 重复故不另建 `LoginAuditDetailIT`，并入 `SsoLoginIntegrationTest`、`WecomLoginIntegrationTest`、`AuditSearchDescribeTest`）：登录成功、失败、拒绝访问后 `detail` 不含 `address=`、`agent=`、IP 串、登录名，`source_address` 有值；检索与导出审计 `detail` 不含 `sourceAddress=`。
-  - **拿不准的点**（请 one-data 裁）：(1) 到期日 2026-12-31 只是建议；`AuditDetailGuardTest` 需要「当天」，`TimeSourceGuardTest` 的规则只约束 main 类，测试可用固定 `Clock`，但是否允许测试读系统日期请 one-quality 确认。(2) 第 12、13、14 行是本次读代码新发现的直接标识写入，ADR-0043 第 4 项第 5 条只列三处，是否并入本条或另起条目，请裁。(3) 第 11 行哈希前 8 位按「允许」写的，属判断。(4) 第 17 行 `ReleaseSyncRun` 的人填原因无长度限制，超 2000 字时审计构造抛异常发生在放行之后，建议在 `ReleaseSyncRun` 入口限 1 至 200 字（与 `ForceUserLogout` 一致），本卡未列此改法，请裁是否加。
+  - **拿不准的点**（请 one-data 裁）：(1) 已取消：U-7b 例外取消后不再有到期日，`AuditDetailGuardTest` 不读系统日期。(2) 第 12、13、14 行是本次读代码新发现的直接标识写入，ADR-0043 第 4 项第 5 条只列三处，是否并入本条或另起条目，请裁。(3) 第 11 行哈希前 8 位按「允许」写的，属判断。(4) 第 17 行 `ReleaseSyncRun` 的人填原因无长度限制，超 2000 字时审计构造抛异常发生在放行之后，建议在 `ReleaseSyncRun` 入口限 1 至 200 字（与 `ForceUserLogout` 一致），本卡未列此改法，请裁是否加。
 
 - RULING-DR-TB01-1（one-1a-next-4，2026-10-16）：用户答 U-7b「改写员工 ID，阅读时再解析姓名」后，运维命令 `--operator`、`--witness` 入参改为员工 ID；5 个验收文件中这两个参数的取值随之机械改为员工 ID，断言未动。
 
-- 后续小卡 DR-TB01-FU1（one-data 2026-10-16 准许移出 PR-2，交 one-1a-next-5）：运维证明的操作人、见证人员工 ID 须为存在员工（不存在 → 用法错误退出码 2，不写审计）；需在 5 个验收文件造出操作人 / 见证人员工（测试代理按 Acceptance-Ruling 改）。PR-2 暂未校验存在，「阅读时再解析姓名」可能遇到解析不到的 ID。
+- 后续小卡 DR-TB01-FU1（one-data 2026-10-16 准许移出 PR-2，交 one-1a-next-5）：运维证明的操作人、见证人员工 ID 须为存在员工（不存在 → 用法错误退出码 2，不写审计）；需在 5 个验收文件造出操作人 / 见证人员工（测试代理按 Acceptance-Ruling 改）。PR-2 暂未校验存在，「阅读时再解析姓名」可能遇到解析不到的 ID。落地时须统一退出码：RUNBOOK 现写格式错误为退出码 1，本卡写不存在为 2。
 
 #### TB-02　IR-1　高（OV 确认）　整份应答正文落库 24 小时，无分级、无内容边界、无长度上限
 - 问题：`IdempotencyFilter` 对所有非 `/sessions`、`/login-states` 的 POST 保存完整应答正文（黑名单），`response_text` 是任意接口应答副本；`data-classification.txt` 无该列。
@@ -134,7 +134,7 @@ B 部分（one-1a-next-4）允许改动：
       `LegalEntityAttributionResponse` 每个任职期约 118 字符（UUID 36 + 2 个日期 + 键名），周期数无上限，N 可容约 270 个；
       `LegalEntityResponse`（`name` ≤ 100）约 0.3K；`DecisionResponse`、`AwaitingConfirmationResponse` 约 0.1K；4xx `problem+json` 约 0.35K（`ProblemDetails` 文本按 `ErrorKind` 固定，无请求值回显）；其余接口 204 无正文。
     - 取值：现有最大约 1.4K，取 N = 32768（约 23 倍余量）。余量理由：权限码目录增长到约 500 个仍容得下（500 × 70 ≈ 35K 临界，届时本卡守护测试先失败，提醒复核，而不是静默放大）；任职期史以百计也容得下。N 写在 `ck_idempotent_responses_response_text`：`CHECK (char_length(response_text) <= 32768)`，并在 `IdempotencyFilter` 用同一常量（`MAX_RESPONSE_LENGTH = 32768`），测试断言两处相等。
-    - 超限（one-data 裁定，2026-10-16）：不截断、不存，**不释放幂等键**（行保持「处理中」，`holdUntilExpiry` 把 `updated_at` 置为 `expires_at`，使重试在 24 小时到期前一直得到处理中冲突 409，且不被「处理中超时 2 分钟后接管」重新执行已提交的写操作）；打 `ALERT platform.idempotency response of <接口模板> exceeds 32768 characters: not stored`，`forcitis.platform.idempotency.response.oversize` 计数加一；应答照常发给调用方。
+    - 超限（one-data 裁定，2026-10-16）：不截断、不存，**不释放幂等键**（行保持「处理中」，`holdUntilExpiry` 把 `updated_at` 置为 `expires_at`，使重试在 24 小时到期前一直得到处理中冲突 409，且不被「处理中超时 2 分钟后接管」重新执行已提交的写操作）；打 `ALERT platform.idempotency response of <接口模板> exceeds 32768 characters: not stored`，`forcitis.platform.web.idempotency.response.oversize` 计数加一；应答照常发给调用方。
     - 守护：新增测试 `IdempotentResponseSizeTest`（`TB-02 …` 开头）：为每个白名单接口的响应类型构造字段取上限的夹具（`name` 100 字、`permissionCodes` 取当前全部权限码、任职期取 100 个），序列化后长度须小于 N 的一半。
   - **② 白名单登记处与形式：新建 `backend/architecture/idempotent-endpoints.txt`**
     - 选它不选别的：`data-classification.txt` 登记列、`archive-columns.txt` 登记归档列、`data-access-registry.yaml` 登记表与写入者，都不是接口；`sensitive-response-exceptions.txt` 是出参字段的例外，语义相反（它登记「可以暴露」，这里要登记「可以保存」）。形式与对象最接近的是 `public-endpoints.txt`（接口集合，`ApplicationIntegrationTest` 做双向快照比对），沿用它的行格式：`METHOD 路径模板  # 应答类型；核对结论`。
