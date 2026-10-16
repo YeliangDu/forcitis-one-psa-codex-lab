@@ -36,12 +36,16 @@ class Norm:
     def __init__(self, alias_map=None):
         self.alias = sorted((alias_map or {}).items(), key=lambda kv: -len(kv[0]))
 
-    def __call__(self, t):
+    def keep(self, t):
+        """别名换正式用语、去标点，但保留「已」「被」。"""
         t = str(t or "")
         for a, z in self.alias:
             if a in t:
                 t = t.replace(a, z)
-        t = re.sub(r"[\s（()）【】\[\]，,。；;：:、/→\-—_·「」\"']", "", t)
+        return re.sub(r"[\s（()）【】\[\]，,。；;：:、/→\-—_·「」\"']", "", t)
+
+    def __call__(self, t):
+        t = self.keep(t)
         stripped = t.replace("已", "").replace("被", "")
         return stripped if len(stripped) >= 2 else t   # 「已付」去掉「已」只剩一字，退回原文整体比对
 
@@ -71,8 +75,11 @@ def match_atom(oname, state, text, norm):
     tn, on = norm(text), norm(re.sub(r"[（(].*?[）)]", "", oname or ""))
     if not tn:
         return None
+    tk = norm.keep(text)
     best = None
     for v in variants(state, norm):
+        # 状态因去「已」「被」后不足两字而保留原文时，结局也用保留形式比对
+        tn = tk if re.search("[已被]", v) else norm(text)
         if v == tn or (v in tn and on and on in tn) or (on and tn == on + v):
             return "exact"
         if v in tn or (len(tn) >= 3 and tn in v):
@@ -180,6 +187,53 @@ def load_skeletons(local):
     return units
 
 
+def load_machines(local):
+    """三组 state-machines.yaml（object_check.read_group_yaml 同口径）：{聚合: 状态机}。"""
+    import closeout_check as cc
+    out = {}
+    for g in GROUPS:
+        if local:
+            p = HERE / g / "state-machines.yaml"
+            txt = p.read_text(encoding="utf-8") if p.exists() else None
+        else:
+            txt = cc.git_show(f"claude/one-arch-{g}-closeout", f"docs/modernization/architecture/proposals/closeout/{g}/state-machines.yaml")
+        if not txt:
+            print(f"警告：读不到 {g} 组状态机（{'本地' if local else 'origin 分支'}）", file=sys.stderr)
+            continue
+        for m in (yaml.safe_load(txt) or {}).get("machines") or []:
+            out[m["aggregate"]] = m
+    return out
+
+
+def arrivals_of(unit, steps, machines, aggs):
+    """流程改状态步骤经状态机到达的状态：[(to, 对象集合, 说明)]。聚合 + 命令在状态机里查 command 相同的转换取 to。"""
+    import closeout_check as cc
+    pairs = []
+    for st in steps:
+        if cc.classify(st, unit) != "command":
+            continue
+        if st.get("aggregate") and st.get("command"):
+            pairs.append((st["aggregate"], st["command"]))
+        pairs += [(x.get("aggregate"), x.get("command")) for x in st.get("inner") or [] if x.get("aggregate") and x.get("command")]
+    for c in (unit.get("commands") or []) + (unit.get("transitions") or []):
+        if isinstance(c, dict) and c.get("command"):
+            pairs.append((c.get("aggregate") or unit.get("aggregate"), c["command"]))
+    out, seen = [], set()
+    for agg, cmd in pairs:
+        m = machines.get(agg)
+        if not m or m.get("stateless") is True or cc.MISSING in str(cmd):
+            continue
+        objs = set((aggs.get(agg) or {}).get("objs") or [])
+        if not objs:
+            continue
+        bc = cc.base_cmd(cmd)
+        for t in m.get("transitions") or []:
+            if t.get("command") and cc.base_cmd(t["command"]) == bc and t.get("to") and (agg, bc, t["to"]) not in seen:
+                seen.add((agg, bc, t["to"]))
+                out.append((str(t["to"]), objs, f"{bc}→{t['to']}"))
+    return out
+
+
 def texts_of(unit, steps):
     """流程的结局文本：[(kind, text)]。"""
     out = []
@@ -210,8 +264,9 @@ def texts_of(unit, steps):
 
 # ---------------------------------------------------------------- 分析
 
-def analyze(vs_doc, catalog, skeletons, onames, alias_map):
+def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=None):
     norm = Norm(alias_map)
+    machines, aggs = machines or {}, aggs or {}
     patterns = {}
     vss = vs_doc["value_streams"]
     stage_pos = {}
@@ -225,20 +280,29 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map):
     R = {"vs": {}, "unstaged": [], "support": [], "gaps": [], "gaps_noted": [], "unknown_stage": [], "exit": [], "entry": [], "sparse": [],
          "skel_diff": [], "no_skeleton_stage": 0}
 
-    cand = {}
+    cand, arr = {}, {}
     for p in procs:
         u = skeletons.get(p["id"])
         t = texts_of(*u) if u else []
         cand[p["id"]] = t
+        arr[p["id"]] = arrivals_of(u[0], u[1], machines, aggs) if u else []
         if u:
             sk = set(u[0].get("stages") or [])
             if sk and sk != set(p.get("stages") or []):
                 R["skel_diff"].append((p["id"], p["name"], sorted(sk), list(p.get("stages") or [])))
 
-    def find_in(proc_ids, leaf, use_name=True):
+    def find_in(proc_ids, leaf, use_name=True, with_arr=True):
         best, ev = None, []
         on = onames.get(leaf.get("ref"), "")
         for pid in proc_ids:
+            for to, objs, desc in (arr[pid] if with_arr else []):
+                if leaf.get("ref") not in objs:
+                    continue
+                tier = match_atom(on, leaf.get("state"), to, norm)
+                if tier and RANK[tier] > RANK[best]:
+                    best, ev = tier, [(pid, "步骤到达", desc)]
+                elif tier and tier == best and len(ev) < 3:
+                    ev.append((pid, "步骤到达", desc))
             for kind, text in cand[pid]:
                 tier = match_atom(on, leaf.get("state"), text, norm)
                 if tier and RANK[tier] > RANK[best]:
@@ -314,12 +378,16 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map):
             # 退出
             ex = expand(s.get("exit") or {"all": []}, pa)
             tier, bad = evaluate(ex, lambda lf: find_in(ps, lf))
-            outs = list(dict.fromkeys((pid, "", t) for pid in ps for k, t in cand[pid] if k != "名称"))
+            outs = list(dict.fromkeys([(pid, "", t) for pid in ps for k, t in cand[pid] if k != "名称"] +
+                                      [(pid, "", "→" + d) for pid in ps for _t, _o, d in arr[pid]]))
+            ev_all = _evidence(ex, lambda lf: find_in(ps, lf))
+            ev_out = {id(lf): tr for lf, tr, _ in _evidence(ex, lambda lf: find_in(ps, lf, with_arr=False))}
+            by_arr = [(lf, tr, e) for lf, tr, e in ev_all if RANK[tr] > RANK[ev_out.get(id(lf))] and e[1] == "步骤到达"]
             if ex.get("all") == [] and "leaf" not in ex and "any" not in ex:
                 tier = "exact"
             R["exit"].append({"vs": vs["id"], "stage": s["id"], "name": s["name"], "tier": tier, "bad": bad,
                               "text": render_cond(ex, onames), "n_proc": len(ps), "outs": outs,
-                              "ev": _evidence(ex, lambda lf: find_in(ps, lf))})
+                              "ev": ev_all, "by_arr": by_arr})
             # 进入
             en = expand(s.get("entry") or {"all": []}, pa)
             allp = [p["id"] for p in procs]
@@ -328,11 +396,16 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map):
                 tier, ev = find_in(allp, lf)
                 return tier, ev
             etier, ebad = evaluate(en, fe)
+            etier0, _ = evaluate(en, lambda lf: find_in(allp, lf, with_arr=False))
+            e_by_arr = []
             rel = []
             for lf in leaves(en):
                 if str(lf.get("ref")) in SKIP_REFS or not str(lf.get("ref", "")).startswith("OBJ-"):
                     continue
                 t2, ev = find_in(allp, lf)
+                t0, _ = find_in(allp, lf, with_arr=False)
+                if t2 and RANK[t2] > RANK[t0]:
+                    e_by_arr.append((lf, t2, ev[0]))
                 for pid, k, t in ev:
                     ps_st = pby[pid].get("stages") or []
                     if any(x == s["id"] for x in ps_st):
@@ -345,11 +418,12 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map):
                         r = "别的价值流"
                     else:
                         r = "未落阶段"
-                    rel.append((lf, pid, r, t2))
+                    rel.append((lf, pid, r, t2, k))
             only_late = [lf for lf in leaves(en) if lf in [x[0] for x in rel] and
                          all(x[2] in ("同价值流后段",) for x in rel if x[0] is lf)]
             R["entry"].append({"vs": vs["id"], "stage": s["id"], "name": s["name"], "tier": etier, "bad": ebad,
-                               "text": render_cond(en, onames), "rel": rel, "only_late": only_late})
+                               "text": render_cond(en, onames), "rel": rel, "only_late": only_late,
+                               "tier_out": etier0, "by_arr": e_by_arr})
         if len(in_vs) <= SMALL_VS:
             R["sparse"].append(("small_vs", vs["id"], vs["name"], len(in_vs)))
     return R
@@ -463,6 +537,15 @@ def render(R, onames, pby, skel_n, total_skel):
                 w(f"  - 本段流程结局（{len(outs)}）：{'、'.join(shown) if shown else '无（本段无流程或无骨架）'}{' …' if len(outs) > 25 else ''}")
     w("")
 
+    w("### 3a 匹配来源：仅由「步骤到达」匹配上的退出条件\n")
+    w("这些条件的结局类文本（outcomes / 步骤结局 / 分支结局 / 事件 / 状态）匹配不上，是流程步骤经状态机到达的状态使其匹配（括号内为 命令→到达状态）。\n")
+    ea = [(e, x) for e in R["exit"] for x in e["by_arr"]]
+    for e, (lf, tier, (pid, k, t)) in ea:
+        w(f"- {e['stage']} {e['name']}：{leaf_txt(lf, onames)} ← {pid}（步骤到达，{tier}）{t}")
+    if not ea:
+        w("无。")
+    w("")
+
     w("## 4 进入条件的产生方\n")
     for vid in R["vs"]:
         rows = [e for e in R["entry"] if e["vs"] == vid and (e["tier"] is None or e["only_late"])]
@@ -475,6 +558,14 @@ def render(R, onames, pby, skel_n, total_skel):
                 w(f"  - 找不到产生方：{'；'.join(leaf_txt(x, onames) for x in e['bad'])}")
             for lf in e["only_late"]:
                 w(f"  - 只有后段流程产生：{leaf_txt(lf, onames)}")
+    w("")
+
+    w("### 4a 匹配来源：产生方仅由「步骤到达」找到的进入条件叶子\n")
+    na = [(e, x) for e in R["entry"] for x in e["by_arr"]]
+    for e, (lf, tier, (pid, k, t)) in na:
+        w(f"- {e['stage']} {e['name']}：{leaf_txt(lf, onames)} ← {pid}（步骤到达，{tier}）{t}")
+    if not na:
+        w("无。")
     w("")
 
     w("## 5 稀少\n")
@@ -503,6 +594,7 @@ def render(R, onames, pby, skel_n, total_skel):
 - 状态说法：状态原文按 `/`、`→` 拆开，括号内外分开，整体与各部分各取一个说法（≥ 2 个字）。
 - 精确：说法与结局相等；或说法包含于结局且对象名也在结局里；或结局 = 对象名 + 说法。
 - 近似：说法包含于结局（缺对象名）；结局（≥ 3 字）包含于说法；说法的二字组被结局覆盖 ≥ 60%%；流程名称命中。拿不准的都落在近似。
+- 匹配来源：「结局」类 = 上一条的结局文本；「步骤到达」= 流程的每个改状态步骤（aggregate + command，含 inner 与单聚合 commands[] / transitions[] 条目，条目 aggregate 优先），在三组 state-machines.yaml 里查该聚合 command 相同的转换，取其 to 状态；仅当条件的对象（OBJ）属于该聚合的对象时参与，状态说法同样按下述精确 / 近似规则比对。步骤到达同时参与退出条件（本段流程）与进入条件产生方（全部流程）；3a / 4a 列出只靠它匹配上的叶子。
 - 退出条件「满足」= 存在落在本段的某条流程的某个结局匹配；整体 tier 取 any 的最好者、all 的最差者。
 - 进入条件的产生方在全部非合并流程里找（含别的价值流），并标注与本段的关系（同价值流前段 / 本段 / 后段 / 别的价值流 / 未落阶段）。
 - 状态名与结局用词不同（如「赢单」与「商机已转赢单」）、结局只写在 notes 里、事件用英文名，都会被判为匹配不上；它们提示的是用语对齐问题，不一定是流程缺失。
@@ -604,11 +696,34 @@ def self_test():
     assert not any(x[0] == "small_vs" for x in R["sparse"])  # 5 条流程
     R2 = analyze(vs, cat[:1], sk, on, {})
     assert any(x[0] == "small_vs" for x in R2["sparse"])
+    # 步骤到达：P2 的步骤命令「丢弃乙」经状态机到达「已丢单」，应满足 VS-X.4 退出 OBJ-1「赢单」之外的叶子；这里用 VS-X.3 的 OBJ-2 状态验证
+    vs3 = {"value_streams": [{"id": "VS-Y", "name": "y", "stages": [
+        {"id": "VS-Y.1", "name": "甲段", "entry": {"all": [{"ref": "OBJ-1", "state": "已冻结"}]}, "exit": {"all": [{"ref": "OBJ-1", "state": "已关闭"}]}},
+        {"id": "VS-Y.2", "name": "乙段", "entry": {"all": [{"ref": "OBJ-1", "state": "已关闭"}]}, "exit": {"all": [{"ref": "OBJ-1", "state": "已冻结"}]}}]}]}
+    cat3 = [{"id": "Q1", "name": "操作", "type": "business", "stages": ["VS-Y.1"], "owner_bc": "B-1"},
+            {"id": "Q2", "name": "别的", "type": "business", "stages": ["VS-Y.2"], "owner_bc": "B-1"}]
+    sk3 = {"Q1": ({"outcomes": ["无关"], "stages": ["VS-Y.1"]}, [{"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-1", "command": "关闭甲"}]),
+           "Q2": ({"outcomes": ["无关"], "stages": ["VS-Y.2"]}, [{"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-1", "command": "冻结甲"},
+                                                              {"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-9", "command": "关闭甲"}])}
+    mach = {"AGG-1": {"aggregate": "AGG-1", "states": ["x", "已关闭", "已冻结"], "transitions": [
+        {"from": "x", "to": "已关闭", "command": "关闭甲"}, {"from": "x", "to": "已冻结", "command": "冻结甲"}]},
+            "AGG-9": {"aggregate": "AGG-9", "stateless": True}}
+    aggs3 = {"AGG-1": {"objs": ["OBJ-1"]}, "AGG-9": {"objs": ["OBJ-1"]}}
+    R3 = analyze(vs3, cat3, sk3, on, {}, mach, aggs3)
+    x3 = {e["stage"]: e for e in R3["exit"]}
+    assert x3["VS-Y.1"]["tier"] == "exact" and x3["VS-Y.1"]["by_arr"], x3["VS-Y.1"]
+    assert x3["VS-Y.2"]["tier"] == "exact", x3["VS-Y.2"]
+    e3 = {e["stage"]: e for e in R3["entry"]}
+    assert e3["VS-Y.1"]["tier"] == "exact" and e3["VS-Y.2"]["tier"] == "exact" and e3["VS-Y.2"]["by_arr"], e3
+    R3b = analyze(vs3, cat3, sk3, on, {}, {}, {})   # 无状态机：不参与，退出不匹配
+    assert {e["stage"]: e for e in R3b["exit"]}["VS-Y.1"]["tier"] is None
+    assert "步骤到达" in render(R3, on, {}, 2, 2)
     n = Norm({"销售合同": "合同"})
     assert n("销售合同已生效") == "合同生效"
     assert match_atom("商机", "已确认（转商机）", "已转商机", n) == "exact"
     assert match_atom("商机", "赢单", "商机已赢单", n) == "exact"
     assert match_atom("商机", "赢单", "完全无关", n) is None
+    assert match_atom("费用报销", "已付", "费用报销已付", n) == "exact"
     txt = render(R, on, {}, 2, 6)
     assert "匹配口径" in txt and "VS-X.3" in txt
     print("self-test 通过")
@@ -623,7 +738,8 @@ def main():
     catalog = yaml.safe_load(CATALOG.read_text(encoding="utf-8"))["processes"]
     skeletons = load_skeletons(local)
     onames = load_objnames()
-    R = analyze(vs_doc, catalog, skeletons, onames, load_alias_map())
+    import closeout_check as cc
+    R = analyze(vs_doc, catalog, skeletons, onames, load_alias_map(), load_machines(local), cc.load_aggregates())
     procs = [p for p in catalog if p.get("type") != "merged"]
     skel_n = sum(1 for p in procs if p["id"] in skeletons)
     text = render(R, onames, {p["id"]: p for p in procs}, skel_n, len(procs))
