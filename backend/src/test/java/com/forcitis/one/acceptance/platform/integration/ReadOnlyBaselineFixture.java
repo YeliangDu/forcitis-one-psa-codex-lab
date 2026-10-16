@@ -50,6 +50,12 @@ final class ReadOnlyBaselineFixture {
 
     static final String VIEW_SCHEMA = "forcitis_one";
 
+    /** Review H-A: a role of our own, made and dropped by the nesting counterexample; createRdsPlatform drops it again if a killed JVM left it. */
+    static final String NESTED_ROLE = "forcitis_nested_role";
+
+    /** Review H-A: the only roles the msdb token may hold beside the own user (or guest): public and the three SQL Agent roles. */
+    static final List<String> MSDB_TOKEN_ROLES_ALLOWED = List.of("public", "SQLAgentUserRole", "SQLAgentReaderRole", "SQLAgentOperatorRole");
+
     /** The roles of the login's own msdb user on RDS (one-ops sample, C-14 rc.3); SQL Server ships them in msdb whether or not the Agent runs. */
     static final List<String> MSDB_AGENT_ROLES = List.of("SQLAgentOperatorRole", "SQLAgentReaderRole", "SQLAgentUserRole");
 
@@ -75,7 +81,11 @@ final class ReadOnlyBaselineFixture {
                 "REVOKE TAKE OWNERSHIP ON DATABASE::msdb FROM SQLAgentUserRole", "REVOKE ALTER ANY DATABASE DDL TRIGGER FROM public",
                 "REVOKE CREATE FUNCTION FROM SQLAgentUserRole", "REVOKE IMPERSONATE ON USER::dbo FROM SQLAgentUserRole",
                 "REVOKE ALTER ON SCHEMA::dbo FROM SQLAgentUserRole", "REVOKE ALTER ON OBJECT::" + MSDB_PROCEDURE + " FROM public",
-                "REVOKE ALTER ANY SCHEMA FROM guest", GUEST_READS_AGENT_JOBS_UNDO);
+                "REVOKE ALTER ANY SCHEMA FROM guest", GUEST_READS_AGENT_JOBS_UNDO,
+                // review H-A: the nesting counterexamples undo themselves too
+                "IF IS_ROLEMEMBER('db_ssisadmin', 'SQLAgentUserRole') = 1 ALTER ROLE db_ssisadmin DROP MEMBER SQLAgentUserRole",
+                "IF IS_ROLEMEMBER('" + NESTED_ROLE + "', 'SQLAgentUserRole') = 1 ALTER ROLE " + NESTED_ROLE + " DROP MEMBER SQLAgentUserRole",
+                "DROP ROLE IF EXISTS " + NESTED_ROLE, "IF IS_ROLEMEMBER('DatabaseMailUserRole', 'guest') = 1 ALTER ROLE DatabaseMailUserRole DROP MEMBER guest");
     }
 
     /** The organisation views account: reads the whole view schema, default schema is the view schema, which must already exist. */
@@ -169,6 +179,40 @@ final class ReadOnlyBaselineFixture {
             + "('VIEW ANY COLUMN MASTER KEY DEFINITION', 'VIEW ANY COLUMN ENCRYPTION KEY DEFINITION')) OR "
             + "(p.class = 1 AND ((p.state = 'G' AND p.permission_name IN ('SELECT', 'EXECUTE')) OR p.state = 'D')))";
 
+    /**
+     * Review H-A: every ROLE of the token in msdb beyond public and the three SQL Agent roles, whatever it can do (fixed or self-made, nested through a
+     * SQL Agent role or, for a login that reaches msdb through guest alone, through guest). Object-level grants of such a role (db_ssisadmin, DatabaseMailUserRole,
+     * dc_admin) are inside the class allow-list, so only the membership itself shows. Reported as "TOKEN_ROLE name" (fixture only: the command prints no role name).
+     */
+    static final String TOKEN_ROLES_OUTSIDE_THE_ALLOW_LIST = "SELECT CONCAT('TOKEN_ROLE ', name COLLATE DATABASE_DEFAULT) FROM sys.user_token WHERE type = 'ROLE' "
+            + "AND name COLLATE DATABASE_DEFAULT NOT IN (" + MSDB_TOKEN_ROLES_ALLOWED.stream().map(r -> "N'" + r + "'").collect(java.util.stream.Collectors.joining(", ")) + ")";
+
+    /** msdb's own default: each of these principals owns the schema of its name. */
+    static final List<String> PLATFORM_SELF_SCHEMA_OWNERS = List.of("guest", "SQLAgentUserRole", "SQLAgentReaderRole", "SQLAgentOperatorRole");
+
+    /** The principals of the token that count for ownership: the own user (or guest) and the allowed roles; a role beyond them is a violation by itself. */
+    private static final String OWNING_TOKEN_MEMBERS = "(SELECT principal_id FROM sys.user_token WHERE type <> 'ROLE' OR name COLLATE DATABASE_DEFAULT IN ("
+            + MSDB_TOKEN_ROLES_ALLOWED.stream().map(r -> "N'" + r + "'").collect(java.util.stream.Collectors.joining(", ")) + "))";
+
+    /**
+     * Review M-A: a principal of the token owns a role, a schema or an object in msdb. "OWNS ROLE" / "OWNS SCHEMA" / "OWNS OBJECT" (kind only, fixture only).
+     * The platform default stays out: guest owns the schema guest and each SQL Agent role the schema of its own name (checked by {@link #assertPlatformSchemasAreOwnedByTheirNamesakes});
+     * dbo and the rest are owned by dbo, which no token holds. A schema named like its owner is not exempt in general, only those four.
+     */
+    static final String OWNED_BY_THE_TOKEN = "SELECT 'OWNS ROLE' WHERE EXISTS (SELECT 1 FROM sys.database_principals WHERE owning_principal_id IN " + OWNING_TOKEN_MEMBERS + ") "
+            + "UNION ALL SELECT 'OWNS SCHEMA' WHERE EXISTS (SELECT 1 FROM sys.schemas s JOIN sys.database_principals o ON o.principal_id = s.principal_id "
+            + "WHERE s.principal_id IN " + OWNING_TOKEN_MEMBERS + " AND NOT (s.name COLLATE DATABASE_DEFAULT = o.name COLLATE DATABASE_DEFAULT AND o.name COLLATE DATABASE_DEFAULT IN ("
+            + PLATFORM_SELF_SCHEMA_OWNERS.stream().map(r -> "N'" + r + "'").collect(java.util.stream.Collectors.joining(", ")) + "))) "
+            + "UNION ALL SELECT 'OWNS OBJECT' WHERE EXISTS (SELECT 1 FROM sys.objects WHERE principal_id IN " + OWNING_TOKEN_MEMBERS + ")";
+
+    /** Review M-A, asked as sa in msdb: the default ownerships the check must let through really exist (guest and the SQL Agent roles each own the schema of their name). */
+    static void assertPlatformSchemasAreOwnedByTheirNamesakes(Statement sa) throws SQLException {
+        for (String owner : PLATFORM_SELF_SCHEMA_OWNERS) {
+            assertThat(strings(sa, "SELECT COUNT(*) FROM sys.schemas s JOIN sys.database_principals p ON p.principal_id = s.principal_id WHERE s.name = N'" + owner
+                    + "' AND p.name = N'" + owner + "'")).as("msdb: %s owns the schema %s", owner, owner).containsExactly("1");
+        }
+    }
+
     /** The database-level permissions of the msdb review H-1 (one-coordinator 2026-10-15): any one of them effective for the own msdb user is a violation. */
     static final List<String> MSDB_PRIVILEGES = List.of("CONTROL", "ALTER", "ALTER ANY ROLE", "ALTER ANY USER", "ALTER ANY SCHEMA", "CREATE PROCEDURE");
 
@@ -194,6 +238,8 @@ final class ReadOnlyBaselineFixture {
                 found.add("EFFECTIVE IMPERSONATE");
             }
             found.addAll(strings(s, TOKEN_SCOPE_OUTSIDE_THE_ALLOW_LIST));
+            found.addAll(strings(s, TOKEN_ROLES_OUTSIDE_THE_ALLOW_LIST));
+            found.addAll(strings(s, OWNED_BY_THE_TOKEN));
             found.addAll(strings(s, "SELECT CONCAT('DIRECT ', p.class_desc, ' ', p.state, ' ', p.permission_name) FROM sys.database_permissions p "
                     + "JOIN sys.database_principals u ON u.principal_id = p.grantee_principal_id WHERE u.sid = SUSER_SID() AND NOT ("
                     + "(p.class = 0 AND p.state = 'G' AND p.permission_name = 'CONNECT') OR "
@@ -275,9 +321,9 @@ final class ReadOnlyBaselineFixture {
                     u -> List.of("GRANT ALTER ON SCHEMA::dbo TO " + u, "GRANT CREATE PROCEDURE TO " + u),
                     u -> List.of("REVOKE ALTER ON SCHEMA::dbo FROM " + u, "REVOKE CREATE PROCEDURE FROM " + u), Set.of("CREATE PROCEDURE"),
                     Set.of("SCHEMA G ALTER", "DATABASE G CREATE PROCEDURE")),
-            new MsdbCounterexample("(5) role nesting: db_owner gets SQLAgentUserRole as a member", true,
+            new MsdbCounterexample("(5) role nesting (review H-A case A4): db_owner gets SQLAgentUserRole as a member", true,
                     u -> List.of("ALTER ROLE db_owner ADD MEMBER SQLAgentUserRole"), u -> List.of("ALTER ROLE db_owner DROP MEMBER SQLAgentUserRole"),
-                    Set.copyOf(MSDB_PRIVILEGES), Set.of(), Set.of(IMPERSONATE)),
+                    Set.copyOf(MSDB_PRIVILEGES), Set.of(), Set.of(IMPERSONATE, "TOKEN_ROLE db_owner")),
             new MsdbCounterexample("(6) GRANT CONTROL ON DATABASE::msdb TO SQLAgentUserRole", true,
                     u -> List.of("GRANT CONTROL ON DATABASE::msdb TO SQLAgentUserRole"), u -> List.of("REVOKE CONTROL ON DATABASE::msdb FROM SQLAgentUserRole"),
                     Set.copyOf(MSDB_PRIVILEGES), Set.of(), Set.of(IMPERSONATE, "TOKEN SQLAgentUserRole DATABASE G CONTROL")),
@@ -305,7 +351,29 @@ final class ReadOnlyBaselineFixture {
                     Set.of(), Set.of(), Set.of("TOKEN SQLAgentUserRole SCHEMA G ALTER")),
             new MsdbCounterexample("(14) GRANT ALTER ON the dbo procedure " + MSDB_PROCEDURE + " TO public", true,
                     u -> List.of("GRANT ALTER ON OBJECT::" + MSDB_PROCEDURE + " TO public"), u -> List.of("REVOKE ALTER ON OBJECT::" + MSDB_PROCEDURE + " FROM public"),
-                    Set.of(), Set.of(), Set.of("TOKEN public OBJECT_OR_COLUMN G ALTER")));
+                    Set.of(), Set.of(), Set.of("TOKEN public OBJECT_OR_COLUMN G ALTER")),
+            // Review H-A (opus): the capability of these roles is object-level EXECUTE / SELECT, so neither the token scan nor the six permissions see it; the membership is the violation.
+            // Container finding: db_ssisadmin of SQL Server 2022 also holds object-level INSERT / UPDATE / DELETE / REFERENCES, which the token scan already catches (A1 does not pin the role rule alone).
+            new MsdbCounterexample("(16) role nesting (review H-A case A1): db_ssisadmin gets SQLAgentUserRole as a member", true,
+                    u -> List.of("ALTER ROLE db_ssisadmin ADD MEMBER SQLAgentUserRole"), u -> List.of("ALTER ROLE db_ssisadmin DROP MEMBER SQLAgentUserRole"),
+                    Set.of(), Set.of(), Set.of("TOKEN_ROLE db_ssisadmin", "TOKEN db_ssisadmin OBJECT_OR_COLUMN G DELETE", "TOKEN db_ssisadmin OBJECT_OR_COLUMN G INSERT",
+                            "TOKEN db_ssisadmin OBJECT_OR_COLUMN G REFERENCES", "TOKEN db_ssisadmin OBJECT_OR_COLUMN G UPDATE")),
+            new MsdbCounterexample("(17) role nesting (review H-A case A3): a role of our own, without any grant, gets SQLAgentUserRole as a member", true,
+                    u -> List.of("CREATE ROLE " + NESTED_ROLE, "ALTER ROLE " + NESTED_ROLE + " ADD MEMBER SQLAgentUserRole"),
+                    u -> List.of("ALTER ROLE " + NESTED_ROLE + " DROP MEMBER SQLAgentUserRole", "DROP ROLE " + NESTED_ROLE), Set.of(), Set.of(),
+                    Set.of("TOKEN_ROLE " + NESTED_ROLE)),
+            // Review M-A: ownership inside msdb; the names carry the login so that parallel forks never meet.
+            new MsdbCounterexample("(18) the account owns a role of msdb (review M-A case M1)", false,
+                    u -> List.of("CREATE ROLE " + owned(u, "role") + " AUTHORIZATION " + u), u -> List.of("DROP ROLE " + owned(u, "role")), Set.of(), Set.of(),
+                    Set.of("OWNS ROLE")),
+            new MsdbCounterexample("(19) the account owns a schema of msdb (review M-A case M2)", false,
+                    u -> List.of("CREATE SCHEMA " + owned(u, "schema") + " AUTHORIZATION " + u), u -> List.of("DROP SCHEMA " + owned(u, "schema")), Set.of(), Set.of(),
+                    Set.of("OWNS SCHEMA")));
+
+    /** "[login_kind]" from "[login]": a name of our own beside the login, unique per account. */
+    private static String owned(String quotedUser, String kind) {
+        return q(quotedUser.substring(1, quotedUser.length() - 1) + "_owned_" + kind);
+    }
 
     /**
      * What one-ops read off the real accounts on RDS (34 platform defaults): beside CONNECT, object-level GRANT SELECT several times, GRANT EXECUTE and one

@@ -491,6 +491,8 @@ class ReadOnlyVerificationCommandIT {
             assertThat(run.findings()).as("one locator line, the database only\n%s", run.output()).containsExactly(systemDatabaseOwnUserPrivilege("msdb"));
             assertThat(run.ownUsers()).as(run.output()).containsExactlyInAnyOrderElementsOf(RDS_OWN_USERS);
             assertThat(run.output()).as("no object name behind the privilege").doesNotContain(ReadOnlyBaselineFixture.MSDB_PROCEDURE.substring(4));
+            counterexample.reached().stream().filter(line -> line.startsWith("TOKEN_ROLE ")).map(line -> line.substring("TOKEN_ROLE ".length()))
+                    .forEach(role -> assertThat(run.output()).as("no role name behind the violation (review H-A)").doesNotContain(role));
             assertLocatorFieldsInContractOrder(run);
             for (char item : "abcdeg".toCharArray()) {
                 assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
@@ -586,6 +588,37 @@ class ReadOnlyVerificationCommandIT {
 
     @ParameterizedTest(name = "{0}")
     @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-A 案例 A2（契约：msdb 令牌角色）：账号只经 guest 进 msdb，DatabaseMailUserRole 嵌入 guest 时令牌里出现 public 以外的角色，(f) 违规、原因 SYSTEM_DATABASE_OWN_USER_PRIVILEGE 计数 1、定位行只写库名 msdb（不写角色名），msdb 没有角色信息行，其余六项通过，退出违规码")
+    void aRoleNestedIntoGuestIsAViolationWhenMsdbIsReachedThroughGuestOnly(ReadOnlyConnection connection) throws Exception {
+        Account account = guestOnlyAccount(connection);
+        try {
+            run("msdb", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS, "ALTER ROLE DatabaseMailUserRole ADD MEMBER guest");
+            assertThat(ReadOnlyBaselineFixture.ownAgentJobs(account.url(), account.login(), account.password()))
+                    .as("the fixture: the verdict rests on the token alone, the Agent-job count is readable").containsExactly("0");
+            assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(account.url(), account.login(), account.password()))
+                    .as("the fixture: the role reaches the login that has no own user in msdb, and nothing else shows it")
+                    .containsExactly("TOKEN_ROLE DatabaseMailUserRole");
+
+            CommandRun run = verify(connection, account);
+
+            assertThat(run.exitCode()).as(run.output()).isEqualTo(EXIT_VIOLATED);
+            assertThat(run.item('f').verdict()).as(run.output()).isEqualTo("VIOLATED");
+            assertThat(run.item('f').tokens()).as(run.output()).contains(" reason=SYSTEM_DATABASE_OWN_USER_PRIVILEGE count=1");
+            assertThat(run.findings()).as("one locator line, the database only\n%s", run.output()).containsExactly(systemDatabaseOwnUserPrivilege("msdb"));
+            assertThat(run.ownUsers()).as("no own user in msdb, so only rdscore\n%s", run.output()).containsExactly(ownUser("rdscore", null));
+            assertThat(run.output()).as("no role name behind the violation").doesNotContain("DatabaseMailUserRole");
+            for (char item : "abcdeg".toCharArray()) {
+                assertThat(run.item(item).verdict()).as("(%s)\n%s", item, run.output()).isEqualTo("PASSED");
+            }
+            assertThat(run.results()).as(run.output()).containsExactly("VIOLATED");
+            assertTellsNothingSecret(run, account);
+        } finally {
+            run("msdb", "ALTER ROLE DatabaseMailUserRole DROP MEMBER guest", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS_UNDO);
+        }
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
     @DisplayName("C-14 (f) 复审 H-1' 只经 guest 进 msdb 的对照：guest 与 public 只有默认授权、guest 能读自己的 Agent 作业数时七项都通过、msdb 没有角色信息行、结果通过、退出 0")
     void guestOnlyAccountWithTheDefaultGuestGrantsPasses(ReadOnlyConnection connection) throws Exception {
         Account account = guestOnlyAccount(connection);
@@ -660,6 +693,9 @@ class ReadOnlyVerificationCommandIT {
 
     /** A baseline account whose own msdb user is dropped: msdb stays reachable through the enabled guest (the fixture checks both). */
     static Account guestOnlyAccount(ReadOnlyConnection connection) throws SQLException {
+        try (Connection c = admin("msdb"); Statement s = c.createStatement()) {
+            ReadOnlyBaselineFixture.assertPlatformSchemasAreOwnedByTheirNamesakes(s);
+        }
         Account account = baselineAccount(connection);
         ReadOnlyBaselineFixture.dropMsdbOwnUser(ReadOnlyVerificationCommandIT::run, q(account.login()));
         assertThat(ReadOnlyBaselineFixture.msdbToken(account.url(), account.login(), account.password()))

@@ -311,6 +311,53 @@ class ReadOnlyAccountCheckIT {
 
     @ParameterizedTest(name = "{0}")
     @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-A 案例 A2 只经 guest 进 msdb：DatabaseMailUserRole 嵌入 guest（角色能力全是对象级 EXECUTE，令牌授权扫描与六项都看不到）时，令牌里出现 public 以外的角色，应用拒绝启动并报出 (f)")
+    void aRoleNestedIntoGuestRefusesStartupWhenMsdbIsReachedThroughGuestOnly(ReadOnlyConnection connection) throws SQLException {
+        Account account = guestOnlyAccount(connection);
+        Throwable failure;
+        try {
+            run("msdb", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS, "ALTER ROLE DatabaseMailUserRole ADD MEMBER guest");
+            assertThat(ReadOnlyBaselineFixture.ownMsdbPrivileges(url(connection.database), account.login(), account.password()))
+                    .as("the fixture: the role reaches the login that has no own user in msdb, and nothing else shows it")
+                    .containsExactly("TOKEN_ROLE DatabaseMailUserRole");
+            failure = catchThrowable(() -> {
+                try (ConfigurableApplicationContext context = start(Map.of(connection, account))) {
+                    assertThat(context.isActive()).isTrue();
+                }
+            });
+        } finally {
+            run("msdb", "ALTER ROLE DatabaseMailUserRole DROP MEMBER guest", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS_UNDO);
+        }
+
+        assertThat(failure).as("%s: the application started anyway", connection).isNotNull();
+        assertThat(messages(failure)).as("the refusal names item (f)").containsPattern("[(（]f[)）]");
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
+    @DisplayName("C-14 (f) 复审 H-A / M-A 不误判（默认）：guest 拥有 schema guest 是平台默认，只经 guest 进 msdb 的账号（夹具先核实 guest 确实拥有它）仍正常启动")
+    void guestOwningItsOwnSchemaDoesNotRefuseStartup(ReadOnlyConnection connection) throws SQLException {
+        try (Connection c = admin("msdb"); Statement s = c.createStatement()) {
+            ReadOnlyBaselineFixture.assertPlatformSchemasAreOwnedByTheirNamesakes(s);
+        }
+        Account account = guestOnlyAccount(connection);
+        Throwable failure;
+        try {
+            run("msdb", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS);
+            failure = catchThrowable(() -> {
+                try (ConfigurableApplicationContext context = start(Map.of(connection, account))) {
+                    assertThat(context.isActive()).isTrue();
+                }
+            });
+        } finally {
+            run("msdb", ReadOnlyBaselineFixture.GUEST_READS_AGENT_JOBS_UNDO);
+        }
+
+        assertThat(failure).as("guest's own schema is a platform default; refused with:\n%s", messages(failure)).isNull();
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @EnumSource(ReadOnlyConnection.class)
     @DisplayName("C-14 (f) 复审 H-1' 只经 guest 进 msdb 的对照：guest 只有默认授权（另让 guest 能读自己的 Agent 作业数，否则 (f) 因读不到作业判定不了）时应用正常启动（msdb 可进即检查令牌范围，没有越线就通过）")
     void guestOnlyAccountWithTheDefaultGuestGrantsStarts(ReadOnlyConnection connection) throws SQLException {
         Account account = guestOnlyAccount(connection);
@@ -353,6 +400,9 @@ class ReadOnlyAccountCheckIT {
 
     /** A baseline account whose own msdb user is dropped: msdb stays reachable through the enabled guest (the fixture checks both), with no role of its own. */
     static Account guestOnlyAccount(ReadOnlyConnection connection) throws SQLException {
+        try (Connection c = admin("msdb"); Statement s = c.createStatement()) {
+            ReadOnlyBaselineFixture.assertPlatformSchemasAreOwnedByTheirNamesakes(s);
+        }
         Account account = baselineAccount(connection);
         ReadOnlyBaselineFixture.dropMsdbOwnUser(ReadOnlyAccountCheckIT::run, q(account.login()));
         assertThat(ReadOnlyBaselineFixture.msdbToken(url(connection.database), account.login(), account.password()))

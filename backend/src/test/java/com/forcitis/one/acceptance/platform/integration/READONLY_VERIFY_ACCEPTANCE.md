@@ -124,6 +124,23 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 6. 新原因码不增，沿用 `SYSTEM_DATABASE_OWN_USER_PRIVILEGE`，`count` 仍为违规的库数（1）。
 7. 夹具反例（接上一节第 6 条，同一清单、同一套全局性约束，`ownMsdbPrivileges` 另报 `EFFECTIVE IMPERSONATE` 与 `TOKEN <主体> <class> <state> <权限>` 行，每例先由夹具以被核实账号身份断言前提）：(9) GRANT TAKE OWNERSHIP ON DATABASE::msdb TO SQLAgentUserRole；(10) GRANT ALTER ANY DATABASE DDL TRIGGER TO public；(11) GRANT CREATE FUNCTION TO SQLAgentUserRole；(12) GRANT IMPERSONATE ON USER::dbo TO SQLAgentUserRole（用户级，六项为 0）；(13) GRANT ALTER ON SCHEMA::dbo TO SQLAgentUserRole；(14) GRANT ALTER ON OBJECT::dbo.sp_help_category TO public（msdb 自带的无害 dbo 过程，不新建对象）；(15) GRANT ALTER ANY SCHEMA TO guest，只对没有本人用户的账号成立，故不在清单里，单独用 `guestOnlyAccount`（`DROP USER` 本人用户）：`alterAnySchemaGrantedToGuestIsAViolationWhenMsdbIsReachedThroughGuestOnly`、`alterAnySchemaGrantedToGuestRefusesStartupWhenMsdbIsReachedThroughGuestOnly`，对照 `guestOnlyAccountWithTheDefaultGuestGrantsPasses` / `…Starts`，以及 `aGrantToGuestDoesNotMakeAnAccountWithItsOwnMsdbUserViolate` / `aGrantToGuestDoesNotRefuseAnAccountWithItsOwnMsdbUser`。既有反例 (1)(3)(5)(6)(7) 的预期行相应加上 `EFFECTIVE IMPERSONATE`（CONTROL、db_owner 蕴含它）与 `TOKEN …` 行。(9)–(14) 全局性，(15) 改 guest，也是全局性，都在 finally 撤销，`createRdsPlatform` 幂等清理。
 
+### (f) msdb 令牌角色与拥有关系（复审 H-A / M-A；待 one-coordinator 确认）
+
+依据：opus 安全复审 H-A、M-A。db_ssisadmin、dc_admin（微软文档称可提权到 sysadmin）、DatabaseMailUserRole 等角色的能力全是对象级 EXECUTE / SELECT，落在上一节令牌范围扫描的类别允许清单内；经 `ALTER ROLE <r> ADD MEMBER SQLAgentUserRole`（账号有本人用户时）或 `ALTER ROLE <r> ADD MEMBER guest`（只经 guest 进 msdb 时）进入令牌后，令牌授权扫描与六项有效权限都看不到，msdb 又是 TRUSTWORTHY ON。故不再按授权判断角色，而是按**成员关系**。同一套 `ReadOnlyBaseline`，影响只读核实命令、启动校验与运行期重检。
+
+1. 令牌角色（H-A）：以本登录身份在 msdb 内读 `sys.user_token WHERE type = 'ROLE'`，除 `public`、`SQLAgentUserRole`、`SQLAgentReaderRole`、`SQLAgentOperatorRole`（按名称精确匹配，不用通配）外出现**任何**角色即违规，不论其能力（含 db_owner 等固定角色、自建的无授权角色、嵌套得来的角色）。原因 `SYSTEM_DATABASE_OWN_USER_PRIVILEGE`，`count` 为违规的库数（1），定位行只有 `reason database`（`database="msdb"`），**不输出角色名**；`ownUser` 信息行不变（嵌套不改本人用户自己的成员关系）。本人用户存在与只经 guest 进入两种形态都查（msdb 可进即查）。
+2. 拥有关系（M-A）：令牌内主体（本人用户或 guest，加上允许的 public 与三个 SQLAgent 角色）在 msdb 拥有角色（`sys.database_principals.owning_principal_id`）、schema（`sys.schemas.principal_id`）或对象（`sys.objects.principal_id`）的个数大于 0 即违规，同一原因码与定位行形状，不输出名称。**平台默认放行**：guest 拥有 schema `guest`，三个 SQLAgent 角色各拥有同名 schema（容器实测基线账号令牌里就有这三个；夹具以 sa 核实这一前提，`assertPlatformSchemasAreOwnedByTheirNamesakes`）；dbo、sys、INFORMATION_SCHEMA、固定角色同名 schema 等由 dbo 或各自的固定角色拥有，不在令牌内，不算。例外只限这四个主体与各自同名的 schema，不是「与拥有者同名的 schema 一律放行」（本人用户自建同名 schema 仍是违规）。
+3. 判定不了：令牌角色读不到、拥有关系读不到，或结果为空（真实令牌至少有 public）沿用既有口径：`EMPTY_ANSWER`、`NO_ANSWER`、`CATALOG_QUERY_FAILED`，不按通过也不按违规。黑盒构造不出，留给实现的单元测试。
+4. 不误判：夹具基线账号（本人用户加三个 SQLAgent 角色）、one-ops 样本形状、只经 guest 且无越线的账号（令牌恰为 guest 与 public，guest 拥有自己的 schema，SQLAgent 角色拥有同名 schema）、默认授权用例都仍 `PASSED`；这些用例里 `ownMsdbPrivileges` 断言为空，现在包含令牌角色与拥有关系两项。
+5. 夹具反例（`MSDB_COUNTEREXAMPLES` 追加，两个 IT 共用，同一套全局性约束；`ownMsdbPrivileges` 另报 `TOKEN_ROLE <角色>`、`OWNS ROLE|SCHEMA|OBJECT`，只供夹具核对，命令不输出）：
+   - A1 = (16)：`ALTER ROLE db_ssisadmin ADD MEMBER SQLAgentUserRole`（全局性，finally 撤销；容器实测 SQL Server 2022 的 db_ssisadmin 在 msdb 另有对象级 INSERT / UPDATE / DELETE / REFERENCES，现行令牌扫描已经因此拦下它，所以 A1 单独钉不住「按成员关系」，钉住它的是 A2、A3、M1、M2）；
+   - A3 = (17)：自建无授权角色 `forcitis_nested_role`，`ADD MEMBER SQLAgentUserRole`（全局性，撤销时先 DROP MEMBER 再 DROP ROLE）；
+   - A4 = 既有 (5)：`ALTER ROLE db_owner ADD MEMBER SQLAgentUserRole`；该例此前已被六项有效权限拦下，现在另报 `TOKEN_ROLE db_owner`，没有新增用例；
+   - M1 = (18)：`CREATE ROLE <登录>_owned_role AUTHORIZATION <本人用户>`（只影响本账号）；
+   - M2 = (19)：`CREATE SCHEMA <登录>_owned_schema AUTHORIZATION <本人用户>`（只影响本账号）；
+   - A2（`DatabaseMailUserRole` 嵌入 guest，账号只经 guest 进入）不在清单（清单面向有本人用户的账号），单独用 `guestOnlyAccount`：`aRoleNestedIntoGuestRefusesStartupWhenMsdbIsReachedThroughGuestOnly`、`aRoleNestedIntoGuestIsAViolationWhenMsdbIsReachedThroughGuestOnly`（让 guest 临时读 `sysjobs_view`，使判定只取决于令牌；finally 撤销）；对照 `guestOwningItsOwnSchemaDoesNotRefuseStartup` 与既有 `guestOnlyAccountWithTheDefaultGuestGrantsPasses` / `…Starts`。
+   - 命令路径另断言输出不含令牌角色名（`msdbOwnUserPrivilegeBeyondTheBaselineIsAViolation` 对 `TOKEN_ROLE` 行，A2 对 `DatabaseMailUserRole`）。`createRdsPlatform` 幂等清理上述全局性改动。
+
 ### (g) 的被拒绝覆盖判定（RULING-ADR37-10 的收窄解释，安全判定放宽）
 
 RULING-ADR37-10 定「库内 class≠0 的授权只允许 DENY 或 SELECT 的 GRANT，public 也算」。依 ADR-0037 第 4 项 (b)「库级 DENY 覆盖 schema 级、对象级与经自定义角色得到的 GRANT」，one-coordinator 2026-10-15 补充、one-1a-next-3 加安全条件，收窄为按有效权限判定。影响只读核实命令、启动校验与运行期重检（同一套 `ReadOnlyBaseline`）：
