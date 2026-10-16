@@ -19,6 +19,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
 import org.flywaydb.core.Flyway;
 import org.springframework.core.io.ClassPathResource;
@@ -37,6 +40,9 @@ final class SingleOperatorModeEnvironment {
     static final String DEV_USER = "one_dev_app";
     static final String PASSWORD = UUID.randomUUID().toString();
     static final List<String> OTHER_DATABASES = List.of("forcitis_one_dev2", "forcitis_one_dev_x", "FORCITIS_ONE_DEV");
+    static final String FRESH_DATABASE = "forcitis_one_prod_fresh";
+    static final String PROBE_DATABASE = "forcitis_one_migrate_probe";
+    static final String ROLE_TARGET = "one_dev_x";
     static final List<String> OTHER_USERS = List.of("one_prod_app", "app", "xone_dev_app", "ONE_DEV_app");
 
     static final String[] JOBS_OFF = {"forcitis.platform.integration.archive-store.enabled=false", "forcitis.platform.approval.process-archive.enabled=false",
@@ -63,6 +69,9 @@ final class SingleOperatorModeEnvironment {
         POSTGRES.start();
         try (Connection admin = connect(DEV_DATABASE, DEV_USER); Statement statement = admin.createStatement()) {
             statement.execute("CREATE DATABASE " + PROD_DATABASE);
+            statement.execute("CREATE DATABASE " + FRESH_DATABASE);
+            statement.execute("CREATE DATABASE " + PROBE_DATABASE);
+            statement.execute("CREATE ROLE " + ROLE_TARGET + " NOLOGIN");
             for (String database : OTHER_DATABASES) {
                 statement.execute("CREATE DATABASE \"" + database + "\"");
             }
@@ -74,6 +83,8 @@ final class SingleOperatorModeEnvironment {
         }
         migrate(DEV_DATABASE);
         migrate(PROD_DATABASE);
+        migrate(FRESH_DATABASE);
+        runScript(PROBE_DATABASE, "init-dba-schemas.sql");
         prepared = true;
     }
 
@@ -90,12 +101,20 @@ final class SingleOperatorModeEnvironment {
         return DriverManager.getConnection(url(database), user, PASSWORD);
     }
 
-    private static void migrate(String database) {
+    private static void initSchemas(String database) {
+        runScript(database, "init-schemas.sql");
+    }
+
+    private static void runScript(String database, String script) {
         try (Connection connection = connect(database, DEV_USER)) {
-            ScriptUtils.executeSqlScript(connection, new ClassPathResource("init-schemas.sql"));
+            ScriptUtils.executeSqlScript(connection, new ClassPathResource(script));
         } catch (SQLException e) {
-            throw new IllegalStateException("init-schemas.sql on " + database, e);
+            throw new IllegalStateException(script + " on " + database, e);
         }
+    }
+
+    private static void migrate(String database) {
+        initSchemas(database);
         Flyway.configure().dataSource(url(database), DEV_USER, PASSWORD).locations(applicationProperty("locations").split(","))
                 .defaultSchema(applicationProperty("default-schema")).schemas(applicationProperty("schemas").split(",")).createSchemas(true).load().migrate();
     }
@@ -174,30 +193,41 @@ final class SingleOperatorModeEnvironment {
         }
     }
 
-    /** Starts the launcher in a child JVM; returns when the application reports it started (and stops it) or the process ends. */
+    /** Starts the launcher in a child JVM; returns when the application reports it started (and stops it) or the process ends; a process that does neither in time fails the test. */
     static Outcome launch(List<String> arguments) throws IOException, InterruptedException {
         List<String> command = new ArrayList<>(List.of(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-Duser.timezone=UTC", "-cp",
                 System.getProperty("java.class.path"), SingleOperatorModeLauncher.class.getName()));
         command.addAll(arguments);
         Process process = new ProcessBuilder(command).directory(new java.io.File(System.getProperty("java.io.tmpdir"))).redirectErrorStream(true).start();
-        List<String> lines = new ArrayList<>();
-        boolean started = false;
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(180);
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                lines.add(line);
-                if (line.contains("Started " + SingleOperatorModeLauncher.class.getSimpleName())) {
-                    started = true;
-                    break;
+        List<String> lines = java.util.Collections.synchronizedList(new ArrayList<>());
+        CompletableFuture<Boolean> started = new CompletableFuture<>();
+        Thread reader = Thread.ofVirtual().start(() -> {
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = in.readLine()) != null) {
+                    lines.add(line);
+                    if (line.contains("Started " + SingleOperatorModeLauncher.class.getSimpleName())) {
+                        started.complete(true);
+                        return;
+                    }
                 }
-                assertThat(System.nanoTime()).as("the process neither started nor ended: %s", String.join("\n", lines)).isLessThan(deadline);
+                started.complete(false);
+            } catch (IOException e) {
+                started.completeExceptionally(e);
             }
+        });
+        boolean up;
+        try {
+            up = started.get(180, TimeUnit.SECONDS);
+        } catch (TimeoutException | ExecutionException e) {
+            process.destroyForcibly();
+            throw new AssertionError("the process neither started nor ended in time: " + String.join("\n", lines), e);
         }
-        if (started) {
+        if (up) {
             process.destroy();
         }
         assertThat(process.waitFor(60, TimeUnit.SECONDS)).as("the process ends").isTrue();
-        return new Outcome(started, started ? 0 : process.exitValue(), lines);
+        reader.join(10_000);
+        return new Outcome(up, up ? 0 : process.exitValue(), List.copyOf(lines));
     }
 }
