@@ -197,7 +197,7 @@ flowchart TD
 - 归属：审批请求状态归 `platform.approval`（`approval_requests.status` ∈ RUNNING / RETURNED / APPROVED / REJECTED / CANCELLED，`V20261014132000…sql:12`）；工时单状态归 `cost.timesheet`（`TimesheetStatus` DRAFT / SUBMITTED / RETURNED / APPROVED / REJECTED，撤销回到 DRAFT，RULE-279）。老系统反过来：状态在 fst 头表 `approve_status`，bpm 通过 MQ 通知 fst 回写，且 bpm 也有自己的实例结果。
 - 协作事件（新）：`cost.timesheet` → approval：`Timesheet` 提交时记录 `DocumentSubmittedForApproval`，`platform.approval` 订阅后发起一轮审批（`StartApprovalOnSubmission.java:54`）；approval → 业务：`ApprovalCompleted(instanceId, processKey, businessKey, round, outcome, reason)`、`TaskHandled`；approval → 通知：`TaskAssigned`、`TaskClaimed`；`cost.timesheet` 自发：`TimesheetSubmitted`、`TimesheetApproved`、`TimesheetRejected`、`TimesheetReturned`、`TimesheetCancelled`；approval → 业务：`ApprovalCompleted` 由 `ApplyApprovalResult` 消费。
 - 业务键：`"timesheet:" + timesheetId`（`SubmitTimesheet.java:46`）；幂等键 `(processKey, businessKey)` 与 `(processKey, businessKey, round)`（`V20261014132000…sql:17, 43`）。
-- 映射：`RETURNED` → 工时单 RETURNED（可修改后重提），`CANCELLED` → DRAFT，`REJECTED` → REJECTED；`TimesheetSubmitted` 暂无消费方（分析层将订阅，见 `events/timesheet.yaml`）。
+- 映射：`RETURNED` → 工时单 RETURNED（可修改后重提），`CANCELLED` → DRAFT，`REJECTED` → REJECTED（填报人可改原单再提交，仍是同一张单、轮次加一）；`TimesheetSubmitted` 暂无消费方（分析层将订阅，见 `events/timesheet.yaml`）。
 
 **(d) 审批时限（按用户已定口径）**
 - 计时起点：T = **提交审批当天**（`DOC/intent/2026-10-14-116`，`DOC/INTENT.md:152`）。1a 实现取任务创建当天为 T（创建日非工作日则取下一工作日，`DeadlinePlanner.java:31-36`）；任务创建时刻 `assignedAtMillis`，存为 Flowable 任务本地变量（`BE/platform/approval/infrastructure/flowable/TaskAssignmentListener.java:88`；`FlowableApprovalEngine.java:40, 164-166`），也是合并待办的 `createdAt`；没有「提交日」字段，`approval_requests` 表的 `created_at` 是该单据首轮创建、不是每轮提交（`V20261014132000…sql:14`），`start_rounds.created_at` 才是每轮（`…sql:41`）。
@@ -292,6 +292,7 @@ stateDiagram-v2
         [*] --> DRAFT
         DRAFT --> SUBMITTED : 提交
         RETURNED --> SUBMITTED : 修改后重提
+        REJECTED --> SUBMITTED : 修改后重提
         SUBMITTED --> APPROVED : ApprovalCompleted APPROVED
         SUBMITTED --> REJECTED : ApprovalCompleted REJECTED
         SUBMITTED --> RETURNED : ApprovalCompleted RETURNED
