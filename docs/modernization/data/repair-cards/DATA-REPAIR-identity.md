@@ -64,7 +64,7 @@
 - 问题：`sessions.session_id` 是 Spring Session JDBC 的会话标识，等同 Cookie 持有凭据；未登记即默认 INTERNAL，任何读库者可冒用会话。
 - 证据：PI 迁移:197、212 注释「Cookie 值」；`data-classification.txt` 只登记 `principal_name`（:17）与 `sessions_attributes.attribute_bytes`；OV「高风险项判断 PI 第 3 条」。
 - 用户决定：「RESTRICTED（口令、密钥级，不出库、不进日志与分析层）」（收件箱 2026-10-16-one-data-baseline-classification；intent `2026-10-16-085331-one-data-会话标识-session_id.md`）。
-- 改法：在 `data-classification.txt` 登记 `sessions.session_id`、`sessions.primary_id` 为 `RESTRICTED + NONE`。文件仍是三段格式，第二维 `NONE` 写在本卡表内，四段化随 ADR-0043 实施 PR。理由以「用途：」之外的安全材料说明，同 `state_hash`。
+- 改法：在 `data-classification.txt` 登记 `sessions.session_id`、`sessions.primary_id` 为 `RESTRICTED`；个人信息标记待 one-data / U-11 裁定（复审 M2 后不再写 `NONE`），四段化随 ADR-0043 实施 PR。理由以「用途：」之外的安全材料说明，同 `state_hash`。
 - 待核（落笔前）：ADR-0043 第 2、3 项对 `RESTRICTED` 列的守护口径（是否要求只存摘要、是否有「不进日志与分析层」的静态扫描）；若要求只存摘要，须自定义会话仓储（Spring Session 无内建，OV 标「未核实」），那属另卡，本卡不改会话仓储，只登记并在 PR 写明该缺口。
 - 预期表结构 diff：无（登记文件变化，不改 DDL）。
 - 验收要点：`data-classification.txt` 含两列且级别为 `RESTRICTED`；分级守护通过；不改会话仓储。
@@ -144,7 +144,7 @@
 - 验收要点：首次登录前（两列空）、成功登录（两列有值）通过；只有地址无时间被拒；超长地址被拒；`LoginAdmission` 等写入点原样通过。
 - 依据：门禁 O4、B5、O8；D2；NAMING_STANDARD §2.4a-5；SS §4 第 10 组。
 - one-data 2026-10-16 裁定：选 C（64）+ 应用侧保护；不选 A（违反 §2.4a-5）、不选 B（规范化解析可能触发 DNS、引入新语义）。签发行：数据设计：通过（one-data，2026-10-16，依据 data-pr5 @b429bc80 加本裁定）。
-- 落实：基线加 `ck_user_accounts_last_login_address`（`char_length BETWEEN 1 AND 64`，可空）；`JdbcAccountRepository.recordLogin` 在写入前判定，长度超 64 或不符「十六进制数字、`.`、`:`，可带 `%` 与区域标识」的取值不写、置空并打 ALERT（只记长度，不含原值），登录照常成功，不截断。测试：`IdentityBaselineConstraintsIntegrationTest`、`WecomLoginIntegrationTest` 中名以 `DATA-REPAIR-identity ID-12` 开头者。
+- 落实：基线加 `ck_user_accounts_last_login_address`（`char_length BETWEEN 1 AND 64`，可空）；`JdbcAccountRepository.recordLogin` 在写入前判定，长度超 64 或不符「四段点分十进制，或至少含两个冒号且不含 `:::` 的十六进制串，可带 `%` 区域标识」（复审 Low 收紧）的取值不写、置空并打 ALERT（只记长度，不含原值），登录照常成功，不截断。测试：`IdentityBaselineConstraintsIntegrationTest`、`WecomLoginIntegrationTest` 中名以 `DATA-REPAIR-identity ID-12` 开头者。
 
 #### 数据设计补充（one-1a-next-4，待 one-data 签）
 
@@ -170,7 +170,7 @@
 ## 5. 已定与待用户决定
 
 ### 已定（用户 2026-10-16 决定）
-1. `sessions.session_id`、`primary_id` 的访问级别（原 PI 待决 4）：用户答「RESTRICTED（口令、密钥级，不出库、不进日志与分析层）」（收件箱 2026-10-16-one-data-baseline-classification；intent `2026-10-16-085331-one-data-会话标识-session_id.md`）。落点：ID-03 登记 `RESTRICTED + NONE`。
+1. `sessions.session_id`、`primary_id` 的访问级别（原 PI 待决 4）：用户答「RESTRICTED（口令、密钥级，不出库、不进日志与分析层）」（收件箱 2026-10-16-one-data-baseline-classification；intent `2026-10-16-085331-one-data-会话标识-session_id.md`）。落点：ID-03 登记 `RESTRICTED`，个人信息标记待 one-data / U-11 裁定。
 
 ### 待用户决定
 1. `login_states.binding_hash` 的级别（PI 待决 6）：用户对会话标识答 RESTRICTED 时写明「同口径另议」，故仍待用户决定；OV 建议 `SENSITIVE + NONE`（ID-04）。
