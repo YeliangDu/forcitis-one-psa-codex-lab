@@ -11425,23 +11425,23 @@ roles:
     org_needs:
     - responsibility: 申请风险交付授权，授权批准后先行投入
       approval_right: 无审批权
-      department_hint: 各项目承担部门
+      department_hint: 各承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 建立项目、定承担法人与团队、开始执行
       approval_right: 无
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 经营项目的计划、预算、交付推进与客户沟通
       approval_right: 无
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 按 WBS 编制并锁定项目预算
       approval_right: 无；不得审批自己编制的预算
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 核实本项目工时是否属实并审批
       approval_right: 本项目工时审批；项目经理本人工时上一级审批
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 知悉检查计划已生效，对项目整体交付节奏负责
       approval_right: 无
@@ -11449,83 +11449,83 @@ roles:
       position_hint: 项目经理
     - responsibility: 在 PRC-28 登记无异议声明；期满仍无声明时收到催办
       approval_right: 无审批权（认定是系统按三个条件自动认定，不是审批）
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 付款条件项可结算后提出开票
       approval_right: 无
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 命中加审条件时作为项目责任人审批开票申请
       approval_right: 一级审批（责任人）
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 作为协议所属项目的责任人审批红冲申请
       approval_right: 一级审批（责任人）
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 作为应收所属项目的责任人审批第三方代付认领
       approval_right: 一级审批（责任人）；AR-15 命中后财务负责人、总经理加审
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 作为协议所属项目的责任人审批坏账核销（可回收性判断）
       approval_right: 一级审批（责任人）；金额超阈值时财务负责人、总经理加审
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 收到逾期提醒，协助催收
       approval_right: 无
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 作为协议所属项目的责任人审批最终价款低于协议价的让价或审减
       approval_right: 一级审批（责任人）；AR-01、AR-02 命中时财务负责人、总经理加审
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 提出新供方并申请往来单位角色
       approval_right: 无审批权
-      department_hint: 各项目承担部门
+      department_hint: 各承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 因投标、诉讼、审计或结算申请借阅合同
       approval_right: 无
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 移交回签原件、按退回补签或补交
       approval_right: 无
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 作为协议所属项目的责任人审批收入冲销；也可发起冲销
       approval_right: 一级审批（责任人）
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 每期按项目填报当期累计产值估计
       approval_right: 无
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 收到条件达成与可结算的通知，申请返还质保金、提出开票
       approval_right: 无
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 收到合同原件逾期未还的催还待办
       approval_right: 无
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 收到收入确认审批被驳回的通知，补证据或另案处理
       approval_right: 无
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 登记新供方档案
       approval_right: 无审批权
-      department_hint: 各项目承担部门
+      department_hint: 各承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 登记受检建设工程
       approval_right: 无审批权
-      department_hint: 各项目承担部门
+      department_hint: 各承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 收到质保金到期提示，申请返还
       approval_right: 无
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: 查看本人项目三口径差额，推进客户确认与开票
       approval_right: 无
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目经理
     - responsibility: VS-09.2 参与者；本骨架无其动作，待用户确认
       approval_right: 无
@@ -11545,15 +11545,15 @@ roles:
     org_needs:
     - responsibility: 按工作包编制成果、采集证据、记工时
       approval_right: 无
-      department_hint: 项目承担部门（专业所、设计室）
+      department_hint: 承接项目的业务部门（专业所、设计室）
       position_hint: 设计师、咨询顾问
     - responsibility: 按日填报并提交本人工时
       approval_right: 无；不得审批本人工时单
-      department_hint: 项目承担部门（专业所、设计室）
+      department_hint: 承接项目的业务部门（专业所、设计室）
       position_hint: 设计师、咨询顾问
     - responsibility: 核对发包人资料的完整性与可用性，确认或退回
       approval_right: 发包人资料确认（专业核对）
-      department_hint: 项目承担部门（专业所、设计室）
+      department_hint: 承接项目的业务部门（专业所、设计室）
       position_hint: 设计师、咨询顾问
     - responsibility: 现场检查、采集证据（系统自动关联到检查）、逐项填写并提交检查记录
       approval_right: 无
@@ -12167,7 +12167,7 @@ roles:
     - 待岗位体系定
     org_needs:
     - responsibility: 评审报价（价格、毛利、范围与风险）
-      approval_right: 按费用或业务归属对象的责任人审批本类单据（谁负责谁批）；命中加审规则时上送财务负责人、总经理；基础审批人为商机承担部门负责人
+      approval_right: 按费用或业务归属对象的责任人审批本类单据（谁负责谁批）；基础审批人为商机负责人；命中加审规则时上送财务负责人、总经理；商机负责人本人提交时由汇报线上级代批（AR-11）
       department_hint: 各区域事业部、经营管理部
       position_hint: 事业部负责人、项目总监
     - responsibility: 投标保证金付款审批与是否参投判断（归属对象责任人，商机负责人的部门负责人）
@@ -12184,59 +12184,55 @@ roles:
       position_hint: 事业部负责人、项目总监
     - responsibility: 知会项目已开始执行
       approval_right: 无
-      department_hint: 项目承担部门或事业部
+      department_hint: 承接项目的业务部门或事业部
       position_hint: 部门负责人、项目总监
     - responsibility: 所辖项目与部门的经营管理、资源与成本责任
       approval_right: 无
-      department_hint: 项目承担部门或事业部
+      department_hint: 承接项目的业务部门或事业部
       position_hint: 部门负责人、项目总监
-    - responsibility: 审批项目预算（归属对象取项目承担部门，责任人为承担部门负责人）
-      approval_right: 项目预算审批：承担部门范围内一级审批，金额分级待权责对照表
-      department_hint: 项目承担部门或事业部
+    - responsibility: 项目预算由项目经理负责（A）；项目经理本人提交时由其汇报线上级代批（AR-11，intent 164324）
+      approval_right: 上级代批项目预算（AR-11），一级
+      department_hint: 承接项目的业务部门或事业部
       position_hint: 部门负责人、项目总监
     - responsibility: 按专长、负荷与项目优先级确认本部门人员的资源分配
       approval_right: 资源分配确认：本部门人员，单级
-      department_hint: 项目承担部门或事业部
+      department_hint: 承接项目的业务部门或事业部
       position_hint: 部门负责人、项目总监
     - responsibility: 审批售前、管理间接工时及项目经理本人的项目工时
       approval_right: 售前与管理间接工时审批，项目经理本人工时审批
-      department_hint: 项目承担部门或事业部
+      department_hint: 承接项目的业务部门或事业部
       position_hint: 部门负责人、项目总监
     - responsibility: 决定暂停、恢复、终止或取消项目并写明原因
       approval_right: 项目状态处置（暂停、恢复、终止、取消）；是否加审随 Q09
-      department_hint: 项目承担部门或事业部
+      department_hint: 承接项目的业务部门或事业部
       position_hint: 部门负责人、项目总监
     - responsibility: 项目总监：审核本项目交付物校审结论
       approval_right: 交付物校审（类型级）
       department_hint: 业务部门
       position_hint: 项目总监
-    - responsibility: 在阶段门处更新 ETC、EAC
-      approval_right: 无；不得批准自己提出的估算
-      department_hint: 项目承担部门或事业部
+    - responsibility: 批准完工估算（项目总监，类型级；与提出人须不同人）
+      approval_right: 完工估算批准：一级
+      department_hint: 承接项目的业务部门或事业部
       position_hint: 部门负责人、项目总监
-    - responsibility: 批准完工估算（归属对象取项目承担部门，与提出人须不同人）
-      approval_right: 完工估算批准：承担部门范围内一级审批
-      department_hint: 项目承担部门或事业部
+    - responsibility: 结项申请由项目经理负责（A）；项目经理本人提交时由其汇报线上级代批（AR-11，intent 164324）
+      approval_right: 上级代批结项申请（AR-11），一级
+      department_hint: 承接项目的业务部门或事业部
       position_hint: 部门负责人、项目总监
-    - responsibility: 审批结项申请（归属对象取项目承担部门，责任人为承担部门负责人）
-      approval_right: 结项审批：承担部门范围内一级审批
-      department_hint: 项目承担部门或事业部
-      position_hint: 部门负责人、项目总监
-    - responsibility: 作为协议承担部门的责任人评审合同
+    - responsibility: 作为合同负责人评审合同（合同负责人是谁待新题）
       approval_right: 一级评审（责任人）；总经理参与特殊加审
-      department_hint: 协议承担部门
+      department_hint: 承接合同的业务部门
       position_hint: 部门负责人
     - responsibility: 作为项目责任人审批「是否向发包人提出」该变更；发包人答复或签认逾期时接收升级
       approval_right: 一级审批（责任人）
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目总监、部门负责人
     - responsibility: 索赔时限临近的超时升级知会
       approval_right: 无
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目总监、部门负责人
     - responsibility: 作为项目责任人审批任务订单
       approval_right: 一级审批（责任人）
-      department_hint: 项目承担部门
+      department_hint: 承接项目的业务部门
       position_hint: 项目总监、部门负责人
     - responsibility: 期满无声明、催办仍无人处理时接收升级
       approval_right: 无
@@ -12284,7 +12280,7 @@ roles:
       position_hint: 总经理
     - responsibility: 抽查所辖项目的产值估计是否合理，发现偏差通知项目经理更正
       approval_right: 无审批权（抽查，不设审批）
-      department_hint: 项目承担部门或事业部
+      department_hint: 承接项目的业务部门或事业部
       position_hint: 部门负责人
     - responsibility: 退款长期未到账的升级知会
       approval_right: 无
@@ -12300,19 +12296,19 @@ roles:
       position_hint: 总经理
     - responsibility: 作为保证金所属协议或商机的责任人审批扣减、没收
       approval_right: 一级审批（责任人）；AR-01、AR-02 命中加审
-      department_hint: 项目承担部门或商机负责部门
+      department_hint: 承接项目的业务部门或商机负责部门
       position_hint: 项目经理、商机负责人、部门负责人
     - responsibility: 接受残余风险并记依据
       approval_right: 风险与问题接受
-      department_hint: 项目承担部门或事业部
+      department_hint: 承接项目的业务部门或事业部
       position_hint: 部门负责人、项目总监
-    - responsibility: 作为协议承担部门的责任人审批终止；知会法务
+    - responsibility: 作为合同负责人审批终止（合同负责人是谁待新题）；知会法务
       approval_right: 一级审批（责任人）；AR-01、AR-02、AR-07 命中加审
-      department_hint: 协议承担部门
+      department_hint: 承接合同的业务部门
       position_hint: 部门负责人
     - responsibility: 看经营产值与收入、开票的差额与时滞，判断确认与开票推进
       approval_right: 无
-      department_hint: 项目承担部门或事业部
+      department_hint: 承接项目的业务部门或事业部
       position_hint: 部门负责人、项目总监
     - responsibility: 数据范围待复核时确认是否调整授权
       approval_right: 无
