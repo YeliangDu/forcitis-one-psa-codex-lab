@@ -27,6 +27,7 @@ import stage_align_check as sac  # noqa: E402
 
 PROPOSALS = HERE.parent
 CAPS = PROPOSALS / "capabilities.v2.yaml"
+CATS = PROPOSALS / "categories.proposal.yaml"
 POBJ = HERE / "process-objects.yaml"
 OUT_YAML = HERE / "object-layer.yaml"
 REPORT = HERE / "OBJECT_LAYER_REPORT.md"
@@ -49,8 +50,9 @@ def cap_index(caps_doc):
     return out
 
 
-def stage_objects(vs_doc):
+def stage_objects(vs_doc, cond=None):
     out, caps, sname, order, disp = {}, {}, {}, [], {}
+    cond = {} if cond is None else cond
     for vs in vs_doc["value_streams"]:
         pa = vs.get("stage_pattern") or {}
         for i, s in enumerate(sorted(vs["stages"], key=lambda x: x.get("order", 0)), 1):
@@ -58,6 +60,8 @@ def stage_objects(vs_doc):
             refs = [lf.get("ref") for lf in sac.leaves(sac.expand(s.get("exit") or {"all": []}, pa))
                     if str(lf.get("ref", "")).startswith("OBJ-")]
             out[s["id"]] = list(dict.fromkeys(refs))
+            alls = [lf for k in ("entry", "exit") for lf in sac.leaves(sac.expand(s.get(k) or {"all": []}, pa))] + list(s.get("in_stage_states") or [])
+            cond[s["id"]] = {lf.get("ref") for lf in alls if isinstance(lf, dict) and str(lf.get("ref", "")).startswith("OBJ-")}
             caps[s["id"]] = list(s.get("capabilities") or [])
             sname[s["id"]] = s["name"]
             order.append(s["id"])
@@ -79,11 +83,11 @@ def display_numbers(rows, catalog, disp):
             r["display"] = f"{disp[s][0]}.{disp[s][1]}.{i:02d}"
 
 
-def written_objs(pobj_doc, agg_objs):
+def written_objs(pobj_doc, agg_objs, ops=WRITE_OPS):
     out = collections.defaultdict(set)
     for p in pobj_doc.get("processes") or []:
         for o in p.get("objects") or []:
-            if WRITE_OPS & set(o.get("ops", "")):
+            if ops & set(o.get("ops", "")):
                 objs = {x for a in o.get("aggregates") or [] for x in agg_objs.get(a, [])} or {o["obj"]}
                 out[p["id"]] |= {x for x in objs if str(x).startswith("OBJ-")} or {o["obj"]}
     return out
@@ -120,17 +124,38 @@ def inner_children(info_map_text, agg_objs):
     return {o: by_name[par.strip()] for o, _n, par in rows if o not in carried and par.strip() in by_name}
 
 
-def analyse(catalog, pobj_doc, agg_objs, vs_doc, caps_doc, hits, children=None):
-    st_objs, st_caps, sname, order, disp = stage_objects(vs_doc)
+def analyse(catalog, pobj_doc, agg_objs, vs_doc, caps_doc, hits, children=None, cats=None):
+    cond = {}
+    st_objs, st_caps, sname, order, disp = stage_objects(vs_doc, cond)
+    cats = cats or {}
+    vs_cat = {s: cats.get(s.rsplit(".", 1)[0]) for s in order}
+    touched = written_objs(pobj_doc, agg_objs, WRITE_OPS | {"R", "?"})
+    used = collections.defaultdict(set)   # 段 → 归该段的流程用到的对象
+    for p in catalog:
+        if p.get("type") != "merged" and not p.get("support"):
+            for st in p.get("stages") or []:
+                used[st] |= touched.get(p["id"], set())
     cidx = cap_index(caps_doc)
     written = written_objs(pobj_doc, agg_objs)
     for pid, ws in written.items():   # 写入父对象的聚合时，其聚合内实体（次级对象）随之可作次要对象
         ws |= {c for c, par in (children or {}).items() if par in ws}
-    rows = []
+    rows, support_rows = [], []
     for p in catalog:
-        if p.get("type") == "merged" or p.get("support"):
+        if p.get("type") == "merged":
             continue
         conf = p.get("primary_object")
+        if p.get("support"):
+            objs = touched.get(p["id"], set())
+            sup = {st: ("条件" if objs & cond[st] else "使用") for st in order if objs & (cond[st] | used[st])}
+            w = sorted(written.get(p["id"], set()), key=num)
+            prim = conf if conf and str(conf).lower() != "none" else (w[0] if len(w) == 1 else None)
+            cap = cidx.get(prim) if prim else None
+            support_rows.append({"id": p["id"], "name": p["name"], "group": p.get("group"), "type": p.get("type"), "stages": [],
+                                 "supports": list(sup), "supports_basis": sup, "primary_object": prim,
+                                 "status": "support" if conf else ("support_proposed" if prim else "support_none"),
+                                 "capability_l1": cap[0] if cap else None, "capability": cap[1] if cap else None,
+                                 "category": cats.get(cap[0]) if cap else None})
+            continue
         lv, cand = propose(p, written, hits, st_objs)
         if isinstance(conf, str) and conf.strip().lower() == "none":
             status, prim = "declared_none", None
@@ -149,6 +174,10 @@ def analyse(catalog, pobj_doc, agg_objs, vs_doc, caps_doc, hits, children=None):
                      "primary_object": prim, "status": status, "level": lv, "candidates": cand,
                      "writes": sorted(written.get(p["id"], set()), key=num),
                      "capability_l1": cap[0] if cap else None, "capability": cap[1] if cap else None})
+    for r in rows:
+        vc = {vs_cat.get(st) for st in r["stages"]} - {None}
+        r["category"] = vc.pop() if len(vc) == 1 else (cats.get(r["capability_l1"]) if r["capability_l1"] else None)
+        r["category_by"] = "价值流" if len({vs_cat.get(st) for st in r["stages"]} - {None}) == 1 else ("主对象能力" if r["category"] else None)
     display_numbers(rows, catalog, disp)
     by_obj = collections.defaultdict(list)
     for r in rows:
@@ -174,15 +203,33 @@ def analyse(catalog, pobj_doc, agg_objs, vs_doc, caps_doc, hits, children=None):
             D["no_cap"].append(r)
         elif r["stages"] and not any(r["capability_l1"] in st_caps.get(s, []) for s in r["stages"]):
             D["cap_off"].append(r)
-    return {"rows": rows, "D": D, "st_objs": st_objs, "st_caps": st_caps, "sname": sname, "order": order, "disp": disp}
+    return {"rows": rows, "support_rows": support_rows, "vs_cat": cats, "D": D, "st_objs": st_objs, "st_caps": st_caps, "sname": sname, "order": order, "disp": disp}
+
+
+def load_categories():
+    """用途类别：用户认可后以 value-streams.v2.yaml / capabilities.v2.yaml 的 category 为准，否则读提议稿。"""
+    out = {}
+    if CATS.exists():
+        d = yaml.safe_load(CATS.read_text(encoding="utf-8")) or {}
+        out = {x["id"]: x["category"] for k in ("value_streams", "capabilities") for x in d.get(k) or []}
+    vs = yaml.safe_load(sac.VS_FILE.read_text(encoding="utf-8"))
+    out.update({v["id"]: v["category"] for v in vs["value_streams"] if v.get("category")})
+    out.update({c["id"]: c["category"] for c in (yaml.safe_load(CAPS.read_text(encoding="utf-8")) or {}).get("capabilities") or [] if c.get("category")})
+    return out
 
 
 def render_yaml(A):
-    doc = {"note": "object_layer_check.py 生成，勿手改；status：confirmed 三组确认（目录 primary_object）/ proposed 脚本提议 / candidates 多候选 / none 无候选 / read_model 读模型不提议",
+    keys = ("id", "display", "name", "group", "type", "stages", "supports", "supports_basis", "primary_object", "secondary_objects", "status", "candidates",
+            "capability_l1", "capability", "category", "category_by")
+    doc = {"note": "object_layer_check.py 生成，勿手改；status：confirmed 三组确认（目录 primary_object）/ declared_none 组声明无业务对象 / proposed 脚本提议 / "
+                   "candidates 多候选 / none 无候选 / read_model 读模型不提议 / support、support_proposed、support_none 支撑流程（主对象已填 / 唯一写入对象推出 / 无）；"
+                   "stages 为归属（实线），supports 为支撑本段（虚线，自动：所触对象出现在该段条件里 = 条件，或被该段流程使用 = 使用）；"
+                   "category：business 核心 / management 战略 / support 支撑（categories.proposal.yaml，待用户认可）",
+           "value_streams": [{"id": v, "category": c} for v, c in A["vs_cat"].items() if v.startswith("VS-")],
            "stages": [{"id": s, "display": "%s.%s" % A["disp"][s], "order": A["disp"][s][1], "name": A["sname"][s], "objects": A["st_objs"][s],
                        "capabilities": A["st_caps"][s]} for s in A["order"]],
-           "processes": [{k: r.get(k) for k in ("id", "display", "name", "group", "stages", "primary_object", "secondary_objects", "status", "candidates", "capability_l1", "capability")
-                          if r.get(k) not in (None, [])} for r in A["rows"]]}
+           "capabilities": [{"id": c, "category": v} for c, v in A["vs_cat"].items() if c.startswith("CAP-")],
+           "processes": [{k: r.get(k) for k in keys if r.get(k) not in (None, [], {})} for r in A["rows"] + A["support_rows"]]}
     return yaml.safe_dump(doc, allow_unicode=True, sort_keys=False, width=200)
 
 
@@ -216,6 +263,14 @@ def render_md(A, onames):
             + "、".join(f"{s} {A['st_caps'].get(s)}" for s in r["stages"]) for r in D["cap_off"]] or ["无"]
     out += ["", "### 主对象无对应能力（无 OBJ 的聚合，或对象未入能力图）", ""]
     out += [f"- {r['id']} {r['name']}：{on(r['primary_object'])}" for r in D["no_cap"]] or ["无"]
+    sr = A["support_rows"]
+    out += ["", f"## 支撑流程「支撑本段」（{len(sr)} 条，有支撑段 {sum(1 for r in sr if r['supports'])}；自动得出，不手写）", "",
+            "| 流程 | 主对象 | 状态 | 类别 | 支撑段（条件 / 使用） |", "|---|---|---|---|---|"]
+    out += [f"| {r['id']} {r['name']} | {on(r['primary_object']) if r['primary_object'] else '—'} | {r['status']} | {r['category'] or '—'} | "
+            + ("、".join(f"{k}（{v}）" for k, v in r["supports_basis"].items()) or "无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads）") + " |" for r in sr]
+    nocat = [r for r in A["rows"] + sr if not r.get("category")]
+    out += ["", f"## 无用途类别（{len(nocat)}）：归段跨不同类别价值流且主对象无能力，或支撑流程主对象缺 / 是技术聚合", ""]
+    out += [f"- {r['id']} {r['name']}（{r['status']}，主对象 {r['primary_object'] or '—'}）" for r in nocat] or ["无"]
     out += ["", "## E 需用户判断（候选，经组与本会话筛过再交）", "",
             "- ④ 中属阶段能力清单漏映射的，改 value-streams.v2.yaml 的 capabilities 需用户确认（第 ③ 步对账为用户已审口径）；",
             "- 主对象是无 OBJ 的聚合（AGG-xx）的：该聚合要不要在信息图有对象、归哪个能力，属信息层，随信息层对齐交用户；\n"
@@ -277,7 +332,7 @@ def main(argv):
                     sac.load_event_map(local, machines, aggs))
     A = analyse(catalog, yaml.safe_load(POBJ.read_text(encoding="utf-8")), {a: v.get("objs") or [] for a, v in aggs.items()},
                 vs_doc, yaml.safe_load(CAPS.read_text(encoding="utf-8")), R["hit_refs"],
-                inner_children(sac.INFO_MAP.read_text(encoding="utf-8"), {a: v.get("objs") or [] for a, v in aggs.items()}))
+                inner_children(sac.INFO_MAP.read_text(encoding="utf-8"), {a: v.get("objs") or [] for a, v in aggs.items()}), load_categories())
     md = render_md(A, onames)
     if "--no-write" not in argv:
         OUT_YAML.write_text(render_yaml(A), encoding="utf-8")

@@ -1,4 +1,32 @@
-note: object_layer_check.py 生成，勿手改；status：confirmed 三组确认（目录 primary_object）/ proposed 脚本提议 / candidates 多候选 / none 无候选 / read_model 读模型不提议
+note: object_layer_check.py 生成，勿手改；status：confirmed 三组确认（目录 primary_object）/ declared_none 组声明无业务对象 / proposed 脚本提议 / candidates 多候选 / none 无候选 / read_model 读模型不提议 / support、support_proposed、support_none
+  支撑流程（主对象已填 / 唯一写入对象推出 / 无）；stages 为归属（实线），supports 为支撑本段（虚线，自动：所触对象出现在该段条件里 = 条件，或被该段流程使用 = 使用）；category：business 核心 / management 战略 / support 支撑（categories.proposal.yaml，待用户认可）
+value_streams:
+- id: VS-01
+  category: business
+- id: VS-02
+  category: business
+- id: VS-03
+  category: business
+- id: VS-04
+  category: business
+- id: VS-05
+  category: support
+- id: VS-06
+  category: support
+- id: VS-07
+  category: support
+- id: VS-08
+  category: support
+- id: VS-09
+  category: management
+- id: VS-10
+  category: support
+- id: VS-11
+  category: support
+- id: VS-12
+  category: management
+- id: VS-13
+  category: support
 stages:
 - id: VS-01.1
   display: '01.1'
@@ -478,11 +506,55 @@ stages:
   capabilities:
   - CAP-005
   - CAP-056
+capabilities:
+- id: CAP-001
+  category: business
+- id: CAP-005
+  category: business
+- id: CAP-016
+  category: business
+- id: CAP-017
+  category: business
+- id: CAP-018
+  category: business
+- id: CAP-019
+  category: business
+- id: CAP-024
+  category: business
+- id: CAP-025
+  category: business
+- id: CAP-026
+  category: business
+- id: CAP-028
+  category: support
+- id: CAP-029
+  category: business
+- id: CAP-046
+  category: business
+- id: CAP-053
+  category: business
+- id: CAP-054
+  category: management
+- id: CAP-056
+  category: support
+- id: CAP-058
+  category: support
+- id: CAP-074
+  category: management
+- id: CAP-093
+  category: support
+- id: CAP-100
+  category: management
+- id: CAP-103
+  category: support
+- id: CAP-110
+  category: support
 processes:
 - id: PRC-01
   display: 01.1.01
   name: 举办市场活动
   group: revenue
+  type: single_aggregate
   stages:
   - VS-01.1
   primary_object: OBJ-16
@@ -491,10 +563,13 @@ processes:
   - OBJ-16
   capability_l1: CAP-016
   capability: CAP-016
+  category: business
+  category_by: 价值流
 - id: PRC-02
   display: 01.1.02
   name: 计划并完成客户活动
   group: revenue
+  type: single_aggregate
   stages:
   - VS-01.1
   primary_object: OBJ-105
@@ -503,10 +578,13 @@ processes:
   - OBJ-105
   capability_l1: CAP-001
   capability: CAP-001.105
+  category: business
+  category_by: 价值流
 - id: PRC-03
   display: 01.1.03
   name: 登记并跟进线索，转为商机
   group: revenue
+  type: business
   stages:
   - VS-01.1
   - VS-01.2
@@ -516,10 +594,13 @@ processes:
   - OBJ-17
   capability_l1: CAP-017
   capability: CAP-017
+  category: business
+  category_by: 价值流
 - id: PRC-05
   display: 01.1.04
   name: 维护往来单位档案
   group: revenue
+  type: single_aggregate
   stages:
   - VS-01.1
   - VS-05.1
@@ -529,10 +610,13 @@ processes:
   - OBJ-02
   capability_l1: CAP-001
   capability: CAP-001
+  category: business
+  category_by: 主对象能力
 - id: PRC-06
   display: 01.2.01
   name: 做独立性检查
   group: revenue
+  type: single_aggregate
   stages:
   - VS-01.2
   primary_object: OBJ-23
@@ -541,10 +625,13 @@ processes:
   - OBJ-23
   capability_l1: CAP-018
   capability: CAP-018.023
+  category: business
+  category_by: 价值流
 - id: PRC-07
   display: 01.2.02
   name: 编制并生效报价
   group: revenue
+  type: business
   stages:
   - VS-01.2
   primary_object: OBJ-21
@@ -553,10 +640,13 @@ processes:
   - OBJ-21
   capability_l1: CAP-018
   capability: CAP-018.021
+  category: business
+  category_by: 价值流
 - id: PRC-08
   display: 01.2.03
   name: 参加投标，缴纳保证金并登记结果
   group: revenue
+  type: business
   stages:
   - VS-01.2
   primary_object: OBJ-18
@@ -565,10 +655,13 @@ processes:
   - OBJ-18
   capability_l1: CAP-018
   capability: CAP-018
+  category: business
+  category_by: 价值流
 - id: PRC-10
   display: 01.2.04
   name: 收付保证金与保函
   group: revenue
+  type: single_aggregate
   stages:
   - VS-01.2
   - VS-04.1
@@ -578,20 +671,26 @@ processes:
   - OBJ-13
   capability_l1: CAP-005
   capability: CAP-005.013
+  category: business
+  category_by: 价值流
 - id: PRC-12
   display: 01.2.05
   name: 发布服务产品与阶段类型版本
   group: revenue
+  type: single_aggregate
   stages:
   - VS-01.2
   primary_object: OBJ-24
   status: confirmed
   capability_l1: CAP-024
   capability: CAP-024
+  category: business
+  category_by: 价值流
 - id: PRC-13
   display: 01.2.06
   name: 批准并生效费率、计费系数与协议价目版本
   group: revenue
+  type: business
   stages:
   - VS-01.2
   - VS-02.0
@@ -599,10 +698,13 @@ processes:
   status: confirmed
   capability_l1: CAP-026
   capability: CAP-026
+  category: business
+  category_by: 价值流
 - id: PRC-14
   display: 01.2.07
   name: 登记建设工程与招标项目
   group: revenue
+  type: single_aggregate
   stages:
   - VS-01.2
   - VS-02.6
@@ -614,18 +716,24 @@ processes:
   - OBJ-46
   capability_l1: CAP-046
   capability: CAP-046
+  category: business
+  category_by: 价值流
 - id: PRC-15
   display: 01.2.08
   name: 未签约的售前投入转费用
   group: finance
+  type: event_policy
   stages:
   - VS-01.2
   primary_object: AGG-43
   status: confirmed
+  category: business
+  category_by: 价值流
 - id: PRC-16
   display: 01.2.09
   name: 申请并转正风险交付授权
   group: revenue
+  type: business
   stages:
   - VS-01.2
   - VS-02.0
@@ -636,10 +744,13 @@ processes:
   - OBJ-12
   capability_l1: CAP-018
   capability: CAP-018.012
+  category: business
+  category_by: 价值流
 - id: PRC-17
   display: 02.1.01
   name: 建立项目并组建团队
   group: revenue
+  type: business
   stages:
   - VS-02.0
   - VS-03.1
@@ -649,10 +760,13 @@ processes:
   - OBJ-29
   capability_l1: CAP-029
   capability: CAP-029
+  category: business
+  category_by: 价值流
 - id: PRC-18
   display: 02.1.02
   name: 编制并批准交付计划
   group: revenue
+  type: business
   stages:
   - VS-02.0
   primary_object: OBJ-31
@@ -661,10 +775,13 @@ processes:
   - OBJ-31
   capability_l1: CAP-029
   capability: CAP-029.031
+  category: business
+  category_by: 价值流
 - id: PRC-19
   display: 02.1.03
   name: 编制并锁定项目预算
   group: revenue
+  type: business
   stages:
   - VS-02.0
   primary_object: OBJ-32
@@ -673,10 +790,13 @@ processes:
   - OBJ-32
   capability_l1: CAP-029
   capability: CAP-029.032
+  category: business
+  category_by: 价值流
 - id: PRC-20
   display: 02.1.04
   name: 提出并满足资源需求
   group: revenue
+  type: business
   stages:
   - VS-02.0
   - VS-02.1
@@ -689,10 +809,13 @@ processes:
   status: confirmed
   capability_l1: CAP-029
   capability: CAP-029.044
+  category: business
+  category_by: 价值流
 - id: PRC-21
   display: 02.1.05
   name: 推进阶段与工作包
   group: revenue
+  type: single_aggregate
   stages:
   - VS-02.0
   - VS-02.1
@@ -707,10 +830,13 @@ processes:
   - OBJ-30
   capability_l1: CAP-029
   capability: CAP-029.030
+  category: business
+  category_by: 价值流
 - id: PRC-22
   display: 02.1.06
   name: 阶段门预警
   group: revenue
+  type: read_model
   stages:
   - VS-02.0
   - VS-02.1
@@ -721,10 +847,13 @@ processes:
   - VS-02.6
   - VS-02.7
   status: read_model
+  category: business
+  category_by: 价值流
 - id: PRC-23
   display: 01.2.10
   name: 填报并审批工时
   group: revenue
+  type: business
   stages:
   - VS-01.2
   - VS-02.0
@@ -740,10 +869,13 @@ processes:
   - OBJ-66
   capability_l1: CAP-056
   capability: CAP-056.066
+  category: business
+  category_by: 价值流
 - id: PRC-24
   display: 02.1.07
   name: 暂停、恢复、终止或取消项目
   group: revenue
+  type: business
   stages:
   - VS-02.0
   - VS-02.1
@@ -759,19 +891,25 @@ processes:
   - OBJ-29
   capability_l1: CAP-029
   capability: CAP-029
+  category: business
+  category_by: 价值流
 - id: PRC-25
   display: 02.1.08
   name: 转入售前投入
   group: finance
+  type: event_policy
   stages:
   - VS-02.0
   - VS-04.1
   primary_object: AGG-43
   status: confirmed
+  category: business
+  category_by: 价值流
 - id: PRC-26
   display: 02.1.09
   name: 接收并确认发包人提供资料
   group: revenue
+  type: business
   stages:
   - VS-02.0
   - VS-02.1
@@ -784,10 +922,13 @@ processes:
   - OBJ-42
   capability_l1: CAP-029
   capability: CAP-029.042
+  category: business
+  category_by: 价值流
 - id: PRC-27
   display: 02.1.10
   name: 登记并处置项目风险与问题
   group: revenue
+  type: single_aggregate
   stages:
   - VS-02.0
   - VS-02.1
@@ -803,10 +944,13 @@ processes:
   - OBJ-108
   capability_l1: CAP-029
   capability: CAP-029.108
+  category: business
+  category_by: 价值流
 - id: PRC-28
   display: 02.2.01
   name: 编制、评审并签发交付物，送达并登记客户认可
   group: revenue
+  type: business
   stages:
   - VS-02.1
   - VS-02.2
@@ -821,10 +965,13 @@ processes:
   - OBJ-35
   capability_l1: CAP-029
   capability: CAP-029.035
+  category: business
+  category_by: 价值流
 - id: PRC-30
   display: 02.3.01
   name: 提出并批准完工估算
   group: revenue
+  type: business
   stages:
   - VS-02.2
   - VS-02.3
@@ -837,10 +984,13 @@ processes:
   - OBJ-33
   capability_l1: CAP-029
   capability: CAP-029.033
+  category: business
+  category_by: 价值流
 - id: PRC-31
   display: 02.3.02
   name: 提出并发出设计变更
   group: revenue
+  type: business
   stages:
   - VS-02.2
   - VS-02.3
@@ -853,10 +1003,13 @@ processes:
   - OBJ-40
   capability_l1: CAP-029
   capability: CAP-029.040
+  category: business
+  category_by: 价值流
 - id: PRC-32
   display: 02.3.03
   name: 申请并答复延期
   group: revenue
+  type: business
   stages:
   - VS-02.2
   - VS-02.3
@@ -869,10 +1022,13 @@ processes:
   - OBJ-41
   capability_l1: CAP-029
   capability: CAP-029.041
+  category: business
+  category_by: 价值流
 - id: PRC-33
   display: 02.5.01
   name: 采集、关联并封存证据
   group: revenue
+  type: single_aggregate
   stages:
   - VS-02.4
   - VS-02.7
@@ -884,10 +1040,13 @@ processes:
   - OBJ-53
   capability_l1: CAP-053
   capability: CAP-053
+  category: business
+  category_by: 价值流
 - id: PRC-34
   display: 02.7.01
   name: 处置我方成果不符合项
   group: revenue
+  type: business
   stages:
   - VS-02.6
   - VS-02.7
@@ -897,20 +1056,26 @@ processes:
   - OBJ-38
   capability_l1: CAP-029
   capability: CAP-029.038
+  category: business
+  category_by: 价值流
 - id: PRC-35
   display: 02.8.01
   name: 项目或协议终止、结项后清算成本
   group: finance
+  type: event_policy
   stages:
   - VS-02.7
   primary_object: AGG-43
   status: confirmed
   candidates:
   - AGG-43
+  category: business
+  category_by: 价值流
 - id: PRC-36
   display: 02.8.02
   name: 封存成果、结项并归档项目
   group: revenue
+  type: business
   stages:
   - VS-02.7
   primary_object: OBJ-29
@@ -924,10 +1089,13 @@ processes:
   - OBJ-53
   capability_l1: CAP-029
   capability: CAP-029
+  category: business
+  category_by: 价值流
 - id: PRC-37
   display: 02.8.03
   name: 回访客户满意度
   group: revenue
+  type: business
   stages:
   - VS-02.7
   primary_object: OBJ-106
@@ -936,10 +1104,13 @@ processes:
   - OBJ-106
   capability_l1: CAP-029
   capability: CAP-029.106
+  category: business
+  category_by: 价值流
 - id: PRC-38
   display: 02.8.04
   name: 编制并发布项目复盘
   group: revenue
+  type: business
   stages:
   - VS-02.7
   primary_object: OBJ-107
@@ -948,10 +1119,13 @@ processes:
   - OBJ-107
   capability_l1: CAP-029
   capability: CAP-029.107
+  category: business
+  category_by: 价值流
 - id: PRC-41
   display: 03.1.01
   name: 制定检查计划并使其生效
   group: revenue
+  type: business
   stages:
   - VS-03.1
   primary_object: OBJ-48
@@ -960,10 +1134,13 @@ processes:
   - OBJ-48
   capability_l1: CAP-005
   capability: CAP-005.048
+  category: business
+  category_by: 价值流
 - id: PRC-42
   display: 03.1.02
   name: 发布检查表模板版本
   group: revenue
+  type: single_aggregate
   stages:
   - VS-03.1
   primary_object: OBJ-50
@@ -972,10 +1149,13 @@ processes:
   - OBJ-50
   capability_l1: CAP-024
   capability: CAP-024.050
+  category: business
+  category_by: 价值流
 - id: PRC-43
   display: 02.7.02
   name: 实施现场检查并锁定
   group: revenue
+  type: business
   stages:
   - VS-03.1
   - VS-03.2
@@ -986,10 +1166,13 @@ processes:
   - OBJ-49
   capability_l1: CAP-029
   capability: CAP-029.049
+  category: business
+  category_by: 价值流
 - id: PRC-44
   display: 03.2.01
   name: 发布客户资产类不符合项并建议外部检测
   group: revenue
+  type: business
   stages:
   - VS-03.2
   - VS-03.3
@@ -999,10 +1182,13 @@ processes:
   - OBJ-38
   capability_l1: CAP-029
   capability: CAP-029.038
+  category: business
+  category_by: 价值流
 - id: PRC-45
   display: 03.4.01
   name: 跟踪整改并复查闭合
   group: revenue
+  type: business
   stages:
   - VS-03.4
   primary_object: OBJ-38
@@ -1011,10 +1197,13 @@ processes:
   - OBJ-38
   capability_l1: CAP-029
   capability: CAP-029.038
+  category: business
+  category_by: 价值流
 - id: PRC-46
   display: 03.4.02
   name: 采信外部检测报告
   group: revenue
+  type: business
   stages:
   - VS-03.4
   primary_object: OBJ-52
@@ -1023,10 +1212,13 @@ processes:
   - OBJ-52
   capability_l1: CAP-029
   capability: CAP-029.052
+  category: business
+  category_by: 价值流
 - id: PRC-47
   display: 04.1.01
   name: 起草、评审并回签协议
   group: revenue
+  type: business
   stages:
   - VS-04.1
   primary_object: OBJ-05
@@ -1038,10 +1230,13 @@ processes:
   - OBJ-07
   capability_l1: CAP-005
   capability: CAP-005
+  category: business
+  category_by: 价值流
 - id: PRC-48
   display: 04.2.01
   name: 提出并生效协议变更或签证
   group: revenue
+  type: business
   stages:
   - VS-04.6
   primary_object: OBJ-09
@@ -1050,10 +1245,13 @@ processes:
   - OBJ-09
   capability_l1: CAP-005
   capability: CAP-005.009
+  category: business
+  category_by: 价值流
 - id: PRC-49
   display: 04.2.02
   name: 提出并认定索赔
   group: revenue
+  type: business
   stages:
   - VS-04.6
   - VS-04.5
@@ -1063,10 +1261,13 @@ processes:
   - OBJ-10
   capability_l1: CAP-005
   capability: CAP-005.010
+  category: business
+  category_by: 价值流
 - id: PRC-50
   display: 04.2.03
   name: 占用框架限额并提交任务订单
   group: revenue
+  type: business
   stages:
   - VS-04.6
   primary_object: OBJ-05
@@ -1075,10 +1276,13 @@ processes:
   - OBJ-05
   capability_l1: CAP-005
   capability: CAP-005
+  category: business
+  category_by: 价值流
 - id: PRC-51
   display: 04.1.02
   name: 建立并更新开票与收入额度
   group: revenue
+  type: event_policy
   stages:
   - VS-04.1
   - VS-04.2
@@ -1087,48 +1291,63 @@ processes:
   status: confirmed
   candidates:
   - AGG-44
+  category: business
+  category_by: 价值流
 - id: PRC-53
   display: 04.3.01
   name: 确认收入
   group: revenue
+  type: event_policy
   stages:
   - VS-04.2
   primary_object: AGG-44
   status: confirmed
   candidates:
   - AGG-44
+  category: business
+  category_by: 价值流
 - id: PRC-54
   display: 04.3.02
   name: 视为同意期满处理
   group: revenue
+  type: business
   stages:
   - VS-04.2
   primary_object: AGG-44
   status: confirmed
+  category: business
+  category_by: 价值流
 - id: PRC-55
   display: 04.3.03
   name: 结转合同履约成本
   group: finance
+  type: event_policy
   stages:
   - VS-04.2
   primary_object: AGG-43
   status: confirmed
   candidates:
   - AGG-43
+  category: business
+  category_by: 价值流
 - id: PRC-56
   display: 04.4.01
   name: 付款条件项转为可结算
   group: revenue
+  type: event_policy
   stages:
   - VS-04.3
   primary_object: OBJ-07
   status: confirmed
   capability_l1: CAP-005
   capability: CAP-005.007
+  category: business
+  category_by: 价值流
 - id: PRC-57
   display: 04.4.02
   name: 申请并开具销项发票
   group: revenue
+  type: business
   stages:
   - VS-04.3
   primary_object: OBJ-83
@@ -1140,10 +1359,13 @@ processes:
   - OBJ-83
   capability_l1: CAP-103
   capability: CAP-103.083
+  category: business
+  category_by: 价值流
 - id: PRC-58
   display: 04.4.03
   name: 红冲销项发票
   group: revenue
+  type: business
   stages:
   - VS-04.3
   primary_object: OBJ-83
@@ -1152,10 +1374,13 @@ processes:
   - OBJ-83
   capability_l1: CAP-103
   capability: CAP-103.083
+  category: business
+  category_by: 价值流
 - id: PRC-59
   display: 04.5.01
   name: 由销项发票创建应收
   group: revenue
+  type: event_policy
   stages:
   - VS-04.4
   primary_object: OBJ-85
@@ -1164,10 +1389,13 @@ processes:
   - OBJ-85
   capability_l1: CAP-103
   capability: CAP-103.085
+  category: business
+  category_by: 价值流
 - id: PRC-60
   display: 04.5.02
   name: 认领收款并核销应收
   group: revenue
+  type: business
   stages:
   - VS-04.4
   primary_object: OBJ-85
@@ -1179,10 +1407,13 @@ processes:
   - OBJ-86
   capability_l1: CAP-103
   capability: CAP-103.085
+  category: business
+  category_by: 价值流
 - id: PRC-61
   display: 04.5.03
   name: 检测应收逾期并催收
   group: revenue
+  type: business
   stages:
   - VS-04.4
   primary_object: OBJ-85
@@ -1191,17 +1422,23 @@ processes:
   - OBJ-85
   capability_l1: CAP-103
   capability: CAP-103.085
+  category: business
+  category_by: 价值流
 - id: PRC-62
   display: 04.5.04
   name: 质量保证金到期提示
   group: revenue
+  type: read_model
   stages:
   - VS-04.4
   status: read_model
+  category: business
+  category_by: 价值流
 - id: PRC-63
   display: 04.5.05
   name: 商业汇票兑付与逾期
   group: revenue
+  type: business
   stages:
   - VS-04.4
   primary_object: OBJ-85
@@ -1210,10 +1447,13 @@ processes:
   - OBJ-85
   capability_l1: CAP-103
   capability: CAP-103.085
+  category: business
+  category_by: 价值流
 - id: PRC-66
   display: 04.2.04
   name: 发起结算，确认最终价款并结算协议
   group: revenue
+  type: business
   stages:
   - VS-04.5
   - VS-04.6
@@ -1223,10 +1463,13 @@ processes:
   - OBJ-05
   capability_l1: CAP-005
   capability: CAP-005
+  category: business
+  category_by: 价值流
 - id: PRC-68
   display: 04.6.01
   name: 终止协议
   group: revenue
+  type: single_aggregate
   stages:
   - VS-04.5
   primary_object: OBJ-05
@@ -1235,10 +1478,13 @@ processes:
   - OBJ-05
   capability_l1: CAP-005
   capability: CAP-005
+  category: business
+  category_by: 价值流
 - id: PRC-69
   display: 05.1.01
   name: 供应商准入与资质核验
   group: revenue
+  type: business
   stages:
   - VS-05.1
   primary_object: OBJ-02
@@ -1250,10 +1496,13 @@ processes:
   - OBJ-65
   capability_l1: CAP-001
   capability: CAP-001.002
+  category: support
+  category_by: 价值流
 - id: PRC-70
   display: 05.2.01
   name: 起草并生效供方协议
   group: finance
+  type: business
   stages:
   - VS-05.2
   primary_object: OBJ-05
@@ -1262,20 +1511,26 @@ processes:
   - OBJ-05
   capability_l1: CAP-005
   capability: CAP-005
+  category: support
+  category_by: 价值流
 - id: PRC-71
   display: 05.2.02
   name: 生效分包变更
   group: finance
+  type: business
   stages:
   - VS-05.2
   primary_object: OBJ-09
   status: confirmed
   capability_l1: CAP-005
   capability: CAP-005.009
+  category: support
+  category_by: 价值流
 - id: PRC-72
   display: 05.3.01
   name: 确认供方履约
   group: finance
+  type: business
   stages:
   - VS-05.3
   primary_object: OBJ-87
@@ -1284,10 +1539,13 @@ processes:
   - OBJ-87
   capability_l1: CAP-005
   capability: CAP-005.087
+  category: support
+  category_by: 价值流
 - id: PRC-73
   display: 05.4.01
   name: 登记并查验进项发票
   group: finance
+  type: business
   stages:
   - VS-05.4
   primary_object: OBJ-83
@@ -1296,10 +1554,13 @@ processes:
   - OBJ-83
   capability_l1: CAP-103
   capability: CAP-103.083
+  category: support
+  category_by: 价值流
 - id: PRC-74
   display: 05.4.02
   name: 提交供方应付
   group: finance
+  type: business
   stages:
   - VS-05.4
   primary_object: OBJ-85
@@ -1308,10 +1569,13 @@ processes:
   - OBJ-85
   capability_l1: CAP-103
   capability: CAP-103.085
+  category: support
+  category_by: 价值流
 - id: PRC-75
   display: 05.5.01
   name: 发起、审批并执行付款
   group: finance
+  type: business
   stages:
   - VS-05.5
   - VS-08.3
@@ -1322,10 +1586,13 @@ processes:
   - OBJ-86
   capability_l1: CAP-103
   capability: CAP-103.086
+  category: support
+  category_by: 价值流
 - id: PRC-76
   display: 05.6.01
   name: 完成并结算供方协议
   group: finance
+  type: business
   stages:
   - VS-05.6
   primary_object: OBJ-05
@@ -1334,10 +1601,13 @@ processes:
   - OBJ-05
   capability_l1: CAP-005
   capability: CAP-005
+  category: support
+  category_by: 价值流
 - id: PRC-77
   display: 06.1.01
   name: 申报并缴纳增值税、附加税与企业所得税
   group: finance
+  type: business
   stages:
   - VS-06.1
   primary_object: OBJ-92
@@ -1346,10 +1616,13 @@ processes:
   - OBJ-92
   capability_l1: CAP-103
   capability: CAP-103.092
+  category: support
+  category_by: 价值流
 - id: PRC-78
   display: 06.2.01
   name: 年检、核查与延续企业资质
   group: revenue
+  type: business
   stages:
   - VS-06.2
   primary_object: OBJ-65
@@ -1358,10 +1631,13 @@ processes:
   - OBJ-65
   capability_l1: CAP-054
   capability: CAP-054.065
+  category: support
+  category_by: 价值流
 - id: PRC-79
   display: 06.2.02
   name: 登记继续教育并延续注册执业证书
   group: people
+  type: single_aggregate
   stages:
   - VS-06.2
   primary_object: OBJ-64
@@ -1370,10 +1646,13 @@ processes:
   - OBJ-64
   capability_l1: CAP-056
   capability: CAP-056.064
+  category: support
+  category_by: 价值流
 - id: PRC-81
   display: 07.1.01
   name: 提出并批准招聘需求
   group: people
+  type: business
   stages:
   - VS-07.1
   primary_object: OBJ-60
@@ -1382,10 +1661,13 @@ processes:
   - OBJ-60
   capability_l1: CAP-058
   capability: CAP-058.060
+  category: support
+  category_by: 价值流
 - id: PRC-82
   display: 07.2.01
   name: 登记候选人并作出录用决定
   group: people
+  type: business
   stages:
   - VS-07.2
   primary_object: OBJ-56
@@ -1394,10 +1676,13 @@ processes:
   - OBJ-56
   capability_l1: CAP-056
   capability: CAP-056
+  category: support
+  category_by: 价值流
 - id: PRC-83
   display: 07.3.01
   name: 办理入职与任职
   group: people
+  type: business
   stages:
   - VS-07.3
   primary_object: OBJ-56
@@ -1410,10 +1695,13 @@ processes:
   - OBJ-56
   capability_l1: CAP-056
   capability: CAP-056
+  category: support
+  category_by: 价值流
 - id: PRC-84
   display: 07.3.02
   name: 入职后参保增员与建立薪酬档案
   group: people
+  type: business
   stages:
   - VS-07.3
   primary_object: OBJ-62
@@ -1422,10 +1710,13 @@ processes:
   - OBJ-62
   capability_l1: CAP-056
   capability: CAP-056.062
+  category: support
+  category_by: 价值流
 - id: PRC-85
   display: 07.3.03
   name: 试用期评估与转正
   group: people
+  type: business
   stages:
   - VS-07.3
   - VS-13.2
@@ -1437,10 +1728,13 @@ processes:
   - OBJ-109
   capability_l1: CAP-056
   capability: CAP-056
+  category: support
+  category_by: 价值流
 - id: PRC-86
   display: 08.2.01
   name: 发放、归还与催还员工借款
   group: revenue
+  type: business
   stages:
   - VS-08.1
   primary_object: OBJ-85
@@ -1449,10 +1743,13 @@ processes:
   - OBJ-85
   capability_l1: CAP-103
   capability: CAP-103.085
+  category: support
+  category_by: 价值流
 - id: PRC-87
   display: 08.3.01
   name: 提交、核定并确认报销应付
   group: finance
+  type: business
   stages:
   - VS-08.2
   primary_object: OBJ-88
@@ -1462,10 +1759,13 @@ processes:
   - OBJ-88
   capability_l1: CAP-056
   capability: CAP-056.088
+  category: support
+  category_by: 价值流
 - id: PRC-88
   display: 09.1.01
   name: 编制、批准并基线化经营计划与预算
   group: people
+  type: business
   stages:
   - VS-09.1
   - VS-09.3
@@ -1475,10 +1775,13 @@ processes:
   - OBJ-100
   capability_l1: CAP-100
   capability: CAP-100
+  category: management
+  category_by: 价值流
 - id: PRC-89
   display: 09.2.01
   name: 编制滚动预测
   group: people
+  type: business
   stages:
   - VS-09.2
   primary_object: OBJ-100
@@ -1487,10 +1790,13 @@ processes:
   - OBJ-100
   capability_l1: CAP-100
   capability: CAP-100
+  category: management
+  category_by: 价值流
 - id: PRC-90
   display: 09.3.01
   name: 出具经营月报
   group: finance
+  type: read_model
   stages:
   - VS-09.3
   - VS-10.2
@@ -1499,6 +1805,7 @@ processes:
   display: 10.1.01
   name: 认定工时有效性
   group: revenue
+  type: event_policy
   stages:
   - VS-10.1
   primary_object: OBJ-66
@@ -1507,20 +1814,26 @@ processes:
   - OBJ-66
   capability_l1: CAP-056
   capability: CAP-056.066
+  category: support
+  category_by: 价值流
 - id: PRC-92
   display: 10.1.02
   name: 过账业务事实
   group: finance
+  type: business
   stages:
   - VS-10.1
   primary_object: AGG-77
   status: confirmed
   candidates:
   - AGG-77
+  category: support
+  category_by: 价值流
 - id: PRC-93
   display: 10.1.03
   name: 生成会计分录
   group: finance
+  type: event_policy
   stages:
   - VS-10.1
   primary_object: OBJ-98
@@ -1529,10 +1842,13 @@ processes:
   - OBJ-98
   capability_l1: CAP-103
   capability: CAP-103.098
+  category: support
+  category_by: 价值流
 - id: PRC-94
   display: 10.1.04
   name: 制单并过账受控手工凭证
   group: finance
+  type: business
   stages:
   - VS-10.1
   primary_object: OBJ-98
@@ -1541,34 +1857,46 @@ processes:
   - OBJ-98
   capability_l1: CAP-103
   capability: CAP-103.098
+  category: support
+  category_by: 价值流
 - id: PRC-95
   display: 10.1.05
   name: 期末结转
   group: finance
+  type: business
   stages:
   - VS-10.1
   primary_object: AGG-99
   status: confirmed
+  category: support
+  category_by: 价值流
 - id: PRC-96
   display: 10.1.06
   name: 分配人工成本
   group: finance
+  type: business
   stages:
   - VS-10.1
   primary_object: AGG-41
   status: confirmed
+  category: support
+  category_by: 价值流
 - id: PRC-98
   display: 10.1.07
   name: 分摊间接成本
   group: finance
+  type: business
   stages:
   - VS-10.1
   primary_object: AGG-42
   status: confirmed
+  category: support
+  category_by: 价值流
 - id: PRC-99
   display: 10.1.08
   name: 计提折旧并处置公司资产
   group: finance
+  type: business
   stages:
   - VS-10.1
   primary_object: OBJ-93
@@ -1577,10 +1905,13 @@ processes:
   - OBJ-93
   capability_l1: CAP-093
   capability: CAP-093
+  category: support
+  category_by: 价值流
 - id: PRC-101
   display: 10.1.09
   name: 月结检查并关账
   group: finance
+  type: business
   stages:
   - VS-10.1
   primary_object: OBJ-97
@@ -1589,10 +1920,13 @@ processes:
   - OBJ-97
   capability_l1: CAP-103
   capability: CAP-103.097
+  category: support
+  category_by: 价值流
 - id: PRC-102
   display: 10.1.10
   name: 启用第 13 期并年末关账
   group: finance
+  type: business
   stages:
   - VS-10.1
   primary_object: OBJ-97
@@ -1601,35 +1935,47 @@ processes:
   - OBJ-97
   capability_l1: CAP-103
   capability: CAP-103.097
+  category: support
+  category_by: 价值流
 - id: PRC-103
   display: 10.1.11
   name: 生成期间余额快照
   group: finance
+  type: event_policy
   stages:
   - VS-10.1
   primary_object: AGG-100
   status: confirmed
   candidates:
   - AGG-100
+  category: support
+  category_by: 价值流
 - id: PRC-104
   display: 10.2.01
   name: 外部法定账对账与签字
   group: finance
+  type: business
   stages:
   - VS-10.2
   primary_object: AGG-101
   status: confirmed
+  category: support
+  category_by: 价值流
 - id: PRC-106
   display: 10.2.02
   name: 出具三大报表
   group: finance
+  type: read_model
   stages:
   - VS-10.2
   status: read_model
+  category: support
+  category_by: 价值流
 - id: PRC-107
   display: 11.1.01
   name: 知识条目的起草、评审、发布与修订废止
   group: people
+  type: business
   stages:
   - VS-11.1
   - VS-11.2
@@ -1640,10 +1986,13 @@ processes:
   - OBJ-110
   capability_l1: CAP-110
   capability: CAP-110
+  category: support
+  category_by: 价值流
 - id: PRC-111
   display: 12.1.01
   name: 认缴并实缴出资
   group: finance
+  type: single_aggregate
   stages:
   - VS-12.1
   primary_object: OBJ-91
@@ -1652,10 +2001,13 @@ processes:
   - OBJ-91
   capability_l1: CAP-054
   capability: CAP-054.091
+  category: management
+  category_by: 价值流
 - id: PRC-112
   display: 12.2.01
   name: 决议并支付利润分配
   group: finance
+  type: business
   stages:
   - VS-12.2
   primary_object: OBJ-112
@@ -1664,10 +2016,13 @@ processes:
   - OBJ-112
   capability_l1: CAP-054
   capability: CAP-054.112
+  category: management
+  category_by: 价值流
 - id: PRC-113
   display: 12.2.02
   name: 并入股息红利个税扣缴申报
   group: people
+  type: event_policy
   stages:
   - VS-12.2
   primary_object: OBJ-92
@@ -1676,10 +2031,13 @@ processes:
   - OBJ-92
   capability_l1: CAP-103
   capability: CAP-103.092
+  category: management
+  category_by: 价值流
 - id: PRC-114
   display: 12.3.01
   name: 退回出资
   group: finance
+  type: business
   stages:
   - VS-12.3
   primary_object: OBJ-91
@@ -1688,10 +2046,13 @@ processes:
   - OBJ-91
   capability_l1: CAP-054
   capability: CAP-054.091
+  category: management
+  category_by: 价值流
 - id: PRC-116
   display: 13.1.01
   name: 申请并审批请假
   group: people
+  type: business
   stages:
   - VS-13.1
   primary_object: OBJ-68
@@ -1700,10 +2061,13 @@ processes:
   - OBJ-68
   capability_l1: CAP-056
   capability: CAP-056.068
+  category: support
+  category_by: 价值流
 - id: PRC-117
   display: 13.1.02
   name: 申请并批准加班
   group: people
+  type: business
   stages:
   - VS-13.1
   primary_object: OBJ-72
@@ -1712,10 +2076,13 @@ processes:
   - OBJ-72
   capability_l1: CAP-056
   capability: CAP-056.072
+  category: support
+  category_by: 价值流
 - id: PRC-118
   display: 13.1.03
   name: 生成、确认并锁定月度考勤
   group: people
+  type: business
   stages:
   - VS-13.1
   primary_object: OBJ-111
@@ -1727,10 +2094,13 @@ processes:
   - OBJ-111
   capability_l1: CAP-056
   capability: CAP-056.111
+  category: support
+  category_by: 价值流
 - id: PRC-120
   display: 13.2.01
   name: 评估月度绩效
   group: people
+  type: business
   stages:
   - VS-13.2
   primary_object: OBJ-109
@@ -1739,10 +2109,13 @@ processes:
   - OBJ-109
   capability_l1: CAP-056
   capability: CAP-056.109
+  category: support
+  category_by: 价值流
 - id: PRC-122
   display: 13.2.02
   name: 核定奖金
   group: people
+  type: business
   stages:
   - VS-13.2
   primary_object: OBJ-104
@@ -1751,10 +2124,13 @@ processes:
   - OBJ-104
   capability_l1: CAP-074
   capability: CAP-074.104
+  category: support
+  category_by: 价值流
 - id: PRC-124
   display: 13.3.01
   name: 计算、审核并批准月度薪酬
   group: people
+  type: business
   stages:
   - VS-13.3
   primary_object: OBJ-73
@@ -1763,10 +2139,13 @@ processes:
   - OBJ-73
   capability_l1: CAP-054
   capability: CAP-054.073
+  category: support
+  category_by: 价值流
 - id: PRC-125
   display: 06.1.02
   name: 申报个税扣缴与社保公积金
   group: people
+  type: business
   stages:
   - VS-13.4
   - VS-06.1
@@ -1778,10 +2157,13 @@ processes:
   - OBJ-92
   capability_l1: CAP-103
   capability: CAP-103.092
+  category: support
+  category_by: 价值流
 - id: PRC-126
   display: 13.5.01
   name: 提交应付薪酬
   group: people
+  type: event_policy
   stages:
   - VS-13.5
   primary_object: OBJ-85
@@ -1790,10 +2172,13 @@ processes:
   - OBJ-85
   capability_l1: CAP-103
   capability: CAP-103.085
+  category: support
+  category_by: 价值流
 - id: PRC-127
   display: 13.5.02
   name: 薪酬发放完成
   group: people
+  type: event_policy
   stages:
   - VS-13.5
   primary_object: OBJ-73
@@ -1802,10 +2187,13 @@ processes:
   - OBJ-73
   capability_l1: CAP-054
   capability: CAP-054.073
+  category: support
+  category_by: 价值流
 - id: PRC-128
   display: 13.6.01
   name: 办理离职
   group: people
+  type: business
   stages:
   - VS-13.6
   primary_object: OBJ-56
@@ -1817,17 +2205,23 @@ processes:
   - OBJ-05
   capability_l1: CAP-056
   capability: CAP-056
+  category: support
+  category_by: 价值流
 - id: PRC-129
   display: 13.6.02
   name: 离职后吊销会话
   group: people
+  type: event_policy
   stages:
   - VS-13.6
   status: declared_none
+  category: support
+  category_by: 价值流
 - id: PRC-130
   display: 13.6.03
   name: 离职后参保减员
   group: people
+  type: event_policy
   stages:
   - VS-13.6
   primary_object: OBJ-62
@@ -1836,10 +2230,13 @@ processes:
   - OBJ-62
   capability_l1: CAP-056
   capability: CAP-056.062
+  category: support
+  category_by: 价值流
 - id: PRC-131
   display: 05.5.02
   name: 付款成功后核销应付
   group: finance
+  type: event_policy
   stages:
   - VS-05.5
   - VS-08.3
@@ -1850,10 +2247,13 @@ processes:
   - OBJ-85
   capability_l1: CAP-103
   capability: CAP-103.085
+  category: support
+  category_by: 价值流
 - id: PRC-132
   display: 05.5.03
   name: 应付核销后置付款已核销并提交过账候选
   group: finance
+  type: event_policy
   stages:
   - VS-05.5
   - VS-08.3
@@ -1864,10 +2264,13 @@ processes:
   - OBJ-86
   capability_l1: CAP-103
   capability: CAP-103.086
+  category: support
+  category_by: 价值流
 - id: PRC-133
   display: 08.4.01
   name: 应付结清后报销置已付
   group: finance
+  type: event_policy
   stages:
   - VS-08.3
   primary_object: OBJ-88
@@ -1876,10 +2279,13 @@ processes:
   - OBJ-88
   capability_l1: CAP-056
   capability: CAP-056.088
+  category: support
+  category_by: 价值流
 - id: PRC-134
   display: 13.5.03
   name: 薪酬事实已过账置位
   group: people
+  type: event_policy
   stages:
   - VS-13.5
   primary_object: OBJ-73
@@ -1888,10 +2294,13 @@ processes:
   - OBJ-73
   capability_l1: CAP-054
   capability: CAP-054.073
+  category: support
+  category_by: 价值流
 - id: PRC-135
   display: 10.1.12
   name: 处理会计分录待处理队列与推送重投
   group: finance
+  type: single_aggregate
   stages:
   - VS-10.1
   primary_object: OBJ-98
@@ -1900,10 +2309,13 @@ processes:
   - OBJ-98
   capability_l1: CAP-103
   capability: CAP-103.098
+  category: support
+  category_by: 价值流
 - id: PRC-136
   display: 07.3.04
   name: 调岗（任职变更，按人事业务生效日，触发数据范围复核）
   group: people
+  type: business
   stages:
   - VS-07.3
   primary_object: OBJ-57
@@ -1915,31 +2327,43 @@ processes:
   - OBJ-05
   capability_l1: CAP-056
   capability: CAP-056.057
+  category: support
+  category_by: 价值流
 - id: PRC-137
   display: 07.3.05
   name: 入职开通企业微信账号并绑定外部身份
   group: people
+  type: business
   stages:
   - VS-07.3
   status: declared_none
+  category: support
+  category_by: 价值流
 - id: PRC-138
   display: 13.6.04
   name: 离职停用企业微信账号并解绑
   group: people
+  type: business
   stages:
   - VS-13.6
   status: declared_none
+  category: support
+  category_by: 价值流
 - id: PRC-145
   display: 07.3.06
   name: 员工法人三口径不一致预警
   group: people
+  type: event_policy
   stages:
   - VS-07.3
   status: declared_none
+  category: support
+  category_by: 价值流
 - id: PRC-147
   display: 08.3.02
   name: 费用报销核定后冲抵员工借款并确认应付
   group: revenue
+  type: event_policy
   stages:
   - VS-08.2
   primary_object: OBJ-88
@@ -1948,20 +2372,26 @@ processes:
   - OBJ-88
   capability_l1: CAP-056
   capability: CAP-056.088
+  category: support
+  category_by: 价值流
 - id: PRC-148
   display: 04.3.04
   name: 收入确认审批通过后占用转实并提交过账
   group: revenue
+  type: event_policy
   stages:
   - VS-04.2
   primary_object: AGG-44
   status: confirmed
   candidates:
   - AGG-44
+  category: business
+  category_by: 价值流
 - id: PRC-149
   display: 04.3.05
   name: 冲销收入确认
   group: revenue
+  type: business
   stages:
   - VS-04.2
   - VS-04.5
@@ -1969,10 +2399,13 @@ processes:
   status: confirmed
   candidates:
   - AGG-44
+  category: business
+  category_by: 价值流
 - id: PRC-150
   display: 04.5.06
   name: 发票红冲后冲减应收
   group: revenue
+  type: event_policy
   stages:
   - VS-04.4
   primary_object: OBJ-85
@@ -1981,10 +2414,13 @@ processes:
   - OBJ-85
   capability_l1: CAP-103
   capability: CAP-103.085
+  category: business
+  category_by: 价值流
 - id: PRC-151
   display: 02.3.04
   name: 填报经营产值
   group: revenue
+  type: business
   stages:
   - VS-02.2
   - VS-02.3
@@ -1997,20 +2433,26 @@ processes:
   - OBJ-33
   capability_l1: CAP-029
   capability: CAP-029.033
+  category: business
+  category_by: 价值流
 - id: PRC-152
   display: 04.4.04
   name: 登记付款条件达成
   group: revenue
+  type: business
   stages:
   - VS-04.3
   primary_object: OBJ-07
   status: confirmed
   capability_l1: CAP-005
   capability: CAP-005.007
+  category: business
+  category_by: 价值流
 - id: PRC-153
   display: 01.2.11
   name: 退还投标保证金
   group: revenue
+  type: business
   stages:
   - VS-01.2
   - VS-04.1
@@ -2020,28 +2462,37 @@ processes:
   - OBJ-13
   capability_l1: CAP-005
   capability: CAP-005.013
+  category: business
+  category_by: 价值流
 - id: PRC-154
   display: 04.3.06
   name: 收入三口径对照
   group: revenue
+  type: read_model
   stages:
   - VS-04.2
   - VS-04.3
   status: read_model
+  category: business
+  category_by: 价值流
 - id: PRC-158
   display: 10.1.13
   name: 处置过账拒收记录
   group: finance
+  type: single_aggregate
   stages:
   - VS-10.1
   primary_object: AGG-77
   status: confirmed
   candidates:
   - AGG-77
+  category: support
+  category_by: 价值流
 - id: PRC-159
   display: 06.1.03
   name: 申报已提交后确认税费应付
   group: finance
+  type: event_policy
   stages:
   - VS-06.1
   primary_object: OBJ-85
@@ -2050,19 +2501,25 @@ processes:
   - OBJ-85
   capability_l1: CAP-103
   capability: CAP-103.085
+  category: support
+  category_by: 价值流
 - id: PRC-160
   display: 07.3.07
   name: 开立年度假期额度账户
   group: people
+  type: event_policy
   stages:
   - VS-07.3
   status: declared_none
   candidates:
   - AGG-71
+  category: support
+  category_by: 价值流
 - id: PRC-163
   display: 12.2.03
   name: 应付结清后登记利润分配支付
   group: finance
+  type: event_policy
   stages:
   - VS-12.2
   primary_object: OBJ-112
@@ -2071,40 +2528,52 @@ processes:
   - OBJ-112
   capability_l1: CAP-054
   capability: CAP-054.112
+  category: management
+  category_by: 价值流
 - id: PRC-164
   display: 04.3.07
   name: 收入确认冲销后冲回已配对成本结转
   group: finance
+  type: event_policy
   stages:
   - VS-04.2
   primary_object: AGG-43
   status: confirmed
   candidates:
   - AGG-43
+  category: business
+  category_by: 价值流
 - id: PRC-169
   display: 10.1.14
   name: 处置勾稽差异案
   group: finance
+  type: single_aggregate
   stages:
   - VS-10.1
   primary_object: AGG-126
   status: confirmed
   candidates:
   - AGG-126
+  category: support
+  category_by: 价值流
 - id: PRC-170
   display: 08.1.01
   name: 申请费用事前额度
   group: finance
+  type: business
   stages:
   - VS-08.0
   primary_object: AGG-130
   status: confirmed
   candidates:
   - AGG-130
+  category: support
+  category_by: 价值流
 - id: PRC-171
   display: 05.4.03
   name: 核对差旅服务商月账单并确认应付
   group: finance
+  type: business
   stages:
   - VS-05.4
   primary_object: OBJ-85
@@ -2113,30 +2582,39 @@ processes:
   - OBJ-85
   capability_l1: CAP-103
   capability: CAP-103.085
+  category: support
+  category_by: 价值流
 - id: PRC-172
   display: 08.1.02
   name: 申请出差并同步差旅服务商
   group: finance
+  type: business
   stages:
   - VS-08.0
   primary_object: AGG-132
   status: confirmed
   candidates:
   - AGG-132
+  category: support
+  category_by: 价值流
 - id: PRC-173
   display: 08.1.03
   name: 审批差旅超标订单
   group: finance
+  type: business
   stages:
   - VS-08.0
   primary_object: AGG-131
   status: confirmed
   candidates:
   - AGG-131
+  category: support
+  category_by: 价值流
 - id: PRC-175
   display: 05.5.04
   name: 直接付款申请
   group: finance
+  type: business
   stages:
   - VS-05.5
   primary_object: OBJ-85
@@ -2145,10 +2623,13 @@ processes:
   - OBJ-85
   capability_l1: CAP-103
   capability: CAP-103.085
+  category: support
+  category_by: 价值流
 - id: PRC-176
   display: 05.5.05
   name: 预付款核销
   group: finance
+  type: single_aggregate
   stages:
   - VS-05.5
   primary_object: OBJ-85
@@ -2157,19 +2638,25 @@ processes:
   - OBJ-85
   capability_l1: CAP-103
   capability: CAP-103.085
+  category: support
+  category_by: 价值流
 - id: PRC-178
   display: 13.6.05
   name: 补休到期未休或离职时转计发加班工资
   group: people
+  type: event_policy
   stages:
   - VS-13.6
   status: declared_none
   candidates:
   - AGG-93
+  category: support
+  category_by: 价值流
 - id: PRC-179
   display: 04.2.05
   name: 项目开始执行后协议转入履行中
   group: revenue
+  type: event_policy
   stages:
   - VS-04.6
   primary_object: OBJ-05
@@ -2178,10 +2665,13 @@ processes:
   - OBJ-05
   capability_l1: CAP-005
   capability: CAP-005
+  category: business
+  category_by: 价值流
 - id: PRC-181
   display: 09.3.02
   name: 记录经营复盘并跟踪经营动作
   group: people
+  type: business
   stages:
   - VS-09.3
   primary_object: OBJ-100
@@ -2190,20 +2680,430 @@ processes:
   - OBJ-100
   capability_l1: CAP-100
   capability: CAP-100
+  category: management
+  category_by: 价值流
 - id: PRC-182
   display: 11.3.01
   name: 知识条目使用情况
   group: people
+  type: read_model
   stages:
   - VS-11.3
   status: read_model
+  category: support
+  category_by: 价值流
 - id: PRC-183
   display: 01.2.12
   name: 作出参投决策
   group: revenue
+  type: business
   stages:
   - VS-01.2
   primary_object: OBJ-18
   status: confirmed
   capability_l1: CAP-018
   capability: CAP-018
+  category: business
+  category_by: 价值流
+- id: PRC-52
+  name: 开放可触发收入确认的证据类型
+  group: revenue
+  type: single_aggregate
+  primary_object: AGG-92
+  status: support_proposed
+- id: PRC-64
+  name: 导入银行流水
+  group: finance
+  type: business
+  supports:
+  - VS-01.2
+  - VS-04.1
+  - VS-04.4
+  - VS-05.5
+  - VS-08.3
+  - VS-13.5
+  supports_basis:
+    VS-01.2: 使用
+    VS-04.1: 使用
+    VS-04.4: 使用
+    VS-05.5: 使用
+    VS-08.3: 使用
+    VS-13.5: 使用
+  primary_object: OBJ-90
+  status: support_proposed
+  capability_l1: CAP-103
+  capability: CAP-103.090
+  category: support
+- id: PRC-65
+  name: 维护资金账户
+  group: finance
+  type: single_aggregate
+  supports:
+  - VS-04.4
+  - VS-05.5
+  - VS-08.3
+  - VS-13.5
+  supports_basis:
+    VS-04.4: 使用
+    VS-05.5: 使用
+    VS-08.3: 使用
+    VS-13.5: 使用
+  primary_object: OBJ-89
+  status: support_proposed
+  capability_l1: CAP-103
+  capability: CAP-103.089
+  category: support
+- id: PRC-80
+  name: 维护法人、组织与岗位
+  group: people
+  type: business
+  supports:
+  - VS-05.5
+  - VS-06.2
+  - VS-07.1
+  supports_basis:
+    VS-05.5: 使用
+    VS-06.2: 使用
+    VS-07.1: 条件
+  status: support_none
+- id: PRC-97
+  name: 批准并生效分摊规则版本
+  group: finance
+  type: business
+  primary_object: OBJ-78
+  status: support_proposed
+- id: PRC-100
+  name: 发布总账配置版本
+  group: finance
+  type: business
+  status: support_none
+- id: PRC-105
+  name: 评审并生效报表行定义版本
+  group: finance
+  type: business
+  primary_object: OBJ-99
+  status: support_proposed
+  capability_l1: CAP-103
+  capability: CAP-103.099
+  category: support
+- id: PRC-115
+  name: 导入考勤记录并补卡
+  group: people
+  type: business
+  supports:
+  - VS-13.1
+  supports_basis:
+    VS-13.1: 使用
+  primary_object: OBJ-70
+  status: support_proposed
+  capability_l1: CAP-056
+  capability: CAP-056.070
+  category: support
+- id: PRC-119
+  name: 维护工作日历与标准工时版本
+  group: people
+  type: single_aggregate
+  supports:
+  - VS-01.2
+  - VS-02.0
+  - VS-02.1
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  - VS-13.1
+  supports_basis:
+    VS-01.2: 使用
+    VS-02.0: 使用
+    VS-02.1: 使用
+    VS-02.2: 使用
+    VS-02.3: 使用
+    VS-02.4: 使用
+    VS-02.5: 使用
+    VS-02.6: 使用
+    VS-13.1: 条件
+  primary_object: OBJ-28
+  status: support_proposed
+  capability_l1: CAP-028
+  capability: CAP-028
+  category: support
+- id: PRC-121
+  name: 制定激励方案
+  group: people
+  type: business
+  supports:
+  - VS-13.2
+  supports_basis:
+    VS-13.2: 条件
+  primary_object: OBJ-74
+  status: support_proposed
+  capability_l1: CAP-074
+  capability: CAP-074
+  category: management
+- id: PRC-123
+  name: 调整薪酬档案与专项附加扣除
+  group: people
+  type: single_aggregate
+  supports:
+  - VS-07.3
+  - VS-13.3
+  - VS-13.6
+  supports_basis:
+    VS-07.3: 使用
+    VS-13.3: 使用
+    VS-13.6: 使用
+  status: support_none
+- id: PRC-139
+  name: 用印申请与用印登记
+  group: people
+  type: business
+  primary_object: OBJ-113
+  status: support_proposed
+- id: PRC-140
+  name: 合同借阅
+  group: revenue
+  type: business
+  supports:
+  - VS-01.2
+  - VS-02.0
+  - VS-02.7
+  - VS-03.1
+  - VS-04.1
+  - VS-04.6
+  - VS-04.2
+  - VS-04.3
+  - VS-04.5
+  - VS-05.2
+  - VS-05.3
+  - VS-05.6
+  - VS-07.3
+  - VS-10.1
+  - VS-13.6
+  supports_basis:
+    VS-01.2: 使用
+    VS-02.0: 条件
+    VS-02.7: 条件
+    VS-03.1: 使用
+    VS-04.1: 条件
+    VS-04.6: 条件
+    VS-04.2: 条件
+    VS-04.3: 使用
+    VS-04.5: 条件
+    VS-05.2: 条件
+    VS-05.3: 条件
+    VS-05.6: 条件
+    VS-07.3: 条件
+    VS-10.1: 使用
+    VS-13.6: 条件
+  status: support_none
+- id: PRC-141
+  name: 销售合同归档
+  group: revenue
+  type: business
+  supports:
+  - VS-01.2
+  - VS-02.0
+  - VS-02.7
+  - VS-03.1
+  - VS-04.1
+  - VS-04.6
+  - VS-04.2
+  - VS-04.3
+  - VS-04.5
+  - VS-05.2
+  - VS-05.3
+  - VS-05.6
+  - VS-07.3
+  - VS-10.1
+  - VS-13.6
+  supports_basis:
+    VS-01.2: 使用
+    VS-02.0: 条件
+    VS-02.7: 条件
+    VS-03.1: 使用
+    VS-04.1: 条件
+    VS-04.6: 条件
+    VS-04.2: 条件
+    VS-04.3: 使用
+    VS-04.5: 条件
+    VS-05.2: 条件
+    VS-05.3: 条件
+    VS-05.6: 条件
+    VS-07.3: 条件
+    VS-10.1: 使用
+    VS-13.6: 条件
+  status: support_none
+- id: PRC-142
+  name: IT 需求工单
+  group: people
+  type: business
+  primary_object: OBJ-114
+  status: support_proposed
+- id: PRC-143
+  name: IT 资产领用
+  group: people
+  type: business
+  supports:
+  - VS-10.1
+  supports_basis:
+    VS-10.1: 使用
+  status: support_none
+- id: PRC-144
+  name: 员工活动类申请（周年贺卡、节日活动、创新项目发布）
+  group: people
+  type: business
+  primary_object: OBJ-116
+  status: support_proposed
+- id: PRC-146
+  name: 协议借阅逾期催还
+  group: revenue
+  type: event_policy
+  supports:
+  - VS-01.2
+  - VS-02.0
+  - VS-02.7
+  - VS-03.1
+  - VS-04.1
+  - VS-04.6
+  - VS-04.2
+  - VS-04.3
+  - VS-04.5
+  - VS-05.2
+  - VS-05.3
+  - VS-05.6
+  - VS-07.3
+  - VS-10.1
+  - VS-13.6
+  supports_basis:
+    VS-01.2: 使用
+    VS-02.0: 条件
+    VS-02.7: 条件
+    VS-03.1: 使用
+    VS-04.1: 条件
+    VS-04.6: 条件
+    VS-04.2: 条件
+    VS-04.3: 使用
+    VS-04.5: 条件
+    VS-05.2: 条件
+    VS-05.3: 条件
+    VS-05.6: 条件
+    VS-07.3: 条件
+    VS-10.1: 使用
+    VS-13.6: 条件
+  status: support_none
+- id: PRC-155
+  name: IT 资产调拨
+  group: people
+  type: business
+  supports:
+  - VS-10.1
+  supports_basis:
+    VS-10.1: 使用
+  status: support_none
+- id: PRC-156
+  name: IT 资产归还
+  group: people
+  type: business
+  supports:
+  - VS-10.1
+  supports_basis:
+    VS-10.1: 使用
+  status: support_none
+- id: PRC-157
+  name: IT 资产报修与维修登记
+  group: people
+  type: business
+  supports:
+  - VS-10.1
+  supports_basis:
+    VS-10.1: 使用
+  status: support_none
+- id: PRC-161
+  name: 年末关闭预算账户
+  group: people
+  type: event_policy
+  supports:
+  - VS-05.2
+  - VS-08.2
+  - VS-09.1
+  - VS-09.2
+  - VS-09.3
+  supports_basis:
+    VS-05.2: 条件
+    VS-08.2: 使用
+    VS-09.1: 条件
+    VS-09.2: 条件
+    VS-09.3: 条件
+  primary_object: OBJ-100
+  status: support_proposed
+  capability_l1: CAP-100
+  capability: CAP-100
+  category: management
+- id: PRC-162
+  name: 发布假期规则版本
+  group: people
+  type: single_aggregate
+  supports:
+  - VS-13.1
+  supports_basis:
+    VS-13.1: 使用
+  primary_object: AGG-118
+  status: support_proposed
+- id: PRC-165
+  name: 发布成本核算参数版本
+  group: finance
+  type: single_aggregate
+  supports:
+  - VS-01.2
+  supports_basis:
+    VS-01.2: 使用
+  primary_object: AGG-123
+  status: support_proposed
+- id: PRC-166
+  name: 发布资产类别与折旧政策版本
+  group: finance
+  type: single_aggregate
+  supports:
+  - VS-10.1
+  supports_basis:
+    VS-10.1: 使用
+  primary_object: AGG-124
+  status: support_proposed
+- id: PRC-167
+  name: 编制并签字确认期初余额
+  group: finance
+  type: single_aggregate
+  primary_object: AGG-125
+  status: support_proposed
+- id: PRC-168
+  name: 发布口径版本
+  group: finance
+  type: single_aggregate
+  primary_object: AGG-78
+  status: support_proposed
+- id: PRC-174
+  name: 发布出差补贴标准版本
+  group: finance
+  type: single_aggregate
+  supports:
+  - VS-08.2
+  supports_basis:
+    VS-08.2: 使用
+  primary_object: AGG-133
+  status: support_proposed
+- id: PRC-177
+  name: 向差旅服务商同步员工与组织
+  group: people
+  type: event_policy
+  status: support_none
+- id: PRC-180
+  name: 发布薪酬规则版本
+  group: people
+  type: single_aggregate
+  supports:
+  - VS-13.3
+  supports_basis:
+    VS-13.3: 使用
+  primary_object: AGG-119
+  status: support_proposed

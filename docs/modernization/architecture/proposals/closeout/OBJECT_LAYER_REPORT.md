@@ -256,6 +256,68 @@
 - PRC-172 申请出差并同步差旅服务商：AGG-132
 - PRC-173 审批差旅超标订单：AGG-131
 
+## 支撑流程「支撑本段」（30 条，有支撑段 20；自动得出，不手写）
+
+| 流程 | 主对象 | 状态 | 类别 | 支撑段（条件 / 使用） |
+|---|---|---|---|---|
+| PRC-52 开放可触发收入确认的证据类型 | AGG-92 | support_proposed | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
+| PRC-64 导入银行流水 | OBJ-90 银行流水 | support_proposed | support | VS-01.2（使用）、VS-04.1（使用）、VS-04.4（使用）、VS-05.5（使用）、VS-08.3（使用）、VS-13.5（使用） |
+| PRC-65 维护资金账户 | OBJ-89 资金账户 | support_proposed | support | VS-04.4（使用）、VS-05.5（使用）、VS-08.3（使用）、VS-13.5（使用） |
+| PRC-80 维护法人、组织与岗位 | — | support_none | — | VS-05.5（使用）、VS-06.2（使用）、VS-07.1（条件） |
+| PRC-97 批准并生效分摊规则版本 | OBJ-78 间接成本池 → 分摊规则版本 | support_proposed | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
+| PRC-100 发布总账配置版本 | — | support_none | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
+| PRC-105 评审并生效报表行定义版本 | OBJ-99 报表行定义 | support_proposed | support | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
+| PRC-115 导入考勤记录并补卡 | OBJ-70 考勤记录 | support_proposed | support | VS-13.1（使用） |
+| PRC-119 维护工作日历与标准工时版本 | OBJ-28 工作日历 | support_proposed | support | VS-01.2（使用）、VS-02.0（使用）、VS-02.1（使用）、VS-02.2（使用）、VS-02.3（使用）、VS-02.4（使用）、VS-02.5（使用）、VS-02.6（使用）、VS-13.1（条件） |
+| PRC-121 制定激励方案 | OBJ-74 激励方案 | support_proposed | management | VS-13.2（条件） |
+| PRC-123 调整薪酬档案与专项附加扣除 | — | support_none | — | VS-07.3（使用）、VS-13.3（使用）、VS-13.6（使用） |
+| PRC-139 用印申请与用印登记 | OBJ-113 用印申请 | support_proposed | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
+| PRC-140 合同借阅 | — | support_none | — | VS-01.2（使用）、VS-02.0（条件）、VS-02.7（条件）、VS-03.1（使用）、VS-04.1（条件）、VS-04.6（条件）、VS-04.2（条件）、VS-04.3（使用）、VS-04.5（条件）、VS-05.2（条件）、VS-05.3（条件）、VS-05.6（条件）、VS-07.3（条件）、VS-10.1（使用）、VS-13.6（条件） |
+| PRC-141 销售合同归档 | — | support_none | — | VS-01.2（使用）、VS-02.0（条件）、VS-02.7（条件）、VS-03.1（使用）、VS-04.1（条件）、VS-04.6（条件）、VS-04.2（条件）、VS-04.3（使用）、VS-04.5（条件）、VS-05.2（条件）、VS-05.3（条件）、VS-05.6（条件）、VS-07.3（条件）、VS-10.1（使用）、VS-13.6（条件） |
+| PRC-142 IT 需求工单 | OBJ-114 IT 需求工单 | support_proposed | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
+| PRC-143 IT 资产领用 | — | support_none | — | VS-10.1（使用） |
+| PRC-144 员工活动类申请（周年贺卡、节日活动、创新项目发布） | OBJ-116 员工活动申请 | support_proposed | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
+| PRC-146 协议借阅逾期催还 | — | support_none | — | VS-01.2（使用）、VS-02.0（条件）、VS-02.7（条件）、VS-03.1（使用）、VS-04.1（条件）、VS-04.6（条件）、VS-04.2（条件）、VS-04.3（使用）、VS-04.5（条件）、VS-05.2（条件）、VS-05.3（条件）、VS-05.6（条件）、VS-07.3（条件）、VS-10.1（使用）、VS-13.6（条件） |
+| PRC-155 IT 资产调拨 | — | support_none | — | VS-10.1（使用） |
+| PRC-156 IT 资产归还 | — | support_none | — | VS-10.1（使用） |
+| PRC-157 IT 资产报修与维修登记 | — | support_none | — | VS-10.1（使用） |
+| PRC-161 年末关闭预算账户 | OBJ-100 经营计划 | support_proposed | management | VS-05.2（条件）、VS-08.2（使用）、VS-09.1（条件）、VS-09.2（条件）、VS-09.3（条件） |
+| PRC-162 发布假期规则版本 | AGG-118 | support_proposed | — | VS-13.1（使用） |
+| PRC-165 发布成本核算参数版本 | AGG-123 | support_proposed | — | VS-01.2（使用） |
+| PRC-166 发布资产类别与折旧政策版本 | AGG-124 | support_proposed | — | VS-10.1（使用） |
+| PRC-167 编制并签字确认期初余额 | AGG-125 | support_proposed | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
+| PRC-168 发布口径版本 | AGG-78 | support_proposed | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
+| PRC-174 发布出差补贴标准版本 | AGG-133 | support_proposed | — | VS-08.2（使用） |
+| PRC-177 向差旅服务商同步员工与组织 | — | support_none | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
+| PRC-180 发布薪酬规则版本 | AGG-119 | support_proposed | — | VS-13.3（使用） |
+
+## 无用途类别（24）：归段跨不同类别价值流且主对象无能力，或支撑流程主对象缺 / 是技术聚合
+
+- PRC-90 出具经营月报（read_model，主对象 —）
+- PRC-52 开放可触发收入确认的证据类型（support_proposed，主对象 AGG-92）
+- PRC-80 维护法人、组织与岗位（support_none，主对象 —）
+- PRC-97 批准并生效分摊规则版本（support_proposed，主对象 OBJ-78）
+- PRC-100 发布总账配置版本（support_none，主对象 —）
+- PRC-123 调整薪酬档案与专项附加扣除（support_none，主对象 —）
+- PRC-139 用印申请与用印登记（support_proposed，主对象 OBJ-113）
+- PRC-140 合同借阅（support_none，主对象 —）
+- PRC-141 销售合同归档（support_none，主对象 —）
+- PRC-142 IT 需求工单（support_proposed，主对象 OBJ-114）
+- PRC-143 IT 资产领用（support_none，主对象 —）
+- PRC-144 员工活动类申请（周年贺卡、节日活动、创新项目发布）（support_proposed，主对象 OBJ-116）
+- PRC-146 协议借阅逾期催还（support_none，主对象 —）
+- PRC-155 IT 资产调拨（support_none，主对象 —）
+- PRC-156 IT 资产归还（support_none，主对象 —）
+- PRC-157 IT 资产报修与维修登记（support_none，主对象 —）
+- PRC-162 发布假期规则版本（support_proposed，主对象 AGG-118）
+- PRC-165 发布成本核算参数版本（support_proposed，主对象 AGG-123）
+- PRC-166 发布资产类别与折旧政策版本（support_proposed，主对象 AGG-124）
+- PRC-167 编制并签字确认期初余额（support_proposed，主对象 AGG-125）
+- PRC-168 发布口径版本（support_proposed，主对象 AGG-78）
+- PRC-174 发布出差补贴标准版本（support_proposed，主对象 AGG-133）
+- PRC-177 向差旅服务商同步员工与组织（support_none，主对象 —）
+- PRC-180 发布薪酬规则版本（support_proposed，主对象 AGG-119）
+
 ## E 需用户判断（候选，经组与本会话筛过再交）
 
 - ④ 中属阶段能力清单漏映射的，改 value-streams.v2.yaml 的 capabilities 需用户确认（第 ③ 步对账为用户已审口径）；
