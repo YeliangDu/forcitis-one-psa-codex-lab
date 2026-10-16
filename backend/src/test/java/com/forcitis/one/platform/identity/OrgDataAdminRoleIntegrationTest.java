@@ -3,6 +3,8 @@ package com.forcitis.one.platform.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import org.assertj.core.groups.Tuple;
+import java.util.UUID;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.identity.domain.SensitivePermissions;
@@ -65,16 +67,16 @@ class OrgDataAdminRoleIntegrationTest extends IdentityIntegrationTest {
 
         mvc.perform(get("/api/v1/platform/roles").cookie(new Cookie("SESSION", administrator))).andReturn();
         mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", administrator))).andReturn();
-        java.util.UUID target = accountOrNone(404);
+        UUID target = accountOrNone(404);
         mvc.perform(MockMvcRequestBuilders.post("/api/v1/platform/user-accounts/" + target + ":disable").with(xsrf())
                 .cookie(new Cookie("SESSION", administrator))).andReturn();
         mvc.perform(get("/api/v1/platform/user-accounts/" + target).cookie(new Cookie("SESSION", administrator))).andReturn();
 
         assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.privileged.request"))
                 .extracting(AuditEntry::subject, AuditEntry::detail)
-                .containsExactly(org.assertj.core.groups.Tuple.tuple(AuditSubject.without(AuditSubjectKind.REQUEST), "GET /api/v1/platform/roles"),
-                        org.assertj.core.groups.Tuple.tuple(AuditSubject.without(AuditSubjectKind.REQUEST), "POST /api/v1/platform/user-accounts/{userId}:disable userId=" + target),
-                        org.assertj.core.groups.Tuple.tuple(AuditSubject.without(AuditSubjectKind.REQUEST), "GET /api/v1/platform/user-accounts/{userId} userId=" + target));
+                .containsExactly(Tuple.tuple(AuditSubject.without(AuditSubjectKind.REQUEST), "GET /api/v1/platform/roles"),
+                        Tuple.tuple(AuditSubject.without(AuditSubjectKind.REQUEST), "POST /api/v1/platform/user-accounts/{userId}:disable userId=" + target),
+                        Tuple.tuple(AuditSubject.without(AuditSubjectKind.REQUEST), "GET /api/v1/platform/user-accounts/{userId} userId=" + target));
     }
 
     @Test

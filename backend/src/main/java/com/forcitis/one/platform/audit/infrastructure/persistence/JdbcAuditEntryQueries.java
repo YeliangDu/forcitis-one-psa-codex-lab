@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.audit.infrastructure.persistence;
 
+import java.util.UUID;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
 import com.forcitis.one.platform.audit.api.AuditSubject;
@@ -131,11 +132,11 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
     }
 
     private static AuditRecord row(ResultSet rs) throws SQLException {
-        return new AuditRecord(new AuditEntryId(rs.getObject("id", java.util.UUID.class)), rs.getTimestamp("created_at").toInstant(), rs.getString("action"),
+        return new AuditRecord(new AuditEntryId(rs.getObject("id", UUID.class)), rs.getTimestamp("created_at").toInstant(), rs.getString("action"),
                 userId(rs, "actor_id"), userId(rs, "on_behalf_of_id"),
-                new AuditSubject(AuditSubjectKind.valueOf(rs.getString("subject_kind")), rs.getObject("subject_id", java.util.UUID.class)), rs.getString("detail"),
+                new AuditSubject(AuditSubjectKind.valueOf(rs.getString("subject_kind")), rs.getObject("subject_id", UUID.class)), rs.getString("detail"),
                 rs.getString("source_address"), outcome(rs), rs.getString("login_method_kind"), rs.getString("change_reason"),
-                rs.getString("before_text"), rs.getString("after_text"), rs.getObject("correlation_id", java.util.UUID.class));
+                rs.getString("before_text"), rs.getString("after_text"), rs.getObject("correlation_id", UUID.class));
     }
 
     private static AuditOutcome outcome(ResultSet rs) throws SQLException {
@@ -144,7 +145,7 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
     }
 
     private static UserId userId(ResultSet rs, String column) throws SQLException {
-        java.util.UUID value = rs.getObject(column, java.util.UUID.class);
+        UUID value = rs.getObject(column, UUID.class);
         return value == null ? null : new UserId(value);
     }
 }

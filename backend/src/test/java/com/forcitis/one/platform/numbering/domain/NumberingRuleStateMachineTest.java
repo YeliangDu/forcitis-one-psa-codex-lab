@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.numbering.domain;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -41,7 +42,7 @@ class NumberingRuleStateMachineTest {
     }
 
     static NumberingRule rule(DocumentType type, TemplateVersion... versions) {
-        return NumberingRule.restore(new NumberingRuleId(com.forcitis.one.TestIds.uuid(4)), type, List.of(versions), 4, 4);
+        return NumberingRule.restore(new NumberingRuleId(TestIds.uuid(4)), type, List.of(versions), 4, 4);
     }
 
     static DomainException refusal(Runnable action) {

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,7 +53,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     TotpSecretVault vault;
 
     private UUID publish(List<EmployeeId> changed, List<EmployeeId> separated) {
-        OrgSnapshotChanged event = new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", com.forcitis.one.TestIds.uuid(1)), changed, separated,
+        OrgSnapshotChanged event = new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", TestIds.uuid(1)), changed, separated,
                 List.of(), java.time.LocalDate.of(2026, 10, 15));
         tx.executeWithoutResult(status -> events.publishEvent(event));
         return event.envelope().eventId();

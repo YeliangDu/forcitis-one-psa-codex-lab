@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import java.time.LocalDate;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.TestPostgres;
@@ -149,7 +150,7 @@ public abstract class ApprovalIntegrationSupport {
 
     protected EventEnvelope envelope(String eventType, String aggregateType, UUID aggregateId, long aggregateVersion) {
         return envelopes.wrap(new com.forcitis.one.kernel.event.EventDraft(eventType, 1, aggregateType, aggregateId, aggregateVersion, LEGAL_ENTITY,
-                java.time.LocalDate.now(), java.util.List.of()));
+                LocalDate.now(), List.of()));
     }
 
     @Autowired

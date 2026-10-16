@@ -166,7 +166,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     }
 
     ApprovalTaskId taskOf(TimesheetId id) {
-        return new ApprovalTaskId(java.util.UUID.fromString(inboxOf(id).getFirst().taskId()));
+        return new ApprovalTaskId(UUID.fromString(inboxOf(id).getFirst().taskId()));
     }
 
     List<com.forcitis.one.platform.approval.application.InboxItem> inboxOf(TimesheetId id) {
@@ -264,7 +264,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         TimesheetId id = newTimesheet();
         DocumentReference document = documentOf(id);
         submit(id, "5");
-        EventEnvelope envelope = envelope("platform.approval.ApprovalCompleted", "ApprovalRequest", java.util.UUID.randomUUID(), 9);
+        EventEnvelope envelope = envelope("platform.approval.ApprovalCompleted", "ApprovalRequest", UUID.randomUUID(), 9);
 
         tx.executeWithoutResult(s -> applyApprovalResult.apply(new ApprovalCompleted(envelope, document, ProcessKey.COST_TIMESHEET_APPROVAL,
                 com.forcitis.one.TestApprovalIds.instance("i"), new RoundNumber(7), TestAccounts.employee(employee), ApprovalOutcome.APPROVED, null, null)));
@@ -277,8 +277,8 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     @DisplayName("G-1 an approval result that names no timesheet of ours is counted and logged, never thrown into the retry loop")
     void resultsForUnknownTimesheetsAreCounted() {
         double before = meters.counter("forcitis.cost.timesheet.approval.result.unknown").count();
-        for (java.util.UUID documentId : List.of(com.forcitis.one.TestIds.uuid(900001), com.forcitis.one.TestIds.uuid(900002))) {
-            EventEnvelope envelope = envelope("platform.approval.ApprovalCompleted", "ApprovalRequest", java.util.UUID.randomUUID(), 1);
+        for (UUID documentId : List.of(com.forcitis.one.TestIds.uuid(900001), com.forcitis.one.TestIds.uuid(900002))) {
+            EventEnvelope envelope = envelope("platform.approval.ApprovalCompleted", "ApprovalRequest", UUID.randomUUID(), 1);
             tx.executeWithoutResult(s -> applyApprovalResult.apply(new ApprovalCompleted(envelope,
                     new DocumentReference(DocumentType.TIMESHEET, new DocumentId(documentId)), ProcessKey.COST_TIMESHEET_APPROVAL,
                     com.forcitis.one.TestApprovalIds.instance("i"), new RoundNumber(1), TestAccounts.employee(employee), ApprovalOutcome.APPROVED, null, null)));

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import jakarta.servlet.http.Cookie;
 import com.forcitis.one.organization.workforce.api.LoginLookup;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -175,27 +176,27 @@ class SsoLoginIntegrationTest extends IdentityIntegrationTest {
         String session = cookie(result, "SESSION");
 
         assertThat(body(result).path("identityConfirmationRequired").asBoolean()).isTrue();
-        assertThat(mvc.perform(get("/api/v1/platform/approval-tasks").cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn()
+        assertThat(mvc.perform(get("/api/v1/platform/approval-tasks").cookie(new Cookie("SESSION", session))).andReturn()
                 .getResponse().getStatus()).as("unconfirmed: no permission").isEqualTo(403);
         for (String readOnly : new String[] {"/api/v1/platform/approval-tasks/1", "/api/v1/platform/approval-task-records",
                 "/api/v1/platform/approval-task-overviews"}) {
-            assertThat(mvc.perform(get(readOnly).cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn().getResponse().getStatus())
+            assertThat(mvc.perform(get(readOnly).cookie(new Cookie("SESSION", session))).andReturn().getResponse().getStatus())
                     .as("unconfirmed: the read-only endpoint " + readOnly + " that asks only for a signed-in person is shut too").isEqualTo(403);
         }
-        assertThat(body(mvc.perform(get("/api/v1/platform/sessions:current").cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn())
+        assertThat(body(mvc.perform(get("/api/v1/platform/sessions:current").cookie(new Cookie("SESSION", session))).andReturn())
                 .path("identityConfirmed").asBoolean()).isFalse();
-        MvcResult unconfirmedProfile = mvc.perform(get("/api/v1/platform/sessions:current").cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn();
+        MvcResult unconfirmedProfile = mvc.perform(get("/api/v1/platform/sessions:current").cookie(new Cookie("SESSION", session))).andReturn();
         assertThat(body(unconfirmedProfile).path("permissionCodes")).as("an unconfirmed session is shown no permission").isEmpty();
         assertThat(body(unconfirmedProfile).path("navigation")).as("and no menu").isEmpty();
 
-        MvcResult confirmation = mvc.perform(post("/api/v1/platform/sessions:confirm-identity").with(xsrf()).cookie(new jakarta.servlet.http.Cookie("SESSION", session)))
+        MvcResult confirmation = mvc.perform(post("/api/v1/platform/sessions:confirm-identity").with(xsrf()).cookie(new Cookie("SESSION", session)))
                 .andReturn();
         assertThat(confirmation.getResponse().getStatus()).isEqualTo(204);
         String confirmed = cookie(confirmation, "SESSION");
         assertThat(confirmed).as("the session id changes with the level of trust").isNotBlank().isNotEqualTo(session);
         assertThat(cookie(confirmation, "__Host-browserIdentifier")).as("the browser is given an identifier").isNotBlank();
 
-        assertThat(mvc.perform(get("/api/v1/platform/approval-tasks").cookie(new jakarta.servlet.http.Cookie("SESSION", confirmed))).andReturn()
+        assertThat(mvc.perform(get("/api/v1/platform/approval-tasks").cookie(new Cookie("SESSION", confirmed))).andReturn()
                 .getResponse().getStatus()).as("confirmed: the employee role works").isNotEqualTo(403);
         assertThat(recorded()).extracting(com.forcitis.one.platform.audit.api.AuditEntry::action).contains("platform.identity.session.identity-confirmed");
     }
@@ -211,7 +212,7 @@ class SsoLoginIntegrationTest extends IdentityIntegrationTest {
             portalSays(token, new SsoVerdict.LoginName(loginName));
             personWithLoginName(loginName, 1005 + i, EmploymentStatus.EMPLOYED);
             String session = cookie(redeem(token), "SESSION");
-            assertThat(mvc.perform(get(paths[i]).cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn().getResponse().getStatus())
+            assertThat(mvc.perform(get(paths[i]).cookie(new Cookie("SESSION", session))).andReturn().getResponse().getStatus())
                     .isEqualTo(403);
         }
 

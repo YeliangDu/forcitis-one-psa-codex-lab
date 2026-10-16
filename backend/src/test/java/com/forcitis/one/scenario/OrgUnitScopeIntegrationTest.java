@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import java.util.UUID;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.platform.identity.IdentityIntegrationTest;
@@ -92,7 +93,7 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         assertThat(read(session, "/" + unit(10)).getResponse().getStatus()).isEqualTo(404);
         assertThat(denials()).singleElement().satisfies(entry -> {
             assertThat(entry.actorId()).isEqualTo(TestAccounts.account(21));
-            assertThat(entry.subject()).isEqualTo(AuditSubject.of(AuditSubjectKind.ORG_UNIT, java.util.UUID.fromString(unit(10))));
+            assertThat(entry.subject()).isEqualTo(AuditSubject.of(AuditSubjectKind.ORG_UNIT, UUID.fromString(unit(10))));
         });
     }
 
@@ -106,7 +107,7 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         assertThat(read(session, "/" + unit(10)).getResponse().getStatus()).isEqualTo(200);
         assertThat(read(session, "/" + unit(11)).getResponse().getStatus()).isEqualTo(404);
         assertThat(read(session, "/" + unit(20)).getResponse().getStatus()).isEqualTo(404);
-        assertThat(denials()).extracting(AuditEntry::subject).containsExactlyInAnyOrder(AuditSubject.of(AuditSubjectKind.ORG_UNIT, java.util.UUID.fromString(unit(11))), AuditSubject.of(AuditSubjectKind.ORG_UNIT, java.util.UUID.fromString(unit(20))));
+        assertThat(denials()).extracting(AuditEntry::subject).containsExactlyInAnyOrder(AuditSubject.of(AuditSubjectKind.ORG_UNIT, UUID.fromString(unit(11))), AuditSubject.of(AuditSubjectKind.ORG_UNIT, UUID.fromString(unit(20))));
     }
 
     @Test
@@ -182,7 +183,7 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         assertThat(body(otherUnit).path("errorCode").asString()).as("the same answer as for a unit that does not exist")
                 .isEqualTo(body(missingUnit).path("errorCode").asString());
         assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("organization.workforce.legal-entity-attribution.denied"))
-                .extracting(AuditEntry::subject).containsExactlyInAnyOrder(AuditSubject.of(AuditSubjectKind.ORG_UNIT, java.util.UUID.fromString(unit(20))), AuditSubject.of(AuditSubjectKind.EMPLOYEE, java.util.UUID.fromString(employee(902))));
+                .extracting(AuditEntry::subject).containsExactlyInAnyOrder(AuditSubject.of(AuditSubjectKind.ORG_UNIT, UUID.fromString(unit(20))), AuditSubject.of(AuditSubjectKind.EMPLOYEE, UUID.fromString(employee(902))));
     }
 
     @Test

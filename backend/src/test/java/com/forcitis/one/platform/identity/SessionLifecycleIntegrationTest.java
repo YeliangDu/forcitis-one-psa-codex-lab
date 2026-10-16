@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.TestIds;
+import org.assertj.core.groups.Tuple;
 import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -176,8 +178,8 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         assertThat(jdbc.sql("select count(*) from platform_identity.sessions").query(Long.class).single()).isEqualTo(1);
         assertThat(recorded()).filteredOn(e -> e.action().equals("platform.identity.session.expired"))
                 .extracting(AuditEntry::subject, AuditEntry::detail)
-                .containsExactlyInAnyOrder(org.assertj.core.groups.Tuple.tuple(AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, TestAccounts.account(1001).value()), "cause=IDLE"),
-                        org.assertj.core.groups.Tuple.tuple(AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, TestAccounts.account(1002).value()), "cause=ABSOLUTE"));
+                .containsExactlyInAnyOrder(Tuple.tuple(AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, TestAccounts.account(1001).value()), "cause=IDLE"),
+                        Tuple.tuple(AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, TestAccounts.account(1002).value()), "cause=ABSOLUTE"));
     }
 
     @Test
@@ -200,7 +202,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         String victim = loginWithWecom(1001);
         String other = loginWithWecom(1002);
 
-        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", com.forcitis.one.TestIds.uuid(1)), List.of(), List.of(TestAccounts.employee(1001)), List.of(), LocalDate.of(2026, 10, 14)));
+        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", TestIds.uuid(1)), List.of(), List.of(TestAccounts.employee(1001)), List.of(), LocalDate.of(2026, 10, 14)));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(
                 jdbc.sql("select count(*) from platform_identity.sessions where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").query(Long.class).single()).isZero());
@@ -215,7 +217,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         knownEmployee(2001, EmploymentStatus.EMPLOYED);
         knownEmployee(2002, EmploymentStatus.SEPARATED);
 
-        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", com.forcitis.one.TestIds.uuid(1)), List.of(TestAccounts.employee(2001), TestAccounts.employee(2002)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
+        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", TestIds.uuid(1)), List.of(TestAccounts.employee(2001), TestAccounts.employee(2002)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(count("user_accounts")).isEqualTo(1));
         assertThat(jdbc.sql("select employee_id from platform_identity.user_accounts").query(UUID.class).single()).isEqualTo(TestAccounts.employee(2001).value());
@@ -225,7 +227,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
                 """).param("employee", TestAccounts.employee(2001).value()).query(String.class).list()).containsExactly("employee");
 
         jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(2001) + ")").update();
-        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", com.forcitis.one.TestIds.uuid(1)), List.of(TestAccounts.employee(2001)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
+        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", TestIds.uuid(1)), List.of(TestAccounts.employee(2001)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
         Thread.sleep(1000);
         assertThat(count("account_roles")).isZero();
     }

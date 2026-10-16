@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.numbering.domain;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -74,8 +75,8 @@ class NumberingPatternTest {
         Instant at = Instant.parse("2026-10-14T08:00:00Z");
         TemplateVersion confirmed = new TemplateVersion(1, pattern, 1, LocalDate.of(2026, 10, 15), null, at, VersionStatus.CONFIRMED, TestAccounts.account(2), at, null, null);
         TemplateVersion waiting = new TemplateVersion(1, pattern, 1, LocalDate.of(2026, 10, 15), null, at, VersionStatus.PENDING_CONFIRMATION, null, null, null, null);
-        assertThat(NumberingRule.restore(new NumberingRuleId(com.forcitis.one.TestIds.uuid(4)), DocumentType.TIMESHEET, List.of(confirmed), 0, 0).inForce()).isPresent();
-        assertThat(NumberingRule.restore(new NumberingRuleId(com.forcitis.one.TestIds.uuid(4)), DocumentType.QUOTE, List.of(waiting), 0, 0).inForce()).isEmpty();
+        assertThat(NumberingRule.restore(new NumberingRuleId(TestIds.uuid(4)), DocumentType.TIMESHEET, List.of(confirmed), 0, 0).inForce()).isPresent();
+        assertThat(NumberingRule.restore(new NumberingRuleId(TestIds.uuid(4)), DocumentType.QUOTE, List.of(waiting), 0, 0).inForce()).isEmpty();
     }
 
     @Test

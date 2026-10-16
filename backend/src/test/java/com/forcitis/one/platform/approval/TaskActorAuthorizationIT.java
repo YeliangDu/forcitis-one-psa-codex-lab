@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import java.util.UUID;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
@@ -108,7 +109,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
                     .with(approver(outsider)).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"x\"}"), 404));
         }
         verify(audit, atLeastOnce()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.task.denied")
-                && entry.actorId().equals(TestAccounts.account(scene.stranger())) && entry.subject().equals(AuditSubject.of(AuditSubjectKind.APPROVAL_TASK, java.util.UUID.fromString(id)))));
+                && entry.actorId().equals(TestAccounts.account(scene.stranger())) && entry.subject().equals(AuditSubject.of(AuditSubjectKind.APPROVAL_TASK, UUID.fromString(id)))));
     }
 
     @Test

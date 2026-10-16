@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.audit.application;
 
+import java.util.UUID;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.domain.AuditRecord;
 import java.util.List;
@@ -29,7 +30,7 @@ final class AuditCsv {
         return userId == null ? "" : String.valueOf(userId.value());
     }
 
-    private static String id(java.util.UUID id) {
+    private static String id(UUID id) {
         return id == null ? "" : id.toString();
     }
 

@@ -1,5 +1,6 @@
 package com.forcitis.one.scenario;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -72,9 +73,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 class CorrelationIT {
 
     static final com.forcitis.one.platform.integration.api.DeliverySubject PROBE_REQUEST = com.forcitis.one.platform.integration.api.DeliverySubject.of(
-            com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ASSIGNED, com.forcitis.one.TestIds.uuid(901));
+            com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ASSIGNED, TestIds.uuid(901));
     static final com.forcitis.one.platform.integration.api.DeliverySubject PROBE_HANDLER = com.forcitis.one.platform.integration.api.DeliverySubject.of(
-            com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ASSIGNED, com.forcitis.one.TestIds.uuid(902));
+            com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ASSIGNED, TestIds.uuid(902));
 
     static final WireMockServer wecom = new WireMockServer(WireMockConfiguration.options().dynamicPort());
 
@@ -127,7 +128,7 @@ class CorrelationIT {
         }
 
         void happen() {
-            record((envelopes, version) -> new Thing(envelopes.wrap(new EventDraft("platform.eventing.Thing", 1, "Thing", com.forcitis.one.TestIds.uuid(1), version, null, null, List.of())), TestAccounts.account(1)));
+            record((envelopes, version) -> new Thing(envelopes.wrap(new EventDraft("platform.eventing.Thing", 1, "Thing", TestIds.uuid(1), version, null, null, List.of())), TestAccounts.account(1)));
         }
     }
 

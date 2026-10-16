@@ -64,7 +64,7 @@ class EventSequencePersistenceIT extends ApprovalIntegrationSupport {
             TimesheetId id = new TimesheetId(TestIds.uuid(IDS.incrementAndGet()));
             LocalDate today = LocalDate.now();
             EmployeeId owner = TestAccounts.employee(newId());
-            Timesheet created = Timesheet.draft(id, new DocumentNumber("TS-SEQ-" + id.value()), new AggregateReference("NumberingCounter", com.forcitis.one.TestIds.uuid(11)),
+            Timesheet created = Timesheet.draft(id, new DocumentNumber("TS-SEQ-" + id.value()), new AggregateReference("NumberingCounter", TestIds.uuid(11)),
                     owner, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(1), today.minusDays(1), Hours.of("8"), TestAccounts.employee(newId()), today);
             List<Long> numbers = new ArrayList<>();
             tx.executeWithoutResult(s -> timesheets.save(created));

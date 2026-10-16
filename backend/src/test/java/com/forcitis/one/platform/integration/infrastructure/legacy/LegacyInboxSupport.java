@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.integration.infrastructure.legacy;
 
+import java.sql.SQLException;
+import java.sql.DriverManager;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.integration.api.ExternalCallKind;
@@ -48,7 +50,7 @@ abstract class LegacyInboxSupport {
     }
 
     private static void prepareLegacyStandIn() {
-        try (var connection = java.sql.DriverManager.getConnection(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+        try (var connection = DriverManager.getConnection(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
                 var statement = connection.createStatement()) {
             statement.execute("CREATE SCHEMA legacy_fixture");
             statement.execute("CREATE TABLE legacy_fixture.todo_rows (assignee_user_id bigint, task_id text, process_instance_id text,"
@@ -58,7 +60,7 @@ abstract class LegacyInboxSupport {
             statement.execute("CREATE ROLE legacy_ro LOGIN PASSWORD '" + LEGACY_PASSWORD + "'");
             statement.execute("GRANT USAGE ON SCHEMA legacy_fixture TO legacy_ro");
             statement.execute("GRANT SELECT ON legacy_fixture.v_psa_one_legacy_todo TO legacy_ro");
-        } catch (java.sql.SQLException e) {
+        } catch (SQLException e) {
             throw new IllegalStateException("cannot prepare the legacy stand-in", e);
         }
     }

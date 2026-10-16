@@ -106,7 +106,7 @@ class OpenApiExportTest {
     }
 
     /** Ids of this system (R-1a) are string / uuid on the wire; the rest are named here until R-1b gives them their own ids. */
-    static final java.util.Set<String> OWN_ID_FIELDS = java.util.Set.of("AttributeLegalEntityRequest.legalEntityId", "AuditEntryResponse.entryId",
+    static final Set<String> OWN_ID_FIELDS = Set.of("AttributeLegalEntityRequest.legalEntityId", "AuditEntryResponse.entryId",
             "AuthorizationRequestView.requestId", "AuthorizationRequestView.roleId", "HandledTaskResponse.recordId", "HistoryEntry.recordId",
             "LegacyNumberResponse.documentId", "LegacyNumberResponse.legalEntityId", "LegacyNumberResponse.migrationBatchId", "LegalEntityResponse.legalEntityId", "Period.legalEntityId",
             "RoleResponse.roleId", "SyncRunResponse.syncRunId", "SyncRunResponse.releasedByRunId", "ProblemDetail.correlationId",
@@ -126,7 +126,7 @@ class OpenApiExportTest {
             "TaskDetailResponse.initiator", "TaskDetailResponse.assignee", "TaskOverviewResponse.assignee");
 
     /** Employee ids whose names do not end in Id or By (D-10): named in full so the guard looks at them. */
-    static final java.util.Set<String> NAMED_OWN_ID_FIELDS = java.util.Set.of("TaskDetailResponse.initiator", "TaskDetailResponse.assignee",
+    static final Set<String> NAMED_OWN_ID_FIELDS = Set.of("TaskDetailResponse.initiator", "TaskDetailResponse.assignee",
             "TaskOverviewResponse.assignee");
 
     /**
@@ -134,10 +134,10 @@ class OpenApiExportTest {
      * string until the inbox contract is neutralised (ADR-0039 item 6, RULING-P4-D6) and is deleted here then. SyncDiffResponse.subjectKey is a
      * "{type}:{id}" text key of the synchronisation (RULING-P5-1, D-13); it is deleted here when split a gives the differences their own columns.
      */
-    static final java.util.Set<String> OTHER_ID_NAMES = java.util.Set.of("InboxItemResponse.taskId", "SyncDiffResponse.subjectKey");
+    static final Set<String> OTHER_ID_NAMES = Set.of("InboxItemResponse.taskId", "SyncDiffResponse.subjectKey");
 
     /** Identifiers that belong to an external system and stay what that system gives: on the wire a whole number written as text. */
-    static final java.util.Set<String> EXTERNAL_ID_NAMES = java.util.Set.of("sourceId");
+    static final Set<String> EXTERNAL_ID_NAMES = Set.of("sourceId");
 
     @Test
     void idFieldsOfThisSystemAreStringUuidAndEveryOtherIdFieldIsClassified() throws Exception {

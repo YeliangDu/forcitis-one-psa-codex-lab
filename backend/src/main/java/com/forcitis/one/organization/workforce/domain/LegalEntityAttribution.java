@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.domain;
 
+import java.util.Comparator;
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
@@ -46,7 +47,7 @@ public final class LegalEntityAttribution extends AggregateRoot {
 
     public static LegalEntityAttribution restore(AttributionId id, AttributionSubject subject, List<AttributionPeriod> periods, long version,
                                                  long eventCount) {
-        return new LegalEntityAttribution(id, subject, periods.stream().sorted(java.util.Comparator.comparing(AttributionPeriod::effectiveFrom)).toList(),
+        return new LegalEntityAttribution(id, subject, periods.stream().sorted(Comparator.comparing(AttributionPeriod::effectiveFrom)).toList(),
                 version, eventCount);
     }
 
@@ -81,7 +82,7 @@ public final class LegalEntityAttribution extends AggregateRoot {
     public void attribute(LegalEntityId legalEntityId, LocalDate from) {
         Objects.requireNonNull(legalEntityId, "legalEntityId");
         Objects.requireNonNull(from, "from");
-        Optional<AttributionPeriod> latest = periods.stream().max(java.util.Comparator.comparing(AttributionPeriod::effectiveFrom));
+        Optional<AttributionPeriod> latest = periods.stream().max(Comparator.comparing(AttributionPeriod::effectiveFrom));
         if (latest.isPresent() && !from.isAfter(latest.get().effectiveFrom())) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID, ErrorKind.UNPROCESSABLE,
                     "a new attribution starts after " + latest.get().effectiveFrom());

@@ -3,6 +3,7 @@ package com.forcitis.one.kernel;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventDraft;
@@ -29,7 +30,7 @@ class AggregateRootTest {
         }
 
         void change() {
-            record((envelopes, version) -> new Changed(envelopes.wrap(new EventDraft("test.counter.Changed", 1, "Counter", com.forcitis.one.TestIds.uuid(1), version,
+            record((envelopes, version) -> new Changed(envelopes.wrap(new EventDraft("test.counter.Changed", 1, "Counter", TestIds.uuid(1), version,
                     null, null, List.of()))));
         }
     }
