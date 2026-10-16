@@ -33,13 +33,13 @@ import com.forcitis.one.platform.approval.api.TaskOutcome;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import com.forcitis.one.platform.approval.events.ApprovalRoundStarted;
 import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
-import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
+import com.forcitis.one.platform.approval.events.ApprovalTaskBecameOverdue;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
 import com.forcitis.one.platform.approval.events.TaskClaimed;
 import com.forcitis.one.platform.approval.events.TaskClosed;
 import com.forcitis.one.platform.approval.events.TaskReassigned;
 import com.forcitis.one.platform.approval.events.TaskReleased;
-import com.forcitis.one.platform.approval.events.TaskResulted;
+import com.forcitis.one.platform.approval.events.TaskHandled;
 import com.forcitis.one.platform.approval.events.TaskTransferred;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -180,9 +180,9 @@ class ApprovalTaskStateMachineTest {
         worded.completeTask(TASK, HOLDER, TaskOutcome.APPROVED, false, new Reason("looks right"), new ContentHash("d"), NOW);
         assertThat(worded.task(TASK).resultReason()).contains(new Reason("looks right"));
         List<DomainEvent> events = worded.drainEvents(ENVELOPES);
-        assertThat(((TaskResulted) events.getFirst()).reason()).isEqualTo(new Reason("looks right"));
+        assertThat(((TaskHandled) events.getFirst()).reason()).isEqualTo(new Reason("looks right"));
         List<DomainEvent> silentEvents = silent.drainEvents(ENVELOPES);
-        assertThat(((TaskResulted) silentEvents.getFirst()).reason()).isNull();
+        assertThat(((TaskHandled) silentEvents.getFirst()).reason()).isNull();
     }
 
     @Test
@@ -195,7 +195,7 @@ class ApprovalTaskStateMachineTest {
         ApprovalRequest advisory = in(ApprovalTaskStatus.CLAIMED);
         advisory.completeTask(TASK, HOLDER, TaskOutcome.REJECTED, true, new Reason("too high"), new ContentHash("h1"), NOW);
         assertThat(advisory.task(TASK).approvedHash()).isEmpty();
-        assertThat(((TaskResulted) advisory.drainEvents(ENVELOPES).getFirst()).effect()).isEqualTo(TaskEffect.ADVISORY);
+        assertThat(((TaskHandled) advisory.drainEvents(ENVELOPES).getFirst()).effect()).isEqualTo(TaskEffect.ADVISORY);
 
         ApprovalRequest request = ApprovalRequest.begin(com.forcitis.one.TestApprovalIds.generator(), ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, INSTANCE,
                 new ApprovalSummary("summary"), UUID.randomUUID(), NOW);
@@ -206,7 +206,7 @@ class ApprovalTaskStateMachineTest {
         assertThat(request.task(com.forcitis.one.TestApprovalIds.task("t-3")).status()).isEqualTo(ApprovalTaskStatus.COMPLETED);
         assertThat(request.task(com.forcitis.one.TestApprovalIds.task("t-3")).approvedHash()).isEmpty();
         List<DomainEvent> events = request.drainEvents(ENVELOPES);
-        assertThat(events).singleElement().isInstanceOfSatisfying(TaskResulted.class, result -> {
+        assertThat(events).singleElement().isInstanceOfSatisfying(TaskHandled.class, result -> {
             assertThat(result.effect()).isEqualTo(TaskEffect.AUTOMATIC);
             assertThat(result.outcome()).isEqualTo(TaskOutcome.APPROVED);
             assertThat(result.assignee()).isEqualTo(HOLDER);
@@ -239,14 +239,14 @@ class ApprovalTaskStateMachineTest {
 
         assertThat(events).extracting(e -> e.envelope().eventType()).containsExactly("platform.approval.ApprovalRoundStarted",
                 "platform.approval.TaskAssigned", "platform.approval.TaskAssigned", "platform.approval.TaskClaimed",
-                "platform.approval.ApprovalTaskOverdue", "platform.approval.ApprovalTaskEscalated", "platform.approval.TaskClaimed",
+                "platform.approval.ApprovalTaskBecameOverdue", "platform.approval.ApprovalTaskEscalated", "platform.approval.TaskClaimed",
                 "platform.approval.TaskTransferred", "platform.approval.TaskReassigned", "platform.approval.TaskReleased",
-                "platform.approval.TaskClaimed", "platform.approval.TaskResulted", "platform.approval.TaskClosed",
+                "platform.approval.TaskClaimed", "platform.approval.TaskHandled", "platform.approval.TaskClosed",
                 "platform.approval.ApprovalCompleted");
         assertThat(events).extracting(e -> e.envelope().aggregateVersion()).containsExactly(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L, 11L, 12L,
                 13L, 14L);
         assertThat(events).extracting(e -> e.envelope().aggregateType()).containsOnly("ApprovalRequest");
-        assertThat(events).extracting(e -> e.envelope().aggregateId()).containsOnly("TIMESHEET:" + DOCUMENT.documentId());
+        assertThat(events).extracting(e -> e.envelope().aggregateId()).containsOnly(request.id().value());
 
         assertThat(events.get(0)).isInstanceOf(ApprovalRoundStarted.class);
         TaskAssigned assigned = (TaskAssigned) events.get(1);
@@ -255,7 +255,7 @@ class ApprovalTaskStateMachineTest {
         assertThat(assigned.summary()).isEqualTo(new ApprovalSummary("summary"));
         assertThat(((TaskAssigned) events.get(2)).dueAt()).as("a node without a deadline has none").isNull();
         assertThat(events.get(3)).isInstanceOf(TaskClaimed.class);
-        ApprovalTaskOverdue overdue = (ApprovalTaskOverdue) events.get(4);
+        ApprovalTaskBecameOverdue overdue = (ApprovalTaskBecameOverdue) events.get(4);
         assertThat(overdue.dueAt()).isEqualTo(DUE);
         assertThat(overdue.holders()).containsExactly(HOLDER);
         ApprovalTaskEscalated escalated = (ApprovalTaskEscalated) events.get(5);

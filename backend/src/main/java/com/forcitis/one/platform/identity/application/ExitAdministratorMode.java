@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
@@ -37,7 +39,7 @@ public class ExitAdministratorMode {
             return;
         }
         LoginMethod method = session.loginMethod();
-        audit.record(new AuditEntry("platform.identity.administrator-mode.exited", userId, null, "user-account:" + userId.value(), null)
+        audit.record(new AuditEntry("platform.identity.administrator-mode.exited", userId, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()), null)
                 .withTrace(origin.address(), AuditOutcome.SUCCEEDED, method.name()));
         log.error("ALERT platform.identity administrator mode left by user {}", userId.value());
         if (method == LoginMethod.EMERGENCY) {

@@ -12,8 +12,6 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelope;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalOutcome;
@@ -33,13 +31,13 @@ import com.forcitis.one.platform.approval.api.WithdrawCheck;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import com.forcitis.one.platform.approval.events.ApprovalRoundStarted;
 import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
-import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
+import com.forcitis.one.platform.approval.events.ApprovalTaskBecameOverdue;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
 import com.forcitis.one.platform.approval.events.TaskClaimed;
 import com.forcitis.one.platform.approval.events.TaskClosed;
 import com.forcitis.one.platform.approval.events.TaskReassigned;
 import com.forcitis.one.platform.approval.events.TaskReleased;
-import com.forcitis.one.platform.approval.events.TaskResulted;
+import com.forcitis.one.platform.approval.events.TaskHandled;
 import com.forcitis.one.platform.approval.events.TaskTransferred;
 import java.time.Instant;
 import com.forcitis.one.platform.approval.api.TaskRecordAction;
@@ -220,7 +218,7 @@ public final class ApprovalRequest extends AggregateRoot {
         Instant due = task.deadline().orElseThrow().dueAt();
         ApprovalInstanceId instance = task.instanceId();
         NodeKey node = task.nodeKey();
-        emit("ApprovalTaskOverdue", now, envelope -> new ApprovalTaskOverdue(envelope, taskId, instance, document, node, due, reminded));
+        emit("ApprovalTaskBecameOverdue", now, envelope -> new ApprovalTaskBecameOverdue(envelope, taskId, instance, document, node, due, reminded));
     }
 
     public void escalateTask(ApprovalTaskId taskId, List<UserId> escalatedTo, boolean toProcessAdministrator, Moment now) {
@@ -320,19 +318,19 @@ public final class ApprovalRequest extends AggregateRoot {
 
     private void emitResult(ApprovalTaskId taskId, ApprovalInstanceId instance, NodeKey node, UserId by, TaskOutcome outcome,
             TaskEffect effect, Reason reason, Moment now) {
-        emit("TaskResulted", now, envelope -> new TaskResulted(envelope, taskId, instance, processKey, document, node, by, outcome,
+        emit("TaskHandled", now, envelope -> new TaskHandled(envelope, taskId, instance, processKey, document, node, by, outcome,
                 effect, reason));
     }
 
     private void emit(String eventName, Moment now, Function<EventEnvelope, DomainEvent> assemble) {
         record((envelopes, sequence) -> assemble.apply(envelopes.wrap(new EventDraft(EVENT_PREFIX + eventName, 1, AGGREGATE_TYPE,
-                aggregateId(), sequence, legalEntityId, now.date(), new EventSource(SourceSystem.ONE, null), List.of()))));
+                id.value(), sequence, legalEntityId, now.date(), List.of()))));
     }
 
     private void requireOpenRound(TaskAssignment assignment) {
         if (status != ApprovalStatus.RUNNING || !assignment.instanceId().equals(instanceId)) {
             throw ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL.refusal(
-                    "Task " + assignment.taskId().value() + " does not belong to the running round of " + aggregateId());
+                    "Task " + assignment.taskId().value() + " does not belong to the running round of " + id.value());
         }
         if (tasks.stream().anyMatch(task -> task.taskId().equals(assignment.taskId()))) {
             throw ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL.refusal("Task " + assignment.taskId().value() + " exists already");
@@ -347,7 +345,7 @@ public final class ApprovalRequest extends AggregateRoot {
 
     public ApprovalTask task(ApprovalTaskId taskId) {
         return tasks.stream().filter(task -> task.taskId().equals(taskId)).findFirst().orElseThrow(
-                () -> ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND.refusal("Task " + taskId.value() + " is not part of " + aggregateId()));
+                () -> ApprovalError.PLATFORM_APPROVAL_TASK_NOT_FOUND.refusal("Task " + taskId.value() + " is not part of " + id.value()));
     }
 
     public Optional<ApprovalTask> findTask(ApprovalTaskId taskId) {
@@ -360,10 +358,6 @@ public final class ApprovalRequest extends AggregateRoot {
 
     public List<ApprovalTask> openTasks() {
         return tasks.stream().filter(task -> task.status().isOpen()).toList();
-    }
-
-    public String aggregateId() {
-        return document.documentType().name() + ":" + document.documentId().value();
     }
 
     public ApprovalRequestId id() {

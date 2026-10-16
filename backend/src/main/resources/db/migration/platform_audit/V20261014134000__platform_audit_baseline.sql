@@ -8,7 +8,8 @@ CREATE TABLE platform_audit.audit_entries (
     action            text        NOT NULL,
     actor_id          uuid,
     on_behalf_of_id   uuid,
-    subject_key       text        NOT NULL,
+    subject_kind      text        NOT NULL CONSTRAINT ck_audit_entries_subject_kind CHECK (subject_kind IN ('USER_ACCOUNT', 'EMPLOYEE', 'ORG_UNIT', 'EMERGENCY_ADMIN', 'ROLE', 'APPROVAL_TASK', 'APPROVAL_REQUEST', 'SYNC_RUN', 'LEGAL_ENTITY', 'LEGAL_ENTITY_ATTRIBUTION', 'TIMESHEET', 'WORK_CALENDAR_YEAR', 'NUMBERING_RULE', 'SOURCE_REFERENCE', 'SOURCE_REFERENCE_REFUSAL', 'AUTHORIZATION_REQUEST', 'REQUEST', 'OPERATION', 'LOGIN_ATTEMPT')),
+    subject_id        uuid,
     detail            text,
     created_at        timestamptz NOT NULL DEFAULT now(),
     updated_at        timestamptz NOT NULL DEFAULT now(),
@@ -19,19 +20,21 @@ CREATE TABLE platform_audit.audit_entries (
     after_text        text,
     source_address    text,
     outcome_kind      text        CHECK (outcome_kind IN ('SUCCEEDED', 'FAILED')),
-    login_method_kind text        CHECK (login_method_kind IN ('WECOM_WORKBENCH', 'WECOM_MINI_PROGRAM', 'WECOM_QR_CODE_LOGIN', 'SSO', 'SIGNED_TICKET', 'EMERGENCY'))
+    login_method_kind text        CHECK (login_method_kind IN ('WECOM_WORKBENCH', 'WECOM_MINI_PROGRAM', 'WECOM_QR_CODE_LOGIN', 'SSO', 'SIGNED_TICKET', 'EMERGENCY')),
+    CONSTRAINT ck_audit_entries_subject_id CHECK ((subject_id IS NULL) = (subject_kind IN ('REQUEST', 'OPERATION', 'LOGIN_ATTEMPT')))
 );
 CREATE INDEX audit_entries_actor_idx ON platform_audit.audit_entries (actor_id, created_at DESC);
 CREATE INDEX audit_entries_action_idx ON platform_audit.audit_entries (action, created_at DESC);
-CREATE INDEX audit_entries_subject_idx ON platform_audit.audit_entries (subject_key, created_at DESC);
-CREATE INDEX audit_entries_created_idx ON platform_audit.audit_entries (created_at DESC);
+CREATE INDEX audit_entries_subject_idx ON platform_audit.audit_entries (subject_kind, subject_id, created_at DESC);
+CREATE INDEX ix_audit_entries_created_at_id ON platform_audit.audit_entries (created_at, id);
 CREATE UNIQUE INDEX uk_audit_entries_event_id ON platform_audit.audit_entries (event_id);
 COMMENT ON TABLE platform_audit.audit_entries IS '审计条目：只追加，数据库触发器禁止修改和删除（G34）；粒度：每个被审计的动作或领域事件一行';
 COMMENT ON COLUMN platform_audit.audit_entries.id IS '审计条目 ID（UUIDv7）';
 COMMENT ON COLUMN platform_audit.audit_entries.action IS '动作：{子域}.{限界上下文}.{对象}.{动词}，如 platform.identity.role.created';
 COMMENT ON COLUMN platform_audit.audit_entries.actor_id IS '操作人用户 ID；系统动作（同步作业等）为空';
 COMMENT ON COLUMN platform_audit.audit_entries.on_behalf_of_id IS '被代理人用户 ID；仅显式代理动作填写（RULE-270）';
-COMMENT ON COLUMN platform_audit.audit_entries.subject_key IS '对象键：{类型}:{id}，如 approval-task:42';
+COMMENT ON COLUMN platform_audit.audit_entries.subject_kind IS '对象类别：被记录或被投递的业务对象的类别';
+COMMENT ON COLUMN platform_audit.audit_entries.subject_id IS '对象 ID：被记录或被投递的业务对象的自有 ID；为空表示这条记录没有对象';
 COMMENT ON COLUMN platform_audit.audit_entries.detail IS '说明文字，不含密钥和个人敏感信息';
 COMMENT ON COLUMN platform_audit.audit_entries.created_at IS '创建时间：即审计事实发生的时间，来自注入的时钟';
 COMMENT ON COLUMN platform_audit.audit_entries.updated_at IS '更新时间（行不可更新，恒等于创建时间）';
@@ -64,7 +67,9 @@ CREATE TRIGGER audit_entries_reject_truncate
 CREATE TABLE platform_audit.audit_archive_batches (
     id             uuid        NOT NULL,
     first_entry_id uuid        NOT NULL,
+    first_entry_created_at timestamptz NOT NULL,
     last_entry_id  uuid        NOT NULL,
+    last_entry_created_at timestamptz NOT NULL,
     entry_count    integer     NOT NULL,
     object_key     text        NOT NULL,
     sha256_hash    text        NOT NULL,
@@ -73,12 +78,14 @@ CREATE TABLE platform_audit.audit_archive_batches (
     updated_at     timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_audit_archive_batches PRIMARY KEY (id),
     CONSTRAINT uk_audit_archive_batches_last_entry_id UNIQUE (last_entry_id),
-    CONSTRAINT ck_audit_archive_batches_range CHECK (first_entry_id <= last_entry_id AND entry_count > 0)
+    CONSTRAINT ck_audit_archive_batches_range CHECK ((first_entry_created_at, first_entry_id) <= (last_entry_created_at, last_entry_id) AND entry_count > 0)
 );
 COMMENT ON TABLE platform_audit.audit_archive_batches IS '审计归档批次：已写入归档库的审计条目范围，只追加；粒度：每个归档批次一行';
 COMMENT ON COLUMN platform_audit.audit_archive_batches.id IS '归档批次 ID（UUIDv7）';
-COMMENT ON COLUMN platform_audit.audit_archive_batches.first_entry_id IS '本批第一条审计条目的 ID';
-COMMENT ON COLUMN platform_audit.audit_archive_batches.last_entry_id IS '本批最后一条审计条目的 ID，也是归档进度：下一批从其后开始';
+COMMENT ON COLUMN platform_audit.audit_archive_batches.first_entry_id IS '本批第一条审计条目的 ID（按创建时刻、ID 排序的第一条）';
+COMMENT ON COLUMN platform_audit.audit_archive_batches.first_entry_created_at IS '本批第一条审计条目的创建时间';
+COMMENT ON COLUMN platform_audit.audit_archive_batches.last_entry_id IS '本批最后一条审计条目的 ID；与其创建时间一起是归档进度：下一批从（创建时间，ID）之后开始';
+COMMENT ON COLUMN platform_audit.audit_archive_batches.last_entry_created_at IS '本批最后一条审计条目的创建时间，归档进度的时刻部分';
 COMMENT ON COLUMN platform_audit.audit_archive_batches.entry_count IS '本批审计条目数';
 COMMENT ON COLUMN platform_audit.audit_archive_batches.object_key IS '归档库中的对象键';
 COMMENT ON COLUMN platform_audit.audit_archive_batches.sha256_hash IS '归档对象的 SHA-256（小写十六进制），归档库已确认一致';

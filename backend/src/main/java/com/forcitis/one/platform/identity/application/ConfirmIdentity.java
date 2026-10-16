@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.CurrentUser;
@@ -37,7 +39,7 @@ public class ConfirmIdentity {
         }
         sessions.confirmIdentity();
         String issued = browserIdentity.issue(userId, presentedBrowserIdentifier);
-        audit.record(new AuditEntry("platform.identity.session.identity-confirmed", userId, null, "user-account:" + userId.value(),
+        audit.record(new AuditEntry("platform.identity.session.identity-confirmed", userId, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()),
                 "the person confirmed the account of the ticket login"));
         return issued;
     }

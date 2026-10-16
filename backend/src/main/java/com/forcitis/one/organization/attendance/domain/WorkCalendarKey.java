@@ -22,8 +22,4 @@ public record WorkCalendarKey(LegalEntityId legalEntityId, int calendarYear) {
     public static WorkCalendarKey defaultFor(int calendarYear) {
         return new WorkCalendarKey(null, calendarYear);
     }
-
-    public String asText() {
-        return (legalEntityId == null ? "default" : String.valueOf(legalEntityId.value())) + ":" + calendarYear;
-    }
 }

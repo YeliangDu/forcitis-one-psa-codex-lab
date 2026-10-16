@@ -523,9 +523,22 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
         }
     }
 
+    /** The single uuid primary key account_roles has since R-1b P5 (RULING-P5-D12), found in the catalogue so that its name is not fixed here. */
+    private static String accountRolesKeyColumn(Connection identity) throws SQLException {
+        try (PreparedStatement key = identity.prepareStatement("""
+                select a.attname from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any (i.indkey)
+                 where i.indrelid = cast('account_roles' as regclass) and i.indisprimary""");
+             ResultSet rs = key.executeQuery()) {
+            if (!rs.next()) {
+                throw new AssertionError("account_roles has no primary key");
+            }
+            return rs.getString(1);
+        }
+    }
+
     protected void grantRole(UUID userId, String roleCode) throws SQLException {
         try (Connection identity = schemaConnection("platform_identity"); PreparedStatement insert = identity.prepareStatement(
-                "insert into account_roles (user_id, role_id) select ?, role_id from roles where code = ? on conflict do nothing")) {
+                "insert into account_roles (" + accountRolesKeyColumn(identity) + ", user_id, role_id) select uuidv7(), ?, role_id from roles where code = ? on conflict do nothing")) {
             insert.setObject(1, userId);
             insert.setString(2, roleCode);
             insert.executeUpdate();

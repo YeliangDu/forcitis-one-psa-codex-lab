@@ -3,6 +3,7 @@ package com.forcitis.one.platform.identity.infrastructure.persistence;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleCode;
@@ -30,8 +31,10 @@ class JdbcAccountRepository implements AccountRepository {
 
     private final JdbcClient jdbc;
     private final Clock clock;
+    private final IdGenerator ids;
 
-    JdbcAccountRepository(JdbcClient jdbc, Clock clock) {
+    JdbcAccountRepository(JdbcClient jdbc, Clock clock, IdGenerator ids) {
+        this.ids = ids;
         this.clock = clock;
         this.jdbc = jdbc;
     }
@@ -109,8 +112,8 @@ class JdbcAccountRepository implements AccountRepository {
         jdbc.sql("delete from platform_identity.account_roles where user_id = :user and role_id not in (:roles)")
                 .param("user", userId.value()).param("roles", roleIds.stream().map(RoleId::value).toList()).update();
         for (RoleId roleId : roleIds) {
-            jdbc.sql("insert into platform_identity.account_roles (user_id, role_id) values (:user, :role) on conflict do nothing")
-                    .param("user", userId.value()).param("role", roleId.value()).update();
+            jdbc.sql("insert into platform_identity.account_roles (account_role_id, user_id, role_id) values (:id, :user, :role) on conflict do nothing")
+                    .param("id", ids.next()).param("user", userId.value()).param("role", roleId.value()).update();
         }
     }
 

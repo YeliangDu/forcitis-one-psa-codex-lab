@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
@@ -62,7 +64,7 @@ public class ReplaceAccountRoles {
         expected.check(account.version());
         UserId caller = currentUser.userId();
         if (account.userId().equals(caller)) {
-            audit.recordIndependently(new AuditEntry("platform.identity.grant.refused", caller, null, "user-account:" + userId.value(),
+            audit.recordIndependently(new AuditEntry("platform.identity.grant.refused", caller, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()),
                     "nobody changes their own roles"));
             return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_OWN_ROLES_FORBIDDEN);
         }

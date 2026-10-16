@@ -26,21 +26,21 @@ channels:
     messages:
       TaskClaimed:
         $ref: '#/components/messages/TaskClaimed'
-  taskResulted:
-    address: platform.approval.TaskResulted
+  taskHandled:
+    address: platform.approval.TaskHandled
     messages:
-      TaskResulted:
-        $ref: '#/components/messages/TaskResulted'
+      TaskHandled:
+        $ref: '#/components/messages/TaskHandled'
   taskTransferred:
     address: platform.approval.TaskTransferred
     messages:
       TaskTransferred:
         $ref: '#/components/messages/TaskTransferred'
-  approvalTaskOverdue:
-    address: platform.approval.ApprovalTaskOverdue
+  approvalTaskBecameOverdue:
+    address: platform.approval.ApprovalTaskBecameOverdue
     messages:
-      ApprovalTaskOverdue:
-        $ref: '#/components/messages/ApprovalTaskOverdue'
+      ApprovalTaskBecameOverdue:
+        $ref: '#/components/messages/ApprovalTaskBecameOverdue'
   approvalTaskEscalated:
     address: platform.approval.ApprovalTaskEscalated
     messages:
@@ -181,11 +181,11 @@ channels:
     messages:
       SourceReferenceSuperseded:
         $ref: '#/components/messages/SourceReferenceSuperseded'
-  sourceReferenceRegistrationRefused:
-    address: platform.integration.SourceReferenceRegistrationRefused
+  sourceReferenceRefused:
+    address: platform.integration.SourceReferenceRefused
     messages:
-      SourceReferenceRegistrationRefused:
-        $ref: '#/components/messages/SourceReferenceRegistrationRefused'
+      SourceReferenceRefused:
+        $ref: '#/components/messages/SourceReferenceRefused'
   numberingRuleConfirmed:
     address: platform.numbering.NumberingRuleConfirmed
     messages:
@@ -221,11 +221,11 @@ channels:
     messages:
       TimesheetReturned:
         $ref: '#/components/messages/TimesheetReturned'
-  timesheetCancelled:
-    address: cost.timesheet.TimesheetCancelled
+  timesheetApprovalWithdrawn:
+    address: cost.timesheet.TimesheetApprovalWithdrawn
     messages:
-      TimesheetCancelled:
-        $ref: '#/components/messages/TimesheetCancelled'
+      TimesheetApprovalWithdrawn:
+        $ref: '#/components/messages/TimesheetApprovalWithdrawn'
   syncRunSucceeded:
     address: organization.workforce.SyncRunSucceeded
     messages:
@@ -393,20 +393,20 @@ operations:
     summary: platform.approval 消费
     messages:
     - $ref: '#/channels/taskClaimed/messages/TaskClaimed'
-  publishTaskResulted:
+  publishTaskHandled:
     action: send
     channel:
-      $ref: '#/channels/taskResulted'
+      $ref: '#/channels/taskHandled'
     summary: platform.approval 发布
     messages:
-    - $ref: '#/channels/taskResulted/messages/TaskResulted'
-  handleTaskResultedInPlatformAudit:
+    - $ref: '#/channels/taskHandled/messages/TaskHandled'
+  handleTaskHandledInPlatformAudit:
     action: receive
     channel:
-      $ref: '#/channels/taskResulted'
+      $ref: '#/channels/taskHandled'
     summary: platform.audit 消费
     messages:
-    - $ref: '#/channels/taskResulted/messages/TaskResulted'
+    - $ref: '#/channels/taskHandled/messages/TaskHandled'
   publishTaskTransferred:
     action: send
     channel:
@@ -428,20 +428,20 @@ operations:
     summary: platform.approval 消费
     messages:
     - $ref: '#/channels/taskTransferred/messages/TaskTransferred'
-  publishApprovalTaskOverdue:
+  publishApprovalTaskBecameOverdue:
     action: send
     channel:
-      $ref: '#/channels/approvalTaskOverdue'
+      $ref: '#/channels/approvalTaskBecameOverdue'
     summary: platform.approval 发布
     messages:
-    - $ref: '#/channels/approvalTaskOverdue/messages/ApprovalTaskOverdue'
-  handleApprovalTaskOverdueInPlatformApproval:
+    - $ref: '#/channels/approvalTaskBecameOverdue/messages/ApprovalTaskBecameOverdue'
+  handleApprovalTaskBecameOverdueInPlatformApproval:
     action: receive
     channel:
-      $ref: '#/channels/approvalTaskOverdue'
+      $ref: '#/channels/approvalTaskBecameOverdue'
     summary: platform.approval 消费
     messages:
-    - $ref: '#/channels/approvalTaskOverdue/messages/ApprovalTaskOverdue'
+    - $ref: '#/channels/approvalTaskBecameOverdue/messages/ApprovalTaskBecameOverdue'
   publishApprovalTaskEscalated:
     action: send
     channel:
@@ -869,20 +869,20 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/sourceReferenceSuperseded/messages/SourceReferenceSuperseded'
-  publishSourceReferenceRegistrationRefused:
+  publishSourceReferenceRefused:
     action: send
     channel:
-      $ref: '#/channels/sourceReferenceRegistrationRefused'
+      $ref: '#/channels/sourceReferenceRefused'
     summary: platform.integration 发布
     messages:
-    - $ref: '#/channels/sourceReferenceRegistrationRefused/messages/SourceReferenceRegistrationRefused'
-  handleSourceReferenceRegistrationRefusedInPlatformAudit:
+    - $ref: '#/channels/sourceReferenceRefused/messages/SourceReferenceRefused'
+  handleSourceReferenceRefusedInPlatformAudit:
     action: receive
     channel:
-      $ref: '#/channels/sourceReferenceRegistrationRefused'
+      $ref: '#/channels/sourceReferenceRefused'
     summary: platform.audit 消费
     messages:
-    - $ref: '#/channels/sourceReferenceRegistrationRefused/messages/SourceReferenceRegistrationRefused'
+    - $ref: '#/channels/sourceReferenceRefused/messages/SourceReferenceRefused'
   publishNumberingRuleConfirmed:
     action: send
     channel:
@@ -981,20 +981,20 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/timesheetReturned/messages/TimesheetReturned'
-  publishTimesheetCancelled:
+  publishTimesheetApprovalWithdrawn:
     action: send
     channel:
-      $ref: '#/channels/timesheetCancelled'
+      $ref: '#/channels/timesheetApprovalWithdrawn'
     summary: cost.timesheet 发布
     messages:
-    - $ref: '#/channels/timesheetCancelled/messages/TimesheetCancelled'
-  handleTimesheetCancelledInPlatformAudit:
+    - $ref: '#/channels/timesheetApprovalWithdrawn/messages/TimesheetApprovalWithdrawn'
+  handleTimesheetApprovalWithdrawnInPlatformAudit:
     action: receive
     channel:
-      $ref: '#/channels/timesheetCancelled'
+      $ref: '#/channels/timesheetApprovalWithdrawn'
     summary: platform.audit 消费
     messages:
-    - $ref: '#/channels/timesheetCancelled/messages/TimesheetCancelled'
+    - $ref: '#/channels/timesheetApprovalWithdrawn/messages/TimesheetApprovalWithdrawn'
   publishSyncRunSucceeded:
     action: send
     channel:
@@ -1228,7 +1228,6 @@ components:
       - correlationId
       - actorType
       - actorId
-      - source
       - relatedAggregates
       properties:
         eventId:
@@ -1249,6 +1248,8 @@ components:
           type: string
         aggregateId:
           type: string
+          format: uuid
+          description: 该聚合自己的主键
         aggregateVersion:
           type: integer
           format: int64
@@ -1281,17 +1282,6 @@ components:
           format: date
           nullable: true
           description: 按 Asia/Shanghai 截日；取哪个日期见各事件的 x-event.businessDate
-        source:
-          type: object
-          properties:
-            system:
-              type: string
-              enum:
-              - ONE
-              - MIGRATION
-            documentRef:
-              type: string
-              nullable: true
         accountingPeriod:
           type: string
           nullable: true
@@ -1305,11 +1295,12 @@ components:
                 type: string
               aggregateId:
                 type: string
+                format: uuid
   messages:
     ApprovalCompleted:
       name: ApprovalCompleted
       title: 审批结束（已通过 / 已驳回 / 已退回 / 已撤销）
-      description: 审批结束（已通过、已驳回、已退回、已撤销）。aggregateId 是 单据类型:单据标识，如 TIMESHEET:7；过程里程碑，不过账。发起人撤回（RULE-269）以 RETURNED 结束本轮，与审批人退回同形，区别看信封 actorId 是否为发起人以及 reason。消费方 cost.timesheet 按 eventId 幂等，轮次与等待中的轮次不符则忽略；分析层 L1 用于审批时效。 发起人撤回与审批人退回同形，用 returnSource 区分；platform.approval 的通知监听器据此给发起人发完成卡片（D-1a-135）。
+      description: 审批结束（已通过、已驳回、已退回、已撤销）。aggregateId 是审批请求 ID；过程里程碑，不过账。发起人撤回（RULE-269）以 RETURNED 结束本轮，与审批人退回同形，区别看信封 actorId 是否为发起人以及 reason。消费方 cost.timesheet 按 eventId 幂等，轮次与等待中的轮次不符则忽略；分析层 L1 用于审批时效。 发起人撤回与审批人退回同形，用 returnSource 区分；platform.approval 的通知监听器据此给发起人发完成卡片（D-1a-135）。
       x-event:
         eventType: platform.approval.ApprovalCompleted
         version: 1
@@ -1505,7 +1496,7 @@ components:
     TaskAssigned:
       name: TaskAssigned
       title: 任务已分配（每位会签审批人一个任务）
-      description: 任务已分配，每位会签审批人一个任务；过程事实，不过账。platform.approval 的通知监听器据此给每个候选人发企业微信文本卡片（去重键为对象类别 + 对象 ID + 用途 + 触发事件）。系统自动通过的任务（RULE-302）不发此事件，发 TaskResulted（AUTOMATIC）。分析层 L1 以此为审批等待时长的起点。
+      description: 任务已分配，每位会签审批人一个任务；过程事实，不过账。platform.approval 的通知监听器据此给每个候选人发企业微信文本卡片（去重键为对象类别 + 对象 ID + 用途 + 触发事件）。系统自动通过的任务（RULE-302）不发此事件，发 TaskHandled（AUTOMATIC）。分析层 L1 以此为审批等待时长的起点。
       x-event:
         eventType: platform.approval.TaskAssigned
         version: 1
@@ -1672,14 +1663,14 @@ components:
             x-type: UserId
             format: uuid
             description: 稳定 ID 的字符串形式
-    TaskResulted:
-      name: TaskResulted
+    TaskHandled:
+      name: TaskHandled
       title: 任务已办理（通过 / 驳回 / 退回）
       description: 任务已办理（通过、驳回、退回）；过程事实，不过账。系统自动通过与被跳过的节点不发此事件。effect=ADVISORY 是加签人的驳回，只记录意见，不结束本轮（RULE-273、RULE-291）。通过时 reason 为空（RULE-280）。 系统自动通过（同一审批人同一节点内容未变，RULE-302）也发本事件，effect 为 AUTOMATIC（D-1a-66）。
       x-event:
-        eventType: platform.approval.TaskResulted
+        eventType: platform.approval.TaskHandled
         version: 1
-        class: com.forcitis.one.platform.approval.events.TaskResulted
+        class: com.forcitis.one.platform.approval.events.TaskHandled
         aggregate: ApprovalRequest
         idempotencyKey: eventId
         publisher: platform.approval
@@ -1851,14 +1842,14 @@ components:
                 type: string
             x-type: Reason
             description: 转交原因，必填并审计（D-1a-75）
-    ApprovalTaskOverdue:
-      name: ApprovalTaskOverdue
+    ApprovalTaskBecameOverdue:
+      name: ApprovalTaskBecameOverdue
       title: 任务超过审批时限仍未处理（只提醒，不自动通过）
       description: 任务超过审批时限仍未处理，只提醒，不自动通过；过程事实，不过账，计入时效统计。由定时作业触发，aggregateVersion 取所属任务聚合的序号。通知监听器据此给处理人发企业微信提醒。
       x-event:
-        eventType: platform.approval.ApprovalTaskOverdue
+        eventType: platform.approval.ApprovalTaskBecameOverdue
         version: 1
-        class: com.forcitis.one.platform.approval.events.ApprovalTaskOverdue
+        class: com.forcitis.one.platform.approval.events.ApprovalTaskBecameOverdue
         aggregate: ApprovalRequest
         idempotencyKey: eventId
         publisher: platform.approval
@@ -2221,7 +2212,7 @@ components:
     ApprovalRoundStarted:
       name: ApprovalRoundStarted
       title: 审批开新一轮
-      description: 审批开始新一轮：首次发起，或退回、驳回、撤销之后重新发起（D-1a-78）；过程里程碑，不过账。aggregateId 是 单据类型:单据标识。
+      description: 审批开始新一轮：首次发起，或退回、驳回、撤销之后重新发起（D-1a-78）；过程里程碑，不过账。aggregateId 是审批请求 ID。
       x-event:
         eventType: platform.approval.ApprovalRoundStarted
         version: 1
@@ -3121,13 +3112,13 @@ components:
             type: string
             format: date
             description: 失效日（不含），即后继对照的生效日
-    SourceReferenceRegistrationRefused:
-      name: SourceReferenceRegistrationRefused
+    SourceReferenceRefused:
+      name: SourceReferenceRefused
       title: 有人试图人工登记只能由同步或导入写入的来源对照，已被拒绝
       x-event:
-        eventType: platform.integration.SourceReferenceRegistrationRefused
+        eventType: platform.integration.SourceReferenceRefused
         version: 1
-        class: com.forcitis.one.platform.integration.events.SourceReferenceRegistrationRefused
+        class: com.forcitis.one.platform.integration.events.SourceReferenceRefused
         aggregate: SourceReferenceRefusal
         idempotencyKey: eventId
         publisher: platform.integration
@@ -3589,14 +3580,14 @@ components:
               value:
                 type: string
             description: 退回或撤回原因
-    TimesheetCancelled:
-      name: TimesheetCancelled
+    TimesheetApprovalWithdrawn:
+      name: TimesheetApprovalWithdrawn
       title: 填报人撤销审批，工时单回到草稿；不记为驳回（RULE-279）
       description: 填报人撤销审批，工时单回到草稿；不记为驳回（RULE-279）；过程里程碑。businessDate 为工作日期。
       x-event:
-        eventType: cost.timesheet.TimesheetCancelled
+        eventType: cost.timesheet.TimesheetApprovalWithdrawn
         version: 1
-        class: com.forcitis.one.cost.timesheet.events.TimesheetCancelled
+        class: com.forcitis.one.cost.timesheet.events.TimesheetApprovalWithdrawn
         aggregate: Timesheet
         idempotencyKey: eventId
         publisher: cost.timesheet

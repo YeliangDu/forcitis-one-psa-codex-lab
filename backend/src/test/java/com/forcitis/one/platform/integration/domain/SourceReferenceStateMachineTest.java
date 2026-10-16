@@ -24,7 +24,7 @@ import com.forcitis.one.platform.integration.api.SourceObjectId;
 import com.forcitis.one.platform.integration.api.SourceObjectKind;
 import com.forcitis.one.platform.integration.events.SourceReferenceConfirmed;
 import com.forcitis.one.platform.integration.events.SourceReferenceRegistered;
-import com.forcitis.one.platform.integration.events.SourceReferenceRegistrationRefused;
+import com.forcitis.one.platform.integration.events.SourceReferenceRefused;
 import com.forcitis.one.platform.integration.events.SourceReferenceRejected;
 import com.forcitis.one.platform.integration.events.SourceReferenceSuperseded;
 import java.time.Instant;
@@ -89,7 +89,7 @@ class SourceReferenceStateMachineTest {
         SourceReference first = registered();
         first.confirm(DECIDER, NOW);
 
-        assertThat(confirmedEnvelope(correction).relatedAggregates()).containsExactly(new AggregateReference("SourceReference", superseded.toString()));
+        assertThat(confirmedEnvelope(correction).relatedAggregates()).containsExactly(new AggregateReference("SourceReference", superseded.value()));
         assertThat(confirmedEnvelope(first).relatedAggregates()).isEmpty();
     }
 
@@ -189,11 +189,11 @@ class SourceReferenceStateMachineTest {
     }
 
     @Test
-    @DisplayName("a refused registration announces SourceReferenceRegistrationRefused and nothing else")
+    @DisplayName("a refused registration announces SourceReferenceRefused and nothing else")
     void aRefusalIsAnnounced() {
         SourceReferenceRefusal refusal = SourceReferenceRefusal.of(new SourceReferenceId(TestIds.uuid(9)), ExternalSource.ORG_SOURCE,
                 SourceObjectKind.EMPLOYEE);
 
-        assertThat(refusal.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOf(SourceReferenceRegistrationRefused.class);
+        assertThat(refusal.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOf(SourceReferenceRefused.class);
     }
 }

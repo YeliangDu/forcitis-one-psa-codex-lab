@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.attendance;
 
+import java.util.UUID;
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -133,8 +134,8 @@ class WorkCalendarIT {
         assertThat(workCalendar.isWorkday(LocalDate.parse("2026-10-12"), fst)).isFalse();
         assertThat(workCalendar.endOfWorkdayAfter(LocalDate.parse("2026-10-09"), 2, fst)).isEqualTo(Instant.parse("2026-10-13T16:00:00Z"));
         assertThat(events.stream(WorkCalendarYearMaintained.class)).singleElement().satisfies(e -> {
-            assertThat(e.envelope().aggregateId()).isEqualTo("default:2026");
-            assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value().toString());
+            assertThat(e.envelope().aggregateId()).isEqualTo(jdbc.sql("select id from organization_attendance.work_calendar_years where year_number = 2026 and legal_entity_id is null").query(UUID.class).single());
+            assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value());
             assertThat(e.envelope().correlationId()).isNotNull();
         });
     }
@@ -211,7 +212,7 @@ class WorkCalendarIT {
 
         org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
                 new org.springframework.security.authentication.TestingAuthenticationToken(TestAccounts.account(9001).value().toString(), null, "organization.attendance:locked-day:update"));
-        try (var acting = com.forcitis.one.kernel.WorkContext.enter(java.util.UUID.randomUUID(), null, "test.organization.attendance")) {
+        try (var acting = com.forcitis.one.kernel.WorkContext.enter(UUID.randomUUID(), null, "test.organization.attendance")) {
             maintainLocked.execute(new MaintainWorkCalendarCommand(2026, java.util.List.of(new DayEntry(LocalDate.parse("2026-10-10"), "MAKE_UP_WORKDAY")),
                     com.forcitis.one.kernel.ExpectedVersion.of(1)));
         }

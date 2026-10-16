@@ -48,7 +48,7 @@ describe('企业微信工作台静默登录', () => {
       'POST sessions:wecom-login': () => {
         addressWhenPosting = window.location.href;
         signedIn = true;
-        return { body: { userId: '1001', absoluteExpiresAt: '2026-10-15T01:00:00Z', identityConfirmationRequired: false } };
+        return { body: { userId: '019a0000-0000-7000-8000-000000001001', absoluteExpiresAt: '2026-10-15T01:00:00Z', identityConfirmationRequired: false } };
       },
     });
     renderWithProviders(<SessionGate config={CONFIG}>{CHILD}</SessionGate>);
@@ -83,7 +83,7 @@ describe('企业微信工作台静默登录', () => {
     window.history.replaceState(null, '', '/?code=C-1&state=S-1');
     stubServer({
       'GET sessions:current': { status: 401, body: {} },
-      'POST sessions:wecom-login': { body: { userId: '1001', absoluteExpiresAt: '2026-10-15T01:00:00Z', identityConfirmationRequired: false } },
+      'POST sessions:wecom-login': { body: { userId: '019a0000-0000-7000-8000-000000001001', absoluteExpiresAt: '2026-10-15T01:00:00Z', identityConfirmationRequired: false } },
     });
     renderWithProviders(<SessionGate config={CONFIG}>{CHILD}</SessionGate>);
 

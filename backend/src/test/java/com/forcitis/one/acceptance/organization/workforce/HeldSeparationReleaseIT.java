@@ -52,9 +52,10 @@ class HeldSeparationReleaseIT extends AccountsAcceptanceSupport {
                 insert.setArray(4, kinds);
                 insert.executeUpdate();
             }
-            try (PreparedStatement insert = workforce.prepareStatement("insert into sync_run_held_separations (sync_run_id, employee_id) values (?, ?)")) {
-                insert.setObject(1, run);
-                insert.setObject(2, stored(separating));
+            try (PreparedStatement insert = workforce.prepareStatement("insert into sync_run_held_separations (sync_run_held_separation_id, sync_run_id, employee_id) values (?, ?, ?)")) {
+                insert.setObject(1, UUID.randomUUID());
+                insert.setObject(2, run);
+                insert.setObject(3, stored(separating));
                 insert.executeUpdate();
             }
         }

@@ -45,7 +45,7 @@ describe('审批详情', () => {
   });
 
   it('已认领的任务不再显示认领', async () => {
-    open({ ...TASK, assignee: '1001', assigneeName: '张三' });
+    open({ ...TASK, assignee: '019a0000-0000-7000-8000-000000001001', assigneeName: '张三' });
     await showTask();
 
     expect(await screen.findByRole('button', { name: '通过' })).toBeInTheDocument();

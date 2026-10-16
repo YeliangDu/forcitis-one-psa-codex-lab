@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
@@ -33,6 +35,6 @@ class RecordSyncRunRelease {
         run.release(actor, releasedByRun, clock.instant(), reason);
         runs.save(run);
         events.publish(run);
-        audit.record(new AuditEntry("organization.workforce.sync-run.released", actor, null, "sync-run:" + held.value(), detail));
+        audit.record(new AuditEntry("organization.workforce.sync-run.released", actor, null, AuditSubject.of(AuditSubjectKind.SYNC_RUN, held.value()), detail));
     }
 }

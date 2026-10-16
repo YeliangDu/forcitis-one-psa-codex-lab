@@ -4,8 +4,6 @@ import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.StateMachine;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.EventDraft;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.platform.identity.api.EmergencyAdminDisableCause;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.events.EmergencyAdminCredentialsReset;
@@ -142,7 +140,6 @@ public final class EmergencyAdmin extends AggregateRoot {
     }
 
     private EventDraft draft(String eventName, long version) {
-        return new EventDraft("platform.identity." + eventName, 1, "EmergencyAdmin", String.valueOf(userId.value()), version, null, null,
-                new EventSource(SourceSystem.ONE, null), List.of());
+        return new EventDraft("platform.identity." + eventName, 1, "EmergencyAdmin", userId.value(), version, null, null, List.of());
     }
 }

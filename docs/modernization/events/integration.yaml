@@ -169,8 +169,8 @@ components:
         audit: audited
         publisherTest: com.forcitis.one.platform.integration.domain.SourceReferenceStateMachineTest
         noConsumer: 暂无消费方：对照的起止只需留痕；现在就发布，是因为对照何时换掉在事后无法还原
-    SourceReferenceRegistrationRefused:
-      name: SourceReferenceRegistrationRefused
+    SourceReferenceRefused:
+      name: SourceReferenceRefused
       title: 有人试图人工登记只能由同步或导入写入的来源对照，已被拒绝
       payload:
         type: object
@@ -191,9 +191,9 @@ components:
             - LEGAL_ENTITY
             x-type: SourceObjectKind
       x-event:
-        eventType: platform.integration.SourceReferenceRegistrationRefused
+        eventType: platform.integration.SourceReferenceRefused
         version: 1
-        class: com.forcitis.one.platform.integration.events.SourceReferenceRegistrationRefused
+        class: com.forcitis.one.platform.integration.events.SourceReferenceRefused
         aggregate: SourceReferenceRefusal
         idempotencyKey: eventId
         publisher: platform.integration

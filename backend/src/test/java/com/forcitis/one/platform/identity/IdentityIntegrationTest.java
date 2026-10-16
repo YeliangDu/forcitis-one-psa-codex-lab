@@ -232,8 +232,8 @@ public abstract class IdentityIntegrationTest {
                 .param("user", TestAccounts.account(id).value()).param("employee", TestAccounts.employee(id).value()).update();
         for (String code : roleCodes) {
             jdbc.sql("""
-                            insert into platform_identity.account_roles (user_id, role_id)
-                            select a.user_id, r.role_id from platform_identity.user_accounts a, platform_identity.roles r
+                            insert into platform_identity.account_roles (account_role_id, user_id, role_id)
+                            select uuidv7(), a.user_id, r.role_id from platform_identity.user_accounts a, platform_identity.roles r
                              where a.employee_id = :employee and lower(r.code) = lower(:code)
                             on conflict do nothing
                             """)
