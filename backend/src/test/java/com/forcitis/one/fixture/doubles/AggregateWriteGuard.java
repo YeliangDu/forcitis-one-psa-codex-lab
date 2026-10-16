@@ -59,16 +59,21 @@ public class AggregateWriteGuard {
                     public void afterCompletion(int status) {
                         savedInTransaction.remove();
                         namedByEvents.remove();
-                        if (kinds.size() > 1) {
-                            MULTI.add(new TreeSet<>(kinds));
-                        }
-                        if (kinds.size() > 1 && !registered(kinds)) {
-                            VIOLATIONS.add("a transaction saved " + new TreeSet<>(kinds) + " and that set is not in " + EXCEPTIONS);
-                        } else if (kinds.size() > 1 && !named.containsAll(kinds)) {
-                            Set<String> missing = new TreeSet<>(kinds);
-                            missing.removeAll(named);
-                            VIOLATIONS.add("a transaction saved " + new TreeSet<>(kinds) + " but its events do not name " + missing
-                                    + " as the aggregate or in relatedAggregates (DDD-1)");
+                        try {
+                            if (kinds.size() > 1) {
+                                MULTI.add(new TreeSet<>(kinds));
+                            }
+                            if (kinds.size() > 1 && !registered(kinds)) {
+                                VIOLATIONS.add("a transaction saved " + new TreeSet<>(kinds) + " and that set is not in " + EXCEPTIONS);
+                            } else if (kinds.size() > 1 && !named.containsAll(kinds)) {
+                                Set<String> missing = new TreeSet<>(kinds);
+                                missing.removeAll(named);
+                                VIOLATIONS.add("a transaction saved " + new TreeSet<>(kinds) + " but its events do not name " + missing
+                                        + " as the aggregate or in relatedAggregates (DDD-1)");
+                            }
+                        } catch (RuntimeException e) {
+                            // Spring logs and swallows an exception from afterCompletion, which would leave the list empty and the guard silent
+                            VIOLATIONS.add("the write guard itself failed after a transaction that saved " + new TreeSet<>(kinds) + ": " + e);
                         }
                     }
                 });

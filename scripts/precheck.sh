@@ -137,6 +137,13 @@ else
   run_step "generated docs (build_all --check)" py docs/modernization/build_all.py --check
 fi
 run_step "legacy system name" py docs/modernization/check_legacy_name.py
+if touches 'rules/decide/(build_decision_page\.py|page-template\.html)$'; then
+  run_step "decision page generator (self-test)" py docs/modernization/rules/decide/build_decision_page.py --self-test
+fi
+if touches 'architecture/decision-page/[^/]+\.json$|rules/decide/sheets/[^/]+\.json$|architecture/decision-page/check_pages\.py$'; then
+  run_step "decision pages: question rules (self-test)" py docs/modernization/architecture/decision-page/check_pages.py --self-test
+  run_step "decision pages: question rules" py docs/modernization/architecture/decision-page/check_pages.py --changed "$base"
+fi
 
 if touches '^(backend/src/(main/resources/db/migration|test/resources/db/testdata)/|backend/architecture/migration-baseline-open|backend/src/main/resources/application.*\.(properties|ya?ml)$|scripts/ci/(migrations_immutable|ci_git)\.py$)'; then
   run_step "migrations immutable (self-test)" py scripts/ci/migrations_immutable.py --self-test

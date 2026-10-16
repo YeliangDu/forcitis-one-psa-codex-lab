@@ -25,6 +25,7 @@ categories:
   - platform.identity.grant.refused
   - platform.identity.operations.account.role.granted
   - platform.identity.privileged.request
+  - platform.identity.single-operator-mode.enabled
   - platform.identity.AccountDisabled
   - platform.identity.AccountEnabled
   - platform.identity.AccountOpened
