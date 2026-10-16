@@ -21,6 +21,7 @@
 | E-001 | ADR-0011 决定第 2–4 条 | 头部状态已为「全部定稿」，正文仍残留 3 处【提议】标记（c4935a7 初版） | 以头部状态为准，【提议】标记无效 | 用户 2026-10-14「全部定稿」 | 2026-10-14 |
 | E-002 | ADR-0033「取代」行 | 状态行已记 U-4 已答（拒绝并告警），「取代」行仍残留「（待用户决定 U-4）」（474de44e） | 以状态行为准 | intent `2026-10-15-020346-one-coordinator-ADR-0033-#119-与.md`（拒绝并告警）；one-coordinator 2026-10-15 | 2026-10-15 |
 | E-003 | ADR-0051 决定 3 BC 表中的中文名 | 中文名以 `docs/modernization/glossary/bcs.yaml` 为准（用户 2026-10-16 按推荐改名；模块标识不变，不改变决定含义） | 以 `bcs.yaml` 为准 | 用户 2026-10-16 按推荐改名；收件箱 `2026-10-16-one-glossary-bc-names` | 2026-10-16 |
+| E-004 | ADR-0030 第 2 节表第 1 行「审计记 `witness=none`」 | 审计 detail 的键名按 U-7b（操作人、见证人一律记员工 ID，不记姓名）与 `AuditDetailPolicy` 禁止模式，落地为 `witnessId=none`；含义（未设见证人并写标注）不变 | 读作 `witnessId=none` | one-architecture 判定落地细化（2026-10-16，one-1a-par 实现 SINGLE-OP P2 时提出）；U-7b 用户答「改写员工 ID，阅读时再解析姓名」（收件箱 `2026-10-16-one-data-u7b-attestation-names`） | 2026-10-16 |
 
 ### 3. 性质登记（不改正文）
 
