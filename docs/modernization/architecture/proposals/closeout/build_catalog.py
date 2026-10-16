@@ -84,8 +84,10 @@ def check(rows):
             if s not in stages:
                 errors.append(f"{i}: stage {s} 不在 value-streams.v2.yaml")
         if t == "business":
-            if not r.get("stages"):
-                warns.append(f"{i}: business 未填 stages")
+            if r.get("support") and r.get("stages"):
+                errors.append(f"{i}: 标了 support 却填了 stages")
+            elif not r.get("stages") and not str(r.get("support") or "").strip():
+                warns.append(f"{i}: business 未填 stages（不在价值流上的写 support: <理由>）")
             if not r.get("bpmn"):
                 warns.append(f"{i}: business 未登记 bpmn（铺开后改为失败）")
     return errors, warns
@@ -110,7 +112,8 @@ def render(rows):
             continue
         for v in sorted({s.split(".")[0] for s in r.get("stages") or []}):
             by_vs[v] += 1
-    no_stage = sum(1 for r in rows if r["type"] == "business" and not r.get("stages"))
+    no_stage = sum(1 for r in rows if r["type"] == "business" and not r.get("stages") and not r.get("support"))
+    by_vs["支撑（不在价值流上）"] = sum(1 for r in rows if r["type"] == "business" and r.get("support"))
     L = ["<!-- 由 build_catalog.py 生成，不手改 -->", "# 流程目录（生成，提议稿）", "",
          "由 build_catalog.py 生成，不手改；来源 `process-catalog.yaml`。", "",
          f"共 {len(rows)} 条，编号 PRC-01 至 PRC-{max(int(r['id'][4:]) for r in rows)}。", ""]

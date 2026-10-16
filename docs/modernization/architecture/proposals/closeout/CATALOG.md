@@ -3,36 +3,36 @@
 
 由 build_catalog.py 生成，不手改；来源 `process-catalog.yaml`。
 
-共 159 条，编号 PRC-01 至 PRC-159。
+共 177 条，编号 PRC-01 至 PRC-177。
 
 ### 按类型
 
 | 类型 | 数量 |
 |---|---|
-| business | 98 |
-| event_policy | 26 |
-| single_aggregate | 20 |
+| business | 103 |
+| event_policy | 31 |
+| single_aggregate | 28 |
 | read_model | 5 |
 | merged | 10 |
-| 合计 | 159 |
+| 合计 | 177 |
 
 ### 按组（全部类型）
 
 | 组 | 数量 |
 |---|---|
 | revenue | 77 |
-| finance | 40 |
-| people | 42 |
-| 合计 | 159 |
+| finance | 54 |
+| people | 46 |
+| 合计 | 177 |
 
 ### 按组（仅业务流程）
 
 | 组 | 数量 |
 |---|---|
 | revenue | 45 |
-| finance | 24 |
+| finance | 29 |
 | people | 29 |
-| 合计 | 98 |
+| 合计 | 103 |
 
 ### 按价值流（仅业务流程；跨价值流的流程各计一次，故合计大于业务流程数）
 
@@ -51,9 +51,10 @@
 | VS-11 | 1 |
 | VS-12 | 3 |
 | VS-13 | 12 |
-| 合计 | 101 |
+| 支撑（不在价值流上） | 7 |
+| 合计 | 108 |
 
-业务流程中尚未填 stages：12 条。
+业务流程中尚未填 stages：10 条。
 
 ## 总表
 
@@ -218,3 +219,21 @@
 | PRC-157 | IT 资产报修与维修登记 | business |  |  | B-31 | people | draft | 否 |  |
 | PRC-158 | 处置过账拒收记录 | single_aggregate |  | VS-10.1 | B-16 | finance | draft | 否 |  |
 | PRC-159 | 申报已提交后确认税费应付 | event_policy |  | VS-06.1 | B-10 | finance | draft | 否 |  |
+| PRC-160 | 开立年度假期额度账户 | event_policy |  | VS-13.1 | B-27 | people | draft | 否 |  |
+| PRC-161 | 年末关闭预算账户 | event_policy |  | VS-09.3 | B-18 | people | draft | 否 |  |
+| PRC-162 | 发布假期规则版本 | single_aggregate |  | VS-13.1 | B-27 | people | draft | 否 |  |
+| PRC-163 | 应付结清后登记利润分配支付 | event_policy |  |  | B-10 | finance | draft | 否 |  |
+| PRC-164 | 收入确认冲销后冲回已配对成本结转 | event_policy |  |  | B-07 | finance | draft | 否 |  |
+| PRC-165 | 发布成本核算参数版本 | single_aggregate |  |  | B-07 | finance | draft | 否 |  |
+| PRC-166 | 发布资产类别与折旧政策版本 | single_aggregate |  |  | B-24 | finance | draft | 否 |  |
+| PRC-167 | 编制并签字确认期初余额 | single_aggregate |  |  | B-20 | finance | draft | 否 |  |
+| PRC-168 | 发布口径版本 | single_aggregate |  |  | B-17 | finance | draft | 否 |  |
+| PRC-169 | 处置勾稽差异案 | single_aggregate |  |  | B-17 | finance | draft | 否 |  |
+| PRC-170 | 申请费用事前额度 | business |  |  | B-12 | finance | draft | 是 |  |
+| PRC-171 | 核对差旅服务商月账单并确认应付 | business |  |  | B-12 | finance | draft | 是 |  |
+| PRC-172 | 申请出差并同步差旅服务商 | business |  |  | B-12 | finance | draft | 是 |  |
+| PRC-173 | 审批差旅超标订单 | business |  |  | B-12 | finance | draft | 是 |  |
+| PRC-174 | 发布出差补贴标准版本 | single_aggregate |  |  | B-12 | finance | draft | 否 |  |
+| PRC-175 | 直接付款申请 | business |  |  | B-10 | finance | draft | 是 |  |
+| PRC-176 | 预付款核销 | single_aggregate |  |  | B-10 | finance | draft | 否 |  |
+| PRC-177 | 向差旅服务商同步员工与组织 | event_policy |  |  | B-13 | people | draft | 否 |  |

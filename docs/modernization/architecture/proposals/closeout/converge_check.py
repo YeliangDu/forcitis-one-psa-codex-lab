@@ -22,6 +22,7 @@ state-machines.yaml (minimal structure, proposal):
       transitions:
         - {from: 草稿, to: 已提交, command: 提交费用报销, guard: [INV-84], reverse_of: ~}
     - {aggregate: AGG-43, stateless: true, reason: "运行单据，写下即不可改"}   # no states/transitions; its steps need no transition
+    - {aggregate: AGG-60, perpetual: true, reason: "法人主体长期存在", states: [...], transitions: [...]}   # exempt from terminal-state checks
         # from: a state, a list of states, or "*" (any state); command may be null for event-triggered transitions
 
 Checks: (1) orphan commands: a catalogue command used by no skeleton step (command or inner) and no single-aggregate commands list;
@@ -153,9 +154,12 @@ def run(cmds, machines, used, changing):
             res.setdefault("转换引用未声明的状态", []).append(f"{a}: {mc['undeclared']}")
         if mc["unreachable"]:
             res.setdefault("状态不可达", []).append(f"{a}: {mc['unreachable']}")
-        if mc["no_terminal"]:
+        perpetual = m.get("perpetual") is True
+        if perpetual and not str(m.get("reason") or "").strip():
+            res.setdefault("长期配置未写理由", []).append(a)
+        if mc["no_terminal"] and not perpetual:
             res.setdefault("无终态", []).append(a)
-        if mc["no_terminal_path"] and not mc["no_terminal"]:
+        if mc["no_terminal_path"] and not mc["no_terminal"] and not perpetual:
             res.setdefault("非终态无法到达终态", []).append(f"{a}: {mc['no_terminal_path']}")
     no_machine = sorted({a for (a, _c) in changing if a not in mach})
     res["改状态步骤无对应转换"] = sorted(f"{a} {c}（{','.join(changing[(a, c)][:2])}）" for (a, c) in changing if a in mach and a not in stateless and (a, c) not in trans_cmds)
@@ -201,7 +205,10 @@ S_MACH = [{"aggregate": "AGG-1", "initial": "草稿", "states": ["草稿", "已�
            "transitions": [{"from": "草稿", "to": "已提交", "command": "提交"}, {"from": "已提交", "to": "已批准", "command": "批准"},
                            {"from": "已提交", "to": "死胡同"}, {"from": "已批准", "to": "未声明", "command": "冲销"}]},
           {"aggregate": "AGG-3", "stateless": True, "reason": "运行单据"},
-          {"aggregate": "AGG-4", "stateless": True, "states": ["甲"]}]
+          {"aggregate": "AGG-4", "stateless": True, "states": ["甲"]},
+          {"aggregate": "AGG-6", "perpetual": True, "reason": "法人主体长期存在", "states": ["启用", "停用"],
+           "transitions": [{"from": "启用", "to": "停用", "command": "停用"}, {"from": "停用", "to": "启用", "command": "启用"}]},
+          {"aggregate": "AGG-7", "perpetual": True, "states": ["启用"]}]
 S_DOCS = {"g": {"processes": [{"id": "PRC-90", "steps": [
     {"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-1", "command": "提交"},
     {"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-1", "command": "批准"},
@@ -218,6 +225,8 @@ def self_test():
         "孤儿命令（目录有、骨架无人用）": ["AGG-1 冲销", "AGG-1 孤儿命令"],
         "骨架命令未入目录": ["AGG-1 未登记命令", "AGG-2 别的聚合命令", "AGG-3 运行", "AGG-5 孤儿命令"],
         "无状态未写理由": ["AGG-4"],
+        "长期配置未写理由": ["AGG-7"],
+        "转换命令不在目录": ["AGG-6 停用", "AGG-6 启用"],
         "标了无状态却写了状态或转换": ["AGG-4"],
         "转换引用未声明的状态": ["AGG-1: ['未声明']"],
         "状态不可达": ["AGG-1: ['幽灵']"],

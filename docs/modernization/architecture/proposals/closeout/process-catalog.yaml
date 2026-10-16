@@ -1268,6 +1268,7 @@ processes:
     name: "用印申请与用印登记"
     type: business
     stages: []
+    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: "B-31"
     group: people
     status: draft
@@ -1295,6 +1296,7 @@ processes:
     name: "IT 需求工单"
     type: business
     stages: []
+    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: "B-31"
     group: people
     status: draft
@@ -1304,6 +1306,7 @@ processes:
     name: "IT 资产领用"
     type: business
     stages: []
+    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: "B-31"
     group: people
     status: draft
@@ -1313,6 +1316,7 @@ processes:
     name: "员工活动类申请（周年贺卡、节日活动、创新项目发布）"
     type: business
     stages: []
+    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: "B-31"
     group: people
     status: draft
@@ -1412,6 +1416,7 @@ processes:
     name: "IT 资产调拨"
     type: business
     stages: []
+    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: "B-31"
     group: people
     status: draft
@@ -1421,6 +1426,7 @@ processes:
     name: "IT 资产归还"
     type: business
     stages: []
+    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: "B-31"
     group: people
     status: draft
@@ -1430,6 +1436,7 @@ processes:
     name: "IT 资产报修与维修登记"
     type: business
     stages: []
+    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: "B-31"
     group: people
     status: draft
@@ -1453,3 +1460,180 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
+  - id: PRC-160
+    name: "开立年度假期额度账户"
+    type: event_policy
+    stages: [VS-13.1]
+    owner_bc: "B-27"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-161
+    name: "年末关闭预算账户"
+    type: event_policy
+    stages: [VS-09.3]
+    owner_bc: "B-18"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-162
+    name: "发布假期规则版本"
+    type: single_aggregate
+    stages: [VS-13.1]
+    owner_bc: "B-27"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-163
+    name: "应付结清后登记利润分配支付"
+    type: event_policy
+    stages: []
+    owner_bc: "B-10"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+    note: "S-31；阶段由 finance 组铺开时填"
+  - id: PRC-164
+    name: "收入确认冲销后冲回已配对成本结转"
+    type: event_policy
+    stages: []
+    owner_bc: "B-07"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+    note: "S-31；阶段由 finance 组铺开时填"
+  - id: PRC-165
+    name: "发布成本核算参数版本"
+    type: single_aggregate
+    stages: []
+    owner_bc: "B-07"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+    note: "S-31；阶段由 finance 组铺开时填"
+  - id: PRC-166
+    name: "发布资产类别与折旧政策版本"
+    type: single_aggregate
+    stages: []
+    owner_bc: "B-24"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+    note: "S-31；阶段由 finance 组铺开时填"
+  - id: PRC-167
+    name: "编制并签字确认期初余额"
+    type: single_aggregate
+    stages: []
+    owner_bc: "B-20"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+    note: "S-31；阶段由 finance 组铺开时填"
+  - id: PRC-168
+    name: "发布口径版本"
+    type: single_aggregate
+    stages: []
+    owner_bc: "B-17"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+    note: "S-31；阶段由 finance 组铺开时填"
+  - id: PRC-169
+    name: "处置勾稽差异案"
+    type: single_aggregate
+    stages: []
+    owner_bc: "B-17"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+    note: "S-31；阶段由 finance 组铺开时填"
+  - id: PRC-170
+    name: "申请费用事前额度"
+    type: business
+    stages: []
+    owner_bc: "B-12"
+    group: finance
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+    note: "S-31；阶段由 finance 组铺开时填"
+  - id: PRC-171
+    name: "核对差旅服务商月账单并确认应付"
+    type: business
+    stages: []
+    owner_bc: "B-12"
+    group: finance
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+    note: "S-31；阶段由 finance 组铺开时填"
+  - id: PRC-172
+    name: "申请出差并同步差旅服务商"
+    type: business
+    stages: []
+    owner_bc: "B-12"
+    group: finance
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+    note: "S-31；阶段由 finance 组铺开时填"
+  - id: PRC-173
+    name: "审批差旅超标订单"
+    type: business
+    stages: []
+    owner_bc: "B-12"
+    group: finance
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+    note: "S-31；阶段由 finance 组铺开时填"
+  - id: PRC-174
+    name: "发布出差补贴标准版本"
+    type: single_aggregate
+    stages: []
+    owner_bc: "B-12"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+    note: "S-31；阶段由 finance 组铺开时填"
+  - id: PRC-175
+    name: "直接付款申请"
+    type: business
+    stages: []
+    owner_bc: "B-10"
+    group: finance
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+    note: "S-31；阶段由 finance 组铺开时填"
+  - id: PRC-176
+    name: "预付款核销"
+    type: single_aggregate
+    stages: []
+    owner_bc: "B-10"
+    group: finance
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+    note: "S-31；阶段由 finance 组铺开时填"
+  - id: PRC-177
+    name: "向差旅服务商同步员工与组织"
+    type: event_policy
+    stages: []
+    owner_bc: "B-13"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+    note: "S-31；阶段由 people 组铺开时填"

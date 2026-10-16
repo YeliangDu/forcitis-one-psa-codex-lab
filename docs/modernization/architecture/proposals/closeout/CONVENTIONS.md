@@ -107,4 +107,7 @@
 - **类型级例外**：engine 为 platform.approval 的审批，若已采纳 ADR 或用户决定指定由某职能复核（如收入确认由财务复核，ADR-0047 U-2 (a)），基础审批人写该类型级角色，权责表登 `resolve: type`，并在 `why_human` 写出处；其余一律 cost_object_owner。
 - **单聚合维护的审批**：`commands[]`（命令清单，可逐条写 `aggregate` 覆盖单元级）或 `transitions[]`（状态迁移）上需要人工审批的条目（没收、扣减、终止、开户确认等）写 `approval:`，字段与步骤审批相同（`engine`、`approver`、`doc_type`、`why_human`、`escalation_rules`、`on_reject` 写驳回后状态不变的说明）；审批对象×命令 = 条目的 `aggregate`（没写取单元级）× 条目的 `command`；两处写了同一命令只算一次。`closeout_check.py --qc` 与 `raci_build.py` 一并扫描（one-architecture 2026-10-16 裁定，应 one-arch-revenue PRC-10、52、68）。
 - **类型级 A 手登**：platform.approval 的类型级例外在 `RESPONSIBILITY_MATRIX.yaml` 手登 `A: {resolve: type, role: SH-…, basis: <ADR 或 intent>}`，`raci_build.py --write` 重新生成时保留；engine 为 aggregate 的类型级 A 由脚本自动生成，不必手登。
+- **定时触发**：time 触发由所属 BC 向 `platform.scheduling` 登记定时，到点调本 BC 聚合命令，幂等键 = 聚合 ID + 到期时点；边「BC → platform.scheduling」按平台依赖登记（S-31 SQ-18）。
+- **支撑流程**：不在客户价值流上的业务流程（如 B-31 行政事务）写 `stages: []` 与 `support: <理由>`（S-32）。
+- **状态机豁免**：运行单据写 `stateless: true`，长期配置写 `perpetual: true`，两者都须写 `reason`（S-30、S-32）。
 - **平台依赖**：业务模块依赖平台模块（platform.approval、platform.integration 等）为标准方向；用到审批或 `notify` 的 BC 在依赖边回补中登记。
