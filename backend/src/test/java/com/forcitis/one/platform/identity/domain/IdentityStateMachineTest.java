@@ -99,7 +99,7 @@ class IdentityStateMachineTest {
                 e -> assertThat(e.roleIds()).containsExactly(new RoleId(TestIds.uuid(3)), new RoleId(TestIds.uuid(9))));
         assertThat(accountEvents).extracting(e -> e.envelope().aggregateVersion()).containsExactly(6L, 7L);
         assertThat(accountEvents.get(0).envelope().aggregateType()).isEqualTo("UserAccount");
-        assertThat(accountEvents.get(0).envelope().aggregateId()).isEqualTo(TestAccounts.account(1001).value().toString());
+        assertThat(accountEvents.get(0).envelope().aggregateId()).isEqualTo(TestAccounts.account(1001).value());
         assertThat(accountEvents.get(0).envelope().legalEntityId()).isNull();
 
         UserAccount again = account(DISABLED);
@@ -115,7 +115,7 @@ class IdentityStateMachineTest {
                 .containsExactly(RoleRevised.class.getSimpleName(), RoleDisabled.class.getSimpleName(), RoleEnabled.class.getSimpleName(),
                         RoleDeleted.class.getSimpleName());
 
-        Role created = Role.newCustom(new RoleCode("analyst"), "Analyst", Set.of()).withId(new RoleId(TestIds.uuid(11)));
+        Role created = Role.newCustom(new RoleId(TestIds.uuid(11)), new RoleCode("analyst"), "Analyst", Set.of());
         assertThat(created.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(RoleCreated.class,
                 e -> assertThat(e.roleId()).isEqualTo(new RoleId(TestIds.uuid(11))));
     }

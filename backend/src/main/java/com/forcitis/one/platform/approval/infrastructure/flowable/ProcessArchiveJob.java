@@ -238,7 +238,7 @@ class ProcessArchiveJob implements SmartInitializingSingleton {
                  where proc_inst_id_ in (:ids)
                    and ((task_id_ is null and (name_ in (:processNames) or (name_ like :routing and var_type_ = 'boolean')))
                         or (task_id_ is not null and name_ in (:taskNames)))
-                 order by id_
+                 order by create_time_, id_
                 """).param("ids", ids).param("processNames", PROCESS_VARIABLES).param("routing", ROUTING_VARIABLE_PREFIX.replace("_", "\\_") + "%").param("taskNames", TASK_VARIABLES)
                 .query((v, n) -> {
                     byId.get(v.getString("proc_inst_id_")).variables().add(new ArchivedVariable(v.getString("name_"), v.getString("task_id_"), v.getString("value_")));

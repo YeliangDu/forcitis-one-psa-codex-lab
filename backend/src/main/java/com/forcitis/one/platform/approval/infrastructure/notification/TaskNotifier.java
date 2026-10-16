@@ -13,7 +13,7 @@ import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.application.ApprovalTexts;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
-import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
+import com.forcitis.one.platform.approval.events.ApprovalTaskBecameOverdue;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
 import com.forcitis.one.platform.approval.events.TaskClaimed;
 import com.forcitis.one.platform.approval.events.TaskClosed;
@@ -95,7 +95,7 @@ class TaskNotifier {
     }
 
     @ApplicationModuleListener
-    void onTaskOverdue(ApprovalTaskOverdue event) {
+    void onTaskOverdue(ApprovalTaskBecameOverdue event) {
         send(event.taskId(), event.holders(), ApprovalTexts.overdueTitle(event.document()), ApprovalTexts.overdueBody(moment(event.dueAt())),
                 subject(DeliveryPurpose.TASK_OVERDUE, event.taskId()));
     }

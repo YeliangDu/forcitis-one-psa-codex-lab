@@ -15,9 +15,9 @@ import java.util.UUID;
  * same transaction.
  */
 public record EventEnvelope(UUID eventId, String eventType, int schemaVersion, Instant occurredAt,
-                            String aggregateType, String aggregateId, long aggregateVersion, UUID correlationId,
-                            UUID causationId, ActorType actorType, String actorId, LegalEntityId legalEntityId,
-                            LocalDate businessDate, EventSource source, AccountingPeriod accountingPeriod,
+                            String aggregateType, UUID aggregateId, long aggregateVersion, UUID correlationId,
+                            UUID causationId, ActorType actorType, UUID actorId, LegalEntityId legalEntityId,
+                            LocalDate businessDate, AccountingPeriod accountingPeriod,
                             List<AggregateReference> relatedAggregates) {
 
     public EventEnvelope {
@@ -29,7 +29,6 @@ public record EventEnvelope(UUID eventId, String eventType, int schemaVersion, I
         Objects.requireNonNull(correlationId, "correlationId");
         Objects.requireNonNull(actorType, "actorType");
         Objects.requireNonNull(actorId, "actorId");
-        Objects.requireNonNull(source, "source");
         relatedAggregates = List.copyOf(relatedAggregates);
     }
 }

@@ -26,7 +26,7 @@ import com.forcitis.one.platform.approval.application.DecisionOutcome;
 import com.forcitis.one.platform.approval.application.EnforceDeadlines;
 import com.forcitis.one.platform.approval.application.TaskDecision;
 import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
-import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
+import com.forcitis.one.platform.approval.events.ApprovalTaskBecameOverdue;
 import com.forcitis.one.platform.approval.events.TaskClosed;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
@@ -222,7 +222,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
                 .hasStackTraceContaining("not maintained");
 
         assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where document_id = cast(? as uuid)", Integer.class, key)).isZero();
-        assertThat(runtime.createProcessInstanceQuery().processInstanceBusinessKey("TIMESHEET:" + key).count()).isZero();
+        assertThat(runtime.createProcessInstanceQuery().processInstanceBusinessKey(key).count()).isZero();
     }
 
     @Test
@@ -246,12 +246,12 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
                 .isEqualTo("PENDING");
         assertThat(requestStatus(s.key())).isEqualTo("RUNNING");
         assertThat(approvals.isFinished(s.instance())).isFalse();
-        List<ApprovalTaskOverdue> overdue = events.overdue().stream().filter(e -> e.taskId().equals(s.task())).toList();
+        List<ApprovalTaskBecameOverdue> overdue = events.overdue().stream().filter(e -> e.taskId().equals(s.task())).toList();
         assertThat(overdue).hasSize(1);
         assertThat(overdue.getFirst().holders()).containsExactly(TestAccounts.account(s.manager()));
         assertThat(overdue.getFirst().dueAt()).isEqualTo(dueOf(s));
         assertThat(overdue.getFirst().envelope().aggregateType()).isEqualTo("ApprovalRequest");
-        assertThat(overdue.getFirst().envelope().aggregateId()).isEqualTo("TIMESHEET:" + s.key());
+        assertThat(overdue.getFirst().envelope().aggregateId()).isEqualTo(requestIdOf(s.key()));
         assertThat(overdue.getFirst().envelope().aggregateVersion()).as("round started = 1, assigned = 2, overdue = 3").isEqualTo(3);
         assertThat(overdue.getFirst().envelope().businessDate()).isEqualTo(LocalDate.of(2026, 10, 20));
         assertThat(overdue.getFirst().envelope().actorType().name()).as("a job acts as the system").isEqualTo("SYSTEM");

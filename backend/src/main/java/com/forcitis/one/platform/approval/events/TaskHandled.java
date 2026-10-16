@@ -13,7 +13,7 @@ import com.forcitis.one.platform.approval.api.TaskEffect;
 import com.forcitis.one.platform.approval.api.TaskOutcome;
 
 /** Not published for automatic completions. effect ADVISORY: the rejection of an added co-signer, recorded without ending the round (RULE-273). */
-public record TaskResulted(EventEnvelope envelope, ApprovalTaskId taskId, ApprovalInstanceId instanceId, ProcessKey processKey,
+public record TaskHandled(EventEnvelope envelope, ApprovalTaskId taskId, ApprovalInstanceId instanceId, ProcessKey processKey,
                            DocumentReference document, NodeKey nodeKey, UserId assignee, TaskOutcome outcome, TaskEffect effect,
                            Reason reason) implements DomainEvent {
 }

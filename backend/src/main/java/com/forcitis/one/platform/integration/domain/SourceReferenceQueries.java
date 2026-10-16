@@ -24,7 +24,7 @@ public interface SourceReferenceQueries {
     /** The source id of the confirmed reference in effect on the day. */
     Optional<SourceObjectId> findSourceId(ExternalSource system, SourceObjectKind kind, OwnObjectId ownId, LocalDate on);
 
-    /** Rows of every status in the order of their ids, the ones after {@code after} first; a null status or own id leaves that filter off. */
-    List<SourceReference> list(ExternalSource system, SourceObjectKind kind, @Nullable ConfirmationStatus status, @Nullable OwnObjectId ownId,
-                               @Nullable SourceReferenceId after, int limit);
+    /** Rows of every status oldest first (moment, then id), the ones after {@code after}; a null status or own id leaves that filter off. */
+    List<ListedSourceReference> list(ExternalSource system, SourceObjectKind kind, @Nullable ConfirmationStatus status, @Nullable OwnObjectId ownId,
+                               @Nullable SourceReferencePosition after, int limit);
 }

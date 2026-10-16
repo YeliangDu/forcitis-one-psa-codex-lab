@@ -11,9 +11,13 @@ import com.forcitis.one.platform.integration.api.ExternalSource;
 import com.forcitis.one.platform.integration.api.IntegrationError;
 import com.forcitis.one.platform.integration.api.OwnObjectId;
 import com.forcitis.one.platform.integration.api.SourceObjectKind;
+import com.forcitis.one.platform.integration.domain.ListedSourceReference;
 import com.forcitis.one.platform.integration.domain.SourceReference;
 import com.forcitis.one.platform.integration.domain.SourceReferenceId;
+import com.forcitis.one.platform.integration.domain.SourceReferencePosition;
 import com.forcitis.one.platform.integration.domain.SourceReferenceQueries;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -31,7 +35,7 @@ public class ListSourceReferences {
         this.queries = queries;
     }
 
-    /** In the order of the ids (time-ordered); the cursor is the id of the row the previous page ended with. */
+    /** Oldest first by the moment the rows were made, then by id; the cursor is the moment and id of the row the previous page ended with. */
     @Transactional(readOnly = true)
     public CursorPage<SourceReferenceView> execute(ExternalSource sourceSystem, SourceObjectKind sourceObjectKind, @Nullable ConfirmationStatus status,
                                                    @Nullable UUID ownId, PageRequest page) {
@@ -39,18 +43,25 @@ public class ListSourceReferences {
             throw new DomainException(IntegrationError.PLATFORM_INTEGRATION_SOURCE_OBJECT_KIND_NOT_ALLOWED, ErrorKind.UNPROCESSABLE,
                     sourceObjectKind + " references of " + sourceSystem + " are not listed: the sync or the import writes them");
         }
-        List<SourceReference> found = queries.list(sourceSystem, sourceObjectKind, status, ownId == null ? null : new OwnObjectId(ownId), after(page), page.limit() + 1);
-        List<SourceReferenceView> items = found.stream().limit(page.limit()).map(SourceReferenceView::of).toList();
-        String next = found.size() > items.size() ? PageRequest.encode(LIST, items.getLast().sourceReferenceId().toString()) : null;
+        List<ListedSourceReference> found = queries.list(sourceSystem, sourceObjectKind, status, ownId == null ? null : new OwnObjectId(ownId), after(page), page.limit() + 1);
+        List<ListedSourceReference> shown = found.stream().limit(page.limit()).toList();
+        List<SourceReferenceView> items = shown.stream().map(listed -> SourceReferenceView.of(listed.reference())).toList();
+        String next = found.size() > items.size() ? encode(shown.getLast().position()) : null;
         return CursorPage.of(items, next);
     }
 
-    private static @Nullable SourceReferenceId after(PageRequest page) {
+    private static String encode(SourceReferencePosition position) {
+        return PageRequest.encode(LIST, ChronoUnit.MICROS.between(Instant.EPOCH, position.createdAt()) + "|" + position.id());
+    }
+
+    private static @Nullable SourceReferencePosition after(PageRequest page) {
         if (page.cursorValue() == null) {
             return null;
         }
         try {
-            return new SourceReferenceId(Uuids.parseCanonical(page.cursorValue()));
+            String[] parts = page.cursorValue().split("\\|");
+            return new SourceReferencePosition(Instant.EPOCH.plus(Long.parseLong(parts[0]), ChronoUnit.MICROS),
+                    new SourceReferenceId(Uuids.parseCanonical(parts[1])));
         } catch (RuntimeException malformed) {
             throw new InvalidCursorException("the cursor is not one this server issued");
         }

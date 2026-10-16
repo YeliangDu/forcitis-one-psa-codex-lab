@@ -94,13 +94,13 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
 
     @Override
     public void save(LegalEntityAttribution attribution) {
-        if (attribution.storedId() == null) {
+        if (attribution.version() == 0) {
             try {
                 jdbc.sql("""
                                 insert into organization_workforce.legal_entity_attributions (attribution_id, org_unit_id, employee_id, version, event_count)
                                 values (:id, :orgUnit, :employee, :version, :eventCount)
                                 """)
-                        .param("id", ids.next())
+                        .param("id", attribution.id().value())
                         .param("orgUnit", orgUnitOf(attribution.subject()), Types.OTHER).param("employee", employeeOf(attribution.subject()), Types.OTHER)
                         .param("version", attribution.versionAfterSave()).param("eventCount", attribution.eventSequenceAfterSave()).update();
             } catch (DuplicateKeyException saved) {
@@ -113,7 +113,7 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
                              where attribution_id = :id and version = :version
                             """)
                     .param("next", attribution.versionAfterSave()).param("eventCount", attribution.eventSequenceAfterSave())
-                    .param("id", attribution.storedId().value()).param("version", attribution.version())
+                    .param("id", attribution.id().value()).param("version", attribution.version())
                     .param("updatedAt", Timestamp.from(clock.instant())).update();
             if (updated != 1) {
                 throw conflict(attribution);

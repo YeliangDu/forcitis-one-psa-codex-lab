@@ -1,12 +1,13 @@
 package com.forcitis.one.platform.integration.infrastructure.persistence;
 
+import java.sql.Timestamp;
 import com.forcitis.one.platform.integration.api.ConfirmationStatus;
 import com.forcitis.one.platform.integration.api.ExternalSource;
 import com.forcitis.one.platform.integration.api.OwnObjectId;
 import com.forcitis.one.platform.integration.api.SourceObjectId;
 import com.forcitis.one.platform.integration.api.SourceObjectKind;
-import com.forcitis.one.platform.integration.domain.SourceReference;
-import com.forcitis.one.platform.integration.domain.SourceReferenceId;
+import com.forcitis.one.platform.integration.domain.ListedSourceReference;
+import com.forcitis.one.platform.integration.domain.SourceReferencePosition;
 import com.forcitis.one.platform.integration.domain.SourceReferenceQueries;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -81,8 +82,8 @@ class JdbcSourceReferenceQueries implements SourceReferenceQueries {
 
     /** The status is written into the statement as a literal so that the planner can match the partial index of the pending rows. */
     @Override
-    public List<SourceReference> list(ExternalSource system, SourceObjectKind kind, @Nullable ConfirmationStatus status, @Nullable OwnObjectId ownId,
-                                      @Nullable SourceReferenceId after, int limit) {
+    public List<ListedSourceReference> list(ExternalSource system, SourceObjectKind kind, @Nullable ConfirmationStatus status, @Nullable OwnObjectId ownId,
+                                      @Nullable SourceReferencePosition after, int limit) {
         StringBuilder sql = new StringBuilder("select " + SourceReferenceRows.COLUMNS + """
                  from platform_integration.source_references
                 where source_system = :system and source_object_kind = :kind
@@ -94,16 +95,16 @@ class JdbcSourceReferenceQueries implements SourceReferenceQueries {
             sql.append(" and own_id = :ownId");
         }
         if (after != null) {
-            sql.append(" and source_reference_id > :after");
+            sql.append(" and (created_at, source_reference_id) > (:afterAt, :afterId)");
         }
-        sql.append(" order by source_reference_id limit :limit");
+        sql.append(" order by created_at, source_reference_id limit :limit");
         JdbcClient.StatementSpec statement = jdbc.sql(sql.toString()).param("system", system.name()).param("kind", kind.name()).param("limit", limit);
         if (ownId != null) {
             statement = statement.param("ownId", ownId.value());
         }
         if (after != null) {
-            statement = statement.param("after", after.value());
+            statement = statement.param("afterAt", Timestamp.from(after.createdAt())).param("afterId", after.id().value());
         }
-        return statement.query((rs, n) -> SourceReferenceRows.map(rs)).list();
+        return statement.query((rs, n) -> new ListedSourceReference(SourceReferenceRows.map(rs), rs.getTimestamp("created_at").toInstant())).list();
     }
 }

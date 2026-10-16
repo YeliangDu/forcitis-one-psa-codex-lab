@@ -114,6 +114,13 @@ else
   report SKIP "migrations immutable" "no migration, marker or Flyway setting changed"
 fi
 
+if touches '^(backend/architecture/system-actors\.txt$|scripts/ci/(system_actors_append_only|ci_git)\.py$)'; then
+  run_step "system actors append-only (self-test)" py scripts/ci/system_actors_append_only.py --self-test
+  run_step "system actors append-only" py scripts/ci/system_actors_append_only.py "$base"
+else
+  report SKIP "system actors append-only" "system-actors.txt and its script did not change"
+fi
+
 if touches '^(backend/src/test/java/com/forcitis/one/acceptance/|backend/src/test/resources/acceptance/|frontend/.*__acceptance__/|scripts/ci/(acceptance_|ci_git))'; then
   run_step "acceptance guard (self-test)" py scripts/ci/acceptance_guard.py --self-test
   run_step "acceptance reports (self-test)" py scripts/ci/acceptance_reports.py --self-test

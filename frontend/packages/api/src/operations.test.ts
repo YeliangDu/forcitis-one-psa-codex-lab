@@ -12,14 +12,14 @@ function stubFetch(status: number, body: unknown, headers: Record<string, string
 }
 
 const TASK_DETAIL = {
-  taskId: '42',
-  instanceId: '9',
+  taskId: '019a0000-0000-7000-8000-000000000042',
+  instanceId: '019a0000-0000-7000-8000-000000000009',
   processKey: 'COST_TIMESHEET_APPROVAL',
   documentType: 'TIMESHEET',
-  documentId: '7',
+  documentId: '019a0000-0000-7000-8000-000000000007',
   nodeKey: 'pm',
   nodeName: '项目经理',
-  initiator: '1',
+  initiator: '019a0000-0000-7000-8000-000000000001',
   initiatorName: '李四',
   candidates: [],
   candidateNames: [],
@@ -77,14 +77,14 @@ describe('generated operations over the default client', () => {
   });
 
   it('treats a null property like an absent one, because the server writes unset optional properties as null', async () => {
-    stubFetch(200, { displayName: '张三', userId: '1001', permissionCodes: [], identityConfirmed: true, mode: 'NORMAL', navigation: [{ name: '待办', routePath: null, children: [] }], orgUnitId: null });
+    stubFetch(200, { displayName: '张三', userId: '019a0000-0000-7000-8000-000000001001', permissionCodes: [], identityConfirmed: true, mode: 'NORMAL', navigation: [{ name: '待办', routePath: null, children: [] }], orgUnitId: null });
     const user = await operations.getPlatformSessionsCurrent();
     expect(user.orgUnitId).toBeUndefined();
     expect(user.navigation[0]).toEqual({ name: '待办', children: [] });
   });
 
   it('validates an answer nested inside a list', async () => {
-    stubFetch(200, [{ orgUnitId: '1', name: '交付一部', status: 'ACTIVE' }, { orgUnitId: 2 }]);
+    stubFetch(200, [{ orgUnitId: '019a0000-0000-7000-8000-000000000001', name: '交付一部', status: 'ACTIVE' }, { orgUnitId: 2 }]);
     await expect(operations.getOrganizationOrgUnits()).rejects.toBeInstanceOf(ResponseShapeError);
   });
 });
@@ -127,7 +127,7 @@ describe('a value outside the contract', () => {
     forgetReportedViolations();
     const reports: string[] = [];
     setContractViolationSink((message) => reports.push(message));
-    const record = { recordId: 'r', taskId: 't', instanceId: 'i', processKey: 'COST_TIMESHEET_APPROVAL', documentType: 'TIMESHEET', documentId: 'D', nodeKey: 'n', nodeName: 'N', actorId: '1', actorName: 'A', decidedAt: '2026-10-14T00:00:00Z', round: 1 };
+    const record = { recordId: 'r', taskId: 't', instanceId: 'i', processKey: 'COST_TIMESHEET_APPROVAL', documentType: 'TIMESHEET', documentId: 'D', nodeKey: 'n', nodeName: 'N', actorId: '019a0000-0000-7000-8000-000000000001', actorName: 'A', decidedAt: '2026-10-14T00:00:00Z', round: 1 };
     const page = { items: [{ ...record, action: 'APPROVED' }, { ...record, recordId: 'r2', action: 'ESCALATED' }, { ...record, recordId: 'r3', action: 'ESCALATED' }] };
     stubFetch(200, page);
     const result = await operations.getPlatformApprovalTaskRecords();

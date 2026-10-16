@@ -5,7 +5,7 @@ import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.events.TimesheetApproved;
-import com.forcitis.one.cost.timesheet.events.TimesheetCancelled;
+import com.forcitis.one.cost.timesheet.events.TimesheetApprovalWithdrawn;
 import com.forcitis.one.cost.timesheet.events.TimesheetRejected;
 import com.forcitis.one.cost.timesheet.events.TimesheetReturned;
 import com.forcitis.one.cost.timesheet.events.TimesheetSubmitted;
@@ -28,8 +28,6 @@ import com.forcitis.one.kernel.event.AggregateReference;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelope;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ContentHash;
@@ -170,7 +168,7 @@ public final class Timesheet extends AggregateRoot {
     public void cancelSubmission(Reason reason) {
         status = MACHINE.require(status, TimesheetStatus.DRAFT, TimesheetError.COST_TIMESHEET_TRANSITION_ILLEGAL);
         Snapshot at = snapshot();
-        record("cost.timesheet.TimesheetCancelled", envelope -> new TimesheetCancelled(envelope, at.document(), at.employee(),
+        record("cost.timesheet.TimesheetApprovalWithdrawn", envelope -> new TimesheetApprovalWithdrawn(envelope, at.document(), at.employee(),
                 at.submittedHours(), new RoundNumber(at.round()), reason));
     }
 
@@ -208,7 +206,7 @@ public final class Timesheet extends AggregateRoot {
 
     private void record(String eventType, Function<EventEnvelope, DomainEvent> assemble) {
         record((envelopes, sequence) -> assemble.apply(envelopes.wrap(new EventDraft(eventType, 1, "Timesheet",
-                String.valueOf(timesheetId.value()), sequence, legalEntityId, workDate, new EventSource(SourceSystem.ONE, null),
+                timesheetId.value(), sequence, legalEntityId, workDate,
                 touchedTogether))));
     }
 

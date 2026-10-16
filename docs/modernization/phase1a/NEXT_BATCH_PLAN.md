@@ -470,7 +470,7 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 
 | 项 | 调整 |
 |---|---|
-| P5 守护收口 | 三处保留例外、到期改为拆分：`primary-key-type-baseline.txt` 中 `sync_run_held_separations` 复合主键一行（拆分 b）；`sync_diffs.subject_key` 混装主体键登记为 `OTHER_ID_NAMES` / 去哨兵守护的例外（拆分 a）；`ddl-naming-baseline.txt` 中 `sync_runs`、`sync_diffs` 的约束与索引改名行（拆分 a）。P5 只拆 `audit_entries.subject_key` |
+| P5 守护收口 | 两处保留例外、到期改为拆分（`sync_run_held_separations` 复合主键改为 P5 照改，one-architecture 判定不得登记基线，P5 卡 RULING-P5-D12）：`sync_diffs.subject_key` 混装主体键登记为 `OTHER_ID_NAMES` / 去哨兵守护的例外（拆分 a）；`ddl-naming-baseline.txt` 中 `sync_runs`、`sync_diffs` 的约束与索引改名行（拆分 a）。P5 只拆 `audit_entries.subject_key` |
 | K-3b-2 | 只做部门与法人列表；`HELD` 同步列表的上限随拆分 b（该表在拆分 b 改造） |
 | F-1 | 「调岗或离岗生成待调整权限待办」只依赖领域事件、不依赖同步内部类，避免拆分 b 后搬监听点（写进 F-1 卡） |
 | P4 | 不依赖拆分或 DA-3 |

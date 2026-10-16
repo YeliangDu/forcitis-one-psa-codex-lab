@@ -11,6 +11,20 @@
 - 守护规则整体治理：各守护（ArchUnit、Modulith、Glossary、TestContainerGuard 等）的基线只减不增是否落实，基线文件条数月度报告。
 - 每晚 `nightly-legacy-it.yml` 结果巡检，失败即开卡。
 
+### 工作守则
+
+1. **基础设施试验前过兼容性预检清单**（one-coordinator 2026-10-16 胜任力评估后要求；起因 Colima 试点：SQL Server 镜像只有 linux/amd64，runner 是 aarch64 且没装 Rosetta，one-4 上三次后端作业失败，错题本 QUAL-004）。动手前逐项写下并核对，缺一项不动手：
+   - **镜像与二进制架构**：用到的镜像是否多架构（`docker image inspect --format '{{.Architecture}}'`），单架构的靠什么仿真运行，目标机器是否具备；
+   - **依赖前提**：运行时与工具版本（对 `CI_RUNNERS.md`、`pom.xml`、`package.json`、`test-images.txt`）、是否要装额外组件（如 Rosetta，需用户同意）、是否要联网拉取；
+   - **回退判据**：写成可观测的速率或失败信号（如「交换量 30 分钟增量持续超过 100000 页且空闲内存低于 25%」「任一作业因该试验失败」），不用累计量；写明谁在什么时点回退、怎么回退、回退后怎么证明已回退；
+   - **对其他 runner 与共享资源的影响**：只改一台 runner 的环境变量，不动其他 runner 与用户本人的运行环境；会占用共享的 CPU、内存、磁盘、端口时写明上限。
+   试验只在冒烟通过后接入真实作业；接入时选该 runner 空闲的时点；登记 `RESOURCES.md`，用完清理。
+2. **耗时类改动先按步骤拆数据**，再定方向（QUAL-007：PR 的 gitleaks 扫描只占 15–25 秒，慢在同作业的发布脚本自测；轻量 CI 的瓶颈是 runner 排队）。
+3. **新增自测先破坏验证**：让被测逻辑失效，确认自测会红（QUAL-002）。
+4. **接进钩子或 CI 的脚本必须端到端各跑一次放行与拦截**，且用最小环境（`env -i LC_ALL=C`）；崩溃路径一律按「拒绝」设计（QUAL-006）。
+5. **评审意见先核实再采信，也不因评审通过而省略实测**；子代理报「缺失」先自己 `grep`。
+6. **交出前回测错题本**（`quality/defect-bank/one-quality.md`），在报告里写一行回测结果。
+
 ## 独占
 
 - `docs/modernization/quality/QUALITY_CONTEXT.md`；不稳定测试台账（同目录）。
@@ -55,4 +69,4 @@
 
 ## 当前状态
 
-画像草稿（one-coordinator 2026-10-15），待用户在侧边栏新开会话。
+常驻会话（用户在侧边栏新开）；首批 A–D 与战队协作第 3、4 条已完成，三道防线的评审出题模板与错题本在 `quality/review-briefs/`、`quality/defect-bank/`。

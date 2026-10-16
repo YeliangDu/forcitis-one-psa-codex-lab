@@ -6,8 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.EmployeeId;
-import com.forcitis.one.platform.approval.ApprovalIntegrationSupport;
-import com.forcitis.one.platform.approval.ApprovalIntegrationSupport.RecordingExternalConnections;
 import com.forcitis.one.platform.integration.api.ExternalSource;
 import com.forcitis.one.platform.integration.api.LegacyInbox;
 import com.forcitis.one.platform.integration.api.SourceObjectKind;
@@ -33,7 +31,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 @ExtendWith(OutputCaptureExtension.class)
-class LegacyInboxAccessIT extends ApprovalIntegrationSupport {
+class LegacyInboxAccessIT extends LegacyInboxSupport {
 
     @Autowired
     LegacyInboxConfiguration.InboxConnection inboxConnection;

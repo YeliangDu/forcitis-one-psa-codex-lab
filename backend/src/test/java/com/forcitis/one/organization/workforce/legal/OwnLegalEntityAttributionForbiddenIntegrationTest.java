@@ -36,6 +36,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 
 @DisplayName("SelfLegalEntityEditForbidden: ADR-0027 section 2 item 2")
 class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegrationSupport {
@@ -110,7 +112,7 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
 
         assertThat(count("legal_entity_attributions")).isZero();
         verify(audit).recordIndependently(argThat((AuditEntry entry) -> entry.action().equals("organization.workforce.legal-entity-attribution.refused")
-                && entry.actorId().equals(TestAccounts.account(1)) && entry.subjectKey().equals("legal-entity-attribution:employee:" + TestAccounts.employee(1).value())));
+                && entry.actorId().equals(TestAccounts.account(1)) && entry.subject().equals(AuditSubject.of(AuditSubjectKind.EMPLOYEE, TestAccounts.employee(1).value()))));
     }
 
     @Test

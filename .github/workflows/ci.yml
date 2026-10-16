@@ -33,6 +33,17 @@ jobs:
           else
             python3 scripts/ci/migrations_immutable.py "$base"
           fi
+      - name: System actor catalogue is append-only (backend/architecture/system-actors.txt)
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          python3 scripts/ci/system_actors_append_only.py --self-test
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then base="origin/$GITHUB_BASE_REF"; else base="$BEFORE"; fi
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            echo "no earlier commit to compare against (new branch); self-test only"
+          else
+            python3 scripts/ci/system_actors_append_only.py "$base"
+          fi
       - name: Acceptance tests are changed only by the test engineer or under a ruling (SESSION_PLAYBOOK §6.1)
         env:
           BEFORE: ${{ github.event.before }}

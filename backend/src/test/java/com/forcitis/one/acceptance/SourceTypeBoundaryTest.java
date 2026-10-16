@@ -25,7 +25,7 @@ import org.junit.jupiter.api.io.TempDir;
  * Written here as a black-box scan of the main sources, so it stands whatever the guard tests outside the acceptance directory become.
  * <ul>
  *   <li>{@link Rule#SOURCE_TYPE}: outside platform.integration, no file of a domain, application, api, events or web package names a
- *       Source* type of platform.integration.api or the workforce SourceTerms (kernel's SourceSystem is not one: it goes with P5). The files
+ *       Source* type of platform.integration.api or the workforce SourceTerms (kernel's SourceSystem was not one, and P5 removed it). The files
  *       that still do are listed in {@link #EXCEPTIONS}, one line each with the reason and where it goes ("拆分 a"); the list only shrinks and a
  *       line whose file no longer needs it fails.</li>
  *   <li>{@link Rule#SOURCE_OR_LEGACY_ID}: outside platform.integration no type is named Source*Id or Legacy*Id. No exceptions.</li>
