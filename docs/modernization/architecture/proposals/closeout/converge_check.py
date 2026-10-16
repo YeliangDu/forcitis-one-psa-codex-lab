@@ -49,7 +49,7 @@ def skeleton_usage(docs):
     used, changing = collections.defaultdict(list), collections.defaultdict(list)
     for g, doc in docs.items():
         for _k, u in cc.units_of(doc):
-            for c in u.get("commands") or []:
+            for c in (u.get("commands") or []) + (u.get("transitions") or []):
                 cmd = c.get("command") if isinstance(c, dict) else c
                 agg = (c.get("aggregate") if isinstance(c, dict) else None) or u.get("aggregate")
                 if agg and cmd:
@@ -215,14 +215,15 @@ S_DOCS = {"g": {"processes": [{"id": "PRC-90", "steps": [
     {"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-1", "command": "未登记命令"},
     {"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-2", "command": "别的聚合命令"},
     {"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-3", "command": "运行"}]},
-    {"id": "PRC-91", "type": "single_aggregate", "aggregate": "AGG-1", "commands": [{"command": "孤儿命令", "aggregate": "AGG-5"}]}]}}
+    {"id": "PRC-91", "type": "single_aggregate", "aggregate": "AGG-1", "commands": [{"command": "孤儿命令", "aggregate": "AGG-5"}]},
+    {"id": "PRC-92", "type": "single_aggregate", "aggregate": "AGG-1", "transitions": [{"from": "已批准", "to": "已冲销", "command": "冲销"}]}]}}
 
 
 def self_test():
     used, changing = skeleton_usage(S_DOCS)
     r = run(S_CMDS, S_MACH, used, changing)
     exp = {
-        "孤儿命令（目录有、骨架无人用）": ["AGG-1 冲销", "AGG-1 孤儿命令"],
+        "孤儿命令（目录有、骨架无人用）": ["AGG-1 孤儿命令"],
         "骨架命令未入目录": ["AGG-1 未登记命令", "AGG-2 别的聚合命令", "AGG-3 运行", "AGG-5 孤儿命令"],
         "无状态未写理由": ["AGG-4"],
         "长期配置未写理由": ["AGG-7"],
