@@ -296,7 +296,7 @@ ADR28-1、ADR28-2 两张卡按 §6.1 第 10 条手术式修复（测试代理先
 
 | 子 PR | 范围 | 前置 | 执行 / 复审 |
 |---|---|---|---|
-| P0 | 只改 `numbering_counters`：`counter_scope_kind` + CHECK + 索引（DDL-03）。日历适用范围（`calendar_scope_kind`）并入 W2 日历版本化（DA-17），不改日历 API；无验收测试，以表结构 diff 为证据 | — | 已合并（#137） |
+| P0 | 只改 `numbering_counters`：`counter_scope_kind` + CHECK + 索引（DDL-03）。日历适用范围（`calendar_scope_kind`）并入 W2 日历版本化（DA-17），不改日历 API（时点偏离 ADR-0033 第 9 项第 2 条「这一项并入 R-1b」，终态不变；one-architecture 2026-10-16 判定，用户已追认（intent `2026-10-16-085333-one-architecture-收件箱-calendar-sco.md`）：随 W2 日历版本化完成，基线关闭前必须完成）；无验收测试，以表结构 diff 为证据 | — | 已合并（#137） |
 | P1 | 语义拆分，不改库：kernel 新增 `EmployeeId(long)` 作过渡；员工语义的引用（`Employee`、工时单、发起人、`AccessScope.ownerIds`、`AttributionSubject`、`SeparationReview`）全部换成 `EmployeeId`；`CurrentUser.employeeId()`；pom 启用 Error Prone，加 ArchUnit「不比较 `.value()`」；G-C5 Jackson 扁平化，事件 yaml 去掉 `{value}` 一层 | #132（已合并）、#139 | sonnet / opus（high）；测试代理 opus |
 | P2 | 用户 ID 底层改 UUID：`user_accounts.user_id` 改 uuid 并加 `employee_id`（过渡为 bigint，带唯一约束）；identity 的 `emergency_admins`、`account_roles`、`browser_identifiers`、`authorization_requests` 三个用户列，`ticket_issuers.key_id` 改名；其他 schema 中存用户 ID 的列一次改完（`idempotent_responses`、`audit_entries.actor_id / on_behalf_of_id`、审批任务与办理记录的人员列、`numbering_rule_versions` 的作者与确认人列、`sync_runs.released_by`、`legal_entity_attribution_corrections.corrected_by_user_id`）；`UserId(UUID)`，13 处 `Long.parseLong` 改 UUID 解析，`ensureAccount` 改 `ON CONFLICT (employee_id)`；路径 `{userId}` 5 条、`requestedBy` / `subjectUserId` | P1 | opus / opus（high）；体量最大，approval、identity 各 60 余个文件，内部按模块分提交；测试代理 opus（含安全闸门） |
 | P3a | 来源对照：`source_references`、确认流程、`legacy_numbers` 改造、法人去核算组织编码 | — | 在途（#139） |
@@ -358,13 +358,13 @@ ADR-0037 已采纳（Q1 选 (c)：现有 6 个视图冻结不动，新读取与 
 - `HAS_DBACCESS` 为 1 的库恰好是目标业务库加 master、msdb、rdscore、tempdb（guest）。
 - 无法判定（查询失败、结果为空）即拒绝启动；不提供关闭开关（`*_VALIDATE_ON_STARTUP` 不再可关，`ProductionConfigSanityTest` 断言）；`LegacyInboxConfiguration` 不再吞掉数据库异常继续启动。
 - 每次同步任务开始前重跑同一校验，失败即停掉该适配器并告警。
-- 凭据列拒绝清单守护：以 `credential_columns.csv`（one-ops，#143）为准——credential 92 列（A8 75、老系统 17）；review 25 列（均为 A8），实现 PR 逐列判定是否凭据。守护断言 `src/main` 的 SQL 与读取列登记都不引用清单里的凭据列。清单只含表名与列名，不含值。
+- 凭据列拒绝清单守护：以 `credential_columns.csv`（one-ops，#143）为准——credential 92 列（A8 75、老系统 17）；review 25 列（均为 A8），实现 PR 逐列判定是否凭据。守护断言 `src/main` 的 SQL 与外部读取登记都不引用清单里的凭据列。清单只含表名与列名，不含值。
 - 适配器出错只记错误号与 SQLState，不记异常消息（SQL Server 的类型转换错误消息会带出字段值）。
 - MSSQL 集成测试（SQL Server）进 CI：改到 `platform.integration..` 或 `platform.approval.infrastructure.legacy..` 时按路径过滤运行，另加每夜一次全量；并按 architecture-critic B-2 逐项构造越权反例，范围以 ADR-0037 守护节为准。起 SQL Server 测试容器前先向 one-coordinator 确认在 Testcontainers 授权范围内。
 - 实现 PR 注明 SQL Server 2016 版差异、RDS 平台限制与已登记风险，ADR 正文不改。
 - 执行与复审：测试代理 opus 先写；执行 opus（含安全闸门）；复审 opus（high）。对外库的真实登录核实按 CLAUDE.md 先请示，未获准前以容器内集成测试为证据。
 
-**R-1b-0**：A8 标志列（`TYPE`、`IS_DELETED`、`IS_ENABLE`、`STATE`）直接读基表，WIP 提交 `f1a67d33`（视图加列、白名单 37 列）作废或改写；基表一律写 `dbo.` 限定名；读取列登记只留一份并加「用途」列，启动时只检查运行时用途的行。one-ops 取证（只出分组计数，未入仓）显示同步范围 1291 条中有 18 条标记已删除；现行同步范围（`MEMBER_SCOPE`）不看删除与启用标志，已删除或停用人员进入快照，处理见 7.8。
+**R-1b-0**：A8 标志列（`TYPE`、`IS_DELETED`、`IS_ENABLE`、`STATE`）直接读基表，WIP 提交 `f1a67d33`（视图加列、白名单 37 列）作废或改写；基表一律写 `dbo.` 限定名；外部读取登记只留一份并加「用途」列，启动时只检查运行时用途的行。one-ops 取证（只出分组计数，未入仓）显示同步范围 1291 条中有 18 条标记已删除；现行同步范围（`MEMBER_SCOPE`）不看删除与启用标志，已删除或停用人员进入快照，处理见 7.8。
 
 **完成后**：删除 `status/blockers/100-ADR-0037-readonly-guard-before-deploy.md`。
 
@@ -440,6 +440,7 @@ ADR-0037 已采纳（Q1 选 (c)：现有 6 个视图冻结不动，新读取与 
 | R-1b P2 复审 P2-L2 | `primary-key-type-baseline.txt` 中 `account_roles` 理由「the user id is the employee id」已过时；落点 W2（ADR-0034 实现卡） |
 | R-1b P2 复审 P2-L12 | 前端测试桩数据 `userId: '1001'` 仍为数字形态；落点 P5（G-A1 收尾） |
 | R-1b P2 卡外缺陷 | `OperationsCommands` 用 `UUID.randomUUID()` 作关联号，违反 ADR-0033 第 1 项第 11 条；手术式小卡 OPS-CID，P2 合并后 |
+| R-1b P3b RULING-P3B-9 | C1 落地后按身份模型删除或改形 kernel 端口 `ExternalSubjectEmployees`（集成层只读运维命令按外部主体查快照员工，workforce 实现）及其在 `module-dependencies.txt` 的登记行（DA-3 时复核是否仍需要） |
 | #184 opus 点检 Low | `review_revisions.py` 的 `GITHUB_ACTIONS == "true"` 补自测（true 且无基线失败、false 只告警）；空 `--base` 被拒时先输出一行针对性错误；与 #119 余项同文件，下一张文档工具小卡 |
 
 ### 7.9 子代理工作区约定（运行环境限制，2026-10-15 起）
@@ -456,6 +457,35 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 ```
 
 两条线文件基本不相交，可并行；P3b 在 D1-1、R-1b-0 之后（同改集成层）。
+
+### 7.11 ADR-0039 之后的 R-1b 排序（one-1a-next-3；one-coordinator 2026-10-15 采纳「甲′」）
+
+> 与 7.2、7.4、7.10 不一致处以本节为准。论证（文件交集、每张表只改一次）见负责会话私有证据 `~/.modernize/psa/handoff/one-1a-next-3/p3b-sequencing.md`。
+
+顺序（用户 2026-10-15「先保 dev（推荐）」，intent `2026-10-15-214511-one-coordinator-先保-dev-推荐.md`，取代原「甲′」顺序）：**R-1b-0a → P3b → P4 → P5 → F-1**；组织同步拆分 b → 拆分 a → R-1b-0b → DA-3 移到 F-1 之后、首次生产部署前。原顺序为 R-1b-0a → P3b → 拆分 b → 拆分 a → R-1b-0b → DA-3 → P5。
+
+理由：先把 dev 部署所需的 R-1b 收口与 F-1 做出来，拆分及其依赖项（依赖反转成环的设计卡、新词门禁）不挡关键路径；代价是组织同步几张表可能改两次，用户已接受。其后用户又定阻塞项 090 不挡 dev 首次部署、改为白名单外开放前与生产前完成（intent `2026-10-15-214650`），F-1 与 P3b–P5 已不在 dev 关键路径上，按质量节奏推进；F-1 仍按用户原定在 P5 合并后开（intent `2026-10-15-124901`），执行者 one-1a-par。
+
+随之调整（one-coordinator 2026-10-15 认可）：
+
+| 项 | 调整 |
+|---|---|
+| P5 守护收口 | 两处保留例外、到期改为拆分（`sync_run_held_separations` 复合主键改为 P5 照改，one-architecture 判定不得登记基线，P5 卡 RULING-P5-D12）：`sync_diffs.subject_key` 混装主体键登记为 `OTHER_ID_NAMES` / 去哨兵守护的例外（拆分 a）；`ddl-naming-baseline.txt` 中 `sync_runs`、`sync_diffs` 的约束与索引改名行（拆分 a）。P5 只拆 `audit_entries.subject_key` |
+| K-3b-2 | 只做部门与法人列表；`HELD` 同步列表的上限随拆分 b（该表在拆分 b 改造） |
+| F-1 | 「调岗或离岗生成待调整权限待办」只依赖领域事件、不依赖同步内部类，避免拆分 b 后搬监听点（写进 F-1 卡） |
+| P4 | 不依赖拆分或 DA-3 |
+
+下表为 ADR-0039 之后「甲′」的各项决定，除顺序外仍有效。
+
+| 项 | 决定 |
+|---|---|
+| ADR-0039:41「P3b 直接写到新 schema」 | 解释为：同步三表移出 P3b，由拆分按最终形态新建；P3b 只改 `sync_run_held_separations.employee_id` 的类型（外键指向 `employees.id`，无法避开）。决定本身不变（表只改一次、直接在最终位置）；该句与「3 个权限码」「5 个事件」计数由 one-architecture 在 ADR-0039 中加勘误说明 |
+| P3b 不等拆分 | P3b 本就要经来源对照分配自有 ID（ADR-0033 第 2 项第 3、4 条），不依赖拆分；拆分须先解决依赖反转成环（integration → workforce 与 audit → integration）、两事务一致性与新词门禁，前置会拖住 P3b → P4 → P5 → F-1 |
+| 表的位置 | P3b：workforce 快照、版本、归属期间与法人归属（DA-5 分列）、`user_accounts.employee_id`、`timesheets` 三列、审批 `initiator_id`；拆分 b：`sync_run_held_separations` 改为 workforce 待放行离职表、`last_sync_run_id` 改为引用变更集；拆分 a：`sync_runs`、`sync_diffs` 在 `platform_integration` 按最终形态新建（`subject_key` 拆列），`ddl-naming-baseline.txt` 同步表行直接删、新表合规命名（C10 例外）；DA-3：`employees` 删登录名与企业微信列；P5：`audit_entries.subject_key` |
+| 拆分内部顺序 | b 先 a 后：a 先则离职暂停仍挂在运行上，集成层须知道「谁是管理员」（被否决的 A2） |
+| R-1b-0 拆为 0a / 0b（重开 C-10） | 0a（外部读取登记合并、`dbo.` 限定、启动时基表子集检查、`TYPE` 校验、三项守护 = D-1a-01 全部）现在做、P3b 前；0b（`STATE` / `IS_DELETED` / `IS_ENABLE` 读取、两项不一致判定记在集成层同步差异、RULING-R1B0-5）排在拆分 a 后。理由：按 ADR-0039 不一致判定的输入都是 A8 概念，只能在集成层，而同步差异要到拆分 a 才在集成层；不拆则 D-1a-01 要晚到拆分 a 之后 |
+| 新词 G06 / G07 | 撤下，随拆分 a 与集成层新词一并确认；G01–G05 照常确认（0a 只用 G01–G03） |
+| 拆分前设计卡 | one-architecture：依赖反转成环、登录查人改为 workforce 定义端口 / 集成层实现、D-1a-03「单事务」条款改写（不再问用户：用户选 A1 时已批两事务与组织同步整体搬） |
 
 ## 8. 2026-10-15 追加：部署前开发编排调整（one-1a-par）
 
@@ -508,6 +538,7 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 |---|---|---|---|
 | FLW-2 BPMN 不用引擎计时器与到期 | 守护：流程定义（`processes/**.bpmn20.xml`）不得含计时器事件与 `flowable:dueDate`，时限只由 `approval_tasks` 与定时作业判定（RULE-386）；执行者到时定，opus 复审 | R-1b P4 之后（P4 独占 `EngineWiring`） | FLW-1 复审 L-6；one-coordinator 2026-10-15 排卡 |
 | OPS-PORT 运维命令档案不起 Web（结构性） | `identity-operations` 档案真正不起 Web：单独装配不依赖 Web 应用类型的 JDBC 会话仓库，控制器、安全链与 `CallerUserIdResolver` 等 Web 配置不进该档案上下文；`OperationsProfileSmokeTest` B1-R3 改为断言没有 WebServer（更严，PR 单列）；回归测试 `OperationsProfileListensOnNoPortTest`（分支 `claude/one-1a-par-ops-port`，先红已提交）。起因：one.env 的 `SERVER_PORT` / `MANAGEMENT_SERVER_PORT` 环境变量优先于档案文件；保留 servlet 设 `port=-1` 时 Tomcat 仍开随机端口（B1-R3 断言名不副实，已先改说明）。dev 前兜底：C-5 运行写法加 `UnsetEnvironment` 两端口变量（one-ops），`SERVER_ADDRESS=127.0.0.1` 使随机端口只绑回环；开工前向 one-1a-next-3 确认独占构件、按术语门禁列新词 | R-1b P2 合并后 | one-1a-par 发现；one-coordinator 2026-10-15 裁定方向 A、标结构性 |
+| 数据范围后续维度与能力（F-1 规则对照登记） | 利润中心作为数据范围维度（ADR 登记，与法人同构，随首个带利润中心列的财务事实）；项目角色访问（项目线与职能线取并集，至迟与首个项目事实同期）；带到期日的临时授权；外部顾问 / 分包人员只许项目范围且有到期日；长期休假暂停访问（依赖人事状态）；定期复核上线前，生产前每月出授权历史报表 | 各自阶段，交 one-rules 起草、用户排期 | `phase1a/cards/F-1-aec-check.md`；one-coordinator 2026-10-15 |
 
 **F-1 规格裁定**（one-coordinator 2026-10-15 裁定，验收测试据此写，分支 `claude/one-1a-par-f1-acceptance`，与实现同一 PR 合并）：
 - 自定义部门明细挂在角色版本上，归 `role:update`（已采纳 ADR-0034 第 5 项）；2.4 F-1 行「授予时选范围的权限沿用 `account-role:update`」写于 ADR-0034 采纳前，以 ADR 为准；contract D-1a-58 在 1a 范围内由 ADR-0034 解决。
@@ -559,6 +590,13 @@ D1 线：D1-4（待 #129 定桶与 Hikari）→ D1-3 扩 G-P5；D1-7
 | F-4：ID 字符串显示 | 首次部署前 | **随 R-1b** | 依赖 R-1b P2–P5 |
 | OSS-1、OSS-2 结论 | 首次部署前须有结论 | **dev 前**；dev 不启用归档写入时，改为启用归档写入之前 | 归档写入方上线即需要 |
 | 安全缺陷卡（B3-R2..R5、b12-M-8、b12-M-11、B2b NEW-2、INT-M4 / M5、INT-L30） | 首次部署前 | **dev 前** | 安全与正确性类 |
+
+**R-1b-0 推迟的两项守护**（one-1a-next-3，one-coordinator 2026-10-15 同意 C-8；卡见 `cards/R-1b-0.md`）：
+
+| 守护（ADR-0037 守护第 3 组） | 推迟到 | 为何后做更有价值（CS-1.9） |
+|---|---|---|
+| 集成层日志与向外异常不带 SQL 异常消息（扫描 `getMessage()` 等） | O-1 | 集成层有非 SQL 路径的合理用法（`DeliverWecomCards`、`ResolveWecomUserId`、`MigrateOnlyListener`），扫描范围须与 O-1 的日志口径一起定；seeyon 适配器现已统一用 `ExternalFailure` |
+| 迁入、对账端口的用途边界 ArchUnit | ADR-0036 第一个迁入端口 | 现在没有任何迁入、对账端口，守护无守护对象；随第一个端口一起写才能带真实负向样例 |
 
 ### Phase 2 前置项（流程梳理须定，one-1a-next-3 登记）
 

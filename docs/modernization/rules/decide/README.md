@@ -14,7 +14,7 @@
 |---|---|
 | 1. 写数据 | FD 改 `r0/FINANCE_DECISIONS.md`；其他单子写 `sheets/<单子>.json`，格式见下 |
 | 2. 生成 | `python3 docs/modernization/rules/decide/build_decision_page.py <单子>[,<单子>...] <scratchpad>/<文件>.html` |
-| 3. 发布 | 同一单子覆盖到上表链接（Artifact 带 `url`）；能力 `db`（集合 `answers`、`answers-submit` 只许 owner 写）+ `user` |
+| 3. 发布 | 同一单子覆盖到上表链接（Artifact 带 `url`）；能力 `db`（集合 `answers`、`answers-submit` 只许 owner 写）+ `user`；**固定 `contract: "0.2.80"`**（0.2.81、0.2.82 在手机上白屏过，新版验证可用后再升）；发布后用内置浏览器核对真实渲染，没登录就报告「未实看」并请人先在手机上打开确认 |
 | 4. 读答复 | 用户说已提交后，ArtifactData `list` 集合 `answers` 与 `answers-submit`（同一个 `out_dir`），再 `python3 docs/modernization/rules/decide/export_answers.py <单子> <out_dir>` → `answers/<单子>.json`；提交后又改过的组导出失败，请用户重新提交 |
 | 5. 写回 | 答复写回规则卡（如 `rules/GL_FINANCE_DECISIONS.*`、`r0/FINANCE_QUESTIONS.md` 去向），用户原话记 intent；会计类经财务（ADR-0018） |
 

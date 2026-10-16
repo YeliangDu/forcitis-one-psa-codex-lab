@@ -41,12 +41,12 @@ class OwnAttributionIT extends AccountsAcceptanceSupport {
     @Test
     @DisplayName("R-1b P2 ADR-0033 第 3 项第 3 条 / ADR-0027 第 2 项第 2 条：不能改自己的法人归属（操作人即本人，按员工 ID 与其部门链比较）：本人条目、本部门、上级部门都 403；他人条目照常可改")
     void nobodyChangesTheirOwnAttribution() throws Exception {
-        long top = newOrgUnitId();
-        long own = newOrgUnitId();
+        UUID top = newOrgUnitId();
+        UUID own = newOrgUnitId();
         orgUnit(top, null, null);
         orgUnit(own, top, null);
-        long maintainer = newEmployeeId();
-        long colleague = newEmployeeId();
+        UUID maintainer = newEmployeeId();
+        UUID colleague = newEmployeeId();
         employee(maintainer, own, null);
         employee(colleague, top, null);
         grantByOperations(maintainer, "org_data_admin");
@@ -57,9 +57,9 @@ class OwnAttributionIT extends AccountsAcceptanceSupport {
         assertThat(employeeOfAccount(maintainerAccount)).isEqualTo(maintainer);
         UUID legalEntity = createLegalEntity(colleagueSession, "OWA", "Synthetic own attribution");
 
-        MockHttpServletResponse ownEntry = attribute(EMPLOYEES + maintainer, maintainerSession, legalEntity);
-        MockHttpServletResponse ownUnit = attribute(ORG_UNITS + own, maintainerSession, legalEntity);
-        MockHttpServletResponse unitAbove = attribute(ORG_UNITS + top, maintainerSession, legalEntity);
+        MockHttpServletResponse ownEntry = attribute(EMPLOYEES + text(maintainer), maintainerSession, legalEntity);
+        MockHttpServletResponse ownUnit = attribute(ORG_UNITS + text(own), maintainerSession, legalEntity);
+        MockHttpServletResponse unitAbove = attribute(ORG_UNITS + text(top), maintainerSession, legalEntity);
 
         assertThat(ownEntry.getStatus()).as(ownEntry.getContentAsString()).isEqualTo(403);
         assertThat((String) JsonPath.read(ownEntry.getContentAsString(), "$.errorCode")).isEqualTo("ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN");
@@ -67,7 +67,7 @@ class OwnAttributionIT extends AccountsAcceptanceSupport {
         assertThat(unitAbove.getStatus()).as("department above: " + unitAbove.getContentAsString()).isEqualTo(403);
         assertThat(auditEntriesBy(maintainerAccount, "organization.workforce.legal-entity-attribution.refused")).hasSizeGreaterThanOrEqualTo(3);
 
-        MockHttpServletResponse someoneElse = attribute(EMPLOYEES + maintainer, colleagueSession, legalEntity);
+        MockHttpServletResponse someoneElse = attribute(EMPLOYEES + text(maintainer), colleagueSession, legalEntity);
 
         assertThat(someoneElse.getStatus()).as(someoneElse.getContentAsString()).isEqualTo(200);
     }

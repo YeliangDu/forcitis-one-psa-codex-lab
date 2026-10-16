@@ -3,7 +3,7 @@ components:
     ApprovalCompleted:
       name: ApprovalCompleted
       title: 审批结束（已通过 / 已驳回 / 已退回 / 已撤销）
-      description: 审批结束（已通过、已驳回、已退回、已撤销）。aggregateId 是 单据类型:单据标识，如 TIMESHEET:7；过程里程碑，不过账。发起人撤回（RULE-269）以 RETURNED 结束本轮，与审批人退回同形，区别看信封 actorId 是否为发起人以及 reason。消费方 cost.timesheet 按 eventId 幂等，轮次与等待中的轮次不符则忽略；分析层
+      description: 审批结束（已通过、已驳回、已退回、已撤销）。aggregateId 是审批请求 ID；过程里程碑，不过账。发起人撤回（RULE-269）以 RETURNED 结束本轮，与审批人退回同形，区别看信封 actorId 是否为发起人以及 reason。消费方 cost.timesheet 按 eventId 幂等，轮次与等待中的轮次不符则忽略；分析层
         L1 用于审批时效。 发起人撤回与审批人退回同形，用 returnSource 区分；platform.approval 的通知监听器据此给发起人发完成卡片（D-1a-135）。
       payload:
         type: object
@@ -23,6 +23,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           processKey:
             type: string
             enum:
@@ -30,6 +31,7 @@ components:
           instanceId:
             type: string
             x-type: ApprovalInstanceId
+            format: uuid
             description: 流程实例 ID
           round:
             type: object
@@ -56,6 +58,7 @@ components:
           initiator:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 发起人，完成卡片发给他
           returnSource:
             type: string
@@ -106,9 +109,11 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           initiator:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 提交单据的员工，由所有者记录，不取自客户端
           round:
             type: object
@@ -171,18 +176,20 @@ components:
     TaskAssigned:
       name: TaskAssigned
       title: 任务已分配（每位会签审批人一个任务）
-      description: 任务已分配，每位会签审批人一个任务；过程事实，不过账。platform.approval 的通知监听器据此给每个候选人发企业微信文本卡片（去重键 approval-task:{taskId}）。系统自动通过的任务（RULE-302）不发此事件，发 TaskResulted（AUTOMATIC）。分析层 L1 以此为审批等待时长的起点。
+      description: 任务已分配，每位会签审批人一个任务；过程事实，不过账。platform.approval 的通知监听器据此给每个候选人发企业微信文本卡片（去重键为对象类别 + 对象 ID + 用途 + 触发事件）。系统自动通过的任务（RULE-302）不发此事件，发 TaskHandled（AUTOMATIC）。分析层 L1 以此为审批等待时长的起点。
       payload:
         type: object
         properties:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           processKey:
             type: string
           processName:
@@ -207,6 +214,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -224,6 +232,7 @@ components:
           initiator:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           candidates:
             type: array
@@ -268,11 +277,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -288,6 +299,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           claimedBy:
             type: string
             x-type: UserId
@@ -308,8 +320,8 @@ components:
         businessDate: 认领当日（Asia/Shanghai）
         audit: audited
         publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
-    TaskResulted:
-      name: TaskResulted
+    TaskHandled:
+      name: TaskHandled
       title: 任务已办理（通过 / 驳回 / 退回）
       description: 任务已办理（通过、驳回、退回）；过程事实，不过账。系统自动通过与被跳过的节点不发此事件。effect=ADVISORY 是加签人的驳回，只记录意见，不结束本轮（RULE-273、RULE-291）。通过时 reason 为空（RULE-280）。 系统自动通过（同一审批人同一节点内容未变，RULE-302）也发本事件，effect 为 AUTOMATIC（D-1a-66）。
       payload:
@@ -318,11 +330,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           processKey:
             type: string
           document:
@@ -340,6 +354,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -373,9 +388,9 @@ components:
                 type: string
             description: 原因；通过时为空
       x-event:
-        eventType: platform.approval.TaskResulted
+        eventType: platform.approval.TaskHandled
         version: 1
-        class: com.forcitis.one.platform.approval.events.TaskResulted
+        class: com.forcitis.one.platform.approval.events.TaskHandled
         aggregate: ApprovalRequest
         idempotencyKey: eventId
         publisher: platform.approval
@@ -397,11 +412,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -417,6 +434,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -457,8 +475,8 @@ components:
         audit: audited
         publisherTest: com.forcitis.one.platform.approval.domain.ApprovalTaskStateMachineTest
         title: 当前处理人把任务转交给他人（RULE-285，D-1a-75）
-    ApprovalTaskOverdue:
-      name: ApprovalTaskOverdue
+    ApprovalTaskBecameOverdue:
+      name: ApprovalTaskBecameOverdue
       title: 任务超过审批时限仍未处理（只提醒，不自动通过）
       description: 任务超过审批时限仍未处理，只提醒，不自动通过；过程事实，不过账，计入时效统计。由定时作业触发，aggregateVersion 取所属任务聚合的序号。通知监听器据此给处理人发企业微信提醒。
       payload:
@@ -467,11 +485,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -487,6 +507,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -506,9 +527,9 @@ components:
               format: uuid
             description: 被提醒的人
       x-event:
-        eventType: platform.approval.ApprovalTaskOverdue
+        eventType: platform.approval.ApprovalTaskBecameOverdue
         version: 1
-        class: com.forcitis.one.platform.approval.events.ApprovalTaskOverdue
+        class: com.forcitis.one.platform.approval.events.ApprovalTaskBecameOverdue
         aggregate: ApprovalRequest
         idempotencyKey: eventId
         publisher: platform.approval
@@ -529,11 +550,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -549,6 +572,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -593,11 +617,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -613,6 +639,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -650,11 +677,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -670,6 +699,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -720,11 +750,13 @@ components:
           taskId:
             type: string
             x-type: ApprovalTaskId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 任务 ID（UUID）
           instanceId:
             type: string
             x-type: ApprovalInstanceId
-            description: 稳定 ID 的字符串形式
+            format: uuid
+            description: 流程实例 ID（UUID）
           document:
             type: object
             required:
@@ -740,6 +772,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           nodeKey:
             type: object
             x-type: NodeKey
@@ -764,7 +797,7 @@ components:
     ApprovalRoundStarted:
       name: ApprovalRoundStarted
       title: 审批开新一轮
-      description: 审批开始新一轮：首次发起，或退回、驳回、撤销之后重新发起（D-1a-78）；过程里程碑，不过账。aggregateId 是 单据类型:单据标识。
+      description: 审批开始新一轮：首次发起，或退回、驳回、撤销之后重新发起（D-1a-78）；过程里程碑，不过账。aggregateId 是审批请求 ID。
       payload:
         type: object
         properties:
@@ -783,6 +816,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           processKey:
             type: string
             enum:
@@ -790,6 +824,7 @@ components:
           instanceId:
             type: string
             x-type: ApprovalInstanceId
+            format: uuid
             description: 本轮流程实例 ID
           round:
             type: object
@@ -801,6 +836,7 @@ components:
           initiator:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 发起人
       x-event:
         eventType: platform.approval.ApprovalRoundStarted

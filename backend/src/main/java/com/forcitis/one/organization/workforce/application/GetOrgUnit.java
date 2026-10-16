@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.OrgUnitAccess;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.kernel.UserId;
@@ -12,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 /** A unit outside the caller's scope answers like one that does not exist, and the attempt is audited (ADR-0026 section 1 item 7). */
@@ -25,10 +28,7 @@ public class GetOrgUnit {
         this.audit = audit;
     }
 
-    public Optional<OrgUnitDetailView> execute(long orgUnitId, OrgUnitAccess.Visible visible, UserId actor) {
-        if (orgUnitId == 0) {
-            return Optional.empty();
-        }
+    public Optional<OrgUnitDetailView> execute(UUID orgUnitId, OrgUnitAccess.Visible visible, UserId actor) {
         OrgUnitId id = new OrgUnitId(orgUnitId);
         var all = snapshots.findAllOrgUnits();
         Map<OrgUnitId, OrgUnit> byId = new LinkedHashMap<>();
@@ -39,7 +39,7 @@ public class GetOrgUnit {
         }
         Set<OrgUnitId> allowed = OrgUnitVisibility.idsIn(all, visible);
         if (!allowed.contains(id)) {
-            audit.recordIndependently(new AuditEntry("organization.workforce.org-unit.denied", actor, null, "org-unit:" + orgUnitId,
+            audit.recordIndependently(new AuditEntry("organization.workforce.org-unit.denied", actor, null, AuditSubject.of(AuditSubjectKind.ORG_UNIT, orgUnitId),
                     "outside the scope of the caller"));
             return Optional.empty();
         }

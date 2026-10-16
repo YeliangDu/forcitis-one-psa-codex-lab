@@ -90,7 +90,7 @@ platform.approval -> platform.identity, organization.workforce, platform.integra
 | **`organization.attendance` 提前到 1a 建**（工作日历） | 「BC 提前到 1a 建；默认日历一份，预留法人专属日历」 | schema `organization_attendance`；`WorkCalendar` 周末休息、其余上班，叠加按年维护的节假日与调休上班日，业务时区 Asia/Shanghai（`forcitis.kernel.business-zone`）；依赖的年份未维护则失败并告警；维护权限 `organization.attendance:work-calendar:update` |
 | **版本只写在路径里**（复审 M3） | 「删除 ApiVersioning，@RequestMapping 写死 /api/v1」 | 控制器直接写 `/api/v1/...`，`/api/1/...` 是 404；破坏性变更另开 `/api/v2/` 控制器 |
 | **审计订阅领域事件** | 「B 审计订阅领域事件 (Recommended)」 | 对外有意义的业务状态变化，审计统一订阅领域事件（事件发布登记表保证不漏记）；安全事件（登录失败、拒绝访问）仍用 `recordIndependently` |
-| **审批时限 T+1 工作日** | 「工时要求T+1 审批完毕……」；T 从提交当天起算，+1 按工作日（需要工作日历）；超时提醒、升级给上级、计入时效统计，不自动通过 | 引擎通用的审批时限能力，时限由 DMN 或配置给出；工作日历由管理员维护；事件 `ApprovalTaskOverdue`、`ApprovalTaskEscalated` |
+| **审批时限 T+1 工作日** | 「工时要求T+1 审批完毕……」；T 从提交当天起算，+1 按工作日（需要工作日历）；超时提醒、升级给上级、计入时效统计，不自动通过 | 引擎通用的审批时限能力，时限由 DMN 或配置给出；工作日历由管理员维护；事件 `ApprovalTaskBecameOverdue`、`ApprovalTaskEscalated` |
 
 无环要点：integration 不认识 FORCITIS one 用户；企业微信 userid 由 workforce 快照持有，identity 在登录时按 userid 查 workforce 的 api（取消 `external_identities` 表，评审 #8）；通知时 approval 从 workforce 取收件人的 userid，再调 integration 发送；审计由各模块调用 audit 的 api。各模块 api 方法数 ≤ 12（`ArchitectureRulesTest`）。
 
@@ -183,7 +183,7 @@ flowchart LR
 - **过渡态说明**（用户 2026-10-14：「主数据全部进新系统」「自建整个 hrm」）：1a 的 A8 组织快照是**过渡态**——员工与组织主数据最终归新系统（自建 HRM），届时 A8 不再是组织主数据源；1a 范围不变，快照模型与 `OrgDirectory` 契约按「来源可替换」设计（来源只在 workforce 的 infrastructure 中）。
 - **权责事实边界（GUIDING_PRINCIPLES §9a，用户 2026-10-14：「确保权责业务事实全部在新系统」）**：A8 在新系统中作为组织主数据（部门、人员、岗位、汇报线、负责人）、身份（致远 SSO）的来源。合同、产值 / 收入确认、成本、费用、开票、回款、分包、付款等权责事实不得**作为输入**从 A8 读取，也不在 A8 存放；取证、迁入、对账与等价核对可读 A8 任意表（ADR-0037）。A8 读取只在 `platform.integration` 的适配器中，由 ArchUnit 守护（`ExternalConnectionIsolationTest`）。老 fst 中其他 `a8_db` 跨库读取（如 `docs/ops/oa-*` 存储过程涉及的报价、产值、开票、奖金）不在新系统中以「直接读 A8」延续，在各自阶段改为新系统自有事实。
 - **§9a 的机器守护**（architecture-critic §9a 专项核对，2026-10-14）：
-  - **视图列白名单入库**：`organization/workforce/seeyon-view-columns.yaml` 列出视图名、列名、来源表与列、分类（组织 / 身份），启动时校验 `INFORMATION_SCHEMA.COLUMNS` 与白名单**完全相等**（不只是「所需列存在」）。A8 账号按 ADR-0037 全库只读（库级 SELECT，库级 DENY 写、DDL、EXECUTE、REFERENCES），应用启动、每次同步前与至少每天按 ADR-0037 第 4 项 (a)–(f) 校验账号等于平台基线，不满足或无法判定即拒绝启动或停掉连接；集成测试断言写操作被拒绝。视图冻结，列白名单相等校验只对仍经视图读取的路径（ADR-0037 第 6 项）。
+  - **外部读取登记入库**：`backend/architecture/external-read-registry.yaml` 一列一行登记读取的对象（`forcitis_one` 视图或 `dbo.` 基表）、列、来源表与列、分类、敏感级别与读取用途（运行时同步 / 运行时待办 / 迁入 / 迁入核对）；启动时仍经视图读取的路径校验 `INFORMATION_SCHEMA.COLUMNS` 与登记**完全相等**（不只是「所需列存在」），运行时用途的基表行做子集检查（基表多出的列不报），迁入与迁入核对用途的行不进启动检查（ADR-0037 第 6 项第 1 条、第 8 项第 4 条）。基表一律写 `dbo.` 限定名（A8 账号默认 schema 为 `forcitis_one`）。A8 账号按 ADR-0037 全库只读（库级 SELECT，库级 DENY 写、DDL、EXECUTE、REFERENCES），应用启动、每次同步前与至少每天按 ADR-0037 第 4 项 (a)–(f) 校验账号等于平台基线，不满足或无法判定即拒绝启动或停掉连接；集成测试断言写操作被拒绝。视图冻结，视图列与登记的相等校验只对仍经视图读取的路径（ADR-0037 第 6 项）。
   - **1a 白名单范围**（运行时经视图读取的范围，不再是授权边界，ADR-0037）：`ORG_UNIT`、`ORG_RELATIONSHIP`（负责人、区域 AR 两种关系类型）、`ADDRESSBOOK` 扩展属性 32 / 33 与 `CTP_ENUM*` 显示值、`ORG_POST`、`ORG_MEMBER`、`ORG_PRINCIPAL.LOGIN_NAME`，以及 `formmain_0307` 的 3 列（企业邮箱、性别、收费员工标识）。生日（`EXT_ATTR_21`，敏感信息）、银行卡等不进 1a 视图。
   - **收费员工标识**：A8 `FIELD0244` 在新系统中命名为 `employees.is_fee_earner`（不叫 `is_billable`），只是人事分类。可计费性由新系统判定，这个标识只是输入之一；以后凡是用到它的权责事实，都要把当时的值和同步批次号一并快照。
   - **单一路径**：批量同步与登录未命中时的单人查询共用同一视图、同一映射器，只是查询条件不同。
@@ -231,10 +231,10 @@ stateDiagram-v2
     [*] --> COMPLETED: assignAutomatically（RULE-302，无卡片无结果事件）
     PENDING --> CLAIMED: claim（TaskClaimed）
     CLAIMED --> CLAIMED: transfer（TaskTransferred）
-    CLAIMED --> COMPLETED: complete（TaskResulted）
+    CLAIMED --> COMPLETED: complete（TaskHandled）
     PENDING --> CLOSED: close（本轮已结束）
     CLAIMED --> CLOSED: close
-    PENDING --> PENDING: markOverdue（ApprovalTaskOverdue，一次）
+    PENDING --> PENDING: markOverdue（ApprovalTaskBecameOverdue，一次）
     CLAIMED --> CLAIMED: markOverdue
     CLAIMED --> PENDING: escalate（ApprovalTaskEscalated：释放认领，一次，须先超时）
     PENDING --> PENDING: escalate
@@ -253,7 +253,7 @@ sequenceDiagram
     R->>A: 异步发起（StartApprovalOnSubmission 调用 ApprovalProcesses.start；按单据 + 轮次 + 触发事件幂等）
     A-->>R: ApprovalRoundStarted、TaskAssigned（每位会签审批人一个任务）
     M->>A: 认领、办理（服务端校验操作人）
-    A-->>R: TaskClaimed、TaskResulted
+    A-->>R: TaskClaimed、TaskHandled
     A-->>R: ApprovalCompleted（APPROVED / REJECTED / RETURNED / CANCELLED）
     R->>T: ApplyApprovalResult（按 eventId 幂等；轮次不符忽略）
     T-->>R: TimesheetApproved / Returned / Rejected / Cancelled
@@ -293,7 +293,7 @@ flowchart LR
 - 通知意图（`TaskAssigned`、`ApprovalCompleted`、知会）→ approval 内部的通知端口（接口隔离；出现第二个使用者时再抽出 `platform.notification`，评审 #17）→ 从 workforce 取 userid → integration 发送 **文本卡片 + 跳转链接，不带按钮**（评审 #10）。`touser` 精确匹配，不带 `@all`。失败记入 `outbound_deliveries`，退避重试，进死信时告警。
 - 卡片按钮回调（C1a-15 的 P1 部分）推迟。原因：企业微信应用只有一个回调地址，目前由老系统占用。等老待办排空，或者新开独立的企业微信应用之后再做。
 - **候选组通知策略待 Q-3**：改为候选组认领后，一个任务会通知 N 个人。
-- 审批时限与转交增加三种卡片：超时提醒（`ApprovalTaskOverdue`，发给处理人）、升级（`ApprovalTaskEscalated`，发给上级或流程管理员）、转交（`TaskTransferred`，发给新处理人）；去重键分别是 `approval-task:{taskId}:overdue`、`:escalated`、`:transfer:{eventId}`。
+- 审批时限与转交增加三种卡片：超时提醒（`ApprovalTaskBecameOverdue`，发给处理人）、升级（`ApprovalTaskEscalated`，发给上级或流程管理员）、转交（`TaskTransferred`，发给新处理人）；去重键分别是 `approval-task:{taskId}:overdue`、`:escalated`、`:transfer:{eventId}`。
 - 非生产环境：收件人改为配置的白名单，agentId 按环境配置（RULE-375）。
 
 ### 3.8 安全验证

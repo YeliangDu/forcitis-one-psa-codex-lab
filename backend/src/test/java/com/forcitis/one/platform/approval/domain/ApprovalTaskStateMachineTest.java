@@ -33,13 +33,13 @@ import com.forcitis.one.platform.approval.api.TaskOutcome;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import com.forcitis.one.platform.approval.events.ApprovalRoundStarted;
 import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
-import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
+import com.forcitis.one.platform.approval.events.ApprovalTaskBecameOverdue;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
 import com.forcitis.one.platform.approval.events.TaskClaimed;
 import com.forcitis.one.platform.approval.events.TaskClosed;
 import com.forcitis.one.platform.approval.events.TaskReassigned;
 import com.forcitis.one.platform.approval.events.TaskReleased;
-import com.forcitis.one.platform.approval.events.TaskResulted;
+import com.forcitis.one.platform.approval.events.TaskHandled;
 import com.forcitis.one.platform.approval.events.TaskTransferred;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -53,18 +53,18 @@ class ApprovalTaskStateMachineTest {
 
     static final UserId HOLDER = TestAccounts.account(20);
     static final UserId OTHER = TestAccounts.account(21);
-    static final EmployeeId INITIATOR = new EmployeeId(10);
+    static final EmployeeId INITIATOR = TestAccounts.employee(10);
     static final Instant DUE = Instant.parse("2026-10-19T15:59:00Z");
     static final Instant REMIND_AT = Instant.parse("2026-10-20T01:00:00Z");
     static final Instant ESCALATE_AT = Instant.parse("2026-10-21T01:00:00Z");
     static final Instant AFTER_BOTH = Instant.parse("2026-10-22T00:00:00Z");
     static final Moment NOW = new Moment(AFTER_BOTH, LocalDate.of(2026, 10, 22));
-    static final ApprovalTaskId TASK = new ApprovalTaskId("t-1");
-    static final ApprovalInstanceId INSTANCE = new ApprovalInstanceId("i-1");
+    static final ApprovalTaskId TASK = com.forcitis.one.TestApprovalIds.task("t-1");
+    static final ApprovalInstanceId INSTANCE = com.forcitis.one.TestApprovalIds.instance("i-1");
     static final NodeKey NODE = new NodeKey("projectManagerReview");
     static final com.forcitis.one.platform.approval.api.NodeName NODE_NAME = new com.forcitis.one.platform.approval.api.NodeName("项目经理审批");
     static final UserId ADMIN = TestAccounts.account(1);
-    static final DocumentReference DOCUMENT = new DocumentReference(DocumentType.TIMESHEET, new DocumentId("7"));
+    static final DocumentReference DOCUMENT = new DocumentReference(DocumentType.TIMESHEET, com.forcitis.one.TestApprovalIds.document("7"));
     static final DeadlinePlan PLAN = new DeadlinePlan(DUE, REMIND_AT, ESCALATE_AT);
     static final TestEventEnvelopes ENVELOPES = new TestEventEnvelopes();
 
@@ -78,7 +78,7 @@ class ApprovalTaskStateMachineTest {
     }
 
     static ApprovalRequest requestWith(ApprovalTask task) {
-        return ApprovalRequest.restore(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, 1, INSTANCE,
+        return ApprovalRequest.restore(com.forcitis.one.TestApprovalIds.requestId(), com.forcitis.one.TestApprovalIds.generator(), ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, 1, INSTANCE,
                 ApprovalStatus.RUNNING, null, new ApprovalSummary("summary"), List.of(task), 0, 0);
     }
 
@@ -180,9 +180,9 @@ class ApprovalTaskStateMachineTest {
         worded.completeTask(TASK, HOLDER, TaskOutcome.APPROVED, false, new Reason("looks right"), new ContentHash("d"), NOW);
         assertThat(worded.task(TASK).resultReason()).contains(new Reason("looks right"));
         List<DomainEvent> events = worded.drainEvents(ENVELOPES);
-        assertThat(((TaskResulted) events.getFirst()).reason()).isEqualTo(new Reason("looks right"));
+        assertThat(((TaskHandled) events.getFirst()).reason()).isEqualTo(new Reason("looks right"));
         List<DomainEvent> silentEvents = silent.drainEvents(ENVELOPES);
-        assertThat(((TaskResulted) silentEvents.getFirst()).reason()).isNull();
+        assertThat(((TaskHandled) silentEvents.getFirst()).reason()).isNull();
     }
 
     @Test
@@ -195,18 +195,18 @@ class ApprovalTaskStateMachineTest {
         ApprovalRequest advisory = in(ApprovalTaskStatus.CLAIMED);
         advisory.completeTask(TASK, HOLDER, TaskOutcome.REJECTED, true, new Reason("too high"), new ContentHash("h1"), NOW);
         assertThat(advisory.task(TASK).approvedHash()).isEmpty();
-        assertThat(((TaskResulted) advisory.drainEvents(ENVELOPES).getFirst()).effect()).isEqualTo(TaskEffect.ADVISORY);
+        assertThat(((TaskHandled) advisory.drainEvents(ENVELOPES).getFirst()).effect()).isEqualTo(TaskEffect.ADVISORY);
 
-        ApprovalRequest request = ApprovalRequest.begin(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, INSTANCE,
+        ApprovalRequest request = ApprovalRequest.begin(com.forcitis.one.TestApprovalIds.generator(), ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, INSTANCE,
                 new ApprovalSummary("summary"), UUID.randomUUID(), NOW);
         request.drainEvents(ENVELOPES);
-        TaskAssignment assignment = new TaskAssignment(new ApprovalTaskId("t-3"), INSTANCE, NODE, new NodeName("Review"),
+        TaskAssignment assignment = new TaskAssignment(com.forcitis.one.TestApprovalIds.task("t-3"), INSTANCE, NODE, new NodeName("Review"),
                 new ProcessName("Timesheet approval"), List.of(HOLDER), Optional.empty());
         request.passAutomatically(assignment, HOLDER, NOW);
-        assertThat(request.task(new ApprovalTaskId("t-3")).status()).isEqualTo(ApprovalTaskStatus.COMPLETED);
-        assertThat(request.task(new ApprovalTaskId("t-3")).approvedHash()).isEmpty();
+        assertThat(request.task(com.forcitis.one.TestApprovalIds.task("t-3")).status()).isEqualTo(ApprovalTaskStatus.COMPLETED);
+        assertThat(request.task(com.forcitis.one.TestApprovalIds.task("t-3")).approvedHash()).isEmpty();
         List<DomainEvent> events = request.drainEvents(ENVELOPES);
-        assertThat(events).singleElement().isInstanceOfSatisfying(TaskResulted.class, result -> {
+        assertThat(events).singleElement().isInstanceOfSatisfying(TaskHandled.class, result -> {
             assertThat(result.effect()).isEqualTo(TaskEffect.AUTOMATIC);
             assertThat(result.outcome()).isEqualTo(TaskOutcome.APPROVED);
             assertThat(result.assignee()).isEqualTo(HOLDER);
@@ -216,11 +216,11 @@ class ApprovalTaskStateMachineTest {
     @Test
     @DisplayName("RULE-295 M-4 every task event carries the request's running event number; opening a round and closing a task are events too")
     void eventsCarryTheRequestsSequence() {
-        ApprovalRequest request = ApprovalRequest.begin(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, INSTANCE,
+        ApprovalRequest request = ApprovalRequest.begin(com.forcitis.one.TestApprovalIds.generator(), ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, INSTANCE,
                 new ApprovalSummary("summary"), UUID.randomUUID(), NOW);
         TaskAssignment first = new TaskAssignment(TASK, INSTANCE, NODE, new NodeName("项目经理审批"), new ProcessName("工时审批"),
                 List.of(HOLDER, OTHER), Optional.of(PLAN));
-        TaskAssignment second = new TaskAssignment(new ApprovalTaskId("t-2"), INSTANCE, new NodeKey("supervisorReview"), new NodeName("一级汇报人审批"),
+        TaskAssignment second = new TaskAssignment(com.forcitis.one.TestApprovalIds.task("t-2"), INSTANCE, new NodeKey("supervisorReview"), new NodeName("一级汇报人审批"),
                 new ProcessName("工时审批"), List.of(HOLDER), Optional.empty());
         request.assignTask(first, NOW);
         request.assignTask(second, NOW);
@@ -239,14 +239,14 @@ class ApprovalTaskStateMachineTest {
 
         assertThat(events).extracting(e -> e.envelope().eventType()).containsExactly("platform.approval.ApprovalRoundStarted",
                 "platform.approval.TaskAssigned", "platform.approval.TaskAssigned", "platform.approval.TaskClaimed",
-                "platform.approval.ApprovalTaskOverdue", "platform.approval.ApprovalTaskEscalated", "platform.approval.TaskClaimed",
+                "platform.approval.ApprovalTaskBecameOverdue", "platform.approval.ApprovalTaskEscalated", "platform.approval.TaskClaimed",
                 "platform.approval.TaskTransferred", "platform.approval.TaskReassigned", "platform.approval.TaskReleased",
-                "platform.approval.TaskClaimed", "platform.approval.TaskResulted", "platform.approval.TaskClosed",
+                "platform.approval.TaskClaimed", "platform.approval.TaskHandled", "platform.approval.TaskClosed",
                 "platform.approval.ApprovalCompleted");
         assertThat(events).extracting(e -> e.envelope().aggregateVersion()).containsExactly(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L, 11L, 12L,
                 13L, 14L);
         assertThat(events).extracting(e -> e.envelope().aggregateType()).containsOnly("ApprovalRequest");
-        assertThat(events).extracting(e -> e.envelope().aggregateId()).containsOnly("TIMESHEET:7");
+        assertThat(events).extracting(e -> e.envelope().aggregateId()).containsOnly(request.id().value());
 
         assertThat(events.get(0)).isInstanceOf(ApprovalRoundStarted.class);
         TaskAssigned assigned = (TaskAssigned) events.get(1);
@@ -255,7 +255,7 @@ class ApprovalTaskStateMachineTest {
         assertThat(assigned.summary()).isEqualTo(new ApprovalSummary("summary"));
         assertThat(((TaskAssigned) events.get(2)).dueAt()).as("a node without a deadline has none").isNull();
         assertThat(events.get(3)).isInstanceOf(TaskClaimed.class);
-        ApprovalTaskOverdue overdue = (ApprovalTaskOverdue) events.get(4);
+        ApprovalTaskBecameOverdue overdue = (ApprovalTaskBecameOverdue) events.get(4);
         assertThat(overdue.dueAt()).isEqualTo(DUE);
         assertThat(overdue.holders()).containsExactly(HOLDER);
         ApprovalTaskEscalated escalated = (ApprovalTaskEscalated) events.get(5);
@@ -268,7 +268,7 @@ class ApprovalTaskStateMachineTest {
         assertThat(reassigned.to()).isEqualTo(TestAccounts.account(23));
         assertThat(events.get(9)).isInstanceOf(TaskReleased.class);
         assertThat(events.get(12)).isInstanceOf(TaskClosed.class);
-        assertThat(((TaskClosed) events.get(12)).taskId()).isEqualTo(new ApprovalTaskId("t-2"));
+        assertThat(((TaskClosed) events.get(12)).taskId()).isEqualTo(com.forcitis.one.TestApprovalIds.task("t-2"));
         assertThat(events.get(13)).isInstanceOf(ApprovalCompleted.class);
         assertThat(request.eventSequence()).isEqualTo(14);
     }

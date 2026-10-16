@@ -55,11 +55,11 @@ User decisions (REIMAGINED_ARCHITECTURE.md §2.1, last row): "工时要求 T+1 �
 **Category:** Lifecycle
 **Priority:** P0
 **Source:** user decision 2026-10-14
-**Plain English:** A scheduled job (ShedLock, every 5 minutes) finds open tasks past their deadline. For each, in its own transaction, the task records "overdue" once (event `ApprovalTaskOverdue`) and the holders (the assignee, or all candidates before a claim) get a WeCom text card. Repeating the run changes nothing.
+**Plain English:** A scheduled job (ShedLock, every 5 minutes) finds open tasks past their deadline. For each, in its own transaction, the task records "overdue" once (event `ApprovalTaskBecameOverdue`) and the holders (the assignee, or all candidates before a claim) get a WeCom text card. Repeating the run changes nothing.
 **Specification:**
   Given an open task whose deadline passed
   When the job runs twice
-  Then one ApprovalTaskOverdue exists and one card was sent per holder
+  Then one ApprovalTaskBecameOverdue exists and one card was sent per holder
 **Parameters:** job `platform.approval.deadline.enforce`, cron `forcitis.platform.approval.deadline.cron`.
 **Edge cases handled:** A task whose engine task is gone is closed without a reminder; a task that fails is counted (`platform.approval.deadline.failed`) and logged while the others still run.
 **Tests:** `ApprovalDeadlineIT.reminderOnceAndNeverAnApproval`, `ApprovalTaskStateMachineTest`.
@@ -106,7 +106,7 @@ User decisions (REIMAGINED_ARCHITECTURE.md §2.1, last row): "工时要求 T+1 �
 **Category:** Policy
 **Priority:** P1
 **Source:** proposals/EVENT_ANALYTICS_FIELDS.md §6 (item 3: timer-triggered events take the owning aggregate's sequence)
-**Plain English:** `ApprovalTaskOverdue` and `ApprovalTaskEscalated` are published through the event publication registry like every domain event; their envelope's aggregateVersion is the task's event number (assigned = 1, then claimed, overdue, escalated … in order). They are process facts, not posting facts.
+**Plain English:** `ApprovalTaskBecameOverdue` and `ApprovalTaskEscalated` are published through the event publication registry like every domain event; their envelope's aggregateVersion is the task's event number (assigned = 1, then claimed, overdue, escalated … in order). They are process facts, not posting facts.
 **Tests:** `ApprovalDeadlineIT`, `ApprovalTaskStateMachineTest.eventsCarryTheTaskSequence`; catalogue entries in `docs/modernization/events/approval.yaml`.
 **Confidence:** High.
 

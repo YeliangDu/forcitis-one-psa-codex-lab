@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -62,13 +63,14 @@ final class ReadOnlyVerificationCommand implements ApplicationListener<Applicati
     static final List<String> REFUSED_OPTION_WORDS = List.of("password", "secret", "credential");
     static final String SQL_SERVER_URL = "jdbc:sqlserver:";
     static final String CONFLICTING_PROFILES = "migrate | identity-operations";
+    static final Map<String, ReadOnlyConnection> RETIRED_CONNECTION_NAMES = Map.of("legacy-approval", ReadOnlyConnection.INTEGRATION_LEGACY_INBOX);
     static final List<String> QUIET_LOGGERS = List.of("com.zaxxer.hikari", "com.microsoft.sqlserver", "org.postgresql", "org.springframework.jdbc");
 
     enum ReadOnlyConnection {
         SEEYON_BACKGROUND("integration-seeyon-background", "A8_DB_URL", "A8_DB_USERNAME", "A8_DB_PASSWORD"),
         LEGACY("integration-legacy", "LEGACY_DB_RO_URL", "LEGACY_DB_RO_USERNAME", "LEGACY_DB_RO_PASSWORD"),
-        LEGACY_APPROVAL("legacy-approval", "FORCITIS_PLATFORM_APPROVAL_LEGACY_URL", "FORCITIS_PLATFORM_APPROVAL_LEGACY_USERNAME",
-                "FORCITIS_PLATFORM_APPROVAL_LEGACY_PASSWORD"),
+        INTEGRATION_LEGACY_INBOX("integration-legacy-inbox", "FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL",
+                "FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_USERNAME", "FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_PASSWORD"),
         /** The probe login of the C-14 runbook, from /etc/forcitis-one/readonly-probe.env. */
         PROBE("probe", "READONLY_PROBE_DB_URL", "READONLY_PROBE_DB_USERNAME", "READONLY_PROBE_DB_PASSWORD");
 
@@ -217,6 +219,10 @@ final class ReadOnlyVerificationCommand implements ApplicationListener<Applicati
         if (connections != 1) {
             return Optional.of("exactly one --" + CONNECTION_OPTION + "=<name> is required");
         }
+        ReadOnlyConnection renamed = RETIRED_CONNECTION_NAMES.get(connectionName(arguments));
+        if (renamed != null) {
+            return Optional.of("--" + CONNECTION_OPTION + "=" + connectionName(arguments) + " is retired: use --" + CONNECTION_OPTION + "=" + renamed.connectionName);
+        }
         if (ReadOnlyConnection.named(connectionName(arguments)).isEmpty()) {
             return Optional.of("--" + CONNECTION_OPTION + " must name one of " + ReadOnlyConnection.names());
         }
@@ -241,7 +247,11 @@ final class ReadOnlyVerificationCommand implements ApplicationListener<Applicati
         return name.replaceAll("[-_.]", "").toLowerCase(Locale.ROOT);
     }
 
-    /** Never the problem text: it names roles and databases. */
+    /**
+     * Never the problem text: it names roles and databases. Below an item line come its locator lines and, under (f), the roles of the login's
+     * own users in the system databases (READONLY_VERIFY_ACCEPTANCE.md section 3a), the only place a database, schema, object, permission,
+     * grantee or role name is printed.
+     */
     static void report(Verdict verdict, PrintStream out) {
         Map<Character, Unmet> byItem = verdict.unmet().stream().collect(Collectors.toMap(Unmet::item, Function.identity()));
         for (char item : ITEMS) {
@@ -250,6 +260,14 @@ final class ReadOnlyVerificationCommand implements ApplicationListener<Applicati
                 out.println("(" + item + ") PASSED");
             } else {
                 out.println("(" + item + ") " + (unmet.confirmed() ? "VIOLATED" : "UNDETERMINED") + details(unmet.findings()));
+                new TreeSet<>(unmet.findings().stream().flatMap(f -> f.locators().stream().map(l -> LocatorLines.violation(item, f.reason(), l))).toList())
+                        .forEach(out::println);
+            }
+            if (item == 'f') {
+                new TreeSet<>(verdict.ownUsers().stream().map(LocatorLines::ownUser).toList()).forEach(out::println);
+            }
+            if (item == 'g') {
+                new TreeSet<>(verdict.overridden().stream().map(LocatorLines::overridden).toList()).forEach(out::println);
             }
         }
         out.println("RESULT " + (verdict.violated() ? "VIOLATED" : verdict.passed() ? "PASSED" : "UNDETERMINED"));

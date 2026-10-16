@@ -45,7 +45,7 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
     DecideTasks decideTasks;
 
     List<String> actionsOf(String key) {
-        return jdbc.queryForList("select action_kind from platform_approval.approval_task_records where document_key = ? order by decided_at, record_id",
+        return jdbc.queryForList("select action_kind from platform_approval.approval_task_records where approval_request_id = (select id from platform_approval.approval_requests where document_id = cast(? as uuid)) order by record_number",
                 String.class, key);
     }
 
@@ -64,18 +64,18 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
         claimTask.execute(task, TestAccounts.account(manager), OptionalLong.empty());
         releaseTask.execute(task, TestAccounts.account(manager), OptionalLong.empty());
         claimTask.execute(task, TestAccounts.account(manager), OptionalLong.empty());
-        transferTask.execute(task, TestAccounts.account(manager), new EmployeeId(colleague), "on leave", OptionalLong.empty());
-        reassignTask.execute(task, TestAccounts.account(ADMINISTRATOR), new EmployeeId(manager), "back again", OptionalLong.empty());
+        transferTask.execute(task, TestAccounts.account(manager), TestAccounts.employee(colleague), "on leave", OptionalLong.empty());
+        reassignTask.execute(task, TestAccounts.account(ADMINISTRATOR), TestAccounts.employee(manager), "back again", OptionalLong.empty());
         decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "fine")), OptionalLong.empty());
 
         assertThat(actionsOf(key)).containsExactly("CLAIMED", "RELEASED", "CLAIMED", "TRANSFERRED", "REASSIGNED", "APPROVED");
         assertThat(jdbc.queryForMap("select actor_id, on_behalf_of_id, assignee_id, record_reason from platform_approval.approval_task_records"
-                + " where document_key = ? and action_kind = 'REASSIGNED'", key))
+                + " where approval_request_id = (select id from platform_approval.approval_requests where document_id = cast(? as uuid)) and action_kind = 'REASSIGNED'", key))
                 .containsEntry("actor_id", TestAccounts.account(ADMINISTRATOR).value()).containsEntry("on_behalf_of_id", TestAccounts.account(colleague).value())
                 .containsEntry("assignee_id", TestAccounts.account(manager).value())
                 .containsEntry("record_reason", "back again");
         assertThat(jdbc.queryForMap("select node_name, round_number, record_reason from platform_approval.approval_task_records"
-                + " where document_key = ? and action_kind = 'APPROVED'", key)).containsEntry("round_number", 1).containsEntry("record_reason", "fine");
+                + " where approval_request_id = (select id from platform_approval.approval_requests where document_id = cast(? as uuid)) and action_kind = 'APPROVED'", key)).containsEntry("round_number", 1).containsEntry("record_reason", "fine");
     }
 
     @Test
@@ -88,9 +88,9 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
         String key = newKey("append");
         claimTask.execute(openTaskId(start(key, initiator, manager)), TestAccounts.account(manager), OptionalLong.empty());
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.update("update platform_approval.approval_task_records set actor_id = '01900000-0000-7000-8000-000000000001' where document_key = ?", key))
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.update("update platform_approval.approval_task_records set actor_id = '01900000-0000-7000-8000-000000000001' where approval_request_id = (select id from platform_approval.approval_requests where document_id = cast(? as uuid))", key))
                 .isInstanceOf(org.springframework.dao.DataAccessException.class);
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.update("delete from platform_approval.approval_task_records where document_key = ?", key))
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.update("delete from platform_approval.approval_task_records where approval_request_id = (select id from platform_approval.approval_requests where document_id = cast(? as uuid))", key))
                 .isInstanceOf(org.springframework.dao.DataAccessException.class);
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> jdbc.execute("truncate platform_approval.approval_task_records"))
                 .isInstanceOf(org.springframework.dao.DataAccessException.class);
@@ -108,7 +108,7 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
         String key = newKey("history");
         ApprovalTaskId task = openTaskId(start(key, initiator, manager));
         claimTask.execute(task, TestAccounts.account(manager), OptionalLong.empty());
-        transferTask.execute(task, TestAccounts.account(manager), new EmployeeId(colleague), "on leave", OptionalLong.empty());
+        transferTask.execute(task, TestAccounts.account(manager), TestAccounts.employee(colleague), "on leave", OptionalLong.empty());
         decideTasks.execute(TestAccounts.account(colleague), List.of(new TaskDecision(task, DecisionOutcome.APPROVE, "fine")), OptionalLong.empty());
 
         mvc.perform(get("/api/v1/platform/approval-tasks/" + task.value()).with(user(TestAccounts.account(initiator).value().toString()))).andExpect(status().isOk())
@@ -162,14 +162,14 @@ class TaskHandlingRecordsIT extends ApprovalIntegrationSupport {
         long second = newId();
         organisation.unit(unit, null, null).person(initiator, unit, null).person(first, unit, null).person(second, unit, null);
         String key = newKey("cosign");
-        tx.execute(s -> approvals.start(startRequest(key, new EmployeeId(initiator),
+        tx.execute(s -> approvals.start(startRequest(key, TestAccounts.employee(initiator),
                 java.util.Set.of(com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag.PROJECT_HOURS.flagName()),
                 List.of(new com.forcitis.one.platform.approval.api.ApprovalField(
-                        com.forcitis.one.cost.timesheet.api.TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(first), String.valueOf(second)))))));
-        ApprovalTaskId task = new ApprovalTaskId(taskService.createTaskQuery().processInstanceBusinessKey("TIMESHEET:" + key)
-                .taskCandidateOrAssigned(TestAccounts.account(first).value().toString()).singleResult().getId());
+                        com.forcitis.one.cost.timesheet.api.TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(first).toString(), TestAccounts.employee(second).toString()))))));
+        ApprovalTaskId task = new ApprovalTaskId(java.util.UUID.fromString(taskService.createTaskQuery().processInstanceBusinessKey(key)
+                .taskCandidateOrAssigned(TestAccounts.account(first).value().toString()).singleResult().getId()));
 
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> reassignTask.execute(task, TestAccounts.account(ADMINISTRATOR), new EmployeeId(second), "swap", OptionalLong.empty()))
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> reassignTask.execute(task, TestAccounts.account(ADMINISTRATOR), TestAccounts.employee(second), "swap", OptionalLong.empty()))
                 .isInstanceOf(com.forcitis.one.kernel.DomainException.class);
 
         String overview = "/api/v1/platform/approval-task-overviews";

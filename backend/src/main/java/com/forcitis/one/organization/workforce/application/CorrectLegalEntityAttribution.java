@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.kernel.CallerPermissions;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
@@ -18,6 +19,7 @@ import com.forcitis.one.organization.workforce.domain.LegalEntityAttributionRepo
 import java.time.LocalDate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.UUID;
 
 /** RULE-385. Documents that already carry a legal entity keep it; correcting history never reaches back into them. */
 @Service
@@ -43,11 +45,11 @@ public class CorrectLegalEntityAttribution {
 
     /** A refusal for want of the permission is audited in its own transaction, so the entry survives the refusal. */
     @Transactional
-    public LegalEntityAttributionView execute(AttributionKind kind, long subjectId, LocalDate periodFrom, LocalDate newEffectiveTo, String reasonText,
+    public LegalEntityAttributionView execute(AttributionKind kind, UUID subjectId, LocalDate periodFrom, LocalDate newEffectiveTo, String reasonText,
                                               UserId correctedBy, ExpectedVersion expected) {
         if (!caller.holds(PERMISSION)) {
             audit.recordIndependently(new AuditEntry("organization.workforce.legal-entity-attribution.correction-refused", correctedBy, null,
-                    "legal-entity-attribution:" + kind + ":" + subjectId, "the caller lacks " + PERMISSION)
+                    AuditSubject.of(AttributionAuditKinds.of(kind), subjectId), "the caller lacks " + PERMISSION)
                     .withTrace(null, AuditOutcome.FAILED, null));
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_FORBIDDEN, ErrorKind.FORBIDDEN,
                     "correcting an attribution needs " + PERMISSION);

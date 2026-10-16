@@ -1,0 +1,368 @@
+{
+  "formatVersion": 1,
+  "processKey": "TIMESHEET",
+  "processAdministratorUserId": 900,
+  "legacyFallbackUserIds": [
+    500
+  ],
+  "snapshot": {
+    "employees": [
+      {
+        "userId": 101,
+        "orgUnitId": 1,
+        "employed": true,
+        "supervisorUserId": null
+      },
+      {
+        "userId": 105,
+        "orgUnitId": 10,
+        "employed": true,
+        "supervisorUserId": 110
+      },
+      {
+        "userId": 110,
+        "orgUnitId": 10,
+        "employed": true,
+        "supervisorUserId": 101
+      },
+      {
+        "userId": 111,
+        "orgUnitId": 10,
+        "employed": true,
+        "supervisorUserId": 110
+      },
+      {
+        "userId": 112,
+        "orgUnitId": 10,
+        "employed": true,
+        "supervisorUserId": 110
+      },
+      {
+        "userId": 201,
+        "orgUnitId": 11,
+        "employed": true,
+        "supervisorUserId": 111
+      },
+      {
+        "userId": 202,
+        "orgUnitId": 11,
+        "employed": true,
+        "supervisorUserId": null
+      },
+      {
+        "userId": 301,
+        "orgUnitId": 11,
+        "employed": false,
+        "supervisorUserId": 111
+      },
+      {
+        "userId": 500,
+        "orgUnitId": 1,
+        "employed": true,
+        "supervisorUserId": null
+      },
+      {
+        "userId": 900,
+        "orgUnitId": 1,
+        "employed": true,
+        "supervisorUserId": null
+      }
+    ],
+    "orgUnits": [
+      {
+        "orgUnitId": 1,
+        "parentOrgUnitId": null,
+        "headUserId": 101,
+        "regionalReceivablesManagerId": null,
+        "active": true
+      },
+      {
+        "orgUnitId": 10,
+        "parentOrgUnitId": 1,
+        "headUserId": 110,
+        "regionalReceivablesManagerId": null,
+        "active": true
+      },
+      {
+        "orgUnitId": 11,
+        "parentOrgUnitId": 10,
+        "headUserId": null,
+        "regionalReceivablesManagerId": null,
+        "active": true
+      }
+    ],
+    "roleHolders": {}
+  },
+  "instances": [
+    {
+      "instanceId": "SYN-1",
+      "initiatorId": 201,
+      "legacyHourTypes": [
+        0
+      ],
+      "formFields": {
+        "projectManagerId": [
+          "111"
+        ]
+      },
+      "variables": {},
+      "nodes": [
+        {
+          "nodeKey": "projectManagerReview",
+          "rule": {
+            "type": "FORM_FIELD_USERS",
+            "field": "projectManagerId"
+          },
+          "actualApprovers": [
+            111
+          ]
+        }
+      ]
+    },
+    {
+      "instanceId": "SYN-2",
+      "initiatorId": 201,
+      "legacyHourTypes": [
+        0,
+        1
+      ],
+      "formFields": {
+        "projectManagerId": [
+          "111"
+        ],
+        "regionalHeadId": [
+          "112"
+        ]
+      },
+      "variables": {},
+      "nodes": [
+        {
+          "nodeKey": "projectManagerReview",
+          "rule": {
+            "type": "FORM_FIELD_USERS",
+            "field": "projectManagerId"
+          },
+          "actualApprovers": [
+            111
+          ]
+        },
+        {
+          "nodeKey": "regionalHeadReview",
+          "rule": {
+            "type": "FORM_FIELD_USERS",
+            "field": "regionalHeadId"
+          },
+          "actualApprovers": [
+            112
+          ]
+        }
+      ]
+    },
+    {
+      "instanceId": "SYN-3",
+      "initiatorId": 201,
+      "legacyHourTypes": [
+        0,
+        1,
+        2
+      ],
+      "formFields": {
+        "projectManagerId": [
+          "111"
+        ],
+        "regionalHeadId": [
+          "110"
+        ]
+      },
+      "variables": {},
+      "nodes": [
+        {
+          "nodeKey": "projectManagerReview",
+          "rule": {
+            "type": "FORM_FIELD_USERS",
+            "field": "projectManagerId"
+          },
+          "actualApprovers": [
+            111
+          ]
+        },
+        {
+          "nodeKey": "regionalHeadReview",
+          "rule": {
+            "type": "FORM_FIELD_USERS",
+            "field": "regionalHeadId"
+          },
+          "actualApprovers": [
+            110
+          ]
+        },
+        {
+          "nodeKey": "supervisorReview",
+          "rule": {
+            "type": "INITIATOR_SUPERVISOR",
+            "level": "1"
+          },
+          "actualApprovers": [
+            111
+          ]
+        }
+      ]
+    },
+    {
+      "instanceId": "SYN-4",
+      "initiatorId": 202,
+      "legacyHourTypes": [
+        2
+      ],
+      "formFields": {},
+      "variables": {},
+      "nodes": [
+        {
+          "nodeKey": "supervisorReview",
+          "rule": {
+            "type": "INITIATOR_SUPERVISOR",
+            "level": "1"
+          },
+          "actualApprovers": [
+            105
+          ]
+        }
+      ]
+    },
+    {
+      "instanceId": "SYN-5",
+      "initiatorId": 201,
+      "legacyHourTypes": [
+        0
+      ],
+      "formFields": {
+        "projectManagerId": [
+          "301"
+        ]
+      },
+      "variables": {},
+      "nodes": [
+        {
+          "nodeKey": "projectManagerReview",
+          "rule": {
+            "type": "FORM_FIELD_USERS",
+            "field": "projectManagerId"
+          },
+          "actualApprovers": [
+            301
+          ]
+        }
+      ]
+    },
+    {
+      "instanceId": "SYN-6",
+      "initiatorId": 201,
+      "legacyHourTypes": [
+        0
+      ],
+      "formFields": {},
+      "variables": {},
+      "nodes": [
+        {
+          "nodeKey": "projectManagerReview",
+          "rule": {
+            "type": "FORM_FIELD_USERS",
+            "field": "projectManagerId"
+          },
+          "actualApprovers": [
+            500
+          ]
+        }
+      ]
+    },
+    {
+      "instanceId": "SYN-7",
+      "initiatorId": 111,
+      "legacyHourTypes": [
+        0
+      ],
+      "formFields": {
+        "projectManagerId": [
+          "111"
+        ]
+      },
+      "variables": {},
+      "nodes": [
+        {
+          "nodeKey": "projectManagerReview",
+          "rule": {
+            "type": "FORM_FIELD_USERS",
+            "field": "projectManagerId"
+          },
+          "actualApprovers": [
+            111
+          ]
+        }
+      ]
+    },
+    {
+      "instanceId": "SYN-8",
+      "initiatorId": 201,
+      "legacyHourTypes": [
+        1
+      ],
+      "formFields": {
+        "regionalHeadId": [
+          "110"
+        ]
+      },
+      "variables": {},
+      "nodes": [
+        {
+          "nodeKey": "regionalHeadReview",
+          "rule": {
+            "type": "FORM_FIELD_USERS",
+            "field": "regionalHeadId"
+          },
+          "actualApprovers": [
+            105
+          ]
+        }
+      ]
+    },
+    {
+      "instanceId": "SYN-9",
+      "initiatorId": 201,
+      "legacyHourTypes": [
+        0
+      ],
+      "formFields": {
+        "projectManagerId": [
+          "301"
+        ]
+      },
+      "variables": {},
+      "nodes": []
+    },
+    {
+      "instanceId": "SYN-10",
+      "initiatorId": 101,
+      "legacyHourTypes": [
+        0
+      ],
+      "formFields": {
+        "projectManagerId": [
+          "101"
+        ]
+      },
+      "variables": {},
+      "nodes": [
+        {
+          "nodeKey": "projectManagerReview",
+          "rule": {
+            "type": "FORM_FIELD_USERS",
+            "field": "projectManagerId"
+          },
+          "actualApprovers": [
+            105
+          ]
+        }
+      ]
+    }
+  ]
+}

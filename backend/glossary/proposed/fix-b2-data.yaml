@@ -6,6 +6,7 @@ terms:
   snake: organization_attendance_locked_day_unconfirmed
   kind: error_code
   bc: organization.attendance
+  scope: domain
   definition: 工作日历中早于今天的日期被修改而没有经过确认（422，数据打分卡 T2）；确认走组织数据管理员的独立用例
   standard_ref:
   - phase1a/DATA_SCORECARD.md

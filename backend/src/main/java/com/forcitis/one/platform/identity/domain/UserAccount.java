@@ -5,8 +5,6 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.StateMachine;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.EventDraft;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.events.AccountDisabled;
@@ -134,7 +132,6 @@ public final class UserAccount extends AggregateRoot {
     }
 
     private EventDraft draft(String eventName, long version) {
-        return new EventDraft("platform.identity." + eventName, 1, "UserAccount", String.valueOf(userId.value()), version, null, null,
-                new EventSource(SourceSystem.ONE, null), List.of());
+        return new EventDraft("platform.identity." + eventName, 1, "UserAccount", userId.value(), version, null, null, List.of());
     }
 }

@@ -3,9 +3,11 @@ package com.forcitis.one.organization.workforce.application;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.ExpectedVersion;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.organization.workforce.api.AttributionId;
 import com.forcitis.one.organization.workforce.api.AttributionKind;
 import com.forcitis.one.organization.workforce.api.AttributionSubject;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
@@ -16,6 +18,7 @@ import com.forcitis.one.organization.workforce.domain.LegalEntityStatus;
 import java.time.LocalDate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.UUID;
 
 /** From the given day on the department or the employee belongs to the legal entity; the period before it is closed on that day. */
 @Service
@@ -25,9 +28,11 @@ public class AttributeLegalEntity {
     private final AttributionSubjects subjects;
     private final DomainEvents events;
     private final OwnAttributionGuard ownAttribution;
+    private final IdGenerator ids;
 
     AttributeLegalEntity(LegalEntityAttributionRepository attributions, LegalEntityQueries legalEntities, AttributionSubjects subjects,
-                         DomainEvents events, OwnAttributionGuard ownAttribution) {
+                         DomainEvents events, OwnAttributionGuard ownAttribution, IdGenerator ids) {
+        this.ids = ids;
         this.ownAttribution = ownAttribution;
         this.attributions = attributions;
         this.legalEntities = legalEntities;
@@ -36,7 +41,7 @@ public class AttributeLegalEntity {
     }
 
     @Transactional
-    public LegalEntityAttributionView execute(AttributionKind kind, long subjectId, LegalEntityId target, LocalDate effectiveFrom, ExpectedVersion expected, UserId actor) {
+    public LegalEntityAttributionView execute(AttributionKind kind, UUID subjectId, LegalEntityId target, LocalDate effectiveFrom, ExpectedVersion expected, UserId actor) {
         AttributionSubject subject = subjects.require(kind, subjectId);
         ownAttribution.requireNotOwn(subject, actor);
         if (target == null || legalEntities.find(target).filter(e -> e.status() == LegalEntityStatus.ACTIVE).isEmpty()) {
@@ -45,7 +50,7 @@ public class AttributeLegalEntity {
         }
         LegalEntityAttribution stored = attributions.find(subject).orElse(null);
         expected.check(stored == null ? null : stored.version());
-        LegalEntityAttribution attribution = stored != null ? stored : LegalEntityAttribution.empty(subject);
+        LegalEntityAttribution attribution = stored != null ? stored : LegalEntityAttribution.empty(new AttributionId(ids.next()), subject);
         attribution.attribute(target, effectiveFrom);
         if (attribution.hasPendingEvents()) {
             attributions.save(attribution);

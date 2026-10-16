@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.attendance;
 
+import java.util.UUID;
+import com.forcitis.one.TestDatabase;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -32,26 +34,23 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
         "spring.datasource.hikari.connection-timeout=2000",
         "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"})
 @AutoConfigureMockMvc
 @RecordApplicationEvents
-@Testcontainers
 @org.springframework.context.annotation.Import(WorkCalendarIT.FixedClock.class)
 class WorkCalendarIT {
     static final String CALENDARS = "/api/v1/organization/work-calendars";
@@ -68,11 +67,12 @@ class WorkCalendarIT {
     @MockitoBean
     AuditLog auditLog;
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = TestPostgres.container()
-            .withInitScript("init-schemas.sql")
-            .withUrlParam("currentSchema", "platform_approval");
+    static final TestDatabase postgres = TestPostgres.database(WorkCalendarIT.class, TestPostgres.MIGRATED_TESTDATA).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final java.time.Instant CLOCK_START = java.time.Instant.parse("2026-10-01T00:00:00Z");
 
@@ -134,8 +134,8 @@ class WorkCalendarIT {
         assertThat(workCalendar.isWorkday(LocalDate.parse("2026-10-12"), fst)).isFalse();
         assertThat(workCalendar.endOfWorkdayAfter(LocalDate.parse("2026-10-09"), 2, fst)).isEqualTo(Instant.parse("2026-10-13T16:00:00Z"));
         assertThat(events.stream(WorkCalendarYearMaintained.class)).singleElement().satisfies(e -> {
-            assertThat(e.envelope().aggregateId()).isEqualTo("default:2026");
-            assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value().toString());
+            assertThat(e.envelope().aggregateId()).isEqualTo(jdbc.sql("select id from organization_attendance.work_calendar_years where year_number = 2026 and legal_entity_id is null").query(UUID.class).single());
+            assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value());
             assertThat(e.envelope().correlationId()).isNotNull();
         });
     }
@@ -212,7 +212,7 @@ class WorkCalendarIT {
 
         org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
                 new org.springframework.security.authentication.TestingAuthenticationToken(TestAccounts.account(9001).value().toString(), null, "organization.attendance:locked-day:update"));
-        try (var acting = com.forcitis.one.kernel.WorkContext.enter(java.util.UUID.randomUUID(), null, "test.organization.attendance")) {
+        try (var acting = com.forcitis.one.kernel.WorkContext.enter(UUID.randomUUID(), null, "test.organization.attendance")) {
             maintainLocked.execute(new MaintainWorkCalendarCommand(2026, java.util.List.of(new DayEntry(LocalDate.parse("2026-10-10"), "MAKE_UP_WORKDAY")),
                     com.forcitis.one.kernel.ExpectedVersion.of(1)));
         }

@@ -25,6 +25,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import com.forcitis.one.fixture.doubles.TestAccounts;
 
 class SnapshotFreshnessTest {
     static final Instant NOW = Instant.parse("2026-10-15T08:00:00Z");
@@ -33,7 +34,11 @@ class SnapshotFreshnessTest {
     final SyncRunQueries runs = mock(SyncRunQueries.class);
 
     private SnapshotFreshness freshness(Instant now, Duration staleAfter) {
-        return new SnapshotFreshness(runs, Clock.fixed(now, ZoneOffset.UTC), staleAfter, EVERY_FIVE_MINUTES);
+        return freshness(now, staleAfter, EVERY_FIVE_MINUTES);
+    }
+
+    private SnapshotFreshness freshness(Instant now, Duration staleAfter, String cron) {
+        return new SnapshotFreshness(runs, Clock.fixed(now, ZoneOffset.UTC), staleAfter, cron);
     }
 
     @Test
@@ -58,6 +63,17 @@ class SnapshotFreshnessTest {
     }
 
     @Test
+    @DisplayName("L-8 the cycle of a cron is its longest gap within a week: even, uneven and too rare crons")
+    void L8_cycleIsTheLongestGap() {
+        assertThat(SnapshotFreshness.cycleOf(EVERY_FIVE_MINUTES)).isEqualTo(Duration.ofMinutes(5));
+        assertThat(SnapshotFreshness.cycleOf("0 0 8,20 * * *")).as("08:00 and 20:00: the night gap is 12 hours, the day gap 12 hours").isEqualTo(Duration.ofHours(12));
+        assertThat(SnapshotFreshness.cycleOf("0 0 8,10 * * *")).as("the gap from 10:00 to 08:00 the next day is 22 hours, not the first gap of 2 hours").isEqualTo(Duration.ofHours(22));
+        assertThat(SnapshotFreshness.cycleOf("0 0 8 * * MON,THU")).as("Monday to Thursday is 3 days, Thursday to Monday 4").isEqualTo(Duration.ofDays(4));
+        assertThatThrownBy(() -> SnapshotFreshness.cycleOf("0 0 8 1 * *")).as("monthly").isInstanceOf(IllegalArgumentException.class).hasMessageContaining("less than twice");
+        assertThatThrownBy(() -> freshness(NOW, Duration.ofMinutes(10), "0 0 8 1 * *")).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     @DisplayName("P2-M6 the alert OneWorkforceSyncLagging fires at the same lag that makes the snapshot stale")
     void P2_M6_alertThresholdEqualsStaleAfter() throws IOException {
         Properties settings = new Properties();
@@ -78,18 +94,18 @@ class SnapshotFreshnessTest {
         OrgSnapshotQueries snapshots = mock(OrgSnapshotQueries.class);
         StaffEmployee employed = staff(EmploymentStatus.EMPLOYED);
         StaffEmployee separated = staff(EmploymentStatus.SEPARATED);
-        when(snapshots.findStaff(new EmployeeId(1))).thenReturn(Optional.of(employed));
-        when(snapshots.findStaff(new EmployeeId(2))).thenReturn(Optional.of(separated));
-        when(snapshots.findStaff(new EmployeeId(3))).thenReturn(Optional.empty());
+        when(snapshots.findStaff(TestAccounts.employee(1))).thenReturn(Optional.of(employed));
+        when(snapshots.findStaff(TestAccounts.employee(2))).thenReturn(Optional.of(separated));
+        when(snapshots.findStaff(TestAccounts.employee(3))).thenReturn(Optional.empty());
         OrgDirectoryService current = directory(snapshots, NOW.minus(Duration.ofMinutes(1)));
         OrgDirectoryService stale = directory(snapshots, NOW.minus(Duration.ofDays(30)));
 
-        assertThat(current.employmentOf(new EmployeeId(1))).isEqualTo(EmploymentVerdict.EMPLOYED);
-        assertThat(current.employmentOf(new EmployeeId(2))).isEqualTo(EmploymentVerdict.SEPARATED);
-        assertThat(current.employmentOf(new EmployeeId(3))).isEqualTo(EmploymentVerdict.NOT_LISTED);
-        assertThat(stale.employmentOf(new EmployeeId(1))).isEqualTo(EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
-        assertThat(stale.employmentOf(new EmployeeId(2))).isEqualTo(EmploymentVerdict.SEPARATED);
-        assertThat(stale.employmentOf(new EmployeeId(3))).isEqualTo(EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
+        assertThat(current.employmentOf(TestAccounts.employee(1))).isEqualTo(EmploymentVerdict.EMPLOYED);
+        assertThat(current.employmentOf(TestAccounts.employee(2))).isEqualTo(EmploymentVerdict.SEPARATED);
+        assertThat(current.employmentOf(TestAccounts.employee(3))).isEqualTo(EmploymentVerdict.NOT_LISTED);
+        assertThat(stale.employmentOf(TestAccounts.employee(1))).isEqualTo(EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
+        assertThat(stale.employmentOf(TestAccounts.employee(2))).isEqualTo(EmploymentVerdict.SEPARATED);
+        assertThat(stale.employmentOf(TestAccounts.employee(3))).isEqualTo(EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
     }
 
     private OrgDirectoryService directory(OrgSnapshotQueries snapshots, Instant lastSucceeded) {

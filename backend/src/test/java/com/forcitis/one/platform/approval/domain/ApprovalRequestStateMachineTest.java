@@ -33,29 +33,30 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import com.forcitis.one.fixture.doubles.TestAccounts;
 
 class ApprovalRequestStateMachineTest {
 
-    static final EmployeeId INITIATOR = new EmployeeId(10);
-    static final EmployeeId STRANGER = new EmployeeId(11);
+    static final EmployeeId INITIATOR = TestAccounts.employee(10);
+    static final EmployeeId STRANGER = TestAccounts.employee(11);
     static final LocalDate TODAY = LocalDate.of(2026, 10, 14);
     static final Moment NOW = new Moment(Instant.parse("2026-10-14T02:00:00Z"), TODAY);
-    static final DocumentReference DOCUMENT = new DocumentReference(DocumentType.TIMESHEET, new DocumentId("7"));
+    static final DocumentReference DOCUMENT = new DocumentReference(DocumentType.TIMESHEET, com.forcitis.one.TestApprovalIds.document("7"));
     static final ApprovalSummary SUMMARY = new ApprovalSummary("TS-1 2026-10-14 8h");
     static final TestEventEnvelopes ENVELOPES = new TestEventEnvelopes();
 
     static ApprovalRequest in(ApprovalStatus status) {
-        return ApprovalRequest.restore(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, 2,
-                new ApprovalInstanceId("i-2"), status, null, SUMMARY, List.of(), 5, 3);
+        return ApprovalRequest.restore(com.forcitis.one.TestApprovalIds.requestId(), com.forcitis.one.TestApprovalIds.generator(), ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, 2,
+                com.forcitis.one.TestApprovalIds.instance("i-2"), status, null, SUMMARY, List.of(), 5, 3);
     }
 
     static ApprovalRequest begun() {
-        return ApprovalRequest.begin(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR,
-                new ApprovalInstanceId("i-1"), SUMMARY, UUID.randomUUID(), NOW);
+        return ApprovalRequest.begin(com.forcitis.one.TestApprovalIds.generator(), ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR,
+                com.forcitis.one.TestApprovalIds.instance("i-1"), SUMMARY, UUID.randomUUID(), NOW);
     }
 
     static void restart(ApprovalRequest request) {
-        request.restart(INITIATOR, new ApprovalInstanceId("i-3"), SUMMARY, UUID.randomUUID(), NOW);
+        request.restart(INITIATOR, com.forcitis.one.TestApprovalIds.instance("i-3"), SUMMARY, UUID.randomUUID(), NOW);
     }
 
     @Test
@@ -82,7 +83,7 @@ class ApprovalRequestStateMachineTest {
         ApprovalRequest request = in(ApprovalStatus.RUNNING);
         assertThatThrownBy(() -> restart(request)).isInstanceOfSatisfying(DomainException.class,
                 e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL));
-        assertThat(request.instanceId()).isEqualTo(new ApprovalInstanceId("i-2"));
+        assertThat(request.instanceId()).isEqualTo(com.forcitis.one.TestApprovalIds.instance("i-2"));
         assertThat(request.round()).isEqualTo(2);
     }
 
@@ -129,7 +130,7 @@ class ApprovalRequestStateMachineTest {
             assertThat(completed.document()).isEqualTo(DOCUMENT);
             assertThat(completed.envelope().eventType()).isEqualTo("platform.approval.ApprovalCompleted");
             assertThat(completed.envelope().aggregateType()).isEqualTo("ApprovalRequest");
-            assertThat(completed.envelope().aggregateId()).isEqualTo("TIMESHEET:7");
+            assertThat(completed.envelope().aggregateId()).isEqualTo(request.id().value());
             assertThat(completed.envelope().aggregateVersion()).as("the event sequence continues after the 3 events recorded before").isEqualTo(4);
             assertThat(completed.envelope().legalEntityId()).isEqualTo(new LegalEntityId(TestIds.uuid(1)));
             assertThat(completed.envelope().businessDate()).isEqualTo(TODAY);
@@ -146,7 +147,7 @@ class ApprovalRequestStateMachineTest {
         List<DomainEvent> first = request.drainEvents(ENVELOPES);
         assertThat(first).singleElement().isInstanceOfSatisfying(ApprovalRoundStarted.class, started -> {
             assertThat(started.round()).isEqualTo(new RoundNumber(1));
-            assertThat(started.instanceId()).isEqualTo(new ApprovalInstanceId("i-1"));
+            assertThat(started.instanceId()).isEqualTo(com.forcitis.one.TestApprovalIds.instance("i-1"));
             assertThat(started.initiator()).isEqualTo(INITIATOR);
             assertThat(started.envelope().aggregateVersion()).isEqualTo(1);
         });
@@ -157,7 +158,7 @@ class ApprovalRequestStateMachineTest {
 
         assertThat(request.round()).isEqualTo(2);
         assertThat(request.status()).isEqualTo(ApprovalStatus.RUNNING);
-        assertThat(request.instanceId()).isEqualTo(new ApprovalInstanceId("i-3"));
+        assertThat(request.instanceId()).isEqualTo(com.forcitis.one.TestApprovalIds.instance("i-3"));
         assertThat(request.resultReason()).isEmpty();
         assertThat(request.startsRound()).isTrue();
         List<DomainEvent> second = request.drainEvents(ENVELOPES);
@@ -171,7 +172,7 @@ class ApprovalRequestStateMachineTest {
     @DisplayName("RULE-287/I-5 only the initiator of the previous round opens the next one")
     void restartIsTheInitiatorsAlone() {
         ApprovalRequest request = in(ApprovalStatus.RETURNED);
-        assertThatThrownBy(() -> request.restart(STRANGER, new ApprovalInstanceId("i-3"), SUMMARY, UUID.randomUUID(), NOW))
+        assertThatThrownBy(() -> request.restart(STRANGER, com.forcitis.one.TestApprovalIds.instance("i-3"), SUMMARY, UUID.randomUUID(), NOW))
                 .isInstanceOfSatisfying(DomainException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_NOT_INITIATOR));
         assertThat(request.round()).isEqualTo(2);

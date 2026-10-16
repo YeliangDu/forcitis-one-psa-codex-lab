@@ -3,13 +3,17 @@ package com.forcitis.one.platform.integration.infrastructure.connection;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.DatabaseLevelPermission;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Ownership;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ReachableDatabase;
-import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.SecurablePermissionRow;
+import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.SecurablePermissionRow;
+import com.forcitis.one.platform.integration.infrastructure.connection.MsdbPrivileges.TokenPermission;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ServerPermissionRow;
+import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.Membership;
+import com.forcitis.one.platform.integration.infrastructure.connection.SystemDatabaseUsers.OwnUserPermission;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /** SQL Server 2016 catalog only: on any other database every query fails, so every item is undeterminable and the login is refused. */
@@ -22,9 +26,14 @@ final class JdbcReadOnlyCatalog implements ReadOnlyCatalog {
     static final String DATABASE_LEVEL_PERMISSIONS = "SELECT state, permission_name FROM sys.database_permissions "
             + "WHERE class = 0 AND grantee_principal_id = DATABASE_PRINCIPAL_ID()";
     static final String SECURABLE_PERMISSION_ROWS = """
-            SELECT class_desc, major_id, state, permission_name, CASE WHEN grantee_principal_id = 0 THEN 1 ELSE 0 END
-            FROM sys.database_permissions
-            WHERE class <> 0 AND (grantee_principal_id = DATABASE_PRINCIPAL_ID() OR (grantee_principal_id = 0 AND major_id > 0))
+            SELECT p.class_desc, p.major_id, p.state, p.permission_name, CASE WHEN p.grantee_principal_id = 0 THEN 1 ELSE 0 END,
+                   CASE p.class WHEN 3 THEN p.major_id WHEN 1 THEN o.schema_id END, s.name, o.name,
+                   CASE WHEN p.grantee_principal_id = DATABASE_PRINCIPAL_ID() THEN NULL ELSE g.name END, g.type_desc
+            FROM sys.database_permissions p
+            LEFT JOIN sys.objects o ON p.class = 1 AND o.object_id = p.major_id
+            LEFT JOIN sys.schemas s ON s.schema_id = CASE p.class WHEN 3 THEN p.major_id WHEN 1 THEN o.schema_id END
+            LEFT JOIN sys.database_principals g ON g.principal_id = p.grantee_principal_id
+            WHERE p.class <> 0 AND (p.grantee_principal_id = DATABASE_PRINCIPAL_ID() OR (p.grantee_principal_id = 0 AND p.major_id > 0))
             """;
     static final String ROLES = "SELECT name FROM sys.user_token WHERE principal_id <> DATABASE_PRINCIPAL_ID()";
     static final String LISTED_FIXED_SERVER_ROLES = "SELECT name, IS_SRVROLEMEMBER(name) FROM sys.server_principals "
@@ -37,7 +46,38 @@ final class JdbcReadOnlyCatalog implements ReadOnlyCatalog {
                    (SELECT COUNT(*) FROM sys.database_permissions WHERE class = 4 AND grantee_principal_id = DATABASE_PRINCIPAL_ID())
             """;
     static final String REACHABLE_DATABASES = "SELECT database_id, name FROM sys.databases WHERE HAS_DBACCESS(name) = 1";
-    static final String OWN_USERS = "SELECT COUNT(*) FROM %s.sys.database_principals WHERE sid = SUSER_SID()";
+    static final String OWN_USER_MEMBERSHIPS = """
+            SELECT CASE WHEN m.role_principal_id IS NULL THEN 0 ELSE 1 END, r.name
+            FROM %1$s.sys.database_principals u
+            LEFT JOIN %1$s.sys.database_role_members m ON m.member_principal_id = u.principal_id
+            LEFT JOIN %1$s.sys.database_principals r ON r.principal_id = m.role_principal_id
+            WHERE u.sid = SUSER_SID()
+            """;
+    static final String OWN_USER_PERMISSIONS = "SELECT p.class_desc, p.state, p.permission_name FROM %1$s.sys.database_permissions p "
+            + "JOIN %1$s.sys.database_principals u ON u.principal_id = p.grantee_principal_id WHERE u.sid = SUSER_SID()";
+    /** Not msdb.dbo.sysjobs: only TargetServersRole may read it, so a member of the SQL Agent roles gets 229 (SQL Server 2022 container, 2026-10-15). */
+    static final String OWNED_AGENT_JOBS = "SELECT COUNT(*) FROM msdb.dbo.sysjobs_view WHERE owner_sid = SUSER_SID()";
+    /** Through msdb's sp_executesql, so that HAS_PERMS_BY_NAME answers for the login's user in msdb, not in its own database. */
+    static final String MSDB_EFFECTIVE_PERMISSIONS = "EXEC msdb.sys.sp_executesql N'SELECT v.p, HAS_PERMS_BY_NAME(N''msdb'', N''DATABASE'', v.p) FROM (VALUES "
+            + MsdbPrivileges.EFFECTIVE.stream().map(p -> "(N''" + p + "'')").collect(Collectors.joining(", ")) + ") v (p) UNION ALL SELECT N''"
+            + MsdbPrivileges.IMPERSONATE + "'', HAS_PERMS_BY_NAME(N''dbo'', N''USER'', N''IMPERSONATE'')'";
+    /** Through msdb's sp_executesql, so that sys.user_token is the login's token in msdb: its own user or guest, their roles and public. */
+    static final String MSDB_TOKEN_PERMISSIONS = "EXEC msdb.sys.sp_executesql N'SELECT CASE WHEN p.grantee_principal_id = 0 THEN 1 ELSE 0 END, "
+            + "p.class_desc COLLATE DATABASE_DEFAULT, p.state COLLATE DATABASE_DEFAULT, p.permission_name COLLATE DATABASE_DEFAULT "
+            + "FROM sys.database_permissions p WHERE p.grantee_principal_id IN (SELECT principal_id FROM sys.user_token)'";
+    /** Through msdb's sp_executesql, so that sys.user_token is the login's token in msdb. */
+    static final String MSDB_TOKEN_ROLES = "EXEC msdb.sys.sp_executesql N'SELECT name COLLATE DATABASE_DEFAULT FROM sys.user_token WHERE type = ''ROLE'''";
+    /** Counts only: owned schemas, objects, roles, certificates, keys, assemblies, types, XML schema collections, and objects the four platform schemas hold for their owner. The schema guest and each SQL Agent role own under their own names are the platform's, the token owning anything else is not. */
+    static final String MSDB_OWNED_BY_TOKEN = "EXEC msdb.sys.sp_executesql N'SELECT (SELECT COUNT(*) FROM sys.schemas s JOIN sys.database_principals o "
+            + "ON o.principal_id = s.principal_id WHERE s.principal_id IN (SELECT principal_id FROM sys.user_token) AND NOT (s.name = o.name AND o.name IN ("
+            + MsdbPrivileges.PLATFORM_SCHEMA_OWNERS.stream().sorted().map(n -> "N''" + n + "''").collect(Collectors.joining(", ")) + "))) "
+            + "+ (SELECT COUNT(*) FROM sys.objects WHERE principal_id IN (SELECT principal_id FROM sys.user_token)) "
+            + "+ (SELECT COUNT(*) FROM sys.database_principals WHERE owning_principal_id IN (SELECT principal_id FROM sys.user_token))"
+            + Stream.of("sys.certificates", "sys.asymmetric_keys", "sys.symmetric_keys", "sys.assemblies", "sys.xml_schema_collections")
+                    .map(t -> " + (SELECT COUNT(*) FROM " + t + " WHERE principal_id IN (SELECT principal_id FROM sys.user_token))").collect(Collectors.joining())
+            + " + (SELECT COUNT(*) FROM sys.types WHERE is_user_defined = 1 AND principal_id IN (SELECT principal_id FROM sys.user_token))"
+            + " + (SELECT COUNT(*) FROM sys.objects o JOIN sys.schemas s ON s.schema_id = o.schema_id WHERE o.principal_id IS NULL AND s.name IN ("
+            + MsdbPrivileges.PLATFORM_SCHEMA_OWNERS.stream().sorted().map(n -> "N''" + n + "''").collect(Collectors.joining(", ")) + "))'";
     static final String CURRENT_DATABASE = "SELECT DB_NAME()";
 
     private final JdbcClient jdbc;
@@ -70,7 +110,8 @@ final class JdbcReadOnlyCatalog implements ReadOnlyCatalog {
     @Override
     public List<SecurablePermissionRow> securablePermissionRows() {
         return jdbc.sql(SECURABLE_PERMISSION_ROWS).query((rs, n) -> new SecurablePermissionRow(rs.getString(1), rs.getLong(2), rs.getString(3),
-                rs.getString(4), rs.getInt(5) == 1)).list();
+                rs.getString(4), rs.getInt(5) == 1, rs.getObject(6) == null ? null : rs.getLong(6), rs.getString(7), rs.getString(8), rs.getString(9),
+                rs.getString(10))).list();
     }
 
     @Override
@@ -105,8 +146,43 @@ final class JdbcReadOnlyCatalog implements ReadOnlyCatalog {
     }
 
     @Override
-    public long ownUsers(String systemDatabase) {
-        return jdbc.sql(OWN_USERS.formatted(bracketed(systemDatabase))).query(Long.class).single();
+    public List<Membership> ownUserMemberships(String systemDatabase) {
+        return jdbc.sql(OWN_USER_MEMBERSHIPS.formatted(bracketed(systemDatabase)))
+                .query((rs, n) -> new Membership(rs.getInt(1) == 1, rs.getString(2))).list();
+    }
+
+    @Override
+    public List<OwnUserPermission> ownUserPermissions(String systemDatabase) {
+        return jdbc.sql(OWN_USER_PERMISSIONS.formatted(bracketed(systemDatabase)))
+                .query((rs, n) -> new OwnUserPermission(rs.getString(1), rs.getString(2), rs.getString(3))).list();
+    }
+
+    @Override
+    public Map<String, Integer> msdbEffectivePermissions() {
+        Map<String, Integer> effective = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        jdbc.sql(MSDB_EFFECTIVE_PERMISSIONS).query((rs, n) -> effective.put(rs.getString(1), (Integer) rs.getObject(2))).list();
+        return effective;
+    }
+
+    @Override
+    public List<TokenPermission> msdbTokenPermissions() {
+        return jdbc.sql(MSDB_TOKEN_PERMISSIONS)
+                .query((rs, n) -> new TokenPermission(rs.getInt(1) == 1, rs.getString(2), rs.getString(3), rs.getString(4))).list();
+    }
+
+    @Override
+    public List<String> msdbTokenRoles() {
+        return jdbc.sql(MSDB_TOKEN_ROLES).query((rs, n) -> rs.getString(1)).list();
+    }
+
+    @Override
+    public Long msdbOwnedByToken() {
+        return jdbc.sql(MSDB_OWNED_BY_TOKEN).query((rs, n) -> rs.getObject(1, Long.class)).single();
+    }
+
+    @Override
+    public long ownedAgentJobs() {
+        return jdbc.sql(OWNED_AGENT_JOBS).query(Long.class).single();
     }
 
     @Override

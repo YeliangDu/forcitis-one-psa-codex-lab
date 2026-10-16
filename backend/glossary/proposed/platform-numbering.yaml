@@ -6,6 +6,7 @@ terms:
   snake: platform_numbering_rule_not_found
   kind: error_code
   bc: platform.numbering
+  scope: domain
   definition: 该单据类型没有有效的编号规则（404）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -20,6 +21,7 @@ terms:
   snake: platform_numbering_rule_invalid
   kind: error_code
   bc: platform.numbering
+  scope: domain
   definition: 模板或重置周期不符合规则（422）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -34,6 +36,7 @@ terms:
   snake: platform_numbering_rule_transition_illegal
   kind: error_code
   bc: platform.numbering
+  scope: domain
   definition: 编号规则已经确认，不能再次确认（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -48,6 +51,7 @@ terms:
   snake: platform_numbering_concurrent_update
   kind: error_code
   bc: platform.numbering
+  scope: domain
   definition: 规则已被他人修改（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -60,43 +64,55 @@ terms:
   zh: 报价单据类型代码
   en: Qt
   snake: qt
-  kind: value
+  kind: value_object
   bc: platform.numbering
+  scope: domain
   definition: 报价（DocumentType.QUOTE）的单据类型代码 QT，1b 首个使用方
   standard_ref:
   - ADR-0010 可配置的业务编号
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: deprecated
+  replaced_by: document_type_code
+  until: "R-2a，生产前：DocumentTypeCodeTest 改为读 document_type_code 的取值后删除本条"
+  owner: "one-1a-next-3"
   note: 例 QT-FST-202610-0001
 - id: ts
   zh: 工时单据类型代码
   en: Ts
   snake: ts
-  kind: value
+  kind: value_object
   bc: platform.numbering
+  scope: domain
   definition: 工时（DocumentType.TIMESHEET）的单据类型代码 TS，沿用种子模板中的前缀字母，正式词表尚无对应词
   standard_ref:
   - ADR-0010 可配置的业务编号
   confidence: low
   aliases: []
   forbidden: []
-  status: proposed
+  status: deprecated
+  replaced_by: document_type_code
+  until: "R-2a，生产前：DocumentTypeCodeTest 改为读 document_type_code 的取值后删除本条"
+  owner: "one-1a-next-3"
   note: 例 TS-FST-202610-0001；模板待管理员确认
 - id: jv
   zh: 记账凭证单据类型代码
   en: Jv
   snake: jv
-  kind: value
+  kind: value_object
   bc: platform.numbering
+  scope: domain
   definition: 记账凭证（DocumentType.JOURNAL_VOUCHER）的单据类型代码 JV，沿用种子模板中的前缀字母，正式词表尚无对应词
   standard_ref:
   - ADR-0010 可配置的业务编号
   confidence: low
   aliases: []
   forbidden: []
-  status: proposed
+  status: deprecated
+  replaced_by: document_type_code
+  until: "R-2a，生产前：DocumentTypeCodeTest 改为读 document_type_code 的取值后删除本条"
+  owner: "one-1a-next-3"
   note: 例 JV-FST-202610-0001；模板待管理员确认
 common_words:
 - confirm

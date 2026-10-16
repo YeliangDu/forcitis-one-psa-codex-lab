@@ -22,9 +22,11 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -49,6 +51,7 @@ components:
           projectManager:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 项目经理，工时审批第一道审批人
           submittedOn:
             type: string
@@ -92,9 +95,11 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -146,9 +151,11 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -207,9 +214,11 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -246,8 +255,8 @@ components:
         audit: audited
         publisherTest: com.forcitis.one.cost.timesheet.domain.TimesheetStateMachineTest
         noConsumer: 暂无消费方：分析层 L1 的工时累积快照将订阅；现在就发布，是因为退回时刻只在发生当时可记录，事后补不回
-    TimesheetCancelled:
-      name: TimesheetCancelled
+    TimesheetApprovalWithdrawn:
+      name: TimesheetApprovalWithdrawn
       title: 填报人撤销审批，工时单回到草稿；不记为驳回（RULE-279）
       description: 填报人撤销审批，工时单回到草稿；不记为驳回（RULE-279）；过程里程碑。businessDate 为工作日期。
       payload:
@@ -268,9 +277,11 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
+            format: uuid
             description: 稳定 ID 的字符串形式
           submittedHours:
             type: object
@@ -293,9 +304,9 @@ components:
                 type: string
             description: 撤销原因
       x-event:
-        eventType: cost.timesheet.TimesheetCancelled
+        eventType: cost.timesheet.TimesheetApprovalWithdrawn
         version: 1
-        class: com.forcitis.one.cost.timesheet.events.TimesheetCancelled
+        class: com.forcitis.one.cost.timesheet.events.TimesheetApprovalWithdrawn
         aggregate: Timesheet
         idempotencyKey: eventId
         publisher: cost.timesheet

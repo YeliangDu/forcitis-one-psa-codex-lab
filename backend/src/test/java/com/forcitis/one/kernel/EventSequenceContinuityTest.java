@@ -11,7 +11,6 @@ import com.forcitis.one.organization.attendance.domain.CalendarDay;
 import com.forcitis.one.organization.attendance.api.DayKind;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarKey;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarYear;
-import com.forcitis.one.organization.workforce.api.AttributionKind;
 import com.forcitis.one.organization.workforce.api.AttributionSubject;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.api.SyncRunId;
@@ -31,6 +30,7 @@ import com.forcitis.one.platform.numbering.domain.NumberingRule;
 import com.forcitis.one.platform.numbering.domain.TemplateVersion;
 import com.forcitis.one.platform.numbering.domain.VersionStatus;
 import com.forcitis.one.platform.numbering.api.ResetPolicy;
+import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 import com.forcitis.one.platform.numbering.api.RuleVersion;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -41,6 +41,9 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
+import com.forcitis.one.organization.workforce.api.AttributionId;
+import com.forcitis.one.platform.numbering.api.NumberingRuleId;
 
 /**
  * SESSION_PLAYBOOK section 14 item 3 (review H-5, guard 4): whatever operations are tried on an aggregate, the sequence numbers of its
@@ -83,16 +86,16 @@ class EventSequenceContinuityTest {
     @Test
     @DisplayName("UserAccount: events are numbered 1..n and a save without events leaves the sequence alone")
     void userAccount() {
-        checkMany(() -> UserAccount.restore(TestAccounts.account(1), new EmployeeId(1), "ENABLED", Set.of(), 0, 0), List.of(
+        checkMany(() -> UserAccount.restore(TestAccounts.account(1), TestAccounts.employee(1), "ENABLED", Set.of(), 0, 0), List.of(
                 UserAccount::enable, UserAccount::disable, a -> a.declareEnabled(true), a -> a.declareEnabled(false),
                 a -> a.replaceRoles(Set.of(new RoleId(TestIds.uuid(2)), new RoleId(TestIds.uuid(3))))));
-        checkMany(() -> UserAccount.open(TestAccounts.account(2), new EmployeeId(2), Set.of(new RoleId(TestIds.uuid(1)))), List.of(UserAccount::disable, UserAccount::enable));
+        checkMany(() -> UserAccount.open(TestAccounts.account(2), TestAccounts.employee(2), Set.of(new RoleId(TestIds.uuid(1)))), List.of(UserAccount::disable, UserAccount::enable));
     }
 
     @Test
     @DisplayName("Role: events are numbered 1..n")
     void role() {
-        checkMany(() -> Role.newCustom(new RoleCode("analyst"), "Analyst", Set.of()).withId(new RoleId(TestIds.uuid(7))), List.of(
+        checkMany(() -> Role.newCustom(new RoleId(TestIds.uuid(7)), new RoleCode("analyst"), "Analyst", Set.of()), List.of(
                 Role::enable, Role::disable, r -> r.declareEnabled(true), r -> r.revise("Renamed", AccessScopeKind.SELF, Set.of())));
     }
 
@@ -115,7 +118,7 @@ class EventSequenceContinuityTest {
     @Test
     @DisplayName("LegalEntity: events are numbered 1..n")
     void legalEntity() {
-        checkMany(() -> LegalEntity.register(new LegalEntityCode("FST"), "Synthetic").withId(new LegalEntityId(TestIds.uuid(1))), List.of(
+        checkMany(() -> LegalEntity.register(new LegalEntityId(TestIds.uuid(1)), new LegalEntityCode("FST"), "Synthetic"), List.of(
                 LegalEntity::activate, LegalEntity::deactivate, e -> e.rename("Other"), e -> e.rename("Synthetic"),
                 e -> e.correctCode(new LegalEntityCode("FIT"), false), e -> e.declareStatus("ACTIVE")));
     }
@@ -132,7 +135,7 @@ class EventSequenceContinuityTest {
     @Test
     @DisplayName("WorkCalendarYear: events are numbered 1..n")
     void workCalendarYear() {
-        checkMany(() -> WorkCalendarYear.unmaintained(WorkCalendarKey.defaultFor(2026)), List.of(
+        checkMany(() -> WorkCalendarYear.unmaintained(TestIds.uuid(3), WorkCalendarKey.defaultFor(2026)), List.of(
                 y -> y.maintain(List.of(), LocalDate.of(2026, 6, 1), true),
                 y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2026, 5, 1), DayKind.HOLIDAY)), LocalDate.of(2026, 6, 1), true),
                 y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2027, 5, 1), DayKind.HOLIDAY)), LocalDate.of(2026, 6, 1), true)));
@@ -142,10 +145,10 @@ class EventSequenceContinuityTest {
     @DisplayName("NumberingRule: events are numbered 1..n")
     void numberingRule() {
         NumberingPattern pattern = new NumberingPattern("{TYPE}-{LE}-{yyyyMM}-{seq:4}", ResetPolicy.MONTHLY);
-        TemplateVersion seeded = new TemplateVersion(1, pattern, 1, LocalDate.of(2026, 10, 15), null, NOW, VersionStatus.PENDING_CONFIRMATION, null, null, null, null);
-        checkMany(() -> NumberingRule.restore(DocumentType.QUOTE, List.of(seeded), 0, 0), List.of(
-                r -> r.confirm(TestAccounts.account(2), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(1)), r -> r.propose(pattern, 5, LocalDate.of(2026, 10, 16), TestAccounts.account(3), NOW),
-                r -> r.propose(pattern, 0, LocalDate.of(2026, 10, 16), TestAccounts.account(3), NOW),
+        TemplateVersion seeded = new TemplateVersion(new NumberingRuleVersionId(TestIds.uuid(41)), 1, pattern, 1, LocalDate.of(2026, 10, 15), null, NOW, VersionStatus.PENDING_CONFIRMATION, null, null, null, null);
+        checkMany(() -> NumberingRule.restore(new NumberingRuleId(TestIds.uuid(4)), DocumentType.QUOTE, List.of(seeded), 0, 0), List.of(
+                r -> r.confirm(TestAccounts.account(2), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(1)), r -> r.propose(new NumberingRuleVersionId(TestIds.uuid(61)), pattern, 5, LocalDate.of(2026, 10, 16), TestAccounts.account(3), NOW),
+                r -> r.propose(new NumberingRuleVersionId(TestIds.uuid(62)), pattern, 0, LocalDate.of(2026, 10, 16), TestAccounts.account(3), NOW),
                 r -> r.confirm(TestAccounts.account(3), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(2)), r -> r.confirm(TestAccounts.account(4), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(2))));
     }
 
@@ -153,7 +156,7 @@ class EventSequenceContinuityTest {
     @DisplayName("LegalEntityAttribution: events are numbered 1..n")
     void legalEntityAttribution() {
         Random dates = new Random(7);
-        checkMany(() -> LegalEntityAttribution.empty(new AttributionSubject(AttributionKind.ORG_UNIT, 3)), List.of(
+        checkMany(() -> LegalEntityAttribution.empty(new AttributionId(TestIds.uuid(5)), AttributionSubject.of(TestOrgIds.orgUnit(3))), List.of(
                 a -> a.attribute(new LegalEntityId(TestIds.uuid(1 + dates.nextInt(2))), LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(400))),
                 a -> a.end(LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(800))),
                 a -> a.correct(LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(400)), LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(800)),
@@ -163,11 +166,11 @@ class EventSequenceContinuityTest {
     @Test
     @DisplayName("RegisteredEmployee: its one event is numbered after the stored sequence")
     void registeredEmployee() {
-        com.forcitis.one.kernel.EmployeeId id = new com.forcitis.one.kernel.EmployeeId(42);
+        com.forcitis.one.kernel.EmployeeId id = TestAccounts.employee(42);
         var staff = new com.forcitis.one.organization.workforce.domain.StaffEmployee(
                 new com.forcitis.one.organization.workforce.domain.Employee(id, "E42", "Synthetic", "synthetic", null, null, null,
                         com.forcitis.one.organization.workforce.api.EmploymentStatus.EMPLOYED, false),
-                new com.forcitis.one.organization.workforce.domain.Assignment(id, new com.forcitis.one.organization.workforce.api.OrgUnitId(3), null, null));
+                new com.forcitis.one.organization.workforce.domain.Assignment(id, com.forcitis.one.fixture.doubles.TestOrgIds.orgUnit(3), null, null));
         var registered = com.forcitis.one.organization.workforce.domain.RegisteredEmployee.onFirstLogin(staff, 4, 6);
 
         assertThat(registered.drainEvents(TestEnvelopes.INSTANCE)).extracting(e -> e.envelope().aggregateVersion()).containsExactly(7L);
@@ -201,7 +204,7 @@ class EventSequenceContinuityTest {
     @DisplayName("OutboundDelivery: it announces no event, so its sequence stays where it was while the lock version moves")
     void outboundDelivery() {
         checkMany(() -> com.forcitis.one.platform.integration.domain.OutboundDelivery.restore(
-                        new com.forcitis.one.platform.integration.domain.OutboundDeliveryId(TestIds.uuid(1)), "approval-task:42",
+                        new com.forcitis.one.platform.integration.domain.OutboundDeliveryId(TestIds.uuid(1)), com.forcitis.one.platform.integration.api.DeliverySubject.of(com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ASSIGNED, TestIds.uuid(42)),
                         List.of(new WecomUserId("alice")), "title", "description", null, "PENDING", 0, null, null, null,
                         com.forcitis.one.platform.integration.domain.DeliveryKind.CARD, null, java.util.UUID.randomUUID(), 0, 0),
                 List.of(d -> d.markSent("0", NOW), d -> d.scheduleRetry(NOW, "later"), d -> d.deadLetter("gave up"), d -> d.skip("not allowed")));

@@ -63,7 +63,7 @@ categories:
   actions:
   - platform.integration.SourceReferenceConfirmed
   - platform.integration.SourceReferenceRegistered
-  - platform.integration.SourceReferenceRegistrationRefused
+  - platform.integration.SourceReferenceRefused
   - platform.integration.SourceReferenceRejected
   - platform.integration.SourceReferenceSuperseded
 - name: 数据范围
@@ -84,7 +84,7 @@ categories:
   - platform.approval.TaskClaimed
   - platform.approval.TaskReassigned
   - platform.approval.TaskReleased
-  - platform.approval.TaskResulted
+  - platform.approval.TaskHandled
   - platform.approval.TaskTransferred
   - platform.approval.request.denied
   - platform.approval.start.denied
@@ -118,7 +118,7 @@ categories:
 - name: 工时单
   actions:
   - cost.timesheet.TimesheetApproved
-  - cost.timesheet.TimesheetCancelled
+  - cost.timesheet.TimesheetApprovalWithdrawn
   - cost.timesheet.TimesheetRejected
   - cost.timesheet.TimesheetReturned
   - cost.timesheet.TimesheetSubmitted

@@ -5,10 +5,9 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
 import com.forcitis.one.platform.approval.domain.ApprovalTaskQueries;
-import com.forcitis.one.platform.approval.domain.InboxMerger;
-import com.forcitis.one.platform.approval.domain.LegacyInbox;
-import com.forcitis.one.platform.approval.domain.LegacyTodo;
 import com.forcitis.one.platform.approval.domain.TaskView;
+import com.forcitis.one.platform.integration.api.LegacyInbox;
+import com.forcitis.one.platform.integration.api.LegacyTodo;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -44,14 +43,14 @@ public class ListInbox {
         Instant now = time.now();
         for (TaskView task : open) {
             Optional<Instant> due = Optional.ofNullable(deadlines.get(task.taskId()));
-            items.add(new InboxItem(InboxSource.NEW, task.taskId().value(),
+            items.add(new InboxItem(InboxSource.NEW, task.taskId().toString(),
                     ApprovalTexts.inboxTitle(task.processKey(), task.document()), Optional.of(task.nodeName()),
                     Optional.of(task.createdAt()), task.isClaimed(), Optional.empty(), due, due.map(now::isAfter).orElse(false), Optional.of(task.processKey()),
                     Optional.of(task.document().documentId().value()), InboxCategory.TODO));
         }
         int newCount = items.size();
         LegacyInbox.LegacyTodos old = accountEmployees.employeeOf(user).map(legacy::readTodos).orElseGet(LegacyInbox.LegacyTodos::unavailable);
-        List<LegacyTodo> merged = InboxMerger.mergeRowTasks(old.todos());
+        List<LegacyTodo> merged = old.todos();
         for (LegacyTodo todo : merged) {
             items.add(new InboxItem(InboxSource.LEGACY, todo.taskKey(), todo.title(), Optional.ofNullable(todo.nodeName()),
                     Optional.ofNullable(todo.createdAt()), false, Optional.ofNullable(todo.detailUrl()), Optional.empty(), false, Optional.empty(), Optional.empty(), InboxCategory.TODO));

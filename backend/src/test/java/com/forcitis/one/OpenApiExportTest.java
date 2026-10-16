@@ -106,23 +106,38 @@ class OpenApiExportTest {
     }
 
     /** Ids of this system (R-1a) are string / uuid on the wire; the rest are named here until R-1b gives them their own ids. */
-    static final java.util.Set<String> OWN_ID_FIELDS = java.util.Set.of("AttributeLegalEntityRequest.legalEntityId", "AuditEntryResponse.entryId",
+    static final Set<String> OWN_ID_FIELDS = Set.of("AttributeLegalEntityRequest.legalEntityId", "AuditEntryResponse.entryId",
             "AuthorizationRequestView.requestId", "AuthorizationRequestView.roleId", "HandledTaskResponse.recordId", "HistoryEntry.recordId",
             "LegacyNumberResponse.documentId", "LegacyNumberResponse.legalEntityId", "LegacyNumberResponse.migrationBatchId", "LegalEntityResponse.legalEntityId", "Period.legalEntityId",
             "RoleResponse.roleId", "SyncRunResponse.syncRunId", "SyncRunResponse.releasedByRunId", "ProblemDetail.correlationId",
             "RegisterSourceReferenceRequest.ownId", "SourceReferenceResponse.ownId", "SourceReferenceResponse.sourceReferenceId",
-            "AuditEntryResponse.actorId", "AuditEntryResponse.onBehalfOfId", "AuthorizationRequestView.subjectUserId", "CurrentUserResponse.userId",
+            "AuditEntryResponse.actorId", "AuditEntryResponse.onBehalfOfId", "AuditEntryResponse.subjectId", "AuthorizationRequestView.subjectUserId", "CurrentUserResponse.userId",
             "LoginResponse.userId", "UserAccountResponse.userId", "HandledTaskResponse.actorId", "HistoryEntry.actorId", "PendingTemplate.authorId",
-            "parameter userId", "parameter actorId", "parameter onBehalfOfId",
-            "parameter legalEntityId", "parameter ownId", "parameter syncRunId", "parameter requestId", "parameter roleId", "parameter sourceReferenceId", "parameter documentId /api/v1/platform/legacy-numbers");
+            "parameter userId", "parameter actorId", "parameter onBehalfOfId", "parameter subjectId",
+            "parameter legalEntityId", "parameter ownId", "parameter syncRunId", "parameter requestId", "parameter roleId", "parameter sourceReferenceId", "parameter documentId /api/v1/platform/legacy-numbers",
+            "OrgUnitResponse.orgUnitId", "OrgUnitResponse.headEmployeeId", "OrgUnitResponse.parentOrgUnitId", "OrgUnitResponse.regionalReceivablesManagerId",
+            "OrgUnitDetailResponse.ancestorOrgUnitIds", "OrgUnitDetailResponse.orgUnitAndBelowIds", "CurrentUserResponse.orgUnitId",
+            "LegalEntityAttributionResponse.subjectId", "ReassignTaskRequest.assigneeId", "TransferTaskRequest.assigneeId",
+            "DecisionResponse.instanceId", "HandledTaskResponse.taskId", "HandledTaskResponse.instanceId", "HandledTaskResponse.documentId", "HistoryEntry.taskId",
+            "TaskDetailResponse.taskId", "TaskDetailResponse.instanceId", "TaskDetailResponse.documentId", "TaskOverviewResponse.taskId", "TaskOverviewResponse.documentId",
+            "InboxItemResponse.documentId", "parameter taskId",
+            "parameter orgUnitId", "parameter employeeId",
+            "AuthorizationRequestView.requestedBy", "PendingTemplate.confirmedBy", "PendingTemplate.financeConfirmedBy", "SyncRunResponse.releasedBy",
+            "TaskDetailResponse.initiator", "TaskDetailResponse.assignee", "TaskOverviewResponse.assignee");
 
-    /** Ids taken from the organisation source (A8) and the engine's task, instance and document keys: R-1b, listed by name so a new id field has to be classified. */
-    static final java.util.Set<String> OTHER_ID_NAMES = java.util.Set.of("orgUnitId", "employeeId",
-            "headEmployeeId", "parentOrgUnitId", "regionalReceivablesManagerId", "ancestorOrgUnitIds", "orgUnitAndBelowIds", "assigneeId",
-            "subjectId", "taskId", "instanceId", "documentId");
+    /** Employee ids whose names do not end in Id or By (D-10): named in full so the guard looks at them. */
+    static final Set<String> NAMED_OWN_ID_FIELDS = Set.of("TaskDetailResponse.initiator", "TaskDetailResponse.assignee",
+            "TaskOverviewResponse.assignee");
+
+    /**
+     * Ids that are not ours, by full name. InboxItemResponse.taskId carries the old system's task key for the old system's items; it stays a plain
+     * string until the inbox contract is neutralised (ADR-0039 item 6, RULING-P4-D6) and is deleted here then. SyncDiffResponse.subjectKey is a
+     * "{type}:{id}" text key of the synchronisation (RULING-P5-1, D-13); it is deleted here when split a gives the differences their own columns.
+     */
+    static final Set<String> OTHER_ID_NAMES = Set.of("InboxItemResponse.taskId", "SyncDiffResponse.subjectKey");
 
     /** Identifiers that belong to an external system and stay what that system gives: on the wire a whole number written as text. */
-    static final java.util.Set<String> EXTERNAL_ID_NAMES = java.util.Set.of("sourceId");
+    static final Set<String> EXTERNAL_ID_NAMES = Set.of("sourceId");
 
     @Test
     void idFieldsOfThisSystemAreStringUuidAndEveryOtherIdFieldIsClassified() throws Exception {
@@ -133,6 +148,11 @@ class OpenApiExportTest {
                 idFields.put(schema.getKey() + "." + property.getKey(), property.getValue().has("items") ? property.getValue().path("items") : property.getValue());
             }
         }));
+        NAMED_OWN_ID_FIELDS.forEach(full -> {
+            JsonNode property = document.path("components").path("schemas").path(full.split("\\.")[0]).path("properties").path(full.split("\\.")[1]);
+            assertThat(property.isMissingNode()).as(full + " exists in the document").isFalse();
+            idFields.put(full, property);
+        });
         document.path("paths").properties().forEach(path -> path.getValue().properties().forEach(operation -> operation.getValue().path("parameters").forEach(parameter -> {
             String name = parameter.path("name").asString();
             if (isIdName(name)) {
@@ -159,8 +179,8 @@ class OpenApiExportTest {
                 if (!schema.path("type").asString().equals("string") || schema.has("format")) {
                     problems.add(key + " is an id of an external system and is a plain string on the wire, found " + schema.path("type") + " / " + schema.path("format"));
                 }
-            } else if (!OTHER_ID_NAMES.contains(fieldName(key))) {
-                problems.add(key + " looks like an id: list it in OWN_ID_FIELDS (string / uuid), in EXTERNAL_ID_NAMES (external system) or, until R-1b, in OTHER_ID_NAMES");
+            } else if (!OTHER_ID_NAMES.contains(key)) {
+                problems.add(key + " looks like an id: list it in OWN_ID_FIELDS (string / uuid), in EXTERNAL_ID_NAMES (external system) or, with a reason and an end date, in OTHER_ID_NAMES");
             }
         });
         assertThat(problems).isEmpty();
@@ -171,7 +191,7 @@ class OpenApiExportTest {
     }
 
     private static boolean isIdName(String name) {
-        return name.equals("id") || name.endsWith("Id") || name.endsWith("Ids");
+        return name.equals("id") || name.endsWith("Id") || name.endsWith("Ids") || name.endsWith("By") || name.equals("subjectKey");
     }
 
     /** springdoc names a component after the simple class name, so two classes of one name in different packages would silently share one component. */

@@ -60,14 +60,32 @@
 
 回放导出的口径与局限（写入 `manifest-replay.json`，回放报告须引用）：
 - 工时行类型取自流程变量 `manHourType`（老流程网关当时判断分支用的值，Java 序列化的整数列表，在中转进程内解码）；修订表 `psa_time_sheet_revision` 只有 851 行，覆盖不了样本，不用。
-- 表单字段：项目经理取 `manager_id`、区域负责人取 `area_leader`（Java 序列化的字符串列表）。
+- 表单字段：项目经理取 `manager_id`、部门负责人（原区域负责人，P4 改名）取 `area_leader`（Java 序列化的字符串列表）。
 - 实际办理人：`bpm_task_ext` 中三个审批节点结果为通过 / 不通过的任务的办理人；发起人节点不回放（M3）。
 - 组织快照为导出当天的人员与部门（老表无历史），由此产生的差异归 `REVIEWED_*` 类。
 - `processAdministratorUserId` 为回放专用替身 `-1`（流程管理员 A-4 未定），使「取不到人转流程管理员」路径可比对；不是真人，不进任何运行配置。
 - `legacyFallbackUserIds` 为老代码中写死的兜底人 ID（RULE-254，用户已判「去掉写死兜底，取不到人转流程管理员」），只取 ID。
 - 云助手会在阿里云侧保留调用输出一段时间（压缩后的页数据，含人员 ID），这是该通道的固有特性。
 
-回放的运行：在新 ECS 上以 root 运行 `TimesheetApproverReplayCommand`，输入 `/data/forcitis-one/import/c6/20261015/timesheet-export.json`，输出到同目录 `replay-out/`。需要含该命令的构建产物（发布包或同版本的类与依赖）和 Java 25（已装）；首个发布包就绪后执行。
+回放的运行：在新 ECS 上以 root 运行 `TimesheetApproverReplayCommand`，输入 `/data/forcitis-one/import/c6/20261015/timesheet-export.json`，输出到同目录 `replay-out/`。需要含该命令的构建产物（发布包或同版本的类与依赖）和 Java 25（已装）；首个发布包就绪后执行（2026-10-16 已执行，结果见下）。
+
+### 回放结果（2026-10-16，one-ops）
+
+在新 ECS 上用 v0.1.0-rc.2 的 jar（已验签）运行 `TimesheetApproverReplayCommand`，不连数据库（云助手 t-hz07058klbng3cw；汇总 t-hz0705bdjexee4g 等，只出计数与类别）。输出在 `/data/forcitis-one/import/c6/20261015/replay-out/`（root 0600：`replay-report.json`、`replay-report.md`、`run.log`），只含 ID，不复制明细。有 DEFECT 时命令按设计以 1 退出。
+
+- **范围**：流程 v15，近 90 天内已办结且审批通过的实例（2026-09、2026-10），每月按结束时间均匀抽，最多 250 个：共 500 个实例、561 个审批节点。其中 supervisorReview 123 个（规则 INITIATOR_SUPERVISOR，level 1），projectManagerReview 389 个（FORM_FIELD_USERS，字段 projectManagerId），regionalHeadReview 49 个（FORM_FIELD_USERS，字段 regionalHeadId）。组织快照为导出当天（2026-10-15）的当前组织。
+- **结论计数**：MATCH 474；REVIEWED_SELF_APPROVAL 80；REVIEWED_DISABLED_APPROVER 1；DEFECT 6。处理结果：RESOLVED 492，ESCALATED_SELF_APPROVAL 69。
+
+| 分类 | 节点 | 数 | 新系统候选 | 老系统实际 | 说明 |
+|---|---|---|---|---|---|
+| REVIEWED_SELF_APPROVAL | projectManagerReview | 65 | 升级到发起人直属上级（RULE-307，ESCALATED_SELF_APPROVAL） | 发起人自己审批 | 表单项目经理就是发起人 |
+| REVIEWED_SELF_APPROVAL | projectManagerReview | 10 | 表单中发起人以外的人（RESOLVED） | 发起人自己加另一人 | 表单字段有多人，含发起人 |
+| REVIEWED_SELF_APPROVAL | 部门负责人节点（导出里仍叫 regionalHeadReview，回放命令按旧名映射） | 4 | 升级到发起人直属上级（ESCALATED_SELF_APPROVAL） | 发起人自己审批 | 表单区域负责人就是发起人 |
+| REVIEWED_SELF_APPROVAL | 部门负责人节点（同上） | 1 | 表单中发起人以外的人（RESOLVED） | 发起人自己加另一人 | 同上，多人 |
+| REVIEWED_DISABLED_APPROVER | supervisorReview | 1 | 发起人在快照中的直属上级（RESOLVED） | 发起人所在部门负责人 | 原审批人停用 |
+| 回放方法限制（原 DEFECT，未取证坐实） | supervisorReview | 6 | 发起人在快照中的直属上级 | 同一人，是该直属上级的下属，不在发起人上级链上 | 涉及 2 名发起人；回放用的是导出日的组织快照，不是审批时点，老表没有汇报线历史，审批后上级若有调整就会出现这种差异（one-1a-par 的诊断，判断不是规则缺陷）；没有用取证去坐实 |
+
+REVIEWED_SELF_APPROVAL 涉及 37 名发起人。REVIEWED_* 请用户逐类接受（one-rules 做决策页）。上表最后一行 6 条按 one-coordinator 的决定归为「回放方法限制」：不再为坐实原因做加密中转取证（成本与风险偏高，A8 又没有上级字段，只能间接判断），D-3 的结论由用户在出口评审时一并看；回放方法的改进（按提交时刻的组织快照重放）记为后续项。取证脚本草稿保留在 PR #254（草稿，暂停），需要时再启用。
 
 ## 校验
 

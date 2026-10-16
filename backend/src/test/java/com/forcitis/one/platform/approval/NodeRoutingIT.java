@@ -52,10 +52,10 @@ class NodeRoutingIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instance = begin(newKey("route"), initiator, manager, TimesheetRoutingFlag.PROJECT_HOURS,
                 TimesheetRoutingFlag.OVERHEAD_HOURS);
 
-        Map<String, Object> variables = runtime.getVariables(instance.value());
-        assertThat(variables).containsEntry("routed_projectManagerReview", true).containsEntry("routed_regionalHeadReview", false)
+        Map<String, Object> variables = runtime.getVariables(instance.value().toString());
+        assertThat(variables).containsEntry("routed_projectManagerReview", true).containsEntry("routed_orgUnitHeadApproval", false)
                 .containsEntry("routed_supervisorReview", true);
-        assertThat(taskService.createTaskQuery().processInstanceId(instance.value()).list()).extracting(Task::getTaskDefinitionKey)
+        assertThat(taskService.createTaskQuery().processInstanceId(instance.value().toString()).list()).extracting(Task::getTaskDefinitionKey)
                 .containsExactlyInAnyOrder("projectManagerReview", "supervisorReview");
         assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_tasks where instance_id = ? and due_at is not null"
                 + " and remind_at is not null and escalate_at is not null", Integer.class, instance.value())).isEqualTo(2);
@@ -76,14 +76,14 @@ class NodeRoutingIT extends ApprovalIntegrationSupport {
         organisation.person(initiator, 1, null).person(manager, 1, null);
         String key = newKey("unknown-flag");
 
-        assertThatThrownBy(() -> tx.executeWithoutResult(s -> approvals.start(startRequest(key, new EmployeeId(initiator),
+        assertThatThrownBy(() -> tx.executeWithoutResult(s -> approvals.start(startRequest(key, TestAccounts.employee(initiator),
                 Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName(), "projectHoursTypo"),
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager))))))))
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(manager).toString())))))))
                 .isInstanceOfSatisfying(DomainException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_ROUTING_FLAG_UNKNOWN));
 
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where document_key = ?", Integer.class, key)).isZero();
-        assertThat(runtime.createProcessInstanceQuery().processInstanceBusinessKey("TIMESHEET:" + key).count()).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where document_id = cast(? as uuid)", Integer.class, key)).isZero();
+        assertThat(runtime.createProcessInstanceQuery().processInstanceBusinessKey(key).count()).isZero();
     }
 
     @Test
@@ -97,8 +97,8 @@ class NodeRoutingIT extends ApprovalIntegrationSupport {
 
         assertThatThrownBy(() -> begin(key, initiator, manager, TimesheetRoutingFlag.PROJECT_HOURS)).hasStackTraceContaining("pair");
 
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where document_key = ?", Integer.class, key)).isZero();
-        assertThat(runtime.createProcessInstanceQuery().processInstanceBusinessKey("TIMESHEET:" + key).count()).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where document_id = cast(? as uuid)", Integer.class, key)).isZero();
+        assertThat(runtime.createProcessInstanceQuery().processInstanceBusinessKey(key).count()).isZero();
     }
 
     @Test
@@ -111,13 +111,13 @@ class NodeRoutingIT extends ApprovalIntegrationSupport {
 
         ApprovalInstanceId skipping = begin(newKey("skip"), initiator, manager, TimesheetRoutingFlag.PROJECT_HOURS,
                 TimesheetRoutingFlag.OVERHEAD_HOURS);
-        assertThat(taskService.createTaskQuery().processInstanceId(skipping.value()).list()).extracting(Task::getTaskDefinitionKey)
+        assertThat(taskService.createTaskQuery().processInstanceId(skipping.value().toString()).list()).extracting(Task::getTaskDefinitionKey)
                 .containsExactly("projectManagerReview");
 
         deployVariant("noskip");
         ApprovalInstanceId notSkipping = begin(newKey("noskip"), initiator, manager, TimesheetRoutingFlag.PROJECT_HOURS,
                 TimesheetRoutingFlag.OVERHEAD_HOURS);
-        Task supervisorTask = taskService.createTaskQuery().processInstanceId(notSkipping.value()).taskDefinitionKey("supervisorReview")
+        Task supervisorTask = taskService.createTaskQuery().processInstanceId(notSkipping.value().toString()).taskDefinitionKey("supervisorReview")
                 .includeIdentityLinks().singleResult();
         assertThat(supervisorTask).as("nobody above the initiator, skipping not allowed: the process administrator gets it").isNotNull();
         assertThat(taskService.getIdentityLinksForTask(supervisorTask.getId()).stream().filter(l -> "candidate".equals(l.getType()))
@@ -132,8 +132,8 @@ class NodeRoutingIT extends ApprovalIntegrationSupport {
         long initiator = newId();
         long manager = newId();
         organisation.person(initiator, 1, null).person(manager, 1, null);
-        ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(newKey("manual-repeat"), new EmployeeId(initiator), Set.of("again"),
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))))));
+        ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(newKey("manual-repeat"), TestAccounts.employee(initiator), Set.of("again"),
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(manager).toString()))))));
 
         decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(openTaskId(instance), DecisionOutcome.APPROVE, null)), java.util.OptionalLong.empty());
 

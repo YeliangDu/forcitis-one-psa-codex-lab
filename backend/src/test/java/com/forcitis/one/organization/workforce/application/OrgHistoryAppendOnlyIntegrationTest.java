@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
+import static com.forcitis.one.fixture.doubles.TestOrgIds.sqlOrgUnit;
+import static com.forcitis.one.fixture.doubles.TestOrgIds.sqlEmployee;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.manager;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
@@ -9,6 +11,7 @@ import static com.forcitis.one.organization.workforce.domain.Fixtures.unit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -26,11 +29,15 @@ class OrgHistoryAppendOnlyIntegrationTest extends WorkforceIntegrationSupport {
         sync.execute(SyncTrigger.SCHEDULED, false);
     }
 
+    private static String unitText(long n) {
+        return TestOrgIds.orgUnit(n).value().toString();
+    }
+
     private List<String> unit3Rows() {
         return jdbc.sql("""
                 select revision_number || ':' || coalesce(parent_org_unit_id::text, '-') || ':' || (effective_to_date is not null)
-                  from organization_workforce.org_unit_versions where org_unit_id = 3 order by effective_from_date, revision_number
-                """).query(String.class).list();
+                  from organization_workforce.org_unit_versions where org_unit_id = %s order by effective_from_date, revision_number
+                """.formatted(sqlOrgUnit(3))).query(String.class).list();
     }
 
     @Test
@@ -39,11 +46,11 @@ class OrgHistoryAppendOnlyIntegrationTest extends WorkforceIntegrationSupport {
         synced(2L);
         synced(4L);
 
-        assertThat(unit3Rows()).containsExactly("0:2:true", "1:4:false");
+        assertThat(unit3Rows()).containsExactly("0:" + unitText(2) + ":true", "1:" + unitText(4) + ":false");
         assertThat(jdbc.sql("""
                 select count(*) from organization_workforce.org_unit_versions
-                 where org_unit_id = 3 and effective_to_date = effective_from_date
-                """).query(Long.class).single()).isEqualTo(1L);
+                 where org_unit_id = %s and effective_to_date = effective_from_date
+                """.formatted(sqlOrgUnit(3))).query(Long.class).single()).isEqualTo(1L);
     }
 
     @Test
@@ -52,18 +59,18 @@ class OrgHistoryAppendOnlyIntegrationTest extends WorkforceIntegrationSupport {
         synced(2L);
         synced(4L);
 
-        assertThatThrownBy(() -> jdbc.sql("delete from organization_workforce.org_unit_versions where org_unit_id = 3").update())
+        assertThatThrownBy(() -> jdbc.sql("delete from organization_workforce.org_unit_versions where org_unit_id = " + sqlOrgUnit(3)).update())
                 .hasMessageContaining("append-only");
-        assertThatThrownBy(() -> jdbc.sql("update organization_workforce.org_unit_versions set name = 'x' where org_unit_id = 3 and revision_number = 0").update())
+        assertThatThrownBy(() -> jdbc.sql("update organization_workforce.org_unit_versions set name = 'x' where org_unit_id = " + sqlOrgUnit(3) + " and revision_number = 0").update())
                 .hasMessageContaining("closed version row cannot change");
-        assertThatThrownBy(() -> jdbc.sql("update organization_workforce.org_unit_versions set name = 'x' where org_unit_id = 3 and revision_number = 1").update())
+        assertThatThrownBy(() -> jdbc.sql("update organization_workforce.org_unit_versions set name = 'x' where org_unit_id = " + sqlOrgUnit(3) + " and revision_number = 1").update())
                 .hasMessageContaining("can only be closed");
-        assertThatThrownBy(() -> jdbc.sql("delete from organization_workforce.assignment_versions where employee_id = 1").update())
+        assertThatThrownBy(() -> jdbc.sql("delete from organization_workforce.assignment_versions where employee_id = " + sqlEmployee(1)).update())
                 .hasMessageContaining("append-only");
-        assertThatThrownBy(() -> jdbc.sql("update organization_workforce.assignment_versions set org_unit_id = 4 where employee_id = 1").update())
+        assertThatThrownBy(() -> jdbc.sql("update organization_workforce.assignment_versions set org_unit_id = " + sqlOrgUnit(4) + " where employee_id = " + sqlEmployee(1)).update())
                 .hasMessageContaining("can only be closed");
 
-        assertThat(jdbc.sql("update organization_workforce.org_unit_versions set effective_to_date = effective_from_date + 1 where org_unit_id = 3 and revision_number = 1")
+        assertThat(jdbc.sql("update organization_workforce.org_unit_versions set effective_to_date = effective_from_date + 1 where org_unit_id = " + sqlOrgUnit(3) + " and revision_number = 1")
                 .update()).isEqualTo(1);
     }
 }

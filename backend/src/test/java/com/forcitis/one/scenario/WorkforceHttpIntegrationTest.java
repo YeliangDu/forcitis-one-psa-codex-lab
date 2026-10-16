@@ -1,9 +1,7 @@
 package com.forcitis.one.scenario;
 
-import com.forcitis.one.fixture.doubles.TestAccounts;
-import com.forcitis.one.TestIds;
-import com.forcitis.one.platform.identity.api.Permission;
-
+import static com.forcitis.one.fixture.doubles.TestOrgIds.sqlEmployee;
+import static com.forcitis.one.fixture.doubles.TestOrgIds.sqlOrgUnit;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.post;
@@ -22,6 +20,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.forcitis.one.TestIds;
+import com.forcitis.one.fixture.doubles.TestAccounts;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.organization.workforce.application.SyncOrgSnapshot;
 import com.forcitis.one.organization.workforce.events.SyncRunReleased;
@@ -31,6 +32,7 @@ import com.forcitis.one.platform.integration.api.SourcePerson;
 import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.platform.audit.api.AuditEntry;
+import com.forcitis.one.platform.identity.api.Permission;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -70,14 +72,18 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
 
     @org.junit.jupiter.api.BeforeEach
     void theCallerIsTheOrganisationDataAdministrator() {
-        jdbc.sql("insert into platform_identity.user_accounts (user_id, employee_id) values (" + TestAccounts.sql(9001) + "::uuid, 9001) on conflict do nothing").update();
-        jdbc.sql("insert into platform_identity.account_roles (user_id, role_id) select " + TestAccounts.sql(9001) + "::uuid, role_id from platform_identity.roles where code = 'org_data_admin' on conflict do nothing").update();
+        jdbc.sql("insert into platform_identity.user_accounts (user_id, employee_id) values (" + TestAccounts.sql(9001) + "::uuid, " + sqlEmployee(9001) + ") on conflict do nothing").update();
+        jdbc.sql("insert into platform_identity.account_roles (account_role_id, user_id, role_id) select uuidv7(), " + TestAccounts.sql(9001) + "::uuid, role_id from platform_identity.roles where code = 'org_data_admin' on conflict do nothing").update();
     }
 
     @org.junit.jupiter.api.AfterEach
     void removeTheCallerAccount() {
-        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = 9001)").update();
-        jdbc.sql("delete from platform_identity.user_accounts where employee_id = 9001").update();
+        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = " + sqlEmployee(9001) + ")").update();
+        jdbc.sql("delete from platform_identity.user_accounts where employee_id = " + sqlEmployee(9001)).update();
+    }
+
+    private static String unitText(long n) {
+        return TestOrgIds.orgUnit(n).value().toString();
     }
 
     private void synced() {
@@ -90,7 +96,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     @DisplayName("every workforce endpoint refuses anonymous callers (401) and callers without the permission (403)")
     void permissionsAreEnforced() throws Exception {
         synced();
-        for (String path : List.of(ORG_UNITS, ORG_UNITS + "/2", SYNC_RUNS, SYNC_RUNS + "/" + SOME_RUN)) {
+        for (String path : List.of(ORG_UNITS, ORG_UNITS + "/" + unitText(2), SYNC_RUNS, SYNC_RUNS + "/" + SOME_RUN)) {
             mvc.perform(get(path)).andExpect(status().isUnauthorized());
             mvc.perform(get(path).with(caller("some.other:thing:read"))).andExpect(status().isForbidden());
         }
@@ -119,20 +125,20 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     @DisplayName("the org tree lists parents first with string ids; revoked units only on request")
     void orgTree() throws Exception {
         synced();
-        jdbc.sql("update organization_workforce.org_units set status = 'REVOKED', revoked_at = now() where id = 4").update();
+        jdbc.sql("update organization_workforce.org_units set status = 'REVOKED', revoked_at = now() where id = " + sqlOrgUnit(4)).update();
 
         mvc.perform(get(ORG_UNITS).with(READ_ORG))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[0].orgUnitId").value("1"))
+                .andExpect(jsonPath("$[0].orgUnitId").value(unitText(1)))
                 .andExpect(jsonPath("$[0].parentOrgUnitId").doesNotExist())
-                .andExpect(jsonPath("$[1].orgUnitId").value("2"))
-                .andExpect(jsonPath("$[1].parentOrgUnitId").value("1"))
-                .andExpect(jsonPath("$[1].headEmployeeId").value("1"))
+                .andExpect(jsonPath("$[1].orgUnitId").value(unitText(2)))
+                .andExpect(jsonPath("$[1].parentOrgUnitId").value(unitText(1)))
+                .andExpect(jsonPath("$[1].headEmployeeId").value(TestAccounts.employee(1).value().toString()))
                 .andExpect(jsonPath("$[2].status").value("ACTIVE"));
         mvc.perform(get(ORG_UNITS).param("includeRevoked", "true").with(READ_ORG))
                 .andExpect(jsonPath("$.length()").value(4))
-                .andExpect(jsonPath("$[?(@.orgUnitId == '4')].status").value("REVOKED"));
+                .andExpect(jsonPath("$[?(@.orgUnitId == '" + unitText(4) + "')].status").value("REVOKED"));
     }
 
     @Test
@@ -140,15 +146,15 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     void orgUnitDetail() throws Exception {
         synced();
 
-        mvc.perform(get(ORG_UNITS + "/3").with(READ_ORG))
+        mvc.perform(get(ORG_UNITS + "/" + unitText(3)).with(READ_ORG))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.orgUnit.orgUnitId").value("3"))
-                .andExpect(jsonPath("$.ancestorOrgUnitIds[0]").value("2"))
-                .andExpect(jsonPath("$.ancestorOrgUnitIds[1]").value("1"))
+                .andExpect(jsonPath("$.orgUnit.orgUnitId").value(unitText(3)))
+                .andExpect(jsonPath("$.ancestorOrgUnitIds[0]").value(unitText(2)))
+                .andExpect(jsonPath("$.ancestorOrgUnitIds[1]").value(unitText(1)))
                 .andExpect(jsonPath("$.orgUnitAndBelowIds.length()").value(1));
-        mvc.perform(get(ORG_UNITS + "/1").with(READ_ORG))
+        mvc.perform(get(ORG_UNITS + "/" + unitText(1)).with(READ_ORG))
                 .andExpect(jsonPath("$.orgUnitAndBelowIds.length()").value(4));
-        mvc.perform(get(ORG_UNITS + "/404").with(READ_ORG)).andExpect(status().isNotFound());
+        mvc.perform(get(ORG_UNITS + "/" + unitText(404)).with(READ_ORG)).andExpect(status().isNotFound());
     }
 
     @Test
@@ -175,7 +181,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.syncRun.trigger").value("SCHEDULED"))
                 .andExpect(jsonPath("$.diffs[?(@.changeKind == 'ISSUE')].issueKind").value("ISOLATED_MISSING_ORG_UNIT"))
-                .andExpect(jsonPath("$.diffs[?(@.subjectKey == 'employee:1')].changeKind").value("CREATED"));
+                .andExpect(jsonPath("$.diffs[?(@.subjectKey == 'employee:" + TestAccounts.employee(1).value() + "')].changeKind").value("CREATED"));
         mvc.perform(get(SYNC_RUNS + "/" + TestIds.uuid(999)).with(READ_RUNS)).andExpect(status().isNotFound());
     }
 
@@ -239,7 +245,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
                 .andExpect(jsonPath("$.syncRun.status").value("SUCCEEDED"));
         assertThat(events.stream(SyncRunReleased.class)).singleElement().satisfies(e -> {
             assertThat(e.envelope().actorType()).isEqualTo(ActorType.USER);
-            assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value().toString());
+            assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value());
         });
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where employment_status = 'SEPARATED'").query(Integer.class).single()).isEqualTo(4);
 
@@ -280,6 +286,28 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
         mvc.perform(post(SYNC_RUNS + ":reconcile").with(csrf()).with(EXECUTE)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.zeroDifference").value(true));
         mvc.perform(post(SYNC_RUNS + ":reconcile").with(csrf()).with(READ_RUNS)).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-01: a release reason of 201 characters is refused with 400 and leaves the run held; 200 characters pass")
+    void releaseReasonIsBounded() throws Exception {
+        List<SourcePerson> ten = new ArrayList<>();
+        for (int i = 1; i <= 10; i++) {
+            ten.add(person(i, 2, 100L, null));
+        }
+        orgSource.snapshot = tree(ten.toArray(SourcePerson[]::new));
+        sync.execute(SyncTrigger.SCHEDULED, false);
+        orgSource.snapshot = tree(ten.subList(0, 6).toArray(SourcePerson[]::new));
+        var held = sync.execute(SyncTrigger.SCHEDULED, false);
+        String path = SYNC_RUNS + "/" + held.syncRunId().value() + ":release";
+
+        mvc.perform(post(path).with(csrf()).with(EXECUTE).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"" + "x".repeat(201) + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED"));
+        assertThat(jdbc.sql("select status from organization_workforce.sync_runs where id = ?").param(held.syncRunId().value()).query(String.class).single())
+                .as("the refused release leaves the run held").isEqualTo("HELD");
+        mvc.perform(post(path).with(csrf()).with(EXECUTE).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"" + "x".repeat(200) + "\"}"))
+                .andExpect(status().isOk());
     }
 
     @Test

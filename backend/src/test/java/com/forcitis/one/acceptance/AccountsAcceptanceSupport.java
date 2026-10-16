@@ -7,6 +7,10 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.kernel.DocumentId;
+import com.forcitis.one.kernel.DocumentReference;
+import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.platform.identity.api.SessionRoles;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import com.jayway.jsonpath.JsonPath;
@@ -22,7 +26,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +44,10 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
  * workforce schema, the account is opened by identity itself when the person signs in through WeCom, and the account id is what the
  * login answers. A login whose answer is not a lower-case canonical UUID, or that equals the employee id, fails the test here: until P2
  * the account id is the employee id.
+ * <p>
+ * Employee and org unit ids are UUIDs (R-1b P3b, ADR-0033 section 1; RULING-P3B-1). A build whose EmployeeId still wraps a number
+ * stores each of them under a number of its own ({@link #UUID_IDS}), so the tests run the same before and after P3b; nothing in a test
+ * may depend on that number.
  */
 public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
 
@@ -48,16 +58,87 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
     private static final AtomicLong ORG_UNITS = new AtomicLong(61_000);
     private static final AtomicLong CODES = new AtomicLong();
 
+    /** True once EmployeeId wraps a UUID (R-1b P3b); before that the schema stores the number registered for each UUID. */
+    protected static final boolean UUID_IDS = EmployeeId.class.getRecordComponents()[0].getType() == UUID.class;
+
+    private static final Map<UUID, Long> NUMBERS = new ConcurrentHashMap<>();
+    private static final Map<Long, UUID> BY_NUMBER = new ConcurrentHashMap<>();
+
     /** An account as the login answered it, the employee behind it and the session cookie of that login. */
-    protected record SignedIn(UUID userId, long employeeId, String session) {
+    protected record SignedIn(UUID userId, UUID employeeId, String session) {
     }
 
-    protected static long newEmployeeId() {
-        return EMPLOYEES.incrementAndGet();
+    protected static UUID newEmployeeId() {
+        return newId(EMPLOYEES);
     }
 
-    protected static long newOrgUnitId() {
-        return ORG_UNITS.incrementAndGet();
+    protected static UUID newOrgUnitId() {
+        return newId(ORG_UNITS);
+    }
+
+    /** An employee or org unit id made elsewhere (an own id the source references allocated), registered so the helpers can store it. */
+    protected static UUID adoptId(UUID id) {
+        NUMBERS.computeIfAbsent(id, adopted -> {
+            long number = EMPLOYEES.incrementAndGet();
+            BY_NUMBER.put(number, adopted);
+            return number;
+        });
+        return id;
+    }
+
+    private static UUID newId(AtomicLong numbers) {
+        UUID id = Uuids.timeOrdered(NOW);
+        long number = numbers.incrementAndGet();
+        NUMBERS.put(id, number);
+        BY_NUMBER.put(number, id);
+        return id;
+    }
+
+    /** The id as the schema and the build take it: the UUID, or before P3b the number registered for it. */
+    protected static Object stored(UUID id) {
+        if (id == null) {
+            return null;
+        }
+        if (UUID_IDS) {
+            return id;
+        }
+        return serialOf(id);
+    }
+
+    /** The id as text in a path, a command argument or a form field. */
+    protected static String text(UUID id) {
+        return String.valueOf(stored(id));
+    }
+
+    /** The id read back from the schema, in either form. */
+    protected static UUID fromStored(Object value) {
+        if (value == null || value instanceof UUID) {
+            return (UUID) value;
+        }
+        UUID id = BY_NUMBER.get(((Number) value).longValue());
+        if (id == null) {
+            throw new AssertionError("the schema holds id " + value + ", which this run did not make");
+        }
+        return id;
+    }
+
+    /** The kernel EmployeeId of the employee, built for whichever form the build has. */
+    protected static EmployeeId employeeIdOf(UUID id) {
+        try {
+            Class<?> type = EmployeeId.class.getRecordComponents()[0].getType();
+            return EmployeeId.class.getDeclaredConstructor(type).newInstance(stored(id));
+        } catch (ReflectiveOperationException unexpected) {
+            throw new AssertionError(unexpected);
+        }
+    }
+
+    /** A short number of the id, stable in this run, for the codes, names and WeCom user ids of synthetic people; never an id. */
+    protected static long serialOf(UUID id) {
+        Long number = NUMBERS.get(id);
+        if (number == null) {
+            throw new AssertionError("no number registered for " + id + ": make ids with newEmployeeId() or newOrgUnitId()");
+        }
+        return number;
     }
 
     /** A legal entity code not used before in this run: the prefix and two letters. */
@@ -66,8 +147,62 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
         return prefix + (char) ('A' + (n / 26) % 26) + (char) ('A' + n % 26);
     }
 
-    protected static String wecomUserIdOf(long employeeId) {
-        return "wx-acceptance-" + employeeId;
+    /** True once DocumentId wraps a UUID and the approval tables name the document by document_id and hang the child tables on the request (R-1b P4, RULING-P4-1). */
+    protected static final boolean DOCUMENT_IDS_ARE_UUIDS = DocumentId.class.getRecordComponents()[0].getType() == UUID.class;
+
+    /** A document id not used before: a UUID once DocumentId wraps one, before that the text "acceptance-" and a UUID. */
+    protected static DocumentId newDocumentId() {
+        try {
+            Class<?> type = DocumentId.class.getRecordComponents()[0].getType();
+            UUID id = UUID.randomUUID();
+            return DocumentId.class.getDeclaredConstructor(type).newInstance(type == UUID.class ? id : "acceptance-" + id);
+        } catch (ReflectiveOperationException unexpected) {
+            throw new AssertionError(unexpected);
+        }
+    }
+
+    /** Rows of an approval table that belong to the document, read in whichever form the build has (RULING-P4-1). */
+    protected int approvalRowsOf(String table, DocumentReference document) throws SQLException {
+        String sql;
+        Object key;
+        if (!DOCUMENT_IDS_ARE_UUIDS) {
+            sql = "select count(*) from " + table + " where document_key = ?";
+            key = document.documentId().toString();
+        } else if (table.equals("approval_requests")) {
+            sql = "select count(*) from approval_requests where document_id = ?";
+            key = UUID.fromString(document.documentId().toString());
+        } else {
+            sql = "select count(*) from " + table + " t join approval_requests r on r.id = t.approval_request_id where r.document_id = ?";
+            key = UUID.fromString(document.documentId().toString());
+        }
+        try (Connection approval = schemaConnection("platform_approval"); PreparedStatement count = approval.prepareStatement(sql)) {
+            count.setObject(1, key);
+            try (ResultSet rs = count.executeQuery()) {
+                rs.next();
+                return rs.getInt(1);
+            }
+        }
+    }
+
+    /** The ids (as text) of the document's tasks that wait to be claimed. */
+    protected List<String> pendingTaskIdsOf(DocumentReference document) throws SQLException {
+        String sql = DOCUMENT_IDS_ARE_UUIDS
+                ? "select t.task_id from approval_tasks t join approval_requests r on r.id = t.approval_request_id where r.document_id = ? and t.status = 'PENDING'"
+                : "select task_id from approval_tasks where document_key = ? and status = 'PENDING'";
+        List<String> tasks = new ArrayList<>();
+        try (Connection approval = schemaConnection("platform_approval"); PreparedStatement select = approval.prepareStatement(sql)) {
+            select.setObject(1, DOCUMENT_IDS_ARE_UUIDS ? UUID.fromString(document.documentId().toString()) : document.documentId().toString());
+            try (ResultSet rs = select.executeQuery()) {
+                while (rs.next()) {
+                    tasks.add(rs.getString(1));
+                }
+            }
+        }
+        return tasks;
+    }
+
+    protected static String wecomUserIdOf(UUID employeeId) {
+        return "wx-acceptance-" + serialOf(employeeId);
     }
 
     /**
@@ -90,44 +225,44 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
         return UUID.fromString(text);
     }
 
-    protected void orgUnit(long orgUnitId, Long parentOrgUnitId, Long headEmployeeId) throws SQLException {
+    protected void orgUnit(UUID orgUnitId, UUID parentOrgUnitId, UUID headEmployeeId) throws SQLException {
         try (Connection workforce = schemaConnection("organization_workforce"); PreparedStatement insert = workforce.prepareStatement(
                 "insert into org_units (id, name, status, parent_org_unit_id, head_employee_id) values (?, ?, 'ACTIVE', ?, ?)")) {
-            insert.setLong(1, orgUnitId);
-            insert.setString(2, "Synthetic unit " + orgUnitId);
-            insert.setObject(3, parentOrgUnitId);
-            insert.setObject(4, headEmployeeId);
+            insert.setObject(1, stored(orgUnitId));
+            insert.setString(2, "Synthetic unit " + serialOf(orgUnitId));
+            insert.setObject(3, stored(parentOrgUnitId));
+            insert.setObject(4, stored(headEmployeeId));
             insert.executeUpdate();
         }
     }
 
-    protected void employee(long employeeId, long orgUnitId, Long reportsToEmployeeId) throws SQLException {
+    protected void employee(UUID employeeId, UUID orgUnitId, UUID reportsToEmployeeId) throws SQLException {
         try (Connection workforce = schemaConnection("organization_workforce")) {
             try (PreparedStatement insert = workforce.prepareStatement("""
                     insert into employees (id, employee_code, display_name, wecom_user_id, employment_status)
                     values (?, ?, ?, ?, 'EMPLOYED')""")) {
-                insert.setLong(1, employeeId);
-                insert.setString(2, "ACC" + employeeId);
-                insert.setString(3, "Synthetic person " + employeeId);
+                insert.setObject(1, stored(employeeId));
+                insert.setString(2, "ACC" + serialOf(employeeId));
+                insert.setString(3, "Synthetic person " + serialOf(employeeId));
                 insert.setString(4, wecomUserIdOf(employeeId));
                 insert.executeUpdate();
             }
             try (PreparedStatement insert = workforce.prepareStatement(
                     "insert into assignments (employee_id, org_unit_id, reports_to_employee_id) values (?, ?, ?)")) {
-                insert.setLong(1, employeeId);
-                insert.setLong(2, orgUnitId);
-                insert.setObject(3, reportsToEmployeeId);
+                insert.setObject(1, stored(employeeId));
+                insert.setObject(2, stored(orgUnitId));
+                insert.setObject(3, stored(reportsToEmployeeId));
                 insert.executeUpdate();
             }
         }
     }
 
     /** Takes the person out of the organisation snapshot, as if the source no longer listed them. */
-    protected void removeFromSnapshot(long employeeId) throws SQLException {
+    protected void removeFromSnapshot(UUID employeeId) throws SQLException {
         try (Connection workforce = schemaConnection("organization_workforce")) {
             for (String table : List.of("assignments", "employees")) {
                 try (PreparedStatement delete = workforce.prepareStatement("delete from " + table + " where " + (table.equals("employees") ? "id" : "employee_id") + " = ?")) {
-                    delete.setLong(1, employeeId);
+                    delete.setObject(1, stored(employeeId));
                     delete.executeUpdate();
                 }
             }
@@ -151,19 +286,19 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
      * Signs the person in through WeCom (mini program entry, no OAuth state), which opens their account if they have none, and returns
      * the account id the login answered.
      */
-    protected SignedIn signIn(long employeeId) throws Exception {
+    protected SignedIn signIn(UUID employeeId) throws Exception {
         return signInWith(wecomCodeFor(employeeId), employeeId);
     }
 
     /** A WeCom code that WeCom answers with the person's WeCom user id; stubbed on the calling thread (Mockito stubbing is not thread-safe). */
-    protected String wecomCodeFor(long employeeId) throws ReflectiveOperationException {
-        String code = "acceptance-code-" + employeeId + "-" + CODES.incrementAndGet();
+    protected String wecomCodeFor(UUID employeeId) throws ReflectiveOperationException {
+        String code = "acceptance-code-" + serialOf(employeeId) + "-" + CODES.incrementAndGet();
         Object wecomUserId = wecomUserId(wecomUserIdOf(employeeId));
         when(wecomGateway.resolveWecomUserId(eq(code), any())).thenAnswer(call -> Optional.of(wecomUserId));
         return code;
     }
 
-    protected SignedIn signInWith(String code, long employeeId) throws Exception {
+    protected SignedIn signInWith(String code, UUID employeeId) throws Exception {
         MockHttpServletResponse login = mvc.perform(post(WECOM_LOGIN).with(csrf()).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"" + code + "\",\"entry\":\"MINI_PROGRAM\"}")).andReturn().getResponse();
         if (login.getStatus() != 200) {
@@ -171,7 +306,7 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
         }
         Object answered = JsonPath.read(login.getContentAsString(), "$.userId");
         String userId = String.valueOf(answered);
-        assertThat(userId).as("R-1b P2 ADR-0033 section 3 item 1: the account id is not the employee id").isNotEqualTo(String.valueOf(employeeId));
+        assertThat(userId).as("R-1b P2 ADR-0033 section 3 item 1: the account id is not the employee id").isNotEqualTo(text(employeeId));
         return new SignedIn(canonicalUuid(userId, "the userId the login answers"), employeeId, sessionCookie(login));
     }
 
@@ -193,7 +328,7 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
     }
 
     /** The employee id the account row of identity names; fails while the account table has no employee column. */
-    protected long employeeOfAccount(UUID userId) throws SQLException {
+    protected UUID employeeOfAccount(UUID userId) throws SQLException {
         try (Connection identity = schemaConnection("platform_identity");
              PreparedStatement select = identity.prepareStatement("select employee_id from user_accounts where user_id = ?")) {
             select.setObject(1, userId);
@@ -201,16 +336,16 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
                 if (!rs.next()) {
                     throw new AssertionError("no account " + userId);
                 }
-                return rs.getLong(1);
+                return fromStored(rs.getObject(1));
             }
         }
     }
 
-    protected List<UUID> accountsOfEmployee(long employeeId) throws SQLException {
+    protected List<UUID> accountsOfEmployee(UUID employeeId) throws SQLException {
         List<UUID> found = new ArrayList<>();
         try (Connection identity = schemaConnection("platform_identity");
              PreparedStatement select = identity.prepareStatement("select user_id from user_accounts where employee_id = ?")) {
-            select.setLong(1, employeeId);
+            select.setObject(1, stored(employeeId));
             try (ResultSet rs = select.executeQuery()) {
                 while (rs.next()) {
                     found.add(rs.getObject(1, UUID.class));
@@ -291,11 +426,11 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
      * Grants a role with the operations command (--employee-id), which opens the account of an employed person who has none; done before
      * the person signs in, so the session starts with the role.
      */
-    protected void grantByOperations(long employeeId, String roleCode) {
+    protected void grantByOperations(UUID employeeId, String roleCode) {
         java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
         java.io.ByteArrayOutputStream err = new java.io.ByteArrayOutputStream();
-        int exit = operationsCommands.run(new org.springframework.boot.DefaultApplicationArguments("--operation=grant-role", "--employee-id=" + employeeId,
-                "--role-code=" + roleCode, "--operator=acceptance-operator", "--witness=acceptance-witness"),
+        int exit = operationsCommands.run(new org.springframework.boot.DefaultApplicationArguments("--operation=grant-role", "--employee-id=" + text(employeeId),
+                "--role-code=" + roleCode, "--operator=01900000-0000-7000-8000-00000000a001", "--witness=01900000-0000-7000-8000-00000000a002"),
                 new java.io.PrintStream(out, true, java.nio.charset.StandardCharsets.UTF_8), new java.io.PrintStream(err, true, java.nio.charset.StandardCharsets.UTF_8));
         if (exit != 0) {
             throw new AssertionError("grant-role " + roleCode + " to employee " + employeeId + " exited " + exit + ": " + err.toString(java.nio.charset.StandardCharsets.UTF_8));
@@ -359,9 +494,9 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
     }
 
     /** Attributes the employee to the legal entity from 30 days before the fixed today on, done by a maintainer who is someone else. */
-    protected void attributeEmployee(SignedIn maintainer, long employeeId, UUID legalEntity) throws Exception {
+    protected void attributeEmployee(SignedIn maintainer, UUID employeeId, UUID legalEntity) throws Exception {
         MockHttpServletResponse attributed = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                .put("/api/v1/organization/employee-legal-entities/" + employeeId).header("If-Match", "\"0\"").with(csrf()).with(session(maintainer))
+                .put("/api/v1/organization/employee-legal-entities/" + text(employeeId)).header("If-Match", "\"0\"").with(csrf()).with(session(maintainer))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":\"" + legalEntity + "\",\"effectiveFrom\":\"" + TODAY.minusDays(30) + "\"}"))
                 .andReturn().getResponse();
         if (attributed.getStatus() != 200) {
@@ -388,9 +523,22 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
         }
     }
 
+    /** The single uuid primary key account_roles has since R-1b P5 (RULING-P5-D12), found in the catalogue so that its name is not fixed here. */
+    private static String accountRolesKeyColumn(Connection identity) throws SQLException {
+        try (PreparedStatement key = identity.prepareStatement("""
+                select a.attname from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any (i.indkey)
+                 where i.indrelid = cast('account_roles' as regclass) and i.indisprimary""");
+             ResultSet rs = key.executeQuery()) {
+            if (!rs.next()) {
+                throw new AssertionError("account_roles has no primary key");
+            }
+            return rs.getString(1);
+        }
+    }
+
     protected void grantRole(UUID userId, String roleCode) throws SQLException {
         try (Connection identity = schemaConnection("platform_identity"); PreparedStatement insert = identity.prepareStatement(
-                "insert into account_roles (user_id, role_id) select ?, role_id from roles where code = ? on conflict do nothing")) {
+                "insert into account_roles (" + accountRolesKeyColumn(identity) + ", user_id, role_id) select uuidv7(), ?, role_id from roles where code = ? on conflict do nothing")) {
             insert.setObject(1, userId);
             insert.setString(2, roleCode);
             insert.executeUpdate();

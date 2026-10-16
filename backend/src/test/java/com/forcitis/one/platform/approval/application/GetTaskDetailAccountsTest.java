@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
  * the viewer is the account 6001; the account numbered 1001 belongs to somebody else and sees nothing.
  */
 class GetTaskDetailAccountsTest {
-    static final EmployeeId INITIATOR = new EmployeeId(1001);
+    static final EmployeeId INITIATOR = TestAccounts.employee(1001);
     static final UserId INITIATORS_ACCOUNT = TestAccounts.account(1001);
     static final UserId HANDLER = TestAccounts.account(1002);
     static final UserId ACCOUNT_NUMBERED_LIKE_THE_INITIATOR = TestAccounts.unknownAccount(1001);
@@ -47,7 +47,7 @@ class GetTaskDetailAccountsTest {
 
     private static TaskRecord record(ApprovalTaskStatus status) {
         return new TaskRecord(OpenTasks.TASK, OpenTasks.INSTANCE, ProcessKey.COST_TIMESHEET_APPROVAL,
-                new DocumentReference(DocumentType.TIMESHEET, new DocumentId("7")), new NodeKey("approverReview"), INITIATOR, status, Optional.of(HANDLER),
+                new DocumentReference(DocumentType.TIMESHEET, com.forcitis.one.TestApprovalIds.document("7")), new NodeKey("approverReview"), INITIATOR, status, Optional.of(HANDLER),
                 NOW, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), new ApprovalSummary("TS-1"), 3, 1);
     }
 

@@ -10,7 +10,7 @@ final class TimesheetBranches {
 
     static final List<Branch> ALL = List.of(
             new Branch("projectHours", "projectManagerReview", Map.of("type", "FORM_FIELD_USERS", "field", "projectManagerId")),
-            new Branch("preSalesHours", "regionalHeadReview", Map.of("type", "FORM_FIELD_USERS", "field", "regionalHeadId")),
+            new Branch("preSalesHours", "orgUnitHeadApproval", Map.of("type", "FORM_FIELD_USERS", "field", "orgUnitHeadId")),
             new Branch("overheadHours", "supervisorReview", Map.of("type", "INITIATOR_SUPERVISOR", "level", "1")));
 
     private TimesheetBranches() {

@@ -13,4 +13,10 @@ record LegacyProperties(@DefaultValue("false") boolean enabled, String jdbcUrl, 
             throw new IllegalArgumentException("forcitis.platform.integration.legacy.view-name must be [schema.]name, was " + viewName);
         }
     }
+
+    @Override
+    public String toString() {
+        return "LegacyProperties[enabled=" + enabled + ", jdbcUrl=" + jdbcUrl + ", username=" + username + ", password="
+                + (password == null || password.isBlank() ? "none" : "***") + ", viewName=" + viewName + "]";
+    }
 }

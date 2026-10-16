@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
  * are the employee's number plus 5000.
  */
 class TransferTaskAccountsTest {
-    static final EmployeeId INITIATOR = new EmployeeId(1001);
+    static final EmployeeId INITIATOR = TestAccounts.employee(1001);
     static final UserId HANDLER = TestAccounts.account(1002);
 
     final TaskGuard guard = mock(TaskGuard.class);
@@ -48,7 +48,7 @@ class TransferTaskAccountsTest {
     }
 
     private void transferTo(long employee) {
-        transfer.execute(OpenTasks.TASK, HANDLER, new EmployeeId(employee), "on leave", OptionalLong.empty());
+        transfer.execute(OpenTasks.TASK, HANDLER, TestAccounts.employee(employee), "on leave", OptionalLong.empty());
     }
 
     private void assertRefused(long employee) {

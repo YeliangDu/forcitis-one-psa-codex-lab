@@ -1,6 +1,6 @@
 # one-ops 速查（2026-10-15 19:30）
 
-规矩：持久资源先报再做、回读再报 one-coordinator；不部署（门禁 090 / 100）；不打印密钥；取证登记 [LEGACY_READ_REGISTER](LEGACY_READ_REGISTER.md)。
+规矩：持久资源先报再做、回读再报 one-coordinator；不部署（门禁 090 / 100）；不打印密钥；取证登记 [LEGACY_READ_REGISTER](legacy-read/)（片段；总表由 build_all 生成，不入仓）。
 
 ## 资源
 
@@ -20,8 +20,10 @@
 | OOS 参数 | forcitis-one-deploy-request-dev（+ -bundle / -bundle-sha256 / -statement / -statement-sig）、forcitis-one-deploy-result-dev | ✅ | R-7 |
 | 时间同步检查 | one-time-sync-check.timer（每 5 分钟，100 ms → P2、1 s → P1） | ✅ 运行 | INFRA_RUNBOOK §8 |
 | ECS 拉取 | /usr/local/sbin/forcitis-one-release、forcitis-one-release-pull.timer | ✅ 运行 | R-7 |
-| Release | v0.1.0-rc.1（b0827667，run 38697278764，已验签，deploy/ 与 ECS 一致） | ✅ | #151 |
+| Release | v0.1.0-rc.3（6ff531ff，run 38799676121，含 #228、#235，已验签；jar sha256 fd920b98…，已放 ECS /root/one-ops-c14/app.jar 供 C-14） | ✅ | #151 |
 | GitHub | sub 定制（不可变）；environments 只允许 main；dev 变量 3 个；仓库级构建变量 8 个（SSO 门户与 PROD_* 待替换） | ✅ | R-1、R-4、R-6、§6 |
+
+| ECS one.env | 2026-10-16 补 C-17 `SEEYON_VIEWS_ROOT_PATH`、C-18 `FORCITIS_JOBS_ENABLED=true`，`SSO_ENABLED` 改 false（t-hz07057zxlib280；备份 one.env.bak-20261016035106）；白名单仍 4 条，待用户指定保留哪 1 条 | 用 | intent 214511、215052 |
 
 ## 在途
 
@@ -40,6 +42,7 @@
 - 首次 dev 部署通过后：删 /root/one-ops-backup-20261015020632；白天测 GitHub 直拉速度
 - 构建变量待替换：SSO 门户地址（B-3 回传后）、PROD_*（生产前确认）
 - 拉取单元沙箱收紧：首次 dev 部署跑通后、下次改安装器或单元时（RELEASE §10，#157）
+- #228 合并后复核：迁移进程（migrate 模式参数未覆盖 FORCITIS_JOBS_ENABLED，沿用 one.env 的 true）不挂定时作业——migrate 模式在建上下文前退出，预期不挂；只有无 migrate 模式的旧包走整应用启动（#227 复审第 5 条）
 - pg_stat_statements：Phase 2 前请示
 
 ## 坑
@@ -49,10 +52,25 @@
 - OIDC 证书链会变 → RELEASE §10
 - 只读探针拒绝含 ALTER / KILL / DELETE 的字面量 → 用 `K_LL%`
 - 云助手：命令内容有长度上限、输出约 24 KB → 分块写入、gzip + base64
+- 阿里云临时凭据（OAuth）只在过期后才换新，过期前调用不会延长 → `ops_credentials` 自动等过期再换；工具必须从仓库检出、未改动的文件运行
 - OOS 参数值 ≤ 4096 字符 → RELEASE §10
 - 安装器比对 current 的 migrations.txt：基线文件被改后第二次部署必失败 → [dev-db-rebuild](runbooks/dev-db-rebuild.md) 第 6 步
 - corepack 按启动目录选 pnpm 版本 → 进 frontend 再调（#151、#156）
 - CI 偶发 postgres:18 测试容器起不来 → `gh run rerun --failed`
+
+## 偏离记录
+
+- 2026-10-15 约 21:18–21:33（one-architecture 派的 sonnet 取证子代理）：① 未经询问在其会话 scratchpad 建 venv（`ve`，Python 3.12.13），从 PyPI 装 alibabacloud-ecs20140526 7.11.6、alibabacloud-tea-openapi 0.4.6 及依赖（alibabacloud-credentials 1.0.12、alibabacloud-tea 0.4.3、alibabacloud-tea-util 0.3.15、darabonba-core 1.0.9、cryptography 50.0.2、aiohttp 3.14.5、requests 2.34.2 等 29 个），未登记；② 用包装脚本 `dr/ev_run.py` 在内存中把 `b5_legacy_run.py` 的凭据阈值 900 秒改成 240 秒后执行（仓库文件未改）。取证本身只用 one_evidence_ro、只取聚合，LEGACY_READ_REGISTER 已登记 2 行。**已清理**（one-ops，2026-10-15）：venv 与 `dr/ev_run.py` 已删除；两台服务器上的取证临时目录核实无残留（t-hz070573w93l2bk、t-hz0705748l9198g）。**防护**：通道脚本改用 `runbooks/scripts/ops_credentials.py`，凭据不足 15 分钟时等过期后自动换新，失败时给出处理步骤；拒绝从仓库外副本或未提交的改动运行（在内存里改写源码的做法仍拦不住，靠派工说明约束）；依赖只用 `~/.modernize/psa/ops-venv`。
+
+## 决定（2026-10-16）
+
+- Docker Desktop 订阅不买（用户：「不买，只有我一个人用 docker」）。条款：Docker Subscription Service Agreement 第 3 节，商用免费需「fewer than 250 employees and less than US $10,000,000 in annual revenue」，公司约 304 人已超员工数线；取自 https://www.docker.com/legal/docker-subscription-service-agreement/ （页面标注 Last updated on August 26, 2026），风险由用户承担。
+- CI 不搬到 Linux 机器，不开试用机。本机测试提速调查：5 个数据库集成测试类单 fork 基线 46.3 秒、43.2 秒，PostgreSQL 容器改内存盘并关 fsync 后 41.7 秒，差距在波动内，不值得做；时间主要花在每类各自起容器、建应用环境、跑基线迁移（76 个类各起一个容器）；已做的 fork 降到 2、看门狗、停闲置容器够用，停止。
+- H-2（探针的 msdb 用户移出 SQLAgentOperatorRole）：用户 2026-10-16 批准一次，见 C-14 剧本 H-2；探针收尾始终删除探针自己在 msdb、rdscore 的自动用户（用户确认）。
+
+## 暂停项
+
+- 2026-10-16 暂停（one-coordinator 决定）：C-6 回放 6 条差异的原因取证（#254，加密中转脚本与诊断查询，草稿，未运行）。理由：成本与风险偏高（新的安全类脚本加一轮复审），生产数据只作参考，A8 没有上级字段，做完也只能间接判断。6 条归为「回放方法限制」，未取证坐实；以后真要坐实再启用，须先过复审并合并。
 
 ## 剧本
 

@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
+import static com.forcitis.one.fixture.doubles.TestOrgIds.sqlEmployee;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.manager;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
@@ -34,6 +35,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import tools.jackson.databind.json.JsonMapper;
+import com.forcitis.one.fixture.doubles.TestAccounts;
 
 /** Login of a person the snapshot does not list yet: no session user and no job is acting, so the registration acts as SYSTEM. */
 @TestPropertySource(properties = "forcitis.platform.identity.sso.enabled=true")
@@ -69,11 +71,11 @@ class FirstWecomLoginIntegrationTest extends WorkforceIntegrationSupport {
 
     private void registeredAndSignedIn(MvcResult login) throws Exception {
         assertThat(login.getResponse().getStatus()).as(login.getResponse().getContentAsString()).isEqualTo(200);
-        assertThat(jdbc.sql("select count(*) from organization_workforce.employees where id = 3001").query(Integer.class).single()).isEqualTo(1);
-        assertThat(accountEmployees.accountOf(new EmployeeId(3001))).as("the account is opened").isPresent();
+        assertThat(jdbc.sql("select count(*) from organization_workforce.employees where id = " + sqlEmployee(3001)).query(Integer.class).single()).isEqualTo(1);
+        assertThat(accountEmployees.accountOf(TestAccounts.employee(3001))).as("the account is opened").isPresent();
         assertThat(events.stream(EmployeeRegistered.class).map(EmployeeRegistered::envelope)).singleElement().satisfies(envelope -> {
             assertThat(envelope.actorType()).isEqualTo(ActorType.SYSTEM);
-            assertThat(envelope.actorId()).isEqualTo(SystemActors.idOf("organization.workforce.login-registration").toString());
+            assertThat(envelope.actorId()).isEqualTo(SystemActors.idOf("organization.workforce.login-registration"));
         });
     }
 

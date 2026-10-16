@@ -3,7 +3,7 @@ COMMENT ON SCHEMA platform_identity IS '身份与权限（权限流程与集成�
 
 CREATE TABLE platform_identity.user_accounts (
     user_id            uuid        PRIMARY KEY,
-    employee_id        bigint      NOT NULL,
+    employee_id        uuid        NOT NULL,
     status             text        NOT NULL DEFAULT 'ENABLED' CHECK (status IN ('ENABLED', 'DISABLED')),
     last_login_at      timestamptz,
     last_login_address text,
@@ -11,14 +11,16 @@ CREATE TABLE platform_identity.user_accounts (
     updated_at         timestamptz NOT NULL DEFAULT now(),
     version            bigint      NOT NULL DEFAULT 0,
     event_count        bigint      NOT NULL DEFAULT 0,
-    CONSTRAINT uk_user_accounts_employee_id UNIQUE (employee_id)
+    CONSTRAINT uk_user_accounts_employee_id UNIQUE (employee_id),
+    CONSTRAINT ck_user_accounts_last_login CHECK (last_login_address IS NULL OR last_login_at IS NOT NULL),
+    CONSTRAINT ck_user_accounts_last_login_address CHECK (char_length(last_login_address) BETWEEN 1 AND 64)
 );
 COMMENT ON TABLE platform_identity.user_accounts IS '用户账号：身份侧的启用开关与最近登录；员工姓名、部门、在职状态归组织人事模块（不在此冗余）。粒度：每个用户一行';
 COMMENT ON COLUMN platform_identity.user_accounts.user_id IS '用户 ID（UUIDv7）：由身份模块分配，不等于员工 ID（ADR-0033 第 3 项第 1 条）';
-COMMENT ON COLUMN platform_identity.user_accounts.employee_id IS '员工 ID：账号所属的员工，每个员工至多一个账号；跨 schema 引用组织人事的员工，不建外键；R-1b P3b 随员工 ID 改为 uuid';
+COMMENT ON COLUMN platform_identity.user_accounts.employee_id IS '员工 ID：账号所属的员工，每个员工至多一个账号；跨 schema 引用组织人事的员工，不建外键';
 COMMENT ON COLUMN platform_identity.user_accounts.status IS '账号状态：ENABLED / DISABLED；登录与每次解析会话时都与在职状态一起检查（RULE-326/338）';
-COMMENT ON COLUMN platform_identity.user_accounts.last_login_at IS '最近一次登录成功时间（RULE-330）';
-COMMENT ON COLUMN platform_identity.user_accounts.last_login_address IS '最近一次登录成功的客户端地址（RULE-330）';
+COMMENT ON COLUMN platform_identity.user_accounts.last_login_at IS '最近一次登录成功时间（RULE-330）；为空表示从未成功登录';
+COMMENT ON COLUMN platform_identity.user_accounts.last_login_address IS '最近一次登录成功的客户端地址（RULE-330）；为空表示从未成功登录，或已按保留期限清除（ADR-0043 U-12）；有值时 last_login_at 必有值，长度 1 至 64（不是地址的取值由应用置空并告警，不截断）';
 COMMENT ON COLUMN platform_identity.user_accounts.created_at IS '创建时间';
 COMMENT ON COLUMN platform_identity.user_accounts.updated_at IS '更新时间';
 COMMENT ON COLUMN platform_identity.user_accounts.version IS '乐观锁版本';
@@ -35,7 +37,9 @@ CREATE TABLE platform_identity.roles (
     created_at        timestamptz NOT NULL DEFAULT now(),
     updated_at        timestamptz NOT NULL DEFAULT now(),
     version           bigint      NOT NULL DEFAULT 0,
-    event_count       bigint      NOT NULL DEFAULT 0
+    event_count       bigint      NOT NULL DEFAULT 0,
+    CONSTRAINT ck_roles_reserved_code CHECK (lower(code) <> 'super_admin' OR kind = 'SYSTEM'),
+    CONSTRAINT ck_roles_code CHECK (code ~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$')
 );
 CREATE UNIQUE INDEX uq_roles_code ON platform_identity.roles (lower(code));
 CREATE UNIQUE INDEX uq_roles_name ON platform_identity.roles (lower(name));
@@ -53,13 +57,16 @@ COMMENT ON COLUMN platform_identity.roles.version IS '乐观锁版本';
 COMMENT ON COLUMN platform_identity.roles.event_count IS '事件序号：该聚合已发出的事件数，每发一个事件加 1，作为事件信封的 aggregateVersion；与乐观锁 version 分开';
 
 CREATE TABLE platform_identity.role_permissions (
+    role_permission_id uuid     NOT NULL,
     role_id         uuid        NOT NULL REFERENCES platform_identity.roles (role_id) ON DELETE CASCADE,
     permission_code text        NOT NULL,
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (role_id, permission_code)
+    CONSTRAINT pk_role_permissions PRIMARY KEY (role_permission_id),
+    CONSTRAINT uk_role_permissions_role_id_permission_code UNIQUE (role_id, permission_code)
 );
 COMMENT ON TABLE platform_identity.role_permissions IS '角色—权限：权限码取自 Permission 目录；整组替换（RULE-346）。粒度：每个角色的每个权限码一行';
+COMMENT ON COLUMN platform_identity.role_permissions.role_permission_id IS '角色权限 ID（UUIDv7）';
 COMMENT ON COLUMN platform_identity.role_permissions.role_id IS '角色 ID';
 COMMENT ON COLUMN platform_identity.role_permissions.permission_code IS '权限码：{子域}.{BC}:{资源}:{动作}';
 COMMENT ON COLUMN platform_identity.role_permissions.created_at IS '创建时间';
@@ -67,15 +74,18 @@ COMMENT ON COLUMN platform_identity.role_permissions.updated_at IS '更新时间
 
 -- 账号仍持有的角色不得被删除：删角色时由外键拒绝，而不是悄悄把账号的授权带走。
 CREATE TABLE platform_identity.account_roles (
+    account_role_id uuid   NOT NULL,
     user_id    uuid        NOT NULL REFERENCES platform_identity.user_accounts (user_id) ON DELETE CASCADE,
     role_id    uuid        NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (user_id, role_id),
+    CONSTRAINT pk_account_roles PRIMARY KEY (account_role_id),
+    CONSTRAINT uk_account_roles_user_id_role_id UNIQUE (user_id, role_id),
     CONSTRAINT fk_account_roles_role_id FOREIGN KEY (role_id) REFERENCES platform_identity.roles (role_id) ON DELETE RESTRICT
 );
 CREATE INDEX ix_account_roles_role ON platform_identity.account_roles (role_id);
 COMMENT ON TABLE platform_identity.account_roles IS '账号—角色：整组替换（RULE-346）；默认角色只在建档时显式授予一次（RULE-344）；离职时全部删除（ADR-0027）。粒度：每个账号的每个角色一行';
+COMMENT ON COLUMN platform_identity.account_roles.account_role_id IS '账号角色 ID（UUIDv7）';
 COMMENT ON COLUMN platform_identity.account_roles.user_id IS '用户 ID';
 COMMENT ON COLUMN platform_identity.account_roles.role_id IS '角色 ID';
 COMMENT ON COLUMN platform_identity.account_roles.created_at IS '创建时间';
@@ -91,7 +101,8 @@ CREATE TABLE platform_identity.navigation_items (
     is_enabled      boolean     NOT NULL DEFAULT true,
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT ck_navigation_items_parent CHECK (parent_item_id IS NULL OR parent_item_id <> item_id)
+    CONSTRAINT ck_navigation_items_parent CHECK (parent_item_id IS NULL OR parent_item_id <> item_id),
+    CONSTRAINT uk_navigation_items_parent_item_id_name UNIQUE NULLS NOT DISTINCT (parent_item_id, name)
 );
 COMMENT ON TABLE platform_identity.navigation_items IS '导航项：目录（无路由）与页面（有路由）；页面按所需权限码对持有者可见（RULE-348）。粒度：每个导航项一行';
 COMMENT ON COLUMN platform_identity.navigation_items.item_id IS '导航项 ID（UUIDv7）';
@@ -176,7 +187,10 @@ CREATE TABLE platform_identity.emergency_admins (
     created_at            timestamptz NOT NULL DEFAULT now(),
     updated_at            timestamptz NOT NULL DEFAULT now(),
     version               bigint      NOT NULL DEFAULT 0,
-    event_count           bigint      NOT NULL DEFAULT 0
+    event_count           bigint      NOT NULL DEFAULT 0,
+    CONSTRAINT ck_emergency_admins_account_name CHECK (account_name ~ '^[a-z][a-z0-9._-]{2,31}$'),
+    CONSTRAINT ck_emergency_admins_failed_attempts CHECK (failed_attempts >= 0),
+    CONSTRAINT ck_emergency_admins_last_totp_step CHECK (last_totp_step >= 0)
 );
 COMMENT ON TABLE platform_identity.emergency_admins IS '应急管理员：独立凭据（Argon2id + TOTP），只能从内网登录，5 次失败锁 15 分钟（RULE-316/317）；user_id 是绑定的超级管理员持有人，每人至多一个，登记至少两个（ADR-0027 第 1 项）。粒度：每个绑定的超级管理员持有人一个应急账号一行';
 COMMENT ON COLUMN platform_identity.emergency_admins.user_id IS '用户 ID：对应的员工账号，会话与权限走该账号的角色';
@@ -307,8 +321,8 @@ INSERT INTO platform_identity.roles (role_id, code, name, kind, status, access_s
     ('019a0000-0000-7000-8000-000000000101', 'super_admin', '超级管理员', 'SYSTEM', 'ENABLED', 'ALL', true),
     ('019a0000-0000-7000-8000-000000000102', 'employee', '员工', 'SYSTEM', 'ENABLED', 'SELF', false);
 
-INSERT INTO platform_identity.role_permissions (role_id, permission_code)
-SELECT roles.role_id, grants.permission_code
+INSERT INTO platform_identity.role_permissions (role_permission_id, role_id, permission_code)
+SELECT uuidv7(), roles.role_id, grants.permission_code
   FROM platform_identity.roles roles
  CROSS JOIN (VALUES ('platform.approval:task:read'), ('platform.approval:task:approve')) AS grants (permission_code)
  WHERE roles.code = 'employee';
@@ -331,8 +345,8 @@ INSERT INTO platform_identity.roles (role_id, code, name, kind, status, access_s
     ('019a0000-0000-7000-8000-000000000105', 'business_admin', '业务管理员', 'SYSTEM', 'ENABLED', 'SELF', false),
     ('019a0000-0000-7000-8000-000000000106', 'security_auditor', '安全审计员', 'SYSTEM', 'ENABLED', 'ALL', false);
 
-INSERT INTO platform_identity.role_permissions (role_id, permission_code)
-SELECT roles.role_id, grants.permission_code
+INSERT INTO platform_identity.role_permissions (role_permission_id, role_id, permission_code)
+SELECT uuidv7(), roles.role_id, grants.permission_code
   FROM platform_identity.roles roles
   JOIN (VALUES
       ('org_data_admin', 'organization.workforce:org-unit:read'),
@@ -354,13 +368,13 @@ SELECT roles.role_id, grants.permission_code
   ) AS grants (role_code, permission_code) ON grants.role_code = roles.code;
 
 -- ADR-0028：安全审计员在普通会话里也能放行管理员离职造成的同步暂停。
-INSERT INTO platform_identity.role_permissions (role_id, permission_code)
-SELECT role_id, 'organization.workforce:separation-hold:approve'
+INSERT INTO platform_identity.role_permissions (role_permission_id, role_id, permission_code)
+SELECT uuidv7(), role_id, 'organization.workforce:separation-hold:approve'
   FROM platform_identity.roles
  WHERE code = 'security_auditor';
 
 -- RULE-385：组织数据管理员可更正法人归属的历史记录；更正只增不改，本权限不在敏感权限之列。
-INSERT INTO platform_identity.role_permissions (role_id, permission_code)
-SELECT role_id, 'organization.workforce:legal-entity-attribution-correction:create'
+INSERT INTO platform_identity.role_permissions (role_permission_id, role_id, permission_code)
+SELECT uuidv7(), role_id, 'organization.workforce:legal-entity-attribution-correction:create'
   FROM platform_identity.roles
  WHERE code = 'org_data_admin';

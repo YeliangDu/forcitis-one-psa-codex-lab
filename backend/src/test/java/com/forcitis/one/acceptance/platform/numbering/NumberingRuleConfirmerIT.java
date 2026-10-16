@@ -44,10 +44,10 @@ class NumberingRuleConfirmerIT extends AccountsAcceptanceSupport {
     @Test
     @DisplayName("R-1b P2 ADR-0033 第 3 项第 3 条 / ADR-0027 第 2 项第 4 条：编号模板四眼——作者不能确认自己保存的版本（403 PLATFORM_NUMBERING_CONFIRMER_IS_AUTHOR），作者与确认人按用户 ID 记录与比较；另一人可以确认")
     void theAuthorOfAVersionCannotConfirmIt() throws Exception {
-        long unit = newOrgUnitId();
+        UUID unit = newOrgUnitId();
         orgUnit(unit, null, null);
-        long authorEmployee = newEmployeeId();
-        long approverEmployee = newEmployeeId();
+        UUID authorEmployee = newEmployeeId();
+        UUID approverEmployee = newEmployeeId();
         employee(authorEmployee, unit, null);
         employee(approverEmployee, unit, null);
         grantByOperations(authorEmployee, "org_data_admin");

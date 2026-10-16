@@ -1,6 +1,8 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleCode;
@@ -23,9 +25,11 @@ public class CreateRole {
     private final DomainEvents events;
     private final CurrentUser currentUser;
     private final AuthorizationGate gate;
+    private final IdGenerator ids;
 
     CreateRole(RoleRepository roles, PrivilegeCeiling ceiling, AccessCache cache, DomainEvents events, CurrentUser currentUser,
-            AuthorizationGate gate) {
+            AuthorizationGate gate, IdGenerator ids) {
+        this.ids = ids;
         this.roles = roles;
         this.ceiling = ceiling;
         this.cache = cache;
@@ -66,7 +70,7 @@ public class CreateRole {
         if (command.code() == null || command.code().isBlank()) {
             throw new RoleRuleException(RoleViolation.INVALID_CODE);
         }
-        Role role = Role.newCustom(new RoleCode(command.code().strip()), command.name(), command.permissionCodes());
+        Role role = Role.newCustom(new RoleId(ids.next()), new RoleCode(command.code().strip()), command.name(), command.permissionCodes());
         if (command.accessScope() != null) {
             role.revise(role.name(), command.accessScope(), role.permissionCodes());
         }

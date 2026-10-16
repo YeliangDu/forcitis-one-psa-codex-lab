@@ -1,0 +1,120 @@
+# rulings.yaml — 用户在各轮决策页之外、对已登记词条所作的裁定（单一来源）：build_terms.py 在各轮写回之后按本文件逐条应用（apply_rulings.py）。
+# 每条必须写 source（用户答复或 intent 的出处）；操作：
+#   rename   改正式词条：id / zh / en / definition（可选），旧中文名作方言别名并列入禁用（纯中文），旧英文名作 old-code 别名；
+#   redefine 只改定义；
+#   promote  把一条提议转为正式词条：条目内容写在 entry 里（来自转正时的提议原文），提议文件里的同名条目须同批删除，重名即失败。
+rulings:
+  - op: rename
+    id: regional_head_approval
+    to_id: org_unit_head_approval
+    zh: 部门负责人审批
+    en: OrgUnitHeadApproval
+    definition: 工时审批中由部门负责人办理的节点，对应售前工时；审批人是售前对象归属部门在组织架构登记的部门负责人（D5-06）
+    source: 用户 2026-10-15 工时审批路径决策页 D5-06（intent 2026-10-15-222619-one-rules-工时审批路径决策页第二组-D5）；用户：节点与用语改称「部门负责人审批」
+  - op: redefine
+    id: regional_head
+    definition: 区域组织单元的负责人；区域是介于项目和公司之间的一层组织，与事业部同属组织单元的类型（F1-05、Q37a），将另作数据范围维度；不承担工时审批，售前工时的审批人是部门负责人（D5-06）
+    source: 用户 2026-10-15 D5-06 及其说明（intent 2026-10-15-222619-one-rules-工时审批路径决策页第二组-D5）
+  - op: rename
+    id: information_service_fee
+    to_id: intermediary_fee
+    zh: 居间费用
+    en: IntermediaryFee
+    definition: 居间协议约定的佣金支出；公司费控中单列的一类项目费用（事前备案、付款另走付款申请）；应付登记须挂触发事实，不是转付成本，在贡献毛利中扣减、不在净收入中扣（FD-17、FD-41）
+    source: 用户 2026-10-15 财务口径决策页 F-06「就是居间费用的方言」（intent 2026-10-15-222618-one-rules-财务口径决策页-需向财务核实的事）
+  - op: promote
+    id: period_status__historical
+    confirmed: 2026-10-15（用户，财务口径决策页 FD-01）
+    entry:
+      id: period_status__historical
+      zh: 历史期间
+      en: Historical
+      snake: historical
+      kind: value_object
+      bc: accounting.period
+      scope: domain
+      definition: 期间状态的一个取值，终态：FORCITIS one 首个业务期间之前的 (期间, 法人)，永不接受业务过账，只接受迁入过账通道；不逐期关账、不发关账事件（ADR-0036 第 6 条）
+      standard_ref:
+      - ADR-0036 历史数据迁入
+      confidence: medium
+      aliases: []
+      forbidden: []
+    source: 用户 2026-10-15 财务口径决策页 FD-01 选定名称「历史期间」（intent 2026-10-15-221430-one-rules-财务口径决策页-FD-01-新系）；含义不变，沿用提议定义
+  - op: redefine
+    id: period_status
+    definition: OPEN / CLOSING / CLOSED / HISTORICAL（历史期间，见 period_status__historical）；重开政策待财务确认
+    source: 用户 2026-10-15 财务口径决策页 FD-01（历史期间）
+  - op: redefine
+    id: audit_subject
+    definition: 被审计的业务对象，由对象类别与对象 ID 共同标识（subject_kind + subject_id）；没有对象的审计类别（受访问控制的请求、受方法级授权的操作、未识别到人的登录尝试）对象 ID 为空
+    source: R-1b P5 卡第 11 节开工前术语门禁（one-1a-next-4 提出，one-glossary 2026-10-16 预判；技术性对齐，改掉原定义里的键形式 {type}:{id}）
+  - op: promote_file
+    file: promoted/GL-2026-10-16.yaml
+    source: 用户 2026-10-16 在「词表待确认事项」确认单（GL，固定链接 QPwiXzEFWCTqSGVCQRdK6J）逐组提交，76 题全部按推荐；答复 rules/decide/answers/GL.json
+    confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+  - op: rename
+    id: quality_issue
+    to_id: nonconformity
+    zh: 不符合项
+    en: Nonconformity
+    forbid_old: false
+    definition: 我方成果或客户资产（含第三方工作）未满足规定要求的事项，类型区分我方成果与客户资产；识别、确认、处置、关闭的生命周期；原「质量问题」「发现」并入
+    source: GL 确认单 B2-E01（用户 2026-10-16 同意）；全企业业务对象 Q32；依据 GB/T 19000（ISO 9000）不合格
+  - op: rename
+    id: blocking_quality_issue
+    to_id: blocking_nonconformity
+    zh: 阻断性不符合项
+    en: BlockingNonconformity
+    forbid_old: false
+    definition: 未关闭则阻断验收通过的不符合项
+    source: GL 确认单 B2-E01（用户 2026-10-16 同意）；随不符合项连带改名
+  - op: redefine
+    id: quality_loss
+    definition: 挂不符合项与责任方的损失金额（QL）
+    source: GL 确认单 B2-E01（用户 2026-10-16 同意）；随不符合项连带改定义
+  - op: redefine
+    id: org_unit_level
+    definition: 组织单元在组织树上的层级（第几层）；类型（区域、事业部、交付中心、客户服务中心等）见组织单元类型（org_unit_type）
+    source: GL 确认单 B2-E08（用户 2026-10-16 同意）；全企业业务对象 Q37a、Q37b；C-51
+  - op: move_bc
+    from: [contract.baseline, contract.changeorder, contract.riskdelivery]
+    to: contract.agreement
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的合同 BC 标识 contract.agreement（协议与变更索赔）
+  - op: move_bc
+    from: [presales.quoting, presales.customer]
+    to: presales.opportunity
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后的售前 BC 标识 presales.opportunity（商机与投标报价）
+  - op: promote_file
+    file: promoted/GL2-2026-10-16.yaml
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json）
+    confirmed: 2026-10-16（用户，聚合与 BC 用语确认单 GL2）
+  - op: move_to_bc
+    ids: [customer_group, customer_tier]
+    to: masterdata.counterparty
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X02：客户集团、客户分级迁往来单位 bc
+  - op: deprecate
+    id: customer
+    replaced_by: customer_role
+    until: "往来单位 BC 落地（须新 ADR 取代 ADR-0017 决定 1），代码里还没有客户相关类型"
+    owner: one-architecture
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X02
+  - op: deprecate
+    id: ar_item
+    replaced_by: receivable
+    until: "应收款项聚合落地（随收入链 bc 排期）；需与 one-architecture 确认 AGG-49 去掉质保金类"
+    owner: one-architecture
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X04
+  - op: rename
+    id: revenue_recognition
+    zh: 收入确认
+    en: RevenueRecognition
+    kind: business_rule
+    definition: 按客户确认的事实与合同条款确认收入的规则（时点与金额的判定口径），在开票与收入额度聚合内逐行执行，每行是一条收入确认行；不是一张单据；审批通过即确认收入，收入期间取客户签字日所在月；法定入账另为 StatutoryRevenueBooked
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X06：类别改 business_rule，原「收入确认单」列为方言别名
+  - op: rename
+    id: contract_riskdelivery__responsible_party
+    zh: 责任承担方
+    en: AuthorizationResponsibleParty
+    definition: 授权三要素之三（BU / 法人 / 责任人）；合同 BC 合并后与变更中的「责任方」区别开，故英文名加授权前缀
+    forbid_old: false
+    source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后同 bc 内 ResponsibleParty 两条之一改名

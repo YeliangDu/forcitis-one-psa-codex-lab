@@ -1,8 +1,8 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -16,6 +16,7 @@ import com.forcitis.one.platform.approval.domain.TaskView;
 import java.util.Optional;
 import java.util.OptionalLong;
 import org.springframework.stereotype.Component;
+import com.forcitis.one.kernel.VersionMismatchException;
 
 /**
  * What the use cases share. Every change runs in the caller's transaction, so the engine change, the request with its tasks and
@@ -28,8 +29,10 @@ class Approvals {
     private final ApprovalEngine engine;
     private final DomainEvents events;
     private final BusinessTime time;
+    private final IdGenerator ids;
 
-    Approvals(ApprovalRequestRepository requests, ApprovalEngine engine, DomainEvents events, BusinessTime time) {
+    Approvals(ApprovalRequestRepository requests, ApprovalEngine engine, DomainEvents events, BusinessTime time, IdGenerator ids) {
+        this.ids = ids;
         this.requests = requests;
         this.engine = engine;
         this.events = events;
@@ -44,20 +47,20 @@ class Approvals {
     /** Strong comparison with the version of the request as locked; a caller that sent none (a job, another module) is not held to one. */
     void requireVersion(ApprovalRequest request, OptionalLong expected) {
         if (expected.isPresent() && expected.getAsLong() != request.version()) {
-            throw new com.forcitis.one.kernel.VersionMismatchException("Approval " + request.aggregateId() + " is at version " + request.version() + ", the caller read "
+            throw new VersionMismatchException("Approval " + request.id().value() + " is at version " + request.version() + ", the caller read "
                     + expected.getAsLong());
         }
     }
 
     /** The aggregate of the round a start asks for: a new request, or the existing one opened again. */
     ApprovalRequest openRound(ApprovalStartRequest request, Optional<ApprovalRequest> existing) {
-        ApprovalInstanceId instanceId = new ApprovalInstanceId(Uuids.timeOrdered(time.clock()).toString());
+        ApprovalInstanceId instanceId = new ApprovalInstanceId(ids.next());
         Moment now = time.moment();
         if (existing.isPresent()) {
             existing.get().restart(request.initiator(), instanceId, request.summary(), request.trigger(), now);
             return existing.get();
         }
-        return ApprovalRequest.begin(request.processKey(), request.document(), request.legalEntityId(), request.initiator(), instanceId,
+        return ApprovalRequest.begin(ids, request.processKey(), request.document(), request.legalEntityId(), request.initiator(), instanceId,
                 request.summary(), request.trigger(), now);
     }
 

@@ -7,12 +7,14 @@ import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.api.LegalEntityDirectory;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
+import com.forcitis.one.platform.numbering.api.IssuedNumber;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.platform.numbering.api.NumberingError;
 import com.forcitis.one.platform.numbering.domain.CounterScope;
 import com.forcitis.one.platform.numbering.domain.NumberingRule;
 import com.forcitis.one.platform.numbering.domain.TemplateVersion;
 import com.forcitis.one.platform.numbering.domain.NumberingRuleRepository;
+import com.forcitis.one.platform.numbering.domain.ReservedValue;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.LocalDate;
 import org.slf4j.Logger;
@@ -38,7 +40,7 @@ class IssueDocumentNumber implements DocumentNumbers {
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
-    public DocumentNumber next(DocumentType type, LegalEntityId legalEntity, LocalDate businessDate) {
+    public IssuedNumber next(DocumentType type, LegalEntityId legalEntity, LocalDate businessDate) {
         NumberingRule rule = rules.findActive(type)
                 .orElseThrow(() -> new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_NOT_FOUND, ErrorKind.UNPROCESSABLE,
                         "No active numbering rule for " + type));
@@ -48,8 +50,9 @@ class IssueDocumentNumber implements DocumentNumbers {
                         "Legal entity " + legalEntity.value() + " does not exist or is deactivated"));
         CounterScope counterScope = template.pattern().usesLegalEntityCode() ? CounterScope.ofLegalEntity(legalEntity) : CounterScope.GLOBAL;
         String periodKey = template.pattern().resetPolicy().periodKey(businessDate);
-        long sequence = rules.reserveNext(type, counterScope, periodKey, template.startValue());
-        return new DocumentNumber(template.pattern().render(type.code().orElse(null), template.pattern().usesLegalEntityCode() ? legalEntityCode : null, businessDate, sequence));
+        ReservedValue reserved = rules.reserveNext(type, counterScope, periodKey, template.startValue());
+        return new IssuedNumber(new DocumentNumber(template.pattern().render(type.code().orElse(null), template.pattern().usesLegalEntityCode() ? legalEntityCode : null, businessDate, reserved.value())),
+                reserved.counterId(), template.id());
     }
 
     private DomainException notConfirmed(DocumentType type, LocalDate businessDate) {

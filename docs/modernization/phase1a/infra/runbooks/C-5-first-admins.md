@@ -29,24 +29,33 @@
    ```
 **端口兜底（OPS-PORT 代码修复前）**：one.env 的 `SERVER_PORT=8080`、`MANAGEMENT_SERVER_PORT=8081` 是环境变量，优先于档案 `identity-operations` 里的 `server.port=-1`；不去掉的话运维命令会去绑 8080 / 8081，常驻服务运行时启动失败。所以下面每条命令都带 `-p UnsetEnvironment=SERVER_PORT -p UnsetEnvironment=MANAGEMENT_SERVER_PORT`。2026-10-15 在 ECS 上用临时单元核实（t-hz0704dqsgcmio0，systemd 255，只打印非机密变量）：`UnsetEnvironment` 在 `EnvironmentFile` 之后生效，两个端口变量为未设置，`SERVER_ADDRESS`、`MANAGEMENT_SERVER_ADDRESS` 仍为 127.0.0.1。运维命令若仍由 Tomcat 开出端口（one-1a-par 探针所见），主连接器按 `server.address` 只绑 127.0.0.1，独立管理端按 `management.server.address` 同样只绑回环；这一点按配置推断，未在 ECS 上运行运维命令验证。执行时另开一个窗口用 `ss -ltnp` 看 java 进程的监听地址，只应出现 127.0.0.1。本兜底只覆盖环境变量：F-12 改为追加档案后，生产档案 `application-prod.properties` 里的 `management.server.port=8081` 是配置文件，不受 `UnsetEnvironment` 影响，届时须随 OPS-PORT 一并处理。
 
-2. 授予首任 `super_admin`（每名持有人一次；命令与参数以 INFRA_RUNBOOK §6 为准）。JVM 必须带 `-Duser.timezone=UTC`，否则应用拒绝启动：
+2. 查出持有人的员工 ID（只读，不写数据；命令与参数以 INFRA_RUNBOOK §6 为准）。员工 ID 是小写 uuid，按组织源登录名或企业微信 userid 查：
+   ```bash
+   systemd-run --wait --pipe --uid=forcitis -p EnvironmentFile=/etc/forcitis-one/one.env \
+     -p UnsetEnvironment=SERVER_PORT -p UnsetEnvironment=MANAGEMENT_SERVER_PORT \
+     /usr/bin/java -Duser.timezone=UTC -jar /data/forcitis-one/current/forcitis-one.jar \
+     --spring.profiles.active=integration-operations --operation=find-accounts-by-external-subject \
+     --provider-kind=SEEYON_LOGIN_NAME --external-subject=<持有人组织源登录名>
+   # 输出每个匹配一行 employee-id=<uuid> user-id=<…>；多于一行时与持有人当面核对是哪一位，不凭姓名或员工编号猜
+   ```
+3. 授予首任 `super_admin`（每名持有人一次；命令与参数以 INFRA_RUNBOOK §6 为准）。JVM 必须带 `-Duser.timezone=UTC`，否则应用拒绝启动：
    ```bash
    systemd-run --wait --pipe --uid=forcitis -p EnvironmentFile=/etc/forcitis-one/one.env \
      -p UnsetEnvironment=SERVER_PORT -p UnsetEnvironment=MANAGEMENT_SERVER_PORT \
      /usr/bin/java -Duser.timezone=UTC -jar /data/forcitis-one/current/forcitis-one.jar \
      --spring.profiles.active=identity-operations --operation=grant-role --role-code=super_admin \
-     --employee-id=<持有人员工 ID> --operator=<操作人> --witness=<见证人>
+     --employee-id=<持有人员工 ID> --operator=<操作人员工 ID> --witness=<见证人员工 ID>
    ```
-3. 登记应急账号（每个账号一次）：
+4. 登记应急账号（每个账号一次）：
    ```bash
    systemd-run --wait --pipe --uid=forcitis -p EnvironmentFile=/etc/forcitis-one/one.env \
      -p UnsetEnvironment=SERVER_PORT -p UnsetEnvironment=MANAGEMENT_SERVER_PORT \
      /usr/bin/java -Duser.timezone=UTC -jar /data/forcitis-one/current/forcitis-one.jar \
      --spring.profiles.active=identity-operations --operation=register-emergency-admin \
-     --employee-id=<超管持有人员工 ID> --login-name=<应急账号名> --operator=<操作人> --witness=<见证人>
+     --employee-id=<超管持有人员工 ID> --login-name=<应急账号名> --operator=<操作人员工 ID> --witness=<见证人员工 ID>
    # 口令与 TOTP 密钥由命令生成，只在这一次输出里显示：持有人当场记录并扫码，随后清屏；不截图、不留存、不进文件或聊天
    ```
-4. 持有人当场在内网用应急账号登录一次（口令 + TOTP），确认进入管理模式、1 小时后失效，并收到告警；首次登录后改口令（「强制改口令」待实现，实现前人工执行）。
+5. 持有人当场在内网用应急账号登录一次（口令 + TOTP），确认进入管理模式、1 小时后失效，并收到告警；首次登录后改口令（「强制改口令」待实现，实现前人工执行）。
 
 ## 校验
 

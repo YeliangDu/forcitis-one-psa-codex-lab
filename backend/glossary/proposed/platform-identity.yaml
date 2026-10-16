@@ -4,8 +4,10 @@ terms:
   zh: 签名密钥编码
   en: SigningKeyCode
   snake: signing_key_code
-  kind: value
+  kind: value_object
   bc: platform.identity
+  scope: acl
+  acl_class: 长期
   definition: 票据签发方签名密钥的编码（票据头部的 kid），一方一把；原列名 key_id 按 ADR-0033 影响面改为以 _code 结尾（R-1b P2）
   standard_ref:
   - ADR-0033 影响面「ticket_issuers.key_id 改名」
@@ -20,6 +22,7 @@ terms:
   snake: platform_identity_role_transition_illegal
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: 角色已经处于目标状态（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -34,6 +37,7 @@ terms:
   snake: platform_identity_account_transition_illegal
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: 账号已经处于目标状态（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -48,6 +52,7 @@ terms:
   snake: platform_identity_concurrent_update
   kind: error_code
   bc: platform.identity
+  scope: domain
   definition: 角色或账号已被他人修改（409）
   standard_ref:
   - proposals/PHASE1A_PLATFORM_CONVENTIONS.md
@@ -76,26 +81,11 @@ terms:
   zh: 票据签发方
   en: TicketIssuer
   snake: ticket_issuer
-  kind: entity
+  kind: aggregate
   bc: platform.identity
   scope: acl
   acl_class: "长期"
   definition: 被允许签发签名票据的外部系统（KM、组织门户、YD 门户、BI），每方一把密钥，默认关闭
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: sso
-  zh: 单点登录
-  en: Sso
-  snake: sso
-  kind: concept
-  bc: platform.identity
-  scope: domain
-  definition: 由致远 OA 发起的单点登录
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
   confidence: medium
@@ -123,7 +113,7 @@ terms:
   zh: 身份提供方类别
   en: ProviderKind
   snake: provider_kind
-  kind: enum
+  kind: state
   bc: platform.identity
   scope: acl
   acl_class: "长期"
@@ -139,7 +129,7 @@ terms:
   zh: 外部主体标识
   en: ExternalSubject
   snake: external_subject
-  kind: value
+  kind: value_object
   bc: platform.identity
   scope: acl
   acl_class: "长期"

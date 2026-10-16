@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import java.time.LocalDate;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.TestPostgres;
@@ -23,13 +24,13 @@ import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
-import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
+import com.forcitis.one.platform.approval.events.ApprovalTaskBecameOverdue;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
-import com.forcitis.one.platform.approval.events.TaskResulted;
+import com.forcitis.one.platform.approval.events.TaskHandled;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.integration.api.ExternalCallKind;
-import com.forcitis.one.platform.integration.api.ExternalConnections;
+import com.forcitis.one.platform.integration.domain.ExternalConnections;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
@@ -63,6 +64,10 @@ import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import com.forcitis.one.kernel.event.EventEnvelope;
+import com.forcitis.one.platform.numbering.api.IssuedNumber;
+import com.forcitis.one.platform.numbering.api.NumberingCounterId;
+import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 
 /** One PostgreSQL 18 container per test JVM and a cached application context; the Flowable schema is created by the engine only in tests; other modules' dependencies are doubles. */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "forcitis.platform.approval.deadline.enabled=false", "flowable.database-schema-update=true",
@@ -110,11 +115,11 @@ public abstract class ApprovalIntegrationSupport {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
-        registry.add("forcitis.platform.approval.legacy.url", POSTGRES::getJdbcUrl);
-        registry.add("forcitis.platform.approval.legacy.username", () -> "legacy_ro");
-        registry.add("forcitis.platform.approval.legacy.password", () -> LEGACY_PASSWORD);
-        registry.add("forcitis.platform.approval.legacy.view-name", () -> "legacy_fixture.v_psa_one_legacy_todo");
-        registry.add("forcitis.platform.approval.legacy.detail-url-template",
+        registry.add("forcitis.platform.integration.legacy.inbox.url", POSTGRES::getJdbcUrl);
+        registry.add("forcitis.platform.integration.legacy.inbox.username", () -> "legacy_ro");
+        registry.add("forcitis.platform.integration.legacy.inbox.password", () -> LEGACY_PASSWORD);
+        registry.add("forcitis.platform.integration.legacy.inbox.view-name", () -> "legacy_fixture.v_psa_one_legacy_todo");
+        registry.add("forcitis.platform.integration.legacy.inbox.detail-url-template",
                 () -> "https://legacy.example.test/bpm/detail?instance={processInstanceId}&task={taskId}");
     }
 
@@ -140,10 +145,13 @@ public abstract class ApprovalIntegrationSupport {
     @Autowired
     protected com.forcitis.one.kernel.event.EventEnvelopes envelopes;
 
-    protected com.forcitis.one.kernel.event.EventEnvelope envelope(String eventType, String aggregateType, String aggregateId, long aggregateVersion) {
+    protected UUID requestIdOf(String documentKey) {
+        return jdbc.queryForObject("select id from platform_approval.approval_requests where document_id = cast(? as uuid)", UUID.class, documentKey);
+    }
+
+    protected EventEnvelope envelope(String eventType, String aggregateType, UUID aggregateId, long aggregateVersion) {
         return envelopes.wrap(new com.forcitis.one.kernel.event.EventDraft(eventType, 1, aggregateType, aggregateId, aggregateVersion, LEGAL_ENTITY,
-                java.time.LocalDate.now(), new com.forcitis.one.kernel.event.EventSource(com.forcitis.one.kernel.event.SourceSystem.ONE, null),
-                java.util.List.of()));
+                LocalDate.now(), List.of()));
     }
 
     @Autowired
@@ -200,7 +208,8 @@ public abstract class ApprovalIntegrationSupport {
         events = new Events(recorded);
         organisation.person(ADMINISTRATOR, 1, null).role("process_administrator", ADMINISTRATOR);
         org.mockito.Mockito.when(numbers.next(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
-                .thenAnswer(call -> new DocumentNumber("TS-T-" + NUMBERS.incrementAndGet()));
+                .thenAnswer(call -> new IssuedNumber(new DocumentNumber("TS-T-" + NUMBERS.incrementAndGet()),
+                        new NumberingCounterId(UUID.randomUUID()), new NumberingRuleVersionId(UUID.randomUUID())));
     }
 
     /** Unique ids so tests sharing database and context cannot see each other's data. */
@@ -209,7 +218,7 @@ public abstract class ApprovalIntegrationSupport {
     }
 
     protected static String newKey(String prefix) {
-        return prefix + "-" + newId();
+        return UUID.nameUUIDFromBytes((prefix + "-" + newId()).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
     }
 
     protected ApprovalInstanceId start(String businessKey, long initiator, long manager) {
@@ -222,24 +231,24 @@ public abstract class ApprovalIntegrationSupport {
 
     protected ApprovalInstanceId start(String businessKey, long initiator, long manager, TimesheetRoutingFlag... flags) {
         Set<String> flagNames = java.util.Arrays.stream(flags).map(TimesheetRoutingFlag::flagName).collect(java.util.stream.Collectors.toSet());
-        return tx.execute(status -> approvals.start(startRequest(businessKey, new EmployeeId(initiator), flagNames,
-                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(String.valueOf(manager)))))));
+        return tx.execute(status -> approvals.start(startRequest(businessKey, TestAccounts.employee(initiator), flagNames,
+                List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), List.of(TestAccounts.employee(manager).toString()))))));
     }
 
     protected Task openTask(ApprovalInstanceId instance) {
-        return taskService.createTaskQuery().processInstanceId(instance.value()).singleResult();
+        return taskService.createTaskQuery().processInstanceId(instance.value().toString()).singleResult();
     }
 
     protected Task openTask(ApprovalInstanceId instance, String nodeKey) {
-        return taskService.createTaskQuery().processInstanceId(instance.value()).taskDefinitionKey(nodeKey).singleResult();
+        return taskService.createTaskQuery().processInstanceId(instance.value().toString()).taskDefinitionKey(nodeKey).singleResult();
     }
 
     protected ApprovalTaskId openTaskId(ApprovalInstanceId instance, String nodeKey) {
-        return new ApprovalTaskId(openTask(instance, nodeKey).getId());
+        return new ApprovalTaskId(java.util.UUID.fromString(openTask(instance, nodeKey).getId()));
     }
 
     protected ApprovalTaskId openTaskId(ApprovalInstanceId instance) {
-        return new ApprovalTaskId(openTask(instance).getId());
+        return new ApprovalTaskId(java.util.UUID.fromString(openTask(instance).getId()));
     }
 
     /** The round a person starting the document again would get: the running one while it runs, the next one after it ended. */
@@ -254,7 +263,7 @@ public abstract class ApprovalIntegrationSupport {
 
     protected int nextRoundOf(String key) {
         List<Map<String, Object>> rows = jdbc.queryForList(
-                "select current_round, status from platform_approval.approval_requests where document_key = ?", key);
+                "select current_round, status from platform_approval.approval_requests where document_id = cast(? as uuid)", key);
         if (rows.isEmpty()) {
             return 1;
         }
@@ -269,7 +278,7 @@ public abstract class ApprovalIntegrationSupport {
                     .matcher(request.getRequestURI());
             if (m.find() && request.getHeader("If-Match") == null) {
                 List<Long> versions = jdbc.queryForList("select r.version from platform_approval.approval_requests r join platform_approval.approval_tasks t"
-                        + " on t.process_key = r.process_key and t.document_key = r.document_key where t.task_id = ?", Long.class, m.group(1));
+                        + " on r.id = t.approval_request_id where t.task_id = cast(? as uuid)", Long.class, m.group(1));
                 request.addHeader("If-Match", "\"" + (versions.isEmpty() ? 1L : versions.getFirst()) + "\"");
             }
             return request;
@@ -277,11 +286,11 @@ public abstract class ApprovalIntegrationSupport {
     }
 
     protected static DocumentReference document(String key) {
-        return new DocumentReference(DocumentType.TIMESHEET, new DocumentId(key));
+        return new DocumentReference(DocumentType.TIMESHEET, new DocumentId(UUID.fromString(key)));
     }
 
     protected String requestStatus(String key) {
-        return jdbc.queryForObject("select status from platform_approval.approval_requests where document_key = ?", String.class, key);
+        return jdbc.queryForObject("select status from platform_approval.approval_requests where document_id = cast(? as uuid)", String.class, key);
     }
 
     protected static void eventually(Runnable assertion) {
@@ -293,7 +302,7 @@ public abstract class ApprovalIntegrationSupport {
         public volatile boolean failing;
 
         @org.springframework.transaction.event.TransactionalEventListener(phase = org.springframework.transaction.event.TransactionPhase.BEFORE_COMMIT)
-        void on(TaskResulted event) {
+        void on(TaskHandled event) {
             if (failing) {
                 throw new IllegalStateException("the event store is down");
             }
@@ -329,16 +338,16 @@ public abstract class ApprovalIntegrationSupport {
             return recorded.stream(ApprovalCompleted.class).toList();
         }
 
-        public List<TaskResulted> resulted() {
-            return recorded.stream(TaskResulted.class).toList();
+        public List<TaskHandled> resulted() {
+            return recorded.stream(TaskHandled.class).toList();
         }
 
         public List<TaskAssigned> assigned() {
             return recorded.stream(TaskAssigned.class).toList();
         }
 
-        public List<ApprovalTaskOverdue> overdue() {
-            return recorded.stream(ApprovalTaskOverdue.class).toList();
+        public List<ApprovalTaskBecameOverdue> overdue() {
+            return recorded.stream(ApprovalTaskBecameOverdue.class).toList();
         }
 
         public List<ApprovalTaskEscalated> escalated() {
@@ -350,11 +359,16 @@ public abstract class ApprovalIntegrationSupport {
         }
     }
 
-    /** A business module's listener that fails the first delivery of a document called flaky-*, so the registry's redelivery can be shown. */
+    /** A business module's listener that fails the first delivery of a document registered with flakyDocument, so the registry's redelivery can be shown. */
     @com.forcitis.one.kernel.SystemActorName("test.flaky-listener")
     public static class FlakyListener {
         private final List<ApprovalCompleted> delivered = new CopyOnWriteArrayList<>();
         private final Set<String> failedOnce = java.util.concurrent.ConcurrentHashMap.newKeySet();
+        private final Set<String> flakyDocuments = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+        public void flakyDocument(String key) {
+            flakyDocuments.add(key);
+        }
 
         public List<ApprovalCompleted> delivered() {
             return delivered;
@@ -366,7 +380,8 @@ public abstract class ApprovalIntegrationSupport {
 
         @ApplicationModuleListener
         void on(ApprovalCompleted event) {
-            if (event.document().documentId().value().startsWith("flaky-") && failedOnce.add(event.document().documentId().value())) {
+            String document = event.document().documentId().toString();
+            if (flakyDocuments.contains(document) && failedOnce.add(document)) {
                 throw new IllegalStateException("first delivery fails on purpose");
             }
             delivered.add(event);

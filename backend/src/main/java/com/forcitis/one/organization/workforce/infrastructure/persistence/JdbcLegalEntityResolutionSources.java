@@ -30,7 +30,7 @@ class JdbcLegalEntityResolutionSources implements LegalEntityResolutionSources {
         return attribution(AttributionKind.ORG_UNIT, orgUnit.value(), date);
     }
 
-    private Optional<LegalEntityId> attribution(AttributionKind kind, long subjectId, LocalDate date) {
+    private Optional<LegalEntityId> attribution(AttributionKind kind, UUID subjectId, LocalDate date) {
         return jdbc.sql("select legal_entity_id from (" + EffectiveAttributionPeriods.select(kind) + ") effective"
                         + " where effective_from_date <= :date and (effective_to_date is null or :date < effective_to_date)")
                 .param("id", subjectId).param("date", Date.valueOf(date))
@@ -43,7 +43,7 @@ class JdbcLegalEntityResolutionSources implements LegalEntityResolutionSources {
                         select org_unit_id from organization_workforce.assignment_versions
                          where employee_id = :id and effective_from_date <= :date and (effective_to_date is null or :date < effective_to_date)
                         """)
-                .param("id", employee.value()).param("date", Date.valueOf(date)).query(Long.class).optional().map(OrgUnitId::new);
+                .param("id", employee.value()).param("date", Date.valueOf(date)).query(UUID.class).optional().map(OrgUnitId::new);
     }
 
     @Override
@@ -53,6 +53,6 @@ class JdbcLegalEntityResolutionSources implements LegalEntityResolutionSources {
                          where org_unit_id = :id and effective_from_date <= :date and (effective_to_date is null or :date < effective_to_date)
                            and parent_org_unit_id is not null
                         """)
-                .param("id", orgUnit.value()).param("date", Date.valueOf(date)).query(Long.class).optional().map(OrgUnitId::new);
+                .param("id", orgUnit.value()).param("date", Date.valueOf(date)).query(UUID.class).optional().map(OrgUnitId::new);
     }
 }

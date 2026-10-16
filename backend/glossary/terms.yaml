@@ -10,6 +10,7 @@
 # 字段：id, zh, en, snake, kind, bc, definition, standard_ref, confidence, aliases, forbidden, status(approved|proposed)
 
 common_words:
+  - unmapped  # 指标后缀：没有对照，2026-10-15 one-glossary
   # Phase 1a 平台契约用到的技术性通用词（2026-10-14，psa-1a-platform-bridge-reimagine）
   - action
   - on

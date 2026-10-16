@@ -33,6 +33,17 @@ jobs:
           else
             python3 scripts/ci/migrations_immutable.py "$base"
           fi
+      - name: System actor catalogue is append-only (backend/architecture/system-actors.txt)
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          python3 scripts/ci/system_actors_append_only.py --self-test
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then base="origin/$GITHUB_BASE_REF"; else base="$BEFORE"; fi
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            echo "no earlier commit to compare against (new branch); self-test only"
+          else
+            python3 scripts/ci/system_actors_append_only.py "$base"
+          fi
       - name: Acceptance tests are changed only by the test engineer or under a ruling (SESSION_PLAYBOOK §6.1)
         env:
           BEFORE: ${{ github.event.before }}
@@ -66,7 +77,10 @@ jobs:
           done
       - name: surefire and failsafe, side by side
         if: steps.change.outputs.relevant == 'true'
-        run: scripts/ci/backend_verify.sh
+        # Two forks per plugin (four test JVMs per runner instead of eight): the runners share one Docker Desktop (CI_RUNNERS.md)
+        env:
+          BACKEND_WATCHDOG_SECONDS: '1500'
+        run: scripts/ci/backend_verify.sh -Dtest.forks=2 -Dtest.fork.timeout=1800
       - name: every acceptance test class produced a surefire or failsafe report
         if: steps.change.outputs.relevant == 'true'
         run: python3 scripts/ci/acceptance_reports.py
@@ -84,6 +98,7 @@ jobs:
           path: |
             backend/target/surefire-reports
             backend/target/failsafe-reports
+            backend/target/thread-dumps
 
   frontend:
     name: frontend verify (typecheck + lint guardrails F1-F14 + structure + build)
@@ -200,4 +215,16 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+      - run: python3 scripts/ci/assertion_drift.py --self-test
+      - run: python3 scripts/hooks/pre_push_gate.py --self-test
+      - run: python3 scripts/ci/light_unit_classes.py --self-test
       - run: python3 scripts/ci/assertion_drift.py origin/${{ github.base_ref }}
+      # report only (SCAN_SUPPLEMENT, one-data): findings never fail the job; the self-test does, and so does a crash of the scan (bash -e with pipefail); statements the scan cannot model raise a warning
+      - name: baseline DDL scan (report only)
+        shell: bash
+        run: |
+          python3 scripts/ci/baseline_ddl_scan.py --self-test
+          scan=$(python3 scripts/ci/baseline_ddl_scan.py)
+          printf '%s\n' "$scan" | grep '^=='
+          unmodelled=$(printf '%s\n' "$scan" | sed -n 's/^== 8 .*: \([0-9][0-9]*\)$/\1/p')
+          if [ "$unmodelled" != "0" ]; then echo "::warning title=Baseline DDL scan::${unmodelled:-?} statements are not modelled by the scan: extend scripts/ci/baseline_ddl_scan.py"; fi

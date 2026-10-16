@@ -2,12 +2,12 @@ package com.forcitis.one.platform.integration.infrastructure.connection;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.platform.integration.infrastructure.connection.MsdbPrivileges.TokenPermission;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.DatabaseLevelPermission;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Finding;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Ownership;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ReachableDatabase;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Reason;
-import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.SecurablePermissionRow;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.ServerPermissionRow;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.SqlError;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.Unmet;
@@ -50,8 +50,13 @@ class ReadOnlyBaselineTest {
             new Counterexample("an owned role", c -> c.ownership = new Ownership(false, 0, 0, 1, 0), 'e', Reason.OWNS_ROLE),
             new Counterexample("a grant on a database principal", c -> c.ownership = new Ownership(false, 0, 0, 0, 1), 'e', Reason.DATABASE_PRINCIPAL_GRANT),
             new Counterexample("another user database", c -> c.reachableDatabases.add("otherworld"), 'f', Reason.OTHER_DATABASE_REACHABLE),
-            new Counterexample("an own user in msdb", c -> c.ownUsers.put("msdb", 1L), 'f', Reason.SYSTEM_DATABASE_OWN_USER),
-            new Counterexample("a grant below the database", c -> c.securablePermissionRows.add(new SecurablePermissionRow("SCHEMA", 5, "G", "CONTROL", false)),
+            new Counterexample("an own user in master", c -> c.ownUser("master"), 'f', Reason.SYSTEM_DATABASE_OWN_USER),
+            new Counterexample("an msdb privilege of the own user", c -> c.rdsOwnUsers().msdbEffectivePermissions.put("CONTROL", 1), 'f',
+                    Reason.SYSTEM_DATABASE_OWN_USER_PRIVILEGE),
+            new Counterexample("an msdb grant of the token beyond the allow-list", c -> c.msdbTokenPermissions.add(new TokenPermission(false, "SCHEMA", "G", "ALTER")),
+                    'f', Reason.SYSTEM_DATABASE_OWN_USER_PRIVILEGE),
+            new Counterexample("an owned Agent job", c -> c.ownedAgentJobs = 1, 'f', Reason.OWNS_AGENT_JOB),
+            new Counterexample("a grant below the database", c -> c.securablePermissionRows.add(FakeCatalog.row("SCHEMA", 5, "G", "CONTROL", false)),
                     'g', Reason.SECURABLE_GRANT_BEYOND_SELECT),
             new Counterexample("a failing catalog", c -> c.unreachable = true, 'a', Reason.CATALOG_QUERY_FAILED),
             new Counterexample("a row the rule cannot read", c -> c.databaseLevelPermissions.add(new DatabaseLevelPermission(null, "SELECT")), 'b',
@@ -245,11 +250,11 @@ class ReadOnlyBaselineTest {
         catalog.securablePermissionRows.clear();
         for (String schema : List.of("1", "5")) {
             for (String deny : List.of("ALTER", "DELETE", "EXECUTE", "INSERT", "REFERENCES", "UPDATE")) {
-                catalog.securablePermissionRows.add(new SecurablePermissionRow("SCHEMA", Long.parseLong(schema), "D", deny, false));
+                catalog.securablePermissionRows.add(FakeCatalog.row("SCHEMA", Long.parseLong(schema), "D", deny, false));
             }
         }
-        catalog.securablePermissionRows.add(new SecurablePermissionRow("SCHEMA", 5, "G", "SELECT", false));
-        catalog.securablePermissionRows.add(new SecurablePermissionRow("OBJECT_OR_COLUMN", 917578307, "G", "SELECT", false));
+        catalog.securablePermissionRows.add(FakeCatalog.row("SCHEMA", 5, "G", "SELECT", false));
+        catalog.securablePermissionRows.add(FakeCatalog.row("OBJECT_OR_COLUMN", 917578307, "G", "SELECT", false));
         assertThat(ReadOnlyBaseline.violations(catalog)).isEmpty();
 
         catalog.securablePermissionRows.clear();
@@ -259,16 +264,16 @@ class ReadOnlyBaselineTest {
     @Test
     @DisplayName("ADR37-1 复审 H-1 (g) any other grant below the database level, of the login or of public on a user securable, is named under (g)")
     void belowTheDatabase() {
-        catalog.securablePermissionRows.add(new SecurablePermissionRow("OBJECT_OR_COLUMN", 42, "G", "TAKE OWNERSHIP", false));
-        catalog.securablePermissionRows.add(new SecurablePermissionRow("SCHEMA", 5, "G", "CONTROL", false));
-        catalog.securablePermissionRows.add(new SecurablePermissionRow("SCHEMA", 1, "W", "SELECT", false));
-        catalog.securablePermissionRows.add(new SecurablePermissionRow("OBJECT_OR_COLUMN", 43, "G", "UPDATE", true));
-        catalog.securablePermissionRows.add(new SecurablePermissionRow("DATABASE_PRINCIPAL", 7, "G", "IMPERSONATE", false));
-        catalog.securablePermissionRows.add(new SecurablePermissionRow("OBJECT_OR_COLUMN", 44, "D", "CONTROL", true));
+        catalog.securablePermissionRows.add(FakeCatalog.row("OBJECT_OR_COLUMN", 42, "G", "TAKE OWNERSHIP", false));
+        catalog.securablePermissionRows.add(FakeCatalog.row("SCHEMA", 5, "G", "CONTROL", false));
+        catalog.securablePermissionRows.add(FakeCatalog.row("SCHEMA", 1, "W", "SELECT", false));
+        catalog.securablePermissionRows.add(FakeCatalog.row("OBJECT_OR_COLUMN", 43, "G", "CONTROL", true));
+        catalog.securablePermissionRows.add(FakeCatalog.row("DATABASE_PRINCIPAL", 7, "G", "IMPERSONATE", false));
+        catalog.securablePermissionRows.add(FakeCatalog.row("OBJECT_OR_COLUMN", 44, "D", "CONTROL", true));
 
         assertThat(ReadOnlyBaseline.violations(catalog)).singleElement().asString().startsWith("(g)")
                 .contains("OBJECT_OR_COLUMN 42 G TAKE OWNERSHIP").contains("SCHEMA 5 G CONTROL").contains("SCHEMA 1 W SELECT")
-                .contains("OBJECT_OR_COLUMN 43 G UPDATE to public").contains("DATABASE_PRINCIPAL 7 G IMPERSONATE").doesNotContain("44");
+                .contains("OBJECT_OR_COLUMN 43 G CONTROL to public").contains("DATABASE_PRINCIPAL 7 G IMPERSONATE").doesNotContain("44");
         assertThat(reasons('g')).containsExactly(Reason.SECURABLE_GRANT_BEYOND_SELECT);
         assertThat(counts('g')).containsExactly(5);
     }
@@ -276,9 +281,9 @@ class ReadOnlyBaselineTest {
     @Test
     @DisplayName("ADR37-1 复审 H-2 (f) a user of the login's own in a system database (only guest is allowed there) is named under (f)")
     void systemDatabasesOnlyThroughGuest() {
-        catalog.ownUsers.put("msdb", 1L);
+        catalog.ownUser("master");
 
-        assertThat(ReadOnlyBaseline.violations(catalog)).singleElement().asString().startsWith("(f)").contains("[msdb]").contains("guest");
+        assertThat(ReadOnlyBaseline.violations(catalog)).singleElement().asString().startsWith("(f)").contains("[master]").contains("guest");
         assertThat(reasons('f')).containsExactly(Reason.SYSTEM_DATABASE_OWN_USER);
     }
 

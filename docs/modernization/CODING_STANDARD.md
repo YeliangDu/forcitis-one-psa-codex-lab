@@ -32,7 +32,7 @@
 | CS-1.1 | **代码注释能不写就不写** | [SESSION_PLAYBOOK §5「代码注释能不写就不写」](SESSION_PLAYBOOK.md#5-上下文管理) | 复审 |
 | CS-1.2 | **老代码只作证据，不得照搬** | [SESSION_PLAYBOOK §5「老代码只作证据，不得照搬」](SESSION_PLAYBOOK.md#5-上下文管理) | 守护：`LegacyShapeTest`、ArchitectureRulesTest（G40）；复审（每波 opus 专查「老系统形状」） |
 | CS-1.3 | **领域模块不出现外部或老系统名称**；外部系统只在 `platform.integration` 的适配器内 | CLAUDE.md；SESSION_PLAYBOOK §14 第 8 项 | 守护：`LegacyShapeTest`、`ExternalConnectionIsolationTest`、Modulith（G1） |
-| CS-1.4 | **新标识符、界面文字、表列名先查 `glossary/terms.yaml`** | [SESSION_PLAYBOOK §5「写代码规则第二批」第 5 条](SESSION_PLAYBOOK.md#5-上下文管理)；ADR-0018 | 守护：`GlossaryTest`（G37–G39）、`ErrorCodeGlossaryTest`、R-5 中文名唯一检查、前端 `pnpm check:copy` |
+| CS-1.4 | **新标识符、界面文字、表列名先查 `glossary/terms.yaml`** | [SESSION_PLAYBOOK §5「写代码规则第二批」第 5 条](SESSION_PLAYBOOK.md#5-上下文管理)；ADR-0018 | 守护：`GlossaryTest`（G37–G42：G40 聚合根、G41 领域事件按 bc 加类名反查词条，G42 类名技术泛词；存量见 `backend/glossary/code-term-baseline.txt`，只减不增）、`ErrorCodeGlossaryTest`、R-5 中文名唯一检查（错误码全局唯一，其余同一 bc 内唯一）、用语登记规则 `glossary/term_rules.py`（B1）、前端 `pnpm check:copy` |
 | CS-1.5 | **命名与位置遵守 `NAMING_STANDARD.md`**，守护不通过不得合并 | CLAUDE.md；NAMING_STANDARD §4 | 守护：G1–G48、D1–D3、F1–F14 |
 | CS-1.6 | **复刻老行为以生产为证据，不凭推测** | [SESSION_PLAYBOOK §5「写代码规则第二批」第 1 条](SESSION_PLAYBOOK.md#5-上下文管理) | 复审 |
 | CS-1.7 | **缺失或无效输入失败并告警，不静默跳过** | [SESSION_PLAYBOOK §5「写代码规则第二批」第 3 条](SESSION_PLAYBOOK.md#5-上下文管理)；SESSION_PLAYBOOK §14 第 5 项、G-T2 | 守护：`CurrentUserGuardTest`（法人不得写死或默认）；其余复审 |
@@ -69,7 +69,7 @@
 
 **CS-2.20 ID 值对象输出用 `value()`**（新增；R-1a 复审（PR #125 正文）H-1）
 - 类型化 ID（`UserId`、`OrgUnitId`、`SyncRunId` 等 `@ValueObject` record）写到接口响应、事件负载、日志键、游标、审计明细、SQL 参数时，一律取 `id.value()`（需要文本时 `id.value().toString()` 或 `String.valueOf(id.value())`），**不得对 ID 对象本身调用 `String.valueOf(id)` / `id.toString()` / 字符串拼接**：record 的 `toString()` 是 `OrgUnitId[value=…]`，换实现（long → UUID）时会静默改变对外形状。
-- 响应 record 的 ID 字段类型优先直接用 ID 的值类型（由 OpenAPI 生成器声明格式），而不是自己转字符串。
+- 响应 record 的 ID 字段类型优先直接用 ID 的值类型（由 OpenAPI 生成器声明格式），而不是自己转字符串。契约以 springdoc 实际输出为准，版本升级走 ADR；错误响应为 RFC 9457 problem details（用户 2026-10-15 采纳，ADR-0041，FRAMEWORKS §9（intent 195827））。
 - 守护（待实现：G-C1）。现状：`organization/workforce/web/*Response.java` 中有 `String.valueOf(view.orgUnitId())` 一类写法，须按 R-1 一并核对。
 
 **CS-2.21 不靠 ID 的顺序表达业务顺序**（新增；R-1a 复审（PR #125 正文）H-2）

@@ -3,6 +3,7 @@ package com.forcitis.one.platform.identity.infrastructure.persistence;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleCode;
@@ -22,16 +23,26 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 @Repository
 class JdbcAccountRepository implements AccountRepository {
 
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcAccountRepository.class);
+    private static final int MAX_ADDRESS_LENGTH = 64;
+    private static final Pattern ADDRESS_SHAPE = Pattern.compile(
+            "(?:[0-9]{1,3}(?:\\.[0-9]{1,3}){3}|(?=[^:]*:[^:]*:)(?!.*:::)[0-9A-Fa-f.:]+)(?:%[0-9A-Za-z._-]+)?");
+
     private final JdbcClient jdbc;
     private final Clock clock;
+    private final IdGenerator ids;
 
-    JdbcAccountRepository(JdbcClient jdbc, Clock clock) {
+    JdbcAccountRepository(JdbcClient jdbc, Clock clock, IdGenerator ids) {
+        this.ids = ids;
         this.clock = clock;
         this.jdbc = jdbc;
     }
@@ -42,7 +53,7 @@ class JdbcAccountRepository implements AccountRepository {
                         select user_id, employee_id, status, version, event_count from platform_identity.user_accounts where user_id = :id
                         """)
                 .param("id", userId.value())
-                .query((rs, n) -> UserAccount.restore(new UserId(rs.getObject("user_id", UUID.class)), new EmployeeId(rs.getLong("employee_id")),
+                .query((rs, n) -> UserAccount.restore(new UserId(rs.getObject("user_id", UUID.class)), new EmployeeId(rs.getObject("employee_id", UUID.class)),
                         rs.getString("status"), Set.of(), rs.getLong("version"), rs.getLong("event_count")))
                 .optional();
         if (found.isEmpty()) {
@@ -64,7 +75,7 @@ class JdbcAccountRepository implements AccountRepository {
     @Override
     public Optional<EmployeeId> findEmployee(UserId userId) {
         return jdbc.sql("select employee_id from platform_identity.user_accounts where user_id = :id").param("id", userId.value())
-                .query(Long.class).optional().map(EmployeeId::new);
+                .query(UUID.class).optional().map(EmployeeId::new);
     }
 
     @Override
@@ -109,21 +120,31 @@ class JdbcAccountRepository implements AccountRepository {
         jdbc.sql("delete from platform_identity.account_roles where user_id = :user and role_id not in (:roles)")
                 .param("user", userId.value()).param("roles", roleIds.stream().map(RoleId::value).toList()).update();
         for (RoleId roleId : roleIds) {
-            jdbc.sql("insert into platform_identity.account_roles (user_id, role_id) values (:user, :role) on conflict do nothing")
-                    .param("user", userId.value()).param("role", roleId.value()).update();
+            jdbc.sql("insert into platform_identity.account_roles (account_role_id, user_id, role_id) values (:id, :user, :role) on conflict do nothing")
+                    .param("id", ids.next()).param("user", userId.value()).param("role", roleId.value()).update();
         }
     }
 
     @Override
     public void recordLogin(UserId userId, Instant at, String address) {
+        String stored = storableAddress(address);
         jdbc.sql("""
                         update platform_identity.user_accounts
                            set last_login_at = :at, last_login_address = :address, updated_at = :updatedAt
                          where user_id = :id
                         """)
-                .param("at", OffsetDateTime.ofInstant(at, ZoneOffset.UTC)).param("address", address).param("id", userId.value())
+                .param("at", OffsetDateTime.ofInstant(at, ZoneOffset.UTC)).param("address", stored).param("id", userId.value())
                 .param("updatedAt", Timestamp.from(clock.instant()))
                 .update();
+    }
+
+    /** An address the column constraint would refuse is left empty rather than cut or allowed to fail a login that already succeeded. */
+    static String storableAddress(String address) {
+        if (address != null && address.length() <= MAX_ADDRESS_LENGTH && ADDRESS_SHAPE.matcher(address).matches()) {
+            return address;
+        }
+        LOG.error("ALERT platform.identity last login address not recorded: not an address (length {})", address == null ? 0 : address.length());
+        return null;
     }
 
     @Override

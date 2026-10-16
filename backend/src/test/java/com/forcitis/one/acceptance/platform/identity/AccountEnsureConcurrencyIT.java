@@ -36,12 +36,12 @@ class AccountEnsureConcurrencyIT extends AccountsAcceptanceSupport {
     @Test
     @DisplayName("R-1b P2 ADR-0033 第 3 项第 1 条：同一员工并发两次首次登录（ensureAccount 并发）只得到一个账号，两次登录答出同一个 userId，且 userId ≠ 员工 ID")
     void twoFirstLoginsAtOnceOpenOneAccount() throws Exception {
-        long unit = newOrgUnitId();
+        UUID unit = newOrgUnitId();
         orgUnit(unit, null, null);
         ExecutorService pool = Executors.newFixedThreadPool(2);
         try {
             for (int i = 0; i < PEOPLE; i++) {
-                long person = newEmployeeId();
+                UUID person = newEmployeeId();
                 employee(person, unit, null);
                 CountDownLatch start = new CountDownLatch(1);
                 List<Future<SignedIn>> logins = new ArrayList<>();
@@ -60,7 +60,7 @@ class AccountEnsureConcurrencyIT extends AccountsAcceptanceSupport {
 
                 assertThat(answered.get(0)).as("both logins of employee %s answer the same account", person).isEqualTo(answered.get(1));
                 assertThat(accountsOfEmployee(person)).as("accounts of employee %s", person).containsExactly(answered.get(0));
-                assertThat(answered.get(0).toString()).isNotEqualTo(String.valueOf(person));
+                assertThat(answered.get(0).toString()).isNotEqualTo(text(person));
             }
         } finally {
             pool.shutdownNow();

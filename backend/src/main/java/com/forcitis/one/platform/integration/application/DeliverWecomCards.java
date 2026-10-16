@@ -73,7 +73,7 @@ public class DeliverWecomCards {
             delivery.skip("handled before it was delivered");
             transaction.executeWithoutResult(status -> {
                 if (deliveries.save(delivery)) {
-                    recordResultOn(delivery.deduplicationKey(), "NOT_APPLIED: handled before it was delivered");
+                    recordResultOn(delivery.deliveryId().value(), "NOT_APPLIED: handled before it was delivered");
                 }
             });
             return;
@@ -82,7 +82,7 @@ public class DeliverWecomCards {
         delivery.markSent(responseCode.orElse(null), clock.instant());
         transaction.executeWithoutResult(status -> {
             if (deliveries.save(delivery)) {
-                handled.afterSent(delivery.deduplicationKey());
+                handled.afterSent(delivery.deliveryId());
             } else {
                 staleClaim(delivery);
             }
@@ -90,21 +90,21 @@ public class DeliverWecomCards {
     }
 
     private void replaceCard(OutboundDelivery delivery) {
-        OutboundDelivery card = deliveries.findByKey(delivery.targetKey()).orElse(null);
+        OutboundDelivery card = deliveries.findById(delivery.target().value()).orElse(null);
         if (card == null || card.responseCode() == null) {
             delivery.skip("the card to replace has no response code");
             transaction.executeWithoutResult(status -> {
                 if (deliveries.save(delivery)) {
-                    recordResultOn(delivery.targetKey(), "NOT_APPLIED: the card has no response code");
+                    recordResultOn(delivery.target().value(), "NOT_APPLIED: the card has no response code");
                 }
             });
             return;
         }
-        wecom.replaceWithHandledNote(card, delivery.description());
+        wecom.replaceWithHandledNote(card, delivery);
         delivery.markSent(null, clock.instant());
         transaction.executeWithoutResult(status -> {
             if (deliveries.save(delivery)) {
-                recordResultOn(delivery.targetKey(), "UPDATED");
+                recordResultOn(delivery.target().value(), "UPDATED");
             } else {
                 staleClaim(delivery);
             }
@@ -112,10 +112,10 @@ public class DeliverWecomCards {
     }
 
     private void fail(OutboundDelivery delivery, RuntimeException failed) {
-        String error = describe(failed);
+        String error = errorText(failed);
         Optional<Instant> next = RetrySchedule.afterFailure(delivery.attemptCount(), clock.instant());
         if (next.isPresent()) {
-            log.warn("WeCom delivery {} attempt {} failed, retry at {}: {}", delivery.deduplicationKey(), delivery.attemptCount(),
+            log.warn("WeCom delivery {} attempt {} failed, retry at {}: {}", delivery.subject(), delivery.attemptCount(),
                     next.get(), error);
             delivery.scheduleRetry(next.get(), error);
             if (!deliveries.save(delivery)) {
@@ -123,12 +123,12 @@ public class DeliverWecomCards {
             }
             return;
         }
-        log.error("WeCom delivery {} is a dead letter after {} attempts: {}", delivery.deduplicationKey(), delivery.attemptCount(), error);
+        log.error("WeCom delivery {} is a dead letter after {} attempts: {}", delivery.subject(), delivery.attemptCount(), error);
         delivery.deadLetter(error);
         transaction.executeWithoutResult(status -> {
             if (deliveries.save(delivery)) {
                 if (delivery.kind() == DeliveryKind.HANDLED_NOTE) {
-                    recordResultOn(delivery.targetKey(), "FAILED: " + error);
+                    recordResultOn(delivery.target().value(), "FAILED: " + error);
                 }
             } else {
                 staleClaim(delivery);
@@ -136,19 +136,19 @@ public class DeliverWecomCards {
         });
     }
 
-    private void recordResultOn(String cardKey, String result) {
-        deliveries.lockByKey(cardKey).ifPresent(card -> {
+    private void recordResultOn(UUID cardId, String result) {
+        deliveries.lockById(cardId).ifPresent(card -> {
             card.recordHandledResult(result);
             deliveries.saveHandled(card);
         });
     }
 
     private static void staleClaim(OutboundDelivery delivery) {
-        log.warn("WeCom delivery {} attempt {} no longer holds the claim: its result is dropped", delivery.deduplicationKey(),
+        log.warn("WeCom delivery {} attempt {} no longer holds the claim: its result is dropped", delivery.subject(),
                 delivery.attemptCount());
     }
 
-    private static String describe(RuntimeException failed) {
+    private static String errorText(RuntimeException failed) {
         String message = failed.getMessage();
         String text = failed.getClass().getSimpleName() + (message == null ? "" : ": " + message);
         return text.length() > 500 ? text.substring(0, 500) : text;

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.numbering.domain;
 
+import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.DomainException;
@@ -7,11 +8,10 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.StateMachine;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.EventDraft;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.platform.numbering.api.ConfirmationKind;
 import com.forcitis.one.platform.numbering.api.ConfirmationStatus;
 import com.forcitis.one.platform.numbering.api.NumberingError;
+import com.forcitis.one.platform.numbering.api.NumberingRuleId;
 import com.forcitis.one.platform.numbering.api.RuleVersion;
 import com.forcitis.one.platform.numbering.events.NumberingRuleConfirmationGiven;
 import com.forcitis.one.platform.numbering.events.NumberingRuleConfirmed;
@@ -37,12 +37,14 @@ public final class NumberingRule extends AggregateRoot {
             .allow(VersionStatus.PENDING_CONFIRMATION, VersionStatus.CONFIRMED, VersionStatus.SUPERSEDED)
             .build();
 
+    private final NumberingRuleId numberingRuleId;
     private final DocumentType documentType;
     private final List<TemplateVersion> loaded;
     private List<TemplateVersion> versions;
 
-    private NumberingRule(DocumentType documentType, List<TemplateVersion> versions, long version, long eventSequence) {
+    private NumberingRule(NumberingRuleId numberingRuleId, DocumentType documentType, List<TemplateVersion> versions, long version, long eventSequence) {
         super(version, eventSequence);
+        this.numberingRuleId = Objects.requireNonNull(numberingRuleId, "numberingRuleId");
         this.documentType = Objects.requireNonNull(documentType, "documentType");
         if (versions.isEmpty()) {
             throw new IllegalArgumentException("a numbering rule has at least its seeded version");
@@ -51,8 +53,12 @@ public final class NumberingRule extends AggregateRoot {
         this.loaded = this.versions;
     }
 
-    public static NumberingRule restore(DocumentType documentType, List<TemplateVersion> versions, long version, long eventSequence) {
-        return new NumberingRule(documentType, versions, version, eventSequence);
+    public static NumberingRule restore(NumberingRuleId numberingRuleId, DocumentType documentType, List<TemplateVersion> versions, long version, long eventSequence) {
+        return new NumberingRule(numberingRuleId, documentType, versions, version, eventSequence);
+    }
+
+    public NumberingRuleId numberingRuleId() {
+        return numberingRuleId;
     }
 
     public DocumentType documentType() {
@@ -102,7 +108,8 @@ public final class NumberingRule extends AggregateRoot {
         return NEEDING_FINANCE_CONFIRMATION.contains(documentType);
     }
 
-    public void propose(NumberingPattern pattern, long startValue, LocalDate effectiveFrom, UserId author, Instant at) {
+    public void propose(NumberingRuleVersionId versionId, NumberingPattern pattern, long startValue, LocalDate effectiveFrom, UserId author, Instant at) {
+        Objects.requireNonNull(versionId, "versionId");
         Objects.requireNonNull(pattern, "pattern");
         Objects.requireNonNull(effectiveFrom, "effectiveFrom");
         Objects.requireNonNull(author, "author");
@@ -118,7 +125,7 @@ public final class NumberingRule extends AggregateRoot {
             next.add(existing.status() == VersionStatus.PENDING_CONFIRMATION ? withStatus(existing, VersionStatus.SUPERSEDED) : existing);
         }
         int number = versions.getLast().number() + 1;
-        next.add(new TemplateVersion(number, pattern, startValue, effectiveFrom, author, at, VersionStatus.PENDING_CONFIRMATION, null, null, null, null));
+        next.add(new TemplateVersion(versionId, number, pattern, startValue, effectiveFrom, author, at, VersionStatus.PENDING_CONFIRMATION, null, null, null, null));
         this.versions = List.copyOf(next);
         record((envelopes, version) -> new NumberingRuleReconfigured(envelopes.wrap(draft("NumberingRuleReconfigured", version, effectiveFrom)),
                 documentType, new RuleVersion(number), effectiveFrom));
@@ -134,7 +141,7 @@ public final class NumberingRule extends AggregateRoot {
         if (by.equals(target.financeConfirmedBy())) {
             throw repeated(by);
         }
-        replace(new TemplateVersion(target.number(), target.pattern(), target.startValue(), target.effectiveFrom(), target.author(), target.authoredAt(), target.status(), by, at,
+        replace(new TemplateVersion(target.id(), target.number(), target.pattern(), target.startValue(), target.effectiveFrom(), target.author(), target.authoredAt(), target.status(), by, at,
                 target.financeConfirmedBy(), target.financeConfirmedAt()));
         recordGiven(target.number(), ConfirmationKind.BUSINESS);
         completeIfAllGiven(target.number());
@@ -153,7 +160,7 @@ public final class NumberingRule extends AggregateRoot {
         if (by.equals(target.confirmedBy())) {
             throw repeated(by);
         }
-        replace(new TemplateVersion(target.number(), target.pattern(), target.startValue(), target.effectiveFrom(), target.author(), target.authoredAt(), target.status(),
+        replace(new TemplateVersion(target.id(), target.number(), target.pattern(), target.startValue(), target.effectiveFrom(), target.author(), target.authoredAt(), target.status(),
                 target.confirmedBy(), target.confirmedAt(), by, at));
         recordGiven(target.number(), ConfirmationKind.FINANCE);
         completeIfAllGiven(target.number());
@@ -200,7 +207,7 @@ public final class NumberingRule extends AggregateRoot {
 
     private TemplateVersion withStatus(TemplateVersion source, VersionStatus target) {
         MACHINE.require(source.status(), target, NumberingError.PLATFORM_NUMBERING_RULE_TRANSITION_ILLEGAL);
-        return new TemplateVersion(source.number(), source.pattern(), source.startValue(), source.effectiveFrom(), source.author(), source.authoredAt(), target,
+        return new TemplateVersion(source.id(), source.number(), source.pattern(), source.startValue(), source.effectiveFrom(), source.author(), source.authoredAt(), target,
                 source.confirmedBy(), source.confirmedAt(), source.financeConfirmedBy(), source.financeConfirmedAt());
     }
 
@@ -213,7 +220,6 @@ public final class NumberingRule extends AggregateRoot {
     }
 
     private EventDraft draft(String eventName, long version, LocalDate businessDate) {
-        return new EventDraft("platform.numbering." + eventName, 1, "NumberingRule", documentType.name(), version, null, businessDate,
-                new EventSource(SourceSystem.ONE, null), List.of());
+        return new EventDraft("platform.numbering." + eventName, 1, "NumberingRule", numberingRuleId.value(), version, null, businessDate, List.of());
     }
 }

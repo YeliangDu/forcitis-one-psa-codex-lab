@@ -8,7 +8,7 @@
 <text x="28" y="140" font-size="12" fill="#1d4ed8">▸ WithdrawTimesheet（经端口）</text>
 <text x="28" y="160" font-size="12" fill="#1d4ed8">▸ CancelTimesheet（经端口）</text>
 <text x="322.0" y="100" font-size="12" fill="#c2410c">◆ TimesheetApproved</text>
-<text x="322.0" y="120" font-size="12" fill="#c2410c">◆ TimesheetCancelled</text>
+<text x="322.0" y="120" font-size="12" fill="#c2410c">◆ TimesheetApprovalWithdrawn</text>
 <text x="322.0" y="140" font-size="12" fill="#c2410c">◆ TimesheetRejected</text>
 <text x="322.0" y="160" font-size="12" fill="#c2410c">◆ TimesheetReturned</text>
 <text x="322.0" y="180" font-size="12" fill="#c2410c">◆ TimesheetSubmitted</text>
@@ -81,13 +81,13 @@
 <text x="942.0" y="572" font-size="12" fill="#c2410c">◆ ApprovalCompleted</text>
 <text x="942.0" y="592" font-size="12" fill="#c2410c">◆ ApprovalRoundStarted</text>
 <text x="942.0" y="612" font-size="12" fill="#c2410c">◆ ApprovalTaskEscalated</text>
-<text x="942.0" y="632" font-size="12" fill="#c2410c">◆ ApprovalTaskOverdue</text>
+<text x="942.0" y="632" font-size="12" fill="#c2410c">◆ ApprovalTaskBecameOverdue</text>
 <text x="942.0" y="652" font-size="12" fill="#c2410c">◆ TaskAssigned</text>
 <text x="942.0" y="672" font-size="12" fill="#c2410c">◆ TaskClaimed</text>
 <text x="942.0" y="692" font-size="12" fill="#c2410c">◆ TaskClosed</text>
 <text x="942.0" y="712" font-size="12" fill="#c2410c">◆ TaskReassigned</text>
 <text x="942.0" y="732" font-size="12" fill="#c2410c">◆ TaskReleased</text>
-<text x="942.0" y="752" font-size="12" fill="#c2410c">◆ TaskResulted</text>
+<text x="942.0" y="752" font-size="12" fill="#c2410c">◆ TaskHandled</text>
 <text x="942.0" y="772" font-size="12" fill="#c2410c">◆ TaskTransferred</text>
 <text x="648" y="816" font-size="11" fill="#475569">状态：RUNNING / RETURNED / APPROVED / REJECTED / CANCELLED</text>
 <rect x="16" y="644" width="600" height="164" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
@@ -164,7 +164,7 @@
 <text x="28" y="1258" font-size="15" fill="#0f172a" font-weight="600">SourceReferenceRefusal</text>
 <text x="604" y="1258" font-size="11" fill="#475569" text-anchor="end">外部集成（防腐层） · platform.integration</text>
 <text x="28" y="1284" font-size="12" fill="#1d4ed8">▸ RecordSourceReferenceRefusal</text>
-<text x="322.0" y="1284" font-size="12" fill="#c2410c">◆ SourceReferenceRegistrationRefused</text>
+<text x="322.0" y="1284" font-size="12" fill="#c2410c">◆ SourceReferenceRefused</text>
 <rect x="16" y="1340" width="600" height="144" rx="10" fill="#ffffff" stroke="#cbd5e1"/>
 <text x="28" y="1362" font-size="15" fill="#0f172a" font-weight="600">NumberingRule</text>
 <text x="604" y="1362" font-size="11" fill="#475569" text-anchor="end">单据编号 · platform.numbering</text>

@@ -4,8 +4,6 @@ import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.event.EventDraft;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.organization.attendance.api.AttendanceError;
 import com.forcitis.one.organization.attendance.api.DayException;
 import com.forcitis.one.organization.attendance.api.DayKind;
@@ -24,29 +22,29 @@ import java.util.UUID;
 
 /** One maintained year of one calendar. A year with no exception is still maintained: saving it says "this year has been checked". */
 public final class WorkCalendarYear extends AggregateRoot {
-    private final UUID storedRow;
+    private final UUID id;
     private final WorkCalendarKey key;
     private Map<LocalDate, DayKind> exceptions;
 
-    private WorkCalendarYear(UUID storedRow, WorkCalendarKey key, Map<LocalDate, DayKind> exceptions, long version, long eventSequence) {
+    private WorkCalendarYear(UUID id, WorkCalendarKey key, Map<LocalDate, DayKind> exceptions, long version, long eventSequence) {
         super(version, eventSequence);
-        this.storedRow = storedRow;
+        this.id = Objects.requireNonNull(id, "id");
         this.key = Objects.requireNonNull(key, "key");
         this.exceptions = Map.copyOf(exceptions);
     }
 
-    public static WorkCalendarYear unmaintained(WorkCalendarKey key) {
-        return new WorkCalendarYear(null, key, Map.of(), 0, 0);
+    public static WorkCalendarYear unmaintained(UUID id, WorkCalendarKey key) {
+        return new WorkCalendarYear(id, key, Map.of(), 0, 0);
     }
 
-    public static WorkCalendarYear restore(UUID storedRow, WorkCalendarKey key, List<CalendarDay> days, long version, long eventSequence) {
+    public static WorkCalendarYear restore(UUID id, WorkCalendarKey key, List<CalendarDay> days, long version, long eventSequence) {
         Map<LocalDate, DayKind> restored = new TreeMap<>();
         days.forEach(day -> restored.put(day.calendarDate(), day.dayKind()));
-        return new WorkCalendarYear(storedRow, key, restored, version, eventSequence);
+        return new WorkCalendarYear(id, key, restored, version, eventSequence);
     }
 
-    public UUID storedRow() {
-        return storedRow;
+    public UUID id() {
+        return id;
     }
 
     public WorkCalendarKey key() {
@@ -83,7 +81,7 @@ public final class WorkCalendarYear extends AggregateRoot {
                         day.calendarDate() + " is listed twice");
             }
         }
-        List<LockedDayChange> locked = storedRow == null ? List.of() : changedDates(exceptions, next).stream().filter(date -> date.isBefore(today))
+        List<LockedDayChange> locked = version() == 0 ? List.of() : changedDates(exceptions, next).stream().filter(date -> date.isBefore(today))
                 .map(date -> new LockedDayChange(date, exception(exceptions.get(date)), exception(next.get(date)))).toList();
         if (!locked.isEmpty() && !lockedDaysConfirmed) {
             throw new DomainException(AttendanceError.ORGANIZATION_ATTENDANCE_LOCKED_DAY_UNCONFIRMED, ErrorKind.UNPROCESSABLE,
@@ -92,12 +90,12 @@ public final class WorkCalendarYear extends AggregateRoot {
         List<LocalDate> changedDates = changedDates(exceptions, next);
         this.exceptions = Map.copyOf(next);
         record((envelopes, version) -> new WorkCalendarYearMaintained(envelopes.wrap(new EventDraft(
-                "organization.attendance.WorkCalendarYearMaintained", 1, "WorkCalendarYear", key.asText(), version,
-                key.legalEntityId(), null, new EventSource(SourceSystem.ONE, null), List.of())), Year.of(key.calendarYear()), changedDates));
+                "organization.attendance.WorkCalendarYearMaintained", 1, "WorkCalendarYear", id, version,
+                key.legalEntityId(), null, List.of())), Year.of(key.calendarYear()), changedDates));
         if (!locked.isEmpty()) {
             record((envelopes, version) -> new WorkCalendarLockedDaysChanged(envelopes.wrap(new EventDraft(
-                    "organization.attendance.WorkCalendarLockedDaysChanged", 1, "WorkCalendarYear", key.asText(), version,
-                    key.legalEntityId(), null, new EventSource(SourceSystem.ONE, null), List.of())), Year.of(key.calendarYear()), locked));
+                    "organization.attendance.WorkCalendarLockedDaysChanged", 1, "WorkCalendarYear", id, version,
+                    key.legalEntityId(), null, List.of())), Year.of(key.calendarYear()), locked));
         }
     }
 

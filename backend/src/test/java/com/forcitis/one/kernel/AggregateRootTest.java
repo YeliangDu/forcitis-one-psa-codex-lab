@@ -3,13 +3,12 @@ package com.forcitis.one.kernel;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.kernel.event.EventEnvelopes;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -31,14 +30,14 @@ class AggregateRootTest {
         }
 
         void change() {
-            record((envelopes, version) -> new Changed(envelopes.wrap(new EventDraft("test.counter.Changed", 1, "Counter", "1", version,
-                    null, null, new EventSource(SourceSystem.ONE, null), List.of()))));
+            record((envelopes, version) -> new Changed(envelopes.wrap(new EventDraft("test.counter.Changed", 1, "Counter", TestIds.uuid(1), version,
+                    null, null, List.of()))));
         }
     }
 
     static final EventEnvelopes ENVELOPES = draft -> new EventEnvelope(UUID.randomUUID(), draft.eventType(), 1, Instant.EPOCH,
-            draft.aggregateType(), draft.aggregateId(), draft.aggregateVersion(), UUID.randomUUID(), null, ActorType.SYSTEM, com.forcitis.one.kernel.SystemActors.idOf("test.envelope").toString(),
-            null, null, draft.source(), null, List.of());
+            draft.aggregateType(), draft.aggregateId(), draft.aggregateVersion(), UUID.randomUUID(), null, ActorType.SYSTEM, SystemActors.idOf("test.envelope"),
+            null, null, null, List.of());
 
     @Test
     @DisplayName("events recorded in one unit are numbered contiguously after the loaded event sequence; the lock version moves by one per save")

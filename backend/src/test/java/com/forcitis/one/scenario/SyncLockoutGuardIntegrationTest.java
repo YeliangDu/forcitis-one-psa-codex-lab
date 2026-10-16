@@ -1,7 +1,5 @@
 package com.forcitis.one.scenario;
 
-import com.forcitis.one.fixture.doubles.TestAccounts;
-import com.forcitis.one.platform.identity.IdentityIntegrationTest;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.head;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.person;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.post;
@@ -12,6 +10,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.fixture.doubles.TestAccounts;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
@@ -20,6 +20,7 @@ import com.forcitis.one.organization.workforce.application.VersionTables;
 import com.forcitis.one.organization.workforce.application.SyncResult;
 import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
+import com.forcitis.one.platform.identity.IdentityIntegrationTest;
 import com.forcitis.one.platform.identity.domain.EmergencyAdmin;
 import com.forcitis.one.platform.identity.domain.EmergencyAdminRepository;
 import com.forcitis.one.platform.identity.domain.PasswordHasher;
@@ -115,7 +116,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     }
 
     private List<SourcePerson> without(long... ids) {
-        return everyone.stream().filter(p -> Arrays.stream(ids).noneMatch(id -> p.personId().value() == id)).toList();
+        return everyone.stream().filter(p -> Arrays.stream(ids).noneMatch(id -> p.personId().equals(TestOrgIds.ownEmployee(id)))).toList();
     }
 
     private void sourceNowSays(long... leaving) {
@@ -123,7 +124,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
     }
 
     private String employment(long userId) {
-        return jdbc.sql("select employment_status from organization_workforce.employees where id = :id").param("id", userId).query(String.class).single();
+        return jdbc.sql("select employment_status from organization_workforce.employees where id = :id").param("id", TestAccounts.employee(userId).value()).query(String.class).single();
     }
 
     private String status(UUID runId) {
@@ -163,7 +164,8 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
         assertThat(employment(7)).as("not even the ordinary leaver of the same run").isEqualTo("EMPLOYED");
         assertThat(jdbc.sql("select hold_kind_codes::text from organization_workforce.sync_runs where status = 'HELD'").query(String.class).single())
                 .isEqualTo("{ADMINISTRATOR_SEPARATION}");
-        assertThat(jdbc.sql("select employee_id from organization_workforce.sync_run_held_separations").query(Long.class).list()).containsExactlyInAnyOrder(1L, 7L);
+        assertThat(jdbc.sql("select employee_id from organization_workforce.sync_run_held_separations").query(UUID.class).list())
+                .containsExactlyInAnyOrder(TestAccounts.employee(1).value(), TestAccounts.employee(7).value());
     }
 
     @Test
@@ -210,8 +212,8 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
         assertThat(employment(1)).isEqualTo("SEPARATED");
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("organization.workforce.sync-run.released")).singleElement().satisfies(entry -> {
             assertThat(entry.actorId()).isEqualTo(TestAccounts.account(2));
-            assertThat(entry.detail()).contains("leaver confirmed by HR").contains("session mode: ADMINISTRATOR").contains("held: 1")
-                    .contains("applied: 1").contains("remaining super_admin: 1");
+            assertThat(entry.detail()).contains("leaver confirmed by HR").contains("session mode: ADMINISTRATOR").contains("held: " + TestAccounts.employee(1).value())
+                    .contains("applied: " + TestAccounts.employee(1).value()).contains("remaining super_admin: 1");
         });
         assertThat(output.getAll()).contains("ALERT organization.workforce sync run " + held + " released by user " + TestAccounts.account(2).value());
     }
@@ -292,8 +294,8 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
         assertThat(employment(2)).isEqualTo("EMPLOYED");
         assertThat(jdbc.sql("select released_kind_codes::text from organization_workforce.sync_runs where id = :id").param("id", held).query(String.class).single())
                 .isEqualTo("{}");
-        assertThat(jdbc.sql("select employee_id from organization_workforce.sync_run_held_separations where sync_run_id = :id").param("id", held).query(Long.class).list())
-                .containsExactlyInAnyOrder(1L, 2L);
+        assertThat(jdbc.sql("select employee_id from organization_workforce.sync_run_held_separations where sync_run_id = :id").param("id", held).query(UUID.class).list())
+                .containsExactlyInAnyOrder(TestAccounts.employee(1).value(), TestAccounts.employee(2).value());
     }
 
     @Test
@@ -315,7 +317,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
         assertThat(getAs(ordinarySession(9), "?status=HELD").getResponse().getStatus()).isEqualTo(403);
         MvcResult view = getAs(administratorSession(2), "?status=HELD");
         assertThat(view.getResponse().getStatus()).isEqualTo(200);
-        assertThat(body(view).path("items").get(0).path("heldSeparations").get(0).asString()).isEqualTo("1");
+        assertThat(body(view).path("items").get(0).path("heldSeparations").get(0).asString()).isEqualTo(TestAccounts.employee(1).value().toString());
         assertThat(body(view).path("items").get(0).path("holdKinds").get(0).asString()).isEqualTo("ADMINISTRATOR_SEPARATION");
         assertThat(getAs(administratorSession(10), "/" + held).getResponse().getStatus()).as("the detail carries the diffs").isEqualTo(403);
         assertThat(getAs(administratorSession(10), "").getResponse().getStatus()).as("the whole list is not theirs").isEqualTo(403);

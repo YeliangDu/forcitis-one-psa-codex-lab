@@ -32,9 +32,10 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Audit entries older than the online period (3 years) are written to the archive store in batches, in id order and only as a prefix of
- * the ids that all qualify, so a late-written old entry is never skipped. A batch counts as archived when the vault confirmed the
- * object and the batch row is saved (the progress). Online rows are kept: the table refuses DELETE (G34), and removing them needs
+ * Audit entries older than the online period (3 years) are written to the archive store in batches, in (created_at, id) order and only as a prefix of
+ * the entries that all qualify, so a late-written old entry is never skipped; the position is a moment and an id, never an id alone. A batch counts as archived when the vault confirmed the
+ * object and the batch row is saved (the progress). An old entry written after the archive passed its moment is never archived and shows only as a
+ * reconciliation alert, so a migration of old entries must be loaded before the archive position moves past their dates. Online rows are kept: the table refuses DELETE (G34), and removing them needs
  * its own decision. The archive is kept by the bucket's WORM retention; the application never deletes it.
  */
 @Component
@@ -44,9 +45,8 @@ class AuditArchiveJob implements SmartInitializingSingleton {
     private static final Logger LOG = LoggerFactory.getLogger(AuditArchiveJob.class);
     static final String KIND = "audit";
     static final int BATCH = 5000;
-    private static final UUID BEFORE_ANY_ENTRY = new UUID(0, 0);
     /** The columns the archive carries; architecture/archive-columns.txt names every column of the table as archived or excluded and AuditArchiveColumnsTest keeps both equal. */
-    static final List<String> COLUMNS = List.of("id", "action", "actor_id", "on_behalf_of_id", "subject_key", "detail", "event_id", "correlation_id", "source_address", "outcome_kind", "login_method_kind", "change_reason", "before_text", "after_text", "created_at");
+    static final List<String> COLUMNS = List.of("id", "action", "actor_id", "on_behalf_of_id", "subject_kind", "subject_id", "detail", "event_id", "correlation_id", "source_address", "outcome_kind", "login_method_kind", "change_reason", "before_text", "after_text", "created_at");
 
     @ConfigurationProperties("forcitis.platform.audit.archive")
     record Policy(Period onlinePeriod) {
@@ -110,31 +110,43 @@ class AuditArchiveJob implements SmartInitializingSingleton {
     }
 
     /**
-     * Archiving goes by id order and remembers the last id; an entry that gets an id below it later (another instance, a clock step) would
-     * never be archived. Every entry up to the archived position must be in a batch, and none is deleted online, so the counts must match.
+     * Archiving goes by (created_at, id) and remembers the last entry's moment and id; an entry written later with an earlier moment
+     * (a clock step) would never be archived. Every entry up to the archived position must be in a batch, and none is deleted online,
+     * so the counts must match.
      */
     void reconcile() {
-        Optional<UUID> last = jdbc.sql("select last_entry_id from platform_audit.audit_archive_batches order by last_entry_id desc limit 1")
-                .query(UUID.class).optional();
+        Optional<Position> last = position();
         if (last.isEmpty()) {
             return;
         }
         long archived = jdbc.sql("select coalesce(sum(entry_count), 0) from platform_audit.audit_archive_batches").query(Long.class).single();
-        long upToTheLast = jdbc.sql("select count(*) from platform_audit.audit_entries where id <= :last").param("last", last.get()).query(Long.class).single();
+        long upToTheLast = jdbc.sql("select count(*) from platform_audit.audit_entries where (created_at, id) <= (:at, :id)")
+                .param("at", last.get().createdAt()).param("id", last.get().entryId()).query(Long.class).single();
         if (archived != upToTheLast) {
             reconciliationFailures.increment();
             LOG.error("ALERT platform.audit the audit trail up to entry {} has {} entries, the archived batches hold {}: entries are missing from the archive",
-                    last.get(), upToTheLast, archived);
+                    last.get().entryId(), upToTheLast, archived);
         }
+    }
+
+    private record Position(Timestamp createdAt, UUID entryId) {
+    }
+
+    private Optional<Position> position() {
+        return jdbc.sql("select last_entry_created_at, last_entry_id from platform_audit.audit_archive_batches order by last_entry_created_at desc, last_entry_id desc limit 1")
+                .query((rs, n) -> new Position(rs.getTimestamp("last_entry_created_at"), rs.getObject("last_entry_id", UUID.class))).optional();
     }
 
     int archiveOlderThan(Instant cutoff) {
         int total = 0;
         while (true) {
-            UUID last = jdbc.sql("select last_entry_id from platform_audit.audit_archive_batches order by last_entry_id desc limit 1")
-                    .query(UUID.class).optional().orElse(BEFORE_ANY_ENTRY);
-            List<Map<String, Object>> entries = jdbc.sql("select " + String.join(", ", COLUMNS) + " from platform_audit.audit_entries where id > :last order by id limit :batch")
-                    .param("last", last).param("batch", BATCH).query((rs, n) -> row(rs)).list();
+            Optional<Position> last = position();
+            String after = last.isPresent() ? " where (created_at, id) > (:at, :id)" : "";
+            var select = jdbc.sql("select " + String.join(", ", COLUMNS) + " from platform_audit.audit_entries" + after + " order by created_at, id limit :batch");
+            if (last.isPresent()) {
+                select = select.param("at", last.get().createdAt()).param("id", last.get().entryId());
+            }
+            List<Map<String, Object>> entries = select.param("batch", BATCH).query((rs, n) -> row(rs)).list();
             int due = 0;
             while (due < entries.size() && Instant.parse((String) entries.get(due).get("created_at")).isBefore(cutoff)) {
                 due++;
@@ -144,7 +156,7 @@ class AuditArchiveJob implements SmartInitializingSingleton {
             }
             List<Map<String, Object>> batch = entries.subList(0, due);
             ArchivedObject stored = vault.archive(KIND, batch.stream().map(json::writeValueAsString).toList());
-            insertBatch(UUID.fromString((String) batch.getFirst().get("id")), UUID.fromString((String) batch.getLast().get("id")), batch.size(), stored);
+            insertBatch(batch.getFirst(), batch.getLast(), batch.size(), stored);
             total += batch.size();
             if (due < BATCH) {
                 return total;
@@ -175,11 +187,15 @@ class AuditArchiveJob implements SmartInitializingSingleton {
         return row;
     }
 
-    private void insertBatch(UUID first, UUID last, int count, ArchivedObject stored) {
+    private void insertBatch(Map<String, Object> first, Map<String, Object> last, int count, ArchivedObject stored) {
         jdbc.sql("""
-                insert into platform_audit.audit_archive_batches (id, first_entry_id, last_entry_id, entry_count, object_key, sha256_hash, archived_at)
-                values (:id, :first, :last, :count, :key, :sha, :now)
-                """).param("id", ids.next()).param("first", first).param("last", last).param("count", count)
+                insert into platform_audit.audit_archive_batches (id, first_entry_id, first_entry_created_at, last_entry_id, last_entry_created_at,
+                                                                  entry_count, object_key, sha256_hash, archived_at)
+                values (:id, :first, :firstAt, :last, :lastAt, :count, :key, :sha, :now)
+                """).param("id", ids.next()).param("first", UUID.fromString((String) first.get("id")))
+                .param("firstAt", Timestamp.from(Instant.parse((String) first.get("created_at"))))
+                .param("last", UUID.fromString((String) last.get("id"))).param("lastAt", Timestamp.from(Instant.parse((String) last.get("created_at"))))
+                .param("count", count)
                 .param("key", stored.key()).param("sha", stored.sha256()).param("now", Timestamp.from(clock.instant())).update();
     }
 }

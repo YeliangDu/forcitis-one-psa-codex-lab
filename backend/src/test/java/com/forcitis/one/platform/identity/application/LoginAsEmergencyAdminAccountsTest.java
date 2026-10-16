@@ -32,6 +32,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
 
 /**
  * The break-glass login is refused when the organisation snapshot lists the bound person as separated (ADR-0033 section 3, first gate).
@@ -40,8 +41,8 @@ import org.junit.jupiter.api.Test;
  */
 class LoginAsEmergencyAdminAccountsTest {
     static final UserId ACCOUNT = TestAccounts.account(1001);
-    static final EmployeeId BOUND_EMPLOYEE = new EmployeeId(1001);
-    static final EmployeeId EMPLOYEE_NUMBERED_LIKE_THE_ACCOUNT = new EmployeeId(6001);
+    static final EmployeeId BOUND_EMPLOYEE = TestAccounts.employee(1001);
+    static final EmployeeId EMPLOYEE_NUMBERED_LIKE_THE_ACCOUNT = TestAccounts.employee(6001);
     static final Instant NOW = Instant.parse("2026-10-14T02:00:00Z");
     static final byte[] SECRET = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
 
@@ -80,7 +81,7 @@ class LoginAsEmergencyAdminAccountsTest {
     }
 
     private void listed(EmployeeId employee, EmploymentStatus status) {
-        when(directory.findEmployee(employee)).thenReturn(Optional.of(new EmployeeProfile(employee, "person", new OrgUnitId(5), null, status, false)));
+        when(directory.findEmployee(employee)).thenReturn(Optional.of(new EmployeeProfile(employee, "person", TestOrgIds.orgUnit(5), null, status, false)));
         when(directory.employmentOf(employee)).thenReturn(status == EmploymentStatus.EMPLOYED
                 ? com.forcitis.one.organization.workforce.api.EmploymentVerdict.EMPLOYED : com.forcitis.one.organization.workforce.api.EmploymentVerdict.SEPARATED);
     }

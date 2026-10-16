@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.EmployeeId;
@@ -74,8 +76,8 @@ public class RegisterEmergencyAdmin {
                     "the login name " + loginName + " is taken");
         }
         events.publish(admin);
-        audit.record(new AuditEntry("platform.identity.operations.emergency-admin.registered", null, null, "emergency-admin:" + person.value(),
-                attestation.describe() + " loginName=" + loginName));
+        audit.record(new AuditEntry("platform.identity.operations.emergency-admin.registered", null, null, AuditSubject.of(AuditSubjectKind.EMERGENCY_ADMIN, person.value()),
+                attestation.describe()));
         return new Outcome.Registered(generated.shown(), binding.usableCount());
     }
 }

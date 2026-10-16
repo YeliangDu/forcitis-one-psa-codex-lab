@@ -31,6 +31,7 @@ import org.flowable.task.api.Task;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.forcitis.one.kernel.event.DomainEvent;
 
 class TaskLifecycleIT extends ApprovalIntegrationSupport {
 
@@ -73,9 +74,9 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
         long second = newId();
         organisation.person(second, 1, null);
         String key = newKey("lifecycle");
-        ApprovalInstanceId instance = tx.execute(status -> approvals.start(startRequest(key, new EmployeeId(s.initiator()),
+        ApprovalInstanceId instance = tx.execute(status -> approvals.start(startRequest(key, TestAccounts.employee(s.initiator()),
                 java.util.Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()), List.of(new com.forcitis.one.platform.approval.api.ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(),
-                        List.of(String.valueOf(s.manager()), String.valueOf(second)))))));
+                        List.of(TestAccounts.employee(s.manager()).toString(), TestAccounts.employee(second).toString()))))));
         Task task = openTask(instance);
         assertThat(task.getTaskDefinitionKey()).isEqualTo("projectManagerReview");
         assertThat(task.getAssignee()).isNull();
@@ -102,21 +103,21 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
         assertThat(taskService.getIdentityLinksForTask(department.getId()).stream().map(l -> l.getUserId()).toList())
                 .containsExactly(TestAccounts.account(s.head()).value().toString());
 
-        DecisionResult done = decide(s.head(), new ApprovalTaskId(department.getId()), DecisionOutcome.APPROVE, "ok");
+        DecisionResult done = decide(s.head(), new ApprovalTaskId(java.util.UUID.fromString(department.getId())), DecisionOutcome.APPROVE, "ok");
         assertThat(done.status()).isEqualTo(ApprovalStatus.APPROVED);
         assertThat(requestStatus(key)).isEqualTo("APPROVED");
         assertThat(approvals.isFinished(instance)).isTrue();
 
         eventually(() -> {
             assertThat(events.completed()).anySatisfy(e -> {
-                assertThat(e.document().documentId().value()).isEqualTo(key);
+                assertThat(e.document().documentId().toString()).isEqualTo(key);
                 assertThat(e.outcome()).isEqualTo(ApprovalOutcome.APPROVED);
                 assertThat(e.round()).isEqualTo(new RoundNumber(1));
             });
-            assertThat(events.resulted().stream().filter(e -> e.document().documentId().value().equals(key)).map(e -> e.outcome()).toList())
+            assertThat(events.resulted().stream().filter(e -> e.document().documentId().toString().equals(key)).map(e -> e.outcome()).toList())
                     .containsExactlyInAnyOrder(TaskOutcome.APPROVED, TaskOutcome.APPROVED);
         });
-        assertThat(events.resulted().stream().filter(e -> e.document().documentId().value().equals(key)
+        assertThat(events.resulted().stream().filter(e -> e.document().documentId().toString().equals(key)
                 && e.assignee().equals(TestAccounts.account(s.manager()))).map(e -> e.reason()).toList()).containsOnlyNulls();
     }
 
@@ -133,12 +134,12 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
         decide(s.manager(), review, DecisionOutcome.APPROVE, "");
 
         List<com.forcitis.one.kernel.event.EventEnvelope> mine = events.of(com.forcitis.one.kernel.event.DomainEvent.class).stream()
-                .map(com.forcitis.one.kernel.event.DomainEvent::envelope).filter(e -> e.aggregateId().equals("TIMESHEET:" + key)).toList();
+                .map(DomainEvent::envelope).filter(e -> e.aggregateId().equals(requestIdOf(key))).toList();
         assertThat(mine).extracting(e -> e.eventType()).containsExactly("platform.approval.ApprovalRoundStarted", "platform.approval.TaskAssigned",
-                "platform.approval.TaskClaimed", "platform.approval.TaskResulted", "platform.approval.ApprovalCompleted");
+                "platform.approval.TaskClaimed", "platform.approval.TaskHandled", "platform.approval.ApprovalCompleted");
         assertThat(mine).extracting(e -> e.aggregateVersion()).containsExactly(1L, 2L, 3L, 4L, 5L);
-        assertThat(mine.get(2).actorId()).isEqualTo(TestAccounts.account(s.manager()).value().toString());
-        assertThat(mine.get(3).actorId()).isEqualTo(TestAccounts.account(s.manager()).value().toString());
+        assertThat(mine.get(2).actorId()).isEqualTo(TestAccounts.account(s.manager()).value());
+        assertThat(mine.get(3).actorId()).isEqualTo(TestAccounts.account(s.manager()).value());
     }
 
     @Test
@@ -152,17 +153,17 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
         assertThat(returned.status()).isEqualTo(ApprovalStatus.RETURNED);
         assertThat(requestStatus(key)).isEqualTo("RETURNED");
         assertThat(approvals.isFinished(first)).as("the round is over").isTrue();
-        assertThat(taskService.createTaskQuery().processInstanceId(first.value()).count()).isZero();
-        assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(first.value()).singleResult().getDeleteReason())
+        assertThat(taskService.createTaskQuery().processInstanceId(first.value().toString()).count()).isZero();
+        assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(first.value().toString()).singleResult().getDeleteReason())
                 .isEqualTo("RETURNED");
         eventually(() -> {
             assertThat(events.resulted()).anySatisfy(e -> {
-                assertThat(e.document().documentId().value()).isEqualTo(key);
+                assertThat(e.document().documentId().toString()).isEqualTo(key);
                 assertThat(e.outcome()).isEqualTo(TaskOutcome.RETURNED);
                 assertThat(e.reason()).isEqualTo(new Reason("hours are wrong"));
             });
             assertThat(events.completed()).anySatisfy(e -> {
-                assertThat(e.document().documentId().value()).isEqualTo(key);
+                assertThat(e.document().documentId().toString()).isEqualTo(key);
                 assertThat(e.outcome()).isEqualTo(ApprovalOutcome.RETURNED);
                 assertThat(e.round()).isEqualTo(new RoundNumber(1));
                 assertThat(e.reason()).isEqualTo(new Reason("hours are wrong"));
@@ -176,8 +177,8 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
         assertThat(openTask(second).getTaskDefinitionKey()).isEqualTo("projectManagerReview");
         assertThat(requests.rounds(ProcessKey.COST_TIMESHEET_APPROVAL, document(key))).extracting(r -> r.round(), r -> r.instanceId())
                 .containsExactly(org.assertj.core.groups.Tuple.tuple(1, first), org.assertj.core.groups.Tuple.tuple(2, second));
-        assertThat(history.createHistoricTaskInstanceQuery().processInstanceId(first.value()).count()).isEqualTo(1);
-        assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(first.value()).count()).isEqualTo(1);
+        assertThat(history.createHistoricTaskInstanceQuery().processInstanceId(first.value().toString()).count()).isEqualTo(1);
+        assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(first.value().toString()).count()).isEqualTo(1);
     }
 
     @Test
@@ -195,11 +196,11 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
 
         DecisionResult result = returnToInitiator.execute(review, TestAccounts.account(s.manager()), "missing attachment", java.util.OptionalLong.empty());
         assertThat(result.status()).isEqualTo(ApprovalStatus.RETURNED);
-        assertThat(taskService.createTaskQuery().processInstanceId(instance.value()).count()).isZero();
+        assertThat(taskService.createTaskQuery().processInstanceId(instance.value().toString()).count()).isZero();
         assertThat(approvals.isFinished(instance)).isTrue();
         assertThat(requestStatus(key)).isEqualTo("RETURNED");
         eventually(() -> assertThat(events.completed()).anySatisfy(e -> {
-            assertThat(e.document().documentId().value()).isEqualTo(key);
+            assertThat(e.document().documentId().toString()).isEqualTo(key);
             assertThat(e.outcome()).isEqualTo(ApprovalOutcome.RETURNED);
         }));
     }
@@ -235,19 +236,20 @@ class TaskLifecycleIT extends ApprovalIntegrationSupport {
     @DisplayName("RULE-295/303/304/312 a failing listener leaves the publication incomplete; resubmitting delivers it again (at least once)")
     void resultEventsAreDeliveredAtLeastOnce(@Autowired org.springframework.modulith.events.IncompleteEventPublications incomplete) {
         Staff s = staff();
-        String key = "flaky-" + newId();
+        String key = newKey("flaky");
+        flaky.flakyDocument(key);
         ApprovalInstanceId instance = startWithSupervisor(key, s.initiator(), s.manager());
         decide(s.manager(), openTaskId(instance, "projectManagerReview"), DecisionOutcome.APPROVE, "ok");
         decide(s.head(), openTaskId(instance, "supervisorReview"), DecisionOutcome.APPROVE, "ok");
 
         eventually(() -> assertThat(flaky.failedOnce()).contains(key));
-        assertThat(flaky.delivered()).noneMatch(e -> e.document().documentId().value().equals(key));
+        assertThat(flaky.delivered()).noneMatch(e -> e.document().documentId().toString().equals(key));
         assertThat(jdbc.queryForObject("select count(*) from platform_integration.event_publication where completion_date is null",
                 Integer.class)).isGreaterThanOrEqualTo(1);
 
         incomplete.resubmitIncompletePublications(p -> true);
         eventually(() -> assertThat(flaky.delivered()).anySatisfy(e -> {
-            assertThat(e.document().documentId().value()).isEqualTo(key);
+            assertThat(e.document().documentId().toString()).isEqualTo(key);
             assertThat(e.outcome()).isEqualTo(ApprovalOutcome.APPROVED);
         }));
     }

@@ -1,5 +1,8 @@
 # one-architecture 速查（2026-10-15）
 
+> **接续必读（2026-10-16 下午）**：本表「在途 PR」「当前步」为准；`proposals/HANDOFF_2026-10-16.md` 只作上午的历史。
+
+
 规矩：结构性选择只推荐、不裁定，用户答复为准；先在 SSOT 登记再写代码；已有 SSOT 只引用不复制；一行一项，过程放链接（SESSION_PLAYBOOK §2.1 第 13 条）。
 
 ## 在哪里
@@ -20,14 +23,9 @@
 
 | 项 | 值 |
 |---|---|
-| 分支 | `claude/one-architecture-ssot`（基于 main 173987b4） |
-| 在途 | #203（入队）→ #204 → #208 / #210（ADR-0040，已采纳）；#207（ADR-0039，已采纳）；第 0、1 步草稿由 sonnet 起草中 |
-| 排定（one-coordinator） | ①#207 合并后：身份生命周期研究 + C1 设计（取证交 sonnet，ADR-0037 登记，结论在线页）②ADR-0040 补齐顺序：第 0+1 步（愿景/目标/KPI + 能力/价值流）一页确认页 → 第 2 步按能力重推规划 BC（决策页 Q6 与余项随后一起发）→ 指标挂 KPI → 事件风暴与规则卡补「类别」（只补类别，sonnet 批量、我抽查）→ CI 追溯校验（守护单列，opus 复审）③ADR-0039 代码子 PR 由 one-coordinator 并入 P3b / P5；ARCH-D1..D7 交 one-1a-next-3 |
-| 用户已定 | ADR-0039（intent 164527）；ADR-0040 方法与知识框架（intent 173149）；补充框架勾选页 https://claude.ai/artifact/GtFkMvqxnWe6wZc1euM9Ec 待选（选完记 intent 再写进 FRAMEWORKS） |
-| 接着做 | PR-C：草稿在 scratchpad/pr-c（aggregates 15、processes 7、decisions 15、data-objects 30），核对后入 `ddd/aggregates.yaml`、`bpmn/`、`dmn/`、`dama/`，出图③④ |
-| 之后 | PR-C 聚合 / 流程 / 数据 / 指标与图③④；PR-D CI 守护与 §14 条款 |
-| 待用户 | 架构决策页 Q1–Q7（DESIGN §6）＋ ACL 冲突项；等 one-coordinator 通知再发（用语确认单先出） |
-| 用户确认 | 新建私有页手机能打开（「可以看到」，2026-10-15），决策页另建新页 |
-| 已定 | Q1 改为本仓库推导（intent 163920）；mermaid-cli 用户批准本机安装（锁版本，装在 `~/.modernize/psa/tools/mermaid-cli`，登记 SUPPLY_CHAIN 与 RESOURCES；SVG 入库，在线页只嵌静态 SVG） |
-| 协同 | 决策页链接方式问 one-glossary（不覆盖 R-1b-0 门禁页）；Q7 术语 bc 改动由 one-glossary 执行 |
-| 后续项 | A1 只做边集合相等；「已声明但不再使用的边」登记后续 |
+| 在途 PR | #324（ADR-0048 成文、G-DDL1、第③步答复落文）→ #327（第④步回溯，叠在 #324）→ #334（⑥a 流程清单、J 检查清单、对照标准确认页，叠在 #327）；均待 one-coordinator 入队 |
+| 已定（2026-10-16） | ADR-0046（12 月与第 13 期同时关账）、ADR-0047（视为同意）已采纳；阶段类型 S1–S6；BC 划分 D-1–D-9、D-8 期满判定在 receivables.wip；完整性 C-1–C-8、INV-62、Q29 宽口径（证据升一级）；D-7 提前拆 accounting.tax；K-1 知识条目（OBJ-110，km.knowledge）；P-1 回签前开票规则；METHOD M-1–M-7（7 步、两份一次性 ADR） |
+| 草稿位置 | proposals/：ENTERPRISE_INFO_MAP_DRAFT（一级 21）、ENTERPRISE_AGGREGATES_DRAFT（聚合 103、BC 29、查环脚本 aggregates_dep_check.py）、STAGE_TYPES_DRAFT、METHOD_V4_DRAFT、FRAMEWORKS_V4_DRAFT、OBJECT_COMPLETENESS_REPORT、STEP1_VALUE_STREAMS + value-streams.v2.yaml、STEP2_CAPABILITIES + capabilities.v2.yaml |
+| 当前步 | ⑥a 提议稿已出（`proposals/STEP6A_PROCESSES.md`，gaps 18 条），等 one-coordinator 派的独立 opus 审查（不自审）；对照标准确认页 https://claude.ai/artifact/9M1be9qRAfRF4LxVMpV2iN （收件箱 2026-10-16-one-architecture-lock，含 ADR-0047 修订）待用户；J1–J7 清单已交 one-quality 写脚本 → 审查与答复回来后处理 gaps 回溯 → 回溯售前段 → 两份一次性 ADR |
+| 规矩 | 要用户定的：确认页（不预选，ADR-0041 决定 6）＋待决定收件箱 https://claude.ai/artifact/RVU6nNNSsygF5sVRWLhQ15 （集合 inbox）；确认页用 contract 0.2.80；纯文档作者自检，结构判定仍 opus；直连 one-glossary、one-data（数据落点与第 11 步）；取证登记 #298 合入后用 phase1a/infra/new_legacy_read.py 片段，在途分支合 main 时丢老表改动重登 |
+| 待办 | 新用语交 one-glossary（#320 已登记商票、诉讼等；STEP6A §4 流程用语待交；「核销」处置取值与「已核销」重名）；往来款项处置分类其余取值待用户；「争议」与「争议应收」待用户（one-glossary 收件箱）；WY-1 待用户追认；工时单填报义务待 one-rules |

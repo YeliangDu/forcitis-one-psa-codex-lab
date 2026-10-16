@@ -4,7 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
-import com.forcitis.one.TestImages;
+import com.forcitis.one.TestMssql;
+import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WorkContext;
@@ -13,11 +14,11 @@ import com.forcitis.one.organization.workforce.application.SyncOrgSnapshot;
 import com.forcitis.one.organization.workforce.application.SyncResult;
 import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
 import com.forcitis.one.organization.workforce.domain.SyncTrigger;
-import com.forcitis.one.platform.approval.domain.LegacyInbox;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.SessionRoles;
 import com.forcitis.one.platform.integration.api.OrgShortNames;
 import com.forcitis.one.platform.integration.api.OrgSource;
+import com.forcitis.one.platform.integration.api.StaffLookup;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -38,7 +39,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.awaitility.Awaitility;
-import org.awaitility.core.ConditionTimeoutException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -55,7 +55,6 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
@@ -77,7 +76,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
         "forcitis.platform.integration.seeyon.views.fee-earner-yes-enum-id=9002",
         "forcitis.platform.integration.seeyon.views.root-path=00000001",
         "forcitis.platform.integration.legacy.enabled=true",
-        "forcitis.platform.approval.legacy.view-name=dbo.v_psa_one_legacy_todo"})
+        "forcitis.platform.integration.legacy.inbox.view-name=dbo.v_psa_one_legacy_todo"})
 @AutoConfigureMockMvc
 @ExtendWith(OutputCaptureExtension.class)
 class StalledExternalSourceIT {
@@ -92,27 +91,33 @@ class StalledExternalSourceIT {
     static final String LOGIN_NAME = "13900008001";
     /** The person as the old system names them (assignee_user_id), which is the employee id until R-1b P3b. */
     static final long INBOX_EMPLOYEE = 1001;
+    /** The old-system department of the short-name view. */
+    static final long SHORT_NAME_UNIT = 2;
+    /** R-1b P3b: EmployeeId wraps a UUID; the old system's ids are then reached through (LEGACY_SYSTEM, ...) source references (RULING-P3B-3). */
+    static final boolean UUID_IDS = EmployeeId.class.getRecordComponents()[0].getType() == UUID.class;
     /** The account of that employee: since R-1b P2 an id of its own (RULING-P2-6). */
     static final UUID INBOX_ACCOUNT = UUID.randomUUID();
     static final long HEAD_TYPE = 7001;
     static final long MANAGER_TYPE = 7002;
 
-    static final String SA_PASSWORD = "Aa1!" + UUID.randomUUID();
+    static final String SA_PASSWORD = TestMssql.SA_PASSWORD;
     static final String A8_READER_PASSWORD = "Bb2!" + UUID.randomUUID();
     static final String TODO_READER_PASSWORD = "Cc3!" + UUID.randomUUID();
     static final String NAMES_READER_PASSWORD = "Dd4!" + UUID.randomUUID();
 
-    static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(TestImages.startingWith("postgres:"))
+    static final PostgreSQLContainer POSTGRES = TestPostgres.container()
             .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
 
-    static final GenericContainer<?> MSSQL = new GenericContainer<>(TestImages.startingWith(TestImages.MSSQL_PREFIX))
-            .withEnv("ACCEPT_EULA", "Y").withEnv("MSSQL_SA_PASSWORD", SA_PASSWORD).withExposedPorts(1433)
-            .withStartupTimeout(Duration.ofMinutes(5))
-            .waitingFor(Wait.forLogMessage(".*SQL Server is now ready for client connections.*", 1));
+    static final GenericContainer<?> MSSQL = TestMssql.shared();
+
+    static final String A8_WORLD = TestMssql.database(StalledExternalSourceIT.class, "a8world").name();
+    static final String LEGACY_WORLD = TestMssql.database(StalledExternalSourceIT.class, "legacyworld").name();
+    static final String A8_READER = TestMssql.login(StalledExternalSourceIT.class, "a8_reader");
+    static final String TODO_READER = TestMssql.login(StalledExternalSourceIT.class, "todo_reader");
+    static final String NAMES_READER = TestMssql.login(StalledExternalSourceIT.class, "names_reader");
 
     static {
         POSTGRES.start();
-        MSSQL.start();
         createExternalWorld();
     }
 
@@ -121,14 +126,14 @@ class StalledExternalSourceIT {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
-        registry.add("forcitis.platform.integration.seeyon.views.jdbc-url", () -> url("a8world"));
-        registry.add("forcitis.platform.integration.seeyon.views.username", () -> "a8_reader");
+        registry.add("forcitis.platform.integration.seeyon.views.jdbc-url", () -> url(A8_WORLD));
+        registry.add("forcitis.platform.integration.seeyon.views.username", () -> A8_READER);
         registry.add("forcitis.platform.integration.seeyon.views.password", () -> A8_READER_PASSWORD);
-        registry.add("forcitis.platform.approval.legacy.url", () -> url("legacyworld"));
-        registry.add("forcitis.platform.approval.legacy.username", () -> "todo_reader");
-        registry.add("forcitis.platform.approval.legacy.password", () -> TODO_READER_PASSWORD);
-        registry.add("forcitis.platform.integration.legacy.jdbc-url", () -> url("legacyworld"));
-        registry.add("forcitis.platform.integration.legacy.username", () -> "names_reader");
+        registry.add("forcitis.platform.integration.legacy.inbox.url", () -> url(LEGACY_WORLD));
+        registry.add("forcitis.platform.integration.legacy.inbox.username", () -> TODO_READER);
+        registry.add("forcitis.platform.integration.legacy.inbox.password", () -> TODO_READER_PASSWORD);
+        registry.add("forcitis.platform.integration.legacy.jdbc-url", () -> url(LEGACY_WORLD));
+        registry.add("forcitis.platform.integration.legacy.username", () -> NAMES_READER);
         registry.add("forcitis.platform.integration.legacy.password", () -> NAMES_READER_PASSWORD);
     }
 
@@ -154,7 +159,10 @@ class StalledExternalSourceIT {
     OrgShortNames names;
 
     @Autowired
-    LegacyInbox legacyInbox;
+    org.springframework.context.ApplicationContext context;
+
+    /** The employee of the inbox account as the build stores it: the old-system id itself, or since R-1b P3b the own id its reference gives. */
+    Object inboxEmployee;
 
     static final ExecutorService CALLERS = Executors.newCachedThreadPool(runnable -> {
         Thread thread = new Thread(runnable, "request-thread");
@@ -169,12 +177,20 @@ class StalledExternalSourceIT {
     /** The session principal is the account; identity maps it to the employee whose old-system todos are read. */
     @BeforeEach
     void inboxPersonHasAnAccount() throws SQLException {
+        inboxEmployee = INBOX_EMPLOYEE;
+        if (UUID_IDS) {
+            try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
+                SourceReferencesProbe references = SourceReferencesProbe.of(context);
+                inboxEmployee = references.allocate("LEGACY_SYSTEM", "EMPLOYEE", INBOX_EMPLOYEE);
+                references.allocate("LEGACY_SYSTEM", "ORG_UNIT", SHORT_NAME_UNIT);
+            }
+        }
         try (Connection c = DriverManager.getConnection(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
                 Statement path = c.createStatement()) {
             path.execute("set search_path to platform_identity");
             try (PreparedStatement insert = c.prepareStatement("insert into user_accounts (user_id, employee_id) values (?, ?) on conflict do nothing")) {
                 insert.setObject(1, INBOX_ACCOUNT);
-                insert.setLong(2, INBOX_EMPLOYEE);
+                insert.setObject(2, inboxEmployee);
                 insert.executeUpdate();
             }
         }
@@ -197,7 +213,7 @@ class StalledExternalSourceIT {
     static void endReaderSessions() throws SQLException {
         List<Integer> sessions = new ArrayList<>();
         try (Connection c = admin("master"); Statement s = c.createStatement();
-                ResultSet rs = s.executeQuery("SELECT session_id FROM sys.dm_exec_sessions WHERE login_name IN ('a8_reader', 'todo_reader', 'names_reader')")) {
+                ResultSet rs = s.executeQuery("SELECT session_id FROM sys.dm_exec_sessions WHERE login_name IN ('" + A8_READER + "', '" + TODO_READER + "', '" + NAMES_READER + "')")) {
             while (rs.next()) {
                 sessions.add(rs.getInt(1));
             }
@@ -212,7 +228,7 @@ class StalledExternalSourceIT {
     void controlWithoutAnyStall() throws Exception {
         String inbox = mvc.perform(get(INBOX).with(ordinarySession(INBOX_ACCOUNT))).andReturn().getResponse().getContentAsString();
         assertThat(inbox).contains("\"legacyAvailable\":true").contains("\"legacyCount\":1");
-        assertThat(a8.findStaffByLoginName(LOGIN_NAME)).hasSize(1);
+        assertThat(a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME))).hasSize(1);
         assertThat(names.readShortNames()).hasSize(1);
         SyncResult result = runSync();
         assertThat(result.status()).as(result.note()).isNotEqualTo(SyncRunStatus.FAILED);
@@ -221,8 +237,8 @@ class StalledExternalSourceIT {
     @Test
     @DisplayName("D1-1 老系统待办来源卡住时合并待办按时返回并标明不可用")
     void stalledLegacyInboxDegradesTheMergedInbox() throws Exception {
-        blockers.add(Blocker.hold("legacyworld", "dbo.todo_rows"));
-        assertBlocked("legacyworld", "SELECT COUNT(*) FROM dbo.v_psa_one_legacy_todo");
+        blockers.add(Blocker.hold(LEGACY_WORLD, "dbo.todo_rows"));
+        assertBlocked(LEGACY_WORLD, "SELECT COUNT(*) FROM dbo.v_psa_one_legacy_todo");
 
         Outcome<Reply> outcome = timed(HARD_CAP_INTERACTIVE, () -> {
             var response = mvc.perform(get(INBOX).with(ordinarySession(INBOX_ACCOUNT))).andReturn().getResponse();
@@ -239,8 +255,8 @@ class StalledExternalSourceIT {
     @Test
     @DisplayName("D1-1 老系统待办查询不加锁只是极慢时同样按时返回并标明不可用")
     void slowLegacyInboxWithoutLocksDegradesToo() throws Exception {
-        replaceView("legacyworld", "dbo.v_psa_one_legacy_todo", SLOW_TODO_VIEW);
-        viewsToRestore.add(new ViewRestore("legacyworld", "dbo.v_psa_one_legacy_todo", TODO_VIEW));
+        replaceView(LEGACY_WORLD, "dbo.v_psa_one_legacy_todo", SLOW_TODO_VIEW);
+        viewsToRestore.add(new ViewRestore(LEGACY_WORLD, "dbo.v_psa_one_legacy_todo", TODO_VIEW));
 
         Outcome<Reply> outcome = timed(HARD_CAP_INTERACTIVE, () -> {
             var response = mvc.perform(get(INBOX).with(ordinarySession(INBOX_ACCOUNT))).andReturn().getResponse();
@@ -255,8 +271,8 @@ class StalledExternalSourceIT {
     @Test
     @DisplayName("D1-1 A8 组织视图卡住时同步失败并告警且不挂住")
     void stalledA8ViewsFailTheSyncWithAnAlert(CapturedOutput output) throws Exception {
-        blockers.add(Blocker.hold("a8world", "dbo.org_unit_rows"));
-        assertBlocked("a8world", "SELECT COUNT(*) FROM forcitis_one.v_org_unit");
+        blockers.add(Blocker.hold(A8_WORLD, "dbo.ORG_UNIT"));
+        assertBlocked(A8_WORLD, "SELECT COUNT(*) FROM forcitis_one.v_org_unit");
 
         Outcome<SyncResult> outcome = timed(HARD_CAP_BACKGROUND, () -> runSync());
 
@@ -265,31 +281,31 @@ class StalledExternalSourceIT {
         assertThat(outcome.elapsed()).as("the sync gives up long before the 4 minutes of its lock").isLessThanOrEqualTo(BACKGROUND_BUDGET);
         assertThat(outcome.value().status()).as("the run is recorded as failed, the snapshot stays").isEqualTo(SyncRunStatus.FAILED);
         assertThat(output.getAll()).as("a failed sync raises an ALERT line").containsPattern("ALERT[^\\n]*organization\\.workforce[^\\n]*sync");
-        assertNoSessionStillWaiting("a8_reader");
+        assertNoSessionStillWaiting(A8_READER);
     }
 
     @Test
     @DisplayName("D1-1 A8 视图卡住时登录按登录名查人在预算内报告来源不可用，登录流程继续")
     void stalledA8ViewsDegradeTheLoginLookup() throws Exception {
-        blockers.add(Blocker.hold("a8world", "dbo.member_rows"));
-        assertBlocked("a8world", "SELECT COUNT(*) FROM forcitis_one.v_org_member");
+        blockers.add(Blocker.hold(A8_WORLD, "dbo.ORG_MEMBER"));
+        assertBlocked(A8_WORLD, "SELECT COUNT(*) FROM forcitis_one.v_org_member");
 
         assertLoginLookupDegrades();
-        assertNoSessionStillWaiting("a8_reader");
+        assertNoSessionStillWaiting(A8_READER);
     }
 
     @Test
     @DisplayName("D1-1 A8 视图查询不加锁只是极慢时登录按登录名查人同样在预算内降级")
     void slowA8ViewWithoutLocksDegradesTheLoginLookup() throws Exception {
-        replaceView("a8world", "forcitis_one.v_org_member", SLOW_MEMBER_VIEW);
-        viewsToRestore.add(new ViewRestore("a8world", "forcitis_one.v_org_member", MEMBER_VIEW));
+        replaceView(A8_WORLD, "forcitis_one.v_org_member", SLOW_MEMBER_VIEW);
+        viewsToRestore.add(new ViewRestore(A8_WORLD, "forcitis_one.v_org_member", MEMBER_VIEW));
 
         assertLoginLookupDegrades();
     }
 
     /** The port says "unavailable" (that is what the caller turns into "nobody found"), and the login use case built on it returns instead of throwing. */
     private void assertLoginLookupDegrades() {
-        Outcome<?> port = timed(HARD_CAP_INTERACTIVE, () -> a8.findStaffByLoginName(LOGIN_NAME));
+        Outcome<?> port = timed(HARD_CAP_INTERACTIVE, () -> a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME)));
         assertThat(port.hung()).as("the login lookup is still waiting for A8 after %s: it holds a request thread", HARD_CAP_INTERACTIVE).isFalse();
         assertThat(port.elapsed()).as("login answers within the 3 s budget of an external call").isLessThanOrEqualTo(INTERACTIVE_BUDGET);
         assertThat(port.failure()).as("an unreachable source is reported as such, not as an empty answer").isInstanceOf(ExternalSystemUnavailableException.class);
@@ -304,23 +320,23 @@ class StalledExternalSourceIT {
     @Test
     @DisplayName("D1-1 三条外部连接的会话都带有限的锁等待上限，交互路径的两条不超过 3 s")
     void everyExternalSessionCarriesALockTimeout() throws Exception {
-        a8.findStaffByLoginName(LOGIN_NAME);
+        a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME));
         names.readShortNames();
-        legacyInbox.readTodos(new EmployeeId(INBOX_EMPLOYEE));
+        readLegacyTodos();
 
         Map<String, Integer> lockTimeouts = new java.util.TreeMap<>();
         try (Connection c = admin("master"); Statement s = c.createStatement();
                 ResultSet rs = s.executeQuery("SELECT login_name, MIN(lock_timeout) FROM sys.dm_exec_sessions "
-                        + "WHERE is_user_process = 1 AND login_name IN ('a8_reader', 'todo_reader', 'names_reader') GROUP BY login_name")) {
+                        + "WHERE is_user_process = 1 AND login_name IN ('" + A8_READER + "', '" + TODO_READER + "', '" + NAMES_READER + "') GROUP BY login_name")) {
             while (rs.next()) {
                 lockTimeouts.put(rs.getString(1), rs.getInt(2));
             }
         }
 
-        assertThat(lockTimeouts).as("each of the three adapters opened a session").containsOnlyKeys("a8_reader", "names_reader", "todo_reader");
-        assertThat(lockTimeouts.get("a8_reader")).as("SQL Server's default -1 waits for ever").isBetween(1, 3_000);
-        assertThat(lockTimeouts.get("todo_reader")).isBetween(1, 3_000);
-        assertThat(lockTimeouts.get("names_reader")).isGreaterThan(0);
+        assertThat(lockTimeouts).as("each of the three adapters opened a session").containsOnlyKeys(A8_READER, NAMES_READER, TODO_READER);
+        assertThat(lockTimeouts.get(A8_READER)).as("SQL Server's default -1 waits for ever").isBetween(1, 3_000);
+        assertThat(lockTimeouts.get(TODO_READER)).isBetween(1, 3_000);
+        assertThat(lockTimeouts.get(NAMES_READER)).isGreaterThan(0);
     }
 
     /**
@@ -331,13 +347,13 @@ class StalledExternalSourceIT {
     @DisplayName("D1-1 复审 H2：D1-1-R2 极慢 A8 视图在登录查人降级后服务器端也被取消")
     void reviewH2_slowA8ViewIsCancelledOnTheServerAfterTheLoginLookupGivesUp() throws Exception {
         Awaitility.await("no request of a8_reader is left over from an earlier case").atMost(Duration.ofSeconds(5)).pollInterval(Duration.ofMillis(100))
-                .untilAsserted(() -> assertThat(requestsOf("a8_reader", false)).isZero());
-        replaceView("a8world", "forcitis_one.v_org_member", SLOW_MEMBER_VIEW);
-        viewsToRestore.add(new ViewRestore("a8world", "forcitis_one.v_org_member", MEMBER_VIEW));
+                .untilAsserted(() -> assertThat(requestsOf(A8_READER, false)).isZero());
+        replaceView(A8_WORLD, "forcitis_one.v_org_member", SLOW_MEMBER_VIEW);
+        viewsToRestore.add(new ViewRestore(A8_WORLD, "forcitis_one.v_org_member", MEMBER_VIEW));
 
-        Future<Outcome<Object>> inFlight = CALLERS.submit(() -> timed(HARD_CAP_INTERACTIVE, () -> a8.findStaffByLoginName(LOGIN_NAME)));
+        Future<Outcome<Object>> inFlight = CALLERS.submit(() -> timed(HARD_CAP_INTERACTIVE, () -> a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME))));
         Awaitility.await("the slow statement of a8_reader is visible in sys.dm_exec_requests while the lookup waits").atMost(Duration.ofSeconds(2))
-                .pollInterval(Duration.ofMillis(50)).untilAsserted(() -> assertThat(requestsOf("a8_reader", false)).isPositive());
+                .pollInterval(Duration.ofMillis(50)).untilAsserted(() -> assertThat(requestsOf(A8_READER, false)).isPositive());
         Outcome<Object> lookup = inFlight.get(HARD_CAP_INTERACTIVE.toMillis() * 2, TimeUnit.MILLISECONDS);
         assertThat(lookup.hung()).isFalse();
         assertThat(lookup.elapsed()).isLessThanOrEqualTo(INTERACTIVE_BUDGET);
@@ -345,7 +361,7 @@ class StalledExternalSourceIT {
 
         Awaitility.await("SQL Server has stopped the slow statement of a8_reader once the login lookup gave up")
                 .atMost(Duration.ofSeconds(2)).pollInterval(Duration.ofMillis(100))
-                .untilAsserted(() -> assertThat(requestsOf("a8_reader", false)).as("requests of a8_reader still running in sys.dm_exec_requests").isZero());
+                .untilAsserted(() -> assertThat(requestsOf(A8_READER, false)).as("requests of a8_reader still running in sys.dm_exec_requests").isZero());
     }
 
     /**
@@ -355,14 +371,14 @@ class StalledExternalSourceIT {
     @Test
     @DisplayName("D1-1 复审 M1：D1-1-R3 并发卡住的合并待办都在预算内返回")
     void reviewM1_concurrentStalledInboxRequestsAllAnswerWithinTheBudget() throws Exception {
-        blockers.add(Blocker.hold("legacyworld", "dbo.todo_rows"));
-        assertBlocked("legacyworld", "SELECT COUNT(*) FROM dbo.v_psa_one_legacy_todo");
+        blockers.add(Blocker.hold(LEGACY_WORLD, "dbo.todo_rows"));
+        assertBlocked(LEGACY_WORLD, "SELECT COUNT(*) FROM dbo.v_psa_one_legacy_todo");
 
         List<Future<Outcome<Reply>>> requests = new ArrayList<>();
         requests.add(CALLERS.submit(() -> timed(HARD_CAP_INTERACTIVE, this::inbox)));
         requests.add(CALLERS.submit(() -> timed(HARD_CAP_INTERACTIVE, this::inbox)));
         Awaitility.await("both pooled connections of todo_reader are waiting on the lock").atMost(Duration.ofMillis(2_500)).pollInterval(Duration.ofMillis(50))
-                .untilAsserted(() -> assertThat(requestsOf("todo_reader", true)).isEqualTo(2));
+                .untilAsserted(() -> assertThat(requestsOf(TODO_READER, true)).isEqualTo(2));
         requests.add(CALLERS.submit(() -> timed(HARD_CAP_INTERACTIVE, this::inbox)));
 
         for (int i = 0; i < requests.size(); i++) {
@@ -373,6 +389,29 @@ class StalledExternalSourceIT {
             assertThat(outcome.value().status()).isEqualTo(200);
             assertThat(outcome.value().body()).as("request %d", i + 1).contains("\"legacyAvailable\":false");
         }
+    }
+
+    /**
+     * Reads the old to-dos of the inbox employee through the port named LegacyInbox, wherever it lives: platform.approval.domain until R-1b P3b,
+     * platform.integration after (ADR-0039 item 5.2, RULING-P3B-D2, RULING-P3B-3). A missing port fails the test.
+     */
+    void readLegacyTodos() throws ReflectiveOperationException {
+        for (String name : context.getBeanDefinitionNames()) {
+            Class<?> type = context.getType(name);
+            if (type == null) {
+                continue;
+            }
+            for (Class<?> port : org.springframework.util.ClassUtils.getAllInterfacesForClassAsSet(type)) {
+                if (port.getSimpleName().equals("LegacyInbox") && port.getPackageName().startsWith("com.forcitis.one.platform")) {
+                    java.lang.reflect.Method read = java.util.Arrays.stream(port.getMethods()).filter(m -> m.getName().equals("readTodos")
+                            && m.getParameterCount() == 1).findFirst().orElseThrow(() -> new AssertionError(port + " has no readTodos(employee)"));
+                    Class<?> idType = EmployeeId.class.getRecordComponents()[0].getType();
+                    read.invoke(context.getBean(name), EmployeeId.class.getDeclaredConstructor(idType).newInstance(inboxEmployee));
+                    return;
+                }
+            }
+        }
+        throw new AssertionError("no bean implements a port named LegacyInbox");
     }
 
     Reply inbox() throws Exception {
@@ -449,12 +488,11 @@ class StalledExternalSourceIT {
     }
 
     static String url(String database) {
-        return "jdbc:sqlserver://" + MSSQL.getHost() + ":" + MSSQL.getMappedPort(1433) + ";databaseName=" + database
-                + ";encrypt=true;trustServerCertificate=true";
+        return TestMssql.url(MSSQL, database);
     }
 
     static Connection admin(String database) throws SQLException {
-        return DriverManager.getConnection(url(database) + ";loginTimeout=30", "sa", SA_PASSWORD);
+        return TestMssql.adminConnection(MSSQL, database);
     }
 
     static void run(String database, String... statements) throws SQLException {
@@ -494,7 +532,7 @@ class StalledExternalSourceIT {
 
     static final String TODO_VIEW = "SELECT assignee_user_id, task_id, process_instance_id, task_def_key, task_name, process_title, created_at FROM dbo.todo_rows";
     static final String MEMBER_VIEW = "SELECT ID, NAME, CODE, ORG_UNIT_ID, ORG_UNIT_PATH, POST_ID, SUPERVISOR_MEMBER_ID, WE_COM_ID, IS_INTERNAL, "
-            + "LOGIN_NAME, ENTERPRISE_EMAIL, GENDER, FEE_EARNER_ENUM_ID FROM dbo.member_rows";
+            + "LOGIN_NAME, ENTERPRISE_EMAIL, GENDER, FEE_EARNER_ENUM_ID FROM dbo.ORG_MEMBER";
 
     /** A scalar function that loops for about a minute: CPU only, no lock, and the optimizer cannot skip it (it is not inlined because of the loop). */
     static final String BURN_FUNCTION = "CREATE FUNCTION dbo.burn() RETURNS int AS BEGIN DECLARE @i int = 0; WHILE @i < 2000000000 SET @i = @i + 1; RETURN @i; END";
@@ -511,51 +549,37 @@ class StalledExternalSourceIT {
 
     private static void createExternalWorld() {
         try {
-            waitForAdministratorLogin();
-            run("master", "CREATE DATABASE a8world", "CREATE DATABASE legacyworld");
             ReadOnlyBaselineFixture.createRdsPlatform(StalledExternalSourceIT::run);
             createA8World();
             createLegacyWorld();
             createReadOnlyLogins();
-        } catch (SQLException | ConditionTimeoutException e) {
+        } catch (SQLException e) {
             throw new IllegalStateException("cannot prepare the external databases; SQL Server log:\n" + MSSQL.getLogs(), e);
         }
     }
 
-    /**
-     * SQL Server logs "ready for client connections" before the login subsystem accepts the administrator; 60 s bounds a container that never comes up.
-     * Polls in the calling thread: this runs inside the static initializer, and a poller thread calling admin() would wait for the class to finish initializing.
-     */
-    private static void waitForAdministratorLogin() {
-        Awaitility.await("SQL Server accepts the administrator login")
-                .atMost(Duration.ofSeconds(60)).pollInterval(Duration.ofMillis(500)).pollInSameThread().ignoreExceptions().until(() -> {
-                    admin("master").close();
-                    return true;
-                });
-    }
-
     private static void createA8World() throws SQLException {
-        run("a8world", "CREATE SCHEMA " + ReadOnlyBaselineFixture.VIEW_SCHEMA + " AUTHORIZATION dbo",
+        run(A8_WORLD, "CREATE SCHEMA " + ReadOnlyBaselineFixture.VIEW_SCHEMA + " AUTHORIZATION dbo",
                 BURN_FUNCTION,
-                "CREATE TABLE dbo.org_unit_rows (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, PATH nvarchar(200), IS_DELETED bit, "
-                        + "IS_INTERNAL bit, IS_ENABLE bit, CATEGORY nvarchar(16), DELIVERY_FLAG_ENUM_ID nvarchar(32))",
+                "CREATE TABLE dbo.ORG_UNIT (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, PATH nvarchar(200), IS_DELETED bit, "
+                        + "IS_INTERNAL bit, IS_ENABLE bit, CATEGORY nvarchar(16), DELIVERY_FLAG_ENUM_ID nvarchar(32), TYPE nvarchar(32) NULL)",
                 "CREATE TABLE dbo.relationship_rows (SOURCE_MEMBER_ID bigint, ORG_UNIT_ID bigint, RELATIONSHIP_TYPE_ID bigint, MEMBER_IS_DELETED bit)",
                 "CREATE TABLE dbo.post_rows (ID bigint PRIMARY KEY, CODE nvarchar(32), NAME nvarchar(64), SORT_ID int, STATUS int, IS_DELETED bit)",
-                "CREATE TABLE dbo.member_rows (ID bigint PRIMARY KEY, NAME nvarchar(64), CODE nvarchar(32), ORG_UNIT_ID bigint, ORG_UNIT_PATH nvarchar(200), "
+                "CREATE TABLE dbo.ORG_MEMBER (ID bigint PRIMARY KEY, NAME nvarchar(64), CODE nvarchar(32), ORG_UNIT_ID bigint, ORG_UNIT_PATH nvarchar(200), "
                         + "POST_ID bigint, SUPERVISOR_MEMBER_ID bigint, WE_COM_ID nvarchar(64), IS_INTERNAL bit, LOGIN_NAME nvarchar(64), "
-                        + "ENTERPRISE_EMAIL nvarchar(128), GENDER nvarchar(8), FEE_EARNER_ENUM_ID nvarchar(32))",
-                "INSERT dbo.org_unit_rows VALUES (1, 'C1', N'Root', 1, '00000001', 0, 1, 1, N'总部', NULL), (2, 'C2', N'Delivery', 2, '000000010001', 0, 1, 1, N'区域', '9001')",
+                        + "ENTERPRISE_EMAIL nvarchar(128), GENDER nvarchar(8), FEE_EARNER_ENUM_ID nvarchar(32), STATE smallint NULL, IS_DELETED smallint NULL, IS_ENABLE smallint NULL)",
+                "INSERT dbo.ORG_UNIT VALUES (1, 'C1', N'Root', 1, '00000001', 0, 1, 1, N'总部', NULL, N'Account'), (2, 'C2', N'Delivery', 2, '000000010001', 0, 1, 1, N'区域', '9001', N'Department')",
                 "INSERT dbo.post_rows VALUES (100, 'P100', N'Consultant', 1, 0, 0)",
-                "INSERT dbo.member_rows VALUES (8001, N'Worker', 'E8001', 2, '000000010001', 100, NULL, 'wx-8001', 1, '" + LOGIN_NAME + "', 'worker@example.test', N'女', '9002')",
+                "INSERT dbo.ORG_MEMBER VALUES (8001, N'Worker', 'E8001', 2, '000000010001', 100, NULL, 'wx-8001', 1, '" + LOGIN_NAME + "', 'worker@example.test', N'女', '9002', 1, 0, 1)",
                 "INSERT dbo.relationship_rows VALUES (8001, 2, " + HEAD_TYPE + ", 0), (8001, 2, " + MANAGER_TYPE + ", 0)",
-                "CREATE VIEW forcitis_one.v_org_unit AS SELECT ID, CODE, NAME, SORT_ID, PATH, IS_DELETED, IS_INTERNAL, IS_ENABLE, CATEGORY, DELIVERY_FLAG_ENUM_ID FROM dbo.org_unit_rows",
+                "CREATE VIEW forcitis_one.v_org_unit AS SELECT ID, CODE, NAME, SORT_ID, PATH, IS_DELETED, IS_INTERNAL, IS_ENABLE, CATEGORY, DELIVERY_FLAG_ENUM_ID FROM dbo.ORG_UNIT",
                 "CREATE VIEW forcitis_one.v_org_relationship AS SELECT SOURCE_MEMBER_ID, ORG_UNIT_ID, RELATIONSHIP_TYPE_ID, MEMBER_IS_DELETED FROM dbo.relationship_rows",
                 "CREATE VIEW forcitis_one.v_org_post AS SELECT ID, CODE, NAME, SORT_ID, STATUS, IS_DELETED FROM dbo.post_rows",
                 "CREATE VIEW forcitis_one.v_org_member AS " + MEMBER_VIEW);
     }
 
     private static void createLegacyWorld() throws SQLException {
-        run("legacyworld", BURN_FUNCTION,
+        run(LEGACY_WORLD, BURN_FUNCTION,
                 "CREATE TABLE dbo.todo_rows (assignee_user_id bigint, task_id nvarchar(64), process_instance_id nvarchar(64), task_def_key nvarchar(64), "
                         + "task_name nvarchar(128), process_title nvarchar(256), created_at datetime2)",
                 "CREATE TABLE dbo.short_name_rows (id bigint, short_name nvarchar(64))",
@@ -567,13 +591,13 @@ class StalledExternalSourceIT {
 
     /** Checked against the RDS export before any case runs: a fixture that drifted from the baseline would prove nothing about production. */
     private static void createReadOnlyLogins() throws SQLException {
-        ReadOnlyBaselineFixture.createViewSchemaReader(StalledExternalSourceIT::run, "a8world", "a8_reader", A8_READER_PASSWORD);
-        ReadOnlyBaselineFixture.createSingleViewReader(StalledExternalSourceIT::run, "legacyworld", "dbo.v_psa_one_legacy_todo", "todo_reader",
+        ReadOnlyBaselineFixture.createViewSchemaReader(StalledExternalSourceIT::run, A8_WORLD, A8_READER, A8_READER_PASSWORD);
+        ReadOnlyBaselineFixture.createSingleViewReader(StalledExternalSourceIT::run, LEGACY_WORLD, "dbo.v_psa_one_legacy_todo", TODO_READER,
                 TODO_READER_PASSWORD);
-        ReadOnlyBaselineFixture.createSingleViewReader(StalledExternalSourceIT::run, "legacyworld", "dbo.v_one_legacy_org_short_name", "names_reader",
+        ReadOnlyBaselineFixture.createSingleViewReader(StalledExternalSourceIT::run, LEGACY_WORLD, "dbo.v_one_legacy_org_short_name", NAMES_READER,
                 NAMES_READER_PASSWORD);
-        ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url("a8world"), "a8world", "a8_reader", A8_READER_PASSWORD);
-        ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url("legacyworld"), "legacyworld", "todo_reader", TODO_READER_PASSWORD);
-        ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url("legacyworld"), "legacyworld", "names_reader", NAMES_READER_PASSWORD);
+        ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url(A8_WORLD), A8_WORLD, A8_READER, A8_READER_PASSWORD);
+        ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url(LEGACY_WORLD), LEGACY_WORLD, TODO_READER, TODO_READER_PASSWORD);
+        ReadOnlyBaselineFixture.assertMatchesTheRdsBaseline(url(LEGACY_WORLD), LEGACY_WORLD, NAMES_READER, NAMES_READER_PASSWORD);
     }
 }

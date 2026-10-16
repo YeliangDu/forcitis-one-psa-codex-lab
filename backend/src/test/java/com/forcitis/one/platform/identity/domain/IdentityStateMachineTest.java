@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 class IdentityStateMachineTest {
 
     static UserAccount account(AccountStatus status) {
-        return UserAccount.restore(TestAccounts.account(1001), new EmployeeId(1001), status.name(), Set.of(), 5, 5);
+        return UserAccount.restore(TestAccounts.account(1001), TestAccounts.employee(1001), status.name(), Set.of(), 5, 5);
     }
 
     static Role role(RoleStatus status) {
@@ -99,7 +99,7 @@ class IdentityStateMachineTest {
                 e -> assertThat(e.roleIds()).containsExactly(new RoleId(TestIds.uuid(3)), new RoleId(TestIds.uuid(9))));
         assertThat(accountEvents).extracting(e -> e.envelope().aggregateVersion()).containsExactly(6L, 7L);
         assertThat(accountEvents.get(0).envelope().aggregateType()).isEqualTo("UserAccount");
-        assertThat(accountEvents.get(0).envelope().aggregateId()).isEqualTo(TestAccounts.account(1001).value().toString());
+        assertThat(accountEvents.get(0).envelope().aggregateId()).isEqualTo(TestAccounts.account(1001).value());
         assertThat(accountEvents.get(0).envelope().legalEntityId()).isNull();
 
         UserAccount again = account(DISABLED);
@@ -115,7 +115,7 @@ class IdentityStateMachineTest {
                 .containsExactly(RoleRevised.class.getSimpleName(), RoleDisabled.class.getSimpleName(), RoleEnabled.class.getSimpleName(),
                         RoleDeleted.class.getSimpleName());
 
-        Role created = Role.newCustom(new RoleCode("analyst"), "Analyst", Set.of()).withId(new RoleId(TestIds.uuid(11)));
+        Role created = Role.newCustom(new RoleId(TestIds.uuid(11)), new RoleCode("analyst"), "Analyst", Set.of());
         assertThat(created.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(RoleCreated.class,
                 e -> assertThat(e.roleId()).isEqualTo(new RoleId(TestIds.uuid(11))));
     }
@@ -123,7 +123,7 @@ class IdentityStateMachineTest {
     @Test
     @DisplayName("opening an account is enabled from the start, holds the given roles and announces AccountOpened")
     void opening() {
-        UserAccount opened = UserAccount.open(TestAccounts.account(2002), new EmployeeId(2002), Set.of(new RoleId(TestIds.uuid(4)), new RoleId(TestIds.uuid(2))));
+        UserAccount opened = UserAccount.open(TestAccounts.account(2002), TestAccounts.employee(2002), Set.of(new RoleId(TestIds.uuid(4)), new RoleId(TestIds.uuid(2))));
 
         assertThat(opened.status()).isEqualTo(ENABLED);
         assertThat(opened.isStored()).isFalse();
@@ -136,7 +136,7 @@ class IdentityStateMachineTest {
     @Test
     @DisplayName("B1-M3 separating an account takes every role away and records the fact; an account without roles records nothing")
     void separationRecordsTheFact() {
-        UserAccount withRoles = UserAccount.restore(TestAccounts.account(1001), new EmployeeId(1001), ENABLED.name(), Set.of(new RoleId(TestIds.uuid(3))), 5, 5);
+        UserAccount withRoles = UserAccount.restore(TestAccounts.account(1001), TestAccounts.employee(1001), ENABLED.name(), Set.of(new RoleId(TestIds.uuid(3))), 5, 5);
         withRoles.recordSeparation();
         assertThat(withRoles.roles()).isEmpty();
         assertThat(withRoles.drainEvents(TestEnvelopes.INSTANCE)).extracting(e -> e.getClass().getSimpleName())

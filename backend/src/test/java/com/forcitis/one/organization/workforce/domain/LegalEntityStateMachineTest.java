@@ -61,14 +61,14 @@ class LegalEntityStateMachineTest {
     @Test
     @DisplayName("registering announces LegalEntityRegistered with the id the repository gave, the code and the legal entity in the envelope")
     void registering() {
-        LegalEntity saved = LegalEntity.register(new LegalEntityCode("FST"), "  Synthetic  ").withId(ID);
+        LegalEntity saved = LegalEntity.register(ID, new LegalEntityCode("FST"), "  Synthetic  ");
 
         assertThat(saved.name()).isEqualTo("Synthetic");
         assertThat(saved.status()).isEqualTo(ACTIVE);
         List<DomainEvent> events = saved.drainEvents(TestEnvelopes.INSTANCE);
         assertThat(events).singleElement().isInstanceOfSatisfying(LegalEntityRegistered.class, e -> {
             assertThat(e.code()).isEqualTo(new LegalEntityCode("FST"));
-            assertThat(e.envelope().aggregateId()).isEqualTo(TestIds.uuid(4).toString());
+            assertThat(e.envelope().aggregateId()).isEqualTo(TestIds.uuid(4));
             assertThat(e.envelope().legalEntityId()).isEqualTo(ID);
             assertThat(e.envelope().aggregateVersion()).isEqualTo(1);
         });

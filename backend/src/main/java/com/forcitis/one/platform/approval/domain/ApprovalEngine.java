@@ -15,6 +15,9 @@ public interface ApprovalEngine {
     /** The routing flags the process definition reacts to; a flag outside this set means nothing to the process. */
     Set<String> routingFlagsOf(ProcessKey processKey);
 
+    /** The form field names the process definition reads; a field outside this set would be ignored, so a start that carries one is refused. */
+    Set<String> formFieldsOf(ProcessKey processKey);
+
     void startInstance(InstanceStart start);
 
     boolean isRunning(ApprovalInstanceId instanceId);

@@ -9,17 +9,9 @@
 
 本文把每个框架的**核心思想**落到本次现代化的**具体决策、产物和守护**上。每一行都能在 `analysis/psa/` 的某个文件或 CI 规则里找到对应物，避免只停留在口号。
 
-## 1. 总览：每个框架管什么
+## 1. 框架总览
 
-| 框架 | 核心思想（一句话） | 在本项目中回答的问题 | 主要落点 |
-|---|---|---|---|
-| **TOGAF** | 从基线架构到目标架构，经过一系列过渡架构，在治理下逐步演进 | 怎么分阶段走、谁批准、怎么不跑偏 | INTENT → ASSESSMENT（基线）→ STACK_DECISION（目标）→ BRIEF 各 Phase（过渡架构）→ 守护与审批（实施治理） |
-| **DDD** | 按业务边界划分模型，用统一语言命名，复杂度留在模型内部 | 模块怎么切、叫什么、谁依赖谁 | 一个 BC = 一个 Modulith 模块 = 一个 PG schema；词表 `03-通用语言.md`；聚合、值对象、领域事件；防腐层 |
-| **BPMN** | 用标准图形描述「谁在什么时候做什么」，流程可执行、可版本化 | 审批怎么建模和执行 | Flowable 8（`platform.approval` 模块，ADR-0007）执行 BPMN；流程只编排人工步骤、超时、退回 |
-| **DMN** | 把业务决策写成决策表，与流程和代码分离，可由业务审阅 | 审批路由、级别、资格判定放在哪里 | Flowable DMN 引擎执行决策表；决策表随代码版本化，用表驱动测试覆盖 |
-| **DAMA-DMBOK** | 数据是资产：要有所有者、质量规则、元数据、主数据和生命周期治理 | 数据归谁、质量怎么保证、迁移怎么验证 | 每张表一个所有者（BC）；逐列所有权矩阵；约束即质量规则；对账查询；主数据来源清单；数据分级与脱敏 |
-| **OLTP** | 交易处理要规范化、事务短、约束强、并发安全 | 业务库怎么设计 | 各 BC schema 采用第三范式；事务以聚合为边界；乐观锁；`CHECK` / `NOT NULL` / 唯一约束 |
-| **OLAP** | 分析与交易分离，分析用面向主题的维度模型和历史快照 | 报表、BI、月结分析放在哪里 | `reporting` schema / 现有 BI-olap：事实表 + 维度表，由事件或 CDC 构建；报表不在交易表上跑 |
+各框架的核心思想、锁定版本与出处见 [architecture/FRAMEWORKS.md](architecture/FRAMEWORKS.md)，用法与步骤见 [architecture/METHOD.md](architecture/METHOD.md)。
 
 ## 2. TOGAF：用 ADM 组织整个现代化
 
@@ -35,7 +27,7 @@
 | G 实施治理 | CI 守护（Modulith、ArchUnit、ESLint）；各 Phase 的入口和出口条件；审批签字 | 守护已实测 |
 | H 架构变更管理 | 所有决定写入 `adr/`；brief 在试点后重新生成 | 已建立 |
 
-**构建块**：架构构建块（ABB）是「权限流程与集成平台」「工时与投入有效性」「项目成本归集」这类 BC 能力；解决方案构建块（SBB）是 Flowable 8、Spring Security 7、PostgreSQL 17、JdbcClient。ABB 稳定，SBB 可以替换。
+**构建块**：架构构建块（ABB）是「权限流程与集成平台」「工时与投入有效性」「项目成本归集」这类 BC 能力；解决方案构建块（SBB）是 Flowable 8、Spring Security 7、PostgreSQL 18、JdbcClient。ABB 稳定，SBB 可以替换。
 
 ## 3. DDD：边界、语言、模型
 
@@ -50,8 +42,8 @@
   - `accounting.ledger` → 财务总账与法定核算 BC
   - `platform.identity`、`platform.approval`、`platform.integration`、`platform.audit`、`platform.numbering` → 权限流程与集成平台 BC 的技术模块
 - **上下文映射 → 依赖方向**：`architecture/module-dependencies.txt` 就是上下文映射的代码形态，由 `ModuleDependencyTest` 强制执行，修改需评审；Modulith 保证只能经 api / events 访问。
-- **统一语言**：`03-通用语言.md` 是唯一词源，代码、表、事件、API 都从它派生（`NAMING_STANDARD.md`）。
-- **防腐层**：A8、U8C、分贝通、企业微信、KM 各有独立的 integration 模块。老系统在过渡期也被当作一个外部系统，通过防腐层读取和反向同步。
+- **统一语言**：`glossary/terms.yaml` 是唯一词源，代码、表、事件、API 都从它派生（`NAMING_STANDARD.md`）。
+- **防腐层**：外部系统（A8、U8C、分贝通、企业微信、KM）集中在 `platform.integration` 集成层，防腐层只在此处（ADR-0039）。老系统在过渡期也被当作一个外部系统，通过防腐层读取和反向同步。
 
 **战术设计**
 - **聚合**是一致性边界：一个用例一个事务，一个事务只改一个聚合。跨聚合、跨模块的协作用领域事件，实现上用 Modulith 事件发布登记表。
@@ -65,7 +57,7 @@
 - **Flowable 8 在 Phase 1 引入**（用户决定），作为 `platform.approval` 模块的内部实现：
   - 引擎表放在 `platform_approval` schema；
   - 业务模块只依赖 `platform.approval::api`（G19）；
-  - 已实测 Flowable 8 + Boot 4.1 + PG17，引擎表 100% 落在 `platform_approval` schema。
+  - 已实测 Flowable 8 + Boot 4.1 + PG18，引擎表 100% 落在 `platform_approval` schema。
 - **流程负责**：步骤顺序、人工任务、会签 / 或签、超时催办（定时边界事件）、退回发起人、撤回截止点、转交。
 - **流程不负责**：
   - 计算金额和毛利；
@@ -110,7 +102,7 @@
 | 数据集成与互操作 | 跨 BC 只走事件和 api；外部系统只走防腐层；反向同步有契约测试 |
 | 数据仓库与 BI | 见 §8（OLAP） |
 | 数据生命周期 | 老系统：`ACT_HI_*`（1,100 万行）和 API 日志（490 万行）只读归档并设定保留期，不迁移到新库。新系统（Phase 1a 起）的原则：业务事实与审计只追加、到期归档到对象存储而不是删除；技术性中间表按状态清理；清理与归档由定时作业执行并记录在审计中。各表保留期见下表（用户 2026-10-14 认可建议值） |
-| 参照完整性与 ID | **新建聚合主键用 UUIDv7**（用户 2026-10-14：主键「UUIDv7 (Recommended)」，intent 片段 `2026-10-14-112-平台约定-2026-10-14.md`；细则见 `proposals/PHASE1A_PLATFORM_CONVENTIONS.md`）：应用侧由 kernel 的 `IdGenerator` 生成；外部主数据沿用来源 ID（员工、组织单元用 A8 ID，只存在于对应快照表）；迁移数据用 UUIDv7 新主键，老 ID 放进 `legacy_id` 列（唯一约束），经「原编号 / 原 ID」对照检索。取代原定的「迁移时保留老系统雪花 bigint ID 作主键」。**随 ADR-0033 采纳被取代（现为提议，采纳前仍按前文）**：「外部主数据沿用来源 ID（员工、组织单元用 A8 ID，只存在于对应快照表）」与「老 ID 放进 `legacy_id` 列」两句（用户 2026-10-15：「改为自有 UUIDv7 + A8 ID 对照列 (Recommended)」「主键统一」）。新做法：自有的每张表一律由 `IdGenerator` 生成的 UUIDv7 单列主键，无白名单例外；外部系统与老系统的标识只登记在集成层的来源对照（`platform_integration.source_references`），领域只用自有 ID；`user_accounts.user_id` 自有、另有唯一的 `employee_id`；员工编号不作键；见 `adr/ADR-0033.md` |
+| 参照完整性与 ID | **新建聚合主键用 UUIDv7**（用户 2026-10-14：主键「UUIDv7 (Recommended)」，intent 片段 `2026-10-14-112-平台约定-2026-10-14.md`；细则见 `proposals/PHASE1A_PLATFORM_CONVENTIONS.md`）：应用侧由 kernel 的 `IdGenerator` 生成；外部主数据沿用来源 ID（员工、组织单元用 A8 ID，只存在于对应快照表）；迁移数据用 UUIDv7 新主键，老 ID 放进 `legacy_id` 列（唯一约束），经「原编号 / 原 ID」对照检索。取代原定的「迁移时保留老系统雪花 bigint ID 作主键」。**随 ADR-0033 采纳被取代（现为提议，采纳前仍按前文）**：「外部主数据沿用来源 ID（员工、组织单元用 A8 ID，只存在于对应快照表）」与「老 ID 放进 `legacy_id` 列」两句（用户 2026-10-15：「改为自有 UUIDv7 + A8 ID 对照列 (Recommended)」「主键统一」）。新做法：自有的每张表一律由 `IdGenerator` 生成的 UUIDv7 单列主键，无白名单例外；外部系统与老系统的标识只登记在集成层的来源对照（`platform_integration.source_references`），领域只用自有 ID；`user_accounts.user_id` 自有、另有唯一的 `employee_id`；员工编号不作键；见 `adr/ADR-0033.md`。**唯一例外（ADR-0048，用户 2026-10-16 批准）**：按月分区的 `platform_audit.audit_entries` 主键为 `(id, created_at)`、事件去重键为 `(event_id, created_at)`，`id` 仍是应用侧生成的 UUIDv7、任何引用只用 `id`；登记在 `backend/architecture/primary-key-exemptions.txt` 并由守护校验形状，新增分区表须另立 ADR；见 `adr/ADR-0048.md` |
 
 
 **Phase 1a 表的保留与归档**（用户 2026-10-14：「都认可 (Recommended)」）
@@ -185,7 +177,7 @@
 
 | 层级 | 定位 | 写法 | 数量原则 |
 |---|---|---|---|
-| **模块级集成测试（主力）** | 一次走通 HTTP → 鉴权 → 用例 → 领域 → 跨模块 api / 事件 → Flowable / DMN → 真实 PostgreSQL | `@SpringBootTest` / Modulith `@ApplicationModuleTest` + Testcontainers PG17；不 mock 自己的模块，只用 WireMock 隔离外部系统 | 每个用例 1 条正常路径，加上每条 P0 规则的关键分支；测试名带规则 ID |
+| **模块级集成测试（主力）** | 一次走通 HTTP → 鉴权 → 用例 → 领域 → 跨模块 api / 事件 → Flowable / DMN → 真实 PostgreSQL | `@SpringBootTest` / Modulith `@ApplicationModuleTest` + Testcontainers PG18；不 mock 自己的模块，只用 WireMock 隔离外部系统 | 每个用例 1 条正常路径，加上每条 P0 规则的关键分支；测试名带规则 ID |
 | **单元测试（补边界）** | 纯领域逻辑：值对象不变式、计算、DMN 决策表 | 等价类 + 边界值 + 参数化（从规则卡的 Given/When/Then 直接生成用例） | 只补集成测试覆盖不到的分支，用最少的用例覆盖最多的分支 |
 | **契约测试** | OpenAPI 契约；反向同步写入老表的结构；BI 查询在切换后仍能运行 | 生成的客户端编译通过；对老库执行 BI SQL | 每个桥接表和 BI 查询各一 |
 | **端到端（必要时）** | 4 条人物流程和登录鉴权冒烟 | Playwright（仓库已有 `e2e/`） | 只覆盖跨系统、跨前后端的关键路径 |

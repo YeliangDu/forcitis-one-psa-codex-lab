@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.domain;
 
+import java.util.Comparator;
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
@@ -7,8 +8,6 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.EventDraft;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.organization.workforce.api.AttributionId;
 import com.forcitis.one.organization.workforce.api.AttributionSubject;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
@@ -20,39 +19,40 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import com.forcitis.one.organization.workforce.api.AttributionSubjectId;
 
 /**
  * Which legal entity a department or an employee belongs to, period by period. Periods never overlap; history is only closed,
  * never rewritten: a new attribution starts after the start of the latest period.
  */
 public final class LegalEntityAttribution extends AggregateRoot {
-    private final AttributionId storedId;
+    private final AttributionId id;
     private final AttributionSubject subject;
     private final int storedPeriodCount;
     private List<AttributionPeriod> periods;
     private final List<AttributionCorrection> pendingCorrections = new ArrayList<>();
 
-    private LegalEntityAttribution(AttributionId storedId, AttributionSubject subject, List<AttributionPeriod> periods, long version,
+    private LegalEntityAttribution(AttributionId id, AttributionSubject subject, List<AttributionPeriod> periods, long version,
                                    long eventCount) {
         super(version, eventCount);
-        this.storedId = storedId;
+        this.id = Objects.requireNonNull(id, "id");
         this.subject = Objects.requireNonNull(subject, "subject");
         this.periods = List.copyOf(periods);
         this.storedPeriodCount = this.periods.size();
     }
 
-    public static LegalEntityAttribution empty(AttributionSubject subject) {
-        return new LegalEntityAttribution(null, subject, List.of(), 0, 0);
+    public static LegalEntityAttribution empty(AttributionId id, AttributionSubject subject) {
+        return new LegalEntityAttribution(id, subject, List.of(), 0, 0);
     }
 
-    public static LegalEntityAttribution restore(AttributionId storedId, AttributionSubject subject, List<AttributionPeriod> periods, long version,
+    public static LegalEntityAttribution restore(AttributionId id, AttributionSubject subject, List<AttributionPeriod> periods, long version,
                                                  long eventCount) {
-        return new LegalEntityAttribution(storedId, subject, periods.stream().sorted(java.util.Comparator.comparing(AttributionPeriod::effectiveFrom)).toList(),
+        return new LegalEntityAttribution(id, subject, periods.stream().sorted(Comparator.comparing(AttributionPeriod::effectiveFrom)).toList(),
                 version, eventCount);
     }
 
-    public AttributionId storedId() {
-        return storedId;
+    public AttributionId id() {
+        return id;
     }
 
     public AttributionSubject subject() {
@@ -82,7 +82,7 @@ public final class LegalEntityAttribution extends AggregateRoot {
     public void attribute(LegalEntityId legalEntityId, LocalDate from) {
         Objects.requireNonNull(legalEntityId, "legalEntityId");
         Objects.requireNonNull(from, "from");
-        Optional<AttributionPeriod> latest = periods.stream().max(java.util.Comparator.comparing(AttributionPeriod::effectiveFrom));
+        Optional<AttributionPeriod> latest = periods.stream().max(Comparator.comparing(AttributionPeriod::effectiveFrom));
         if (latest.isPresent() && !from.isAfter(latest.get().effectiveFrom())) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_DATE_INVALID, ErrorKind.UNPROCESSABLE,
                     "a new attribution starts after " + latest.get().effectiveFrom());
@@ -101,7 +101,7 @@ public final class LegalEntityAttribution extends AggregateRoot {
         next.add(new AttributionPeriod(legalEntityId, from, null));
         this.periods = List.copyOf(next);
         record((envelopes, sequence) -> new LegalEntityAttributed(envelopes.wrap(draft("LegalEntityAttributed", sequence, legalEntityId, from)),
-                subject, legalEntityId, from));
+                subject.kind(), new AttributionSubjectId(subject.subjectId()), legalEntityId, from));
     }
 
     public void end(LocalDate to) {
@@ -116,7 +116,7 @@ public final class LegalEntityAttribution extends AggregateRoot {
         next.set(next.indexOf(open), open.closedOn(to));
         this.periods = List.copyOf(next);
         record((envelopes, sequence) -> new LegalEntityAttributionEnded(envelopes.wrap(draft("LegalEntityAttributionEnded", sequence,
-                open.legalEntityId(), to)), subject, open.legalEntityId(), to));
+                open.legalEntityId(), to)), subject.kind(), new AttributionSubjectId(subject.subjectId()), open.legalEntityId(), to));
     }
 
     /**
@@ -154,12 +154,11 @@ public final class LegalEntityAttribution extends AggregateRoot {
         this.periods = List.copyOf(next);
         pendingCorrections.add(new AttributionCorrection(periodFrom, previous, newEffectiveTo, reason, correctedBy));
         record((envelopes, sequence) -> new LegalEntityAttributionCorrected(envelopes.wrap(draft("LegalEntityAttributionCorrected", sequence,
-                period.legalEntityId(), newEffectiveTo)), subject, period.legalEntityId(), periodFrom, previous, newEffectiveTo, reason));
+                period.legalEntityId(), newEffectiveTo)), subject.kind(), new AttributionSubjectId(subject.subjectId()), period.legalEntityId(), periodFrom, previous, newEffectiveTo, reason));
     }
 
     private EventDraft draft(String eventName, long sequence, LegalEntityId legalEntityId, LocalDate businessDate) {
         return new EventDraft("organization.workforce." + eventName, 1, "LegalEntityAttribution",
-                subject.kind() + ":" + subject.subjectKey(), sequence, legalEntityId, businessDate,
-                new EventSource(SourceSystem.ONE, null), List.of());
+                id.value(), sequence, legalEntityId, businessDate, List.of());
     }
 }

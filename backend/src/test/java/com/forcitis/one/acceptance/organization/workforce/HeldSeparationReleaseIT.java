@@ -39,7 +39,7 @@ class HeldSeparationReleaseIT extends AccountsAcceptanceSupport {
     static PostgreSQLContainer postgres = database();
 
     /** A run held for an administrator's separation and for the shrink guard, so lifting the first leaves the run held. */
-    private UUID heldRun(long separating) throws Exception {
+    private UUID heldRun(UUID separating) throws Exception {
         UUID run = UUID.randomUUID();
         try (Connection workforce = schemaConnection("organization_workforce")) {
             try (PreparedStatement insert = workforce.prepareStatement("""
@@ -52,9 +52,10 @@ class HeldSeparationReleaseIT extends AccountsAcceptanceSupport {
                 insert.setArray(4, kinds);
                 insert.executeUpdate();
             }
-            try (PreparedStatement insert = workforce.prepareStatement("insert into sync_run_held_separations (sync_run_id, employee_id) values (?, ?)")) {
-                insert.setObject(1, run);
-                insert.setLong(2, separating);
+            try (PreparedStatement insert = workforce.prepareStatement("insert into sync_run_held_separations (sync_run_held_separation_id, sync_run_id, employee_id) values (?, ?, ?)")) {
+                insert.setObject(1, UUID.randomUUID());
+                insert.setObject(2, run);
+                insert.setObject(3, stored(separating));
                 insert.executeUpdate();
             }
         }
@@ -81,12 +82,12 @@ class HeldSeparationReleaseIT extends AccountsAcceptanceSupport {
     @Test
     @DisplayName("R-1b P2 ADR-0033 第 3 项第 3 条：HELD 放行人在离职名单中仍被拒（操作人即本人，按员工 ID 比较）；另一名留任的超级管理员可以放行这一类暂停，放行人记为其用户 ID")
     void aLeaverCannotLiftTheHoldOnTheirOwnSeparation() throws Exception {
-        long unit = newOrgUnitId();
+        UUID unit = newOrgUnitId();
         orgUnit(unit, null, null);
-        long leaver = newEmployeeId();
-        long retained = newEmployeeId();
-        long third = newEmployeeId();
-        for (long person : List.of(leaver, retained, third)) {
+        UUID leaver = newEmployeeId();
+        UUID retained = newEmployeeId();
+        UUID third = newEmployeeId();
+        for (UUID person : List.of(leaver, retained, third)) {
             employee(person, unit, null);
             grantByOperations(person, "super_admin");
             grantByOperations(person, "security_auditor");

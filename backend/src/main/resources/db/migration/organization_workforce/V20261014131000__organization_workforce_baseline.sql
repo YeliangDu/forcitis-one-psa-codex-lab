@@ -3,7 +3,7 @@ CREATE SCHEMA IF NOT EXISTS organization_workforce;
 COMMENT ON SCHEMA organization_workforce IS '组织人事 BC：组织快照（只读，来源可替换）';
 
 CREATE TABLE organization_workforce.positions (
-    id         bigint      PRIMARY KEY,
+    id         uuid        PRIMARY KEY,
     code       text,
     name       text        NOT NULL,
     sort_order integer,
@@ -13,7 +13,7 @@ CREATE TABLE organization_workforce.positions (
     version    bigint      NOT NULL DEFAULT 0
 );
 COMMENT ON TABLE organization_workforce.positions IS '岗位：组织源岗位的快照，停用与删除同步（RULE-367）；粒度：每个岗位一行';
-COMMENT ON COLUMN organization_workforce.positions.id IS '岗位 ID（沿用组织源，有符号 bigint）';
+COMMENT ON COLUMN organization_workforce.positions.id IS '岗位 ID（UUIDv7；组织源岗位经来源对照映射）';
 COMMENT ON COLUMN organization_workforce.positions.code IS '岗位编码';
 COMMENT ON COLUMN organization_workforce.positions.name IS '岗位名称';
 COMMENT ON COLUMN organization_workforce.positions.sort_order IS '显示顺序';
@@ -23,14 +23,14 @@ COMMENT ON COLUMN organization_workforce.positions.updated_at IS '更新时间';
 COMMENT ON COLUMN organization_workforce.positions.version IS '乐观锁版本';
 
 CREATE TABLE organization_workforce.org_units (
-    id                              bigint      PRIMARY KEY,
+    id                              uuid        PRIMARY KEY,
     code                            text,
     name                            text        NOT NULL,
-    parent_org_unit_id              bigint,
+    parent_org_unit_id              uuid,
     sort_order                      integer,
     status                          text        NOT NULL CHECK (status IN ('ACTIVE', 'DISABLED', 'REVOKED')),
-    head_employee_id                bigint,
-    regional_receivables_manager_id bigint,
+    head_employee_id                uuid,
+    regional_receivables_manager_id uuid,
     region_category                 text        CHECK (region_category IN ('HEADQUARTERS', 'REGIONAL')),
     is_delivery_unit                boolean     NOT NULL DEFAULT false,
     short_name                      text,
@@ -42,13 +42,13 @@ CREATE TABLE organization_workforce.org_units (
 );
 CREATE INDEX org_units_parent_org_unit_id_idx ON organization_workforce.org_units (parent_org_unit_id);
 COMMENT ON TABLE organization_workforce.org_units IS '组织单元：组织源组织单元的快照；停用（DISABLED）与撤销（REVOKED，组织源不再返回）分开（RULE-355/357）；粒度：每个组织单元一行，变化历史在 org_unit_versions';
-COMMENT ON COLUMN organization_workforce.org_units.id IS '组织单元 ID（沿用组织源，有符号 bigint）';
+COMMENT ON COLUMN organization_workforce.org_units.id IS '组织单元 ID（UUIDv7；组织源部门经来源对照映射）';
 COMMENT ON COLUMN organization_workforce.org_units.code IS '组织单元编码';
 COMMENT ON COLUMN organization_workforce.org_units.name IS '组织单元名称';
 COMMENT ON COLUMN organization_workforce.org_units.parent_org_unit_id IS '组织单元的上级（由组织源的防腐层算出父编号，RULE-354）；根为空';
 COMMENT ON COLUMN organization_workforce.org_units.sort_order IS '同级显示顺序';
 COMMENT ON COLUMN organization_workforce.org_units.status IS '状态：ACTIVE 有效 / DISABLED 停用（组织源停用标志，NULL 视为有效）/ REVOKED 已撤销（组织源不再返回）';
-COMMENT ON COLUMN organization_workforce.org_units.head_employee_id IS '部门负责人（员工 ID，组织源关系；多名取 ID 最小者，RULE-356）';
+COMMENT ON COLUMN organization_workforce.org_units.head_employee_id IS '部门负责人（员工 ID，组织源关系；多名取组织源人员 ID 最小者，由集成层适配器按源 ID 升序交出，RULE-356）';
 COMMENT ON COLUMN organization_workforce.org_units.regional_receivables_manager_id IS '区域应收负责人（员工 ID，老系统「区域 AR」，组织源关系）';
 COMMENT ON COLUMN organization_workforce.org_units.region_category IS '总部 / 区域类别：HEADQUARTERS 总部、REGIONAL 区域；组织源未维护为空';
 COMMENT ON COLUMN organization_workforce.org_units.is_delivery_unit IS '是否交付部门（组织源扩展属性）';
@@ -60,7 +60,7 @@ COMMENT ON COLUMN organization_workforce.org_units.updated_at IS '更新时间';
 COMMENT ON COLUMN organization_workforce.org_units.version IS '乐观锁版本';
 
 CREATE TABLE organization_workforce.employees (
-    id                bigint      PRIMARY KEY,
+    id                uuid        PRIMARY KEY,
     employee_code     text        NOT NULL,
     display_name      text        NOT NULL,
     login_name        text,
@@ -80,7 +80,7 @@ CREATE UNIQUE INDEX employees_wecom_user_id_employed_key ON organization_workfor
     WHERE employment_status = 'EMPLOYED' AND wecom_user_id IS NOT NULL;
 CREATE INDEX employees_employee_code_idx ON organization_workforce.employees (employee_code);
 COMMENT ON TABLE organization_workforce.employees IS '员工：组织源人员的快照；没有登录名即离职（RULE-363），不含生日等敏感信息；粒度：每个员工一行';
-COMMENT ON COLUMN organization_workforce.employees.id IS '员工 ID（沿用组织源，有符号 bigint）';
+COMMENT ON COLUMN organization_workforce.employees.id IS '员工 ID（UUIDv7；组织源人员经来源对照映射）';
 COMMENT ON COLUMN organization_workforce.employees.employee_code IS '员工编号（工号）';
 COMMENT ON COLUMN organization_workforce.employees.display_name IS '姓名';
 COMMENT ON COLUMN organization_workforce.employees.login_name IS '登录名；为空（null 或空串）表示已离职（RULE-363）';
@@ -97,16 +97,17 @@ COMMENT ON COLUMN organization_workforce.employees.version IS '乐观锁版本';
 COMMENT ON COLUMN organization_workforce.employees.event_count IS '事件序号：员工聚合已发出的事件数（登录时登记发一个），作为事件信封的 aggregateVersion；同步写入不改变它';
 
 CREATE TABLE organization_workforce.assignments (
-    employee_id            bigint      PRIMARY KEY REFERENCES organization_workforce.employees (id),
-    org_unit_id            bigint      NOT NULL REFERENCES organization_workforce.org_units (id),
-    position_id            bigint      REFERENCES organization_workforce.positions (id),
-    reports_to_employee_id bigint,
+    employee_id            uuid        PRIMARY KEY REFERENCES organization_workforce.employees (id),
+    org_unit_id            uuid        NOT NULL REFERENCES organization_workforce.org_units (id),
+    position_id            uuid        REFERENCES organization_workforce.positions (id),
+    reports_to_employee_id uuid,
     created_at             timestamptz NOT NULL DEFAULT now(),
     updated_at             timestamptz NOT NULL DEFAULT now(),
     version                bigint      NOT NULL DEFAULT 0
 );
 CREATE INDEX assignments_org_unit_id_idx ON organization_workforce.assignments (org_unit_id);
-COMMENT ON TABLE organization_workforce.assignments IS '任职：员工所在组织单元、岗位与直属领导（汇报线），组织源为源；粒度：每个员工当前一行，变化历史在 assignment_versions';
+CREATE INDEX ix_assignments_position_id ON organization_workforce.assignments (position_id);
+COMMENT ON TABLE organization_workforce.assignments IS '任职：员工所在组织单元、岗位与直属领导（汇报线），组织源为源；员工的 1:1 扩展表（主岗投影），主键即员工 ID；粒度：每个员工当前一行，变化历史在 assignment_versions';
 COMMENT ON COLUMN organization_workforce.assignments.employee_id IS '员工 ID';
 COMMENT ON COLUMN organization_workforce.assignments.org_unit_id IS '组织单元 ID（所属部门）';
 COMMENT ON COLUMN organization_workforce.assignments.position_id IS '岗位 ID；组织源未给岗位的行在同步时被隔离，因此正常数据不为空';
@@ -198,7 +199,7 @@ COMMENT ON COLUMN organization_workforce.sync_diffs.id IS '差异 ID（UUIDv7）
 COMMENT ON COLUMN organization_workforce.sync_diffs.sync_run_id IS '同步记录 ID';
 COMMENT ON COLUMN organization_workforce.sync_diffs.diff_number IS '差异序号：在同一次同步内按发现顺序从 1 起编号，显示顺序按它排';
 COMMENT ON COLUMN organization_workforce.sync_diffs.entity_kind IS '对象类别：ORG_UNIT / EMPLOYEE / POSITION';
-COMMENT ON COLUMN organization_workforce.sync_diffs.subject_key IS '对象键，如 employee:2001';
+COMMENT ON COLUMN organization_workforce.sync_diffs.subject_key IS '对象键，如 employee:0192f3a4-7b1c-7d2e-8f30-5a6b7c8d9e01（类别 + 自有 ID）';
 COMMENT ON COLUMN organization_workforce.sync_diffs.change_kind IS '变更类别：CREATED / UPDATED / SEPARATED / REHIRED / REVOKED / REVIVED / ISSUE（数据例外）';
 COMMENT ON COLUMN organization_workforce.sync_diffs.issue_kind IS '数据例外类别（仅 ISSUE 行）';
 COMMENT ON COLUMN organization_workforce.sync_diffs.detail IS '说明';
@@ -233,38 +234,45 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 CREATE TABLE organization_workforce.legal_entity_attributions (
     attribution_id uuid        NOT NULL,
-    subject_kind   text        NOT NULL CONSTRAINT ck_legal_entity_attributions_subject_kind CHECK (subject_kind IN ('ORG_UNIT', 'EMPLOYEE')),
-    subject_id     bigint      NOT NULL,
+    org_unit_id    uuid,
+    employee_id    uuid,
     version        bigint      NOT NULL DEFAULT 0,
     event_count    bigint      NOT NULL DEFAULT 0,
     created_at     timestamptz NOT NULL DEFAULT now(),
     updated_at     timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_legal_entity_attributions PRIMARY KEY (attribution_id),
-    CONSTRAINT uk_legal_entity_attributions_subject_id UNIQUE (subject_kind, subject_id)
+    CONSTRAINT fk_legal_entity_attributions_org_unit_id FOREIGN KEY (org_unit_id) REFERENCES organization_workforce.org_units (id),
+    CONSTRAINT fk_legal_entity_attributions_employee_id FOREIGN KEY (employee_id) REFERENCES organization_workforce.employees (id),
+    CONSTRAINT uk_legal_entity_attributions_org_unit_id UNIQUE (org_unit_id),
+    CONSTRAINT uk_legal_entity_attributions_employee_id UNIQUE (employee_id),
+    CONSTRAINT ck_legal_entity_attributions_subject CHECK (num_nonnulls(org_unit_id, employee_id) = 1)
 );
 COMMENT ON TABLE organization_workforce.legal_entity_attributions IS '法人归属：部门或员工的法人归属聚合的版本与事件序号；粒度：每个部门、每个员工至多一行；归属期间在 org_unit_legal_entities 与 employee_legal_entities';
 COMMENT ON COLUMN organization_workforce.legal_entity_attributions.attribution_id IS '法人归属 ID';
-COMMENT ON COLUMN organization_workforce.legal_entity_attributions.subject_kind IS '归属对象类别：ORG_UNIT 部门（子部门继承，可在子树上覆盖）/ EMPLOYEE 员工（单独指定优先于部门）';
-COMMENT ON COLUMN organization_workforce.legal_entity_attributions.subject_id IS '归属对象 ID：部门 ID 或员工 ID（沿用组织源）';
+COMMENT ON COLUMN organization_workforce.legal_entity_attributions.org_unit_id IS '组织单元 ID：归属对象是部门时填（子部门继承，可在子树上覆盖）；为空表示归属对象是另一类（员工）；与 employee_id 恰有一个非空';
+COMMENT ON COLUMN organization_workforce.legal_entity_attributions.employee_id IS '员工 ID：归属对象是员工时填（单独指定优先于部门）；为空表示归属对象是另一类（部门）；与 org_unit_id 恰有一个非空';
 COMMENT ON COLUMN organization_workforce.legal_entity_attributions.version IS '乐观锁版本';
 COMMENT ON COLUMN organization_workforce.legal_entity_attributions.event_count IS '事件序号：该聚合已发出的事件数，每发一个事件加 1，作为事件信封的 aggregateVersion；与乐观锁 version 分开';
 COMMENT ON COLUMN organization_workforce.legal_entity_attributions.created_at IS '创建时间';
 COMMENT ON COLUMN organization_workforce.legal_entity_attributions.updated_at IS '更新时间';
 
 CREATE TABLE organization_workforce.org_unit_legal_entities (
-    org_unit_id         bigint      NOT NULL,
+    org_unit_legal_entity_id uuid   NOT NULL,
+    org_unit_id         uuid        NOT NULL,
     effective_from_date date        NOT NULL,
     effective_to_date   date,
     legal_entity_id     uuid        NOT NULL,
     created_at          timestamptz NOT NULL DEFAULT now(),
     updated_at          timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT pk_org_unit_legal_entities PRIMARY KEY (org_unit_id, effective_from_date),
+    CONSTRAINT pk_org_unit_legal_entities PRIMARY KEY (org_unit_legal_entity_id),
+    CONSTRAINT uk_org_unit_legal_entities_effective_from UNIQUE (org_unit_id, effective_from_date),
     CONSTRAINT fk_org_unit_legal_entities_org_unit_id FOREIGN KEY (org_unit_id) REFERENCES organization_workforce.org_units (id),
     CONSTRAINT fk_org_unit_legal_entities_legal_entity_id FOREIGN KEY (legal_entity_id) REFERENCES organization_workforce.legal_entities (id),
     CONSTRAINT ck_org_unit_legal_entities_range CHECK (effective_to_date IS NULL OR effective_to_date > effective_from_date),
     CONSTRAINT ex_org_unit_legal_entities_overlap EXCLUDE USING gist (org_unit_id WITH =, daterange(effective_from_date, effective_to_date) WITH &&)
 );
 COMMENT ON TABLE organization_workforce.org_unit_legal_entities IS '部门法人对照：部门默认归属的法人，子部门继承，可在子树上覆盖；生效区间维度，只追加（开放期间只能被关闭，已关闭的期间不改，结束日写错时用更正记录）；粒度：每个部门的每个归属期间一行，同一部门的期间不重叠';
+COMMENT ON COLUMN organization_workforce.org_unit_legal_entities.org_unit_legal_entity_id IS '组织单元法人归属期间行的代理主键（UUIDv7，不是法人 ID）；自然键为组织单元 ID + 生效日';
 COMMENT ON COLUMN organization_workforce.org_unit_legal_entities.org_unit_id IS '组织单元 ID：被归属的部门';
 COMMENT ON COLUMN organization_workforce.org_unit_legal_entities.effective_from_date IS '生效日（含）';
 COMMENT ON COLUMN organization_workforce.org_unit_legal_entities.effective_to_date IS '失效日（不含）；为空表示至今';
@@ -273,19 +281,22 @@ COMMENT ON COLUMN organization_workforce.org_unit_legal_entities.created_at IS '
 COMMENT ON COLUMN organization_workforce.org_unit_legal_entities.updated_at IS '更新时间';
 
 CREATE TABLE organization_workforce.employee_legal_entities (
-    employee_id         bigint      NOT NULL,
+    employee_legal_entity_id uuid   NOT NULL,
+    employee_id         uuid        NOT NULL,
     effective_from_date date        NOT NULL,
     effective_to_date   date,
     legal_entity_id     uuid        NOT NULL,
     created_at          timestamptz NOT NULL DEFAULT now(),
     updated_at          timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT pk_employee_legal_entities PRIMARY KEY (employee_id, effective_from_date),
+    CONSTRAINT pk_employee_legal_entities PRIMARY KEY (employee_legal_entity_id),
+    CONSTRAINT uk_employee_legal_entities_effective_from UNIQUE (employee_id, effective_from_date),
     CONSTRAINT fk_employee_legal_entities_employee_id FOREIGN KEY (employee_id) REFERENCES organization_workforce.employees (id),
     CONSTRAINT fk_employee_legal_entities_legal_entity_id FOREIGN KEY (legal_entity_id) REFERENCES organization_workforce.legal_entities (id),
     CONSTRAINT ck_employee_legal_entities_range CHECK (effective_to_date IS NULL OR effective_to_date > effective_from_date),
     CONSTRAINT ex_employee_legal_entities_overlap EXCLUDE USING gist (employee_id WITH =, daterange(effective_from_date, effective_to_date) WITH &&)
 );
 COMMENT ON TABLE organization_workforce.employee_legal_entities IS '员工法人归属：个别员工单独指定的法人，优先于部门对照；生效区间维度，只追加（开放期间只能被关闭，已关闭的期间不改，结束日写错时用更正记录）；粒度：每个员工的每个归属期间一行，同一员工的期间不重叠';
+COMMENT ON COLUMN organization_workforce.employee_legal_entities.employee_legal_entity_id IS '员工法人归属期间行的代理主键（UUIDv7，不是法人 ID）；自然键为员工 ID + 生效日';
 COMMENT ON COLUMN organization_workforce.employee_legal_entities.employee_id IS '员工 ID：被归属的员工';
 COMMENT ON COLUMN organization_workforce.employee_legal_entities.effective_from_date IS '生效日（含）';
 COMMENT ON COLUMN organization_workforce.employee_legal_entities.effective_to_date IS '失效日（不含）；为空表示至今';
@@ -294,26 +305,29 @@ COMMENT ON COLUMN organization_workforce.employee_legal_entities.created_at IS '
 COMMENT ON COLUMN organization_workforce.employee_legal_entities.updated_at IS '更新时间';
 
 CREATE TABLE organization_workforce.org_unit_versions (
-    org_unit_id                     bigint      NOT NULL,
+    org_unit_version_id             uuid        NOT NULL,
+    org_unit_id                     uuid        NOT NULL,
     effective_from_date                  date        NOT NULL,
     effective_to_date                    date,
     code                            text,
     name                            text        NOT NULL,
-    parent_org_unit_id              bigint,
+    parent_org_unit_id              uuid,
     status                          text        NOT NULL CONSTRAINT ck_org_unit_versions_status CHECK (status IN ('ACTIVE', 'DISABLED', 'REVOKED')),
-    head_employee_id                bigint,
-    regional_receivables_manager_id bigint,
+    head_employee_id                uuid,
+    regional_receivables_manager_id uuid,
     region_kind                 text CONSTRAINT ck_org_unit_versions_region_kind CHECK (region_kind IN ('HEADQUARTERS', 'REGIONAL')),
     is_delivery_unit                boolean     NOT NULL,
     created_at                      timestamptz NOT NULL DEFAULT now(),
     updated_at                      timestamptz NOT NULL DEFAULT now(),
     revision_number                 integer     NOT NULL DEFAULT 0,
-    CONSTRAINT pk_org_unit_versions PRIMARY KEY (org_unit_id, effective_from_date, revision_number),
+    CONSTRAINT pk_org_unit_versions PRIMARY KEY (org_unit_version_id),
+    CONSTRAINT uk_org_unit_versions_revision UNIQUE (org_unit_id, effective_from_date, revision_number),
     CONSTRAINT fk_org_unit_versions_org_unit_id FOREIGN KEY (org_unit_id) REFERENCES organization_workforce.org_units (id),
     CONSTRAINT ck_org_unit_versions_range CHECK (effective_to_date IS NULL OR effective_to_date >= effective_from_date),
     CONSTRAINT ex_org_unit_versions_overlap EXCLUDE USING gist (org_unit_id WITH =, daterange(effective_from_date, effective_to_date) WITH &&)
 );
 COMMENT ON TABLE organization_workforce.org_unit_versions IS '组织单元版本：组织单元的变化历史，只追加（开放版本只能被关闭，同一天的再次变化关闭当天版本并追加下一修订）；粒度：每个组织单元的每个生效区间每个修订一行；与快照在同一事务写入';
+COMMENT ON COLUMN organization_workforce.org_unit_versions.org_unit_version_id IS '组织单元版本 ID（UUIDv7）';
 COMMENT ON COLUMN organization_workforce.org_unit_versions.org_unit_id IS '组织单元 ID';
 COMMENT ON COLUMN organization_workforce.org_unit_versions.effective_from_date IS '生效日（含），按业务时区截日';
 COMMENT ON COLUMN organization_workforce.org_unit_versions.effective_to_date IS '失效日（不含）；为空表示至今；等于生效日表示当天被同日再次变化取代的空区间';
@@ -330,22 +344,25 @@ COMMENT ON COLUMN organization_workforce.org_unit_versions.updated_at IS '更新
 COMMENT ON COLUMN organization_workforce.org_unit_versions.revision_number IS '修订序号：同一生效日内的序号，同日再次变化时关闭当天版本（空区间）并以加 1 的序号追加新行';
 
 CREATE TABLE organization_workforce.assignment_versions (
-    employee_id            bigint      NOT NULL,
+    assignment_version_id  uuid        NOT NULL,
+    employee_id            uuid        NOT NULL,
     effective_from_date         date        NOT NULL,
     effective_to_date           date,
-    org_unit_id            bigint      NOT NULL,
-    position_id            bigint,
-    reports_to_employee_id bigint,
+    org_unit_id            uuid        NOT NULL,
+    position_id            uuid,
+    reports_to_employee_id uuid,
     created_at             timestamptz NOT NULL DEFAULT now(),
     updated_at             timestamptz NOT NULL DEFAULT now(),
     revision_number        integer     NOT NULL DEFAULT 0,
-    CONSTRAINT pk_assignment_versions PRIMARY KEY (employee_id, effective_from_date, revision_number),
+    CONSTRAINT pk_assignment_versions PRIMARY KEY (assignment_version_id),
+    CONSTRAINT uk_assignment_versions_revision UNIQUE (employee_id, effective_from_date, revision_number),
     CONSTRAINT fk_assignment_versions_employee_id FOREIGN KEY (employee_id) REFERENCES organization_workforce.employees (id),
     CONSTRAINT fk_assignment_versions_org_unit_id FOREIGN KEY (org_unit_id) REFERENCES organization_workforce.org_units (id),
     CONSTRAINT ck_assignment_versions_range CHECK (effective_to_date IS NULL OR effective_to_date >= effective_from_date),
     CONSTRAINT ex_assignment_versions_overlap EXCLUDE USING gist (employee_id WITH =, daterange(effective_from_date, effective_to_date) WITH &&)
 );
 COMMENT ON TABLE organization_workforce.assignment_versions IS '任职版本：员工所在部门、岗位与汇报线的变化历史，只追加（开放版本只能被关闭，同一天的再次变化关闭当天版本并追加下一修订）；粒度：每个员工的每个生效区间每个修订一行；与快照在同一事务写入';
+COMMENT ON COLUMN organization_workforce.assignment_versions.assignment_version_id IS '任职版本 ID（UUIDv7）';
 COMMENT ON COLUMN organization_workforce.assignment_versions.employee_id IS '员工 ID';
 COMMENT ON COLUMN organization_workforce.assignment_versions.effective_from_date IS '生效日（含），按业务时区截日';
 COMMENT ON COLUMN organization_workforce.assignment_versions.effective_to_date IS '失效日（不含）；为空表示至今；等于生效日表示当天被同日再次变化取代的空区间';
@@ -390,8 +407,8 @@ COMMENT ON COLUMN organization_workforce.legal_entity_versions.updated_at IS '�
 CREATE TABLE organization_workforce.legal_entity_attribution_corrections (
     correction_id                uuid        NOT NULL,
     correction_number            bigint      GENERATED ALWAYS AS IDENTITY,
-    subject_kind                 text        NOT NULL CONSTRAINT ck_legal_entity_attribution_corrections_subject_kind CHECK (subject_kind IN ('ORG_UNIT', 'EMPLOYEE')),
-    subject_id                   bigint      NOT NULL,
+    org_unit_id                  uuid,
+    employee_id                  uuid,
     period_effective_from_date   date        NOT NULL,
     previous_effective_to_date   date        NOT NULL,
     new_effective_to_date        date        NOT NULL,
@@ -402,15 +419,20 @@ CREATE TABLE organization_workforce.legal_entity_attribution_corrections (
     CONSTRAINT pk_legal_entity_attribution_corrections PRIMARY KEY (correction_id),
     CONSTRAINT uk_legal_entity_attribution_corrections_correction_number UNIQUE (correction_number),
     CONSTRAINT ck_legal_entity_attribution_corrections_range CHECK (new_effective_to_date > period_effective_from_date),
-    CONSTRAINT ck_legal_entity_attribution_corrections_reason CHECK (btrim(correction_reason) <> '')
+    CONSTRAINT ck_legal_entity_attribution_corrections_reason CHECK (btrim(correction_reason) <> ''),
+    CONSTRAINT fk_legal_entity_attribution_corrections_org_unit_id FOREIGN KEY (org_unit_id) REFERENCES organization_workforce.org_units (id),
+    CONSTRAINT fk_legal_entity_attribution_corrections_employee_id FOREIGN KEY (employee_id) REFERENCES organization_workforce.employees (id),
+    CONSTRAINT ck_legal_entity_attribution_corrections_subject CHECK (num_nonnulls(org_unit_id, employee_id) = 1)
 );
-CREATE INDEX ix_legal_entity_attribution_corrections_subject ON organization_workforce.legal_entity_attribution_corrections
-    (subject_kind, subject_id, period_effective_from_date, correction_number DESC);
+CREATE INDEX ix_legal_entity_attribution_corrections_org_unit_id ON organization_workforce.legal_entity_attribution_corrections
+    (org_unit_id, period_effective_from_date, correction_number DESC);
+CREATE INDEX ix_legal_entity_attribution_corrections_employee_id ON organization_workforce.legal_entity_attribution_corrections
+    (employee_id, period_effective_from_date, correction_number DESC);
 COMMENT ON TABLE organization_workforce.legal_entity_attribution_corrections IS '法人归属更正记录：只追加；解析法人时，期间的结束日取该期间最新一条更正的新结束日；粒度：每次更正一行';
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.correction_id IS '更正记录 ID';
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.correction_number IS '更正序号：全表递增，同一期间多次更正时序号最大的为准';
-COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.subject_kind IS '归属对象类别：ORG_UNIT 部门 / EMPLOYEE 员工';
-COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.subject_id IS '归属对象 ID：部门 ID 或员工 ID';
+COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.org_unit_id IS '组织单元 ID：被更正的是部门的归属期间时填；为空表示归属对象是另一类（员工）；与 employee_id 恰有一个非空';
+COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.employee_id IS '员工 ID：被更正的是员工的归属期间时填；为空表示归属对象是另一类（部门）；与 org_unit_id 恰有一个非空';
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.period_effective_from_date IS '被更正期间的生效日（含）：与期间表中该期间的生效日相同';
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.previous_effective_to_date IS '更正前的结束日（不含）';
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.new_effective_to_date IS '更正后的结束日（不含）';
@@ -420,15 +442,19 @@ COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.cr
 COMMENT ON COLUMN organization_workforce.legal_entity_attribution_corrections.updated_at IS '更新时间（行不可更新，恒等于创建时间）';
 
 CREATE TABLE organization_workforce.sync_run_held_separations (
+    sync_run_held_separation_id uuid NOT NULL,
     sync_run_id uuid        NOT NULL,
-    employee_id bigint      NOT NULL,
+    employee_id uuid        NOT NULL,
     created_at  timestamptz NOT NULL DEFAULT now(),
     updated_at  timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT pk_sync_run_held_separations PRIMARY KEY (sync_run_id, employee_id),
+    CONSTRAINT pk_sync_run_held_separations PRIMARY KEY (sync_run_held_separation_id),
+    CONSTRAINT uk_sync_run_held_separations_sync_run_id_employee_id UNIQUE (sync_run_id, employee_id),
     CONSTRAINT fk_sync_run_held_separations_sync_run_id FOREIGN KEY (sync_run_id) REFERENCES organization_workforce.sync_runs (id) ON DELETE CASCADE,
     CONSTRAINT fk_sync_run_held_separations_employee_id FOREIGN KEY (employee_id) REFERENCES organization_workforce.employees (id)
 );
+CREATE INDEX ix_sync_run_held_separations_employee_id ON organization_workforce.sync_run_held_separations (employee_id);
 COMMENT ON TABLE organization_workforce.sync_run_held_separations IS '被暂停的同步运行当时的离职名单：放行重跑时比对是否出现新的管理员离职，并供有放行权限的人只读查看。粒度：每个暂停的运行的每个待离职员工一行';
+COMMENT ON COLUMN organization_workforce.sync_run_held_separations.sync_run_held_separation_id IS '暂停同步待离职员工 ID（UUIDv7）';
 COMMENT ON COLUMN organization_workforce.sync_run_held_separations.sync_run_id IS '同步记录 ID：被暂停的同步';
 COMMENT ON COLUMN organization_workforce.sync_run_held_separations.employee_id IS '员工 ID：待离职';
 COMMENT ON COLUMN organization_workforce.sync_run_held_separations.created_at IS '创建时间';
@@ -448,6 +474,10 @@ ALTER TABLE organization_workforce.assignments
         REFERENCES organization_workforce.employees (id) DEFERRABLE INITIALLY DEFERRED;
 
 CREATE INDEX ix_org_units_head_employee_id ON organization_workforce.org_units (head_employee_id);
+CREATE INDEX ix_org_units_regional_receivables_manager_id ON organization_workforce.org_units (regional_receivables_manager_id);
+CREATE INDEX ix_org_unit_legal_entities_legal_entity_id ON organization_workforce.org_unit_legal_entities (legal_entity_id);
+CREATE INDEX ix_employee_legal_entities_legal_entity_id ON organization_workforce.employee_legal_entities (legal_entity_id);
+CREATE INDEX ix_assignment_versions_org_unit_id ON organization_workforce.assignment_versions (org_unit_id, effective_from_date);
 CREATE INDEX ix_assignments_reports_to_employee_id ON organization_workforce.assignments (reports_to_employee_id);
 
 CREATE FUNCTION organization_workforce.reject_attribution_correction_change() RETURNS trigger

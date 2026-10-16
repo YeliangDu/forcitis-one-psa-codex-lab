@@ -43,6 +43,10 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
+import com.forcitis.one.platform.numbering.api.IssuedNumber;
+import com.forcitis.one.platform.numbering.api.NumberingCounterId;
+import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 
 /**
  * "whose timesheet is it" is answered on the employee side. The caller's account and employee carry different
@@ -51,8 +55,8 @@ import org.junit.jupiter.api.Test;
  */
 class TimesheetOwnerGateTest {
     static final UserId ACCOUNT = TestAccounts.account(6001);
-    static final EmployeeId EMPLOYEE = new EmployeeId(1001);
-    static final EmployeeId OWNER_OF_THE_ACCOUNT_NUMBER = new EmployeeId(6001);
+    static final EmployeeId EMPLOYEE = TestAccounts.employee(1001);
+    static final EmployeeId OWNER_OF_THE_ACCOUNT_NUMBER = TestAccounts.employee(6001);
     static final TimesheetId ID = new TimesheetId(TestIds.uuid(7));
     static final LocalDate DAY = LocalDate.of(2026, 10, 13);
     static final Clock CLOCK = Clock.fixed(Instant.parse("2026-10-14T02:00:00Z"), ZoneOffset.UTC);
@@ -67,8 +71,8 @@ class TimesheetOwnerGateTest {
     }
 
     static Timesheet submittedBy(EmployeeId employee) {
-        return Timesheet.restore(ID, new DocumentNumber("TS-ABC-202610-0007"), employee, new LegalEntityId(TestIds.uuid(1)), new OrgUnitId(5), DAY,
-                Hours.of("8"), new EmployeeId(40), TimesheetStatus.SUBMITTED, 1, DAY, 3, 2);
+        return Timesheet.restore(ID, new DocumentNumber("TS-ABC-202610-0007"), employee, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(5), DAY,
+                Hours.of("8"), TestAccounts.employee(40), TimesheetStatus.SUBMITTED, 1, DAY, 3, 2);
     }
 
     static void refused(Runnable action) {
@@ -129,22 +133,22 @@ class TimesheetOwnerGateTest {
         DomainEvents events = mock(DomainEvents.class);
         SubmitTimesheet submit = new SubmitTimesheet(approvals, currentUser, directory, legalEntities, numbers, timesheets, events, CLOCK,
                 new BusinessZone(ZoneId.of("Asia/Shanghai")));
-        SubmitTimesheetCommand command = new SubmitTimesheetCommand(ID, DAY, Hours.of("8"), new EmployeeId(40));
+        SubmitTimesheetCommand command = new SubmitTimesheetCommand(ID, DAY, Hours.of("8"), TestAccounts.employee(40));
 
         when(timesheets.findForUpdate(ID)).thenReturn(Optional.of(submittedBy(OWNER_OF_THE_ACCOUNT_NUMBER)));
         refused(() -> submit.execute(command));
         verify(timesheets, never()).save(any());
 
-        var profile = new com.forcitis.one.organization.workforce.api.EmployeeProfile(EMPLOYEE, "me", new OrgUnitId(5), null,
+        var profile = new com.forcitis.one.organization.workforce.api.EmployeeProfile(EMPLOYEE, "me", TestOrgIds.orgUnit(5), null,
                 com.forcitis.one.organization.workforce.api.EmploymentStatus.EMPLOYED, false);
-        var manager = new com.forcitis.one.organization.workforce.api.EmployeeProfile(new EmployeeId(40), "manager", new OrgUnitId(5), null,
+        var manager = new com.forcitis.one.organization.workforce.api.EmployeeProfile(TestAccounts.employee(40), "manager", TestOrgIds.orgUnit(5), null,
                 com.forcitis.one.organization.workforce.api.EmploymentStatus.EMPLOYED, false);
         when(timesheets.findForUpdate(ID)).thenReturn(Optional.empty());
         when(directory.findEmployee(EMPLOYEE)).thenReturn(Optional.of(profile));
-        when(directory.findEmployee(new EmployeeId(40))).thenReturn(Optional.of(manager));
+        when(directory.findEmployee(TestAccounts.employee(40))).thenReturn(Optional.of(manager));
         LegalEntityId legalEntity = new LegalEntityId(TestIds.uuid(1));
         when(legalEntities.on(eq(EMPLOYEE), any())).thenReturn(legalEntity);
-        when(numbers.next(eq(DocumentType.TIMESHEET), eq(legalEntity), any())).thenReturn(new DocumentNumber("TS-ABC-202610-0007"));
+        when(numbers.next(eq(DocumentType.TIMESHEET), eq(legalEntity), any())).thenReturn(new IssuedNumber(new DocumentNumber("TS-ABC-202610-0007"), new NumberingCounterId(TestIds.uuid(11)), new NumberingRuleVersionId(TestIds.uuid(12))));
 
         submit.execute(command);
 

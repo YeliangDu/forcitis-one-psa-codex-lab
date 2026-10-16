@@ -5,7 +5,7 @@ terms:
   zh: 迁入批次
   en: MigrationBatch
   snake: migration_batch
-  kind: entity
+  kind: aggregate
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -21,22 +21,6 @@ terms:
   - ImportBatch
   status: proposed
   note: 用户 2026-10-15 定批次术语唯一写法；platform.numbering 的 import_batch 已在 R-1b P3a（#139）改为 migration_batch_id，同一提交加入 forbidden 并删去 platform-integration.yaml 中的重复条目
-- id: migration_orchestration
-  zh: 迁入编排
-  en: MigrationOrchestration
-  snake: migration_orchestration
-  kind: entity
-  bc: platform.migration
-  scope: acl
-  acl_class: "过渡期"
-  definition: 按依赖顺序调用集成层与各目标 BC 迁入用例、推进迁入批次的独立模块（暂定 platform.migration）；只依赖它们的 api，不被任何模块依赖（ADR-0036 第 1 条）
-  standard_ref:
-  - ADR-0036 历史数据迁入
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 模块名在实现 PR 定
 - id: migration_reject
   zh: 迁入拒收
   en: MigrationReject
@@ -57,7 +41,7 @@ terms:
   zh: 取值无法映射
   en: UnmappableValue
   snake: unmappable_value
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -73,7 +57,7 @@ terms:
   zh: 必填缺失
   en: RequiredMissing
   snake: required_missing
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -89,7 +73,7 @@ terms:
   zh: 编号冲突
   en: NumberConflict
   snake: number_conflict
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -105,7 +89,7 @@ terms:
   zh: 原行缺失
   en: OriginalMissing
   snake: original_missing
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -121,7 +105,7 @@ terms:
   zh: 法人不在范围
   en: LegalEntityOutOfScope
   snake: legal_entity_out_of_scope
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -137,7 +121,7 @@ terms:
   zh: 试提交失败
   en: TrialCommitFailed
   snake: trial_commit_failed
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -153,7 +137,7 @@ terms:
   zh: 修正后重跑
   en: RerunAfterFix
   snake: rerun_after_fix
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -169,7 +153,7 @@ terms:
   zh: 确认不迁
   en: Excluded
   snake: excluded
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -197,21 +181,6 @@ terms:
   forbidden: []
   status: proposed
   note: 不用 Reconciliation：已批准术语「经营勾稽」Reconciliation 指跨口径对账
-- id: period_status__historical
-  zh: 历史期间
-  en: Historical
-  snake: historical
-  kind: value
-  bc: accounting.period
-  scope: domain
-  definition: 期间状态的一个取值，终态：FORCITIS one 首个业务期间之前的 (期间, 法人)，永不接受业务过账，只接受迁入过账通道；不逐期关账、不发关账事件（ADR-0036 第 6 条）
-  standard_ref:
-  - ADR-0036 历史数据迁入
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 会计类用语，待财务确认（ADR-0018；ADR-0036 U-3）
 - id: migration_period_reservation
   zh: 迁入占用
   en: MigrationPeriodReservation
@@ -232,7 +201,7 @@ terms:
   zh: 迁入标记
   en: MigrationMarker
   snake: migration_marker
-  kind: value
+  kind: value_object
   bc: operations.facts
   scope: domain
   definition: 事实行上区分原生与迁入的标记；只在事实行，单据表不带；accounting.ledger 不为迁入标记的事实生成分录（ADR-0036 第 5、6 条）
@@ -279,7 +248,7 @@ terms:
   zh: 试提交
   en: TrialCommit
   snake: trial_commit
-  kind: entity
+  kind: command
   bc: platform.migration
   scope: acl
   acl_class: "过渡期"
@@ -295,7 +264,7 @@ terms:
   zh: 暂存中
   en: Staging
   snake: staging
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -311,7 +280,7 @@ terms:
   zh: 待核对
   en: AwaitingTieOut
   snake: awaiting_tie_out
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -327,7 +296,7 @@ terms:
   zh: 提交中
   en: Committing
   snake: committing
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -343,7 +312,7 @@ terms:
   zh: 已生效
   en: Effective
   snake: effective
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: domain
   definition: 迁入批次状态取值：提交后复核一致；可转为已冲销（ADR-0036 第 3 条）
@@ -358,7 +327,7 @@ terms:
   zh: 已冲销
   en: Reversed
   snake: reversed
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -374,7 +343,7 @@ terms:
   zh: 已放弃
   en: Abandoned
   snake: abandoned
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -390,7 +359,7 @@ terms:
   zh: 对照状态
   en: SourceReferenceStatus
   snake: source_reference_status
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -406,7 +375,7 @@ terms:
   zh: 当前
   en: Current
   snake: current
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -422,7 +391,7 @@ terms:
   zh: 来源行摘要
   en: SourceRowDigest
   snake: source_row_digest
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"

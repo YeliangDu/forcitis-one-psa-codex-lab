@@ -54,8 +54,8 @@ class HookGateTest {
     }
 
     static TaskView task(String hookKey) {
-        return new TaskView(new ApprovalTaskId("t"), new ApprovalInstanceId("i"), ProcessKey.COST_TIMESHEET_APPROVAL,
-                new DocumentReference(DocumentType.TIMESHEET, new DocumentId("doc")), new LegalEntityId(TestIds.uuid(1)), "node", "Node", new EmployeeId(1),
+        return new TaskView(com.forcitis.one.TestApprovalIds.task("t"), com.forcitis.one.TestApprovalIds.instance("i"), ProcessKey.COST_TIMESHEET_APPROVAL,
+                new DocumentReference(DocumentType.TIMESHEET, com.forcitis.one.TestApprovalIds.document("doc")), new LegalEntityId(TestIds.uuid(1)), "node", "Node", TestAccounts.employee(1),
                 Optional.empty(), Set.of(TestAccounts.account(2)), Instant.EPOCH, false, Optional.ofNullable(hookKey), false, new ContentHash("hash"));
     }
 

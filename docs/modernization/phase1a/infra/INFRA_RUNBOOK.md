@@ -95,6 +95,7 @@ Prometheus 里的名字是 Micrometer 名字把点换成下划线、计数器加
 | `SyncOrgSnapshot`（组织同步，失败写成 FAILED 记录，不抛出） | `forcitis_organization_workforce_sync_runs_total{status="FAILED"}` 与 `{status="HELD"}`；另有 `forcitis_organization_workforce_sync_lag_seconds`、`forcitis_organization_workforce_sync_held_runs` | `increase(…{status="FAILED"}[30m]) > 0`；`held_runs > 0` |
 | `EnforceDeadlines`（审批时限，单个任务失败只记日志） | `forcitis_platform_approval_deadline_failed_total`（第一次失败时才出现，用 `increase`，不要用 `absent` 判断它） | `increase(…[10m]) > 0` |
 | `RefreshShortNames`（部门简称刷新，老系统不可用时跳过） | `forcitis_organization_workforce_short_name_refresh_failures_total`（启动时为 0） | `increase(…[1d]) > 0` 仅提示，不升级为 P1：简称保持上一次的值 |
+| 合并待办读老待办（员工无 (LEGACY_SYSTEM, EMPLOYEE) 来源对照时答「不可用」） | `forcitis_platform_integration_legacy_inbox_unmapped_total`（每次这样的读取加 1）；`ALERT platform.integration` 日志每名员工每个业务日只出一次（每个实例分别计；重启后重新计），其余为 WARN | P6 导入对照前（C8）配置了老待办 URL 就会持续增长，属预期，只看趋势；P6 之后 `increase(…[1d]) > 0` 告警 |
 
 ## 4. 外部只读账号（SQL Server，由对方 DBA 执行）
 
@@ -104,7 +105,7 @@ Prometheus 里的名字是 Micrometer 名字把点换成下划线、计数器加
 | 老系统（ruoyi-vue-pro） | 全库只读；合并待办经老待办视图 `dbo.v_psa_one_legacy_todo` 读取 | 只读，专用（`psa_one_legacy_ro`） | 同上；凭据列可读但应用代码不引用（ADR-0037 第 3 项，凭据列拒绝清单守护） | `handoff/B-5-dba/read-all/legacy_apply.sql`（视图：`phase1a/LEGACY_INBOX_VIEW.sql`） |
 | 老系统 | 全库只读；部门简称经视图 `dbo.v_one_legacy_org_short_name` 读取 | 只读，专用（`one_legacy_names_ro`）；与待办账号合并按 ADR-0037 第 5 项另行执行 | 同上 | 同上（视图：`phase1a/LEGACY_ORG_NAMES_VIEW.sql`） |
 
-应用对三条只读连接做同一项校验（ADR-0037 第 4 项，`platform.integration` 连接工厂）：服务器级与库级有效权限**等于**写死的 RDS 平台基线，库级 DENY 11 项存在且库级 GRANT 恰好 CONNECT、SELECT，只在 public 角色，不在任何固定服务器角色，不是 dbo、不拥有任何 schema / 对象 / 角色、无主体类授权，`sys.server_permissions` 中本登录的行恰好一行 GRANT CONNECT SQL（无针对登录等的授权，也无其他 GRANT 或 DENY），`HAS_DBACCESS` 只有本库与系统库（master、tempdb、model、msdb 及 rdscore），系统库只经 guest 进入（没有本登录自己的用户），库级以下的授权（本登录的，及 public 在用户对象上的）只有 DENY 或 GRANT SELECT。任一不满足或无法判定即拒绝启动，日志按 (a)–(g) 报出违反项；每次同步前与至少每天重检一次：确认违规即停掉该连接（写 ALERT，重启前不再读取）；暂时判定不了（查询失败、超时、为空）只让本次读取不可用并写 ALERT，连续 3 次判定不了才停掉，一次判定通过即清零（用户 2026-10-15，intent 2026-10-15-120940）。**没有关闭开关**；账号授权变更后先用真实登录核对基线再重启应用。
+应用对三条只读连接做同一项校验（ADR-0037 第 4 项，`platform.integration` 连接工厂）：服务器级与库级有效权限**等于**写死的 RDS 平台基线，库级 DENY 11 项存在且库级 GRANT 恰好 CONNECT、SELECT，只在 public 角色，不在任何固定服务器角色，不是 dbo、不拥有任何 schema / 对象 / 角色、无主体类授权，`sys.server_permissions` 中本登录的行恰好一行 GRANT CONNECT SQL（无针对登录等的授权，也无其他 GRANT 或 DENY），`HAS_DBACCESS` 只有本库与系统库（master、tempdb、model、msdb 及 rdscore），系统库只经 guest 进入，例外是 RDS 为每个登录自动建的 msdb 与 rdscore 本人用户（见 4.1「(f) 系统库本人用户」，msdb 本人用户的直接授权与有效权限另有限制），且本登录不拥有 SQL Agent 作业，库级以下的授权（本登录的，及 public 在用户对象上的）只有 DENY、GRANT SELECT，或被本登录自己的同名 DENY 覆盖的 GRANT（被拒绝覆盖的授权，见 4.1「(g) 的覆盖口径」）。任一不满足或无法判定即拒绝启动，日志按 (a)–(g) 报出违反项；每次同步前与至少每天重检一次：确认违规即停掉该连接（写 ALERT，重启前不再读取）；暂时判定不了（查询失败、超时、为空）只让本次读取不可用并写 ALERT，连续 3 次判定不了才停掉，一次判定通过即清零（用户 2026-10-15，intent 2026-10-15-120940）。**没有关闭开关**；账号授权变更后先用真实登录核对基线再重启应用。
 
 DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`handoff/B-5-dba/`。
 
@@ -124,13 +125,13 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
   |---|---|
   | `integration-seeyon-background` | `A8_DB_URL`、`A8_DB_USERNAME`、`A8_DB_PASSWORD` |
   | `integration-legacy` | `LEGACY_DB_RO_URL`、`LEGACY_DB_RO_USERNAME`、`LEGACY_DB_RO_PASSWORD` |
-  | `legacy-approval` | `FORCITIS_PLATFORM_APPROVAL_LEGACY_URL`、`_USERNAME`、`_PASSWORD` |
+  | `integration-legacy-inbox`（合并待办读老待办） | `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL`、`_USERNAME`、`_PASSWORD`（与运行时第 5 节同一组变量） |
   | `probe`（C-14 探针登录） | `READONLY_PROBE_DB_URL`、`READONLY_PROBE_DB_USERNAME`、`READONLY_PROBE_DB_PASSWORD` |
 
   三项**只从进程环境变量**读：`-D` 系统属性、命令行参数、`SPRING_APPLICATION_JSON` 里的同名设置一律不读；命令行出现这些变量名（`--A8_DB_URL=…`、`--readonly.probe.db.username=…` 等宽松写法也算）或 `--spring.application.json` 即用法错误。环境变量的给法：与迁移步骤同法用 `systemd-run --pipe --wait --collect -p EnvironmentFile=/etc/forcitis-one/one.env [-p EnvironmentFile=/etc/forcitis-one/readonly-probe.env] /usr/bin/java …`，不要把 env 文件 source 进交互 shell。只读所指定连接的三项；另两条连接配了什么不影响结果。缺任一项：用法错误，列出缺的变量名（不列值），不做核实。
 - 输出：每项一行 `(a) PASSED|VIOLATED|UNDETERMINED`，之后可带 ` reason=<原因代码> count=<个数>`，以及查询失败时的 ` error=<SQL 错误号> sqlstate=<SQLState>`（驱动报出的最内层 SQL 异常；驱动未给 SQLState 时写占位 `sqlstate=none`）；末行 `RESULT PASSED|VIOLATED|UNDETERMINED`，有任一项违规即违规，否则有判定不了即判定不了。
   - `count` 按调用累计：判定中每次检查或查询算一次，违规时计该次发现的条数（多出或缺少的权限、角色、库、授权行），查询失败或返回为空计 1；同一项内同一原因代码（与同一错误号）合并相加。所以连不上时七项都带同一个错误号，计数为各项失败的查询数：(d) 3、(f) 2、其余各 1（只连一次，不按每个查询等连接池超时）。
-  - 原因代码（`ReadOnlyBaseline.Reason`，21 个，只是类别，不含角色名、库名、登录名；属技术码，不进 `terms.yaml`——one-1a-next-3 同意 Unmet 加原因代码的条件⑤，PR 中单列）：
+  - 原因代码（`ReadOnlyBaseline.Reason`，22 个，只是类别，不含角色名、库名、登录名；属技术码，不进 `terms.yaml`——one-1a-next-3 同意 Unmet 加原因代码的条件⑤，PR 中单列）：
 
     | 项 | 确认违规 | 判定不了 |
     |---|---|---|
@@ -139,11 +140,65 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
     | (c) | `DATABASE_ROLE_MEMBERSHIP` 在 public 以外的库角色中 | |
     | (d) | `EFFECTIVE_PERMISSIONS_DIFFER` 服务器级有效权限与基线不等；`FIXED_SERVER_ROLE_MEMBERSHIP` 在固定服务器角色中；`SERVER_PERMISSION_ROW_NOT_BASELINE` 本登录在 `sys.server_permissions` 的行不恰为 GRANT CONNECT SQL | `FIXED_SERVER_ROLE_UNANSWERED` 服务器答不出某固定角色的成员关系 |
     | (e) | `DATABASE_OWNER` 是 dbo；`OWNS_SCHEMA`、`OWNS_OBJECT`、`OWNS_ROLE` 拥有 schema / 对象 / 角色；`DATABASE_PRINCIPAL_GRANT` 有主体类授权 | |
-    | (f) | `OTHER_DATABASE_REACHABLE` 能进基线外的库；`SYSTEM_DATABASE_OWN_USER` 系统库里有本登录自己的用户 | `OWN_DATABASE_NOT_LISTED` HAS_DBACCESS 不列本库 |
-    | (g) | `SECURABLE_GRANT_BEYOND_SELECT` 库级以下有 DENY 与 GRANT SELECT 以外的授权 | |
+    | (f) | `OTHER_DATABASE_REACHABLE` 能进基线外的库；`SYSTEM_DATABASE_OWN_USER` 系统库里有超出允许形状的本人用户；`SYSTEM_DATABASE_OWN_USER_PRIVILEGE` msdb 本人用户的权限超出平台默认（`count` 为库数）；`OWNS_AGENT_JOB` 本登录拥有 SQL Agent 作业（`count` 为作业个数，不出定位行） | `OWN_DATABASE_NOT_LISTED` HAS_DBACCESS 不列本库；`NO_ANSWER` msdb 本人用户有叫不出名称的角色，或 msdb 有效权限（含 IMPERSONATE）某项答不出，或令牌范围扫描答 NULL、某行有列缺答；`EMPTY_ANSWER` msdb 本人用户的直接授权、msdb 令牌范围扫描或 rdscore 本人用户的授权为空 |
+    | (g) | `SECURABLE_GRANT_BEYOND_SELECT` 库级以下有 DENY、GRANT SELECT 与被拒绝覆盖的授权以外的授权 | 可被覆盖的授权遇本登录 DENY 查不到：`CATALOG_QUERY_FAILED` 或 `EMPTY_ANSWER` |
     | 任一项 | | `CATALOG_QUERY_FAILED` 查询失败（带错误号）；`CHECK_FAILED` 判定本身出错（带错误号，若有）；`NO_ANSWER` 无应答；`EMPTY_ANSWER` 返回为空 |
-- 退出码：0 通过；2 用法错误（缺少、重复或未知的连接名，非 `--名=值` 形式的参数，参数名含 `password` / `secret` / `credential`（不分大小写），命令行出现连接变量名或 `--spring.application.json`，进程环境缺变量，URL 不是 SQL Server，与 `migrate` 或 `identity-operations` 档案同时激活，日志系统不是应用自带的 Logback——参数值一律不回显）；3 违规（含与判定不了同在）；4 判定不了。1 只表示进程本身失败（与 Spring Boot 启动失败一样），不是任何结果。
-- 不输出：口令（任何连接的）、登录名、连接串（探针 URL 里有 `trustStorePassword`）、数据库消息原文、启动校验的 problem 文本、数据。命令自己的行直接写标准输出 / 标准错误，不经日志；日志在核实之前全部关闭：根 logger、`logging.level.*` 配置过的每个 logger（如 `--logging.level.com.zaxxer.hikari.HikariConfig=DEBUG` 也被关掉）与已有的全部 logger 都设为 OFF，关不掉即拒绝运行。`-Dorg.springframework.boot.logging.LoggingSystem=none` 时 Logback 默认根级 DEBUG、无法由应用关掉，命令拒绝运行（退出 2）。
+- 定位行（(f)(g)；one-coordinator 2026-10-15 C-14 定位裁定；契约第 3a 节）：紧跟所属项行，两个空格开头，字段顺序固定，便于 `grep`：
+
+  ```
+  (f) VIOLATED reason=SYSTEM_DATABASE_OWN_USER count=2
+    (f) violation reason=SYSTEM_DATABASE_OWN_USER database="master"
+    (f) violation reason=SYSTEM_DATABASE_OWN_USER database="tempdb"
+    (f) ownUser database="master" role=-
+    (f) ownUser database="msdb" role="SQLAgentOperatorRole"
+    (f) ownUser database="msdb" role="SQLAgentReaderRole"
+    (f) ownUser database="msdb" role="SQLAgentUserRole"
+    (f) ownUser database="rdscore" role=-
+    (f) ownUser database="tempdb" role=-
+  (g) VIOLATED reason=SECURABLE_GRANT_BEYOND_SELECT count=1
+    (g) violation reason=SECURABLE_GRANT_BEYOND_SELECT class=OBJECT_OR_COLUMN schema="dbo" object="t_x" objectId=1205579333 permission="CONTROL" state=GRANT grantee="public" granteeType=DATABASE_ROLE
+    (g) overridden class=OBJECT_OR_COLUMN schema=- object=- objectId=1237579447 permission="EXECUTE" state=GRANT grantee="public" granteeType=DATABASE_ROLE by=DATABASE_DENY
+  ```
+
+  - (f) `violation`：`reason database`，原因 `SYSTEM_DATABASE_OWN_USER`（每个本人用户超出允许形状的系统库一行）、`SYSTEM_DATABASE_OWN_USER_PRIVILEGE`（msdb 本人用户权限越线，一行 `database="msdb"`，不写权限名与对象名）与 `OTHER_DATABASE_REACHABLE`（每个能进的基线外库一行）。
+  - (f) `ownUser`（信息行，不计数、不违规，合规与违规都出）：`database role`，本登录在能进的系统库中有本人用户时每个角色一行，无角色一行 `role=-`；只列角色名，不列成员、权限与其他对象名。
+  - (g) `violation`：`reason class schema object objectId permission state grantee granteeType`；(g) `overridden`（被拒绝覆盖的授权，信息行，不计数、不违规，项为 `PASSED` 时也出）：`class schema object objectId permission state grantee granteeType by`，`by` 写被哪条 DENY 覆盖：`DATABASE_DENY` 本登录库级同名 DENY，`SCHEMA_DENY` 本登录在该对象所属 schema 上的同名 DENY（两者都有写 `DATABASE_DENY`）。
+  - 值：库名、schema、对象、grantee、权限名带双引号，只做最小转义（`\\`、`\"`、`\n`、`\r`、`\t`，其余控制字符、行 / 段分隔符与格式字符写 `\uXXXX`）；`class`、`state`（`GRANT` / `GRANT_WITH_GRANT_OPTION`）、`granteeType`、`by` 不带引号；取不到或没有的值写 `-`（schema 级授权的 `object`、无所属 schema 的安全对象的 `schema`）；授给本登录自己的写 `grantee=SELF`（用户名即登录名，不输出）。`objectId` 为 `sys.database_permissions.major_id`（数字，不带引号，始终输出）。
+  - 看不见的对象写 `-`，用 `objectId` 定位：登录对某安全对象没有任何生效权限时（典型是授给 public 的 EXECUTE 被本登录库级 DENY EXECUTE 覆盖的过程），SQL Server 的元数据可见性让它在 `sys.objects` / `sys.schemas` 中不可见，`schema`、`object` 只能写 `-`；C-14 用取证账号在该库按编号反查，如 `SELECT SCHEMA_NAME(schema_id), name, type_desc FROM sys.objects WHERE object_id = <objectId>`（schema 级授权的 `objectId` 是 schema_id，查 `sys.schemas`）。限制（one-coordinator 2026-10-15 补充）：取证账号若同样没有该对象的生效权限，也看不见它，按 `objectId` 未必反查得到名称；要确认被拒绝覆盖的授权确实不可执行，可「以被核实账号执行该对象，被拒（错误号 229）」验证——这一步是否做由用户决定。同一条授权按 `(class, objectId, permission, state, grantee)` 只出一行。
+  - 每条授权一行（列级授权记在所在表上），`count` 等于该原因的 `violation` 行数；先 `violation` 后 `overridden`，各按字典序。
+  - 定位字段只由本命令输出：启动校验的拒绝原因、运行期重检的 ALERT、日志与同步结果说明里只有项目标记与类别，不出现 schema 名与对象名。
+- (g) 的覆盖口径（RULING-ADR37-10 依 ADR-0037 第 4 项 (b) 收窄为按有效权限判定；启动校验、运行期重检与本命令同一套）：授给 public 或本登录、状态为 GRANT（无转授权）、权限名在库级 DENY 11 项内的对象级（含列级，同表同权限多列记为表上一条）或 schema 级授权（class 为 `OBJECT_OR_COLUMN` 或 `SCHEMA`；TYPE、数据库主体等其他 class 一律违规），若本登录自己有同名 DENY——库级，或在该安全对象所属的同一 schema 上——即为被拒绝覆盖的授权，不算违规；登录看不见所属 schema 的对象不按 schema 级 DENY 推断覆盖，按违规（one-coordinator 2026-10-15 裁定方向 A，不推断「看不见即被覆盖」）。按权限名精确比对 `sys.database_permissions` 中本登录的 DENY 行（库级行读 (b) 同一查询，schema 级行读 (g) 同一查询），不用 `HAS_PERMS_BY_NAME`；授给 public 的 DENY 不算。CONTROL、TAKE OWNERSHIP、IMPERSONATE、VIEW DEFINITION 等不在 11 项内的权限与 `GRANT_WITH_GRANT_OPTION` 一律违规，CONTROL 不因其中某项被 DENY 而视为覆盖。本登录的 DENY 查不到（查询失败，或库级与 schema 级 DENY 一行都没有）时，可被覆盖的授权判定不了，不出定位行；没有可被覆盖的授权时不查。
+- (f) 系统库本人用户（C-14 (f) 纳入基线：用户 2026-10-15「纳入基线」，one-coordinator 收紧口径，one-ops 在 RDS 核实；启动校验、运行期重检与本命令同一套，判定在 `SystemDatabaseUsers`）：
+  - 允许：msdb（按编号 4 与名称认）中的本人用户只属于 `SQLAgentOperatorRole`、`SQLAgentReaderRole`、`SQLAgentUserRole` 的子集（三个名称显式列出、按名称精确匹配，不用通配；一个角色都没有也算子集）；rdscore（按名称认，编号须大于 4）中的本人用户不属于任何角色、`sys.database_permissions` 中只有库级 GRANT CONNECT。这是 RDS 为每个登录自动建的形状（one-ops 以取证账号核对三个正式账号：rdscore 本人用户无角色、只有 CONNECT；msdb 本人用户属上述三个角色）。
+  - 违规（`SYSTEM_DATABASE_OWN_USER`，定位该库）：master、tempdb、model 中有本人用户（无论角色）；msdb 本人用户另属任一其他角色（如 `db_datareader`、`db_owner`、`DatabaseMailUserRole`）；rdscore 本人用户属任一角色，或有库级 GRANT CONNECT 以外的任何授权行。
+  - msdb 本人用户的权限（opus 安全复审 H-1，one-coordinator 2026-10-15 裁定；判定在 `MsdbPrivileges`）：msdb 默认 TRUSTWORTHY ON、拥有者 sa，db_owner 级能力可借 EXECUTE AS 升到 sysadmin，只核对角色名等于不设防。msdb 本人用户的角色在允许形状内（或有叫不出名称的角色）时另做两条检查，任一越线即违规 `SYSTEM_DATABASE_OWN_USER_PRIVILEGE`（`count` 为库数，只有 msdb 故为 1，定位行只写 `database="msdb"`；角色已越线时只报 `SYSTEM_DATABASE_OWN_USER`，不重复报）：
+    - 直接授权按类别允许清单（读 `msdb.sys.database_permissions` 中授给本人用户的行）：DATABASE 类只许 GRANT CONNECT；OBJECT_OR_COLUMN 类只许 GRANT SELECT、GRANT EXECUTE；任何 class 的 DENY 放行；其他 class（SCHEMA、DATABASE_PRINCIPAL、TYPE 等）的 GRANT 与所有带转授权（state `W`）一律违规。
+    - 有效权限：以本登录身份在 msdb 内（`EXEC msdb.sys.sp_executesql`，使答案是本登录在 msdb 的用户而非本库的用户）查 `HAS_PERMS_BY_NAME('msdb', 'DATABASE', p)`，p 为 CONTROL、ALTER、ALTER ANY ROLE、ALTER ANY USER、ALTER ANY SCHEMA、CREATE PROCEDURE，任一为真即违规。这一条兜住直接授权看不到的来源：角色嵌套（如 SQLAgentUserRole 被加进 db_owner）、授给 SQLAgent 角色的授权、授给 public 的授权——它们都不改本人用户自己的授权行与成员关系。
+    - 两条都要：`GRANT IMPERSONATE ON USER::dbo` 与 `GRANT EXECUTE ... WITH GRANT OPTION` 不使上述六项有效权限中任何一项为真（验收夹具 `msdbCounterexampleReallyHoldsItsPrivilegeAndUndoRestoresTheBaseline` 在容器实测），只能靠直接授权类别清单拦下；角色嵌套、授给角色或 public 的授权不出现在本人用户的授权行里，只能靠有效权限拦下。
+    - 不误判：one-ops 在 RDS 实测正式账号的 34 条平台默认授权——直接授给本人用户的 DATABASE CONNECT G 1 条、对象级 SELECT G 31 条、SELECT D 1 条、EXECUTE G 1 条都在类别清单内；其余经 SQLAgentUserRole、SQLAgentOperatorRole 继承，是对象级授权，不使六项库级有效权限为真。验收以 msdb 的 backupset、backupfile、backupmediaset 三个 SELECT、sp_help_category 一个 EXECUTE、restorehistory 一个 DENY SELECT 同形覆盖（`oneOpsShapedMsdbGrantsStillPass`、`oneOpsShapedMsdbGrantsDoNotRefuseStartup`）。容器（SQL Server 2022）与 RDS（SQL Server 2016）上三个 SQLAgent 角色的默认授权可能不同，六项有效权限在正式账号上全假这一点留 one-ops 以真实登录跑本命令实测确认。
+    - 判定不了（不放过）：直接授权或有效权限查询失败为 `CATALOG_QUERY_FAILED`（带错误号与 SQLState）；直接授权为空为 `EMPTY_ANSWER`（真实本人用户总有 CONNECT）；某项有效权限答 NULL 或缺答为 `NO_ANSWER`。一条确认越线时违规优先。
+    - 拒绝原因、ALERT、日志与同步结果说明只写「msdb 本人用户的权限超出平台默认」，不含权限名与对象名。
+  - msdb 令牌范围的权限（opus 复核 H-1′，one-coordinator 2026-10-16 裁定「同意现在补」；判定仍在 `MsdbPrivileges`，原因码不增）：上面六项有效权限只覆盖数据库级的几项，授给 SQLAgent 角色、嵌套角色、public、guest 的间接授权中，数据库级 TAKE OWNERSHIP、ALTER ANY DATABASE DDL TRIGGER、CREATE FUNCTION / ASSEMBLY / TYPE / VIEW / TABLE，用户级 IMPERSONATE ON USER::dbo，架构级 ALTER / CONTROL ON SCHEMA::dbo，对象级 ALTER 某个 dbo 存储过程都使六项为假，拦不住。在上面两条（保留，六项仍是兜底）之外另加：
+    - 令牌范围扫描：以本登录身份经 `msdb.sys.sp_executesql`（上下文切换与常量拼接同上，无外部输入）读 `sys.database_permissions WHERE grantee_principal_id IN (SELECT principal_id FROM sys.user_token)`，对令牌内所有主体（本人用户、三个 SQLAgent 角色、嵌套角色、public；只经 guest 进入时是 guest 与 public）的授权套同一份类别允许清单：DATABASE 只许 GRANT CONNECT；OBJECT_OR_COLUMN 只许 GRANT SELECT、GRANT EXECUTE；任何 class 的 DENY 放行；其他 class 的 GRANT 与所有 state `W` 一律违规。只对 public 另放行 SQL Server 2016 起默认授给它的库级 `VIEW ANY COLUMN MASTER KEY DEFINITION`、`VIEW ANY COLUMN ENCRYPTION KEY DEFINITION`（按 grantee 编号 0 认，授给其他主体仍违规）。查询只取「是否 public」、class、state、权限名四列，不取主体名与对象名；字符串列带 `COLLATE DATABASE_DEFAULT`（msdb 目录列 `Latin1_General_CI_AS_KS_WS` 与服务器排序规则可能不同，验收夹具已踩到冲突）。
+    - IMPERSONATE：同一次有效权限查询另问 `HAS_PERMS_BY_NAME(N'dbo', N'USER', N'IMPERSONATE')`，为真即违规（不论来自本人用户、角色还是 public）。
+    - guest：`sys.user_token` 只有本登录进 msdb 用的身份。有本人用户时令牌里没有 guest，授给 guest 的权限到不了本登录，不算违规；没有本人用户、只经 guest 进入（msdb 默认启用 guest）时，msdb 可进（`HAS_DBACCESS` 为 1）就照跑令牌范围扫描与有效权限检查（此前只在有本人用户时检查），授给 guest 的越线授权使 (f) 违规，定位行仍只 `database="msdb"`，没有 msdb 的 `ownUser` 信息行，也不因「无本人用户」违规。本人用户的角色读不到时同样照跑，确认越线即违规优先。
+    - 不误判：基线账号（本人用户加三个 SQLAgent 角色）、one-ops 样本形状、SQL Server 默认授给 public 的上述两条库级授权与 public、SQLAgent 角色的默认对象级 GRANT SELECT / EXECUTE（SQL Server 2022 容器实测：public 约 249 条 SELECT、15 条 EXECUTE；SQLAgentUserRole 约 47 条 EXECUTE、3 条 SELECT；SQLAgentOperatorRole 5 条 EXECUTE、4 条 SELECT；没有其他 class）都在清单内。RDS（SQL Server 2016）上 public 与 SQLAgent 角色的默认授权是否同样只有这些 class，留 one-ops 以真实登录跑本命令确认。
+    - 空列表口径统一：msdb 本人用户的直接授权、令牌范围扫描、rdscore 本人用户的授权返回空列表一律 `EMPTY_ANSWER`（判定不了，不按通过也不按违规；此前 rdscore 空列表按允许处理）；令牌范围扫描答 NULL 或某行有列缺答为 `NO_ANSWER`；查询失败 `CATALOG_QUERY_FAILED`；违规与判定不了同时出现时违规优先。
+    - 令牌角色（opus 复审 H-A，one-coordinator 2026-10-16；判定仍在 `MsdbPrivileges`，原因码不增）：db_ssisadmin、dc_admin（微软文档称可提权到 sysadmin）、DatabaseMailUserRole 等角色的能力全是对象级 EXECUTE / SELECT，落在上面的类别允许清单内，经 `ALTER ROLE <r> ADD MEMBER SQLAgentUserRole`（有本人用户）或 `ADD MEMBER guest`（只经 guest 进入）嵌进令牌后，授权扫描与六项有效权限都看不到。故改按成员关系：经 `msdb.sys.sp_executesql` 读 `sys.user_token WHERE type = 'ROLE'` 的名称（`COLLATE DATABASE_DEFAULT`），只许 `public`、`SQLAgentUserRole`、`SQLAgentReaderRole`、`SQLAgentOperatorRole`（按名称精确匹配，大小写与空格不同也违规），其余角色（含 db_owner 等固定角色、自建无授权角色）一律违规 `SYSTEM_DATABASE_OWN_USER_PRIVILEGE`；名称只在进程内比较，problem、定位行、日志都不出。读不到 `CATALOG_QUERY_FAILED`、空列表（真实令牌至少有 public）`EMPTY_ANSWER`、答 NULL 或某名称缺答 `NO_ANSWER`，违规优先。本人用户存在与只经 guest 进入两种形态都查。
+    - 令牌拥有关系（opus 复审 M-A）：有效权限看不到「拥有」带来的潜伏提权（管理员误配 `CREATE ROLE r AUTHORIZATION [账号]` 后账号自行加入 db_owner 级角色，或 schema、过程的所有权给了账号）。经 `msdb.sys.sp_executesql` 计数令牌内主体（`sys.user_token`）拥有的 schema（`sys.schemas.principal_id`）、对象（`sys.objects.principal_id`）、角色（`sys.database_principals.owning_principal_id`），大于 0 即违规，同一原因码；只取计数，不取名称。平台默认放行：guest 拥有 schema `guest`，三个 SQLAgent 角色各拥有同名 schema（只限这四个主体与各自同名 schema，不是「与拥有者同名一律放行」）。读不到、答 NULL 同上判定不了。
+    - 其他：令牌范围与本人用户直接授权里的 DENY 在任何 class 都放行（DENY 不能提权，有人用它加固 msdb 不应使账号拒绝启动；复审 Low-1）；提示文字写「the login in msdb」，只经 guest 进入时也适用（Low-3）；rdscore 授权行有 null 列时过滤并记 `NO_ANSWER`，与 msdb 同做法（Low-4）。
+    - 残余（未处理，PR 单列，待用户知情确认）：
+      - H-2 SQL Agent 能力：`SQLAgentOperatorRole` 可启动、停止、禁用实例上全部本地作业并删除作业历史；作业以拥有者身份运行（可能是高权限账号）；`OWNS_AGENT_JOB` 只能在下一次重检（启动校验、运行期重检、核实命令）时事后发现账号自建的作业，查不出「启动别人的作业」；`msdb.dbo.sysproxylogin`（代理账号授权）未查。
+      - 对象级 SELECT / EXECUTE 不限对象（风险中，下一次按对象名允许清单收紧）：令牌内任何主体对任何 msdb 对象的 SELECT、EXECUTE 都放行，含带 `EXECUTE AS OWNER` 的 dbo 过程（等于提权）与 `sp_send_dbmail`（数据外传），以及读 `sysjobsteps.command`、`sysmail_*`。令牌角色限定后，嵌套角色带来的这类能力已被拦下，令牌内任何主体（含 public、三个 SQLAgent 角色）任何新增的对象级 SELECT / EXECUTE 都放行，不论是否默认，包括带 `EXECUTE AS OWNER` 或已签名的 dbo 过程，以及读 `sysjobsteps.command`、`sysmail_*`。
+      - 固定角色嵌套：db_datawriter、db_denydatareader 等固定角色的隐含权限不出现在 `sys.database_permissions`，也不在六项有效权限里；被嵌进令牌时由令牌角色检查拦下（它们不在四个名称内）。
+    - RDS 实测待 one-ops（第 6 项，与上文既有各项并列）：用正式账号的真实登录在 msdb 内读 `sys.user_token WHERE type = 'ROLE'` 的名称集合与大小写（只记是否恰为 `public` 加 SQLAgent 三个角色的子集，不抄名称）。
+    - RDS 实测待 one-ops（第 7 项）：令牌内主体拥有的 schema、角色、对象、证书、密钥、程序集、类型、XML schema 集合的类别与计数（只出类别与计数，不抄名称），确认合计为 0；并确认 SQL Server 2016 上 guest 与 SQLAgent 角色拥有同名 schema 这一前提，且这四个 schema 内没有 `principal_id` 为 NULL 的对象。
+    - 拥有关系口径补充（opus 复核 M-1）：除上述 schema、对象、角色外，计数还含 `sys.certificates`、`sys.asymmetric_keys`、`sys.symmetric_keys`、`sys.assemblies`、`sys.xml_schema_collections` 的 `principal_id` 在令牌内的个数，`sys.types` 中 `is_user_defined = 1` 且 `principal_id` 在令牌内的个数，以及放行的四个平台 schema 内 `principal_id` 为 NULL 的对象个数（这类对象隐含归 schema 拥有者，默认应为 0）；仍只取计数。
+  - 角色名以本登录自己的身份经三段名读 `<库>.sys.database_role_members`、`<库>.sys.database_principals`（`sid = SUSER_SID()`），rdscore 的授权读 `rdscore.sys.database_permissions`；查询失败为判定不了（rdscore 授权读不到不按允许处理，opus 复审 M-1）。rdscore 本人用户有叫不出名称的角色即违规（rdscore 不许有任何角色，复审 L-3）。msdb 本人用户有本登录叫不出名称的角色时判定不了（`NO_ANSWER`），不按通过处理。
+  - Agent 作业：本登录拥有的作业数必须为 0，否则违规 `OWNS_AGENT_JOB`（`count` 为作业个数，不出定位行，任何输出、拒绝原因、ALERT 与日志都不含作业名）。读法 `SELECT COUNT(*) FROM msdb.dbo.sysjobs_view WHERE owner_sid = SUSER_SID()`：SQL Server 2022 容器中 `msdb.dbo.sysjobs` 只有 TargetServersRole 能读，三个 SQLAgent 角色的成员读它报 229，`sysjobs_view` 的 SELECT 授给 SQLAgentUserRole（另两个角色是它的成员）且对作业所有者列出自己的作业；RDS 上两者都能读，统一用 `sysjobs_view`。读不到（查询失败、229）为判定不了，带错误号与 SQLState；msdb 本人用户一个角色都没有时读 `sysjobs_view` 会报 229，按判定不了处理（已裁定可以）。本登录在 msdb 没有本人用户、只经 guest 进入时照读作业数（one-coordinator 裁定 B，CLAUDE.md 第 6 条：缺失或无效输入失败并告警，不静默跳过）：guest 读不了 `sysjobs_view`（229），作业属主无法判定，(f) 判定不了（`CATALOG_QUERY_FAILED`，带错误号与 SQLState），运维据此处理（核实该账号为何在 msdb 没有本人用户；RDS 给每个登录建 msdb 本人用户，正常不会出现）；令牌范围扫描与有效权限检查照做，确认越线时违规优先。msdb 本人用户读不到（查询失败）或 msdb 不可进时照读作业数。只在 (f) 的本库与可进库查询成功后才读作业，所以连不上时 (f) 的计数仍为 2。
+  - 启动校验与运行期重检：允许的本人用户不拒绝、不告警；违规照 (f) 拒绝或停连接。拒绝原因、ALERT、日志与同步结果说明沿用现有 problem 文本口径（可含库名），不含作业名与其他对象名；角色名清单只由本命令的 `ownUser` 信息行输出。
+- 退出码：0 通过；2 用法错误（缺少、重复或未知的连接名，旧连接名 `legacy-approval`（提示改用 `integration-legacy-inbox`；RULING-P3B-17），非 `--名=值` 形式的参数，参数名含 `password` / `secret` / `credential`（不分大小写），命令行出现连接变量名或 `--spring.application.json`，进程环境缺变量，URL 不是 SQL Server，与 `migrate` 或 `identity-operations` 档案同时激活，日志系统不是应用自带的 Logback——参数值一律不回显）；3 违规（含与判定不了同在）；4 判定不了。1 只表示进程本身失败（与 Spring Boot 启动失败一样），不是任何结果。
+- 不输出：口令（任何连接的）、登录名、连接串（探针 URL 里有 `trustStorePassword`）、数据库消息原文、启动校验的 problem 文本、数据；名称只出现在上述定位行与 `ownUser` 信息行，作业名不输出。命令自己的行直接写标准输出 / 标准错误，不经日志；日志在核实之前全部关闭：根 logger、`logging.level.*` 配置过的每个 logger（如 `--logging.level.com.zaxxer.hikari.HikariConfig=DEBUG` 也被关掉）与已有的全部 logger 都设为 OFF，关不掉即拒绝运行。`-Dorg.springframework.boot.logging.LoggingSystem=none` 时 Logback 默认根级 DEBUG、无法由应用关掉，命令拒绝运行（退出 2）。
 - 不启动 Web、不迁移、不起作业：命令在 Spring 准备好环境（档案、配置文件都已读入）之后、建立任何应用上下文之前运行并结束进程（与 `migrate` 模式同一做法，`spring.factories` 登记的环境就绪监听器，排在 `migrate` 之前），所以不建服务库数据源、不跑 Flyway、不起 Tomcat 与管理端口、不起定时任务、调度、事件发布作业、流程引擎与异步执行器，也不读 OSS、企业微信、单点登录、应急密钥与服务库的设置。one.env 里的 `SERVER_PORT`、`MANAGEMENT_SERVER_PORT` 等环境变量因此不起作用；命令另把 `spring.main.web-application-type=none` 放在最高优先级的属性源（高于 `SPRING_MAIN_WEB_APPLICATION_TYPE` 等环境变量），档案文件 `application-read-only-verification.properties` 再写一遍 web=none、Flyway 与作业关闭，作为第二道。
 - 发布包：命令与档案都在 jar 内，签名发布包不需要另登记文件；发布脚本与签名流程不变。
 - 验收：`ReadOnlyVerificationCommandIT`（以打包好的 jar 起子进程，探针证明不监听端口、服务库无表无 schema）；契约见 `backend/src/test/java/com/forcitis/one/acceptance/platform/integration/READONLY_VERIFY_ACCEPTANCE.md`。
@@ -177,6 +232,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 | `SEEYON_OA_BASE_URL`、`LEGACY_LOGIN_URL` | 致远验票地址；失败时回老系统登录 | 是 |
 | `FORCITIS_PLATFORM_IDENTITY_SSO_ENABLED` | 致远单点登录开关；配置文件中写死为 false，B-3 完成后在 one.env 设 true | 启用时 |
 | `APPROVAL_DEADLINE_ENABLED` | 审批时限提醒与升级作业开关（默认 true） | 否 |
+| `FORCITIS_JOBS_ENABLED` | 定时作业总开关，`true` 或 `false`，**没有默认值**（缺失或为空应用起不来，安装器拒绝安装）；值只写裸的小写 `true` / `false`（单引号括起也可），带双引号、尾随空格或大写的安装器都拒绝；所有实例中至少一个为 `true`（见 §9） | 是 |
 | `EVENT_PUBLICATION_JOBS_ENABLED` | 事件发布重投与清理作业开关（默认 true，见 §9） | 否 |
 | `FORCITIS_PLATFORM_INTEGRATION_WECOM_DELIVERY_DUPLICATE_TASK_ERROR_CODES` | 企业微信「task_id 已用过」错误码（B-9 核实后设置） | 启用时 |
 | `SERVER_ADDRESS`、`SERVER_PORT`、`MANAGEMENT_SERVER_ADDRESS`、`MANAGEMENT_SERVER_PORT`、`MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE` | E-7 的监听地址与管理端点（代码未设默认） | 是 |
@@ -189,8 +245,8 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 | `INTEGRATION_SEEYON_VIEWS_ENABLED` | 致远 A8 组织视图读取开关（默认 false） | 否 |
 | `A8_DB_URL` / `A8_DB_USERNAME` / `A8_DB_PASSWORD` | A8 只读连接（第 4 节的专用账号；启用即做第 4 节的校验，无开关） | 启用时 |
 | `FORCITIS_PLATFORM_INTEGRATION_SEEYON_VIEWS_HEAD_RELATIONSHIP_TYPE_ID`、`..._REGIONAL_RECEIVABLES_MANAGER_RELATIONSHIP_TYPE_ID`、`..._DELIVERY_UNIT_YES_ENUM_ID`、`..._FEE_EARNER_YES_ENUM_ID`、`..._ROOT_PATH` | A8 中关系类型、枚举的编号与同步根单位的层级路径（Spring 宽松绑定，对应 `forcitis.platform.integration.seeyon.views.*`）；**没有默认值**：启用视图读取而缺任何一项，应用启动失败，值由 A8 管理员提供 | 启用时 |
-| `FORCITIS_PLATFORM_APPROVAL_LEGACY_URL` / `_USERNAME` / `_PASSWORD` | 合并待办读老待办的只读连接（`psa_one_legacy_ro`；配置即做第 4 节的校验，无开关）；URL 为空则只显示新待办 | 启用时 |
-| `FORCITIS_PLATFORM_APPROVAL_LEGACY_DETAIL_URL_TEMPLATE` | 老待办详情页地址，含 `{processInstanceId}`、`{taskId}` | 启用时 |
+| `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL` / `_USERNAME` / `_PASSWORD` | 合并待办读老待办的只读连接（`psa_one_legacy_ro`，由 platform.integration 读取；配置即做第 4 节的校验，无开关）；URL 为空则只显示新待办；员工须有 (LEGACY_SYSTEM, EMPLOYEE) 来源对照才读得到，P6 导入前老待办恒为「不可用」（C8）。R-1b P3b 起取代 `FORCITIS_PLATFORM_APPROVAL_LEGACY_*`：旧变量（或任何 `forcitis.platform.approval.legacy.*` 键）仍在则**启动失败**，日志给出对应的新变量名，部署前须在 one.env 中改名 | 启用时 |
+| `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_DETAIL_URL_TEMPLATE` | 老待办详情页地址，含 `{processInstanceId}`、`{taskId}` | 启用时 |
 | `INTEGRATION_LEGACY_ENABLED` | 老系统**部门简称**视图读取开关（默认 false） | 否 |
 | `LEGACY_DB_RO_URL` / `LEGACY_DB_RO_USERNAME` / `LEGACY_DB_RO_PASSWORD` | 部门简称的只读连接（`one_legacy_names_ro`；启用即做第 4 节的校验，无开关） | 启用时 |
 | `WORKFORCE_SYNC_ENABLED` | 从 A8 视图同步组织与人员的定时任务开关（默认 false） | 否 |
@@ -259,14 +315,20 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 
   ```
   java -jar forcitis-one.jar --spring.profiles.active=identity-operations --operation=<命令> --employee-id=<员工 ID> \
-       [--login-name=<应急账号名>] [--role-code=<角色码>] --operator=<操作人> --witness=<见证人>
+       [--login-name=<应急账号名>] [--role-code=<角色码>] --operator=<操作人员工 ID> --witness=<见证人员工 ID>
   ```
 
-  - 人员以 `--employee-id`（员工 ID，R-1b P2 期间为整数，P3b 起为 uuid 文本）指定：命令按员工取得其账号，员工在职而尚无账号时当场开通（ADR-0033 第 3 项第 6 条）；格式不对或员工不存在时退出码非 0，不写任何数据。原 `--user-id` 已删除。
+  - 人员以 `--employee-id`（员工 ID，小写规范 uuid 文本）指定：命令按员工取得其账号，员工在职而尚无账号时当场开通（ADR-0033 第 3 项第 6 条）；格式不对（整数、负数、大写 uuid 等）为用法错误、退出码 2，员工不存在时退出码 1，都不写任何数据。原 `--user-id` 已删除。
+  - 员工 ID 从只读查询命令得到（R-1b P3b，ADR-0033 第 3 项第 6 条；RULING-P3B-D8、P3B-7）：同一个 jar 以档案 `integration-operations` 启动，按组织源登录名或企业微信 userid 列出匹配的全部员工 ID 与用户 ID（同名两人都列出），**只读，不写任何数据、不记审计、不开通账号**：
+    ```
+    java -jar forcitis-one.jar --spring.profiles.active=integration-operations --operation=find-accounts-by-external-subject \
+         --provider-kind=<SEEYON_LOGIN_NAME|WECOM_USER_ID> --external-subject=<登录名或企业微信 userid>
+    ```
+    每个匹配输出一行 `employee-id=<uuid> user-id=<uuid 或 (no account)>`；退出码 0 找到、1 无人匹配、2 用法错误。不按员工编号查（员工编号不作键，ADR-0033 第 6 项）。端口与 F-12 的注意事项同上。
   - 命令：`register-emergency-admin`（需 `--login-name`）、`reset-emergency-admin-credentials`、`disable-emergency-admin`、`enable-emergency-admin`、`grant-role`（需 `--role-code`，用于首批超级管理员、业务管理员、组织数据管理员）。
-  - **双人在场**：`--operator` 与 `--witness` 必填且必须是两个不同的人（比较前去掉首尾空白、折叠空格、不分大小写、全角按半角），两人都记入审计；缺一或相同则命令拒绝，什么也不做。
+  - **双人在场**：`--operator` 与 `--witness` 必填，各为员工 ID（小写规范 uuid 文本），且必须是两个不同的员工；运维证明的员工 ID 暂不校验是否存在（后续小卡 DR-TB01-FU1），执行前须人工核对；两人的员工 ID 记入审计 `detail`（`operatorId=`、`witnessId=`，姓名不入审计，读时再解析；ADR-0043 U-7b）；缺一、不是员工 ID 或相同则命令拒绝（退出码 1，错误码 `PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED`），什么也不做。原先填姓名的写法作废。
   - 口令与 TOTP 密钥由命令**生成**，只在这一次输出里显示（口令、base32 密钥、认证器链接），库里只存口令的 Argon2id 哈希与加密后的密钥；不要把输出复制进文件或聊天。口令强度与密钥长度由代码保证，不经命令行参数传入。
-  - 档案关闭所有定时任务（`forcitis.platform.scheduling.jobs-enabled=false` 及各任务自己的开关），Web 部分只监听本机随机端口，几秒钟后随进程结束；命令发布的事件若监听器没来得及处理，仍留在事件发布登记表里，由常驻应用的重投作业接手（§9）。
+  - 档案关闭所有定时任务（`forcitis.platform.scheduling.jobs-enabled=false` 及各任务自己的开关；总开关生效的前提是 Spring Modulith 的 `MomentsAutoConfiguration` 已被排除，#228 起，见 §9），Web 部分只监听本机随机端口，几秒钟后随进程结束；命令发布的事件若监听器没来得及处理，仍留在事件发布登记表里，由常驻应用的重投作业接手（§9）。
   - 退出码：0 成功（含「已是该状态，未改变」）；1 被拒绝（错误码在标准错误输出）；2 用法错误。
   - 注册后若可用应急账号少于 2 个，命令输出 `WARNING`；必须有至少 2 个、绑定不同的超级管理员持有人。
 - 应急账号只能从内网段登录，失败 5 次锁 15 分钟；检查与计数在凭据验证之前一步完成，并发猜测也只有 5 次机会。应急登录直接进入管理模式，1 小时后会话结束。
@@ -287,6 +349,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
    - **常驻服务不自己迁移**：生产 profile 的 `application-prod.properties` 已设 `spring.flyway.enabled=false`，环境里也写 `SPRING_FLYWAY_ENABLED=false`；常驻进程不持有迁移凭据。
 4. 切换 `current` 软链，`systemctl restart forcitis-one`，检查健康。
 5. 冒烟：匿名访问返回 401；企业微信 / 致远登录；`/me` 正常；组织同步跑一轮，sync_runs 为 SUCCEEDED。
+   - **首次全量同步较慢**：首次（及来源对照表重建后）每个未见过的部门、岗位、人员都要分配自有 ID，每次分配单独提交一个事务（R-1b P3b，ADR-0033 第 2 项），之后的同步只查不分配。首轮期间同步延迟告警可能触发，等这一轮 SUCCEEDED 后再判断。
 6. 回滚：`current` 指回上一版本并重启。数据库迁移只做向前兼容的变更，1a 期间不做破坏性迁移。
 
 ## 8. 日志、关联号与业务时区（本轮实施，运维需要知道的行为）
@@ -309,7 +372,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 - **重投作业**（`platform.integration.event.republish`，ShedLock 互斥）：每 `republish-interval`（默认 1 分钟）重投超过 `minimum-age`（默认 1 分钟）仍未完成的发布，最多 `maximum-attempts`（默认 8）次。
 - **告警**：用尽次数仍未完成的发布数 → 指标 `forcitis.platform.integration.event.publications.exhausted` 与每分钟一条 `ALERT` 日志；未完成超过 10 分钟的发布数 → `forcitis.platform.integration.event.publications.stale`。两者对应方案中的 P2 告警（未完成事件发布 / 死信）。
 - **清理作业**（`platform.integration.event.cleanup`，每日 04:30）：删除归档中超过 30 天的行。
-- 定时作业总开关：环境变量 `FORCITIS_JOBS_ENABLED` **必须设置**（`true` 或 `false`），没有默认值，缺失时应用启动失败；多个实例同时设为 `true` 没有问题，ShedLock 保证每个作业同一时刻只在一个实例上运行。
+- 定时作业总开关：环境变量 `FORCITIS_JOBS_ENABLED` **必须设置**（`true` 或 `false`），没有默认值，缺失时应用启动失败；多个实例同时设为 `true` 没有问题，ShedLock 保证每个作业同一时刻只在一个实例上运行。所有实例中**至少一个**必须为 `true`，否则全部定时作业停止（同步、重投、清理、核对都不跑，也没有告警提示）；模板 `one.env.template` 默认 `true`，安装器在值不是 `true` / `false` 时拒绝安装。one.env **不得设置** `SPRING_AUTOCONFIGURE_EXCLUDE`（含 `SPRING_AUTOCONFIGURE_EXCLUDE_0_` 等带下标的写法）或 `SPRING_APPLICATION_JSON`：经宽松绑定，它们会整体替换应用自己在配置中排除的自动配置（#228 起排除 Spring Modulith `MomentsAutoConfiguration`），被排除项随之回来；安装器发现即拒绝安装。
 - 开关：环境变量 `EVENT_PUBLICATION_JOBS_ENABLED`（默认 true）；`MomentsAutoConfiguration` 已在 `application.properties` 排除（它自带 `@EnableScheduling`，会使 `FORCITIS_JOBS_ENABLED=false` 失效）。其余参数见 `config/platform_integration.properties` 的 `forcitis.platform.integration.event-publication.*`。
 - 人工处理用尽次数的发布：先看 `event_publication` 里该行的 `listener_id` 与应用日志中同一 `correlationId` 的错误，修复原因后把 `completion_attempts` 清零，重投作业会再次接手。
 

@@ -185,7 +185,7 @@ class ProcessArchiveJobIT {
         assertThat(history.createHistoricProcessInstanceQuery().processInstanceId(bad).count()).isEqualTo(1);
         assertThat(meters.counter("forcitis.platform.approval.archive.skipped").count()).isEqualTo(before + 1);
         assertThat(vault.batches).hasSize(1);
-        assertThat(jdbc.sql("select count(*) from platform_approval.process_archive_skips where process_instance_id = :id").param("id", bad)
+        assertThat(jdbc.sql("select count(*) from platform_approval.process_archive_skips where process_instance_id = cast(:id as uuid)").param("id", bad)
                 .query(Long.class).single()).as("the skipped instance is recorded").isEqualTo(1L);
 
         job.run();
@@ -193,6 +193,22 @@ class ProcessArchiveJobIT {
 
         Mockito.reset(history);
         history.deleteHistoricProcessInstance(bad);
+    }
+
+    @Test
+    @DisplayName("T3 an instance whose engine id is not a canonical UUID is alerted and left alone; the others of the batch are archived and removed")
+    void aForeignIdDoesNotStopTheBatch() {
+        String foreign = finishedProbe();
+        finishedProbe();
+        jdbc.sql("update platform_approval.act_hi_procinst set id_ = 'not-a-uuid', proc_inst_id_ = 'not-a-uuid' where id_ = :id").param("id", foreign).update();
+        clock.set(after3Years());
+
+        job.run();
+
+        assertThat(finished()).isEqualTo(1);
+        assertThat(jdbc.sql("select count(*) from platform_approval.act_hi_procinst where id_ = 'not-a-uuid'").query(Long.class).single()).isEqualTo(1L);
+        assertThat(vault.lines()).hasSize(1).noneMatch(line -> line.contains("not-a-uuid"));
+        jdbc.sql("delete from platform_approval.act_hi_procinst where id_ = 'not-a-uuid'").update();
     }
 
     @Test

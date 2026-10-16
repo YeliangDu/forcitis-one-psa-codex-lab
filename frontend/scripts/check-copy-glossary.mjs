@@ -14,6 +14,7 @@ const glossary = loadVocabulary({
   backendTerms: join(repository, 'backend', 'glossary', 'terms.yaml'),
   proposedDirectory: join(repository, 'backend', 'glossary', 'proposed'),
   allowList: join(frontend, 'scripts', 'copy-allow-list.yaml'),
+  contexts: join(repository, 'docs', 'modernization', 'glossary', 'bcs.yaml'),
 });
 
 const files = sourceFiles(ROOTS);

@@ -9,6 +9,9 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.forcitis.one.platform.integration.infrastructure.connection.ExternalConnectionProperties.Limits;
 import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyBaseline.DatabaseLevelPermission;
+import com.forcitis.one.platform.integration.infrastructure.connection.EffectiveGrants.SecurablePermissionRow;
+import com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyVerificationCommand.ReadOnlyConnection;
+import com.forcitis.one.platform.integration.infrastructure.legacy.LegacyInboxConnectionDefinition;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -17,8 +20,10 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.sql.SQLTransientConnectionException;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -88,9 +93,60 @@ class ReadOnlyVerificationCommandTest {
                 "(d) PASSED",
                 "(e) PASSED",
                 "(f) VIOLATED reason=OTHER_DATABASE_REACHABLE count=1",
+                "  (f) violation reason=OTHER_DATABASE_REACHABLE database=\"otherworld\"",
                 "(g) PASSED",
                 "RESULT VIOLATED");
-        assertThat(output()).doesNotContain(FakeCatalog.LEAKED).doesNotContain("otherworld").doesNotContain("db_datareader");
+        assertThat(output()).doesNotContain(FakeCatalog.LEAKED).doesNotContain("db_datareader");
+    }
+
+    @Test
+    @DisplayName("C-14 定位裁定（READONLY_VERIFY_ACCEPTANCE.md 第 3a 节）：定位行紧跟项行，字段顺序固定，名称加引号并最小转义，缺失写 -，本账号写 SELF，"
+            + "先 violation 后 overridden 各按字典序，count 等于 violation 行数；项通过时也出 overridden 行")
+    void locatorLines() {
+        FakeCatalog catalog = new FakeCatalog();
+        catalog.ownUser("tempdb");
+        catalog.ownUser("master");
+        catalog.reachableDatabases.add("other\"world");
+        catalog.securablePermissionRows.add(new SecurablePermissionRow("OBJECT_OR_COLUMN", 42, "G", "CONTROL", true, 1L, "dbo", "t\n\u2028\u202E\\x",
+                "public", "DATABASE_ROLE"));
+        catalog.securablePermissionRows.add(new SecurablePermissionRow("OBJECT_OR_COLUMN", 42, "G", "CONTROL", true, 1L, "dbo", "t\n\u2028\u202E\\x",
+                "public", "DATABASE_ROLE"));
+        catalog.securablePermissionRows.add(new SecurablePermissionRow("SCHEMA", 5, "W", "TAKE OWNERSHIP", false, 5L, "报表", null, null, "SQL_USER"));
+        catalog.securablePermissionRows.add(new SecurablePermissionRow("OBJECT_OR_COLUMN", 43, "G", "EXECUTE", false, 1L, "dbo", "p_x", null, "SQL_USER"));
+        catalog.securablePermissionRows.add(new SecurablePermissionRow("TYPE", 44, "G", "REFERENCES", true, null, null, null, "public", "DATABASE_ROLE"));
+
+        ReadOnlyVerificationCommand.report(ReadOnlyBaseline.check(catalog), new PrintStream(out, true, StandardCharsets.UTF_8));
+
+        assertThat(out.toString(StandardCharsets.UTF_8).lines()).containsExactly(
+                "(a) PASSED", "(b) PASSED", "(c) PASSED", "(d) PASSED", "(e) PASSED",
+                "(f) VIOLATED reason=OTHER_DATABASE_REACHABLE count=1 reason=SYSTEM_DATABASE_OWN_USER count=2",
+                "  (f) violation reason=OTHER_DATABASE_REACHABLE database=\"other\\\"world\"",
+                "  (f) violation reason=SYSTEM_DATABASE_OWN_USER database=\"master\"",
+                "  (f) violation reason=SYSTEM_DATABASE_OWN_USER database=\"tempdb\"",
+                "  (f) ownUser database=\"master\" role=-",
+                "  (f) ownUser database=\"tempdb\" role=-",
+                "(g) VIOLATED reason=SECURABLE_GRANT_BEYOND_SELECT count=3",
+                "  (g) violation reason=SECURABLE_GRANT_BEYOND_SELECT class=OBJECT_OR_COLUMN schema=\"dbo\" object=\"t\\n\\u2028\\u202E\\\\x\" objectId=42 "
+                        + "permission=\"CONTROL\" state=GRANT grantee=\"public\" granteeType=DATABASE_ROLE",
+                "  (g) violation reason=SECURABLE_GRANT_BEYOND_SELECT class=SCHEMA schema=\"报表\" object=- objectId=5 permission=\"TAKE OWNERSHIP\" "
+                        + "state=GRANT_WITH_GRANT_OPTION grantee=SELF granteeType=SQL_USER",
+                "  (g) violation reason=SECURABLE_GRANT_BEYOND_SELECT class=TYPE schema=- object=- objectId=44 permission=\"REFERENCES\" state=GRANT grantee=\"public\" granteeType=DATABASE_ROLE",
+                "  (g) overridden class=OBJECT_OR_COLUMN schema=\"dbo\" object=\"p_x\" objectId=43 permission=\"EXECUTE\" state=GRANT grantee=SELF granteeType=SQL_USER by=DATABASE_DENY",
+                "RESULT VIOLATED");
+    }
+
+    @Test
+    @DisplayName("C-14 定位裁定：(g) 通过而有被拒绝覆盖的授权时，项行 PASSED 之后出 overridden 信息行，结果通过")
+    void overriddenLinesUnderAPass() {
+        FakeCatalog catalog = new FakeCatalog();
+        catalog.securablePermissionRows.add(new SecurablePermissionRow("OBJECT_OR_COLUMN", 43, "G", "EXECUTE", true, 1L, "dbo", "p_x", "public", "DATABASE_ROLE"));
+
+        ReadOnlyVerificationCommand.report(ReadOnlyBaseline.check(catalog), new PrintStream(out, true, StandardCharsets.UTF_8));
+
+        assertThat(out.toString(StandardCharsets.UTF_8).lines()).containsExactly("(a) PASSED", "(b) PASSED", "(c) PASSED", "(d) PASSED", "(e) PASSED",
+                "(f) PASSED", "(g) PASSED",
+                "  (g) overridden class=OBJECT_OR_COLUMN schema=\"dbo\" object=\"p_x\" objectId=43 permission=\"EXECUTE\" state=GRANT grantee=\"public\" granteeType=DATABASE_ROLE by=DATABASE_DENY",
+                "RESULT PASSED");
     }
 
     @Test
@@ -139,7 +195,7 @@ class ReadOnlyVerificationCommandTest {
     void connectionSettingsOnTheCommandLineAreRefused() {
         String value = "v" + UUID.randomUUID();
         for (String option : new String[] {"--A8_DB_URL=jdbc:sqlserver://h;password=" + value, "--readonly.probe.db.username=" + value,
-                "--forcitis.platform.approval.legacy.url=" + value, "--spring.application.json={\"A8_DB_PASSWORD\":\"" + value + "\"}"}) {
+                "--forcitis.platform.integration.legacy.inbox.url=" + value, "--spring.application.json={\"A8_DB_PASSWORD\":\"" + value + "\"}"}) {
             out.reset();
             err.reset();
 
@@ -182,6 +238,27 @@ class ReadOnlyVerificationCommandTest {
         String stray = "s" + UUID.randomUUID();
         assertThat(run("--connection=probe", stray)).isEqualTo(ReadOnlyVerificationCommand.EXIT_USAGE);
         assertThat(output()).doesNotContain(stray).doesNotContain("RESULT");
+    }
+
+    @Test
+    @DisplayName("RULING-P3B-17 核实的老待办连接就是运行时的连接：连接名与运行时一致，三个变量是运行时配置前缀的环境变量形，旧名 legacy-approval 不再是连接")
+    void verificationConnectionsAreTheRuntimeOnes() {
+        String variablePrefix = LegacyInboxConnectionDefinition.propertyPrefix().toUpperCase(Locale.ROOT).replace('.', '_').replace("-", "") + "_";
+
+        assertThat(Arrays.stream(ReadOnlyConnection.values()).map(c -> c.connectionName)).contains(LegacyInboxConnectionDefinition.connectionName());
+        ReadOnlyConnection inbox = ReadOnlyConnection.named(LegacyInboxConnectionDefinition.connectionName()).orElseThrow();
+        assertThat(inbox.urlVariable).isEqualTo(variablePrefix + "URL");
+        assertThat(inbox.usernameVariable).isEqualTo(variablePrefix + "USERNAME");
+        assertThat(inbox.passwordVariable).isEqualTo(variablePrefix + "PASSWORD");
+        assertThat(ReadOnlyConnection.named("legacy-approval")).isEmpty();
+    }
+
+    @Test
+    @DisplayName("RULING-P3B-17 --connection=legacy-approval 是用法错误（退出码 2），提示新名 integration-legacy-inbox，不核实")
+    void theRetiredConnectionNameNamesItsReplacement() {
+        assertThat(run("--connection=legacy-approval")).isEqualTo(ReadOnlyVerificationCommand.EXIT_USAGE);
+        assertThat(err.toString(StandardCharsets.UTF_8)).contains("--connection=" + LegacyInboxConnectionDefinition.connectionName());
+        assertThat(output()).doesNotContain("RESULT");
     }
 
     @Test

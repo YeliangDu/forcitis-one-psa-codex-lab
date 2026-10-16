@@ -73,7 +73,7 @@
 | 30 | `platform_integration.outbound_deliveries` | 投递队列 | ✗ 收件人以竖线拼接 | ✓ | ✓ | ✓ | ✓ | — | ✓ 关联号 | △ | ✗ 认可 90 天 / 1 年，无清理作业 | ✗ 收件人未登记 | 新系统 | K7 K10 K14 |
 | 31 | `platform_numbering.numbering_rules` | 配置（编号规则） | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ 无版本历史与生效日 | — | △ | 永久 | — | 新系统 | K11 |
 | 32 | `platform_numbering.numbering_counters` | 计数器 | ✓ | ✓ 代理主键 numbering_counter_id；（单据类型，法人，周期）唯一，法人为空表示全局计数 | —（原子递增） | — | ✓ | — | — | ✓ | 永久 | — | 新系统 | — |
-| 33 | `platform_numbering.legacy_numbers` | 对照（血缘） | ✓ | △ 唯一约束未按 `uk_` 命名 | —（只插入） | — | ✓ | — | ✓（即信封的 `source.documentRef`） | ✓ | ✓ 永久 | — | 迁入 | — |
+| 33 | `platform_numbering.legacy_numbers` | 对照（血缘） | ✓ | △ 唯一约束未按 `uk_` 命名 | —（只插入） | — | ✓ | — | ✓ | ✓ | ✓ 永久 | — | 迁入 | — |
 | 34 | `platform_scheduling.scheduler_locks` | 框架 | 框架 | ✓ | — | — | ✓ | — | — | ✓ | — | — | 框架 | 豁免 |
 
 主键、唯一约束未按 `pk_` / `uk_` 命名的项（第 3、12、13、22、33 行）已在 main 的命名守护基线中，或将被它捕获，不另列问题。
@@ -124,7 +124,7 @@
 | T2 | 工作日历保存时删除当年日期再重建，改动过去的日期会改变已算出的审批时效（审批时限按工作日历计算） | (a) 禁止修改今天之前的日期，例外经组织数据管理员操作并审计；(b) 日历按版本保存，审批时效记下所用的日历版本；(c) 不限制 | **(a)**：简单，符合 §12.2「配置不追溯」；已算出的截止时刻本来就存在 `approval_tasks.due_at` 上 |
 | T3 | `cost_timesheet.consumed_events`（幂等记录）不在用户已认可的保留期清单里，会无限增长 | 保留 30 天 / 90 天 / 永久 | **90 天**：大于事件重投递的窗口与事件归档的 30 天 |
 | T4 | `work_packages.actual_hours` 是已审批工时之和，属于派生值（冗余） | (a) 删除，查询时汇总；(b) 保留为投影，由工时审批事件维护，并可从工时单重算，加对账 | Phase 2 定：若工作包列表需要显示实际工时且量大，选 **(b)** 并登记为投影（SESSION_PLAYBOOK §14 第 9 项）；否则 (a) |
-| T5 | `employees.separated_at` 是「首次同步到离职的时间」，不是真实离职日；它是员工维度的生效日之一 | (a) 若 A8 有离职日字段，增加 `separation_date`（`date`），分析与汇报线历史以它为准；(b) 维持现状，注明误差（同步周期 5 分钟，但 A8 补录会滞后） | **(a)**，前提是 A8 视图白名单能提供该字段（需 1a 核对 `seeyon-view-columns.yaml`） |
+| T5 | `employees.separated_at` 是「首次同步到离职的时间」，不是真实离职日；它是员工维度的生效日之一 | (a) 若 A8 有离职日字段，增加 `separation_date`（`date`），分析与汇报线历史以它为准；(b) 维持现状，注明误差（同步周期 5 分钟，但 A8 补录会滞后） | **(a)**，前提是 A8 能提供该字段（需 1a 核对 A8 基表，读取时登记进外部读取登记 `backend/architecture/external-read-registry.yaml`） |
 
 ## 4. 守护规格（由 1a 实现）
 

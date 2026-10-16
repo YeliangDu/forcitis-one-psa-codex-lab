@@ -1,0 +1,86 @@
+package com.forcitis.one.acceptance;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+/**
+ * R-1b P5 RULING-P5-D12 (ADR-0033 section 1 item 2, "same for the old tables that are still there when R-1b merges"): account_roles,
+ * role_permissions and sync_run_held_separations get a single uuid primary key, and the columns of their former key become a named
+ * unique constraint. Read from the catalogue of the migrated database.
+ */
+@Testcontainers
+class SingleColumnPrimaryKeysIT extends AcceptanceSupport {
+
+    @Container
+    @ServiceConnection
+    static PostgreSQLContainer postgres = database();
+
+    private List<String> columnsOf(Connection catalogue, String schema, String table, boolean primary) throws SQLException {
+        List<List<String>> constraints = new ArrayList<>();
+        try (PreparedStatement select = catalogue.prepareStatement("""
+                select k.oid, k.contype, array(select a.attname::text from unnest(k.conkey) with ordinality u(attnum, position)
+                                         join pg_attribute a on a.attrelid = k.conrelid and a.attnum = u.attnum order by u.position) as columns
+                  from pg_constraint k join pg_class c on c.oid = k.conrelid join pg_namespace n on n.oid = c.relnamespace
+                 where n.nspname = ? and c.relname = ? and k.contype in ('p', 'u')""")) {
+            select.setString(1, schema);
+            select.setString(2, table);
+            try (ResultSet rs = select.executeQuery()) {
+                while (rs.next()) {
+                    boolean isPrimary = "p".equals(rs.getString("contype"));
+                    if (isPrimary == primary) {
+                        constraints.add(List.of((String[]) rs.getArray("columns").getArray()));
+                    }
+                }
+            }
+        }
+        return constraints.isEmpty() ? List.of() : constraints.stream().map(columns -> String.join(",", columns)).toList();
+    }
+
+    private String typeOf(Connection catalogue, String schema, String table, String column) throws SQLException {
+        try (PreparedStatement select = catalogue.prepareStatement(
+                "select data_type from information_schema.columns where table_schema = ? and table_name = ? and column_name = ?")) {
+            select.setString(1, schema);
+            select.setString(2, table);
+            select.setString(3, column);
+            try (ResultSet rs = select.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("R-1b P5 RULING-P5-D12：account_roles、role_permissions、sync_run_held_separations 的主键是单列 uuid；原键的列成为命名唯一约束")
+    void theThreeTablesHaveASingleUuidKeyAndTheirOldKeyIsUnique() throws Exception {
+        List<String> wrong = new ArrayList<>();
+        try (Connection catalogue = schemaConnection("public")) {
+            for (String[] table : P5Names.REKEYED_TABLES) {
+                String name = table[0] + "." + table[1];
+                List<String> keys = columnsOf(catalogue, table[0], table[1], true);
+                if (keys.size() != 1 || keys.getFirst().contains(",")) {
+                    wrong.add(name + " primary key is " + keys);
+                } else if (!"uuid".equals(typeOf(catalogue, table[0], table[1], keys.getFirst()))) {
+                    wrong.add(name + " primary key column " + keys.getFirst() + " is not uuid");
+                } else if (List.of(table[2].split(",")).contains(keys.getFirst())) {
+                    wrong.add(name + " primary key is still a column of the old key");
+                }
+                if (!columnsOf(catalogue, table[0], table[1], false).contains(table[2])) {
+                    wrong.add(name + " has no unique constraint on (" + table[2] + ")");
+                }
+            }
+        }
+
+        assertThat(wrong).isEmpty();
+    }
+}

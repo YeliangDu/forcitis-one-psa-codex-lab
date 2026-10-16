@@ -6,12 +6,16 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.numbering.api.NumberingCounterId;
 import com.forcitis.one.platform.numbering.api.NumberingError;
+import com.forcitis.one.platform.numbering.api.NumberingRuleId;
+import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 import com.forcitis.one.platform.numbering.api.ResetPolicy;
 import com.forcitis.one.platform.numbering.domain.CounterScope;
 import com.forcitis.one.platform.numbering.domain.NumberingPattern;
 import com.forcitis.one.platform.numbering.domain.NumberingRule;
 import com.forcitis.one.platform.numbering.domain.NumberingRuleRepository;
+import com.forcitis.one.platform.numbering.domain.ReservedValue;
 import com.forcitis.one.platform.numbering.domain.TemplateVersion;
 import com.forcitis.one.platform.numbering.domain.VersionStatus;
 import java.sql.ResultSet;
@@ -44,37 +48,37 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
 
     @Override
     public Optional<NumberingRule> findActive(DocumentType type) {
-        return jdbc.sql("select document_type, version, event_count from platform_numbering.numbering_rules where document_type = :type and is_active")
+        return jdbc.sql("select numbering_rule_id, document_type, version, event_count from platform_numbering.numbering_rules where document_type = :type and is_active")
                 .param("type", type.name())
-                .query((rs, n) -> new Head(DocumentType.valueOf(rs.getString("document_type")), rs.getLong("version"), rs.getLong("event_count")))
+                .query((rs, n) -> new Head(new NumberingRuleId(rs.getObject("numbering_rule_id", UUID.class)), DocumentType.valueOf(rs.getString("document_type")), rs.getLong("version"), rs.getLong("event_count")))
                 .optional().map(head -> rule(head, versionsOf(type.name())));
     }
 
     @Override
     public List<NumberingRule> findAllActive() {
-        List<Head> heads = jdbc.sql("select document_type, version, event_count from platform_numbering.numbering_rules where is_active order by document_type")
-                .query((rs, n) -> new Head(DocumentType.valueOf(rs.getString("document_type")), rs.getLong("version"), rs.getLong("event_count")))
+        List<Head> heads = jdbc.sql("select numbering_rule_id, document_type, version, event_count from platform_numbering.numbering_rules where is_active order by document_type")
+                .query((rs, n) -> new Head(new NumberingRuleId(rs.getObject("numbering_rule_id", UUID.class)), DocumentType.valueOf(rs.getString("document_type")), rs.getLong("version"), rs.getLong("event_count")))
                 .list();
         return heads.stream().map(head -> rule(head, versionsOf(head.type().name()))).toList();
     }
 
-    private record Head(DocumentType type, long version, long eventCount) {
+    private record Head(NumberingRuleId id, DocumentType type, long version, long eventCount) {
     }
 
     private static NumberingRule rule(Head head, List<TemplateVersion> versions) {
-        return NumberingRule.restore(head.type(), versions, head.version(), head.eventCount());
+        return NumberingRule.restore(head.id(), head.type(), versions, head.version(), head.eventCount());
     }
 
     private List<TemplateVersion> versionsOf(String type) {
         return jdbc.sql("""
-                        select version_number, template_text, reset_policy, start_value, effective_from_date, author_id, authored_at, status, confirmed_by, confirmed_at,
+                        select numbering_rule_version_id, version_number, template_text, reset_policy, start_value, effective_from_date, author_id, authored_at, status, confirmed_by, confirmed_at,
                                finance_confirmed_by, finance_confirmed_at
                           from platform_numbering.numbering_rule_versions
                          where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = :type)
                          order by version_number
                         """)
                 .param("type", type)
-                .query((rs, n) -> new TemplateVersion(rs.getInt("version_number"),
+                .query((rs, n) -> new TemplateVersion(new NumberingRuleVersionId(rs.getObject("numbering_rule_version_id", java.util.UUID.class)), rs.getInt("version_number"),
                         new NumberingPattern(rs.getString("template_text"), ResetPolicy.valueOf(rs.getString("reset_policy"))), rs.getLong("start_value"),
                         rs.getObject("effective_from_date", LocalDate.class), user(rs, "author_id"), rs.getObject("authored_at", OffsetDateTime.class).toInstant(), VersionStatus.valueOf(rs.getString("status")),
                         user(rs, "confirmed_by"), instant(rs, "confirmed_at"), user(rs, "finance_confirmed_by"), instant(rs, "finance_confirmed_at")))
@@ -139,7 +143,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
                         select :id, numbering_rule_id, :number, :template, :reset, :start, :effectiveFrom, :author, :authoredAt, :status
                           from platform_numbering.numbering_rules where document_type = :type
                         """)
-                .param("id", ids.next()).param("type", type.name()).param("number", saved.number()).param("template", saved.pattern().value())
+                .param("id", saved.id().value()).param("type", type.name()).param("number", saved.number()).param("template", saved.pattern().value())
                 .param("reset", saved.pattern().resetPolicy().name()).param("start", saved.startValue()).param("effectiveFrom", saved.effectiveFrom())
                 .param("author", saved.author() == null ? null : saved.author().value(), Types.OTHER)
                 .param("authoredAt", OffsetDateTime.ofInstant(saved.authoredAt(), ZoneOffset.UTC)).param("status", saved.status().name()).update();
@@ -171,13 +175,13 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
     }
 
     @Override
-    public long reserveNext(DocumentType type, CounterScope scope, String periodKey, long startValue) {
+    public ReservedValue reserveNext(DocumentType type, CounterScope scope, String periodKey, long startValue) {
         return jdbc.sql("""
                         insert into platform_numbering.numbering_counters (numbering_counter_id, document_type, counter_scope_kind, legal_entity_id, period_key, last_value)
                         values (:id, :type, :scopeKind, :le, :period, :start)
                         on conflict (document_type, legal_entity_id, period_key) do update
                            set last_value = platform_numbering.numbering_counters.last_value + 1, updated_at = :updatedAt
-                        returning last_value
+                        returning last_value, numbering_counter_id
                         """)
                 .param("id", ids.next())
                 .param("type", type.name())
@@ -186,7 +190,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
                 .param("period", periodKey)
                 .param("start", startValue)
                 .param("updatedAt", Timestamp.from(clock.instant()))
-                .query(Long.class)
+                .query((rs, n) -> new ReservedValue(rs.getLong("last_value"), new NumberingCounterId(rs.getObject("numbering_counter_id", UUID.class))))
                 .single();
     }
 }

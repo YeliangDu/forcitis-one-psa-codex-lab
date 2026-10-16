@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.platform.integration.api.OwnObjectId;
 import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
 import com.forcitis.one.platform.integration.api.SourceOrgUnit;
 import com.forcitis.one.platform.integration.api.SourcePerson;
@@ -11,7 +12,6 @@ import com.forcitis.one.platform.integration.api.SourcePosition;
 import com.forcitis.one.platform.integration.api.SourceRecordState;
 import com.forcitis.one.platform.integration.api.SourceRelationship;
 import com.forcitis.one.platform.integration.api.SourceRelationshipKind;
-import com.forcitis.one.platform.integration.api.SourceUnitId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -288,18 +288,17 @@ public final class SnapshotReconciler {
     }
 
     private static List<SourceOrgUnit> parentsFirst(List<SourceOrgUnit> units) {
-        Map<SourceUnitId, SourceOrgUnit> byId = new HashMap<>();
+        Map<OwnObjectId, SourceOrgUnit> byId = new HashMap<>();
         units.forEach(u -> byId.putIfAbsent(u.unitId(), u));
         return units.stream()
                 .sorted(Comparator.comparingInt((SourceOrgUnit u) -> depth(u, byId))
-                        .thenComparing(u -> u.sortOrder() == null ? Integer.MAX_VALUE : u.sortOrder())
-                        .thenComparingLong(u -> u.unitId().value()))
+                        .thenComparing(u -> u.sortOrder() == null ? Integer.MAX_VALUE : u.sortOrder()))
                 .toList();
     }
 
-    private static int depth(SourceOrgUnit unit, Map<SourceUnitId, SourceOrgUnit> byId) {
+    private static int depth(SourceOrgUnit unit, Map<OwnObjectId, SourceOrgUnit> byId) {
         int depth = 0;
-        Set<SourceUnitId> seen = new HashSet<>();
+        Set<OwnObjectId> seen = new HashSet<>();
         SourceOrgUnit at = unit;
         while (at.parentUnitId() != null && seen.add(at.unitId())) {
             at = byId.get(at.parentUnitId());
@@ -320,7 +319,7 @@ public final class SnapshotReconciler {
         return person;
     }
 
-    /** Several people for one unit: the smallest id wins, deterministically. */
+    /** Several people for one unit: the first in the source's order wins (the source lists them by its own id, smallest first, RULE-356). */
     private static Map<OrgUnitId, EmployeeId> pickSmallest(SourceOrgSnapshot source, SourceRelationshipKind kind, IssueKind multiple,
                                                        List<SyncDiff> diffs) {
         Map<OrgUnitId, List<EmployeeId>> byUnit = new LinkedHashMap<>();
@@ -331,12 +330,12 @@ public final class SnapshotReconciler {
         }
         Map<OrgUnitId, EmployeeId> picked = new LinkedHashMap<>();
         byUnit.forEach((unit, members) -> {
-            List<EmployeeId> ordered = members.stream().distinct().sorted(Comparator.comparingLong(EmployeeId::value)).toList();
+            List<EmployeeId> ordered = members.stream().distinct().toList();
             picked.put(unit, ordered.getFirst());
             if (ordered.size() > 1) {
                 diffs.add(SyncDiff.issue(EntityKind.ORG_UNIT, "org-unit:" + unit.value(), multiple,
                         "several people " + ordered.stream().map(u -> String.valueOf(u.value())).toList()
-                                + "; the smallest id " + ordered.getFirst().value() + " is used"));
+                                + "; the one with the smallest source id, " + ordered.getFirst().value() + ", is used"));
             }
         });
         return picked;

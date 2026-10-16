@@ -2,15 +2,9 @@ package com.forcitis.one.platform.integration.infrastructure.seeyon;
 
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.platform.integration.api.SourceGender;
-import com.forcitis.one.platform.integration.api.SourcePerson;
-import com.forcitis.one.platform.integration.api.SourcePersonId;
-import com.forcitis.one.platform.integration.api.SourcePosition;
-import com.forcitis.one.platform.integration.api.SourcePositionId;
 import com.forcitis.one.platform.integration.api.SourceRecordState;
 import com.forcitis.one.platform.integration.api.SourceRegionKind;
 import com.forcitis.one.platform.integration.api.SourceRelationshipKind;
-import com.forcitis.one.platform.integration.api.SourceRelationship;
-import com.forcitis.one.platform.integration.api.SourceUnitId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -53,12 +47,12 @@ final class SeeyonViewReader {
         SourceRegionKind region = region(rawCategory);
         String deliveryEnum = text(rs, "DELIVERY_FLAG_ENUM_ID");
         boolean delivery = deliveryEnum != null && deliveryEnum.equals(mapping.deliveryUnitYesEnumId());
-        return Optional.of(new OrgUnitRow(new SourceUnitId(id), text(rs, "CODE"), name, path, intOrNull(rs, "SORT_ID"),
+        return Optional.of(new OrgUnitRow(id, text(rs, "CODE"), name, path, intOrNull(rs, "SORT_ID"),
                 disabled ? SourceRecordState.DISABLED : SourceRecordState.ACTIVE, unmaintained, region,
-                region == null ? rawCategory : null, delivery));
+                region == null ? rawCategory : null, delivery, rs.getString("TYPE")));
     }
 
-    Optional<SourceRelationship> relationship(ResultSet rs) throws SQLException {
+    Optional<RelationshipRow> relationship(ResultSet rs) throws SQLException {
         Long member = longOrNull(rs, "SOURCE_MEMBER_ID");
         Long unit = longOrNull(rs, "ORG_UNIT_ID");
         Long type = longOrNull(rs, "RELATIONSHIP_TYPE_ID");
@@ -74,11 +68,11 @@ final class SeeyonViewReader {
             return Optional.empty();
         }
         Integer deleted = flag(rs, "MEMBER_IS_DELETED");
-        return Optional.of(new SourceRelationship(kind, new SourceUnitId(unit), new SourcePersonId(member), deleted != null && deleted == 1));
+        return Optional.of(new RelationshipRow(kind, unit, member, deleted != null && deleted == 1));
     }
 
     /** Deleted and disabled positions are read too, so they can be followed. */
-    Optional<SourcePosition> position(ResultSet rs) throws SQLException {
+    Optional<PostRow> position(ResultSet rs) throws SQLException {
         Long id = longOrNull(rs, "ID");
         String name = text(rs, "NAME");
         if (id == null || id == 0 || name == null) {
@@ -88,10 +82,10 @@ final class SeeyonViewReader {
         Integer status = flag(rs, "STATUS");
         SourceRecordState state = deleted != null && deleted == 1 ? SourceRecordState.DELETED
                 : status != null && status != 0 ? SourceRecordState.DISABLED : SourceRecordState.ACTIVE;
-        return Optional.of(new SourcePosition(new SourcePositionId(id), text(rs, "CODE"), name, intOrNull(rs, "SORT_ID"), state));
+        return Optional.of(new PostRow(id, text(rs, "CODE"), name, intOrNull(rs, "SORT_ID"), state));
     }
 
-    Optional<SourcePerson> person(ResultSet rs) throws SQLException {
+    Optional<MemberRow> person(ResultSet rs) throws SQLException {
         Long id = longOrNull(rs, "ID");
         Long orgUnit = longOrNull(rs, "ORG_UNIT_ID");
         String code = text(rs, "CODE");
@@ -103,9 +97,9 @@ final class SeeyonViewReader {
         Long leader = longOrNull(rs, "SUPERVISOR_MEMBER_ID");
         String wecom = text(rs, "WE_COM_ID");
         String feeEarnerEnum = text(rs, "FEE_EARNER_ENUM_ID");
-        return Optional.of(new SourcePerson(new SourcePersonId(id), code, name, new SourceUnitId(orgUnit),
-                post == null || post == 0 ? null : new SourcePositionId(post),
-                leader == null || leader == 0 ? null : new SourcePersonId(leader),
+        return Optional.of(new MemberRow(id, code, name, orgUnit,
+                post == null || post == 0 ? null : post,
+                leader == null || leader == 0 ? null : leader,
                 text(rs, "LOGIN_NAME"), text(rs, "ENTERPRISE_EMAIL"), gender(text(rs, "GENDER")),
                 wecom == null ? null : new WecomUserId(wecom),
                 feeEarnerEnum != null && feeEarnerEnum.equals(mapping.feeEarnerYesEnumId()), flag(rs, "IS_INTERNAL") == null));

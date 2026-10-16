@@ -58,7 +58,7 @@ public class GetTaskDetail {
     private TaskDetail detail(TaskRecord row, Optional<String> nodeName, Optional<UserId> assignee, List<UserId> candidates, boolean canAct,
             Instant now) {
         Optional<EmployeeProfile> initiator = org.findEmployee(row.initiator());
-        List<TaskDetail.Entry> history = tasks.historyOf(row.processKey(), row.document().documentId().value()).stream()
+        List<TaskDetail.Entry> history = tasks.historyOf(row.processKey(), row.document().documentId()).stream()
                 .map(r -> new TaskDetail.Entry(r.recordId(), r.taskId(), r.nodeKey(), r.nodeName(), r.round(), r.action(), r.actor(),
                         nameOf(r.actor()), r.onBehalfOf().map(this::nameOf), r.assignee().map(this::nameOf), r.reason(), r.decidedAt())).toList();
         return new TaskDetail(row.taskId(), row.instanceId(), row.processKey(), row.document(), row.nodeKey().value(), nodeName, row.initiator(),

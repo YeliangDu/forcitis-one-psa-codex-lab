@@ -83,9 +83,9 @@ class EventEnvelopeActorIT extends AccountsAcceptanceSupport {
     @Test
     @DisplayName("R-1b P2 ADR-0033 第 7 项第 1 条 / 第 3 项第 3 条：用户操作的事件信封 actorType = USER，actorId 是该账号的 uuid 字符串（规范小写），不等于其员工 ID；审计条目的操作人同为该 uuid")
     void aSignedInPersonActsWithTheirAccountId() throws Exception {
-        long unit = newOrgUnitId();
+        UUID unit = newOrgUnitId();
         orgUnit(unit, null, null);
-        long person = newEmployeeId();
+        UUID person = newEmployeeId();
         employee(person, unit, null);
         grantByOperations(person, "org_data_admin");
         SignedIn signedIn = signIn(person);
@@ -102,7 +102,7 @@ class EventEnvelopeActorIT extends AccountsAcceptanceSupport {
         assertThat(envelope.path("actorType").asString()).isEqualTo("USER");
         assertThat(envelope.path("actorId").isString()).as("actorId is a JSON string").isTrue();
         assertThat(canonicalUuid(envelope.path("actorId").asString(), "the envelope actorId")).isEqualTo(account);
-        assertThat(envelope.path("actorId").asString()).isNotEqualTo(String.valueOf(person));
+        assertThat(envelope.path("actorId").asString()).isNotEqualTo(text(person));
         assertThat(auditEntriesBy(account, "organization.workforce.LegalEntityRegistered")).extracting(entry -> entry.get("actorId"))
                 .containsOnly(account.toString());
     }
@@ -110,10 +110,10 @@ class EventEnvelopeActorIT extends AccountsAcceptanceSupport {
     @Test
     @DisplayName("R-1b-P2-C5 系统作业的事件：actorType = SYSTEM，actorId 是代表该作业的 uuid（规范小写，不是作业名、不是任何账号的 user_id），同一作业的各事件 actorId 相同；审计条目操作人为空，说明仍写出作业名")
     void aJobActsAsSystemWithAStableUuid() throws Exception {
-        long unit = newOrgUnitId();
+        UUID unit = newOrgUnitId();
         orgUnit(unit, null, null);
-        long first = newEmployeeId();
-        long second = newEmployeeId();
+        UUID first = newEmployeeId();
+        UUID second = newEmployeeId();
         employee(first, unit, null);
         employee(second, unit, null);
         UUID firstAccount = signIn(first).userId();
@@ -132,7 +132,7 @@ class EventEnvelopeActorIT extends AccountsAcceptanceSupport {
 
         List<Map<String, Object>> audited = Awaitility.await().atMost(Duration.ofSeconds(15)).pollInterval(Duration.ofMillis(100))
                 .until(() -> auditQuery(null, null, "platform.identity.AccountOpened").stream()
-                        .filter(entry -> String.valueOf(entry.get("subjectKey")).endsWith(firstAccount.toString())).toList(), found -> !found.isEmpty());
+                        .filter(entry -> firstAccount.toString().equals(entry.get("subjectId"))).toList(), found -> !found.isEmpty());
         assertThat(audited).allSatisfy(entry -> {
             assertThat(entry.get("actorId")).as("a job has no account as the audit actor").isNull();
             assertThat(String.valueOf(entry.get("detail"))).as("the audit trail still names the job").contains(ACCOUNT_PROVISIONING);

@@ -25,8 +25,13 @@ THRESHOLD = 100
 SHEET_DAYS = 7
 KINDS = {"new": "新词", "dialect": "疑似方言", "conflict": "同名异义", "duplicate": "同义异名", "other": "其他"}
 STATES = ("已预判", "待用户", "已关闭")
-KEYS = ["词或现象", "出处", "类型", "登记会话", "状态"]
+KEYS = ["词或现象", "出处", "使用范围", "bc", "类型", "登记会话", "状态"]
+SCOPES = ("domain", "kernel", "acl")
+# B1 之前用旧 new_term_issue.py 登记的片段没有「使用范围」「bc」两行；片段只增不改，按文件名时刻在此之前的照旧格式读
+KEYS_V1 = ["词或现象", "出处", "类型", "登记会话", "状态"]
+V1_BEFORE = "2026-10-16-000000"
 TEMPLATE = "## 用语问题\n\n" + "".join(f"- {k}：{{{i}}}\n" for i, k in enumerate(KEYS))
+BCS = os.path.join(HERE, "bcs.yaml")
 RESOLUTION = "## 处理\n\n- 状态：{0}\n- 处理：{1}\n"
 FILE = re.compile(r"(\d{4}-\d{2}-\d{2})-(\d{6})-.+\.md")
 SHEET = re.compile(r"(\d{4}-\d{2}-\d{2})\.md")
@@ -55,11 +60,21 @@ def keyed_lines(text, title, keys, where):
     return out
 
 
+def bc_ids():
+    with open(BCS, encoding="utf-8") as f:
+        return {i for i, k in re.findall(r"(?m)^- id: (\S+)\n(?:  .*\n)*?  kind: (\S+)$", f.read()) if k != "system"}
+
+
 def parse_issue(text, file_name):
     m = FILE.fullmatch(file_name)
     if not m or file_name.endswith(".resolution.md"):
         raise IssueError(f"{file_name}：文件名须为 <日期>-<HHMMSS>-<会话名>-<短名>.md（用 new_term_issue.py 生成）")
-    item = keyed_lines(text, "## 用语问题", KEYS, file_name)
+    if f"{m.group(1)}-{m.group(2)}" < V1_BEFORE and len(text.rstrip("\n").split("\n")) == 2 + len(KEYS_V1):
+        item = dict(keyed_lines(text, "## 用语问题", KEYS_V1, file_name), 使用范围="", bc="")
+    else:
+        item = keyed_lines(text, "## 用语问题", KEYS, file_name)
+    if item["使用范围"] and (item["使用范围"] not in SCOPES or item["bc"] not in bc_ids()) or not item["使用范围"] and f"{m.group(1)}-{m.group(2)}" >= V1_BEFORE:
+        raise IssueError(f"{file_name}：使用范围须为 {'|'.join(SCOPES)}，bc 须在 glossary/bcs.yaml 中")
     for key in ("词或现象", "出处", "登记会话"):
         if not item[key]:
             raise IssueError(f"{file_name}：「{key}」不能为空")
@@ -141,10 +156,10 @@ def render(items, business, codes, sheet, today):
             f"**业务用语积压 {backlog} 条**（达到 {THRESHOLD} 条即出决策单，{'已达到' if backlog >= THRESHOLD else '未达到'}）："
             f"业务提议术语 {business} 条、未关闭问题 {len(open_items)} 条；{since}。\n\n"
             f"错误码提议 {codes} 条单列，不计入门槛，归结构重构主线（R-5、CS-2.24），阶段出口前清零。\n")
-    cols = "| 日期 | 登记会话 | 类型 | 词或现象 | 出处 | 状态 | 处理 |\n|---|---|---|---|---|---|---|\n"
+    cols = "| 日期 | 登记会话 | 类型 | 词或现象 | 使用范围 | bc | 出处 | 状态 | 处理 |\n|---|---|---|---|---|---|---|---|---|\n"
 
     def rows(group):
-        return "".join(f"| {i['date']} | {i['登记会话']} | {KINDS[i['类型']]} | {i['词或现象']} | {i['出处']} | {i['状态']} | {i['处理']} |\n"
+        return "".join(f"| {i['date']} | {i['登记会话']} | {KINDS[i['类型']]} | {i['词或现象']} | {i['使用范围']} | {i['bc']} | {i['出处']} | {i['状态']} | {i['处理']} |\n"
                        for i in group)
 
     out = head + "\n## 未关闭\n\n" + (cols + rows(open_items) if open_items else "无。\n")
@@ -163,7 +178,13 @@ def self_test():
         failures.append(f"{name}：应失败但通过")
 
     name = "2026-10-15-120000-one-ops-OH工时.md"
-    good = TEMPLATE.format("OH工时", "cost-timesheet.yaml:40", "dialect", "one-ops", "待处理")
+    good = TEMPLATE.format("OH工时", "cost-timesheet.yaml:40", "domain", "cost.timesheet", "dialect", "one-ops", "待处理")
+    old = "## 用语问题\n\n" + "".join(f"- {k}：{v}\n" for k, v in zip(KEYS_V1, ("OH工时", "x.yaml:1", "dialect", "one-ops", "待处理")))
+    if load_issues({"2026-10-15-173736-one-architecture-x.md": old})[0]["使用范围"] != "":
+        failures.append("截止前的旧格式片段应照常读取")
+    rejects("截止后的旧格式片段", lambda: parse_issue(old, "2026-10-16-090000-one-ops-x.md"))
+    rejects("使用范围取值", lambda: parse_issue(good.replace("- 使用范围：domain", "- 使用范围：领域"), name))
+    rejects("bc 不在 bcs.yaml", lambda: parse_issue(good.replace("- bc：cost.timesheet", "- bc：cost.hours"), name))
     items = load_issues({name: good})
     if items[0]["状态"] != "待处理" or items[0]["处理"] != "":
         failures.append("合规问题片段解析结果不对")
@@ -187,7 +208,7 @@ def self_test():
     today = datetime.date(2026, 10, 28)
     out = render(items, 99, 153, "2026-10-20", today)
     for want in ("**业务用语积压 100 条**（达到 100 条即出决策单，已达到）", "距上次决策单（2026-10-20）8 天，**已超过 7 天**",
-                 "错误码提议 153 条单列", "| 疑似方言 | OH工时 |"):
+                 "错误码提议 153 条单列", "| 疑似方言 | OH工时 | domain | cost.timesheet |"):
         if want not in out:
             failures.append(f"渲染缺少：{want}")
     if "未达到" not in render([], 10, 0, None, today) or "尚无决策单" not in render([], 10, 0, None, today):
