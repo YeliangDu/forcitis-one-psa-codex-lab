@@ -189,6 +189,7 @@ SAMPLE_PER_MONTH = 250
 # Legacy approval node keys of TIMESHEET v15 (bpm_task_assign_rule, 2026-10-15); the initiator node Activity_19wn7op is not replayed (M3).
 NODES = {
     'Activity_0g7oxfy': ('projectManagerReview', {'type': 'FORM_FIELD_USERS', 'field': 'projectManagerId'}),
+    # 导出文件保持旧格式（regionalHead* 即现在的部门负责人 orgUnitHead*）：回放命令的 LegacyVocabulary 把旧名映射成新名，已导出的 20261015 文件因此不用重做
     'Activity_01vbv92': ('regionalHeadReview', {'type': 'FORM_FIELD_USERS', 'field': 'regionalHeadId'}),
     'Activity_0hwqdkm': ('supervisorReview', {'type': 'INITIATOR_SUPERVISOR', 'level': '1'}),
 }
