@@ -159,7 +159,10 @@ CODE_SUFFIXES = {".java", ".kt", ".ts", ".tsx", ".js", ".mjs", ".cjs"}
 TEST_ROOT = "backend/src/test/java/"
 WIDE = re.compile(r"""[(,]\s*(["'`](?:docs|modernization)["'`])|(?<=\.\./)(docs\b(?!/modernization))""")
 # sources that match WIDE without reading docs at all (a pull request label named "docs" in a test string); every entry must still match, the self-test fails on a stale one
-WIDE_NOT_READERS = {"scripts/ci/heavy_gate.py": "the test strings use \"docs\" as a label name"}
+WIDE_NOT_READERS = {
+    "scripts/ci/heavy_gate.py": "the test strings use \"docs\" as a label name",
+    "scripts/release/ci_passed.py": "its self-test builds a temporary git repository with a docs directory; it reads no document of this repository",
+}
 # frontend scripts that `pnpm run check:copy` and `pnpm run test:scripts` run (checked against package.json by the self-test); any other frontend reader needs the full verify
 GUARDED_FRONTEND = ("frontend/scripts/check-copy-glossary.mjs", "frontend/scripts/copy-glossary.mjs", "frontend/scripts/copy-glossary.test.mjs")
 # Heavy (container or Spring) test classes that read a guarded doc and may be left out of the middle tier, with the reason. Hand-kept on purpose and checked by the self-test (a stale entry fails):
