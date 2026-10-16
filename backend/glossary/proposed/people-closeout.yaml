@@ -21,7 +21,7 @@ terms:
   en: LegalRepresentativeSeal
   snake: legal_representative_seal
   kind: value_object
-  bc: organization
+  bc: organization.administration
   scope: domain
   definition: 印章类别取值：法定代表人个人名章
   standard_ref:
@@ -36,7 +36,7 @@ terms:
   en: ContractSeal
   snake: contract_seal
   kind: value_object
-  bc: organization
+  bc: organization.administration
   scope: domain
   definition: 印章类别取值：用于合同签署的专用章
   standard_ref:

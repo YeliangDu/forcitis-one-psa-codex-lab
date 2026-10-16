@@ -18,7 +18,7 @@ ADR-0039（防腐层边界）引入的术语（proposed，待业务评审，ADR-
 
 ## `architecture-objects.yaml`
 
-涉及模块：`accounting.cashbank`、`accounting.fixedasset`、`accounting.ledger`、`accounting.period`、`accounting.reporting`、`accounting.tax`、`contract.agreement`、`cost.costing`、`delivery.acceptance`、`delivery.execution`、`delivery.inspection`、`expense.spend`、`km.knowledge`、`masterdata.catalog`、`masterdata.counterparty`、`operations.facts`、`organization`、`organization.leave`、`organization.payroll`、`organization.workforce`、`payables.payment`、`presales.opportunity`、`procurement.subcontracting`、`receivables.collection`、`receivables.wip`。
+涉及模块：`accounting.cashbank`、`accounting.fixedasset`、`accounting.ledger`、`accounting.period`、`accounting.reporting`、`accounting.tax`、`contract.agreement`、`cost.costing`、`delivery.acceptance`、`delivery.execution`、`delivery.inspection`、`expense.spend`、`km.knowledge`、`masterdata.catalog`、`masterdata.counterparty`、`operations.facts`、`organization.administration`、`organization.leave`、`organization.payroll`、`organization.workforce`、`payables.payment`、`presales.opportunity`、`procurement.subcontracting`、`receivables.collection`、`receivables.wip`。
 
 全企业聚合草案中已有对象但尚未登记的 83 项架构业务对象（预判登记稿，proposed，待业务评审，ADR-0018）。
 
@@ -26,8 +26,8 @@ ADR-0039（防腐层边界）引入的术语（proposed，待业务评审，ADR-
 
 | id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|---|
-| `it_asset_usage_record` | IT 资产使用记录 | ItAssetUsageRecord | 领域 · organization | 员工领用、归还公司信息技术设备的使用记录：记领用人、设备、起止时间；不含资产卡片本身（公司资产） |  | 原 bc 为 organization.administration，尚未在 bcs.yaml 登记，待补登 |
-| `it_service_ticket` | IT 需求工单 | ItServiceTicket | 领域 · organization | 员工提出的信息技术服务需求工单：从受理、处理到关闭的全过程；不含设备领用 |  | 原 bc 为 organization.administration，尚未在 bcs.yaml 登记，待补登 |
+| `it_asset_usage_record` | IT 资产使用记录 | ItAssetUsageRecord | 领域 · organization.administration | 员工领用、归还公司信息技术设备的使用记录：记领用人、设备、起止时间；不含资产卡片本身（公司资产） |  | 原 bc 为 organization.administration，尚未在 bcs.yaml 登记，待补登 |
+| `it_service_ticket` | IT 需求工单 | ItServiceTicket | 领域 · organization.administration | 员工提出的信息技术服务需求工单：从受理、处理到关闭的全过程；不含设备领用 |  | 原 bc 为 organization.administration，尚未在 bcs.yaml 登记，待补登 |
 | `special_additional_deduction_declaration` | 专项附加扣除声明 | SpecialAdditionalDeductionDeclaration | 领域 · organization.payroll | 人员按个人所得税规定填报的专项附加扣除声明：扣除项目、金额与适用期间，供薪酬计税使用 |  |  |
 | `labor_cost_allocation_run` | 人工成本分配运行 | LaborCostAllocationRun | 领域 · cost.costing | 一次将人工成本按工时分配到项目的运行：固定期间、输入快照与分配结果，可追溯、可重跑 |  |  |
 | `journal_entry` | 会计分录 | JournalEntry | 领域 · accounting.ledger | 会计分录：一借一贷或多借多贷的记账行集合，借贷平衡，是凭证的组成部分 |  |  |
@@ -47,7 +47,7 @@ ADR-0039（防腐层边界）引入的术语（proposed，待业务评审，ADR-
 | `client_supplied_material` | 发包人提供资料 | ClientSuppliedMaterial | 领域 · delivery.acceptance | 发包人按协议向我方提供的资料及其接收、缺失状态，影响交付进度与责任划分 |  |  |
 | `confirmation_evidence_type_config_version` | 可触发确认的证据类型开放配置版本 | ConfirmationEvidenceTypeConfigVersion | 领域 · receivables.wip | 可触发收入确认的证据类型之开放配置版本：哪些证据类型可触发确认及生效期间（待业务确认） |  |  |
 | `partner_capital_contribution` | 合伙人出资 | PartnerCapitalContribution | 领域 · payables.payment | 合伙人按合伙协议对合伙企业的出资：认缴、实缴与变更记录 |  |  |
-| `employee_activity_request` | 员工活动申请 | EmployeeActivityRequest | 领域 · organization | 员工活动（团建、培训聚餐等）的申请：事由、人数、预算与审批状态 |  | 原 bc 为 organization.administration，尚未在 bcs.yaml 登记，待补登；活动名当对象名，待改名（见 arch-naming/ARCH_NAME_AUDIT.md） |
+| `employee_activity_request` | 员工活动申请 | EmployeeActivityRequest | 领域 · organization.administration | 员工活动（团建、培训聚餐等）的申请：事由、人数、预算与审批状态 |  | 原 bc 为 organization.administration，尚未在 bcs.yaml 登记，待补登；活动名当对象名，待改名（见 arch-naming/ARCH_NAME_AUDIT.md） |
 | `presales_investment_attribution` | 售前投入归属登记 | PresalesInvestmentAttribution | 领域 · cost.costing | 售前阶段投入的成本归属登记：投入记到哪个商机，及后续转入项目的归属依据 |  |  |
 | `vat_invoice` | 增值税发票 | VatInvoice | 领域 · accounting.tax | 增值税发票：销项（我方开出）与进项（取得）两类，含票号、金额、税额与状态 |  | kind 待判；涉及 bc：accounting.tax、receivables.wip |
 | `external_testing` | 外部检测 | ExternalTesting | 领域 · delivery.inspection | 委托外部机构对工程实体或材料进行的检测：委托、报告与结论 |  |  |
@@ -81,7 +81,7 @@ ADR-0039（防腐层边界）引入的术语（proposed，待业务评审，ADR-
 | `incentive_plan` | 激励方案 | IncentivePlan | 领域 · organization.payroll | 激励方案：适用对象、计提与发放规则及考核指标，按期间生效 |  |  |
 | `independence_check` | 独立性检查 | IndependenceCheck | 领域 · presales.opportunity | 接受业务前对我方与委托方、关联方之间利益冲突与独立性的检查及结论 |  | 活动名当对象名，待改名（见 arch-naming/ARCH_NAME_AUDIT.md） |
 | `cash_flow_item_table_version` | 现金流量项目表版本 | CashFlowItemTableVersion | 领域 · accounting.ledger | 现金流量项目表的版本：项目及其与科目的对应及生效期间 |  |  |
-| `seal_usage_request` | 用印申请 | SealUsageRequest | 领域 · organization | 用印申请：文件、用印类型、事由与审批状态，用印后登记 |  | 原 bc 为 organization.administration，尚未在 bcs.yaml 登记，待补登；活动名当对象名，待改名（见 arch-naming/ARCH_NAME_AUDIT.md） |
+| `seal_usage_request` | 用印申请 | SealUsageRequest | 领域 · organization.administration | 用印申请：文件、用印类型、事由与审批状态，用印后登记 |  | 原 bc 为 organization.administration，尚未在 bcs.yaml 登记，待补登；活动名当对象名，待改名（见 arch-naming/ARCH_NAME_AUDIT.md） |
 | `knowledge_item` | 知识条目 | KnowledgeItem | 领域 · km.knowledge | 沉淀可复用的经验、模板与案例的知识条目：分类、正文、附件与发布状态 |  |  |
 | `social_insurance_enrollment` | 社保与公积金参保 | SocialInsuranceEnrollment | 领域 · organization.payroll | 人员的社会保险与住房公积金参保：险种、基数、缴纳主体与起止月份 |  |  |
 | `thirteenth_period_activation` | 十三期启用登记 | ThirteenthPeriodActivation | 领域 · accounting.period | 某法人某会计年度第 13 期（调整期）的启用登记；12 月关账后不再改变 |  |  |
@@ -364,7 +364,7 @@ Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-
 
 ## `people-closeout.yaml`
 
-涉及模块：`organization`、`organization.leave`、`organization.payroll`、`organization.workforce`。
+涉及模块：`organization.administration`、`organization.leave`、`organization.payroll`、`organization.workforce`。
 
 人员组收口交来的提议术语（one-arch-people，预判登记稿，proposed，待用户答复）。
 
@@ -373,8 +373,8 @@ B-31 的 bc organization.administration 尚不在 bcs.yaml，暂挂 organization
 | id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|---|
 | `compensatory_leave` | 补休 | CompensatoryLeave | 领域 · organization.leave | 加班后以安排休息代替加班费的休假 |  | 与词表「调休」（工作日历中的调休上班日，B-14）同名异义，用语问题已登记，待用户裁定 |
-| `legal_representative_seal` | 法定代表人名章 | LegalRepresentativeSeal | 领域 · organization | 印章类别取值：法定代表人个人名章 |  | bc 暂挂 organization（B-31 organization.administration 待补登） |
-| `contract_seal` | 合同专用章 | ContractSeal | 领域 · organization | 印章类别取值：用于合同签署的专用章 |  | bc 暂挂 organization（B-31 organization.administration 待补登） |
+| `legal_representative_seal` | 法定代表人名章 | LegalRepresentativeSeal | 领域 · organization.administration | 印章类别取值：法定代表人个人名章 |  | bc 暂挂 organization（B-31 organization.administration 待补登） |
+| `contract_seal` | 合同专用章 | ContractSeal | 领域 · organization.administration | 印章类别取值：用于合同签署的专用章 |  | bc 暂挂 organization（B-31 organization.administration 待补登） |
 | `severance_compensation` | 经济补偿 | SeveranceCompensation | 领域 · organization.payroll | 解除或终止劳动合同时用人单位依法支付的补偿，单独计税结算 |  | B-15 |
 | `emergency_contact` | 紧急联系人 | EmergencyContact | 领域 · organization.workforce | 人员档案中登记的紧急情况联系人 |  | 个人信息 |
 

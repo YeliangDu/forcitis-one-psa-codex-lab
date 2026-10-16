@@ -6,7 +6,7 @@ terms:
   en: ItAssetUsageRecord
   snake: it_asset_usage_record
   kind: aggregate
-  bc: organization
+  bc: organization.administration
   scope: domain
   definition: "员工领用、归还公司信息技术设备的使用记录：记领用人、设备、起止时间；不含资产卡片本身（公司资产）"
   standard_ref:
@@ -22,7 +22,7 @@ terms:
   en: ItServiceTicket
   snake: it_service_ticket
   kind: aggregate
-  bc: organization
+  bc: organization.administration
   scope: domain
   definition: "员工提出的信息技术服务需求工单：从受理、处理到关闭的全过程；不含设备领用"
   standard_ref:
@@ -324,7 +324,7 @@ terms:
   en: EmployeeActivityRequest
   snake: employee_activity_request
   kind: aggregate
-  bc: organization
+  bc: organization.administration
   scope: domain
   definition: "员工活动（团建、培训聚餐等）的申请：事由、人数、预算与审批状态"
   standard_ref:
@@ -837,7 +837,7 @@ terms:
   en: SealUsageRequest
   snake: seal_usage_request
   kind: aggregate
-  bc: organization
+  bc: organization.administration
   scope: domain
   definition: "用印申请：文件、用印类型、事由与审批状态，用印后登记"
   standard_ref:
