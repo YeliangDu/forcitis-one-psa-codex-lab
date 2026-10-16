@@ -21,14 +21,14 @@
 | R-1b P4 审批 ID、Flowable id 生成器、去重键拆列、部门负责人审批改名 | #276 | 已合并 |
 | R-1b P5 收口（信封与审计对象 UUID、删 source、四事件改名、守护、ID_CARRIERS） | #310 | 已合并 |
 | 数据修复 PR-5 identity（ID-03、05–09、11 name、12） | #328 | 已入队 |
-| 数据修复 PR-2 timesheet-audit TB-01、TB-02、TB-03 | 见 one-coordinator 台账 | 已开 / 复审中 |
+| 数据修复 PR-2 timesheet-audit TB-01、TB-02、TB-03 | 分支 claude/one-1a-next-4-data-pr2 | opus 首轮需改（1 Blocker、2 High），修复中；复审全文 `~/.modernize/psa/handoff/one-1a-next-4/pr2-review.md`；修后 opus 终审再开 PR |
 
 ## 3. 在途与下一步（数据修复批，生产前闸门，不挡 dev；one-coordinator 裁定 D1–D5）
 
 - **PR-1 审计分区**（TB-07 + TB-09 + TB-05，ADR-0048）：前置已满足：#324 已合入，ADR-0048 正文在 `adr/src/ADR-0048.md`，可直接开（先请 one-data 逐条签）。one-architecture 判定：TB-09 选删 `created_at DEFAULT`，列注释「审计事实发生的时间：事件条目取事件信封的发生时刻，直接审计取注入的时钟」。体量最大；opus 首轮 + opus 终审（守护、凭据）。须 one-data 逐条签。
 - **PR-3**：TB-04（导出去 count，先核 K-3b-4 是否已做）、TB-06、TB-08。
 - **PR-6**：审批 AP-01、02、03、05、08（AP-01 指向 `start_rounds(instance_id)`，若非 uuid 同 AP-17 处理）；AP-04 目标为 uuid 唯一约束可放行（one-architecture ④）。
-- **PR-7**：编号 AP-09 等；AP-14 只留 TIMESHEET（删 QUOTE、JOURNAL_VOUCHER 种子与财务确认列，one-architecture ⑤）；AP-17 改 CHECK 不作外键。
+- **PR-7**：**须等 one-1a-par 的 numbering 小卡（`IssuedNumber` 带版本 ID、`TemplateVersion` 带 ID，TS-UNIQ 前置）合入后再开，以它为基线**，避免两边同时改 numbering。范围：编号 AP-09 等；AP-14 只留 TIMESHEET（删 QUOTE、JOURNAL_VOUCHER 种子与财务确认列，one-architecture ⑤）；AP-17 改 CHECK 不作外键。
 - **PR-8**：workforce 中不含 sync_* 的条目；WF-09 撤 5 条 fk_exceptions 加外键（已接受）；WF-12 目标为 uuid 唯一约束可放行；B7-2 保留并在注册表写「使用方未建，由同步原样入库」（one-architecture ⑦）。
 - **并入他卡，不单做**：WF-01/02/03/07/08/13/14 → 拆分 a；AP-06/07 → DA-10；ID-01/02/10/13 → W2；TA-02 → 日历版本化；WF-06 → DA-7；TA-01 → one-1a-par（TS-UNIQ 后）。这些卡也都在基线关闭前。
 - **待用户**：ID-04（binding_hash 级别）、U-7b 真到期日已不需要（U-7b 已答改写员工 ID）；ADR-0033 第 9 项第 2 条时点偏离追认（收件箱 calendar-scope-timing）。
