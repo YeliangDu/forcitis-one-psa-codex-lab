@@ -54,6 +54,12 @@ public final class P5Names {
     public static final String OLD_OVERDUE_EVENT = "ApprovalTaskOverdue";
     public static final String OLD_HANDLED_EVENT = "TaskResulted";
 
+    /** The new and the retired names of the source-reference refusal and the timesheet cancellation events (B2-B05, B2-B07). */
+    public static final String REFUSED_EVENT = "platform.integration.SourceReferenceRefused";
+    public static final String WITHDRAWN_EVENT = "cost.timesheet.TimesheetApprovalWithdrawn";
+    public static final String OLD_REFUSED_EVENT = "SourceReferenceRegistrationRefused";
+    public static final String OLD_CANCELLED_EVENT = "TimesheetCancelled";
+
     /** The five tables whose primary key a framework owns (ADR-0033 section 1 item 8). */
     public static final Set<String> FRAMEWORK_TABLES = Set.of("platform_identity.sessions", "platform_identity.sessions_attributes",
             "platform_integration.event_publication", "platform_integration.event_publication_archive", "platform_scheduling.scheduler_locks");
