@@ -19,7 +19,7 @@
 
 ## 口令与记录
 
-- 探针口令在 SQL Server 上生成（`CRYPT_GEN_RANDOM`，同 `evidence_login.sql`），只以新 ECS 临时公钥加密的密文经手，存 ECS `/etc/forcitis-one/readonly-probe.env`（root 0600），不经会话；结束时删除。
+- 探针账号经 RDS 云接口创建与删除（`aliyun rds CreateAccount / DeleteAccount`，普通账号 `one_readonly_probe`）。口令由 `c14_run.py` 在进程内存里运行时生成（`secrets`，满足 RDS 口令格式，不超 32 位），只经云接口命令行（本机，创建的一瞬间）和以新 ECS 临时公钥加密的密文，存 ECS `/etc/forcitis-one/readonly-probe.env`（root 0600），不经会话、不落盘、不打印；结束时删除。依据：2026-10-16 实测，T-SQL 的 CREATE / DROP LOGIN 在 msdb、rdscore 留下执行账号删不掉的孤儿用户，而 RDS 托管的删除会清 msdb（用户 2026-10-16 选 B、批准用云接口）。
 - `readonly-probe.env` 只有三个变量，只读核实命令以 `--connection=probe` 读取：`READONLY_PROBE_DB_URL`（与 one.env 的 `LEGACY_DB_RO_URL` 同形，`databaseName=one_readonly_probe_db`，TLS 参数与 one.env 中 SQL Server 的 URL 相同：`encrypt=true;trustServerCertificate=false;trustStore=/etc/forcitis-one/sqlserver-ca.p12;trustStorePassword=…`）、`READONLY_PROBE_DB_USERNAME`（`one_readonly_probe`）、`READONLY_PROBE_DB_PASSWORD`。第 9 项连的仍是 `one_readonly_probe_db`（核实的是能否进入基线外的库），不改 URL。
 - 记录只写：每项的拒绝标记（(a)–(g) 与「通过」）、错误号；不记消息原文与任何值。
 - 每项前后各取一次探针的有效权限计数（库级、服务器级 `fn_my_permissions` 的行数），回退后须回到对照值。
@@ -28,18 +28,15 @@
 ## 时间窗口与共享实例影响
 
 - 约 75 分钟，工作日非高峰（建议 12:00–13:00 或 18:30 以后），提前告知 one-coordinator。
-- 影响：实例上临时多一个登录、两个空库，以及第 17 项在 master 中一个短暂存在的探针用户（做完即删），另有 RDS 自动给探针在 msdb、rdscore 建的用户（收尾删）（几 MB，进入实例备份，删库后随备份保留期过期）；所有偏离只在探针库内或针对探针登录；不改 public、不改其他库，对 a8_db、ruoyi-vue-pro、it_portal 等库没有锁与授权变化。第 10 项的服务器级 DENY 预期被平台拒绝（4613），不产生变更。
-- 停止条件：任一回退后计数不回到对照值、对照项不通过、出现对探针库以外对象的任何变更、第 14 项之前的可见性核实读不到或为 0 → 立即停下（脚本先回退当前项并执行收尾）报 one-coordinator。
+- 影响：实例上临时多一个登录、两个空库，以及第 17 项在 master 中一个短暂存在的探针用户（做完即删），另有 RDS 自动给探针在 msdb、rdscore 建的用户（msdb 的随 DeleteAccount 清除；**rdscore 的是平台固有残留，永久留 1 个，见下**）（几 MB，进入实例备份，删库后随备份保留期过期）；所有偏离只在探针库内或针对探针登录；不改 public、不改其他库，对 a8_db、ruoyi-vue-pro、it_portal 等库没有锁与授权变化。第 10 项的服务器级 DENY 预期被平台拒绝（4613），不产生变更。
+- 停止条件：任一回退后计数不回到对照值、对照项不通过、可见性对照不通过、出现对探针库以外对象的任何变更、第 14 项之前的可见性核实读不到或为 0 → 立即停下（脚本先回退当前项并执行收尾）报 one-coordinator。
 
 ## 准备（批准后执行）
 
+1. 云接口：`CreateAccount`（普通账号 `one_readonly_probe`，口令运行时生成），等账号 `Available`（至多 5 分钟）。记请求号。
+2. master 上下文建库、探针库内建用户与授权（执行账号 u8c）：
+
 ```sql
--- master 上下文
-DECLARE @s nvarchar(64) = N'Pr-' + CONVERT(nvarchar(64), CRYPT_GEN_RANDOM(24), 2);
-DECLARE @ddl nvarchar(max) = N'CREATE LOGIN [one_readonly_probe] WITH PASSWORD = ' + QUOTENAME(@s, N'''')
-    + N', CHECK_POLICY = ON, CHECK_EXPIRATION = OFF, DEFAULT_DATABASE = [master]';
-EXEC (@ddl);   -- EXEC 的参数只能是变量或字面量，不能是表达式
-SELECT N'one_readonly_probe' AS login_name, @s AS one_time_secret;
 CREATE DATABASE [one_readonly_probe_db];   -- 若 T-SQL 建库被平台拒绝：停下，改用 RDS CreateDatabase 前先报
 -- one_readonly_probe_db 上下文：与正式账号同形
 CREATE USER [one_readonly_probe] FOR LOGIN [one_readonly_probe] WITH DEFAULT_SCHEMA = dbo;
@@ -48,6 +45,10 @@ GRANT CONNECT, SELECT ON DATABASE::[one_readonly_probe_db] TO [one_readonly_prob
 DENY INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VIEW, CREATE PROCEDURE, CREATE FUNCTION, CREATE SCHEMA
   ON DATABASE::[one_readonly_probe_db] TO [one_readonly_probe];
 ```
+
+## 回读对照（准备之后、任何偏离之前；失败退出码 2）
+
+回读用 `USER_ID(N'one_readonly_probe')`（不受元数据可见性限制；`sys.database_principals` 对执行账号看不见别人的用户，2026-10-16 实测）。账号建好后立即读一次：登录数须为 1、探针库 1、master 用户 0、msdb 与 rdscore 的用户号须大于 0（RDS 已建），否则 Stop，照常收尾但**强制退出码 2 并告警**——回读读不出 RDS 刚建的用户，收尾后的 0 就没有证明力。
 
 ## 正式运行时账号核实（逐项之前）
 
@@ -59,9 +60,10 @@ DENY INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VI
 
 - 结果文件是新名字且可写（已存在则拒绝，不覆盖旧结果）；运行方式：tmux 或 nohup，输出重定向到文件，不经管道（终端断开时收尾也要能做完）。
 - `app.jar` 的 SHA-256 与参数一致；ECS 上没有残留的 `readonly-probe.env`。
-- 执行账号能打开 msdb、rdscore（收尾要在这两库删探针自己的用户）；并且能看到取证账号 `one_evidence_ro` 在这两库的用户（对照），否则回读的「0」可能只是看不见，不能证明已删。
-- 回读五项（探针登录、探针库、master / msdb / rdscore 里的探针用户）开工前必须全为 0。
-- 收尾顺序：先停 ECS 上的 `one-c14-probe-*` 单元，再杀探针登录的会话，然后逐条删除探针对象，回读五项为 0；任何一步失败都继续做下一步，最后不干净则告警、退出码 2。收到 SIGTERM / SIGHUP / Ctrl-C 也走同一条收尾。
+- 执行账号能打开 msdb、rdscore（回读要在这两库里取 `USER_ID`）。
+- RDS 上不存在同名账号（`DescribeAccounts`）。
+- 回读（探针登录、探针库、master 用户、msdb 用户）开工前必须全为 0；rdscore 用户只记录，不要求为 0（永久已知残留，见下）。
+- 收尾顺序：先停 ECS 上的 `one-c14-probe-*` 单元，再杀探针登录的会话，然后逐条删除探针库和 master 用户，最后经云接口 `DeleteAccount` 删探针账号（它同时清 msdb 用户），回读前四项为 0、rdscore 用户只记录；任何一步失败都继续做下一步，最后不干净则告警、退出码 2。收到 SIGTERM / SIGHUP / Ctrl-C 也走同一条收尾。
 
 ## 逐项（偏离 → 预期标记 → 回退）
 
@@ -90,29 +92,23 @@ DENY INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VI
 
 平台上不构造、由 `ReadOnlyAccountCheckIT` 覆盖：第 16 项「msdb 中本登录的用户加入 db_owner」（用户 2026-10-15 决定不做）；CONTROL SERVER、加入 securityadmin、多出服务器级权限（u8c 无服务器级授予权限，4613；见 B-5 README 风险登记）。
 
-## H-2：探针的 msdb 用户能否移出 SQLAgentOperatorRole（一次性例外，只此一次）
+## H-2：不做（平台不可构造）
 
-背景：RDS 在建登录时自动给它在 msdb、rdscore 里各建一个用户（取证账号的这两个用户与登录同一秒创建，从未修改），msdb 用户带 SQLAgentUserRole、SQLAgentReaderRole、SQLAgentOperatorRole 三个角色。(f) 基线要不要接受 SQLAgentOperatorRole，取决于它能不能被移出。依据：用户在 one-ops 会话直接选「批准这一次」（北京时间 2026-10-16，对应 UTC 2026-10-15），并经 one-coordinator 转达为 intent 2026-10-15-234252；这是「共享实例上不动 msdb」的一次性例外，边界如下。
+原计划试一次把探针的 msdb 用户移出 SQLAgentOperatorRole（用户 2026-10-16 批准的一次性例外）。2026-10-16 `c14_u8c_status` 实测执行账号 u8c 在 msdb 不是 db_owner，没有 ALTER ANY ROLE / ALTER ANY USER / VIEW DEFINITION（rdscore 同），也不是 sysadmin / securityadmin，做不了这条语句，也无法授权给自己（见 PREDEPLOY_CHECKLIST C-14）。依据 B-5 的原则「平台拒绝时记平台不可构造，不换方式」，`c14_run.py` 不再带 `--msdb-role-trial`。(f) 的结论维持 #277 基线：RDS 自动给登录建的 msdb、rdscore 用户及其 SQLAgent 三角色为接受项。
 
-- **只限探针**：语句只含 `[one_readonly_probe]`，不碰任何正式账号和 msdb 里已有的主体与对象；探针用完即删。
-- **执行条件**：只有 `c14_run.py` 带 `--msdb-role-trial` 才做这一试，其余项都做完、回退并复原计数后才执行。不带该参数时，msdb 里不做任何授权变更；但 RDS 自动给探针在 msdb、rdscore 建的用户，收尾始终按探针名删除，预检与回读也读这两库（用户 2026-10-16 直接确认：「要删」）。
-- **四步**（每步 `c14_run.py` 逐条记录 rc、错误号与计数，不记输出原文）：
-  1. 执行前提（只读）：以 u8c 读 msdb，确认探针用户存在，记其角色集合（只记角色名与个数）及是否在 SQLAgentOperatorRole 里。RDS 没给探针建 msdb 用户，或探针不在该角色里，则记「无需移出」，结束。
-  2. 执行语句：在 msdb 上下文以 u8c 执行 `ALTER ROLE SQLAgentOperatorRole DROP MEMBER [one_readonly_probe];`。被拒则记错误号。
-  3. 回读：以 u8c 再读 msdb.sys.database_role_members，确认探针用户是否还在 SQLAgentOperatorRole 里；成功时再用探针登录跑一次 `--connection=probe`，记 (f) 的结果与标记。
-  4. 收尾：不另做恢复。msdb 与 rdscore 里探针的用户在收尾里 `DROP USER`（先于 `DROP LOGIN`，因为删登录不会删库内用户），回读两库探针用户均为 0。
-- **结果怎么用**：能移出——正式账号的处理另报用户批准，不自行去改；移不出——(f) 基线接受该角色，由 one-architecture 写进 ADR-0037。
-- **登记**：执行后用 new_legacy_read.py 登记 LEGACY_READ_REGISTER 片段，并在 OPS_CONTEXT 登记一行（语句、回读结果、云助手调用号）。
+## rdscore 永久已知残留
+
+RDS 给每个新账号在 rdscore 建的用户，删账号时不清（实测 `one_readonly_probe`：删账号后 rdscore `USER_ID` 仍为 30、msdb 已清），u8c 无权删；同名重建沿用同一用户号，不累积。接受为永久已知残留：rdscore 里固定留 1 个名为 `one_readonly_probe` 的无登录用户（用户 2026-10-16 决定，intent 2026-10-16-160509）。登记于 RESOURCES。
 
 ## 收尾
 
 ```sql
--- 各库上下文各一条（第 17 项的 master 用户应已在回退中删除，这里再核对一次；msdb、rdscore 的探针用户是 RDS 自动建的，删登录不会带走）
--- master：DROP USER [one_readonly_probe]（若存在）；msdb：同；rdscore：同
+-- 各库上下文各一条（第 17 项的 master 用户应已在回退中删除，这里再核对一次）
+-- master：DROP USER [one_readonly_probe]（若存在）
 -- master 上下文：
 DROP DATABASE [one_readonly_probe_db];
-DROP LOGIN [one_readonly_probe];
--- 回读五项都应为 0：sys.server_principals 的 one_readonly_probe；sys.databases 的 one_readonly_probe_db*；master、msdb、rdscore 各自 sys.database_principals 的 one_readonly_probe
 ```
+
+随后云接口 `DeleteAccount`（删登录并清 msdb 用户）；回读（`USER_ID`）：探针登录、探针库、master 用户、msdb 用户均为 0；rdscore 用户只记录。
 
 ECS 删除 `/etc/forcitis-one/readonly-probe.env` 与临时目录（解开的 jar）；RESOURCES.md 记删除；执行记录写入本文件与 PREDEPLOY_CHECKLIST C-14。

@@ -1,12 +1,17 @@
 package com.forcitis.one.cost.timesheet.domain;
 
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
+import com.forcitis.one.kernel.EmployeeId;
+import java.time.LocalDate;
 import java.util.Optional;
 
 public interface TimesheetRepository {
 
     /** Reads without a lock: for queries and for checks that change nothing. */
     Optional<Timesheet> find(TimesheetId timesheetId);
+
+    /** Whether the employee already has a timesheet for the work date, in any status. */
+    boolean existsFor(EmployeeId employee, LocalDate workDate);
 
     /** The row stays locked until the transaction ends. */
     Optional<Timesheet> findForUpdate(TimesheetId timesheetId);
