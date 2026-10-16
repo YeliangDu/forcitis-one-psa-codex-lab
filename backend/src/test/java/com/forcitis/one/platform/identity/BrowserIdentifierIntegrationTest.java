@@ -174,6 +174,38 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
         assertThat(body(login(1001, cookie(session, IDENTIFIER))).path("identityConfirmationRequired").asBoolean()).isFalse();
     }
 
+    @Test
+    @DisplayName("DATA-REPAIR-identity ID-05 confirming on a browser retires the other accounts' rows of the old value and inserts new ones instead of rewriting the key")
+    void dataRepairIdentityId05ReplaceRetiresAndInsertsForOtherAccounts() throws Exception {
+        String shared = confirmedIdentifier(1001, null);
+        String sharedHash = jdbc.sql("select identifier_hash from platform_identity.browser_identifiers").query(String.class).single();
+
+        String ofSecond = confirmedIdentifier(1002, shared);
+
+        assertThat(jdbc.sql("select count(*) from platform_identity.browser_identifiers where identifier_hash = :h and retired_at is not null")
+                .param("h", sharedHash).query(Long.class).single()).as("the old value stays, retired, for the first account").isEqualTo(1);
+        assertThat(storedIdentifiers(1001)).as("old row retired plus a new row").isEqualTo(2);
+        assertThat(storedIdentifiers(1002)).isEqualTo(1);
+        assertThat(body(login(1001, ofSecond)).path("identityConfirmationRequired").asBoolean()).as("trust moved along with the new value").isFalse();
+        MvcResult replay = login(1001, shared);
+        assertThat(body(replay).path("identityConfirmationRequired").asBoolean()).isTrue();
+        assertThat(checkDetails()).last().asString().contains("reason=REPLAYED_IDENTIFIER");
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-identity ID-05 the row created for another account keeps the old last login, so the trust period is not extended")
+    void dataRepairIdentityId05MovedRowKeepsLastLoginSoTrustIsNotExtended() throws Exception {
+        String shared = confirmedIdentifier(1001, null);
+        clock.advance(Duration.ofDays(20));
+        String ofSecond = confirmedIdentifier(1002, shared);
+        clock.advance(Duration.ofDays(11));
+
+        MvcResult result = login(1001, ofSecond);
+
+        assertThat(body(result).path("identityConfirmationRequired").asBoolean()).as("31 days after the first confirmation, though only 11 after the move").isTrue();
+        assertThat(checkDetails()).last().asString().contains("reason=EXPIRED_IDENTIFIER");
+    }
+
     @org.springframework.beans.factory.annotation.Autowired
     com.forcitis.one.platform.identity.application.RevokeBrowserIdentifiers revoke;
 
