@@ -31,6 +31,8 @@ import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 @ExtendWith(OutputCaptureExtension.class)
 @DisplayName("OperationsCommands: ADR-0027 section 1, D-1a-45..48 (emergency accounts and the first administrators)")
 class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
+    static final String OPERATOR_ID = "01900000-0000-7000-8000-00000000a001";
+    static final String WITNESS_ID = "01900000-0000-7000-8000-00000000a002";
 
     static final Pattern PASSWORD = Pattern.compile("password\\s+: (\\S+)");
     static final Pattern SECRET = Pattern.compile("\\(base32\\)\\s+: (\\S+)");
@@ -50,7 +52,7 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
     }
 
     private String[] with(String operation, String... more) {
-        String[] base = {"--operation=" + operation, "--operator=alice", "--witness=bob"};
+        String[] base = {"--operation=" + operation, "--operator=" + OPERATOR_ID, "--witness=" + WITNESS_ID};
         String[] all = Arrays.copyOf(base, base.length + more.length);
         System.arraycopy(more, 0, all, base.length, more.length);
         return all;
@@ -84,7 +86,7 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
                 .doesNotContain(secret);
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("platform.identity.operations.emergency-admin.registered")).singleElement()
                 .satisfies(entry -> {
-                    assertThat(entry.detail()).contains("operator=alice", "witness=bob", "loginName=breakglass").doesNotContain(password).doesNotContain(secret);
+                    assertThat(entry.detail()).contains("operatorId=" + OPERATOR_ID, "witnessId=" + WITNESS_ID).doesNotContain("loginName=", "breakglass").doesNotContain(password).doesNotContain(secret);
                     assertThat(entry.subject()).isEqualTo(AuditSubject.of(AuditSubjectKind.EMERGENCY_ADMIN, accountOf(7)));
                 });
         assertThat(logs.getAll()).as("a secret never reaches a log line").doesNotContain(password).doesNotContain(secret);
@@ -137,8 +139,8 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
     void witnessIsRequired() {
         createAccount(7, "super_admin");
 
-        assertThat(run("--operation=register-emergency-admin", "--employee-id=" + TestAccounts.employee(7).value(), "--login-name=breakglass", "--operator=alice").exitCode()).isEqualTo(1);
-        assertThat(run("--operation=register-emergency-admin", "--employee-id=" + TestAccounts.employee(7).value(), "--login-name=breakglass", "--operator=alice", "--witness=alice").err())
+        assertThat(run("--operation=register-emergency-admin", "--employee-id=" + TestAccounts.employee(7).value(), "--login-name=breakglass", "--operator=" + OPERATOR_ID).exitCode()).isEqualTo(1);
+        assertThat(run("--operation=register-emergency-admin", "--employee-id=" + TestAccounts.employee(7).value(), "--login-name=breakglass", "--operator=" + OPERATOR_ID, "--witness=" + OPERATOR_ID).err())
                 .contains("PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED");
         assertThat(run("--employee-id=" + TestAccounts.employee(7).value()).exitCode()).as("no operation named").isEqualTo(2);
         assertThat(run(with("register-emergency-admin", "--login-name=breakglass")).exitCode()).as("no person named").isEqualTo(2);
@@ -221,7 +223,7 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
                  where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = :employee) order by r.code
                 """).param("employee", TestAccounts.employee(33).value()).query(String.class).list()).containsExactly("business_admin", "employee");
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("platform.identity.operations.account.role.granted")).singleElement()
-                .satisfies(entry -> assertThat(entry.detail()).contains("operator=alice", "witness=bob", "role=business_admin"));
+                .satisfies(entry -> assertThat(entry.detail()).contains("operatorId=" + OPERATOR_ID, "witnessId=" + WITNESS_ID, "role=business_admin"));
         assertThat(run(with("grant-role", "--employee-id=" + TestAccounts.employee(33).value(), "--role-code=no_such_role")).err()).contains("PLATFORM_IDENTITY_ROLE_NOT_FOUND");
         assertThat(run(with("grant-role", "--employee-id=" + TestAccounts.employee(34).value(), "--role-code=super_admin")).err()).contains("PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND");
     }

@@ -1,4 +1,4 @@
-import { nextCursorOf, useIntentKeys } from '@forcitis/core';
+import { nextCursorOf } from '@forcitis/core';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchOrgUnits, fetchSyncRun, fetchSyncRunPage, releaseSyncRun } from '../api/workforce-api';
 
@@ -28,10 +28,8 @@ export function useSyncRunDetail(syncRunId: string | undefined) {
 
 export function useReleaseSyncRun() {
   const queryClient = useQueryClient();
-  const keys = useIntentKeys();
   return useMutation({
-    mutationFn: ({ syncRunId, reason }: { syncRunId: string; reason: string }) => releaseSyncRun(syncRunId, reason, keys.keyFor(`release:${syncRunId}:${reason}`)),
-    onSuccess: () => keys.done(),
+    mutationFn: ({ syncRunId, reason }: { syncRunId: string; reason: string }) => releaseSyncRun(syncRunId, reason),
     onSettled: () => queryClient.invalidateQueries({ queryKey: SYNC_RUNS_KEY }),
   });
 }

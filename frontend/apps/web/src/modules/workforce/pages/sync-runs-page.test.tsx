@@ -51,7 +51,7 @@ describe('同步记录页', () => {
     const release = server.calls.find((call) => call.method === 'POST');
     expect(release?.url.endsWith('sync-runs/019a0000-0000-7000-8000-000000000012:release')).toBe(true);
     expect(release?.body).toEqual({ reason: '已核对差异' });
-    expect(release?.headers.get('Idempotency-Key')).toMatch(/^[0-9a-f-]{36}$/);
+    expect(release?.headers.has('Idempotency-Key')).toBe(false);
   });
 
   it('放行被拒绝（状态已变）时显示中文原因', async () => {

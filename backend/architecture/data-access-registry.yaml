@@ -219,7 +219,8 @@ tables:
 
   platform_idempotency.idempotent_responses:
     role: IDEMPOTENCY
-    mutability: INSERT_DELETE
+    mutability: CONDITIONAL_UPDATE
+    condition: "response_number IS NULL"
     retention: {policy: EXPIRY, job: platform.idempotency.cleanup}
     lineage: {source: NEW}
     writers: [platform.idempotency]

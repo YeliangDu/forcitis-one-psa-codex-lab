@@ -17,3 +17,4 @@ docs/modernization/glossary/ISSUES.md
 docs/modernization/phase1a/infra/LEGACY_READ_REGISTER.md
 __pycache__/
 .claude/session-name
+.claude/push-bypass.log
