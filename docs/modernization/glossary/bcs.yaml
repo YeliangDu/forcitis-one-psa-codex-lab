@@ -20,12 +20,6 @@ bcs:
   kind: bc
   business_owner: 用户兼任
   description: ""
-- id: operations.budgeting
-  zh: 预算管控
-  subdomain: operations
-  kind: bc
-  business_owner: 用户兼任
-  description: ""
 - id: operations.facts
   zh: 经营事实与归属
   subdomain: operations
@@ -169,15 +163,9 @@ bcs:
   subdomain: organization
   kind: bc
   business_owner: 用户兼任
-  description: "Phase 1a 为工作日历建（用户 2026-10-14）"
+  description: "工作日历年度与标准工时版本；考勤记录、请假、假期余额、加班在 organization.leave（D-5）"
 - id: organization.payroll
   zh: 假勤薪酬
-  subdomain: organization
-  kind: bc
-  business_owner: 用户兼任
-  description: ""
-- id: organization.incentive
-  zh: 绩效激励
   subdomain: organization
   kind: bc
   business_owner: 用户兼任
@@ -200,12 +188,6 @@ bcs:
   kind: bc
   business_owner: 用户兼任
   description: "ADR-0016：（期间, 法人）期间状态与关账闸门"
-- id: accounting.voucher
-  zh: 记账凭证
-  subdomain: accounting
-  kind: bc
-  business_owner: 用户兼任
-  description: "提议术语使用，GLOSSARY.md §1 未列"
 - id: accounting.reporting
   zh: 财务报表
   subdomain: accounting
@@ -383,7 +365,7 @@ bcs:
   subdomain: contract
   kind: bc
   business_owner: 用户兼任
-  description: "协议（合同、框架协议、任务订单、联合体协议、劳务派遣协议、居间协议、租赁合同、职业责任保险单等）、变更、签证、索赔、风险交付授权；由合约基线、变更签证索赔、风险交付三个 bc 合并而来（GL2 确认单 B2-X01，用户 2026-10-16 同意）"
+  description: "协议中的收入侧类型（项目合同、框架协议、任务订单）、变更、签证、索赔、风险交付授权；由合约基线、变更签证索赔、风险交付三个 bc 合并而来（GL2 确认单 B2-X01）。供方侧协议（分包合同、采购合同、租赁合同、职业责任保险单、居间协议、劳务派遣协议）在 procurement.subcontracting，劳动合同在 organization.workforce，联合体协议在 presales.opportunity，协议价目在 masterdata.catalog（ADR-0051 决定 5，D-1）"
 - id: presales.opportunity
   zh: 商机与投标报价
   subdomain: presales

@@ -118,3 +118,15 @@ rulings:
     definition: 授权三要素之三（BU / 法人 / 责任人）；合同 BC 合并后与变更中的「责任方」区别开，故英文名加授权前缀
     forbid_old: false
     source: GL2 确认单（用户 2026-10-16 逐组提交，11 题全部按推荐；答复 rules/decide/answers/GL2.json） B2-X01：合并后同 bc 内 ResponsibleParty 两条之一改名
+  - op: move_bc
+    from: [operations.budgeting]
+    to: operations.planning
+    source: ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）
+  - op: move_to_bc
+    ids: [agreement_type__consortium_agreement]
+    to: presales.opportunity
+    source: ADR-0051 决定 5：联合体协议在 presales.opportunity（投标的次级对象）；P-059
+  - op: move_to_bc
+    ids: [agreement_type__labor_dispatch_agreement, agreement_type__brokerage_agreement, agreement_type__lease_contract, agreement_type__professional_liability_insurance_policy]
+    to: procurement.subcontracting
+    source: ADR-0051 决定 5：劳务派遣协议、居间协议、租赁合同、职业责任保险单在 procurement.subcontracting（供方协议）；P-059
