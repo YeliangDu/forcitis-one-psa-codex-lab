@@ -16,6 +16,16 @@ ADR-0039（防腐层边界）引入的术语（proposed，待业务评审，ADR-
 | `apply_org_change_set` | 应用组织变更 | ApplyOrgChangeSet | 领域 · organization.workforce | 组织人事 api 中唯一的同步入口：应用一份组织变更集，管理员离职挂为待放行离职，其余变更照常生效；同一变更集重复调用返回上次结果 |  |  |
 | `separation_hold` | 待放行离职 | SeparationHold | 领域 · organization.workforce | 会使可用超级管理员少于 2 名、或涉及超级管理员与安全审计员持有人的离职，被单独挂起等待另一名持有人放行的记录（ADR-0027 第 1 项第 7 条、ADR-0028） |  | 权限码 organization.workforce:separation-hold:approve 已用此词（ADR-0028 第 2 条） |
 
+## `audit-partition.yaml`
+
+审计条目按月分区（ADR-0048、DATA-REPAIR-timesheet-audit TB-07）用到的技术词：分区只是存储与删除的单位，不是业务术语，只登记为技术词（proposed，ADR-0018）。
+
+登记会话：one-1a-next-5 数据修复 PR-1。使用范围：platform.audit 内部的作业、配置键、指标名与锁名。
+
+无错误码以外的术语。
+
+另有技术词 2 个（`common_words`），不在表中。
+
 ## `code-aggregates-events.yaml`
 
 涉及模块：`cost.timesheet`、`platform.approval`、`platform.identity`、`platform.integration`。
