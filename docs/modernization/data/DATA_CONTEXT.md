@@ -4,8 +4,10 @@
 
 | 项 | 值 |
 |---|---|
-| 状态 | 已认领（2026-10-16）；分支 `claude/one-data-gate` |
-| 门禁清单 | `data/DATA_DESIGN_GATE.md` 草案已 opus 评审并修订，待用户在收件箱确认；SESSION_PLAYBOOK §13 两处顺序不一致待用户裁定 |
-| 在途补审 | R-1b P5、TS-UNIQ、工时填报义务实现（门禁生效前补审，不停工） |
-| 追加任务 | 已建成表全量审查 → `data/BASELINE_TABLE_REVIEW.md` + 按 BC 修复卡草稿（one-coordinator 2026-10-16） |
-| 接 one-architecture | OBJ-105–109 等新增对象，为 METHOD 第 11 步准备 |
+| 状态 | 已认领（2026-10-16） |
+| 门禁 | `data/DATA_DESIGN_GATE.md` 已生效（用户 2026-10-16「生效，阈值按 10%」）；新涉数据卡先签发，表结构 PR 先合并 |
+| 签发记录 | `data/reviews/<卡号>.md`；已签发 R-1b P5 |
+| 在途补审 | TS-UNIQ（one-1a-par 写卡中，等卡送审）；填报义务（等 one-rules 规则卡与 one-architecture 的请假 / 标准工时对象）；P5 已签发 |
+| 已建表审查 | `data/BASELINE_TABLE_REVIEW.md` + `data/review-parts/` + `data/repair-cards/`（四张修复卡草稿），待 one-coordinator 排期；待用户决定事项登记收件箱 |
+| 错题本 | `quality/defect-bank/one-data.md` |
+| 接 one-architecture | OBJ-105–109 等新增对象，为 METHOD 第 11 步准备（未开始） |
