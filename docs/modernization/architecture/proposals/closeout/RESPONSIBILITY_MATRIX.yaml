@@ -342,6 +342,7 @@ entries:
     A:
       resolve: instance
       field: 标准成本费率表.维护部门负责人
+      field_status: proposed
     R:
     - system
     C: []
@@ -361,6 +362,7 @@ entries:
     A:
       resolve: instance
       field: 标准成本费率表.维护部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -378,6 +380,7 @@ entries:
     A:
       resolve: instance
       field: 标准成本费率表.维护部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -394,6 +397,7 @@ entries:
     A:
       resolve: instance
       field: 计费系数.维护部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -411,6 +415,7 @@ entries:
     A:
       resolve: instance
       field: 计费系数.维护部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -427,6 +432,7 @@ entries:
     A:
       resolve: instance
       field: 协议价目.维护部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -444,6 +450,7 @@ entries:
     A:
       resolve: instance
       field: 协议价目.维护部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -460,6 +467,7 @@ entries:
     A:
       resolve: instance
       field: 市场活动.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -476,6 +484,7 @@ entries:
     A:
       resolve: instance
       field: 市场活动.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -492,6 +501,7 @@ entries:
     A:
       resolve: instance
       field: 市场活动.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -508,6 +518,7 @@ entries:
     A:
       resolve: instance
       field: 线索.认领人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -525,6 +536,7 @@ entries:
     A:
       resolve: instance
       field: 线索.认领人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -542,6 +554,7 @@ entries:
     A:
       resolve: instance
       field: 线索.认领人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -577,6 +590,7 @@ entries:
     A:
       resolve: instance
       field: 线索.认领人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -612,6 +626,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -629,6 +644,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -648,6 +664,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -665,6 +682,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -683,6 +701,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -701,6 +720,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -718,6 +738,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -735,6 +756,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -752,6 +774,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -769,6 +792,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -786,6 +810,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -803,6 +828,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -820,6 +846,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -837,6 +864,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -854,6 +882,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -871,6 +900,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -888,6 +918,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -905,6 +936,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - system
     C: []
@@ -930,6 +962,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - system
     C: []
@@ -948,6 +981,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -971,6 +1005,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -988,6 +1023,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - system
     C: []
@@ -1024,6 +1060,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1045,6 +1082,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1061,6 +1099,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - system
     C: []
@@ -1081,6 +1120,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - system
     C: []
@@ -1098,6 +1138,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1115,6 +1156,7 @@ entries:
     A:
       resolve: instance
       field: 借阅人.所属部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -1155,6 +1197,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1172,6 +1215,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1189,6 +1233,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1206,6 +1251,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1228,6 +1274,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1248,6 +1295,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1265,6 +1313,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1282,6 +1331,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - system
     C: []
@@ -1298,6 +1348,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - system
     C: []
@@ -1314,6 +1365,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1331,6 +1383,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - system
     C: []
@@ -1348,6 +1401,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1364,6 +1418,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1381,6 +1436,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1398,6 +1454,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1420,6 +1477,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1437,6 +1495,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1454,6 +1513,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - system
     C: []
@@ -1470,6 +1530,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - system
     C: []
@@ -1486,6 +1547,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1503,6 +1565,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1520,6 +1583,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1556,6 +1620,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - system
     C: []
@@ -1582,6 +1647,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -1598,6 +1664,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -1614,6 +1681,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -1631,6 +1699,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -1648,6 +1717,7 @@ entries:
     A:
       resolve: instance
       field: 商机.负责人
+      field_status: proposed
     R:
     - system
     C: []
@@ -1698,6 +1768,7 @@ entries:
     A:
       resolve: instance
       field: 项目.承担部门负责人
+      field_status: proposed
     R:
     - SH-M1
     C: []
@@ -1715,6 +1786,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -1732,6 +1804,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -1750,6 +1823,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -1767,6 +1841,7 @@ entries:
     A:
       resolve: instance
       field: 项目.承担部门负责人
+      field_status: proposed
     R:
     - SH-M1
     C: []
@@ -1785,6 +1860,7 @@ entries:
     A:
       resolve: instance
       field: 项目.承担部门负责人
+      field_status: proposed
     R:
     - SH-M1
     C: []
@@ -1804,6 +1880,7 @@ entries:
     A:
       resolve: instance
       field: 项目.承担部门负责人
+      field_status: proposed
     R:
     - SH-M1
     C: []
@@ -1822,6 +1899,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - system
     C: []
@@ -1843,6 +1921,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -1859,6 +1938,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -1875,6 +1955,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -1892,6 +1973,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -1908,6 +1990,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -1924,6 +2007,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -1942,6 +2026,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -1959,6 +2044,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -1977,6 +2063,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -1998,6 +2085,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2035,6 +2123,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-M1
     C: []
@@ -2052,6 +2141,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2070,6 +2160,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2087,6 +2178,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2105,6 +2197,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - system
     C: []
@@ -2142,6 +2235,7 @@ entries:
     A:
       resolve: instance
       field: 交付物.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2182,6 +2276,7 @@ entries:
     A:
       resolve: instance
       field: 交付物.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2199,6 +2294,7 @@ entries:
     A:
       resolve: instance
       field: 交付物.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2216,6 +2312,7 @@ entries:
     A:
       resolve: instance
       field: 交付物.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2233,6 +2330,7 @@ entries:
     A:
       resolve: instance
       field: 交付物.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2270,6 +2368,7 @@ entries:
     A:
       resolve: instance
       field: 交付物.项目经理
+      field_status: proposed
     R:
     - SH-E3
     C: []
@@ -2287,6 +2386,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -2324,6 +2424,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -2360,6 +2461,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -2377,6 +2479,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E3
     C: []
@@ -2395,6 +2498,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -2411,6 +2515,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -2428,6 +2533,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -2464,6 +2570,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2481,6 +2588,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -2497,6 +2605,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -2514,6 +2623,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -2568,6 +2678,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2604,6 +2715,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2621,6 +2733,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E3
     C: []
@@ -2633,11 +2746,30 @@ entries:
   - revenue:PRC-31#1
   - revenue:片段
 - object: AGG-30
+  command: 撤销设计变更
+  raci:
+    A:
+      resolve: instance
+      field: 项目.项目经理
+      field_status: proposed
+    R:
+    - SH-E2
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 业务记录，无个人信息
+  source_part: revenue
+  a_source: group:revenue
+  sources:
+  - revenue:PRC-31#7
+  - revenue:片段
+- object: AGG-30
   command: 标记待主张
   raci:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2673,6 +2805,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2685,11 +2818,30 @@ entries:
   - revenue:PRC-32#2
   - revenue:片段
 - object: AGG-31
+  command: 撤回延期通知
+  raci:
+    A:
+      resolve: instance
+      field: 项目.项目经理
+      field_status: proposed
+    R:
+    - SH-E2
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 业务记录，无个人信息
+  source_part: revenue
+  a_source: group:revenue
+  sources:
+  - revenue:PRC-32#6
+  - revenue:片段
+- object: AGG-31
   command: 登记延期批准
   raci:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2707,6 +2859,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2724,6 +2877,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - system
     C: []
@@ -2742,6 +2896,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2759,6 +2914,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2776,6 +2932,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -2865,6 +3022,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - system
     C: []
@@ -2882,6 +3040,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -2899,6 +3058,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -2917,6 +3077,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -2934,6 +3095,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -2951,6 +3113,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -2986,6 +3149,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -3022,6 +3186,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E3
     C: []
@@ -3038,6 +3203,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -3056,6 +3222,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E3
     C: []
@@ -3074,6 +3241,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -3127,6 +3295,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -3144,6 +3313,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -3161,6 +3331,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -3178,6 +3349,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -3195,6 +3367,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -3212,6 +3385,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E3
     C: []
@@ -3228,6 +3402,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E4
     C: []
@@ -3244,6 +3419,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -3262,6 +3438,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E3
     - SH-E4
@@ -3282,6 +3459,7 @@ entries:
     A:
       resolve: instance
       field: 工时单.项目经理
+      field_status: proposed
     R:
     - SH-E3
     C: []
@@ -3318,6 +3496,7 @@ entries:
     A:
       resolve: instance
       field: 工时单.项目经理
+      field_status: proposed
     R:
     - system
     C: []
@@ -3335,6 +3514,7 @@ entries:
     A:
       resolve: instance
       field: 工时单.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -3352,6 +3532,7 @@ entries:
     A:
       resolve: instance
       field: 工时单.项目经理
+      field_status: proposed
     R:
     - SH-E3
     C: []
@@ -3368,6 +3549,7 @@ entries:
     A:
       resolve: instance
       field: 工时单.项目经理
+      field_status: proposed
     R:
     - system
     C: []
@@ -3386,6 +3568,7 @@ entries:
     A:
       resolve: instance
       field: 工时单.项目经理
+      field_status: proposed
     R:
     - system
     C: []
@@ -3409,6 +3592,7 @@ entries:
     A:
       resolve: instance
       field: 工时单.项目经理
+      field_status: proposed
     R:
     - system
     C: []
@@ -3719,13 +3903,15 @@ entries:
   command: 回冲开票额度
   raci:
     A:
-      resolve: type
-      role: SH-M1
-      function: 财务负责人
+      resolve: instance
+      field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - system
     C: []
-    I: []
+    I:
+    - SH-E2
   sensitive: true
   sensitive_reason: 红冲回冲开票额度
   source_part: revenue
@@ -3811,6 +3997,7 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
     R:
     - system
     C: []
@@ -3873,10 +4060,13 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - SH-E6
     C: []
-    I: []
+    I:
+    - SH-E2
   sensitive: false
   sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
   source_part: revenue
@@ -3888,13 +4078,15 @@ entries:
   command: 开票申请准入
   raci:
     A:
-      resolve: type
-      role: SH-M1
-      function: 财务负责人
+      resolve: instance
+      field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - system
     C: []
-    I: []
+    I:
+    - SH-E2
   sensitive: false
   sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
   source_part: revenue
@@ -3908,10 +4100,13 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - SH-E5
     C: []
-    I: []
+    I:
+    - SH-E2
   sensitive: false
   sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
   source_part: revenue
@@ -3925,11 +4120,14 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - system
     C: []
     I:
     - SH-E5
+    - SH-E2
   boundary:
     limit_rule: AR-01
     delegate:
@@ -3950,10 +4148,13 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - SH-E6
     C: []
-    I: []
+    I:
+    - SH-E2
   boundary:
     limit_rule: AR-02
     other_rules:
@@ -3971,14 +4172,16 @@ entries:
   command: 开具销项发票并改写 WIP
   raci:
     A:
-      resolve: type
-      role: SH-E6
-      function: 开票会计
+      resolve: instance
+      field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - SH-E6
     C: []
     I:
     - SH-E5
+    - SH-E2
   sensitive: true
   sensitive_reason: 发票含购买方开户行与账号（sales_invoices，sensitive/pi）
   source_part: revenue
@@ -3990,13 +4193,15 @@ entries:
   command: 提交过账候选
   raci:
     A:
-      resolve: type
-      role: SH-M1
-      function: 财务负责人
+      resolve: instance
+      field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - system
     C: []
-    I: []
+    I:
+    - SH-E2
   sensitive: false
   sensitive_reason: 本命令不写敏感列与资金权限；含普通个人信息（员工标识），对象最高分级 SENSITIVE，按数据范围可见（ADR-0026）
   source_part: revenue
@@ -4011,10 +4216,13 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - SH-E6
     C: []
-    I: []
+    I:
+    - SH-E2
   sensitive: false
   sensitive_reason: 本命令不写敏感列与资金权限；含普通个人信息（员工标识），对象最高分级 SENSITIVE，按数据范围可见（ADR-0026）
   source_part: revenue
@@ -4027,10 +4235,13 @@ entries:
     A:
       resolve: instance
       field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - SH-E6
     C: []
-    I: []
+    I:
+    - SH-E2
   sensitive: true
   sensitive_reason: 红冲
   source_part: revenue
@@ -4043,11 +4254,14 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 往来款项.承担部门负责人
+      field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - system
     C: []
-    I: []
+    I:
+    - SH-E2
   sensitive: true
   sensitive_reason: 冲减应收涉及资金
   source_part: revenue
@@ -4061,6 +4275,7 @@ entries:
     A:
       resolve: instance
       field: 往来款项.承担部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -4079,6 +4294,7 @@ entries:
     A:
       resolve: instance
       field: 往来款项.承担部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -4102,6 +4318,7 @@ entries:
     A:
       resolve: instance
       field: 往来款项.承担部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -4144,11 +4361,14 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 往来款项.承担部门负责人
+      field: 协议.承担部门负责人
+      field_status: proposed
+      note: S-38：开票、红冲、坏账链的 A 归协议责任人
     R:
     - SH-E6
     C: []
-    I: []
+    I:
+    - SH-E2
   boundary:
     limit_rule: AR-01
     other_rules:
@@ -4167,6 +4387,7 @@ entries:
     A:
       resolve: instance
       field: 往来款项.承担部门负责人
+      field_status: proposed
     R:
     - system
     C: []
@@ -4186,6 +4407,7 @@ entries:
     A:
       resolve: instance
       field: 往来款项.承担部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -4203,6 +4425,7 @@ entries:
     A:
       resolve: instance
       field: 往来款项.承担部门负责人
+      field_status: proposed
     R:
     - system
     C: []
@@ -4221,6 +4444,7 @@ entries:
     A:
       resolve: instance
       field: 往来款项.承担部门负责人
+      field_status: proposed
     R:
     - system
     C: []
@@ -4348,6 +4572,7 @@ entries:
     A:
       resolve: instance
       field: 保证金.承担部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -4386,6 +4611,7 @@ entries:
     A:
       resolve: instance
       field: 保证金.承担部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -4406,6 +4632,7 @@ entries:
     A:
       resolve: instance
       field: 保证金.承担部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -4422,6 +4649,7 @@ entries:
     A:
       resolve: instance
       field: 保证金.承担部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -4438,6 +4666,7 @@ entries:
     A:
       resolve: instance
       field: 保证金.承担部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -4454,6 +4683,7 @@ entries:
     A:
       resolve: instance
       field: 保证金.承担部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -4471,6 +4701,7 @@ entries:
     A:
       resolve: instance
       field: 保证金.承担部门负责人
+      field_status: proposed
     R:
     - SH-E6
     C: []
@@ -8505,6 +8736,7 @@ entries:
     A:
       resolve: instance
       field: 客户活动.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -8521,6 +8753,7 @@ entries:
     A:
       resolve: instance
       field: 客户活动.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -8537,6 +8770,7 @@ entries:
     A:
       resolve: instance
       field: 客户活动.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -8553,6 +8787,7 @@ entries:
     A:
       resolve: instance
       field: 客户活动.负责人
+      field_status: proposed
     R:
     - SH-E5
     C: []
@@ -8569,6 +8804,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -8586,6 +8822,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -8622,6 +8859,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -8638,6 +8876,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - system
     C: []
@@ -8656,6 +8895,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - system
     C: []
@@ -8674,6 +8914,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -8690,6 +8931,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -8707,6 +8949,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -8724,6 +8967,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -8741,6 +8985,7 @@ entries:
     A:
       resolve: instance
       field: 项目.项目经理
+      field_status: proposed
     R:
     - SH-E2
     C: []
@@ -9109,6 +9354,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E3
     C: []
@@ -9128,6 +9374,7 @@ entries:
     A:
       resolve: instance
       field: 检查.检查负责人
+      field_status: proposed
     R:
     - SH-E3
     C: []
