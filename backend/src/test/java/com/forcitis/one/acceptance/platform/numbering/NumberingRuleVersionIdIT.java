@@ -11,6 +11,7 @@ import com.forcitis.one.TestIds;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.api.LegalEntityDirectory;
@@ -38,6 +39,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -68,6 +70,9 @@ class NumberingRuleVersionIdIT {
 
     @MockitoBean
     LegalEntityDirectory legalEntityDirectory;
+
+    @MockitoSpyBean
+    IdGenerator ids;
 
     @Container
     @ServiceConnection
@@ -132,8 +137,12 @@ class NumberingRuleVersionIdIT {
     }
 
     private void saveSecondVersionEffectiveTomorrow() throws Exception {
+        saveSecondVersionEffectiveOn(LocalDate.now(ZoneId.of("Asia/Shanghai")).plusDays(1));
+    }
+
+    private void saveSecondVersionEffectiveOn(LocalDate effectiveFrom) throws Exception {
         String etag = "\"" + jdbc.sql("select version from platform_numbering.numbering_rules where document_type = 'QUOTE'").query(Long.class).single() + "\"";
-        String tomorrow = LocalDate.now(ZoneId.of("Asia/Shanghai")).plusDays(1).toString();
+        String tomorrow = effectiveFrom.toString();
         mvc.perform(put(RULES + "/QUOTE").header("If-Match", etag).with(csrf()).with(AUTHOR).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"pattern\":\"{TYPE}-{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1,\"effectiveFrom\":\"" + tomorrow + "\"}"))
                 .andExpect(status().isOk());
@@ -155,11 +164,11 @@ class NumberingRuleVersionIdIT {
     @Test
     @DisplayName("NV-02 规则新增版本后，新版本取号返回的是新版本的 ID，旧日期仍返回旧版本的 ID（生效日分界）")
     void eachBusinessDateGetsTheIdOfTheVersionInForceThen() throws Exception {
-        saveSecondVersionEffectiveTomorrow();
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Shanghai"));
+        saveSecondVersionEffectiveOn(today.plusDays(1));
         confirmSecondVersion();
         UUID first = versionRowId(1);
         UUID second = versionRowId(2);
-        LocalDate today = LocalDate.now(ZoneId.of("Asia/Shanghai"));
 
         assertThat(second).isNotEqualTo(first);
         assertThat(issue(today).ruleVersionId()).isEqualTo(new NumberingRuleVersionId(first));
@@ -180,6 +189,31 @@ class NumberingRuleVersionIdIT {
         assertThat(versionRowId(2)).isEqualTo(secondPending);
         assertThat(versionRowId(1)).isEqualTo(firstBefore);
         assertThat(issue(FAR_DAY).ruleVersionId()).isEqualTo(new NumberingRuleVersionId(secondPending));
+    }
+
+    @Test
+    @DisplayName("NV-03b 待确认版本被后一次修改取代时，被取代版本的 ID 不变")
+    void aSupersededVersionKeepsItsId() throws Exception {
+        saveSecondVersionEffectiveTomorrow();
+        UUID secondId = versionRowId(2);
+        assertThat(versionStatus(2)).isEqualTo("PENDING_CONFIRMATION");
+
+        saveSecondVersionEffectiveTomorrow();
+
+        assertThat(versionStatus(2)).isEqualTo("SUPERSEDED");
+        assertThat(versionRowId(2)).isEqualTo(secondId);
+        assertThat(versionRowId(3)).isNotEqualTo(secondId);
+    }
+
+    @Test
+    @DisplayName("NV-06 库里版本行的主键就是新增版本时创建的那个 ID（插入不另取新 ID）")
+    void insertedRowCarriesTheIdCreatedWhenTheVersionWasProposed() throws Exception {
+        UUID proposed = UUID.fromString("01900000-0000-7000-8000-0000000000a1");
+        Mockito.doReturn(proposed).doCallRealMethod().when(ids).next();
+
+        saveSecondVersionEffectiveTomorrow();
+
+        assertThat(versionRowId(2)).isEqualTo(proposed);
     }
 
     @Test
