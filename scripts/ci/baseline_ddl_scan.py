@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Report, never fail: scan the baseline DDL for the low-level items that are easy to miss by eye (one-data, docs/modernization/data/review-parts/SCAN_SUPPLEMENT.md).
+"""Report, never fail: scan the baseline DDL for the low-level items that are easy to miss by eye (one-data's SCAN_SUPPLEMENT).
 
 Seven classes, each listed in full as `schema.table.column`:
   1 text / text[] column with no format constraint (no char_length, pattern or enumeration CHECK); marks columns already in data-classification.txt
