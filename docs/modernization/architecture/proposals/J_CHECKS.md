@@ -19,8 +19,8 @@
 
 - **J1.1** 每条 `value_streams[]` 的 `triggering_stakeholders` 非空，且每个 ID 在 `stakeholders` 中存在。
 - **J1.2** 不拆子价值流：`stages[]` 元素不得含 `stages`、`sub_value_streams` 键；阶段 `id` 匹配 `^VS-\d{2}\.\d+$` 且前缀等于所属价值流 `id`。
-- **J1.3** 跨价值流只经对象状态：`entry`、`exit` 树的每个叶子 `ref` 匹配 `^(OBJ|REF)-\d+$`；任何叶子不得引用 `VS-` 或阶段 ID。
-- **J1.4** 每个 `stakeholders[]` 的 ID 至少出现在一处 `triggering_stakeholders` 或 `stages[].participants`，否则须出现在 `out_of_scope`。
+- **J1.3** 跨价值流只经对象状态：`entry`、`exit` 树的每个叶子 `ref` 匹配 `^(OBJ|REF)-\d+$`；任何叶子不得引用 `VS-` 或阶段 ID。叶子 `ref` 为 `派生`（段内派生提示）的放行，但不得出现在 `entry` / `exit` 的门条件中（见 J2.4）（独立审查建-6）。
+- **J1.4** 每个 `stakeholders[]` 的 ID 至少出现在一处 `triggering_stakeholders`、`value_receivers` 或 `stages[].participants`，否则须出现在 `out_of_scope`。
 
 ## J2 对象 ↔ 阶段（VS + IM）
 
@@ -40,7 +40,7 @@
 - **J4.1** CAP 任何层级不得出现键 `bc`、`module`、`subdomain`、`current_bc`、`strategic_hint`。
 - **J4.2** 每个一级能力的 `object` 在 IM 中级别为「一级」；每个二级能力的 `object` 在 IM 中存在且不是「非对象」；有 `via` 的，`via` 也须存在。
 - **J4.3** IM 中每个级别为「一级」的对象，恰有一个一级能力以它为 `object`。
-- **J4.4** 能力—阶段对账：一级能力的对象集合（自身 `object` 加其 `l2[].object`）与某阶段 `entry` / `exit` 叶子的 `ref` 有交集，即该能力「支撑」该阶段。每个一级能力至少支撑一个阶段，否则须带 `unsupported_reason`（字段名待 one-quality 与 one-architecture 对齐后补进 CAP）；每个阶段至少被一个一级能力支撑。输出能力 × 阶段对照表。
+- **J4.4** 能力—阶段对账：一级能力的对象集合（自身 `object` 加其 `l2[].object`）与某阶段 `entry` / `exit` 叶子的 `ref` 有交集，或该阶段任何位置（含段内条件、贯穿活动的输入输出）引用其对象，即该能力「支撑」该阶段（「仅段内」也算支撑，独立审查建-6）。每个一级能力至少支撑一个阶段，否则须带 `unsupported_reason`（字段名待 one-quality 与 one-architecture 对齐后补进 CAP）；每个阶段至少被一个一级能力支撑。输出能力 × 阶段对照表。
 
 ## J5 规则 ↔ 不变量 ↔ 聚合（AG）
 
