@@ -55,7 +55,6 @@ class FlowableApprovalEngine implements ApprovalEngine {
     private static final Logger log = LoggerFactory.getLogger(FlowableApprovalEngine.class);
 
     static final String VARIABLE_INITIATOR = "initiatorId";
-    static final String VARIABLE_BUSINESS_KEY = "businessKey";
     static final String VARIABLE_DOCUMENT_TYPE = "documentType";
     static final String VARIABLE_DOCUMENT_ID = "documentId";
     static final String VARIABLE_LEGAL_ENTITY = "legalEntityId";
@@ -120,9 +119,8 @@ class FlowableApprovalEngine implements ApprovalEngine {
     @Override
     public void startInstance(InstanceStart start) {
         Map<String, Object> engine = new LinkedHashMap<>(EngineVariables.toEngine(start.variables()));
-        String businessKey = start.document().documentType().name() + ":" + start.document().documentId().value();
+        String businessKey = start.document().documentId().value().toString();
         engine.put(VARIABLE_INITIATOR, String.valueOf(start.initiator().value()));
-        engine.put(VARIABLE_BUSINESS_KEY, businessKey);
         engine.put(VARIABLE_DOCUMENT_TYPE, start.document().documentType().name());
         engine.put(VARIABLE_DOCUMENT_ID, start.document().documentId().value().toString());
         engine.put(VARIABLE_LEGAL_ENTITY, String.valueOf(start.legalEntityId().value()));

@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.OrgUnitAccess;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.kernel.UserId;
@@ -37,7 +39,7 @@ public class GetOrgUnit {
         }
         Set<OrgUnitId> allowed = OrgUnitVisibility.idsIn(all, visible);
         if (!allowed.contains(id)) {
-            audit.recordIndependently(new AuditEntry("organization.workforce.org-unit.denied", actor, null, "org-unit:" + orgUnitId,
+            audit.recordIndependently(new AuditEntry("organization.workforce.org-unit.denied", actor, null, AuditSubject.of(AuditSubjectKind.ORG_UNIT, orgUnitId),
                     "outside the scope of the caller"));
             return Optional.empty();
         }

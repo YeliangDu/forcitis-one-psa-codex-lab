@@ -301,7 +301,7 @@ class JdbcApprovalRequestRepository implements ApprovalRequestRepository {
     }
 
     private static com.forcitis.one.kernel.DomainException concurrentChange(ApprovalRequest request) {
-        return ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE.refusal("Approval request " + request.aggregateId()
+        return ApprovalError.PLATFORM_APPROVAL_CONCURRENT_CHANGE.refusal("Approval request " + request.id().value()
                 + " was changed by somebody else");
     }
 

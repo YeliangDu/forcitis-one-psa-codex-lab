@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.numbering.domain;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -21,6 +22,7 @@ import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import com.forcitis.one.platform.numbering.api.NumberingRuleId;
 
 class NumberingRuleStateMachineTest {
     static final NumberingPattern TEMPLATE = new NumberingPattern(NumberingPattern.DEFAULT_TEMPLATE, ResetPolicy.MONTHLY);
@@ -40,7 +42,7 @@ class NumberingRuleStateMachineTest {
     }
 
     static NumberingRule rule(DocumentType type, TemplateVersion... versions) {
-        return NumberingRule.restore(type, List.of(versions), 4, 4);
+        return NumberingRule.restore(new NumberingRuleId(TestIds.uuid(4)), type, List.of(versions), 4, 4);
     }
 
     static DomainException refusal(Runnable action) {

@@ -23,11 +23,9 @@ terms:
   read_purpose__migration:
     homonyms: [migration]
   operations_facts__responsible_party:
-    homonyms: [contract_riskdelivery__responsible_party, contract_changeorder__responsible_party]
-  contract_riskdelivery__responsible_party:
-    homonyms: [operations_facts__responsible_party, contract_changeorder__responsible_party]
+    homonyms: [contract_changeorder__responsible_party]
   contract_changeorder__responsible_party:
-    homonyms: [operations_facts__responsible_party, contract_riskdelivery__responsible_party]
+    homonyms: [operations_facts__responsible_party]
   operations_policy__basis_difference_list:
     homonyms: [accounting_ledger__basis_difference_list]
   accounting_ledger__basis_difference_list:

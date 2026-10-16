@@ -112,8 +112,10 @@ class OwnRolesIT extends AccountsAcceptanceSupport {
         assertThat(control.getStatus()).as(control.getContentAsString()).isEqualTo(204);
         List<java.util.Map<String, Object>> grants = auditEntriesBy(administrator.userId(), AUDIT_ROLES_REPLACED);
         assertThat(grants).as("grant audit entries of the administrator: only the control, on the colleague's account").hasSize(1)
-                .allSatisfy(entry -> assertThat(String.valueOf(entry.get("subjectKey"))).contains(colleague.toString())
-                        .doesNotContain(colleagueEmployee.toString()));
+                .allSatisfy(entry -> {
+                    assertThat(entry.get("subjectKind")).isEqualTo("USER_ACCOUNT");
+                    assertThat(String.valueOf(entry.get("subjectId"))).isEqualTo(colleague.toString()).isNotEqualTo(colleagueEmployee.toString());
+                });
         assertThat(auditQuery("actorId", administrator.userId().toString(), "platform.identity.grant.refused")).as("no refusal recorded for the 404").isEmpty();
     }
 

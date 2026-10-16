@@ -130,7 +130,7 @@ class ApprovalRequestStateMachineTest {
             assertThat(completed.document()).isEqualTo(DOCUMENT);
             assertThat(completed.envelope().eventType()).isEqualTo("platform.approval.ApprovalCompleted");
             assertThat(completed.envelope().aggregateType()).isEqualTo("ApprovalRequest");
-            assertThat(completed.envelope().aggregateId()).isEqualTo("TIMESHEET:" + DOCUMENT.documentId());
+            assertThat(completed.envelope().aggregateId()).isEqualTo(request.id().value());
             assertThat(completed.envelope().aggregateVersion()).as("the event sequence continues after the 3 events recorded before").isEqualTo(4);
             assertThat(completed.envelope().legalEntityId()).isEqualTo(new LegalEntityId(TestIds.uuid(1)));
             assertThat(completed.envelope().businessDate()).isEqualTo(TODAY);

@@ -132,7 +132,7 @@ class EventEnvelopeActorIT extends AccountsAcceptanceSupport {
 
         List<Map<String, Object>> audited = Awaitility.await().atMost(Duration.ofSeconds(15)).pollInterval(Duration.ofMillis(100))
                 .until(() -> auditQuery(null, null, "platform.identity.AccountOpened").stream()
-                        .filter(entry -> String.valueOf(entry.get("subjectKey")).endsWith(firstAccount.toString())).toList(), found -> !found.isEmpty());
+                        .filter(entry -> firstAccount.toString().equals(entry.get("subjectId"))).toList(), found -> !found.isEmpty());
         assertThat(audited).allSatisfy(entry -> {
             assertThat(entry.get("actorId")).as("a job has no account as the audit actor").isNull();
             assertThat(String.valueOf(entry.get("detail"))).as("the audit trail still names the job").contains(ACCOUNT_PROVISIONING);

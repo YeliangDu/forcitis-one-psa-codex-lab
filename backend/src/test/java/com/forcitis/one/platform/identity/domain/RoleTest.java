@@ -26,7 +26,7 @@ class RoleTest {
     @Test
     @DisplayName("RULE-345 a new role defaults to the least-privilege scope SELF, is enabled, custom and not administrative")
     void newRoleDefaults() {
-        Role role = Role.newCustom(new RoleCode("analyst"), " Analyst ", Set.of(Permission.Codes.PLATFORM_APPROVAL_TASK_READ));
+        Role role = Role.newCustom(new RoleId(TestIds.uuid(1)), new RoleCode("analyst"), " Analyst ", Set.of(Permission.Codes.PLATFORM_APPROVAL_TASK_READ));
 
         assertThat(role.accessScope()).isEqualTo(AccessScopeKind.SELF);
         assertThat(role.kind()).isEqualTo(RoleKind.CUSTOM);
@@ -38,17 +38,17 @@ class RoleTest {
     @Test
     @DisplayName("RULE-345 super_admin is reserved in any case; codes and names must be well formed; permissions must exist")
     void creationRules() {
-        assertThatThrownBy(() -> Role.newCustom(new RoleCode("super_admin"), "x", Set.of())).isInstanceOfSatisfying(RoleRuleException.class,
+        assertThatThrownBy(() -> Role.newCustom(new RoleId(TestIds.uuid(1)), new RoleCode("super_admin"), "x", Set.of())).isInstanceOfSatisfying(RoleRuleException.class,
                 e -> assertThat(e.violation()).isEqualTo(RoleViolation.RESERVED_CODE));
-        assertThatThrownBy(() -> Role.newCustom(new RoleCode("Super_Admin"), "x", Set.of())).isInstanceOfSatisfying(RoleRuleException.class,
+        assertThatThrownBy(() -> Role.newCustom(new RoleId(TestIds.uuid(1)), new RoleCode("Super_Admin"), "x", Set.of())).isInstanceOfSatisfying(RoleRuleException.class,
                 e -> assertThat(e.violation()).isEqualTo(RoleViolation.RESERVED_CODE));
-        assertThatThrownBy(() -> Role.newCustom(new RoleCode("has space"), "x", Set.of())).isInstanceOfSatisfying(RoleRuleException.class,
+        assertThatThrownBy(() -> Role.newCustom(new RoleId(TestIds.uuid(1)), new RoleCode("has space"), "x", Set.of())).isInstanceOfSatisfying(RoleRuleException.class,
                 e -> assertThat(e.violation()).isEqualTo(RoleViolation.INVALID_CODE));
-        assertThatThrownBy(() -> Role.newCustom(new RoleCode("ok"), " ", Set.of())).isInstanceOfSatisfying(RoleRuleException.class,
+        assertThatThrownBy(() -> Role.newCustom(new RoleId(TestIds.uuid(1)), new RoleCode("ok"), " ", Set.of())).isInstanceOfSatisfying(RoleRuleException.class,
                 e -> assertThat(e.violation()).isEqualTo(RoleViolation.BLANK_NAME));
-        assertThatThrownBy(() -> Role.newCustom(new RoleCode("ok"), "x", Set.of("no:such:permission")))
+        assertThatThrownBy(() -> Role.newCustom(new RoleId(TestIds.uuid(1)), new RoleCode("ok"), "x", Set.of("no:such:permission")))
                 .isInstanceOfSatisfying(RoleRuleException.class, e -> assertThat(e.violation()).isEqualTo(RoleViolation.UNKNOWN_PERMISSION));
-        assertThat(Role.newCustom(new RoleCode("reviewer"), "Reviewer", Set.of()).code().value()).isEqualTo("reviewer");
+        assertThat(Role.newCustom(new RoleId(TestIds.uuid(1)), new RoleCode("reviewer"), "Reviewer", Set.of()).code().value()).isEqualTo("reviewer");
     }
 
     @Test
@@ -114,12 +114,12 @@ class RoleTest {
     void customRoleCannotCarryAdministratorModePermission() {
         for (String code : Set.of(Permission.Codes.PLATFORM_IDENTITY_ROLE_READ, Permission.Codes.PLATFORM_IDENTITY_ROLE_UPDATE,
                 Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE, Permission.Codes.PLATFORM_IDENTITY_SESSION_DELETE)) {
-            assertThatThrownBy(() -> Role.newCustom(new RoleCode("ops"), "Ops", Set.of(code))).isInstanceOfSatisfying(RoleRuleException.class,
+            assertThatThrownBy(() -> Role.newCustom(new RoleId(TestIds.uuid(1)), new RoleCode("ops"), "Ops", Set.of(code))).isInstanceOfSatisfying(RoleRuleException.class,
                     e -> assertThat(e.violation()).isEqualTo(RoleViolation.ADMINISTRATOR_MODE_ONLY));
             assertThatThrownBy(() -> custom("analyst", Set.of()).revise("Analyst", AccessScopeKind.SELF, Set.of(code))).isInstanceOfSatisfying(
                     RoleRuleException.class, e -> assertThat(e.violation()).isEqualTo(RoleViolation.ADMINISTRATOR_MODE_ONLY));
         }
-        assertThat(Role.newCustom(new RoleCode("hold"), "Hold", Set.of(Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE)).permissionCodes())
+        assertThat(Role.newCustom(new RoleId(TestIds.uuid(1)), new RoleCode("hold"), "Hold", Set.of(Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE)).permissionCodes())
                 .containsExactly(Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE);
     }
 }

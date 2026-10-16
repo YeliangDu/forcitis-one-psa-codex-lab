@@ -6,8 +6,6 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.StateMachine;
 import com.forcitis.one.kernel.event.EventDraft;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.events.LegalEntityActivated;
@@ -30,7 +28,7 @@ public final class LegalEntity extends AggregateRoot {
             .allow(LegalEntityStatus.INACTIVE, LegalEntityStatus.ACTIVE)
             .build();
 
-    private LegalEntityId legalEntityId;
+    private final LegalEntityId legalEntityId;
     private final LegalEntityStatus loadedStatus;
     private final LegalEntityCode loadedCode;
     private LegalEntityCode code;
@@ -47,9 +45,9 @@ public final class LegalEntity extends AggregateRoot {
         this.loadedStatus = status;
     }
 
-    /** A legal entity about to be inserted; the repository gives it its id (withId) before the registration event is sealed. */
-    public static LegalEntity register(LegalEntityCode code, String name) {
-        LegalEntity entity = new LegalEntity(null, code, name, LegalEntityStatus.ACTIVE, 0, 0);
+    /** A legal entity about to be inserted; its id is made by the caller, never by the repository. */
+    public static LegalEntity register(LegalEntityId legalEntityId, LegalEntityCode code, String name) {
+        LegalEntity entity = new LegalEntity(Objects.requireNonNull(legalEntityId, "legalEntityId"), code, name, LegalEntityStatus.ACTIVE, 0, 0);
         entity.record((envelopes, version) -> new LegalEntityRegistered(envelopes.wrap(entity.draft("LegalEntityRegistered", version)),
                 entity.legalEntityId, entity.code));
         return entity;
@@ -59,11 +57,6 @@ public final class LegalEntity extends AggregateRoot {
                                       long version, long eventSequence) {
         return new LegalEntity(Objects.requireNonNull(legalEntityId, "legalEntityId"), code, name, LegalEntityStatus.valueOf(status),
                 version, eventSequence);
-    }
-
-    public LegalEntity withId(LegalEntityId id) {
-        this.legalEntityId = Objects.requireNonNull(id, "id");
-        return this;
     }
 
     public LegalEntityId legalEntityId() {
@@ -153,7 +146,7 @@ public final class LegalEntity extends AggregateRoot {
     }
 
     private EventDraft draft(String eventName, long version) {
-        return new EventDraft("organization.workforce." + eventName, 1, "LegalEntity", String.valueOf(legalEntityId.value()), version,
-                legalEntityId, null, new EventSource(SourceSystem.ONE, null), List.of());
+        return new EventDraft("organization.workforce." + eventName, 1, "LegalEntity", legalEntityId.value(), version,
+                legalEntityId, null, List.of());
     }
 }

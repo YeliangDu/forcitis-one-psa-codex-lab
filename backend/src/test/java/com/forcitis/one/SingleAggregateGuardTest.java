@@ -11,8 +11,6 @@ import com.forcitis.one.kernel.event.AggregateReference;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelope;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import java.time.LocalDate;
 import java.util.Arrays;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -77,9 +75,9 @@ class SingleAggregateGuardTest {
     }
 
     private static DomainEvent eventNaming(String... related) {
-        EventEnvelope envelope = new TestEventEnvelopes().wrap(new EventDraft("cost.timesheet.TimesheetSubmitted", 1, "Timesheet", "7", 1,
-                new LegalEntityId(TestIds.uuid(1)), LocalDate.of(2026, 10, 14), new EventSource(SourceSystem.ONE, null),
-                Arrays.stream(related).map(type -> new AggregateReference(type, "x")).toList()));
+        EventEnvelope envelope = new TestEventEnvelopes().wrap(new EventDraft("cost.timesheet.TimesheetSubmitted", 1, "Timesheet", TestIds.uuid(7), 1,
+                new LegalEntityId(TestIds.uuid(1)), LocalDate.of(2026, 10, 14),
+                Arrays.stream(related).map(type -> new AggregateReference(type, TestIds.uuid(2))).toList()));
         return () -> envelope;
     }
 

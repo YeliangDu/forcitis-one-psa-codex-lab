@@ -56,9 +56,8 @@ class JdbcWorkCalendarRepository implements WorkCalendarRepository {
     @Override
     public void save(WorkCalendarYear calendarYear) {
         WorkCalendarKey key = calendarYear.key();
-        UUID id;
-        if (calendarYear.storedRow() == null) {
-            id = ids.next();
+        UUID id = calendarYear.id();
+        if (calendarYear.version() == 0) {
             try {
                 jdbc.sql("""
                                 insert into organization_attendance.work_calendar_years (id, legal_entity_id, year_number, version, event_count)
@@ -72,7 +71,6 @@ class JdbcWorkCalendarRepository implements WorkCalendarRepository {
                 throw conflict(key);
             }
         } else {
-            id = calendarYear.storedRow();
             int updated = jdbc.sql("""
                             update organization_attendance.work_calendar_years set version = :next, event_count = :eventSequence, updated_at = :updatedAt
                              where id = :id and version = :version
