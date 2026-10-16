@@ -160,6 +160,7 @@ capabilities:
   object: OBJ-19
   definition: 记录并引用客户发起的一次采购活动的公告、文件、截止时间与标段。
   note: 外部引用对象，只记录、不控制。
+  unsupported_reason: 外部引用对象，只在段内条件中引用（招标项目 VS-01.2 段内条件），不作阶段门；按 J_CHECKS J4.4「仅段内也算支撑」口径实际支撑（J 检查）
 - id: CAP-024
   name: 服务产品管理
   en: Service Product Management
@@ -312,6 +313,7 @@ capabilities:
   object: OBJ-46
   definition: 记录并引用我方投标、设计与检查所指向的一项工程及其建成后的建筑物。
   note: 外部引用对象，只记录、不控制；仅指 OBJ-46 本身，其二级建筑系统与部位是我方登记的受检对象。
+  unsupported_reason: 外部引用对象，只在段内条件中引用（建设工程 VS-02、VS-03 段内条件），不作阶段门；按 J_CHECKS J4.4「仅段内也算支撑」口径实际支撑（J 检查）
   l2:
   - id: CAP-046.047
     name: 建筑系统与部位管理
