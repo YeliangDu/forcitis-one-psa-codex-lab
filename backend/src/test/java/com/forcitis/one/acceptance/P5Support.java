@@ -1,6 +1,8 @@
 package com.forcitis.one.acceptance;
 
+import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.SystemActors;
+import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.RecordComponent;
 import java.sql.Connection;
@@ -108,8 +110,8 @@ public abstract class P5Support extends ApprovalP4Support {
     /** Publishes the real LegalEntityRegistered event record with this envelope, in a transaction, as an aggregate would. */
     protected void publishLegalEntityRegisteredWith(Object envelope) throws ReflectiveOperationException {
         Class<?> event = Class.forName("com.forcitis.one.organization.workforce.events.LegalEntityRegistered");
-        Object legalEntity = new com.forcitis.one.kernel.LegalEntityId(UUID.randomUUID());
-        Object code = new com.forcitis.one.organization.workforce.api.LegalEntityCode("PFA");
+        Object legalEntity = new LegalEntityId(UUID.randomUUID());
+        Object code = new LegalEntityCode("PFA");
         Object record = event.getDeclaredConstructors()[0].newInstance(envelope, legalEntity, code);
         transaction.executeWithoutResult(status -> publisher.publishEvent(record));
     }

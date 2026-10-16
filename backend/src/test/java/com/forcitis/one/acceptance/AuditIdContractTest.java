@@ -111,7 +111,7 @@ class AuditIdContractTest {
         Matcher start = Pattern.compile("export const AuditEntryResponseSchema = z\\.object\\(\\{").matcher(validators);
         assertThat(start.find()).as("AuditEntryResponseSchema in validators.ts").isTrue();
         String block = validators.substring(start.end(), validators.indexOf("\n});", start.end()));
-        assertThat(block).containsPattern("(get )?subjectKind(\\(\\))?[:\\s]").contains("subjectId:").doesNotContain("subjectKey:");
+        assertThat(block).contains("get subjectKind()").contains("subjectId:").doesNotContain("subjectKey:");
         Matcher subjectId = Pattern.compile("(?m)^\\s*subjectId:\\s*(.*),\\s*$").matcher(block);
         assertThat(subjectId.find()).isTrue();
         assertThat(subjectId.group(1)).startsWith("z.string(");

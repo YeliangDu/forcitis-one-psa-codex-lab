@@ -10,6 +10,7 @@ import com.jayway.jsonpath.JsonPath;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -33,7 +34,7 @@ class IdQueryParameterIT extends AcceptanceSupport {
     static final String LEGACY_NUMBERS = "/api/v1/platform/legacy-numbers";
     static final String AUDIT_EXPORT = "/api/v1/platform/audit-entries:export";
     static final String SOURCE_REFERENCES = "/api/v1/platform/source-references";
-    static final List<String> MALFORMED = List.of("42", "not-a-uuid", UUID.randomUUID().toString().toUpperCase(java.util.Locale.ROOT),
+    static final List<String> MALFORMED = List.of("42", "not-a-uuid", UUID.randomUUID().toString().toUpperCase(Locale.ROOT),
             "00000000-0000-0000-0000-000000000000");
 
     static final RequestPostProcessor LEGACY_READER = person(41, Permission.Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ);

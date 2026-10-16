@@ -528,7 +528,7 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
         try (PreparedStatement key = identity.prepareStatement("""
                 select a.attname from pg_index i join pg_attribute a on a.attrelid = i.indrelid and a.attnum = any (i.indkey)
                  where i.indrelid = cast('account_roles' as regclass) and i.indisprimary""");
-             java.sql.ResultSet rs = key.executeQuery()) {
+             ResultSet rs = key.executeQuery()) {
             if (!rs.next()) {
                 throw new AssertionError("account_roles has no primary key");
             }

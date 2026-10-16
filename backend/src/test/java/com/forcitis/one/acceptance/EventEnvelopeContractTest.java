@@ -1,6 +1,7 @@
 package com.forcitis.one.acceptance;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -10,6 +11,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -53,7 +55,7 @@ class EventEnvelopeContractTest {
         assertThat(componentType(kernelUnchecked("EventEnvelope"), "source")).isNull();
         assertThat(componentType(kernelUnchecked("EventDraft"), "source")).isNull();
         for (String gone : List.of("EventSource", "SourceSystem")) {
-            org.junit.jupiter.api.Assertions.assertThrows(ClassNotFoundException.class, () -> kernel(gone), gone + " is removed");
+            assertThrows(ClassNotFoundException.class, () -> kernel(gone), gone + " is removed");
         }
     }
 
@@ -158,7 +160,7 @@ class EventEnvelopeContractTest {
     }
 
     private static String kindOf(String aggregate) {
-        return aggregate.replaceAll("([a-z0-9])([A-Z])", "$1_$2").toUpperCase(java.util.Locale.ROOT);
+        return aggregate.replaceAll("([a-z0-9])([A-Z])", "$1_$2").toUpperCase(Locale.ROOT);
     }
 
     private static void gather(Object node, Set<String> aggregates) {

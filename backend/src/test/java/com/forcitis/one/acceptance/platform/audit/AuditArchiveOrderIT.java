@@ -115,8 +115,8 @@ class AuditArchiveOrderIT extends P5Support {
         assertThat(((Number) batches.getFirst().get("entry_count")).intValue()).isEqualTo(5);
         assertThat(batches.getFirst().get("first_entry_id")).as("the first entry of the batch is the first created").isEqualTo(ids.getFirst());
         assertThat(batches.getFirst().get("last_entry_id")).as("the position is the last created entry, which has the smallest id").isEqualTo(ids.getLast());
-        assertThat(((java.sql.Timestamp) batches.getFirst().get(P5Names.FIRST_ENTRY_CREATED_AT)).toInstant()).isEqualTo(first.plus(Duration.ofDays(1)));
-        assertThat(((java.sql.Timestamp) batches.getFirst().get(P5Names.LAST_ENTRY_CREATED_AT)).toInstant()).isEqualTo(first.plus(Duration.ofDays(5)));
+        assertThat(((Timestamp) batches.getFirst().get(P5Names.FIRST_ENTRY_CREATED_AT)).toInstant()).isEqualTo(first.plus(Duration.ofDays(1)));
+        assertThat(((Timestamp) batches.getFirst().get(P5Names.LAST_ENTRY_CREATED_AT)).toInstant()).isEqualTo(first.plus(Duration.ofDays(5)));
         assertThat(alertsSince(mark)).as("the reconciliation finds no difference").isEmpty();
 
         UUID later = oldEntry(6, first.plus(Duration.ofDays(6)));

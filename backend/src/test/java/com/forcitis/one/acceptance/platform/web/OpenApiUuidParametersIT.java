@@ -6,12 +6,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.forcitis.one.acceptance.AcceptanceSupport;
 import com.forcitis.one.platform.identity.api.Permission;
+import com.forcitis.one.platform.identity.api.SessionRoles;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -52,7 +54,7 @@ class OpenApiUuidParametersIT extends AcceptanceSupport {
 
     static RequestPostProcessor everything() {
         List<GrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + com.forcitis.one.platform.identity.api.SessionRoles.ORDINARY));
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + SessionRoles.ORDINARY));
         Arrays.stream(Permission.values()).forEach(permission -> authorities.add(new SimpleGrantedAuthority(permission.code())));
         return SecurityMockMvcRequestPostProcessors.user(principalName(51)).authorities(authorities);
     }
@@ -131,7 +133,7 @@ class OpenApiUuidParametersIT extends AcceptanceSupport {
                         try {
                             String problem = refusal(path.getKey(), operation.getKey(), parameters, under, value, caller);
                             if (problem != null) {
-                                wrong.add(operation.getKey().toUpperCase(java.util.Locale.ROOT) + " " + path.getKey() + " " + under.name() + "=" + value + ": " + problem);
+                                wrong.add(operation.getKey().toUpperCase(Locale.ROOT) + " " + path.getKey() + " " + under.name() + "=" + value + ": " + problem);
                             }
                         } catch (Exception failure) {
                             wrong.add(operation.getKey() + " " + path.getKey() + " " + under.name() + "=" + value + ": " + failure);
@@ -152,7 +154,7 @@ class OpenApiUuidParametersIT extends AcceptanceSupport {
                 url = url.replace("{" + parameter.name() + "}", parameter == under ? value : filler(parameter.schema()));
             }
         }
-        MockHttpServletRequestBuilder builder = request(HttpMethod.valueOf(method.toUpperCase(java.util.Locale.ROOT)), url).with(caller);
+        MockHttpServletRequestBuilder builder = request(HttpMethod.valueOf(method.toUpperCase(Locale.ROOT)), url).with(caller);
         for (Parameter parameter : parameters) {
             if (parameter.where().equals("query") && (parameter == under || parameter.required())) {
                 builder.param(parameter.name(), parameter == under ? value : filler(parameter.schema()));
