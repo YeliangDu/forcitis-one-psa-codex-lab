@@ -90,7 +90,7 @@ def main(root):
     assert "\n  stats();\n}" in tpl
     tpl = tpl.replace("\n  stats();\n}", "\n  mountBpmn();\n  stats();\n}", 1)
     (HERE / "method.html").write_text(tpl)
-    (HERE / "METHOD_PAGE.json").write_text(json.dumps({"sheet": "MTH", **data}, ensure_ascii=False, indent=1))
+    (HERE / "archive" / "METHOD_PAGE.json").write_text(json.dumps({"sheet": "MTH", **data}, ensure_ascii=False, indent=1))
     print(len(items), "items;", {k: len(v) for k, v in bpmn.items()}, "bpmn files")
 
 

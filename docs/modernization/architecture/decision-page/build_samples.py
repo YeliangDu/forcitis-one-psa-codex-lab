@@ -239,5 +239,5 @@ if __name__ == "__main__":
     assert anchor in tpl, "模板结构变了"
     tpl = tpl.replace(anchor, "<p>${esc(g.desc)}</p></div>${DIAGRAMS[g.id] ? `<div class=\"diag\">${DIAGRAMS[g.id].svg}</div><p class=\"legend2\">${esc(DIAGRAMS[g.id].legend)}</p>` : \"\"}</section>", 1)
     (HERE / "samples.html").write_text(tpl)
-    (HERE / "SAMPLES.json").write_text(json.dumps({"sheet": "SMP", **data}, ensure_ascii=False, indent=1))
+    (HERE / "archive" / "SAMPLES.json").write_text(json.dumps({"sheet": "SMP", **data}, ensure_ascii=False, indent=1))
     print(len(ITEMS), "items")

@@ -32,7 +32,7 @@ def main():
     tpl = re.sub(r'<p class="lede">.*?</p>', '<p class="lede">业务口径页：推荐项已预选并带标签，同意就不用动；按组提交。</p>', tpl, count=1)
     tpl = re.sub(r"const DATA = .*?;\n", lambda m: "const DATA = " + json.dumps(page, ensure_ascii=False) + ";\n", tpl, count=1)
     (HERE / "rules-review.html").write_text(tpl)
-    (HERE / "RULES_REVIEW.json").write_text(json.dumps({"sheet": "RRV", **page}, ensure_ascii=False, indent=1))
+    (HERE / "archive" / "RULES_REVIEW.json").write_text(json.dumps({"sheet": "RRV", **page}, ensure_ascii=False, indent=1))
     print(len(ITEMS), "items")
 
 
