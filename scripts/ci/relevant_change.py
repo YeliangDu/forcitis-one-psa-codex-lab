@@ -99,12 +99,12 @@ GIT = ("git", "-c", "core.quotepath=off")
 
 
 def changed_files(base):
-    out = subprocess.run([*GIT, "diff", "--name-only", f"origin/{base}...HEAD"], capture_output=True, text=True, encoding="utf-8", check=True)
+    out = subprocess.run([*GIT, "diff", "--no-renames", "--name-only", f"origin/{base}...HEAD"], capture_output=True, text=True, encoding="utf-8", check=True)
     return out.stdout.splitlines()
 
 
 def files_since(before):
-    out = subprocess.run([*GIT, "diff", "--name-only", before, "HEAD"], capture_output=True, text=True, encoding="utf-8")
+    out = subprocess.run([*GIT, "diff", "--no-renames", "--name-only", before, "HEAD"], capture_output=True, text=True, encoding="utf-8")
     return out.stdout.splitlines() if out.returncode == 0 else None
 
 
