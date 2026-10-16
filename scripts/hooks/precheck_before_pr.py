@@ -40,7 +40,7 @@ def main():
         return 0
     root = repository_of(payload.get("cwd") or os.getcwd())
     try:
-        run = subprocess.run([os.path.join(root, "scripts", "precheck.sh")], cwd=root, capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
+        run = subprocess.run([os.path.join(root, "scripts", "precheck.sh")], cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
         print(f"precheck.sh 超过 {TIMEOUT_SECONDS} 秒未结束，不能提 PR", file=sys.stderr)
         return 2
@@ -56,6 +56,7 @@ def self_test():
         assert is_pr_create(command), command
     for command in ("gh pr view 3", "gh pr merge 3 --squash", "gh pr checks 3", "gh pr comment 3", "gh pr ready 3", "gh api repos/o/r/pulls", "gh pr create-not", "gh pr created", "", None):
         assert not is_pr_create(command), command
+    assert guarded_main.__doc__, "guarded_main refuses on error"
     assert verdict("x\nSUMMARY: 7 PASS, 0 FAIL, 7 SKIP (base origin/main) — ready\n", 0) is None
     assert verdict("SUMMARY: 6 PASS, 1 FAIL, 7 SKIP (base origin/main) — not ready\n", 1)
     assert verdict("SUMMARY: 7 PASS, 0 FAIL, 7 SKIP (base origin/main) — ready\n", 1), "退出码非 0 即拒绝"
@@ -65,5 +66,14 @@ def self_test():
     return 0
 
 
+def guarded_main():
+    """A crash exits 1, which Claude Code treats as 'do not block': any error here refuses the PR instead."""
+    try:
+        return main()
+    except Exception as error:
+        print(f"precheck_before_pr.py 出错（{error.__class__.__name__}: {error}），按失败处理，不能提 PR", file=sys.stderr)
+        return 2
+
+
 if __name__ == "__main__":
-    sys.exit(self_test() if sys.argv[1:] == ["--self-test"] else main())
+    sys.exit(self_test() if sys.argv[1:] == ["--self-test"] else guarded_main())

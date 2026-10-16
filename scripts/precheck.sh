@@ -299,7 +299,7 @@ if $builds_relevant; then
   elif touches '^frontend/'; then
     report FAIL "frontend verify" "frontend changed: $missing"
   else
-    report SKIP "frontend verify" "$missing（本次未改 frontend/，CI 仍会跑）"
+    report SKIP "frontend verify" "${missing}（本次未改 frontend/，CI 仍会跑）"
   fi
 else
   report SKIP "backend tests" "relevant_change.py: nothing the builds read changed"
