@@ -153,7 +153,14 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         DocumentReference document = documentOf(id);
         scenario.stimulate(() -> answer.updateAndGet(previous -> submit(id, workDate, hours)))
                 .andWaitForEventOfType(TaskAssigned.class).matching(e -> e.document().equals(document)).toArrive();
+        awaitApprovalCommitted(document);
         return answer.get();
+    }
+
+    /** TaskAssigned is published inside the listener's transaction, so a second thread can still find no approval request when the event arrives. */
+    void awaitApprovalCommitted(DocumentReference document) {
+        org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(15)).pollInterval(java.time.Duration.ofMillis(50))
+                .until(() -> approvalProcesses.progress(ProcessKey.COST_TIMESHEET_APPROVAL, document).isPresent());
     }
 
     TimesheetView submitAndAwaitApproval(Scenario scenario, TimesheetId id, String hours) {

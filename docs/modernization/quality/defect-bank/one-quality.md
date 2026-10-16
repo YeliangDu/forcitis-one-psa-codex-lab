@@ -50,7 +50,7 @@
 - **拦下于**：独立评审——opus 对 #298 的首轮复审（Blocker）。
 - **漏过于**：作者自审。
 - **新增检查项**：`backend_classes()` 用 `test-compile surefire:test`，并检查每个类都产生了报告；实测改守护测试后不再出现 `OpenApiExportTest`。
-- **状态**：待落实（#298 合入后改为已落实）
+- **状态**：已落实（#298 已合入）
 
 ### QUAL-006　提 PR 前的钩子：C 语言环境下报错、崩溃等于放行
 
@@ -60,7 +60,7 @@
 - **拦下于**：作者自查——写了端到端（C 语言环境、放行与拦截两种情形）才发现。
 - **漏过于**：机械检查（自测只测了纯函数）；独立评审——首轮复审没跑端到端。
 - **新增检查项**：钩子 `guarded_main`（出错一律拒绝）、宽松解码；`${变量}` 紧跟非 ASCII 字符的 grep 列入评审模板；**凡接进钩子的脚本，必须在 `env -i LC_ALL=C` 下端到端各跑一次放行与拦截。**
-- **状态**：待落实（#298 合入后改为已落实）
+- **状态**：已落实（#298 已合入）
 
 ### QUAL-007　派工的前提没先量化：PR 里 gitleaks 增量扫描
 
@@ -80,4 +80,14 @@
 - **拦下于**：CI（调度转述，#267、#272 的运行）才发现。
 - **漏过于**：机械检查（precheck 缺联动）；作者自审。
 - **新增检查项**：`precheck.sh` 改词表时跑前端 `check:copy`、`test:scripts` 与后端 4 个词表测试；前端依赖缺失判 FAIL 并写明「需先问用户安装」；`gh pr create` 前置钩子（#298）。
-- **状态**：待落实（#298 合入后改为已落实）
+- **状态**：已落实（#298 已合入）
+
+### QUAL-009　集成测试只等事件，审批请求还没提交就去读
+
+- **日期**：2026-10-16
+- **现象**：运行 38805349816（main，112abd60）里 `TimesheetApprovalScenarioIT.cancelledTimesheetIsADraft` 偶发失败：`The timesheet is not in a running approval`；同类 18 个用例仅此一个，下一提交起连续成功。
+- **根因**：`submitAndAwaitApproval` 只用 `Scenario.andWaitForEventOfType(TaskAssigned)` 等事件；该事件在审批监听器的事务内发布，事件到达时请求可能还没提交，测试线程随即取消就查不到（读代码推断，未实测复现）。等待条件不是「审批已可见」，违反 CS-5.6 的精神。
+- **拦下于**：CI 才发现（push 到 main 后失败）。
+- **漏过于**：作者自审、独立评审（该类早先的评审没查“事件到达 ≠ 数据已提交”）。
+- **新增检查项**：`awaitApprovalCommitted`（Awaitility 等 `ApprovalProcesses.progress` 有值）；评审模板 `review-briefs/01-code-card.md` C6 的 CS-5.6 判据补一句：事件到达不等于数据已提交，等待条件必须是读到的数据。
+- **状态**：已落实（本 PR 合入后）
