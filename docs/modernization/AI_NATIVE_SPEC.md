@@ -178,7 +178,7 @@ info: { title: FORCITIS one — Phase 1a module events (in-process, Modulith eve
 channels:
   platform.approval.ApprovalCompleted:
     messages: { m: { payload: { type: object, properties: { requestId: {}, processType: {}, businessId: {}, round: {}, outcome: { enum: [APPROVED, REJECTED, RETURNED, CANCELLED], description: "RETURNED：退回即结束本轮，重提开新一轮" }, reason: {} } } } }
-  platform.approval.TaskResulted:
+  platform.approval.TaskHandled:
     messages: { m: { payload: { type: object, properties: { requestId: {}, taskId: {}, nodeKey: {}, assigneeId: {}, outcome: {}, advisory: { type: boolean }, rowIds: { type: array, description: "待实现：用户已决定要带，代码尚无" } } } } }
   platform.approval.TaskAssigned:
     messages: { m: { payload: { type: object, properties: { taskId: {}, candidateIds: { type: array }, notifyKind: { enum: [TODO, DONE, CC] } } } } }
