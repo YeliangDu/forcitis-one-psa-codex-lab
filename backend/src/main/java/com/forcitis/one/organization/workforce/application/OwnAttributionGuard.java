@@ -1,7 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.platform.audit.api.AuditSubject;
-import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
@@ -55,7 +54,7 @@ class OwnAttributionGuard {
 
     private DomainException refused(AttributionSubject subject, UserId actor, String detail, String message) {
         audit.recordIndependently(new AuditEntry("organization.workforce.legal-entity-attribution.refused", actor, null,
-                AuditSubject.of(AuditSubjectKind.valueOf(subject.kind().name()), subject.subjectId()), detail));
+                AuditSubject.of(AttributionAuditKinds.of(subject.kind()), subject.subjectId()), detail));
         return new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN, ErrorKind.FORBIDDEN, message);
     }
 
