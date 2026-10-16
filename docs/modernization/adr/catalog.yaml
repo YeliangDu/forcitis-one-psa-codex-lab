@@ -1,5 +1,5 @@
 adrs:
-- id: "0001"   # 产品与目标：以 FORCITIS one 重建 PSA，绞杀式切换
+- id: "0001"   # `产品与目标：以 FORCITIS one 重建 PSA，绞杀式切换`
   category: "方法"
   bc: ["全局"]
   stage: ["全阶段"]
@@ -79,7 +79,7 @@ adrs:
   bc: ["operations.facts", "accounting.period", "receivables.wip"]
   stage: ["全阶段"]
   partially_superseded: ["ADR-0024 后果第 4 条", "ADR-0022 第 6 条", "ADR-0036 第 1 条对迁入的适用与后果一句", "ADR-0047 第 4 条「唯一触发点」一句", "ADR-0051 决定 9 中 changeorder 模块名"]
-- id: "0017"   # 与《PSA 边界蓝图 v2.3》对齐：沿用 PSA 子域划分，蓝图作为约束来源
+- id: "0017"   # `与《PSA 边界蓝图 v2.3》对齐：沿用 PSA 子域划分，蓝图作为约束来源`
   category: "边界与模块"
   bc: ["全局"]
   stage: ["全阶段"]
