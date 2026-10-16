@@ -192,6 +192,20 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
         assertThat(checkDetails()).last().asString().contains("reason=REPLAYED_IDENTIFIER");
     }
 
+    @Test
+    @DisplayName("DATA-REPAIR-identity ID-05 the row created for another account keeps the old last login, so the trust period is not extended")
+    void dataRepairIdentityId05MovedRowKeepsLastLoginSoTrustIsNotExtended() throws Exception {
+        String shared = confirmedIdentifier(1001, null);
+        clock.advance(Duration.ofDays(20));
+        String ofSecond = confirmedIdentifier(1002, shared);
+        clock.advance(Duration.ofDays(11));
+
+        MvcResult result = login(1001, ofSecond);
+
+        assertThat(body(result).path("identityConfirmationRequired").asBoolean()).as("31 days after the first confirmation, though only 11 after the move").isTrue();
+        assertThat(checkDetails()).last().asString().contains("reason=EXPIRED_IDENTIFIER");
+    }
+
     @org.springframework.beans.factory.annotation.Autowired
     com.forcitis.one.platform.identity.application.RevokeBrowserIdentifiers revoke;
 
