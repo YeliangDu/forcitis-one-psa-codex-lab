@@ -585,7 +585,7 @@ processes:
   notes: 报价被取代、投标被撤回时在本段内重入。「报价版本已生效」无事件消费者：签约时经投标承诺快照读取（见「起草、评审并回签协议」），可接受（⑥a 评审 L3）。审批结果回调写在下一步 cross_bc（event in platform.approval，CONVENTIONS 第 5 节）。
   frequency_ref: 待取证（E-B1）；经验估计：报价版本每月约 20 份，评审通过约 80%
 - id: PRC-08
-  name: 参加投标，登记结果并处理保证金
+  name: 参加投标，缴纳保证金并登记结果
   trigger:
     type: human
     desc: 收到邀标或招标公告
@@ -593,7 +593,7 @@ processes:
   - VS-01.2
   owner_bc: B-03
   human_orchestration: true
-  human_note: 截止时间、开标公示等外部等待，可撤回或撤销
+  human_note: 截止时间、开标公示等外部等待，可撤回或撤销；投标保证金缴纳走付款审批；保证金退还由 PRC-153 订阅本流程的投标未中标、已废标、已撤销事件接续
   merged_from:
   - PRC-09
   - PRC-11
@@ -607,7 +607,6 @@ processes:
   - 商机已赢单
   - 商机已丢单
   - 商机已放弃
-  - 保证金已退
   - 不得投标
   - 已撤回
   scenarios:
@@ -641,10 +640,17 @@ processes:
   - id: SH-E6
     as: performer
     org_needs:
-      responsibility: 出纳按银行到账登记保证金退还，系统提交过账候选
+      responsibility: 出纳按银行付款回单登记投标保证金缴纳，系统提交过账候选（退还见 PRC-153）
       approval_right: 无审批权（登记退还须按法人范围授权）
       department_hint: 财务部（资金岗）
       position_hint: 出纳
+  - id: SH-M1
+    as: approver
+    org_needs:
+      responsibility: 投标保证金付款审批与是否参投判断（归属对象责任人，商机负责人的部门负责人）
+      approval_right: 投标保证金付款：一级审批，超额按 AR-01、AR-02 加审
+      department_hint: 市场与经营部门或区域事业部
+      position_hint: 部门负责人
   - id: SH-X4
     as: external
     org_needs:
@@ -666,9 +672,9 @@ processes:
       approval_right: 无（外部方，不设系统权限）
       department_hint: 不适用（外部方）
       position_hint: 不适用（外部方）
-  migration: 历史投标（含联合体协议、承诺快照、资格预审、中标通知书、撤回与废标记录）与保证金退还关联全部迁入（U-4），记迁入来源与原始时间；投产时已递交待评标的投标按当前状态迁入，截止时间随招标项目登记迁入；未退还的保证金按保证金台账（PRC-10）迁入后继续按本流程退还
-  scope: 按商机数据范围：商机负责人与参与团队可见并经办投标；保证金退还限财务出纳按法人范围经办（ADR-0026）
-  legal_entity: 保证金退还登记按保证金所属资金账户的法人口径执行（缴纳时的付款法人）
+  migration: 历史投标（含联合体协议、承诺快照、资格预审、中标通知书、撤回与废标记录）全部迁入（U-4），记迁入来源与原始时间；投产时已递交待评标的投标按当前状态迁入，截止时间随招标项目登记迁入；保证金缴纳与退还记录由保证金台账（PRC-10）迁入，未退还的保证金由 PRC-153 接续
+  scope: 按商机数据范围：商机负责人与参与团队可见并经办投标；保证金缴纳登记限财务出纳按法人范围经办（ADR-0026）
+  legal_entity: 保证金付款与缴纳登记按付款资金账户的法人口径执行
   steps:
   - actor: system
     where: automatic
@@ -696,7 +702,7 @@ processes:
     desc: 读独立性检查结论（INV-33，D-4 b）：我方为 IDI 风险管理机构且有冲突未获书面同意的，不得递交投标、不得凭委托赢单
     decision:
     - when: 直接委托，无招标
-      goto: 13
+      goto: 15
       p: 0.25
     - when: 我方为 IDI 风险管理机构且独立性检查有冲突、未获书面同意
       goto: end
@@ -718,12 +724,15 @@ processes:
     - 通知日期与招标项目标段
     decision:
     - when: 资格预审未通过
-      goto: 10
+      goto: 12
       rule: INV-29
       p: 0.1
-    - when: otherwise
+    - when: 招标文件要求缴纳投标保证金
       goto: 4
-      p: 0.9
+      p: 0.7
+    - when: otherwise
+      goto: 6
+      p: 0.2
     actor_v1: 市场和客户经理
     permission: 投标.登记资格预审
     page: 资格预审登记页
@@ -734,13 +743,74 @@ processes:
     wait:
       typical_h: 48
       p90_h: 120
+  - actor: SH-E5
+    where: in_system
+    bc: B-10
+    added_in: closeout
+    command: 发起付款
+    aggregate: AGG-53
+    desc: 招标文件要求缴纳投标保证金的，商机负责人发起保证金付款；付款走 B-10 付款审批，收款方须为招标人已登记账户（INV-80）、经办与审批与出纳分离（INV-81）。是否参投（go/no-go）一并在此由归属对象责任人判断（建议，待用户定 M15）
+    decision:
+    - when: otherwise
+      goto: 5
+      p: 1.0
+    approval:
+      engine: platform.approval
+      doc_type: 投标保证金付款审批
+      approver: cost_object_owner
+      multi_level: false
+      escalation_rules:
+      - AR-01
+      - AR-02
+      on_reject: 12
+      why_human: 保证金是否值得缴、是否参投（go/no-go）取决于项目价值、竞争态势与资金占用，系统只能核对金额阈值与收款账户，不能代替这项商业判断。
+    permission: 保证金付款.发起
+    page: 保证金付款申请页
+    audit: true
+    effort:
+      typical_min: 15
+      p90_min: 40
+    wait:
+      typical_h: 24
+      p90_h: 72
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: platform.approval
+      name: 发起审批
+  - actor: SH-E6
+    where: in_system
+    bc: B-09
+    added_in: closeout
+    command: 登记保证金缴纳
+    aggregate: AGG-51
+    emits:
+    - 保证金已缴
+    desc: 审批通过、付款成功后，出纳登记投标保证金缴纳（P-10 比例与时限判定）；付款成功由 B-10 发出事件，审批结果回调在 B-10 付款流程内处理
+    evidence:
+    - 保证金付款的银行回单
+    decision:
+    - when: otherwise
+      goto: 6
+      p: 1.0
+    permission: 保证金.登记缴纳
+    page: 保证金缴纳登记页
+    audit: true
+    effort:
+      typical_min: 10
+      p90_min: 30
+    cross_bc:
+    - mode: event
+      direction: in
+      bc: B-10
+      name: 付款已成功
   - actor: platform
     where: automatic
     added_in: closeout
     desc: P-13 投标截止临近提醒（按招标项目登记中的截止时间），到点提醒商机负责人
     decision:
     - when: otherwise
-      goto: 5
+      goto: 7
       p: 1.0
     notify:
     - to: SH-E5
@@ -761,16 +831,16 @@ processes:
     - 投标文件终稿与报价版本引用、承诺快照
     decision:
     - when: 评标结果为中标
-      goto: 6
+      goto: 8
       p: 0.2
     - when: 评标结果为未中标
-      goto: 7
+      goto: 9
       p: 0.4
     - when: 评标阶段被宣布废标
-      goto: 8
+      goto: 10
       p: 0.03
     - when: 决定撤回或撤销投标
-      goto: 9
+      goto: 11
       p: 0.04
     - when: otherwise
       goto: end
@@ -792,7 +862,7 @@ processes:
       typical_h: 360
       p90_h: 720
     withdraw:
-      to: 9
+      to: 11
       outcome: 已撤回
   - actor: SH-E5
     where: offline
@@ -804,7 +874,7 @@ processes:
     - 中标通知书（文件引用与日期，本聚合附件，登记时必填并校验已上传）
     decision:
     - when: otherwise
-      goto: 11
+      goto: 13
       p: 1.0
     actor_v1: 市场和客户经理
     permission: 投标.登记结果
@@ -825,7 +895,7 @@ processes:
     - 未中标通知或中标结果公示（扫描件或网页存档）
     decision:
     - when: otherwise
-      goto: 12
+      goto: 14
       p: 1.0
     cross_bc:
     - mode: event
@@ -840,6 +910,7 @@ processes:
     effort:
       typical_min: 15
       p90_min: 45
+    desc: 投标未中标；保证金退还由 PRC-153 订阅「投标未中标」接续，不在本流程
   - actor: SH-E5
     where: offline
     command: 登记废标
@@ -847,13 +918,19 @@ processes:
     branch: 废标
     emits:
     - 投标已废标
-    desc: 评标阶段被宣布废标；重新招标的另建投标，不重新招标的客户经理人工登记商机丢单或放弃商机
+    desc: 评标阶段被宣布废标；重新招标的另建投标，不重新招标的客户经理人工登记商机丢单或放弃商机；投标保证金退还由 PRC-153 订阅「投标已废标」接续，不在本流程
     evidence:
     - 废标通知（招标人书面通知或电子招投标平台通知）
     decision:
-    - when: otherwise
+    - when: 重新招标，另建投标
+      goto: PRC-08
+      p: 0.3
+    - when: 不重新招标且商机丢失
       goto: 17
-      p: 1.0
+      p: 0.3
+    - when: otherwise
+      goto: 12
+      p: 0.4
     cross_bc:
     - mode: event
       direction: out
@@ -877,15 +954,19 @@ processes:
     - 书面撤回通知及招标人收讫记录
     - 撤回发生在投标截止前还是截止后
     decision:
-    - when: 撤回发生在截止前
-      goto: 19
-      p: 0.6
+    - when: 撤回发生在截止前，商机继续跟进
+      goto: end
+      outcome: 已撤回
+      p: 0.45
+    - when: 撤回发生在截止前，不再跟进该商机
+      goto: 12
+      p: 0.15
     - when: 撤回发生在截止后，商机继续跟进，投标已撤回
       goto: end
       outcome: 已撤回
       p: 0.1
     - when: otherwise
-      goto: 14
+      goto: 12
       p: 0.3
     cross_bc:
     - mode: event
@@ -909,7 +990,7 @@ processes:
     - 投标已放弃
     decision:
     - when: otherwise
-      goto: 14
+      goto: 16
       p: 1.0
     actor_v1: 市场和客户经理
     permission: 投标.放弃
@@ -918,6 +999,7 @@ processes:
     effort:
       typical_min: 5
       p90_min: 15
+    cross_bc: []
   - actor: system
     where: automatic
     command: 商机赢单
@@ -961,7 +1043,8 @@ processes:
     desc: 事件策略（M5）：未中标即丢单；非投标商机的丢单由客户经理人工登记同一命令
     decision:
     - when: otherwise
-      goto: 15
+      goto: end
+      outcome: 商机已丢单
       p: 1.0
     cross_bc:
     - mode: event
@@ -971,6 +1054,7 @@ processes:
     actor_v1: 系统策略
     audit: true
     metric_event: true
+    outcome: 商机已丢单
   - actor: SH-E5
     where: in_system
     command: 商机赢单
@@ -1031,195 +1115,6 @@ processes:
     effort:
       typical_min: 5
       p90_min: 10
-  - actor: SH-E6
-    where: in_system
-    bc: B-09
-    command: 退还保证金
-    aggregate: AGG-51
-    on_event:
-    - aggregate: AGG-11
-      event: 投标未中标
-    emits:
-    - 保证金已退
-    desc: B-09 订阅投标未中标后，出纳在收到退款时登记退还（P-10 签约后 5 日未退提醒）；B-09 → B-03 边已有
-    evidence:
-    - 保证金退款的银行到账记录
-    decision:
-    - when: otherwise
-      goto: 16
-      p: 1.0
-    cross_bc:
-    - mode: event
-      direction: in
-      bc: B-03
-      name: 投标未中标
-    actor_v1: 系统策略
-    permission: 保证金.登记退还
-    page: 保证金退还登记页
-    audit: true
-    notify:
-    - to: SH-E6
-      how: 企业微信待办（投标未中标，待登记保证金退还）
-    - to: SH-E6
-      how: 企业微信待办（P-10 退还时限届满仍未登记退还时再次提醒；时限以规则卡为准，不自动登记）
-    effort:
-      typical_min: 15
-      p90_min: 40
-    wait:
-      typical_h: 240
-      p90_h: 480
-  - actor: system
-    where: automatic
-    bc: B-09
-    command: 提交过账候选
-    aggregate: AGG-51
-    post: true
-    calls: PRC-92
-    added_in: closeout
-    period_gate: true
-    desc: 保证金退还提交过账候选（服务任务，不用调用活动，S-24）；系统自动提交，遇退还日所在期间已关账按 INV-92 落开放期间并标原期间（ADR-0045），不拒绝
-    decision:
-    - when: otherwise
-      goto: end
-      outcome: 保证金已退
-      p: 1.0
-    cross_bc:
-    - mode: api
-      direction: out
-      bc: B-16
-      name: 提交过账候选
-    audit: true
-    metric_event: true
-    outcome: 保证金已退
-  - actor: SH-E6
-    where: in_system
-    bc: B-09
-    command: 退还保证金
-    aggregate: AGG-51
-    branch: 废标
-    on_event:
-    - aggregate: AGG-11
-      event: 投标已废标
-    emits:
-    - 保证金已退
-    desc: B-09 订阅投标已废标，出纳在收到退款时登记退还（回溯检查 RD-07）
-    evidence:
-    - 保证金退款的银行到账记录
-    decision:
-    - when: otherwise
-      goto: 18
-      p: 1.0
-    cross_bc:
-    - mode: event
-      direction: in
-      bc: B-03
-      name: 投标已废标
-    actor_v1: 系统策略
-    permission: 保证金.登记退还
-    page: 保证金退还登记页
-    audit: true
-    notify:
-    - to: SH-E6
-      how: 企业微信待办（投标已废标，待登记保证金退还）
-    - to: SH-E6
-      how: 企业微信待办（P-10 退还时限届满仍未登记退还时再次提醒；时限以规则卡为准，不自动登记）
-    effort:
-      typical_min: 15
-      p90_min: 40
-    wait:
-      typical_h: 240
-      p90_h: 480
-  - actor: system
-    where: automatic
-    bc: B-09
-    command: 提交过账候选
-    aggregate: AGG-51
-    branch: 废标
-    post: true
-    calls: PRC-92
-    added_in: closeout
-    period_gate: true
-    desc: 保证金退还提交过账候选；系统自动提交，遇退还日所在期间已关账按 INV-92 落开放期间并标原期间（ADR-0045），不拒绝
-    decision:
-    - when: 重新招标，另建投标
-      goto: PRC-08
-      p: 0.3
-    - when: 不重新招标且商机丢失
-      goto: 21
-      p: 0.3
-    - when: otherwise
-      goto: 14
-      p: 0.4
-    cross_bc:
-    - mode: api
-      direction: out
-      bc: B-16
-      name: 提交过账候选
-    audit: true
-  - actor: SH-E6
-    where: in_system
-    bc: B-09
-    command: 退还保证金
-    aggregate: AGG-51
-    branch: 截止前撤回
-    on_event:
-    - aggregate: AGG-11
-      event: 投标已撤销
-    emits:
-    - 保证金已退
-    desc: 仅截止前撤回时退还；是否退还按条例第 35 条另行核对，不写死；截止后撤销不适用
-    evidence:
-    - 保证金退款的银行到账记录
-    decision:
-    - when: otherwise
-      goto: 20
-      p: 1.0
-    cross_bc:
-    - mode: event
-      direction: in
-      bc: B-03
-      name: 投标已撤销
-    actor_v1: 系统策略
-    permission: 保证金.登记退还
-    page: 保证金退还登记页
-    audit: true
-    notify:
-    - to: SH-E6
-      how: 企业微信待办（投标已撤回，待登记保证金退还）
-    - to: SH-E6
-      how: 企业微信待办（P-10 退还时限届满仍未登记退还时再次提醒；时限以规则卡为准，不自动登记）
-    effort:
-      typical_min: 15
-      p90_min: 40
-    wait:
-      typical_h: 240
-      p90_h: 480
-  - actor: system
-    where: automatic
-    bc: B-09
-    command: 提交过账候选
-    aggregate: AGG-51
-    branch: 截止前撤回
-    post: true
-    calls: PRC-92
-    added_in: closeout
-    period_gate: true
-    desc: 保证金退还提交过账候选；系统自动提交，遇退还日所在期间已关账按 INV-92 落开放期间并标原期间（ADR-0045），不拒绝
-    decision:
-    - when: 不再跟进该商机
-      goto: 14
-      p: 0.3
-    - when: otherwise
-      goto: end
-      outcome: 保证金已退
-      p: 0.7
-    cross_bc:
-    - mode: api
-      direction: out
-      bc: B-16
-      name: 提交过账候选
-    audit: true
-    outcome: 保证金已退
   - actor: SH-E5
     where: in_system
     command: 登记商机丢单
@@ -1247,9 +1142,14 @@ processes:
     effort:
       typical_min: 10
       p90_min: 30
-  notes: 合并原 PRC-09（商机赢单或丢单）、PRC-11（投标未中标后退还保证金）（⑥a 评审 H2 c）；步骤带 bc 的是下游 BC 订阅事件后的反应（编舞），不是 B-03 的命令。联合体协议作投标的次级对象，不放合同。本批改动：保证金退还由「系统策略」改为出纳按银行到账登记（退款发生在系统外），过账提交拆为独立服务任务（S-24）；v1 的未中标丢单步（第 12 步）在废标后不再重入，废标后丢单另设第
-    21 步。OpportunityAccepted 的订阅方 B-04、B-05 见「建立项目并组建团队」「起草、评审并回签协议」；赢单不触发售前投入转入（P-2）。 收尾改动：过账候选为系统自动提交，遇期间已关账按 INV-92 落开放期间并标原期间，不再拒绝（不设「因期间已关账被拒绝」结局）；第 4 步改为平台定时提醒；截止后撤销、商机继续跟进以结局「已撤回」结束。
+  notes: 合并原 PRC-09（商机赢单或丢单）、PRC-11（投标未中标后退还保证金）（⑥a 评审 H2 c）。联合体协议作投标的次级对象，不放合同。OpportunityAccepted 的订阅方 B-04、B-05；赢单不触发售前投入转入（P-2）。收尾改动：第 4、5 步（评审 M15）保证金缴纳走 B-10 付款审批并登记缴纳；原第 15–20 步（三个退还分支及过账提交）移出，保证金退还改由
+    PRC-153（B-09）订阅本流程发出的投标未中标、投标已废标、投标已撤销事件接续（信号事件衔接，不用调用活动；S-27）；废标、撤回出口在本流程直接收口。过账候选遇期间已关账按 INV-92 落开放期间、标原期间，不拒绝。
   frequency_ref: 待取证（E-B1）；经验估计：投标每月约 8 次，中标约 25%
+  segregation:
+  - roles:
+    - SH-E5
+    - SH-E6
+    rule: 保证金付款申请人与出纳登记缴纳不得为同一人（INV-81 经办与出纳分离）
 - id: PRC-13
   name: 批准并生效费率、计费系数与协议价目版本
   trigger:
@@ -2359,11 +2259,12 @@ processes:
     approval:
       engine: aggregate
       doc_type: 资源分配确认
-      approver: cost_object_owner
+      approver: SH-M1
       multi_level: false
       on_reject: 1
       why_human: 按人员专长、当前负荷和项目优先级判断派谁；系统只能算产能并预警（P-27），取舍由资源所在部门的负责人作出
       escalation_rules: []
+      note: engine 为 aggregate 的专业复核/职能确认，approver 写类型级 SH 角色（CONVENTIONS 第 5 节）；基础审批人为资源所在部门负责人（SH-M1）
     effort:
       typical_min: 20
       p90_min: 60
@@ -3077,6 +2978,7 @@ processes:
   - 已认可
   - 已声明无异议
   - 未签发
+  - 认可登记被拒
   scenarios:
   - PRC-28-S01
   - PRC-28-S02
@@ -3087,6 +2989,8 @@ processes:
   - PRC-28-S07
   - PRC-28-S08
   - PRC-28-S09
+  - PRC-28-S10
+  - PRC-28-S11
   roles:
   - id: SH-E3
     as: initiator
@@ -3235,9 +3139,13 @@ processes:
       goto: 5
       rule: INV-47
       p: 0.97
+    - when: 签发人执业证书无效或专业、等级不符，改派持证签发人
+      goto: 4
+      rule: INV-47
+      p: 0.02
     - when: otherwise
       goto: end
-      p: 0.03
+      p: 0.01
       outcome: 未签发
     effort:
       typical_min: 15
@@ -3252,6 +3160,7 @@ processes:
     notify:
     - to: SH-E2
       how: 企业微信消息（已签发，可送达）
+    desc: 证书不符时拒绝签发（INV-47）；可改派持有效证书且专业、等级相符的签发人后回到本步重新签发，无人可派的以「未签发」结束
   - actor: SH-E2
     where: offline
     evidence:
@@ -3310,12 +3219,17 @@ processes:
     aggregate: AGG-27
     emits:
     - 交付物已认可
-    desc: 登记认可证据类型与认可日，签认人须是合同登记的发包人代表或授权人（ADR-0047 第 2 条共同规则 2）；有阻断性不符合项时拒绝（INV-48）
+    desc: 登记认可证据类型与认可日，签认人须是合同登记的发包人代表或授权人（ADR-0047 第 2 条共同规则 2）；有阻断性不符合项时拒绝（INV-48）；被拒时以「认可登记被拒」结束，不符合项按 PRC-34 处置、关闭后再登记认可
     decision:
+    - when: 存在阻断性不符合项，登记被拒
+      goto: end
+      rule: INV-48
+      p: 0.03
+      outcome: 认可登记被拒
     - when: otherwise
       goto: end
       rule: INV-48
-      p: 1.0
+      p: 0.97
       outcome: 已认可
     approval:
       doc_type: 交付物客户认可
@@ -3490,12 +3404,12 @@ processes:
     approval:
       engine: aggregate
       doc_type: 完工估算批准
-      approver: cost_object_owner
+      approver: SH-M1
       multi_level: false
       on_reject: 1
       why_human: 判断完工估算（ETC、EAC）是否合理可信；估算不进入收入确认，系统只能在超预算时预警（P-19），合理性须责任人判断
-      escalation_rules:
-      - AR-11
+      escalation_rules: []
+      note: engine 为 aggregate 的聚合内批准，approver 写类型级 SH 角色，不写 escalation_rules；原 AR-11（责任人即申请人）改由 segregation（提出人与批准人不得同一人）和聚合内校验承担
     effort:
       typical_min: 30
       p90_min: 90
@@ -4867,7 +4781,8 @@ processes:
       department_hint: 外部，不在本系统组织内
       position_hint: —
   notes: 品控类服务在施工期做的检查同此流程（M-11 施工期类型）。检查报告的编制、校审、签发、送达与客户认可走 PRC-28 同一流程（INV-51 同 BC 前置读不符合项）；检查服务的收入证据为 ADR-0047 第 5 类（检查完成经客户签认，或报告签发；可登记、不触发）。现场采集的照片、视频、量测数据与签认单均作证据，只追加、计内容哈希、记采集时间与地点，不得删改（intent 141725）；证据挂检查由证据关联（AGG-110，S-25
-    加挂目标「检查」）记，合同引用为诉讼关联键。我方为 TIS 时负责人兼项受限（INV-56 / P-44）；我方是 TIS 专项分包或直接受托时不受此限（Q30，待用户确认）。检查记录审核保留人工：只留「证据是否支撑结论、未检原因是否充分」的专业判断，机械项已拆为规则（见 NOTES 规则化）。
+    加挂目标「检查」）记，合同引用为诉讼关联键。我方为 TIS 时负责人兼项受限（INV-56 / P-44）；我方是 TIS 专项分包或直接受托时不受此限（Q30，待用户确认）。检查记录审核保留人工：只留「证据是否支撑结论、未检原因是否充分」的专业判断，机械项已拆为规则（见 NOTES 规则化）。 评审 M8：现场客户签认如何到收入侧，二选一待用户定，建议①现场签认单作为一份交付物经 PRC-28
+    第 6 步登记认可（见 NOTES 待用户定）。
   steps:
   - actor: system
     where: automatic
@@ -4934,7 +4849,8 @@ processes:
     actor_v1: 检查人员
     command: 采集证据
     aggregate: AGG-38
-    desc: 现场检查：拍照、摄像、量测、填写现场记录并取得客户现场签认；现场可无网络，手机端离线暂存，联网后补传，系统记设备采集时间与服务端接收时间两个时间；上传即计内容哈希，只追加，不可修改或删除（作废只加作废标记）；B-26 → B-28 api
+    desc: 现场检查：拍照、摄像、量测、填写现场记录并取得客户现场签认；现场可无网络，手机端离线暂存，联网后补传，系统记设备采集时间与服务端接收时间两个时间；上传即计内容哈希，只追加，不可修改或删除（作废只加作废标记）；B-26 → B-28 api。现场客户签认单到收入侧的路径待用户定（M8）：建议①把现场签认单作为一份交付物，经 PRC-28 第 6 步「登记客户认可」在 B-28 登记认可，B-08
+      据「交付物已认可」按 ADR-0047 第 5 类确认；备选②第 5 类 (a) 现场签认不单独触发，以报告签发后送达为准
     evidence:
     - 现场照片与视频原件（采集时间、受检部位与坐标、采集人、设备、内容哈希）
     - 量测与检测原始数据（仪器编号、量测时间、量测人）
@@ -4954,6 +4870,7 @@ processes:
     wait:
       typical_h: 24
       p90_h: 72
+    pending: M8 检查现场签认到收入侧
   - actor: system
     where: automatic
     added_in: closeout
@@ -7970,7 +7887,11 @@ processes:
   migration: 我方法人与供方的全部资质证书（类别、等级、有效期、核查与延续记录）全部迁入（U-4），记迁入来源与原始时间；投产时处于核查中或延续中的资质按当前状态迁入，已申请未获批复的延续保留申请受理证据；已过期的资质迁为到期状态
   scope: 资质证书主数据全企业可读（投标、分包、检查引用）；核查、延续经办限财务/行政职能角色，延续批准限管理层
   legal_entity: 持证方为我方法人时按持证法人口径登记（读 B-13 法人主体）；供方资质按往来单位登记
-  segregation: 核查结果登记人（SH-E6）与延续批准人（SH-M1）分离
+  segregation:
+  - roles:
+    - SH-E6
+    - SH-M1
+    rule: 核查结果登记人（SH-E6）与延续批准人（SH-M1）分离
   steps:
   - actor: system
     where: automatic
@@ -8583,6 +8504,110 @@ processes:
       typical_min: 15
       p90_min: 30
   frequency_ref: 待取证（E-B1）；经验估计：每月约 15 份
+- id: PRC-151
+  name: 填报经营产值
+  trigger:
+    type: time
+    desc: 每期末产值填报窗口开启
+  stages:
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  owner_bc: B-04
+  human_orchestration: false
+  desc: 每期由项目经理按项目 × 协议填报当期累计产值估计（经营产值，内部管理口径）；写入完工估算聚合的只追加子表 progress_estimates，不过账、不占开票与收入额度、不进财务，也不触发或依赖收入确认（用户口径：每期估进度只是内部管理产值）。
+  migration: 老系统已有的历史产值填报记录全部迁入（U-4）为只追加的估计行，记迁入来源；不迁入任何收入、过账或额度
+  scope: 项目经理填报本人负责项目；部门负责人见承担部门全部项目并抽查；财务与管理层只读
+  frequency_ref: 待取证（E-B1）；经验估计：每个在执行项目每期 1 次，抽查比例 20%
+  triggers:
+  - type: time
+    name: 每期末产值填报窗口开启
+  outcomes:
+  - 产值已填报
+  - 产值已抽查
+  scenarios:
+  - PRC-151-S01
+  - PRC-151-S02
+  - PRC-151-S03
+  - PRC-151-S04
+  roles:
+  - id: SH-E2
+    as: initiator
+    org_needs:
+      responsibility: 每期按项目填报当期累计产值估计
+      approval_right: 无
+      department_hint: 项目承担部门
+      position_hint: 项目经理
+  - id: SH-M1
+    as: reviewer
+    org_needs:
+      responsibility: 抽查所辖项目的产值估计是否合理，发现偏差通知项目经理更正
+      approval_right: 无审批权（抽查，不设审批）
+      department_hint: 项目承担部门或事业部
+      position_hint: 部门负责人
+  steps:
+  - actor: SH-E2
+    where: in_system
+    command: 填报产值估计
+    aggregate: AGG-23
+    gap: 聚合稿 AGG-23 缺「填报产值估计」命令（新用语候选，写入子表 progress_estimates，见 NOTES 命令缺口）
+    desc: 按项目 × 协议填报期间与当期累计产值估计；只追加，更正以新行追加；估计不进收入确认、不占额度、不提交过账候选
+    decision:
+    - when: 被抽查（按抽查比例规则配置）
+      goto: 2
+      p: 0.2
+    - when: otherwise
+      goto: end
+      outcome: 产值已填报
+      p: 0.8
+    permission: 经营产值.填报
+    page: 经营产值填报页
+    audit: true
+    metric_event: true
+    effort:
+      typical_min: 20
+      p90_min: 60
+    wait:
+      typical_h: 48
+      p90_h: 96
+    timeout:
+      after: P3D
+      escalate_to: SH-M1
+      interrupting: false
+    outcome: 产值已填报
+    notify:
+    - to: SH-M1
+      how: 企业微信待办（项目经理超 3 日未填报当期产值）
+  - actor: SH-M1
+    where: in_system
+    read: true
+    reads:
+    - AGG-23
+    desc: 部门负责人抽查产值估计，对照完工估算与交付进度判断合理性；仅读取并留意见，不设审批；发现偏差通知项目经理更正后重填
+    decision:
+    - when: 发现明显偏差，通知项目经理更正
+      goto: 1
+      p: 0.1
+    - when: otherwise
+      goto: end
+      outcome: 产值已抽查
+      p: 0.9
+    permission: 经营产值.抽查
+    page: 经营产值抽查页
+    audit: true
+    effort:
+      typical_min: 15
+      p90_min: 45
+    wait:
+      typical_h: 24
+      p90_h: 72
+    outcome: 产值已抽查
+    notify:
+    - to: SH-E2
+      how: 企业微信消息（抽查发现偏差，请更正产值估计）
+  notes: 评审 M7：补承载「经营产值」的业务流程。AGG-23 现有命令只有提出、批准完工估算，填报产值估计为新命令（新用语）；数据落点见 Q04_STORAGE。产值与收入三口径对照见读模型 PRC-154。填报与抽查均不设审批（用户原则：能规则化的不要人来守，产值不进财务）。
 event_policies:
 - id: PRC-51
   name: 建立并更新开票与收入额度
@@ -10875,3 +10900,81 @@ read_models:
       approval_right: 无
       department_hint: 财务部
       position_hint: 应收会计
+- id: PRC-154
+  name: 收入三口径对照
+  owner_bc: reporting
+  stages:
+  - VS-04.2
+  - VS-04.3
+  reads:
+  - AGG-23
+  - AGG-44
+  - AGG-46
+  - AGG-13
+  desc: 读模型：按协议 × 期间并排显示经营产值（内部管理）、权责收入（客户确认的收入确认行）、开票收入（销项发票），算两两差额与时滞；三口径各自独立，不互相触发。
+  events:
+  - event: RevenueRecognized
+    aggregate: AGG-44
+    bc: B-08
+  - event: InvoiceIssued
+    aggregate: AGG-46
+    bc: B-09
+  - event: 发票已红冲
+    aggregate: AGG-46
+    bc: B-09
+  - event: 视为同意已成立
+    aggregate: AGG-44
+    bc: B-08
+  query:
+    grain: 协议 × 期间（月）
+    dimensions:
+    - 协议
+    - 项目
+    - 客户（往来单位）
+    - 承担法人
+    - 承担部门
+    - 业务线
+    - 期间
+    measures:
+    - 经营产值（读 AGG-23 子表 progress_estimates 当期最新一行，管理口径）
+    - 权责收入（AGG-44 收入确认行，业务日期 = 认可日）
+    - 开票收入（AGG-46 销项发票，蓝字减红冲）
+    derived:
+    - 权责收入 − 经营产值（确认滞后于进度的部分）
+    - 开票收入 − 权责收入（超前开票或确认未开票）
+    - 开票收入 − 经营产值
+    - 时滞：同一协议经营产值累计达到某额的期间与权责收入、开票累计达到同额的期间之差（月）
+    rule: 三口径仅并排展示，不互相折算、不进财务报表；经营产值缺填的期间显示「未填报」，不补零
+  refresh: 订阅收入已确认、发票已开具、发票已红冲事件增量更新；经营产值按 api 读取，每日定时全量校正一次
+  freshness: 事件到达后分钟级；以每日校正为准
+  permission: 收入三口径对照.查看
+  page: 收入三口径对照页
+  scope: 按承担法人的数据范围：财务与管理层全见；部门负责人见承担部门项目；项目经理见本人项目
+  migration: 读模型不迁数据，由迁入后的产值估计行、收入确认行与销项发票重算
+  scenarios:
+  - PRC-154-S01
+  - PRC-154-S02
+  - PRC-154-S03
+  roles:
+  - id: SH-E6
+    as: informed
+    org_needs:
+      responsibility: 核对权责收入与开票收入差额
+      approval_right: 无
+      department_hint: 财务部
+      position_hint: 收入会计、财务负责人
+  - id: SH-M1
+    as: informed
+    org_needs:
+      responsibility: 看经营产值与收入、开票的差额与时滞，判断确认与开票推进
+      approval_right: 无
+      department_hint: 项目承担部门或事业部
+      position_hint: 部门负责人、项目总监
+  - id: SH-E2
+    as: informed
+    org_needs:
+      responsibility: 查看本人项目三口径差额，推进客户确认与开票
+      approval_right: 无
+      department_hint: 项目承担部门
+      position_hint: 项目经理
+  notes: 评审 M7；STRUCTURAL_ITEMS S-08。只读、无命令。reporting 订阅 B-08、B-09 事件为 reporting 的既有订阅方式；AGG-23 产值估计无事件，按 api 读取（reporting 对 B-04 的读取边按 §4.1 核对，见 NOTES 接缝问题）。

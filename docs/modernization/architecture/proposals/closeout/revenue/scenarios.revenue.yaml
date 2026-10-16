@@ -221,143 +221,134 @@ PRC-07:
   expect: 撤回评审后版本回草拟，审批平台单据作废；可修改后重新提交，不产生评审结论
 PRC-08:
 - id: PRC-08-S01
-  path: 1→2 otherwise→3 otherwise→4（定时提醒）→5 otherwise
+  path: 1→2→3 otherwise→6（定时提醒）→7 otherwise
   outcome: 已递交待评标
   covers:
   - 第 2 步 otherwise
-  - 第 3 步 otherwise
-  - 第 4 步定时提醒
-  - 第 5 步 otherwise
-  expect: 投标携承诺快照递交，发「投标已递交」（仅分析）；评标结果到达后由登记步骤重入
+  - 第 3 步招标文件不要求保证金
+  - 定时提醒
+  - 递交投标 otherwise
+  expect: 无需保证金的投标携承诺快照递交，发「投标已递交」（仅分析）；评标结果到达后由登记步骤重入
 - id: PRC-08-S02
-  path: 2 直接委托，无招标→13
+  path: 2 直接委托，无招标→15
   outcome: 商机已赢单
   covers:
   - 第 2 步「直接委托，无招标」
-  - 第 13 步 otherwise
+  - 委托赢单 otherwise
   expect: 凭委托证据赢单（INV-27），发 OpportunityAccepted，订阅方 B-04、B-05
 - id: PRC-08-S03
   path: 2 独立性检查有冲突未获书面同意
   outcome: 不得投标
   covers:
-  - 第 2 步「我方为 IDI 风险管理机构且独立性检查有冲突、未获书面同意」
+  - 第 2 步 INV-33 出口
   expect: 拒绝递交并告警（INV-33）
 - id: PRC-08-S04
-  path: 3 资格预审未通过→10→14
+  path: 3 资格预审未通过→12→16
   outcome: 商机已放弃
   covers:
   - 第 3 步「资格预审未通过」
-  - 第 10 步 otherwise
-  - 第 14 步 otherwise
+  - 放弃投标 otherwise
+  - 放弃商机 otherwise
   expect: 资格预审未通过不得递交（INV-29）；放弃投标后客户经理放弃商机，发商机已放弃（仅分析，B-07）
 - id: PRC-08-S05
-  path: 5 评标结果为中标→6→11
+  path: 7 评标结果为中标→8→13
   outcome: 商机已赢单
   covers:
-  - 第 5 步「评标结果为中标」
-  - 第 6 步 otherwise
-  - 第 11 步 otherwise
+  - 递交投标「评标结果为中标」
+  - 登记中标 otherwise
+  - 商机赢单策略 otherwise
   expect: 中标通知书必填；投标已中标触发商机赢单，发 OpportunityAccepted，订阅方 B-04、B-05
 - id: PRC-08-S06
-  path: 5 评标结果为未中标→7→12→15→16
-  outcome: 保证金已退
-  covers:
-  - 第 5 步「评标结果为未中标」
-  - 第 7 步 otherwise
-  - 第 12 步 otherwise
-  - 第 15 步 otherwise
-  - 第 16 步 otherwise
-  expect: 投标未中标自动登记商机丢单；出纳登记保证金退还，提交过账候选；B-09 订阅投标未中标
-- id: PRC-08-S07
-  path: 16 / 18 / 20 退还日所在期间已关账（系统自动提交）
-  outcome: 保证金已退
-  covers:
-  - 第 16 步期间闸门
-  - 第 18 步期间闸门
-  - 第 20 步期间闸门
-  expect: 过账候选不被拒绝，按 INV-92 落开放期间并标原期间（ADR-0045）；三处各测一次
-- id: PRC-08-S08
-  path: 5 评标阶段被宣布废标→8→17→18 重新招标，另建投标→PRC-08
-  outcome: null
-  covers:
-  - 第 5 步「评标阶段被宣布废标」
-  - 第 8 步 otherwise
-  - 第 17 步 otherwise
-  - 第 18 步「重新招标，另建投标」
-  expect: 保证金退还后重入本流程，另建投标；B-09 订阅投标已废标
-- id: PRC-08-S09
-  path: 18 不重新招标且商机丢失→21
+  path: 7 评标结果为未中标→9→14
   outcome: 商机已丢单
   covers:
-  - 第 18 步「不重新招标且商机丢失」
-  - 第 21 步 otherwise
-  expect: 客户经理人工登记商机丢单，发商机已丢单（仅分析）；不再次退还保证金
+  - 递交投标「评标结果为未中标」
+  - 登记未中标 otherwise
+  - 登记商机丢单策略 otherwise
+  expect: 投标未中标自动登记商机丢单；本流程发「投标未中标」，PRC-153 订阅后接续保证金退还（不在本流程）
+- id: PRC-08-S07
+  path: 4 保证金付款审批通过→5
+  outcome: null
+  covers:
+  - 第 4 步付款审批
+  - 第 5 步登记缴纳
+  expect: 付款经 B-10 审批（命中 AR-01 加一级、AR-02 加两级），付款成功后出纳登记保证金缴纳（P-10），过账由 PRC-10 提交
+- id: PRC-08-S08
+  path: 7 评标阶段被宣布废标→10 重新招标，另建投标→PRC-08
+  outcome: null
+  covers:
+  - 递交投标「评标阶段被宣布废标」
+  - 登记废标「重新招标，另建投标」
+  expect: 发「投标已废标」（PRC-153 接续退还）；重入本流程另建投标
+- id: PRC-08-S09
+  path: 10 不重新招标且商机丢失→17
+  outcome: 商机已丢单
+  covers:
+  - 登记废标「不重新招标且商机丢失」
+  - 废标后丢单 otherwise
+  expect: 客户经理人工登记商机丢单，发商机已丢单（仅分析）
 - id: PRC-08-S10
-  path: 18 otherwise→14
+  path: 10 otherwise→12→16
   outcome: 商机已放弃
   covers:
-  - 第 18 步 otherwise
+  - 登记废标 otherwise
   expect: 废标后放弃商机，发商机已放弃
 - id: PRC-08-S11
-  path: 5 决定撤回→9 撤回发生在截止前→19→20 otherwise
-  outcome: 保证金已退
-  covers:
-  - 第 5 步「决定撤回或撤销投标」
-  - 第 9 步「撤回发生在截止前」
-  - 第 19 步 otherwise
-  - 第 20 步 otherwise
-  expect: 截止前撤回才退保证金（条例第 35 条另行核对）；B-09 订阅投标已撤销
-- id: PRC-08-S12
-  path: 9 otherwise→14
-  outcome: 商机已放弃
-  covers:
-  - 第 9 步 otherwise
-  expect: 截止后撤销不退保证金（不触发 B-09 反应），客户经理放弃商机
-- id: PRC-08-S13
-  path: 20 不再跟进该商机→14
-  outcome: 商机已放弃
-  covers:
-  - 第 20 步「不再跟进该商机」
-  expect: 退还完成后放弃商机
-- id: PRC-08-S14
-  path: 15 / 17 / 19 超过退还时限仍未登记退还
-  outcome: null
-  covers:
-  - 第 15 步到期提醒（notify）
-  - 第 17 步到期提醒（notify）
-  - 第 19 步到期提醒（notify）
-  expect: 再次提醒出纳（P-10）；不自动登记退还
-- id: PRC-08-S15
-  path: 13 委托赢单时独立性检查有冲突未获书面同意
-  outcome: null
-  covers:
-  - 第 13 步前置 INV-33
-  expect: 拒绝并告警
-- id: PRC-08-S16
-  path: 5 同一招标同一标段重复参加
-  outcome: null
-  covers:
-  - 第 5 步前置 INV-28
-  expect: 拒绝并告警（键为招标项目登记 ID + 标段）
-- id: PRC-08-S17
-  path: 11 中标但缺中标通知书
-  outcome: null
-  covers:
-  - 第 11 步前置 INV-27
-  expect: 商机赢单被拒并告警，登记中标时即校验已上传
-- id: PRC-08-S18
-  path: 4 投标截止临近定时提醒
-  outcome: null
-  covers:
-  - 第 4 步定时提醒
-  expect: 提醒商机负责人（P-13），不改变投标状态
-- id: PRC-08-S19
-  path: 5 决定撤回→9 撤回发生在截止后，商机继续跟进
+  path: 7 决定撤回→11 撤回发生在截止前，商机继续跟进
   outcome: 已撤回
   covers:
-  - 第 5 步「决定撤回或撤销投标」
-  - 第 9 步「撤回发生在截止后，商机继续跟进」
-  expect: 登记投标已撤销（B-09 订阅后不触发退还，因截止后撤销不适用）；商机仍可继续跟进，不放弃
+  - 递交投标「决定撤回或撤销投标」
+  - 撤销投标「截止前撤回，商机继续跟进」
+  expect: 登记投标已撤销（PRC-153 订阅后按截止前撤回接续退还，条例第 35 条另行核对）；商机继续跟进
+- id: PRC-08-S12
+  path: 11 otherwise→12→16
+  outcome: 商机已放弃
+  covers:
+  - 撤销投标 otherwise
+  expect: 截止后撤销不触发退还，客户经理放弃商机
+- id: PRC-08-S13
+  path: 11 截止前撤回，不再跟进该商机→12→16
+  outcome: 商机已放弃
+  covers:
+  - 撤销投标「截止前撤回，不再跟进该商机」
+  expect: 撤回后放弃商机；退还由 PRC-153 接续
+- id: PRC-08-S14
+  path: 4 保证金付款审批被驳回→12→16
+  outcome: 商机已放弃
+  covers:
+  - 第 4 步审批驳回 on_reject
+  expect: 审批驳回即不缴保证金、不参投（go/no-go 否决）；放弃投标后放弃商机
+- id: PRC-08-S15
+  path: 15 委托赢单时独立性检查有冲突未获书面同意
+  outcome: null
+  covers:
+  - 委托赢单前置 INV-33
+  expect: 拒绝并告警
+- id: PRC-08-S16
+  path: 7 同一招标同一标段重复参加
+  outcome: null
+  covers:
+  - 递交投标前置 INV-28
+  expect: 拒绝并告警（键为招标项目登记 ID + 标段）
+- id: PRC-08-S17
+  path: 8 中标但缺中标通知书
+  outcome: null
+  covers:
+  - 登记中标前置 INV-27
+  expect: 商机赢单被拒并告警，登记中标时即校验已上传
+- id: PRC-08-S18
+  path: 6 投标截止临近定时提醒
+  outcome: null
+  covers:
+  - 定时提醒
+  expect: 提醒商机负责人（P-13），不改变投标状态
+- id: PRC-08-S19
+  path: 7 决定撤回→11 撤回发生在截止后，商机继续跟进
+  outcome: 已撤回
+  covers:
+  - 递交投标「决定撤回或撤销投标」
+  - 撤销投标「截止后，商机继续跟进」
+  expect: 登记投标已撤销；截止后撤销不适用退还；商机仍可继续跟进
 PRC-10:
 - id: PRC-10-S01
   path: 待缴→已缴
@@ -981,6 +972,18 @@ PRC-28:
   covers:
   - 第 5 步「客户书面认可（签收单、审查同意意见、邮件确认、阶段签认等）」
   expect: 走「客户书面认可（签收单、审查同意意见、邮件确认、阶段签认等）」分支，去向 6
+- id: PRC-28-S10
+  path: 4 签发人执业证书不符→改派签发人→4→5
+  outcome: null
+  covers:
+  - 第 4 步「签发人执业证书无效或专业、等级不符，改派持证签发人」
+  expect: 拒绝原签发人签发（INV-47）；改派持证签发人后回到第 4 步重新签发，签发成功后进入送达
+- id: PRC-28-S11
+  path: 5 客户书面认可→6 存在阻断性不符合项
+  outcome: 认可登记被拒
+  covers:
+  - 第 6 步「存在阻断性不符合项，登记被拒」
+  expect: 拒绝登记认可（INV-48）并告警；以「认可登记被拒」结束，不符合项按 PRC-34 处置、关闭后重新登记认可
 PRC-30:
 - id: PRC-30-S01
   path: 1→2 批准
@@ -2426,3 +2429,49 @@ PRC-148:
   covers:
   - 第 1 步「二次校验失败（额度不足或证据已失效）」
   expect: 走「二次校验失败（额度不足或证据已失效）」分支，去向 end
+PRC-151:
+- id: PRC-151-S01
+  path: 1 otherwise→end
+  outcome: 产值已填报
+  covers:
+  - 第 1 步 otherwise
+  expect: 追加一行产值估计，不过账、不占额度；不触发收入确认
+- id: PRC-151-S02
+  path: 1 被抽查→2 otherwise→end
+  outcome: 产值已抽查
+  covers:
+  - 第 1 步「被抽查」
+  - 第 2 步 otherwise
+  expect: 部门负责人抽查通过，留抽查记录
+- id: PRC-151-S03
+  path: 1 被抽查→2 发现明显偏差→1
+  outcome: null
+  covers:
+  - 第 2 步「发现明显偏差」
+  expect: 通知项目经理更正；更正以新增一行追加，原行保留
+- id: PRC-151-S04
+  path: 1 超 P3D 未填报
+  outcome: null
+  covers:
+  - 第 1 步 timeout
+  expect: 提醒部门负责人（SH-M1）；不改变任何收入或过账状态
+PRC-154:
+- id: PRC-154-S01
+  path: 三口径均有数据的协议 × 期间
+  outcome: null
+  covers:
+  - 三口径并排
+  - 两两差额
+  expect: 显示经营产值、权责收入、开票收入与差额；三者互不触发
+- id: PRC-154-S02
+  path: 经营产值缺填的期间
+  outcome: null
+  covers:
+  - 经营产值缺填
+  expect: 该期经营产值显示「未填报」，不补零，差额不计算
+- id: PRC-154-S03
+  path: 发票已红冲后
+  outcome: null
+  covers:
+  - 发票已红冲事件
+  expect: 开票收入按蓝字减红冲更新；权责收入不变
