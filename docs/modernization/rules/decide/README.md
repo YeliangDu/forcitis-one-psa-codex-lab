@@ -1,6 +1,6 @@
 # 业务决策在线页（one-rules）
 
-待用户定的业务口径做成在线页：手机能开、推荐项预选、每组底部单独提交，选择存在在线页数据库，one-rules 直接读取（不让用户导出）。性能约束沿用 `glossary/gate/README.md`：一屏只画一组（单组上限 40 题）、答复集合只订阅一次、提交记录只读一次、脚本包在独立作用域、不加载外部资源。
+待用户定的业务口径做成在线页：手机能开、推荐项预选、页面最后一个标签「检查答案」整页核对后一次提交（提交后显示编号），选择存在在线页数据库，one-rules 直接读取（不让用户导出）。性能约束沿用 `glossary/gate/README.md`：一屏只画一组（单组上限 40 题）、答复集合只订阅一次、提交记录只读一次、脚本包在独立作用域、不加载外部资源。
 
 | 单子 | 数据源 | 在线页 |
 |---|---|---|
@@ -14,10 +14,10 @@
 | 1. 写数据 | FD 改 `r0/FINANCE_DECISIONS.md`；其他单子写 `sheets/<单子>.json`，格式见下 |
 | 2. 生成 | `python3 docs/modernization/rules/decide/build_decision_page.py <单子>[,<单子>...] <scratchpad>/<文件>.html` |
 | 3. 发布 | 同一单子覆盖到上表链接（Artifact 带 `url`）；能力 `db`（集合 `answers`、`answers-submit` 只许 owner 写）+ `user`；**固定 `contract: "0.2.80"`**（0.2.81、0.2.82 在手机上白屏过，新版验证可用后再升）；发布后用内置浏览器核对真实渲染，没登录就报告「未实看」并请人先在手机上打开确认 |
-| 4. 读答复 | 用户说已提交后，ArtifactData `list` 集合 `answers` 与 `answers-submit`（同一个 `out_dir`），再 `python3 docs/modernization/rules/decide/export_answers.py <单子> <out_dir>` → `answers/<单子>.json`；提交后又改过的组导出失败，请用户重新提交 |
+| 4. 读答复与回写 | 用户说已提交后，ArtifactData `list` 集合 `answers` 与 `answers-submit`（同一个 `out_dir`），再 `python3 docs/modernization/rules/decide/decide_sync.py <单子> <out_dir> --inbox-id=<收件箱事项 id>`：对账（有提交后又改过的题就失败，请用户重新提交）、写 `answers/<单子>.json`、按提交编号生成 intent 片段，并打印收件箱事项改为已定所需的 ArtifactData `update`，由会话对收件箱页执行（各页是独立发布件，确认页不能直接写收件箱）。只想导出答复不生成 intent 时用 `export_answers.py <单子> <out_dir>` |
 | 5. 写回 | 答复写回规则卡（如 `rules/GL_FINANCE_DECISIONS.*`、`r0/FINANCE_QUESTIONS.md` 去向），用户原话记 intent；会计类经财务（ADR-0018） |
 
-提交前页面只是草稿；提交时先列出按推荐（其中没动过的）、改选、暂不定、写了说明各几题，用户确认后写提交记录，记录里有本组每题的选择，没动过的题标 `defaulted`。
+提交前页面只是草稿；「检查答案」先列出全部题的选择与按推荐（其中没动过的）、改选、暂不定、写了说明各几题，用户确认后写一份提交记录（含全部题的选择，没动过的题标 `defaulted`）。
 
 ## sheets/<单子>.json 格式
 
@@ -30,3 +30,10 @@
  "info": [{"title": "首组顶部的可展开说明", "lines": ["…"], "table": [["表头"], ["行"]]}],
  "side": [{"title": "左栏可展开清单", "lines": ["…"]}]}
 ```
+
+## 模板版本（2026-10-16 起）
+
+- **整页「检查答案」后一次提交**：分组标签带各组状态，最后一个标签「检查答案」列出全部题的选择（可逐题「改这题」），确认后写一份提交记录，文档 id 即**提交编号**（形如 `FD2-20261016-135758-38z`），页面显示编号。提交后又改任何一题，该题与「检查答案」标签变为待重新提交，再提交得新编号；同一题以最晚一次提交为准。
+- 旧版页面（按组提交，提交记录文档 id 为组 id）已发布的不迁移，导出脚本两种格式都认。
+- 新单子一律用 `sheets/<单子>.json` 与本生成器；`glossary/gate/` 与 `architecture/decision-page/` 的旧页冻结不迁（工件治理研究第 3 章）。
+- 发布固定 `contract: "0.2.80"`；发布后核对真实渲染（见画像工作守则）。
