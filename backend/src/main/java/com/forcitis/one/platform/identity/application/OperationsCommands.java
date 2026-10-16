@@ -7,6 +7,8 @@ import com.forcitis.one.platform.identity.api.SingleOperatorMode;
 import java.io.PrintStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.stereotype.Component;
@@ -26,6 +28,7 @@ public class OperationsCommands {
     static final String ROLE_CODE = "role-code";
     static final String OPERATOR = "operator";
     static final String WITNESS = "witness";
+    private static final Set<String> OWN_OPTIONS = Set.of(OPERATION, EMPLOYEE_ID, LOGIN_NAME, ROLE_CODE, OPERATOR, WITNESS);
 
     private final RegisterEmergencyAdmin register;
     private final ResetEmergencyAdminCredentials reset;
@@ -51,6 +54,12 @@ public class OperationsCommands {
         if (operation == null) {
             err.println("usage: --operation=<register-emergency-admin|reset-emergency-admin-credentials|disable-emergency-admin|"
                     + "enable-emergency-admin|grant-role|revoke-role> --employee-id=<id> [--login-name=<name>] [--role-code=<code>] --operator=<employee id> [--witness=<employee id>; may be left out in the single operator mode]");
+            return 2;
+        }
+        try {
+            rejectUnknownOptions(arguments);
+        } catch (IllegalArgumentException wrongUsage) {
+            err.println("wrong usage: " + wrongUsage.getMessage());
             return 2;
         }
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "platform.identity.operations")) {
@@ -79,6 +88,22 @@ public class OperationsCommands {
         }
     }
 
+    /** Own options are the six above; configuration options (dotted names such as spring.profiles.include, or environment-style names) are Spring's and pass. A misspelt own option must not read as an absent witness. */
+    private static void rejectUnknownOptions(ApplicationArguments arguments) {
+        if (!arguments.getNonOptionArgs().isEmpty()) {
+            throw new IllegalArgumentException("unexpected argument; options are written --name=value");
+        }
+        for (String name : arguments.getOptionNames()) {
+            if (OWN_OPTIONS.contains(name)) {
+                continue;
+            }
+            boolean configuration = name.contains(".") || name.matches("[A-Z][A-Z0-9_]*");
+            if (!configuration || OWN_OPTIONS.contains(name.toLowerCase(Locale.ROOT).replace('_', '-'))) {
+                throw new IllegalArgumentException("unknown option --" + name);
+            }
+        }
+    }
+
     /** The witness may be left out only in the single operator mode and only when the option is not on the command line at all; given twice, empty or invalid it is refused. */
     private OperationAttestation attestation(ApplicationArguments arguments) {
         if (mode.enabled() && !arguments.containsOption(WITNESS)) {
@@ -104,7 +129,9 @@ public class OperationsCommands {
     private void warnIfTooFew(int usable, PrintStream out) {
         int minimum = ReconcileEmergencyAdmins.minimumUsable(mode);
         if (usable < minimum) {
-            out.println("WARNING: only " + usable + " usable emergency account(s); at least " + minimum + ", bound to super_admin holders, are required");
+            out.println(minimum == ReconcileEmergencyAdmins.MINIMUM_USABLE
+                    ? "WARNING: only " + usable + " usable emergency account(s); at least 2, bound to different super_admin holders, are required"
+                    : "WARNING: only " + usable + " usable emergency account(s); at least " + minimum + ", bound to a super_admin holder, is required");
         }
     }
 
