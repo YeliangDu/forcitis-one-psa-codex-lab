@@ -12,8 +12,8 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.stereotype.Component;
 
 /**
- * The commands of ADR-0027 section 1 for operations: register, reset, disable and enable an emergency account, and grant a role to a
- * person (the first administrators). Each needs --operator and a different --witness, which the audit entry records; in the single operator mode the witness may be left out. A password and a
+ * The commands of ADR-0027 section 1 for operations: register, reset, disable and enable an emergency account, grant a role to a
+ * person (the first administrators) and take one back. Each needs --operator and a different --witness, which the audit entry records; in the single operator mode the witness may be left out. A password and a
  * one-time-code secret exist only in the output stream handed in here, never in a log line, a file or an argument.
  * Exit code: 0 done or nothing to do, 1 refused, 2 wrong usage.
  */
@@ -32,15 +32,17 @@ public class OperationsCommands {
     private final DisableEmergencyAdmin disable;
     private final EnableEmergencyAdmin enable;
     private final GrantRoleByOperations grant;
+    private final RevokeRoleByOperations revoke;
     private final SingleOperatorMode mode;
 
     OperationsCommands(RegisterEmergencyAdmin register, ResetEmergencyAdminCredentials reset, DisableEmergencyAdmin disable,
-            EnableEmergencyAdmin enable, GrantRoleByOperations grant, SingleOperatorMode mode) {
+            EnableEmergencyAdmin enable, GrantRoleByOperations grant, RevokeRoleByOperations revoke, SingleOperatorMode mode) {
         this.register = register;
         this.reset = reset;
         this.disable = disable;
         this.enable = enable;
         this.grant = grant;
+        this.revoke = revoke;
         this.mode = mode;
     }
 
@@ -48,7 +50,7 @@ public class OperationsCommands {
         String operation = single(arguments, OPERATION);
         if (operation == null) {
             err.println("usage: --operation=<register-emergency-admin|reset-emergency-admin-credentials|disable-emergency-admin|"
-                    + "enable-emergency-admin|grant-role> --employee-id=<id> [--login-name=<name>] [--role-code=<code>] --operator=<employee id> --witness=<employee id>");
+                    + "enable-emergency-admin|grant-role|revoke-role> --employee-id=<id> [--login-name=<name>] [--role-code=<code>] --operator=<employee id> [--witness=<employee id>; may be left out in the single operator mode]");
             return 2;
         }
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "platform.identity.operations")) {
@@ -61,6 +63,8 @@ public class OperationsCommands {
                 case "enable-emergency-admin" -> done(enable.execute(attestation, employeeId), out, "enabled", "already enabled, nothing changed");
                 case "grant-role" -> done(grant.execute(attestation, employeeId, single(arguments, ROLE_CODE)), out, "role granted",
                         "the role is already held, nothing changed");
+                case "revoke-role" -> done(revoke.execute(attestation, employeeId, single(arguments, ROLE_CODE)), out, "role revoked",
+                        "the role is not held, nothing changed");
                 default -> {
                     err.println("unknown operation " + operation);
                     yield 2;
