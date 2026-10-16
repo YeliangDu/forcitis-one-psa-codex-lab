@@ -499,6 +499,15 @@ class MsdbPrivilegesTest {
     }
 
     @Test
+    @DisplayName("复审 M-1：拥有关系计数覆盖证书、密钥、程序集、XML schema 集合、自定义类型与平台 schema 内隐含拥有的对象，只取计数")
+    void theOwnershipCountCoversTheOtherSecurables() {
+        String sql = JdbcReadOnlyCatalog.MSDB_OWNED_BY_TOKEN;
+        assertThat(sql).contains("sys.certificates", "sys.asymmetric_keys", "sys.symmetric_keys", "sys.assemblies", "sys.xml_schema_collections",
+                "sys.types WHERE is_user_defined = 1", "o.principal_id IS NULL", "N''guest''", "N''SQLAgentUserRole''");
+        assertThat(sql).startsWith("EXEC msdb.sys.sp_executesql").doesNotContain("SELECT name").doesNotContain("SELECT s.name");
+    }
+
+    @Test
     @DisplayName("复审 M-A 判定不了：拥有关系答 NULL（NO_ANSWER）、读不到（CATALOG_QUERY_FAILED，带错误号）不按通过")
     void unansweredOwnershipIsUndetermined() {
         catalog.msdbOwnedByToken = null;
