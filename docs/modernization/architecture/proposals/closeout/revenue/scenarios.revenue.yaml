@@ -506,6 +506,351 @@ PRC-16:
   covers:
   - 第 2 步前置 INV-18
   expect: 拒绝并告警
+PRC-17:
+- id: PRC-17-S01
+  path: 1→2 承担法人唯一→3→4→5→6
+  outcome: 执行中
+  covers:
+  - 第 2 步「承担法人只有一个且承担部门、负责人已确定」
+  expect: 发「项目已建立」（B-07 订阅）与「项目已开始执行」（仅分析）；项目状态为执行中
+- id: PRC-17-S02
+  path: 2 承担法人不唯一或承担部门未定
+  outcome: 未建立
+  covers:
+  - 第 2 步 otherwise
+  expect: 拒绝建立并提示跨法人工作另立项目（Q-06），不产生项目与 WBS
+- id: PRC-17-S03
+  path: 人工发起（先行投入）→1→2→…→6
+  outcome: 执行中
+  covers:
+  - 触发：先行投入路径人工发起
+  expect: B-04 不读风险交付授权（G-13）；建立成功，授权缺口由 reporting 的 P-09 预警承担
+- id: PRC-17-S04
+  path: 同一 OpportunityAccepted 事件重复投递
+  outcome: null
+  covers:
+  - 触发：事件重复
+  expect: 按事件 ID 幂等：只生成一条建项待办，不重复建项目
+PRC-18:
+- id: PRC-18-S01
+  path: 1 对客基线→2 发包人书面批准→end
+  outcome: 已批准（对客）
+  covers:
+  - 第 1 步「本版本是对客基线」
+  - 第 2 步 otherwise
+  expect: 发「交付计划已批准」（仅分析）；批准证据经 PRC-33 登记，成为生效对客基线
+- id: PRC-18-S02
+  path: 1 内部基线→3→end
+  outcome: 内部锁定
+  covers:
+  - 第 1 步 otherwise
+  - 第 3 步 otherwise
+  expect: 项目经理锁定即生效；同项目同类只有一个生效基线（INV-43）
+- id: PRC-18-S03
+  path: 2 发包人书面提出修改意见→1
+  outcome: null
+  covers:
+  - 第 2 步「发包人书面提出修改意见」
+  expect: 回编制；修订另出新版本并写原因（INV-43）
+- id: PRC-18-S04
+  path: 2 发包人 5 天未审核
+  outcome: null
+  covers:
+  - 第 2 步超时（P-17）
+  expect: 提醒项目经理催办；不视为批准、无状态转换
+- id: PRC-18-S05
+  path: 同一「项目已建立」事件重复投递
+  outcome: null
+  covers:
+  - 触发：事件重复
+  expect: 只生成一次编制待办
+PRC-19:
+- id: PRC-19-S01
+  path: 1→2→3 审批通过→4
+  outcome: 已锁定
+  covers:
+  - 第 3 步「审批通过」
+  - 第 4 步 otherwise
+  expect: 发「项目预算已锁定」（仅分析）；冻结费率版本（INV-44）
+- id: PRC-19-S02
+  path: 3 审批驳回→2
+  outcome: null
+  covers:
+  - 第 3 步 otherwise
+  expect: 回编制修改后重提；预算未锁定
+- id: PRC-19-S03
+  path: 2 预算毛利低于赢单报价毛利
+  outcome: null
+  covers:
+  - 第 2 步 P-18 预警
+  expect: 提交时预警项目总监，不阻断提交
+- id: PRC-19-S04
+  path: 同一「项目已建立」事件重复投递
+  outcome: null
+  covers:
+  - 触发：事件重复
+  expect: 只生成一次编制待办
+- id: PRC-19-S05
+  path: 3 审批人即编制人
+  outcome: null
+  covers:
+  - segregation：编制人与审批人
+  expect: 审批平台拒绝同一人审批自己编制的预算
+PRC-20:
+- id: PRC-20-S01
+  path: 1→2→3 分配覆盖需求
+  outcome: 已满足
+  covers:
+  - 第 3 步「分配覆盖需求的全部时段与工时」
+  expect: 发「资源需求已提出」「资源分配已确认」（仅分析）；被分配人收到通知
+- id: PRC-20-S02
+  path: 3 部分满足→1
+  outcome: null
+  covers:
+  - 第 3 步 otherwise
+  expect: 需求保持部分满足，项目经理就缺口另提需求
+- id: PRC-20-S03
+  path: 3 分配超过可用产能
+  outcome: 已满足
+  covers:
+  - 第 3 步 P-27 预警
+  expect: 写入前预警部门负责人，只警不拦，仍可确认
+PRC-21:
+- id: PRC-21-S01
+  path: 未开始 → 进行中 → 已完成
+  outcome: null
+  covers:
+  - 开始阶段
+  - 完成阶段
+  expect: 发「阶段已开始」「阶段已完成」（仅分析）；阶段节点不记客户认可
+- id: PRC-21-S02
+  path: 未发布 → 已锁定 → 已作废
+  outcome: null
+  covers:
+  - 锁定工作包
+  - 作废工作包
+  expect: 发「工作包已锁定」「工作包已作废」（仅分析）；已锁定的只能作废不能删除（INV-42）
+- id: PRC-21-S03
+  path: 未发布 → 已作废（未发布的删除路径）
+  outcome: null
+  covers:
+  - 作废工作包（未发布）
+  expect: 未发布工作包可作废或删除，不涉及工时（INV-42）
+- id: PRC-21-S04
+  path: 后一阶段先于前一阶段开始，或跳段
+  outcome: null
+  covers:
+  - 阶段并行、倒序、跳段
+  expect: 允许，不拦截（S2）；阶段层次不合法时拒绝（INV-41）
+PRC-22:
+- id: PRC-22-S01
+  path: 阶段已完成，且阶段下需客户认可的交付物均已认可
+  outcome: null
+  covers:
+  - 共同出口：交付物已认可
+  expect: 无预警
+- id: PRC-22-S02
+  path: 阶段已完成，但仍有交付物未认可、也无无异议声明
+  outcome: null
+  covers:
+  - 预警：阶段已完成但出口未满足
+  expect: 出现门预警并留痕，不拦截下一阶段
+- id: PRC-22-S03
+  path: 阶段已完成，交付物已送达并已声明无异议
+  outcome: null
+  covers:
+  - 共同出口：已送达并已声明
+  expect: 视为满足出口；若 B-08 已认定视为同意，则显示视为同意（读模型派生，交付物无该状态）
+- id: PRC-22-S04
+  path: 交付物已送达，未约定审查期且超过催签周期仍无回应
+  outcome: null
+  covers:
+  - 预警：催签超期
+  expect: 出现催签超期预警；不自动认可，不得登记视为同意
+- id: PRC-22-S05
+  path: 交付物已送达，合同约定审查期即将届满
+  outcome: null
+  covers:
+  - 预警：审查期将满
+  expect: 提示项目经理登记无异议声明；期满判定仍在 B-08
+- id: PRC-22-S06
+  path: 同一领域事件重复投递
+  outcome: null
+  covers:
+  - 刷新：事件幂等
+  expect: 投影结果不变，预警不重复出现
+PRC-23:
+- id: PRC-23-S01
+  path: 1→2→3 审批通过→4→8
+  outcome: 已通过
+  covers:
+  - 第 2 步 otherwise
+  - 第 3 步「审批通过」
+  - 第 8 步 otherwise
+  expect: 发 TimesheetApproved（同 BC 触发 PRC-91）与「工时已过账」（仅分析）；按锁定费率版本提交过账候选
+- id: PRC-23-S02
+  path: 2 工时所属期间已关账
+  outcome: 未提交
+  covers:
+  - 第 2 步「工时所属期间已关账」
+  expect: 拒绝提交，只能冲销或修正（INV-67）
+- id: PRC-23-S03
+  path: 2 所记项目已暂停（或已结项、已终止、已取消）
+  outcome: 未提交
+  covers:
+  - 第 2 步「所记项目已暂停、已结项、已终止或已取消」
+  expect: 拒记并提示项目状态（INV-39，Q-05）；项目恢复后可记
+- id: PRC-23-S04
+  path: 2 所记工作包当天无权使用
+  outcome: 未提交
+  covers:
+  - 第 2 步「所记工作包当天无权使用」
+  expect: 拒绝提交（INV-66）
+- id: PRC-23-S05
+  path: 2 当日工时低于最低时数
+  outcome: 未提交
+  covers:
+  - 第 2 步「当日工时低于最低时数」
+  expect: 拦截，最低时数取当日标准工时扣减已批准与待批请假；取不到标准工时失败并告警（INV-65）
+- id: PRC-23-S06
+  path: 3 审批人退回→5→2→3
+  outcome: null
+  covers:
+  - 第 3 步「审批人退回修改」
+  expect: 发 TimesheetReturned；工时单可改，重提轮次加 1
+- id: PRC-23-S07
+  path: 3 审批驳回→6
+  outcome: 已驳回
+  covers:
+  - 第 3 步 otherwise
+  expect: 发 TimesheetRejected；终局，不可再提交
+- id: PRC-23-S08
+  path: 3 员工撤回本轮或取消审批→7
+  outcome: 已撤回
+  covers:
+  - 第 3 步「员工撤回本轮或取消审批」
+  expect: 审批实例结束，工时单回到草稿，可修改重提
+- id: PRC-23-S09
+  path: 3 分支审批超过 1 个工作日
+  outcome: null
+  covers:
+  - 第 3 步超时
+  expect: 次日提醒审批人，再 1 个工作日升级；仍未处理不自动通过
+- id: PRC-23-S10
+  path: 8 目标期间已关账
+  outcome: 已通过
+  covers:
+  - 第 8 步「目标期间已关账」
+  expect: 工时单保持已通过，过账候选转冲销或修正并告警财务（INV-67）
+- id: PRC-23-S11
+  path: 8 缺锁定费率版本
+  outcome: 已通过
+  covers:
+  - 第 8 步「缺锁定费率版本」
+  expect: 不得计成本，失败并告警（INV-37）；工时单状态不变
+PRC-24:
+- id: PRC-24-S01
+  path: 1 暂停→2 恢复
+  outcome: 已恢复
+  covers:
+  - 第 1 步「暂停原因消除且继续履行」
+  expect: 发「项目已暂停」「项目已恢复」（仅分析）；恢复后可记工时
+- id: PRC-24-S02
+  path: 1 暂停→3 终止（已有投入）
+  outcome: 已终止
+  covers:
+  - 第 1 步「不再继续履行且已有投入」
+  expect: 发「项目已终止」，B-07 订阅后做终止清算；原因必填
+- id: PRC-24-S03
+  path: 1 暂停→4 取消（无任何投入）
+  outcome: 已取消
+  covers:
+  - 第 1 步「不再继续履行且无任何投入」
+  expect: 发「项目已取消」（B-07 订阅）；原因必填
+- id: PRC-24-S04
+  path: 1 暂停后保持暂停
+  outcome: 已暂停
+  covers:
+  - 第 1 步 otherwise
+  expect: 项目保持暂停，暂停期间拒记工时（INV-39）
+- id: PRC-24-S05
+  path: 执行中直接 3 终止
+  outcome: 已终止
+  covers:
+  - 触发：直接终止（待 Q09）
+  expect: 同 S02 的事件与清算；是否允许不经暂停随 Q09
+- id: PRC-24-S06
+  path: 执行中直接 4 取消
+  outcome: 已取消
+  covers:
+  - 触发：直接取消（待 Q09）
+  expect: 同 S03；是否允许不经暂停随 Q09
+- id: PRC-24-S07
+  path: 1 暂停后员工提交该项目工时
+  outcome: null
+  covers:
+  - 第 1 步暂停对工时的影响（Q-05）
+  expect: PRC-23 第 2 步拒记（只断言工时模块读到暂停状态后拒绝）
+PRC-26:
+- id: PRC-26-S01
+  path: 1→2→3 资料合格
+  outcome: 已确认
+  covers:
+  - 第 3 步「资料合格」
+  expect: 发「发包人资料已确认」（仅分析）；收件凭证经 PRC-33 登记
+- id: PRC-26-S02
+  path: 3 资料有缺陷→4 退回→2
+  outcome: null
+  covers:
+  - 第 3 步 otherwise
+  - 第 4 步 otherwise
+  expect: 发「发包人资料已退回」；通知项目经理转告发包人补充，补充后再登记提供
+- id: PRC-26-S03
+  path: 4 缺陷资料影响进度→PRC-32
+  outcome: null
+  covers:
+  - 第 4 步「缺陷资料影响进度且需发包人答复延期」
+  expect: 转入延期申请流程，资料退回记录作为事由引用
+- id: PRC-26-S04
+  path: 1 计划提供日已过仍未收到
+  outcome: null
+  covers:
+  - 第 1 步超时
+  - 触发：计划提供日已过（P-26）
+  expect: 提醒项目经理催提；不影响资料状态
+PRC-27:
+- id: PRC-27-S01
+  path: 登记 → 应对中 → 已关闭
+  outcome: null
+  covers:
+  - 登记风险与问题
+  - 记录应对措施
+  - 关闭风险与问题
+  expect: 发「风险与问题已登记」「风险与问题已关闭」（仅分析）
+- id: PRC-27-S02
+  path: 应对中 → 已接受（项目总监，记依据）
+  outcome: null
+  covers:
+  - 接受风险与问题
+  expect: 发「风险与问题已接受」；接受人与依据必填（INV-113）
+- id: PRC-27-S03
+  path: 接受时未记接受人或依据
+  outcome: null
+  covers:
+  - 接受风险与问题前置 INV-113
+  expect: 拒绝
+- id: PRC-27-S04
+  path: 已关闭或已接受后再记应对措施
+  outcome: null
+  covers:
+  - INV-113
+  expect: 拒绝；重开须另记一条
+- id: PRC-27-S05
+  path: 满意度低分经 PRC-37 调登记命令，重复调用
+  outcome: null
+  covers:
+  - 登记风险与问题（系统触发，幂等）
+  expect: 按调查 ID 幂等：只登记一条
 PRC-28:
 - id: PRC-28-S01
   path: 1→2→3 通过→4 已签发→5 客户书面认可→6
@@ -553,6 +898,262 @@ PRC-28:
   covers:
   - 第 6 步前置 INV-48
   expect: 拒绝并告警
+PRC-30:
+- id: PRC-30-S01
+  path: 1→2 批准
+  outcome: 已批准
+  covers:
+  - 第 2 步「批准」
+  expect: 发「完工估算已批准」（仅分析）；估算不进入收入确认（G-1）
+- id: PRC-30-S02
+  path: 2 退回→1
+  outcome: null
+  covers:
+  - 第 2 步 otherwise
+  expect: 回修改后重新提出，未批准估算不生效
+- id: PRC-30-S03
+  path: 1 EAC 超过已锁定预算
+  outcome: null
+  covers:
+  - 第 1 步 P-19 预警
+  expect: 预警项目总监，不阻断提出
+- id: PRC-30-S04
+  path: 2 批准人即提出人
+  outcome: null
+  covers:
+  - segregation：提出人与批准人
+  expect: 拒绝同一人批准自己提出的估算
+PRC-31:
+- id: PRC-31-S01
+  path: 1→2 归因已填→3 内审通过→4 非发包人原因→6
+  outcome: 已关闭
+  covers:
+  - 第 2 步「归因与影响已填写」
+  - 第 3 步「内审通过」
+  - 第 4 步 otherwise
+  expect: 发「设计变更已发出」（仅分析）；发出回执经 PRC-33 登记；变更关闭
+- id: PRC-31-S02
+  path: 4 发包人原因且增加工作量→5→6
+  outcome: 已关闭
+  covers:
+  - 第 4 步「发包人原因且增加工作量」
+  expect: 标「待主张」或写不主张理由；合同侧协议变更或索赔可引用该变更 ID（P-24）
+- id: PRC-31-S03
+  path: 2 归因未填写
+  outcome: null
+  covers:
+  - 第 2 步 otherwise
+  expect: 拒绝认定并留在本步（INV-54）
+- id: PRC-31-S04
+  path: 3 内审不通过→1
+  outcome: null
+  covers:
+  - 第 3 步 otherwise
+  expect: 回提出人修改后重新认定归因并内审
+- id: PRC-31-S05
+  path: 3 内审人即提出人
+  outcome: null
+  covers:
+  - segregation：提出人与内审人
+  expect: 拒绝同一人提出并内审同一设计变更
+PRC-32:
+- id: PRC-32-S01
+  path: 1→2 发包人书面批准→3
+  outcome: 已批准
+  covers:
+  - 第 2 步「发包人书面批准」
+  expect: 发「延期已批准」（仅分析）；批准材料经 PRC-33 登记；项目经理另修订交付计划
+- id: PRC-32-S02
+  path: 2 发包人书面拒绝→4
+  outcome: 已拒绝
+  covers:
+  - 第 2 步「发包人书面拒绝」
+  expect: 发「延期已拒绝」；拒绝材料经 PRC-33 登记
+- id: PRC-32-S03
+  path: 2 答复期满无书面答复→5
+  outcome: 视为批准
+  covers:
+  - 第 2 步 otherwise
+  - 第 2 步超时
+  expect: 定时命令登记视为批准，发「延期视为批准」；按延期申请 ID 幂等；通知项目经理
+- id: PRC-32-S04
+  path: 1 通知期限临近
+  outcome: null
+  covers:
+  - 第 1 步超时（P-25）
+  expect: 提醒项目经理按期发出延期通知；超期升级项目总监
+- id: PRC-32-S05
+  path: 2 说明提交期限临近
+  outcome: null
+  covers:
+  - 第 2 步 notify（P-25）
+  expect: 提醒项目经理按期提交详细说明
+- id: PRC-32-S06
+  path: 5 定时命令重复触发
+  outcome: null
+  covers:
+  - 触发：定时命令重复
+  expect: 按延期申请 ID 幂等：只登记一次视为批准，不重复发事件
+PRC-33:
+- id: PRC-33-S01
+  path: 采集 → 上传摘要 → 关联 → 封存
+  outcome: null
+  covers:
+  - 采集证据
+  - 上传证据摘要
+  - 关联证据
+  - 封存证据
+  expect: 发「证据已封存」（仅分析）；服务端时间与内容哈希，只追加
+- id: PRC-33-S02
+  path: 封存后解除证据关联
+  outcome: null
+  covers:
+  - 解除证据关联前置 INV-58
+  expect: 拒绝并告警
+- id: PRC-33-S03
+  path: 封存后作废证据
+  outcome: null
+  covers:
+  - 作废证据前置 INV-58
+  expect: 拒绝；封存后不可修改或删除
+- id: PRC-33-S04
+  path: 挂错交付物 → 解除关联 → 重新关联
+  outcome: null
+  covers:
+  - 解除证据关联（挂错）
+  expect: 仅封存前可解除，保留解除记录与原关联
+- id: PRC-33-S05
+  path: 已采集的证据作废（须原因）
+  outcome: null
+  covers:
+  - 作废证据
+  expect: 保留原件，状态已作废，不再可被关联
+PRC-34:
+- id: PRC-34-S01
+  path: 1→2 确认→6 关闭
+  outcome: 已关闭
+  covers:
+  - 第 2 步 otherwise
+  expect: 发「不符合项已确认」「不符合项已关闭」（仅分析）
+- id: PRC-34-S02
+  path: 2 造成返工→3 认定返工→6
+  outcome: 已关闭
+  covers:
+  - 第 2 步「不符合项造成返工」
+  - 第 3 步 otherwise
+  expect: 发「返工已认定」；工时模块只在此认定下记返工工时（INV-53）
+- id: PRC-34-S03
+  path: 3 返工认定被撤销→4→6
+  outcome: 已关闭
+  covers:
+  - 第 3 步「返工认定被撤销」
+  expect: 发「返工认定已撤销」；已记返工工时保留，分类由 PRC-91 调整
+- id: PRC-34-S04
+  path: 2 客户书面确认让步接受→5→6
+  outcome: 已关闭
+  covers:
+  - 第 2 步「客户书面确认让步接受」
+  expect: 让步接受须有客户书面确认材料（INV-49），材料经 PRC-33 登记
+- id: PRC-34-S05
+  path: 5 让步接受无客户书面确认
+  outcome: null
+  covers:
+  - 第 5 步前置 INV-49
+  expect: 拒绝并告警，不进入关闭
+- id: PRC-34-S06
+  path: 2 处置期限届满
+  outcome: null
+  covers:
+  - 第 2 步超时（P-23）
+  expect: 提醒技术专家并升级部门负责人；期限取等级体系版本配置
+PRC-36:
+- id: PRC-36-S01
+  path: 1→2→3→4 三项拒绝检查均满足→5 审批通过→6→7
+  outcome: 已归档
+  covers:
+  - 第 4 步「三项拒绝检查均满足」
+  - 第 5 步「审批通过」
+  expect: 发「项目已结项」（B-07 订阅，发布方 B-04）与「项目已归档」；按结项申请 ID 幂等
+- id: PRC-36-S02
+  path: 4 已认可成果未被收入确认行引用且无不确认结论
+  outcome: 检查未通过
+  covers:
+  - 第 4 步 otherwise（拒绝项一）
+  expect: 检查单留痕，不得提交结项申请；项目经理补收入确认或登记结论后重新发起
+- id: PRC-36-S03
+  path: 4 供方协议未结算也未终止，或交付物、证据未封存
+  outcome: 检查未通过
+  covers:
+  - 第 4 步 otherwise（拒绝项二、三）
+  expect: 检查单留痕并列出未满足项；不进入审批
+- id: PRC-36-S04
+  path: 4 存在预警项（工时单未全部审批或无生效协议）但拒绝项均满足
+  outcome: null
+  covers:
+  - 第 4 步预警项（P-16）
+  expect: 检查单标预警留痕，仍可提交结项申请，不拦截
+- id: PRC-36-S05
+  path: 5 审批驳回或审批通过时复检不满足→3
+  outcome: null
+  covers:
+  - 第 5 步 otherwise
+  expect: 退回重新发起检查；审批通过前任一拒绝项不满足即退回
+- id: PRC-36-S06
+  path: 6 结项命令重复调用
+  outcome: null
+  covers:
+  - 第 6 步幂等（INV-40）
+  expect: 按结项申请 ID 幂等：只结项一次，不重复发事件
+PRC-37:
+- id: PRC-37-S01
+  path: 1→2→3 评分不低于阈值→5
+  outcome: 已跟进
+  covers:
+  - 第 3 步 otherwise
+  expect: 发「满意度调查已评分」「满意度调查已跟进」（仅分析）；已跟进须记跟进说明（INV-111）
+- id: PRC-37-S02
+  path: 3 评分低于阈值→4→5
+  outcome: 已跟进
+  covers:
+  - 第 3 步「评分低于阈值」
+  expect: 经 api 向 B-04 登记风险与问题，反馈项目总监（P-45）；阈值待用户定
+- id: PRC-37-S03
+  path: 1 调查发出后长期未回收
+  outcome: null
+  covers:
+  - 第 1 步超时
+  expect: 只预警，不阻断收尾；回收期提醒值待用户定
+- id: PRC-37-S04
+  path: 4 低分登记重复触发
+  outcome: null
+  covers:
+  - 第 4 步幂等（P-45）
+  expect: 按调查 ID 幂等：只登记一条风险与问题
+- id: PRC-37-S05
+  path: 3 未回收即评分，或已评分后改分
+  outcome: null
+  covers:
+  - 第 3 步前置 INV-111
+  expect: 拒绝；更正另记一条评分
+PRC-38:
+- id: PRC-38-S01
+  path: 1→2 评审通过→3
+  outcome: 已发布
+  covers:
+  - 第 2 步「评审通过」
+  expect: 发「项目复盘已发布」（仅分析）；已发布不可改（INV-112）
+- id: PRC-38-S02
+  path: 2 评审不通过→1
+  outcome: null
+  covers:
+  - 第 2 步 otherwise
+  expect: 回编制修改后重新评审；未评审不得发布
+- id: PRC-38-S03
+  path: 已发布后更正
+  outcome: null
+  covers:
+  - INV-112
+  expect: 出新版本并引用被取代版本，旧版本不改；评审人不得是编制人
 PRC-41:
 - id: PRC-41-S01
   path: 1 协议范围含 IDI 检查→2→3→4 协议未到期且仍委托
@@ -1335,6 +1936,37 @@ PRC-86:
   - 第 6 步「期间已关账」
   - 第 8 步「期间已关账」
   expect: 拒绝核销或冲抵并告警
+PRC-91:
+- id: PRC-91-S01
+  path: TimesheetApproved→1 生成待认定清单→2 认定
+  outcome: null
+  covers:
+  - 第 2 步 otherwise
+  expect: 发「工时已认定」（仅分析）；四类之和等于填报总数；认定结果供人工成本分配
+- id: PRC-91-S02
+  path: 同一工时单同一轮次的 TimesheetApproved 重复投递
+  outcome: null
+  covers:
+  - 触发：事件重复
+  expect: 幂等：只生成一次待认定清单，不重复通知
+- id: PRC-91-S03
+  path: 2 目标期间已关账
+  outcome: null
+  covers:
+  - 第 2 步「目标期间已关账」
+  expect: 拒绝认定，只能冲销或修正（INV-67）
+- id: PRC-91-S04
+  path: 2 四类之和不等于填报总数，或返工条目无返工认定
+  outcome: null
+  covers:
+  - 第 2 步「四类之和不等于填报总数」
+  expect: 拒绝（INV-53）
+- id: PRC-91-S05
+  path: 1 期间封期前仍未认定
+  outcome: null
+  covers:
+  - 第 1 步超时
+  expect: 封期前提醒项目经理并升级部门负责人
 PRC-140:
 - id: PRC-140-S01
   path: 1 通过→2→3

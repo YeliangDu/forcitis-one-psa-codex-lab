@@ -1345,14 +1345,38 @@ processes:
   - VS-03.1
   owner_bc: B-04
   human_orchestration: false
+  migration: 全部历史项目（含已结项、已归档、已终止、已取消）连同承担法人、团队名册、WBS 迁入（U-3、U-4），记迁入来源与原始时间；投产时在途项目按当前状态迁入（已立项、执行中、暂停、收尾中）；老项目若挂多个法人，迁入前按 Q-06 拆为一项目一承担法人（拆分口径待取证，见 NOTES 待用户定）
+  scope: 按项目承担部门的数据范围：项目经理与项目成员可见并经办本项目，部门负责人、项目总监可见本部门项目
+  triggers:
+  - type: event
+    name: OpportunityAccepted
+    bc: B-03
+  - type: human
+    name: 先行投入路径（风险交付授权已批准）由项目经理人工发起建项
+  outcomes:
+  - 执行中
+  - 未建立
+  scenarios:
+  - PRC-17-S01
+  - PRC-17-S02
+  - PRC-17-S03
+  - PRC-17-S04
+  roles:
+  - id: SH-E2
+    as: initiator
+  - id: SH-E3
+    as: informed
+  - id: SH-M1
+    as: informed
   steps:
-  - actor: SH-E2
+  - actor: system
+    where: automatic
     actor_v1: 项目经理
     read: true
     reads:
     - AGG-10
     - AGG-33
-    desc: 读来源商机与建设工程
+    desc: 读来源商机与建设工程；赢单事件到达时给项目经理生成建项待办，同一事件只生成一条
     cross_bc:
     - mode: event
       direction: in
@@ -1366,13 +1390,23 @@ processes:
       direction: out
       bc: B-01
       name: 读建设工程
+    notify:
+    - to: SH-E2
+      how: 企业微信待办（商机已赢单，待建立项目）
   - actor: SH-E2
+    where: in_system
     actor_v1: 项目经理
     command: 建立项目
     aggregate: AGG-19
     emits:
     - 项目已建立
-    desc: 项目可先于合同
+    desc: 项目可先于合同；立项时定承担法人，一项目一个，跨法人的工作另立项目（Q-06）
+    decision:
+    - when: 承担法人只有一个且承担部门、负责人已确定
+      goto: 3
+      rule: intent 134134 Q-06
+    - when: otherwise
+      goto: end
     cross_bc:
     - mode: event
       direction: out
@@ -1386,51 +1420,69 @@ processes:
       direction: out
       bc: B-03
       name: 来源商机
-  - actor: SH-E2
+    permission: 项目.建立
+    page: 项目建立页
+    legal_entity: 承担法人
+    audit: true
+    metric_event: true
+    outcome: 未建立
+  - actor: system
+    where: automatic
     actor_v1: 项目经理
     command: 登记我方参与记录
     aggregate: AGG-33
-    desc: 随 D-4 b 由交付登记
+    desc: 随 D-4 b 由交付登记；B-04 调 B-01 的命令
     cross_bc:
     - mode: api
       direction: out
       bc: B-01
       name: 登记我方参与记录
   - actor: SH-E2
+    where: in_system
     actor_v1: 项目经理
     command: 建立项目 WBS
     aggregate: AGG-20
-    desc: 每项目一棵，阶段按协议范围裁剪
+    desc: 每项目一棵，阶段按拟签协议范围裁剪（项目可先于合同，裁剪依据由项目经理录入）
     cross_bc:
     - mode: api
       direction: out
       bc: B-02
       name: 阶段类型版本
+    permission: 项目WBS.建立
+    page: 项目WBS编制页
   - actor: SH-E2
+    where: in_system
     actor_v1: 项目经理
     command: 维护项目团队成员
     aggregate: AGG-24
     gap: G-14
+    desc: 团队名册是否决定工时范围与审批人随 Q13，名册现不作工时授权依据
     cross_bc:
     - mode: api
       direction: out
       bc: B-13
       name: 团队成员人员
+    permission: 项目团队.维护
+    page: 项目团队页
+    notify:
+    - to: SH-E3
+      how: 企业微信消息（已加入项目团队）
   - actor: SH-E2
+    where: in_system
     actor_v1: 项目经理
     command: 开始执行
     aggregate: AGG-19
     emits:
     - 项目已开始执行
     desc: 已立项 → 执行中；VS-02.0 退出、VS-03.1 进入与 VS-02 贯穿活动都以「执行中」为条件（符合性审查 必-7）
+    permission: 项目.开始执行
+    page: 项目概览页
+    audit: true
+    outcome: 执行中
+    notify:
+    - to: SH-M1
+      how: 企业微信消息（项目已开始执行）
   notes: 项目已建立的订阅方 B-07（售前投入转入，P-43）；项目建立前置（赢单或先行投入授权）见 G-13。「项目已开始执行」订阅方仅分析，不作任何流程触发（符合性审查 必-7；事件订阅规则 intent 114200 F-4，见 G-05）。VS-03 各流程不建项目，进入条件「执行中」由本流程提供（符合性审查 必-6）。
-  roles:
-  - id: SH-E2
-    as: initiator
-  - id: SH-E3
-    as: informed
-  - id: SH-M1
-    as: informed
 - id: PRC-18
   name: 编制并批准交付计划
   trigger:
@@ -1443,30 +1495,88 @@ processes:
   - VS-02.0
   owner_bc: B-04
   human_orchestration: false
-  steps:
-  - actor: SH-E2
-    actor_v1: 项目经理
-    command: 编制交付计划版本
-    aggregate: AGG-21
-  - actor: SH-E2
-    actor_v1: 项目经理
-    command: 批准交付计划
-    aggregate: AGG-21
-    emits:
-    - 交付计划已批准
-    desc: 对客批准或内部锁定
-  - actor: system
-    actor_v1: 系统策略
-    read: true
-    reads:
-    - AGG-21
-    desc: P-17 发包人 5 天未审核提醒
-  notes: 发包人 5 天未审核只提醒（P-17），无状态转换命令，不是引擎调度的超时。里程碑认可事件随 Q21 待定（见 G-14）。
+  migration: 全部历史交付计划版本（含被取代版本及修订原因）迁入（U-4）；投产时在途的编制中版本按当前状态迁入，已批准或已锁定版本作生效基线迁入
+  scope: 按项目的数据范围：项目经理与项目成员可见，项目经理经办
+  triggers:
+  - type: event
+    name: 项目已建立
+    bc: B-04
+  outcomes:
+  - 已批准（对客）
+  - 内部锁定
+  scenarios:
+  - PRC-18-S01
+  - PRC-18-S02
+  - PRC-18-S03
+  - PRC-18-S04
+  - PRC-18-S05
   roles:
   - id: SH-E2
     as: initiator
   - id: SH-C6a
     as: external
+  - id: SH-M1
+    as: informed
+  steps:
+  - actor: SH-E2
+    where: in_system
+    actor_v1: 项目经理
+    command: 编制交付计划版本
+    aggregate: AGG-21
+    desc: 里程碑按阶段编制；修订须写原因（INV-43）；同一项目对客与内部各只有一个生效基线
+    decision:
+    - when: 本版本是对客基线（需发包人批准）
+      goto: 2
+      rule: INV-43
+    - when: otherwise
+      goto: 3
+    permission: 交付计划.编制
+    page: 交付计划编制页
+  - actor: SH-E2
+    where: offline
+    evidence:
+    - 发包人书面批准材料（签认单、会议纪要签字页、邮件原始报文之一）
+    - 批准日与批准人（须为合同登记的发包人代表或授权人）
+    actor_v1: 项目经理
+    command: 批准交付计划
+    aggregate: AGG-21
+    emits:
+    - 交付计划已批准
+    desc: 把计划送发包人审核；发包人书面批准后登记批准事实。发包人 5 天未审核只提醒（P-17），无状态转换，不视为批准
+    decision:
+    - when: 发包人书面提出修改意见
+      goto: 1
+    - when: otherwise
+      goto: end
+    calls: PRC-33
+    permission: 交付计划.登记批准
+    page: 交付计划批准登记页
+    audit: true
+    timeout:
+      after: P5D
+      escalate_to: SH-E2
+      interrupting: false
+    outcome: 已批准（对客）
+    notify:
+    - to: SH-E2
+      how: 企业微信待办（发包人超 5 天未审核交付计划，请催办）
+  - actor: SH-E2
+    where: in_system
+    actor_v1: 项目经理
+    command: 批准交付计划
+    aggregate: AGG-21
+    emits:
+    - 交付计划已批准
+    branch: 内部锁定
+    desc: 内部基线无需发包人批准，项目经理锁定即生效
+    decision:
+    - when: otherwise
+      goto: end
+    permission: 交付计划.锁定
+    page: 交付计划锁定页
+    audit: true
+    outcome: 内部锁定
+  notes: 发包人 5 天未审核只提醒（P-17），不是引擎调度的状态转换。里程碑认可事件随 Q21 待定（见 G-14）。内部锁定与对客批准是同一命令的两种路径（G-02 已处理：对客批准登记发包人批准的事实，不走审批平台）。
 - id: PRC-19
   name: 编制并锁定项目预算
   trigger:
@@ -1480,14 +1590,41 @@ processes:
   owner_bc: B-04
   human_orchestration: true
   human_note: 编制中 → 审批中 → 已锁定
+  migration: 全部历史预算版本（含被取代版本及修订原因、锁定时冻结的费率版本引用）迁入（U-4）；投产时在途的编制中或审批中版本按当前状态迁入，审批中的以新审批实例重新提交，已锁定版本作生效基线迁入
+  scope: 按项目的数据范围：项目经理、项目总监可见；预算含费率与毛利，限项目管理层与财务查看
+  segregation:
+  - roles:
+    - SH-E2
+    - SH-M1
+    rule: 预算编制人与审批人不得为同一人
+  triggers:
+  - type: event
+    name: 项目已建立
+    bc: B-04
+  outcomes:
+  - 已锁定
+  scenarios:
+  - PRC-19-S01
+  - PRC-19-S02
+  - PRC-19-S03
+  - PRC-19-S04
+  - PRC-19-S05
+  roles:
+  - id: SH-E2
+    as: initiator
+  - id: SH-M1
+    as: approver
+  - id: SH-E6
+    as: informed
   steps:
-  - actor: SH-E2
+  - actor: system
+    where: automatic
     actor_v1: 项目经理
     read: true
     reads:
     - AGG-05
     - AGG-12
-    desc: 读费率版本与赢单报价版本（P-18 毛利预警）
+    desc: 读费率版本与赢单报价版本（P-18 毛利预警的输入）
     cross_bc:
     - mode: api
       direction: out
@@ -1498,21 +1635,31 @@ processes:
       bc: B-03
       name: 读赢单报价版本
   - actor: SH-E2
+    where: in_system
     actor_v1: 项目经理
     command: 编制项目预算版本
     aggregate: AGG-22
+    desc: 按 WBS 编制计划工时与非人工类别；提交审批时预算毛利低于赢单报价毛利预警（P-18），只警不拦
+    permission: 项目预算.编制
+    page: 项目预算编制页
+    notify:
+    - to: SH-M1
+      how: 企业微信消息（预算毛利低于报价毛利，提交审批时预警）
   - actor: platform
+    where: in_system
     actor_v1: 项目总监
     platform_task: true
     service: platform.approval
     command: 项目预算审批
     gap: G-02
+    desc: 审批结果以「审批已完成」事件回到 B-04 的项目预算（B-04 订阅 platform.approval）
     decision:
     - when: 审批通过
       goto: 4
     - when: otherwise
       goto: 2
     approval:
+      engine: platform.approval
       doc_type: 项目预算审批
       approver: SH-M1
       multi_level: false
@@ -1522,21 +1669,33 @@ processes:
       direction: out
       bc: platform.approval
       name: 项目预算审批
+    - mode: event
+      direction: in
+      bc: platform.approval
+      name: 审批已完成
+    permission: 项目预算.审批
+    page: 审批待办页
+    audit: true
+    notify:
+    - to: SH-M1
+      how: 企业微信待办（项目预算待审批）
   - actor: SH-E2
+    where: in_system
     actor_v1: 项目经理
     command: 锁定项目预算
     aggregate: AGG-22
     emits:
     - 项目预算已锁定
+    desc: 锁定时冻结费率版本（INV-44），此后修订须写原因并另出版本
     decision:
     - when: otherwise
       goto: end
-  notes: 锁定时冻结费率版本（INV-44）。
-  roles:
-  - id: SH-E2
-    as: initiator
-  - id: SH-M1
-    as: approver
+      rule: INV-44
+    permission: 项目预算.锁定
+    page: 项目预算锁定页
+    audit: true
+    outcome: 已锁定
+  notes: 锁定时冻结费率版本（INV-44）。审批结果回写的订阅方式见 NOTES 接缝问题（B-04 → platform.approval 现只登记 api 方式）。
 - id: PRC-20
   name: 提出并满足资源需求
   trigger:
@@ -1551,20 +1710,46 @@ processes:
   - VS-02.6
   owner_bc: B-04
   human_orchestration: false
+  migration: 全部历史资源需求与资源分配迁入（U-4）；投产时未满足的需求与已计划未确认的分配按当前状态迁入，具名人员按迁入后的人员主键映射
+  scope: 按项目的数据范围；资源分配另按被分配人所属部门的数据范围，部门负责人可见本部门全部分配
+  triggers:
+  - type: human
+    name: 项目经理按工作包提出资源需求
+  outcomes:
+  - 已满足
+  scenarios:
+  - PRC-20-S01
+  - PRC-20-S02
+  - PRC-20-S03
+  roles:
+  - id: SH-E2
+    as: initiator
+  - id: SH-M1
+    as: approver
+  - id: SH-E3
+    as: informed
   steps:
   - actor: SH-E2
+    where: in_system
     actor_v1: 项目经理
     command: 提出资源需求
     aggregate: AGG-25
     emits:
     - 资源需求已提出
-  - actor: SH-M1
-    actor_v1: 部门负责人
-    command: 确认资源分配
-    aggregate: AGG-26
-    emits:
-    - 资源分配已确认
-    desc: P-27 超产能写入前预警
+    desc: 角色、职级、专业、时段与工时，挂工作包
+    permission: 资源需求.提出
+    page: 资源需求编辑页
+    notify:
+    - to: SH-M1
+      how: 企业微信待办（有资源需求待分配）
+  - actor: system
+    where: automatic
+    read: true
+    reads:
+    - AGG-62
+    - AGG-68
+    added_in: closeout
+    desc: 读候选人员、工作日历与已确认的分配，供部门负责人核对产能
     cross_bc:
     - mode: api
       direction: out
@@ -1574,12 +1759,35 @@ processes:
       direction: out
       bc: B-14
       name: 工作日历
-  notes: 具名人员、时段与工作包；审批在聚合自身状态（已计划 → 已确认），未走 platform.approval（见 G-02 待核），故不算引擎调度的人工编排。
-  roles:
-  - id: SH-E2
-    as: initiator
-  - id: SH-M1
-    as: approver
+  - actor: SH-M1
+    where: in_system
+    actor_v1: 部门负责人
+    command: 确认资源分配
+    aggregate: AGG-26
+    emits:
+    - 资源分配已确认
+    desc: 部门负责人单级确认，不走 platform.approval（G-02）；超过可用产能时写入前预警（P-27），只警不拦
+    decision:
+    - when: 分配覆盖需求的全部时段与工时
+      goto: end
+    - when: otherwise
+      goto: 1
+    approval:
+      engine: aggregate
+      doc_type: 资源分配确认
+      approver: SH-M1
+      multi_level: false
+      on_reject: 1
+    permission: 资源分配.确认
+    page: 资源分配确认页
+    audit: true
+    outcome: 已满足
+    notify:
+    - to: SH-M1
+      how: 企业微信消息（分配超过可用产能，P-27 预警）
+    - to: SH-E3
+      how: 企业微信消息（已被分配到项目工作包）
+  notes: 具名人员、时段与工作包；审批在聚合自身状态（已计划 → 已确认），未走 platform.approval（G-02 已明确），故不算引擎调度的人工编排。部分满足时项目经理就缺口另提需求或调整后再分配（回第 1 步）。
 - id: PRC-23
   name: 填报并审批工时
   trigger:
@@ -1597,8 +1805,43 @@ processes:
   owner_bc: B-06
   human_orchestration: true
   human_note: 提交 → 审批 → 通过 / 退回 / 驳回，可撤回
+  migration: 全部历史工时单（含已通过、已驳回及其审批履历）迁入（U-3、U-4），记迁入来源与原始时间；投产时审批中的工时单以新审批实例重新提交（轮次从 1 起），退回待修改的按「已退回」迁入，草稿按草稿迁入；已通过的工时按迁入历史处理，不重新审批
+  scope: 员工本人可见并经办本人工时单；项目经理可见本项目工时；部门负责人可见本部门；售前工时归集到商机的，按商机承担部门的数据范围
+  segregation:
+  - roles:
+    - SH-E3
+    - SH-E2
+    rule: 员工不得审批自己的工时单；项目经理本人填报的项目工时由上一级（部门负责人）审批
+  triggers:
+  - type: human
+    name: 员工按日填报并提交工时单
+  outcomes:
+  - 已通过
+  - 已驳回
+  - 已撤回
+  - 未提交
+  scenarios:
+  - PRC-23-S01
+  - PRC-23-S02
+  - PRC-23-S03
+  - PRC-23-S04
+  - PRC-23-S05
+  - PRC-23-S06
+  - PRC-23-S07
+  - PRC-23-S08
+  - PRC-23-S09
+  - PRC-23-S10
+  - PRC-23-S11
+  roles:
+  - id: SH-E3
+    as: initiator
+  - id: SH-E2
+    as: approver
+  - id: SH-M1
+    as: approver
   steps:
-  - actor: SH-E3
+  - actor: system
+    where: automatic
     actor_v1: 员工
     read: true
     reads:
@@ -1637,11 +1880,28 @@ processes:
       bc: B-28
       name: 读返工认定
   - actor: SH-E3
+    where: in_system
     actor_v1: 员工
     command: 提交工时单
     aggregate: AGG-39
     emits:
     - TimesheetSubmitted
+    desc: 一人一日一单（INV-64）；项目暂停、结项、终止、取消期间拒记（INV-39，Q-05）；每日工时不得低于当日最低时数，扣减已批准与待批请假（INV-65）；只能记到当天有权使用的工作包（INV-66）；提交日所属期间已关账只能冲销或修正（INV-67）；法人取自员工（见 NOTES 待用户定）。提交后审批平台按工时类型并行路由：项目工时到项目经理，售前工时到部门负责人，管理间接工时到一级汇报人
+    decision:
+    - when: 工时所属期间已关账
+      goto: end
+      rule: INV-67
+    - when: 所记项目已暂停、已结项、已终止或已取消
+      goto: end
+      rule: INV-39
+    - when: 所记工作包当天无权使用
+      goto: end
+      rule: INV-66
+    - when: 当日工时低于最低时数（已扣减请假）
+      goto: end
+      rule: INV-65
+    - when: otherwise
+      goto: 3
     cross_bc:
     - mode: api
       direction: out
@@ -1659,58 +1919,147 @@ processes:
       direction: out
       bc: platform.identity
       name: 身份
+    permission: 工时单.提交
+    page: 工时填报页
+    audit: true
+    period_gate: true
+    legal_entity: 员工所属法人
+    outcome: 未提交
   - actor: platform
+    where: in_system
     actor_v1: 项目经理
     platform_task: true
     service: platform.approval
     command: 工时审批
+    desc: 已建；按工时类型并行会签：项目工时 → 项目经理（SH-E2），售前工时 → 部门负责人（SH-M1），管理间接工时 → 员工的一级汇报人（SH-M1）；无对应工时类型的分支跳过；同一审批人重复轮次自动通过；每分支期限 1 个工作日，次日 9:00 提醒，再 1 个工作日升级（审批平台已建配置）
     decision:
     - when: 审批通过
       goto: 4
     - when: 审批人退回修改
       goto: 5
+    - when: 员工撤回本轮或取消审批
+      goto: 7
     - when: otherwise
       goto: 6
     approval:
+      engine: platform.approval
       doc_type: 工时审批
       approver: SH-E2
       multi_level: false
       on_reject: 2
-  - actor: SH-E2
+    cross_bc:
+    - mode: event
+      direction: in
+      bc: platform.approval
+      name: 审批已完成
+    permission: 工时单.审批
+    page: 审批待办页
+    audit: true
+    timeout:
+      after: P1D
+      escalate_to: SH-M1
+      interrupting: false
+    notify:
+    - to: SH-E2
+      how: 企业微信待办（工时单待审批，含超时提醒与升级）
+  - actor: system
+    where: automatic
     actor_v1: 项目经理
     command: 通过工时单
     aggregate: AGG-39
     emits:
     - TimesheetApproved
+    desc: 审批平台「通过」结果到达后由 B-06 回写；同一结果事件只处理一次，轮次不符的结果忽略；订阅方为同 BC 的认定工时有效性（PRC-91）
     decision:
     - when: otherwise
-      goto: 7
-  - actor: SH-E2
+      goto: 8
+    cross_bc:
+    - mode: event
+      direction: in
+      bc: platform.approval
+      name: 审批已完成
+    audit: true
+    metric_event: true
+  - actor: system
+    where: automatic
     actor_v1: 项目经理
     command: 退回工时单
     aggregate: AGG-39
     branch: 退回
     emits:
     - TimesheetReturned
+    desc: 退回后工时单可改，员工修改后重新提交，轮次加 1
     decision:
     - when: otherwise
       goto: 2
-  - actor: SH-E2
+    cross_bc:
+    - mode: event
+      direction: in
+      bc: platform.approval
+      name: 审批已完成
+    audit: true
+    notify:
+    - to: SH-E3
+      how: 企业微信消息（工时单被退回，请修改后重提）
+  - actor: system
+    where: automatic
     actor_v1: 项目经理
     command: 驳回工时单
     aggregate: AGG-39
     branch: 驳回
     emits:
     - TimesheetRejected
+    desc: 驳回为终局，不可再提交；驳回须写原因
     decision:
     - when: otherwise
       goto: end
+    cross_bc:
+    - mode: event
+      direction: in
+      bc: platform.approval
+      name: 审批已完成
+    audit: true
+    outcome: 已驳回
+    notify:
+    - to: SH-E3
+      how: 企业微信消息（工时单被驳回及原因）
   - actor: system
+    where: automatic
+    command: 撤回工时单
+    aggregate: AGG-39
+    branch: 撤回
+    added_in: closeout
+    gap: 命令缺（已建代码有撤回本轮与取消审批，聚合稿 AGG-39 命令列无）
+    emits:
+    - TimesheetApprovalWithdrawn
+    desc: 员工在审批期间撤回本轮或取消整个审批，审批平台结束实例后工时单回到草稿，员工可修改后重提
+    decision:
+    - when: otherwise
+      goto: end
+    cross_bc:
+    - mode: event
+      direction: in
+      bc: platform.approval
+      name: 审批已完成
+    audit: true
+    outcome: 已撤回
+  - actor: system
+    where: automatic
     actor_v1: 系统策略
     command: 提交过账候选
     aggregate: AGG-39
     emits:
     - 工时已过账
+    desc: 通过后按过账时锁定的费率版本提交过账候选；缺费率的工时不得计成本，失败并告警（INV-37）；目标期间已关账的转冲销或修正（INV-67）
+    decision:
+    - when: 目标期间已关账
+      goto: end
+      rule: INV-67
+    - when: 缺锁定费率版本
+      goto: end
+      rule: INV-37
+    - when: otherwise
+      goto: end
     calls: PRC-92
     cross_bc:
     - mode: api
@@ -1721,12 +2070,14 @@ processes:
       direction: out
       bc: B-02
       name: 过账时读锁定费率版本
-  notes: 阶段映射已收窄（⑥a 评审 M4）：只留进入或退出条件触及商机、工作包的阶段，去掉 VS-02.7 与 VS-03.2。已建 cost.timesheet；INV-37 缺费率的工时失败并告警；售前阶段可记工时归集到商机或客户活动。
-  roles:
-  - id: SH-E3
-    as: initiator
-  - id: SH-E2
-    as: approver
+    audit: true
+    period_gate: true
+    legal_entity: 员工所属法人
+    outcome: 已通过
+    notify:
+    - to: SH-E6
+      how: 企业微信消息（工时过账失败或目标期间已关账，需冲销或修正）
+  notes: 以已建 cost.timesheet 为准（状态草稿、已提交、已退回、已通过、已驳回；撤回与取消回到草稿；审批流程 cost_timesheet_approval）。阶段映射已收窄（⑥a 评审 M4）：只留进入或退出条件触及商机、工作包的阶段，去掉 VS-02.7 与 VS-03.2。INV-37 缺费率的工时失败并告警；售前阶段可记工时归集到商机或客户活动（AGG-102）。
 - id: PRC-24
   name: 暂停、恢复、终止或取消项目
   trigger:
@@ -1743,36 +2094,91 @@ processes:
   - VS-02.7
   owner_bc: B-04
   human_orchestration: false
+  migration: 全部历史项目的暂停、恢复、终止、取消记录（含原因）迁入（U-4）；投产时处于暂停的项目按「暂停」迁入，暂停起始日取原始时间；已终止、已取消项目只迁结局、原因与时间
+  scope: 项目总监与承担部门负责人经办；项目经理、项目成员可见项目状态
+  triggers:
+  - type: human
+    name: 项目总监因故暂停项目
+  - type: human
+    name: 执行中的项目不再继续履行，直接终止（待 Q09 确认可否不经暂停）
+    starts_at: 3
+  - type: human
+    name: 执行中的项目无任何投入，直接取消（待 Q09 确认可否不经暂停）
+    starts_at: 4
+  outcomes:
+  - 已暂停
+  - 已恢复
+  - 已终止
+  - 已取消
+  scenarios:
+  - PRC-24-S01
+  - PRC-24-S02
+  - PRC-24-S03
+  - PRC-24-S04
+  - PRC-24-S05
+  - PRC-24-S06
+  - PRC-24-S07
+  roles:
+  - id: SH-M1
+    as: initiator
+  - id: SH-E2
+    as: informed
+  - id: SH-E3
+    as: informed
   steps:
   - actor: SH-M1
+    where: in_system
     actor_v1: 项目总监
     command: 暂停项目
     aggregate: AGG-19
     emits:
     - 项目已暂停
+    desc: 须写原因；暂停期间拒记工时（INV-39，Q-05）；暂停后按处置情形走恢复、终止或取消，其余保持暂停
     decision:
     - when: 暂停原因消除且继续履行
       goto: 2
     - when: 不再继续履行且已有投入
       goto: 3
-    - when: otherwise
+    - when: 不再继续履行且无任何投入
       goto: 4
+    - when: otherwise
+      goto: end
+    permission: 项目.暂停
+    page: 项目状态处置页
+    audit: true
+    outcome: 已暂停
+    notify:
+    - to: SH-E2
+      how: 企业微信消息（项目已暂停，暂停期间不能记工时）
+    - to: SH-E3
+      how: 企业微信消息（项目已暂停，暂停期间不能记工时）
   - actor: SH-M1
+    where: in_system
     actor_v1: 项目总监
     command: 恢复项目
     aggregate: AGG-19
     emits:
     - 项目已恢复
+    desc: 恢复后回到执行中，工时可继续填报
     decision:
     - when: otherwise
       goto: end
+    permission: 项目.恢复
+    page: 项目状态处置页
+    audit: true
+    outcome: 已恢复
+    notify:
+    - to: SH-E3
+      how: 企业微信消息（项目已恢复，可继续记工时）
   - actor: SH-M1
+    where: in_system
     actor_v1: 项目总监
     command: 终止项目
     aggregate: AGG-19
     branch: 终止
     emits:
     - 项目已终止
+    desc: 须写原因；已有投入，由 B-07 订阅后做终止清算（PRC-35）；是否经审批待用户定
     decision:
     - when: otherwise
       goto: end
@@ -1781,14 +2187,23 @@ processes:
       direction: out
       bc: B-07
       name: 项目已终止
+    permission: 项目.终止
+    page: 项目状态处置页
+    audit: true
+    metric_event: true
+    outcome: 已终止
+    notify:
+    - to: SH-E6
+      how: 企业微信消息（项目已终止，需做终止清算）
   - actor: SH-M1
+    where: in_system
     actor_v1: 项目总监
     command: 取消项目
     aggregate: AGG-19
     branch: 取消
     emits:
     - 项目已取消
-    desc: 无任何投入时
+    desc: 须写原因；无任何投入时才取消；投入多寡 B-04 不可读（B-07 在下游），由 B-07 订阅后核对（见 NOTES 接缝问题）
     decision:
     - when: otherwise
       goto: end
@@ -1797,12 +2212,12 @@ processes:
       direction: out
       bc: B-07
       name: 项目已取消
-  notes: 终止与取消须原因，可能经审批，审批未建模（状态机待 Q09），故按非人工编排（⑥a 评审 M1）。状态机与承担法人待 Q09、Q11（G-14）。
-  roles:
-  - id: SH-M1
-    as: initiator
-  - id: SH-E2
-    as: informed
+    permission: 项目.取消
+    page: 项目状态处置页
+    audit: true
+    metric_event: true
+    outcome: 已取消
+  notes: 终止与取消须原因，可能经审批，审批未建模（状态机待 Q09），故按非人工编排（⑥a 评审 M1）。状态机与承担法人待 Q09、Q11（Q11 已答：Q-06 一项目一承担法人）。「项目已暂停、已恢复」订阅方仅分析，不写 cross_bc。
 - id: PRC-26
   name: 接收并确认发包人提供资料
   trigger:
@@ -1816,43 +2231,23 @@ processes:
   owner_bc: B-28
   human_orchestration: true
   human_note: 确认或退回缺陷资料，逾期提醒
-  steps:
-  - actor: SH-E2
-    actor_v1: 项目经理
-    command: 登记资料已提供
-    aggregate: AGG-32
-    cross_bc:
-    - mode: api
-      direction: out
-      bc: B-04
-      name: 关联项目
-  - actor: SH-E3
-    actor_v1: 设计师和顾问
-    command: 确认发包人资料
-    aggregate: AGG-32
-    emits:
-    - 发包人资料已确认
-    decision:
-    - when: 资料合格
-      goto: end
-    - when: otherwise
-      goto: 3
-    approval:
-      doc_type: 发包人资料确认
-      approver: SH-E3
-      multi_level: false
-      on_reject: 3
-  - actor: SH-E3
-    actor_v1: 设计师和顾问
-    command: 退回发包人资料
-    aggregate: AGG-32
-    branch: 退回（资料有缺陷）
-    emits:
-    - 发包人资料已退回
-    decision:
-    - when: otherwise
-      goto: 1
-  notes: 资料不合格是设计变更与延期的起因；P-26 逾期未提供提醒。
+  migration: 全部历史发包人提供资料记录（含提供日、确认或退回结论、退回原因）迁入（U-4），收件凭证原件作证据迁入；投产时待确认的按「已提供」迁入，已退回待补的按「已退回」迁入
+  scope: 按项目的数据范围：项目经理、设计师可见并经办
+  triggers:
+  - type: human
+    name: 项目经理按交付需要登记所需发包人资料及计划提供日
+  - type: human
+    name: 发包人主动提供首批或后续资料，项目经理收件
+    starts_at: 2
+  - type: time
+    name: 计划提供日已过仍未收到资料（P-26 提醒）
+  outcomes:
+  - 已确认
+  scenarios:
+  - PRC-26-S01
+  - PRC-26-S02
+  - PRC-26-S03
+  - PRC-26-S04
   roles:
   - id: SH-C6a
     as: external
@@ -1860,6 +2255,86 @@ processes:
     as: initiator
   - id: SH-E3
     as: reviewer
+  steps:
+  - actor: SH-E2
+    where: in_system
+    command: 登记资料需求
+    aggregate: AGG-32
+    branch: 登记需求
+    added_in: closeout
+    gap: 命令缺（P-26 要求逾期未提供提醒，需先登记所需资料与计划提供日）
+    desc: 按交付需要登记所需资料清单与计划提供日，作为逾期提醒的依据
+    permission: 发包人资料.登记需求
+    page: 发包人资料需求页
+    timeout:
+      after: 计划提供日
+      escalate_to: SH-M1
+      interrupting: false
+    notify:
+    - to: SH-E2
+      how: 企业微信待办（发包人资料计划提供日已过，请催提）
+  - actor: SH-E2
+    where: offline
+    evidence:
+    - 收件凭证：发包人资料清单签收单、邮件原始报文或网盘交接记录之一
+    - 提供日与提供人（发包人代表或授权人）
+    actor_v1: 项目经理
+    command: 登记资料已提供
+    aggregate: AGG-32
+    desc: 发包人线下或经邮件、网盘提供资料，项目经理登记提供日并留收件凭证
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-04
+      name: 关联项目
+    calls: PRC-33
+    permission: 发包人资料.登记提供
+    page: 发包人资料登记页
+    audit: true
+  - actor: SH-E3
+    where: in_system
+    actor_v1: 设计师和顾问
+    command: 确认发包人资料
+    aggregate: AGG-32
+    emits:
+    - 发包人资料已确认
+    desc: 设计师核对资料完整性与可用性；合格确认，有缺陷退回；聚合内裁定，不走审批平台
+    decision:
+    - when: 资料合格
+      goto: end
+    - when: otherwise
+      goto: 4
+    approval:
+      engine: aggregate
+      doc_type: 发包人资料确认
+      approver: SH-E3
+      multi_level: false
+      on_reject: 4
+    permission: 发包人资料.确认
+    page: 发包人资料确认页
+    audit: true
+    outcome: 已确认
+  - actor: SH-E3
+    where: in_system
+    actor_v1: 设计师和顾问
+    command: 退回发包人资料
+    aggregate: AGG-32
+    branch: 退回（资料有缺陷）
+    emits:
+    - 发包人资料已退回
+    desc: 写明缺陷与补充要求，通知发包人补充；缺陷资料影响进度的，项目经理另行发起延期申请
+    decision:
+    - when: 缺陷资料影响进度且需发包人答复延期
+      goto: PRC-32
+    - when: otherwise
+      goto: 2
+    permission: 发包人资料.退回
+    page: 发包人资料确认页
+    audit: true
+    notify:
+    - to: SH-E2
+      how: 企业微信消息（发包人资料被退回，请通知发包人补充）
+  notes: 资料不合格是设计变更与延期的起因；P-26 逾期未提供提醒。
 - id: PRC-28
   name: 编制、评审并签发交付物，送达并登记客户认可
   trigger:
@@ -2133,23 +2608,66 @@ processes:
   - VS-02.6
   owner_bc: B-04
   human_orchestration: false
+  migration: 全部历史完工估算版本（ETC、EAC、提出人与批准人、批准日）迁入（U-4）；投产时待批准的估算按「已提出」迁入；估算只作项目管理，不迁入任何收入或过账
+  scope: 项目总监、项目经理、承担部门负责人与财务可见；EAC 含成本，限管理层与财务
+  segregation:
+  - roles:
+    - SH-M1
+    - SH-M1
+    rule: 完工估算的提出人与批准人不得为同一人（项目总监提出的由部门负责人批准）
+  triggers:
+  - type: human
+    name: 项目总监在阶段门处更新完工估算
+  outcomes:
+  - 已批准
+  scenarios:
+  - PRC-30-S01
+  - PRC-30-S02
+  - PRC-30-S03
+  - PRC-30-S04
+  roles:
+  - id: SH-M1
+    as: initiator
+  - id: SH-M1
+    as: approver
+  - id: SH-E2
+    as: informed
   steps:
   - actor: SH-M1
+    where: in_system
     actor_v1: 项目总监
     command: 提出完工估算
     aggregate: AGG-23
+    desc: 录入 ETC 与 EAC（实际成本从成本看板读，不经聚合读取）；EAC 超过已锁定预算预警（P-19），只警不拦；估算不用于收入确认（G-1，依赖禁止）
+    permission: 完工估算.提出
+    page: 完工估算编制页
+    notify:
+    - to: SH-M1
+      how: 企业微信消息（EAC 超过预算，P-19 预警）
   - actor: SH-M1
+    where: in_system
     actor_v1: 项目总监
     command: 批准完工估算
     aggregate: AGG-23
     emits:
     - 完工估算已批准
-  notes: 完工估算不用于收入确认（聚合稿 §1.4 G-1，依赖禁止）；P-19 EAC 超预算预警。
-  roles:
-  - id: SH-M1
-    as: initiator
-  - id: SH-E2
-    as: informed
+    desc: 聚合内批准，不走审批平台（AGG-23 不引用 platform.approval）；批准人与提出人须不同人
+    decision:
+    - when: 批准
+      goto: end
+    - when: otherwise
+      goto: 1
+    approval:
+      engine: aggregate
+      doc_type: 完工估算批准
+      approver: SH-M1
+      multi_level: false
+      on_reject: 1
+    permission: 完工估算.批准
+    page: 完工估算批准页
+    audit: true
+    outcome: 已批准
+  notes: 完工估算不用于收入确认（聚合稿 §1.4 G-1，依赖禁止）；P-19 EAC 超预算预警。每期估进度的「管理产值」（用户答复：只作内部管理产值）暂放 AGG-23 内只追加子表 progress_estimates（Q04_STORAGE.md），其填报与复核命令聚合稿没有，本流程不含，见 NOTES 结构问题。
 - id: PRC-31
   name: 提出并发出设计变更
   trigger:
@@ -2163,31 +2681,93 @@ processes:
   - VS-02.6
   owner_bc: B-28
   human_orchestration: false
+  migration: 全部历史设计变更（含归因、影响、发出通知与待主张标记、不主张理由）迁入（U-4）；投产时处于提出、内审、已发出未关闭的按当前状态迁入，已发出变更的发出证据原件作证据迁入
+  scope: 按项目的数据范围：设计师、技术专家、项目经理可见并经办；合同侧只读引用（P-24）
+  segregation:
+  - roles:
+    - SH-E3
+    - SH-E4
+    rule: 变更提出人与内审人不得为同一人
+  triggers:
+  - type: human
+    name: 设计、发包人或现场原因引起设计变更，设计师发起
+  outcomes:
+  - 已关闭
+  scenarios:
+  - PRC-31-S01
+  - PRC-31-S02
+  - PRC-31-S03
+  - PRC-31-S04
+  - PRC-31-S05
+  roles:
+  - id: SH-E3
+    as: initiator
+  - id: SH-E4
+    as: reviewer
+  - id: SH-E2
+    as: performer
+  - id: SH-C6a
+    as: external
   steps:
   - actor: SH-E3
+    where: in_system
     actor_v1: 设计师和顾问
     command: 提出设计变更
     aggregate: AGG-30
+    desc: 写变更内容与涉及的交付物、部位
     cross_bc:
     - mode: api
       direction: out
       bc: B-04
       name: 关联项目
+    permission: 设计变更.提出
+    page: 设计变更编辑页
   - actor: SH-E4
+    where: in_system
     actor_v1: 技术专家
     command: 认定变更归因与影响
     aggregate: AGG-30
-    desc: 归因必填（INV-54）
+    desc: 归因必填（INV-54），归因分类与返工认定共用一套原因语言
+    decision:
+    - when: 归因与影响已填写
+      goto: 3
+      rule: INV-54
+    - when: otherwise
+      goto: 2
+    permission: 设计变更.认定归因
+    page: 设计变更归因页
+    audit: true
   - actor: SH-E4
+    where: in_system
     actor_v1: 技术专家
     command: 内审设计变更
     aggregate: AGG-30
+    desc: 内部技术审核，聚合内裁定，不走审批平台
+    decision:
+    - when: 内审通过
+      goto: 4
+    - when: otherwise
+      goto: 1
+    approval:
+      engine: aggregate
+      doc_type: 设计变更内审
+      approver: SH-E4
+      multi_level: false
+      on_reject: 1
+    permission: 设计变更.内审
+    page: 设计变更内审页
+    audit: true
   - actor: SH-E2
+    where: offline
+    evidence:
+    - 设计变更通知单（盖章扫描件或邮件原始报文）
+    - 发包人签收回执与发出日
     actor_v1: 项目经理
     command: 发出设计变更
     aggregate: AGG-30
     emits:
     - 设计变更已发出
+    desc: 项目经理按合同通知条款向发包人发出，回执作证据；合同侧的协议变更、索赔单向引用设计变更 ID
     decision:
     - when: 发包人原因且增加工作量
       goto: 5
@@ -2198,28 +2778,34 @@ processes:
       direction: in
       bc: B-05
       name: 协议变更引用设计变更
+    calls: PRC-33
+    permission: 设计变更.发出
+    page: 设计变更发出登记页
+    audit: true
+    metric_event: true
   - actor: SH-E2
+    where: in_system
     actor_v1: 项目经理
     command: 标记待主张
     aggregate: AGG-30
-    desc: 发包人原因且增加工作量时标待主张或写不主张理由（P-24）
+    desc: 发包人原因且增加工作量时标待主张，或写明不主张的理由（P-24）；未被协议变更或索赔引用也未写理由的由 reporting 检查（交付不读合同）
     decision:
     - when: otherwise
       goto: 6
+    permission: 设计变更.标记待主张
+    page: 设计变更主张标记页
+    audit: true
   - actor: SH-E2
+    where: in_system
     actor_v1: 项目经理
     command: 关闭设计变更
     aggregate: AGG-30
-  notes: 合同侧的协议变更、索赔单向引用设计变更 ID；交付不读合同。
-  roles:
-  - id: SH-E3
-    as: initiator
-  - id: SH-E4
-    as: reviewer
-  - id: SH-E2
-    as: performer
-  - id: SH-C6a
-    as: external
+    desc: 变更执行完毕，相关交付物已按变更修订
+    permission: 设计变更.关闭
+    page: 设计变更关闭页
+    audit: true
+    outcome: 已关闭
+  notes: 合同侧的协议变更、索赔单向引用设计变更 ID；交付不读合同。「不主张」没有独立命令，同「标记待主张」按参数记（见 NOTES 新用语）。
 - id: PRC-32
   name: 申请并答复延期
   trigger:
@@ -2234,47 +2820,115 @@ processes:
   owner_bc: B-04
   human_orchestration: true
   human_note: 5 天内通知、10 天内提交说明，发包人 5 天未答复视为批准
+  migration: 全部历史延期申请（通知、说明、答复、视为批准及证据原件）迁入（U-4）；投产时处于通知后待说明、说明后待答复的按当前状态迁入，期限从原通知日、说明送达日续算
+  scope: 按项目的数据范围：项目经理经办，项目总监可见
+  triggers:
+  - type: human
+    name: 出现影响进度的客观原因，项目经理向发包人发出延期通知
+  - type: time
+    name: 发包人答复期满仍未答复（定时命令，按延期申请幂等）
+    starts_at: 5
+  outcomes:
+  - 已批准
+  - 已拒绝
+  - 视为批准
+  scenarios:
+  - PRC-32-S01
+  - PRC-32-S02
+  - PRC-32-S03
+  - PRC-32-S04
+  - PRC-32-S05
+  - PRC-32-S06
+  roles:
+  - id: SH-E2
+    as: initiator
+  - id: SH-C6a
+    as: external
+  - id: SH-M1
+    as: informed
   steps:
   - actor: SH-E2
+    where: offline
+    evidence:
+    - 延期通知函（盖章扫描件或邮件原始报文）与发包人签收回执
+    - 事由发生日与通知发出日
     actor_v1: 项目经理
     command: 通知延期
     aggregate: AGG-31
-    cross_bc:
-    - mode: api
-      direction: out
-      bc: B-04
-      name: 关联项目
+    desc: 事由发生后按合同通知期限（缺省示范文本 5 天）向发包人书面通知；期限参数由项目经理从合同录入（B-04 不读合同）
+    calls: PRC-33
+    permission: 延期申请.通知
+    page: 延期通知登记页
+    audit: true
+    timeout:
+      after: 合同约定通知期限（缺省 P5D，自事由发生日起）
+      escalate_to: SH-M1
+      interrupting: false
+    notify:
+    - to: SH-E2
+      how: 企业微信待办（延期通知期限临近，P-25）
   - actor: SH-E2
+    where: offline
+    evidence:
+    - 延期详细说明函（盖章扫描件或邮件原始报文）与发包人签收回执
+    - 说明送达日
     actor_v1: 项目经理
     command: 提交延期详细说明
     aggregate: AGG-31
+    desc: 按合同期限（缺省 10 天）提交详细说明；发包人答复期（缺省 5 天）自说明送达日起算
     decision:
-    - when: 发包人批准
+    - when: 发包人书面批准
       goto: 3
-    - when: 发包人拒绝
+    - when: 发包人书面拒绝
       goto: 4
-    - when: 发包人 5 天未答复
+    - when: otherwise
       goto: 5
-    approval:
-      doc_type: 延期申请答复
-      approver: SH-C6a
-      multi_level: false
-      on_reject: 4
     cross_bc:
     - mode: api
       direction: in
       bc: B-05
       name: 协议变更与索赔引用延期申请
+    approval:
+      doc_type: 延期申请答复
+      approver: SH-C6a
+      engine: external
+      multi_level: false
+      on_reject: 4
+    calls: PRC-33
+    permission: 延期申请.提交说明
+    page: 延期说明登记页
+    audit: true
+    timeout:
+      after: 合同约定答复期（缺省 P5D，自说明送达日起）
+      escalate_to: SH-E2
+      interrupting: true
+    notify:
+    - to: SH-E2
+      how: 企业微信待办（说明提交期限与答复期限临近，P-25）
   - actor: SH-E2
+    where: offline
+    evidence:
+    - 发包人书面批准材料（签认单、批复函或邮件原始报文之一）
+    - 批准日与批准人
     actor_v1: 项目经理
     command: 登记延期批准
     aggregate: AGG-31
     emits:
     - 延期已批准
+    desc: 批准后项目经理另行修订交付计划（PRC-18 新版本）
     decision:
     - when: otherwise
       goto: end
+    calls: PRC-33
+    permission: 延期申请.登记批准
+    page: 延期答复登记页
+    audit: true
+    outcome: 已批准
   - actor: SH-E2
+    where: offline
+    evidence:
+    - 发包人书面拒绝材料（批复函或邮件原始报文）
+    - 拒绝日与拒绝理由
     actor_v1: 项目经理
     command: 登记延期拒绝
     aggregate: AGG-31
@@ -2284,22 +2938,30 @@ processes:
     decision:
     - when: otherwise
       goto: end
+    calls: PRC-33
+    permission: 延期申请.登记拒绝
+    page: 延期答复登记页
+    audit: true
+    outcome: 已拒绝
   - actor: system
+    where: automatic
     actor_v1: 系统策略
     command: 登记延期视为批准
     aggregate: AGG-31
     branch: 超时
     emits:
     - 延期视为批准
+    desc: 合同约定的答复期满仍无书面答复，定时命令登记视为批准，按延期申请 ID 幂等；这是延期的合同约定，与交付物视为同意（归 B-08，ADR-0049）不同，不合并
     decision:
     - when: otherwise
       goto: end
-  notes: P-25 期限临近提醒；合同侧协议变更、索赔引用延期申请。
-  roles:
-  - id: SH-E2
-    as: initiator
-  - id: SH-C6a
-    as: external
+    audit: true
+    metric_event: true
+    outcome: 视为批准
+    notify:
+    - to: SH-E2
+      how: 企业微信消息（发包人答复期满，延期按合同视为批准）
+  notes: P-25 期限临近提醒；合同侧协议变更、索赔引用延期申请。AGG-31 没有 platform.approval 依赖，发包人答复是外部方答复，只登记证据。
 - id: PRC-34
   name: 处置我方成果不符合项
   trigger:
@@ -2310,37 +2972,83 @@ processes:
   - VS-02.7
   owner_bc: B-28
   human_orchestration: false
+  migration: 全部历史我方成果不符合项（含等级、部位、处置结论、让步接受的客户书面确认、返工认定）迁入（U-4）；投产时未关闭的按当前状态迁入，责任方与部位按迁入后的往来单位、建设工程映射
+  scope: 按项目的数据范围：设计师、技术专家、项目经理可见并经办；返工认定供工时读取
+  segregation:
+  - roles:
+    - SH-E3
+    - SH-E4
+    rule: 不符合项的登记人与关闭确认人不得为同一人
+  triggers:
+  - type: human
+    name: 评审、检查或客户反馈发现我方成果问题，设计师登记
+  outcomes:
+  - 已关闭
+  scenarios:
+  - PRC-34-S01
+  - PRC-34-S02
+  - PRC-34-S03
+  - PRC-34-S04
+  - PRC-34-S05
+  - PRC-34-S06
+  roles:
+  - id: SH-E3
+    as: initiator
+  - id: SH-E4
+    as: reviewer
+  - id: SH-E2
+    as: performer
+  - id: SH-C6a
+    as: external
   steps:
   - actor: SH-E3
+    where: in_system
     actor_v1: 设计师和顾问
     command: 登记不符合项
     aggregate: AGG-28
+    desc: 记来源（交付物或检查）、等级、部位与整改责任方；类型为我方成果
     cross_bc:
     - mode: api
       direction: out
       bc: B-01
       name: 整改责任方与部位
+    permission: 不符合项.登记
+    page: 不符合项登记页
   - actor: SH-E4
+    where: in_system
     actor_v1: 技术专家
     command: 确认不符合项
     aggregate: AGG-28
     emits:
     - 不符合项已确认
+    desc: 确认等级与是否阻断；阻断性不符合项未关闭，交付物不得登记认可（INV-48）
     decision:
     - when: 不符合项造成返工
       goto: 3
     - when: 客户书面确认让步接受
       goto: 5
+      rule: INV-49
     - when: otherwise
       goto: 6
+    permission: 不符合项.确认
+    page: 不符合项确认页
+    audit: true
+    timeout:
+      after: 按等级体系版本配置的处置期限（暂无默认，待用户定）
+      escalate_to: SH-M1
+      interrupting: false
+    notify:
+    - to: SH-M1
+      how: 企业微信消息（不符合项处置超期，P-23 提醒）
   - actor: SH-E4
+    where: in_system
     actor_v1: 技术专家
     command: 认定返工
     aggregate: AGG-29
     branch: 返工
     emits:
     - 返工已认定
-    desc: 返工工时只能由返工认定产生（INV-53）
+    desc: 返工工时只能由返工认定产生（INV-53）；原因分类与设计变更归因共用一套语言
     decision:
     - when: 返工认定被撤销
       goto: 4
@@ -2351,41 +3059,62 @@ processes:
       direction: in
       bc: B-06
       name: 工时读取返工认定
+    permission: 返工认定.认定
+    page: 返工认定页
+    audit: true
+    metric_event: true
   - actor: SH-E4
+    where: in_system
     actor_v1: 技术专家
     command: 撤销返工认定
     aggregate: AGG-29
     branch: 撤销
     emits:
     - 返工认定已撤销
+    desc: 须写原因；已按该认定记入的返工工时保留，分类由工时侧认定（PRC-91）调整
     decision:
     - when: otherwise
       goto: 6
+    permission: 返工认定.撤销
+    page: 返工认定页
+    audit: true
   - actor: SH-E2
+    where: offline
+    evidence:
+    - 客户书面确认让步接受的材料（确认函、签认单或邮件原始报文之一）
+    - 确认日与确认人（须为合同登记的发包人代表或授权人）
     actor_v1: 项目经理
     command: 让步接受不符合项
     aggregate: AGG-28
     branch: 让步
-    desc: 须客户书面确认（INV-49）
+    desc: 须客户书面确认（INV-49），无书面确认的让步被拒
     decision:
     - when: otherwise
       goto: 6
+    calls: PRC-33
+    permission: 不符合项.让步接受
+    page: 不符合项让步登记页
+    audit: true
   - actor: SH-E4
+    where: in_system
     actor_v1: 技术专家
     command: 关闭不符合项
     aggregate: AGG-28
     emits:
     - 不符合项已关闭
-  notes: 客户反馈的成果问题归本流程，过程问题归项目风险与问题（Q-E）。
-  roles:
-  - id: SH-E3
-    as: initiator
-  - id: SH-E4
-    as: reviewer
-  - id: SH-E2
-    as: performer
-  - id: SH-C6a
-    as: external
+    desc: 整改（含返工）完成、复核通过或让步接受后关闭
+    approval:
+      engine: aggregate
+      doc_type: 不符合项关闭
+      approver: SH-E4
+      multi_level: false
+      on_reject: 2
+    permission: 不符合项.关闭
+    page: 不符合项关闭页
+    audit: true
+    metric_event: true
+    outcome: 已关闭
+  notes: 客户反馈的成果问题归本流程，过程问题归项目风险与问题（Q-E）。我方成果类不符合项未关闭只在阶段门预警（VS-02.6 出口）。
 - id: PRC-36
   name: 封存成果、结项并归档项目
   trigger:
@@ -2399,23 +3128,74 @@ processes:
   merged_from:
   - PRC-39
   - PRC-40
+  migration: 已结项、已归档项目只迁结局与历史结项检查单快照（U-3、U-4）；投产时处于收尾、已发起结项检查或结项审批中的项目按当前状态迁入，审批中的以新审批实例重新提交；封存范围与哈希随交付物、证据迁入
+  scope: 按项目的数据范围：项目经理经办，项目总监审批，财务知会；检查单读多个 BC 的数据，查看限项目管理层与财务
+  triggers:
+  - type: human
+    name: 项目经理收尾，封存已发布交付物与证据并发起结项
+  outcomes:
+  - 已归档
+  - 检查未通过
+  scenarios:
+  - PRC-36-S01
+  - PRC-36-S02
+  - PRC-36-S03
+  - PRC-36-S04
+  - PRC-36-S05
+  - PRC-36-S06
+  roles:
+  - id: SH-E2
+    as: initiator
+  - id: SH-M1
+    as: approver
+  - id: SH-E6
+    as: informed
   steps:
   - actor: SH-E2
+    where: in_system
     actor_v1: 项目经理
     command: 封存交付物
     aggregate: AGG-27
     emits:
     - 交付物已封存
-    desc: 证据封存见「采集、关联并封存证据」；结项编排读取两者已封存（INV-40 第三项）
+    desc: 已发布成果封存，范围与整包哈希入封存记录；B-29 经 api 调 B-28 的命令（INV-40 第三项要求已封存）
     cross_bc:
     - mode: api
       direction: out
       bc: B-28
       name: 封存交付物
+    permission: 交付物.封存
+    page: 交付物封存页
+    audit: true
   - actor: SH-E2
+    where: in_system
+    command: 封存证据
+    aggregate: AGG-38
+    emits:
+    - 证据已封存
+    added_in: closeout
+    desc: 项目下证据封存后不可修改或删除（INV-58）；B-29 经 api 调 B-28 的命令
+    calls: PRC-33
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-28
+      name: 封存证据
+    permission: 证据.封存
+    page: 证据封存页
+    audit: true
+  - actor: SH-E2
+    where: in_system
+    actor_v1: 项目经理
+    command: 发起结项检查
+    desc: 无状态，返回检查结果；检查单快照经 platform.audit 留痕
+    permission: 结项检查.发起
+    page: 结项检查页
+    audit: true
+  - actor: system
+    where: automatic
     actor_v1: 项目经理
     read: true
-    command: 发起结项检查
     reads:
     - AGG-27
     - AGG-38
@@ -2424,12 +3204,14 @@ processes:
     - AGG-39
     - AGG-13
     - AGG-17
-    desc: 无状态返回检查结果；拒绝项 3 条（收入覆盖、供方协议已结算或有结论、资料已封存）与预警项 2 条；检查单经 platform.audit 留痕
+    desc: 拒绝项 3 条（一、已认可成果均被收入确认行引用为证据或已登记不确认收入的结论，结论载体随 Q20；二、供方协议均已结算或已终止或已登记结算结论；三、已发布交付物与证据均已封存）；预警项 2 条（工时单未全部审批或退回未处理；无生效协议且无风险交付授权，P-16），预警只留痕不拦截
     decision:
     - when: 三项拒绝检查均满足
-      goto: 3
+      goto: 5
+      rule: INV-40
     - when: otherwise
       goto: end
+      rule: INV-40
     cross_bc:
     - mode: api
       direction: out
@@ -2455,63 +3237,79 @@ processes:
       direction: out
       bc: platform.audit
       name: 结项检查单留痕
+    audit: true
+    outcome: 检查未通过
+    notify:
+    - to: SH-E2
+      how: 企业微信消息（结项检查结果，含未满足的拒绝项与预警项）
   - actor: platform
+    where: in_system
     actor_v1: 项目经理
     platform_task: true
     service: platform.approval
     command: 提交结项申请
-    desc: 编排方实现审批钩子，提交时与审批通过时各跑一次检查
+    desc: 编排方实现审批钩子，提交时与审批通过时各跑一次检查，审批通过前任一拒绝项不满足即退回；审批结果以「审批已完成」事件回到 B-29
     decision:
     - when: 审批通过
-      goto: 4
+      goto: 6
     - when: otherwise
-      goto: 2
+      goto: 3
     approval:
+      engine: platform.approval
       doc_type: 结项申请
       approver: SH-M1
       multi_level: false
-      on_reject: 2
+      on_reject: 3
     cross_bc:
     - mode: api
       direction: out
       bc: platform.approval
       name: 结项审批
+    - mode: event
+      direction: in
+      bc: platform.approval
+      name: 审批已完成
+    permission: 结项申请.审批
+    page: 审批待办页
+    audit: true
+    notify:
+    - to: SH-M1
+      how: 企业微信待办（结项申请待审批）
+    - to: SH-E6
+      how: 企业微信消息（项目结项申请已提交，知会财务）
   - actor: system
+    where: automatic
     actor_v1: 系统策略
     command: 结项
     aggregate: AGG-19
     emits:
     - 项目已结项
-    desc: 审批通过后调用，按结项申请 ID 幂等（INV-40）
+    desc: 审批通过后调用，按结项申请 ID 幂等（INV-40）；事件由 AGG-19（B-04）发出，订阅方 B-07（终止清算与超期转费用），B-29 不发领域事件
     cross_bc:
     - mode: api
       direction: out
       bc: B-04
       name: 结项
-    - mode: event
-      direction: out
-      bc: B-07
-      name: 项目已结项
+    audit: true
+    metric_event: true
   - actor: SH-E2
+    where: in_system
     actor_v1: 项目经理
     command: 归档项目
     aggregate: AGG-19
     emits:
     - 项目已归档
-    desc: 项目已结项后归档（合并原 PRC-40，⑥a 评审 M2）；封存条件已在结项检查时核过
+    desc: 项目已结项后归档（合并原 PRC-40，⑥a 评审 M2）；封存条件已在结项检查时核过；归档后改成果与证据预警（P-16）
     cross_bc:
     - mode: api
       direction: out
       bc: B-04
       name: 归档项目
-  notes: 合并原 PRC-39、PRC-40（⑥a 评审 H2 c）。D-9 用户已定 a：无聚合的流程模块 B-29（模块标识 delivery.closeout，intent 114200 F-5），位于 B-04、B-05、B-06、B-08、B-11、B-28 下游；收入覆盖结论载体随 Q20。
-  roles:
-  - id: SH-E2
-    as: initiator
-  - id: SH-M1
-    as: approver
-  - id: SH-E6
-    as: informed
+    permission: 项目.归档
+    page: 项目归档页
+    audit: true
+    outcome: 已归档
+  notes: 合并原 PRC-39、PRC-40（⑥a 评审 H2 c）。D-9 用户已定 a：无聚合的流程模块 B-29（模块标识 delivery.closeout，intent 114200 F-5），位于 B-04、B-05、B-06、B-08、B-11、B-28 下游；收入覆盖结论载体随 Q20。封存证据步为收尾新增，使 INV-40 第三项（交付物与证据均已封存）可由本流程达成。
 - id: PRC-37
   name: 回访客户满意度
   trigger:
@@ -2521,11 +3319,36 @@ processes:
   - VS-02.7
   owner_bc: B-28
   human_orchestration: false
+  migration: 全部历史满意度调查（调查对象联系人、回收材料、评分、跟进说明）迁入（U-4），联系人按迁入后的往来单位联系人映射；投产时已发出未回收的按「已发出」迁入，已回收未评分的按「已回收」迁入
+  scope: 按项目的数据范围：项目经理、项目总监可见；联系人为个人信息，限经办人与项目管理层
+  triggers:
+  - type: human
+    name: 项目收尾，项目经理发出满意度调查
+  outcomes:
+  - 已跟进
+  scenarios:
+  - PRC-37-S01
+  - PRC-37-S02
+  - PRC-37-S03
+  - PRC-37-S04
+  - PRC-37-S05
+  roles:
+  - id: SH-E2
+    as: initiator
+  - id: SH-C6a
+    as: external
+  - id: SH-M1
+    as: informed
   steps:
   - actor: SH-E2
+    where: offline
+    evidence:
+    - 调查发出记录：问卷发送邮件原始报文或回访通话记录
+    - 发出日与调查对象联系人
     actor_v1: 项目经理
     command: 发出满意度调查
     aggregate: AGG-105
+    desc: 问卷经邮件或电话回访发给发包人联系人，系统登记调查与发出证据
     cross_bc:
     - mode: api
       direction: out
@@ -2535,7 +3358,20 @@ processes:
       direction: out
       bc: B-01
       name: 调查对象联系人
+    permission: 满意度调查.发出
+    page: 满意度调查发出页
+    timeout:
+      after: 建议 P14D 未回收提醒（建议值，待用户定）
+      escalate_to: SH-E2
+      interrupting: false
+    notify:
+    - to: SH-E2
+      how: 企业微信待办（满意度调查超期未回收，只预警）
   - actor: SH-E2
+    where: offline
+    evidence:
+    - 客户填写的问卷原件或回访记录（扫描件、邮件原始报文）
+    - 回收日与填写人
     actor_v1: 项目经理
     command: 登记调查回收
     aggregate: AGG-105
@@ -2544,25 +3380,36 @@ processes:
       direction: out
       bc: B-13
       name: 跟进人
+    permission: 满意度调查.登记回收
+    page: 满意度调查回收登记页
+    audit: true
   - actor: SH-E2
+    where: in_system
     actor_v1: 项目经理
     command: 评分满意度调查
     aggregate: AGG-105
     emits:
     - 满意度调查已评分
+    desc: 评分只能在已回收后记，已评分的不得改，更正另记（INV-111）
     decision:
     - when: 评分低于阈值（阈值待定）
       goto: 4
+      rule: P-45
     - when: otherwise
       goto: 5
+    permission: 满意度调查.评分
+    page: 满意度调查评分页
+    audit: true
+    metric_event: true
   - actor: system
+    where: automatic
     actor_v1: 系统策略
     command: 登记风险与问题
     aggregate: AGG-104
     branch: 低分
     emits:
     - 风险与问题已登记
-    desc: P-45 低于阈值（待定）经 api 调交付执行登记命令，按调查 ID 幂等
+    desc: P-45 低于阈值（待定）经 api 调交付执行登记命令，按调查 ID 幂等；同时反馈项目总监
     decision:
     - when: otherwise
       goto: 5
@@ -2571,20 +3418,23 @@ processes:
       direction: out
       bc: B-04
       name: 登记风险与问题
+    audit: true
+    notify:
+    - to: SH-M1
+      how: 企业微信消息（客户满意度低分，已登记项目风险与问题）
   - actor: SH-E2
+    where: in_system
     actor_v1: 项目经理
     command: 登记满意度跟进
     aggregate: AGG-105
     emits:
     - 满意度调查已跟进
-  notes: B-28 → B-04 单向。
-  roles:
-  - id: SH-E2
-    as: initiator
-  - id: SH-C6a
-    as: external
-  - id: SH-M1
-    as: informed
+    desc: 已跟进须记跟进说明（INV-111）
+    permission: 满意度调查.登记跟进
+    page: 满意度调查跟进页
+    audit: true
+    outcome: 已跟进
+  notes: B-28 → B-04 单向。回访中成果问题归不符合项（来源「客户」），过程问题归项目风险与问题（用户答复 Q-E 第 1 项选 b）。
 - id: PRC-38
   name: 编制并发布项目复盘
   trigger:
@@ -2594,11 +3444,34 @@ processes:
   - VS-02.7
   owner_bc: B-04
   human_orchestration: false
+  migration: 全部历史项目复盘（含版本链与评审记录）迁入（U-4）；投产时编制中、评审中的按当前状态迁入，已发布的作不可改版本迁入
+  scope: 按项目的数据范围：项目成员可见；发布后的复盘供知识提炼，范围按知识库授权（B-30）
+  segregation:
+  - roles:
+    - SH-E2
+    - SH-E4
+    rule: 复盘评审人不得是该复盘的编制人
+  triggers:
+  - type: human
+    name: 项目进入收尾，项目经理编制复盘
+  outcomes:
+  - 已发布
+  scenarios:
+  - PRC-38-S01
+  - PRC-38-S02
+  - PRC-38-S03
+  roles:
+  - id: SH-E2
+    as: initiator
+  - id: SH-E4
+    as: reviewer
   steps:
   - actor: SH-E2
+    where: in_system
     actor_v1: 项目经理
     command: 编制项目复盘
     aggregate: AGG-103
+    desc: 复盘内容可引用知识条目；已发布后需更正的另出新版本并引用被取代版本（INV-112）
     cross_bc:
     - mode: api
       direction: out
@@ -2608,27 +3481,42 @@ processes:
       direction: out
       bc: B-30
       name: 产出的知识条目
+    permission: 项目复盘.编制
+    page: 项目复盘编辑页
   - actor: SH-E4
+    where: in_system
     actor_v1: 技术专家
     command: 评审项目复盘
     aggregate: AGG-103
+    desc: 须评审后才能发布（INV-112）；聚合内评审记录，不走审批平台
     decision:
     - when: 评审通过
       goto: 3
+      rule: INV-112
     - when: otherwise
       goto: 1
+    approval:
+      engine: aggregate
+      doc_type: 项目复盘评审
+      approver: SH-E4
+      multi_level: false
+      on_reject: 1
+    permission: 项目复盘.评审
+    page: 项目复盘评审页
+    audit: true
   - actor: SH-E2
+    where: in_system
     actor_v1: 项目经理
     command: 发布项目复盘
     aggregate: AGG-103
     emits:
     - 项目复盘已发布
-  notes: 报价只存复盘 ID，不回读（§7 第 19 条）。
-  roles:
-  - id: SH-E2
-    as: initiator
-  - id: SH-E4
-    as: reviewer
+    permission: 项目复盘.发布
+    page: 项目复盘发布页
+    audit: true
+    metric_event: true
+    outcome: 已发布
+  notes: 报价只存复盘 ID，不回读（§7 第 19 条）；知识提炼由 B-04 经 api 调 B-30（PRC-107），不是事件订阅。
 - id: PRC-41
   name: 制定检查计划并使其生效
   trigger:
@@ -5788,6 +6676,77 @@ event_policies:
   - PRC-59-S02
   - PRC-59-S03
   notes: §4.3 步 8 写事件「应收已创建」，AGG-49 事件列无此名，见 G-08。「发票已红冲」的反应仍无命令（G-08）。
+- id: PRC-91
+  name: 认定工时有效性
+  trigger:
+    type: event
+    events:
+    - event: TimesheetApproved
+      aggregate: AGG-39
+    gate: 期间闸门——目标期间尚未封期（AGG-81 开放）；期间封期前由项目经理对已审批工时批量认定（⑥a 评审 M7）
+  stages:
+  - VS-10.1
+  owner_bc: B-06
+  migration: 全部历史工时条目的分类结果（有效、无效、返工、可计费）随工时单迁入（U-3、U-4）；投产时已通过未认定的工时按「待认定」迁入，进入项目经理待办，期间已封存的按已有分类迁入不再认定
+  scope: 项目经理按本项目的数据范围认定；部门负责人可见本部门
+  triggers:
+  - type: event
+    name: TimesheetApproved
+    bc: B-06
+  scenarios:
+  - PRC-91-S01
+  - PRC-91-S02
+  - PRC-91-S03
+  - PRC-91-S04
+  - PRC-91-S05
+  steps:
+  - actor: system
+    where: automatic
+    read: true
+    reads:
+    - AGG-39
+    - AGG-29
+    added_in: closeout
+    desc: 工时单通过后按条目生成待认定清单，读返工认定、返工条目预置为「返工」（INV-53）；通知项目经理在目标期间封期前认定；同一工时单同一轮次只生成一次
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-28
+      name: 读返工认定
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 读期间状态（经过账事实的期间闸门）
+    notify:
+    - to: SH-E2
+      how: 企业微信待办（本项目已审批工时待认定，期间封期前完成）
+    timeout:
+      after: 期间封期前提醒（提前量建议 3 个工作日，待用户定）
+      escalate_to: SH-M1
+      interrupting: false
+  - actor: SH-E2
+    where: in_system
+    actor_v1: 项目经理
+    command: 认定工时有效性
+    aggregate: AGG-39
+    emits:
+    - 工时已认定
+    desc: 有效 / 无效 / 返工 / 可计费四类之和等于填报总数（可计费 ⊆ 有效）；返工只能由返工认定产生（INV-53）；认定结果是人工成本分配的输入（INV-89 只分配已锁定工时）
+    decision:
+    - when: 目标期间已关账
+      goto: end
+      rule: INV-67
+    - when: 四类之和不等于填报总数
+      goto: end
+      rule: INV-53
+    - when: otherwise
+      goto: end
+    permission: 工时.认定有效性
+    page: 工时认定页
+    audit: true
+    metric_event: true
+    period_gate: true
+  notes: 认定结果是人工成本分配的输入（INV-89 只分配已锁定工时）。一个事件、一步命令，无超时或退回分支，由业务流程移入事件策略（⑥a 复核）；收尾新增「生成待认定清单」自动步，使人工认定有待办可依。
 - id: PRC-146
   name: 协议借阅逾期催还
   trigger:
@@ -6702,6 +7661,321 @@ single_aggregate:
   - PRC-14-S02
   - PRC-14-S03
   notes: 外部引用对象只记录、不控制，不作阶段门。由业务流程移入单聚合维护（intent 120544 P-5；回溯检查 RD-12）。聚合稿 REF-01 已有命令「登记招标项目」，v1 的 G-06 标注留作追溯。
+- id: PRC-21
+  name: 推进阶段与工作包
+  aggregate: AGG-20
+  owner_bc: B-04
+  stages:
+  - VS-02.0
+  - VS-02.1
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  desc: 设计师与项目经理按工作进程更新
+  states:
+    stage_node:
+    - 未开始
+    - 进行中
+    - 已完成
+    work_package:
+    - 未发布
+    - 已锁定
+    - 已作废
+  transitions:
+  - from: 未开始
+    to: 进行中
+    command: 开始阶段
+    by: SH-E2
+    kind: 阶段节点
+    emits: 阶段已开始
+    rule: INV-41
+  - from: 进行中
+    to: 已完成
+    command: 完成阶段
+    by: SH-E2
+    kind: 阶段节点
+    emits: 阶段已完成
+    rule: INV-41
+  - from: 未发布
+    to: 已锁定
+    command: 锁定工作包
+    by: SH-E2
+    kind: 工作包
+    emits: 工作包已锁定
+    rule: INV-42
+  - from: 已锁定
+    to: 已作废
+    command: 作废工作包
+    by: SH-E2
+    kind: 工作包
+    emits: 工作包已作废
+    rule: INV-42
+  - from: 未发布
+    to: 已作废
+    command: 作废工作包
+    by: SH-E2
+    kind: 工作包
+    emits: 工作包已作废
+    rule: INV-42
+  pages:
+  - page: 项目WBS进度页
+    permission: 项目WBS.推进阶段
+    commands:
+    - 开始阶段
+    - 完成阶段
+  - page: 工作包管理页
+    permission: 项目WBS.管理工作包
+    commands:
+    - 锁定工作包
+    - 作废工作包
+  migration: 全部历史 WBS（阶段节点与工作包及其状态、起止时间）迁入（U-4）；投产时进行中的阶段按「进行中」迁入，工作包按迁入时的发布状态迁入；已作废的工作包保留并带作废原因
+  scope: 按项目的数据范围：项目经理与项目成员可见，项目经理经办；工作包的使用范围另按 INV-66 的有权使用判定
+  scenarios:
+  - PRC-21-S01
+  - PRC-21-S02
+  - PRC-21-S03
+  - PRC-21-S04
+  roles:
+  - id: SH-E2
+    as: performer
+  - id: SH-E3
+    as: informed
+  commands:
+  - actor: 项目经理
+    command: 开始阶段
+    emits:
+    - 阶段已开始
+  - actor: 项目经理
+    command: 完成阶段
+    emits:
+    - 阶段已完成
+  - actor: 项目经理
+    command: 锁定工作包
+    emits:
+    - 工作包已锁定
+  - actor: 项目经理
+    command: 作废工作包
+    branch: 作废
+    emits:
+    - 工作包已作废
+  notes: 阶段映射已收窄（⑥a 评审 M4）：去掉 VS-02.7（其进入或退出条件不含 WBS）。阶段节点只记工作进程，不记客户认可（§4.4.1）；工作包删除规则随 D-6（用户已定 a：未发布可删，已发布只作废）。阶段并行、倒序、跳段是常态（S2），故状态转换不要求顺序。阶段已完成事件由 reporting 订阅产生阶段门预警（PRC-22）。「锁定」与「已发布」同指工作包进入使用状态，用语交
+    one-glossary 统一。
+- id: PRC-27
+  name: 登记并处置项目风险与问题
+  aggregate: AGG-104
+  owner_bc: B-04
+  stages:
+  - VS-02.0
+  - VS-02.1
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  - VS-02.7
+  desc: 项目成员发现过程风险或问题
+  states:
+    record:
+    - 已登记
+    - 应对中
+    - 已关闭
+    - 已接受
+  transitions:
+  - from: （新建）
+    to: 已登记
+    command: 登记风险与问题
+    by: SH-E2
+    emits: 风险与问题已登记
+    note: 项目成员发现的由项目经理登记；客户满意度低分由 PRC-37 经 api 自动登记（P-45，按调查 ID 幂等，执行者为系统）
+  - from: 已登记
+    to: 应对中
+    command: 记录应对措施
+    by: SH-E2
+  - from: 应对中
+    to: 应对中
+    command: 记录应对措施
+    by: SH-E2
+  - from: 应对中
+    to: 已关闭
+    command: 关闭风险与问题
+    by: SH-E2
+    emits: 风险与问题已关闭
+    rule: INV-113
+  - from: 已登记
+    to: 已关闭
+    command: 关闭风险与问题
+    by: SH-E2
+    emits: 风险与问题已关闭
+    rule: INV-113
+  - from: 应对中
+    to: 已接受
+    command: 接受风险与问题
+    by: SH-M1
+    emits: 风险与问题已接受
+    rule: INV-113
+    note: 须记接受人与依据
+  pages:
+  - page: 项目风险与问题登记页
+    permission: 风险与问题.登记
+    commands:
+    - 登记风险与问题
+  - page: 项目风险与问题处置页
+    permission: 风险与问题.处置
+    commands:
+    - 记录应对措施
+    - 关闭风险与问题
+  - page: 项目风险接受页
+    permission: 风险与问题.接受
+    commands:
+    - 接受风险与问题
+  migration: 全部历史风险与问题记录（含运营记录表、项目操作内审表单据、应对措施、接受人与依据）迁入（U-4）；投产时未关闭的按「应对中」迁入，已关闭、已接受的作不可改记录迁入
+  scope: 按项目的数据范围：项目成员可见，项目经理、项目总监经办；接受须项目总监
+  scenarios:
+  - PRC-27-S01
+  - PRC-27-S02
+  - PRC-27-S03
+  - PRC-27-S04
+  - PRC-27-S05
+  roles:
+  - id: SH-E2
+    as: performer
+  - id: SH-M1
+    as: approver
+  - id: SH-E3
+    as: informed
+  commands:
+  - actor: 项目经理
+    command: 登记风险与问题
+    emits:
+    - 风险与问题已登记
+  - actor: 项目经理
+    command: 记录应对措施
+  - actor: 项目经理
+    command: 关闭风险与问题
+    emits:
+    - 风险与问题已关闭
+  - actor: 项目总监
+    command: 接受风险与问题
+    branch: 接受
+    emits:
+    - 风险与问题已接受
+    desc: 须记接受人与依据（INV-113）
+  notes: 客户满意度低分经 P-45 自动登记（见「回访客户满意度」）。已关闭或已接受后不得再改应对记录，重开须另记一条（INV-113）。
+- id: PRC-33
+  name: 采集、关联并封存证据
+  aggregate: AGG-38
+  also_aggregates:
+  - AGG-110
+  owner_bc: B-28
+  stages:
+  - VS-02.4
+  - VS-02.7
+  - VS-03.2
+  - VS-04.2
+  desc: 检查员、项目经理或设计师采集证据
+  states:
+    evidence:
+    - 已采集
+    - 已封存
+    - 已作废
+    link:
+    - 已关联
+    - 已解除
+  transitions:
+  - from: （新建）
+    to: 已采集
+    command: 采集证据
+    by: SH-E3
+    aggregate: AGG-38
+    note: 记证据类型、采集时间、采集人、地点、摘要；服务端时间与内容哈希，只追加
+  - from: 已采集
+    to: 已采集
+    command: 上传证据摘要
+    by: SH-E3
+    aggregate: AGG-38
+  - from: 已采集
+    to: 已封存
+    command: 封存证据
+    by: SH-E2
+    aggregate: AGG-38
+    emits: 证据已封存
+    rule: INV-58
+  - from: 已采集
+    to: 已作废
+    command: 作废证据
+    by: SH-E2
+    aggregate: AGG-38
+    note: 须原因，保留原件；已封存的证据不得作废（INV-58）
+  - from: （无）
+    to: 已关联
+    command: 关联证据
+    by: SH-E3
+    aggregate: AGG-110
+    rule: INV-58
+    note: 记证据 ID 到交付物或 WBS 阶段节点，带提交轮次与合同引用
+  - from: 已关联
+    to: 已解除
+    command: 解除证据关联
+    by: SH-E3
+    aggregate: AGG-110
+    rule: INV-58
+    note: 仅挂错时；证据已封存后不得解除
+  pages:
+  - page: 证据采集页
+    permission: 证据.采集
+    commands:
+    - 采集证据
+    - 上传证据摘要
+  - page: 证据关联页
+    permission: 证据.关联
+    commands:
+    - 关联证据
+    - 解除证据关联
+  - page: 证据封存页
+    permission: 证据.封存
+    commands:
+    - 封存证据
+    - 作废证据
+  migration: 全部历史证据（含原件文件、哈希、采集人、地点、关联关系）迁入（U-4），记迁入来源与原始时间，迁入时重算哈希并登记完整性复核；已封存的作已封存迁入；老系统无法证明采集时间的，以迁入时间作服务端时间并标注「原始时间未证实」
+  scope: 按项目的数据范围；证据含客户签认人、现场人员信息，按敏感分级限经办人与项目管理层；封存后只读
+  scenarios:
+  - PRC-33-S01
+  - PRC-33-S02
+  - PRC-33-S03
+  - PRC-33-S04
+  - PRC-33-S05
+  roles:
+  - id: SH-E3
+    as: performer
+  - id: SH-E2
+    as: performer
+  - id: SH-E4
+    as: informed
+  commands:
+  - actor: 设计师和顾问
+    command: 采集证据
+  - actor: 设计师和顾问
+    command: 上传证据摘要
+  - actor: 设计师和顾问
+    command: 关联证据
+    aggregate: AGG-110
+    desc: 证据关联（intent 114200 F-1）：记证据 ID → 交付物 / WBS 阶段节点；不符合项、检查等引用方按 ID 引用证据
+  - actor: 设计师和顾问
+    command: 解除证据关联
+    aggregate: AGG-110
+    branch: 挂错
+    desc: 证据已封存后不得解除（INV-58）
+  - actor: 项目经理
+    command: 封存证据
+    emits:
+    - 证据已封存
+  - actor: 项目经理
+    command: 作废证据
+    branch: 作废
+    desc: 须原因，保留原件
+  notes: 证据位置与保存期随 Q29、Q34；施工图审查意见与合格书作证据类型（R-06）。送达回执与阶段签认是用户点名的缺口（R-5），由 PRC-28、PRC-18、PRC-26、PRC-31、PRC-32、PRC-34 的线下步骤经 calls 登记到本流程。关联证据、解除证据关联属 AGG-110 证据关联（技术聚合，同 B-28；intent 114200 F-1），其余命令属 AGG-38。
 - id: PRC-42
   name: 发布检查表模板版本
   type: single_aggregate
@@ -6841,6 +8115,132 @@ single_aggregate:
   - PRC-68-S03
   notes: 终止通常需审批，审批未建模；F-2 要求含审批状态的聚合走 platform.approval，是否补见 NOTES 待用户定。
 read_models:
+- id: PRC-22
+  name: 阶段门预警
+  owner_bc: reporting
+  events:
+  - event: 阶段已完成
+    aggregate: AGG-20
+    bc: B-04
+  - event: 阶段已开始
+    aggregate: AGG-20
+    bc: B-04
+  - event: 交付物已送达
+    aggregate: AGG-27
+    bc: B-28
+  - event: 交付物已认可
+    aggregate: AGG-27
+    bc: B-28
+  - event: 无异议已声明
+    aggregate: AGG-27
+    bc: B-28
+  - event: 交付物已封存
+    aggregate: AGG-27
+    bc: B-28
+  - event: 视为同意已成立
+    aggregate: AGG-44
+    bc: B-08
+  - event: 项目已建立
+    aggregate: AGG-19
+    bc: B-04
+  - event: 项目已开始执行
+    aggregate: AGG-19
+    bc: B-04
+  - event: 项目已结项
+    aggregate: AGG-19
+    bc: B-04
+  - event: 项目已归档
+    aggregate: AGG-19
+    bc: B-04
+  - event: 交付计划已批准
+    aggregate: AGG-21
+    bc: B-04
+  - event: 项目预算已锁定
+    aggregate: AGG-22
+    bc: B-04
+  - event: 不符合项已关闭
+    aggregate: AGG-28
+    bc: B-28
+  - event: 证据已封存
+    aggregate: AGG-38
+    bc: B-28
+  - event: 项目复盘已发布
+    aggregate: AGG-103
+    bc: B-04
+  - event: 满意度调查已评分
+    aggregate: AGG-105
+    bc: B-28
+  - event: 满意度调查已跟进
+    aggregate: AGG-105
+    bc: B-28
+  reads:
+  - AGG-20
+  - AGG-27
+  - AGG-44
+  - AGG-19
+  - AGG-21
+  - AGG-22
+  - AGG-28
+  - AGG-38
+  - AGG-103
+  - AGG-105
+  stages:
+  - VS-02.0
+  - VS-02.1
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  - VS-02.7
+  desc: STEP3 R-12 的读模型；reporting 订阅阶段已完成，合并交付物已认可 / 已声明，产生门预警并留痕，不进聚合；门只预警不拦截（S2）。其余价值流的门预警同此模式，按阶段登记时补。
+  query:
+    grain: 项目 × 阶段节点
+    dimensions:
+    - 项目
+    - 阶段
+    - 承担部门
+    - 承担法人
+    - 项目经理
+    - 业务线
+    gate_rule: 各阶段出口取自价值流 VS-02：共同出口＝阶段节点已完成，且该阶段下需客户认可的交付物均已认可，或已送达（审查中）并已声明无异议；视为同意是读模型从 B-08 的认定事件派生显示，交付物无该状态（ADR-0049）
+    stage_exits:
+    - stage: VS-02.0
+      exit: 项目已立项或执行中；交付计划已批准（对客）或内部锁定；项目预算已锁定；启动阶段节点已完成
+    - stage: VS-02.1 至 VS-02.5
+      exit: 共同出口
+    - stage: VS-02.6
+      exit: 共同出口，另加我方成果类不符合项已关闭（未关闭只预警）
+    - stage: VS-02.7
+      exit: 项目复盘已发布；满意度调查已回收、已评分或已跟进（未回收只预警）；已发布交付物与证据已封存；项目已结项并归档
+    warnings:
+    - code: 阶段已完成但出口未满足
+      rule: 阶段节点已完成而共同出口的交付物条件不满足
+    - code: 催签超期
+      rule: 交付物已送达后超过催签周期（合同未约定审查期时缺省 P15D）仍无认可、退回或无异议声明；不自动认可，不得登记视为同意
+    - code: 审查期将满
+      rule: 已送达且合同约定审查期的，距期满前提示项目经理登记无异议声明；期满判定在 B-08（P-21）
+    - code: 阶段倒序或跳段
+      rule: 仅提示，不拦截（S2 取证 89.5% 阶段有重叠）
+    refresh: 订阅领域事件增量更新（reporting L1，ADR-0023），每日定时全量校正一次；预警留痕只追加，保留预警出现与消除的时间
+    freshness: 事件到达后分钟级；以每日校正为准
+  permission: 阶段门预警.查看
+  page: 项目阶段门预警页
+  scope: 项目成员见本项目；部门负责人、项目总监见承担部门全部项目；管理层与财务见全部项目；按承担法人与业务线过滤
+  migration: 读模型不迁入，由迁入后的历史阶段状态、交付物状态与事件重算；历史预警不迁（可重算）；迁入时点之前的阶段并行或跳段不补发预警
+  scenarios:
+  - PRC-22-S01
+  - PRC-22-S02
+  - PRC-22-S03
+  - PRC-22-S04
+  - PRC-22-S05
+  - PRC-22-S06
+  roles:
+  - id: SH-E2
+    as: informed
+  - id: SH-M1
+    as: informed
+  notes: 只读、无命令，由业务流程移出为读模型（⑥a 复核）。企业微信推送预警是否需要，待用户定（reporting 对 platform.integration 无依赖边）。阶段「已认可」只存在于本读模型（§4.4.1），WBS 不记。
 - id: PRC-62
   name: 质量保证金到期提示
   owner_bc: B-09
