@@ -359,6 +359,10 @@ processes:
     bc: B-05
     entry: 1
   - type: event
+    name: 协议已结算
+    bc: B-05
+    entry: 1
+  - type: event
     name: BusinessFactAttributed（本批次的过账事实）
     bc: B-16
     entry: 3
@@ -381,6 +385,7 @@ processes:
   - PRC-35-S08
   - PRC-35-S09
   - PRC-35-S10
+  - PRC-35-S11
   steps:
   - actor: system
     where: automatic
@@ -407,6 +412,10 @@ processes:
       direction: in
       bc: B-05
       name: 协议已终止
+    - mode: event
+      direction: in
+      bc: B-05
+      name: 协议已结算
   - actor: system
     where: automatic
     command: 提交过账候选
@@ -461,6 +470,7 @@ processes:
     legal_entity: 承担法人
     metric_event: true
   notes: 订阅关系 B-07 → B-04、B-05（事件）已有。
+  stages_note: '事件策略按触发状态归段（用户判据 #421）：项目已结项=VS-02.7 退出条件 OBJ-29「已结项 → 已归档」；协议已结算=VS-04.5 退出条件 OBJ-05「已结算（结算书经双方确认）」。项目已终止、项目已取消、协议已终止是 VS-02、VS-04 的终点（ends_in），不是任何段的退出条件，不另归段（SD-10）；这两段不相邻，是按触发状态跨价值流归两段，不是跳段。'
 - id: PRC-55
   name: 结转合同履约成本
   type: event_policy
