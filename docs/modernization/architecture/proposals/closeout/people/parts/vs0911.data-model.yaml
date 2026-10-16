@@ -40,19 +40,45 @@
       pi: pi
       column_families: [指标, 期间, 目标值, 组织单元, 人员（销售预测承诺按人员）]
       reason: "versioned none：目标值随所属版本，基线后不可改，改动出新版本。pi：按人员的行含员工 ID，属个人信息，数值本身是计划值不是薪酬。在途 1,212 单预测迁为只读历史（信息图 M-8）。AGG-79 引用列未列人员，见 notes 接缝问题 1"
-    - name: action_items
+    - name: business_reviews
       role: child
       key: uuid_v7
       references:
         - {to: AGG-79, by: business_plan_version_id}
         - {to: AGG-61, by: org_unit_id, cross_bc: true}
-        - {to: AGG-62, by: owner_employee_id, cross_bc: true}
+        - {to: AGG-62, by: finalized_by_employee_id, cross_bc: true}
       versioned: none
-      history_migration: full
+      history_migration: none
       sensitivity: internal
       pi: pi
-      column_families: [经营动作描述, 责任人, 期限, 来源（复盘偏差）]
-      reason: "OBJ-100 定义含「动作」，VS-09.3 退出写「经营动作写入计划」，聚合稿 AGG-79 内含列只写目标值；暂建，是否独立成表或并入版本待 notes 结构问题 4。versioned none：随版本，基线后不可改。历史来源待取证"
+      column_families: [复盘组织单元, 复盘期间（年月或季度、年度）, 复盘类型, 所复盘的基线版本引用, 状态（复盘中、已定稿、已闭环）, 定稿人与定稿时间, 创建与乐观锁, 审计列]
+      reason: "PRC-181（S-43 给号）：经营复盘记录先放 AGG-79 作次级，结构问题 11 待 one-architecture 定。versioned none：定稿后不可改，状态变迁由审计还原。history_migration none：老系统是否有复盘记录来源待取证，投产后从首个关账期间起记；取证发现在途事项再改 open_items。pi：定稿人为员工 ID。复盘期间是值（年月），不引用会计期间聚合，创建触发的关账事件只带期间标识"
+    - name: business_review_variance_explanations
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-79, by: business_review_id}
+        - {to: AGG-62, by: recorded_by_employee_id, cross_bc: true}
+      versioned: none
+      history_migration: none
+      sensitivity: internal
+      pi: pi
+      column_families: [指标, 偏差方向与幅度（定稿时的快照值）, 偏差解释（原因、是否可持续）, 记录人与记录时间, 审计列]
+      reason: "偏差数据的权威来源是 reporting 的经营月报，本表只存解释和定稿时的偏差快照，不复制报表。versioned none：定稿前可改（乐观锁），定稿后不可改。history_migration none 同 business_reviews。pi：记录人为员工 ID"
+    - name: action_items
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-79, by: business_review_id}
+        - {to: AGG-79, by: adjusted_plan_version_id}
+        - {to: AGG-61, by: org_unit_id, cross_bc: true}
+        - {to: AGG-62, by: owner_employee_id, cross_bc: true}
+      versioned: none
+      history_migration: none
+      sensitivity: internal
+      pi: pi
+      column_families: [经营动作描述, 动作类型（含调整经营计划）, 责任人, 期限, 状态（待完成、已完成）, 完成说明与完成日, 来源偏差解释引用, 写入的经营计划新版本引用（调整类）, 审计列]
+      reason: "改自首稿：动作归属从计划版本改为经营复盘（business_review_id），因动作在基线后仍要登记完成，不能随版本不可改；调整类动作经 adjusted_plan_version_id 指向 PRC-88 产出的新版本。OBJ-100 定义含「动作」，VS-09.3 退出写「经营动作写入计划」。versioned none：状态变迁由审计还原。history_migration none 同 business_reviews。逾期是按期限派生的提示，不是状态"
 
 - aggregate: AGG-80
   bc: B-18

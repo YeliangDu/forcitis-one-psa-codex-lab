@@ -35,6 +35,37 @@ state_machines:
       - 撤回后版本回到编制中，而流程结局记「已撤回」；是否需要独立「已撤回」状态由 one-architecture 定（废弃草稿已由 S-32 新增作废经营计划草稿处理）
       - 预测类型是否经审批成基线（待用户定 4，VS-09.2 notes 与 PRC-89 不一致）
 
+  - aggregate: AGG-79
+    entity: 经营复盘（business_reviews.状态；次级，PRC-181）
+    states:
+      - {name: 复盘中, desc: 可记录偏差解释、确定经营动作}
+      - {name: 已定稿, desc: 偏差解释与动作清单不可改，动作跟踪中}
+      - {name: 已闭环, terminal: true, desc: 无动作定稿，或全部动作已完成}
+    transitions:
+      - {from: "[新建]", to: 复盘中, command: 〔缺〕创建经营复盘, guard: [候选规则-复盘期间已关账, 候选规则-复盘唯一], steps: [PRC-181#1]}
+      - {from: 复盘中, to: 复盘中, command: 〔缺〕记录偏差解释, guard: [], steps: [PRC-181#2], note: 编辑}
+      - {from: 复盘中, to: 复盘中, command: 〔缺〕确定经营动作, guard: [候选规则-动作要素齐全], steps: [PRC-181#3], note: 追加动作}
+      - {from: 复盘中, to: 已定稿, command: 〔缺〕定稿经营复盘, guard: [候选规则-偏差须解释, 候选规则-定稿后不可改], steps: [PRC-181#4]}
+      - {from: 复盘中, to: 已闭环, command: 〔缺〕定稿经营复盘, guard: [候选规则-偏差须解释], steps: [PRC-181#4], note: 无动作时直接闭环}
+      - {from: 已定稿, to: 已定稿, command: 〔缺〕完成经营动作, guard: [], steps: [PRC-181#5], note: 仍有未完成的动作}
+      - {from: 已定稿, to: 已闭环, command: 〔缺〕完成经营动作, guard: [], steps: [PRC-181#5], note: 最后一个动作完成}
+    reverse_paths: []
+    no_reverse: 定稿后不可回退，更正另记经营动作；闭环为终态
+    open_questions:
+      - 经营复盘落 AGG-79 次级还是独立聚合（结构问题 11，请 one-architecture 定）
+      - 动作的取消与延期是否需要（待用户定 11）
+
+  - aggregate: AGG-79
+    entity: 经营动作（action_items.状态；次级，PRC-181）
+    states:
+      - {name: 待完成}
+      - {name: 已完成, terminal: true}
+    transitions:
+      - {from: "[新建]", to: 待完成, command: 〔缺〕确定经营动作, guard: [候选规则-动作要素齐全], steps: [PRC-181#3]}
+      - {from: 待完成, to: 已完成, command: 〔缺〕完成经营动作, guard: [候选规则-动作责任人本人登记], steps: [PRC-181#5]}
+    reverse_paths: []
+    no_reverse: 完成不可回退；逾期是按期限派生的提示，不是状态
+
   - aggregate: AGG-80
     entity: 预算账户（budget_accounts.状态）
     states:

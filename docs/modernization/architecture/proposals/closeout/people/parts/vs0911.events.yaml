@@ -10,6 +10,20 @@ events:
     subscribers: [仅分析]
     note: PRC-88#7（开立预算账户）由 #6 的目标类型分流进入，是流程顺序，不是事件订阅；财务经企业微信通知得知。若日后要自动开户则改为同 BC 策略订阅本事件（提议，当前不做，CS-1.8）。
 
+  - name: 经营复盘已定稿
+    publisher: AGG-79
+    emitted_by: 〔缺〕定稿经营复盘
+    payload: [经营复盘ID, 复盘组织单元ID, 复盘期间, 动作数量, 含调整经营计划类动作（是否）]
+    subscribers: [仅分析]
+    note: 提议事件（聚合稿 AGG-79 只有经营计划已基线化）；供 reporting 算复盘覆盖率与动作量。PRC-88 的人工触发不订阅本事件，由编制人看动作发起。
+
+  - name: 经营复盘已闭环
+    publisher: AGG-79
+    emitted_by: 〔缺〕定稿经营复盘（无动作）、〔缺〕完成经营动作（最后一个动作）
+    payload: [经营复盘ID, 复盘组织单元ID, 复盘期间, 闭环日]
+    subscribers: [仅分析]
+    note: 提议事件；供 reporting 算动作按期完成率。
+
   - name: BudgetReserved
     publisher: AGG-80
     emitted_by: 预算占用
@@ -60,3 +74,4 @@ events:
 inbound_events:
   - {name: 审批已通过, publisher: platform.approval, subscriber_commands: [〔缺〕通过经营计划审批], steps: [PRC-88#5], note: 方向待 one-architecture 在审批回调约定中确认（notes 接缝问题 3、6）}
   - {name: 审批已驳回, publisher: platform.approval, subscriber_commands: [〔缺〕驳回经营计划审批], steps: [PRC-88#4], note: 同上}
+  - {name: AccountingPeriodClosed, publisher: B-19, subscriber_commands: [〔缺〕创建经营复盘], steps: [PRC-181#1], note: 月度关账触发复盘创建；B-18 → B-19 事件边聚合稿 §4.1 尚无，见 notes 接缝问题 8}

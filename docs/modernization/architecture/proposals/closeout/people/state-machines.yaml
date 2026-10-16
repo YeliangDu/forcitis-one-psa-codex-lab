@@ -1479,91 +1479,90 @@ machines:
     kind: forward
   source_part: vs13pay
 - aggregate: AGG-79
-  entity: 经营计划版本（business_plan_versions.状态）
-  platform_task_steps:
-  - step: PRC-88#3
-    desc: 经营计划审批是 platform.approval 的任务，不是聚合命令；其结果由 PRC-88#4、#5 的回调命令承接，撤回由 withdraw 承接
-  reverse_paths:
-  - 撤回（审批中 → 编制中）
-  - 驳回（审批中 → 编制中）
-  no_reverse: 基线不可冲销、不可撤销，更正只出新版本（INV-101）
-  open_questions:
-  - 撤回后版本回到编制中，而流程结局记「已撤回」；是否需要独立「已撤回」状态由 one-architecture 定（废弃草稿已由 S-32 新增作废经营计划草稿处理）
-  - 预测类型是否经审批成基线（待用户定 4，VS-09.2 notes 与 PRC-89 不一致）
+  sub_machines:
+  - null
+  - null
+  - null
   states:
-  - 编制中
-  - 审批中
-  - 已通过
-  - 基线
-  - 已编制
-  - name: 被取代
+  - 经营计划版本（business_plan_versions.状态）:编制中
+  - 经营计划版本（business_plan_versions.状态）:审批中
+  - 经营计划版本（business_plan_versions.状态）:已通过
+  - 经营计划版本（business_plan_versions.状态）:基线
+  - 经营计划版本（business_plan_versions.状态）:已编制
+  - name: 经营计划版本（business_plan_versions.状态）:被取代
     terminal: true
-  - name: 已作废
+  - name: 经营计划版本（business_plan_versions.状态）:已作废
     terminal: true
-  initial: null
+  - 经营复盘（business_reviews.状态；次级，PRC-181）:复盘中
+  - 经营复盘（business_reviews.状态；次级，PRC-181）:已定稿
+  - name: 经营复盘（business_reviews.状态；次级，PRC-181）:已闭环
+    terminal: true
+  - 经营动作（action_items.状态；次级，PRC-181）:待完成
+  - name: 经营动作（action_items.状态；次级，PRC-181）:已完成
+    terminal: true
   transitions:
   - from: null
-    to: 编制中
+    to: 经营计划版本（business_plan_versions.状态）:编制中
     command: 编制经营计划版本
     guard:
     - INV-101
     steps:
     - PRC-88#1
-  - from: 编制中
-    to: 编制中
+  - from: 经营计划版本（business_plan_versions.状态）:编制中
+    to: 经营计划版本（business_plan_versions.状态）:编制中
     command: 编制经营计划版本
     guard:
     - INV-101
     steps:
     - PRC-88#1
     note: 编辑
-  - from: 编制中
-    to: 已作废
+  - from: 经营计划版本（business_plan_versions.状态）:编制中
+    to: 经营计划版本（business_plan_versions.状态）:已作废
     command: 作废经营计划草稿
     guard:
     - INV-101：仅编制中，审批中须先撤回
     steps:
     - PRC-88#9
     reverse: 作废
-  - from: 编制中
-    to: 审批中
+  - from: 经营计划版本（business_plan_versions.状态）:编制中
+    to: 经营计划版本（business_plan_versions.状态）:审批中
     command: 〔缺〕提交经营计划审批
     guard:
     - 候选规则-目标值完整
     steps:
     - PRC-88#2
-  - from: 审批中
-    to: 编制中
+  - from: 经营计划版本（business_plan_versions.状态）:审批中
+    to: 经营计划版本（business_plan_versions.状态）:编制中
     command: 〔缺〕撤回经营计划审批
     guard:
     - 平台可取消审批实例
     steps:
     - PRC-88#3(withdraw)
     reverse: 撤回
-  - from: 审批中
-    to: 编制中
+  - from: 经营计划版本（business_plan_versions.状态）:审批中
+    to: 经营计划版本（business_plan_versions.状态）:编制中
     command: 〔缺〕驳回经营计划审批
     guard: []
     steps:
     - PRC-88#4
     reverse: 驳回
-  - from: 审批中
-    to: 已通过
+  - from: 经营计划版本（business_plan_versions.状态）:审批中
+    to: 经营计划版本（business_plan_versions.状态）:已通过
     command: 〔缺〕通过经营计划审批
     guard:
     - 候选规则-编制人不审自己
     steps:
     - PRC-88#5
-  - from: 已通过
-    to: 基线
+  - from: 经营计划版本（business_plan_versions.状态）:已通过
+    to: 经营计划版本（business_plan_versions.状态）:基线
     command: 基线化经营计划
     guard:
     - INV-101
     - 候选规则-审批通过自动基线化
     steps:
     - PRC-88#6
-  - from: 基线
-    to: 被取代
+  - from: 经营计划版本（business_plan_versions.状态）:基线
+    to: 经营计划版本（business_plan_versions.状态）:被取代
     command: 基线化经营计划
     guard:
     - INV-101
@@ -1572,7 +1571,7 @@ machines:
     cascade: true
     note: 同计划新版本基线化时，原基线版本被取代（引用在新版本的被取代版本引用上）
   - from: null
-    to: 已编制
+    to: 经营计划版本（business_plan_versions.状态）:已编制
     command: 编制预测版本
     guard:
     - INV-101
@@ -1580,14 +1579,14 @@ machines:
     steps:
     - PRC-89#1
   - from: null
-    to: 已编制
+    to: 经营计划版本（business_plan_versions.状态）:已编制
     command: 编制现金流预测
     guard:
     - INV-101
     steps:
     - PRC-89#2
-  - from: 已编制
-    to: 被取代
+  - from: 经营计划版本（business_plan_versions.状态）:已编制
+    to: 经营计划版本（business_plan_versions.状态）:被取代
     command: 编制预测版本
     guard:
     - INV-101
@@ -1595,7 +1594,75 @@ machines:
     - PRC-89#1
     cascade: true
     note: 下一次滚动的新版本取代上一版（现金流预测同理，由编制现金流预测触发）
+  - from: null
+    to: 经营复盘（business_reviews.状态；次级，PRC-181）:复盘中
+    command: 〔缺〕创建经营复盘
+    guard:
+    - 候选规则-复盘期间已关账
+    - 候选规则-复盘唯一
+    steps:
+    - PRC-181#1
+  - from: 经营复盘（business_reviews.状态；次级，PRC-181）:复盘中
+    to: 经营复盘（business_reviews.状态；次级，PRC-181）:复盘中
+    command: 〔缺〕记录偏差解释
+    guard: []
+    steps:
+    - PRC-181#2
+    note: 编辑
+  - from: 经营复盘（business_reviews.状态；次级，PRC-181）:复盘中
+    to: 经营复盘（business_reviews.状态；次级，PRC-181）:复盘中
+    command: 〔缺〕确定经营动作
+    guard:
+    - 候选规则-动作要素齐全
+    steps:
+    - PRC-181#3
+    note: 追加动作
+  - from: 经营复盘（business_reviews.状态；次级，PRC-181）:复盘中
+    to: 经营复盘（business_reviews.状态；次级，PRC-181）:已定稿
+    command: 〔缺〕定稿经营复盘
+    guard:
+    - 候选规则-偏差须解释
+    - 候选规则-定稿后不可改
+    steps:
+    - PRC-181#4
+  - from: 经营复盘（business_reviews.状态；次级，PRC-181）:复盘中
+    to: 经营复盘（business_reviews.状态；次级，PRC-181）:已闭环
+    command: 〔缺〕定稿经营复盘
+    guard:
+    - 候选规则-偏差须解释
+    steps:
+    - PRC-181#4
+    note: 无动作时直接闭环
+  - from: 经营复盘（business_reviews.状态；次级，PRC-181）:已定稿
+    to: 经营复盘（business_reviews.状态；次级，PRC-181）:已定稿
+    command: 〔缺〕完成经营动作
+    guard: []
+    steps:
+    - PRC-181#5
+    note: 仍有未完成的动作
+  - from: 经营复盘（business_reviews.状态；次级，PRC-181）:已定稿
+    to: 经营复盘（business_reviews.状态；次级，PRC-181）:已闭环
+    command: 〔缺〕完成经营动作
+    guard: []
+    steps:
+    - PRC-181#5
+    note: 最后一个动作完成
+  - from: null
+    to: 经营动作（action_items.状态；次级，PRC-181）:待完成
+    command: 〔缺〕确定经营动作
+    guard:
+    - 候选规则-动作要素齐全
+    steps:
+    - PRC-181#3
+  - from: 经营动作（action_items.状态；次级，PRC-181）:待完成
+    to: 经营动作（action_items.状态；次级，PRC-181）:已完成
+    command: 〔缺〕完成经营动作
+    guard:
+    - 候选规则-动作责任人本人登记
+    steps:
+    - PRC-181#5
   source_part: vs0911
+  note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
 - aggregate: AGG-80
   sub_machines:
   - null

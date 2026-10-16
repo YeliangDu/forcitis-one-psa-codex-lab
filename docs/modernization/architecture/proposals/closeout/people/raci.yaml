@@ -1957,6 +1957,84 @@ entries:
     note: 限财务与管理层可见
   sensitive: false
   source_part: vs0911
+- object: AGG-79
+  command: 〔缺〕创建经营复盘
+  raci:
+    A:
+      resolve: instance
+      field: 经营复盘.复盘组织单元.负责人
+    R:
+    - system
+    C:
+    - SH-E6
+    I:
+    - SH-M1
+  boundary:
+    rule: 候选规则-复盘期间已关账、候选规则-复盘唯一
+  sensitive: false
+  source_part: vs0911
+- object: AGG-79
+  command: 〔缺〕记录偏差解释
+  raci:
+    A:
+      resolve: instance
+      field: 经营复盘.复盘组织单元.负责人
+    R:
+    - SH-M1
+    C:
+    - SH-E6
+    I: []
+  boundary:
+    when: 仅复盘中
+  sensitive: false
+  source_part: vs0911
+- object: AGG-79
+  command: 〔缺〕确定经营动作
+  raci:
+    A:
+      resolve: instance
+      field: 经营复盘.复盘组织单元.负责人
+    R:
+    - SH-M1
+    C:
+    - SH-E6
+    I: []
+  boundary:
+    rule: 候选规则-动作要素齐全
+  sensitive: false
+  source_part: vs0911
+- object: AGG-79
+  command: 〔缺〕定稿经营复盘
+  raci:
+    A:
+      resolve: instance
+      field: 经营复盘.复盘组织单元.负责人
+    R:
+    - SH-M1
+    C:
+    - SH-E6
+    I:
+    - SH-O1
+  boundary:
+    rule: 候选规则-偏差须解释、候选规则-定稿后不可改
+    note: 不设审批
+  sensitive: false
+  source_part: vs0911
+- object: AGG-79
+  command: 〔缺〕完成经营动作
+  raci:
+    A:
+      resolve: instance
+      field: 经营复盘.复盘组织单元.负责人
+    R:
+    - SH-M1
+    C: []
+    I: []
+  boundary:
+    rule: 候选规则-动作责任人本人登记
+    note: 逾期只提醒复盘责任人，不自动完成
+  sensitive: false
+  source_part: vs0911
 - object: AGG-80
   command: 开立预算账户
   raci:

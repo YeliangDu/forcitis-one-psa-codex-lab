@@ -68,7 +68,7 @@ def processes():
             src[k] = v
     t = (OUT / "processes.people.yaml").read_text(encoding="utf-8")
     out = [t[: t.index("\nprocesses:")], ""]
-    for sec in ["processes", "event_policies", "single_aggregate"]:
+    for sec in ["processes", "event_policies", "single_aggregate", "read_models"]:
         out.append(f"{sec}:\n")
         out += [src[k][1] + "\n" for k in sorted((k for k, (s, _) in src.items() if s == sec), key=key)]
     txt = "\n".join(out)
@@ -79,7 +79,7 @@ def processes():
         f = P / f"{p}.scenarios.yaml"
         if f.exists():
             sc.update(yaml.safe_load(f.read_text(encoding="utf-8")) or {})
-    ids = [u["id"] for s in ["processes", "event_policies", "single_aggregate"] for u in d.get(s) or []]
+    ids = [u["id"] for s in ["processes", "event_policies", "single_aggregate", "read_models"] for u in d.get(s) or []]
     sc = {k: sc[k] for k in sorted(sc, key=key)}
     (OUT / "scenarios.people.yaml").write_text(HDR + dump(sc), encoding="utf-8")
     return d, [i for i in ids if i not in sc]
@@ -136,7 +136,7 @@ def combine(agg, ms, part):
 
 def converge(proc):
     used = set()
-    for s in ["processes", "event_policies", "single_aggregate"]:
+    for s in ["processes", "event_policies", "single_aggregate", "read_models"]:
         for u in proc.get(s) or []:
             for st in (u.get("steps") or ([u["step"]] if u.get("step") else [])):
                 if st.get("command"):
@@ -213,7 +213,7 @@ def main():
     proc, missing = processes()
     n = converge(proc)
     notes()
-    cnt = {k: len(proc.get(k) or []) for k in ["processes", "event_policies", "single_aggregate"]}
+    cnt = {k: len(proc.get(k) or []) for k in ["processes", "event_policies", "single_aggregate", "read_models"]}
     print(f"流程 {cnt}；无场景单元 {missing}；命令 {n[0]}、状态机 {n[1]}、权责 {n[2]}")
 
 

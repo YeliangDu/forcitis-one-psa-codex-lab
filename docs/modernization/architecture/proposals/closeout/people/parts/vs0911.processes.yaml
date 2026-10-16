@@ -1,8 +1,8 @@
-# vs0911 流程骨架片段：VS-09 PRC-88、PRC-89；VS-11 PRC-107。格式依 closeout/CONVENTIONS.md（含 §5）。
+# vs0911 流程骨架片段：VS-09 PRC-88、PRC-89、PRC-181；VS-11 PRC-107、读模型 PRC-182。格式依 closeout/CONVENTIONS.md（含 §5）。
 # 第二版（QC 修订）：按用户新原则重判人工审批——审批人一律 cost_object_owner，加审只引 APPROVAL_RULES guard: approval，每个人工审批写 why_human，
 #   能规则化的改成拒绝 / 自动分流（候选规则见 vs0911.notes.md「QC 修订」）；审批回调按 §5 写成下一步 cross_bc 入事件；通知写 notify；可撤回写 withdraw。
 # v1 字段原样保留，v1 中文 actor 换成 SH- 编号；聚合稿没有的命令写〔缺〕，见 vs0911.notes.md「新用语」。
-# 读模型 PRC-90（出具经营月报并复盘）属 reporting，不在本片段。
+# 读模型 PRC-90（出具经营月报，目录已去「并复盘」）属 reporting，不在本片段；PRC-181 承接复盘写入。
 
 processes:
 
@@ -343,6 +343,96 @@ processes:
         outcome: 已废止
     notes: 合并原 PRC-108、109、110（⑥a 评审 H2 c）。已发布版本不得修改（INV-115）；引用方按 ID 与版本引用，不订阅。B-04 → B-30 边已有。项目复盘提炼入口的页面在 B-04，命令在本 BC。评审是专业判断，保留人工，按聚合内审批写；补 B-30 → platform.approval 边的影响见 NOTES 结构问题 1。
 
+  - id: PRC-181
+    name: 记录经营复盘并跟踪经营动作
+    trigger:
+      type: event
+      desc: 会计期间已关账（经营月报据此出具）；或季度、年度综合复盘到期
+    stages: [VS-09.3]
+    owner_bc: B-18
+    human_orchestration: true
+    human_note: 偏差解释、经营动作的确定与完成登记由人判断；全过程不设审批，靠规则守卫与逾期提醒
+    migration: "不迁入历史复盘：老系统是否有经营复盘或偏差处置记录来源待取证；投产后从首个关账期间起记录。取证若发现在途的偏差处置事项，再按当前状态迁入为复盘与经营动作"
+    scope: "复盘记录与经营动作按复盘组织单元的数据范围可见：该组织单元责任人及其上级、财务、管理层；动作责任人见本人的动作"
+    triggers:
+      - {type: event, entry: 1, name: "会计期间已关账（月度；经营月报据此出具，B-19 发布）", event: AccountingPeriodClosed, bc: B-19}
+      - {type: time, entry: 1, name: "季度、年度综合复盘到期（B-18 向 platform.scheduling 登记，幂等键 = 复盘组织单元 ID + 复盘期间）"}
+    outcomes: [经营复盘已闭环, 已转调整计划, 复盘待期间关账, 已提醒]
+    scenarios: [PRC-181-S01, PRC-181-S02, PRC-181-S03, PRC-181-S04, PRC-181-S05, PRC-181-S06]
+    roles:
+      - {id: SH-M1, as: initiator, org_needs: {responsibility: 对所辖组织单元的经营偏差作出解释，确定经营动作及其责任人和期限，定稿复盘, approval_right: 无（复盘记录不设审批）, department_hint: 复盘组织单元（部门、事业部；公司级为管理层）, position_hint: 组织单元负责人（部门负责人）；公司级为管理层负责人}}
+      - {id: SH-M1, as: performer, org_needs: {responsibility: 作为经营动作责任人完成动作并登记完成, approval_right: 无, department_hint: 动作责任人所在组织单元, position_hint: 组织单元负责人或其指定的动作责任人}}       # 动作责任人可以是复盘责任人本人或其指定的人员，一律取 SH-M1 的职责口径，岗位体系定后再核
+      - {id: SH-E6, as: performer, org_needs: {responsibility: 经营月报出具后为偏差提供口径说明与财务分析支持, approval_right: 无, department_hint: 财务部门, position_hint: 经营分析与管理会计职能岗}}       # VS-09.3 参与者；系统内无其命令，口径说明经月报与线下沟通，是否需要系统内步骤见 NOTES 待用户定 10
+      - {id: SH-O1, as: informed, org_needs: {responsibility: 获知经营复盘结论与动作完成情况, approval_right: 无, department_hint: 不适用（股东和合伙人）, position_hint: 不适用}}        # VS-09 价值接收方；经营月报与复盘摘要的接收方，不参与动作
+    steps:
+      - actor: system
+        where: automatic
+        command: 〔缺〕创建经营复盘
+        aggregate: AGG-79
+        desc: 为每个有已基线经营计划的复盘组织单元，按关账期间（或综合复盘周期末期间）创建一条经营复盘，关联当期基线版本；偏差数据由经营月报（PRC-90，reporting 读模型）展示，复盘记录只存引用与偏差解释，不复制报表数；同一组织单元 × 复盘期间只一条（幂等）；综合复盘到点而期间尚未关账的不创建，告警财务，关账后由月度触发补建
+        audit: true
+        notify:
+          - {to: SH-M1, how: 企业微信待办}      # 通知复盘责任人
+          - {to: SH-E6, how: 企业微信通知（期间未关账时：待关账后自动补建）}
+        cross_bc:
+          - {mode: event, direction: in, bc: B-19, name: AccountingPeriodClosed}       # B-18 → B-19 事件边尚无，见 NOTES 接缝问题 8
+        decision:
+          - {when: 复盘期间尚未关账, goto: end, outcome: 复盘待期间关账}
+          - {when: otherwise, goto: 2}
+
+      - actor: SH-M1
+        where: in_system
+        command: 〔缺〕记录偏差解释
+        aggregate: AGG-79
+        desc: 对目标偏差超出容忍度的指标逐项写解释（原因与是否可持续）；未超容忍度的指标可不解释；容忍度为规则参数（候选规则，交 one-rules）
+        permission: 经营复盘.记录偏差解释
+        page: 经营复盘编辑页
+        decision:
+          - {when: otherwise, goto: 3}
+
+      - actor: SH-M1
+        where: in_system
+        command: 〔缺〕确定经营动作
+        aggregate: AGG-79
+        desc: 每个动作写描述、类型（含「调整经营计划」）、责任人、期限和来源偏差；一次复盘可确定多个动作，重复本步；动作责任人收到待办
+        permission: 经营复盘.确定经营动作
+        page: 经营复盘编辑页
+        notify: [{to: SH-M1, how: 企业微信待办}]      # 通知动作责任人
+        decision:
+          - {when: otherwise, goto: 4}
+
+      - actor: SH-M1
+        where: in_system
+        command: 〔缺〕定稿经营复盘
+        aggregate: AGG-79
+        emits: [经营复盘已定稿]
+        desc: 规则守卫：超出容忍度的偏差都有解释才可定稿；每个动作都有责任人和期限；定稿后结论不可改，更正另记经营动作。不设审批：复盘记录不产生资金、对外效力或不可逆后果，约束靠上述规则与逾期提醒。含「调整经营计划」类动作的，复盘转 PRC-88（经营复盘后调整计划，编制人另起新版本并引用该动作）；其余动作的跟踪随经营复盘记录继续，见 NOTES 格式问题 10
+        permission: 经营复盘.定稿
+        page: 经营复盘编辑页
+        audit: true
+        metric_event: true
+        decision:
+          - {when: 复盘未确定任何经营动作, goto: end, outcome: 经营复盘已闭环}
+          - {when: 经营动作含调整经营计划, goto: PRC-88, outcome: 已转调整计划}
+          - {when: otherwise, goto: 5}
+
+      - actor: SH-M1
+        where: in_system
+        command: 〔缺〕完成经营动作
+        aggregate: AGG-79
+        emits: [经营复盘已闭环]
+        desc: 动作责任人登记完成说明；全部动作完成后经营复盘闭环；到期未完成的动作非中断，由系统提醒复盘责任人，不自动完成、不自动取消；动作的取消与延期是否需要见 NOTES 待用户定 11
+        permission: 经营动作.完成
+        page: 经营动作跟踪页
+        audit: true
+        metric_event: true
+        timeout: {after: "各经营动作自带的期限（确定动作时登记，B-18 向 platform.scheduling 登记到期提醒）", escalate_to: system, interrupting: false}      # 系统向复盘责任人发提醒（企业微信通知），与动作责任人同为 SH-M1 角色，故升级任务放系统泳道
+        decision:
+          - {when: 仍有未完成的经营动作, goto: 5}
+          - {when: otherwise, goto: end, outcome: 经营复盘已闭环}
+        outcome: 经营复盘已闭环
+    notes: 对应价值流 VS-09.3「偏差有解释、有责任人和动作」。经营月报（PRC-90）只读不写，复盘记录由本流程写入。经营复盘记录先放 AGG-79（经营计划版本的次级「复盘记录」），不新增聚合，见 NOTES 结构问题 11，待 one-architecture 定。PRC-88 的第二个触发（经营复盘后调整计划）由「调整经营计划」类动作承接。
+
 event_policies:
 
   - id: PRC-161
@@ -372,3 +462,50 @@ event_policies:
           - {when: 账户仍有占用中的占用行, goto: end, outcome: 关闭待处理}
           - {when: otherwise, goto: end, outcome: 预算账户已关闭}
     notes: 定时由 B-18 向 platform.scheduling 登记，到点调本 BC 命令，边 B-18 → platform.scheduling 按平台依赖登记（CONVENTIONS §5）。账户关闭后占用方单据（B-11、B-12）再调用预算占用会被拒绝并提示，由占用方单据所属流程处理。无人工审批：关闭由日期与占用状态守卫。
+
+read_models:
+
+  - id: PRC-182
+    name: 知识条目使用情况
+    type: read_model
+    stages: [VS-11.3]
+    owner_bc: reporting
+    reads: [AGG-107, AGG-12, AGG-03, AGG-27]
+    migration: "读模型不迁入，随迁入后的知识条目与引用事件重建；老系统没有知识条目实体与引用关系（信息图 OBJ-110 取证，迁入集合为空），投产后起累计"
+    scope: "技术委员会与各专业负责人见本专业类别全部条目；管理层见全部；起草人见本人起草的条目；引用方只显示单据类型与编号，不显示客户信息（案例类含客户信息的访问范围待用户定 6）"
+    frequency_ref: 不适用（读模型，随领域事件刷新；访问量待取证）
+    scenarios: [PRC-182-S01, PRC-182-S02, PRC-182-S03, PRC-182-S04]
+    roles:
+      - {id: SH-E4, as: performer, org_needs: {responsibility: 依据使用情况决定知识条目的修订或废止, approval_right: 无（只读；修订与废止在 PRC-107）, department_hint: 技术委员会及各专业组织单元, position_hint: 专业负责人、技术专家}}
+      - {id: SH-M1, as: informed, org_needs: {responsibility: 获知知识条目的使用与复审情况, approval_right: 无, department_hint: 管理层, position_hint: 管理层负责人}}
+    events:
+      - {event: 知识条目已发布, aggregate: AGG-107, bc: B-30}
+      - {event: 知识条目已修订, aggregate: AGG-107, bc: B-30}
+      - {event: 知识条目已废止, aggregate: AGG-107, bc: B-30}
+      - {event: 报价版本已生效, aggregate: AGG-12, bc: B-03}
+      - {event: 服务产品版本已发布, aggregate: AGG-03, bc: B-02}
+      - {event: 交付物已签发, aggregate: AGG-27, bc: B-28}
+    desc: 服务 VS-11.3「修订废止」的决策：哪些已发布条目被引用多、有效期将满，应优先复审修订；哪些长期无人引用、有效期已满，应废止。引用方（报价版本、服务产品版本、交付物）按 ID 与版本引用知识条目版本（INV-115，不订阅），reporting 订阅引用方的领域事件，事件负载带所引用的知识条目版本 ID（见 NOTES 接缝问题 9）；本读模型不读业务交易表，不改任何对象状态
+    query: "读 reporting 层的知识条目版本与引用事件，按知识条目版本 × 引用方类型 × 统计窗口汇总被引用次数（引用方单据去重）和最近一次被引用日，并派生距有效期届满天数与建议动作（建议复审修订、建议废止）；建议只是提示，不改状态，修订与废止由 PRC-107 的人工命令完成"
+    dimensions:
+      - 知识条目（含版本）
+      - 知识类别
+      - 适用范围
+      - 引用方类型（报价版本、服务产品版本、交付物）
+      - 归属组织单元
+      - 统计窗口
+    metrics:
+      - 被引用次数
+      - 最近一次被引用日
+      - 距有效期届满天数
+      - 建议动作
+    suggestions:
+      - code: 建议复审修订
+        rule: 已发布版本距有效期届满不足提前量，且统计窗口内仍有引用
+      - code: 建议废止
+        rule: 已发布版本有效期已届满或统计窗口内无引用，且无后继版本
+    refresh: 订阅领域事件增量更新（reporting L1，ADR-0023），每日定时全量校正一次
+    freshness: 事件到达后分钟级；以每日校正为准
+    permission: 知识条目使用情况.查看
+    page: 知识条目使用情况页
+    notes: 只读、无命令。提前量与「无引用」的统计窗口为规则参数，待用户定 12（推荐窗口 12 个月、提前量 30 天）。已废止条目的既有引用仍计入，新引用被 INV-115 拒绝，故废止后不再新增引用。引用关系的口径依赖引用方事件负载，见 NOTES 接缝问题 9。

@@ -67,3 +67,14 @@
 ## 脚本无缺口修补（2026-10-16）
 
 PRC-107 步 4 评审（engine aggregate，专业复核）的 approver 由 `cost_object_owner` 改为类型级角色 SH-E4（`resolve: type`，登记见 NOTES「权责对照条目」；`vs0911.raci.yaml`、`vs0911.commands.yaml` 已同步，加审仍引 AR-11、AR-12）。doc_type 精简为「知识条目评审」。场景写入 `parts/vs0911.scenarios.yaml`（PRC-107 六条），roles 补 `org_needs`；`closeout_check --qc` 的 people 行：出口、结局无场景均为 0，用语无着落 0；bpmn_gen 通过、0 警告。
+
+## PRC-182 知识条目使用情况（S-43 给号后新增，2026-10-16）
+
+检查对象：`parts/vs0911.processes.yaml` 的 `read_models` 节中 PRC-182（read_model，reporting，VS-11.3）。
+
+- 口径：读 reporting 层，不读业务交易表；订阅知识条目已发布 / 已修订 / 已废止（B-30）与引用方的领域事件（报价版本已生效 B-03、服务产品版本已发布 B-02、交付物已签发 B-28），按知识条目版本 × 引用方类型 × 统计窗口汇总被引用次数，派生距有效期届满天数与「建议复审修订」「建议废止」两个提示。提示只读，修订与废止仍由 PRC-107 的人工命令完成，读模型不改任何状态。
+- 字段：query、dimensions、metrics、permission（知识条目使用情况.查看）、page（知识条目使用情况页）、scope、migration、refresh、freshness、events、reads，对照 revenue 组 PRC-22、PRC-62 的写法；`read_models` 节由 `parts/rebuild.py` 合并，格式问题 11。
+- 场景：S01 被引用次数汇总，S02 建议复审修订，S03 建议废止，S04 已废止后既有引用仍计入、无新增引用（INV-115）。
+- 依赖与缺口：（1）引用方三个事件的负载须带所引知识条目版本 ID，聚合稿现未写，交 one-architecture（NOTES 接缝问题 9）；（2）统计窗口与提前量待用户定 12；（3）案例类条目含客户信息的访问范围同待用户定 6，引用方明细只显示单据类型与编号。
+- 与上一轮缺口的关系：QC-VS-11 原缺口「评审撤回与逾期」（待用户定 8）不受影响，仍遗留。
+- 结论：**可交**，附上列依赖与遗留项。

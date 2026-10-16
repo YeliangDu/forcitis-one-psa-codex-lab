@@ -120,6 +120,79 @@ commands:
     used_by: [PRC-89#2]
     orphan: false
 
+  # ───────────── AGG-79 经营复盘记录（次级，PRC-181） ─────────────
+  - name: 〔缺〕创建经营复盘
+    aggregate: AGG-79
+    status: 〔缺〕（notes 新用语 create_business_review；聚合稿无经营复盘的命令，结构问题 11）
+    params: [复盘组织单元, 复盘期间（或综合复盘周期）, 所复盘的基线版本引用, 复盘类型（月度、季度、年度）]
+    preconditions:
+      - {ref: 候选规则-复盘期间已关账, desc: 所复盘期间已关账方可创建；综合复盘到点而期间未关账则不创建并告警，关账后由月度触发补建}
+      - {ref: 候选规则-复盘唯一, desc: 同一组织单元 × 复盘期间只一条经营复盘（幂等）}
+    raci_A: {resolve: instance, field: 经营复盘.复盘组织单元.负责人}
+    raci_R: [system]
+    idempotency_key: 复盘组织单元ID + 复盘期间
+    emits: []
+    cross_bc_in: [B-19 AccountingPeriodClosed（事件，边待 one-architecture 定，notes 接缝问题 8）]
+    used_by: [PRC-181#1]
+    orphan: false
+
+  - name: 〔缺〕记录偏差解释
+    aggregate: AGG-79
+    status: 〔缺〕（notes 新用语 record_variance_explanation）
+    params: [经营复盘ID, 指标, 偏差解释（原因、是否可持续）]
+    preconditions:
+      - {ref: 状态, desc: 经营复盘为复盘中，已定稿不可改}
+    raci_A: {resolve: instance, field: 经营复盘.复盘组织单元.负责人}
+    raci_R: [SH-M1]
+    idempotency_key: 经营复盘ID + 指标 + 乐观锁版本
+    emits: []
+    used_by: [PRC-181#2]
+    orphan: false
+
+  - name: 〔缺〕确定经营动作
+    aggregate: AGG-79
+    status: 〔缺〕（notes 新用语 decide_action_item；经营动作 action_item 词表已有，命令无）
+    params: [经营复盘ID, 动作描述, 动作类型（含调整经营计划）, 责任人, 期限, 来源偏差]
+    preconditions:
+      - {ref: 状态, desc: 经营复盘为复盘中}
+      - {ref: 候选规则-动作要素齐全, desc: 动作须有责任人和期限}
+    raci_A: {resolve: instance, field: 经营复盘.复盘组织单元.负责人}
+    raci_R: [SH-M1]
+    idempotency_key: 经营复盘ID + 请求ID
+    emits: []
+    cross_bc_out: [B-13 读取动作责任人（api，B-18 → B-13 边已有）]
+    used_by: [PRC-181#3]
+    orphan: false
+
+  - name: 〔缺〕定稿经营复盘
+    aggregate: AGG-79
+    status: 〔缺〕（notes 新用语 finalize_business_review）
+    params: [经营复盘ID]
+    preconditions:
+      - {ref: 候选规则-偏差须解释, desc: 目标偏差超出容忍度的指标都有解释才可定稿}
+      - {ref: 候选规则-定稿后不可改, desc: 定稿后偏差解释与动作清单不可改，更正另记经营动作}
+      - {ref: 状态, desc: 经营复盘为复盘中；无动作的定稿直接闭环}
+    raci_A: {resolve: instance, field: 经营复盘.复盘组织单元.负责人}
+    raci_R: [SH-M1]
+    idempotency_key: 经营复盘ID（已定稿则幂等返回）
+    emits: [经营复盘已定稿, 经营复盘已闭环（无动作时）]
+    used_by: [PRC-181#4]
+    orphan: false
+
+  - name: 〔缺〕完成经营动作
+    aggregate: AGG-79
+    status: 〔缺〕（notes 新用语 complete_action_item）
+    params: [经营动作ID, 完成说明, 关联的经营计划新版本引用（调整类动作）]
+    preconditions:
+      - {ref: 状态, desc: 经营动作为待完成，所属经营复盘已定稿}
+      - {ref: 候选规则-动作责任人本人登记, desc: 仅动作责任人或复盘责任人可登记完成}
+    raci_A: {resolve: instance, field: 经营复盘.复盘组织单元.负责人}
+    raci_R: [SH-M1（动作责任人）]
+    idempotency_key: 经营动作ID（已完成无操作）
+    emits: [经营复盘已闭环（最后一个动作完成时）]
+    used_by: [PRC-181#5]
+    orphan: false
+
   # ───────────── AGG-80 预算账户 ─────────────
   - name: 开立预算账户
     aggregate: AGG-80
