@@ -214,6 +214,7 @@ commands:
   orphan: false
 - name: 开立年度额度账户
   aggregate: AGG-71
+  unused_ok: "年度开账定时作业（事件策略「年度开账」），不在业务流程步骤中"
   entity: leave_balance_accounts
   kind: automatic
   name_status: 〔缺〕收敛新增，待 one-glossary 登记（open_leave_balance_account）
@@ -229,6 +230,26 @@ commands:
   idempotency_key: 员工ID + 假期类型 + 年度（已开账无操作）
   emits: （内部）
   used_by: [事件策略「年度开账」]
+  orphan: false
+- name: 年度结转并关闭额度账户
+  aggregate: AGG-71
+  unused_ok: "年度结转定时作业（事件策略「年度开账」同批），不在业务流程步骤中"
+  entity: leave_balance_accounts
+  kind: automatic
+  name_status: 〔缺〕收敛新增，待 one-glossary 登记（carry_over_and_close_leave_balance_account）
+  source: 收敛新增（AGG-118 已有结转规则，AGG-71 缺年度届满的终结命令）
+  params: [员工ID, 假期类型, 年度]
+  preconditions:
+  - {ref: 结转规则, text: 按 AGG-118 当日生效规则版本的结转与清零规则计算结转额度，写入下一年度账户的应享（含上年结转）；取不到规则版本失败并告警}
+  - {ref: 状态, text: 账户为已开账，年度已届满，无占用中的占用行（占用中的跨年请假先处理）}
+  authority:
+    ref: raci:AGG-71/年度结转并关闭额度账户
+    A: {resolve: type, role: SH-E6, function: 人力（考勤）}
+    R: [system]
+  idempotency_key: 员工ID + 假期类型 + 年度（已结转无操作）
+  state_change: 已开账 → 已结转
+  emits: （内部）
+  used_by: []
   orphan: false
 # ───────── AGG-72 加班 ─────────
 - name: 加班申请
@@ -390,6 +411,7 @@ commands:
 # ───────── AGG-118 假期类型与额度规则 ─────────
 - name: 发布假期规则版本
   aggregate: AGG-118
+  unused_ok: "维护用：配置型版本发布，无业务流程；待 one-architecture 补维护流程（vs13att.notes.md 接缝问题 3）"
   entity: leave_entitlement_rule_versions
   kind: human
   source: 聚合稿 AGG 命令列
@@ -404,7 +426,7 @@ commands:
   idempotency_key: 假期类型 + 适用范围 + 生效日（重复发布同一版本返回已有版本）
   emits: 假期规则已生效
   used_by: []
-  orphan: true
+  orphan: false
   orphan_note: PRC-115–119 无流程覆盖 AGG-118 的维护（PRC-119 只含 AGG-68、AGG-108）；需补一个 single_aggregate 维护流程，或并入 PRC-119，交 one-architecture（vs13att.notes.md 接缝问题 3）
 # ───────── B-14 AGG-68 工作日历年度 ─────────
 - name: 维护工作日历年度

@@ -39,6 +39,8 @@ entries:
   - {object: AGG-80, command: 释放预算占用, raci: {A: {resolve: type, role: 财务负责人}, R: [system（B-11、B-12、定时对账）], C: [], I: []}, boundary: {}, sensitive: false}
   - {object: AGG-80, command: 〔缺〕消耗预算占用, raci: {A: {resolve: type, role: 财务负责人}, R: [system], C: [], I: []}, boundary: {note: 孤儿命令}, sensitive: false}
 
+  - {object: AGG-80, command: 〔缺〕关闭预算账户, raci: {A: {resolve: type, role: 财务负责人}, R: [system, SH-E6], C: [], I: []}, boundary: {note: 周期结束或新基线取代时关闭}, sensitive: false}
+
   # AGG-107 知识条目
   - {object: AGG-107, command: 创建知识条目, raci: {A: {resolve: instance, field: 知识条目.归属组织单元.负责人}, R: [SH-E4, SH-E2], C: [], I: []}, boundary: {note: SH-E2 经 B-04 提炼入口调用}, sensitive: false}
   - {object: AGG-107, command: 起草知识条目, raci: {A: {resolve: instance, field: 知识条目.归属组织单元.负责人}, R: [SH-E4], C: [SH-E3], I: []}, boundary: {}, sensitive: false}

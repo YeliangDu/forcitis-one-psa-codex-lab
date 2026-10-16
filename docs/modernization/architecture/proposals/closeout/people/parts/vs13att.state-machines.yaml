@@ -36,17 +36,17 @@ machines:
 - aggregate: AGG-71
   machine: leave_balance_account
   entity: leave_balance_accounts
-  states: [已开账]
+  states: [已开账, 已结转]
   initial: []
-  terminal: []
-  perpetual: true
-  note: 根只存应享 / 已用 / 占用计数器（投影，可由请假与规则重算对账），无生命周期；占用 / 转用 / 释放 / 回冲同时改计数器，对应占用行机器的转换
+  terminal: [已结转]
+  note: 根只存应享 / 已用 / 占用计数器（投影，可由请假与规则重算对账）；占用 / 转用 / 释放 / 回冲同时改计数器，对应占用行机器的转换；年度届满按 AGG-118 结转规则结转并关闭，下一年度另开新账户（收敛新增终态）
   transitions:
   - {from: null, to: 已开账, command: 开立年度额度账户, guard: [INV-123], kind: forward}
   - {from: 已开账, to: 已开账, command: 占用余额, guard: [INV-68], kind: forward, effect: 占用 +}
   - {from: 已开账, to: 已开账, command: 批准转已用, guard: [], kind: forward, effect: 占用 −，已用 +}
   - {from: 已开账, to: 已开账, command: 释放余额占用, guard: [], kind: reverse, effect: 占用 −}
   - {from: 已开账, to: 已开账, command: 回冲已用额度, guard: [回冲不超已用], kind: reverse, effect: 已用 −}
+  - {from: 已开账, to: 已结转, command: 年度结转并关闭额度账户, guard: [年度届满, AGG-118 结转规则版本取得到（取不到失败并告警）, 无占用中的占用行], kind: forward}
 - aggregate: AGG-71
   machine: leave_balance_hold
   entity: leave_balance_holds
@@ -101,6 +101,7 @@ machines:
   initial: []
   terminal: []
   perpetual: true
+  exempt_terminal: 长期存续配置（按日历年度反复维护的可变根，无业务终结；年度过去后只读，不是状态）
   note: 可变根 + 审计，过去日期锁定；首次维护创建，之后每年反复维护（现状为整集替换，是否改按配置型版本化待 one-data）
   transitions:
   - {from: null, to: 已建, command: 维护工作日历年度, guard: [], kind: forward}

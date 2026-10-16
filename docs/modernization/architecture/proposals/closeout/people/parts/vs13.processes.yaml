@@ -85,8 +85,8 @@ processes:
     scope: "员工本人、其审批人、人力；病假等事由随 ADR-0043 分级限制可见范围（事由敏感度 tbd，交 U-11）"
     segregation:
       - {roles: [SH-E3, SH-E1], rule: "申请人不得审批本人请假（申请人本身是部门负责人时，按 AR-11 由其上级审批）"}
-    outcomes: [已批准, 已驳回, 已撤销, 已销假, 额度不足被拒]
-    scenarios: [PRC-116-S01, PRC-116-S02, PRC-116-S03, PRC-116-S04, PRC-116-S05, PRC-116-S06, PRC-116-S07, PRC-116-S08, PRC-116-S09, PRC-116-S10, PRC-116-S11]   # S01 额度不足被拒；S02 额度内年假自动批准；S03 超阈值长假进入审批并批准；S04 审批驳回释放占用；S05 审批中员工撤回；S06 审批 3 日无人处理升级；S07 已批准未开始，员工撤销回冲；S08 请假已开始提前销假回冲；S09 申请人本人是部门负责人，由其上级审批（AR-11）；S10 政策允许透支，进入审批；S11 请假已开始后员工点撤销，转为销假办理
+    outcomes: [已批准, 已驳回, 已撤销, 已销假, 额度不足被拒, 已提醒]
+    scenarios: [PRC-116-S01, PRC-116-S02, PRC-116-S03, PRC-116-S04, PRC-116-S05, PRC-116-S06, PRC-116-S07, PRC-116-S08, PRC-116-S09, PRC-116-S10, PRC-116-S11]   # S01 额度不足被拒；S02 额度内年假自动批准；S03 超阈值长假进入审批并批准；S04 审批驳回释放占用；S05 审批中员工撤回；S06 审批 3 日无人处理，非中断升级提醒管理层（结局已提醒，主线照常）；S07 已批准未开始，员工撤销回冲；S08 请假已开始提前销假回冲；S09 申请人本人是部门负责人，由其上级审批（AR-11）；S10 政策允许透支，进入审批；S11 请假已开始后员工点撤销，转为销假办理
     roles:
       - {id: SH-E3, as: initiator, org_needs: {responsibility: "提出并对本人申请事项的真实性负责", approval_right: "无（本人申请不得自批）", department_hint: "员工所在部门", position_hint: "全体在职员工"}}
       - {id: SH-E1, as: approver, org_needs: {responsibility: "作为申请人所在组织单元的责任人，判断异常请假能否离岗", approval_right: "正常一级审批（cost_object_owner 解析结果）；超阈值时 AR-11、AR-12 加审", department_hint: "员工所在组织单元", position_hint: "部门负责人、用人经理"}}       # 申请人所在组织单元的责任人（cost_object_owner 解析结果）
@@ -139,7 +139,7 @@ processes:
         permission: 请假.审批
         page: 审批待办页
         notify: [{to: SH-E1, how: 企业微信待办}]
-        timeout: {after: "P3D", escalate_to: SH-M1, interrupting: true}   # 暂拟 3 日无人处理升级转管理层处理，待 U3；写中断是因非中断的升级分支会与主线在下游并发（生成器 R14）
+        timeout: {after: "P3D", escalate_to: SH-M1, interrupting: false}   # 暂拟 3 日无人处理升级提醒管理层，待 U3；非中断，升级后接独立结束事件「已提醒」，主线照常（BPMN_STYLE 第 3 节，S-28）
         withdraw: {to: 7}
         decision:
           - {when: 审批驳回, goto: 6}
@@ -546,7 +546,6 @@ processes:
         platform_task: true
         service: platform.approval
         command: 奖金核定审批
-        aggregate: AGG-76
         pending: U10
         desc: 责任人核对草拟奖金，可批准或驳回，不改金额；奖金是对个人的资金承诺，保留人审
         approval:
@@ -718,8 +717,8 @@ processes:
     scope: "按扣缴义务人法人；申报明细含证件号码等个人信息，仅人力薪酬岗可见"
     segregation:
       - {roles: [SH-E6, SH-E6], rule: "申报登记与缴款资金支出（出纳，B-10）不得为同一人；申报数据由系统生成，人工只做外部申报与登记回执（SH-E6 内部分岗）"}
-    outcomes: [已申报缴款, 已中止]
-    scenarios: [PRC-125-S01, PRC-125-S02, PRC-125-S03, PRC-125-S04, PRC-125-S05, PRC-125-S06]   # S01 系统生成申报数据，线下申报，登记回执与缴款（全程）；S02 证件信息缺失或金额不一致，已中止并告警；S03 申报被退回更正；S04 股息红利并入同期个税申报；S05 个税申报期限提醒升级；S06 所属会计期间已关账，过账路由到开放期间
+    outcomes: [已申报缴款, 已中止, 已提醒]
+    scenarios: [PRC-125-S01, PRC-125-S02, PRC-125-S03, PRC-125-S04, PRC-125-S05, PRC-125-S06]   # S01 系统生成申报数据，线下申报，登记回执与缴款（全程）；S02 证件信息缺失或金额不一致，已中止并告警；S03 申报被退回更正；S04 股息红利并入同期个税申报；S05 个税申报期限提醒升级（非中断，结局已提醒，主线照常）；S06 所属会计期间已关账，过账路由到开放期间
     roles:
       - {id: SH-E6, as: performer, org_needs: {responsibility: "核对系统生成的申报数据，在外部渠道办理申报与缴款并登记回执", approval_right: "无（人工只做外部申报与登记；缴款资金支出由出纳另行执行）", department_hint: "人力资源部（薪酬、申报岗）", position_hint: "薪酬岗、申报岗"}}      # 人力
       - {id: SH-M1, as: informed, org_needs: {responsibility: "申报期限提醒的升级对象", approval_right: "无", department_hint: "公司管理层", position_hint: "分管副总"}}       # 申报期限提醒升级对象
@@ -750,7 +749,7 @@ processes:
         pending: U1
         desc: 个税：人力在扣缴客户端导入申报数据并申报，本系统登记申报回执（个人所得税法第九条、第十条；个人所得税扣缴申报管理办法）。法定期限为次月十五日内〔中，核对原文〕（P-39）
         period_gate: false
-        timeout: {after: "P15D", escalate_to: SH-M1, interrupting: true}   # 自次月 1 日起算，P-39 提醒并升级转管理层督办；写中断同 PRC-116（R14）
+        timeout: {after: "P15D", escalate_to: SH-M1, interrupting: false}   # 自次月 1 日起算，P-39 提醒并升级转管理层督办；非中断，独立结束事件「已提醒」（S-28）
         notify: [{to: SH-E6, how: 企业微信待办}]
         audit: true
         cross_bc:
@@ -974,7 +973,7 @@ single_aggregate:
     scenarios: [PRC-119-S01, PRC-119-S02, PRC-119-S03]   # S01 年度维护日历；S02 发布新标准工时版本，与现有版本区间重叠被拒；S03 新标准工时版本区间不重叠，发布成功
     roles:
       - {id: SH-E6, as: performer, org_needs: {responsibility: "每年维护工作日历与标准工时版本，对依据文件的准确性负责", approval_right: "无（版本区间由不变量守卫）", department_hint: "人力资源部", position_hint: "人力资源专员、考勤管理员"}}      # 人力
-    commands:
+    steps:
       - actor: SH-E6
         where: in_system
         command: 维护工作日历年度

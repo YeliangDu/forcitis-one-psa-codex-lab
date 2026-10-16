@@ -1,6 +1,6 @@
 # VS-13 薪酬类聚合收敛 NOTES 片段（vs13pay）
 
-范围：B-15 的 AGG-73 月度薪酬结算、AGG-74 社保与公积金参保、AGG-75 激励方案版本、AGG-76 奖金核定、AGG-93 人员薪酬档案、AGG-95 个税扣缴与社保公积金申报，提议的「AGG-待定-薪酬规则版本」；B-13 的 AGG-106 绩效评估（PRC-85、120 用）。服务流程 PRC-84、85、113、120–127、130、134、145。产物：`vs13pay.commands.yaml`、`vs13pay.state-machines.yaml`、`vs13pay.events.yaml`、`vs13pay.raci.yaml`（提议稿，规格 `closeout/RESPONSIBILITY_MATRIX_SPEC.md` 第 B 节）。依据：`vs13.processes.yaml`、`vs13.notes.md`（审批已按新原则改：激励方案、奖金核定、月度薪酬审核走 platform.approval 人审，计算与申报生成自动）、`vs07.processes.yaml`、`data-model.people.yaml`、聚合稿 §2.2、terms.yaml、ADR-0032。文中「分片 N」指 `vs13.notes.md` 的同名小节第 N 条。把握度标记沿用：高 / 中 / 低。
+范围：B-15 的 AGG-73 月度薪酬结算、AGG-74 社保与公积金参保、AGG-75 激励方案版本、AGG-76 奖金核定、AGG-93 人员薪酬档案、AGG-95 个税扣缴与社保公积金申报，提议的「AGG-119」；B-13 的 AGG-106 绩效评估（PRC-85、120 用）。服务流程 PRC-84、85、113、120–127、130、134、145。产物：`vs13pay.commands.yaml`、`vs13pay.state-machines.yaml`、`vs13pay.events.yaml`、`vs13pay.raci.yaml`（提议稿，规格 `closeout/RESPONSIBILITY_MATRIX_SPEC.md` 第 B 节）。依据：`vs13.processes.yaml`、`vs13.notes.md`（审批已按新原则改：激励方案、奖金核定、月度薪酬审核走 platform.approval 人审，计算与申报生成自动）、`vs07.processes.yaml`、`data-model.people.yaml`、聚合稿 §2.2、terms.yaml、ADR-0032。文中「分片 N」指 `vs13.notes.md` 的同名小节第 N 条。把握度标记沿用：高 / 中 / 低。
 
 ## 接缝问题
 
@@ -14,7 +14,7 @@
 
 1. **数据模型状态列需回填**：本稿新增的状态取值（交 one-data 写回 `data-model.people.yaml`）：AGG-73「已退回」（草稿不用，计算创建即为已计算）；AGG-74「在保、已减员」；AGG-75「草稿、已批准、已撤回」（数据模型为编制 → 审批 → 生效 → 结束）；AGG-76「已驳回」；AGG-93 版本「生效、已结束」与扣除声明「有效、已取代」；AGG-95「已更正」；薪酬规则版本「草稿、已生效、已结束」。
 2. **AGG-76「已发放」无命令**：数据模型状态列为「草拟 → 已核定 → 已发放」，且说明「已发放由 AGG-73 批准后事件置位」，但聚合稿 AGG-76 只有核定奖金一个命令，流程里也没有置位步骤或事件策略。本稿不自造命令，状态机只到已核定（暂作终态）。建议 one-architecture 增事件策略「薪酬批准后标记奖金已发放」（订阅薪酬已批准，按薪酬行里的奖金核定引用 `bonus_determination_id` 置位），并加命令〔缺〕标记奖金已发放；补上后已核定变为非终态。
-3. **薪酬规则版本没有维护流程**：发布薪酬规则版本在本批流程里没有步骤，只被 AGG-73 计算（读生效版本）间接依赖，本稿按「维护」计非孤儿。建议 one-architecture 增单聚合流程（同 PRC-119 工作日历与标准工时的写法），暂用 `AGG-待定-薪酬规则版本`，编号待要号。规则版本由谁编制谁确认见 U7③。
+3. **薪酬规则版本没有维护流程**：发布薪酬规则版本在本批流程里没有步骤，只被 AGG-73 计算（读生效版本）间接依赖，本稿按「维护」计非孤儿。建议 one-architecture 增单聚合流程（同 PRC-119 工作日历与标准工时的写法），暂用 `AGG-119`，编号待要号。规则版本由谁编制谁确认见 U7③。
 4. **AGG-73 缺冲销与补发补扣的命令**：数据模型有「结算类型（正常 / 冲销）」「冲销的原结算」和「更正」类行项目，分片结构问题 2② 也提了补发补扣行，但聚合稿 AGG-73 命令列、流程步骤都没有对应命令（冲销已批准结算、锁定后更正、追溯调薪）。本稿不造命令；影响是：调整薪酬档案的生效日早于已批准月份时，对该月的影响无处落地，当前只记新版本、不改已批准结算。代发个别退票的部分失败同样无命令（分片结构问题 2④）。
 5. **AGG-95 并入与更正的边界**：① 并入扣缴申报时若所属期个税申报已是「已申报」，本稿让命令失败并告警（不静默），实际应并入下一期还是走更正申报，要财务定（涉及股息红利的申报所属期，分片结构问题 11）；② 更正申报只允许从「已申报」发起（PRC-125 步 4 的出口），已缴款后发现差错无命令路径，待 U1、U2 定申报方式后再补；③ 三类申报（个税、社保、公积金）各一条申报行，「个税与社保公积金申报已提交」要等三类都到已申报才发，需要在命令里查同期兄弟行，请 one-architecture 确认放在命令内还是事件策略。
 6. **AGG-75 生效分两段**：骨架写「审批通过后到生效日期自动生效」，一个命令（生效激励方案版本）要覆盖审批回调与到期定时两个触发，所以补了「已批准」状态；旧版本的「已结束」没有独立命令，由后继版本生效同事务结束。若 one-architecture 认为定时触发应是独立命令（如〔缺〕到期生效），可拆成两条，状态机不变。
@@ -34,6 +34,7 @@
 | 撤回薪酬审核 | withdraw_payroll_review | 领域 | organization.payroll | AGG-73 命令，提交人撤回；收敛新增 |
 | 已退回（薪酬结算状态） | returned | 领域 | organization.payroll | AGG-73 状态，审批驳回或撤回后待重算；与 organization.workforce 其他「已退回」同名不同义，按 bc 分立 |
 | 已更正（申报状态） | corrected | 领域 | organization.payroll | AGG-95 状态，原申报被更正申报取代 |
+| 变更参保缴纳主体 | change_insurance_contributor | 领域 | organization.payroll | AGG-74 命令，跨法人调岗时原主体减员、新主体增员同事务；〔缺〕，沿 vs07.notes.md 新用语 ChangeInsuranceContributor，PRC-136 第 12 步用 |
 | 在保、已减员 | enrolled、withdrawn_from_insurance | 领域 | organization.payroll | AGG-74 状态 |
 | 已取代 | superseded | 领域 | organization.payroll | AGG-93 专项附加扣除声明状态 |
 | 已批准（激励方案版本状态） | approved | 领域 | organization.payroll | AGG-75 状态，审批通过但生效日期未到；与「已生效」区分 |

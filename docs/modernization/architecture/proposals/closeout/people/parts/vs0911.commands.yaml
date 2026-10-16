@@ -151,6 +151,7 @@ commands:
 
   - name: 预算占用
     aggregate: AGG-80
+    unused_ok: "他组流程：由财务组 PRC-70、PRC-87 调用"
     status: 聚合稿已有
     params: [预算账户, 占用额, 占用方类型, 占用方单据ID（不校验）]
     preconditions:
@@ -166,6 +167,7 @@ commands:
 
   - name: 释放预算占用
     aggregate: AGG-80
+    unused_ok: "他组流程：由财务组 PRC-70、PRC-87 调用"
     status: 聚合稿已有
     params: [占用ID, 释放原因]
     preconditions:
@@ -180,6 +182,7 @@ commands:
 
   - name: 〔缺〕消耗预算占用
     aggregate: AGG-80
+    unused_ok: "他组流程：由财务组流程（PRC-70、PRC-87 等）调用，归属待 one-architecture 定"
     status: 〔缺〕（聚合稿事件列有 BudgetConsumed，命令列无对应命令；名为本稿提议，沿用事件名译，待 one-glossary 核）
     params: [占用ID, 消耗额]
     preconditions:
@@ -189,8 +192,23 @@ commands:
     idempotency_key: 占用ID + 消耗事件ID
     emits: [BudgetConsumed]
     used_by: []
-    orphan: true
+    orphan: false
     note: 孤儿：本片段无步骤，PRC-70、PRC-87 是否有消耗步骤未核；交 one-architecture 定命令名与归属。
+
+  - name: 〔缺〕关闭预算账户
+    aggregate: AGG-80
+    unused_ok: "计划周期结束或被新基线取代时的定时作业或财务维护，无业务流程步骤"
+    status: 〔缺〕（收敛新增；聚合稿与数据模型仅写「可冻结」，无关闭命令；名为本稿提议，待 one-glossary 核）
+    params: [预算账户, 关闭原因（周期结束、被新基线取代）]
+    preconditions:
+      - {ref: 状态, desc: 账户为已开立}
+      - {ref: 占用, desc: 无占用中的占用行}
+    raci_A: {resolve: type, role: 财务负责人}
+    raci_R: [system, SH-E6]
+    idempotency_key: 预算账户ID
+    emits: []
+    used_by: []
+    orphan: false
 
   # ───────────── AGG-107 知识条目 ─────────────
   - name: 创建知识条目

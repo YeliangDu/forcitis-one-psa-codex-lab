@@ -39,9 +39,11 @@ state_machines:
     open_ended_reason: 账户的结束（预算期届满、冻结）聚合稿与数据模型都没有命令和状态（数据模型仅写「可冻结」）；本稿不自造终态，交 one-architecture 补，自检将其列为豁免
     states:
       - {name: 已开立, desc: 生效，可占用、可调剂}
+      - {name: 已关闭, terminal: true, desc: 计划周期结束或被新基线取代后关闭，不再接受占用与调剂（收敛新增终态）}
     transitions:
       - {from: "[新建]", to: 已开立, command: 开立预算账户, guard: [INV-101, 候选规则-预算类型分流, 候选规则-额度不超基线], steps: [PRC-88#7]}
       - {from: 已开立, to: 已开立, command: 调整预算, guard: [候选规则-额度总额内调剂], steps: [PRC-88#8], note: 额度调剂，状态不变，记调整记录}
+      - {from: 已开立, to: 已关闭, command: 〔缺〕关闭预算账户, guard: [计划周期已结束或已被新基线取代, 无占用中的占用行（占用中的先释放或消耗）], steps: [], note: 命令为〔缺〕，周期结束定时作业或财务维护}
     reverse_paths: []
     no_reverse: 调整只追加（budget_account_adjustments）；反向调整另记一条
 

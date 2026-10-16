@@ -711,7 +711,7 @@ processes:
         command: 〔缺〕撤销离职登记
         aggregate: AGG-62
         emits: [〔缺〕离职登记已撤销]
-        desc: 离职日前撤销，状态回「在职」，已生成的归还待办与考勤待代确认随事件取消；离职日后不可撤销（已吊销访问，需走再入职）
+        desc: 离职日前撤销，状态回「在职」，B-31 随事件取消待办（B-27 只在 Separated 后处置，不订阅本事件）；离职日后不可撤销（已吊销访问，需走再入职）
         permission: 离职.撤销登记
         page: 离职办理页
         audit: true
@@ -719,7 +719,6 @@ processes:
         outcome: 离职登记已撤销
         cross_bc:
           - {mode: event, direction: out, bc: B-31, name: 〔缺〕离职登记已撤销}
-          - {mode: event, direction: out, bc: B-27, name: 〔缺〕离职登记已撤销}
     notes: >
       账号侧见 PRC-129（吊销会话）、PRC-138（角色授予、企业微信停用、解绑）；参保减员见 PRC-130；最后一期薪酬随月度结算发放（B-15）。
       工作交接清单是单据不作门（VS-13.6 备注，Q-D 第 3 项不做）；IT 资产归还待办由 B-31 订阅 Separated 生成，B-13 不读 B-31。

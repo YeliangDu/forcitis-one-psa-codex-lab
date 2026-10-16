@@ -153,6 +153,18 @@ entries:
     escalate: {when: 离职后 15 日未减员（PRC-130 P15D）, to: SH-M1, note: 提醒，非审批}
   sensitive: false
   note: 减员只写减员日与回执引用，不写缴费基数
+- object: AGG-74
+  command: 变更参保缴纳主体
+  raci:
+    A: {resolve: type, role: SH-E6, function: 社保岗}
+    R: [SH-E6]
+    C: []
+    I: [SH-M1]
+  boundary:
+    escalate: {when: 调岗生效后新主体 30 日未增员（P-32）, to: SH-M1, note: 提醒，非审批}
+  sensitive: true
+  sensitive_reason: 登记缴费基数，基数是工资的映射（SPI），同参保增员
+  note: 跨法人调岗引起，原主体减员与新主体增员同事务
 - object: AGG-75
   command: 编制激励方案版本
   raci:
@@ -323,7 +335,7 @@ entries:
     I: [SH-E6]
   sensitive: false
   note: 系统自动，过账路由规则见 INV-92
-- object: AGG-待定-薪酬规则版本
+- object: AGG-119
   command: 发布薪酬规则版本
   raci:
     A: {resolve: type, role: SH-E6, function: 薪酬规则确认}

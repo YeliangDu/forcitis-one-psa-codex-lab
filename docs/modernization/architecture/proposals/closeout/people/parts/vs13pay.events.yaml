@@ -48,14 +48,14 @@ published:
   note: 「已过账」不发事件；发放与过账的先后由 PRC-127 回到 PRC-134 处理
 - name: 参保已增员
   published_by: AGG-74
-  by_command: 参保增员
+  by_command: 参保增员 / 变更参保缴纳主体
   payload: [参保登记ID, 人员ID, 缴纳主体法人ID, 险种码, 增员生效日]
   subscribers:
   - {type: 仅分析}
   note: 缴费基数不入载荷；入职阶段门（聚合稿阶段 2）读参保状态，不订阅
 - name: 参保已减员
   published_by: AGG-74
-  by_command: 参保减员
+  by_command: 参保减员 / 变更参保缴纳主体
   payload: [参保登记ID, 人员ID, 缴纳主体法人ID, 减员生效日]
   subscribers:
   - {type: 仅分析}
@@ -75,7 +75,7 @@ published:
   note: 个税、社保、公积金三类均已提交后发布一次。缴款与银行流水对账的订阅方未定（vs13.notes.md 接缝问题 5：B-22 订阅或 B-15 经 api 读取流水）
 - name: 薪酬规则已生效
   name_status: 〔缺〕沿用分片提议名（vs13.notes.md 新用语 payroll_rule_version_published）
-  published_by: AGG-待定-薪酬规则版本
+  published_by: AGG-119
   by_command: 发布薪酬规则版本
   payload: [规则版本ID, 规则类别码, 适用范围, 生效区间]
   subscribers:

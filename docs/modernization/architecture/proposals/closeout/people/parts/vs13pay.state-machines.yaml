@@ -2,7 +2,7 @@
 # kind：forward 正向；reverse 逆向（驳回、撤回、更正）。from: null = 创建。守卫引用 INV / P / AR（聚合稿与 APPROVAL_RULES）、
 #   R-VS13-a…j（vs13.notes.md 结构问题 14 的候选规则，交 one-rules）、U（vs13.notes.md 待用户定）。
 # 状态取值以 data-model.people.yaml 的「状态」列为底，缺的状态在 added_states 列出（交 one-data 回填）。
-# 版本型聚合（AGG-93、AGG-待定）按版本行立机器，根表无生命周期。
+# 版本型聚合（AGG-93、AGG-119）按版本行立机器，根表无生命周期。
 # non_state_commands：只写属性、不改状态的命令；流程步骤对到这里即视为已覆盖。
 # 自检（可达性、非终态到终态、流程步骤对转换）见 vs13pay.notes.md「收敛自检」。
 
@@ -60,6 +60,8 @@ machines:
   transitions:
   - {from: null, to: 在保, command: 参保增员, guard: [人员已入职, 同人同主体无在保, 用工类型不是退休返聘或实习〔推〕], kind: forward}
   - {from: 在保, to: 已减员, command: 参保减员, guard: [用工类型不是退休返聘或实习], kind: forward, process_outcome: 参保已减员}
+  - {from: 在保, to: 已减员, command: 变更参保缴纳主体, guard: [新缴纳主体与原主体不同, 同事务为新主体创建在保登记], kind: forward}
+  - {from: null, to: 在保, command: 变更参保缴纳主体, guard: [新主体无在保登记], kind: forward}
 
 - aggregate: AGG-75
   machine: incentive_plan_version
@@ -143,7 +145,7 @@ machines:
   - {from: 已申报, to: 已更正, command: 更正申报, guard: [被退回或发现差错], kind: reverse}
   - {from: null, to: 已申报, command: 更正申报, guard: [引用原申报 corrects_filing_id，与原申报置已更正同事务], kind: reverse}
 
-- aggregate: AGG-待定-薪酬规则版本
+- aggregate: AGG-119
   machine: payroll_rule_version
   entity: payroll_rule_versions
   states: [草稿, 已生效, 已结束]

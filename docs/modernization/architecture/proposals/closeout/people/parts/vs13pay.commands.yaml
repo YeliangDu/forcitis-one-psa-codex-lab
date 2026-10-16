@@ -1,6 +1,6 @@
 # VS-13 薪酬类聚合命令目录（收敛产物，提议稿；规格见 closeout/RESPONSIBILITY_MATRIX_SPEC.md 第 B 节）
 # 范围：B-15 的 AGG-73 月度薪酬结算、AGG-74 社保与公积金参保、AGG-75 激励方案版本、AGG-76 奖金核定、AGG-93 人员薪酬档案、
-#   AGG-95 个税扣缴与社保公积金申报、提议的「AGG-待定-薪酬规则版本」；B-13 的 AGG-106 绩效评估（PRC-85、120 用）。
+#   AGG-95 个税扣缴与社保公积金申报、提议的「AGG-119」；B-13 的 AGG-106 绩效评估（PRC-85、120 用）。
 # 依据：vs13.processes.yaml、vs13.notes.md、vs07.processes.yaml（PRC-84、85、130、145 的相关步骤）、聚合稿 §2.2、data-model.people.yaml、terms.yaml。
 # 命令名沿用聚合稿与分片，不自造。name_status 非空的是〔缺〕命令：
 #   「沿用分片提议名」= vs13.notes.md 新用语已提议（草拟奖金核定、退回薪酬重算、驳回奖金核定、发布薪酬规则版本）；
@@ -15,7 +15,7 @@
 
 bc: B-15
 also_bc: {AGG-106: B-13}
-aggregates: [AGG-73, AGG-74, AGG-75, AGG-76, AGG-93, AGG-95, AGG-待定-薪酬规则版本, AGG-106]
+aggregates: [AGG-73, AGG-74, AGG-75, AGG-76, AGG-93, AGG-95, AGG-119, AGG-106]
 commands:
 
 # ───────────── AGG-106 绩效评估（B-13） ─────────────
@@ -155,6 +155,7 @@ commands:
   orphan: false
 - name: 退回薪酬重算
   aggregate: AGG-73
+  unused_ok: "审批驳回回调，由 PRC-124 第 3 步 on_reject 边触发"
   entity: payroll_settlements
   kind: callback
   name_status: 〔缺〕沿用分片提议名（vs13.notes.md 新用语、结构问题 2①）
@@ -285,6 +286,27 @@ commands:
   used_by: [PRC-130 第 1 步]
   orphan: false
 
+- name: 变更参保缴纳主体
+  aggregate: AGG-74
+  entity: insurance_enrollments
+  kind: human
+  name_status: 〔缺〕聚合稿无此命令；PRC-136（跨法人调岗）第 12 步用到，沿 vs07.notes.md 新用语 ChangeInsuranceContributor
+  source: 分片 vs07.notes.md 新用语、PRC-136 第 12 步
+  params: [参保登记ID, 新缴纳主体法人, 变更生效日, 原主体减员回执引用, 新主体增员回执引用, 缴费基数]
+  preconditions:
+  - {ref: 状态, text: 原登记为在保，新缴纳主体与原主体不同}
+  - {ref: 同主体唯一, text: 同一人员在新缴纳主体无在保登记}
+  - {ref: P-32, text: 与入职增员同属 P-32 范畴，新主体增员超期预警不拦截}
+  authority:
+    ref: raci:AGG-74/变更参保缴纳主体
+    A: {resolve: type, role: SH-E6, function: 社保岗}
+    R: [SH-E6]
+  idempotency_key: 参保登记ID + 新缴纳主体 + 变更生效日（同键返回已有）
+  state_change: 原登记 在保 → 已减员；同事务为新缴纳主体创建登记 → 在保
+  emits: 参保已减员、参保已增员
+  used_by: [PRC-136 第 12 步]
+  orphan: false
+
 # ───────────── AGG-75 激励方案版本 ─────────────
 - name: 编制激励方案版本
   aggregate: AGG-75
@@ -328,6 +350,7 @@ commands:
   orphan: false
 - name: 驳回激励方案版本
   aggregate: AGG-75
+  unused_ok: "审批驳回回调，由 PRC-121 第 2 步 on_reject 边触发"
   entity: incentive_plan_versions
   kind: callback
   name_status: 〔缺〕收敛新增，沿用 b31「驳回 IT 需求」命名模式，待 one-glossary 登记
@@ -595,9 +618,10 @@ commands:
   used_by: [PRC-125 第 6 步]
   orphan: false
 
-# ───────────── AGG-待定-薪酬规则版本 ─────────────
+# ───────────── AGG-119 ─────────────
 - name: 发布薪酬规则版本
-  aggregate: AGG-待定-薪酬规则版本
+  aggregate: AGG-119
+  unused_ok: "维护用：配置型版本发布，无业务流程（vs13pay.notes.md 结构问题 3）"
   entity: payroll_rule_versions
   kind: human
   name_status: 〔缺〕沿用分片提议名（vs13.notes.md 新用语 publish_payroll_rule_version）
@@ -608,7 +632,7 @@ commands:
   - {ref: U7③, text: 编制与确认由谁维护待定（人力出、财务确认）；推荐编制人 ≠ 确认人〔推〕}
   - {ref: 状态, text: 版本为草稿}
   authority:
-    ref: raci:AGG-待定-薪酬规则版本/发布薪酬规则版本
+    ref: raci:AGG-119/发布薪酬规则版本
     A: {resolve: type, role: SH-E6, function: 薪酬规则确认}
     R: [SH-E6]
   idempotency_key: 规则版本ID（客户端预生成 UUIDv7）

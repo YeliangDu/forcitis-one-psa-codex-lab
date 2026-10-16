@@ -57,7 +57,6 @@ processes:
         service: platform.approval
         where: in_system
         command: 经营计划审批
-        aggregate: AGG-79
         desc: 审批人按计划归属组织单元解析为其责任人；方案是否可达、资源取舍是判断，不能规则化；基线不可变由 INV-101 守卫
         approval:
           engine: platform.approval
@@ -154,7 +153,7 @@ processes:
     scope: "销售预测按人员本人及其管理链可见；现金流预测限财务与管理层"
     triggers:
       - {type: time, name: 每周销售预测承诺（预测周期末含现金流预测）}
-    outcomes: [预测版本已编制, 现金流预测已编制]
+    outcomes: [预测版本已编制, 现金流预测已编制, 已提醒]
     scenarios: [PRC-89-S01, PRC-89-S02, PRC-89-S03]
     roles:
       - {id: SH-E5, as: initiator, org_needs: {responsibility: 按周编制本人的销售预测版本, approval_right: 无（预测不审批）, department_hint: 市场与客户部门, position_hint: 市场和客户经理职能岗}}       # 市场和客户经理
@@ -172,7 +171,7 @@ processes:
         page: 销售预测填报页
         cross_bc:
           - {mode: api, direction: out, bc: B-13, name: 读取人员与组织单元}   # B-18 → B-13 api 边已有；AGG-79 引用列缺人员，见 NOTES 接缝问题 1
-        timeout: {after: "P7D", escalate_to: SH-M1, interrupting: true}      # 逾期未报的升级对象与期限：待用户定（NOTES 待用户定 4）
+        timeout: {after: "P7D", escalate_to: SH-M1, interrupting: false}      # 逾期未报的升级对象与期限：待用户定（NOTES 待用户定 4）
         pending: vs0911-待定4
         decision:
           - {when: 本期为现金流预测期, goto: 2}
