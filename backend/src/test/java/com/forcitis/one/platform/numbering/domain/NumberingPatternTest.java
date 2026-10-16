@@ -9,6 +9,7 @@ import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.platform.numbering.api.ResetPolicy;
+import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -73,8 +74,8 @@ class NumberingPatternTest {
         NumberingPattern pattern = new NumberingPattern(NumberingPattern.DEFAULT_TEMPLATE, ResetPolicy.MONTHLY);
 
         Instant at = Instant.parse("2026-10-14T08:00:00Z");
-        TemplateVersion confirmed = new TemplateVersion(1, pattern, 1, LocalDate.of(2026, 10, 15), null, at, VersionStatus.CONFIRMED, TestAccounts.account(2), at, null, null);
-        TemplateVersion waiting = new TemplateVersion(1, pattern, 1, LocalDate.of(2026, 10, 15), null, at, VersionStatus.PENDING_CONFIRMATION, null, null, null, null);
+        TemplateVersion confirmed = new TemplateVersion(new NumberingRuleVersionId(TestIds.uuid(41)), 1, pattern, 1, LocalDate.of(2026, 10, 15), null, at, VersionStatus.CONFIRMED, TestAccounts.account(2), at, null, null);
+        TemplateVersion waiting = new TemplateVersion(new NumberingRuleVersionId(TestIds.uuid(42)), 1, pattern, 1, LocalDate.of(2026, 10, 15), null, at, VersionStatus.PENDING_CONFIRMATION, null, null, null, null);
         assertThat(NumberingRule.restore(new NumberingRuleId(TestIds.uuid(4)), DocumentType.TIMESHEET, List.of(confirmed), 0, 0).inForce()).isPresent();
         assertThat(NumberingRule.restore(new NumberingRuleId(TestIds.uuid(4)), DocumentType.QUOTE, List.of(waiting), 0, 0).inForce()).isEmpty();
     }

@@ -225,6 +225,9 @@ tables:
     writers: [platform.idempotency]
 
   platform_identity.user_accounts:
+    # Known gap (DATA-REPAIR-identity ID-06; owner one-1a-next-4, due 2026-12-31, ref ADR-0043 R-2 / U-12): last_login_address is personal information on a PERMANENT table.
+    # Intended clearing: the account keeps only its latest address while employed and the address is cleared within 30 days of disabling or departure (RETENTION_PROPOSAL.md).
+    # Written as a comment, not a `gaps:` entry: no D-rule flags it yet and a gap that covers no violation fails this test; becomes a gap when the R-2 guard lands with the ADR-0043 implementation PR.
     role: AGGREGATE_ROOT
     aggregate: UserAccount
     mutability: MUTABLE
@@ -253,6 +256,7 @@ tables:
     lineage: {source: NEW}
     writers: [platform.identity]
   platform_identity.navigation_items:
+    # uk_navigation_items_parent_item_id_name (parent_item_id, name) is the business key and also serves as the index of the parent_item_id foreign key (DATA-REPAIR-identity ID-11).
     role: CONFIG
     mutability: MIGRATION_ONLY
     retention: {policy: PERMANENT}
@@ -272,7 +276,8 @@ tables:
     writers: [platform.identity]
   platform_identity.browser_identifiers:
     role: ONE_TIME
-    mutability: INSERT_DELETE
+    mutability: CONDITIONAL_UPDATE
+    condition: "a value is replaced by retiring its rows (retired_at set where retired_at IS NULL) and inserting new rows; identifier_hash is never rewritten"
     retention: {policy: EXPIRY, job: platform.identity.credential.purge}
     lineage: {source: NEW}
     writers: [platform.identity]
@@ -283,6 +288,7 @@ tables:
     lineage: {source: NEW}
     readers: [platform.identity]
   platform_identity.emergency_admins:
+    # PERMANENT by user decision: ADR-0043 U-12 item (a) accepts permanent retention of the emergency account name (PI) with a registered reason; source intent 2026-10-15-225255. The reason text moves into a registry field once DG-0 adds it.
     role: AGGREGATE_ROOT
     aggregate: EmergencyAdmin
     mutability: CONDITIONAL_UPDATE

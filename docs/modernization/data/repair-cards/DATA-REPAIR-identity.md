@@ -64,7 +64,7 @@
 - 问题：`sessions.session_id` 是 Spring Session JDBC 的会话标识，等同 Cookie 持有凭据；未登记即默认 INTERNAL，任何读库者可冒用会话。
 - 证据：PI 迁移:197、212 注释「Cookie 值」；`data-classification.txt` 只登记 `principal_name`（:17）与 `sessions_attributes.attribute_bytes`；OV「高风险项判断 PI 第 3 条」。
 - 用户决定：「RESTRICTED（口令、密钥级，不出库、不进日志与分析层）」（收件箱 2026-10-16-one-data-baseline-classification；intent `2026-10-16-085331-one-data-会话标识-session_id.md`）。
-- 改法：在 `data-classification.txt` 登记 `sessions.session_id`、`sessions.primary_id` 为 `RESTRICTED + NONE`。文件仍是三段格式，第二维 `NONE` 写在本卡表内，四段化随 ADR-0043 实施 PR。理由以「用途：」之外的安全材料说明，同 `state_hash`。
+- 改法：在 `data-classification.txt` 登记 `sessions.session_id`、`sessions.primary_id` 为 `RESTRICTED`；个人信息标记待 one-data / U-11 裁定（复审 M2 后不再写 `NONE`），四段化随 ADR-0043 实施 PR。理由以「用途：」之外的安全材料说明，同 `state_hash`。
 - 待核（落笔前）：ADR-0043 第 2、3 项对 `RESTRICTED` 列的守护口径（是否要求只存摘要、是否有「不进日志与分析层」的静态扫描）；若要求只存摘要，须自定义会话仓储（Spring Session 无内建，OV 标「未核实」），那属另卡，本卡不改会话仓储，只登记并在 PR 写明该缺口。
 - 预期表结构 diff：无（登记文件变化，不改 DDL）。
 - 验收要点：`data-classification.txt` 含两列且级别为 `RESTRICTED`；分级守护通过；不改会话仓储。
@@ -93,6 +93,7 @@
 - 预期表结构 diff：无。
 - 验收要点：注册表有 gap，含 owner、到期日、指向 U-12；R-2 守护（随 ADR-0043 实施 PR）不在本卡。
 - 依据：门禁 C3；ADR-0043 R-2、U-12。保留期：SS 与 PI 不另起；清除路径若只置空 `last_login_address`，须与 ID-12 的成对 CHECK 协调（见 ID-12）。
+- one-data 2026-10-16 裁定：接受改为注释；转 gap 挂在 ADR-0043 实施 PR 上（R-2 守护建成后）。
 
 ### ID-07　R-2 + R-3（编码部分）　中　系统角色保留码与角色编码格式只靠 Java
 - 问题：「super_admin 为预留码，只能由迁移脚本建立」只在 `Role.java`（`isReserved`、`requireModifiable`），角色编码无格式约束。
@@ -142,6 +143,19 @@
 - 预期表结构 diff：`user_accounts`：新增 `ck_user_accounts_last_login`、`ck_user_accounts_last_login_address`；列注释补充。
 - 验收要点：首次登录前（两列空）、成功登录（两列有值）通过；只有地址无时间被拒；超长地址被拒；`LoginAdmission` 等写入点原样通过。
 - 依据：门禁 O4、B5、O8；D2；NAMING_STANDARD §2.4a-5；SS §4 第 10 组。
+- one-data 2026-10-16 裁定：选 C（64）+ 应用侧保护；不选 A（违反 §2.4a-5）、不选 B（规范化解析可能触发 DNS、引入新语义）。签发行：数据设计：通过（one-data，2026-10-16，依据 data-pr5 @b429bc80 加本裁定）。
+- 落实：基线加 `ck_user_accounts_last_login_address`（`char_length BETWEEN 1 AND 64`，可空）；`JdbcAccountRepository.recordLogin` 在写入前判定，长度超 64 或不符「四段点分十进制，或至少含两个冒号且不含 `:::` 的十六进制串，可带 `%` 区域标识」（复审 Low 收紧）的取值不写、置空并打 ALERT（只记长度，不含原值），登录照常成功，不截断。测试：`IdentityBaselineConstraintsIntegrationTest`、`WecomLoginIntegrationTest` 中名以 `DATA-REPAIR-identity ID-12` 开头者。
+
+#### 数据设计补充（one-1a-next-4，待 one-data 签）
+
+核对 `last_login_address` 的值来源（one-data 签发记录要求：长度上限 45 先核对来源再议）。结论：值是经可信代理解析后的单个地址，但不保证是 45 位内的规范地址文本，长度上限本批不落。
+
+- 写入链：`LoginAdmission.complete`（`LoginAdmission.java:75`）调 `accounts.recordLogin(userId, now, origin.address())`，`JdbcAccountRepository.recordLogin`（`JdbcAccountRepository.java:121`）原样写入；只有登录成功路径写，无其他写入点。
+- 值的出处：`RequestClientOrigin.address()` 返回 `HttpServletRequest.getRemoteAddr()`（`RequestClientOrigin.java:14-18`）；无请求上下文时返回字面量 `"unknown"`（登录路径上不会出现）。
+- `getRemoteAddr()` 是 Tomcat 经可信代理解析后的单个地址，不是原始 `X-Forwarded-For` 整串：`platform_identity.properties:21-22` 配 `server.forward-headers-strategy=native`，只有直连对端匹配 `server.tomcat.remoteip.internal-proxies`（默认仅 127.0.0.1 与 ::1，可由 `FORCITIS_TRUSTED_PROXIES` 改）时，才取 `X-Forwarded-For` 中从右数第一个非可信代理的条目；否则就是 TCP 对端地址。部署样例 `phase1a/infra/runbooks/files/nginx-one.conf:67` 用 `proxy_set_header X-Forwarded-For` 加 nginx 变量 `remote_addr` 覆盖而非追加，正常部署下是 nginx 看到的客户端地址，客户端自带的头被丢弃。
+- 可能取值：正常为 IPv4 点分十进制（最长 15）或 IPv6 文本（含 `::ffff:a.b.c.d` 映射形态，最长 45）。不保证的情形：(1) Tomcat 取出的 `X-Forwarded-For` 条目不做地址语法校验，若某个可信代理转发了带端口（`ip:port`）、带方括号或非地址串的条目，会原样入库；(2) 直连对端为链路本地 IPv6 时，`getHostAddress()` 可带区域标识（如 `fe80::1%eth0`），超过 45；(3) `FORCITIS_TRUSTED_PROXIES` 配宽后，被信任的内部主机可发任意文本。
+- 影响：`recordLogin` 与登录同事务，45 位上限的 CHECK 在上述情形会让合法登录被拒，故本批不落。
+- 供 one-data 定的选项：(A) 不加长度 CHECK，只留成对 CHECK 与注释（本批现状）；(B) 在 `RequestClientOrigin` 用地址字面量解析（去端口、方括号、区域标识，非法则按失败处理并告警，不静默），保证入库值为规范地址后再落 `char_length BETWEEN 1 AND 45`（须另开 Java 改动，不在本卡文件范围）；(C) 只加宽松上限（如 64），仅防异常长串。同一值也写进审计 `source_address`（各处 `.withTrace(origin.address(), …)`），选 B 时与 DATA-REPAIR-timesheet-audit TB-05 同口径处理。
 
 ### ID-13　N-4 + AQ-8　中（统一分级：低→中）　导航项与授权申请的文本列格式、长度，`decided_*` 空值注释
 - 问题：`navigation_items` 的 `route_path`、`permission_code`、`name` 无格式与长度约束；`authorization_requests` 的 `new_role_code`、`role_name` 无格式与长度 CHECK（与 ID-07 的 R-3 同口径）；`decided_by`、`decided_at` 注释缺「为空表示」。
@@ -156,7 +170,7 @@
 ## 5. 已定与待用户决定
 
 ### 已定（用户 2026-10-16 决定）
-1. `sessions.session_id`、`primary_id` 的访问级别（原 PI 待决 4）：用户答「RESTRICTED（口令、密钥级，不出库、不进日志与分析层）」（收件箱 2026-10-16-one-data-baseline-classification；intent `2026-10-16-085331-one-data-会话标识-session_id.md`）。落点：ID-03 登记 `RESTRICTED + NONE`。
+1. `sessions.session_id`、`primary_id` 的访问级别（原 PI 待决 4）：用户答「RESTRICTED（口令、密钥级，不出库、不进日志与分析层）」（收件箱 2026-10-16-one-data-baseline-classification；intent `2026-10-16-085331-one-data-会话标识-session_id.md`）。落点：ID-03 登记 `RESTRICTED`，个人信息标记待 one-data / U-11 裁定。
 
 ### 待用户决定
 1. `login_states.binding_hash` 的级别（PI 待决 6）：用户对会话标识答 RESTRICTED 时写明「同口径另议」，故仍待用户决定；OV 建议 `SENSITIVE + NONE`（ID-04）。
