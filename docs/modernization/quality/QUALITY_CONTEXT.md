@@ -9,14 +9,15 @@
 - 新开 PR 规则（用户 2026-10-16 采纳）：文档不开 PR，在制代码 PR ≤1，一个提交不混文档与代码；代码 PR 只在工作单元完成（验收、实现、opus 复审齐）时开，中间只提交；PR 开出必须报 one-coordinator；Auto-fix 已由用户在 app 统一关闭。
 - 文档提交推到会话分支 `claude/one-quality-docs` 后报「分支 + 提交号」，调度每天中午、晚上收进合集（`merge_train.py docs`，逐个合并、只许 docs/）；合集合入后同步一次 main；工具一个工作单元一个 PR，复审齐备即入队。
 
-## 派工序列（one-coordinator，2026-10-16 22:00 起，顺序固定）
-1. docs 子命令 PR：分支 `claude/one-quality-train-docs`（merge_train.py docs 子命令 + precheck 前端依赖文案），已过 opus 复审，等 #410 合入后同步 main 再开 PR。
-2. CI 三档（一个 PR，改 ci.yml 属守护、opus 复审）：relevant_change.py 输出 纯文档 / 守护读取的文档 / 代码 三档；文档到测试的读取映射要可校验（自测：改每类被读文档都触发对应测试，漏映射即失败，宁多跑不漏跑）；main push 仍全量。工作区 scratchpad `wt-tiers`（分支 `claude/one-quality-ci-tiers`）；ci.yml 部分待 #406（重步骤 queued 门控）合入后再改，避免冲突。纯文档档必须靠映射自测证明「不被任何构建或测试读取」。
-3. Testcontainers 稳定性卡：容器启动超时（`Container startup failed for image postgres:18`，121 秒）、模板库连接被断（WorkCalendarIT 的 `DROP DATABASE template_migrated_testdata` EOF）；先给根因与 runner 并发数据，改 runner 或 Docker 资源前问 one-coordinator，涉及本机环境报用户。
-4. 合并队列三步（脚本 `scripts/merge/mq.py`，分支 `claude/one-quality-merge-queue` 已有第一步，opus 复审意见待改：自测偶发失败 `before(30,1)`、run_loop 异常处理、checks() 区分 gh 失败、合并用 `--match-head-commit`、重检查计数去重、CLOSED 直接 HOLD 等）：①迁入 + 日志 + flock/原子写 + 假 gh 自测 + 文档合集收取；追加用户已同意的「快慢两道」前置：代码道合入前自查落后 main 就同步并重跑 CI，文档道只收纯文档、每次一个合集、合入前同步 main 并跑 build_all，main 上 push 全量 CI 变红时队列自动暂停两道并报调度（恢复需调度确认）；②自动批量 N=4 合集 + 失败二分；③乐观并行（②稳定后）。全部就位并 opus 复审后报 one-coordinator，再安排改分支保护。
-5. 集成测试反模式检查（#352 共享 mock 扫描基础上扩展，先只报告不拦，跑全仓出清单与误报率）：固定时间等待、断言共享表或全局计数总行数、依赖其他测试残留、测试里真实时钟调用（全仓 57 处约 30 文件）。
+## 派工序列与现状（one-coordinator，2026-10-17 更新；顺序固定）
+1. docs 子命令 PR：分支 `claude/one-quality-train-docs`（merge_train.py docs 子命令 + precheck 前端依赖文案），已过 opus 复审；等 #410 合入后同步 main 再开 PR。
+2. CI 三档（一个 PR，改 ci.yml 属守护）：分支 `claude/one-quality-ci-tiers`（2f4c378a），已过 opus 首轮并修正；调度批准例外（不计在制数）：等 #438（也改 relevant_change.py 的两处 diff 参数）合入、同步 main 解冲突后立刻开 PR 并报调度插队。ApplicationIntegrationTest 豁免调度不批（词表改动仍走全量）；关 strict 后 guarded 与 code 都走代码道，只有 docs 档走快道。
+3. Testcontainers 稳定性：#439 已开（opus 首轮 + sonnet 改后复核），含 A 启动重试 3 次与首个 JDBC 连接等待 90 秒、耗尽时的诊断信息，B 失败时 docker 取证，并入失败摘要与 *.dump 保留；等调度入队。上线后观察一周仍出再报调度（VM 内存、fork 数先不动）。本机发现：Docker `system df` 报 rw 层快照丢失，残留 55 个已退出容器，属本机操作，已报调度转用户。
+4. 合并队列三步（`scripts/merge/mq.py`，分支 `claude/one-quality-merge-queue`）：第一步已写（并入 one-merge 的 6 项、快慢两道、合并锁、落后 main 自查、main push 与夜间红即暂停与 `mq.py resume`、文档合集 `mq.py train docs`），opus 首轮复审在跑，改完报调度；② 自动批量 N=4 合集与失败二分；③ 乐观并行（② 稳定后）。关 strict 的前提：CI 三档就位且纯文档档由映射自测证明、队列代码道自查落后、main 红自动暂停；全部就位并 opus 复审后报调度，由调度安排改分支保护。
+5. 错题本三件改造（用户批，其余不做）：①`defect_bank_check.py` 校验每条「新增检查项」指向真实存在的守护/扫描/precheck 条目，没有则状态不得为「已落实」；②每晚复发检测：把当日失败 CI 按已登记报错特征归类，命中旧条目即标「复发」报调度；③新增或改动的测试类在引入它的 PR 上重复跑（默认 3 遍、可并发），挂一次即不过。排在队列第一步之后。QUAL-010 至 QUAL-016 已入册（含报错特征）。
+6. 集成测试反模式检查（#352 共享 mock 扫描基础上扩展，先只报告不拦）：固定时间等待、断言共享表或全局计数总行数、依赖其他测试残留、测试里真实时钟调用（全仓 57 处约 30 文件）；排在以上之后。
 
-已查结案：ProcessArchiveJobIT.archivesThenDeletes 的偶发失败是已修的真实 now 时间炸弹（c4cced3c），5 次失败的运行 head 都不含该修复，合 main 自愈。
+已查结案：ProcessArchiveJobIT.archivesThenDeletes 的偶发失败是已修的真实 now 时间炸弹（c4cced3c），5 次失败的运行 head 都不含该修复，合 main 自愈（QUAL-010）。
 
 ## 已合入的工具（main）
 工作看板 `build_work_board.py`（#371）、研究报告（#357）、ProcessArchiveJobIT 时间炸弹修复（#413）、确认页出题检查 `architecture/decision-page/check_pages.py` + 生成器无默认项题型（#419）、此前的 assertion_drift、TestPostgres、precheck 与推送前钩子等（见画像与错题本）。
