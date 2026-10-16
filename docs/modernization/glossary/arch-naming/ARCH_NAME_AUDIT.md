@@ -51,3 +51,9 @@
 | ③ 单据，按「单据不是对象」重判 | 延期申请、开票申请、用印申请、员工活动申请 | 开票申请已登记为 aggregate（receivables.wip） | 若判为单据，对象应为被申请的事物或其状态；开票申请的词条 kind 须同步改，待用户答复 |
 
 注意：`architecture-objects.yaml` 先按现名登记，② ③ 类条目在 note 标「活动名，待改名」；改名答复后登记新名、旧名进别名或方言，随同 one-architecture 的改名对照表一并处理。候选名按准则、国标、行业通行的顺序再核，目前未逐条核国标。
+
+## 登记顺序（用户 2026-10-16：先规范，再登记）
+
+对象词条的现名草稿移到同目录 `objects-draft.yaml`，不进 `backend/glossary/proposed/`。顺序：规范名判定（本会话与 one-architecture）→ 改名对照表与用语决策单合并成一套页面交用户认可 → 认可后登记 terms.yaml（规范名为词条，原名作别名或方言）。
+
+草稿文件：`objects-draft.yaml`、`people-draft.yaml`、`revenue-roles-draft.yaml`。另「视为同意认定」（receivables.wip，entity，表 deemed_acceptance_determinations，ADR-0049 决定 2）并入规范名判定一并交用户；delivery.acceptance 现有提议条目「视为同意」定义写成交付物状态，与 ADR-0049 决定 1 不一致，待撤回或改写。

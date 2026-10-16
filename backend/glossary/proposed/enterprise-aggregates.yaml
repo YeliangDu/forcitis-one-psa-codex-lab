@@ -420,23 +420,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 定义写成交付物状态，与 ADR-0049 决定 1 不一致（交付物没有「视为同意」状态，认定在 receivables.wip，界面由 reporting 派生显示）；待用户答复后撤回或改写为派生显示
-- id: receivables_wip__deemed_acceptance_determination
-  zh: 视为同意认定
-  en: DeemedAcceptanceDetermination
-  snake: deemed_acceptance_determination
-  kind: entity
-  bc: receivables.wip
-  scope: domain
-  definition: 审查期满且交付侧已有项目经理的无异议声明、该轮未被退回时，由收入侧作出的视为同意认定；是第 6 类收入确认证据，认可日取期满日（表 deemed_acceptance_determinations）
-  standard_ref:
-  - ADR-0049 决定 2
-  - ADR-0047 第 6 类证据
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 与 delivery.acceptance 的「视为同意」互列 homonyms
+  note: ''
 - id: acceptance_date
   zh: 认可日
   en: AcceptanceDate
