@@ -43,8 +43,8 @@ LOGIN = 'one_readonly_probe'
 DB = 'one_readonly_probe_db'
 DB2 = 'one_readonly_probe_db2'
 P = f'[{LOGIN}]'
-PLATFORM_REFUSALS = (4613, 15151)  # 4613: no server-level DENY / GRANT here; 15151: the login (sa) cannot be seen by the execution account
-PLATFORM_REFUSAL_ITEMS = (10, 15)
+PLATFORM_REFUSALS = {10: (4613,), 15: (4613, 15151)}  # 4613: no server-level DENY / GRANT here; 15151 on item 15: the login sa cannot be seen by the execution account
+PLATFORM_REFUSAL_ITEMS = tuple(PLATFORM_REFUSALS)
 
 PREPARE_MASTER = f"""CREATE DATABASE [{DB}];
 GO
@@ -79,7 +79,7 @@ ITEMS = [
     (12, [(DB, f'GRANT TAKE OWNERSHIP ON OBJECT::dbo.probe_t TO {P};')], [(DB, f'REVOKE TAKE OWNERSHIP ON OBJECT::dbo.probe_t FROM {P};')], '(g)'),
     (13, [(DB, f'GRANT CONTROL ON SCHEMA::dbo TO {P};')], [(DB, f'REVOKE CONTROL ON SCHEMA::dbo FROM {P};')], '(g), maybe (a)'),
     (14, [(DB, 'GRANT UPDATE ON OBJECT::dbo.probe_t TO public;')], [(DB, 'REVOKE UPDATE ON OBJECT::dbo.probe_t FROM public;')], '(g) public'),
-    (15, [('master', f'GRANT IMPERSONATE ON LOGIN::sa TO {P};')], [('master', f'REVOKE IMPERSONATE ON LOGIN::sa FROM {P};')], 'platform 4613, else (d)'),
+    (15, [('master', f'GRANT IMPERSONATE ON LOGIN::sa TO {P};')], [('master', f'REVOKE IMPERSONATE ON LOGIN::sa FROM {P};')], 'platform 4613 (item 15 also 15151), else (d)'),
     (17, [('master', f'CREATE USER {P} FOR LOGIN {P};')], [('master', f'DROP USER {P};')], '(f)'),
 ]
 
@@ -299,29 +299,34 @@ def create_account(secret):
     raise Stop('the probe account did not become Available in 5 minutes')
 
 
-def delete_databases():
-    """A database RDS has put under mirroring (a few minutes after it was made) cannot be dropped with T-SQL (3743); the RDS API does it. Only the probe's own."""
-    rc, out, _ = rds('DescribeDatabases')
+def database_listed(name):
+    """True / False, or None when the listing cannot be read. One database by name, exact match on the parsed answer."""
+    rc, out, _ = rds('DescribeDatabases', '--DBName', name)
     if rc != 0:
-        record(step='rds delete databases', outcome='listing unreadable')
-        return
+        return None
     try:
-        present = {x['DBName'] for x in json.loads(out)['Databases']['Database']}
+        return any(x.get('DBName') == name for x in json.loads(out)['Databases']['Database'])
     except (ValueError, KeyError, TypeError):
-        record(step='rds delete databases', outcome='listing not understood')
-        return
+        return None
+
+
+def delete_databases():
+    """A database RDS has put under mirroring (a few minutes after it was made) cannot be dropped with T-SQL (3743); the RDS API does it. Only the probe's own.
+    Each is tried whether or not the listing could be read: DeleteDatabase on a database that is not there only fails."""
     for name in (DB2, DB):
-        if name not in present:
+        listed = database_listed(name)
+        if listed is False:
             continue
         rc, out, err = rds('DeleteDatabase', '--DBName', name)
         request = re.findall(r'"RequestId":\s*"([0-9A-F-]+)"', out)
         code = re.findall(r'ErrorCode: (\S+)', out + err)
-        record(step='rds delete database', database=name, rc=rc, request_id=request[0] if request else None, error_code=code[0] if code else None)
+        gone = False
         for _ in range(30):
-            rc, out, _ = rds('DescribeDatabases')
-            if rc == 0 and name not in out:
+            if database_listed(name) is False:
+                gone = True
                 break
             time.sleep(10)
+        record(step='rds delete database', database=name, rc=rc, request_id=request[0] if request else None, error_code=code[0] if code else None, gone=gone)
 
 
 def delete_account():
@@ -554,7 +559,7 @@ def main(target, jar_sha256):
                     raise Stop('item 14: the probe does not see public grants on user objects, (g) public is not effective here; reported to one-coordinator and one-1a-next-2, as the runbook says')
             errors = apply(f'item {number} deviation', deviation)
             if errors:
-                if number in PLATFORM_REFUSAL_ITEMS and len(errors) == 1 and errors[0] in PLATFORM_REFUSALS:
+                if number in PLATFORM_REFUSAL_ITEMS and len(errors) == 1 and errors[0] in PLATFORM_REFUSALS[number]:
                     record(item=number, expected=expected, outcome='platform cannot construct', sql_errors=errors)
                     if counts(f'item {number} counts') != control or fingerprint(f'item {number} fingerprint') != control_fingerprint:
                         raise Stop(f'item {number}: state changed after a refused deviation')
