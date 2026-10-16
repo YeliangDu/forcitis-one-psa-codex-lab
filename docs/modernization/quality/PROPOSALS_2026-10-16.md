@@ -83,4 +83,4 @@ sonnet 诊断（只读，读 CI 日志与源码），证据状态逐条标注；
 - 可疑点：`SessionGuardFilter` 在会话主体被判非活跃、或主体不是账号 ID 时会 `invalidate` 会话而返回 401；成功的运行说明平时不触发，但日志里找不到触发原因，也没有 ALERT 可佐证。
 - 建议：先不改产品代码；在该测试的断言处加诊断（失败时打出 `principals.resolve` 结果与会话状态），若再现再定。
 
-**处理方式**：TimesheetApprovalScenarioIT 的修复是改测试的等待（不放宽断言），属于“修不稳定测试”，我自己做小 PR；该类若在验收测试目录，提交需带 `Acceptance-Test-Author` 或裁定，请调度确认。ApprovalAccountsIT 只加诊断。两项都登记进 `QUALITY_CONTEXT.md` 的不稳定测试台账。
+**处理方式**：`TimesheetApprovalScenarioIT`（`cost/timesheet/application/`，不在验收测试目录）改的是等待方式、不放宽断言，我自己做小 PR。`ApprovalAccountsIT` 在验收测试目录（`acceptance/platform/approval/`），哪怕只加诊断，提交也要带 `Acceptance-Test-Author: test-engineer` 或裁定编号，**请调度安排测试代理或给裁定**；在那之前只登记，不改。两项都登记进 `QUALITY_CONTEXT.md` 的不稳定测试台账。
