@@ -1,4 +1,4 @@
-# 架构收尾统一字段约定（三组共用，one-architecture 定，2026-10-16）
+# 架构收尾统一字段约定（三组共用，one-architecture 定，2026-10-16；修订：approval.engine，收入线样板提议）
 
 本文件是唯一字段约定；`closeout/README.md` 第 3、4 节以本文件为准，各组 `closeout/<组>/` 下自写的约定一律以本文件替换。要加字段或取值，写进本组 `NOTES.md`「格式问题」，one-architecture 裁定后改本文件并通知三组。
 
@@ -30,6 +30,7 @@
         - {when: "报价金额超过授权额度", goto: 3}       # goto：步骤序号（从 1 起）、end、或另一流程 PRC-NN
         - {when: otherwise, goto: 4}
       approval:                       # 可选；人工编排流程中审批节点必填
+        engine: platform.approval     # platform.approval 审批平台 / aggregate 聚合内命令（如交付物内部校审） / external 系统外（客户书面认可等，只登记证据）
         doc_type: 报价审批             # 单据类型中文暂名，汇总交 one-glossary
         approver: SH-M1               # 审批人角色
         multi_level: false            # 是否多级
