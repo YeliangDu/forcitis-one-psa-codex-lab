@@ -186,15 +186,6 @@ if touches '(^(backend/src/main/resources/db/migration/|backend/architecture/(da
     printf '%s\n' "$ddl_scan" | tail -n 8 | sed 's/^/      | /'
   fi
 fi
-if touches 'src/test/.*\.java$|scripts/ci/shared_mock_verify_scan\.py$'; then
-  run_step "shared-mock verify scan (self-test)" py scripts/ci/shared_mock_verify_scan.py --self-test
-  if mock_scan=$(py scripts/ci/shared_mock_verify_scan.py 2>&1); then
-    report PASS "shared-mock verify scan (report only)" "$(printf '%s\n' "$mock_scan" | tail -n 1)"
-  else
-    report FAIL "shared-mock verify scan (report only)" "the scan itself failed:"
-    printf '%s\n' "$mock_scan" | tail -n 6 | sed 's/^/      | /'
-  fi
-fi
 if touches '^scripts/ci/(assertion_drift|ci_git)\.py$'; then
   run_step "assertion drift (self-test)" py scripts/ci/assertion_drift.py --self-test
 fi
@@ -212,6 +203,15 @@ if touches '(src/test/.*\.java|\.test\.tsx?|\.spec\.tsx?)$'; then
   fi
 else
   report SKIP "assertion drift (warning only)" "no test file changed"
+fi
+if touches 'src/test/.*\.java$|scripts/ci/shared_mock_verify_scan\.py$'; then
+  run_step "shared-mock verify scan (self-test)" py scripts/ci/shared_mock_verify_scan.py --self-test
+  if mock_scan=$(py scripts/ci/shared_mock_verify_scan.py 2>&1); then
+    report PASS "shared-mock verify scan (report only)" "$(printf '%s\n' "$mock_scan" | tail -n 1)"
+  else
+    report FAIL "shared-mock verify scan (report only)" "the scan itself failed:"
+    printf '%s\n' "$mock_scan" | tail -n 6 | sed 's/^/      | /'
+  fi
 fi
 
 grep -E '\.sh$' "$work/changed" >"$work/shell" || true
