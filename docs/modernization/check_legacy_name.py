@@ -11,7 +11,7 @@
 只查大写词元 PSA（前后不是字母、数字、_、-）；psa_*、psa-backend、forcitis-one-psa、psa-* 会话名等标识符不受影响。
 
 例外（不报）：
-1. 冻结或只追加的记录：已采纳 ADR 正文 adr/src/ADR-*.md 及生成的 adr/ADR-*.md、adr/README.md（SESSION_PLAYBOOK §12.1）；
+1. 冻结或只追加的记录：已采纳 ADR 正文 adr/src/ADR-*.md 及生成的 adr/ADR-*.md、adr/README.md、adr/INDEX.md（SESSION_PLAYBOOK §12.1）；
    session-log/ 片段与 SESSION_LOG.md（只追加）。
 2. 生成产物（检查其片段 / 模板即可）：INTENT.md、STATUS.md、MODERNIZATION_BRIEF.md。
 3. 证据与机器产物目录：rules/raw/、map/、runtime/、u8c/。
@@ -26,7 +26,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 MOD = "docs/modernization/"
 TOKEN = re.compile(r"(?<![A-Za-z0-9_\-/.])PSA(?![A-Za-z0-9_\-])")
 INDUSTRY = re.compile(r"Kantata|Certinia|Deltek|行业通行|通行指标|PSA\s*行业|Professional Services Automation|refs\s*=|\[\s*\"PSA\"")
-SKIP_FILES = {MOD + f for f in ("INTENT.md", "STATUS.md", "MODERNIZATION_BRIEF.md", "SESSION_LOG.md", "adr/README.md")}
+SKIP_FILES = {MOD + f for f in ("INTENT.md", "STATUS.md", "MODERNIZATION_BRIEF.md", "SESSION_LOG.md", "adr/README.md", "adr/INDEX.md")}
 SKIP_DIRS = tuple(MOD + d for d in ("session-log/", "rules/raw/", "map/", "runtime/", "u8c/"))
 ADR_BODY = re.compile(r"^docs/modernization/adr/(src/)?ADR-\d{4}\.md$")
 EXTS = (".md", ".yaml", ".yml", ".py")
