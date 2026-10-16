@@ -21,7 +21,8 @@ def verdict(output, returncode):
     if returncode == 0 and last and last[-1].endswith("— ready"):
         return None
     tail = "\n".join(output.splitlines()[-40:])
-    return f"precheck.sh 未全过（退出码 {returncode}），不能提 PR。先修好或按提示问用户，再重新 gh pr create：\n{tail}"
+    ask = "\n前端依赖未装：需先问用户安装依赖（pnpm install --frozen-lockfile 会下载包），用户同意后再装。" if "需先问用户安装" in output else ""
+    return f"precheck.sh 未全过（退出码 {returncode}），不能提 PR。先修好或按提示问用户，再重新 gh pr create：{ask}\n{tail}"
 
 
 def repository_of(cwd):
@@ -53,12 +54,13 @@ def main():
 def self_test():
     for command in ("gh pr create --title x", "gh pr new", "bash -c \"gh pr create\"", "/opt/homebrew/bin/gh pr create", "cd a && gh pr create", "git push; gh  pr  create --base main", "(gh pr create)"):
         assert is_pr_create(command), command
-    for command in ("gh pr view 3", "gh pr create-not", "gh pr created", "", None):
+    for command in ("gh pr view 3", "gh pr merge 3 --squash", "gh pr checks 3", "gh pr comment 3", "gh pr ready 3", "gh api repos/o/r/pulls", "gh pr create-not", "gh pr created", "", None):
         assert not is_pr_create(command), command
     assert verdict("x\nSUMMARY: 7 PASS, 0 FAIL, 7 SKIP (base origin/main) — ready\n", 0) is None
     assert verdict("SUMMARY: 6 PASS, 1 FAIL, 7 SKIP (base origin/main) — not ready\n", 1)
     assert verdict("SUMMARY: 7 PASS, 0 FAIL, 7 SKIP (base origin/main) — ready\n", 1), "退出码非 0 即拒绝"
     assert verdict("没有 SUMMARY 行\n", 0), "没有 SUMMARY 行即拒绝"
+    assert "需先问用户安装依赖" in verdict("FAIL frontend verify 前端依赖未安装：需先问用户安装\nSUMMARY: 1 PASS, 1 FAIL, 0 SKIP (base origin/main) — not ready\n", 1)
     print("precheck_before_pr self-test: ok")
     return 0
 
