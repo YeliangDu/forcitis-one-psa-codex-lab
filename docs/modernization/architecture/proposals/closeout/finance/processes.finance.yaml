@@ -2365,6 +2365,7 @@ processes:
     legal_entity: 资金账户所属法人
   notes: 应付已结清的订阅方 B-15（薪酬，PRC-127）。原步骤 6–8（核销应付、置付款已核销、提交过账候选）改为事件策略 PRC-131、PRC-132（⑥a 评审 M6）。审批人 SH-M1 为占位（F-01）。 付款成功后退票（S-30 ③）：步骤 7 登记退票发付款已退票，步骤 8–9 为同 BC 反应（AGG-52 冲回应付核销，再冲销并重过账），不用「已被取代」。 预付款登记（PRC-175
     步 5）与「预付款冲抵应付」（PRC-176）：预付款进待付清单的触发待补（见 NOTES 结构问题）。
+  stage_reason: VS-08 只挂 .1 借支与 .3 报销付款：本流程只承担这两个阶段中的付款时刻（借款发放、报销付款）；.2 报销核定是审批与核定，由 PRC-87 承担，本流程不参与，不是跳段
 - id: PRC-76
   name: 完成并结算供方协议
   type: business
@@ -6878,6 +6879,7 @@ processes:
     audit: true
     legal_entity: 应付所属法人
   notes: 由原 PRC-75 步骤 6 拆出（⑥a 评审 M6）。 核销差异转人工处置（步骤 2，S-29 SQ-49）。
+  stage_reason: VS-08 只挂 .1 借支与 .3 报销付款：本流程只承担这两个阶段中的付款时刻（借款发放、报销付款）；.2 报销核定是审批与核定，由 PRC-87 承担，本流程不参与，不是跳段
 - id: PRC-132
   name: 应付核销后置付款已核销并提交过账候选
   type: event_policy
@@ -6946,6 +6948,7 @@ processes:
     audit: true
     outcome: 付款已核销并提交过账
   notes: 由原 PRC-75 步骤 7、8 拆出（⑥a 评审 M6）。
+  stage_reason: VS-08 只挂 .1 借支与 .3 报销付款：本流程只承担这两个阶段中的付款时刻（借款发放、报销付款）；.2 报销核定是审批与核定，由 PRC-87 承担，本流程不参与，不是跳段
 - id: PRC-133
   name: 应付结清后报销置已付
   type: event_policy
@@ -7402,6 +7405,7 @@ processes:
   - PRC-163-S06
   - PRC-163-S07
   - PRC-163-S08
+  stage_reason: 利润分配支付是「利润分配」阶段出口（应付股利结清）的一部分
 - id: PRC-164
   name: 收入确认冲销后冲回已配对成本结转
   type: event_policy
@@ -7491,13 +7495,13 @@ processes:
   - PRC-164-S07
   - PRC-164-S08
   - PRC-164-S09
+  stage_reason: 收入确认冲销后冲回已配对的成本结转，随收入确认所在阶段（VS-04.2，revenue 价值流）
 - id: PRC-165
   name: 发布成本核算参数版本
   type: single_aggregate
   owner_bc: B-07
   aggregate: AGG-123
-  stages:
-  - VS-10.1
+  stages: []
   added_in: closeout
   basis: S-31 SQ-18
   desc: 财务编制成本核算参数（售前投入超期转费用的月数 N，默认 6 个月，A7、GL-026），财务负责人批准后按版本生效
@@ -7589,13 +7593,13 @@ processes:
     on_event: 后继版本已生效
     desc: 新版本生效时原生效版本置已取代，已生效版本不可改
     audit: true
+  support: 成本核算参数是配置版本，供 VS-10.1 的成本分配与分摊使用，本身不推进任何阶段的对象状态
 - id: PRC-166
   name: 发布资产类别与折旧政策版本
   type: single_aggregate
   owner_bc: B-24
   aggregate: AGG-124
-  stages:
-  - VS-10.1
+  stages: []
   added_in: closeout
   basis: S-31 SQ-19
   desc: 财务按资产类别编制折旧方法、年限、残值率，财务负责人批准后按版本生效
@@ -7690,13 +7694,13 @@ processes:
     on_event: 后继版本已生效
     desc: 新版本生效时原生效版本置已取代，已生效版本不可改
     audit: true
+  support: 资产类别与折旧政策是配置版本，供 PRC-99 计提折旧使用，不推进阶段
 - id: PRC-167
   name: 编制并签字确认期初余额
   type: single_aggregate
   owner_bc: B-20
   aggregate: AGG-125
-  stages:
-  - VS-10.1
+  stages: []
   added_in: closeout
   basis: S-31 SQ-21
   desc: 财务按法人和账簿编制期初余额，财务负责人签字后生效
@@ -7822,13 +7826,13 @@ processes:
     pending:
     - A1-02
     - S-05
+  support: 期初余额只在投产时编制一次（ADR-0022 决定 11），是上线初始化，不是周期性价值流阶段
 - id: PRC-168
   name: 发布口径版本
   type: single_aggregate
   owner_bc: B-17
   aggregate: AGG-78
-  stages:
-  - VS-10.1
+  stages: []
   added_in: closeout
   basis: S-31 SQ-22
   desc: 财务编制指标口径与勾稽容差，批准后按版本生效、审批留痕（ADR-0023 决定 2 L3）
@@ -7922,6 +7926,7 @@ processes:
     on_event: 后继版本已生效
     desc: 新版本生效时原生效版本置已取代，已生效版本不可改
     audit: true
+  support: 口径版本是勾稽侧配置（ADR-0023 决定 2），不推进阶段
 - id: PRC-169
   name: 处置勾稽差异案
   type: single_aggregate
@@ -8085,6 +8090,7 @@ processes:
       goto: end
       rule: INV-135
       outcome: 已豁免关闭
+  stage_reason: 勾稽差异案须在关账前处置（月结前置检查），属「期间关账」
 - id: PRC-170
   name: 申请费用事前额度
   type: business
@@ -8314,6 +8320,7 @@ processes:
   - PRC-170-S11
   - PRC-170-S12
   - PRC-170-S13
+  stage_reason: 暂挂「报销核定」：事前额度是报销核定的前置依据；VS-08 没有「事前申请」阶段，见待定 ST-1
 - id: PRC-171
   name: 核对差旅服务商月账单并确认应付
   type: business
@@ -8558,6 +8565,7 @@ processes:
   - PRC-171-S17
   - PRC-171-S18
   - PRC-171-S19
+  stage_reason: 公司直付分贝通订单：核对月账单后确认供方应付，属「应付确认」；之后付款进 VS-05.5（PRC-75）
 - id: PRC-172
   name: 申请出差并同步差旅服务商
   type: business
@@ -8786,12 +8794,13 @@ processes:
   - PRC-172-S11
   - PRC-172-S12
   - PRC-172-S13
+  stage_reason: 暂挂「报销核定」：出差申请是差旅报销与补贴的前置依据；见待定 ST-1
 - id: PRC-173
   name: 审批差旅超标订单
   type: business
   owner_bc: B-12
   stages:
-  - VS-08.2
+  - VS-05.2
   added_in: closeout
   basis: S-31 SQ-28
   trigger:
@@ -8956,13 +8965,13 @@ processes:
   - PRC-173-S11
   - PRC-173-S12
   - PRC-173-S13
+  stage_reason: 超标订单审批发生在向差旅服务商下单时，是对外部资源的采购决定，挂「供方签约」；见待定 ST-1
 - id: PRC-174
   name: 发布出差补贴标准版本
   type: single_aggregate
   owner_bc: B-12
   aggregate: AGG-133
-  stages:
-  - VS-08.2
+  stages: []
   added_in: closeout
   basis: S-31 SQ-28
   desc: 财务编制出差补贴标准（按差旅类型与天数），财务负责人批准后按版本生效
@@ -9057,6 +9066,7 @@ processes:
     on_event: 后继版本已生效
     desc: 新版本生效时原生效版本置已取代，已生效版本不可改
     audit: true
+  support: 出差补贴标准是配置版本，供 PRC-87 生成补贴行使用，不推进阶段
 - id: PRC-175
   name: 直接付款申请
   type: business
@@ -9319,13 +9329,14 @@ processes:
   - PRC-175-S18
   - PRC-175-S19
   - PRC-175-S20
+  stage_reason: 直接付款申请（豁免清单内）以付款结束，属「付款」
 - id: PRC-176
   name: 预付款核销
   type: single_aggregate
   owner_bc: B-10
   aggregate: AGG-52
   stages:
-  - VS-05.5
+  - VS-05.4
   added_in: closeout
   basis: S-31 SQ-29
   desc: 财务用已付的预付款冲抵同一往来方的应付
@@ -9424,3 +9435,4 @@ processes:
     - when: otherwise
       goto: end
       outcome: 预付款已冲抵
+  stage_reason: 预付款在取得发票、确认应付时核销，属「应付确认」（阶段描述「确认应付」）；原挂 VS-05.5 改
