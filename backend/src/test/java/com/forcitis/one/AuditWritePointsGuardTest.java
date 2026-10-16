@@ -22,7 +22,7 @@ class AuditWritePointsGuardTest {
     static final Path REGISTER = Path.of("architecture/audit-text-writers.txt");
     static final Path DEFINITION = Path.of("src/main/java/com/forcitis/one/platform/audit/api/AuditEntry.java");
     static final Set<String> PERSONAL_DATA = Set.of("NONE", "SURROGATE", "POSSIBLE");
-    static final int LAST_ROW = 20;
+    static final int LAST_ROW = 21;
     static final Pattern WRITE = Pattern.compile("new\\s+AuditEntry\\s*\\(|\\.withChange\\s*\\(");
 
     record Writer(int writes, String rows, String personalData) {
@@ -115,7 +115,7 @@ class AuditWritePointsGuardTest {
             changeTexts(source.getValue()).forEach(wrong -> problems.add(source.getKey() + " writes a before or after text: " + wrong));
         }
         assertThat(problems).isEmpty();
-        assertThat(register).as("the card counted 35 files, row 20 adds the start-up audit of the single operator mode").hasSize(36);
+        assertThat(register).as("the card counted 35 files, rows 20 and 21 add the start-up audit and the relaxation mark of the single operator mode, and RevokeRoleByOperations is a writer of row 15").hasSize(38);
     }
 
     @Test
@@ -152,7 +152,7 @@ class AuditWritePointsGuardTest {
         List<String> problems = new ArrayList<>();
         assertThat(parse(List.of("# c", "", "A.java | 1 | 1,2 | POSSIBLE"), problems)).containsOnlyKeys("A.java");
         assertThat(problems).isEmpty();
-        for (String bad : List.of("A.java | 1 | 1", "A.java | 1 | 21 | NONE", "A.java | 1 | 0 | NONE", "A.java | 1 | 1 | SECRET", "A.java | 0 | 1 | NONE",
+        for (String bad : List.of("A.java | 1 | 1", "A.java | 1 | 22 | NONE", "A.java | 1 | 0 | NONE", "A.java | 1 | 1 | SECRET", "A.java | 0 | 1 | NONE",
                 "A.java | x | 1 | NONE", "A.java | 1 | | NONE")) {
             List<String> one = new ArrayList<>();
             assertThat(parse(List.of(bad), one)).as(bad).isEmpty();
