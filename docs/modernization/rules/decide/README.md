@@ -22,7 +22,7 @@
 ## sheets/<单子>.json 格式
 
 ```json
-{"sheet": "D5", "preselect": true, "title": "页面标题", "lede": "一句话：这张单子定什么",
+{"sheet": "D5", "preselect": false, "title": "页面标题", "lede": "一句话：这张单子定什么",
  "groups": [{"id": "d5-routing", "title": "组名", "desc": "本组说明"}],
  "items": [{"no": "D5-01", "grp": "d5-routing", "title": "题目", "src": "来源", "ctx": "背景",
             "now": "现状（可空）", "check": "需核实（可空）", "basis": ["依据，必填字段，可为空数组"], "practice": ["行业做法，必填字段，可为空数组"],
@@ -40,8 +40,9 @@
 
 ## 预选与「未作答」
 
-- 业务口径单默认预选推荐项（用户 2026-10-15 对决策页的要求）；没动过的题按推荐计，提交记录标 `defaulted`。
-- 框架、标准、选型类单子（ADR-0041 决定 6：「决策页写明代价，不预选推荐项」）在单子 json 里写 `"preselect": false`：页面不选中任何选项，没作答的题记为「未作答」（提交记录 `choice: null`、`unanswered: true`，`decide_sync` 在原话里标「（未作答）」）；推荐项仍显示「推荐」标签。同一页上的单子 `preselect` 须一致。
+- **新模板默认不预选**（ADR-0041 决定 6：「决策页写明代价，不预选推荐项」）：页面不选中任何选项，没作答的题记为「未作答」（提交记录 `choice: null`、`unanswered: true`，`decide_sync` 在原话里标「（未作答）」）；推荐项仍显示「推荐」标签。
+- 单子 json 里写 `"preselect": true` 才预选推荐项（没动过的题按推荐计，提交记录标 `defaulted`）。同一页上的单子 `preselect` 须一致。
+- 业务口径单要不要预选，用户尚未裁定（one-coordinator 已问，三选一）；裁定前一律不预选。已发布的旧页保持原样（FD、D5、F1、C6 等都是预选版）。
 
 ## 对账检查
 

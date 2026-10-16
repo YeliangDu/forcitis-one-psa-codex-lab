@@ -90,9 +90,9 @@ def main():
     sheets = [load(n) for n in sys.argv[1].split(",")]
     validate(sheets)
     items = [dict(i, key=f"{sh['sheet']}~{i['no']}") for sh in sheets for i in sh["items"]]
-    flags = {sh.get("preselect", True) for sh in sheets}
+    flags = {sh.get("preselect", False) for sh in sheets}
     if len(flags) > 1:
-        sys.exit("同一页上的单子 preselect 须一致（业务口径单预选推荐项，框架、标准、选型类单子写 preselect:false 不预选）")
+        sys.exit("同一页上的单子 preselect 须一致（默认不预选；要预选推荐项的单子写 preselect:true）")
     data = {"preselect": flags.pop(), "items": items, "groups": [g for sh in sheets for g in sh["groups"]],
             "info": [b for sh in sheets for b in sh.get("info", [])], "side": [b for sh in sheets for b in sh.get("side", [])]}
     title = sheets[0]["title"] if len(sheets) == 1 else "业务口径决策"
