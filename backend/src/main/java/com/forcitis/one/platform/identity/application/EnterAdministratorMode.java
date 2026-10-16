@@ -77,7 +77,7 @@ public class EnterAdministratorMode {
         transaction.executeWithoutResult(status -> audit.record(new AuditEntry("platform.identity.administrator-mode.entered", userId, null,
                 "user-account:" + userId.value(), "until " + until).withTrace(origin.address(), AuditOutcome.SUCCEEDED, session.loginMethod().name())));
         meters.counter("forcitis.platform.identity.administrator.mode.entries").increment();
-        log.error("ALERT platform.identity administrator mode entered by user {} from {}, until {}", userId.value(), origin.address(), until);
+        log.error("ALERT platform.identity administrator mode entered by user {}, until {}", userId.value(), until);
         return until;
     }
 

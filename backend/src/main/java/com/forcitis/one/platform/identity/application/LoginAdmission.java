@@ -87,8 +87,8 @@ class LoginAdmission {
                 "administrator mode until " + administratorModeExpiresAt).withTrace(origin.address(), AuditOutcome.SUCCEEDED,
                 LoginMethod.EMERGENCY.name()));
         meters.counter("forcitis.platform.identity.emergency.logins").increment();
-        log.error("ALERT platform.identity emergency login by user {} from {}; administrator mode until {}", userId.value(),
-                origin.address(), administratorModeExpiresAt);
+        log.error("ALERT platform.identity emergency login by user {}; administrator mode until {}", userId.value(),
+                administratorModeExpiresAt);
     }
 
     /** reason is for the audit trail only; it never reaches the caller. */
