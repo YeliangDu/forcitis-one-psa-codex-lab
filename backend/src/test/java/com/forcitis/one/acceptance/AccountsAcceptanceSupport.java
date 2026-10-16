@@ -430,7 +430,7 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
         java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
         java.io.ByteArrayOutputStream err = new java.io.ByteArrayOutputStream();
         int exit = operationsCommands.run(new org.springframework.boot.DefaultApplicationArguments("--operation=grant-role", "--employee-id=" + text(employeeId),
-                "--role-code=" + roleCode, "--operator=acceptance-operator", "--witness=acceptance-witness"),
+                "--role-code=" + roleCode, "--operator=01900000-0000-7000-8000-00000000a001", "--witness=01900000-0000-7000-8000-00000000a002"),
                 new java.io.PrintStream(out, true, java.nio.charset.StandardCharsets.UTF_8), new java.io.PrintStream(err, true, java.nio.charset.StandardCharsets.UTF_8));
         if (exit != 0) {
             throw new AssertionError("grant-role " + roleCode + " to employee " + employeeId + " exited " + exit + ": " + err.toString(java.nio.charset.StandardCharsets.UTF_8));

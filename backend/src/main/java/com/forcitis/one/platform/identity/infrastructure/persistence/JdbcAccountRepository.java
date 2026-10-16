@@ -23,11 +23,19 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 @Repository
 class JdbcAccountRepository implements AccountRepository {
+
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcAccountRepository.class);
+    private static final int MAX_ADDRESS_LENGTH = 64;
+    private static final Pattern ADDRESS_SHAPE = Pattern.compile(
+            "(?:[0-9]{1,3}(?:\\.[0-9]{1,3}){3}|(?=[^:]*:[^:]*:)(?!.*:::)[0-9A-Fa-f.:]+)(?:%[0-9A-Za-z._-]+)?");
 
     private final JdbcClient jdbc;
     private final Clock clock;
@@ -119,14 +127,24 @@ class JdbcAccountRepository implements AccountRepository {
 
     @Override
     public void recordLogin(UserId userId, Instant at, String address) {
+        String stored = storableAddress(address);
         jdbc.sql("""
                         update platform_identity.user_accounts
                            set last_login_at = :at, last_login_address = :address, updated_at = :updatedAt
                          where user_id = :id
                         """)
-                .param("at", OffsetDateTime.ofInstant(at, ZoneOffset.UTC)).param("address", address).param("id", userId.value())
+                .param("at", OffsetDateTime.ofInstant(at, ZoneOffset.UTC)).param("address", stored).param("id", userId.value())
                 .param("updatedAt", Timestamp.from(clock.instant()))
                 .update();
+    }
+
+    /** An address the column constraint would refuse is left empty rather than cut or allowed to fail a login that already succeeded. */
+    static String storableAddress(String address) {
+        if (address != null && address.length() <= MAX_ADDRESS_LENGTH && ADDRESS_SHAPE.matcher(address).matches()) {
+            return address;
+        }
+        LOG.error("ALERT platform.identity last login address not recorded: not an address (length {})", address == null ? 0 : address.length());
+        return null;
     }
 
     @Override

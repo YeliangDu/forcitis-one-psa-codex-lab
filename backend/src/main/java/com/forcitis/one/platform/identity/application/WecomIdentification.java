@@ -55,7 +55,7 @@ class WecomIdentification {
         Optional<EmployeeProfile> employee = directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(wecomUserId.get()));
         if (employee.isEmpty()) {
             return new Outcome.Failed(IdentityError.PLATFORM_IDENTITY_WECOM_NOT_BOUND,
-                    "no employee for WeCom user id " + wecomUserId.get().value());
+                    "wecom user not bound");
         }
         return new Outcome.Identified(employee.get());
     }

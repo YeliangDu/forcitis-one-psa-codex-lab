@@ -54,6 +54,9 @@ class HttpContractIT {
     @Autowired
     MockMvc mvc;
 
+    @Autowired
+    IdempotencyScope scope;
+
     @Test
     @DisplayName("the version lives in the path: /api/1/... is not a route, /api/v1/... is")
     void numericVersionSegmentIsNotFound() throws Exception {
@@ -166,14 +169,16 @@ class HttpContractIT {
                     declared |= "Idempotency-Key".equals(parameter.path("name").asString());
                 }
                 String method = operation.getKey().toUpperCase(java.util.Locale.ROOT);
-                assertThat(declared).as(method + " " + path.getKey()).isEqualTo(IdempotencyScope.applies(method, path.getKey()));
+                assertThat(declared).as(method + " " + path.getKey()).isEqualTo(scope.applies(method, path.getKey()));
                 offered += declared ? 1 : 0;
             }
         }
-        assertThat(offered).isPositive();
-        assertThat(IdempotencyScope.applies("POST", "/api/v1/platform/sessions:logout")).isFalse();
-        assertThat(IdempotencyScope.applies("POST", "/api/v1/platform/login-states")).isFalse();
-        assertThat(IdempotencyScope.applies("PUT", "/api/v1/organization/legal-entities/1")).isFalse();
+        assertThat(offered).as("the 20 endpoints of idempotent-endpoints.txt").isEqualTo(20);
+        assertThat(scope.applies("POST", "/api/v1/organization/sync-runs:reconcile")).isFalse();
+        assertThat(scope.applies("POST", "/api/v1/platform/source-references")).isFalse();
+        assertThat(scope.applies("POST", "/api/v1/platform/sessions:logout")).isFalse();
+        assertThat(scope.applies("POST", "/api/v1/platform/login-states")).isFalse();
+        assertThat(scope.applies("PUT", "/api/v1/organization/legal-entities/1")).isFalse();
     }
 
     private static boolean allowsNull(tools.jackson.databind.JsonNode property) {

@@ -43,7 +43,7 @@ cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）�
 
 无错误码以外的术语。
 
-另有错误码 12 个（kind 为 `error_code`）、技术词 23 个（`common_words`），不在表中。
+另有错误码 13 个（kind 为 `error_code`）、技术词 23 个（`common_words`），不在表中。
 
 ## `data-migration.yaml`
 
@@ -333,7 +333,7 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 
 无错误码以外的术语。
 
-另有错误码 5 个（kind 为 `error_code`）、技术词 12 个（`common_words`），不在表中。
+另有错误码 5 个（kind 为 `error_code`）、技术词 13 个（`common_words`），不在表中。
 
 ## `round3-pending-renames.yaml`
 

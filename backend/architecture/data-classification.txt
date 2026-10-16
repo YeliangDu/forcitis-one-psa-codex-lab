@@ -23,3 +23,11 @@ organization_workforce.employees.employee_code | SENSITIVE | 个人信息：工�
 platform_integration.outbound_deliveries.recipient_codes | SENSITIVE | 个人信息：收件人的企业微信用户 ID
 platform_integration.outbound_deliveries.skipped_recipient_codes | SENSITIVE | 个人信息：被跳过收件人的企业微信用户 ID
 platform_identity.browser_identifiers.identifier_hash | SENSITIVE | 浏览器标识的摘要：可用于判断某浏览器是否已被本人确认
+platform_audit.audit_entries.detail | INTERNAL | 用途：说明动作的上下文；个人信息 PI（三段格式下以此为准，四段化随 ADR-0043 实施 PR）；不得含直接标识（IP、登录名、企业微信 ID、姓名），人员只写自有 ID
+platform_audit.audit_entries.change_reason | INTERNAL | 用途：人填的变更理由；个人信息 PI；只提示不拦截
+platform_audit.audit_entries.before_text | INTERNAL | 用途：被变更字段的原值；个人信息 PI；仅 L2 个人信息原值，L3 及以上与 SPI 不记，现在一律不写非空值
+platform_audit.audit_entries.after_text | INTERNAL | 用途：被变更字段的新值；个人信息 PI；同 before_text
+platform_idempotency.idempotent_responses.response_text | INTERNAL | 用途：重放幂等请求的第一次应答；个人信息 PI（三段格式下以此为准，四段化随 ADR-0043 实施 PR）；正文仅限 idempotent-endpoints.txt 的接口，不含直接标识，可含自有 UUID（代理键仍是个人信息，ADR-0043 第 4 项第 2 条）
+platform_integration.source_references.source_id | INTERNAL | 用途：来源系统中该对象的标识；个人信息 PI（来源对象类为 EMPLOYEE 时是外部系统的员工编号，等同工号类直接标识；其余类不是）；应答不得进幂等应答表
+platform_identity.sessions.session_id | RESTRICTED | 会话标识，等同 Cookie 持有凭据（个人信息标记待 one-data / U-11 裁定，四段化随 ADR-0043 实施 PR）
+platform_identity.sessions.primary_id | RESTRICTED | 框架内部主键，不进 Cookie，可关联会话内容；按用户决定与 session_id 同级（个人信息标记待 one-data / U-11 裁定，四段化随 ADR-0043 实施 PR）

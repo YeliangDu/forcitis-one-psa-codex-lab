@@ -4,9 +4,11 @@ import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.ExpectedVersion;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.numbering.api.NumberingError;
+import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 import com.forcitis.one.platform.numbering.api.NumberingRuleView;
 import com.forcitis.one.platform.numbering.api.ResetPolicy;
 import com.forcitis.one.platform.numbering.domain.NumberingPattern;
@@ -23,11 +25,13 @@ public class ConfigureNumberingRule {
     private final NumberingRuleRepository rules;
     private final DomainEvents events;
     private final Clock clock;
+    private final IdGenerator ids;
 
-    ConfigureNumberingRule(NumberingRuleRepository rules, DomainEvents events, Clock clock) {
+    ConfigureNumberingRule(NumberingRuleRepository rules, DomainEvents events, Clock clock, IdGenerator ids) {
         this.rules = rules;
         this.events = events;
         this.clock = clock;
+        this.ids = ids;
     }
 
     @Transactional
@@ -37,7 +41,7 @@ public class ConfigureNumberingRule {
                 ErrorKind.NOT_FOUND, "no active numbering rule for " + type));
         expected.check(rule.version());
         try {
-            rule.propose(new NumberingPattern(pattern, resetPolicy), startValue, effectiveFrom, author, clock.instant());
+            rule.propose(new NumberingRuleVersionId(ids.next()), new NumberingPattern(pattern, resetPolicy), startValue, effectiveFrom, author, clock.instant());
         } catch (IllegalArgumentException | NullPointerException invalid) {
             throw new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_INVALID, ErrorKind.UNPROCESSABLE, invalid.getMessage());
         }

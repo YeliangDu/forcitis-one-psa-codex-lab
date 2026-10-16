@@ -268,6 +268,21 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-01 a control character in the reason of a release is replaced by a space before it reaches the audit text")
+    void releaseReasonLosesControlCharacters() {
+        orgSource.snapshot = tree(people(10).toArray(SourcePerson[]::new));
+        sync.execute(SyncTrigger.SCHEDULED, false);
+        orgSource.snapshot = tree(people(7).toArray(SourcePerson[]::new));
+        SyncResult held = sync.execute(SyncTrigger.SCHEDULED, false);
+
+        release.execute(held.syncRunId(), TestAccounts.account(9001L), "line one\nline\ttwo\rend", true, false);
+
+        org.mockito.ArgumentCaptor<AuditEntry> entry = org.mockito.ArgumentCaptor.forClass(AuditEntry.class);
+        verify(audit).record(entry.capture());
+        assertThat(entry.getValue().detail()).startsWith("reason: line one line two end; ").doesNotContainPattern("\\p{Cntrl}");
+    }
+
+    @Test
     @DisplayName("RULE-358 an administrator releases the held run: the source is read afresh, the guard is bypassed, the actor is audited")
     void releaseAppliesTheHeldChange() {
         orgSource.snapshot = tree(people(10).toArray(SourcePerson[]::new));

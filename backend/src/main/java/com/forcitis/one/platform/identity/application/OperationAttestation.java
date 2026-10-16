@@ -1,35 +1,37 @@
 package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.platform.identity.api.IdentityError;
-import java.text.Normalizer;
-import java.util.Locale;
-import java.util.regex.Pattern;
 
 /**
- * Who ran an operations command and who was present: two different people, recorded in the audit trail (ADR-0027 section 1). Names
- * are compared after compatibility normalisation, trimming, collapsing spaces and ignoring case, so "Alice" and " ａlice " are one person.
+ * Who ran an operations command and who was present: two different employees, recorded by their own ids in the audit trail (ADR-0027 section 1,
+ * ADR-0043 U-7b); a name is resolved from the id when the entry is read.
  */
-public record OperationAttestation(String operator, String witness) {
-
-    private static final Pattern NAME = Pattern.compile("[\\p{L}\\p{N}][\\p{L}\\p{N} ._-]{0,63}");
+public record OperationAttestation(EmployeeId operator, EmployeeId witness) {
 
     public OperationAttestation {
-        operator = normalised(operator);
-        witness = normalised(witness);
-        if (operator == null || witness == null || !NAME.matcher(operator).matches() || !NAME.matcher(witness).matches()
-                || operator.toLowerCase(Locale.ROOT).equals(witness.toLowerCase(Locale.ROOT))) {
-            throw new DomainException(IdentityError.PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED, ErrorKind.UNPROCESSABLE,
-                    "an operations command needs an operator and a different witness (letters, digits, space, dot, dash; at most 64 characters)");
+        if (operator == null || witness == null || operator.equals(witness)) {
+            throw required();
         }
     }
 
-    private static String normalised(String name) {
-        return name == null ? null : Normalizer.normalize(name, Normalizer.Form.NFKC).strip().replaceAll("\\s+", " ");
+    /** The two command-line values must each be an employee id in the lower-case canonical form. */
+    public static OperationAttestation of(String operator, String witness) {
+        try {
+            return new OperationAttestation(operator == null ? null : EmployeeId.parse(operator), witness == null ? null : EmployeeId.parse(witness));
+        } catch (IllegalArgumentException notAnId) {
+            throw required();
+        }
+    }
+
+    private static DomainException required() {
+        return new DomainException(IdentityError.PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED, ErrorKind.UNPROCESSABLE,
+                "an operations command needs an operator and a different witness, each given as an employee id");
     }
 
     String describe() {
-        return "operator=" + operator + " witness=" + witness;
+        return "operatorId=" + operator + " witnessId=" + witness;
     }
 }
