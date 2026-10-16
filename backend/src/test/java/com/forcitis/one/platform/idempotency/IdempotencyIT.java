@@ -13,7 +13,7 @@ import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
 import com.forcitis.one.platform.integration.api.WecomGateway;
-import com.forcitis.one.platform.web.IdempotencyScope;
+import com.forcitis.one.platform.web.ProbeIdempotencyScope;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -30,10 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -58,7 +55,7 @@ import tools.jackson.databind.json.JsonMapper;
         "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"})
 @AutoConfigureMockMvc
 @Testcontainers
-@Import({IdempotencyIT.Probe.class, IdempotencyIT.ProbeScope.class})
+@Import({IdempotencyIT.Probe.class, ProbeIdempotencyScope.class})
 class IdempotencyIT {
     static final String ORDERS = "/api/v1/platform/idempotency-probe/orders";
     static final String SESSIONS = "/api/v1/platform/idempotency-probe/sessions:echo";
@@ -66,16 +63,6 @@ class IdempotencyIT {
 
     static final String SIZED = "/api/v1/platform/idempotency-probe/sized";
     static final String UNLISTED = "/api/v1/platform/idempotency-probe/unlisted";
-
-    /** The probe endpoints are not on the list of the real ones; only the orders and the sized answer are added for this test. */
-    @TestConfiguration
-    static class ProbeScope {
-        @Bean
-        @Primary
-        IdempotencyScope probeScope() {
-            return new IdempotencyScope().plus("POST " + ORDERS, "POST " + SIZED);
-        }
-    }
 
     @RestController
     @RequestMapping("/api/v1/platform/idempotency-probe")
@@ -329,7 +316,7 @@ class IdempotencyIT {
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TB-02: an answer over the limit is not stored, the caller still gets it, the key stays in progress (409 on retry, no second run) and the count rises")
     void oversizeAnswerIsNotStoredAndTheKeyStaysHeld() throws Exception {
-        double before = meters.counter("forcitis.platform.idempotency.response.oversize").count();
+        double before = meters.counter("forcitis.platform.web.idempotency.response.limit").count();
 
         MvcResult first = mvc.perform(sized("k-big", IdempotentResponses.MAX_RESPONSE_LENGTH + 1)).andReturn();
         MvcResult retry = mvc.perform(sized("k-big", IdempotentResponses.MAX_RESPONSE_LENGTH + 1)).andReturn();
@@ -340,7 +327,7 @@ class IdempotencyIT {
         assertThat(problemCode(retry)).isEqualTo("PLATFORM_WEB_IDEMPOTENCY_IN_PROGRESS");
         assertThat(probe.runs.get()).as("the write is not done twice").isEqualTo(1);
         assertThat(jdbc.sql("select count(*) from platform_idempotency.idempotent_responses where response_text is not null").query(Long.class).single()).isZero();
-        assertThat(meters.counter("forcitis.platform.idempotency.response.oversize").count()).isEqualTo(before + 1);
+        assertThat(meters.counter("forcitis.platform.web.idempotency.response.limit").count()).isEqualTo(before + 1);
     }
 
     @Test

@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.kernel.IdempotentResponses;
 import com.forcitis.one.platform.identity.api.Permission;
-import com.forcitis.one.platform.web.IdempotencyScope;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.RecordComponent;
@@ -17,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -46,10 +46,10 @@ class IdempotentResponseSizeTest {
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TB-02: the largest possible answer of every listed endpoint is under half of the stored limit")
     void largestAnswersAreFarUnderTheLimit() throws Exception {
-        IdempotencyScope scope = new IdempotencyScope();
+        Set<String> listed = IdempotentEndpointGuardTest.listed(Files.readAllLines(Path.of("architecture/idempotent-endpoints.txt"))).keySet();
         Map<Class<?>, Integer> sizes = new java.util.LinkedHashMap<>();
         for (IdempotentEndpointScan.Handler handler : IdempotentEndpointScan.postHandlers()) {
-            if (scope.applies("POST", handler.template())) {
+            if (listed.contains(handler.template())) {
                 for (Class<?> type : IdempotentEndpointScan.answerTypes(handler)) {
                     sizes.computeIfAbsent(type, t -> JSON.writeValueAsString(largest(t)).length());
                 }

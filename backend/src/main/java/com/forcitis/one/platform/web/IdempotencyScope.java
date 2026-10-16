@@ -20,7 +20,7 @@ import org.springframework.web.util.pattern.PathPatternParser;
  * POST ignores the header and is not offered it in the contract.
  */
 @Component
-public class IdempotencyScope {
+class IdempotencyScope {
     static final String RESOURCE = "/architecture/idempotent-endpoints.txt";
 
     private record Endpoint(String method, PathPattern pattern) {
@@ -29,12 +29,12 @@ public class IdempotencyScope {
     private final List<Endpoint> endpoints;
 
     @Autowired
-    public IdempotencyScope() {
+    IdempotencyScope() {
         this(listed());
     }
 
     /** Lines in the format of the list file: METHOD path-template, then an optional comment after '#'. */
-    public IdempotencyScope(Collection<String> lines) {
+    IdempotencyScope(Collection<String> lines) {
         List<Endpoint> parsed = new ArrayList<>();
         for (String line : lines) {
             String entry = line.contains("#") ? line.substring(0, line.indexOf('#')).strip() : line.strip();
@@ -51,13 +51,13 @@ public class IdempotencyScope {
     }
 
     /** A scope with more endpoints, for a test that needs a probe endpoint. */
-    public IdempotencyScope plus(String... lines) {
+    IdempotencyScope plus(String... lines) {
         List<String> all = new ArrayList<>(endpoints.stream().map(e -> e.method() + " " + e.pattern().getPatternString()).toList());
         all.addAll(List.of(lines));
         return new IdempotencyScope(all);
     }
 
-    public boolean applies(String method, String path) {
+    boolean applies(String method, String path) {
         PathContainer container = PathContainer.parsePath(path);
         return endpoints.stream().anyMatch(e -> e.method().equals(method) && e.pattern().matches(container));
     }

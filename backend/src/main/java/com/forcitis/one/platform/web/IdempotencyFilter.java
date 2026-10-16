@@ -133,7 +133,7 @@ class IdempotencyFilter extends OncePerRequestFilter {
                 if (text.length() > IdempotentResponses.MAX_RESPONSE_LENGTH) {
                     LOG.error("ALERT platform.idempotency response of {} exceeds {} characters: not stored", request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE),
                             IdempotentResponses.MAX_RESPONSE_LENGTH);
-                    meters.counter("forcitis.platform.idempotency.response.oversize").increment();
+                    meters.counter("forcitis.platform.web.idempotency.response.limit").increment();
                     responses.holdUntilExpiry(userId, key);
                 } else {
                     responses.finish(userId, key, wrapper.getStatus(), wrapper.getContentType(), text, replayedHeaders(wrapper));

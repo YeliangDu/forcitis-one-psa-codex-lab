@@ -11,6 +11,7 @@ com/forcitis/one/organization/workforce/infrastructure/persistence/OrgHistory.ja
 com/forcitis/one/organization/workforce/infrastructure/persistence/OrgHistory.java#recordAssignments  # effective-dated history of the snapshot, closed and appended in the snapshot's own transaction under the snapshot writer lock
 com/forcitis/one/platform/idempotency/infrastructure/JdbcIdempotentResponses.java#claim  # the claim is the insert of the unique (user, key) row, or the takeover of an expired one in the same statement; it is not an aggregate
 com/forcitis/one/platform/idempotency/infrastructure/JdbcIdempotentResponses.java#finish  # completes the row this request claimed; no other writer holds it
+com/forcitis/one/platform/idempotency/infrastructure/JdbcIdempotentResponses.java#holdUntilExpiry  # an answer too long to store keeps its claim until the key expires: updated_at is set to expires_at so that no retry takes the claim over and runs the write again
 com/forcitis/one/platform/idempotency/infrastructure/JdbcIdempotentResponses.java#release  # drops the claim of a request that failed so that the key can be retried
 com/forcitis/one/platform/identity/infrastructure/persistence/JdbcOneTimeCredentials.java#storeLoginState  # one-time credential, not an aggregate: stored once, consumed once
 com/forcitis/one/platform/identity/infrastructure/persistence/JdbcOneTimeCredentials.java#consumeLoginState  # the atomic delete is the consumption, so a replay finds nothing

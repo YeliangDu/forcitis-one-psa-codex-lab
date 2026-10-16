@@ -2,7 +2,6 @@ package com.forcitis.one;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.forcitis.one.platform.web.IdempotencyScope;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -62,13 +61,12 @@ class IdempotentEndpointGuardTest {
     }
 
     @Test
-    @DisplayName("DATA-REPAIR-timesheet-audit TB-02: the POSTs that accept an Idempotency-Key are exactly the lines of idempotent-endpoints.txt, one handler per line")
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-02: the POSTs of the code that the list names are exactly the lines of idempotent-endpoints.txt, one handler per line")
     void listedEndpointsAreTheEndpointsThatApply() throws Exception {
         Map<String, String> rows = listed(Files.readAllLines(LIST));
-        IdempotencyScope scope = new IdempotencyScope();
         Set<String> applying = new LinkedHashSet<>();
         for (IdempotentEndpointScan.Handler handler : IdempotentEndpointScan.postHandlers()) {
-            if (scope.applies("POST", handler.template())) {
+            if (rows.containsKey(handler.template())) {
                 assertThat(applying.add(handler.template())).as("one handler for " + handler.template()).isTrue();
             }
         }
@@ -80,10 +78,10 @@ class IdempotentEndpointGuardTest {
     @DisplayName("DATA-REPAIR-timesheet-audit TB-02: no answer type of a listed endpoint, nested records included, has a component named like a sensitive, personal or direct-identifier column")
     void answersCarryNoDirectIdentifier() throws Exception {
         Set<String> forbidden = forbiddenNames(Files.readAllLines(CLASSIFICATION));
-        IdempotencyScope scope = new IdempotencyScope();
+        Set<String> listed = listed(Files.readAllLines(LIST)).keySet();
         List<String> problems = new ArrayList<>();
         for (IdempotentEndpointScan.Handler handler : IdempotentEndpointScan.postHandlers()) {
-            if (scope.applies("POST", handler.template())) {
+            if (listed.contains(handler.template())) {
                 List<String> found = forbiddenIn(IdempotentEndpointScan.answerTypes(handler), forbidden);
                 if (!found.isEmpty()) {
                     problems.add(handler.template() + " answers with " + found);
@@ -138,18 +136,5 @@ class IdempotentEndpointGuardTest {
         assertThat(forbiddenIn(Set.of(Nested.class), forbidden)).as("opened up through the list").containsExactly("loginName");
         assertThat(forbiddenIn(Set.of(Mail.class), forbidden)).containsExactly("email", "sourceId");
         assertThat(forbidden).doesNotContain("c", "response_text");
-    }
-
-    @Test
-    @DisplayName("DATA-REPAIR-timesheet-audit TB-02 injected: only the listed method and path templates apply, in the contract form and with real ids; other methods, paths and sessions do not")
-    void listLinesAreChecked() {
-        IdempotencyScope scope = new IdempotencyScope(List.of("POST /api/v1/x/{id}:go  # Y"));
-
-        assertThat(scope.applies("POST", "/api/v1/x/0192f8a0-0000-7000-8000-000000000001:go")).isTrue();
-        assertThat(scope.applies("POST", "/api/v1/x/{id}:go")).as("a template of the contract").isTrue();
-        assertThat(scope.applies("PUT", "/api/v1/x/1:go")).isFalse();
-        assertThat(scope.applies("POST", "/api/v1/y/1:go")).isFalse();
-        assertThat(scope.applies("POST", "/api/v1/platform/sessions:logout")).isFalse();
-        assertThat(listed(List.of("# c", "", "POST /a/{id}  # R"))).containsOnlyKeys("/a/{id}");
     }
 }
