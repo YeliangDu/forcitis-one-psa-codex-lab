@@ -1,0 +1,229 @@
+# ADR-0051：全企业 BC 与命名空间
+
+- **状态**：提议（用户 intent `2026-10-15-211634` 要求业务对象、BC、子域、价值流与阶段、业务流程都梳理清楚后一次性调整 ADR；用户题⑦选 b「同时起草 2 份：方法与框架；全企业 BC 与命名空间」，intent `2026-10-16-072440` M-7；本份为第二份，与 ADR-0050（方法与框架）同一轮评审、同一轮批准；编号由 one-coordinator 分配；待 opus 首轮对抗评审）
+- **日期**：2026-10-16
+- **取代**：ADR-0017 决定 1 中「模块结构沿用现有子域划分」对新增命名空间、合并与新增 BC 的限制，以及其对照表中 `presales.customer` / `presales.quoting`、`contract.baseline`、`contract.changeorder`、`contract.riskdelivery`、`delivery.acceptance` 各行与末行中 `operations.budgeting`、`organization.incentive` 的模块划分（蓝图编号登记要求保留）；ADR-0016 决定 9 中 `contract.changeorder` 作为签证、变更、索赔所在模块的模块名；ADR-0022 决定 7 括注中 `accounting.tax`「在 G1 期间只是 `accounting.ledger` 内的导入通道」一语（`accounting.cashbank`、`accounting.fixedasset` 不变）；ADR-0023 决定 1 中「经营子域 4 个 BC」的个数与 `operations.budgeting` 单列，以及「占用额度、拦截单据的预算归 budgeting（划分待用户确认）」一句的落点；ADR-0023 决定 3 中 `operations.budgeting` 作为术语登记对象的模块名；ADR-0021 后果「新建 BC」一条中 `organization.incentive` 单列为 6e 建设范围的表述与「新增人事、假勤 BC」的落点；ADR-0024 影响面「BC」中 `contract.baseline` 的模块名；ADR-0031 决定第 1 项第 3 条与影响面「模块」中 `contract.changeorder` 的模块名
+
+## 背景
+
+- **用户要求一次性调整**：intent `2026-10-15-211634`「把所有业务对象识别完毕，BC、子域、价值流阶段、价值流，业务过程都捋清楚了再调整 ADR」；intent `2026-10-16-072440` M-7 定为两份 ADR：ADR-0050 定方法与框架，本 ADR 定全企业 BC 划分、命名空间、依赖方向与相关修订。本 ADR 只写结论与落点，推导方法、判据、方向规则与证据规则的通则、查环与分层的做法一律引用 ADR-0050，不重复。
+- **前置产出已完成**：全企业信息图（`ENTERPRISE_INFO_MAP_DRAFT.md`）、聚合稿（`ENTERPRISE_AGGREGATES_DRAFT.md`，106 个聚合，§2.2）、⑥a 流程清单（`STEP6A_PROCESSES.md`）、独立符合性审查（`FIT_AUDIT_2026-10-16.md`，必须修 9 条已全部处理，见其处理记录）、售前回溯检查（`RETRO_PRESALES.md`，19 条差异已闭合）。本 ADR 的 BC 清单取自聚合稿 §3.2，依赖骨架取自聚合稿 §4.1 的脚本生成块（`aggregates_dep_check.py`，基线 `52a89ca8`，141 条 BC 边、无环、L0–L14）。
+- **与已采纳 ADR 的冲突**：ADR-0017 决定 1 规定模块沿用现有子域划分，新增命名空间须新 ADR（聚合稿 §6 N-13）；用户已定的 D-2（新增主数据命名空间）、D-3（交付三个 BC）、D-5（请假与加班另建 BC、激励并入薪酬）、D-7（`accounting.tax` 提前独立）、D-9（项目结项流程模块），以及售前合并、合同三合一（intent `2026-10-15-210513`）、计划与预算合一（intent `2026-10-15-233152` Q28）都偏离现行 ADR 的文字，须由本 ADR 修订。
+- **深 / 薄标记的出处**：ADR-0041 决定 1 只规定「深建模 / 薄 CRUD」一个标记与判据（规则密集或触账为深），未逐 BC 列标记；聚合稿原稿中 `expense.spend`、`accounting.cashbank`、`accounting.fixedasset` 的「薄」是提议稿内容，不是 ADR 文字。故本 ADR 不取代 ADR-0041 决定 1 的任何文字，只在决定 3 的表中首次写定逐 BC 的标记（用户 M-5「按判据改深，新增 BC 逐一按判据标」，intent 072440）；标记落在 BC 而非子域、子域不再分类，属 ADR-0050（METHOD 草目条目 6、11）。
+- **待用户决定**：无。本 ADR 的每条结论都已有用户决定或由已采纳 ADR 推出，出处逐条注明；起草中发现的未定事项单列于文末，不在本 ADR 中裁定。
+
+## 决定
+
+### 1. 地位与登记方式
+
+1. 本 ADR 是全企业 BC 划分与命名空间的**规划基线**：各阶段开工时按 ADR-0050 的方法对本阶段的 BC、聚合与边复核，复核结果与本 ADR 一致的直接登记，不一致的另开 ADR 取代本 ADR 的相应条款并附新证据（ADR-0041 决定 3 的同一做法）。
+2. **本 ADR 不把规划 BC 与规划边登记进 SSOT**：`ddd/contexts.yaml`、`ddd/context-map.yaml`、`ddd/aggregates.yaml`、`backend/architecture/module-dependencies.txt` 只登记已建与本阶段在建的部分（ADR-0041 决定 4；用户 L-5「全企业提议稿不进 SSOT」，intent `2026-10-16-112800`）。本 ADR 的 BC 表、依赖骨架与分层是提议稿的定稿快照，供阶段复核对照，不是 SSOT。
+3. 已建模块以代码为准（`backend/architecture/module-dependencies.txt` 与 `backend/src/main/java/com/forcitis/one/`）：现已建业务模块为 `cost.timesheet`、`organization.workforce`、`organization.attendance`，本 ADR 不改它们的标识与包路径；`delivery.execution` 曾建、已删（`retired-module-schemas.txt` 登记 `delivery_execution`），按本 ADR 重建。
+
+### 2. 命名空间（修订 ADR-0017 决定 1）
+
+1. 业务命名空间 13 个：既有 12 个 `presales`、`contract`、`delivery`、`cost`、`receivables`、`payables`、`procurement`、`expense`、`organization`、`operations`、`accounting`、`km`，新增 1 个 **`masterdata`（主数据）**（用户 D-2 改选 b，intent `2026-10-16-061232`；标识与中文名用户 GL2 已定，`glossary/bcs.yaml`）。另有平台命名空间 `platform`（10 个模块不变）；`kernel` 是共享内核，不是命名空间；`reporting` 是只读分析模块，模块路径仍按 ADR-0023 待定。
+2. 命名空间只是 Java 包、PG schema、URL、权限码的前缀分组（用户 intent `2026-10-15-221201`；ADR-0003 决定 1、2）：`masterdata` 下的模块包路径为 `com.forcitis.one.masterdata.<bc>`，schema 为 `masterdata_<bc>`，由 `SubdomainModuleDetection` 识别为顶层模块，无须改识别策略。
+3. 每个 BC 恰属一个命名空间；命名空间按 ADR-0050 决定 13 与 BC 一起定，不做核心 / 支撑 / 通用分类。
+
+### 3. BC 清单（修订 ADR-0017 决定 1 及对照表）
+
+共 **28 个业务 BC、1 个流程模块**（`delivery.closeout`，无聚合，不计入 BC 数，符合性审查 建-8），另有 `reporting` 与 10 个平台模块沿用。编号沿用聚合稿 §3.2（B-25 已撤并入 B-01）。中文名取 `glossary/bcs.yaml`；状态：**已建**（有模块包）/ **新增** / **合并**（由现有规划 BC 合并或并入）/ **沿用**（规划标识不变）。
+
+| 编号 | 模块标识 | 中文名 | 命名空间 | 深 / 薄 | 所含聚合（聚合稿 §2.2） | 状态 | 依据 |
+|---|---|---|---|---|---|---|---|
+| B-01 | `masterdata.counterparty` | 往来单位与外部工程 | masterdata | 薄 | AGG-01 往来单位、02 资质证书、33 建设工程；REF-01 招标项目登记（无聚合） | 新增（取代 `presales.customer` 的客户主数据部分；原 B-25 外部工程登记并入） | D-2（061232）；i210513；GL2 |
+| B-02 | `masterdata.catalog` | 服务与定价目录 | masterdata | 薄 | AGG-03 服务产品版本、04 阶段类型版本、05 标准成本费率表版本、06 计费系数版本、07 协议价目 | 新增 | D-2（061232）；i211634（费率放主数据）；GL2 |
+| B-03 | `presales.opportunity` | 商机与投标报价 | presales | 深 | AGG-08 市场活动、09 线索、10 商机、11 投标、12 报价版本、18 独立性检查、102 客户活动 | 合并（`presales.customer` + `presales.quoting`） | i210513；D-4（061232）；C-1（072440）；GL2 |
+| B-04 | `delivery.execution` | 项目交付执行 | delivery | 深 | AGG-19 项目、20 项目 WBS、21 交付计划版本、22 项目预算版本、23 完工估算、24 项目团队、25 资源需求、26 资源分配、31 延期申请、103 项目复盘、104 项目风险与问题 | 沿用（曾建已删，重建） | D-3（061232）；C-3、C-4（072440） |
+| B-28 | `delivery.acceptance` | 质量与认可 | delivery | 深 | AGG-27 交付物、28 不符合项、29 返工认定、30 设计变更、32 发包人提供资料、38 证据、105 客户满意度调查、110 证据关联 | 沿用，职责扩大（原为质量问题、返工认定、验收裁定） | D-3（061232）；F-1（114200）；C-2（072440） |
+| B-26 | `delivery.inspection` | 检查与检测 | delivery | 深 | AGG-34 检查计划、35 检查、36 检查表模板版本、37 外部检测 | 新增 | D-3（061232）；GL2 |
+| B-29 | `delivery.closeout` | 项目结项 | delivery | 薄（流程编排） | 无聚合（REF-02 结项编排） | 新增（流程模块，不计入 BC 数） | D-9（072440）；F-5（114200） |
+| B-05 | `contract.agreement` | 协议与变更索赔 | contract | 深 | AGG-13 协议、14 框架协议限额、15 协议变更（含签证）、16 索赔、17 风险交付授权 | 合并（`contract.baseline` + `contract.changeorder` + `contract.riskdelivery`） | i210513；GL2 |
+| B-06 | `cost.timesheet` | 工时与投入有效性 | cost | 深 | AGG-39 工时单 | 已建 | ADR-0016 |
+| B-07 | `cost.costing` | 项目成本归集 | cost | 深 | AGG-40 分摊规则版本、41 人工成本分配运行、42 分摊运行、43 成本结转批次 | 沿用 | L-8（112800）；ADR-0016 决定 1 |
+| B-08 | `receivables.wip` | WIP 与开票准入 | receivables | 深 | AGG-44 开票与收入额度、45 开票申请、46 销项发票、92 证据类型开放配置版本（AGG-47 收入确认按 ADR-0016 决定 4 不建聚合） | 沿用 | ADR-0016 决定 4、5；ADR-0047；ADR-0049 |
+| B-09 | `receivables.collection` | 应收与现金转化 | receivables | 深 | AGG-49 应收往来款项、50 收款、51 保证金与押金 | 沿用（加保证金） | i210513；ADR-0016 决定 9 |
+| B-10 | `payables.payment` | 付款 | payables | 深 | AGG-52 应付往来款项、53 付款、54 合伙人出资、109 利润分配 | 沿用 | ADR-0022 决定 7；Q-C（082311） |
+| B-11 | `procurement.subcontracting` | 分包与采购履约 | procurement | 深 | AGG-55 供方协议、56 分包变更、57 供方履约确认、58 供方协议履约额度 | 沿用（加供方协议） | D-1（061232）；ADR-0022 决定 7 |
+| B-12 | `expense.spend` | 费用报销与支出管控 | expense | **深**（原稿薄） | AGG-59 费用报销 | 沿用 | M-5（072440） |
+| B-13 | `organization.workforce` | 组织人事 | organization | 薄 | AGG-60 法人主体、61 组织单元、62 人员、63 任职、64 岗位、65 招聘需求、66 注册执业证书、67 劳动合同、106 绩效评估 | 已建（扩：招聘、执业证书、劳动合同、绩效） | D-1、D-5（061232）；F-3（114200）；C-5（072440） |
+| B-14 | `organization.attendance` | 考勤与休假 | organization | 薄 | AGG-68 工作日历年度、108 标准工时版本 | 已建（只留工作日历与标准工时版本） | D-5（061232） |
+| B-27 | `organization.leave` | 请假与加班 | organization | 薄 | AGG-69 考勤记录、70 请假、71 假期余额账户、72 加班、97 月度考勤确认 | 新增（自 `organization.attendance` 分出） | D-5（061232）；GL2 |
+| B-15 | `organization.payroll` | 假勤薪酬 | organization | 深 | AGG-73 月度薪酬结算、74 社保与公积金参保、75 激励方案版本、76 奖金核定、93 人员薪酬档案、95 个税扣缴与社保公积金申报 | 合并（`organization.incentive` 并入） | D-5（061232）；ADR-0021 |
+| B-16 | `operations.facts` | 经营事实与归属 | operations | 深 | AGG-77 过账（技术聚合） | 沿用 | ADR-0016 决定 1 |
+| B-17 | `operations.policy` | 经营口径与勾稽 | operations | 深 | 不在本 ADR 推导（AGG-78 以 ADR-0016、ADR-0023 为据） | 沿用 | ADR-0016、ADR-0023；建-9 |
+| B-18 | `operations.planning` | 战略与经营计划 | operations | 薄（见未定事项 4） | AGG-79 经营计划版本、80 预算账户 | 合并（`operations.budgeting` 并入） | Q28（233152） |
+| B-19 | `accounting.period` | 会计期间 | accounting | 深 | AGG-81 会计期间、96 第 13 期启用登记 | 沿用 | ADR-0016；ADR-0046 |
+| B-20 | `accounting.ledger` | 财务总账与法定核算 | accounting | 深 | AGG-82 科目表版本、84 会计分录、85 收付 ↔ 权责科目映射表版本、94 控制科目授权表版本、98 受控手工凭证、99 期末结转运行、100 期间余额快照、101 外部法定账对账（AGG-83 账簿为参照数据，不计） | 沿用 | ADR-0022 |
+| B-21 | `accounting.reporting` | 财务报表 | accounting | 薄（只读） | AGG-86 报表行定义版本 | 沿用 | ADR-0022 决定 4 |
+| B-22 | `accounting.cashbank` | 银行与现金 | accounting | **深**（原稿薄） | AGG-87 资金账户、88 银行流水 | 沿用（G1 为 ledger 内导入通道，ADR-0022 决定 7 不变） | ADR-0022 决定 7；M-5 |
+| B-23 | `accounting.tax` | 税费 | accounting | 深 | AGG-89 进项发票（G1 起）、90 增值税、附加税、企业所得税申报（申报阶段再建） | 沿用，G1 起独立（本 ADR 决定 4 第 7 条） | D-7（072440） |
+| B-24 | `accounting.fixedasset` | 固定资产 | accounting | **深**（原稿薄） | AGG-91 公司资产 | 沿用（G1 为 ledger 内导入通道，ADR-0022 决定 7 不变） | ADR-0022 决定 7；M-5 |
+| B-30 | `km.knowledge` | 知识资产与 AI 赋能 | km | 薄 | AGG-107 知识条目 | 沿用（有对象支撑） | M-4（072440）；K-1（074053） |
+| — | `reporting` | 经营分析（只读） | —（路径待定） | — | 读模型 | 沿用 | ADR-0023、ADR-0025 |
+| — | `platform.*`（approval、audit、identity、integration、numbering、scheduling、idempotency、eventing、web、migration） | 平台 | platform | — | 已建或按 ADR-0036 | 已建（migration 规划） | ADR-0003、ADR-0036、ADR-0039 |
+
+聚合计数 106（各 BC 计数与聚合稿 §4.1 运行结果一致）。退役的规划标识及去向：`presales.customer` → `masterdata.counterparty`（客户主数据）与 `presales.opportunity`（客户经营）；`presales.quoting` → `presales.opportunity`；`contract.baseline`、`contract.changeorder`、`contract.riskdelivery` → `contract.agreement`；`operations.budgeting` → `operations.planning`；`organization.incentive` → `organization.payroll`；`organization.attendance` 原规划中的请假、加班、考勤记录 → `organization.leave`。被取代 ADR 中出现的退役标识（见「取代」行）一律按此读作新标识，正文不改。
+
+蓝图编号（ADR-0017 决定 1 后半保留：新 BC 在 `package-info` 登记蓝图编号）：`presales.opportunity` 与 `masterdata.counterparty` 对 BC-01、`contract.agreement` 对 BC-02、`masterdata.catalog` 对 BC-03（费率与定价）；`delivery.acceptance`（现为 null）、`delivery.inspection`、`delivery.closeout`、`organization.leave` 登记「蓝图未覆盖」，与 ADR-0017 对照表「无直接对应」「蓝图未覆盖」的写法一致；其余沿用 ADR-0017、ADR-0022 对照表。上述对应由实现 PR 按蓝图原文核对后登记。
+
+### 4. 各段的划分结论
+
+1. **主数据**（D-2 改选 b）：`masterdata.counterparty` 管往来单位及其角色、联系人、银行账户、资质证书，以及外部工程登记（建设工程、部位、招标项目登记、我方参与记录）；客户角色不走准入，档案已核实即可用，供应商、分包等角色走准入（P-3，intent `2026-10-16-120544`）。`masterdata.catalog` 管服务产品、阶段类型、标准成本费率表、计费系数、协议价目的版本化目录。
+2. **售前合一**（i210513）：线索、商机、投标、报价、市场活动、客户活动、独立性检查同在 `presales.opportunity`；独立性检查在售前拦截，合同签约时前置读检查结论（D-4）。
+3. **合同合一**（i210513「开新 ADR 合并合同三个 BC（保留签证、索赔）」）：签证是协议变更的类型，索赔独立聚合，风险交付授权同在 `contract.agreement`；签证、变更、索赔仍在合同 BC，ADR-0016 决定 9 的实质不变，只改模块名。联合体中标后我方份额记在项目合同的相对方与身份上（P-4）。
+4. **交付三个 BC 加一个流程模块**（D-3 改选 c；D-9 a；F-5）：`delivery.execution` 管项目、WBS、计划、预算、资源、延期、复盘、风险与问题；`delivery.acceptance` 管交付物、不符合项、返工认定、设计变更、发包人提供资料、证据、证据关联、满意度调查，交付侧只记送达、退回与项目经理的无异议声明（ADR-0049）；`delivery.inspection` 管检查计划、检查、检查表模板、外部检测；`delivery.closeout` 是无聚合的流程模块，实现结项（INV-40）的下游编排与结项审批钩子，不持有状态、不建 schema，结项检查单经 `platform.audit` 留痕（聚合稿 §4.6）。
+5. **人事**（D-5 b；F-3）：激励并入 `organization.payroll`；请假、加班、考勤记录、假期余额、月度考勤确认另建 `organization.leave`；`organization.attendance` 只留工作日历与标准工时版本（已建边 `platform.approval → organization.attendance` 不变，本模块不发起审批）。招聘需求、劳动合同、离职申请在 `organization.workforce` 内单级批准，不经 `platform.approval`（已建边 `platform.approval → organization.workforce`，实现审批钩子即成环）。
+6. **计划与预算合一**（Q28）：`operations.budgeting` 并入 `operations.planning`，预算账户为其聚合；ADR-0023 决定 1 中「划分待用户确认」由此闭合。
+7. **`accounting.tax` 提前独立**（D-7 改选 b，修订 ADR-0022 决定 7）：自 G1 起即为独立 BC，先只含进项发票与入账占用（AGG-89；INV-72、74、75）；法定申报（AGG-90）到申报阶段再建；`accounting.cashbank`、`accounting.fixedasset` 仍为 G1 期间 `accounting.ledger` 内的导入通道。报销、应付经入账占用 api 依赖 `accounting.tax`。
+8. **`km.knowledge` 沿用**（M-4 改选 b；K-1）：一级对象「知识条目」落此 BC（AGG-107），只依赖 `organization.workforce`；被服务与定价目录、售前、交付执行、质量与认可引用。
+9. **`cost.costing` 的输入取自 `operations.facts`**（L-8，intent `2026-10-16-112800`）：成本核算读已过账事实（api，开放主机服务 + 发布语言），不读各来源 BC；缺费率检查前移到工时过账时。与 ADR-0016 决定 1 一致，不改其文。
+
+### 5. 协议类型归属（D-1 a，intent 061232；协议类型清单 intent `2026-10-15-233152` Q01）
+
+| 协议类型 | 所在 BC |
+|---|---|
+| 项目合同、框架协议、任务订单（收入侧） | `contract.agreement` |
+| 分包合同、采购合同、租赁合同、职业责任保险单、居间协议、劳务派遣协议（供方侧） | `procurement.subcontracting`（供方协议 AGG-55） |
+| 劳动合同 | `organization.workforce`（AGG-67） |
+| 联合体协议 | `presales.opportunity`，作投标（AGG-11）的次级对象；中标后的我方份额记在项目合同上（P-4） |
+| 协议价目 | `masterdata.catalog`（AGG-07） |
+
+### 6. 阶段类型落点（S1–S6，intent 061232；Q06，intent `2026-10-16-053630`；Q-A，intent `2026-10-16-082311`；intent `2026-10-16-090004`）
+
+1. 全局阶段类型目录属 `masterdata.catalog`（AGG-04）；服务产品（AGG-03）选阶段组合与显示名（S1）；单个项目按协议范围在 `delivery.execution` 的 WBS 上裁剪，目录与服务产品的组合不变（S1b）。
+2. 阶段门全部只预警留痕，审定走审批、不挡下一阶段（S2）；门引用对象状态，不另设拦截，对象自身的不变量照常拒绝。
+3. WBS 阶段节点只表示工作进程，与商务分界脱开（S3）；「阶段已认可」是 `delivery.acceptance` 的事实，阶段页面与报表经 `reporting` 读模型派生，不写回 WBS（聚合稿 §4.4.1）。
+4. 外部阶段码表（国标、RIBA 等）只作对照关系，不作阶段类型自带字段（S4）。
+5. 合同范围条目挂 WBS 的阶段节点或子项，不挂工作包（S5）；挂接由 `contract.agreement` 登记（合同在交付执行下游）。
+6. 检查类服务产品用目录中「检查」类下的自有阶段类型（检查策划、现场检查、发现发布、整改跟踪、报告认可），不套设计型阶段（S6，经 Q-A 与 intent 090004 细化）。
+
+### 7. 依赖骨架与方向（通则见 ADR-0050 决定 12；用户题③ M-3，intent 072440）
+
+1. **骨架**：BC 依赖边以聚合稿 §2.2 每个聚合的「引用与依赖方式」列为唯一手写来源，由 `aggregates_dep_check.py` 合成（api、事件成边，「不校验」不成边），并入 `module-dependencies.txt` 的 21 条已建边后查环、分层。基线 `52a89ca8` 的结果：141 条 BC 边，无环，15 层。分层快照（L0 最上游，取自聚合稿 §4.1 `dep-layers` 生成块）：
+
+   ```
+   L0: platform.idempotency、platform.integration、platform.scheduling、platform.web
+   L1: platform.audit
+   L2: organization.workforce、organization.attendance
+   L3: masterdata.counterparty、accounting.period、km.knowledge、platform.identity
+   L4: operations.facts、platform.approval、platform.eventing、platform.numbering
+   L5: masterdata.catalog、operations.planning、accounting.ledger、accounting.cashbank、organization.leave
+   L6: presales.opportunity、operations.policy、accounting.reporting
+   L7: delivery.execution
+   L8: delivery.acceptance
+   L9: contract.agreement、cost.timesheet
+   L10: cost.costing、receivables.wip、delivery.inspection
+   L11: receivables.collection、accounting.tax
+   L12: payables.payment
+   L13: procurement.subcontracting、expense.spend、organization.payroll
+   L14: accounting.fixedasset、delivery.closeout
+   ```
+
+   快照只供评审与阶段复核对照；层号随阶段复核变化不构成对本 ADR 的偏离，边的方向与下列规则不变即可。
+2. **本 ADR 定的方向事实**（每条都是 ADR-0050 方向规则在本划分上的落点）：
+   1. 主数据与外部引用登记在最上游：`masterdata.counterparty`、`masterdata.catalog` 只依赖 `organization.workforce`、`km.knowledge` 与平台（i210513；聚合稿 §4.2 规则 2）。
+   2. 合同在交付执行与质量与认可下游：`contract.agreement` → `delivery.execution`、`delivery.acceptance`；交付两个 BC 不读合同（项目可先于合同，合同—项目关联与范围挂接由合同登记，i210513、Q12）。
+   3. 质量与认可在交付执行下游、单向：`delivery.acceptance` → `delivery.execution`；`delivery.execution` 不读也不订阅 `delivery.acceptance`（D-3 后的无环处理，聚合稿 §4.4.1）。
+   4. 检查在合同、交付执行与质量与认可下游：`delivery.inspection` → `contract.agreement`、`delivery.execution`、`delivery.acceptance`；不符合项留在质量与认可，来源检查 ID 只作回溯线索。
+   5. 项目结项流程模块在被检查方全部下游：`delivery.closeout` → `delivery.execution`、`contract.agreement`、`cost.timesheet`、`receivables.wip`、`procurement.subcontracting`、`delivery.acceptance`、`platform.approval`（D-9，7 条边）。
+   6. 视为同意的期满判定在收入侧：`delivery.acceptance` 不依赖 `receivables.wip`（任何方式），`receivables.wip` 经 api、事件读交付侧（ADR-0049 决定 2、3）。
+   7. 应付由来源 BC 提交：`procurement.subcontracting`、`expense.spend`、`organization.payroll` → `payables.payment`，不反向（ADR-0022 决定 7）。
+   8. 成本核算只读过账事实：`cost.costing` → `operations.facts`、`accounting.period`、`organization.workforce` 加三条事件边（售前、交付执行、合同），不读各来源 BC（L-8）。
+3. **审批依赖**（F-2，intent `2026-10-16-114200`）：含审批状态的 11 个聚合（AGG-05、12、13、15、17、22、40、45、59、75、79）统一走 `platform.approval`，所在 BC `masterdata.catalog`、`presales.opportunity`、`delivery.execution`、`contract.agreement`、`cost.costing`、`receivables.wip`、`expense.spend`、`operations.planning` 各增一条 → `platform.approval` 的边（`organization.payroll` 已有），边数 133 → 141，无环。位于 `platform.approval` 上游的 `organization.workforce`、`organization.attendance` 不得依赖它（第 4 条第 5 点）。
+4. **单级批准**（F-3）：劳动合同（AGG-67）、离职申请（AGG-62 的命令）与招聘需求（AGG-65）一样在 `organization.workforce` 内单级批准，不加边。
+
+### 8. 证据规则的落点（通则见 ADR-0050 决定 12；M-3；F-1，intent 114200；P-1，intent 120544）
+
+1. 证据（AGG-38）与证据关联（AGG-110，技术聚合）都在 `delivery.acceptance`；证据本身只存内容，采集人只存人员 ID（不校验），不引用任何采集对象；证据挂哪个交付物或 WBS 阶段节点由同 BC 的证据关联记录。不新增 BC、不新增边。
+2. 证据所在 BC 位于全部引用方上游：引用证据的 `delivery.inspection`、`contract.agreement`、`receivables.wip` 都在 `delivery.acceptance` 下游；`delivery.acceptance` 不得依赖这三个 BC。
+3. 售前证据不进证据体系：委托证据（商机 AGG-10）、中标通知书（投标 AGG-11）、书面同意（独立性检查 AGG-18）作各自单据的附件（校验已上传）；下游需要作收入或开票证据时，由证据关联把同一文件登记为证据（P-1）。`presales.opportunity` 不依赖 `delivery.acceptance`。
+
+### 9. 过渡架构调整（intent `2026-10-15-210513`；METHOD 草目条目 29）
+
+1. 往来单位提前到 6a 之前：`masterdata.counterparty` 不晚于其第一个下游 BC 交付；`presales.opportunity`（现排 TA-1b）依赖它，故不晚于 TA-1b；`masterdata.catalog` 同理（报价读费率与系数）。
+2. 保证金在应收里管、6b 前先登记：保证金与押金（AGG-51）归 `receivables.collection`，该聚合先于 TA-6b 交付；具体阶段见未定事项 6。
+3. `accounting.tax`（只含 AGG-89）不晚于第一个占用方（`expense.spend`、`payables.payment`）交付；具体阶段见未定事项 6。
+4. `togaf/transitions.yaml` 的 `delivers` 改用本 ADR 的模块标识：TA-1b 的 `presales.quoting` → `presales.opportunity`（另加主数据两个 BC）；TA-6a 的合同三个 → `contract.agreement`；TA-6e 的 `organization.incentive` 去掉、加 `organization.leave`；TA-6f 的 `presales.customer`、`operations.budgeting` 去掉；`delivery.inspection`、`delivery.closeout`、`km.knowledge` 的交付阶段在更新时排定。更新时点见「迁移方案」。
+
+## 影响面
+
+- **已建模块**（以代码为准）：`cost.timesheet`、`organization.workforce`、`organization.attendance` 与 10 个平台模块不改名、不合并、不拆分，**无须另开改名 ADR 或迁移卡**。`organization.attendance` 的范围收窄只涉及规划（请假等从未在该模块实现）；其中文名「考勤与休假」与新范围不符，交 one-glossary（未定事项 8）。`delivery.execution` 重建时须从 `backend/architecture/retired-module-schemas.txt` 删去 `delivery_execution` 一行，在其首个 PR 中处理。
+- **规划 BC**：合并 4 组（售前 2→1、合同 3→1、计划与预算 2→1、激励并入薪酬），新增 4 个 BC 与 1 个流程模块，职责扩大 2 个（`delivery.acceptance`、`organization.workforce`），提前独立 1 个（`accounting.tax`）。规划 BC 均无代码，无数据迁移。
+- **SSOT 文件的更新时点**：
+  - `ddd/contexts.yaml`：各阶段开工、按 ADR-0050 复核后登记本阶段的新 BC（status planned → built）；被合并的规划条目（`presales.customer`、`presales.quoting`、`contract.baseline`、`contract.changeorder`、`contract.riskdelivery`、`operations.budgeting`、`organization.incentive`）的处理时点见未定事项 1。`delivery.acceptance` 的 `blueprint_bc` 在其首个 PR 登记。
+  - `ddd/context-map.yaml`：只在建边时随阶段 PR 登记（ADR-0041 决定 4），status built 的边与 `module-dependencies.txt` 一致（A1）。
+  - `ddd/subdomains.yaml`：`masterdata` 在其第一个 BC 开工时登记；`classification` 字段的处理属 ADR-0050。
+  - `togaf/transitions.yaml`：`delivers` 引用 `contexts.yaml` 的标识（`build_architecture.py` 校验未知 BC 即失败），故与 `contexts.yaml` 同时更新，时点见未定事项 1。
+  - `backend/architecture/module-dependencies.txt`：各阶段 PR 登记本阶段在建的边，经 CODEOWNERS 评审（ADR-0003 决定 3）。
+- **词表**：`glossary/bcs.yaml` 已按 GL2 登记 `masterdata`、两个主数据 BC、`presales.opportunity`、`contract.agreement`、`delivery.inspection`、`organization.leave`；`delivery.closeout` 在 one-glossary PR #339。`bcs.yaml` 中仍在的 `operations.budgeting`、`organization.incentive` 与若干中文名、描述与本 ADR 不一致，交 one-glossary（未定事项 8）。`terms.yaml` 中 `customer` 条目的 `until: 往来单位 BC 落地（须新 ADR 取代 ADR-0017 决定 1）` 由本 ADR 满足前提，词条去留由 one-glossary 定。
+- **被引用 ADR**：ADR-0016、0017、0021、0022、0023、0024、0031 的状态行在本 ADR 采纳时追加部分取代记录（「需同步修改的守护规则」第 5 条），正文不改。ADR-0003、ADR-0039、ADR-0041 决定 4、ADR-0047、ADR-0049 不改，本 ADR 按其执行。
+- **阶段**：TA-1b 起各阶段的开工复核以本 ADR 为对照基线；受影响最早的是 TA-1b（售前合并、主数据提前）与 TA-2（`delivery.execution` 重建）。
+
+## 迁移方案
+
+1. **无数据迁移**：本 ADR 涉及的合并、新增、拆分全部发生在未建的规划 BC 上，任何环境都没有对应的表与数据；已建模块不动。
+2. **采纳 PR**（one-architecture）：本 ADR 源文件 `adr/src/ADR-0051.md`；被取代 ADR 的状态行追加记录；聚合稿 §3.2、§4.4.2 与 METHOD 草目 §8.2 标注「已由 ADR-0051 采纳」；SSOT 文件按未定事项 1 的答复处理，答复前不改。
+3. **各阶段开工**：按 ADR-0050 复核本阶段 BC、聚合与边 → 与本 ADR 对照 → 一致的在阶段 PR 中登记 `contexts.yaml`、`context-map.yaml`、`aggregates.yaml`、`module-dependencies.txt` 与 `transitions.yaml`；不一致的先另开 ADR。
+4. **在途单据**：无（规划 BC 均未上线；老系统与 OA 的在途单据按 ADR-0021 各阶段的切换规则处理，不受本 ADR 影响）。
+
+## 回滚方案
+
+- **采纳后、任何阶段登记前**：本 ADR 改为已废弃，被取代 ADR 的状态行删去追加的部分取代记录，恢复原文效力；聚合稿与 METHOD 草目的「已采纳」标注撤回。无代码、无数据，回滚边界只到文档。
+- **某阶段已按本 ADR 登记并建模块后**：不整体回滚；对该阶段已建 BC 的调整另开 ADR 取代本 ADR 的相应条款，按 SESSION_PLAYBOOK §12 变更治理迁移代码与数据（例如合并后的 BC 若要再拆，须另开 ADR 并写迁移卡）。
+- 回滚后 ADR-0017 决定 1 重新生效，与用户已定的 D-2、D-3、D-5、D-7、D-9 及 i210513 的合并决定不一致，须报用户。
+
+## 需同步修改的守护规则
+
+1. **ArchUnit：`delivery.execution` 不依赖 `delivery.acceptance`**（任何方式，含经事件订阅）。落点：`ModuleDependencyTest` 增加禁止边断言（`module-dependencies.txt` 中不得出现该边，且其传递闭包中 `delivery.execution` 不可达 `delivery.acceptance`）。在 `delivery.execution` 重建的首个 PR（TA-2）加入。
+2. **ArchUnit：证据所在 BC 不依赖其引用方**：`delivery.acceptance` 不得依赖 `delivery.inspection`、`contract.agreement`、`receivables.wip`（同第 1 条的禁止边与传递闭包断言）。其中 **`delivery.acceptance` ↛ `receivables.wip`** 即 ADR-0049 守护第 3 条，合并实现。在 `delivery.acceptance` 首个 PR（TA-6a）加入。
+3. **审批环守护**：`organization.workforce`、`organization.attendance` 不得依赖 `platform.approval`（已由已建边 `platform.approval → organization.*` 与 `module-dependencies.txt` 查环覆盖，本 ADR 只把它写成明文；无新测试）。
+4. **流程模块**：`delivery.closeout` 不得含聚合根与自有表（`SingleAggregateGuardTest` 或 `NamingSurfaceTest` 中登记「无聚合模块」一项，避免不建 schema 被判为缺失），在其首个 PR 加入。
+5. **ADR 生成器**：采纳时在 ADR-0016、0017、0021、0022、0023、0024、0031 状态行追加「（……已被 ADR-0051 取代）」，内容与本 ADR「取代」行逐项一致，使 `build_adrs.py` 的取代一致性校验通过；与本 ADR 同一 PR。
+6. **命名与词表**：新模块包名、schema、权限码前缀按 `NAMING_STANDARD.md` 与 `bcs.yaml` 已登记标识；`check_legacy_name.py`、词表守护照常；每个 BC 恰属一个命名空间的校验属 ADR-0050（`build_architecture.py` 新校验）。
+7. **查环脚本**：`aggregates_dep_check.py` 的禁止边清单加入第 1、2 条的三组边，聚合稿修改时即报；随 ADR-0050 的「并入 `build_all.py --check`」一并落地（L-4）。
+
+## 后果
+
+- ADR 文字与用户已定的 BC 划分一致；`terms.yaml` 中待「往来单位 BC 落地」的前提由本 ADR 满足。
+- 业务 BC 由现行规划的 29 个（含 `km.knowledge`）变为 28 个加 1 个流程模块；命名空间多一个 `masterdata`；主数据、知识位于上游，触账 BC 全部经 `operations.facts`，依赖骨架无环。
+- 交付段多一个 BC 与一个流程模块，阶段认可只能经读模型显示（代价已在 D-3 题面写明）；`accounting.tax` 在 G1 多维护一个 BC（D-7 b 的代价）。
+- 各阶段开工仍要复核，本 ADR 不替代阶段推导；复核出入以新 ADR 处理，不改本 ADR 正文。
+
+## 证据
+
+- 用户决定：intent `2026-10-15-210513`、`2026-10-15-211634`、`2026-10-15-221201`、`2026-10-15-233152`（Q01、Q28）；`2026-10-16-053630`、`2026-10-16-061232`（D-1–D-9、S1–S6）、`2026-10-16-072440`（M-1–M-7、D-7、D-9、C-1–C-8）、`2026-10-16-074053`（K-1）、`2026-10-16-082311`（Q-A、Q-C）、`2026-10-16-090004`、`2026-10-16-112800`（L-5、L-8）、`2026-10-16-114200`（F-1–F-5）、`2026-10-16-120544`（P-1–P-5）；GL2 答复（`glossary/bcs.yaml`）。
+- 提议稿：`ENTERPRISE_AGGREGATES_DRAFT.md` §2.2、§3.2、§4.1（运行结果与分层块）、§4.2、§4.4（D-1–D-9）、§4.4.1、§4.4.2、§4.6、§9 续九、续十；`METHOD_V4_DRAFT.md` §8.2 条目 15–30；`STAGE_TYPES_DRAFT.md`；`STEP6A_PROCESSES.md`；`FIT_AUDIT_2026-10-16.md` 与处理记录；`RETRO_PRESALES.md`。
+- 代码：`backend/architecture/module-dependencies.txt`（21 条已建边）；`backend/architecture/retired-module-schemas.txt`；`SubdomainModuleDetection.java`。
+- 评审：待 opus 首轮对抗评审，意见与处理结果写入本节。
+
+## 备选方案（未采用）
+
+- **主数据三个 BC 或放入 `presales`**（D-2 a、c）：用户改选 b。
+- **交付一个 BC 加检查、或交付与检查合一**（D-3 a、b）：用户改选 c。
+- **请假等并入 `organization.attendance` 并改走 kernel 端口，或迁出工作日历**（D-5 a、c）：用户选 b；a 扩大 kernel 端口例外，c 要改已建边。
+- **G1 进项发票池放 `payables.payment` 或不建占用**（D-7 a、c）：用户改选 b。
+- **结项编排放 `operations.policy` 或 `platform.approval`**（D-9 b；c 成环）：用户选 a。
+- **证据上移为独立上游 BC**（符合性审查必-1 的一条路）：用户 F-1 选留在 `delivery.acceptance` 加证据关联。
+- **撤 `km.knowledge`**（METHOD 草目条目 23）：用户 M-4 选保持现状，条目取消。
+- **把全企业规划 BC 与边一次登记进 SSOT**：违反 ADR-0041 决定 4 与 L-5。
+
+## 起草中发现的未定事项（不在本 ADR 中裁定）
+
+1. **采纳时 `contexts.yaml` 与 `transitions.yaml` 是否同步改**：两文件现有 7 个已被本 ADR 合并的 planned 条目，采纳后与 ADR 矛盾；而登记新标识又与 L-5「提议稿不进 SSOT」有张力，且 `transitions.yaml` 的 `delivers` 必须引用 `contexts.yaml` 已有标识。可选：采纳时只把 7 个条目改 `retired` 并写去向、新标识到阶段开工再登记（`transitions.yaml` 相应删项）；或两文件都留到各阶段开工。交 one-coordinator 报用户。
+2. **过渡架构中下游早于上游的边**：按现 `transitions.yaml` 的阶段顺序试算（会话临时目录，不入仓库），有 11 个 BC 依赖排在更晚阶段的上游，例如 `cost.timesheet`（TA-2）→ `operations.facts`（TA-4）、`organization.leave`（TA-6e）、`delivery.acceptance`（TA-6a）；`expense.spend`（TA-3）→ `payables.payment`、`operations.planning`、`accounting.tax`；`procurement.subcontracting`（TA-6d）→ `operations.planning`（TA-6f）；`accounting.fixedasset`（TA-4）→ `procurement.subcontracting`（TA-6d）；6a–6c 的触账 BC → `operations.facts`（TA-4）。是调阶段顺序、上游提前，还是下游先不建该边、相关功能随上游上线，属排期，交 one-coordinator 与用户。
+3. **`km.knowledge` 的交付阶段**：`masterdata.catalog`、`presales.opportunity`、`delivery.execution`、`delivery.acceptance` 都经 api 引用它，`transitions.yaml` 未排；`delivery.inspection`、`delivery.closeout` 同样未排。
+4. **`operations.planning` 的深 / 薄**：聚合稿标「薄（预算账户若拦截则深）」，预算账户拦截还是预警尚未定（AGG-80），按 M-5 判据须待其定后标注。
+5. **聚合层仍待定、可能牵动 BC 边的题**：Q20（收入确认若为有状态对象，须另开 ADR 修订 ADR-0016 决定 4）；G-11 员工借款发放与自动冲抵（`STEP6A_PROCESSES.md`，可能需 `payables.payment` 与 `receivables.collection` 之间的新边）；招聘需求若要多级审批须移出 `organization.workforce`（聚合稿 §7 第 12 条）；薪酬代发是否经 `payables.payment` 待财务确认（§7 第 14 条）。本 ADR 按聚合稿现写法定 BC，上述题定后若改 BC 归属或边，按决定 1 第 1 条另开 ADR。
+6. **保证金（AGG-51）与 `accounting.tax`（AGG-89）的具体交付阶段**：本 ADR 只定「先于 TA-6b」「不晚于第一个占用方」，落在哪个过渡阶段由 one-coordinator 排定。
+7. **ADR-0041 决定 1 不含逐 BC 深 / 薄标记**：METHOD 草目条目 11 写「修订 ADR-0041 决定 1 所列标记」，派工要求亦如此，但原文无所列项；本 ADR 未将其列入取代行（见背景第 4 条）。若 ADR-0050 另有处理，两份须一致。
+8. **交 one-glossary 的名称不一致**（不自行改）：`bcs.yaml` 仍登记 `operations.budgeting`、`organization.incentive`；`organization.attendance`「考勤与休假」、`organization.payroll`「假勤薪酬」、`operations.planning`「战略与经营计划」、`km.knowledge`「知识资产与 AI 赋能」（C-7 已定知识资产不建对象）与本 ADR 的范围不符；`contract.agreement` 的描述把联合体协议、劳务派遣协议、居间协议、租赁合同、职业责任保险单列在合同 BC，与 D-1 不符（同 RETRO RD-18、RD-19）；`accounting.voucher` 在 `bcs.yaml` 中登记为 bc，本划分中无此 BC。
+
+9. **触账 BC 的 REA 复审表未做**（符合性审查 建-10，不阻断）：覆盖 `cost.timesheet`、`cost.costing`、`receivables.wip`、`receivables.collection`、`payables.payment`、`procurement.subcontracting`、`expense.spend`、`organization.payroll`、`operations.facts`、`accounting.ledger` 等；ADR-0050 未定事项第 4 条把它列为属本 ADR 或第 ⑤ 步收尾。本 ADR 未补，建议在 opus 评审前由 one-architecture 补做或由 one-coordinator 定为阶段复核项。
+
+## 与 ADR-0050 的接口
+
+- **本 ADR 引用、ADR-0050 定义**（按 ADR-0050 草稿 2026-10-16 的决定编号，定稿时核对）：七步方法与阶段复核（决定 1、3）；BC、依赖方式（api / 事件 / 不校验）、方向规则与证据规则的通则（决定 12）；子域即命名空间分组（决定 13）；深 / 薄判据与标在 BC 上（决定 14）；聚合实现做法（决定 10）；新校验并入 `build_all.py --check`（决定 23，含每个 BC 恰属一个命名空间、BC 边查环与分层）；`contexts.yaml` 深浅字段随阶段登记（ADR-0050 迁移方案第 5 条）。
+- **本 ADR 独有**：BC 与命名空间清单、逐 BC 深 / 薄标记、协议类型归属、阶段类型落点、具体方向事实与禁止边、过渡架构调整，及对 ADR-0016、0017、0021、0022、0023、0024、0031 的部分取代。
+- **两份须同时定稿**：若 ADR-0050 改动方向规则或证据规则的通则，本 ADR 决定 7 第 2 点、决定 8 与守护第 1、2 条须同步核对。
