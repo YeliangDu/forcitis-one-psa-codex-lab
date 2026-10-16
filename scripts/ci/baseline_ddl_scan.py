@@ -196,8 +196,6 @@ def load(migrations):
     for path in files:
         for stmt in strip_statements(open(path, encoding="utf-8").read()):
             m = re.match(r"CREATE TABLE\s+(?:IF NOT EXISTS\s+)?([a-z0-9_]+\.[a-z0-9_]+)\s*\(", stmt, re.I)
-            if m and re.search(r"\bPARTITION OF\b|\bAS\s+SELECT\b", stmt, re.I):
-                m = None
             if m:
                 name = m.group(1)
                 start = stmt.index("(", m.end() - 1)
@@ -233,7 +231,7 @@ def load(migrations):
                 continue
             if re.match(r"INSERT INTO", stmt, re.I):
                 inserts.append((os.path.basename(path), stmt))
-            elif re.match(r"CREATE TABLE", stmt, re.I) or re.match(r"(DROP|ALTER|RENAME|TRUNCATE|UPDATE|DELETE)\b", stmt, re.I):
+            elif re.match(r"COMMENT ON COLUMN", stmt, re.I) or re.match(r"CREATE\s+(\w+\s+)*TABLE", stmt, re.I) or re.match(r"(DROP|ALTER|RENAME|TRUNCATE|UPDATE|DELETE)\b", stmt, re.I):
                 unsupported.append(f"{os.path.basename(path)}: {stmt[:90]!r}")
     return tables, inserts, unsupported
 
@@ -325,8 +323,6 @@ def scan(tables, inserts, registered, built):
             if col["nullable"] and (re.search(r"(reason|_at|_kind)$", cname) and cname not in ("created_at", "updated_at")) and status and f"{tname}.{cname}" not in pair_at:
                 if not any(re.search(rf"\b{cname}\b", e) and any(re.search(rf"\b{s}\b", e) for s in status) for _, e in all_checks):
                     r["paired_nullable"].append({"group": f"{tname}.{cname} with status", "missing": "CHECK tying it to " + "/".join(status)})
-    seen = set()
-    r["paired_nullable"] = [i for i in r["paired_nullable"] if not (i["group"] in seen or seen.add(i["group"]))]
     for file, stmt in inserts:
         if re.search(r"\bnow\(\)", stmt, re.I):
             m = re.match(r"INSERT INTO\s+([a-z0-9_.]+)", stmt, re.I)
@@ -441,11 +437,16 @@ CREATE TABLE platform_x.w PARTITION OF platform_x.t FOR VALUES IN (1);
 COMMENT ON COLUMN platform_x.t.ghost IS 'x';
 CREATE FUNCTION f() RETURNS void AS $$ BEGIN PERFORM 1; END; $$ LANGUAGE plpgsql;
 DROP TABLE platform_x.old;
+COMMENT ON COLUMN t.c IS 'no schema';
+COMMENT ON COLUMN platform_x.t.note IS E'escaped';
+CREATE UNLOGGED TABLE platform_x.z (id uuid);
 """
     with tempfile.TemporaryDirectory() as folder:
         open(os.path.join(folder, "V1__x.sql"), "w", encoding="utf-8").write(hidden)
         _, _, lost = load(folder)
-    assert len(lost) == 7, f"each statement form the scan cannot model must be reported, not skipped: {lost}"
+    for needle in ("ck_t_note", "ADD note2", "platform_x.u", "LIKE", "PARTITION OF", "ghost", "DROP TABLE", "COMMENT ON COLUMN t.c", "E'escaped'", "UNLOGGED"):
+        assert sum(needle in line for line in lost) == 1, f"the form {needle!r} must be reported exactly once: {lost}"
+    assert len(lost) == 10, f"no statement form is reported twice or skipped: {lost}"
     assert strip_statements("SELECT $$a;b$$; SELECT 2") == ["SELECT $$a;b$$", "SELECT 2"], "dollar-quoted bodies are not split"
     transitions = built_modules(TRANSITIONS)
     assert {"platform.approval", "organization.workforce", "cost.timesheet"} <= transitions, f"delivers lists that continue over lines are read in full: {sorted(transitions)}"
