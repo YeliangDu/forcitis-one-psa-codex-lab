@@ -76,7 +76,7 @@
 
 ## 4. 收尾协议（结束前，或上下文接近上限时）
 
-0. **只改片段，不直接编辑生成产物**（用户 2026-10-14：「一条记录一个文件 + ADR 拆开」）：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、`MODERNIZATION_BRIEF.md` 与提议术语清单 `backend/glossary/proposed/README.md`（源为同目录 `*.yaml`）都由 `python3 docs/modernization/build_all.py` 生成；改完片段后运行它。ADR、`adr/README.md`、brief、提议术语清单连同产物提交，CI 的「generated docs match fragments」一步会拦下不一致；`INTENT.md`、`SESSION_LOG.md`、`STATUS.md` 不入仓（用户 2026-10-14：「改：记录类产物不入仓，main 自动生成到只读分支 (Recommended)」），只提交片段，main 更新后由 `.github/workflows/generated-docs.yml` 发布到 generated-docs 分支。
+0. **只改片段，不直接编辑生成产物**（用户 2026-10-14：「一条记录一个文件 + ADR 拆开」）：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`phase1a/infra/LEGACY_READ_REGISTER.md`（源为 `phase1a/infra/legacy-read/` 片段，用 `new_legacy_read.py` 新增；不入仓）、`adr/ADR-*.md`、`adr/README.md`、`MODERNIZATION_BRIEF.md` 与提议术语清单 `backend/glossary/proposed/README.md`（源为同目录 `*.yaml`）都由 `python3 docs/modernization/build_all.py` 生成；改完片段后运行它。ADR、`adr/README.md`、brief、提议术语清单连同产物提交，CI 的「generated docs match fragments」一步会拦下不一致；`INTENT.md`、`SESSION_LOG.md`、`STATUS.md` 不入仓（用户 2026-10-14：「改：记录类产物不入仓，main 自动生成到只读分支 (Recommended)」），只提交片段，main 更新后由 `.github/workflows/generated-docs.yml` 发布到 generated-docs 分支。
 1. 把本会话的决定（用户原话）用 `python3 docs/modernization/new_intent.py --session=<会话名> "<原话>" "<落点>"` 新增为 `intent/` 片段，并写进相应 ADR 的源文件 `adr/src/`。
 2. 勾选 brief 中已满足的条件；不满足的不勾，不改写条件。
 3. 用 `python3 docs/modernization/new_log.py <会话名> "<工作单元>"` 新增一条会话日志片段（模板见 §8），填好各项，写明下一条要运行的命令。
@@ -128,7 +128,7 @@
 - **生产取证不逐次请示**（用户 2026-10-15：「新系统可以读任何旧系统数据」「两者都是」「修改权限」，取证改为取消逐次请示、保留两条底线，经 one-coordinator 转达；ADR-0037 第 7 项与 Q6「按建议批准 (Recommended)」；起因：ADR-0029 取证时关联了只读视图以外的底表）：
   - 取证只用取证专用只读账号（ADR-0037 第 5 项第 4 条），取证前账号校验通过；不用运行时账号、高权限账号或老系统应用的数据源；
   - 明细与个人信息不进会话记录与仓库：只出计数或聚合，或落 ECS 数据盘专用目录（0700，属主为取证执行用户，最长保留 7 天）；不带回本机；凭据值任何情况下不输出，取证执行器对凭据列只允许 COUNT；
-  - 每次取证在 `phase1a/infra/LEGACY_READ_REGISTER.md` 登记一行：账号、库与表、目的、输出形式与去向、落盘目录与删除时点（删除后补删除时刻）；不需审批；
+  - 每次取证用 `phase1a/infra/new_legacy_read.py` 在 `phase1a/infra/legacy-read/` 登记一个片段（总表 `LEGACY_READ_REGISTER.md` 由 `build_all.py` 生成，不直接编辑）：账号、库与表、目的、输出形式与去向、落盘目录与删除时点（删除后补删除时刻）；不需审批；
   - 读取口径按 ADR-0037 第 8 项：不用 NOLOCK / READ UNCOMMITTED，设语句与锁等待超时，大表按主键分批、低峰执行；
   - 结果按「把大输出放进文件」处理，会话里只留结论。
 - **迁入读取授权**（用户 2026-10-15：对 DDL 审计、原则核对 A / B 其余待决项答「全部按推荐 (Recommended)」；按 ADR-0037 Q4 修订，用户对 ADR-0037 答「按建议批准 (Recommended)」，intent `2026-10-15-081242-one-coordinator-ADR-0037-#136-按建.md`）：历史数据迁入要读老系统与 A8 的明细，超出上一条「只出计数或聚合」：
