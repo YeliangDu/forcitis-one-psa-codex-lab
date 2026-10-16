@@ -1,0 +1,112 @@
+{
+ "GL2~B2-X01": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl2-bc",
+  "label": "新标识：contract.agreement（协议与变更索赔）、presales.opportunity（商机与投标报价）",
+  "no": "B2-X01",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T04:50:54.109Z"
+ },
+ "GL2~B2-X02": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl2-bc",
+  "label": "customer 弃用（replaced_by: counterparty），「客户」改登记为往来单位的角色；客户集团、客户分级迁往来单位 BC，线索转化率迁售前",
+  "no": "B2-X02",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T04:50:54.109Z"
+ },
+ "GL2~B2-X03": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl2-agg",
+  "label": "聚合根沿用「经营事实」；「过账」只作动作（命令）用语",
+  "no": "B2-X03",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T04:51:48.617Z"
+ },
+ "GL2~B2-X04": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl2-agg",
+  "label": "登记「应收款项」(Receivable)、「应付款项」(Payable) 两个聚合，ar_item 弃用并入应收款项（开票产生是它的一种来源）",
+  "no": "B2-X04",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T04:51:48.617Z"
+ },
+ "GL2~B2-X05": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl2-agg",
+  "label": "收方向沿用「回款单」，付方向新登记「付款单」(CashPayment)",
+  "no": "B2-X05",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T04:51:48.617Z"
+ },
+ "GL2~B2-X06": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl2-agg",
+  "label": "revenue_recognition 保留标识与英文名，类别改 business_rule，中文名改「收入确认」，定义按 ADR-0047 改写，「收入确认单」列为方言别名",
+  "no": "B2-X06",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T04:51:48.617Z"
+ },
+ "GL2~B2-X07": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl2-agg",
+  "label": "送达记录 DeliveryRecord；事件「交付物已送达」DeliverableDelivered",
+  "no": "B2-X07",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T04:51:48.617Z"
+ },
+ "GL2~B2-X08": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl2-agg",
+  "label": "两词并存、分工写清：认可 = 客户方接受成果这一事实，由八类证据证明（含邮件、纪要、视为同意）；验收 = 验收单上的裁定行为（通过、退回、有条件通过）",
+  "no": "B2-X08",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T04:51:48.617Z"
+ },
+ "GL2~B2-X09": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl2-stage",
+  "label": "内部一律 Phase（阶段类型 PhaseType）；RIBA 等外部码表照其原文 Stage，只在对照码表里出现",
+  "no": "B2-X09",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T04:52:57.067Z"
+ },
+ "GL2~B2-X10": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl2-stage",
+  "label": "正式名「初步设计」（PreliminaryDesign），「初设」列为缩写别名；「扩初设计」不并入，作景观等产品线在深化阶段内的子阶段名，不进阶段类型目录",
+  "no": "B2-X10",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T04:52:57.067Z"
+ },
+ "GL2~B2-X11": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "gl2-stage",
+  "label": "阶段 7 正式名「收尾」(Closing)，「结算」作其别名；协议事件改称「协议竣工结算已确认」(AgreementFinalAccountConfirmed)，复用既有词条竣工结算；造价线四个子阶段按国标称投资估算、设计概算、施工图预算、竣工结算审核，不单用「估算」「结算」；月度薪酬结算建议改称月度薪酬核算",
+  "no": "B2-X11",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T04:52:57.067Z"
+ }
+}
