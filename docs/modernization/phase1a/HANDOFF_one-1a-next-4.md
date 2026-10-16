@@ -21,7 +21,7 @@
 | R-1b P4 审批 ID、Flowable id 生成器、去重键拆列、部门负责人审批改名 | #276 | 已合并 |
 | R-1b P5 收口（信封与审计对象 UUID、删 source、四事件改名、守护、ID_CARRIERS） | #310 | 已合并 |
 | 数据修复 PR-5 identity（ID-03、05–09、11 name、12） | #328 | 已入队 |
-| 数据修复 PR-2 timesheet-audit TB-01、TB-02、TB-03 | 分支 claude/one-1a-next-4-data-pr2 | opus 首轮需改（1 Blocker、2 High），修复中；复审全文 `~/.modernize/psa/handoff/one-1a-next-4/pr2-review.md`；修后 opus 终审再开 PR |
+| 数据修复 PR-2 timesheet-audit TB-01、TB-02、TB-03 | #337 | 已开（opus 首轮 + 终审已过），待入队 |
 
 ## 3. 在途与下一步（数据修复批，生产前闸门，不挡 dev；one-coordinator 裁定 D1–D5）
 
