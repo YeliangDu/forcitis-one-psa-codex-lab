@@ -110,3 +110,17 @@ Scope: Phase 2 `cost.timesheet` (submission checks, reminders), with leave hours
 **Tests:** to be written with the Phase 2 timesheet card.
 **Dependency:** an event or poll for leave status changes from the absence system; none exists yet.
 **Confidence:** Medium — how the leave status change reaches the timesheet is fixed with the absence system.
+
+## Data and implementation preconditions (one-data pre-review, 2026-10-16)
+
+These are not user decisions; they are what must be settled before RULE-398..405 can be implemented. Items marked **open** are for one-architecture / the user; the suggested defaults are mine and are not decided.
+
+1. **Leave object (blocking, open).** The information map has no leave object (OBJ-28 only mentions it). Whether leave is managed in this system or read from an external attendance source is not decided; one-architecture adds the object after that is asked. RULE-398, 403, 404, 405 depend on leave hours and status (approved, pending, rejected) from it.
+2. **Source of the standard day (blocking, open).** The work calendar says only whether a day is a workday, not how many hours. Candidate: a configuration-type version table 「标准工时」 in `organization.attendance` (append-only, effective date, confirmer, decision reference, no retroactive change, optional legal-entity form like the calendar year); a lookup that finds nothing fails with an alert and never falls back to a default 7.5. This turns FD-10 (per-entity standard day) into that table.
+3. **Calculation convention (open).** Unit of leave hours and its smallest unit, and how leave spanning several days is split per day, must be fixed. Suggested: minutes as the unit, split by the calendar day of each workday's own working hours. Pending leave in RULE-398 is a calculation input, never stored.
+4. **Derived values are not stored.** The minimum hours of a day is derived, not a column of the timesheet. If the basis of a submission decision must be kept, either record it as a rebuildable projection with a reconciliation, or write it into the audit detail; one of the two is chosen in the implementation card (suggested: audit detail).
+5. **Versioning.** RULE-397..405 are fixed rules. The values they read (standard day, calendar) are versioned configuration; the timesheet records the version ids of the standard-day and calendar versions it was checked against, per the configuration rules (SESSION_PLAYBOOK §12.2). Not retroactive: a later version never re-judges earlier submissions.
+6. **Missing data fails loudly.** An unmaintained calendar year, an unknown standard day or unreadable leave data makes the check fail with an alert; nothing is skipped or defaulted. A reminder job raises an alert to a named recipient and de-duplicates (recipient and timing are open, see RULE-402).
+7. **Module dependency.** `cost.timesheet` has no dependency on `organization.attendance` yet (`module-dependencies.txt`); reading the calendar, standard day and leave needs one, through the cross-module read path. No cycle: approval already depends on attendance and timesheet depends on approval.
+8. **Read models.** 「谁没填」 and filing timeliness are read models built from events plus the calendar, not totals kept on the timesheet table.
+9. **One timesheet per person per day** (rule 1, one-1a-par) still holds on a full-leave day: filing voluntarily takes the day's one slot (RULE-400).
