@@ -51,13 +51,30 @@ def table_cell(text, where):
     return text
 
 
+INTENT_TAGS = {"规则": r"RULE-\d+(?:、RULE-\d+)*", "影响的 ADR": r"ADR-\d{4}(?:、ADR-\d{4})*", "单子": r"\w+"}
+
+
+def parse_intent(path, text):
+    """(原话, 落点, {可选标注: 值})；可选小节「规则」「影响的 ADR」「单子」按此顺序附在「落点」之后，供规则索引与 ADR 治理反查。"""
+    m = re.fullmatch(r"## 原话\n\n(.*?)\n\n## 落点\n\n(.*?)\n((?:\n## [^\n]+\n\n[^\n]+\n)*)", text, re.S)
+    if not m:
+        raise ValueError(f"{path}：格式须为「## 原话」空行 原话 空行「## 落点」空行 落点，之后可选「## 规则」「## 影响的 ADR」「## 单子」各一行")
+    tags = {}
+    for name, value in re.findall(r"\n## ([^\n]+)\n\n([^\n]+)\n", m.group(3)):
+        if name not in INTENT_TAGS or name in tags or not re.fullmatch(INTENT_TAGS[name], value):
+            raise ValueError(f"{path}：可选小节「{name}」不合规（取自 {'、'.join(INTENT_TAGS)}，不重复，值形如 {INTENT_TAGS.get(name, '—')}）：{value[:30]}")
+        tags[name] = value
+    if list(tags) != [k for k in INTENT_TAGS if k in tags]:
+        raise ValueError(f"{path}：可选小节须按 {'、'.join(INTENT_TAGS)} 的顺序")
+    return m.group(1), m.group(2), tags
+
+
 def build_intent():
     rows = []
     for p in dated_fragments("intent"):
-        m = re.fullmatch(r"## 原话\n\n(.*)\n\n## 落点\n\n(.*)\n", read(p), re.S)
-        if not m:
-            raise ValueError(f"{p}：格式须为「## 原话」空行 原话 空行「## 落点」空行 落点")
-        rows.append(f"| {table_cell(m.group(1), p)} | {table_cell(m.group(2), p)} |\n")
+        quote, landing, tags = parse_intent(p, read(p))
+        extra = "".join(f"；{k}：{v}" for k, v in tags.items())
+        rows.append(f"| {table_cell(quote, p)} | {table_cell(landing + extra, p)} |\n")
     return read(os.path.join(BASE, "intent/_header.md")) + "".join(rows)
 
 

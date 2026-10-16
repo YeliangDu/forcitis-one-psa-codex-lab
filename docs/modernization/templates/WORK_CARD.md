@@ -14,7 +14,7 @@
 
 ## 2. 依据
 - 规格条款：<contract.md 的 D 编号 / 规格文件:节>
-- 规则卡：<RULE-nnn，及 RULE_REVIEWS.json 中的结论>
+- 规则卡：<RULE-nnn，及 RULE_REVIEWS.json 中的结论>（派工前运行 `python3 docs/modernization/rules/build_rule_index.py --dispatch <本卡.md>`，列出的“老行为未评审”“新规则未评审”先评审再派）
 - ADR：<ADR-nnnn 第 n 条>
 - 用户原话：<「……」（intent 片段文件名）>
 - 复审意见：<复审报告:编号，附复现步骤>
