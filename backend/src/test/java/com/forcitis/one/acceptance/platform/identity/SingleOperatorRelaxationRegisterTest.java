@@ -172,4 +172,13 @@ class SingleOperatorRelaxationRegisterTest {
             assertThat(registered.get(file)).as("%s is registered", file).isNotNull().contains("21");
         }
     }
+
+    @Test
+    @DisplayName("SINGLE-OP P2-10 模式关闭时既有运维命令用例原样重跑：三个既有测试类仍在原处（被删除即失败）；它们本身随全量后端测试执行，不改断言")
+    void p210_theExistingOperationsTestsStayWhereTheyAre() {
+        for (String file : List.of("platform/identity/OperationsCommandsIntegrationTest.java", "platform/identity/application/OperationAttestationTest.java",
+                "acceptance/platform/identity/OperationsCommandEmployeeIdIT.java")) {
+            assertThat(Files.exists(Path.of("src/test/java/com/forcitis/one").resolve(file))).as(file).isTrue();
+        }
+    }
 }
