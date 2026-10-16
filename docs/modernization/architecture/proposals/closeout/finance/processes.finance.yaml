@@ -6945,7 +6945,7 @@ processes:
     audit: true
     outcome: 付款已核销并提交过账
   notes: 由原 PRC-75 步骤 7、8 拆出（⑥a 评审 M6）。
-  stages_note: 事件策略按触发状态「应付已核销」归段（#421 判据②），与 PRC-131 同段
+  stages_note: VS-05.5、VS-08.3、VS-13.5：事件策略按触发状态归段（#421 判据②）——触发「应付已核销」是 AGG-52 往来款项走向「已结清 / 部分结」的一步，供方应付对应 VS-05.5 付款、报销应付对应 VS-08.3 报销付款、薪酬应付对应 VS-13.5 的退出条件；与 PRC-131 同段
 - id: PRC-133
   name: 应付结清后报销置已付
   type: event_policy
@@ -6999,6 +6999,7 @@ processes:
     audit: true
     outcome: 费用报销已付
   notes: 触发由「付款已成功」改为「应付已结清」（⑥a 复核）：AGG-52「应付已结清」订阅方加 B-12；B-12 → B-10 边已有且含事件方式，不新增边。
+  stages_note: VS-08.3：事件策略按触发状态归段（#421 判据②）——触发「应付已结清」限于报销类型的应付（AGG-52），正是 VS-08.3 报销付款退出条件 OBJ-85「已结清」（agg AGG-52，应付「报销」）；本策略再把 OBJ-88 置「已付」，补齐 VS-08.3 的另一退出条件
 - id: PRC-135
   name: 处理会计分录待处理队列与推送重投
   type: single_aggregate
@@ -7126,6 +7127,7 @@ processes:
     to: 死信
     guard: 重投仍被拒收
   states_note: '分录本身只追加、不改状态；状态在待处理队列项与外部法定账推送状态上（INV-95a，S-31 SQ-23）；「已确认记账」由 PRC-104 登记，不在本流程（S-43 #44）'
+  stages_note: VS-10.1：待处理队列为空、推送死信为空是 VS-10.1 期间关账的前置检查（ADR-0022 决定 10、INV-100）；本流程清理队列与死信，是关账得以达成的必要环节。期间内记账与结转段 VS-10.0 待 SD-11 裁定，定后改归 VS-10.0
 - id: PRC-158
   name: 处置过账拒收记录
   type: single_aggregate
@@ -7232,6 +7234,7 @@ processes:
   - PRC-158-S04
   - PRC-158-S05
   - PRC-158-S06
+  stages_note: VS-10.1：「拒收记录已处置」是 VS-10.1 期间关账的前置检查项（S-29 SQ-54，INV-100）；期间内记账段 VS-10.0 待 SD-11 裁定，定后改归 VS-10.0
 - id: PRC-159
   name: 申报已提交后确认税费应付
   type: event_policy
@@ -7326,6 +7329,7 @@ processes:
   - PRC-159-S07
   - PRC-159-S08
   - PRC-159-S09
+  stages_note: VS-06.1：事件策略按触发状态归段（#421 判据②）——触发「申报已提交」即 OBJ-92 法定申报（agg AGG-90）「已申报」，是 VS-06.1 申报缴款退出条件「已申报 → 已缴款」的前半；本策略确认税费应付，后接 PRC-75 缴款完成后半
 - id: PRC-163
   name: 应付结清后登记利润分配支付
   type: event_policy
@@ -8087,7 +8091,7 @@ processes:
       goto: end
       rule: INV-135
       outcome: 已豁免关闭
-  stages_note: 勾稽差异案须在关账前处置（月结前置检查），属「期间关账」
+  stages_note: VS-10.1：勾稽差异案须在关账前处置，是 VS-10.1 期间关账的前置检查（INV-100 扩展项，S-29 SQ-54；ADR-0016 决定 1 勾稽等式）；期间内记账段 VS-10.0 待 SD-11 裁定，定后再判是否改归 VS-10.0
 - id: PRC-170
   name: 申请费用事前额度
   type: business
@@ -9326,7 +9330,7 @@ processes:
   - PRC-175-S18
   - PRC-175-S19
   - PRC-175-S20
-  stages_note: 直接付款申请（豁免清单内）以付款结束，属「付款」
+  stages_note: VS-05.5：豁免清单内的直接付款不经 VS-05.4 应付确认（无发票或来源单据，RULE-407 豁免，S-34 ④）；本流程登记应付后即进入 PRC-75 付款，结局随 PRC-75 达成 VS-05.5 付款的退出条件「已成功 / 已核销」与「已结清」（#421 判据①经同段付款完成）
 - id: PRC-176
   name: 预付款核销
   type: single_aggregate
