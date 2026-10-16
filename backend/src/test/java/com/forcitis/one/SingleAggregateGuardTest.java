@@ -62,6 +62,9 @@ class SingleAggregateGuardTest {
             for (Object aggregate : aggregates) {
                 repository.save(aggregate);
             }
+            assertThat(TransactionSynchronizationManager.getSynchronizations())
+                    .as("the aspect must have intercepted save and registered its synchronization; none means it did not match, and the violations would be empty by silence")
+                    .hasSize(1);
             events.accept(guard);
             TransactionSynchronizationManager.getSynchronizations().forEach(synchronization -> synchronization.afterCompletion(
                     TransactionSynchronization.STATUS_COMMITTED));
