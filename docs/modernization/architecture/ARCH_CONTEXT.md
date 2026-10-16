@@ -20,12 +20,9 @@
 
 | 项 | 值 |
 |---|---|
-| 在途 PR | 本 PR（ADR-0046、0047 草稿与批准页、用语草案、ACL_BOUNDARY D-8）；#258、#264 已合入 |
-| 等用户 | ADR-0046、0047 批准页 https://claude.ai/artifact/CtoezQ9CY25i9xmPWGkp1F （5 题，db `answers-submit`）；Q06 阶段类型（用户另行提供）；Q13 项目团队名册须调研 |
-| 下一步 | 信息图已答复（intent 233152、234418，草案冲突 C-41–C-52）：回溯统一售前段口径（PRESALES_*，C-38）→ METHOD 第 4–5 步（不变量 → 聚合 → BC）；ADR-0046 批准后起草「第 13 期启用与法定账切换衔接」后续 ADR（G1 第一个 ledger PR 前）；ADR-0047 批准后 F-1–F-8 经 one-rules 交财务、法务、审计师 |
-| 已转交 | 财务两事（企业规模、A7 的 N）→ one-rules；新词与 C-41 → one-glossary（确认单等 #263）；F-1 验收收紧 → one-1a-par；R-1b P4 D-4 判分阶段落地、P5 主键例外判偏离（照原文改），落地记录以卡为准 |
-| 方法第 4 稿 | 依 intent 221201（按对象命名的能力图、法律事实例外、全部段到 BC、子域 = 命名空间）、222319 / 222350（BIZBOK 五项 + G178/G190/G211，冲突以 BIZBOK 为准）；草案 `METHOD_V3_DRAFT.md`、`FRAMEWORKS_V3_ADDITIONS_DRAFT.md` 与 opus 评审意见；随最终一次性 ADR 落地（intent 211634） |
-| 其他待办 | #222 合并后 C1 卡补到期端口 ExternalSubjectEmployees 与 SSOT `expiring_ports`；「区域」数据范围维度随信息图组织单元类型题定后排期；身份生命周期 C1 确认页未出 |
-| 新规矩 | 选型先做适配研究；交用户前按性质对抗检查；子代理 haiku 取数、sonnet 调研起草复核做页、opus 只做 ADR 起草与首轮评审、安全判定、结构设计；行业通行做法为主、生产数据只作参考；取证子代理只用 one_evidence_ro 与既有通道 |
-| 已定（早前） | ADR-0039、ADR-0040（被 #222 ADR-0041 取代）；mermaid-cli 本机锁版本安装；A1 只做边集合相等 |
-| 交接记录 | `proposals/HANDOFF_2026-10-15.md`（随 #258 入库） |
+| 在途 PR | #290（阶段与 BC 答复）→ #299（完整性检查、METHOD 第 4 稿）→ #301（完整性答复、知识条目）排队；本分支 `claude/one-architecture-method-steps`（K-1/P-1 落文、第①②步提议稿）未开 PR |
+| 已定（2026-10-16） | ADR-0046（12 月与第 13 期同时关账）、ADR-0047（视为同意）已采纳；阶段类型 S1–S6；BC 划分 D-1–D-9、D-8 期满判定在 receivables.wip；完整性 C-1–C-8、INV-62、Q29 宽口径（证据升一级）；D-7 提前拆 accounting.tax；K-1 知识条目（OBJ-110，km.knowledge）；P-1 回签前开票规则；METHOD M-1–M-7（7 步、两份一次性 ADR） |
+| 草稿位置 | proposals/：ENTERPRISE_INFO_MAP_DRAFT（一级 21）、ENTERPRISE_AGGREGATES_DRAFT（聚合 103、BC 29、查环脚本 aggregates_dep_check.py）、STAGE_TYPES_DRAFT、METHOD_V4_DRAFT、FRAMEWORKS_V4_DRAFT、OBJECT_COMPLETENESS_REPORT、STEP1_VALUE_STREAMS + value-streams.v2.yaml、STEP2_CAPABILITIES + capabilities.v2.yaml |
+| 当前步 | METHOD 第①②步按 opus 评审改稿中（题收为 Q-A 检查服务阶段、Q-B 门指不到对象、Q-C 股东价值流、Q-D 不做范围）→ 第③步阶段写实与能力—阶段对账 → 回到②④⑤ → ⑥a 全企业流程清单 → 回溯售前段 → 两份一次性 ADR |
+| 规矩 | 要用户定的：确认页（不预选，ADR-0041 决定 6）＋待决定收件箱 https://claude.ai/artifact/RVU6nNNSsygF5sVRWLhQ15 （集合 inbox）；确认页用 contract 0.2.80；纯文档作者自检，结构判定仍 opus；直连 one-glossary、one-data（数据落点与第 11 步）；取证登记 #298 合入后用 phase1a/infra/new_legacy_read.py 片段，在途分支合 main 时丢老表改动重登 |
+| 待办 | 新用语交 one-glossary（OBJ-105–110、知识条目等）；工时单一人一日一单与 CANCELLED（已报调度）；C1 到期端口已登记 |
