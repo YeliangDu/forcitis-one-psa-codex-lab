@@ -354,6 +354,12 @@ bcs:
   kind: bc
   business_owner: 用户兼任
   description: "检查计划、检查、检查表模板、外部检测；与交付执行、质量与认可并列，位于二者下游（D-3）"
+- id: organization.administration
+  zh: 行政事务
+  subdomain: organization
+  kind: bc
+  business_owner: 用户兼任
+  description: "用印申请与登记、IT 需求工单、IT 资产领用调拨报修报废盘点与采购申请、员工活动类申请的业务记录（B-31，用户 2026-10-16 定新增，intent 2026-10-16-152807）；审批走 platform.approval；合同借阅与归档归 contract.agreement，资产卡片与折旧归 accounting.fixedasset"
 - id: organization.leave
   zh: 请假与加班
   subdomain: organization
