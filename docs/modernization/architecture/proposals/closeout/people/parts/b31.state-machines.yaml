@@ -20,12 +20,12 @@ machines:
   - from: 草稿
     to: 已批准
     command: 提交用印申请
-    guard: [R-B31-1, R-B31-12：来源审批实例已通过且份数不超审批载荷份数，不设人审]
+    guard: [R-B31-1, R-B31-12：来源审批实例已通过, INV-138：同一来源实例累计份数不超审批载荷份数，不设人审]
     kind: forward
   - from: 审批中
     to: 已批准
     command: 批准用印申请
-    guard: [AR-11, AR-12, pending B31-1：授权委托书与无来源单据的公章、法定代表人名章加总经理一级]
+    guard: [AR-11, AR-12, AR-16：授权委托书与无来源单据的公章、法定代表人名章加总经理一级（待用户在 PB31-01 确认，pending B31-1）]
     kind: forward
   - from: 审批中
     to: 已驳回

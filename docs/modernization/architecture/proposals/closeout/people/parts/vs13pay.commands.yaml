@@ -121,7 +121,7 @@ commands:
   preconditions:
   - {ref: R-VS13-h, text: 该法人当月在职人员的月度考勤全部已锁定（AGG-97）；有未锁定的结局为「待锁定」，不建结算也不改状态}
   - {ref: 数据齐备, text: 每人有生效薪酬档案版本（AGG-93）、应参保人员有参保基数（AGG-74）、适用的薪酬规则版本取得到（同 INV-116，取不到失败并告警）；缺则结局为「已中止」，不静默跳过}
-  - {ref: 补休转计薪, text: 读取 B-27 当月转计薪的补休额度行（到期未休、离职结算），转计薪时长 × 加班工资基数折算的时薪 × 200% 计入加班费（劳动法第四十四条、工资支付暂行规定第十三条）；已读过的额度行不重复计；加班工资基数取不到，结局为「已中止」，不静默按零}
+  - {ref: 补休转计薪, text: 读取本 BC 当月 PRC-178 登记的补休转加班工资（到期未休、离职），转计薪时长 × 加班工资基数折算的时薪 × 200% 计入加班费（劳动法第四十四条、工资支付暂行规定第十三条）；已计入结算的登记不重复计；加班工资基数取不到，结局为「已中止」，不静默按零}
   - {ref: INV-70, text: 代扣只限法定项目；以法定货币支付}
   - {ref: 状态, text: 无结算、或结算为已计算（提交审核前发现输入有误重算）、或已退回（重新计算）}
   - {ref: R-VS13-h, text: 同时生成异常清单（环比波动超阈值、实发为负、入离职折算、含补发补扣行），只提示不拦截}
@@ -528,6 +528,27 @@ commands:
   emits: 薪酬档案已变更
   used_by: [PRC-123 第 1 步]
   orphan: false
+- name: 登记补休转加班工资
+  aggregate: AGG-93
+  entity: payroll_comp_leave_conversions
+  kind: automatic
+  name_status: 〔缺〕S-41 裁定新增，待回补聚合稿，待 one-glossary 登记（register_comp_leave_overtime_pay）
+  source: S-41（one-architecture 裁定）；用户页 P13-05；劳动法第四十四条、工资支付暂行规定第十三条
+  params: [人员, 补休额度行ID, 转计发时长（分钟）, 来源（到期未休 / 离职）, 所属薪酬月份]
+  preconditions:
+  - {ref: 来源, text: 到期入口由 B-27 发的补休已到期未休触发，离职入口由 B-13 的 Separated 触发；经既有边 B-15 → B-27（api）读取额度行未休余额，读取失败则失败并告警薪酬岗，不静默}
+  - {ref: 加班工资基数, text: 取薪酬档案生效版本的加班工资基数；取不到则失败并告警薪酬岗，不静默按零（CLAUDE.md 第 6 条）}
+  - {ref: 计发, text: 本命令只登记时长与来源，不算钱；计入加班工资的金额（时长 × 加班工资基数折算的时薪 × 200%）由 PRC-124 计算时读取登记生成}
+  - {ref: 离职, text: 离职入口读取该员工全部未休余额，余额为零无需登记}
+  authority:
+    ref: raci:AGG-93/登记补休转加班工资
+    A: {resolve: type, role: SH-E6, function: 薪酬岗}
+    R: [system]
+  idempotency_key: 补休额度行ID（已登记无操作）
+  state_change: none（只追加登记行，不改状态）
+  emits: （内部）
+  used_by: [PRC-178 第 1 步、第 2 步]
+  orphan: false
 - name: 终止薪酬档案
   aggregate: AGG-93
   entity: payroll_profile_versions
@@ -797,6 +818,13 @@ event_policies:
   used_by: [PRC-130 触发器]
   rules: []
   note: ''
+- name: 补休到期未休或离职后计入加班工资
+  trigger_event: 补休已到期未休（B-27 发布）/ Separated（B-13 发布）
+  effect: 读取 B-27 补休额度行的未休余额，调用登记补休转加班工资，由 PRC-124 计算时按加班工资基数 200% 计入加班费
+  uses_command: 登记补休转加班工资
+  used_by: [PRC-178 触发器]
+  rules: []
+  note: 沿既有边 B-15 → B-27（api）、B-15 → B-13（事件）；与 PRC-130 同订阅 Separated；S-41
 - name: 三口径比对预警
   trigger_event: 劳动合同已签订（B-13）/ 法人归属已变更（B-13，〔缺〕）/ 薪酬档案已变更（同 BC）
   effect: 读取劳动合同用人单位与数据范围法人，与薪酬档案的扣缴义务人法人比对，任两个不一致即预警（平台通知，不改任何聚合状态）

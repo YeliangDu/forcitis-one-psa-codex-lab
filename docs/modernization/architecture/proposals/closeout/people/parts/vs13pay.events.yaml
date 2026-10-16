@@ -130,8 +130,14 @@ consumed:
   used_by: [PRC-84 触发器]
 - name: Separated
   from: B-13
-  handled_by: [PRC-130「离职后参保减员」→ 终止薪酬档案、参保减员]
-  used_by: [PRC-130 触发器]
+  handled_by: [PRC-130「离职后参保减员」→ 终止薪酬档案、参保减员, PRC-178「补休到期未休或离职时转计发加班工资」→ 登记补休转加班工资]
+  used_by: [PRC-130 触发器, PRC-178 第 2 步入口]
+- name: 补休已到期未休
+  from: B-27
+  name_status: 〔缺〕S-41 提议名，待 one-glossary 登记
+  handled_by: [事件策略「补休到期未休或离职后计入加班工资」→ 登记补休转加班工资]
+  used_by: [PRC-178 触发器]
+  note: 载荷只含员工ID、补休额度行ID、到期日，不含金额；B-15 经 api 读取余额（边 B-15 → B-27 已有）
 - name: 劳动合同已签订
   from: B-13
   handled_by: [事件策略「三口径比对预警」（无聚合命令）]

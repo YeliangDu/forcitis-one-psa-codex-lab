@@ -279,15 +279,16 @@ commands:
   preconditions:
   - {ref: 到期, text: 到期日届满；未休余额不作废，转为计薪时长并关闭额度行（余额为零时只关闭）}
   - {ref: 占用, text: 额度行无占用中的补休请假，否则结局为转计薪待处理，告警人力，不改状态}
-  - {ref: 计发, text: 本命令不算钱；金额由 B-15 在 PRC-124 读取转计薪时长，按加班工资基数折算 200% 计发}
+  - {ref: 计发, text: 本命令不算钱；转为已转计薪后发补休已到期未休，由 B-15 在 PRC-178 读取余额并计入加班工资（200% 以加班工资基数，S-41）}
   authority:
     ref: raci:AGG-71/补休到期转计薪
     A: {resolve: type, role: SH-E6, function: 人力（考勤）}
     R: [system]
   idempotency_key: 补休额度行ID（已转计薪或已休完无操作）
   state_change: 有效 → 已转计薪（余额大于零）；有效 → 已休完（余额为零）
-  emits: （内部）
-  used_by: [PRC-117 第 6 步, 事件策略「补休额度到期转计薪」]
+  emits: 补休已到期未休（余额大于零时）
+  used_by: [事件策略「补休额度到期转计薪」（计发见 PRC-178 入口 1）]
+  unused_ok: 由事件策略「补休额度到期转计薪」（定时）调用，不在流程步骤；计发归 B-15 的 PRC-178（S-41）
   orphan: false
 - name: 离职结算补休余额
   aggregate: AGG-71
@@ -299,7 +300,7 @@ commands:
   preconditions:
   - {ref: 触发, text: 离职生效后（Separated）；该员工全部有效额度行的未休余额转为计薪时长并关闭（余额为零的只关闭）}
   - {ref: 占用, text: 额度行仍有无法释放的占用中请假的，该行结局为结算待处理，告警人力，其余额度行照常结算}
-  - {ref: 计发, text: 随最后一期薪酬由 B-15 在 PRC-124 读取，离职生效后由 B-15 处理；本命令不算钱}
+  - {ref: 计发, text: 本命令只冻结额度（不再可占用）并移交；计入加班工资由 B-15 订阅 Separated 后在 PRC-178 入口 2 读取余额处理，随最后一期薪酬由 PRC-124 计发；本命令不算钱}
   authority:
     ref: raci:AGG-71/离职结算补休余额
     A: {resolve: type, role: SH-E6, function: 人力（考勤）}
@@ -307,7 +308,8 @@ commands:
   idempotency_key: 员工ID + 离职日期（已结算无操作）
   state_change: 有效 → 已转计薪 / 已休完
   emits: （内部）
-  used_by: [PRC-117 第 7 步, 事件策略「离职结算补休余额」]
+  used_by: [事件策略「离职结算补休余额」（计发见 PRC-178 入口 2）]
+  unused_ok: 由事件策略「离职结算补休余额」（订阅 Separated）调用，不在流程步骤；计发归 B-15 的 PRC-178（S-41）
   orphan: false
 # ───────── AGG-72 加班 ─────────
 - name: 加班申请
@@ -632,14 +634,14 @@ event_policies:
   trigger_event: 定时：补休额度行到期日（platform.scheduling；幂等键 = 额度行 ID + 到期日）
   effect: 额度行有未休余额则转为计薪时长并关闭，余额为零则只关闭；占用中的补休请假未处理时转计薪待处理，下次定时再转
   uses_command: 补休到期转计薪
-  used_by: [PRC-117 第 6 步]
+  used_by: [PRC-117 第 5 步到期移交（计发见 PRC-178 入口 1）]
   rules: []
   note: 不作废：单位无「已安排」证据时不得以员工未休为由作废（劳动法第四十四条原意是单位安排补休）；到期前的提醒是 PRC-117 第 5 步的非中断计时，不是策略
 - name: 离职结算补休余额
   trigger_event: Separated（B-13 发布，vs07 PRC-128 第 7 步）
   effect: 该员工全部有效补休额度行的未休余额转为计薪时长并关闭
   uses_command: 离职结算补休余额
-  used_by: [PRC-117 第 7 步（B-27 订阅）]
+  used_by: [PRC-128 第 7 步（B-27 订阅；计发见 PRC-178 入口 2）]
   rules: []
   note: 与「离职当月考勤默认确认」同订阅 Separated，同一条 B-27 → B-13 事件边（vs13att.notes.md 接缝问题 1）；最后一期薪酬由 B-15 读取转计薪时长
 removed:

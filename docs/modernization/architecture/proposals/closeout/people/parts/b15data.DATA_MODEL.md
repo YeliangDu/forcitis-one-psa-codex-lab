@@ -21,6 +21,7 @@
 | AGG-76 | `bonus_determination_evidences`（关联） | 新建 | 事实 | 不需要：随核定行 | 全量，随核定行 | SENSITIVE / pi：只存绩效评估 ID |
 | AGG-93 人员薪酬档案 | `payroll_profiles`（根） | 新建（SAMPLE 已定稿） | 主数据 | 不需要：根只留所属人员（D17 第四类，个人信息最小化） | 全量，待取证 | SENSITIVE / pi |
 | AGG-93 | `payroll_profile_versions`（版本） | 新建（SAMPLE 已定稿，增列族「调薪依据引用」） | 主数据 | D6 维度型，DECLARED；调薪 = 新版本 | 全量；信息图证 OA 调薪申请 #60 只作证据，来源待取证 | SENSITIVE / spi：薪资与发薪账户（金融账户），个人信息保护法第 28 条、ADR-0043 最高访问级别 |
+| AGG-93 | `payroll_comp_leave_conversions`（次级，S-41） | 新建 | 事实 | 只追加：补休转加班工资登记，按额度行 ID 幂等，不存金额 | 不迁：迁入不触发（ADR-0036 M7），迁入补休余额待取证 | SENSITIVE / pi |
 | AGG-120 专项附加扣除声明（S-32 自 AGG-93 拆出） | `payroll_special_deduction_declarations`（根） | 新建 | 主数据 | D6 维度型：年度内可修订，追加新生效区间 | 全量；个税端下载件是否留存待取证 | SENSITIVE / spi |
 | 同上 | `payroll_special_deduction_items`（次级） | 新建 | 主数据 | 随申报；记所用扣除标准版本 ID（D7） | 同上 | SENSITIVE / spi：含受益人关系与未成年子女信息（第 28 条，U-11） |
 | AGG-95 个税扣缴与社保公积金申报 | `tax_social_filings`（根） | 新建 | 交易 | 不需要：单据，状态由审计还原，更正另立申报（自引用） | 全量；政府端是权威登记，老系统只可能有登记行，待取证，缺口入对账 | SENSITIVE / 无：法人级税费汇总 |
@@ -33,7 +34,7 @@
 | 同上 | `contribution_rate_rules`（次级） | 新建 | 配置 | 随版本 | 同上 | INTERNAL / 无 |
 | 同上 | `payroll_calculation_parameters`（次级） | 新建 | 配置 | 随版本 | 同上 | INTERNAL / 无 |
 
-表数：24 张（8 个聚合：AGG-73 四、AGG-74 二、AGG-75 三、AGG-76 二、AGG-93 二、AGG-120 二、AGG-95 四、规则版本 五，合计 24），全部新建。
+表数：25 张（8 个聚合：AGG-73 四、AGG-74 二、AGG-75 三、AGG-76 二、AGG-93 三、AGG-120 二、AGG-95 四、规则版本 五，合计 25；AGG-93 增 S-41 的补休转加班工资登记），全部新建。
 
 ### 关系概要
 

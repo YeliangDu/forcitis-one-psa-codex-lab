@@ -39,6 +39,8 @@
 | 在保、已减员 | enrolled、withdrawn_from_insurance | 领域 | organization.payroll | AGG-74 状态 |
 | 已取代 | superseded | 领域 | organization.payroll | AGG-120 专项附加扣除声明状态 |
 | 终止薪酬档案 | terminate_payroll_profile | 领域 | organization.payroll | AGG-93 命令，S-32 新增；Separated 后结束最后一个生效版本 |
+| 登记补休转加班工资 | register_comp_leave_overtime_pay | 领域 | organization.payroll | AGG-93 命令，S-41 新增；B-15 读取 B-27 补休余额后登记转计发时长，PRC-124 按加班工资基数 200% 计入加班费 |
+| 补休已到期未休 | comp_leave_expired_unused | 领域 | organization.leave | AGG-71 事件，S-41 新增；B-27 在补休额度有效期届满仍有未休余额时发布，B-15 订阅（PRC-178 入口 1）；使用范围领域，bc 为 B-27 |
 | 调整缴费基数 | adjust_contribution_base | 领域 | organization.payroll | AGG-74 命令，S-32 新增；年度追加新版本 |
 | 登记绩效更正 | register_performance_correction | 领域 | organization.workforce | AGG-106 命令，S-32 新增；追加更正记录引用原评估（INV-114）；使用范围领域，bc 为 B-13 |
 | 已批准（激励方案版本状态） | approved | 领域 | organization.payroll | AGG-75 状态，审批通过但生效日期未到；与「已生效」区分 |

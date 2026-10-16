@@ -158,8 +158,6 @@ process_steps:
 - {process: PRC-117, step: 4, command: 计入补休额度, machine: leave_comp_grant, transition: [null, 有效]}
 - {process: PRC-117, step: 4, command: 标记加班已计补休, machine: overtime_request, transition: [已批准, 已计入补休额度], inner: true}
 - {process: PRC-117, step: 5, command: 提交请假, machine: leave_request, transition: [草稿, 已提交], also: [草稿, 审批中], outcome: 补休已休完}
-- {process: PRC-117, step: 6, command: 补休到期转计薪, machine: leave_comp_grant, transition: [有效, 已转计薪], also: [有效, 已休完], outcome: 已转计薪, outcome_on_reject: 转计薪待处理（占用中的补休请假未处理，前置条件失败，不产生转换）}
-- {process: PRC-117, step: 7, command: 离职结算补休余额, machine: leave_comp_grant, transition: [有效, 已转计薪], also: [有效, 已休完], outcome: 离职余额已结算, outcome_on_reject: 结算待处理（无法释放的占用中请假，前置条件失败，不产生转换）}
 # PRC-118
 - {process: PRC-118, step: 1, command: 生成月度考勤, machine: monthly_attendance_confirmation, transition: [null, 已生成], outcome_on_reject: 已暂缓（前置条件失败，不产生转换）}
 - {process: PRC-118, step: 2, command: 员工确认, machine: monthly_attendance_confirmation, transition: [已生成, 已确认]}

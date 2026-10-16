@@ -161,6 +161,10 @@ by_part:
         ref: PRC-130
         who: B-15
         used_by: PRC-130 触发器（终止薪酬档案、参保减员）
+      - type: 流程
+        ref: PRC-178
+        who: B-15
+        used_by: PRC-178 入口 2（读取未休补休余额，计入加班工资，随最后一期薪酬计发；S-41）
       - type: 事件策略
         who: B-13 向差旅服务商同步员工与组织
         used_by: PRC-177 触发器（同 BC）
@@ -172,7 +176,7 @@ by_part:
         used_by: vs13att 事件策略「离职当月考勤默认确认」
       - type: 事件策略
         who: B-27 离职结算补休余额
-        used_by: vs13att 事件策略「离职结算补休余额」（PRC-117 第 7 步）；未休补休余额转计薪时长，随最后一期薪酬由 B-15 计发
+        used_by: vs13att 事件策略「离职结算补休余额」（冻结补休额度并移交）
       - type: 事件策略
         who: B-13 离职生效后终止任职与劳动合同
         used_by: PRC-128 第 8、9 步（同 BC）
@@ -373,6 +377,19 @@ by_part:
       subscribers:
       - type: 仅分析
       note: 聚合稿：AGG-71 年度开账按 ID 与日期读取，不订阅
+    - name: 补休已到期未休
+      name_status: 〔缺〕S-41 提议名，待 one-glossary 登记
+      published_by: AGG-71
+      by_command: 补休到期转计薪
+      payload:
+      - 员工ID
+      - 补休额度行ID
+      - 到期日
+      subscribers:
+      - type: 流程
+        who: B-15
+        used_by: PRC-178 触发器（入口 1）
+      note: 补休额度有效期（时长待 U15）届满仍有未休余额时发；载荷不含余额，B-15 经 api 读取（边 B-15 → B-27 已有）；离职时不发此事件，B-15 直接订阅 Separated（PRC-178 入口 2）
     - name: 工作日历锁定日期被修改
       published_by: AGG-68
       by_command: 维护工作日历年度
@@ -410,7 +427,7 @@ by_part:
       - 事件策略「离职结算补休余额」→ 离职结算补休余额
       used_by:
       - PRC-128 第 7 步（vs07）
-      - PRC-117 第 7 步
+      - 事件策略「离职结算补休余额」（计发见 PRC-178）
       note: B-27 订阅 B-13 的边及 B-13 事件的订阅方清单需补登（vs07 接缝问题 1）
     - name: Employed
       from: B-13
@@ -652,8 +669,18 @@ by_part:
       from: B-13
       handled_by:
       - PRC-130「离职后参保减员」→ 终止薪酬档案、参保减员
+      - PRC-178「补休到期未休或离职时转计发加班工资」→ 登记补休转加班工资
       used_by:
       - PRC-130 触发器
+      - PRC-178 第 2 步入口
+    - name: 补休已到期未休
+      from: B-27
+      name_status: 〔缺〕S-41 提议名，待 one-glossary 登记
+      handled_by:
+      - 事件策略「补休到期未休或离职后计入加班工资」→ 登记补休转加班工资
+      used_by:
+      - PRC-178 触发器
+      note: 载荷只含员工ID、补休额度行ID、到期日，不含金额；B-15 经 api 读取余额（边 B-15 → B-27 已有）
     - name: 劳动合同已签订
       from: B-13
       handled_by:

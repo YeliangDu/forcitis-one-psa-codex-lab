@@ -67,6 +67,14 @@ published:
   subscribers:
   - {type: 仅分析}
   note: 聚合稿：AGG-71 年度开账按 ID 与日期读取，不订阅
+- name: 补休已到期未休
+  name_status: 〔缺〕S-41 提议名，待 one-glossary 登记
+  published_by: AGG-71
+  by_command: 补休到期转计薪
+  payload: [员工ID, 补休额度行ID, 到期日]
+  subscribers:
+  - {type: 流程, who: B-15, used_by: PRC-178 触发器（入口 1）}
+  note: 补休额度有效期（时长待 U15）届满仍有未休余额时发；载荷不含余额，B-15 经 api 读取（边 B-15 → B-27 已有）；离职时不发此事件，B-15 直接订阅 Separated（PRC-178 入口 2）
 - name: 工作日历锁定日期被修改
   published_by: AGG-68
   by_command: 维护工作日历年度
@@ -91,7 +99,7 @@ consumed:
 - name: Separated
   from: B-13
   handled_by: [事件策略「离职当月考勤默认确认」→ 默认确认月度考勤, 事件策略「离职结算补休余额」→ 离职结算补休余额]
-  used_by: [PRC-128 第 7 步（vs07）, PRC-117 第 7 步]
+  used_by: [PRC-128 第 7 步（vs07）, 事件策略「离职结算补休余额」（计发见 PRC-178）]
   note: B-27 订阅 B-13 的边及 B-13 事件的订阅方清单需补登（vs07 接缝问题 1）
 - name: Employed
   from: B-13

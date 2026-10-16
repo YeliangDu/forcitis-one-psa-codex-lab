@@ -108,6 +108,8 @@ machines:
   initial: [生效]
   terminal: [已结束]
   added_states: [生效, 已结束]
+  non_state_commands:
+  - {command: 登记补休转加班工资, reason: 只追加补休转加班工资登记行（表 payroll_comp_leave_conversions，只追加），不改档案版本状态；S-41 新增}
   note: 根表 payroll_profiles 无生命周期；版本行按生效区间，调薪追加新版本并结束旧版本（D17）。未来生效日的版本也记为生效（区间决定何时适用）。离职后由 S-32 新增的终止薪酬档案结束最后一个生效版本；重新入职在原根下建立新版本
   transitions:
   - {from: null, to: 生效, command: 建立薪酬档案, guard: [人员已入职, 一人一档案], kind: forward, process_outcome: 薪酬档案已建立}

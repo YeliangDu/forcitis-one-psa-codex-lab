@@ -66,6 +66,12 @@ AGG-62 人员命令列补：登记入职（→ **入职已登记**，原为 → 
 
 其他：B-31 的 PRC-139、142、143、144、155、156、157 写 `stages: []` 与 `support`；长期配置状态机 AGG-60、68、117、118 写 `perpetual: true` 与 `reason`；AGG-72 加班撤销进用户页（vs13att 待用户定 4）。
 
+#### 6. S-41 落实（one-architecture 裁定；供回补聚合稿）
+
+- AR-16「无来源单据的高风险用印」（abnormal，总经理，guard: approval）：PRC-139 第 2 步 `escalation_rules` 与批准用印申请引用，总经理加审范围待用户在 PB31-01 确认（`pending: B31-1` 保留）。
+- INV-138 同一来源审批实例的累计用印份数不超审批载荷份数（AGG-113）：提交用印申请前置条件与「草稿 → 已批准」守卫引用，R-B31-12 去掉〔推〕标记。
+- PRC-178「补休到期未休或离职时转计发加班工资」（B-15 事件策略，双入口：B-27 新发〔缺〕补休已到期未休、B-13 `Separated`；新增〔缺〕命令登记补休转加班工资，AGG-93，新表 `payroll_comp_leave_conversions`）；PRC-117 只管补休登记与到期前提醒；补休有效期时长改为 `pending: U15`，推荐 3 个月。
+
 ## 方法验证 / 推翻（one-arch-people 铺开中随手记，交 one-architecture 汇总进 `closeout/METHOD_VALIDATION_LOG.md`）
 
 | 做法 | 结论 | 证据 |

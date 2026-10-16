@@ -1677,6 +1677,21 @@ entries:
   sensitive: false
   note: 离职事件（Separated）后系统自动结束最后一个生效版本，不读写薪资金额与发薪账户，无人持有执行权限；S-32 新增
   source_part: vs13pay
+- object: AGG-93
+  command: 登记补休转加班工资
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+  sensitive: false
+  note: 补休已到期未休或 Separated 触发，系统自动登记补休转加班工资时长，不读写薪资金额与发薪账户，无人持有执行权限；金额由 PRC-124 计算生成；S-41 新增
+  source_part: vs13pay
 - object: AGG-120
   command: 更新专项附加扣除
   raci:
@@ -2220,8 +2235,8 @@ entries:
     I:
     - SH-E3
   boundary:
-    limit_rule: （无金额限额）
-    pending: 'B31-1：授权委托书，以及公章、法定代表人名章用于无来源单据的，加一级由总经理批（需新增 guard: approval 规则，规则号待 one-architecture 给）'
+    limit_rule: AR-16
+    pending: B31-1：授权委托书，以及公章、法定代表人名章用于无来源单据的，加一级由总经理批（AR-16，S-41 已给号；总经理加审范围待用户在 PB31-01 确认）
     segregation:
     - 提交人 ≠ A
     delegate:

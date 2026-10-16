@@ -16,7 +16,8 @@ commands:
   params: [印章类别（公章 / 合同专用章 / 法定代表人名章 / 财务章等）, 用印法人, 用印事由, 用印文件（名称、份数、引用）, 申请份数, 来源单据（类型、审批实例ID，可空；无来源单据的申请为空）]
   preconditions:
   - {ref: R-B31-1, text: 用印法人须为申请日有效法人主体，否则拒绝并留在草稿}
-  - {ref: R-B31-12, text: 填了来源审批实例ID的，经 platform.approval 校验实例已通过，且申请份数（加上该实例已被其他有效用印申请占用的份数〔推〕）不超审批载荷份数；校验不过则拒绝并告诉申请人原因，留在草稿，不静默}
+  - {ref: R-B31-12, text: 填了来源审批实例ID的，经 platform.approval 校验实例已通过；校验不过则拒绝并告诉申请人原因，留在草稿，不静默}
+  - {ref: INV-138, text: 同一来源审批实例的累计用印份数（本申请份数加上该实例已被其他有效用印申请占用的份数）不超审批载荷份数；超出则拒绝并告诉申请人原因，留在草稿，不静默}
   - {ref: 状态, text: 申请为草稿}
   authority:
     ref: raci:AGG-113/提交用印申请
@@ -35,7 +36,7 @@ commands:
   preconditions:
   - {ref: 状态, text: 申请为审批中且审批实例ID一致；仅无来源单据的申请有此审批}
   - {ref: AR-11/AR-12, text: 审批人就是申请人上交其上级；负责人缺位上交上级组织负责人（APPROVAL_RULES，已有）}
-  - {ref: pending B31-1, text: 授权委托书，以及公章、法定代表人名章用于无来源单据的，加一级由总经理批；规则号待 one-architecture 给（notes 结构问题 8）}
+  - {ref: AR-16, text: 授权委托书，以及公章、法定代表人名章用于无来源单据的，加一级由总经理批（APPROVAL_RULES AR-16「无来源单据的高风险用印」，abnormal，S-41）；待用户在 PB31-01 确认，pending B31-1}
   authority:
     ref: raci:AGG-113/批准用印申请
     A: {resolve: instance, field: 申请人所在组织单元.负责人, alias: cost_object_owner}

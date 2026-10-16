@@ -22,8 +22,8 @@ entries:
     C: []
     I: [SH-E3]
   boundary:
-    limit_rule: （无金额限额）
-    pending: 'B31-1：授权委托书，以及公章、法定代表人名章用于无来源单据的，加一级由总经理批（需新增 guard: approval 规则，规则号待 one-architecture 给）'
+    limit_rule: AR-16                # 无来源单据的高风险用印加总经理一级（S-41）；无金额限额
+    pending: 'B31-1：授权委托书，以及公章、法定代表人名章用于无来源单据的，加一级由总经理批（AR-16，S-41 已给号；总经理加审范围待用户在 PB31-01 确认）'
     segregation: [提交人 ≠ A]
     delegate: {when: AR-11, to: 汇报线上级}
     escalate: {when: AR-12, to: 上级组织负责人}

@@ -4,7 +4,7 @@
 # 已定口径：审批走 platform.approval（C-3–C-7，intent 2026-10-16-144943）；A8 早于投产日停用；全部历史迁入（U-1–U-4）；
 #   IT 资产是固定资产，卡片、折旧、报废账务在 B-24 AGG-91，B-31 只记使用记录（intent 2026-10-16-152926）。
 # 用户新原则（修订，2026-10-16）：能由规则和不变量守卫的不设人工审批；保留的人审 approver 一律 cost_object_owner（申请人所在组织单元的负责人），
-#   加审只引用 APPROVAL_RULES.yaml 中 guard: approval 的规则（本组可命中 AR-01、AR-11、AR-12），每个人审写 why_human。
+#   加审只引用 APPROVAL_RULES.yaml 中 guard: approval 的规则（本组可命中 AR-01、AR-11、AR-12、AR-16），每个人审写 why_human。
 # 多入口：PRC-143 原有 5 个触发、4 条入口，生成器只把开始事件接到第 1 步，故拆为 4 个流程；新增三个流程暂用 PRC-155、143C、143D，待 one-architecture 要号（notes 结构问题 2）。
 
 processes:
@@ -42,7 +42,7 @@ processes:
         as: approver      # 申请人所在组织单元的负责人（cost_object_owner）
         org_needs:
           responsibility: "对本组织单元员工提出的、没有已批准来源单据的用印申请（证明、介绍信、授权委托书等），判断文件是否应当盖章"
-          approval_right: "批准本组织单元员工无来源单据的用印申请（审批平台，加审按 AR-11、AR-12；对外授权与公章、法定代表人名章无来源单据加总经理一级，待 one-architecture 给规则号，见 notes 结构问题 8）。有已批准来源单据的申请不经此审批"
+          approval_right: "批准本组织单元员工无来源单据的用印申请（审批平台，加审按 AR-11、AR-12、AR-16；无来源单据的授权委托书、公章、法定代表人名章用印加总经理一级，待用户在 PB31-01 确认）。有已批准来源单据的申请不经此审批"
           department_hint: "申请人所在组织单元"
           position_hint: "组织单元负责人（部门负责人）；岗位体系未定，按职能描述"
       - id: SH-E6
@@ -75,12 +75,12 @@ processes:
         command: 批准用印申请
         aggregate: AGG-113
         emits: [用印申请已批准]           # 仅分析
-        desc: 仅无来源单据的申请进入：申请人所在组织单元负责人在审批平台审批；授权委托书，以及公章、法定代表人名章用于无来源单据的，加一级由总经理批（加审规则待 one-architecture 给号，pending B31-1）；批准时由 platform.approval 回调本聚合命令
+        desc: 仅无来源单据的申请进入：申请人所在组织单元负责人在审批平台审批；授权委托书，以及公章、法定代表人名章用于无来源单据的，加一级由总经理批（引用 AR-16「无来源单据的高风险用印」，待用户在 PB31-01 确认，pending B31-1）；批准时由 platform.approval 回调本聚合命令
         approval:
           engine: platform.approval
           doc_type: 用印审批
           approver: cost_object_owner     # 申请人所在组织单元的负责人
-          escalation_rules: [AR-11, AR-12]
+          escalation_rules: [AR-11, AR-12, AR-16]
           why_human: "无来源单据（证明、介绍信、授权委托书等）没有可由规则核对的已批准上游审批，规则无法判断文件内容是否应当盖章，须申请人所在组织单元负责人判断；有已批准来源单据的申请不进入本步（规则核对通过，不设人审）。"
           on_reject: 3
         withdraw: {to: end, outcome: 已撤回}

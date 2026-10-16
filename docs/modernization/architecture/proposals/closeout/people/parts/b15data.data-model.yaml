@@ -185,6 +185,19 @@
       pi: spi
       column_families: [生效区间, 薪资结构与标准, 个税扣缴义务人, 发薪账户, 调薪依据引用]
       reason: "敏感个人信息与金融账户信息（个人信息保护法第 28 条，ADR-0043 最高访问级别）；扣缴义务人是三口径之一（S13）；调薪为新版本事件，依据引用调薪申请单据 ID；迁入按 ADR-0036，来源待取证（信息图证 OA 调薪申请 #60 只作证据）；发薪账户列级 SPI（金融账户），不进分析层、日志、审计原值"
+    - name: payroll_comp_leave_conversions
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-93, by: payroll_profile_id}
+        - {to: AGG-71, by: comp_leave_grant_id, cross_bc: true}
+        - {to: AGG-73, by: payroll_settlement_id}
+      versioned: append_only
+      history_migration: none
+      sensitivity: SENSITIVE
+      pi: pi
+      column_families: [转计发时长, 来源, 所属薪酬月份, 登记时间, 计入结算引用]
+      reason: "S-41 新增：B-15 读取 B-27 补休余额后登记的转加班工资时长，只追加，更正另记；按补休额度行 ID 幂等；金额不存，PRC-124 计算时按加班工资基数折算 200% 生成；history_migration none：迁入不触发（ADR-0036 M7），迁入的补休余额是否迁为额度行待取证后定；SENSITIVE：关联个人薪酬计发，pi：所属人员经档案根；额度行只存 AGG-71 的 ID（B-15 → B-27）；计入结算引用在结算计算时回填，不构成对 AGG-73 的状态依赖"
 
 # ───────────────────────── AGG-120 专项附加扣除声明（S-32 自 AGG-93 拆出；员工本人发令、年度生命周期、含未成年人敏感信息） ─────────────────────────
 - aggregate: AGG-120

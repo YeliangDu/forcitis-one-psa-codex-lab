@@ -1841,7 +1841,7 @@ commands:
   - ref: 占用
     text: 额度行无占用中的补休请假，否则结局为转计薪待处理，告警人力，不改状态
   - ref: 计发
-    text: 本命令不算钱；金额由 B-15 在 PRC-124 读取转计薪时长，按加班工资基数折算 200% 计发
+    text: 本命令不算钱；转为已转计薪后发补休已到期未休，由 B-15 在 PRC-178 读取余额并计入加班工资（200% 以加班工资基数，S-41）
   authority:
     ref: raci:AGG-71/补休到期转计薪
     A:
@@ -1852,10 +1852,10 @@ commands:
     - system
   idempotency_key: 补休额度行ID（已转计薪或已休完无操作）
   state_change: 有效 → 已转计薪（余额大于零）；有效 → 已休完（余额为零）
-  emits: （内部）
+  emits: 补休已到期未休（余额大于零时）
   used_by:
-  - PRC-117 第 6 步
-  - 事件策略「补休额度到期转计薪」
+  - 事件策略「补休额度到期转计薪」（计发见 PRC-178 入口 1）
+  unused_ok: 由事件策略「补休额度到期转计薪」（定时）调用，不在流程步骤；计发归 B-15 的 PRC-178（S-41）
   orphan: false
   source_part: vs13att
 - name: 离职结算补休余额
@@ -1873,7 +1873,7 @@ commands:
   - ref: 占用
     text: 额度行仍有无法释放的占用中请假的，该行结局为结算待处理，告警人力，其余额度行照常结算
   - ref: 计发
-    text: 随最后一期薪酬由 B-15 在 PRC-124 读取，离职生效后由 B-15 处理；本命令不算钱
+    text: 本命令只冻结额度（不再可占用）并移交；计入加班工资由 B-15 订阅 Separated 后在 PRC-178 入口 2 读取余额处理，随最后一期薪酬由 PRC-124 计发；本命令不算钱
   authority:
     ref: raci:AGG-71/离职结算补休余额
     A:
@@ -1886,8 +1886,8 @@ commands:
   state_change: 有效 → 已转计薪 / 已休完
   emits: （内部）
   used_by:
-  - PRC-117 第 7 步
-  - 事件策略「离职结算补休余额」
+  - 事件策略「离职结算补休余额」（计发见 PRC-178 入口 2）
+  unused_ok: 由事件策略「离职结算补休余额」（订阅 Separated）调用，不在流程步骤；计发归 B-15 的 PRC-178（S-41）
   orphan: false
   source_part: vs13att
 - name: 加班申请
@@ -2410,7 +2410,7 @@ commands:
   - ref: 数据齐备
     text: 每人有生效薪酬档案版本（AGG-93）、应参保人员有参保基数（AGG-74）、适用的薪酬规则版本取得到（同 INV-116，取不到失败并告警）；缺则结局为「已中止」，不静默跳过
   - ref: 补休转计薪
-    text: 读取 B-27 当月转计薪的补休额度行（到期未休、离职结算），转计薪时长 × 加班工资基数折算的时薪 × 200% 计入加班费（劳动法第四十四条、工资支付暂行规定第十三条）；已读过的额度行不重复计；加班工资基数取不到，结局为「已中止」，不静默按零
+    text: 读取本 BC 当月 PRC-178 登记的补休转加班工资（到期未休、离职），转计薪时长 × 加班工资基数折算的时薪 × 200% 计入加班费（劳动法第四十四条、工资支付暂行规定第十三条）；已计入结算的登记不重复计；加班工资基数取不到，结局为「已中止」，不静默按零
   - ref: INV-70
     text: 代扣只限法定项目；以法定货币支付
   - ref: 状态
@@ -3056,6 +3056,42 @@ commands:
   emits: 薪酬档案已变更
   used_by:
   - PRC-123 第 1 步
+  orphan: false
+  source_part: vs13pay
+- name: 登记补休转加班工资
+  aggregate: AGG-93
+  entity: payroll_comp_leave_conversions
+  kind: automatic
+  name_status: 〔缺〕S-41 裁定新增，待回补聚合稿，待 one-glossary 登记（register_comp_leave_overtime_pay）
+  source: S-41（one-architecture 裁定）；用户页 P13-05；劳动法第四十四条、工资支付暂行规定第十三条
+  params:
+  - 人员
+  - 补休额度行ID
+  - 转计发时长（分钟）
+  - 来源（到期未休 / 离职）
+  - 所属薪酬月份
+  preconditions:
+  - ref: 来源
+    text: 到期入口由 B-27 发的补休已到期未休触发，离职入口由 B-13 的 Separated 触发；经既有边 B-15 → B-27（api）读取额度行未休余额，读取失败则失败并告警薪酬岗，不静默
+  - ref: 加班工资基数
+    text: 取薪酬档案生效版本的加班工资基数；取不到则失败并告警薪酬岗，不静默按零（CLAUDE.md 第 6 条）
+  - ref: 计发
+    text: 本命令只登记时长与来源，不算钱；计入加班工资的金额（时长 × 加班工资基数折算的时薪 × 200%）由 PRC-124 计算时读取登记生成
+  - ref: 离职
+    text: 离职入口读取该员工全部未休余额，余额为零无需登记
+  authority:
+    ref: raci:AGG-93/登记补休转加班工资
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+  idempotency_key: 补休额度行ID（已登记无操作）
+  state_change: none（只追加登记行，不改状态）
+  emits: （内部）
+  used_by:
+  - PRC-178 第 1 步、第 2 步
   orphan: false
   source_part: vs13pay
 - name: 终止薪酬档案
@@ -3922,7 +3958,9 @@ commands:
   - ref: R-B31-1
     text: 用印法人须为申请日有效法人主体，否则拒绝并留在草稿
   - ref: R-B31-12
-    text: 填了来源审批实例ID的，经 platform.approval 校验实例已通过，且申请份数（加上该实例已被其他有效用印申请占用的份数〔推〕）不超审批载荷份数；校验不过则拒绝并告诉申请人原因，留在草稿，不静默
+    text: 填了来源审批实例ID的，经 platform.approval 校验实例已通过；校验不过则拒绝并告诉申请人原因，留在草稿，不静默
+  - ref: INV-138
+    text: 同一来源审批实例的累计用印份数（本申请份数加上该实例已被其他有效用印申请占用的份数）不超审批载荷份数；超出则拒绝并告诉申请人原因，留在草稿，不静默
   - ref: 状态
     text: 申请为草稿
   authority:
@@ -3951,8 +3989,8 @@ commands:
     text: 申请为审批中且审批实例ID一致；仅无来源单据的申请有此审批
   - ref: AR-11/AR-12
     text: 审批人就是申请人上交其上级；负责人缺位上交上级组织负责人（APPROVAL_RULES，已有）
-  - ref: pending B31-1
-    text: 授权委托书，以及公章、法定代表人名章用于无来源单据的，加一级由总经理批；规则号待 one-architecture 给（notes 结构问题 8）
+  - ref: AR-16
+    text: 授权委托书，以及公章、法定代表人名章用于无来源单据的，加一级由总经理批（APPROVAL_RULES AR-16「无来源单据的高风险用印」，abnormal，S-41）；待用户在 PB31-01 确认，pending B31-1
   authority:
     ref: raci:AGG-113/批准用印申请
     A:
