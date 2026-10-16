@@ -3633,8 +3633,8 @@ entries:
   command: 生效分摊规则版本
   raci:
     A:
-      resolve: type
-      role: 财务负责人
+      resolve: instance
+      field: 费用归属对象.责任人
     R:
     - SH-E6
     C: []
@@ -3642,8 +3642,13 @@ entries:
   boundary:
     delegate:
       when: AR-11
+      to: 汇报线上级
     escalate:
       when: AR-12
+      to: 上级组织负责人
+    segregation:
+    - 编制人 ≠ 批准人（INV-131）
+    note: 费用归属对象取间接成本池归属部门（财务部门）的负责人，解析见 SQ-51（S-36 ②）
   sensitive: false
   a_source: group:finance
   sources:
@@ -3655,23 +3660,66 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
     I: []
   sensitive: false
-  draft_gap: true
   a_source: group:finance
   sources:
   - finance:PRC-97#1
+  - finance:片段
+- object: AGG-41
+  command: 作废人工成本分配运行
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-96#5
+  - finance:片段
+- object: AGG-41
+  command: 冲销人工成本分配运行
+  raci:
+    A:
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    other_rules:
+    - AR-06
+    limit_rule: AR-06
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-96#6(审批)
+  - finance:PRC-96#7
   - finance:片段
 - object: AGG-41
   command: 提交过账候选
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -3687,7 +3735,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -3705,7 +3754,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -3716,11 +3766,38 @@ entries:
   - finance:PRC-96#2
   - finance:片段
 - object: AGG-42
+  command: 冲销分摊运行
+  raci:
+    A:
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    other_rules:
+    - AR-06
+    limit_rule: AR-06
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-98#3(审批)
+  - finance:PRC-98#4
+  - finance:片段
+- object: AGG-42
   command: 生效分摊运行
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -3735,7 +3812,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -3746,11 +3824,29 @@ entries:
   - finance:PRC-98#1
   - finance:片段
 - object: AGG-43
+  command: 冲回成本结转
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I:
+    - SH-E6
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-164#1
+  - finance:片段
+- object: AGG-43
   command: 售前投入转费用
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -3764,34 +3860,38 @@ entries:
   command: 提交过账候选
   raci:
     A:
-      resolve: TODO
-    R: []
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
     C: []
     I:
     - SH-E6
   sensitive: false
-  a_source: none
+  a_source: group:finance
   sources:
   - finance:PRC-15#2
-  - finance:PRC-25#2
+  - finance:PRC-25#5
   - finance:PRC-35#2
   - finance:PRC-55#2
+  - finance:片段
 - object: AGG-43
   command: 标记已过账
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
     I: []
   sensitive: false
-  draft_gap: true
   a_source: group:finance
   sources:
   - finance:PRC-15#3
-  - finance:PRC-25#3
+  - finance:PRC-25#6
   - finance:PRC-35#3
   - finance:PRC-55#3
   - finance:片段
@@ -3800,7 +3900,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -3815,7 +3916,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -3830,7 +3932,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -3838,7 +3941,7 @@ entries:
   sensitive: false
   a_source: group:finance
   sources:
-  - finance:PRC-25#1
+  - finance:PRC-25#4
   - finance:片段
 - object: AGG-44
   command: 冲销收入确认
@@ -4718,7 +4821,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -4727,7 +4831,6 @@ entries:
     segregation:
     - 处置人 ≠ 原付款发起人、审批人、出纳（INV-81 同类）
   sensitive: false
-  draft_gap: true
   a_source: group:finance
   sources:
   - finance:PRC-131#2
@@ -4737,7 +4840,24 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-75#8
+  - finance:片段
+- object: AGG-52
+  command: 冲销应付利润
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -4746,27 +4866,31 @@ entries:
   draft_gap: true
   a_source: group:finance
   sources:
-  - finance:PRC-75#8
+  - finance:PRC-112#7
   - finance:片段
 - object: AGG-52
   command: 在应付上核销占用
   raci:
     A:
-      resolve: TODO
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
     I: []
   sensitive: false
-  a_source: none
+  a_source: group:finance
   sources:
-  - finance:PRC-75#2
+  - finance:PRC-75#3
+  - finance:片段
 - object: AGG-52
   command: 提交应付利润
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -4780,20 +4904,9 @@ entries:
   command: 提交应付薪酬
   raci:
     A:
-      resolve: TODO
-    R: []
-    C: []
-    I: []
-  sensitive: false
-  a_source: none
-  sources:
-  - people:PRC-126#1
-- object: AGG-52
-  command: 提交过账候选
-  raci:
-    A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -4801,7 +4914,25 @@ entries:
   sensitive: false
   a_source: group:finance
   sources:
+  - people:PRC-126#1
+  - finance:片段
+- object: AGG-52
+  command: 提交过账候选
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-112#5
   - finance:PRC-159#2
+  - finance:PRC-175#6
   - finance:PRC-74#2
   - finance:片段
 - object: AGG-52
@@ -4809,7 +4940,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -4820,11 +4952,77 @@ entries:
   - finance:PRC-131#1
   - finance:片段
 - object: AGG-52
+  command: 登记其他应付
+  raci:
+    A:
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - SH-E3
+    C: []
+    I:
+    - SH-E6
+  boundary:
+    limit_rule: AR-01
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+    other_rules:
+    - AR-07
+    - AR-15
+    extra_rules:
+    - AR-02
+    - AR-07
+    - AR-15
+    segregation:
+    - 申请人 ≠ 审批人（AR-11）
+    - 申请人 ≠ PRC-75 付款发起人、出纳（INV-81 同类，提议）
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-175#3(审批)
+  - finance:PRC-175#4
+  - finance:片段
+- object: AGG-52
+  command: 登记预付款
+  raci:
+    A:
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - SH-E3
+    C: []
+    I:
+    - SH-E6
+  boundary:
+    limit_rule: AR-01
+    extra_rules:
+    - AR-02
+    - AR-07
+    - AR-15
+    segregation:
+    - 申请人 ≠ 审批人（AR-11）
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-175#5
+  - finance:片段
+- object: AGG-52
   command: 确认应付
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -4835,6 +5033,7 @@ entries:
   sources:
   - finance:PRC-114#2
   - finance:PRC-159#1
+  - finance:PRC-171#6
   - finance:PRC-74#1
   - revenue:PRC-147#3
   - finance:片段
@@ -4843,7 +5042,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -4851,8 +5051,26 @@ entries:
   sensitive: false
   a_source: group:finance
   sources:
-  - finance:PRC-75#3
+  - finance:PRC-75#4
   - finance:PRC-75#6
+  - finance:片段
+- object: AGG-52
+  command: 预付款冲抵应付
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 冲抵经办 ≠ 该预付款的出纳（INV-81 同类，提议）
+  sensitive: false
+  a_source: group:finance
+  sources:
   - finance:片段
 - object: AGG-53
   command: 发起付款
@@ -4868,6 +5086,14 @@ entries:
     - SH-E2
   boundary:
     limit_rule: AR-01
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+    other_rules:
+    - AR-07
     extra_rules:
     - AR-02
     - AR-07
@@ -4875,16 +5101,11 @@ entries:
     - 发起人 ≠ 审批人（INV-81）
     - 发起人 ≠ 出纳（登记银行结果者，INV-81）
     - 审批人 ≠ 出纳（INV-81）
-    delegate:
-      when: AR-11
-      to: 汇报线上级
-    escalate:
-      when: AR-12
-      to: 上级组织负责人
   sensitive: false
   a_source: group:finance
   sources:
-  - finance:PRC-75#2
+  - finance:PRC-75#2(审批)
+  - finance:PRC-75#3
   - revenue:PRC-08#4
   - revenue:PRC-08#4(审批)
   - finance:片段
@@ -4892,20 +5113,25 @@ entries:
   command: 提交过账候选
   raci:
     A:
-      resolve: TODO
-    R: []
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
     C: []
     I: []
   sensitive: false
-  a_source: none
+  a_source: group:finance
   sources:
   - finance:PRC-132#1
+  - finance:片段
 - object: AGG-53
   command: 登记付款失败
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -4923,7 +5149,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -4932,7 +5159,6 @@ entries:
     segregation:
     - 出纳 ≠ 发起人、审批人（INV-81）
   sensitive: false
-  draft_gap: true
   a_source: group:finance
   sources:
   - finance:PRC-75#7
@@ -4942,25 +5168,18 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
     I: []
   boundary:
-    limit_rule: AR-01
-    delegate:
-      when: AR-11
-    escalate:
-      when: AR-12
-    other_rules:
-    - AR-07
     segregation:
     - 出纳 ≠ 发起人、审批人（INV-81）
   sensitive: false
   a_source: group:finance
   sources:
-  - finance:PRC-75#4(审批)
   - finance:PRC-75#5
   - finance:片段
 - object: AGG-53
@@ -4968,7 +5187,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -4983,7 +5203,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -4994,17 +5215,17 @@ entries:
   - finance:PRC-114#3
   - finance:片段
 - object: AGG-54
-  command: 更正出资实缴
+  command: 更正出资登记
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
     I: []
   sensitive: true
-  draft_gap: true
   a_source: group:finance
   sources:
   - finance:片段
@@ -5013,7 +5234,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -5027,7 +5249,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -5041,7 +5264,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -5056,7 +5280,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 采购与分包负责人
+      role: SH-M1
+      function: 采购与分包负责人
     R:
     - system
     C: []
@@ -5212,7 +5437,6 @@ entries:
     - AR-06
     limit_rule: AR-06
   sensitive: false
-  draft_gap: true
   a_source: group:finance
   sources:
   - finance:PRC-72#6(审批)
@@ -5223,7 +5447,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -5256,7 +5481,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 采购与分包负责人
+      role: SH-M1
+      function: 采购与分包负责人
     R:
     - system
     C: []
@@ -5264,14 +5490,15 @@ entries:
   sensitive: false
   a_source: group:finance
   sources:
-  - finance:PRC-71#4
+  - finance:PRC-71#5
   - finance:片段
 - object: AGG-58
   command: 占用履约额度
   raci:
     A:
       resolve: type
-      role: 采购与分包负责人
+      role: SH-M1
+      function: 采购与分包负责人
     R:
     - SH-E2
     C: []
@@ -5286,7 +5513,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 采购与分包负责人
+      role: SH-M1
+      function: 采购与分包负责人
     R:
     - system
     C: []
@@ -5301,13 +5529,13 @@ entries:
   raci:
     A:
       resolve: type
-      role: 采购与分包负责人
+      role: SH-M1
+      function: 采购与分包负责人
     R:
     - system
     C: []
     I: []
   sensitive: false
-  draft_gap: true
   a_source: group:finance
   sources:
   - finance:PRC-72#5
@@ -5335,7 +5563,6 @@ entries:
       when: AR-12
       to: 上级组织负责人
   sensitive: false
-  draft_gap: true
   a_source: group:finance
   sources:
   - finance:PRC-87#10(审批)
@@ -5370,7 +5597,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -5385,7 +5613,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -7141,7 +7370,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -7152,17 +7382,20 @@ entries:
   sensitive: true
   a_source: group:finance
   sources:
+  - finance:PRC-112#8
   - finance:PRC-72#9
   - finance:PRC-75#9
   - finance:PRC-87#12
   - finance:PRC-92#3
+  - finance:PRC-95#6
   - finance:片段
 - object: AGG-77
   command: 登记拒收处置结论
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -7177,7 +7410,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -7193,13 +7427,50 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
     I: []
   boundary:
     idempotency: 同一幂等键（INV-94）
+  sensitive: false
+  draft_gap: true
+  a_source: group:finance
+  sources:
+  - finance:片段
+- object: AGG-78
+  command: 发布口径版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-M1
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 起草人 ≠ 批准人（INV-131）
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-168#1
+  - finance:PRC-168#1(审批)
+  - finance:片段
+- object: AGG-78
+  command: 编制口径版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
   sensitive: false
   draft_gap: true
   a_source: group:finance
@@ -7483,6 +7754,18 @@ entries:
   - people:PRC-88#8
   - people:片段
 - object: AGG-80
+  command: 调整预算占用
+  raci:
+    A:
+      resolve: TODO
+    R: []
+    C: []
+    I: []
+  sensitive: false
+  a_source: none
+  sources:
+  - finance:PRC-71#4
+- object: AGG-80
   command: 释放预算占用
   raci:
     A:
@@ -7526,7 +7809,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -7545,7 +7829,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -7564,7 +7849,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -7579,13 +7865,13 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
     I: []
   sensitive: false
-  draft_gap: true
   a_source: group:finance
   sources:
   - finance:PRC-102#8
@@ -7596,6 +7882,7 @@ entries:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-M1
     C: []
@@ -7616,6 +7903,7 @@ entries:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-M1
     C: []
@@ -7634,7 +7922,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -7651,6 +7940,7 @@ entries:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-M1
     C: []
@@ -7669,13 +7959,13 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
     I: []
   sensitive: false
-  draft_gap: true
   a_source: group:finance
   sources:
   - finance:PRC-100#1
@@ -7685,7 +7975,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -7699,7 +7990,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     - SH-E6
@@ -7715,7 +8007,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -7731,16 +8024,16 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
     I: []
   sensitive: false
-  draft_gap: true
   a_source: group:finance
   sources:
-  - finance:PRC-93#3
+  - finance:PRC-104#2
   - finance:片段
 - object: AGG-85
   command: 发布映射表版本
@@ -7748,6 +8041,7 @@ entries:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-M1
     C: []
@@ -7766,13 +8060,13 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
     I: []
   sensitive: false
-  draft_gap: true
   a_source: group:finance
   sources:
   - finance:PRC-100#3
@@ -7783,6 +8077,7 @@ entries:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-M1
     C: []
@@ -7801,7 +8096,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -7819,7 +8115,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -7833,7 +8130,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -7848,6 +8146,7 @@ entries:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-M1
     C: []
@@ -7856,7 +8155,6 @@ entries:
     segregation:
     - 确认人 ≠ 开立经办
   sensitive: true
-  draft_gap: true
   a_source: group:finance
   sources:
   - finance:PRC-65#1
@@ -7868,6 +8166,7 @@ entries:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-M1
     C: []
@@ -7876,7 +8175,6 @@ entries:
     segregation:
     - 确认人 ≠ 销户经办
   sensitive: true
-  draft_gap: true
   a_source: group:finance
   sources:
   - finance:PRC-65#3
@@ -7888,6 +8186,7 @@ entries:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -7896,7 +8195,6 @@ entries:
     segregation:
     - 确认人 ≠ 解冻经办
   sensitive: true
-  draft_gap: true
   a_source: group:finance
   sources:
   - finance:PRC-65#2
@@ -7907,7 +8205,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -7921,7 +8220,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -7937,7 +8237,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -7952,7 +8253,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E3
     C: []
@@ -7969,7 +8271,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -7984,7 +8287,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E3
     C: []
@@ -8000,7 +8304,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     - SH-E3
@@ -8017,7 +8322,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -8032,7 +8338,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -8047,7 +8354,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -8064,6 +8372,7 @@ entries:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -8079,7 +8388,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -8094,7 +8404,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -8109,7 +8420,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -8124,7 +8436,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -8164,7 +8477,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -8180,7 +8494,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -8198,7 +8513,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -8296,6 +8612,7 @@ entries:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-M1
     C: []
@@ -8314,13 +8631,13 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
     I: []
   sensitive: true
-  draft_gap: true
   a_source: group:finance
   sources:
   - finance:PRC-100#5
@@ -8457,6 +8774,7 @@ entries:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -8566,13 +8884,13 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
     I: []
   sensitive: true
-  draft_gap: true
   a_source: group:finance
   sources:
   - finance:PRC-94#5
@@ -8582,7 +8900,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -8600,7 +8919,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -8646,11 +8966,38 @@ entries:
   - finance:PRC-94#4
   - finance:片段
 - object: AGG-99
+  command: 冲销期末结转运行
+  raci:
+    A:
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    other_rules:
+    - AR-06
+    limit_rule: AR-06
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-95#4(审批)
+  - finance:PRC-95#5
+  - finance:片段
+- object: AGG-99
   command: 提交过账候选
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -8666,7 +9013,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -8681,7 +9029,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -8697,7 +9046,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -8709,7 +9059,7 @@ entries:
   sensitive: false
   a_source: group:finance
   sources:
-  - finance:PRC-104#2
+  - finance:PRC-104#3
   - finance:片段
 - object: AGG-101
   command: 签字接受差异
@@ -8717,6 +9067,7 @@ entries:
     A:
       resolve: type
       role: SH-M1
+      function: 财务负责人
     R:
     - SH-M1
     C: []
@@ -8727,8 +9078,8 @@ entries:
   sensitive: false
   a_source: group:finance
   sources:
-  - finance:PRC-104#3
-  - finance:PRC-104#3(审批)
+  - finance:PRC-104#4
+  - finance:PRC-104#4(审批)
   - finance:片段
 - object: AGG-102
   command: 取消客户活动
@@ -9290,7 +9641,8 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
@@ -9298,7 +9650,6 @@ entries:
   sensitive: true
   a_source: group:finance
   sources:
-  - finance:PRC-112#5
   - finance:片段
 - object: AGG-109
   command: 撤销利润分配决议
@@ -9312,33 +9663,35 @@ entries:
     I:
     - SH-E6
   sensitive: true
-  draft_gap: true
   a_source: group:finance
   sources:
-  - finance:PRC-112#7
-  - finance:PRC-112#7(审批)
+  - finance:PRC-112#6
+  - finance:PRC-112#6(审批)
   - finance:片段
 - object: AGG-109
   command: 登记利润分配支付
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - system
     C: []
-    I: []
+    I:
+    - SH-E6
   sensitive: true
   a_source: group:finance
   sources:
-  - finance:PRC-112#6
+  - finance:PRC-163#1
   - finance:片段
 - object: AGG-109
   command: 草拟利润分配
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
+      function: 财务负责人
     R:
     - SH-E6
     C: []
@@ -10080,6 +10433,750 @@ entries:
   sources:
   - people:PRC-157#2
   - people:片段
+- object: AGG-122
+  command: 标记售前投入已转入
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-25#7
+  - finance:片段
+- object: AGG-122
+  command: 标记售前投入已转费用
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-15#4
+  - finance:片段
+- object: AGG-122
+  command: 登记合同已签回
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-25#1
+  - finance:片段
+- object: AGG-122
+  command: 登记售前投入挂接归属
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-25#3
+  - finance:片段
+- object: AGG-122
+  command: 登记项目已建立
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-25#2
+  - finance:片段
+- object: AGG-123
+  command: 发布成本核算参数版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-M1
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 起草人 ≠ 批准人（INV-131）
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-165#1
+  - finance:PRC-165#1(审批)
+  - finance:片段
+- object: AGG-123
+  command: 编制成本核算参数版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:片段
+- object: AGG-124
+  command: 发布资产类别与折旧政策版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-M1
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 起草人 ≠ 批准人（INV-131）
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-166#1
+  - finance:PRC-166#1(审批)
+  - finance:片段
+- object: AGG-124
+  command: 编制资产类别与折旧政策版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  draft_gap: true
+  a_source: group:finance
+  sources:
+  - finance:片段
+- object: AGG-125
+  command: 签字确认期初余额
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-M1
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 编制人 ≠ 签字人（ADR-0022 决定 11）
+  sensitive: true
+  a_source: group:finance
+  sources:
+  - finance:PRC-167#1
+  - finance:PRC-167#1(审批)
+  - finance:片段
+- object: AGG-125
+  command: 编制期初余额
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: true
+  a_source: group:finance
+  sources:
+  - finance:片段
+- object: AGG-126
+  command: 修正勾稽差异案
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:片段
+- object: AGG-126
+  command: 登记勾稽差异案
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:片段
+- object: AGG-126
+  command: 解释勾稽差异案
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:片段
+- object: AGG-126
+  command: 豁免勾稽差异案
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 处置人 ≠ 豁免确认人（INV-135）
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-169#1
+  - finance:PRC-169#1(审批)
+  - finance:片段
+- object: AGG-127
+  command: 登记口径转换规则版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:片段
+- object: AGG-128
+  command: 发布期末结转模板版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-M1
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 起草人 ≠ 批准人（INV-131）
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-100#8
+  - finance:PRC-100#8(审批)
+  - finance:片段
+- object: AGG-128
+  command: 起草期末结转模板版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-100#7
+  - finance:片段
+- object: AGG-129
+  command: 发布现金流量项目表版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-M1
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 起草人 ≠ 批准人（INV-131）
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-100#10
+  - finance:PRC-100#10(审批)
+  - finance:片段
+- object: AGG-129
+  command: 起草现金流量项目表版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-100#9
+  - finance:片段
+- object: AGG-130
+  command: 关闭费用事前申请
+  raci:
+    A:
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - SH-E3
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-170#5
+  - finance:片段
+- object: AGG-130
+  command: 批准费用事前申请
+  raci:
+    A:
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+  boundary:
+    limit_rule: AR-01
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+    extra_rules:
+    - AR-02
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-170#3(审批)
+  - finance:PRC-170#4
+  - finance:片段
+- object: AGG-130
+  command: 提交费用事前申请
+  raci:
+    A:
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - SH-E3
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 提交人 ≠ A（责任人即提交人按 AR-11 处理）
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-170#2
+  - finance:片段
+- object: AGG-130
+  command: 撤回费用事前申请
+  raci:
+    A:
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - SH-E3
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-170#7
+  - finance:片段
+- object: AGG-130
+  command: 标记费用事前申请已用尽
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  sensitive: false
+  draft_gap: true
+  a_source: group:finance
+  sources:
+  - finance:片段
+- object: AGG-130
+  command: 驳回费用事前申请
+  raci:
+    A:
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-170#6
+  - finance:片段
+- object: AGG-131
+  command: 处理账单差异
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  draft_gap: true
+  a_source: group:finance
+  sources:
+  - finance:PRC-171#5
+  - finance:片段
+- object: AGG-131
+  command: 归属差旅订单
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-171#2
+  - finance:片段
+- object: AGG-131
+  command: 批准差旅超标订单
+  raci:
+    A:
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+  boundary:
+    limit_rule: AR-01
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-173#2(审批)
+  - finance:PRC-173#3
+  - finance:片段
+- object: AGG-131
+  command: 提交过账候选
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-171#7
+  - finance:片段
+- object: AGG-131
+  command: 核对差旅月账单
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 核对人 ≠ PRC-75 发起该应付付款的人（INV-81 同类，提议）
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-171#4
+  - finance:片段
+- object: AGG-131
+  command: 登记差旅订单与月账单
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I:
+    - SH-E6
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-171#1
+  - finance:PRC-171#3
+  - finance:片段
+- object: AGG-131
+  command: 登记超标订单待审批
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-173#1
+  - finance:片段
+- object: AGG-131
+  command: 确认差旅账单应付
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-171#6
+  - finance:片段
+- object: AGG-131
+  command: 驳回差旅超标订单
+  raci:
+    A:
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-173#4
+  - finance:片段
+- object: AGG-132
+  command: 批准出差申请
+  raci:
+    A:
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+  boundary:
+    limit_rule: AR-01
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+    extra_rules:
+    - AR-02
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-172#3(审批)
+  - finance:PRC-172#4
+  - finance:片段
+- object: AGG-132
+  command: 提交出差申请
+  raci:
+    A:
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - SH-E3
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 提交人 ≠ A（责任人即提交人按 AR-11 处理）
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-172#2
+  - finance:片段
+- object: AGG-132
+  command: 撤回出差申请
+  raci:
+    A:
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - SH-E3
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-172#7
+  - finance:片段
+- object: AGG-132
+  command: 登记出差申请已同步
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-172#5
+  - finance:片段
+- object: AGG-132
+  command: 驳回出差申请
+  raci:
+    A:
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-172#6
+  - finance:片段
+- object: AGG-133
+  command: 发布出差补贴标准版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-M1
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 起草人 ≠ 批准人（INV-131）
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:PRC-174#1
+  - finance:PRC-174#1(审批)
+  - finance:片段
+- object: AGG-133
+  command: 编制出差补贴标准版本
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+      function: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  a_source: group:finance
+  sources:
+  - finance:片段
 roles:
   SH-C3:
     positions:
