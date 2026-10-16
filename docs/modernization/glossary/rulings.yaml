@@ -125,3 +125,37 @@ rulings:
     add_aliases:
       - {name: 商票, type: standard-zh}
     source: 用户 2026-10-16 ADR-0048 确认页选推荐（intent 2026-10-16-090004，one-architecture）：商业汇票作收款方式「商票」，不单独成对象
+  - op: promote
+    id: audit_subject_kind
+    confirmed: 2026-10-16（用户，R-1b P5 门禁）
+    source: 用户 2026-10-16 对 R-1b P5 新用语「审计对象类别」答「同意 (Recommended)」（intent 2026-10-16-061803-one-1a-next-4-同意-Recommended-问，one-1a-next-4 会话）
+    entry:
+      id: audit_subject_kind
+      zh: 审计对象类别
+      en: AuditSubjectKind
+      snake: audit_subject_kind
+      kind: state
+      bc: platform.audit
+      scope: domain
+      definition: 审计记录针对的对象的类别，与对象 ID 一起标识审计对象（subject_kind + subject_id）；取值 16 个对象类别 USER_ACCOUNT、EMPLOYEE、ORG_UNIT、EMERGENCY_ADMIN、ROLE、APPROVAL_TASK、APPROVAL_REQUEST、SYNC_RUN、LEGAL_ENTITY、LEGAL_ENTITY_ATTRIBUTION、TIMESHEET、WORK_CALENDAR_YEAR、NUMBERING_RULE、SOURCE_REFERENCE、SOURCE_REFERENCE_REFUSAL、AUTHORIZATION_REQUEST，加 3 个无对象类别 REQUEST（受访问控制的请求）、OPERATION（受方法级授权的操作）、LOGIN_ATTEMPT（未识别到人的登录尝试），无对象类别的对象 ID 为空；与外发投递的对象类别列名同义，各自有取值类型
+      standard_ref:
+      - architecture/proposals R-1b P5 卡第 11、13 节
+      confidence: medium
+      aliases: []
+      forbidden: []
+  - op: move_bc
+    from: [operations.budgeting]
+    to: operations.planning
+    source: ADR-0051（已采纳）决定 3：计划与预算合一，operations.budgeting 退役并入 operations.planning；盘点 P-059（one-architecture ADR_PENDING_INVENTORY）
+  - op: move_to_bc
+    ids: [agreement_type__consortium_agreement]
+    to: presales.opportunity
+    source: ADR-0051 决定 5：联合体协议在 presales.opportunity（投标的次级对象）；P-059
+  - op: move_to_bc
+    ids: [agreement_type__labor_dispatch_agreement, agreement_type__brokerage_agreement, agreement_type__lease_contract, agreement_type__professional_liability_insurance_policy]
+    to: procurement.subcontracting
+    source: ADR-0051 决定 5：劳务派遣协议、居间协议、租赁合同、职业责任保险单在 procurement.subcontracting（供方协议）；P-059
+  - op: move_to_bc
+    ids: [attendance]
+    to: organization.leave
+    source: 用户 2026-10-16 待决定收件箱 2026-10-16-one-glossary-bc-names 按推荐改名：词条「考勤与休假」改挂 organization.leave，该 bc 中文名改「考勤与休假」，原 organization.attendance 改「工作日历与标准工时」（intent 见该事项）
