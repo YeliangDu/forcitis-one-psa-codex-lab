@@ -212,6 +212,8 @@ tables:
     retention: {policy: 3y, job: platform.audit.entry.archive}
     lineage: {source: NEW}
     writers: [platform.audit]
+  # 批次区间不重叠、无缺口不设数据库约束：区间由作业按 (created_at, id) 推进产生，由 AuditArchiveJob.reconcile 对账（只比在线月份）；
+  # 分区摘除前由 drop_archived_audit_entry_partition 逐月核对批次条数之和。区间不重叠、无缺口由对账承担；已摘除月份的缺口，库内此后无法再核验。
   platform_audit.audit_archive_batches:
     role: LOG_APPEND_ONLY
     fk_exceptions:
