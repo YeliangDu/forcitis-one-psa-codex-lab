@@ -77,7 +77,7 @@ public class RegisterEmergencyAdmin {
         }
         events.publish(admin);
         audit.record(new AuditEntry("platform.identity.operations.emergency-admin.registered", null, null, AuditSubject.of(AuditSubjectKind.EMERGENCY_ADMIN, person.value()),
-                attestation.describe() + " loginName=" + loginName));
+                attestation.describe()));
         return new Outcome.Registered(generated.shown(), binding.usableCount());
     }
 }

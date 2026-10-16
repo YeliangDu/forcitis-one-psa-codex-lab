@@ -79,6 +79,12 @@ class JdbcIdempotentResponses implements IdempotentResponses {
     }
 
     @Override
+    public void holdUntilExpiry(UserId userId, String key) {
+        jdbc.sql("update platform_idempotency.idempotent_responses set updated_at = expires_at where user_id = :user and idempotency_key = :key and response_number is null")
+                .param("user", userId.value()).param("key", key).update();
+    }
+
+    @Override
     public int purgeExpired(Instant now) {
         return jdbc.sql("delete from platform_idempotency.idempotent_responses where expires_at <= :now").param("now", Timestamp.from(now)).update();
     }

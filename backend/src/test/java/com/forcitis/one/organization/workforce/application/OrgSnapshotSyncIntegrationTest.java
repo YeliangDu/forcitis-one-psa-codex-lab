@@ -21,6 +21,7 @@ import static com.forcitis.one.organization.workforce.domain.Fixtures.user;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -265,6 +266,22 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(registry.get("forcitis.organization.workforce.sync.runs").tag("status", "HELD").counter().count()).isGreaterThanOrEqualTo(2);
         assertThat(registry.get("forcitis.organization.workforce.sync.lag.seconds").gauge().value()).isBetween(0.0, 120.0);
         assertThat(events.stream(OrgSnapshotChanged.class)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-01 a control character in the reason of a release is replaced by a space before it reaches the audit text")
+    void releaseReasonLosesControlCharacters() {
+        orgSource.snapshot = tree(people(10).toArray(SourcePerson[]::new));
+        sync.execute(SyncTrigger.SCHEDULED, false);
+        orgSource.snapshot = tree(people(7).toArray(SourcePerson[]::new));
+        SyncResult held = sync.execute(SyncTrigger.SCHEDULED, false);
+
+        release.execute(held.syncRunId(), TestAccounts.account(9001L), "line one\nline\ttwo\rend", true, false);
+
+        org.mockito.ArgumentCaptor<AuditEntry> entry = org.mockito.ArgumentCaptor.forClass(AuditEntry.class);
+        verify(audit, atLeastOnce()).record(entry.capture());
+        assertThat(entry.getAllValues()).filteredOn(e -> e.action().equals("organization.workforce.sync-run.released")).singleElement()
+                .satisfies(released -> assertThat(released.detail()).startsWith("reason: line one line two end; ").doesNotContainPattern("\\p{Cntrl}"));
     }
 
     @Test

@@ -63,7 +63,7 @@ public class LoginWithSso {
         Optional<EmployeeProfile> employee = orgDirectory.findEmployeeByLogin(new LoginLookup.ByLoginName(loginName.value()));
         if (employee.isEmpty()) {
             return admission.reject(IdentityError.PLATFORM_IDENTITY_LOGIN_NAME_UNKNOWN, method, null,
-                    "no employee for login name " + loginName.value());
+                    "login name unknown");
         }
         Optional<IdentityError> refused = admission.check(employee.get());
         if (refused.isPresent()) {

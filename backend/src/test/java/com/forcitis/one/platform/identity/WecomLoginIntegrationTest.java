@@ -67,7 +67,8 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(recorded()).anySatisfy(entry -> {
             assertThat(entry.action()).isEqualTo("platform.identity.login.succeeded");
             assertThat(entry.actorId().value()).isEqualTo(accountOf(1001));
-            assertThat(entry.detail()).contains("method=WECOM_WORKBENCH").contains("address=127.0.0.1");
+            assertThat(entry.detail()).contains("method=WECOM_WORKBENCH").doesNotContain("address=").doesNotContain("agent=");
+            assertThat(entry.sourceAddress()).isEqualTo("127.0.0.1");
         });
         assertThat(recordedIndependently()).anySatisfy(entry -> assertThat(entry.action()).isEqualTo("platform.identity.login.failed"));
         assertThat(jdbc.sql("select last_login_address from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(1001))
@@ -107,6 +108,18 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(cookie(result, "SESSION")).isNull();
         assertThat(count("user_accounts")).isZero();
         verify(orgDirectory, never()).findEmployee(any());
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-01: an unbound WeCom user is audited as 'wecom user not bound', the WeCom user id never reaches detail")
+    void unboundWecomUserStaysOutOfDetail() throws Exception {
+        when(wecomGateway.resolveWecomUserId("c1", WecomEntry.WORKBENCH)).thenReturn(Optional.of(new WecomUserId("stranger-id")));
+        when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("stranger-id")))).thenReturn(Optional.empty());
+
+        login("c1", newState("WORKBENCH"), "WORKBENCH");
+
+        assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.login.failed")).singleElement()
+                .satisfies(entry -> assertThat(entry.detail()).contains("reason=wecom user not bound").doesNotContain("stranger-id"));
     }
 
     @Test

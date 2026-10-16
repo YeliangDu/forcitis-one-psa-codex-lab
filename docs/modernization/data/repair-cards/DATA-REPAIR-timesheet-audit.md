@@ -76,11 +76,50 @@ B 部分（one-1a-next-4）允许改动：
 - 证据：TS `LoginAdmission.java:108-114`（`describe`，被 `:75,98` 调用）；`AuditSearch.java:16-21`；`OperationAttestation.java:32-34`；`AuditEntry.java:16-23`；`data-classification.txt` 无这四列；OV：`one-1a-par-log-ip` 已合入只改了日志，P5 同行仍在（P5 :115）；U-7b 的带到期日例外在 `backend/architecture/` 未找到登记。
 - 改法：
   1. `LoginAdmission.describe` 去掉 `address=` 与 `agent=`，IP 只留 `source_address`；`AuditSearch` 的 `sourceAddress` 条件同样不再拼进 `detail`（待核：检索与导出审计是否在本卡范围，ADR-0043 第 4 项第 5 条原文为准）。
-  2. U-7b（`OperationAttestation` 把操作人、见证人姓名写进 `detail`）未定：按 ADR-0043 写带到期日例外登记（owner、到期日、指向 U-7b），到期日由用户给（第 5 节待决 3）。
+  2. U-7b 用户已答（2026-10-16）「改写员工 ID，阅读时再解析姓名」：`OperationAttestation` 的操作人、见证人改写员工 ID（运维命令入参 `--operator`、`--witness` 改为员工 ID），`detail` 记 `operatorId=`、`witnessId=`；**不建**例外登记与到期日守护（one-data 更正，见 `reviews/DATA-REPAIR-timesheet-audit-TB-01-02.md` 末尾）。运维面（INFRA_RUNBOOK §6、C-5、PREDEPLOY C-13）已同步，交 one-ops 复核。
   3. 本卡内写「允许写入内容清单」草稿（`detail`、`before_text`、`after_text`、`change_reason`：字段名、来源、是否可能含个人信息；U-7(b) 允许 `before_text` / `after_text` 记被变更字段自身的 L2 个人信息原值），**待核**并交用户确认；四列的访问级别与 PI 标记登记待用户（第 5 节待决 2）与 ADR-0043 实施 PR（文件仍三段格式，U-13）。
 - 预期表结构 diff：无 DDL 变化（Java、登记文件变化）。
-- 验收要点：登录成功与失败后 `detail` 不含 `address=`、`agent=`、IP 串；`source_address` 仍有值；例外登记含到期日；静态扫描禁止写入点拼 `address=`、`getMessage()` 直写（OV 建议新增规则 5，守护归 one-quality）。
+- 验收要点：登录成功与失败后 `detail` 不含 `address=`、`agent=`、IP 串；`source_address` 仍有值；U-7b 例外已取消，无例外登记；静态扫描禁止写入点拼 `address=`、`getMessage()` 直写，姓名与联系方式在审计文本中一律不允许（OV 建议新增规则 5，守护归 one-quality）。
 - 依据：门禁 C4、E1；ADR-0043 第 4 项第 1、5 条、U-7；ADR-0026 第 7 项第 3 条。
+- **数据设计（one-1a-next-4 补，待 one-data 签）**（基线：`origin/claude/one-1a-next-4-data-pr2`；写入点以 `git grep "new AuditEntry("` 与 `AuditEntry.withChange` 核实，`new AuditEntry(` 共 41 处、35 个文件，`withChange` 仅 `AuditDomainEvents.java:56` 一处）
+  - **① U-7b 例外登记：已取消**（用户答改写员工 ID，不再有例外；`audit-detail-exceptions.txt` 与到期日守护不做）。原例外说明已删。
+    - 守护：`AuditDetailGuardTest`（`backend/src/test/java/com/forcitis/one/`，源码扫描）：`new AuditEntry(`、`.reject(`、`new Outcome.Failed(` 的实参与 `describe()` 方法体里，不得出现 `address=`、`agent=`、`loginName=`、`operator=`、`witness=` 拼接，`.address()`、`userAgent()`、`getRemoteAddr()`、`loginName`、`wecomUserId`，不得把登录名、企业微信 ID 拼在 `login name`、`WeCom user id` 之后；没有例外。
+  - **② 允许写入内容清单**（`detail`、`before_text`、`after_text`、`change_reason`；PI 栏按 ADR-0043 口径：`PI` = 含直接标识或可能含；`代理键` = 只含自有 UUID，仍是 PI 但按第 4 项第 2 条允许；`否` = 无个人信息）
+
+| # | 列 | 写入点（类:行） | 来源与示例形态 | 个人信息 | 处置 |
+|---|---|---|---|---|---|
+| 1 | detail | `GetOrgUnit:42`、`GetLegalEntityAttribution:50`、`ReplaceAccountRoles:67`、`UpdateRole:63`、`DeleteRole:49`、`ConfirmIdentity:42`、`Logout:35`、`Retraction:97`、`StartApproval:73`、`ReassignTask:51`、`ListAllTasks:40`、`OwnAttributionGuard:56` | 代码内固定英文短语，如 `outside the scope of the caller`、`nobody changes their own roles`、`logout by the user`、`not the initiator`、`reassign`、`list`、`the account names no employee`、`own legal entity attribution` | 否 | 允许 |
+| 2 | detail | `ExitAdministratorMode:42`、`ListAllTasks:43`（`overdue only` 或空） | 空值或固定短语 | 否 | 允许 |
+| 3 | detail | `TaskGuard:53` | 方法入参 `action`（调用方写死的动作名，如 `claim`） | 否 | 允许 |
+| 4 | detail | `CorrectLegalEntityAttribution:51`、`EnterAdministratorMode:79`、`LoginAdmission:88`、`SessionGuardFilter:92`、`PurgeExpiredSessions:42`、`HandleOrgSnapshotChange:114` | 固定短语加权限码、时刻或枚举：`the caller lacks <权限码>`、`until <Instant>`、`administrator mode until <Instant>`、`expired at <Instant>`、`cause=<枚举>`、`role=<角色码> cause=separation` | 否 | 允许 |
+| 5 | detail | `HandleOrgSnapshotChange:91`、`SessionRevocation:23`、`EnterAdministratorMode:87` | 调用方传入的固定原因短语（`separated in the organisation snapshot`、`the account was disabled`、`the roles of the account were replaced`）；`EnterAdministratorMode:87` 取 `WecomIdentification.Outcome.Failed.reason()`（固定短语，但见第 14 行） | 否（`EnterAdministratorMode:87` 随第 14 行修后为否） | 允许 |
+| 6 | detail | `ReconcileEmergencyAdmins:66` | `the emergency account of user <UUID> is bound to …`；`only n usable emergency account(s) …` | 代理键 | 允许 |
+| 7 | detail | `AccessDeniedAudit:77`、`PrivilegedRequestAudit:44` | `RequestLabel.of`：`METHOD <路由模板> key=<规范 UUID>`（只取规范 UUID 路径变量，不取原路径）；或 `类名.方法名` | 代理键 | 允许 |
+| 8 | detail | `SearchAuditEntries:40`、`ExportAuditEntries:51` | `returned=n filter=actorId=<UUID>,action=…,subjectId=<UUID>,from=…`（`AuditSearch.describe()`） | 代理键；其中 `sourceAddress=<IP>` 为 PI 直接标识 | 允许，但 `sourceAddress` 条件须删出 `describe()`（ADR-0043 第 4 项第 5 条、U-7(c)） |
+| 9 | detail | `AuditDomainEvents:55`（事件型审计） | 事件实现 `AuditDetail` 时取 `auditDetail()`，目前仅 `WorkCalendarLockedDaysChanged`：`<日期> <前状态> -> <后状态>; …`；否则 `by <系统执行者名称>`（`SystemActors`，登记在 `system-actors.txt`）；人为执行者为空 | 否 | 允许；新增 `AuditDetail` 实现须在卡上追加一行 |
+| 10 | detail | `LoginAdmission:76`、`:100`（`describe()`，`:108-114`） | `method=<登录方式> address=<IP> reason=<原因> agent=<浏览器标识，截至 200 字>` | **PI**（IP；`agent=` 是否属个人信息见第 5 节待决 2） | 禁写 `address=`、`agent=`；只留 `method=…` 与 `reason=…`；IP 仍在 `source_address` 列 |
+| 11 | detail | `BrowserIdentity:72`、`:81` | `risk=HIGH identifier=<哈希前 8 位> …`；`outcome=SKIPPED\|CONFIRMATION_REQUIRED reason=<枚举> identifier=<前 8 位>` | 不确定：`identifier_hash` 登记为 PI（ADR-0043 第 3 项表），8 位前缀是其截断 | 建议允许（截断后无法还原、不能单独指向某人），请 one-data 确认 |
+| 12 | detail | `LoginAdmission:100` 的 `reason`，来自 `LoginWithSso:65-66` | `no employee for login name <登录名>`（登录名由请求方输入，可能是任何字符串） | **PI**（登录名，ADR-0043 第 3 项表 U-2） | 禁；改 `login name unknown`。**本项不在 ADR 第 4 项第 5 条三处之列，属本次核实新发现** |
+| 13 | detail | `LoginAdmission:100` 的 `reason`，来自 `WecomIdentification:57-58`（经 `LoginWithWecom:28`） | `no employee for WeCom user id <企业微信 ID>` | **PI**（企业微信 ID） | 禁；改 `wecom user not bound`。**新发现** |
+| 14 | detail | `RegisterEmergencyAdmin:79` | `operator=<姓名> witness=<姓名> loginName=<登录名>` | 代理键（姓名已改员工 ID） | `loginName=` 删，主体已是应急账号 ID（`AuditSubject`），读时再解析。**新发现** |
+| 15 | detail | `GrantRoleByOperations:68`、`EnableEmergencyAdmin:43`、`DisableEmergencyAdmin:50`、`ResetEmergencyAdminCredentials:49` | `OperationAttestation.describe()`：`operator=<姓名> witness=<姓名>`（`GrantRoleByOperations` 另加 `role=<角色码>`）；姓名由命令行/运维入参，正则 `[\p{L}\p{N}][\p{L}\p{N} ._-]{0,63}` | 代理键（员工 ID） | 改写员工 ID：`operatorId=<UUID> witnessId=<UUID>` |
+| 16 | detail | `ForceUserLogout:67` | `forced logout: <原因>`，原因由人填，去控制字符，1 至 200 字（`MAX_REASON_LENGTH`） | 可能（人填自由文本） | 允许，与 `change_reason` 同口径：只提示不拦截（ADR-0043 第 4 项第 1 条表） |
+| 17 | detail | `RecordSyncRunRelease:38`（调用方 `ReleaseSyncRun:67-70`） | `reason: <人填原因>; session mode: …; held: <UUID 列表>; applied: <UUID 列表>; remaining super_admin: <数>` | 可能（人填原因）；其余代理键与计数 | 允许；原因无长度上限，超 2000 字 `AuditEntry` 构造会抛 `IllegalArgumentException`，见「拿不准」 |
+| 18 | change_reason | `AuditDomainEvents:56`（`withChange(reason, null, null)`，唯一调用） | 事件实现 `Reasoned` 时取 `reason().value()`：目前 `SyncRunReleased`、`LegalEntityAttributionCorrected`，人填自由文本 | 可能 | 允许，只提示不拦截（U-7(b)） |
+| 19 | before_text / after_text | 无（全库唯一写入点 `AuditDomainEvents:56` 写 `null, null`） | 现在不写 | — | **现在一律不得写非空值**；将来写入按 U-7(b)：被变更字段自身的 L2 个人信息原值可写，L3 及以上与 `SPI` 不记，并在本表追加一行 |
+
+  - 清单共 19 行（`detail` 17 行、`change_reason` 1 行、`before_text` / `after_text` 合 1 行）；覆盖全部 41 处 `new AuditEntry(`。所有写入点另受 `AuditEntry` 构造的既有限制：每段至多 2000 字，含 `password|secret|token|…=` 样式文本即拒绝（`AuditEntry.java:15-25`）。
+  - **登记四列分级**（建议，待用户第 5 节待决 2 与 ADR-0043 实施 PR 的四段格式；落地前按本表视为已登记，C4 末句）：
+      `platform_audit.audit_entries.detail | INTERNAL | PI | 用途：说明动作的上下文；不得含直接标识（IP、登录名、企业微信 ID）与人名，操作人、见证人只记员工 ID`
+      `platform_audit.audit_entries.change_reason | INTERNAL | PI | 用途：人填的变更理由；只提示不拦截`
+      `platform_audit.audit_entries.before_text | INTERNAL | PI | 用途：被变更字段的原值；仅 L2 个人信息原值，L3 及以上与 SPI 不记`
+      `platform_audit.audit_entries.after_text | INTERNAL | PI | 用途：被变更字段的新值；同 before_text`
+  - **守护锁定**（三层）：① 上述 `AuditDetailGuardTest`（拼接点禁字）；② 新增 `AuditWritePointsGuardTest`（沿 `ApplicationIntegrationTest` 对 `public-endpoints.txt` 的双向快照办法）：`src/main` 中 `new AuditEntry(` 与 `withChange(` 的调用点文件集合（35 个）须与新建 `backend/architecture/audit-text-writers.txt`（`<路径> | <本表行号> | <个人信息：否\|代理键\|可能\|PI>`）逐行一致，新增写入点必须登记其所属行；③ 测试（`TB-01 …` 开头；与 `LoginAuditDetailTest` 重复故不另建 `LoginAuditDetailIT`，并入 `SsoLoginIntegrationTest`、`WecomLoginIntegrationTest`、`AuditSearchDescribeTest`）：登录成功、失败、拒绝访问后 `detail` 不含 `address=`、`agent=`、IP 串、登录名，`source_address` 有值；检索与导出审计 `detail` 不含 `sourceAddress=`。
+  - **拿不准的点**（请 one-data 裁）：(1) 已取消：U-7b 例外取消后不再有到期日，`AuditDetailGuardTest` 不读系统日期。(2) 第 12、13、14 行是本次读代码新发现的直接标识写入，ADR-0043 第 4 项第 5 条只列三处，是否并入本条或另起条目，请裁。(3) 第 11 行哈希前 8 位按「允许」写的，属判断。(4) 第 17 行 `ReleaseSyncRun` 的人填原因无长度限制，超 2000 字时审计构造抛异常发生在放行之后，建议在 `ReleaseSyncRun` 入口限 1 至 200 字（与 `ForceUserLogout` 一致），本卡未列此改法，请裁是否加。
+
+- RULING-DR-TB01-1（one-1a-next-4，2026-10-16）：用户答 U-7b「改写员工 ID，阅读时再解析姓名」后，运维命令 `--operator`、`--witness` 入参改为员工 ID；5 个验收文件中这两个参数的取值随之机械改为员工 ID，断言未动。
+
+- 后续小卡 DR-TB01-FU1（one-data 2026-10-16 准许移出 PR-2，交 one-1a-next-5）：运维证明的操作人、见证人员工 ID 须为存在员工（不存在 → 用法错误退出码 2，不写审计）；需在 5 个验收文件造出操作人 / 见证人员工（测试代理按 Acceptance-Ruling 改）。PR-2 暂未校验存在，「阅读时再解析姓名」可能遇到解析不到的 ID。落地时须统一退出码：RUNBOOK 现写格式错误为退出码 1，本卡写不存在为 2。
 
 #### TB-02　IR-1　高（OV 确认）　整份应答正文落库 24 小时，无分级、无内容边界、无长度上限
 - 问题：`IdempotencyFilter` 对所有非 `/sessions`、`/login-states` 的 POST 保存完整应答正文（黑名单），`response_text` 是任意接口应答副本；`data-classification.txt` 无该列。
@@ -93,6 +132,54 @@ B 部分（one-1a-next-4）允许改动：
 - 预期表结构 diff：`platform_idempotency.idempotent_responses`：新增 `response_text` 长度 CHECK。
 - 验收要点：白名单外接口不写 `response_text`；白名单内接口重放一致；超长应答不被存且有告警。
 - 依据：门禁 C4、O8；ADR-0043 第 4 项；ADR-0026 第 7 项第 3 条。
+- **数据设计（one-1a-next-4 补，待 one-data 签）**（基线同上；入口 `IdempotencyFilter.java:64-72`，范围判定 `IdempotencyScope.applies`，OpenAPI 的 `Idempotency-Key` 参数也由它决定（`OpenApiProblems.java:64`），所以「标了幂等」即 `applies` 为真）
+  - **① N = `response_text` 长度上限：N = 32768（字符，`char_length`）**
+    - 现状核实：过滤器对带 `Idempotency-Key` 且状态码小于 500 的应答全量保存（含 4xx 的 `problem+json`）。`@PostMapping` 共 34 个，其中 `/sessions…`（8 个）与 `/login-states`（1 个）被范围排除（实际是 `path.contains("/sessions")`，含 `AdministratorModeController` 的 `sessions:enter/exit-administrator-mode`），余 25 个在范围内；其中 3 个 `SourceReferenceController`、`:reconcile`、`SyncRunController :release` 按下面第 ② 条移出白名单，**白名单 20 个**。
+    - 白名单内各接口最大应答（按响应 record 字段上限估算，未起容器实测；估算依据是字段约束，不是样例）：
+      `RoleResponse`（`POST /roles`）最大：`code` ≤ 64（`Role.CODE`）、`name` ≤ 100（`Role.java:173`）、`permissionCodes` 现有 27 个权限码合计 1111 字符（含引号逗号，`git grep` 全部权限码常量算得），其余字段约 150，**合计约 1.4K**；这是白名单内现在最大的；
+      `NumberingRuleResponse`（含 `pending`，3 个 UUID、4 个日期、模板串）约 0.7K；
+      `LegalEntityAttributionResponse` 每个任职期约 118 字符（UUID 36 + 2 个日期 + 键名），周期数无上限，N 可容约 270 个；
+      `LegalEntityResponse`（`name` ≤ 100）约 0.3K；`DecisionResponse`、`AwaitingConfirmationResponse` 约 0.1K；4xx `problem+json` 约 0.35K（`ProblemDetails` 文本按 `ErrorKind` 固定，无请求值回显）；其余接口 204 无正文。
+    - 取值：现有最大约 1.4K，取 N = 32768（约 23 倍余量）。余量理由：权限码目录增长到约 500 个仍容得下（500 × 70 ≈ 35K 临界，届时本卡守护测试先失败，提醒复核，而不是静默放大）；任职期史以百计也容得下。N 写在 `ck_idempotent_responses_response_text`：`CHECK (char_length(response_text) <= 32768)`，并在 `IdempotencyFilter` 用同一常量（`MAX_RESPONSE_LENGTH = 32768`），测试断言两处相等。
+    - 超限（one-data 裁定，2026-10-16）：不截断、不存，**不释放幂等键**（行保持「处理中」，`holdUntilExpiry` 把 `updated_at` 置为 `expires_at`，使重试在 24 小时到期前一直得到处理中冲突 409，且不被「处理中超时 2 分钟后接管」重新执行已提交的写操作）；打 `ALERT platform.idempotency response of <接口模板> exceeds 32768 characters: not stored`，`forcitis.platform.web.idempotency.response.oversize` 计数加一；应答照常发给调用方。
+    - 守护：新增测试 `IdempotentResponseSizeTest`（`TB-02 …` 开头）：为每个白名单接口的响应类型构造字段取上限的夹具（`name` 100 字、`permissionCodes` 取当前全部权限码、任职期取 100 个），序列化后长度须小于 N 的一半。
+  - **② 白名单登记处与形式：新建 `backend/architecture/idempotent-endpoints.txt`**
+    - 选它不选别的：`data-classification.txt` 登记列、`archive-columns.txt` 登记归档列、`data-access-registry.yaml` 登记表与写入者，都不是接口；`sensitive-response-exceptions.txt` 是出参字段的例外，语义相反（它登记「可以暴露」，这里要登记「可以保存」）。形式与对象最接近的是 `public-endpoints.txt`（接口集合，`ApplicationIntegrationTest` 做双向快照比对），沿用它的行格式：`METHOD 路径模板  # 应答类型；核对结论`。
+    - `IdempotencyScope.applies(method, path)` 改为：方法为 POST 且路径匹配本文件某行的模板（用 Spring `PathPatternParser`，模板里 `{x}` 与实际路径变量对应）；不在文件里的接口，即使带 `Idempotency-Key` 也直接放行不保存，OpenAPI 也不声明该参数。原「`/sessions`、`/login-states`」两条排除规则作废，由「不在清单」代替。
+    - 白名单（20 行，`#` 后为应答类型与核对结论）：
+
+```
+POST /api/v1/organization/legal-entities  # LegalEntityResponse(legalEntityId, code, name, status); 无个人信息
+POST /api/v1/organization/org-unit-legal-entities/{orgUnitId}:end  # LegalEntityAttributionResponse(kind, subjectId, periods[legalEntityId, 日期]); 全为 UUID 与日期
+POST /api/v1/organization/employee-legal-entities/{employeeId}:end  # 同上
+POST /api/v1/organization/org-unit-legal-entities/{orgUnitId}:correct  # 同上
+POST /api/v1/organization/employee-legal-entities/{employeeId}:correct  # 同上
+POST /api/v1/platform/authorization-requests/{requestId}:confirm  # 204 无正文
+POST /api/v1/platform/authorization-requests/{requestId}:reject  # 204 无正文
+POST /api/v1/platform/user-accounts/{userId}:force-logout  # 204 无正文
+POST /api/v1/platform/roles  # RoleResponse(roleId, code, name, kind, enabled, accessScope, administrative, permissionCodes); 201 或 202 AwaitingConfirmationResponse(requestId); 无个人信息
+POST /api/v1/platform/user-accounts/{userId}:replace-roles  # 204 或 202 AwaitingConfirmationResponse(requestId)
+POST /api/v1/platform/user-accounts/{userId}:enable  # 204 无正文
+POST /api/v1/platform/user-accounts/{userId}:disable  # 204 无正文
+POST /api/v1/platform/numbering-rules/{documentType}:confirm  # NumberingRuleResponse; authorId、confirmedBy 为用户 UUID(代理键)
+POST /api/v1/platform/numbering-rules/{documentType}:confirm-finance  # 同上
+POST /api/v1/platform/approval-tasks/{taskId}:claim  # 204 无正文
+POST /api/v1/platform/approval-tasks/{taskId}:release  # 204 无正文
+POST /api/v1/platform/approval-tasks/{taskId}:decide  # DecisionResponse(instanceId, status)
+POST /api/v1/platform/approval-tasks/{taskId}:return  # DecisionResponse
+POST /api/v1/platform/approval-tasks/{taskId}:transfer  # 204 无正文
+POST /api/v1/platform/approval-tasks/{taskId}:reassign  # 204 无正文
+```
+
+    - **移出白名单的 5 个**（保留在下面第 ③ 条清单里，写明原因）：`POST …/organization/sync-runs:reconcile`（`OrgReconciliationResponse` 六个 `List<String>` 随人员与组织数线性增长，单条约 92 字符，没有上限；它本是对账计算，重复调用天然无副作用，不需要幂等）；`POST …/organization/sync-runs/{syncRunId}:release`（`SyncRunResponse.heldSeparations` 是 UUID 列表，无上限，每个约 40 字符；重复发送已由状态判定挡住：非 `HELD` 返回 `NotHeld`）；`POST …/platform/source-references`、`:confirm`、`:reject`（`SourceReferenceResponse.sourceId` 当 `sourceObjectKind=EMPLOYEE` 时是外部系统的员工编号，等同工号类直接标识，ADR-0043 第 3 项表 U-2，不应落库 24 小时；见「拿不准」）。
+  - **③ 「应答不含个人信息直接标识与 SENSITIVE 列」接口清单与核对办法**
+    - 清单：范围内全部 25 个 POST，逐个给结论（25 行：白名单 20 + 移出 5）：白名单 20 个见上；移出 5 个（`:reconcile` 无界、`:release` 无界、`source-references` 三个含外部员工编号）；范围外 9 个（`/sessions…` 8 个 + `/login-states` 1 个，应答含会话与凭据材料，本来就不存，不入清单）。
+    - 核对办法（守护测试，不靠人工）：新增 `IdempotentEndpointGuardTest`（`backend/src/test/java/com/forcitis/one/`）：(1) 用反射枚举全部 `@PostMapping` 接口，算出 `IdempotencyScope.applies` 为真的集合，与 `idempotent-endpoints.txt` 的行集合双向一致，多一行少一行都失败；(2) 对每个白名单接口的返回类型递归展开 record 组件（含 `List<…>` 泛型实参、嵌套 record、`ResponseEntity<…>` 与 `ResponseEntity<?>` 的各分支所用类型），任一组件名（转 snake_case）命中 `data-classification.txt` 中 `SENSITIVE`/`RESTRICTED` 列名，或命中直接标识名单（`display_name`、`email`、`wecom_user_id`、`employee_code`、`login_name`、`source_address`、`recipient_codes`；ADR-0043 实施后改读 `PI` 标记列并排除代理键），即失败；现有 `SensitiveColumnExposureGuardTest` 只看顶层 `*Response` 记录的字段，不展开嵌套，所以不够用；(3) 每个白名单接口的应答类型必须在清单行注释里点名，注释与实际返回类型不符失败。
+    - 登记 `response_text`：`platform_idempotency.idempotent_responses.response_text | INTERNAL | PI | 用途：重放幂等请求的第一次应答；正文仅限白名单接口，不含直接标识，可含自有 UUID（代理键仍是个人信息，ADR-0043 第 4 项第 2 条）`（保守取 PI，OV 建议；文件仍三段格式时，第二维写在本卡）。
+    - 同表其余文本列随 TB-03 处理，本条不动。
+  - **拿不准的点**（请 one-data 裁）：(1) N 为估算值，未起容器实测；`IdempotentResponseSizeTest` 落地后才有实测数。(2) 把 `:reconcile`、`:release`、`source-references` 三类移出白名单会改变它们对 `Idempotency-Key` 的行为（带键请求不再重放），如要保留幂等，只能给无界应答设上限，请裁。(3) 超限「不存、告警、仍返回应答」是我对卡上「失败并告警」的解读，若要求返回错误则写操作已提交的情况下会误导调用方。(4) `sourceId` 按外部员工编号论是判断，`data-classification.txt` 里没有登记它。
+
+- 超限计数器名：`forcitis.platform.web.idempotency.response.oversize`（NamingSurfaceTest G46 要求以声明模块 `platform.web` 开头，one-data 2026-10-16 认可以实现为准）。
 
 #### TB-03　IR-2 + IR-3 + IR-4　中　幂等表的登记、格式与成对约束
 - 问题：注册表登记 `INSERT_DELETE`，实际 `finish` 有条件更新；`request_hash`、`idempotency_key`、`response_number` 无格式、长度、范围约束；「处理中」状态四列无成对约束。

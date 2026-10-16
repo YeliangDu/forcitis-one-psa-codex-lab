@@ -58,8 +58,8 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ByteArrayOutputStream err = new ByteArrayOutputStream();
         List<String> all = new ArrayList<>(List.of(arguments));
-        all.add("--operator=acceptance-operator");
-        all.add("--witness=acceptance-witness");
+        all.add("--operator=01900000-0000-7000-8000-00000000a001");
+        all.add("--witness=01900000-0000-7000-8000-00000000a002");
         int exit = operations.run(new DefaultApplicationArguments(all.toArray(String[]::new)), new PrintStream(out, true, StandardCharsets.UTF_8),
                 new PrintStream(err, true, StandardCharsets.UTF_8));
         return new Outcome(exit, out.toString(StandardCharsets.UTF_8), err.toString(StandardCharsets.UTF_8));
