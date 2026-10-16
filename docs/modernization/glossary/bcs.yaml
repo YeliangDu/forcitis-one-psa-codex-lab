@@ -15,7 +15,7 @@ bcs:
   business_owner: 用户兼任
   description: "经营子域"
 - id: operations.planning
-  zh: 战略与经营计划
+  zh: 经营计划与预算
   subdomain: operations
   kind: bc
   business_owner: 用户兼任
@@ -141,7 +141,7 @@ bcs:
   business_owner: 用户兼任
   description: "知识子域"
 - id: km.knowledge
-  zh: 知识资产与 AI 赋能
+  zh: 知识管理
   subdomain: km
   kind: bc
   business_owner: 用户兼任
@@ -159,13 +159,13 @@ bcs:
   business_owner: 用户兼任
   description: ""
 - id: organization.attendance
-  zh: 考勤与休假
+  zh: 工作日历与标准工时
   subdomain: organization
   kind: bc
   business_owner: 用户兼任
   description: "工作日历年度与标准工时版本；考勤记录、请假、假期余额、加班在 organization.leave（D-5）"
 - id: organization.payroll
-  zh: 假勤薪酬
+  zh: 薪酬与激励
   subdomain: organization
   kind: bc
   business_owner: 用户兼任
@@ -337,7 +337,7 @@ bcs:
   business_owner: 用户兼任
   description: "检查计划、检查、检查表模板、外部检测；与交付执行、质量与认可并列，位于二者下游（D-3）"
 - id: organization.leave
-  zh: 请假与加班
+  zh: 考勤与休假
   subdomain: organization
   kind: bc
   business_owner: 用户兼任

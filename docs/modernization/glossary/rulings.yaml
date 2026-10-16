@@ -148,3 +148,7 @@ rulings:
     ids: [agreement_type__labor_dispatch_agreement, agreement_type__brokerage_agreement, agreement_type__lease_contract, agreement_type__professional_liability_insurance_policy]
     to: procurement.subcontracting
     source: ADR-0051 决定 5：劳务派遣协议、居间协议、租赁合同、职业责任保险单在 procurement.subcontracting（供方协议）；P-059
+  - op: move_to_bc
+    ids: [attendance]
+    to: organization.leave
+    source: 用户 2026-10-16 待决定收件箱 2026-10-16-one-glossary-bc-names 按推荐改名：词条「考勤与休假」改挂 organization.leave，该 bc 中文名改「考勤与休假」，原 organization.attendance 改「工作日历与标准工时」（intent 见该事项）
