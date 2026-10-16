@@ -34,7 +34,8 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * Audit entries older than the online period (3 years) are written to the archive store in batches, in (created_at, id) order and only as a prefix of
  * the entries that all qualify, so a late-written old entry is never skipped; the position is a moment and an id, never an id alone. A batch counts as archived when the vault confirmed the
- * object and the batch row is saved (the progress). Online rows are kept: the table refuses DELETE (G34), and removing them needs
+ * object and the batch row is saved (the progress). An old entry written after the archive passed its moment is never archived and shows only as a
+ * reconciliation alert, so a migration of old entries must be loaded before the archive position moves past their dates. Online rows are kept: the table refuses DELETE (G34), and removing them needs
  * its own decision. The archive is kept by the bucket's WORM retention; the application never deletes it.
  */
 @Component
