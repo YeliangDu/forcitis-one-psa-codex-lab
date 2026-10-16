@@ -449,6 +449,8 @@ event_policies:
     triggers:
       - {type: time, name: "预算期届满（B-18 向 platform.scheduling 登记，幂等键 = 聚合 ID + 到期时点）"}
     stages: []
+    primary_object: OBJ-100
+    primary_object_note: "预算账户是 OBJ-100 的类型「预算」"
     support: "B-18 预算期届满的定时例行处理：只有定时触发（无对象状态），结局（预算账户已关闭）不造 VS-09.3 的退出条件（OBJ-100 新版本）（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: B-18
     migration: "迁入不触发（ADR-0036 M7）；迁入时已届满的预算账户按迁入对账核对状态，不回放关闭"

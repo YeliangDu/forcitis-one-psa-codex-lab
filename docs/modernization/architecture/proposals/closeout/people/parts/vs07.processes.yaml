@@ -25,6 +25,8 @@ processes:
       - {type: human, name: "人力新建或修改职位"}
       - {type: human, name: "人力更正法人归属"}
     stages: []
+    primary_object: OBJ-55
+    secondary_objects: [OBJ-54, OBJ-58]
     support: "B-13 主数据维护：法人主体、组织单元、法人归属、职位目录条目的维护，结局不造任何阶段的退出条件（职位「启用」只是 VS-07.1 的进入条件，判据按退出条件归段），服务多条价值流（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: B-13
     human_orchestration: false
@@ -1233,6 +1235,8 @@ event_policies:
       - {type: event, name: "任职已变更（调岗）", event: 任职已变更, bc: B-13}
       - {type: event, name: "组织单元已调整", event: 组织单元已调整, bc: B-13}
     stages: []
+    primary_object: none
+    primary_object_note: "外部同步（推送员工与组织到差旅服务商），不改任何业务对象状态"
     support: "行政支撑：员工与组织的单向同步，服务差旅预订；四个触发分属 VS-07.3 退出、VS-13.6 退出、任职版本变更、组织单元调整，无共同阶段，不在客户或员工价值流的阶段门上（S-31 SQ-31；STAGE_ALIGN.md）"
     owner_bc: B-13
     basis: S-31 SQ-31（one-architecture）：platform.integration 在 L0，不能订阅 B-13（S-22 不采用平台订阅业务事件），故由 B-13 订阅本 BC 事件并经既有边 B-13 → platform.integration 推送

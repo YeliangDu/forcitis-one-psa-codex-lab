@@ -15,6 +15,7 @@ processes:
     name: 用印申请与用印登记
     type: business
     stages: []
+    primary_object: OBJ-113
     support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people
@@ -138,6 +139,7 @@ processes:
     name: IT 需求工单
     type: business
     stages: []
+    primary_object: OBJ-114
     support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people
@@ -276,6 +278,7 @@ processes:
     name: IT 资产领用
     type: business
     stages: []
+    primary_object: OBJ-115
     support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people
@@ -391,6 +394,7 @@ processes:
     name: IT 资产调拨
     type: business
     stages: []
+    primary_object: OBJ-115
     support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people
@@ -471,6 +475,7 @@ processes:
     name: IT 资产归还
     type: business
     stages: []
+    primary_object: OBJ-115
     support: "B-31 资产归还：离职生效（Separated）触发的归还待办只是 VS-13.6 退出事件的反应，另有资产管理员人工登记触发（在职换机、收回）；结局不造 VS-13.6 的任一退出条件（人员已离职、参保减员、劳动合同已终止），不挂阶段（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: B-31
     group: people
@@ -539,6 +544,8 @@ processes:
     name: IT 资产报修与维修登记
     type: business
     stages: []
+    primary_object: OBJ-115
+    primary_object_note: "AGG-121 维修单是 OBJ-115 的维修工单子生命周期"
     support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people
@@ -605,6 +612,7 @@ processes:
     name: 员工活动类申请（周年贺卡、节日活动、创新项目发布）
     type: business
     stages: []
+    primary_object: OBJ-116
     support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people

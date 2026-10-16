@@ -19,6 +19,7 @@ processes:
       - {type: time, name: "每日拉取企业微信打卡记录（platform.scheduling 定时）"}
       - {type: human, name: "人力修复人员对照后重新拉取"}
     stages: []
+    primary_object: OBJ-70
     support: "B-27 考勤原始记录的导入与补卡，是月度考勤确认（PRC-118）的输入，结局（考勤已导入、补卡已记录）不造 VS-13.1 的任一退出条件（月度考勤已锁定、请假已汇入、加班已汇入）（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: B-27
     human_orchestration: false
@@ -492,6 +493,7 @@ processes:
     triggers:
       - {type: human, name: "人力按管理层要求编制激励方案版本"}
     stages: []
+    primary_object: OBJ-74
     support: "B-15 激励方案版本的配置维护，结局（已生效）不造 VS-13.2 的退出条件（激励方案「生效」是 VS-13.2 的进入条件；退出是评估已确认、奖金已核定）（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: B-15
     human_orchestration: true
@@ -1151,6 +1153,7 @@ single_aggregate:
     aggregate: AGG-68
     owner_bc: B-14
     stages: []
+    primary_object: OBJ-28
     support: "B-14 工作日历与标准工时版本的配置维护，结局不造任何阶段的退出条件（工作日历「已维护」是 VS-13.1 的进入条件，判据按退出条件归段）（STAGE_ALIGN.md 归段判据第 6 项）"
     desc: 人力每年维护或调整标准工时
     triggers:
@@ -1198,6 +1201,8 @@ single_aggregate:
     aggregate: AGG-93
     owner_bc: B-15
     stages: []
+    primary_object: none
+    primary_object_note: "OBJ-61 薪酬档案在信息图定为人员属性版本、非对象；AGG-120 专项附加扣除声明无对象（F-6 随信息层交用户）"
     support: "B-15 薪酬档案与专项附加扣除的维护，结局（档案已调整、扣除已更新）不造 VS-13.3、VS-13.4 的任一退出条件（月度薪酬结算已批准、法定申报已申报缴款），服务薪酬结算的输入（STAGE_ALIGN.md 归段判据第 6 项）"
     desc: 调薪、年度专项附加扣除更新
     triggers:
@@ -1250,6 +1255,8 @@ single_aggregate:
     aggregate: AGG-118
     owner_bc: B-27
     stages: []
+    primary_object: none
+    primary_object_note: "AGG-118 假期类型与额度规则为配置，信息图无对象（假期类型是 OBJ-68 属性、OBJ-69 额度非对象；F-6）"
     support: "B-27 假期规则版本的配置维护，结局（假期规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
     desc: 人力发布假期类型的年度应享、结转与清零规则版本
     triggers:
@@ -1281,6 +1288,8 @@ single_aggregate:
     aggregate: AGG-119
     owner_bc: B-15
     stages: []
+    primary_object: none
+    primary_object_note: "AGG-119 薪酬规则版本为配置，信息图无对象"
     support: "B-15 薪酬规则版本的配置维护，结局（薪酬规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
     desc: 人力编制、财务确认并发布个税、专项附加扣除标准、社保公积金比例与基数、计算口径的薪酬规则版本（S-43）
     triggers:
