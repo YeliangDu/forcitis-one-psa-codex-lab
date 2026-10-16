@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Defs_PRC-95" targetNamespace="https://forcitis.one/bpmn/PRC-95" exporter="bpmn_gen" exporterVersion="1">
+  <dataStore id="DS_AGG-84" name="AGG-84"/>
+  <dataStore id="DS_AGG-99" name="AGG-99"/>
+  <collaboration id="Collab_PRC-95">
+    <participant id="P_main" name="FORCITIS one" processRef="PRC-95"/>
+  </collaboration>
+  <process id="PRC-95" name="期末结转" isExecutable="false">
+    <documentation>owner B-20；VS-10.1</documentation>
+    <laneSet id="LaneSet_1">
+      <lane id="Lane_SH-E6" name="职能人员（SH-E6）">
+        <flowNodeRef>S2_3</flowNodeRef>
+        <flowNodeRef>S2_gw_4</flowNodeRef>
+        <flowNodeRef>End_7</flowNodeRef>
+        <flowNodeRef>End_8</flowNodeRef>
+      </lane>
+      <lane id="Lane_system" name="系统">
+        <flowNodeRef>Start_1</flowNodeRef>
+        <flowNodeRef>S1_2</flowNodeRef>
+        <flowNodeRef>S3_5</flowNodeRef>
+        <flowNodeRef>S3_gw_6</flowNodeRef>
+        <flowNodeRef>End_9</flowNodeRef>
+      </lane>
+    </laneSet>
+    <startEvent id="Start_1" name="月末业务过账完成后，到点创建待办（platform.scheduling）">
+      <outgoing>Flow_1</outgoing>
+      <timerEventDefinition/>
+    </startEvent>
+    <serviceTask id="S1_2" name="读取本期分录与余额">
+      <documentation>读取本期分录与余额；B-20；automatic</documentation>
+      <incoming>Flow_1</incoming>
+      <outgoing>Flow_2</outgoing>
+      <ioSpecification id="IO_S1_2">
+        <dataInput id="DIn_S1_2_1"/>
+        <inputSet><dataInputRefs>DIn_S1_2_1</dataInputRefs></inputSet>
+        <outputSet></outputSet>
+      </ioSpecification>
+      <dataInputAssociation id="DIA_S1_2_1"><sourceRef>SR_S1_2_r1</sourceRef><targetRef>DIn_S1_2_1</targetRef></dataInputAssociation>
+    </serviceTask>
+    <userTask id="S2_3" name="生成期末结转运行">
+      <documentation>AGG-99 生成期末结转运行；B-20；in_system；总账.生成期末结转运行；期末结转运行页</documentation>
+      <incoming>Flow_2</incoming>
+      <outgoing>Flow_3</outgoing>
+      <ioSpecification id="IO_S2_3">
+        <dataOutput id="DOut_S2_3_1"/>
+        <inputSet></inputSet>
+        <outputSet><dataOutputRefs>DOut_S2_3_1</dataOutputRefs></outputSet>
+      </ioSpecification>
+      <dataOutputAssociation id="DOA_S2_3_1"><sourceRef>DOut_S2_3_1</sourceRef><targetRef>SR_S2_3_w1</targetRef></dataOutputAssociation>
+    </userTask>
+    <exclusiveGateway id="S2_gw_4" name="生成期末结转运行？">
+      <incoming>Flow_3</incoming>
+      <outgoing>Flow_4</outgoing>
+      <outgoing>Flow_5</outgoing>
+      <outgoing>Flow_6</outgoing>
+    </exclusiveGateway>
+    <serviceTask id="S3_5" name="提交过账候选 → B-16">
+      <documentation>AGG-99 提交过账候选；B-20；automatic；调用 PRC-92</documentation>
+      <incoming>Flow_6</incoming>
+      <outgoing>Flow_7</outgoing>
+      <ioSpecification id="IO_S3_5">
+        <dataOutput id="DOut_S3_5_1"/>
+        <inputSet></inputSet>
+        <outputSet><dataOutputRefs>DOut_S3_5_1</dataOutputRefs></outputSet>
+      </ioSpecification>
+      <dataOutputAssociation id="DOA_S3_5_1"><sourceRef>DOut_S3_5_1</sourceRef><targetRef>SR_S3_5_w1</targetRef></dataOutputAssociation>
+    </serviceTask>
+    <exclusiveGateway id="S3_gw_6" name="提交过账候选？">
+      <incoming>Flow_7</incoming>
+      <outgoing>Flow_8</outgoing>
+      <outgoing>Flow_9</outgoing>
+    </exclusiveGateway>
+    <endEvent id="End_7" name="已有有效运行">
+      <incoming>Flow_4</incoming>
+    </endEvent>
+    <endEvent id="End_8" name="已拒收">
+      <incoming>Flow_5</incoming>
+      <incoming>Flow_8</incoming>
+    </endEvent>
+    <endEvent id="End_9" name="已过账">
+      <incoming>Flow_9</incoming>
+    </endEvent>
+    <sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="S1_2"/>
+    <sequenceFlow id="Flow_2" sourceRef="S1_2" targetRef="S2_3"/>
+    <sequenceFlow id="Flow_3" sourceRef="S2_3" targetRef="S2_gw_4"/>
+    <sequenceFlow id="Flow_4" name="本法人本期间本模板已有有效运行" sourceRef="S2_gw_4" targetRef="End_7"/>
+    <sequenceFlow id="Flow_5" name="目标期间已关账：规则提示，期末凭证不得路由到其他期间（INV-92 例外，待 one-architecture 确认，见结构问题），不能生成" sourceRef="S2_gw_4" targetRef="End_8"/>
+    <sequenceFlow id="Flow_6" name="其他" sourceRef="S2_gw_4" targetRef="S3_5"/>
+    <sequenceFlow id="Flow_7" sourceRef="S3_5" targetRef="S3_gw_6"/>
+    <sequenceFlow id="Flow_8" name="过账管道拒收（借贷不平、无开放期间），拒收并告警" sourceRef="S3_gw_6" targetRef="End_8"/>
+    <sequenceFlow id="Flow_9" name="其他" sourceRef="S3_gw_6" targetRef="End_9"/>
+    <dataStoreReference id="SR_S1_2_r1" name="AGG-84" dataStoreRef="DS_AGG-84"/>
+    <dataStoreReference id="SR_S2_3_w1" name="AGG-99" dataStoreRef="DS_AGG-99"/>
+    <dataStoreReference id="SR_S3_5_w1" name="AGG-99" dataStoreRef="DS_AGG-99"/>
+  </process>
+  <bpmndi:BPMNDiagram id="Diagram_PRC-95">
+    <bpmndi:BPMNPlane id="Plane_PRC-95" bpmnElement="Collab_PRC-95">
+      <bpmndi:BPMNShape id="Shape_P_main" bpmnElement="P_main" isHorizontal="true">
+        <dc:Bounds x="0" y="0" width="1140" height="260"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_SH-E6" bpmnElement="Lane_SH-E6" isHorizontal="true">
+        <dc:Bounds x="30" y="0" width="1110" height="130"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_system" bpmnElement="Lane_system" isHorizontal="true">
+        <dc:Bounds x="30" y="130" width="1110" height="130"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Start_1" bpmnElement="Start_1">
+        <dc:Bounds x="87" y="177" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S1_2" bpmnElement="S1_2">
+        <dc:Bounds x="185" y="165" width="100" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S2_3" bpmnElement="S2_3">
+        <dc:Bounds x="355" y="35" width="100" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S2_gw_4" bpmnElement="S2_gw_4" isMarkerVisible="true">
+        <dc:Bounds x="510" y="40" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="490" y="6" width="90" height="28"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S3_5" bpmnElement="S3_5">
+        <dc:Bounds x="615" y="165" width="100" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S3_gw_6" bpmnElement="S3_gw_6" isMarkerVisible="true">
+        <dc:Bounds x="770" y="170" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="750" y="136" width="90" height="28"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_7" bpmnElement="End_7">
+        <dc:Bounds x="867" y="47" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_8" bpmnElement="End_8">
+        <dc:Bounds x="957" y="47" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_9" bpmnElement="End_9">
+        <dc:Bounds x="1047" y="177" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_SR_S1_2_r1" bpmnElement="SR_S1_2_r1">
+        <dc:Bounds x="217" y="134" width="36" height="26"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_SR_S2_3_w1" bpmnElement="SR_S2_3_w1">
+        <dc:Bounds x="387" y="4" width="36" height="26"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_SR_S3_5_w1" bpmnElement="SR_S3_5_w1">
+        <dc:Bounds x="647" y="134" width="36" height="26"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_Flow_1" bpmnElement="Flow_1">
+        <di:waypoint x="123" y="195"/>
+        <di:waypoint x="185" y="195"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_2" bpmnElement="Flow_2">
+        <di:waypoint x="285" y="195"/>
+        <di:waypoint x="335" y="195"/>
+        <di:waypoint x="335" y="65"/>
+        <di:waypoint x="355" y="65"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_3" bpmnElement="Flow_3">
+        <di:waypoint x="455" y="65"/>
+        <di:waypoint x="510" y="65"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_4" bpmnElement="Flow_4">
+        <di:waypoint x="560" y="65"/>
+        <di:waypoint x="867" y="65"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_5" bpmnElement="Flow_5">
+        <di:waypoint x="535" y="90"/>
+        <di:waypoint x="535" y="124"/>
+        <di:waypoint x="975" y="124"/>
+        <di:waypoint x="975" y="83"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_6" bpmnElement="Flow_6">
+        <di:waypoint x="535" y="90"/>
+        <di:waypoint x="535" y="195"/>
+        <di:waypoint x="615" y="195"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_7" bpmnElement="Flow_7">
+        <di:waypoint x="715" y="195"/>
+        <di:waypoint x="770" y="195"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_8" bpmnElement="Flow_8">
+        <di:waypoint x="820" y="195"/>
+        <di:waypoint x="937" y="195"/>
+        <di:waypoint x="937" y="65"/>
+        <di:waypoint x="957" y="65"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_9" bpmnElement="Flow_9">
+        <di:waypoint x="820" y="195"/>
+        <di:waypoint x="1047" y="195"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_DIA_S1_2_1" bpmnElement="DIA_S1_2_1">
+        <di:waypoint x="235" y="160"/>
+        <di:waypoint x="235" y="165"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_DOA_S2_3_1" bpmnElement="DOA_S2_3_1">
+        <di:waypoint x="405" y="35"/>
+        <di:waypoint x="405" y="30"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_DOA_S3_5_1" bpmnElement="DOA_S3_5_1">
+        <di:waypoint x="665" y="165"/>
+        <di:waypoint x="665" y="160"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

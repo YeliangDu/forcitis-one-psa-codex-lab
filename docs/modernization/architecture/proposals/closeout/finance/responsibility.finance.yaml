@@ -3,6 +3,7 @@
 # 审批节点挂接：骨架 platform 审批步无聚合命令，本稿挂在被其放行的命令上（生效供方协议、发起付款、核定费用报销、AGG-98 提交过账候选）。
 # 他组聚合命令（AGG-80 预算占用、释放预算占用）不在本片段，见 notes。
 # 修后（2026-10-16）：aggregate 引擎的审批 A 改为类型级 SH-M1（PRC-100、101、102、104、105、77 提交申报、65 开立与销户）；platform.approval 的 手工凭证、分摊规则、资产处置 A 改为实例级 费用归属对象.责任人；新增 释放履约额度（draft_gap）。
+# S-29/S-30 补（2026-10-16）：新增命令的 A 行（draft_gap: true 待聚合稿回补）；AGG-87 开立、销户 A 改为财务负责人，确认开立、解冻、确认销户 A 为类型级 SH-M1。
 entries:
 - object: AGG-43
   command: 售前投入转费用
@@ -52,6 +53,19 @@ entries:
     I: []
   boundary: {}
   sensitive: false
+- object: AGG-43
+  command: 标记已过账
+  raci:
+    A:
+      resolve: type
+      role: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+  draft_gap: true
 - object: AGG-41
   command: 试算人工成本分配
   raci:
@@ -220,6 +234,34 @@ entries:
     I: []
   boundary: {}
   sensitive: true
+- object: AGG-52
+  command: 冲回应付核销
+  raci:
+    A:
+      resolve: type
+      role: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+  draft_gap: true
+- object: AGG-52
+  command: 人工处置核销差异
+  raci:
+    A:
+      resolve: type
+      role: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 处置人 ≠ 原付款发起人、审批人、出纳（INV-81 同类）
+  sensitive: false
+  draft_gap: true
 - object: AGG-53
   command: 发起付款
   raci:
@@ -287,6 +329,21 @@ entries:
     I: []
   boundary: {}
   sensitive: false
+- object: AGG-53
+  command: 登记退票
+  raci:
+    A:
+      resolve: type
+      role: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 出纳 ≠ 发起人、审批人（INV-81）
+  sensitive: false
+  draft_gap: true
 - object: AGG-54
   command: 登记出资认缴
   raci:
@@ -335,6 +392,19 @@ entries:
     I: []
   boundary: {}
   sensitive: true
+- object: AGG-54
+  command: 更正出资实缴
+  raci:
+    A:
+      resolve: type
+      role: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary: {}
+  sensitive: true
+  draft_gap: true
 - object: AGG-109
   command: 草拟利润分配
   raci:
@@ -384,6 +454,20 @@ entries:
     I: []
   boundary: {}
   sensitive: true
+- object: AGG-109
+  command: 撤销利润分配决议
+  raci:
+    A:
+      resolve: type
+      role: SH-O1
+    R:
+    - SH-O1
+    C: []
+    I:
+    - SH-E6
+  boundary: {}
+  sensitive: true
+  draft_gap: true
 - object: AGG-55
   command: 起草供方协议
   raci:
@@ -496,6 +580,20 @@ entries:
     I: []
   boundary: {}
   sensitive: false
+- object: AGG-57
+  command: 冲销供方履约确认
+  raci:
+    A:
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    limit_rule: AR-06
+  sensitive: false
+  draft_gap: true
 - object: AGG-58
   command: 建立履约额度
   raci:
@@ -601,6 +699,27 @@ entries:
     I: []
   boundary: {}
   sensitive: false
+- object: AGG-59
+  command: 冲销费用报销
+  raci:
+    A:
+      resolve: instance
+      field: 费用归属对象.责任人
+    R:
+    - SH-E6
+    C: []
+    I:
+    - SH-E3
+  boundary:
+    limit_rule: AR-06
+    delegate:
+      when: AR-11
+      to: 汇报线上级
+    escalate:
+      when: AR-12
+      to: 上级组织负责人
+  sensitive: false
+  draft_gap: true
 - object: AGG-77
   command: 过账
   raci:
@@ -626,6 +745,33 @@ entries:
   boundary:
     limit_rule: AR-06
   sensitive: true
+- object: AGG-77
+  command: 重提过账候选
+  raci:
+    A:
+      resolve: type
+      role: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    idempotency: 同一幂等键（INV-94）
+  sensitive: false
+  draft_gap: true
+- object: AGG-77
+  command: 登记拒收处置结论
+  raci:
+    A:
+      resolve: type
+      role: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+  draft_gap: true
 - object: AGG-81
   command: 发起关账
   raci:
@@ -706,6 +852,19 @@ entries:
     segregation:
     - 发起人 ≠ 确认人（ADR-0045 决定 1、ADR-0046 第 5 项）
   sensitive: false
+- object: AGG-81
+  command: 开立会计年度
+  raci:
+    A:
+      resolve: type
+      role: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+  draft_gap: true
 - object: AGG-96
   command: 登记第 13 期启用
   raci:
@@ -836,6 +995,19 @@ entries:
     I: []
   boundary: {}
   sensitive: true
+- object: AGG-84
+  command: 登记外部记账确认
+  raci:
+    A:
+      resolve: type
+      role: 财务负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+  draft_gap: true
 - object: AGG-98
   command: 制单手工凭证
   raci:
@@ -889,6 +1061,19 @@ entries:
       to: 上级组织负责人
     note: platform.approval 手工凭证审批：费用归属对象取凭证所属法人的财务部门，解析见 SQ-51
   sensitive: true
+- object: AGG-98
+  command: 作废手工凭证草稿
+  raci:
+    A:
+      resolve: type
+      role: 财务负责人
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary: {}
+  sensitive: true
+  draft_gap: true
 - object: AGG-99
   command: 生成期末结转运行
   raci:
@@ -986,7 +1171,7 @@ entries:
   raci:
     A:
       resolve: type
-      role: SH-M1
+      role: 财务负责人
     R:
     - SH-E6
     C: []
@@ -1010,13 +1195,58 @@ entries:
   raci:
     A:
       resolve: type
-      role: SH-M1
+      role: 财务负责人
     R:
     - SH-E6
     C: []
     I: []
   boundary: {}
   sensitive: true
+- object: AGG-87
+  command: 确认开立资金账户
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+    R:
+    - SH-M1
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 确认人 ≠ 开立经办
+  sensitive: true
+  draft_gap: true
+- object: AGG-87
+  command: 解冻资金账户
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+    R:
+    - SH-E6
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 确认人 ≠ 解冻经办
+  sensitive: true
+  draft_gap: true
+- object: AGG-87
+  command: 确认销户资金账户
+  raci:
+    A:
+      resolve: type
+      role: SH-M1
+    R:
+    - SH-M1
+    C: []
+    I: []
+  boundary:
+    segregation:
+    - 确认人 ≠ 销户经办
+  sensitive: true
+  draft_gap: true
 - object: AGG-88
   command: 导入银行流水
   raci:
@@ -1268,7 +1498,7 @@ roles:
   SH-M1:
     positions:
     - 待岗位体系定
-    note: 管理层：骨架中作财务负责人一级的占位（确认关账、确认年末关账、签字接受差异、生效报表行定义版本），待 F-01 定为具体职责后改为 财务负责人
+    note: 管理层：骨架中作财务负责人一级的占位（确认关账、确认年末关账、签字接受差异、生效报表行定义版本），待 F-01 定为具体职责后改为 财务负责人；另：确认开立资金账户、解冻资金账户、确认销户资金账户（S-29 SQ-42，类型级 A）
   SH-O1:
     positions:
     - 待岗位体系定

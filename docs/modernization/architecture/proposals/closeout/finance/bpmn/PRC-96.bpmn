@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Defs_PRC-96" targetNamespace="https://forcitis.one/bpmn/PRC-96" exporter="bpmn_gen" exporterVersion="1">
+  <dataStore id="DS_AGG-77" name="AGG-77"/>
+  <dataStore id="DS_AGG-81" name="AGG-81"/>
+  <dataStore id="DS_AGG-41" name="AGG-41"/>
+  <collaboration id="Collab_PRC-96">
+    <participant id="P_main" name="FORCITIS one" processRef="PRC-96"/>
+  </collaboration>
+  <process id="PRC-96" name="分配人工成本" isExecutable="false">
+    <documentation>owner B-07；VS-10.1</documentation>
+    <laneSet id="LaneSet_1">
+      <lane id="Lane_SH-E6" name="职能人员（SH-E6）">
+        <flowNodeRef>S2_4</flowNodeRef>
+        <flowNodeRef>S3_5</flowNodeRef>
+        <flowNodeRef>S3_gw_6</flowNodeRef>
+      </lane>
+      <lane id="Lane_system" name="系统">
+        <flowNodeRef>Start_1</flowNodeRef>
+        <flowNodeRef>S1_2</flowNodeRef>
+        <flowNodeRef>S1_gw_3</flowNodeRef>
+        <flowNodeRef>S4_7</flowNodeRef>
+        <flowNodeRef>S4_gw_8</flowNodeRef>
+        <flowNodeRef>End_9</flowNodeRef>
+        <flowNodeRef>End_10</flowNodeRef>
+        <flowNodeRef>End_11</flowNodeRef>
+        <flowNodeRef>End_12</flowNodeRef>
+      </lane>
+    </laneSet>
+    <startEvent id="Start_1" name="月末：工时与薪酬事实均已过账（P-41），目标期间开放，每月一次（SQ-20）">
+      <outgoing>Flow_1</outgoing>
+      <timerEventDefinition/>
+    </startEvent>
+    <serviceTask id="S1_2" name="读取已过账事实 → B-16、B-16、B-19">
+      <documentation>读取已过账事实；B-07；automatic</documentation>
+      <incoming>Flow_1</incoming>
+      <outgoing>Flow_2</outgoing>
+      <ioSpecification id="IO_S1_2">
+        <dataInput id="DIn_S1_2_1"/>
+        <dataInput id="DIn_S1_2_2"/>
+        <inputSet><dataInputRefs>DIn_S1_2_1</dataInputRefs><dataInputRefs>DIn_S1_2_2</dataInputRefs></inputSet>
+        <outputSet></outputSet>
+      </ioSpecification>
+      <dataInputAssociation id="DIA_S1_2_1"><sourceRef>SR_S1_2_r1</sourceRef><targetRef>DIn_S1_2_1</targetRef></dataInputAssociation>
+      <dataInputAssociation id="DIA_S1_2_2"><sourceRef>SR_S1_2_r2</sourceRef><targetRef>DIn_S1_2_2</targetRef></dataInputAssociation>
+    </serviceTask>
+    <exclusiveGateway id="S1_gw_3" name="读取已过账事实？">
+      <incoming>Flow_2</incoming>
+      <outgoing>Flow_3</outgoing>
+      <outgoing>Flow_4</outgoing>
+      <outgoing>Flow_5</outgoing>
+      <outgoing>Flow_6</outgoing>
+      <outgoing>Flow_7</outgoing>
+    </exclusiveGateway>
+    <userTask id="S2_4" name="试算人工成本分配">
+      <documentation>AGG-41 试算人工成本分配；B-07；in_system；成本.人工成本分配试算；人工成本分配试算页</documentation>
+      <incoming>Flow_6</incoming>
+      <incoming>Flow_7</incoming>
+      <incoming>Flow_10</incoming>
+      <outgoing>Flow_8</outgoing>
+      <ioSpecification id="IO_S2_4">
+        <dataOutput id="DOut_S2_4_1"/>
+        <inputSet></inputSet>
+        <outputSet><dataOutputRefs>DOut_S2_4_1</dataOutputRefs></outputSet>
+      </ioSpecification>
+      <dataOutputAssociation id="DOA_S2_4_1"><sourceRef>DOut_S2_4_1</sourceRef><targetRef>SR_S2_4_w1</targetRef></dataOutputAssociation>
+    </userTask>
+    <userTask id="S3_5" name="确认人工成本分配">
+      <documentation>AGG-41 确认人工成本分配；B-07；in_system；成本.人工成本分配确认；人工成本分配确认页</documentation>
+      <incoming>Flow_8</incoming>
+      <outgoing>Flow_9</outgoing>
+      <ioSpecification id="IO_S3_5">
+        <dataOutput id="DOut_S3_5_1"/>
+        <inputSet></inputSet>
+        <outputSet><dataOutputRefs>DOut_S3_5_1</dataOutputRefs></outputSet>
+      </ioSpecification>
+      <dataOutputAssociation id="DOA_S3_5_1"><sourceRef>DOut_S3_5_1</sourceRef><targetRef>SR_S3_5_w1</targetRef></dataOutputAssociation>
+    </userTask>
+    <exclusiveGateway id="S3_gw_6" name="确认人工成本分配？">
+      <incoming>Flow_9</incoming>
+      <outgoing>Flow_10</outgoing>
+      <outgoing>Flow_11</outgoing>
+    </exclusiveGateway>
+    <serviceTask id="S4_7" name="提交过账候选 → B-16">
+      <documentation>AGG-41 提交过账候选；B-07；automatic；调用 PRC-92</documentation>
+      <incoming>Flow_11</incoming>
+      <outgoing>Flow_12</outgoing>
+      <ioSpecification id="IO_S4_7">
+        <dataOutput id="DOut_S4_7_1"/>
+        <inputSet></inputSet>
+        <outputSet><dataOutputRefs>DOut_S4_7_1</dataOutputRefs></outputSet>
+      </ioSpecification>
+      <dataOutputAssociation id="DOA_S4_7_1"><sourceRef>DOut_S4_7_1</sourceRef><targetRef>SR_S4_7_w1</targetRef></dataOutputAssociation>
+    </serviceTask>
+    <exclusiveGateway id="S4_gw_8" name="提交过账候选？">
+      <incoming>Flow_12</incoming>
+      <outgoing>Flow_13</outgoing>
+      <outgoing>Flow_14</outgoing>
+      <outgoing>Flow_15</outgoing>
+      <outgoing>Flow_16</outgoing>
+    </exclusiveGateway>
+    <endEvent id="End_9" name="本期已分配">
+      <incoming>Flow_3</incoming>
+    </endEvent>
+    <endEvent id="End_10" name="已拒收">
+      <incoming>Flow_4</incoming>
+      <incoming>Flow_14</incoming>
+      <incoming>Flow_15</incoming>
+    </endEvent>
+    <endEvent id="End_11" name="未到分配条件">
+      <incoming>Flow_5</incoming>
+    </endEvent>
+    <endEvent id="End_12" name="人工成本分配已过账">
+      <incoming>Flow_13</incoming>
+      <incoming>Flow_16</incoming>
+    </endEvent>
+    <sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="S1_2"/>
+    <sequenceFlow id="Flow_2" sourceRef="S1_2" targetRef="S1_gw_3"/>
+    <sequenceFlow id="Flow_3" name="本期已有有效的人工成本分配运行（每期间一次有效）" sourceRef="S1_gw_3" targetRef="End_9"/>
+    <sequenceFlow id="Flow_4" name="目标期间尚未开放（该法人无开放期间可落），拒收并告警" sourceRef="S1_gw_3" targetRef="End_10"/>
+    <sequenceFlow id="Flow_5" name="工时与薪酬事实未齐备（有工时无薪酬或有薪酬无工时，预警）" sourceRef="S1_gw_3" targetRef="End_11"/>
+    <sequenceFlow id="Flow_6" name="目标期间已关账，自动落当前开放期间并标原期间后继续分配" sourceRef="S1_gw_3" targetRef="S2_4"/>
+    <sequenceFlow id="Flow_7" name="其他" sourceRef="S1_gw_3" targetRef="S2_4"/>
+    <sequenceFlow id="Flow_8" sourceRef="S2_4" targetRef="S3_5"/>
+    <sequenceFlow id="Flow_9" sourceRef="S3_5" targetRef="S3_gw_6"/>
+    <sequenceFlow id="Flow_10" name="分配合计不等于实际人工成本（零容差）" sourceRef="S3_gw_6" targetRef="S2_4"/>
+    <sequenceFlow id="Flow_11" name="其他" sourceRef="S3_gw_6" targetRef="S4_7"/>
+    <sequenceFlow id="Flow_12" sourceRef="S4_7" targetRef="S4_gw_8"/>
+    <sequenceFlow id="Flow_13" name="落账期间已关账且该法人有开放期间，自动落当前开放期间并标原期间" sourceRef="S4_gw_8" targetRef="End_12"/>
+    <sequenceFlow id="Flow_14" name="该法人无开放期间可落（过账管道拒收），拒收并告警" sourceRef="S4_gw_8" targetRef="End_10"/>
+    <sequenceFlow id="Flow_15" name="过账管道拒收（借贷不平或法人不一致），拒收并告警" sourceRef="S4_gw_8" targetRef="End_10"/>
+    <sequenceFlow id="Flow_16" name="其他" sourceRef="S4_gw_8" targetRef="End_12"/>
+    <dataStoreReference id="SR_S1_2_r1" name="AGG-77" dataStoreRef="DS_AGG-77"/>
+    <dataStoreReference id="SR_S1_2_r2" name="AGG-81" dataStoreRef="DS_AGG-81"/>
+    <dataStoreReference id="SR_S2_4_w1" name="AGG-41" dataStoreRef="DS_AGG-41"/>
+    <dataStoreReference id="SR_S3_5_w1" name="AGG-41" dataStoreRef="DS_AGG-41"/>
+    <dataStoreReference id="SR_S4_7_w1" name="AGG-41" dataStoreRef="DS_AGG-41"/>
+  </process>
+  <bpmndi:BPMNDiagram id="Diagram_PRC-96">
+    <bpmndi:BPMNPlane id="Plane_PRC-96" bpmnElement="Collab_PRC-96">
+      <bpmndi:BPMNShape id="Shape_P_main" bpmnElement="P_main" isHorizontal="true">
+        <dc:Bounds x="0" y="0" width="1490" height="260"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_SH-E6" bpmnElement="Lane_SH-E6" isHorizontal="true">
+        <dc:Bounds x="30" y="0" width="1460" height="130"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_system" bpmnElement="Lane_system" isHorizontal="true">
+        <dc:Bounds x="30" y="130" width="1460" height="130"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Start_1" bpmnElement="Start_1">
+        <dc:Bounds x="87" y="177" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S1_2" bpmnElement="S1_2">
+        <dc:Bounds x="185" y="165" width="100" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S1_gw_3" bpmnElement="S1_gw_3" isMarkerVisible="true">
+        <dc:Bounds x="340" y="170" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="320" y="136" width="90" height="28"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S2_4" bpmnElement="S2_4">
+        <dc:Bounds x="445" y="35" width="100" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S3_5" bpmnElement="S3_5">
+        <dc:Bounds x="615" y="35" width="100" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S3_gw_6" bpmnElement="S3_gw_6" isMarkerVisible="true">
+        <dc:Bounds x="770" y="40" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="750" y="6" width="90" height="28"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S4_7" bpmnElement="S4_7">
+        <dc:Bounds x="875" y="165" width="100" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_S4_gw_8" bpmnElement="S4_gw_8" isMarkerVisible="true">
+        <dc:Bounds x="1030" y="170" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1010" y="136" width="90" height="28"/></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_9" bpmnElement="End_9">
+        <dc:Bounds x="1127" y="177" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_10" bpmnElement="End_10">
+        <dc:Bounds x="1217" y="177" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_11" bpmnElement="End_11">
+        <dc:Bounds x="1307" y="177" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_12" bpmnElement="End_12">
+        <dc:Bounds x="1397" y="177" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_SR_S1_2_r1" bpmnElement="SR_S1_2_r1">
+        <dc:Bounds x="196" y="134" width="36" height="26"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_SR_S1_2_r2" bpmnElement="SR_S1_2_r2">
+        <dc:Bounds x="238" y="134" width="36" height="26"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_SR_S2_4_w1" bpmnElement="SR_S2_4_w1">
+        <dc:Bounds x="477" y="4" width="36" height="26"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_SR_S3_5_w1" bpmnElement="SR_S3_5_w1">
+        <dc:Bounds x="647" y="4" width="36" height="26"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_SR_S4_7_w1" bpmnElement="SR_S4_7_w1">
+        <dc:Bounds x="907" y="134" width="36" height="26"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_Flow_1" bpmnElement="Flow_1">
+        <di:waypoint x="123" y="195"/>
+        <di:waypoint x="185" y="195"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_2" bpmnElement="Flow_2">
+        <di:waypoint x="285" y="195"/>
+        <di:waypoint x="340" y="195"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_3" bpmnElement="Flow_3">
+        <di:waypoint x="365" y="220"/>
+        <di:waypoint x="365" y="254"/>
+        <di:waypoint x="1145" y="254"/>
+        <di:waypoint x="1145" y="213"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_4" bpmnElement="Flow_4">
+        <di:waypoint x="365" y="220"/>
+        <di:waypoint x="365" y="249"/>
+        <di:waypoint x="1235" y="249"/>
+        <di:waypoint x="1235" y="213"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_5" bpmnElement="Flow_5">
+        <di:waypoint x="365" y="220"/>
+        <di:waypoint x="365" y="244"/>
+        <di:waypoint x="1325" y="244"/>
+        <di:waypoint x="1325" y="213"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_6" bpmnElement="Flow_6">
+        <di:waypoint x="365" y="170"/>
+        <di:waypoint x="365" y="65"/>
+        <di:waypoint x="445" y="65"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_7" bpmnElement="Flow_7">
+        <di:waypoint x="365" y="170"/>
+        <di:waypoint x="365" y="65"/>
+        <di:waypoint x="445" y="65"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_8" bpmnElement="Flow_8">
+        <di:waypoint x="545" y="65"/>
+        <di:waypoint x="615" y="65"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_9" bpmnElement="Flow_9">
+        <di:waypoint x="715" y="65"/>
+        <di:waypoint x="770" y="65"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_10" bpmnElement="Flow_10">
+        <di:waypoint x="795" y="90"/>
+        <di:waypoint x="795" y="124"/>
+        <di:waypoint x="495" y="124"/>
+        <di:waypoint x="495" y="95"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_11" bpmnElement="Flow_11">
+        <di:waypoint x="795" y="90"/>
+        <di:waypoint x="795" y="195"/>
+        <di:waypoint x="875" y="195"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_12" bpmnElement="Flow_12">
+        <di:waypoint x="975" y="195"/>
+        <di:waypoint x="1030" y="195"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_13" bpmnElement="Flow_13">
+        <di:waypoint x="1055" y="220"/>
+        <di:waypoint x="1055" y="254"/>
+        <di:waypoint x="1415" y="254"/>
+        <di:waypoint x="1415" y="213"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_14" bpmnElement="Flow_14">
+        <di:waypoint x="1055" y="220"/>
+        <di:waypoint x="1055" y="249"/>
+        <di:waypoint x="1235" y="249"/>
+        <di:waypoint x="1235" y="213"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_15" bpmnElement="Flow_15">
+        <di:waypoint x="1055" y="220"/>
+        <di:waypoint x="1055" y="244"/>
+        <di:waypoint x="1235" y="244"/>
+        <di:waypoint x="1235" y="213"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_16" bpmnElement="Flow_16">
+        <di:waypoint x="1055" y="220"/>
+        <di:waypoint x="1055" y="254"/>
+        <di:waypoint x="1415" y="254"/>
+        <di:waypoint x="1415" y="213"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_DIA_S1_2_1" bpmnElement="DIA_S1_2_1">
+        <di:waypoint x="214" y="160"/>
+        <di:waypoint x="214" y="165"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_DIA_S1_2_2" bpmnElement="DIA_S1_2_2">
+        <di:waypoint x="256" y="160"/>
+        <di:waypoint x="256" y="165"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_DOA_S2_4_1" bpmnElement="DOA_S2_4_1">
+        <di:waypoint x="495" y="35"/>
+        <di:waypoint x="495" y="30"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_DOA_S3_5_1" bpmnElement="DOA_S3_5_1">
+        <di:waypoint x="665" y="35"/>
+        <di:waypoint x="665" y="30"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_DOA_S4_7_1" bpmnElement="DOA_S4_7_1">
+        <di:waypoint x="925" y="165"/>
+        <di:waypoint x="925" y="160"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

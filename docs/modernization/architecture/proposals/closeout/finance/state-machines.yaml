@@ -100,32 +100,45 @@ machines:
     reverse_of: null
   reversal_note: 管理口径、不过账；更正以新运行追加，已生效运行状态不变
 - aggregate: AGG-43
-  initial: 已过账
+  initial: 已生成
   states:
+  - 已生成
   - {name: 已过账, terminal: true}
   transitions:
   - from: null
-    to: 已过账
+    to: 已生成
     command: 售前投入转费用
     guard: []
     reverse_of: null
   - from: null
-    to: 已过账
+    to: 已生成
     command: 转入售前投入
     guard: []
     reverse_of: null
   - from: null
-    to: 已过账
+    to: 已生成
     command: 终止清算成本
     guard: []
     reverse_of: null
   - from: null
-    to: 已过账
+    to: 已生成
     command: 结转合同履约成本
     guard: [INV-88（待定 Q20）]
     reverse_of: null
-  reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
-  note: 四个结转命令各自一次产生并过账一个批次；聚合稿的独立「提交过账候选」骨架未用，见 NOTES 收敛节
+  - from: 已生成
+    to: 已生成
+    command: 提交过账候选
+    guard: [过账管道接受（拒收则保持已生成并告警，由 PRC-158 处置）]
+    reverse_of: null
+    note: 提交不改状态，结果由订阅得到
+  - from: 已生成
+    to: 已过账
+    command: 标记已过账
+    guard: [订阅 BusinessFactAttributed，幂等键相同]
+    reverse_of: null
+    on_event: BusinessFactAttributed
+  reversal_note: 已过账的运行单据被更正：原单置「已冲销」，新单引用原单（S-30 ③；冲销命令范围随 SQ-17 回补，本稿暂不加状态）
+  note: 四个结转命令只在批次内记结转行（→（内部）），提交过账候选 → B-16，订阅过账结果后标记已过账并发成本结转已过账（S-30 ①）
 - aggregate: AGG-52
   initial: 已确认
   states:
@@ -209,8 +222,36 @@ machines:
     command: 核销应付
     guard: [余额为零]
     reverse_of: null
+  - from: 已结清
+    to: 部分结清
+    command: 冲回应付核销
+    guard: [退票后仍有其他核销，未结余额大于零]
+    reverse_of: 核销应付
+    note: S-30 ③：付款已退票后恢复未结余额
+  - from: [部分结清, 已结清]
+    to: 已确认
+    command: 冲回应付核销
+    guard: [冲回后无任何核销]
+    reverse_of: 核销应付
+  - from: 部分结清
+    to: 部分结清
+    command: 冲回应付核销
+    guard: [冲回后仍有其他核销]
+    reverse_of: 核销应付
+  - from: [已确认, 部分结清]
+    to: 部分结清
+    command: 人工处置核销差异
+    guard: [余额大于零]
+    reverse_of: null
+    note: S-29 SQ-49：人工核销
+  - from: [已确认, 部分结清]
+    to: 已结清
+    command: 人工处置核销差异
+    guard: [余额为零]
+    reverse_of: null
+    note: S-29 SQ-49：人工核销
   reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
-  note: 争议状态与处置分类聚合稿无命令，见 NOTES 收敛节；暂估应付是标记不是状态
+  note: 争议状态与处置分类聚合稿无命令，见 NOTES 收敛节；暂估应付是标记不是状态；应付类型含税费（PRC-159 订阅申报已提交确认）
 - aggregate: AGG-53
   initial: 已发起
   states:
@@ -218,9 +259,10 @@ machines:
   - 审批中
   - 已成功
   - {name: 已失败, terminal: true}
-  - {name: 已核销, terminal: true}
   - {name: 已驳回, terminal: true}
   - {name: 已撤回, terminal: true}
+  - 已核销
+  - {name: 已退票, terminal: true}
   transitions:
   - from: null
     to: 已发起
@@ -267,20 +309,27 @@ machines:
   - from: 已成功
     to: 已失败
     command: 登记付款失败
-    guard: [银行退票]
+    guard: [银行结果更正为失败（核销前）]
     reverse_of: 登记银行结果
-    note: 成功后退票；与已核销应付的冲回见 NOTES 收敛节
+    note: 成功后、核销前银行结果更正为失败；核销后的退票走登记退票
   - from: 已核销
     to: 已核销
     command: 提交过账候选
     guard: []
     reverse_of: null
     note: 过账不改业务状态
-  reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变；退票后重新发起为新付款
+  - from: 已核销
+    to: 已退票
+    command: 登记退票
+    guard: [INV-78a]
+    reverse_of: 登记银行结果
+    note: S-30 ③：事件付款已退票，AGG-52 订阅后冲回应付核销
+  reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045）；退票后原付款置「已退票」，重新发起为新付款
 - aggregate: AGG-54
   initial: 认缴
   states:
   - 认缴
+  - 部分实缴
   - 实缴（到账）
   - 部分退回
   - {name: 已退回, terminal: true}
@@ -293,12 +342,12 @@ machines:
   - from: 认缴
     to: 实缴（到账）
     command: 登记出资实缴
-    guard: [累计实缴不超过认缴（SQ-47，〔缺〕INV）]
+    guard: [累计实缴等于认缴额（INV-127）]
     reverse_of: null
   - from: 实缴（到账）
     to: 部分退回
     command: 登记出资退回
-    guard: [退回不超过已实缴（SQ-47）, 减资或退伙决议依据]
+    guard: [退回不超过已实缴（INV-128）, 减资或退伙决议依据]
     reverse_of: 登记出资实缴
   - from: 实缴（到账）
     to: 已退回
@@ -333,6 +382,52 @@ machines:
     guard: *id002
     reverse_of: null
     note: 过账不改业务状态
+  - from: 认缴
+    to: 部分实缴
+    command: 登记出资实缴
+    guard: [累计实缴小于认缴额（INV-127）]
+    reverse_of: null
+  - from: 部分实缴
+    to: 部分实缴
+    command: 登记出资实缴
+    guard: [累计实缴仍小于认缴额（INV-127）]
+    reverse_of: null
+  - from: 部分实缴
+    to: 实缴（到账）
+    command: 登记出资实缴
+    guard: [累计实缴等于认缴额（INV-127）]
+    reverse_of: null
+  - from: 实缴（到账）
+    to: 部分实缴
+    command: 更正出资实缴
+    guard: [更正后累计实缴小于认缴额（INV-127）]
+    reverse_of: 登记出资实缴
+  - from: 部分实缴
+    to: 认缴
+    command: 更正出资实缴
+    guard: [更正后累计实缴为零]
+    reverse_of: 登记出资实缴
+  - from: 部分实缴
+    to: 部分实缴
+    command: 更正出资实缴
+    guard: [更正后累计实缴仍大于零且小于认缴额]
+    reverse_of: 登记出资实缴
+  - from: 部分实缴
+    to: 部分退回
+    command: 登记出资退回
+    guard: [退回不超过已实缴（INV-128）]
+    reverse_of: 登记出资实缴
+  - from: 部分实缴
+    to: 已退回
+    command: 登记出资退回
+    guard: [退回等于已实缴]
+    reverse_of: 登记出资实缴
+  - from: 部分实缴
+    to: 部分实缴
+    command: 提交过账候选
+    guard: []
+    reverse_of: null
+    note: 过账不改业务状态
   reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
 - aggregate: AGG-109
   initial: 草拟
@@ -341,7 +436,8 @@ machines:
   - 已决议
   - 部分支付
   - {name: 已支付, terminal: true}
-  - {name: 已取代, terminal: true}
+  - {name: 已冲销, terminal: true}
+  - {name: 已撤销, terminal: true}
   transitions:
   - from: null
     to: 草拟
@@ -392,12 +488,18 @@ machines:
     guard: [累计支付等于决议额]
     reverse_of: null
   - from: [已决议, 部分支付]
-    to: 已取代
+    to: 已冲销
     command: null
     guard: []
     reverse_of: 决议利润分配
     on_event: 后继决议已登记
-    note: 被取代决议引用；已支付部分以后继决议承接
+    note: 被取代决议引用；原单置已冲销（S-30 ③），已支付部分以后继决议承接
+  - from: 已决议
+    to: 已撤销
+    command: 撤销利润分配决议
+    guard: [尚无支付]
+    reverse_of: 决议利润分配
+    note: S-29 SQ-48：股东会或合伙人会议撤销决议
   reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
 - aggregate: AGG-55
   initial: 草拟
@@ -522,6 +624,7 @@ machines:
   states:
   - 已确认
   - {name: 已过账, terminal: true}
+  - {name: 已冲销, terminal: true}
   transitions:
   - from: null
     to: 已确认
@@ -533,6 +636,12 @@ machines:
     command: 提交过账候选
     guard: [过账管道接受（拒收则保持已确认并告警）]
     reverse_of: null
+  - from: [已确认, 已过账]
+    to: 已冲销
+    command: 冲销供方履约确认
+    guard: [INV-95, 加审 AR-06]
+    reverse_of: 确认供方履约
+    note: S-30 ③：运行单据被更正后原单置已冲销
   reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
   note: 形态待定 Q20
 - aggregate: AGG-58
@@ -547,6 +656,7 @@ machines:
   - {name: 已付, terminal: true}
   - {name: 已驳回, terminal: true}
   - {name: 已撤回, terminal: true}
+  - {name: 已冲销, terminal: true}
   transitions:
   - from: null
     to: 已提交
@@ -585,10 +695,16 @@ machines:
     guard: [应付已结清或借款冲抵净额为零]
     reverse_of: null
     on_event: 应付已结清
+  - from: 已核定
+    to: 已冲销
+    command: 冲销费用报销
+    guard: [INV-95, 加审 AR-06, 未付且应付无核销]
+    reverse_of: 核定费用报销
+    note: S-30 ③：运行单据被更正后原单置已冲销
   reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
 - aggregate: AGG-77
   stateless: true
-  reason: 过账事实只追加（ADR-0016），更正以冲销并重过账追加反向与重过账事实，原事实不改状态
+  reason: 过账事实只追加（ADR-0016），更正以冲销并重过账追加反向与重过账事实，原事实不改状态；拒收记录的处置状态在 AGG-77 内部技术表，不进本状态机（PRC-158）
   transitions: []
 - aggregate: AGG-81
   initial: 未开放
@@ -598,6 +714,12 @@ machines:
   - 关账中
   - {name: 已关账, terminal: true}
   transitions:
+  - from: null
+    to: 开放
+    command: 开立会计年度
+    guard: [法人 × 会计年度唯一]
+    reverse_of: null
+    note: S-30 ②：一次生成第 1–12 期；第 13 期仍由开放第 13 期
   - from: 未开放
     to: 开放
     command: 开放第 13 期
@@ -633,7 +755,7 @@ machines:
     command: 退回开放
     guard: [前置检查未通过]
     reverse_of: 发起年末关账
-  note: 已关账不重开（ADR-0045），无指向开放的转换；第 1–12 期由何命令置开放聚合稿无命令，见 NOTES 收敛节
+  note: 已关账不重开（ADR-0045），无指向开放的转换；第 1–12 期由开立会计年度置开放（S-30 ②）
 - aggregate: AGG-96
   stateless: true
   reason: 配置类版本，登记即生效，只追加；更改以新版本取代，不改旧行
@@ -681,6 +803,7 @@ machines:
   - 待推送
   - 已推送
   - 死信
+  - 挂起
   - {name: 已确认记账, terminal: true}
   - {name: 已记账（无需推送）, terminal: true}
   transitions:
@@ -712,7 +835,7 @@ machines:
   - from: 已推送
     to: 已确认记账
     command: 登记外部记账确认
-    guard: [U8C 已审核记账，由对账读取得到]
+    guard: [U8C 记账回执到达（platform.integration），对账读取作兜底]
     reverse_of: null
   - from: 已推送
     to: 死信
@@ -725,6 +848,21 @@ machines:
     guard: [财务处理原因后重投]
     reverse_of: 推送与重投
     note: 重投回到待推送
+  - from: 待推送
+    to: 挂起
+    command: 推送与重投
+    guard: [凭证依赖的主数据尚未同步到 U8C（S-29 SQ-50）]
+    reverse_of: null
+  - from: 挂起
+    to: 已推送
+    command: 推送与重投
+    guard: [每日定时重投成功]
+    reverse_of: 推送与重投
+  - from: 挂起
+    to: 死信
+    command: 推送与重投
+    guard: [U8C 拒收，带返回码]
+    reverse_of: null
   reversal_note: 分录冲销以新行（红字）表达，原行状态不变
   note: 记账状态与推送状态合并为一台平面机；权责口径不推送
 - aggregate: AGG-85
@@ -799,6 +937,7 @@ machines:
   - 已审批
   - {name: 已提交过账, terminal: true}
   - {name: 已撤回, terminal: true}
+  - {name: 已作废, terminal: true}
   transitions:
   - from: null
     to: 草稿
@@ -834,6 +973,11 @@ machines:
     command: 提交过账候选
     guard: [INV-92, INV-93]
     reverse_of: null
+  - from: 草稿
+    to: 已作废
+    command: 作废手工凭证草稿
+    guard: [只有草稿可作废]
+    reverse_of: 制单手工凭证
   reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
 - aggregate: AGG-99
   initial: 已生成
@@ -932,33 +1076,48 @@ machines:
     note: 已生效版本不可改，只被取代
   note: 生效含 SH-M1 评审（聚合内审批）
 - aggregate: AGG-87
-  initial: 已开立
+  initial: 待确认开立
   states:
+  - 待确认开立
   - 已开立
   - 已冻结
+  - 待确认销户
   - {name: 已销户, terminal: true}
   transitions:
   - from: null
-    to: 已开立
+    to: 待确认开立
     command: 开立资金账户
     guard: []
     reverse_of: null
+  - from: 待确认开立
+    to: 已开立
+    command: 确认开立资金账户
+    guard: [确认人不同于开立经办]
+    reverse_of: null
+    note: engine aggregate，类型级 SH-M1
   - from: 已开立
     to: 已冻结
     command: 冻结资金账户
     guard: []
     reverse_of: null
-  - from: 已开立
-    to: 已销户
-    command: 销户资金账户
-    guard: []
-    reverse_of: null
   - from: 已冻结
-    to: 已销户
+    to: 已开立
+    command: 解冻资金账户
+    guard: [解除冻结依据齐备]
+    reverse_of: 冻结资金账户
+    note: engine aggregate，类型级 SH-M1
+  - from: [已开立, 已冻结]
+    to: 待确认销户
     command: 销户资金账户
-    guard: []
+    guard: [无未结付款占用与未对账流水]
     reverse_of: null
-  note: 聚合稿无解冻命令，见 NOTES 收敛节
+  - from: 待确认销户
+    to: 已销户
+    command: 确认销户资金账户
+    guard: [确认人不同于销户经办]
+    reverse_of: null
+    note: engine aggregate，类型级 SH-M1
+  note: 开立、解冻、销户各分登记与确认两步（S-29 SQ-42）
 - aggregate: AGG-88
   stateless: true
   reason: 流水行只追加，不记匹配（匹配记在收款、付款上）；利息与手续费行过账不改行

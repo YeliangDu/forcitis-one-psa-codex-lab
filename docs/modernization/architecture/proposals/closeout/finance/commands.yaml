@@ -64,12 +64,12 @@ commands:
   preconditions: [INV-92, INV-94]
   authority: {A: 财务负责人}
   idempotency_key: [来源对象, 结转类型, 期间]
-  emits: [成本结转已过账]
+  emits: []
 - name: 提交过账候选
   aggregate: AGG-43
   params: [结转批次引用]
   preconditions: []
-  authority: {A: 待定（权责表无条目）}
+  authority: {A: 财务负责人}
   idempotency_key: [结转批次引用]
   emits: []
 - name: 转入售前投入
@@ -78,21 +78,30 @@ commands:
   preconditions: [INV-92, INV-94]
   authority: {A: 财务负责人}
   idempotency_key: [来源对象, 结转类型, 期间]
-  emits: [成本结转已过账]
+  emits: []
 - name: 终止清算成本
   aggregate: AGG-43
   params: [项目或协议引用, 终止原因]
   preconditions: [INV-92, INV-94]
   authority: {A: 财务负责人}
   idempotency_key: [来源对象, 结转类型, 期间]
-  emits: [成本结转已过账]
+  emits: []
 - name: 结转合同履约成本
   aggregate: AGG-43
   params: [过账事实引用(收入确认类型)]
   preconditions: [INV-88, INV-92, INV-94]
   authority: {A: 财务负责人}
   idempotency_key: [过账事实引用]
+  emits: []
+- name: 标记已过账
+  aggregate: AGG-43
+  params: ['结转批次引用, 过账事实引用']
+  preconditions: [INV-94]
+  authority: {A: 财务负责人}
+  idempotency_key: [结转批次引用]
   emits: [成本结转已过账]
+  proposed: true
+  proposed_reason: S-30 ①：订阅 BusinessFactAttributed 后置位（同 AGG-73 标记已过账），聚合稿命令列待回补
 - name: 确认应付
   aggregate: AGG-52
   params: [来源单据引用, 承担法人, 往来对象, 金额(外部来源已定), 应付类型]
@@ -101,6 +110,7 @@ commands:
   idempotency_key: [来源单据ID]
   emits: [应付已确认]
   also_used_by: revenue:PRC-147
+  callers: ['revenue:PRC-147（按净额确认应付）', 'finance:PRC-74', 'finance:PRC-114', 'finance:PRC-159（税费应付）']
 - name: 提交过账候选
   aggregate: AGG-52
   params: [应付引用]
@@ -145,6 +155,24 @@ commands:
   emits: [应付已确认]
   also_used_by: people:PRC-126
   unused_ok: 由 people 组 PRC-126（B-15）调用，本组骨架无此步
+- name: 冲回应付核销
+  aggregate: AGG-52
+  params: ['付款引用, 退票回单引用']
+  preconditions: [INV-77a, INV-94]
+  authority: {A: 财务负责人}
+  idempotency_key: ['付款ID, 退票序号']
+  emits: []
+  proposed: true
+  proposed_reason: S-30 ③：订阅付款已退票后恢复未结余额，聚合稿命令列待回补；骨架 PRC-75 步 8
+- name: 人工处置核销差异
+  aggregate: AGG-52
+  params: ['付款引用, 处置方式(人工核销/转冲销付款), 处置原因']
+  preconditions: [INV-77a]
+  authority: {A: 财务负责人}
+  idempotency_key: ['付款ID, 处置序号']
+  emits: []
+  proposed: true
+  proposed_reason: S-29 SQ-49，聚合稿命令列待回补；骨架 PRC-131 步 2
 - name: 发起付款
   aggregate: AGG-53
   params: [分配行(应付引用与金额), 资金账户, 收款账户, 发起人]
@@ -153,6 +181,7 @@ commands:
   idempotency_key: [发起请求号]
   emits: []
   also_used_by: revenue:PRC-08
+  callers: ['revenue:PRC-08（投标保证金付款）', 'revenue:PRC-86（发起借款付款，cross_bc B-09 → B-10）', 'finance:PRC-75']
 - name: 登记银行结果
   aggregate: AGG-53
   params: [付款引用, 银行回单, 银行流水行引用]
@@ -181,6 +210,15 @@ commands:
   authority: {A: 待定（权责表无条目）}
   idempotency_key: [付款ID]
   emits: []
+- name: 登记退票
+  aggregate: AGG-53
+  params: ['付款引用, 银行退票回单']
+  preconditions: [INV-78a]
+  authority: {A: 财务负责人}
+  idempotency_key: ['付款ID, 银行回单号']
+  emits: [付款已退票]
+  proposed: true
+  proposed_reason: S-30 ③：已核销 → 已退票，聚合稿命令列待回补；骨架 PRC-75 步 7
 - name: 登记出资认缴
   aggregate: AGG-54
   params: [法人, 出资人, 认缴额, 出资协议依据]
@@ -188,13 +226,15 @@ commands:
   authority: {A: 财务负责人}
   idempotency_key: [法人, 出资人, 认缴依据编号]
   emits: []
+  unused_ok: PRC-111 的 transitions 使用；converge_check 暂只读单聚合的 commands 字段，改名 transitions 后误报孤儿（见 NOTES 收敛节）
 - name: 登记出资实缴
   aggregate: AGG-54
   params: [出资引用, 实缴额, 银行流水行引用]
-  preconditions: []
+  preconditions: [INV-127]
   authority: {A: 财务负责人}
   idempotency_key: [银行流水行ID]
   emits: [出资已实缴]
+  unused_ok: PRC-111 的 transitions 使用；converge_check 暂只读单聚合的 commands 字段，改名 transitions 后误报孤儿（见 NOTES 收敛节）
 - name: 提交过账候选
   aggregate: AGG-54
   params: [出资引用, 事实类型]
@@ -205,10 +245,20 @@ commands:
 - name: 登记出资退回
   aggregate: AGG-54
   params: [出资引用, 退回额, 减资或退伙决议依据]
-  preconditions: []
+  preconditions: [INV-128]
   authority: {A: 财务负责人}
   idempotency_key: [退回依据编号]
   emits: [出资已退回]
+- name: 更正出资实缴
+  aggregate: AGG-54
+  params: ['出资引用, 更正后实缴额, 更正依据']
+  preconditions: [INV-127]
+  authority: {A: 财务负责人}
+  idempotency_key: ['出资引用, 更正序号']
+  emits: []
+  proposed: true
+  proposed_reason: S-29 SQ-47，聚合稿命令列待回补；骨架 PRC-111
+  unused_ok: PRC-111 的 transitions 使用；converge_check 暂只读单聚合的 commands 字段，改名 transitions 后误报孤儿（见 NOTES 收敛节）
 - name: 草拟利润分配
   aggregate: AGG-109
   params: [法人, 会计年度, 分配行]
@@ -237,6 +287,15 @@ commands:
   authority: {A: 财务负责人}
   idempotency_key: [利润分配ID, 事实类型]
   emits: []
+- name: 撤销利润分配决议
+  aggregate: AGG-109
+  params: ['利润分配引用, 撤销决议依据']
+  preconditions: []
+  authority: {A: SH-O1}
+  idempotency_key: ['利润分配ID, 撤销决议编号']
+  emits: []
+  proposed: true
+  proposed_reason: S-29 SQ-48，聚合稿命令列待回补；骨架 PRC-112 步 7
 - name: 起草供方协议
   aggregate: AGG-55
   params: [协议类型, 相对方, 项目或部门, 基线, 付款条件, 质保金条款]
@@ -300,6 +359,16 @@ commands:
   authority: {A: 财务负责人}
   idempotency_key: [履约确认ID]
   emits: []
+- name: 冲销供方履约确认
+  aggregate: AGG-57
+  params: ['履约确认引用, 冲销原因']
+  preconditions: [INV-95]
+  authority: {A: 实例级：费用归属对象.责任人}
+  idempotency_key: ['履约确认ID, 冲销序号']
+  emits: []
+  approval_rules: [AR-06]
+  proposed: true
+  proposed_reason: S-29 SQ-43，聚合稿命令列待回补；骨架 PRC-72 步 7
 - name: 建立履约额度
   aggregate: AGG-58
   params: [协议引用, 协议金额]
@@ -329,7 +398,7 @@ commands:
   idempotency_key: [占用引用]
   emits: []
   proposed: true
-  proposed_reason: 骨架 PRC-72 步 5〔缺〕（SQ-43）
+  proposed_reason: S-29 SQ-43，聚合稿命令列待回补；骨架 PRC-72 步 5、8
 - name: 提交费用报销
   aggregate: AGG-59
   params: [报销人, 明细(项目或商机), 发票占用引用, 预算占用引用]
@@ -359,6 +428,17 @@ commands:
   idempotency_key: [报销ID, 应付结清引用]
   emits: []
   also_used_by: revenue:PRC-147
+  callers: ['revenue:PRC-147（结清方式借款冲抵，净额为零）', 'finance:PRC-133（付款结清）']
+- name: 冲销费用报销
+  aggregate: AGG-59
+  params: ['报销引用, 冲销原因']
+  preconditions: [INV-95]
+  authority: {A: 实例级：费用归属对象.责任人}
+  idempotency_key: ['报销ID, 冲销序号']
+  emits: []
+  approval_rules: [AR-06]
+  proposed: true
+  proposed_reason: S-29 SQ-45，聚合稿命令列待回补；骨架 PRC-87 步 11
 - name: 过账
   aggregate: AGG-77
   params: [过账候选(类型化), 法人, 来源单据引用, 业务日期]
@@ -373,6 +453,26 @@ commands:
   authority: {A: 财务负责人}
   idempotency_key: [原事实引用, 更正序号]
   emits: [BusinessFactRestated]
+- name: 重提过账候选
+  aggregate: AGG-77
+  params: ['拒收记录引用, 补充说明']
+  preconditions: [INV-94]
+  authority: {A: 财务负责人}
+  idempotency_key: [原幂等键]
+  emits: []
+  proposed: true
+  proposed_reason: S-29 SQ-41：拒收记录以同一幂等键重提，聚合稿命令列待回补；骨架 PRC-158
+  unused_ok: PRC-158 的 transitions 使用；converge_check 暂只读单聚合的 commands 字段，改名 transitions 后误报孤儿（见 NOTES 收敛节）
+- name: 登记拒收处置结论
+  aggregate: AGG-77
+  params: ['拒收记录引用, 结案原因']
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [拒收记录ID]
+  emits: []
+  proposed: true
+  proposed_reason: S-29 SQ-41，聚合稿命令列待回补；骨架 PRC-158
+  unused_ok: PRC-158 的 transitions 使用；converge_check 暂只读单聚合的 commands 字段，改名 transitions 后误报孤儿（见 NOTES 收敛节）
 - name: 发起关账
   aggregate: AGG-81
   params: [法人, 会计年度, 期间序号, 发起人]
@@ -415,6 +515,15 @@ commands:
   authority: {A: SH-M1}
   idempotency_key: [法人, 会计年度, 关账轮次]
   emits: [AccountingPeriodClosed]
+- name: 开立会计年度
+  aggregate: AGG-81
+  params: ['法人, 会计年度']
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: ['法人, 会计年度']
+  emits: []
+  proposed: true
+  proposed_reason: S-30 ②：按法人一次生成第 1–12 期，聚合稿命令列待回补；骨架 PRC-102 步 8
 - name: 登记第 13 期启用
   aggregate: AGG-96
   params: [会计年度, 生效日, 财务批准人, 决定出处]
@@ -452,6 +561,7 @@ commands:
   authority: {A: 财务负责人}
   idempotency_key: [分录ID]
   emits: []
+  unused_ok: PRC-135 的 transitions 使用；converge_check 暂只读单聚合的 commands 字段，改名 transitions 后误报孤儿（见 NOTES 收敛节）
 - name: 推送与重投
   aggregate: AGG-84
   params: [分录引用或批次, 重投原因]
@@ -463,12 +573,11 @@ commands:
   aggregate: AGG-84
   params: [分录引用, U8C 凭证号, 对账读取批次]
   preconditions: []
-  authority: {A: 待定（权责表无条目）}
+  authority: {A: 财务负责人}
   idempotency_key: [分录ID, U8C 凭证号]
   emits: []
   proposed: true
-  proposed_reason: 骨架 PRC-135 状态转换引用〔缺〕
-  unused_ok: PRC-135 状态转换引用、未列入该流程命令；见 NOTES 收敛节
+  proposed_reason: S-30 ②：已推送 → 已确认记账，system，由 platform.integration 回执触发，聚合稿命令列待回补；骨架 PRC-93 步 3
 - name: 发布映射表版本
   aggregate: AGG-85
   params: [映射表版本引用, 批准人]
@@ -522,6 +631,15 @@ commands:
   authority: {A: 实例级：费用归属对象.责任人}
   idempotency_key: [凭证引用]
   emits: [手工凭证已提交过账]
+- name: 作废手工凭证草稿
+  aggregate: AGG-98
+  params: ['凭证引用, 作废原因']
+  preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [凭证引用]
+  emits: []
+  proposed: true
+  proposed_reason: S-29 SQ-46，聚合稿命令列待回补；骨架 PRC-94 步 5
 - name: 生成期末结转运行
   aggregate: AGG-99
   params: [法人, 会计年度, 期间序号, 模板版本]
@@ -605,9 +723,10 @@ commands:
   aggregate: AGG-87
   params: [法人, 开户行与账号, 开户日, 开户证明]
   preconditions: []
-  authority: {A: SH-M1}
+  authority: {A: 财务负责人}
   idempotency_key: [法人, 账号]
-  emits: [资金账户已开立]
+  emits: []
+  unused_ok: PRC-65 的 transitions 使用；converge_check 暂只读单聚合的 commands 字段，改名 transitions 后误报孤儿（见 NOTES 收敛节）
 - name: 冻结资金账户
   aggregate: AGG-87
   params: [资金账户引用, 冻结依据]
@@ -615,13 +734,45 @@ commands:
   authority: {A: 财务负责人}
   idempotency_key: [资金账户引用, 冻结通知号]
   emits: [资金账户已冻结]
+  unused_ok: PRC-65 的 transitions 使用；converge_check 暂只读单聚合的 commands 字段，改名 transitions 后误报孤儿（见 NOTES 收敛节）
 - name: 销户资金账户
   aggregate: AGG-87
   params: [资金账户引用, 销户日]
   preconditions: []
+  authority: {A: 财务负责人}
+  idempotency_key: [资金账户引用]
+  emits: []
+  unused_ok: PRC-65 的 transitions 使用；converge_check 暂只读单聚合的 commands 字段，改名 transitions 后误报孤儿（见 NOTES 收敛节）
+- name: 确认开立资金账户
+  aggregate: AGG-87
+  params: ['资金账户引用, 确认人']
+  preconditions: [INV-81（同类，提议）]
+  authority: {A: SH-M1}
+  idempotency_key: [资金账户引用]
+  emits: [资金账户已开立]
+  proposed: true
+  proposed_reason: S-29 SQ-42：engine aggregate，类型级 SH-M1；聚合稿命令列待回补
+  unused_ok: PRC-65 的 transitions 使用；converge_check 暂只读单聚合的 commands 字段，改名 transitions 后误报孤儿（见 NOTES 收敛节）
+- name: 解冻资金账户
+  aggregate: AGG-87
+  params: ['资金账户引用, 解除冻结依据, 确认人']
+  preconditions: []
+  authority: {A: SH-M1}
+  idempotency_key: ['资金账户引用, 解冻通知号']
+  emits: [资金账户已解冻]
+  proposed: true
+  proposed_reason: S-29 SQ-42：engine aggregate，类型级 SH-M1；聚合稿命令列待回补
+  unused_ok: PRC-65 的 transitions 使用；converge_check 暂只读单聚合的 commands 字段，改名 transitions 后误报孤儿（见 NOTES 收敛节）
+- name: 确认销户资金账户
+  aggregate: AGG-87
+  params: ['资金账户引用, 确认人']
+  preconditions: [INV-81（同类，提议）]
   authority: {A: SH-M1}
   idempotency_key: [资金账户引用]
   emits: [资金账户已销户]
+  proposed: true
+  proposed_reason: S-29 SQ-42：engine aggregate，类型级 SH-M1；聚合稿命令列待回补
+  unused_ok: PRC-65 的 transitions 使用；converge_check 暂只读单聚合的 commands 字段，改名 transitions 后误报孤儿（见 NOTES 收敛节）
 - name: 导入银行流水
   aggregate: AGG-88
   params: [资金账户引用, 流水文件, 文件校验和]

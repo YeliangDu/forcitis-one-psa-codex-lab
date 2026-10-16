@@ -138,6 +138,7 @@ aggregates:
     - 幂等键
     - version
     - 审计列
+    - 过账结果引用（PostSeq，订阅 BusinessFactAttributed 后写入）
   - name: cost_transfer_batch_lines
     role: child
     key: uuid_v7
@@ -189,7 +190,7 @@ aggregates:
     - 未结余额（投影，可由核销重算）
     - version
     - 审计列
-    notes: 争议状态只在 payable_dispute_records；应付类型含分包、采购、报销、其他应付、预付、质保金扣留、应付薪酬、应付利润，不含员工借款（S-18）
+    notes: 争议状态只在 payable_dispute_records；应付类型含分包、采购、报销、其他应付、预付、质保金扣留、应付薪酬、应付利润、税费应付（PRC-159 订阅申报已提交确认），不含员工借款（S-18）
   - name: payable_sources
     role: child
     key: uuid_v7
@@ -252,6 +253,7 @@ aggregates:
     - 核销日期
     - 落账期间（会计年度、期间序号）
     - 冲销关联
+    - 冲回原因（付款已退票）
   - name: payable_dispute_records
     role: child
     key: uuid_v7
@@ -292,7 +294,7 @@ aggregates:
     - 业务日期
     - 单据编号
     - 落账期间（会计年度、期间序号）
-    - 状态
+    - 状态(含已退票)
     - 收款账户引用
     - 审批引用
     - 执行人
@@ -300,6 +302,7 @@ aggregates:
     - 银行回单引用
     - version
     - 审计列
+    - 退票回单引用
     notes: U-3、U-4 全部历史明细迁入，经 ADR-0036 迁入用例
   - name: cash_payment_allocations
     role: child
@@ -377,11 +380,14 @@ aggregates:
     pi: pi
     reason: 同根表
     column_families:
-    - 类型(认缴/实缴/退回)
+    - 类型(认缴/实缴/退回/实缴更正)
     - 金额
     - 业务日期
     - 落账期间（会计年度、期间序号）
     - 幂等键
+    - 分期序号
+    - 更正关联（冲销原实缴行）
+    notes: 分期实缴与更正（INV-127、INV-128）：累计由条目汇总，不存冗余累计列
 - aggregate: AGG-109
   bc: B-10
   tables:
@@ -446,6 +452,7 @@ aggregates:
     - 决议文件引用
     - 决议日期
     - 被取代决议引用
+    - 撤销依据与撤销日期
   - name: profit_distribution_payments
     role: child
     key: uuid_v7
@@ -600,6 +607,7 @@ aggregates:
     - 确认金额
     - 幂等键
     - 审计列
+    - 冲销关联（原确认引用）
     notes: 形态待定 Q20；暂按事实只追加，更正靠冲销
   - name: supplier_performance_confirmation_lines
     role: child
@@ -679,6 +687,7 @@ aggregates:
     - 幂等键
     - version
     - 审计列
+    - 冲销关联（原报销引用）
   - name: expense_claim_lines
     role: child
     key: uuid_v7
@@ -762,6 +771,26 @@ aggregates:
     - 拒收原因代码
     - 幂等键
     - 时刻
+    - 拒收时刻（超期告警起点）
+  - name: posting_rejection_dispositions
+    role: child
+    key: uuid_v7
+    references:
+    - to: posting_rejections
+      by: posting_rejection_id
+    versioned: append_only
+    history_migration: none
+    sensitivity: internal
+    pi: none
+    reason: 投产后产生的处置记录（S-29 SQ-41，PRC-158）；历史无此记录；只追加，拒收记录本身不改
+    column_families:
+    - 处置动作(重提/结案)
+    - 处置人
+    - 处置时刻
+    - 结论与原因
+    - 重提所用幂等键
+    - 重提结果引用
+    notes: 拒收记录是否已处置 = 存在重提成功或结案的处置行；关账前置检查读取
   - name: post_sequence_counters
     role: child
     key: uuid_v7
@@ -796,7 +825,8 @@ aggregates:
     - 期间序号(1-13)
     - 状态(OPEN/CLOSING/CLOSED/历史期间)
     - version
-    notes: 发起人与确认人写审计记录，不进表
+    - 开立批次（开立人、开立时刻）
+    notes: 发起人与确认人写审计记录，不进表；投产后新年度由「开立会计年度」命令一次生成 1–12 期（S-30 ②）；迁入年度仍由迁入用例生成
   - name: period_migration_holds
     role: child
     key: uuid_v7
@@ -979,10 +1009,11 @@ aggregates:
     pi: none
     reason: 推送只针对投产后的收付凭证；历史凭证已在 U8C
     column_families:
-    - 推送状态(待推送/已推送/已确认记账/死信)
+    - 推送状态(待推送/挂起/已推送/已确认记账/死信)
     - 投递尝试
     - 外部凭证引用
     - 时刻
+    - 外部记账回执引用
     notes: 每次投递结果逐行追加，不更新旧行
   - name: ledger_account_balances
     role: child
@@ -1103,6 +1134,9 @@ aggregates:
     - 幂等键
     - version
     - 审计列
+    - 审批责任人（凭证所属法人的财务负责人，解析快照）
+    - 作废原因与作废时刻
+    notes: 审批责任人解析字段落点交 one-data（S-29 SQ-51）；状态含已作废（草稿可作废）
   - name: manual_voucher_lines
     role: child
     key: uuid_v7
@@ -1402,12 +1436,15 @@ aggregates:
     pi: none
     source: 同资金账户
     column_families:
-    - 状态(开立/冻结/销户)
+    - 状态(待确认开立/已开立/已冻结/待确认销户/已销户)
     - 账户用途
     - 生效日
     - 失效日
     - 决定依据
-    notes: 维度型，业务声明日 DECLARED；左闭右开，gist 防重叠
+    - 开立确认人与确认时刻
+    - 解冻确认人与确认时刻
+    - 销户确认人与确认时刻
+    notes: 维度型，业务声明日 DECLARED；左闭右开，gist 防重叠；开立、解冻、销户的经办与确认分离，确认人为类型级财务负责人（SH-M1，S-29 SQ-42）；确认前版本为待确认状态
 - aggregate: AGG-88
   bc: B-22
   tables:
@@ -1478,6 +1515,8 @@ aggregates:
     - 状态
     - version
     - 审计列
+    - 发票代码（唯一键之一）
+    notes: 发票代码与发票号码合并唯一（INV-129，S-29 SQ-53）
   - name: input_invoice_holds
     role: child
     key: uuid_v7

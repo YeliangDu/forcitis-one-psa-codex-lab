@@ -79,3 +79,13 @@
 脚本复跑：`closeout_check.py --local --qc --all --matrix finance/responsibility.finance.yaml` 复跑：人工审批 20 个，无 why_human 0，approver 不符 0，加审引用无效 0，用户任务缺 permission 或 page 0，出口无场景 0（共 237）、超时无场景 0（共 17）、结局无场景 0（共 146），用语无着落 0；场景共 377 条。`object_check.py --local` 的 208 条是跨组对象目录项，修前修后相同，不属本批；`raci_build.py --local` 无法定位对象×命令 0、多个不同 A 0。生成器 `bpmn_gen.py`（one-architecture 分支最新版）：多入口流程 PRC-76、92、99、112 共 29 个 R13（不可达，生成器只接第一个入口，不是骨架缺陷，F-30）；其余流程检查全部通过；不读 `decision[].outcome`（F-28）、不画 `on_reject`、`withdraw`（F-29），相关出口在图上暂不能查。
 
 结论：有条件通过——原不符项中，凡骨架能直接改的已改；剩余为待裁定（新流程号、聚合稿回补、用户决定）与生成器项。
+
+## 复查（S-29 后）
+
+日期 2026-10-16。
+
+脚本结果（`closeout_check.py --local --qc --all`、`--local`、`converge_check.py --local --all`、`bpmn_gen.py`、`object_check.py --local`，GOV 分支最新脚本，副本中跑）：人工审批 26 个，无 why_human 0，approver 不符 0，加审引用无效 0；用户任务 53 个，缺 permission 或 page 0；出口无场景 0（共 271）、超时无场景 0（共 17）、结局无场景 0（共 177）；用语无着落 0；converge 无孤儿、无无终态、无改状态无转换（仅他组聚合 AGG-80 两条命令与无状态机各 1 条，不改）；bpmn_gen 生成 24 张图，错误 0、警告 0，bpmn_check 全部通过；提议新增命令（〔缺〕）共 15 处，其中 11 处是 S-29、S-30 已裁定待聚合稿回补，4 处是旧缺口（编制分摊规则版本，起草科目表、映射表、授权表版本）。
+
+原「暂不能查（等 bpmn_gen.py）」行 1：手绘样板已挪到 `bpmn/sample/PRC-87.hand.bpmn`，PRC-87 由生成器出图（任务 19、网关 10、开始 2、结束 11），bpmn_check 通过，结论改为符合；行 6 角色→职位仍暂不能查。
+S-29 SQ-45 落实：AGG-59 冲销费用报销（加审 AR-06），PRC-87 增冲销分支（步 10 审批平台加审、步 11 冲销费用报销、步 12 冲销并重过账）；已付或应付已有核销的不可冲销，联动处置待 U-47。S-30 ①：事件策略 PRC-133 无变化。
+结论：仍为有条件通过；剩余为 U-42（核定是否保留人工）、U-43、U-47、聚合稿回补。
