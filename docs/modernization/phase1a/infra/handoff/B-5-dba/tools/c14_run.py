@@ -43,7 +43,7 @@ LOGIN = 'one_readonly_probe'
 DB = 'one_readonly_probe_db'
 DB2 = 'one_readonly_probe_db2'
 P = f'[{LOGIN}]'
-PLATFORM_REFUSAL = 4613
+PLATFORM_REFUSALS = (4613, 15151)  # 4613: no server-level DENY / GRANT here; 15151: the login (sa) cannot be seen by the execution account
 PLATFORM_REFUSAL_ITEMS = (10, 15)
 
 PREPARE_MASTER = f"""CREATE DATABASE [{DB}];
@@ -299,6 +299,31 @@ def create_account(secret):
     raise Stop('the probe account did not become Available in 5 minutes')
 
 
+def delete_databases():
+    """A database RDS has put under mirroring (a few minutes after it was made) cannot be dropped with T-SQL (3743); the RDS API does it. Only the probe's own."""
+    rc, out, _ = rds('DescribeDatabases')
+    if rc != 0:
+        record(step='rds delete databases', outcome='listing unreadable')
+        return
+    try:
+        present = {x['DBName'] for x in json.loads(out)['Databases']['Database']}
+    except (ValueError, KeyError, TypeError):
+        record(step='rds delete databases', outcome='listing not understood')
+        return
+    for name in (DB2, DB):
+        if name not in present:
+            continue
+        rc, out, err = rds('DeleteDatabase', '--DBName', name)
+        request = re.findall(r'"RequestId":\s*"([0-9A-F-]+)"', out)
+        code = re.findall(r'ErrorCode: (\S+)', out + err)
+        record(step='rds delete database', database=name, rc=rc, request_id=request[0] if request else None, error_code=code[0] if code else None)
+        for _ in range(30):
+            rc, out, _ = rds('DescribeDatabases')
+            if rc == 0 and name not in out:
+                break
+            time.sleep(10)
+
+
 def delete_account():
     status = account_status_retried()
     if status == '' and requested:
@@ -419,11 +444,15 @@ def cleanup():
     for db, sql in CLEANUP:
         try:
             rc, errors, _ = legacy_sql('cleanup', db, sql)
-            if rc != 0 and db != DB2 and sql != KILL_SESSIONS:
+            if rc != 0 and db != DB2 and sql != KILL_SESSIONS and 'DROP DATABASE' not in sql:  # a refused DROP DATABASE (3743: mirrored) goes through the API below
                 clean = False
         except BaseException as failure:  # noqa: BLE001 every step runs whatever the previous one did
             record(step='cleanup', db=db, exception=type(failure).__name__)
             clean = False
+    try:
+        delete_databases()
+    except BaseException as failure:  # noqa: BLE001 the readback below decides
+        record(step='rds delete databases', exception=type(failure).__name__)
     try:
         clean = delete_account() and clean
     except BaseException as failure:  # noqa: BLE001
@@ -525,7 +554,7 @@ def main(target, jar_sha256):
                     raise Stop('item 14: the probe does not see public grants on user objects, (g) public is not effective here; reported to one-coordinator and one-1a-next-2, as the runbook says')
             errors = apply(f'item {number} deviation', deviation)
             if errors:
-                if number in PLATFORM_REFUSAL_ITEMS and errors == [PLATFORM_REFUSAL]:
+                if number in PLATFORM_REFUSAL_ITEMS and len(errors) == 1 and errors[0] in PLATFORM_REFUSALS:
                     record(item=number, expected=expected, outcome='platform cannot construct', sql_errors=errors)
                     if counts(f'item {number} counts') != control or fingerprint(f'item {number} fingerprint') != control_fingerprint:
                         raise Stop(f'item {number}: state changed after a refused deviation')
