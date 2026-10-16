@@ -1,0 +1,5 @@
+# object_check.py 的豁免表：「设计如此」的问题登记在此才算清零。
+# 格式（reason、ruling 必填，缺则报错且不生效；没匹配到任何问题的条目报「失效豁免」，请删除）：
+#   - {check: "3 状态名冲突", object: "OBJ-xx 或 AGG-xx", detail: "可选，限定到某条明细的子串", reason: "为何设计如此", ruling: "裁定号，如 S-43 第 3 条"}
+# check 为报告中问题类原文（如「3 状态名冲突」「6 生命周期缺结束或归档」）。
+exemptions: []

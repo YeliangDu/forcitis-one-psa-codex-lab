@@ -1,12 +1,15 @@
 """Business object x process/command CRUD matrix from the group skeletons, plus six consistency checks (report only).
 
-Usage: python3 -I object_check.py [--local] [--write] [--matrix PATH] [--states PATH]... [--commands PATH]...   |   --self-test
+Usage: python3 -I object_check.py [--local] [--write] [--exemptions PATH] [--matrix PATH] [--states PATH]... [--commands PATH]...   |   --self-test
   skeletons: processes.<group>.yaml from origin/claude/one-arch-<group>-closeout (or closeout/<group>/ with --local)
   objects:   OBJ-NN in the aggregate name cell of ENTERPRISE_AGGREGATES_DRAFT.md section 2.2; catalogue = table rows of ENTERPRISE_INFO_MAP_DRAFT.md
              (rows whose definition says 非对象 / 行号保留 are not objects); an aggregate without OBJ-NN is its own row
   states:    state-machines.yaml of each group (converge_check.py format; --state PATH repeatable, default: each group's file, or closeout/state-machines.yaml)
   commands:  commands.yaml of each group (--commands PATH repeatable); entries whose unused_ok says they are fired by an on_reject / withdraw / 驳回 / 撤回
              edge count as reverse
+  exemptions: OBJECT_EXEMPTIONS.yaml (--exemptions PATH; absent = empty, noted on the first report line); entries {check, object, detail?, reason, ruling};
+             an issue whose check text equals `check`, whose text names `object` and contains `detail` is exempted: not counted, listed separately;
+             an entry without reason or ruling is an error and does not apply; an entry matching nothing is reported as stale
   --write:   write CRUD_MATRIX.md (sections by value stream: VS-NN of the first stage of the process) next to this script
 
 Command class (per aggregate x command), in this order:
@@ -379,6 +382,42 @@ def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None, catalog_cmds=
     return {"touch": touch, "firm": firm, "names": names, "members": members, "issues": issues, "unit_info": unit_info, "first_vs": first_vs}
 
 
+def load_exemptions(path):
+    if not path.exists():
+        return [], False
+    return (yaml.safe_load(path.read_text(encoding="utf-8")) or {}).get("exemptions") or [], True
+
+
+def apply_exemptions(R, entries):
+    """Move matched issues out of R["issues"] into R["exempted"] [(check, vs, text, reason, ruling)]; fills R["exempt_errors"], R["stale"]."""
+    errors, exempted, valid = [], [], []
+    for n, e in enumerate(entries, 1):
+        e = e if isinstance(e, dict) else {}
+        missing = [k for k in ("check", "object", "reason", "ruling") if not str(e.get(k) or "").strip()]
+        if missing:
+            errors.append(f"第{n}条豁免缺 {'、'.join(missing)}，不生效：{e}")
+        else:
+            valid.append(e)
+    used = set()
+    for check in list(R["issues"]):
+        keep = []
+        for vs, text in R["issues"][check]:
+            hit = next((i for i, e in enumerate(valid) if e["check"] == check
+                        and re.search(rf"(?<![\w-]){re.escape(e['object'])}(?!\d)", text) and str(e.get("detail") or "") in text), None)
+            if hit is None:
+                keep.append((vs, text))
+            else:
+                used.add(hit)
+                exempted.append((check, vs, text, valid[hit]["reason"], valid[hit]["ruling"]))
+        if keep:
+            R["issues"][check] = keep
+        else:
+            del R["issues"][check]
+    stale = [f"{e['check']} / {e['object']}" + (f" / {e['detail']}" if e.get("detail") else "") for i, e in enumerate(valid) if i not in used]
+    R["exempted"], R["exempt_errors"], R["stale"] = exempted, errors, stale
+    return R
+
+
 def render_matrix(R, vsn):
     touch, names, members, ui = R["touch"], R["names"], R["members"], R["unit_info"]
     by_vs = collections.defaultdict(lambda: collections.defaultdict(dict))   # vs -> key -> {unit: letters}
@@ -389,12 +428,13 @@ def render_matrix(R, vsn):
            "格：C 创建、U 修改、D 结束或归档（含冲销撤回类）、R 只读、? 判不出、* 号表示该字母只来自提议命令（〔缺〕）；先按状态机、再按命令名动词判定，只作线索。对象行取聚合稿 §2.2 的 OBJ-NN，无 OBJ 的聚合自成一行。", ""]
     iss = R["issues"]
     out += ["## 问题汇总（按价值流）", ""]
-    vss = sorted({v for lst in iss.values() for v, _ in lst}, key=lambda x: (x == "未标阶段" or x == "未触及", x))
+    ex = R.get("exempted", [])
+    vss = sorted({v for lst in iss.values() for v, _ in lst} | {e[1] for e in ex}, key=lambda x: (x == "未标阶段" or x == "未触及", x))
     items = sorted(iss)
-    out.append("| 价值流 | " + " | ".join(i.split(" ", 1)[1].split("（")[0] + f"（{i[0]}）" for i in items) + " |")
-    out.append("|---|" + "---|" * len(items))
+    out.append("| 价值流 | " + " | ".join(i.split(" ", 1)[1].split("（")[0] + f"（{i[0]}）" for i in items) + " | 已豁免 |")
+    out.append("|---|" + "---|" * (len(items) + 1))
     for v in vss:
-        out.append(f"| {v} {vsn.get(v, '')} | " + " | ".join(str(sum(1 for x, _ in iss[i] if x == v)) for i in items) + " |")
+        out.append(f"| {v} {vsn.get(v, '')} | " + " | ".join(str(sum(1 for x, _ in iss[i] if x == v)) for i in items) + f" | {sum(1 for e in ex if e[1] == v)} |")
     out.append("")
     for v in vss:
         out.append(f"### {v} {vsn.get(v, '')}")
@@ -404,6 +444,14 @@ def render_matrix(R, vsn):
                 out.append(f"- **{i}**（{len(rows)}）")
                 out += [f"  - {t}" for t in rows]
         out.append("")
+    if ex:
+        out += [f"## 已豁免（{len(ex)}，不计入问题数）", ""]
+        out += [f"- {c} / {v}：{t}（理由：{r}；裁定：{g}）" for c, v, t, r, g in ex]
+        out.append("")
+    if R.get("stale"):
+        out += ["## 失效豁免（未匹配任何问题，请删除）", ""] + [f"- {x}" for x in R["stale"]] + [""]
+    if R.get("exempt_errors"):
+        out += ["## 豁免条目错误（不生效）", ""] + [f"- {x}" for x in R["exempt_errors"]] + [""]
     out += ["## 矩阵", ""]
     for v in sorted(by_vs, key=lambda x: (x == "未标阶段", x)):
         units = sorted({u for k in by_vs[v] for u in by_vs[v][k]}, key=lambda x: int(re.sub(r"\D", "", x) or 0))
@@ -424,9 +472,11 @@ def render_matrix(R, vsn):
 
 def summary(R):
     iss = R["issues"]
-    lines = [f"对象行 {len(R['touch'])} 个被流程触及；问题 {sum(len(v) for v in iss.values())} 条"]
+    lines = [f"对象行 {len(R['touch'])} 个被流程触及；问题 {sum(len(v) for v in iss.values())} 条；已豁免 {len(R.get('exempted', []))} 条"]
     for i in sorted(iss):
         lines.append(f"- {i}：{len(iss[i])}")
+    lines += [f"- 失效豁免（请删除）：{x}" for x in R.get("stale", [])] + [f"- 豁免条目错误：{x}" for x in R.get("exempt_errors", [])]
+    lines += [f"- 已豁免 {c}：{t}（{r}；{g}）" for c, _v, t, r, g in R.get("exempted", [])]
     return "\n".join(lines)
 
 
@@ -526,6 +576,22 @@ def self_test_more():
         check(f"{flag} 且有 reason 豁免结束类检查；缺 reason 不豁免并报告",
               not R["issues"].get("6 生命周期缺结束或归档") and not R["issues"].get("2 对象无人结束或归档") and not R["issues"].get("7 机器标 stateless 或 perpetual 却没写理由")
               and len(R2["issues"]["6 生命周期缺结束或归档"]) == 1 and len(R2["issues"]["7 机器标 stateless 或 perpetual 却没写理由"]) == 1, (R["issues"], R2["issues"]))
+    # 8 exemptions
+    base = lambda: _run([_st("AGG-13", "登记甲")], ["AGG-13"])
+    key = "6 生命周期缺结束或归档"
+    ok_e = {"check": key, "object": "OBJ-13", "reason": "设计如此", "ruling": "S-43 第3条"}
+    R = apply_exemptions(base(), [ok_e])
+    check("豁免匹配生效：不计入问题、单列已豁免", key not in R["issues"] and len(R["exempted"]) == 1 and R["exempted"][0][3:] == ("设计如此", "S-43 第3条")
+          and not R["stale"] and "已豁免 1 条" in summary(R), (R["issues"], R["exempted"]))
+    check("豁免 object 不误匹配前缀（OBJ-1 不匹配 OBJ-13）", len(apply_exemptions(base(), [dict(ok_e, object="OBJ-1")])["issues"][key]) == 1)
+    check("detail 限定到明细子串", len(apply_exemptions(base(), [dict(ok_e, detail="不存在")])["issues"][key]) == 1
+          and not apply_exemptions(base(), [dict(ok_e, detail="AGG-13")])["issues"].get(key))
+    for miss in ("reason", "ruling"):
+        R = apply_exemptions(base(), [dict(ok_e, **{miss: " "})])
+        check(f"缺 {miss} 不生效并报错", len(R["issues"][key]) == 1 and not R["exempted"] and len(R["exempt_errors"]) == 1, R["exempt_errors"])
+    R = apply_exemptions(base(), [dict(ok_e, object="OBJ-99")])
+    check("失效豁免列出", len(R["stale"]) == 1 and len(R["issues"][key]) == 1 and "失效豁免" in summary(R), R["stale"])
+    check("矩阵汇总表有已豁免列", "| 已豁免 |" in render_matrix(apply_exemptions(base(), [ok_e]), {}))
     return all(results)
 
 
@@ -599,6 +665,11 @@ def main(argv):
     catalog_cmds = [(c["aggregate"], c["name"], str(c["unused_ok"])) for c in yaml_items("commands", flag("--commands"), "commands.yaml", local)
                     if c.get("unused_ok") and c.get("aggregate")]
     R = analyse(docs, aggs, new_aggs, cat, matrix, machines, catalog_cmds)
+    ep = Path(argv[argv.index("--exemptions") + 1]) if "--exemptions" in argv else HERE / "OBJECT_EXEMPTIONS.yaml"
+    entries, present = load_exemptions(ep)
+    R = apply_exemptions(R, entries)
+    if not present:
+        print(f"豁免表 {ep.name} 缺失，视为空表")
     print(f"对象目录 {len(cat)} 行（有效 {sum(1 for c in cat.values() if not c['non'])}）；聚合稿聚合 {len(aggs)}；权责表：{'有' if matrix is not None else '无，第 5 项跳过'}")
     print(summary(R))
     if "--write" in argv:
