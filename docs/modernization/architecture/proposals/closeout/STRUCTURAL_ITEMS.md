@@ -16,3 +16,5 @@
 | S-12 | revenue 样板 | approval 无法区分审批平台与聚合内校审 | CONVENTIONS 加 `approval.engine`（platform.approval / aggregate / external） | 已改 CONVENTIONS |
 | S-13 | revenue 样板 | AGG-110 证据关联加提交轮次与合同引用，超出聚合稿内含 | 采纳，属细化（诉讼证据关联性键，intent 141725）；回写聚合稿 | 聚合稿修订 |
 | S-14 | people 样板 J-1 | PRC-137、138 由谁编排 | owner 改 platform.identity：订阅 B-13 入职 / 离职事件，沿用现有边，无新边；CONVENTIONS 允许 owner_bc 写平台模块 | 已改 PRC_ALLOCATIONS、CONVENTIONS |
+| S-15 | finance 样板 | 格式提案 segregation、pi、added_in | 三项采纳，已写进 CONVENTIONS | 已改 |
+| S-16 | finance 样板 | PRC-87 第 7 步冲抵借款写成 B-12 调 B-09 api | 方向反了：Q-10 已定的是 B-09 → B-12 事件边（B-09 订阅「报销已确认」后执行 AGG-49「冲抵员工借款」，intent 134134；聚合稿 :728、STEP6A :557），B-12 → B-09 api 会与之成环。改为 cross_bc {mode: event, direction: out, bc: B-09, name: 费用报销已确认}，冲抵步骤写在 B-09 侧 | finance 组改 |
