@@ -109,7 +109,7 @@ class SingleOperatorModeStartupIT {
 
         assertRefusedByTheCheck(outcome);
         assertThat(outcome.output()).doesNotContain("Tomcat started");
-        assertThat(SingleOperatorModeEnvironment.listening(port)).as("nothing listens on port %d", port).isFalse();
+        assertThat(SingleOperatorModeEnvironment.listening(outcome.port())).as("nothing listens on port %d", outcome.port()).isFalse();
         assertThat(SingleOperatorModeEnvironment.count(PROD_DATABASE, "platform_scheduling.scheduler_locks", null)).as("no scheduled job took a lock").isEqualTo(locksBefore)
                 .isZero();
     }
@@ -189,7 +189,7 @@ class SingleOperatorModeStartupIT {
 
         assertThat(outcome.started()).as(outcome.output()).isFalse();
         assertThat(outcome.exitCode()).as(outcome.output()).isNotZero();
-        assertThat(SingleOperatorModeEnvironment.listening(port)).isFalse();
+        assertThat(SingleOperatorModeEnvironment.listening(outcome.port())).isFalse();
     }
 
     @Test

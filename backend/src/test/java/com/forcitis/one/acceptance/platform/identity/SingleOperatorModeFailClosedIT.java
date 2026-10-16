@@ -49,7 +49,7 @@ class SingleOperatorModeFailClosedIT {
         assertThat(on.started()).as(on.output()).isFalse();
         assertThat(on.exitCode()).as(on.output()).isNotZero();
         assertThat(on.output()).contains("the database check could not run").contains(KEY).contains("ADR-0030");
-        assertThat(SingleOperatorModeEnvironment.listening(port)).isFalse();
+        assertThat(SingleOperatorModeEnvironment.listening(on.port())).isFalse();
 
         Outcome off = SingleOperatorModeEnvironment.launch(unreachable("false", SingleOperatorModeEnvironment.freePort()));
 
@@ -73,6 +73,6 @@ class SingleOperatorModeFailClosedIT {
         assertThat(on.started()).as(on.output()).isFalse();
         assertThat(on.exitCode()).as(on.output()).isNotZero();
         assertThat(on.output()).doesNotContain("Started SingleOperatorModeLauncher").containsIgnoringCase("read-only");
-        assertThat(SingleOperatorModeEnvironment.listening(port)).isFalse();
+        assertThat(SingleOperatorModeEnvironment.listening(on.port())).isFalse();
     }
 }
