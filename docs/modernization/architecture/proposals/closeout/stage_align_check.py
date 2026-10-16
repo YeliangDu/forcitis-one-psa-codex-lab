@@ -4,9 +4,10 @@
   默认          骨架读 origin/claude/one-arch-<组>-closeout（沿用 closeout_check.read_group_file）
   --local       骨架读 closeout/<组>/ 本地文件
   --no-write    只打印，不写 STAGE_ALIGN_REPORT.md
-  --self-test   最小样例覆盖五项检查
+  --self-test   最小样例覆盖六项检查
 
-五项：1 未落阶段的流程；2 跳段；3 阶段退出条件能否由本段流程的结局满足；4 阶段进入条件的产生方；5 稀少。
+六项：1 未落阶段的流程；2 跳段；3 阶段退出条件能否由本段流程的结局满足；4 阶段进入条件的产生方；5 稀少；
+6 归段（按用户判据推「应归段」，与目录所标阶段比较；判据原文见报告末尾）。
 只报发现，不判设计好坏；退出码恒为 0（self-test 失败除外）。匹配口径见报告末尾。
 """
 import re
@@ -50,11 +51,27 @@ class Norm:
         return stripped if len(stripped) >= 2 else t   # 「已付」去掉「已」只剩一字，退回原文整体比对
 
 
+def split_outside(s):
+    """按 / 和 → 拆分，括号内的不拆（「减员（转移 / 封存）」是一个状态）。"""
+    out, depth, cur = [], 0, ""
+    for ch in str(s):
+        if ch in "（(":
+            depth += 1
+        elif ch in "）)":
+            depth = max(0, depth - 1)
+        if ch in "/→" and depth == 0:
+            out.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    return out + [cur]
+
+
 def variants(state, norm):
-    """一个状态原文拆成可比对的说法：整体、按 / → 拆分、括号内外分开。"""
+    """一个状态原文拆成可比对的说法：整体、按括号外的 / → 拆分、括号内外分开。"""
     s = str(state)
     parts = {s}
-    for seg in re.split(r"[/→]", s):
+    for seg in split_outside(s):
         parts.add(seg)
         parts.add(re.sub(r"[（(].*?[）)]", "", seg))
         parts.update(re.findall(r"[（(](.*?)[）)]", seg))
@@ -426,6 +443,94 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
                                "tier_out": etier0, "by_arr": e_by_arr})
         if len(in_vs) <= SMALL_VS:
             R["sparse"].append(("small_vs", vs["id"], vs["name"], len(in_vs)))
+    # 6 归段
+    part = {s["id"]: set(s.get("participants") or []) for vs in vss for s in vs["stages"]}
+    sname = {s["id"]: s["name"] for vs in vss for s in vs["stages"]}
+    own_exit = {}
+    for vs in vss:
+        for s in vs["stages"]:
+            own_exit[s["id"]] = [lf for lf in leaves(expand(s.get("exit") or {"all": []}, {})) if str(lf.get("ref", "")).startswith("OBJ-")]
+    P = {"unsupported": [], "missing": [], "uncertain": [], "role": [], "ok": 0, "ok_approx": 0}
+    for p in procs:
+        if p.get("support"):
+            P["support_skipped"] = P.get("support_skipped", 0) + 1   # 已声明支撑的不归段
+            continue
+        u = skeletons.get(p["id"])
+        cat = [x for x in (p.get("stages") or []) if x in stage_pos]
+        exact, approx, why, unres = {}, {}, [], False
+
+        def put(sid, tier, ev):
+            d = exact if tier == "exact" else approx
+            if tier and sid not in d:
+                d[sid] = ev
+            if tier == "exact":
+                approx.pop(sid, None)
+        if not u:
+            why.append("无骨架")
+            unres = True
+        elif p["type"] == "read_model":
+            why.append("读模型不造对象状态，按其读取的对象状态人工归段")
+            unres = True
+        elif p["type"] == "event_policy":
+            trig = [t for t in u[0].get("triggers") or [] if isinstance(t, dict) and t.get("type") == "event" and t.get("name")]
+            hit_any = False
+            for t in trig:
+                hit = False
+                for sid, lfs in own_exit.items():
+                    for lf in lfs:
+                        tier = match_atom(onames.get(lf.get("ref"), ""), lf.get("state"), t["name"], norm)
+                        on_ = norm(re.sub(r"[（(].*?[）)]", "", onames.get(lf.get("ref"), "")))
+                        if tier == "exact" and on_ and on_ not in norm(t["name"]):
+                            tier = "approx"
+                        if tier:
+                            hit = True
+                            put(sid, tier, [(p["id"], "触发状态", f"{t['name']} ≈ {leaf_txt(lf, onames)}")])
+                hit_any = hit_any or hit
+                if not hit:
+                    why.append(f"触发事件「{t['name']}」对不上任何段退出条件里的对象状态")
+            if not trig:
+                why.append("无事件触发")
+            elif not hit_any:
+                why.append("全部触发事件都对不上对象状态")
+            unres = not hit_any
+        else:
+            for sid, lfs in own_exit.items():
+                for lf in lfs:
+                    tier, ev = find_in([p["id"]], lf, use_name=False)
+                    if tier == "exact" and ev[0][1] != "步骤到达":
+                        on_ = norm(re.sub(r"[（(].*?[）)]", "", onames.get(lf.get("ref"), "")))
+                        if on_ and on_ not in norm(ev[0][2]):
+                            tier = "approx"   # 结局只写了通用状态词（如「已关闭」）、没写对象名：不算精确
+                    if tier:
+                        put(sid, tier, ev)
+        sup = set(exact) | set(approx)
+        row = {"id": p["id"], "name": p["name"], "type": p["type"], "cat": cat, "exact": exact, "approx": approx, "why": why,
+               "support": bool(p.get("support"))}
+        # 目录标了但判据不支持
+        no_sup = [x for x in cat if x not in sup]
+        if no_sup and not unres:
+            P["unsupported"].append(dict(row, stages=no_sup))
+        elif no_sup:
+            P["uncertain"].append(dict(row, stages=no_sup, kind="目录所标段无法判定"))
+        P["ok"] += sum(1 for x in cat if x in exact)
+        P["ok_approx"] += sum(1 for x in cat if x in approx and x not in exact)
+        # 判据支持但目录没标
+        ex_new = [x for x in exact if x not in cat]
+        ap_new = [x for x in approx if x not in cat and x not in exact]
+        if ex_new:
+            P["missing"].append(dict(row, stages=ex_new))
+        if ap_new:
+            P["uncertain"].append(dict(row, stages=ap_new, kind="仅近似支持，目录未标"))
+        # 参与者
+        if u:
+            rs = {r.get("id") for r in u[0].get("roles") or [] if isinstance(r, dict) and r.get("as") != "informed" and str(r.get("id", "")).startswith("SH-")}
+            rs |= {st.get("actor") for st in u[1] if str(st.get("actor", "")).startswith("SH-")}
+            target = [x for x in cat if x in sup or x in cat] + [x for x in exact if x not in cat]
+            allowed = set().union(*[part.get(x, set()) for x in target]) if target else set()
+            bad = sorted(rs - allowed) if target else []
+            if bad:
+                P["role"].append({"id": p["id"], "name": p["name"], "type": p["type"], "bad": bad, "stages": target})
+    R["place"] = P
     return R
 
 
@@ -441,6 +546,13 @@ def _evidence(t, find):
 
 
 # ---------------------------------------------------------------- 报告
+
+CRITERION = """- 主判据：流程（或其步骤经状态机到达的状态）造出某段的退出条件，就归该段。
+- 事件策略（type event_policy）看触发状态（触发事件对应的对象状态）所在段：触发状态是哪段的退出条件，策略就归那段。
+- 流程参与者（骨架 roles / 步骤 actor 的 SH- 编号）应在该段参与者中（价值流阶段的 participants 字段）。
+- 不按部门或时间先后归段。
+（用户 2026-10-16，经 one-coordinator，intent 已记，#421）"""
+
 
 def leaf_txt(lf, onames):
     return f"{lf.get('ref')}{onames.get(lf.get('ref'), '')}「{lf.get('state')}」"
@@ -468,6 +580,9 @@ def render(R, onames, pby, skel_n, total_skel):
     w(f"| 3 退出条件匹配不上 / 仅近似 / 共 | {len(ex_bad)} / {len(ex_apx)} / {len(R['exit'])} |")
     w(f"| 4 进入条件找不到产生方 / 仅近似 / 共 | {len(en_bad)} / {len(en_apx)} / {len(R['entry'])} |")
     w(f"| 5 没有流程的阶段 / 流程数 ≤ {SMALL_VS} 的价值流 | {len(empty)} / {len(small)} |")
+    P = R["place"]
+    w(f"| 6 归段：目录标了但判据不支持 / 判据支持但目录没标 / 待人工 / 参与者不在该段 | "
+      f"{len(P['unsupported'])} / {len(P['missing'])} / {len(P['uncertain'])} / {len(P['role'])} |")
     w(f"| 附 骨架阶段与目录阶段不一致 | {len(R['skel_diff'])} |")
     w("")
     w("## 价值流概览（流程数 = 去重后落在该价值流的非合并流程）\n")
@@ -580,6 +695,44 @@ def render(R, onames, pby, skel_n, total_skel):
             w(f"- {sid} {n}")
         w("")
 
+    w("## 6 归段\n")
+    w("按报告末尾的归段判据，对每条流程推出「应归段」，与目录 `stages` 比较。判据支持的证据分精确 / 近似：精确才算「支持」，仅近似的目录所标段不报，目录未标的仅近似段进「待人工」。"
+      f"目录所标段有精确支持 {P['ok']} 处，仅近似支持 {P['ok_approx']} 处（后者不报）。已声明支撑的 {P.get('support_skipped', 0)} 条流程不参与归段。结局文本只写通用状态词、没写对象名的，按近似。\n")
+
+    def ev1(d):
+        return "；".join(f"{sid}←{e[0][2]}" if e else sid for sid, e in d.items())
+
+    def evtxt(r, sid):
+        e = (r["exact"].get(sid) or r["approx"].get(sid) or [None])[0]
+        return f"{e[1]}「{e[2]}」" if e else ""
+    w(f"### 6a 目录标了但判据不支持（{len(P['unsupported'])}）\n")
+    if P["unsupported"]:
+        w("| 流程 | 名称 | type | 目录所标 | 不支持的段 | 判据推出的段 |\n|---|---|---|---|---|---|")
+        for r in P["unsupported"]:
+            w(f"| {r['id']} | {r['name']} | {r['type']} | {'、'.join(r['cat'])} | {'、'.join(r['stages'])} | {'、'.join(list(r['exact']) + [x + '(近似)' for x in r['approx']]) or '无'} |")
+    w("")
+    w(f"### 6b 判据支持但目录没标（{len(P['missing'])}）\n")
+    if P["missing"]:
+        w("| 流程 | 名称 | type | 目录所标 | 应加的段 | 证据 |\n|---|---|---|---|---|---|")
+        for r in P["missing"]:
+            w(f"| {r['id']} | {r['name']} | {r['type']} | {'、'.join(r['cat']) or '（未落阶段）'}{'（已声明支撑）' if r['support'] else ''} | "
+              f"{'、'.join(r['stages'])} | {'；'.join(evtxt(r, x) for x in r['stages'])} |")
+    w("")
+    w(f"### 6c 待人工（{len(P['uncertain'])}）\n")
+    if P["uncertain"]:
+        w("| 流程 | 名称 | type | 目录所标 | 段 | 原因 |\n|---|---|---|---|---|---|")
+        for r in P["uncertain"]:
+            reason = r["kind"] + ("：" + "；".join(r["why"]) if r["why"] else "")
+            w(f"| {r['id']} | {r['name']} | {r['type']} | {'、'.join(r['cat'])} | {'、'.join(r['stages'])} | {reason} |")
+    w("")
+    w(f"### 6d 参与者不在该段参与者中（{len(P['role'])}）\n")
+    w("流程的 SH- 编号（roles 去掉 as: informed，加步骤 actor）不在其所标段与判据支持段的 participants 并集里。\n")
+    if P["role"]:
+        w("| 流程 | 名称 | type | 对照的段 | 不在其中的参与者 |\n|---|---|---|---|---|")
+        for r in P["role"]:
+            w(f"| {r['id']} | {r['name']} | {r['type']} | {'、'.join(r['stages'])} | {'、'.join(r['bad'])} |")
+    w("")
+
     if R["skel_diff"]:
         w("## 附 骨架阶段与目录阶段不一致（以目录为准）\n")
         for pid, n, a, b in R["skel_diff"]:
@@ -598,7 +751,12 @@ def render(R, onames, pby, skel_n, total_skel):
 - 退出条件「满足」= 存在落在本段的某条流程的某个结局匹配；整体 tier 取 any 的最好者、all 的最差者。
 - 进入条件的产生方在全部非合并流程里找（含别的价值流），并标注与本段的关系（同价值流前段 / 本段 / 后段 / 别的价值流 / 未落阶段）。
 - 状态名与结局用词不同（如「赢单」与「商机已转赢单」）、结局只写在 notes 里、事件用英文名，都会被判为匹配不上；它们提示的是用语对齐问题，不一定是流程缺失。
-- 稀少：价值流流程数 ≤ %d 或某段 0 条流程。""" % SMALL_VS)
+- 稀少：价值流流程数 ≤ %d 或某段 0 条流程。
+- 归段（第 6 项）：「造出退出条件」= 流程的结局文本或步骤到达的状态匹配某段退出条件的某个叶子（只取该段自己写的叶子，不含 pattern 展开的公共叶子；不用流程名称匹配）。事件策略只看骨架 `triggers` 里 type 为 event 的事件名，与各段退出叶子按同一精确 / 近似规则比对，命中的段即触发状态所在段（不再看其结局）；非对象状态的事件（如过账事实）对不上则不参与，全部对不上进待人工。读模型与无骨架流程进待人工。事件对应的状态同时是多段退出条件时，这些段都算。
+
+## 归段判据（原文）
+
+%s""" % (SMALL_VS, CRITERION))
     return "\n".join(L) + "\n"
 
 
@@ -633,6 +791,32 @@ def top_findings(R, onames, n=10):
     return out
 
 
+def top_place(R, n=10):
+    P = R["place"]
+    items = []
+    for r in P["missing"]:
+        if not r["cat"]:
+            items.append((0, f"未落阶段，判据归 {'、'.join(r['stages'])}：{r['id']} {r['name']}（{r['type']}）"))
+        else:
+            items.append((1, f"目录缺段，判据加 {'、'.join(r['stages'])}：{r['id']} {r['name']}（{r['type']}，目录 {'、'.join(r['cat'])}）"))
+    for r in P["unsupported"]:
+        pri = 2 if r["exact"] else 3
+        tail = f"，判据推出 {'、'.join(r['exact'])}" if r["exact"] else "，判据推不出任何段"
+        items.append((pri, f"目录标 {'、'.join(r['stages'])} 判据不支持：{r['id']} {r['name']}（{r['type']}）{tail}"))
+    for r in P["role"]:
+        items.append((4, f"参与者 {'、'.join(r['bad'])} 不在 {'、'.join(r['stages'])} 参与者中：{r['id']} {r['name']}"))
+    items.sort(key=lambda x: x[0])
+    out, per = [], {}
+    for pri, t in items:
+        if per.get(pri, 0) >= 4:
+            continue
+        per[pri] = per.get(pri, 0) + 1
+        out.append(t)
+        if len(out) >= n:
+            break
+    return out
+
+
 def console(R, onames, skel_n, total_skel):
     ex_bad = [e for e in R["exit"] if e["tier"] is None]
     en_bad = [e for e in R["entry"] if e["tier"] is None]
@@ -643,8 +827,11 @@ def console(R, onames, skel_n, total_skel):
          f"3 退出匹配不上 {len(ex_bad)} / 近似 {sum(1 for e in R['exit'] if e['tier'] == 'approx')} / 共 {len(R['exit'])}",
          f"4 进入找不到产生方 {len(en_bad)} / 近似 {sum(1 for e in R['entry'] if e['tier'] == 'approx')} / 共 {len(R['entry'])}",
          f"5 空阶段 {sum(1 for x in R['sparse'] if x[0] == 'empty_stage')}；流程数 ≤ {SMALL_VS} 的价值流 {sum(1 for x in R['sparse'] if x[0] == 'small_vs')}",
+         f"6 归段 目录标了但判据不支持 {len(R['place']['unsupported'])} / 判据支持但目录没标 {len(R['place']['missing'])} / 待人工 {len(R['place']['uncertain'])} / 参与者不在该段 {len(R['place']['role'])}（目录所标段精确支持 {R['place']['ok']}，仅近似 {R['place']['ok_approx']}）",
          "最值得注意的 10 条："]
     L += [f"  {i}. {t}" for i, t in enumerate(top_findings(R, onames), 1)]
+    L.append("第 6 项最值得注意的 10 条：")
+    L += [f"  {i}. {t}" for i, t in enumerate(top_place(R), 1)]
     return "\n".join(L)
 
 
@@ -724,6 +911,37 @@ def self_test():
     assert match_atom("商机", "赢单", "商机已赢单", n) == "exact"
     assert match_atom("商机", "赢单", "完全无关", n) is None
     assert match_atom("费用报销", "已付", "费用报销已付", n) == "exact"
+    # 括号内的斜杠不拆
+    assert split_outside("减员（转移 / 封存）") == ["减员（转移 / 封存）"]
+    assert split_outside("已结项 → 已归档") == ["已结项 ", " 已归档"]
+    assert match_atom("参保", "减员（转移 / 封存）", "参保减员", n) == "exact"
+    assert not any("转移" == v for v in variants("减员（转移 / 封存）", n)) and "减员" in variants("减员（转移 / 封存）", n)
+    # 6 归段
+    vs6 = {"value_streams": [{"id": "VS-Z", "name": "z", "stages": [
+        {"id": "VS-Z.1", "name": "一", "participants": ["SH-E1"], "exit": {"all": [{"ref": "OBJ-1", "state": "已完成"}]}},
+        {"id": "VS-Z.2", "name": "二", "participants": ["SH-E2"], "exit": {"all": [{"ref": "OBJ-2", "state": "已结项 → 已归档"}]}},
+        {"id": "VS-Z.3", "name": "三", "participants": ["SH-E2"], "exit": {"all": [{"ref": "OBJ-3", "state": "已发布"}]}}]}]}
+    cat6 = [{"id": "A", "name": "做完", "type": "business", "stages": ["VS-Z.1"], "owner_bc": "B-1"},
+            {"id": "B", "name": "结项", "type": "business", "stages": ["VS-Z.1"], "owner_bc": "B-1"},
+            {"id": "C", "name": "未落结项", "type": "business", "stages": [], "owner_bc": "B-1"},
+            {"id": "D", "name": "结项后清算", "type": "event_policy", "stages": ["VS-Z.1"], "owner_bc": "B-1"},
+            {"id": "E", "name": "读", "type": "read_model", "stages": ["VS-Z.1"], "owner_bc": "B-1"},
+            {"id": "F", "name": "对不上事件", "type": "event_policy", "stages": ["VS-Z.2"], "owner_bc": "B-1"}]
+    sk6 = {"A": ({"outcomes": ["甲已完成"], "stages": ["VS-Z.1"], "roles": [{"id": "SH-E1", "as": "performer"}, {"id": "SH-E9", "as": "informed"}]}, []),
+           "B": ({"outcomes": ["项目已结项"], "stages": ["VS-Z.1"], "roles": [{"id": "SH-E1", "as": "performer"}, {"id": "SH-E7", "as": "performer"}]}, []),
+           "C": ({"outcomes": ["项目已结项"], "stages": [], "roles": [{"id": "SH-E2", "as": "performer"}]}, []),
+           "D": ({"outcomes": ["清算成本已过账"], "stages": ["VS-Z.1"], "triggers": [{"type": "event", "name": "项目已结项"}, {"type": "event", "name": "过账事实"}]}, []),
+           "E": ({"outcomes": [], "stages": ["VS-Z.1"]}, []),
+           "F": ({"outcomes": ["项目已结项"], "stages": ["VS-Z.2"], "triggers": [{"type": "event", "name": "毫无关系的事件"}]}, [])}
+    on6 = {"OBJ-1": "甲", "OBJ-2": "项目", "OBJ-3": "报告"}
+    P6 = analyze(vs6, cat6, sk6, on6, {})["place"]
+    assert [r["id"] for r in P6["unsupported"]] == ["B", "D"] and P6["unsupported"][0]["exact"].keys() == {"VS-Z.2"}, P6["unsupported"]
+    assert {r["id"]: r["stages"] for r in P6["missing"]} == {"B": ["VS-Z.2"], "C": ["VS-Z.2"], "D": ["VS-Z.2"]}, P6["missing"]
+    assert sorted(r["id"] for r in P6["uncertain"]) == ["E", "F"], P6["uncertain"]   # 读模型、触发事件对不上
+    assert [r["id"] for r in P6["role"]] == ["B"] and P6["role"][0]["bad"] == ["SH-E7"], P6["role"]   # informed 不计
+    assert P6["ok"] == 1
+    t6 = render(analyze(vs6, cat6, sk6, on6, {}), on6, {}, 6, 6)
+    assert "## 归段判据（原文）" in t6 and "不按部门或时间先后归段" in t6
     txt = render(R, on, {}, 2, 6)
     assert "匹配口径" in txt and "VS-X.3" in txt
     print("self-test 通过")
