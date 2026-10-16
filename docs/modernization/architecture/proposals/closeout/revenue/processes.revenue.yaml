@@ -8944,7 +8944,8 @@ processes:
     - mode: api
       direction: out
       bc: B-10
-      name: 发起付款（付款用途：员工借款）
+      name: 发起付款
+      filter: 付款用途 = 员工借款
     - mode: event
       direction: in
       bc: platform.approval
