@@ -19,7 +19,7 @@ meta:
   method: docs/modernization/architecture/proposals/METHOD_V4_DRAFT.md（第 ② 步第 6、7 条）
   counts:
     level1: 21
-    level2: 65
+    level2: 67  # 第 ② 步回补新增 CAP-056.111、CAP-054.112（intent 2026-10-16-082311）
     pending: 1
     excluded: 1
 capabilities:
@@ -345,6 +345,12 @@ capabilities:
     en: Partner Capital Contribution Management
     object: OBJ-91
     definition: 登记合伙人或股东对被投资法人的认缴、实缴与退回。
+  - id: CAP-054.112
+    name: 利润分配管理
+    en: Profit Distribution Management
+    object: OBJ-112
+    definition: 按年度决议向股东或合伙人分配税后利润并跟踪支付。
+    note: 第 ② 步回补新增（用户答复 Q-C 选 a 后一级对象检验，intent 2026-10-16-082311）；英文为提议译名，待 one-glossary 查重。
 - id: CAP-056
   name: 人员管理
   en: Person Management
@@ -396,6 +402,12 @@ capabilities:
     en: Performance Appraisal Management
     object: OBJ-109
     definition: 评定个人一个期间的绩效或试用期表现并记录结果。
+  - id: CAP-056.111
+    name: 月度考勤确认管理
+    en: Monthly Attendance Confirmation Management
+    object: OBJ-111
+    definition: 按月汇总个人出勤、请假与加班，经本人确认后锁定作为计薪依据。
+    note: 第 ② 步回补新增（MS-01 一级对象检验，intent 2026-10-16-082311）；英文为提议译名，待 one-glossary 查重。
 - id: CAP-058
   name: 岗位管理
   en: Position Management

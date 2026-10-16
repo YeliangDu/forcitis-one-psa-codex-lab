@@ -22,7 +22,7 @@ meta:
   supersedes_on_adoption: togaf/value-streams.yaml
   sources:
     stakeholders: proposals/STAKEHOLDERS.md（用户指定，intent 2026-10-15-213742）
-    objects: proposals/ENTERPRISE_INFO_MAP_DRAFT.md（OBJ-01–OBJ-110）
+    objects: proposals/ENTERPRISE_INFO_MAP_DRAFT.md（OBJ-01–OBJ-112；OBJ-111、OBJ-112 为第 ② 步回补新增，intent 2026-10-16-082311）
     aggregates: proposals/ENTERPRISE_AGGREGATES_DRAFT.md §4.3–§4.3.4（收入链与三条价值流走查）
     stage_types: proposals/STAGE_TYPES_DRAFT.md（S1–S6 用户已定）
     bizbok: BIZBOK v11 第 157–158 页（价值流互相独立、只经共享对象状态相互影响；触发者与价值各异者各自成流；触发干系人可为多个）；第 151 页（价值流、能力、信息、组织是并列的架构域）
@@ -270,7 +270,7 @@ value_streams:
 - id: VS-03
   name: 获得风险结论
   working_name: 检查服务
-  description: 资本方或既有建筑业主为投资、承保或安全合规委托我方做技术尽调、IDI 技术检查、周期检查，获得独立的检查结论与整改闭合状态。独立成价值流【推出】：触发者（资本方、既有建筑业主）与价值（风险结论）都与交付成果不同，BIZBOK 第 157–158 页要求触发者与价值各异的价值流各自独立，只经共享对象状态相互影响。边界：品控类服务在施工期做的检查留在 VS-02.6；资本方或既有建筑业主委托的检查归本价值流。阶段与 S6 的对齐见用户题 Q-A。
+  description: 资本方或既有建筑业主为投资、承保或安全合规委托我方做技术尽调、IDI 技术检查、周期检查，获得独立的检查结论与整改闭合状态。独立成价值流【推出】：触发者（资本方、既有建筑业主）与价值（风险结论）都与交付成果不同，BIZBOK 第 157–158 页要求触发者与价值各异的价值流各自独立，只经共享对象状态相互影响。边界：品控类服务在施工期做的检查留在 VS-02.6；资本方或既有建筑业主委托的检查归本价值流。阶段用自有阶段（检查策划、现场检查、发现发布、整改跟踪、报告认可），阶段类型目录另设「检查」类（用户答复 Q-A 选 a，intent 2026-10-16-082311）。
   triggering_stakeholders: [SH-C5, SH-C3, SH-P3]
   trigger_note: 投资方或金融机构委托尽调；保险公司委托 IDI 检查；既有建筑业主委托周期检查或专项检查；保险公司和 TIS、物业转介绍（间接）。
   value: 委托方得到独立、可追溯的风险信息与合规结论，并能跟踪问题整改到闭合。
@@ -298,7 +298,7 @@ value_streams:
         all:
           - {ref: OBJ-49, state: 已安排}
       value_item: 委托方确认检查范围、时间与方法。
-      notes: 阶段名与目录阶段的对齐待用户题 Q-A。
+      notes: 本段起五段为阶段类型目录「检查」类的自有阶段（用户答复 Q-A 选 a，intent 2026-10-16-082311）；运营期周期检查同样适用，不套招采、施工段。
     - id: VS-03.2
       name: 现场检查
       description: 现场检查、记录与审核。
@@ -546,7 +546,7 @@ value_streams:
 - id: VS-06
   name: 确认企业合规
   working_name: 申报与资质
-  description: 企业监管机构按法定期限要求申报、缴款与资质维护，确认我方按期合规；个税扣缴与社保公积金申报随月度薪酬在 VS-13 完成，本价值流管增值税及附加、企业所得税与资质维护。统计、工商年报标「不做」候选，见用户题 Q-D。
+  description: 企业监管机构按法定期限要求申报、缴款与资质维护，确认我方按期合规；个税扣缴与社保公积金申报随月度薪酬在 VS-13 完成，本价值流管增值税及附加、企业所得税与资质维护。资质维护纳入；工商年报与统计报送不做（用户答复 Q-D，intent 2026-10-16-082311；不做清单见文末 out_of_scope）。
   triggering_stakeholders: [SH-R2]
   trigger_note: 法定申报期、资质年检或动态核查通知到来。
   value: 监管机构按期收到准确的申报与税款，确认企业持续具备经营与承接资格。
@@ -570,16 +570,16 @@ value_streams:
       participants: [SH-E6, SH-E7, SH-M1, SH-R2]
       entry:
         any:
-          - {ref: OBJ-65, state: 到期, note: 有效期届满或临近}
-          - {ref: 缺对象状态, gap: MS-12, text: 资质「年检 / 动态核查」开始}
+          - {ref: OBJ-65, state: 核查中, note: 年检或动态核查开始}
+          - {ref: OBJ-65, state: 延续中, note: 有效期临近，提出延续}
       exit:
         any:
-          - {ref: OBJ-65, state: 有效, note: 延续后重回有效须信息图补「到期 → 有效」的转移（MS-12）}
-          - {ref: OBJ-65, state: 降级 / 撤销, note: 停止}
+          - {ref: OBJ-65, state: 有效, note: 核查通过或延续后取得新有效期}
+          - {ref: OBJ-65, state: 降级 / 撤销 / 到期, note: 停止；到期指未延续}
         all:
           - {ref: OBJ-64, state: 有效, note: 资质所需的注册执业人员}
       value_item: 承接资格持续有效，投标与签约可引用。
-      notes: 我方资质的范围「待定」；本段是否纳入见用户题 Q-D（推荐纳入）。
+      notes: 资质维护纳入（用户答复 Q-D 第 1 项，intent 2026-10-16-082311）；信息图 OBJ-65 已补「核查中」「延续中」两个状态（MS-12 消除）；我方资质的类别范围仍待定（信息图 OBJ-65 范围列）。
 
 # ───────────── 内部 ─────────────
 
@@ -730,8 +730,8 @@ value_streams:
       exit:
         all:
           - {ref: OBJ-100, state: 新版本, note: 经营动作写入计划（OBJ-100 定义含「动作」）}
-          - {ref: 缺对象状态, gap: MS-10, text: 口径差异案「已处置」（偏差已解释）}
       value_item: 偏差有解释、有责任人和动作。
+      notes: 偏差解释是复盘单据，不作门；口径差异案经第 ② 步回补判为非对象（ADR-0025 的勾稽差异案是数据管道对账记录），MS-10 消除。
 
 - id: VS-10
   name: 获得期间报告
@@ -769,7 +769,7 @@ value_streams:
       outputs:
         - {ref: OBJ-98, state: 已记账（不可逆）, note: 期末结转类型分录}
     - name: 对账与报表编制
-      description: 收付口径与外部法定账对账，出具三大报表与经营月报；报表、经营月报、对账差异记录是单据，不是对象状态（用户题 Q-B）。
+      description: 收付口径与外部法定账对账，出具三大报表与经营月报；报表、经营月报、对账差异记录是单据，不是对象状态（用户答复 Q-B 选 a，intent 2026-10-16-082311）。
       inputs:
         - {ref: OBJ-97, state: 已关账}
   stages:
@@ -798,7 +798,7 @@ value_streams:
           - {ref: OBJ-97, state: 已关账}
           - {ref: OBJ-98, state: 已记账（不可逆）, note: 期间内分录均已记账}
       value_item: 管理层与股东拿到可勾稽的期间报告。
-      notes: 对账与报表发布不是对象状态，按用户题 Q-B 推荐 a 改写为以 OBJ-97、OBJ-98 为门；选 b 或 c 时恢复 MS-08、MS-09。
+      notes: 用户答复 Q-B 选 a（intent 2026-10-16-082311）：门只用对象状态，本价值流定为期间关账、报表发布两段，过账、成本结转、期末结转、对账为贯穿活动；MS-08、MS-09 消除。
 
 - id: VS-11
   name: 沉淀复用知识
@@ -849,7 +849,7 @@ value_streams:
 - id: VS-12
   name: 获得投资回报
   working_name: 出资到回报
-  description: 股东和合伙人出资，按年度经营结果取得回报，必要时退回出资。是否单列待用户题 Q-C。
+  description: 股东和合伙人出资，按年度经营结果取得回报，必要时退回出资。单列（用户答复 Q-C 选 a，intent 2026-10-16-082311）；利润分配经第 ② 步回补为信息图 OBJ-112（法人主体的次级）。
   triggering_stakeholders: [SH-O1]
   trigger_note: 股东和合伙人认缴出资；年度报表出具后提出回报要求。
   value: 股东和合伙人的出资被准确记录，并按经营结果取得回报。
@@ -875,8 +875,11 @@ value_streams:
           - {ref: OBJ-97, state: 已关账, note: 年度末期间（含第 13 期，如启用）}
       exit:
         all:
-          - {ref: 缺对象状态, gap: MS-11, text: 利润分配「已决议 / 已支付」}
+          - {ref: OBJ-112, state: 已决议 → 已支付}
+      in_stage_states:
+        - {ref: OBJ-112, state: 部分支付}
       value_item: 股东和合伙人取得回报。
+      notes: 分配额不得超过所属年度已关账的可分配利润（INV-117）；部分支付时停在「部分支付」，后续支付重入本段；自然人股东的股息红利个税经 OBJ-92 个税扣缴类型申报（VS-13.4 同一对象类型分工，不另设门）。
     - id: VS-12.3
       name: 出资退回
       description: 部分或全部退回出资。
@@ -911,11 +914,11 @@ value_streams:
           - {ref: OBJ-28, state: 已维护}
       exit:
         all:
-          - {ref: 缺对象状态, gap: MS-01, text: 月度考勤确认「已锁定」}
+          - {ref: OBJ-111, state: 已锁定}
           - {ref: OBJ-68, state: 已批准 / 已销假, note: 当月请假已汇入}
           - {ref: OBJ-72, state: 批准, note: 当月加班已汇入}
       value_item: 员工确认当月出勤，作为计薪依据。
-      notes: 锁定后的变动计入下月并标原月份，不重开当月（INV-105）；月度考勤结果送回第 ② 步重走一级对象检验（MS-01）。
+      notes: 锁定后的变动计入下月并标原月份，不重开当月（INV-105）；月度考勤确认经第 ② 步回补为信息图 OBJ-111（人员的次级），MS-01 消除。
     - id: VS-13.2
       name: 绩效激励
       description: 绩效评估与奖金核定。
@@ -936,7 +939,7 @@ value_streams:
       participants: [SH-E6, SH-M1]
       entry:
         all:
-          - {ref: 缺对象状态, gap: MS-01, text: 该法人当月在职人员月度考勤确认均「已锁定」}
+          - {ref: OBJ-111, state: 已锁定, note: 该法人当月在职人员均已锁定}
           - {ref: OBJ-62, state: 在缴, note: 参保基数已定}
       exit:
         all:
@@ -981,7 +984,7 @@ value_streams:
           - {ref: OBJ-62, state: 减员（转移 / 封存）}
           - {ref: OBJ-05, state: 已终止, note: 劳动合同类型}
       value_item: 员工依法离职、结清权益。
-      notes: 可在任何时点进入；账号停用是平台身份事项，不是业务对象状态；工作交接清单是单据，不作门（用户题 Q-D 推荐不做）。
+      notes: 可在任何时点进入；账号停用是平台身份事项，不是业务对象状态；工作交接清单是单据，不作门（用户答复 Q-D 第 3 项不做，intent 2026-10-16-082311）。
 
 # 第 ③ 步预警：一级对象未被任何阶段条件引用（脚本核对，列表与脚本结果须一致）
 step3_warnings:
@@ -998,16 +1001,10 @@ step3_warnings:
 
 # 缺对象状态（第 ② 步回补输入）：条件指不到信息图中任何对象的状态。仍在条件中使用的 5 项
 missing_states:
-  - {id: MS-01, used_in: [VS-13.1, VS-13.3], text: 月度考勤确认「已锁定」, now: 信息图 OBJ-71 已降为非对象（派生汇总 + 员工确认单据）；聚合稿有运行单据 AGG-97, ask: 送回第 ② 步重走一级对象检验；检验不过则本条改写为以 OBJ-68、OBJ-72、OBJ-70 为门（运行单据不作门，评审 B3）}
-  - {id: MS-10, used_in: [VS-09.3], text: 口径差异案「已处置」（偏差已解释）, now: 口径版本与勾稽差异案 AGG-78 不计对象；经营动作已改用 OBJ-100「新版本」（OBJ-100 定义含「动作」）, ask: 与 STEP2 §4.3 候选「口径差异案」合并，一并回信息图走一级对象检验}
-  - {id: MS-11, used_in: [VS-12.2], text: 利润分配「已决议 / 已支付」, now: 信息图无利润分配对象（OBJ-91 只有出资）, ask: 随用户题 Q-C：单列则补对象或判为单据并改写退出条件}
-  - {id: MS-12, used_in: [VS-06.2], text: 资质「年检 / 动态核查 / 延续」, now: OBJ-65 状态只有 有效 → 到期 / 降级 / 撤销，没有「到期 → 有效」的延续转移；我方资质范围「待定」, ask: 随用户题 Q-D（推荐纳入）：补 OBJ-65 状态}
   - {id: MS-15, used_in: [VS-04.5], text: 质保金「到期可收」, now: 原 OBJ-14 并入 OBJ-85 后，OBJ-85 状态无「到期可收」, ask: OBJ-85 补质保金类型的状态}
 
-# 随用户题 Q-B 的两项：推荐 a 时条件已改写、本条消除；选 b 或 c 时恢复
-conditional_missing_states:
-  - {id: MS-08, would_be_used_in: [VS-10.2], text: 外部法定账对账「差异已清零 / 已签字接受」, now: 只有 AGG-101 运行单据, ask: Q-B 选 b 须单独 ADR 为方法加例外；选 c 升为对象并回第 ② 步检验}
-  - {id: MS-09, would_be_used_in: [VS-10.2], text: 期间报告「已发布」, now: 报表、经营月报在信息图是单据, ask: 同 MS-08}
+# 随用户题 Q-B 的两项：用户答复选 a（intent 2026-10-16-082311），已移入 resolved_missing_states
+conditional_missing_states: []
 
 # 已重判并消除的缺对象状态（评审 B3 逐项重判）
 resolved_missing_states:
@@ -1017,8 +1014,24 @@ resolved_missing_states:
   - {id: MS-05, was_in: VS-10.1, text: 受控手工凭证「已审批」, disposition: 改写为 OBJ-98 受控手工凭证类型的「已审核」（事实过账活动的输入）}
   - {id: MS-06, was_in: VS-10.3, text: 期末结转运行「已过账」, disposition: 改写为 OBJ-98 期末结转类型的「已记账」}
   - {id: MS-07, was_in: [VS-10.4, VS-09.3], text: 期间余额快照「已生成」, disposition: 快照随关账生成，门改用 OBJ-97「已关账」}
-  - {id: MS-13, was_in: VS-06.3, text: 工商年报「待报送 / 已报送」, disposition: 随用户题 Q-D 推荐「不做」：年报报送段取消，统计报送同}
-  - {id: MS-14, was_in: VS-07.9, text: 离职工作交接「已完成」, disposition: 随用户题 Q-D 推荐「不做」：交接清单是单据，不作门，离职段改称「离职结清」}
+  - {id: MS-13, was_in: VS-06.3, text: 工商年报「待报送 / 已报送」, disposition: 用户答复 Q-D 第 2 项不做（intent 2026-10-16-082311）：年报报送段取消，统计报送同}
+  - {id: MS-14, was_in: VS-07.9, text: 离职工作交接「已完成」, disposition: 用户答复 Q-D 第 3 项不做（intent 2026-10-16-082311）：交接清单是单据，不作门，离职段改称「离职结清」}
+  - {id: MS-01, was_in: [VS-13.1, VS-13.3], text: 月度考勤确认「已锁定」, disposition: 第 ② 步回补一级对象检验（intent 2026-10-16-082311）：月度考勤确认有自有状态与锁定规则（INV-105）、被月度薪酬结算引用，依附人员，定为次级对象 OBJ-111；条件改用 OBJ-111「已锁定」}
+  - {id: MS-08, was_in: VS-10.2, text: 外部法定账对账「差异已清零 / 已签字接受」, disposition: 用户答复 Q-B 选 a（intent 2026-10-16-082311）：对账是贯穿活动，不作门}
+  - {id: MS-09, was_in: VS-10.2, text: 期间报告「已发布」, disposition: 用户答复 Q-B 选 a（intent 2026-10-16-082311）：报表是单据，不作门}
+  - {id: MS-10, was_in: VS-09.3, text: 口径差异案「已处置」（偏差已解释）, disposition: 第 ② 步回补一级对象检验（intent 2026-10-16-082311）：判为非对象——ADR-0025 的勾稽差异案是 OLTP 与 OLAP 对账的数据管道记录，经营偏差解释是复盘单据；VS-09.3 退出只用 OBJ-100「新版本」}
+  - {id: MS-11, was_in: VS-12.2, text: 利润分配「已决议 / 已支付」, disposition: 用户答复 Q-C 选 a 后第 ② 步回补（intent 2026-10-16-082311）：利润分配定为法人主体的次级对象 OBJ-112，条件改用其状态}
+  - {id: MS-12, was_in: VS-06.2, text: 资质「年检 / 动态核查 / 延续」, disposition: 用户答复 Q-D 第 1 项纳入（intent 2026-10-16-082311）：信息图 OBJ-65 补「核查中」「延续中」状态与「延续中 → 有效」转移}
+
+# 不做清单（用户答复 Q-D，intent 2026-10-16-082311）：不进信息图、不生成能力、不设价值流阶段
+out_of_scope:
+  - {item: 工商年报与统计报送, reason: 一年一次、无下游对象引用；社保申报已在 VS-13.4；MS-13 消除}
+  - {item: 离职交接（交接完成作门）, reason: 交接清单是单据（信息图 §3），离职段称「离职结清」；MS-14 消除}
+  - {item: 品牌, reason: 本系统不承担品牌事务；品牌、商标使用无业务对象引用（STEP2 §4.2 第 1 项）}
+  - {item: 知识产权, reason: 专利不在范围（完整性检查 M-6）；成果外发限制已是交付物属性（M-16）}
+  - {item: 细分市场, reason: 以商机战略类别、项目业务线属性与参考数据承载，无独立状态与规则}
+  - {item: 对外投资, reason: 小型企业不做对外投资；合伙人出资是进入我方的资本，方向相反（OBJ-91）}
+  - {item: 办公场所, reason: 租用办公场所已以使用权资产（OBJ-93）承载，场所本身无独立状态与规则}
 
 # 对象状态有冲突或待定（不缺对象，但第 ② 步须修订或待用户题定）
 state_caveats:
