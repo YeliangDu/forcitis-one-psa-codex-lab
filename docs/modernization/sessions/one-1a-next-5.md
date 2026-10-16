@@ -39,6 +39,7 @@
 ## 上下文文档
 
 - `docs/modernization/phase1a/HANDOFF_one-1a-next-4.md`（接手依据）
+- `docs/modernization/phase1a/HANDOFF_one-1a-next-5.md`（本会话产出与后续）
 
 ## 交接条件
 
@@ -52,4 +53,4 @@
 
 ## 当前状态
 
-画像草稿（one-1a-next-4 2026-10-16），接手 one-1a-next-4 的数据修复批。开场在 worktree 根写 `.claude/session-name`（一行 one-1a-next-5，不入仓）。
+2026-10-16：数据修复批 PR-1、3、6、7、8、8b、DR-TB01-FU1 与 K-3b-4 已全部开出（#349、#354、#366、#369、#370、#377、#383、#387），见 `phase1a/HANDOFF_one-1a-next-5.md`；错题本 `quality/defect-bank/one-1a-next-5.md`。开场在 worktree 根写 `.claude/session-name`（一行 one-1a-next-5，不入仓）。

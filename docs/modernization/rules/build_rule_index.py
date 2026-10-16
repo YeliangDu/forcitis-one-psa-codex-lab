@@ -243,6 +243,7 @@ def self_test():
             except ValueError:
                 pass
         assert br.parse_intent("p", "## 原话\n\na\n\n## 落点\n\nb\n\n## 规则\n\nRULE-1、RULE-2\n\n## 单子\n\nD5\n")[2] == {"规则": "RULE-1、RULE-2", "单子": "D5"}
+        assert br.parse_intent("p", "## 原话\n\na\n\n## 落点\n\nb\n\n## 取代\n\n- x.md\n\n## 规则\n\nRULE-1\n") == ("a", "b（取代：x.md）", {"规则": "RULE-1"})
         tagged, mentioned = intent_refs(folder, br.parse_intent)
         assert tagged == {"RULE-6": ["2026-10-16-100000-x-a.md"]} and set(mentioned) == {"RULE-5", "RULE-6"}, (tagged, mentioned)
     assert ref_set("RULE-27 RULE-27 DATA-RULE-03 RULE-388..392 RULE-400–RULE-402 RULE-282/296 RULE-9-4") == {"RULE-27", "DATA-RULE-3", "RULE-388", "RULE-389", "RULE-390", "RULE-391", "RULE-392", "RULE-400", "RULE-401", "RULE-402", "RULE-282", "RULE-296", "RULE-9"}, ref_set("RULE-27 RULE-27 DATA-RULE-03 RULE-388..392 RULE-400–RULE-402 RULE-282/296 RULE-9-4")

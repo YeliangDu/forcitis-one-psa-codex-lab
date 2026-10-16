@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """新增一条用户决定片段 intent/<日期>-<HHMMSS>-<会话名>-<短名>.md，然后重新生成 INTENT.md。
 
-用法：python3 docs/modernization/new_intent.py --session=<会话名> "<用户原话>" "<落点>" [--date=YYYY-MM-DD] [--rules=RULE-272,RULE-273] [--adrs=ADR-0044] [--sheet=D5] [--items=D5-01,D5-02]
+用法：python3 docs/modernization/new_intent.py --session=<会话名> "<用户原话>" "<落点>" [--date=YYYY-MM-DD] [--supersedes=<被取代的 intent 文件名>[,<文件名>...]] [--rules=RULE-272,RULE-273] [--adrs=ADR-0044] [--sheet=D5] [--items=D5-01,D5-02]
+本决定推翻或取代了此前哪些决定，就在 --supersedes 里写出（已定决策速查表据此标「被取代」，build_decision_digest.py）；文件名须是 intent/ 下已有的片段。
 可选的 --rules / --adrs / --sheet / --items 把决定影响的规则号、ADR、确认页单子与题号记入片段（规则号须在规则索引中存在），规则索引与 ADR 治理据此反查「被哪些决定改过」。
 原话与落点各为一行（会成为 INTENT.md 表格的一行），不能含未转义的「|」。
 文件名由日期、当前时刻与会话名组成，并行会话互不撞名，无需协调序号。
@@ -42,11 +43,15 @@ if __name__ == "__main__":
     opts, (quote, landing) = parse_args(__doc__, 2)
     if "session" not in opts:
         sys.exit(__doc__)
-    known = {"session", "date", "rules", "adrs", "sheet", "items"}
+    known = {"session", "date", "supersedes", "rules", "adrs", "sheet", "items"}
     stray = [a for a in sys.argv[1:] if a.startswith("--") and a[2:].split("=", 1)[0] not in known or a.startswith("--") and "=" not in a]
     if stray:
         sys.exit(f"不认识或缺少值的选项：{'、'.join(stray)}\n{__doc__}")
-    tags = ""
+    olds = [x for x in opts.get("supersedes", "").split(",") if x]
+    for old in olds:
+        if not os.path.isfile(os.path.join(BASE, "intent", old)):
+            sys.exit(f"--supersedes：intent/{old} 不存在")
+    tags = "\n## 取代\n\n" + "".join(f"- {o}\n" for o in olds) if olds else ""
     for opt, name, pattern in (("rules", "规则", r"(?:[A-Z]+-)?RULE-\d+(?:、(?:[A-Z]+-)?RULE-\d+)*"), ("adrs", "影响的 ADR", r"ADR-\d{4}(?:、ADR-\d{4})*"),
                                ("sheet", "单子", r"[A-Za-z0-9_-]+"), ("items", "题号", r"[A-Za-z0-9_-]+(?:、[A-Za-z0-9_-]+)*")):
         if opt in opts:
