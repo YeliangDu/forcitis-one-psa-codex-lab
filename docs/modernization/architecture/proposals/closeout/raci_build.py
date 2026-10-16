@@ -6,7 +6,7 @@ Usage: python3 -I raci_build.py [--local] [--write] [--all]
   --write  write RESPONSIBILITY_MATRIX.yaml and RACI_MERGE_REPORT.md next to this script (draft; never overwrites without this flag);
            entries already there with A {resolve: type, basis: ...} are hand-registered and kept
   --self-test
-Group fragments (people/raci.yaml, finance/responsibility.finance.yaml) and command catalogs (<group>/commands.yaml) are read the same way
+Group fragments (people/raci.yaml, revenue/raci.yaml, finance/responsibility.finance.yaml) and command catalogs (<group>/commands.yaml) are read the same way
 as the process skeletons (origin branch, or closeout/<group>/ with --local).
 
 Rules: one entry per (aggregate, command) of steps with aggregate and command (also `inner`), platform steps excluded.
@@ -36,7 +36,7 @@ cc = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(cc)
 
 TODO_A = {"resolve": "TODO"}
-FRAGMENTS = {"people": "raci.yaml", "finance": "responsibility.finance.yaml"}
+FRAGMENTS = {"people": "raci.yaml", "finance": "responsibility.finance.yaml", "revenue": "raci.yaml"}
 SOURCE_RE = re.compile(r"ADR-\d+|intent|用户|U-\d+")
 CARRY = ("sensitive_reason", "note", "why_human", "pending", "draft_gap", "approval", "approver", "source_part")
 
@@ -358,7 +358,7 @@ def report(doc, issues, st, info, ctx, catalogs, miss, show_all, full=False):
     n = len(ents)
     src = collections.Counter(it["a_source"].split(":")[0] if it["a_source"] != "none" else "none" for it in ents)
     byA = collections.Counter(it["raci"]["A"]["resolve"] if it["raci"]["A"].get("resolve") in ("instance", "type") else ("固定角色" if it["raci"]["A"].get("role") else "缺 A") for it in ents)
-    out.append(f"- 对象×命令 {n} 条（骨架 {len(ctx['inskel'])}，片段独有 {n - len(ctx['inskel'])}）；片段条数 " + "、".join(f"{g} {len(v)}" for g, v in ctx["frags"].items()) + "；revenue 无片段")
+    out.append(f"- 对象×命令 {n} 条（骨架 {len(ctx['inskel'])}，片段独有 {n - len(ctx['inskel'])}）；片段条数 " + "、".join(f"{g} {len(v)}" for g, v in ctx["frags"].items()) + "".join(f"；{g} 无片段" for g in FRAGMENTS if g not in ctx["frags"]))
     out.append(f"- A 来源：hand {src['hand']}、group {src['group']}、skeleton {src['skeleton']}、无 {src['none']}；片段 A 覆盖了骨架已有 A 的 {info['片段 A 覆盖骨架']} 条")
     out.append(f"- A 形态：责任人实例 {byA['instance']}、类型级 {byA['type']}、固定角色待改 {byA['固定角色']}、缺 A {byA['缺 A']}；R 为空 {sum(1 for e in ents if not e['raci']['R'])}；I 非空 {sum(1 for e in ents if e['raci']['I'])}；sensitive 为真 {sum(1 for e in ents if e['sensitive'])}")
     out.append(f"- 审批节点：无法定位对象×命令 {st['approval_no_target']}，外部（客户）审批不入 A {st['approval_external']}")
