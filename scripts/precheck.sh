@@ -208,7 +208,9 @@ guard_classes="ArchitectureRulesTest,ModularityTest,ModuleDependencyTest,NamingS
 if touches '^backend/architecture/'; then
   guard_run="$guard_classes"
 else
-  guard_run=$(grep -E "$guard_pattern" "$work/changed" | sed 's#.*/##; s#\.java$##' | sort -u | paste -sd, -)
+  # present files only (a deleted guard has nothing to run) and no container-starting classes (*IntegrationTest, *IT): CI runs those
+  guard_run=$(grep -E "$guard_pattern" "$work/changed" | grep -vE '(IntegrationTest|IT)\.java$' | while IFS= read -r file; do [ -f "$file" ] && printf '%s\n' "$file"; done \
+    | sed 's#.*/##; s#\.java$##' | sort -u | paste -sd, -)
 fi
 if [ -n "$guard_run" ]; then
   run_step "guards: backend guard tests" backend_classes "$guard_run"

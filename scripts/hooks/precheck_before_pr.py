@@ -12,6 +12,7 @@ PR_CREATE = re.compile(r"(?:^|[;&|(\s\"'`/])gh\s+pr\s+(?:create|new)(?![\w-])")
 TIMEOUT_SECONDS = 1500
 
 
+# 只看命令字面：写在 echo / commit 信息里的 gh pr create 也会拦（宁可多拦一次，不漏拦）
 def is_pr_create(command):
     return bool(PR_CREATE.search(command or ""))
 
@@ -36,7 +37,7 @@ def main():
         payload = json.load(sys.stdin)
     except ValueError:
         return 0
-    if payload.get("tool_name", "Bash") != "Bash" or not is_pr_create((payload.get("tool_input") or {}).get("command")):
+    if not isinstance(payload, dict) or payload.get("tool_name", "Bash") != "Bash" or not is_pr_create((payload.get("tool_input") or {}).get("command")):
         return 0
     root = repository_of(payload.get("cwd") or os.getcwd())
     try:
