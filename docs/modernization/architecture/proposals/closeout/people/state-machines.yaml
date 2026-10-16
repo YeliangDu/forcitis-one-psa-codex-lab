@@ -1578,6 +1578,14 @@ machines:
     reverse: 释放
     note: 驳回、作废、终止及孤儿占用定时释放
   - from: 预算占用行（budget_reservations.状态）:占用中
+    to: 预算占用行（budget_reservations.状态）:占用中
+    command: 调整预算占用
+    kind: non_state
+    guard:
+    - INV-102 只预警
+    steps: []
+    note: 按增减额改占用额，状态不变（PRC-71 他组调用，S-31 SQ-08）
+  - from: 预算占用行（budget_reservations.状态）:占用中
     to: 预算占用行（budget_reservations.状态）:已消耗
     command: 〔缺〕消耗预算占用
     guard: []

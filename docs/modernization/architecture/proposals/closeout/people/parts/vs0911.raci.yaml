@@ -38,6 +38,7 @@ entries:
   - {object: AGG-80, command: 调整预算, raci: {A: {resolve: type, role: 财务负责人}, R: [SH-E6], C: [], I: [SH-M1]}, boundary: {rule: 候选规则-额度总额内调剂, escalate: 超出即拒绝并改走经营计划新版本审批}, sensitive: false}
   - {object: AGG-80, command: 预算占用, raci: {A: {resolve: type, role: 财务负责人}, R: [system（B-11、B-12 调用）], C: [], I: []}, boundary: {rule: AR-03 / RULE-406 超额只预警, note: 拦截或预警待用户定 1}, sensitive: false}
   - {object: AGG-80, command: 释放预算占用, raci: {A: {resolve: type, role: 财务负责人}, R: [system（B-11、B-12、定时对账）], C: [], I: []}, boundary: {}, sensitive: false}
+  - {object: AGG-80, command: 调整预算占用, raci: {A: {resolve: type, role: 财务负责人}, R: [system（B-11 PRC-71 经 api 调用）], C: [], I: []}, boundary: {rule: INV-102 / F-Q2 超额只预警, note: 调用方 PRC-71（finance 组），S-31 SQ-08}, sensitive: false}
   - {object: AGG-80, command: 〔缺〕消耗预算占用, raci: {A: {resolve: type, role: 财务负责人}, R: [system], C: [], I: []}, boundary: {note: 孤儿命令}, sensitive: false}
 
   - {object: AGG-80, command: 关闭预算账户, raci: {A: {resolve: type, role: 财务负责人}, R: [system, SH-E6], C: [], I: []}, boundary: {note: 预算期届满或新基线取代时由 PRC-161 定时关闭}, sensitive: false}

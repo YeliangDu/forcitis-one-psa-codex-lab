@@ -3499,6 +3499,33 @@ commands:
   orphan: false
   note: 同预算占用，发起步骤不在本片段；额度占用模式要求孤儿占用定时释放与对账兜底（聚合稿 §额度占用）。
   source_part: vs0911
+- name: 调整预算占用
+  aggregate: AGG-80
+  unused_ok: 他组流程：由财务组 PRC-71 分包变更跨 BC 调用（B-11 → B-18 api，S-31 SQ-08）
+  status: 聚合稿回补（S-31 SQ-08）
+  params:
+  - 占用ID
+  - 增减额
+  - 调整原因（分包变更）
+  - 分包变更ID
+  preconditions:
+  - ref: 占用状态
+    desc: 占用中
+  - ref: INV-102 / F-Q2
+    desc: 调整后超可用额度只预警、不拦截
+  raci_A:
+    resolve: type
+    role: 财务负责人
+  raci_R:
+  - system（B-11 PRC-71 分包变更经 api 调用）
+  idempotency_key: 分包变更ID
+  emits:
+  - BudgetAdjusted
+  used_by:
+  - PRC-71（他组）
+  orphan: false
+  note: 按增减额一次调整，避免「释放 + 重占」两次跨 BC 调用之间留下孤儿占用（S-31 SQ-08；聚合稿 §7 第 6 条）。事件沿用聚合稿 AGG-80 已有的 BudgetAdjusted，是否另立占用级事件交 one-glossary。
+  source_part: vs0911
 - name: 〔缺〕消耗预算占用
   aggregate: AGG-80
   unused_ok: 他组流程：由财务组流程（PRC-70、PRC-87 等）调用，归属待 one-architecture 定
