@@ -233,6 +233,7 @@ fi
 
 guard_pattern='^backend/src/test/java/.*(Guard|ArchitectureRules|Modularity|ModuleDependency|NamingSurface|Glossary|DdlNaming|LegacyShape)[A-Za-z]*Test\.java$'
 guard_classes="ArchitectureRulesTest,ModularityTest,ModuleDependencyTest,NamingSurfaceTest,GlossaryTest,ErrorCodeGlossaryTest,DdlNamingTest,LegacyShapeTest,TimeSourceGuardTest,TestIsolationGuardTest,TestContainerGuardTest"
+guard_container_note=
 if touches '^backend/architecture/'; then
   # every light class that reads backend/architecture, found in the sources (a hand-kept list left out PrimaryKeyTypeGuardTest and about twenty more), plus the fixed guards
   if readers=$(py scripts/ci/light_unit_classes.py --reading architecture) && [ -n "$readers" ]; then
