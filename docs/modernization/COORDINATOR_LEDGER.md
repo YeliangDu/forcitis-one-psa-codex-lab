@@ -1,6 +1,6 @@
 # one-coordinator 台账（速查）
 
-只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-15 23:55（one-coordinator）
+只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-16 04:50（one-coordinator）
 
 ## 授权与边界
 - 合并 PR、开会话、派子代理：调度自定（「合 PR 交给你审核，决定权给你」）。不替用户定：部署、生产变更、购买、对外账号、ADR 变更。
@@ -11,11 +11,11 @@
 - 画像与当前状态见 `SESSIONS.md`（`build_all.py` 生成；画像 `sessions/<会话名>.md`，已结束的在 `sessions/_retired.md`）；实时情况看 `ListAgents`（SESSION_PLAYBOOK §2.1 第 16 条）。
 
 ## 开场核对
-- `gh pr list`、`ListAgents`、合并队列（`pgrep -f mq_run2.sh`，须在仓库目录启动，gh 需仓库上下文）、`CronList`；`gh run list --workflow nightly-legacy-it.yml -L 1` 失败即开卡（#165 合并后生效）。
+- `gh pr list`、`ListAgents`、合并队列（`pgrep -f mq_run2.sh`，须在仓库目录启动，gh 需仓库上下文）、`gh run list --workflow nightly-legacy-it.yml -L 1` 失败即开卡（#165 合并后生效）。
 
 ## 合并
 - strict 串行队列：scratchpad 的 `mq_run2.sh`（常驻，队空等待，固定在仓库目录启动）读 `merge.queue`，`merge_pr.sh` 每个队首先取消其余在队 PR 的 CI → 同步 main（gh 无 workflow 权限时改本地合并经 ssh 推送）→ 等 CI（首次失败自动重跑一次）→ 合并；`CONFLICT<n>` 非生成文件退回作者，生成产物取一边后跑 `build_all.py`，推送前跑 precheck。
-- 核对：`pgrep -f mq_run2.sh`，不在就在仓库目录 `nohup /private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-one-coordinator-888aff/57026514-d6ff-470a-b547-693585d7522a/scratchpad/mq_run2.sh >> /private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-one-coordinator-888aff/57026514-d6ff-470a-b547-693585d7522a/scratchpad/mq.log 2>&1 &` 重启；队列文件 `/private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-one-coordinator-888aff/57026514-d6ff-470a-b547-693585d7522a/scratchpad/merge.queue`（/clear 后 scratchpad 路径可能变，仍用这个绝对路径）。会话内定时巡检（CronList）/clear 后须重设。
+- 核对：`pgrep -f mq_run2.sh`，不在就在仓库目录 `nohup /private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-one-coordinator-888aff/57026514-d6ff-470a-b547-693585d7522a/scratchpad/mq_run2.sh >> /private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-one-coordinator-888aff/57026514-d6ff-470a-b547-693585d7522a/scratchpad/mq.log 2>&1 &` 重启；队列文件 `/private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-one-coordinator-888aff/57026514-d6ff-470a-b547-693585d7522a/scratchpad/merge.queue`（/clear 后 scratchpad 路径可能变，仍用这个绝对路径）。
 - 队列：197 193 195 194 198 200 201 202 203 205 206 207。叠加链 #203 → #204 → #208：每合一个把下一个 `gh pr edit --base main` 再入队。暂缓：#96（ADR-0029）。#196、#199 已关（#206 取代）。
 - #197 后端 CI 曾卡 54 分钟（Testcontainers 连 PG 认证读无超时），已取消重跑；PG 测试连接缺 socketTimeout，待开卡。
 - 关键路径：#197 只读核实命令合并 → 通知 one-ops 出 rc.2 → C-14（用户已批准）→ 删 101；F-1 实现在 R-1b P5 后。
@@ -46,9 +46,15 @@
 ## 本机与调度自管
 - CI runner mac-one-1..4（~/actions-runners/one-N）与部署 runner mac-one-deploy（/opt/forcitis-one-runner）；main 分支保护 strict。
 - 私有文件：~/.modernize/psa/ 下 infra/role_holders.md、finance/（问卷 v2/v3、财务答复、FINANCE_DECISIONS.html）、audit/、codex/、handoff/。
-- 会话内定时任务（/clear 后用 CronList 核对，不在就重设）：上下文巡检每 30 分钟（每小时第 13、43 分）（75% 准备交接 / 85% 批次边界交接；会话存活期内有效，最长 7 天）。
+- 会话内定时任务：无（用户 2026-10-16 停掉上下文巡检，各会话批次边界自查）。
 
 ## 排定后续（指针）
+- 04:50 现状（以此为准）：
+  - 合并：一律合集（`claude/one-coordinator-train-N`，只放合集或单个已复审 PR 进 `merge.queue`）；merge_pr.sh 已改为被取消的检查也重跑。今晚已合 #262 #263 #266 #274 #260 #276（P4）#272 #273 #267 #277 #278 等。队列空。
+  - 代码线：P5 卡已定（三表照 ADR-0033 改 UUID 主键、基线文件 P5 删除；D-12 撤回），验收在写 → 实现 → opus。F-1 在 P5 后（one-1a-par）。
+  - C-14：#277 (f) 已合；rc 等 one-ops RDS 只读实测第 1–7 项与 #242（加 H-2 探针一项、opus 复审）；rc 须带 P3b 键改名与指标标签改名。企业微信 task_id 待真机核对（部署后冒烟）。
+  - 用户决定（本日）：H-2 选 A；会话通信六条与停定时巡检（intent 本日）；Docker Desktop 不买；Colima 试点已停并卸载。
+  - 待用户：用语确认页 https://claude.ai/artifact/QPwiXzEFWCTqSGVCQRdK6J ；ADR-0046/0047 批准页 https://claude.ai/artifact/CtoezQ9CY25i9xmPWGkp1F ；Docker Desktop 是否重启（交换区紧）；全企业对象页 Q06；财务 F-05/F-10/F-11；CI 搬 Linux。
 - 23:55 现状（以此为准）：
   - 合并一律走合集：调度在 scratchpad 建 `claude/one-coordinator-train-N`（文档与已复审代码 PR 合并，生成产物取一边后 build_all），只把合集号放进 `merge.queue`；合入后原 PR 自动标为已合并。CI 失败对半拆分。候选清单 scratchpad `next-train.txt`。已合：#262（文档 16 个）、#263（#234 #236 #243 #246 #251）。
   - 待组：#260（与 #251 冲突，退回 one-1a-next-4）；#242（one-ops 加 H-2 一项后 opus 复审再进）。
