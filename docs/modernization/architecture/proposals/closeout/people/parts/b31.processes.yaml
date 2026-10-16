@@ -1,0 +1,444 @@
+# B-31 organization.administration（行政事务，S-09，intent 2026-10-16-152807）流程骨架：PRC-139、142、143、144。
+# 字段按 closeout/CONVENTIONS.md；v1 条目字段原样保留（stages 目录为空，仍写 []，见 notes 结构问题 1）。
+# 证据：OA_PROCESS_INVENTORY.md 第 111–122 行只给 A8 模板与用量，无节点级步骤；步骤按通行做法起草，标〔推〕的是推断，不是 A8 事实。
+# 已定口径：审批走 platform.approval（C-3–C-7，intent 2026-10-16-144943）；A8 早于投产日停用；全部历史迁入（U-1–U-4）；
+#   IT 资产是固定资产，卡片、折旧、报废账务在 B-24 AGG-91，B-31 只记使用记录（intent 2026-10-16-152926）。
+# 本文件的扩展键（CONVENTIONS 未定义，见 notes 格式问题）：steps[].entry_of（该步是哪个 trigger 的入口，缺省为第 1 步）。
+
+processes:
+
+  # ───────────── 用印 ─────────────
+
+  - id: PRC-139
+    name: 用印申请与用印登记
+    type: business
+    stages: []
+    owner_bc: B-31
+    group: people
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+    migration: "全部历史迁入（U-1–U-4）：A8 用印申请表单（累计 11,570 单，来源字段待取证）迁为已关闭或已驳回的历史单据；在途 252 单按 ADR-0036 第 5 条 / U-4 在切换前审结或撤回，清不完的以草稿迁入并沿用原编号，由申请人在新系统重新提交（迁入不启动审批实例）；A8 早于投产日停用（C-7）"
+    scope: "申请人看自己的单据；行政经办和行政负责人看全部；用印法人所属数据范围 〔推〕"
+    segregation:
+      - {roles: [SH-E3, SH-E6], rule: "申请人不得批准自己的用印申请，也不得登记自己申请的用印（〔推〕通行的印章管理职责分离）"}
+    triggers:
+      - {type: human, name: "员工申请用印"}
+    outcomes: [已关闭, 已驳回]
+    scenarios: []
+    roles:
+      - {id: SH-E3, as: initiator}      # 任一员工（报价、合同、证明等用印需求方）；无全员编号，见 notes 格式问题 1
+      - {id: SH-E6, as: approver}       # 行政负责人〔推〕；印章类别是否分级审批见 notes 待用户定 1
+      - {id: SH-E6, as: performer}      # 行政经办：保管印章并登记用印
+    steps:
+      - actor: SH-E3
+        where: in_system
+        command: 提交用印申请
+        aggregate: AGG-113
+        desc: 选印章类别和用印法人；填用印事由、文件、份数；来源业务单据（报价、合同等）只记 ID，不校验其状态（聚合稿回补 §1）
+        permission: 用印申请.提交
+        page: 用印申请编辑页
+        added_in: closeout
+        cross_bc:
+          - {mode: api, direction: out, bc: B-13, name: 读取用印法人与申请人}          # B-31 → B-13（回补新边）
+          - {mode: api, direction: out, bc: platform.approval, name: 提交审批}          # B-31 → platform.approval（回补新边）
+        decision:
+          - {when: 用印法人在申请日不是有效法人主体, goto: 1}     # 拒绝并要求改正
+          - {when: otherwise, goto: 2}
+      - actor: SH-E6
+        where: in_system
+        command: 批准用印申请
+        aggregate: AGG-113
+        emits: [用印申请已批准]           # 仅分析
+        desc: 行政负责人在审批平台审批；批准时由 platform.approval 回调本聚合命令
+        approval:
+          engine: platform.approval
+          doc_type: 用印审批
+          approver: SH-E6
+          multi_level: false              # 〔推〕待用户定 1
+          on_reject: 3
+        permission: 用印申请.批准
+        page: 审批平台待办
+        audit: true
+        metric_event: true
+        notify: [{to: SH-E3, how: 企业微信待办结果}]
+        decision:
+          - {when: otherwise, goto: 4}
+      - actor: platform
+        where: automatic
+        command: 驳回用印申请
+        aggregate: AGG-113
+        desc: 审批平台回调：申请标为已驳回，写驳回意见
+        notify: [{to: SH-E3, how: 企业微信}]
+        outcome: 已驳回
+      - actor: SH-E6
+        where: offline
+        evidence: [实际用印时间, 用印份数, 经办人, 已盖章文件扫描件〔推〕]
+        command: 登记用印
+        aggregate: AGG-113
+        emits: [已用印]                   # 仅分析
+        desc: 盖章在系统外完成（实物印章），本系统登记结果；可分多次登记，累计份数不得超过批准份数
+        permission: 用印申请.登记用印
+        page: 用印登记页
+        audit: true
+        metric_event: true
+        decision:
+          - {when: 累计登记份数超过批准份数, goto: 4}      # INV-新-P2 拒绝
+          - {when: 申请未批准, goto: 4}                    # INV-新-P1 拒绝（状态机已挡，兜底）
+          - {when: 仍有未用印份数且申请人要求继续, goto: 4}
+          - {when: otherwise, goto: 5}
+      - actor: SH-E6
+        where: in_system
+        command: 关闭用印申请
+        aggregate: AGG-113
+        desc: 用印完成或申请人放弃剩余份数后关闭
+        permission: 用印申请.关闭
+        page: 用印申请详情页
+        outcome: 已关闭
+    notes: >
+      撤回（申请人在审批中撤回）聚合稿无命令，沿用 platform.approval 通用撤回并回调〔缺〕撤回用印申请，见 notes 新用语。
+      报价是否须先「已用印」才能发出，若 B-05 要读 B-31 会产生 B-05 → B-31 反向依赖，见 notes 接缝问题 4。
+
+  # ───────────── IT 需求 ─────────────
+
+  - id: PRC-142
+    name: IT 需求工单
+    type: business
+    stages: []
+    owner_bc: B-31
+    group: people
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+    migration: "全部历史迁入（U-1–U-4）：A8 需求工单表单（累计 1,622 单，来源字段待取证）迁为已关闭或已退回的历史工单；在途 105 单按 ADR-0036 第 5 条 / U-4 切换前清空，清不完的以草稿迁入沿用原编号；A8 早于投产日停用（C-7）"
+    scope: "提出人看自己的工单；信息部门看全部；需审批类别的审批人看待办单据"
+    triggers:
+      - {type: human, name: "员工提出 IT 需求"}
+    outcomes: [已关闭, 已退回]
+    scenarios: []
+    roles:
+      - {id: SH-E3, as: initiator}      # 任一员工，见 notes 格式问题 1
+      - {id: SH-M1, as: approver}       # 提出人所在部门负责人（仅需审批的类别）〔推〕
+      - {id: SH-E6, as: performer}      # 信息（IT）：受理与解决
+    steps:
+      - actor: SH-E3
+        where: in_system
+        command: 提交 IT 需求
+        aggregate: AGG-114
+        desc: 选需求类别，写描述和优先级；哪些类别需审批由受控类别表决定〔推〕
+        permission: IT需求.提交
+        page: IT需求提交页
+        added_in: closeout
+        cross_bc:
+          - {mode: api, direction: out, bc: B-13, name: 读取提出人与处理人}
+        decision:
+          - {when: 需求类别要求审批, goto: 2}
+          - {when: otherwise, goto: 3}
+      - actor: SH-M1
+        where: in_system
+        command: 批准 IT 需求
+        aggregate: AGG-114
+        desc: 仅需审批的类别（如新增软件采购、权限提升〔推〕）
+        approval:
+          engine: platform.approval
+          doc_type: IT需求审批
+          approver: SH-M1
+          multi_level: false              # 〔推〕
+          on_reject: 6
+        cross_bc:
+          - {mode: api, direction: out, bc: platform.approval, name: 提交审批}
+        permission: IT需求.批准
+        page: 审批平台待办
+        audit: true
+      - actor: SH-E6
+        where: in_system
+        command: 受理 IT 需求
+        aggregate: AGG-114
+        desc: 信息部门指定处理人，进入处理中
+        permission: IT需求.受理
+        page: IT需求工作台
+        timeout: {after: "P2D", escalate_to: SH-E6, interrupting: false}   # 〔推〕工作日内受理，逾期提醒信息负责人，待用户定 3
+      - actor: SH-E6
+        where: in_system
+        command: 解决 IT 需求
+        aggregate: AGG-114
+        emits: [IT 需求已解决]            # 仅分析
+        desc: 记录处理过程与处理结论；实际排查在系统外进行，本系统登记过程与结论
+        permission: IT需求.解决
+        page: IT需求工作台
+        metric_event: true
+        decision:
+          - {when: 需求不成立或无法实现, goto: 6}
+          - {when: otherwise, goto: 5}
+      - actor: SH-E3
+        where: in_system
+        command: 关闭 IT 需求
+        aggregate: AGG-114
+        desc: 提出人确认后关闭；长期不确认由系统代关〔推〕
+        permission: IT需求.关闭
+        page: IT需求详情页
+        timeout: {after: "P5D", escalate_to: system, interrupting: true}   # 〔推〕解决后 5 日未确认自动关闭，待用户定 3
+        decision:
+          - {when: 无处理结论, goto: 4}      # INV-新-P3 拒绝
+          - {when: 提出人认为未解决, goto: 3}
+          - {when: otherwise, goto: end}
+        outcome: 已关闭
+      - actor: SH-E6
+        where: in_system
+        command: 退回 IT 需求
+        aggregate: AGG-114
+        desc: 审批驳回、需求不成立或无法实现时退回提出人，写退回原因
+        notify: [{to: SH-E3, how: 企业微信}]
+        outcome: 已退回
+    notes: 步 6 同时承接审批驳回回调与信息部门主动退回。
+
+  # ───────────── IT 资产使用（B-31 部分） ─────────────
+
+  - id: PRC-143
+    name: IT 资产领用、调拨、报修、报废、盘点与采购申请
+    type: business
+    stages: []
+    owner_bc: B-31
+    group: people
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+    migration: "全部历史迁入（U-1–U-4）：A8 的 IT 资产领用（累计 1）、调拨（139）、报修（128）三类表单迁入使用记录与维修工单，须能对应到 B-24 资产卡片（对应方法待取证，见 notes 待用户定 2）；信息变更（137）、内购（3）、报废回收（1）、采购申请不属 B-31，归 B-24 / 采购，由财务组处理；在途调拨 0、报修 2、内购 1 按 ADR-0036 第 5 条 / U-4；A8 早于投产日停用（C-7）"
+    scope: "使用人看自己名下资产；信息部门（资产管理员）看全部"
+    triggers:
+      - {type: human, name: "申请领用"}
+      - {type: human, name: "申请调拨"}
+      - {type: human, name: "报修"}
+      - {type: human, name: "登记归还"}
+      - {type: event, name: "员工已离职（生成归还待办）", event: Separated, bc: B-13}
+    outcomes: [已领用, 已调拨, 已归还, 已驳回, 已维修登记]
+    scenarios: []
+    roles:
+      - {id: SH-E3, as: initiator}      # 使用人（任一员工），见 notes 格式问题 1
+      - {id: SH-E6, as: performer}      # 信息（IT）资产管理员：交付、验收、登记
+      - {id: SH-E6, as: approver}       # 资产管理员负责人批准领用 / 调拨〔推〕
+      - {id: SH-E6, as: informed}       # 财务（B-24 资产卡片维护人），知悉维修无法修复的结果
+    steps:
+      - actor: SH-E3
+        entry_of: 申请领用
+        where: in_system
+        command: 申请领用资产
+        aggregate: AGG-115
+        desc: 选 B-24 资产卡片（只引用卡片 ID，不复制卡片信息）
+        permission: IT资产.申请领用
+        page: IT资产领用申请页
+        added_in: closeout
+        cross_bc:
+          - {mode: api, direction: out, bc: B-24, name: 读取资产卡片}      # B-31 → B-24（回补新边，intent 152926）
+          - {mode: api, direction: out, bc: B-13, name: 读取使用人}
+        decision:
+          - {when: 资产卡片不存在、已处置或不属 IT 资产类别, goto: 1}
+          - {when: otherwise, goto: 2}
+      - actor: SH-E6
+        where: in_system
+        command: 批准领用
+        aggregate: AGG-115
+        approval:
+          engine: platform.approval
+          doc_type: IT资产领用审批
+          approver: SH-E6
+          multi_level: false              # 〔推〕待用户定 4
+          on_reject: 3
+        cross_bc:
+          - {mode: api, direction: out, bc: platform.approval, name: 提交审批}
+        permission: IT资产.批准领用
+        page: 审批平台待办
+        audit: true
+        decision:
+          - {when: otherwise, goto: 4}
+      - actor: platform
+        where: automatic
+        command: 〔缺〕驳回领用
+        aggregate: AGG-115
+        desc: 审批平台回调
+        outcome: 已驳回
+      - actor: SH-E6
+        where: offline
+        evidence: [领用人签收, 交付日期, 设备实物状态〔推〕]
+        command: 登记领用
+        aggregate: AGG-115
+        emits: [资产已领用]               # 仅分析；离职交接可读
+        desc: 实物在系统外交付，本系统登记使用人与起始日，打开该卡片的一个使用期间
+        permission: IT资产.登记领用
+        page: IT资产使用登记页
+        audit: true
+        metric_event: true
+        decision:
+          - {when: 该资产已有未归还的使用人, goto: 4}      # INV-新-P4 拒绝；应先归还或改走调拨
+          - {when: otherwise, goto: end}
+        outcome: 已领用
+      - actor: SH-E3
+        entry_of: 申请调拨
+        where: in_system
+        command: 〔缺〕申请调拨资产
+        aggregate: AGG-115
+        desc: 使用人（调出方）或资产管理员选调入使用人；调拨须经批准〔推〕（A8 有调拨申请表单，聚合稿回补只有「调拨资产」命令）
+        permission: IT资产.申请调拨
+        page: IT资产调拨申请页
+        added_in: closeout
+        cross_bc:
+          - {mode: api, direction: out, bc: B-24, name: 读取资产卡片}
+        decision:
+          - {when: 资产没有当前使用人, goto: 1}      # 无使用人的资产走领用，不走调拨
+          - {when: otherwise, goto: 6}
+      - actor: SH-E6
+        where: in_system
+        command: 〔缺〕批准调拨
+        aggregate: AGG-115
+        approval:
+          engine: platform.approval
+          doc_type: IT资产调拨审批
+          approver: SH-E6
+          multi_level: false              # 〔推〕
+          on_reject: 7
+        cross_bc:
+          - {mode: api, direction: out, bc: platform.approval, name: 提交审批}
+        permission: IT资产.批准调拨
+        page: 审批平台待办
+        audit: true
+        decision:
+          - {when: otherwise, goto: 8}
+      - actor: platform
+        where: automatic
+        command: 〔缺〕驳回调拨
+        aggregate: AGG-115
+        desc: 审批平台回调
+        outcome: 已驳回
+      - actor: SH-E6
+        where: offline
+        evidence: [调出方与调入方交接确认, 交接日期]
+        command: 调拨资产
+        aggregate: AGG-115
+        emits: [资产已调拨]               # 仅分析
+        desc: 实物交接在系统外；本系统同一事务结束调出方的使用期间并开启调入方的使用期间，保证同一时刻只有一个使用人
+        permission: IT资产.登记调拨
+        page: IT资产使用登记页
+        audit: true
+        metric_event: true
+        outcome: 已调拨
+      - actor: system
+        entry_of: 员工已离职（生成归还待办）
+        where: automatic
+        command: 〔缺〕生成归还待办
+        aggregate: AGG-115
+        desc: 订阅 B-13 的 Separated，为离职员工名下未归还的资产生成归还待办（聚合稿回补 §1 的建议）
+        cross_bc:
+          - {mode: event, direction: in, bc: B-13, name: Separated}
+        notify: [{to: SH-E6, how: 企业微信待办}]
+        decision:
+          - {when: 该员工名下没有未归还资产, goto: end}
+          - {when: otherwise, goto: 10}
+      - actor: SH-E6
+        entry_of: 登记归还
+        where: offline
+        evidence: [归还验收人, 归还日期, 设备实物状态]
+        command: 归还资产
+        aggregate: AGG-115
+        emits: [资产已归还]               # 仅分析；离职交接可读
+        desc: 实物验收在系统外，本系统登记归还日并结束使用期间
+        permission: IT资产.登记归还
+        page: IT资产使用登记页
+        audit: true
+        metric_event: true
+        outcome: 已归还
+      - actor: SH-E3
+        entry_of: 报修
+        where: in_system
+        command: 报修资产
+        aggregate: AGG-115
+        desc: 使用人填故障描述，生成维修工单；报修不经审批〔推〕（A8 有报修申请表单；单项维修费用若超限额走采购 / 费控，不属 B-31）
+        permission: IT资产.报修
+        page: IT资产报修页
+        added_in: closeout
+        cross_bc:
+          - {mode: api, direction: out, bc: B-24, name: 读取资产卡片}
+        decision:
+          - {when: otherwise, goto: 12}
+      - actor: SH-E6
+        where: external:维修服务商
+        evidence: [维修单或发票引用, 维修结果, 完成日期]
+        command: 登记维修结果
+        aggregate: AGG-115
+        desc: 维修在系统外（内部处理或送修厂商），无接口，本系统只登记结果与证据；无法修复的资产由财务在 B-24 另行报废，B-31 不发起（B-31 → B-24 只有读取边，见 notes 接缝问题 1）
+        permission: IT资产.登记维修结果
+        page: IT资产维修工单页
+        audit: true
+        outcome: 已维修登记
+    notes: >
+      本流程只画 B-31 部分：领用、调拨、归还、维修工单（用户 intent 2026-10-16-152926：IT 资产是固定资产）。
+      报废、盘点、采购申请归 B-24 / 采购（财务组），不在本文件；盘点只读 B-31 使用记录核对，建议由财务组在 B-24 流程里写读取（B-24 不依赖 B-31，见接缝问题 2）。
+      建议目录改名为「IT 资产领用、调拨、归还与维修」，见 notes 结构问题 2。
+      步 12 的维修结果（已修复 / 无法修复）由工单的结果列表达，骨架不分叉。
+
+  # ───────────── 员工活动 ─────────────
+
+  - id: PRC-144
+    name: 员工活动类申请（周年贺卡、节日活动、创新项目发布）
+    type: business
+    stages: []
+    owner_bc: B-31
+    group: people
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+    migration: "全部历史迁入（U-1–U-4）：A8 周年贺卡（累计 219）、创新项目发布申请（31）、感恩节活动（2,106，已于 2024-11-11 停用）迁为同一聚合的不同活动类型；在途 周年贺卡 38、创新项目 4、感恩节 75 按 ADR-0036 第 5 条 / U-4 处理（感恩节在途停用已久，建议审结或作废，见 notes 待用户定 5）；A8 早于投产日停用（C-7）"
+    scope: "申请人看自己的申请；行政与人力看全部"
+    triggers:
+      - {type: human, name: "员工提出活动申请"}
+    outcomes: [已完成, 已驳回]
+    scenarios: []
+    roles:
+      - {id: SH-E3, as: initiator}      # 任一员工，见 notes 格式问题 1
+      - {id: SH-M1, as: approver}       # 部门负责人〔推〕
+      - {id: SH-E6, as: performer}      # 行政：组织实施、确认完成
+    steps:
+      - actor: SH-E3
+        where: in_system
+        command: 提交员工活动申请
+        aggregate: AGG-116
+        desc: 选活动类型（受控参考数据），填参与人、费用预估（只记录引用，不是预算控制）
+        permission: 员工活动.提交
+        page: 员工活动申请页
+        added_in: closeout
+        cross_bc:
+          - {mode: api, direction: out, bc: B-13, name: 读取申请人与参与人}
+          - {mode: api, direction: out, bc: platform.approval, name: 提交审批}
+      - actor: SH-M1
+        where: in_system
+        command: 批准员工活动申请
+        aggregate: AGG-116
+        emits: [员工活动申请已批准]       # 仅分析
+        approval:
+          engine: platform.approval
+          doc_type: 员工活动审批
+          approver: SH-M1
+          multi_level: false              # 〔推〕待用户定 4
+          on_reject: 3
+        permission: 员工活动.批准
+        page: 审批平台待办
+        audit: true
+        metric_event: true
+        decision:
+          - {when: otherwise, goto: 4}
+      - actor: platform
+        where: automatic
+        command: 驳回员工活动申请
+        aggregate: AGG-116
+        desc: 审批平台回调
+        notify: [{to: SH-E3, how: 企业微信}]
+        outcome: 已驳回
+      - actor: SH-E6
+        where: offline
+        evidence: [活动完成确认, 实际参与人〔推〕]
+        command: 完成员工活动
+        aggregate: AGG-116
+        desc: 活动在系统外举办，本系统登记完成；活动费用若报销，由 B-12 费用报销单引用本申请 ID（不校验，B-12 不被本聚合依赖）
+        permission: 员工活动.完成
+        page: 员工活动详情页
+        outcome: 已完成
+    notes: 周年贺卡是否由系统按入职周年自动生成（而不是员工申请）A8 无节点证据，见 notes 待用户定 6。

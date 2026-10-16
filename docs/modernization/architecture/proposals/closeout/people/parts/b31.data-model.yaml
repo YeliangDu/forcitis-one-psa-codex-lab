@@ -1,0 +1,171 @@
+# 表级数据模型 · B-31 organization.administration（行政事务，S-09，intent 2026-10-16-152807）
+# 格式以 closeout/CONVENTIONS.md §3 为准（含 pi 字段）；聚合 AGG-113–116 来自 NOTES「聚合稿回补」第 1 节。
+# 通用口径：审批只存审批实例 ID（approval_instance_id，类型化 ID，不建外键），审批过程在 platform.approval；
+#   来源业务单据（报价、合同等）按「不校验」只记类型加 ID；迁入来源 A8 行政表单（未取证，写「待取证」，A8 早于投产日停用 C-7；
+#   在途单据按 ADR-0036 第 5 条 / U-4：切换前清空，清不完以草稿迁入并沿用原编号）；
+#   单据类表 versioned 写 none 的依据是「单一状态且审计能完整还原」（D17 第四类，待 one-data 复核）。
+
+- aggregate: AGG-113
+  bc: B-31
+  tables:
+    - name: seal_applications
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-60, by: legal_entity_id, cross_bc: true}
+        - {to: AGG-62, by: applicant_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: pi
+      column_families: [申请号（展示号，沿用 A8 原号用 legacy_numbers）, 印章类别, 用印法人, 申请人, 用印事由, 批准份数, 状态, 审批实例ID, 乐观锁, 审计列]
+      reason: "versioned none：单据，状态由审计还原；全量来源 A8 用印申请表单（累计 11,570 单、在途 252，字段待取证）；pi：申请人为员工引用（pi），用印事由可能夹带商业内容，访问级别 INTERNAL 待 one-data 复核"
+    - name: seal_application_documents
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-113, by: seal_application_id}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [文件名称, 文件份数, 文件引用]
+      reason: "versioned none：随申请单不可变；全量随申请；来源待取证"
+    - name: seal_application_source_documents
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-113, by: seal_application_id}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [来源单据类型, 来源单据ID]
+      reason: "来源业务单据（B-03 / B-05 等）按不校验只记类型加 ID，不建引用、不查状态，避免 B-31 落到收入链下游（聚合稿回补 §1）；迁入时 A8 的报价用印关联取得方式待取证（盘点说明：报价用印登记与老系统报价同步相关）；versioned none：随申请单"
+    - name: seal_usage_records
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-113, by: seal_application_id}
+        - {to: AGG-62, by: handler_id, cross_bc: true}
+      versioned: append_only
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: pi
+      column_families: [实际用印时间, 用印份数, 经办人, 盖章文件扫描件引用]
+      reason: "只追加：INV-新-P2 累计份数不超过批准份数；更正另追加反向行；来源 A8 用印登记（是否有逐次登记待取证，若无则每单迁一行汇总行并标「迁入汇总」）；pi：经办人"
+
+- aggregate: AGG-114
+  bc: B-31
+  tables:
+    - name: it_requests
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: requester_id, cross_bc: true}
+        - {to: AGG-62, by: handler_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: pi
+      column_families: [工单号（沿用 A8 原号用 legacy_numbers）, 需求类别, 描述, 优先级, 提出人, 处理人, 处理结论, 状态, 审批实例ID（仅需审批的类别）, 乐观锁, 审计列]
+      reason: "versioned none：单据，状态由审计还原；全量来源 A8 需求工单（累计 1,622、在途 105，字段待取证）；pi：提出人与处理人；描述可能含账号、设备等信息，级别 INTERNAL 待复核"
+    - name: it_request_handlings
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-114, by: it_request_id}
+        - {to: AGG-62, by: handler_id, cross_bc: true}
+      versioned: append_only
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: pi
+      column_families: [处理时间, 处理人, 处理说明]
+      reason: "只追加的处理记录；A8 是否保留逐条处理记录待取证，若只有最终回复则每单迁一行"
+
+- aggregate: AGG-115
+  bc: B-31
+  tables:
+    - name: it_asset_use_ledgers
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-91, by: fixed_asset_card_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [资产卡片ID（每卡片至多一行，唯一）, 当前使用人投影, 乐观锁, 事件序号]
+      reason: "每个资产卡片一个聚合根，INV-新-P4 的事务边界；首次领用或迁入时建立；卡片本身（原值、折旧、报废）在 B-24，不复制；versioned none：根只留卡片引用；边界方案见 NOTES 结构问题 3"
+    - name: it_asset_use_requests
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-115, by: it_asset_use_ledger_id}
+        - {to: AGG-62, by: user_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: pi
+      column_families: [申请类型（领用 / 调拨）, 申请单号（沿用 A8 原号用 legacy_numbers）, 使用人, 调入使用人（调拨）, 状态, 审批实例ID, 审计列]
+      reason: "单据，状态由审计还原；全量来源 A8 IT 资产领用（累计 1）、调拨（累计 139）申请，字段待取证；A8 资产编号能否对应到 B-24 卡片待取证，对应不上的不得落地，见 NOTES 待用户定 2"
+    - name: it_asset_use_periods
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-115, by: it_asset_use_ledger_id}
+        - {to: AGG-62, by: user_id, cross_bc: true}
+      versioned: effective_dated
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: pi
+      column_families: [使用期间起止（止为空表示在用）, 使用人, 来源申请, 归还验收人, 归还时状态]
+      reason: "使用期间是业务事实区间，不是维度版本；同一卡片期间不重叠由条件排除约束保证（INV-新-P4）；调拨在同一事务结束旧期间并开启新期间；全量来源 A8 领用、调拨、归还记录（待取证）；pi：使用人"
+    - name: it_asset_repair_orders
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-115, by: it_asset_use_ledger_id}
+        - {to: AGG-62, by: reporter_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: pi
+      column_families: [工单号（沿用 A8 原号用 legacy_numbers）, 报修人, 故障描述, 报修时间, 维修结果（已修复 / 无法修复）, 完成日期, 维修单或发票引用, 状态, 审计列]
+      reason: "单据，状态由审计还原；全量来源 A8 IT 资产报修（累计 128、在途 2，字段待取证）；维修费用若产生，账务归 B-24 / 费控，不记在此"
+
+- aggregate: AGG-116
+  bc: B-31
+  tables:
+    - name: employee_activity_requests
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: applicant_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: pi
+      column_families: [申请号（沿用 A8 原号用 legacy_numbers）, 活动类型, 申请人, 说明, 费用预估引用（只记录）, 状态, 审批实例ID, 乐观锁, 审计列]
+      reason: "versioned none：单据，状态由审计还原；全量来源 A8 周年贺卡（累计 219、在途 38）、创新项目发布申请（31、在途 4）、感恩节活动（2,106、已停用、在途 75），字段待取证；费用预估只记录，B-12 费用报销单引用本申请 ID，本聚合不依赖 B-12"
+    - name: employee_activity_participants
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-116, by: employee_activity_request_id}
+        - {to: AGG-62, by: participant_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: pi
+      column_families: [参与人]
+      reason: "随申请单不可变；周年贺卡的被祝贺人记在此还是申请人列，待取证；pi：参与人为员工引用"
+    - name: employee_activity_types
+      role: child
+      key: uuid_v7
+      versioned: none
+      history_migration: none
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [活动类型码, 名称, 状态]
+      reason: "参考数据（周年贺卡、节日活动、创新项目发布等）；历史不迁：A8 用模板区分类型，迁入时只映射到类型码；受控代码表只由迁移与管理员维护（D17 第一类），在线增改须改版本化；是否单独成聚合（同 AGG-118）见 NOTES 结构问题 4；申请表按活动类型码引用本表（同聚合，不建外键）"

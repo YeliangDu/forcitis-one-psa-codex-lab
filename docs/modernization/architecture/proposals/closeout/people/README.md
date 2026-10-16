@@ -11,7 +11,9 @@
 | `processes.people.yaml` | 本组流程的 ⑥b 骨架片段（交 one-architecture 合并为 `processes.v2.yaml`） |
 | `data-model.people.yaml` | 本组聚合的表级片段（合并为 `data-model.v1.yaml`） |
 | `NOTES.md` | 接缝问题、结构问题、新用语、格式问题、待用户定 |
-| `PROCESS_SKELETONS.md`、`DATA_MODEL.md` | 说明稿（依据、已建 / 改形 / 新建、迁入来源、提议新增流程） |
+| `DATA_MODEL.md` | 表级说明稿（依据、已建 / 改形 / 新建、迁入来源） |
+| `parts/` | 铺开分片底稿（各分片的 yaml、说明与 notes），已合并进上面三个文件 |
+| `bpmn/` | 样板描述级 BPMN（PRC-83、84、137）与样板生成脚本 |
 | `SAMPLE.md` | 流程样板：入职到账号开通（PRC-83 + PRC-137 + PRC-84），用户先看（intent 2026-10-16-153009） |
 | `REVIEW.md` | opus 首轮评审与 sonnet 复核记录 |
 
@@ -33,3 +35,4 @@
 - 2026-10-16 开工：画像、README；字段约定待 one-architecture 统一，先做试点（VS-07 骨架、B-13/B-14/B-27 表），约定已出（CONVENTIONS.md），试点改按它写后铺开。
 - 2026-10-16 试点：VS-07（PRC-80–85、128、129、130、136–138）骨架、B-13/B-14/B-27 表（18 个聚合、44 张表）已写；AGG-117、118 补号。
 - 2026-10-16 按 one-architecture 转用户要求出样板 `SAMPLE.md`，其余流程与 B-15/18/30/31 表暂停，等用户意见（铺开备忘见 NOTES.md 末节）。
+- 2026-10-16 用户批准方法与样板（intent 162820、162821），铺开：26 个业务流程、7 个事件策略、3 个单聚合维护全部出骨架；32 个聚合、91 张表；NOTES 合并五个分片。下一步：按新原则（审批规则、why_human、八维度 QC）逐价值流修订并自检。

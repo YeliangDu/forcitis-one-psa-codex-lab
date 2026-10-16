@@ -1,4 +1,4 @@
-# 表级数据模型 · 人员组试点片段（B-13 organization.workforce、B-14 organization.attendance、B-27 organization.leave）
+# 表级数据模型 · 人员组片段（B-13、B-14、B-27 在前；B-15、B-18、B-30、B-31 由 parts/ 合并于后）
 # 字段约定：以 closeout/CONVENTIONS.md §3 为准（one-architecture 2026-10-16），本片段只用其固定字段，未加字段：
 #   aggregate 聚合编号 AGG-NN；bc BC 编号 B-NN；tables 该聚合的表。
 #   表字段：name（snake_case 复数，不写 schema）、role（root 根 / child 次级 / version 版本 / link 关联 / staging 迁入暂存）、
@@ -548,3 +548,612 @@
       sensitivity: INTERNAL
       column_families: [生效区间, 确认人与确认时间, 依据引用 decision_ref, 城市类别, 年度应享规则（如年休假按工龄档）, 结转与清零规则]
       reason: "配置型（D15）：额度按城市类别配置（信息图 OBJ-68），不追溯；history_migration none：新系统首版按现行制度录入，旧额度规则取证待 one-data；PI 标记：NONE"
+
+# ---- 合并自 parts/b15data.data-model.yaml ----
+- aggregate: AGG-73
+  bc: B-15
+  tables:
+    - name: payroll_settlements
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-60, by: legal_entity_id, cross_bc: true}
+        - {to: AGG-73, by: reverses_settlement_id}
+        - {to: AGG-52, by: payable_id, cross_bc: true}
+        - {to: AGG-77, by: posting_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: SENSITIVE
+      pi: none
+      column_families: [法人, 薪酬月份, 结算类型（正常 / 冲销）, 冲销的原结算, 状态（草稿 → 已计算 → 审核中 → 已批准 → 已发放 → 已过账）, 实发合计, 审批引用, 批准人与时间, 发放登记（发放日、银行回单引用）, 应付引用, 过账引用, 乐观锁]
+      reason: "versioned none：单据，状态由审计还原，更正走冲销另立结算（D17 第二类）；业务唯一：法人 × 月 × 正常类型（不含已冲销）；history_migration full：用户已定全部历史迁入（U-1–U-4），老系统薪酬数据来源待取证，不推定；先迁原行后迁冲销行（ADR-0036 第 3、7 条）；SENSITIVE：法人月度工资汇总（L3，ADR-0026 第 7 项）；pi none：本表无个人标识，个人明细在 payroll_settlement_lines；应付只存 AGG-52 的 ID（法人 × 月一笔实发合计），过账只存 AGG-77 的 ID"
+    - name: payroll_settlement_rule_refs
+      role: link
+      key: uuid_v7
+      references:
+        - {to: AGG-73, by: payroll_settlement_id}
+        - {to: AGG-待定-薪酬规则版本, by: payroll_rule_version_id}
+      versioned: snapshot
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [所用规则版本 ID, 规则类别]
+      reason: "D7、D17 细则 6：记所用规则版本；迁入的历史结算无对应规则版本，不造引用，该行不存在即表示「迁入结果，未经本系统计算」（NOTES 结构问题 3）；INTERNAL：规则本身非个人信息"
+    - name: payroll_settlement_lines
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-73, by: payroll_settlement_id}
+        - {to: AGG-62, by: employee_id, cross_bc: true}
+        - {to: AGG-60, by: withholding_legal_entity_id, cross_bc: true}
+        - {to: AGG-93, by: payroll_profile_version_id}
+        - {to: AGG-74, by: insurance_enrollment_version_id}
+        - {to: AGG-97, by: monthly_attendance_confirmation_id, cross_bc: true}
+      versioned: snapshot
+      history_migration: full
+      sensitivity: SENSITIVE
+      pi: spi
+      column_families: [人员（工资条为单据）, 扣缴义务人法人, 应发合计, 代扣合计, 个税, 实发, 所用档案版本 ID, 所用参保版本 ID, 所用考勤确认 ID, 发放状态]
+      reason: "期间快照：批准后不改，记所用版本（D7）；SENSITIVE + spi：个人工资（ADR-0026 第 7 项 L3；工资是否 SPI 交 U-11 ③，未确认按 SPI，ADR-0043 第 2 项），个人信息保护法第 28 条、ADR-0043；迁入行的所用版本引用允许为空并标来源对照，老系统来源待取证；发薪账户不复制，经档案版本 ID 取"
+    - name: payroll_line_items
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-73, by: payroll_settlement_line_id}
+        - {to: AGG-76, by: bonus_determination_id}
+      versioned: snapshot
+      history_migration: full
+      sensitivity: SENSITIVE
+      pi: spi
+      column_families: [项目类别（应发 / 法定代扣 / 个税 / 奖金 / 更正）, 项目编码, 金额, 计算依据（所用费率或基数、公式参数快照）, 奖金核定引用, 更正月份]
+      reason: "计算明细 / 项目行；期间快照；INV-70 代扣限法定项目由聚合校验；SENSITIVE + spi 同 payroll_settlement_lines（个人信息保护法第 28 条、ADR-0043）；迁入只迁老系统已有的项目粒度，粒度不足时合并为单行并标注（待取证）"
+
+- aggregate: AGG-74
+  bc: B-15
+  tables:
+    - name: insurance_enrollments
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: employee_id, cross_bc: true}
+        - {to: AGG-60, by: contributing_legal_entity_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: SENSITIVE
+      pi: pi
+      column_families: [参保人员, 缴纳主体, 状态, 乐观锁]
+      reason: "versioned none：根只留标识与当前状态，险种、基数进版本表（D17 细则 5）；老系统来源待取证；退休返聘与实习不参保（用户已定 T-4），不建行；个人信息保护法第 28 条、ADR-0043"
+    - name: insurance_enrollment_versions
+      role: version
+      key: uuid_v7
+      references:
+        - {to: AGG-74, by: insurance_enrollment_id}
+      versioned: effective_dated
+      history_migration: full
+      sensitivity: SENSITIVE
+      pi: spi
+      column_families: [生效区间, 参保地, 险种, 缴费基数, 增员 / 减员, 增减员回执引用]
+      reason: "缴费基数属个人财产信息，按 ADR-0043 列级访问，个人信息保护法第 28 条；生效依据 DECLARED（办理业务日）；参保地为本稿对样板列族的补充（OBJ-62 定义含参保地，规则版本按参保地取比例）；迁入按 ADR-0036，来源待取证"
+
+- aggregate: AGG-75
+  bc: B-15
+  tables:
+    - name: incentive_plans
+      role: root
+      key: uuid_v7
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [方案编码, 方案类型（年终奖 / 项目奖 / 销售提成，待梳理）, 创建与乐观锁]
+      reason: "versioned none：根只留编码与类型，规则与额度随版本表（D17 细则 5）；来源待取证（老系统奖金规则多半在制度文件而非结构化数据，不推定）"
+    - name: incentive_plan_versions
+      role: version
+      key: uuid_v7
+      references:
+        - {to: AGG-75, by: incentive_plan_id}
+      versioned: effective_dated
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [生效区间, 状态（编制 → 审批 → 生效 → 结束）, 规则条款, 确认人与确认时间, 决定出处 decision_ref, 审批引用]
+      reason: "配置型 D15（版本只追加，不追溯）又带生效区间，故 effective_dated；使用方（AGG-76）记所用方案版本 ID（D7）；审批经 platform.approval（聚合稿 F-2），只存审批单 ID"
+    - name: incentive_plan_version_quotas
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-75, by: incentive_plan_version_id}
+        - {to: AGG-60, by: legal_entity_id, cross_bc: true}
+        - {to: AGG-61, by: org_unit_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [额度范围（法人 / 组织单元）, 额度金额或提取比例, 币种]
+      reason: "随版本，版本生效后不改；额度按法人或组织单元，不到个人，故 pi none（个人额度在 AGG-76）；versioned none 因生效区间由所属版本承担"
+
+- aggregate: AGG-76
+  bc: B-15
+  tables:
+    - name: bonus_determinations
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-75, by: incentive_plan_version_id}
+        - {to: AGG-62, by: employee_id, cross_bc: true}
+        - {to: AGG-60, by: legal_entity_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: SENSITIVE
+      pi: spi
+      column_families: [核定单号, 方案版本 ID, 被核定人员, 法人, 核定期间, 核定金额, 状态（草拟 → 已核定 → 已发放）, 核定人与时间, 乐观锁]
+      reason: "versioned none：单据，状态由审计还原，已核定后更正另记（D17 第二类）；已发放由 AGG-73 批准后事件置位，本表不存结算引用；SENSITIVE + spi：个人奖金（工资类 L3；SPI 待 U-11 ③，从严），个人信息保护法第 28 条、ADR-0043；迁入来源待取证，原编号经 legacy_numbers（ADR-0036）"
+    - name: bonus_determination_evidences
+      role: link
+      key: uuid_v7
+      references:
+        - {to: AGG-76, by: bonus_determination_id}
+        - {to: AGG-106, by: performance_review_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: SENSITIVE
+      pi: pi
+      column_families: [核定依据的绩效评估 ID]
+      reason: "对应 OBJ-104「0..N 绩效评估作核定依据」（完整性检查）；只存评估 ID，评估内容不复制；评估含 SPI 可能（交 U-11），故本表从严 SENSITIVE；随核定行迁入"
+
+- aggregate: AGG-93
+  bc: B-15
+  tables:
+    - name: payroll_profiles
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: employee_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: SENSITIVE
+      pi: pi
+      column_families: [所属人员, 乐观锁]
+      reason: "versioned none：根只留所属人员，个人信息最小化（D17 第四类）；薪酬属性全部进 payroll_profile_versions；个人信息保护法第 28 条、ADR-0043"
+    - name: payroll_profile_versions
+      role: version
+      key: uuid_v7
+      references:
+        - {to: AGG-93, by: payroll_profile_id}
+        - {to: AGG-60, by: withholding_legal_entity_id, cross_bc: true}
+      versioned: effective_dated
+      history_migration: full
+      sensitivity: SENSITIVE
+      pi: spi
+      column_families: [生效区间, 薪资结构与标准, 个税扣缴义务人, 发薪账户, 调薪依据引用]
+      reason: "敏感个人信息与金融账户信息（个人信息保护法第 28 条，ADR-0043 最高访问级别）；扣缴义务人是三口径之一（S13）；调薪为新版本事件，依据引用调薪申请单据 ID；迁入按 ADR-0036，来源待取证（信息图证 OA 调薪申请 #60 只作证据）；发薪账户列级 SPI（金融账户），不进分析层、日志、审计原值"
+    - name: payroll_special_deduction_declarations
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-93, by: payroll_profile_id}
+      versioned: effective_dated
+      history_migration: full
+      sensitivity: SENSITIVE
+      pi: spi
+      column_families: [扣除年度, 生效月区间, 提交日期与来源（本人填报 / 个税端下载）, 状态]
+      reason: "专项附加扣除年度属性（聚合稿 AGG-93）；每年重新确认，年内可修改，修改追加新生效区间；SENSITIVE + spi：涉子女、赡养、住房等家庭与财产信息，个人信息保护法第 28 条、ADR-0043；迁入来源待取证（个税端下载件是否留存未知）"
+    - name: payroll_special_deduction_items
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-93, by: payroll_special_deduction_declaration_id}
+        - {to: AGG-待定-薪酬规则版本, by: deduction_standard_version_id}
+      versioned: none
+      history_migration: full
+      sensitivity: SENSITIVE
+      pi: spi
+      column_families: [扣除类别（子女教育 / 继续教育 / 大病医疗 / 住房贷款利息 / 住房租金 / 赡养老人 / 婴幼儿照护）, 月扣除额, 分摊比例, 受益人关系与信息, 证明材料引用, 所用扣除标准版本 ID]
+      reason: "随申报，生效后不改；受益人含未成年子女信息，个人信息保护法第 28 条明列「不满十四周岁未成年人的个人信息」为敏感，且工资 SPI 待核，故 spi；是否另立独立表与访问级别交 U-11 / one-data（NOTES 待用户定）；记所用扣除标准版本 ID（D7）"
+
+- aggregate: AGG-95
+  bc: B-15
+  tables:
+    - name: tax_social_filings
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-60, by: withholding_legal_entity_id, cross_bc: true}
+        - {to: AGG-81, by: accounting_period_id, cross_bc: true}
+        - {to: AGG-73, by: payroll_settlement_id}
+        - {to: AGG-95, by: corrects_filing_id}
+      versioned: none
+      history_migration: full
+      sensitivity: SENSITIVE
+      pi: none
+      column_families: [扣缴义务人法人, 申报类别（个税扣缴 / 社保 / 公积金）, 所属期, 来源结算引用, 申报方式（待用户）, 状态（待申报 → 已申报 → 已缴款）, 更正的原申报, 申报期限, 提交人与时间, 乐观锁]
+      reason: "versioned none：单据，状态由审计还原，更正另立申报（D17 第二类）；最小形态：系统生成申报数据，回执与缴款登记回写，申报方式待用户（NOTES 待用户定）；SENSITIVE：法人级税费汇总；pi none：个人明细在 tax_social_filing_lines；迁入：政府端权威登记，老系统只可能有登记行，来源待取证，缺口写入对账（ADR-0036 第 7、8 条）"
+    - name: tax_social_filing_lines
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-95, by: tax_social_filing_id}
+        - {to: AGG-62, by: employee_id, cross_bc: true}
+        - {to: AGG-109, by: profit_distribution_id, cross_bc: true}
+      versioned: snapshot
+      history_migration: full
+      sensitivity: SENSITIVE
+      pi: spi
+      column_families: [申报对象人员, 收入类别（工资薪金 / 股息红利 / 其他）, 应税收入, 累计预扣, 本期个税, 社保公积金个人与单位部分, 申报身份信息（证件类型与号码、取自生成时刻的人员档案）, 来源（薪酬结算行 / 利润分配）]
+      reason: "期间快照：提交后不改，更正走新申报；个税申报需证件号码，列级 SPI（个人信息保护法第 28 条、ADR-0043，证件号 L3 + SPI），其来源（B-13 档案范围）待用户定（NOTES 待用户定）；自然人股东股息红利并入（AGG-109 事件）；迁入来源待取证"
+    - name: tax_social_filing_receipts
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-95, by: tax_social_filing_id}
+      versioned: append_only
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [回执类别（受理 / 退回）, 回执编号, 回执时间, 回执文件引用, 登记人]
+      reason: "只追加：回执是外部权威事实，更正不改行；不含个人标识（回执文件引用指向附件，附件内容另按分级）"
+    - name: tax_social_payments
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-95, by: tax_social_filing_id}
+        - {to: AGG-77, by: posting_id, cross_bc: true}
+      versioned: append_only
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [缴款日, 缴款金额, 缴款渠道, 银行回单引用, 过账引用]
+      reason: "缴款登记，只追加，冲销另记；个税与社保公积金过账只存 AGG-77 的 ID（B-15 → B-16）"
+
+- aggregate: AGG-待定-薪酬规则版本
+  bc: B-15
+  tables:
+    - name: payroll_rule_versions
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-60, by: legal_entity_id, cross_bc: true}
+      versioned: effective_dated
+      history_migration: none
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [规则类别（个税税率与起征 / 专项附加扣除标准 / 社保公积金比例与基数 / 计算口径）, 适用范围（参保地或法人，可空为全国默认）, 生效区间, 确认人与确认时间, 依据引用 decision_ref（法规条文或公司制度）, 版本状态]
+      reason: "配置型 D15 / §12.2（每版本一聚合，同 AGG-108 写法）；history_migration none：首版由初始化按现行法规与公司制度录入；是否回补历史规则版本（为复算历史结算）待用户定，迁入历史结算只迁结果，不依赖回补；规则本身非个人信息；变更四眼确认（D17 细则 8 同口径，待用户定）"
+    - name: income_tax_brackets
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-待定-薪酬规则版本, by: payroll_rule_version_id}
+      versioned: none
+      history_migration: none
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [税率表类别（综合所得年度 / 年终奖单独计税 / 其他）, 级距下限与上限, 税率, 速算扣除数]
+      reason: "随版本，生效后不改；公开法定参数"
+    - name: tax_deduction_standards
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-待定-薪酬规则版本, by: payroll_rule_version_id}
+      versioned: none
+      history_migration: none
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [起征点（月 / 年）, 扣除类别, 月扣除标准额, 分摊规则, 适用条件]
+      reason: "含基本减除费用与各项专项附加扣除标准；随版本，生效后不改"
+    - name: contribution_rate_rules
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-待定-薪酬规则版本, by: payroll_rule_version_id}
+      versioned: none
+      history_migration: none
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [参保地, 险种（养老 / 医疗 / 失业 / 工伤 / 生育 / 公积金）, 单位比例, 个人比例, 缴费基数下限与上限, 取整规则]
+      reason: "社保公积金比例与基数上下限，按参保地与年度调整；随版本，生效后不改"
+    - name: payroll_calculation_parameters
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-待定-薪酬规则版本, by: payroll_rule_version_id}
+      versioned: none
+      history_migration: none
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [参数名, 参数值, 说明]
+      reason: "月计薪天数、加班费倍数、请假扣款口径等公司政策参数；具体口径未定（NOTES 待用户定），表只承载参数键值，jsonb 边界按 NAMING_STANDARD §2.4a 由 one-data 裁"
+
+# ---- 合并自 parts/vs0911.data-model.yaml ----
+- aggregate: AGG-79
+  bc: B-18
+  tables:
+    - name: business_plans
+      role: root
+      key: uuid_v7
+      versioned: none
+      history_migration: full
+      sensitivity: internal
+      pi: none
+      column_families: [计划编码, 目标类型, 计划周期, 创建与乐观锁, 事件序号]
+      reason: "versioned none：根只留标识与不随版本变的列，状态、审批、基线随 business_plan_versions（D17 细则 5）。历史：来源待取证（信息图 OBJ-100 记「有 business_plan 等」，无生产量）"
+    - name: business_plan_versions
+      role: version
+      key: uuid_v7
+      references:
+        - {to: AGG-79, by: business_plan_id}
+        - {to: AGG-79, by: superseded_version_id}
+      versioned: append_only
+      history_migration: full
+      sensitivity: internal
+      pi: none
+      column_families: [版本号, 状态（编制中、审批中、基线、被取代）, 基线生效日, 确认人与确认时间, 审批实例引用, 决定出处, 被取代版本引用, 审计列]
+      reason: "D15 形状：版本只追加，带生效日与确认人，不追溯；基线后的行不可改（INV-101），基线前的状态变迁由审计还原。审批实例在 platform.approval，只存引用。D15 原为配置类，计划版本是业务单据版本，沿用其形状，见 notes 格式问题 2。历史来源待取证"
+    - name: plan_target_values
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-79, by: business_plan_version_id}
+        - {to: AGG-61, by: org_unit_id, cross_bc: true}
+        - {to: AGG-62, by: employee_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: internal
+      pi: pi
+      column_families: [指标, 期间, 目标值, 组织单元, 人员（销售预测承诺按人员）]
+      reason: "versioned none：目标值随所属版本，基线后不可改，改动出新版本。pi：按人员的行含员工 ID，属个人信息，数值本身是计划值不是薪酬。在途 1,212 单预测迁为只读历史（信息图 M-8）。AGG-79 引用列未列人员，见 notes 接缝问题 1"
+    - name: action_items
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-79, by: business_plan_version_id}
+        - {to: AGG-61, by: org_unit_id, cross_bc: true}
+        - {to: AGG-62, by: owner_employee_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: internal
+      pi: pi
+      column_families: [经营动作描述, 责任人, 期限, 来源（复盘偏差）]
+      reason: "OBJ-100 定义含「动作」，VS-09.3 退出写「经营动作写入计划」，聚合稿 AGG-79 内含列只写目标值；暂建，是否独立成表或并入版本待 notes 结构问题 4。versioned none：随版本，基线后不可改。历史来源待取证"
+
+- aggregate: AGG-80
+  bc: B-18
+  tables:
+    - name: budget_accounts
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-79, by: business_plan_version_id}
+        - {to: AGG-61, by: org_unit_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: internal
+      pi: none
+      column_families: [账户编码, 预算主体（组织单元、预算科目）, 预算期间, 当前额度, 已占用与已消耗合计, 状态（可冻结）, 乐观锁, 事件序号]
+      reason: "versioned none：额度变动记在 budget_account_adjustments，占用记在 budget_reservations；根上的合计列在拦截方案下是乐观锁保护的额度占用核心，在预警方案下只作展示。历史来源待取证"
+    - name: budget_account_adjustments
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-80, by: budget_account_id}
+        - {to: AGG-79, by: business_plan_version_id}
+      versioned: append_only
+      history_migration: full
+      sensitivity: internal
+      pi: none
+      column_families: [调整额, 调整前后额度, 原因, 调整人, 调整时间, 所依计划版本引用]
+      reason: "预算调整只追加（BudgetAdjusted）；调整是否产生基线新版本待 notes 结构问题 2。历史来源待取证"
+    - name: budget_reservations
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-80, by: budget_account_id}
+      versioned: none
+      history_migration: full
+      sensitivity: internal
+      pi: none
+      column_families: [占用标识, 占用额, 状态（占用、消耗、释放）, 占用方类型与单据 ID, 占用时间, 释放时间与原因]
+      reason: "versioned none：一行一次占用，状态变迁由审计还原；占用方单据（供方协议、费用报销等，B-11、B-12）的 ID 只记录、不校验：B-18 不得依赖下游，聚合稿 AGG-80 引用列未登记该项，见 notes 接缝问题 2。额度占用模式要求孤儿占用定时释放与对账兜底。占用行是否全量迁入取决于老系统是否有占用记录，待取证"
+
+- aggregate: AGG-107
+  bc: B-30
+  tables:
+    - name: knowledge_entries
+      role: root
+      key: uuid_v7
+      versioned: none
+      history_migration: full
+      sensitivity: internal
+      pi: none
+      column_families: [条目编码, 类别, 当前已发布版本引用, 创建与乐观锁, 事件序号]
+      reason: "versioned none：根只留编码与类别，内容随 knowledge_entry_versions。历史：库内无知识条目实体（信息图 OBJ-110 取证），迁入集合为空；A8 文档中心 567 份文档是否转条目见 notes 待用户定 5"
+    - name: knowledge_entry_versions
+      role: version
+      key: uuid_v7
+      references:
+        - {to: AGG-107, by: knowledge_entry_id}
+        - {to: AGG-107, by: superseded_version_id}
+      versioned: append_only
+      history_migration: full
+      sensitivity: tbd
+      pi: tbd
+      column_families: [版本号, 状态（起草、评审、发布、修订被取代、废止）, 标题与内容, 适用范围（业务线、项目类型等取值）, 有效期, 发布日, 被取代版本引用, 来源复盘 ID（只记录）, 审计列]
+      reason: "D15 形状：已发布版本不得修改，修订出新版本并引用被取代版本（INV-115）。sensitivity 与 pi 为 tbd：技术案例的正文可能带客户、项目和人员信息，是否要求脱敏、是否限范围可见待用户定（notes 待用户定 6）。来源复盘 ID 属 B-04 的 AGG-103，只记录不校验。外部知识平台文件夹引用不在本表，走 platform.integration 来源对照（D16），见 notes 结构问题 5"
+    - name: knowledge_entry_reviews
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-107, by: knowledge_entry_version_id}
+        - {to: AGG-62, by: reviewer_employee_id, cross_bc: true}
+      versioned: append_only
+      history_migration: full
+      sensitivity: internal
+      pi: pi
+      column_families: [评审结论（通过、退回）, 意见, 评审人, 评审时间]
+      reason: "审批人与审批记录在聚合内（聚合稿 AGG-107；B-30 无到 platform.approval 的边）；记录只追加。pi：含评审人员工 ID。迁入集合为空，同 knowledge_entries"
+
+# ---- 合并自 parts/b31.data-model.yaml ----
+- aggregate: AGG-113
+  bc: B-31
+  tables:
+    - name: seal_applications
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-60, by: legal_entity_id, cross_bc: true}
+        - {to: AGG-62, by: applicant_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: pi
+      column_families: [申请号（展示号，沿用 A8 原号用 legacy_numbers）, 印章类别, 用印法人, 申请人, 用印事由, 批准份数, 状态, 审批实例ID, 乐观锁, 审计列]
+      reason: "versioned none：单据，状态由审计还原；全量来源 A8 用印申请表单（累计 11,570 单、在途 252，字段待取证）；pi：申请人为员工引用（pi），用印事由可能夹带商业内容，访问级别 INTERNAL 待 one-data 复核"
+    - name: seal_application_documents
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-113, by: seal_application_id}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [文件名称, 文件份数, 文件引用]
+      reason: "versioned none：随申请单不可变；全量随申请；来源待取证"
+    - name: seal_application_source_documents
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-113, by: seal_application_id}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [来源单据类型, 来源单据ID]
+      reason: "来源业务单据（B-03 / B-05 等）按不校验只记类型加 ID，不建引用、不查状态，避免 B-31 落到收入链下游（聚合稿回补 §1）；迁入时 A8 的报价用印关联取得方式待取证（盘点说明：报价用印登记与老系统报价同步相关）；versioned none：随申请单"
+    - name: seal_usage_records
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-113, by: seal_application_id}
+        - {to: AGG-62, by: handler_id, cross_bc: true}
+      versioned: append_only
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: pi
+      column_families: [实际用印时间, 用印份数, 经办人, 盖章文件扫描件引用]
+      reason: "只追加：INV-新-P2 累计份数不超过批准份数；更正另追加反向行；来源 A8 用印登记（是否有逐次登记待取证，若无则每单迁一行汇总行并标「迁入汇总」）；pi：经办人"
+
+- aggregate: AGG-114
+  bc: B-31
+  tables:
+    - name: it_requests
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: requester_id, cross_bc: true}
+        - {to: AGG-62, by: handler_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: pi
+      column_families: [工单号（沿用 A8 原号用 legacy_numbers）, 需求类别, 描述, 优先级, 提出人, 处理人, 处理结论, 状态, 审批实例ID（仅需审批的类别）, 乐观锁, 审计列]
+      reason: "versioned none：单据，状态由审计还原；全量来源 A8 需求工单（累计 1,622、在途 105，字段待取证）；pi：提出人与处理人；描述可能含账号、设备等信息，级别 INTERNAL 待复核"
+    - name: it_request_handlings
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-114, by: it_request_id}
+        - {to: AGG-62, by: handler_id, cross_bc: true}
+      versioned: append_only
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: pi
+      column_families: [处理时间, 处理人, 处理说明]
+      reason: "只追加的处理记录；A8 是否保留逐条处理记录待取证，若只有最终回复则每单迁一行"
+
+- aggregate: AGG-115
+  bc: B-31
+  tables:
+    - name: it_asset_use_ledgers
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-91, by: fixed_asset_card_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [资产卡片ID（每卡片至多一行，唯一）, 当前使用人投影, 乐观锁, 事件序号]
+      reason: "每个资产卡片一个聚合根，INV-新-P4 的事务边界；首次领用或迁入时建立；卡片本身（原值、折旧、报废）在 B-24，不复制；versioned none：根只留卡片引用；边界方案见 NOTES 结构问题 3"
+    - name: it_asset_use_requests
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-115, by: it_asset_use_ledger_id}
+        - {to: AGG-62, by: user_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: pi
+      column_families: [申请类型（领用 / 调拨）, 申请单号（沿用 A8 原号用 legacy_numbers）, 使用人, 调入使用人（调拨）, 状态, 审批实例ID, 审计列]
+      reason: "单据，状态由审计还原；全量来源 A8 IT 资产领用（累计 1）、调拨（累计 139）申请，字段待取证；A8 资产编号能否对应到 B-24 卡片待取证，对应不上的不得落地，见 NOTES 待用户定 2"
+    - name: it_asset_use_periods
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-115, by: it_asset_use_ledger_id}
+        - {to: AGG-62, by: user_id, cross_bc: true}
+      versioned: effective_dated
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: pi
+      column_families: [使用期间起止（止为空表示在用）, 使用人, 来源申请, 归还验收人, 归还时状态]
+      reason: "使用期间是业务事实区间，不是维度版本；同一卡片期间不重叠由条件排除约束保证（INV-新-P4）；调拨在同一事务结束旧期间并开启新期间；全量来源 A8 领用、调拨、归还记录（待取证）；pi：使用人"
+    - name: it_asset_repair_orders
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-115, by: it_asset_use_ledger_id}
+        - {to: AGG-62, by: reporter_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: pi
+      column_families: [工单号（沿用 A8 原号用 legacy_numbers）, 报修人, 故障描述, 报修时间, 维修结果（已修复 / 无法修复）, 完成日期, 维修单或发票引用, 状态, 审计列]
+      reason: "单据，状态由审计还原；全量来源 A8 IT 资产报修（累计 128、在途 2，字段待取证）；维修费用若产生，账务归 B-24 / 费控，不记在此"
+
+- aggregate: AGG-116
+  bc: B-31
+  tables:
+    - name: employee_activity_requests
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: applicant_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: pi
+      column_families: [申请号（沿用 A8 原号用 legacy_numbers）, 活动类型, 申请人, 说明, 费用预估引用（只记录）, 状态, 审批实例ID, 乐观锁, 审计列]
+      reason: "versioned none：单据，状态由审计还原；全量来源 A8 周年贺卡（累计 219、在途 38）、创新项目发布申请（31、在途 4）、感恩节活动（2,106、已停用、在途 75），字段待取证；费用预估只记录，B-12 费用报销单引用本申请 ID，本聚合不依赖 B-12"
+    - name: employee_activity_participants
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-116, by: employee_activity_request_id}
+        - {to: AGG-62, by: participant_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      pi: pi
+      column_families: [参与人]
+      reason: "随申请单不可变；周年贺卡的被祝贺人记在此还是申请人列，待取证；pi：参与人为员工引用"
+    - name: employee_activity_types
+      role: child
+      key: uuid_v7
+      versioned: none
+      history_migration: none
+      sensitivity: INTERNAL
+      pi: none
+      column_families: [活动类型码, 名称, 状态]
+      reason: "参考数据（周年贺卡、节日活动、创新项目发布等）；历史不迁：A8 用模板区分类型，迁入时只映射到类型码；受控代码表只由迁移与管理员维护（D17 第一类），在线增改须改版本化；是否单独成聚合（同 AGG-118）见 NOTES 结构问题 4；申请表按活动类型码引用本表（同聚合，不建外键）"

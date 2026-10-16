@@ -1,0 +1,279 @@
+# vs0911 流程骨架片段：VS-09 PRC-88、PRC-89；VS-11 PRC-107。格式依 closeout/CONVENTIONS.md §2。
+# v1 字段原样保留，v1 中文 actor 换成 SH- 编号；聚合稿没有的命令写〔缺〕，见 vs0911.notes.md「新用语」。
+# 读模型 PRC-90（出具经营月报并复盘）属 reporting，不在本片段。
+
+processes:
+
+  - id: PRC-88
+    name: 编制、批准并基线化经营计划与预算
+    trigger:
+      type: time
+      desc: 经营计划周期开始
+    stages: [VS-09.1, VS-09.3]
+    owner_bc: B-18
+    human_orchestration: true
+    human_note: 计划审批、调整产生新版本
+    migration: "全部历史迁入（U-1–U-4）：已基线的版本原样迁为基线，不可变；编制中与审批中的按当前状态迁入；预算账户与占用、消耗、释放历史随迁。来源待取证"
+    scope: "经营计划与预算按组织单元范围可见；管理层与财务经办"
+    triggers:
+      - {type: time, name: 经营计划周期开始（年度、季度）}
+      - {type: human, name: 经营复盘后调整计划（VS-09.3 退出条件：计划新版本）}
+      - {type: human, name: 预算期内调整预算}
+    outcomes: [已基线化, 预算账户已开立, 已调整]
+    roles:
+      - {id: SH-M1, as: initiator}
+      - {id: SH-M1, as: approver}        # 同一人群既编制又审批，审批人不得是编制人本人：待用户定（NOTES 待用户定 3）
+      - {id: SH-E6, as: performer}       # 财务
+      - {id: SH-O1, as: informed}        # VS-09 价值接收方；不参与动作
+    steps:
+      - actor: SH-M1
+        where: in_system
+        command: 编制经营计划版本
+        aggregate: AGG-79
+        desc: 目标值按组织 × 期间 × 指标；目标类型含预算、承诺、挑战、预测、减值计划（terms 目标类型）；复盘后调整另起新版本，不改已基线版本（INV-101）
+        permission: 经营计划.编制
+        page: 经营计划编辑页
+        decision:
+          - {when: otherwise, goto: 2}
+
+      - actor: SH-M1
+        platform_task: true
+        service: platform.approval
+        where: in_system
+        command: 经营计划审批
+        aggregate: AGG-79
+        gap: G-02
+        desc: 提交审批与通过、驳回的结果回调命令聚合稿未列，写〔缺〕提交经营计划审批、〔缺〕通过经营计划审批、〔缺〕驳回经营计划审批（同 AGG-12 的回调写法）
+        approval:
+          engine: platform.approval
+          doc_type: 经营计划审批
+          approver: SH-M1
+          multi_level: false             # 是否多级、谁审：待用户定（NOTES 待用户定 3）
+          on_reject: 1
+        permission: 经营计划.审批
+        page: 经营计划审批待办
+        notify: [{to: SH-M1, how: 企业微信待办}]
+        audit: true
+        decision:
+          - {when: 审批通过, goto: 3}
+          - {when: 审批驳回, goto: 1}
+        cross_bc:
+          - {mode: api, direction: out, bc: platform.approval, name: 提交审批}
+
+      - actor: SH-M1
+        where: in_system
+        command: 基线化经营计划
+        aggregate: AGG-79
+        emits: [经营计划已基线化]
+        desc: 基线不可变，只出新版本（INV-101）；事件仅分析
+        permission: 经营计划.基线化
+        page: 经营计划详情页
+        audit: true
+        metric_event: true
+        decision:
+          - {when: 目标类型为预算, goto: 4}
+          - {when: otherwise, goto: end}
+        outcome: 已基线化                 # 非预算类型在此结束
+
+      - actor: SH-E6
+        where: in_system
+        command: 开立预算账户
+        aggregate: AGG-80
+        desc: 预算基线按维度树逐级生成预算账户（terms 预算分解）；开立后采购、报销等调用预算占用（占用与释放步骤在 PRC-70、PRC-87，不在本流程）
+        permission: 预算账户.开立
+        page: 预算账户管理页
+        cross_bc:
+          - {mode: api, direction: in, bc: B-11, name: 预算占用}       # B-11 → B-18 api 边已有
+          - {mode: api, direction: in, bc: B-12, name: 预算占用}       # B-12 → B-18 api 边已有
+        outcome: 预算账户已开立
+        decision:
+          - {when: otherwise, goto: end}
+
+      - actor: SH-E6
+        where: in_system
+        command: 调整预算
+        aggregate: AGG-80
+        emits: [BudgetAdjusted]
+        desc: 预算期内由财务发起；terms 的预算调整是「产生预算基线新版本的受控变更」，聚合稿 AGG-80 的调整预算是账户命令；两者口径不一致，见 NOTES 结构问题 2
+        permission: 预算账户.调整
+        page: 预算账户调整页
+        audit: true
+        metric_event: true
+        decision:
+          - {when: 调整改变基线额度或目标值, goto: 1}        # 受控变更走新版本，INV-101
+          - {when: otherwise, goto: end}
+        outcome: 已调整
+    notes: 基线不可变，只出新版本（INV-101）；复盘后调整计划也走本流程。预算账户拦截或预警未定（INV-102、〔支研〕问题 11），影响占用步骤，见 NOTES 待用户定 1。
+
+  - id: PRC-89
+    name: 编制滚动预测
+    trigger:
+      type: time
+      desc: 每周销售预测承诺；按期现金流预测
+    stages: [VS-09.2]
+    owner_bc: B-18
+    human_orchestration: false
+    migration: "全部历史迁入（U-1–U-4）：已闭环的预测版本迁为历史版本；在途 1,212 单（信息图 M-8）提示流程未闭环，迁入后只读归档，不重开。来源待取证"
+    scope: "销售预测按人员本人及其管理链可见；现金流预测限财务与管理层"
+    triggers:
+      - {type: time, name: 每周销售预测承诺}
+      - {type: time, name: 按期现金流预测}
+    outcomes: [预测版本已编制, 现金流预测已编制]
+    roles:
+      - {id: SH-E5, as: initiator}       # 市场和客户经理
+      - {id: SH-E6, as: performer}       # 财务
+      - {id: SH-E2, as: performer}       # VS-09.2 参与者含项目经理；本骨架无其动作，待用户确认（NOTES 待用户定 4）
+      - {id: SH-M1, as: informed}
+    steps:
+      - actor: SH-E5
+        where: in_system
+        on_time: 每周
+        command: 编制预测版本
+        aggregate: AGG-79
+        desc: 经营计划类型「预测」，目标值按人员 × 期间 × 指标；每次滚动产生新版本（VS-09.2 退出）
+        permission: 预测.编制
+        page: 销售预测填报页
+        cross_bc:
+          - {mode: api, direction: out, bc: B-13, name: 读取人员与组织单元}   # B-18 → B-13 api 边已有；AGG-79 引用列缺人员，见 NOTES 接缝问题 1
+        timeout: {after: "P7D", escalate_to: SH-M1, interrupting: false}      # 逾期未报的升级对象与期限：待用户定（NOTES 待用户定 4）
+        decision:
+          - {when: otherwise, goto: end}
+        outcome: 预测版本已编制
+
+      - actor: SH-E6
+        where: in_system
+        on_time: 按期
+        command: 编制现金流预测
+        aggregate: AGG-79
+        desc: 指标为现金流（信息图 M-9）；新版本是否经审批成为新基线，VS-09.2 notes 与本流程不一致，见 NOTES 结构问题 3
+        permission: 现金流预测.编制
+        page: 现金流预测编辑页
+        decision:
+          - {when: otherwise, goto: end}
+        outcome: 现金流预测已编制
+    notes: 迁移时在途 1,212 单提示流程未闭环，只读归档（信息图 M-8）。读模型 PRC-90 出具经营月报并复盘属 reporting，不在本片段。
+
+  - id: PRC-107
+    name: 知识条目的起草、评审、发布与修订废止
+    trigger:
+      type: human
+      desc: 技术专家主动起草；或项目复盘发布后由复盘编制人决定提炼
+    stages: [VS-11.1, VS-11.2, VS-11.3]
+    owner_bc: B-30
+    human_orchestration: true
+    human_note: 有效期届满的修订或废止（定时）；评审意见可退回起草
+    merged_from: [PRC-108, PRC-109, PRC-110]
+    migration: "全部历史迁入（U-1–U-4）：库内无知识条目实体（信息图 OBJ-110 取证），迁入集合为空；A8 文档中心 567 份文档与项目档案 203 条知识平台文件夹引用是否转条目，见 NOTES 待用户定 5"
+    scope: "已发布版本全员可读；起草中与评审中的版本限起草人、评审人与管理员；案例类若含客户信息，访问范围待用户定"
+    triggers:
+      - {type: human, name: 技术专家主动起草}
+      - {type: call, name: 项目复盘编制人在交付执行中决定提炼，调用创建知识条目, bc: B-04}
+      - {type: time, name: 有效期届满或适用范围变化（修订或废止）}
+    outcomes: [已发布, 已废止]
+    roles:
+      - {id: SH-E4, as: initiator}       # 技术专家（技术委员会）
+      - {id: SH-E4, as: approver}        # 评审人：技术委员会还是管理层，待用户定（NOTES 待用户定 2）
+      - {id: SH-E2, as: initiator}       # 项目经理：复盘编制人，从复盘提炼
+      - {id: SH-E3, as: performer}       # 设计师和顾问，VS-11.1 参与起草
+      - {id: SH-M1, as: reviewer}        # VS-11.2 参与者含管理层；是否为评审人待用户定
+    steps:
+      - actor: SH-E4
+        where: in_system
+        command: 起草知识条目
+        aggregate: AGG-107
+        desc: 技术专家主动起草；退回起草后也回到本步
+        permission: 知识条目.起草
+        page: 知识条目编辑页
+        decision:
+          - {when: otherwise, goto: 3}
+
+      - actor: SH-E2
+        where: in_system
+        command: 创建知识条目
+        aggregate: AGG-107
+        branch: 从复盘提炼
+        desc: 项目复盘发布后，复盘编制人决定是否提炼，由项目复盘（B-04）调知识条目的创建命令；来源复盘 ID 只记录不校验。「项目复盘已发布」订阅方是 B-04 自身，不是本 BC（AGG-103），所以本流程触发写 call，不写 event
+        permission: 知识条目.创建
+        page: 项目复盘详情页（提炼入口，页面在 B-04）
+        cross_bc:
+          - {mode: api, direction: in, bc: B-04, name: 创建知识条目}    # B-04 → B-30 api 边已有
+        decision:
+          - {when: otherwise, goto: 3}
+
+      - actor: SH-E4
+        where: in_system
+        command: 提交知识条目评审
+        aggregate: AGG-107
+        permission: 知识条目.提交评审
+        page: 知识条目详情页
+        notify: [{to: SH-E4, how: 企业微信待办}]
+
+      - actor: SH-E4
+        where: in_system
+        command: 评审知识条目
+        aggregate: AGG-107
+        desc: 审批人与审批记录在聚合内（审批人经 api 读人员）；B-30 无到 platform.approval 的边，评审是聚合内单级命令；退回起草无独立命令，写〔缺〕退回知识条目
+        approval:
+          engine: aggregate
+          doc_type: 知识条目评审（B-30 聚合内单级评审命令，不经 platform.approval；见 NOTES 结构问题 1）
+          approver: SH-E4
+          multi_level: false
+          on_reject: 1
+        permission: 知识条目.评审
+        page: 知识条目评审页
+        audit: true
+        cross_bc:
+          - {mode: api, direction: out, bc: B-13, name: 读取审批人}     # B-30 → B-13 api 边已有
+        decision:
+          - {when: 评审通过, goto: 5}
+          - {when: 退回修改, goto: 1}
+
+      - actor: SH-E4
+        where: in_system
+        command: 发布知识条目
+        aggregate: AGG-107
+        emits: [知识条目已发布]
+        desc: 已发布版本不得修改（INV-115）；引用方按 ID 与版本引用，不订阅
+        permission: 知识条目.发布
+        page: 知识条目详情页
+        audit: true
+        metric_event: true
+        cross_bc:
+          - {mode: api, direction: in, bc: B-02, name: 校验知识条目版本存在且未废止}
+          - {mode: api, direction: in, bc: B-03, name: 校验知识条目版本存在且未废止}
+          - {mode: api, direction: in, bc: B-04, name: 校验知识条目版本存在且未废止}
+          - {mode: api, direction: in, bc: B-28, name: 校验知识条目版本存在且未废止}
+        decision:
+          - {when: 有效期届满或适用范围变化且仍适用, goto: 6}
+          - {when: 有效期届满且不再适用, goto: 7}
+          - {when: otherwise, goto: end}
+        outcome: 已发布                   # 发布后无后续事件则流程在此结束
+
+      - actor: SH-E4
+        where: in_system
+        on_time: 有效期届满或适用范围变化
+        command: 修订知识条目
+        aggregate: AGG-107
+        emits: [知识条目已修订]
+        desc: 产生新版本并引用被取代版本，修订须重新评审（回到提交评审）
+        permission: 知识条目.修订
+        page: 知识条目编辑页
+        audit: true
+        metric_event: true
+        decision:
+          - {when: otherwise, goto: 3}
+
+      - actor: SH-E4
+        where: in_system
+        on_time: 有效期届满
+        command: 废止知识条目
+        aggregate: AGG-107
+        branch: 废止
+        emits: [知识条目已废止]
+        desc: 废止后不得被新引用，已有引用不受影响（INV-115）
+        permission: 知识条目.废止
+        page: 知识条目详情页
+        audit: true
+        metric_event: true
+        outcome: 已废止
+    notes: 合并原 PRC-108、109、110（⑥a 评审 H2 c）。已发布版本不得修改（INV-115）；引用方按 ID 与版本引用，不订阅。B-04 → B-30 边已有。项目复盘提炼入口的页面在 B-04，命令在本 BC。评审按聚合内审批写，补 B-30 → platform.approval 边的影响见 NOTES 结构问题 1。

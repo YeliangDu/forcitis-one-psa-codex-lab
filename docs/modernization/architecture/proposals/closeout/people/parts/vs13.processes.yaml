@@ -1,0 +1,997 @@
+# VS-13 获得报酬流程骨架（vs13 子代理，铺开）。字段依 closeout/CONVENTIONS.md；v1 字段原样保留，只增补。
+# v1 的中文 actor 已换成 SH- 编号：员工 SH-E3；部门负责人 / 用人经理 SH-E1；人力 / 财务 / 财务主管 SH-E6（内部分岗用行尾注释）；管理层 SH-M1；系统策略 system；平台任务 platform。
+# 命令名写〔缺〕表示聚合稿 §2.2 没有，不假装存在，见 vs13.notes.md「新用语」。
+# 已定口径：考勤打卡来自企业微信（intent 2026-10-16-152603）；薪酬新系统自算；个税公司代扣代缴；一次投产、全部历史迁入（U-1–U-4）；A8 行政流程迁入走通用审批（C-3–C-7）。
+# 扩展写法（用到的 CONVENTIONS 以外写法，均记入 notes「格式问题」）：decision 项可带 outcome；events 项可带 filter；steps 可带 entry（分支步骤的进入条件）。
+# 判断点依据写在 decision 后的注释行（CONVENTIONS 无 basis 字段）。
+
+processes:
+
+  # ───────────── VS-13.1 考勤确认 ─────────────
+
+  - id: PRC-115
+    name: 导入考勤记录并补卡
+    trigger:
+      type: time
+      desc: 每日同步考勤来源
+    triggers:
+      - {type: time, name: "每日拉取企业微信打卡记录（platform.scheduling 定时）"}
+      - {type: human, name: "员工发起补卡"}
+    stages: [VS-13.1]
+    owner_bc: B-27
+    human_orchestration: false
+    migration: "历史打卡（老系统约 79.5 万行）与补卡经迁入通道全量迁入为考勤记录，来源对照区分来源系统；迁入不触发导入流程、不发事件（ADR-0036 M7）"
+    scope: "员工本人看自己的考勤；用人经理看汇报线内；人力看法人数据范围内"
+    outcomes: [考勤已导入, 导入失败已告警, 补卡已记录]
+    scenarios: [PRC-115-S01, PRC-115-S02, PRC-115-S03]   # S01 每日导入成功；S02 拉取失败或批次不完整告警后重拉；S03 员工补卡，记录另记不改原打卡
+    roles:
+      - {id: SH-E3, as: initiator}      # 补卡发起人（员工）
+      - {id: SH-E6, as: informed}       # 人力、信息：导入失败告警
+    steps:
+      - actor: system
+        where: external:企业微信
+        evidence: [导入批次号, 拉取日期, 记录条数, 校验和]
+        command: 导入考勤记录
+        aggregate: AGG-69
+        desc: 经 platform.integration 的企业微信适配器每日拉取前一日打卡，转换后调用本 BC 写入；只追加不可改（INV-69），以企业微信记录 ID 幂等；企业微信成员经来源对照解析到人员 ID，解析不到的记录整批告警不静默
+        cross_bc:
+          - {mode: api, direction: out, bc: platform.integration, name: 拉取企业微信打卡记录}
+        decision:
+          - {when: "拉取失败、批次不完整或存在无法对应人员的记录", goto: 2}
+          - {when: otherwise, goto: end, outcome: 考勤已导入}
+        # 依据：CLAUDE.md 第 6 条（缺失输入失败并告警）；INV-69；用户事实 intent 2026-10-16-152603（打卡来源企业微信）
+      - actor: system
+        where: automatic
+        on_time: 导入失败或批次不完整
+        desc: 告警人力与信息，不静默；缺失日期不得被月度考勤当作“全勤”（PRC-118 步骤 1 校验）
+        notify: [{to: SH-E6, how: 企业微信待办}]
+        decision:
+          - {when: 已修复并重新拉取, goto: 1}
+          - {when: otherwise, goto: end, outcome: 导入失败已告警}
+      - actor: SH-E3
+        where: in_system
+        entry: 员工发起补卡（与每日导入并行的另一条路径）
+        branch: 补卡
+        command: 补卡
+        aggregate: AGG-69
+        desc: 原打卡记录不改，补卡另记一条（INV-69）；所属月份月度考勤已锁定的，补卡照常记录，其对考勤的影响计入下月更正行并标原月份（INV-105）；补卡是否需上级确认见 notes 待用户定 U4
+        permission: 考勤.补卡
+        page: 补卡申请页
+        audit: true
+        outcome: 补卡已记录
+    notes: 来源系统已定为企业微信（原 v1 备注“来源系统待定 R2”作废）。外勤、出差、特殊假别等非打卡类考勤聚合稿无命令，见 notes 结构问题。
+
+  - id: PRC-116
+    name: 申请并审批请假
+    trigger:
+      type: human
+      desc: 员工提交请假
+    triggers:
+      - {type: human, name: "员工提交请假"}
+      - {type: human, name: "员工撤销请假或销假（已批准后的分支）"}
+    stages: [VS-13.1]
+    owner_bc: B-27
+    human_orchestration: true
+    human_note: 请假审批、驳回或撤销释放额度
+    migration: "历史请假（老系统请假档案约 2.4 万条）全量迁入为已结实例，已用额度按迁入对账不重算、不发事件；在途（审批中）按当前状态迁入通用审批（C-3–C-7，ADR-0036 M7）"
+    scope: "员工本人、其审批人、人力；病假等事由随 ADR-0043 分级限制可见范围（事由敏感度 tbd，交 U-11）"
+    segregation:
+      - {roles: [SH-E3, SH-E1], rule: "申请人不得审批本人请假（申请人本身是部门负责人时，由其上级审批）"}
+    outcomes: [已批准, 已驳回, 已撤销, 已销假, 额度不足被拒]
+    scenarios: [PRC-116-S01, PRC-116-S02, PRC-116-S03, PRC-116-S04]   # S01 提交到批准转已用；S02 驳回释放占用；S03 审批中或已批准后撤销；S04 销假回冲未休额度
+    roles:
+      - {id: SH-E3, as: initiator}
+      - {id: SH-E1, as: approver}       # 部门负责人（直属上级）；审批人规则见 notes 待用户定 U3
+      - {id: SH-E6, as: informed}       # 人力：额度与假期规则维护方，知会
+    steps:
+      - actor: SH-E3
+        where: in_system
+        read: true
+        reads: [AGG-68, AGG-108]
+        desc: 读工作日历与标准工时版本做按日拆分（取不到当日生效版本须失败并告警，INV-116）
+        cross_bc:
+          - {mode: api, direction: out, bc: B-14, name: 读取工作日历与标准工时版本}
+          - {mode: api, direction: out, bc: B-13, name: 读取人员与汇报线}
+      - actor: SH-E3
+        where: in_system
+        command: 占用余额
+        aggregate: AGG-71
+        desc: 与提交请假是员工的同一次操作，分两个聚合两个事务，最终一致；占用以请假 ID 幂等，孤儿占用由定时释放（聚合稿 §7 第 6 条）
+        permission: 请假.提交
+        page: 请假申请页
+        decision:
+          - {when: "超出可用额度且假期类型政策不允许透支", goto: end, rule: INV-68, outcome: 额度不足被拒}
+          - {when: otherwise, goto: 3}
+      - actor: SH-E3
+        where: in_system
+        command: 提交请假
+        aggregate: AGG-70
+        desc: 起止时刻可跨日、半天或按小时；按日拆分，非工作日计 0
+        permission: 请假.提交
+        page: 请假申请页
+        audit: true
+        cross_bc:
+          - {mode: api, direction: out, bc: platform.approval, name: 发起请假审批}
+      - actor: SH-E1               # 部门负责人
+        where: in_system
+        platform_task: true
+        service: platform.approval
+        command: 请假审批
+        desc: 工时单最低时数扣减已批准与待批请假（INV-65，B-06 经 api 读取，只取时长）
+        approval:
+          engine: platform.approval
+          doc_type: 请假审批
+          approver: SH-E1
+          multi_level: false          # 暂拟单级；是否按天数分级见 notes 待用户定 U3
+          on_reject: 5
+        permission: 请假.审批
+        page: 审批待办页
+        notify: [{to: SH-E1, how: 企业微信待办}]
+        decision:
+          - {when: 批准, goto: 6}
+          - {when: otherwise, goto: 5}
+        cross_bc:
+          - {mode: event, direction: in, bc: platform.approval, name: 〔缺〕审批已通过 / 审批已驳回}   # B-27 → platform.approval 现仅登记 api，见 notes 接缝问题 1
+      - actor: platform
+        where: automatic
+        branch: 驳回
+        command: 〔缺〕驳回请假
+        aggregate: AGG-70
+        desc: 审批驳回的回调；聚合稿 AGG-70 没有驳回命令（NOTES 铺开备忘）
+        inner:
+          - {command: 释放余额占用, aggregate: AGG-71}
+        outcome: 已驳回
+      - actor: platform
+        where: automatic
+        command: 批准请假
+        aggregate: AGG-70
+        emits: [请假已批准]
+        desc: 审批通过的回调（platform.approval）
+      - actor: system
+        where: automatic
+        command: 批准转已用
+        aggregate: AGG-71
+        on_event: [{aggregate: AGG-70, event: 请假已批准}]
+        desc: 同 BC 事件反应，把占用转为已用
+        outcome: 已批准
+      - actor: SH-E3
+        where: in_system
+        entry: 请假审批中或已批准、尚未开始时，员工撤销
+        branch: 撤销
+        command: 撤销请假
+        aggregate: AGG-70
+        emits: [请假已撤销]
+        desc: 审批中撤销须同时撤回审批实例（platform.approval 的取消能力，见 notes 接缝问题 1）；已开始的请假不能撤销，只能销假
+        inner:
+          - {command: 释放余额占用, aggregate: AGG-71}          # 审批中撤销：占用尚未转已用
+          - {command: 〔缺〕回冲已用额度, aggregate: AGG-71}    # 已批准后撤销：占用已转已用，需回冲
+        permission: 请假.撤销
+        page: 我的请假页
+        audit: true
+        decision:
+          - {when: 请假已开始, goto: 9}
+          - {when: otherwise, goto: end, outcome: 已撤销}
+      - actor: SH-E3
+        where: in_system
+        entry: 已批准的请假提前结束
+        branch: 销假
+        command: 销假
+        aggregate: AGG-70
+        emits: [请假已销假]
+        desc: 未休完的部分回冲已用额度；销假是否需再审批见 notes 待用户定 U3
+        inner:
+          - {command: 〔缺〕回冲已用额度, aggregate: AGG-71}
+        permission: 请假.销假
+        page: 我的请假页
+        audit: true
+        outcome: 已销假
+    notes: 驳回、撤销、销假的额度回冲在聚合稿没有对应命令（驳回请假、回冲已用额度均为〔缺〕）。v1 把“占用余额”写在“提交请假”之前，骨架保留 v1 顺序并说明为同一次操作。
+
+  - id: PRC-117
+    name: 申请并批准加班
+    trigger:
+      type: human
+      desc: 员工或部门提出加班
+    triggers:
+      - {type: human, name: "员工或用人经理提出加班"}
+    stages: [VS-13.1]
+    owner_bc: B-27
+    human_orchestration: true
+    human_note: 加班审批
+    migration: "历史加班（老系统是否有加班记录尚未取证）全量迁入为已结实例；在途按当前状态迁入通用审批（C-3–C-7，ADR-0036 M7）"
+    scope: "员工本人、其审批人、人力"
+    segregation:
+      - {roles: [SH-E3, SH-E1], rule: "申请人不得审批本人加班"}
+    outcomes: [已批准, 已驳回]
+    scenarios: [PRC-117-S01, PRC-117-S02, PRC-117-S03]   # S01 申请到批准；S02 驳回；S03 当月累计超 36 小时预警并留痕、不拦截
+    roles:
+      - {id: SH-E3, as: initiator}
+      - {id: SH-E1, as: approver}       # 部门负责人（也可代员工发起）
+      - {id: SH-E6, as: informed}       # 人力：当月超 36 小时预警知会
+    steps:
+      - actor: SH-E3
+        where: in_system
+        command: 加班申请
+        aggregate: AGG-72
+        desc: 每月累计超 36 小时只预警并留痕，不拦截（P-34；劳动法第四十一条）；事前申请还是允许事后补见 notes 待用户定 U5
+        permission: 加班.申请
+        page: 加班申请页
+        audit: true
+        notify: [{to: SH-E1, how: 企业微信待办}, {to: SH-E6, how: 企业微信待办}]   # 超 36 小时时才发
+        cross_bc:
+          - {mode: api, direction: out, bc: platform.approval, name: 发起加班审批}
+      - actor: SH-E1               # 部门负责人
+        where: in_system
+        platform_task: true
+        service: platform.approval
+        command: 加班审批
+        approval:
+          engine: platform.approval
+          doc_type: 加班审批
+          approver: SH-E1
+          multi_level: false
+          on_reject: 4
+        permission: 加班.审批
+        page: 审批待办页
+        decision:
+          - {when: 批准, goto: 3}
+          - {when: otherwise, goto: 4}
+        cross_bc:
+          - {mode: event, direction: in, bc: platform.approval, name: 〔缺〕审批已通过 / 审批已驳回}
+      - actor: platform
+        where: automatic
+        command: 批准加班
+        aggregate: AGG-72
+        emits: [加班已批准]
+        desc: 审批通过的回调；加班不认识工时单，工时条目引用加班 ID；加班已批准汇入当月月度考勤（PRC-118 读取，不订阅）
+        outcome: 已批准
+      - actor: platform
+        where: automatic
+        branch: 驳回
+        command: 〔缺〕驳回加班
+        aggregate: AGG-72
+        desc: 聚合稿 AGG-72 没有驳回命令
+        outcome: 已驳回
+    notes: 加班“已补偿”由月度考勤已确认事件触发（PRC-118），补偿方式（加班费或调休）在 AGG-72 记录；调休由请假冲抵。
+
+  - id: PRC-118
+    name: 生成、确认并锁定月度考勤
+    trigger:
+      type: time
+      desc: 月末
+    triggers:
+      - {type: time, name: "月末生成（platform.scheduling 定时）；确认期限届满锁定"}
+      - {type: human, name: "人力在导入修复后重新发起生成"}
+    stages: [VS-13.1]
+    owner_bc: B-27
+    human_orchestration: true
+    human_note: 员工确认或更正，逾期锁定
+    migration: "历史月度考勤确认（老系统月 × 一级部门 1,026 单）与人员 × 月不对应：按 NOTES 待用户定数据 2 处理，本流程不触发、不回放；锁定前的在途月份按当前状态迁入"
+    scope: "员工本人看自己的；用人经理看汇报线内；人力看法人数据范围内"
+    segregation:
+      - {roles: [SH-E6, SH-E3], rule: "代员工确认只限已离职人员，且须留存员工离职前确认或人力核对依据，不得代在职人员确认"}
+    outcomes: [已锁定, 已暂缓]
+    scenarios: [PRC-118-S01, PRC-118-S02, PRC-118-S03, PRC-118-S04]   # S01 员工确认后期限届满锁定；S02 员工提出更正重新生成；S03 逾期未确认锁定并标记；S04 离职当月人力代确认
+    roles:
+      - {id: SH-E3, as: performer}      # 员工：确认或更正本人月度考勤
+      - {id: SH-E6, as: performer}      # 人力：锁定、离职人员代确认
+      - {id: SH-E1, as: informed}       # 用人经理：逾期未确认名单知会
+    steps:
+      - actor: system
+        where: automatic
+        read: true
+        reads: [AGG-69, AGG-70, AGG-72, AGG-68]
+        desc: 汇总考勤、请假、加班；月内存在无导入批次或批次失败的日期时失败并告警，不得当作全勤；审批中的请假与加班不汇入，批准后计入下月更正行并标原月份（INV-105）
+        cross_bc:
+          - {mode: api, direction: out, bc: B-13, name: 读取当月在职与当月离职人员}
+          - {mode: api, direction: out, bc: B-14, name: 读取工作日历与标准工时版本}
+        decision:
+          - {when: "当月有日期的考勤导入失败或缺批次", goto: end, outcome: 已暂缓}
+          - {when: otherwise, goto: 2}
+        # 依据：CLAUDE.md 第 6 条；PRC-115 步骤 2
+      - actor: system
+        where: automatic
+        command: 生成月度考勤
+        aggregate: AGG-97
+        desc: 人员 × 月一份；含出勤天数、请假（按类型）、加班（按补偿方式）与更正行
+        decision:
+          - {when: 人员当月已离职（离职生效后账号已吊销，本人无法确认）, goto: 7}
+          - {when: otherwise, goto: 3}
+        # 依据：RULE-363（离职生效即吊销登录）；STEP3 C-17（离职当月仍须确认考勤）
+      - actor: SH-E3
+        where: in_system
+        command: 员工确认
+        aggregate: AGG-97
+        emits: [月度考勤已确认]
+        desc: 员工核对本人当月出勤、请假、加班，无误即确认，有异议提出更正
+        approval:
+          engine: aggregate           # 员工本人确认是聚合内命令，不经 platform.approval；是否算审批见 notes 格式问题 2
+          doc_type: 月度考勤员工确认
+          approver: SH-E3
+          multi_level: false
+          on_reject: 4                # 员工提出更正
+        permission: 月度考勤.确认
+        page: 我的月度考勤页
+        audit: true
+        timeout: {after: "P3D", escalate_to: SH-E6, interrupting: false}   # 暂拟 3 天，起算点与期限待用户定 U6；届满后人力锁定（步骤 8）
+        decision:
+          - {when: 确认无误, goto: 6}
+          - {when: 提出更正, goto: 4}
+          - {when: 确认期限届满仍未确认, goto: 8}
+        cross_bc: []
+      - actor: SH-E3
+        where: in_system
+        entry: 员工对生成结果有异议
+        branch: 提出更正
+        command: 补卡
+        aggregate: AGG-69
+        calls: PRC-115
+        desc: 缺卡走补卡；请假或加班有误由员工撤销或重提（PRC-116、PRC-117）；锁定前的更正都回到“重新生成”
+        permission: 考勤.补卡
+        page: 我的月度考勤页
+      - actor: system
+        where: automatic
+        branch: 重新生成
+        command: 〔缺〕重新生成月度考勤
+        aggregate: AGG-97
+        desc: 确认前依据最新考勤、请假、加班重新汇总，幂等；已确认或已锁定的不可重新生成（INV-105）
+        decision:
+          - {when: otherwise, goto: 3}
+      - actor: system
+        where: automatic
+        command: 标记加班已补偿
+        aggregate: AGG-72
+        on_event: [{aggregate: AGG-97, event: 月度考勤已确认}]
+        emits: [加班已补偿]
+        desc: 订阅月度考勤已确认（同 BC），按加班 ID 幂等
+        decision:
+          - {when: otherwise, goto: 8}
+      - actor: SH-E6               # 人力
+        where: in_system
+        entry: 人员当月已离职，本人无法登录确认
+        branch: 离职代确认
+        command: 〔缺〕代员工确认
+        aggregate: AGG-97
+        emits: [月度考勤已确认]
+        desc: 人力依据员工离职前确认记录或核对结果代为确认，留存依据并全程审计；仍发月度考勤已确认事件以触发加班已补偿
+        permission: 月度考勤.代确认
+        page: 月度考勤管理页
+        audit: true
+        decision:
+          - {when: otherwise, goto: 6}
+      - actor: SH-E6               # 人力
+        where: in_system
+        command: 锁定
+        aggregate: AGG-97
+        on_time: 员工确认期限届满
+        emits: [月度考勤已锁定]
+        desc: 逾期未确认者按生成结果锁定并标记“逾期未确认”；锁定后不改，补卡、请假、加班变动计入下月并标原月份（INV-105）；月度考勤已锁定是 B-15 薪酬结算可取数的依据
+        permission: 月度考勤.锁定
+        page: 月度考勤管理页
+        audit: true
+        notify: [{to: SH-E1, how: 企业微信待办}]     # 逾期未确认名单
+        outcome: 已锁定
+        cross_bc:
+          - {mode: event, direction: out, bc: B-15, name: 月度考勤已锁定}
+    notes: 员工确认是员工本人的聚合命令，按 approval(engine=aggregate) 记录，是否算审批待 one-architecture 裁定（notes 格式问题 2）。用人经理是否需复核员工确认见 notes 待用户定 U6。
+
+  # ───────────── VS-13.2 绩效激励 ─────────────
+
+  - id: PRC-120
+    name: 评估月度绩效
+    trigger:
+      type: time
+      desc: 评估期间结束
+    triggers:
+      - {type: time, name: "评估期间结束（platform.scheduling 定时提醒用人经理）"}
+    stages: [VS-13.2]
+    owner_bc: B-13
+    human_orchestration: false
+    migration: "历史月度评估（老系统月度评估表 三类模板）全量迁入为已确认评估，不发事件、不触发奖金核定（ADR-0036 M7）"
+    scope: "被评人员本人、其用人经理与上级、人力；评估结论按个人信息分级（ADR-0043）"
+    outcomes: [已确认]
+    scenarios: [PRC-120-S01, PRC-120-S02]   # S01 编制、提交、确认；S02 同人同期同类型已有已确认评估被拒
+    roles:
+      - {id: SH-E1, as: performer}
+      - {id: SH-E6, as: informed}       # 人力：评估完成知会
+    steps:
+      - actor: SH-E1
+        where: in_system
+        command: 编制绩效评估
+        aggregate: AGG-106
+        desc: 评估期间结束由系统提醒用人经理；类型为月度；同一人同期同类型只一份（INV-114）
+        permission: 绩效评估.编制
+        page: 绩效评估编辑页
+        notify: [{to: SH-E1, how: 企业微信待办}]
+        decision:
+          - {when: 同一人同期同类型已有已确认评估, goto: end, rule: INV-114, outcome: 已确认}
+          - {when: otherwise, goto: 2}
+      - actor: SH-E1
+        where: in_system
+        command: 提交绩效评估
+        aggregate: AGG-106
+        desc: 提交的接收方（上级复核、被评人阅知或申诉）v1 未写，见 notes 待用户定 U11
+        permission: 绩效评估.提交
+        page: 绩效评估编辑页
+      - actor: SH-E1
+        where: in_system
+        command: 确认绩效评估
+        aggregate: AGG-106
+        emits: [绩效评估已确认]
+        desc: 确认后不可改（INV-114）；事件须带评估类型（月度 / 试用期），否则 PRC-122 无法区分（notes 结构问题）
+        permission: 绩效评估.确认
+        page: 绩效评估编辑页
+        audit: true
+        outcome: 已确认
+        cross_bc:
+          - {mode: event, direction: out, bc: B-15, name: 绩效评估已确认}
+    notes: 状态流转由用户定，细则为推断，待流程梳理确认（v1）。试用期评估是 PRC-85 的步骤，不在本流程。
+
+  - id: PRC-121
+    name: 制定激励方案
+    trigger:
+      type: human
+      desc: 管理层与人力制定
+    triggers:
+      - {type: human, name: "人力按管理层要求编制激励方案版本"}
+    stages: [VS-13.2]
+    owner_bc: B-15
+    human_orchestration: true
+    human_note: 编制 → 审批 → 生效
+    migration: "历史激励方案（老系统无流程，奖金计提来自线下导入）按方案版本重建后迁入；在途无；迁入不触发审批（ADR-0036 M7）"
+    scope: "人力、管理层；方案含薪酬敏感数据"
+    segregation:
+      - {roles: [SH-E6, SH-M1], rule: "方案编制人不得审批本人编制的方案"}
+    outcomes: [已生效, 已驳回]
+    scenarios: [PRC-121-S01, PRC-121-S02]   # S01 编制、审批通过、生效；S02 审批驳回退回修改
+    roles:
+      - {id: SH-E6, as: initiator}      # 人力
+      - {id: SH-M1, as: approver}       # 管理层
+    steps:
+      - actor: SH-E6               # 人力
+        where: in_system
+        command: 编制激励方案版本
+        aggregate: AGG-75
+        desc: 规则与额度；版本化配置（D15），生效日期向后，不追溯已核定奖金
+        permission: 激励方案.编制
+        page: 激励方案编辑页
+        cross_bc:
+          - {mode: api, direction: out, bc: platform.approval, name: 发起激励方案审批}
+      - actor: SH-M1
+        where: in_system
+        platform_task: true
+        service: platform.approval
+        command: 激励方案审批
+        gap: G-02
+        approval:
+          engine: platform.approval
+          doc_type: 激励方案审批
+          approver: SH-M1
+          multi_level: false          # 暂拟单级，见 notes 待用户定 U10
+          on_reject: 1
+        permission: 激励方案.审批
+        page: 审批待办页
+        decision:
+          - {when: 审批通过, goto: 3}
+          - {when: otherwise, goto: 1, outcome: 已驳回}
+        cross_bc:
+          - {mode: event, direction: in, bc: platform.approval, name: 〔缺〕审批已通过 / 审批已驳回}
+      - actor: SH-E6               # 人力
+        where: in_system
+        command: 生效激励方案版本
+        aggregate: AGG-75
+        emits: [激励方案已生效]
+        desc: 前置：审批已通过；生效日期不得早于已核定奖金所属期
+        permission: 激励方案.生效
+        page: 激励方案编辑页
+        audit: true
+        outcome: 已生效
+    notes: G-02 已处理（AGG-75 引用 platform.approval，intent 114200 F-2）。
+
+  - id: PRC-122
+    name: 核定奖金
+    trigger:
+      type: event
+      events:
+        - {event: 绩效评估已确认, aggregate: AGG-106, filter: "评估类型为月度"}
+    triggers:
+      - {type: event, name: "绩效评估已确认（仅月度评估；B-13 发布）"}
+    stages: [VS-13.2]
+    owner_bc: B-15
+    human_orchestration: false
+    migration: "历史奖金（2020–2025 历史奖金与奖金计提来自老系统线下导入）按个人 × 期间迁入为已核定；迁入不触发核定（ADR-0036 M7）"
+    scope: "人力、管理层与奖金归属人本人；奖金属薪酬敏感信息"
+    outcomes: [已核定, 无需核定, 已中止]
+    scenarios: [PRC-122-S01, PRC-122-S02]   # S01 月度评估确认后草拟并核定；S02 试用期评估确认不触发
+    roles:
+      - {id: SH-E6, as: performer}      # 人力
+      - {id: SH-M1, as: performer}      # 管理层：核定
+    steps:
+      - actor: SH-E6               # 人力
+        where: in_system
+        read: true
+        reads: [AGG-75, AGG-106]
+        desc: 读激励方案与核定依据的绩效评估
+        cross_bc:
+          - {mode: event, direction: in, bc: B-13, name: 绩效评估已确认}
+          - {mode: api, direction: out, bc: B-13, name: 读取绩效评估结论}
+        decision:
+          - {when: 评估类型不是月度（如试用期评估）, goto: end, outcome: 无需核定}
+          - {when: 没有生效的激励方案版本, goto: end, outcome: 已中止}      # 失败并告警人力，不静默（CLAUDE.md 第 6 条）
+          - {when: otherwise, goto: 2}
+        # 依据：PRC-85 的试用期评估也发“绩效评估已确认”，事件现无评估类型（notes 结构问题 4）；无方案失败并告警，见 notes
+      - actor: SH-E6               # 人力
+        where: in_system
+        command: 〔缺〕草拟奖金核定
+        aggregate: AGG-76
+        desc: v1 备注“草拟 → 已核定”，聚合稿 AGG-76 只有核定命令；依据激励方案规则与评估结论草拟个人奖金
+        permission: 奖金.草拟
+        page: 奖金核定页
+      - actor: SH-M1               # 管理层
+        where: in_system
+        command: 核定奖金
+        aggregate: AGG-76
+        emits: [奖金已核定]
+        desc: 草拟 → 已核定，发放经月度薪酬结算（PRC-124 读取已核定奖金）；核定是聚合命令，无退回分支（⑥a 评审 M1），超出激励方案额度的拒绝
+        permission: 奖金.核定
+        page: 奖金核定页
+        audit: true
+        decision:
+          - {when: 核定金额超出激励方案额度, goto: 2}
+          - {when: otherwise, goto: end, outcome: 已核定}
+    notes: 订阅方 B-15（奖金核定依据）。聚合稿 AGG-76 没有“额度不得超出激励方案”的不变量，骨架先按前置检查写，见 notes 结构问题。
+
+  # ───────────── VS-13.3 薪酬结算 ─────────────
+
+  - id: PRC-124
+    name: 计算、审核并批准月度薪酬
+    trigger:
+      type: event
+      events:
+        - {event: 月度考勤已锁定, aggregate: AGG-97}
+    triggers:
+      - {type: event, name: "月度考勤已锁定（B-27 发布；按人员 × 月发出，法人当月在职人员全部锁定才能计算）"}
+      - {type: human, name: "人力在全部锁定后发起法人 × 月计算"}
+    stages: [VS-13.3]
+    owner_bc: B-15
+    human_orchestration: true
+    human_note: 计算、提交审核、审批，可退回重算
+    migration: "历史月度薪酬结算（老系统算薪审核表与税金计算、工资条约 2.9 万行）按法人 × 月迁入为已发放 / 已过账结算，只迁结果与证据，不重算、不发事件、不重新过账（ADR-0036 M7）；在途月份按当前状态迁入通用审批"
+    scope: "按法人数据范围；薪酬行属敏感个人信息，仅人力薪酬岗与财务主管可见，员工只看本人工资条"
+    segregation:
+      - {roles: [SH-E6, SH-E6], rule: "计算与提交审核者不得审核、批准同一份结算（制单与审核分离）；任何人不得审核本人薪酬行"}
+    outcomes: [已批准, 待锁定, 已中止]
+    scenarios: [PRC-124-S01, PRC-124-S02, PRC-124-S03, PRC-124-S04]   # S01 全部锁定后计算、审核、批准、提交过账候选；S02 审核退回重算；S03 有人员未锁定而等待；S04 缺薪酬档案或规则版本失败告警
+    roles:
+      - {id: SH-E6, as: performer}      # 人力（薪酬岗）：计算、提交审核
+      - {id: SH-E6, as: approver}       # 财务主管：审核批准
+      - {id: SH-M1, as: informed}       # 管理层：薪酬总额知会（VS-13.3 participants）
+    steps:
+      - actor: SH-E6               # 人力
+        where: in_system
+        read: true
+        reads: [AGG-97, AGG-74, AGG-76, AGG-93, AGG-62]
+        desc: 读月度考勤已锁定（含锁定后更正行）、薪酬档案版本（按薪酬期间生效日分段）、参保（缴费基数）、已核定奖金、适用的〔缺〕薪酬规则版本（个税税率表与减除费用、社保公积金比例与基数上下限、计薪天数）、人员与法人
+        permission: 薪酬结算.计算
+        page: 薪酬结算页
+        cross_bc:
+          - {mode: api, direction: out, bc: B-27, name: 读取月度考勤确认}
+          - {mode: api, direction: out, bc: B-13, name: 读取人员与法人}
+        decision:
+          - {when: "该法人当月仍有在职人员月度考勤未锁定", goto: end, outcome: 待锁定}
+          - {when: "有人员没有生效的薪酬档案版本、应参保人员没有参保基数或没有适用的薪酬规则版本", goto: end, outcome: 已中止}
+          - {when: otherwise, goto: 2}
+        # 依据：CLAUDE.md 第 6 条（缺失输入失败并告警）；阶段进入条件 VS-13.3（法人当月在职人员均已锁定）
+      - actor: SH-E6               # 人力
+        where: in_system
+        command: 计算
+        aggregate: AGG-73
+        desc: >-
+          薪酬自算（intent 2026-10-16-152603，聚合稿“薪酬汇总导入”口径作废）。按人员：应发 = 档案薪酬项（调薪、入离职当月按计薪日折算）
+          + 已核定奖金 − 事假等扣款 + 加班费（来自月度考勤的加班补偿方式）± 上期锁定后更正行（标原月份）；
+          代扣 = 社保公积金个人部分（参保缴费基数 × 规则版本比例）+ 个人所得税（居民个人工资薪金累计预扣，用专项附加扣除与规则版本的税率表）；
+          只限法定代扣项目（INV-70）；实发 = 应发 − 代扣；汇总为法人 × 月
+        permission: 薪酬结算.计算
+        page: 薪酬结算页
+        audit: true
+        legal_entity: 薪酬法人（个税扣缴义务人口径，三口径分别记录，Q-09）
+      - actor: SH-E6               # 人力
+        where: in_system
+        command: 提交审核
+        aggregate: AGG-73
+        permission: 薪酬结算.提交审核
+        page: 薪酬结算页
+        audit: true
+        cross_bc:
+          - {mode: api, direction: out, bc: platform.approval, name: 发起薪酬审核}
+      - actor: SH-E6               # 财务主管
+        where: in_system
+        platform_task: true
+        service: platform.approval
+        command: 薪酬审核
+        approval:
+          engine: platform.approval
+          doc_type: 月度薪酬审核
+          approver: SH-E6             # 财务主管
+          multi_level: false          # 暂拟单级；是否加分管领导一级见 notes 待用户定 U7
+          on_reject: 2                # 退回重算（聚合稿无“退回重算”命令，〔缺〕，notes 结构问题）
+        permission: 薪酬结算.审核
+        page: 审批待办页
+        notify: [{to: SH-E6, how: 企业微信待办}]
+        decision:
+          - {when: 审核通过, goto: 5}
+          - {when: otherwise, goto: 2}
+        cross_bc:
+          - {mode: event, direction: in, bc: platform.approval, name: 〔缺〕审批已通过 / 审批已驳回}
+      - actor: platform
+        where: automatic
+        command: 批准
+        aggregate: AGG-73
+        emits: [薪酬已批准]
+        desc: 审核通过的回调；代扣只限法定项目，以法定货币支付（INV-70）；薪酬已批准触发申报（PRC-125）与提交应付薪酬（PRC-126）
+        audit: true
+        metric_event: true
+        legal_entity: 薪酬法人（个税扣缴义务人口径）
+      - actor: system
+        where: automatic
+        command: 提交过账候选
+        aggregate: AGG-73
+        calls: PRC-92
+        desc: 职工薪酬计提；批准时提交一次候选，发放只置“已发放”，“已过账”由事件策略 PRC-134 置位（G-18 已处理）
+        period_gate: true
+        decision:
+          - {when: "薪酬所属会计期间已关账", goto: end, rule: INV-92, outcome: 已批准}       # 路由到当前开放期间并标原期间，不拒绝
+          - {when: otherwise, goto: end, outcome: 已批准}                                    # 所属法人无开放期间时过账被拒并告警，薪酬保持已批准待重投
+        cross_bc:
+          - {mode: api, direction: out, bc: B-16, name: 提交过账候选}
+    notes: 6e 前薪酬汇总导入（FD-30）作废：一次投产后薪酬在本系统自算，AGG-73 对 platform.integration“薪酬汇总导入”的依赖应删除（notes 结构问题）。取批准时提交一次过账候选。
+
+  # ───────────── VS-13.4 申报缴纳 ─────────────
+
+  - id: PRC-125
+    name: 申报个税扣缴与社保公积金
+    trigger:
+      type: event
+      events:
+        - {event: 薪酬已批准, aggregate: AGG-73}
+    triggers:
+      - {type: event, name: "薪酬已批准（同 BC）"}
+      - {type: time, name: "每月申报期前提醒（P-39，platform.scheduling）；股息红利并入后无薪酬批准时也须有触发"}
+      - {type: human, name: "人力发起本月申报批次"}
+    stages: [VS-13.4, VS-06.1]
+    owner_bc: B-15
+    human_orchestration: false
+    migration: "历史申报与缴款（老系统税金计算与申报记录）按所属期 × 类型迁入为已缴款；迁入不触发申报、不重新过账（ADR-0036 M7）"
+    scope: "按扣缴义务人法人；申报明细含证件号码等个人信息，仅人力薪酬岗可见"
+    segregation:
+      - {roles: [SH-E6, SH-E6], rule: "申报数据生成与申报缴款登记宜由不同人（建议），缴款资金支出由财务出纳办理"}
+    outcomes: [已申报缴款, 已中止]
+    scenarios: [PRC-125-S01, PRC-125-S02, PRC-125-S03]   # S01 生成申报文件、线下申报、登记回执与缴款；S02 申报被退回更正；S03 股息红利并入同期个税申报
+    roles:
+      - {id: SH-E6, as: performer}      # 人力
+      - {id: SH-R2, as: external}       # 税务、社保、公积金经办机构
+    steps:
+      - actor: SH-E6               # 人力
+        where: in_system
+        read: true
+        reads: [AGG-74, AGG-81]
+        desc: 读当月参保增减员、薪酬结算、扣缴义务人法人与所属期（会计期间）
+        cross_bc:
+          - {mode: api, direction: out, bc: B-19, name: 读取会计期间与所属期}
+          - {mode: api, direction: out, bc: B-13, name: 读取人员与法人}
+      - actor: SH-E6               # 人力
+        where: in_system
+        command: 生成申报
+        aggregate: AGG-95
+        desc: 按所属期汇总薪酬批准结果与股息红利并入项，生成个税扣缴申报数据（按自然人电子税务局扣缴客户端的导入格式〔中〕）与社保公积金申报明细；校验人员证件信息、申报金额与薪酬结算一致，不一致失败并告警。申报方式为骨架暂拟的 a)，用户未定，见 notes 待用户定 U1、U2
+        permission: 申报.生成
+        page: 申报批次页
+        audit: true
+        legal_entity: 扣缴义务人法人
+        decision:
+          - {when: "人员缺证件信息或申报金额与薪酬结算不一致", goto: end, outcome: 已中止}
+          - {when: otherwise, goto: 3}
+      - actor: SH-E6               # 人力
+        where: offline
+        evidence: [个税申报回执, 申报日, 申报明细文件]
+        command: 提交申报
+        aggregate: AGG-95
+        desc: 个税：人力在扣缴客户端导入申报数据并申报，本系统登记申报回执（个人所得税法第九条、第十条；个人所得税扣缴申报管理办法）。法定期限为次月十五日内〔中，核对原文〕（P-39）
+        period_gate: false
+        timeout: {after: "P15D", escalate_to: SH-M1, interrupting: false}   # 自次月 1 日起算，P-39 提醒
+        notify: [{to: SH-E6, how: 企业微信待办}]
+        audit: true
+        cross_bc:
+          - {mode: api, direction: out, bc: platform.integration, name: 〔缺〕申报端对接（仅方式 b 时启用）}
+      - actor: SH-E6               # 人力
+        where: offline
+        evidence: [社保费申报回执, 公积金汇缴回执, 申报日]
+        command: 提交申报
+        aggregate: AGG-95
+        emits: [个税与社保公积金申报已提交]
+        desc: 社保公积金：人力在税务或社保经办渠道申报社保费、在公积金管理中心办理汇缴，各地渠道不同〔中〕，本系统登记回执；三类均已提交后发出事件
+      - actor: SH-E6               # 人力
+        where: offline
+        evidence: [个税缴款凭证, 社保费与公积金缴款凭证, 缴款日]
+        command: 登记缴款
+        aggregate: AGG-95
+        desc: 税款与社保公积金的缴款资金支出不在 AGG-95，缴款凭证与银行流水的对账见 notes 接缝问题
+        audit: true
+        decision:
+          - {when: 申报被退回或发现差错, goto: 6}
+          - {when: otherwise, goto: 7}
+      - actor: SH-E6               # 人力
+        where: offline
+        evidence: [更正申报回执, 更正原因]
+        branch: 更正
+        command: 更正申报
+        aggregate: AGG-95
+        audit: true
+        decision:
+          - {when: otherwise, goto: 5}
+      - actor: system
+        where: automatic
+        command: 提交过账候选
+        aggregate: AGG-95
+        calls: PRC-92
+        desc: 个税与社保公积金过账
+        period_gate: true
+        decision:
+          - {when: "所属会计期间已关账", goto: end, rule: INV-92, outcome: 已申报缴款}
+          - {when: otherwise, goto: end, outcome: 已申报缴款}
+        cross_bc:
+          - {mode: api, direction: out, bc: B-16, name: 提交过账候选}
+    notes: 申报方式用户未定（intent 2026-10-16-152603 只定“个税公司代扣代缴”），骨架先按 a) 画：系统生成申报数据，人工在外部申报端申报并回填回执（offline + 证据）。v1“申报端回执、更正申报无超时或退回分支，按非人工编排（⑥a 评审 M1）”保留。
+
+event_policies:
+
+  - id: PRC-113
+    name: 并入股息红利个税扣缴申报
+    trigger:
+      type: event
+      events:
+        - {event: 利润分配已支付, aggregate: AGG-109}
+    triggers:
+      - {type: event, name: "利润分配已支付（B-10 发布）"}
+    stages: [VS-12.2, VS-13.4]
+    owner_bc: B-15
+    migration: "历史股息红利个税（老系统无独立记录，是否存在待取证）按所属期迁入申报批次；迁入不触发（ADR-0036 M7）"
+    outcomes: [已并入申报, 无需扣缴]
+    scenarios: [PRC-113-S01, PRC-113-S02]   # S01 自然人股东分红并入当期个税申报；S02 法人股东不扣缴个税
+    roles:
+      - {id: SH-E6, as: informed}       # 人力：申报批次中出现并入项
+      - {id: SH-O1, as: external}       # 股东：自然人股东是纳税人
+    step:
+      actor: system
+      where: automatic
+      command: 并入扣缴申报
+      aggregate: AGG-95
+      desc: 自然人股东的股息红利所得适用 20% 比例税率，由支付方代扣代缴（个人所得税法第三条、第九条）；并入当期申报批次，实际申报在 PRC-125；法人股东不涉及个税，合伙人的所得性质因被投资主体而异，见 notes 结构问题
+      legal_entity: 扣缴义务人法人
+      audit: true
+      decision:
+        - {when: 股东是法人或机构, goto: end, outcome: 无需扣缴}
+        - {when: otherwise, goto: end, outcome: 已并入申报}
+      cross_bc:
+        - {mode: event, direction: in, bc: B-10, name: 利润分配已支付}
+    notes: 沿已有边 B-15 → B-10，不新增反向边。扣缴额须在支付前确定，见 notes 接缝问题 4。
+
+  - id: PRC-126
+    name: 提交应付薪酬
+    trigger:
+      type: event
+      events:
+        - {event: 薪酬已批准, aggregate: AGG-73}
+    triggers:
+      - {type: event, name: "薪酬已批准（同 BC）"}
+    stages: [VS-13.5]
+    owner_bc: B-15
+    migration: "历史薪酬的应付（老系统付款申请单-人事约 1.5 千行）作为已结清应付迁入，只迁结果与证据；迁入不触发（ADR-0036 M7）"
+    outcomes: [应付已提交]
+    scenarios: [PRC-126-S01, PRC-126-S02]   # S01 薪酬批准后提交法人 × 月一笔实发合计；S02 重复触发幂等不重复提交
+    roles:
+      - {id: SH-E6, as: informed}       # 财务：待付清单出现应付薪酬
+    step:
+      actor: system
+      where: automatic
+      command: 提交应付薪酬
+      aggregate: AGG-52
+      emits: [应付已确认]
+      desc: 法人 × 月一笔实发合计，按来源单据 ID 幂等；之后走 PRC-75“发起、审批并执行付款”（B-10）；P-40 每月至少一次支付工资（工资支付暂行规定第七条）；代发明细（员工 × 账户 × 金额）如何随付款交给银行见 notes 接缝问题 3
+      audit: true
+      legal_entity: 薪酬法人（发薪法人）
+      decision:
+        - {when: 该薪酬结算已提交过应付, goto: end, outcome: 应付已提交}
+        - {when: otherwise, goto: end, outcome: 应付已提交}
+      cross_bc:
+        - {mode: api, direction: out, bc: B-10, name: 提交应付薪酬}
+    notes: 应付薪酬类型由 B-10 的 AGG-52 承载；付款、核销见 PRC-75、PRC-131、PRC-132（B-10，财务组），本组只写接缝。
+
+  - id: PRC-127
+    name: 薪酬发放完成
+    trigger:
+      type: event
+      events:
+        - {event: 应付已结清, aggregate: AGG-52, filter: "应付类型为应付薪酬且来源为月度薪酬结算"}
+    triggers:
+      - {type: event, name: "应付已结清（B-10 发布；B-15 只处理应付薪酬）"}
+    stages: [VS-13.5]
+    owner_bc: B-15
+    migration: "迁入不触发（ADR-0036 M7）；历史薪酬的发放状态随结算迁入"
+    outcomes: [已发放]
+    scenarios: [PRC-127-S01, PRC-127-S02]   # S01 应付结清后置已发放并通知工资条；S02 退票时付款已失败，薪酬保持已批准
+    roles:
+      - {id: SH-E3, as: informed}       # 员工：工资条可查看
+      - {id: SH-E6, as: informed}
+    step:
+      actor: system
+      where: automatic
+      command: 标记薪酬已发放
+      aggregate: AGG-73
+      emits: [薪酬已发放]
+      desc: 退票时付款已失败，薪酬保持已批准，重入付款；已发放与事实已过账两个条件任一后到者触发置已过账
+      audit: true
+      notify: [{to: SH-E3, how: 企业微信通知（工资条可查看）}]
+      decision:
+        - {when: 该薪酬的过账事实已入账, goto: PRC-134}
+        - {when: otherwise, goto: end, outcome: 已发放}
+      cross_bc:
+        - {mode: event, direction: in, bc: B-10, name: 应付已结清}
+    notes: 订阅关系 B-15 → B-10（api、事件）。应付已结清事件需带应付类型与来源，B-15 与 B-12 都订阅，各自过滤（notes 结构问题 4）。
+
+  - id: PRC-134
+    name: 薪酬事实已过账置位
+    trigger:
+      type: event
+      events:
+        - {event: BusinessFactAttributed, aggregate: AGG-77, filter: "来源单据为月度薪酬结算"}
+    triggers:
+      - {type: event, name: "BusinessFactAttributed（B-16 发布；B-15 只处理薪酬来源）"}
+    stages: [VS-13.3]
+    owner_bc: B-15
+    migration: "迁入不触发（ADR-0036 M7）；历史薪酬的已过账状态随结算迁入"
+    outcomes: [已过账, 待发放后再置位]
+    scenarios: [PRC-134-S01, PRC-134-S02]   # S01 已发放后过账完成置已过账；S02 过账先于发放，记标志待 PRC-127 触发
+    roles:
+      - {id: SH-E6, as: informed}
+    step:
+      actor: system
+      where: automatic
+      command: 标记已过账
+      aggregate: AGG-73
+      desc: 按来源单据 ID 取薪酬行；已发放与事实已过账两个条件任一后到者触发（符合性审查 断链 7）
+      audit: true
+      decision:
+        - {when: 薪酬尚未发放, goto: end, outcome: 待发放后再置位}
+        - {when: otherwise, goto: end, outcome: 已过账}
+      cross_bc:
+        - {mode: event, direction: in, bc: B-16, name: BusinessFactAttributed}
+    notes: 由原 PRC-124 末步与 PRC-127 第二步拆出（G-18 已处理）。
+
+  - id: PRC-145
+    name: 员工法人三口径不一致预警
+    trigger:
+      type: event
+      events:
+        - {event: 劳动合同已签订, aggregate: AGG-67}
+        - {event: 〔缺〕法人归属已变更, aggregate: AGG-117}
+        - {event: 薪酬档案已变更, aggregate: AGG-93}
+    triggers:
+      - {type: event, name: "劳动合同已签订（B-13）"}
+      - {type: event, name: "〔缺〕法人归属已变更（B-13）"}
+      - {type: event, name: "薪酬档案已变更（同 BC）"}
+    stages: [VS-07.3]
+    owner_bc: B-15
+    basis: S-20（one-architecture）；用户 Q-09（intent 2026-10-16-134134）
+    migration: "迁入不触发（ADR-0036 M7）；迁入完成后由人力用对账清单一次性核对三口径，不批量发预警"
+    outcomes: [三口径一致, 已预警]
+    scenarios: [PRC-145-S01, PRC-145-S02]   # S01 三口径一致不预警；S02 入职后劳动合同用人单位与扣缴义务人不一致，预警人力
+    roles:
+      - {id: SH-E6, as: informed}       # 人力
+    step:
+      actor: system
+      where: automatic
+      desc: 比对劳动合同用人单位（AGG-67）、数据范围法人（AGG-117）、个税扣缴义务人（AGG-93），按同一业务日期取当时有效版本；不一致只预警人力，不拒绝；同一人员同一差异已有未处理预警时不重复发
+      notify: [{to: SH-E6, how: 企业微信待办}]
+      decision:
+        - {when: 三口径中任意两个不一致, goto: end, outcome: 已预警}
+        - {when: otherwise, goto: end, outcome: 三口径一致}
+      cross_bc:
+        - {mode: event, direction: in, bc: B-13, name: 劳动合同已签订}
+        - {mode: event, direction: in, bc: B-13, name: 〔缺〕法人归属已变更}
+        - {mode: api, direction: out, bc: B-13, name: 读取劳动合同用人单位与数据范围法人}
+    notes: B-15 → B-13（api、事件）已有边；扣缴义务人在本 BC。
+
+single_aggregate:
+
+  - id: PRC-119
+    name: 维护工作日历与标准工时版本
+    type: single_aggregate
+    aggregate: AGG-68
+    owner_bc: B-14
+    stages: [VS-13.1]
+    desc: 人力每年维护或调整标准工时
+    triggers:
+      - {type: human, name: "人力每年维护工作日历，或调整标准工时"}
+    migration: "历史工作日历年度与标准工时版本（已建 AGG-68 / AGG-108）按生效区间迁入；迁入不发事件（ADR-0036 M7）"
+    scope: "人力维护；全员可读"
+    outcomes: [工作日历已维护, 标准工时版本已发布, 版本被拒]
+    scenarios: [PRC-119-S01, PRC-119-S02]   # S01 年度维护日历；S02 发布新标准工时版本，与现有版本区间重叠被拒
+    roles:
+      - {id: SH-E6, as: performer}      # 人力
+    commands:
+      - actor: SH-E6
+        where: in_system
+        command: 维护工作日历年度
+        aggregate: AGG-68
+        emits: [WorkCalendarLockedDaysChanged]
+        desc: 依据当年国家节假日安排与调休上班日，维护法定节假日与调休；依据文件引用记入版本
+        permission: 工作日历.维护
+        page: 工作日历维护页
+        audit: true
+        outcome: 工作日历已维护
+        cross_bc:
+          - {mode: api, direction: in, bc: B-27, name: 读取工作日历}
+          - {mode: api, direction: in, bc: B-06, name: 读取工作日历}
+      - actor: SH-E6
+        where: in_system
+        command: 发布标准工时版本
+        aggregate: AGG-108
+        emits: [标准工时版本已生效]
+        desc: 生效后不得修改，更正另追加新版本（INV-116），不追溯已确认的工时与请假拆分；法人可空表示默认
+        permission: 标准工时.发布
+        page: 标准工时版本页
+        audit: true
+        decision:
+          - {when: 同一法人（空为默认）已有版本的生效区间重叠, goto: end, rule: INV-116, outcome: 版本被拒}
+          - {when: otherwise, goto: end, outcome: 标准工时版本已发布}
+        cross_bc:
+          - {mode: api, direction: in, bc: B-06, name: 读取标准工时版本}
+          - {mode: api, direction: in, bc: B-27, name: 读取标准工时版本}
+    notes: B-06、B-27 经 api 按 ID 与日期读取。事件“标准工时版本已生效”订阅方列宜写仅分析（G-15）。法人引用 B-14 → B-13 无登记边，见 NOTES 数据接缝问题 1。
+
+  - id: PRC-123
+    name: 调整薪酬档案与专项附加扣除
+    type: single_aggregate
+    aggregate: AGG-93
+    owner_bc: B-15
+    stages: [VS-13.3, VS-13.4]
+    desc: 调薪、年度专项附加扣除更新
+    triggers:
+      - {type: human, name: "人力按调薪决定登记薪酬档案新版本"}
+      - {type: human, name: "人力按年度更新专项附加扣除"}
+    migration: "历史薪酬档案版本与专项附加扣除（老系统调薪申请单约 1 千行、工资补录档案）按生效区间迁入；迁入不发事件、不触发三口径预警（ADR-0036 M7）"
+    scope: "仅人力薪酬岗与财务主管可见和调整；员工只读本人；薪酬与专项附加扣除均为敏感个人信息（ADR-0043）"
+    outcomes: [薪酬档案已调整, 专项附加扣除已更新]
+    scenarios: [PRC-123-S01, PRC-123-S02, PRC-123-S03]   # S01 调薪生效日在未结月份；S02 生效日早于已批准薪酬所属月，补发补扣走下月；S03 年度更新专项附加扣除
+    roles:
+      - {id: SH-E6, as: performer}      # 人力（薪酬岗）
+      - {id: SH-E3, as: informed}       # 员工：本人薪酬变更通知
+    commands:
+      - actor: SH-E6
+        where: in_system
+        command: 调整薪酬档案
+        emits: [薪酬档案已变更]
+        aggregate: AGG-93
+        desc: 薪酬属性版本，调薪产生新版本，生效依据人事业务生效日（U-12）；调整是否需审批见 notes 待用户定 U9
+        permission: 薪酬档案.调整
+        page: 薪酬档案页
+        audit: true
+        metric_event: true
+        legal_entity: 扣缴义务人法人（三口径之一）
+        outcome: 薪酬档案已调整
+        decision:
+          - {when: "生效日早于已批准的月度薪酬所属月", goto: end, outcome: 薪酬档案已调整}   # 已批准结算不改；补发补扣由下月结算更正行承接，AGG-73 无此行类型（notes 结构问题）
+          - {when: otherwise, goto: end, outcome: 薪酬档案已调整}
+        cross_bc:
+          - {mode: api, direction: out, bc: B-13, name: 读取人员与任职}
+      - actor: SH-E6
+        where: in_system
+        command: 更新专项附加扣除
+        aggregate: AGG-93
+        desc: 年度属性；来源是员工自行申报信息，由人力代录入还是员工自助见 notes 待用户定 U9；含未成年子女等信息，按敏感个人信息处理（拿不准归 SPI，交 U-11）
+        permission: 专项附加扣除.更新
+        page: 专项附加扣除页
+        audit: true
+        outcome: 专项附加扣除已更新
+    notes: AGG-93 含敏感个人信息，按 ADR-0043 登记访问级别。建立薪酬档案在 PRC-84；PRC-85 办理转正不通知 B-15，转正调薪靠人力人工发现（PG-10）。
