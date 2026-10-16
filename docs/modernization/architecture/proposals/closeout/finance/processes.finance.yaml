@@ -613,6 +613,31 @@ processes:
   owner_bc: B-12
   human_orchestration: true
   human_note: 报销审批、驳回释放占用
+  migration: 历史：全部已结报销及明细迁入（U-4，来源 A8 日常 / 差旅 / 业务招待报销单），经迁入用例写入，不启动审批、不发事件、不生成分录（§14.2 M7）。在途：审批中的单据投产前办结；投产时仍未办结的退回员工在新系统重提；已核定未付的迁为「已核定」并同时迁入未结应付（AGG-52 open_items）
+  scope: 报销人看本人单据；审批人经审批待办看所审单据；财务按所负责法人的数据范围（ADR-0026）
+  segregation:
+  - 报销人 ≠ 任一级审批人
+  - 报销人 ≠ 核定人
+  - 审批人 ≠ 核定人
+  triggers:
+  - type: human
+    name: 员工提交费用报销
+  outcomes:
+  - 已核定
+  - 已退回
+  - 已拒收（项目已关闭）
+  - 已拒收（发票不可用）
+  scenarios:
+  - PRC-87-S01
+  - PRC-87-S02
+  - PRC-87-S03
+  - PRC-87-S04
+  - PRC-87-S05
+  - PRC-87-S06
+  - PRC-87-S07
+  - PRC-87-S08
+  - PRC-87-S09
+  - PRC-87-S10
   roles:
   - id: SH-E3
     as: initiator
@@ -624,10 +649,6 @@ processes:
     as: approver
   - id: SH-E6
     as: reviewer
-  segregation:
-  - 报销人 ≠ 任一级审批人
-  - 报销人 ≠ 核定人
-  - 审批人 ≠ 核定人
   steps:
   - actor: SH-E3
     where: in_system
@@ -640,6 +661,8 @@ processes:
     decision:
     - when: 所归属项目已结项、已终止或已取消（INV-39）
       goto: end
+      outcome: 已拒收（项目已关闭）
+      rule: INV-39
     - when: otherwise
       goto: 2
     cross_bc:
@@ -655,6 +678,8 @@ processes:
       direction: out
       bc: B-13
       name: 读人员
+    permission: 报销.填写
+    page: 报销单编辑页
   - actor: SH-E3
     where: external:税务
     evidence:
@@ -666,6 +691,8 @@ processes:
     decision:
     - when: 发票查验不合规（INV-75）或已被占用（INV-74）
       goto: end
+      outcome: 已拒收（发票不可用）
+      rule: INV-74、INV-75
     - when: otherwise
       goto: 3
     cross_bc:
@@ -673,6 +700,8 @@ processes:
       direction: out
       bc: B-23
       name: 占用进项发票入账
+    permission: 报销.填写
+    page: 报销单编辑页（发票录入与查验）
   - actor: SH-E3
     where: automatic
     command: 预算占用
@@ -681,6 +710,9 @@ processes:
     - BudgetReserved
     desc: 占用第 2 步；预算不足只预警不拦截（INV-102 定为预警，用户 F-Q2，intent 2026-10-16-162821）
     decision:
+    - when: 可用预算不足（只预警，审批待办标「超预算」）
+      goto: 4
+      rule: INV-102
     - when: otherwise
       goto: 4
     cross_bc:
@@ -701,8 +733,16 @@ processes:
     decision:
     - when: 原始凭证要素不全（INV-84）
       goto: 8
+      rule: INV-84
     - when: otherwise
       goto: 5
+    permission: 报销.提交
+    page: 报销单编辑页
+    audit: true
+    legal_entity: 报销人所在法人（任职口径）
+    notify:
+    - to: 审批人
+      how: 企业微信待办
   - actor: platform
     where: in_system
     platform_task: true
@@ -729,6 +769,17 @@ processes:
       name: 提交审批
     pending:
     - F-Q1-阈值
+    permission: 报销.审批
+    page: 审批待办（审批平台）
+    audit: true
+    timeout:
+      after: n 个工作日（n 待定，按审批节点属性）
+      escalate_to: 审批人上级
+      interrupting: false
+      rule: RULE-377、RULE-379、RULE-380、RULE-382
+    notify:
+    - to: SH-E3
+      how: 驳回时企业微信消息
   - actor: SH-E6
     where: in_system
     evidence:
@@ -743,6 +794,14 @@ processes:
       direction: out
       bc: B-09
       name: 费用报销已核定
+    permission: 报销.核定
+    page: 报销核定工作台
+    audit: true
+    legal_entity: 报销人所在法人（任职口径）
+    metric_event: true
+    notify:
+    - to: SH-E3
+      how: 企业微信消息：已核定
   - actor: system
     where: automatic
     command: 提交过账候选
@@ -754,8 +813,16 @@ processes:
       bc: B-16
       name: 提交过账候选（PostingCandidate）
     decision:
+    - when: 所属期间已关账
+      goto: end
+      outcome: 已核定
+      rule: ADR-0045 决定 2：落当前开放期间并标原期间
     - when: otherwise
       goto: end
+      outcome: 已核定
+    period_gate: true
+    legal_entity: 报销人所在法人（任职口径）
+    metric_event: true
   - actor: system
     where: automatic
     command: 释放预算占用
@@ -778,11 +845,15 @@ processes:
     decision:
     - when: otherwise
       goto: end
+      outcome: 已退回
     cross_bc:
     - mode: api
       direction: out
       bc: B-23
       name: 驳回释放
+    notify:
+    - to: SH-E3
+      how: 企业微信消息：已退回，可修改后重新提交
   notes: 报销核定后由 B-09 事件策略 PRC-147 冲抵借款并按净额确认应付（S-17、S-19、S-24）；报销「已付」由应付已结清经事件策略 PRC-133 置位，全额冲抵时由 PRC-147 置位；发票占用只在 B-12 提交前占用一次（G-17 已处理）。
 - id: PRC-92
   name: 过账业务事实
