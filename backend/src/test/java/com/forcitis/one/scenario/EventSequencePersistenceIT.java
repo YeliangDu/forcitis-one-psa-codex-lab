@@ -23,6 +23,7 @@ import com.forcitis.one.platform.approval.application.ClaimTask;
 import com.forcitis.one.platform.approval.application.ReleaseTask;
 import com.forcitis.one.platform.approval.application.TransferTask;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
+import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +66,7 @@ class EventSequencePersistenceIT extends ApprovalIntegrationSupport {
             LocalDate today = LocalDate.now();
             EmployeeId owner = TestAccounts.employee(newId());
             Timesheet created = Timesheet.draft(id, new DocumentNumber("TS-SEQ-" + id.value()), new AggregateReference("NumberingCounter", TestIds.uuid(11)),
-                    owner, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(1), today.minusDays(1), Hours.of("8"), TestAccounts.employee(newId()), today);
+                    new NumberingRuleVersionId(TestIds.uuid(12)), owner, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(1), today.minusDays(1), Hours.of("8"), TestAccounts.employee(newId()), today);
             List<Long> numbers = new ArrayList<>();
             tx.executeWithoutResult(s -> timesheets.save(created));
             created.drainEvents(ENVELOPES).forEach(event -> numbers.add(event.envelope().aggregateVersion()));
