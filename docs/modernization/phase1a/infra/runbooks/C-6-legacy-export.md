@@ -60,7 +60,7 @@
 
 回放导出的口径与局限（写入 `manifest-replay.json`，回放报告须引用）：
 - 工时行类型取自流程变量 `manHourType`（老流程网关当时判断分支用的值，Java 序列化的整数列表，在中转进程内解码）；修订表 `psa_time_sheet_revision` 只有 851 行，覆盖不了样本，不用。
-- 表单字段：项目经理取 `manager_id`、区域负责人取 `area_leader`（Java 序列化的字符串列表）。
+- 表单字段：项目经理取 `manager_id`、部门负责人（原区域负责人，P4 改名）取 `area_leader`（Java 序列化的字符串列表）。
 - 实际办理人：`bpm_task_ext` 中三个审批节点结果为通过 / 不通过的任务的办理人；发起人节点不回放（M3）。
 - 组织快照为导出当天的人员与部门（老表无历史），由此产生的差异归 `REVIEWED_*` 类。
 - `processAdministratorUserId` 为回放专用替身 `-1`（流程管理员 A-4 未定），使「取不到人转流程管理员」路径可比对；不是真人，不进任何运行配置。
@@ -80,8 +80,8 @@
 |---|---|---|---|---|---|
 | REVIEWED_SELF_APPROVAL | projectManagerReview | 65 | 升级到发起人直属上级（RULE-307，ESCALATED_SELF_APPROVAL） | 发起人自己审批 | 表单项目经理就是发起人 |
 | REVIEWED_SELF_APPROVAL | projectManagerReview | 10 | 表单中发起人以外的人（RESOLVED） | 发起人自己加另一人 | 表单字段有多人，含发起人 |
-| REVIEWED_SELF_APPROVAL | regionalHeadReview | 4 | 升级到发起人直属上级（ESCALATED_SELF_APPROVAL） | 发起人自己审批 | 表单区域负责人就是发起人 |
-| REVIEWED_SELF_APPROVAL | regionalHeadReview | 1 | 表单中发起人以外的人（RESOLVED） | 发起人自己加另一人 | 同上，多人 |
+| REVIEWED_SELF_APPROVAL | 部门负责人节点（导出里仍叫 regionalHeadReview，回放命令按旧名映射） | 4 | 升级到发起人直属上级（ESCALATED_SELF_APPROVAL） | 发起人自己审批 | 表单区域负责人就是发起人 |
+| REVIEWED_SELF_APPROVAL | 部门负责人节点（同上） | 1 | 表单中发起人以外的人（RESOLVED） | 发起人自己加另一人 | 同上，多人 |
 | REVIEWED_DISABLED_APPROVER | supervisorReview | 1 | 发起人在快照中的直属上级（RESOLVED） | 发起人所在部门负责人 | 原审批人停用 |
 | 回放方法限制（原 DEFECT，未取证坐实） | supervisorReview | 6 | 发起人在快照中的直属上级 | 同一人，是该直属上级的下属，不在发起人上级链上 | 涉及 2 名发起人；回放用的是导出日的组织快照，不是审批时点，老表没有汇报线历史，审批后上级若有调整就会出现这种差异（one-1a-par 的诊断，判断不是规则缺陷）；没有用取证去坐实 |
 

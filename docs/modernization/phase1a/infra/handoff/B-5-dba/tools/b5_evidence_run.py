@@ -18,7 +18,7 @@ B5 = TOOLS.parent
 ONE_WORK = '/root/one-ops-b5-evidence'
 EVIDENCE_ENV = '/etc/forcitis-one/evidence.env'
 RUNTIME = (('A8', 'one_a8_views_ro', 'a8_db', 'A8_DB_PASSWORD'),
-           ('INBOX', 'psa_one_legacy_ro', 'ruoyi-vue-pro', 'FORCITIS_PLATFORM_APPROVAL_LEGACY_PASSWORD'),
+           ('INBOX', 'psa_one_legacy_ro', 'ruoyi-vue-pro', 'FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_PASSWORD'),
            ('NAMES', 'one_legacy_names_ro', 'ruoyi-vue-pro', 'LEGACY_DB_RO_PASSWORD'))
 DECRYPT = ('dec() { base64 -d "$1" | openssl pkeyutl -decrypt -inkey ' + ONE_WORK + '/transfer.key '
            '-pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256 -pkeyopt rsa_mgf1_md:sha256; }\n')
