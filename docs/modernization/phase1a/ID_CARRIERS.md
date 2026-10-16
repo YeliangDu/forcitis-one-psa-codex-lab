@@ -76,7 +76,7 @@ ADR-0033 第 7 项第 7 条要求 R-1b 交付：ID 出现的每一类位置，�
 
 | 项 | 结论 | 依据与到期 |
 |---|---|---|
-| Flowable 业务键 `act_ru_execution.business_key_` | 保留，不是自有对象的键：框架列，文本；值为「单据类型:单据 ID」（`FlowableApprovalEngine.startInstance`），单据 ID 是规范小写 uuid。本系统不按它查询，只在流程归档 JSON 里原样带出（`ProcessArchiveJob`）；查单据一律用变量 `documentType`、`documentId`。到期：无（随流程引擎存在）；是否改为只存 uuid 属契约取舍，列入余项，不在 P5 | 框架表不在自有表守护范围；`DdlNamingTest` 只看自有表 |
+| Flowable 业务键 `act_ru_execution.business_key_` | 框架列，文本；值 = 单据 uuid 的规范小写文本（`FlowableApprovalEngine.startInstance`），单据类型另在变量 `documentType`。不再有 `businessKey` 流程变量。流程归档 JSON 原样带出该值（`ProcessArchiveJob`）；本系统查单据一律用变量 `documentType`、`documentId`。未首次部署，无在途实例，无旧格式读取方 | 框架表不在自有表守护范围；`DdlNamingTest` 只看自有表 |
 | Flowable 流程变量 `act_ru_variable` / `act_hi_varinst` | 不改：框架表。变量里的 ID 全为规范 uuid 文本：`initiatorId`、`documentId`、`legalEntityId`（`FlowableApprovalEngine`）；任务受理人、候选人用 Flowable 的 assignee / candidate 文本列，值为账号 ID 的规范 uuid 文本，读回时非 uuid 即告警失败（`EngineUserIds`）。流程实例 ID 由 `predefineProcessInstanceId` 写入审批请求 ID 的文本形式 | 验收 `EventEnvelopeAggregateIdIT`、审批模块集成测试按 uuid 取值；到期：无 |
 | `platform_integration.event_publication.serialized_event` | 不改：Modulith 框架列，事件信封的 JSON 文本，其中 `aggregateId`、`actorId` 等已是 uuid 字符串（见第 5 节）；框架表 5 张之一，长期豁免。归档表同 | `primary-key-exemptions.txt`；`EventCatalogueTest` |
 | `platform_integration.outbound_deliveries.subject_kind` / `subject_id`（P4） | 已按「类别 + uuid」落地：`subject_kind` 文本加 CHECK（`APPROVAL_TASK` / `APPROVAL_INSTANCE`），`subject_id uuid NOT NULL`（投递必有对象，不像审计条目可空）；两列合起来在 `uk_outbound_deliveries_card` 里与用途、触发事件一起防重复投递 | `V20261014133000__platform_integration_baseline.sql`；验收 `OutboundDeliveryKeysIT` |

@@ -37,7 +37,7 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
     DecideTasks decideTasks;
 
     int instancesOf(String businessKey) {
-        return (int) runtime.createProcessInstanceQuery().processInstanceBusinessKey("TIMESHEET:" + businessKey).count();
+        return (int) runtime.createProcessInstanceQuery().processInstanceBusinessKey(businessKey).count();
     }
 
     @Test
@@ -51,6 +51,7 @@ class IdempotentStartIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId second = start(key, initiator, manager);
         assertThat(second).isEqualTo(first);
         assertThat(instancesOf(key)).isEqualTo(1);
+        assertThat(runtime.getVariables(first.value().toString())).doesNotContainKey("businessKey");
         assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where approval_request_id = (select id from platform_approval.approval_requests where document_id = cast(? as uuid))", Integer.class, key))
                 .isEqualTo(1);
         assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where document_id = cast(? as uuid)",
