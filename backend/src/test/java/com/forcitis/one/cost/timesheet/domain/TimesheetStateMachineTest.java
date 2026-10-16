@@ -31,6 +31,7 @@ import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.approval.api.RoutingFlag;
 import com.forcitis.one.platform.approval.events.DocumentSubmittedForApproval;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
+import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,13 +50,13 @@ class TimesheetStateMachineTest {
     static final TestEventEnvelopes ENVELOPES = new TestEventEnvelopes();
 
     static Timesheet in(TimesheetStatus status) {
-        return Timesheet.restore(new TimesheetId(TestIds.uuid(7)), new DocumentNumber("TS-ABC-202610-0007"), OWNER, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(5),
+        return Timesheet.restore(new TimesheetId(TestIds.uuid(7)), new DocumentNumber("TS-ABC-202610-0007"), new NumberingRuleVersionId(TestIds.uuid(12)), OWNER, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(5),
                 WORK_DATE, Hours.of("8"), TestAccounts.employee(40), status, 2, TODAY.minusDays(1), 6, 4);
     }
 
     static Timesheet drafted() {
         return Timesheet.draft(new TimesheetId(TestIds.uuid(7)), new DocumentNumber("TS-ABC-202610-0007"), new AggregateReference("NumberingCounter", TestIds.uuid(11)),
-                OWNER, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(5), WORK_DATE, Hours.of("8"), TestAccounts.employee(40), TODAY);
+                new NumberingRuleVersionId(TestIds.uuid(12)), OWNER, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(5), WORK_DATE, Hours.of("8"), TestAccounts.employee(40), TODAY);
     }
 
     @Test
@@ -63,9 +64,10 @@ class TimesheetStateMachineTest {
     void everyOperationInEveryStatus() {
         List<String> tried = new TransitionTable<TimesheetStatus, Timesheet>(TimesheetStatus.class, TimesheetStateMachineTest::in, Timesheet::status)
                 .operation("revise", t -> t.revise(OWNER, WORK_DATE, Hours.of("6"), TestAccounts.employee(41)),
-                        TimesheetStatus.DRAFT, TimesheetStatus.DRAFT, TimesheetStatus.RETURNED, TimesheetStatus.RETURNED)
+                        TimesheetStatus.DRAFT, TimesheetStatus.DRAFT, TimesheetStatus.RETURNED, TimesheetStatus.RETURNED,
+                        TimesheetStatus.REJECTED, TimesheetStatus.REJECTED)
                 .operation("submit", t -> t.submit(OWNER, TODAY), TimesheetStatus.DRAFT, TimesheetStatus.SUBMITTED, TimesheetStatus.RETURNED,
-                        TimesheetStatus.SUBMITTED)
+                        TimesheetStatus.SUBMITTED, TimesheetStatus.REJECTED, TimesheetStatus.SUBMITTED)
                 .operation("approve", Timesheet::approve, TimesheetStatus.SUBMITTED, TimesheetStatus.APPROVED)
                 .operation("reject", t -> t.reject(new Reason("no")), TimesheetStatus.SUBMITTED, TimesheetStatus.REJECTED)
                 .operation("return", t -> t.returnForRevision(new Reason("fix")), TimesheetStatus.SUBMITTED, TimesheetStatus.RETURNED)
@@ -87,11 +89,11 @@ class TimesheetStateMachineTest {
     @DisplayName("H-6 D-1a-126 the work date is what the employee entered: it cannot be after today, and a resubmission cannot rewrite it")
     void theWorkDateIsEnteredAndKept() {
         assertThatThrownBy(() -> Timesheet.draft(new TimesheetId(TestIds.uuid(7)), new DocumentNumber("TS-1"), new AggregateReference("NumberingCounter", TestIds.uuid(11)),
-                OWNER, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(5), TODAY.plusDays(1), Hours.of("8"), TestAccounts.employee(40), TODAY))
+                new NumberingRuleVersionId(TestIds.uuid(12)), OWNER, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(5), TODAY.plusDays(1), Hours.of("8"), TestAccounts.employee(40), TODAY))
                 .isInstanceOfSatisfying(DomainException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(TimesheetError.COST_TIMESHEET_WORK_DATE_IN_FUTURE));
         Timesheet today = Timesheet.draft(new TimesheetId(TestIds.uuid(8)), new DocumentNumber("TS-2"), new AggregateReference("NumberingCounter", TestIds.uuid(11)),
-                OWNER, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(5), TODAY, Hours.of("8"), TestAccounts.employee(40), TODAY);
+                new NumberingRuleVersionId(TestIds.uuid(12)), OWNER, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(5), TODAY, Hours.of("8"), TestAccounts.employee(40), TODAY);
         assertThat(today.workDate()).isEqualTo(TODAY);
 
         Timesheet returned = in(TimesheetStatus.RETURNED);

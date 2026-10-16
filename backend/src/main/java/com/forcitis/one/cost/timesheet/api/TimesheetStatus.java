@@ -1,6 +1,6 @@
 package com.forcitis.one.cost.timesheet.api;
 
-/** RETURNED and DRAFT are the two states in which the content may be changed and the timesheet submitted again. */
+/** DRAFT, RETURNED and REJECTED are the states in which the content may be changed and the timesheet submitted again. */
 public enum TimesheetStatus {
     DRAFT,
     SUBMITTED,
@@ -9,6 +9,6 @@ public enum TimesheetStatus {
     REJECTED;
 
     public boolean isEditable() {
-        return this == DRAFT || this == RETURNED;
+        return this == DRAFT || this == RETURNED || this == REJECTED;
     }
 }
