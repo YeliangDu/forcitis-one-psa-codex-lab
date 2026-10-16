@@ -1,6 +1,6 @@
 # one-architecture 速查（2026-10-15）
 
-> **接续必读（2026-10-16 交接）**：先读 `proposals/HANDOFF_2026-10-16.md`（在途项、下一张确认页内容、未推送分支），再读本文件与画像「工作守则」。
+> **接续必读（2026-10-16 下午）**：本表「在途 PR」「当前步」为准；`proposals/HANDOFF_2026-10-16.md` 只作上午的历史。
 
 
 规矩：结构性选择只推荐、不裁定，用户答复为准；先在 SSOT 登记再写代码；已有 SSOT 只引用不复制；一行一项，过程放链接（SESSION_PLAYBOOK §2.1 第 13 条）。
@@ -23,9 +23,9 @@
 
 | 项 | 值 |
 |---|---|
-| 在途 PR | #290（阶段与 BC 答复）→ #299（完整性检查、METHOD 第 4 稿）→ #301（完整性答复、知识条目）排队；本分支 `claude/one-architecture-method-steps`（K-1/P-1 落文、第①②步提议稿）未开 PR |
+| 在途 PR | #324（ADR-0048 成文、G-DDL1、第③步答复落文）→ #327（第④步回溯，叠在 #324）→ #334（⑥a 流程清单、J 检查清单、对照标准确认页，叠在 #327）；均待 one-coordinator 入队 |
 | 已定（2026-10-16） | ADR-0046（12 月与第 13 期同时关账）、ADR-0047（视为同意）已采纳；阶段类型 S1–S6；BC 划分 D-1–D-9、D-8 期满判定在 receivables.wip；完整性 C-1–C-8、INV-62、Q29 宽口径（证据升一级）；D-7 提前拆 accounting.tax；K-1 知识条目（OBJ-110，km.knowledge）；P-1 回签前开票规则；METHOD M-1–M-7（7 步、两份一次性 ADR） |
 | 草稿位置 | proposals/：ENTERPRISE_INFO_MAP_DRAFT（一级 21）、ENTERPRISE_AGGREGATES_DRAFT（聚合 103、BC 29、查环脚本 aggregates_dep_check.py）、STAGE_TYPES_DRAFT、METHOD_V4_DRAFT、FRAMEWORKS_V4_DRAFT、OBJECT_COMPLETENESS_REPORT、STEP1_VALUE_STREAMS + value-streams.v2.yaml、STEP2_CAPABILITIES + capabilities.v2.yaml |
-| 当前步 | METHOD 第①②步按 opus 评审改稿中（题收为 Q-A 检查服务阶段、Q-B 门指不到对象、Q-C 股东价值流、Q-D 不做范围）→ 第③步阶段写实与能力—阶段对账 → 回到②④⑤ → ⑥a 全企业流程清单 → 回溯售前段 → 两份一次性 ADR |
+| 当前步 | ⑥a 提议稿已出（`proposals/STEP6A_PROCESSES.md`，gaps 18 条），等 one-coordinator 派的独立 opus 审查（不自审）；对照标准确认页 https://claude.ai/artifact/9M1be9qRAfRF4LxVMpV2iN （收件箱 2026-10-16-one-architecture-lock，含 ADR-0047 修订）待用户；J1–J7 清单已交 one-quality 写脚本 → 审查与答复回来后处理 gaps 回溯 → 回溯售前段 → 两份一次性 ADR |
 | 规矩 | 要用户定的：确认页（不预选，ADR-0041 决定 6）＋待决定收件箱 https://claude.ai/artifact/RVU6nNNSsygF5sVRWLhQ15 （集合 inbox）；确认页用 contract 0.2.80；纯文档作者自检，结构判定仍 opus；直连 one-glossary、one-data（数据落点与第 11 步）；取证登记 #298 合入后用 phase1a/infra/new_legacy_read.py 片段，在途分支合 main 时丢老表改动重登 |
-| 待办 | 新用语交 one-glossary（OBJ-105–110、知识条目等）；工时单一人一日一单与 CANCELLED（已报调度）；C1 到期端口已登记 |
+| 待办 | 新用语交 one-glossary（#320 已登记商票、诉讼等；STEP6A §4 流程用语待交；「核销」处置取值与「已核销」重名）；往来款项处置分类其余取值待用户；「争议」与「争议应收」待用户（one-glossary 收件箱）；WY-1 待用户追认；工时单填报义务待 one-rules |
