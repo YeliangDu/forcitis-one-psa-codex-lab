@@ -9299,7 +9299,7 @@ processes:
       goto: 3
     gap: 命令缺口：SCR 聚合稿 §2.2 的 AGG-13 命令列与事件列均未列「标记协议借阅逾期」「协议借阅已逾期」（回补 NOTES 称已列，待 one-architecture 核对）
   frequency_ref: 待取证（E-B1）；经验估计：每月约 4 笔
-  support: 合同档案支持活动（合同模块档案功能，C-4，intent 144943）：只处理已归档合同原件的借阅流转，不改变任何价值流阶段的进入或退出对象状态
+  support: 合同档案支持活动（B-05 合同模块档案功能，C-4，intent 144943）：只处理已归档合同原件的借阅流转，不改变任何价值流阶段的进入或退出对象状态
 - id: PRC-141
   name: 销售合同归档
   trigger:
@@ -9388,7 +9388,7 @@ processes:
       typical_min: 15
       p90_min: 30
   frequency_ref: 待取证（E-B1）；经验估计：每月约 15 份
-  support: 合同档案支持活动（C-4 归档并入合同模块档案功能，intent 144943）：回签后原件移交档案，不改变 VS-04.1 退出状态
+  support: 合同档案支持活动（B-05，C-4 归档并入合同模块档案功能，intent 144943）：回签后原件移交档案，不改变 VS-04.1 退出状态
 - id: PRC-149
   name: 冲销收入确认
   added_in: closeout
@@ -10540,7 +10540,7 @@ event_policies:
       department_hint: 行政或档案部门
       position_hint: 档案管理员
   frequency_ref: 待取证（E-B1）；经验估计：每月约 2 次
-  support: 合同档案支持活动：借阅逾期催还，随 PRC-140，不改变任何阶段状态
+  support: 合同档案支持活动（B-05）：借阅逾期催还，随 PRC-140，不改变任何阶段状态
 - id: PRC-147
   name: 费用报销核定后冲抵员工借款并确认应付
   trigger:
