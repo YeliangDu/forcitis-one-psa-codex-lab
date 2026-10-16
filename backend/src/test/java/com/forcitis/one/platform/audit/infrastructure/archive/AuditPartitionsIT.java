@@ -3,6 +3,9 @@ package com.forcitis.one.platform.audit.infrastructure.archive;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditEntry;
@@ -23,6 +26,7 @@ import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -144,6 +148,26 @@ class AuditPartitionsIT {
                 .isInstanceOf(DataAccessException.class).hasMessageContaining("no partition of relation");
         assertThatThrownBy(() -> repository.save(entry(), Instant.parse("2020-01-15T00:00:00Z"))).isInstanceOf(DataAccessException.class);
         assertThat(jdbc.sql("select count(*) from " + ENTRIES).query(Long.class).single()).isZero();
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-07 a write into a month without a partition raises the ALERT and the failure is rethrown unchanged; a violated CHECK constraint raises no such ALERT")
+    void onlyAMissingPartitionRaisesTheAlert() {
+        Logger logger = (Logger) LoggerFactory.getLogger("com.forcitis.one.platform.audit.infrastructure.persistence.JdbcAuditEntryRepository");
+        ListAppender<ILoggingEvent> logged = new ListAppender<>();
+        logged.start();
+        logger.addAppender(logged);
+        try {
+            assertThatThrownBy(() -> repository.save(entry(), Instant.parse("2020-01-15T00:00:00Z"))).isInstanceOf(DataAccessException.class).hasMessageContaining("no partition of relation");
+            assertThat(logged.list).extracting(ILoggingEvent::getFormattedMessage).anyMatch(m -> m.startsWith("ALERT platform.audit late audit entry") && m.endsWith("no audit partition") && m.contains("2020-01-01"));
+
+            logged.list.clear();
+            AuditEntry emptyDetail = new AuditEntry("test.audit.partition", null, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, UUID.randomUUID()), "");
+            assertThatThrownBy(() -> repository.save(emptyDetail, Instant.parse("2026-10-12T00:00:00Z"))).isInstanceOf(DataAccessException.class).hasMessageContaining("ck_audit_entries_detail_length");
+            assertThat(logged.list).extracting(ILoggingEvent::getFormattedMessage).noneMatch(m -> m.contains("no audit partition"));
+        } finally {
+            logger.detachAppender(logged);
+        }
     }
 
     @Test

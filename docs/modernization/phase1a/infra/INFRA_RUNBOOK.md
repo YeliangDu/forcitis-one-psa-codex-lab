@@ -312,7 +312,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 - **预建**：`platform_audit.audit_entries` 按 UTC 月分区（`audit_entries_pYYYYMM`），没有默认分区，某月没有分区时该月的审计写入会失败。应用的 `AuditPartitionJob`（ShedLock `platform.audit.entry.partitions`）在启动时和每天 01:20 把当月起、再往后 `forcitis.platform.audit.partitions.months-ahead`（3）个月的分区补齐；失败记 `ALERT platform.audit …` 并计数 `forcitis.platform.audit.partitions.failures`。基线本身建 2026-10 起 6 个月。
 - **删除已归档月份**（在线 3 年之后；应用不做，只由维护角色手工执行）：
   1. 确认该月已全部归档：`AuditArchiveJob` 最近一次运行无 `ALERT platform.audit the audit trail up to entry …`，`audit_archive_batches` 里该月的批次已写入归档库。
-  2. 用 `one_<环境>_audit_maintainer` 连接（口令由运维持有，不入仓库），执行：`SELECT platform_audit.drop_archived_audit_entry_partition(DATE 'YYYY-MM-01');`（月初，UTC 月）。
+  2. 用 `one_<环境>_audit_maintainer` 连接（口令由运维持有，不入仓库），执行：`SELECT platform_audit.drop_archived_audit_entry_partition(DATE 'YYYY-MM-01');`（月初，UTC 月）。（低峰执行：删除会锁住审计表全部月分区，最长阻塞写入 5 秒（`lock_timeout`），超时即失败，重试即可）
   3. 函数自己校验：分区存在；分区里没有排在归档位置之后的行；分区行数等于该月归档批次的条目数之和。任一不符报错、不删，返回值为删除的行数；不符时不要绕过，先查清归档缺口。
   4. 删除后无需其他操作：对账只比较仍在线的月份。运行角色（`one_<环境>_app`）没有此函数的执行权，也不能 DETACH 或 DROP。
 
