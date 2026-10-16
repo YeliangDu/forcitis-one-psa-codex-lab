@@ -594,7 +594,8 @@ processes:
   - id: PRC-64
     name: "导入银行流水"
     type: business
-    stages: [VS-04.4, VS-05.5]
+    stages: []
+    support: "导入银行流水是资金数据的采集，结局（流水已导入）不造出任何阶段的退出条件；为付款、回款的匹配提供依据（#421 判据①不支持归段）"
     owner_bc: "B-22"
     group: finance
     status: draft
@@ -603,7 +604,8 @@ processes:
   - id: PRC-65
     name: "维护资金账户"
     type: single_aggregate
-    stages: [VS-04.4, VS-05.5]
+    stages: []
+    support: "资金账户是主数据维护，不推进任何价值流对象的阶段状态（#421 判据①不支持归段）"
     owner_bc: "B-22"
     group: finance
     status: draft
@@ -678,7 +680,8 @@ processes:
   - id: PRC-73
     name: "登记并查验进项发票"
     type: business
-    stages: [VS-05.4, VS-08.2]
+    stages: [VS-05.4]
+    stages_note: "结局「进项发票已用途确认 / 已入账」造出 VS-05.4 应付确认的退出条件（#421 判据①）"
     owner_bc: "B-23"
     group: finance
     status: draft
@@ -696,8 +699,8 @@ processes:
   - id: PRC-75
     name: "发起、审批并执行付款"
     type: business
-    stages: [VS-05.5, VS-08.1, VS-08.3, VS-12.2, VS-12.3, VS-13.5]
-    stages_note: "VS-08 只承担 .1 借支、.3 报销付款中的付款时刻；.2 报销核定由 PRC-87 承担，不算跳段（finance STAGES.md，06e6c36b）"
+    stages: [VS-05.5, VS-08.3, VS-13.5]
+    stages_note: "结局「付款已成功 / 已核销」造出 VS-05.5 付款、VS-08.3 报销付款、VS-13.5 的退出条件（#421 判据①）；借款发放不让借款结清，不归 VS-08.1；利润分配与出资退回的退出条件由 PRC-163、PRC-114 造出"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -897,7 +900,8 @@ processes:
   - id: PRC-97
     name: "批准并生效分摊规则版本"
     type: business
-    stages: [VS-10.1]
+    stages: []
+    support: "分摊规则版本是配置，供 VS-10 的分摊运行使用，本身不造出阶段退出条件（#421）"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -924,7 +928,8 @@ processes:
   - id: PRC-100
     name: "发布总账配置版本"
     type: business
-    stages: [VS-10.1]
+    stages: []
+    support: "科目表、映射表、授权表版本是总账配置，不造出阶段退出条件（#421）"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -951,7 +956,8 @@ processes:
   - id: PRC-103
     name: "生成期间余额快照"
     type: event_policy
-    stages: [VS-10.2]
+    stages: [VS-10.1]
+    stages_note: "事件策略按触发状态「会计期间已关账」归段（#421 判据②），该状态是 VS-10.1 期间关账的退出条件"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -970,7 +976,8 @@ processes:
   - id: PRC-105
     name: "评审并生效报表行定义版本"
     type: business
-    stages: [VS-10.2]
+    stages: []
+    support: "报表行定义版本是配置，供出具报表使用，不造出阶段退出条件（#421）"
     owner_bc: "B-21"
     group: finance
     status: draft
@@ -1211,8 +1218,8 @@ processes:
   - id: PRC-131
     name: "付款成功后核销应付"
     type: event_policy
-    stages: [VS-05.5, VS-08.1, VS-08.3, VS-12.2, VS-12.3, VS-13.5]
-    stages_note: "VS-08 只承担 .1 借支、.3 报销付款中的付款时刻；.2 报销核定由 PRC-87 承担，不算跳段（finance STAGES.md，06e6c36b）"
+    stages: [VS-05.5, VS-08.3, VS-13.5]
+    stages_note: "事件策略按触发状态「付款已成功」归段（#421 判据②），该状态是 VS-05.5、VS-08.3、VS-13.5 的退出条件"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1221,8 +1228,8 @@ processes:
   - id: PRC-132
     name: "应付核销后置付款已核销并提交过账候选"
     type: event_policy
-    stages: [VS-05.5, VS-08.1, VS-08.3, VS-12.2, VS-12.3, VS-13.5]
-    stages_note: "VS-08 只承担 .1 借支、.3 报销付款中的付款时刻；.2 报销核定由 PRC-87 承担，不算跳段（finance STAGES.md，06e6c36b）"
+    stages: [VS-05.5, VS-08.3, VS-13.5]
+    stages_note: "事件策略按触发状态「应付已核销」归段（#421 判据②），与 PRC-131 同段"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1654,8 +1661,8 @@ processes:
   - id: PRC-176
     name: "预付款核销"
     type: single_aggregate
-    stages: [VS-05.4]
-    stages_note: "预付款在取得发票、确认应付时核销，属「应付确认」（阶段描述「确认应付」）；原挂 VS-05.5 改"
+    stages: [VS-05.5]
+    stages_note: "预付款核销使应付「已结清 / 部分结」，造出 VS-05.5 付款的退出条件（#421 判据①）"
     owner_bc: "B-10"
     group: finance
     status: draft
