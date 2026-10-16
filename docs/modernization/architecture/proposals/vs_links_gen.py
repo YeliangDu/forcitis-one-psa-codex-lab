@@ -231,7 +231,7 @@ def stats(data, rows, nshared, ndeps, referenced, level1, unref):
     gaps_used = sorted({lf["gap"] for _, _, lf in rows if lf["ref"] == GAP_REF})
     lines = [
         f"- 价值流 {len(vss)} 条（{'、'.join(v['id'] + ' ' + v['name'] for v in vss)}），阶段 {nst} 个。",
-        f"- 条件引用对象 {len(objs)} 个、{nobj_refs} 处（含起始、结果、段内、活动输入输出）；引用「缺对象状态」{ngap} 处，涉及 {len(gaps_used)} 项（{'、'.join(gaps_used)}）。",
+        f"- 条件引用对象 {len(objs)} 个、{nobj_refs} 处（含起始、结果、段内、活动输入输出）；引用「缺对象状态」" + (f"{ngap} 处，涉及 {len(gaps_used)} 项（{'、'.join(gaps_used)}）。" if gaps_used else "无。"),
         f"- 对象状态 {ndeps} 个被引用，其中 {nshared} 个被两条及以上价值流引用（见共享依赖表）。",
         f"- 一级对象 {len(level1)} 个，被条件引用 {len(level1) - len(unref)} 个，未被引用 {len(unref)} 个（{'、'.join(unref)}），处置见第 4.3 节。",
         f"- 对象状态冲突或待定 {len(data.get('state_caveats', []))} 处。",
