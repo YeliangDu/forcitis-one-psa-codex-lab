@@ -397,8 +397,8 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 | `bill_redemption_status__received` | 收到 | Received | 领域 · receivables.collection | 商业承兑汇票已收到，尚未到期兑付 |  |  |
 | `bill_redemption_status__redeemed` | 已兑付 | Redeemed | 领域 · receivables.collection | 商业承兑汇票到期已兑付，计现金流入（FD-40） |  |  |
 | `bill_redemption_status__overdue` | 已逾期 | BillOverdue | 领域 · receivables.collection | 商业承兑汇票到期日已过而未兑付；与应收账款的逾期（逾期应收）、审批任务的已超时不同 |  |  |
-| `receivable_disposition_category` | 往来款项处置分类 | ReceivableDispositionCategory | 领域 · receivables.collection | 应收、应付往来款项出现争议或无法正常收付时的处置分类，诉讼是其中一类；其余取值待 one-architecture 列出 |  | 取值清单待 one-architecture 补 |
+| `receivable_disposition_category` | 往来款项处置分类 | ReceivableDispositionCategory | 领域 · receivables.collection | 应收、应付往来款项出现争议或无法正常收付时的处置分类，诉讼是其中一类；其余取值未定（信息图候选：复工、结算、诉讼、核销，待用户确认页定） |  | 信息图候选取值：复工、结算、诉讼、核销，待用户确认页定，目前只登记诉讼 |
 | `litigation` | 诉讼 | Litigation | 领域 · receivables.collection | 往来款项处置分类之一：已进入诉讼或仲裁程序 |  |  |
-| `continuing_education_hours` | 继续教育学时 | ContinuingEducationHours | 领域 · organization.workforce | 注册执业证书的属性：持证人在周期内已完成的继续教育学时，用于证书续期条件的判断 |  | 依据待核原文 |
+| `continuing_education_hours` | 继续教育学时 | ContinuingEducationHours | 领域 · organization.workforce | 注册执业证书的属性：持证人在注册有效期内累计完成的继续教育学时，分必修与选修；达标是延续注册的条件 |  | 依据已由 one-architecture 核对原文（2026-10-16） |
 | `drawing_review_opinion` | 施工图审查意见 | DrawingReviewOpinion | 领域 · delivery.acceptance | 施工图审查机构对施工图出具的审查意见，作证据类型 |  | 随证据（Q29）暂不定的部分一并确认 |
 | `drawing_review_certificate` | 施工图审查合格书 | DrawingReviewCertificate | 领域 · delivery.acceptance | 施工图审查通过后出具的合格书，作证据类型 |  |  |
