@@ -1,0 +1,9 @@
+-- one-data Q-02 补充：ORG_POST 全部行的岗位清单（ID、CODE、NAME、STATUS、IS_DELETED）与在职人数（同步范围内、未删除、启用；人数 1–2 写「< 3」）。岗位名称是组织结构信息；不含人与岗位的对应。只在 a8_db 上下文出结果。
+SELECT P.ID, P.CODE, P.NAME, P.STATUS, P.IS_DELETED,
+       CASE WHEN c.n BETWEEN 1 AND 2 THEN N'< 3' ELSE CAST(c.n AS nvarchar(20)) END AS active_people
+  FROM a8_db.dbo.ORG_POST P
+  CROSS APPLY (SELECT COUNT(*) AS n FROM a8_db.dbo.ORG_MEMBER M JOIN a8_db.dbo.ORG_UNIT U ON U.ID = M.ORG_DEPARTMENT_ID
+                WHERE M.ORG_POST_ID = P.ID AND M.IS_DELETED = 0 AND M.IS_ENABLE = 1 AND M.STATE = 1 AND (M.IS_INTERNAL = 1 OR M.IS_INTERNAL IS NULL)
+                  AND M.CODE IS NOT NULL AND M.CODE <> N'' AND U.PATH LIKE N'00000001%') c
+ WHERE DB_NAME() = N'a8_db' ORDER BY P.SORT_ID, P.ID;
+GO
