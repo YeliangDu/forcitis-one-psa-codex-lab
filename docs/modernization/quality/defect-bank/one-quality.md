@@ -109,7 +109,7 @@
 
 - **日期**：2026-10-16
 - **类别**：其他
-- **现象**：`OrgSnapshotSyncIntegrationTest` 失败 3 次。报错特征：`TooManyActualInvocations` 或 `Wanted ... but was` 指向对 `AuditLog` 一类共享协作者的 `verify(...)`。
+- **现象**：`OrgSnapshotSyncIntegrationTest` 失败 3 次。报错特征：`TooManyActualInvocations`（出现在对 `AuditLog` 一类共享协作者的 `verify(...)` 之后）。
 - **根因**：测试对被异步路径共用的协作者做不限定条目的 `verify(times(n))`，别的路径的调用混进计数（违反 CS-5.6：只断言本测试的动作、等待要确定）。
 - **拦下于**：CI 才发现（05a38acd 修）。
 - **漏过于**：作者自审、独立评审（评审清单没有「对共享协作者 verify 必须限定条目」一条）。
