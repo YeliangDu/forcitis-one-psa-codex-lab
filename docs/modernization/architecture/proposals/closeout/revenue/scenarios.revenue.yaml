@@ -2617,7 +2617,7 @@ PRC-147:
 PRC-148:
 - id: PRC-148-S01
   path: 收到审批已通过，二次校验通过→1→2
-  outcome: 收入已确认
+  outcome: 收入确认事实已过账
   expect: 追加不可改确认事实、占用转实，发 RevenueRecognized，提交过账候选
 - id: PRC-148-S02
   path: 收到审批已驳回→3
