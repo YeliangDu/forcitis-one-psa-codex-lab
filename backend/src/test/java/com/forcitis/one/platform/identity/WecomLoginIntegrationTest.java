@@ -65,7 +65,8 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(recorded()).anySatisfy(entry -> {
             assertThat(entry.action()).isEqualTo("platform.identity.login.succeeded");
             assertThat(entry.actorId().value()).isEqualTo(accountOf(1001));
-            assertThat(entry.detail()).contains("method=WECOM_WORKBENCH").contains("address=127.0.0.1");
+            assertThat(entry.detail()).contains("method=WECOM_WORKBENCH").doesNotContain("address=").doesNotContain("agent=");
+            assertThat(entry.sourceAddress()).isEqualTo("127.0.0.1");
         });
         assertThat(recordedIndependently()).anySatisfy(entry -> assertThat(entry.action()).isEqualTo("platform.identity.login.failed"));
         assertThat(jdbc.sql("select last_login_address from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(1001))
