@@ -290,27 +290,6 @@ commands:
   used_by: [事件策略「补休额度到期转计薪」（计发见 PRC-178 入口 1）]
   unused_ok: 由事件策略「补休额度到期转计薪」（定时）调用，不在流程步骤；计发归 B-15 的 PRC-178（S-41）
   orphan: false
-- name: 离职结算补休余额
-  aggregate: AGG-71
-  entity: leave_comp_grants
-  kind: automatic
-  name_status: 〔缺〕收敛新增，待 one-glossary 登记（settle_comp_leave_on_separation）
-  source: 用户页 P13-05；离职时未休余额一并结算进最后一次薪酬
-  params: [员工ID, 离职日期]
-  preconditions:
-  - {ref: 触发, text: 离职生效后（Separated）；该员工全部有效额度行的未休余额转为计薪时长并关闭（余额为零的只关闭）}
-  - {ref: 占用, text: 额度行仍有无法释放的占用中请假的，该行结局为结算待处理，告警人力，其余额度行照常结算}
-  - {ref: 计发, text: 本命令只冻结额度（不再可占用）并移交；计入加班工资由 B-15 订阅 Separated 后在 PRC-178 入口 2 读取余额处理，随最后一期薪酬由 PRC-124 计发；本命令不算钱}
-  authority:
-    ref: raci:AGG-71/离职结算补休余额
-    A: {resolve: type, role: SH-E6, function: 人力（考勤）}
-    R: [system]
-  idempotency_key: 员工ID + 离职日期（已结算无操作）
-  state_change: 有效 → 已转计薪 / 已休完
-  emits: （内部）
-  used_by: [事件策略「离职结算补休余额」（计发见 PRC-178 入口 2）]
-  unused_ok: 由事件策略「离职结算补休余额」（订阅 Separated）调用，不在流程步骤；计发归 B-15 的 PRC-178（S-41）
-  orphan: false
 # ───────── AGG-72 加班 ─────────
 - name: 加班申请
   aggregate: AGG-72
@@ -620,9 +599,9 @@ event_policies:
   trigger_event: Separated（B-13 发布，vs07 PRC-128 第 7 步）
   effect: 该人员当月（及仍未确认的以往月份）已生成而未确认的月度考勤，立即发默认确认月度考勤（标记已离职）；尚未生成的由 PRC-118 第 1 步在月末处理
   uses_command: 默认确认月度考勤
-  used_by: [PRC-128 第 7 步（B-27 订阅）]
+  used_by: [PRC-118 第 7 步（事件入口，B-27 订阅 Separated）]
   rules: [R-e]
-  note: 取代 vs07 原「考勤待代确认」待办；B-27 → B-13 现只有 api 边，事件边需补登（vs07 接缝问题 1）；若用户改回人力代确认（U6′），此策略取消
+  note: 取代 vs07 原「考勤待代确认」待办；S-42：已落 PRC-118 第 7 步的事件入口（B-27 订阅 Separated，B-27 → B-13 事件边由 one-architecture 补登）；若用户改回人力代确认（U6′），此策略取消
 - name: 年度开账
   trigger_event: 定时：每年年初；Employed（B-13 发布）覆盖年中入职
   effect: 对每名在职人员 × 占额度的假期类型开立该年度账户
@@ -637,14 +616,8 @@ event_policies:
   used_by: [PRC-117 第 5 步到期移交（计发见 PRC-178 入口 1）]
   rules: []
   note: 不作废：单位无「已安排」证据时不得以员工未休为由作废（劳动法第四十四条原意是单位安排补休）；到期前的提醒是 PRC-117 第 5 步的非中断计时，不是策略
-- name: 离职结算补休余额
-  trigger_event: Separated（B-13 发布，vs07 PRC-128 第 7 步）
-  effect: 该员工全部有效补休额度行的未休余额转为计薪时长并关闭
-  uses_command: 离职结算补休余额
-  used_by: [PRC-128 第 7 步（B-27 订阅；计发见 PRC-178 入口 2）]
-  rules: []
-  note: 与「离职当月考勤默认确认」同订阅 Separated，同一条 B-27 → B-13 事件边（vs13att.notes.md 接缝问题 1）；最后一期薪酬由 B-15 读取转计薪时长
 removed:
+- {name: 离职结算补休余额（命令与同名事件策略）, from: 分片 S-41 收敛新增, reason: S-42 接缝检查：Separated → B-27 的补休结算订阅删除；离职时未休补休余额已由 B-15 的 PRC-178 入口 2 订阅 Separated 后经 api 读取并计入加班工资，B-27 不再冻结额度（员工离职后账号已吊销，无法再占用补休）, action: 命令、事件策略、权责条目与状态机两条转换一并删除；待 one-glossary 撤回已登记的 settle_comp_leave_on_separation}
 - {name: 代员工确认, from: 分片 vs13.notes.md 新用语（已取消）, reason: 用户新原则：月度考勤期满默认确认并自动锁定，人力不再代确认, action: 由默认确认月度考勤取代；已登记交 one-glossary 的请撤回}
 orphans:
 - {name: 发布假期规则版本, aggregate: AGG-118, reason: 无流程覆盖维护, action: 交 one-architecture 补维护流程}

@@ -50,6 +50,8 @@ meta:
 
 
 
+
+
 processes:
 
   - id: PRC-80
@@ -606,7 +608,7 @@ processes:
           - {when: 公司决定不予转正, goto: PRC-128}
           - {when: otherwise, goto: end}
         cross_bc:
-          - {mode: event, direction: out, bc: B-15, name: 〔缺〕转正已办理}   # B-15 据此复核转正后薪酬（PG-10）；聚合稿现只发内部事件
+          - {mode: event, direction: out, bc: B-15, name: 〔缺〕转正已办理}   # B-15 订阅后在 PRC-123 生成待办复核转正后薪酬（S-42，PG-10）；聚合稿现只发内部事件
     notes: "转正后薪酬是否调整由 B-15 自己的调薪流程处理，本流程只发事件（PG-10）。无人工审批：转正是评估确认后的登记，不予转正转入 PRC-128（保留审批）。"
 
   - id: PRC-88
@@ -1241,6 +1243,7 @@ processes:
     triggers:
       - {type: time, name: "月末生成（platform.scheduling 定时）；确认期限届满锁定"}
       - {type: human, name: "人力在导入修复后重新发起生成"}
+      - {type: event, entry: 7, name: "员工离职生效（B-13 发布 Separated；S-42）", event: Separated, bc: B-13}
     stages: [VS-13.1]
     owner_bc: B-27
     human_orchestration: false
@@ -1248,7 +1251,7 @@ processes:
     migration: "历史月度考勤确认（老系统月 × 一级部门 1,026 单）与人员 × 月不对应：按 NOTES 待用户定数据 2 处理，本流程不触发、不回放；锁定前的在途月份按当前状态迁入"
     scope: "员工本人看自己的；用人经理看汇报线内；人力看法人数据范围内"
     outcomes: [已锁定, 已暂缓]
-    scenarios: [PRC-118-S01, PRC-118-S02, PRC-118-S03, PRC-118-S04, PRC-118-S05]   # S01 员工确认后期限届满自动锁定；S02 员工提出更正，补卡后重新生成再确认；S03 逾期未确认，默认确认并锁定、标记；S04 离职当月，账号已吊销，默认确认并锁定；S05 当月有日期导入失败，暂缓生成
+    scenarios: [PRC-118-S01, PRC-118-S02, PRC-118-S03, PRC-118-S04, PRC-118-S05, PRC-118-S06]   # S06 员工离职生效（Separated），离职当月已生成未确认的月度考勤立即默认确认并锁定；S01 员工确认后期限届满自动锁定；S02 员工提出更正，补卡后重新生成再确认；S03 逾期未确认，默认确认并锁定、标记；S04 离职当月，账号已吊销，默认确认并锁定；S05 当月有日期导入失败，暂缓生成
     roles:
       - {id: SH-E3, as: performer, org_needs: {responsibility: "核对并确认本人当月出勤、请假、加班，有异议提出更正", approval_right: "无（确认是数据主体对自己事实的确认，不是审批）", department_hint: "员工所在部门", position_hint: "全体在职员工"}}      # 员工：确认或更正本人月度考勤
       - {id: SH-E1, as: informed, org_needs: {responsibility: "接收逾期未确认名单，必要时提醒下属", approval_right: "无", department_hint: "员工所在组织单元", position_hint: "部门负责人、用人经理"}}       # 用人经理：逾期未确认名单知会
@@ -1324,14 +1327,16 @@ processes:
           - {when: otherwise, goto: 2}
       - actor: system
         where: automatic
-        entry: 逾期未确认，或人员当月已离职、本人无法登录确认
+        entry: 逾期未确认，或人员当月已离职、本人无法登录确认，或员工离职生效（订阅 B-13 的 Separated，S-42）
         branch: 默认确认
         command: 〔缺〕默认确认月度考勤
         aggregate: AGG-97
         emits: [月度考勤已确认]
         pending: U6
-        desc: 取代原“人力手工锁定”与“人力代员工确认”：按生成结果默认确认并标记（逾期未确认 / 已离职），留存标记与审计；锁定后的异议走下月更正行。是否改回人力代确认离职人员见 U6
+        desc: 取代原“人力手工锁定”与“人力代员工确认”：按生成结果默认确认并标记（逾期未确认 / 已离职），留存标记与审计；锁定后的异议走下月更正行。是否改回人力代确认离职人员见 U6。S-42 事件入口：订阅 B-13 的 Separated，对该人员当月（及仍未确认的以往月份）已生成而未确认的月度考勤立即默认确认并标记已离职，不等确认期限；尚未生成的由第 1 步月末处理（已离职分支直达本步）；已确认或已锁定的不重复（幂等）
         audit: true
+        cross_bc:
+          - {mode: event, direction: in, bc: B-13, name: Separated}
         decision:
           - {when: otherwise, goto: 3}
         # 依据：用户原则「能规则化就不设人审」；RULE-363；STEP3 C-17（“确认”由默认确认满足，待 U6 确认）
@@ -1921,7 +1926,7 @@ processes:
           - {mode: event, direction: out, bc: platform.identity, name: Separated}   # PRC-129 吊销会话、PRC-138 停用企业微信与解绑；§1.4 G-2
           - {mode: event, direction: out, bc: B-15, name: Separated}               # PRC-130 参保减员，PRC-178 读取未休补休余额计入加班工资，并作为最后一期薪酬结算的在职终点
           - {mode: event, direction: out, bc: B-31, name: Separated}               # 生成 IT 资产归还待办（b31 PRC-143；聚合稿回补 §1），B-13 不依赖 B-31
-          - {mode: event, direction: out, bc: B-27, name: Separated}               # B-27 默认确认离职当月考勤、冻结未休补休额度（移交 B-15 计发）；B-27 → B-13 现只有 api 边（接缝问题）
+          - {mode: event, direction: out, bc: B-27, name: Separated}               # B-27 默认确认离职当月考勤（PRC-118 第 7 步事件入口）；B-27 → B-13 现只有 api 边（接缝问题）
       - actor: system
         where: automatic
         on_time: 步 7 之后立即
@@ -1950,16 +1955,14 @@ processes:
         command: 〔缺〕撤销离职登记
         aggregate: AGG-62
         emits: [〔缺〕离职登记已撤销]
-        desc: 离职日前撤销，状态回「在职」，B-31 随事件取消待办（B-27 只在 Separated 后处置，不订阅本事件）；离职日后不可撤销（已吊销访问，需走再入职）
+        desc: 离职日前撤销，状态回「在职」；B-27、B-31 均只在 Separated 后处置，不订阅本事件（S-42，撤销发生在离职生效前，无待办可取消）；离职日后不可撤销（已吊销访问，需走再入职）
         permission: 离职.撤销登记
         page: 离职办理页
         audit: true
         added_in: closeout
         outcome: 离职登记已撤销
-        cross_bc:
-          - {mode: event, direction: out, bc: B-31, name: 〔缺〕离职登记已撤销}
     notes: >
-      账号侧见 PRC-129（吊销会话）、PRC-138（角色授予、企业微信停用、解绑）；参保减员见 PRC-130；最后一期薪酬随月度结算发放（B-15），未休补休余额由 B-27 在 Separated 后冻结额度，B-15 订阅 Separated，经 PRC-178 读取余额并计入加班工资，随最后一期薪酬一并计发（PRC-124）。
+      账号侧见 PRC-129（吊销会话）、PRC-138（角色授予、企业微信停用、解绑）；参保减员见 PRC-130；最后一期薪酬随月度结算发放（B-15），未休补休余额由 B-15 订阅 Separated，经 PRC-178 读取余额并计入加班工资，随最后一期薪酬一并计发（PRC-124）。
       工作交接清单是单据不作门（VS-13.6 备注，Q-D 第 3 项不做）；IT 资产归还待办由 B-31 订阅 Separated 生成，B-13 不读 B-31。
       离职当月考勤确认由谁代确认见 notes 待用户定。员工提出的离职不再设批准（V-20）；公司单方终止保留一级批准。
       「发起公司终止」不再是独立命令，并入「申请离职」的来源取值，以便两个入口汇合在同一首步。
@@ -3426,7 +3429,7 @@ event_policies:
         command: 〔缺〕登记补休转加班工资
         aggregate: AGG-93
         pending: U15
-        desc: 离职生效后（Separated）B-15 读取该员工全部未休补休余额（B-27 在离职时已冻结额度，不再可占用），按加班工资基数折算的时薪 × 200% 计入加班工资，随最后一期薪酬由 PRC-124 计发；按额度行 ID 幂等，已登记的额度行不重复；加班工资基数取不到或余额读不到时失败并告警薪酬岗，不静默按零；无未休余额则无需计发
+        desc: 离职生效后（Separated）B-15 读取该员工全部未休补休余额（离职生效后劳动关系已终止，不再有补休可安排，余额只能折算计发；劳动法第四十四条、《工资支付暂行规定》第十三条），按加班工资基数折算的时薪 × 200% 计入加班工资，随最后一期薪酬由 PRC-124 计发；按额度行 ID 幂等，已登记的额度行不重复；加班工资基数取不到或余额读不到时失败并告警薪酬岗，不静默按零；无未休余额则无需计发
         audit: true
         notify: [{to: SH-E6, how: 企业微信待办}]      # 薪酬岗仅登记待处理时才发
         cross_bc:
@@ -3436,7 +3439,7 @@ event_policies:
           - {when: 员工无未休补休余额, goto: end, outcome: 无需计发}
           - {when: 加班工资基数取不到或补休额度行余额读取失败, goto: end, outcome: 登记待处理}
           - {when: otherwise, goto: end, outcome: 离职余额已计入加班工资}
-    notes: 入口 1 的事件由 B-27 在补休额度有效期届满发出，入口 2 订阅 B-13 的 Separated（与 PRC-130 同事件）；边 B-15 → B-27（api）与 B-15 → B-13（事件）均已有，不新增。B-27 侧保留命令补休到期转计薪（到期未休，发补休已到期未休）与离职结算补休余额（离职冻结额度，移交计发），金额与登记全在 B-15；B-27 因占用中请假暂不能转计薪或冻结时的告警属 B-27 命令前置条件（vs13att.commands.yaml）。
+    notes: 入口 1 的事件由 B-27 在补休额度有效期届满发出，入口 2 订阅 B-13 的 Separated（与 PRC-130 同事件）；边 B-15 → B-27（api）与 B-15 → B-13（事件）均已有，不新增。B-27 侧保留命令补休到期转计薪（到期未休，发补休已到期未休），金额与登记全在 B-15；B-27 因占用中请假暂不能转计薪时的告警属 B-27 命令前置条件（vs13att.commands.yaml）。S-42：B-27 不订阅 Separated 做补休结算（原命令离职结算补休余额已删），离职时由 B-15 入口 2 直接读取余额。
 
 single_aggregate:
 
@@ -3577,10 +3580,11 @@ single_aggregate:
     triggers:
       - {type: human, name: "人力按调薪决定登记薪酬档案新版本"}
       - {type: human, name: "员工本人年度申报专项附加扣除（人力可代录入）"}
+      - {type: event, entry: 1, name: "转正已办理（B-13 发布；S-42）", event: 转正已办理, bc: B-13}
     migration: "历史薪酬档案版本与专项附加扣除（老系统调薪申请单约 1 千行、工资补录档案）按生效区间迁入；迁入不发事件、不触发三口径预警（ADR-0036 M7）"
     scope: "仅人力薪酬岗与财务主管可见和调整；员工只读本人；薪酬与专项附加扣除均为敏感个人信息（ADR-0043）"
     outcomes: [薪酬档案已调整, 专项附加扣除已更新, 调整被拒]
-    scenarios: [PRC-123-S01, PRC-123-S02, PRC-123-S03, PRC-123-S04]   # S01 调薪生效日在未结月份；S02 生效日早于已批准薪酬所属月，补发补扣走下月；S03 年度更新专项附加扣除；S04 未引用调薪决定依据，调整被拒
+    scenarios: [PRC-123-S01, PRC-123-S02, PRC-123-S03, PRC-123-S04, PRC-123-S05]   # S05 转正已办理，生成待办提醒薪酬岗按劳动合同约定的转正工资登记新版本（版本生效日 = 转正日），不自动改薪；S01 调薪生效日在未结月份；S02 生效日早于已批准薪酬所属月，补发补扣走下月；S03 年度更新专项附加扣除；S04 未引用调薪决定依据，调整被拒
     roles:
       - {id: SH-E6, as: performer, org_needs: {responsibility: "依据调薪决定登记薪酬档案版本，年度更新专项附加扣除，对依据完整性负责", approval_right: "无（无依据即由规则拒绝；调薪决定是否进审批待用户定 U9）", department_hint: "人力资源部（薪酬岗）", position_hint: "薪酬岗"}}      # 人力（薪酬岗）
       - {id: SH-E3, as: initiator, org_needs: {responsibility: "本人年度申报或修改专项附加扣除，对申报内容负责；接收本人薪酬变更通知并核对", approval_right: "无（员工对申报内容负责，税务端核验）", department_hint: "员工所在部门", position_hint: "全体在职员工"}}       # 员工：本人发令（AGG-120），并接收本人薪酬变更通知
@@ -3591,6 +3595,7 @@ single_aggregate:
         emits: [薪酬档案已变更]
         aggregate: AGG-93
         pending: U9
+        entry: 人力按调薪决定登记，或收到转正已办理的待办后按劳动合同约定的转正工资登记（S-42）
         desc: 薪酬属性版本，调薪产生新版本，生效依据人事业务生效日（U-12）；规则守卫：调整必须引用调薪决定依据（审批单据 ID 或决定文件），无依据即拒绝。调薪决定本身是否进审批平台见 notes 待用户定 U9（推荐进：approver=cost_object_owner，薪酬标准变更是对个人长期薪酬的承诺，规则无法判断合理性，属高风险，金额超阈值按 AR-01、AR-02 加审），U9 定后此步前加审批节点
         permission: 薪酬档案.调整
         page: 薪酬档案页
@@ -3603,6 +3608,7 @@ single_aggregate:
           - {when: otherwise, goto: end, outcome: 薪酬档案已调整}
         cross_bc:
           - {mode: api, direction: out, bc: B-13, name: 读取人员与任职}
+          - {mode: event, direction: in, bc: B-13, name: 〔缺〕转正已办理}   # S-42：订阅后生成待办提醒人力（薪酬岗），不自动改薪；待办的版本生效日 = 转正日（U-12）
       - actor: SH-E3
         where: in_system
         command: 更新专项附加扣除
@@ -3613,7 +3619,7 @@ single_aggregate:
         page: 专项附加扣除页
         audit: true
         outcome: 专项附加扣除已更新
-    notes: AGG-93 含敏感个人信息，按 ADR-0043 登记访问级别。建立薪酬档案在 PRC-84；PRC-85 办理转正不通知 B-15，转正调薪靠人力人工发现（PG-10）。
+    notes: AGG-93 含敏感个人信息，按 ADR-0043 登记访问级别。建立薪酬档案在 PRC-84。S-42 事件入口：B-15 订阅 B-13 的〔缺〕转正已办理（事件策略「转正后复核薪酬」，边 B-15 → B-13 事件已有），生成待办提醒薪酬岗按劳动合同约定的转正工资调整薪酬档案，版本生效日 = 转正日（U-12），不自动改薪（工资金额以劳动合同约定为准，系统不推定）；待办处理仍走第 1 步，须引用调薪决定依据（劳动合同或转正决定文件）；取代原 PG-10「转正调薪靠人力人工发现」。
 
   - id: PRC-162
     name: 发布假期规则版本

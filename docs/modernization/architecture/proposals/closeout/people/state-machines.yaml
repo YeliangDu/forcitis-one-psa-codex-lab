@@ -813,21 +813,6 @@ machines:
     - 到期日届满
     - 未休余额为零
     kind: forward
-  - from: leave_comp_grant:有效
-    to: leave_comp_grant:已转计薪
-    command: 离职结算补休余额
-    guard:
-    - 离职生效后
-    - 未休余额大于零
-    - 无法释放的占用中请假已处理
-    kind: forward
-  - from: leave_comp_grant:有效
-    to: leave_comp_grant:已休完
-    command: 离职结算补休余额
-    guard:
-    - 离职生效后
-    - 未休余额为零
-    kind: forward
   source_part: vs13att
   note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
 - aggregate: AGG-72

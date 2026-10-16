@@ -408,7 +408,7 @@ processes:
           - {when: 公司决定不予转正, goto: PRC-128}
           - {when: otherwise, goto: end}
         cross_bc:
-          - {mode: event, direction: out, bc: B-15, name: 〔缺〕转正已办理}   # B-15 据此复核转正后薪酬（PG-10）；聚合稿现只发内部事件
+          - {mode: event, direction: out, bc: B-15, name: 〔缺〕转正已办理}   # B-15 订阅后在 PRC-123 生成待办复核转正后薪酬（S-42，PG-10）；聚合稿现只发内部事件
     notes: "转正后薪酬是否调整由 B-15 自己的调薪流程处理，本流程只发事件（PG-10）。无人工审批：转正是评估确认后的登记，不予转正转入 PRC-128（保留审批）。"
 
   - id: PRC-83
@@ -763,7 +763,7 @@ processes:
           - {mode: event, direction: out, bc: platform.identity, name: Separated}   # PRC-129 吊销会话、PRC-138 停用企业微信与解绑；§1.4 G-2
           - {mode: event, direction: out, bc: B-15, name: Separated}               # PRC-130 参保减员，PRC-178 读取未休补休余额计入加班工资，并作为最后一期薪酬结算的在职终点
           - {mode: event, direction: out, bc: B-31, name: Separated}               # 生成 IT 资产归还待办（b31 PRC-143；聚合稿回补 §1），B-13 不依赖 B-31
-          - {mode: event, direction: out, bc: B-27, name: Separated}               # B-27 默认确认离职当月考勤、冻结未休补休额度（移交 B-15 计发）；B-27 → B-13 现只有 api 边（接缝问题）
+          - {mode: event, direction: out, bc: B-27, name: Separated}               # B-27 默认确认离职当月考勤（PRC-118 第 7 步事件入口）；B-27 → B-13 现只有 api 边（接缝问题）
       - actor: system
         where: automatic
         on_time: 步 7 之后立即
@@ -792,16 +792,14 @@ processes:
         command: 〔缺〕撤销离职登记
         aggregate: AGG-62
         emits: [〔缺〕离职登记已撤销]
-        desc: 离职日前撤销，状态回「在职」，B-31 随事件取消待办（B-27 只在 Separated 后处置，不订阅本事件）；离职日后不可撤销（已吊销访问，需走再入职）
+        desc: 离职日前撤销，状态回「在职」；B-27、B-31 均只在 Separated 后处置，不订阅本事件（S-42，撤销发生在离职生效前，无待办可取消）；离职日后不可撤销（已吊销访问，需走再入职）
         permission: 离职.撤销登记
         page: 离职办理页
         audit: true
         added_in: closeout
         outcome: 离职登记已撤销
-        cross_bc:
-          - {mode: event, direction: out, bc: B-31, name: 〔缺〕离职登记已撤销}
     notes: >
-      账号侧见 PRC-129（吊销会话）、PRC-138（角色授予、企业微信停用、解绑）；参保减员见 PRC-130；最后一期薪酬随月度结算发放（B-15），未休补休余额由 B-27 在 Separated 后冻结额度，B-15 订阅 Separated，经 PRC-178 读取余额并计入加班工资，随最后一期薪酬一并计发（PRC-124）。
+      账号侧见 PRC-129（吊销会话）、PRC-138（角色授予、企业微信停用、解绑）；参保减员见 PRC-130；最后一期薪酬随月度结算发放（B-15），未休补休余额由 B-15 订阅 Separated，经 PRC-178 读取余额并计入加班工资，随最后一期薪酬一并计发（PRC-124）。
       工作交接清单是单据不作门（VS-13.6 备注，Q-D 第 3 项不做）；IT 资产归还待办由 B-31 订阅 Separated 生成，B-13 不读 B-31。
       离职当月考勤确认由谁代确认见 notes 待用户定。员工提出的离职不再设批准（V-20）；公司单方终止保留一级批准。
       「发起公司终止」不再是独立命令，并入「申请离职」的来源取值，以便两个入口汇合在同一首步。

@@ -811,6 +811,13 @@ event_policies:
   used_by: [PRC-84 触发器]
   rules: [P-32]
   note: 订阅 B-13 Employed 的边已有（聚合稿 §4.3.2 阶段 2）
+- name: 转正后复核薪酬
+  trigger_event: 转正已办理（B-13 发布，〔缺〕分片提议名）
+  effect: 生成待办提醒薪酬岗按劳动合同约定的转正工资调整薪酬档案（版本生效日 = 转正日，U-12）；不自动改薪（待办不是聚合命令）
+  uses_command: 调整薪酬档案
+  used_by: [PRC-123 触发器（入口 1）]
+  rules: []
+  note: S-42：承接 B-13 PRC-85 的转正已办理，边 B-15 → B-13（事件）已有；工资金额以劳动合同为准，系统不推定
 - name: 离职后办理参保减员
   trigger_event: Separated（B-13 发布）
   effect: 先终止薪酬档案（系统自动），再生成参保减员待办，由人力办理

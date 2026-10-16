@@ -59,7 +59,7 @@ published:
   payload: [标准工时版本ID, 法人ID（可空）, 生效区间, 确认人ID]
   subscribers:
   - {type: 仅分析}
-  note: B-06 与 B-27 按 ID 与日期经 api 读取，不订阅
+  note: B-06 与 B-27 按 ID 与日期经 api 读取，不订阅（聚合稿原文；S-42 要求删去聚合稿订阅方列中的 B-27，B-06 同理建议删，见 vs13att.notes.md 接缝问题 11）
 - name: 假期规则已生效
   published_by: AGG-118
   by_command: 发布假期规则版本
@@ -74,7 +74,7 @@ published:
   payload: [员工ID, 补休额度行ID, 到期日]
   subscribers:
   - {type: 流程, who: B-15, used_by: PRC-178 触发器（入口 1）}
-  note: 补休额度有效期（时长待 U15）届满仍有未休余额时发；载荷不含余额，B-15 经 api 读取（边 B-15 → B-27 已有）；离职时不发此事件，B-15 直接订阅 Separated（PRC-178 入口 2）
+  note: 补休额度有效期（时长待 U15）届满仍有未休余额时发；载荷不含余额，B-15 经 api 读取（边 B-15 → B-27 已有）；离职时不发此事件，B-15 直接订阅 Separated（PRC-178 入口 2），B-27 不再有离职结算补休的订阅（S-42）
 - name: 工作日历锁定日期被修改
   published_by: AGG-68
   by_command: 维护工作日历年度
@@ -98,14 +98,14 @@ consumed:
   note: 事件名由 platform.approval 事件目录定，本稿不自造
 - name: Separated
   from: B-13
-  handled_by: [事件策略「离职当月考勤默认确认」→ 默认确认月度考勤, 事件策略「离职结算补休余额」→ 离职结算补休余额]
-  used_by: [PRC-128 第 7 步（vs07）, 事件策略「离职结算补休余额」（计发见 PRC-178）]
-  note: B-27 订阅 B-13 的边及 B-13 事件的订阅方清单需补登（vs07 接缝问题 1）
+  handled_by: [事件策略「离职当月考勤默认确认」→ 默认确认月度考勤]
+  used_by: [PRC-118 第 7 步（事件入口）]
+  note: B-27 订阅 B-13 的边及 B-13 事件的订阅方清单需补登（vs07 接缝问题 1）。S-42：补休结算不在此订阅（离职补休余额由 B-15 的 PRC-178 入口 2 承接）
 - name: Employed
   from: B-13
   handled_by: [事件策略「年度开账」→ 开立年度额度账户]
   used_by: [年中入职开账]
   note: 提议订阅，边需补登
 not_subscribed:
-- {name: 离职登记已撤销（〔缺〕，vs07 提议）, from: B-13, reason: B-27 的离职处置只在 Separated 之后发生（离职日前无待办可撤），撤销登记无需通知 B-27；建议删去 vs07 PRC-128 撤销步骤向 B-27 发该事件的边}
+- {name: 离职登记已撤销（〔缺〕，vs07 提议）, from: B-13, reason: B-27 的离职处置只在 Separated 之后发生（离职日前无待办可撤），撤销登记无需通知 B-27；vs07 PRC-128 撤销步骤向 B-27 的该边已删（S-42 另删 B-31 订阅）}
 - {name: 任职已变更, from: B-13, reason: 在途请假审批人是否随调岗重新解析待用户定（vs13att.notes.md 待用户定 1）；未定前不订阅}

@@ -75,8 +75,6 @@ machines:
   - {from: 有效, to: 有效, command: 回冲已用额度, guard: [回冲不超已用, 回冲回原额度行], kind: reverse, effect: 已用 −}
   - {from: 有效, to: 已转计薪, command: 补休到期转计薪, guard: [到期日届满, 未休余额大于零, 无占用中的补休请假], kind: forward}
   - {from: 有效, to: 已休完, command: 补休到期转计薪, guard: [到期日届满, 未休余额为零], kind: forward}
-  - {from: 有效, to: 已转计薪, command: 离职结算补休余额, guard: [离职生效后, 未休余额大于零, 无法释放的占用中请假已处理], kind: forward}
-  - {from: 有效, to: 已休完, command: 离职结算补休余额, guard: [离职生效后, 未休余额为零], kind: forward}
 - aggregate: AGG-72
   machine: overtime_request
   entity: overtime_requests

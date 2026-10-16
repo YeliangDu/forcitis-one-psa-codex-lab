@@ -988,21 +988,6 @@ entries:
   sensitive: false
   note: 定时规则自动执行，不作废；转计薪待处理时告警人力；计发金额归 B-15（PRC-124）
   source_part: vs13att
-- object: AGG-71
-  command: 离职结算补休余额
-  raci:
-    A:
-      resolve: type
-      role: SH-E6
-      function: 人力（考勤）
-    R:
-    - system
-    C: []
-    I:
-    - SH-E6
-  sensitive: false
-  note: 订阅 Separated 的规则自动执行；占用中请假释放不了的告警人力；计发归 B-15（PRC-124）
-  source_part: vs13att
 - object: AGG-72
   command: 加班申请
   raci:
