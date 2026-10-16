@@ -13,7 +13,7 @@
 ## 独占
 
 - `COORDINATOR_LEDGER.md`；`sessions/_retired.md`。
-- main 合并权与合并队列（scratchpad 的 `mq_run.sh`、`merge.queue`、`merge_pr.sh`）。
+- main 入队批准权（合并执行归 one-merge，用户 2026-10-16 同意）。
 
 ## 不碰
 
