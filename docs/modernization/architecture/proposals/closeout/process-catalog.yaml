@@ -554,7 +554,7 @@ processes:
     name: "付款条件项转为可结算"
     type: event_policy
     stages: [VS-04.3]
-    stages_note: "判据（事件策略看触发状态）：策略使付款条件项（OBJ-07）到「可结算」，即 VS-04.3 进入条件（以认可为条件的付款条件项）；触发状态「交付物已认可」在上游 VS-03.5、VS-02 各段退出，是本段的输入，不改标"
+    stages_note: "判据②：开票侧反应。本策略把以认可为条件的付款条件项置为「可结算」，即 VS-04.3 进入条件 OBJ-07「可结算」；VS-04.3 进入条件的说明写明该状态在交付物「已认可」时产生，触发状态即该进入条件的前提。不归 VS-04.2：收入确认由 PRC-53 承接，本策略不碰收入"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -784,7 +784,8 @@ processes:
   - id: PRC-80
     name: "维护法人、组织与岗位"
     type: business
-    stages: [VS-07.1]
+    stages: []
+    support: "B-13 主数据维护：法人主体、组织单元、法人归属、职位目录条目的维护，结局不造任何阶段的退出条件（职位「启用」只是 VS-07.1 的进入条件，判据按退出条件归段），服务多条价值流（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: "B-13"
     group: people
     status: draft
@@ -1096,7 +1097,7 @@ processes:
   - id: PRC-113
     name: "并入股息红利个税扣缴申报"
     type: event_policy
-    stages: [VS-12.2, VS-13.4]
+    stages: [VS-12.2]
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1114,7 +1115,8 @@ processes:
   - id: PRC-115
     name: "导入考勤记录并补卡"
     type: business
-    stages: [VS-13.1]
+    stages: []
+    support: "B-27 考勤原始记录的导入与补卡，是月度考勤确认（PRC-118）的输入，结局（考勤已导入、补卡已记录）不造 VS-13.1 的任一退出条件（月度考勤已锁定、请假已汇入、加班已汇入）（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: "B-27"
     group: people
     status: draft
@@ -1150,7 +1152,8 @@ processes:
   - id: PRC-119
     name: "维护工作日历与标准工时版本"
     type: single_aggregate
-    stages: [VS-13.1]
+    stages: []
+    support: "B-14 工作日历与标准工时版本的配置维护，结局不造任何阶段的退出条件（工作日历「已维护」是 VS-13.1 的进入条件，判据按退出条件归段）（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: "B-14"
     group: people
     status: draft
@@ -1168,7 +1171,8 @@ processes:
   - id: PRC-121
     name: "制定激励方案"
     type: business
-    stages: [VS-13.2]
+    stages: []
+    support: "B-15 激励方案版本的配置维护，结局（已生效）不造 VS-13.2 的退出条件（激励方案「生效」是 VS-13.2 的进入条件；退出是评估已确认、奖金已核定）（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1186,7 +1190,8 @@ processes:
   - id: PRC-123
     name: "调整薪酬档案与专项附加扣除"
     type: single_aggregate
-    stages: [VS-13.3, VS-13.4]
+    stages: []
+    support: "B-15 薪酬档案与专项附加扣除的维护，结局（档案已调整、扣除已更新）不造 VS-13.3、VS-13.4 的任一退出条件（月度薪酬结算已批准、法定申报已申报缴款），服务薪酬结算的输入（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1213,7 +1218,7 @@ processes:
   - id: PRC-126
     name: "提交应付薪酬"
     type: event_policy
-    stages: [VS-13.5]
+    stages: [VS-13.3]
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1287,7 +1292,8 @@ processes:
   - id: PRC-134
     name: "薪酬事实已过账置位"
     type: event_policy
-    stages: [VS-13.3]
+    stages: [VS-13.5]
+    stages_note: "触发是过账事实（BusinessFactAttributed），不是任一阶段的对象状态；改按结局归段：置位月度薪酬结算「已过账」，是 VS-13.5 退出条件「已发放 → 已过账」的末端（归段判据第 6 项）"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1315,6 +1321,7 @@ processes:
     name: "入职开通企业微信账号并绑定外部身份"
     type: business
     stages: [VS-07.3]
+    stages_note: "留 VS-07.3：纯事件触发（入职已登记 = Employed，即 VS-07.3 退出条件「人员试用期 / 正式」的产生事件）的多步反应，行为等同事件策略；因 type 为 business，脚本按结局归段而判不支持，已列 STAGE_ALIGN.md 请 one-architecture 裁定"
     owner_bc: "platform.identity"
     group: people
     status: user_confirmed
@@ -1324,6 +1331,7 @@ processes:
     name: "离职停用企业微信账号并解绑"
     type: business
     stages: [VS-13.6]
+    stages_note: "留 VS-13.6：纯事件触发（离职已生效 = Separated，即 VS-13.6 退出条件「人员已离职」的产生事件）的多步反应，行为等同事件策略；因 type 为 business，脚本按结局归段而判不支持，已列 STAGE_ALIGN.md 请 one-architecture 裁定"
     owner_bc: "platform.identity"
     group: people
     status: draft
@@ -1498,7 +1506,8 @@ processes:
   - id: PRC-156
     name: "IT 资产归还"
     type: business
-    stages: [VS-13.6]
+    stages: []
+    support: "B-31 资产归还：离职生效（Separated）触发的归还待办只是 VS-13.6 退出事件的反应，另有资产管理员人工登记触发（在职换机、收回）；结局不造 VS-13.6 的任一退出条件（人员已离职、参保减员、劳动合同已终止），不挂阶段（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: "B-31"
     group: people
     status: draft
@@ -1535,7 +1544,8 @@ processes:
   - id: PRC-160
     name: "开立年度假期额度账户"
     type: event_policy
-    stages: [VS-13.1]
+    stages: [VS-07.3]
+    stages_note: "事件触发「入职生效」（Employed）是 VS-07.3 退出条件「人员试用期 / 正式」的产生事件，按事件策略归 VS-07.3；年初定时触发没有对象状态，不单独归段（归段判据第 6 项）"
     owner_bc: "B-27"
     group: people
     status: draft
@@ -1544,7 +1554,8 @@ processes:
   - id: PRC-161
     name: "年末关闭预算账户"
     type: event_policy
-    stages: [VS-09.3]
+    stages: []
+    support: "B-18 预算期届满的定时例行处理：只有定时触发（无对象状态），结局（预算账户已关闭）不造 VS-09.3 的退出条件（OBJ-100 新版本）（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: "B-18"
     group: people
     status: draft
@@ -1553,7 +1564,8 @@ processes:
   - id: PRC-162
     name: "发布假期规则版本"
     type: single_aggregate
-    stages: [VS-13.1]
+    stages: []
+    support: "B-27 假期规则版本的配置维护，结局（假期规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: "B-27"
     group: people
     status: draft
@@ -1727,7 +1739,8 @@ processes:
   - id: PRC-178
     name: "补休到期未休或离职时转计发加班工资"
     type: event_policy
-    stages: [VS-13.3]
+    stages: [VS-13.6]
+    stages_note: "事件触发「员工离职生效」（Separated）是 VS-13.6 退出条件「人员已离职」的产生事件，按事件策略归 VS-13.6；「补休已到期未休」是 B-27 的事实、没有阶段对象状态，不单独归段（归段判据第 6 项）"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1748,7 +1761,8 @@ processes:
   - id: PRC-180
     name: "发布薪酬规则版本"
     type: single_aggregate
-    stages: [VS-13.3]
+    stages: []
+    support: "B-15 薪酬规则版本的配置维护，结局（薪酬规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1759,6 +1773,7 @@ processes:
     name: "记录经营复盘并跟踪经营动作"
     type: business
     stages: [VS-09.3]
+    stages_note: "留 VS-09.3：复盘是本段的核心工作，但本段退出条件只写「经营计划新版本」（由 PRC-88 第二个触发产生），本流程结局「经营复盘已闭环 / 已转调整计划」不是该状态，按归段判据第 6 项字面不支持；已列 STAGE_ALIGN.md 请 one-architecture 看 VS-09.3 退出条件是否补「经营复盘已闭环」"
     owner_bc: "B-18"
     group: people
     status: draft
@@ -1769,6 +1784,7 @@ processes:
     name: "知识条目使用情况"
     type: read_model
     stages: [VS-11.3]
+    stages_note: "读模型只读 OBJ-110 已发布版本及其引用，不造任何状态；服务本段（修订废止）的复审决策，为旁路读，按其读取的「发布」状态（VS-11.3 进入条件）留在 VS-11.3（归段判据第 6 项）"
     owner_bc: "reporting"
     group: people
     status: draft

@@ -44,14 +44,14 @@
 | VS-04 | 15 |
 | VS-05 | 10 |
 | VS-06 | 3 |
-| VS-07 | 8 |
+| VS-07 | 7 |
 | VS-08 | 6 |
 | VS-09 | 3 |
 | VS-10 | 9 |
 | VS-11 | 1 |
 | VS-12 | 2 |
-| VS-13 | 14 |
-| 支撑（不在价值流上） | 12 |
+| VS-13 | 11 |
+| 支撑（不在价值流上） | 16 |
 | 合计 | 116 |
 
 业务流程中尚未填 stages：0 条。
@@ -139,7 +139,7 @@
 | PRC-77 | 申报并缴纳增值税、附加税与企业所得税 | business |  | VS-06.1 | B-23 | finance | draft | 否 |  |
 | PRC-78 | 年检、核查与延续企业资质 | business |  | VS-06.2 | B-01 | revenue | draft | 是 |  |
 | PRC-79 | 登记继续教育并延续注册执业证书 | single_aggregate |  | VS-06.2 | B-13 | people | draft | 否 |  |
-| PRC-80 | 维护法人、组织与岗位 | business |  | VS-07.1 | B-13 | people | draft | 否 |  |
+| PRC-80 | 维护法人、组织与岗位 | business |  |  | B-13 | people | draft | 否 |  |
 | PRC-81 | 提出并批准招聘需求 | business |  | VS-07.1 | B-13 | people | draft | 是 |  |
 | PRC-82 | 登记候选人并作出录用决定 | business |  | VS-07.2 | B-13 | people | draft | 否 |  |
 | PRC-83 | 办理入职与任职 | business |  | VS-07.3 | B-13 | people | user_confirmed | 否 |  |
@@ -172,20 +172,20 @@
 | PRC-110 | 知识条目生命周期：修订或废止 | merged | PRC-107 |  |  | people | draft | 待定 |  |
 | PRC-111 | 认缴并实缴出资 | single_aggregate |  | VS-12.1 | B-10 | finance | draft | 否 |  |
 | PRC-112 | 决议并支付利润分配 | business |  | VS-12.2 | B-10 | finance | draft | 否 |  |
-| PRC-113 | 并入股息红利个税扣缴申报 | event_policy |  | VS-12.2, VS-13.4 | B-15 | people | draft | 否 |  |
+| PRC-113 | 并入股息红利个税扣缴申报 | event_policy |  | VS-12.2 | B-15 | people | draft | 否 |  |
 | PRC-114 | 退回出资 | business |  | VS-12.3 | B-10 | finance | draft | 否 |  |
-| PRC-115 | 导入考勤记录并补卡 | business |  | VS-13.1 | B-27 | people | draft | 否 |  |
+| PRC-115 | 导入考勤记录并补卡 | business |  |  | B-27 | people | draft | 否 |  |
 | PRC-116 | 申请并审批请假 | business |  | VS-13.1 | B-27 | people | draft | 是 |  |
 | PRC-117 | 申请并批准加班 | business |  | VS-13.1 | B-27 | people | draft | 是 |  |
 | PRC-118 | 生成、确认并锁定月度考勤 | business |  | VS-13.1 | B-27 | people | draft | 是 |  |
-| PRC-119 | 维护工作日历与标准工时版本 | single_aggregate |  | VS-13.1 | B-14 | people | draft | 否 |  |
+| PRC-119 | 维护工作日历与标准工时版本 | single_aggregate |  |  | B-14 | people | draft | 否 |  |
 | PRC-120 | 评估月度绩效 | business |  | VS-13.2 | B-13 | people | draft | 否 |  |
-| PRC-121 | 制定激励方案 | business |  | VS-13.2 | B-15 | people | draft | 是 |  |
+| PRC-121 | 制定激励方案 | business |  |  | B-15 | people | draft | 是 |  |
 | PRC-122 | 核定奖金 | business |  | VS-13.2 | B-15 | people | draft | 否 |  |
-| PRC-123 | 调整薪酬档案与专项附加扣除 | single_aggregate |  | VS-13.3, VS-13.4 | B-15 | people | draft | 否 |  |
+| PRC-123 | 调整薪酬档案与专项附加扣除 | single_aggregate |  |  | B-15 | people | draft | 否 |  |
 | PRC-124 | 计算、审核并批准月度薪酬 | business |  | VS-13.3 | B-15 | people | draft | 是 |  |
 | PRC-125 | 申报个税扣缴与社保公积金 | business |  | VS-13.4, VS-06.1 | B-15 | people | draft | 否 |  |
-| PRC-126 | 提交应付薪酬 | event_policy |  | VS-13.5 | B-15 | people | draft | 否 |  |
+| PRC-126 | 提交应付薪酬 | event_policy |  | VS-13.3 | B-15 | people | draft | 否 |  |
 | PRC-127 | 薪酬发放完成 | event_policy |  | VS-13.5 | B-15 | people | draft | 否 |  |
 | PRC-128 | 办理离职 | business |  | VS-13.6 | B-13 | people | draft | 否 |  |
 | PRC-129 | 离职后吊销会话 | event_policy |  | VS-13.6 | platform.identity | people | draft | 否 |  |
@@ -193,7 +193,7 @@
 | PRC-131 | 付款成功后核销应付 | event_policy |  | VS-05.5, VS-08.3, VS-13.5 | B-10 | finance | draft | 否 |  |
 | PRC-132 | 应付核销后置付款已核销并提交过账候选 | event_policy |  | VS-05.5, VS-08.3, VS-13.5 | B-10 | finance | draft | 否 |  |
 | PRC-133 | 应付结清后报销置已付 | event_policy |  | VS-08.3 | B-12 | finance | draft | 否 |  |
-| PRC-134 | 薪酬事实已过账置位 | event_policy |  | VS-13.3 | B-15 | people | draft | 否 |  |
+| PRC-134 | 薪酬事实已过账置位 | event_policy |  | VS-13.5 | B-15 | people | draft | 否 |  |
 | PRC-135 | 处理会计分录待处理队列与推送重投 | single_aggregate |  | VS-10.1 | B-20 | finance | draft | 否 |  |
 | PRC-136 | 调岗（任职变更，按人事业务生效日，触发数据范围复核） | business |  | VS-07.3 | B-13 | people | draft | 待定 |  |
 | PRC-137 | 入职开通企业微信账号并绑定外部身份 | business |  | VS-07.3 | platform.identity | people | user_confirmed | 待定 |  |
@@ -215,13 +215,13 @@
 | PRC-153 | 退还投标保证金 | business |  | VS-01.2, VS-04.1 | B-09 | revenue | draft | 否 |  |
 | PRC-154 | 收入三口径对照 | read_model |  | VS-04.2, VS-04.3 | reporting | revenue | draft | 否 |  |
 | PRC-155 | IT 资产调拨 | business |  |  | B-31 | people | draft | 否 |  |
-| PRC-156 | IT 资产归还 | business |  | VS-13.6 | B-31 | people | draft | 否 |  |
+| PRC-156 | IT 资产归还 | business |  |  | B-31 | people | draft | 否 |  |
 | PRC-157 | IT 资产报修与维修登记 | business |  |  | B-31 | people | draft | 否 |  |
 | PRC-158 | 处置过账拒收记录 | single_aggregate |  | VS-10.1 | B-16 | finance | draft | 否 |  |
 | PRC-159 | 申报已提交后确认税费应付 | event_policy |  | VS-06.1 | B-10 | finance | draft | 否 |  |
-| PRC-160 | 开立年度假期额度账户 | event_policy |  | VS-13.1 | B-27 | people | draft | 否 |  |
-| PRC-161 | 年末关闭预算账户 | event_policy |  | VS-09.3 | B-18 | people | draft | 否 |  |
-| PRC-162 | 发布假期规则版本 | single_aggregate |  | VS-13.1 | B-27 | people | draft | 否 |  |
+| PRC-160 | 开立年度假期额度账户 | event_policy |  | VS-07.3 | B-27 | people | draft | 否 |  |
+| PRC-161 | 年末关闭预算账户 | event_policy |  |  | B-18 | people | draft | 否 |  |
+| PRC-162 | 发布假期规则版本 | single_aggregate |  |  | B-27 | people | draft | 否 |  |
 | PRC-163 | 应付结清后登记利润分配支付 | event_policy |  | VS-12.2 | B-10 | finance | draft | 否 |  |
 | PRC-164 | 收入确认冲销后冲回已配对成本结转 | event_policy |  | VS-04.2 | B-07 | finance | draft | 否 |  |
 | PRC-165 | 发布成本核算参数版本 | single_aggregate |  |  | B-07 | finance | draft | 否 |  |
@@ -237,8 +237,8 @@
 | PRC-175 | 直接付款申请 | business |  | VS-05.5 | B-10 | finance | draft | 是 |  |
 | PRC-176 | 预付款核销 | single_aggregate |  | VS-05.5 | B-10 | finance | draft | 否 |  |
 | PRC-177 | 向差旅服务商同步员工与组织 | event_policy |  |  | B-13 | people | draft | 否 |  |
-| PRC-178 | 补休到期未休或离职时转计发加班工资 | event_policy |  | VS-13.3 | B-15 | people | draft | 否 |  |
+| PRC-178 | 补休到期未休或离职时转计发加班工资 | event_policy |  | VS-13.6 | B-15 | people | draft | 否 |  |
 | PRC-179 | 项目开始执行后协议转入履行中 | event_policy |  | VS-04.6 | B-05 | revenue | draft | 否 |  |
-| PRC-180 | 发布薪酬规则版本 | single_aggregate |  | VS-13.3 | B-15 | people | draft | 否 |  |
+| PRC-180 | 发布薪酬规则版本 | single_aggregate |  |  | B-15 | people | draft | 否 |  |
 | PRC-181 | 记录经营复盘并跟踪经营动作 | business |  | VS-09.3 | B-18 | people | draft | 是 |  |
 | PRC-182 | 知识条目使用情况 | read_model |  | VS-11.3 | reporting | people | draft | 否 |  |
