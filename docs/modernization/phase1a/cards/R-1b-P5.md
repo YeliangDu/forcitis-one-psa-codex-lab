@@ -31,7 +31,7 @@
 
 列注释：`subject_kind`、`subject_id` 用与 P4 `outbound_deliveries.subject_kind / subject_id` **同一句**：「对象类别 / 对象 ID：被记录或被投递的业务对象的类别与自有 ID」；删去「对象键：{类型}:{id}，如 approval-task:42」。`backend/architecture/archive-columns.txt` 的 `subject_key` 行改为两行；`data-access-registry.yaml` 中 `audit_entries` 若需 `fk_exceptions`（`subject_id` 是多态引用、无外键）随列补上，理由写「指向的对象由 `subject_kind` 决定，跨模块」。
 
-**不改的表**（7.11 三处保留例外，到期改为拆分）：`organization_workforce.sync_diffs.subject_key`（拆分 a 按最终形态在集成层新建）、`sync_run_held_separations` 复合主键（拆分 b）、`sync_runs` / `sync_diffs` 的旧约束与索引名（拆分 a）。
+**不改的表**（7.11 保留例外，到期改为拆分；`sync_run_held_separations` 主键按 RULING-P5-D12 本卡改）：`organization_workforce.sync_diffs.subject_key`（拆分 a 按最终形态在集成层新建）、`sync_runs` / `sync_diffs` 的旧约束与索引名（拆分 a）。
 
 ### 3.2 Java
 
@@ -108,7 +108,7 @@
 
 ### 3.8 归属与不在 P5
 - 本卡独占：`EventEnvelope`、`EventDraft`、`AggregateReference`、`ActorType`、`ContextualEventEnvelopes`；`platform_audit` 两张表；`platform.audit.api`；全部守护文件（含 `backend/architecture/*` 登记文件、`OpenApiExportTest`、`DdlNamingTest`、`PrimaryKeyTypeGuardTest`、`LegacyShapeTest`、`TestIsolationGuardTest`、CI 守护脚本）
-- **不碰**：`OrgUnitId`（F-1 下沉 kernel，P5 不迁不改形状）；`sync_runs`、`sync_diffs`、`sync_run_held_separations` 及其代码（拆分 a / b）；`account_roles`、`role_permissions`（W2，ADR-0034）；收件人 `List<UserId>`、`WecomUserId`（DA-10）；审计导出上限、去 `count(*)`、删 `AuditQuery.MAX_LIMIT` 与 `QUERY_INVALID`、本人登录记录分页（K-3b-4）；`OperationsCommands` 的 `UUID.randomUUID()`（OPS-CID）；审批列表统一与 `:count`（K-3b-3）；BPMN 计时器守护（FLW-2）；老待办契约中性化（ADR-0039 第 6 条，生产后）；`ddl-naming-baseline.txt` 中除本卡删除的列所带行以外的改名（R-2a）；时钟默认值（R-4）
+- **不碰**：`OrgUnitId`（F-1 下沉 kernel，P5 不迁不改形状）；`sync_runs`、`sync_diffs` 及同步代码（拆分 a / b；`sync_run_held_separations` 只改主键形状，RULING-P5-D12）；`account_roles`、`role_permissions` 除主键形状外的改动（W2，ADR-0034）；收件人 `List<UserId>`、`WecomUserId`（DA-10）；审计导出上限、去 `count(*)`、删 `AuditQuery.MAX_LIMIT` 与 `QUERY_INVALID`、本人登录记录分页（K-3b-4）；`OperationsCommands` 的 `UUID.randomUUID()`（OPS-CID）；审批列表统一与 `:count`（K-3b-3）；BPMN 计时器守护（FLW-2）；老待办契约中性化（ADR-0039 第 6 条，生产后）；`ddl-naming-baseline.txt` 中除本卡删除的列所带行以外的改名（R-2a）；时钟默认值（R-4）
 
 ## 4. 验收测试（由测试代理先写，§6.1 第 8 条）
 - 测试代理：`code-modernization:test-engineer`，**sonnet**，先于实现提交，提交说明带 `Acceptance-Test-Author: test-engineer`；术语门禁未定稿的名字先按第 11 节候选写，定稿后改名再交实现
@@ -144,7 +144,7 @@
 ## 6. 禁止事项
 - 不改卡外文件；不顺手重构、改名或统一风格；保留的约束、索引名字一律不改（C10，含 `audit_entries_subject_idx`）
 - 不改业务语义：审计动作白名单、本人登录记录的动作与字段白名单、审批流转与通知、事件发布时机照旧；改名只改类名与事件类型串
-- 不碰第 3.8 节所列他卡对象，尤其 `OrgUnitId`、同步三表、`account_roles` / `role_permissions`
+- 不碰第 3.8 节所列他卡对象，尤其 `OrgUnitId`、同步表（除 RULING-P5-D12 的主键改法）
 - 不依赖 ID 次序（CS-2.21）；生产代码除 `kernel.Uuids` 外不新增 `UUID.randomUUID`
 - 守护例外只减不增：除 `sync_diffs.subject_key`（拆分 a）、`InboxItemResponse.taskId`（RULING-P4-D6）与 D-12、D-13 裁定的项外不新增例外行，每条写理由与到期条件
 - 不为兼容旧信封、旧审计键、旧事件名留回退分支（dev 随库重建）；审计对象类别换算不到即失败并告警，不写成文本
@@ -157,11 +157,11 @@
 - 预期差异只能是：
   - `platform_audit.audit_entries`：删列 `subject_key`；新增列 `subject_kind text NOT NULL`、`subject_id uuid`（可空性按 D-5）；新增约束 `ck_audit_entries_subject_kind`、（D-5 可空时）`ck_audit_entries_subject_id`；索引 `audit_entries_subject_idx` 列改为 `(subject_kind, subject_id, created_at DESC)`，名称不变；列注释
   - （D-7 采纳时）`platform_audit.audit_archive_batches`：新增 `first_entry_created_at timestamptz NOT NULL`、`last_entry_created_at timestamptz NOT NULL` 与列注释；`uk_audit_archive_batches_last_entry_id`、`ck_audit_archive_batches_range` 是否改写由实现按新水位定，PR 逐项列出
-- 不得出现的差异：上述两表以外任何表的变化（含 `sync_*`、`account_roles`、`role_permissions`）；保留约束、索引、触发器的改名或删除；`audit_entries` 其他列的类型、默认值、可空性变化；种子数据变化
+- 不得出现的差异：`audit_entries`、`audit_archive_batches` 与 RULING-P5-D12 三张表主键改法以外任何表的变化（含 `sync_runs`、`sync_diffs`）；保留约束、索引、触发器的改名或删除；`audit_entries` 其他列的类型、默认值、可空性变化；种子数据变化
 
 ## 8. 交付物与自查
 - 交付物：基线 DDL；kernel 信封与 14 个聚合；审计拆列（api、生产方、web、CSV、归档）；`ORDER BY` 违例修复；随带改名；守护（第 3.4 节）与 `primary-key-exemptions.txt`；随带修复；OpenAPI、事件目录、`asyncapi.yaml`、前端生成物与测试桩；`EVENT_ANALYTICS_FIELDS.md`；ID 承载位置清单（D-9）
-- **守护文件变动（PR 单列）**：`PrimaryKeyTypeGuardTest`、`primary-key-exemptions.txt`（新）、`primary-key-type-baseline.txt`（D-12）、`DdlNamingTest` / `DataArchitectureTest`（去哨兵）、`OpenApiExportTest`（`isIdName`、`OTHER_ID_NAMES`、`OWN_ID_FIELDS`）、事件目录守护、`ORDER BY` 守护（新）、`system_actors_append_only.py`（新）与 `ci.yml` / `precheck.sh` 接入、`LegacyShapeTest.APPROVED_AREAS`、`TestIsolationGuardTest`（若加）、`archive-columns.txt`、`data-access-registry.yaml`、`code-term-baseline.txt`、`term-rules-baseline.json`
+- **守护文件变动（PR 单列）**：`PrimaryKeyTypeGuardTest`、`primary-key-exemptions.txt`（新）、`primary-key-type-baseline.txt`（删除，RULING-P5-D12）、`DdlNamingTest` / `DataArchitectureTest`（去哨兵）、`OpenApiExportTest`（`isIdName`、`OTHER_ID_NAMES`、`OWN_ID_FIELDS`）、事件目录守护、`ORDER BY` 守护（新）、`system_actors_append_only.py`（新）与 `ci.yml` / `precheck.sh` 接入、`LegacyShapeTest.APPROVED_AREAS`、`TestIsolationGuardTest`（若加）、`archive-columns.txt`、`data-access-registry.yaml`、`code-term-baseline.txt`、`term-rules-baseline.json`
 - 自查：`scripts/precheck.sh <基线>` 全部 PASS 或有理由的 SKIP，输出贴进报告与 PR「precheck.sh 输出」；`pre-commit install`；报告前 gitleaks 8.30.1 扫全历史；`python3 docs/modernization/check_legacy_name.py`
 - 受影响模块测试：precheck 给出的命令；交付前全量 `scripts/ci/backend_verify.sh` 与前端 `pnpm verify`
 - PR 正文单列：预期与实际表结构 diff；改动的断言 / 测试及理由（含 RULING-P5-n、改名带来的测试改动）；守护文件变动与每条例外的理由和到期；第 12 节各点的落法；「流程与规格文档中的旧事件名交 one-rules / one-glossary」；「`audit_subject` 词条定义待 one-glossary 改」
@@ -171,7 +171,7 @@
 - 首轮：opus 一次（high）；Blocker / High 修后由 opus 复核，合并前修完
 - Medium / Low：执行者补测试、CI 通过即关闭，修后复核用 sonnet，负责会话抽查；不阻塞合并的登记进下一批
 - 复审清单：SESSION_PLAYBOOK §14、§14.1（D2 键与约束、D6 引用、D7 版本引用、D16 自有标识、D18 DDL 原则）；CODING_STANDARD CS-1.11、CS-2.20、CS-2.21、CS-2.24、CS-5.5、CS-5.6、CS-5.9
-- 专查：表结构 diff 只含第 7 节声明项；每个事件的 `aggregateId` 是该聚合自己的主键（无「类型:ID」文本残留，`git grep '":" *+'` 抽查）；信封与事件目录无 `source`；审计无文本对象键、本人登录记录查询不能经类别不同的同值 ID 越界；守护的例外清单只有第 6 节允许的项且都有到期；新守护各有注入负向样例；`ORDER BY` 不只按主键；`OrgUnitId`、同步三表、`account_roles` 未动；改名后事件目录、`aggregates.yaml`、`MUST_AUDIT_ACTIONS.yaml`、用语基线一致
+- 专查：表结构 diff 只含第 7 节声明项；每个事件的 `aggregateId` 是该聚合自己的主键（无「类型:ID」文本残留，`git grep '":" *+'` 抽查）；信封与事件目录无 `source`；审计无文本对象键、本人登录记录查询不能经类别不同的同值 ID 越界；守护的例外清单只有第 6 节允许的项且都有到期；新守护各有注入负向样例；`ORDER BY` 不只按主键；`OrgUnitId`、`sync_runs` / `sync_diffs` 未动，D-12 三表只改主键形状；改名后事件目录、`aggregates.yaml`、`MUST_AUDIT_ACTIONS.yaml`、用语基线一致
 
 ## 10. 报告去向
 - 完成、部分完成或阻塞，都向负责会话 one-1a-next-4，抄 one-coordinator（SESSION_PLAYBOOK §4 第 7 步）
@@ -225,6 +225,11 @@
 
 ## 13. 负责会话裁定（one-1a-next-4，2026-10-16）
 - RULING-P5-D1..D11、D13..D17：按第 12 节建议采纳。其中：D-2 `actorId` 一并改 UUID；D-5 `subject_id` 可空（CHECK：为空当且仅当类别为 `REQUEST` / `OPERATION` / `LOGIN_ATTEMPT`），路径与方法名写进 `detail`；D-7 审计归档本卡改为按 `(created_at, id)` 取批与记水位；D-9 本卡交付 `phase1a/ID_CARRIERS.md`；D-11 前端测试数据先问 one-1a-par 是否在途改同批文件，无冲突则 P5 直接改；D-13 守护识别名单加「类型:ID」文本键，`OTHER_ID_NAMES` = `InboxItemResponse.taskId`（RULING-P4-D6）+ `SyncDiffResponse.subjectKey`（拆分 a），`EmployeeIdContractTest` 精确断言由测试代理按 RULING-P5-1 改。
-- RULING-P5-D12（one-coordinator 认可，2026-10-16）：`primary-key-type-baseline.txt` 保留，只放三行已批准决定留下的到期例外（`sync_run_held_separations` ← 7.11；`account_roles`、`role_permissions` ← ADR-0034 W2），不算偏离 ADR-0033 守护 1 本意；每行写到期卡与到期条件，守护对过期行报失败。框架长期豁免移到 `primary-key-exemptions.txt`，每行写理由，只减不增，新增须报 one-coordinator。ADR-0033 落地清单记录由 one-architecture 写。
+- RULING-P5-D12（2026-10-16 改判：one-architecture 判定原建议偏离 ADR-0033，one-coordinator 撤回认可）：
+  - `account_roles`、`role_permissions` 在 P5 改为 UUIDv7 单列主键，原主键改为命名唯一约束（ADR-0033 第 1 项第 2 条「R-1b 合并时若两张旧表仍在，同样按本条改，不登记豁免」；CS-1.9 当期做对）。
+  - `sync_run_held_separations` 在 P5 照改：加 UUIDv7 单列主键，原复合主键 `(sync_run_id, employee_id)` 改为命名唯一约束。拆分 b 后该表改造为 workforce 待放行离职表时再改一次（用户「先保 dev」已接受同步表可能改两次，intent `2026-10-15-214511`），不构成阻碍，不推迟。
+  - `primary-key-type-baseline.txt` 按 ADR-0033 守护 1 在 P5 删除（自有表无基线行）；框架长期豁免（ADR-0033 第 1 项第 8 条的 5 张表）放进 `primary-key-exemptions.txt`，每行写理由，文件头写落地记录，只减不增、新增须报 one-coordinator。
+  - 落地记录写在本卡与 `ID_CARRIERS.md`，ADR-0033 正文不动。
+  - 第 3、7 节中与原 D-12 建议相关的表结构项（三张表主键改法）以本条为准；预期表结构 diff 随之增加三张表的代理主键列与唯一约束（名称以 `DdlNamingTest` 与术语门禁为准）。
 - 开工条件：第 11 节新词经 one-glossary 定稿；D-12 已认可。体量若超出 sonnet 能力（实现中途），停下报告，可按「信封与审计」「守护与 G-A1 收尾」拆两个 PR，不缩小范围。
 - 新词定稿（one-glossary，2026-10-16）：`ApprovalTaskBecameOverdue` 中文名保留「任务已超时」，id / snake `approval_task_became_overdue`；`audit_subject` 定义已由 one-glossary 改（「被审计的业务对象，由对象类别与对象 ID 共同标识；没有对象的审计类别对象 ID 为空」）；**审计对象类别 `AuditSubjectKind`（kind state，bc platform.audit，领域）进用户确认单——确认前不派实现**，取值 16 个对象类别 + `REQUEST`、`OPERATION`、`LOGIN_ATTEMPT`，与 `DeliverySubjectKind` 各自独立（列名同名同义、注释同一句「对象类别：被记录或被投递的业务对象的类别」）；`subject_id` 列注释写明「为空表示这条记录没有对象」；`first_entry_created_at`、`last_entry_created_at`、`NumberingCounterId` 同意。
