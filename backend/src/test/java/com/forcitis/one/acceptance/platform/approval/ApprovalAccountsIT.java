@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
-import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.EmployeeId;
@@ -21,9 +20,6 @@ import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.jayway.jsonpath.JsonPath;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -89,27 +85,17 @@ class ApprovalAccountsIT extends AccountsAcceptanceSupport {
     }
 
     private DocumentReference start(List<UUID> projectManagers) {
-        DocumentReference document = new DocumentReference(DocumentType.TIMESHEET, new DocumentId("acceptance-" + UUID.randomUUID()));
+        DocumentReference document = new DocumentReference(DocumentType.TIMESHEET, newDocumentId());
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "acceptance.timesheet-submission")) {
             approvals.start(new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document, legalEntity, employeeIdOf(initiator), new RoundNumber(1),
                     UUID.randomUUID(), Set.of("projectHours"), List.of(new ApprovalField("projectManagerId", projectManagers.stream().map(AccountsAcceptanceSupport::text).toList())),
-                    new ContentHash("synthetic-content"), new ApprovalSummary("Synthetic timesheet " + document.documentId().value())));
+                    new ContentHash("synthetic-content"), new ApprovalSummary("Synthetic timesheet " + document.documentId())));
         }
         return document;
     }
 
     private List<String> openTasks(DocumentReference document) throws Exception {
-        List<String> tasks = new ArrayList<>();
-        try (Connection approval = schemaConnection("platform_approval");
-             PreparedStatement select = approval.prepareStatement("select task_id from approval_tasks where document_key = ? and status = 'PENDING'")) {
-            select.setString(1, document.documentId().value());
-            try (ResultSet rs = select.executeQuery()) {
-                while (rs.next()) {
-                    tasks.add(rs.getString(1));
-                }
-            }
-        }
-        return tasks;
+        return pendingTaskIdsOf(document);
     }
 
     private MockHttpServletResponse detail(String taskId, SignedIn caller) throws Exception {

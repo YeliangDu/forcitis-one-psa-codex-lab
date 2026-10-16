@@ -125,7 +125,7 @@ class EventSequencePersistenceIT extends ApprovalIntegrationSupport {
             List<Long> numbers = recorded.stream(DomainEvent.class)
                     .filter(event -> event.envelope().aggregateType().equals("ApprovalRequest") && event.envelope().aggregateId().equals("TIMESHEET:" + key))
                     .map(event -> event.envelope().aggregateVersion()).toList();
-            assertThat(jdbc.queryForObject("select event_count from platform_approval.approval_requests where document_key = ?", Long.class, key))
+            assertThat(jdbc.queryForObject("select event_count from platform_approval.approval_requests where document_id = cast(? as uuid)", Long.class, key))
                     .as("step %s", step).isEqualTo((long) numbers.size());
         }
         List<Long> numbers = recorded.stream(DomainEvent.class)

@@ -7,7 +7,9 @@ import com.forcitis.one.platform.integration.domain.OutboundDeliveryRepository;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.Uuids;
+import com.forcitis.one.platform.integration.api.DeliverySubject;
 import com.forcitis.one.platform.integration.api.IntegrationError;
+import com.forcitis.one.platform.integration.domain.OutboundDeliveryId;
 import com.forcitis.one.kernel.WorkContext;
 import java.time.Clock;
 import java.util.UUID;
@@ -32,10 +34,10 @@ public class MarkWecomCardHandled {
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
-    public void execute(String deduplicationKey, String handledNote) {
-        OutboundDelivery delivery = deliveries.lockByKey(deduplicationKey).orElse(null);
+    public void execute(DeliverySubject subject, String handledNote) {
+        OutboundDelivery delivery = deliveries.lockCard(subject).orElse(null);
         if (delivery == null) {
-            log.warn("No WeCom delivery for {}: nothing to mark as handled", deduplicationKey);
+            log.warn("No WeCom delivery for {}: nothing to mark as handled", subject);
             return;
         }
         if (delivery.kind() != DeliveryKind.CARD || delivery.handledNote() != null) {
@@ -44,7 +46,7 @@ public class MarkWecomCardHandled {
         delivery.noteHandled(handledNote);
         if (delivery.status() != DeliveryStatus.SENT && delivery.status() != DeliveryStatus.PENDING) {
             String reason = "NOT_APPLIED: the card is " + delivery.status() + ", not sent";
-            log.info("WeCom card {} is not replaced: {}", deduplicationKey, reason);
+            log.info("WeCom card {} is not replaced: {}", subject, reason);
             delivery.recordHandledResult(reason);
         }
         saveHandled(delivery);
@@ -54,22 +56,22 @@ public class MarkWecomCardHandled {
     }
 
     /** Called in the transaction that marked the card sent: a note that arrived while the card was in flight is applied now. */
-    void afterSent(String deduplicationKey) {
-        deliveries.lockByKey(deduplicationKey).filter(d -> d.handledNote() != null)
+    void afterSent(OutboundDeliveryId deliveryId) {
+        deliveries.lockById(deliveryId.value()).filter(d -> d.handledNote() != null)
                 .ifPresent(sent -> queueReplacement(sent, sent.handledNote()));
     }
 
     private void saveHandled(OutboundDelivery delivery) {
         if (!deliveries.saveHandled(delivery)) {
             throw new DomainException(IntegrationError.PLATFORM_INTEGRATION_CONCURRENT_UPDATE, ErrorKind.CONFLICT,
-                    "delivery " + delivery.deduplicationKey() + " changed while it was being marked handled");
+                    "delivery " + delivery.subject() + " changed while it was being marked handled");
         }
     }
 
     private void queueReplacement(OutboundDelivery sent, String handledNote) {
         if (sent.responseCode() == null) {
             String reason = "NOT_APPLIED: WeCom returned no response code when the card was sent";
-            log.info("WeCom card {} is not replaced: {}", sent.deduplicationKey(), reason);
+            log.info("WeCom card {} is not replaced: {}", sent.subject(), reason);
             sent.recordHandledResult(reason);
             saveHandled(sent);
             return;

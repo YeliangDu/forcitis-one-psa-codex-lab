@@ -64,7 +64,7 @@ terms:
   zh: 报价单据类型代码
   en: Qt
   snake: qt
-  kind: value
+  kind: value_object
   bc: platform.numbering
   scope: domain
   definition: 报价（DocumentType.QUOTE）的单据类型代码 QT，1b 首个使用方
@@ -82,7 +82,7 @@ terms:
   zh: 工时单据类型代码
   en: Ts
   snake: ts
-  kind: value
+  kind: value_object
   bc: platform.numbering
   scope: domain
   definition: 工时（DocumentType.TIMESHEET）的单据类型代码 TS，沿用种子模板中的前缀字母，正式词表尚无对应词
@@ -100,7 +100,7 @@ terms:
   zh: 记账凭证单据类型代码
   en: Jv
   snake: jv
-  kind: value
+  kind: value_object
   bc: platform.numbering
   scope: domain
   definition: 记账凭证（DocumentType.JOURNAL_VOUCHER）的单据类型代码 JV，沿用种子模板中的前缀字母，正式词表尚无对应词

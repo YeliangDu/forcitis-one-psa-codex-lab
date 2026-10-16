@@ -1,40 +1,10 @@
 # 前端界面用语中尚不在正式词表里的业务术语（proposed，待第三轮用语确认，ADR-0018）。
 terms:
-- id: legacy_system
-  zh: 老系统
-  en: LegacySystem
-  snake: legacy_system
-  kind: system
-  bc: platform.approval
-  scope: acl
-  acl_class: "过渡期"
-  definition: 被本系统替代的原项目管理系统（待办合并期间只读接入）
-  standard_ref: []
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 疑似方言，第三轮用语确认；界面用语，正式叫法待定
-- id: new_system
-  zh: 新系统
-  en: NewSystem
-  snake: new_system
-  kind: system
-  bc: platform.approval
-  scope: acl
-  acl_class: "过渡期"
-  definition: FORCITIS one 本身；待办合并期间与老系统并存，界面用来标出待办的来源
-  standard_ref: []
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 用户 2026-10-14 指定提议；界面标签、筛选项、提示用语
 - id: trigger_mode
   zh: 触发方式
   en: TriggerMode
   snake: trigger_mode
-  kind: value
+  kind: value_object
   bc: organization.workforce
   scope: acl
   acl_class: "过渡期"
@@ -49,7 +19,7 @@ terms:
   zh: 被中止
   en: Held
   snake: held
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -79,7 +49,7 @@ terms:
   zh: 同步
   en: OrgSync
   snake: org_sync
-  kind: entity
+  kind: aggregate
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -90,17 +60,3 @@ terms:
   forbidden: []
   status: proposed
   note: 扫描前端界面文案发现；与「同步记录」「同步差异」配合使用
-- id: portal
-  zh: 门户
-  en: Portal
-  snake: portal
-  kind: system
-  bc: platform.identity
-  scope: domain
-  definition: 公司门户，致远单点登录的入口
-  standard_ref: []
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 扫描前端界面文案发现；登录页与错误提示用语

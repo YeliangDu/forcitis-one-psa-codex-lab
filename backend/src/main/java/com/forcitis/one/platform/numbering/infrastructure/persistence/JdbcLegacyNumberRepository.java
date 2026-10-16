@@ -25,7 +25,7 @@ import org.springframework.stereotype.Repository;
 class JdbcLegacyNumberRepository implements LegacyNumberRepository {
 
     private static final RowMapper<LegacyNumberEntry> MAPPER = (rs, n) -> new LegacyNumberEntry(
-            new DocumentReference(DocumentType.valueOf(rs.getString("document_type")), new DocumentId(rs.getObject("document_id", UUID.class).toString())),
+            new DocumentReference(DocumentType.valueOf(rs.getString("document_type")), new DocumentId(rs.getObject("document_id", UUID.class))),
             ExternalSource.valueOf(rs.getString("source_system")), rs.getString("legacy_number"), legalEntity(rs), new MigrationBatchId(rs.getObject("migration_batch_id", UUID.class)));
 
     private static Optional<LegalEntityId> legalEntity(ResultSet rs) throws SQLException {
@@ -79,7 +79,7 @@ class JdbcLegacyNumberRepository implements LegacyNumberRepository {
                          order by legacy_number
                         """)
                 .param("type", document.documentType().name())
-                .param("document", UUID.fromString(document.documentId().value()))
+                .param("document", document.documentId().value())
                 .query(MAPPER)
                 .list();
     }
@@ -96,7 +96,7 @@ class JdbcLegacyNumberRepository implements LegacyNumberRepository {
                 .param("system", entry.sourceSystem().name())
                 .param("type", entry.document().documentType().name())
                 .param("legacy", entry.legacyNumber())
-                .param("document", UUID.fromString(entry.document().documentId().value()))
+                .param("document", entry.document().documentId().value())
                 .param("le", entry.legalEntity().map(LegalEntityId::value).orElse(null))
                 .param("batch", entry.migrationBatchId().value())
                 .param("now", Timestamp.from(clock.instant()))

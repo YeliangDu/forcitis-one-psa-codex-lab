@@ -213,7 +213,7 @@ public final class Timesheet extends AggregateRoot {
     }
 
     public DocumentReference document() {
-        return new DocumentReference(DocumentType.TIMESHEET, new DocumentId(String.valueOf(timesheetId.value())));
+        return new DocumentReference(DocumentType.TIMESHEET, new DocumentId(timesheetId.value()));
     }
 
     public TimesheetId timesheetId() {

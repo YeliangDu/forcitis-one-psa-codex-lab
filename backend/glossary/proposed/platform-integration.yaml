@@ -15,27 +15,11 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: seeyon
-  zh: 致远
-  en: Seeyon
-  snake: seeyon
-  kind: system
-  bc: platform.integration
-  scope: acl
-  acl_class: "过渡期"
-  definition: 致远；组织主数据与单点登录验票的外部系统，由集成模块的防腐层读取
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: outbound_delivery
   zh: 外发投递
   en: OutboundDelivery
   snake: outbound_delivery
-  kind: entity
+  kind: aggregate
   bc: platform.integration
   scope: acl
   acl_class: "长期"
@@ -67,7 +51,7 @@ terms:
   zh: 来源对照
   en: SourceReference
   snake: source_reference
-  kind: entity
+  kind: aggregate
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -83,7 +67,7 @@ terms:
   zh: 来源系统
   en: SourceSystem
   snake: source_system
-  kind: enum
+  kind: state
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -99,7 +83,7 @@ terms:
   zh: 来源对象类别
   en: SourceObjectKind
   snake: source_object_kind
-  kind: enum
+  kind: state
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -111,38 +95,6 @@ terms:
   forbidden: []
   status: proposed
   note: ADR-0033（提议）登记，待用语确认
-- id: org_source
-  zh: 组织源
-  en: OrgSource
-  snake: org_source
-  kind: system
-  bc: platform.integration
-  scope: acl
-  acl_class: "过渡期"
-  definition: 组织与人员的来源系统，来源系统取值 ORG_SOURCE；其员工、组织单元、岗位的标识登记在来源对照里
-  standard_ref:
-  - adr/ADR-0033.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: accounting_system
-  zh: 核算系统
-  en: AccountingSystem
-  snake: accounting_system
-  kind: system
-  bc: platform.integration
-  scope: acl
-  acl_class: "长期"
-  definition: 接收凭证的核算系统，来源系统取值 ACCOUNTING_SYSTEM；法人在其中的数字编码（核算组织编码）登记在来源对照里
-  standard_ref:
-  - adr/ADR-0033.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: rejected_state
   zh: 已拒绝
   en: RejectedState
@@ -285,7 +237,7 @@ terms:
   zh: 取证
   en: Evidence
   snake: evidence
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: domain
   definition: 只读核对老系统与 A8 生产数据，用于复刻老行为、迁入对账与新旧等价核对；用专用取证账号，只出计数或聚合，或落 ECS 数据盘，每次登记一行
@@ -317,7 +269,7 @@ terms:
   zh: 只读核实结果
   en: ReadOnlyVerificationResult
   snake: read_only_verification_result
-  kind: enum
+  kind: state
   bc: platform.integration
   scope: acl
   acl_class: 过渡期
@@ -333,7 +285,7 @@ terms:
   zh: 核实通过
   en: Passed
   snake: passed
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: 过渡期
@@ -349,7 +301,7 @@ terms:
   zh: 确认违规
   en: Violated
   snake: violated
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: 过渡期
@@ -365,7 +317,7 @@ terms:
   zh: 判定不了
   en: Undetermined
   snake: undetermined
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: 过渡期
@@ -394,6 +346,23 @@ terms:
   forbidden: []
   status: proposed
   note: one-glossary 术语门禁结论（one-coordinator 2026-10-15 转达）；只读核实命令定位行种类 overridden，by 写被哪条 DENY 覆盖（DATABASE_DENY / SCHEMA_DENY）
+- id: delivery_purpose
+  zh: 投递用途
+  en: DeliveryPurpose
+  snake: delivery_purpose
+  kind: state
+  bc: platform.integration
+  scope: acl
+  acl_class: "长期"
+  definition: 一张外发卡片为什么发：任务指派、任务转交、任务改派、任务超时、任务升级、审批完成；与对象类别、对象 ID（可再加触发事件 ID）一起决定一张卡
+  standard_ref:
+  - ADR-0033 第 7 项第 3 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: R-1b P4 登记；取值 TASK_ASSIGNED / TASK_TRANSFERRED / TASK_REASSIGNED / TASK_OVERDUE / TASK_ESCALATED / APPROVAL_COMPLETED
+
 common_words:
 - background
 - call

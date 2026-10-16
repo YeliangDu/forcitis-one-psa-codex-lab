@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.infrastructure.flowable;
 
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,11 +10,14 @@ import org.flowable.common.engine.api.delegate.event.FlowableEngineEventType;
 import org.flowable.engine.ProcessEngine;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.repository.ProcessDefinition;
+import org.flowable.spring.SpringProcessEngineConfiguration;
+import org.flowable.spring.boot.EngineConfigurationConfigurer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationListener;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
@@ -40,6 +44,12 @@ class EngineWiring implements ApplicationListener<ApplicationReadyEvent> {
         this.properties = properties;
         this.administrators = administrators;
         this.environment = environment;
+    }
+
+    /** Static, so that the engine configuration does not wait for this class, which needs the engine; without an IdGenerator bean Flowable 8.0.0 defaults to StrongUuidGenerator; this configurer runs before the engine is built and replaces it. */
+    @Bean
+    static EngineConfigurationConfigurer<SpringProcessEngineConfiguration> engineIdGenerator(IdGenerator ids) {
+        return configuration -> configuration.setIdGenerator(() -> ids.next().toString());
     }
 
     @Override

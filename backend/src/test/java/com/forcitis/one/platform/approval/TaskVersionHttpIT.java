@@ -66,7 +66,7 @@ class TaskVersionHttpIT extends ApprovalIntegrationSupport {
     }
 
     ApprovalInstanceId taskInstance(Scene s) {
-        return new ApprovalInstanceId(taskService.createTaskQuery().taskId(s.task().value()).singleResult().getProcessInstanceId());
+        return new ApprovalInstanceId(java.util.UUID.fromString(taskService.createTaskQuery().taskId(s.task().value().toString()).singleResult().getProcessInstanceId()));
     }
 
     @Test

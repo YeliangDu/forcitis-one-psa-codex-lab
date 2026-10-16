@@ -40,7 +40,7 @@ class RetractionInitiatorGateTest {
     static final EmployeeId INITIATOR = TestAccounts.employee(1001);
     static final UserId INITIATORS_ACCOUNT = TestAccounts.account(1001);
     static final UserId ACCOUNT_NUMBERED_LIKE_THE_INITIATOR = TestAccounts.unknownAccount(1001);
-    static final DocumentReference DOCUMENT = new DocumentReference(DocumentType.TIMESHEET, new DocumentId("7"));
+    static final DocumentReference DOCUMENT = new DocumentReference(DocumentType.TIMESHEET, com.forcitis.one.TestApprovalIds.document("7"));
 
     final ApprovalRequestRepository requests = mock(ApprovalRequestRepository.class);
     final ApprovalEngine engine = mock(ApprovalEngine.class);
@@ -48,8 +48,8 @@ class RetractionInitiatorGateTest {
     final DenialAudit denials = mock(DenialAudit.class);
     final BusinessTime time = mock(BusinessTime.class);
     final Retraction retraction = new Retraction(requests, engine, approvals, denials, time, TestAccounts.everyoneHasOne());
-    final ApprovalRequest running = ApprovalRequest.restore(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, 1,
-            new ApprovalInstanceId("i-1"), ApprovalStatus.RUNNING, null, new ApprovalSummary("TS-1"), List.of(), 3, 2);
+    final ApprovalRequest running = ApprovalRequest.restore(com.forcitis.one.TestApprovalIds.requestId(), com.forcitis.one.TestApprovalIds.generator(), ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, new LegalEntityId(TestIds.uuid(1)), INITIATOR, 1,
+            com.forcitis.one.TestApprovalIds.instance("i-1"), ApprovalStatus.RUNNING, null, new ApprovalSummary("TS-1"), List.of(), 3, 2);
 
     RetractionInitiatorGateTest() {
         when(requests.find(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT)).thenReturn(Optional.of(running));
@@ -75,7 +75,7 @@ class RetractionInitiatorGateTest {
         verify(engine, never()).endAsReturned(any());
 
         assertThat(retraction.withdraw(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, INITIATORS_ACCOUNT, "wrong amount")).isEqualTo(RetractionResult.DONE);
-        verify(engine).endAsReturned(new ApprovalInstanceId("i-1"));
+        verify(engine).endAsReturned(com.forcitis.one.TestApprovalIds.instance("i-1"));
     }
 
     @Test
@@ -87,6 +87,6 @@ class RetractionInitiatorGateTest {
         verify(engine, never()).terminate(any(), any());
 
         assertThat(retraction.cancel(ProcessKey.COST_TIMESHEET_APPROVAL, DOCUMENT, INITIATORS_ACCOUNT, "not needed")).isEqualTo(RetractionResult.DONE);
-        verify(engine).terminate(new ApprovalInstanceId("i-1"), "CANCELLED");
+        verify(engine).terminate(com.forcitis.one.TestApprovalIds.instance("i-1"), "CANCELLED");
     }
 }

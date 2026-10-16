@@ -139,7 +139,7 @@ class TimesheetStateMachineTest {
 
         assertThat(events).hasSize(2);
         assertThat(events.get(0)).isInstanceOfSatisfying(TimesheetSubmitted.class, submitted -> {
-            assertThat(submitted.document().documentId().value()).isEqualTo(TestIds.uuid(7).toString());
+            assertThat(submitted.document().documentId().value()).isEqualTo(TestIds.uuid(7));
             assertThat(submitted.number()).isEqualTo(new DocumentNumber("TS-ABC-202610-0007"));
             assertThat(submitted.employee()).isEqualTo(OWNER);
             assertThat(submitted.projectManager()).isEqualTo(TestAccounts.employee(40));

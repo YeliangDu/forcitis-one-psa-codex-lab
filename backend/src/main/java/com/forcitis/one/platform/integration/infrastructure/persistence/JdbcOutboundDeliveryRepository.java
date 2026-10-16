@@ -2,6 +2,9 @@ package com.forcitis.one.platform.integration.infrastructure.persistence;
 
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.platform.integration.api.DeliveryPurpose;
+import com.forcitis.one.platform.integration.api.DeliverySubject;
+import com.forcitis.one.platform.integration.api.DeliverySubjectKind;
 import com.forcitis.one.platform.integration.domain.DeliveryKind;
 import com.forcitis.one.platform.integration.domain.OutboundDelivery;
 import com.forcitis.one.platform.integration.domain.OutboundDeliveryId;
@@ -23,8 +26,10 @@ import org.springframework.stereotype.Repository;
 @Repository
 class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
 
-    private static final String COLUMNS = "id, deduplication_key, recipient_codes, title, description, target_url, status, attempt_count, "
-            + "response_code, handled_note, handled_result, kind, target_key, correlation_id, version, event_count";
+    private static final String COLUMNS = "id, subject_kind, subject_id, purpose_kind, trigger_event_id, recipient_codes, title, description, target_url, status, "
+            + "attempt_count, response_code, handled_note, handled_result, kind, target_delivery_id, correlation_id, version, event_count";
+    private static final String CARD_OF_SUBJECT = " where kind = 'CARD' and subject_kind = :kind and subject_id = :subject and purpose_kind = :purpose"
+            + " and trigger_event_id is not distinct from cast(:trigger as uuid)";
 
     private final JdbcClient jdbc;
     private final Clock clock;
@@ -40,14 +45,18 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
     public boolean insert(OutboundDelivery unsaved, Instant now) {
         return jdbc.sql("""
                         insert into platform_integration.outbound_deliveries
-                               (id, deduplication_key, recipient_codes, skipped_recipient_codes, title, description, target_url, status,
-                                next_attempt_at, last_error, kind, target_key, correlation_id, created_at, updated_at, version, event_count)
-                        values (:id, :key, :recipients, :skipped, :title, :description, :url, :status, :next, :reason, :kind, :target,
-                                :correlation, :now, :now, 0, 0)
-                        on conflict (deduplication_key) do nothing
+                               (id, subject_kind, subject_id, purpose_kind, trigger_event_id, recipient_codes, skipped_recipient_codes, title,
+                                description, target_url, status, next_attempt_at, last_error, kind, target_delivery_id, correlation_id,
+                                created_at, updated_at, version, event_count)
+                        values (:id, :subjectKind, :subjectId, :purpose, :trigger, :recipients, :skipped, :title, :description, :url, :status,
+                                :next, :reason, :kind, :target, :correlation, :now, :now, 0, 0)
+                        on conflict do nothing
                         """)
                 .param("id", ids.next())
-                .param("key", unsaved.deduplicationKey())
+                .param("subjectKind", unsaved.subject().kind().name())
+                .param("subjectId", unsaved.subject().id())
+                .param("purpose", unsaved.subject().purpose().name())
+                .param("trigger", unsaved.subject().triggerEvent().orElse(null), Types.OTHER)
                 .param("recipients", codes(unsaved.recipients()))
                 .param("skipped", unsaved.skippedRecipients().isEmpty() ? null : codes(unsaved.skippedRecipients()), Types.ARRAY)
                 .param("title", unsaved.title())
@@ -57,16 +66,32 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
                 .param("next", unsaved.nextAttemptAt() == null ? null : Timestamp.from(unsaved.nextAttemptAt()), Types.TIMESTAMP)
                 .param("reason", unsaved.lastError(), Types.VARCHAR)
                 .param("kind", unsaved.kind().name())
-                .param("target", unsaved.targetKey(), Types.VARCHAR)
+                .param("target", unsaved.target() == null ? null : unsaved.target().value(), Types.OTHER)
                 .param("correlation", unsaved.correlation(), Types.OTHER)
                 .param("now", Timestamp.from(now))
                 .update() > 0;
     }
 
     @Override
-    public Optional<OutboundDelivery> findByKey(String deduplicationKey) {
-        return jdbc.sql("select " + COLUMNS + " from platform_integration.outbound_deliveries where deduplication_key = :key")
-                .param("key", deduplicationKey).query((rs, n) -> row(rs)).optional();
+    public Optional<OutboundDelivery> findById(UUID deliveryId) {
+        return jdbc.sql("select " + COLUMNS + " from platform_integration.outbound_deliveries where id = :id")
+                .param("id", deliveryId).query((rs, n) -> row(rs)).optional();
+    }
+
+    @Override
+    public Optional<OutboundDelivery> findCard(DeliverySubject subject) {
+        return cardOf(subject, "");
+    }
+
+    @Override
+    public Optional<OutboundDelivery> lockCard(DeliverySubject subject) {
+        return cardOf(subject, " for update");
+    }
+
+    private Optional<OutboundDelivery> cardOf(DeliverySubject subject, String lock) {
+        return jdbc.sql("select " + COLUMNS + " from platform_integration.outbound_deliveries" + CARD_OF_SUBJECT + lock)
+                .param("kind", subject.kind().name()).param("subject", subject.id()).param("purpose", subject.purpose().name())
+                .param("trigger", subject.triggerEvent().orElse(null), Types.OTHER).query((rs, n) -> row(rs)).optional();
     }
 
     @Override
@@ -87,9 +112,9 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
     }
 
     @Override
-    public Optional<OutboundDelivery> lockByKey(String deduplicationKey) {
-        return jdbc.sql("select " + COLUMNS + " from platform_integration.outbound_deliveries where deduplication_key = :key for update")
-                .param("key", deduplicationKey).query((rs, n) -> row(rs)).optional();
+    public Optional<OutboundDelivery> lockById(UUID deliveryId) {
+        return jdbc.sql("select " + COLUMNS + " from platform_integration.outbound_deliveries where id = :id for update")
+                .param("id", deliveryId).query((rs, n) -> row(rs)).optional();
     }
 
     @Override
@@ -136,10 +161,13 @@ class JdbcOutboundDeliveryRepository implements OutboundDeliveryRepository {
     }
 
     private static OutboundDelivery row(ResultSet rs) throws SQLException {
-        return OutboundDelivery.restore(new OutboundDeliveryId(rs.getObject("id", UUID.class)), rs.getString("deduplication_key"),
+        DeliverySubjectKind kind = DeliverySubjectKind.valueOf(rs.getString("subject_kind"));
+        DeliverySubject subject = new DeliverySubject(kind, rs.getObject("subject_id", UUID.class), DeliveryPurpose.valueOf(rs.getString("purpose_kind")),
+                Optional.ofNullable(rs.getObject("trigger_event_id", UUID.class)));
+        return OutboundDelivery.restore(new OutboundDeliveryId(rs.getObject("id", UUID.class)), subject,
                 recipients(rs), rs.getString("title"), rs.getString("description"), rs.getString("target_url"),
                 rs.getString("status"), rs.getInt("attempt_count"), rs.getString("response_code"), rs.getString("handled_note"), rs.getString("handled_result"),
-                DeliveryKind.valueOf(rs.getString("kind")), rs.getString("target_key"), rs.getObject("correlation_id", UUID.class),
+                DeliveryKind.valueOf(rs.getString("kind")), rs.getObject("target_delivery_id", UUID.class), rs.getObject("correlation_id", UUID.class),
                 rs.getLong("version"), rs.getLong("event_count"));
     }
 

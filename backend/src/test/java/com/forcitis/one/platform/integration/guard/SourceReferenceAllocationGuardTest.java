@@ -26,6 +26,38 @@ class SourceReferenceAllocationGuardTest {
             .because("only the organisation source allocates own ids on first sight (ADR-0033 section 2); call SourceReferences.allocate from "
                     + "platform.integration.infrastructure.seeyon, and look up with findOwnIds / findOwnId / findSourceId everywhere else");
 
+    static final String ALLOCATE_OWN_ID = "com.forcitis.one.platform.integration.application.AllocateOwnId";
+
+    static final ArchRule ONLY_SOURCE_REFERENCES_USES_ALLOCATE_OWN_ID = noClasses()
+            .that().haveNameNotMatching("com\\.forcitis\\.one\\.platform\\.integration\\.application\\.(SourceReferences|AllocateOwnId)(\\$.*)?")
+            .should().dependOnClassesThat().haveFullyQualifiedName(ALLOCATE_OWN_ID).allowEmptyShould(true)
+            .because("AllocateOwnId is the writing half of SourceReferences.allocate and is used through it only, so the rule above cannot be walked around");
+
+    @Test
+    @DisplayName("P3B-L8 AllocateOwnId is used by SourceReferences only")
+    void onlySourceReferencesUsesAllocateOwnId() {
+        JavaClasses production = new ClassFileImporter().withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+                .importPackages("com.forcitis.one");
+        ONLY_SOURCE_REFERENCES_USES_ALLOCATE_OWN_ID.check(production);
+    }
+
+    @Test
+    @DisplayName("injected: a class other than SourceReferences that holds AllocateOwnId is caught")
+    void anotherUserOfAllocateOwnIdIsCaught() throws ClassNotFoundException {
+        JavaClasses offender = new ClassFileImporter().importClasses(Class.forName("com.forcitis.one.platform.integration.application.AllocateOwnIdMisuse"));
+
+        assertThatThrownBy(() -> ONLY_SOURCE_REFERENCES_USES_ALLOCATE_OWN_ID.check(offender)).isInstanceOf(AssertionError.class)
+                .hasMessageContaining("AllocateOwnIdMisuse");
+    }
+
+    @Test
+    @DisplayName("counter-example: SourceReferences itself holds AllocateOwnId and passes")
+    void sourceReferencesPasses() {
+        JavaClasses holder = new ClassFileImporter().importClasses(SourceReferences.class);
+
+        ONLY_SOURCE_REFERENCES_USES_ALLOCATE_OWN_ID.check(holder);
+    }
+
     @Test
     @DisplayName("P3B-L8 SourceReferences.allocate is called by the organisation source adapter only")
     void onlyTheOrgSourceAdapterAllocates() {

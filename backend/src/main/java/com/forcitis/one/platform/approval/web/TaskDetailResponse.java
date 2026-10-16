@@ -15,14 +15,14 @@ import java.util.UUID;
 import org.springframework.lang.Nullable;
 
 /** reason is absent when the deciding person gave none: the screen words that, the data does not pretend (RULE-280). */
-record TaskDetailResponse(String taskId, String instanceId, ProcessKey processKey, DocumentType documentType, String documentId, String nodeKey,
+record TaskDetailResponse(UUID taskId, UUID instanceId, ProcessKey processKey, DocumentType documentType, UUID documentId, String nodeKey,
                           @Nullable String nodeName, String initiator, String initiatorName, @Nullable String initiatorOrgUnitName,
                           @Nullable UUID assignee, @Nullable String assigneeName, List<UUID> candidates, List<String> candidateNames,
                           Instant createdAt, String status, @Nullable Instant dueAt, @Nullable Instant deadlineAt, boolean overdue,
                           @Nullable Instant completedAt, @Nullable String outcome, @Nullable String effect, @Nullable String reason,
                           @Nullable String summary, boolean canAct, List<HistoryEntry> history) {
 
-    record HistoryEntry(UUID recordId, String taskId, String nodeKey, String nodeName, int round, TaskRecordAction action, UUID actorId,
+    record HistoryEntry(UUID recordId, UUID taskId, String nodeKey, String nodeName, int round, TaskRecordAction action, UUID actorId,
                         String actorName, @Nullable String onBehalfOfName, @Nullable String assigneeName, @Nullable String reason,
                         Instant decidedAt) {
     }

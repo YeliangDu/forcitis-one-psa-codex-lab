@@ -130,7 +130,7 @@
         "projectManagerId": [
           "111"
         ],
-        "regionalHeadId": [
+        "orgUnitHeadId": [
           "112"
         ]
       },
@@ -147,10 +147,10 @@
           ]
         },
         {
-          "nodeKey": "regionalHeadReview",
+          "nodeKey": "orgUnitHeadApproval",
           "rule": {
             "type": "FORM_FIELD_USERS",
-            "field": "regionalHeadId"
+            "field": "orgUnitHeadId"
           },
           "actualApprovers": [
             112
@@ -170,7 +170,7 @@
         "projectManagerId": [
           "111"
         ],
-        "regionalHeadId": [
+        "orgUnitHeadId": [
           "110"
         ]
       },
@@ -187,10 +187,10 @@
           ]
         },
         {
-          "nodeKey": "regionalHeadReview",
+          "nodeKey": "orgUnitHeadApproval",
           "rule": {
             "type": "FORM_FIELD_USERS",
-            "field": "regionalHeadId"
+            "field": "orgUnitHeadId"
           },
           "actualApprovers": [
             110
@@ -307,17 +307,17 @@
         1
       ],
       "formFields": {
-        "regionalHeadId": [
+        "orgUnitHeadId": [
           "110"
         ]
       },
       "variables": {},
       "nodes": [
         {
-          "nodeKey": "regionalHeadReview",
+          "nodeKey": "orgUnitHeadApproval",
           "rule": {
             "type": "FORM_FIELD_USERS",
-            "field": "regionalHeadId"
+            "field": "orgUnitHeadId"
           },
           "actualApprovers": [
             105

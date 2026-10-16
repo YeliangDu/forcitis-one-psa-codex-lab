@@ -4,7 +4,7 @@ package com.forcitis.one.cost.timesheet.api;
 public enum TimesheetRoutingFlag {
     /** The timesheet contains project hours, so the project manager reviews. */
     PROJECT_HOURS("projectHours"),
-    /** The timesheet contains pre-sales hours, so the regional head reviews. */
+    /** The timesheet contains pre-sales hours, so the org unit head approves. */
     PRE_SALES_HOURS("preSalesHours"),
     /** The timesheet contains overhead hours, so the initiator's supervisor reviews. */
     OVERHEAD_HOURS("overheadHours");

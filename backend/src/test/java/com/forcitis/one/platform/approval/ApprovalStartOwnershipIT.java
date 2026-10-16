@@ -41,7 +41,7 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
     RequestMappingHandlerMapping handlerMapping;
 
     Map<String, Object> variablesOf(ApprovalInstanceId instance) {
-        return new TreeMap<>(runtime.getVariables(instance.value()));
+        return new TreeMap<>(runtime.getVariables(instance.value().toString()));
     }
 
     @Test
@@ -62,9 +62,9 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
 
         assertThat(variablesOf(instanceOfB)).isEqualTo(before);
         assertThat(instancesOf(documentOfB)).isEqualTo(1);
-        assertThat(jdbc.queryForObject("select initiator_id from platform_approval.approval_requests where document_key = ?",
+        assertThat(jdbc.queryForObject("select initiator_id from platform_approval.approval_requests where document_id = cast(? as uuid)",
                 java.util.UUID.class, documentOfB)).isEqualTo(TestAccounts.employee(userB).value());
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where document_key = ?", Integer.class,
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where approval_request_id = (select id from platform_approval.approval_requests where document_id = cast(? as uuid))", Integer.class,
                 documentOfB)).isEqualTo(1);
         assertThat(requestStatus(documentOfB)).isEqualTo("RUNNING");
         verify(audit, atLeastOnce()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.start.denied")
@@ -103,14 +103,14 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId round1 = start(documentOfB, userB, manager);
         decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(openTaskId(round1), DecisionOutcome.REJECT, "fix it")), java.util.OptionalLong.empty());
         assertThat(requestStatus(documentOfB)).isEqualTo("RETURNED");
-        assertThat(taskService.createTaskQuery().processInstanceId(round1.value()).count()).as("nothing is parked at the initiator").isZero();
+        assertThat(taskService.createTaskQuery().processInstanceId(round1.value().toString()).count()).as("nothing is parked at the initiator").isZero();
         actAs(userA);
         assertThatThrownBy(() -> tx.executeWithoutResult(status -> approvals.start(startRequest(documentOfB, TestAccounts.employee(userA), Set.of(), List.of()))))
                 .isInstanceOf(AccessDeniedException.class);
         org.springframework.security.core.context.SecurityContextHolder.clearContext();
 
         assertThat(requestStatus(documentOfB)).isEqualTo("RETURNED");
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where document_key = ?", Integer.class,
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where approval_request_id = (select id from platform_approval.approval_requests where document_id = cast(? as uuid))", Integer.class,
                 documentOfB)).isEqualTo(1);
         verify(audit, atLeastOnce()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.start.denied")
                 && entry.actorId().equals(TestAccounts.account(userA))));
@@ -119,11 +119,11 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
         assertThat(round2).isNotEqualTo(round1);
         assertThat(requestStatus(documentOfB)).isEqualTo("RUNNING");
         assertThat(openTask(round2).getTaskDefinitionKey()).isEqualTo("projectManagerReview");
-        assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where document_key = ?",
+        assertThat(jdbc.queryForObject("select current_round from platform_approval.approval_requests where document_id = cast(? as uuid)",
                 Integer.class, documentOfB)).isEqualTo(2);
         assertThat(instancesOf(documentOfB)).as("round 1 has ended, only round 2 runs").isEqualTo(1);
         assertThat(start(documentOfB, userB, manager)).isEqualTo(round2);
-        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where document_key = ?", Integer.class,
+        assertThat(jdbc.queryForObject("select count(*) from platform_approval.start_rounds where approval_request_id = (select id from platform_approval.approval_requests where document_id = cast(? as uuid))", Integer.class,
                 documentOfB)).isEqualTo(2);
     }
 
