@@ -40,6 +40,9 @@ class SeeyonSourceScanTest {
 
     static final Pattern DBO_OBJECT = Pattern.compile("(?<![\\w\\]])(?:\\[dbo\\]|dbo)[ \\t]*\\.[ \\t]*\\[?(\\w+)\\]?", Pattern.CASE_INSENSITIVE);
     static final Pattern VIEW_SCHEMA_OBJECT = Pattern.compile("(?<![\\w\\]])\\[?forcitis_one\\]?[ \\t]*\\.[ \\t]*\\[?(\\w+)\\]?", Pattern.CASE_INSENSITIVE);
+    /** C-14 (f) owned-job check: read-only, counts only. msdb is not an external business database, so this one qualified view stays out of the register; the same name without the msdb qualifier is still reported. */
+    static final Pattern MSDB_JOBS_VIEW = Pattern.compile(
+            "(?<![\\w\\]])(?:\\[msdb\\]|msdb)[ \\t]*\\.[ \\t]*(?:\\[dbo\\]|dbo)[ \\t]*\\.[ \\t]*\\[?sysjobs_view\\]?", Pattern.CASE_INSENSITIVE);
     static final Pattern BARE_VIEW_LITERAL = Pattern.compile("^v_\\w+$");
 
     static List<String> registeredNames() throws IOException {
@@ -112,7 +115,7 @@ class SeeyonSourceScanTest {
     /** dbo objects and view-schema objects named in SQL text, plus string literals that are a bare view name. */
     static Set<String> namedObjects(String javaSource) {
         Set<String> named = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-        String text = CredentialColumnGuardTest.stringLiterals(javaSource);
+        String text = MSDB_JOBS_VIEW.matcher(CredentialColumnGuardTest.stringLiterals(javaSource)).replaceAll("");
         Matcher dbo = DBO_OBJECT.matcher(text);
         while (dbo.find()) {
             named.add(ExternalReadRegister.BASE_SCHEMA + "." + dbo.group(1));
@@ -217,6 +220,19 @@ class SeeyonSourceScanTest {
         assertThat(outsideHits).hasSize(2).allMatch(h -> h.contains("Outside.java")).anyMatch(h -> h.contains("dbo.ORG_UNIT"))
                 .anyMatch(h -> h.contains("dbo.org_member"));
         assertThat(insideHits).hasSize(2).anyMatch(h -> h.endsWith("dbo.ORG_SECRET")).anyMatch(h -> h.endsWith("forcitis_one.v_org_hidden"));
+    }
+
+    @Test
+    @DisplayName("C-14 (f) 只有 msdb 限定的 sysjobs_view 免于登记：不带 msdb 限定的同名对象与其他未登记的 dbo 对象仍被报出")
+    void onlyTheMsdbQualifiedJobsViewIsExemptFromTheRegister(@TempDir Path dir) throws IOException {
+        Path inside = dir.resolve("Inside.java");
+        Files.writeString(inside, "String ok = \"SELECT COUNT(*) FROM msdb.dbo.sysjobs_view\";\nString bracketed = \"FROM [msdb].[dbo].[sysjobs_view]\";\n"
+                + "String bare = \"SELECT 1 FROM dbo.sysjobs_view\";\nString other = \"SELECT 1 FROM msdb.dbo.sysjobs\";\nString elsewhere = \"FROM otherdb.dbo.sysjobs_view\";\n");
+
+        List<String> hits = unregisteredObjects(List.of(inside), ExternalReadRegister.objects(ExternalReadRegister.rows()));
+
+        assertThat(hits).hasSize(2).allMatch(h -> h.endsWith("dbo.sysjobs_view") || h.endsWith("dbo.sysjobs"));
+        assertThat(namedObjects("String s = \"FROM msdb.dbo.sysjobs_view\";")).isEmpty();
     }
 
     @Test
