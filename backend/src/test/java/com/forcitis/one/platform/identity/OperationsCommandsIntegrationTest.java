@@ -34,7 +34,6 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
     static final String OPERATOR_ID = "01900000-0000-7000-8000-00000000a001";
     static final String WITNESS_ID = "01900000-0000-7000-8000-00000000a002";
 
-
     static final Pattern PASSWORD = Pattern.compile("password\\s+: (\\S+)");
     static final Pattern SECRET = Pattern.compile("\\(base32\\)\\s+: (\\S+)");
 

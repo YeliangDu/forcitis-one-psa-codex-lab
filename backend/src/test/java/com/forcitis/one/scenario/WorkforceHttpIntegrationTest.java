@@ -304,6 +304,8 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
         mvc.perform(post(path).with(csrf()).with(EXECUTE).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"" + "x".repeat(201) + "\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED"));
+        assertThat(jdbc.sql("select status from organization_workforce.sync_runs where id = ?").param(held.syncRunId().value()).query(String.class).single())
+                .as("the refused release leaves the run held").isEqualTo("HELD");
         mvc.perform(post(path).with(csrf()).with(EXECUTE).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"" + "x".repeat(200) + "\"}"))
                 .andExpect(status().isOk());
     }

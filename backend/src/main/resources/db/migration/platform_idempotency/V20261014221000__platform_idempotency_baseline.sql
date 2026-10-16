@@ -34,4 +34,4 @@ COMMENT ON COLUMN platform_idempotency.idempotent_responses.response_text IS '�
 COMMENT ON COLUMN platform_idempotency.idempotent_responses.response_header_text IS '应答头：要原样回放的头（ETag、Location）的 JSON 对象';
 COMMENT ON COLUMN platform_idempotency.idempotent_responses.expires_at IS '到期时间：创建后 24 小时';
 COMMENT ON COLUMN platform_idempotency.idempotent_responses.created_at IS '创建时间';
-COMMENT ON COLUMN platform_idempotency.idempotent_responses.updated_at IS '更新时间';
+COMMENT ON COLUMN platform_idempotency.idempotent_responses.updated_at IS '更新时间；处理中的行 updated_at 等于 expires_at，表示应答超限、键保持到期（不再被接管）';

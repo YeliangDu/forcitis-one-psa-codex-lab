@@ -61,6 +61,7 @@ public class ReleaseSyncRun {
         if (run.get().status() != SyncRunStatus.HELD) {
             return new ReleaseResult.NotHeld(run.get().status().name());
         }
+        String cleanReason = reason.strip().replaceAll("\\p{Cntrl}", " ");
         ReleaseSyncRunHolds.Lifted lifted = lift.execute(held, actor, mayLiftShrinkGuard, mayLiftSeparation).orElseThrow();
         if (!lifted.run().allHoldsReleased()) {
             return new ReleaseResult.PartlyReleased(queries.find(held).map(SyncRunView::of).orElseThrow());
@@ -70,10 +71,10 @@ public class ReleaseSyncRun {
             withdraw.execute(held);
             return new ReleaseResult.NotApplied(result.note() == null ? result.status().name() : result.note());
         }
-        String detail = "reason: " + reason.strip() + "; session mode: " + (lifted.review().sessionMode().isEmpty() ? "none" : lifted.review().sessionMode()) + "; held: "
+        String detail = "reason: " + cleanReason + "; session mode: " + (lifted.review().sessionMode().isEmpty() ? "none" : lifted.review().sessionMode()) + "; held: "
                 + ids(lifted.run()) + "; applied: " + result.separated().stream().map(id -> String.valueOf(id.value())).collect(Collectors.joining(","))
                 + "; remaining super_admin: " + lifted.review().remainingAdministrators();
-        record.execute(held, result.syncRunId(), actor, new Reason(reason.strip()), detail);
+        record.execute(held, result.syncRunId(), actor, new Reason(cleanReason), detail);
         LOG.error("ALERT organization.workforce sync run {} released by user {}: {}", held.value(), actor.value(), detail);
         return new ReleaseResult.Released(queries.find(result.syncRunId()).map(SyncRunView::of).orElseThrow());
     }

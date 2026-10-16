@@ -50,13 +50,6 @@ class IdempotencyScope {
         this.endpoints = List.copyOf(parsed);
     }
 
-    /** A scope with more endpoints, for a test that needs a probe endpoint. */
-    IdempotencyScope plus(String... lines) {
-        List<String> all = new ArrayList<>(endpoints.stream().map(e -> e.method() + " " + e.pattern().getPatternString()).toList());
-        all.addAll(List.of(lines));
-        return new IdempotencyScope(all);
-    }
-
     boolean applies(String method, String path) {
         PathContainer container = PathContainer.parsePath(path);
         return endpoints.stream().anyMatch(e -> e.method().equals(method) && e.pattern().matches(container));

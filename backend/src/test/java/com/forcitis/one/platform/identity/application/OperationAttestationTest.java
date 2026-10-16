@@ -24,6 +24,9 @@ class OperationAttestationTest {
         assertThatThrownBy(() -> OperationAttestation.of(ALICE, null)).isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> OperationAttestation.of("alice", BOB)).isInstanceOf(DomainException.class);
         assertThatThrownBy(() -> OperationAttestation.of(ALICE, BOB.toUpperCase())).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> OperationAttestation.of(ALICE, "00000000-0000-0000-0000-000000000000")).as("the nil UUID").isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> OperationAttestation.of(" " + ALICE, BOB)).as("surrounding blanks").isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> OperationAttestation.of(ALICE, BOB + " ")).as("surrounding blanks").isInstanceOf(DomainException.class);
     }
 
     @Test
