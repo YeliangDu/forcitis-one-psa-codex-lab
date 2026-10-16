@@ -57,6 +57,7 @@
 - 新系统只读账号可读凭据列（用户「全部可读，不排除」）；凭据值不得进入新系统任何表、日志、事件、会话。
 - CI runner 以用户本人账号运行（用户本次未选专用用户，SUPPLY_CHAIN S6）。
 - 老系统安全（实例白名单 0.0.0.0/0 等）：用户「老系统先不管」，已移出待办。
+- 发布门禁 #438：有写权限者可另建 PR 空转 CI 伪造成功运行、事后删 PR 则无法发现；写权限仅用户账号及其会话，门禁只管 dev，prod 另有用户审批（用户 2026-10-16「接受」）。
 
 ## 本机与调度自管
 - CI runner mac-one-1..4（~/actions-runners/one-N）与部署 runner mac-one-deploy（/opt/forcitis-one-runner）；main 分支保护 strict。
