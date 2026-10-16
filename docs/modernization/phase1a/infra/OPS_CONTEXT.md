@@ -66,7 +66,7 @@
 
 - Docker Desktop 订阅不买（用户：「不买，只有我一个人用 docker」）。条款：Docker Subscription Service Agreement 第 3 节，商用免费需「fewer than 250 employees and less than US $10,000,000 in annual revenue」，公司约 304 人已超员工数线；取自 https://www.docker.com/legal/docker-subscription-service-agreement/ （页面标注 Last updated on August 26, 2026），风险由用户承担。
 - CI 不搬到 Linux 机器，不开试用机。本机测试提速调查：5 个数据库集成测试类单 fork 基线 46.3 秒、43.2 秒，PostgreSQL 容器改内存盘并关 fsync 后 41.7 秒，差距在波动内，不值得做；时间主要花在每类各自起容器、建应用环境、跑基线迁移（76 个类各起一个容器）；已做的 fork 降到 2、看门狗、停闲置容器够用，停止。
-- H-2（探针的 msdb 用户移出 SQLAgentOperatorRole）：用户 2026-10-16 批准一次，见 C-14 剧本 H-2；探针收尾始终删除探针自己在 msdb、rdscore 的自动用户（用户确认）。
+- H-2（探针的 msdb 用户移出 SQLAgentOperatorRole）：平台不可构造（u8c 在 msdb 无 ALTER ANY ROLE，2026-10-16 实测），不做；探针账号改经 RDS 云接口建删（msdb 用户随之清除），rdscore 里同名用户是永久已知残留（用户 2026-10-16 决定接受，见 C-14 剧本与 RESOURCES）。
 
 ## 暂停项
 

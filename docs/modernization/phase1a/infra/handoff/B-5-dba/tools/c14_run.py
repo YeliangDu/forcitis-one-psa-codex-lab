@@ -1,23 +1,30 @@
 #!/usr/bin/env python3
-"""FORCITIS one · C-14 · 只读启动校验拒绝路径的真实登录核实，探针部分（运维机上运行，阿里云 Python SDK；剧本 runbooks/C-14-readonly-probe.md）。
+"""FORCITIS one · C-14 · 只读启动校验拒绝路径的真实登录核实，探针部分（运维机上运行，阿里云 Python SDK 与 aliyun CLI；剧本 runbooks/C-14-readonly-probe.md）。
 
 偏离与回退以老系统主数据源经老系统服务器上的 OneSql 执行（只用于授权变更，ADR-0037 第 5 项第 4 条）；校验以探针登录在新 ECS 上运行 rc.3 起的
-只读核实命令（--connection=probe），有效权限计数也以探针登录在新 ECS 上取。探针口令在 SQL Server 上生成，只以新 ECS 临时公钥加密的密文经手，
-写入 /etc/forcitis-one/readonly-probe.env（root 0600）。前提：新 ECS 的 /root/one-ops-c14/app.jar 是已验签发布包里的 jar，其 SHA-256 作为参数传入。
+只读核实命令（--connection=probe），有效权限计数也以探针登录在新 ECS 上取。探针账号经 RDS 云接口（aliyun rds CreateAccount / DeleteAccount）创建与删除：
+RDS 托管的删除会清掉它在 msdb 里自动建的用户，T-SQL 的 CREATE / DROP LOGIN 则不会，且执行账号在 msdb、rdscore 无权删用户（2026-10-16 实测）。
+口令在本进程内存里运行时生成，只经云接口命令行（本机，创建命令执行期间 ps 可见）和以新 ECS 临时公钥加密的密文，写入 /etc/forcitis-one/readonly-probe.env（root 0600），不落盘、不打印。
+rdscore 里同名用户是平台对任何账号的固有残留（删账号也不清，同名重建沿用同一用户号，不累积）：登记为永久已知残留，回读不要求它为 0，但须为 0 或与预检、对照时记下的用户号相同（还没记下时只记录）。
+回读用 USER_ID（不受元数据可见性限制）：探针登录、探针库、master / msdb 用户为 0，rdscore 用户须为 0 或与基线同号。
+前提：新 ECS 的 /root/one-ops-c14/app.jar 是已验签发布包里的 jar，其 SHA-256 作为参数传入。
 每项：对照计数 → 偏离 → 跑校验 → 回退 → 计数复原，并以执行账号回读探针的授权指纹。任何意外即回退当前项后收尾；收尾逐条执行、逐条记录，
-回读不为 0/0/0/0/0 或服务器上有残留即告警并以非零退出。记录只写标记、错误号与计数，不写任何输出原文。
-可选的 --msdb-role-trial（H-2，用户 2026-10-16 批准的一次性例外，只此一次）：全部项做完后，对探针自己的 msdb 用户试一次
-ALTER ROLE SQLAgentOperatorRole DROP MEMBER 并回读。不带该选项时不做这一试；但 RDS 自动给探针在 msdb、rdscore 建的用户，收尾始终只按探针名删除
-（用户 2026-10-16 直接确认），预检与回读也只读这两库。
-用法：c14_run.py <结果文件> <app.jar 的 SHA-256> [--msdb-role-trial]
+回读不干净或服务器上有残留即告警并以非零退出。记录只写标记、错误号与计数，不写任何输出原文。
+H-2（msdb 里 SQLAgentOperatorRole 移出）不做：执行账号在 msdb 无 ALTER ANY ROLE（c14_u8c_status 实测），平台不可构造，不换方式。
+用法：c14_run.py <结果文件> <app.jar 的 SHA-256>
 运行方式：在 tmux 或 nohup 下，输出重定向到文件，不要经管道（| tee）运行；结果文件必须是新名字（已存在则拒绝运行）。
-退出码：0 全部完成且收尾干净；1 中途停止（已收尾）；2 收尾不干净（须人工处理）；3 用法错误或预检失败（什么都没改）。
+退出码：0 全部完成且收尾干净；1 中途停止（已收尾）；2 收尾不干净或回读对照失败（须人工处理）；3 用法错误或预检失败（什么都没改）。
 """
+import base64
 import json
 import os
 import re
+import secrets
 import signal
+import subprocess
 import sys
+import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -39,12 +46,7 @@ P = f'[{LOGIN}]'
 PLATFORM_REFUSAL = 4613
 PLATFORM_REFUSAL_ITEMS = (10, 15)
 
-PREPARE_MASTER = f"""DECLARE @s nvarchar(64) = N'Pr-' + CONVERT(nvarchar(64), CRYPT_GEN_RANDOM(24), 2);
-DECLARE @ddl nvarchar(max) = N'CREATE LOGIN {P} WITH PASSWORD = ' + QUOTENAME(@s, N'''') + N', CHECK_POLICY = ON, CHECK_EXPIRATION = OFF, DEFAULT_DATABASE = [master]';
-EXEC (@ddl);
-SELECT N'{LOGIN}' AS login_name, @s AS one_time_secret;
-GO
-CREATE DATABASE [{DB}];
+PREPARE_MASTER = f"""CREATE DATABASE [{DB}];
 GO
 """
 PREPARE_DB = f"""CREATE USER {P} FOR LOGIN {P} WITH DEFAULT_SCHEMA = dbo;
@@ -82,7 +84,7 @@ ITEMS = [
 ]
 
 DROP_USER = f"IF USER_ID(N'{LOGIN}') IS NOT NULL DROP USER {P};"
-# RDS gives every new login a user of its own in msdb and rdscore; dropping the login leaves those users behind, so they go first (only ever the probe's)
+# The probe account itself goes through the RDS API (DeleteAccount), last; see delete_account()
 KILL_SESSIONS = (f"DECLARE @k nvarchar(max) = N''; SELECT @k = @k + N'KILL ' + CAST(session_id AS nvarchar(10)) + N';' FROM sys.dm_exec_sessions "
                  f"WHERE login_name = N'{LOGIN}' AND session_id <> @@SPID; IF LEN(@k) > 0 EXEC (@k);")
 CLEANUP = [
@@ -90,35 +92,14 @@ CLEANUP = [
     (DB2, DROP_USER),
     ('master', f"IF DB_ID(N'{DB2}') IS NOT NULL DROP DATABASE [{DB2}];"),
     ('master', DROP_USER),
-    ('msdb', DROP_USER),
-    ('rdscore', DROP_USER),
     ('master', f"IF DB_ID(N'{DB}') IS NOT NULL DROP DATABASE [{DB}];"),
-    ('master', f"IF SUSER_ID(N'{LOGIN}') IS NOT NULL DROP LOGIN {P};"),
 ]
 READBACK = (f"SELECT (SELECT COUNT(*) FROM sys.server_principals WHERE name = N'{LOGIN}') AS logins,\n"
             f"       (SELECT COUNT(*) FROM sys.databases WHERE name LIKE N'one[_]readonly[_]probe[_]db%') AS probe_databases,\n"
-            f"       (SELECT COUNT(*) FROM master.sys.database_principals WHERE name = N'{LOGIN}') AS master_users,\n"
-            f"       (SELECT COUNT(*) FROM msdb.sys.database_principals WHERE name = N'{LOGIN}') AS msdb_users,\n"
-            f"       (SELECT COUNT(*) FROM rdscore.sys.database_principals WHERE name = N'{LOGIN}') AS rdscore_users;")
-CLEAN_READBACK = (0, 0, 0, 0, 0)
-# H-2: what the probe's own msdb user has, as numbers (user present, in SQLAgentOperatorRole, roles in all), and the role names
-MSDB_OBSERVE = (f"SELECT (SELECT COUNT(*) FROM sys.database_principals WHERE name = N'{LOGIN}') AS user_present,\n"
-                f"       (SELECT COUNT(*) FROM sys.database_role_members rm JOIN sys.database_principals u ON u.principal_id = rm.member_principal_id\n"
-                f"         JOIN sys.database_principals r ON r.principal_id = rm.role_principal_id\n"
-                f"         WHERE u.name = N'{LOGIN}' AND r.name = N'SQLAgentOperatorRole') AS in_operator_role,\n"
-                f"       (SELECT COUNT(*) FROM sys.database_role_members rm JOIN sys.database_principals u ON u.principal_id = rm.member_principal_id\n"
-                f"         WHERE u.name = N'{LOGIN}') AS roles;")
-MSDB_ROLES = (f"SELECT r.name AS role_name FROM sys.database_role_members rm JOIN sys.database_principals u ON u.principal_id = rm.member_principal_id\n"
-              f"  JOIN sys.database_principals r ON r.principal_id = rm.role_principal_id WHERE u.name = N'{LOGIN}' ORDER BY r.name;")
-# Control for the readback: right after the login exists RDS has made the probe its own users in msdb and rdscore, and the execution account must see both;
-# if it does not, a zero in the final readback would only mean "not visible"
-VISIBILITY_CONTROL = (f"SELECT (SELECT COUNT(*) FROM msdb.sys.database_principals WHERE name = N'{LOGIN}') AS msdb_probe_user,\n"
-                      f"       (SELECT COUNT(*) FROM rdscore.sys.database_principals WHERE name = N'{LOGIN}') AS rdscore_probe_user;")
-# Preflight gate, changes nothing: the execution account must see and drop users in msdb and rdscore (the auto-created probe users go there)
-SYSTEM_DB_PERMISSIONS = ("SELECT HAS_PERMS_BY_NAME(N'msdb', N'DATABASE', N'VIEW DEFINITION') AS msdb_view, HAS_PERMS_BY_NAME(N'msdb', N'DATABASE', N'ALTER ANY USER') AS msdb_alter_user,\n"
-                         "       HAS_PERMS_BY_NAME(N'rdscore', N'DATABASE', N'VIEW DEFINITION') AS rdscore_view, HAS_PERMS_BY_NAME(N'rdscore', N'DATABASE', N'ALTER ANY USER') AS rdscore_alter_user;")
-MSDB_DROP_MEMBER = f"ALTER ROLE SQLAgentOperatorRole DROP MEMBER {P};"
-KNOWN_ROLES = {'SQLAgentUserRole', 'SQLAgentReaderRole', 'SQLAgentOperatorRole', 'db_owner', 'db_datareader', 'db_datawriter', 'public'}
+            f"       ISNULL(USER_ID(N'{LOGIN}'), 0) AS master_user;")
+USER_ID_QUERY = f"SELECT ISNULL(USER_ID(N'{LOGIN}'), 0) AS user_id;"
+CLEAN_READBACK = (0, 0, 0, 0)  # logins, probe databases, master user, msdb user; the rdscore user is the platform's known residue: it must be 0 or the baseline number
+INSTANCE = 'rm-bp1690ep53t9778dp'
 # The execution account's view of everything an item may change, as one row of numbers; compared with the control after every revert
 FINGERPRINT = (f"SELECT (SELECT COUNT(*) FROM sys.database_permissions WHERE grantee_principal_id = USER_ID(N'{LOGIN}')) AS user_permissions,\n"
                f"       (SELECT ISNULL(CHECKSUM_AGG(CHECKSUM(class, major_id, minor_id, type, state)), 0) FROM sys.database_permissions\n"
@@ -253,33 +234,107 @@ def fingerprint(label):
     return value
 
 
-def msdb_observe(label):
-    rc, _, out = legacy_sql(label, 'msdb', MSDB_OBSERVE, mode='ro')
+def readback(label):
+    """Probe account, probe databases, master / msdb users (zero when clean) and the rdscore user (the platform's known residue), as USER_ID values."""
+    rc, _, out = legacy_sql(label, 'master', READBACK, mode='ro')
     rows = numbers(out)
-    value = rows[-1] if rc == 0 and rows and len(rows[-1]) == 3 else None
-    rc2, _, out2 = legacy_sql(label + ' roles', 'msdb', MSDB_ROLES, mode='ro')
-    names = sorted(n for n in re.findall(r'^  ([A-Za-z_]{3,40})$', out2, re.M) if n in KNOWN_ROLES)
-    record(step=label, user_present_in_operator_role_roles=value, role_names=names)
-    if value is None:
-        raise Stop(f'{label}: msdb observation unreadable')
-    return value
+    base = rows[-1] if rc == 0 and rows and len(rows[-1]) == 3 else None
+    ids = []
+    for database in ('msdb', 'rdscore'):
+        rc2, _, out2 = legacy_sql(f'{label} {database}', database, USER_ID_QUERY, mode='ro')
+        rows2 = numbers(out2)
+        ids.append(rows2[-1][0] if rc2 == 0 and rows2 and len(rows2[-1]) == 1 else None)
+    if base is None or None in ids:
+        return None
+    return (*base, ids[0], ids[1])
 
 
-def msdb_role_trial():
-    """H-2 (user 2026-10-16, one time only): can the probe's own msdb user be taken out of SQLAgentOperatorRole on RDS? Nothing else in msdb is touched."""
-    present, in_operator, roles = msdb_observe('item 18 observe before')
-    if not present:
-        record(item=18, outcome='RDS did not create a msdb user for the probe login; nothing to remove')
-        return
-    if not in_operator:
-        record(item=18, outcome='the probe user is not in SQLAgentOperatorRole; nothing to remove')
-        return
-    errors = apply('item 18 drop member', [('msdb', MSDB_DROP_MEMBER)])
-    after = msdb_observe('item 18 observe after')
-    record(item=18, statement='ALTER ROLE SQLAgentOperatorRole DROP MEMBER (probe user only)', sql_errors=errors, still_in_operator_role=bool(after[1]),
-           outcome='removed' if not errors and not after[1] else 'refused or not effective')
-    if not errors:
-        verify('item 18 verify')
+def rds(*args, secret=None):
+    """aliyun rds <action> on the instance; the output is returned with the secret removed and is never printed."""
+    result = subprocess.run(['aliyun', 'rds', *args, '--profile', 'forcitis-production', '--region', 'cn-hangzhou', '--DBInstanceId', INSTANCE],
+                            capture_output=True, text=True, timeout=300)
+    out, err = result.stdout or '', result.stderr or ''
+    if secret:
+        out, err = out.replace(secret, '***'), err.replace(secret, '***')
+    return result.returncode, out, err
+
+
+def account_status():
+    """Status of the probe account on the instance: '' when there is none, None when it cannot be read. Only stdout is parsed."""
+    rc, out, _ = rds('DescribeAccounts', '--AccountName', LOGIN)
+    if rc != 0:
+        return None
+    try:
+        accounts = [a for a in json.loads(out)['Accounts']['DBInstanceAccount'] if a.get('AccountName') == LOGIN]
+    except (ValueError, KeyError, TypeError):
+        return None
+    return accounts[0]['AccountStatus'] if accounts else ''
+
+
+def account_status_retried():
+    for _ in range(4):
+        status = account_status()
+        if status is not None:
+            return status
+        time.sleep(5)
+    return None
+
+
+rdscore_user = []  # the rdscore user number seen before the run or right after the account exists; the run must not end with another one
+requested = []  # the creation call was made, so an empty status right after may only mean it is still on its way
+
+
+def create_account(secret):
+    requested.append(True)
+    rc, out, err = rds('CreateAccount', '--AccountName', LOGIN, '--AccountPassword', secret, '--AccountType', 'Normal', secret=secret)
+    request = re.findall(r'"RequestId":\s*"([0-9A-F-]+)"', out)
+    code = re.findall(r'ErrorCode: (\S+)', out + err)
+    record(step='rds create account', rc=rc, request_id=request[0] if request else None, error_code=code[0] if code else None)
+    if rc != 0:
+        raise Stop('creating the probe account through RDS failed')
+    for _ in range(30):
+        if account_status() == 'Available':
+            return
+        time.sleep(10)
+    raise Stop('the probe account did not become Available in 5 minutes')
+
+
+def delete_account():
+    status = account_status_retried()
+    if status == '' and requested:
+        for _ in range(6):  # a creation that was interrupted may still be running on the server
+            time.sleep(10)
+            status = account_status_retried()
+            if status != '':
+                break
+    if status == '':
+        record(step='rds delete account', outcome='no such account')
+        return True
+    rc, request, code = None, None, None
+    for _ in range(3):  # also when the status could not be read: the delete is tried all the same
+        rc, out, err = rds('DeleteAccount', '--AccountName', LOGIN)
+        request = re.findall(r'"RequestId":\s*"([0-9A-F-]+)"', out)
+        code = re.findall(r'ErrorCode: (\S+)', out + err)
+        if rc == 0:
+            break
+        time.sleep(10)
+    left = None
+    for _ in range(30):
+        left = account_status()
+        if left == '':
+            break
+        time.sleep(10)
+    record(step='rds delete account', rc=rc, request_id=request[0] if request else None, error_code=code[0] if code else None, gone=left == '')
+    return left == ''
+
+
+def encrypt_for_ecs(public_key, secret):
+    with tempfile.NamedTemporaryFile('w', suffix='.pub') as handle:
+        handle.write(public_key)
+        handle.flush()
+        cipher = subprocess.run(['openssl', 'pkeyutl', '-encrypt', '-pubin', '-inkey', handle.name, '-pkeyopt', 'rsa_padding_mode:oaep',
+                                 '-pkeyopt', 'rsa_oaep_md:sha256', '-pkeyopt', 'rsa_mgf1_md:sha256'], input=secret.encode(), capture_output=True, check=True).stdout
+    return base64.b64encode(cipher).decode()
 
 
 def apply(label, steps):
@@ -333,20 +388,18 @@ print('PROBE_ENV_MODE', oct(os.stat({PROBE_ENV!r}).st_mode & 0o777))
 
 
 def preflight(jar_sha256):
-    rc, _, out = legacy_sql('preflight readback', 'master', READBACK, mode='ro')
-    rows = numbers(out)
-    record(step='preflight', readback=rows[-1] if rows else None)
-    if rc != 0 or not rows or rows[-1] != CLEAN_READBACK:
+    rows = readback('preflight readback')
+    record(step='preflight', readback=rows)
+    if rows is not None and rows[4]:
+        rdscore_user.append(rows[4])
+    if rows is None or rows[:4] != CLEAN_READBACK:
         refuse('preflight: probe objects already exist or the readback failed; clean up by hand first, nothing was changed')
+    if account_status() != '':
+        refuse('preflight: an RDS account with the probe\'s name exists or its status is unreadable; nothing was changed')
     for system_database in ('msdb', 'rdscore'):
         rc, _, out = legacy_sql(f'preflight connect {system_database}', system_database, 'SELECT 1 AS reachable;', mode='ro')
         if rc != 0 or (1,) not in numbers(out):
-            refuse(f'preflight: the execution account cannot open {system_database}, the cleanup could not remove the probe user there; nothing was changed')
-    rc, _, out = legacy_sql('preflight system database permissions', 'master', SYSTEM_DB_PERMISSIONS, mode='ro')
-    rows = numbers(out)
-    record(step='preflight system database permissions', msdb_view_alter_user_rdscore_view_alter_user=rows[-1] if rows else None)
-    if rc != 0 or not rows or rows[-1] != (1, 1, 1, 1):
-        refuse('preflight: the execution account lacks VIEW DEFINITION or ALTER ANY USER in msdb or rdscore, so it could neither see nor remove the users RDS makes for the probe; nothing was changed')
+            refuse(f'preflight: the execution account cannot open {system_database}, the readback could not look there; nothing was changed')
     invoke, status, _, out = ecs(f'test -e {PROBE_ENV} && echo ENV_LEFT; [ "$(sha256sum {W}/app.jar 2>/dev/null | cut -d" " -f1)" = "{jar_sha256}" ] && echo JAR_OK')
     record(step='preflight ecs', invoke=invoke, env_left='ENV_LEFT' in out, jar_ok='JAR_OK' in out)
     if 'ENV_LEFT' in out or 'JAR_OK' not in out:
@@ -372,11 +425,19 @@ def cleanup():
             record(step='cleanup', db=db, exception=type(failure).__name__)
             clean = False
     try:
-        rc, _, out = legacy_sql('readback', 'master', READBACK, mode='ro')
-        rows = numbers(out)
-        readback = rows[-1] if rc == 0 and rows else None
-        record(step='readback', logins_databases_master_msdb_rdscore_users=readback)
-        clean = clean and readback == CLEAN_READBACK
+        clean = delete_account() and clean
+    except BaseException as failure:  # noqa: BLE001
+        record(step='rds delete account', exception=type(failure).__name__)
+        clean = False
+    try:
+        rows = readback('readback')
+        for _ in range(6):  # RDS may remove the msdb user a little after the account
+            if rows is not None and rows[:4] == CLEAN_READBACK:
+                break
+            time.sleep(10)
+            rows = readback('readback again')
+        record(step='readback', logins_databases_master_msdb_rdscore_users=rows)
+        clean = clean and rows is not None and rows[:4] == CLEAN_READBACK and (not rdscore_user or rows[4] in (0, *rdscore_user))
     except BaseException as failure:  # noqa: BLE001
         record(step='readback', exception=type(failure).__name__)
         clean = False
@@ -400,7 +461,7 @@ def cleanup():
     return clean
 
 
-def main(target, jar_sha256, msdb_trial=False):
+def main(target, jar_sha256):
     control_failed = []
     if not re.fullmatch(r'[0-9a-f]{64}', jar_sha256):
         refuse('the second argument is the SHA-256 of app.jar (64 lowercase hex digits)')
@@ -424,20 +485,24 @@ def main(target, jar_sha256, msdb_trial=False):
     stopped = False
     try:
         transfer_pub = key_pair(ONE_SERVER, W, 'transfer')
-        rc, errors, out = legacy_sql('prepare login and database', 'master', PREPARE_MASTER, enc_pub=transfer_pub)
-        cipher = re.findall(rf'{LOGIN} \| ENC:([A-Za-z0-9+/=]+)', out)
-        if rc != 0 or len(cipher) != 1:
-            raise Stop('prepare failed (login or database)')
+        secret = 'Zq9_' + secrets.token_hex(4).upper() + 'x' + secrets.token_hex(6)
+        cipher = encrypt_for_ecs(transfer_pub, secret)
+        create_account(secret)
+        del secret
+        rc, errors, _ = legacy_sql('prepare database', 'master', PREPARE_MASTER)
+        if rc != 0:
+            raise Stop('prepare failed (database)')
         rc, errors, _ = legacy_sql('prepare user and grants', DB, PREPARE_DB)
         if rc != 0:
             raise Stop('prepare failed (user and grants)')
-        rc, _, out = legacy_sql('visibility control', 'master', VISIBILITY_CONTROL, mode='ro')
-        rows = numbers(out)
-        record(step='visibility control', probe_users_in_msdb_rdscore=rows[-1] if rows else None)
-        if rc != 0 or not rows or rows[-1] != (1, 1):
+        rows = readback('readback control')
+        record(step='readback control', readback=rows)
+        if rows is None or rows[0] != 1 or rows[1] != 1 or rows[2] != 0 or rows[3] <= 0 or rows[4] <= 0 or (rdscore_user and rows[4] != rdscore_user[0]):
             control_failed.append(True)
-            raise Stop('visibility control: the execution account does not see the probe\'s own users in msdb and rdscore, so a zero in the readback would prove nothing')
-        setup_ecs(cipher[0], jar_sha256)
+            raise Stop('readback control: right after the account exists the readback must show the login, the probe database and the RDS-made msdb and rdscore users (the rdscore one as before), else a zero would prove nothing')
+        if not rdscore_user:
+            rdscore_user.append(rows[4])
+        setup_ecs(cipher, jar_sha256)
         control = counts('control counts')
         control_fingerprint = fingerprint('control fingerprint')
 
@@ -479,8 +544,6 @@ def main(target, jar_sha256, msdb_trial=False):
                 raise Stop(f'item {number}: effective permission counts not restored')
             if fingerprint(f'item {number} fingerprint') != control_fingerprint:
                 raise Stop(f'item {number}: grants, role memberships or principals not restored')
-        if msdb_trial:
-            msdb_role_trial()
     except Stop as stop:
         record(stop=str(stop))
         stopped = True
@@ -510,7 +573,6 @@ def main(target, jar_sha256, msdb_trial=False):
 
 
 if __name__ == '__main__':
-    flags = sys.argv[3:]
-    if len(sys.argv) < 3 or flags not in ([], ['--msdb-role-trial']):
-        refuse(__doc__.strip().splitlines()[-2])
-    main(sys.argv[1], sys.argv[2], bool(flags))
+    if len(sys.argv) != 3:
+        refuse(next(line for line in __doc__.splitlines() if line.startswith('用法：')))
+    main(sys.argv[1], sys.argv[2])

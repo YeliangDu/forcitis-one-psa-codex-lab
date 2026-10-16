@@ -12,7 +12,7 @@
 |---|---|---|---|---|---|
 | S-1 | 新 rc（含 P3b 键与标签改名、(f) 基线 #277、P5） | one-ops 出包，one-coordinator 定时机 | **卡**：#310 未合并（BLOCKED） | #310；出包前先报 one-coordinator | 现有 rc.3 不含 P3b 与 P5 |
 | S-2 | C-14 第一步：新 rc 对三个正式账号重跑只读核实 | one-ops | 等 S-1 | one.env 老待办键已改名（C-20 ✅）；7 项 msdb 实测已通过 | 改名：t-hz0706dvd4pudc0；7 项：evidence/c14_f_msdb_effective_result.md |
-| S-3 | C-14 探针逐项（含 H-2 试验 `--msdb-role-trial`，用户已批一次）| one-ops（约 75 分钟） | 等 S-2 与 #297 合并（脚本只认 main 上的文件）| 终审已过两轮 opus；脚本未运行 | 剧本 H-2 一节 |
+| S-3 | C-14 探针逐项（探针账号经 RDS 云接口建删、USER_ID 回读，#394；H-2 平台不可构造，不做）| one-ops（约 75 分钟） | 等 S-2 与 #297 合并（脚本只认 main 上的文件）| 终审已过两轮 opus；脚本未运行 | 剧本 H-2 与 rdscore 残留两节 |
 | S-4 | 删阻塞项 101 | one-coordinator | 等 S-3 | — | — |
 | S-5 | 报用户批准部署 → `deploy.yml` dev | one-coordinator 报；用户批准；one-ops 观察 | 等 S-4 | 门禁只剩 101 | `deploy_gate dev` 现仅被 101 拦 |
 | S-6 | 部署当日：C-5 开通超管与应急账号（单人）、B-2 登录冒烟、C-19 (b) 角色持有人数核对、C-7 演练、R-11 ① ⑦ 随首次部署验证 | 用户 + one-ops | 部署后 | 见第 4 层 | — |
