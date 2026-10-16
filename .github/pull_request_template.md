@@ -21,6 +21,10 @@
 
 <!-- 由 Codex 实现的写「Codex 实现（<模型>，<强度>）」与返工轮次（SESSION_PLAYBOOK §5「Codex 派工」）；不是写「不涉及」 -->
 
+## 绕过推送前钩子
+
+<!-- 推送时用过 `PUSH_BYPASS_REASON="…" git push --no-verify` 的，写理由（同 `.claude/push-bypass.log` 的记录）；没有写「无」 -->
+
 ## precheck.sh 输出
 
 <!-- 粘贴 `scripts/precheck.sh [基线]` 的完整输出（CODING_STANDARD CS-7.1）；FAIL 须修复，SKIP 须有理由（如未安装工具、需起容器未获同意）。不得包含密钥 -->

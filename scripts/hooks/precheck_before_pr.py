@@ -17,13 +17,13 @@ def is_pr_create(command):
     return bool(PR_CREATE.search(command or ""))
 
 
-def verdict(output, returncode):
+def verdict(output, returncode, action="提 PR", retry="gh pr create"):
     last = [line for line in output.splitlines() if line.startswith("SUMMARY:")]
     if returncode == 0 and last and last[-1].endswith("— ready"):
         return None
     tail = "\n".join(output.splitlines()[-40:])
     ask = "\n前端依赖未装：需先问用户安装依赖（pnpm install --frozen-lockfile 会下载包），用户同意后再装。" if "需先问用户安装" in output else ""
-    return f"precheck.sh 未全过（退出码 {returncode}），不能提 PR。先修好或按提示问用户，再重新 gh pr create：{ask}\n{tail}"
+    return f"precheck.sh 未全过（退出码 {returncode}），不能{action}。先修好或按提示问用户，再重新 {retry}：{ask}\n{tail}"
 
 
 def repository_of(cwd):
