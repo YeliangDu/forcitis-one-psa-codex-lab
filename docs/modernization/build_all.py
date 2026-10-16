@@ -20,6 +20,7 @@ STEPS = ["build_records.py", "build_decision_digest.py", "build_sessions.py", "b
          "phase1a/infra/build_legacy_read_register.py", "../../backend/glossary/build_proposed_index.py"]
 SELF_TESTED = ["build_decision_digest.py", "build_sessions.py", "build_work_board.py", "../../scripts/hooks/session_context.py", "glossary/build_issues.py", "glossary/term_rules.py",
                "phase1a/infra/build_legacy_read_register.py", STEPS[-1]]
+SELF_TESTED.append("../../scripts/ci/ci_recurrence.py")   # 每晚复发检测：失败 CI 按错题本报错特征归类
 # 正式术语 glossary/terms.yaml 由 build_terms.py 生成，--check 要求可复现；PyYAML 依赖登记于 SUPPLY_CHAIN.md S1
 if importlib.util.find_spec("yaml"):
     STEPS.insert(1, "glossary/build_terms.py")
