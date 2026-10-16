@@ -104,3 +104,5 @@
 - **负担与时间分析参数**（`BURDEN_ANALYSIS_PLAN.md`）：步骤 `effort: {typical_min, p90_min}`、`wait: {typical_h, p90_h}`（可空），判断出口 `p`（出口概率估计）；流程级 `frequency_ref`（取证编号）。铺开时按经验先估，取证后校准。
 - **组织信息收集**（用户「我们现在就来确定流程需要的信息，最终统一修改一次」）：泳道先按角色；每个角色在流程级 `roles` 里补 `org_needs: {responsibility, approval_right, department_hint, position_hint}`，汇总作岗位体系重梳的输入，岗位体系定后一次性改泳道与映射。
 - **审批人口径按 engine 区分**：`platform.approval`（费用与业务审批）→ `approver: cost_object_owner`（实例级 A）；`aggregate`（专业复核：交付物校审、检查记录审核、设计变更内审、不符合项关闭、复盘评审等）→ `approver` 写类型级专业角色（SH- 编号），权责对照表登 `resolve: type`；`external`（客户认可、发包人批准、延期答复等系统外意见）→ 不登 A，脚本跳过，但步骤须写 `evidence`。
+- **类型级例外**：engine 为 platform.approval 的审批，若已采纳 ADR 或用户决定指定由某职能复核（如收入确认由财务复核，ADR-0047 U-2 (a)），基础审批人写该类型级角色，权责表登 `resolve: type`，并在 `why_human` 写出处；其余一律 cost_object_owner。
+- **平台依赖**：业务模块依赖平台模块（platform.approval、platform.integration 等）为标准方向；用到审批或 `notify` 的 BC 在依赖边回补中登记。

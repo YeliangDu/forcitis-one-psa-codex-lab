@@ -3,42 +3,42 @@
 
 由 build_catalog.py 生成，不手改；来源 `process-catalog.yaml`。
 
-共 148 条，编号 PRC-01 至 PRC-148。
+共 154 条，编号 PRC-01 至 PRC-154。
 
 ### 按类型
 
 | 类型 | 数量 |
 |---|---|
-| business | 91 |
-| event_policy | 24 |
+| business | 95 |
+| event_policy | 25 |
 | single_aggregate | 19 |
-| read_model | 4 |
+| read_model | 5 |
 | merged | 10 |
-| 合计 | 148 |
+| 合计 | 154 |
 
 ### 按组（全部类型）
 
 | 组 | 数量 |
 |---|---|
-| revenue | 71 |
+| revenue | 77 |
 | finance | 38 |
 | people | 39 |
-| 合计 | 148 |
+| 合计 | 154 |
 
 ### 按组（仅业务流程）
 
 | 组 | 数量 |
 |---|---|
-| revenue | 41 |
+| revenue | 45 |
 | finance | 24 |
 | people | 26 |
-| 合计 | 91 |
+| 合计 | 95 |
 
 ### 按价值流（仅业务流程；跨价值流的流程各计一次，故合计大于业务流程数）
 
 | 价值流 | 数量 |
 |---|---|
-| VS-01 | 6 |
+| VS-01 | 7 |
 | VS-02 | 18 |
 | VS-03 | 7 |
 | VS-04 | 13 |
@@ -51,9 +51,9 @@
 | VS-11 | 1 |
 | VS-12 | 3 |
 | VS-13 | 12 |
-| 合计 | 96 |
+| 合计 | 97 |
 
-业务流程中尚未填 stages：9 条。
+业务流程中尚未填 stages：12 条。
 
 ## 总表
 
@@ -207,3 +207,9 @@
 | PRC-146 | 协议借阅逾期催还 | event_policy |  |  | B-05 | revenue | draft | 否 |  |
 | PRC-147 | 费用报销核定后冲抵员工借款并确认应付 | event_policy |  | VS-08.2 | B-09 | revenue | draft | 否 |  |
 | PRC-148 | 收入确认审批通过后占用转实并提交过账 | event_policy |  | VS-04.2 | B-08 | revenue | draft | 否 |  |
+| PRC-149 | 冲销收入确认 | business |  |  | B-08 | revenue | draft | 是 |  |
+| PRC-150 | 发票红冲后冲减应收 | event_policy |  |  | B-09 | revenue | draft | 否 |  |
+| PRC-151 | 填报经营产值 | business |  |  | B-04 | revenue | draft | 否 |  |
+| PRC-152 | 登记付款条件达成 | business |  |  | B-05 | revenue | draft | 否 |  |
+| PRC-153 | 退还投标保证金 | business |  | VS-01.2 | B-09 | revenue | draft | 否 |  |
+| PRC-154 | 收入三口径对照 | read_model |  |  | reporting | revenue | draft | 否 |  |

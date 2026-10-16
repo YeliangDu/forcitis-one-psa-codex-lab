@@ -1354,3 +1354,57 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
+  - id: PRC-149
+    name: "冲销收入确认"
+    type: business
+    stages: []
+    owner_bc: "B-08"
+    group: revenue
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+  - id: PRC-150
+    name: "发票红冲后冲减应收"
+    type: event_policy
+    stages: []
+    owner_bc: "B-09"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-151
+    name: "填报经营产值"
+    type: business
+    stages: []
+    owner_bc: "B-04"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-152
+    name: "登记付款条件达成"
+    type: business
+    stages: []
+    owner_bc: "B-05"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-153
+    name: "退还投标保证金"
+    type: business
+    stages: [VS-01.2]
+    owner_bc: "B-09"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+  - id: PRC-154
+    name: "收入三口径对照"
+    type: read_model
+    stages: []
+    owner_bc: "reporting"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
