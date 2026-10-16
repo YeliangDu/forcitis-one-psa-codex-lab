@@ -191,33 +191,29 @@
 - 依据：门禁 O4、O8；NAMING_STANDARD §2.4a-5。
 
 - **数据设计（PR-7：AP-09、11–17，one-1a-next-5 补，待 one-data 签）**（基线：`origin/main` 4d0b7c34；下文行号取该基线；「编号基线」＝`platform_numbering/V20261014100100__platform_numbering_baseline.sql`，「审批基线」＝`platform_approval/V20261014132000__platform_approval_baseline.sql`；Java 路径省略前缀 `backend/src/main/java/com/forcitis/one/platform/numbering/`，测试路径省略前缀 `backend/src/test/java/com/forcitis/one/`；本节只做文档核实，未在库内执行 DDL，未跑测试，未跑 EXPLAIN）
-  - **范围与顺序**：不含 AP-10（`decision_ref`，待用户）、AP-12（`legacy_numbers` 索引：不在本 PR，待用户定 `legacy_numbers` 去留）、AP-18（随 `legacy_numbers` 去留）、AP-06/07（并入 DA-10）。按 ADR-0038 直接改基线、已部署库重建，不追加迁移。#333 已合入：`TemplateVersion` 带 `id`（`domain/TemplateVersion.java`）、`IssuedNumber` 带版本 ID（`application/IssueDocumentNumber.java:54`），编号基线表结构不因它变化，本 PR 以此为底。与 PR-6 都改审批基线 `approval_requests` 的相邻行（PR-6 是 `result_reason`，本 PR 是 `document_type`、`summary_text`），合并顺序不限，后合者变基；`ApprovalRowConstraintsIT` 两个 PR 共用一个类，后合者并入。
-  - **建议提交顺序（同一 PR）**：提交 A（契约与 Java：删财务确认链、删 `QUOTE`/`JOURNAL_VOUCHER` 枚举取值、删 `is_active` 谓词，CS-1.10 先改 `docs/modernization/events/numbering.yaml`、`asyncapi.yaml` 与 OpenAPI 再改实现）先于提交 B（全部 DDL 与种子）先于提交 C（测试夹具与断言）；基线一改即全库重建，A、B、C 须在同一次构建内全绿，分提交只为评审。
-  - **体量提示（请 one-data 裁定是否拆分，见裁定点 1）**：AP-14 第 2 步（删财务确认）牵出 API（`web/NumberingRuleController.java:86-89` 的 `:confirm-finance`）、权限 `PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE`（`platform/identity/api/Permission.java:10,49`、`platform/identity/domain/SensitivePermissions.java:15`）、事件取值 `ConfirmationKind.FINANCE`、错误码 `PLATFORM_NUMBERING_FINANCE_CONFIRMATION_NOT_REQUIRED`、前端生成物与 `backend/architecture/idempotent-endpoints.txt:20`，远大于「删两列」。DDL 部分（下 ⑤ 的 14-1）不依赖它。
+  - **范围与顺序**：不含 AP-10（`decision_ref`，待用户）、AP-12（`legacy_numbers` 索引：不在本 PR，待用户定 `legacy_numbers` 去留）、AP-18（随 `legacy_numbers` 去留）、AP-06/07（并入 DA-10）。按 ADR-0038 直接改基线、已部署库重建，不追加迁移。#333 已合入：`TemplateVersion` 带 `id`（`domain/TemplateVersion.java`）、`IssuedNumber` 带版本 ID（`application/IssueDocumentNumber.java:54`），编号基线表结构不因它变化，本 PR 以此为底。**AP-14 依 one-architecture 2026-10-16 更正（ADR-0030 U-3「dev 保留凭证号财务确认」、D-1a-157）**：numbering 侧（种子含 QUOTE、JOURNAL_VOUCHER、财务确认列、触发器、枚举、接口）一律不动，AP-14 只收窄 `approval_requests.document_type`。与 PR-6 都改审批基线 `approval_requests` 的相邻行（PR-6 是 `result_reason`，本 PR 是 `document_type`、`summary_text`），合并顺序不限，后合者变基；`ApprovalRowConstraintsIT` 两个 PR 共用一个类，后合者并入。
+  - **建议提交顺序（同一 PR）**：提交 A（Java：删 `is_active` 谓词）先于提交 B（全部 DDL 与种子）先于提交 C（测试夹具与断言）；基线一改即全库重建，须同一次构建内全绿，分提交只为评审。本 PR 不改契约（无接口、事件、枚举变化）。
 
   - **① AP-09　CONFIRMED 必有确认人**
     - 核实：`status` 取值全集 `PENDING_CONFIRMATION / CONFIRMED / SUPERSEDED`（编号基线:104）；全仓只有 `domain/NumberingRule.java:197`（`completeIfAllGiven`）经 `withStatus(..., CONFIRMED)` 置 CONFIRMED，且前置 `target.confirmedBy() != null`（:196）；`infrastructure/persistence/JdbcNumberingRuleRepository.java:139-150` 插入只写 PENDING（`propose` :128 固定 PENDING、确认列全 null）；:152-170 更新同写 `confirmed_by`。种子（编号基线:178-182）为 PENDING。故所有现有写入点不撞新 CHECK。
-    - 反向「非 CONFIRMED ⇒ 确认列空」：现状不成立——凭证号版本业务已确认而财务未确认时是 PENDING 且 `confirmed_by` 非空（`NumberingRule.java:141-147`、:195-200）、再被新版本取代则是 SUPERSEDED 且 `confirmed_by` 非空（:125）。**财务确认随 AP-14 第 2 步删除后**才成立（单人确认即完成，`confirm()` :135-148 直接转 CONFIRMED）。
+    - 反向「非 CONFIRMED ⇒ 确认列空」：现状不成立——凭证号版本业务已确认而财务未确认时是 PENDING 且 `confirmed_by` 非空（`NumberingRule.java:141-147`、:195-200）、再被新版本取代则是 SUPERSEDED 且 `confirmed_by` 非空（:125）。财务确认保留（ADR-0030 U-3），故**只写单向**，不加「非 CONFIRMED ⇒ 确认列空」。
     - DDL（具名，表级）：
       ```sql
-      -- 默认（不依赖 AP-14 第 2 步是否同 PR 落地）
       CONSTRAINT ck_numbering_rule_versions_confirmed CHECK (status <> 'CONFIRMED' OR confirmed_by IS NOT NULL)
-      -- 仅当财务确认列同 PR 删除时改用双向（裁定点 2）
-      CONSTRAINT ck_numbering_rule_versions_confirmed CHECK ((status = 'CONFIRMED') = (confirmed_by IS NOT NULL))
       ```
-      `confirmed_at` 已由 `ck_numbering_rule_versions_confirmation_time` 与 `confirmed_by` 成对（编号基线:118-119），不重复写。`confirmed_by` 注释补「为空表示尚未确认；已确认状态必填」。
+      `confirmed_at` 已由 `ck_numbering_rule_versions_confirmation_time` 与 `confirmed_by` 成对（编号基线:118-119），不重复写。`confirmed_by` 注释补「为空表示尚未业务确认；已确认状态必填」。
     - 触发器与 CHECK 的先后：PostgreSQL 先跑 BEFORE 行触发器再校验 CHECK，故既有断言的报错文本不变（见下夹具）。
     - 测试：新增 `platform/numbering/NumberingRowConstraintsIT`（`@DisplayName` 前缀 `DATA-REPAIR-approval AP-09`，不进 `acceptance/`）：直插 `status='CONFIRMED'` 且 `confirmed_by` 空被拒（断言约束名）；PENDING 行不写确认列通过；走 `ConfirmNumberingRule` 全流程通过。
     - 会被新 CHECK 拒绝的夹具：**核完无**——全仓 `'CONFIRMED'` 的写入只有 `ApplicationIntegrationTest.java:206`、`platform/numbering/NumberingFixtures.java:38`、`acceptance/platform/numbering/NumberingRuleVersionIdIT.java:111`，三处都同写 `confirmed_by`。须回归的断言：`platform/numbering/NumberingRuleFourEyesIT.java:307-315`（经触发器报错，文本不变，仍须跑通）。
 
+    - 凭证号另需财务确认的条件依赖单据类型，库里落不成 CHECK，注册表写明由聚合保证（照卡）。
   - **② AP-11　删 5 个停用列，改种子**
     - 核实（全仓引用）：对 `pattern`/`reset_policy`/`start_value`/`confirmation_status`/`is_active` 且限定 `numbering_rules` 表，**源码侧唯一引用**是 `JdbcNumberingRuleRepository.java:51`、`:59` 的 `and is_active` / `where is_active` 两处谓词；`save` 的 `update numbering_rules`（:119-122）只写 `updated_at`、`version`、`event_count`；其余命中均属 `numbering_rule_versions` 的同名列（:74、:142-147，不动）。非 Java 引用：`backend/architecture/ddl-naming-baseline.txt:25`（`numbering_rules.pattern` 改名行，删列后须删该行，否则 `DdlNamingTest` 报「已修好却没删」，见该文件头注）；`backend/data-dictionary.sample.md:26` 是过期样例、不含这些列，无须动；`scripts/ci/baseline_ddl_scan.py` 无引用。测试侧唯一引用 `platform/numbering/NumberingVersionMigrationIT.java:34-37`（断言旧四列「仍在且可空」）。
-    - DDL/种子（编号基线）：删 :4 注释、:8-11、:15 五列与其 CHECK、默认值；删 :23-26、:30 的 `COMMENT ON COLUMN`；表注释（:20）去掉「凭证号另需财务确认」（随 AP-14）。种子 :172-175 改为只写 `(numbering_rule_id, document_type, version, event_count)`，**`event_count` 写 0**（NR-3：种子无对应事件；`kernel/EventSequenceContinuityTest.java:149` 已以 0 构造 `NumberingRule.restore`，口径一致，仍须跑）；:178-182 的版本种子不再从 `rules.pattern` 等取值，改为 `VALUES` 直接写模板文本 `'{TYPE}-{LE}-{yyyyMM}-{seq:4}'`、`'MONTHLY'`、`1`。
+    - DDL/种子（编号基线）：删 :4 注释、:8-11、:15 五列与其 CHECK、默认值；删 :23-26、:30 的 `COMMENT ON COLUMN`；种子 :172-175 改为只写 `(numbering_rule_id, document_type, version, event_count)`，**`event_count` 写 0**（NR-3：种子无对应事件；`kernel/EventSequenceContinuityTest.java:149` 已以 0 构造 `NumberingRule.restore`，口径一致，仍须跑）；:178-182 的版本种子不再从 `rules.pattern` 等取值，改为在原 `seeds` VALUES 里直接写模板文本（三种单据与各自版本 ID 不变） `'{TYPE}-{LE}-{yyyyMM}-{seq:4}'`、`'MONTHLY'`、`1`。
     - Java：删 `JdbcNumberingRuleRepository.java:51`、`:59` 的 `is_active` 谓词；方法名 `findActive` 不改（CS-1.8），语义变为「按类型查」。
     - 改断言与夹具的逐处理由：
       - `NumberingVersionMigrationIT.java:34-37`：断言「旧四列仍在」与本修复直接相反，**反转为「五列均已不存在」**（`information_schema.columns` 计数为 0）；PR 与报告单列。
-      - `NumberingVersionMigrationIT.java:30-32`：QUOTE 取 TIMESHEET（见夹具总表）。
-    - 验收：取号、版本确认、`inForceOn`、`ListNumberingRules` 全部通过；种子对比差异只限：五列消失、`event_count` 1→0、两个被删单据类型（⑤）。
+    - 验收：取号、版本确认、`inForceOn`、`ListNumberingRules` 全部通过；种子对比差异只限：五列消失、`event_count` 1→0。
     - 依据：CS-1.8、CS-1.9；门禁 O12；§2.4a-4。
 
   - **③ AP-12**　不在本 PR：待用户定 `legacy_numbers` 去留；本 PR 不做 EXPLAIN、不改 `JdbcLegacyNumberRepository` 查询、不加索引。
@@ -228,30 +224,17 @@
     - 卡内不一致（只列）：`source_references` 注册表现写 `PERMANENT`，而卡末「保留期与匿名化」已定人员类「离职满 10 年删除」；AP-13 未列此行，是否本 PR 同改见裁定点 6。
     - 验收：`DataArchitectureTest` 通过。
 
-  - **⑤ AP-14　只留 TIMESHEET**（one-architecture §4 ④–⑤、one-coordinator 裁定：不再「三种单据现在就建」；基线注释编号基线:171 同步改）
-    - 核实（取值全集与引用）：`document_type` 取值出现处——审批基线:17 CHECK；编号基线:18 `ck_numbering_rules_document_type`、:172-175 种子、:181 版本种子 VALUES；`kernel/DocumentType.java:7-9`（`QUOTE("QT")`、`JOURNAL_VOUCHER("JV")`）；`platform/approval/application/ApprovalTexts.java:27-28`（`switch` 穷尽）；`domain/NumberingRule.java:34`（`NEEDING_FINANCE_CONFIRMATION`）；前端 `frontend/packages/core/src/approval/labels.ts:22-23`；`frontend/packages/api/openapi.json:414`（枚举）及生成物 `schema.ts`、`validators.ts`；`scripts/ci/baseline_ddl_scan.py:33` 的 `VALUE_OWNER`（其 class 7「未建模块取值」检查针对的正是这两个取值，自测用例 :407、:421、:441、:481 写死了它们）。审批侧现状只有 `ProcessKey.COST_TIMESHEET_APPROVAL(true, DocumentType.TIMESHEET)`（`platform/approval/api/ProcessKey.java:8`），收窄不影响运行。
-    - **14-1　DDL（具名）**：
+  - **⑤ AP-14　`approval_requests.document_type` 收窄到 TIMESHEET**（依 one-architecture 2026-10-16 更正，ADR-0030 U-3、D-1a-157：QUOTE 审批到报价模块上线再加；numbering 侧不动）
+    - 核实：审批基线:17 内联 CHECK 含 `QUOTE`、`TIMESHEET`、`JOURNAL_VOUCHER`；审批侧现状只有 `ProcessKey.COST_TIMESHEET_APPROVAL(true, DocumentType.TIMESHEET)`（`platform/approval/api/ProcessKey.java:8`），收窄不影响运行。`DocumentType` 枚举不动，故 `ApprovalTexts.java:27-28`、`JdbcApprovalRequestRepository.java:268`、`JdbcApprovalTaskQueries.java:89`、`FlowableApprovalEngine.java:88` 的 `DocumentType.valueOf` 与 `switch` 都不变；库里只会有 TIMESHEET 行。
+    - DDL（审批基线:17 内联 CHECK 改具名表级）：
       ```sql
-      -- 审批基线:17 内联 CHECK 改具名表级
       CONSTRAINT ck_approval_requests_document_type CHECK (document_type IN ('TIMESHEET'))
-      -- 编号基线:18
-      CONSTRAINT ck_numbering_rules_document_type CHECK (document_type IN ('TIMESHEET'))
       ```
-      `ck_numbering_counters_document_type` 见 ⑧。种子：编号基线:172-175 只留 `…0302 TIMESHEET`；:181 的 VALUES 只留 TIMESHEET；`…0301`、`…0303`、`…0501`、`…0503` 四个 ID 不再出现。待建模块上线时由该模块的 PR 同时追加 CHECK 取值、枚举常量与种子（CS-1.8）。
-    - **14-2　删财务确认（`finance_confirmed_by`、`finance_confirmed_at`）**：
-      ```sql
-      -- 删两列（编号基线:107-108）及其注释（:136-137）
-      -- ck_numbering_rule_versions_confirmer_is_not_author（:114-115）改为
-      CHECK (author_id IS NULL OR confirmed_by IS NULL OR confirmed_by <> author_id)
-      -- ck_numbering_rule_versions_two_different_confirmers（:116-117）删除
-      -- ck_numbering_rule_versions_confirmation_time（:118-119）改为
-      CHECK ((confirmed_by IS NULL) = (confirmed_at IS NULL))
-      ```
-      触发器函数 `guard_rule_version_change`（:141-163）：:153-157 的「确认不得改动、不得撤回」去掉 `finance_confirmed_*` 分支，只保留 `confirmed_by`/`confirmed_at`；其余不动。表注释（:20、:123）与 `confirmed_by`、`author_id` 注释里涉及财务的措辞同改。
-    - **14-3　Java/契约（随 14-2，须先于 DDL 提交）**：删 `domain/NumberingRule.java:34`、:107-109（`requiresFinanceConfirmation`）、:150-167（`confirmByFinance`）、:141-143 与 :195 的财务分支（`completeIfAllGiven` 退化为「有 `confirmedBy` 即完成」）、:31 注释；`domain/TemplateVersion.java:13` 删两个构造参数（连带 `NumberingRule.java:128,144,163,210` 的传参）；`application/ConfirmNumberingRuleByFinance.java` 整个删；`web/NumberingRuleController.java:39,44,48,86-89`；`web/NumberingRuleResponse.java:20,23,28,36`、`api/NumberingRuleView.java:13`、`api/NumberingTemplateView.java:12`、`application/NumberingRuleViews.java:17,23`；`api/ConfirmationKind.java`（删 `FINANCE`，只剩 `BUSINESS`——枚举与 `events/NumberingRuleConfirmationGiven.kind` 是否整体去掉，**待 one-architecture 判**，裁定点 3）；`api/NumberingError.java:14`（同步 `frontend/packages/core/src/error-messages.ts:139`）；权限 `Permission.java:10,49` 与 `SensitivePermissions.java:15`；`idempotent-endpoints.txt:20`；事件契约 `docs/modernization/events/numbering.yaml:100`、`asyncapi.yaml:3289`；OpenAPI 与前端生成物重生成。`ApprovalTexts.java:27-28` 删两个 `case`。用语：`backend/glossary/proposed/platform-numbering.yaml:63-66`（`qt`）、:99-102（`jv`）及 `README.md:326,328,384,385` 两个提议术语撤销，经 `docs/modernization/glossary/new_term_issue.py` 通知 one-glossary，不自行改 `terms.yaml`。
-    - **与既有决定不一致（只列）**：D-1a-157（`MODERNIZATION_BRIEF.md:618`、ADR-0027:48、ADR-0030:95 第 2 行「凭证号模板财务确认」）与 ADR-0010 第 5 项；删除后 ADR-0030 的「dev 无单人路径」表述失效，改 ADR 归 one-architecture（裁定点 7）。
-    - 预期表结构 diff：`approval_requests`：`document_type` CHECK 收窄并具名；`numbering_rules`：同上，种子 3→1 行；`numbering_rule_versions`：种子 3→1 行、删两列与 `ck_..._two_different_confirmers`、两条 CHECK 改写、触发器函数改写。
-    - 验收：取号、版本确认全路径只用 TIMESHEET 通过；直插 `QUOTE`/`JOURNAL_VOUCHER` 被拒（`approval_requests`、`numbering_rules`、`numbering_counters` 各一条）；`NamingSurfaceTest.java:274-293`（枚举常量与种子互相必须对得上）通过；`baseline_ddl_scan.py` 不再报 class 7。
+      待报价模块上线时由该模块的 PR 同时追加 CHECK 取值与审批流程（CS-1.8）。
+    - 夹具：**核完无**——全仓向 `approval_requests` 直插的 SQL 只有 `platform/approval/IdempotentStartIT.java:139,156-158`、`AggregateConcurrencyIT.java:133`，`document_type` 均为 `'TIMESHEET'`；经应用启动审批的测试夹具都走 `ProcessKey.COST_TIMESHEET_APPROVAL`（`acceptance/ApprovalP4Support.java:141` 等）。`acceptance/ApprovalIdContractTest.java:174` 正则 `(TIMESHEET|QUOTE)` 只做描述文本匹配，不受影响。`scripts/ci/baseline_ddl_scan.py` 自测里的 `QUOTE` 是脚本内的合成输入（:407、:421），不读真实基线，不受影响。
+    - 测试：`platform/approval/ApprovalRowConstraintsIT` 加 `DATA-REPAIR-approval AP-14`：直插 `QUOTE`、`JOURNAL_VOUCHER` 被拒（断言约束名），`TIMESHEET` 通过。
+    - 预期表结构 diff：`approval_requests`：`document_type` CHECK 收窄并具名。numbering 三表与种子无变化。
+    - 验收：审批发起、全路径回归通过；`baseline_ddl_scan.py` 对 `approval_requests` 不再报「未建模块取值」（对 numbering 的既有提示不在本 PR）。
 
   - **⑥ AP-15　`summary_text` 长度 CHECK 与分级**
     - 核实：写入点只有一处——`cost/timesheet/domain/Timesheet.java:137`，`number.value() + " " + workDate + " " + submittedHours.value().toPlainString() + "h"`（单据编号、工作日、工时，约 30 至 50 字符，不含姓名、客户名）。`platform/approval/api/ApprovalSummary.java:8-17` 已在 Java 侧限 1 至 `MAX_LENGTH = 200` 且禁空白（`isBlank`）。读出处 `JdbcApprovalRequestRepository.java:272`、`JdbcApprovalTaskQueries.java:159`；并随事件 `DocumentSubmittedForApproval`、`TaskAssigned` 出域。
@@ -293,35 +276,28 @@
       ```sql
       CONSTRAINT ck_numbering_counters_period_key CHECK (period_key ~ '^(-|[0-9]{4}|[0-9]{6}|[0-9]{8})$')
       CONSTRAINT ck_numbering_counters_last_value CHECK (last_value BETWEEN 1 AND 999999999999)
-      CONSTRAINT ck_numbering_counters_document_type CHECK (document_type IN ('TIMESHEET'))   -- 与 AP-14 同一取值集
+      CONSTRAINT ck_numbering_counters_document_type CHECK (document_type IN ('QUOTE', 'TIMESHEET', 'JOURNAL_VOUCHER'))   -- 与 ck_numbering_rules_document_type 同一取值集，不随 AP-14 收窄
       ```
-      上界 999999999999 即 `{seq:12}` 的容量，卡原文只写 `>= 1`，上界为本节追加（裁定点 5）。`document_type` 不建外键：目标是 `uk_numbering_rules_document_type` 唯一约束而非主键（NAMING_STANDARD §2.4a-1），`DdlNamingTest` 是否放行**未核实，不采用**。`ddl-naming-baseline.txt:22-24` 三行（`document_type` 改名建议「或保留并补 CHECK」）：本 PR 给 `numbering_counters`、`numbering_rules` 补了 CHECK，是否可删这两行取决于 `DdlNamingTest` 对「保留并补 CHECK」的判定，**未核实，不落**；`legacy_numbers` 那行不动。
-    - 夹具：`platform/numbering/NumberingRulesIT.java:214-225` `counterTableRefusesMismatchedScopeAndUnknownKind`：insert 模板写死 `'QUOTE'`、`'202701'`、`last_value` 1——PostgreSQL 按约束名字母序评估 CHECK，`ck_numbering_counters_document_type` 排在 `ck_numbering_counters_scope_kind_matches_legal_entity` 之前，QUOTE 会先被新约束拒绝，断言期望的约束名对不上。改 `'QUOTE'`→`'TIMESHEET'`，断言与期望约束名不动。`NumberingRulesIT.java:206` 的 `'TIMESHEET'`/`'20270506'`/1 本就合法。
-    - 测试：`NumberingRowConstraintsIT` 加 `DATA-REPAIR-approval AP-17`：四种周期（`-`、`2026`、`202610`、`20261014`）取号通过；`'2026-10'`、`'20261'`、`''` 被拒；`last_value = 0`、负数、`10^12` 被拒；`document_type = 'QUOTE'` 被拒。
+      上界 999999999999 即 `{seq:12}` 的容量，卡原文只写 `>= 1`，上界为本节追加（裁定点 5）。`document_type` 不建外键：目标是 `uk_numbering_rules_document_type` 唯一约束而非主键（NAMING_STANDARD §2.4a-1），`DdlNamingTest` 是否放行**未核实，不采用**。`ddl-naming-baseline.txt:22-24` 三行（`document_type` 改名建议「或保留并补 CHECK」）：本 PR 给 `numbering_counters` 补了 CHECK（`numbering_rules` 已有），是否可删这两行取决于 `DdlNamingTest` 对「保留并补 CHECK」的判定，**未核实，不落**；`legacy_numbers` 那行不动。
+    - 夹具：**核完无**——全仓直插 `numbering_counters` 的只有 `platform/numbering/NumberingRulesIT.java:206`（`'TIMESHEET'`、`'20270506'`、1）与 :214-225（`'QUOTE'`、`'202701'`、1，期望命中 `scope_kind` 系约束）；取值均在三值内、周期键合法、`last_value` 为 1，新 CHECK 全部通过，断言与期望约束名不动。
+    - 测试：`NumberingRowConstraintsIT` 加 `DATA-REPAIR-approval AP-17`：四种周期（`-`、`2026`、`202610`、`20261014`）取号通过；`'2026-10'`、`'20261'`、`''` 被拒；`last_value = 0`、负数、`10^12` 被拒；`document_type = 'PAYMENT'` 之类三值外取值被拒。
     - 预期表结构 diff：`numbering_counters` 新增三条 CHECK。
 
-  - **夹具与断言总表（会被本 PR 的约束或枚举收窄拒绝的测试）**
-    - 原则：`QUOTE` 一律改 `TIMESHEET`（模板、期望号码里的 `QT-` 改 `TS-`），不改断言语义；`JOURNAL_VOUCHER`／财务确认相关用例随功能删除，属「删测试」，逐条写理由并在 PR 与报告单列。两种单据类型并存才有意义的断言（跨类型计数器隔离等）须逐个确认，改成「同类型不同法人」或删，不得为过而放宽。
-    - 非验收目录：
-      - `platform/numbering/NumberingRulesIT.java`（53 处）、`NumberingRuleFourEyesIT.java`（56 处，含 :261-290 两个财务确认用例，删）、`platform/numbering/domain/NumberingRuleStateMachineTest.java`（16 处，含 :161-200 四个财务用例，删）、`NumberingFixtures.java:23-40`（`confirmSeeded` 的 JOURNAL_VOUCHER 分支删）、`LegalEntityCodeRaceIT.java:79,106,144,167`、`NumberingVersionMigrationIT.java:30-32`、`DocumentTypeCodeTest.java:30-31`（期望只含 TIMESHEET=TS，`@DisplayName` 同改）、`platform/numbering/domain/NumberingPatternTest.java:80`、`kernel/EventSequenceContinuityTest.java:149`、`platform/web/ErrorContractIT.java:115`（占位值）、`ApplicationIntegrationTest.java:205-277`（`seededNumberingRulesAreConfirmed` 的财务分支、:217-221 的 QT/JV 期望号、:253、:264-277 凭证号流程整段，凭证号 `PZFST-202611-00500` 用例删）、`OpenApiExportTest.java:125`（`PendingTemplate.financeConfirmedBy` 条目删）、`frontend/apps/web/src/modules/numbering/pages/numbering-rules-page.test.tsx`（:16、:21-26、:88、:98、:153、:179）、`scripts/ci/baseline_ddl_scan.py` 自测（:407、:421、:441、:481 与 `VALUE_OWNER` :33，把用例的「未建模块取值」换成别的假取值，保持脚本自测有效）。
-      - `NumberingRulesIT.java:229-` `timesheetAndVoucherUseTheUnifiedTemplate`：删凭证部分，改名只验 TIMESHEET。
-    - **验收目录（`acceptance/`，需 Acceptance-Ruling）**：
-      - `acceptance/platform/numbering/NumberingRuleConfirmerIT.java`（常量 `QUOTE_RULE` :32、:40、:60、:63、:80）：QUOTE→TIMESHEET；
-      - `acceptance/platform/numbering/NumberingRuleVersionIdIT.java`（:124、:129、:135、:144、:146、:152）：同上；:111 直插带 `confirmed_by`，无须动；
-      - `acceptance/platform/numbering/LegacyNumberSourceIT.java:83`（`row.put("document_type", "QUOTE")`）与 `acceptance/platform/web/IdQueryParameterIT.java:65`：`legacy_numbers.document_type` 本 PR 不加 CHECK，但 `JdbcLegacyNumberRepository.java:28` 以 `DocumentType.valueOf` 读，枚举删 QUOTE 后读 QUOTE 行会抛，故必须改 TIMESHEET；
-      - `acceptance/organization/workforce/LegalEntityCodeCorrectionIT.java:79,82`：QUOTE→TIMESHEET；
-      - `acceptance/platform/identity/UserIdColumnsIT.java:49`（`finance_confirmed_by` 条目）、`acceptance/UserIdContractTest.java:34`、`acceptance/AuditIdContractTest.java:29,89`（`financeConfirmedBy` 在属性清单与 `@DisplayName`）：随 14-2 删条目；
-      - `acceptance/ApprovalIdContractTest.java:174` 正则 `(TIMESHEET|QUOTE)` 只是描述文本匹配，不因枚举收窄失败，可不动。
-    - 验收目录的改动全部是「枚举值或列被删后的机械替换与删条目」，不放宽、不删除业务断言；14-2 删条目是断言随被测对象一并移除，Acceptance-Ruling 里须写明。
+
+  - **夹具与断言总表**
+    - 本 PR 真正要改的测试只有：
+      - `platform/numbering/NumberingVersionMigrationIT.java:34-37`（AP-11，反转，非验收目录；PR 与报告单列理由：断言「旧列仍在」与删列直接相反）。
+      - 新增 `platform/numbering/NumberingRowConstraintsIT`（AP-09、AP-17）与 `platform/approval/ApprovalRowConstraintsIT`（AP-14、15、16，与 PR-6 共一个类，后合者并入）。
+    - **验收目录（`acceptance/`）：无需改动。** 逐项重核：AP-14 收窄后 `QUOTE` 不再有审批侧夹具（见 ⑤）；财务确认链不删，`UserIdColumnsIT.java:49`、`UserIdContractTest.java:34`、`AuditIdContractTest.java:29,89`、`OpenApiExportTest.java:125` 的 `financeConfirmedBy` 条目保留；`NumberingRuleConfirmerIT`、`NumberingRuleVersionIdIT`、`LegacyNumberSourceIT`、`IdQueryParameterIT`、`LegalEntityCodeCorrectionIT` 的 `QUOTE` 仍是合法单据类型。故本 PR 不需 Acceptance-Ruling（实施中若发现需要，再单列）。
+    - 既有断言回归（不改，须跑通）：`NumberingRuleFourEyesIT.java:307-315`（触发器先于 CHECK）；`EventSequenceContinuityTest.java:149`（AP-11 种子 `event_count` 0）；`NamingSurfaceTest.java:274-293`（numbering 种子与枚举不变）。
 
   - **请 one-data 裁定**
-    1. AP-14 第 2 步（删财务确认全链：API、权限、事件取值、错误码、前端、契约）是否拆成独立 PR；拆则本 PR 只做 14-1（CHECK 收窄、种子、枚举常量、夹具），财务两列与 `ck_..._two_different_confirmers` 留下一个 PR，AP-09 取单向写法。
-    2. AP-09 用单向还是双向写法（取决于 1）。
-    3. `ConfirmationKind` 删 `FINANCE` 后只剩 `BUSINESS`：枚举与事件字段 `NumberingRuleConfirmationGiven.kind` 是否整体去掉（涉及 `asyncapi.yaml` 契约，one-architecture 判）。
-    4. `summary_text` 登记 INTERNAL、不加 PI（唯一写入点不含个人信息）是否接受。
-    5. `last_value` 上界 999999999999 是否追加。
-    6. AP-13 是否同时把 `source_references` 注册表保留期改为与 `RETENTION_PROPOSAL.md` 一致；`outbound_deliveries` 两档待核。
-    7. D-1a-157、ADR-0030 第 2 行、ADR-0010 第 5 项的文字修订由谁在哪个 PR 做。
+    1. `summary_text` 登记 INTERNAL、不加 PI（唯一写入点不含个人信息）是否接受（卡待决 5 的子项）。
+    2. `last_value` 上界 999999999999 是否追加（卡原文只写 `>= 1`）。
+    3. AP-13 是否同时把 `source_references` 注册表保留期改为与 `RETENTION_PROPOSAL.md` 一致；`outbound_deliveries` 两档与 `lineage` 写法需先核。
+    4. `ddl-naming-baseline.txt:22-24` 的 `document_type` 三行在补 CHECK 后能否删（取决于 `DdlNamingTest` 判定，未核实）。
+
+  - **卡与 ADR 字面不一致（仅余未解决项）**：AP-14 依 one-architecture 2026-10-16 更正（ADR-0030 U-3），原「ADR-0010 第 5 项待判」「删财务确认」「D-1a-157 冲突」均已解决，不再列。余：卡 AP-13 注册表 `source_references` 写 `PERMANENT`，与卡末保留期「离职满 10 年删除」不符；卡 AP-17 只写 `last_value >= 1`，本节追加了上界；卡第 7 节「种子数据变化（AP-11 的 event_count 除外）不得出现」与 AP-11 删列后种子写法的变化需一并理解为允许。
 
 ### AP-18　LN-2　中　`legacy_numbers.source_system` 含组织源取值
 - 证据：PA LN-2（迁移 `:59`、`:60`）；SS §7 第 4 条：`num.legacy_numbers.source_system:59` 含 `ORG_SOURCE`、`ACCOUNTING_SYSTEM`，组织源不持有单据编号；`ACCOUNTING_SYSTEM` 在 `source_references` 已被已建代码使用（`SourceReference.java:80`），本条不判它。
