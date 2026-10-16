@@ -12,6 +12,7 @@ processes:
       type: time
       desc: 经营计划周期开始
     stages: [VS-09.1, VS-09.3]
+    stages_note: "跳过 VS-09.2 有意：VS-09.3 退出条件「经营计划新版本」由本流程第二个触发（复盘后调整计划）产生，该路径不经滚动预测；VS-09.2 的新版本由 PRC-89 产生"
     owner_bc: B-18
     human_orchestration: true
     human_note: 计划审批、调整产生新版本
@@ -22,7 +23,7 @@ processes:
     triggers:
       - {type: time, name: 经营计划周期开始（年度、季度）}
       - {type: human, name: 经营复盘后调整计划（VS-09.3 退出条件：计划新版本）}
-    outcomes: [已基线化, 预算账户已开立, 已调整, 已撤回, 已作废]
+    outcomes: [经营计划新版本已基线化, 预算账户已开立, 已调整, 已撤回, 已作废]
     scenarios: [PRC-88-S01, PRC-88-S02, PRC-88-S03, PRC-88-S04, PRC-88-S05, PRC-88-S06, PRC-88-S07, PRC-88-S08, PRC-88-S09]
     roles:
       - {id: SH-M1, as: initiator, org_needs: {responsibility: 编制所辖组织单元的经营计划版本并提交审批, approval_right: 无（编制与提交）, department_hint: 计划归属组织单元（部门、事业部；公司级为管理层）, position_hint: 组织单元负责人或其指定的计划编制人}}
@@ -107,7 +108,7 @@ processes:
         decision:
           - {when: 目标类型为预算, goto: 7}
           - {when: otherwise, goto: end}
-        outcome: 已基线化                 # 非预算类型在此结束
+        outcome: 经营计划新版本已基线化                 # 非预算类型在此结束
 
       - actor: SH-E6
         where: in_system
@@ -168,7 +169,7 @@ processes:
     scope: "销售预测按人员本人及其管理链可见；现金流预测限财务与管理层"
     triggers:
       - {type: time, name: 每周销售预测承诺（预测周期末含现金流预测）}
-    outcomes: [预测版本已编制, 现金流预测已编制, 已提醒]
+    outcomes: [经营计划新版本已编制（预测）, 经营计划新版本已编制（现金流预测）, 已提醒]
     scenarios: [PRC-89-S01, PRC-89-S02, PRC-89-S03]
     roles:
       - {id: SH-E5, as: initiator, org_needs: {responsibility: 按周编制本人的销售预测版本, approval_right: 无（预测不审批）, department_hint: 市场与客户部门, position_hint: 市场和客户经理职能岗}}       # 市场和客户经理
@@ -190,8 +191,8 @@ processes:
         pending: vs0911-待定4
         decision:
           - {when: 本期为现金流预测期, goto: 2}
-          - {when: otherwise, goto: end, outcome: 预测版本已编制}
-        outcome: 预测版本已编制
+          - {when: otherwise, goto: end, outcome: 经营计划新版本已编制（预测）}
+        outcome: 经营计划新版本已编制（预测）
 
       - actor: SH-E6
         where: in_system
@@ -200,7 +201,7 @@ processes:
         desc: 指标为现金流（信息图 M-9），在当期销售预测版本之后编制；新版本是否经审批成为新基线，VS-09.2 notes 与本流程不一致，见 NOTES 结构问题 3
         permission: 现金流预测.编制
         page: 现金流预测编辑页
-        outcome: 现金流预测已编制
+        outcome: 经营计划新版本已编制（现金流预测）
     notes: 迁移时在途 1,212 单提示流程未闭环，只读归档（信息图 M-8）。读模型 PRC-90 出具经营月报并复盘属 reporting，不在本片段。现金流预测在当期销售预测之后编制（QC 修订：原为两个独立入口，生成器无多入口写法，见 NOTES 格式问题 1）。
 
   - id: PRC-107

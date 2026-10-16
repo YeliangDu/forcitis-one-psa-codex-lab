@@ -275,7 +275,7 @@ commands:
   source: 聚合稿 AGG 命令列
   params: [人员, 缴纳主体法人, 参保地, 险种, 缴费基数, 增员生效日, 增员回执引用]
   preconditions:
-  - {ref: 人员有效, text: 人员已入职（读 B-13）；同一人员同缴纳主体无在保登记}
+  - {ref: 人员有效, text: 人员已入职（读 B-13）；同一人员同缴纳主体无在缴登记}
   - {ref: 候选规则, text: 用工类型为退休返聘或实习的不办理参保〔推〕；PRC-84 步 1 两个分支都指向第 2 步，未写「无需增员」结局，见 notes 接缝问题 3}
   - {ref: P-32, text: 入职 30 日内申报，超期预警提醒不拦截（社会保险法第五十八条）}
   authority:
@@ -283,7 +283,7 @@ commands:
     A: {resolve: type, role: SH-E6, function: 社保岗}
     R: [SH-E6]
   idempotency_key: 人员 + 缴纳主体 + 增员生效日（同键返回已有）
-  state_change: 创建 → 在保
+  state_change: 创建 → 在缴
   emits: 参保已增员
   used_by: [PRC-84 第 1 步]
   orphan: false
@@ -294,14 +294,14 @@ commands:
   source: 聚合稿 AGG 命令列
   params: [参保登记ID, 减员生效日, 减员回执引用]
   preconditions:
-  - {ref: 状态, text: 登记为在保}
+  - {ref: 状态, text: 登记为在缴}
   - {ref: 候选规则, text: 用工类型为退休返聘或实习的结局为「无需减员」，不改状态（PRC-130 步 1）}
   authority:
     ref: raci:AGG-74/参保减员
     A: {resolve: type, role: SH-E6, function: 社保岗}
     R: [SH-E6]
   idempotency_key: 参保登记ID（已减员再减员无操作）
-  state_change: 在保 → 已减员
+  state_change: 在缴 → 已减员
   emits: 参保已减员
   used_by: [PRC-130 第 1 步]
   orphan: false
@@ -314,15 +314,15 @@ commands:
   source: 分片 vs07.notes.md 新用语、PRC-136 第 12 步
   params: [参保登记ID, 新缴纳主体法人, 变更生效日, 原主体减员回执引用, 新主体增员回执引用, 缴费基数]
   preconditions:
-  - {ref: 状态, text: 原登记为在保，新缴纳主体与原主体不同}
-  - {ref: 同主体唯一, text: 同一人员在新缴纳主体无在保登记}
+  - {ref: 状态, text: 原登记为在缴，新缴纳主体与原主体不同}
+  - {ref: 同主体唯一, text: 同一人员在新缴纳主体无在缴登记}
   - {ref: P-32, text: 与入职增员同属 P-32 范畴，新主体增员超期预警不拦截}
   authority:
     ref: raci:AGG-74/变更参保缴纳主体
     A: {resolve: type, role: SH-E6, function: 社保岗}
     R: [SH-E6]
   idempotency_key: 参保登记ID + 新缴纳主体 + 变更生效日（同键返回已有）
-  state_change: 原登记 在保 → 已减员；同事务为新缴纳主体创建登记 → 在保
+  state_change: 原登记 在缴 → 已减员；同事务为新缴纳主体创建登记 → 在缴
   emits: 参保已减员、参保已增员
   used_by: [PRC-136 第 12 步]
   orphan: false
@@ -334,15 +334,15 @@ commands:
   source: S-32（one-architecture 裁定）；对象增删改查检查 QC-OBJECTS.md（缴费基数年度调整无命令）
   params: [参保登记ID, 缴费年度, 新缴费基数, 生效日, 基数核定依据引用（核定通知或工资基数）]
   preconditions:
-  - {ref: 状态, text: 登记为在保；已减员的登记不得调整}
+  - {ref: 状态, text: 登记为在缴；已减员的登记不得调整}
   - {ref: D17, text: 追加新版本，同事务结束旧版本区间；同一登记同一缴费年度至多一次调整，更正另出新版本}
-  - {ref: 重新入职, text: 重新入职建新参保登记（同一人员同缴纳主体至多一个在保），不在已减员登记上调整}
+  - {ref: 重新入职, text: 重新入职建新参保登记（同一人员同缴纳主体至多一个在缴），不在已减员登记上调整}
   authority:
     ref: raci:AGG-74/调整缴费基数
     A: {resolve: type, role: SH-E6, function: 社保岗}
     R: [SH-E6]
   idempotency_key: 参保登记ID + 缴费年度（同键返回已有版本）
-  state_change: 在保 → 在保（追加新版本，不改状态）
+  state_change: 在缴 → 在缴（追加新版本，不改状态）
   emits: （内部）
   used_by: [PRC-125 第 7 步]
   orphan: false

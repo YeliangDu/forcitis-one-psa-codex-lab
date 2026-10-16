@@ -53,18 +53,18 @@ machines:
 - aggregate: AGG-74
   machine: insurance_enrollment
   entity: insurance_enrollments
-  states: [在保, 已减员]
-  initial: [在保]
+  states: [在缴, 已减员]
+  initial: [在缴]
   terminal: [已减员]
-  added_states: [在保, 已减员]
+  added_states: [在缴, 已减员]
   non_state_commands:
-  - {command: 调整缴费基数, reason: 追加缴费基数新版本（同事务结束旧版本区间），状态仍为在保；S-32 新增}
-  note: 数据模型状态列只写「状态」未列取值，本稿取在保与已减员。重新入职另建登记（同一人员同缴纳主体至多一个在保）。缴费基数年度调整由 S-32 新增的调整缴费基数追加新版本
+  - {command: 调整缴费基数, reason: 追加缴费基数新版本（同事务结束旧版本区间），状态仍为在缴；S-32 新增}
+  note: 数据模型状态列只写「状态」未列取值，本稿取在缴与已减员。重新入职另建登记（同一人员同缴纳主体至多一个在缴）。缴费基数年度调整由 S-32 新增的调整缴费基数追加新版本
   transitions:
-  - {from: null, to: 在保, command: 参保增员, guard: [人员已入职, 同人同主体无在保, 用工类型不是退休返聘或实习〔推〕], kind: forward}
-  - {from: 在保, to: 已减员, command: 参保减员, guard: [用工类型不是退休返聘或实习], kind: forward, process_outcome: 参保已减员}
-  - {from: 在保, to: 已减员, command: 变更参保缴纳主体, guard: [新缴纳主体与原主体不同, 同事务为新主体创建在保登记], kind: forward}
-  - {from: null, to: 在保, command: 变更参保缴纳主体, guard: [新主体无在保登记], kind: forward}
+  - {from: null, to: 在缴, command: 参保增员, guard: [人员已入职, 同人同主体无在缴, 用工类型不是退休返聘或实习〔推〕], kind: forward}
+  - {from: 在缴, to: 已减员, command: 参保减员, guard: [用工类型不是退休返聘或实习], kind: forward, process_outcome: 社保与公积金参保已减员}
+  - {from: 在缴, to: 已减员, command: 变更参保缴纳主体, guard: [新缴纳主体与原主体不同, 同事务为新主体创建在缴登记], kind: forward}
+  - {from: null, to: 在缴, command: 变更参保缴纳主体, guard: [新主体无在缴登记], kind: forward}
 
 - aggregate: AGG-75
   machine: incentive_plan_version
@@ -112,7 +112,7 @@ machines:
   - {command: 登记补休转加班工资, reason: 只追加补休转加班工资登记行（表 payroll_comp_leave_conversions，只追加），不改档案版本状态；S-41 新增}
   note: 根表 payroll_profiles 无生命周期；版本行按生效区间，调薪追加新版本并结束旧版本（D17）。未来生效日的版本也记为生效（区间决定何时适用）。离职后由 S-32 新增的终止薪酬档案结束最后一个生效版本；重新入职在原根下建立新版本
   transitions:
-  - {from: null, to: 生效, command: 建立薪酬档案, guard: [人员已入职, 一人一档案], kind: forward, process_outcome: 薪酬档案已建立}
+  - {from: null, to: 生效, command: 建立薪酬档案, guard: [人员已入职, 一人一档案], kind: forward, process_outcome: 社保与公积金参保在缴，薪酬档案已建立}
   - {from: null, to: 生效, command: 调整薪酬档案, guard: [R-VS13-j：引用调薪决定依据, U9], kind: forward, process_outcome: 薪酬档案已调整}
   - {from: 生效, to: 已结束, command: 调整薪酬档案, guard: [同事务结束旧版本区间（D17）], kind: forward}
   - {from: 生效, to: 已结束, command: 终止薪酬档案, guard: [Separated：区间止于离职日, 无版本时失败并告警], kind: forward, process_outcome: 薪酬档案已终止}

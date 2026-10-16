@@ -565,7 +565,7 @@ machines:
     - INV-14
     - P-05：满一个月未签只提醒
     kind: forward
-    process_outcome: 入职已办理
+    process_outcome: 入职已办理（人员试用期 / 正式，协议已签署生效）
   - from: 已签署生效
     to: 已签署生效
     command: 登记劳动合同终止依据
@@ -1132,45 +1132,45 @@ machines:
   machine: insurance_enrollment
   entity: insurance_enrollments
   added_states:
-  - 在保
+  - 在缴
   - 已减员
-  note: 数据模型状态列只写「状态」未列取值，本稿取在保与已减员。重新入职另建登记（同一人员同缴纳主体至多一个在保）。缴费基数年度调整由 S-32 新增的调整缴费基数追加新版本
+  note: 数据模型状态列只写「状态」未列取值，本稿取在缴与已减员。重新入职另建登记（同一人员同缴纳主体至多一个在缴）。缴费基数年度调整由 S-32 新增的调整缴费基数追加新版本
   states:
-  - 在保
+  - 在缴
   - name: 已减员
     terminal: true
-  initial: 在保
+  initial: 在缴
   transitions:
   - from: null
-    to: 在保
+    to: 在缴
     command: 参保增员
     guard:
     - 人员已入职
-    - 同人同主体无在保
+    - 同人同主体无在缴
     - 用工类型不是退休返聘或实习〔推〕
     kind: forward
-  - from: 在保
+  - from: 在缴
     to: 已减员
     command: 参保减员
     guard:
     - 用工类型不是退休返聘或实习
     kind: forward
-    process_outcome: 参保已减员
-  - from: 在保
+    process_outcome: 社保与公积金参保已减员
+  - from: 在缴
     to: 已减员
     command: 变更参保缴纳主体
     guard:
     - 新缴纳主体与原主体不同
-    - 同事务为新主体创建在保登记
+    - 同事务为新主体创建在缴登记
     kind: forward
   - from: null
-    to: 在保
+    to: 在缴
     command: 变更参保缴纳主体
     guard:
-    - 新主体无在保登记
+    - 新主体无在缴登记
     kind: forward
-  - from: 在保
-    to: 在保
+  - from: 在缴
+    to: 在缴
     command: 调整缴费基数
     kind: non_state
   source_part: vs13pay
@@ -1311,7 +1311,7 @@ machines:
     - 人员已入职
     - 一人一档案
     kind: forward
-    process_outcome: 薪酬档案已建立
+    process_outcome: 社保与公积金参保在缴，薪酬档案已建立
   - from: null
     to: 生效
     command: 调整薪酬档案

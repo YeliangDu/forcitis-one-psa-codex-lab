@@ -464,7 +464,7 @@ machines:
     command: 签订劳动合同
     guard: [INV-14, P-05：满一个月未签只提醒]
     kind: forward
-    process_outcome: 入职已办理
+    process_outcome: 入职已办理（人员试用期 / 正式，协议已签署生效）
   - from: 已签署生效
     to: 已签署生效
     command: 登记劳动合同终止依据
@@ -632,19 +632,19 @@ process_steps:
   command: 签订劳动合同
   machine: labor_contract
   transition: [已批准, 已签署生效]
-  outcome: 入职已办理
+  outcome: 入职已办理（人员试用期 / 正式，协议已签署生效）
 - process: PRC-84
   step: 1
   command: 参保增员
   machine: AGG-74:insurance_enrollment（vs13pay）
-  transition: [null, 在保]
+  transition: [null, 在缴]
   note: B-15 聚合，转换在 vs13pay.state-machines.yaml
 - process: PRC-84
   step: 2
   command: 建立薪酬档案
   machine: AGG-93:compensation_profile（vs13pay）
   transition: [null, 生效]
-  outcome: 薪酬档案已建立
+  outcome: 社保与公积金参保在缴，薪酬档案已建立
   note: B-15 聚合，转换在 vs13pay.state-machines.yaml
 - process: PRC-85
   step: 1
@@ -825,9 +825,9 @@ process_steps:
   step: 12
   command: 变更参保缴纳主体
   machine: AGG-74:insurance_enrollment（vs13pay）
-  transition: [在保, 已减员]
+  transition: [在缴, 已减员]
   also:
-  - [null, 在保]
+  - [null, 在缴]
   outcome: 调岗已生效
   note: B-15 聚合，〔缺〕命令与转换已在 vs13pay
 - {process: 平台步骤, step: PRC-80 第 6 步、PRC-136 第 9–10 步、PRC-137、PRC-138、PRC-129, command: （platform.identity，见 vs07.commands.yaml 平台命令清单）, machine: null, transition: null, note: 平台任务，不改 B-13 聚合状态，不做状态机}

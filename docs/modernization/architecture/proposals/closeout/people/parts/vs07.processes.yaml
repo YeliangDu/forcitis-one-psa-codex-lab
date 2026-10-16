@@ -24,7 +24,7 @@ processes:
       - {type: human, name: "人力更名、停用或启用法人主体"}
       - {type: human, name: "人力新建或修改职位"}
       - {type: human, name: "人力更正法人归属"}
-    stages: [VS-07.1, VS-07.3]
+    stages: [VS-07.1]   # 只有职位目录条目（启用）是 VS-07.1 的进入条件事实；法人、组织单元、法人归属是归属维度，不是任一阶段的进出事实（STAGE_ALIGN.md）
     owner_bc: B-13
     human_orchestration: false
     type: business
@@ -285,7 +285,7 @@ processes:
     type: business
     migration: "候选人面试与录用记录全量迁入并加个人信息保护（用户 T-5，ADR-0043；A8 应聘登记表 / 面试评估表 / 录用审批表，OA_PROCESS_INVENTORY 第 55、74、57 行）：分级与访问限招聘相关角色；在途候选人按当前阶段迁入；迁入不发事件"
     scope: "人力看全部候选人；用人经理只看本人所提招聘需求下的候选人（访问限制按 ADR-0043）"
-    outcomes: [录用决定已作出, 未录用, 候选人已放弃]
+    outcomes: [人员待入职, 未录用, 候选人已放弃]
     scenarios: [PRC-82-S01, PRC-82-S02, PRC-82-S03, PRC-82-S04]
     roles:
       - {id: SH-H1, as: external, org_needs: {responsibility: "应聘、面试、答复录用通知", approval_right: "无", department_hint: "（外部）", position_hint: "候选人"}}
@@ -426,7 +426,7 @@ processes:
     scope: "人力按法人与组织数据范围；用人经理看所辖新员工的入职与任职"
     segregation:
       - {roles: [SH-E6, SH-M1], rule: "劳动合同的提交人（人力）与批准人（新员工归属组织单元负责人）不得为同一人"}
-    outcomes: [入职已办理]
+    outcomes: [入职已办理（人员试用期 / 正式，协议已签署生效）]
     scenarios: [PRC-83-S01, PRC-83-S02, PRC-83-S03, PRC-83-S04, PRC-83-S05, PRC-83-S06]
     roles:
       - {id: SH-E6, as: performer, org_needs: {responsibility: "登记入职、建立任职、提交并登记劳动合同", approval_right: "无（劳动合同批准由部门负责人）", department_hint: "人力资源部", position_hint: "人事专员（职能：入职与合同事务）"}}      # 人力
@@ -517,7 +517,7 @@ processes:
         permission: 劳动合同.登记签订
         page: 劳动合同编辑页
         audit: true
-        outcome: 入职已办理
+        outcome: 入职已办理（人员试用期 / 正式，协议已签署生效）
         decision:
           - {when: 用工满一个月仍未签订, goto: 6}          # P-05 提醒，不拒绝（S12）
           - {when: otherwise, goto: end}    # 三口径预警移至 B-15 事件策略（S-20）
@@ -534,7 +534,7 @@ processes:
     human_orchestration: false
     migration: "历史参保增员记录与薪酬档案随 AGG-74、AGG-93 全量迁入（U-3、U-4），薪酬档案按生效日版本回放；迁入不发事件，不触发本流程（ADR-0036 M7）"
     scope: "人力（薪酬与社保）按法人范围；薪酬属敏感个人信息，ADR-0043 最高访问级别"
-    outcomes: [薪酬档案已建立]
+    outcomes: [社保与公积金参保在缴，薪酬档案已建立]
     scenarios: [PRC-84-S01, PRC-84-S02, PRC-84-S03]
     roles:
       - {id: SH-E6, as: performer, org_needs: {responsibility: "办理参保增员并建立薪酬档案", approval_right: "无", department_hint: "人力资源部（薪酬与社保）", position_hint: "薪酬与社保专员（职能：参保经办与薪酬档案）"}}      # 人力（薪酬与社保）
@@ -1158,7 +1158,7 @@ event_policies:
     stages: [VS-13.6]
     owner_bc: B-15
     migration: "不适用（迁入不发事件；历史参保减员记录随 AGG-74 全量迁入）"
-    outcomes: [参保已减员, 无需减员]
+    outcomes: [社保与公积金参保已减员, 无需减员]
     scenarios: [PRC-130-S01, PRC-130-S02, PRC-130-S03, PRC-130-S04, PRC-130-S05]
     roles:
       - {id: SH-E6, as: performer, org_needs: {responsibility: "办理参保减员与公积金封存或转移", approval_right: "无", department_hint: "人力资源部（薪酬与社保）", position_hint: "薪酬与社保专员（职能：参保经办）"}}      # 人力（薪酬与社保）
@@ -1189,7 +1189,7 @@ event_policies:
         timeout: {after: "P15D", escalate_to: SH-M1, interrupting: false}   # P-32 提醒，逾期升级给职能高管〔推〕
         decision:
           - {when: 用工类型为退休返聘或实习, goto: end, outcome: 无需减员}
-          - {when: otherwise, goto: end, outcome: 参保已减员}
+          - {when: otherwise, goto: end, outcome: 社保与公积金参保已减员}
         cross_bc:
           - {mode: api, direction: out, bc: B-13, name: 读取用工类型}
     notes: B-15 → B-13（api、事件）已有边。工资结清与离职当月社保费用口径属 B-15 薪酬结算，不在本策略。无人工审批。流程名沿用目录「离职后参保减员」，第 1 步终止薪酬档案是 S-32 并入的第二类离职反应（目录名待 one-architecture 视情改为含薪酬档案）。
@@ -1210,7 +1210,7 @@ event_policies:
       - {type: event, name: "任职已变更（调岗）", event: 任职已变更, bc: B-13}
       - {type: event, name: "组织单元已调整", event: 组织单元已调整, bc: B-13}
     stages: []
-    support: "行政支撑：员工与组织的单向同步，服务差旅预订，不在客户价值流上（S-31 SQ-31）"
+    support: "行政支撑：员工与组织的单向同步，服务差旅预订；四个触发分属 VS-07.3 退出、VS-13.6 退出、任职版本变更、组织单元调整，无共同阶段，不在客户或员工价值流的阶段门上（S-31 SQ-31；STAGE_ALIGN.md）"
     owner_bc: B-13
     basis: S-31 SQ-31（one-architecture）：platform.integration 在 L0，不能订阅 B-13（S-22 不采用平台订阅业务事件），故由 B-13 订阅本 BC 事件并经既有边 B-13 → platform.integration 推送
     migration: "迁入不触发（ADR-0036 M7）；上线时由集成册登记的一次性全量初始同步另办，不属本策略"
