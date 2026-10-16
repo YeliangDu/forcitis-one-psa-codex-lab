@@ -12,8 +12,6 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelopes;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.organization.workforce.events.EmployeeRegistered;
 import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
 import com.forcitis.one.platform.identity.application.OperationsCommands;
@@ -98,7 +96,7 @@ class AccountEntriesConcurrencyIT extends AccountsAcceptanceSupport {
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.login-registration")) {
             return transactions.execute(status -> {
                 EmployeeRegistered event = new EmployeeRegistered(envelopes.wrap(new EventDraft("organization.workforce.EmployeeRegistered", 1, "Employee",
-                        text(employee), 1, null, null, new EventSource(SourceSystem.ONE, null), List.of())), employeeIdOf(employee));
+                        employee, 1, null, null, List.of())), employeeIdOf(employee));
                 publisher.publishEvent(event);
                 return event.envelope().eventId();
             });
@@ -109,7 +107,7 @@ class AccountEntriesConcurrencyIT extends AccountsAcceptanceSupport {
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
             return transactions.execute(status -> {
                 OrgSnapshotChanged event = new OrgSnapshotChanged(envelopes.wrap(new EventDraft("organization.workforce.OrgSnapshotChanged", 1, "OrgSnapshot",
-                        UUID.randomUUID().toString(), 1, null, TODAY, new EventSource(SourceSystem.ONE, null), List.of())),
+                        UUID.randomUUID(), 1, null, TODAY, List.of())),
                         List.of(employeeIdOf(employee)), List.of(), List.of(), TODAY);
                 publisher.publishEvent(event);
                 return event.envelope().eventId();

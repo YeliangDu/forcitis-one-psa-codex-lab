@@ -1,5 +1,6 @@
 package com.forcitis.one.scenario;
 
+import com.forcitis.one.TestIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -23,8 +24,7 @@ import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelope;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
+import com.forcitis.one.kernel.event.NotAudited;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
@@ -73,9 +73,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 class CorrelationIT {
 
     static final com.forcitis.one.platform.integration.api.DeliverySubject PROBE_REQUEST = com.forcitis.one.platform.integration.api.DeliverySubject.of(
-            com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ASSIGNED, com.forcitis.one.TestIds.uuid(901));
+            com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ASSIGNED, TestIds.uuid(901));
     static final com.forcitis.one.platform.integration.api.DeliverySubject PROBE_HANDLER = com.forcitis.one.platform.integration.api.DeliverySubject.of(
-            com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ASSIGNED, com.forcitis.one.TestIds.uuid(902));
+            com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ASSIGNED, TestIds.uuid(902));
 
     static final WireMockServer wecom = new WireMockServer(WireMockConfiguration.options().dynamicPort());
 
@@ -118,6 +118,7 @@ class CorrelationIT {
     @Autowired
     com.forcitis.one.platform.integration.application.DeliverWecomCards deliver;
 
+    @NotAudited(reason = "a probe event of this test; it is about no business object")
     record Thing(EventEnvelope envelope, UserId userId) implements DomainEvent {
     }
 
@@ -127,8 +128,7 @@ class CorrelationIT {
         }
 
         void happen() {
-            record((envelopes, version) -> new Thing(envelopes.wrap(new EventDraft("platform.eventing.Thing", 1, "Thing", "1", version, null, null,
-                    new EventSource(SourceSystem.ONE, null), List.of())), TestAccounts.account(1)));
+            record((envelopes, version) -> new Thing(envelopes.wrap(new EventDraft("platform.eventing.Thing", 1, "Thing", TestIds.uuid(1), version, null, null, List.of())), TestAccounts.account(1)));
         }
     }
 
@@ -199,7 +199,7 @@ class CorrelationIT {
         Thing thing = seen.events.getFirst();
         assertThat(thing.envelope().correlationId()).isEqualTo(correlation);
         assertThat(thing.envelope().actorType()).isEqualTo(ActorType.USER);
-        assertThat(thing.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value().toString());
+        assertThat(thing.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value());
         assertThat(thing.envelope().causationId()).as("the request is the root").isNull();
         assertThat(thing.envelope().eventId().version()).isEqualTo(7);
 

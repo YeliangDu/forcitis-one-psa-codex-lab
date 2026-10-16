@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.audit.api.AuditEntry;
@@ -58,7 +60,7 @@ public class UpdateRole {
         expected.check(existing.get().version());
         var caller = currentUser.userId();
         if (existing.get().kind() != RoleKind.SYSTEM && accounts.findAssignedRoleCodes(caller).contains(existing.get().code())) {
-            audit.recordIndependently(new AuditEntry("platform.identity.grant.refused", caller, null, "role:" + roleId.value(),
+            audit.recordIndependently(new AuditEntry("platform.identity.grant.refused", caller, null, AuditSubject.of(AuditSubjectKind.ROLE, roleId.value()),
                     "nobody changes the definition of a role they hold"));
             return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_OWN_ROLE_DEFINITION_FORBIDDEN);
         }

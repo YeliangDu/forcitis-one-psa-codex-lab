@@ -9,7 +9,7 @@ const READ = 'platform.numbering:numbering-rule:read';
 const UPDATE = 'platform.numbering:numbering-rule:update';
 const APPROVE = 'platform.numbering:numbering-rule:approve';
 
-const PENDING = { authorId: '2002', authoredAt: '2026-10-10T01:00:00Z', capacity: 9999, effectiveFrom: '2999-01-01', pattern: '{TYPE}-{LE}-{yyyyMM}-{seq:5}', resetPolicy: 'MONTHLY', startValue: 1, templateVersion: 3 };
+const PENDING = { authorId: '019a0000-0000-7000-8000-000000002002', authoredAt: '2026-10-10T01:00:00Z', capacity: 9999, effectiveFrom: '2999-01-01', pattern: '{TYPE}-{LE}-{yyyyMM}-{seq:5}', resetPolicy: 'MONTHLY', startValue: 1, templateVersion: 3 };
 
 const RULE = { capacity: 9999, effectiveFrom: '2026-01-01', requiresFinanceConfirmation: false, templateVersion: 2, version: 4 };
 const RULES = [
@@ -25,7 +25,7 @@ const VOUCHER = {
   startValue: 1,
   requiresFinanceConfirmation: true,
   confirmationStatus: 'PENDING_CONFIRMATION',
-  pending: { ...PENDING, confirmedBy: '3003', templateVersion: 1 },
+  pending: { ...PENDING, confirmedBy: '019a0000-0000-7000-8000-000000003003', templateVersion: 1 },
 };
 
 const listed = (items: object[]) => ({ items });
@@ -51,8 +51,8 @@ describe('编号规则页', () => {
     expect(screen.getByText('已确认')).toBeInTheDocument();
     expect(screen.getAllByText('每月重置', { selector: 'td' }).length).toBeGreaterThan(0);
     expect(rowOf('报价单').getByText('2999-01-01')).toBeInTheDocument();
-    expect(rowOf('报价单').getByText('2002')).toBeInTheDocument();
-    expect(rowOf('会计凭证').getByText('3003')).toBeInTheDocument();
+    expect(rowOf('报价单').getByText('019a0000-0000-7000-8000-000000002002')).toBeInTheDocument();
+    expect(rowOf('会计凭证').getByText('019a0000-0000-7000-8000-000000003003')).toBeInTheDocument();
   });
 
   it('服务端新加了单据类型：显示破折号，不显示 undefined', async () => {
@@ -85,7 +85,7 @@ describe('编号规则页', () => {
   });
 
   it('有权限时每条规则可编辑，只有别人编写的待确认版本可确认；自己编写的不能确认', async () => {
-    stubServer({ 'GET sessions:current': { body: currentUserBody([READ, UPDATE, APPROVE]) }, 'GET numbering-rules': { body: listed([...RULES, { ...RULES[0], documentType: 'JOURNAL_VOUCHER', pending: { ...PENDING, authorId: '1001' } }]) } });
+    stubServer({ 'GET sessions:current': { body: currentUserBody([READ, UPDATE, APPROVE]) }, 'GET numbering-rules': { body: listed([...RULES, { ...RULES[0], documentType: 'JOURNAL_VOUCHER', pending: { ...PENDING, authorId: '019a0000-0000-7000-8000-000000001001' } }]) } });
     renderWithProviders(<NumberingRulesPage />);
 
     await screen.findByText('报价单');
@@ -159,7 +159,7 @@ describe('编号规则页', () => {
     const dialog = (await screen.findByText('确认编号规则')).closest('[role="dialog"]') as HTMLElement;
     expect(within(dialog).getByText('{TYPE}-{LE}-{yyyyMM}-{seq:5}')).toBeInTheDocument();
     expect(within(dialog).getByText(/生效日：2999-01-01/)).toBeInTheDocument();
-    expect(within(dialog).getByText(/作者：2002/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/作者：019a0000-0000-7000-8000-000000002002/)).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole('button', { name: '确认' }));
 
     await waitFor(() => expect(server.calls.some((call) => call.url.endsWith(':confirm'))).toBe(true));

@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
@@ -44,7 +46,7 @@ public class ResetEmergencyAdminCredentials {
         events.publish(admin);
         sessions.revokeAll(person);
         cache.evict(person);
-        audit.record(new AuditEntry("platform.identity.operations.emergency-admin.credentials-reset", null, null, "emergency-admin:" + person.value(),
+        audit.record(new AuditEntry("platform.identity.operations.emergency-admin.credentials-reset", null, null, AuditSubject.of(AuditSubjectKind.EMERGENCY_ADMIN, person.value()),
                 attestation.describe()));
         return generated.shown();
     }

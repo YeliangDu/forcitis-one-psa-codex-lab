@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.audit.application;
 
+import java.util.UUID;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.domain.AuditRecord;
 import java.util.List;
@@ -10,7 +11,7 @@ import java.util.stream.Stream;
 final class AuditCsv {
 
     private static final String TRIGGERS = "=+-@\t\r\uFF1D\uFF0B\uFF0D\uFF20";
-    private static final String HEADER = "entryId,createdAt,action,actorId,onBehalfOfId,subjectKey,detail,sourceAddress,outcome,loginMethod";
+    private static final String HEADER = "entryId,createdAt,action,actorId,onBehalfOfId,subjectKind,subjectId,detail,sourceAddress,outcome,loginMethod";
 
     private AuditCsv() {
     }
@@ -21,12 +22,16 @@ final class AuditCsv {
 
     private static String line(AuditRecord row) {
         return Stream.of(String.valueOf(row.entryId().value()), row.createdAt().toString(), cell(row.action()), id(row.actorId()), id(row.onBehalfOfId()),
-                cell(row.subjectKey()), cell(row.detail()), cell(row.sourceAddress()), row.outcome() == null ? "" : row.outcome().name(),
+                row.subject().kind().name(), id(row.subject().id()), cell(row.detail()), cell(row.sourceAddress()), row.outcome() == null ? "" : row.outcome().name(),
                 cell(row.loginMethod())).collect(Collectors.joining(","));
     }
 
     private static String id(UserId userId) {
         return userId == null ? "" : String.valueOf(userId.value());
+    }
+
+    private static String id(UUID id) {
+        return id == null ? "" : id.toString();
     }
 
     /** The first character that is not a space decides, and the full-width forms of the trigger characters count as well. */

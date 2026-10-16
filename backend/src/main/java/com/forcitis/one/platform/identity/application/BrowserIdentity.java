@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
@@ -67,7 +69,7 @@ class BrowserIdentity {
         }
         if (reason == IdentityCheckReason.REPLAYED_IDENTIFIER) {
             identifiers.invalidateAll(userId);
-            audit.record(new AuditEntry("platform.identity.browser-identifier.replayed", userId, null, "user-account:" + userId.value(),
+            audit.record(new AuditEntry("platform.identity.browser-identifier.replayed", userId, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()),
                     "risk=HIGH identifier=" + prefix(presentedHash) + " every browser identifier of the account was invalidated")
                     .withTrace(origin.address(), AuditOutcome.FAILED, method.name()));
         }
@@ -76,7 +78,7 @@ class BrowserIdentity {
             issued = newValue();
             identifiers.replace(userId, presentedHash, Digests.sha256Hex(issued), now);
         }
-        audit.record(new AuditEntry("platform.identity.login.identity-check", userId, null, "user-account:" + userId.value(),
+        audit.record(new AuditEntry("platform.identity.login.identity-check", userId, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()),
                 reason == null ? "outcome=SKIPPED identifier=" + prefix(presentedHash)
                         : "outcome=CONFIRMATION_REQUIRED reason=" + reason + (presentedHash == null ? "" : " identifier=" + prefix(presentedHash)))
                 .withTrace(origin.address(), reason == null ? AuditOutcome.SUCCEEDED : AuditOutcome.FAILED, method.name()));

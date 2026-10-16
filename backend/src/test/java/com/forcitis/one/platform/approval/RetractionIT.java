@@ -96,7 +96,7 @@ class RetractionIT extends ApprovalIntegrationSupport {
         }));
         assertThat(events.completed().getFirst().returnSource()).as("D-1a-72 a withdrawal is a return whose source is the initiator")
                 .isEqualTo(com.forcitis.one.platform.approval.api.ReturnSource.INITIATOR);
-        assertThat(events.completed().getFirst().envelope().actorId()).isEqualTo(TestAccounts.account(s.initiator()).value().toString());
+        assertThat(events.completed().getFirst().envelope().actorId()).isEqualTo(TestAccounts.account(s.initiator()).value());
 
         ApprovalInstanceId second = startFor(key, s);
         assertThat(second).isNotEqualTo(first);

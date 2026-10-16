@@ -46,8 +46,11 @@ class EmployeeIdContractTest {
 
     static final int OWN_ID_OPERATIONS = 9;
 
-    /** RULING-P4-D6: the only id OpenApiExportTest still lets through as "other", by full name; it goes with ADR-0039 item 6. */
-    static final Set<String> OTHER_ID_NAMES_AFTER_P4 = Set.of("InboxItemResponse.taskId");
+    /**
+     * The ids OpenApiExportTest still lets through as "other", by full name: InboxItemResponse.taskId (RULING-P4-D6, goes with ADR-0039
+     * item 6) and, since RULING-P5-1 (card R-1b P5 D-13), SyncDiffResponse.subjectKey (a "type:id" text key, goes with split a).
+     */
+    static final Set<String> OTHER_ID_NAMES_AFTER_P4 = Set.of("InboxItemResponse.taskId", "SyncDiffResponse.subjectKey");
 
     static final Set<String> OWN_ID_TYPES = Set.of("EmployeeId", "OrgUnitId", "PositionId");
 
@@ -136,9 +139,9 @@ class EmployeeIdContractTest {
     }
 
     @Test
-    @DisplayName("RULING-P4-6 / RULING-P4-D6：OpenApiExportTest.OTHER_ID_NAMES 只按全名放行 InboxItemResponse.taskId")
+    @DisplayName("RULING-P4-6 / RULING-P4-D6 / RULING-P5-1：OpenApiExportTest.OTHER_ID_NAMES 只按全名放行 InboxItemResponse.taskId 与 SyncDiffResponse.subjectKey")
     @SuppressWarnings("unchecked")
-    void otherIdNamesKeepOnlyInboxItemTaskId() throws ReflectiveOperationException {
+    void otherIdNamesKeepOnlyTheTwoRuledOnes() throws ReflectiveOperationException {
         Field field = Class.forName("com.forcitis.one.OpenApiExportTest").getDeclaredField("OTHER_ID_NAMES");
         field.setAccessible(true);
 

@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.OrgUnitAccess;
@@ -47,7 +48,7 @@ public class GetLegalEntityAttribution {
         };
         if (!permitted) {
             audit.recordIndependently(new AuditEntry("organization.workforce.legal-entity-attribution.denied", actor, null,
-                    kind.name().toLowerCase(Locale.ROOT) + ":" + subjectId, "outside the scope of the caller"));
+                    AuditSubject.of(AttributionAuditKinds.of(kind), subjectId), "outside the scope of the caller"));
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_SUBJECT_NOT_FOUND, ErrorKind.NOT_FOUND,
                     "no such " + kind.name().toLowerCase(Locale.ROOT));
         }

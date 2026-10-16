@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.attendance.application;
 
 import com.forcitis.one.kernel.BusinessZone;
+import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarKey;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarRepository;
@@ -15,8 +16,10 @@ class CalendarMaintenance {
     private final DomainEvents events;
     private final Clock clock;
     private final BusinessZone zone;
+    private final IdGenerator ids;
 
-    CalendarMaintenance(WorkCalendarRepository calendars, DomainEvents events, Clock clock, BusinessZone zone) {
+    CalendarMaintenance(WorkCalendarRepository calendars, DomainEvents events, Clock clock, BusinessZone zone, IdGenerator ids) {
+        this.ids = ids;
         this.calendars = calendars;
         this.events = events;
         this.clock = clock;
@@ -27,7 +30,7 @@ class CalendarMaintenance {
         WorkCalendarKey key = WorkCalendarKey.defaultFor(command.calendarYear());
         WorkCalendarYear stored = calendars.find(key).orElse(null);
         command.expected().check(stored == null ? null : stored.version());
-        WorkCalendarYear year = stored != null ? stored : WorkCalendarYear.unmaintained(key);
+        WorkCalendarYear year = stored != null ? stored : WorkCalendarYear.unmaintained(ids.next(), key);
         year.maintain(command.days().stream().map(DayEntry::toDay).toList(), zone.today(clock), lockedDaysConfirmed);
         calendars.save(year);
         events.publish(year);

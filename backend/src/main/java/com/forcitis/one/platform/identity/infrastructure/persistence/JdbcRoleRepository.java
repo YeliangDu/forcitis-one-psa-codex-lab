@@ -58,7 +58,7 @@ class JdbcRoleRepository implements RoleRepository {
                         on conflict do nothing
                         returning role_id
                         """)
-                .param("id", ids.next()).param("code", role.code().value()).param("name", role.name()).param("kind", role.kind().name())
+                .param("id", role.roleId().value()).param("code", role.code().value()).param("name", role.name()).param("kind", role.kind().name())
                 .param("status", role.status().name()).param("scope", role.accessScope().name())
                 .param("administrative", role.administrative()).param("version", role.versionAfterSave())
                 .param("eventSequence", role.eventSequenceAfterSave())
@@ -69,7 +69,7 @@ class JdbcRoleRepository implements RoleRepository {
             throw new RoleRuleException(codeTaken ? RoleViolation.DUPLICATE_CODE : RoleViolation.DUPLICATE_NAME);
         }
         savePermissions(id.get(), role.permissionCodes());
-        return role.withId(new RoleId(id.get()));
+        return role;
     }
 
     @Override
@@ -125,10 +125,10 @@ class JdbcRoleRepository implements RoleRepository {
                 .param("id", roleId).param("codes", List.copyOf(permissionCodes)).update();
         for (String code : permissionCodes) {
             jdbc.sql("""
-                            insert into platform_identity.role_permissions (role_id, permission_code) values (:id, :code)
+                            insert into platform_identity.role_permissions (role_permission_id, role_id, permission_code) values (:rowId, :id, :code)
                             on conflict do nothing
                             """)
-                    .param("id", roleId).param("code", code).update();
+                    .param("rowId", ids.next()).param("id", roleId).param("code", code).update();
         }
     }
 }

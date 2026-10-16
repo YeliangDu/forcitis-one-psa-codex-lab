@@ -83,7 +83,7 @@ class NodeRoutingIT extends ApprovalIntegrationSupport {
                         e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_ROUTING_FLAG_UNKNOWN));
 
         assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where document_id = cast(? as uuid)", Integer.class, key)).isZero();
-        assertThat(runtime.createProcessInstanceQuery().processInstanceBusinessKey("TIMESHEET:" + key).count()).isZero();
+        assertThat(runtime.createProcessInstanceQuery().processInstanceBusinessKey(key).count()).isZero();
     }
 
     @Test
@@ -98,7 +98,7 @@ class NodeRoutingIT extends ApprovalIntegrationSupport {
         assertThatThrownBy(() -> begin(key, initiator, manager, TimesheetRoutingFlag.PROJECT_HOURS)).hasStackTraceContaining("pair");
 
         assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_requests where document_id = cast(? as uuid)", Integer.class, key)).isZero();
-        assertThat(runtime.createProcessInstanceQuery().processInstanceBusinessKey("TIMESHEET:" + key).count()).isZero();
+        assertThat(runtime.createProcessInstanceQuery().processInstanceBusinessKey(key).count()).isZero();
     }
 
     @Test

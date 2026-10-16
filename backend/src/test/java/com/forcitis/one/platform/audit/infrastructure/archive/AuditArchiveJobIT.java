@@ -73,7 +73,7 @@ class AuditArchiveJobIT {
     }
 
     private UUID entry(String action, String createdAgo) {
-        return jdbc.sql("insert into platform_audit.audit_entries (id, action, subject_key, created_at) values (uuidv7(), :action, 'x:1', now() - cast(:ago as interval)) returning id")
+        return jdbc.sql("insert into platform_audit.audit_entries (id, action, subject_kind, subject_id, created_at) values (uuidv7(), :action, 'USER_ACCOUNT', gen_random_uuid(), now() - cast(:ago as interval)) returning id")
                 .param("action", action).param("ago", createdAgo).query(UUID.class).single();
     }
 
@@ -82,7 +82,7 @@ class AuditArchiveJobIT {
     }
 
     @Test
-    @DisplayName("T3 entries older than 3 years are archived in id order and recorded as a batch; younger ones wait; nothing is deleted online")
+    @DisplayName("T3 entries older than 3 years are archived in (created_at, id) order and recorded as a batch; younger ones wait; nothing is deleted online")
     void archivesOnlyWhatIsOldEnough() {
         UUID first = entry("old.one", "1200 days");
         UUID second = entry("old.two", "1150 days");
@@ -103,7 +103,7 @@ class AuditArchiveJobIT {
     @Test
     @DisplayName("T3 the archive carries the columns listed as ARCHIVE, including event id and correlation id, and nothing else")
     void archivedColumnsAreTheListedOnes() {
-        jdbc.sql("insert into platform_audit.audit_entries (id, action, subject_key, event_id, correlation_id, created_at) values (uuidv7(), 'old.one', 'x:1', gen_random_uuid(), gen_random_uuid(), now() - interval '1200 days')").update();
+        jdbc.sql("insert into platform_audit.audit_entries (id, action, subject_kind, subject_id, event_id, correlation_id, created_at) values (uuidv7(), 'old.one', 'USER_ACCOUNT', gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now() - interval '1200 days')").update();
 
         job.run();
 
@@ -113,13 +113,13 @@ class AuditArchiveJobIT {
     }
 
     @Test
-    @DisplayName("T3 an old entry written after a younger one is not skipped: only a prefix of ids that are all old enough is archived, the rest follows once due")
+    @DisplayName("T3 an old entry written after a younger one is not skipped: the archive goes by moment, so it takes the old one at once and the younger follows once due")
     void aLateOldEntryIsNotLost() {
         UUID young = entry("young.first", "10 days");
         entry("old.later", "1200 days");
 
         job.run();
-        assertThat(vault.batches).isEmpty();
+        assertThat(vault.lines()).as("only the entry that is old enough, although it was written after the younger one").singleElement().asString().contains("old.later");
 
         jdbc.sql("alter table platform_audit.audit_entries disable trigger audit_entries_reject_update_delete").update();
         jdbc.sql("update platform_audit.audit_entries set created_at = now() - interval '1100 days' where id = :id").param("id", young).update();
@@ -129,7 +129,7 @@ class AuditArchiveJobIT {
     }
 
     @Test
-    @DisplayName("L-2 an old entry that appears below the archived position is never archived; the reconciliation counts it and raises the alarm")
+    @DisplayName("L-2 an old entry that appears before the archived position is never archived; the reconciliation counts it and raises the alarm")
     void aMissedEntryIsReported() {
         entry("old.one", "1200 days");
         entry("old.two", "1150 days");
@@ -138,7 +138,7 @@ class AuditArchiveJobIT {
         job.run();
         assertThat(meters.counter("forcitis.platform.audit.archive.reconciliation.failures").count()).as("every entry up to the position is in a batch").isEqualTo(before);
 
-        jdbc.sql("insert into platform_audit.audit_entries (id, action, subject_key, created_at) values (:id, 'old.late', 'x:1', now() - interval '1300 days')")
+        jdbc.sql("insert into platform_audit.audit_entries (id, action, subject_kind, subject_id, created_at) values (:id, 'old.late', 'USER_ACCOUNT', gen_random_uuid(), now() - interval '1300 days')")
                 .param("id", new UUID(0x0000_0000_0000_7000L, 0x8000_0000_0000_0001L)).update();
         job.run();
 

@@ -3,8 +3,6 @@ package com.forcitis.one.platform.identity.domain;
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.StateMachine;
 import com.forcitis.one.kernel.event.EventDraft;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.platform.identity.api.AccessScopeKind;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.Permission;
@@ -35,7 +33,7 @@ public final class Role extends AggregateRoot {
     private static final Set<String> KNOWN_PERMISSIONS = Arrays.stream(Permission.values())
             .map(Permission::code).collect(Collectors.toUnmodifiableSet());
 
-    private RoleId roleId;
+    private final RoleId roleId;
     private final RoleCode code;
     private final RoleKind kind;
     private final boolean administrative;
@@ -63,8 +61,8 @@ public final class Role extends AggregateRoot {
         return code.value().equalsIgnoreCase(SUPER_ADMIN.value());
     }
 
-    /** A role about to be inserted; it announces itself once the repository has given it an id (withId). */
-    public static Role newCustom(RoleCode code, String name, Set<String> permissionCodes) {
+    /** A role about to be inserted; its id is made by the caller, never by the repository. */
+    public static Role newCustom(RoleId roleId, RoleCode code, String name, Set<String> permissionCodes) {
         if (isReserved(code)) {
             throw new RoleRuleException(RoleViolation.RESERVED_CODE);
         }
@@ -73,7 +71,7 @@ public final class Role extends AggregateRoot {
         }
         requireName(name);
         requireKnown(permissionCodes);
-        Role role = new Role(null, code, name.strip(), RoleKind.CUSTOM, RoleStatus.ENABLED, AccessScopeKind.SELF, false, permissionCodes, 0, 0);
+        Role role = new Role(Objects.requireNonNull(roleId, "roleId"), code, name.strip(), RoleKind.CUSTOM, RoleStatus.ENABLED, AccessScopeKind.SELF, false, permissionCodes, 0, 0);
         role.record((envelopes, version) -> new RoleCreated(envelopes.wrap(role.draft("RoleCreated", version)), role.roleId));
         return role;
     }
@@ -82,11 +80,6 @@ public final class Role extends AggregateRoot {
                                boolean administrative, Set<String> permissionCodes, long version, long eventSequence) {
         return new Role(Objects.requireNonNull(roleId, "roleId"), code, name, RoleKind.valueOf(kind), RoleStatus.valueOf(status),
                 accessScope, administrative, permissionCodes, version, eventSequence);
-    }
-
-    public Role withId(RoleId id) {
-        this.roleId = Objects.requireNonNull(id, "id");
-        return this;
     }
 
     public RoleId roleId() {
@@ -192,7 +185,6 @@ public final class Role extends AggregateRoot {
     }
 
     private EventDraft draft(String eventName, long version) {
-        return new EventDraft("platform.identity." + eventName, 1, "Role", String.valueOf(roleId.value()), version, null, null,
-                new EventSource(SourceSystem.ONE, null), List.of());
+        return new EventDraft("platform.identity." + eventName, 1, "Role", roleId.value(), version, null, null, List.of());
     }
 }

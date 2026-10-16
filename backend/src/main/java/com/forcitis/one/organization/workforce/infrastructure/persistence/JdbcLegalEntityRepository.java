@@ -55,17 +55,15 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
     @Override
     public LegalEntity insert(LegalEntity unsaved) {
         try {
-            LegalEntityId id = new LegalEntityId(ids.next());
             jdbc.sql("""
                             insert into organization_workforce.legal_entities (id, code, name, status, version, event_count)
                             values (:id, :code, :name, :status, :version, :eventSequence)
                             """)
-                    .param("id", id.value()).param("code", unsaved.code().value()).param("name", unsaved.name()).param("status", unsaved.status().name())
+                    .param("id", unsaved.legalEntityId().value()).param("code", unsaved.code().value()).param("name", unsaved.name()).param("status", unsaved.status().name())
                     .param("version", unsaved.versionAfterSave()).param("eventSequence", unsaved.eventSequenceAfterSave())
                     .update();
-            LegalEntity saved = unsaved.withId(id);
-            history.recordLegalEntity(saved, zone.today(clock));
-            return saved;
+            history.recordLegalEntity(unsaved, zone.today(clock));
+            return unsaved;
         } catch (DuplicateKeyException taken) {
             throw codeTaken(unsaved.code());
         }

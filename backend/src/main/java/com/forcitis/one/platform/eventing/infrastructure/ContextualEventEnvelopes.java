@@ -33,18 +33,18 @@ class ContextualEventEnvelopes implements EventEnvelopes {
         Instant occurredAt = now.instant();
         UUID correlationId = WorkContext.correlationId().orElseGet(() -> Uuids.timeOrdered(now));
         ActorType actorType;
-        String actorId;
+        UUID actorId;
         var system = WorkContext.systemActor();
         if (system.isPresent()) {
             actorType = ActorType.SYSTEM;
-            actorId = SystemActors.idOf(system.get()).toString();
+            actorId = SystemActors.idOf(system.get());
         } else {
             actorType = ActorType.USER;
-            actorId = signedInUser().value().toString();
+            actorId = signedInUser().value();
         }
         return new EventEnvelope(Uuids.timeOrdered(now), draft.eventType(), draft.schemaVersion(), occurredAt, draft.aggregateType(),
                 draft.aggregateId(), draft.aggregateVersion(), correlationId, WorkContext.causationId().orElse(null),
-                actorType, actorId, draft.legalEntityId(), draft.businessDate(), draft.source(), null, draft.relatedAggregates());
+                actorType, actorId, draft.legalEntityId(), draft.businessDate(), null, draft.relatedAggregates());
     }
 
     private UserId signedInUser() {

@@ -25,6 +25,8 @@ import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 
 @ExtendWith(OutputCaptureExtension.class)
 @DisplayName("OperationsCommands: ADR-0027 section 1, D-1a-45..48 (emergency accounts and the first administrators)")
@@ -83,7 +85,7 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("platform.identity.operations.emergency-admin.registered")).singleElement()
                 .satisfies(entry -> {
                     assertThat(entry.detail()).contains("operator=alice", "witness=bob", "loginName=breakglass").doesNotContain(password).doesNotContain(secret);
-                    assertThat(entry.subjectKey()).isEqualTo("emergency-admin:" + accountOf(7));
+                    assertThat(entry.subject()).isEqualTo(AuditSubject.of(AuditSubjectKind.EMERGENCY_ADMIN, accountOf(7)));
                 });
         assertThat(logs.getAll()).as("a secret never reaches a log line").doesNotContain(password).doesNotContain(secret);
 

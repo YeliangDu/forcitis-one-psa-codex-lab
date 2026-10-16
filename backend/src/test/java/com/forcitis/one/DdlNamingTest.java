@@ -33,9 +33,8 @@ class DdlNamingTest {
     static final Set<String> COMMON_COLUMNS = Set.of("id", "created_at", "created_by", "updated_at", "updated_by", "version");
     static final Pattern LOCAL_TIMESTAMP = Pattern.compile("\\btimestamp\\b(?!tz)(?!\\s*(\\(\\d+\\))?\\s+with\\s+time\\s+zone)", Pattern.CASE_INSENSITIVE);
 
-    // Column names and types are fixed by the framework that owns the table (Spring Session JDBC, Spring Modulith, ShedLock).
-    static final Set<String> FRAMEWORK_TABLES = Set.of("platform_identity.sessions", "platform_identity.sessions_attributes",
-            "platform_integration.event_publication", "platform_integration.event_publication_archive", "platform_scheduling.scheduler_locks");
+    // Column names and types are fixed by the framework that owns the table (Spring Session JDBC, Spring Modulith, ShedLock); the list is architecture/primary-key-exemptions.txt.
+    static final Set<String> FRAMEWORK_TABLES = PrimaryKeyExemptions.tables();
 
     enum ClassWord {
         ID("_id", "bigint", "uuid", "text"),
@@ -632,5 +631,95 @@ class DdlNamingTest {
                 .anyMatch(p -> p.contains("timestamp without time zone"));
         assertThat(sampleViolations("platform_sample", GOOD.replace(column, column + "\n                seen_at    timestamp with time zone,")))
                 .noneMatch(p -> p.contains("timestamp without time zone"));
+    }
+
+    static final Path TYPED_TEXT_KEY_EXCEPTIONS = Path.of("architecture/typed-text-key-exceptions.txt");
+    static final Set<String> TYPED_TEXT_KEY_NAMES = Set.of("subject_key", "deduplication_key");
+    static final Pattern TYPED_TEXT_COMMENT = Pattern.compile("\\{(类型|type)\\}\\s*[:：]");
+    static final Pattern SENTINEL = Pattern.compile("(?i)coalesce\\s*\\(");
+
+    /** ADR-0033 guard 8 (DDL part): a unique key, unique index or exclusion never hides a null behind a constant, and no column keeps a "{type}:{id}" text. */
+    static List<String> sentinelProblems(Map<String, String> migrations, Set<String> excepted) {
+        List<String> problems = new ArrayList<>();
+        Set<String> found = new LinkedHashSet<>();
+        for (String sql : migrations.values()) {
+            Matcher index = Pattern.compile("CREATE UNIQUE INDEX[^;]*;", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(sql);
+            while (index.find()) {
+                if (SENTINEL.matcher(index.group()).find()) {
+                    problems.add("unique index with a COALESCE sentinel: " + index.group().replaceAll("\\s+", " ").strip());
+                }
+            }
+            Matcher table = CREATE_TABLE.matcher(sql);
+            while (table.find()) {
+                String qualified = table.group(1) + "." + table.group(2);
+                for (String raw : table.group(3).split(",\\s*\\n")) {
+                    String line = raw.trim().replaceAll("\\s+", " ");
+                    if (line.matches("(?i)(CONSTRAINT [a-z0-9_]+ )?(UNIQUE|EXCLUDE).*") && SENTINEL.matcher(line).find()) {
+                        problems.add(qualified + ": unique or exclusion constraint with a COALESCE sentinel: " + line);
+                    }
+                    String column = line.split(" ")[0].toLowerCase(Locale.ROOT);
+                    if (TYPED_TEXT_KEY_NAMES.contains(column)) {
+                        found.add(qualified + "." + column);
+                    }
+                }
+            }
+            Matcher comment = Pattern.compile("COMMENT ON COLUMN ([a-z0-9_]+\\.[a-z0-9_]+\\.[a-z0-9_]+) IS '((?:[^']|'')*)'", Pattern.CASE_INSENSITIVE).matcher(sql);
+            while (comment.find()) {
+                if (TYPED_TEXT_COMMENT.matcher(comment.group(2)).find()) {
+                    found.add(comment.group(1));
+                }
+            }
+        }
+        found.stream().filter(column -> !excepted.contains(column))
+                .forEach(column -> problems.add(column + ": a text that holds a kind and an id; use a kind column and an id column (ADR-0033 section 7 item 2)"));
+        excepted.stream().filter(column -> !found.contains(column))
+                .forEach(column -> problems.add(column + ": listed in " + TYPED_TEXT_KEY_EXCEPTIONS + " but the column is gone; delete the line"));
+        return problems;
+    }
+
+    static Set<String> typedTextKeyExceptions() throws IOException {
+        Set<String> excepted = new LinkedHashSet<>();
+        for (String line : Files.readAllLines(TYPED_TEXT_KEY_EXCEPTIONS)) {
+            if (!line.isBlank() && !line.startsWith("#")) {
+                int hash = line.indexOf('#');
+                assertThat(hash).as("a reason after # on: " + line).isPositive();
+                assertThat(line.substring(hash + 1)).as("reason of " + line).isNotBlank();
+                excepted.add(line.substring(0, hash).strip());
+            }
+        }
+        return excepted;
+    }
+
+    @Test
+    @DisplayName("ADR-0033 guard 8: no COALESCE sentinel in a unique key, unique index or exclusion, and no '{type}:{id}' text column outside the listed exception")
+    void noSentinelsAndNoTypedTextKeys() throws IOException {
+        assertThat(sentinelProblems(readMigrations(), typedTextKeyExceptions())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("injected: a COALESCE(…, 0) unique index, a COALESCE exclusion, a new subject_key column, a '{type}:' comment and a stale exception are caught")
+    void sentinelGuardCatchesInjectedSamples() {
+        String table = """
+                CREATE TABLE platform_sample.things (
+                    id uuid PRIMARY KEY,
+                    owner_id uuid,
+                    subject_key text NOT NULL,
+                    other_name text,
+                    CONSTRAINT uk_things_owner UNIQUE (owner_id, (coalesce(other_name, ''))),
+                    CONSTRAINT ex_things EXCLUDE USING gist (coalesce(owner_id, '00000000-0000-0000-0000-000000000000') WITH =)
+                );
+                CREATE UNIQUE INDEX uk_things_owner_id ON platform_sample.things (COALESCE(owner_id, '00000000-0000-0000-0000-000000000000'));
+                COMMENT ON COLUMN platform_sample.things.other_name IS '对象键：{类型}:{id}';
+                """;
+        List<String> problems = sentinelProblems(Map.of("V1__x.sql", table), Set.of("platform_sample.things.gone_key"));
+
+        assertThat(problems).anyMatch(p -> p.startsWith("unique index with a COALESCE sentinel"))
+                .anyMatch(p -> p.contains("platform_sample.things: unique or exclusion constraint with a COALESCE sentinel: CONSTRAINT uk_things_owner"))
+                .anyMatch(p -> p.contains("platform_sample.things: unique or exclusion constraint with a COALESCE sentinel: CONSTRAINT ex_things"))
+                .anyMatch(p -> p.startsWith("platform_sample.things.subject_key: a text that holds a kind and an id"))
+                .anyMatch(p -> p.startsWith("platform_sample.things.other_name: a text that holds a kind and an id"))
+                .anyMatch(p -> p.startsWith("platform_sample.things.gone_key: listed in"));
+        assertThat(sentinelProblems(Map.of("V1__x.sql", table.replace("subject_key", "subject_kind")), Set.of()))
+                .noneMatch(p -> p.contains("subject_kind"));
     }
 }

@@ -159,6 +159,6 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
     }
 
     int instancesOf(String businessKey) {
-        return (int) runtime.createProcessInstanceQuery().processInstanceBusinessKey("TIMESHEET:" + businessKey).count();
+        return (int) runtime.createProcessInstanceQuery().processInstanceBusinessKey(businessKey).count();
     }
 }

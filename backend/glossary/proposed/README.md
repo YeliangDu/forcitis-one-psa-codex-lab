@@ -26,11 +26,10 @@ B2 登记：代码里的聚合根与领域事件各自要有词条（G40、G41�
 
 | id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|---|
-| `timesheet_cancelled` | 工时单审批已撤销 | TimesheetCancelled | 领域 · cost.timesheet | 填报人撤销审批，工时单回到草稿；不记为驳回；以工作日期记业务日 |  | 类名 Cancelled 与「撤销审批」略不符，类名是否改为 ApprovalWithdrawn 之类待确认 |
-| `approval_task_overdue` | 任务已超时 | ApprovalTaskOverdue | 领域 · platform.approval | 任务超过审批时限仍未处理；只提醒，不自动通过，计入时效统计 |  | 类名 Overdue 是形容词而非过去式，是否改为 ApprovalTaskTimedOut 待确认 |
-| `task_resulted` | 任务已出结果 | TaskResulted | 领域 · platform.approval | 任务被办理（通过、驳回、退回），或系统自动通过；加签人的驳回只记意见，不结束本轮 |  | 类名与已确认用语冲突：第三轮 R3-AP-60 已定为「任务已办理 / TaskHandled」，该词条已在词表；代码类名应改为 TaskHandled，改名后本条作废 |
+| `timesheet_approval_withdrawn` | 工时单已撤回审批 | TimesheetApprovalWithdrawn | 领域 · cost.timesheet | 填报人撤销审批，工时单回到草稿；不记为驳回；以工作日期记业务日 |  |  |
+| `approval_task_became_overdue` | 任务已超时 | ApprovalTaskBecameOverdue | 领域 · platform.approval | 任务超过审批时限仍未处理；只提醒，不自动通过，计入时效统计 |  |  |
 | `role_deleted` | 角色已废除 | RoleDeleted | 领域 · platform.identity | 一个角色被废除，不再可用 |  | 事件目录称「角色删除」；「删除」属技术泛词，业务说法（废除/撤销）待用户确认 |
-| `source_reference_registration_refused` | 来源对照登记已被拒绝 | SourceReferenceRegistrationRefused | 领域 · platform.integration | 有人试图人工登记只能由同步或导入写入的来源对照，被拒绝，未存储任何对照 |  | 聚合 SourceReferenceRefusal；类名 RegistrationRefused 与聚合名有重复 |
+| `source_reference_refused` | 来源对照登记已被拒绝 | SourceReferenceRefused | 领域 · platform.integration | 有人试图人工登记只能由同步或导入写入的来源对照，被拒绝，未存储任何对照 |  | 聚合 SourceReferenceRefusal |
 
 ## `contract-evolution.yaml`
 

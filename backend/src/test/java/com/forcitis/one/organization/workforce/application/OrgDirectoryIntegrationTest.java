@@ -117,7 +117,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(count("employees")).isEqualTo(4);
         assertThat(jdbc.sql("select reports_to_employee_id from organization_workforce.assignments where employee_id = " + sqlEmployee(3001)).query(UUID.class).single()).isEqualTo(TestAccounts.employee(1).value());
         assertThat(events.stream(EmployeeRegistered.class).filter(e -> e.envelope().aggregateType().equals("Employee")
-                && e.envelope().aggregateId().equals(TestAccounts.employee(3001).value().toString()) && e.envelope().aggregateVersion() == 1)).hasSize(1);
+                && e.envelope().aggregateId().equals(TestAccounts.employee(3001).value()) && e.envelope().aggregateVersion() == 1)).hasSize(1);
 
         assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-new-hire")))).isPresent();
         assertThat(orgSource.singleLookups.get()).as("the second login is answered by the snapshot").isEqualTo(1);
@@ -175,7 +175,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(found.get().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
         assertThat(count("employees")).isEqualTo(4);
         assertThat(events.stream(EmployeeRegistered.class).filter(e -> e.envelope().aggregateType().equals("Employee")
-                && e.envelope().aggregateId().equals(TestAccounts.employee(3101).value().toString()) && e.envelope().aggregateVersion() == 1)).hasSize(1);
+                && e.envelope().aggregateId().equals(TestAccounts.employee(3101).value()) && e.envelope().aggregateVersion() == 1)).hasSize(1);
         assertThat(directory.findEmployeeByLogin(new LoginLookup.ByLoginName("13900003101"))).isPresent();
         assertThat(orgSource.singleLookups.get()).as("the second lookup is answered by the snapshot").isEqualTo(1);
     }
