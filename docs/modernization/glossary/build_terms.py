@@ -713,6 +713,10 @@ print("b1: 写使用范围 %d 条、改名 %d 条" % apply_b1.apply(terms))
 sys.path.insert(0, "glossary")
 import apply_rulings
 print("rulings: 应用用户裁定", apply_rulings.apply(terms), "条")
+# B2：类别统一为 DDD 战术分类（glossary/b2/apply_b2.py，判定表 b2/kind-judgement.json）
+sys.path.insert(0, "glossary/b2")
+import apply_b2
+print("b2: 改类别 %d 条、移出词条 %d 条、挂属性 %d 条" % apply_b2.apply(terms))
 import term_rules
 _bcs = {b["id"]: b["kind"] for b in yaml.safe_load(open("glossary/bcs.yaml", encoding="utf-8"))["bcs"]}
 _extra = yaml.safe_load(open("glossary/term-fields.yaml", encoding="utf-8"))["terms"] or {}

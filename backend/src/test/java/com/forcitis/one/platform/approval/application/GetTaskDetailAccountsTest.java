@@ -47,7 +47,7 @@ class GetTaskDetailAccountsTest {
 
     private static TaskRecord record(ApprovalTaskStatus status) {
         return new TaskRecord(OpenTasks.TASK, OpenTasks.INSTANCE, ProcessKey.COST_TIMESHEET_APPROVAL,
-                new DocumentReference(DocumentType.TIMESHEET, new DocumentId("7")), new NodeKey("approverReview"), INITIATOR, status, Optional.of(HANDLER),
+                new DocumentReference(DocumentType.TIMESHEET, com.forcitis.one.TestApprovalIds.document("7")), new NodeKey("approverReview"), INITIATOR, status, Optional.of(HANDLER),
                 NOW, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), new ApprovalSummary("TS-1"), 3, 1);
     }
 

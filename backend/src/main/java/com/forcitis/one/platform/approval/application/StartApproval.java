@@ -32,6 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class StartApproval {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(StartApproval.class);
+
     private final ApprovalRequestRepository requests;
     private final ApprovalEngine engine;
     private final Approvals approvals;
@@ -85,6 +87,7 @@ public class StartApproval {
                     + " exists, round " + request.round().value() + " was asked for");
         }
         requireKnownRoute(request);
+        requireKnownFormFields(request);
 
         ApprovalRequest aggregate = approvals.openRound(request, existing);
         try (TaskRegistrar.Scope scope = registrar.open(aggregate)) {
@@ -96,6 +99,18 @@ public class StartApproval {
         }
         approvals.save(aggregate);
         return aggregate.instanceId();
+    }
+
+    private void requireKnownFormFields(ApprovalStartRequest request) {
+        Set<String> known = engine.formFieldsOf(request.processKey());
+        for (ApprovalField field : request.formFields()) {
+            if (!known.contains(field.name())) {
+                log.error("ALERT platform.approval the start of {} names the form field {}, which {} does not read: refused so that no node is skipped for lack of its approver",
+                        request.document(), field.name(), request.processKey());
+                throw ApprovalError.PLATFORM_APPROVAL_FORM_FIELD_UNKNOWN.refusal("The form field " + field.name() + " is not read by "
+                        + request.processKey() + "; it reads " + known);
+            }
+        }
     }
 
     private void requireKnownRoute(ApprovalStartRequest request) {

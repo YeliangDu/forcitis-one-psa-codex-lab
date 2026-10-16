@@ -5,7 +5,6 @@ import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.domain.ConsumedEvents;
 import com.forcitis.one.cost.timesheet.domain.Timesheet;
 import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
-import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
@@ -74,10 +73,6 @@ class ApplyApprovalResult {
     }
 
     private Optional<Timesheet> timesheetOf(ApprovalCompleted event) {
-        try {
-            return timesheets.findForUpdate(new TimesheetId(Uuids.parseCanonical(event.document().documentId().value())));
-        } catch (IllegalArgumentException notOurs) {
-            return Optional.empty();
-        }
+        return timesheets.findForUpdate(new TimesheetId(event.document().documentId().value()));
     }
 }

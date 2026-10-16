@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ConditionContext;
@@ -66,7 +67,7 @@ class LegacyInboxConfiguration {
     record InboxConnection(JdbcClient jdbc) {
     }
 
-    static final class Connected implements org.springframework.context.annotation.Condition {
+    static final class Connected implements Condition {
         @Override
         public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
             return settings(context.getEnvironment()).isConfigured();

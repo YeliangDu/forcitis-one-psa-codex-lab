@@ -10,7 +10,7 @@ import java.util.UUID;
 import org.springframework.lang.Nullable;
 
 /** reason is absent when the person gave none: the screen words that, the data does not pretend (RULE-280). */
-record HandledTaskResponse(UUID recordId, String taskId, String instanceId, ProcessKey processKey, DocumentType documentType, String documentId,
+record HandledTaskResponse(UUID recordId, UUID taskId, UUID instanceId, ProcessKey processKey, DocumentType documentType, UUID documentId,
                            String nodeKey, String nodeName, TaskRecordAction action, UUID actorId, String actorName,
                            @Nullable String onBehalfOfName, @Nullable String reason, Instant decidedAt, int round) {
 

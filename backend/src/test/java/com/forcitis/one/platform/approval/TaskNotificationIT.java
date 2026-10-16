@@ -48,8 +48,8 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
                 List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), java.util.Arrays.stream(managers).mapToObj(m -> TestAccounts.employee(m).toString()).toList())))));
     }
 
-    static String dedupKey(ApprovalTaskId task) {
-        return "approval-task:" + task.value();
+    static com.forcitis.one.platform.integration.api.DeliverySubject dedupKey(ApprovalTaskId task) {
+        return com.forcitis.one.platform.integration.api.DeliverySubject.of(com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ASSIGNED, task.value());
     }
 
     @Test
@@ -63,14 +63,14 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instance = startWithManagers(key, initiator, first, second);
         ApprovalTaskId task = openTaskId(instance);
 
-        verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.deduplicationKey().equals(dedupKey(task))));
+        verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.subject().equals(dedupKey(task))));
         var captor = org.mockito.ArgumentCaptor.forClass(WecomCard.class);
         verify(wecom, org.mockito.Mockito.atLeastOnce()).send(captor.capture());
-        WecomCard card = captor.getAllValues().stream().filter(c -> c.deduplicationKey().equals(dedupKey(task))).findFirst().orElseThrow();
+        WecomCard card = captor.getAllValues().stream().filter(c -> c.subject().equals(dedupKey(task))).findFirst().orElseThrow();
         assertThat(card.wecomUserIds()).containsExactlyInAnyOrder(new WecomUserId(organisation.wecomOf(first)),
                 new WecomUserId(organisation.wecomOf(second)));
         assertThat(card.title()).contains("项目经理审批");
-        assertThat(card.targetUrl()).contains(task.value());
+        assertThat(card.targetUrl()).contains(task.value().toString());
         assertThat(card.description()).contains("工时审批").contains("summary of " + key).contains("发起人").contains("发起时间").contains("截止");
         assertThat(card.title() + card.description()).doesNotContain("COST_TIMESHEET_APPROVAL").doesNotContain("timesheet:");
     }
@@ -84,12 +84,12 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
         organisation.person(initiator, 1, null).person(first, 1, null).person(second, 1, null);
         ApprovalInstanceId instance = startWithManagers(newKey("notify"), initiator, first, second);
         ApprovalTaskId task = openTaskId(instance);
-        verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.deduplicationKey().equals(dedupKey(task))));
+        verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.subject().equals(dedupKey(task))));
 
         claimTask.execute(task, TestAccounts.account(second), java.util.OptionalLong.empty());
 
         verify(wecom, timeout(10_000).times(1)).markHandled(eq(dedupKey(task)), argThat(note -> note.contains("person-" + second)));
-        verify(wecom, after(1_000).times(1)).send(argThat(card -> card.deduplicationKey().equals(dedupKey(task))));
+        verify(wecom, after(1_000).times(1)).send(argThat(card -> card.subject().equals(dedupKey(task))));
     }
 
     @Test
@@ -117,7 +117,7 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
         ApprovalInstanceId instance = startWithManagers(newKey("notify"), initiator, reachable, unreachable);
         ApprovalTaskId task = openTaskId(instance);
 
-        verify(wecom, timeout(10_000)).send(argThat(card -> card.deduplicationKey().equals(dedupKey(task))
+        verify(wecom, timeout(10_000)).send(argThat(card -> card.subject().equals(dedupKey(task))
                 && card.wecomUserIds().equals(List.of(new WecomUserId(organisation.wecomOf(reachable))))));
     }
 
@@ -131,7 +131,7 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
         ApprovalTaskId task = openTaskId(instance);
 
         eventually(() -> assertThat(events.assigned()).anyMatch(e -> e.taskId().equals(task)));
-        verify(wecom, after(1_500).never()).send(argThat(card -> card.deduplicationKey().equals(dedupKey(task))));
+        verify(wecom, after(1_500).never()).send(argThat(card -> card.subject().equals(dedupKey(task))));
     }
 
     @Test
@@ -142,14 +142,14 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
         organisation.person(initiator, 1, null).person(manager, 1, null);
         ApprovalInstanceId instance = startWithManagers(newKey("notify"), initiator, manager);
         ApprovalTaskId task = openTaskId(instance);
-        verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.deduplicationKey().equals(dedupKey(task))));
+        verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.subject().equals(dedupKey(task))));
 
         decideTasks.execute(TestAccounts.account(manager), List.of(new TaskDecision(task, DecisionOutcome.REJECT, "again")), java.util.OptionalLong.empty());
 
-        assertThat(taskService.createTaskQuery().processInstanceId(instance.value()).count()).isZero();
-        verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.deduplicationKey().equals("approval-instance:" + instance.value() + ":completed")
+        assertThat(taskService.createTaskQuery().processInstanceId(instance.value().toString()).count()).isZero();
+        verify(wecom, timeout(10_000).times(1)).send(argThat(card -> card.subject().equals(com.forcitis.one.platform.integration.api.DeliverySubject.of(com.forcitis.one.platform.integration.api.DeliveryPurpose.APPROVAL_COMPLETED, instance.value()))
                 && card.wecomUserIds().equals(List.of(new WecomUserId(organisation.wecomOf(initiator))))
                 && card.title().contains("已退回") && card.description().contains("again")));
-        verify(wecom, after(1_000).times(1)).send(argThat(card -> card.deduplicationKey().startsWith("approval-task:" + task.value())));
+        verify(wecom, after(1_000).times(1)).send(argThat(card -> card.subject().id().equals(task.value())));
     }
 }

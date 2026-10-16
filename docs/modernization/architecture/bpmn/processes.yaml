@@ -26,12 +26,12 @@ processes:
       deadlineWorkdays: 1
       escalationWorkdays: 1
       resolver: AssigneeResolver.collect → AssignmentRule.FormFieldUsers
-  - id: regionalHeadReview
-    name: 区域负责人审批
+  - id: orgUnitHeadApproval
+    name: 部门负责人审批
     assignment:
       mechanism: BPMN 扩展属性 forcitis:assignmentRule
       type: FORM_FIELD_USERS
-      field: regionalHeadId
+      field: orgUnitHeadId
       routingFlag: preSalesHours
       skipWhenEmpty: true
       autoApproveRepeat: true

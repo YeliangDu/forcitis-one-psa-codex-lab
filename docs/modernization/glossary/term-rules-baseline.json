@@ -1,11 +1,6 @@
 {
  "_说明": "用语登记规则（glossary/term_rules.py）的存量问题，只减不增：修好一条就删一个键，并把该规则的 count 减一；新增问题不得加进来，加键超过 count 即失败（B1，one-coordinator 2026-10-15 同意）。rules 为各规则的负责会话、清理去处与条数上限。",
  "rules": {
-  "bc": {
-   "owner": "one-glossary",
-   "where": "B2：kind 为 subdomain / module / system 的词条移出词表、归入 bcs.yaml 后消失",
-   "count": 3
-  },
   "metric": {
    "owner": "one-glossary",
    "where": "指标口径（公式、粒度、时点）随 BI 指标卡补齐，来源 glossary/oat/KPI体系设计.md；不在 B1 决策页",
@@ -19,7 +14,17 @@
   "used_by": {
    "owner": "one-glossary",
    "where": "kernel 词条在代码中尚无业务模块使用（CS-1.8）；使用方模块落地时补 used_by 并删键",
-   "count": 19
+   "count": 18
+  },
+  "event_name": {
+   "owner": "one-glossary",
+   "where": "B2 存量：这 5 条是经营事件的名词写法，改名须业务确认；下一张用语决策单一并给用户（推荐如 ContractModified、EclAlerted、RetentionMoneyReleaseDueReached、RevenueReduced、RuleExecuted）；另含代码类 ApprovalTaskOverdue（审批任务逾期，类名为形容词，改名交审批模块负责会话，开卡）",
+   "count": 6
+  },
+  "command_name": {
+   "owner": "one-glossary",
+   "where": "B2 存量：强制登出（ForcedLogout）改为祈使写法（ForceLogout），随下一张用语决策单确认",
+   "count": 1
   }
  },
  "entries": {
@@ -40,7 +45,6 @@
   "terms.yaml#aged_receivable:metric": "指标须写口径：缺 formula、grain、as_of",
   "terms.yaml#aging:metric": "指标须写口径：缺 formula、grain、as_of",
   "terms.yaml#allowance_for_bad_debts:metric": "指标须写口径：缺 formula、grain、as_of",
-  "terms.yaml#amount:used_by": "kernel 词条须在 used_by 列出使用它的 bc（取 bcs.yaml 中的 id，不含 kernel）",
   "terms.yaml#attrition_rate:metric": "指标须写口径：缺 formula、grain、as_of",
   "terms.yaml#available_budget:metric": "指标须写口径：缺 formula、grain、as_of",
   "terms.yaml#average_headcount:metric": "指标须写口径：缺 formula、grain、as_of",
@@ -58,7 +62,6 @@
   "terms.yaml#correct:used_by": "kernel 词条须在 used_by 列出使用它的 bc（取 bcs.yaml 中的 id，不含 kernel）",
   "terms.yaml#correction_document:used_by": "kernel 词条须在 used_by 列出使用它的 bc（取 bcs.yaml 中的 id，不含 kernel）",
   "terms.yaml#correlation_id:used_by": "kernel 词条须在 used_by 列出使用它的 bc（取 bcs.yaml 中的 id，不含 kernel）",
-  "terms.yaml#cost:bc": "bc「cost」须为 glossary/bcs.yaml 中 kind 为 bc 或 kernel 的 id",
   "terms.yaml#cost_budget:metric": "指标须写口径：缺 formula、grain、as_of",
   "terms.yaml#cost_budget_variance:metric": "指标须写口径：缺 formula、grain、as_of",
   "terms.yaml#cost_of_sales:metric": "指标须写口径：缺 formula、grain、as_of",
@@ -67,7 +70,6 @@
   "terms.yaml#currency:used_by": "kernel 词条须在 used_by 列出使用它的 bc（取 bcs.yaml 中的 id，不含 kernel）",
   "terms.yaml#days_sales_outstanding:metric": "指标须写口径：缺 formula、grain、as_of",
   "terms.yaml#defect_rate:metric": "指标须写口径：缺 formula、grain、as_of",
-  "terms.yaml#delivery:bc": "bc「delivery」须为 glossary/bcs.yaml 中 kind 为 bc 或 kernel 的 id",
   "terms.yaml#delivery_variance:metric": "指标须写口径：缺 formula、grain、as_of",
   "terms.yaml#derived_reversal:used_by": "kernel 词条须在 used_by 列出使用它的 bc（取 bcs.yaml 中的 id，不含 kernel）",
   "terms.yaml#direct_expense:metric": "指标须写口径：缺 formula、grain、as_of",
@@ -96,7 +98,6 @@
   "terms.yaml#money:used_by": "kernel 词条须在 used_by 列出使用它的 bc（取 bcs.yaml 中的 id，不含 kernel）",
   "terms.yaml#net_service_revenue:metric": "指标须写口径：缺 formula、grain、as_of",
   "terms.yaml#new_contract_value:metric": "指标须写口径：缺 formula、grain、as_of",
-  "terms.yaml#organization:bc": "bc「organization」须为 glossary/bcs.yaml 中 kind 为 bc 或 kernel 的 id",
   "terms.yaml#original_period:used_by": "kernel 词条须在 used_by 列出使用它的 bc（取 bcs.yaml 中的 id，不含 kernel）",
   "terms.yaml#outsourcing_cost:metric": "指标须写口径：缺 formula、grain、as_of",
   "terms.yaml#overdue_billing_commitment:metric": "指标须写口径：缺 formula、grain、as_of",
@@ -129,6 +130,13 @@
   "terms.yaml#uncontracted_exposure:metric": "指标须写口径：缺 formula、grain、as_of",
   "terms.yaml#uncontracted_wip:metric": "指标须写口径：缺 formula、grain、as_of",
   "terms.yaml#utilization_rate:metric": "指标须写口径：缺 formula、grain、as_of",
-  "terms.yaml#win_rate:metric": "指标须写口径：缺 formula、grain、as_of"
+  "terms.yaml#win_rate:metric": "指标须写口径：缺 formula、grain、as_of",
+  "terms.yaml#contract_modification:event_name": "领域事件名须以过去分词结尾，现为「ContractModification」",
+  "terms.yaml#ecl_alert:event_name": "领域事件名须以过去分词结尾，现为「EclAlert」",
+  "terms.yaml#retention_money_release_due:event_name": "领域事件名须以过去分词结尾，现为「RetentionMoneyReleaseDue」",
+  "terms.yaml#revenue_reduction:event_name": "领域事件名须以过去分词结尾，现为「RevenueReduction」",
+  "terms.yaml#rule_execution:event_name": "领域事件名须以过去分词结尾，现为「RuleExecution」",
+  "terms.yaml#forced_logout:command_name": "命令名须以祈使动词开头，现为「ForcedLogout」",
+  "proposed/code-aggregates-events.yaml#approval_task_overdue:event_name": "领域事件名须以过去分词结尾，现为「ApprovalTaskOverdue」（代码类名）"
  }
 }

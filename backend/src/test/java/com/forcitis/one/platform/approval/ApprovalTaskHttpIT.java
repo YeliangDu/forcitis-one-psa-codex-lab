@@ -33,7 +33,7 @@ class ApprovalTaskHttpIT extends ApprovalIntegrationSupport {
         long unit = newId();
         organisation.unit(unit, null, head).person(head, unit, null).person(initiator, unit, null).person(manager, unit, null);
         ApprovalInstanceId instance = startWithSupervisor(newKey("http"), initiator, manager);
-        String task = openTaskId(instance, "projectManagerReview").value();
+        String task = openTaskId(instance, "projectManagerReview").value().toString();
         RequestPostProcessor approve = as(manager, Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE, Permission.Codes.PLATFORM_APPROVAL_TASK_READ);
 
         mvc.perform(get(BASE).with(approve)).andExpect(status().isOk()).andExpect(jsonPath("$.newCount").value(1))
@@ -46,7 +46,7 @@ class ApprovalTaskHttpIT extends ApprovalIntegrationSupport {
         mvc.perform(post(BASE + "/" + task + ":decide").with(csrf()).with(currentEtag()).with(approve).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"outcome\":\"APPROVE\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("RUNNING"))
-                .andExpect(jsonPath("$.instanceId").value(instance.value()));
+                .andExpect(jsonPath("$.instanceId").value(instance.value().toString()));
         mvc.perform(get(BASE).with(as(head, Permission.Codes.PLATFORM_APPROVAL_TASK_READ))).andExpect(status().isOk())
                 .andExpect(jsonPath("$.items[0].nodeName").value("一级汇报人审批"));
     }
@@ -58,7 +58,7 @@ class ApprovalTaskHttpIT extends ApprovalIntegrationSupport {
         long manager = newId();
         organisation.person(initiator, 1, null).person(manager, 1, null);
         ApprovalInstanceId instance = start(newKey("http"), initiator, manager);
-        String task = openTaskId(instance).value();
+        String task = openTaskId(instance).value().toString();
         RequestPostProcessor approve = as(manager, Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE);
 
         mvc.perform(post(BASE + "/" + task + ":decide").with(csrf()).with(currentEtag()).with(approve).contentType(MediaType.APPLICATION_JSON)

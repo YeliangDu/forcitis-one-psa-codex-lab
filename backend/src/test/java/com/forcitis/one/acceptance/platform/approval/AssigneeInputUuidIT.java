@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
-import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.DomainException;
@@ -17,9 +16,6 @@ import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RoundNumber;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -77,26 +73,19 @@ class AssigneeInputUuidIT extends AccountsAcceptanceSupport {
     }
 
     private static DocumentReference newDocument() {
-        return new DocumentReference(DocumentType.TIMESHEET, new DocumentId("acceptance-" + UUID.randomUUID()));
+        return new DocumentReference(DocumentType.TIMESHEET, newDocumentId());
     }
 
     private void start(DocumentReference document, List<String> projectManagers) {
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "acceptance.timesheet-submission")) {
             approvals.start(new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document, legalEntity, employeeIdOf(initiator), new RoundNumber(1),
                     UUID.randomUUID(), Set.of("projectHours"), List.of(new ApprovalField(FORM_FIELD, projectManagers)),
-                    new ContentHash("synthetic-content"), new ApprovalSummary("Synthetic timesheet " + document.documentId().value())));
+                    new ContentHash("synthetic-content"), new ApprovalSummary("Synthetic timesheet " + document.documentId())));
         }
     }
 
     private int rows(String table, DocumentReference document) throws Exception {
-        try (Connection approval = schemaConnection("platform_approval");
-             PreparedStatement count = approval.prepareStatement("select count(*) from " + table + " where document_key = ?")) {
-            count.setString(1, document.documentId().value());
-            try (ResultSet rs = count.executeQuery()) {
-                rs.next();
-                return rs.getInt(1);
-            }
-        }
+        return approvalRowsOf(table, document);
     }
 
     private static String errorCodeIn(Throwable failure) {

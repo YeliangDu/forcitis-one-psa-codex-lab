@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.domain;
 
+import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
@@ -28,7 +29,7 @@ public interface ApprovalTaskQueries {
     List<TaskRecord> openTasks(Optional<Instant> overdueAt, Optional<Instant> after, Optional<ApprovalTaskId> afterId, int limit);
 
     /** Everything done to the tasks of one document, oldest first, whichever round it is from: the history shown next to a task. */
-    List<TaskHandling> historyOf(ProcessKey processKey, String documentKey);
+    List<TaskHandling> historyOf(ProcessKey processKey, DocumentId documentId);
 
     /** The deadline of each given task that has one. */
     Map<ApprovalTaskId, Instant> dueAtOf(Collection<ApprovalTaskId> taskIds);

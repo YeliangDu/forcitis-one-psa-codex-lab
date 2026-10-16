@@ -62,7 +62,7 @@ def keyed_lines(text, title, keys, where):
 
 def bc_ids():
     with open(BCS, encoding="utf-8") as f:
-        return set(re.findall(r"(?m)^- id: (\S+)$", f.read()))
+        return {i for i, k in re.findall(r"(?m)^- id: (\S+)\n(?:  .*\n)*?  kind: (\S+)$", f.read()) if k != "system"}
 
 
 def parse_issue(text, file_name):

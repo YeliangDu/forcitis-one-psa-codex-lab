@@ -145,7 +145,7 @@ class BpmnRuleConventionsTest {
             fields.add(m.group(1));
         }
 
-        assertThat(fields).containsExactlyInAnyOrder(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), TimesheetApprovalField.REGIONAL_HEAD.fieldName());
+        assertThat(fields).containsExactlyInAnyOrder(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), TimesheetApprovalField.ORG_UNIT_HEAD.fieldName());
         List<String> flags = new java.util.ArrayList<>();
         try (InputStream in = getClass().getResourceAsStream("/processes/cost_timesheet_approval.bpmn20.xml")) {
             BpmnModel model = new BpmnXMLConverter().convertToBpmnModel(new InputStreamSource(in), false, false);

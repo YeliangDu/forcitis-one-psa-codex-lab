@@ -118,10 +118,16 @@ class OpenApiExportTest {
             "OrgUnitResponse.orgUnitId", "OrgUnitResponse.headEmployeeId", "OrgUnitResponse.parentOrgUnitId", "OrgUnitResponse.regionalReceivablesManagerId",
             "OrgUnitDetailResponse.ancestorOrgUnitIds", "OrgUnitDetailResponse.orgUnitAndBelowIds", "CurrentUserResponse.orgUnitId",
             "LegalEntityAttributionResponse.subjectId", "ReassignTaskRequest.assigneeId", "TransferTaskRequest.assigneeId",
+            "DecisionResponse.instanceId", "HandledTaskResponse.taskId", "HandledTaskResponse.instanceId", "HandledTaskResponse.documentId", "HistoryEntry.taskId",
+            "TaskDetailResponse.taskId", "TaskDetailResponse.instanceId", "TaskDetailResponse.documentId", "TaskOverviewResponse.taskId", "TaskOverviewResponse.documentId",
+            "InboxItemResponse.documentId", "parameter taskId",
             "parameter orgUnitId", "parameter employeeId");
 
-    /** The engine's task, instance and document keys: R-1b P4, listed by name so a new id field has to be classified. */
-    static final java.util.Set<String> OTHER_ID_NAMES = java.util.Set.of("taskId", "instanceId", "documentId");
+    /**
+     * Ids that are not ours, by full name. InboxItemResponse.taskId carries the old system's task key for the old system's items; it stays a plain
+     * string until the inbox contract is neutralised (ADR-0039 item 6, RULING-P4-D6) and is deleted here then.
+     */
+    static final java.util.Set<String> OTHER_ID_NAMES = java.util.Set.of("InboxItemResponse.taskId");
 
     /** Identifiers that belong to an external system and stay what that system gives: on the wire a whole number written as text. */
     static final java.util.Set<String> EXTERNAL_ID_NAMES = java.util.Set.of("sourceId");
@@ -161,8 +167,8 @@ class OpenApiExportTest {
                 if (!schema.path("type").asString().equals("string") || schema.has("format")) {
                     problems.add(key + " is an id of an external system and is a plain string on the wire, found " + schema.path("type") + " / " + schema.path("format"));
                 }
-            } else if (!OTHER_ID_NAMES.contains(fieldName(key))) {
-                problems.add(key + " looks like an id: list it in OWN_ID_FIELDS (string / uuid), in EXTERNAL_ID_NAMES (external system) or, until R-1b, in OTHER_ID_NAMES");
+            } else if (!OTHER_ID_NAMES.contains(key)) {
+                problems.add(key + " looks like an id: list it in OWN_ID_FIELDS (string / uuid), in EXTERNAL_ID_NAMES (external system) or, with a reason and an end date, in OTHER_ID_NAMES");
             }
         });
         assertThat(problems).isEmpty();
