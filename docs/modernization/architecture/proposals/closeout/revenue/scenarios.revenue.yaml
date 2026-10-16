@@ -1,5 +1,511 @@
 # 收入线组验收场景清单（PRC-NN-Sxx；按方法稿第 6 节分支覆盖：每个判断出口、每个超时分支、每个结局至少一条）
 # 只写路径与期望结局，Given/When/Then 由测试代理按此展开（CS-5.3）；跨 BC 段只断言本模块并以事件契约衔接（CS-5.5）
+PRC-01:
+- id: PRC-01-S01
+  path: 计划→进行中→结束
+  outcome: 结束
+  covers:
+  - 转移「计划市场活动」「开展市场活动」「结束市场活动」
+  expect: 发市场活动已结束（仅分析）；线索上的来源活动引用保持
+- id: PRC-01-S02
+  path: 计划状态直接结束活动
+  outcome: null
+  covers:
+  - 转移约束「结束须在进行中」
+  expect: 拒绝并告警
+PRC-02:
+- id: PRC-02-S01
+  path: 计划→已完成（含结果反馈）
+  outcome: 已完成
+  covers:
+  - 转移「完成客户活动」
+  expect: 须填结果反馈（INV-110）；发客户活动已完成，供拜访量与计划完成率
+- id: PRC-02-S02
+  path: 完成时缺结果反馈
+  outcome: null
+  covers:
+  - 转移「完成客户活动」前置 INV-110
+  expect: 拒绝并告警
+- id: PRC-02-S03
+  path: 计划→已变更→已变更
+  outcome: 已变更
+  covers:
+  - 转移「变更客户活动」
+  expect: 计划变更保留历史，只追加
+- id: PRC-02-S04
+  path: 取消，或对已完成、已取消的活动再变更
+  outcome: 取消
+  covers:
+  - 转移「取消客户活动」
+  - 转移约束「已完成、已取消不得再变更」
+  expect: 取消须原因；已完成或已取消后再变更被拒绝（INV-110）
+PRC-03:
+- id: PRC-03-S01
+  path: 1→2→3 otherwise→6→7 otherwise→8
+  outcome: 已转商机
+  covers:
+  - 第 1 步 otherwise
+  - 第 3 步 otherwise
+  - 第 7 步 otherwise
+  - 第 8 步 otherwise
+  expect: 新建商机成功后确认线索，命令携带商机 ID 且按商机 ID 幂等；发「线索已确认」（仅分析）
+- id: PRC-03-S02
+  path: 1 客户直接邀标或委托→6→7 没有来源线索→13
+  outcome: 商机已新建
+  covers:
+  - 第 1 步「客户直接邀标或委托，无需线索」
+  - 第 7 步「没有来源线索（直接邀标或委托）」
+  expect: 不确认线索；通知商机负责人开始跟进
+- id: PRC-03-S03
+  path: 3 需暂缓跟进→4 otherwise
+  outcome: 已挂起
+  covers:
+  - 第 3 步「需暂缓跟进」
+  - 第 4 步 otherwise
+  expect: 线索挂起，状态由跟进中转挂起并留痕
+- id: PRC-03-S04
+  path: 4 线索重启跟进→5→6
+  outcome: null
+  covers:
+  - 第 4 步「线索重启跟进」
+  - 第 5 步 otherwise
+  expect: 挂起恢复为跟进中，回到新建商机前的读取
+- id: PRC-03-S05
+  path: 4 线索无价值→9
+  outcome: 线索已关闭
+  covers:
+  - 第 4 步「线索无价值」
+  - 第 9 步 otherwise
+  expect: 须填关闭原因（INV-24），发「线索已关闭」（仅分析）
+- id: PRC-03-S06
+  path: 7 被拒，补资料后重试→6
+  outcome: null
+  covers:
+  - 第 7 步「新建商机被拒，补资料后重试」
+  expect: 往来单位档案未核实时不建商机，线索留在跟进中；通知财务核实档案（PRC-05）；核实后重试成功（P-3、INV-26）
+- id: PRC-03-S07
+  path: 7 被拒且不再跟进→9
+  outcome: 线索已关闭
+  covers:
+  - 第 7 步「新建商机被拒且不再跟进」
+  expect: 按 INV-24 关闭线索并填原因
+- id: PRC-03-S08
+  path: 8 需调整→10→11 参与团队需调整→12
+  outcome: 商机已维护
+  covers:
+  - 第 8 步「商机负责人或参与团队需调整」
+  - 第 11 步「参与团队需调整」
+  - 第 12 步 otherwise
+  expect: 变更负责人后商机只有一个负责人（INV-26）；参与团队维护留痕
+- id: PRC-03-S09
+  path: 8 需调整→10→11 otherwise
+  outcome: 商机已维护
+  covers:
+  - 第 11 步 otherwise
+  expect: 只变更负责人，不调参与团队，新负责人收到交接通知
+- id: PRC-03-S10
+  path: 9 关闭已确认的线索
+  outcome: null
+  covers:
+  - 第 9 步前置 INV-24
+  expect: 拒绝并告警，已确认的线索不能再关闭
+- id: PRC-03-S11
+  path: 7 同一线索再建第二个商机
+  outcome: null
+  covers:
+  - 第 7 步前置 INV-25
+  expect: 拒绝并告警，一个线索至多一个商机
+PRC-05:
+- id: PRC-05-S01
+  path: 登记往来单位→待核实
+  outcome: 待核实
+  covers:
+  - 转移「登记往来单位」
+  expect: 发往来单位已登记（仅分析）；待核实的档案不算正式往来单位（P-3）
+- id: PRC-05-S02
+  path: 登记重复证件的往来单位
+  outcome: null
+  covers:
+  - 转移「登记往来单位」前置 INV-01
+  expect: 拒绝并告警，一个法律主体一份档案
+- id: PRC-05-S03
+  path: 待核实→有效
+  outcome: 有效
+  covers:
+  - 转移「核实往来单位档案」
+  expect: 发往来单位已核实（仅分析）；商机可引用（INV-26）
+- id: PRC-05-S04
+  path: 变更银行账户
+  outcome: null
+  covers:
+  - 转移「变更银行账户」
+  expect: 发银行账户已变更，订阅方 B-10 首笔付款预警（P-01）；留操作审计
+- id: PRC-05-S05
+  path: 有效→已合并
+  outcome: 已合并
+  covers:
+  - 转移「合并往来单位」
+  expect: 发往来单位已合并（仅分析）；合并后不得新建协议与付款（INV-03a）
+- id: PRC-05-S06
+  path: 有效→停用
+  outcome: 停用
+  covers:
+  - 转移「停用往来单位」
+  expect: 发往来单位已停用（仅分析）；停用后不得新建协议与付款（INV-03a）
+PRC-06:
+- id: PRC-06-S01
+  path: 待查→无冲突
+  outcome: 无冲突
+  covers:
+  - 转移「登记独立性检查结论」→无冲突
+  expect: 发独立性检查已有结论（仅分析）；投标与赢单放行
+- id: PRC-06-S02
+  path: 待查→有冲突已获书面同意
+  outcome: 有冲突已获书面同意
+  covers:
+  - 转移「登记独立性检查结论」→有冲突已获书面同意
+  expect: 书面同意附件必填并校验已上传；缺附件时拒绝并告警
+- id: PRC-06-S03
+  path: 待查→有冲突不得承接
+  outcome: 有冲突不得承接
+  covers:
+  - 转移「登记独立性检查结论」→有冲突不得承接
+  expect: 递交投标、直接委托赢单、签约前读到该结论均被拒绝（INV-33）
+PRC-07:
+- id: PRC-07-S01
+  path: 1→2 otherwise→3→4 审批通过→5→7
+  outcome: 报价已生效
+  covers:
+  - 第 2 步 otherwise
+  - 第 4 步「审批通过」
+  - 第 5 步 otherwise
+  - 第 7 步 otherwise
+  expect: 报价版本已通过且冻结（INV-31）；生效后成为（商机，标段）的当前版本，旧版同事务被取代（INV-30）；发报价版本已生效、已被取代（仅分析）
+- id: PRC-07-S02
+  path: 2 所引费率或系数版本并非生效版本
+  outcome: 报价未编制
+  covers:
+  - 第 2 步「所引费率或系数版本并非生效版本」
+  expect: 拒绝并告警（INV-32），不落草拟报价
+- id: PRC-07-S03
+  path: 4 驳回→6 客户仍要报价→2
+  outcome: null
+  covers:
+  - 第 4 步 otherwise
+  - 第 6 步「客户仍要报价」
+  expect: 驳回意见回传编制人，退回编制后可重新提交评审
+- id: PRC-07-S04
+  path: 6 otherwise→8
+  outcome: 报价已作废
+  covers:
+  - 第 6 步 otherwise
+  expect: 驳回后客户不再要报价，版本作废并留痕
+- id: PRC-07-S05
+  path: 7 同一（商机，标段）已有生效版本
+  outcome: null
+  covers:
+  - 第 7 步 INV-30
+  expect: 旧版被取代与新版生效同事务；并发生效只有一方成功
+- id: PRC-07-S06
+  path: 7 生效未通过评审的版本
+  outcome: null
+  covers:
+  - 第 7 步前置 INV-31
+  expect: 拒绝并告警；已通过的版本不可改
+PRC-08:
+- id: PRC-08-S01
+  path: 1→2 otherwise→3 otherwise→4→5 otherwise
+  outcome: 已递交待评标
+  covers:
+  - 第 2 步 otherwise
+  - 第 3 步 otherwise
+  - 第 4 步
+  - 第 5 步 otherwise
+  expect: 投标携承诺快照递交，发「投标已递交」（仅分析）；评标结果到达后由登记步骤重入
+- id: PRC-08-S02
+  path: 2 直接委托，无招标→13
+  outcome: 商机已赢单
+  covers:
+  - 第 2 步「直接委托，无招标」
+  - 第 13 步 otherwise
+  expect: 凭委托证据赢单（INV-27），发 OpportunityAccepted，订阅方 B-04、B-05
+- id: PRC-08-S03
+  path: 2 独立性检查有冲突未获书面同意
+  outcome: 不得投标
+  covers:
+  - 第 2 步「我方为 IDI 风险管理机构且独立性检查有冲突、未获书面同意」
+  expect: 拒绝递交并告警（INV-33）
+- id: PRC-08-S04
+  path: 3 资格预审未通过→10→14
+  outcome: 商机已放弃
+  covers:
+  - 第 3 步「资格预审未通过」
+  - 第 10 步 otherwise
+  - 第 14 步 otherwise
+  expect: 资格预审未通过不得递交（INV-29）；放弃投标后客户经理放弃商机，发商机已放弃（仅分析，B-07）
+- id: PRC-08-S05
+  path: 5 评标结果为中标→6→11
+  outcome: 商机已赢单
+  covers:
+  - 第 5 步「评标结果为中标」
+  - 第 6 步 otherwise
+  - 第 11 步 otherwise
+  expect: 中标通知书必填；投标已中标触发商机赢单，发 OpportunityAccepted，订阅方 B-04、B-05
+- id: PRC-08-S06
+  path: 5 评标结果为未中标→7→12→15→16
+  outcome: 保证金已退
+  covers:
+  - 第 5 步「评标结果为未中标」
+  - 第 7 步 otherwise
+  - 第 12 步 otherwise
+  - 第 15 步 otherwise
+  - 第 16 步 otherwise
+  expect: 投标未中标自动登记商机丢单；出纳登记保证金退还，提交过账候选；B-09 订阅投标未中标
+- id: PRC-08-S07
+  path: 16 / 18 / 20 退还日所在期间已关账
+  outcome: 因期间已关账被拒绝
+  covers:
+  - 第 16 步「退还日所在期间已关账」
+  - 第 18 步「退还日所在期间已关账」
+  - 第 20 步「退还日所在期间已关账」
+  expect: 过账候选被拒绝并告警，不落入已关账期间（ADR-0016、ADR-0045）；退还登记与过账候选的拒绝分三处各测一次
+- id: PRC-08-S08
+  path: 5 评标阶段被宣布废标→8→17→18 重新招标，另建投标→PRC-08
+  outcome: null
+  covers:
+  - 第 5 步「评标阶段被宣布废标」
+  - 第 8 步 otherwise
+  - 第 17 步 otherwise
+  - 第 18 步「重新招标，另建投标」
+  expect: 保证金退还后重入本流程，另建投标；B-09 订阅投标已废标
+- id: PRC-08-S09
+  path: 18 不重新招标且商机丢失→21
+  outcome: 商机已丢单
+  covers:
+  - 第 18 步「不重新招标且商机丢失」
+  - 第 21 步 otherwise
+  expect: 客户经理人工登记商机丢单，发商机已丢单（仅分析）；不再次退还保证金
+- id: PRC-08-S10
+  path: 18 otherwise→14
+  outcome: 商机已放弃
+  covers:
+  - 第 18 步 otherwise
+  expect: 废标后放弃商机，发商机已放弃
+- id: PRC-08-S11
+  path: 5 决定撤回→9 撤回发生在截止前→19→20 otherwise
+  outcome: 保证金已退
+  covers:
+  - 第 5 步「决定撤回或撤销投标」
+  - 第 9 步「撤回发生在截止前」
+  - 第 19 步 otherwise
+  - 第 20 步 otherwise
+  expect: 截止前撤回才退保证金（条例第 35 条另行核对）；B-09 订阅投标已撤销
+- id: PRC-08-S12
+  path: 9 otherwise→14
+  outcome: 商机已放弃
+  covers:
+  - 第 9 步 otherwise
+  expect: 截止后撤销不退保证金（不触发 B-09 反应），客户经理放弃商机
+- id: PRC-08-S13
+  path: 20 不再跟进该商机→14
+  outcome: 商机已放弃
+  covers:
+  - 第 20 步「不再跟进该商机」
+  expect: 退还完成后放弃商机
+- id: PRC-08-S14
+  path: 15 / 17 / 19 超过退还时限仍未登记退还
+  outcome: null
+  covers:
+  - 第 15 步超时
+  - 第 17 步超时
+  - 第 19 步超时
+  expect: 提醒出纳（P-10）；不自动登记退还
+- id: PRC-08-S15
+  path: 13 委托赢单时独立性检查有冲突未获书面同意
+  outcome: null
+  covers:
+  - 第 13 步前置 INV-33
+  expect: 拒绝并告警
+- id: PRC-08-S16
+  path: 5 同一招标同一标段重复参加
+  outcome: null
+  covers:
+  - 第 5 步前置 INV-28
+  expect: 拒绝并告警（键为招标项目登记 ID + 标段）
+- id: PRC-08-S17
+  path: 11 中标但缺中标通知书
+  outcome: null
+  covers:
+  - 第 11 步前置 INV-27
+  expect: 商机赢单被拒并告警，登记中标时即校验已上传
+- id: PRC-08-S18
+  path: 4 投标截止临近
+  outcome: null
+  covers:
+  - 第 4 步超时
+  expect: 提醒商机负责人（P-13），不改变投标状态
+PRC-10:
+- id: PRC-10-S01
+  path: 待缴→已缴
+  outcome: 已缴
+  covers:
+  - 转移「登记保证金缴纳」
+  expect: 发保证金已缴（仅分析）；提交过账候选；P-10 比例判定
+- id: PRC-10-S02
+  path: 已缴→已缴（扣减）
+  outcome: null
+  covers:
+  - 转移「扣减保证金」
+  expect: 履约保证金可部分扣减（INV-20）；留操作审计
+- id: PRC-10-S03
+  path: 已缴→已退
+  outcome: 已退
+  covers:
+  - 转移「退还保证金」
+  expect: 退还与没收互斥各只一次（INV-20）；提交过账候选
+- id: PRC-10-S04
+  path: 已没收后退还，或已退后没收
+  outcome: null
+  covers:
+  - 转移「没收保证金」前置 INV-20
+  expect: 拒绝并告警
+- id: PRC-10-S05
+  path: 保函已开立→到期 / 被索赔
+  outcome: 到期
+  covers:
+  - 转移「登记保函开立」
+  - 转移「登记保函到期或索赔」
+  expect: 发保函已到期（仅分析）；被索赔走保函已被索赔
+- id: PRC-10-S06
+  path: 提交过账候选时期间已关账
+  outcome: null
+  covers:
+  - 过账「提交过账候选」期间闸门
+  expect: 拒绝并告警，不落入已关账期间（ADR-0016、ADR-0045）
+PRC-12:
+- id: PRC-12-S01
+  path: 发布服务产品版本、发布阶段类型版本
+  outcome: 已发布
+  covers:
+  - 转移「发布服务产品版本」
+  - 转移「发布阶段类型版本」
+  expect: 发服务产品版本已发布、阶段类型版本已发布（仅分析）；新版本启用
+- id: PRC-12-S02
+  path: 停用服务产品版本后新建报价
+  outcome: 已停用
+  covers:
+  - 转移「停用服务产品版本」
+  - 转移「停用阶段类型版本」
+  expect: 进入报价的流程不得再选已停用版本；已有引用不受影响
+- id: PRC-12-S03
+  path: 修改被引用的版本
+  outcome: null
+  covers:
+  - 约束 INV-34
+  - INV-34a
+  expect: 拒绝并告警，只能增版本
+PRC-13:
+- id: PRC-13-S01
+  path: 1→2→3 审批通过→4→5 otherwise
+  outcome: 费率版本已生效
+  covers:
+  - 第 3 步「审批通过」
+  - 第 5 步 otherwise
+  expect: 费率版本已批准后生效，旧版同事务被取代；发费率版本已生效、已被取代（仅分析）；B-03、B-04 按生效版本读取
+- id: PRC-13-S02
+  path: 3 审批驳回→2
+  outcome: null
+  covers:
+  - 第 3 步 otherwise
+  expect: 退回编制，原版本不变，可修改后重新提交批准
+- id: PRC-13-S03
+  path: 5 生效区间与现有生效版本重叠
+  outcome: 生效被拒（区间重叠）
+  covers:
+  - 第 5 步「生效区间与现有生效版本重叠」
+  expect: 拒绝并告警（INV-35）
+- id: PRC-13-S04
+  path: 5 同时发布计费系数新版本→6 otherwise
+  outcome: 计费系数版本已生效
+  covers:
+  - 第 5 步「同时发布计费系数新版本」
+  - 第 6 步 otherwise
+  expect: 系数条目键为业务线 × 客户分级（Q-07）；发计费系数版本已生效（仅分析）
+- id: PRC-13-S05
+  path: 5 同时发布协议价目新版本→7
+  outcome: 协议价目版本已生效
+  covers:
+  - 第 5 步「同时发布协议价目新版本」
+  - 第 6 步「同时发布协议价目新版本」
+  - 第 7 步 otherwise
+  expect: 协议价目版本生效，B-03 报价按生效版本读取
+- id: PRC-13-S06
+  path: 4 / 6 修改已批准的版本
+  outcome: null
+  covers:
+  - 第 4 步 INV-36
+  - 第 6 步 INV-36a
+  expect: 拒绝并告警，已批准的版本不可改，只能增版本
+PRC-14:
+- id: PRC-14-S01
+  path: 登记建设工程
+  outcome: 已登记
+  covers:
+  - 转移「登记建设工程」
+  expect: 发建设工程已登记（仅分析）；政府平台编号只作外部标识
+- id: PRC-14-S02
+  path: 登记招标项目
+  outcome: 已登记
+  covers:
+  - 转移「登记招标项目」
+  expect: 招标项目登记 ID + 标段可作 INV-28 唯一键
+- id: PRC-14-S03
+  path: 更新外部状态
+  outcome: 已登记
+  covers:
+  - 转移「更新外部状态」
+  expect: 外部状态只记录并带登记日期与来源，不作阶段门
+PRC-16:
+- id: PRC-16-S01
+  path: 1→2→3 审批通过→4 otherwise
+  outcome: 已批准
+  covers:
+  - 第 3 步「审批通过」
+  - 第 4 步 otherwise
+  expect: B-05 订阅审批结果后批准风险交付授权，发风险交付授权已批准（仅分析）；通知项目经理可先行投入
+- id: PRC-16-S02
+  path: 3 审批驳回
+  outcome: 授权未获批准
+  covers:
+  - 第 3 步 otherwise
+  expect: 申请人收到驳回意见；授权不生效，不产生先行投入依据
+- id: PRC-16-S03
+  path: 4 合同已签回→5
+  outcome: 已转正
+  covers:
+  - 第 4 步「合同已签回」
+  - 第 5 步 otherwise
+  expect: 转正并入协议，发 Regularized（仅分析）；转正与叫停互斥（INV-19）
+- id: PRC-16-S04
+  path: 4 授权期限届满或不再签约→6
+  outcome: 已叫停
+  covers:
+  - 第 4 步「授权期限届满或不再签约」
+  - 第 4 步超时
+  - 第 6 步 otherwise
+  expect: 期限届满提醒管理层；管理层叫停后发 Halted（仅分析），停止先行投入
+- id: PRC-16-S05
+  path: 5 对已叫停的授权转正
+  outcome: null
+  covers:
+  - 第 5 步 INV-19
+  expect: 拒绝并告警，转正与叫停互斥
+- id: PRC-16-S06
+  path: 2 同一对象同类型同时段重复申请
+  outcome: null
+  covers:
+  - 第 2 步前置 INV-18
+  expect: 拒绝并告警
 PRC-28:
 - id: PRC-28-S01
   path: 1→2→3 通过→4 已签发→5 客户书面认可→6
@@ -701,6 +1207,99 @@ PRC-68:
   covers:
   - 失败路径
   expect: 拒绝并告警
+PRC-69:
+- id: PRC-69-S01
+  path: 1 otherwise→2 otherwise→3 otherwise
+  outcome: 角色已合格
+  covers:
+  - 第 1 步 otherwise
+  - 第 2 步 otherwise
+  - 第 3 步 otherwise
+  expect: 角色申请 → 合格；发角色已合格（仅分析）；B-10、B-11 经 api 读取角色准入状态
+- id: PRC-69-S02
+  path: 1 申请的角色为客户
+  outcome: 无需准入
+  covers:
+  - 第 1 步「申请的角色为客户（客户角色不走准入）」
+  expect: 拒绝并告警（INV-02），客户角色无准入状态，档案核实即可用（P-3）
+- id: PRC-69-S03
+  path: 2 资质核验未通过
+  outcome: 准入未通过
+  covers:
+  - 第 2 步「资质核验未通过」
+  expect: 角色停留在申请，通知申请人；不得核准合格
+- id: PRC-69-S04
+  path: 2 该供方类型无需资质→3
+  outcome: null
+  covers:
+  - 第 2 步「该供方类型无需资质」
+  expect: 不要求资质证书引用，直接进入核准
+- id: PRC-69-S05
+  path: 3 合作期间资质撤销或到期未延续→4
+  outcome: 角色已暂停
+  covers:
+  - 第 3 步「合作期间资质撤销或到期未延续」
+  - 第 4 步 otherwise
+  expect: 须填原因；暂停期间未合格的供应商不得签分包、采购协议与付款（INV-04a、04b）
+- id: PRC-69-S06
+  path: 4 暂停原因消除→3
+  outcome: null
+  covers:
+  - 第 4 步「暂停原因消除」
+  expect: 重新核准合格后角色恢复可用
+- id: PRC-69-S07
+  path: 3 合作终止或严重失信→5
+  outcome: 角色已停用
+  covers:
+  - 第 3 步「合作终止或严重失信」
+  - 第 5 步 otherwise
+  expect: 停用须原因（INV-02）；发角色已停用（仅分析）
+PRC-78:
+- id: PRC-78-S01
+  path: 1→2→3 otherwise
+  outcome: 核查通过
+  covers:
+  - 第 3 步 otherwise
+  expect: 核查结果登记为有效，附年检回执
+- id: PRC-78-S02
+  path: 3 核查结论为撤销
+  outcome: 资质已撤销
+  covers:
+  - 第 3 步「核查结论为撤销」
+  expect: 发资质已撤销（仅分析）；供应商角色是否暂停由财务人工判断（PRC-69）
+- id: PRC-78-S03
+  path: 3 核查结论为降级
+  outcome: 资质已降级
+  covers:
+  - 第 3 步「核查结论为降级」
+  expect: 资质等级降级登记，投标与分包引用时按新等级判断
+- id: PRC-78-S04
+  path: 3 到期临近需延续→4→5 延续获批准并已取得新有效期
+  outcome: 资质已延续
+  covers:
+  - 第 3 步「到期临近需延续」
+  - 第 4 步 otherwise
+  - 第 5 步「延续获批准并已取得新有效期」
+  expect: B-01 内单级命令，批准即登记新有效期（延续中转有效）
+- id: PRC-78-S05
+  path: 5 延续未获批准→6
+  outcome: 资质已到期
+  covers:
+  - 第 5 步 otherwise
+  - 第 6 步 otherwise
+  expect: 延续驳回，到期日届满后定时标记资质已到期
+- id: PRC-78-S06
+  path: 4 有效期届满前仍未办结延续
+  outcome: null
+  covers:
+  - 第 4 步超时
+  expect: 提醒管理层（P-02），不自动延续
+- id: PRC-78-S07
+  path: 6 到期日届满且未延续
+  outcome: 资质已到期
+  covers:
+  - 第 6 步定时
+  expect: 定时标记资质已到期，发资质已到期（仅分析），通知职能人员
 PRC-86:
 - id: PRC-86-S01
   path: 1→2→3→4 otherwise

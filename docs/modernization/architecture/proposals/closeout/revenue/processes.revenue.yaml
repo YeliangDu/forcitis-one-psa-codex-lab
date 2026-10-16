@@ -12,15 +12,43 @@ processes:
   human_orchestration: false
   merged_from:
   - PRC-04
+  triggers:
+  - type: human
+    name: 客户来询、转介绍、招标公告或市场活动产生线索
+  - type: human
+    name: 客户直接邀标或委托，无需线索，直接新建商机
+  outcomes:
+  - 已转商机
+  - 线索已关闭
+  - 已挂起
+  - 商机已新建
+  - 商机已维护
+  scenarios:
+  - PRC-03-S01
+  - PRC-03-S02
+  - PRC-03-S03
+  - PRC-03-S04
+  - PRC-03-S05
+  - PRC-03-S06
+  - PRC-03-S07
+  - PRC-03-S08
+  - PRC-03-S09
+  - PRC-03-S10
+  - PRC-03-S11
   roles:
   - id: SH-E5
     as: initiator
+  - id: SH-E6
+    as: informed
   - id: SH-C6a
     as: external
   - id: SH-P3
     as: external
+  migration: 历史线索（含已确认、已关闭）与由其转出的商机关联全部迁入（U-4），记迁入来源与原始时间；已确认的线索保留所转商机 ID；投产时处于跟进中或挂起的线索按当前状态迁入，认领人按人员对应关系迁入，对应不上的留空待区域负责人重新认领
+  scope: 按数据范围（ADR-0026，法人 × 部门 × 项目角色）：线索与商机对认领人、商机负责人、参与团队及其管理链可见并经办；他人只读聚合指标
   steps:
-  - actor: SH-E5
+  - actor: system
+    where: automatic
     read: true
     reads:
     - AGG-01
@@ -37,11 +65,18 @@ processes:
       bc: B-01
       name: 读往来单位
     actor_v1: 市场和客户经理
+    audit: false
   - actor: SH-E5
+    where: in_system
     command: 登记线索
     aggregate: AGG-09
     actor_v1: 市场和客户经理
+    permission: 线索.登记
+    page: 线索登记页
+    audit: false
+    metric_event: true
   - actor: SH-E5
+    where: in_system
     command: 认领线索
     aggregate: AGG-09
     decision:
@@ -50,7 +85,11 @@ processes:
     - when: otherwise
       goto: 6
     actor_v1: 市场和客户经理
+    permission: 线索.认领
+    page: 线索跟进页
+    audit: false
   - actor: SH-E5
+    where: in_system
     command: 挂起线索
     aggregate: AGG-09
     branch: 挂起
@@ -59,27 +98,35 @@ processes:
     - when: 线索重启跟进
       goto: 5
     - when: 线索无价值
-      goto: 8
+      goto: 9
     - when: otherwise
       goto: end
     actor_v1: 市场和客户经理
+    permission: 线索.挂起
+    page: 线索跟进页
+    audit: true
+    outcome: 已挂起
   - actor: SH-E5
+    where: in_system
     command: 恢复线索
     aggregate: AGG-09
     branch: 挂起
     desc: 挂起可恢复为跟进中（INV-24）
-    actor_v1: 市场和客户经理
-  - actor: SH-E5
-    command: 新建商机
-    aggregate: AGG-10
-    desc: 先建商机（回溯检查 RD-01）：来源线索须为「跟进中」（前置读 AGG-09，同 BC），须有正式往来单位与唯一负责人（INV-25、26）；被拒时线索留在「跟进中」，补资料后重试，或按 INV-24 关闭（无价值）
     decision:
-    - when: 新建商机被拒且不再跟进
-      goto: 8
-    - when: 新建商机被拒，补资料后重试
-      goto: 6
     - when: otherwise
-      goto: 7
+      goto: 6
+    actor_v1: 市场和客户经理
+    permission: 线索.恢复
+    page: 线索跟进页
+    audit: false
+  - actor: system
+    where: automatic
+    read: true
+    reads:
+    - AGG-01
+    - AGG-62
+    added_in: closeout
+    desc: 新建商机前读往来单位档案状态（档案已核实才算正式往来单位，P-3）与拟任负责人
     cross_bc:
     - mode: api
       direction: out
@@ -90,7 +137,33 @@ processes:
       bc: B-13
       name: 读商机负责人
     actor_v1: 市场和客户经理
+    audit: false
   - actor: SH-E5
+    where: in_system
+    command: 新建商机
+    aggregate: AGG-10
+    desc: 先建商机（回溯检查 RD-01）：来源线索须为「跟进中」（前置读 AGG-09，同 BC），须有正式往来单位（档案已核实，客户角色不走准入，P-3）与唯一负责人（INV-25、26）；被拒时线索留在「跟进中」，补资料或经财务核实档案后重试，或按 INV-24 关闭（无价值）
+    decision:
+    - when: 新建商机被拒且不再跟进
+      goto: 9
+      rule: INV-26
+    - when: 新建商机被拒，补资料后重试
+      goto: 6
+      rule: INV-26
+    - when: 没有来源线索（直接邀标或委托）
+      goto: 13
+    - when: otherwise
+      goto: 8
+    actor_v1: 市场和客户经理
+    permission: 商机.新建
+    page: 商机新建页
+    audit: true
+    metric_event: true
+    notify:
+    - to: SH-E6
+      how: 企业微信待办（仅因往来单位档案未核实被拒时：请核实档案，见 PRC-05）
+  - actor: SH-E5
+    where: in_system
     command: 确认线索
     aggregate: AGG-09
     emits:
@@ -98,43 +171,94 @@ processes:
     desc: 商机建成后确认，命令携带商机 ID 并按商机 ID 幂等，确认失败留在「跟进中」重试；已确认的线索不可再关闭（INV-24），故不先确认
     decision:
     - when: 商机负责人或参与团队需调整
-      goto: 9
+      goto: 10
     - when: otherwise
       goto: end
     actor_v1: 市场和客户经理
+    permission: 线索.确认
+    page: 线索跟进页
+    audit: true
+    metric_event: true
+    outcome: 已转商机
   - actor: SH-E5
+    where: in_system
     command: 关闭线索
     aggregate: AGG-09
     branch: 无价值
     emits:
     - 线索已关闭
-    desc: 须填原因（INV-24）；新建商机被拒且不再跟进时走此分支
+    desc: 须填原因（INV-24）；已确认的线索不能再关闭；新建商机被拒且不再跟进时走此分支
     decision:
     - when: otherwise
       goto: end
+      rule: INV-24
     actor_v1: 市场和客户经理
-  - actor: SH-E5
-    command: 变更商机负责人
-    aggregate: AGG-10
+    permission: 线索.关闭
+    page: 线索跟进页
+    audit: true
+    metric_event: true
+    outcome: 线索已关闭
+  - actor: system
+    where: automatic
+    read: true
+    reads:
+    - AGG-62
     branch: 维护
-    desc: 只有一个负责人（INV-26）
-    decision:
-    - when: 参与团队需调整
-      goto: 10
-    - when: otherwise
-      goto: end
+    added_in: closeout
+    desc: 变更负责人前读新负责人
     cross_bc:
     - mode: api
       direction: out
       bc: B-13
       name: 读新负责人
     actor_v1: 市场和客户经理
+    audit: false
   - actor: SH-E5
+    where: in_system
+    command: 变更商机负责人
+    aggregate: AGG-10
+    branch: 维护
+    desc: 只有一个负责人（INV-26）
+    decision:
+    - when: 参与团队需调整
+      goto: 12
+    - when: otherwise
+      goto: end
+    actor_v1: 市场和客户经理
+    permission: 商机.变更负责人
+    page: 商机维护页
+    audit: true
+    outcome: 商机已维护
+    notify:
+    - to: SH-E5
+      how: 企业微信消息（新负责人收到商机交接）
+  - actor: SH-E5
+    where: in_system
     command: 维护商机参与团队
     aggregate: AGG-10
     branch: 维护
+    decision:
+    - when: otherwise
+      goto: end
     actor_v1: 市场和客户经理
-  notes: 线索可跳过（客户直接邀标或委托时从新建商机开始）；线索挂起与恢复属线索自身状态转换。「线索已确认」订阅方仅分析，本流程内顺序衔接，不另作事件触发。顺序为新建商机在先、确认线索在后（回溯检查 RD-01，与信息图 OBJ-17 状态机一致：只有商机建成才进入「已确认」）。新建商机只发内部事件，无外部消费者（⑥a 评审 L3，可接受）。
+    permission: 商机.维护参与团队
+    page: 商机维护页
+    audit: false
+    outcome: 商机已维护
+  - actor: system
+    where: automatic
+    branch: 无线索
+    added_in: closeout
+    desc: 没有来源线索时无线索可确认，通知商机负责人开始跟进（报价见 PRC-07）
+    decision:
+    - when: otherwise
+      goto: end
+    notify:
+    - to: SH-E5
+      how: 企业微信消息（商机已新建，请开始跟进）
+    audit: false
+    outcome: 商机已新建
+  notes: 线索可跳过（客户直接邀标或委托时从新建商机开始）；线索挂起与恢复属线索自身状态转换。「线索已确认」订阅方仅分析，本流程内顺序衔接，不另作事件触发。顺序为新建商机在先、确认线索在后（回溯检查 RD-01，与信息图 OBJ-17 状态机一致：只有商机建成才进入「已确认」）。新建商机只发内部事件，无外部消费者（⑥a 评审 L3，可接受）。「正式往来单位」= 档案已核实（P-3），客户角色不走准入。
 - id: PRC-07
   name: 编制并生效报价
   trigger:
@@ -145,6 +269,22 @@ processes:
   owner_bc: B-03
   human_orchestration: true
   human_note: 报价评审（草拟 → 审批中 → 已通过 / 驳回）
+  triggers:
+  - type: human
+    name: 商机跟进中，客户询价或邀标
+  - type: human
+    name: 报价被取代或投标被撤回后重新报价
+  outcomes:
+  - 报价已生效
+  - 报价已作废
+  - 报价未编制
+  scenarios:
+  - PRC-07-S01
+  - PRC-07-S02
+  - PRC-07-S03
+  - PRC-07-S04
+  - PRC-07-S05
+  - PRC-07-S06
   roles:
   - id: SH-E5
     as: initiator
@@ -152,8 +292,12 @@ processes:
     as: approver
   - id: SH-C6c
     as: external
+  migration: 历史报价版本全部迁入（U-4），含已通过冻结的估算分解、驳回与作废的版本及所用费率、系数版本引用；每个（商机，标段）只迁一个当前生效版本；投产时草拟中的版本按草拟迁入，审批中的由编制人在新系统重新提交评审（在途单据口径随迁入框架 ADR-0036）
+  scope: 按商机数据范围：商机负责人与参与团队可见并经办本商机报价；成本与毛利明细的可见范围随数据范围规则卡（ADR-0026，待 one-rules）
+  segregation: 报价编制人与评审人不得为同一人（建议，见 NOTES 待用户定）
   steps:
-  - actor: SH-E5
+  - actor: system
+    where: automatic
     read: true
     reads:
     - AGG-05
@@ -166,21 +310,39 @@ processes:
       bc: B-02
       name: 读费率、系数与协议价目的生效版本
     actor_v1: 市场和客户经理
+    audit: false
   - actor: SH-E5
+    where: in_system
     command: 编制报价版本
     aggregate: AGG-12
+    desc: 引用已生效的计费系数版本与标准成本费率版本（INV-32）；商机已处终态时新建报价先预警（P-12）
+    decision:
+    - when: 所引费率或系数版本并非生效版本
+      goto: end
+      rule: INV-32
+    - when: otherwise
+      goto: 3
     actor_v1: 市场和客户经理
+    permission: 报价.编制
+    page: 报价编制页
+    audit: false
+    outcome: 报价未编制
   - actor: SH-E5
+    where: in_system
     command: 提交报价评审
     aggregate: AGG-12
     cross_bc:
-    - &id001
-      mode: api
+    - mode: api
       direction: out
       bc: platform.approval
       name: 发起审批
     actor_v1: 市场和客户经理
+    permission: 报价.提交评审
+    page: 报价编制页
+    audit: true
+    metric_event: true
   - actor: platform
+    where: in_system
     platform_task: true
     service: platform.approval
     command: 报价评审
@@ -189,8 +351,21 @@ processes:
       approver: SH-M1
       multi_level: false
       on_reject: 6
+      engine: platform.approval
+    decision:
+    - when: 审批通过
+      goto: 5
+    - when: otherwise
+      goto: 6
     actor_v1: 项目总监
+    permission: 报价评审.审批
+    page: 报价评审审批页
+    audit: true
+    notify:
+    - to: SH-M1
+      how: 企业微信待办（待报价评审）
   - actor: system
+    where: automatic
     command: 通过报价评审
     aggregate: AGG-12
     desc: 审批通过结果回调（已通过 = 评审通过并冻结，INV-31）
@@ -198,7 +373,12 @@ processes:
     - when: otherwise
       goto: 7
     actor_v1: 系统策略
+    audit: true
+    notify:
+    - to: SH-E5
+      how: 企业微信消息（报价评审通过，可生效）
   - actor: system
+    where: automatic
     command: 驳回报价评审
     aggregate: AGG-12
     branch: 驳回
@@ -209,7 +389,12 @@ processes:
     - when: otherwise
       goto: 8
     actor_v1: 系统策略
+    audit: true
+    notify:
+    - to: SH-E5
+      how: 企业微信消息（报价评审被驳回，附驳回意见）
   - actor: SH-E5
+    where: in_system
     command: 生效报价版本
     aggregate: AGG-12
     emits:
@@ -219,8 +404,15 @@ processes:
     decision:
     - when: otherwise
       goto: end
+      rule: INV-30
     actor_v1: 市场和客户经理
+    permission: 报价.生效
+    page: 报价生效页
+    audit: true
+    metric_event: true
+    outcome: 报价已生效
   - actor: SH-E5
+    where: in_system
     command: 作废报价版本
     aggregate: AGG-12
     branch: 作废
@@ -229,7 +421,11 @@ processes:
     - when: otherwise
       goto: end
     actor_v1: 市场和客户经理
-  notes: 报价被取代、投标被撤回时在本段内重入。「报价版本已生效」无事件消费者：签约时经投标承诺快照读取（见「起草、评审并回签协议」），可接受（⑥a 评审 L3）。
+    permission: 报价.作废
+    page: 报价编制页
+    audit: true
+    outcome: 报价已作废
+  notes: 报价被取代、投标被撤回时在本段内重入。「报价版本已生效」无事件消费者：签约时经投标承诺快照读取（见「起草、评审并回签协议」），可接受（⑥a 评审 L3）。审批结果回调不写 cross_bc（接缝问题，见 NOTES）。
 - id: PRC-08
   name: 参加投标，登记结果并处理保证金
   trigger:
@@ -243,17 +439,55 @@ processes:
   merged_from:
   - PRC-09
   - PRC-11
+  triggers:
+  - type: human
+    name: 收到邀标或招标公告
+  - type: message
+    name: 招标人通知评标结果后登记（中标、未中标、废标）
+  outcomes:
+  - 已递交待评标
+  - 商机已赢单
+  - 商机已丢单
+  - 商机已放弃
+  - 保证金已退
+  - 不得投标
+  - 因期间已关账被拒绝
+  scenarios:
+  - PRC-08-S01
+  - PRC-08-S02
+  - PRC-08-S03
+  - PRC-08-S04
+  - PRC-08-S05
+  - PRC-08-S06
+  - PRC-08-S07
+  - PRC-08-S08
+  - PRC-08-S09
+  - PRC-08-S10
+  - PRC-08-S11
+  - PRC-08-S12
+  - PRC-08-S13
+  - PRC-08-S14
+  - PRC-08-S15
+  - PRC-08-S16
+  - PRC-08-S17
+  - PRC-08-S18
   roles:
   - id: SH-E5
     as: initiator
+  - id: SH-E6
+    as: performer
   - id: SH-X4
     as: external
   - id: SH-P1c
     as: external
   - id: SH-C6c
     as: external
+  migration: 历史投标（含联合体协议、承诺快照、资格预审、中标通知书、撤回与废标记录）与保证金退还关联全部迁入（U-4），记迁入来源与原始时间；投产时已递交待评标的投标按当前状态迁入，截止时间随招标项目登记迁入；未退还的保证金按保证金台账（PRC-10）迁入后继续按本流程退还
+  scope: 按商机数据范围：商机负责人与参与团队可见并经办投标；保证金退还限财务出纳按法人范围经办（ADR-0026）
+  legal_entity: 保证金退还登记按保证金所属资金账户的法人口径执行（缴纳时的付款法人）
   steps:
-  - actor: SH-E5
+  - actor: system
+    where: automatic
     read: true
     reads:
     - REF-01
@@ -265,32 +499,67 @@ processes:
       bc: B-01
       name: 读招标项目登记与联合体成员
     actor_v1: 市场和客户经理
-  - actor: SH-E5
+    audit: false
+  - actor: system
+    where: automatic
     read: true
     reads:
     - AGG-18
     desc: 读独立性检查结论（INV-33，D-4 b）：我方为 IDI 风险管理机构且有冲突未获书面同意的，不得递交投标、不得凭委托赢单
     decision:
     - when: 直接委托，无招标
-      goto: 12
+      goto: 13
+    - when: 我方为 IDI 风险管理机构且独立性检查有冲突、未获书面同意
+      goto: end
+      rule: INV-33
     - when: otherwise
       goto: 3
     actor_v1: 市场和客户经理
+    audit: false
+    outcome: 不得投标
   - actor: SH-E5
+    where: offline
     command: 登记资格预审结果
     aggregate: AGG-11
+    evidence:
+    - 资格预审结果通知（招标人书面通知或电子招投标平台回执）
+    - 通知日期与招标项目标段
     decision:
     - when: 资格预审未通过
-      goto: 9
+      goto: 10
+      rule: INV-29
     - when: otherwise
-      goto: 17
+      goto: 4
     actor_v1: 市场和客户经理
+    permission: 投标.登记资格预审
+    page: 资格预审登记页
+    audit: false
+  - actor: system
+    where: automatic
+    added_in: closeout
+    desc: P-13 投标截止临近提醒（按招标项目登记中的截止时间）
+    timeout:
+      after: 投标截止时间前的提醒提前量（P-13，具体量以规则卡为准）
+      escalate_to: SH-E5
+      interrupting: false
+    decision:
+    - when: otherwise
+      goto: 5
+    notify:
+    - to: SH-E5
+      how: 企业微信待办（投标截止临近）
+    actor_v1: 系统策略
+    audit: false
   - actor: SH-E5
+    where: offline
     command: 递交投标
     aggregate: AGG-11
     emits:
     - 投标已递交
-    desc: 携承诺快照
+    desc: 携承诺快照；在电子招投标平台或按招标文件约定的方式递交，本系统登记递交结果与投标文件终稿
+    evidence:
+    - 递交回执（电子招投标平台回执、签收单或快递妥投记录之一）
+    - 投标文件终稿与报价版本引用、承诺快照
     decision:
     - when: 评标结果为中标
       goto: 6
@@ -299,61 +568,118 @@ processes:
     - when: 评标阶段被宣布废标
       goto: 8
     - when: 决定撤回或撤销投标
-      goto: 5
+      goto: 9
     - when: otherwise
       goto: end
     actor_v1: 市场和客户经理
+    permission: 投标.递交
+    page: 投标递交登记页
+    audit: true
+    metric_event: true
+    outcome: 已递交待评标
+    notify:
+    - to: SH-E5
+      how: 企业微信待办（开标后登记评标结果）
   - actor: SH-E5
-    command: 撤回或撤销投标
-    aggregate: AGG-11
-    branch: 撤回
-    emits:
-    - 投标已撤销
-    decision:
-    - when: 撤回发生在截止前
-      goto: 16
-    - when: otherwise
-      goto: 13
-    actor_v1: 市场和客户经理
-  - actor: SH-E5
+    where: offline
     command: 登记中标
     aggregate: AGG-11
     emits:
     - 投标已中标
+    evidence:
+    - 中标通知书（文件引用与日期，本聚合附件，登记时必填并校验已上传）
     decision:
     - when: otherwise
-      goto: 10
+      goto: 11
     actor_v1: 市场和客户经理
+    permission: 投标.登记结果
+    page: 投标结果登记页
+    audit: true
+    metric_event: true
   - actor: SH-E5
+    where: offline
     command: 登记未中标
     aggregate: AGG-11
     branch: 未中标
     emits:
     - 投标未中标
+    evidence:
+    - 未中标通知或中标结果公示（扫描件或网页存档）
     decision:
     - when: otherwise
-      goto: 11
+      goto: 12
+    cross_bc:
+    - mode: event
+      direction: out
+      bc: B-09
+      name: 投标未中标
     actor_v1: 市场和客户经理
+    permission: 投标.登记结果
+    page: 投标结果登记页
+    audit: true
+    metric_event: true
   - actor: SH-E5
+    where: offline
     command: 登记废标
     aggregate: AGG-11
     branch: 废标
     emits:
     - 投标已废标
     desc: 评标阶段被宣布废标；重新招标的另建投标，不重新招标的客户经理人工登记商机丢单或放弃商机
+    evidence:
+    - 废标通知（招标人书面通知或电子招投标平台通知）
     decision:
     - when: otherwise
-      goto: 15
+      goto: 17
+    cross_bc:
+    - mode: event
+      direction: out
+      bc: B-09
+      name: 投标已废标
     actor_v1: 市场和客户经理
+    permission: 投标.登记结果
+    page: 投标结果登记页
+    audit: true
   - actor: SH-E5
+    where: offline
+    command: 撤回或撤销投标
+    aggregate: AGG-11
+    branch: 撤回
+    emits:
+    - 投标已撤销
+    evidence:
+    - 书面撤回通知及招标人收讫记录
+    - 撤回发生在投标截止前还是截止后
+    decision:
+    - when: 撤回发生在截止前
+      goto: 19
+    - when: otherwise
+      goto: 14
+    cross_bc:
+    - mode: event
+      direction: out
+      bc: B-09
+      name: 投标已撤销
+    actor_v1: 市场和客户经理
+    permission: 投标.撤回
+    page: 投标撤回登记页
+    audit: true
+  - actor: SH-E5
+    where: in_system
     command: 放弃投标
     aggregate: AGG-11
     branch: 放弃
+    emits:
+    - 投标已放弃
     decision:
     - when: otherwise
-      goto: 13
+      goto: 14
     actor_v1: 市场和客户经理
+    permission: 投标.放弃
+    page: 投标结果登记页
+    audit: true
   - actor: system
+    where: automatic
     command: 商机赢单
     aggregate: AGG-10
     on_event:
@@ -375,7 +701,14 @@ processes:
       bc: B-05
       name: OpportunityAccepted
     actor_v1: 系统策略
+    audit: true
+    metric_event: true
+    outcome: 商机已赢单
+    notify:
+    - to: SH-E2
+      how: 企业微信消息（商机已赢单，可建立项目，见 PRC-17）
   - actor: system
+    where: automatic
     command: 登记商机丢单
     aggregate: AGG-10
     on_event:
@@ -386,23 +719,29 @@ processes:
     desc: 事件策略（M5）：未中标即丢单；非投标商机的丢单由客户经理人工登记同一命令
     decision:
     - when: otherwise
-      goto: 14
+      goto: 15
     cross_bc:
     - mode: event
       direction: out
       bc: B-07
       name: 商机已丢单
     actor_v1: 系统策略
+    audit: true
+    metric_event: true
   - actor: SH-E5
+    where: in_system
     command: 商机赢单
     aggregate: AGG-10
     branch: 委托赢单
     emits:
     - OpportunityAccepted
-    desc: 人工：直接委托凭委托证据（本聚合附件）赢单（INV-27）；我方为 IDI 风险管理机构的，须已读独立性检查结论无冲突或已获书面同意（INV-33，D-4 b）
+    desc: 人工：直接委托凭委托证据（本聚合附件）赢单（INV-27）；我方为 IDI 风险管理机构的，须已读独立性检查结论无冲突或已获书面同意（INV-33，D-4 b）；有冲突未获书面同意时拒绝并告警
+    evidence:
+    - 委托书（文件引用、日期与登记人，本聚合附件，赢单时校验已上传）
     decision:
     - when: otherwise
       goto: end
+      rule: INV-27
     cross_bc:
     - mode: event
       direction: out
@@ -413,19 +752,34 @@ processes:
       bc: B-05
       name: OpportunityAccepted
     actor_v1: 市场和客户经理
+    permission: 商机.赢单
+    page: 商机赢单页
+    audit: true
+    metric_event: true
+    outcome: 商机已赢单
   - actor: SH-E5
+    where: in_system
     command: 放弃商机
     aggregate: AGG-10
     branch: 放弃
     emits:
     - 商机已放弃
+    decision:
+    - when: otherwise
+      goto: end
     cross_bc:
     - mode: event
       direction: out
       bc: B-07
       name: 商机已放弃
     actor_v1: 市场和客户经理
-  - actor: system
+    permission: 商机.放弃
+    page: 商机放弃页
+    audit: true
+    metric_event: true
+    outcome: 商机已放弃
+  - actor: SH-E6
+    where: in_system
     bc: B-09
     command: 退还保证金
     aggregate: AGG-51
@@ -434,23 +788,55 @@ processes:
       event: 投标未中标
     emits:
     - 保证金已退
-    post: true
-    calls: PRC-92
-    desc: B-09 订阅投标未中标退还保证金（P-10 签约后 5 日未退提醒）；B-09 → B-03 边已有
+    desc: B-09 订阅投标未中标后，出纳在收到退款时登记退还（P-10 签约后 5 日未退提醒）；B-09 → B-03 边已有
+    evidence:
+    - 保证金退款的银行到账记录
+    timeout:
+      after: 书面合同签订后 P5D（P-10，条例第 57 条，以规则卡为准）
+      escalate_to: SH-E6
+      interrupting: false
     decision:
     - when: otherwise
-      goto: end
+      goto: 16
     cross_bc:
     - mode: event
       direction: in
       bc: B-03
       name: 投标未中标
+    actor_v1: 系统策略
+    permission: 保证金.登记退还
+    page: 保证金退还登记页
+    audit: true
+    notify:
+    - to: SH-E6
+      how: 企业微信待办（投标未中标，待登记保证金退还）
+  - actor: system
+    where: automatic
+    bc: B-09
+    command: 提交过账候选
+    aggregate: AGG-51
+    post: true
+    calls: PRC-92
+    added_in: closeout
+    period_gate: true
+    desc: 保证金退还提交过账候选（服务任务，不用调用活动，S-24）
+    decision:
+    - when: 退还日所在期间已关账
+      goto: end
+      rule: ADR-0045
+      outcome: 因期间已关账被拒绝
+    - when: otherwise
+      goto: end
+    cross_bc:
     - mode: api
       direction: out
       bc: B-16
       name: 提交过账候选
-    actor_v1: 系统策略
-  - actor: system
+    audit: true
+    metric_event: true
+    outcome: 保证金已退
+  - actor: SH-E6
+    where: in_system
     bc: B-09
     command: 退还保证金
     aggregate: AGG-51
@@ -460,27 +846,58 @@ processes:
       event: 投标已废标
     emits:
     - 保证金已退
-    post: true
-    calls: PRC-92
-    desc: B-09 订阅投标已废标退还保证金（回溯检查 RD-07）
+    desc: B-09 订阅投标已废标，出纳在收到退款时登记退还（回溯检查 RD-07）
+    evidence:
+    - 保证金退款的银行到账记录
+    timeout:
+      after: 书面合同签订后 P5D（P-10，条例第 57 条，以规则卡为准）
+      escalate_to: SH-E6
+      interrupting: false
     decision:
-    - when: 重新招标，另建投标
-      goto: PRC-08
-    - when: 不重新招标且商机丢失
-      goto: 11
     - when: otherwise
-      goto: 13
+      goto: 18
     cross_bc:
     - mode: event
       direction: in
       bc: B-03
       name: 投标已废标
+    actor_v1: 系统策略
+    permission: 保证金.登记退还
+    page: 保证金退还登记页
+    audit: true
+    notify:
+    - to: SH-E6
+      how: 企业微信待办（投标已废标，待登记保证金退还）
+  - actor: system
+    where: automatic
+    bc: B-09
+    command: 提交过账候选
+    aggregate: AGG-51
+    branch: 废标
+    post: true
+    calls: PRC-92
+    added_in: closeout
+    period_gate: true
+    desc: 保证金退还提交过账候选
+    decision:
+    - when: 退还日所在期间已关账
+      goto: end
+      rule: ADR-0045
+      outcome: 因期间已关账被拒绝
+    - when: 重新招标，另建投标
+      goto: PRC-08
+    - when: 不重新招标且商机丢失
+      goto: 21
+    - when: otherwise
+      goto: 14
+    cross_bc:
     - mode: api
       direction: out
       bc: B-16
       name: 提交过账候选
-    actor_v1: 系统策略
-  - actor: system
+    audit: true
+  - actor: SH-E6
+    where: in_system
     bc: B-09
     command: 退还保证金
     aggregate: AGG-51
@@ -490,34 +907,79 @@ processes:
       event: 投标已撤销
     emits:
     - 保证金已退
-    post: true
-    calls: PRC-92
     desc: 仅截止前撤回时退还；是否退还按条例第 35 条另行核对，不写死；截止后撤销不适用
+    evidence:
+    - 保证金退款的银行到账记录
+    timeout:
+      after: 收到书面撤回通知之日起 P5D（条例第 35 条，另行核对）
+      escalate_to: SH-E6
+      interrupting: false
     decision:
-    - when: 不再跟进该商机
-      goto: 13
     - when: otherwise
-      goto: end
+      goto: 20
     cross_bc:
     - mode: event
       direction: in
       bc: B-03
       name: 投标已撤销
+    actor_v1: 系统策略
+    permission: 保证金.登记退还
+    page: 保证金退还登记页
+    audit: true
+    notify:
+    - to: SH-E6
+      how: 企业微信待办（投标已撤回，待登记保证金退还）
+  - actor: system
+    where: automatic
+    bc: B-09
+    command: 提交过账候选
+    aggregate: AGG-51
+    branch: 截止前撤回
+    post: true
+    calls: PRC-92
+    added_in: closeout
+    period_gate: true
+    desc: 保证金退还提交过账候选
+    decision:
+    - when: 退还日所在期间已关账
+      goto: end
+      rule: ADR-0045
+      outcome: 因期间已关账被拒绝
+    - when: 不再跟进该商机
+      goto: 14
+    - when: otherwise
+      goto: end
+    cross_bc:
     - mode: api
       direction: out
       bc: B-16
       name: 提交过账候选
-    actor_v1: 系统策略
-  - actor: system
-    read: true
-    reads:
-    - AGG-11
-    desc: P-13 投标截止临近提醒
+    audit: true
+    outcome: 保证金已退
+  - actor: SH-E5
+    where: in_system
+    command: 登记商机丢单
+    aggregate: AGG-10
+    branch: 废标后丢单
+    added_in: closeout
+    emits:
+    - 商机已丢单
+    desc: 废标后不重新招标的，客户经理人工登记同一命令（非自动：废标不等于丢单，由客户经理判断）
     decision:
     - when: otherwise
-      goto: 4
-    actor_v1: 系统策略
-  notes: 合并原 PRC-09（商机赢单或丢单）、PRC-11（投标未中标后退还保证金）（⑥a 评审 H2 c）；步骤带 bc 的是下游 BC 订阅事件后的反应（编舞），不是 B-03 的命令。联合体协议作投标的次级对象，不放合同。OpportunityAccepted 的订阅方 B-04、B-05、B-07 见「建立项目并组建团队」「起草、评审并回签协议」及事件策略「转入售前投入」。
+      goto: end
+    cross_bc:
+    - mode: event
+      direction: out
+      bc: B-07
+      name: 商机已丢单
+    permission: 商机.登记丢单
+    page: 商机丢单登记页
+    audit: true
+    metric_event: true
+    outcome: 商机已丢单
+  notes: 合并原 PRC-09（商机赢单或丢单）、PRC-11（投标未中标后退还保证金）（⑥a 评审 H2 c）；步骤带 bc 的是下游 BC 订阅事件后的反应（编舞），不是 B-03 的命令。联合体协议作投标的次级对象，不放合同。本批改动：保证金退还由「系统策略」改为出纳按银行到账登记（退款发生在系统外），过账提交拆为独立服务任务（S-24）；v1 的未中标丢单步（第 12 步）在废标后不再重入，废标后丢单另设第
+    21 步。OpportunityAccepted 的订阅方 B-04、B-05 见「建立项目并组建团队」「起草、评审并回签协议」；赢单不触发售前投入转入（P-2）。
 - id: PRC-13
   name: 批准并生效费率、计费系数与协议价目版本
   trigger:
@@ -528,6 +990,21 @@ processes:
   - VS-02.0
   owner_bc: B-02
   human_orchestration: false
+  triggers:
+  - type: human
+    name: 财务或经营管理发起新费率、系数或协议价目版本
+  outcomes:
+  - 费率版本已生效
+  - 计费系数版本已生效
+  - 协议价目版本已生效
+  - 生效被拒（区间重叠）
+  scenarios:
+  - PRC-13-S01
+  - PRC-13-S02
+  - PRC-13-S03
+  - PRC-13-S04
+  - PRC-13-S05
+  - PRC-13-S06
   roles:
   - id: SH-E6
     as: initiator
@@ -535,37 +1012,94 @@ processes:
     as: approver
   - id: SH-E5
     as: performer
+  migration: 历史费率版本、计费系数版本与协议价目版本全部迁入（U-4、D17），每版本一行并带生效区间；迁入后各版本按原生效区间排列，保证同一时点只有一个生效版本；投产时草拟或审批中的版本由发起人在新系统重新提交；工时与预算所用的历史费率引用保持原版本
+  scope: 版本的编制与生效限财务职能与经营管理角色；报价、预算、工时只读生效版本（INV-32、INV-44）；费率明细对员工薪酬有间接披露，按敏感级授权
+  segregation: 费率版本的发起人（财务）与批准人（管理层，SH-M1）分离（D6）
   steps:
-  - actor: SH-E6
-    command: 批准费率版本
-    aggregate: AGG-05
-    gap: G-02
-    decision:
-    - when: otherwise
-      goto: 2
-    approval:
-      doc_type: 费率版本批准单
-      approver: SH-M1
-      multi_level: false
-      on_reject: end
+  - actor: system
+    where: automatic
+    read: true
+    reads:
+    - AGG-63
+    - AGG-01
+    added_in: closeout
+    desc: 编制前读职级（费率条目键：职级 × 薪档 × 城市类别）与协议价目对应的往来单位
     cross_bc:
-    - *id001
     - mode: api
       direction: out
       bc: B-13
       name: 读职级
-    actor_v1: 财务
+    - mode: api
+      direction: out
+      bc: B-01
+      name: 读往来单位
+    audit: false
   - actor: SH-E6
+    where: in_system
+    added_in: closeout
+    gap: 聚合稿缺「编制费率版本」「提交费率版本审批」命令（新用语候选，见 NOTES）；计费系数、协议价目同缺编制命令
+    desc: 编制费率版本条目并提交批准；同时发布计费系数（业务线 × 客户分级，Q-07）的一并编制
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: platform.approval
+      name: 发起审批
+    permission: 费率版本.编制
+    page: 费率版本编制页
+    audit: true
+  - actor: platform
+    where: in_system
+    platform_task: true
+    service: platform.approval
+    command: 费率版本批准
+    gap: G-02
+    approval:
+      doc_type: 费率版本批准单
+      approver: SH-M1
+      multi_level: false
+      on_reject: 2
+      engine: platform.approval
+    decision:
+    - when: 审批通过
+      goto: 4
+    - when: otherwise
+      goto: 2
+    permission: 费率版本批准.审批
+    page: 费率版本批准审批页
+    audit: true
+    notify:
+    - to: SH-M1
+      how: 企业微信待办（待批准费率版本）
+  - actor: system
+    where: automatic
+    command: 批准费率版本
+    aggregate: AGG-05
+    desc: 审批通过结果回调；已批准的版本不可改（INV-36）
+    decision:
+    - when: otherwise
+      goto: 5
+    actor_v1: 财务
+    audit: true
+    notify:
+    - to: SH-E6
+      how: 企业微信消息（费率版本已批准，可生效）
+  - actor: SH-E6
+    where: in_system
     command: 生效费率版本
     aggregate: AGG-05
     emits:
     - 费率版本已生效
     - 费率版本已被取代
+    desc: 生效区间不得与现有生效版本重叠（INV-35）；旧版同事务被取代
     decision:
+    - when: 生效区间与现有生效版本重叠
+      goto: end
+      rule: INV-35
+      outcome: 生效被拒（区间重叠）
     - when: 同时发布计费系数新版本
-      goto: 3
+      goto: 6
     - when: 同时发布协议价目新版本
-      goto: 4
+      goto: 7
     - when: otherwise
       goto: end
     cross_bc:
@@ -578,15 +1112,20 @@ processes:
       bc: B-04
       name: 项目预算按生效版本读取
     actor_v1: 财务
+    permission: 费率版本.生效
+    page: 费率版本生效页
+    audit: true
+    outcome: 费率版本已生效
   - actor: SH-E6
+    where: in_system
     command: 生效计费系数版本
     aggregate: AGG-06
     emits:
     - 计费系数版本已生效
-    desc: 粒度待定 Q18
+    desc: 系数条目键为业务线 × 客户分级（Q-07）；已批准的系数版本不可改（INV-36a）；与费率版本一并批准（建议，见 NOTES 待用户定）
     decision:
     - when: 同时发布协议价目新版本
-      goto: 4
+      goto: 7
     - when: otherwise
       goto: end
     cross_bc:
@@ -595,22 +1134,31 @@ processes:
       bc: B-03
       name: 报价按生效版本读取
     actor_v1: 财务
+    permission: 计费系数版本.生效
+    page: 计费系数版本生效页
+    audit: true
+    outcome: 计费系数版本已生效
   - actor: SH-E5
+    where: in_system
     command: 生效协议价目版本
     aggregate: AGG-07
     emits:
     - 协议价目版本已生效
+    desc: 协议价目按往来单位的单价条目与生效期；被引用版本不可改（INV-36）
+    decision:
+    - when: otherwise
+      goto: end
     cross_bc:
-    - mode: api
-      direction: out
-      bc: B-01
-      name: 读往来单位
     - mode: api
       direction: in
       bc: B-03
       name: 报价按生效版本读取
     actor_v1: 市场和客户经理
-  notes: 批准环节须财务审定，但批准是聚合命令，无退回、超时分支，审批走平台与否待 G-02。报价与项目预算读取这些版本（INV-32、INV-44）。
+    permission: 协议价目版本.生效
+    page: 协议价目版本生效页
+    audit: true
+    outcome: 协议价目版本已生效
+  notes: 批准环节须财务审定；批准走 platform.approval（AGG-05 引用列有该审批，G-02 已按 F-2 处理）。报价与项目预算读取这些版本（INV-32、INV-44）。审批驳回退回编制（v1 取 end，本批改为退回，见 NOTES）。
 - id: PRC-16
   name: 申请并转正风险交付授权
   trigger:
@@ -623,6 +1171,21 @@ processes:
   owner_bc: B-05
   human_orchestration: true
   human_note: 申请 → 批准 → 转正或叫停
+  triggers:
+  - type: human
+    name: 签约前需先行投入，项目经理申请授权
+  outcomes:
+  - 已批准
+  - 已转正
+  - 已叫停
+  - 授权未获批准
+  scenarios:
+  - PRC-16-S01
+  - PRC-16-S02
+  - PRC-16-S03
+  - PRC-16-S04
+  - PRC-16-S05
+  - PRC-16-S06
   roles:
   - id: SH-E2
     as: initiator
@@ -630,8 +1193,11 @@ processes:
     as: approver
   - id: SH-E5
     as: performer
+  migration: 历史风险交付授权（含额度、期限、责任人、依据证据引用与转正、叫停记录）全部迁入（U-4），记迁入来源与原始时间；投产时已批准未转正的授权按原状态迁入，期限届满的在投产后首个提醒周期内由管理层决定转正或叫停；审批中的申请由申请人在新系统重新提交
+  scope: 按商机或项目的数据范围：申请人、责任人与管理层可见并经办；授权额度与期限对财务只读（P-09 度量）
   steps:
-  - actor: SH-E2
+  - actor: system
+    where: automatic
     read: true
     reads:
     - AGG-10
@@ -652,13 +1218,24 @@ processes:
       bc: B-28
       name: 读依据证据
     actor_v1: 项目经理
+    audit: false
   - actor: SH-E2
+    where: in_system
     command: 申请风险交付授权
     aggregate: AGG-17
+    desc: 同一对象同类型同时段唯一（INV-18），重复申请被拒
     cross_bc:
-    - *id001
+    - mode: api
+      direction: out
+      bc: platform.approval
+      name: 发起审批
     actor_v1: 项目经理
+    permission: 风险交付授权.申请
+    page: 风险交付授权申请页
+    audit: true
+    metric_event: true
   - actor: platform
+    where: in_system
     platform_task: true
     service: platform.approval
     command: 授权审批
@@ -668,12 +1245,29 @@ processes:
       approver: SH-M1
       multi_level: false
       on_reject: end
+      engine: platform.approval
+    decision:
+    - when: 审批通过
+      goto: 4
+    - when: otherwise
+      goto: end
     actor_v1: 管理层
-  - actor: SH-M1
+    permission: 风险交付授权.审批
+    page: 风险交付授权审批页
+    audit: true
+    outcome: 授权未获批准
+    notify:
+    - to: SH-M1
+      how: 企业微信待办（待风险交付授权审批）
+    - to: SH-E2
+      how: 企业微信消息（审批结果，仅驳回时）
+  - actor: system
+    where: automatic
     command: 批准风险交付授权
     aggregate: AGG-17
     emits:
     - 风险交付授权已批准
+    desc: 审批通过后由 B-05 订阅审批结果执行（S-22 同做法，边 B-05 → platform.approval 含事件）；v1 此步由管理层执行，本批改为审批结果回调
     decision:
     - when: 合同已签回
       goto: 5
@@ -681,8 +1275,26 @@ processes:
       goto: 6
     - when: otherwise
       goto: end
+    cross_bc:
+    - mode: event
+      direction: in
+      bc: platform.approval
+      name: 审批结果（暂名）
+    timeout:
+      after: 授权期限届满（授权登记的期限）
+      escalate_to: SH-M1
+      interrupting: false
     actor_v1: 管理层
+    audit: true
+    metric_event: true
+    outcome: 已批准
+    notify:
+    - to: SH-E2
+      how: 企业微信消息（授权已批准，可先行投入）
+    - to: SH-M1
+      how: 企业微信待办（授权期限届满，请决定转正或叫停）
   - actor: SH-E5
+    where: in_system
     command: 转正风险交付授权
     aggregate: AGG-17
     branch: 转正
@@ -692,15 +1304,34 @@ processes:
     decision:
     - when: otherwise
       goto: end
+      rule: INV-19
     actor_v1: 商务
+    permission: 风险交付授权.转正
+    page: 风险交付授权转正页
+    audit: true
+    metric_event: true
+    outcome: 已转正
   - actor: SH-M1
+    where: in_system
     command: 叫停风险交付授权
     aggregate: AGG-17
     branch: 叫停
     emits:
     - Halted
+    decision:
+    - when: otherwise
+      goto: end
+      rule: INV-19
     actor_v1: 管理层
-  notes: 口径与转正时点待流程梳理（C-56）。
+    permission: 风险交付授权.叫停
+    page: 风险交付授权叫停页
+    audit: true
+    metric_event: true
+    outcome: 已叫停
+    notify:
+    - to: SH-E2
+      how: 企业微信消息（授权已叫停，停止先行投入）
+  notes: 口径与转正时点待流程梳理（C-56）。项目可先于授权存在，靠 P-09 度量预警承担（G-13）。授权被驳回后聚合没有对应命令（见 NOTES 结构问题）。
 - id: PRC-17
   name: 建立项目并组建团队
   trigger:
@@ -4276,6 +4907,23 @@ processes:
   - VS-05.1
   owner_bc: B-01
   human_orchestration: false
+  triggers:
+  - type: human
+    name: 项目经理或职能提出新供方，申请往来单位角色
+  outcomes:
+  - 角色已合格
+  - 准入未通过
+  - 角色已暂停
+  - 角色已停用
+  - 无需准入
+  scenarios:
+  - PRC-69-S01
+  - PRC-69-S02
+  - PRC-69-S03
+  - PRC-69-S04
+  - PRC-69-S05
+  - PRC-69-S06
+  - PRC-69-S07
   roles:
   - id: SH-E2
     as: initiator
@@ -4285,21 +4933,54 @@ processes:
     as: external
   - id: SH-P1
     as: external
+  migration: 全部往来单位角色及其准入状态（申请、合格、暂停、停用与原因）与关联资质证书全部迁入（U-4），记迁入来源与原始时间；投产时处于申请中的角色按申请迁入、由财务继续核验；已合格的供应商保留合格日期，不重新准入；客户角色不迁准入状态（P-3）
+  scope: 往来单位主数据全企业可读（付款、分包、采购前置读取）；角色准入的经办限财务职能角色，申请人只看到本人提出的申请
+  segregation: 角色申请人与核准合格人不得为同一人（项目经理申请，财务核准，建议保持）
   steps:
   - actor: SH-E2
+    where: in_system
     command: 申请往来单位角色
     aggregate: AGG-01
+    desc: 命令参数为角色，只适用供应商、分包、合伙人、渠道伙伴、联合体伙伴、海外持牌伙伴；客户角色无准入状态，档案核实即可用（P-3）
+    decision:
+    - when: 申请的角色为客户（客户角色不走准入）
+      goto: end
+      rule: INV-02
+      outcome: 无需准入
+    - when: otherwise
+      goto: 2
     actor_v1: 项目经理
+    permission: 往来单位角色.申请
+    page: 往来单位角色申请页
+    audit: true
+    notify:
+    - to: SH-E6
+      how: 企业微信待办（待核验供方资质）
   - actor: SH-E6
+    where: offline
     command: 登记资质证书
     aggregate: AGG-02
+    desc: 核验供方资质并登记；查验发证机关的公开查询结果，不凭复印件
+    evidence:
+    - 资质证书扫描件（类别、等级、有效期）
+    - 发证机关公开查询结果的截图或网页存档
     decision:
     - when: 资质核验未通过
       goto: end
+      outcome: 准入未通过
+    - when: 该供方类型无需资质
+      goto: 3
     - when: otherwise
       goto: 3
     actor_v1: 财务
+    permission: 资质证书.登记
+    page: 资质证书登记页
+    audit: true
+    notify:
+    - to: SH-E2
+      how: 企业微信消息（资质核验未通过，仅未通过时）
   - actor: SH-E6
+    where: in_system
     command: 核准往来单位角色合格
     aggregate: AGG-01
     emits:
@@ -4321,26 +5002,47 @@ processes:
       bc: B-10
       name: 读取角色准入状态
     actor_v1: 财务
+    permission: 往来单位角色.核准合格
+    page: 往来单位角色核准页
+    audit: true
+    metric_event: true
+    outcome: 角色已合格
   - actor: SH-E6
+    where: in_system
     command: 暂停往来单位角色
     aggregate: AGG-01
     branch: 暂停
     emits:
     - 角色已暂停
+    desc: 须填原因；未合格或已停用的供应商不得签分包、采购协议与付款（INV-04a、04b）
     decision:
     - when: 暂停原因消除
       goto: 3
     - when: otherwise
       goto: end
     actor_v1: 财务
+    permission: 往来单位角色.暂停
+    page: 往来单位角色核准页
+    audit: true
+    outcome: 角色已暂停
   - actor: SH-E6
+    where: in_system
     command: 停用往来单位角色
     aggregate: AGG-01
     branch: 停用
     emits:
     - 角色已停用
+    desc: 停用须原因（INV-02）
+    decision:
+    - when: otherwise
+      goto: end
+      rule: INV-02
     actor_v1: 财务
-  notes: 角色准入命令的参数为角色，只适用于供应商、分包等需准入的角色，客户角色不走准入（intent 120544 P-3）。未合格或已停用的供应商不得签分包、采购协议或付款（INV-04）；资质到期见「年检、核查与延续企业资质」。
+    permission: 往来单位角色.停用
+    page: 往来单位角色核准页
+    audit: true
+    outcome: 角色已停用
+  notes: 角色准入命令的参数为角色，只适用于供应商、分包等需准入的角色，客户角色不走准入（intent 120544 P-3）。未合格或已停用的供应商不得签分包、采购协议或付款（INV-04）；资质到期见「年检、核查与延续企业资质」。暂停、停用仍由财务人工触发（D10 建议）。
 - id: PRC-78
   name: 年检、核查与延续企业资质
   trigger:
@@ -4351,6 +5053,25 @@ processes:
   owner_bc: B-01
   human_orchestration: true
   human_note: 核查结论、降级撤销、延续审批
+  triggers:
+  - type: time
+    name: 资质有效期临近到期（P-02 提醒）
+  - type: message
+    name: 发证机关下发年检或动态核查通知（SH-R2）
+  outcomes:
+  - 核查通过
+  - 资质已降级
+  - 资质已撤销
+  - 资质已延续
+  - 资质已到期
+  scenarios:
+  - PRC-78-S01
+  - PRC-78-S02
+  - PRC-78-S03
+  - PRC-78-S04
+  - PRC-78-S05
+  - PRC-78-S06
+  - PRC-78-S07
   roles:
   - id: SH-E6
     as: initiator
@@ -4358,51 +5079,121 @@ processes:
     as: approver
   - id: SH-R2
     as: external
+  migration: 我方法人与供方的全部资质证书（类别、等级、有效期、核查与延续记录）全部迁入（U-4），记迁入来源与原始时间；投产时处于核查中或延续中的资质按当前状态迁入，已申请未获批复的延续保留申请受理证据；已过期的资质迁为到期状态
+  scope: 资质证书主数据全企业可读（投标、分包、检查引用）；核查、延续经办限财务/行政职能角色，延续批准限管理层
+  legal_entity: 持证方为我方法人时按持证法人口径登记（读 B-13 法人主体）；供方资质按往来单位登记
+  segregation: 核查结果登记人（SH-E6）与延续批准人（SH-M1）分离
   steps:
-  - actor: SH-E6
-    command: 发起资质核查
-    aggregate: AGG-02
+  - actor: system
+    where: automatic
+    read: true
+    reads:
+    - AGG-60
+    added_in: closeout
+    desc: 发起核查前读持证法人主体
     cross_bc:
     - mode: api
       direction: out
       bc: B-13
       name: 读持证法人主体
-    actor_v1: 职能人员
+    audit: false
   - actor: SH-E6
+    where: in_system
+    command: 发起资质核查
+    aggregate: AGG-02
+    actor_v1: 职能人员
+    permission: 资质证书.发起核查
+    page: 资质核查页
+    audit: true
+    notify:
+    - to: SH-E6
+      how: 企业微信待办（资质核查或年检，按发证机关要求准备材料）
+  - actor: SH-E6
+    where: offline
     command: 登记核查结果
     aggregate: AGG-02
     emits:
     - 资质已撤销
-    desc: 结果为有效 / 降级 / 撤销，撤销时发事件
+    desc: 线下办理年检或接受核查，结果为有效 / 降级 / 撤销，撤销时发事件（仅分析）
+    evidence:
+    - 年检回执或核查结论通知书（扫描件）
+    - 核查日期与发证机关
     decision:
     - when: 核查结论为撤销
       goto: end
+      outcome: 资质已撤销
+    - when: 核查结论为降级
+      goto: end
+      outcome: 资质已降级
     - when: 到期临近需延续
-      goto: 3
+      goto: 4
     - when: otherwise
       goto: end
     actor_v1: 职能人员
+    permission: 资质证书.登记核查结果
+    page: 资质核查页
+    audit: true
+    outcome: 核查通过
   - actor: SH-E6
-    command: 延续资质
-    aggregate: AGG-02
+    where: offline
+    added_in: closeout
+    desc: 向发证机关办理延续申请并取得受理回执，新证书取得后再登记（登记见第 5 步）
+    evidence:
+    - 延续申请受理回执（发证机关）
+    - 申请材料清单
+    timeout:
+      after: 资质有效期届满前（提醒提前量 P-02，以规则卡为准）
+      escalate_to: SH-M1
+      interrupting: false
     decision:
     - when: otherwise
-      goto: end
+      goto: 5
+    permission: 资质证书.登记延续申请
+    page: 资质延续申请登记页
+    audit: true
+    notify:
+    - to: SH-M1
+      how: 企业微信消息（资质即将到期，延续未办结时）
+  - actor: SH-M1
+    where: in_system
+    command: 延续资质
+    aggregate: AGG-02
+    desc: B-01 内单级命令，批准即延续并登记新有效期（D8 建议 ②，B-01 无到 platform.approval 的边，见 NOTES 结构问题）；驳回则资质待到期标记
     approval:
       doc_type: 资质延续审批单
       approver: SH-M1
       multi_level: false
-      on_reject: 4
+      on_reject: 6
+      engine: aggregate
+    decision:
+    - when: 延续获批准并已取得新有效期
+      goto: end
+    - when: otherwise
+      goto: 6
     actor_v1: 职能人员
+    permission: 资质证书.延续
+    page: 资质延续批准页
+    audit: true
+    outcome: 资质已延续
   - actor: system
+    where: automatic
     command: 标记资质已到期
     aggregate: AGG-02
     branch: 未延续
     on_time: 到期日届满
     emits:
     - 资质已到期
+    desc: 到期日届满且未延续，定时标记（执行方 platform.scheduling，G-04 未处理）
+    decision:
+    - when: otherwise
+      goto: end
     actor_v1: 系统策略
-  notes: 持证方含我方法人，位置见聚合稿 §7 第 3 条。
+    audit: true
+    outcome: 资质已到期
+    notify:
+    - to: SH-E6
+      how: 企业微信消息（资质已到期未延续）
+  notes: 持证方含我方法人，位置见聚合稿 §7 第 3 条。供方资质的核验与登记在「供应商准入与资质核验」，到期或撤销后供应商角色的暂停、停用由财务人工触发（两事件订阅方仅分析）。
 - id: PRC-86
   name: 发放与归还员工借款
   trigger:
@@ -5216,6 +6007,701 @@ event_policies:
   - PRC-148-S04
   notes: 随 Q-04：用户若不选 C，本策略撤销。审批结果回调的表示法见 NOTES 接缝问题 1。
 single_aggregate:
+- id: PRC-01
+  name: 举办市场活动
+  aggregate: AGG-08
+  owner_bc: B-03
+  stages:
+  - VS-01.1
+  desc: 市场部立项并开展活动
+  commands:
+  - actor_v1: 市场和客户经理
+    command: 计划市场活动
+  - actor_v1: 市场和客户经理
+    command: 开展市场活动
+  - actor_v1: 市场和客户经理
+    command: 结束市场活动
+    emits:
+    - 市场活动已结束
+  states:
+  - 计划
+  - 进行中
+  - 结束
+  transitions:
+  - from: null
+    to: 计划
+    command: 计划市场活动
+    by:
+    - SH-E5
+  - from: 计划
+    to: 进行中
+    command: 开展市场活动
+    by:
+    - SH-E5
+  - from: 进行中
+    to: 结束
+    command: 结束市场活动
+    by:
+    - SH-E5
+    emits:
+    - 市场活动已结束
+  permissions:
+  - code: 市场活动.计划
+    command: 计划市场活动
+    roles:
+    - SH-E5
+  - code: 市场活动.开展
+    command: 开展市场活动
+    roles:
+    - SH-E5
+  - code: 市场活动.结束
+    command: 结束市场活动
+    roles:
+    - SH-E5
+  pages:
+  - 市场活动登记页
+  - 市场活动跟进页
+  scope: 市场活动按部门范围可见；活动费用经费用报销归集，不在本聚合
+  migration: 历史市场活动（含已结束）全部迁入（U-4），记迁入来源与原始时间；投产时进行中的活动按进行中迁入；线索上的来源活动引用保持
+  scenarios:
+  - PRC-01-S01
+  - PRC-01-S02
+  notes: 活动产生的线索由「登记并跟进线索，转为商机」承接，活动对象只在线索上留来源引用。「市场活动已结束」仅分析。
+- id: PRC-02
+  name: 计划并完成客户活动
+  aggregate: AGG-102
+  owner_bc: B-03
+  stages:
+  - VS-01.1
+  desc: 客户经理为拜访或跟进排计划
+  commands:
+  - actor_v1: 市场和客户经理
+    command: 计划客户活动
+    emits:
+    - 客户活动已计划
+  - actor_v1: 市场和客户经理
+    command: 变更客户活动
+    branch: 变更
+    emits:
+    - 客户活动已变更
+  - actor_v1: 市场和客户经理
+    command: 完成客户活动
+    emits:
+    - 客户活动已完成
+    desc: 须填结果反馈（INV-110）
+  - actor_v1: 市场和客户经理
+    command: 取消客户活动
+    branch: 取消
+    emits:
+    - 客户活动已取消
+  states:
+  - 计划
+  - 已变更
+  - 已完成
+  - 取消
+  transitions:
+  - from: null
+    to: 计划
+    command: 计划客户活动
+    by:
+    - SH-E5
+    emits:
+    - 客户活动已计划
+  - from: 计划
+    to: 已变更
+    command: 变更客户活动
+    by:
+    - SH-E5
+    emits:
+    - 客户活动已变更
+    rule: INV-110
+  - from: 已变更
+    to: 已变更
+    command: 变更客户活动
+    by:
+    - SH-E5
+    emits:
+    - 客户活动已变更
+    rule: INV-110
+  - from: 计划
+    to: 已完成
+    command: 完成客户活动
+    by:
+    - SH-E5
+    emits:
+    - 客户活动已完成
+    rule: INV-110
+  - from: 已变更
+    to: 已完成
+    command: 完成客户活动
+    by:
+    - SH-E5
+    emits:
+    - 客户活动已完成
+    rule: INV-110
+  - from: 计划
+    to: 取消
+    command: 取消客户活动
+    by:
+    - SH-E5
+    emits:
+    - 客户活动已取消
+    rule: INV-110
+  - from: 已变更
+    to: 取消
+    command: 取消客户活动
+    by:
+    - SH-E5
+    emits:
+    - 客户活动已取消
+    rule: INV-110
+  reminders:
+  - policy: P-47
+    when: 计划日期已过仍未填结果反馈
+    to: SH-E5
+    how: 企业微信待办（客户活动待反馈）
+  permissions:
+  - code: 客户活动.计划
+    command: 计划客户活动
+    roles:
+    - SH-E5
+  - code: 客户活动.变更
+    command: 变更客户活动
+    roles:
+    - SH-E5
+  - code: 客户活动.完成
+    command: 完成客户活动
+    roles:
+    - SH-E5
+  - code: 客户活动.取消
+    command: 取消客户活动
+    roles:
+    - SH-E5
+  pages:
+  - 客户活动计划页
+  - 客户活动反馈页
+  scope: 客户活动对计划人及其管理链可见；结果反馈含客户联系人信息，按敏感级授权
+  migration: 历史客户活动（计划、变更记录、结果反馈、取消原因）全部迁入（U-4），记迁入来源与原始时间；计划日期已过且无反馈的在途活动迁为计划状态，由客户经理补反馈或取消；变更记录只追加，保留历史
+  scenarios:
+  - PRC-02-S01
+  - PRC-02-S02
+  - PRC-02-S03
+  - PRC-02-S04
+  notes: 完成事件供 reporting 算拜访量与计划完成率；P-47 计划日期已过仍未反馈则提醒。已完成、已取消的活动不得再变更，计划变更保留历史（INV-110）。取消须原因（信息图 OBJ-105）。
+- id: PRC-05
+  name: 维护往来单位档案
+  aggregate: AGG-01
+  owner_bc: B-01
+  stages:
+  - VS-01.1
+  - VS-05.1
+  desc: 业务人员登记新客户或供方，或档案信息变更
+  commands:
+  - actor_v1: 市场和客户经理
+    command: 登记往来单位
+    emits:
+    - 往来单位已登记
+  - actor_v1: 财务
+    command: 核实往来单位档案
+    emits:
+    - 往来单位已核实
+    desc: 核实后档案进入「有效」，商机方可引用（INV-26，intent 120544 P-3）
+  - actor_v1: 财务
+    command: 变更银行账户
+    emits:
+    - 银行账户已变更
+    desc: 订阅方 B-10 付款写入前做 P-01 预警
+  - actor_v1: 财务
+    command: 合并往来单位
+    branch: 合并
+    emits:
+    - 往来单位已合并
+  - actor_v1: 财务
+    command: 停用往来单位
+    branch: 停用
+    emits:
+    - 往来单位已停用
+  states:
+  - 待核实
+  - 有效
+  - 已合并
+  - 停用
+  transitions:
+  - from: null
+    to: 待核实
+    command: 登记往来单位
+    by:
+    - SH-E5
+    - SH-E2
+    emits:
+    - 往来单位已登记
+    rule: INV-01
+  - from: 待核实
+    to: 有效
+    command: 核实往来单位档案
+    by:
+    - SH-E6
+    emits:
+    - 往来单位已核实
+  - from: 待核实
+    to: 待核实
+    command: 变更银行账户
+    by:
+    - SH-E6
+    emits:
+    - 银行账户已变更
+  - from: 有效
+    to: 有效
+    command: 变更银行账户
+    by:
+    - SH-E6
+    emits:
+    - 银行账户已变更
+  - from: 有效
+    to: 已合并
+    command: 合并往来单位
+    by:
+    - SH-E6
+    emits:
+    - 往来单位已合并
+    rule: INV-03a
+  - from: 有效
+    to: 停用
+    command: 停用往来单位
+    by:
+    - SH-E6
+    emits:
+    - 往来单位已停用
+    rule: INV-03a
+  permissions:
+  - code: 往来单位.登记
+    command: 登记往来单位
+    roles:
+    - SH-E5
+    - SH-E2
+  - code: 往来单位.核实
+    command: 核实往来单位档案
+    roles:
+    - SH-E6
+  - code: 往来单位.变更银行账户
+    command: 变更银行账户
+    roles:
+    - SH-E6
+  - code: 往来单位.合并
+    command: 合并往来单位
+    roles:
+    - SH-E6
+  - code: 往来单位.停用
+    command: 停用往来单位
+    roles:
+    - SH-E6
+  pages:
+  - 往来单位登记页
+  - 往来单位档案核实页
+  - 往来单位银行账户变更页
+  - 往来单位合并页
+  - 往来单位停用页
+  scope: 往来单位主数据全企业可读；登记限业务角色，核实、银行账户变更、合并、停用限财务职能；银行账户与证件号码按敏感级脱敏授权
+  audit: 核实、银行账户变更、合并、停用须留操作审计（银行账户变更是付款欺诈高风险点，P-01）
+  migration: 全部往来单位档案（含已合并、停用、证件、银行账户、联系人、上级单位）全部迁入（U-4），按 D17 版本化迁入历史版本；已有统一社会信用代码的按代码去重（INV-01）；迁入的现行档案状态为有效的，视为已核实，不重新核实；老系统不完整的档案迁为待核实，由财务补核
+  scenarios:
+  - PRC-05-S01
+  - PRC-05-S02
+  - PRC-05-S03
+  - PRC-05-S04
+  - PRC-05-S05
+  - PRC-05-S06
+  notes: 主数据维护，单聚合；列入清单是为了覆盖阶段 VS-01.1 的往来单位引用与 VS-05.1 的准入前置。往来单位角色的申请、核准、暂停、停用见 PRC-69；客户角色不走准入，「正式往来单位」= 档案已核实（P-3）。合并、停用后不得新建协议与付款（INV-03a、b、c，由各聚合前置读）。
+- id: PRC-06
+  name: 做独立性检查
+  aggregate: AGG-18
+  owner_bc: B-03
+  stages:
+  - VS-01.2
+  desc: 我方为 IDI 风险管理机构时，商机进入跟进后由技术专家登记检查结论（读建设工程与我方参与记录、既有结论为前置读，不另列步骤）
+  commands:
+  - actor_v1: 技术专家
+    command: 登记独立性检查结论
+    emits:
+    - 独立性检查已有结论
+  states:
+  - 待查
+  - 无冲突
+  - 有冲突已获书面同意
+  - 有冲突不得承接
+  transitions:
+  - from: 待查
+    to: 无冲突
+    command: 登记独立性检查结论
+    by:
+    - SH-E4
+    emits:
+    - 独立性检查已有结论
+  - from: 待查
+    to: 有冲突已获书面同意
+    command: 登记独立性检查结论
+    by:
+    - SH-E4
+    emits:
+    - 独立性检查已有结论
+    rule: INV-33
+  - from: 待查
+    to: 有冲突不得承接
+    command: 登记独立性检查结论
+    by:
+    - SH-E4
+    emits:
+    - 独立性检查已有结论
+    rule: INV-33
+  permissions:
+  - code: 独立性检查.登记结论
+    command: 登记独立性检查结论
+    roles:
+    - SH-E4
+  pages:
+  - 独立性检查登记页
+  scope: 检查结果只对检查团队可见（信息图 OBJ-23，Q33 项目级访问控制）；投标、赢单、签约处只读结论
+  audit: 登记结论与书面同意附件须留操作审计
+  migration: 历史独立性检查结论与书面同意附件全部迁入（U-4），记迁入来源与原始时间；投产时仍在跟进的商机，缺结论的由技术专家补登记后才可递交投标（INV-33）
+  scenarios:
+  - PRC-06-S01
+  - PRC-06-S02
+  - PRC-06-S03
+  notes: 有冲突时须取得并登记书面同意（本聚合附件，必填并校验已上传）。拦截点在递交投标、直接委托赢单（售前，D-4 b）与签约前读取（INV-33，见「参加投标，登记结果并处理保证金」「起草、评审并回签协议」）。由业务流程移入单聚合维护（intent 120544 P-5；回溯检查 RD-12）。「待查」没有创建命令，商机进入跟进且我方为 IDI 风险管理机构时视为待查（见 NOTES）。
+- id: PRC-10
+  name: 收付保证金与保函
+  aggregate: AGG-51
+  owner_bc: B-09
+  stages:
+  - VS-01.2
+  - VS-04.1
+  desc: 投标、履约或质保需缴纳或收取保证金、开立保函
+  commands:
+  - actor_v1: 出纳
+    command: 登记保证金缴纳
+    emits:
+    - 保证金已缴
+  - actor_v1: 出纳
+    command: 登记保函开立
+    branch: 保函
+  - actor_v1: 出纳
+    command: 扣减保证金
+    branch: 扣减
+    desc: 履约保证金可部分扣减（INV-20）
+  - actor_v1: 出纳
+    command: 退还保证金
+    emits:
+    - 保证金已退
+  - actor_v1: 出纳
+    command: 没收保证金
+    branch: 没收
+    emits:
+    - 保证金已没收
+  - actor_v1: 出纳
+    command: 登记保函到期或索赔
+    branch: 保函
+    emits:
+    - 保函已到期
+  - actor_v1: 系统策略
+    command: 提交过账候选
+    calls: PRC-92
+  states:
+  - 待缴
+  - 已缴
+  - 已退
+  - 被没收
+  - 已开立
+  - 到期
+  - 被索赔
+  transitions:
+  - from: 待缴
+    to: 已缴
+    command: 登记保证金缴纳
+    by:
+    - SH-E6
+    emits:
+    - 保证金已缴
+    period_gate: true
+  - from: null
+    to: 已开立
+    command: 登记保函开立
+    by:
+    - SH-E6
+  - from: 已缴
+    to: 已缴
+    command: 扣减保证金
+    by:
+    - SH-E6
+    rule: INV-20
+    period_gate: true
+  - from: 已缴
+    to: 已退
+    command: 退还保证金
+    by:
+    - SH-E6
+    emits:
+    - 保证金已退
+    rule: INV-20
+    period_gate: true
+  - from: 已缴
+    to: 被没收
+    command: 没收保证金
+    by:
+    - SH-E6
+    emits:
+    - 保证金已没收
+    rule: INV-20
+    period_gate: true
+  - from: 已开立
+    to: 到期
+    command: 登记保函到期或索赔
+    by:
+    - SH-E6
+    emits:
+    - 保函已到期
+  - from: 已开立
+    to: 被索赔
+    command: 登记保函到期或索赔
+    by:
+    - SH-E6
+    emits:
+    - 保函已被索赔
+  posting:
+  - command: 提交过账候选
+    by: system
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 提交过账候选
+    period_gate: true
+    reject: 期间已关账时拒绝，不落入已关账期间（ADR-0016、ADR-0045）
+  permissions:
+  - code: 保证金.登记缴纳
+    command: 登记保证金缴纳
+    roles:
+    - SH-E6
+  - code: 保证金.登记保函
+    command: 登记保函开立
+    roles:
+    - SH-E6
+  - code: 保证金.扣减
+    command: 扣减保证金
+    roles:
+    - SH-E6
+  - code: 保证金.登记退还
+    command: 退还保证金
+    roles:
+    - SH-E6
+  - code: 保证金.没收
+    command: 没收保证金
+    roles:
+    - SH-E6
+  - code: 保证金.登记保函到期或索赔
+    command: 登记保函到期或索赔
+    roles:
+    - SH-E6
+  pages:
+  - 保证金缴纳登记页
+  - 保函开立登记页
+  - 保证金扣减页
+  - 保证金退还登记页
+  - 保证金没收页
+  - 保函到期或索赔登记页
+  legal_entity: 按资金账户所属法人口径登记和过账，保函按开立法人
+  scope: 保证金台账按法人范围可见，经办限财务出纳；保函文件与银行账户按敏感级授权
+  evidence: 缴纳、退还、没收各登记银行流水或保函原件扫描件
+  reminders:
+  - policy: P-10
+    when: 投标保证金超估算价 2%、履约超 10%（判定）；签约后 5 日未退（提醒）
+    to: SH-E6
+    how: 企业微信待办
+  migration: 全部保证金与保函（含已退、已没收、已到期、被索赔）及关联投标或协议引用全部迁入（U-4），记迁入来源与原始时间；投产时未退的保证金与未到期的保函按当前状态迁入，继续按本流程退还；原已过账的不再提交过账候选，只迁其过账引用
+  scenarios:
+  - PRC-10-S01
+  - PRC-10-S02
+  - PRC-10-S03
+  - PRC-10-S04
+  - PRC-10-S05
+  - PRC-10-S06
+  notes: 退还与没收互斥各只一次（INV-20）；P-10 保证金比例与退还时限为判定加提醒。由业务流程移入单聚合维护（intent 120544 P-5；回溯检查 RD-12）。投标未中标、废标、截止前撤回触发的退还见 PRC-08 第 15–20 步。
+- id: PRC-12
+  name: 发布服务产品与阶段类型版本
+  aggregate: AGG-03
+  aggregates:
+  - AGG-03
+  - AGG-04
+  owner_bc: B-02
+  stages:
+  - VS-01.2
+  desc: 目录管理员发布新版本
+  commands:
+  - actor_v1: 技术专家
+    command: 发布服务产品版本
+    emits:
+    - 服务产品版本已发布
+  - actor_v1: 技术专家
+    command: 发布阶段类型版本
+    aggregate: AGG-04
+    emits:
+    - 阶段类型版本已发布
+  - actor_v1: 技术专家
+    command: 停用服务产品版本
+    aggregate: AGG-03
+    branch: 停用
+    desc: 「启用」= 版本已发布，停用后进入 VS-01.2 的报价不得再选该版本（回溯检查 RD-10）
+  - actor_v1: 技术专家
+    command: 停用阶段类型版本
+    aggregate: AGG-04
+    branch: 停用
+  states:
+  - 已发布
+  - 已停用
+  transitions:
+  - aggregate: AGG-03
+    from: null
+    to: 已发布
+    command: 发布服务产品版本
+    by:
+    - SH-E4
+    emits:
+    - 服务产品版本已发布
+    rule: INV-34
+  - aggregate: AGG-03
+    from: 已发布
+    to: 已停用
+    command: 停用服务产品版本
+    by:
+    - SH-E4
+  - aggregate: AGG-04
+    from: null
+    to: 已发布
+    command: 发布阶段类型版本
+    by:
+    - SH-E4
+    emits:
+    - 阶段类型版本已发布
+    rule: INV-34a
+  - aggregate: AGG-04
+    from: 已发布
+    to: 已停用
+    command: 停用阶段类型版本
+    by:
+    - SH-E4
+  permissions:
+  - code: 服务产品版本.发布
+    command: 发布服务产品版本
+    roles:
+    - SH-E4
+  - code: 服务产品版本.停用
+    command: 停用服务产品版本
+    roles:
+    - SH-E4
+  - code: 阶段类型版本.发布
+    command: 发布阶段类型版本
+    roles:
+    - SH-E4
+  - code: 阶段类型版本.停用
+    command: 停用阶段类型版本
+    roles:
+    - SH-E4
+  pages:
+  - 服务产品版本发布页
+  - 阶段类型版本发布页
+  scope: 服务产品与阶段类型目录全企业可读；发布、停用限技术委员会目录管理员
+  audit: 发布与停用须留操作审计（被引用版本不可改，停用影响新报价选择）
+  migration: 全部服务产品与阶段类型的历史版本（含已停用，D17 版本化）全部迁入（U-4）；报价、项目、WBS 对历史版本的引用保持；阶段类型取值待用户提供（Q06），迁入框架按其到位后补；投产时的现行版本置为已发布
+  scenarios:
+  - PRC-12-S01
+  - PRC-12-S02
+  - PRC-12-S03
+  notes: 被引用版本不可改，只增版本（INV-34）；两个版本聚合同 BC，分两步各改一个。阶段类型取值待用户另行提供（Q06）。
+- id: PRC-14
+  name: 登记建设工程与招标项目
+  aggregate: REF-01
+  aggregates:
+  - AGG-33
+  - REF-01
+  owner_bc: B-01
+  stages:
+  - VS-01.2
+  - VS-02.6
+  - VS-03.1
+  desc: 客户经理或项目经理登记受检对象或招标信息
+  commands:
+  - actor_v1: 市场和客户经理
+    command: 登记建设工程
+    aggregate: AGG-33
+    emits:
+    - 建设工程已登记
+  - actor_v1: 市场和客户经理
+    command: 登记招标项目
+    gap: G-06
+  - actor_v1: 市场和客户经理
+    command: 更新外部状态
+    aggregate: AGG-33
+    desc: 只记录并带登记日期与来源（R-08）
+  states:
+  - 已登记
+  external_status_note: 外部状态只记录、不控制、不作阶段门：建设工程（规划、在建、已竣工在用、超设计使用年限、改造中、拆除）；招标项目（已公告、截止、开标、公示、定标、终止、重新招标），均带登记日期与来源
+  transitions:
+  - aggregate: AGG-33
+    from: null
+    to: 已登记
+    command: 登记建设工程
+    by:
+    - SH-E5
+    - SH-E2
+    emits:
+    - 建设工程已登记
+  - aggregate: AGG-33
+    from: 已登记
+    to: 已登记
+    command: 更新外部状态
+    by:
+    - SH-E5
+    - SH-E2
+  - aggregate: AGG-33
+    from: 已登记
+    to: 已登记
+    command: 登记我方参与记录
+    by:
+    - SH-E2
+    rule: 由交付登记（D-4 b），命令在聚合稿 AGG-33
+  - aggregate: REF-01
+    from: null
+    to: 已登记
+    command: 登记招标项目
+    by:
+    - SH-E5
+    - SH-E2
+  permissions:
+  - code: 建设工程.登记
+    command: 登记建设工程
+    roles:
+    - SH-E5
+    - SH-E2
+  - code: 建设工程.更新外部状态
+    command: 更新外部状态
+    roles:
+    - SH-E5
+    - SH-E2
+  - code: 招标项目.登记
+    command: 登记招标项目
+    roles:
+    - SH-E5
+    - SH-E2
+  pages:
+  - 建设工程登记页
+  - 招标项目登记页
+  - 外部状态更新页
+  scope: 外部引用登记全企业可读（售前、交付、合同、检查共同引用）；登记限业务角色，登记后不删除，错误以更新外部状态与备注更正
+  migration: 全部建设工程与招标项目登记（含建筑系统与部位、往来单位角色及起止、外部状态历史）全部迁入（U-4），记迁入来源与原始时间；同一招标项目 ID 加标段保持唯一（INV-28 的键）；政府平台编号只作外部标识，不作主键
+  scenarios:
+  - PRC-14-S01
+  - PRC-14-S02
+  - PRC-14-S03
+  notes: 外部引用对象只记录、不控制，不作阶段门。由业务流程移入单聚合维护（intent 120544 P-5；回溯检查 RD-12）。聚合稿 REF-01 已有命令「登记招标项目」，v1 的 G-06 标注留作追溯。
 - id: PRC-42
   name: 发布检查表模板版本
   type: single_aggregate
