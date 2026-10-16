@@ -1,19 +1,32 @@
 """Business object x process/command CRUD matrix from the group skeletons, plus six consistency checks (report only).
 
-Usage: python3 -I object_check.py [--local] [--write] [--matrix PATH] [--states PATH]   |   --self-test
+Usage: python3 -I object_check.py [--local] [--write] [--matrix PATH] [--states PATH]... [--commands PATH]...   |   --self-test
   skeletons: processes.<group>.yaml from origin/claude/one-arch-<group>-closeout (or closeout/<group>/ with --local)
   objects:   OBJ-NN in the aggregate name cell of ENTERPRISE_AGGREGATES_DRAFT.md section 2.2; catalogue = table rows of ENTERPRISE_INFO_MAP_DRAFT.md
              (rows whose definition says 非对象 / 行号保留 are not objects); an aggregate without OBJ-NN is its own row
+  states:    state-machines.yaml of each group (converge_check.py format; --state PATH repeatable, default: each group's file, or closeout/state-machines.yaml)
+  commands:  commands.yaml of each group (--commands PATH repeatable); entries whose unused_ok says they are fired by an on_reject / withdraw / 驳回 / 撤回
+             edge count as reverse
   --write:   write CRUD_MATRIX.md (sections by value stream: VS-NN of the first stage of the process) next to this script
 
-Command class by name: D end/archive/reverse words (关闭 结束 完成 取消 作废 冲销 ...), C create words (登记 新建 创建 ...), U change words (提交 批准
-确认 变更 ...), otherwise "?". Reverse words (冲销 红冲 撤销 撤回 作废 回退 更正 释放 取消) are also counted as reverse. A step with `read`/`reads` marks R.
+Command class (per aggregate x command), in this order:
+  1 state machine of the aggregate, when it has a transition of that command: from null = C (create); to a terminal state from another state = D (end,
+    but not when the same command also creates: that is a successor replacing the old version, counted U); kind non_state = U; kind reverse (or reverse_of
+    with a command) = reverse; other transitions out of an initial 草稿/草案 state = C; anything else = U.
+  2 otherwise by the verb at the start of the command name (end words, then change words, then create words; UPDATE before CREATE), then by a word
+    contained in the name (two characters or more). Reverse words (冲销 红冲 撤销 撤回 作废 回退 更正 释放 取消 驳回 退回 废止) are D and reverse;
+    启用 恢复 重新生成 are reverse and U. Prefix 〔缺〕 (proposed command) is stripped first; its cells carry a * in the matrix. Not found: "?".
+A step with `read`/`reads` marks R. Step approval.on_reject and step withdraw (target = the aggregate of the gated command), and catalogue commands
+whose unused_ok names an on_reject / withdraw edge, count as reverse.
 Checks: 1 aggregate or object not in the catalogue (or already a non-object); 2 object lacking creation / change / end in any process (or not touched
 at all: missing process, or should be reference data or an attribute); 3 one step changing several aggregates beyond inner/also (list aggregate, `aggregates`,
-compound command name, unit with several aggregates) and aggregate state sets of different units that do not form one machine (several unconnected
-components, or names differing only by 已/待 prefix, or terminal in one unit and not in another); 4 several BCs writing one object (step.bc or the
-process owner_bc, against the aggregate's BC); 5 object x command without an A in RESPONSIBILITY_MATRIX.yaml (skipped when absent); 6 lifecycle:
-no end/archive, no reverse command. Exit code 0 (1 for --self-test failure).
+compound command name unless the name is in the aggregate draft's command column, unit with several aggregates) and aggregate state sets of different units
+that do not form one machine (several components after joining states by transitions and by shared command names; components holding a kind: entry
+target are sub-lifecycles and ignored) or names differing only by 已/待 prefix with no transition between them, or terminal in one unit and not in another;
+4 several BCs writing one object (step.bc or the process owner_bc, against the aggregate's BC; objects of an aggregate marked 一拆多 skipped); 5 object x
+command without an A in RESPONSIBILITY_MATRIX.yaml (skipped when absent); 6 lifecycle: no end/archive, no reverse command; 7 machine marked stateless or
+perpetual without a reason. Aggregates with stateless: true or perpetual: true (with reason) are exempt from the end checks (2 and 6 end). Exit code 0
+(1 for --self-test failure).
 """
 import collections
 import importlib.util
@@ -30,23 +43,77 @@ _spec.loader.exec_module(cc)
 INFO_MAP = cc.PROPOSALS / "ENTERPRISE_INFO_MAP_DRAFT.md"
 VS_FILE = cc.PROPOSALS / "value-streams.v2.yaml"
 
-REVERSE = ("冲销", "红冲", "撤销", "撤回", "作废", "回退", "更正", "释放", "取消")
-END = ("关闭", "结束", "终止", "归档", "结项", "结清", "停用", "注销", "完成", "办结", "竣工", "关账", "封账", "核销", "结转", "退还", "没收") + REVERSE
-CREATE = ("登记", "新建", "创建", "建立", "开立", "发起", "计划", "编制", "立项", "生成", "导入", "录入", "起草", "申请", "设立", "开具", "发布", "制单", "入职", "办理")
+REVERSE = ("冲销", "红冲", "撤销", "撤回", "作废", "回退", "更正", "释放", "取消", "驳回", "退回", "废止")
+REVERSE_ONLY = ("启用", "恢复", "重新生成")
+END = ("关闭", "结束", "终止", "归档", "结项", "结清", "停用", "注销", "完成", "办结", "竣工", "关账", "封账", "核销", "结转", "退还", "没收",
+       "减员", "锁定", "归还", "离职") + REVERSE
+CREATE = ("登记", "新建", "创建", "建立", "开立", "发起", "计划", "编制", "立项", "生成", "导入", "录入", "起草", "申请", "设立", "开具", "发布", "制单", "入职", "办理",
+          "增员", "草拟", "计算")
 UPDATE = ("修改", "变更", "更新", "调整", "维护", "批准", "通过", "审批", "核定", "审核", "复核", "提交", "确认", "分配", "占用", "锁定", "认可",
-          "评审", "生效", "回签", "过账", "匹配", "补充", "修订", "标记", "置", "扣减", "认领", "内审", "答复", "决议", "转")
+          "评审", "生效", "回签", "过账", "匹配", "补充", "修订", "标记", "置", "扣减", "认领", "内审", "答复", "决议", "转",
+          "更名", "补卡", "指定") + REVERSE_ONLY
+DRAFT_STATE = re.compile(r"(^|:)(草稿|草案)$")
+BRANCH_EDGE = re.compile(r"on_reject|withdraw|驳回|撤回")
 
 
 def classify_cmd(name):
     n = cc.base_cmd(name)
-    rev = any(w in n for w in REVERSE)
-    if any(w in n for w in END):
-        return "D", rev
-    if any(w in n for w in CREATE):
-        return "C", rev
-    if any(w in n for w in UPDATE):
-        return "U", rev
-    return "?", rev
+    for at_start in (True, False):
+        for letter, words in (("D", END), ("U", UPDATE), ("C", CREATE)):
+            for w in words:
+                if (n.startswith(w) if at_start else (len(w) > 1 and w in n)):
+                    if w in REVERSE_ONLY:
+                        return "U", True
+                    return letter, w in REVERSE
+    return "?", False
+
+
+def froms(t):
+    f = t.get("from")
+    return list(f) if isinstance(f, list) else [f]
+
+
+def prep_machine(m):
+    sts = [s["name"] if isinstance(s, dict) else s for s in m.get("states") or []]
+    trs = [t for t in m.get("transitions") or [] if isinstance(t, dict)]
+    term = {s["name"] for s in m.get("states") or [] if isinstance(s, dict) and s.get("terminal")}
+    if trs:
+        out = {f for t in trs for f in froms(t) if f and f != t.get("to")}
+        term |= {s for s in sts + [t.get("to") for t in trs] if s and s not in out}
+    initial = m.get("initial") or (sts[0] if sts else None)
+    by_cmd = collections.defaultdict(list)
+    for t in trs:
+        if t.get("command"):
+            by_cmd[cc.base_cmd(t["command"])].append(t)
+    null_to = {t.get("to") for t in trs if None in froms(t) and t.get("kind") != "non_state"}
+    draft = {t.get("to") for t in trs if None in froms(t) and DRAFT_STATE.search(str(t.get("to")))}
+    if DRAFT_STATE.search(str(initial)):
+        draft.add(initial)
+    return {"initial": initial, "null_to": null_to, "term": term, "draft": draft, "by_cmd": by_cmd,
+            "stateless": bool(m.get("stateless")), "perpetual": bool(m.get("perpetual")), "reason": m.get("reason")}
+
+
+def machine_class(pm, cmd):
+    ts = pm["by_cmd"].get(cmd)
+    if not ts:
+        return None
+    letters, rev = set(), False
+    creates = any(None in froms(t) for t in ts if t.get("kind") != "non_state")
+    for t in ts:
+        k, to, fr = t.get("kind"), t.get("to"), froms(t)
+        if k == "reverse" or t.get("reverse_of"):
+            rev = True
+        if k == "non_state":
+            letters.add("U")
+        elif None in fr:
+            letters.add("C" if to == pm["initial"] or pm["initial"] not in pm["null_to"] else "U")
+        elif to in pm["term"] and to not in fr:
+            letters.add("U" if creates else "D")
+        elif pm["draft"] & set(fr) and to not in pm["draft"]:
+            letters.add("C")
+        else:
+            letters.add("U")
+    return letters, rev
 
 
 def load_catalog():
@@ -83,8 +150,17 @@ def unit_vs(u):
     return m.group(1) if m else "未标阶段"
 
 
-def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None):
+def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None, catalog_cmds=None):
     """Pure analysis; returns dict with rows, issues (item -> [(vs, text)])."""
+    pms = {a: prep_machine(m) for a, m in (machines or {}).items()}
+    draft_names = {a: set(v["commands"]) for a, v in aggs.items()}
+
+    def cmd_class(a, cmd):
+        n = cc.base_cmd(cmd)
+        r = machine_class(pms[a], n) if a in pms else None
+        by_name = classify_cmd(n)
+        return (r[0], r[1] or by_name[1]) if r else ({by_name[0]}, by_name[1])
+
     all_ids = set(aggs) | set(new_aggs)
     key_of = {}
     for a, v in aggs.items():
@@ -92,6 +168,8 @@ def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None):
     for a in new_aggs:
         key_of.setdefault(a, a)
     touch = collections.defaultdict(lambda: collections.defaultdict(set))   # key -> unit -> letters
+    firm = collections.defaultdict(lambda: collections.defaultdict(set))   # same, without proposed (〔缺〕) commands
+    touched_aggs = collections.defaultdict(set)
     unit_info = {}
     cmdletters = collections.defaultdict(lambda: collections.defaultdict(set))  # key -> letter -> {cmd}
     rev_cmds = collections.defaultdict(set)
@@ -118,6 +196,11 @@ def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None):
                 cmd = c.get("command") if isinstance(c, dict) else c
                 if u.get("aggregate") and cmd:
                     steps = steps + [{"aggregate": u["aggregate"], "command": cmd, "actor": "x", "where": "in_system", "_unitcmd": True}]
+            for i, s in enumerate(steps):
+                if (isinstance(s.get("approval"), dict) and s["approval"].get("on_reject") is not None) or s.get("withdraw"):
+                    tgt = cc.gated_target(steps, i)
+                    if tgt and isinstance(tgt[0], str):
+                        rev_cmds[key_of.get(tgt[0], tgt[0])].add(f"{uid} 第{i + 1}步 驳回或撤回边")
             for n, s in enumerate(steps, 1):
                 kind = cc.classify(s, u)
                 refs = []
@@ -128,7 +211,8 @@ def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None):
                         refs.append((x["aggregate"], x.get("command")))
                 if isinstance(s.get("aggregate"), list) or s.get("aggregates"):
                     issues["3 步骤同时改多个聚合"].append((vs, f"{uid} 第{n}步 {s.get('command')}：{s.get('aggregate') or s.get('aggregates')}"))
-                if s.get("command") and re.search(r"[、并及]", cc.base_cmd(s["command"])) and kind == "command":
+                if (s.get("command") and re.search(r"[、并及]", cc.base_cmd(s["command"])) and kind == "command"
+                        and not any(cc.base_cmd(s["command"]) in draft_names.get(x, ()) for x, _c in refs)):
                     issues["3 步骤同时改多个聚合"].append((vs, f"{uid} 第{n}步 命令名含并列：{cc.base_cmd(s['command'])}"))
                 for a in list(s.get("reads") or []) + list(s.get("also") or []):
                     if isinstance(a, str):
@@ -138,23 +222,29 @@ def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None):
                         continue
                     seen_aggs.add(a)
                     key = key_of.get(a, a)
+                    touched_aggs[key].add(a)
                     first_vs.setdefault(key, vs) if vs != "未标阶段" else first_vs.setdefault(key, vs)
                     if cmd is None or kind in ("read", "platform"):
                         if kind != "platform":
                             touch[key][uid].add("R")
                         continue
-                    if cc.MISSING in str(cmd):
-                        touch[key][uid].add("?")
-                        continue
-                    L, rv = classify_cmd(cmd)
-                    touch[key][uid].add(L)
-                    cmdletters[key][L].add(cc.base_cmd(cmd))
+                    Ls, rv = cmd_class(a, cmd)
+                    touch[key][uid] |= Ls
+                    if cc.MISSING not in str(cmd):
+                        firm[key][uid] |= Ls
+                    for L in Ls:
+                        cmdletters[key][L].add(cc.base_cmd(cmd))
                     if rv:
                         rev_cmds[key].add(cc.base_cmd(cmd))
+                    if cc.MISSING in str(cmd):
+                        continue
                     wcmds[a].add(cc.base_cmd(cmd))
                     bc = s.get("bc") or owner
                     if bc:
                         writers[key][str(bc)].add(f"{uid}")
+    for a, cmd, why in catalog_cmds or []:
+        if a in all_ids and BRANCH_EDGE.search(why) and ("触发" in why or "回调" in why):
+            rev_cmds[key_of.get(a, a)].add(f"{cc.base_cmd(cmd)}（目录 unused_ok）")
     # 1 catalogue
     for a in sorted(seen_aggs):
         vs = "未标阶段"
@@ -187,11 +277,14 @@ def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None):
             continue
         letters = set().union(*touch[k].values())
         label = f"{k} {names.get(k, '')}（{'、'.join(sorted(members.get(k, [])))}）"
+        exempt = all(a in pms and (pms[a]["stateless"] or pms[a]["perpetual"]) and pms[a]["reason"] for a in touched_aggs[k])
         for L, txt in (("C", "无人创建"), ("U", "无人修改"), ("D", "无人结束或归档")):
+            if L == "D" and exempt:
+                continue
             if L not in letters:
                 hint = sorted(draft_cmds[k][L])[:3]
                 issues[f"2 对象{txt}"].append((vs_of(k), label + (f"；聚合稿有命令未被流程用：{'、'.join(hint)}" if hint else "")))
-        if "D" not in letters:
+        if "D" not in letters and not exempt:
             issues["6 生命周期缺结束或归档"].append((vs_of(k), label))
         if not rev_cmds.get(k):
             hint = sorted(draft_cmds[k]["rev"])[:3]
@@ -209,18 +302,27 @@ def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None):
     src = {a: list(v) for a, v in agg_states.items()}
     for a, m in (machines or {}).items():
         src.setdefault(a, []).append(("state-machines.yaml", [s["name"] if isinstance(s, dict) else s for s in m.get("states") or []], m.get("transitions") or []))
+    for a, pm in sorted(pms.items()):
+        if (pm["stateless"] or pm["perpetual"]) and not pm["reason"] and a in seen_aggs:
+            issues["7 机器标 stateless 或 perpetual 却没写理由"].append((vs_of(key_of.get(a, a)), a))
     for a, lst in sorted(src.items()):
-        states, edges, termin, nonterm = set(), set(), {}, {}
+        states, edges, termin, nonterm, by_cmd, entry_to = set(), set(), {}, {}, collections.defaultdict(set), set()
         for uid, sts, trs in lst:
             local_states = {x.get('name') if isinstance(x, dict) else x for x in sts}
             outgoing = set()
             for t in trs:
-                for f in ([t.get("from")] if not isinstance(t.get("from"), list) else t["from"]):
-                    if f:
+                for f in froms(t):
+                    if f and f != "*":
                         edges.add((f, t.get("to")))
                         outgoing.add(f)
                         local_states.add(f)
+                        if t.get("command"):
+                            by_cmd[cc.base_cmd(t["command"])].add(f)
                 local_states.add(t.get("to"))
+                if t.get("command"):
+                    by_cmd[cc.base_cmd(t["command"])].add(t.get("to"))
+                if t.get("kind") == "entry":
+                    entry_to.add(t.get("to"))
             states |= {x for x in local_states if x}
             for st_ in local_states:
                 (nonterm if st_ in outgoing else termin).setdefault(st_, uid)
@@ -234,18 +336,25 @@ def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None):
         for f, t in edges:
             if f in parent and t in parent:
                 parent[find(f)] = find(t)
+        for grp in by_cmd.values():
+            grp = [x for x in grp if x in parent]
+            for x in grp[1:]:
+                parent[find(x)] = find(grp[0])
         comps = collections.defaultdict(list)
         for s_ in states:
             comps[find(s_)].append(s_)
+        sub = {find(x) for x in entry_to if x in parent}
+        loose = [c for r, c in comps.items() if r not in sub]
         vs = vs_of(key_of.get(a, a))
-        if len(comps) > 1:
-            issues["3 状态集合合不成一张状态机（无转换相连）"].append((vs, f"{a}：{sorted(sorted(c) for c in comps.values())}"))
+        if len(loose) > 1:
+            issues["3 状态集合合不成一张状态机（无转换相连）"].append((vs, f"{a}：{sorted(sorted(c) for c in loose)}"))
         norm = collections.defaultdict(set)
         for s_ in states:
             norm[re.sub(r"^[已待]", "", s_)].add(s_)
         for nm, grp in norm.items():
-            if len(grp) > 1:
-                issues["3 状态名冲突"].append((vs, f"{a}：{sorted(grp)} 疑为同一状态的两种叫法"))
+            pairs = [(x, y) for x in sorted(grp) for y in sorted(grp) if x < y and (x, y) not in edges and (y, x) not in edges]
+            if pairs:
+                issues["3 状态名冲突"].append((vs, f"{a}：{sorted({x for p_ in pairs for x in p_})} 疑为同一状态的两种叫法（之间无转换）"))
         for s_ in states:
             if s_ in termin and s_ in nonterm and termin[s_] != nonterm[s_]:
                 issues["3 状态名冲突"].append((vs, f"{a}：「{s_}」在 {termin[s_]} 为终点、在 {nonterm[s_]} 有出转换"))
@@ -253,6 +362,8 @@ def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None):
     for k, bcs in sorted(writers.items()):
         home = {aggs[a]["bc"] for a in members.get(k, []) if a in aggs}
         bset = set(bcs)
+        if any(aggs[a].get("kind") == "一拆多" for a in members.get(k, []) if a in aggs):
+            continue
         if len(bset | home) > 1 and len({b for b in bset | home if not b.startswith("platform")}) > 1:
             issues["4 多个 BC 写同一对象"].append((vs_of(k), f"{k} {names.get(k, '')}：写入方 {', '.join(f'{b}（{len(u)} 流程）' for b, u in sorted(bcs.items()))}；聚合稿 BC {sorted(home)}"))
     # 5 matrix
@@ -265,7 +376,7 @@ def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None):
                     issues["5 权责表无此对象×命令"].append((vs_of(key_of.get(a, a)), f"{a} {c}"))
                 elif not A or A.get("resolve") == "TODO":
                     issues["5 权责表 A 未定"].append((vs_of(key_of.get(a, a)), f"{a} {c}"))
-    return {"touch": touch, "names": names, "members": members, "issues": issues, "unit_info": unit_info, "first_vs": first_vs}
+    return {"touch": touch, "firm": firm, "names": names, "members": members, "issues": issues, "unit_info": unit_info, "first_vs": first_vs}
 
 
 def render_matrix(R, vsn):
@@ -275,7 +386,7 @@ def render_matrix(R, vsn):
         for uid, L in us.items():
             by_vs[ui[uid][1]][k][uid] = L
     out = ["# 业务对象 × 流程 CRUD 矩阵（object_check.py 自动生成，勿手改）", "",
-           "格：C 创建、U 修改、D 结束或归档（含冲销撤回类）、R 只读、? 命令名判不出；按命令名关键词判定，只作线索。对象行取聚合稿 §2.2 的 OBJ-NN，无 OBJ 的聚合自成一行。", ""]
+           "格：C 创建、U 修改、D 结束或归档（含冲销撤回类）、R 只读、? 判不出、* 号表示该字母只来自提议命令（〔缺〕）；先按状态机、再按命令名动词判定，只作线索。对象行取聚合稿 §2.2 的 OBJ-NN，无 OBJ 的聚合自成一行。", ""]
     iss = R["issues"]
     out += ["## 问题汇总（按价值流）", ""]
     vss = sorted({v for lst in iss.values() for v, _ in lst}, key=lambda x: (x == "未标阶段" or x == "未触及", x))
@@ -303,7 +414,8 @@ def render_matrix(R, vsn):
             out.append("| 对象 | " + " | ".join(cols) + " |")
             out.append("|---|" + "---|" * len(cols))
             for k in sorted(by_vs[v], key=lambda x: (x[:3], int(re.sub(r"\D", "", x) or 0))):
-                cells_ = ["".join(sorted(by_vs[v][k].get(u, ""), key=lambda c: "CUD?R".index(c))) for u in cols]
+                cells_ = ["".join(c + ("" if c in R["firm"][k][u] or c == "R" else "*") for c in sorted(by_vs[v][k].get(u, ""), key=lambda c: "CUD?R".index(c)))
+                          for u in cols]
                 if any(cells_):
                     out.append(f"| {k} {names.get(k, '')} | " + " | ".join(cells_) + " |")
         out.append("")
@@ -338,6 +450,85 @@ SAMPLE_DOCS = {"g": {"processes": [{"id": "PRC-90", "stages": ["VS-08.1"], "owne
          "transitions": [{"from": None, "to": "提交"}, {"from": "已提交", "to": "关闭"}]}]}}
 
 
+def _run(steps, aggs, machines=None, catalog_cmds=None, units=None, draft_cmds=None):
+    doc = {"processes": [{"id": "PRC-1", "stages": ["VS-01.1"], "owner_bc": "B-01", "steps": steps}] + (units or [])}
+    full = {a: {"bc": "B-01", "name": a, "objs": [f"OBJ-{a[-2:]}"], "commands": (draft_cmds or {}).get(a, []), "kind": "一对一"} for a in aggs}
+    return analyse({"g": doc}, full, {}, {}, None, machines, catalog_cmds)
+
+
+def _st(a, cmd, **kw):
+    return dict({"actor": "SH-E1", "where": "in_system", "aggregate": a, "command": cmd}, **kw)
+
+
+def self_test_more():
+    results = []
+
+    def check(name, cond, info=None):
+        results.append(cond)
+        print(f"自测 {name}: {'通过' if cond else '失败'}")
+        if not cond and info is not None:
+            print("   ", info)
+
+    def iss(R, k):
+        return sorted(t for _v, t in R["issues"].get(k, []))
+    M = lambda a, states, trs, **kw: dict({"aggregate": a, "states": states, "transitions": trs}, **kw)
+    # 1 proposed prefix is stripped, classified, and marked in the matrix
+    R = _run([_st("AGG-01", "〔缺〕作废甲乙")], ["AGG-01"])
+    check("〔缺〕前缀先剥掉再分类", R["touch"]["OBJ-01"]["PRC-1"] == {"D"} and not R["firm"]["OBJ-01"]["PRC-1"] and "无人结束" not in "".join(iss(R, "6 生命周期缺结束或归档")),
+          R["touch"])
+    check("提议命令在矩阵里标 *", "| OBJ-01 AGG-01 | D* |" in render_matrix(R, {}))
+    # 2 state machine first
+    m = M("AGG-02", ["草稿", "已提交", {"name": "已完结", "terminal": True}],
+          [{"from": None, "to": "草稿", "command": "起甲"}, {"from": "草稿", "to": "已提交", "command": "送乙"}, {"from": "已提交", "to": "已完结", "command": "收丙"},
+           {"from": "已提交", "to": "草稿", "command": "打丁", "kind": "reverse"}, {"from": "草稿", "to": "草稿", "command": "微戊", "kind": "non_state"}], initial="草稿")
+    got = {c: machine_class(prep_machine(m), c) for c in ("起甲", "送乙", "收丙", "打丁", "微戊")}
+    check("机器：from null 创建、草稿初态出向创建、指向终态结束、reverse 逆向、non_state 修改",
+          got == {"起甲": ({"C"}, False), "送乙": ({"C"}, False), "收丙": ({"D"}, False), "打丁": ({"U"}, True), "微戊": ({"U"}, False)}, got)
+    R = _run([_st("AGG-02", c) for c in ("起甲", "收丙", "打丁", "微戊")], ["AGG-02"], {"AGG-02": m})
+    check("机器优先：名字无词表词也分得出", R["touch"]["OBJ-02"]["PRC-1"] == {"C", "D", "U"} and not R["issues"].get("6 生命周期缺冲销撤回类逆向"), R["issues"])
+    R = _run([_st("AGG-03", "批准用印申请"), _st("AGG-03", "提交申请")], ["AGG-03"])
+    check("机器缺失退回按名字（动词在前，UPDATE 先于 CREATE）", R["touch"]["OBJ-03"]["PRC-1"] == {"U"}, R["touch"])
+    repl = M("AGG-04", ["生效", {"name": "已结束", "terminal": True}], [{"from": None, "to": "生效", "command": "换版"}, {"from": "生效", "to": "已结束", "command": "换版"}])
+    R = _run([_st("AGG-04", "换版")], ["AGG-04"], {"AGG-04": repl})
+    check("同一命令既创建又结束旧版本，不算结束", any("OBJ-04" in x for x in iss(R, "2 对象无人结束或归档")), R["issues"])
+    # 3 reverse edges
+    R = _run([_st("AGG-05", "批准甲", approval={"engine": "platform.approval", "on_reject": 1}), _st("AGG-05", "登记乙")], ["AGG-05"])
+    check("approval.on_reject 计入逆向", not any("OBJ-05" in x for x in iss(R, "6 生命周期缺冲销撤回类逆向")), R["issues"])
+    R = _run([_st("AGG-06", "提交丙", withdraw={"to": "end"})], ["AGG-06"])
+    check("withdraw 边计入逆向", not any("OBJ-06" in x for x in iss(R, "6 生命周期缺冲销撤回类逆向")), R["issues"])
+    R = _run([_st("AGG-07", "提交丁")], ["AGG-07"], catalog_cmds=[("AGG-07", "收回丁", "由骨架 withdraw 边触发")])
+    R2 = _run([_st("AGG-07", "提交丁")], ["AGG-07"], catalog_cmds=[("AGG-07", "收回丁", "维护用")])
+    check("目录 unused_ok 写明由撤回边触发的命令计入逆向",
+          not any("OBJ-07" in x for x in iss(R, "6 生命周期缺冲销撤回类逆向")) and any("OBJ-07" in x for x in iss(R2, "6 生命周期缺冲销撤回类逆向")))
+    # 5 sub-lifecycles
+    two = lambda extra: M("AGG-08", ["a1", "a2", "b1", "b2"], [{"from": None, "to": "a1", "command": "起A"}, {"from": "a1", "to": "a2", "command": "走A"},
+                                                             {"from": None, "to": "b1", "command": "起B", **extra}, {"from": "b1", "to": "b2", "command": "走B"}])
+    chk = lambda m: iss(_run([_st("AGG-08", "走A")], ["AGG-08"], {"AGG-08": m}), "3 状态集合合不成一张状态机（无转换相连）")
+    shared = M("AGG-08", ["a1", "a2", "b1", "b2"], [{"from": "a1", "to": "a2", "command": "共"}, {"from": "b1", "to": "b2", "command": "共"}])
+    entry = M("AGG-08", ["a1", "a2", "b1", "b2"], [{"from": None, "to": "a1", "command": "起A", "kind": "entry"}, {"from": "a1", "to": "a2", "command": "走A"},
+                                                  {"from": None, "to": "b1", "command": "起B", "kind": "entry"}, {"from": "b1", "to": "b2", "command": "走B"}])
+    check("合不成一张：无关联报，同名命令相连或有 entry 入口不报", len(chk(two({}))) == 1 and chk(shared) == [] and chk(entry) == [], (chk(two({})), chk(shared), chk(entry)))
+    conflict = lambda trs: iss(_run([_st("AGG-09", "走")], ["AGG-09"], {"AGG-09": M("AGG-09", ["待申报", "已申报"], trs)}), "3 状态名冲突")
+    check("状态名冲突只在两状态间无转换时报", conflict([{"from": "待申报", "to": "已申报", "command": "走"}]) == [] and len(conflict([{"from": None, "to": "待申报", "command": "走"}, {"from": None, "to": "已申报", "command": "走"}])) == 1)
+    # 6 compound names, one-to-many
+    R = _run([_st("AGG-10", "并入扣缴"), _st("AGG-10", "冲销并重过账")], ["AGG-10"], draft_cmds={"AGG-10": ["并入扣缴"]})
+    check("并列判断对聚合稿命令列中已有的命令名跳过", iss(R, "3 步骤同时改多个聚合") == ["PRC-1 第2步 命令名含并列：冲销并重过账"], R["issues"])
+    docs = {"g": {"processes": [{"id": "PRC-1", "stages": ["VS-01.1"], "owner_bc": "B-02", "steps": [_st("AGG-11", "登记甲")]}]}}
+    one = {"AGG-11": {"bc": "B-01", "name": "x", "objs": ["OBJ-11"], "commands": [], "kind": "一拆多"}}
+    many = {"AGG-11": dict(one["AGG-11"], kind="一对一")}
+    check("一拆多的对象不报多个 BC 写入", not analyse(docs, one, {}, {}, None)["issues"].get("4 多个 BC 写同一对象") and len(analyse(docs, many, {}, {}, None)["issues"]["4 多个 BC 写同一对象"]) == 1)
+    # 7 exemptions
+    for flag in ("stateless", "perpetual"):
+        mm = {"AGG-12": {"aggregate": "AGG-12", flag: True, "reason": "长期存在", "states": [], "transitions": []}}
+        R = _run([_st("AGG-12", "登记甲")], ["AGG-12"], mm)
+        mm2 = {"AGG-12": {"aggregate": "AGG-12", flag: True, "states": [], "transitions": []}}
+        R2 = _run([_st("AGG-12", "登记甲")], ["AGG-12"], mm2)
+        check(f"{flag} 且有 reason 豁免结束类检查；缺 reason 不豁免并报告",
+              not R["issues"].get("6 生命周期缺结束或归档") and not R["issues"].get("2 对象无人结束或归档") and not R["issues"].get("7 机器标 stateless 或 perpetual 却没写理由")
+              and len(R2["issues"]["6 生命周期缺结束或归档"]) == 1 and len(R2["issues"]["7 机器标 stateless 或 perpetual 却没写理由"]) == 1, (R["issues"], R2["issues"]))
+    return all(results)
+
+
 def self_test():
     R = analyse(SAMPLE_DOCS, SAMPLE_AGGS, {}, SAMPLE_CAT, matrix={("AGG-1", "登记报销"): {"raci": {"A": {"resolve": "instance"}}}})
     iss = {k: sorted(t for _v, t in v) for k, v in R["issues"].items()}
@@ -361,12 +552,28 @@ def self_test():
         print(f"自测 {i}: {'通过' if c else '失败'}")
         if not c:
             print("   ", {k: v for k, v in iss.items()})
-    classes = {n: classify_cmd(n)[0] for n in ("登记报销", "提交申请", "关闭线索", "冲销报销", "拜访客户")}
-    ok_cls = classes == {"登记报销": "C", "提交申请": "C", "关闭线索": "D", "冲销报销": "D", "拜访客户": "?"}
+    classes = {n: classify_cmd(n) for n in ("登记报销", "提交申请", "批准用印申请", "关闭线索", "冲销报销", "拜访客户", "驳回奖金核定", "参保减员", "启用法人主体",
+                                           "〔缺〕撤销离职登记", "参保增员", "草拟奖金核定", "更名法人主体", "补卡", "计算", "锁定", "归还资产", "办理离职")}
+    ok_cls = classes == {"登记报销": ("C", False), "提交申请": ("U", False), "批准用印申请": ("U", False), "关闭线索": ("D", False), "冲销报销": ("D", True),
+                         "拜访客户": ("?", False), "驳回奖金核定": ("D", True), "参保减员": ("D", False), "启用法人主体": ("U", True),
+                         "〔缺〕撤销离职登记": ("D", True), "参保增员": ("C", False), "草拟奖金核定": ("C", False), "更名法人主体": ("U", False),
+                         "补卡": ("U", False), "计算": ("C", False), "锁定": ("D", False), "归还资产": ("D", False), "办理离职": ("C", False)}
     print("命令分类:", "通过" if ok_cls else f"失败 {classes}")
-    ok = all(exp_ok) and ok_cls
+    ok = all(exp_ok) and ok_cls and self_test_more()
     print("自测", "通过" if ok else "失败")
     return 0 if ok else 1
+
+
+def read_group_yaml(group, name, local):
+    if local:
+        p = HERE / group / name
+        return p.read_text(encoding="utf-8") if p.exists() else None
+    return cc.git_show(f"claude/one-arch-{group}-closeout", f"docs/modernization/architecture/proposals/closeout/{group}/{name}")
+
+
+def yaml_items(key, given, name, local):
+    texts = [p.read_text(encoding="utf-8") for p in given if p.exists()] if given else [read_group_yaml(g, name, local) for g in cc.GROUPS]
+    return [x for t in texts if t for x in (yaml.safe_load(t) or {}).get(key) or []]
 
 
 def main(argv):
@@ -385,11 +592,13 @@ def main(argv):
     matrix = None
     if mp.exists():
         matrix = {(e["object"], cc.base_cmd(e["command"])): e for e in (yaml.safe_load(mp.read_text(encoding="utf-8")) or {}).get("entries", [])}
-    machines = None
-    sp = Path(argv[argv.index("--states") + 1]) if "--states" in argv else HERE / "state-machines.yaml"
-    if sp.exists():
-        machines = {m["aggregate"]: m for m in (yaml.safe_load(sp.read_text(encoding="utf-8")) or {}).get("machines", [])}
-    R = analyse(docs, aggs, new_aggs, cat, matrix, machines)
+    flag = lambda f: [Path(argv[i + 1]) for i, x in enumerate(argv) if x == f]
+    machines = {m["aggregate"]: m for m in yaml_items("machines", flag("--states"), "state-machines.yaml", local)}
+    if not machines and not flag("--states") and (HERE / "state-machines.yaml").exists():
+        machines = {m["aggregate"]: m for m in yaml_items("machines", [HERE / "state-machines.yaml"], "", local)}
+    catalog_cmds = [(c["aggregate"], c["name"], str(c["unused_ok"])) for c in yaml_items("commands", flag("--commands"), "commands.yaml", local)
+                    if c.get("unused_ok") and c.get("aggregate")]
+    R = analyse(docs, aggs, new_aggs, cat, matrix, machines, catalog_cmds)
     print(f"对象目录 {len(cat)} 行（有效 {sum(1 for c in cat.values() if not c['non'])}）；聚合稿聚合 {len(aggs)}；权责表：{'有' if matrix is not None else '无，第 5 项跳过'}")
     print(summary(R))
     if "--write" in argv:
