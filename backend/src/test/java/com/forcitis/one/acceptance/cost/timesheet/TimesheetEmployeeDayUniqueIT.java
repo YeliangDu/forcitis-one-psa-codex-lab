@@ -25,8 +25,6 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
 import com.forcitis.one.platform.numbering.api.IssuedNumber;
-import com.forcitis.one.platform.numbering.api.NumberingCounterId;
-import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -96,7 +94,7 @@ class TimesheetEmployeeDayUniqueIT extends TimesheetWorkerSupport {
     @DisplayName("TS-UNIQ 同一员工同一工作日并发创建两张工时单，后到者被拒，返回 COST_TIMESHEET_WORK_DATE_DUPLICATE 而不是 COST_TIMESHEET_CONCURRENT_CHANGE，库内只有一行，也没有多发一个单据编号")
     void concurrentCreationOfTheSameEmployeeDayLeavesOneRowAndOneNumber() throws Exception {
         SignedIn worker = newWorker();
-        long issuedBefore = numbersIssuedForTimesheets();
+        long issuedBefore = nextTimesheetSequence();
         ExecutorService pool = Executors.newFixedThreadPool(2);
         CountDownLatch go = new CountDownLatch(1);
         List<Future<Object>> runs = new ArrayList<>();
@@ -126,7 +124,7 @@ class TimesheetEmployeeDayUniqueIT extends TimesheetWorkerSupport {
             assertThat(outcomes).filteredOn(outcome -> !(outcome instanceof TimesheetView)).singleElement().isInstanceOfSatisfying(DomainException.class,
                     refused -> assertThat(refused.errorCode().code()).isEqualTo(WORK_DATE_DUPLICATE));
             assertThat(timesheetRowsOf(worker.employeeId(), workDay())).isEqualTo(1);
-            assertThat(numbersIssuedForTimesheets() - issuedBefore).as("the loser's number is not issued").isEqualTo(1);
+            assertThat(nextTimesheetSequence() - issuedBefore).as("the loser's number is not issued: the next number moved by the winner's one only").isEqualTo(1);
         } finally {
             pool.shutdownNow();
         }
@@ -147,13 +145,13 @@ class TimesheetEmployeeDayUniqueIT extends TimesheetWorkerSupport {
                 jdbc.sql("UPDATE cost_timesheet.timesheets SET status = :status WHERE id = :id").param("status", status.name())
                         .param("id", existing.value()).update();
             }
+            long issuedBefore = nextTimesheetSequence();
             clearInvocations(numbers);
-            long issuedBefore = numbersIssuedForTimesheets();
 
             refusedWith(WORK_DATE_DUPLICATE, () -> submit(worker, newTimesheetId(), day, "4"));
 
             transaction.executeWithoutResult(tx -> verify(numbers, never()).next(eq(DocumentType.TIMESHEET), eq(entity), any()));
-            assertThat(numbersIssuedForTimesheets()).as("no number consumed against the %s timesheet of %s", status, day).isEqualTo(issuedBefore);
+            assertThat(nextTimesheetSequence()).as("no number consumed against the %s timesheet of %s", status, day).isEqualTo(issuedBefore);
             assertThat(timesheetRowsOf(worker.employeeId(), day)).isEqualTo(1);
         }
     }
@@ -208,10 +206,11 @@ class TimesheetEmployeeDayUniqueIT extends TimesheetWorkerSupport {
         submit(first, taken, workDay(), "8");
         String number = jdbc.sql("SELECT timesheet_number FROM cost_timesheet.timesheets WHERE id = :id").param("id", taken.value())
                 .query(String.class).single();
-        UUID counter = jdbc.sql("SELECT numbering_counter_id FROM platform_numbering.numbering_counters WHERE document_type = 'TIMESHEET' LIMIT 1")
-                .query(UUID.class).single();
-        UUID version = jdbc.sql("SELECT numbering_rule_version_id FROM platform_numbering.numbering_rule_versions LIMIT 1").query(UUID.class).single();
-        IssuedNumber reused = new IssuedNumber(new DocumentNumber(number), new NumberingCounterId(counter), new NumberingRuleVersionId(version));
+        IssuedNumber real = transaction.execute(tx -> {
+            tx.setRollbackOnly();
+            return numbers.next(DocumentType.TIMESHEET, new LegalEntityId(legalEntity), TODAY);
+        });
+        IssuedNumber reused = new IssuedNumber(new DocumentNumber(number), real.counterId(), real.ruleVersionId());
         transaction.executeWithoutResult(tx -> doReturn(reused).when(numbers).next(any(), any(), any()));
 
         refusedWith(CONCURRENT_CHANGE, () -> submit(second, newTimesheetId(), workDay(), "8"));

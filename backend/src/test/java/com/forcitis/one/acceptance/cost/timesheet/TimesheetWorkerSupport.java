@@ -7,7 +7,11 @@ import com.forcitis.one.cost.timesheet.application.SubmitTimesheet;
 import com.forcitis.one.cost.timesheet.application.SubmitTimesheetCommand;
 import com.forcitis.one.cost.timesheet.application.TimesheetView;
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.Hours;
+import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.platform.numbering.api.DocumentNumbers;
+import org.springframework.transaction.support.TransactionTemplate;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,6 +40,12 @@ abstract class TimesheetWorkerSupport extends AccountsAcceptanceSupport {
 
     @Autowired
     protected JdbcClient jdbc;
+
+    @Autowired
+    protected DocumentNumbers documentNumbers;
+
+    @Autowired
+    protected TransactionTemplate transactionTemplate;
 
     protected UUID unit;
     protected UUID legalEntity;
@@ -86,8 +96,14 @@ abstract class TimesheetWorkerSupport extends AccountsAcceptanceSupport {
                 .param("employee", stored(employee)).param("day", day).query(Long.class).single();
     }
 
-    protected long numbersIssuedForTimesheets() {
-        return jdbc.sql("SELECT coalesce(sum(last_value), 0) FROM platform_numbering.numbering_counters WHERE document_type = 'TIMESHEET'")
-                .query(Long.class).single();
+    /** The sequence the next timesheet number would carry, asked through the numbering api inside a transaction that is rolled back, so nothing is consumed. */
+    protected long nextTimesheetSequence() {
+        String number = transactionTemplate.execute(status -> {
+            status.setRollbackOnly();
+            return documentNumbers.next(DocumentType.TIMESHEET, new LegalEntityId(legalEntity), TODAY).value();
+        });
+        var digits = java.util.regex.Pattern.compile("(\\d+)$").matcher(number);
+        assertThat(digits.find()).as("the timesheet number %s ends in its sequence", number).isTrue();
+        return Long.parseLong(digits.group(1));
     }
 }

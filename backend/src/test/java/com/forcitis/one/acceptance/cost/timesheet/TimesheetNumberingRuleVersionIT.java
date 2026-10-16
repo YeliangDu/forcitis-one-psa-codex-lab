@@ -1,19 +1,22 @@
 package com.forcitis.one.acceptance.cost.timesheet;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.application.TimesheetView;
 import com.forcitis.one.kernel.DocumentType;
-import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
 import com.forcitis.one.platform.numbering.api.IssuedNumber;
-import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Container;
@@ -31,21 +34,11 @@ class TimesheetNumberingRuleVersionIT extends TimesheetWorkerSupport {
     @ServiceConnection
     static PostgreSQLContainer postgres = database();
 
-    @Autowired
+    @MockitoSpyBean
     DocumentNumbers numbers;
 
     @Autowired
     TransactionTemplate transaction;
-
-    private UUID confirmedVersionOn(LocalDate day) {
-        return jdbc.sql("""
-                SELECT v.numbering_rule_version_id
-                  FROM platform_numbering.numbering_rule_versions v
-                  JOIN platform_numbering.numbering_rules r ON r.numbering_rule_id = v.numbering_rule_id
-                 WHERE r.document_type = 'TIMESHEET' AND v.status = 'CONFIRMED' AND v.effective_from_date <= :day
-                 ORDER BY v.effective_from_date DESC, v.version_number DESC LIMIT 1
-                """).param("day", day).query(UUID.class).single();
-    }
 
     private UUID storedVersionOf(TimesheetId timesheet) {
         return jdbc.sql("SELECT numbering_rule_version_id FROM cost_timesheet.timesheets WHERE id = :id").param("id", timesheet.value())
@@ -56,12 +49,18 @@ class TimesheetNumberingRuleVersionIT extends TimesheetWorkerSupport {
     @DisplayName("TS-UNIQ 新建的工时单记录发号时所用的编号规则版本 ID，且等于发号时生效的已确认版本；新建路径取不到版本 ID 时失败并告警，不写空值（库内该列可空，为迁入行保留）")
     void aNewTimesheetKeepsTheRuleVersionItsNumberWasIssuedUnder() throws Exception {
         SignedIn worker = newWorker();
-        UUID inForce = confirmedVersionOn(TODAY);
-        IssuedNumber probe = transaction.execute(status -> numbers.next(DocumentType.TIMESHEET, new LegalEntityId(legalEntity), TODAY));
-        assertThat(probe.ruleVersionId().value()).as("the numbering service names the confirmed version in force").isEqualTo(inForce);
+        List<IssuedNumber> issuedForTimesheet = new CopyOnWriteArrayList<>();
+        transaction.executeWithoutResult(tx -> doAnswer(call -> {
+            IssuedNumber issued = (IssuedNumber) call.callRealMethod();
+            issuedForTimesheet.add(issued);
+            return issued;
+        }).when(numbers).next(any(), any(), any()));
 
         TimesheetId created = newTimesheetId();
         TimesheetView view = submit(worker, created, TODAY.minusDays(3), "8");
+
+        assertThat(issuedForTimesheet).as("the use case asked the numbering service for exactly one timesheet number").hasSize(1);
+        UUID inForce = issuedForTimesheet.getFirst().ruleVersionId().value();
 
         assertThat(view.status()).isEqualTo(TimesheetStatus.SUBMITTED);
         assertThat(storedVersionOf(created)).as("numbering_rule_version_id of the new row").isEqualTo(inForce);
