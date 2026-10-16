@@ -429,6 +429,7 @@
 
   - **卡与 ADR 字面不一致（仅余未解决项）**：AP-14 依 one-architecture 2026-10-16 更正（ADR-0030 U-3），原「ADR-0010 第 5 项待判」「删财务确认」「D-1a-157 冲突」均已解决，不再列。余：卡 AP-13 注册表 `source_references` 写 `PERMANENT`，与卡末保留期「离职满 10 年删除」不符；卡 AP-17 只写 `last_value >= 1`，本节追加了上界；卡第 7 节「种子数据变化（AP-11 的 event_count 除外）不得出现」与 AP-11 删列后种子写法的变化需一并理解为允许。
 
+  - **落地记录（one-1a-next-5，2026-10-16）**：签发见 `data/reviews/DATA-REPAIR-approval-PR7.md`；裁定 RULING-DR-PR7-1：AP-16 `ck_approval_task_records_assignee` 落地后，PR-6 验收 `ApprovalRowRulesIT` 夹具 `COPY_CLAIMED_RECORD` 复制 CLAIMED 行改转交/改派时须带处理人，否则先撞新约束、测不到 `record_reason`——只补夹具前提，断言不变；`ck_approval_requests_document_type` 写成列内联具名 CHECK（DdlNamingTest 对 `_type` 列要求内联），名称与取值同本节；AP-09 凭证号的财务确认依赖单据类型，库内不设 CHECK，注册表注明由聚合 `NumberingRule.completeIfAllGiven` 保证。
 ### AP-18　LN-2　中　`legacy_numbers.source_system` 含组织源取值
 - 证据：PA LN-2（迁移 `:59`、`:60`）；SS §7 第 4 条：`num.legacy_numbers.source_system:59` 含 `ORG_SOURCE`、`ACCOUNTING_SYSTEM`，组织源不持有单据编号；`ACCOUNTING_SYSTEM` 在 `source_references` 已被已建代码使用（`SourceReference.java:80`），本条不判它。
 - 改法：`source_system` 收窄到持有单据原编号的来源（去 `ORG_SOURCE`）；`document_type` 补 CHECK（口径同 AP-14、AP-17）。待核：`JdbcLegacyNumberRepository`、迁入导入脚本与测试夹具有无使用 `ORG_SOURCE`；`legacy_numbers` 唯一范围需 one-ops 按 ADR-0037 取证是否有跨法人重复原编号（`BASELINE_TABLE_REVIEW.md` §7 第 6 项，不在本卡）。ADR-0039 第 4 条第 2 款要把本表整体搬到 `platform_integration`（首个迁入阶段前，允许延后），本卡改动随表搬迁。

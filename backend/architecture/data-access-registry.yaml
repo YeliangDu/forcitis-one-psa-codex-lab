@@ -353,6 +353,8 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: [platform.numbering]
+  # AP-09: the database only checks CONFIRMED has a business confirmer; a JOURNAL_VOUCHER version also needs the finance confirmation,
+  # which depends on the document type and is enforced by the aggregate (NumberingRule.completeIfAllGiven), not by a CHECK.
   platform_numbering.numbering_rule_versions:
     role: AGGREGATE_CHILD
     aggregate: NumberingRule
