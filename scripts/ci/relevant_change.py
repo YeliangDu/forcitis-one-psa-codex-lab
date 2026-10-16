@@ -43,11 +43,13 @@ NOT_READ_BY_BUILDS = (
     "docs/modernization/glossary/GLOSSARY_CONTEXT.md",
 )
 
-# files outside the builds that read READ_BY_BUILDS docs and run in every CI job, whatever changed
+# files outside the builds that read READ_BY_BUILDS docs and run in a CI job whatever changed
 ALWAYS_RUN_READERS = (
-    "scripts/precheck.sh",
-    "scripts/ci/db_scripts_aligned.py",
+    "scripts/ci/db_scripts_aligned.py",   # gitleaks job, whatever changed
+    "scripts/ci/baseline_ddl_scan.py",    # assertion-drift job on every pull request; report only
 )
+# developer tools that name docs paths but are no CI step: they are not readers (scripts/precheck.sh lists glossary/terms.yaml in a `touches` pattern; counting it would hide every unread glossary doc)
+LOCAL_ONLY = ("scripts/precheck.sh", "scripts/hooks/")
 
 # read only by steps of the gitleaks job or the assertion-drift job that run unconditionally, or by scripts/precheck.sh; docs read by scripts/release must be listed in READ_BY_BUILDS
 READ_BY_ALWAYS_RUN_CHECKS = (
@@ -111,12 +113,12 @@ GIT = ("git", "-c", "core.quotepath=off")
 
 
 def changed_files(base):
-    out = subprocess.run([*GIT, "diff", "--name-only", f"origin/{base}...HEAD"], capture_output=True, text=True, encoding="utf-8", check=True)
+    out = subprocess.run([*GIT, "diff", "--name-only", "--no-renames", f"origin/{base}...HEAD"], capture_output=True, text=True, encoding="utf-8", check=True)
     return out.stdout.splitlines()
 
 
 def files_since(before):
-    out = subprocess.run([*GIT, "diff", "--name-only", before, "HEAD"], capture_output=True, text=True, encoding="utf-8")
+    out = subprocess.run([*GIT, "diff", "--name-only", "--no-renames", before, "HEAD"], capture_output=True, text=True, encoding="utf-8")
     return out.stdout.splitlines() if out.returncode == 0 else None
 
 
@@ -151,10 +153,15 @@ def uncovered_reads(root):
     return sorted({f"{file.relative_to(root)}: {path}" for file, path in referenced_docs_paths(root) if not is_covered(path)})
 
 
-GUARDED_READER_DIRS = {"frontend/scripts/": "frontend", "scripts/release/": "release"}
+GUARDED_READER_DIRS = {"scripts/release/": "release"}
 WILDCARD = re.compile(r"[*{]")
 CODE_SUFFIXES = {".java", ".kt", ".ts", ".tsx", ".js", ".mjs", ".cjs"}
 TEST_ROOT = "backend/src/test/java/"
+WIDE = re.compile(r"""[(,]\s*(["'`](?:docs|modernization)["'`])|(?<=\.\./)(docs\b(?!/modernization))""")
+# sources that match WIDE without reading docs at all (a pull request label named "docs" in a test string); every entry must still match, the self-test fails on a stale one
+WIDE_NOT_READERS = {"scripts/ci/heavy_gate.py": "the test strings use \"docs\" as a label name"}
+# frontend scripts that `pnpm run check:copy` and `pnpm run test:scripts` run (checked against package.json by the self-test); any other frontend reader needs the full verify
+GUARDED_FRONTEND = ("frontend/scripts/check-copy-glossary.mjs", "frontend/scripts/copy-glossary.mjs", "frontend/scripts/copy-glossary.test.mjs")
 # Heavy (container or Spring) test classes that read a guarded doc and may be left out of the middle tier, with the reason. Hand-kept on purpose and checked by the self-test (a stale entry fails):
 # every entry is a decision to run less, so it needs the coordinator's approval. Key: (doc path prefix, simple class name).
 EXEMPT_HEAVY_READERS = {
@@ -163,28 +170,39 @@ EXEMPT_HEAVY_READERS = {
 }
 
 
+CODE_TOKEN = re.compile(r'''"""(?:.|\n)*?"""|"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\.|[^`\\])*`|/\*(?:.|\n)*?\*/|//[^\n]*''')
+
+
 def strip_code_comments(text):
-    text = re.sub(r"/\*.*?\*/", " ", text, flags=re.S)
-    return re.sub(r"(?m)(?<![:\"'])//[^\n]*", " ", text)
+    """Comments out, string literals kept (a glob such as "proposed/*.yaml" must not open a comment)."""
+    return CODE_TOKEN.sub(lambda m: m.group(0) if m.group(0)[0] in "\"'`" else " ", text)
 
 
 class ReaderIndex:
     """What reads what: literal docs paths (and path segments) per source file, and the text of each source (comments out) for file-name and helper-class matches."""
 
     def __init__(self, root):
-        self.root, self.refs, self.texts = Path(root), [], {}
+        self.root, self.refs, self.texts, self.wide, self.wide_ignored = Path(root), [], {}, [], []
         for scanned in SCANNED:
             for file in Path(root, scanned).rglob("*"):
                 if not file.is_file() or file.suffix not in SOURCE_SUFFIXES or SKIPPED_DIRS & set(file.parts) or file.name == Path(__file__).name:
                     continue
                 rel = file.relative_to(root).as_posix()
+                if rel.startswith(LOCAL_ONLY):
+                    continue
                 text = file.read_text(errors="ignore")
                 text = self.texts[rel] = strip_code_comments(text) if file.suffix in CODE_SUFFIXES else text
+                covered = []
                 for match in LITERAL.finditer(text):
                     self.refs.append((rel, WILDCARD.split(match.group(0))[0]))
+                    covered.append(match.span())
                 for match in SEGMENTS.finditer(text):
                     tail = re.findall(r"['\"]([\w.*-]+)['\"]", match.group(1))
                     self.refs.append((rel, "/".join(["docs/modernization", *tail])))
+                    covered.append(match.span())
+                # a docs path built in a way the two patterns do not capture (Path.of("..", "docs").resolve(...), Files.walk over docs): the file may read any doc
+                if any(not any(a <= m.start(m.lastindex) < b for a, b in covered) for m in WIDE.finditer(text)):
+                    (self.wide_ignored if rel in WIDE_NOT_READERS else self.wide).append(rel)
 
     def readers(self, path):
         """Source files that name `path` or something under it, name a directory it lies in, or mention its file name."""
@@ -236,6 +254,8 @@ def classify_reader(rel, doc, index, light, seen=()):
                 return None
             kinds += sub
         return kinds
+    if rel in GUARDED_FRONTEND:
+        return [("frontend",)]
     for prefix, kind in GUARDED_READER_DIRS.items():
         if rel.startswith(prefix):
             return [(kind,)]
@@ -245,6 +265,8 @@ def classify_reader(rel, doc, index, light, seen=()):
 def plan_for(paths, index, light):
     """Middle-tier plan for paths that are all docs under READ_BY_BUILDS: {'classes': set, 'frontend': bool, 'release': bool, 'exempt': set}, or None when anything must run in full."""
     plan = {"classes": set(), "frontend": False, "release": False, "exempt": set()}
+    if index.wide:
+        return None
     for path in paths:
         readers = index.readers(path)
         if not readers:
@@ -334,11 +356,15 @@ def tiers_self_test(root):
         write(tmp, t + "CommentOnlyTest.java", 'class CommentOnlyTest {\n // reads docs/modernization/events/comment.yaml in theory\n /* and comment.yaml again */ }')
         write(tmp, t + "ByNameIT.java", 'class ByNameIT { String dir = base(); String f = dir + "/byname.yaml"; }')
         write(tmp, t + "ByNameTest.java", 'class ByNameTest { String f = "docs/modernization/events/byname.yaml"; }')
-        write(tmp, "frontend/scripts/copy.mjs", 'const p = "docs/modernization/glossary/front.yaml";')
+        write(tmp, "frontend/scripts/copy-glossary.mjs", 'const p = "docs/modernization/glossary/front.yaml";')
         write(tmp, "frontend/src/app.ts", 'const p = "docs/modernization/glossary/app.yaml";')
         write(tmp, "scripts/release/gate.py", 'P = "docs/modernization/status/blockers/"')
         write(tmp, "scripts/other/tool.py", 'P = "docs/modernization/events/tool.yaml"')
-        write(tmp, "scripts/precheck.sh", "cat docs/modernization/events/only-precheck.yaml")
+        write(tmp, "scripts/precheck.sh", "cat docs/modernization/events/only-precheck.yaml; cat docs/modernization/glossary/")
+        write(tmp, "scripts/hooks/h.py", 'P = "docs/modernization/events/only-hook.yaml"')
+        write(tmp, "scripts/ci/db_scripts_aligned.py", 'P = "docs/modernization/events/always.yaml"')
+        write(tmp, t + "StarGlobIT.java", 'class StarGlobIT { String g = "glob:**/*.java"; String p = "docs/modernization/events/after-star.yaml"; } /** */')
+        write(tmp, "frontend/scripts/generate-api.mjs", 'const p = "docs/modernization/glossary/gen.yaml";')
         write(tmp, t + "GlossaryRelatedTest.java", 'class GlossaryRelatedTest { String p = "docs/modernization/glossary/terms.yaml"; }')
         write(tmp, t + "ApplicationIntegrationTest.java", '@SpringBootTest class ApplicationIntegrationTest { String p = "docs/modernization/glossary/terms.yaml"; }')
         ev = "docs/modernization/events/"
@@ -362,7 +388,21 @@ def tiers_self_test(root):
         assert tier(ev + "comment.yaml") == ("code", None), "no reader found: everything runs"
         assert tier(ev + "byname.yaml") == ("code", None), "another reader names the file without the full path"
         assert tier(ev + "tool.yaml") == ("code", None), "a script outside the covered ones reads it"
-        assert tier(ev + "only-precheck.yaml") == ("docs", None), "read only by precheck.sh (runs in every job): no middle tier work"
+        assert tier(ev + "only-precheck.yaml") == ("code", None), "precheck.sh is a developer tool, no reader: nothing reads it, so everything runs"
+        assert tier(ev + "only-hook.yaml") == ("code", None)
+        assert tier(ev + "always.yaml") == ("docs", None), "read only by a script that runs in every job"
+        assert tier(ev + "after-star.yaml") == ("code", None), "a /* inside a string literal must not hide what follows"
+        assert tier(gl + "gen.yaml") == ("code", None), "a frontend script that no guarded pnpm script runs"
+        assert strip_code_comments('a "x/*y" // c\nb /* c */ "d" \'e//f\'') == 'a "x/*y"  \nb   "d" \'e//f\''
+        write(tmp, t + "WalkIT.java", 'class WalkIT { Object w = Files.walk(Path.of("..", "docs")); }')
+        assert tier(ev + "light.yaml") == ("code", None), "a reader that walks docs: any doc may be read"
+        Path(tmp, t + "WalkIT.java").unlink()
+        with tempfile.TemporaryDirectory() as tmp2:
+            write(tmp2, t + "SegDirTest.java", 'class SegDirTest { Path d = Path.of("docs", "modernization", "status", "blockers"); }')
+            assert tier_of(["docs/modernization/status/blockers/zz.md"], tmp2)[1]["classes"] == {"SegDirTest"}, "a directory named by path segments"
+        write(tmp, t + "EventsApplicationIntegrationTest.java", "x")
+        write(tmp, t + "ApplicationIntegrationTest.java", '@SpringBootTest class ApplicationIntegrationTest { String p = "docs/modernization/glossary/terms.yaml"; String q = "docs/modernization/events/other.yaml"; }')
+        assert tier(ev + "other.yaml") == ("code", None), "the exemption is limited to its doc prefix"
         kind, plan = tier(gl + "front.yaml")
         assert kind == "guarded" and plan["frontend"] and not plan["classes"]
         assert tier(gl + "app.yaml") == ("code", None), "a frontend source outside frontend/scripts reads it"
@@ -387,9 +427,34 @@ def tiers_self_test(root):
             files = [rel for rel in index.texts if rel.endswith(f"/{cls}.java")]
             assert files, f"exemption {prefix} {cls}: no such class any more"
             assert cls not in light, f"{cls} is a light test now: drop the exemption"
-            assert any(cls in {k[1] for k in classify_reader(r, prefix + "terms.yaml", index, light) or []} or True for r in files)
             reached = {k for r in index.readers(prefix + "terms.yaml") for k in (classify_reader(r, prefix + "terms.yaml", index, light) or [])}
             assert ("exempt", cls) in reached, f"exemption {prefix} {cls} is never reached: remove it"
+
+
+def rename_self_test():
+    """A doc moved out from under a read path must still list the path it left (git diff rename detection shows only the new path)."""
+    import tempfile
+    env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t", "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t", "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_SYSTEM": "/dev/null"}
+    with tempfile.TemporaryDirectory() as tmp:
+        def git(*args):
+            return subprocess.run(["git", *args], cwd=tmp, capture_output=True, text=True, check=True, env=env).stdout
+        git("init", "-q", "-b", "main")
+        old = Path(tmp, "docs/modernization/phase1a/infra/INFRA_RUNBOOK.md")
+        old.parent.mkdir(parents=True)
+        old.write_text("# runbook\n" * 20, encoding="utf-8")
+        git("add", "-A"); git("-c", "commit.gpgsign=false", "commit", "-q", "-m", "base")
+        git("update-ref", "refs/remotes/origin/main", "HEAD")
+        base = git("rev-parse", "HEAD").strip()
+        new = Path(tmp, "docs/modernization/other/INFRA_RUNBOOK_OLD.md")
+        new.parent.mkdir(parents=True)
+        git("mv", str(old), str(new)); git("-c", "commit.gpgsign=false", "commit", "-q", "-m", "move")
+        cwd = os.getcwd()
+        try:
+            os.chdir(tmp)
+            assert sorted(changed_files("main")) == ["docs/modernization/other/INFRA_RUNBOOK_OLD.md", "docs/modernization/phase1a/infra/INFRA_RUNBOOK.md"], changed_files("main")
+            assert sorted(files_since(base)) == sorted(changed_files("main"))
+        finally:
+            os.chdir(cwd)
 
 
 def real_tiers_self_test(root):
@@ -398,6 +463,13 @@ def real_tiers_self_test(root):
     tracked = subprocess.run([*GIT, "ls-files", "docs"], cwd=root, capture_output=True, text=True, encoding="utf-8", check=True).stdout.splitlines()
     docs = [p for p in tracked if is_guarded_doc(p)]
     assert docs, "no tracked doc under READ_BY_BUILDS"
+    assert sorted(index.wide_ignored) == sorted(WIDE_NOT_READERS), f"WIDE_NOT_READERS lists files that no longer match: {sorted(set(WIDE_NOT_READERS) - set(index.wide_ignored))}"
+    assert not index.wide, "sources that build docs paths in a way the scan cannot read (they may read any doc): " + ", ".join(index.wide)
+    package = Path(root, "frontend/package.json").read_text(encoding="utf-8")
+    assert "scripts/check-copy-glossary.mjs" in package and "scripts/*.test.mjs" in package, "frontend/package.json no longer runs the scripts listed in GUARDED_FRONTEND"
+    for rel in GUARDED_FRONTEND:
+        assert rel in index.texts, f"{rel} is listed in GUARDED_FRONTEND but does not exist"
+    assert "copy-glossary" in index.texts["frontend/scripts/check-copy-glossary.mjs"] and "copy-glossary" in index.texts["frontend/scripts/copy-glossary.test.mjs"]
     for entry in READ_BY_BUILDS:
         assert index.readers(entry), f"READ_BY_BUILDS lists {entry}, but no source reads it (stale entry?)"
     guarded = 0
@@ -409,7 +481,7 @@ def real_tiers_self_test(root):
         for rel in index.readers(path):
             assert classify_reader(rel, path, index, light) is not None
             assert not rel.startswith("backend/src/main/"), f"{path} is read by main code {rel}"
-            assert rel in ALWAYS_RUN_READERS or rel.startswith((TEST_ROOT, "frontend/scripts/", "scripts/release/")), f"{path}: reader {rel} is not one the middle tier runs"
+            assert rel in ALWAYS_RUN_READERS or rel in GUARDED_FRONTEND or rel.startswith((TEST_ROOT, "scripts/release/")), f"{path}: reader {rel} is not one the middle tier runs"
     assert guarded, "every doc went to the full run: the middle tier is empty"
     expected = {
         "docs/modernization/glossary/terms.yaml": {"GlossaryTest"},
@@ -429,6 +501,7 @@ def self_test():
     unlisted = uncovered_mssql_inputs(root)
     assert not unlisted, "files the *MssqlIT tests import or read are not in LEGACY_IT_PATHS (add them in scripts/ci/relevant_change.py):\n  " + "\n  ".join(unlisted)
     tiers_self_test(root)
+    rename_self_test()
     real_tiers_self_test(root)
     missing = uncovered_reads(root)
     assert not missing, "builds read docs paths that READ_BY_BUILDS does not list or NOT_READ_BY_BUILDS excludes (fix the lists in scripts/ci/relevant_change.py):\n  " + "\n  ".join(missing)

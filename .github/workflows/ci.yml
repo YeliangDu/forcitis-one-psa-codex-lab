@@ -80,7 +80,7 @@ jobs:
           EVENT_LABEL: ${{ github.event.label.name }}
         run: python3 scripts/ci/heavy_gate.py
       - name: toolchain is Java 25
-        if: ((steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true') && steps.heavy.outputs.run == 'true') || steps.change.outputs.tier == 'guarded'
+        if: ((steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true') && steps.heavy.outputs.run == 'true') || steps.change.outputs.tier == 'guarded' || github.event_name == 'push'
         run: java -version 2>&1 | head -1 | grep -q '"25'
       - name: test images are present
         if: (steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true') && steps.heavy.outputs.run == 'true'
@@ -96,6 +96,10 @@ jobs:
         env:
           GUARD_CLASSES: ${{ steps.change.outputs.guard_classes }}
         run: scripts/ci/guarded_tests.sh "$GUARD_CLASSES"
+      # a push to main runs the light steps only (scripts/ci/heavy_gate.py); this is the post-merge alarm for a merge that no heavy run tested on this exact tree: every container-free unit test, about 25 seconds
+      - name: container-free unit tests on a push to main
+        if: github.event_name == 'push'
+        run: scripts/ci/guarded_tests.sh "$(python3 scripts/ci/light_unit_classes.py)"
       - name: surefire and failsafe, side by side
         if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
         # Two forks per plugin (four test JVMs per runner instead of eight): the runners share one Docker Desktop (CI_RUNNERS.md)

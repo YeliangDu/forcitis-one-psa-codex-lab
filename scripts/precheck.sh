@@ -102,11 +102,11 @@ if ! git rev-parse --verify --quiet "$base^{commit}" >/dev/null; then
 fi
 
 {
-  gitq diff --name-only "$base...HEAD"
-  gitq diff --name-only HEAD
+  gitq diff --name-only --no-renames "$base...HEAD"
+  gitq diff --name-only --no-renames HEAD
   gitq ls-files --others --exclude-standard
 } | grep . | sort -u >"$work/changed"
-{ gitq diff --name-only HEAD; gitq ls-files --others --exclude-standard; } | grep . | sort -u >"$work/uncommitted"
+{ gitq diff --name-only --no-renames HEAD; gitq ls-files --others --exclude-standard; } | grep . | sort -u >"$work/uncommitted"
 changed_count=$(grep -c . "$work/changed")
 uncommitted=$(grep -c . "$work/uncommitted")
 
