@@ -19,7 +19,13 @@ import org.junit.jupiter.api.Test;
 class IdempotentEndpointGuardTest {
     static final Path LIST = Path.of("architecture/idempotent-endpoints.txt");
     static final Path CLASSIFICATION = Path.of("architecture/data-classification.txt");
-    static final Set<String> DIRECT_IDENTIFIERS = Set.of("display_name", "email", "wecom_user_id", "employee_code", "login_name", "source_address", "recipient_codes");
+    static final Set<String> DIRECT_IDENTIFIERS = Set.of("display_name", "email", "wecom_user_id", "employee_code", "login_name", "source_address", "recipient_codes",
+            "ip", "ip_address", "user_agent", "mobile", "phone");
+    /** A component named like a person's name is refused; these two are the names of things (a legal entity, a role), not of people. */
+    static final Set<String> NAMES_OF_THINGS = Set.of("name", "code");
+    static final Pattern NAME_LIKE = Pattern.compile("(?:.+_)?name");
+    /** A component of one of these types holds a person's name or contact data whatever it is called. */
+    static final Set<String> PERSON_TYPES = Set.of("WecomUserId", "LoginName", "EmployeeProfile", "Employee", "SourcePerson");
     static final Pattern PERSONAL = Pattern.compile("\\bPI\\b");
 
     /** template -> comment, in file order. */
@@ -56,8 +62,17 @@ class IdempotentEndpointGuardTest {
         return names;
     }
 
+    /** What in the answer is refused: a component by name (Java and JSON), a person type, and any type the guard cannot open up (that is a failure, not a pass). */
     static List<String> forbiddenIn(Set<Class<?>> types, Set<String> forbidden) {
-        return IdempotentEndpointScan.componentNames(types).stream().filter(name -> forbidden.contains(IdempotentEndpointScan.snake(name))).toList();
+        IdempotentEndpointScan.Reach reach = IdempotentEndpointScan.reach(types);
+        List<String> found = new ArrayList<>();
+        reach.names().stream().filter(name -> {
+            String snake = IdempotentEndpointScan.snake(name);
+            return forbidden.contains(snake) || NAME_LIKE.matcher(snake).matches() && !NAMES_OF_THINGS.contains(snake);
+        }).forEach(found::add);
+        reach.typeNames().stream().filter(PERSON_TYPES::contains).forEach(found::add);
+        reach.unsupported().forEach(type -> found.add("cannot open up " + type));
+        return found;
     }
 
     @Test
@@ -125,6 +140,52 @@ class IdempotentEndpointGuardTest {
     record Mail(String email, String sourceId) {
     }
 
+    record Titled(String id, String operatorName) {
+    }
+
+    record Renamed(@com.fasterxml.jackson.annotation.JsonProperty("login_name") String label) {
+    }
+
+    record Named(String name, String code) {
+    }
+
+    record Holder(com.forcitis.one.kernel.WecomUserId who) {
+    }
+
+    record Many(Leaf[] people) {
+    }
+
+    record Contact(String mobile, String ip, String userAgent) {
+    }
+
+    sealed interface Either permits Fine, Leaky {
+    }
+
+    record Fine(String id) implements Either {
+    }
+
+    record Leaky(String loginName) implements Either {
+    }
+
+    record Wrap(Either either) {
+    }
+
+    record Loose(java.util.Map<String, String> bag) {
+    }
+
+    record Plain(Object any) {
+    }
+
+    record Boxed(com.fasterxml.jackson.databind.JsonNode node) {
+    }
+
+    static class Pojo {
+        public String x;
+    }
+
+    record Pojoed(Pojo pojo) {
+    }
+
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TB-02 injected: a direct identifier, a nested one and a PI-marked column name are caught; a clean record passes")
     void forbiddenComponentsAreCaught() {
@@ -136,5 +197,29 @@ class IdempotentEndpointGuardTest {
         assertThat(forbiddenIn(Set.of(Nested.class), forbidden)).as("opened up through the list").containsExactly("loginName");
         assertThat(forbiddenIn(Set.of(Mail.class), forbidden)).containsExactly("email", "sourceId");
         assertThat(forbidden).doesNotContain("c", "response_text");
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-02 injected: arrays, sealed alternatives, renamed properties, name-like components, contact data and person types are caught; the name or code of a thing is not")
+    void moreFormsAreCaught() {
+        Set<String> forbidden = forbiddenNames(List.of());
+
+        assertThat(forbiddenIn(Set.of(Titled.class), forbidden)).containsExactly("operatorName");
+        assertThat(forbiddenIn(Set.of(Renamed.class), forbidden)).as("by the JSON name").containsExactly("login_name");
+        assertThat(forbiddenIn(Set.of(Named.class), forbidden)).as("name and code are names of things").isEmpty();
+        assertThat(forbiddenIn(Set.of(Holder.class), forbidden)).as("by type, whatever the component is called").containsExactly("WecomUserId");
+        assertThat(forbiddenIn(Set.of(Many.class), forbidden)).as("through an array").containsExactly("loginName");
+        assertThat(forbiddenIn(Set.of(Contact.class), forbidden)).containsExactlyInAnyOrder("mobile", "ip", "userAgent");
+        assertThat(forbiddenIn(Set.of(Wrap.class), forbidden)).as("through the alternatives of a sealed interface").containsExactly("loginName");
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-02 injected: a map, an Object, a JSON tree or a plain class in an answer is a failure, not a pass")
+    void typesThatCannotBeOpenedUpFail() {
+        Set<String> forbidden = forbiddenNames(List.of());
+
+        for (Class<?> opaque : List.of(Loose.class, Plain.class, Boxed.class, Pojoed.class)) {
+            assertThat(forbiddenIn(Set.of(opaque), forbidden)).as(opaque.getSimpleName()).anyMatch(found -> found.startsWith("cannot open up"));
+        }
     }
 }
