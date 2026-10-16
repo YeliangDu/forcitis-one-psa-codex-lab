@@ -222,7 +222,45 @@ def load_machines(local):
     return out
 
 
+def load_event_map(local, machines, aggs):
+    """事件名 → [(聚合, 到达状态, 对象集合)]：各组 commands.yaml 里命令的 emits 找到发出事件的命令，再在状态机里取该命令转换的 to
+    （自环与 non_state 不算）。emits 去掉〔缺〕与括号注释。"""
+    import closeout_check as cc
+    out = {}
+    for g in GROUPS:
+        if local:
+            pth = HERE / g / "commands.yaml"
+            txt = pth.read_text(encoding="utf-8") if pth.exists() else None
+        else:
+            txt = cc.git_show(f"claude/one-arch-{g}-closeout", f"docs/modernization/architecture/proposals/closeout/{g}/commands.yaml")
+        if not txt:
+            print(f"警告：读不到 {g} 组命令（{'本地' if local else 'origin 分支'}）", file=sys.stderr)
+            continue
+        for c in (yaml.safe_load(txt) or {}).get("commands") or []:
+            em = c.get("emits")
+            em = [em] if isinstance(em, str) else (em or [])
+            m = machines.get(c.get("aggregate"))
+            objs = set((aggs.get(c.get("aggregate")) or {}).get("objs") or [])
+            if not m or not objs or m.get("stateless") is True:
+                continue
+            bc = cc.base_cmd(c.get("name"))
+            tos = [str(t["to"]) for t in m.get("transitions") or []
+                   if t.get("to") is not None and not is_self_loop(t) and t.get("command") and cc.base_cmd(t["command"]) == bc]
+            for e in em:
+                e = re.sub(r"[（(].*?[）)]", "", str(e).replace(cc.MISSING, "")).strip()
+                if not e or e == "":
+                    continue
+                for to in tos:
+                    v = (c["aggregate"], to, frozenset(objs))
+                    if v not in out.setdefault(e, []):
+                        out[e].append(v)
+    return out
+
+
 def is_self_loop(tr):
+    """不改业务状态的转换：from == to 的自环，或 kind: non_state（追加记录类，如登记继续教育学时）。"""
+    if tr.get("kind") == "non_state":
+        return True
     f = tr.get("from")
     f = f if isinstance(f, list) else [f]
     return tr.get("to") is not None and len(f) == 1 and f[0] == tr.get("to")
@@ -303,8 +341,11 @@ def texts_of(unit, steps):
 
 # ---------------------------------------------------------------- 分析
 
-def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=None):
+def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=None, events=None):
     norm = Norm(alias_map)
+    ev_by_norm = {}
+    for k, v in (events or {}).items():
+        ev_by_norm.setdefault(norm(k), []).extend(v)
     machines, aggs = machines or {}, aggs or {}
     split = split_objects(aggs)
     agg_missing = {}
@@ -501,7 +542,7 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
             own_exit[s["id"]] = [lf for lf in leaves(expand(s.get("exit") or {"all": []}, vpa)) if isobj(lf)]
             own_entry[s["id"]] = [lf for lf in leaves(expand(s.get("entry") or {"all": []}, vpa)) if isobj(lf)]
             own_inner[s["id"]] = [lf for lf in s.get("in_stage_states") or [] if isinstance(lf, dict) and isobj(lf)]
-    P = {"unsupported": [], "missing": [], "uncertain": [], "role": [], "ok": 0, "ok_approx": 0}
+    P = {"unsupported": [], "explained": [], "missing": [], "uncertain": [], "role": [], "ok": 0, "ok_approx": 0}
     for p in procs:
         if p.get("support"):
             P["support_skipped"] = P.get("support_skipped", 0) + 1   # 已声明支撑的不归段
@@ -522,17 +563,27 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
         elif p["type"] == "read_model":
             why.append("读模型不造对象状态，按其读取的对象状态人工归段")
             unres = True
-        elif p["type"] == "event_policy":
+        elif p["type"] == "event_policy" or (p["type"] == "business" and u[0].get("triggers") and all(isinstance(t, dict) and t.get("type") == "event" for t in u[0]["triggers"])):
             trig = [t for t in u[0].get("triggers") or [] if isinstance(t, dict) and t.get("type") == "event" and t.get("name")]
             hit_any = False
             own_vs = bc_vs.get(p.get("owner_bc")) or {stage_vs[x] for x in cat}
 
-            def trig_hits(src, name, vs_only=None):
+            def trig_hits(src, name, vs_only=None, mapped=None):
                 out = {}
                 for sid, lfs in src.items():
                     if vs_only is not None and stage_vs[sid] not in vs_only:
                         continue
                     for lf in lfs:
+                        if mapped is not None:   # 事件名 → 发出该事件的转换 → 到达状态与聚合
+                            tier = None
+                            for agg_, to_, objs_ in mapped:
+                                if lf.get("ref") in objs_ and (leaf_aggs(lf) is None or agg_ in leaf_aggs(lf)):
+                                    tr_ = match_atom(onames.get(lf.get("ref"), ""), lf.get("state"), to_, norm)
+                                    if RANK[tr_] > RANK[tier]:
+                                        tier = tr_
+                            if tier and RANK[tier] > RANK[(out.get(sid) or (None,))[0]]:
+                                out[sid] = (tier, lf)
+                            continue
                         tier = match_atom(onames.get(lf.get("ref"), ""), lf.get("state"), name, norm)
                         on_ = norm(re.sub(r"[（(].*?[）)]", "", onames.get(lf.get("ref"), "")))
                         if tier == "exact" and on_ and on_ not in norm(name):
@@ -541,8 +592,15 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
                             out[sid] = (tier, lf)
                 return out
             for t in trig:
-                hits = trig_hits(own_exit, t["name"])
-                ent = trig_hits(own_entry, t["name"], own_vs)
+                mp = None
+                for cand_ in (t["name"], t.get("event")):   # 触发写事件名，或另给事件标识（如 Separated）
+                    if cand_ and not mp:
+                        mp = ev_by_norm.get(norm(re.sub(r"[（(].*?[）)]", "", str(cand_).replace("〔缺〕", ""))))
+                hits = trig_hits(own_exit, t["name"], mapped=mp) if mp else {}
+                ent = trig_hits(own_entry, t["name"], own_vs, mapped=mp) if mp else {}
+                if not hits and not ent:   # 映射找不到再按词表别名与近似规则
+                    hits = trig_hits(own_exit, t["name"])
+                    ent = trig_hits(own_entry, t["name"], own_vs)
                 if hits and ent:
                     hits = ent   # 触发状态同时是别段的退出、本价值流某段的进入：归以它为进入的那一段
                 hit = bool(hits)
@@ -572,7 +630,13 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
         # 目录标了但判据不支持
         no_sup = [x for x in cat if x not in sup]
         if no_sup and not unres:
-            P["unsupported"].append(dict(row, stages=no_sup))
+            note = str(p.get("stages_note") or "")
+            expl = [x for x in no_sup if note and x in note]   # stages_note 点到该段 id：已说明（有理由）
+            rest = [x for x in no_sup if x not in expl]
+            if expl:
+                P["explained"].append(dict(row, stages=expl, note=note))
+            if rest:
+                P["unsupported"].append(dict(row, stages=rest))
         elif no_sup:
             P["uncertain"].append(dict(row, stages=no_sup, kind="目录所标段无法判定"))
         P["ok"] += sum(1 for x in cat if x in exact)
@@ -644,8 +708,8 @@ def render(R, onames, pby, skel_n, total_skel):
     w(f"| 4 进入条件找不到产生方 / 仅近似 / 共 | {len(en_bad)} / {len(en_apx)} / {len(R['entry'])} |")
     w(f"| 5 没有流程的阶段 / 流程数 ≤ {SMALL_VS} 的价值流 | {len(empty)} / {len(small)} |")
     P = R["place"]
-    w(f"| 6 归段：目录标了但判据不支持 / 判据支持但目录没标 / 待人工 / 参与者不在该段 | "
-      f"{len(P['unsupported'])} / {len(P['missing'])} / {len(P['uncertain'])} / {len(P['role'])} |")
+    w(f"| 6 归段：目录标了但判据不支持（未说明）/ 其中另有已说明 / 判据支持但目录没标 / 待人工 / 参与者不在该段 | "
+      f"{len(P['unsupported'])} / {len(P['explained'])} / {len(P['missing'])} / {len(P['uncertain'])} / {len(P['role'])} |")
     w(f"| 附 骨架阶段与目录阶段不一致 | {len(R['skel_diff'])} |")
     w(f"| 附 一拆多对象缺 agg 限定（待人工） | {len(R['agg_missing'])} |")
     w("")
@@ -775,6 +839,12 @@ def render(R, onames, pby, skel_n, total_skel):
         for r in P["unsupported"]:
             w(f"| {r['id']} | {r['name']} | {r['type']} | {'、'.join(r['cat'])} | {'、'.join(r['stages'])} | {'、'.join(list(r['exact']) + [x + '(近似)' for x in r['approx']]) or '无'} |")
     w("")
+    w(f"### 6a' 目录标了但判据不支持，stages_note 已点到该段（已说明，有理由，不计入问题数）（{len(P['explained'])}）\n")
+    if P["explained"]:
+        w("| 流程 | 名称 | type | 目录所标 | 已说明的段 | 判据推出的段 |\n|---|---|---|---|---|---|")
+        for r in P["explained"]:
+            w(f"| {r['id']} | {r['name']} | {r['type']} | {'、'.join(r['cat'])} | {'、'.join(r['stages'])} | {'、'.join(list(r['exact']) + [x + '(近似)' for x in r['approx']]) or '无'} |")
+    w("")
     w(f"### 6b 判据支持但目录没标（{len(P['missing'])}）\n")
     if P["missing"]:
         w("| 流程 | 名称 | type | 目录所标 | 应加的段 | 证据 |\n|---|---|---|---|---|---|")
@@ -823,7 +893,8 @@ def render(R, onames, pby, skel_n, total_skel):
 - 精确：说法与结局相等；或说法包含于结局且对象名也在结局里；或结局 = 对象名 + 说法。
 - 近似：说法包含于结局（缺对象名）；结局（≥ 3 字）包含于说法；说法的二字组被结局覆盖 ≥ 60%%；流程名称命中。拿不准的都落在近似。
 - 匹配来源：「结局」类 = 上一条的结局文本；「步骤到达」= 流程的每个改状态步骤（aggregate + command，含 inner 与单聚合 commands[] / transitions[] 条目，条目 aggregate 优先），在三组 state-machines.yaml 里查该聚合 command 相同的转换，取其 to 状态；仅当条件的对象（OBJ）属于该聚合的对象时参与，状态说法同样按下述精确 / 近似规则比对。步骤到达同时参与退出条件（本段流程）与进入条件产生方（全部流程）；3a / 4a 列出只靠它匹配上的叶子。
-- 自环：状态机里 from == to 的转换（如提交过账候选）与单聚合骨架 `transitions` 的自环不改业务状态，其 to 不算「步骤到达」，不参与第 3、4、6 项。
+- 自环：状态机里 from == to 的转换（如提交过账候选）、`kind: non_state` 的转换与单聚合骨架 `transitions` 的自环不改业务状态，其 to 不算「步骤到达」，不参与第 3、4、6 项。
+- 事件归段（第 6 项）：event_policy 与「triggers 全为 type: event」的 business 流程都按事件策略归段。触发事件名先经各组 commands.yaml 的 emits 找到发出该事件的命令，再取状态机里该命令转换的 to 与聚合作为触发状态（自环、non_state 不算），按聚合与状态比对各段退出 / 进入条件；映射找不到再按词表别名与近似规则比对事件名。
 - 一拆多：同一 OBJ 被 ≥ 2 个聚合的「聚合」列承载且至少一个「对应」列写一拆多者。阶段条件叶子可带可选 `agg: AGG-xx`（或列表），步骤到达只在到达状态所属聚合在其中时才算；没带 agg 的一拆多叶子，取本价值流内匹配该状态的步骤到达所属聚合，唯一则采用，多个则标待人工并不计步骤到达（列在「缺 agg 限定」清单），没有则无步骤到达可算。结局文本类匹配不受影响。
 - 退出条件「满足」= 存在落在本段的某条流程的某个结局匹配；整体 tier 取 any 的最好者、all 的最差者。
 - 进入条件的产生方在全部非合并流程里找（含别的价值流），并标注与本段的关系（同价值流前段 / 本段 / 后段 / 别的价值流 / 未落阶段）。
@@ -905,7 +976,7 @@ def console(R, onames, skel_n, total_skel):
          f"3 退出匹配不上 {len(ex_bad)} / 近似 {sum(1 for e in R['exit'] if e['tier'] == 'approx')} / 共 {len(R['exit'])}",
          f"4 进入找不到产生方 {len(en_bad)} / 近似 {sum(1 for e in R['entry'] if e['tier'] == 'approx')} / 共 {len(R['entry'])}",
          f"5 空阶段 {sum(1 for x in R['sparse'] if x[0] == 'empty_stage')}；流程数 ≤ {SMALL_VS} 的价值流 {sum(1 for x in R['sparse'] if x[0] == 'small_vs')}",
-         f"6 归段 目录标了但判据不支持 {len(R['place']['unsupported'])} / 判据支持但目录没标 {len(R['place']['missing'])} / 待人工 {len(R['place']['uncertain'])} / 参与者不在该段 {len(R['place']['role'])}（目录所标段精确支持 {R['place']['ok']}，仅近似 {R['place']['ok_approx']}）",
+         f"6 归段 目录标了但判据不支持（未说明）{len(R['place']['unsupported'])} / 已说明（stages_note 点到该段）{len(R['place']['explained'])} / 判据支持但目录没标 {len(R['place']['missing'])} / 待人工 {len(R['place']['uncertain'])} / 参与者不在该段 {len(R['place']['role'])}（目录所标段精确支持 {R['place']['ok']}，仅近似 {R['place']['ok_approx']}）",
          f"附 一拆多对象缺 agg 限定 {len(R['agg_missing'])}",
          "最值得注意的 10 条："]
     L += [f"  {i}. {t}" for i, t in enumerate(top_findings(R, onames), 1)]
@@ -1042,6 +1113,12 @@ def self_test():
            "F": ({"outcomes": ["项目已结项"], "stages": ["VS-Z.2"], "triggers": [{"type": "event", "name": "毫无关系的事件"}]}, [])}
     on6 = {"OBJ-1": "甲", "OBJ-2": "项目", "OBJ-3": "报告"}
     P6 = analyze(vs6, cat6, sk6, on6, {})["place"]
+    assert P6["explained"] == [], P6["explained"]
+    c6 = [dict(x, stages_note="留 VS-Z.1，因为某理由") if x["id"] == "B" else x for x in cat6]
+    P6n = analyze(vs6, c6, sk6, on6, {})["place"]
+    assert "B" not in [r["id"] for r in P6n["unsupported"]] and [r["id"] for r in P6n["explained"]] == ["B"], (P6n["unsupported"], P6n["explained"])
+    c6b = [dict(x, stages_note="留 VS-Z.9") if x["id"] == "B" else x for x in cat6]
+    assert "B" in [r["id"] for r in analyze(vs6, c6b, sk6, on6, {})["place"]["unsupported"]]   # 未点到该段照常计入
     assert [r["id"] for r in P6["unsupported"]] == ["B", "D"] and P6["unsupported"][0]["exact"].keys() == {"VS-Z.2"}, P6["unsupported"]
     assert {r["id"]: r["stages"] for r in P6["missing"]} == {"B": ["VS-Z.2"], "C": ["VS-Z.2"], "D": ["VS-Z.2"]}, P6["missing"]
     assert sorted(r["id"] for r in P6["uncertain"]) == ["E", "F"], P6["uncertain"]   # 读模型、触发事件对不上
@@ -1071,6 +1148,26 @@ def self_test():
     unq = {r["id"] for r in Pq["unsupported"]}
     assert "Q1" not in unq and "Q2" not in unq, Pq["unsupported"]   # exit_common 展开；段内状态支持
     assert "Q3" not in unq and not [r for r in Pq["missing"] if r["id"] == "Q3"], (Pq["unsupported"], Pq["missing"])   # 触发状态归以它为进入的 VS-R.1，不归 VS-Q.1
+    # non_state 转换不算到达；纯事件触发的 business 归段；事件名经 emits 映射到状态
+    vse = {"value_streams": [{"id": "VS-E", "name": "事件流", "stages": [
+        {"id": "VS-E.1", "name": "甲", "exit": {"all": [{"ref": "OBJ-1", "state": "试用期 / 正式"}]}},
+        {"id": "VS-E.2", "name": "乙", "exit": {"all": [{"ref": "OBJ-1", "state": "已离职"}]}},
+        {"id": "VS-E.3", "name": "丙", "exit": {"all": [{"ref": "OBJ-1", "state": "已记学时"}]}}]}]}
+    cate = [{"id": "E1", "name": "开通账号", "type": "business", "stages": ["VS-E.1"], "owner_bc": "B-1"},
+            {"id": "E2", "name": "停用账号", "type": "business", "stages": ["VS-E.1"], "owner_bc": "B-1"},
+            {"id": "E3", "name": "登记学时", "type": "business", "stages": ["VS-E.3"], "owner_bc": "B-1"}]
+    ske = {"E1": ({"outcomes": ["账号已开通"], "stages": ["VS-E.1"], "triggers": [{"type": "event", "name": "入职已登记"}]}, []),
+           "E2": ({"outcomes": ["账号已停用"], "stages": ["VS-E.1"], "triggers": [{"type": "event", "name": "Separated"}, {"type": "manual", "name": "人工"}]}, []),
+           "E3": ({"outcomes": ["x"], "stages": ["VS-E.3"]}, [{"actor": "SH-E1", "where": "in_system", "aggregate": "AGG-E", "command": "登记学时"}])}
+    mache = {"AGG-E": {"aggregate": "AGG-E", "transitions": [{"from": None, "to": "试用期", "command": "登记入职", "kind": "forward"},
+                                                            {"from": "试用期", "to": "已记学时", "command": "登记学时", "kind": "non_state"}]}}
+    agge = {"AGG-E": {"objs": ["OBJ-1"], "corr": ""}}
+    evm = {"入职已登记": [("AGG-E", "试用期", frozenset(["OBJ-1"]))]}
+    Re = analyze(vse, cate, ske, {"OBJ-1": "人员"}, {}, mache, agge, evm)["place"]
+    assert "E1" not in {r["id"] for r in Re["unsupported"]}, Re["unsupported"]        # 纯事件触发的 business 经 emits 映射归 VS-E.1
+    assert "E2" in {r["id"] for r in Re["unsupported"]}, Re["unsupported"]            # 含人工入口的不按事件策略；结局不造退出条件
+    assert "E3" in {r["id"] for r in Re["unsupported"]}, Re["unsupported"]            # non_state 转换不算到达
+    assert load_event_map.__doc__
     txt = render(R, on, {}, 2, 6)
     assert "匹配口径" in txt and "VS-X.3" in txt
     print("self-test 通过")
@@ -1086,7 +1183,8 @@ def main():
     skeletons = load_skeletons(local)
     onames = load_objnames()
     import closeout_check as cc
-    R = analyze(vs_doc, catalog, skeletons, onames, load_alias_map(), load_machines(local), cc.load_aggregates())
+    machines, aggs = load_machines(local), cc.load_aggregates()
+    R = analyze(vs_doc, catalog, skeletons, onames, load_alias_map(), machines, aggs, load_event_map(local, machines, aggs))
     procs = [p for p in catalog if p.get("type") != "merged"]
     skel_n = sum(1 for p in procs if p["id"] in skeletons)
     text = render(R, onames, {p["id"]: p for p in procs}, skel_n, len(procs))
