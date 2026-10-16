@@ -13,7 +13,7 @@
 - 独占与不碰靠调度派工、评审时人工核对，不做自动校验（SESSION_PLAYBOOK §2.1 第 16 条）。
 不合规时生成失败，不写产物。
 """
-import os, re, sys
+import datetime, os, re, sys
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(BASE))
@@ -23,6 +23,12 @@ from session_context import context_docs, unsafe_reason  # noqa: E402
 OUT = os.path.join(BASE, "SESSIONS.md")
 FIELDS = ["类型", "职责", "独占", "不碰", "输入", "输出", "触发与节奏", "自动化", "上下文文档", "交接条件", "权限边界", "当前状态"]
 KINDS = ("长期", "工作")
+STALE_HOURS = 24
+REQUIRE_TIMESTAMP = False   # 画像迁移完成后改为 True，无时间戳即失败
+STAMP = re.compile(r"(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})")
+HANDOFF_STATES = ("有效", "已接手")
+HANDOFF_DIR = "handoffs"
+OLD_HANDOFFS = ("phase1a", "architecture/proposals")
 NAME = re.compile(r"one-[a-z0-9]+(-[a-z0-9]+)*")
 RETIRED_NAME = re.compile(r"(one|psa)-[a-z0-9]+(-[a-z0-9]+)*(-\d+)?")
 
@@ -71,6 +77,8 @@ def parse_profile(text, file_name):
     if body["类型"] not in KINDS:
         raise ProfileError(f"{file_name}：类型须为「长期」或「工作」")
     one_line(body["当前状态"], f"{file_name} 当前状态")
+    if "已交接" in body["当前状态"]:
+        raise ProfileError(f"{file_name}：当前状态写了「已交接」，已交接的会话改入 _retired.md，画像不再保留（SESSION_PLAYBOOK §2.1）")
     return {"name": stem, **body}
 
 
@@ -104,12 +112,51 @@ def check(profiles, retired, exists):
             raise ProfileError(f"sessions/{p['name']}.md：长期会话须在「上下文文档」列出至少一份本画像以外的文档")
 
 
+def freshness(status, now):
+    """当前状态须以 YYYY-MM-DD HH:MM 开头；返回 (标记, 说明)。标记：ok / stale（超 STALE_HOURS 小时）/ missing（无时间戳）/ invalid（时刻无效或在未来）。"""
+    m = STAMP.match(status)
+    if not m:
+        return "missing", "当前状态未以 YYYY-MM-DD HH:MM 开头"
+    try:
+        at = datetime.datetime.strptime(f"{m.group(1)} {m.group(2)}", "%Y-%m-%d %H:%M")
+    except ValueError:
+        return "invalid", f"时刻无效：{m.group(0)}"
+    age = (now - at).total_seconds() / 3600
+    if age < -1:
+        return "invalid", f"时刻在未来：{m.group(0)}"
+    return ("stale", f"已 {age:.0f} 小时未更新") if age > STALE_HOURS else ("ok", "")
+
+
+def handoff_problems(base):
+    """交接文件头（写于、基线提交、状态、触发原因）与“不写上下文百分比”。handoffs/ 下的新文件违规即错，旧位置的文件只告警。"""
+    errors, warns = [], []
+    places = [(HANDOFF_DIR, True)] + [(d, False) for d in OLD_HANDOFFS]
+    for folder, strict in places:
+        full = os.path.join(base, folder)
+        if not os.path.isdir(full):
+            continue
+        for f in sorted(os.listdir(full)):
+            if not (f.startswith("HANDOFF") and f.endswith(".md")):
+                continue
+            head = "\n".join(open(os.path.join(full, f), encoding="utf-8").read().split("\n")[:14])
+            found = []
+            for key, pattern in (("写于", r"- 写于：\d{4}-\d{2}-\d{2} \d{2}:\d{2}"), ("基线提交", r"- 基线提交：[0-9a-f]{7,40}"),
+                                 ("状态", rf"- 状态：({'|'.join(HANDOFF_STATES)})"), ("触发原因", r"- 触发原因：\S")):
+                if not re.search(pattern, head):
+                    found.append(f"缺「{key}」")
+            if re.search(r"上下文(约|已用|占用)?\s*\d+\s*%", head):
+                found.append("写了上下文百分比（只写触发原因）")
+            if found:
+                (errors if strict else warns).append(f"{folder}/{f}：{'；'.join(found)}")
+    return errors, warns
+
+
 def summary(text):
     first = next(l for l in text.splitlines() if l.strip())
     return re.sub(r"^[-*]\s+", "", first.strip())
 
 
-def render(profiles, retired):
+def render(profiles, retired, now=None):
     head = ("# 会话一览\n\n<!-- 由 docs/modernization/build_sessions.py 从 sessions/*.md 生成，不入仓，不要手改；"
             "改画像后运行 python3 docs/modernization/build_all.py。 -->\n\n"
             "画像规则见 SESSION_PLAYBOOK §2.1 第 16 条；画像全文在 `sessions/<会话名>.md`。\n\n"
@@ -118,7 +165,9 @@ def render(profiles, retired):
     rows = []
     for p in order:
         docs = "、".join(f"`{path.removeprefix('docs/modernization/')}`" for path in context_docs(f"## 上下文文档\n{p['上下文文档']}\n")) or "—"
-        rows.append(f"| {p['name']} | {p['类型']} | {one_line(summary(p['职责']), p['name'] + ' 职责首行')} | {docs} | {p['当前状态']} |\n")
+        mark, why = freshness(p["当前状态"], now or datetime.datetime.now())
+        tag = {"ok": "", "stale": f"【过期：{why}】", "missing": "【无时间戳】", "invalid": f"【{why}】"}[mark]
+        rows.append(f"| {p['name']} | {p['类型']} | {one_line(summary(p['职责']), p['name'] + ' 职责首行')} | {docs} | {tag}{p['当前状态']} |\n")
     rows += [f"| {n} | 已结束 | — | — | {s} |\n" for n, s in retired]
     return head + "".join(rows)
 
@@ -166,6 +215,27 @@ def self_test():
     long_lived = dict(p, 类型="长期")
     rejects("长期会话缺上下文文档", lambda: check([long_lived], [], yes))
     check([dict(long_lived, 上下文文档=f"- `docs/a.md`\n- `{own}`")], [], yes)
+    rejects("画像写已交接", lambda: parse_profile(good.rstrip("\n").rsplit("\n", 1)[0] + "\n已交接给 one-y\n", "one-x.md"))
+    now = datetime.datetime(2026, 10, 16, 12, 0)
+    for status, mark in (("2026-10-16 11:30 在岗", "ok"), ("2026-10-15 11:00 在岗", "stale"), ("2026-10-15 12:00 在岗", "ok"), ("在岗", "missing"), ("2026-13-40 25:61 x", "invalid"),
+                         ("2026-10-17 12:00 在岗", "invalid")):
+        if freshness(status, now)[0] != mark:
+            failures.append(f"freshness({status!r}) 应为 {mark}：{freshness(status, now)}")
+    if "【过期" not in render([dict(p, 当前状态="2026-10-10 10:00 旧", 上下文文档=f"`{own}`")], [], now) or "【无时间戳】" not in render([dict(p, 上下文文档=f"`{own}`")], [], now):
+        failures.append("render 应标出过期与无时间戳")
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        os.makedirs(os.path.join(d, HANDOFF_DIR)); os.makedirs(os.path.join(d, "phase1a"))
+        ok_head = "# 交接报告：a → b\n\n- 写于：2026-10-16 12:00\n- 基线提交：abc1234\n- 状态：有效\n- 触发原因：批次边界\n"
+        open(os.path.join(d, HANDOFF_DIR, "HANDOFF_a_2026-10-16.md"), "w", encoding="utf-8").write(ok_head)
+        open(os.path.join(d, "phase1a", "HANDOFF_old.md"), "w", encoding="utf-8").write("# 交接报告\n\n上下文约 75%\n")
+        errors, warns = handoff_problems(d)
+        if errors or len(warns) != 1 or "百分比" not in warns[0]:
+            failures.append(f"交接文件检查：旧位置应只告警一条：{errors} {warns}")
+        open(os.path.join(d, HANDOFF_DIR, "HANDOFF_bad.md"), "w", encoding="utf-8").write(ok_head.replace("- 状态：有效", "- 状态：未知") + "上下文约 80%\n")
+        errors, _ = handoff_problems(d)
+        if len(errors) != 1 or "缺「状态」" not in errors[0] or "百分比" not in errors[0]:
+            failures.append(f"交接文件检查：新目录违规应报错：{errors}")
     rejects("退役行格式", lambda: parse_retired("- one-a 已交接\n"))
     if parse_retired("<!-- 注释 -->\n- psa-coordinator-1：已交接\n") != [("psa-coordinator-1", "已交接")]:
         failures.append("退役行解析不对")
@@ -179,7 +249,19 @@ def main():
         profiles, retired = load()
     except (ProfileError, StopIteration) as e:
         sys.exit(f"会话画像校验失败：{e}")
-    open(OUT, "w", encoding="utf-8").write(render(profiles, retired))
+    now = datetime.datetime.now()
+    marks = [(p["name"],) + freshness(p["当前状态"], now) for p in profiles]
+    bad = [(n, m, w) for n, m, w in marks if m != "ok"]
+    if REQUIRE_TIMESTAMP and [b for b in bad if b[1] in ("missing", "invalid")]:
+        sys.exit("会话画像校验失败：当前状态须以 YYYY-MM-DD HH:MM 开头且有效：" + "、".join(n for n, m, _ in bad if m in ("missing", "invalid")))
+    if bad:
+        print(f"警告：{len(bad)} 份画像的当前状态过期或无时间戳：" + "、".join(f"{n}（{m}）" for n, m, _ in bad), file=sys.stderr)
+    errors, warns = handoff_problems(BASE)
+    if warns:
+        print(f"警告：{len(warns)} 份旧位置的交接文件不合模板（templates/HANDOFF.md）：" + "；".join(w.split('：')[0] for w in warns), file=sys.stderr)
+    if errors:
+        sys.exit("交接文件校验失败：\n" + "\n".join(errors))
+    open(OUT, "w", encoding="utf-8").write(render(profiles, retired, now))
     print(f"SESSIONS.md: {len(profiles)} 份画像，{len(retired)} 个已结束会话")
 
 
