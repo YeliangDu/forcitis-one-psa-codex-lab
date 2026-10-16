@@ -38,8 +38,8 @@ FORMAL_LIMIT, LIGHT_LIMIT, OVERDUE_DAYS = 20480, 6144, 7
 ANNOTATIONS = {"0020": "协作规则以 SESSION_PLAYBOOK 为准"}
 LEGACY_HEAD = re.compile(r"# ADR-(\d{4})：([^\n]+)\n\n- \*\*状态\*\*：([^\n]+)\n- \*\*日期\*\*：(\d{4}-\d{2}-\d{2})\n(?:- \*\*取代\*\*：([^\n]+)\n)?\n")
 ITEM = re.compile(r"ADR-(\d{4})(?: (.{1,30}))?")
-LINE_STYLE = re.compile(r"第\s*\d+\s*行|[:：]\s*\d+|(?<![A-Za-z])L\d+")
-INTENT_REF = re.compile(r"\b20\d{2}-\d{2}-\d{2}-\d{3,}")
+LINE_STYLE = re.compile(r"第\s*\d+\s*行|(?<!\w)[:：]\d+|\.\w{1,5}[:：]\d+|(?<![A-Za-z0-9])L\d{2,}\b|(?<![A-Za-z0-9])L\d+-L?\d+")
+INTENT_REF = re.compile(r"(?<!\d)20\d{2}-\d{2}-\d{2}-\d{3,}|intent|用户")
 
 
 def sections(path, body):
@@ -208,7 +208,7 @@ def validate_new(a, status_of, by_no, ctx):
     if status == "已采纳":
         need("用户原话", a["quotes"]); need("批准证据", a["evidence"])
     elif status == "搁置":
-        need("理由（含「重启条件」）", "重启条件" in a["reason"]); need("用户原话", a["quotes"])
+        need("理由（含「重启条件：…」）", re.search(r"(?<!无)(?<!没有)重启条件[：:]\s*\S", a["reason"])); need("用户原话", a["quotes"])
     elif status in ("已拒绝", "已废弃"):
         need("理由", a["reason"]); need("用户原话", a["quotes"])
     elif status == "已撤回":
@@ -336,6 +336,13 @@ def validate(adrs, ctx):
                     ok = other["status"].startswith(mark)
                 if not ok:
                     errors.append(f"ADR-{a['no']}: 取代 {ref}，但 ADR-{m.group(1)} 未标「{mark}」")
+    for a in adrs:
+        if a["new"]:
+            continue
+        for n in set(SUPERSEDED.findall(a["status"])):
+            other = by_no.get(n)
+            if not other or other["status"] != "已采纳" and not other["status"].startswith("已采纳") or not any(i.startswith(f"ADR-{a['no']}") for i in other["supersedes"]):
+                errors.append(f"ADR-{a['no']}: 状态写已被 ADR-{n} 取代，但 ADR-{n} 须存在、已采纳且「取代」列有 ADR-{a['no']}")
     cat_errors, _ = validate_catalog(adrs, ctx)
     return errors + cat_errors
 
@@ -356,6 +363,15 @@ def warnings(adrs, ctx):
             if a["tier"] == "正式" and a["size"] > FORMAL_LIMIT:
                 out.append(f"ADR-{a['no']} 正式档源文件 {a['size']} 字节超过 {FORMAL_LIMIT}，采纳前须拆分")
     return out
+
+
+def status_section(adrs, ctx):
+    """STATUS.md 的「超期 ADR 提议」段（R-10）：超期提议与搁置分列，搁置不计超期。"""
+    today = ctx["today"]
+    over = [f"- ADR-{a['no']} {a['title']}（起草 {a['drafter']}，占号 {a['date']}，已 {(today - datetime.date.fromisoformat(a['date'])).days} 天）"
+            for a in adrs if a["new"] and a["status"] == "提议" and (today - datetime.date.fromisoformat(a["date"])).days > OVERDUE_DAYS]
+    held = [f"- ADR-{a['no']} {a['title']}：{a['reason']}" for a in adrs if a["new"] and a["status"] == "搁置"]
+    return ("\n## 超期 ADR 提议\n\n" + ("\n".join(over) if over else "无") + "\n\n### 搁置（不计超期）\n\n" + ("\n".join(held) if held else "无") + "\n")
 
 
 def numbering_errors(adrs):

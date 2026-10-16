@@ -80,7 +80,7 @@ def run(b):
         try:
             b.parse_text("src/ADR-0100.md", text); raise AssertionError(name)
         except ValueError as e:
-            assert name != "未知字段" or "未知" in str(e), (name, e)
+            assert {"未知字段": "未知", "重复": "重复", "顺序": "顺序", "下一级列表": "下一级列表", "不能为空": "不能为空", "缺少或为空": "缺少或为空", "空行": "空行"}[name] in str(e), (name, e)
     # R-3 条件必填矩阵
     bad("须有用户原话", mk(status="已采纳", extra={"批准证据": ["x"]}))
     bad("须有批准证据", mk(status="已采纳", extra=quote_only))
@@ -117,6 +117,16 @@ def run(b):
     bad("未标", new_sup, legacy=[old("已采纳（用户同意）")])
     ok(mk(no="0101", status="已采纳", extra={**quote, "取代": ["ADR-0001"]}), legacy=[old("已被 ADR-0101 取代")])
     bad("未标", mk(no="0101", status="已采纳", extra={**quote, "取代": ["ADR-0001"]}), legacy=[old("已采纳")])
+    # 误报与漏报回归
+    for fine in ("决定 L2 缓存", "影响面：3 条", "决定 1:1 映射"):
+        ok(mk(no="0101", status="已采纳", extra={**quote, "取代": ["ADR-0100 " + fine]}), mk(no="0100", status="已采纳", extra={**quote, "被部分取代": ["ADR-0101 " + fine]}))
+    bad("不得写行号", mk(no="0101", status="已采纳", extra={**quote, "取代": ["ADR-0100 :138"]}), mk(no="0100", status="已采纳", extra=quote))
+    bad("须存在、已采纳", mk(no="0100", status="已采纳", extra=quote), legacy=[old("已采纳（范围已被 ADR-0100 取代）")])
+    bad("须存在、已采纳", mk(no="0100", status="已采纳", extra=quote), legacy=[old("已被 ADR-0999 取代")])
+    bad("重启条件", mk(status="搁置", extra={**quote_only, "理由": "无重启条件"}))
+    bad("属用户指派", mk(status="已撤回", extra={"理由": "x"}, secs={**SECS, "背景": "为2026-10-16-131918-x.md所述事项。"}))
+    bad("属用户指派", mk(status="已撤回", extra={"理由": "x"}, secs={**SECS, "背景": "用户要求起草。"}))
+    assert "无" in b.status_section([], ctx) and "ADR-0100" in b.status_section([adr(mk(date="2026-10-01"))], ctx)
     # 轻量档不得取代
     light = {k: SECS[k] for k in b.LIGHT_REQUIRED}
     ok(mk(tier="轻量", status="已采纳", extra=quote, secs=light))
@@ -185,7 +195,6 @@ def run(b):
     # 真实文件：旧稿产物逐字节不变，其余新规则对现有 src 全过
     adrs = b.load_adrs(os.path.join(b.BASE, "src"))
     for a in adrs:
-        assert not a["new"] or a["no"] not in b.LEGACY_FORMAT or True
         generated = os.path.join(b.BASE, f"ADR-{a['no']}.md")
         if os.path.exists(generated):
             assert b.render(a) == open(generated, encoding="utf-8").read(), f"ADR-{a['no']} 产物与重新渲染不一致"

@@ -64,7 +64,9 @@ def main(argv):
     path = os.path.join(BASE, "src", f"ADR-{no}.md")
     open(path, "x", encoding="utf-8").write(text)
     print(os.path.relpath(path, root))
-    subprocess.run([sys.executable, os.path.join(BASE, "build_adrs.py")], check=True)
+    if subprocess.run([sys.executable, os.path.join(BASE, "build_adrs.py")]).returncode:
+        os.remove(path)
+        sys.exit("失败：生成校验未通过，已删除空壳")
 
 
 def self_test():
