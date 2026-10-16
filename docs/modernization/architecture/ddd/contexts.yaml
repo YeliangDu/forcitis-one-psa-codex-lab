@@ -13,6 +13,12 @@ contexts:
   legacy_bc: null
   evidence: backend 模块包与 module-dependencies.txt
   note: 类型化标识、值对象、错误链、事件信封与跨模块端口；去向待定见 Q4
+  expiring_ports:
+  - port: ExternalSubjectEmployees
+    asked_by: platform.integration
+    implemented_by: organization.workforce
+    expires_with: C1（联合身份；见 proposals/IDENTITY_LIFECYCLE.md）
+    source: module-dependencies.txt R-1b P3b RULING-P3B-9
 - id: cost.timesheet
   zh: 工时与投入有效性 BC
   subdomain: cost
