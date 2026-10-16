@@ -1719,9 +1719,42 @@ processes:
   human_note: 校审不通过须整改后复审；客户审查期、退回修改、轮次与无异议声明
   merged_from:
   - PRC-29
+  migration: 历史交付物、提交轮次、送达、认可、退回与声明记录全部迁入（U-4），记迁入来源与原始时间；投产时在途的交付物按当前状态迁入（编制中、校审中、已签发待送达、已送达待答复），已送达待答复的从原送达日续算审查期
+  scope: 按项目的数据范围：项目成员可见并经办本项目交付物；签发限持证注册执业人员
+  triggers:
+  - type: human
+    name: 工作包待出成果，设计师开始编制
+  outcomes:
+  - 已认可
+  - 已声明无异议
+  - 未签发
+  scenarios:
+  - PRC-28-S01
+  - PRC-28-S02
+  - PRC-28-S03
+  - PRC-28-S04
+  - PRC-28-S05
+  - PRC-28-S06
+  - PRC-28-S07
+  roles:
+  - id: SH-E3
+    as: initiator
+  - id: SH-E4
+    as: reviewer
+  - id: SH-E7
+    as: approver
+  - id: SH-E2
+    as: performer
+  - id: SH-C6a
+    as: external
+  - id: SH-C6e
+    as: external
+  - id: SH-E6
+    as: informed
+  notes: 合并原 PRC-29。检查报告走同一流程（INV-51 同 BC 前置读不符合项）；已发布版本不可改，只出新版本（INV-46）。交付侧不判断视为同意，期满判定在 B-08（D-8）。订阅方 B-08、B-05。
   steps:
-  - actor: SH-E3
-    where: in_system
+  - actor: system
+    where: automatic
     actor_v1: 设计师和顾问
     read: true
     reads:
@@ -1738,6 +1771,7 @@ processes:
       direction: out
       bc: B-13
       name: 读签发人执业证书
+    audit: false
   - actor: SH-E3
     where: offline
     evidence:
@@ -1751,6 +1785,9 @@ processes:
       direction: out
       bc: B-30
       name: 参考的知识条目版本
+    permission: 交付物.编制
+    page: 交付物编辑页
+    audit: false
   - actor: SH-E4
     where: in_system
     actor_v1: 技术专家
@@ -1760,6 +1797,7 @@ processes:
     decision:
     - when: 各级校审通过
       goto: 4
+      rule: INV-46
     - when: otherwise
       goto: 2
     approval:
@@ -1768,6 +1806,12 @@ processes:
       multi_level: true
       on_reject: 2
       engine: aggregate
+    permission: 交付物.校审
+    page: 交付物校审页
+    audit: true
+    notify:
+    - to: SH-E4
+      how: 企业微信待办（待校审）
   - actor: SH-E7
     where: in_system
     evidence:
@@ -1781,8 +1825,16 @@ processes:
     decision:
     - when: 签发人执业证书有效且专业、等级符合
       goto: 5
+      rule: INV-47
     - when: otherwise
       goto: end
+    permission: 交付物.签发
+    page: 交付物签发页
+    audit: true
+    outcome: 未签发
+    notify:
+    - to: SH-E2
+      how: 企业微信消息（已签发，可送达）
   - actor: SH-E2
     where: offline
     evidence:
@@ -1801,6 +1853,7 @@ processes:
       goto: 7
     - when: 合同约定审查期且期满前未收到书面异议
       goto: 8
+      rule: ADR-0047 第 5 条第 1 点
     - when: otherwise
       goto: end
     cross_bc:
@@ -1809,6 +1862,17 @@ processes:
       bc: B-08
       name: 交付物已送达
     calls: PRC-33
+    permission: 交付物.登记送达
+    page: 送达登记页
+    audit: true
+    metric_event: true
+    timeout:
+      after: 合同审查期；未约定时 P15D 催签周期
+      escalate_to: SH-E2
+      interrupting: false
+    notify:
+    - to: SH-E2
+      how: 企业微信待办（审查期满或催签周期到）
   - actor: SH-E2
     where: offline
     evidence:
@@ -1823,6 +1887,7 @@ processes:
     decision:
     - when: otherwise
       goto: end
+      rule: INV-48
     cross_bc:
     - mode: event
       direction: out
@@ -1839,6 +1904,11 @@ processes:
       engine: external
       multi_level: false
       on_reject: 7
+    permission: 交付物.登记认可
+    page: 客户认可登记页
+    audit: true
+    outcome: 已认可
+    metric_event: true
   - actor: SH-E2
     where: offline
     evidence:
@@ -1860,6 +1930,9 @@ processes:
       bc: B-08
       name: AcceptanceReturned
     calls: PRC-33
+    permission: 交付物.登记退回
+    page: 客户退回登记页
+    audit: true
   - actor: SH-E2
     where: in_system
     evidence:
@@ -1881,22 +1954,13 @@ processes:
       name: 无异议已声明
     calls: PRC-33
     desc: 期满后项目经理检索往来函件，声明期满前未收到书面异议，检索记录作证据；交付侧不判期满，期满判定与视为同意认定在 B-08（ADR-0049 决定 1、5）；财务复核在收入确认审批中（ADR-0047 U-2 (a)）
-  notes: 合并原 PRC-29。检查报告走同一流程（INV-51 同 BC 前置读不符合项）；已发布版本不可改，只出新版本（INV-46）。交付侧不判断视为同意，期满判定在 B-08（D-8）。订阅方 B-08、B-05。
-  roles:
-  - id: SH-E3
-    as: initiator
-  - id: SH-E4
-    as: reviewer
-  - id: SH-E7
-    as: approver
-  - id: SH-E2
-    as: performer
-  - id: SH-C6a
-    as: external
-  - id: SH-C6e
-    as: external
-  - id: SH-E6
-    as: informed
+    permission: 交付物.声明无异议
+    page: 无异议声明页
+    audit: true
+    outcome: 已声明无异议
+    notify:
+    - to: SH-E6
+      how: 企业微信消息（待财务在收入确认审批中复核）
 - id: PRC-30
   name: 提出并批准完工估算
   trigger:

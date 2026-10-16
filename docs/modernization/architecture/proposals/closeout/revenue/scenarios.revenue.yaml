@@ -1,0 +1,10 @@
+# 收入线组验收场景清单（PRC-NN-Sxx；按方法稿第 6 节分支覆盖：每个判断出口、每个超时分支、每个结局至少一条）
+# 只写路径与期望结局，Given/When/Then 由测试代理按此展开（CS-5.3）；跨 BC 段只断言本模块并以事件契约衔接（CS-5.5）
+PRC-28:
+  - {id: PRC-28-S01, path: "1→2→3 通过→4 已签发→5 客户书面认可→6", outcome: 已认可, covers: [第 3 步「各级校审通过」, 第 4 步「签发人执业证书有效」, 第 5 步「客户书面认可」], expect: "发「交付物已认可」，订阅方 B-08、B-05"}
+  - {id: PRC-28-S02, path: "3 不通过→2", outcome: ~, covers: [第 3 步 otherwise], expect: "回编制；未签发前不得送达"}
+  - {id: PRC-28-S03, path: "4 证书失效或专业不符", outcome: 未签发, covers: [第 4 步 otherwise], expect: "拒绝签发并告警（INV-47）"}
+  - {id: PRC-28-S04, path: "5 客户书面退回→7→2", outcome: ~, covers: [第 5 步「客户书面不同意并退回修改」], expect: "发 AcceptanceReturned；轮次加 1，新送达日重算审查期"}
+  - {id: PRC-28-S05, path: "5 约定审查期、期满前无书面异议→8", outcome: 已声明无异议, covers: [第 5 步「合同约定审查期且期满前未收到书面异议」, 第 5 步超时], expect: "发「无异议已声明」；交付物无「视为同意」状态"}
+  - {id: PRC-28-S06, path: "5 未约定审查期、催签周期到", outcome: ~, covers: [第 5 步 otherwise, 第 5 步超时（催签）], expect: "提醒项目经理催签认、超期进阶段门预警；不得登记无异议声明"}
+  - {id: PRC-28-S07, path: "6 存在阻断性不符合项时登记认可", outcome: ~, covers: [第 6 步前置 INV-48], expect: "拒绝并告警"}
