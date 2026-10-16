@@ -1,0 +1,1783 @@
+processes:
+- id: PRC-64
+  name: 导入银行流水
+  trigger:
+    type: time
+    desc: 每日或银行文件到达
+  stages:
+  - VS-04.4
+  - VS-05.5
+  owner_bc: B-22
+  human_orchestration: false
+  steps:
+  - actor: system
+    command: 导入银行流水
+    aggregate: AGG-88
+    emits:
+    - 流水已导入
+    desc: 只追加，保留原始文件与校验和（INV-85）
+    decision:
+    - when: 银行文件校验和已导入过
+      goto: end
+    - when: otherwise
+      goto: 2
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: platform.integration
+      name: 银行流水导入
+  - actor: system
+    command: 提交过账候选
+    aggregate: AGG-88
+    calls: PRC-92
+    desc: 利息与手续费
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 提交过账候选（PostingCandidate）
+  notes: 匹配记在收款、付款上，流水不引用下游。
+  roles:
+  - id: SH-E6
+    as: performer
+  - id: SH-X7
+    as: external
+- id: PRC-70
+  name: 起草并生效供方协议
+  trigger:
+    type: human
+    desc: 项目经理提出采购或分包需求，或职能提出公司级采购
+  stages:
+  - VS-05.2
+  owner_bc: B-11
+  human_orchestration: true
+  human_note: 请购、审批、同意证据
+  steps:
+  - actor: SH-E2
+    read: true
+    reads:
+    - AGG-01
+    - AGG-02
+    - AGG-13
+    - AGG-19
+    desc: 读供方准入与资质、主协议承包链位置（INV-11、12）、项目
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-01
+      name: 读供方准入与资质
+    - mode: api
+      direction: out
+      bc: B-05
+      name: 读主协议承包链位置
+    - mode: api
+      direction: out
+      bc: B-04
+      name: 读项目
+  - actor: SH-E2
+    command: 预算占用
+    aggregate: AGG-80
+    emits:
+    - BudgetReserved
+    desc: 拦截还是预警待定（INV-102）
+    decision:
+    - when: 预算不足且口径为拦截
+      goto: end
+    - when: otherwise
+      goto: 3
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-18
+      name: 预算占用
+    pending:
+    - INV-102
+  - actor: SH-E2
+    command: 起草供方协议
+    aggregate: AGG-55
+    desc: 请购是草拟前的单据
+  - actor: platform
+    platform_task: true
+    service: platform.approval
+    command: 提交审批
+    approval:
+      doc_type: 供方协议审批
+      approver: SH-M1
+      multi_level: false
+      on_reject: 3
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: platform.approval
+      name: 提交审批
+    pending:
+    - F-01
+  - actor: SH-E2
+    command: 生效供方协议
+    aggregate: AGG-55
+    emits:
+    - 分包协议已生效
+    - 采购协议已生效
+    desc: 按协议类型二选一
+    decision:
+    - when: 分包协议未附发包方同意证据
+      goto: end
+    - when: otherwise
+      goto: 6
+  - actor: system
+    command: 建立履约额度
+    aggregate: AGG-58
+    desc: 同 BC 联动
+  notes: P-06 主合同未回签即签分包只预警；分包须附发包方同意证据（INV-13）。
+  roles:
+  - id: SH-E2
+    as: initiator
+  - id: SH-M1
+    as: approver
+  - id: SH-E6
+    as: reviewer
+  - id: SH-P2
+    as: external
+  - id: SH-X2
+    as: external
+- id: PRC-71
+  name: 生效分包变更
+  trigger:
+    type: human
+    desc: 分包范围或价款变化
+  stages:
+  - VS-05.2
+  owner_bc: B-11
+  human_orchestration: false
+  steps:
+  - actor: SH-E2
+    command: 提出分包变更
+    aggregate: AGG-56
+  - actor: SH-E2
+    command: 生效分包变更
+    aggregate: AGG-56
+    emits:
+    - 分包变更已生效
+  - actor: system
+    command: 供方额度更新
+    aggregate: AGG-58
+    on_event:
+    - aggregate: AGG-56
+      event: 分包变更已生效
+  notes: 生效后不可改，只能再变更（INV-16a、16b）。
+  roles:
+  - id: SH-E2
+    as: initiator
+  - id: SH-E2
+    as: performer
+- id: PRC-72
+  name: 确认供方履约
+  trigger:
+    type: human
+    desc: 专人验收供方履约
+  stages:
+  - VS-05.3
+  owner_bc: B-11
+  human_orchestration: false
+  steps:
+  - actor: SH-E2
+    read: true
+    reads:
+    - AGG-19
+    desc: 项目不得已结项、已终止、已取消（INV-39）
+    decision:
+    - when: 项目已结项、已终止或已取消
+      goto: end
+    - when: otherwise
+      goto: 2
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-04
+      name: 读项目状态
+  - actor: SH-E2
+    command: 占用履约额度
+    aggregate: AGG-58
+    desc: 先占用再写确认
+    decision:
+    - when: 履约额度不足
+      goto: end
+    - when: otherwise
+      goto: 3
+  - actor: SH-E2
+    command: 确认供方履约
+    aggregate: AGG-57
+    emits:
+    - 供方履约已确认
+    desc: 采购须专人验收（INV-83）
+    pending:
+    - Q20
+  - actor: system
+    command: 提交过账候选
+    aggregate: AGG-57
+    calls: PRC-92
+    desc: 成本事实
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 提交过账候选（PostingCandidate）
+    pending:
+    - Q20
+  notes: 形态待定 Q20；履约确认冲销另走 AGG-57。
+  roles:
+  - id: SH-E2
+    as: initiator
+  - id: SH-E2
+    as: reviewer
+  - id: SH-X2
+    as: external
+  - id: SH-P2
+    as: external
+- id: PRC-73
+  name: 登记并查验进项发票
+  trigger:
+    type: human
+    desc: 财务收到供方发票
+  stages:
+  - VS-05.4
+  - VS-08.2
+  owner_bc: B-23
+  human_orchestration: false
+  steps:
+  - actor: SH-E6
+    command: 登记进项发票
+    aggregate: AGG-89
+    desc: 开票方须为已登记往来单位
+    decision:
+    - when: 开票方不是已登记往来单位
+      goto: end
+    - when: otherwise
+      goto: 2
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-01
+      name: 读开票方
+  - actor: SH-E6
+    command: 查验进项发票
+    aggregate: AGG-89
+    desc: 经税务平台查验，不合规不得入账、不得作扣除凭证（INV-75）
+    decision:
+    - when: 查验不合规
+      goto: end
+    - when: otherwise
+      goto: 3
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: platform.integration
+      name: 发票查验
+  - actor: SH-E6
+    command: 确认进项发票用途
+    aggregate: AGG-89
+    emits:
+    - 进项发票已用途确认
+    decision:
+    - when: 用途为不可抵扣，需转出
+      goto: 4
+    - when: otherwise
+      goto: end
+  - actor: SH-E6
+    command: 进项转出
+    aggregate: AGG-89
+    branch: 转出
+    emits:
+    - 进项已转出
+  - actor: system
+    command: 提交过账候选
+    aggregate: AGG-89
+    calls: PRC-92
+    desc: 进项转出过账
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 提交过账候选（PostingCandidate）
+  notes: 可跳过：无票先确认应付（暂估），P-35 提醒应取未取，取得后重入。
+  roles:
+  - id: SH-E6
+    as: performer
+  - id: SH-P2
+    as: external
+  - id: SH-R2
+    as: external
+- id: PRC-74
+  name: 提交供方应付
+  trigger:
+    type: event
+    events:
+    - event: 供方履约已确认
+      aggregate: AGG-57
+    desc: B-11 在调用前判定履约确认已确认
+  stages:
+  - VS-05.4
+  owner_bc: B-11
+  human_orchestration: false
+  steps:
+  - actor: system
+    command: 确认应付
+    aggregate: AGG-52
+    inner:
+    - command: 占用进项发票入账
+      aggregate: AGG-89
+    emits:
+    - 应付已确认
+    desc: 按来源单据 ID 幂等；来源为供方履约确认时，命令先在进项发票上占用再写应付（来源为报销的应付不再占用，见「提交、核定并确认报销应付」）
+    decision:
+    - when: 来源单据已确认过应付（幂等）
+      goto: end
+    - when: otherwise
+      goto: 2
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-10
+      name: 确认应付
+  - actor: system
+    command: 提交过账候选
+    aggregate: AGG-52
+    calls: PRC-92
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 提交过账候选（PostingCandidate）
+  notes: B-10 只存来源 ID、不读 B-11（ADR-0022 决定 7）；两次事务各改一个聚合。
+  roles:
+  - id: SH-E6
+    as: informed
+- id: PRC-75
+  name: 发起、审批并执行付款
+  trigger:
+    type: event
+    events:
+    - event: 应付已确认
+      aggregate: AGG-52
+    desc: 出纳按待付清单对已确认的应付发起付款（同 BC）
+  stages:
+  - VS-05.5
+  - VS-08.1
+  - VS-08.3
+  - VS-12.2
+  - VS-12.3
+  - VS-13.5
+  owner_bc: B-10
+  human_orchestration: true
+  human_note: 付款审批、不相容职务、退票重入
+  steps:
+  - actor: SH-E6
+    read: true
+    reads:
+    - AGG-01
+    - AGG-88
+    - AGG-87
+    desc: 读收款账户、流水行与资金账户（INV-80）；P-01 银行账户变更后首笔付款预警
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-01
+      name: 读收款账户
+    - mode: api
+      direction: out
+      bc: B-22
+      name: 读流水行与资金账户
+  - actor: SH-E6
+    command: 发起付款
+    aggregate: AGG-53
+    inner:
+    - command: 在应付上核销占用
+      aggregate: AGG-52
+    desc: 先占用再建付款（⑥a 评审 M6）：分配行先在应付上核销占用（付款不超过未付余额，INV-79），再建付款；两次事务各改一个聚合
+    decision:
+    - when: 付款超过应付未付余额
+      goto: end
+    - when: otherwise
+      goto: 4
+  - actor: system
+    command: 释放核销占用
+    aggregate: AGG-52
+    branch: 补偿（占用成功而建付款失败）
+    desc: 补偿顺序与占用相反；孤儿占用另有定时释放兜底
+    decision:
+    - when: otherwise
+      goto: end
+  - actor: platform
+    platform_task: true
+    service: platform.approval
+    command: 审批付款
+    desc: 经办、审批、出纳、记账不相容，经 platform.identity 校验（INV-81）
+    approval:
+      doc_type: 付款审批
+      approver: SH-E6
+      multi_level: false
+      on_reject: 3
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: platform.approval
+      name: 提交审批
+    - mode: api
+      direction: out
+      bc: platform.identity
+      name: 校验不相容职务
+    pending:
+    - F-01
+  - actor: SH-E6
+    command: 登记银行结果
+    aggregate: AGG-53
+    emits:
+    - 付款已成功
+    desc: 引用流水行 ID；之后由事件策略接续：付款已成功 → 核销应付（PRC-131）→ 应付已核销 → 置付款已核销并提交过账候选（PRC-132）；报销置已付见 PRC-133
+    decision:
+    - when: 银行结果为失败或退票
+      goto: 6
+    - when: otherwise
+      goto: end
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-22
+      name: 引用银行流水行
+  - actor: SH-E6
+    command: 登记付款失败
+    aggregate: AGG-53
+    branch: 退票
+    emits:
+    - 付款已失败
+    inner:
+    - command: 释放核销占用
+      aggregate: AGG-52
+    desc: 退票时释放占用，付款重入
+    decision:
+    - when: 重新发起付款
+      goto: 2
+    - when: otherwise
+      goto: end
+  notes: 应付已结清的订阅方 B-15（薪酬，PRC-127）。原步骤 6–8（核销应付、置付款已核销、提交过账候选）改为事件策略 PRC-131、PRC-132（⑥a 评审 M6）。
+  roles:
+  - id: SH-E6
+    as: performer
+  - id: SH-E6
+    as: approver
+  - id: SH-E6
+    as: reviewer
+  - id: SH-P2
+    as: external
+  - id: SH-X7
+    as: external
+- id: PRC-76
+  name: 完成并结算供方协议
+  trigger:
+    type: event
+    events:
+    - event: 供方履约已确认
+      aggregate: AGG-57
+    desc: 累计达协议金额或额度用尽时本 BC 策略触发完成；结算由人工发起
+  stages:
+  - VS-05.6
+  owner_bc: B-11
+  human_orchestration: false
+  steps:
+  - actor: system
+    command: 完成供方协议
+    aggregate: AGG-55
+    decision:
+    - when: 累计达协议金额或额度用尽
+      goto: 2
+    - when: otherwise
+      goto: end
+  - actor: SH-E2
+    command: 结算供方协议
+    aggregate: AGG-55
+    emits:
+    - 供方协议已结算
+    cross_bc:
+    - mode: api
+      direction: in
+      bc: B-29
+      name: 读供方协议状态
+  - actor: SH-E2
+    command: 终止供方协议
+    aggregate: AGG-55
+    branch: 终止
+    emits:
+    - 供方协议已终止
+    desc: 含未结算即结项时的结算结论（Q10）
+    cross_bc:
+    - mode: api
+      direction: in
+      bc: B-29
+      name: 读供方协议状态
+    pending:
+    - Q10
+  notes: 结项编排经 api 读状态，事件无业务订阅方。
+  roles:
+  - id: SH-E2
+    as: performer
+- id: PRC-77
+  name: 申报并缴纳增值税、附加税与企业所得税
+  trigger:
+    type: time
+    desc: 法定申报期（P-39）
+  stages:
+  - VS-06.1
+  owner_bc: B-23
+  human_orchestration: false
+  steps:
+  - actor: SH-E6
+    read: true
+    reads:
+    - AGG-46
+    - AGG-84
+    - AGG-81
+    desc: 读销项发票、分录余额与所属期
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-08
+      name: 读销项发票
+    - mode: api
+      direction: out
+      bc: B-20
+      name: 读分录余额
+    - mode: api
+      direction: out
+      bc: B-19
+      name: 读所属期
+    pending:
+    - ADR22-差异类
+  - actor: SH-E6
+    command: 生成申报
+    aggregate: AGG-90
+  - actor: SH-E6
+    command: 提交申报
+    aggregate: AGG-90
+    emits:
+    - 申报已提交
+    decision:
+    - when: 申报端回执退回或需更正
+      goto: 5
+    - when: otherwise
+      goto: 4
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: platform.integration
+      name: 申报端提交
+  - actor: SH-E6
+    command: 登记缴款
+    aggregate: AGG-90
+    emits:
+    - 税款已缴纳
+    decision:
+    - when: otherwise
+      goto: 6
+  - actor: SH-E6
+    command: 更正申报
+    aggregate: AGG-90
+    branch: 更正
+    decision:
+    - when: otherwise
+      goto: 3
+  - actor: system
+    command: 提交过账候选
+    aggregate: AGG-90
+    calls: PRC-92
+    desc: 税费过账
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 提交过账候选（PostingCandidate）
+  notes: 财务复核、申报端回执、更正申报无超时或退回分支，按非人工编排（⑥a 评审 M1）。AGG-90 到申报阶段再建（D-7）；在此之前该流程不可用。
+  roles:
+  - id: SH-E6
+    as: performer
+  - id: SH-E6
+    as: reviewer
+  - id: SH-R2
+    as: external
+- id: PRC-87
+  name: 提交、核定并确认报销应付
+  trigger:
+    type: human
+    desc: 员工提交费用报销
+  stages:
+  - VS-08.2
+  owner_bc: B-12
+  human_orchestration: true
+  human_note: 报销审批、驳回释放占用
+  roles:
+  - id: SH-E3
+    as: initiator
+  - id: SH-E1
+    as: approver
+  - id: SH-E6
+    as: reviewer
+  segregation:
+  - 报销人 ≠ 审批人
+  - 报销人 ≠ 核定人
+  - 审批人 ≠ 核定人
+  steps:
+  - actor: SH-E3
+    read: true
+    reads:
+    - AGG-19
+    - AGG-10
+    - AGG-62
+    desc: 读项目或商机与人员
+    decision:
+    - when: 所归属项目已结项、已终止或已取消（INV-39）
+      goto: end
+    - when: otherwise
+      goto: 2
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-04
+      name: 读项目
+    - mode: api
+      direction: out
+      bc: B-03
+      name: 读商机
+    - mode: api
+      direction: out
+      bc: B-13
+      name: 读人员
+  - actor: SH-E3
+    command: 占用进项发票入账
+    aggregate: AGG-89
+    desc: 占用第 1 步：提交前占用，已占用则拒（INV-74）
+    decision:
+    - when: 发票查验不合规（INV-75）或已被占用（INV-74）
+      goto: end
+    - when: otherwise
+      goto: 3
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-23
+      name: 占用进项发票入账
+  - actor: SH-E3
+    command: 预算占用
+    aggregate: AGG-80
+    emits:
+    - BudgetReserved
+    desc: 占用第 2 步
+    decision:
+    - when: 可用预算不足且口径为拦截
+      goto: 11
+    - when: otherwise
+      goto: 4
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-18
+      name: 预算占用
+    pending:
+    - INV-102
+  - actor: SH-E3
+    command: 提交费用报销
+    aggregate: AGG-59
+    desc: 占用第 3 步；原始凭证要素齐全（INV-84）。占用中途失败按相反顺序补偿：第 3 步失败先释放预算占用再释放发票占用；第 2 步失败只释放发票占用
+    decision:
+    - when: 原始凭证要素不全（INV-84）
+      goto: 10
+    - when: otherwise
+      goto: 5
+  - actor: platform
+    platform_task: true
+    service: platform.approval
+    command: 报销审批
+    gap: G-02
+    approval:
+      engine: platform.approval
+      doc_type: 费用报销审批
+      approver: SH-E1
+      multi_level: false
+      on_reject: 10
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: platform.approval
+      name: 提交审批
+    pending:
+    - F-01
+  - actor: SH-E6
+    command: 核定费用报销
+    aggregate: AGG-59
+    emits:
+    - 费用报销已核定
+    desc: 确定所属期间；超事前预批额度 P-37 预警
+    decision:
+    - when: 报销人有未结员工借款
+      goto: 7
+    - when: otherwise
+      goto: 8
+  - actor: system
+    command: 冲抵员工借款
+    aggregate: AGG-49
+    branch: 报销冲抵借款
+    desc: 按报销人未结借款冲抵，余额进应付（intent 134134 Q-10 新增边；本步为对 v1 的增补）
+    decision:
+    - when: 冲抵后应付净额为零
+      goto: 9
+    - when: otherwise
+      goto: 8
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-09
+      name: 冲抵员工借款
+    pending:
+    - Q-10-方向
+    added_in: closeout
+  - actor: system
+    command: 确认应付
+    aggregate: AGG-52
+    emits:
+    - 应付已确认
+    desc: 报销应付，引用来源报销（AGG-59）；发票占用留在报销上，应付不再占用（符合性审查 G-17）；金额为冲抵借款后的净额
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-10
+      name: 确认应付
+  - actor: system
+    command: 提交过账候选
+    aggregate: AGG-59
+    calls: PRC-92
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 提交过账候选（PostingCandidate）
+    decision:
+    - when: otherwise
+      goto: end
+  - actor: system
+    command: 释放预算占用
+    aggregate: AGG-80
+    branch: 驳回或补偿（占用中途失败）
+    emits:
+    - BudgetReleased
+    desc: 驳回时同时释放预算占用（⑥a 评审 H5）；先预算后发票，与占用相反
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-18
+      name: 释放预算占用
+  - actor: system
+    command: 驳回释放
+    aggregate: AGG-89
+    branch: 驳回或补偿（占用中途失败）
+    desc: 释放发票占用
+    decision:
+    - when: otherwise
+      goto: end
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-23
+      name: 驳回释放
+  notes: 报销「已付」由应付已结清经事件策略 PRC-133 置位（G-09；⑥a 复核）；发票占用只在 B-12 提交前占用一次，报销产生的应付引用报销、不再占用（G-17 已处理）；付款由 B-10 内 PRC-75 订阅应付已确认发起。
+- id: PRC-92
+  name: 过账业务事实
+  trigger:
+    type: call
+    desc: 各触账 BC 的「提交过账候选」调用本管道（开放主机服务 + 发布语言）
+  stages:
+  - VS-10.1
+  owner_bc: B-16
+  human_orchestration: false
+  steps:
+  - actor: system
+    read: true
+    reads:
+    - AGG-81
+    desc: 同事务读锁校验目标期间开放；已关账则路由到开放期间并标原期间（INV-92）
+    decision:
+    - when: 目标期间已关账，路由到开放期间并标原期间
+      goto: 2
+    - when: 无开放期间可落
+      goto: end
+    - when: otherwise
+      goto: 2
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-19
+      name: 读会计期间（同事务读锁）
+  - actor: system
+    command: 过账
+    aggregate: AGG-77
+    emits:
+    - BusinessFactAttributed
+    desc: 借贷平衡、法人一致、幂等（INV-93、94）
+    decision:
+    - when: 借贷不平、法人不一致或幂等键已处理
+      goto: end
+    - when: 需更正
+      goto: 3
+    - when: otherwise
+      goto: end
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-13
+      name: 读法人主体
+    - mode: api
+      direction: in
+      bc: B-06
+      name: 提交过账候选（PostingCandidate）
+    - mode: api
+      direction: in
+      bc: B-07
+      name: 提交过账候选（PostingCandidate）
+    - mode: api
+      direction: in
+      bc: B-08
+      name: 提交过账候选（PostingCandidate）
+    - mode: api
+      direction: in
+      bc: B-09
+      name: 提交过账候选（PostingCandidate）
+    - mode: api
+      direction: in
+      bc: B-10
+      name: 提交过账候选（PostingCandidate）
+    - mode: api
+      direction: in
+      bc: B-11
+      name: 提交过账候选（PostingCandidate）
+    - mode: api
+      direction: in
+      bc: B-12
+      name: 提交过账候选（PostingCandidate）
+    - mode: api
+      direction: in
+      bc: B-15
+      name: 提交过账候选（PostingCandidate）
+    - mode: api
+      direction: in
+      bc: B-20
+      name: 提交过账候选（PostingCandidate）
+    - mode: api
+      direction: in
+      bc: B-22
+      name: 提交过账候选（PostingCandidate）
+    - mode: api
+      direction: in
+      bc: B-23
+      name: 提交过账候选（PostingCandidate）
+    - mode: api
+      direction: in
+      bc: B-24
+      name: 提交过账候选（PostingCandidate）
+    - mode: event
+      direction: out
+      bc: B-07
+      name: BusinessFactAttributed
+    - mode: event
+      direction: out
+      bc: B-15
+      name: BusinessFactAttributed
+    - mode: event
+      direction: out
+      bc: B-17
+      name: BusinessFactAttributed
+    - mode: event
+      direction: out
+      bc: B-20
+      name: BusinessFactAttributed
+  - actor: system
+    command: 冲销并重过账
+    aggregate: AGG-77
+    branch: 更正
+    emits:
+    - BusinessFactRestated
+    desc: 事实只追加，更正只能冲销（INV-95）
+    cross_bc:
+    - mode: event
+      direction: out
+      bc: B-07
+      name: BusinessFactRestated
+    - mode: event
+      direction: out
+      bc: B-17
+      name: BusinessFactRestated
+    - mode: event
+      direction: out
+      bc: B-20
+      name: BusinessFactRestated
+  notes: 所有触账流程的最后一步都调用本流程；订阅方 B-07、B-17、B-20。
+  roles:
+  - id: SH-E6
+    as: informed
+- id: PRC-94
+  name: 制单并过账受控手工凭证
+  trigger:
+    type: human
+    desc: 财务因调整、差异或年度审计调整制单
+  stages:
+  - VS-10.1
+  owner_bc: B-20
+  human_orchestration: true
+  human_note: 制单、复核、审批，复核人不同于制单人
+  steps:
+  - actor: SH-E6
+    command: 制单手工凭证
+    aggregate: AGG-98
+    pending:
+    - P-003
+    - A1-02
+  - actor: SH-E6
+    command: 复核手工凭证
+    aggregate: AGG-98
+    decision:
+    - when: 复核人与制单人为同一人
+      goto: end
+    - when: 复核不通过
+      goto: 1
+    - when: otherwise
+      goto: 3
+  - actor: platform
+    platform_task: true
+    service: platform.approval
+    command: 手工凭证审批
+    approval:
+      doc_type: 手工凭证审批
+      approver: SH-E6
+      multi_level: false
+      on_reject: 1
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: platform.approval
+      name: 提交审批
+    pending:
+    - F-01
+  - actor: SH-E6
+    command: 提交过账候选
+    aggregate: AGG-98
+    emits:
+    - 手工凭证已提交过账
+    calls: PRC-92
+    desc: 年度审计调整类带显式落账期间（仅第 13 期）
+    decision:
+    - when: 显式落账期间未开放
+      goto: end
+    - when: otherwise
+      goto: end
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 提交过账候选（PostingCandidate）
+    pending:
+    - P-001
+    - P-004
+  notes: 显式期间未开放即拒并告警，不改落其他期间（ADR-0046）。
+  roles:
+  - id: SH-E6
+    as: performer
+  - id: SH-E6
+    as: reviewer
+  - id: SH-E6
+    as: approver
+- id: PRC-95
+  name: 期末结转
+  trigger:
+    type: time
+    desc: 月末业务过账完成后
+  stages:
+  - VS-10.1
+  owner_bc: B-20
+  human_orchestration: false
+  steps:
+  - actor: system
+    read: true
+    reads:
+    - AGG-84
+    desc: 读本期分录与余额
+  - actor: SH-E6
+    command: 生成期末结转运行
+    aggregate: AGG-99
+    desc: 每（法人，期间，模板）只有一次有效运行（INV-109）
+    decision:
+    - when: 本法人本期间本模板已有有效运行
+      goto: end
+    - when: otherwise
+      goto: 3
+    pending:
+    - P-001
+    - P-002
+  - actor: system
+    command: 提交过账候选
+    aggregate: AGG-99
+    emits:
+    - 期末结转已过账
+    calls: PRC-92
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 提交过账候选（PostingCandidate）
+  notes: 已过账的只能冲销重做；损益结转、未分配利润等期末凭证。
+  roles:
+  - id: SH-E6
+    as: performer
+- id: PRC-96
+  name: 分配人工成本
+  trigger:
+    type: event
+    events:
+    - event: BusinessFactAttributed
+      aggregate: AGG-77
+    gate: 期间闸门——工时与薪酬事实均已过账（P-41）且目标期间开放，月末才触发（⑥a 评审 M7）
+  stages:
+  - VS-10.1
+  owner_bc: B-07
+  human_orchestration: false
+  steps:
+  - actor: system
+    read: true
+    reads:
+    - AGG-77
+    - AGG-81
+    desc: 读已过账的工时与薪酬事实，只分配已锁定工时
+    decision:
+    - when: 工时与薪酬事实未齐备或目标期间未开放
+      goto: end
+    - when: otherwise
+      goto: 2
+    cross_bc:
+    - mode: event
+      direction: in
+      bc: B-16
+      name: BusinessFactAttributed
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 读已过账事实
+    - mode: api
+      direction: out
+      bc: B-19
+      name: 读会计期间
+  - actor: SH-E6
+    command: 试算人工成本分配
+    aggregate: AGG-41
+    desc: P-41 有工时无薪酬、有薪酬无工时预警
+    pending:
+    - FD-09
+  - actor: SH-E6
+    command: 确认人工成本分配
+    aggregate: AGG-41
+    decision:
+    - when: 分配合计不等于实际人工成本
+      goto: 2
+    - when: otherwise
+      goto: 4
+    pending:
+    - FD-09
+  - actor: system
+    command: 提交过账候选
+    aggregate: AGG-41
+    emits:
+    - 人工成本分配已过账
+    calls: PRC-92
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 提交过账候选（PostingCandidate）
+  notes: 分配合计等于实际人工成本，零容差（INV-89）；口径待 FD-09。试算后确认无超时或退回分支，按非人工编排（⑥a 评审 M1）。
+  roles:
+  - id: SH-E6
+    as: performer
+- id: PRC-97
+  name: 批准并生效分摊规则版本
+  trigger:
+    type: human
+    desc: 财务按期间首日发布规则
+  stages:
+  - VS-10.1
+  owner_bc: B-07
+  human_orchestration: false
+  steps:
+  - actor: SH-E6
+    command: 批准分摊规则版本
+    aggregate: AGG-40
+    gap: G-02
+    approval:
+      doc_type: 分摊规则审批
+      approver: SH-E6
+      multi_level: false
+      on_reject: end
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-13
+      name: 读组织单元
+    - mode: api
+      direction: out
+      bc: platform.approval
+      name: 提交审批
+    pending:
+    - F-01
+  - actor: SH-E6
+    command: 生效分摊规则版本
+    aggregate: AGG-40
+    emits:
+    - 分摊规则已生效
+    desc: 只在期间首日生效（INV-91）
+  notes: 被引用版本不可改。
+  roles:
+  - id: SH-E6
+    as: performer
+  - id: SH-E6
+    as: approver
+- id: PRC-98
+  name: 分摊间接成本
+  trigger:
+    type: time
+    desc: 月末
+  stages:
+  - VS-10.1
+  owner_bc: B-07
+  human_orchestration: false
+  steps:
+  - actor: SH-E6
+    command: 试算分摊运行
+    aggregate: AGG-42
+    desc: 基数为零时结转下期（P-42）
+    decision:
+    - when: 分摊基数为零，结转下期
+      goto: end
+    - when: otherwise
+      goto: 2
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 读过账事实
+    - mode: api
+      direction: out
+      bc: B-19
+      name: 读会计期间
+  - actor: SH-E6
+    command: 生效分摊运行
+    aggregate: AGG-42
+    emits:
+    - 分摊已生效
+    desc: 管理口径；每期间一次有效全量运行（INV-90）
+  notes: 冲销按原比例。试算后确认无超时或退回分支，按非人工编排（⑥a 评审 M1）。
+  roles:
+  - id: SH-E6
+    as: performer
+- id: PRC-99
+  name: 计提折旧并处置公司资产
+  trigger:
+    type: time
+    desc: 月末按期计提
+  stages:
+  - VS-10.1
+  owner_bc: B-24
+  human_orchestration: false
+  steps:
+  - actor: SH-E6
+    read: true
+    reads:
+    - AGG-55
+    desc: 读采购或租赁协议
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-11
+      name: 读采购或租赁协议
+  - actor: SH-E6
+    command: 登记公司资产
+    aggregate: AGG-91
+  - actor: system
+    command: 计提折旧与摊销
+    aggregate: AGG-91
+    decision:
+    - when: 本期有资产处置
+      goto: 4
+    - when: otherwise
+      goto: 5
+  - actor: SH-E6
+    command: 处置资产
+    aggregate: AGG-91
+    branch: 处置
+    emits:
+    - 资产已处置
+  - actor: system
+    command: 提交过账候选
+    aggregate: AGG-91
+    calls: PRC-92
+    desc: 折旧与处置过账
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 提交过账候选（PostingCandidate）
+    pending:
+    - ADR22-G1G2
+  notes: G1 期间为 ledger 内导入通道（ADR-0022 决定 7）。
+  roles:
+  - id: SH-E6
+    as: performer
+- id: PRC-100
+  name: 发布总账配置版本
+  trigger:
+    type: human
+    desc: 财务评审并发布科目表、映射表、授权表新版本
+  stages:
+  - VS-10.1
+  owner_bc: B-20
+  human_orchestration: false
+  steps:
+  - actor: SH-E6
+    command: 发布科目表版本
+    aggregate: AGG-82
+    emits:
+    - 科目表版本已生效
+  - actor: SH-E6
+    command: 发布映射表版本
+    aggregate: AGG-85
+    emits:
+    - 映射表版本已生效
+    pending:
+    - ADR22-差异类
+  - actor: SH-E6
+    command: 发布授权表版本
+    aggregate: AGG-94
+    emits:
+    - 授权表版本已生效
+  notes: 口径转换规则按代码类变更管理，不建聚合。
+  roles:
+  - id: SH-E6
+    as: performer
+- id: PRC-101
+  name: 月结检查并关账
+  trigger:
+    type: human
+    desc: 财务在会计期间结束时发起月结
+  stages:
+  - VS-10.1
+  owner_bc: B-17
+  human_orchestration: true
+  human_note: 发起人与确认人须不同；前置检查未通过退回开放重入
+  steps:
+  - actor: SH-E6
+    read: true
+    reads:
+    - AGG-84
+    - AGG-99
+    - AGG-77
+    - AGG-81
+    command: 月结检查
+    desc: 队列为空、死信为空、期末结转已过账、明细账与控制科目一致、试算平衡、三条对账等式等
+    decision:
+    - when: 前置检查未通过
+      goto: end
+    - when: otherwise
+      goto: 2
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-20
+      name: 读分录余额与期末结转
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 读队列与死信
+    - mode: api
+      direction: out
+      bc: B-19
+      name: 读会计期间
+  - actor: SH-E6
+    command: 发起关账
+    aggregate: AGG-81
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-19
+      name: 发起关账
+    pending:
+    - AGG§7-15
+  - actor: SH-E6
+    command: 确认关账
+    aggregate: AGG-81
+    emits:
+    - AccountingPeriodClosed
+    decision:
+    - when: 确认人与发起人为同一人
+      goto: end
+    - when: 确认时前置检查未通过
+      goto: 4
+    - when: otherwise
+      goto: end
+    approval:
+      doc_type: 月结关账确认
+      approver: SH-E6
+      multi_level: false
+      on_reject: 4
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-19
+      name: 确认关账
+  - actor: SH-E6
+    command: 退回开放
+    aggregate: AGG-81
+    branch: 前置检查未通过
+    decision:
+    - when: otherwise
+      goto: 1
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-19
+      name: 退回开放
+  notes: 已关账期间是终态，回退是在开放期间重入第 1–3 步（冲销加新事实，标原期间）；「关账中」是否仍接受过账未定（§7 第 15 条）。
+  roles:
+  - id: SH-E6
+    as: initiator
+  - id: SH-E6
+    as: approver
+- id: PRC-102
+  name: 启用第 13 期并年末关账
+  trigger:
+    type: time
+    desc: 会计年度末，12 月关账前
+  stages:
+  - VS-10.1
+  owner_bc: B-17
+  human_orchestration: false
+  steps:
+  - actor: SH-E6
+    command: 登记第 13 期启用
+    aggregate: AGG-96
+    emits:
+    - 第 13 期启用登记已生效
+    decision:
+    - when: 本年度未启用第 13 期
+      goto: end
+    - when: otherwise
+      goto: 2
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-19
+      name: 登记第 13 期启用
+    pending:
+    - P-003
+  - actor: SH-E6
+    command: 开放第 13 期
+    aggregate: AGG-81
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-19
+      name: 开放第 13 期
+    pending:
+    - ADR46-P3
+  - actor: SH-E6
+    command: 发起年末关账
+    aggregate: AGG-81
+    desc: 12 月与第 13 期共用一组前置检查
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-19
+      name: 发起年末关账
+  - actor: SH-E6
+    command: 确认年末关账
+    aggregate: AGG-81
+    emits:
+    - AccountingPeriodClosed
+    desc: 两期同事务原子关账（INV-99）；第 13 期的事件不触发 L2
+    approval:
+      doc_type: 年末关账确认
+      approver: SH-E6
+      multi_level: false
+      on_reject: 3
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-19
+      name: 确认年末关账
+    pending:
+    - P-002
+  notes: 未启用的年度 12 月照常关账；12 月关账后启用状态锁定（INV-104）。
+  roles:
+  - id: SH-E6
+    as: initiator
+  - id: SH-E6
+    as: approver
+- id: PRC-104
+  name: 外部法定账对账与签字
+  trigger:
+    type: event
+    events:
+    - event: 期间余额快照已生成
+      aggregate: AGG-100
+  stages:
+  - VS-10.2
+  owner_bc: B-20
+  human_orchestration: false
+  steps:
+  - actor: SH-E6
+    read: true
+    reads:
+    - AGG-100
+    - AGG-84
+    desc: 读快照与推送状态及外部法定账余额
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: platform.integration
+      name: 读外部法定账余额
+    pending:
+    - ADR22-G1G2
+  - actor: SH-E6
+    command: 登记对账差异
+    aggregate: AGG-101
+    decision:
+    - when: 差异清零
+      goto: end
+    - when: otherwise
+      goto: 3
+  - actor: SH-E6
+    command: 签字接受差异
+    aggregate: AGG-101
+    emits:
+    - 对账已完成
+    desc: 差异清零或签字接受，否则收付口径账簿不得出表（INV-107）
+    approval:
+      doc_type: 对账差异签字
+      approver: SH-E6
+      multi_level: false
+      on_reject: 2
+    cross_bc:
+    - mode: api
+      direction: in
+      bc: B-21
+      name: 读对账状态
+    pending:
+    - ADR22-签字容差
+  notes: 权责口径不等对账。
+  roles:
+  - id: SH-E6
+    as: performer
+  - id: SH-E6
+    as: approver
+  - id: SH-X7
+    as: external
+- id: PRC-105
+  name: 评审并生效报表行定义版本
+  trigger:
+    type: human
+    desc: 财务编制报表行到科目的映射
+  stages:
+  - VS-10.2
+  owner_bc: B-21
+  human_orchestration: false
+  steps:
+  - actor: SH-E6
+    command: 编制报表行定义版本
+    aggregate: AGG-86
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-20
+      name: 读科目表版本
+    pending:
+    - R-9-差异
+  - actor: SH-E6
+    command: 生效报表行定义版本
+    aggregate: AGG-86
+    desc: 只在期间首日生效（INV-91）
+    decision:
+    - when: 生效日不是期间首日
+      goto: end
+    - when: otherwise
+      goto: end
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-19
+      name: 读会计期间
+  notes: 草拟 → 财务评审 → 生效。
+  roles:
+  - id: SH-E6
+    as: performer
+  - id: SH-E6
+    as: approver
+- id: PRC-112
+  name: 决议并支付利润分配
+  trigger:
+    type: human
+    desc: 年度报表出具后，股东或合伙人提出回报要求
+  stages:
+  - VS-12.2
+  owner_bc: B-10
+  human_orchestration: false
+  steps:
+  - actor: SH-E6
+    read: true
+    reads:
+    - AGG-81
+    - AGG-100
+    - AGG-54
+    desc: 读所属年度已关账与可分配利润
+    decision:
+    - when: 所属年度未关账或可分配利润不足
+      goto: end
+    - when: otherwise
+      goto: 2
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-19
+      name: 读所属年度关账状态
+    - mode: api
+      direction: out
+      bc: B-20
+      name: 读期间余额快照
+    pending:
+    - F-02
+  - actor: SH-E6
+    command: 草拟利润分配
+    aggregate: AGG-109
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-01
+      name: 读股东或合伙人
+    - mode: api
+      direction: out
+      bc: B-13
+      name: 读法人主体
+  - actor: SH-O1
+    command: 决议利润分配
+    aggregate: AGG-109
+    emits:
+    - 利润分配已决议
+    desc: 决议额不超过可分配利润（INV-117）
+    approval:
+      doc_type: 利润分配决议
+      approver: SH-O1
+      multi_level: false
+      on_reject: end
+  - actor: SH-E6
+    command: 提交应付利润
+    aggregate: AGG-52
+    emits:
+    - 应付已确认
+  - actor: SH-E6
+    command: 登记利润分配支付
+    aggregate: AGG-109
+    emits:
+    - 利润分配已支付
+    gap: G-10
+    cross_bc:
+    - mode: event
+      direction: out
+      bc: B-15
+      name: 利润分配已支付
+  - actor: system
+    command: 提交过账候选
+    aggregate: AGG-109
+    calls: PRC-92
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 提交过账候选（PostingCandidate）
+  notes: 支付走「发起、审批并执行付款」；自然人股东个税见「并入股息红利个税扣缴申报」。
+  roles:
+  - id: SH-E6
+    as: performer
+  - id: SH-O1
+    as: approver
+  - id: SH-E6
+    as: reviewer
+- id: PRC-114
+  name: 退回出资
+  trigger:
+    type: human
+    desc: 股东或合伙人申请部分或全部退回
+  stages:
+  - VS-12.3
+  owner_bc: B-10
+  human_orchestration: false
+  steps:
+  - actor: SH-E6
+    command: 登记出资退回
+    aggregate: AGG-54
+    emits:
+    - 出资已退回
+    decision:
+    - when: 退回额超过已实缴额
+      goto: end
+    - when: otherwise
+      goto: 2
+    pending:
+    - G-11-出资退回
+  - actor: system
+    command: 提交过账候选
+    aggregate: AGG-54
+    calls: PRC-92
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-16
+      name: 提交过账候选（PostingCandidate）
+  notes: 退回的资金收付走「发起、审批并执行付款」，应付类型承载见 G-11 末段。
+  roles:
+  - id: SH-O1
+    as: initiator
+  - id: SH-E6
+    as: performer
+event_policies_cross_bc:
+- id: PRC-15
+  owner_bc: B-07
+  trigger_events:
+  - event: 商机已丢单
+    publisher_bc: B-03
+  - event: 商机已放弃
+    publisher_bc: B-03
+  cross_bc:
+  - mode: api
+    direction: out
+    bc: B-16
+    name: 提交过账候选（PostingCandidate）
+- id: PRC-25
+  owner_bc: B-07
+  trigger_events:
+  - event: ContractSigned
+    publisher_bc: B-05
+  - event: 项目已建立
+    publisher_bc: B-04
+  cross_bc:
+  - mode: api
+    direction: out
+    bc: B-16
+    name: 提交过账候选（PostingCandidate）
+- id: PRC-35
+  owner_bc: B-07
+  trigger_events:
+  - event: 项目已终止
+    publisher_bc: B-04
+  - event: 项目已取消
+    publisher_bc: B-04
+  - event: 项目已结项
+    publisher_bc: B-04
+  - event: 协议已终止
+    publisher_bc: B-05
+  cross_bc:
+  - mode: api
+    direction: out
+    bc: B-16
+    name: 提交过账候选（PostingCandidate）
+- id: PRC-55
+  owner_bc: B-07
+  trigger_events:
+  - event: BusinessFactAttributed
+    publisher_bc: B-16
+  cross_bc:
+  - mode: api
+    direction: out
+    bc: B-16
+    name: 提交过账候选（PostingCandidate）
+- id: PRC-93
+  owner_bc: B-20
+  trigger_events:
+  - event: BusinessFactAttributed
+    publisher_bc: B-16
+  - event: BusinessFactRestated
+    publisher_bc: B-16
+  cross_bc:
+  - mode: api
+    direction: out
+    bc: B-19
+    name: 读会计期间
+- id: PRC-103
+  owner_bc: B-20
+  trigger_events:
+  - event: AccountingPeriodClosed
+    publisher_bc: B-19
+  cross_bc: []
+- id: PRC-131
+  owner_bc: B-10
+  trigger_events:
+  - event: 付款已成功
+    publisher_bc: B-10（同 BC）
+  cross_bc:
+  - mode: event
+    direction: out
+    bc: B-15
+    name: 应付已结清
+  - mode: event
+    direction: out
+    bc: B-12
+    name: 应付已结清
+- id: PRC-132
+  owner_bc: B-10
+  trigger_events:
+  - event: 应付已核销
+    publisher_bc: B-10（同 BC）
+  cross_bc:
+  - mode: api
+    direction: out
+    bc: B-16
+    name: 提交过账候选（PostingCandidate）
+- id: PRC-133
+  owner_bc: B-12
+  trigger_events:
+  - event: 应付已结清
+    publisher_bc: B-10
+  cross_bc:
+  - mode: api
+    direction: out
+    bc: B-10
+    name: 读应付
+single_aggregate_cross_bc:
+- id: PRC-65
+  owner_bc: B-22
+  cross_bc:
+  - mode: api
+    direction: out
+    bc: B-13
+    name: 读法人主体
+- id: PRC-111
+  owner_bc: B-10
+  cross_bc:
+  - mode: api
+    direction: out
+    bc: B-13
+    name: 读法人主体
+  - mode: api
+    direction: out
+    bc: B-01
+    name: 读合伙人
+  - mode: api
+    direction: out
+    bc: B-16
+    name: 提交过账候选（PostingCandidate）
+- id: PRC-135
+  owner_bc: B-20
+  cross_bc:
+  - mode: api
+    direction: out
+    bc: platform.integration
+    name: 外部法定账推送
