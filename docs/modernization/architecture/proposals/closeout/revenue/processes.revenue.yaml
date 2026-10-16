@@ -1982,6 +1982,7 @@ processes:
   - PRC-18-S03
   - PRC-18-S04
   - PRC-18-S05
+  - PRC-18-S06
   roles:
   - id: SH-E2
     as: initiator
@@ -2049,6 +2050,7 @@ processes:
       approver: SH-C6a
       multi_level: false
       on_reject: 1
+      why_human: 发包人对交付计划的批准是客户方的书面意思表示，发生在系统外，本系统只登记批准文件作证据。
     effort:
       typical_min: 20
       p90_min: 60
@@ -2924,6 +2926,7 @@ processes:
   - PRC-26-S02
   - PRC-26-S03
   - PRC-26-S04
+  - PRC-26-S05
   roles:
   - id: SH-C6a
     as: external
@@ -3082,6 +3085,8 @@ processes:
   - PRC-28-S05
   - PRC-28-S06
   - PRC-28-S07
+  - PRC-28-S08
+  - PRC-28-S09
   roles:
   - id: SH-E3
     as: initiator
@@ -3188,10 +3193,12 @@ processes:
     approval:
       doc_type: 交付物校审
       approver: SH-E4
-      multi_level: true
+      multi_level: false
       on_reject: 2
       engine: aggregate
-      why_human: 校对、审核、审定是对成果技术正确性与合规性的专业判断，系统无法代替；属聚合内专业复核，不是费用审批
+      why_human: 校审是对设计成果技术正确性与规范符合性的专业判断，系统只能核对格式与清单完整，不能代替专业审查。
+      escalation_rules: []
+      note: 正常一级校审，按规则加审（用户「正常一级、按规则加审」对专业复核同样适用；加审规则随项目类别配置，规则编号待 one-architecture 给，R-Q1b）
     effort:
       typical_min: 60
       p90_min: 240
@@ -3307,6 +3314,7 @@ processes:
       engine: external
       multi_level: false
       on_reject: 7
+      why_human: 客户认可是客户方的书面意思表示（签收单、审查同意意见、确认邮件或阶段签认），发生在系统外，本系统只登记认可材料与认可日作证据，签认人身份由系统按合同登记核对。
     effort:
       typical_min: 10
       p90_min: 30
@@ -3785,6 +3793,7 @@ processes:
       engine: external
       multi_level: false
       on_reject: 4
+      why_human: 延期答复是发包人的书面意思表示，发生在系统外，本系统只登记答复文件作证据；合同约定逾期视为批准的由期限分支处理。
     effort:
       typical_min: 90
       p90_min: 240
@@ -3901,6 +3910,7 @@ processes:
   - PRC-34-S05
   - PRC-34-S06
   - PRC-34-S07
+  - PRC-34-S08
   roles:
   - id: SH-E3
     as: initiator
@@ -5614,6 +5624,7 @@ processes:
   - PRC-46-S01
   - PRC-46-S02
   - PRC-46-S03
+  - PRC-46-S04
   roles:
   - id: SH-E4
     as: performer
@@ -6427,6 +6438,7 @@ processes:
   - PRC-50-S03
   - PRC-50-S04
   - PRC-50-S05
+  - PRC-50-S06
   roles:
   - id: SH-E5
     as: initiator
@@ -6581,6 +6593,7 @@ processes:
   - PRC-54-S02
   - PRC-54-S03
   - PRC-54-S04
+  - PRC-54-S05
   roles:
   - id: SH-E2
     as: performer
@@ -6731,6 +6744,8 @@ processes:
   - PRC-57-S09
   - PRC-57-S10
   - PRC-57-S11
+  - PRC-57-S12
+  - PRC-57-S13
   roles:
   - id: SH-E5
     as: initiator
@@ -7033,6 +7048,7 @@ processes:
   - PRC-58-S03
   - PRC-58-S04
   - PRC-58-S05
+  - PRC-58-S06
   roles:
   - id: SH-E6
     as: performer
@@ -7561,6 +7577,7 @@ processes:
   - PRC-66-S02
   - PRC-66-S03
   - PRC-66-S04
+  - PRC-66-S05
   roles:
   - id: SH-E5
     as: performer
@@ -8117,6 +8134,7 @@ processes:
   - PRC-86-S03
   - PRC-86-S04
   - PRC-86-S05
+  - PRC-86-S06
   roles:
   - id: SH-E6
     as: performer
@@ -8305,6 +8323,7 @@ processes:
   - PRC-140-S05
   - PRC-140-S06
   - PRC-140-S07
+  - PRC-140-S08
   roles:
   - id: SH-E2
     as: initiator
@@ -8490,6 +8509,7 @@ processes:
   - PRC-141-S01
   - PRC-141-S02
   - PRC-141-S03
+  - PRC-141-S04
   roles:
   - id: SH-E2
     as: performer
@@ -8641,6 +8661,7 @@ event_policies:
   - PRC-53-S04
   - PRC-53-S05
   - PRC-53-S06
+  - PRC-53-S07
   notes: 按 S-11 与 Q-04 C 改：原单步「确认收入」拆为本策略（占用、发起审批）与 PRC-148（审批通过后转实并提交过账；驳回释放占用）。里程碑认可 MilestoneAccepted 随 Q21，B-08 → B-04 边未登记，不加边（G-19）。
   outcomes:
   - 占用被拒
@@ -8844,6 +8865,7 @@ event_policies:
   - PRC-91-S03
   - PRC-91-S04
   - PRC-91-S05
+  - PRC-91-S06
   roles:
   - id: SH-E2
     as: performer
@@ -9177,6 +9199,7 @@ event_policies:
   - PRC-148-S02
   - PRC-148-S03
   - PRC-148-S04
+  - PRC-148-S05
   notes: 随 Q-04：用户若不选 C，本策略撤销。审批结果回调的表示法见 NOTES 接缝问题 1。
   outcomes:
   - 收入已确认
