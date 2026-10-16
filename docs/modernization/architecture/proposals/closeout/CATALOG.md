@@ -3,42 +3,42 @@
 
 由 build_catalog.py 生成，不手改；来源 `process-catalog.yaml`。
 
-共 182 条，编号 PRC-01 至 PRC-182。
+共 183 条，编号 PRC-01 至 PRC-183。
 
 ### 按类型
 
 | 类型 | 数量 |
 |---|---|
-| business | 104 |
+| business | 105 |
 | event_policy | 33 |
 | single_aggregate | 29 |
 | read_model | 6 |
 | merged | 10 |
-| 合计 | 182 |
+| 合计 | 183 |
 
 ### 按组（全部类型）
 
 | 组 | 数量 |
 |---|---|
-| revenue | 78 |
+| revenue | 79 |
 | finance | 54 |
 | people | 50 |
-| 合计 | 182 |
+| 合计 | 183 |
 
 ### 按组（仅业务流程）
 
 | 组 | 数量 |
 |---|---|
-| revenue | 45 |
+| revenue | 46 |
 | finance | 29 |
 | people | 30 |
-| 合计 | 104 |
+| 合计 | 105 |
 
 ### 按价值流（仅业务流程；跨价值流的流程各计一次，故合计大于业务流程数）
 
 | 价值流 | 数量 |
 |---|---|
-| VS-01 | 7 |
+| VS-01 | 8 |
 | VS-02 | 19 |
 | VS-03 | 7 |
 | VS-04 | 15 |
@@ -52,7 +52,7 @@
 | VS-12 | 2 |
 | VS-13 | 11 |
 | 支撑（不在价值流上） | 16 |
-| 合计 | 116 |
+| 合计 | 117 |
 
 业务流程中尚未填 stages：0 条。
 
@@ -185,7 +185,7 @@
 | PRC-123 | 调整薪酬档案与专项附加扣除 | single_aggregate |  |  | B-15 | people | draft | 否 |  |
 | PRC-124 | 计算、审核并批准月度薪酬 | business |  | VS-13.3 | B-15 | people | draft | 是 |  |
 | PRC-125 | 申报个税扣缴与社保公积金 | business |  | VS-13.4, VS-06.1 | B-15 | people | draft | 否 |  |
-| PRC-126 | 提交应付薪酬 | event_policy |  | VS-13.3 | B-15 | people | draft | 否 |  |
+| PRC-126 | 提交应付薪酬 | event_policy |  | VS-13.5 | B-15 | people | draft | 否 |  |
 | PRC-127 | 薪酬发放完成 | event_policy |  | VS-13.5 | B-15 | people | draft | 否 |  |
 | PRC-128 | 办理离职 | business |  | VS-13.6 | B-13 | people | draft | 否 |  |
 | PRC-129 | 离职后吊销会话 | event_policy |  | VS-13.6 | platform.identity | people | draft | 否 |  |
@@ -242,3 +242,4 @@
 | PRC-180 | 发布薪酬规则版本 | single_aggregate |  |  | B-15 | people | draft | 否 |  |
 | PRC-181 | 记录经营复盘并跟踪经营动作 | business |  | VS-09.3 | B-18 | people | draft | 是 |  |
 | PRC-182 | 知识条目使用情况 | read_model |  | VS-11.3 | reporting | people | draft | 否 |  |
+| PRC-183 | 作出参投决策 | business |  | VS-01.2 | B-03 | revenue | draft | 是 |  |

@@ -124,6 +124,7 @@ value_streams:
           - {ref: OBJ-18, state: 赢单, note: 须中标或委托证据（I-4）；可伴随 OBJ-20「中标」}
           - {ref: OBJ-18, state: 丢单 / 放弃, note: 停止}
       in_stage_states:
+        - {ref: OBJ-18, state: 已决定参投, note: 参投决策（PRC-183，用户 VS01-10）；放弃即 VS-01.2 退出}
         - {ref: OBJ-23, state: 无冲突 / 有冲突已获书面同意, note: 售前拦截（D-4 b）：是不变量不是门}
         - {ref: OBJ-21, state: 已通过}
         - {ref: OBJ-20, state: 已递交}

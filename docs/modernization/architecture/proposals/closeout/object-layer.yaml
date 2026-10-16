@@ -2197,3 +2197,13 @@ processes:
   stages:
   - VS-11.3
   status: read_model
+- id: PRC-183
+  display: 01.2.12
+  name: 作出参投决策
+  group: revenue
+  stages:
+  - VS-01.2
+  primary_object: OBJ-18
+  status: confirmed
+  capability_l1: CAP-018
+  capability: CAP-018

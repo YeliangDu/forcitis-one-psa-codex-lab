@@ -1983,3 +1983,14 @@ processes:
     human_orchestration: false
     bpmn: ~
     note: "阶段对齐 J-8；使用情况作修订废止的依据"
+  - id: PRC-183
+    name: "作出参投决策"
+    type: business
+    stages: [VS-01.2]
+    primary_object: "OBJ-18"
+    owner_bc: "B-03"
+    group: revenue
+    status: draft
+    human_orchestration: true
+    bpmn: ~
+    note: "用户 VS01-10（one-coordinator 转达，2026-10-16）：适用所有商机（招标、议标、直接委托）；结局「已决定参投」（段内状态）/「放弃」（VS-01.2 退出）；判断清单、必填理由与评分（风险、产能、赢率、利润、客户资信）由规则卡守（one-rules）；商机负责人决定并留痕、不设审批，触发条件（低于毛利底线、超产能、独立性冲突）按异常加一级；PRC-08 去掉参投判断。骨架由 revenue 组写"
