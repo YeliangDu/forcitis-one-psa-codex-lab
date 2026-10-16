@@ -2,6 +2,9 @@
 """决定链路一条龙：读用户在确认页的提交 → 对账 → 生成 intent 片段 → 打印收件箱回写所需的 ArtifactData 批量写入。
 用法：
   python3 docs/modernization/rules/decide/decide_sync.py <单子> <out_dir> [--session=one-rules] [--inbox-id=<收件箱事项 id>] [--no-intent]
+  python3 docs/modernization/rules/decide/decide_sync.py --check <收件箱 out_dir> <单子>=<确认页 out_dir> [<单子>=<确认页 out_dir> ...]
+    对账检查（调度报「待答」前先跑）：读收件箱导出与各确认页导出，报出「收件箱仍是 pending，但确认页已提交」的事项，以及确认页提交后又改过、须重新提交的。
+    事项对应哪张单子：事项里写 sheet 字段，或事项的 link 等于 README 页面表里该单子的链接；对不上的待定事项不报。有不一致时返回码 1。
 前提：已用 ArtifactData list 把该确认页的 answers、answers-submit 存到 <out_dir>。
 做三件事：
 1. 对账：调用 export_answers 的逻辑，有提交后又改过的题则报错退出；
@@ -17,6 +20,42 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import export_answers  # noqa: E402
 
+if "--check" in sys.argv:
+    import glob as _g, re as _re
+    rest = [a for a in sys.argv[1:] if a != "--check"]
+    if len(rest) < 2 or any("=" not in a for a in rest[1:]):
+        sys.exit(__doc__)
+    inbox_dir, pages = rest[0], dict(a.split("=", 1) for a in rest[1:])
+    urls = {}
+    for line in open(os.path.join(HERE, "README.md"), encoding="utf-8"):
+        m = _re.match(r"^\| (\w+) .*?(https://claude\.ai/artifact/\w+)", line)
+        if m:
+            urls[m.group(2)] = m.group(1)
+    state = {}
+    for sheet_id, d in pages.items():
+        try:
+            out, stale = export_answers.export(sheet_id, d)
+            state[sheet_id] = ("stale", stale) if stale else ("submitted", sorted({v["submission"] for v in out.values()})) if out else ("none", [])
+        except Exception as e:  # 导出目录读不到等
+            state[sheet_id] = ("error", [str(e)])
+    bad = 0
+    for f in sorted(_g.glob(os.path.join(inbox_dir, "inbox", "*.json"))):
+        doc = export_answers.load(f)
+        if (doc.get("status") or "pending") != "pending":
+            continue
+        sh = doc.get("sheet") or urls.get((doc.get("link") or "").split("?")[0].rstrip("/"))
+        if not sh or sh not in state:
+            continue
+        kind, info = state[sh]
+        name = os.path.basename(f)[:-5]
+        if kind == "submitted":
+            print(f"不一致：收件箱事项 {name} 仍是 pending，确认页 {sh} 已提交（编号 {'、'.join(info)}）→ 跑 decide_sync 回写"); bad += 1
+        elif kind == "stale":
+            print(f"待重新提交：收件箱事项 {name}；确认页 {sh} 提交后改过：{'、'.join(info)}"); bad += 1
+        elif kind == "error":
+            print(f"无法核对：收件箱事项 {name}；确认页 {sh} 的导出读取失败：{info[0]}"); bad += 1
+    print("检查通过：收件箱与确认页一致" if not bad else f"共 {bad} 处不一致")
+    sys.exit(1 if bad else 0)
 args = [a for a in sys.argv[1:] if not a.startswith("--")]
 opts = dict(a[2:].split("=", 1) if "=" in a else (a[2:], True) for a in sys.argv[1:] if a.startswith("--"))
 if len(args) != 2:
@@ -37,7 +76,7 @@ if os.path.exists(sheet_file):
         it = items.get(k)
         if it is None:
             sys.exit(f"{k} 不在单子 {sheet}.json 里")
-        if v["choice"] != "defer" and it["opts"][v["choice"]]["label"] != v["label"]:
+        if v["choice"] not in ("defer", None) and it["opts"][v["choice"]]["label"] != v["label"]:
             sys.exit(f"{k} 的选项文字与单子不一致（发布后改过选项？）：提交里是「{v['label']}」，单子里是「{it['opts'][v['choice']]['label']}」")
 os.makedirs(os.path.join(HERE, "answers"), exist_ok=True)
 json.dump(out, open(os.path.join(HERE, "answers", f"{sheet}.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1, sort_keys=True)
@@ -47,9 +86,9 @@ for k, v in sorted(out.items()):
 session = opts.get("session", "one-rules")
 intents = []
 for number, rows in sorted(by_sub.items()):
-    lines = "；".join(f"{no}「{v['label']}」" + ("（按推荐预选，未改动）" if v.get("defaulted") else "") + (f"（说明：{v['note']}）" if v.get("note") else "") for no, v in rows)
+    lines = "；".join(f"{no}「{v['label']}」" + ("（未作答）" if v.get("unanswered") else "（按推荐预选，未改动）" if v.get("defaulted") else "") + (f"（说明：{v['note']}）" if v.get("note") else "") for no, v in rows)
     quote = f"{sheet} 决策页提交 {number}：{lines}"
-    note = f"答复 rules/decide/answers/{sheet}.json；按推荐 {sum(v['recommended'] for _, v in rows)} 题、改选 {sum(not v['recommended'] and v['choice'] != 'defer' for _, v in rows)} 题、暂不定 {sum(v['choice'] == 'defer' for _, v in rows)} 题"
+    note = f"答复 rules/decide/answers/{sheet}.json；按推荐 {sum(v['recommended'] for _, v in rows)} 题、改选 {sum(not v['recommended'] and v['choice'] not in ('defer', None) for _, v in rows)} 题、暂不定 {sum(v['choice'] == 'defer' for _, v in rows)} 题、未作答 {sum(v['choice'] is None for _, v in rows)} 题"
     intent_dir = os.path.join(HERE, "..", "..", "intent")
     existing = next((f for f in sorted(glob.glob(os.path.join(intent_dir, "*.md"))) if f"提交 {number}：" in open(f, encoding="utf-8").read()), None)
     if existing:

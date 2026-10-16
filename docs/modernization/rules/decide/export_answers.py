@@ -33,7 +33,8 @@ def export(sheet, base):
     for k, v in out.items():
         a = answers.get(k)
         if a is None:
-            changed = (not v.get("recommended")) or bool(v.get("note"))   # 答复文档不在：回到推荐项、说明为空
+            # 答复文档不在：预选页回到推荐项，不预选页回到未作答；说明为空
+            changed = bool(v.get("note")) or (v.get("choice") is not None if v.get("unanswered") else not v.get("recommended"))
         else:
             changed = a.get("choice") != v.get("choice") or (a.get("note") or "") != (v.get("note") or "")
         if changed:
@@ -51,4 +52,4 @@ if __name__ == "__main__":
     subs = sorted({v["submission"] for v in out.values()})
     print(sheet, len(out), "题已提交（提交", "、".join(subs), "）；按推荐", sum(v["recommended"] for v in out.values()),
           "（其中没动过", sum(v["defaulted"] for v in out.values()), "）、改选", sum(not v["recommended"] and v["choice"] != "defer" for v in out.values()),
-          "、暂不定", sum(v["choice"] == "defer" for v in out.values()))
+          "、暂不定", sum(v["choice"] == "defer" for v in out.values()), "、未作答", sum(v["choice"] is None for v in out.values()))

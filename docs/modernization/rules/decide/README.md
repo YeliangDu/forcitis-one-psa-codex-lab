@@ -22,7 +22,7 @@
 ## sheets/<单子>.json 格式
 
 ```json
-{"sheet": "D5", "title": "页面标题", "lede": "一句话：这张单子定什么",
+{"sheet": "D5", "preselect": true, "title": "页面标题", "lede": "一句话：这张单子定什么",
  "groups": [{"id": "d5-routing", "title": "组名", "desc": "本组说明"}],
  "items": [{"no": "D5-01", "grp": "d5-routing", "title": "题目", "src": "来源", "ctx": "背景",
             "now": "现状（可空）", "check": "需核实（可空）", "basis": ["依据，必填字段，可为空数组"], "practice": ["行业做法，必填字段，可为空数组"],
@@ -37,3 +37,12 @@
 - 旧版页面（按组提交，提交记录文档 id 为组 id）已发布的不迁移，导出脚本两种格式都认。
 - 新单子一律用 `sheets/<单子>.json` 与本生成器；`glossary/gate/` 与 `architecture/decision-page/` 的旧页冻结不迁（工件治理研究第 3 章）。
 - 发布固定 `contract: "0.2.80"`；发布后核对真实渲染（见画像工作守则）。
+
+## 预选与「未作答」
+
+- 业务口径单默认预选推荐项（用户 2026-10-15 对决策页的要求）；没动过的题按推荐计，提交记录标 `defaulted`。
+- 框架、标准、选型类单子（ADR-0041 决定 6：「决策页写明代价，不预选推荐项」）在单子 json 里写 `"preselect": false`：页面不选中任何选项，没作答的题记为「未作答」（提交记录 `choice: null`、`unanswered: true`，`decide_sync` 在原话里标「（未作答）」）；推荐项仍显示「推荐」标签。同一页上的单子 `preselect` 须一致。
+
+## 对账检查
+
+调度报「待答」前先跑：`python3 docs/modernization/rules/decide/decide_sync.py --check <收件箱 out_dir> <单子>=<确认页 out_dir> ...`，先用 ArtifactData `list` 把收件箱与各确认页的集合导出到各自的 out_dir。它报出「收件箱仍是 pending、确认页已提交」与「确认页提交后又改过」的事项，有不一致时返回码 1。事项与单子的对应：事项里写 `sheet` 字段，或事项 `link` 等于上面页面表里的链接。

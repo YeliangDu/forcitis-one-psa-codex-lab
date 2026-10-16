@@ -119,9 +119,9 @@ details.basis ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px}
   <div class="stats" aria-live="polite">
     <div class="bar" id="bar"></div>
     <div class="legend">
-      <div><b id="nRec">0</b>按推荐</div>
+      <div><b id="nRec">0</b>推荐项</div>
       <div><b id="nChg">0</b>改选</div>
-      <div><b id="nDef">0</b>暂不定</div>
+      <div><b id="nDef">0</b>暂不定或未作答</div>
     </div>
     <div class="conn" id="conn">正在连接存储…</div>
     <div class="saved" id="subAll"></div>
@@ -137,6 +137,8 @@ const DATA = /*__DATA__*/null;
 // 内含全部题的选择。打开时只订阅 answers 一次、提交记录只读一次（glossary/gate/README.md：按组或按单订阅会让手机一直停在加载中）。
 const ANSWERS = "answers", SUBMITS = "answers-submit", CHECK = "__check";
 const ITEMS = DATA.items, GROUPS = DATA.groups;
+// 业务口径单默认预选推荐项（用户 2026-10-15 的要求）；框架、标准、选型类单子在单子里写 "preselect": false，不预选，没作答的题记为「未作答」（ADR-0041 决定 6）
+const PRESELECT = DATA.preselect !== false;
 const SHEETS = [...new Set(ITEMS.map(i => i.key.split("~")[0]))];
 const decisions = new Map();   // key -> {choice: 选项序号或 "defer", note, by, at}
 let subs = [];                 // 已读到的提交记录（含旧版按组提交的记录）
@@ -146,11 +148,11 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;
 const recOf = it => it.opts.findIndex(o => o.rec);
 function pick(it){
   const d = decisions.get(it.key);
-  if (!d) return {choice: recOf(it), note: "", defaulted: true};
+  if (!d) return PRESELECT ? {choice: recOf(it), note: "", defaulted: true} : {choice: null, note: "", defaulted: true, unanswered: true};
   return {choice: d.choice, note: d.note || "", defaulted: false};
 }
-const kind = (it, p) => p.choice === "defer" ? "defer" : p.choice === recOf(it) ? "rec" : "changed";
-const labelOf = (it, p) => p.choice === "defer" ? "暂不定" : it.opts[p.choice].label;
+const kind = (it, p) => p.choice === null ? "none" : p.choice === "defer" ? "defer" : p.choice === recOf(it) ? "rec" : "changed";
+const labelOf = (it, p) => p.choice === null ? "未作答" : p.choice === "defer" ? "暂不定" : it.opts[p.choice].label;
 
 // 一题是否已被某次提交覆盖，且提交后没有再改
 function coverOf(it){ let best = null; for (const s of subs){ if (s.picks && s.picks[it.key] && (!best || (s.at || "") > (best.at || ""))) best = s; } return best; }
@@ -167,8 +169,8 @@ function qHTML(it){
       <span class="dot" aria-hidden="true"></span><span><b>${esc(o.label)}</b>${o.rec ? `<span class="tag">推荐</span>` : ""}</span>
       ${o.effect ? `<span class="eff">${esc(o.effect)}</span>` : ""}</button>`).join("");
   const more = [...(it.basis || []).map(t => "依据：" + t), ...(it.practice || []).map(t => "实践：" + t)];
-  const st = k === "defer" ? `<span class="st defer">暂不定</span>` : k === "changed" ? `<span class="st changed">已改选</span>`
-    : p.defaulted ? `<span class="st">推荐预选，同意就不用动</span>` : `<span class="st">已确认推荐</span>`;
+  const st = k === "none" ? `<span class="st defer">未作答</span>` : k === "defer" ? `<span class="st defer">暂不定</span>` : k === "changed" ? `<span class="st changed">已改选</span>`
+    : p.defaulted ? `<span class="st">${PRESELECT ? "推荐预选，同意就不用动" : "未作答"}</span>` : `<span class="st">已确认推荐</span>`;
   return `<article class="q" data-key="${esc(it.key)}" data-state="${k}">
     <div class="qh"><span class="no">${esc(it.no)}</span><span class="qt">${esc(it.title)}</span></div>
     ${it.ctx ? `<p class="ctx">${esc(it.ctx)}</p>` : ""}
@@ -179,7 +181,7 @@ function qHTML(it){
     <div class="row">
       <input type="text" id="nt-${esc(it.key)}" data-note="1" placeholder="说明（改选时请写理由，可空）" value="${esc(p.note)}">
       <button type="button" class="chip" data-defer="1" aria-pressed="${k === "defer"}">暂不定</button>
-      ${p.defaulted ? "" : `<button type="button" class="chip" data-reset="1">恢复推荐</button>`}
+      ${p.defaulted ? "" : `<button type="button" class="chip" data-reset="1">${PRESELECT ? "恢复推荐" : "清除选择"}</button>`}
     </div>
     <div class="meta">${it.src ? "来源：" + esc(it.src) + " · " : ""}${st}</div>
   </article>`;
@@ -188,14 +190,16 @@ function tableHTML(t){
   return `<div class="tw"><table><thead><tr>${t[0].map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${t.slice(1).map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 function groupSummary(gid){
-  const c = {rec: 0, def: 0, changed: 0, defer: 0, notes: 0};
+  const c = {rec: 0, def: 0, changed: 0, defer: 0, none: 0, notes: 0};
   for (const it of ITEMS.filter(i => i.grp === gid)){ const p = pick(it), k = kind(it, p); if (k === "rec") p.defaulted ? c.def++ : c.rec++; else c[k]++; if (p.note) c.notes++; }
-  return `按推荐 ${c.rec + c.def} 题（其中没动过 ${c.def} 题）、改选 ${c.changed} 题、暂不定 ${c.defer} 题、写了说明 ${c.notes} 题`;
+  return PRESELECT ? `按推荐 ${c.rec + c.def} 题（其中没动过 ${c.def} 题）、改选 ${c.changed} 题、暂不定 ${c.defer} 题、写了说明 ${c.notes} 题`
+    : `选了推荐项 ${c.rec} 题、选了其他项 ${c.changed} 题、暂不定 ${c.defer} 题、未作答 ${c.none} 题、写了说明 ${c.notes} 题`;
 }
 function totalSummary(){
-  let rec = 0, def = 0, chg = 0, dfr = 0, nt = 0;
-  for (const it of ITEMS){ const p = pick(it), k = kind(it, p); if (k === "rec") p.defaulted ? def++ : rec++; else if (k === "changed") chg++; else dfr++; if (p.note) nt++; }
-  return `按推荐 ${rec + def} 题（其中没动过 ${def} 题）、改选 ${chg} 题、暂不定 ${dfr} 题、写了说明 ${nt} 题`;
+  let rec = 0, def = 0, chg = 0, dfr = 0, none = 0, nt = 0;
+  for (const it of ITEMS){ const p = pick(it), k = kind(it, p); if (k === "rec") p.defaulted ? def++ : rec++; else if (k === "changed") chg++; else if (k === "none") none++; else dfr++; if (p.note) nt++; }
+  return PRESELECT ? `按推荐 ${rec + def} 题（其中没动过 ${def} 题）、改选 ${chg} 题、暂不定 ${dfr} 题、写了说明 ${nt} 题`
+    : `选了推荐项 ${rec} 题、选了其他项 ${chg} 题、暂不定 ${dfr} 题、未作答 ${none} 题、写了说明 ${nt} 题`;
 }
 
 function checkHTML(){
@@ -206,13 +210,13 @@ function checkHTML(){
   const groups = GROUPS.map((g, n) => {
     const its = ITEMS.filter(i => i.grp === g.id);
     const rows = its.map(it => { const p = pick(it), k = kind(it, p);
-      return `<div class="chk-i"><span class="no">${esc(it.no)}</span><span class="ans"><b>${esc(labelOf(it, p))}</b>${k === "rec" ? "" : k === "defer" ? " （暂不定）" : " （改选）"}${p.note ? `<span class="nt">说明：${esc(p.note)}</span>` : ""}</span>
+      return `<div class="chk-i"><span class="no">${esc(it.no)}</span><span class="ans"><b>${esc(labelOf(it, p))}</b>${k === "rec" ? "" : k === "defer" ? " （暂不定）" : k === "none" ? "" : " （改选）"}${p.note ? `<span class="nt">说明：${esc(p.note)}</span>` : ""}</span>
         <button type="button" class="chip" data-goto="${esc(it.key)}">改这题</button></div>`; }).join("");
     return `<section class="chk-g"><h3>${n + 1}. ${esc(g.title)}<span class="sum">${groupSummary(g.id)}</span></h3>${rows}</section>`;
   }).join("");
   const ready = loaded.ans && loaded.sub && !submitting;
   const btn = done ? "" : `<div class="row"><button type="button" class="btn solid" data-final="1" ${ready ? "" : "disabled"}>${submitting ? "正在提交…" : ready ? `确认提交（全部 ${ITEMS.length} 题）` : "正在读取你已选的答案…"}</button></div>
-    <p class="saved">${esc(totalSummary())}。没动过的题按推荐预选提交；暂不定的题留待以后。</p>`;
+    <p class="saved">${esc(totalSummary())}。${PRESELECT ? "没动过的题按推荐预选提交；" : "未作答的题记为未作答，不会按推荐处理；"}暂不定的题留待以后。</p>`;
   return `${banner}<section><div class="ghead"><h2>检查答案<span>${ITEMS.length} 题</span></h2><p>逐项核对，不对的点「改这题」。确认后一次提交全部答案，并得到一个提交编号。</p></div></section>${groups}${btn}`;
 }
 
@@ -234,7 +238,7 @@ function render(){
 }
 function stats(){
   let r = 0, c = 0, d = 0;
-  for (const it of ITEMS){ const k = kind(it, pick(it)); if (k === "rec") r++; else if (k === "changed") c++; else d++; }
+  for (const it of ITEMS){ const k = kind(it, pick(it)); if (k === "rec") r++; else if (k === "changed") c++; else d++; }   // 暂不定与未作答合并显示
   $("#nRec").textContent = r; $("#nChg").textContent = c; $("#nDef").textContent = d;
   const pct = n => (100 * n / ITEMS.length).toFixed(2) + "%";
   $("#bar").innerHTML = `<i style="width:${pct(r)};background:var(--pick)"></i><i style="width:${pct(c)};background:var(--changed)"></i><i style="width:${pct(d)};background:var(--defer)"></i>`;
@@ -260,7 +264,7 @@ async function finalSubmit(){
   if (!(loaded.ans && loaded.sub) || submitting) return;   // 读到已选答案之前提交会把没读到的选择当成没动过；提交中不重入
   submitting = true; render();
   const picks = {};
-  for (const it of ITEMS){ const p = pick(it); picks[it.key] = {no: it.no, choice: p.choice, label: labelOf(it, p), recommended: p.choice === recOf(it), defaulted: p.defaulted, note: p.note}; }
+  for (const it of ITEMS){ const p = pick(it); picks[it.key] = {no: it.no, choice: p.choice, label: labelOf(it, p), recommended: p.choice !== null && p.choice === recOf(it), defaulted: p.defaulted, unanswered: !!p.unanswered, note: p.note}; }
   const number = (SHEETS.length === 1 ? SHEETS[0] : "ALL") + "-" + stamp() + "-" + Math.random().toString(36).slice(2, 5);
   const body = {number, at: new Date().toISOString(), by: myId, summary: totalSummary(), picks};
   try { await db.collection(SUBMITS).doc(number).set(body); subs.push(body); flash = "已提交，编号 " + number; }
