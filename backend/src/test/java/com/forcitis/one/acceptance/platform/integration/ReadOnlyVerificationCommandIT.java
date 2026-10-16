@@ -641,7 +641,7 @@ class ReadOnlyVerificationCommandIT {
     }
 
     @Test
-    @DisplayName("C-14 (f) 复审 H-1' 只经 guest 进 msdb（现行行为，待裁定）：guest 读不到 msdb.dbo.sysjobs_view（错误 229），所以只经 guest 进入的账号即使没有越线，(f) 也因 Agent 作业数读不到而判定不了、原因 CATALOG_QUERY_FAILED、结果判定不了、退出判定不了码")
+    @DisplayName("C-14 (f) 复审 H-1' 只经 guest 进 msdb（one-coordinator 2026-10-16 裁定 B 已定）：guest 读不到 msdb.dbo.sysjobs_view（错误 229），所以只经 guest 进入的账号即使没有越线，(f) 也因 Agent 作业数读不到而判定不了、原因 CATALOG_QUERY_FAILED、结果判定不了、退出判定不了码")
     void guestOnlyAccountCannotReadItsAgentJobsAndIsUndetermined() throws Exception {
         Account account = guestOnlyAccount(ReadOnlyConnection.A8);
         SQLException refused = catchSqlException(() -> ReadOnlyBaselineFixture.ownAgentJobs(account.url(), account.login(), account.password()));
