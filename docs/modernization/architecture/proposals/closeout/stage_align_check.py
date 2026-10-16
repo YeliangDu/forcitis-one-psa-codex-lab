@@ -445,7 +445,7 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
             if str(p.get("owner_bc", "")) not in reason and p.get("owner_bc"):
                 flags.append(f"owner_bc {p.get('owner_bc')} 与理由所指不符")
             R["support"].append((p, reason, flags))
-        elif not st:
+        elif not st and p.get("type") != "integration":   # 集成流程不归段（type: integration，按所供对象支撑）
             R["unstaged"].append(p)
         for s in st:
             if s not in stage_pos:
