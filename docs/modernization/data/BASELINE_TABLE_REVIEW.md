@@ -4,7 +4,7 @@
 - 标尺：数据设计门禁清单 `DATA_DESIGN_GATE.md`（v2，含 B0、B3a、O15、O16 与附录 C；#305，用户已定生效、热点阈值 10%）。其中 OW、PA 两份分报告按旧版清单判，O15 逐条对照未完整重做（见「未核实」）。
 - 范围：main 上 10 个 schema、49 张表（基线迁移 `backend/src/main/resources/db/migration/*`）、`backend/architecture/data-access-registry.yaml`、`data-classification.txt`、`phase1a/DATA_SCORECARD.md`。
 - 方法：4 个 sonnet 子代理分 schema 逐表套清单（分报告在 `review-parts/`）→ 1 个 opus 子代理独立复核全部「阻断与高」、各份的高风险项与 6 条中级抽查（`review-parts/OPUS_VERIFY.md`）→ 本会话汇总。生产库未碰；未起容器、未跑测试，结论来自迁移、注册表、事件目录、Java 源码与 ADR 原文。
-- 级别口径（门禁清单本身不分级，由本审查定）：**阻断** = 违反已采纳 ADR 或用户决定且未排期，或库内数据完整性 / 安全不变量可被破坏且影响大；**高** = 同类问题但已排定首次部署前完成，或首次部署前必须定的结构；**中** = 库内防线缺口但应用已保证，或合规登记缺口；**低** = 注释、命名、可读性。
+- 级别口径：统一按「分级参照表」（`DATA_DESIGN_GATE.md` §4a）；原则：违反已采纳 ADR 或用户决定且未排期为阻断，已排期或已由 P5 解决为高；库内安全不变量可被破坏为高；缺成对 CHECK、缺外键与索引、自由文本无长度上限、保留期或分级缺登记、枚举含未建模块取值为中；内联 CHECK 未具名、业务默认值、「为空表示」注释、`DEFAULT now()` 与注入时钟矛盾、命名与措辞为低。
 
 ## 1. 结论与统计
 
@@ -12,11 +12,13 @@
 
 | 级别 | 条数 | 说明 |
 |---|---|---|
-| 阻断 | 3 | 全部已有归属：HS-1、AE-1 已解决于 R-1b P5；T-1 并入 TS-UNIQ |
-| 高 | 14 | 12 条原高 / 阻断确认，另升 S-1（会话标识明文且未分级）、NV-2（编号版本确认态无确认人）；其中 7 条已排 ADR-0034 / W2（R-1、RP-1、AR-1、AQ-2、P-1、E-1、WY-2） |
-| 中 | 79 | 5 条由阻断 / 高降下来（WY-1、AB-1、SR-1、UA-1、N-1），3 条升高或降低 |
-| 低 | 85 | 注释、命名、内联 CHECK 未具名等 |
+| 阻断 | 0 | 原 8 条阻断均有归属，按分级表归高（HS-1、AE-1 已被 P5 解决，T-1 并入 TS-UNIQ，R-1 / RP-1 / AR-1 排 W2） |
+| 高 | 20 | 其中 HS-1、AE-1 已被 P5 解决；7 条已排 ADR-0034 / W2（R-1、RP-1、AR-1、AQ-2、P-1、E-1、WY-2）；opus 升级 S-1、NV-2 |
+| 中 | 91 | |
+| 低 | 70 | 内联 CHECK 未具名、业务默认值、注释、命名等 |
 | 合计 | 181 | |
+
+统一分级后的数字 = 分报告按分级表重分级（0 / 22 / 89 / 70）再叠加 opus 复核的四处裁定：IR-1 维持高（应答正文复制，opus 确认）、WY-1 降中（用户已追认时点偏离）、AB-1 降中（P5 已解决，「漏档丢数据」夸大）、N-1 降中（表只由迁移维护）；分报告各自的合计表未同步这四处，以本表为准。
 
 复核结果：20 条阻断与高中，**确认 12、降级 8、驳回 0**。降级的原因两类：已在 ADR 或计划里排定首次部署前（R-1、RP-1、AR-1、UA-1），或库内实际风险小（WY-1、AB-1、SR-1、N-1）。
 
@@ -39,29 +41,34 @@
 | platform_idempotency | idempotent_responses | 需修改 | 同上 |
 | platform_scheduling | scheduler_locks（框架表，2 条低级提示） | 通过 | 同上 |
 
-## 3. 阻断与高（复核后）
+## 3. 高（统一分级后，无阻断）
 
 「重叠」一列：**P5** = R-1b P5（分支 `claude/one-1a-next-4-r1b-p5`，已签发数据设计）已解决；**TS-UNIQ** = one-1a-par 另卡；**W2** = ADR-0034 / K-2 主数据与日历版本化卡（NEXT_BATCH_PLAN:269、:299）。
 
-| 编号 | 表 | 级别 | 问题 | 依据 | 重叠 / 归属 |
-|---|---|---|---|---|---|
-| HS-1 | sync_run_held_separations | 阻断 | 复合主键 | ADR-0033 第 1 项第 2 条；O2 | P5 已解决（HS-2 保留期仍开放） |
-| AE-1 | audit_entries | 阻断 | `subject_key` 文本未拆列 | ADR-0033 第 7 项第 2 条；O15 | P5 已解决 |
-| T-1 | timesheets | 阻断 | 缺「员工 × 工作日」唯一约束，并发新建可得两单 | 用户决定 intent `2026-10-16-052923`；O3 | TS-UNIQ（无谓词、全状态唯一，已定） |
-| R-1 | roles | 高 | 角色定义原地覆盖、迁移写系统角色、物理删角色 | ADR-0034 第 6 项；D17；D8 | W2 卡；列为 dev 部署闸门 |
-| RP-1 | role_permissions | 高 | 复合主键；表去留随 ADR-0034 | ADR-0033 第 1 项第 2 条 | 主键 P5 已解决；删表并入 W2 |
-| AR-1 | account_roles | 高 | 授予物理删除、无历史 | ADR-0034 第 2 项 | 主键 P5 已解决；授予历史并入 W2 |
-| AQ-1 | authorization_requests | 高 | 双人确认 CHECK 在「已确认、确认人为空」时整条为真，可绕过 | ADR-0030；O4 | 本审查修复卡 |
-| AQ-2 | authorization_requests | 高 | 缺 `VOIDED` 与两个基准列 | ADR-0034:215-222 | W2；AQ-1 的 CHECK 须同时覆盖 `VOIDED` |
-| S-1 | sessions | 高（升） | `session_id` 等同 Cookie 凭据，明文入库，未分级 | ADR-0043；D13；CODING_STANDARD 密钥条 | 本审查修复卡 |
-| NV-2 | numbering_rule_versions | 高（升） | 「确认态 ⇒ 确认人非空」无约束，INSERT 不受触发器控制 | D15；ADR-0030 同类 | 本审查修复卡 |
-| PA-AR-1 | approval_requests 等三表 | 高 | 驳回 / 退回 / 撤销的原因只在应用保证；**直接加 CHECK 会拒绝 `hookDecidesReason` 这条设计内路径**，须先删该分支 | RULE-280；B3；`DecideTasks.java:106-108` | 本审查修复卡 |
-| P-1 | positions | 高 | 无版本表也无「不需要」豁免 | D17 | W2（positions 是否在 25 张内未核） |
-| E-1 | employees | 高 | 同上；`separated_at` 口径 | D17；DA-7 | W2 |
-| WY-2 | work_calendar_years / days | 高 | 日历整年删除再插入，使用方不记版本 | ADR-0033 第 9 项第 1、3 条；D15 | W2 K-2 |
-| AE-2 | audit_entries | 高 | 保留 10 年的只追加大表未定分区键，且分区会与单列 UUID 主键及 `event_id` 唯一冲突 | NAMING_STANDARD §2.4a-8；GUIDING_PRINCIPLES O-8 | **需修订 ADR-0033（待用户定）**；基线开放期内做 |
-| AE-3 | audit_entries | 高 | `LoginAdmission` 仍把 IP、浏览器标识写进 `detail`；U-7b 带到期日例外未登记 | ADR-0043 第 4 项第 5 条、U-7c | 本审查修复卡 |
-| IR-1 | idempotent_responses | 高 | 对所有放行的 POST 存整份应答，未分级、无长度上限 | C4；ADR-0043 | 本审查修复卡 |
+| 编号 | 表 | 问题 | 依据 | 重叠 / 归属 |
+|---|---|---|---|---|
+| HS-1 | sync_run_held_separations | 复合主键 | ADR-0033 第 1 项第 2 条；O2 | P5 已解决（HS-2 保留期仍开放） |
+| AE-1 | audit_entries | `subject_key` 文本未拆列 | ADR-0033 第 7 项第 2 条；O15 | P5 已解决 |
+| T-1 | timesheets | 缺「员工 × 工作日」唯一约束，并发新建可得两单 | 用户决定 intent `2026-10-16-052923`；O3 | TS-UNIQ（无谓词、全状态唯一，已定） |
+| R-1 | roles | 角色定义原地覆盖、迁移写系统角色、物理删角色 | ADR-0034 第 6 项；D17；D8 | W2 卡；生产前闸门 |
+| RP-1 | role_permissions | 复合主键；表去留随 ADR-0034 | ADR-0033 第 1 项第 2 条 | 主键 P5 已解决；删表并入 W2 |
+| AR-1（身份） | account_roles | 授予物理删除、无历史 | ADR-0034 第 2 项 | 主键 P5 已解决；授予历史并入 W2 |
+| AQ-1 | authorization_requests | 双人确认 CHECK 在「已确认、确认人为空」时整条为真，可绕过 | ADR-0030；O4 | 修复卡 identity |
+| AQ-2 | authorization_requests | 缺 `VOIDED` 与两个基准列 | ADR-0034:215-222 | W2；AQ-1 的 CHECK 同时覆盖 `VOIDED` |
+| AQ-6 | authorization_requests | `role_codes` 以业务键数组引用角色 | ADR-0033 第 1 项第 1 条；ADR-0034 第 2 项 | W2 |
+| S-1 | sessions | `session_id` 等同 Cookie 凭据，明文入库，未分级 | ADR-0043；D13 | 用户已定 RESTRICTED + NONE（intent `2026-10-16-085331`，收件箱 2026-10-16-one-data-baseline-classification）；修复卡 identity |
+| NV-2 | numbering_rule_versions | 「确认态 ⇒ 确认人非空」无约束，INSERT 不受触发器控制 | D15；ADR-0030 同类 | 修复卡 approval |
+| X-6（编号） | timesheets 等使用方 | 使用方不记所用编号规则版本 | ADR-0033 第 1 项第 5 条；D7、D17 细则 6 | 并入 TS-UNIQ |
+| SD-1 | sync_diffs | `subject_key` 把对象类别与 ID 拼成字符串 | ADR-0033 第 7 项第 2 条；O9、O15 | 拆分 a 按最终形态在集成层新建（P5 卡 §3.1）；拆分前仍开放 |
+| WY-3 | work_calendar_years | 日历事件聚合标识是文本 `default:2026` | ADR-0033 第 7 项第 1 条；E1 | main 的 P5 已改；待 P5 合并后核 |
+| P-1 | positions | 无版本表也无「不需要」豁免 | D17 | W2；用户已定做维度型版本表（OBSERVED） |
+| E-1 | employees | 同上；离职时刻字段口径 | D17；DA-7 | W2；同上 |
+| WY-2 | work_calendar_years / days | 整年删除再插入，使用方不记版本 | ADR-0033 第 9 项第 1、3 条；D15 | W2 K-2；基线关闭前完成 |
+| AE-2 | audit_entries | 10 年只追加大表未分区，分区与单列 UUID 主键、`event_id` 唯一冲突 | NAMING_STANDARD §2.4a-8；O-8 | 用户已定（intent `2026-10-15-020820`：主键 (id, created_at)、去重键 (event_id, created_at)）；ADR-0048 由 one-architecture 起草，成文后用户确认 |
+| AE-3 | audit_entries | `LoginAdmission` 仍把 IP、浏览器标识写进 `detail`；U-7b 带到期日例外未登记 | ADR-0043 第 4 项第 5 条、U-7c | 修复卡 timesheet-audit B 部分 |
+| IR-1 | idempotent_responses | 对所有放行的 POST 存整份应答，未分级、无长度上限 | C4；ADR-0043 | 修复卡 timesheet-audit B 部分 |
+
+生产前闸门（用户「同意，不挡 dev」）：ADR-0034 W2、W2 版本化、审计分区、ADR-0043 实施 PR，由 one-ops 登记到 PREDEPLOY（C-15 一组）；修复卡排在 dev 部署之后。
 
 ## 4. 复核发现的误报与修正
 
