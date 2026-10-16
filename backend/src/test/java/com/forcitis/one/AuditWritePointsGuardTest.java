@@ -21,7 +21,7 @@ class AuditWritePointsGuardTest {
     static final Path MAIN = Path.of("src/main/java");
     static final Path REGISTER = Path.of("architecture/audit-text-writers.txt");
     static final Path DEFINITION = Path.of("src/main/java/com/forcitis/one/platform/audit/api/AuditEntry.java");
-    static final Set<String> PERSONAL_DATA = Set.of("NONE", "SURROGATE", "POSSIBLE", "PI");
+    static final Set<String> PERSONAL_DATA = Set.of("NONE", "SURROGATE", "POSSIBLE");
     static final int LAST_ROW = 19;
     static final Pattern WRITE = Pattern.compile("new\\s+AuditEntry\\s*\\(|\\.withChange\\s*\\(");
 
@@ -69,6 +69,20 @@ class AuditWritePointsGuardTest {
         return count;
     }
 
+    /** Row 19 of the table: before_text and after_text are never written non-null, so the second and third argument of every withChange call is the literal null. */
+    static List<String> changeTexts(String source) {
+        String code = JavaCode.withoutComments(source);
+        List<String> problems = new ArrayList<>();
+        Matcher m = Pattern.compile("\\.withChange\\s*\\(").matcher(code);
+        while (m.find()) {
+            List<String> arguments = AuditDetailPolicy.arguments(code, m.end() - 1);
+            if (arguments.size() != 3 || !arguments.get(1).equals("null") || !arguments.get(2).equals("null")) {
+                problems.add("withChange(" + String.join(", ", arguments) + ")");
+            }
+        }
+        return problems;
+    }
+
     static List<String> check(Map<String, String> sources, Map<String, Writer> register) {
         List<String> problems = new ArrayList<>();
         sources.forEach((path, source) -> {
@@ -97,6 +111,9 @@ class AuditWritePointsGuardTest {
         List<String> problems = new ArrayList<>();
         Map<String, Writer> register = parse(Files.readAllLines(REGISTER), problems);
         problems.addAll(check(sources, register));
+        for (Map.Entry<String, String> source : sources.entrySet()) {
+            changeTexts(source.getValue()).forEach(wrong -> problems.add(source.getKey() + " writes a before or after text: " + wrong));
+        }
         assertThat(problems).isEmpty();
         assertThat(register).as("the card counted 35 files").hasSize(35);
     }
@@ -112,6 +129,21 @@ class AuditWritePointsGuardTest {
         assertThat(check(one, Map.of("A.java", new Writer(2, "1", "NONE")))).singleElement().asString().contains("register says 2");
         assertThat(check(Map.of("A.java", "class A {}"), Map.of("A.java", registered))).anyMatch(p -> p.contains("delete its line"));
         assertThat(check(Map.of("A.java", "e.withChange(r, null, null); // new AuditEntry("), Map.of("A.java", registered))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-01 injected: a non-null before or after text is caught, the literal null is not, and the class PI is refused in the register")
+    void beforeAndAfterTextsStayNull() {
+        assertThat(changeTexts("e.withChange(reason, null, null);")).isEmpty();
+        assertThat(changeTexts("e.withChange(reason.strip(), null,\n null)")).isEmpty();
+        assertThat(changeTexts("e.withChange(reason, old, null);")).hasSize(1);
+        assertThat(changeTexts("e.withChange(reason, null, String.valueOf(a, b));")).hasSize(1);
+        assertThat(changeTexts("e.withChange(reason, \"null\", null);")).hasSize(1);
+        assertThat(changeTexts("e.withChange(reason, null);")).hasSize(1);
+        assertThat(changeTexts("// e.withChange(r, a, b)")).isEmpty();
+        List<String> problems = new ArrayList<>();
+        assertThat(parse(List.of("A.java | 1 | 1 | PI"), problems)).isEmpty();
+        assertThat(problems).singleElement().asString().contains("personal data");
     }
 
     @Test
