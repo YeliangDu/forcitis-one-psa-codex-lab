@@ -14,6 +14,7 @@ ALTER ROLE SQLAgentOperatorRole DROP MEMBER 并回读。不带该选项时不做
 退出码：0 全部完成且收尾干净；1 中途停止（已收尾）；2 收尾不干净（须人工处理）；3 用法错误或预检失败（什么都没改）。
 """
 import json
+import os
 import re
 import signal
 import sys
@@ -151,7 +152,7 @@ def record(**entry):
 
 
 def save(target):
-    Path(target).write_text('\n'.join(json.dumps(e, ensure_ascii=False) for e in log) + '\n')
+    Path(target).write_text('\n'.join(json.dumps(e, ensure_ascii=False, default=str) for e in log) + '\n')
 
 
 class Stop(Exception):
@@ -350,7 +351,9 @@ def preflight(jar_sha256):
 
 def cleanup():
     clean = True
-    for number in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+    signals = {signal.SIGINT, signal.SIGTERM, signal.SIGHUP}
+    signal.pthread_sigmask(signal.SIG_BLOCK, signals)  # blocked first, so that no signal slips in between the three settings below
+    for number in signals:
         signal.signal(number, signal.SIG_IGN)  # a second Ctrl-C must not skip a DROP
     try:
         ecs('systemctl stop "one-c14-probe-*.service" 2>/dev/null; true')
@@ -477,11 +480,19 @@ def main(target, jar_sha256, msdb_trial=False):
         clean = cleanup()
         try:
             save(target)
-        except OSError:
-            print('\n'.join(json.dumps(e, ensure_ascii=False) for e in log))
-    if not clean:
-        sys.exit(2)
-    sys.exit(1 if stopped else 0)
+        except Exception:  # noqa: BLE001 the records are in the result file already (record() appends); this is only the tidy rewrite
+            try:
+                print('\n'.join(json.dumps(e, ensure_ascii=False, default=str) for e in log))
+            except Exception:  # noqa: BLE001
+                pass
+    code = 2 if not clean else (1 if stopped else 0)
+    try:
+        sys.stdout.flush()
+        sys.stderr.flush()
+    except OSError:
+        # A closed terminal: without this the interpreter's own flush at exit would turn the exit code into 120
+        sys.stdout = sys.stderr = open(os.devnull, 'w')
+    sys.exit(code)
 
 
 if __name__ == '__main__':
