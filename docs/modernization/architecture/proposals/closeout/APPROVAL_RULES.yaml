@@ -112,21 +112,21 @@ rules:
   note: 用户已定：上级组织负责人代批（审批口径页，intent 2026-10-16-164324）
   guard: approval
 - id: AR-13
-  name: 交付物校审：项目重要性 V 级
+  name: 交付物校审的审核主体：项目重要性 V 级
   condition: 项目重要性级别为 V
-  level: abnormal
-  escalate_to: 质量督查
+  level: none
+  reviewer: 质量督查
   guard: approval
   why: 技术质量判断须专业人员
-  note: N 级项目团队自审（项目总监审核）（intent 171147 D-1）；高低已核实：A8 枚举值序 N<V<S，近年校审记录 S、V 级由总工程师审核的占比高于 N 级（one-ops 取证 2026-10-16，nvs_review.sql，ADR-0037）；各字母含义系统无定义
+  note: 用户 D-1（intent 171147）定的是各级的审核主体，不是加审层数：N 级项目总监审核、V 级质量督查、S 级副总工程师以上；各一人，不得为提交人，不叠加；不取费用责任人（base_approver 不适用校审）。V、S 高低不影响审核主体（one-ops 取证：枚举值序 N<V<S，S、V 由总工审核占比高于 N）
 - id: AR-14
-  name: 交付物校审：项目重要性 S 级
+  name: 交付物校审的审核主体：项目重要性 S 级
   condition: 项目重要性级别为 S
-  level: special
-  escalate_to: 副总工程师及以上
+  level: none
+  reviewer: 副总工程师及以上
   guard: approval
   why: 技术质量判断须专业人员
-  note: 同 AR-13（S 为最高级）
+  note: 同 AR-13
 - id: AR-15
   name: 第三方代收代付
   condition: 收付款对象不是合同相对方，附三方协议或委托书
