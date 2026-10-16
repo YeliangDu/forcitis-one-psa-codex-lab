@@ -32,6 +32,14 @@ class AuditIdContractTest {
         return UserIdContractTest.openApi().path("components").path("schemas").path(name);
     }
 
+    private static JsonNode resolved(JsonNode node) throws IOException {
+        String ref = node.path("$ref").asString(null);
+        if (ref == null) {
+            return node;
+        }
+        return schema(ref.substring(ref.lastIndexOf('/') + 1));
+    }
+
     private static JsonNode parameter(String path, String name) throws IOException {
         for (JsonNode operation : UserIdContractTest.openApi().path("paths").path(path)) {
             for (JsonNode parameter : operation.path("parameters")) {
@@ -49,7 +57,7 @@ class AuditIdContractTest {
         JsonNode properties = schema("AuditEntryResponse").path("properties");
 
         assertThat(properties.has("subjectKey")).as("subjectKey is gone").isFalse();
-        JsonNode kind = properties.path("subjectKind");
+        JsonNode kind = resolved(properties.path("subjectKind"));
         List<String> values = new ArrayList<>();
         kind.path("enum").forEach(value -> values.add(value.asString()));
         assertThat(values).containsExactlyInAnyOrderElementsOf(concat(P5Names.KINDS_WITH_OBJECT, P5Names.KINDS_WITHOUT_OBJECT));
@@ -69,7 +77,7 @@ class AuditIdContractTest {
             assertThat(parameter(path, "subjectKey")).as("subjectKey on " + path).isNull();
             JsonNode kind = parameter(path, "subjectKind");
             assertThat(kind).as("subjectKind on " + path).isNotNull();
-            assertThat(kind.path("schema").path("enum").size()).as("subjectKind is an enumeration on " + path).isGreaterThanOrEqualTo(P5Names.KINDS_WITH_OBJECT.size());
+            assertThat(resolved(kind.path("schema")).path("enum").size()).as("subjectKind is an enumeration on " + path).isGreaterThanOrEqualTo(P5Names.KINDS_WITH_OBJECT.size());
             JsonNode id = parameter(path, "subjectId");
             assertThat(id).as("subjectId on " + path).isNotNull();
             assertThat(UserIdContractTest.isStringUuid(id.path("schema"))).as("subjectId on %s = %s", path, id.path("schema")).isTrue();
@@ -103,7 +111,7 @@ class AuditIdContractTest {
         Matcher start = Pattern.compile("export const AuditEntryResponseSchema = z\\.object\\(\\{").matcher(validators);
         assertThat(start.find()).as("AuditEntryResponseSchema in validators.ts").isTrue();
         String block = validators.substring(start.end(), validators.indexOf("\n});", start.end()));
-        assertThat(block).contains("subjectKind:").contains("subjectId:").doesNotContain("subjectKey:");
+        assertThat(block).containsPattern("(get )?subjectKind(\\(\\))?[:\\s]").contains("subjectId:").doesNotContain("subjectKey:");
         Matcher subjectId = Pattern.compile("(?m)^\\s*subjectId:\\s*(.*),\\s*$").matcher(block);
         assertThat(subjectId.find()).isTrue();
         assertThat(subjectId.group(1)).startsWith("z.string(");
