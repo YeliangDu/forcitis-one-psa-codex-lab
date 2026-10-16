@@ -19,7 +19,6 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
-import org.postgresql.util.PSQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
@@ -111,7 +110,7 @@ class JdbcTimesheetRepository implements TimesheetRepository {
     }
 
     private static DomainException clashOf(DuplicateKeyException exists, Timesheet timesheet) {
-        String constraint = constraintOf(exists);
+        String constraint = ConstraintNames.of(exists);
         if (CLASH_OF_EMPLOYEE_DAY.equals(constraint)) {
             return TimesheetError.COST_TIMESHEET_WORK_DATE_DUPLICATE.refusal("The employee already has a timesheet for " + timesheet.workDate());
         }
@@ -120,15 +119,6 @@ class JdbcTimesheetRepository implements TimesheetRepository {
         }
         log.error("ALERT P2 cost.timesheet a timesheet was refused by the unique constraint {}: {}", constraint, exists.getClass().getName());
         throw exists;
-    }
-
-    private static String constraintOf(Throwable failure) {
-        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-            if (cause instanceof PSQLException psql && psql.getServerErrorMessage() != null) {
-                return psql.getServerErrorMessage().getConstraint();
-            }
-        }
-        return null;
     }
 
     private static DomainException changedByOthers(Timesheet timesheet) {

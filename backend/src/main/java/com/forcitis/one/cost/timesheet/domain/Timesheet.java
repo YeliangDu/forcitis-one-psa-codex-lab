@@ -48,8 +48,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * A timesheet moves DRAFT, SUBMITTED, then APPROVED or REJECTED; a return gives it back to its owner for changes (RETURNED), a cancel
- * gives it back as a draft, and a rejected one may be changed and submitted again as the same timesheet. Only APPROVED has no way out. The approval module owns the process state, this aggregate owns the timesheet's state, and only events join
- * them. The work date is what the employee entered and never changes afterwards; the day of submission is a separate fact.
+ * gives it back as a draft, and a rejected one may be changed and submitted again as the same timesheet. Only APPROVED has no way out.
+ * The approval module owns the process state, this aggregate owns the timesheet's state, and only events join them. The work date is what the employee entered and never changes afterwards; the day of submission is a separate fact.
  */
 public final class Timesheet extends AggregateRoot {
 
@@ -79,7 +79,8 @@ public final class Timesheet extends AggregateRoot {
     private int round;
     private LocalDate submittedOn;
 
-    private Timesheet(TimesheetId timesheetId, DocumentNumber number, NumberingRuleVersionId numberingRuleVersionId, EmployeeId employee, LegalEntityId legalEntityId, OrgUnitId orgUnitId,
+    private Timesheet(TimesheetId timesheetId, DocumentNumber number, NumberingRuleVersionId numberingRuleVersionId,
+            EmployeeId employee, LegalEntityId legalEntityId, OrgUnitId orgUnitId,
             LocalDate workDate, Hours submittedHours, EmployeeId projectManager, TimesheetStatus status,
             int round, LocalDate submittedOn, List<AggregateReference> touchedTogether, long version, long eventSequence, boolean isNew) {
         super(version, eventSequence);
@@ -121,7 +122,8 @@ public final class Timesheet extends AggregateRoot {
     }
 
     /** ruleVersionId is empty for a timesheet carried over from the old system, whose number was not issued here. */
-    public static Timesheet restore(TimesheetId timesheetId, DocumentNumber number, NumberingRuleVersionId ruleVersionId, EmployeeId employee, LegalEntityId legalEntityId,
+    public static Timesheet restore(TimesheetId timesheetId, DocumentNumber number, NumberingRuleVersionId ruleVersionId,
+            EmployeeId employee, LegalEntityId legalEntityId,
             OrgUnitId orgUnitId, LocalDate workDate, Hours submittedHours, EmployeeId projectManager,
             TimesheetStatus status, int round, LocalDate submittedOn, long version, long eventSequence) {
         return new Timesheet(timesheetId, number, ruleVersionId, employee, legalEntityId, orgUnitId, workDate, submittedHours,

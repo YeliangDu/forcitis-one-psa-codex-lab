@@ -280,6 +280,7 @@ stateDiagram-v2
         RUNNING --> REJECTED : 顶层任务驳回 TIMESHEET 流程无此路径
         RUNNING --> CANCELLED : 撤销 推迟 1b 无入口
         RETURNED --> RUNNING : 重提 round+1 同一行
+        REJECTED --> RUNNING : 驳回后改原单重提 round+1 同一行
     }
     state "审批任务（Flowable，已实现）" as T {
         [*] --> 候选组待认领 : TaskAssigned 一人一张卡
