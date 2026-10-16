@@ -824,6 +824,7 @@ processes:
     name: "入职后参保增员与建立薪酬档案"
     type: business
     stages: [VS-07.3]
+    stages_note: "VS-07.3：触发状态 Employed（试用期 / 正式）是 VS-07.3 的退出条件，参保增员与建薪酬档案是入职任职的收尾；不归 VS-13.1——VS-13.1 进入条件同一状态只是字面重合，本流程不产生考勤确认的任何进出事实（#421 第 6a 项）"
     owner_bc: "B-15"
     group: people
     status: user_confirmed
@@ -1220,7 +1221,8 @@ processes:
   - id: PRC-126
     name: "提交应付薪酬"
     type: event_policy
-    stages: [VS-13.3]
+    stages: [VS-13.5]
+    stages_note: "VS-13.5：触发状态「已批准」（OBJ-73）是 VS-13.5 的进入条件，本策略提交应付薪酬正是 VS-13.5「提交应付薪酬、代发付款」的第一步，结局应付已确认导向 VS-13.5 退出「已结清」；不归 VS-13.4——VS-13.4 申报缴纳与应付无关，同为「已批准」进入只是字面重合；原挂 VS-13.3（触发状态所在段的退出）按 #421 第 6a 项改（2026-10-16）"
     owner_bc: "B-15"
     group: people
     status: draft
