@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """新增一条用户决定片段 intent/<日期>-<HHMMSS>-<会话名>-<短名>.md，然后重新生成 INTENT.md。
 
-用法：python3 docs/modernization/new_intent.py --session=<会话名> "<用户原话>" "<落点>" [--date=YYYY-MM-DD]
+用法：python3 docs/modernization/new_intent.py --session=<会话名> "<用户原话>" "<落点>" [--date=YYYY-MM-DD] [--supersedes=<被取代的 intent 文件名>[,<文件名>...]]
+本决定推翻或取代了此前哪些决定，就在 --supersedes 里写出（已定决策速查表据此标「被取代」，build_decision_digest.py）；文件名须是 intent/ 下已有的片段。
 原话与落点各为一行（会成为 INTENT.md 表格的一行），不能含未转义的「|」。
 文件名由日期、当前时刻与会话名组成，并行会话互不撞名，无需协调序号。
 """
@@ -41,5 +42,9 @@ if __name__ == "__main__":
     opts, (quote, landing) = parse_args(__doc__, 2)
     if "session" not in opts:
         sys.exit(__doc__)
+    olds = [x for x in opts.get("supersedes", "").split(",") if x]
+    for old in olds:
+        if not os.path.isfile(os.path.join(BASE, "intent", old)):
+            sys.exit(f"--supersedes：intent/{old} 不存在")
     create("intent", opts.get("date", datetime.date.today().isoformat()), opts["session"], short_name(quote),
-           f"## 原话\n\n{quote}\n\n## 落点\n\n{landing}\n")
+           f"## 原话\n\n{quote}\n\n## 落点\n\n{landing}\n" + ("\n## 取代\n\n" + "".join(f"- {o}\n" for o in olds) if olds else ""))
