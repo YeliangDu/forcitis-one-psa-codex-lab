@@ -42,7 +42,7 @@
 | 默认确认原因 | default_confirmation_reason | 领域 | organization.leave | 逾期未确认 / 已离职；事件载荷里统一用此名，不再写「默认标记」 |
 | 占用、已转用、已释放 | held、consumed、released | 领域 | organization.leave | 占用行（leave_balance_holds）状态 |
 | 补休 | comp_leave | 领域 | organization.leave | 休息日加班后安排的休息，假期类型之一（leave_types）；劳动法第四十四条用语。同名异义提示：词表「调休」专指工作日历的调休上班日（B-14），加班后的休息一律叫「补休」，不叫调休 |
-| 补休额度行 | leave_comp_grant | 领域 | organization.leave | AGG-71 次级实体（表 leave_comp_grants）：一笔选补休的加班产生一行，带到期日 |
+| 补休额度行 | leave_comp_grant | 领域 | organization.leave | AGG-71 次级实体（表 leave_comp_grants）：一笔计补休的加班产生一行，带到期日 |
 | 补休有效期 | comp_leave_validity | 领域 | organization.leave | 额度行自加班日起的有效长度，放在假期规则版本（AGG-118）；长度待用户定 U15 |
 | 计入补休额度 | credit_comp_leave_grant | 领域 | organization.leave | AGG-71 命令，〔缺〕新增 |
 | 补休到期转计薪 | convert_expired_comp_leave_to_pay | 领域 | organization.leave | AGG-71 命令，〔缺〕新增；到期未休不作废，转计薪时长 |
