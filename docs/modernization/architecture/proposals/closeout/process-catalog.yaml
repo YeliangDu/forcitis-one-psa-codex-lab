@@ -1336,3 +1336,12 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
+  - id: PRC-147
+    name: "费用报销核定后冲抵员工借款并确认应付"
+    type: event_policy
+    stages: [VS-08.2]
+    owner_bc: "B-09"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
