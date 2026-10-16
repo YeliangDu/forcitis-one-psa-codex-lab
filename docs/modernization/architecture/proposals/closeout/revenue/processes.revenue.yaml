@@ -1761,6 +1761,7 @@ processes:
       approver: SH-E4
       multi_level: true
       on_reject: 2
+      engine: aggregate
   - actor: SH-E7
     actor_v1: 注册执业人员
     command: 签发交付物
@@ -1814,6 +1815,12 @@ processes:
       bc: B-05
       name: 交付物已认可
     calls: PRC-33
+    approval:
+      doc_type: 交付物客户认可
+      approver: SH-C6a
+      engine: external
+      multi_level: false
+      on_reject: 7
   - actor: SH-E2
     actor_v1: 项目经理
     command: 登记客户退回
@@ -3556,10 +3563,10 @@ event_policies:
   trigger:
     type: event
     events:
-    - event: 交付物已认可
-      aggregate: AGG-27
-    - event: 无异议已声明
-      aggregate: AGG-27
+    - aggregate: AGG-27
+      event: 交付物已认可
+    - aggregate: AGG-44
+      event: 视为同意已成立
   stages:
   - VS-04.2
   owner_bc: B-08
@@ -3581,10 +3588,6 @@ event_policies:
       direction: in
       bc: B-28
       name: 交付物已认可
-    - mode: event
-      direction: in
-      bc: B-28
-      name: 无异议已声明
     - mode: api
       direction: out
       bc: B-05
@@ -3605,7 +3608,7 @@ event_policies:
       direction: out
       bc: B-16
       name: 提交过账候选
-  notes: 补「无异议已声明」触发（⑥a 评审 H3、H4）。期间落已关账月时由期间闸门路由到开放期间并标原期间（INV-92）。里程碑认可 MilestoneAccepted 随 Q21，B-08 → B-04 边未登记，不加边，记入 G-19。
+  notes: 补「无异议已声明」触发（⑥a 评审 H3、H4）。期间落已关账月时由期间闸门路由到开放期间并标原期间（INV-92）。里程碑认可 MilestoneAccepted 随 Q21，B-08 → B-04 边未登记，不加边，记入 G-19。 触发改为 PRC-54 认定视为同意成立后（one-architecture 裁定 S-11，ADR-0049 先认定后确认）；选 Q-04 C 后须占用加审批，升为人工编排待定。
 - id: PRC-56
   name: 付款条件项转为可结算
   trigger:
