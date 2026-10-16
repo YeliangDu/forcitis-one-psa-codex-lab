@@ -1656,4 +1656,4 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
-    note: "S-42；订阅 AGG-19「项目已开始执行」，按协议幂等"
+    note: "S-42；两个入口：AGG-19「项目已开始执行」；同 BC「合同—项目关联已登记」后经 api 读关联项目状态（先立项后签约）；按协议幂等"
