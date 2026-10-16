@@ -129,10 +129,10 @@ final class SingleOperatorModeEnvironment {
         return properties.getProperty("spring.flyway." + key).strip();
     }
 
-    /** Rows of a table, read on a connection whose search path is the module schema, so the test names no schema of another module in SQL. */
-    static long count(String database, String schema, String table, String where) throws SQLException {
-        try (Connection connection = DriverManager.getConnection(url(database) + "&currentSchema=" + schema, DEV_USER, PASSWORD);
-             ResultSet rs = connection.createStatement().executeQuery("select count(*) from " + table + (where == null ? "" : " where " + where))) {
+    /** Rows of a schema-qualified table, read only. */
+    static long count(String database, String qualifiedTable, String where) throws SQLException {
+        try (Connection connection = connect(database, DEV_USER);
+             ResultSet rs = connection.createStatement().executeQuery("select count(*) from " + qualifiedTable + (where == null ? "" : " where " + where))) {
             rs.next();
             return rs.getLong(1);
         }
@@ -148,9 +148,9 @@ final class SingleOperatorModeEnvironment {
 
     /** What a start of the application can write: grants, emergency accounts, audit entries, scheduler locks and the process engine's tables. */
     static List<Long> footprint(String database) throws SQLException {
-        return List.of(count(database, "platform_identity", "account_roles", null), count(database, "platform_identity", "emergency_admins", null),
-                count(database, "platform_identity", "user_accounts", null), count(database, "platform_audit", "audit_entries", null),
-                count(database, "platform_scheduling", "scheduler_locks", null), engineTables(database));
+        return List.of(count(database, "platform_identity.account_roles", null), count(database, "platform_identity.emergency_admins", null),
+                count(database, "platform_identity.user_accounts", null), count(database, "platform_audit.audit_entries", null),
+                count(database, "platform_scheduling.scheduler_locks", null), engineTables(database));
     }
 
     static int freePort() throws IOException {

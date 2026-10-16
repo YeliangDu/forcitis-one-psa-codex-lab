@@ -102,7 +102,7 @@ class SingleOperatorModeStartupIT {
     @Test
     @DisplayName("SINGLE-OP P1-15 检查先于 Web 服务器接受请求与调度器启动：dev、值为 true、库名错误的常驻形态，上下文刷新失败，指定端口没有任何监听，调度任务计数为 0")
     void p115_checkComesBeforeTheServerAndTheScheduler() throws Exception {
-        long locksBefore = SingleOperatorModeEnvironment.count(PROD_DATABASE, "platform_scheduling", "scheduler_locks", null);
+        long locksBefore = SingleOperatorModeEnvironment.count(PROD_DATABASE, "platform_scheduling.scheduler_locks", null);
         int port = SingleOperatorModeEnvironment.freePort();
 
         Outcome outcome = SingleOperatorModeEnvironment.launch(SingleOperatorModeEnvironment.residentArguments("dev", PROD_DATABASE, DEV_USER, "true", port, true));
@@ -110,7 +110,7 @@ class SingleOperatorModeStartupIT {
         assertRefusedByTheCheck(outcome);
         assertThat(outcome.output()).doesNotContain("Tomcat started");
         assertThat(SingleOperatorModeEnvironment.listening(port)).as("nothing listens on port %d", port).isFalse();
-        assertThat(SingleOperatorModeEnvironment.count(PROD_DATABASE, "platform_scheduling", "scheduler_locks", null)).as("no scheduled job took a lock").isEqualTo(locksBefore)
+        assertThat(SingleOperatorModeEnvironment.count(PROD_DATABASE, "platform_scheduling.scheduler_locks", null)).as("no scheduled job took a lock").isEqualTo(locksBefore)
                 .isZero();
     }
 
@@ -221,6 +221,6 @@ class SingleOperatorModeStartupIT {
     }
 
     private static long enabledEntries(String also) throws Exception {
-        return SingleOperatorModeEnvironment.count(DEV_DATABASE, "platform_audit", "audit_entries", "action = '" + ENABLED_ACTION + "'" + (also == null ? "" : " and " + also));
+        return SingleOperatorModeEnvironment.count(DEV_DATABASE, "platform_audit.audit_entries", "action = '" + ENABLED_ACTION + "'" + (also == null ? "" : " and " + also));
     }
 }
