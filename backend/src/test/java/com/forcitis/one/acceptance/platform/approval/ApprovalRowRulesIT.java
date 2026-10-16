@@ -484,14 +484,26 @@ class ApprovalRowRulesIT extends ApprovalP4Support {
     }
 
     @Test
-    @DisplayName("DATA-REPAIR-approval AP-05：发起轮次只追加——TRUNCATE 被拒（触发器 23001，或因已有外键引用而被外键检查拒绝 0A000），行仍在")
+    @DisplayName("DATA-REPAIR-approval AP-05：发起轮次只追加——TRUNCATE 被拒（0A000，外键引用先拒绝），行仍在；目录里有 BEFORE TRUNCATE 触发器")
     void startRoundsCannotBeTruncated() throws Exception {
         UUID request = pending().request();
 
         PSQLException refused = refusedBy(() -> execute("truncate table start_rounds"));
-        assertThat(refused.getSQLState()).as("refused by the append-only trigger (23001) or, once other tables reference the rounds, by the foreign key check (0A000)")
-                .isIn("23001", "0A000");
+        assertThat(refused.getSQLState()).as(refused.getMessage()).isEqualTo("0A000");
 
         assertThat(rows("select 1 from start_rounds where approval_request_id = ?", request)).hasSize(1);
+        assertThat(rows("""
+                select t.tgname, p.proname
+                from pg_trigger t
+                join pg_proc p on p.oid = t.tgfoid
+                where t.tgrelid = 'platform_approval.start_rounds'::regclass
+                  and not t.tgisinternal
+                  and (t.tgtype & 1) = 0 and (t.tgtype & 2) = 2 and (t.tgtype & 32) = 32
+                """)).as("a BEFORE TRUNCATE statement trigger on start_rounds")
+                .singleElement()
+                .satisfies(trigger -> {
+                    assertThat(trigger.get("tgname")).isEqualTo("start_rounds_reject_truncate");
+                    assertThat(trigger.get("proname")).isEqualTo("reject_start_round_change");
+                });
     }
 }
