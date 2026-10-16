@@ -130,7 +130,7 @@ B 部分（one-1a-next-4）允许改动：
       `LegalEntityAttributionResponse` 每个任职期约 118 字符（UUID 36 + 2 个日期 + 键名），周期数无上限，N 可容约 270 个；
       `LegalEntityResponse`（`name` ≤ 100）约 0.3K；`DecisionResponse`、`AwaitingConfirmationResponse` 约 0.1K；4xx `problem+json` 约 0.35K（`ProblemDetails` 文本按 `ErrorKind` 固定，无请求值回显）；其余接口 204 无正文。
     - 取值：现有最大约 1.4K，取 N = 32768（约 23 倍余量）。余量理由：权限码目录增长到约 500 个仍容得下（500 × 70 ≈ 35K 临界，届时本卡守护测试先失败，提醒复核，而不是静默放大）；任职期史以百计也容得下。N 写在 `ck_idempotent_responses_response_text`：`CHECK (char_length(response_text) <= 32768)`，并在 `IdempotencyFilter` 用同一常量（`MAX_RESPONSE_LENGTH = 32768`），测试断言两处相等。
-    - 超限：不截断；`finish` 前判长度，超限则 `release` 该键（下次重试重新执行，不重放半份）、打 `ALERT platform.idempotency response of <接口模板> exceeds <N> characters: not stored`、`forcitis.platform.idempotency.response.oversize` 计数加一，**应答照常发给调用方**（写操作已提交，改成 500 会让调用方误以为失败）。
+    - 超限（one-data 裁定，2026-10-16）：不截断、不存，**不释放幂等键**（行保持「处理中」，`holdUntilExpiry` 把 `updated_at` 置为 `expires_at`，使重试在 24 小时到期前一直得到处理中冲突 409，且不被「处理中超时 2 分钟后接管」重新执行已提交的写操作）；打 `ALERT platform.idempotency response of <接口模板> exceeds 32768 characters: not stored`，`forcitis.platform.idempotency.response.oversize` 计数加一；应答照常发给调用方。
     - 守护：新增测试 `IdempotentResponseSizeTest`（`TB-02 …` 开头）：为每个白名单接口的响应类型构造字段取上限的夹具（`name` 100 字、`permissionCodes` 取当前全部权限码、任职期取 100 个），序列化后长度须小于 N 的一半。
   - **② 白名单登记处与形式：新建 `backend/architecture/idempotent-endpoints.txt`**
     - 选它不选别的：`data-classification.txt` 登记列、`archive-columns.txt` 登记归档列、`data-access-registry.yaml` 登记表与写入者，都不是接口；`sensitive-response-exceptions.txt` 是出参字段的例外，语义相反（它登记「可以暴露」，这里要登记「可以保存」）。形式与对象最接近的是 `public-endpoints.txt`（接口集合，`ApplicationIntegrationTest` 做双向快照比对），沿用它的行格式：`METHOD 路径模板  # 应答类型；核对结论`。

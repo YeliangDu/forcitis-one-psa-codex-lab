@@ -13,6 +13,8 @@ import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
 import com.forcitis.one.platform.integration.api.WecomGateway;
+import com.forcitis.one.platform.web.IdempotencyScope;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
@@ -28,7 +30,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -52,11 +58,24 @@ import tools.jackson.databind.json.JsonMapper;
         "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"})
 @AutoConfigureMockMvc
 @Testcontainers
-@Import(IdempotencyIT.Probe.class)
+@Import({IdempotencyIT.Probe.class, IdempotencyIT.ProbeScope.class})
 class IdempotencyIT {
     static final String ORDERS = "/api/v1/platform/idempotency-probe/orders";
     static final String SESSIONS = "/api/v1/platform/idempotency-probe/sessions:echo";
     static final String KEY = "Idempotency-Key";
+
+    static final String SIZED = "/api/v1/platform/idempotency-probe/sized";
+    static final String UNLISTED = "/api/v1/platform/idempotency-probe/unlisted";
+
+    /** The probe endpoints are not on the list of the real ones; only the orders and the sized answer are added for this test. */
+    @TestConfiguration
+    static class ProbeScope {
+        @Bean
+        @Primary
+        IdempotencyScope probeScope() {
+            return new IdempotencyScope().plus("POST " + ORDERS, "POST " + SIZED);
+        }
+    }
 
     @RestController
     @RequestMapping("/api/v1/platform/idempotency-probe")
@@ -79,6 +98,17 @@ class IdempotencyIT {
             }
             return ResponseEntity.created(java.net.URI.create("/api/v1/platform/idempotency-probe/orders/" + run)).eTag("\"" + run + "\"")
                     .body(Map.of("run", run, "echo", request));
+        }
+
+        @PostMapping("/sized")
+        ResponseEntity<String> sized(@RequestParam int length) {
+            runs.incrementAndGet();
+            return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body("x".repeat(length));
+        }
+
+        @PostMapping("/unlisted")
+        Map<String, Object> unlisted() {
+            return Map.of("run", runs.incrementAndGet());
         }
 
         @PostMapping("/sessions:echo")
@@ -124,6 +154,9 @@ class IdempotencyIT {
 
     @Autowired
     IdempotentResponses responses;
+
+    @Autowired
+    MeterRegistry meters;
 
     @BeforeEach
     void reset() {
@@ -273,6 +306,67 @@ class IdempotencyIT {
         }
 
         assertThat(probe.runs.get()).as("every call ran").isEqualTo(4);
+        assertThat(jdbc.sql("select count(*) from platform_idempotency.idempotent_responses").query(Long.class).single()).isZero();
+    }
+
+    private MockHttpServletRequestBuilder sized(String key, int length) {
+        return post(SIZED).queryParam("length", String.valueOf(length)).with(user(TestAccounts.account(1).value().toString())).with(csrf()).header(KEY, key);
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-02: an answer of exactly 32768 characters is stored and replayed; one character more is refused by the limit and not stored")
+    void answerAtTheLimitIsStored() throws Exception {
+        mvc.perform(sized("k-limit", IdempotentResponses.MAX_RESPONSE_LENGTH)).andReturn();
+        MvcResult replayed = mvc.perform(sized("k-limit", IdempotentResponses.MAX_RESPONSE_LENGTH)).andReturn();
+
+        assertThat(probe.runs.get()).isEqualTo(1);
+        assertThat(replayed.getResponse().getHeader("Idempotent-Replayed")).isEqualTo("true");
+        assertThat(replayed.getResponse().getContentAsString()).hasSize(IdempotentResponses.MAX_RESPONSE_LENGTH);
+        assertThat(jdbc.sql("select char_length(response_text) from platform_idempotency.idempotent_responses").query(Integer.class).single())
+                .isEqualTo(IdempotentResponses.MAX_RESPONSE_LENGTH);
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-02: an answer over the limit is not stored, the caller still gets it, the key stays in progress (409 on retry, no second run) and the count rises")
+    void oversizeAnswerIsNotStoredAndTheKeyStaysHeld() throws Exception {
+        double before = meters.counter("forcitis.platform.idempotency.response.oversize").count();
+
+        MvcResult first = mvc.perform(sized("k-big", IdempotentResponses.MAX_RESPONSE_LENGTH + 1)).andReturn();
+        MvcResult retry = mvc.perform(sized("k-big", IdempotentResponses.MAX_RESPONSE_LENGTH + 1)).andReturn();
+
+        assertThat(first.getResponse().getStatus()).isEqualTo(200);
+        assertThat(first.getResponse().getContentAsString()).hasSize(IdempotentResponses.MAX_RESPONSE_LENGTH + 1);
+        assertThat(retry.getResponse().getStatus()).isEqualTo(409);
+        assertThat(problemCode(retry)).isEqualTo("PLATFORM_WEB_IDEMPOTENCY_IN_PROGRESS");
+        assertThat(probe.runs.get()).as("the write is not done twice").isEqualTo(1);
+        assertThat(jdbc.sql("select count(*) from platform_idempotency.idempotent_responses where response_text is not null").query(Long.class).single()).isZero();
+        assertThat(meters.counter("forcitis.platform.idempotency.response.oversize").count()).isEqualTo(before + 1);
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-02: the held key is not taken over after the in-progress timeout, only when the key expires")
+    void heldKeyOutlivesTheInProgressTimeout() throws Exception {
+        mvc.perform(sized("k-held", IdempotentResponses.MAX_RESPONSE_LENGTH + 1)).andReturn();
+        jdbc.sql("update platform_idempotency.idempotent_responses set created_at = :old").param("old", Timestamp.from(Instant.now().minus(Duration.ofMinutes(10)))).update();
+
+        MvcResult later = mvc.perform(sized("k-held", IdempotentResponses.MAX_RESPONSE_LENGTH + 1)).andReturn();
+        assertThat(later.getResponse().getStatus()).isEqualTo(409);
+        assertThat(probe.runs.get()).isEqualTo(1);
+
+        jdbc.sql("update platform_idempotency.idempotent_responses set expires_at = :past").param("past", Timestamp.from(Instant.now().minusSeconds(60))).update();
+        MvcResult afterExpiry = mvc.perform(sized("k-held", IdempotentResponses.MAX_RESPONSE_LENGTH + 1)).andReturn();
+        assertThat(afterExpiry.getResponse().getStatus()).isEqualTo(200);
+        assertThat(probe.runs.get()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-02: a POST that is not on the list runs every time and stores nothing, even with a well-formed key")
+    void unlistedEndpointStoresNothing() throws Exception {
+        for (int i = 0; i < 2; i++) {
+            mvc.perform(post(UNLISTED).with(user(TestAccounts.account(1).value().toString())).with(csrf()).header(KEY, "k-unlisted")).andReturn();
+        }
+
+        assertThat(probe.runs.get()).isEqualTo(2);
         assertThat(jdbc.sql("select count(*) from platform_idempotency.idempotent_responses").query(Long.class).single()).isZero();
     }
 }

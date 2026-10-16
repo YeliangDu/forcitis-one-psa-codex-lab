@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
+import com.forcitis.one.kernel.IdempotentResponses;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -94,5 +95,13 @@ class IdempotentResponsesConstraintIT {
         assertRefusedBy("ck_idempotent_responses_in_progress", () -> insert("pair-name", HASH, null, "application/json", null, null));
         assertRefusedBy("ck_idempotent_responses_in_progress", () -> insert("pair-text", HASH, null, null, "{}", null));
         assertRefusedBy("ck_idempotent_responses_in_progress", () -> insert("pair-headers", HASH, null, null, null, "{}"));
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-02: response_text of 32768 characters passes, 32769 is refused; the limit is the constant the filter uses")
+    void responseTextLength() throws SQLException {
+        assertThatCode(() -> insert("text-limit", HASH, 200, "text/plain", "x".repeat(IdempotentResponses.MAX_RESPONSE_LENGTH), "{}")).doesNotThrowAnyException();
+        assertRefusedBy("ck_idempotent_responses_response_text",
+                () -> insert("text-over", HASH, 200, "text/plain", "x".repeat(IdempotentResponses.MAX_RESPONSE_LENGTH + 1), "{}"));
     }
 }

@@ -25,6 +25,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import io.micrometer.core.instrument.MeterRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -33,6 +36,7 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 import tools.jackson.databind.json.JsonMapper;
@@ -40,12 +44,14 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * A write that carries Idempotency-Key gets the first answer again when it is sent again with the same key and the same request
  * within 24 hours; the same key with another request is refused (422). Runs after the security filters, so the key is the signed-in
- * user's own.
+ * user's own. An answer longer than the stored limit is not stored and the key stays "in progress" until it expires: the write has been
+ * done, and running it again on a retry would do it twice.
  */
 @Component
 @Order(Ordered.LOWEST_PRECEDENCE - 100)
 class IdempotencyFilter extends OncePerRequestFilter {
     static final String HEADER = "Idempotency-Key";
+    private static final Logger LOG = LoggerFactory.getLogger(IdempotencyFilter.class);
     static final Duration LIFETIME = Duration.ofHours(24);
     private static final int MAX_KEY_LENGTH = 128;
     private static final List<String> REPLAYED_HEADERS = List.of("ETag", "Location");
@@ -54,12 +60,16 @@ class IdempotencyFilter extends OncePerRequestFilter {
     private final Clock clock;
     private final JsonMapper json;
     private final Duration inProgressTimeout;
+    private final IdempotencyScope scope;
+    private final MeterRegistry meters;
 
-    IdempotencyFilter(IdempotentResponses responses, Clock clock, JsonMapper json,
+    IdempotencyFilter(IdempotentResponses responses, Clock clock, JsonMapper json, IdempotencyScope scope, MeterRegistry meters,
             @Value("${forcitis.platform.web.idempotency.in-progress-timeout}") Duration inProgressTimeout) {
         if (inProgressTimeout.isNegative() || inProgressTimeout.isZero()) {
             throw new IllegalArgumentException("forcitis.platform.web.idempotency.in-progress-timeout must be positive");
         }
+        this.scope = scope;
+        this.meters = meters;
         this.responses = responses;
         this.clock = clock;
         this.json = json;
@@ -68,7 +78,7 @@ class IdempotencyFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return request.getHeader(HEADER) == null || !IdempotencyScope.applies(request.getMethod(), request.getRequestURI());
+        return request.getHeader(HEADER) == null || !scope.applies(request.getMethod(), request.getRequestURI());
     }
 
     @Override
@@ -119,8 +129,15 @@ class IdempotencyFilter extends OncePerRequestFilter {
             completed = true;
         } finally {
             if (completed && wrapper.getStatus() < 500) {
-                responses.finish(userId, key, wrapper.getStatus(), wrapper.getContentType(),
-                        new String(wrapper.getContentAsByteArray(), StandardCharsets.UTF_8), replayedHeaders(wrapper));
+                String text = new String(wrapper.getContentAsByteArray(), StandardCharsets.UTF_8);
+                if (text.length() > IdempotentResponses.MAX_RESPONSE_LENGTH) {
+                    LOG.error("ALERT platform.idempotency response of {} exceeds {} characters: not stored", request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE),
+                            IdempotentResponses.MAX_RESPONSE_LENGTH);
+                    meters.counter("forcitis.platform.idempotency.response.oversize").increment();
+                    responses.holdUntilExpiry(userId, key);
+                } else {
+                    responses.finish(userId, key, wrapper.getStatus(), wrapper.getContentType(), text, replayedHeaders(wrapper));
+                }
             } else {
                 responses.release(userId, key);
             }
