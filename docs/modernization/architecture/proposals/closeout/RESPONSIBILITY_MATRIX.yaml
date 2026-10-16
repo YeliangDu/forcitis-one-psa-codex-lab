@@ -7757,14 +7757,21 @@ entries:
   command: 调整预算占用
   raci:
     A:
-      resolve: TODO
-    R: []
+      resolve: type
+      role: 财务负责人
+    R:
+    - system（B-11 PRC-71 经 api 调用）
     C: []
     I: []
+  boundary:
+    rule: INV-102 / F-Q2 超额只预警
+    note: 调用方 PRC-71（finance 组），S-31 SQ-08
   sensitive: false
-  a_source: none
+  source_part: vs0911
+  a_source: group:people
   sources:
   - finance:PRC-71#4
+  - people:片段
 - object: AGG-80
   command: 释放预算占用
   raci:
