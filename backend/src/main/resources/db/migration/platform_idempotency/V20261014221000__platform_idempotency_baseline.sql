@@ -15,7 +15,11 @@ CREATE TABLE platform_idempotency.idempotent_responses (
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_idempotent_responses PRIMARY KEY (idempotent_response_id),
-    CONSTRAINT uk_idempotent_responses_user_id_idempotency_key UNIQUE (user_id, idempotency_key)
+    CONSTRAINT uk_idempotent_responses_user_id_idempotency_key UNIQUE (user_id, idempotency_key),
+    CONSTRAINT ck_idempotent_responses_idempotency_key CHECK (char_length(idempotency_key) BETWEEN 1 AND 128),
+    CONSTRAINT ck_idempotent_responses_request_hash CHECK (request_hash ~ '^[0-9a-f]{64}$'),
+    CONSTRAINT ck_idempotent_responses_response_number CHECK (response_number BETWEEN 100 AND 599),
+    CONSTRAINT ck_idempotent_responses_in_progress CHECK (response_number IS NOT NULL OR (response_name IS NULL AND response_text IS NULL AND response_header_text IS NULL))
 );
 CREATE INDEX ix_idempotent_responses_expires_at ON platform_idempotency.idempotent_responses (expires_at);
 COMMENT ON TABLE platform_idempotency.idempotent_responses IS '幂等应答：粒度：每个用户的每个幂等键一行，到期（24 小时）后清除';

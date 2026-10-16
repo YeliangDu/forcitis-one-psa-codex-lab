@@ -242,7 +242,7 @@ class IdempotencyIT {
     void abandonedClaimIsReclaimed() throws Exception {
         mvc.perform(order("1", "k-dead", "{\"a\":1}")).andReturn();
         jdbc.sql("""
-                update platform_idempotency.idempotent_responses set response_number = null, response_text = null, updated_at = :old
+                update platform_idempotency.idempotent_responses set response_number = null, response_name = null, response_text = null, response_header_text = null, updated_at = :old
                 """).param("old", Timestamp.from(Instant.now().minus(Duration.ofMinutes(10)))).update();
         probe.runs.set(0);
 
