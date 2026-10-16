@@ -11,7 +11,7 @@
 | `scripts/release/build.sh` | 构建发布包；本机可直接运行，工作流只是调用它 |
 | `scripts/release/toolchain.sh` | release 构建（GitHub 托管机）与部署 runner 的工具链；部署 runner 上失败关闭：系统工具与 PATH 必须 root 所有、组与他人不可写（含全部上级目录），账号主目录中不得有会左右 python3 / git / aliyun / curl 的配置；Java 25、gh、Node 24、aliyun CLI 按版本与 SHA256 锁定下载；corepack 取锁定的 pnpm |
 | `scripts/release/verify_bundle.sh` | 按部署时的方式校验发布包（归档 SHA256、`SHA256SUMS`、`manifest.json`、jar 可启动） |
-| `scripts/release/ci_passed.py` | 证明提交是 main 的 first-parent 提交，且该提交 push 到 main 触发的 ci 运行成功、三项必需作业成功 |
+| `scripts/release/ci_passed.py` | 证明提交是 main 的 first-parent 提交；该提交 push 到 main 触发的 ci 运行（只跑轻量）成功、三项必需作业成功；**重步骤另证**：合并它的 PR 的头提交上，pull_request 事件的 ci 运行以完整作业名（不带 ` (light)` 后缀）三项成功，且合并提交与 PR 头只差纯文档路径（`relevant_change.py` 判定）；无此 PR 运行时兜底为对该提交本身的 schedule 或 workflow_dispatch 全量 ci 运行；直接推到 main 的提交不放行 |
 | `scripts/release/deploy_gate.py` | 部署守护：阻塞条目、prod 的版本与前置条件 |
 | `scripts/release/statement.sh` | 发布声明：写出（版本、提交、发布包与 manifest / SHA256SUMS 的 SHA256、构建工作流与运行号）、签名（`ssh-keygen -Y sign`）、校验 |
 | `scripts/release/allowed_signers` | 发布签名公钥（`ssh-keygen` allowed_signers 格式）；空文件时部署一律失败 |
@@ -39,7 +39,8 @@
 2. `tools/` 的 `toolchain.sh build`：只在 GitHub 托管的 Linux 上运行，按版本与 SHA256 下载 Java（Temurin 25.0.4.1）、gh、Node 24；pnpm 由 corepack 按 `packageManager` 中的 `+sha512` 校验获取。
 3. **证明这个提交测过**（`tools/` 的 `ci_passed.py`）：
    - 提交必须在 `git rev-list --first-parent origin/main` 中——即 main 上的合并提交或直接提交；被合并分支中间的提交（祖先但不在 first-parent 链上）一律拒绝；
-   - 按工作流运行判定：`actions/runs?head_sha=<sha>&event=push&branch=main` 中 `path` 为 `.github/workflows/ci.yml` 的最新一次运行 `completed/success`，且其三项必需作业（backend verify、frontend verify、secret scan）都是 `success`；pull_request 事件的运行、其他分支或其他工作流的运行都不算。不重跑测试。作业名取自 `ci.yml`，改名而脚本未同步时直接失败。
+   - 按工作流运行判定：`actions/runs?head_sha=<sha>&event=push&branch=main` 中 `path` 为 `.github/workflows/ci.yml` 的最新一次运行 `completed/success`，且其三项必需作业（backend verify、frontend verify、secret scan）都是 `success`；其他分支或其他工作流的运行不算。不重跑测试。作业名取自 `ci.yml`，改名而脚本未同步时直接失败。
+   - **重步骤另证**（main 上 push 只跑轻量，重步骤只在 PR 带 `queued` 时跑，#406）：`commits/<sha>/pulls` 找到以该提交为合并提交的 PR，取其头提交 H；要求 `git diff --name-only H <sha>` 的路径经 `scripts/ci/relevant_change.py` 判定全是纯文档（树相同即无差异）；要求 H 上 `event=pull_request`、`path` 为 `ci.yml` 的某次运行 `completed/success`，且三项必需作业以完整名字（light 运行的名字带 ` (light)` 后缀，不算）都是 `success`；否则兜底看该提交本身的 `schedule` 或 `workflow_dispatch` 的 ci 运行（含同样的三项作业）。两者皆无则拒绝（含直接推到 main 的提交）。nightly（21:03 UTC）只作监测，不作逐提交的门。
 4. 同名 Release 不存在；同名标签若已存在必须指向该提交。
 5. 检出已证明的提交到 `source/`；**构建**（`tools/` 的 `build.sh --source source --commit <sha>`）：`source/` 必须干净且恰在该提交；全新的 `HOME`、Maven 仓库与 pnpm store（`--isolated-caches`）；`pnpm install --ignore-scripts`（依赖的安装脚本一律不跑，已验证构建不受影响）；Maven Wrapper 按 `distributionSha256Sum` 校验下载的 Maven；校验 Java 25、Node 24、锁定的 pnpm；
    - 后端：`./mvnw -B clean package -DskipTests -Drevision=<发布版本>`（POM 版本为 `${revision}`，默认 `0.0.1`）。POM 尚未声明 `spring-boot-maven-plugin` 时，脚本临时加 `repackage` 目标并指定启动类。`backend/target` 中匹配 `forcitis-one-[0-9]*.jar`（不含 `-sources`、`-javadoc`、`-tests`）的必须恰好一个、且名为 `forcitis-one-<发布版本>.jar`，多于一个或没有即失败（避免误选测试产物 `forcitis-one-arch-proof-*.jar`）。然后检查 jar 能被 `java -jar` 启动（Boot 可执行 jar、Start-Class 是 `OneApplication`、该类有 `main`），并断言 jar 内 `META-INF/build-info.properties` 的 `build.version` 与清单的 `Implementation-Version` 都等于发布版本，不满足即失败。
