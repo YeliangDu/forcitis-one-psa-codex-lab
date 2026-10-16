@@ -354,6 +354,12 @@ bcs:
   kind: bc
   business_owner: 用户兼任
   description: "检查计划、检查、检查表模板、外部检测；与交付执行、质量与认可并列，位于二者下游（D-3）"
+- id: delivery.closeout
+  zh: 项目结项
+  subdomain: delivery
+  kind: bc
+  business_owner: 用户兼任
+  description: "项目结项流程：收尾检查、结项、终止与取消（B-29）；不叫收尾，因为收尾已是阶段类型；用户 2026-10-16 在信息图确认页 F-5 选定 delivery.closeout（intent 2026-10-16-114200）"
 - id: organization.leave
   zh: 请假与加班
   subdomain: organization

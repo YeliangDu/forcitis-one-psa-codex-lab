@@ -1,0 +1,62 @@
+{
+ "FD2~FD2-01": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "filing",
+  "label": "工作日必须填；非工作日可以填但不强制",
+  "no": "FD2-01",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:41:42.448Z"
+ },
+ "FD2~FD2-02": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "filing",
+  "label": "应出勤时数 − 当日已批准请假时数",
+  "no": "FD2-02",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:41:42.448Z"
+ },
+ "FD2~FD2-03": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "filing",
+  "label": "不写进工时单：请假只在假勤里，只用来扣减应填时数",
+  "no": "FD2-03",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:41:42.448Z"
+ },
+ "FD2~FD2-04": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "filing",
+  "label": "整天请假的日子不能提交（与老系统一致）；请假被撤销后可补填",
+  "no": "FD2-04",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:41:42.448Z"
+ },
+ "FD2~FD2-05": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "filing",
+  "label": "不关联：非工作日工时只作为工时记录，加班审批与调休交假勤，之后再对接",
+  "no": "FD2-05",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:41:42.448Z"
+ },
+ "FD2~FD2-06": {
+  "choice": 0,
+  "defaulted": true,
+  "group": "filing",
+  "label": "两者都要：提交时按最低时数拦截；另外对应填而没有提交的日子事后提醒本人，再升级给直属上级",
+  "no": "FD2-06",
+  "note": "",
+  "recommended": true,
+  "submitted": "2026-10-16T03:41:42.448Z"
+ }
+}
