@@ -1657,3 +1657,13 @@ processes:
     human_orchestration: false
     bpmn: ~
     note: "S-42；两个入口：AGG-19「项目已开始执行」；同 BC「合同—项目关联已登记」后经 api 读关联项目状态（先立项后签约）；按协议幂等"
+  - id: PRC-180
+    name: "发布薪酬规则版本"
+    type: single_aggregate
+    stages: [VS-13.3]
+    owner_bc: "B-15"
+    group: people
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+    note: "S-43；AGG-119，INV-139 生效区间不重叠"

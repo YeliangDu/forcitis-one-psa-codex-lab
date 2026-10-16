@@ -3,7 +3,7 @@
 
 由 build_catalog.py 生成，不手改；来源 `process-catalog.yaml`。
 
-共 179 条，编号 PRC-01 至 PRC-179。
+共 180 条，编号 PRC-01 至 PRC-180。
 
 ### 按类型
 
@@ -11,10 +11,10 @@
 |---|---|
 | business | 103 |
 | event_policy | 33 |
-| single_aggregate | 28 |
+| single_aggregate | 29 |
 | read_model | 5 |
 | merged | 10 |
-| 合计 | 179 |
+| 合计 | 180 |
 
 ### 按组（全部类型）
 
@@ -22,8 +22,8 @@
 |---|---|
 | revenue | 78 |
 | finance | 54 |
-| people | 47 |
-| 合计 | 179 |
+| people | 48 |
+| 合计 | 180 |
 
 ### 按组（仅业务流程）
 
@@ -239,3 +239,4 @@
 | PRC-177 | 向差旅服务商同步员工与组织 | event_policy |  |  | B-13 | people | draft | 否 |  |
 | PRC-178 | 补休到期未休或离职时转计发加班工资 | event_policy |  | VS-13.3 | B-15 | people | draft | 否 |  |
 | PRC-179 | 项目开始执行后协议转入履行中 | event_policy |  | VS-04.1 | B-05 | revenue | draft | 否 |  |
+| PRC-180 | 发布薪酬规则版本 | single_aggregate |  | VS-13.3 | B-15 | people | draft | 否 |  |
