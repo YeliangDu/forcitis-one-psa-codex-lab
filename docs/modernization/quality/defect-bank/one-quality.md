@@ -97,69 +97,76 @@
 ### QUAL-010　测试用真实当前日期，真实日期越界后必现失败
 
 - **日期**：2026-10-16
+- **类别**：其他
 - **现象**：`ProcessArchiveJobIT.archivesThenDeletes` 在 main 与多个 PR 上失败 5 次（运行 38962295103、38932209131、38932094029、38930153579、38927052609）。报错特征：`Expecting empty but was: [["{"instanceId"` 加 `ProcessArchiveJobIT.archivesThenDeletes`（断言 `vault.batches` 为空）。
 - **根因**：测试用 `ZonedDateTime.now(Asia/Shanghai).plusYears(3).minusDays(2)` 算保留期窗口，而被测数据的结束时刻固定在注入时钟的 START（10-14）；真实日期过了某界，第一轮就把本该留下的探针归档。
 - **拦下于**：CI 才发现（c4cced3c / #413 改为按固定 START 计）；这 5 次都发生在 head 不含该修复的分支或 main 上。
 - **漏过于**：作者自审与独立评审（没查「断言依赖真实日期」）；没有机械检查，`TimeSourceGuardTest` 只管主代码。
-- **新增检查项**：集成测试反模式检查（固定时间等待、真实时钟调用，全仓测试里 57 处真实时钟调用待逐处判）；负责人 one-quality，先报告后定是否拦截。待补。
-- **状态**：待落实（修复已合入；机械检查待补）
+- **新增检查项**：集成测试反模式检查（固定时间等待、真实时钟调用，全仓测试里 57 处真实时钟调用待逐处判）；负责人 one-quality，先报告后定是否拦截。待补。修复提交：`c4cced3c`
+- **状态**：待落实（修复已合入；机械检查待补；负责：one-quality 2026-10-24）
 
 ### QUAL-011　异步审计让对共享协作者的 verify 次数偏发
 
 - **日期**：2026-10-16
+- **类别**：其他
 - **现象**：`OrgSnapshotSyncIntegrationTest` 失败 3 次。报错特征：`TooManyActualInvocations` 或 `Wanted ... but was` 指向对 `AuditLog` 一类共享协作者的 `verify(...)`。
 - **根因**：测试对被异步路径共用的协作者做不限定条目的 `verify(times(n))`，别的路径的调用混进计数（违反 CS-5.6：只断言本测试的动作、等待要确定）。
 - **拦下于**：CI 才发现（05a38acd 修）。
 - **漏过于**：作者自审、独立评审（评审清单没有「对共享协作者 verify 必须限定条目」一条）。
 - **新增检查项**：评审模板 `review-briefs/01-code-card.md` C6 补一句「对共享协作者的 verify 必须限定到本测试的条目」；集成测试反模式检查加「无参数匹配的 `verify(shared, times(n))`」一类；待补，负责人 one-quality。
-- **状态**：待落实
+- **状态**：待落实（负责：one-quality 2026-10-24）
 
 ### QUAL-012　测试用 PostgreSQL 容器连接被断，等满 120 秒或运行中断开
 
 - **日期**：2026-10-16
+- **类别**：其他
 - **现象**：3 次，2 次在 main：run 38938942883、38943494140（类加载时 `Container startup failed for image postgres:18`，恰好约 120 秒）；run 38925523855（`WorkCalendarIT` 全部用例 ERROR，`DROP DATABASE IF EXISTS template_migrated_testdata`）。报错特征：`Container startup failed for image postgres:18`、`PSQLException: An error occurred while setting up the SSL connection`、`PSQLException: The connection attempt failed` 加 `EOFException`。
 - **根因**：容器已启动，但 JVM 到容器的连接在 SSL 协商时被对端立刻断开，首个 JDBC 连接的等待（带 init-script 的类按 120 秒默认值重连）用尽；是 Docker 端口转发断开还是 VM 资源紧张，当时没有取证（Docker Desktop 日志每 10 分钟滚动，事故时刻已丢）。
 - **拦下于**：CI 才发现。
 - **漏过于**：无任何防线（基础设施偶发）。
 - **新增检查项**：#439：`TestPostgres.container()` 启动重试 3 次、首个 JDBC 连接等待 90 秒，耗尽时把原因、日志末尾与 Docker 摘要打进异常；ci.yml 失败时上传 docker 事件、容器日志与引擎摘要。
-- **状态**：待落实（#439 合入、观察一周后定）
+- **状态**：待落实（#439 合入、观察一周后定；负责：one-quality 2026-10-24）
 
 ### QUAL-013　runner 并发互扰：fork 的 JVM 崩溃、同毫秒失败
 
 - **日期**：2026-10-16
+- **类别**：其他
 - **现象**：fork VM 崩溃 2 次、同毫秒失败 2 次（调度归类，疑似同机进程清理互杀，未证实）。报错特征：`The forked VM terminated without properly saying goodbye`、`ExecutionException The forked VM terminated`，或多个测试类在同一毫秒报同一错。
 - **根因**：未查明。四台 runner 共用一个 Docker Desktop 与同一台机器；不排除一个作业的清理步骤杀了别的作业的进程。
 - **拦下于**：CI 才发现。
 - **漏过于**：无任何防线。
 - **新增检查项**：保留失败作业的 `*.dump` 文件（surefire 的 fork 崩溃转储）与失败步骤末 50 行，下次有证据再判；待补，并进 #439 的取证，负责人 one-quality。
-- **状态**：待落实
+- **状态**：待落实（负责：one-quality 2026-10-24）
 
 ### QUAL-014　单元全绿但步骤失败、日志里没有失败行
 
 - **日期**：2026-10-16
+- **类别**：其他
 - **现象**：4 次（含 main 的 38926958691）：`surefire and failsafe, side by side` 步骤失败，日志里找不到 `<<< FAILURE`/`<<< ERROR` 行。报错特征：步骤结论 failure 且 `Tests run:` 汇总全为 0 失败。
 - **根因**：失败来自步骤本身（看门狗超时、fork 超时、failsafe 汇总、报告缺失等），`backend_verify.sh` 失败时不打印失败摘要，调查要翻整份日志。
 - **拦下于**：CI 才发现。
 - **漏过于**：无。
 - **新增检查项**：`scripts/ci/backend_verify.sh` 失败时打印失败摘要（哪个阶段、哪个退出码、末 50 行）；待补，并进 #439，负责人 one-quality。
-- **状态**：待落实
+- **状态**：待落实（负责：one-quality 2026-10-24）
 
 ### QUAL-015　两个 PR 各自绿，合并后主线验收失效
 
 - **日期**：2026-10-16
+- **类别**：其他
 - **现象**：4 次：合并后旧验收测试或「已知故障清单」过期，主线变红（调度归类）。报错特征：主线 push 或夜间运行红，而两个相关 PR 的运行都绿。
 - **根因**：strict 模式下合并的树是带标签的 PR 刚测过的树，所以不该出；出现在合集合并与后改基线之间；关 strict 后更会发生：测试的是 PR 头，不是合并结果。
 - **拦下于**：CI 才发现（合并后）。
 - **漏过于**：队列（原来只在 PR 上跑，不在合并结果上跑）。
 - **新增检查项**：队列代码道合入前必须基于最新 main 跑完整 CI（`scripts/merge/mq.py` 的 BEHIND-AT-MERGE 与合并锁）；main push 报警（ci.yml 的免容器单测步骤）与夜间全量变红即暂停两道；待落实，负责人 one-quality（队列 PR）。
-- **状态**：待落实
+- **状态**：待落实（负责：one-quality 2026-10-24）
 
 ### QUAL-016　守护测试违反，作者没在本地跑
 
 - **日期**：2026-10-16
+- **类别**：局部测试
 - **现象**：约 4 次文档守护失败，另有 `TestContainerGuardTest`、`SingleOperatorModeListenerTest`（无报告）、`PrimaryKeyTypeGuardTest` 的违反在 CI 才发现。报错特征：`TestContainerGuardTest`、`PrimaryKeyTypeGuardTest` 等 *Guard*Test 红，或「produced no report: it did not run」。
 - **根因**：改动触到守护读取的输入（`backend/architecture/` 清单、测试类、文档）时，precheck 没跑读它们的守护；新守护类没被登记进 precheck 的类列表。
 - **拦下于**：CI 才发现。
 - **漏过于**：机械检查（precheck 覆盖不全）；作者自审。
 - **新增检查项**：#342（改 `backend/architecture` 时跑全部读它的免容器守护类）；`scripts/ci/light_unit_classes.py` 自动列出免容器单测（含新增守护）；CI 三档里 guarded 档按读取关系触发（`relevant_change.py`）；待补：precheck 对新增或改动的 `*Test` 类自身必跑，负责人 one-quality。
-- **状态**：待落实（#342 合入后改为已落实）
+- **状态**：待落实（#342 合入后改为已落实；负责：one-quality 2026-10-24）
