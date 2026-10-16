@@ -1345,3 +1345,12 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
+  - id: PRC-148
+    name: "收入确认审批通过后占用转实并提交过账"
+    type: event_policy
+    stages: [VS-04.2]
+    owner_bc: "B-08"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~

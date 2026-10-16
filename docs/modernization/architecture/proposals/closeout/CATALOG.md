@@ -3,27 +3,27 @@
 
 由 build_catalog.py 生成，不手改；来源 `process-catalog.yaml`。
 
-共 147 条，编号 PRC-01 至 PRC-147。
+共 148 条，编号 PRC-01 至 PRC-148。
 
 ### 按类型
 
 | 类型 | 数量 |
 |---|---|
 | business | 91 |
-| event_policy | 23 |
+| event_policy | 24 |
 | single_aggregate | 19 |
 | read_model | 4 |
 | merged | 10 |
-| 合计 | 147 |
+| 合计 | 148 |
 
 ### 按组（全部类型）
 
 | 组 | 数量 |
 |---|---|
-| revenue | 70 |
+| revenue | 71 |
 | finance | 38 |
 | people | 39 |
-| 合计 | 147 |
+| 合计 | 148 |
 
 ### 按组（仅业务流程）
 
@@ -206,3 +206,4 @@
 | PRC-145 | 员工法人三口径不一致预警 | event_policy |  | VS-07.3 | B-15 | people | draft | 否 |  |
 | PRC-146 | 协议借阅逾期催还 | event_policy |  |  | B-05 | revenue | draft | 否 |  |
 | PRC-147 | 费用报销核定后冲抵员工借款并确认应付 | event_policy |  | VS-08.2 | B-09 | revenue | draft | 否 |  |
+| PRC-148 | 收入确认审批通过后占用转实并提交过账 | event_policy |  | VS-04.2 | B-08 | revenue | draft | 否 |  |
