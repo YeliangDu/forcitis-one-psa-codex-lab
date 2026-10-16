@@ -31,7 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
  * The submitter and the legal entity come from the session, never from the request. Submitting changes this timesheet only; the
  * approval starts when the event it publishes is handled.
  * A timesheet already in approval is answered as it is; one whose round has ended but whose result is not applied yet cannot be
- * submitted again; one that was approved or refused cannot be submitted at all.
+ * submitted again; one that was approved cannot be submitted at all, and one that was refused is changed and submitted again like a returned one.
+ * Each employee has one timesheet per work date, whatever its status.
  */
 @Service
 public class SubmitTimesheet {
@@ -81,9 +82,12 @@ public class SubmitTimesheet {
             OrgUnitId orgUnit = org.findEmployee(employee).map(profile -> profile.orgUnitId()).orElseThrow(
                     () -> TimesheetError.COST_TIMESHEET_EMPLOYEE_UNKNOWN.refusal("User " + employee.value() + " is not in the organisation"));
             LegalEntityId legalEntity = legalEntities.on(employee, command.workDate());
+            if (repository.existsFor(employee, command.workDate())) {
+                throw TimesheetError.COST_TIMESHEET_WORK_DATE_DUPLICATE.refusal("The employee already has a timesheet for " + command.workDate());
+            }
             IssuedNumber issued = numbers.next(DocumentType.TIMESHEET, legalEntity, today);
             timesheet = Timesheet.draft(command.timesheetId(), issued.number(), new AggregateReference("NumberingCounter", issued.counterId().value()),
-                    employee, legalEntity, orgUnit, command.workDate(), command.hours(),
+                    issued.ruleVersionId(), employee, legalEntity, orgUnit, command.workDate(), command.hours(),
                     command.projectManager(), today);
         }
         timesheet.submit(employee, today);

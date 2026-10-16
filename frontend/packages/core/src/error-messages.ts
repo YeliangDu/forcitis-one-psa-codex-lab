@@ -15,6 +15,7 @@ export const ERROR_MESSAGES: Readonly<Record<ErrorCode, string | null>> = {
   COST_TIMESHEET_REASON_REQUIRED: '请填写理由',
   COST_TIMESHEET_RESULT_PENDING: '审批结果正在处理，请稍后刷新',
   COST_TIMESHEET_TRANSITION_ILLEGAL: '工时单当前状态不允许这个操作，请刷新后重试',
+  COST_TIMESHEET_WORK_DATE_DUPLICATE: '这个工作日期已有工时单，不能重复创建',
   COST_TIMESHEET_WORK_DATE_FIXED: '工作日期已经确定，不能修改',
   COST_TIMESHEET_WORK_DATE_IN_FUTURE: '工作日期不能晚于今天',
   COST_TIMESHEET_WORK_DATE_REQUIRED: '请填写工作日期',

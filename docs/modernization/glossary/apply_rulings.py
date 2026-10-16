@@ -104,6 +104,8 @@ def apply(terms):
             if r.get("kind"):
                 t["kind"] = r["kind"]
             t["definition"] = r["definition"]
+            for a in r.get("add_aliases") or []:
+                add_alias(t, a["name"], a["type"], r["source"])
             confirm(t, confirmed)
         elif op == "rename":
             old_zh, old_en = t["zh"], t["en"]

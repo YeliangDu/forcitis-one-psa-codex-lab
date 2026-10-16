@@ -54,10 +54,11 @@ def table_cell(text, where):
 def build_intent():
     rows = []
     for p in dated_fragments("intent"):
-        m = re.fullmatch(r"## 原话\n\n(.*)\n\n## 落点\n\n(.*)\n", read(p), re.S)
+        m = re.fullmatch(r"## 原话\n\n(.*?)\n\n## 落点\n\n(.*?)(?:\n\n## 取代\n\n(.*?))?\n", read(p), re.S)
         if not m:
-            raise ValueError(f"{p}：格式须为「## 原话」空行 原话 空行「## 落点」空行 落点")
-        rows.append(f"| {table_cell(m.group(1), p)} | {table_cell(m.group(2), p)} |\n")
+            raise ValueError(f"{p}：格式须为「## 原话」空行 原话 空行「## 落点」空行 落点，可再加「## 取代」段（被取代的 intent 文件名，一行一个）")
+        landing = m.group(2) + (f"（取代：{'、'.join(x.strip('- `') for x in m.group(3).splitlines() if x.strip())}）" if m.group(3) else "")
+        rows.append(f"| {table_cell(m.group(1), p)} | {table_cell(landing, p)} |\n")
     return read(os.path.join(BASE, "intent/_header.md")) + "".join(rows)
 
 
