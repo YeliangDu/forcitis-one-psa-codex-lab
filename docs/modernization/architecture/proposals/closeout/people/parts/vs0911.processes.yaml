@@ -13,6 +13,7 @@ processes:
       desc: 经营计划周期开始
     stages: [VS-09.1, VS-09.3]
     stages_note: "跳过 VS-09.2 有意：VS-09.3 退出条件「经营计划新版本」由本流程第二个触发（复盘后调整计划）产生，该路径不经滚动预测；VS-09.2 的新版本由 PRC-89 产生"
+    primary_object: OBJ-100
     owner_bc: B-18
     human_orchestration: true
     human_note: 计划审批、调整产生新版本
@@ -163,6 +164,7 @@ processes:
       type: time
       desc: 每周销售预测承诺；按期现金流预测
     stages: [VS-09.2]
+    primary_object: OBJ-100
     owner_bc: B-18
     human_orchestration: false
     migration: "全部历史迁入（U-1–U-4）：已闭环的预测版本迁为历史版本；在途 1,212 单（信息图 M-8）提示流程未闭环，迁入后只读归档，不重开。来源待取证"
@@ -210,6 +212,7 @@ processes:
       type: human
       desc: 技术专家主动起草；或项目复盘发布后由复盘编制人决定提炼
     stages: [VS-11.1, VS-11.2, VS-11.3]
+    primary_object: OBJ-110
     owner_bc: B-30
     human_orchestration: true
     human_note: 有效期届满的修订或废止（定时）；评审意见可退回起草
@@ -350,6 +353,7 @@ processes:
       desc: 会计期间已关账（经营月报据此出具）；或季度、年度综合复盘到期
     stages: [VS-09.3]
     stages_note: "留 VS-09.3：复盘是本段的核心工作，但本段退出条件只写「经营计划新版本」（由 PRC-88 第二个触发产生），本流程结局「经营复盘已闭环 / 已转调整计划」不是该状态，按归段判据第 6 项字面不支持；已列 STAGE_ALIGN.md 请 one-architecture 看 VS-09.3 退出条件是否补「经营复盘已闭环」"
+    primary_object: OBJ-100
     owner_bc: B-18
     human_orchestration: true
     human_note: 偏差解释、经营动作的确定与完成登记由人判断；全过程不设审批，靠规则守卫与逾期提醒

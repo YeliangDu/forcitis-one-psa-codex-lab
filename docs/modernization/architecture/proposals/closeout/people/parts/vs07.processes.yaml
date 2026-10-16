@@ -204,6 +204,7 @@ processes:
     triggers:
       - {type: human, name: "用人经理提出招聘需求"}
     stages: [VS-07.1]
+    primary_object: OBJ-60
     owner_bc: B-13
     human_orchestration: true
     human_note: 提交、批准或驳回，批准为本聚合命令
@@ -281,6 +282,7 @@ processes:
     triggers:
       - {type: human, name: "求职者应聘或用人经理推荐，人力登记候选人"}
     stages: [VS-07.2]
+    primary_object: OBJ-56
     owner_bc: B-13
     human_orchestration: false
     type: business
@@ -358,6 +360,7 @@ processes:
     triggers:
       - {type: time, name: "试用期届满前 N 日生成评估待办（N 待用户定）"}
     stages: [VS-07.3, VS-13.2]
+    primary_object: OBJ-56
     owner_bc: B-13
     human_orchestration: false
     type: business
@@ -410,7 +413,7 @@ processes:
           - {when: otherwise, goto: end}
         cross_bc:
           - {mode: event, direction: out, bc: B-15, name: 〔缺〕转正已办理}   # B-15 订阅后在 PRC-123 生成待办复核转正后薪酬（S-42，PG-10）；聚合稿现只发内部事件
-    notes: "转正后薪酬是否调整由 B-15 自己的调薪流程处理，本流程只发事件（PG-10）。无人工审批：转正是评估确认后的登记，不予转正转入 PRC-128（保留审批）。"
+    notes: "转正后薪酬是否调整由 B-15 自己的调薪流程处理，本流程只发事件（PG-10）。无人工审批：转正是评估确认后的登记，不予转正转入 PRC-128（保留审批）。次要对象：OBJ-109 绩效评估（试用期类型，已确认后才转正）。"
 
   - id: PRC-83
     name: 办理入职与任职
@@ -421,6 +424,8 @@ processes:
     triggers:
       - {type: event, name: "录用决定已作出", event: 录用决定已作出, bc: B-13}
     stages: [VS-07.3]
+    primary_object: OBJ-56
+    notes: "次要对象：OBJ-05 协议（劳动合同类型，签订后生效）、OBJ-57 任职（版本化、无状态机，不作退出条件）。"
     owner_bc: B-13
     human_orchestration: false
     migration: "已在职员工的人员、任职版本、劳动合同全量迁入（U-3、U-4，S17）；在途（待入职）按当前状态迁入，已登记未到入职日的须重新排定「入职生效」定时；迁入不发入职已登记与 Employed，不触发 PRC-84、PRC-137（ADR-0036 M7）；A8 员工入职模板（OA_PROCESS_INVENTORY 第 56 行，在途 1）随迁入对账"
@@ -532,6 +537,7 @@ processes:
       - {type: event, name: "入职生效", event: Employed, bc: B-13}
     stages: [VS-07.3]
     stages_note: "VS-07.3：触发状态 Employed（试用期 / 正式）是 VS-07.3 的退出条件，参保增员与建薪酬档案是入职任职的收尾；不归 VS-13.1——VS-13.1 进入条件同一状态只是字面重合，本流程不产生考勤确认的任何进出事实（#421 第 6a 项）"
+    primary_object: OBJ-62
     owner_bc: B-15
     human_orchestration: false
     migration: "历史参保增员记录与薪酬档案随 AGG-74、AGG-93 全量迁入（U-3、U-4），薪酬档案按生效日版本回放；迁入不发事件，不触发本流程（ADR-0036 M7）"
@@ -581,6 +587,8 @@ processes:
       - {type: event, name: "入职已登记", event: 〔缺〕入职已登记, bc: B-13}
     stages: [VS-07.3]
     stages_note: "留 VS-07.3：纯事件触发（入职已登记 = Employed，即 VS-07.3 退出条件「人员试用期 / 正式」的产生事件）的多步反应，行为等同事件策略；因 type 为 business，脚本按结局归段而判不支持，已列 STAGE_ALIGN.md 请 one-architecture 裁定"
+    primary_object: none
+    notes: "无业务对象，primary_object: none。理由：企业微信账号是平台身份事项，不是业务对象状态（VS-13.6 notes）。"
     owner_bc: platform.identity   # J-1 / S-14 one-architecture 同意
     human_orchestration: false
     migration: "不适用（迁入不发事件）；已在职员工的企业微信身份按迁入对账绑定（C-7）"
@@ -652,6 +660,7 @@ processes:
       - {type: human, name: "员工提出离职"}
       - {type: human, name: "公司决定终止"}
     stages: [VS-13.6]
+    primary_object: OBJ-56
     owner_bc: B-13
     human_orchestration: false
     type: business
@@ -807,12 +816,14 @@ processes:
       离职当月考勤确认由谁代确认见 notes 待用户定。员工提出的离职不再设批准（V-20）；公司单方终止保留一级批准。
       「发起公司终止」不再是独立命令，并入「申请离职」的来源取值，以便两个入口汇合在同一首步。
 
+      次要对象：OBJ-05 协议（劳动合同类型，终止是后续步骤，失败不回滚已离职）、OBJ-57 任职（任职区间止于离职日）。
   - id: PRC-136
     name: 调岗（任职变更，按人事业务生效日，触发数据范围复核）
     trigger: {type: human, desc: 人力按人事业务生效日登记调岗、职级调整或汇报线变更}
     triggers:
       - {type: human, name: "人力登记调岗、职级调整或汇报线变更"}
     stages: [VS-07.3]
+    primary_object: OBJ-57
     owner_bc: B-13
     human_orchestration: true
     human_note: 调岗申请需批准（推荐，待用户定），批准为本聚合命令（F-3）
@@ -1003,6 +1014,7 @@ processes:
       步 9–12 是对「任职已变更」的事件反应，与后续步骤并行，此处按顺序列出。
       原「批准劳动合同」一级审批取消，改由规则 R-04 拒绝（合同要素与已批准调岗不一致）与 INV-14；调岗批准一次即够。
 
+      次要对象：OBJ-05 协议（跨法人另订并终止原劳动合同）、OBJ-62 社保与公积金参保（跨法人变更缴纳主体）。
   - id: PRC-138
     name: 离职停用企业微信账号并解绑
     type: business
@@ -1015,6 +1027,7 @@ processes:
       - {type: event, name: "离职已生效", event: Separated, bc: B-13}
     stages: [VS-13.6]
     stages_note: "留 VS-13.6：纯事件触发（离职已生效 = Separated，即 VS-13.6 退出条件「人员已离职」的产生事件）的多步反应，行为等同事件策略；因 type 为 business，脚本按结局归段而判不支持，已列 STAGE_ALIGN.md 请 one-architecture 裁定"
+    primary_object: none
     owner_bc: platform.identity   # S-14（one-architecture 同意 J-1）
     human_orchestration: false
     basis: intent 2026-10-16-134134 Q-03；规则卡 RULE-363；ADR-0027 第 1 项第 6 点、第 7 点；IDENTITY_LIFECYCLE.md 对 C1 设计的含义第 3 条（在职判断以人事离职为准，不以企业微信账号是否存在为准）；S-14
@@ -1117,7 +1130,7 @@ processes:
         decision:
           - {when: 已处理并重试, goto: 6}
           - {when: otherwise, goto: end}
-    notes: 参保减员由 PRC-130 另行处理；PRC-137 / 138 成对，开通与停用均由 platform.identity 编排。本流程无业务审批；步 4 是安全联锁，见 V-17。
+    notes: "参保减员由 PRC-130 另行处理；PRC-137 / 138 成对，开通与停用均由 platform.identity 编排。本流程无业务审批；步 4 是安全联锁，见 V-17。无业务对象，primary_object: none。理由：企业微信账号是平台身份事项，不是业务对象状态（VS-13.6 notes）。"
 
 event_policies:
 
@@ -1130,6 +1143,7 @@ event_policies:
     triggers:
       - {type: event, name: "离职已生效", event: Separated, bc: B-13}
     stages: [VS-13.6]
+    primary_object: none
     owner_bc: platform.identity
     migration: "不适用（迁入不发事件，ADR-0036 M7；历史离职人员的会话与授予按迁入对账）"
     outcomes: [会话已吊销]
@@ -1148,7 +1162,7 @@ event_policies:
       outcome: 会话已吊销
       cross_bc:
         - {mode: event, direction: in, bc: B-13, name: Separated}
-    notes: 平台已建模块，不是企业聚合；与 PRC-138 配合。无人工审批：吊销是强制反应。
+    notes: "平台已建模块，不是企业聚合；与 PRC-138 配合。无人工审批：吊销是强制反应。无业务对象，primary_object: none。理由：会话吊销是平台身份事项，不是业务对象状态（VS-13.6 notes）。"
 
   - id: PRC-130
     name: 离职后参保减员
@@ -1160,6 +1174,7 @@ event_policies:
     triggers:
       - {type: event, name: "离职已生效", event: Separated, bc: B-13}
     stages: [VS-13.6]
+    primary_object: OBJ-62
     owner_bc: B-15
     migration: "不适用（迁入不发事件；历史参保减员记录随 AGG-74 全量迁入）"
     outcomes: [社保与公积金参保已减员, 无需减员]
@@ -1246,6 +1261,7 @@ single_aggregate:
     aggregate: AGG-66
     owner_bc: B-13
     stages: [VS-06.2]
+    primary_object: OBJ-64
     desc: 注册期内累计学时与到期临近（定时）
     migration: "注册执业证书与继续教育学时全量迁入（来源待取证，A8 模板清单无对应模板，若老系统亦无记录则为空集）；迁入不发「执业证书已到期」"
     scope: "注册执业人员看本人；人力看全部；INV-47 在交付物处只读证书有效性"
