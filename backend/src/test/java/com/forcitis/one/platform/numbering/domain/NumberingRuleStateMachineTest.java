@@ -119,6 +119,21 @@ class NumberingRuleStateMachineTest {
     }
 
     @Test
+    @DisplayName("NUM-VERSION-ID the waiting version carries the ID given to propose, and keeps it when confirmed")
+    void theProposedIdSurvivesConfirmation() {
+        NumberingRule rule = rule(DocumentType.QUOTE, confirmed(1));
+        NumberingRuleVersionId given = new NumberingRuleVersionId(TestIds.uuid(71));
+
+        rule.propose(given, OTHER, 7, DAY, AUTHOR, AT);
+
+        assertThat(rule.pending()).hasValueSatisfying(v -> assertThat(v.id()).isEqualTo(given));
+
+        rule.confirm(CONFIRMER, AT, DAY, new RuleVersion(2));
+
+        assertThat(rule.inForce()).hasValueSatisfying(v -> assertThat(v.id()).isEqualTo(given));
+    }
+
+    @Test
     @DisplayName("ADR-0027 2.4 a second change before confirmation replaces the waiting version, which is never confirmed")
     void aSecondChangeSupersedesTheWaitingVersion() {
         NumberingRule rule = rule(DocumentType.QUOTE, pending(1, AUTHOR));
