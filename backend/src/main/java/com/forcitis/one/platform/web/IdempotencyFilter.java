@@ -3,6 +3,7 @@ package com.forcitis.one.platform.web;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.IdempotentResponses;
 import com.forcitis.one.kernel.UserId;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ReadListener;
 import jakarta.servlet.ServletException;
@@ -25,7 +26,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,8 +36,8 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -133,7 +133,7 @@ class IdempotencyFilter extends OncePerRequestFilter {
                 if (text.length() > IdempotentResponses.MAX_RESPONSE_LENGTH) {
                     LOG.error("ALERT platform.idempotency response of {} exceeds {} characters: not stored", request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE),
                             IdempotentResponses.MAX_RESPONSE_LENGTH);
-                    meters.counter("forcitis.platform.web.idempotency.response.limit").increment();
+                    meters.counter("forcitis.platform.web.idempotency.response.oversize").increment();
                     responses.holdUntilExpiry(userId, key);
                 } else {
                     responses.finish(userId, key, wrapper.getStatus(), wrapper.getContentType(), text, replayedHeaders(wrapper));

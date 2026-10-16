@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.IdempotentResponses;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
@@ -31,7 +32,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -43,6 +43,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -316,7 +317,7 @@ class IdempotencyIT {
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TB-02: an answer over the limit is not stored, the caller still gets it, the key stays in progress (409 on retry, no second run) and the count rises")
     void oversizeAnswerIsNotStoredAndTheKeyStaysHeld() throws Exception {
-        double before = meters.counter("forcitis.platform.web.idempotency.response.limit").count();
+        double before = meters.counter("forcitis.platform.web.idempotency.response.oversize").count();
 
         MvcResult first = mvc.perform(sized("k-big", IdempotentResponses.MAX_RESPONSE_LENGTH + 1)).andReturn();
         MvcResult retry = mvc.perform(sized("k-big", IdempotentResponses.MAX_RESPONSE_LENGTH + 1)).andReturn();
@@ -327,23 +328,33 @@ class IdempotencyIT {
         assertThat(problemCode(retry)).isEqualTo("PLATFORM_WEB_IDEMPOTENCY_IN_PROGRESS");
         assertThat(probe.runs.get()).as("the write is not done twice").isEqualTo(1);
         assertThat(jdbc.sql("select count(*) from platform_idempotency.idempotent_responses where response_text is not null").query(Long.class).single()).isZero();
-        assertThat(meters.counter("forcitis.platform.web.idempotency.response.limit").count()).isEqualTo(before + 1);
+        assertThat(meters.counter("forcitis.platform.web.idempotency.response.oversize").count()).isEqualTo(before + 1);
     }
 
     @Test
-    @DisplayName("DATA-REPAIR-timesheet-audit TB-02: the held key is not taken over after the in-progress timeout, only when the key expires")
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-02: the held key is not taken over after the in-progress timeout (a plain in-progress row is), only once the key expires")
     void heldKeyOutlivesTheInProgressTimeout() throws Exception {
+        UserId user = TestAccounts.account(1);
+        Duration reclaimAfter = Duration.ofMinutes(2);
+        Instant now = Instant.now();
         mvc.perform(sized("k-held", IdempotentResponses.MAX_RESPONSE_LENGTH + 1)).andReturn();
-        jdbc.sql("update platform_idempotency.idempotent_responses set created_at = :old").param("old", Timestamp.from(Instant.now().minus(Duration.ofMinutes(10)))).update();
+        assertThat(jdbc.sql("select updated_at = expires_at from platform_idempotency.idempotent_responses where idempotency_key = 'k-held'").query(Boolean.class).single())
+                .as("the hold pushes updated_at to expires_at").isTrue();
+        String hash = jdbc.sql("select request_hash from platform_idempotency.idempotent_responses where idempotency_key = 'k-held'").query(String.class).single();
+        Instant expiresAt = jdbc.sql("select expires_at from platform_idempotency.idempotent_responses where idempotency_key = 'k-held'").query(Timestamp.class).single().toInstant();
 
-        MvcResult later = mvc.perform(sized("k-held", IdempotentResponses.MAX_RESPONSE_LENGTH + 1)).andReturn();
-        assertThat(later.getResponse().getStatus()).isEqualTo(409);
+        assertThat(responses.claim(user, "k-plain", hash, now, now.plus(Duration.ofHours(24)), reclaimAfter)).isTrue();
+        assertThat(responses.claim(user, "k-plain", hash, now.plus(Duration.ofMinutes(10)), now.plus(Duration.ofHours(24)), reclaimAfter))
+                .as("control: an in-progress row without the hold is taken over after the timeout").isTrue();
+
+        assertThat(responses.claim(user, "k-held", hash, now.plus(Duration.ofMinutes(10)), expiresAt, reclaimAfter))
+                .as("the held row is not taken over 10 minutes later").isFalse();
+        assertThat(responses.claim(user, "k-held", hash, expiresAt.minusSeconds(1), expiresAt.plus(Duration.ofHours(24)), reclaimAfter))
+                .as("nor just before it expires").isFalse();
         assertThat(probe.runs.get()).isEqualTo(1);
 
-        jdbc.sql("update platform_idempotency.idempotent_responses set expires_at = :past").param("past", Timestamp.from(Instant.now().minusSeconds(60))).update();
-        MvcResult afterExpiry = mvc.perform(sized("k-held", IdempotentResponses.MAX_RESPONSE_LENGTH + 1)).andReturn();
-        assertThat(afterExpiry.getResponse().getStatus()).isEqualTo(200);
-        assertThat(probe.runs.get()).isEqualTo(2);
+        assertThat(responses.claim(user, "k-held", hash, expiresAt.plusSeconds(1), expiresAt.plus(Duration.ofHours(24)), reclaimAfter))
+                .as("after expires_at the key can be claimed again").isTrue();
     }
 
     @Test
