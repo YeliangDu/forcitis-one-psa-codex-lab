@@ -7,7 +7,7 @@
 判定（每个库）：第 1 轮不是「名字 1、SID 1」→ 基线不干净（先前已有残留或查询失败），无法判定；
 第 2 轮建登录被拒或查询出错 → 记错误号，视为残留的证据；名字 1 而 SID 0 → 残留（孤儿未清理）；
 SID 1 且 principal_id、创建时刻与第 1 轮相同 → RDS 重新映射了旧用户（也算残留）；SID 1 且二者有变 → 已清理。
-第 2 轮若结果为残留，最多在 msdb、rdscore 各留一个同名孤儿用户，须用户在控制台处理。
+第 2 轮只等 60 秒，RDS 若按作业周期异步清理，可能把「还没清理」判成残留，判残留时隔几分钟复测。第 2 轮若结果为残留，最多在 msdb、rdscore 各留一个同名孤儿用户，须用户在控制台处理。
 退出码：0 两轮都量到；1 中途停止；2 收尾不干净；3 开工前拒绝（什么都没改）。
 用法：c14_orphan_test.py <新结果文件> <app.jar 的 SHA-256>
 """
@@ -40,7 +40,7 @@ def own_user(label, database):
     errors = [int(n) for n in re.findall(r'^SQLERROR (\d+)', out, re.M)]
     value = rows[-1] if codes and codes[-1] == '0' and rows and len(rows[-1]) == 4 else None
     record(step=label, invoke=invoke, database=database, by_name_by_sid_principal_id_created_seconds=value, sql_errors=errors)
-    return value, errors
+    return value, errors, 'query'
 
 
 def cycle(number, jar_sha256):
@@ -53,7 +53,7 @@ def cycle(number, jar_sha256):
     cipher = re.findall(rf'{LOGIN} \| ENC:([A-Za-z0-9+/=]+)', out)
     if rc != 0 or len(cipher) != 1:
         record(step=f'cycle {number} prepare refused', sql_errors=errors)
-        return {'msdb': (None, errors), 'rdscore': (None, errors)}
+        return {'msdb': (None, errors, 'prepare'), 'rdscore': (None, errors, 'prepare')}
     rc, _, _ = legacy_sql(f'cycle {number} prepare user', DB, f'CREATE USER {P} FOR LOGIN {P};')
     if rc != 0:
         raise Stop(f'cycle {number}: creating the database user failed')
@@ -64,14 +64,18 @@ def cycle(number, jar_sha256):
 def verdict(first, second):
     result = {}
     for database in ('msdb', 'rdscore'):
-        one, _ = first[database]
-        two, errors = second[database]
+        one, _, _ = first[database]
+        two, errors, source = second[database]
         if one is None or one[:2] != (1, 1):
             result[database] = 'baseline not clean or unreadable: cannot decide'
+        elif two is None and errors and (source == 'prepare' or 916 in errors):
+            result[database] = f'RESIDUE (inferred): the new login was refused or has no access (errors {errors})'
         elif two is None:
-            result[database] = f'second round refused or unreadable (errors {errors}): treat as residue'
+            result[database] = f'cannot decide: no SQL error to explain the missing reading (errors {errors})'
         elif two[1] == 0 and two[0] >= 1:
             result[database] = 'RESIDUE: a user with the probe\'s name exists with another SID'
+        elif two[:2] == (0, 0):
+            result[database] = 'RESIDUE (inferred): no user was made for the new login, most likely blocked by the old one (the old one is invisible to it)'
         elif two[:2] == (1, 1) and two[2:] == one[2:]:
             result[database] = 'RESIDUE: the old user was re-mapped to the new login'
         elif two[:2] == (1, 1):
@@ -116,9 +120,13 @@ def main(target, jar_sha256):
             resume_signals()
             if not clean:
                 break
+            if number == 1 and any(v[0] is None or v[0][:2] != (1, 1) for v in results[0].values()):
+                record(stop='cycle 1 baseline not clean: no second round')
+                break
         if len(results) == 2:
-            record(verdict=verdict(*results))
-            measured = results[0]['msdb'][0] is not None
+            outcome = verdict(*results)
+            record(verdict=outcome)
+            measured = all(not text.startswith(('cannot decide', 'baseline not clean')) for text in outcome.values())
     except BaseException as failure:  # noqa: BLE001 whatever went wrong, the probe objects are removed
         record(stop=f'{type(failure).__name__}: {failure}' if isinstance(failure, Stop) else f'unexpected {type(failure).__name__}')
         clean = c14_run.cleanup() and clean
