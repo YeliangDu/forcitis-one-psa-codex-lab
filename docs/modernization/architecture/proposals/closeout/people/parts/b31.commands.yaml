@@ -13,16 +13,17 @@ commands:
   entity: seal_applications
   kind: human
   source: 聚合稿 AGG 命令列
-  params: [印章类别, 用印法人, 用印事由, 用印文件（名称、份数、引用）, 申请份数, 来源业务单据（类型、ID，可空，不校验）]
+  params: [印章类别（公章 / 合同专用章 / 法定代表人名章 / 财务章等）, 用印法人, 用印事由, 用印文件（名称、份数、引用）, 申请份数, 来源单据（类型、审批实例ID，可空；无来源单据的申请为空）]
   preconditions:
   - {ref: R-B31-1, text: 用印法人须为申请日有效法人主体，否则拒绝并留在草稿}
+  - {ref: R-B31-12, text: 填了来源审批实例ID的，经 platform.approval 校验实例已通过，且申请份数（加上该实例已被其他有效用印申请占用的份数〔推〕）不超审批载荷份数；校验不过则拒绝并告诉申请人原因，留在草稿，不静默}
   - {ref: 状态, text: 申请为草稿}
   authority:
     ref: raci:AGG-113/提交用印申请
     A: {resolve: instance, field: 申请人}
     R: [SH-E3]
   idempotency_key: 申请ID（客户端预生成 UUIDv7；同一 ID 重复提交返回已有结果）
-  emits: （内部）
+  emits: 用印申请已批准（仅来源审批校验通过时直接置已批准；其余情形为内部）
   used_by: [PRC-139 第 1 步]
   orphan: false
 - name: 批准用印申请
@@ -32,8 +33,9 @@ commands:
   source: 聚合稿 AGG 命令列
   params: [审批实例ID, 审批结果（通过）]
   preconditions:
-  - {ref: 状态, text: 申请为审批中且审批实例ID一致}
+  - {ref: 状态, text: 申请为审批中且审批实例ID一致；仅无来源单据的申请有此审批}
   - {ref: AR-11/AR-12, text: 审批人就是申请人上交其上级；负责人缺位上交上级组织负责人（APPROVAL_RULES，已有）}
+  - {ref: pending B31-1, text: 授权委托书，以及公章、法定代表人名章用于无来源单据的，加一级由总经理批；规则号待 one-architecture 给（notes 结构问题 8）}
   authority:
     ref: raci:AGG-113/批准用印申请
     A: {resolve: instance, field: 申请人所在组织单元.负责人, alias: cost_object_owner}
@@ -84,7 +86,7 @@ commands:
   source: 聚合稿 AGG 命令列
   params: [申请ID, 登记请求ID, 实际用印时间, 本次用印份数, 经办人, 盖章文件扫描件引用, 确认放弃剩余份数（是 / 否）]
   preconditions:
-  - {ref: INV-118, text: 申请须已批准}
+  - {ref: INV-118, text: 申请须已批准（来源审批校验通过或负责人已批准）}
   - {ref: INV-119, text: 累计登记份数不得超过批准份数}
   - {ref: R-B31-2, text: 本次用印份数为 0 仅当确认放弃剩余份数〔推〕；达到批准份数或确认放弃后触发关闭}
   - {ref: 职责分离, text: 经办人不得是申请人本人（PRC-139 segregation）}

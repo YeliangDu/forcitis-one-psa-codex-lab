@@ -81,15 +81,16 @@
 | AGG-70 | `leave_requests` | 根 | 新建 | 交易 | 请假单号、员工、假期类型、起止时刻、分钟时长、事由、状态、审批引用 | 不需要（状态由审计还原） | 全量：老系统请假档案（信息图证 24,260），`legacy_numbers`；在途按 ADR-0036 第 5 条 | 待定（tbd）/ PI（病假等可能 SPI） |
 | AGG-70 | `leave_request_day_splits` | 次级 | 新建 | 事实 | 日期、计入分钟、所用标准工时版本引用、是否工作日 | 不需要（记所用版本，D7） | 全量，随请假行；迁入取当日生效版本，无则拒收 | 同上 |
 | AGG-71 | `leave_balance_accounts` | 根（技术聚合） | 新建 | 事实（投影） | 员工、假期类型、年度、应享、已用、占用 | 不需要（投影，可重算并对账，D1） | 迁入请假后重算；来源余额是否存在待取证 | INTERNAL / PI |
-| AGG-71 | `leave_balance_holds` | 次级 | 新建 | 事实 | 占用时长、占用状态、占用方单据引用 | 不需要（占用状态变更由审计还原） | 不迁（在途占用按 ADR-0036 第 5 条处理） | INTERNAL / PI |
-| AGG-72 | `overtime_requests` | 根 | 新建 | 交易 | 加班单号、员工、日期与时长、类型、补偿方式、状态 | 不需要（状态由审计还原） | 全量：来源待取证（认定以考勤与审批为准，Q16） | INTERNAL / PI |
+| AGG-71 | `leave_balance_holds` | 次级 | 新建 | 事实 | 占用时长、占用状态、占用方单据引用、补休额度行引用（补休类） | 不需要（占用状态变更由审计还原） | 不迁（在途占用按 ADR-0036 第 5 条处理） | INTERNAL / PI |
+| AGG-71 | `leave_comp_grants` | 次级 | 新建 | 事实（可重算投影） | 员工、加班单引用、额度时长、到期日、已用 / 占用、状态（有效 / 已转计薪 / 已休完）、转计薪时长与原因 | 不需要（状态由审计还原） | 不迁（历史调休余额是否迁入待取证，不凭推测） | INTERNAL / PI |
+| AGG-72 | `overtime_requests` | 根 | 新建 | 交易 | 加班单号、员工、日期与时长、类型、补偿方式（付薪 / 补休）、状态（含已计入补休额度） | 不需要（状态由审计还原） | 全量：来源待取证（认定以考勤与审批为准，Q16） | INTERNAL / PI |
 | AGG-97 | `monthly_attendance_confirmations` | 根 | 新建 | 事实（期间快照） | 员工、月份、出勤天数、状态、确认与锁定时间 | 期间快照，锁定后不改（INV-105） | 不迁：旧粒度为月 × 一级部门，无法对应人员 × 月；与「全部历史迁入」的关系待用户 | SENSITIVE / PI（SPI 交 U-11） |
 | AGG-97 | `monthly_attendance_confirmation_lines` | 次级 | 新建 | 事实 | 汇总类别（请假按类型 / 加班按补偿方式）、时长、汇入单据引用 | 期间快照 | 同上 | SENSITIVE / PI |
 | AGG-97 | `monthly_attendance_adjustments` | 次级 | 新建 | 事实（只追加） | 更正类别、原月份、更正时长、依据 | 只追加 | 同上 | SENSITIVE / PI |
 | AGG-118 假期类型与额度规则 | `leave_types` | 根 | 新建 | 参考数据 | 类型码、名称、是否占额度 / 带薪 / 按小时 | 不需要（受控代码表，只由迁移维护，D17 第一类；若在线增改须改版本化） | 不迁：旧假期类型只经映射 | INTERNAL / 无 |
-| 同上 | `leave_entitlement_rule_versions` | 版本 | 新建 | 配置 | 生效区间、确认人与时间、依据引用、城市类别、年度应享规则、结转 / 清零规则 | D15 配置型 | 不迁：首版按现行制度录入 | INTERNAL / 无 |
+| 同上 | `leave_entitlement_rule_versions` | 版本 | 新建 | 配置 | 生效区间、确认人与时间、依据引用、城市类别、年度应享规则、结转 / 清零规则、补休有效期长度（U15 待用户定） | D15 配置型 | 不迁：首版按现行制度录入 | INTERNAL / 无 |
 
-关系：同 schema：日拆分、占用 → 各自根；`leave_requests` → `leave_balance_holds`（按 ID，占用先于单据，额度占用模式）；月度确认明细 → 请假、加班（同 BC 按 ID）；规则版本 → 假期类型。跨 BC：员工 → AGG-62（B-13，api）；`leave_request_day_splits` → AGG-108 的版本 ID（B-14，记所用版本）；日历判断工作日 → AGG-68；审批 → platform.approval 流程实例引用；考勤来源（企业微信）→ platform.integration 防腐层。B-06 工时单读取已批准与待批的请假时长（INV-65）。
+关系：同 schema：日拆分、占用 → 各自根；`leave_comp_grants` → 加班单（`overtime_requests`，同 BC 按 ID，P13-05）；补休类请假的占用行引用所冲抵的额度行；`leave_requests` → `leave_balance_holds`（按 ID，占用先于单据，额度占用模式）；月度确认明细 → 请假、加班（同 BC 按 ID）；规则版本 → 假期类型。跨 BC：员工 → AGG-62（B-13，api）；`leave_request_day_splits` → AGG-108 的版本 ID（B-14，记所用版本）；日历判断工作日 → AGG-68；审批 → platform.approval 流程实例引用；考勤来源（企业微信）→ platform.integration 防腐层。B-06 工时单读取已批准与待批的请假时长（INV-65）。
 
 ## 4. 交 one-data 复核的口径
 
@@ -249,7 +250,7 @@
 |---|---|---|---|---|---|---|---|
 | AGG-113 用印申请 | `seal_applications` | 根 | 交易 | 印章类别、用印法人、申请人、事由、批准份数、状态、审批实例 ID | 不需要（单据，审计可还原） | 全量；A8 用印申请（累计 11,570、在途 252），字段待取证 | INTERNAL / PI |
 | 同上 | `seal_application_documents` | 次级 | 事实 | 文件名称、份数、文件引用 | 不需要（随单据不可变） | 全量，随申请 | INTERNAL / 无 |
-| 同上 | `seal_application_source_documents` | 次级 | 事实 | 来源单据类型、来源单据 ID（不校验） | 不需要 | 全量；A8 的关联取得方式待取证 | INTERNAL / 无 |
+| 同上 | `seal_application_source_documents` | 次级 | 事实 | 来源单据类型、来源审批实例 ID、来源载荷份数（经 platform.approval 校验，S-40） | 不需要 | 全量；A8 的关联取得方式待取证 | INTERNAL / 无 |
 | 同上 | `seal_usage_records` | 次级 | 事实（只追加） | 实际用印时间、份数、经办人、扫描件引用 | 只追加（INV-新-P2） | 全量；A8 是否有逐次登记待取证，无则每单一行汇总 | INTERNAL / PI |
 | AGG-114 IT 需求工单 | `it_requests` | 根 | 交易 | 需求类别、描述、优先级、提出人、处理人、处理结论、状态、审批实例 ID | 不需要 | 全量；A8 需求工单（累计 1,622、在途 105），字段待取证 | INTERNAL / PI |
 | 同上 | `it_request_handlings` | 次级 | 事实（只追加） | 处理时间、处理人、处理说明 | 只追加 | 全量；逐条记录是否存在待取证 | INTERNAL / PI |
@@ -266,7 +267,7 @@
 - 同 schema 外键：次级表 → 各自根（子表随根写入）。
 - 跨 BC 只按 ID 引用、不建外键：法人 → AGG-60、员工（申请人、经办人、使用人、报修人、处理人、参与人）→ AGG-62（B-13，api）；`it_asset_use_ledgers.fixed_asset_card_id` → AGG-91 资产卡片（B-24，api，B-31 → B-24 新边）。
 - 审批：只存 `approval_instance_id`（类型化 ID，不建外键），审批过程、意见、多级状态在 platform.approval；本 BC 不复制。
-- 来源业务单据：`seal_application_source_documents` 按「不校验」只记类型加 ID，不读对方状态；B-12 费用报销若引用员工活动申请，也只存申请 ID，B-31 不依赖 B-12。
+- 来源单据：`seal_application_source_documents` 记来源单据的审批实例 ID（不记业务单据 ID），提交时经既有边 B-31 → platform.approval 校验实例已通过、份数取自审批载荷（S-40），不读 B-03 / B-05 等业务单据；B-12 费用报销若引用员工活动申请，也只存申请 ID，B-31 不依赖 B-12。
 - 被依赖：B-31 不被任何业务 BC 依赖（聚合稿回补 §1）；B-13 的离职交接作读模型或由 B-31 订阅 Separated 生成归还待办。
 
 ## 3. 口径与说明

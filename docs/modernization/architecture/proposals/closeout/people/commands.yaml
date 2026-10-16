@@ -1507,6 +1507,7 @@ commands:
   emits: （内部）
   used_by:
   - PRC-116 第 2 步
+  - PRC-117 第 5 步
   orphan: false
   source_part: vs13att
 - name: 批准请假
@@ -1631,14 +1632,14 @@ commands:
   params:
   - 员工ID
   - 假期类型
-  - 年度
+  - 年度（补休类无，改记所冲抵的补休额度行）
   - 占用时长（分钟）
   - 请假ID
   preconditions:
   - ref: INV-68
     text: 占用后不得超过可用额度；政策允许透支的假期类型例外，例外进入人审（R-a）
   - ref: 账户存在
-    text: 该人员 × 假期类型 × 年度账户已开账，否则失败并告警，不隐式开账
+    text: 该人员 × 假期类型 × 年度账户已开账，否则失败并告警，不隐式开账；假期类型为补休的不看年度账户，改按到期日先后冲抵该员工的补休额度行（有效且请假日不晚于到期日），无可冲抵的额度行即额度不足
   - ref: 读取
     text: 按日拆分读工作日历（AGG-68）与标准工时版本（AGG-108），取不到当日生效版本失败（INV-116）
   authority:
@@ -1719,7 +1720,7 @@ commands:
   - ref: 状态
     text: 占用行为已转用
   - ref: 回冲上限
-    text: 回冲时长不超过该行已用时长；销假为未休完部分，撤销为全部
+    text: 回冲时长不超过该行已用时长；销假为未休完部分，撤销为全部；补休类回冲回原补休额度行
   authority:
     ref: raci:AGG-71/回冲已用额度
     A:
@@ -1749,7 +1750,7 @@ commands:
   - ref: INV-123
     text: 按该假期类型当日生效的假期规则版本计算应享（含上年结转）；取不到生效版本失败并告警，不回退默认值
   - ref: 唯一
-    text: 人员 × 假期类型 × 年度至多一个账户
+    text: 人员 × 假期类型 × 年度至多一个账户；假期类型补休不开年度账户（补休额度行独立于年度，按有效期到期，见计入补休额度）
   authority:
     ref: raci:AGG-71/开立年度额度账户
     A:
@@ -1793,6 +1794,102 @@ commands:
   used_by: []
   orphan: false
   source_part: vs13att
+- name: 计入补休额度
+  aggregate: AGG-71
+  entity: leave_comp_grants
+  kind: automatic
+  name_status: 〔缺〕收敛新增，待 one-glossary 登记（credit_comp_leave_grant）
+  source: 用户页 P13-05（2026-10-16 审题）：休息日加班选补休，按加班时长给员工计补休额度；依据劳动法第四十四条
+  params:
+  - 加班ID
+  - 员工ID
+  - 额度时长（分钟，= 批准加班时长）
+  - 到期日（= 加班日 + 补休有效期，U15）
+  preconditions:
+  - ref: 来源
+    text: 加班为已批准，补偿方式为补休，加班类型为休息日（法定节假日只能付薪）；工作日延时按现有补偿政策
+  - ref: 补休有效期
+    text: 取当日生效的假期规则版本（AGG-118）中假期类型补休的有效期长度（U15 待用户定）；取不到失败并告警，不回退默认值
+  - ref: 唯一
+    text: 一笔加班至多一条额度行，以加班 ID 幂等
+  authority:
+    ref: raci:AGG-71/计入补休额度
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 加班ID（已计入无操作）
+  state_change: 创建 → 有效
+  emits: （内部）
+  used_by:
+  - PRC-117 第 4 步
+  orphan: false
+  source_part: vs13att
+- name: 补休到期转计薪
+  aggregate: AGG-71
+  entity: leave_comp_grants
+  kind: automatic
+  name_status: 〔缺〕收敛新增，待 one-glossary 登记（convert_expired_comp_leave_to_pay）
+  source: 用户页 P13-05；劳动法第四十四条（不能安排补休的支付不低于 200% 工资报酬）、工资支付暂行规定第十三条（以加班工资基数折算）
+  params:
+  - 补休额度行ID
+  preconditions:
+  - ref: 到期
+    text: 到期日届满；未休余额不作废，转为计薪时长并关闭额度行（余额为零时只关闭）
+  - ref: 占用
+    text: 额度行无占用中的补休请假，否则结局为转计薪待处理，告警人力，不改状态
+  - ref: 计发
+    text: 本命令不算钱；金额由 B-15 在 PRC-124 读取转计薪时长，按加班工资基数折算 200% 计发
+  authority:
+    ref: raci:AGG-71/补休到期转计薪
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 补休额度行ID（已转计薪或已休完无操作）
+  state_change: 有效 → 已转计薪（余额大于零）；有效 → 已休完（余额为零）
+  emits: （内部）
+  used_by:
+  - PRC-117 第 6 步
+  - 事件策略「补休额度到期转计薪」
+  orphan: false
+  source_part: vs13att
+- name: 离职结算补休余额
+  aggregate: AGG-71
+  entity: leave_comp_grants
+  kind: automatic
+  name_status: 〔缺〕收敛新增，待 one-glossary 登记（settle_comp_leave_on_separation）
+  source: 用户页 P13-05；离职时未休余额一并结算进最后一次薪酬
+  params:
+  - 员工ID
+  - 离职日期
+  preconditions:
+  - ref: 触发
+    text: 离职生效后（Separated）；该员工全部有效额度行的未休余额转为计薪时长并关闭（余额为零的只关闭）
+  - ref: 占用
+    text: 额度行仍有无法释放的占用中请假的，该行结局为结算待处理，告警人力，其余额度行照常结算
+  - ref: 计发
+    text: 随最后一期薪酬由 B-15 在 PRC-124 读取，离职生效后由 B-15 处理；本命令不算钱
+  authority:
+    ref: raci:AGG-71/离职结算补休余额
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 员工ID + 离职日期（已结算无操作）
+  state_change: 有效 → 已转计薪 / 已休完
+  emits: （内部）
+  used_by:
+  - PRC-117 第 7 步
+  - 事件策略「离职结算补休余额」
+  orphan: false
+  source_part: vs13att
 - name: 加班申请
   aggregate: AGG-72
   entity: overtime_requests
@@ -1803,11 +1900,11 @@ commands:
   - 员工ID
   - 加班日期与时长
   - 加班类型（工作日延时 / 休息日 / 法定节假日）
-  - 补偿方式（付薪 / 调休）
+  - 补偿方式（付薪 / 补休）
   - 登记人（员工本人或用人经理代登记）
   preconditions:
   - ref: R-c
-    text: 补登不超过允许期限；加班时段与已批准请假重叠则拒绝；补偿方式按加班日类型由规则定（法定节假日只能付薪）；当月累计超 36 小时只预警留痕不拦截（期限待 U5）
+    text: 补登不超过允许期限；加班时段与已批准请假重叠则拒绝；补偿方式按加班日类型由规则限定（法定节假日只能付薪；休息日可选付薪或补休；工作日延时按现有补偿政策，口径不变）；当月累计超 36 小时只预警留痕不拦截（期限待 U5）
   authority:
     ref: raci:AGG-72/加班申请
     A:
@@ -1887,7 +1984,7 @@ commands:
   - 月度考勤确认ID
   preconditions:
   - ref: 状态
-    text: 加班为已批准
+    text: 加班为已批准，且补偿方式为付薪（补偿方式为补休的由计入补休额度时标已计入补休额度，不走本命令）
   authority:
     ref: raci:AGG-72/标记加班已补偿
     A:
@@ -1900,6 +1997,33 @@ commands:
   emits: 加班已补偿
   used_by:
   - PRC-118 第 3 步
+  orphan: false
+  source_part: vs13att
+- name: 标记加班已计补休
+  aggregate: AGG-72
+  entity: overtime_requests
+  kind: automatic
+  name_status: 〔缺〕收敛新增，待 one-glossary 登记（mark_overtime_credited_to_comp_leave）
+  source: 用户页 P13-05；vs13att.notes.md 结构问题 5 的落地
+  params:
+  - 加班ID
+  - 补休额度行ID
+  preconditions:
+  - ref: 状态
+    text: 加班为已批准，补偿方式为补休，且已计入补休额度
+  authority:
+    ref: raci:AGG-72/标记加班已计补休
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+  idempotency_key: 加班ID（已计入无操作）
+  state_change: 已批准 → 已计入补休额度
+  emits: （内部）
+  used_by:
+  - PRC-117 第 4 步 inner
   orphan: false
   source_part: vs13att
 - name: 生成月度考勤
@@ -2285,6 +2409,8 @@ commands:
     text: 该法人当月在职人员的月度考勤全部已锁定（AGG-97）；有未锁定的结局为「待锁定」，不建结算也不改状态
   - ref: 数据齐备
     text: 每人有生效薪酬档案版本（AGG-93）、应参保人员有参保基数（AGG-74）、适用的薪酬规则版本取得到（同 INV-116，取不到失败并告警）；缺则结局为「已中止」，不静默跳过
+  - ref: 补休转计薪
+    text: 读取 B-27 当月转计薪的补休额度行（到期未休、离职结算），转计薪时长 × 加班工资基数折算的时薪 × 200% 计入加班费（劳动法第四十四条、工资支付暂行规定第十三条）；已读过的额度行不重复计；加班工资基数取不到，结局为「已中止」，不静默按零
   - ref: INV-70
     text: 代扣只限法定项目；以法定货币支付
   - ref: 状态
@@ -3786,15 +3912,17 @@ commands:
   kind: human
   source: 聚合稿 AGG 命令列
   params:
-  - 印章类别
+  - 印章类别（公章 / 合同专用章 / 法定代表人名章 / 财务章等）
   - 用印法人
   - 用印事由
   - 用印文件（名称、份数、引用）
   - 申请份数
-  - 来源业务单据（类型、ID，可空，不校验）
+  - 来源单据（类型、审批实例ID，可空；无来源单据的申请为空）
   preconditions:
   - ref: R-B31-1
     text: 用印法人须为申请日有效法人主体，否则拒绝并留在草稿
+  - ref: R-B31-12
+    text: 填了来源审批实例ID的，经 platform.approval 校验实例已通过，且申请份数（加上该实例已被其他有效用印申请占用的份数〔推〕）不超审批载荷份数；校验不过则拒绝并告诉申请人原因，留在草稿，不静默
   - ref: 状态
     text: 申请为草稿
   authority:
@@ -3805,7 +3933,7 @@ commands:
     R:
     - SH-E3
   idempotency_key: 申请ID（客户端预生成 UUIDv7；同一 ID 重复提交返回已有结果）
-  emits: （内部）
+  emits: 用印申请已批准（仅来源审批校验通过时直接置已批准；其余情形为内部）
   used_by:
   - PRC-139 第 1 步
   orphan: false
@@ -3820,9 +3948,11 @@ commands:
   - 审批结果（通过）
   preconditions:
   - ref: 状态
-    text: 申请为审批中且审批实例ID一致
+    text: 申请为审批中且审批实例ID一致；仅无来源单据的申请有此审批
   - ref: AR-11/AR-12
     text: 审批人就是申请人上交其上级；负责人缺位上交上级组织负责人（APPROVAL_RULES，已有）
+  - ref: pending B31-1
+    text: 授权委托书，以及公章、法定代表人名章用于无来源单据的，加一级由总经理批；规则号待 one-architecture 给（notes 结构问题 8）
   authority:
     ref: raci:AGG-113/批准用印申请
     A:
@@ -3908,7 +4038,7 @@ commands:
   - 确认放弃剩余份数（是 / 否）
   preconditions:
   - ref: INV-118
-    text: 申请须已批准
+    text: 申请须已批准（来源审批校验通过或负责人已批准）
   - ref: INV-119
     text: 累计登记份数不得超过批准份数
   - ref: R-B31-2

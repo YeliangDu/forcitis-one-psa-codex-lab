@@ -133,6 +133,33 @@ entries:
     C: []
     I: []
   sensitive: false
+- object: AGG-71
+  command: 计入补休额度
+  raci:
+    A: {resolve: type, role: SH-E6, function: 人力（考勤）}
+    R: [system]
+    C: []
+    I: [SH-E3, SH-E1]
+  sensitive: false
+  note: 加班批准后由规则自动执行；有效期长度待 U15；员工与直属上级知晓额度与到期日
+- object: AGG-71
+  command: 补休到期转计薪
+  raci:
+    A: {resolve: type, role: SH-E6, function: 人力（考勤）}
+    R: [system]
+    C: []
+    I: [SH-E3, SH-E6]
+  sensitive: false
+  note: 定时规则自动执行，不作废；转计薪待处理时告警人力；计发金额归 B-15（PRC-124）
+- object: AGG-71
+  command: 离职结算补休余额
+  raci:
+    A: {resolve: type, role: SH-E6, function: 人力（考勤）}
+    R: [system]
+    C: []
+    I: [SH-E6]
+  sensitive: false
+  note: 订阅 Separated 的规则自动执行；占用中请假释放不了的告警人力；计发归 B-15（PRC-124）
 # ───────── AGG-72 加班 ─────────
 - object: AGG-72
   command: 加班申请
@@ -142,7 +169,7 @@ entries:
     C: []
     I: [SH-E1, SH-E6]
   boundary:
-    limit_rule: R-c（补登期限、与已批准请假重叠拒绝；月累计超 36 小时只预警知会人力，不拦截；待 U5）
+    limit_rule: R-c（补登期限、与已批准请假重叠拒绝；补偿方式按加班日类型限定：法定节假日只付薪、休息日付薪或补休；月累计超 36 小时只预警知会人力，不拦截；待 U5）
   sensitive: false
   note: 用人经理可代员工登记（R 含 SH-E1）；人力仅在超 36 小时时收到知会
 - object: AGG-72
@@ -172,6 +199,15 @@ entries:
     C: []
     I: []
   sensitive: false
+- object: AGG-72
+  command: 标记加班已计补休
+  raci:
+    A: {resolve: type, role: SH-E6, function: 人力（考勤）}
+    R: [system]
+    C: []
+    I: []
+  sensitive: false
+  note: 计入补休额度的同一事务内规则自动执行
 # ───────── AGG-97 月度考勤确认 ─────────
 - object: AGG-97
   command: 生成月度考勤

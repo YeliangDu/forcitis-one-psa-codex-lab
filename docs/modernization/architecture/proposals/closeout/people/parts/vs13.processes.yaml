@@ -86,7 +86,7 @@ processes:
     segregation:
       - {roles: [SH-E3, SH-E1], rule: "申请人不得审批本人请假（申请人本身是部门负责人时，按 AR-11 由其上级审批）"}
     outcomes: [已批准, 已驳回, 已撤销, 已销假, 额度不足被拒, 已提醒]
-    scenarios: [PRC-116-S01, PRC-116-S02, PRC-116-S03, PRC-116-S04, PRC-116-S05, PRC-116-S06, PRC-116-S07, PRC-116-S08, PRC-116-S09, PRC-116-S10, PRC-116-S11]   # S01 额度不足被拒；S02 额度内年假自动批准；S03 超阈值长假进入审批并批准；S04 审批驳回释放占用；S05 审批中员工撤回；S06 审批 3 日无人处理，非中断升级提醒管理层（结局已提醒，主线照常）；S07 已批准未开始，员工撤销回冲；S08 请假已开始提前销假回冲；S09 申请人本人是部门负责人，由其上级审批（AR-11）；S10 政策允许透支，进入审批；S11 请假已开始后员工点撤销，转为销假办理
+    scenarios: [PRC-116-S01, PRC-116-S02, PRC-116-S03, PRC-116-S04, PRC-116-S05, PRC-116-S06, PRC-116-S07, PRC-116-S08, PRC-116-S09, PRC-116-S10, PRC-116-S11, PRC-116-S12]   # S01 额度不足被拒；S02 额度内年假自动批准；S03 超阈值长假进入审批并批准；S04 审批驳回释放占用；S05 审批中员工撤回；S06 审批 3 日无人处理，非中断升级提醒管理层（结局已提醒，主线照常）；S07 已批准未开始，员工撤销回冲；S08 请假已开始提前销假回冲；S09 申请人本人是部门负责人，由其上级审批（AR-11）；S10 政策允许透支，进入审批；S11 请假已开始后员工点撤销，转为销假办理；S12 假期类型为补休，冲抵补休额度行并自动批准
     roles:
       - {id: SH-E3, as: initiator, org_needs: {responsibility: "提出并对本人申请事项的真实性负责", approval_right: "无（本人申请不得自批）", department_hint: "员工所在部门", position_hint: "全体在职员工"}}
       - {id: SH-E1, as: approver, org_needs: {responsibility: "作为申请人所在组织单元的责任人，判断异常请假能否离岗", approval_right: "正常一级审批（cost_object_owner 解析结果）；超阈值时 AR-11、AR-12 加审", department_hint: "员工所在组织单元", position_hint: "部门负责人、用人经理"}}       # 申请人所在组织单元的责任人（cost_object_owner 解析结果）
@@ -98,7 +98,7 @@ processes:
         command: 占用余额
         aggregate: AGG-71
         reads: [AGG-68, AGG-108, AGG-118]
-        desc: 与提交请假是员工的同一次操作，分两个聚合两个事务，最终一致；占用以请假 ID 幂等，孤儿占用由定时释放（聚合稿 §7 第 6 条）；同时读工作日历与标准工时版本做按日拆分（取不到当日生效版本须失败并告警，INV-116）
+        desc: 与提交请假是员工的同一次操作，分两个聚合两个事务，最终一致；占用以请假 ID 幂等，孤儿占用由定时释放（聚合稿 §7 第 6 条）；同时读工作日历与标准工时版本做按日拆分（取不到当日生效版本须失败并告警，INV-116）。假期类型为补休时（劳动法第四十四条：休息日加班先安排补休），不占年度账户，按到期日先后冲抵员工的补休额度行（PRC-117 计入），请假日不得晚于所冲抵额度行的到期日，额度不足同样被拒
         permission: 请假.提交
         page: 请假申请页
         cross_bc:
@@ -213,7 +213,7 @@ processes:
         audit: true
         notify: [{to: SH-E1, how: 企业微信通知}]
         outcome: 已销假
-    notes: 驳回、撤销、销假的额度回冲在聚合稿没有对应命令（驳回请假、回冲已用额度均为〔缺〕）。v1 把“占用余额”写在“提交请假”之前，骨架保留 v1 顺序并说明为同一次操作。
+    notes: 驳回、撤销、销假的额度回冲在聚合稿没有对应命令（驳回请假、回冲已用额度均为〔缺〕）；补休类回冲回原额度行。v1 把“占用余额”写在“提交请假”之前，骨架保留 v1 顺序并说明为同一次操作。
 
   - id: PRC-117
     name: 申请并批准加班
@@ -222,25 +222,26 @@ processes:
       desc: 员工或部门提出加班
     triggers:
       - {type: human, name: "员工或用人经理登记加班"}
+      - {type: event, entry: 7, name: "员工离职生效（B-13 发布 Separated）"}
     stages: [VS-13.1]
     owner_bc: B-27
     human_orchestration: false
-    human_note: 加班审批已取消：事前登记，事后以打卡核实，批准由系统按规则作出（质检修订，用户原则）
-    migration: "历史加班（老系统是否有加班记录尚未取证）全量迁入为已结实例；在途按当前状态迁入通用审批（C-3–C-7，ADR-0036 M7）"
-    scope: "员工本人、其用人经理、人力"
-    outcomes: [已批准, 已驳回]
-    scenarios: [PRC-117-S01, PRC-117-S02, PRC-117-S03, PRC-117-S04]   # S01 登记、加班日后打卡核实、自动批准；S02 打卡不支持登记的加班时长，驳回；S03 当月累计超 36 小时预警并知会、不拦截；S04 补登超过允许期限，被拒回登记页
+    human_note: 加班审批已取消：事前登记，事后以打卡核实，批准由系统按规则作出（质检修订，用户原则）；补休额度的计入、提醒、到期转计薪与离职结算均由规则执行，无人审
+    migration: "历史加班（老系统是否有加班记录尚未取证）全量迁入为已结实例；在途按当前状态迁入通用审批（C-3–C-7，ADR-0036 M7）；迁入的补偿方式为调休的加班，其未休余额是否迁为补休额度行待取证后定，不凭推测"
+    scope: "员工本人、其用人经理、人力；补休额度只本人与人力可见"
+    outcomes: [已批准, 已驳回, 补休已休完, 已提醒, 已转计薪, 转计薪待处理, 离职余额已结算, 结算待处理]
+    scenarios: [PRC-117-S01, PRC-117-S02, PRC-117-S03, PRC-117-S04, PRC-117-S05, PRC-117-S06, PRC-117-S07, PRC-117-S08, PRC-117-S09, PRC-117-S10]   # S01 登记、加班日后打卡核实、自动批准（付薪）；S02 打卡不支持登记的加班时长，驳回；S03 当月累计超 36 小时预警并知会、不拦截；S04 补登超过允许期限，被拒回登记页；S05 休息日加班选补休，批准后计入补休额度，到期前员工休完；S06 到期前员工未排定补休，非中断提醒员工与直属上级，主线照常；S07 到期仍有未休余额，转入当月薪酬计发；S08 到期时额度行仍有占用中的补休请假，转计薪待处理；S09 离职生效，未休补休余额一并结算；S10 离职时仍有占用中的补休请假，结算待处理
     roles:
-      - {id: SH-E3, as: initiator, org_needs: {responsibility: "提出并对本人申请事项的真实性负责", approval_right: "无（本人申请不得自批）", department_hint: "员工所在部门", position_hint: "全体在职员工"}}
-      - {id: SH-E1, as: informed, org_needs: {responsibility: "知悉下属加班登记，也可代员工登记", approval_right: "无（加班不设审批，由打卡核实）", department_hint: "员工所在组织单元", position_hint: "部门负责人、用人经理"}}       # 用人经理：登记知会；也可代员工登记
-      - {id: SH-E6, as: informed, org_needs: {responsibility: "接收当月加班超 36 小时的预警", approval_right: "无", department_hint: "人力资源部", position_hint: "人力资源专员"}}       # 人力：当月超 36 小时预警知会
+      - {id: SH-E3, as: initiator, org_needs: {responsibility: "提出并对本人申请事项的真实性负责；在补休额度到期前自行排定并休完补休", approval_right: "无（本人申请不得自批）", department_hint: "员工所在部门", position_hint: "全体在职员工"}}
+      - {id: SH-E1, as: informed, org_needs: {responsibility: "知悉下属加班登记，也可代员工登记；补休额度到期前收到提醒，与员工排定补休", approval_right: "无（加班不设审批，由打卡核实）", department_hint: "员工所在组织单元", position_hint: "部门负责人、用人经理"}}       # 用人经理：登记知会；也可代员工登记；补休到期前提醒
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "接收当月加班超 36 小时的预警，以及补休转计薪待处理的告警", approval_right: "无", department_hint: "人力资源部", position_hint: "人力资源专员"}}       # 人力：当月超 36 小时预警知会；转计薪、结算待处理告警
     steps:
       - actor: SH-E3
         where: in_system
         command: 加班申请
         aggregate: AGG-72
         pending: U5
-        desc: 登记即事前申请，不设审批：每月累计超 36 小时只预警并留痕，不拦截（P-34；劳动法第四十一条）；补偿方式按加班日类型由规则定（法定节假日付加班费，休息日与工作日按补偿政策选加班费或调休），不由人审；事后补登的允许期限待用户定 U5
+        desc: 登记即事前申请，不设审批：每月累计超 36 小时只预警并留痕，不拦截（P-34；劳动法第四十一条）；补偿方式由加班日类型限定：法定节假日只能付加班费（300%），不补休；休息日可选加班费（200%）或补休（劳动法第四十四条：先安排补休，不能安排的支付不低于 200%）；工作日延时按现有补偿政策（口径不变，加班费 150%）；补偿方式由登记人在规则允许的范围内选，不由人审；事后补登的允许期限待用户定 U5
         permission: 加班.申请
         page: 加班申请页
         audit: true
@@ -254,9 +255,10 @@ processes:
         command: 批准加班
         aggregate: AGG-72
         emits: [加班已批准]
-        desc: 以打卡核实代替人工批准：加班日的打卡记录（AGG-69）能支持登记的加班时长即批准（以打卡可证实的时长为准）；批准后汇入当月月度考勤（PRC-118 读取，不订阅），工时单引用加班 ID
+        desc: 以打卡核实代替人工批准：加班日的打卡记录（AGG-69）能支持登记的加班时长即批准（以打卡可证实的时长为准）；批准后汇入当月月度考勤（PRC-118 读取，不订阅），工时单引用加班 ID；补偿方式为补休的，继续计入补休额度
         decision:
           - {when: 打卡记录不支持登记的加班时长, goto: 3}
+          - {when: 补偿方式为补休, goto: 4}
           - {when: otherwise, goto: end}
         outcome: 已批准
         # 依据：用户原则「能规则化就不设人审」；加班费真实性由打卡校验，必要性由超 36 小时预警与月度考勤知会兜底
@@ -270,7 +272,60 @@ processes:
         decision:
           - {when: otherwise, goto: end}
         outcome: 已驳回
-    notes: 加班“已补偿”由月度考勤已确认事件触发（PRC-118），补偿方式（加班费或调休）在 AGG-72 记录；调休由请假冲抵。原 v1 的审批节点取消，PRC-117 不再是人工编排流程（catalog 的 human_orchestration 须随之改为 false，见 notes 格式问题）。
+      - actor: system
+        where: automatic
+        branch: 补休
+        command: 〔缺〕计入补休额度
+        aggregate: AGG-71
+        pending: U15
+        desc: 按批准时长给员工计一笔补休额度行（假期类型补休），到期日 = 加班日 + 补休有效期（长度待用户定 U15），额度行不按年度、不随年度结转；同一事务内把加班标记为已计入补休额度，以加班 ID 幂等；由此不再出现「已批准却无人追踪补偿」的加班
+        inner:
+          - {command: 〔缺〕标记加班已计补休, aggregate: AGG-72}
+        audit: true
+        notify: [{to: SH-E3, how: 企业微信通知（补休额度已计入及到期日）}]
+      - actor: SH-E3
+        where: in_system
+        command: 提交请假
+        aggregate: AGG-70
+        calls: PRC-116
+        desc: 员工在额度到期日前自行向直属上级排定并休补休：补休走请假（假期类型补休，占用补休额度行，PRC-116）；到期前一定时间员工与直属上级收到提醒（非中断，主线照常）；补休由单位安排，系统不替单位判断「已安排」，故不因员工未休而作废额度（劳动法第四十四条）
+        permission: 请假.提交
+        page: 我的请假页
+        timeout: {after: "P150D", escalate_to: SH-E1, interrupting: false}   # 暂拟有效期 6 个月、到期前 30 日提醒，待 U15；升级只提醒员工与直属上级，非中断，升级后接独立结束事件「已提醒」，主线照常（BPMN_STYLE 第 3 节）
+        decision:
+          - {when: 补休额度到期日届满仍有未休余额, goto: 6}
+          - {when: otherwise, goto: end}
+        outcome: 补休已休完
+      - actor: system
+        where: automatic
+        on_time: 补休额度到期日
+        command: 〔缺〕补休到期转计薪
+        aggregate: AGG-71
+        pending: U15
+        desc: 到期未休的余额不作废，转为计薪时长并关闭额度行；当月薪酬按加班工资基数的 200% 计发（PRC-124 读取，工资支付暂行规定第十三条折算；会计上为累积带薪缺勤负债，企业会计准则第 9 号），不在本流程算钱；额度行仍有占用中的补休请假时先不转，告警人力，待请假处理后下次再转
+        audit: true
+        notify: [{to: SH-E3, how: 企业微信通知（余额已转计薪）}]
+        decision:
+          - {when: 额度行仍有占用中的补休请假, goto: end, outcome: 转计薪待处理}
+          - {when: otherwise, goto: end}
+        outcome: 已转计薪
+      - actor: system
+        where: automatic
+        entry: 员工离职生效，仍有未休补休余额
+        branch: 离职结算
+        command: 〔缺〕离职结算补休余额
+        aggregate: AGG-71
+        pending: U15
+        desc: 离职生效后（Separated）把员工全部有效额度行的未休余额转为计薪时长并关闭，随最后一期薪酬按 200% 计发（B-15 在 PRC-124 读取）；占用中的补休请假在离职生效时已无法休，先释放再结算，释放不了的转结算待处理并告警人力
+        audit: true
+        notify: [{to: SH-E6, how: 企业微信待办}]      # 结算待处理时才发
+        cross_bc:
+          - {mode: event, direction: in, bc: B-13, name: Separated}
+        decision:
+          - {when: 离职时额度行仍有无法释放的占用中请假, goto: end, outcome: 结算待处理}
+          - {when: otherwise, goto: end}
+        outcome: 离职余额已结算
+    notes: 加班“已补偿”：付薪的由月度考勤已确认事件触发（PRC-118）；补休的在计入补休额度时标「已计入补休额度」，补偿追踪转到 AGG-71 额度行。补偿方式（加班费或补休）在 AGG-72 记录；补休以请假冲抵（假期类型补休），不再叫「调休」——词表「调休」专指工作日历的调休上班日（B-14）。补休有效期长度待用户定 U15（见 notes 待用户定）；到期与离职都不作废，转计薪由 B-15 计发。原 v1 的审批节点取消，PRC-117 不再是人工编排流程（catalog 的 human_orchestration 须随之改为 false，见 notes 格式问题）。
 
   - id: PRC-118
     name: 生成、确认并锁定月度考勤
@@ -298,7 +353,7 @@ processes:
         command: 生成月度考勤
         aggregate: AGG-97
         reads: [AGG-69, AGG-70, AGG-72, AGG-68]
-        desc: 汇总考勤、请假、加班，人员 × 月一份；含出勤天数、请假（按类型）、加班（按补偿方式）与更正行；月内存在无导入批次或批次失败的日期时失败并告警，不得当作全勤；审批中的请假不汇入，批准后计入下月更正行并标原月份（INV-105）
+        desc: 汇总考勤、请假、加班，人员 × 月一份；含出勤天数、请假（按类型，含补休）、加班（按补偿方式：付薪的汇入加班费时长，补休的汇入计入补休额度的时长、不进加班费）与更正行；月内存在无导入批次或批次失败的日期时失败并告警，不得当作全勤；审批中的请假不汇入，批准后计入下月更正行并标原月份（INV-105）
         cross_bc:
           - {mode: api, direction: out, bc: B-13, name: 读取当月在职与当月离职人员}
           - {mode: api, direction: out, bc: B-14, name: 读取工作日历与标准工时版本}
@@ -330,7 +385,7 @@ processes:
         aggregate: AGG-72
         on_event: [{aggregate: AGG-97, event: 月度考勤已确认}]
         emits: [加班已补偿]
-        desc: 订阅月度考勤已确认（同 BC），按加班 ID 幂等
+        desc: 订阅月度考勤已确认（同 BC），只标补偿方式为付薪的已批准加班，按加班 ID 幂等；补休的加班在计入补休额度时已标（PRC-117 第 4 步），不在此标
       - actor: system
         where: automatic
         on_time: 员工确认期限届满
@@ -374,7 +429,7 @@ processes:
         decision:
           - {when: otherwise, goto: 3}
         # 依据：用户原则「能规则化就不设人审」；RULE-363；STEP3 C-17（“确认”由默认确认满足，待 U6 确认）
-    notes: 员工确认是员工本人对自己月度考勤的确认，不是审批（质检修订：notes 格式问题 2 作答），故不写 approval，catalog 的 human_orchestration 须改为 false。人力不再手工锁定、不再代确认，减少两次人工；用人经理不复核（U6 推荐不变）。
+    notes: 补休额度的到期转计薪不经月度考勤，由 B-15 在 PRC-124 直接读取 B-27（月度考勤只汇总当月发生的出勤、请假、加班）。员工确认是员工本人对自己月度考勤的确认，不是审批（质检修订：notes 格式问题 2 作答），故不写 approval，catalog 的 human_orchestration 须改为 false。人力不再手工锁定、不再代确认，减少两次人工；用人经理不复核（U6 推荐不变）。
 
   # ───────────── VS-13.2 绩效激励 ─────────────
 
@@ -625,7 +680,7 @@ processes:
     segregation:
       - {roles: [SH-E6, SH-E6], rule: "提交审核者不得审批同一份结算（制单与审批分离，AR-11）；任何人不得审批含本人薪酬行的结算，含本人时由其上级审批（SH-E6 内部分岗：薪酬岗 / 财务主管）"}
     outcomes: [已批准, 待锁定, 已中止]
-    scenarios: [PRC-124-S01, PRC-124-S02, PRC-124-S03, PRC-124-S04, PRC-124-S05, PRC-124-S06, PRC-124-S07, PRC-124-S08, PRC-124-S09]   # S01 全部锁定后计算、提交、审批、批准、提交过账候选（全程）；S02 审批驳回退回重算；S03 有人员未锁定，待锁定；S04 缺薪酬档案或规则版本，已中止并告警；S05 审批 2 日无人处理升级；S06 提交人撤回审批；S07 薪酬岗核对异常清单后重算；S08 薪酬总额超阈值，加一级或两级（AR-01、AR-02）；S09 所属期间已关账，过账路由到开放期间并标原期间
+    scenarios: [PRC-124-S01, PRC-124-S02, PRC-124-S03, PRC-124-S04, PRC-124-S05, PRC-124-S06, PRC-124-S07, PRC-124-S08, PRC-124-S09, PRC-124-S10]   # S01 全部锁定后计算、提交、审批、批准、提交过账候选（全程）；S02 审批驳回退回重算；S03 有人员未锁定，待锁定；S04 缺薪酬档案或规则版本，已中止并告警；S05 审批 2 日无人处理升级；S06 提交人撤回审批；S07 薪酬岗核对异常清单后重算；S08 薪酬总额超阈值，加一级或两级（AR-01、AR-02）；S09 所属期间已关账，过账路由到开放期间并标原期间；S10 当月有补休到期未休或离职结算的补休余额，按加班工资基数 200% 计入加班费
     roles:
       - {id: SH-E6, as: performer, org_needs: {responsibility: "核对系统计算结果与异常清单，确认无误后提交审核，对输入修正负责", approval_right: "无（提交人不得审批同一份结算）", department_hint: "人力资源部（薪酬岗）", position_hint: "薪酬岗"}}      # 人力（薪酬岗）：核对异常清单、提交审核
       - {id: SH-E6, as: approver, org_needs: {responsibility: "作为薪酬法人的财务责任人，对薪酬支付依据的合理性负责", approval_right: "正常一级审批（cost_object_owner 解析结果）；金额超阈值加审", department_hint: "财务部", position_hint: "财务负责人、财务主管"}}       # 财务（薪酬法人的责任人 / 财务主管）：审批
@@ -635,18 +690,19 @@ processes:
         where: automatic
         command: 计算
         aggregate: AGG-73
-        reads: [AGG-97, AGG-74, AGG-76, AGG-93, AGG-62]
+        reads: [AGG-97, AGG-71, AGG-74, AGG-76, AGG-93, AGG-62]
         pending: U7
         desc: >-
           薪酬自算（intent 2026-10-16-152603，聚合稿“薪酬汇总导入”口径作废），月度考勤已锁定后由系统自动计算，不再由人手工发起。
-          读月度考勤已锁定（含锁定后更正行）、薪酬档案版本（按薪酬期间生效日分段）、参保（缴费基数）、已核定奖金、适用的〔缺〕薪酬规则版本（个税税率表与减除费用、社保公积金比例与基数上下限、计薪天数）、人员与法人。
-          按人员：应发 = 档案薪酬项（调薪、入离职当月按计薪日折算）+ 已核定奖金 − 事假等扣款 + 加班费（来自月度考勤的加班补偿方式）± 上期锁定后更正行（标原月份）；
+          读月度考勤已锁定（含锁定后更正行）、到期未休与离职结算的补休转计薪时长（B-27 AGG-71，按转计薪所属月读取、已读过的额度行不重复）、薪酬档案版本（按薪酬期间生效日分段）、参保（缴费基数）、已核定奖金、适用的〔缺〕薪酬规则版本（个税税率表与减除费用、社保公积金比例与基数上下限、计薪天数）、人员与法人。
+          按人员：应发 = 档案薪酬项（调薪、入离职当月按计薪日折算）+ 已核定奖金 − 事假等扣款 + 加班费（来自月度考勤的加班补偿方式，付薪部分）+ 补休转计薪费（到期未休与离职结算的补休转计薪时长 × 加班工资基数折算的时薪 × 200%，工资支付暂行规定第十三条；加班工资基数取薪酬档案，取不到则已中止并告警）± 上期锁定后更正行（标原月份）；
           代扣 = 社保公积金个人部分（参保缴费基数 × 规则版本比例）+ 个人所得税（居民个人工资薪金累计预扣，用专项附加扣除与规则版本的税率表）；
           只限法定代扣项目（INV-70）；实发 = 应发 − 代扣；汇总为法人 × 月。同时生成异常清单（环比波动超阈值、实发为负、新入离职折算、含补发补扣行），供薪酬岗核对与审批人参考，只提示不拦截
         audit: true
         legal_entity: 薪酬法人（个税扣缴义务人口径，三口径分别记录，Q-09）
         cross_bc:
           - {mode: api, direction: out, bc: B-27, name: 读取月度考勤确认}
+          - {mode: api, direction: out, bc: B-27, name: 读取到期未休补休}
           - {mode: api, direction: out, bc: B-13, name: 读取人员与法人}
         notify: [{to: SH-E6, how: 企业微信待办}]     # 已中止时才发
         decision:
@@ -1031,11 +1087,11 @@ event_policies:
         where: automatic
         command: 开立年度额度账户
         aggregate: AGG-71
-        desc: 对每名在职人员 × 占额度的假期类型开立该年度账户，应享按 AGG-118 当日生效规则版本计算（含上年结转；年中入职按规则折算）；取不到生效版本失败并告警，不回退默认值；已开账无操作
+        desc: 对每名在职人员 × 占额度的假期类型开立该年度账户，应享按 AGG-118 当日生效规则版本计算（含上年结转；年中入职按规则折算）；补休不在此开账：补休额度行由加班批准时计入（PRC-117），按补休有效期独立到期，不随日历年度开立、结转或清零；取不到生效版本失败并告警，不回退默认值；已开账无操作
         audit: true
         notify: [{to: SH-E3, how: 企业微信通知（本年度额度已开立）}]
         outcome: 年度账户已开立
-    notes: B-27 → B-13 订阅 Employed 的事件边需补登（vs13att.notes.md 接缝问题 2）。定时由 B-27 向 platform.scheduling 登记，到点调本 BC 命令，边 B-27 → platform.scheduling 按平台依赖登记（CONVENTIONS §5）。无人工审批。
+    notes: 补休额度独立于年度，不在本策略处理（结转与开账只对年度账户，补休额度行的到期转计薪见 PRC-117 第 6 步）。B-27 → B-13 订阅 Employed 的事件边需补登（vs13att.notes.md 接缝问题 2）。定时由 B-27 向 platform.scheduling 登记，到点调本 BC 命令，边 B-27 → platform.scheduling 按平台依赖登记（CONVENTIONS §5）。无人工审批。
 
 single_aggregate:
 

@@ -92,6 +92,7 @@ published:
   - {type: 事件策略, who: B-13 向差旅服务商同步员工与组织, used_by: PRC-177 触发器（同 BC）}
   - {type: 事件策略, who: B-31 离职生成归还待办, used_by: PRC-143C 触发器（b31.events 已列）}
   - {type: 事件策略, who: B-27 离职当月考勤默认确认, used_by: vs13att 事件策略「离职当月考勤默认确认」}
+  - {type: 事件策略, who: B-27 离职结算补休余额, used_by: vs13att 事件策略「离职结算补休余额」（PRC-117 第 7 步）；未休补休余额转计薪时长，随最后一期薪酬由 B-15 计发}
   - {type: 事件策略, who: B-13 离职生效后终止任职与劳动合同, used_by: PRC-128 第 8、9 步（同 BC）}
   note: 离职日结束才发（V-1），不在登记时提前发（PG-12）；订阅方清单与 b31.events.yaml、vs13att.events.yaml 一致，聚合稿 AGG-62 订阅方列需补 B-31、B-27
 - name: 离职登记已撤销

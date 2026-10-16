@@ -69,7 +69,7 @@ commands:
     R: [SH-E3]
   idempotency_key: 请假ID（客户端预生成 UUIDv7；同一 ID 重复提交返回已有结果）
   emits: （内部）
-  used_by: [PRC-116 第 2 步]
+  used_by: [PRC-116 第 2 步, PRC-117 第 5 步]
   orphan: false
 - name: 批准请假
   aggregate: AGG-70
@@ -149,10 +149,10 @@ commands:
   entity: leave_balance_holds
   kind: human
   source: 聚合稿 AGG 命令列
-  params: [员工ID, 假期类型, 年度, 占用时长（分钟）, 请假ID]
+  params: [员工ID, 假期类型, 年度（补休类无，改记所冲抵的补休额度行）, 占用时长（分钟）, 请假ID]
   preconditions:
   - {ref: INV-68, text: 占用后不得超过可用额度；政策允许透支的假期类型例外，例外进入人审（R-a）}
-  - {ref: 账户存在, text: 该人员 × 假期类型 × 年度账户已开账，否则失败并告警，不隐式开账}
+  - {ref: 账户存在, text: 该人员 × 假期类型 × 年度账户已开账，否则失败并告警，不隐式开账；假期类型为补休的不看年度账户，改按到期日先后冲抵该员工的补休额度行（有效且请假日不晚于到期日），无可冲抵的额度行即额度不足}
   - {ref: 读取, text: 按日拆分读工作日历（AGG-68）与标准工时版本（AGG-108），取不到当日生效版本失败（INV-116）}
   authority:
     ref: raci:AGG-71/占用余额
@@ -203,7 +203,7 @@ commands:
   params: [占用ID, 回冲时长（分钟）, 回冲原因（已批准后撤销 / 销假）]
   preconditions:
   - {ref: 状态, text: 占用行为已转用}
-  - {ref: 回冲上限, text: 回冲时长不超过该行已用时长；销假为未休完部分，撤销为全部}
+  - {ref: 回冲上限, text: 回冲时长不超过该行已用时长；销假为未休完部分，撤销为全部；补休类回冲回原补休额度行}
   authority:
     ref: raci:AGG-71/回冲已用额度
     A: {resolve: type, role: SH-E6, function: 人力（考勤）}
@@ -221,7 +221,7 @@ commands:
   params: [员工ID, 假期类型, 年度]
   preconditions:
   - {ref: INV-123, text: 按该假期类型当日生效的假期规则版本计算应享（含上年结转）；取不到生效版本失败并告警，不回退默认值}
-  - {ref: 唯一, text: 人员 × 假期类型 × 年度至多一个账户}
+  - {ref: 唯一, text: 人员 × 假期类型 × 年度至多一个账户；假期类型补休不开年度账户（补休额度行独立于年度，按有效期到期，见计入补休额度）}
   authority:
     ref: raci:AGG-71/开立年度额度账户
     A: {resolve: type, role: SH-E6, function: 人力（考勤）}
@@ -249,15 +249,75 @@ commands:
   emits: （内部）
   used_by: []
   orphan: false
+- name: 计入补休额度
+  aggregate: AGG-71
+  entity: leave_comp_grants
+  kind: automatic
+  name_status: 〔缺〕收敛新增，待 one-glossary 登记（credit_comp_leave_grant）
+  source: 用户页 P13-05（2026-10-16 审题）：休息日加班选补休，按加班时长给员工计补休额度；依据劳动法第四十四条
+  params: [加班ID, 员工ID, 额度时长（分钟，= 批准加班时长）, 到期日（= 加班日 + 补休有效期，U15）]
+  preconditions:
+  - {ref: 来源, text: 加班为已批准，补偿方式为补休，加班类型为休息日（法定节假日只能付薪）；工作日延时按现有补偿政策}
+  - {ref: 补休有效期, text: 取当日生效的假期规则版本（AGG-118）中假期类型补休的有效期长度（U15 待用户定）；取不到失败并告警，不回退默认值}
+  - {ref: 唯一, text: 一笔加班至多一条额度行，以加班 ID 幂等}
+  authority:
+    ref: raci:AGG-71/计入补休额度
+    A: {resolve: type, role: SH-E6, function: 人力（考勤）}
+    R: [system]
+  idempotency_key: 加班ID（已计入无操作）
+  state_change: 创建 → 有效
+  emits: （内部）
+  used_by: [PRC-117 第 4 步]
+  orphan: false
+- name: 补休到期转计薪
+  aggregate: AGG-71
+  entity: leave_comp_grants
+  kind: automatic
+  name_status: 〔缺〕收敛新增，待 one-glossary 登记（convert_expired_comp_leave_to_pay）
+  source: 用户页 P13-05；劳动法第四十四条（不能安排补休的支付不低于 200% 工资报酬）、工资支付暂行规定第十三条（以加班工资基数折算）
+  params: [补休额度行ID]
+  preconditions:
+  - {ref: 到期, text: 到期日届满；未休余额不作废，转为计薪时长并关闭额度行（余额为零时只关闭）}
+  - {ref: 占用, text: 额度行无占用中的补休请假，否则结局为转计薪待处理，告警人力，不改状态}
+  - {ref: 计发, text: 本命令不算钱；金额由 B-15 在 PRC-124 读取转计薪时长，按加班工资基数折算 200% 计发}
+  authority:
+    ref: raci:AGG-71/补休到期转计薪
+    A: {resolve: type, role: SH-E6, function: 人力（考勤）}
+    R: [system]
+  idempotency_key: 补休额度行ID（已转计薪或已休完无操作）
+  state_change: 有效 → 已转计薪（余额大于零）；有效 → 已休完（余额为零）
+  emits: （内部）
+  used_by: [PRC-117 第 6 步, 事件策略「补休额度到期转计薪」]
+  orphan: false
+- name: 离职结算补休余额
+  aggregate: AGG-71
+  entity: leave_comp_grants
+  kind: automatic
+  name_status: 〔缺〕收敛新增，待 one-glossary 登记（settle_comp_leave_on_separation）
+  source: 用户页 P13-05；离职时未休余额一并结算进最后一次薪酬
+  params: [员工ID, 离职日期]
+  preconditions:
+  - {ref: 触发, text: 离职生效后（Separated）；该员工全部有效额度行的未休余额转为计薪时长并关闭（余额为零的只关闭）}
+  - {ref: 占用, text: 额度行仍有无法释放的占用中请假的，该行结局为结算待处理，告警人力，其余额度行照常结算}
+  - {ref: 计发, text: 随最后一期薪酬由 B-15 在 PRC-124 读取，离职生效后由 B-15 处理；本命令不算钱}
+  authority:
+    ref: raci:AGG-71/离职结算补休余额
+    A: {resolve: type, role: SH-E6, function: 人力（考勤）}
+    R: [system]
+  idempotency_key: 员工ID + 离职日期（已结算无操作）
+  state_change: 有效 → 已转计薪 / 已休完
+  emits: （内部）
+  used_by: [PRC-117 第 7 步, 事件策略「离职结算补休余额」]
+  orphan: false
 # ───────── AGG-72 加班 ─────────
 - name: 加班申请
   aggregate: AGG-72
   entity: overtime_requests
   kind: human
   source: 聚合稿 AGG 命令列
-  params: [加班ID, 员工ID, 加班日期与时长, 加班类型（工作日延时 / 休息日 / 法定节假日）, 补偿方式（付薪 / 调休）, 登记人（员工本人或用人经理代登记）]
+  params: [加班ID, 员工ID, 加班日期与时长, 加班类型（工作日延时 / 休息日 / 法定节假日）, 补偿方式（付薪 / 补休）, 登记人（员工本人或用人经理代登记）]
   preconditions:
-  - {ref: R-c, text: 补登不超过允许期限；加班时段与已批准请假重叠则拒绝；补偿方式按加班日类型由规则定（法定节假日只能付薪）；当月累计超 36 小时只预警留痕不拦截（期限待 U5）}
+  - {ref: R-c, text: 补登不超过允许期限；加班时段与已批准请假重叠则拒绝；补偿方式按加班日类型由规则限定（法定节假日只能付薪；休息日可选付薪或补休；工作日延时按现有补偿政策，口径不变）；当月累计超 36 小时只预警留痕不拦截（期限待 U5）}
   authority:
     ref: raci:AGG-72/加班申请
     A: {resolve: instance, field: 员工}
@@ -308,7 +368,7 @@ commands:
   source: 聚合稿 AGG 命令列
   params: [加班ID, 月度考勤确认ID]
   preconditions:
-  - {ref: 状态, text: 加班为已批准}
+  - {ref: 状态, text: 加班为已批准，且补偿方式为付薪（补偿方式为补休的由计入补休额度时标已计入补休额度，不走本命令）}
   authority:
     ref: raci:AGG-72/标记加班已补偿
     A: {resolve: type, role: SH-E6, function: 人力（考勤）}
@@ -316,6 +376,24 @@ commands:
   idempotency_key: 加班ID（已补偿无操作）
   emits: 加班已补偿
   used_by: [PRC-118 第 3 步]
+  orphan: false
+- name: 标记加班已计补休
+  aggregate: AGG-72
+  entity: overtime_requests
+  kind: automatic
+  name_status: 〔缺〕收敛新增，待 one-glossary 登记（mark_overtime_credited_to_comp_leave）
+  source: 用户页 P13-05；vs13att.notes.md 结构问题 5 的落地
+  params: [加班ID, 补休额度行ID]
+  preconditions:
+  - {ref: 状态, text: 加班为已批准，补偿方式为补休，且已计入补休额度}
+  authority:
+    ref: raci:AGG-72/标记加班已计补休
+    A: {resolve: type, role: SH-E6, function: 人力（考勤）}
+    R: [system]
+  idempotency_key: 加班ID（已计入无操作）
+  state_change: 已批准 → 已计入补休额度
+  emits: （内部）
+  used_by: [PRC-117 第 4 步 inner]
   orphan: false
 # ───────── AGG-97 月度考勤确认 ─────────
 - name: 生成月度考勤
@@ -510,11 +588,11 @@ event_policies:
   note: 加班日考勤迟迟未导入时保持已申请，导入失败的告警走 PRC-115
 - name: 月度考勤确认后标记加班补偿
   trigger_event: 月度考勤已确认（本 BC 内）
-  effect: 把该员工该月汇入的已批准加班标记为已补偿
+  effect: 把该员工该月汇入的、补偿方式为付薪的已批准加班标记为已补偿
   uses_command: 标记加班已补偿
   used_by: [PRC-118 第 3 步]
   rules: []
-  note: 补偿方式为调休的加班「已补偿」应以调休请假冲抵为准，见 vs13att.notes.md 结构问题 5
+  note: 补偿方式为补休的加班不走本策略，计入补休额度时已标已计入补休额度（vs13att.notes.md 结构问题 5 已解）
 - name: 月末生成月度考勤
   trigger_event: 定时：月末（platform.scheduling）；人力在导入修复后重新发起
   effect: 对当月在职与当月离职人员逐人生成月度考勤
@@ -549,7 +627,21 @@ event_policies:
   uses_command: 开立年度额度账户
   used_by: [PRC-160（定时与入职生效触发）；PRC-116 第 1 步前提（账户须存在）]
   rules: [INV-123]
-  note: 订阅 Employed 的边 B-27 → B-13 需补登；年中入职的应享折算归 AGG-118 规则
+  note: 订阅 Employed 的边 B-27 → B-13 需补登；年中入职的应享折算归 AGG-118 规则；不含补休（补休额度行独立于年度）
+- name: 补休额度到期转计薪
+  trigger_event: 定时：补休额度行到期日（platform.scheduling；幂等键 = 额度行 ID + 到期日）
+  effect: 额度行有未休余额则转为计薪时长并关闭，余额为零则只关闭；占用中的补休请假未处理时转计薪待处理，下次定时再转
+  uses_command: 补休到期转计薪
+  used_by: [PRC-117 第 6 步]
+  rules: []
+  note: 不作废：单位无「已安排」证据时不得以员工未休为由作废（劳动法第四十四条原意是单位安排补休）；到期前的提醒是 PRC-117 第 5 步的非中断计时，不是策略
+- name: 离职结算补休余额
+  trigger_event: Separated（B-13 发布，vs07 PRC-128 第 7 步）
+  effect: 该员工全部有效补休额度行的未休余额转为计薪时长并关闭
+  uses_command: 离职结算补休余额
+  used_by: [PRC-117 第 7 步（B-27 订阅）]
+  rules: []
+  note: 与「离职当月考勤默认确认」同订阅 Separated，同一条 B-27 → B-13 事件边（vs13att.notes.md 接缝问题 1）；最后一期薪酬由 B-15 读取转计薪时长
 removed:
 - {name: 代员工确认, from: 分片 vs13.notes.md 新用语（已取消）, reason: 用户新原则：月度考勤期满默认确认并自动锁定，人力不再代确认, action: 由默认确认月度考勤取代；已登记交 one-glossary 的请撤回}
 orphans:

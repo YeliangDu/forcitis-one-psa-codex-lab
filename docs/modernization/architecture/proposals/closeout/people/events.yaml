@@ -171,6 +171,9 @@ by_part:
         who: B-27 离职当月考勤默认确认
         used_by: vs13att 事件策略「离职当月考勤默认确认」
       - type: 事件策略
+        who: B-27 离职结算补休余额
+        used_by: vs13att 事件策略「离职结算补休余额」（PRC-117 第 7 步）；未休补休余额转计薪时长，随最后一期薪酬由 B-15 计发
+      - type: 事件策略
         who: B-13 离职生效后终止任职与劳动合同
         used_by: PRC-128 第 8、9 步（同 BC）
       note: 离职日结束才发（V-1），不在登记时提前发（PG-12）；订阅方清单与 b31.events.yaml、vs13att.events.yaml 一致，聚合稿 AGG-62 订阅方列需补 B-31、B-27
@@ -306,7 +309,7 @@ by_part:
       - 补偿方式码
       subscribers:
       - type: 仅分析
-      note: 聚合稿写「同 BC：AGG-97 汇入当月」，PRC-118 实为生成时读取（api），不订阅
+      note: 聚合稿写「同 BC：AGG-97 汇入当月」，PRC-118 实为生成时读取（api），不订阅；补偿方式为补休的由 PRC-117 第 2 步判断后接第 4 步计入补休额度（同流程接续，不靠订阅）
     - name: 加班已补偿
       published_by: AGG-72
       by_command: 标记加班已补偿
@@ -317,7 +320,7 @@ by_part:
       - 月度考勤确认ID
       subscribers:
       - type: 仅分析
-      note: 加班费计入薪酬由 B-15 经 api 读取月度考勤，不订阅此事件
+      note: 加班费计入薪酬由 B-15 经 api 读取月度考勤，不订阅此事件；只发于补偿方式为付薪的加班，补休的不发（改标已计入补休额度，补偿追踪在 AGG-71 额度行）
     - name: 月度考勤已确认
       published_by: AGG-97
       by_command: 员工确认 / 默认确认月度考勤
@@ -404,8 +407,10 @@ by_part:
       from: B-13
       handled_by:
       - 事件策略「离职当月考勤默认确认」→ 默认确认月度考勤
+      - 事件策略「离职结算补休余额」→ 离职结算补休余额
       used_by:
       - PRC-128 第 7 步（vs07）
+      - PRC-117 第 7 步
       note: B-27 订阅 B-13 的边及 B-13 事件的订阅方清单需补登（vs07 接缝问题 1）
     - name: Employed
       from: B-13
@@ -779,7 +784,9 @@ by_part:
       - 申请人ID
       - 批准份数
       - 审批实例ID
+      - 来源审批实例ID
       - 批准时间
+      note: 来源审批校验通过的申请由提交用印申请直接置已批准时同样发布（审批实例ID 为空，来源审批实例ID 有值）
       subscribers:
       - type: 仅分析
     - name: 已用印

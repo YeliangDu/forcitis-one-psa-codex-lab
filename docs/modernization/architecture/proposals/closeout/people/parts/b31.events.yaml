@@ -7,7 +7,8 @@ published:
 - name: 用印申请已批准
   published_by: AGG-113
   by_command: 批准用印申请
-  payload: [用印申请ID, 印章类别码, 用印法人ID, 申请人ID, 批准份数, 审批实例ID, 批准时间]
+  payload: [用印申请ID, 印章类别码, 用印法人ID, 申请人ID, 批准份数, 审批实例ID, 来源审批实例ID, 批准时间]
+  note: 来源审批校验通过的申请由提交用印申请直接置已批准时同样发布（审批实例ID 为空，来源审批实例ID 有值）
   subscribers:
   - {type: 仅分析}
 - name: 已用印

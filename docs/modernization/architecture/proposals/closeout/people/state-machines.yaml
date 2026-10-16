@@ -677,6 +677,7 @@ machines:
   sub_machines:
   - leave_balance_account
   - leave_balance_hold
+  - leave_comp_grant
   states:
   - leave_balance_account:已开账
   - name: leave_balance_account:已结转
@@ -684,6 +685,11 @@ machines:
   - leave_balance_hold:占用
   - leave_balance_hold:已转用
   - name: leave_balance_hold:已释放
+    terminal: true
+  - leave_comp_grant:有效
+  - name: leave_comp_grant:已转计薪
+    terminal: true
+  - name: leave_comp_grant:已休完
     terminal: true
   transitions:
   - from: null
@@ -756,16 +762,84 @@ machines:
     guard:
     - 销假：未休完部分回冲
     kind: reverse
+  - from: null
+    to: leave_comp_grant:有效
+    command: 计入补休额度
+    guard:
+    - 加班已批准且补偿方式为补休
+    - 休息日加班
+    - 补休有效期取得到
+    kind: forward
+  - from: leave_comp_grant:有效
+    to: leave_comp_grant:有效
+    command: 占用余额
+    guard:
+    - INV-68：补休类按到期日先后冲抵
+    - 请假日不晚于到期日
+    kind: forward
+    effect: 占用 +
+  - from: leave_comp_grant:有效
+    to: leave_comp_grant:有效
+    command: 批准转已用
+    guard: []
+    kind: forward
+    effect: 占用 −，已用 +
+  - from: leave_comp_grant:有效
+    to: leave_comp_grant:有效
+    command: 释放余额占用
+    guard: []
+    kind: reverse
+    effect: 占用 −
+  - from: leave_comp_grant:有效
+    to: leave_comp_grant:有效
+    command: 回冲已用额度
+    guard:
+    - 回冲不超已用
+    - 回冲回原额度行
+    kind: reverse
+    effect: 已用 −
+  - from: leave_comp_grant:有效
+    to: leave_comp_grant:已转计薪
+    command: 补休到期转计薪
+    guard:
+    - 到期日届满
+    - 未休余额大于零
+    - 无占用中的补休请假
+    kind: forward
+  - from: leave_comp_grant:有效
+    to: leave_comp_grant:已休完
+    command: 补休到期转计薪
+    guard:
+    - 到期日届满
+    - 未休余额为零
+    kind: forward
+  - from: leave_comp_grant:有效
+    to: leave_comp_grant:已转计薪
+    command: 离职结算补休余额
+    guard:
+    - 离职生效后
+    - 未休余额大于零
+    - 无法释放的占用中请假已处理
+    kind: forward
+  - from: leave_comp_grant:有效
+    to: leave_comp_grant:已休完
+    command: 离职结算补休余额
+    guard:
+    - 离职生效后
+    - 未休余额为零
+    kind: forward
   source_part: vs13att
   note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
 - aggregate: AGG-72
   machine: overtime_request
   entity: overtime_requests
-  note: 登记即创建（无草稿）；批准由系统以打卡核实代替人工；登记后无撤销命令（见 vs13att.notes.md 结构问题 4）
+  note: 登记即创建（无草稿）；批准由系统以打卡核实代替人工；登记后无撤销命令（见 vs13att.notes.md 结构问题 4）；付薪的随月度考勤确认标已补偿，补休的在计入补休额度时标已计入补休额度，之后补偿追踪转到 AGG-71 额度行（补休到期转计薪、休完）
   states:
   - 已申请
   - 已批准
   - name: 已补偿
+    terminal: true
+  - name: 已计入补休额度
     terminal: true
   - name: 已驳回
     terminal: true
@@ -794,6 +868,14 @@ machines:
     command: 标记加班已补偿
     guard:
     - 月度考勤已确认
+    - 补偿方式为付薪
+    kind: forward
+  - from: 已批准
+    to: 已计入补休额度
+    command: 标记加班已计补休
+    guard:
+    - 补偿方式为补休
+    - 已计入补休额度
     kind: forward
   source_part: vs13att
 - aggregate: AGG-97
@@ -1687,7 +1769,7 @@ machines:
 - aggregate: AGG-113
   machine: seal_application
   entity: seal_applications
-  note: 草稿来自编辑页保存或迁入（在途清不完以草稿迁入）；保存草稿是编辑页行为，不是领域命令
+  note: 草稿来自编辑页保存或迁入（在途清不完以草稿迁入）；有已批准来源单据的申请由提交用印申请直接置已批准（S-40，规则核对来源审批实例）；保存草稿是编辑页行为，不是领域命令
   states:
   - 草稿
   - 审批中
@@ -1706,6 +1788,14 @@ machines:
     command: 提交用印申请
     guard:
     - R-B31-1
+    - R-B31-12：无来源单据
+    kind: forward
+  - from: 草稿
+    to: 已批准
+    command: 提交用印申请
+    guard:
+    - R-B31-1
+    - R-B31-12：来源审批实例已通过且份数不超审批载荷份数，不设人审
     kind: forward
   - from: 审批中
     to: 已批准
@@ -1713,6 +1803,7 @@ machines:
     guard:
     - AR-11
     - AR-12
+    - pending B31-1：授权委托书与无来源单据的公章、法定代表人名章加总经理一级
     kind: forward
   - from: 审批中
     to: 已驳回

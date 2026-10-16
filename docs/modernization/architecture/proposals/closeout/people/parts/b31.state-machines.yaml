@@ -10,17 +10,22 @@ machines:
   states: [草稿, 审批中, 已批准, 已用印, 已关闭, 已驳回, 已撤回]
   initial: [草稿]
   terminal: [已关闭, 已驳回, 已撤回]
-  note: 草稿来自编辑页保存或迁入（在途清不完以草稿迁入）；保存草稿是编辑页行为，不是领域命令
+  note: 草稿来自编辑页保存或迁入（在途清不完以草稿迁入）；有已批准来源单据的申请由提交用印申请直接置已批准（S-40，规则核对来源审批实例）；保存草稿是编辑页行为，不是领域命令
   transitions:
   - from: 草稿
     to: 审批中
     command: 提交用印申请
-    guard: [R-B31-1]
+    guard: [R-B31-1, R-B31-12：无来源单据]
+    kind: forward
+  - from: 草稿
+    to: 已批准
+    command: 提交用印申请
+    guard: [R-B31-1, R-B31-12：来源审批实例已通过且份数不超审批载荷份数，不设人审]
     kind: forward
   - from: 审批中
     to: 已批准
     command: 批准用印申请
-    guard: [AR-11, AR-12]
+    guard: [AR-11, AR-12, pending B31-1：授权委托书与无来源单据的公章、法定代表人名章加总经理一级]
     kind: forward
   - from: 审批中
     to: 已驳回

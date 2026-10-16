@@ -42,6 +42,7 @@
 | 调整缴费基数 | adjust_contribution_base | 领域 | organization.payroll | AGG-74 命令，S-32 新增；年度追加新版本 |
 | 登记绩效更正 | register_performance_correction | 领域 | organization.workforce | AGG-106 命令，S-32 新增；追加更正记录引用原评估（INV-114）；使用范围领域，bc 为 B-13 |
 | 已批准（激励方案版本状态） | approved | 领域 | organization.payroll | AGG-75 状态，审批通过但生效日期未到；与「已生效」区分 |
+| 加班工资基数 | overtime_pay_base | 领域 | organization.payroll | 加班费与补休转计薪的折算基数（工资支付暂行规定第十三条），取薪酬档案；具体取哪些薪酬项由人力与财务给出现行制度，列入「薪酬计算口径参数」（b15data 待用户定第 6 项）；P13-05 新增 |
 
 已在分片登记、本稿沿用的命令与事件：草拟奖金核定、退回薪酬重算、驳回奖金核定、发布薪酬规则版本、薪酬规则已生效。其余命令事件取自聚合稿，不重复登记。事件策略名（评估确认生成奖金草案、月度考勤锁定后计算薪酬等）是目录内的描述性名称，不进代码，不登记。
 

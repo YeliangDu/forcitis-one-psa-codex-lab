@@ -956,6 +956,53 @@ entries:
     I: []
   sensitive: false
   source_part: vs13att
+- object: AGG-71
+  command: 计入补休额度
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+    - SH-E1
+  sensitive: false
+  note: 加班批准后由规则自动执行；有效期长度待 U15；员工与直属上级知晓额度与到期日
+  source_part: vs13att
+- object: AGG-71
+  command: 补休到期转计薪
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+    C: []
+    I:
+    - SH-E3
+    - SH-E6
+  sensitive: false
+  note: 定时规则自动执行，不作废；转计薪待处理时告警人力；计发金额归 B-15（PRC-124）
+  source_part: vs13att
+- object: AGG-71
+  command: 离职结算补休余额
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+    C: []
+    I:
+    - SH-E6
+  sensitive: false
+  note: 订阅 Separated 的规则自动执行；占用中请假释放不了的告警人力；计发归 B-15（PRC-124）
+  source_part: vs13att
 - object: AGG-72
   command: 加班申请
   raci:
@@ -970,7 +1017,7 @@ entries:
     - SH-E1
     - SH-E6
   boundary:
-    limit_rule: R-c（补登期限、与已批准请假重叠拒绝；月累计超 36 小时只预警知会人力，不拦截；待 U5）
+    limit_rule: R-c（补登期限、与已批准请假重叠拒绝；补偿方式按加班日类型限定：法定节假日只付薪、休息日付薪或补休；月累计超 36 小时只预警知会人力，不拦截；待 U5）
   sensitive: false
   note: 用人经理可代员工登记（R 含 SH-E1）；人力仅在超 36 小时时收到知会
   source_part: vs13att
@@ -1018,6 +1065,20 @@ entries:
     C: []
     I: []
   sensitive: false
+  source_part: vs13att
+- object: AGG-72
+  command: 标记加班已计补休
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人力（考勤）
+    R:
+    - system
+    C: []
+    I: []
+  sensitive: false
+  note: 计入补休额度的同一事务内规则自动执行
   source_part: vs13att
 - object: AGG-97
   command: 生成月度考勤
@@ -2144,6 +2205,7 @@ entries:
     C: []
     I: []
   sensitive: false
+  note: 有已批准来源单据的，系统经 platform.approval 校验来源审批实例已通过、份数不超审批载荷，通过则直接置已批准，该路径无人审批（规则核对，S-40）；校验不过则拒绝并告诉申请人原因
   source_part: b31
 - object: AGG-113
   command: 批准用印申请
@@ -2159,7 +2221,7 @@ entries:
     - SH-E3
   boundary:
     limit_rule: （无金额限额）
-    pending: 'B31-1：是否按印章类别加一级（需新增 guard: approval 规则）'
+    pending: 'B31-1：授权委托书，以及公章、法定代表人名章用于无来源单据的，加一级由总经理批（需新增 guard: approval 规则，规则号待 one-architecture 给）'
     segregation:
     - 提交人 ≠ A
     delegate:
@@ -2172,6 +2234,7 @@ entries:
   approval:
     approver: cost_object_owner
     doc_type: 用印审批
+  note: 仅无来源单据的申请有此审批；有已批准来源单据的走规则核对，不进审批
   source_part: b31
 - object: AGG-113
   command: 驳回用印申请

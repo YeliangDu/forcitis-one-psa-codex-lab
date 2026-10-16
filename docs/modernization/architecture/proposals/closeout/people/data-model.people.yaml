@@ -486,8 +486,20 @@
       versioned: none
       history_migration: none
       sensitivity: INTERNAL
-      column_families: [占用时长, 占用状态（占用 / 已转用 / 已释放）, 占用方单据引用, 占用时间]
+      column_families: [占用时长, 占用状态（占用 / 已转用 / 已释放）, 占用方单据引用, 占用时间, 补休额度行引用（补休类请假所冲抵的额度行，可空）]
       reason: "额度占用模式：占用行在额度聚合内；history_migration none：迁入请假为终态，不留在途占用，在途请假按 ADR-0036 第 5 条处理；PI 标记：PI"
+    - name: leave_comp_grants
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-72, by: overtime_request_id}
+        - {to: AGG-62, by: employee_id, cross_bc: true}
+        - {to: AGG-118, by: leave_type_id}
+      versioned: none
+      history_migration: none
+      sensitivity: INTERNAL
+      column_families: [员工, 加班单引用, 额度时长（分钟）, 到期日, 已用, 占用, 状态（有效 / 已转计薪 / 已休完）, 转计薪时长与转计薪日期, 转计薪原因（到期 / 离职）, 乐观锁]
+      reason: "补休额度行（P13-05）：一笔休息日加班选补休产生一行，独立于年度账户；行内计数器同 leave_balance_accounts 是可重算投影，状态由审计还原故 versioned none；history_migration none：迁入的历史调休余额是否迁为额度行待取证，不凭推测；B-15 经 api 读取转计薪时长（不含金额）；PI 标记：PI，访问级别 INTERNAL"
 
 - aggregate: AGG-72
   bc: B-27
@@ -500,7 +512,7 @@
       versioned: none
       history_migration: full
       sensitivity: INTERNAL
-      column_families: [加班单号, 员工, 加班日期与时长, 加班类型（工作日延时 / 休息日 / 法定节假日）, 补偿方式（付薪 / 调休）, 状态（申请 → 批准 → 已补偿）, 审批流程引用, 乐观锁]
+      column_families: [加班单号, 员工, 加班日期与时长, 加班类型（工作日延时 / 休息日 / 法定节假日）, 补偿方式（付薪 / 补休）, 状态（申请 → 批准 → 已补偿 / 已计入补休额度，补休的补偿追踪在 leave_comp_grants）, 审批流程引用, 乐观锁]
       reason: "versioned none：状态由审计还原；history_migration full：来源待取证（老系统加班申请表单未核；认定以考勤与审批为准，工时超日标准不自动生成加班，Q16）；PI 标记：PI，访问级别 INTERNAL"
 
 - aggregate: AGG-97
@@ -548,7 +560,7 @@
       versioned: none
       history_migration: full
       sensitivity: INTERNAL
-      column_families: [假期类型码, 名称, 是否占额度, 是否带薪, 是否按小时]
+      column_families: [假期类型码, 名称, 是否占额度, 是否带薪, 是否按小时, 是否按年度开账（补休否）]
       reason: "受控代码表，versioned none 的依据是只由迁移维护（D17 第一类），若业务要在线增改须改版本化，待 one-data；聚合稿无此聚合，见 NOTES 结构问题；来源：旧假期类型只经映射；PI 标记：NONE"
     - name: leave_entitlement_rule_versions
       role: version
@@ -558,7 +570,7 @@
       versioned: effective_dated
       history_migration: none
       sensitivity: INTERNAL
-      column_families: [生效区间, 确认人与确认时间, 依据引用 decision_ref, 城市类别, 年度应享规则（如年休假按工龄档）, 结转与清零规则]
+      column_families: [生效区间, 确认人与确认时间, 依据引用 decision_ref, 城市类别, 年度应享规则（如年休假按工龄档）, 结转与清零规则, 补休有效期长度（假期类型补休用，U15 待用户定）]
       reason: "配置型（D15）：额度按城市类别配置（信息图 OBJ-68），不追溯；history_migration none：新系统首版按现行制度录入，旧额度规则取证待 one-data；PI 标记：NONE"
 
 # ---- 合并自 parts/b15data.data-model.yaml ----
@@ -1045,8 +1057,8 @@
       history_migration: full
       sensitivity: INTERNAL
       pi: none
-      column_families: [来源单据类型, 来源单据ID]
-      reason: "来源业务单据（B-03 / B-05 等）按不校验只记类型加 ID，不建引用、不查状态，避免 B-31 落到收入链下游（聚合稿回补 §1）；迁入时 A8 的报价用印关联取得方式待取证（盘点说明：报价用印登记与老系统报价同步相关）；versioned none：随申请单"
+      column_families: [来源单据类型, 来源审批实例ID, 来源载荷份数（提交时取自审批载荷的快照）]
+      reason: "来源单据（合同、报价等）记其审批实例 ID 而非业务单据 ID：提交时经既有边 B-31 → platform.approval 校验实例已通过、份数取自审批载荷，不加 B-31 → B-03 / B-05 等业务边（S-40）；来源审批实例ID 为类型化 ID，不建外键；迁入时 A8 的报价用印关联取得方式待取证，取不到审批实例的历史行来源审批实例ID 留空并标「迁入无实例」（盘点说明：报价用印登记与老系统报价同步相关）；versioned none：随申请单"
     - name: seal_usage_records
       role: child
       key: uuid_v7

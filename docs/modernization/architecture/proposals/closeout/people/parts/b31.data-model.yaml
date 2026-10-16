@@ -1,7 +1,7 @@
 # 表级数据模型 · B-31 organization.administration（行政事务，S-09，intent 2026-10-16-152807）
 # 格式以 closeout/CONVENTIONS.md §3 为准（含 pi 字段）；聚合 AGG-113–116 来自 NOTES「聚合稿回补」第 1 节。
 # 通用口径：审批只存审批实例 ID（approval_instance_id，类型化 ID，不建外键），审批过程在 platform.approval；
-#   来源业务单据（报价、合同等）按「不校验」只记类型加 ID；迁入来源 A8 行政表单（未取证，写「待取证」，A8 早于投产日停用 C-7；
+#   来源单据（合同、报价等）记其审批实例 ID，经 platform.approval 校验已通过（S-40）；迁入来源 A8 行政表单（未取证，写「待取证」，A8 早于投产日停用 C-7；
 #   在途单据按 ADR-0036 第 5 条 / U-4：切换前清空，清不完以草稿迁入并沿用原编号）；
 #   单据类表 versioned 写 none 的依据是「单一状态且审计能完整还原」（D17 第四类，待 one-data 复核）。
 
@@ -40,8 +40,8 @@
       history_migration: full
       sensitivity: INTERNAL
       pi: none
-      column_families: [来源单据类型, 来源单据ID]
-      reason: "来源业务单据（B-03 / B-05 等）按不校验只记类型加 ID，不建引用、不查状态，避免 B-31 落到收入链下游（聚合稿回补 §1）；迁入时 A8 的报价用印关联取得方式待取证（盘点说明：报价用印登记与老系统报价同步相关）；versioned none：随申请单"
+      column_families: [来源单据类型, 来源审批实例ID, 来源载荷份数（提交时取自审批载荷的快照）]
+      reason: "来源单据（合同、报价等）记其审批实例 ID 而非业务单据 ID：提交时经既有边 B-31 → platform.approval 校验实例已通过、份数取自审批载荷，不加 B-31 → B-03 / B-05 等业务边（S-40）；来源审批实例ID 为类型化 ID，不建外键；迁入时 A8 的报价用印关联取得方式待取证，取不到审批实例的历史行来源审批实例ID 留空并标「迁入无实例」（盘点说明：报价用印登记与老系统报价同步相关）；versioned none：随申请单"
     - name: seal_usage_records
       role: child
       key: uuid_v7

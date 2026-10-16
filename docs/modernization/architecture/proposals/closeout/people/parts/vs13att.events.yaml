@@ -31,14 +31,14 @@ published:
   payload: [加班ID, 员工ID, 加班日期, 批准时长（分钟）, 加班类型码, 补偿方式码]
   subscribers:
   - {type: 仅分析}
-  note: 聚合稿写「同 BC：AGG-97 汇入当月」，PRC-118 实为生成时读取（api），不订阅
+  note: 聚合稿写「同 BC：AGG-97 汇入当月」，PRC-118 实为生成时读取（api），不订阅；补偿方式为补休的由 PRC-117 第 2 步判断后接第 4 步计入补休额度（同流程接续，不靠订阅）
 - name: 加班已补偿
   published_by: AGG-72
   by_command: 标记加班已补偿
   payload: [加班ID, 员工ID, 补偿方式码, 月度考勤确认ID]
   subscribers:
   - {type: 仅分析}
-  note: 加班费计入薪酬由 B-15 经 api 读取月度考勤，不订阅此事件
+  note: 加班费计入薪酬由 B-15 经 api 读取月度考勤，不订阅此事件；只发于补偿方式为付薪的加班，补休的不发（改标已计入补休额度，补偿追踪在 AGG-71 额度行）
 - name: 月度考勤已确认
   published_by: AGG-97
   by_command: 员工确认 / 默认确认月度考勤
@@ -90,8 +90,8 @@ consumed:
   note: 事件名由 platform.approval 事件目录定，本稿不自造
 - name: Separated
   from: B-13
-  handled_by: [事件策略「离职当月考勤默认确认」→ 默认确认月度考勤]
-  used_by: [PRC-128 第 7 步（vs07）]
+  handled_by: [事件策略「离职当月考勤默认确认」→ 默认确认月度考勤, 事件策略「离职结算补休余额」→ 离职结算补休余额]
+  used_by: [PRC-128 第 7 步（vs07）, PRC-117 第 7 步]
   note: B-27 订阅 B-13 的边及 B-13 事件的订阅方清单需补登（vs07 接缝问题 1）
 - name: Employed
   from: B-13

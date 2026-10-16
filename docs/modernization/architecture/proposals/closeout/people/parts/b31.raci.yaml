@@ -1,6 +1,6 @@
 # B-31 权责对照条目（收敛产物，提议稿；格式依 closeout/RESPONSIBILITY_MATRIX_SPEC.md 第 A 节）
 # 口径：每个「对象×命令」恰一个 A。审批类命令（批准用印申请、批准 IT 需求、批准领用、批准员工活动申请）A = 实例级 cost_object_owner
-#   （申请人 / 提出人所在组织单元的负责人），与 b31.processes.yaml 骨架 approval.approver 一致，escalation_rules 对应 boundary.delegate=AR-11、escalate=AR-12。
+#   （申请人 / 提出人所在组织单元的负责人；批准用印申请仅无来源单据的申请有人审），与 b31.processes.yaml 骨架 approval.approver 一致，escalation_rules 对应 boundary.delegate=AR-11、escalate=AR-12。
 #   驳回类命令是审批人决定的回调落地，A 同批准，R=platform.approval。非审批命令 A 取发起或执行方（A 持发令权，不持审批权）。
 #   本组无命令属 ADR-0032 敏感权限（sensitive 全 false，待 one-rules / 安全复核）。岗位到人的映射待岗位体系重梳（ADR-0029 搁置），roles 只记 org_needs。
 
@@ -13,6 +13,7 @@ entries:
     C: []
     I: []
   sensitive: false
+  note: 有已批准来源单据的，系统经 platform.approval 校验来源审批实例已通过、份数不超审批载荷，通过则直接置已批准，该路径无人审批（规则核对，S-40）；校验不过则拒绝并告诉申请人原因
 - object: AGG-113
   command: 批准用印申请
   raci:
@@ -22,12 +23,13 @@ entries:
     I: [SH-E3]
   boundary:
     limit_rule: （无金额限额）
-    pending: 'B31-1：是否按印章类别加一级（需新增 guard: approval 规则）'
+    pending: 'B31-1：授权委托书，以及公章、法定代表人名章用于无来源单据的，加一级由总经理批（需新增 guard: approval 规则，规则号待 one-architecture 给）'
     segregation: [提交人 ≠ A]
     delegate: {when: AR-11, to: 汇报线上级}
     escalate: {when: AR-12, to: 上级组织负责人}
   sensitive: false
   approval: {approver: cost_object_owner, doc_type: 用印审批}
+  note: 仅无来源单据的申请有此审批；有已批准来源单据的走规则核对，不进审批
 - object: AGG-113
   command: 驳回用印申请
   raci:
