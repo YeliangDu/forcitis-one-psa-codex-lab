@@ -110,6 +110,8 @@ B 部分（one-1a-next-4）允许改动：
   - **守护锁定**（三层）：① 上述 `AuditDetailGuardTest`（拼接点禁字）；② 新增 `AuditWritePointsGuardTest`（沿 `ApplicationIntegrationTest` 对 `public-endpoints.txt` 的双向快照办法）：`src/main` 中 `new AuditEntry(` 与 `withChange(` 的调用点文件集合（35 个）须与新建 `backend/architecture/audit-text-writers.txt`（`<路径> | <本表行号> | <个人信息：否\|代理键\|可能\|PI>`）逐行一致，新增写入点必须登记其所属行；③ 测试（`TB-01 …` 开头；与 `LoginAuditDetailTest` 重复故不另建 `LoginAuditDetailIT`，并入 `SsoLoginIntegrationTest`、`WecomLoginIntegrationTest`、`AuditSearchDescribeTest`）：登录成功、失败、拒绝访问后 `detail` 不含 `address=`、`agent=`、IP 串、登录名，`source_address` 有值；检索与导出审计 `detail` 不含 `sourceAddress=`。
   - **拿不准的点**（请 one-data 裁）：(1) 到期日 2026-12-31 只是建议；`AuditDetailGuardTest` 需要「当天」，`TimeSourceGuardTest` 的规则只约束 main 类，测试可用固定 `Clock`，但是否允许测试读系统日期请 one-quality 确认。(2) 第 12、13、14 行是本次读代码新发现的直接标识写入，ADR-0043 第 4 项第 5 条只列三处，是否并入本条或另起条目，请裁。(3) 第 11 行哈希前 8 位按「允许」写的，属判断。(4) 第 17 行 `ReleaseSyncRun` 的人填原因无长度限制，超 2000 字时审计构造抛异常发生在放行之后，建议在 `ReleaseSyncRun` 入口限 1 至 200 字（与 `ForceUserLogout` 一致），本卡未列此改法，请裁是否加。
 
+- RULING-DR-TB01-1（one-1a-next-4，2026-10-16）：用户答 U-7b「改写员工 ID，阅读时再解析姓名」后，运维命令 `--operator`、`--witness` 入参改为员工 ID；5 个验收文件中这两个参数的取值随之机械改为员工 ID，断言未动。
+
 #### TB-02　IR-1　高（OV 确认）　整份应答正文落库 24 小时，无分级、无内容边界、无长度上限
 - 问题：`IdempotencyFilter` 对所有非 `/sessions`、`/login-states` 的 POST 保存完整应答正文（黑名单），`response_text` 是任意接口应答副本；`data-classification.txt` 无该列。
 - 证据：TS `IdempotencyFilter.java:113-125`（`ContentCachingResponseWrapper` 全量读取，:122-123）；`IdempotencyScope.java`；迁移 `:12,:28`；OV：当前未发现返回密钥或 `SENSITIVE` 列的 POST（审计导出是 GET），属前向风险。
