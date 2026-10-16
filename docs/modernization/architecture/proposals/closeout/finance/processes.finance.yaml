@@ -141,6 +141,7 @@ processes:
     audit: true
     legal_entity: 承担法人
   notes: 转费用不依赖收入确认时点，INV-88 不是前置。
+  stages_note: '事件策略按触发状态归段（#421）：商机已丢单、已放弃=OBJ-18「丢单 / 放弃」，是 VS-01.2 退出条件；超期未签约的定时触发无对象状态，随同一策略归 VS-01.2。'
 - id: PRC-25
   name: 转入售前投入
   type: event_policy
@@ -334,13 +335,13 @@ processes:
     audit: true
     legal_entity: 承担法人
   notes: 触发语义为合同签回且项目已建立两者齐备，赢单不转入（intent 120544 P-2，C-53）。立项后回签前的投入按 A7 先挂合同履约成本；超 N 个月未签约转费用见 PRC-15。
+  stages_note: '事件策略按触发状态归段（#421）：项目已建立=OBJ-29「已立项」，是 VS-02.0 退出条件；合同已签回（ContractSigned）=OBJ-05「已签署生效」，是 VS-04.1 退出条件。两段在不同价值流，是按触发状态跨价值流归两段，不是跳段。触发名用事件名而非状态原文，检查器因此匹配不上。'
 - id: PRC-35
   name: 项目或协议终止、结项后清算成本
   type: event_policy
   owner_bc: B-07
   stages:
   - VS-02.7
-  - VS-04.5
   triggers:
   - type: event
     name: 项目已终止
@@ -356,10 +357,6 @@ processes:
     entry: 1
   - type: event
     name: 协议已终止
-    bc: B-05
-    entry: 1
-  - type: event
-    name: 协议已结算
     bc: B-05
     entry: 1
   - type: event
@@ -385,7 +382,6 @@ processes:
   - PRC-35-S08
   - PRC-35-S09
   - PRC-35-S10
-  - PRC-35-S11
   steps:
   - actor: system
     where: automatic
@@ -412,10 +408,6 @@ processes:
       direction: in
       bc: B-05
       name: 协议已终止
-    - mode: event
-      direction: in
-      bc: B-05
-      name: 协议已结算
   - actor: system
     where: automatic
     command: 提交过账候选
@@ -470,7 +462,7 @@ processes:
     legal_entity: 承担法人
     metric_event: true
   notes: 订阅关系 B-07 → B-04、B-05（事件）已有。
-  stages_note: '事件策略按触发状态归段（用户判据 #421）：项目已结项=VS-02.7 退出条件 OBJ-29「已结项 → 已归档」；协议已结算=VS-04.5 退出条件 OBJ-05「已结算（结算书经双方确认）」。项目已终止、项目已取消、协议已终止是 VS-02、VS-04 的终点（ends_in），不是任何段的退出条件，不另归段（SD-10）；这两段不相邻，是按触发状态跨价值流归两段，不是跳段。'
+  stages_note: 按触发状态「项目已结项」归段；终止类结局不归段（SD-10）
 - id: PRC-55
   name: 结转合同履约成本
   type: event_policy
@@ -592,6 +584,7 @@ processes:
     legal_entity: 承担法人
     metric_event: true
   notes: 依赖收入确认时点（A1、Q-04）与 AGG-57 形态（Q20）；两者定后重核转出金额的配对口径。
+  stages_note: '事件策略按触发状态归段（#421）：触发是收入确认类型分录的过账回执，对应 OBJ-98「已记账（不可逆）」，是 VS-04.2 退出条件（收入确认类型分录）。触发名是事件名，检查器匹配不上。'
 - id: PRC-64
   name: 导入银行流水
   type: business
@@ -1371,6 +1364,7 @@ processes:
     as:
     - initiator
     rule: 变更提出人与审批责任人不得为同一人（责任人就是提出人本人时按 AR-11 处理，待 U-21、U-40）
+  stages_note: '分包变更（AGG-56）生效即供方协议内容再次「已签署生效」，对应 OBJ-05（供方类型）「已签署生效」，是 VS-05.2 退出条件；与收入侧协议变更（PRC-48）对称。AGG-56 状态名「已生效」与 OBJ-05 状态名字面不同，检查器匹配不上。'
 - id: PRC-72
   name: 确认供方履约
   type: business
@@ -3259,6 +3253,7 @@ processes:
   - PRC-90-S01
   - PRC-90-S02
   - PRC-90-S03
+  stages_note: '读模型不造对象状态，按读取的对象状态归段（#421）：读 OBJ-97「已关账」的期间余额与经营计划基线，月报复盘落在 VS-09.3 经营复盘与 VS-10.2 报表发布。'
 - id: PRC-92
   name: 过账业务事实
   trigger:
@@ -6032,6 +6027,7 @@ processes:
   - PRC-104-S08
   - PRC-104-S09
   - PRC-104-S10
+  stages_note: '外部法定账对账完成是 VS-10.2 退出条件改定后的「外部法定账对账已完成」（SD 已裁定的 VS-10.2 退出条件）；改定前检查器匹配不上。'
 - id: PRC-105
   name: 评审并生效报表行定义版本
   trigger:
@@ -6167,6 +6163,7 @@ processes:
   - PRC-106-S03
   - PRC-106-S04
   - PRC-106-S05
+  stages_note: '读模型不造对象状态，按读取的对象状态归段（#421）：读 OBJ-97「已关账」的期间余额与生效的报表行定义，三大报表是 VS-10.2 报表发布的产物（已裁定退出条件「三大报表已出具」）。'
 - id: PRC-111
   name: 认缴并实缴出资
   type: single_aggregate
@@ -7415,7 +7412,7 @@ processes:
   - PRC-163-S06
   - PRC-163-S07
   - PRC-163-S08
-  stages_note: 利润分配支付是「利润分配」阶段出口（应付股利结清）的一部分
+  stages_note: '利润分配支付是「利润分配」阶段出口（应付股利结清）的一部分；触发「应付已结清」按来源限定为利润分配应付；结局造出 OBJ-112「已支付」，是 VS-12.2 退出条件（检查器没解析「已决议 → 已支付」）'
 - id: PRC-164
   name: 收入确认冲销后冲回已配对成本结转
   type: event_policy
@@ -7505,7 +7502,7 @@ processes:
   - PRC-164-S07
   - PRC-164-S08
   - PRC-164-S09
-  stages_note: 收入确认冲销后冲回已配对的成本结转，随收入确认所在阶段（VS-04.2，revenue 价值流）
+  stages_note: '收入确认冲销后冲回已配对的成本结转，随收入确认所在阶段（VS-04.2，revenue 价值流）；触发是收入确认类型过账事实被冲销并重过账，对应 OBJ-98「已记账（不可逆）」，是 VS-04.2 退出条件（触发名是事件名，检查器匹配不上）'
 - id: PRC-165
   name: 发布成本核算参数版本
   type: single_aggregate
@@ -8106,7 +8103,7 @@ processes:
   type: business
   owner_bc: B-12
   stages:
-  - VS-08.2
+  - VS-08.0
   added_in: closeout
   basis: S-31 SQ-26
   trigger:
@@ -8330,7 +8327,7 @@ processes:
   - PRC-170-S11
   - PRC-170-S12
   - PRC-170-S13
-  stages_note: 暂挂「报销核定」：事前额度是报销核定的前置依据；VS-08 没有「事前申请」阶段，见待定 ST-1
+  stages_note: 按判据归 VS-08.0 事前申请（SD-03）：费用事前额度批准是该阶段的退出条件
 - id: PRC-171
   name: 核对差旅服务商月账单并确认应付
   type: business
@@ -8575,13 +8572,13 @@ processes:
   - PRC-171-S17
   - PRC-171-S18
   - PRC-171-S19
-  stages_note: 公司直付分贝通订单：核对月账单后确认供方应付，属「应付确认」；之后付款进 VS-05.5（PRC-75）
+  stages_note: '公司直付分贝通订单：核对月账单后确认供方应付，属「应付确认」；之后付款进 VS-05.5（PRC-75）；结局「应付已确认」即 OBJ-85「未结」（应付方向），是 VS-05.4 退出条件（同 PRC-74 的写法，检查器因结局没写「未结」匹配不上）'
 - id: PRC-172
   name: 申请出差并同步差旅服务商
   type: business
   owner_bc: B-12
   stages:
-  - VS-08.2
+  - VS-08.0
   added_in: closeout
   basis: S-31 SQ-28
   trigger:
@@ -8804,13 +8801,13 @@ processes:
   - PRC-172-S11
   - PRC-172-S12
   - PRC-172-S13
-  stages_note: 暂挂「报销核定」：出差申请是差旅报销与补贴的前置依据；见待定 ST-1
+  stages_note: 按判据归 VS-08.0 事前申请（SD-03）：出差申请批准是该阶段的退出条件
 - id: PRC-173
   name: 审批差旅超标订单
   type: business
   owner_bc: B-12
   stages:
-  - VS-05.2
+  - VS-08.0
   added_in: closeout
   basis: S-31 SQ-28
   trigger:
@@ -8975,7 +8972,7 @@ processes:
   - PRC-173-S11
   - PRC-173-S12
   - PRC-173-S13
-  stages_note: 超标订单审批发生在向差旅服务商下单时，是对外部资源的采购决定，挂「供方签约」；见待定 ST-1
+  stages_note: 按判据归 VS-08.0 事前申请（SD-03）：超标订单审批是下单前的事前申请
 - id: PRC-174
   name: 发布出差补贴标准版本
   type: single_aggregate
