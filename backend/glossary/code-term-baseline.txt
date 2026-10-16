@@ -1,0 +1,8 @@
+# 代码里的聚合根 / 领域事件类与词表不符的存量（B2，GlossaryTest G40–G42）：只减不增，修好一条删一行并把 count 同步调低（测试会提示）。
+# 一行一个问题，格式 <规则> <bc> <类名> <问题>：G40 聚合根没有 aggregate 词条、G41 领域事件没有 domain_event 词条或名字不是过去式、G42 类名含技术泛词。
+# ApprovalTaskOverdue：类名是形容词，改名（如 ApprovalTaskBecameOverdue）交审批模块负责会话，开卡随 R-2a。
+# AccountDisabled：词表里已有同名词条 account_disabled（账号停用，kind 为 state），同一英文名不能同时是状态与事件；
+# 用户在下一张用语决策单裁定：把该词条改为领域事件，或事件类改名 UserAccountDisabled。归 one-glossary。
+count 2
+G41 platform.approval ApprovalTaskOverdue event name not past tense
+G41 platform.identity AccountDisabled no domain_event term

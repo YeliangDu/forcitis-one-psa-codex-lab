@@ -4,7 +4,7 @@ terms:
   zh: 签名密钥编码
   en: SigningKeyCode
   snake: signing_key_code
-  kind: value
+  kind: value_object
   bc: platform.identity
   scope: acl
   acl_class: 长期
@@ -81,26 +81,11 @@ terms:
   zh: 票据签发方
   en: TicketIssuer
   snake: ticket_issuer
-  kind: entity
+  kind: aggregate
   bc: platform.identity
   scope: acl
   acl_class: "长期"
   definition: 被允许签发签名票据的外部系统（KM、组织门户、YD 门户、BI），每方一把密钥，默认关闭
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: sso
-  zh: 单点登录
-  en: Sso
-  snake: sso
-  kind: concept
-  bc: platform.identity
-  scope: domain
-  definition: 由致远 OA 发起的单点登录
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
   confidence: medium
@@ -128,7 +113,7 @@ terms:
   zh: 身份提供方类别
   en: ProviderKind
   snake: provider_kind
-  kind: enum
+  kind: state
   bc: platform.identity
   scope: acl
   acl_class: "长期"
@@ -144,7 +129,7 @@ terms:
   zh: 外部主体标识
   en: ExternalSubject
   snake: external_subject
-  kind: value
+  kind: value_object
   bc: platform.identity
   scope: acl
   acl_class: "长期"
