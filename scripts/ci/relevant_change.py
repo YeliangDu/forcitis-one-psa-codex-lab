@@ -47,6 +47,7 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/check_legacy_name.py",
     # decision page question rules: run by scripts/precheck.sh when a decision page changes
     "docs/modernization/architecture/decision-page/check_pages.py",
+    "docs/modernization/rules/decide/build_decision_page.py",
 )
 
 

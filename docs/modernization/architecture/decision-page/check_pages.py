@@ -34,12 +34,12 @@ PAGE_GLOBS = ("docs/modernization/architecture/decision-page/*.json", "docs/mode
 KINDS = ("choice", "approve", "selection", "fact", "param")
 UNDECIDED = re.compile(r"暂不定|待定|先不选|不预设")
 SELF_CITE = re.compile(r"来源建议|原稿|草稿|提议稿|按来源|同上|见上|无$")
-ANCHOR = re.compile(r"intent|ADR-\d|RULE-\d|DATA-RULE|《[^》]+》|GB/?T?\s?\d|CAS\s?\d|PMBOK|FIDIC|AACE|企业会计准则|暂行规定|民法典|劳动法|增值税|通行做法|行业通行|标准|法规|条例|第\s?\d+\s?条|\d{4}-\d{2}-\d{2}-\d{3,}")
-LEGACY = re.compile(r"老系统|老流程|与\s?A8\s?一致|按老|沿用老|老做法")
-INTENT_NAME = re.compile(r"\d{4}-\d{2}-\d{2}-\d{3,6}(?:-[^\s，。；、)）`'\"」」,;]*?)?\.md")
+ANCHOR = re.compile(r"intent|ADR-\d|RULE-\d|DATA-RULE|《[^》]+》|GB/?T?\s?\d|CAS\s?\d|PMBOK|BIZBOK|TOGAF|FIDIC|AACE|企业会计准则|暂行规定|民法典|劳动法|增值税|通行做法|行业通行|生产取证|生产数据|第\s?\d+\s?条|\d{4}-\d{2}-\d{2}-\d{3,}")
+LEGACY = re.compile(r"老系统|老流程|(与|和|同)\s?A8\s?(保持)?(一致|相同)?|按老|沿用老|老做法")
+INTENT_NAME = re.compile(r"\d{4}-\d{2}-\d{2}-\d{3,6}(?:-[^\s，。；、`'\"」,;]*?)?\.md")
 INTENT_ID = re.compile(r"(?<![\d-])(\d{4}-\d{2}-\d{2}-\d{3,6})(?![\d])")
-PARAM_LABEL = re.compile(r"^\s*[≤≥<>约]?\s*\d+(\.\d+)?\s*(天|日|小时|分钟|周|个月|月|年|%|％|元|万元|次|个|人|条|页|MB|GB|秒)\S{0,6}\s*$")
-EMPIRICAL = "经验值，配置可调"
+PARAM_LABEL = re.compile(r"^\s*([≤≥<>约]?\s*\d+(\.\d+)?\s*(天|日|小时|分钟|周|个月|月|年|%|％|元|万元|次|个|人|条|页|级|MB|GB|秒)\S{0,6}|两周|每月\s*\d+\s*日|0\.\d+)\s*$")
+EMPIRICAL = re.compile(r"经验值[,，、]\s*配置可调")
 PAGE_WORDS = {"暂不定", "我先不选", "批准", "修改后再看", "不批准", "请财务核实", "请问财务", "其他", "以上都不是"}   # 确认页自带的选项用语，不是业务用语
 CHINESE = re.compile(r"[一-鿿]+")
 FIELDS = ("ctx", "src", "now", "check")
@@ -149,10 +149,10 @@ def check_item_rest(item, intent_names, vocab=None):
     # R6
     if is_param(item):
         everything = body
-        has_empirical = EMPIRICAL in everything
+        has_empirical = bool(EMPIRICAL.search(everything))
         has_source = bool(str(item.get("src", "")).strip()) or any(ANCHOR.search(b) for b in basis) or any(ANCHOR.search(str(p)) for p in item.get("practice", []) or [])
         if not (has_empirical or has_source):
-            errors.append(f"{no}: R6 参数行既没标「{EMPIRICAL}」也没有出处")
+            errors.append(f"{no}: R6 参数行既没标「经验值，配置可调」也没有出处")
     # R7
     if kind in ("choice", "param") and recs:
         reason = "\n".join(basis + [str(recs[0].get("effect", ""))])
@@ -240,7 +240,7 @@ def load_vocab(root=ROOT):
 
 
 def intent_files(base="origin/main"):
-    r = subprocess.run(["git", "ls-tree", "--name-only", base, "docs/modernization/intent/"], cwd=ROOT, capture_output=True, text=True)
+    r = subprocess.run(["git", "-c", "core.quotepath=off", "ls-tree", "--name-only", base, "docs/modernization/intent/"], cwd=ROOT, capture_output=True, text=True)
     names = {os.path.basename(x) for x in r.stdout.split("\n") if x}
     if names:
         return names
@@ -253,20 +253,29 @@ def check_file(path, names, vocab):
         data = json.load(open(path, encoding="utf-8"))
     except ValueError as e:
         return [f"{os.path.basename(path)}: 不是合法 JSON：{e}"]
-    items = data.get("items") if isinstance(data, dict) else None
+    items = data.get("items") if isinstance(data, dict) else data
     if not isinstance(items, list):
         return [f"{os.path.basename(path)}: 没有 items 列表"]
+    page_vocab = None if isinstance(data, dict) and data.get("terms_review") else vocab   # 用语审定页本来就在问未登记的词：整页不查 R4
     out = []
     for item in items:
-        out += [f"{os.path.basename(path)} {e}" for e in check_item(item, names, vocab)]
+        seen = []
+        for e in check_item(item, names, page_vocab):
+            if e not in seen:
+                seen.append(e)
+        out += [f"{os.path.basename(path)} {e}" for e in seen]
     return out
 
 
-def changed_pages(base):
-    r = subprocess.run(["git", "diff", "--name-only", "--diff-filter=AMR", f"{base}...HEAD"], cwd=ROOT, capture_output=True, text=True)
-    r2 = subprocess.run(["git", "diff", "--name-only", "--diff-filter=AMR", "HEAD"], cwd=ROOT, capture_output=True, text=True)
-    paths = set(r.stdout.split()) | set(r2.stdout.split())
-    return sorted(os.path.join(ROOT, p) for p in paths if any(re.fullmatch(g.replace("*", "[^/]+"), p) for g in PAGE_GLOBS))
+def changed_pages(base, root=ROOT):
+    """相对基线改动、新增、重命名或尚未跟踪的确认页；基线取不到即失败（不静默放过）。"""
+    def git(*args):
+        return subprocess.run(["git", "-c", "core.quotepath=off", *args], cwd=root, capture_output=True, text=True)
+    r = git("diff", "--name-only", "--diff-filter=AMR", f"{base}...HEAD")
+    if r.returncode:
+        sys.exit(f"check_pages: 取不到基线 {base}：{r.stderr.strip()[:200]}")
+    paths = set(r.stdout.split()) | set(git("diff", "--name-only", "--diff-filter=AMR", "HEAD").stdout.split()) | set(git("ls-files", "--others", "--exclude-standard").stdout.split())
+    return sorted(os.path.join(root, p) for p in paths if any(re.fullmatch(g.replace("*", "[^/]+"), p) for g in PAGE_GLOBS))
 
 
 def main(argv):
@@ -290,10 +299,13 @@ def main(argv):
         print(p)
     for f in files:
         try:
-            for item in json.load(open(f, encoding="utf-8")).get("items", []):
+            data = json.load(open(f, encoding="utf-8"))
+            for item in (data.get("items", []) if isinstance(data, dict) else data):
+                if isinstance(data, dict) and data.get("terms_review"):
+                    break
                 for cand in term_candidates(item, vocab):
                     print(f"警告 {os.path.basename(f)} {item.get('no', '?')}: 「{cand}」像业务用语但不在词表（审题时看一眼；确认后登记提议术语或写进 terms_ok）", file=sys.stderr)
-        except (ValueError, AttributeError):
+        except (ValueError, AttributeError, TypeError):
             pass
     print(f"check_pages: {len(files)} 张页，{len(problems)} 处问题")
     return 1 if problems else 0
@@ -360,6 +372,49 @@ def self_test():
     assert has(reminder, "R2") and has(reminder, "R6")
     stale = item(no="VS04-03", ctx="期满日已定（intent 2026-10-15-234418-gone.md）")   # 引用的 intent 文件不存在
     assert has(stale, "R3")
+    # opus 首轮：裸字不算依据、更多老系统写法、参数行写法、全角括号文件名
+    assert has(item(basis=["来源建议：按标准做"]), "R2") and has(item(basis=["原稿；需符合法规"]), "R2")
+    assert has(item(basis=["老系统是 5 天；符合行业标准"], src=""), "R7") and has(item(basis=["和 A8 保持一致"], src=""), "R7") and has(item(basis=["同 A8"], src=""), "R7")
+    assert not has(item(basis=["老系统生产取证：近 90 天 97% 都是 5 天"], src=""), "R7")
+    for spelled in ("经验值,配置可调", "经验值、配置可调", "经验值，配置可调"):
+        assert not has(item(src="", ctx=spelled, basis=["来源建议"], opts=[dict(label="5 天", effect="", rec=True), dict(label="10 天", effect="", rec=False)]), "R6"), spelled
+    assert has(item(src="", basis=["来源建议"], opts=[dict(label="两周", effect="", rec=True), dict(label="每月 25 日", effect="", rec=False)]), "R6")
+    paren = {"2026-10-16-124649-one-architecture-x（y）.md"}
+    assert check_item(item(src="", ctx="见 2026-10-16-124649-one-architecture-x（y）.md"), paren, None) == [] and check_item(item(src="", ctx="见 2026-10-16-124649-one-architecture-x（z）.md"), paren, None)
+    real_names = intent_files()
+    if real_names:
+        assert any(not n.isascii() for n in real_names) and not any(n.startswith('"') or "\\3" in n for n in real_names), "中文文件名不得被 git 转义成八进制串"
+    # --changed：已跟踪改动、未跟踪的新页都查；基线取不到即失败
+    import tempfile as _t
+    with _t.TemporaryDirectory() as d:
+        env = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t", GIT_CONFIG_GLOBAL="/dev/null", GIT_CONFIG_SYSTEM="/dev/null")
+        sh = lambda *a: subprocess.run(a, cwd=d, capture_output=True, text=True, env=env, check=True)
+        sh("git", "init", "-q", "-b", "main"); os.makedirs(os.path.join(d, "docs/modernization/architecture/decision-page")); os.makedirs(os.path.join(d, "docs/modernization/rules/decide/sheets"))
+        pages = "docs/modernization/architecture/decision-page"
+        for n in ("A.json", "B.json"):
+            open(os.path.join(d, pages, n), "w").write("{}")
+        open(os.path.join(d, "other.txt"), "w").write("x")
+        sh("git", "add", "."); sh("git", "commit", "-q", "-m", "base"); sh("git", "checkout", "-q", "-b", "work")
+        open(os.path.join(d, pages, "B.json"), "w").write('{"items": []}')          # 已跟踪、改动（工作区）
+        open(os.path.join(d, pages, "C.json"), "w").write("{}")                     # 未跟踪的新页
+        open(os.path.join(d, "docs/modernization/rules/decide/sheets", "S.json"), "w").write("{}")
+        open(os.path.join(d, pages, "D.txt"), "w").write("x")
+        found = [os.path.relpath(x, d) for x in changed_pages("main", d)]
+        assert found == [pages + "/B.json", pages + "/C.json", "docs/modernization/rules/decide/sheets/S.json"], found
+        try:
+            changed_pages("no-such-ref", d)
+            raise AssertionError("无效基线应失败")
+        except SystemExit as e:
+            assert "取不到基线" in str(e)
+    # 列表形式的页、用语审定页、同一问题只报一次
+    with _t.TemporaryDirectory() as d:
+        p = os.path.join(d, "L.json")
+        json.dump([item(), item(no="T-2", basis=[])], open(p, "w", encoding="utf-8"), ensure_ascii=False)
+        assert len(check_file(p, names, vocab)) == 1
+        json.dump({"terms_review": True, "items": [item(title="合同老叫法「承担部门」")]}, open(p, "w", encoding="utf-8"), ensure_ascii=False)
+        assert check_file(p, names, vocab) == []
+        json.dump({"items": [item(title="合同老叫法", opts=[dict(label="老叫法", effect="", rec=True)])]}, open(p, "w", encoding="utf-8"), ensure_ascii=False)
+        assert len([e for e in check_file(p, names, vocab) if "老叫法" in e]) == 1   # 标题和选项里都有同一个方言，只报一次
     # 整张页
     import tempfile
     with tempfile.TemporaryDirectory() as d:
