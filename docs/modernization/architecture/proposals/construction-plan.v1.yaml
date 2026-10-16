@@ -47,7 +47,7 @@ conflicts_route_d:
   - {id: C-10, edges: 0, summary: "transitions.yaml delivers 仍是旧 BC 名", recommend: 机械更新}
   - {id: C-11, edges: 0, summary: "brief Phase 2 入口要 B-16、B-19，transitions 放在 TA-4", recommend: a 移到 TA-2（同时消解 B-06、B-08、B-09 → B-16 三条字面边）}
 conflicts_note: "按聚合稿依赖边 23 条（C-01–C-08）；按 transitions.yaml 字面另有 3 条（合计 26），由 C-11 消解。确认页逐项作答、默认不选（U-15）。"
-routes: [一次投产, 逐阶段按模块, 按法人或组织分批]  # 复核：删「先取证再定」，T-1 直接取证（CLAUDE.md 第 4 条），路线题待 T-1 后出题
+routes: [一次投产, 逐阶段按模块, 按法人或组织分批]  # 复核：删「先取证再定」；T-1 已取证（2026-10-16），路线题现可出题
 opening_balance_options: [a 从零开始, b 主数据 + 期初余额, "b′1 + 未结对象期初累计", "b′2 + 未结对象全部明细", c 全部历史明细]
 eventing:
   registry: platform_integration.event_publication（每事件每监听者一行，进程内投递，至少一次）
@@ -57,11 +57,24 @@ eventing:
   enterprise_estimate: {aggregates: 109, external_events: 179, events_with_business_subscribers: 44, business_subscription_pairs: 58, analytics_only: 116, same_bc: 10}
   quarantine: "ADR-0035 决定 6 已采纳，event_quarantines 未建"
   broker_criteria_met_now: []
-evidence_pending: [T-1 跨法人耦合（直接取证，不逐次请示，登记一行）, T-2 拒收率, T-3 未结对象量, T-4 A8 行政流程组织依赖, T-5 薪酬期初, T-6 审计师要求, T-7 未结判据（财务）, T-8 档案办法附表原件, T-9 12 号对自研软件适用, T-10 补录量, T-11 社保基数调整月份, T-12 事件量]
+evidence_done:
+  - id: T-1
+    date: 2026-10-16
+    topic: 五法人耦合度（只计数与比例）
+    record: docs/modernization/phase1a/infra/legacy-read/2026-10-16-132158-one-architecture.md
+    window: 近 24 个月
+    facts:
+      - 老系统与 A8 无法人维度（人员、部门、工时、凭证无法人归属）
+      - 合同非主体法人 35/765（4.6%）；项目非主体签约 70/5161（1.4%）；开票销售方与签约主体不一致 2.2%
+      - 同时与 2 个及以上法人签约的客户 9/493（1.8%）
+      - 同时做 2 个及以上签约法人项目的人 175/385（45.5%），工时占 57.6%（覆盖 72.2% 的工时）
+      - 付款 1770 单中法人间疑似交易 4 单（0.2%）；27 单疑为资金划转待财务确认；内部结算、内部分包不可测
+    confidence: {high: [无法人维度, 签约主体分布, 开票销售方分布, 客户与法人签约数], medium: [工时与人员占比], low: [交付法人, 跨法人成员, 关联交易]}
+evidence_pending: [T-1 跨法人耦合（已取证 2026-10-16，见 evidence_done）, T-2 拒收率, T-3 未结对象量, T-4 A8 行政流程组织依赖, T-5 薪酬期初, T-6 审计师要求, T-7 未结判据（财务）, T-8 档案办法附表原件, T-9 12 号对自研软件适用, T-10 补录量, T-11 社保基数调整月份, T-12 事件量]
 # 复核后第 3 版题号（18 题，分七组）；未结判定口径交财务定（ADR-0018），不上确认页。
 user_questions:
   - {id: U-1, group: 1 原意与范围, topic: 「自称体系」读法与「老系统」范围（原 U-1 与 U-2 合并）, recommend: null, note: "选项 a 与 ADR-0021:37、U-5 含 B-15 薪酬矛盾，W0 须做人事记录系统"}
-  - {id: U-2, group: 2 路线, topic: 路线, old: U-3, when: "T-1 取证结果出来之后", options: [一次投产, 逐阶段按模块, 按法人或组织分批], recommend: null}
+  - {id: U-2, group: 2 路线, topic: 路线, old: U-3, when: "总是（T-1 已取证）", options: [一次投产, 逐阶段按模块, 按法人或组织分批], recommend: null}
   - {id: U-3, group: 3 原则与口径, topic: "前置题：是否推翻「权责事实一律进交易库」（intent 2026-10-14-100-ADR-0025-待决-2026.md；ADR-0024 决定 4；ADR-0025 决定 6）", when: "U-2 ∈ {一次投产, 法人分批}", recommend: null, new: true}
   - {id: U-4, group: 3 原则与口径, topic: 期初口径, old: U-4, when: "U-3 = 推翻", recommend: null, research_leaning: "b′（把握中）；b′1 与 b′2 之分是本稿推断"}
   - {id: U-5, group: 3 原则与口径, topic: 首次投产范围, old: U-7, when: "U-2 ∈ {一次投产, 法人分批}", recommend: null}
