@@ -285,7 +285,14 @@ public abstract class IdentityIntegrationTest {
 
     /** Posts the login with the binding cookie of the browser that obtained the state. */
     protected MvcResult postLogin(String url, String body, String state) throws Exception {
-        var request = post(url).with(xsrf()).contentType(MediaType.APPLICATION_JSON).content(body);
+        return postLogin(url, body, state, "127.0.0.1");
+    }
+
+    protected MvcResult postLogin(String url, String body, String state, String remoteAddress) throws Exception {
+        var request = post(url).with(xsrf()).with(r -> {
+            r.setRemoteAddr(remoteAddress);
+            return r;
+        }).contentType(MediaType.APPLICATION_JSON).content(body);
         String binding = state == null ? null : bindings.get(state);
         if (binding != null) {
             request = request.cookie(new Cookie("loginBinding", binding));

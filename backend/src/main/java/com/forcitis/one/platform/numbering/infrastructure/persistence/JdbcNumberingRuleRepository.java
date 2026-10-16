@@ -9,6 +9,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.numbering.api.NumberingCounterId;
 import com.forcitis.one.platform.numbering.api.NumberingError;
 import com.forcitis.one.platform.numbering.api.NumberingRuleId;
+import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 import com.forcitis.one.platform.numbering.api.ResetPolicy;
 import com.forcitis.one.platform.numbering.domain.CounterScope;
 import com.forcitis.one.platform.numbering.domain.NumberingPattern;
@@ -70,14 +71,14 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
 
     private List<TemplateVersion> versionsOf(String type) {
         return jdbc.sql("""
-                        select version_number, template_text, reset_policy, start_value, effective_from_date, author_id, authored_at, status, confirmed_by, confirmed_at,
+                        select numbering_rule_version_id, version_number, template_text, reset_policy, start_value, effective_from_date, author_id, authored_at, status, confirmed_by, confirmed_at,
                                finance_confirmed_by, finance_confirmed_at
                           from platform_numbering.numbering_rule_versions
                          where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = :type)
                          order by version_number
                         """)
                 .param("type", type)
-                .query((rs, n) -> new TemplateVersion(rs.getInt("version_number"),
+                .query((rs, n) -> new TemplateVersion(new NumberingRuleVersionId(rs.getObject("numbering_rule_version_id", java.util.UUID.class)), rs.getInt("version_number"),
                         new NumberingPattern(rs.getString("template_text"), ResetPolicy.valueOf(rs.getString("reset_policy"))), rs.getLong("start_value"),
                         rs.getObject("effective_from_date", LocalDate.class), user(rs, "author_id"), rs.getObject("authored_at", OffsetDateTime.class).toInstant(), VersionStatus.valueOf(rs.getString("status")),
                         user(rs, "confirmed_by"), instant(rs, "confirmed_at"), user(rs, "finance_confirmed_by"), instant(rs, "finance_confirmed_at")))
@@ -142,7 +143,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
                         select :id, numbering_rule_id, :number, :template, :reset, :start, :effectiveFrom, :author, :authoredAt, :status
                           from platform_numbering.numbering_rules where document_type = :type
                         """)
-                .param("id", ids.next()).param("type", type.name()).param("number", saved.number()).param("template", saved.pattern().value())
+                .param("id", saved.id().value()).param("type", type.name()).param("number", saved.number()).param("template", saved.pattern().value())
                 .param("reset", saved.pattern().resetPolicy().name()).param("start", saved.startValue()).param("effectiveFrom", saved.effectiveFrom())
                 .param("author", saved.author() == null ? null : saved.author().value(), Types.OTHER)
                 .param("authoredAt", OffsetDateTime.ofInstant(saved.authoredAt(), ZoneOffset.UTC)).param("status", saved.status().name()).update();
