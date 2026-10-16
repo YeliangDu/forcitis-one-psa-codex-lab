@@ -2733,6 +2733,19 @@ PRC-151:
   covers:
   - 第 1 步 timeout
   expect: 提醒部门负责人（SH-M1）；不改变任何收入或过账状态
+- id: PRC-151-S05
+  path: 第 1 步「填报产值估计」期限届满（P3D）
+  outcome: null
+  covers:
+  - 第 1 步超时
+  - 填报产值估计
+  expect: 逾期提醒项目经理并抄送部门负责人；不阻断其他流程
+- id: PRC-151-S06
+  path: 第 1 步出口「被抽查（按抽查比例规则配置）」
+  outcome: null
+  covers:
+  - 第 1 步「被抽查（按抽查比例规则配置）」
+  expect: 按配置比例抽中的填报进入部门负责人抽查；未抽中的直接生效
 PRC-152:
 - id: PRC-152-S01
   path: 1→2 登记竣工验收证书→3

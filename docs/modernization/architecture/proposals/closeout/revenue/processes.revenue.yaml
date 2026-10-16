@@ -9603,6 +9603,8 @@ processes:
   - PRC-151-S02
   - PRC-151-S03
   - PRC-151-S04
+  - PRC-151-S05
+  - PRC-151-S06
   roles:
   - id: SH-E2
     as: initiator
