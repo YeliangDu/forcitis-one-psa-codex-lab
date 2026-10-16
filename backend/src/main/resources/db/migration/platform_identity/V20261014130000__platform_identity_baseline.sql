@@ -11,14 +11,16 @@ CREATE TABLE platform_identity.user_accounts (
     updated_at         timestamptz NOT NULL DEFAULT now(),
     version            bigint      NOT NULL DEFAULT 0,
     event_count        bigint      NOT NULL DEFAULT 0,
-    CONSTRAINT uk_user_accounts_employee_id UNIQUE (employee_id)
+    CONSTRAINT uk_user_accounts_employee_id UNIQUE (employee_id),
+    CONSTRAINT ck_user_accounts_last_login CHECK (last_login_address IS NULL OR last_login_at IS NOT NULL),
+    CONSTRAINT ck_user_accounts_last_login_address CHECK (char_length(last_login_address) BETWEEN 1 AND 64)
 );
 COMMENT ON TABLE platform_identity.user_accounts IS '用户账号：身份侧的启用开关与最近登录；员工姓名、部门、在职状态归组织人事模块（不在此冗余）。粒度：每个用户一行';
 COMMENT ON COLUMN platform_identity.user_accounts.user_id IS '用户 ID（UUIDv7）：由身份模块分配，不等于员工 ID（ADR-0033 第 3 项第 1 条）';
 COMMENT ON COLUMN platform_identity.user_accounts.employee_id IS '员工 ID：账号所属的员工，每个员工至多一个账号；跨 schema 引用组织人事的员工，不建外键';
 COMMENT ON COLUMN platform_identity.user_accounts.status IS '账号状态：ENABLED / DISABLED；登录与每次解析会话时都与在职状态一起检查（RULE-326/338）';
-COMMENT ON COLUMN platform_identity.user_accounts.last_login_at IS '最近一次登录成功时间（RULE-330）';
-COMMENT ON COLUMN platform_identity.user_accounts.last_login_address IS '最近一次登录成功的客户端地址（RULE-330）';
+COMMENT ON COLUMN platform_identity.user_accounts.last_login_at IS '最近一次登录成功时间（RULE-330）；为空表示从未成功登录';
+COMMENT ON COLUMN platform_identity.user_accounts.last_login_address IS '最近一次登录成功的客户端地址（RULE-330）；为空表示从未成功登录，或已按保留期限清除（ADR-0043 U-12）；有值时 last_login_at 必有值，长度 1 至 64（不是地址的取值由应用置空并告警，不截断）';
 COMMENT ON COLUMN platform_identity.user_accounts.created_at IS '创建时间';
 COMMENT ON COLUMN platform_identity.user_accounts.updated_at IS '更新时间';
 COMMENT ON COLUMN platform_identity.user_accounts.version IS '乐观锁版本';
@@ -35,7 +37,9 @@ CREATE TABLE platform_identity.roles (
     created_at        timestamptz NOT NULL DEFAULT now(),
     updated_at        timestamptz NOT NULL DEFAULT now(),
     version           bigint      NOT NULL DEFAULT 0,
-    event_count       bigint      NOT NULL DEFAULT 0
+    event_count       bigint      NOT NULL DEFAULT 0,
+    CONSTRAINT ck_roles_reserved_code CHECK (lower(code) <> 'super_admin' OR kind = 'SYSTEM'),
+    CONSTRAINT ck_roles_code CHECK (code ~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$')
 );
 CREATE UNIQUE INDEX uq_roles_code ON platform_identity.roles (lower(code));
 CREATE UNIQUE INDEX uq_roles_name ON platform_identity.roles (lower(name));
@@ -97,7 +101,8 @@ CREATE TABLE platform_identity.navigation_items (
     is_enabled      boolean     NOT NULL DEFAULT true,
     created_at      timestamptz NOT NULL DEFAULT now(),
     updated_at      timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT ck_navigation_items_parent CHECK (parent_item_id IS NULL OR parent_item_id <> item_id)
+    CONSTRAINT ck_navigation_items_parent CHECK (parent_item_id IS NULL OR parent_item_id <> item_id),
+    CONSTRAINT uk_navigation_items_parent_item_id_name UNIQUE NULLS NOT DISTINCT (parent_item_id, name)
 );
 COMMENT ON TABLE platform_identity.navigation_items IS '导航项：目录（无路由）与页面（有路由）；页面按所需权限码对持有者可见（RULE-348）。粒度：每个导航项一行';
 COMMENT ON COLUMN platform_identity.navigation_items.item_id IS '导航项 ID（UUIDv7）';
@@ -182,7 +187,10 @@ CREATE TABLE platform_identity.emergency_admins (
     created_at            timestamptz NOT NULL DEFAULT now(),
     updated_at            timestamptz NOT NULL DEFAULT now(),
     version               bigint      NOT NULL DEFAULT 0,
-    event_count           bigint      NOT NULL DEFAULT 0
+    event_count           bigint      NOT NULL DEFAULT 0,
+    CONSTRAINT ck_emergency_admins_account_name CHECK (account_name ~ '^[a-z][a-z0-9._-]{2,31}$'),
+    CONSTRAINT ck_emergency_admins_failed_attempts CHECK (failed_attempts >= 0),
+    CONSTRAINT ck_emergency_admins_last_totp_step CHECK (last_totp_step >= 0)
 );
 COMMENT ON TABLE platform_identity.emergency_admins IS '应急管理员：独立凭据（Argon2id + TOTP），只能从内网登录，5 次失败锁 15 分钟（RULE-316/317）；user_id 是绑定的超级管理员持有人，每人至多一个，登记至少两个（ADR-0027 第 1 项）。粒度：每个绑定的超级管理员持有人一个应急账号一行';
 COMMENT ON COLUMN platform_identity.emergency_admins.user_id IS '用户 ID：对应的员工账号，会话与权限走该账号的角色';
