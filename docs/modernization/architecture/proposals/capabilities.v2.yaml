@@ -172,6 +172,7 @@ capabilities:
     object: OBJ-50
     definition: 按版本维护某类检查须查看的项目及其依据标准。
 - id: CAP-025
+  unsupported_reason: 阶段类型是全局目录（配置），各价值流阶段按类型取值，不作任何阶段的门条件；支撑全部阶段的分类与报表维度（独立审查建-6）
   name: 阶段类型管理
   en: Phase Type Management
   object: OBJ-25
@@ -431,6 +432,7 @@ capabilities:
     object: OBJ-104
     definition: 依方案为个人核定应得金额。
 - id: CAP-093
+  unsupported_reason: 公司资产（固定资产、办公设备）是企业运营支撑，不在 13 条价值流的进出或段内条件中；折旧过账经 VS-10 期间报告的过账事实间接体现（独立审查建-6）
   name: 公司资产管理
   en: Company Asset Management
   object: OBJ-93

@@ -3,6 +3,9 @@ package com.forcitis.one.platform.audit.infrastructure.archive;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditEntry;
@@ -23,6 +26,7 @@ import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -99,6 +103,22 @@ class AuditPartitionsIT {
                 """).param("first", first).param("firstAt", firstAt).param("last", last).param("lastAt", lastAt).param("count", count).update();
     }
 
+    private static YearMonth ahead(int months) {
+        return YearMonth.now(ZoneOffset.UTC).plusMonths(months);
+    }
+
+    private static String day(int monthsAhead, int dayOfMonth) {
+        return ahead(monthsAhead).atDay(dayOfMonth).toString();
+    }
+
+    private static String at(int monthsAhead, int dayOfMonth) {
+        return day(monthsAhead, dayOfMonth) + "T00:00:00Z";
+    }
+
+    private static String partition(int monthsAhead) {
+        return "audit_entries_p" + ahead(monthsAhead).toString().replace("-", "");
+    }
+
     private long created(String from, String through) {
         return jdbc.sql("select platform_audit.create_audit_entry_partitions(cast(:from as date), cast(:through as date))").param("from", from).param("through", through)
                 .query(Long.class).single();
@@ -147,29 +167,49 @@ class AuditPartitionsIT {
     }
 
     @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-07 a write into a month without a partition raises the ALERT and the failure is rethrown unchanged; a violated CHECK constraint raises no such ALERT")
+    void onlyAMissingPartitionRaisesTheAlert() {
+        Logger logger = (Logger) LoggerFactory.getLogger("com.forcitis.one.platform.audit.infrastructure.persistence.JdbcAuditEntryRepository");
+        ListAppender<ILoggingEvent> logged = new ListAppender<>();
+        logged.start();
+        logger.addAppender(logged);
+        try {
+            assertThatThrownBy(() -> repository.save(entry(), Instant.parse("2020-01-15T00:00:00Z"))).isInstanceOf(DataAccessException.class).hasMessageContaining("no partition of relation");
+            assertThat(logged.list).extracting(ILoggingEvent::getFormattedMessage).anyMatch(m -> m.startsWith("ALERT platform.audit late audit entry") && m.endsWith("no audit partition") && m.contains("2020-01-01"));
+
+            logged.list.clear();
+            AuditEntry emptyDetail = new AuditEntry("test.audit.partition", null, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, UUID.randomUUID()), "");
+            assertThatThrownBy(() -> repository.save(emptyDetail, Instant.parse("2026-10-12T00:00:00Z"))).isInstanceOf(DataAccessException.class).hasMessageContaining("ck_audit_entries_detail_length");
+            assertThat(logged.list).extracting(ILoggingEvent::getFormattedMessage).noneMatch(m -> m.contains("no audit partition"));
+        } finally {
+            logger.detachAppender(logged);
+        }
+    }
+
+    @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TB-07 the partition function creates what is missing, skips what exists, adds the truncate trigger to each new partition, and returns the number created")
     void theFunctionCreatesTheMissingMonths() {
         assertThat(created("2026-10-01", "2026-12-01")).as("these exist since the baseline").isZero();
-        assertThat(created("2027-05-01", "2027-07-01")).isEqualTo(3L);
-        assertThat(created("2027-05-01", "2027-07-01")).isZero();
+        assertThat(created(day(12, 1), day(14, 1))).isEqualTo(3L);
+        assertThat(created(day(12, 1), day(14, 1))).isZero();
 
-        assertThat(exists("audit_entries_p202705")).isTrue();
+        assertThat(exists(partition(12))).isTrue();
         assertThat(jdbc.sql("""
-                select count(*) from pg_trigger t where t.tgrelid = 'platform_audit.audit_entries_p202706'::regclass and t.tgname = 'audit_entries_reject_truncate'
-                """).query(Long.class).single()).isEqualTo(1L);
-        assertThat(jdbc.sql("select pg_get_expr(c.relpartbound, c.oid) from pg_class c where c.oid = 'platform_audit.audit_entries_p202706'::regclass").query(String.class).single())
-                .contains("2027-06-01 00:00:00+00").contains("2027-07-01 00:00:00+00");
+                select count(*) from pg_trigger t where t.tgrelid = ('platform_audit.' || :partition)::regclass and t.tgname = 'audit_entries_reject_truncate'
+                """).param("partition", partition(13)).query(Long.class).single()).isEqualTo(1L);
+        assertThat(jdbc.sql("select pg_get_expr(c.relpartbound, c.oid) from pg_class c where c.oid = ('platform_audit.' || :partition)::regclass").param("partition", partition(13)).query(String.class).single())
+                .contains(day(13, 1) + " 00:00:00+00").contains(day(14, 1) + " 00:00:00+00");
     }
 
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TB-07 the partition function refuses a day that is not a month start, a reversed range, more than 24 months, and a month inside the archived position")
     void theFunctionRefusesBadArguments() {
-        assertThatThrownBy(() -> created("2027-08-15", "2027-09-01")).hasMessageContaining("first day of a month");
-        assertThatThrownBy(() -> created("2027-08-01", "2027-09-02")).hasMessageContaining("first day of a month");
-        assertThatThrownBy(() -> created("2027-09-01", "2027-08-01")).hasMessageContaining("is after through");
-        assertThatThrownBy(() -> created("2027-08-01", "2029-08-01")).hasMessageContaining("more than 24 months");
-        assertThat(created("2027-08-01", "2029-07-01")).as("24 months are allowed").isEqualTo(24L);
-        assertThatThrownBy(() -> jdbc.sql("select platform_audit.create_audit_entry_partitions(null, date '2027-08-01')").query(Long.class).single()).hasMessageContaining("both months are required");
+        assertThatThrownBy(() -> created(day(15, 15), day(16, 1))).hasMessageContaining("first day of a month");
+        assertThatThrownBy(() -> created(day(15, 1), day(16, 2))).hasMessageContaining("first day of a month");
+        assertThatThrownBy(() -> created(day(16, 1), day(15, 1))).hasMessageContaining("is after through");
+        assertThatThrownBy(() -> created(day(15, 1), day(39, 1))).hasMessageContaining("more than 24 months");
+        assertThat(created(day(15, 1), day(38, 1))).as("24 months are allowed").isEqualTo(24L);
+        assertThatThrownBy(() -> jdbc.sql("select platform_audit.create_audit_entry_partitions(null, cast(:m as date))").param("m", day(15, 1)).query(Long.class).single()).hasMessageContaining("both months are required");
 
         UUID e1 = insertEntry("2026-10-05T00:00:00Z");
         insertBatch(e1, "2026-10-05T00:00:00Z", e1, "2026-10-05T00:00:00Z", 1);
@@ -198,35 +238,35 @@ class AuditPartitionsIT {
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TB-07 the drop function removes a month only when it is archived and checked: the rows are all within the position and equal the batches' count")
     void aCheckedMonthIsDropped() {
-        created("2027-09-01", "2027-09-01");
-        UUID first = insertEntry("2027-09-03T00:00:00Z");
-        UUID last = insertEntry("2027-09-20T00:00:00Z");
-        insertBatch(first, "2027-09-03T00:00:00Z", last, "2027-09-20T00:00:00Z", 2);
+        created(day(16, 1), day(16, 1));
+        UUID first = insertEntry(at(16, 3));
+        UUID last = insertEntry(at(16, 20));
+        insertBatch(first, at(16, 3), last, at(16, 20), 2);
 
-        long dropped = jdbc.sql("select platform_audit.drop_archived_audit_entry_partition(date '2027-09-01')").query(Long.class).single();
+        long dropped = jdbc.sql("select platform_audit.drop_archived_audit_entry_partition(cast(:m as date))").param("m", day(16, 1)).query(Long.class).single();
 
         assertThat(dropped).isEqualTo(2L);
-        assertThat(exists("audit_entries_p202709")).isFalse();
+        assertThat(exists(partition(16))).isFalse();
         assertThat(jdbc.sql("select count(*) from " + ENTRIES).query(Long.class).single()).isZero();
     }
 
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TB-07 the drop function refuses and drops nothing when the partition is missing, nothing is archived, a row lies after the position, or the counts differ")
     void anUncheckedMonthIsNotDropped() {
-        created("2027-10-01", "2027-10-01");
-        assertThatThrownBy(() -> drop("2027-10-15")).hasMessageContaining("first day of a month");
+        created(day(17, 1), day(17, 1));
+        assertThatThrownBy(() -> drop(day(17, 15))).hasMessageContaining("first day of a month");
         assertThatThrownBy(() -> drop("2019-01-01")).hasMessageContaining("does not exist");
-        UUID first = insertEntry("2027-10-03T00:00:00Z");
-        UUID second = insertEntry("2027-10-20T00:00:00Z");
-        assertThatThrownBy(() -> drop("2027-10-01")).as("nothing archived").hasMessageContaining("nothing has been archived");
+        UUID first = insertEntry(at(17, 3));
+        UUID second = insertEntry(at(17, 20));
+        assertThatThrownBy(() -> drop(day(17, 1))).as("nothing archived").hasMessageContaining("nothing has been archived");
 
-        insertBatch(first, "2027-10-03T00:00:00Z", first, "2027-10-03T00:00:00Z", 1);
-        assertThatThrownBy(() -> drop("2027-10-01")).as("a row after the position").hasMessageContaining("after the archived position");
+        insertBatch(first, at(17, 3), first, at(17, 3), 1);
+        assertThatThrownBy(() -> drop(day(17, 1))).as("a row after the position").hasMessageContaining("after the archived position");
 
-        insertBatch(second, "2027-10-20T00:00:00Z", second, "2027-10-20T00:00:00Z", 3);
-        assertThatThrownBy(() -> drop("2027-10-01")).as("the batches count 4, the partition holds 2").hasMessageContaining("archived batches of the month hold 4");
+        insertBatch(second, at(17, 20), second, at(17, 20), 3);
+        assertThatThrownBy(() -> drop(day(17, 1))).as("the batches count 4, the partition holds 2").hasMessageContaining("archived batches of the month hold 4");
 
-        assertThat(exists("audit_entries_p202710")).isTrue();
+        assertThat(exists(partition(17))).isTrue();
         assertThat(jdbc.sql("select count(*) from " + ENTRIES).query(Long.class).single()).isEqualTo(2L);
     }
 
@@ -318,12 +358,12 @@ class AuditPartitionsIT {
         }
 
         UUID id = insertEntry("2026-10-05T00:00:00Z");
-        insertBatch(id, "2026-10-05T00:00:00Z", id, "2040-01-01T00:00:00Z", 1);
+        insertBatch(id, "2026-10-05T00:00:00Z", id, at(100, 1), 1);
         var meters = new SimpleMeterRegistry();
         LocalDate far = now.plusMonths(40).atDay(15);
         new AuditPartitionJob(jdbc, Clock.fixed(far.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneOffset.UTC), new AuditPartitionJob.Policy(3), meters).ensurePartitions();
 
-        assertThat(meters.counter("forcitis.platform.audit.partitions.failures").count()).as("the months of a far future are already within an archived position of 2040").isEqualTo(1.0);
+        assertThat(meters.counter("forcitis.platform.audit.partitions.failures").count()).as("the months of a far future are already within an archived position far beyond them").isEqualTo(1.0);
         Consumer<Integer> invalid = months -> assertThatThrownBy(() -> new AuditPartitionJob.Policy(months)).isInstanceOf(IllegalArgumentException.class);
         invalid.accept(null);
         invalid.accept(0);
@@ -333,28 +373,28 @@ class AuditPartitionsIT {
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TB-07 the drop function waits for an uncommitted insert into the month and fails on the lock timeout; the row survives, and once it is committed the check refuses the drop")
     void aRowInFlightIsNeitherLostNorDropped() throws Exception {
-        created("2033-02-01", "2033-02-01");
-        UUID archived = insertEntry("2033-02-03T00:00:00Z");
-        insertBatch(archived, "2033-02-03T00:00:00Z", archived, "2033-02-03T00:00:00Z", 1);
+        created(day(60, 1), day(60, 1));
+        UUID archived = insertEntry(at(60, 3));
+        insertBatch(archived, at(60, 3), archived, at(60, 3), 1);
 
         try (java.sql.Connection writer = dataSource.getConnection()) {
             writer.setAutoCommit(false);
             try (var statement = writer.createStatement()) {
-                statement.execute("insert into platform_audit.audit_entries (id, created_at, updated_at, action, subject_kind, subject_id) values (uuidv7(), '2033-02-10T00:00:00Z', '2033-02-10T00:00:00Z', 'test.audit.inflight', 'USER_ACCOUNT', gen_random_uuid())");
+                statement.execute("insert into platform_audit.audit_entries (id, created_at, updated_at, action, subject_kind, subject_id) values (uuidv7(), '" + at(60, 10) + "', '" + at(60, 10) + "', 'test.audit.inflight', 'USER_ACCOUNT', gen_random_uuid())");
 
-                assertThatThrownBy(() -> drop("2033-02-01")).rootCause().isInstanceOfSatisfying(java.sql.SQLException.class, e -> assertThat(e.getSQLState()).as("lock_not_available").isEqualTo("55P03"));
+                assertThatThrownBy(() -> drop(day(60, 1))).rootCause().isInstanceOfSatisfying(java.sql.SQLException.class, e -> assertThat(e.getSQLState()).as("lock_not_available").isEqualTo("55P03"));
                 statement.execute("lock table platform_audit.audit_entries in share update exclusive mode");
-                assertThatThrownBy(() -> created("2033-08-01", "2033-08-01")).as("a partition being created needs a lock that conflicts with the one held on the table, so it times out as well")
+                assertThatThrownBy(() -> created(day(66, 1), day(66, 1))).as("a partition being created needs a lock that conflicts with the one held on the table, so it times out as well")
                         .rootCause().isInstanceOfSatisfying(java.sql.SQLException.class, e -> assertThat(e.getSQLState()).isEqualTo("55P03"));
-                assertThat(exists("audit_entries_p203308")).isFalse();
+                assertThat(exists(partition(66))).isFalse();
                 writer.commit();
             }
         }
 
-        assertThat(exists("audit_entries_p203302")).isTrue();
+        assertThat(exists(partition(60))).isTrue();
         assertThat(jdbc.sql("select count(*) from " + ENTRIES + " where action = 'test.audit.inflight'").query(Long.class).single()).isEqualTo(1L);
-        assertThatThrownBy(() -> drop("2033-02-01")).hasMessageContaining("after the archived position");
-        assertThat(exists("audit_entries_p203302")).isTrue();
+        assertThatThrownBy(() -> drop(day(60, 1))).hasMessageContaining("after the archived position");
+        assertThat(exists(partition(60))).isTrue();
         assertThat(jdbc.sql("select count(*) from " + ENTRIES + " where action = 'test.audit.inflight'").query(Long.class).single()).isEqualTo(1L);
     }
 
@@ -368,7 +408,7 @@ class AuditPartitionsIT {
             for (int i = 0; i < 2; i++) {
                 calls.add(pool.submit(() -> {
                     start.await();
-                    return created("2033-05-01", "2033-05-01");
+                    return created(day(63, 1), day(63, 1));
                 }));
             }
             start.countDown();
@@ -380,6 +420,6 @@ class AuditPartitionsIT {
         } finally {
             pool.shutdownNow();
         }
-        assertThat(exists("audit_entries_p203305")).isTrue();
+        assertThat(exists(partition(63))).isTrue();
     }
 }

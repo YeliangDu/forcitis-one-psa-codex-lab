@@ -22,7 +22,7 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
     private static final int MAX_ADDRESS_LENGTH = 64;
     private static final String NO_PARTITION_STATE = "23514";
     private static final Pattern IPV4 = Pattern.compile("(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?:\\.(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}");
-    private static final Pattern IPV6_CHARS = Pattern.compile("[0-9A-Fa-f.:]*:[0-9A-Fa-f.:]*:[0-9A-Fa-f.:]*");
+    private static final Pattern IPV6_CHARS = Pattern.compile("(?=[0-9A-Fa-f:])[0-9A-Fa-f.:]*:[0-9A-Fa-f.:]*:[0-9A-Fa-f.:]*");
     private static final Pattern ZONE = Pattern.compile("[0-9A-Za-z._-]+");
 
     private final JdbcClient jdbc;
@@ -136,7 +136,7 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
         return null;
     }
 
-    /** IPv4 with four parts of 0-255, or an IPv6 literal (parsed without any name lookup), each optionally followed by a zone id. */
+    /** IPv4 with four parts of 0-255, or an IPv6 literal (parsed as a literal only, never looked up as a name), each optionally followed by a zone id. */
     static boolean isAddress(String address) {
         int zoneAt = address.indexOf('%');
         String host = zoneAt < 0 ? address : address.substring(0, zoneAt);
@@ -150,8 +150,9 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
             return false;
         }
         try {
-            return java.net.InetAddress.getByName(host) instanceof java.net.Inet6Address || host.contains(".");
-        } catch (java.net.UnknownHostException invalid) {
+            java.net.Inet6Address.ofLiteral(host);
+            return true;
+        } catch (IllegalArgumentException invalid) {
             return false;
         }
     }

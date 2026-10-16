@@ -56,4 +56,4 @@ R-1b P5 合并后的批次边界，或达到 §2.1 第 1 条阈值时交接；�
 
 ## 当前状态
 
-画像草稿（one-coordinator 2026-10-15），接手 one-1a-next-3（#230 交接）。开场在 worktree 根写 `.claude/session-name`（一行 one-1a-next-4，不入仓）以便钩子识别。
+R-1b 主线 0a–P5 完成（#250、#260、#276、#310），数据修复 PR-5（#328）与 PR-2 已开；2026-10-16 交接 one-1a-next-5（`phase1a/HANDOFF_one-1a-next-4.md`）。

@@ -19,7 +19,7 @@ class StorableAuditAddressTest {
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = {"", "999.1.1.1", "256.0.0.1", "1.2.3", "1.2.3.4.5", "abc:def:", "cafe", ":::", "1:2:3:4:5:6:7:8:9", "fe80::1%", "fe80::1%a b", "[2001:db8::1]",
-            "203.0.113.9:8080", "unknown", "2001:db8::1, 203.0.113.9"})
+            "203.0.113.9:8080", "unknown", ".::", ".1:2:3", "2001:db8::1, 203.0.113.9"})
     @DisplayName("DATA-REPAIR-timesheet-audit TB-05 anything that is not an address is left empty")
     void leavesANonAddressEmpty(String address) {
         assertThat(JdbcAuditEntryRepository.storableAddress(address)).isNull();
