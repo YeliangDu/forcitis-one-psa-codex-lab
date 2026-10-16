@@ -217,7 +217,7 @@ bcs:
   subdomain: accounting
   kind: subdomain
   business_owner: 用户兼任
-  description: "财务子域"
+  description: "财务子域；信息图的「财务」汇聚对象（会计科目、账簿、期间、分录、资金收付、增值税发票）只作本子域的说明，不是词条，本身没有类型、状态和关系（GL 确认单 B2-E03，用户 2026-10-16 同意）"
 - id: accounting.ledger
   zh: 财务总账与法定核算
   subdomain: accounting
