@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """System actor catalogue guard (R-1b P2 review L-1). backend/architecture/system-actors.txt is append-only: an event already published names its
-actor by the UUID of a line of this file, and the audit trail looks the name up from it, so a line that exists on the base branch must still be there
-unchanged. A rename is a new line next to the old one. Comment and blank lines are free. The copy under backend/src/test/resources/architecture/
+actor by the UUID of a line of this file, and the audit trail looks the name up from it, so the name and UUID of a line that exists on the base branch
+must still be there unchanged. A rename is a new line next to the old one. The module and reason columns may be corrected. Comment and blank lines are free. The copy under backend/src/test/resources/architecture/
 is a test fixture and is not checked.
 Usage: system_actors_append_only.py <base-ref>  |  system_actors_append_only.py --self-test"""
 import os
@@ -18,7 +18,7 @@ def rows(text):
     for line in text.splitlines():
         stripped = line.strip()
         if stripped and not stripped.startswith("#"):
-            found.append(" ".join(stripped.split()))
+            found.append(" | ".join(field.strip() for field in stripped.split("|")[:2]))
     return found
 
 
@@ -33,7 +33,7 @@ def check(base, root):
         return [f"{CATALOGUE} is deleted; it is append-only"]
     with open(path, encoding="utf-8") as f:
         now = set(rows(f.read()))
-    return [f"{CATALOGUE}: the line was removed or changed: {line}" for line in before if line not in now]
+    return [f"{CATALOGUE}: the name or UUID was removed or changed: {line}" for line in before if line not in now]
 
 
 def run_check(base):
@@ -93,7 +93,9 @@ def self_test():
         write(repo, BASE.replace("a.one | 1 | a | first", "renamed.one | 1 | a | first"))
         expect(repo, 1, text="a.one", label="a renamed line without the old one")
         write(repo, BASE.replace("b | second", "b | changed reason"))
-        expect(repo, 1, text="b.two", label="a changed line")
+        expect(repo, 0, label="the module and reason columns may be corrected")
+        write(repo, BASE.replace("b.two | 2 |", "b.two | 9 |"))
+        expect(repo, 1, text="b.two", label="a changed UUID")
         git("rm", "-q", CATALOGUE, cwd=repo)
         expect(repo, 1, text="deleted", label="the file is deleted")
         try:
