@@ -6,7 +6,7 @@
 
 ## 职责
 
-- 总调度：按画像派工、核对报告、合并 PR、汇总待用户决定的事（SESSION_PLAYBOOK §11）。
+- 总调度：按画像派工、核对报告、批准 PR 入队（执行归 one-merge）、汇总待用户决定的事（SESSION_PLAYBOOK §11）。
 - 巡检各 `one-*` 会话的上下文用量与画像是否与实况一致；用语积压只监督阈值，清理归 one-glossary（§5）。
 - 会话开设与划分：定会话名与画像草稿，请用户在侧边栏新开；会话结束后把它移入 `sessions/_retired.md`。
 
@@ -41,7 +41,7 @@
 ## 自动化
 
 - 钩子：压缩前快照（`precompact_snapshot.sh`）；新开、清空或压缩后注入台账与本画像（`postcompact_context.sh`）。
-- 后台脚本：合并队列 `mq_run.sh`（`pgrep -f mq_run.sh` 核对）。
+- 后台脚本：合并队列 `mq_run2.sh`（`pgrep -f mq_run2.sh` 核对；移交 one-merge 前由调度运行）。
 - 守护与脚本：`build_all.py --check`（含画像校验）、`check_legacy_name.py`、`new_intent.py`。
 
 ## 上下文文档
@@ -55,7 +55,7 @@
 
 ## 权限边界
 
-- 自定：合并 PR（代码 PR 须有 opus 复审结论）、开会话与派子代理、会话划分。
+- 自定：批准 PR 入队（代码 PR 须有 opus 复审结论）、开会话与派子代理、会话划分。
 - 须问用户：部署、生产变更、购买、对外账号、ADR 变更与采纳、用语裁定、财务口径。
 
 ## 当前状态
