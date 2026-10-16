@@ -3,7 +3,7 @@
 Inputs (same folder): value-streams.v2.yaml (VS), capabilities.v2.yaml (CAP), ENTERPRISE_INFO_MAP_DRAFT.md (IM), ENTERPRISE_AGGREGATES_DRAFT.md (AG), STAGE_TYPES_DRAFT.md (stage names, J3.2),
 aggregates_dep_check.py (DEP, J7.1-J7.3) and vs_links_gen.py (state splitting and condition leaves). Read-only.
 
-29 checks: the 28 rules J1.1-J7.5 and J2.4r (the derived-value list outside the gates), of which J3.2 and J2.4r only report. Every check prints PASS / FAIL / REPORT with its findings; the exit code is 1 when any check fails. REPORT checks (J3.2) never fail. The counts and the capability x stage table close the output.
+30 checks: the 28 rules J1.1-J7.5, J2.4r (the derived-value list outside the gates) and J5.2r (combined A classes), of which J3.2, J2.4r and J5.2r only report. Every check prints PASS / FAIL / REPORT with its findings; the exit code is 1 when any check fails. REPORT checks (J3.2) never fail. The counts and the capability x stage table close the output.
 J2.3 splits the leaf state and the IM key-state column the way vs_links_gen.py does, and also cuts the IM column at ； ; ⇄ (it mixes states with explanatory clauses).
 J4.4 reads the field `unsupported_reason` on a first-level capability (the name agreed with one-architecture).
 
@@ -79,19 +79,25 @@ def parse_ag(lines):
     return invs, aggs, bcs
 
 
-def expand_ids(prefix, text):
-    """Every id named in a cell, with the shorthands the drafts use: `AGG-03、04、36`, the ranges `INV-05–09` and the letter suffix `INV-16a、03b`."""
+def expand_ids(prefix, text, problems=None):
+    """Every id named in a cell, with the shorthands the drafts use: `AGG-03、04、36`, the ranges `INV-05–09` and the letter suffix `INV-16a、03b`.
+    A shorthand number follows its separator without a space and is not a count (`AGG-01 — 2 个`, `INV-12，3 条` read as one id each); a descending range is reported in `problems`."""
     out = set()
-    for m in re.finditer(rf"{prefix}-(\d+)([a-z]?)((?:\s*(?:[、,，]|[–—~～-])\s*\d+[a-z]?)*)", text):
+    tail = r"(?:[、,，]|[–—~～-])\d+[a-z]?(?!\s*[个条项年次%]|\d)"
+    for m in re.finditer(rf"{prefix}-(\d+)([a-z]?)((?:{tail})*)", text):
         width, prev = len(m.group(1)), int(m.group(1))
         out.add(f"{prefix}-{prev:0{width}d}{m.group(2)}")
-        for sep, num, suffix in re.findall(r"([、,，]|[–—~～-])\s*(\d+)([a-z]?)", m.group(3)):
-            n = int(num)
+        for sep, num, suffix in re.findall(r"([、,，]|[–—~～-])(\d+)([a-z]?)", m.group(3)):
+            n, w = int(num), max(2, len(num))
             if sep in "–—~～-":
-                out |= {f"{prefix}-{k:0{width}d}" for k in range(prev, n + 1)}
-                out.add(f"{prefix}-{n:0{width}d}{suffix}")
+                if n < prev:
+                    if problems is not None:
+                        problems.append(f"descending range {m.group(0)!r}")
+                    continue
+                out |= {f"{prefix}-{k:0{w}d}" for k in range(prev, n + 1)}
+                out.add(f"{prefix}-{n:0{w}d}{suffix}")
             else:
-                out.add(f"{prefix}-{n:0{width}d}{suffix}")
+                out.add(f"{prefix}-{n:0{w}d}{suffix}")
             prev = n
     return out
 
@@ -241,18 +247,27 @@ def check_j2_3(d):
 
 
 def derived_list(d):
-    """The derived-value list at the end of AG section 2.2: lines `- OBJ-n｜state / state｜where it is computed`."""
-    out = {}
-    for line in d.ag_lines:
-        m = re.match(r"^-\s*(OBJ-\d+)｜([^｜]+)｜", line.strip())
-        if m:
+    """The derived-value list at the end of AG section 2.2 (lines `- OBJ-n｜state / state｜where it is computed`) and the problems met while reading it."""
+    out, problems, inside = {}, [], False
+    for number, line in enumerate(d.ag_lines, 1):
+        if "派生值清单" in line and line.startswith("**"):
+            inside = True
+            continue
+        if inside and (line.startswith("#") or line.startswith("|")):
+            inside = False
+        if inside and line.strip().startswith("- "):
+            m = re.match(r"^-\s*(OBJ-\d+)｜([^｜]+)｜(.+)$", line.strip())
+            if not m:
+                problems.append(f"line {number}: a derived-value row that is not `- OBJ-n｜state｜where`: {line.strip()[:50]!r}")
+                continue
             out.setdefault(m.group(1), set()).update(p.strip() for p in m.group(2).split("/") if p.strip())
-    return out
+    if not out:
+        problems.append("the derived-value list (**派生值清单**) was not found or has no row in section 2.2 of the aggregates draft")
+    return out, problems
 
 
 def check_j2_4(d):
-    derived = derived_list(d)
-    bad = []
+    derived, bad = derived_list(d)
     for v, s in d.stages:
         for side, leaf in d.gate_leaves(v, s):
             if leaf.get("derived") or "派生" in str(leaf.get("state", "")):
@@ -264,7 +279,7 @@ def check_j2_4(d):
 
 
 def check_j2_4r(d):
-    derived = derived_list(d)
+    derived, _ = derived_list(d)
     found = []
     for v in d.streams:
         patterns = v.get("stage_pattern", {})
@@ -386,27 +401,36 @@ def check_j5_2(d):
     known = {a["id"] for a in d.aggs}
     bad = []
     for k, v in d.invs.items():
-        aggs = expand_ids("AGG", v["agg"])
+        problems = []
+        aggs = expand_ids("AGG", v["agg"], problems)
+        bad += [f"{k}: {p}" for p in problems]
         bad += [f"{k}: {a} is not in section 2.2" for a in sorted(aggs) if a not in known]
         if re.fullmatch(r"\**A\**\s*(（[^）]*）)?", v["cls"]) and len(aggs) != 1:
             bad.append(f"{k}: class A names {len(aggs)} aggregates {sorted(aggs)} (exactly one expected)")
     return bad
 
 
+def check_j5_2r(d):
+    """Report only: a class that combines A with another (`A + A（前置）`) and names several aggregates; the rule asks for exactly one only of a plain A."""
+    return [f"{k}: class {v['cls'][:30]!r} names {len(expand_ids('AGG', v['agg']))} aggregates" for k, v in d.invs.items()
+            if re.match(r"^\**\s*A", v["cls"]) and not re.fullmatch(r"\**A\**\s*(（[^）]*）)?", v["cls"]) and len(expand_ids("AGG", v["agg"])) > 1]
+
+
 def check_j5_3(d):
     return [f"{k} (line {v['line']}): class C without an ADR reference" for k, v in d.invs.items() if re.match(r"^\**\s*C", v["cls"]) and not re.search(r"ADR-\d{4}", v["raw"])]
 
 
-def referenced_invs(d):
+def referenced_invs(d, problems=None):
     out = set()
     for a in d.aggs:
-        out |= expand_ids("INV", a["inv"])
+        out |= expand_ids("INV", a["inv"], problems)
     return out
 
 
 def check_j5_4(d):
-    ref = referenced_invs(d)
-    return [f"{i}: referenced by an aggregate but not in section 1.2" for i in sorted(ref - set(d.invs))] + [f"{i}: in section 1.2 but referenced by no aggregate" for i in sorted(set(d.invs) - ref)]
+    problems = []
+    ref = referenced_invs(d, problems)
+    return problems + [f"{i}: referenced by an aggregate but not in section 1.2" for i in sorted(ref - set(d.invs))] + [f"{i}: in section 1.2 but referenced by no aggregate" for i in sorted(set(d.invs) - ref)]
 
 
 def check_j6_1(d):
@@ -479,6 +503,8 @@ def registered_modules(d, modules):
 
 
 def check_j7_2(d):
+    if not d.built.exists():
+        return [f"module-dependencies.txt not found ({d.built}): registered modules cannot be known"]
     dep = dep_module(d)
     owner, deps, counted, modules = dep.parse(d.ag_text)
     registered = registered_modules(d, modules)
@@ -579,7 +605,7 @@ CHECKS = [("J1.1", check_j1_1, True), ("J1.2", check_j1_2, True), ("J1.3", check
           ("J2.1", check_j2_1, True), ("J2.2", check_j2_2, True), ("J2.3", check_j2_3, True), ("J2.4", check_j2_4, True), ("J2.4r", check_j2_4r, False), ("J2.5", check_j2_5, True),
           ("J3.1", check_j3_1, True), ("J3.2", check_j3_2, False),
           ("J4.1", check_j4_1, True), ("J4.2", check_j4_2, True), ("J4.3", check_j4_3, True), ("J4.4", check_j4_4, True),
-          ("J5.1", check_j5_1, True), ("J5.2", check_j5_2, True), ("J5.3", check_j5_3, True), ("J5.4", check_j5_4, True),
+          ("J5.1", check_j5_1, True), ("J5.2", check_j5_2, True), ("J5.2r", check_j5_2r, False), ("J5.3", check_j5_3, True), ("J5.4", check_j5_4, True),
           ("J6.1", check_j6_1, True), ("J6.2", check_j6_2, True), ("J6.3", check_j6_3, True), ("J6.4", check_j6_4, True),
           ("J7.1", check_j7_1, True), ("J7.2", check_j7_2, True), ("J7.3", check_j7_3, True), ("J7.4", check_j7_4, True), ("J7.5", check_j7_5, True)]
 
@@ -751,6 +777,52 @@ def self_test():
             write_fixture(folder, vs, cap, im, ag)
             _, results = run_all(folder)
         assert {c: s for c, s, _ in results}[cid] == "FAIL", f"{cid}: the gap found in review must fail"
+    problems = []
+    assert expand_ids("AGG", "AGG-01 — 2 个") == {"AGG-01"} and expand_ids("INV", "INV-12，3 条") == {"INV-12"}, "a counted number after an id is no id"
+    assert expand_ids("AGG", "AGG-110、12") == {"AGG-110", "AGG-12"} and expand_ids("INV", "INV-95–98") == {f"INV-{n}" for n in range(95, 99)}, "own digits, ranges"
+    assert expand_ids("INV", "INV-16a、03b") == {"INV-16a", "INV-03b"} and expand_ids("INV", "INV-05–09、12") >= {"INV-07", "INV-12"}, "letter suffix, range then list"
+    expand_ids("INV", "INV-09–05", problems)
+    assert problems, "a descending range is reported"
+    for cid, fn in {
+        "J2.4": lambda vs, cap, im, ag: (vs, cap, im, ag.replace("- OBJ-03｜有效 / 失效｜B-01 读模型计算", "- OBJ-03 | 有效 / 失效 | B-01 读模型计算")),
+        "J4.4": lambda vs, cap, im, ag: (vs["value_streams"][0]["stages"].append({"id": "VS-01.2", "entry": {"any": [{"ref": "OBJ-05", "state": "可用"}]}, "exit": {"any": [{"ref": "OBJ-05", "state": "可用"}]}}), (vs, cap, im + "| OBJ-05 | 附件 | d | 次级（合同） | t | 可用 | r |\n", ag.replace("条款 | 一对一", "条款、附件（OBJ-05） | 一对一")))[1],
+    }.items():
+        vs, cap, im, ag = mutate(fn)
+        with tempfile.TemporaryDirectory() as folder:
+            write_fixture(folder, vs, cap, im, ag)
+            _, results = run_all(folder)
+        assert {c: s for c, s, _ in results}[cid] == "FAIL", f"{cid}: gap found in the final review must fail"
+    with tempfile.TemporaryDirectory() as folder:
+        write_fixture(folder, ag=BASE_AG.replace("**派生值清单**（回溯检查）：\n- OBJ-03｜有效 / 失效｜B-01 读模型计算\n", ""))
+        _, results = run_all(folder)
+        assert {c: s for c, s, _ in results}["J2.4"] == "FAIL", "no derived-value list at all is a failure, not a pass"
+    with tempfile.TemporaryDirectory() as folder:
+        try:
+            run_all(folder)
+        except SystemExit as stop:
+            assert "missing input" in str(stop)
+        else:
+            raise AssertionError("a missing input must stop the run with a clear message")
+    with tempfile.TemporaryDirectory() as folder:
+        write_fixture(folder, ag=BASE_AG.replace("| INV-03 | 跨聚合额度 | C | AGG-01、AGG-02 ADR-0010 |", "| INV-03 | 跨聚合额度 | A + A（前置） | AGG-01、AGG-02 ADR-0010 |"))
+        _, results = run_all(folder)
+        assert {c: s for c, s, _ in results}["J5.2r"] == "REPORT", "a combined A class naming two aggregates is reported"
+    with tempfile.TemporaryDirectory() as folder:
+        vs = __import__("copy").deepcopy(BASE_VS)
+        vs["value_streams"][0]["stages"][0]["in_stage_states"] = [{"ref": "OBJ-03", "state": "有效"}]
+        write_fixture(folder, vs=vs)
+        _, results = run_all(folder)
+        assert {c: s for c, s, _ in results}["J2.4r"] == "REPORT", "a derived value used inside a stage is reported, not failed"
+    with tempfile.TemporaryDirectory() as folder:
+        ag = BASE_AG.replace("AGG-02", "AGG-04").replace("| 合同（OBJ-02） |", "| 阶段类型版本（OBJ-02） |")
+        write_fixture(folder, ag=ag)
+        _, results = run_all(folder)
+        assert {c: s for c, s, _ in results}["J3.1"] == "PASS", "AGG-04 (stage type catalogue version) is on the J3.1 whitelist"
+    with tempfile.TemporaryDirectory() as folder:
+        ag = BASE_AG.replace("| 合同（OBJ-02） | 条款 | 一对一 | INV-02 |", "| 合同（OBJ-02） | 条款 | 一对一 | — |").replace("INV-01、03、01a", "INV-01–03、01a")
+        write_fixture(folder, ag=ag)
+        _, results = run_all(folder)
+        assert {c: s for c, s, _ in results}["J5.4"] == "PASS", "INV-02 is named only by the range INV-01–03"
     for note, fn, ids in (
             ("a capability supported only by an in-stage state or a cross-stage activity", lambda vs, cap, im, ag: (cap["capabilities"].append({"id": "CAP-005", "object": "OBJ-03"}), vs["value_streams"][0]["stages"][0].update(in_stage_states=[{"ref": "OBJ-03", "state": "有效"}])), ("J4.4",)),
             ("an activity input in the stream", lambda vs, cap, im, ag: (cap["capabilities"].append({"id": "CAP-005", "object": "OBJ-03"}), vs["value_streams"][0].update(cross_stage_activities=[{"name": "a", "inputs": [{"ref": "OBJ-03", "state": "有效"}], "outputs": []}])), ("J4.4",)),("range and shorthand in the INV column", lambda vs, cap, im, ag: (vs, cap, im, ag.replace("INV-01、03、01a", "INV-01–03、01a")), ("J5.4",)),
