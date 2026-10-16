@@ -672,7 +672,7 @@ processes:
     desc: 占用第 2 步
     decision:
     - when: 可用预算不足且口径为拦截
-      goto: 11
+      goto: 12
     - when: otherwise
       goto: 4
     cross_bc:
@@ -688,7 +688,7 @@ processes:
     desc: 占用第 3 步；原始凭证要素齐全（INV-84）。占用中途失败按相反顺序补偿：第 3 步失败先释放预算占用再释放发票占用；第 2 步失败只释放发票占用
     decision:
     - when: 原始凭证要素不全（INV-84）
-      goto: 10
+      goto: 11
     - when: otherwise
       goto: 5
   - actor: platform
@@ -701,7 +701,7 @@ processes:
       doc_type: 费用报销审批
       approver: SH-E1
       multi_level: false
-      on_reject: 10
+      on_reject: 11
     cross_bc:
     - mode: api
       direction: out
@@ -737,7 +737,7 @@ processes:
     desc: 〔订阅费用报销已核定〕B-09 按报销人未结借款冲抵；无未结借款时冲抵额为零（Q-10，intent 134134；S-17）
     decision:
     - when: 冲抵后报销净额为零
-      goto: end
+      goto: 10
     - when: otherwise
       goto: 9
   - actor: system
@@ -755,6 +755,20 @@ processes:
       direction: out
       bc: B-10
       name: 确认应付
+  - actor: system
+    bc: B-09
+    command: 标记费用报销已付
+    aggregate: AGG-59
+    branch: 全额冲抵
+    desc: 净额为零时 B-09 经 api 调 B-12 置已付，结清方式「借款冲抵」（S-19；「已付」是否改称「已结清」交 one-glossary）
+    decision:
+    - when: otherwise
+      goto: end
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-12
+      name: 标记费用报销已付（结清方式：借款冲抵）
   - actor: system
     command: 释放预算占用
     aggregate: AGG-80
