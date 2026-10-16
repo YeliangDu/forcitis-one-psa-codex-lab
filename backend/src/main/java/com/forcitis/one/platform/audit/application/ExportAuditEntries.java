@@ -37,7 +37,7 @@ public class ExportAuditEntries {
         try {
             filters = new AuditQuery(search.actorId() == null ? null : new UserId(search.actorId()),
                     search.onBehalfOfId() == null ? null : new UserId(search.onBehalfOfId()), AuditSearch.blankToNull(search.action()),
-                    AuditSearch.blankToNull(search.actionPrefix()), search.subjectKind(), search.subject(),
+                    AuditSearch.blankToNull(search.actionPrefix()), search.subjectKind(), search.subjectId(),
                     AuditSearch.blankToNull(search.sourceAddress()), search.outcome(), search.from(), search.to(), null, AuditQuery.MAX_LIMIT);
         } catch (IllegalArgumentException invalid) {
             throw new DomainException(AuditError.PLATFORM_AUDIT_QUERY_INVALID, ErrorKind.INVALID, invalid.getMessage());

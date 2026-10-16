@@ -2,7 +2,6 @@ package com.forcitis.one.platform.audit.application;
 
 import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
-import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import java.time.Instant;
 import java.util.Objects;
@@ -13,17 +12,6 @@ import java.util.stream.Stream;
 /** page is absent for an export, which takes every match up to its own limit. */
 public record AuditSearch(UUID actorId, UUID onBehalfOfId, String action, String actionPrefix, AuditSubjectKind subjectKind, UUID subjectId, String sourceAddress,
                           AuditOutcome outcome, Instant from, Instant to, PageRequest page) {
-
-    /** The object a search names: an id needs its kind, because the ids of different kinds are not told apart. */
-    AuditSubject subject() {
-        if (subjectId == null) {
-            return null;
-        }
-        if (subjectKind == null) {
-            throw new IllegalArgumentException("subjectId needs subjectKind");
-        }
-        return AuditSubject.of(subjectKind, subjectId);
-    }
 
     /** The filter as text for the audit entry about the search or the export; control characters cannot forge a line. */
     String describe() {
