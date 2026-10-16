@@ -255,6 +255,8 @@ def main():
         relevant = any(is_relevant(f) for f in files)
         legacy_it = any_legacy_it(files)
         print(f"{len(files)} changed files, relevant={relevant}, legacy_it={legacy_it}")
+    elif event == "schedule":
+        relevant, legacy_it = True, False   # the nightly full run of main; the SQL Server tests have their own nightly workflow
     else:
         relevant = True
         before = os.environ.get("BEFORE", "")
