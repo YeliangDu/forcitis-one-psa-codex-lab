@@ -6379,7 +6379,7 @@ terms:
   snake: audit_subject
   kind: value_object
   bc: platform.audit
-  definition: 被审计的业务对象，键形如 {type}:{id}
+  definition: 被审计的业务对象，由对象类别与对象 ID 共同标识（subject_kind + subject_id）；没有对象的审计类别（受访问控制的请求、受方法级授权的操作、未识别到人的登录尝试）对象 ID 为空
   standard_ref:
   - REIMAGINED_ARCHITECTURE.md（Phase 1a）
   confidence: medium
@@ -6390,7 +6390,7 @@ terms:
   forbidden: []
   status: approved
   note: 用语确认第二轮转正式（原提议 platform-contracts.yaml#subject）
-  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-14（业务 Admin，用语确认页第二轮）；R-1b P5 卡第 11 节开工前术语门禁（one-1a-next-4 提出，one-glossary 2026-10-16 预判；技术性对齐，改掉原定义里的键形式 {type}:{id}）（用户裁定，rulings.yaml）；2026-10-15（用户，B2 类别判定）
   scope: domain
 - id: business_owner
   zh: 业务负责人

@@ -44,3 +44,7 @@ rulings:
     id: period_status
     definition: OPEN / CLOSING / CLOSED / HISTORICAL（历史期间，见 period_status__historical）；重开政策待财务确认
     source: 用户 2026-10-15 财务口径决策页 FD-01（历史期间）
+  - op: redefine
+    id: audit_subject
+    definition: 被审计的业务对象，由对象类别与对象 ID 共同标识（subject_kind + subject_id）；没有对象的审计类别（受访问控制的请求、受方法级授权的操作、未识别到人的登录尝试）对象 ID 为空
+    source: R-1b P5 卡第 11 节开工前术语门禁（one-1a-next-4 提出，one-glossary 2026-10-16 预判；技术性对齐，改掉原定义里的键形式 {type}:{id}）
