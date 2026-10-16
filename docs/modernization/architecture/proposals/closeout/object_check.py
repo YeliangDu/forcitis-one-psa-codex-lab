@@ -92,7 +92,16 @@ def prep_machine(m):
     draft = {t.get("to") for t in trs if None in froms(t) and DRAFT_STATE.search(str(t.get("to")))}
     if DRAFT_STATE.search(str(initial)):
         draft.add(initial)
-    return {"initial": initial, "null_to": null_to, "term": term, "draft": draft, "by_cmd": by_cmd,
+    entry_cmd = any(t.get("command") and None in froms(t) and t.get("to") in draft for t in trs)
+    implicit = set()   # commandless (event-fired) transitions: into a terminal = D, others = U
+    for t in trs:
+        if t.get("command") or t.get("kind") == "non_state" or None in froms(t):
+            continue
+        to = t.get("to")
+        for f in froms(t):
+            if f != to:
+                implicit.add("D" if to in term and f not in term else "U")
+    return {"entry_cmd": entry_cmd, "implicit": implicit, "initial": initial, "null_to": null_to, "term": term, "draft": draft, "by_cmd": by_cmd,
             "stateless": bool(m.get("stateless")), "perpetual": bool(m.get("perpetual")), "reason": m.get("reason")}
 
 
@@ -112,7 +121,7 @@ def machine_class(pm, cmd):
             letters.add("C" if to == pm["initial"] or pm["initial"] not in pm["null_to"] else "U")
         elif to in pm["term"] and to not in fr:
             letters.add("U" if creates else "D")
-        elif pm["draft"] & set(fr) and to not in pm["draft"]:
+        elif pm["draft"] & set(fr) and to not in pm["draft"] and not pm["entry_cmd"]:
             letters.add("C")
         else:
             letters.add("U")
@@ -180,6 +189,7 @@ def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None, catalog_cmds=
     first_vs = {}
     issues = collections.defaultdict(list)
     seen_aggs = set()
+    agg_units = collections.defaultdict(set)   # aggregate -> units that change it with a command
     wcmds = collections.defaultdict(set)   # aggregate -> commands of writing steps
     agg_states = collections.defaultdict(list)   # aggregate -> [(unit, states, transitions)]
 
@@ -195,10 +205,19 @@ def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None, catalog_cmds=
             if u.get("aggregate") and (u.get("states") or u.get("transitions")):
                 agg_states[u["aggregate"]].append((uid, list(u.get("states") or []), list(u.get("transitions") or [])))
             steps = cc.unit_steps(u)
-            for c in u.get("commands") or []:
+            seen_uc, uc_aggs = set(), set()
+            for c in (u.get("commands") or []) + (u.get("transitions") or []):
                 cmd = c.get("command") if isinstance(c, dict) else c
-                if u.get("aggregate") and cmd:
-                    steps = steps + [{"aggregate": u["aggregate"], "command": cmd, "actor": "x", "where": "in_system", "_unitcmd": True}]
+                agg = (c.get("aggregate") if isinstance(c, dict) else None) or u.get("aggregate")
+                if agg and cmd and (agg, cc.base_cmd(cmd)) not in seen_uc:
+                    seen_uc.add((agg, cc.base_cmd(cmd)))
+                    uc_aggs.add(agg)
+                    st = {"aggregate": agg, "command": cmd, "actor": "x", "where": "in_system", "_unitcmd": True}
+                    if isinstance(c, dict) and isinstance(c.get("approval"), dict):
+                        st["approval"] = c["approval"]
+                    steps = steps + [st]
+            if len(uc_aggs) > 1 and not (isinstance(u.get("aggregates"), list) and len(u["aggregates"]) > 1):
+                issues["3 单聚合维护含多个聚合"].append((vs, f"{uid}：{sorted(uc_aggs)}"))
             for i, s in enumerate(steps):
                 if (isinstance(s.get("approval"), dict) and s["approval"].get("on_reject") is not None) or s.get("withdraw"):
                     tgt = cc.gated_target(steps, i)
@@ -241,10 +260,18 @@ def analyse(docs, aggs, new_aggs, cat, matrix=None, machines=None, catalog_cmds=
                         rev_cmds[key].add(cc.base_cmd(cmd))
                     if cc.MISSING in str(cmd):
                         continue
+                    agg_units[a].add(uid)
                     wcmds[a].add(cc.base_cmd(cmd))
                     bc = s.get("bc") or owner
                     if bc:
                         writers[key][str(bc)].add(f"{uid}")
+    for a, pm in pms.items():
+        if pm["implicit"] and a in agg_units:
+            for uid in agg_units[a]:
+                touch[key_of.get(a, a)][uid] |= pm["implicit"]
+                firm[key_of.get(a, a)][uid] |= pm["implicit"]
+                for L in pm["implicit"]:
+                    cmdletters[key_of.get(a, a)][L].add("（状态机事件触发转换）")
     for a, cmd, why in catalog_cmds or []:
         if a in all_ids and BRANCH_EDGE.search(why) and ("触发" in why or "回调" in why):
             rev_cmds[key_of.get(a, a)].add(f"{cc.base_cmd(cmd)}（目录 unused_ok）")
@@ -532,8 +559,8 @@ def self_test_more():
           [{"from": None, "to": "草稿", "command": "起甲"}, {"from": "草稿", "to": "已提交", "command": "送乙"}, {"from": "已提交", "to": "已完结", "command": "收丙"},
            {"from": "已提交", "to": "草稿", "command": "打丁", "kind": "reverse"}, {"from": "草稿", "to": "草稿", "command": "微戊", "kind": "non_state"}], initial="草稿")
     got = {c: machine_class(prep_machine(m), c) for c in ("起甲", "送乙", "收丙", "打丁", "微戊")}
-    check("机器：from null 创建、草稿初态出向创建、指向终态结束、reverse 逆向、non_state 修改",
-          got == {"起甲": ({"C"}, False), "送乙": ({"C"}, False), "收丙": ({"D"}, False), "打丁": ({"U"}, True), "微戊": ({"U"}, False)}, got)
+    check("机器：from null 创建、入口有命令时草稿出向按修改、指向终态结束、reverse 逆向、non_state 修改",
+          got == {"起甲": ({"C"}, False), "送乙": ({"U"}, False), "收丙": ({"D"}, False), "打丁": ({"U"}, True), "微戊": ({"U"}, False)}, got)
     R = _run([_st("AGG-02", c) for c in ("起甲", "收丙", "打丁", "微戊")], ["AGG-02"], {"AGG-02": m})
     check("机器优先：名字无词表词也分得出", R["touch"]["OBJ-02"]["PRC-1"] == {"C", "D", "U"} and not R["issues"].get("6 生命周期缺冲销撤回类逆向"), R["issues"])
     R = _run([_st("AGG-03", "批准用印申请"), _st("AGG-03", "提交申请")], ["AGG-03"])
@@ -591,6 +618,33 @@ def self_test_more():
         check(f"缺 {miss} 不生效并报错", len(R["issues"][key]) == 1 and not R["exempted"] and len(R["exempt_errors"]) == 1, R["exempt_errors"])
     R = apply_exemptions(base(), [dict(ok_e, object="OBJ-99")])
     check("失效豁免列出", len(R["stale"]) == 1 and len(R["issues"][key]) == 1 and "失效豁免" in summary(R), R["stale"])
+    # 单聚合维护：commands[] 与 transitions[] 条目都计入，条目 aggregate 优先，同一命令两处只计一次
+    def su(**kw):
+        return dict({"id": "PRC-7", "type": "single_aggregate", "stages": ["VS-01.1"], "owner_bc": "B-01", "aggregate": "AGG-01"}, **kw)
+    R = _run([], ["AGG-01", "AGG-02"], units=[su(commands=[{"command": "登记甲", "aggregate": "AGG-02"}, "作废乙"],
+                                                 transitions=[{"from": "草稿", "to": "终止", "command": "作废丙"}])])
+    check("单聚合维护：条目 aggregate 优先、transitions 条目计入",
+          R["touch"]["OBJ-02"]["PRC-7"] == {"C"} and R["touch"]["OBJ-01"]["PRC-7"] == {"D"}, dict(R["touch"]))
+    R = _run([], ["AGG-01", "AGG-02"], units=[su(commands=[{"command": "登记甲", "aggregate": "AGG-02"}, "作废乙"],
+                                                 transitions=[{"from": "草稿", "to": "终止", "command": "作废乙"}])])
+    check("单聚合维护：同一命令两处只计一次", R["touch"]["OBJ-01"]["PRC-7"] == {"D"}, dict(R["touch"]))
+    check("单聚合维护：条目 aggregate 不同于单元级、实际只一个聚合，不报多聚合",
+          not iss(_run([], ["AGG-01", "AGG-02"], units=[su(commands=[{"command": "登记甲", "aggregate": "AGG-02"}])]), "3 单聚合维护含多个聚合"))
+    check("单聚合维护：条目实际跨多个聚合才报",
+          len(iss(R, "3 单聚合维护含多个聚合")) == 1 and "PRC-7" in iss(R, "3 单聚合维护含多个聚合")[0], R["issues"])
+    # 状态机：无命令的事件转换参与分类；草稿入口有命令时，草稿出向转换按修改
+    mv = M("AGG-01", ["草稿", "已生效", "已取代"], [{"from": None, "to": "草稿", "command": "编制甲"}, {"from": "草稿", "to": "已生效", "command": "发布甲"},
+                                                   {"from": "已生效", "to": "已取代"}])
+    R = _run([_st("AGG-01", "编制甲"), _st("AGG-01", "发布甲")], ["AGG-01"], machines={"AGG-01": mv})
+    check("草稿入口有命令：创建只认入口，发布按修改；无命令终态转换计结束",
+          R["touch"]["OBJ-01"]["PRC-1"] == {"C", "U", "D"}, R["touch"])
+    mv2 = M("AGG-01", ["草稿", "已生效", "已取代"], [{"from": "草稿", "to": "已生效", "command": "发布甲"}, {"from": "已生效", "to": "草稿"}])
+    R = _run([_st("AGG-01", "发布甲")], ["AGG-01"], machines={"AGG-01": mv2})
+    check("草稿入口无命令：出向命令按创建；无命令非终态转换计修改", R["touch"]["OBJ-01"]["PRC-1"] == {"C", "U"}, R["touch"])
+    R = _run([], ["AGG-01"], units=[su(transitions=[{"from": "草稿", "to": "已生效", "command": "发布甲", "approval": {"on_reject": "状态保持草稿"}}])])
+    check("单聚合维护条目上的审批驳回边计逆向", R["touch"]["OBJ-01"]["PRC-7"] and not iss(R, "6 生命周期缺冲销撤回类逆向"), R["issues"])
+    R = _run([], ["AGG-01"], units=[su(transitions=[{"from": "草稿", "to": "已生效", "command": "发布甲"}])])
+    check("单聚合维护条目无审批：仍缺逆向", len(iss(R, "6 生命周期缺冲销撤回类逆向")) == 1, R["issues"])
     check("矩阵汇总表有已豁免列", "| 已豁免 |" in render_matrix(apply_exemptions(base(), [ok_e]), {}))
     return all(results)
 
