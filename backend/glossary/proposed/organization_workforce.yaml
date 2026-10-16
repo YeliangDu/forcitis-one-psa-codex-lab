@@ -5,7 +5,7 @@ terms:
   zh: 在职判定
   en: EmploymentVerdict
   snake: employment_verdict
-  kind: value
+  kind: value_object
   bc: organization.workforce
   scope: domain
   definition: 组织快照对某员工是否在职的判定：在职 EMPLOYED、离职 SEPARATED、快照可用而未列出 NOT_LISTED、快照不可用或过期 SNAPSHOT_UNAVAILABLE（ADR-0033 第 3 项第 7 条，应急登录在职校验用）
@@ -20,7 +20,7 @@ terms:
   zh: 登录查人
   en: LoginLookup
   snake: login_lookup
-  kind: value
+  kind: value_object
   bc: organization.workforce
   scope: acl
   acl_class: 过渡期
@@ -202,7 +202,7 @@ terms:
   zh: 缩水保护
   en: ShrinkGuard
   snake: shrink_guard
-  kind: policy
+  kind: business_rule
   bc: organization.workforce
   scope: acl
   acl_class: "过渡期"
@@ -219,7 +219,7 @@ terms:
   zh: 被中止的同步
   en: HeldRun
   snake: held_run
-  kind: value
+  kind: value_object
   bc: organization.workforce
   scope: acl
   acl_class: "过渡期"
@@ -235,7 +235,7 @@ terms:
   zh: 被隔离的行
   en: IsolatedRow
   snake: isolated_row
-  kind: value
+  kind: value_object
   bc: organization.workforce
   scope: acl
   acl_class: "过渡期"
@@ -251,7 +251,7 @@ terms:
   zh: 断裂的组织树
   en: BrokenOrgTree
   snake: broken_org_tree
-  kind: value
+  kind: value_object
   bc: organization.workforce
   scope: acl
   acl_class: "过渡期"
@@ -267,7 +267,7 @@ terms:
   zh: 登录名
   en: LoginName
   snake: login_name
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -283,7 +283,7 @@ terms:
   zh: 人员
   en: StaffEmployee
   snake: staff_employee
-  kind: value
+  kind: value_object
   bc: organization.workforce
   scope: acl
   acl_class: "过渡期"
@@ -299,7 +299,7 @@ terms:
   zh: 关系
   en: Relationship
   snake: relationship
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
@@ -315,7 +315,7 @@ terms:
   zh: 离职观察时间
   en: SeparationObservedAt
   snake: separation_observed_at
-  kind: value
+  kind: value_object
   bc: platform.integration
   scope: acl
   acl_class: "过渡期"
