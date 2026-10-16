@@ -85,7 +85,7 @@
 | PRC-23 | 填报并审批工时 | business |  | VS-01.2, VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6 | B-06 | revenue | draft | 是 |  |
 | PRC-24 | 暂停、恢复、终止或取消项目 | business |  | VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7 | B-04 | revenue | draft | 否 |  |
 | PRC-25 | 转入售前投入 | event_policy |  | VS-02.0, VS-04.1 | B-07 | finance | draft | 否 |  |
-| PRC-26 | 接收并确认发包人提供资料 | business |  | VS-02.0, VS-02.2, VS-02.3, VS-02.4 | B-28 | revenue | draft | 是 |  |
+| PRC-26 | 接收并确认发包人提供资料 | business |  | VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4 | B-28 | revenue | draft | 是 |  |
 | PRC-27 | 登记并处置项目风险与问题 | single_aggregate |  | VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7 | B-04 | revenue | draft | 否 |  |
 | PRC-28 | 编制、评审并签发交付物，送达并登记客户认可 | business |  | VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-03.5 | B-28 | revenue | user_confirmed | 是 |  |
 | PRC-29 | 签发到认可：交付物签发后送达与登记客户认可是同一交付物的连续步骤 | merged | PRC-28 |  |  | revenue | draft | 待定 |  |
@@ -107,11 +107,11 @@
 | PRC-45 | 跟踪整改并复查闭合 | business |  | VS-03.4 | B-26 | revenue | draft | 是 |  |
 | PRC-46 | 采信外部检测报告 | business |  | VS-03.4 | B-26 | revenue | draft | 否 |  |
 | PRC-47 | 起草、评审并回签协议 | business |  | VS-04.1 | B-05 | revenue | draft | 是 |  |
-| PRC-48 | 提出并生效协议变更或签证 | business |  | VS-04.1 | B-05 | revenue | draft | 是 |  |
-| PRC-49 | 提出并认定索赔 | business |  | VS-04.1, VS-04.5 | B-05 | revenue | draft | 是 |  |
-| PRC-50 | 占用框架限额并提交任务订单 | business |  | VS-04.1 | B-05 | revenue | draft | 是 |  |
+| PRC-48 | 提出并生效协议变更或签证 | business |  | VS-04.6 | B-05 | revenue | draft | 是 |  |
+| PRC-49 | 提出并认定索赔 | business |  | VS-04.6, VS-04.5 | B-05 | revenue | draft | 是 |  |
+| PRC-50 | 占用框架限额并提交任务订单 | business |  | VS-04.6 | B-05 | revenue | draft | 是 |  |
 | PRC-51 | 建立并更新开票与收入额度 | event_policy |  | VS-04.1, VS-04.2, VS-04.3 | B-08 | revenue | draft | 否 |  |
-| PRC-52 | 开放可触发收入确认的证据类型 | single_aggregate |  | VS-04.2 | B-08 | revenue | draft | 否 |  |
+| PRC-52 | 开放可触发收入确认的证据类型 | single_aggregate |  |  | B-08 | revenue | draft | 否 |  |
 | PRC-53 | 确认收入 | event_policy |  | VS-04.2 | B-08 | revenue | draft | 否 |  |
 | PRC-54 | 视为同意期满处理 | business |  | VS-04.2 | B-08 | revenue | draft | 是 |  |
 | PRC-55 | 结转合同履约成本 | event_policy |  | VS-04.2 | B-07 | finance | draft | 否 |  |
@@ -125,7 +125,7 @@
 | PRC-63 | 商业汇票兑付与逾期 | business |  | VS-04.4 | B-09 | revenue | draft | 否 |  |
 | PRC-64 | 导入银行流水 | business |  |  | B-22 | finance | draft | 否 |  |
 | PRC-65 | 维护资金账户 | single_aggregate |  |  | B-22 | finance | draft | 否 |  |
-| PRC-66 | 发起结算，确认最终价款并结算协议 | business |  | VS-04.5 | B-08 | revenue | draft | 否 |  |
+| PRC-66 | 发起结算，确认最终价款并结算协议 | business |  | VS-04.5, VS-04.6 | B-08 | revenue | draft | 否 |  |
 | PRC-67 | 履约完成到结算：协议已完成后编制结算书、确认最终价款、结算 | merged | PRC-66 |  |  | revenue | draft | 待定 |  |
 | PRC-68 | 终止协议 | single_aggregate |  | VS-04.5 | B-05 | revenue | draft | 否 |  |
 | PRC-69 | 供应商准入与资质核验 | business |  | VS-05.1 | B-01 | revenue | draft | 否 |  |
@@ -211,7 +211,7 @@
 | PRC-149 | 冲销收入确认 | business |  | VS-04.2, VS-04.5 | B-08 | revenue | draft | 是 |  |
 | PRC-150 | 发票红冲后冲减应收 | event_policy |  | VS-04.4 | B-09 | revenue | draft | 否 |  |
 | PRC-151 | 填报经营产值 | business |  | VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6 | B-04 | revenue | draft | 否 |  |
-| PRC-152 | 登记付款条件达成 | business |  | VS-04.3, VS-04.4 | B-05 | revenue | draft | 否 |  |
+| PRC-152 | 登记付款条件达成 | business |  | VS-04.3 | B-05 | revenue | draft | 否 |  |
 | PRC-153 | 退还投标保证金 | business |  | VS-01.2, VS-04.1 | B-09 | revenue | draft | 否 |  |
 | PRC-154 | 收入三口径对照 | read_model |  | VS-04.2, VS-04.3 | reporting | revenue | draft | 否 |  |
 | PRC-155 | IT 资产调拨 | business |  |  | B-31 | people | draft | 否 |  |
@@ -238,7 +238,7 @@
 | PRC-176 | 预付款核销 | single_aggregate |  | VS-05.5 | B-10 | finance | draft | 否 |  |
 | PRC-177 | 向差旅服务商同步员工与组织 | event_policy |  |  | B-13 | people | draft | 否 |  |
 | PRC-178 | 补休到期未休或离职时转计发加班工资 | event_policy |  | VS-13.3 | B-15 | people | draft | 否 |  |
-| PRC-179 | 项目开始执行后协议转入履行中 | event_policy |  | VS-04.1 | B-05 | revenue | draft | 否 |  |
+| PRC-179 | 项目开始执行后协议转入履行中 | event_policy |  | VS-04.6 | B-05 | revenue | draft | 否 |  |
 | PRC-180 | 发布薪酬规则版本 | single_aggregate |  | VS-13.3 | B-15 | people | draft | 否 |  |
 | PRC-181 | 记录经营复盘并跟踪经营动作 | business |  | VS-09.3 | B-18 | people | draft | 是 |  |
 | PRC-182 | 知识条目使用情况 | read_model |  | VS-11.3 | reporting | people | draft | 否 |  |
