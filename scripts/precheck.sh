@@ -186,6 +186,10 @@ if touches '(^(backend/src/main/resources/db/migration/|backend/architecture/(da
     printf '%s\n' "$ddl_scan" | tail -n 8 | sed 's/^/      | /'
   fi
 fi
+if touches 'src/test/.*\.java$|scripts/ci/shared_mock_verify_scan\.py$'; then
+  run_step "shared-mock verify scan (self-test)" py scripts/ci/shared_mock_verify_scan.py --self-test
+  report PASS "shared-mock verify scan (report only)" "$(py scripts/ci/shared_mock_verify_scan.py 2>&1 | tail -n 1)"
+fi
 if touches '^scripts/ci/(assertion_drift|ci_git)\.py$'; then
   run_step "assertion drift (self-test)" py scripts/ci/assertion_drift.py --self-test
 fi
