@@ -24,6 +24,7 @@
 | GitHub | sub 定制（不可变）；environments 只允许 main；dev 变量 3 个；仓库级构建变量 8 个（SSO 门户与 PROD_* 待替换） | ✅ | R-1、R-4、R-6、§6 |
 
 | ECS one.env | 2026-10-16 补 C-17 `SEEYON_VIEWS_ROOT_PATH`、C-18 `FORCITIS_JOBS_ENABLED=true`，`SSO_ENABLED` 改 false（t-hz07057zxlib280；备份 one.env.bak-20261016035106）；白名单仍 4 条，待用户指定保留哪 1 条 | 用 | intent 214511、215052 |
+| ECS one.env（dev 首次启动） | 2026-10-16 起 dev 在位的临时项：`FORCITIS_PLATFORM_APPROVAL_PROCESS_ADMINISTRATOR_REQUIRED=false`（原因：process_administrator 首批持有人须先有员工 ID，而员工靠运行中的同步灌入，全新库上启动自检成死循环；删除条件：one-1a-par 的 ADR-0030 单人运维模式新 rc 出来后授予用户本人 process_administrator 与 super_admin，授完删此开关并重启确认自检通过）；同日启用 `INTEGRATION_SEEYON_VIEWS_ENABLED=true`、`WORKFORCE_SYNC_ENABLED=true`、A8 实例专属 4 个编号、`ARCHIVE_STORE_*` 五项（本地目录暂用 /data/forcitis-one/tmp/archive-local）；备份 one.env.bak-20261016* | 用 | 用户 2026-10-16「好」、intent 2026-10-16 |
 
 ## 在途
 
