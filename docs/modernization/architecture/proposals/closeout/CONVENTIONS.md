@@ -20,7 +20,7 @@
 
 ```yaml
 - id: PRC-03
-  segregation:                        # 可选；不相容职务约束：同一人不得同时担任所列角色
+  segregation:                        # 可选；不相容职务约束：同一人不得同时担任所列角色（流程级）
     - {roles: [SH-E5, SH-M2], rule: "制单与审批不得为同一人"}
   roles:                              # 必填；本流程全部参与角色
     - {id: SH-E2, as: initiator}      # as 取值：initiator 发起 / performer 执行 / approver 审批 / reviewer 复核 / informed 知会 / external 外部方
@@ -62,7 +62,7 @@
       versioned: none                 # none / effective_dated（生效区间，D6）/ snapshot（期间快照）/ append_only（只追加）
       history_migration: full         # full 全量历史 / open_items 只迁未结 / none 不迁；非 full 写 reason
       sensitivity: internal           # 取 backend/architecture/data-classification.txt 的级别名；不确定写 tbd 并写 reason
-      pi: false                       # 是否含个人信息（ADR-0043 第二维）：true / false / tbd
+      pi: none                        # 个人信息（ADR-0043 第二维）：none 无 / pi 个人信息 / spi 敏感个人信息 / tbd
       column_families: [条目, 状态, 费率版本引用, 审计列]    # 列族，不列字段
       reason: ""                      # history_migration、sensitivity 非默认时必填
 ```
