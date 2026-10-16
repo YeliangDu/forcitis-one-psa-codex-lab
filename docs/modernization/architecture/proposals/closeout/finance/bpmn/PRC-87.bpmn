@@ -8,7 +8,7 @@
     <participant id="Pool_tax" name="税务平台（外部）" />
     <messageFlow id="mf1" name="发票查验请求" sourceRef="T_verify" targetRef="Pool_tax" />
     <messageFlow id="mf2" name="发票查验结果" sourceRef="Pool_tax" targetRef="C_result" />
-    <textAnnotation id="Ann_signal"><text>B-09 应收与收款订阅：冲抵员工借款（AGG-49）；净额不为零时调 B-10 确认应付，为零时调 B-12 标记报销已付（结清方式：借款冲抵）。对方反应现记在 PRC-87 第 8–10 步，独立流程号待 one-architecture 定（S-16、S-17、S-19）</text></textAnnotation>
+    <textAnnotation id="Ann_signal"><text>B-09 应收与收款订阅：冲抵员工借款（AGG-49）；净额不为零时调 B-10 确认应付，为零时调 B-12 标记报销已付（结清方式：借款冲抵）。见事件策略 PRC-147（B-09，S-16、S-17、S-19、S-24）</text></textAnnotation>
     <association id="Assoc_signal" sourceRef="S_confirmed" targetRef="Ann_signal" />
     <textAnnotation id="Ann_budget"><text>INV-102 待定：预算不够时拦截还是预警</text></textAnnotation>
     <association id="Assoc_budget" sourceRef="G_budget" targetRef="Ann_budget" />
@@ -150,11 +150,11 @@
       <outgoing>f23</outgoing>
       <signalEventDefinition id="SED_confirmed" signalRef="Signal_expense_claim_confirmed" />
     </intermediateThrowEvent>
-    <callActivity id="CA_post" name="过账业务事实" calledElement="PRC-92">
-      <documentation>AGG-59 提交过账候选 → B-16</documentation>
+    <serviceTask id="CA_post" name="提交过账候选 → B-16">
+      <documentation>AGG-59 提交过账候选；B-12 → B-16 过账管道（PRC-92）</documentation>
       <incoming>f23</incoming>
       <outgoing>f24</outgoing>
-    </callActivity>
+    </serviceTask>
     <endEvent id="End_ok" name="已核定">
       <documentation>VS-08.2 出口：已核定（所属期间确定）</documentation>
       <incoming>f24</incoming>
