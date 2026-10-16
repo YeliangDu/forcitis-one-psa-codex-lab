@@ -24,4 +24,5 @@
 
 ## C1 一并要做的实现项
 
+- 到期端口 `kernel.ExternalSubjectEmployees`（R-1b P3b RULING-P3B-9，platform.integration 询问、organization.workforce 实现，登记于 `module-dependencies.txt` 第 7 行）：C1 落地后按身份模型删除或改形，同步删去依赖图中该行与 SSOT `expiring_ports` 条目；DA-3 时复核。
 - 会话仓库自写 JDBC 实现，统一走注入的 `Clock`，并取消 CS-2.26 对会话表的例外。来源：FLAKY-SESS；Spring Session 4.1.1 没有时钟注入点，当前以 `SessionStoreClock` 作例外过渡（one-coordinator 2026-10-15 登记）。
