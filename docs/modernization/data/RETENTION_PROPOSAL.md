@@ -16,7 +16,7 @@
 | organization_workforce.assignment_versions 等个人任职史版本表 | `PERMANENT` | 员工离职满 10 年 | 删除该员工的任职版本行，保留部门级统计 | 劳动争议、薪酬审计的追溯期；与审批、审计的 10 年同口径；含个人信息，不得永久（R-2） | workforce 卡；W2 版本化 |
 | platform_approval.approval_requests / start_rounds / approval_tasks / approval_task_records | `BUSINESS_RECORD`（无期限） | 10 年 | 归档到对象存储（现有 `platform.approval.process.archive` 的口径），在线行按期删除 | 用户已定审批结论按 10 年（GUIDING_PRINCIPLES §6 审计行）；四表含办理人 ID 与手填原因 | approval 卡；GUIDING_PRINCIPLES §6 补一行 |
 | platform_approval.process_archive_skips | `PERMANENT`（注册表另有一行 `3y`，同表两行，须去重） | 引擎历史清理完成后再留 1 年 | 删除 | 只用于排查归档跳过原因；失败文本已改不含异常原文（DATA-REPAIR-approval） | approval 卡 |
-| platform_integration.outbound_deliveries | `90d` | 成功 90 天；失败（FAILED、DEAD_LETTER）或已人工处理（SKIPPED、`handled_note` 非空）1 年 | 删除 | 与 GUIDING_PRINCIPLES §6 原文一致；注册表现为单档 90 天，改两档 | approval 卡（同批）；注册表改两档 |
+| platform_integration.outbound_deliveries | `90d` | 成功（SENT）与跳过（SKIPPED）90 天；失败（FAILED、DEAD_LETTER，含已人工处理过、`handled_note` 非空者）1 年；待发（PENDING）不删 | 删除 | 与 GUIDING_PRINCIPLES §6 原文一致；注册表现为单档 90 天，改两档 | approval 卡（同批）；注册表改两档 |
 | platform_identity.authorization_requests | `PERMANENT` | 10 年 | 归档到对象存储，在线按期删除 | 授权申请是权责证据，对应审计 10 年；只含用户 ID 与原因 | identity 卡；GUIDING_PRINCIPLES §6 补一行 |
 | platform_idempotency.idempotent_responses | `EXPIRY`（无期限值） | 24 小时 | 删除 | 重放窗口只需覆盖幂等键有效期；应答正文可能含个人信息，越短越好；另限长度、限接口（DATA-REPAIR-timesheet-audit TB） | timesheet-audit 卡 B 部分；注册表写明 `24h` |
 | platform_audit.audit_archive_batches | `PERMANENT` | 保留至其所含最后一条审计满 10 年 | 删除批次登记 | 批次登记只含边界与摘要，不含个人信息，永久也无合规风险；取与归档内容同寿命更干净 | timesheet-audit 卡 B 部分（随 ADR-0048 分区归档一起改） |

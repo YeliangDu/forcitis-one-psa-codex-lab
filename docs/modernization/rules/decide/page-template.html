@@ -58,6 +58,7 @@ details.info ul{margin:8px 0 0;padding-left:18px;display:grid;gap:4px;font-size:
 .q{content-visibility:auto;contain-intrinsic-size:auto 360px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:grid;gap:8px}
 .q[data-state="changed"]{box-shadow:inset 3px 0 0 var(--changed)}
 .q[data-state="defer"]{box-shadow:inset 3px 0 0 var(--defer)}
+.q[data-state="open"]{box-shadow:inset 3px 0 0 var(--changed)}
 .qh{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
 .no{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
 .qt{font-family:var(--f-head);font-size:17px;font-weight:700;text-wrap:balance}
@@ -136,10 +137,10 @@ const recOf = it => it.opts.findIndex(o => o.rec);
 // 没动过的题按推荐预选，但只是草稿：提交时列出「按推荐（没动过）」条数，用户确认后才算答复
 function pick(it){
   const d = decisions.get(it.key);
-  if (!d) return {choice: recOf(it), note: "", defaulted: true};
-  return {choice: d.choice, note: d.note || "", defaulted: false};
+  if (!d) return recOf(it) >= 0 ? {choice: recOf(it), note: "", defaulted: true} : {choice: null, note: "", defaulted: false};   // 事实题、选型题没有推荐项：不预选，必须由用户选或点「暂不定」
+  return {choice: d.choice ?? null, note: d.note || "", defaulted: false};
 }
-const kind = (it, p) => p.choice === "defer" ? "defer" : p.choice === recOf(it) ? "rec" : "changed";
+const kind = (it, p) => p.choice === null ? "open" : p.choice === "defer" ? "defer" : p.choice === recOf(it) ? "rec" : recOf(it) < 0 ? "answered" : "changed";
 
 function qHTML(it){
   const p = pick(it), k = kind(it, p);
@@ -147,7 +148,7 @@ function qHTML(it){
       <span class="dot" aria-hidden="true"></span><span><b>${esc(o.label)}</b>${o.rec ? `<span class="tag">推荐</span>` : ""}</span>
       ${o.effect ? `<span class="eff">${esc(o.effect)}</span>` : ""}</button>`).join("");
   const more = [...(it.basis || []).map(t => "依据：" + t), ...(it.practice || []).map(t => "实践：" + t)];
-  const st = k === "defer" ? `<span class="st defer">暂不定</span>` : k === "changed" ? `<span class="st changed">已改选</span>`
+  const st = k === "open" ? `<span class="st changed">未答：请选一项或点「暂不定」（没有默认项，不能一键认可）</span>` : k === "defer" ? `<span class="st defer">暂不定</span>` : k === "answered" ? `<span class="st">已选（没有默认项的题）</span>` : k === "changed" ? `<span class="st changed">已改选</span>`
     : p.defaulted ? `<span class="st">推荐预选，同意就不用动</span>` : `<span class="st">已确认推荐</span>`;
   return `<article class="q" data-key="${esc(it.key)}" data-state="${k}">
     <div class="qh"><span class="no">${esc(it.no)}</span><span class="qt">${esc(it.title)}</span></div>
@@ -159,7 +160,7 @@ function qHTML(it){
     <div class="row">
       <input type="text" id="nt-${esc(it.key)}" data-note="1" placeholder="说明（改选时请写理由，可空）" value="${esc(p.note)}">
       <button type="button" class="chip" data-defer="1" aria-pressed="${k === "defer"}">暂不定</button>
-      ${p.defaulted ? "" : `<button type="button" class="chip" data-reset="1">恢复推荐</button>`}
+      ${p.defaulted || k === "open" ? "" : `<button type="button" class="chip" data-reset="1">${recOf(it) >= 0 ? "恢复推荐" : "清除选择"}</button>`}
     </div>
     <div class="meta">${it.src ? "来源：" + esc(it.src) + " · " : ""}${st}</div>
   </article>`;
@@ -189,7 +190,7 @@ function tableHTML(t){
   return `<div class="tw"><table><thead><tr>${t[0].map(c => `<th>${esc(c)}</th>`).join("")}</tr></thead><tbody>${t.slice(1).map(r => `<tr>${r.map(c => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 function counts(gid){
-  const c = {rec: 0, def: 0, changed: 0, defer: 0, notes: 0};
+  const c = {rec: 0, def: 0, changed: 0, defer: 0, open: 0, answered: 0, notes: 0};
   for (const it of ITEMS.filter(i => i.grp === gid)){
     const p = pick(it), k = kind(it, p);
     if (k === "rec") p.defaulted ? c.def++ : c.rec++; else c[k]++;
@@ -199,7 +200,7 @@ function counts(gid){
 }
 function summary(gid){
   const c = counts(gid);
-  return `按推荐 ${c.rec + c.def} 题（其中没动过、按预选 ${c.def} 题）、改选 ${c.changed} 题、暂不定 ${c.defer} 题、写了说明 ${c.notes} 题`;
+  return `按推荐 ${c.rec + c.def} 题（其中没动过、按预选 ${c.def} 题）、改选 ${c.changed} 题、暂不定 ${c.defer} 题、写了说明 ${c.notes} 题${c.answered ? `、没有默认项的题已选 ${c.answered} 题` : ""}${c.open ? `、未答 ${c.open} 题` : ""}`;
 }
 function lastChange(gid){ let m = ""; for (const i of ITEMS) if (i.grp === gid){ const d = decisions.get(i.key); if (d && d.at > m) m = d.at; } return m; }
 function stateText(gid){ const s = submits.get(gid); return !s ? "本组未提交：选择先存为草稿，提交并确认后才算数" : lastChange(gid) > s.at ? "本组提交后又改过，请重新提交" : `本组已提交（${new Date(s.at).toLocaleString()}）`; }
@@ -210,7 +211,7 @@ function refreshTabs(){
 }
 function stats(){
   let r = 0, c = 0, d = 0;
-  for (const it of ITEMS){ const k = kind(it, pick(it)); if (k === "rec") r++; else if (k === "changed") c++; else d++; }
+  for (const it of ITEMS){ const k = kind(it, pick(it)); if (k === "rec" || k === "answered") r++; else if (k === "changed") c++; else if (k === "defer") d++; }
   $("#nRec").textContent = r; $("#nChg").textContent = c; $("#nDef").textContent = d;
   const pct = n => (100 * n / ITEMS.length).toFixed(2) + "%";
   $("#bar").innerHTML = `<i style="width:${pct(r)};background:var(--pick)"></i><i style="width:${pct(c)};background:var(--changed)"></i><i style="width:${pct(d)};background:var(--defer)"></i>`;
@@ -238,16 +239,25 @@ document.addEventListener("click", e => {
   if (it){
     const o = t.closest("[data-opt]");
     if (o){ setChoice(it, Number(o.dataset.opt)); return; }
-    if (t.closest("[data-defer]")){ setChoice(it, pick(it).choice === "defer" ? recOf(it) : "defer"); return; }
+    if (t.closest("[data-defer]")){
+      if (pick(it).choice === "defer" && recOf(it) < 0){ decisions.delete(it.key); render(); store(it.key, null); return; }   // 没有推荐项的题：取消「暂不定」回到未答
+      setChoice(it, pick(it).choice === "defer" ? recOf(it) : "defer"); return;
+    }
     if (t.closest("[data-reset]")){ decisions.delete(it.key); render(); store(it.key, null); return; }
   }
   const foot = t.closest(".foot"); if (!foot) return;
   const box = foot.querySelector(".confirm");
-  if (t.closest("[data-submit]")){ box.querySelector("p").textContent = summary(foot.dataset.g) + "。没动过的题按推荐预选提交；暂不定的题留待以后。"; box.hidden = false; return; }
+  if (t.closest("[data-submit]")){
+    const open = counts(foot.dataset.g).open, yes = box.querySelector("[data-yes]");
+    yes.hidden = open > 0;   // 未答的题（事实题、选型题没有默认项）挡住提交
+    box.querySelector("p").textContent = open ? `还有 ${open} 题未答：这些题没有默认项，请逐题选一项或点「暂不定」后再提交。` : summary(foot.dataset.g) + "。没动过的题按推荐预选提交；暂不定的题留待以后。";
+    box.hidden = false; return;
+  }
   if (t.closest("[data-no]")){ box.hidden = true; return; }
   if (t.closest("[data-yes]")){
     box.hidden = true;
     const gid = foot.dataset.g, el = document.getElementById("st-g");
+    if (counts(gid).open){ el.textContent = "还有未答的题，未能提交"; return; }
     if (!db){ el.textContent = "存储不可用，未能提交"; return; }
     const picks = {};
     for (const it of ITEMS.filter(i => i.grp === gid)){

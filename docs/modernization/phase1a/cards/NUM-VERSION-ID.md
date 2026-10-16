@@ -1,3 +1,7 @@
+---
+卡号: NUM-VERSION-ID
+状态: 完成
+---
 # 派工卡 NUM-VERSION-ID：取号返回所用规则版本的 ID
 
 ## 1. 卡号与类别

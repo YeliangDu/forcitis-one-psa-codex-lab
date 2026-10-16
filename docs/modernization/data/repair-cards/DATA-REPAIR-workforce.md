@@ -1,3 +1,9 @@
+---
+卡号: DATA-REPAIR-workforce
+状态: 进行中
+负责会话: one-1a-next-5
+前置: R-1b-P5
+---
 # 派工卡 DATA-REPAIR-workforce：organization_workforce 已建表的数据设计缺陷修复（草稿）
 
 - 草稿（第二版）：one-data 起草助手，2026-10-16；第二版并入用户 2026-10-16 的决定、统一分级（阻断 0）与 `SCAN_SUPPLEMENT.md` 补入；待 one-data 终审、one-coordinator 派工。
@@ -166,8 +172,8 @@
 |---|---|
 | HS-1（高；原阻断）`sync_run_held_separations` 复合主键 | 已被 R-1b P5 覆盖（`sync_run_held_separation_id`、`uk_…_sync_run_id_employee_id`；已核 P5 分支基线 wf :444-455） |
 | HS-3 外键索引 | 同上，P5 `ix_…_employee_id` |
-| P-1（高）`positions` 版本化 | W2「主数据版本化」（DA-7）；**用户已定做维度型版本表，生效依据为同步观察日（OBSERVED）**（收件箱 2026-10-16-one-data-employee-position-versioning；intent `2026-10-16-085331-one-data-员工与岗位怎样版本化-都做维度型.md`）；positions 是否在 W2 的 25 张表内：待核（OV 未核实），不在则 W2 卡须补入；生产前闸门 |
-| E-1（高）`employees` 版本化、E-2（中）`separated_at` | W2 DA-7（`employee_versions`，同上用户已定维度型、OBSERVED）；离职时刻字段按此口径定：改名 `separation_observed_at`、按规则卡每次离职各记一条，首轮快照已离职者为未知、不记部署时刻；W2 前不改现列（OV）。SS §4 第 2 组（`separated_at:72` ⇔ `employment_status:70 = 'SEPARATED'`；`login_name:66` 为空 ⇔ 离职）随 W2 与 DA-3 一并处理，本卡不加；本项不再列待用户决定 |
+| P-1（高）`positions` 版本化 | W2「主数据版本化」（DA-7）；**用户已定做维度型版本表，生效依据已改为人事业务生效日（DECLARED，intent 2026-10-16-134434，取代同步观察日）**（收件箱 2026-10-16-one-data-employee-position-versioning；intent `2026-10-16-085331-one-data-员工与岗位怎样版本化-都做维度型.md`）；positions 是否在 W2 的 25 张表内：待核（OV 未核实），不在则 W2 卡须补入；生产前闸门 |
+| E-1（高）`employees` 版本化、E-2（中）`separated_at` | W2 DA-7（`employee_versions`，同上用户已定维度型，生效依据 DECLARED（人事业务生效日））；离职时刻字段按此口径定（原拟改名 `separation_observed_at`，生效依据改为人事业务生效日后，名称与口径待 W2 重定：离职日由人事登记，不再是同步观察时刻）：原拟改名 `separation_observed_at`、按规则卡每次离职各记一条，首轮快照已离职者为未知、不记部署时刻；W2 前不改现列（OV）。SS §4 第 2 组（`separated_at:72` ⇔ `employment_status:70 = 'SEPARATED'`；`login_name:66` 为空 ⇔ 离职）随 W2 与 DA-3 一并处理，本卡不加；本项不再列待用户决定 |
 | SD-1（高；O15，ADR-0033 第 7 项第 2 条）`sync_diffs.subject_key` → 类别 + `subject_id uuid` | **P5 未覆盖**（已核 P5 分支 wf :187 仍为 `subject_key text NOT NULL`）；归 ADR-0039 拆分 a：按最终形态在集成层新建 `sync_diffs`（P5 卡 §3.1），不在旧位置改；生产前 |
 | O15 缺项 3（高，SS 补审）`sync_runs`、`sync_diffs` 迁 `platform_integration`（ADR-0039 第 2 条第 1 款、第 6 条） | P5 未覆盖（已核 P5 分支 wf :120 `sync_runs` 仍在 organization_workforce）；已排「拆分 a/b」生产前（COORDINATOR_LEDGER:92）；归 ADR-0039 实施 PR |
 | O15 缺项 4（高）`sync_run_held_separations` 改 workforce 的 `separation_hold` 记录，放行只放这一条离职 | P5 未覆盖：P5 只改主键与外键索引，`sync_run_id` 外键与 `ON DELETE CASCADE` 仍在（已核 P5 分支 wf :452）；归 ADR-0039 拆分 a/b；本卡 WF-03 只改注册表保留期，随该表改造失效时重写 |

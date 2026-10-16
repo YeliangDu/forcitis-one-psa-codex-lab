@@ -1,3 +1,9 @@
+---
+卡号: DATA-REPAIR-identity
+状态: 进行中
+负责会话: one-1a-next-5
+前置: R-1b-P5
+---
 # 派工卡 DATA-REPAIR-identity：platform_identity 已建表的数据设计缺陷修复（草稿）
 
 - 草稿（第二版）：one-data 起草助手，2026-10-16；第二版并入用户 2026-10-16 的决定、统一分级（阻断 0）与 `SCAN_SUPPLEMENT.md` 补入；待 one-data 终审、one-coordinator 派工。
