@@ -179,7 +179,7 @@ final class SingleOperatorModeEnvironment {
         List<String> command = new ArrayList<>(List.of(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-Duser.timezone=UTC", "-cp",
                 System.getProperty("java.class.path"), SingleOperatorModeLauncher.class.getName()));
         command.addAll(arguments);
-        Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
+        Process process = new ProcessBuilder(command).directory(new java.io.File(System.getProperty("java.io.tmpdir"))).redirectErrorStream(true).start();
         List<String> lines = new ArrayList<>();
         boolean started = false;
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(180);
@@ -187,7 +187,7 @@ final class SingleOperatorModeEnvironment {
             String line;
             while ((line = reader.readLine()) != null) {
                 lines.add(line);
-                if (line.contains("Started OneApplication")) {
+                if (line.contains("Started " + SingleOperatorModeLauncher.class.getSimpleName())) {
                     started = true;
                     break;
                 }
