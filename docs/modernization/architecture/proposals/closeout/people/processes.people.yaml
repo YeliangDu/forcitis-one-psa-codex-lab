@@ -401,7 +401,7 @@ processes:
     notes: 调岗是否需批准、批准人是谁：待用户（聚合稿无调岗批准命令）。晋升只改职级不换职位（JOB_CATALOG_DRAFT §1 P-1），同走本流程。
 
   - id: PRC-137
-    name: 入职开通企业微信并绑定外部身份
+    name: 入职开通企业微信账号并绑定外部身份
     trigger:
       type: event
       events: [{event: 〔缺〕入职已登记, aggregate: AGG-62}]

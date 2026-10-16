@@ -5,6 +5,10 @@
 - 格式：`../CONVENTIONS.md`。本页的 yaml 是样板定稿；`processes.people.yaml` 中这三个流程已与本页同步（含 `where` / `evidence`），`data-model.people.yaml` 的相关表在用户意见回来后同步。
 - 〔缺〕= 聚合稿没有的命令或事件，提议新增（见第 4 节），不假装已存在。
 
+## 0. BPMN 图
+
+描述级 BPMN 2.0.2 协作图（含 BPMNDI，按 `../BPMN_STYLE.md`）：`bpmn/PRC-83.bpmn`（主流程）、`bpmn/PRC-137.bpmn`、`bpmn/PRC-84.bpmn`；三者以信号事件「入职已登记」「Employed」衔接，跨 BC 的去向写在文本注释里。
+
 ## 1. 关键设计点与依据（一行一条）
 
 | # | 设计点 | 依据 |
@@ -107,7 +111,7 @@
         - {when: otherwise, goto: end}    # 三口径预警移至 B-15 事件策略（S-20）
 
 - id: PRC-137
-  name: 入职开通企业微信并绑定外部身份
+  name: 入职开通企业微信账号并绑定外部身份
   trigger:
     type: event
     events: [{event: 〔缺〕入职已登记, aggregate: AGG-62}]
