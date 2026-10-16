@@ -695,6 +695,40 @@ def _signals(mq, d):
     proc, q, log, _ = _proc(mq, d, "bd-strict", gh, [101])
     assert proc.process(101) == "MERGED" and ("update-branch", 101) in gh.calls
 
+    # a code pull request is registered while its final CI runs, and not while it is being brought up to date
+    gh = FakeGh(); gh.add(94, rounds=[dict(pending=3, checks=green())], behind=2)
+    proc, q, log, slept = _proc(mq, d, "s11c", gh, [94])
+    flag = {"during_update": None, "during_wait": []}
+    real_update = gh.update_branch
+
+    def watched_update(n):
+        flag["during_update"] = n in proc.code_testing
+        return real_update(n)
+    gh.update_branch = watched_update
+    proc.sleep = lambda sec: (slept.append(sec), flag["during_wait"].append(94 in proc.code_testing) if sec == 30 and len(slept) > 3 else None)
+    assert proc.process(94) == "MERGED" and flag["during_update"] is False and any(flag["during_wait"]) and 94 not in proc.code_testing, flag
+
+    # the docs lane's wait for the code lane ends at the CI timeout even if the flag never clears
+    gh = FakeGh(); gh.add(95)
+    proc, q, log, slept = _proc(mq, d, "s11d", gh, [95], lane=lambda g, n: "docs", ci_timeout=120)
+    proc.code_testing.add(999)
+    assert proc.process(95) == "MERGED" and slept.count(30) == 4 and "WAIT-CODE-LANE" in events(log)
+
+    # a runner that cannot even take a pull request out after three failures keeps its lane
+    gh = FakeGh(); gh.add(96)
+    proc, q, log, slept = _proc(mq, d, "s11e", gh, [96])
+    proc.process = lambda n: (_ for _ in ()).throw(RuntimeError("always"))
+    real_remove = q.remove
+    q.remove = lambda *a: (_ for _ in ()).throw(OSError("read-only")) if not getattr(q, "ok", False) else real_remove(*a)
+    stops = iter([False] * 6 + [True] * 100)
+    mq.run_lane(proc, "code", idle=1, stop=lambda: next(stops))
+    assert events(log).count("ERROR") >= 3, events(log)
+
+    # a hanging call is a failed call: sh() gives up after its timeout
+    started = time.monotonic()
+    r = mq.sh([sys.executable, "-c", "import time; time.sleep(30)"], timeout=1)
+    assert r.returncode == 124 and "timed out" in r.stderr and time.monotonic() - started < 10
+
     # two ssh updates at once never share the scratch worktree
     inside = {"n": 0, "max": 0}
 

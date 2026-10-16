@@ -59,8 +59,12 @@ LANES = ("code", "docs")
 FAILING = ("failure", "timed_out", "startup_failure")
 
 
-def sh(args, cwd=None, check=False):
-    r = subprocess.run(args, cwd=cwd, capture_output=True, text=True)
+def sh(args, cwd=None, check=False, timeout=180):
+    """A call that hangs (gh without network, a stuck ssh push) must not block a lane or the pause check: after `timeout` seconds it is a failed call (exit 124)."""
+    try:
+        r = subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        r = subprocess.CompletedProcess(args, 124, "", f"timed out after {timeout} s")
     if check and r.returncode:
         raise SystemExit(f"{' '.join(args[:3])} failed ({r.returncode}): {(r.stderr or r.stdout).strip()[:300]}")
     return r
@@ -457,10 +461,10 @@ class Processor:
         waited = 0
         while True:
             checks = self.gh.checks(n)
-            if checks is not None and not any(c["bucket"] == "pending" for c in checks):
+            if checks and not any(c["bucket"] == "pending" for c in checks):
                 return checks
             if waited >= self.ci_timeout:
-                return None
+                return [] if checks == [] else None   # nothing ever registered, or still running: the two HOLD messages differ
             self.cancel_others(n, since)
             self.sleep(30)
             waited += 30
@@ -562,12 +566,12 @@ class Processor:
     def merge_when_fresh(self, n, since, checks, lane="code"):
         """Under the merge lock: no red main run pauses the queue, the head is the one that was checked, it contains the current main, the checks are all green on it; then the merge, pinned to that head.
         Returns 'MERGED', 'moved' (behind main: update and test again), 'changed' (checks not green any more), 'refused' (gh refused the merge: logged with its message), or 'HOLD'."""
-        waited = False
-        while lane == "docs" and self.code_testing:
+        waited = 0
+        while lane == "docs" and self.code_testing and waited < self.ci_timeout:   # not for ever: a code pull request stuck in its CI does not hold the docs lane past the CI timeout
             if not waited:
                 self.log.event("WAIT-CODE-LANE", n, None, since, f"docs lane waits: code pull request(s) {sorted(self.code_testing)} are in their final CI")
-                waited = True
             self.sleep(30)
+            waited += 30
         with self.queue.merge_lock():
             while self.pause.check():
                 self.log.event("WAIT-PAUSED", n, None, since, "main is red: waiting for `mq.py resume`")
@@ -628,10 +632,14 @@ def run_lane(proc, lane, idle=60, stop=lambda: False):
             if failures[n] < 3:
                 proc.sleep(30 * 2 ** failures[n])
                 continue
-            proc.log.event("HOLD", n, None, None, "the runner failed three times on this pull request")
             failures.pop(n, None)
-            proc.queue.remove(n)
-            proc.log.event("DEQUEUE", n, None, None, "HOLD")
+            try:
+                proc.log.event("HOLD", n, None, None, "the runner failed three times on this pull request")
+                proc.queue.remove(n)
+                proc.log.event("DEQUEUE", n, None, None, "HOLD")
+            except (Exception, SystemExit) as again:   # the lane lives on even when taking the pull request out fails
+                print(f"mq: could not take #{n} out of the queue: {again}", file=sys.stderr, flush=True)
+                proc.sleep(60)
 
 
 def run_loop(proc, idle=60, stop=lambda: False):
@@ -707,11 +715,17 @@ def main(argv=None):
         print(f"queue: {q.numbers()}")
         print("paused: " + (open(pause.paused_file).read().strip() if pause.is_paused() else "no"))
         try:
-            print(f"red main runs not acknowledged: {[(k, r) for k, r in pause.red_runs() if r not in pause.acked()] or 'none'}")
+            red = pause.red_runs()
+            print(f"red main runs: {[(k, r, 'acknowledged' if r in pause.acked() else 'NEW') for k, r in red] or 'none'}")
+            if pause.is_paused():
+                print(f"to resume: mq.py resume {' '.join(r for _, r in red)}")
         except SignalError as e:
             print(f"red main runs: unknown ({e})")
     elif a.cmd == "resume":
-        red = Pause(directory, Gh(), log).resume(a.runs)
+        try:
+            red = Pause(directory, Gh(), log).resume(a.runs)
+        except SignalError as e:
+            raise SystemExit(f"cannot read main's runs ({e}); try again")
         print(f"resumed; acknowledged {[r for _, r in red] or 'no red run'}")
     else:
         root = repo_root()
