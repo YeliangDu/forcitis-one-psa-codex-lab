@@ -3137,6 +3137,13 @@ processes:
       approval_right: 无
       department_hint: 财务部
       position_hint: 财务经理、会计
+  - id: SH-M1
+    as: approver
+    org_needs:
+      responsibility: 项目总监：审核本项目交付物校审结论
+      approval_right: 交付物校审（类型级）
+      department_hint: 业务部门
+      position_hint: 项目总监
   steps:
   - actor: system
     where: automatic
@@ -3181,7 +3188,7 @@ processes:
     actor_v1: 技术专家
     command: 登记内部评审结论
     aggregate: AGG-27
-    desc: 校对、审核、审定逐级登记结论（级数按项目类别配置，待用户定）；记在交付物内评审记录，不走 platform.approval；未经校审即签发为 P-22 写入前预警
+    desc: 校对、审核按项目团队登记结论，项目总监审核；V 级加质量督查、S 级加副总工程师及以上（AR-13、AR-14）；记在交付物内评审记录，不走 platform.approval；未经校审即签发为 P-22 写入前预警
     decision:
     - when: 各级校审通过
       goto: 4
@@ -3192,13 +3199,15 @@ processes:
       p: 0.2
     approval:
       doc_type: 交付物校审
-      approver: SH-E4
+      approver: SH-M1
       multi_level: false
       on_reject: 2
       engine: aggregate
       why_human: 校审是对设计成果技术正确性与规范符合性的专业判断，系统只能核对格式与清单完整，不能代替专业审查。
-      escalation_rules: []
-      note: 正常一级校审，按规则加审（用户「正常一级、按规则加审」对专业复核同样适用；加审规则随项目类别配置，规则编号待 one-architecture 给，R-Q1b）
+      escalation_rules:
+      - AR-13
+      - AR-14
+      note: 基础审核人为项目总监（类型级；干系人表无单列编号，暂映射 SH-M1，岗位体系定后改）；按项目重要性级别加审：N 级项目团队自审（项目总监审核），V 级质量督查审（AR-13），S 级副总工程师及以上审（AR-14）（intent 2026-10-16-164324 R-Q1b、171147 D-1；S 与 V 高低待 one-ops 取证）
     effort:
       typical_min: 60
       p90_min: 240
