@@ -199,4 +199,20 @@ class SsoLoginIntegrationTest extends IdentityIntegrationTest {
                 .getResponse().getStatus()).as("confirmed: the employee role works").isNotEqualTo(403);
         assertThat(recorded()).extracting(com.forcitis.one.platform.audit.api.AuditEntry::action).contains("platform.identity.session.identity-confirmed");
     }
+
+    @Test
+    @DisplayName("a refusal at a path that looks like a secret, or is longer than an audit text, is still an audit entry and carries no raw path")
+    void refusalAtOddPathsIsStillAudited() throws Exception {
+        portalSays("T5", new SsoVerdict.LoginName("13800000000"));
+        personWithLoginName("13800000000", 1005, EmploymentStatus.EMPLOYED);
+        String session = cookie(redeem("T5"), "SESSION");
+
+        for (String path : new String[] {"/api/v1/platform/roles/token:1", "/api/v1/platform/roles/" + "y".repeat(2500)}) {
+            assertThat(mvc.perform(get(path).cookie(new jakarta.servlet.http.Cookie("SESSION", session))).andReturn().getResponse().getStatus())
+                    .isEqualTo(403);
+        }
+
+        assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.access.denied")).isNotEmpty()
+                .allSatisfy(entry -> assertThat(entry.detail()).isEqualTo("access refused: GET unmatched").doesNotContain("token:").doesNotContain("yyyy"));
+    }
 }

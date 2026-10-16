@@ -8,6 +8,7 @@ import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
 import com.forcitis.one.platform.identity.application.ClientOrigin;
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -88,7 +89,10 @@ class AccessDeniedAudit implements AuthorizationEventPublisher {
             return new Resource(AuditSubjectKind.OPERATION, invocation.getMethod().getDeclaringClass().getSimpleName() + "." + invocation.getMethod().getName());
         }
         if (object instanceof RequestAuthorizationContext context) {
-            return new Resource(AuditSubjectKind.REQUEST, context.getRequest().getMethod() + " " + context.getRequest().getRequestURI());
+            return new Resource(AuditSubjectKind.REQUEST, RequestLabel.of(context.getRequest()));
+        }
+        if (object instanceof HttpServletRequest request) {
+            return new Resource(AuditSubjectKind.REQUEST, RequestLabel.of(request));
         }
         return new Resource(AuditSubjectKind.REQUEST, "unknown resource");
     }

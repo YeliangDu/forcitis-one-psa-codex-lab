@@ -69,6 +69,23 @@ class OrgDataAdminRoleIntegrationTest extends IdentityIntegrationTest {
         assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.privileged.request"))
                 .extracting(AuditEntry::subject, AuditEntry::detail)
                 .containsExactly(org.assertj.core.groups.Tuple.tuple(com.forcitis.one.platform.audit.api.AuditSubject.without(com.forcitis.one.platform.audit.api.AuditSubjectKind.REQUEST), "GET /api/v1/platform/roles"),
-                        org.assertj.core.groups.Tuple.tuple(com.forcitis.one.platform.audit.api.AuditSubject.without(com.forcitis.one.platform.audit.api.AuditSubjectKind.REQUEST), "POST /api/v1/platform/user-accounts/" + accountOrNone(404) + ":disable"));
+                        org.assertj.core.groups.Tuple.tuple(com.forcitis.one.platform.audit.api.AuditSubject.without(com.forcitis.one.platform.audit.api.AuditSubjectKind.REQUEST), "POST /api/v1/platform/user-accounts/{userId}:disable"));
+    }
+
+    @Test
+    @DisplayName("a path that looks like a secret or is longer than an audit text still leaves an entry, and the entry carries the route template, not the path")
+    void oddPathsDoNotEscapeTheAdministratorModeAudit() throws Exception {
+        String administrator = administratorSession(10);
+        String longPath = "/api/v1/platform/user-accounts/" + "x".repeat(2500) + ":disable";
+
+        int secretLooking = mvc.perform(get("/api/v1/platform/roles/token:1").cookie(new Cookie("SESSION", administrator))).andReturn().getResponse().getStatus();
+        int overlong = mvc.perform(MockMvcRequestBuilders.post(longPath).with(xsrf()).cookie(new Cookie("SESSION", administrator))).andReturn().getResponse().getStatus();
+
+        assertThat(secretLooking).isNotEqualTo(500);
+        assertThat(overlong).isNotEqualTo(500);
+        assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.privileged.request"))
+                .extracting(AuditEntry::detail)
+                .contains("POST /api/v1/platform/user-accounts/{userId}:disable")
+                .noneMatch(detail -> detail.contains("token:") || detail.contains("xxxx"));
     }
 }
