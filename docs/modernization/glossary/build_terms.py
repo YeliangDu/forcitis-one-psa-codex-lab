@@ -26,6 +26,7 @@ BC = {
     "费用报销与支出管控 BC": "expense.spend", "组织人事 BC": "organization.workforce",
     "权限流程与集成平台 BC": "platform",
 }
+# KEY_BCS 与下方 A 表的键「bc:原代码」是旧资料（源术语表、审计覆盖）时代的模块标识，只用来取覆盖项，有意不跟着 ADR-0051 的退役改名；词条的最终 bc 由 rulings.yaml 的 move_bc 写定（P-059）
 KEY_BCS = {"operations.facts", "operations.policy", "contract.baseline", "contract.changeorder", "contract.riskdelivery",
            "delivery.execution", "delivery.acceptance", "cost.timesheet", "cost.costing",
            "receivables.wip", "receivables.collection", "accounting.ledger", "accounting.period"}
