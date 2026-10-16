@@ -1721,6 +1721,7 @@ processes:
   - PRC-29
   steps:
   - actor: SH-E3
+    where: in_system
     actor_v1: 设计师和顾问
     read: true
     reads:
@@ -1738,6 +1739,10 @@ processes:
       bc: B-13
       name: 读签发人执业证书
   - actor: SH-E3
+    where: offline
+    evidence:
+    - 交付物文件版本（原件上传，服务端计内容哈希）
+    - 编制人与上传时间
     actor_v1: 设计师和顾问
     command: 编制交付物
     aggregate: AGG-27
@@ -1747,6 +1752,7 @@ processes:
       bc: B-30
       name: 参考的知识条目版本
   - actor: SH-E4
+    where: in_system
     actor_v1: 技术专家
     command: 登记内部评审结论
     aggregate: AGG-27
@@ -1763,6 +1769,10 @@ processes:
       on_reject: 2
       engine: aggregate
   - actor: SH-E7
+    where: in_system
+    evidence:
+    - 签发人执业证书引用
+    - 签发时间与签发文件版本哈希（纸质出图章另盖，扫描件作文件版本）
     actor_v1: 注册执业人员
     command: 签发交付物
     aggregate: AGG-27
@@ -1774,6 +1784,10 @@ processes:
     - when: otherwise
       goto: end
   - actor: SH-E2
+    where: offline
+    evidence:
+    - 送达回执：签收单扫描件、快递妥投记录、邮件原始报文（含信头）或平台回执之一
+    - 送达日与签收人
     actor_v1: 项目经理
     command: 登记提交轮次送达
     aggregate: AGG-27
@@ -1796,6 +1810,10 @@ processes:
       name: 交付物已送达
     calls: PRC-33
   - actor: SH-E2
+    where: offline
+    evidence:
+    - 客户认可材料：签认单、审查同意书面意见、确认邮件原始报文或阶段签认单之一
+    - 认可日与签认人（须为合同登记的发包人代表或授权人）
     actor_v1: 项目经理
     command: 登记客户认可
     aggregate: AGG-27
@@ -1822,6 +1840,10 @@ processes:
       multi_level: false
       on_reject: 7
   - actor: SH-E2
+    where: offline
+    evidence:
+    - 客户书面退回意见（扫描件或邮件原始报文）
+    - 退回日
     actor_v1: 项目经理
     command: 登记客户退回
     aggregate: AGG-27
@@ -1839,6 +1861,10 @@ processes:
       name: AcceptanceReturned
     calls: PRC-33
   - actor: SH-E2
+    where: in_system
+    evidence:
+    - 往来函件检索记录（范围、条件、时间、结果）
+    - 期限计算快照与声明人
     actor_v1: 项目经理
     command: 登记项目经理的无异议声明
     aggregate: AGG-27
