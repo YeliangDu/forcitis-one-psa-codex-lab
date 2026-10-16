@@ -84,7 +84,10 @@ class FakeGh:
         return True
 
     def main_run(self, event):
-        return self.main_runs[event]
+        value = self.main_runs[event]
+        if isinstance(value, Exception):
+            raise value
+        return value
 
     def merge(self, n, head):
         with self.lock:
@@ -112,6 +115,8 @@ def run(mq):
             _scenarios(mq, d)
             _merge_guards(mq, d)
             _pause(mq, d)
+            _signals(mq, d)
+            _gh_commands(mq, d)
             _lanes(mq, d)
             _runner(mq, d)
             _ssh_update(mq, d)
@@ -394,6 +399,9 @@ def _lanes(mq, d):
         with open(os.path.join(repo, "scripts/ci/relevant_change.py"), "w") as f:
             f.write("raise SystemExit(3)\n")
         assert mq.default_lane(repo)(Files(["docs/a.md"]), 1) == "code", "the script failing is not docs"
+        with open(os.path.join(repo, "scripts/ci/relevant_change.py"), "w") as f:
+            f.write("print('tier=docs')\nraise SystemExit(3)\n")
+        assert mq.default_lane(repo)(Files(["docs/a.md"]), 1) == "code", "a non-zero exit is never docs, whatever it printed"
 
     # two lanes at once: both pull requests go through, merges are serialized, the one that merges second finds main moved, updates and merges
     gh = FakeGh(); gh.add(60); gh.add(61)
@@ -528,3 +536,214 @@ def _queue_lock(mq, d):
 def _train(mq):
     r = subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "mq.py"), "train", "--self-test"], capture_output=True, text=True)
     assert r.returncode == 0 and "merge_train self-test: ok" in r.stdout, (r.stdout, r.stderr[-300:])
+
+
+def _signals(mq, d):
+    # gh cannot say how main's runs ended: both lanes wait (nothing is merged on a main nobody can see), no pause file, one log line; when gh answers again they go on
+    gh = FakeGh(); gh.add(80)
+    proc, q, log, _ = _proc(mq, d, "s1", gh, [80])
+    gh.main_runs["push"] = mq.SignalError("rate limited")
+    assert proc.pause.check() is True and not proc.pause.is_paused() and proc.pause.check() is True
+    assert sum(" WAIT-SIGNAL " in l for l in log.lines) == 1, "logged once, not at every poll"
+    gh.main_runs["push"] = None
+    assert proc.pause.check() is False
+
+    # resume names exactly the red runs; a run that turned red after the coordinator looked is not acknowledged blind
+    gh = FakeGh(); gh.add(81)
+    gh.main_runs["push"] = {"id": 500, "status": "completed", "conclusion": "failure", "sha": "a"}
+    proc, q, log, _ = _proc(mq, d, "s2", gh, [81])
+    assert proc.pause.check() is True
+    gh.main_runs["schedule"] = {"id": 501, "status": "completed", "conclusion": "failure", "sha": "b"}
+    try:
+        proc.pause.resume(["500"])
+        raise AssertionError("must refuse")
+    except SystemExit as e:
+        assert "501" in str(e) and proc.pause.is_paused()
+    try:
+        proc.pause.resume([])
+        raise AssertionError("must refuse")
+    except SystemExit:
+        pass
+    assert sorted(r for _, r in proc.pause.resume(["500", "501"])) == ["500", "501"] and not proc.pause.is_paused() and proc.pause.check() is False
+
+    # one runner per queue
+    directory = os.path.join(d, "s3")
+    os.makedirs(directory)
+    with mq.runner_lock(directory):
+        try:
+            with mq.runner_lock(directory):
+                raise AssertionError("a second runner must be refused")
+        except SystemExit as e:
+            assert "another" in str(e)
+    with mq.runner_lock(directory):
+        pass
+
+    # a lane survives whatever one of its steps raises
+    gh = FakeGh(); gh.add(82)
+    proc, q, log, slept = _proc(mq, d, "s4", gh, [82])
+    real = proc.pause.check
+    boom = {"n": 0}
+
+    def check():
+        boom["n"] += 1
+        if boom["n"] == 1:
+            raise OSError("disk full")
+        return real()
+    proc.pause.check = check
+    stops = iter([False] * 6 + [True] * 100)
+    mq.run_lane(proc, "code", idle=1, stop=lambda: next(stops))
+    assert "ERROR" in events(log) and "disk full" in " ".join(log.lines) and q.numbers() == [] and "MERGED" in events(log), (events(log), q.numbers())
+
+    # the docs lane does not merge while a code pull request is in its final CI; it goes on when that one is done
+    gh = FakeGh(); gh.add(83); gh.add(84)
+    lanes = {83: "code", 84: "docs"}
+    proc, q, log, slept = _proc(mq, d, "s5", gh, [83, 84], lane=lambda g, n: lanes[n])
+    proc.code_testing.add(83)
+
+    def release(seconds):
+        if seconds == 30 and any(" WAIT-CODE-LANE " in l for l in log.lines):
+            proc.code_testing.discard(83)
+    proc.sleep = lambda sec: (slept.append(sec), release(sec))
+    assert proc.process(84) == "MERGED" and "WAIT-CODE-LANE" in events(log) and events(log).index("WAIT-CODE-LANE") < events(log).index("MERGED")
+    gh = FakeGh(); gh.add(85)
+    proc, q, log, slept = _proc(mq, d, "s6", gh, [85], lane=lambda g, n: "code")
+    proc.code_testing.add(999)
+    assert proc.process(85) == "MERGED" and "WAIT-CODE-LANE" not in events(log), "the code lane never waits for the flag"
+
+    # no network failure of the merge decision: compare fails (None) -> HOLD; the pull request closed meanwhile -> HOLD
+    gh = FakeGh(); gh.add(86)
+    proc, q, log, _ = _proc(mq, d, "s7", gh, [86])
+    state = {"n": 0}
+    real_behind = gh.behind_by
+
+    def behind(n, head):
+        state["n"] += 1
+        return None if state["n"] >= 2 else real_behind(n, head)
+    gh.behind_by = behind
+    assert proc.process(86) == "HOLD" and "whether the head contains main" in log.lines[-1] and not any(c[0] == "merge" for c in gh.calls)
+    gh = FakeGh(); gh.add(87)
+    proc, q, log, _ = _proc(mq, d, "s8", gh, [87])
+    real_view = gh.view
+    views = {"n": 0}
+
+    def view(n):
+        views["n"] += 1
+        v = real_view(n)
+        if views["n"] >= 2:   # the first loop view is open, the one under the lock finds it closed
+            v["state"] = "CLOSED"
+        return v
+    gh.view = view
+    assert proc.process(87) == "HOLD" and "changed state" in log.lines[-1] and not any(c[0] == "merge" for c in gh.calls)
+
+    # the light run that the label's own run cancelled is no verdict when the full-named twin is listed; a failing full check next to it still is
+    both = green() + [dict(c, name=c["name"] + " (light)", bucket="cancel") for c in green()[:2]]
+    gh = FakeGh(); gh.add(88, rounds=[dict(pending=0, checks=both)])
+    proc, q, log, _ = _proc(mq, d, "s9", gh, [88])
+    assert proc.process(88) == "MERGED" and "RERUN-FAILED" not in events(log)
+    gh = FakeGh(); gh.add(89, rounds=[dict(pending=0, checks=[dict(c, bucket="fail") if c["name"].startswith("backend") else c for c in both]), dict(pending=0, checks=both)])
+    proc, q, log, _ = _proc(mq, d, "s10", gh, [89])
+    assert proc.process(89) == "MERGED" and events(log).count("RERUN-FAILED") == 1
+
+    # a red check with main having moved on (strict is off, so no BEHIND state): update and run again, no re-run on the old head
+    gh = FakeGh(); gh.add(90, rounds=[dict(pending=0, checks=red(5)), dict(pending=0, checks=green(6))])
+    proc, q, log, _ = _proc(mq, d, "s11", gh, [90])
+    real_update, real_checks = gh.update_branch, gh.checks
+
+    def update(n):
+        gh.prs[n]["round"], gh.prs[n]["pend"] = 1, None   # the update starts a new CI run
+        return real_update(n)
+
+    def checks(n):
+        out = real_checks(n)
+        if gh.prs[n]["round"] == 0:
+            gh.prs[n]["behind"] = 3   # main moves while the red run is looked at
+        return out
+    gh.update_branch, gh.checks = update, checks
+    assert proc.process(90) == "MERGED" and "BEHIND-AFTER-FAIL" in events(log) and ("rerun", "5") not in gh.calls, events(log)
+
+    # right after the label only the light run's checks are listed: the queue waits for the full-named backend check instead of judging the light ones
+    gh = FakeGh(); gh.add(93)
+    proc, q, log, slept = _proc(mq, d, "s11b", gh, [93])
+    real_checks = gh.checks
+    polls = {"n": 0}
+
+    def late(n):
+        polls["n"] += 1
+        return green(light=True) if polls["n"] <= 3 else real_checks(n)
+    gh.checks = late
+    assert proc.process(93) == "MERGED" and slept.count(15) >= 3 and "REQUIRED-NOT-GREEN" not in events(log), (slept, events(log))
+
+    # two ssh updates at once never share the scratch worktree
+    inside = {"n": 0, "max": 0}
+
+    def updater(repo, branch, wt):
+        inside["n"] += 1
+        inside["max"] = max(inside["max"], inside["n"])
+        time.sleep(0.05)
+        inside["n"] -= 1
+        return "ok"
+    gh = FakeGh(); gh.add(91, merge="BEHIND", update_ok=False); gh.add(92, merge="BEHIND", update_ok=False)
+    proc, q, log, _ = _proc(mq, d, "s12", gh, [91, 92], updater=updater)
+    threads = [threading.Thread(target=proc.update, args=(n, f"b{n}", 0)) for n in (91, 92)]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+    assert inside["max"] == 1, "the scratch worktree of the ssh update is used by one lane at a time"
+
+
+def _fake_gh_binary(directory, rules):
+    """A `gh` on PATH that logs its arguments and answers by prefix: rules = [(argv prefix after gh, stdout, stderr, exit code)]."""
+    import json
+    os.makedirs(directory, exist_ok=True)
+    path = os.path.join(directory, "gh")
+    with open(path, "w") as f:
+        f.write("#!/usr/bin/env python3\nimport json, os, sys\nargv = sys.argv[1:]\nopen(os.environ['FAKE_GH_LOG'], 'a').write(json.dumps(argv) + '\\n')\n"
+                f"rules = json.loads({json.dumps(json.dumps(rules))})\n"
+                "for prefix, out, err, rc in rules:\n    if argv[:len(prefix)] == prefix:\n        sys.stdout.write(out); sys.stderr.write(err); sys.exit(rc)\nsys.exit(97)\n")
+    os.chmod(path, 0o755)
+    return path
+
+
+def _gh_commands(mq, d):
+    """The real Gh class against a fake `gh` binary: the arguments it builds and how it reads the answers."""
+    import json
+    old = {k: os.environ.get(k) for k in ("PATH", "FAKE_GH_LOG")}
+    try:
+        directory = os.path.join(d, "fakegh")
+        log = os.path.join(d, "fakegh.log")
+        rows = [{"databaseId": 7, "status": "in_progress", "conclusion": "", "headSha": "s7", "headBranch": "main"},
+                {"databaseId": 6, "status": "completed", "conclusion": "cancelled", "headSha": "s6", "headBranch": "main"},
+                {"databaseId": 5, "status": "completed", "conclusion": "failure", "headSha": "s5", "headBranch": "main"},
+                {"databaseId": 4, "status": "completed", "conclusion": "success", "headSha": "s4", "headBranch": "main"}]
+        rules = [(["pr", "view"], json.dumps({"state": "OPEN", "mergeStateStatus": "CLEAN", "labels": [{"name": "queued"}], "headRefName": "br", "headRefOid": "abc123"}), "", 0),
+                 (["api", "repos/{owner}/{repo}/compare/main...abc123"], "3\n", "", 0),
+                 (["api", "--paginate", "repos/{owner}/{repo}/pulls/9/files"], "docs/a.md\ndocs/old.md\n", "", 0),
+                 (["pr", "checks", "1"], json.dumps([{"name": "x", "bucket": "pass", "link": ""}]), "", 0),
+                 (["pr", "checks", "2"], "", "no checks reported on the 'br' branch\n", 0),
+                 (["pr", "checks", "3"], "", "network down\n", 1),
+                 (["pr", "merge", "4"], "", "Pull request is not mergeable\n", 1),
+                 (["pr", "merge", "5"], "merged\n", "", 0),
+                 (["run", "list", "--workflow", "ci", "--event", "push"], json.dumps(rows), "", 0),
+                 (["run", "list", "--workflow", "ci", "--event", "schedule"], "not json", "boom", 1)]
+        _fake_gh_binary(directory, rules)
+        os.environ["PATH"] = directory + os.pathsep + os.environ["PATH"]
+        os.environ["FAKE_GH_LOG"] = log
+        gh = mq.Gh()
+        assert gh.view(1) == {"state": "OPEN", "merge": "CLEAN", "labels": ["queued"], "branch": "br", "head": "abc123"}
+        assert gh.behind_by(1, "abc123") == 3
+        assert gh.files(9) == ["docs/a.md", "docs/old.md"]
+        assert gh.checks(1) == [{"name": "x", "bucket": "pass", "link": ""}] and gh.checks(2) == [] and gh.checks(3) is None, "no check yet is an empty list, a failed call is None"
+        assert gh.merge(4, "h4") == (False, "Pull request is not mergeable") and gh.merge(5, "h5") == (True, "merged")
+        run = gh.main_run("push")
+        assert run and run["id"] == 5 and run["conclusion"] == "failure", "the newest ended, not cancelled run decides; a running or cancelled newer one does not hide it"
+        try:
+            gh.main_run("schedule")
+            raise AssertionError("gh failing must raise SignalError")
+        except mq.SignalError:
+            pass
+        calls = [json.loads(l) for l in open(log).read().splitlines()]
+        assert ["pr", "merge", "5", "--merge", "--match-head-commit", "h5"] in calls, "the merge is pinned to the head"
+        assert ["run", "list", "--workflow", "ci", "--event", "push", "--limit", "20", "--json", "databaseId,status,conclusion,headSha,headBranch", "--branch", "main"] in calls
+        assert ["pr", "checks", "1", "--json", "name,bucket,link"] in calls
+    finally:
+        for k, v in old.items():
+            os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)

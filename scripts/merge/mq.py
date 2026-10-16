@@ -8,7 +8,7 @@
   mq.py before <pr> <other>       put <pr> in front of <other> (appends it when it is not queued)
   mq.py list                      the queue, one number per line
   mq.py status                    queue, lanes, pause state
-  mq.py resume                    acknowledge the red main runs that paused the queue (coordinator only) and let both lanes go on
+  mq.py resume <run id>...        acknowledge exactly the red main runs `status` shows (coordinator only) and let both lanes go on; a different set is refused
   mq.py train <merge_train.py args>   scripts/queue/merge_train.py: `train docs --branch B <session branch>@<sha>...` collects documentation commits (one by one, docs/ only, never an octopus merge)
   mq.py --self-test
 
@@ -23,8 +23,11 @@ checks while cancelling the others' runs, rerun failed checks once, then merge w
 required checks (backend verify, frontend verify, secret scan, none of them with the " (light)" suffix) and every one of them is `pass`; "no failure so far" is never enough (a head still running is not green).
 Outcomes: MERGED, CONFLICT (text conflict with main: back to the author), HOLD (red after the rerun, CI timeout, closed, an update that could not be pushed, attempts exhausted: reported to the coordinator).
 
-Pause. Before taking a pull request, and again right before a merge, the queue looks at main's latest push run and its latest nightly (schedule) run of the ci workflow. A red one pauses both lanes (PAUSED in the log,
-file <queue dir>/mq.paused) until `mq.py resume`; the resume acknowledges the red runs it saw, so the same red run does not pause again, a new red run does. A push to main runs the light steps and every container-free
+Pause. Before taking a pull request, and again right before a merge, the queue looks at main's push runs and nightly (schedule) runs of the ci workflow: the verdict run is the newest one that has ended and was not
+cancelled (a push run is cancelled by the next push, so the newest run alone says nothing). A red verdict pauses both lanes (PAUSED in the log, file <queue dir>/mq.paused) until `mq.py resume <run id>...`; the resume
+acknowledges exactly the runs named, so the same red run does not pause again, a new red run does. When gh cannot answer, the lanes wait without a pause file (WAIT-SIGNAL).
+Priority. While a code pull request is in its final CI (up to date with main, label on), the docs lane does not merge (WAIT-CODE-LANE): a docs merge would make that pull request stale again, and a 3 minute docs lane
+would starve a 14 minute code lane. One `mq.py run` or `once` per queue (flock on mq.runner.lock); the ssh update of two lanes never shares its scratch worktree (flock on <queue>.ssh-lock). A push to main runs the light steps and every container-free
 unit test (ci.yml), the nightly the full ci: together they are the alarm for a merge whose tree no full run tested exactly as merged.
 
 Queue file: one pull request number per line, anything else is kept as it is. Every change goes through flock on <queue>.lock and an atomic replace (temporary file, then rename), so an enqueue can no longer be
@@ -170,7 +173,8 @@ class Gh:
         try:
             return json.loads(r.stdout)
         except ValueError:
-            return None
+            # a pull request whose CI has not registered anything yet: empty stdout, exit 0, "no checks reported on the '<branch>' branch" on stderr
+            return [] if "no checks reported" in r.stderr else None
 
     def update_branch(self, n):
         return sh(["gh", "pr", "update-branch", str(n)]).returncode == 0
@@ -192,16 +196,20 @@ class Gh:
         return sh(["gh", "run", "rerun", str(run), "--failed"]).returncode == 0 or sh(["gh", "run", "rerun", str(run)]).returncode == 0
 
     def main_run(self, event):
-        """Latest ci run of main for `event` (push | schedule): {'id', 'status', 'conclusion', 'sha'} or None."""
-        args = ["gh", "run", "list", "--workflow", "ci", "--event", event, "--limit", "1", "--json", "databaseId,status,conclusion,headSha,headBranch"]
+        """The verdict run of main for `event` (push | schedule): the newest run that has ended and was not cancelled or skipped ({'id', 'conclusion', 'sha'}), or None when there is none.
+        A push run is cancelled by the next push (concurrency), so the newest run alone says nothing. Raises SignalError when gh cannot answer."""
+        args = ["gh", "run", "list", "--workflow", "ci", "--event", event, "--limit", "20", "--json", "databaseId,status,conclusion,headSha,headBranch"]
         if event == "push":
             args += ["--branch", "main"]
         r = sh(args)
         try:
-            row = json.loads(r.stdout)[0]
-        except (ValueError, IndexError):
-            return None
-        return {"id": row["databaseId"], "status": row["status"], "conclusion": row["conclusion"], "sha": row["headSha"]} if row.get("headBranch", "main") == "main" else None
+            rows = json.loads(r.stdout)
+        except ValueError:
+            raise SignalError(f"gh run list ({event}) gave no JSON: {(r.stderr or r.stdout).strip()[:120]}")
+        for row in rows:
+            if row.get("headBranch", "main") == "main" and row["status"] == "completed" and row["conclusion"] not in ("cancelled", "skipped", None, ""):
+                return {"id": row["databaseId"], "status": "completed", "conclusion": row["conclusion"], "sha": row["headSha"]}
+        return None
 
     def merge(self, n, head):
         r = sh(["gh", "pr", "merge", str(n), "--merge", "--match-head-commit", head])
@@ -230,9 +238,19 @@ def update_over_ssh(repo, branch, wt):
         sh(["git", "-C", repo, "worktree", "remove", "-f", wt])
 
 
+class SignalError(Exception):
+    """gh could not say how main's runs ended."""
+
+
 def run_id(link):
     m = re.search(r"runs/(\d+)", link or "")
     return m.group(1) if m else None
+
+
+def red_checks(checks):
+    """Checks that are not pass or skipping, except a light check whose full-named twin is listed: the light run that the label's own run cancelled is no verdict."""
+    full = {c["name"] for c in checks if not c["name"].endswith("(light)")}
+    return [c for c in checks if c["bucket"] not in OK and not (c["name"].endswith("(light)") and c["name"][:-len("(light)")].rstrip() in full)]
 
 
 def required_state(checks):
@@ -247,11 +265,22 @@ def required_state(checks):
 
 
 class Pause:
-    """<queue dir>/mq.paused holds the reason; mq.acked the red run ids a resume has acknowledged."""
+    """<queue dir>/mq.paused holds the reason; mq.acked the red run ids a resume has acknowledged. File changes happen under a flock too: `mq.py resume` is another process."""
 
     def __init__(self, directory, gh, log):
+        self.directory = directory
         self.paused_file, self.acked_file, self.gh, self.log = os.path.join(directory, "mq.paused"), os.path.join(directory, "mq.acked"), gh, log
         self.lock = threading.Lock()
+        self.last_signal_log = 0.0
+
+    @contextlib.contextmanager
+    def exclusive(self):
+        with self.lock, open(os.path.join(self.directory, "mq.pause.lock"), "a") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
 
     def acked(self):
         try:
@@ -260,11 +289,11 @@ class Pause:
             return set()
 
     def red_runs(self):
-        """[(kind, run id)]: main's latest push run and latest nightly run when they ended red."""
+        """[(kind, run id)]: the verdict run (newest ended, not cancelled) of main's pushes and of its nightly runs, when it ended red. Raises SignalError when gh cannot answer."""
         out = []
         for kind, event in (("push", "push"), ("nightly", "schedule")):
             run = self.gh.main_run(event)
-            if run and run["status"] == "completed" and run["conclusion"] in FAILING:
+            if run and run["conclusion"] in FAILING:
                 out.append((kind, str(run["id"])))
         return out
 
@@ -272,28 +301,52 @@ class Pause:
         return os.path.exists(self.paused_file)
 
     def check(self):
-        """True when the queue must not go on; pauses it when an unacknowledged red run is there."""
-        with self.lock:
+        """True when the queue must not go on. Pauses it when an unacknowledged red run is there; when gh cannot say, the answer is also True (nothing is merged on a main nobody can see), without a pause file."""
+        with self.exclusive():
             if self.is_paused():
                 return True
-            fresh = [(kind, rid) for kind, rid in self.red_runs() if rid not in self.acked()]
+            try:
+                red = self.red_runs()
+            except SignalError as e:
+                if time.monotonic() - self.last_signal_log > 300:
+                    self.last_signal_log = time.monotonic()
+                    self.log.event("WAIT-SIGNAL", None, None, None, f"cannot read main's runs ({e}); both lanes wait")
+                return True
+            fresh = [(kind, rid) for kind, rid in red if rid not in self.acked()]
             if not fresh:
                 return False
             reason = ", ".join(f"main {kind} run {rid} is red" for kind, rid in fresh)
             with open(self.paused_file, "w", encoding="utf-8") as f:
                 f.write(reason + "\n")
-            self.log.event("PAUSED", None, fresh[0][1], None, reason + "; both lanes wait for `mq.py resume`")
+            self.log.event("PAUSED", None, fresh[0][1], None, reason + "; both lanes wait for `mq.py resume <run id>...`")
             return True
 
-    def resume(self):
-        with self.lock:
+    def resume(self, ack=None):
+        """Acknowledge exactly the red runs named (None: whatever is red now, for the self-test); a different set is refused, so a run that turned red after the coordinator looked is never acknowledged blind."""
+        with self.exclusive():
             red = self.red_runs()
+            if ack is not None and sorted(ack) != sorted(rid for _, rid in red):
+                raise SystemExit(f"red runs now: {[rid for _, rid in red] or 'none'}; resume names {sorted(ack) or 'none'}: give exactly the red runs you looked at")
             with open(self.acked_file, "a", encoding="utf-8") as f:
                 f.write("".join(rid + "\n" for _, rid in red))
             with contextlib.suppress(FileNotFoundError):
                 os.unlink(self.paused_file)
             self.log.event("RESUMED", None, None, None, f"acknowledged red runs: {', '.join(rid for _, rid in red) or 'none'}")
             return red
+
+
+@contextlib.contextmanager
+def runner_lock(directory):
+    """One `mq.py run` or `once` per queue: two of them would cancel each other's CI runs and each think the other's pull request is free."""
+    with open(os.path.join(directory, "mq.runner.lock"), "a") as f:
+        try:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise SystemExit("another `mq.py run` or `once` is working on this queue")
+        try:
+            yield
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
 
 
 def default_lane(repo):
@@ -319,7 +372,7 @@ class Processor:
         self.wt = wt or os.path.join(os.path.dirname(os.path.abspath(queue.path)), "mq-wt")
         self.lane_of = lane or default_lane(repo)
         self.pause = pause or Pause(os.path.dirname(os.path.abspath(queue.path)), gh, log)
-        self.lanes, self.busy = {}, set()
+        self.lanes, self.busy, self.code_testing = {}, set(), set()
         self.guard = threading.Lock()
 
     def lane(self, n, head=None):
@@ -352,6 +405,9 @@ class Processor:
             if not v:
                 continue
             for run in self.gh.active_runs(v["branch"]):
+                with self.guard:
+                    if other in self.busy:   # picked up by the other lane meanwhile
+                        break
                 if self.gh.cancel_run(run):
                     self.log.event("CANCEL-RUN", other, run, since, f"waiting behind #{head}")
 
@@ -359,14 +415,16 @@ class Processor:
         if self.gh.update_branch(n):
             self.log.event("UPDATE", n, None, since, "gh update-branch")
             return "ok"
-        res = self.updater(self.repo, branch, self.wt)
+        with self.queue.locked(".ssh-lock"):   # one scratch worktree, one fetch and push at a time, whatever lane asks
+            res = self.updater(self.repo, branch, self.wt)
         self.log.event("SSH-UPDATE" if res == "ok" else f"SSH-UPDATE-{res.upper()}", n, None, since, "local merge pushed over ssh")
         return res
 
     def wait_checks(self, n, since):
         """Checks once none is pending; None when they stayed pending past the CI timeout. A failed gh call is no answer: asked again."""
-        for _ in range(20):
-            if self.gh.checks(n):
+        for _ in range(20):   # until the full-named backend check is listed: right after the label only the light run's checks may be there
+            listed = self.gh.checks(n) or []
+            if any(c["name"].startswith("backend verify") and not c["name"].endswith("(light)") for c in listed):
                 break
             self.sleep(15)
         waited = 0
@@ -388,6 +446,7 @@ class Processor:
         finally:
             with self.guard:
                 self.busy.discard(n)
+            self.code_testing.discard(n)
 
     def hold(self, n, run, since, why):
         self.log.event("HOLD", n, run, since, why)
@@ -397,6 +456,7 @@ class Processor:
         self.cancel_others(n, since)
         attempt, moved, refused = 1, 0, 0   # attempts count red checks and a head that stopped being green; moved: main advanced during the full CI; refused: the merge itself was refused (own counter, growing pause)
         while attempt <= 4:
+            self.code_testing.discard(n)
             v = self.gh.view(n)
             if v is None:
                 return self.hold(n, None, since, "gh could not tell the state of the pull request")
@@ -422,15 +482,18 @@ class Processor:
                 if self.gh.label(n, "queued", True):
                     self.log.event("LABEL-QUEUED", n, None, since)
                 self.sleep(20)
+            if self.lane(n, v["head"]) == "code":
+                self.code_testing.add(n)   # while a code pull request is in its final CI, the docs lane does not merge (it would make the code pull request stale again)
             checks = self.wait_checks(n, since)
             if checks is None:
                 return self.hold(n, None, since, f"CI still pending after {self.ci_timeout // 60} minutes")
             if not checks:
                 return self.hold(n, None, since, "gh pr checks lists no check at all")
-            red = [c for c in checks if c["bucket"] not in OK]
+            red = red_checks(checks)
             if red:
                 runs = sorted({r for c in red if (r := run_id(c.get("link")))}, key=int)
-                if (self.gh.view(n) or v)["merge"] == "BEHIND":
+                now = self.gh.view(n) or v
+                if (self.gh.behind_by(n, now["head"]) or 0) > 0:
                     self.log.event("BEHIND-AFTER-FAIL", n, runs[0] if runs else None, since, "update and run again")
                     attempt += 1
                     continue
@@ -449,7 +512,7 @@ class Processor:
                 self.sleep(10)
                 attempt += 1
                 continue
-            result = self.merge_when_fresh(n, since, checks)
+            result = self.merge_when_fresh(n, since, checks, self.lane(n, v["head"]))
             if result == "moved":
                 moved += 1
                 if moved > 6:
@@ -469,9 +532,15 @@ class Processor:
             return result
         return self.hold(n, None, since, "attempts exhausted")
 
-    def merge_when_fresh(self, n, since, checks):
+    def merge_when_fresh(self, n, since, checks, lane="code"):
         """Under the merge lock: no red main run pauses the queue, the head is the one that was checked, it contains the current main, the checks are all green on it; then the merge, pinned to that head.
         Returns 'MERGED', 'moved' (behind main: update and test again), 'changed' (checks not green any more), 'refused' (gh refused the merge: logged with its message), or 'HOLD'."""
+        waited = False
+        while lane == "docs" and self.code_testing:
+            if not waited:
+                self.log.event("WAIT-CODE-LANE", n, None, since, f"docs lane waits: code pull request(s) {sorted(self.code_testing)} are in their final CI")
+                waited = True
+            self.sleep(30)
         with self.queue.merge_lock():
             while self.pause.check():
                 self.log.event("WAIT-PAUSED", n, None, since, "main is red: waiting for `mq.py resume`")
@@ -487,7 +556,7 @@ class Processor:
                 self.log.event("BEHIND-AT-MERGE", n, None, since, f"main moved by {behind} commit(s) while the full CI ran: update and run again")
                 return "moved"
             fresh = self.gh.checks(n)
-            if not fresh or not required_state(fresh)[0] or any(c["bucket"] not in OK for c in fresh):
+            if not fresh or not required_state(fresh)[0] or red_checks(fresh):
                 self.log.event("CHECKS-CHANGED", n, None, since, "the checks are no longer all green on this head: run again")
                 return "changed"
             ok, message = self.gh.merge(n, head)
@@ -495,39 +564,47 @@ class Processor:
                 self.log.event("MERGED", n, run_id(checks[0].get("link")), since, head[:10])
                 return "MERGED"
         v = self.gh.view(n) or {}
-        names = [f"{c['name']}={c['bucket']}" for c in (self.gh.checks(n) or []) if c["bucket"] not in OK]
+        names = [f"{c['name']}={c['bucket']}" for c in red_checks(self.gh.checks(n) or [])]
         self.log.event("RETRY-MERGE", n, None, since, f"refused: mergeState={v.get('merge')} failing={names or 'none'} gh: {message}")
         return "refused"
 
 
 def run_lane(proc, lane, idle=60, stop=lambda: False):
-    """One lane of the runner: pause check, pick, process, take out. A failing step is logged and retried with a growing pause; the third failure in a row puts the pull request on HOLD."""
+    """One lane of the runner: pause check, pick, process, take out. A failing step is logged and retried with a growing pause; the third failure in a row puts the pull request on HOLD.
+    Nothing a step raises ends the lane: the whole round is inside the try."""
     failures = {}
     while not stop():
-        if proc.pause.check():
-            proc.sleep(idle)
-            continue
-        n = proc.pick(lane)
-        if n is None:
-            proc.sleep(idle)
-            continue
+        n = None
         try:
+            if proc.pause.check():
+                proc.sleep(idle)
+                continue
+            n = proc.pick(lane)
+            if n is None:
+                proc.sleep(idle)
+                continue
             try:
                 result = proc.process(n)
             finally:
                 with proc.guard:
                     proc.busy.discard(n)   # whatever happened, no worker holds it any more
+            failures.pop(n, None)
+            proc.queue.remove(n)
+            proc.log.event("DEQUEUE", n, None, None, result)
         except (Exception, SystemExit) as e:
+            if n is None:
+                proc.log.event("ERROR", None, None, None, f"{lane} lane: {type(e).__name__}: {e}")
+                proc.sleep(60)
+                continue
             failures[n] = failures.get(n, 0) + 1
             proc.log.event("ERROR", n, None, None, f"{type(e).__name__}: {e} (failure {failures[n]} in a row)")
             if failures[n] < 3:
                 proc.sleep(30 * 2 ** failures[n])
                 continue
             proc.log.event("HOLD", n, None, None, "the runner failed three times on this pull request")
-            result = "HOLD"
-        failures.pop(n, None)
-        proc.queue.remove(n)
-        proc.log.event("DEQUEUE", n, None, None, result)
+            failures.pop(n, None)
+            proc.queue.remove(n)
+            proc.log.event("DEQUEUE", n, None, None, "HOLD")
 
 
 def run_loop(proc, idle=60, stop=lambda: False):
@@ -577,8 +654,9 @@ def main(argv=None):
     p.add_argument("--log")
     p.add_argument("--ci-timeout", type=int, default=90, help="minutes a pull request's CI may stay pending before HOLD")
     sub = p.add_subparsers(dest="cmd", required=True)
-    for name in ("run", "list", "status", "resume"):
+    for name in ("run", "list", "status"):
         sub.add_parser(name)
+    sub.add_parser("resume").add_argument("runs", nargs="*", help="the red run ids that paused the queue, exactly as `status` shows them")
     sub.add_parser("once").add_argument("pr", type=int)
     for name in ("enqueue", "remove"):
         sub.add_parser(name).add_argument("prs", type=int, nargs="+")
@@ -601,17 +679,21 @@ def main(argv=None):
         pause = Pause(directory, Gh(), log)
         print(f"queue: {q.numbers()}")
         print("paused: " + (open(pause.paused_file).read().strip() if pause.is_paused() else "no"))
-        print(f"red main runs not acknowledged: {[(k, r) for k, r in pause.red_runs() if r not in pause.acked()] or 'none'}")
+        try:
+            print(f"red main runs not acknowledged: {[(k, r) for k, r in pause.red_runs() if r not in pause.acked()] or 'none'}")
+        except SignalError as e:
+            print(f"red main runs: unknown ({e})")
     elif a.cmd == "resume":
-        red = Pause(directory, Gh(), log).resume()
+        red = Pause(directory, Gh(), log).resume(a.runs)
         print(f"resumed; acknowledged {[r for _, r in red] or 'no red run'}")
     else:
         root = repo_root()
         proc = Processor(Gh(), q, log, root, ci_timeout=a.ci_timeout * 60)
-        if a.cmd == "once":
-            proc.process(a.pr)
-        else:
-            run_loop(proc)
+        with runner_lock(directory):
+            if a.cmd == "once":
+                proc.process(a.pr)
+            else:
+                run_loop(proc)
 
 
 if __name__ == "__main__":
