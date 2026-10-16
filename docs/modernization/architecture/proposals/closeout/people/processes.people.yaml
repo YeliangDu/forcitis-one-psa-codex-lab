@@ -218,12 +218,7 @@ processes:
         desc: 候选人（SH-H1）线下或电子签署，人力登记签署日
         decision:
           - {when: 用工满一个月仍未签订, goto: 6}          # P-05 提醒，不拒绝（S12）
-          - {when: otherwise, goto: 7}
-      - actor: system
-        where: automatic
-        desc: 员工法人三口径（劳动合同用人单位、数据范围法人、个税扣缴义务人）比对，不一致预警人力（S13）；预警策略〔缺〕，PG-11
-        decision:
-          - {when: otherwise, goto: end}
+          - {when: otherwise, goto: end}    # 三口径预警移至 B-15 事件策略（S-20）
 
   - id: PRC-84
     name: 入职后参保增员与建立薪酬档案
