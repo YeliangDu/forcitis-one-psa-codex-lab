@@ -133,7 +133,7 @@ class WorkCalendarIT {
         assertThat(workCalendar.isWorkday(LocalDate.parse("2026-10-12"), fst)).isFalse();
         assertThat(workCalendar.endOfWorkdayAfter(LocalDate.parse("2026-10-09"), 2, fst)).isEqualTo(Instant.parse("2026-10-13T16:00:00Z"));
         assertThat(events.stream(WorkCalendarYearMaintained.class)).singleElement().satisfies(e -> {
-            assertThat(e.envelope().aggregateId()).isEqualTo("default:2026");
+            assertThat(e.envelope().aggregateId()).isEqualTo(jdbc.sql("select id from organization_attendance.work_calendar_years where year_number = 2026 and legal_entity_id is null").query(java.util.UUID.class).single());
             assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value());
             assertThat(e.envelope().correlationId()).isNotNull();
         });

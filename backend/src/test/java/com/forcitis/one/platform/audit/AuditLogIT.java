@@ -258,7 +258,7 @@ class AuditLogIT {
         mvc.perform(get(ENTRIES).param("subjectKind", "USER_ACCOUNT").param("subjectId", subject.toString()).with(READER)).andExpect(status().isOk());
 
         assertThat(jdbc.sql("select actor_id || '|' || detail from platform_audit.audit_entries where action = 'platform.audit.audit-entry.searched' and detail like :d")
-                .param("d", "%subjectId=" + subject + "%").query(String.class).single()).startsWith(TestAccounts.account(7).value() + "|returned=0 filter=subjectId=" + subject);
+                .param("d", "%subjectId=" + subject + "%").query(String.class).single()).startsWith(TestAccounts.account(7).value() + "|returned=0 filter=subjectKind=USER_ACCOUNT,subjectId=" + subject);
     }
 
     @Test
