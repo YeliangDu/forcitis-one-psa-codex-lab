@@ -157,7 +157,7 @@
 | INV-61 | 离职即吊销会话 | 强制事件反应（不是事务不变量） | AGG-62 → `platform.identity` | OBJ-56；规则卡 RULE-363 |
 | INV-62 | 同一人员的**主任职**区间不重叠；兼职任职可多个并行、不设上限，成本与费率按主任职取值 | B（排他约束，条件为主任职） | AGG-63 | OBJ-57；§14.1 D6；**用户 intent 072440 INV-62 已定**（信息图原「全部任职不重叠」已改写） |
 | INV-63 | 被在职任职引用的岗位不得停用 | A（前置，同 BC） | AGG-64 | OBJ-58 |
-| INV-64 | 工时单一人一日一单 | B（部分唯一索引，排除已驳回、已取消；§6 N-10） | AGG-39 | OBJ-66；Q15 |
+| INV-64 | 工时单一人一日一单 | B（全表唯一约束（人员，工作日），无谓词，含非工作日、全状态；用户 intent 052923；§6 N-10） | AGG-39 | OBJ-66；Q15 |
 | INV-65 | 每日工时低于最低时数拦截；最低时数取当日标准工时（AGG-108），扣减「已批准 + 待批（审批中）」请假（AGG-70）时长，15 小时上限只计已批准，已销假、已撤销不扣（用户经 one-rules 定，RULE-398/403/404/405）；标准工时 450 分钟，按法人可配置，首版五家同值（FD-10）；出差例外与数值留后续；请假日仍占一人一日一单名额（INV-64），工时单可自愿提交；取不到标准工时须失败并告警（one-architecture 2026-10-16，供 RULE-398/403/404/405 与 one-data） | A | AGG-39 | Q15 |
 | INV-66 | 工时只能记到当天有权使用的工作包 | A（前置；权限来源**待定** Q13） | AGG-39 | OBJ-66 |
 | INV-67 | 期间关账后工时只能冲销或修正 | A + A（前置：期间闸门，见 INV-92） | AGG-39、77 | OBJ-66；ADR-0016 决定 2；ADR-0031 |
@@ -1013,7 +1013,7 @@ INV-62（原「另交用户核实」）已由用户 intent 072440 答复：主�
 | N-07 | 签证是协议变更的类型还是独立聚合；另 `PRESALES_AGGREGATES.md` 第 57 行写「签证、索赔为同 BC 独立聚合（ADR-0016 决定 9）」，引错 | **关闭**：信息图 OBJ-09 已在对象层定为协议变更的类型，本稿 AGG-15 协议变更含签证类型、AGG-16 索赔独立；ADR-0016 决定 9 原文只把签证、变更、索赔列入 `contract.changeorder`（背景处写「签证（变更）」），并未规定它们是独立聚合，故该处引错，已在 `PRESALES_AGGREGATES.md` 第 57 行改正；i210513「保留签证、索赔」两种写法都满足 | 已改正 |
 | N-08 | FRAMEWORKS §1 只用四种关系 | **关闭**：§3.2 已只标四种（见 N-14） | — |
 | N-09 | 词表 `bc` 字段多处与本稿及现有规划不符（如 `quote` 标 `accounting.ledger`、`legal_entity` 标 `expense.spend`、`accounting_period` 标 `organization.workforce`） | 不改词表，交 one-glossary | one-glossary |
-| N-10 | 已建 `cost.timesheet` 与 Q15「一人一日一单」不符：基线表只有单号唯一（`V20261014140000__cost_timesheet_baseline.sql:24`），没有（人员，工作日）唯一；补约束时须用**部分唯一索引，排除已驳回、已取消**；状态 `CHECK`（同文件第 11 行）只有 DRAFT、SUBMITTED、RETURNED、APPROVED、REJECTED，**缺 CANCELLED**——现行代码把取消做成退回 DRAFT（`Timesheet.java:171`），Phase 2 规格须定是否设终态「已取消」，并在 CHECK 与部分唯一索引中一并处理；另缺最低时数检查、「已过账」状态、工时条目与分类属性 | 报 one-coordinator | one-coordinator 排期（Phase 2） |
+| N-10 | 已建 `cost.timesheet` 与 Q15「一人一日一单」不符：基线表只有单号唯一（`V20261014140000__cost_timesheet_baseline.sql:24`），没有（人员，工作日）唯一；补约束为**全表唯一约束（人员，工作日），无谓词**，含非工作日、对所有状态生效；不设取消终态，撤回是已提交 → 草稿的转换（用户 intent 052923，one-data TS-UNIQ 卡；原「部分唯一索引排除驳回、取消」与「CHECK 缺 CANCELLED」作废）；另缺最低时数检查（待 one-rules 定填报义务）、「已过账」状态、工时条目与分类属性 | 报 one-coordinator | one-coordinator 排期（Phase 2） |
 | N-11 | ADR-0022 决定 7：`accounting.cashbank`、`tax`、`fixedasset` 在 G1 只是 `accounting.ledger` 内的导入通道；分包应付由 procurement 提交 | B-22、23、24 的聚合在 G1 不单建，由 ledger 的指定导入通道承载；进项发票入账占用的 G1 位置：D-7 用户改选 b（intent 072440），`accounting.tax` 自 G1 起独立，只含进项发票与入账占用，修订 ADR-0022 决定 7，B-23 不再是 ledger 内通道；应付提交方向改为 procurement → payables、expense → payables（原稿为 payables 读 procurement、expense，方向反了） | 用户已定（D-7 b）；其余按 ADR |
 | N-12 | ADR-0016 决定 4：收入确认是无状态规则层，约束 Q20 | AGG-47 不建聚合，规则在 AGG-44 收入确认行执行；Q20 的选项只剩规则层内的形态，选有状态对象须新开 ADR 修订决定 4 | 用户（Q20 时） |
 | N-13 | ADR-0017 决定 1：模块沿用现有子域划分 | 偏离处不止新增：D-2 用户已定新增主数据命名空间（两个 BC）；新增 BC（检查、请假与加班）；**已有模块合并**——售前 2→1（`presales.customer` + `presales.quoting`）、计划与预算 2→1（`operations.planning` + `operations.budgeting`）——同样偏离决定 1；交付不合并（D-3 用户改选 c），但 `delivery.acceptance` 职责扩大。以上都列入需新 ADR 的范围（合同 3→1 已由用户定需新 ADR，条目清单见 §4.4.2）；新增 BC 按决定 1 在 `package-info` 登记蓝图编号 | 新 ADR（用户已定 D-2、D-3） |
