@@ -154,7 +154,9 @@ class TimesheetRejectedResubmitIT extends ApprovalIntegrationSupport {
         awaitStatus(id, TimesheetStatus.REJECTED);
         assertThat(view(id).round()).isEqualTo(1);
 
+        LocalDate dayBefore = LocalDate.now(ZONE);
         Throwable refused = catchThrowable(() -> submit(id, day, "7.5"));
+        LocalDate dayAfter = LocalDate.now(ZONE);
 
         assertThat(refused).as("submitting the rejected timesheet again").isNull();
         TimesheetView again = view(id);
@@ -163,6 +165,10 @@ class TimesheetRejectedResubmitIT extends ApprovalIntegrationSupport {
         assertThat(again.status()).isEqualTo(TimesheetStatus.SUBMITTED);
         assertThat(again.round()).isEqualTo(2);
         assertThat(again.workDate()).isEqualTo(day);
+        assertThat(jdbc.queryForObject("select submitted_hours from cost_timesheet.timesheets where id = ?", java.math.BigDecimal.class, id.value()))
+                .as("the revised hours are stored").isEqualByComparingTo("7.5");
+        assertThat(jdbc.queryForObject("select submitted_date from cost_timesheet.timesheets where id = ?", LocalDate.class, id.value()))
+                .as("submittedOn is the Shanghai day of the new submission").isBetween(dayBefore, dayAfter);
         awaitApprovalRound(id, 2);
         assertThat(taskOf(id)).as("the approval opened a task of its own for the new round").isNotEqualTo(firstTask);
         assertThat(jdbc.queryForObject("select count(*) from cost_timesheet.timesheets where employee_id = ? and work_date = ?", Integer.class,

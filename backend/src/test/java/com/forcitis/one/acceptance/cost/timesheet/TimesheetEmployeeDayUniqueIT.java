@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
@@ -18,6 +19,7 @@ import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.application.SubmitTimesheetCommand;
 import com.forcitis.one.cost.timesheet.application.TimesheetView;
+import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
 import com.forcitis.one.kernel.DocumentType;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.Hours;
@@ -65,6 +67,9 @@ class TimesheetEmployeeDayUniqueIT extends TimesheetWorkerSupport {
 
     @MockitoSpyBean
     DocumentNumbers numbers;
+
+    @MockitoSpyBean
+    TimesheetRepository timesheets;
 
     @Autowired
     TransactionTemplate transaction;
@@ -128,6 +133,21 @@ class TimesheetEmployeeDayUniqueIT extends TimesheetWorkerSupport {
         } finally {
             pool.shutdownNow();
         }
+    }
+
+    @Test
+    @DisplayName("TS-UNIQ 预检被绕过时唯一约束仍兜底并映射为 COST_TIMESHEET_WORK_DATE_DUPLICATE：库内仍只有一行，也没有多发一个单据编号")
+    void whenThePrecheckIsBypassedTheUniqueConstraintStillRefusesAsWorkDateDuplicate() throws Exception {
+        SignedIn worker = newWorker();
+        submit(worker, newTimesheetId(), workDay(), "8");
+        long issuedBefore = nextTimesheetSequence();
+        doReturn(false).when(timesheets).existsFor(any(), any());
+
+        refusedWith(WORK_DATE_DUPLICATE, () -> submit(worker, newTimesheetId(), workDay(), "4"));
+
+        verify(timesheets, atLeastOnce()).existsFor(any(), eq(workDay()));
+        assertThat(timesheetRowsOf(worker.employeeId(), workDay())).isEqualTo(1);
+        assertThat(nextTimesheetSequence()).as("the refused creation rolled its number back").isEqualTo(issuedBefore);
     }
 
     @Test
