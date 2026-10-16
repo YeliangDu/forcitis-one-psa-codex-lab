@@ -65,13 +65,16 @@ class OrgDataAdminRoleIntegrationTest extends IdentityIntegrationTest {
 
         mvc.perform(get("/api/v1/platform/roles").cookie(new Cookie("SESSION", administrator))).andReturn();
         mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", administrator))).andReturn();
-        mvc.perform(MockMvcRequestBuilders.post("/api/v1/platform/user-accounts/" + accountOrNone(404) + ":disable").with(xsrf())
+        java.util.UUID target = accountOrNone(404);
+        mvc.perform(MockMvcRequestBuilders.post("/api/v1/platform/user-accounts/" + target + ":disable").with(xsrf())
                 .cookie(new Cookie("SESSION", administrator))).andReturn();
+        mvc.perform(get("/api/v1/platform/user-accounts/" + target).cookie(new Cookie("SESSION", administrator))).andReturn();
 
         assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.privileged.request"))
                 .extracting(AuditEntry::subject, AuditEntry::detail)
                 .containsExactly(org.assertj.core.groups.Tuple.tuple(AuditSubject.without(AuditSubjectKind.REQUEST), "GET /api/v1/platform/roles"),
-                        org.assertj.core.groups.Tuple.tuple(AuditSubject.without(AuditSubjectKind.REQUEST), "POST /api/v1/platform/user-accounts/{userId}:disable"));
+                        org.assertj.core.groups.Tuple.tuple(AuditSubject.without(AuditSubjectKind.REQUEST), "POST /api/v1/platform/user-accounts/{userId}:disable userId=" + target),
+                        org.assertj.core.groups.Tuple.tuple(AuditSubject.without(AuditSubjectKind.REQUEST), "GET /api/v1/platform/user-accounts/{userId} userId=" + target));
     }
 
     @Test
@@ -87,7 +90,7 @@ class OrgDataAdminRoleIntegrationTest extends IdentityIntegrationTest {
         assertThat(overlong).isNotEqualTo(500);
         assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.privileged.request"))
                 .extracting(AuditEntry::detail)
-                .contains("POST /api/v1/platform/user-accounts/{userId}:disable")
+                .contains("POST /api/v1/platform/user-accounts/{userId}:disable", "GET /api/v1/platform/roles/{roleId}")
                 .noneMatch(detail -> detail.contains("token:") || detail.contains("xxxx"));
     }
 }
