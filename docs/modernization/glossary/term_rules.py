@@ -28,6 +28,8 @@ PARTICLES = ("off", "out", "up", "down", "in", "over", "back", "away", "on")
 PREPOSITIONS = ("for", "to", "by", "from", "in", "on", "at", "with", "of", "into", "after", "before")
 IRREGULAR_PAST = ("sent", "built", "held", "made", "paid", "set", "put", "read", "lost", "kept", "begun", "taken", "given", "written", "shown", "run", "bound", "found", "left", "met", "spent", "split", "cut", "hit", "closed", "reset", "frozen", "chosen", "broken", "undone", "overridden", "withdrawn", "drawn", "known", "seen", "gone", "become", "come",
                   "won", "done", "sold", "bought", "withheld", "repaid", "prepaid", "overpaid", "underpaid", "told", "brought", "shut", "let", "rebuilt", "overdrawn")
+# 系动词过去式后接一个补语，如 BecameOverdue（任务已超时）：事件名同样是「聚合名加过去式业务动词」
+LINKING_PAST = ("became",)
 NOT_PARTICIPLES = ("need", "speed", "feed", "seed", "embed", "proceed", "exceed", "succeed", "bed", "red", "shed")
 IMPERATIVE_ED_ING = ("proceed", "exceed", "succeed", "feed", "embed", "need", "speed", "bring", "ring", "spring", "sing", "string")
 
@@ -38,6 +40,8 @@ def past_tense(ws):
     while len(ws) > 1 and ws[-1] in PARTICLES:
         ws = ws[:-1]
     for i in range(len(ws) - 1, -1, -1):
+        if ws[i] in LINKING_PAST:
+            return i == len(ws) - 2
         if (ws[i].endswith("ed") and ws[i] not in NOT_PARTICIPLES) or ws[i] in IRREGULAR_PAST:
             return i == len(ws) - 1 or ws[i + 1] in PREPOSITIONS
     return False
@@ -230,6 +234,8 @@ def self_test():
     want("kind 合法", rules(term("a", kind="aggregate"), term("b", zh="乙", en="B", kind="error_code")), set())
     want("事件名过去式", rules(term("a", kind="domain_event", en="TimesheetApproved")), set())
     want("事件名含小品词", rules(term("a", kind="domain_event", en="ArWrittenOff")), set())
+    want("事件名系动词加补语", rules(term("a", kind="domain_event", en="ApprovalTaskBecameOverdue")), set())
+    want("事件名系动词后多于一个词不算", rules(term("a", kind="domain_event", en="ApprovalTaskBecameVeryOverdue")), {"event_name"})
     want("事件名含介词短语", rules(term("a", kind="domain_event", en="DocumentSubmittedForApproval")), set())
     want("事件名不是过去式", rules(term("a", kind="domain_event", en="TimesheetApproval")), {"event_name"})
     want("命令名祈使", rules(term("a", kind="command", en="ApproveTimesheet")), set())
