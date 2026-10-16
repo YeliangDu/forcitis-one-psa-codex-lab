@@ -5785,6 +5785,11 @@ processes:
       outcome: 会计年度已开立
     permission: 会计年度.开立
     page: 会计年度开立页
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-19
+      name: 开立会计年度
   notes: 未启用的年度 12 月照常关账；12 月关账后启用状态锁定（INV-104）。年度损益结转与「本年利润 → 未分配利润」的年度结转放在哪一期待 P-001、P-002、P-004（ADR-0046 移交 P-3、P-4）。
   scenarios:
   - PRC-102-S01
@@ -6160,28 +6165,9 @@ processes:
   - VS-12.1
   desc: 股东或合伙人认缴，财务登记到账
   states:
-  - name: 认缴
-    transitions:
-    - 部分实缴
-    - 实缴（到账）
-  - name: 部分实缴
-    transitions:
-    - 部分实缴
-    - 实缴（到账）
-    - 认缴
-    note: 分期实缴中，累计小于认缴额（INV-127）
-  - name: 实缴（到账）
-    transitions:
-    - 部分退回
-    - 已退回
-    - 部分实缴
-    note: 退回由 PRC-114 登记
-  - name: 部分退回
-    transitions:
-    - 已退回
-  - name: 已退回
-    transitions: []
-    note: 终态
+  - 认缴
+  - 部分实缴
+  - 实缴（到账）
   permission: 出资.登记认缴 / 出资.登记实缴 / 出资.更正实缴
   page: 出资登记页
   migration: 全部历史出资（认缴、实缴、退回）迁入（U-3、U-4），迁入走迁入过账通道，不触发过账候选；无在途实例
@@ -6242,13 +6228,36 @@ processes:
     where: offline
     evidence:
     - 出资协议或章程出资条款扫描件
-    from: []
+    from: null
     to: 认缴
     audit: true
     decision:
     - when: otherwise
       goto: end
       outcome: 出资已认缴
+  - actor: SH-E6
+    command: 登记出资实缴
+    emits:
+    - 出资已实缴
+    where: external:银行
+    evidence:
+    - 银行到账回单
+    from:
+    - 认缴
+    - 部分实缴
+    to: 部分实缴
+    audit: true
+    decision:
+    - when: 累计实缴将超过认缴额
+      goto: end
+      rule: INV-127
+      outcome: 已拒收
+      alert: true
+    - when: otherwise
+      goto: end
+      outcome: 出资已实缴
+    desc: 可分期实缴，累计实缴不超过认缴额（INV-127）；累计等于认缴额时置实缴（到账）；累计小于认缴额时置部分实缴
+    guard: 累计实缴小于认缴额（INV-127）
   - actor: SH-E6
     command: 登记出资实缴
     emits:
@@ -6271,14 +6280,53 @@ processes:
       goto: end
       outcome: 出资已实缴
     desc: 可分期实缴，累计实缴不超过认缴额（INV-127）；累计等于认缴额时置实缴（到账）；累计小于认缴额时置部分实缴
+    guard: 累计实缴等于认缴额（INV-127）
   - actor: SH-E6
     command: 更正出资登记
     where: external:银行
     evidence:
     - 银行回单更正或退回凭证、更正说明
-    from:
-    - 部分实缴
-    - 实缴（到账）
+    from: 实缴（到账）
+    to: 部分实缴
+    audit: true
+    added_in: closeout
+    emits: []
+    desc: 实缴登记有误时更正：冲销原实缴行并按正确金额重登，已过账部分经 PRC-92 更正入口冲销（INV-95）；更正后累计实缴仍满足 INV-127；更正后累计为零则回到认缴
+    decision:
+    - when: 更正后累计实缴为负或超过认缴额
+      goto: end
+      rule: INV-127
+      outcome: 已拒收
+      alert: true
+    - when: otherwise
+      goto: end
+      outcome: 出资实缴已更正
+  - actor: SH-E6
+    command: 更正出资登记
+    where: external:银行
+    evidence:
+    - 银行回单更正或退回凭证、更正说明
+    from: 部分实缴
+    to: 认缴
+    audit: true
+    added_in: closeout
+    emits: []
+    desc: 实缴登记有误时更正：冲销原实缴行并按正确金额重登，已过账部分经 PRC-92 更正入口冲销（INV-95）；更正后累计实缴仍满足 INV-127；更正后累计为零则回到认缴
+    decision:
+    - when: 更正后累计实缴为负或超过认缴额
+      goto: end
+      rule: INV-127
+      outcome: 已拒收
+      alert: true
+    - when: otherwise
+      goto: end
+      outcome: 出资实缴已更正
+  - actor: SH-E6
+    command: 更正出资登记
+    where: external:银行
+    evidence:
+    - 银行回单更正或退回凭证、更正说明
+    from: 部分实缴
     to: 部分实缴
     audit: true
     added_in: closeout
@@ -6311,6 +6359,31 @@ processes:
       goto: end
       outcome: 出资已实缴
     desc: 出资已实缴仅分析（无业务订阅方），过账走 api（R-10）；系统触账遇已关账期间落开放期间（ADR-0045）
+    from: 部分实缴
+    to: 部分实缴
+    note: 自环：过账不改出资状态
+  - actor: system
+    command: 提交过账候选
+    calls: PRC-92
+    period_gate: true
+    decision:
+    - when: 所属期间已关账，自动落当前开放期间并标原期间（系统触账不拒绝）
+      goto: end
+      rule: ADR-0045 决定 2；INV-92；AR-05
+      outcome: 出资已实缴
+    - when: 过账管道拒收（该法人无开放期间、借贷不平或法人不一致），拒收并告警
+      goto: end
+      rule: INV-92、INV-93；拒收记录由 PRC-158 处置
+      outcome: 过账被拒收
+      alert: true
+    - when: otherwise
+      goto: end
+      outcome: 出资已实缴
+    desc: 出资已实缴仅分析（无业务订阅方），过账走 api（R-10）；系统触账遇已关账期间落开放期间（ADR-0045）
+    from: 实缴（到账）
+    to: 实缴（到账）
+    note: 自环：过账不改出资状态
+  states_note: '退回两态（部分退回、已退回）由 PRC-114 触及，不在本流程（S-43 #35）'
 - id: PRC-112
   name: 决议并支付利润分配
   type: business
@@ -6934,47 +7007,11 @@ processes:
   stages:
   - VS-10.1
   states:
-    外部法定账推送:
-      values:
-      - 待推送
-      - 已推送
-      - 已确认记账
-      - 挂起
-      - 死信
-      transitions:
-      - from: 待推送
-        to: 已推送
-        by: 推送与重投
-      - from: 已推送
-        to: 已确认记账
-        by: 登记外部记账确认
-        guard: 对账（AGG-101）经 platform.integration 读到 U8C 记账结果后登记（S-31 SQ-11）
-      - from: 已推送
-        to: 死信
-        by: 推送与重投
-        guard: U8C 拒收，带返回码
-      - from: 死信
-        to: 待推送
-        by: 推送与重投
-        guard: 财务处理原因后重投
-      - from: 待推送
-        to: 挂起
-        by: 推送与重投
-        guard: 凭证依赖的主数据尚未同步到 U8C
-      - from: 挂起
-        to: 已推送
-        by: 推送与重投
-        guard: 每日定时重投成功
-    待处理队列项:
-      values:
-      - 待处理
-      - 已记账
-      transitions:
-      - from: 待处理
-        to: 已记账
-        by: 处理待处理队列
-        guard: 来源已在授权表或映射表已补齐（INV-98）
-      note: 待处理队列放 AGG-84 下作无父行技术表，分录本身只追加、不改状态，状态只在队列项上（INV-95a，S-31 SQ-23）
+  - 待处理
+  - 待推送
+  - 已推送
+  - 挂起
+  - 死信
   cross_bc:
   - mode: api
     direction: out
@@ -6996,6 +7033,9 @@ processes:
     desc: 来源不在授权表或映射表找不到类别的事实进队列并告警；财务经 PRC-100 补授权或映射后再生成分录；队列不清空不能关账（ADR-0022 决定 2、10）；期间已关账则按 ADR-0045 决定 2 与 INV-92 落当前开放期间并标原期间（与 PRC-93 一致）
     pending:
     - U-27
+    from: 待处理
+    to: 待推送
+    guard: 来源已在授权表或映射表已补齐（INV-98）
   - command: 推送与重投
     actor: system
     where: external:U8C
@@ -7008,6 +7048,84 @@ processes:
     desc: 收付口径分录推送 U8C 至已确认记账，失败为死信，当日告警财务与运维，死信非空不得关账；首次推送由 PRC-93 自动完成，本维护只做死信重投与人工触发；财务可在页面触发重投（权限同左）；凭证依赖的主数据尚未同步到 U8C 时置「挂起」，每日定时重投（S-29 SQ-50）；粒度按凭证一次，幂等外部键按凭证（S-31 SQ-16）
     pending:
     - S-05
+    from: 待推送
+    to: 已推送
+  - command: 推送与重投
+    actor: system
+    where: external:U8C
+    permission: 总账.重投外部法定账推送
+    page: 推送与死信页
+    audit: true
+    evidence:
+    - U8C 返回码与凭证号
+    - 推送批次与校验和
+    desc: 收付口径分录推送 U8C 至已确认记账，失败为死信，当日告警财务与运维，死信非空不得关账；首次推送由 PRC-93 自动完成，本维护只做死信重投与人工触发；财务可在页面触发重投（权限同左）；凭证依赖的主数据尚未同步到 U8C 时置「挂起」，每日定时重投（S-29 SQ-50）；粒度按凭证一次，幂等外部键按凭证（S-31 SQ-16）
+    pending:
+    - S-05
+    from: 已推送
+    to: 死信
+    guard: U8C 拒收，带返回码
+  - command: 推送与重投
+    actor: system
+    where: external:U8C
+    permission: 总账.重投外部法定账推送
+    page: 推送与死信页
+    audit: true
+    evidence:
+    - U8C 返回码与凭证号
+    - 推送批次与校验和
+    desc: 收付口径分录推送 U8C 至已确认记账，失败为死信，当日告警财务与运维，死信非空不得关账；首次推送由 PRC-93 自动完成，本维护只做死信重投与人工触发；财务可在页面触发重投（权限同左）；凭证依赖的主数据尚未同步到 U8C 时置「挂起」，每日定时重投（S-29 SQ-50）；粒度按凭证一次，幂等外部键按凭证（S-31 SQ-16）
+    pending:
+    - S-05
+    from: 死信
+    to: 待推送
+    guard: 财务处理原因后重投
+  - command: 推送与重投
+    actor: system
+    where: external:U8C
+    permission: 总账.重投外部法定账推送
+    page: 推送与死信页
+    audit: true
+    evidence:
+    - U8C 返回码与凭证号
+    - 推送批次与校验和
+    desc: 收付口径分录推送 U8C 至已确认记账，失败为死信，当日告警财务与运维，死信非空不得关账；首次推送由 PRC-93 自动完成，本维护只做死信重投与人工触发；财务可在页面触发重投（权限同左）；凭证依赖的主数据尚未同步到 U8C 时置「挂起」，每日定时重投（S-29 SQ-50）；粒度按凭证一次，幂等外部键按凭证（S-31 SQ-16）
+    pending:
+    - S-05
+    from: 待推送
+    to: 挂起
+    guard: 凭证依赖的主数据尚未同步到 U8C
+  - command: 推送与重投
+    actor: system
+    where: external:U8C
+    permission: 总账.重投外部法定账推送
+    page: 推送与死信页
+    audit: true
+    evidence:
+    - U8C 返回码与凭证号
+    - 推送批次与校验和
+    desc: 收付口径分录推送 U8C 至已确认记账，失败为死信，当日告警财务与运维，死信非空不得关账；首次推送由 PRC-93 自动完成，本维护只做死信重投与人工触发；财务可在页面触发重投（权限同左）；凭证依赖的主数据尚未同步到 U8C 时置「挂起」，每日定时重投（S-29 SQ-50）；粒度按凭证一次，幂等外部键按凭证（S-31 SQ-16）
+    pending:
+    - S-05
+    from: 挂起
+    to: 已推送
+    guard: 每日定时重投成功
+  - command: 推送与重投
+    actor: system
+    where: external:U8C
+    permission: 总账.重投外部法定账推送
+    page: 推送与死信页
+    audit: true
+    evidence:
+    - U8C 返回码与凭证号
+    - 推送批次与校验和
+    desc: 收付口径分录推送 U8C 至已确认记账，失败为死信，当日告警财务与运维，死信非空不得关账；首次推送由 PRC-93 自动完成，本维护只做死信重投与人工触发；财务可在页面触发重投（权限同左）；凭证依赖的主数据尚未同步到 U8C 时置「挂起」，每日定时重投（S-29 SQ-50）；粒度按凭证一次，幂等外部键按凭证（S-31 SQ-16）
+    pending:
+    - S-05
+    from: 挂起
+    to: 死信
+    guard: 重投仍被拒收
+  states_note: '分录本身只追加、不改状态；状态在待处理队列项与外部法定账推送状态上（INV-95a，S-31 SQ-23）；「已确认记账」由 PRC-104 登记，不在本流程（S-43 #44）'
 - id: PRC-158
   name: 处置过账拒收记录
   type: single_aggregate
