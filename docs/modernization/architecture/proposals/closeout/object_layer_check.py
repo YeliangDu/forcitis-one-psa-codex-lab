@@ -144,15 +144,21 @@ def analyse(catalog, pobj_doc, agg_objs, vs_doc, caps_doc, hits, children=None, 
         if p.get("type") == "merged":
             continue
         conf = p.get("primary_object")
-        if p.get("support"):
-            objs = touched.get(p["id"], set())
+        integ = p.get("type") == "integration"
+        if p.get("support") or integ:
+            feeds = [str(x) for x in p.get("feeds") or []]
+            fed_prim = [str(q.get("primary_object")) for q in catalog if q["id"] in feeds and str(q.get("primary_object", "")).startswith("OBJ-")]
+            objs = (touched.get(p["id"], set()) | {x for x in feeds if x.startswith("OBJ-")} | set(fed_prim)) if integ else touched.get(p["id"], set())
             sup = {st: ("条件" if objs & cond[st] else "使用") for st in order if objs & (cond[st] | used[st])}
             w = sorted(written.get(p["id"], set()), key=num)
-            prim = conf if conf and str(conf).lower() != "none" else (w[0] if len(w) == 1 else None)
+            if integ:
+                w = sorted({x for x in feeds if x.startswith("OBJ-")} | set(fed_prim), key=num)
+            prim = conf if conf and str(conf).lower() != "none" else (w[0] if len(w) == 1 or (integ and w) else None)
             cap = cidx.get(prim) if prim else None
             support_rows.append({"id": p["id"], "name": p["name"], "group": p.get("group"), "type": p.get("type"), "stages": [],
                                  "supports": list(sup), "supports_basis": sup, "primary_object": prim,
-                                 "status": "support" if conf else ("support_proposed" if prim else "support_none"),
+                                 "status": ("integration" if integ else "support") + ("" if conf else ("_proposed" if prim else "_none")),
+                                 "external_system": p.get("external_system"), "lifespan": p.get("lifespan"), "feeds": feeds,
                                  "capability_l1": cap[0] if cap else None, "capability": cap[1] if cap else None,
                                  "category": cats.get(cap[0]) if cap else None})
             continue
@@ -219,10 +225,10 @@ def load_categories():
 
 
 def render_yaml(A):
-    keys = ("id", "display", "name", "group", "type", "stages", "supports", "supports_basis", "primary_object", "secondary_objects", "status", "candidates",
+    keys = ("id", "display", "name", "group", "type", "external_system", "lifespan", "feeds", "stages", "supports", "supports_basis", "primary_object", "secondary_objects", "status", "candidates",
             "capability_l1", "capability", "category", "category_by")
     doc = {"note": "object_layer_check.py 生成，勿手改；status：confirmed 三组确认（目录 primary_object）/ declared_none 组声明无业务对象 / proposed 脚本提议 / "
-                   "candidates 多候选 / none 无候选 / read_model 读模型不提议 / support、support_proposed、support_none 支撑流程（主对象已填 / 唯一写入对象推出 / 无）；"
+                   "candidates 多候选 / none 无候选 / read_model 读模型不提议 / support、support_proposed、support_none 支撑流程（主对象已填 / 唯一写入对象推出 / 无），integration_* 集成流程同理（主对象取 feeds 的首个对象或所供流程的主对象）；"
                    "stages 为归属（实线），supports 为支撑本段（虚线，自动：所触对象出现在该段条件里 = 条件，或被该段流程使用 = 使用）；"
                    "category：business 核心 / management 战略 / support 支撑（categories.proposal.yaml，待用户认可）",
            "value_streams": [{"id": v, "category": c} for v, c in A["vs_cat"].items() if v.startswith("VS-")],
@@ -264,7 +270,7 @@ def render_md(A, onames):
     out += ["", "### 主对象无对应能力（无 OBJ 的聚合，或对象未入能力图）", ""]
     out += [f"- {r['id']} {r['name']}：{on(r['primary_object'])}" for r in D["no_cap"]] or ["无"]
     sr = A["support_rows"]
-    out += ["", f"## 支撑流程「支撑本段」（{len(sr)} 条，有支撑段 {sum(1 for r in sr if r['supports'])}；自动得出，不手写）", "",
+    out += ["", f"## 支撑与集成流程「支撑本段」（{len(sr)} 条，有支撑段 {sum(1 for r in sr if r['supports'])}；自动得出，不手写）", "",
             "| 流程 | 主对象 | 状态 | 类别 | 支撑段（条件 / 使用） |", "|---|---|---|---|---|"]
     out += [f"| {r['id']} {r['name']} | {on(r['primary_object']) if r['primary_object'] else '—'} | {r['status']} | {r['category'] or '—'} | "
             + ("、".join(f"{k}（{v}）" for k, v in r["supports_basis"].items()) or "无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads）") + " |" for r in sr]

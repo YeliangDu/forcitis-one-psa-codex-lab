@@ -3,7 +3,7 @@
 
 由 build_catalog.py 生成，不手改；来源 `process-catalog.yaml`。
 
-共 183 条，编号 PRC-01 至 PRC-183。
+共 200 条，编号 PRC-01 至 PRC-200。
 
 ### 按类型
 
@@ -14,7 +14,7 @@
 | single_aggregate | 29 |
 | read_model | 6 |
 | merged | 10 |
-| 合计 | 183 |
+| 合计 | 200 |
 
 ### 按组（全部类型）
 
@@ -23,7 +23,7 @@
 | revenue | 79 |
 | finance | 54 |
 | people | 50 |
-| 合计 | 183 |
+| 合计 | 200 |
 
 ### 按组（仅业务流程）
 
@@ -243,3 +243,20 @@
 | PRC-181 | 记录经营复盘并跟踪经营动作 | business |  | VS-09.3 | B-18 | people | draft | 是 |  |
 | PRC-182 | 知识条目使用情况 | read_model |  | VS-11.3 | reporting | people | draft | 否 |  |
 | PRC-183 | 作出参投决策 | business |  | VS-01.2 | B-03 | revenue | draft | 是 |  |
+| PRC-184 | 同步组织来源数据 | integration |  |  | platform.integration | platform | draft | 否 |  |
+| PRC-185 | 核对组织快照与来源 | integration |  |  | platform.integration | platform | draft | 否 |  |
+| PRC-186 | 刷新部门简称 | integration |  |  | platform.integration | platform | draft | 否 |  |
+| PRC-187 | 校验致远单点登录票据 | integration |  |  | platform.integration | platform | draft | 否 |  |
+| PRC-188 | 识别企业微信登录身份 | integration |  |  | platform.integration | platform | draft | 否 |  |
+| PRC-189 | 投递企业微信通知 | integration |  |  | platform.integration | platform | draft | 否 |  |
+| PRC-190 | 重投领域事件 | integration |  |  | platform.integration | platform | draft | 否 |  |
+| PRC-191 | 归档数据到对象存储 | integration |  |  | platform.integration | platform | draft | 否 |  |
+| PRC-192 | 读取老系统待办 | integration |  |  | platform.integration | platform | draft | 否 |  |
+| PRC-193 | 编排历史数据迁入 | integration |  |  | platform.migration（暂定名，ADR-0036 提议；main 中未见该模块） | platform | draft | 否 |  |
+| PRC-194 | 推送凭证到U8C | integration |  |  | platform.integration（接口）与 accounting.ledger（待处理队列、死信、重投） | platform | draft | 否 |  |
+| PRC-195 | 同步U8C主数据 | integration |  |  | platform.integration | platform | draft | 否 |  |
+| PRC-196 | 对接数电发票平台 | integration |  |  | platform.integration | platform | draft | 否 |  |
+| PRC-197 | 同步差旅员工与组织 | integration |  |  | platform.integration | platform | draft | 否 |  |
+| PRC-198 | 接收差旅订单与账单 | integration |  |  | platform.integration | platform | draft | 否 |  |
+| PRC-199 | 推送出差申请并回写审批 | integration |  |  | platform.integration | platform | draft | 否 |  |
+| PRC-200 | 拉取企业微信打卡记录 | integration |  |  | platform.integration（接口）与 B-27 organization.attendance（落考勤记录） | platform | draft | 否 |  |

@@ -1,5 +1,5 @@
 note: object_layer_check.py 生成，勿手改；status：confirmed 三组确认（目录 primary_object）/ declared_none 组声明无业务对象 / proposed 脚本提议 / candidates 多候选 / none 无候选 / read_model 读模型不提议 / support、support_proposed、support_none
-  支撑流程（主对象已填 / 唯一写入对象推出 / 无）；stages 为归属（实线），supports 为支撑本段（虚线，自动：所触对象出现在该段条件里 = 条件，或被该段流程使用 = 使用）；category：business 核心 / management 战略 / support 支撑（categories.proposal.yaml，待用户认可）
+  支撑流程（主对象已填 / 唯一写入对象推出 / 无），integration_* 集成流程同理（主对象取 feeds 的首个对象或所供流程的主对象）；stages 为归属（实线），supports 为支撑本段（虚线，自动：所触对象出现在该段条件里 = 条件，或被该段流程使用 = 使用）；category：business 核心 / management 战略 / support 支撑（categories.proposal.yaml，待用户认可）
 value_streams:
 - id: VS-01
   category: business
@@ -3107,3 +3107,466 @@ processes:
     VS-13.3: 使用
   primary_object: AGG-119
   status: support_proposed
+- id: PRC-184
+  name: 同步组织来源数据
+  group: platform
+  type: integration
+  external_system: A8（致远协同）组织视图，经只读数据库账号
+  lifespan: transitional
+  feeds:
+  - OBJ-55
+  - OBJ-56
+  - OBJ-57
+  supports:
+  - VS-01.1
+  - VS-01.2
+  - VS-02.0
+  - VS-02.1
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  - VS-03.1
+  - VS-03.2
+  - VS-05.5
+  - VS-07.1
+  - VS-07.2
+  - VS-07.3
+  - VS-08.0
+  - VS-08.1
+  - VS-08.2
+  - VS-08.3
+  - VS-13.1
+  - VS-13.2
+  - VS-13.3
+  - VS-13.5
+  - VS-13.6
+  supports_basis:
+    VS-01.1: 使用
+    VS-01.2: 使用
+    VS-02.0: 使用
+    VS-02.1: 使用
+    VS-02.2: 使用
+    VS-02.3: 使用
+    VS-02.4: 使用
+    VS-02.5: 使用
+    VS-02.6: 使用
+    VS-03.1: 使用
+    VS-03.2: 使用
+    VS-05.5: 使用
+    VS-07.1: 使用
+    VS-07.2: 条件
+    VS-07.3: 条件
+    VS-08.0: 使用
+    VS-08.1: 使用
+    VS-08.2: 使用
+    VS-08.3: 使用
+    VS-13.1: 条件
+    VS-13.2: 使用
+    VS-13.3: 使用
+    VS-13.5: 使用
+    VS-13.6: 条件
+  primary_object: OBJ-55
+  status: integration_proposed
+- id: PRC-185
+  name: 核对组织快照与来源
+  group: platform
+  type: integration
+  external_system: A8（致远协同）组织视图
+  lifespan: transitional
+  feeds:
+  - OBJ-55
+  - OBJ-56
+  supports:
+  - VS-01.1
+  - VS-01.2
+  - VS-02.0
+  - VS-02.1
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  - VS-03.1
+  - VS-03.2
+  - VS-05.5
+  - VS-07.1
+  - VS-07.2
+  - VS-07.3
+  - VS-08.0
+  - VS-08.1
+  - VS-08.2
+  - VS-08.3
+  - VS-13.1
+  - VS-13.2
+  - VS-13.3
+  - VS-13.5
+  - VS-13.6
+  supports_basis:
+    VS-01.1: 使用
+    VS-01.2: 使用
+    VS-02.0: 使用
+    VS-02.1: 使用
+    VS-02.2: 使用
+    VS-02.3: 使用
+    VS-02.4: 使用
+    VS-02.5: 使用
+    VS-02.6: 使用
+    VS-03.1: 使用
+    VS-03.2: 使用
+    VS-05.5: 使用
+    VS-07.1: 使用
+    VS-07.2: 条件
+    VS-07.3: 条件
+    VS-08.0: 使用
+    VS-08.1: 使用
+    VS-08.2: 使用
+    VS-08.3: 使用
+    VS-13.1: 条件
+    VS-13.2: 使用
+    VS-13.3: 使用
+    VS-13.5: 使用
+    VS-13.6: 条件
+  primary_object: OBJ-55
+  status: integration_proposed
+- id: PRC-186
+  name: 刷新部门简称
+  group: platform
+  type: integration
+  external_system: 老系统（只读视图 v_one_legacy_org_short_name）
+  lifespan: transitional
+  feeds:
+  - OBJ-55
+  supports:
+  - VS-05.5
+  - VS-07.1
+  supports_basis:
+    VS-05.5: 使用
+    VS-07.1: 使用
+  primary_object: OBJ-55
+  status: integration_proposed
+- id: PRC-187
+  name: 校验致远单点登录票据
+  group: platform
+  type: integration
+  external_system: 致远协同（A8）单点登录门户
+  lifespan: transitional
+  feeds:
+  - PRC-137
+  status: integration_none
+- id: PRC-188
+  name: 识别企业微信登录身份
+  group: platform
+  type: integration
+  external_system: 企业微信（OAuth 授权码换用户标识）
+  lifespan: long_term
+  feeds:
+  - OBJ-56
+  supports:
+  - VS-01.1
+  - VS-01.2
+  - VS-02.0
+  - VS-02.1
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  - VS-03.1
+  - VS-03.2
+  - VS-05.5
+  - VS-07.2
+  - VS-07.3
+  - VS-08.0
+  - VS-08.1
+  - VS-08.2
+  - VS-08.3
+  - VS-13.1
+  - VS-13.2
+  - VS-13.3
+  - VS-13.5
+  - VS-13.6
+  supports_basis:
+    VS-01.1: 使用
+    VS-01.2: 使用
+    VS-02.0: 使用
+    VS-02.1: 使用
+    VS-02.2: 使用
+    VS-02.3: 使用
+    VS-02.4: 使用
+    VS-02.5: 使用
+    VS-02.6: 使用
+    VS-03.1: 使用
+    VS-03.2: 使用
+    VS-05.5: 使用
+    VS-07.2: 条件
+    VS-07.3: 条件
+    VS-08.0: 使用
+    VS-08.1: 使用
+    VS-08.2: 使用
+    VS-08.3: 使用
+    VS-13.1: 条件
+    VS-13.2: 使用
+    VS-13.3: 使用
+    VS-13.5: 使用
+    VS-13.6: 条件
+  primary_object: OBJ-56
+  status: integration_proposed
+  capability_l1: CAP-056
+  capability: CAP-056
+  category: support
+- id: PRC-189
+  name: 投递企业微信通知
+  group: platform
+  type: integration
+  external_system: 企业微信（应用消息卡片，含回写已处理）
+  lifespan: long_term
+  feeds:
+  - PRC-135
+  supports:
+  - VS-06.1
+  - VS-10.1
+  - VS-10.2
+  supports_basis:
+    VS-06.1: 使用
+    VS-10.1: 条件
+    VS-10.2: 条件
+  primary_object: OBJ-98
+  status: integration_proposed
+  capability_l1: CAP-103
+  capability: CAP-103.098
+  category: support
+- id: PRC-190
+  name: 重投领域事件
+  group: platform
+  type: integration
+  external_system: 无（内部事件发布登记表，Spring Modulith 事件发布登记）
+  lifespan: long_term
+  status: integration_none
+- id: PRC-191
+  name: 归档数据到对象存储
+  group: platform
+  type: integration
+  external_system: 阿里云 OSS（只写保留桶，合规保留期）
+  lifespan: long_term
+  status: integration_none
+- id: PRC-192
+  name: 读取老系统待办
+  group: platform
+  type: integration
+  external_system: 老系统（只读视图 v_psa_one_legacy_todo）
+  lifespan: transitional
+  status: integration_none
+- id: PRC-193
+  name: 编排历史数据迁入
+  group: platform
+  type: integration
+  external_system: 老系统、A8（致远协同）、U8C（按迁入阶段 6a-6e 分别）
+  lifespan: transitional
+  feeds:
+  - OBJ-98
+  - OBJ-83
+  - OBJ-56
+  supports:
+  - VS-01.1
+  - VS-01.2
+  - VS-02.0
+  - VS-02.1
+  - VS-02.2
+  - VS-02.3
+  - VS-02.4
+  - VS-02.5
+  - VS-02.6
+  - VS-03.1
+  - VS-03.2
+  - VS-04.3
+  - VS-05.4
+  - VS-05.5
+  - VS-06.1
+  - VS-07.2
+  - VS-07.3
+  - VS-08.0
+  - VS-08.1
+  - VS-08.2
+  - VS-08.3
+  - VS-10.1
+  - VS-10.2
+  - VS-13.1
+  - VS-13.2
+  - VS-13.3
+  - VS-13.5
+  - VS-13.6
+  supports_basis:
+    VS-01.1: 使用
+    VS-01.2: 使用
+    VS-02.0: 使用
+    VS-02.1: 使用
+    VS-02.2: 使用
+    VS-02.3: 使用
+    VS-02.4: 使用
+    VS-02.5: 使用
+    VS-02.6: 使用
+    VS-03.1: 使用
+    VS-03.2: 使用
+    VS-04.3: 条件
+    VS-05.4: 条件
+    VS-05.5: 使用
+    VS-06.1: 使用
+    VS-07.2: 条件
+    VS-07.3: 条件
+    VS-08.0: 使用
+    VS-08.1: 使用
+    VS-08.2: 条件
+    VS-08.3: 使用
+    VS-10.1: 条件
+    VS-10.2: 条件
+    VS-13.1: 条件
+    VS-13.2: 使用
+    VS-13.3: 使用
+    VS-13.5: 使用
+    VS-13.6: 条件
+  primary_object: OBJ-56
+  status: integration_proposed
+  capability_l1: CAP-056
+  capability: CAP-056
+  category: support
+- id: PRC-194
+  name: 推送凭证到U8C
+  group: platform
+  type: integration
+  external_system: U8C（收付账套）
+  lifespan: transitional
+  feeds:
+  - OBJ-98
+  supports:
+  - VS-06.1
+  - VS-10.1
+  - VS-10.2
+  supports_basis:
+    VS-06.1: 使用
+    VS-10.1: 条件
+    VS-10.2: 条件
+  primary_object: OBJ-98
+  status: integration_proposed
+  capability_l1: CAP-103
+  capability: CAP-103.098
+  category: support
+- id: PRC-195
+  name: 同步U8C主数据
+  group: platform
+  type: integration
+  external_system: U8C
+  lifespan: transitional
+  feeds:
+  - OBJ-98
+  supports:
+  - VS-06.1
+  - VS-10.1
+  - VS-10.2
+  supports_basis:
+    VS-06.1: 使用
+    VS-10.1: 条件
+    VS-10.2: 条件
+  primary_object: OBJ-98
+  status: integration_proposed
+  capability_l1: CAP-103
+  capability: CAP-103.098
+  category: support
+- id: PRC-196
+  name: 对接数电发票平台
+  group: platform
+  type: integration
+  external_system: 国家税务总局数电发票平台（经开票服务）
+  lifespan: long_term
+  feeds:
+  - OBJ-83
+  supports:
+  - VS-04.3
+  - VS-05.4
+  - VS-06.1
+  - VS-08.2
+  supports_basis:
+    VS-04.3: 条件
+    VS-05.4: 条件
+    VS-06.1: 使用
+    VS-08.2: 条件
+  primary_object: OBJ-83
+  status: integration_proposed
+  capability_l1: CAP-103
+  capability: CAP-103.083
+  category: support
+- id: PRC-197
+  name: 同步差旅员工与组织
+  group: platform
+  type: integration
+  external_system: 分贝通（差旅服务商）
+  lifespan: long_term
+  feeds:
+  - PRC-177
+  status: integration_none
+- id: PRC-198
+  name: 接收差旅订单与账单
+  group: platform
+  type: integration
+  external_system: 分贝通（差旅服务商）
+  lifespan: long_term
+  feeds:
+  - PRC-171
+  - PRC-173
+  - AGG-131
+  supports:
+  - VS-04.4
+  - VS-05.4
+  - VS-05.5
+  - VS-06.1
+  - VS-08.1
+  - VS-08.2
+  - VS-08.3
+  - VS-12.2
+  - VS-12.3
+  - VS-13.5
+  supports_basis:
+    VS-04.4: 条件
+    VS-05.4: 条件
+    VS-05.5: 条件
+    VS-06.1: 使用
+    VS-08.1: 条件
+    VS-08.2: 使用
+    VS-08.3: 条件
+    VS-12.2: 使用
+    VS-12.3: 使用
+    VS-13.5: 条件
+  primary_object: OBJ-85
+  status: integration_proposed
+  capability_l1: CAP-103
+  capability: CAP-103.085
+  category: support
+- id: PRC-199
+  name: 推送出差申请并回写审批
+  group: platform
+  type: integration
+  external_system: 分贝通（差旅服务商）
+  lifespan: long_term
+  feeds:
+  - PRC-172
+  - PRC-173
+  - AGG-132
+  status: integration_none
+- id: PRC-200
+  name: 拉取企业微信打卡记录
+  group: platform
+  type: integration
+  external_system: 企业微信（考勤打卡数据接口）
+  lifespan: long_term
+  feeds:
+  - OBJ-70
+  supports:
+  - VS-13.1
+  supports_basis:
+    VS-13.1: 使用
+  primary_object: OBJ-70
+  status: integration_proposed
+  capability_l1: CAP-056
+  capability: CAP-056.070
+  category: support
