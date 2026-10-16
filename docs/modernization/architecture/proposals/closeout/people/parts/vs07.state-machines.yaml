@@ -10,17 +10,34 @@ machines:
 - aggregate: AGG-60
   machine: legal_entity
   entity: legal_entities
-  states: [有效]
+  states: [有效, 已停用]
   initial: []
   terminal: []
   perpetual: true
-  note: 根只留代码，名称与状态随版本表；聚合稿只列登记法人主体，词表与已建代码另有启用 / 停用 / 更名 / 更正代码事件，无流程使用，本稿不建模（vs07conv.notes.md 结构问题 1）
+  note: 根只留代码，名称与状态随版本表；聚合稿只列登记法人主体，更名 / 停用 / 启用三条〔缺〕命令取自词表事件（法人主体已更名 / 已停用 / 已启用），经对象增删改查检查补入（vs07.notes.md 结构问题 19）；词表区分已登记与已启用，本稿登记即有效；代码已更正（仅未发号前）仍不建模
   transitions:
   - from: null
     to: 有效
     command: 登记法人主体
     guard: [INV-59]
     kind: forward
+  - from: 有效
+    to: 有效
+    command: 更名法人主体
+    guard: [INV-59：代码不改]
+    kind: forward
+    note: 追加名称版本
+  - from: 有效
+    to: 已停用
+    command: 停用法人主体
+    guard: []
+    kind: forward
+  - from: 已停用
+    to: 有效
+    command: 启用法人主体
+    guard: []
+    kind: reverse
+    note: 恢复
 - aggregate: AGG-61
   machine: org_unit
   entity: org_units
@@ -95,8 +112,19 @@ machines:
   - 启用
   - {name: 已停用, terminal: true}
   initial: [启用]
-  note: 初态「启用」由初始化录入或迁入产生：新建 / 修改职位、职级、职位族的命令聚合稿缺（vs07.notes.md 结构问题 8），本稿不自造；职级、职位族暂随本聚合不拆（S-10）
+  note: 新建 / 修改命令聚合稿缺（vs07.notes.md 结构问题 8），经对象增删改查检查补〔缺〕新建岗位、修改岗位（结构问题 19）；初始目录仍由初始化录入；职级、职位族暂随本聚合不拆（S-10）
   transitions:
+  - from: null
+    to: 启用
+    command: 新建岗位
+    guard: []
+    kind: forward
+  - from: 启用
+    to: 启用
+    command: 修改岗位
+    guard: []
+    kind: forward
+    note: 追加版本
   - from: 启用
     to: 已停用
     command: 停用岗位
@@ -363,9 +391,22 @@ machines:
   states:
   - 有效
   - {name: 已到期, terminal: true}
+  - {name: 已注销, terminal: true}
   initial: [有效]
-  note: 初态「有效」由迁入或初始化产生：登记注册执业证书的命令聚合稿缺；数据模型状态列另有「注销」，无命令，本稿不设（vs07conv.notes.md 结构问题 1）
+  note: 登记注册执业证书、注销注册执业证书聚合稿缺，经对象增删改查检查补〔缺〕命令（vs07.notes.md 结构问题 19），对应数据模型状态列「有效 / 到期 / 注销」；迁入的存量证书仍直接为有效
   transitions:
+  - from: null
+    to: 有效
+    command: 登记注册执业证书
+    guard: [INV-47]
+    kind: forward
+    process_outcome: 证书已登记
+  - from: 有效
+    to: 已注销
+    command: 注销注册执业证书
+    guard: [证书为有效]
+    kind: forward
+    process_outcome: 证书已注销
   - from: 有效
     to: 有效
     command: 登记继续教育学时
@@ -465,6 +506,43 @@ process_steps:
   transition: [启用, 已停用]
   outcome: 已维护
   rule_reject: 仍被在职任职引用被 INV-63 拒绝，退回本步
+- process: PRC-80
+  step: 7
+  command: 更名法人主体
+  machine: legal_entity
+  transition: [有效, 有效]
+  outcome: 已维护
+- process: PRC-80
+  step: 8
+  command: 停用法人主体
+  machine: legal_entity
+  transition: [有效, 已停用]
+  outcome: 已维护
+- process: PRC-80
+  step: 9
+  command: 启用法人主体
+  machine: legal_entity
+  transition: [已停用, 有效]
+  outcome: 已维护
+- process: PRC-80
+  step: 10
+  command: 新建岗位
+  machine: job_catalog_entry
+  transition: [null, 启用]
+  outcome: 已维护
+- process: PRC-80
+  step: 11
+  command: 修改岗位
+  machine: job_catalog_entry
+  transition: [启用, 启用]
+  outcome: 已维护
+- process: PRC-80
+  step: 12
+  command: 更正法人归属
+  machine: legal_entity_attribution
+  transition: [已指定, 已指定]
+  outcome: 已维护
+  rule_reject: 更正后期间重叠被 INV-122 拒绝，退回本步
 - process: PRC-81
   step: 2
   command: 提交招聘需求
@@ -585,6 +663,18 @@ process_steps:
   transition: ['人员:试用期', '人员:正式']
   outcome: 已转正
   note: 决定「公司决定不予转正」转 PRC-128，不改本机状态
+- process: PRC-79
+  step: 登记注册执业证书
+  command: 登记注册执业证书
+  machine: practice_certificate
+  transition: [null, 有效]
+  outcome: 证书已登记
+- process: PRC-79
+  step: 注销注册执业证书
+  command: 注销注册执业证书
+  machine: practice_certificate
+  transition: [有效, 已注销]
+  outcome: 证书已注销
 - process: PRC-79
   step: 登记继续教育学时
   command: 登记继续教育学时
@@ -759,12 +849,6 @@ process_steps:
   command: 标记执业证书已到期
   machine: practice_certificate
   transition: [有效, 已到期]
-- process: 孤立
-  step: 更正法人归属
-  command: 更正法人归属
-  machine: legal_entity_attribution
-  transition: [已指定, 已指定]
-  note: 无流程步骤引用，维护用
 - process: 审批驳回边
   step: PRC-83 第 5 步 on_reject
   command: 驳回劳动合同

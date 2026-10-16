@@ -20,6 +20,10 @@ meta:
 
 
 
+
+
+
+
 processes:
 
   - id: PRC-80
@@ -30,6 +34,9 @@ processes:
       - {type: human, name: "人力调整组织单元"}
       - {type: human, name: "人力指定法人归属"}
       - {type: human, name: "人力停用职位"}
+      - {type: human, name: "人力更名、停用或启用法人主体"}
+      - {type: human, name: "人力新建或修改职位"}
+      - {type: human, name: "人力更正法人归属"}
     stages: [VS-07.1, VS-07.3]
     owner_bc: B-13
     human_orchestration: false
@@ -37,7 +44,7 @@ processes:
     migration: "法人、组织单元、职位目录、法人归属全量迁入（U-3、U-4），迁入不触发 P-31 待复核（ADR-0036 M7）；无在途实例"
     scope: "人力按法人与组织数据范围维护"
     outcomes: [已维护]
-    scenarios: [PRC-80-S01, PRC-80-S02, PRC-80-S03, PRC-80-S04, PRC-80-S05, PRC-80-S06, PRC-80-S07]
+    scenarios: [PRC-80-S01, PRC-80-S02, PRC-80-S03, PRC-80-S04, PRC-80-S05, PRC-80-S06, PRC-80-S07, PRC-80-S08, PRC-80-S09, PRC-80-S10, PRC-80-S11, PRC-80-S12, PRC-80-S13]
     roles:
       - {id: SH-E6, as: initiator, org_needs: {responsibility: "维护法人、组织单元、职位目录与法人归属主数据", approval_right: "无（全部由不变量守卫，不设审批）", department_hint: "人力资源部", position_hint: "人事主数据维护岗（职能：维护组织与职位目录）"}}      # 人力
       - {id: SH-M1, as: informed, org_needs: {responsibility: "数据范围待复核时确认是否调整授权", approval_right: "无", department_hint: "区域或事业部", position_hint: "区域负责人（职能：对本区域组织数据范围负责）"}}       # 区域负责人：数据范围待复核时被通知（P-31）；区域负责人是否归 SH-M1 见 notes 格式问题 7
@@ -47,13 +54,19 @@ processes:
         read: true
         command: 查看法人、组织与职位现状
         reads: [AGG-60, AGG-61, AGG-117, AGG-64]
-        desc: 人力进入维护页查看现状后择一维护；四类维护互不依赖，本步是它们的共同入口（生成器把所有开始事件接到第 1 步，故写成入口选择）
+        desc: 人力进入维护页查看现状后择一维护；各类维护互不依赖，本步是它们的共同入口（生成器把所有开始事件接到第 1 步，故写成入口选择）
         permission: 组织维护.查看
         page: 法人组织职位维护页
         decision:
           - {when: 登记法人主体, goto: 2}
           - {when: 调整组织单元, goto: 3}
           - {when: 指定法人归属, goto: 4}
+          - {when: 更名法人主体, goto: 7}
+          - {when: 停用法人主体, goto: 8}
+          - {when: 启用法人主体, goto: 9}
+          - {when: 新建岗位, goto: 10}
+          - {when: 修改岗位, goto: 11}
+          - {when: 更正法人归属, goto: 12}
           - {when: otherwise, goto: 5}      # 其余即停用职位
       - actor: SH-E6
         where: in_system
@@ -84,7 +97,7 @@ processes:
       - actor: SH-E6
         where: in_system
         branch: 指定法人归属
-        command: 〔缺〕指定法人归属        # 已建代码有对应命令，聚合稿未列（AGG-117 回补）
+        command: 指定法人归属        # 已建代码有对应命令；聚合稿 AGG-117 现已列入，去〔缺〕标记（QC-OBJECTS.md）
         aggregate: AGG-117
         emits: [〔缺〕法人归属已变更]
         desc: 部门默认法人或员工单独指定法人，按期间；同一对象期间不重叠（INV-新-P5，重叠则拒绝，人力改正后重提）。三口径之一，不一致由 B-15 预警（PRC-145），本步不拒绝
@@ -123,7 +136,79 @@ processes:
         outcome: 已维护
         cross_bc:
           - {mode: event, direction: in, bc: B-13, name: 组织单元已调整}
-    notes: "步 2–5 是人力择一执行的备选路径（步 1 是入口选择）；步 6 是步 3 的事件反应。职位目录的新建与修改命令聚合稿未列（notes 结构问题）。本流程无人工审批：全部由不变量守卫（INV-59、60、63、新-P5）。"
+      - actor: SH-E6
+        where: in_system
+        branch: 更名法人
+        command: 更名法人主体        # 词表事件「法人主体已更名」；聚合稿只列登记法人主体（对象增删改查检查补缺，notes 结构问题 19）
+        aggregate: AGG-60
+        desc: 只改名称，追加名称版本；法人代码发号后不可改（INV-59）
+        permission: 法人.更名
+        page: 法人维护页
+        audit: true
+        added_in: closeout
+        decision:
+          - {when: otherwise, goto: end}
+      - actor: SH-E6
+        where: in_system
+        branch: 停用法人
+        command: 停用法人主体        # 词表事件「法人主体已停用」
+        aggregate: AGG-60
+        desc: 法人主体不再作为法人使用；仍有有效法人归属或在职任职时是否拒绝，聚合稿与词表未定（notes 结构问题 19），暂只校验状态
+        permission: 法人.停用
+        page: 法人维护页
+        audit: true
+        added_in: closeout
+        decision:
+          - {when: otherwise, goto: end}
+      - actor: SH-E6
+        where: in_system
+        branch: 启用法人
+        command: 启用法人主体        # 词表事件「法人主体已启用」
+        aggregate: AGG-60
+        desc: 恢复已停用的法人主体为有效
+        permission: 法人.启用
+        page: 法人维护页
+        audit: true
+        added_in: closeout
+        decision:
+          - {when: otherwise, goto: end}
+      - actor: SH-E6
+        where: in_system
+        branch: 新建职位
+        command: 新建岗位        # Q-08 后为职位目录条目，命令名交 one-glossary
+        aggregate: AGG-64
+        desc: 新增职位目录条目（职位编码、名称、职位族、职级）；职位编码跨版本不变，同编码重复新建返回已有结果；初始目录仍由初始化录入
+        permission: 职位目录.新建
+        page: 职位目录维护页
+        audit: true
+        added_in: closeout
+        decision:
+          - {when: otherwise, goto: end}
+      - actor: SH-E6
+        where: in_system
+        branch: 修改职位
+        command: 修改岗位
+        aggregate: AGG-64
+        desc: 追加职位目录条目的新版本（名称、职位族、职级）；已停用的职位不可修改
+        permission: 职位目录.修改
+        page: 职位目录维护页
+        audit: true
+        added_in: closeout
+        decision:
+          - {when: otherwise, goto: end}
+      - actor: SH-E6
+        where: in_system
+        branch: 更正法人归属
+        command: 更正法人归属        # 聚合稿 AGG-117 已有命令，原无流程步骤引用
+        aggregate: AGG-117
+        desc: 只更正已关闭期间的结束日，只追加更正行不改写历史；更正后期间仍不得与同一对象其他期间重叠（INV-122），重叠则拒绝，人力改正后重提
+        permission: 法人归属.更正
+        page: 法人归属维护页
+        audit: true
+        decision:
+          - {when: 更正后期间与同一对象其他期间重叠, goto: 12, rule: INV-122}
+          - {when: otherwise, goto: end}
+    notes: "步 2–5、7–12 是人力择一执行的备选路径（步 1 是入口选择）；步 6 是步 3 的事件反应。职位目录的新建与修改命令聚合稿未列（notes 结构问题）。本流程无人工审批：全部由不变量守卫（INV-59、60、63、新-P5）。"
 
   - id: PRC-81
     name: 提出并批准招聘需求
@@ -3076,10 +3161,14 @@ single_aggregate:
       - {type: human, name: "注册执业人员登记继续教育学时"}
       - {type: human, name: "人力延续注册执业证书"}
       - {type: time, name: "证书有效期届满"}
-    outcomes: [学时已登记, 证书已延续, 执业证书已到期]
-    scenarios: [PRC-79-S01, PRC-79-S02, PRC-79-S03, PRC-79-S04]
-    states: [有效, 已到期]
+      - {type: human, name: "人力登记注册执业证书"}
+      - {type: human, name: "人力注销注册执业证书"}
+    outcomes: [学时已登记, 证书已延续, 执业证书已到期, 证书已登记, 证书已注销]
+    scenarios: [PRC-79-S01, PRC-79-S02, PRC-79-S03, PRC-79-S04, PRC-79-S05, PRC-79-S06]
+    states: [有效, 已到期, 已注销]
     transitions:
+      - {command: 登记注册执业证书, from: null, to: 有效}
+      - {command: 注销注册执业证书, from: 有效, to: 已注销}
       - {command: 登记继续教育学时, from: 有效, to: 有效}
       - {command: 延续注册执业证书, from: 有效, to: 有效}     # 回填新有效期
       - {command: 标记执业证书已到期, from: 有效, to: 已到期}
@@ -3119,7 +3208,26 @@ single_aggregate:
         audit: true
         notify: [{to: SH-E7, how: 企业微信通知}, {to: SH-E6, how: 企业微信待办}]
         outcome: 执业证书已到期
-    notes: 学时达标是延续注册条件；签发人须具备约定资格（INV-47 在交付物处读）。到期标记的定时由 platform.scheduling 承担。无人工审批：延续在系统外办理，本系统只登记结果。
+      - actor: SH-E6
+        where: in_system
+        command: 登记注册执业证书
+        emits: []
+        desc: 人力登记注册执业人员取得的证书（资格类别、证书编号、发证与注册机构、首个注册期）；迁入的存量证书不经本命令。新增命令，对象增删改查检查补缺（QC-OBJECTS.md），聚合稿未列
+        permission: 执业证书.登记
+        page: 执业证书维护页
+        audit: true
+        outcome: 证书已登记
+      - actor: SH-E6
+        where: offline
+        evidence: [注销回执或注销证明扫描件, 注销日]
+        command: 注销注册执业证书
+        emits: []
+        desc: 持有人离职、转出或证书被吊销时在注册执业管理机构办理注销，没有面向本系统的接口；办理后登记结果。新增命令，数据模型状态列已有「注销」，聚合稿无命令（QC-OBJECTS.md）
+        permission: 执业证书.注销
+        page: 执业证书维护页
+        audit: true
+        outcome: 证书已注销
+    notes: 学时达标是延续注册条件；签发人须具备约定资格（INV-47 在交付物处读）。到期标记的定时由 platform.scheduling 承担。无人工审批：延续与注销都在系统外办理，本系统只登记结果。登记注册执业证书与注销注册执业证书是对象增删改查检查后补入的命令（vs07.notes.md 结构问题 19）。
 
   - id: PRC-119
     name: 维护工作日历与标准工时版本

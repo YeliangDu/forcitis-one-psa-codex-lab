@@ -5,7 +5,8 @@
 # 发令权 authority 指向 vs07.raci.yaml。kind：human 人发起；automatic 系统规则（定时、事件反应、规则守卫）；callback 审批平台回调——本组无（B-13 内批准是聚合单级命令，F-3，不经 platform.approval）。
 # unused_ok：声明「目录有、骨架步骤不直接引用」的原因（维护用、骨架 approval.on_reject 边触发）。
 # platform_commands：platform.identity 在 PRC-137、138、129（及 PRC-136 第 9–10 步）中的命令清单，不做状态机，只列名、触发事件、用途；〔缺〕名沿用 vs07.notes.md 新用语。
-# 「孤儿」= 未被任一流程步骤、事件策略或维护用到。本稿 0 个孤儿（更正法人归属以 unused_ok 标出，交 one-architecture）。
+# 「孤儿」= 未被任一流程步骤、事件策略或维护用到。本稿 0 个孤儿（更正法人归属已于对象增删改查检查后并入 PRC-80 第 12 步，见 QC-OBJECTS.md）。
+# 对象增删改查补缺（QC-OBJECTS.md）：更名 / 停用 / 启用法人主体（AGG-60）、新建 / 修改岗位（AGG-64）、登记 / 注销注册执业证书（AGG-66）共 7 条〔缺〕命令，命名取词表事件或数据模型状态列，不自造；name_status 非空。
 bc: B-13
 aggregates:
 - AGG-60
@@ -47,6 +48,90 @@ commands:
   used_by:
   - PRC-80 第 2 步
   orphan: false
+- name: 更名法人主体
+  aggregate: AGG-60
+  entity: legal_entity_versions
+  kind: human
+  name_status: 〔缺〕收敛补缺（vs07.notes.md 结构问题 19，QC-OBJECTS.md）；词表事件「法人主体已更名」
+  source: 词表事件法人主体已更名、已建代码；聚合稿命令列只有登记法人主体
+  params:
+  - 法人主体ID
+  - 新名称
+  - 生效日
+  preconditions:
+  - ref: INV-59
+    text: 法人代码发号后不可改；更名只改名称，不改代码
+  - ref: 状态
+    text: 法人主体为有效
+  authority:
+    ref: raci:AGG-60/更名法人主体
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 法人主体ID + 生效日（同键重提无操作）
+  state_change: 有效 → 有效（追加名称版本）
+  emits: （内部）
+  used_by:
+  - PRC-80 第 7 步
+  orphan: false
+- name: 停用法人主体
+  aggregate: AGG-60
+  entity: legal_entity_versions
+  kind: human
+  name_status: 〔缺〕收敛补缺（vs07.notes.md 结构问题 19，QC-OBJECTS.md）；词表事件「法人主体已停用」
+  source: 词表事件法人主体已停用、已建代码；聚合稿命令列只有登记法人主体
+  params:
+  - 法人主体ID
+  - 停用日
+  - 停用原因
+  preconditions:
+  - ref: 状态
+    text: 法人主体为有效
+  - ref: 待定
+    text: 法人主体仍有有效法人归属或在职任职时是否拒绝，聚合稿与词表均未定（vs07.notes.md 结构问题 19），本命令暂只校验状态
+  authority:
+    ref: raci:AGG-60/停用法人主体
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 法人主体ID（已停用再停用无操作）
+  state_change: 有效 → 已停用
+  emits: （内部）
+  used_by:
+  - PRC-80 第 8 步
+  orphan: false
+- name: 启用法人主体
+  aggregate: AGG-60
+  entity: legal_entity_versions
+  kind: human
+  name_status: 〔缺〕收敛补缺（vs07.notes.md 结构问题 19，QC-OBJECTS.md）；词表事件「法人主体已启用」
+  source: 词表事件法人主体已启用、已建代码；聚合稿命令列只有登记法人主体
+  params:
+  - 法人主体ID
+  - 启用日
+  preconditions:
+  - ref: 状态
+    text: 法人主体为已停用（词表另区分已登记与已启用，本稿登记即有效，见 vs07.notes.md 结构问题 19）
+  authority:
+    ref: raci:AGG-60/启用法人主体
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 法人主体ID（有效再启用无操作）
+  state_change: 已停用 → 有效（恢复）
+  emits: （内部）
+  used_by:
+  - PRC-80 第 9 步
+  orphan: false
 - name: 调整组织单元
   aggregate: AGG-61
   entity: org_units
@@ -86,7 +171,6 @@ commands:
   aggregate: AGG-117
   entity: legal_entity_attributions
   kind: human
-  name_status: 〔缺〕沿用分片提议名（vs07.notes.md 新用语：AssignLegalEntityAttribution；已建代码有对应命令，聚合稿未列）
   source: 分片 vs07.notes.md 新用语、聚合稿 AGG-117 回补（聚合稿现列「指定法人归属」）
   params:
   - 归属对象类型（部门 / 员工）
@@ -142,8 +226,8 @@ commands:
   idempotency_key: 更正序号（同对象同期间单调递增）
   state_change: 已指定 → 已指定（追加更正行）
   emits: （内部）
-  used_by: []
-  unused_ok: 维护用：无业务流程步骤（PRC-80 只用指定法人归属）；待 one-architecture 补维护流程
+  used_by:
+  - PRC-80 第 12 步
   orphan: false
 - name: 停用岗位
   aggregate: AGG-64
@@ -171,6 +255,66 @@ commands:
   emits: 岗位已停用
   used_by:
   - PRC-80 第 5 步
+  orphan: false
+- name: 新建岗位
+  aggregate: AGG-64
+  entity: jobs
+  kind: human
+  name_status: 〔缺〕收敛补缺（vs07.notes.md 结构问题 19，QC-OBJECTS.md）；Q-08 后为职位目录条目，命令名交 one-glossary
+  source: jobs 数据模型（职位编码跨版本不变）、vs07.notes.md 结构问题 8
+  params:
+  - 职位编码
+  - 名称
+  - 职位族
+  - 职级
+  - 启用日
+  preconditions:
+  - ref: 数据模型
+    text: 职位编码跨版本不变，同编码重复新建返回已有结果
+  - ref: JOB_CATALOG P-0
+    text: 职位与职级是两个独立维度；职级、职位族暂随本聚合不拆（S-10）
+  authority:
+    ref: raci:AGG-64/新建岗位
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 职位编码（同编码重复新建返回已有）
+  state_change: 创建 → 启用
+  emits: （内部）
+  used_by:
+  - PRC-80 第 10 步
+  orphan: false
+- name: 修改岗位
+  aggregate: AGG-64
+  entity: job_versions
+  kind: human
+  name_status: 〔缺〕收敛补缺（vs07.notes.md 结构问题 19，QC-OBJECTS.md）；Q-08 后为职位目录条目，命令名交 one-glossary
+  source: job_versions 数据模型、vs07.notes.md 结构问题 8
+  params:
+  - 职位ID
+  - 名称
+  - 职位族
+  - 职级
+  - 生效日
+  preconditions:
+  - ref: 状态
+    text: 职位为启用；已停用的职位不可修改
+  authority:
+    ref: raci:AGG-64/修改岗位
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+  idempotency_key: 职位ID + 生效日（同键重提无操作）
+  state_change: 启用 → 启用（追加版本）
+  emits: （内部）
+  used_by:
+  - PRC-80 第 11 步
   orphan: false
 - name: 提交招聘需求
   aggregate: AGG-65
@@ -998,6 +1142,68 @@ commands:
   used_by:
   - PRC-79 标记执业证书已到期
   orphan: false
+- name: 登记注册执业证书
+  aggregate: AGG-66
+  entity: practice_certificates
+  kind: human
+  name_status: 〔缺〕收敛补缺（vs07.notes.md 结构问题 19，QC-OBJECTS.md）；数据模型 practice_certificates 已有证书登记
+  source: practice_certificates 数据模型（状态列：有效 / 到期 / 注销）、vs07conv.notes.md 结构问题 1
+  params:
+  - 持有人（人员ID）
+  - 资格类别
+  - 证书编号
+  - 发证与注册机构
+  - 首个注册期起止
+  - 证书扫描件引用
+  preconditions:
+  - ref: INV-47
+    text: 签发人须具备约定资格（在交付物处读证书有效性）
+  - ref: 幂等
+    text: 同持有人、同证书编号重复登记返回已有结果
+  authority:
+    ref: raci:AGG-66/登记注册执业证书
+    A:
+      resolve: type
+      role: SH-E6
+      function: 执业证书管理
+    R:
+    - SH-E6
+  idempotency_key: 持有人 + 证书编号（同键返回已有）
+  state_change: 创建 → 有效
+  emits: （内部）
+  used_by:
+  - PRC-79 登记注册执业证书
+  orphan: false
+- name: 注销注册执业证书
+  aggregate: AGG-66
+  entity: practice_certificates
+  kind: human
+  name_status: 〔缺〕收敛补缺（vs07.notes.md 结构问题 19，QC-OBJECTS.md）；数据模型状态列「注销」
+  source: practice_certificates 数据模型状态列、vs07conv.notes.md 结构问题 1
+  params:
+  - 证书ID
+  - 注销日
+  - 注销原因（持有人离职、转出、吊销等）
+  - 注销回执引用
+  preconditions:
+  - ref: 状态
+    text: 证书为有效；已到期或已注销的不可注销
+  - ref: 线下
+    text: 注销在注册执业管理机构办理，本系统只登记结果与回执，与延续注册同
+  authority:
+    ref: raci:AGG-66/注销注册执业证书
+    A:
+      resolve: type
+      role: SH-E6
+      function: 执业证书管理
+    R:
+    - SH-E6
+  idempotency_key: 证书ID（已注销再注销无操作）
+  state_change: 有效 → 已注销
+  emits: （内部）
+  used_by:
+  - PRC-79 注销注册执业证书
+  orphan: false
 - name: 提交劳动合同
   aggregate: AGG-67
   entity: labor_contracts
@@ -1382,8 +1588,4 @@ removed:
   from: 分片早稿 PRC-136 原第 5 步
   reason: 用户新原则：合同要素可由规则 R-04 比对，免二次批准
   action: 取消，提交劳动合同在 R-04 通过时直接进入已批准
-orphans:
-- name: 更正法人归属
-  aggregate: AGG-117
-  reason: 聚合稿有命令，PRC-80 只用指定法人归属，无业务流程步骤
-  action: 交 one-architecture 补维护流程或并入 PRC-80 入口选择
+orphans: []

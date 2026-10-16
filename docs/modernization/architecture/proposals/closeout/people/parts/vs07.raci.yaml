@@ -22,6 +22,45 @@ entries:
     I: []
   sensitive: false
   sensitive_reason: 法人主数据为 INTERNAL，无个人信息（legal_entities 不含 PI）
+- object: AGG-60
+  command: 更名法人主体
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 法人主数据为 INTERNAL，无个人信息（legal_entities 不含 PI）
+- object: AGG-60
+  command: 停用法人主体
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 法人主数据为 INTERNAL，无个人信息（legal_entities 不含 PI）
+- object: AGG-60
+  command: 启用法人主体
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 法人主数据为 INTERNAL，无个人信息（legal_entities 不含 PI）
 - object: AGG-61
   command: 调整组织单元
   raci:
@@ -63,9 +102,34 @@ entries:
     I: []
   sensitive: false
   sensitive_reason: 同指定法人归属
-  note: 无业务流程，维护用
 - object: AGG-64
   command: 停用岗位
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 职位目录无个人信息（PI 标记 NONE）
+- object: AGG-64
+  command: 新建岗位
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 职位目录无个人信息（PI 标记 NONE）
+- object: AGG-64
+  command: 修改岗位
   raci:
     A:
       resolve: type
@@ -526,6 +590,35 @@ entries:
     - SH-E6
   sensitive: false
   sensitive_reason: 纯系统执行，无人持有该权限
+- object: AGG-66
+  command: 登记注册执业证书
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 执业证书管理
+    R:
+    - SH-E6
+    C: []
+    I:
+    - SH-E7
+  sensitive: true
+  sensitive_reason: 证书编号为证件类标识（practice_certificates 为 SENSITIVE，ADR-0043），写权限须逐人授予（ADR-0032 第 1 项）
+- object: AGG-66
+  command: 注销注册执业证书
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 执业证书管理
+    R:
+    - SH-E6
+    C: 
+    - SH-R2
+    I:
+    - SH-E7
+  sensitive: true
+  sensitive_reason: 同登记注册执业证书；注销在注册执业管理机构办理，本系统只登记结果
 - object: AGG-67
   command: 提交劳动合同
   raci:
