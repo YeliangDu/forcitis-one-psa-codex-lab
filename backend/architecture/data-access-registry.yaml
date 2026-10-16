@@ -272,7 +272,8 @@ tables:
     writers: [platform.identity]
   platform_identity.browser_identifiers:
     role: ONE_TIME
-    mutability: INSERT_DELETE
+    mutability: CONDITIONAL_UPDATE
+    condition: "a value is replaced by retiring its rows (retired_at set where retired_at IS NULL) and inserting new rows; identifier_hash is never rewritten"
     retention: {policy: EXPIRY, job: platform.identity.credential.purge}
     lineage: {source: NEW}
     writers: [platform.identity]
