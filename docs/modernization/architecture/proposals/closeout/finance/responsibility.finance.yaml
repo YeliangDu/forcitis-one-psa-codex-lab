@@ -2,6 +2,7 @@
 # 约定：boundary.limit_rule 为主规则，extra_rules 为同命令的其余 guard: approval 规则；draft_gap: true 表示聚合稿命令目录缺该命令（骨架标〔缺〕），命令名为本稿按骨架拟定。
 # 审批节点挂接：骨架 platform 审批步无聚合命令，本稿挂在被其放行的命令上（生效供方协议、发起付款、核定费用报销、AGG-98 提交过账候选）。
 # 他组聚合命令（AGG-80 预算占用、释放预算占用）不在本片段，见 notes。
+# 修后（2026-10-16）：aggregate 引擎的审批 A 改为类型级 SH-M1（PRC-100、101、102、104、105、77 提交申报、65 开立与销户）；platform.approval 的 手工凭证、分摊规则、资产处置 A 改为实例级 费用归属对象.责任人；新增 释放履约额度（draft_gap）。
 entries:
 - object: AGG-43
   command: 售前投入转费用
@@ -106,8 +107,8 @@ entries:
   command: 批准分摊规则版本
   raci:
     A:
-      resolve: type
-      role: 财务负责人
+      resolve: instance
+      field: 费用归属对象.责任人
     R:
     - SH-E6
     C: []
@@ -121,6 +122,7 @@ entries:
     escalate:
       when: AR-12
       to: 上级组织负责人
+    note: platform.approval 分摊规则审批：费用归属对象取间接成本池归属部门（财务部门），解析见 SQ-51
   sensitive: false
 - object: AGG-40
   command: 生效分摊规则版本
@@ -365,7 +367,7 @@ entries:
       resolve: type
       role: 财务负责人
     R:
-    - SH-E6
+    - system
     C: []
     I: []
   boundary: {}
@@ -643,7 +645,7 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
     R:
     - SH-M1
     C: []
@@ -695,7 +697,7 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
     R:
     - SH-M1
     C: []
@@ -709,7 +711,7 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
     R:
     - SH-E6
     C: []
@@ -734,7 +736,7 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
     R:
     - SH-E6
     C: []
@@ -761,7 +763,7 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
     R:
     - SH-E6
     C: []
@@ -788,7 +790,7 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
     R:
     - SH-E6
     C: []
@@ -867,8 +869,8 @@ entries:
   command: 提交过账候选
   raci:
     A:
-      resolve: type
-      role: 财务负责人
+      resolve: instance
+      field: 费用归属对象.责任人
     R:
     - SH-E6
     C: []
@@ -885,6 +887,7 @@ entries:
     escalate:
       when: AR-12
       to: 上级组织负责人
+    note: platform.approval 手工凭证审批：费用归属对象取凭证所属法人的财务部门，解析见 SQ-51
   sensitive: true
 - object: AGG-99
   command: 生成期末结转运行
@@ -941,7 +944,7 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
     R:
     - SH-M1
     C: []
@@ -969,7 +972,7 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
     R:
     - SH-M1
     C: []
@@ -983,7 +986,7 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
     R:
     - SH-E6
     C: []
@@ -1007,7 +1010,7 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
     R:
     - SH-E6
     C: []
@@ -1140,7 +1143,7 @@ entries:
   raci:
     A:
       resolve: type
-      role: 财务负责人
+      role: SH-M1
     R:
     - SH-E6
     C: []
@@ -1213,8 +1216,8 @@ entries:
   command: 处置资产
   raci:
     A:
-      resolve: type
-      role: 财务负责人
+      resolve: instance
+      field: 费用归属对象.责任人
     R:
     - SH-E6
     C: []
@@ -1222,6 +1225,7 @@ entries:
   boundary:
     segregation:
     - 建卡经办人 ≠ 处置经办人（提议 P3-Q1）
+    note: platform.approval 资产处置审批：取使用部门负责人（实例级），待 U-30
   sensitive: false
 - object: AGG-91
   command: 提交过账候选
@@ -1235,6 +1239,19 @@ entries:
     I: []
   boundary: {}
   sensitive: false
+- object: AGG-58
+  command: 释放履约额度
+  raci:
+    A:
+      resolve: type
+      role: 采购与分包负责人
+    R:
+    - system
+    C: []
+    I: []
+  boundary: {}
+  sensitive: false
+  draft_gap: true
 roles:
   SH-E2:
     positions:
@@ -1247,9 +1264,7 @@ roles:
   SH-E6:
     positions:
     - 待岗位体系定
-    note: 职能人员（财务部分）。本组 SH-E6 承担的职责过粗，建议岗位重梳时拆为：成本会计（试算人工成本分配、确认人工成本分配、编制分摊规则版本、批准分摊规则版本、生效分摊规则版本、试算分摊运行、生效分摊运行）；应付会计（提交应付利润、发起付款、核定费用报销）；出纳（登记银行结果、登记付款失败、开立资金账户、冻结资金账户、销户资金账户）；总账会计（登记出资认缴、登记出资实缴、登记出资退回、草拟利润分配、登记利润分配支付、发起关账、退回开放、开放第
-      13 期、发起年末关账、登记第 13 期启用、起草科目表版本、发布科目表版本、起草映射表版本、发布映射表版本、起草授权表版本、发布授权表版本、处理待处理队列、推送与重投、制单手工凭证、复核手工凭证、提交过账候选、生成期末结转运行、登记对账差异）；报表会计（编制报表行定义版本）；税务会计（登记进项发票、查验进项发票、确认进项发票用途、进项转出、生成申报、提交申报、登记缴款、更正申报）；资产会计（登记公司资产、处置资产）。同一人不得兼任的组合见各条
-      segregation（出纳 ≠ 付款发起人；制单 ≠ 复核；起草 ≠ 批准；发起关账 ≠ 确认关账）
+    note: 职能人员（财务部分）。本组 SH-E6 承担的职责过粗，建议岗位重梳时拆为：成本会计（试算人工成本分配、确认人工成本分配、编制分摊规则版本、批准分摊规则版本、生效分摊规则版本、试算分摊运行、生效分摊运行）；应付会计（提交应付利润、发起付款、核定费用报销）；出纳（登记银行结果、登记付款失败、开立资金账户、冻结资金账户、销户资金账户）；总账会计（登记出资认缴、登记出资实缴、登记出资退回、草拟利润分配、登记利润分配支付、发起关账、退回开放、开放第 13 期、发起年末关账、登记第 13 期启用、起草科目表版本、发布科目表版本、起草映射表版本、发布映射表版本、起草授权表版本、发布授权表版本、处理待处理队列、推送与重投、制单手工凭证、复核手工凭证、提交过账候选、生成期末结转运行、登记对账差异）；报表会计（编制报表行定义版本）；税务会计（登记进项发票、查验进项发票、确认进项发票用途、进项转出、生成申报、提交申报、登记缴款、更正申报）；资产会计（登记公司资产、处置资产）。同一人不得兼任的组合见各条 segregation（出纳 ≠ 付款发起人；制单 ≠ 复核；起草 ≠ 批准；发起关账 ≠ 确认关账）
   SH-M1:
     positions:
     - 待岗位体系定

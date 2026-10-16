@@ -13,7 +13,9 @@ processes:
     name: 商机已放弃
     bc: B-03
   - type: time
-    name: 立项后回签前挂合同履约成本的投入超过 N 个月未签约（N 默认 6 个月，可设；A7、GL-026）
+    name: 立项后回签前挂合同履约成本的投入超过 N 个月未签约（N 默认 6 个月，可设；A7、GL-026）；对象键为项目或协议，不是商机
+    pending:
+    - SQ-18
   migration: 在途：投产日未转的售前投入按迁入的权责事实存量由本策略继续处理；历史：已转费用的批次由迁入事实承载，不重放事件（M7）
   outcomes:
   - 售前投入已转费用
@@ -28,6 +30,7 @@ processes:
   - PRC-15-S05
   - PRC-15-S06
   - PRC-15-S07
+  - PRC-15-S08
   steps:
   - actor: system
     where: automatic
@@ -56,6 +59,8 @@ processes:
       rule: INV-92
       outcome: 已拒收
       alert: true
+      pending:
+      - SQ-41
     - when: otherwise
       goto: end
       outcome: 售前投入已转费用
@@ -73,6 +78,8 @@ processes:
       direction: out
       bc: B-16
       name: 提交过账候选（PostingCandidate）
+    pending:
+    - SQ-18
   notes: 转费用不依赖收入确认时点，INV-88 不是前置。
 - id: PRC-25
   name: 转入售前投入
@@ -135,6 +142,8 @@ processes:
       rule: INV-92
       outcome: 已拒收
       alert: true
+      pending:
+      - SQ-41
     - when: otherwise
       goto: end
       outcome: 售前投入已转入
@@ -156,6 +165,8 @@ processes:
       direction: out
       bc: B-16
       name: 提交过账候选（PostingCandidate）
+    pending:
+    - SQ-18
   notes: 触发语义为合同签回且项目已建立两者齐备，赢单不转入（intent 120544 P-2，C-53）。立项后回签前的投入按 A7 先挂合同履约成本；超 N 个月未签约转费用见 PRC-15。
 - id: PRC-35
   name: 项目或协议终止、结项后清算成本
@@ -218,6 +229,8 @@ processes:
       rule: INV-92
       outcome: 已拒收
       alert: true
+      pending:
+      - SQ-41
     - when: otherwise
       goto: end
       outcome: 清算成本已过账
@@ -297,6 +310,8 @@ processes:
       rule: INV-92
       outcome: 已拒收
       alert: true
+      pending:
+      - SQ-41
     - when: otherwise
       goto: end
       rule: INV-88
@@ -319,6 +334,7 @@ processes:
     - A1
     - Q-04
     - Q20
+    - SQ-04
   notes: 依赖收入确认时点（A1、Q-04）与 AGG-57 形态（Q20）；两者定后重核转出金额的配对口径。
 - id: PRC-64
   name: 导入银行流水
@@ -352,6 +368,8 @@ processes:
   - PRC-64-S05
   - PRC-64-S06
   - PRC-64-S07
+  - PRC-64-S08
+  - PRC-64-S09
   roles:
   - id: SH-E6
     as: performer
@@ -417,6 +435,8 @@ processes:
       rule: INV-92、INV-93
       outcome: 过账被拒收
       alert: true
+      pending:
+      - SQ-41
     - when: otherwise
       goto: end
       outcome: 流水已导入
@@ -459,6 +479,26 @@ processes:
     - 银行开户证明扫描件与开户日
     from: []
     to: 已开立
+    audit: true
+    approval:
+      engine: aggregate
+      doc_type: 资金账户开立确认
+      approver: SH-M1
+      multi_level: false
+      why_human: 开户与销户改变公司资金通道，须有人对资金安全负责判断开户必要性、销户前余额与未结付款已清；银行证明与账户唯一性由规则核对
+      approver_basis: 资金账户管理是对法人资金负责的职责，不归属某个费用或业务对象，取财务负责人（类型级）
+      on_reject: end
+    pending:
+    - SQ-42
+    decision:
+    - when: 银行开户证明缺失或法人主体不存在
+      goto: end
+      outcome: 已拒收
+      alert: true
+      rule: INV-85
+    - when: otherwise
+      goto: end
+      outcome: 已开立
   - actor: SH-E6
     command: 冻结资金账户
     branch: 冻结
@@ -470,6 +510,11 @@ processes:
     from:
     - 已开立
     to: 已冻结
+    audit: true
+    decision:
+    - when: 冻结通知来自银行或有权机关，经办人登记
+      goto: end
+      outcome: 已冻结
   - actor: SH-E6
     command: 销户资金账户
     branch: 销户
@@ -482,6 +527,27 @@ processes:
     - 已开立
     - 已冻结
     to: 已销户
+    audit: true
+    approval:
+      engine: aggregate
+      doc_type: 资金账户销户确认
+      approver: SH-M1
+      multi_level: false
+      why_human: 开户与销户改变公司资金通道，须有人对资金安全负责判断开户必要性、销户前余额与未结付款已清；银行证明与账户唯一性由规则核对
+      approver_basis: 资金账户管理是对法人资金负责的职责，不归属某个费用或业务对象，取财务负责人（类型级）
+      on_reject: end
+    pending:
+    - SQ-42
+    decision:
+    - when: 账户仍有未结付款占用或未对账流水
+      goto: end
+      outcome: 已拒收
+      alert: true
+      pending:
+      - SQ-42
+    - when: otherwise
+      goto: end
+      outcome: 已销户
   permission: 资金账户.开立 / 资金账户.冻结 / 资金账户.销户
   page: 资金账户管理页
   migration: 全部资金账户（含已销户）迁入，来源不在老系统与 A8 的由数据模型组按 R-09 定；迁入不发事件；无在途实例
@@ -490,7 +556,39 @@ processes:
     direction: out
     bc: B-13
     name: 读法人主体
-  notes: 个人独资户、工抵卡不计现金及现金等价物（P-38，分录标注）。
+  notes: 个人独资户、工抵卡不计现金及现金等价物（P-38，分录标注）。 解冻无命令（SQ-07）；开立与销户的审批命令聚合稿缺（SQ-42）。
+  triggers:
+  - type: human
+    name: 财务开立、冻结或销户资金账户（含银行或有权机关冻结通知）
+  outcomes:
+  - 已开立
+  - 已冻结
+  - 已销户
+  - 已拒收
+  roles:
+  - id: SH-E6
+    as: initiator
+  - id: SH-M1
+    as: approver
+  - id: SH-X7
+    as: external
+  segregation:
+  - roles:
+    - SH-E6
+    - SH-M1
+    as:
+    - initiator
+    - approver
+    rule: 开户、销户经办与财务负责人审批不得为同一人；开户经办不得同时为付款发起人或出纳（INV-81 同类，提议）
+  scenarios:
+  - PRC-65-S01
+  - PRC-65-S02
+  - PRC-65-S03
+  - PRC-65-S04
+  - PRC-65-S05
+  - PRC-65-S06
+  - PRC-65-S07
+  - PRC-65-S08
 - id: PRC-70
   name: 起草并生效供方协议
   type: business
@@ -518,7 +616,7 @@ processes:
     - initiator
     - approver
     - approver
-    rule: 协议起草人与各级审批人不得为同一人（责任人就是起草人本人时按 AR-11 处理，待用户定）
+    rule: 协议起草人与审批责任人不得为同一人（责任人就是起草人本人时按 AR-11 处理，待 U-21；项目采购起草与责任人角色拆分见 U-40）
   outcomes:
   - 已签署生效
   - 已放弃
@@ -528,7 +626,6 @@ processes:
   - PRC-70-S02
   - PRC-70-S03
   - PRC-70-S04
-  - PRC-70-S05
   - PRC-70-S06
   - PRC-70-S07
   - PRC-70-S08
@@ -536,6 +633,11 @@ processes:
   - PRC-70-S10
   - PRC-70-S11
   - PRC-70-S12
+  - PRC-70-S13
+  - PRC-70-S14
+  - PRC-70-S15
+  - PRC-70-S16
+  - PRC-70-S17
   roles:
   - id: SH-E2
     as: initiator
@@ -549,6 +651,8 @@ processes:
     as: external
   - id: SH-X2
     as: external
+  - id: SH-M1
+    as: initiator
   steps:
   - actor: SH-E2
     where: in_system
@@ -560,9 +664,9 @@ processes:
     - AGG-19
     desc: 读供方准入与资质、主协议承包链位置（INV-11、12）、项目
     decision:
-    - when: 供方单位已停用或已合并，或供方角色未合格或已停用（INV-03、04）
+    - when: 供方单位已停用或已合并，或供方角色未合格或已停用（INV-03b、INV-04a）
       goto: end
-      rule: INV-04、AR-08
+      rule: INV-03b、INV-04a、AR-08
       outcome: 已放弃
       alert: true
     - when: 我方为分包人而拟对专业分包再分包（INV-11），或分包方无有效资质（INV-12）
@@ -587,17 +691,18 @@ processes:
       direction: out
       bc: B-04
       name: 读项目
+    command: 读取供方准入资质与项目
   - actor: SH-E2
     where: automatic
     command: 预算占用
     aggregate: AGG-80
     emits:
     - BudgetReserved
-    desc: 预算不足只预警不拦截（INV-102 已定预警，用户 F-Q2，intent 2026-10-16-162821）
+    desc: 预算不足只预警不拦截（预算策略，用户 F-Q2，intent 2026-10-16-162821；原 INV-102 已移出 §1.2）
     decision:
     - when: otherwise
       goto: 3
-      rule: INV-102、AR-03
+      rule: 预算策略（警，聚合稿回补第 9 行）、AR-03
     cross_bc:
     - mode: api
       direction: out
@@ -615,11 +720,11 @@ processes:
     aggregate: AGG-55
     desc: 请购是草拟前的单据。同意证据的判断在提交审批前（R-16）；P-06 主合同未回签即签分包只预警
     decision:
-    - when: 分包协议未附发包方同意证据（INV-13）
-      goto: 7
+    - when: 分包协议未附发包方同意证据（INV-13）→ 留在草拟并告警，经办人补证后再提交（预算占用不重占）
+      goto: 3
       rule: INV-13
       alert: true
-    - when: 经办人放弃该协议（含审批驳回后放弃）
+    - when: 经办人主动放弃该协议（含审批驳回后放弃）
       goto: 7
     - when: otherwise
       goto: 4
@@ -634,6 +739,8 @@ processes:
       direction: in
       bc: platform.approval
       name: 审批已驳回
+    pending:
+    - U-40
   - actor: platform
     where: in_system
     platform_task: true
@@ -670,6 +777,13 @@ processes:
     withdraw:
       to: 7
       outcome: 已撤回
+    timeout:
+      after: P3D
+      escalate_to: 审批人上级
+      interrupting: false
+      rule: RULE-377、RULE-379、RULE-380、RULE-382
+      pending:
+      - T-01
   - actor: SH-E2
     where: in_system
     evidence:
@@ -744,15 +858,28 @@ processes:
   - 分包变更已生效
   - 已拒收
   - 重复事件已忽略
+  - 已放弃
+  - 已驳回
+  - 已撤回
   scenarios:
   - PRC-71-S01
-  - PRC-71-S02
-  - PRC-71-S03
-  - PRC-71-S04
-  - PRC-71-S05
+  - PRC-71-S06
+  - PRC-71-S07
+  - PRC-71-S08
+  - PRC-71-S09
+  - PRC-71-S10
+  - PRC-71-S11
+  - PRC-71-S12
+  - PRC-71-S13
+  - PRC-71-S14
+  - PRC-71-S15
+  - PRC-71-S16
+  - PRC-71-S17
   roles:
   - id: SH-E2
     as: initiator
+  - id: SH-E2
+    as: approver
   steps:
   - actor: SH-E2
     where: in_system
@@ -766,11 +893,60 @@ processes:
       goto: end
       outcome: 已拒收
       alert: true
+    - when: 双方未达成一致，经办人放弃变更
+      goto: end
+      outcome: 已放弃
     - when: otherwise
       goto: 2
     permission: 分包变更.提出
     page: 分包变更编辑页
     audit: true
+  - actor: platform
+    where: in_system
+    platform_task: true
+    service: platform.approval
+    command: 提交审批
+    approval:
+      engine: platform.approval
+      doc_type: 分包变更审批
+      approver: cost_object_owner
+      multi_level: false
+      why_human: 分包价款或范围变更改变成本承诺与付款义务，值不值得变更要对该项目成本负责的人判断；原协议状态、变更后金额不低于履约累计、生效后不可改都已由规则守
+      on_reject: end
+      on_reject_outcome: 已驳回
+      escalation_rules:
+      - AR-01
+      - AR-02
+      - AR-11
+      - AR-12
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: platform.approval
+      name: 提交审批
+    notify:
+    - to: 审批人
+      how: 企业微信待办
+    audit: true
+    permission: 分包变更.审批
+    page: 审批待办（审批平台）
+    added_in: closeout
+    desc: 价款或范围变更由责任人批；变更后预算不重新占用（SQ-08 待裁定）；采购合同变更并入或新增待 SQ-29
+    pending:
+    - F-Q1-阈值（AR-01、AR-02 的分包变更阈值）
+    - AR-11
+    - U-40
+    - SQ-08
+    withdraw:
+      to: end
+      outcome: 已撤回
+    timeout:
+      after: P3D
+      escalate_to: 审批人上级
+      interrupting: false
+      rule: RULE-377、RULE-379、RULE-380、RULE-382
+      pending:
+      - T-01
   - actor: SH-E2
     where: in_system
     evidence:
@@ -785,16 +961,26 @@ processes:
       rule: INV-16b
       outcome: 已拒收
       alert: true
-    - when: 变更后协议金额低于已确认的履约累计（INV-82）
+    - when: 变更后协议金额低于已确认的履约累计（INV-82，AGG-58 一侧校验，生效前先读）
       goto: end
       rule: INV-82
       outcome: 已拒收
       alert: true
+    - when: 双方最终未签署变更协议，经办人放弃
+      goto: end
+      outcome: 已放弃
     - when: otherwise
-      goto: 3
+      goto: 4
     permission: 分包变更.生效
     page: 分包变更详情页
     audit: true
+    cross_bc:
+    - mode: event
+      direction: in
+      bc: platform.approval
+      name: 审批已通过
+    pending:
+    - SQ-08
   - actor: system
     where: automatic
     command: 供方额度更新
@@ -810,6 +996,12 @@ processes:
       goto: end
       outcome: 分包变更已生效
   notes: 生效后不可改，只能再变更（INV-16a、16b）。R-29：SH-E2 重复列两次已合并。
+  segregation:
+  - roles:
+    - SH-E2
+    as:
+    - initiator
+    rule: 变更提出人与审批责任人不得为同一人（责任人就是提出人本人时按 AR-11 处理，待 U-21、U-40）
 - id: PRC-72
   name: 确认供方履约
   type: business
@@ -871,6 +1063,7 @@ processes:
       direction: out
       bc: B-04
       name: 读项目状态
+    command: 读取项目状态
   - actor: SH-E2
     where: automatic
     command: 占用履约额度
@@ -895,9 +1088,8 @@ processes:
     desc: 采购须专人验收（INV-83）；形态待定 Q20
     decision:
     - when: 确认人与该供方协议的经办人为同一人（INV-83）
-      goto: end
+      goto: 5
       rule: INV-83
-      outcome: 已拒收
       alert: true
     - when: otherwise
       goto: 4
@@ -907,6 +1099,7 @@ processes:
     audit: true
     pending:
     - Q20
+    - SQ-43
   - actor: system
     where: automatic
     command: 提交过账候选
@@ -924,6 +1117,8 @@ processes:
       rule: INV-92、INV-93
       outcome: 过账被拒收
       alert: true
+      pending:
+      - SQ-41
     - when: otherwise
       goto: end
       outcome: 已确认
@@ -935,6 +1130,20 @@ processes:
     legal_entity: 承担法人
     pending:
     - Q20
+  - actor: system
+    where: automatic
+    command: 〔缺〕释放履约额度
+    aggregate: AGG-58
+    added_in: closeout
+    branch: 补偿（占用已成立而确认被拒）
+    desc: 确认被 INV-83 拒绝时释放步骤 2 已占用的履约额度，写法同 PRC-75 步 3；AGG-58 缺此命令（SQ-43）
+    decision:
+    - when: otherwise
+      goto: end
+      outcome: 已拒收
+      alert: true
+    pending:
+    - SQ-43
   notes: 形态待定 Q20；履约确认冲销另走 AGG-57。步骤 2 的占用与步骤 3 的确认同一用户操作内先后完成。
 - id: PRC-73
   name: 登记并查验进项发票
@@ -966,6 +1175,11 @@ processes:
   - PRC-73-S05
   - PRC-73-S06
   - PRC-73-S07
+  - PRC-73-S08
+  - PRC-73-S09
+  - PRC-73-S10
+  - PRC-73-S11
+  - PRC-73-S12
   roles:
   - id: SH-E6
     as: performer
@@ -982,6 +1196,13 @@ processes:
     aggregate: AGG-89
     desc: 开票方须为已登记往来单位
     decision:
+    - when: 同一发票代码与号码已登记
+      goto: end
+      outcome: 已拒收
+      alert: true
+      rule: 〔缺〕发票代码号码唯一（SQ-53）
+      pending:
+      - SQ-53
     - when: 开票方不是已登记往来单位
       goto: end
       outcome: 已拒收
@@ -998,22 +1219,26 @@ processes:
       name: 读开票方
     legal_entity: 发票抬头法人
     audit: true
-  - actor: SH-E6
+  - actor: system
     where: external:税务
     evidence:
     - 税务平台查验结果与查验时刻
     command: 查验进项发票
     aggregate: AGG-89
-    desc: 经税务平台查验，不合规不得入账、不得作扣除凭证（INV-75）
+    desc: 登记后系统自动经税务平台查验；不合规不得入账、不得作扣除凭证（INV-75 报销侧、INV-75a 应付侧，均为被读的前置）；税务平台不可用时定时重试，仍无结果转人工重试
     decision:
-    - when: 税务平台不可用或未返回可判定结果 → 告警，保持已登记待重试
+    - when: 税务平台不可用或未返回可判定结果，自动重试（每小时一次，最多 3 次）
+      goto: 2
+      rule: INV-75a
+      alert: true
+    - when: 连续重试仍无可判定结果，保持已登记并转财务人工重试
       goto: end
-      rule: INV-75
+      rule: INV-75a
       outcome: 查验未完成
       alert: true
     - when: 查验不合规
       goto: end
-      rule: INV-75
+      rule: INV-75a
       outcome: 已拒收
       alert: true
     - when: otherwise
@@ -1026,6 +1251,12 @@ processes:
       bc: platform.integration
       name: 发票查验
     audit: true
+    timeout:
+      after: PT1H
+      escalate_to: SH-E6
+      interrupting: false
+      pending:
+      - T-01
   - actor: SH-E6
     where: in_system
     command: 确认进项发票用途
@@ -1073,6 +1304,8 @@ processes:
       rule: INV-92、INV-93
       outcome: 过账被拒收
       alert: true
+      pending:
+      - SQ-41
     - when: otherwise
       goto: end
       outcome: 已转出
@@ -1083,6 +1316,14 @@ processes:
       name: 提交过账候选（PostingCandidate）
     legal_entity: 发票抬头法人
   notes: 可跳过：无票先确认应付（暂估），P-35 提醒应取未取，取得后重入。入账占用在 PRC-74（供方来源）与 PRC-87（报销来源）。
+  segregation:
+  - roles:
+    - SH-E6
+    - SH-E6
+    as:
+    - initiator
+    - approver
+    rule: 登记进项发票与确认用途不得为同一人（提议，待 SQ-53 一并裁定）
 - id: PRC-74
   name: 提交供方应付
   type: business
@@ -1096,6 +1337,11 @@ processes:
   - type: event
     name: 供方履约已确认
     publisher: B-11（同 BC）
+  - type: event
+    name: 进项发票已用途确认
+    publisher: B-23（AGG-89，拒收或暂估后换票再入）
+  - type: human
+    name: 财务对被拒收或暂估的应付人工重提
   stages:
   - VS-05.4
   owner_bc: B-11
@@ -1104,6 +1350,7 @@ processes:
   scope: 按承担法人的数据范围（系统自动，财务岗位只读）
   outcomes:
   - 应付已确认
+  - 暂估应付已确认
   - 重复事件已忽略
   - 已拒收
   - 过账被拒收
@@ -1114,6 +1361,10 @@ processes:
   - PRC-74-S04
   - PRC-74-S05
   - PRC-74-S06
+  - PRC-74-S07
+  - PRC-74-S08
+  - PRC-74-S09
+  - PRC-74-S10
   roles:
   - id: SH-E6
     as: informed
@@ -1132,15 +1383,16 @@ processes:
     - when: 来源单据已确认过应付（幂等）
       goto: end
       outcome: 重复事件已忽略
-    - when: 发票查验不合规或已被占用（INV-74、75）→ 拒收并告警
+    - when: 发票查验不合规或已被占用（INV-74、INV-75a）→ 拒收并告警，退回供方换票，换票经 PRC-73 用途确认后由事件再入
       goto: end
-      rule: INV-74
+      rule: INV-74、INV-75a
       outcome: 已拒收
       alert: true
-    - when: 无票暂估（取得发票后经 PRC-73 重入占用）
+    - when: 来源为供方履约确认且发票未到（无票暂估，取得发票后经 PRC-73 重入占用）
       goto: 2
       pending:
       - P1-Q2
+      - U-25
     - when: otherwise
       goto: 2
     cross_bc:
@@ -1160,6 +1412,12 @@ processes:
     calls: PRC-92
     period_gate: true
     decision:
+    - when: 来源为无票暂估
+      goto: end
+      outcome: 暂估应付已确认
+      pending:
+      - P1-Q2
+      - U-25
     - when: 所属期间已关账，自动落当前开放期间并标原期间（系统触账不拒绝）
       goto: end
       rule: ADR-0045 决定 2；INV-92；AR-05
@@ -1169,6 +1427,8 @@ processes:
       rule: INV-92、INV-93
       outcome: 过账被拒收
       alert: true
+      pending:
+      - SQ-41
     - when: otherwise
       goto: end
       outcome: 应付已确认
@@ -1259,6 +1519,14 @@ processes:
   - PRC-75-S14
   - PRC-75-S15
   - PRC-75-S16
+  - PRC-75-S17
+  - PRC-75-S18
+  - PRC-75-S19
+  - PRC-75-S20
+  - PRC-75-S21
+  - PRC-75-S22
+  - PRC-75-S23
+  - PRC-75-S24
   roles:
   - id: SH-E6
     as: initiator
@@ -1282,11 +1550,12 @@ processes:
     - AGG-01
     - AGG-88
     - AGG-87
-    desc: 读收款账户、流水行与资金账户（INV-80）；P-01 银行账户变更后首笔付款预警
+    - AGG-62
+    desc: 读收款账户（往来单位账户 INV-80；付款对象为员工时读 B-13 AGG-62 的收款账户）、流水行与资金账户；P-01 银行账户变更后首笔付款预警；税费、利润分配、出资退回等无费用归属对象的应付，审批人解析见 SQ-51、U-19
     decision:
-    - when: 收款方不是已登记账户（INV-80），或单位已停用或合并、供应商角色未合格（INV-03、04）
+    - when: 收款方不是已登记账户（INV-80），或单位已停用或合并、供应商角色未合格（INV-03c、INV-04b）
       goto: end
-      rule: INV-80、AR-08
+      rule: INV-80、INV-03c、INV-04b、AR-08
       outcome: 已拒收
       alert: true
     - when: 供方来源的应付所引用的供方协议无依据或未生效（AR-04）
@@ -1299,6 +1568,23 @@ processes:
       rule: AR-09
       outcome: 已拒收
       alert: true
+    - when: 付款对象为员工（报销应付、借款归还、薪酬）而无已登记收款账户
+      goto: end
+      rule: INV-80（员工侧）
+      outcome: 已拒收
+      alert: true
+    - when: 应付存在未决争议（AGG-52 争议状态）
+      goto: end
+      rule: AGG-52 争议状态（拒绝）
+      outcome: 已拒收
+      alert: true
+      pending:
+      - SQ-54
+    - when: 协议付款条件项未到期（提前付款），预警并在审批待办标注
+      goto: 2
+      rule: 付款条件项到期日（预警）
+      pending:
+      - SQ-54
     - when: otherwise
       goto: 2
     permission: 付款.查看
@@ -1312,9 +1598,16 @@ processes:
       direction: out
       bc: B-22
       name: 读流水行与资金账户
+    - mode: api
+      direction: out
+      bc: B-13
+      name: 读员工收款账户
     notify:
     - to: 审批人
       how: 审批待办标注「收款账户近期变更（P-01）」
+    command: 读取收款账户与资金账户
+    pending:
+    - SQ-54
   - actor: SH-E6
     where: in_system
     command: 发起付款
@@ -1373,7 +1666,7 @@ processes:
       doc_type: 付款审批
       approver: cost_object_owner
       multi_level: false
-      why_human: 付款时点与资金安排要有人对这笔支出负责：合同付款节点是否实际满足、有无争议或抵扣、资金头寸是否允许，须责任人判断；应付余额、收款账户与协议相对方一致、协议依据、供方准入、不相容职务都已由规则拦截，不靠审批
+      why_human: 提前付款、资金头寸安排与抵扣处理要有人对这笔支出负责判断；合同付款条件项是否到期、应付争议状态、应付余额、收款账户与协议相对方一致、协议依据、供方准入、不相容职务都已由规则拦截或预警，不靠审批
       on_reject: 3
       escalation_rules:
       - AR-01
@@ -1412,6 +1705,13 @@ processes:
     withdraw:
       to: 3
       outcome: 已撤回
+    timeout:
+      after: P3D
+      escalate_to: 审批人上级
+      interrupting: false
+      rule: RULE-377、RULE-379、RULE-380、RULE-382
+      pending:
+      - T-01
   - actor: SH-E6
     where: external:银行
     evidence:
@@ -1421,15 +1721,15 @@ processes:
     aggregate: AGG-53
     emits:
     - 付款已成功
-    desc: 出纳在银行完成支付后登记；之后由事件策略接续：付款已成功 → 核销应付（PRC-131）→ 应付已核销 → 置付款已核销并提交过账候选（PRC-132）；报销置已付见 PRC-133
+    desc: 出纳在银行完成支付后登记；之后由事件策略接续：付款已成功 → 核销应付（PRC-131）→ 应付已核销 → 置付款已核销并提交过账候选（PRC-132）；报销置已付见 PRC-133；回单金额与时刻由银行流水匹配（PRC-64 已导入）自动带出，出纳只确认
     decision:
     - when: 出纳与发起人或审批人为同一人 → 拒收并告警，改由其他出纳登记
       goto: 5
       rule: INV-81
       alert: true
-    - when: 银行回单金额与分配合计不符 → 拒收并告警，退回出纳更正
+    - when: 银行回单金额与分配合计不符（INV-78a）→ 拒收并告警，退回出纳更正
       goto: 5
-      rule: INV-78
+      rule: INV-78a
       alert: true
     - when: 银行结果为失败或退票
       goto: 6
@@ -1442,7 +1742,7 @@ processes:
     - mode: api
       direction: out
       bc: B-22
-      name: 引用银行流水行
+      name: 读已导入的银行流水行（自动带出金额与时刻）
     - mode: event
       direction: in
       bc: platform.approval
@@ -1493,8 +1793,10 @@ processes:
   - type: event
     name: 供方履约已确认
     publisher: B-11（同 BC）
+    entry: 1
   - type: human
     name: 经办人对未完成协议登记终止（含未结算即结项）
+    entry: 4
   stages:
   - VS-05.6
   owner_bc: B-11
@@ -1505,14 +1807,23 @@ processes:
   - 已结算
   - 已终止
   - 未达完成条件
+  - 已驳回
+  - 已撤回
   scenarios:
-  - PRC-76-S01
-  - PRC-76-S02
-  - PRC-76-S03
-  - PRC-76-S04
+  - PRC-76-S05
+  - PRC-76-S06
+  - PRC-76-S07
+  - PRC-76-S08
+  - PRC-76-S09
+  - PRC-76-S10
+  - PRC-76-S11
+  - PRC-76-S12
+  - PRC-76-S13
   roles:
   - id: SH-E2
     as: performer
+  - id: SH-E2
+    as: approver
   steps:
   - actor: system
     where: automatic
@@ -1521,11 +1832,54 @@ processes:
     decision:
     - when: 累计达协议金额或额度用尽
       goto: 2
-    - when: 经办人登记终止（含未结算即结项）
-      goto: 3
     - when: otherwise
       goto: end
       outcome: 未达完成条件
+  - actor: platform
+    where: in_system
+    platform_task: true
+    service: platform.approval
+    command: 提交审批
+    approval:
+      engine: platform.approval
+      doc_type: 供方协议结算审批
+      approver: cost_object_owner
+      multi_level: false
+      why_human: 最终结算价款是否与履约、变更和争议相符，要对该项目成本负责的人判断；已完成状态、累计履约与协议金额的关系由规则守
+      on_reject: end
+      on_reject_outcome: 已驳回
+      escalation_rules:
+      - AR-01
+      - AR-02
+      - AR-11
+      - AR-12
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: platform.approval
+      name: 提交审批
+    notify:
+    - to: 审批人
+      how: 企业微信待办
+    audit: true
+    permission: 供方协议.结算审批
+    page: 审批待办（审批平台）
+    added_in: closeout
+    pending:
+    - F-Q1-阈值（AR-01、AR-02 的结算阈值）
+    - AR-11
+    - U-40
+    withdraw:
+      to: end
+      outcome: 已撤回
+    timeout:
+      after: P30D
+      relative_to: 协议已完成
+      escalate_to: SH-E2
+      interrupting: false
+      pending:
+      - T-01
+      rule: 已完成未结算提醒经办人
   - actor: SH-E2
     where: in_system
     evidence:
@@ -1545,8 +1899,50 @@ processes:
       direction: in
       bc: B-29
       name: 读供方协议状态
+    - mode: event
+      direction: in
+      bc: platform.approval
+      name: 审批已通过
     metric_event: true
     audit: true
+  - actor: platform
+    where: in_system
+    platform_task: true
+    service: platform.approval
+    command: 提交审批
+    approval:
+      engine: platform.approval
+      doc_type: 供方协议终止审批
+      approver: cost_object_owner
+      multi_level: false
+      why_human: 终止未完成协议涉及违约责任与结算结论，要对该项目成本负责的人判断；协议状态与终止原因必填由规则守
+      on_reject: end
+      on_reject_outcome: 已驳回
+      escalation_rules:
+      - AR-01
+      - AR-02
+      - AR-11
+      - AR-12
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: platform.approval
+      name: 提交审批
+    notify:
+    - to: 审批人
+      how: 企业微信待办
+    audit: true
+    permission: 供方协议.终止审批
+    page: 审批待办（审批平台）
+    added_in: closeout
+    pending:
+    - F-Q1-阈值（AR-01、AR-02 的终止阈值）
+    - AR-11
+    - U-40
+    - Q10
+    withdraw:
+      to: end
+      outcome: 已撤回
   - actor: SH-E2
     where: in_system
     evidence:
@@ -1568,11 +1964,15 @@ processes:
       direction: in
       bc: B-29
       name: 读供方协议状态
+    - mode: event
+      direction: in
+      bc: platform.approval
+      name: 审批已通过
     pending:
     - Q10
     metric_event: true
     audit: true
-  notes: 结项编排经 api 读状态，事件无业务订阅方。步骤 1 的三个出口是本稿补写，v1 只有完成条件一个判断。
+  notes: 结项编排经 api 读状态，事件无业务订阅方。人工终止是独立入口 4（不先执行完成供方协议）；结算与终止加责任人审批（QC-VS05-08）。
 - id: PRC-77
   name: 申报并缴纳增值税、附加税与企业所得税
   type: business
@@ -1581,7 +1981,9 @@ processes:
     desc: 法定申报期（P-39）
   triggers:
   - type: time
-    name: 法定申报期（P-39）按法人与所属期触发
+    name: 增值税与附加税：法定申报期（P-39）按纳税法人与所属月（或季）触发
+  - type: time
+    name: 企业所得税：按季预缴期与年度汇算清缴期（P-39）按纳税法人触发
   stages:
   - VS-06.1
   owner_bc: B-23
@@ -1590,21 +1992,32 @@ processes:
   scope: 按纳税法人的数据范围（财务岗位）
   outcomes:
   - 已缴款
+  - 已申报无需缴款
+  - 已放弃申报
   - 已拒收
   - 过账被拒收
   scenarios:
   - PRC-77-S01
-  - PRC-77-S02
-  - PRC-77-S03
-  - PRC-77-S04
   - PRC-77-S05
-  - PRC-77-S06
   - PRC-77-S07
+  - PRC-77-S08
+  - PRC-77-S09
+  - PRC-77-S10
+  - PRC-77-S11
+  - PRC-77-S12
+  - PRC-77-S13
+  - PRC-77-S14
+  - PRC-77-S15
+  - PRC-77-S16
+  - PRC-77-S17
+  - PRC-77-S18
   roles:
   - id: SH-E6
     as: performer
   - id: SH-R2
     as: external
+  - id: SH-M1
+    as: approver
   steps:
   - actor: SH-E6
     where: in_system
@@ -1613,7 +2026,7 @@ processes:
     - AGG-46
     - AGG-84
     - AGG-81
-    desc: 读销项发票、分录余额与所属期
+    desc: 读销项发票、分录余额与所属期；税种与所属期参数：增值税月或季、附加税随增值税、企业所得税季度预缴与年度汇算（参数取 P-39 规则卡，U-09 待定）
     decision:
     - when: 读不到销项发票、分录余额或所属期 → 拒收并告警
       goto: end
@@ -1639,6 +2052,7 @@ processes:
     pending:
     - ADR22-差异类
     legal_entity: 纳税法人
+    command: 读取销项发票与分录余额
   - actor: SH-E6
     where: in_system
     command: 生成申报
@@ -1671,6 +2085,14 @@ processes:
       alert: true
     - when: 申报端回执退回或需更正
       goto: 5
+    - when: 应纳税额为零或留抵（零申报、留抵结转），无需缴款
+      goto: end
+      outcome: 已申报无需缴款
+      rule: P-39
+    - when: 提交时已过法定申报期截止日（逾期申报）：告警，滞纳金与罚款由税务端核定，缴款时一并登记
+      goto: 4
+      alert: true
+      rule: P-39
     - when: otherwise
       goto: 4
     permission: 税务申报.提交
@@ -1680,8 +2102,23 @@ processes:
       direction: out
       bc: platform.integration
       name: 申报端提交
+    - mode: event
+      direction: out
+      bc: B-10
+      name: 申报已提交
     metric_event: true
     audit: true
+    approval:
+      engine: aggregate
+      doc_type: 纳税申报复核
+      approver: SH-M1
+      multi_level: false
+      why_human: 申报内容的税额口径、差异调整与优惠适用是否正确要有人对税务合规负责判断，提交后更正有滞纳金与信用风险；销项发票与分录余额的勾稽由规则核对
+      approver_basis: 税务申报复核是对法人税务合规负责的职责，不归属某个费用或业务对象，取财务负责人（类型级）
+      on_reject: 2
+    pending:
+    - SQ-44
+    - U-41
   - actor: SH-E6
     where: external:税务
     evidence:
@@ -1691,18 +2128,40 @@ processes:
     emits:
     - 税款已缴纳
     decision:
+    - when: 完税凭证金额与税费应付的付款结果不符 → 退回出纳核对，告警
+      goto: 4
+      alert: true
     - when: otherwise
       goto: 6
     permission: 税务申报.登记缴款
     page: 税务申报工作台
     metric_event: true
     audit: true
+    desc: 登记完税凭证与付款引用；税款资金支出经 PRC-75（税费应付由 B-10 订阅申报已提交后确认，SQ-44、U-41），付款发起≠审批≠出纳，本步不再产生资金动作；完税凭证金额与时刻由银行流水匹配带出
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-22
+      name: 读银行流水匹配（完税凭证金额与时刻）
+    pending:
+    - SQ-44
+    timeout:
+      after: P5D
+      relative_to: 法定缴款期限（前）
+      escalate_to: SH-M1
+      interrupting: false
+      pending:
+      - T-01
   - actor: SH-E6
     where: in_system
     command: 更正申报
     aggregate: AGG-90
     branch: 更正
     decision:
+    - when: 申报端无法更正，经办人登记放弃及原因（留痕）
+      goto: end
+      outcome: 已放弃申报
+      alert: true
     - when: otherwise
       goto: 3
     permission: 税务申报.更正
@@ -1725,6 +2184,8 @@ processes:
       rule: INV-92、INV-93
       outcome: 过账被拒收
       alert: true
+      pending:
+      - SQ-41
     - when: otherwise
       goto: end
       outcome: 已缴款
@@ -1735,6 +2196,14 @@ processes:
       name: 提交过账候选（PostingCandidate）
     legal_entity: 纳税法人
   notes: 财务复核、申报端回执、更正申报无退回超时，按非人工编排（⑥a 评审 M1）。R-29 类问题：v1 的 reviewer 角色没有对应步骤，已删。税款资金支出是否走 PRC-75 见接缝问题。
+  segregation:
+  - roles:
+    - SH-E6
+    - SH-M1
+    as:
+    - performer
+    - approver
+    rule: 生成申报与复核提交不得为同一人；缴款登记由出纳依付款结果登记（PRC-75 付款发起≠审批≠出纳）
 - id: PRC-87
   name: 提交、核定并确认报销应付
   trigger:
@@ -1760,6 +2229,7 @@ processes:
   - 已撤回
   - 已拒收（项目已关闭）
   - 已拒收（发票不可用）
+  - 过账被拒收
   scenarios:
   - PRC-87-S01
   - PRC-87-S02
@@ -1773,6 +2243,13 @@ processes:
   - PRC-87-S10
   - PRC-87-S11
   - PRC-87-S12
+  - PRC-87-S13
+  - PRC-87-S14
+  - PRC-87-S15
+  - PRC-87-S16
+  - PRC-87-S17
+  - PRC-87-S18
+  - PRC-87-S19
   roles:
   - id: SH-E3
     as: initiator
@@ -1792,12 +2269,13 @@ processes:
     - AGG-19
     - AGG-10
     - AGG-62
-    desc: 选择报销类型（日常 / 差旅 / 业务招待），读项目或商机与人员；差旅可带出差申请（G-F3）、出差补贴行按补贴标准生成（G-F7），业务招待引用事前申请（G-F1）
+    desc: 选择报销类型（日常 / 差旅 / 业务招待），读项目或商机与人员；差旅出差申请、业务招待事前申请、出差补贴标准的数据来源待裁定（G-F3、G-F1、G-F7），本步暂不引用
     decision:
     - when: 所归属项目已结项、已终止或已取消（INV-39）
       goto: end
       outcome: 已拒收（项目已关闭）
-      rule: INV-39
+      rule: INV-39b
+      alert: true
     - when: otherwise
       goto: 2
     cross_bc:
@@ -1819,6 +2297,7 @@ processes:
     - G-F1
     - G-F3
     - G-F7
+    command: 读取项目与人员
   - actor: SH-E3
     where: external:税务
     evidence:
@@ -1826,12 +2305,17 @@ processes:
     - 查验结果与查验时刻（税务平台，或分贝通推送的验真结果）
     command: 占用进项发票入账
     aggregate: AGG-89
-    desc: 占用第 1 步：提交前占用，已占用则拒（INV-74）。发票来源两种：员工录入并经税务平台查验；分贝通垫资发票（员工在分贝通 APP 上传，验真结果随发票推送）。补贴行不需要发票
+    desc: 占用第 1 步：员工录入的发票先登记并经税务平台查验（登记、查验命令属 AGG-89，系统自动调用），分贝通垫资发票由集成登记并带验真结果；提交前占用，已占用则拒（INV-74）。补贴行与无票凭证（行程单、收据等，类型待财务确认，U-45）不占用发票
     decision:
+    - when: 补贴行或无票凭证，不占用进项发票
+      goto: 3
+      pending:
+      - U-45
     - when: 发票查验不合规（INV-75）或已被占用（INV-74）
       goto: end
       outcome: 已拒收（发票不可用）
       rule: INV-74、INV-75
+      alert: true
     - when: otherwise
       goto: 3
     cross_bc:
@@ -1841,17 +2325,22 @@ processes:
       name: 占用进项发票入账
     permission: 报销.填写
     page: 报销单编辑页（发票录入与查验）
+    inner:
+    - command: 登记进项发票
+      aggregate: AGG-89
+    - command: 查验进项发票
+      aggregate: AGG-89
   - actor: SH-E3
     where: automatic
     command: 预算占用
     aggregate: AGG-80
     emits:
     - BudgetReserved
-    desc: 占用第 2 步；预算不足只预警不拦截（INV-102 定为预警，用户 F-Q2，intent 2026-10-16-162821）
+    desc: 占用第 2 步；预算不足只预警不拦截（预算策略，用户 F-Q2）
     decision:
     - when: 可用预算不足（只预警，审批待办标「超预算」）
       goto: 4
-      rule: INV-102
+      rule: 预算策略（警）、AR-03
     - when: otherwise
       goto: 4
     cross_bc:
@@ -1873,6 +2362,7 @@ processes:
     - when: 原始凭证要素不全（INV-84）
       goto: 8
       rule: INV-84
+      alert: true
     - when: otherwise
       goto: 5
     permission: 报销.提交
@@ -1901,7 +2391,6 @@ processes:
       escalation_rules:
       - AR-01
       - AR-02
-      - AR-06
       - AR-07
       - AR-11
       - AR-12
@@ -1914,10 +2403,12 @@ processes:
     page: 审批待办（审批平台）
     audit: true
     timeout:
-      after: n 个工作日（n 待定，按审批节点属性）
+      after: P3D
       escalate_to: 审批人上级
       interrupting: false
       rule: RULE-377、RULE-379、RULE-380、RULE-382
+      pending:
+      - T-01
     notify:
     - to: SH-E3
       how: 驳回时企业微信消息
@@ -1953,6 +2444,21 @@ processes:
     notify:
     - to: SH-E3
       how: 企业微信消息：已核定
+    decision:
+    - when: 纸质原件迟迟未到、重复报销或费用类别不符，核定退回
+      goto: 8
+      alert: true
+    - when: otherwise
+      goto: 7
+    timeout:
+      after: P5D
+      relative_to: 审批已通过
+      escalate_to: SH-M1
+      interrupting: false
+      pending:
+      - T-01
+    pending:
+    - U-42
   - actor: system
     where: automatic
     command: 提交过账候选
@@ -1964,6 +2470,13 @@ processes:
       bc: B-16
       name: 提交过账候选（PostingCandidate）
     decision:
+    - when: 过账管道拒收（该法人无开放期间、借贷不平或法人不一致），拒收并告警
+      goto: end
+      rule: INV-92、INV-93
+      outcome: 过账被拒收
+      alert: true
+      pending:
+      - SQ-41
     - when: 所属期间已关账（自动落当前开放期间并标原期间）
       goto: end
       outcome: 已核定
@@ -1974,6 +2487,9 @@ processes:
     period_gate: true
     legal_entity: 报销人所在法人（任职口径）
     metric_event: true
+    pending:
+    - SQ-45
+    desc: 已核定报销的更正与冲销命令聚合稿缺，冲销须加审 AR-06（SQ-45）
   - actor: system
     where: automatic
     command: 释放预算占用
@@ -1998,6 +2514,9 @@ processes:
     branch: 驳回或补偿（占用中途失败）
     desc: 释放发票占用
     decision:
+    - when: 来源为报销人撤回
+      goto: end
+      outcome: 已撤回
     - when: otherwise
       goto: end
       outcome: 已退回
@@ -2031,6 +2550,10 @@ processes:
   page: 经营月报页
   scope: 按法人与组织单元的数据范围；管理层与财务职能可见，项目经理限本人负责项目的行
   notes: 只读、无命令；复盘会议在系统外，需要调整计划时转入「编制、批准并基线化经营计划与预算」，reporting 不调用命令。
+  scenarios:
+  - PRC-90-S01
+  - PRC-90-S02
+  - PRC-90-S03
 - id: PRC-92
   name: 过账业务事实
   trigger:
@@ -2068,10 +2591,15 @@ processes:
     legal_entity: 事实所属法人（期间闸门粒度：期间 × 法人）
     desc: 同事务读锁校验目标期间开放；已关账则路由到开放期间并标原期间（INV-92、ADR-0045 决定 2）；拒收写拒收记录并告警，不静默跳过
     decision:
+    - when: 同一幂等键已处理（重试或重复调用）→ 先于期间闸门返回原结果
+      goto: end
+      rule: INV-94
+      outcome: 幂等已返回原结果
     - when: 显式指定的落账期间（第 13 期通道）未开放或未启用
       goto: end
       rule: INV-92
       outcome: 已拒收
+      alert: true
     - when: 业务日期所在期间已关账且该法人有开放期间，路由到开放期间并标原期间
       goto: 2
       rule: INV-92
@@ -2079,6 +2607,7 @@ processes:
       goto: end
       rule: INV-92
       outcome: 已拒收
+      alert: true
     - when: otherwise
       goto: 2
     notify:
@@ -2089,6 +2618,9 @@ processes:
       direction: out
       bc: B-19
       name: 读会计期间（同事务读锁）
+    command: 校验目标期间
+    pending:
+    - SQ-41
   - actor: system
     where: automatic
     command: 过账
@@ -2107,10 +2639,12 @@ processes:
       goto: end
       rule: INV-93
       outcome: 已拒收
+      alert: true
     - when: 法人不一致，拒收并告警
       goto: end
       rule: INV-93
       outcome: 已拒收
+      alert: true
     - when: otherwise
       goto: end
       outcome: 已过账
@@ -2202,6 +2736,7 @@ processes:
       goto: end
       rule: INV-95
       outcome: 已拒收
+      alert: true
     - when: 该更正请求的幂等键已处理，返回原结果
       goto: end
       rule: INV-94
@@ -2210,10 +2745,12 @@ processes:
       goto: end
       rule: INV-93
       outcome: 已拒收
+      alert: true
     - when: 该法人无开放期间可落，拒收并告警
       goto: end
       rule: INV-92
       outcome: 已拒收
+      alert: true
     - when: otherwise
       goto: end
       outcome: 已更正
@@ -2281,7 +2818,7 @@ processes:
       direction: out
       bc: B-20
       name: BusinessFactRestated
-  notes: 所有触账流程的最后一步都调用本流程；订阅方 B-07、B-15、B-17、B-20（B-17 仅读取，G-19 ②）。拒收的候选进技术性拒收记录，不作聚合根（评审 R-03）。
+  notes: 所有触账流程的最后一步都调用本流程；订阅方 B-07、B-15、B-17、B-20（B-17 仅读取，G-19 ②）。拒收的候选进技术性拒收记录，不作聚合根（评审 R-03）。 拒收记录的处置（谁、何时、经哪个入口重提，SQ-41）待 one-architecture 定号；重提沿用同一幂等键。
   scenarios:
   - PRC-92-S01
   - PRC-92-S02
@@ -2311,6 +2848,8 @@ processes:
   - type: event
     event: BusinessFactRestated
     publisher_bc: B-16
+  - type: time
+    name: 每日定时重投因主数据未同步而挂起的凭证
   outcomes:
   - 已记账无需推送
   - 已推送
@@ -2376,6 +2915,8 @@ processes:
     - when: 凭证依赖的客商、部门、人员主数据尚未同步到 U8C，挂起待重投
       goto: end
       outcome: 已挂起待重投
+      pending:
+      - SQ-50
     - when: U8C 拒收，带返回码进死信并当日告警
       goto: PRC-135
     - when: otherwise
@@ -2386,6 +2927,7 @@ processes:
       how: 企业微信告警（死信，当日告警财务与运维）
     pending:
     - S-05
+    - SQ-50
     cross_bc:
     - mode: api
       direction: out
@@ -2439,6 +2981,7 @@ processes:
   - 已提交过账
   - 已拒收
   - 已撤回
+  - 已作废
   roles:
   - id: SH-E6
     as: performer
@@ -2457,14 +3000,21 @@ processes:
     legal_entity: 凭证所属法人
     desc: 必须有理由与附件；只影响一个账簿的须带差异类别代码；触及控制科目须在授权表内；年度审计调整类才可显式指定落账期间且只能指定第 13 期（INV-108）
     decision:
+    - when: 制单人放弃，作废草稿
+      goto: end
+      outcome: 已作废
+      pending:
+      - SQ-46
     - when: 缺理由或附件，或触及控制科目而来源通道不在授权表（INV-98）
       goto: end
       rule: INV-108
       outcome: 已拒收
+      alert: true
     - when: 只影响一个账簿而未带差异类别代码
       goto: end
       rule: INV-97
       outcome: 已拒收
+      alert: true
     - when: otherwise
       goto: 2
     pending:
@@ -2472,6 +3022,7 @@ processes:
     - P-003
     - S-06
     - ADR46-P3
+    - SQ-46
     cross_bc:
     - mode: event
       direction: in
@@ -2532,14 +3083,22 @@ processes:
       direction: out
       bc: platform.approval
       name: 提交审批
-    desc: 无费用或业务归属对象，归属对象取凭证所属法人的财务部门，责任人为财务负责人（SH-M1 占位，ADR-0022 决定 3「财务主管审批」，待 F-01）；冲销或红冲已过账事实、超阈值等异常按 APPROVAL_RULES 加审
+    desc: 无费用或业务归属对象，归属对象取凭证所属法人的财务部门，责任人为财务负责人（解析规则见 SQ-51）；冲销或红冲已过账事实、超阈值等异常按 APPROVAL_RULES 加审（AR-01 的加审对象即财务负责人本人时由 AR-11 上提）
     pending:
     - F-01
     - F-Q1-阈值（AR-01、AR-02 的手工凭证阈值）
     - AR-11
+    - SQ-51
     withdraw:
       to: end
       outcome: 已撤回
+    timeout:
+      after: P3D
+      escalate_to: 审批人上级
+      interrupting: false
+      rule: RULE-377、RULE-379、RULE-380、RULE-382
+      pending:
+      - T-01
   - actor: SH-E6
     where: in_system
     command: 提交过账候选
@@ -2559,10 +3118,14 @@ processes:
       goto: end
       rule: INV-92
       outcome: 已拒收
+      alert: true
     - when: 过账管道拒收（借贷不平、法人不一致、无开放期间），拒收并告警
       goto: end
       rule: INV-93
       outcome: 已拒收
+      pending:
+      - SQ-41
+      alert: true
     - when: 业务日期所在期间已关账：规则提示「将落当前开放期间并标原期间」，制单人确认后提交，不设审批
       goto: end
       rule: ADR-0045 决定 2；INV-92；AR-05
@@ -2603,6 +3166,11 @@ processes:
   - PRC-94-S14
   - PRC-94-S15
   - PRC-94-S16
+  - PRC-94-S17
+  - PRC-94-S18
+  - PRC-94-S19
+  - PRC-94-S20
+  - PRC-94-S21
 - id: PRC-95
   name: 期末结转
   trigger:
@@ -2631,6 +3199,7 @@ processes:
     reads:
     - AGG-84
     desc: 读本期分录与余额，作为结转依据
+    command: 读取本期分录与余额
   - actor: SH-E6
     where: in_system
     command: 生成期末结转运行
@@ -2643,7 +3212,7 @@ processes:
     notify:
     - to: SH-E6
       how: 企业微信待办（月末结转）
-    desc: 每（法人，期间，模板）只有一次有效运行（INV-109）；已过账的只能冲销重做；模板按版本生效
+    desc: 每（法人，期间，模板）只有一次有效运行（INV-109）；已过账的只能冲销重做；模板按版本生效；已过账结转的更正命令聚合稿缺（SQ-17 范围扩到 AGG-99）
     decision:
     - when: 本法人本期间本模板已有有效运行
       goto: end
@@ -2653,12 +3222,15 @@ processes:
       goto: end
       rule: INV-92
       outcome: 已拒收
+      alert: true
     - when: otherwise
       goto: 3
     pending:
     - P-001
     - P-002
     - ADR46-P3
+    - SQ-32
+    - SQ-17
   - actor: system
     where: automatic
     command: 提交过账候选
@@ -2675,6 +3247,9 @@ processes:
       goto: end
       rule: INV-93
       outcome: 已拒收
+      pending:
+      - SQ-41
+      alert: true
     - when: otherwise
       goto: end
       outcome: 已过账
@@ -2694,15 +3269,13 @@ processes:
   - PRC-95-S04
   - PRC-95-S05
   - PRC-95-S06
+  - PRC-95-S07
 - id: PRC-96
   name: 分配人工成本
   type: business
   trigger:
-    type: event
-    events:
-    - event: BusinessFactAttributed
-      aggregate: AGG-77
-    gate: 期间闸门——工时与薪酬事实均已过账（P-41）且目标期间开放，月末才触发（⑥a 评审 M7）
+    type: time
+    desc: 月末
   stages:
   - VS-10.1
   owner_bc: B-07
@@ -2710,9 +3283,8 @@ processes:
   migration: 在途：已试算未确认的分配运行不迁，投产前办结或投产后重新试算；历史：不作为单据迁入，结果由迁入的权责事实承载（U-3，R-08），投产前最近两个已结期间按 U-10 重算比对
   scope: 财务职能，按承担法人数据范围
   triggers:
-  - type: event
-    name: BusinessFactAttributed（工时、薪酬类过账事实）
-    bc: B-16
+  - type: time
+    name: 月末：工时与薪酬事实均已过账（P-41），目标期间开放，每月一次（SQ-20）
   outcomes:
   - 人工成本分配已过账
   - 未到分配条件
@@ -2749,6 +3321,8 @@ processes:
       rule: INV-92
       outcome: 已拒收
       alert: true
+      pending:
+      - SQ-41
     - when: 工时与薪酬事实未齐备（有工时无薪酬或有薪酬无工时，预警）
       goto: end
       rule: P-41
@@ -2762,10 +3336,10 @@ processes:
     - to: SH-E6
       how: 企业微信预警（事实未齐备或期间未开放的原因）
     cross_bc:
-    - mode: event
-      direction: in
+    - mode: api
+      direction: out
       bc: B-16
-      name: BusinessFactAttributed
+      name: 读已过账事实（月末触发后读取）
     - mode: api
       direction: out
       bc: B-16
@@ -2774,6 +3348,7 @@ processes:
       direction: out
       bc: B-19
       name: 读会计期间
+    command: 读取已过账事实
   - actor: SH-E6
     where: in_system
     command: 试算人工成本分配
@@ -2819,10 +3394,15 @@ processes:
       rule: INV-92
       outcome: 已拒收
       alert: true
+      pending:
+      - SQ-41
     - when: 过账管道拒收（借贷不平或法人不一致），拒收并告警
       goto: end
       rule: INV-93
       outcome: 已拒收
+      pending:
+      - SQ-41
+      alert: true
     - when: otherwise
       goto: end
       outcome: 人工成本分配已过账
@@ -2836,7 +3416,18 @@ processes:
       direction: out
       bc: B-16
       name: 提交过账候选（PostingCandidate）
+    pending:
+    - SQ-17
+    desc: 已过账分配的作废命令聚合稿缺（SQ-17）
   notes: 分配合计等于实际人工成本，零容差（INV-89）；口径待 FD-09。试算后确认无超时或退回分支，按非人工编排（⑥a 评审 M1）。
+  segregation:
+  - roles:
+    - SH-E6
+    - SH-E6
+    as:
+    - performer
+    - approver
+    rule: 试算人与确认人不得为同一人（提议）
 - id: PRC-97
   name: 批准并生效分摊规则版本
   type: business
@@ -2869,6 +3460,9 @@ processes:
   - PRC-97-S04
   - PRC-97-S05
   - PRC-97-S06
+  - PRC-97-S07
+  - PRC-97-S08
+  - PRC-97-S09
   roles:
   - id: SH-E6
     as: initiator
@@ -2885,6 +3479,7 @@ processes:
     - when: 规则引用的组织单元不存在或已失效，拒收并告警
       goto: end
       outcome: 已拒收
+      alert: true
     - when: otherwise
       goto: 2
     permission: 成本.分摊规则编制
@@ -2922,15 +3517,23 @@ processes:
       direction: out
       bc: platform.approval
       name: 提交审批
-    desc: 间接成本池归属财务部门，责任人为财务负责人（SH-M1 占位，待 F-01）
+    desc: 间接成本池归属财务部门，责任人为财务负责人（解析规则见 SQ-51）
     permission: 分摊规则.审批
     page: 审批待办（审批平台）
     pending:
     - F-01
     - AR-11
+    - SQ-51
     withdraw:
       to: end
       outcome: 已撤回
+    timeout:
+      after: P3D
+      escalate_to: 审批人上级
+      interrupting: false
+      rule: RULE-377、RULE-379、RULE-380、RULE-382
+      pending:
+      - T-01
   - actor: SH-E6
     where: in_system
     command: 生效分摊规则版本
@@ -2943,6 +3546,7 @@ processes:
       goto: end
       rule: INV-91
       outcome: 已拒收
+      alert: true
     - when: otherwise
       goto: end
       outcome: 分摊规则已生效
@@ -3002,6 +3606,7 @@ processes:
       goto: end
       rule: INV-91
       outcome: 已拒收
+      alert: true
     - when: 分摊基数为零，结转下期
       goto: end
       rule: P-42
@@ -3050,6 +3655,8 @@ processes:
       direction: out
       bc: B-19
       name: 读会计期间
+    pending:
+    - SQ-17
   notes: 冲销按原比例（冲销命令缺，见结构问题）。试算后确认无超时或退回分支，按非人工编排（⑥a 评审 M1）。管理口径运行不过账，只受期间闸门约束。
 - id: PRC-99
   name: 计提折旧并处置公司资产
@@ -3066,7 +3673,11 @@ processes:
   segregation:
   - roles:
     - SH-E6
-    rule: 同一资产的建卡经办人与处置经办人不得为同一人（提议，见待用户定 P3-Q1）
+    - SH-E6
+    as:
+    - initiator
+    - performer
+    rule: 同一资产的建卡经办人与处置经办人不得为同一人（规则，由 AGG-91 命令前置校验；U-30 定后写入不变量）
   triggers:
   - type: human
     name: 采购后登记公司资产（含 IT 资产建卡）
@@ -3075,31 +3686,37 @@ processes:
     name: 月末按期计提
     entry: 3
   - type: human
-    name: 非 IT 资产处置
+    name: 非 IT 资产处置：经办发起，责任人审批
     entry: 4
   - type: call
     name: B-31 IT 资产报废（PRC-143）经 api 调用处置资产
     bc: B-31
-    entry: 4
+    entry: 5
   outcomes:
   - 资产已建卡
   - 本期无应计提
   - 已过账
   - 已拒收
+  - 已驳回
+  - 已撤回
   scenarios:
   - PRC-99-S01
-  - PRC-99-S02
-  - PRC-99-S03
-  - PRC-99-S04
   - PRC-99-S05
-  - PRC-99-S06
   - PRC-99-S07
   - PRC-99-S08
-  - PRC-99-S09
-  - PRC-99-S10
-  - PRC-99-S11
-  - PRC-99-S12
-  - PRC-99-S13
+  - PRC-99-S14
+  - PRC-99-S15
+  - PRC-99-S16
+  - PRC-99-S17
+  - PRC-99-S18
+  - PRC-99-S19
+  - PRC-99-S20
+  - PRC-99-S21
+  - PRC-99-S22
+  - PRC-99-S23
+  - PRC-99-S24
+  - PRC-99-S25
+  - PRC-99-S26
   roles:
   - id: SH-E6
     as: performer
@@ -3114,6 +3731,7 @@ processes:
     - when: 资产来源于供方协议但协议不存在或未生效，拒收并告警
       goto: end
       outcome: 已拒收
+      alert: true
     - when: otherwise
       goto: 2
     permission: 资产.登记
@@ -3125,6 +3743,7 @@ processes:
       direction: out
       bc: B-11
       name: 读采购或租赁协议
+    command: 读取供方协议
   - actor: SH-E6
     where: in_system
     command: 登记公司资产
@@ -3138,6 +3757,7 @@ processes:
     - when: 法人主体、资产类别或取得日期缺失或无效（含 IT 资产类别），拒收并告警
       goto: end
       outcome: 已拒收
+      alert: true
     - when: otherwise
       goto: end
       outcome: 资产已建卡
@@ -3147,6 +3767,7 @@ processes:
     audit: true
     pending:
     - T-4
+    - SQ-19
     cross_bc:
     - mode: api
       direction: out
@@ -3166,8 +3787,55 @@ processes:
       goto: end
       outcome: 本期无应计提
     - when: otherwise
-      goto: 5
+      goto: 6
     legal_entity: 资产所属法人
+    pending:
+    - SQ-19
+    - U-31
+  - actor: platform
+    where: in_system
+    platform_task: true
+    service: platform.approval
+    command: 提交审批
+    approval:
+      engine: platform.approval
+      doc_type: 资产处置审批
+      approver: cost_object_owner
+      multi_level: false
+      why_human: 处置是否合理、处置方式与残值要对使用该资产的部门负责的人判断；资产卡片存在、未重复处置、期间闸门由规则守
+      on_reject: end
+      on_reject_outcome: 已驳回
+      escalation_rules:
+      - AR-01
+      - AR-02
+      - AR-11
+      - AR-12
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: platform.approval
+      name: 提交审批
+    notify:
+    - to: 审批人
+      how: 企业微信待办
+    audit: true
+    permission: 资产.处置审批
+    page: 审批待办（审批平台）
+    added_in: closeout
+    pending:
+    - U-30
+    - F-Q1-阈值（AR-01、AR-02 的资产处置阈值）
+    - AR-11
+    withdraw:
+      to: end
+      outcome: 已撤回
+    timeout:
+      after: P3D
+      escalate_to: 审批人上级
+      interrupting: false
+      rule: RULE-377、RULE-379、RULE-380、RULE-382
+      pending:
+      - T-01
   - actor: SH-E6
     where: in_system
     command: 处置资产
@@ -3180,11 +3848,12 @@ processes:
     - when: 资产卡片不存在，拒收并告警
       goto: end
       outcome: 已拒收
+      alert: true
     - when: 资产卡片已处置（重复调用，幂等返回原结果）
       goto: end
       outcome: 已过账
     - when: otherwise
-      goto: 5
+      goto: 6
     permission: 资产.处置
     page: 公司资产处置页
     legal_entity: 资产所属法人
@@ -3195,6 +3864,10 @@ processes:
       direction: in
       bc: B-31
       name: 报废时处置资产
+    - mode: event
+      direction: in
+      bc: platform.approval
+      name: 审批已通过
   - actor: system
     where: automatic
     command: 提交过账候选
@@ -3212,10 +3885,15 @@ processes:
       rule: INV-92
       outcome: 已拒收
       alert: true
+      pending:
+      - SQ-41
     - when: 过账管道拒收（借贷不平或法人不一致），拒收并告警
       goto: end
       rule: INV-93
       outcome: 已拒收
+      pending:
+      - SQ-41
+      alert: true
     - when: otherwise
       goto: end
       outcome: 已过账
@@ -3245,7 +3923,7 @@ processes:
   segregation:
   - roles:
     - SH-E6
-    - SH-E6
+    - SH-M1
     as:
     - performer
     - approver
@@ -3266,7 +3944,7 @@ processes:
   roles:
   - id: SH-E6
     as: performer
-  - id: SH-E6
+  - id: SH-M1
     as: approver
   steps:
   - actor: SH-E6
@@ -3278,7 +3956,7 @@ processes:
     page: 科目表版本编辑页
     audit: true
     desc: ADR-0022 决定 2：起草人与批准人不得为同一人；聚合稿只有「发布」命令，缺起草命令（结构问题）
-  - actor: SH-E6
+  - actor: SH-M1
     where: in_system
     command: 发布科目表版本
     aggregate: AGG-82
@@ -3295,11 +3973,20 @@ processes:
     - when: 生效日不是期间首日，或该期间已关账，拒收并告警
       goto: end
       outcome: 已拒收
+      alert: true
     - when: 新科目表版本新增或停用了科目，须同步更新映射表
       goto: 3
     - when: otherwise
       goto: end
       outcome: 已发布
+    approval:
+      engine: aggregate
+      doc_type: 科目表版本发布批准
+      approver: SH-M1
+      multi_level: false
+      why_human: 新版本改变记账归类或控制科目范围，影响此后全部分录，要对账务口径负责的人判断；生效日期首日、起草与批准分离、引用完整由规则守
+      approver_basis: 总账配置发布是对账务口径负责的职责，不归属某个费用或业务对象，取财务负责人（类型级）
+      on_reject: 1
   - actor: SH-E6
     where: in_system
     command: 〔缺〕起草映射表版本
@@ -3309,7 +3996,7 @@ processes:
     page: 映射表版本编辑页
     audit: true
     desc: ADR-0022 决定 2：起草人与批准人不得为同一人；聚合稿只有「发布」命令，缺起草命令（结构问题）
-  - actor: SH-E6
+  - actor: SH-M1
     where: in_system
     command: 发布映射表版本
     aggregate: AGG-85
@@ -3326,6 +4013,7 @@ processes:
     - when: 生效日不是期间首日，或该期间已关账，拒收并告警
       goto: end
       outcome: 已拒收
+      alert: true
     - when: 新映射表版本改变了对账类别或控制科目归属，须同步更新授权表
       goto: 5
     - when: otherwise
@@ -3333,6 +4021,14 @@ processes:
       outcome: 已发布
     pending:
     - ADR22-差异类
+    approval:
+      engine: aggregate
+      doc_type: 映射表版本发布批准
+      approver: SH-M1
+      multi_level: false
+      why_human: 新版本改变记账归类或控制科目范围，影响此后全部分录，要对账务口径负责的人判断；生效日期首日、起草与批准分离、引用完整由规则守
+      approver_basis: 总账配置发布是对账务口径负责的职责，不归属某个费用或业务对象，取财务负责人（类型级）
+      on_reject: 3
   - actor: SH-E6
     where: in_system
     command: 〔缺〕起草授权表版本
@@ -3342,7 +4038,7 @@ processes:
     page: 授权表版本编辑页
     audit: true
     desc: ADR-0022 决定 2：起草人与批准人不得为同一人；聚合稿只有「发布」命令，缺起草命令（结构问题）
-  - actor: SH-E6
+  - actor: SH-M1
     where: in_system
     command: 发布授权表版本
     aggregate: AGG-94
@@ -3359,12 +4055,21 @@ processes:
     - when: 生效日不是期间首日，或该期间已关账，拒收并告警
       goto: end
       outcome: 已拒收
+      alert: true
     - when: otherwise
       goto: end
       outcome: 已发布
     pending:
     - S-05
-  notes: 口径转换规则按代码类变更管理，不建聚合。起草与发布命令的缺口见结构问题。
+    approval:
+      engine: aggregate
+      doc_type: 授权表版本发布批准
+      approver: SH-M1
+      multi_level: false
+      why_human: 新版本改变记账归类或控制科目范围，影响此后全部分录，要对账务口径负责的人判断；生效日期首日、起草与批准分离、引用完整由规则守
+      approver_basis: 总账配置发布是对账务口径负责的职责，不归属某个费用或业务对象，取财务负责人（类型级）
+      on_reject: 5
+  notes: 口径转换规则按代码类变更管理，不建聚合。起草与发布命令的缺口见结构问题。 批准人改由财务负责人（SH-M1，类型级）执行聚合命令，不再由 SH-E6 兼任（QC-VS10-02）。
   scenarios:
   - PRC-100-S01
   - PRC-100-S02
@@ -3425,14 +4130,17 @@ processes:
     - AGG-81
     command: 月结检查
     checks:
-    - 过账队列与分录生成队列为空（B-16 队列、B-20 待处理队列）
+    - 过账队列与分录生成队列为空，且过账拒收记录已处置（B-16 队列与拒收记录、B-20 待处理队列；SQ-41）
     - 推送死信为空（B-20）
     - 损益结转完成（期末结转已过账，AGG-99）
+    - 本期受控手工凭证无草稿、待复核、待审批（B-20，AGG-98）
+    - 本期人工成本分配与分摊运行已办结或已处理（B-07）
     - 明细账与总账控制科目一致
     - 现金流量标注完整
     - 直接法与间接法经营活动现金流量净额相等
     - 试算平衡
     - 三条对账等式成立，收付账簿生产成本余额为 0
+    - 银行余额调节已完成（若采纳 SQ-52）
     legal_entity: 被关账法人
     permission: 月结.执行前置检查
     page: 月结检查页
@@ -3457,6 +4165,10 @@ processes:
       direction: out
       bc: B-19
       name: 读会计期间
+    pending:
+    - SQ-54
+    - SQ-41
+    - SQ-52
   - actor: SH-E6
     where: in_system
     command: 发起关账
@@ -3472,6 +4184,7 @@ processes:
       goto: end
       rule: INV-99
       outcome: 已拒收
+      alert: true
     - when: otherwise
       goto: 3
     notify:
@@ -3518,6 +4231,8 @@ processes:
       after: 配置：财务设定的关账提醒日
       escalate_to: SH-M1
       interrupting: false
+      pending:
+      - P2-01
     notify:
     - to: SH-E6
       how: 企业微信通知（已关账）
@@ -3575,6 +4290,7 @@ processes:
   - PRC-101-S09
   - PRC-101-S10
   - PRC-101-S11
+  - PRC-101-S12
 - id: PRC-102
   name: 启用第 13 期并年末关账
   trigger:
@@ -3594,6 +4310,13 @@ processes:
     - initiator
     - approver
     rule: 发起年末关账与确认年末关账不得为同一人（ADR-0045 决定 1、ADR-0046 第 5 项第 5 条；R-01 补）；确认人级别占位 SH-M1，待 F-01
+  - roles:
+    - SH-E6
+    - SH-M1
+    as:
+    - initiator
+    - approver
+    rule: 启用登记人与批准人不得为同一人（AGG-96 带财务批准人，P-003 定后写入）
   triggers:
   - type: time
     name: 会计年度末，12 月关账前（platform.scheduling 到点创建待办）
@@ -3632,6 +4355,7 @@ processes:
       name: 读第 13 期启用登记
     pending:
     - P-003
+    command: 读取第 13 期启用登记
   - actor: SH-E6
     where: in_system
     command: 登记第 13 期启用
@@ -3648,6 +4372,7 @@ processes:
       goto: end
       rule: INV-104
       outcome: 已拒收
+      alert: true
     - when: otherwise
       goto: 3
     cross_bc:
@@ -3657,6 +4382,15 @@ processes:
       name: 登记第 13 期启用
     pending:
     - P-003
+    approval:
+      engine: aggregate
+      doc_type: 第 13 期启用批准
+      approver: SH-M1
+      multi_level: false
+      why_human: 是否启用第 13 期决定本年度账务结转的形态，要对账务负责的人判断；启用状态锁定与登记只追加由规则守
+      approver_basis: 第 13 期启用是对法人账务负责的职责，不归属某个费用或业务对象，取财务负责人（类型级）
+      on_reject: end
+      on_reject_outcome: 已拒收
   - actor: SH-E6
     where: in_system
     command: 开放第 13 期
@@ -3672,6 +4406,7 @@ processes:
       goto: end
       rule: INV-104
       outcome: 已拒收
+      alert: true
     - when: otherwise
       goto: 4
     cross_bc:
@@ -3692,14 +4427,17 @@ processes:
     command: 月结检查
     added_in: closeout
     checks:
-    - 过账队列与分录生成队列为空（B-16 队列、B-20 待处理队列）
+    - 过账队列与分录生成队列为空，且过账拒收记录已处置（B-16 队列与拒收记录、B-20 待处理队列；SQ-41）
     - 推送死信为空（B-20）
     - 损益结转完成（期末结转已过账，AGG-99）
+    - 本期受控手工凭证无草稿、待复核、待审批（B-20，AGG-98）
+    - 本期人工成本分配与分摊运行已办结或已处理（B-07）
     - 明细账与总账控制科目一致
     - 现金流量标注完整
     - 直接法与间接法经营活动现金流量净额相等
     - 试算平衡
     - 三条对账等式成立，收付账簿生产成本余额为 0
+    - 银行余额调节已完成（若采纳 SQ-52）
     legal_entity: 被关账法人
     permission: 月结.执行前置检查
     page: 月结检查页
@@ -3728,6 +4466,9 @@ processes:
     - P-001
     - P-002
     - P-004
+    - SQ-54
+    - SQ-41
+    - SQ-52
   - actor: SH-E6
     where: in_system
     command: 发起年末关账
@@ -3743,6 +4484,7 @@ processes:
       goto: end
       rule: INV-99
       outcome: 已拒收
+      alert: true
     - when: otherwise
       goto: 6
     notify:
@@ -3847,6 +4589,7 @@ processes:
   - PRC-102-S15
   - PRC-102-S16
   - PRC-102-S17
+  - PRC-102-S18
 - id: PRC-103
   name: 生成期间余额快照
   type: event_policy
@@ -3857,6 +4600,8 @@ processes:
   - type: event
     event: AccountingPeriodClosed
     publisher_bc: B-19
+  - type: time
+    name: 每日检查已关账期间缺快照并补生成
   outcomes:
   - 快照已生成
   - 重复事件已忽略
@@ -3872,9 +4617,10 @@ processes:
     metric_event: true
     desc: 只追加；之后的更正进开放期间快照的「上年调整」「以前期间更正」栏（INV-106）；事件载荷带期间序号，第 13 期同样生成
     decision:
-    - when: 事件载荷缺法人或期间，拒收并告警
+    - when: 事件载荷缺法人或期间，拒收并告警（由每日补生成触发兜底）
       goto: end
       outcome: 已拒收
+      alert: true
     - when: 本（法人，账簿，期间）快照已存在（重复事件）
       goto: end
       rule: INV-106
@@ -3922,6 +4668,8 @@ processes:
   - type: event
     name: 期间余额快照已生成
     publisher_bc: B-20（同 BC，PRC-103）
+  - type: time
+    name: 每日重试读取 U8C 余额（读取失败后）
   outcomes:
   - 差异已清零
   - 已签字接受
@@ -3947,6 +4695,7 @@ processes:
     - when: U8C 余额读取失败或无响应，告警并结束，待重试
       goto: end
       outcome: 对账未完成
+      alert: true
     - when: otherwise
       goto: 2
     notify:
@@ -3959,6 +4708,7 @@ processes:
       name: 读外部法定账余额
     pending:
     - S-05
+    command: 读取外部法定账余额
   - actor: SH-E6
     where: in_system
     command: 登记对账差异
@@ -3967,7 +4717,7 @@ processes:
     legal_entity: 被对账法人
     permission: 总账.登记对账差异
     page: 外部法定账对账页
-    desc: 按法人 × 科目登记差异与已推送未记账清单；红字冲销按净额核对（ADR-0022 决定 10）
+    desc: 按法人 × 科目登记差异与已推送未记账清单；红字冲销按净额核对（ADR-0022 决定 10）；差异由系统按法人×科目算出，人只补原因（QC-VS10-15）
     decision:
     - when: 差异清零
       goto: end
@@ -4074,6 +4824,7 @@ processes:
     - when: 映射的科目在所引用的科目表版本中不存在，拒收并告警
       goto: end
       outcome: 已拒收
+      alert: true
     - when: otherwise
       goto: 2
     cross_bc:
@@ -4091,14 +4842,17 @@ processes:
     period_gate: true
     permission: 报表.评审生效报表行定义
     page: 报表行定义评审页
-    desc: 草拟 → 财务评审 → 生效；只在期间首日生效（INV-91）；评审生效人不另走审批引擎（评审 R-19）
+    desc: 草拟 → 财务评审 → 生效；只在期间首日生效（INV-91a）
     decision:
     - when: 评审生效人与编制人为同一人，命令被拒，改由他人评审
       goto: 2
+    - when: 评审不通过，退回编制
+      goto: 1
     - when: 生效日不是期间首日，或该期间已关账，拒收并告警
       goto: end
-      rule: INV-91
+      rule: INV-91a
       outcome: 已拒收
+      alert: true
     - when: otherwise
       goto: end
       outcome: 已生效
@@ -4109,6 +4863,14 @@ processes:
       name: 读会计期间
     pending:
     - F-01
+    approval:
+      engine: aggregate
+      doc_type: 报表行定义评审生效
+      approver: SH-M1
+      multi_level: false
+      why_human: 报表行到科目的映射决定对外报表口径，要对财务报表负责的人评审；映射科目存在、只在期间首日生效、编制与评审分离由规则守
+      approver_basis: 报表口径评审是对财务报表负责的职责，不归属某个费用或业务对象，取财务负责人（类型级）
+      on_reject: 1
   notes: 草拟 → 财务评审 → 生效。
   scenarios:
   - PRC-105-S01
@@ -4117,6 +4879,7 @@ processes:
   - PRC-105-S04
   - PRC-105-S05
   - PRC-105-S06
+  - PRC-105-S07
 - id: PRC-106
   name: 出具三大报表
   type: read_model
@@ -4156,6 +4919,9 @@ processes:
   scenarios:
   - PRC-106-S01
   - PRC-106-S02
+  - PRC-106-S03
+  - PRC-106-S04
+  - PRC-106-S05
 - id: PRC-111
   name: 认缴并实缴出资
   type: single_aggregate
@@ -4187,6 +4953,11 @@ processes:
     - 出资协议或章程出资条款扫描件
     from: []
     to: 认缴
+    audit: true
+    decision:
+    - when: otherwise
+      goto: end
+      outcome: 出资已认缴
   - actor: SH-E6
     command: 登记出资实缴
     emits:
@@ -4197,16 +4968,40 @@ processes:
     from:
     - 认缴
     to: 实缴（到账）
+    audit: true
+    decision:
+    - when: 累计实缴将超过认缴额
+      goto: end
+      rule: 〔缺〕INV 累计实缴不超过认缴（SQ-47）
+      outcome: 已拒收
+      alert: true
+      pending:
+      - SQ-47
+    - when: otherwise
+      goto: end
+      outcome: 出资已实缴
+    pending:
+    - SQ-47
   - actor: system
     command: 提交过账候选
     calls: PRC-92
     period_gate: true
     decision:
-    - when: 期间已关账 → 拒收并告警
+    - when: 所属期间已关账，自动落当前开放期间并标原期间（系统触账不拒绝）
       goto: end
-      rule: ADR-0045
+      rule: ADR-0045 决定 2；INV-92；AR-05
+      outcome: 出资已实缴
+    - when: 过账管道拒收（该法人无开放期间、借贷不平或法人不一致），拒收并告警
+      goto: end
+      rule: INV-92、INV-93
+      outcome: 过账被拒收
       alert: true
-    desc: 出资已实缴仅分析（无业务订阅方），过账走 api（R-10）
+      pending:
+      - SQ-41
+    - when: otherwise
+      goto: end
+      outcome: 出资已实缴
+    desc: 出资已实缴仅分析（无业务订阅方），过账走 api（R-10）；系统触账遇已关账期间落开放期间（ADR-0045）
   permission: 出资.登记认缴 / 出资.登记实缴
   page: 出资登记页
   migration: 全部历史出资（认缴、实缴、退回）迁入（U-3、U-4），迁入走迁入过账通道，不触发过账候选；无在途实例
@@ -4224,6 +5019,37 @@ processes:
     bc: B-16
     name: 提交过账候选（PostingCandidate）
   notes: 出资已实缴仅分析（无业务订阅方），过账走 api（R-10）。
+  triggers:
+  - type: human
+    name: 股东或合伙人认缴后，财务登记出资认缴
+  - type: human
+    name: 出资到账后，财务登记出资实缴
+  outcomes:
+  - 出资已认缴
+  - 出资已实缴
+  - 已拒收
+  - 过账被拒收
+  roles:
+  - id: SH-E6
+    as: performer
+  - id: SH-M1
+    as: reviewer
+  segregation:
+  - roles:
+    - SH-E6
+    - SH-M1
+    as:
+    - performer
+    - reviewer
+    rule: 登记出资认缴、实缴须经财务负责人复核（提议，U-44）
+  scenarios:
+  - PRC-111-S01
+  - PRC-111-S02
+  - PRC-111-S03
+  - PRC-111-S04
+  - PRC-111-S05
+  - PRC-111-S06
+  - PRC-111-S07
 - id: PRC-112
   name: 决议并支付利润分配
   type: business
@@ -4233,8 +5059,11 @@ processes:
   triggers:
   - type: human
     name: 年度报表出具后，股东或合伙人提出回报要求
-  - type: human
-    name: 部分支付后继续登记后续支付
+    entry: 1
+  - type: event
+    name: 应付已核销（来源为利润分配的应付，部分或全额）
+    publisher: B-10（同 BC，AGG-52）
+    entry: 6
   stages:
   - VS-12.2
   owner_bc: B-10
@@ -4242,6 +5071,7 @@ processes:
   migration: 在途（草拟未决议）投产前办结或以草拟状态迁入；已决议、部分支付、已支付的利润分配全部迁入（U-3、U-4），迁入决议号、决议日期与证据引用，迁入不触发决议、支付与过账
   scope: 按法人与股东关系的数据范围（财务负责人与财务岗位）
   outcomes:
+  - 已决议待支付
   - 已支付
   - 已部分支付
   - 决议未通过
@@ -4249,13 +5079,15 @@ processes:
   - 过账被拒收
   scenarios:
   - PRC-112-S01
-  - PRC-112-S02
-  - PRC-112-S03
-  - PRC-112-S04
-  - PRC-112-S05
-  - PRC-112-S06
   - PRC-112-S07
   - PRC-112-S08
+  - PRC-112-S09
+  - PRC-112-S10
+  - PRC-112-S11
+  - PRC-112-S12
+  - PRC-112-S13
+  - PRC-112-S14
+  - PRC-112-S15
   roles:
   - id: SH-E6
     as: performer
@@ -4292,6 +5124,7 @@ processes:
     pending:
     - F-02
     legal_entity: 被分配法人
+    command: 读取已关账年度与可分配利润
   - actor: SH-E6
     where: in_system
     command: 草拟利润分配
@@ -4346,13 +5179,15 @@ processes:
     metric_event: true
     audit: true
     legal_entity: 被分配法人
+    pending:
+    - SQ-48
   - actor: SH-E6
     where: in_system
     command: 提交应付利润
     aggregate: AGG-52
     emits:
     - 应付已确认
-    desc: 按决议金额形成应付，支付走 PRC-75
+    desc: 决议后即按决议金额形成应付股利（SQ-02：会计上决议时点确认应付）；支付走 PRC-75
     decision:
     - when: otherwise
       goto: 5
@@ -4360,37 +5195,6 @@ processes:
     page: 利润分配详情页
     legal_entity: 被分配法人
     audit: true
-  - actor: SH-E6
-    where: in_system
-    evidence:
-    - 已成功付款的引用（付款 ID、银行回单号）
-    command: 登记利润分配支付
-    aggregate: AGG-109
-    emits:
-    - 利润分配已支付
-    gap: G-10
-    desc: 支付在 PRC-75 完成并应付结清后登记；触发事件来源仍开（G-10）
-    decision:
-    - when: 本次支付使支付合计超过决议金额（INV-117）→ 拒收并告警
-      goto: end
-      rule: INV-117
-      outcome: 已拒收
-      alert: true
-    - when: 支付合计小于决议金额
-      goto: end
-      outcome: 已部分支付
-    - when: otherwise
-      goto: 6
-    permission: 利润分配.登记支付
-    page: 利润分配详情页
-    cross_bc:
-    - mode: event
-      direction: out
-      bc: B-15
-      name: 利润分配已支付
-    audit: true
-    pending:
-    - G-10
   - actor: system
     where: automatic
     command: 提交过账候选
@@ -4401,22 +5205,68 @@ processes:
     - when: 所属期间已关账，自动落当前开放期间并标原期间（系统触账不拒绝）
       goto: end
       rule: ADR-0045 决定 2；INV-92；AR-05
-      outcome: 已支付
+      outcome: 已决议待支付
     - when: 过账管道拒收（该法人无开放期间、借贷不平或法人不一致），拒收并告警
       goto: end
       rule: INV-92、INV-93
       outcome: 过账被拒收
       alert: true
+      pending:
+      - SQ-41
     - when: otherwise
       goto: end
-      outcome: 已支付
+      outcome: 已决议待支付
     cross_bc:
     - mode: api
       direction: out
       bc: B-16
       name: 提交过账候选（PostingCandidate）
     legal_entity: 被分配法人
+    desc: 应付股利确认过账（决议时点，SQ-02 待总账确认口径）；支付由付款逐笔过账（PRC-132）
+  - actor: system
+    where: automatic
+    command: 登记利润分配支付
+    aggregate: AGG-109
+    emits:
+    - 利润分配已支付
+    desc: 由「应付已核销」事件触发，订阅来源为利润分配的应付，按付款核销累计置部分支付或已支付；去掉人工重复登记（G-10、SQ-02）
+    decision:
+    - when: 本次支付使支付合计超过决议金额（INV-117）→ 拒收并告警
+      goto: end
+      rule: INV-117
+      outcome: 已拒收
+      alert: true
+    - when: 支付合计小于决议金额
+      goto: end
+      outcome: 已部分支付
+    - when: otherwise
+      goto: end
+      outcome: 已支付
+    cross_bc:
+    - mode: event
+      direction: out
+      bc: B-15
+      name: 利润分配已支付
+    audit: true
+    pending:
+    - SQ-02
+    - G-10
+    timeout:
+      after: P90D
+      relative_to: 决议日
+      escalate_to: SH-M1
+      interrupting: false
+      pending:
+      - T-01
   notes: 支付走「发起、审批并执行付款」（PRC-75）；自然人股东个税见「并入股息红利个税扣缴申报」（PRC-113）。决议是聚合命令（R-15），engine 为 aggregate。
+  segregation:
+  - roles:
+    - SH-E6
+    - SH-E6
+    as:
+    - performer
+    - performer
+    rule: 草拟利润分配与登记决议证据不得为同一人（决议证据另由财务负责人复核，提议）
 - id: PRC-114
   name: 退回出资
   type: business
@@ -4435,15 +5285,19 @@ processes:
   outcomes:
   - 已退回
   - 部分退回
+  - 申请未通过
   - 已拒收
   - 过账被拒收
   scenarios:
-  - PRC-114-S01
-  - PRC-114-S02
-  - PRC-114-S03
-  - PRC-114-S04
-  - PRC-114-S05
-  - PRC-114-S06
+  - PRC-114-S07
+  - PRC-114-S08
+  - PRC-114-S09
+  - PRC-114-S10
+  - PRC-114-S11
+  - PRC-114-S12
+  - PRC-114-S13
+  - PRC-114-S14
+  - PRC-114-S15
   pending:
   - R-27
   - G-11-出资退回
@@ -4457,15 +5311,22 @@ processes:
     where: in_system
     evidence:
     - 股东或合伙人的书面退回申请扫描件
+    - 股东会或合伙人会议决议扫描件（决议号、决议日期、退回金额）
     command: 登记出资退回
     aggregate: AGG-54
     emits:
     - 出资已退回
     decision:
+    - when: 申请被撤回，或减资、退伙决议未通过
+      goto: end
+      outcome: 申请未通过
     - when: 退回额超过已实缴额
       goto: end
+      rule: 〔缺〕INV 退回不超过已实缴（SQ-47）
       outcome: 已拒收
       alert: true
+      pending:
+      - SQ-47
     - when: otherwise
       goto: 2
     permission: 出资.登记退回
@@ -4473,9 +5334,31 @@ processes:
     pending:
     - G-11-出资退回
     - R-27
+    - U-15
     metric_event: true
     audit: true
     legal_entity: 被投资法人
+    approval:
+      engine: external
+      doc_type: 减资或退伙决议
+      approver: SH-O1
+      why_human: 减资或退伙须股东会或合伙人会议决议，系统外形成，本系统登记结果与证据；退回额不超过已实缴额由规则守
+      approver_basis: 减资与退伙属股东会或合伙人会议的法定职权，不是费用或业务归属对象责任人的职责
+  - actor: system
+    where: automatic
+    command: 确认应付
+    aggregate: AGG-52
+    added_in: closeout
+    desc: 登记退回后形成其他应付（出资退回），支付走 PRC-75，付款逐笔过账（PRC-132）；应付类型承载见 G-11
+    emits:
+    - 应付已确认
+    decision:
+    - when: otherwise
+      goto: 3
+    legal_entity: 被投资法人
+    audit: true
+    pending:
+    - G-11-出资退回
   - actor: system
     where: automatic
     command: 提交过账候选
@@ -4488,6 +5371,8 @@ processes:
       rule: INV-92、INV-93
       outcome: 过账被拒收
       alert: true
+      pending:
+      - SQ-41
     - when: 所属期间已关账且退回后已实缴余额为零，自动落当前开放期间并标原期间
       goto: end
       rule: ADR-0045 决定 2；INV-92；AR-05
@@ -4508,7 +5393,7 @@ processes:
       bc: B-16
       name: 提交过账候选（PostingCandidate）
     legal_entity: 被投资法人
-  notes: 退回的资金收付走「发起、审批并执行付款」，应付类型承载见 G-11 末段。R-27：流程没有决议或审批环节，不自行加节点，列入待用户定。
+  notes: 退回的资金收付走「发起、审批并执行付款」，应付类型承载见 G-11 末段。R-27：决议环节按外部决议登记证据写入（external），是否需要决议待用户定（U-15）。
 - id: PRC-131
   name: 付款成功后核销应付
   type: event_policy
@@ -4535,6 +5420,8 @@ processes:
   - PRC-131-S02
   - PRC-131-S03
   - PRC-131-S04
+  - PRC-131-S05
+  - PRC-131-S06
   steps:
   - actor: system
     where: automatic
@@ -4543,16 +5430,18 @@ processes:
     emits:
     - 应付已核销
     - 应付已结清
-    desc: 订阅付款已成功，把占用转为核销（R-03）；未付余额为零才发应付已结清，部分付款只发应付已核销
+    desc: 订阅付款已成功，把占用转为核销（R-03）；未付余额为零才发应付已结清，部分付款只发应付已核销；核销占用与分配行不一致时付款已成功而应付未核销，人工处置命令聚合稿缺（SQ-49）
     decision:
     - when: 该付款已核销过（事件重复，按付款 ID 幂等）
       goto: end
       outcome: 重复事件已忽略
-    - when: 核销占用不存在或与分配行不一致 → 拒收并告警
+    - when: 核销占用不存在或与分配行不一致（INV-77a）→ 拒收并告警
       goto: end
-      rule: INV-77
+      rule: INV-77a
       outcome: 已拒收
       alert: true
+      pending:
+      - SQ-49
     - when: 核销后未付余额大于零
       goto: end
       outcome: 应付部分核销
@@ -4571,6 +5460,8 @@ processes:
     legal_entity: 应付所属法人
     audit: true
     outcome: 应付已结清
+    pending:
+    - SQ-49
   notes: 由原 PRC-75 步骤 6 拆出（⑥a 评审 M6）。
 - id: PRC-132
   name: 应付核销后置付款已核销并提交过账候选
@@ -4622,6 +5513,8 @@ processes:
       rule: INV-92、INV-93
       outcome: 过账被拒收
       alert: true
+      pending:
+      - SQ-41
     - when: otherwise
       goto: end
       outcome: 付款已核销并提交过账
@@ -4655,6 +5548,8 @@ processes:
   - PRC-133-S02
   - PRC-133-S03
   - PRC-133-S04
+  - PRC-133-S05
+  - PRC-133-S06
   reads:
   - AGG-52
   steps:
@@ -4732,7 +5627,7 @@ processes:
     page: 待处理队列页
     audit: true
     period_gate: true
-    desc: 来源不在授权表或映射表找不到类别的事实进队列并告警；财务经 PRC-100 补授权或映射后再生成分录；队列不清空不能关账（ADR-0022 决定 2、10）；期间已关账则拒收并告警
+    desc: 来源不在授权表或映射表找不到类别的事实进队列并告警；财务经 PRC-100 补授权或映射后再生成分录；队列不清空不能关账（ADR-0022 决定 2、10）；期间已关账则按 ADR-0045 决定 2 与 INV-92 落当前开放期间并标原期间（与 PRC-93 一致）
     pending:
     - P2-02
   - command: 推送与重投
@@ -4747,6 +5642,7 @@ processes:
     desc: 收付口径分录推送 U8C 至已确认记账，失败为死信，当日告警财务与运维，死信非空不得关账；首次推送由 PRC-93 自动完成，本维护只做死信重投与人工触发；财务可在页面触发重投（权限同左）
     pending:
     - S-05
+    - SQ-50
   cross_bc:
   - mode: api
     direction: out
