@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_PRC-28" targetNamespace="https://forcitis.one/bpmn/closeout/revenue" exporter="one-arch-revenue" exporterVersion="1">
+  <bpmn:signal id="Signal_Delivered" name="交付物已送达"/>
+  <bpmn:signal id="Signal_Accepted" name="交付物已认可"/>
+  <bpmn:signal id="Signal_Returned" name="AcceptanceReturned"/>
+  <bpmn:signal id="Signal_Declared" name="无异议已声明"/>
+  <bpmn:message id="Msg_M1" name="交付物（提交轮次）"/>
+  <bpmn:message id="Msg_M2" name="书面认可"/>
+  <bpmn:message id="Msg_M3" name="书面退回意见"/>
+  <bpmn:message id="Msg_M4" name="催签认函"/>
+  <bpmn:collaboration id="Collab_PRC-28">
+    <bpmn:documentation>PRC-28 编制、评审并签发交付物，送达并登记客户认可（描述级，BPMN 2.0.2；画法按 closeout/BPMN_STYLE.md；骨架见 closeout/revenue/processes.revenue.yaml）</bpmn:documentation>
+    <bpmn:participant id="Pool_FORCITIS" name="FORCITIS one" processRef="PRC-28"/>
+    <bpmn:participant id="Pool_Customer" name="客户（发包人代表 SH-C6a、使用者 SH-C6e）"/>
+    <bpmn:messageFlow id="M1" name="交付物（提交轮次）" sourceRef="T_Deliver" targetRef="Pool_Customer" messageRef="Msg_M1"/>
+    <bpmn:messageFlow id="M2" name="书面认可" sourceRef="Pool_Customer" targetRef="C_Accepted" messageRef="Msg_M2"/>
+    <bpmn:messageFlow id="M3" name="书面退回意见" sourceRef="Pool_Customer" targetRef="C_Returned" messageRef="Msg_M3"/>
+    <bpmn:messageFlow id="M4" name="催签认函" sourceRef="T_Chase" targetRef="Pool_Customer" messageRef="Msg_M4"/>
+  </bpmn:collaboration>
+  <bpmn:process id="PRC-28" name="编制、评审并签发交付物，送达并登记客户认可" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_PRC-28">
+      <bpmn:lane id="Lane_E3" name="设计师和顾问（SH-E3）">
+        <bpmn:flowNodeRef>Start</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T_ReadContext</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T_Draft</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T_RegDraft</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_E4" name="技术专家（SH-E4）">
+        <bpmn:flowNodeRef>T_Review</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>G_Review</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_E7" name="注册执业人员（SH-E7）">
+        <bpmn:flowNodeRef>T_Issue</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>G_Issue</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_NotIssued</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_E2" name="项目经理（SH-E2）">
+        <bpmn:flowNodeRef>T_Deliver</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T_RegDelivery</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>S_Delivered</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>G_Wait</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>C_Accepted</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>C_Returned</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>C_Timer</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T_RegAccept</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>S_Accepted</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Accepted</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T_RegReturn</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>S_Returned</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>G_Period</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T_Search</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T_Declare</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>S_Declared</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>End_Declared</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>T_Chase</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Start" name="工作包待出成果">
+      <bpmn:outgoing>F1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="T_ReadContext" name="查看项目阶段与签发条件">
+      <bpmn:documentation>读 AGG-19 项目、AGG-20 WBS 阶段（B-04）；读 AGG-66 执业证书（B-13）；只读</bpmn:documentation>
+      <bpmn:incoming>F1</bpmn:incoming>
+      <bpmn:outgoing>F2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:manualTask id="T_Draft" name="编制交付物文件">
+      <bpmn:documentation>线下：在设计软件中编制（where: offline）</bpmn:documentation>
+      <bpmn:incoming>F2</bpmn:incoming>
+      <bpmn:incoming>F7</bpmn:incoming>
+      <bpmn:incoming>F22</bpmn:incoming>
+      <bpmn:outgoing>F3</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:userTask id="T_RegDraft" name="登记交付物与文件版本">
+      <bpmn:documentation>AGG-27 编制交付物；B-28。文件原件上传，服务端计内容哈希</bpmn:documentation>
+      <bpmn:incoming>F3</bpmn:incoming>
+      <bpmn:outgoing>F4</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DOA_T_RegDraft_D_File"><bpmn:targetRef>D_File</bpmn:targetRef></bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DOA_T_RegDraft_DS"><bpmn:targetRef>DS_AGG27</bpmn:targetRef></bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:userTask id="T_Review" name="校审交付物">
+      <bpmn:documentation>AGG-27 登记内部评审结论；B-28。approval.engine = aggregate：校对、审核、审定逐级登记（级数按项目类别配置，待用户定）</bpmn:documentation>
+      <bpmn:incoming>F4</bpmn:incoming>
+      <bpmn:outgoing>F5</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DOA_T_Review_DS"><bpmn:targetRef>DS_AGG27</bpmn:targetRef></bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="G_Review" name="校审通过？">
+      <bpmn:incoming>F5</bpmn:incoming>
+      <bpmn:outgoing>F6</bpmn:outgoing>
+      <bpmn:outgoing>F7</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="T_Issue" name="签发交付物">
+      <bpmn:documentation>AGG-27 签发交付物；B-28。前置 INV-47：签发人执业证书有效，专业与等级符合</bpmn:documentation>
+      <bpmn:incoming>F6</bpmn:incoming>
+      <bpmn:outgoing>F8</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DOA_T_Issue_DS"><bpmn:targetRef>DS_AGG27</bpmn:targetRef></bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="G_Issue" name="签发成功？">
+      <bpmn:incoming>F8</bpmn:incoming>
+      <bpmn:outgoing>F9</bpmn:outgoing>
+      <bpmn:outgoing>F10</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="End_NotIssued" name="未签发">
+      <bpmn:incoming>F10</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:manualTask id="T_Deliver" name="送达交付物">
+      <bpmn:documentation>线下：按合同通知条款送达（签收单、快递、邮件、平台）</bpmn:documentation>
+      <bpmn:incoming>F9</bpmn:incoming>
+      <bpmn:outgoing>F11</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:userTask id="T_RegDelivery" name="登记送达回执">
+      <bpmn:documentation>AGG-27 登记提交轮次送达；B-28。回执经 PRC-33 登记为证据（AGG-38），挂本轮提交（ADR-0047 第 5 条第 2 点）</bpmn:documentation>
+      <bpmn:incoming>F11</bpmn:incoming>
+      <bpmn:outgoing>F12</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DOA_T_RegDelivery_D_Receipt"><bpmn:targetRef>D_Receipt</bpmn:targetRef></bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DOA_T_RegDelivery_DS"><bpmn:targetRef>DS_AGG27</bpmn:targetRef></bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:intermediateThrowEvent id="S_Delivered" name="交付物已送达">
+      <bpmn:incoming>F12</bpmn:incoming>
+      <bpmn:outgoing>F13</bpmn:outgoing>
+      <bpmn:signalEventDefinition id="SED_S_Delivered" signalRef="Signal_Delivered"/>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:eventBasedGateway id="G_Wait" name="等待客户答复">
+      <bpmn:incoming>F13</bpmn:incoming>
+      <bpmn:incoming>F29</bpmn:incoming>
+      <bpmn:outgoing>F14</bpmn:outgoing>
+      <bpmn:outgoing>F15</bpmn:outgoing>
+      <bpmn:outgoing>F16</bpmn:outgoing>
+    </bpmn:eventBasedGateway>
+    <bpmn:intermediateCatchEvent id="C_Accepted" name="收到书面认可">
+      <bpmn:incoming>F14</bpmn:incoming>
+      <bpmn:outgoing>F17</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_C_Accepted" messageRef="Msg_M2"/>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="C_Returned" name="收到书面退回">
+      <bpmn:incoming>F15</bpmn:incoming>
+      <bpmn:outgoing>F20</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MED_C_Returned" messageRef="Msg_M3"/>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="C_Timer" name="审查期或催签周期届满">
+      <bpmn:incoming>F16</bpmn:incoming>
+      <bpmn:outgoing>F23</bpmn:outgoing>
+      <bpmn:timerEventDefinition id="TED_C_Timer"><bpmn:timeDuration xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">合同审查期（约定时）或催签周期（未约定时）</bpmn:timeDuration></bpmn:timerEventDefinition>
+    </bpmn:intermediateCatchEvent>
+    <bpmn:userTask id="T_RegAccept" name="登记客户认可">
+      <bpmn:documentation>AGG-27 登记客户认可；B-28。approval.engine = external：客户书面认可只登记证据；签认人须为合同登记的发包人代表或授权人（ADR-0047 第 2 条）；前置 INV-48</bpmn:documentation>
+      <bpmn:incoming>F17</bpmn:incoming>
+      <bpmn:outgoing>F18</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DOA_T_RegAccept_D_Accept"><bpmn:targetRef>D_Accept</bpmn:targetRef></bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DOA_T_RegAccept_DS"><bpmn:targetRef>DS_AGG27</bpmn:targetRef></bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:intermediateThrowEvent id="S_Accepted" name="交付物已认可">
+      <bpmn:incoming>F18</bpmn:incoming>
+      <bpmn:outgoing>F19</bpmn:outgoing>
+      <bpmn:signalEventDefinition id="SED_S_Accepted" signalRef="Signal_Accepted"/>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="End_Accepted" name="已认可">
+      <bpmn:incoming>F19</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="T_RegReturn" name="登记客户退回">
+      <bpmn:documentation>AGG-27 登记客户退回；B-28。退回意见作证据；轮次加 1，修改后重新报送，审查期从新送达日重算（ADR-0047 第 5 条第 5 点）</bpmn:documentation>
+      <bpmn:incoming>F20</bpmn:incoming>
+      <bpmn:outgoing>F21</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DOA_T_RegReturn_D_Return"><bpmn:targetRef>D_Return</bpmn:targetRef></bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DOA_T_RegReturn_DS"><bpmn:targetRef>DS_AGG27</bpmn:targetRef></bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:intermediateThrowEvent id="S_Returned" name="AcceptanceReturned">
+      <bpmn:incoming>F21</bpmn:incoming>
+      <bpmn:outgoing>F22</bpmn:outgoing>
+      <bpmn:signalEventDefinition id="SED_S_Returned" signalRef="Signal_Returned"/>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:exclusiveGateway id="G_Period" name="合同约定了审查期？">
+      <bpmn:incoming>F23</bpmn:incoming>
+      <bpmn:outgoing>F24</bpmn:outgoing>
+      <bpmn:outgoing>F25</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:manualTask id="T_Search" name="检索往来函件">
+      <bpmn:documentation>线下或在企业邮箱中检索期满前的往来函件</bpmn:documentation>
+      <bpmn:incoming>F24</bpmn:incoming>
+      <bpmn:outgoing>F26</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:userTask id="T_Declare" name="登记无异议声明">
+      <bpmn:documentation>AGG-27 登记项目经理的无异议声明；B-28。交付侧不判期满；期满判定与视为同意认定在 B-08（ADR-0049 决定 1、5）；财务在收入确认审批中复核（ADR-0047 U-2 (a)）</bpmn:documentation>
+      <bpmn:incoming>F26</bpmn:incoming>
+      <bpmn:outgoing>F27</bpmn:outgoing>
+      <bpmn:dataOutputAssociation id="DOA_T_Declare_D_Search"><bpmn:targetRef>D_Search</bpmn:targetRef></bpmn:dataOutputAssociation>
+      <bpmn:dataOutputAssociation id="DOA_T_Declare_DS"><bpmn:targetRef>DS_AGG27</bpmn:targetRef></bpmn:dataOutputAssociation>
+    </bpmn:userTask>
+    <bpmn:intermediateThrowEvent id="S_Declared" name="无异议已声明">
+      <bpmn:incoming>F27</bpmn:incoming>
+      <bpmn:outgoing>F28</bpmn:outgoing>
+      <bpmn:signalEventDefinition id="SED_S_Declared" signalRef="Signal_Declared"/>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="End_Declared" name="已声明无异议">
+      <bpmn:incoming>F28</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:manualTask id="T_Chase" name="催客户签认">
+      <bpmn:documentation>线下：发函或当面催签认；未约定审查期的不得视为同意（ADR-0047 第 5 条第 1 点）</bpmn:documentation>
+      <bpmn:incoming>F25</bpmn:incoming>
+      <bpmn:outgoing>F29</bpmn:outgoing>
+    </bpmn:manualTask>
+    <bpmn:sequenceFlow id="F1" sourceRef="Start" targetRef="T_ReadContext"/>
+    <bpmn:sequenceFlow id="F2" sourceRef="T_ReadContext" targetRef="T_Draft"/>
+    <bpmn:sequenceFlow id="F3" sourceRef="T_Draft" targetRef="T_RegDraft"/>
+    <bpmn:sequenceFlow id="F4" sourceRef="T_RegDraft" targetRef="T_Review"/>
+    <bpmn:sequenceFlow id="F5" sourceRef="T_Review" targetRef="G_Review"/>
+    <bpmn:sequenceFlow id="F6" name="通过" sourceRef="G_Review" targetRef="T_Issue"/>
+    <bpmn:sequenceFlow id="F7" name="不通过" sourceRef="G_Review" targetRef="T_Draft"/>
+    <bpmn:sequenceFlow id="F8" sourceRef="T_Issue" targetRef="G_Issue"/>
+    <bpmn:sequenceFlow id="F9" name="已签发" sourceRef="G_Issue" targetRef="T_Deliver"/>
+    <bpmn:sequenceFlow id="F10" name="未签发" sourceRef="G_Issue" targetRef="End_NotIssued"/>
+    <bpmn:sequenceFlow id="F11" sourceRef="T_Deliver" targetRef="T_RegDelivery"/>
+    <bpmn:sequenceFlow id="F12" sourceRef="T_RegDelivery" targetRef="S_Delivered"/>
+    <bpmn:sequenceFlow id="F13" sourceRef="S_Delivered" targetRef="G_Wait"/>
+    <bpmn:sequenceFlow id="F14" sourceRef="G_Wait" targetRef="C_Accepted"/>
+    <bpmn:sequenceFlow id="F15" sourceRef="G_Wait" targetRef="C_Returned"/>
+    <bpmn:sequenceFlow id="F16" sourceRef="G_Wait" targetRef="C_Timer"/>
+    <bpmn:sequenceFlow id="F17" sourceRef="C_Accepted" targetRef="T_RegAccept"/>
+    <bpmn:sequenceFlow id="F18" sourceRef="T_RegAccept" targetRef="S_Accepted"/>
+    <bpmn:sequenceFlow id="F19" sourceRef="S_Accepted" targetRef="End_Accepted"/>
+    <bpmn:sequenceFlow id="F20" sourceRef="C_Returned" targetRef="T_RegReturn"/>
+    <bpmn:sequenceFlow id="F21" sourceRef="T_RegReturn" targetRef="S_Returned"/>
+    <bpmn:sequenceFlow id="F22" name="修改后重新报送" sourceRef="S_Returned" targetRef="T_Draft"/>
+    <bpmn:sequenceFlow id="F23" sourceRef="C_Timer" targetRef="G_Period"/>
+    <bpmn:sequenceFlow id="F24" name="已约定" sourceRef="G_Period" targetRef="T_Search"/>
+    <bpmn:sequenceFlow id="F25" name="未约定" sourceRef="G_Period" targetRef="T_Chase"/>
+    <bpmn:sequenceFlow id="F26" sourceRef="T_Search" targetRef="T_Declare"/>
+    <bpmn:sequenceFlow id="F27" sourceRef="T_Declare" targetRef="S_Declared"/>
+    <bpmn:sequenceFlow id="F28" sourceRef="S_Declared" targetRef="End_Declared"/>
+    <bpmn:sequenceFlow id="F29" name="继续等待" sourceRef="T_Chase" targetRef="G_Wait"/>
+    <bpmn:dataObjectReference id="D_File" name="交付物文件（含哈希）" dataObjectRef="DO_D_File"/>
+    <bpmn:dataObject id="DO_D_File"/>
+    <bpmn:dataObjectReference id="D_Receipt" name="送达回执" dataObjectRef="DO_D_Receipt"/>
+    <bpmn:dataObject id="DO_D_Receipt"/>
+    <bpmn:dataObjectReference id="D_Accept" name="客户认可材料" dataObjectRef="DO_D_Accept"/>
+    <bpmn:dataObject id="DO_D_Accept"/>
+    <bpmn:dataObjectReference id="D_Return" name="退回意见" dataObjectRef="DO_D_Return"/>
+    <bpmn:dataObject id="DO_D_Return"/>
+    <bpmn:dataObjectReference id="D_Search" name="函件检索记录" dataObjectRef="DO_D_Search"/>
+    <bpmn:dataObject id="DO_D_Search"/>
+    <bpmn:dataStoreReference id="DS_AGG27" name="AGG-27 交付物"/>
+    <bpmn:textAnnotation id="A_Delivered"><bpmn:text>→ B-08 PRC-54：按合同参数算期满日、生成期满待办</bpmn:text></bpmn:textAnnotation>
+    <bpmn:textAnnotation id="A_Accepted"><bpmn:text>→ B-08 PRC-53 确认收入；→ B-05 PRC-56 付款条件项转为可结算</bpmn:text></bpmn:textAnnotation>
+    <bpmn:textAnnotation id="A_Returned"><bpmn:text>→ B-08 PRC-54：作废本轮期满待办</bpmn:text></bpmn:textAnnotation>
+    <bpmn:textAnnotation id="A_Declared"><bpmn:text>→ B-08 PRC-54：认定视为同意，成立后触发 PRC-53</bpmn:text></bpmn:textAnnotation>
+    <bpmn:association id="Assoc_A_Delivered" sourceRef="S_Delivered" targetRef="A_Delivered"/>
+    <bpmn:association id="Assoc_A_Accepted" sourceRef="S_Accepted" targetRef="A_Accepted"/>
+    <bpmn:association id="Assoc_A_Returned" sourceRef="S_Returned" targetRef="A_Returned"/>
+    <bpmn:association id="Assoc_A_Declared" sourceRef="S_Declared" targetRef="A_Declared"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagram_PRC-28">
+    <bpmndi:BPMNPlane id="Plane_PRC-28" bpmnElement="Collab_PRC-28">
+      <bpmndi:BPMNShape id="Pool_FORCITIS_di" bpmnElement="Pool_FORCITIS" isHorizontal="true"><dc:Bounds x="100" y="100" width="3170" height="840"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_E3_di" bpmnElement="Lane_E3" isHorizontal="true"><dc:Bounds x="130" y="100" width="3140" height="120"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_E4_di" bpmnElement="Lane_E4" isHorizontal="true"><dc:Bounds x="130" y="220" width="3140" height="120"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_E7_di" bpmnElement="Lane_E7" isHorizontal="true"><dc:Bounds x="130" y="340" width="3140" height="120"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_E2_di" bpmnElement="Lane_E2" isHorizontal="true"><dc:Bounds x="130" y="460" width="3140" height="480"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Pool_Customer_di" bpmnElement="Pool_Customer" isHorizontal="true"><dc:Bounds x="100" y="1000" width="3170" height="100"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Start_di" bpmnElement="Start"><dc:Bounds x="292" y="142" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="262" y="182" width="96" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_ReadContext_di" bpmnElement="T_ReadContext"><dc:Bounds x="415" y="120" width="110" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Draft_di" bpmnElement="T_Draft"><dc:Bounds x="575" y="120" width="110" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_RegDraft_di" bpmnElement="T_RegDraft"><dc:Bounds x="735" y="120" width="110" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Review_di" bpmnElement="T_Review"><dc:Bounds x="895" y="240" width="110" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Review_di" bpmnElement="G_Review" isMarkerVisible="true"><dc:Bounds x="1085" y="255" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="1055" y="309" width="110" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Issue_di" bpmnElement="T_Issue"><dc:Bounds x="1215" y="360" width="110" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Issue_di" bpmnElement="G_Issue" isMarkerVisible="true"><dc:Bounds x="1405" y="375" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="1375" y="429" width="110" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_NotIssued_di" bpmnElement="End_NotIssued"><dc:Bounds x="1572" y="382" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="1542" y="422" width="96" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Deliver_di" bpmnElement="T_Deliver"><dc:Bounds x="1535" y="480" width="110" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_RegDelivery_di" bpmnElement="T_RegDelivery"><dc:Bounds x="1695" y="480" width="110" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Delivered_di" bpmnElement="S_Delivered"><dc:Bounds x="1892" y="502" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="1862" y="542" width="96" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Wait_di" bpmnElement="G_Wait"><dc:Bounds x="2045" y="495" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="2015" y="549" width="110" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_Accepted_di" bpmnElement="C_Accepted"><dc:Bounds x="2212" y="502" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="2182" y="542" width="96" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_Returned_di" bpmnElement="C_Returned"><dc:Bounds x="2212" y="622" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="2182" y="662" width="96" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="C_Timer_di" bpmnElement="C_Timer"><dc:Bounds x="2212" y="742" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="2182" y="782" width="96" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_RegAccept_di" bpmnElement="T_RegAccept"><dc:Bounds x="2335" y="480" width="110" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Accepted_di" bpmnElement="S_Accepted"><dc:Bounds x="2532" y="502" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="2502" y="542" width="96" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Accepted_di" bpmnElement="End_Accepted"><dc:Bounds x="2692" y="502" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="2662" y="542" width="96" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_RegReturn_di" bpmnElement="T_RegReturn"><dc:Bounds x="2335" y="600" width="110" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Returned_di" bpmnElement="S_Returned"><dc:Bounds x="2532" y="622" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="2502" y="662" width="96" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="G_Period_di" bpmnElement="G_Period" isMarkerVisible="true"><dc:Bounds x="2365" y="735" width="50" height="50"/><bpmndi:BPMNLabel><dc:Bounds x="2335" y="789" width="110" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Search_di" bpmnElement="T_Search"><dc:Bounds x="2495" y="720" width="110" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Declare_di" bpmnElement="T_Declare"><dc:Bounds x="2655" y="720" width="110" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Declared_di" bpmnElement="S_Declared"><dc:Bounds x="2852" y="742" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="2822" y="782" width="96" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Declared_di" bpmnElement="End_Declared"><dc:Bounds x="3012" y="742" width="36" height="36"/><bpmndi:BPMNLabel><dc:Bounds x="2982" y="782" width="96" height="28"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_Chase_di" bpmnElement="T_Chase"><dc:Bounds x="2335" y="840" width="110" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="D_File_di" bpmnElement="D_File"><dc:Bounds x="851" y="86" width="36" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="D_Receipt_di" bpmnElement="D_Receipt"><dc:Bounds x="1811" y="446" width="36" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="D_Accept_di" bpmnElement="D_Accept"><dc:Bounds x="2451" y="446" width="36" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="D_Return_di" bpmnElement="D_Return"><dc:Bounds x="2451" y="566" width="36" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="D_Search_di" bpmnElement="D_Search"><dc:Bounds x="2771" y="686" width="36" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DS_AGG27_di" bpmnElement="DS_AGG27"><dc:Bounds x="1725" y="15" width="50" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="A_Delivered_di" bpmnElement="A_Delivered"><dc:Bounds x="1832" y="542" width="150" height="40"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="A_Accepted_di" bpmnElement="A_Accepted"><dc:Bounds x="2492" y="542" width="150" height="40"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="A_Returned_di" bpmnElement="A_Returned"><dc:Bounds x="2492" y="662" width="150" height="40"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="A_Declared_di" bpmnElement="A_Declared"><dc:Bounds x="2812" y="782" width="150" height="40"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="F1_di" bpmnElement="F1"><di:waypoint x="328" y="160"/><di:waypoint x="415" y="160"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F2_di" bpmnElement="F2"><di:waypoint x="525" y="160"/><di:waypoint x="575" y="160"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F3_di" bpmnElement="F3"><di:waypoint x="685" y="160"/><di:waypoint x="735" y="160"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F4_di" bpmnElement="F4"><di:waypoint x="845" y="160"/><di:waypoint x="870" y="160"/><di:waypoint x="870" y="280"/><di:waypoint x="895" y="280"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F5_di" bpmnElement="F5"><di:waypoint x="1005" y="280"/><di:waypoint x="1085" y="280"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F6_di" bpmnElement="F6"><di:waypoint x="1110" y="305"/><di:waypoint x="1110" y="400"/><di:waypoint x="1215" y="400"/><bpmndi:BPMNLabel><dc:Bounds x="1114" y="382" width="80" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F7_di" bpmnElement="F7"><di:waypoint x="1110" y="255"/><di:waypoint x="1110" y="225"/><di:waypoint x="630" y="225"/><di:waypoint x="630" y="200"/><bpmndi:BPMNLabel><dc:Bounds x="1114" y="207" width="80" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F8_di" bpmnElement="F8"><di:waypoint x="1325" y="400"/><di:waypoint x="1405" y="400"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F9_di" bpmnElement="F9"><di:waypoint x="1430" y="425"/><di:waypoint x="1430" y="520"/><di:waypoint x="1535" y="520"/><bpmndi:BPMNLabel><dc:Bounds x="1434" y="502" width="80" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F10_di" bpmnElement="F10"><di:waypoint x="1455" y="400"/><di:waypoint x="1572" y="400"/><bpmndi:BPMNLabel><dc:Bounds x="1459" y="382" width="80" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F11_di" bpmnElement="F11"><di:waypoint x="1645" y="520"/><di:waypoint x="1695" y="520"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F12_di" bpmnElement="F12"><di:waypoint x="1805" y="520"/><di:waypoint x="1892" y="520"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F13_di" bpmnElement="F13"><di:waypoint x="1928" y="520"/><di:waypoint x="2045" y="520"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F14_di" bpmnElement="F14"><di:waypoint x="2095" y="520"/><di:waypoint x="2212" y="520"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F15_di" bpmnElement="F15"><di:waypoint x="2070" y="545"/><di:waypoint x="2070" y="640"/><di:waypoint x="2212" y="640"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F16_di" bpmnElement="F16"><di:waypoint x="2070" y="545"/><di:waypoint x="2070" y="760"/><di:waypoint x="2212" y="760"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F17_di" bpmnElement="F17"><di:waypoint x="2248" y="520"/><di:waypoint x="2335" y="520"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F18_di" bpmnElement="F18"><di:waypoint x="2445" y="520"/><di:waypoint x="2532" y="520"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F19_di" bpmnElement="F19"><di:waypoint x="2568" y="520"/><di:waypoint x="2692" y="520"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F20_di" bpmnElement="F20"><di:waypoint x="2248" y="640"/><di:waypoint x="2335" y="640"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F21_di" bpmnElement="F21"><di:waypoint x="2445" y="640"/><di:waypoint x="2532" y="640"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F22_di" bpmnElement="F22"><di:waypoint x="2550" y="658"/><di:waypoint x="2550" y="692"/><di:waypoint x="650" y="692"/><di:waypoint x="650" y="200"/><bpmndi:BPMNLabel><dc:Bounds x="2554" y="674" width="80" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F23_di" bpmnElement="F23"><di:waypoint x="2248" y="760"/><di:waypoint x="2365" y="760"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F24_di" bpmnElement="F24"><di:waypoint x="2415" y="760"/><di:waypoint x="2495" y="760"/><bpmndi:BPMNLabel><dc:Bounds x="2419" y="742" width="80" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F25_di" bpmnElement="F25"><di:waypoint x="2415" y="760"/><di:waypoint x="2375" y="760"/><di:waypoint x="2375" y="880"/><di:waypoint x="2335" y="880"/><bpmndi:BPMNLabel><dc:Bounds x="2379" y="742" width="80" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F26_di" bpmnElement="F26"><di:waypoint x="2605" y="760"/><di:waypoint x="2655" y="760"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F27_di" bpmnElement="F27"><di:waypoint x="2765" y="760"/><di:waypoint x="2852" y="760"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F28_di" bpmnElement="F28"><di:waypoint x="2888" y="760"/><di:waypoint x="3012" y="760"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="F29_di" bpmnElement="F29"><di:waypoint x="2335" y="880"/><di:waypoint x="2070" y="880"/><di:waypoint x="2070" y="545"/><bpmndi:BPMNLabel><dc:Bounds x="2074" y="862" width="80" height="14"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M1_di" bpmnElement="M1"><di:waypoint x="1590" y="560"/><di:waypoint x="1590" y="1000"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M2_di" bpmnElement="M2"><di:waypoint x="2230" y="1000"/><di:waypoint x="2230" y="538"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M3_di" bpmnElement="M3"><di:waypoint x="2230" y="1000"/><di:waypoint x="2230" y="658"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="M4_di" bpmnElement="M4"><di:waypoint x="2390" y="920"/><di:waypoint x="2390" y="1000"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_T_RegDraft_D_File_di" bpmnElement="DOA_T_RegDraft_D_File"><di:waypoint x="835" y="120"/><di:waypoint x="851" y="111"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_T_RegDelivery_D_Receipt_di" bpmnElement="DOA_T_RegDelivery_D_Receipt"><di:waypoint x="1795" y="480"/><di:waypoint x="1811" y="471"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_T_RegAccept_D_Accept_di" bpmnElement="DOA_T_RegAccept_D_Accept"><di:waypoint x="2435" y="480"/><di:waypoint x="2451" y="471"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_T_RegReturn_D_Return_di" bpmnElement="DOA_T_RegReturn_D_Return"><di:waypoint x="2435" y="600"/><di:waypoint x="2451" y="591"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_T_Declare_D_Search_di" bpmnElement="DOA_T_Declare_D_Search"><di:waypoint x="2755" y="720"/><di:waypoint x="2771" y="711"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_T_RegDraft_DS_di" bpmnElement="DOA_T_RegDraft_DS"><di:waypoint x="755" y="120"/><di:waypoint x="1750" y="65"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_T_Review_DS_di" bpmnElement="DOA_T_Review_DS"><di:waypoint x="915" y="240"/><di:waypoint x="1750" y="65"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_T_Issue_DS_di" bpmnElement="DOA_T_Issue_DS"><di:waypoint x="1235" y="360"/><di:waypoint x="1750" y="65"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_T_RegDelivery_DS_di" bpmnElement="DOA_T_RegDelivery_DS"><di:waypoint x="1715" y="480"/><di:waypoint x="1750" y="65"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_T_RegAccept_DS_di" bpmnElement="DOA_T_RegAccept_DS"><di:waypoint x="2355" y="480"/><di:waypoint x="1750" y="65"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_T_RegReturn_DS_di" bpmnElement="DOA_T_RegReturn_DS"><di:waypoint x="2355" y="600"/><di:waypoint x="1750" y="65"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="DOA_T_Declare_DS_di" bpmnElement="DOA_T_Declare_DS"><di:waypoint x="2675" y="720"/><di:waypoint x="1750" y="65"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_A_Delivered_di" bpmnElement="Assoc_A_Delivered"><di:waypoint x="1910" y="538"/><di:waypoint x="1852" y="542"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_A_Accepted_di" bpmnElement="Assoc_A_Accepted"><di:waypoint x="2550" y="538"/><di:waypoint x="2512" y="542"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_A_Returned_di" bpmnElement="Assoc_A_Returned"><di:waypoint x="2550" y="658"/><di:waypoint x="2512" y="662"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Assoc_A_Declared_di" bpmnElement="Assoc_A_Declared"><di:waypoint x="2870" y="778"/><di:waypoint x="2832" y="782"/></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
