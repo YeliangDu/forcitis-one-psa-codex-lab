@@ -2,7 +2,7 @@
 
 - 用途：用户看设计是否符合想法（intent 2026-10-16-153009）；意见回来前不批量铺开其余流程。
 - 范围：一个人从「录用决定已作出」到「能用企业微信登录 FORCITIS one、已参保、有薪酬档案」。三个流程首尾相接：PRC-83 办理入职与任职（B-13，含劳动合同单级批准）→ PRC-137 入职开通企业微信并绑定外部身份（新号）→ PRC-84 参保增员与建立薪酬档案（B-15）。
-- 格式：`../CONVENTIONS.md`。本页的 yaml 是样板定稿；`processes.people.yaml`、`data-model.people.yaml` 中这三个流程与相关表在用户意见回来后按本页同步。
+- 格式：`../CONVENTIONS.md`。本页的 yaml 是样板定稿；`processes.people.yaml` 中这三个流程已与本页同步（含 `where` / `evidence`），`data-model.people.yaml` 的相关表在用户意见回来后同步。
 - 〔缺〕= 聚合稿没有的命令或事件，提议新增（见第 4 节），不假装已存在。
 
 ## 1. 关键设计点与依据（一行一条）
@@ -46,6 +46,7 @@
     - {id: SH-E1, as: informed}       # 用人经理
   steps:
     - actor: SH-E6
+      where: in_system
       command: 登记入职
       aggregate: AGG-62
       emits: [〔缺〕入职已登记]        # S3；PG-01
@@ -56,6 +57,7 @@
         - {when: 入职日不晚于今天, goto: 2}
         - {when: otherwise, goto: 2}      # 提前登记：第 2 步在入职日到时由系统执行
     - actor: system
+      where: automatic
       on_time: 入职日到达（当天开始时）
       command: 〔缺〕入职生效
       aggregate: AGG-62
@@ -65,6 +67,7 @@
         - {mode: event, direction: out, bc: B-15, name: Employed}               # 触发 PRC-84
         - {mode: event, direction: out, bc: platform.identity, name: Employed}  # 放行登录（S4）
     - actor: SH-E6
+      where: in_system
       command: 建立任职
       aggregate: AGG-63
       emits: [任职已变更]
@@ -75,6 +78,7 @@
       cross_bc:
         - {mode: event, direction: out, bc: platform.identity, name: 任职已变更}   # 默认角色与数据范围（S10）
     - actor: SH-E6
+      where: in_system
       command: 提交劳动合同
       aggregate: AGG-67
       desc: 用人单位（法人口径之一，S13）、期限、试用期
@@ -82,6 +86,7 @@
         - {when: 试用期超过法定上限, goto: 4}            # INV-14 拒绝
         - {when: otherwise, goto: 5}
     - actor: SH-E6
+      where: in_system
       command: 批准劳动合同
       aggregate: AGG-67
       approval:
@@ -91,6 +96,8 @@
         multi_level: false
         on_reject: 4                                     # 退回人力改合同（驳回命令〔缺〕，PG-09）
     - actor: SH-E6
+      where: offline
+      evidence: [已签署劳动合同扫描件, 签署日]
       command: 签订劳动合同
       aggregate: AGG-67
       emits: [劳动合同已签订]
@@ -99,6 +106,7 @@
         - {when: 用工满一个月仍未签订, goto: 6}          # P-05 提醒，不拒绝（S12）
         - {when: otherwise, goto: 7}
     - actor: system
+      where: automatic
       desc: 员工法人三口径（劳动合同用人单位、数据范围法人、个税扣缴义务人）比对，不一致预警人力（S13）；预警策略〔缺〕，PG-11
       decision:
         - {when: otherwise, goto: end}
@@ -117,12 +125,15 @@
     - {id: SH-E3, as: informed}       # 新员工，收到开通通知
   steps:
     - actor: platform
+      where: automatic
       bc: platform.identity
       command: 〔缺〕建立待开通登录身份
       desc: 以人员 ID 为键；拟定企业微信 userid = 工号（S6）；登录放行起点 = 入职日（S4）
       cross_bc:
         - {mode: event, direction: in, bc: B-13, name: 〔缺〕入职已登记}
     - actor: SH-E6                    # 信息；或系统自动，见待用户 T-1
+      where: external:企业微信
+      evidence: [企业微信返回的成员 userid, 开通时间]
       bc: platform.identity
       command: 〔缺〕开通企业微信成员
       desc: 经 platform.integration 的企业微信适配器开通成员（按 T-1 选项：自动调接口或信息部门手工开通后在本系统确认）
@@ -132,6 +143,7 @@
         - {when: 企业微信返回失败或 userid 已被占用, goto: 4}
         - {when: otherwise, goto: 3}
     - actor: platform
+      where: automatic
       bc: platform.identity
       command: 〔缺〕绑定外部身份
       desc: 按 userid 精确绑定到人员（S6）；入职日前绑定的身份处于「待生效」，订阅 Employed 后放行登录
@@ -140,6 +152,7 @@
       decision:
         - {when: otherwise, goto: end}
     - actor: system
+      where: automatic
       on_time: 开通失败，或入职日已到仍未绑定
       desc: 告警信息部门与人力，不静默（S8）；时限待用户 T-2
       decision:
@@ -158,6 +171,8 @@
     - {id: SH-E6, as: performer}      # 人力（薪酬与社保）
   steps:
     - actor: SH-E6
+      where: offline
+      evidence: [社保增员回执, 公积金增员回执, 办理日]
       command: 参保增员
       aggregate: AGG-74
       emits: [参保已增员]
@@ -168,6 +183,7 @@
         - {when: 用工类型不需参保（如退休返聘、实习）, goto: 2}   # 清单待用户 T-4
         - {when: otherwise, goto: 2}
     - actor: SH-E6
+      where: in_system
       command: 建立薪酬档案
       aggregate: AGG-93
       emits: [薪酬档案已变更]
@@ -177,6 +193,26 @@
       decision:
         - {when: otherwise, goto: end}
 ```
+
+## 2a. 每步在哪里完成（`where`，用户问「哪些节点在本系统、怎么考虑的」）
+
+判据：业务决定与登记在本系统（in_system）；规则能定的由本系统自动做（automatic）；外部系统有接口、本系统能发起并拿到回执的走集成（external:<系统名>）；只能在系统外完成、没有可用接口的线下办（offline），本系统只登记结果与证据。
+
+| 流程 | 步 | 在哪 | 本系统留下的证据 | 为什么这样放 |
+|---|---|---|---|---|
+| PRC-83 | 1 登记入职 | in_system | — | 人事记录系统在本系统（S1） |
+| PRC-83 | 2 入职生效 | automatic | — | 到日生效是规则，不需人点（S2、S3） |
+| PRC-83 | 3 建立任职 | in_system | — | 组织、职位、职级由人力定（S9） |
+| PRC-83 | 4 提交劳动合同 | in_system | — | 合同要素在本系统起草 |
+| PRC-83 | 5 批准劳动合同 | in_system | — | 聚合内单级批准（S11） |
+| PRC-83 | 6 签订劳动合同 | offline | 已签署合同扫描件、签署日 | 目前纸面签署；若以后接电子签可改 external:电子签（待用户） |
+| PRC-83 | 7 法人三口径预警 | automatic | — | 比对是规则（S13） |
+| PRC-137 | 1 建立待开通登录身份 | automatic | — | 由入职登记事件触发（S4、S5） |
+| PRC-137 | 2 开通企业微信成员 | external:企业微信 | 企业微信返回的 userid、开通时间 | 企业微信保留为外部服务（U-1）；自动调接口还是信息部门在企业微信后台手工开见 T-1 |
+| PRC-137 | 3 绑定外部身份 | automatic | — | 按 userid 精确绑定（S6） |
+| PRC-137 | 4 逾期告警 | automatic | — | 不静默（S8） |
+| PRC-84 | 1 参保增员 | offline | 社保增员回执、公积金增员回执、办理日 | 人社与公积金网办没有面向本系统的接口，人力在官方网办平台办理后回填；有接口再改 external（待核） |
+| PRC-84 | 2 建立薪酬档案 | in_system | — | 薪酬自算，档案是计算依据（intent 2026-10-16-152603） |
 
 ## 3. 涉及的表（CONVENTIONS §3）
 

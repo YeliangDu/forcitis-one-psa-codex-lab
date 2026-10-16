@@ -149,61 +149,81 @@ processes:
     trigger:
       type: event
       events: [{event: 录用决定已作出, aggregate: AGG-62}]
-      desc: 录用决定后候选人确认入职日期，人力办理入职（同 BC）
+      desc: 候选人确认入职日后，人力办理入职（同 BC）
     stages: [VS-07.3]
     owner_bc: B-13
     human_orchestration: false
     roles:
-      - {id: SH-E6, as: performer}      # 人力；批准劳动合同的人力负责人也按 SH-E6
-      - {id: SH-E6, as: approver}
-      - {id: SH-H1, as: external}       # 候选人确认入职日期、签订劳动合同
-      - {id: SH-E1, as: informed}
+      - {id: SH-E6, as: performer}      # 人力
+      - {id: SH-E6, as: approver}       # 人力负责人，劳动合同单级批准
+      - {id: SH-H1, as: external}       # 候选人：确认入职日、签合同
+      - {id: SH-E1, as: informed}       # 用人经理
     steps:
       - actor: SH-E6
+        where: in_system
         command: 登记入职
         aggregate: AGG-62
-        emits: [Employed]
-        desc: 入职日为人事业务生效日（U-12），可提前登记、到日生效，补登落回真实日期；Employed 何时发出（登记时 / 生效日）聚合稿未定
-        gap: PG-01
+        emits: [〔缺〕入职已登记]        # S3；PG-01
+        desc: 填入职日（人事业务生效日，S2）；用工类型；工号由本系统发号
         cross_bc:
-          - {mode: event, direction: out, bc: B-15, name: Employed}      # 订阅方 B-15，聚合稿已登记
-        # platform.identity / PRC-137 对 Employed 的订阅聚合稿未登记（PG-02），故不在此写 out
+          - {mode: event, direction: out, bc: platform.identity, name: 〔缺〕入职已登记}   # 触发 PRC-137（S4、S5）
+        decision:
+          - {when: 入职日不晚于今天, goto: 2}
+          - {when: otherwise, goto: 2}      # 提前登记：第 2 步在入职日到时由系统执行
+      - actor: system
+        where: automatic
+        on_time: 入职日到达（当天开始时）
+        command: 〔缺〕入职生效
+        aggregate: AGG-62
+        emits: [Employed]
+        desc: 人员状态由「待入职」转「在职」；补登时立即执行，生效日仍为登记的入职日（S2）
+        cross_bc:
+          - {mode: event, direction: out, bc: B-15, name: Employed}               # 触发 PRC-84
+          - {mode: event, direction: out, bc: platform.identity, name: Employed}  # 放行登录（S4）
       - actor: SH-E6
+        where: in_system
         command: 建立任职
         aggregate: AGG-63
         emits: [任职已变更]
-        desc: 主任职区间不重叠（INV-62）；任职版本以业务生效日为准（U-12）；职位取自职位目录，职级另列（Q-08）
+        desc: 组织单元、职位、职级、汇报线、主 / 兼；生效日默认等于入职日（S9）
         decision:
-          - {when: 新主任职区间与现有主任职重叠, goto: end}    # INV-62：拒绝并告警
-          - {when: otherwise, goto: 3}
+          - {when: 与该人员已有主任职区间重叠, goto: 3}    # INV-62 拒绝，改正后重提
+          - {when: otherwise, goto: 4}
+        cross_bc:
+          - {mode: event, direction: out, bc: platform.identity, name: 任职已变更}   # 默认角色与数据范围（S10）
       - actor: SH-E6
+        where: in_system
         command: 提交劳动合同
         aggregate: AGG-67
-      - actor: SH-E6      # v1：人力负责人
+        desc: 用人单位（法人口径之一，S13）、期限、试用期
+        decision:
+          - {when: 试用期超过法定上限, goto: 4}            # INV-14 拒绝
+          - {when: otherwise, goto: 5}
+      - actor: SH-E6
+        where: in_system
         command: 批准劳动合同
         aggregate: AGG-67
         approval:
-          doc_type: 劳动合同批准（B-13 聚合内单级批准命令，不经 platform.approval，intent 114200 F-3）
+          doc_type: 劳动合同批准
+          engine: aggregate                                # B-13 聚合内单级批准，不经 platform.approval（S11）
           approver: SH-E6
           multi_level: false
-          on_reject: 3
-        decision:
-          - {when: 批准, goto: 5}
-          - {when: otherwise, goto: 3}
-        # 驳回后的命令聚合稿无：PG-09
+          on_reject: 4                                     # 退回人力改合同（驳回命令〔缺〕，PG-09）
       - actor: SH-E6
+        where: offline
+        evidence: [已签署劳动合同扫描件, 签署日]
         command: 签订劳动合同
         aggregate: AGG-67
         emits: [劳动合同已签订]
-        desc: 试用期不超法定上限（INV-14）；满一个月未签 P-05 提醒
+        desc: 候选人（SH-H1）线下或电子签署，人力登记签署日
         decision:
-          - {when: 试用期超过法定上限, goto: 3}             # INV-14：拒绝，回改合同
-          - {when: 员工法人三口径不一致, goto: 6}           # Q-09：只预警不拒绝
-          - {when: otherwise, goto: end}
+          - {when: 用工满一个月仍未签订, goto: 6}          # P-05 提醒，不拒绝（S12）
+          - {when: otherwise, goto: 7}
       - actor: system
-        desc: 员工法人三口径（Q-09）不一致预警；三口径各落哪个聚合、由哪个策略发预警，聚合稿未写
-        gap: PG-11
-    notes: 后续参保与薪酬档案见 PRC-84；账号开通见 PRC-137（Q-03：无首日兜底，故开通须早于入职生效）。
+        where: automatic
+        desc: 员工法人三口径（劳动合同用人单位、数据范围法人、个税扣缴义务人）比对，不一致预警人力（S13）；预警策略〔缺〕，PG-11
+        decision:
+          - {when: otherwise, goto: end}
 
   - id: PRC-84
     name: 入职后参保增员与建立薪酬档案
@@ -214,23 +234,30 @@ processes:
     owner_bc: B-15
     human_orchestration: false
     roles:
-      - {id: SH-E6, as: performer}      # 人力
+      - {id: SH-E6, as: performer}      # 人力（薪酬与社保）
     steps:
       - actor: SH-E6
+        where: offline
+        evidence: [社保增员回执, 公积金增员回执, 办理日]
         command: 参保增员
         aggregate: AGG-74
         emits: [参保已增员]
-        decision:
-          - {when: 用工类型无需参保, goto: end}    # 待用户：聚合稿无「无需参保」的用工类型清单
-          - {when: otherwise, goto: 2}
+        desc: 入职 30 日内办理，逾期提醒（P-32）
         cross_bc:
-          - {mode: event, direction: in, bc: B-13, name: Employed}     # B-15 → B-13（api、事件）已有边
+          - {mode: event, direction: in, bc: B-13, name: Employed}
+        decision:
+          - {when: 用工类型不需参保（如退休返聘、实习）, goto: 2}   # 清单待用户 T-4
+          - {when: otherwise, goto: 2}
       - actor: SH-E6
+        where: in_system
         command: 建立薪酬档案
         aggregate: AGG-93
         emits: [薪酬档案已变更]
-        desc: 薪酬属性版本按业务生效日（U-12、D17）；含敏感个人信息，按 ADR-0036、ADR-0043
-    notes: 生成待办、30 日内办理（P-32）是提醒，无超时分支，按非人工编排（⑥a 评审 M1）。订阅方向 B-15 → B-13。
+        desc: 薪酬属性版本生效日 = 入职日（S2、S15）
+        cross_bc:
+          - {mode: api, direction: out, bc: B-13, name: 读取人员与任职}
+        decision:
+          - {when: otherwise, goto: end}
 
   - id: PRC-85
     name: 试用期评估与转正
@@ -382,48 +409,49 @@ processes:
     name: 入职开通企业微信并绑定外部身份
     trigger:
       type: event
-      events: [{event: Employed, aggregate: AGG-62}]
-      desc: 触发事件的发出时机见 PG-01；Q-03 无首日兜底，应早于入职生效日开通，建议改由登记时发出的新事件触发
+      events: [{event: 〔缺〕入职已登记, aggregate: AGG-62}]
     stages: [VS-07.3]
-    owner_bc: platform.identity   # S-14（one-architecture 同意 J-1）
+    owner_bc: platform.identity   # J-1 / S-14 one-architecture 同意
     human_orchestration: false
-    new: true
-    basis: intent 2026-10-16-134134 Q-03；IDENTITY_LIFECYCLE.md（招聘入职是人力过程，企业微信是信息过程，有前后顺序）
     roles:
       - {id: SH-E6, as: performer}      # 信息（IT）
-      - {id: SH-E6, as: informed}       # 人力，逾期未开通时被告警
+      - {id: SH-E6, as: informed}       # 人力，逾期告警
+      - {id: SH-E3, as: informed}       # 新员工，收到开通通知
     steps:
-      - actor: SH-E6      # 信息
-        desc: 在企业微信开通成员账号（外部系统内的动作，FORCITIS one 无命令）
-        gap: PG-03
-      - actor: system
-        bc: platform.integration
-        platform_task: true
-        service: platform.integration
-        command: 〔缺〕接收企业微信成员已创建并匹配人员
-        desc: 匹配键（工号、手机号或其他）待用户；匹配不到唯一人员须告警，不静默
-        gap: PG-03
-        decision:
-          - {when: 无法匹配到唯一人员, goto: 4}
-          - {when: otherwise, goto: 3}
-        cross_bc:
-          - {mode: event, direction: out, bc: B-13, name: 〔缺〕企业微信成员已创建}   # B-13 → platform.integration 现为 api，上游向下游通知须补事件方式（PG-04）
       - actor: platform
+        where: automatic
         bc: platform.identity
-        platform_task: true
-        service: platform.identity
-        command: 〔缺〕建立登录身份并绑定外部身份
-        desc: 以人员 ID 为键；绑定后新员工方可经企业微信登录（Q-03，不另设口令兜底）
-        gap: PG-03
+        command: 〔缺〕建立待开通登录身份
+        desc: 以人员 ID 为键；拟定企业微信 userid = 工号（S6）；登录放行起点 = 入职日（S4）
+        cross_bc:
+          - {mode: event, direction: in, bc: B-13, name: 〔缺〕入职已登记}
+      - actor: SH-E6                    # 信息；或系统自动，见待用户 T-1
+        where: external:企业微信
+        evidence: [企业微信返回的成员 userid, 开通时间]
+        bc: platform.identity
+        command: 〔缺〕开通企业微信成员
+        desc: 经 platform.integration 的企业微信适配器开通成员（按 T-1 选项：自动调接口或信息部门手工开通后在本系统确认）
+        cross_bc:
+          - {mode: api, direction: out, bc: platform.integration, name: 〔缺〕开通企业微信成员}
+        decision:
+          - {when: 企业微信返回失败或 userid 已被占用, goto: 4}
+          - {when: otherwise, goto: 3}
+      - actor: platform
+        where: automatic
+        bc: platform.identity
+        command: 〔缺〕绑定外部身份
+        desc: 按 userid 精确绑定到人员（S6）；入职日前绑定的身份处于「待生效」，订阅 Employed 后放行登录
+        cross_bc:
+          - {mode: event, direction: in, bc: B-13, name: Employed}
         decision:
           - {when: otherwise, goto: end}
-        cross_bc:
-          - {mode: event, direction: in, bc: B-13, name: Employed}      # 订阅未登记：PG-02
       - actor: system
-        on_time: 入职业务生效日前仍未绑定
-        desc: 告警信息与人力，不静默；提前量与责任时限待用户
-        gap: PG-13
-    notes: 本流程是 Q-03 的落点；开通与吊销（PRC-138）均为安全关键。
+        where: automatic
+        on_time: 开通失败，或入职日已到仍未绑定
+        desc: 告警信息部门与人力，不静默（S8）；时限待用户 T-2
+        decision:
+          - {when: 已修正并重试, goto: 2}
+          - {when: otherwise, goto: end}
 
   - id: PRC-138
     name: 离职停用企业微信并解绑
