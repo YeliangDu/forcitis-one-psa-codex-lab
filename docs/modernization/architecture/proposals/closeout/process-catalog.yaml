@@ -692,6 +692,7 @@ processes:
     name: "发起、审批并执行付款"
     type: business
     stages: [VS-05.5, VS-08.1, VS-08.3, VS-12.2, VS-12.3, VS-13.5]
+    stages_note: "VS-08 只承担 .1 借支、.3 报销付款中的付款时刻；.2 报销核定由 PRC-87 承担，不算跳段（finance STAGES.md，06e6c36b）"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1202,6 +1203,7 @@ processes:
     name: "付款成功后核销应付"
     type: event_policy
     stages: [VS-05.5, VS-08.1, VS-08.3, VS-12.2, VS-12.3, VS-13.5]
+    stages_note: "VS-08 只承担 .1 借支、.3 报销付款中的付款时刻；.2 报销核定由 PRC-87 承担，不算跳段（finance STAGES.md，06e6c36b）"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1211,6 +1213,7 @@ processes:
     name: "应付核销后置付款已核销并提交过账候选"
     type: event_policy
     stages: [VS-05.5, VS-08.1, VS-08.3, VS-12.2, VS-12.3, VS-13.5]
+    stages_note: "VS-08 只承担 .1 借支、.3 报销付款中的付款时刻；.2 报销核定由 PRC-87 承担，不算跳段（finance STAGES.md，06e6c36b）"
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1500,7 +1503,7 @@ processes:
   - id: PRC-163
     name: "应付结清后登记利润分配支付"
     type: event_policy
-    stages: []
+    stages: [VS-12.2]
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1510,7 +1513,7 @@ processes:
   - id: PRC-164
     name: "收入确认冲销后冲回已配对成本结转"
     type: event_policy
-    stages: []
+    stages: [VS-04.2]
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1521,6 +1524,7 @@ processes:
     name: "发布成本核算参数版本"
     type: single_aggregate
     stages: []
+    support: "成本核算参数是配置版本，供 VS-10.1 的成本分配与分摊使用，本身不推进任何阶段的对象状态"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1531,6 +1535,7 @@ processes:
     name: "发布资产类别与折旧政策版本"
     type: single_aggregate
     stages: []
+    support: "资产类别与折旧政策是配置版本，供 PRC-99 计提折旧使用，不推进阶段"
     owner_bc: "B-24"
     group: finance
     status: draft
@@ -1541,6 +1546,7 @@ processes:
     name: "编制并签字确认期初余额"
     type: single_aggregate
     stages: []
+    support: "期初余额只在投产时编制一次（ADR-0022 决定 11），是上线初始化，不是周期性价值流阶段"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -1551,6 +1557,7 @@ processes:
     name: "发布口径版本"
     type: single_aggregate
     stages: []
+    support: "口径版本是勾稽侧配置（ADR-0023 决定 2），不推进阶段"
     owner_bc: "B-17"
     group: finance
     status: draft
@@ -1560,7 +1567,7 @@ processes:
   - id: PRC-169
     name: "处置勾稽差异案"
     type: single_aggregate
-    stages: []
+    stages: [VS-10.1]
     owner_bc: "B-17"
     group: finance
     status: draft
@@ -1570,7 +1577,7 @@ processes:
   - id: PRC-170
     name: "申请费用事前额度"
     type: business
-    stages: []
+    stages: [VS-08.2]
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1580,7 +1587,7 @@ processes:
   - id: PRC-171
     name: "核对差旅服务商月账单并确认应付"
     type: business
-    stages: []
+    stages: [VS-05.4]
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1590,7 +1597,7 @@ processes:
   - id: PRC-172
     name: "申请出差并同步差旅服务商"
     type: business
-    stages: []
+    stages: [VS-08.2]
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1600,7 +1607,7 @@ processes:
   - id: PRC-173
     name: "审批差旅超标订单"
     type: business
-    stages: []
+    stages: [VS-05.2]
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1611,6 +1618,7 @@ processes:
     name: "发布出差补贴标准版本"
     type: single_aggregate
     stages: []
+    support: "出差补贴标准是配置版本，供 PRC-87 生成补贴行使用，不推进阶段"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1620,7 +1628,7 @@ processes:
   - id: PRC-175
     name: "直接付款申请"
     type: business
-    stages: []
+    stages: [VS-05.5]
     owner_bc: "B-10"
     group: finance
     status: draft
@@ -1630,7 +1638,7 @@ processes:
   - id: PRC-176
     name: "预付款核销"
     type: single_aggregate
-    stages: []
+    stages: [VS-05.4]
     owner_bc: "B-10"
     group: finance
     status: draft

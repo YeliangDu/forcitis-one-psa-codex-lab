@@ -42,19 +42,19 @@
 | VS-02 | 19 |
 | VS-03 | 7 |
 | VS-04 | 16 |
-| VS-05 | 9 |
+| VS-05 | 12 |
 | VS-06 | 3 |
 | VS-07 | 6 |
-| VS-08 | 4 |
+| VS-08 | 6 |
 | VS-09 | 2 |
 | VS-10 | 12 |
 | VS-11 | 1 |
 | VS-12 | 3 |
 | VS-13 | 12 |
 | 支撑（不在价值流上） | 9 |
-| 合计 | 110 |
+| 合计 | 115 |
 
-业务流程中尚未填 stages：8 条。
+业务流程中尚未填 stages：3 条。
 
 ## 总表
 
@@ -222,20 +222,20 @@
 | PRC-160 | 开立年度假期额度账户 | event_policy |  | VS-13.1 | B-27 | people | draft | 否 |  |
 | PRC-161 | 年末关闭预算账户 | event_policy |  | VS-09.3 | B-18 | people | draft | 否 |  |
 | PRC-162 | 发布假期规则版本 | single_aggregate |  | VS-13.1 | B-27 | people | draft | 否 |  |
-| PRC-163 | 应付结清后登记利润分配支付 | event_policy |  |  | B-10 | finance | draft | 否 |  |
-| PRC-164 | 收入确认冲销后冲回已配对成本结转 | event_policy |  |  | B-07 | finance | draft | 否 |  |
+| PRC-163 | 应付结清后登记利润分配支付 | event_policy |  | VS-12.2 | B-10 | finance | draft | 否 |  |
+| PRC-164 | 收入确认冲销后冲回已配对成本结转 | event_policy |  | VS-04.2 | B-07 | finance | draft | 否 |  |
 | PRC-165 | 发布成本核算参数版本 | single_aggregate |  |  | B-07 | finance | draft | 否 |  |
 | PRC-166 | 发布资产类别与折旧政策版本 | single_aggregate |  |  | B-24 | finance | draft | 否 |  |
 | PRC-167 | 编制并签字确认期初余额 | single_aggregate |  |  | B-20 | finance | draft | 否 |  |
 | PRC-168 | 发布口径版本 | single_aggregate |  |  | B-17 | finance | draft | 否 |  |
-| PRC-169 | 处置勾稽差异案 | single_aggregate |  |  | B-17 | finance | draft | 否 |  |
-| PRC-170 | 申请费用事前额度 | business |  |  | B-12 | finance | draft | 是 |  |
-| PRC-171 | 核对差旅服务商月账单并确认应付 | business |  |  | B-12 | finance | draft | 是 |  |
-| PRC-172 | 申请出差并同步差旅服务商 | business |  |  | B-12 | finance | draft | 是 |  |
-| PRC-173 | 审批差旅超标订单 | business |  |  | B-12 | finance | draft | 是 |  |
+| PRC-169 | 处置勾稽差异案 | single_aggregate |  | VS-10.1 | B-17 | finance | draft | 否 |  |
+| PRC-170 | 申请费用事前额度 | business |  | VS-08.2 | B-12 | finance | draft | 是 |  |
+| PRC-171 | 核对差旅服务商月账单并确认应付 | business |  | VS-05.4 | B-12 | finance | draft | 是 |  |
+| PRC-172 | 申请出差并同步差旅服务商 | business |  | VS-08.2 | B-12 | finance | draft | 是 |  |
+| PRC-173 | 审批差旅超标订单 | business |  | VS-05.2 | B-12 | finance | draft | 是 |  |
 | PRC-174 | 发布出差补贴标准版本 | single_aggregate |  |  | B-12 | finance | draft | 否 |  |
-| PRC-175 | 直接付款申请 | business |  |  | B-10 | finance | draft | 是 |  |
-| PRC-176 | 预付款核销 | single_aggregate |  |  | B-10 | finance | draft | 否 |  |
+| PRC-175 | 直接付款申请 | business |  | VS-05.5 | B-10 | finance | draft | 是 |  |
+| PRC-176 | 预付款核销 | single_aggregate |  | VS-05.4 | B-10 | finance | draft | 否 |  |
 | PRC-177 | 向差旅服务商同步员工与组织 | event_policy |  |  | B-13 | people | draft | 否 |  |
 | PRC-178 | 补休到期未休或离职时转计发加班工资 | event_policy |  | VS-13.3 | B-15 | people | draft | 否 |  |
 | PRC-179 | 项目开始执行后协议转入履行中 | event_policy |  | VS-04.1 | B-05 | revenue | draft | 否 |  |
