@@ -199,7 +199,7 @@ POST /api/v1/platform/approval-tasks/{taskId}:reassign  # 204 无正文
 - 改法：导出改 `limit maxRows + 1`，返回行数大于 `maxRows` 即判超限并按现有超限错误失败，去掉 `count`；索引改造（`(actor_id, created_at DESC, id DESC)` 等、`starts_with` 的 `text_pattern_ops`）与 AE-2 分区同批做，归 TB-07（分区后索引需重建），不在本条。
 - 预期表结构 diff：无。
 - 验收要点：行数恰为 `maxRows` 时成功，`maxRows + 1` 时失败；无 `count` 语句。
-- 依据：门禁 O10；D19。
+- 依据：门禁 O10；D19。　已由 K-3b-4 覆盖（one-coordinator 2026-10-16），PR-3 不含。
 
 #### TB-05　AE-4（子集）　中　`audit_entries` 文本列无长度与空串约束
 - 问题：`action`、`subject_key`、`detail`、`change_reason`、`before_text`、`after_text`、`source_address` 库内无长度上限，应用只限 2000（`AuditEntry.java:16`），也未禁空串。
