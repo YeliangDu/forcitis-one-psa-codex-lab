@@ -389,7 +389,7 @@ BPMN 图与数据访问注册表（⑥b）；`bpmn/processes.yaml` 与 SSOT 登�
 | VS-02.4 | 深化 | PRC-20、PRC-23、PRC-24、PRC-26、PRC-28、PRC-30、PRC-31、PRC-32 | — | PRC-21、PRC-27、PRC-33 | PRC-22 | 8 |
 | VS-02.5 | 招采 | PRC-20、PRC-23、PRC-24、PRC-28、PRC-30、PRC-31、PRC-32 | — | PRC-21、PRC-27 | PRC-22 | 7 |
 | VS-02.6 | 施工 | PRC-20、PRC-23、PRC-24、PRC-28、PRC-30、PRC-31、PRC-32、PRC-34、PRC-43 | — | PRC-14、PRC-21、PRC-27 | PRC-22 | 9 |
-| VS-02.7 | 结算 | PRC-24、PRC-34、PRC-36、PRC-37、PRC-38 | PRC-35 | PRC-27、PRC-33 | PRC-22 | 5 |
+| VS-02.7 | 收尾 | PRC-24、PRC-34、PRC-36、PRC-37、PRC-38 | PRC-35 | PRC-27、PRC-33 | PRC-22 | 5 |
 | VS-03.1 | 检查策划 | PRC-17、PRC-41、PRC-43 | — | PRC-14、PRC-42 | — | 3 |
 | VS-03.2 | 现场检查 | PRC-43、PRC-44 | — | PRC-33 | — | 2 |
 | VS-03.3 | 发现发布 | PRC-44 | — | — | — | 1 |

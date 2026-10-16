@@ -273,8 +273,8 @@ value_streams:
         - {ref: OBJ-46, state: 在建 / 已竣工（在用）, note: 外部引用对象，只记录、不控制，不作门（STEP3 C-20）}
       value_item: 按设计意图建成，外立面与照明安全、效果达标（社会公众的非货币价值在此兑现）。
     - id: VS-02.7
-      name: 结算
-      manual_stage: 7 结算（项目结算与复盘；与协议「已结算」同名异义，已交 one-glossary，STAGE_TYPES_DRAFT §4 第 10 条）
+      name: 收尾
+      manual_stage: 7 收尾（移交与结项、复盘；用户 2026-10-16 改名，原名「结算」专指 VS-04.5 最终价款确认，词表 closing「收尾」）
       description: 收尾、复盘、满意度回访，封存成果与证据，结项并归档。
       participants: [SH-E2, SH-E4, SH-M1, SH-C6b, SH-C6c, SH-X4]
       entry:
