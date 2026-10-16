@@ -191,7 +191,7 @@ class WorkCalendarMakeUpWeekendIT extends AcceptanceSupport {
         }
         assertThat(named).as("check constraint " + CONSTRAINT + " on work_calendar_days; other checks: " + others).hasSize(1);
         String definition = named.get(0);
-        assertThat(definition).contains("day_kind").contains("'make_up_workday'").contains("isodow").containsPattern("6(::\\w+)?,7");
+        assertThat(definition).contains("day_kind").contains("'make_up_workday'").contains("isodow").containsPattern("\\(?6\\)?(::\\w+)?,\\(?7\\)?(::\\w+)?");
         assertThat(others).as("inline day_kind enumeration check").anySatisfy(d ->
                 assertThat(d).contains("day_kind").contains("'holiday'").contains("'make_up_workday'").doesNotContain("isodow"));
     }
