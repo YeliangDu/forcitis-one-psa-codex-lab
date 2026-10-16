@@ -107,6 +107,12 @@ class EventEnvelopeAggregateIdIT extends P5Support {
         assertThat(wrong).isEmpty();
     }
 
+    private static boolean concerns(JsonNode envelope, String request, String timesheet) {
+        List<String> ids = new ArrayList<>(List.of(envelope.path("aggregateId").asString("")));
+        envelope.path("relatedAggregates").forEach(related -> ids.add(related.path("aggregateId").asString("")));
+        return ids.contains(request) || ids.contains(timesheet);
+    }
+
     private static void checkUuid(List<String> wrong, String what, JsonNode id) {
         String text = id.asString(null);
         if (text == null || !CANONICAL_UUID.matcher(text).matches()) {
@@ -123,8 +129,9 @@ class EventEnvelopeAggregateIdIT extends P5Support {
         UUID request = requestIdOf(document);
         assertThat(aggregateIdsOf(registeredEnvelopes("ApprovalRoundStarted"), "ApprovalRequest")).as("the start of the approval round")
                 .contains(request.toString());
-        assertThat(aggregateIdsOf(envelopes, "ApprovalRequest")).as("all approval request events").isNotEmpty().containsOnly(request.toString());
-        assertThat(aggregateIdsOf(envelopes, "Timesheet")).as("timesheet events").isNotEmpty().containsOnly(timesheet.value().toString());
+        List<JsonNode> ofThisCase = envelopes.stream().filter(envelope -> concerns(envelope, request.toString(), timesheet.value().toString())).toList();
+        assertThat(aggregateIdsOf(ofThisCase, "ApprovalRequest")).as("approval request events of this case").isNotEmpty().containsOnly(request.toString());
+        assertThat(aggregateIdsOf(ofThisCase, "Timesheet")).as("timesheet events of this case").isNotEmpty().containsOnly(timesheet.value().toString());
 
         assertThat(aggregateIdsOf(envelopes, "WorkCalendarYear")).as("work calendar events").isNotEmpty()
                 .allSatisfy(id -> assertThat(keys("organization_attendance", "select id from work_calendar_years")).contains(UUID.fromString(id)));
