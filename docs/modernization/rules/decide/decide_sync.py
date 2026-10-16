@@ -28,7 +28,7 @@ if "--check" in sys.argv:
     inbox_dir, pages = rest[0], dict(a.split("=", 1) for a in rest[1:])
     urls = {}
     for line in open(os.path.join(HERE, "README.md"), encoding="utf-8"):
-        m = _re.match(r"^\| (\w+) .*?(https://claude\.ai/artifact/\w+)", line)
+        m = _re.match(r"^\| (\w+) .*?(https://claude\.ai/artifact/[\w-]+)", line)
         if m:
             urls[m.group(2)] = m.group(1)
     state = {}
