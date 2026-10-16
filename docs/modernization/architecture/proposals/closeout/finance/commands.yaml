@@ -939,6 +939,7 @@ commands:
   - 生效日
   - 财务批准人
   - 决定出处
+  - 是否启用
   preconditions:
   - INV-104
   authority:
