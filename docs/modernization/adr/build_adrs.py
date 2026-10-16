@@ -440,7 +440,7 @@ def catalog_skeleton(adrs):
         if a["new"]:
             continue
         partly = [f"ADR-{n}" for n in SUPERSEDED.findall(a["status"])] if not a["status"].startswith("已被") else []
-        out.append(f'- id: "{a["no"]}"   # {a["title"]}\n  category: ""\n  bc: []\n  stage: []\n  partially_superseded: {partly if partly else "[]"}'.replace("'", '"'))
+        out.append(f'- id: "{a["no"]}"   # `{a["title"]}`\n  category: ""\n  bc: []\n  stage: []\n  partially_superseded: {partly if partly else "[]"}'.replace("'", '"'))
     return "\n".join(out) + "\n"
 
 
