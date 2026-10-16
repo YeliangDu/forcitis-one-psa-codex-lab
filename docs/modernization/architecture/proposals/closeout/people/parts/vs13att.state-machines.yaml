@@ -39,14 +39,14 @@ machines:
   states: [已开账, 已结转]
   initial: []
   terminal: [已结转]
-  note: 根只存应享 / 已用 / 占用计数器（投影，可由请假与规则重算对账）；占用 / 转用 / 释放 / 回冲同时改计数器，对应占用行机器的转换；年度届满按 AGG-118 结转规则结转并关闭，下一年度另开新账户（收敛新增终态）
+  note: 根只存应享 / 已用 / 占用计数器（投影，可由请假与规则重算对账）；占用 / 转用 / 释放 / 回冲同时改计数器，对应占用行机器的转换；年度届满按 AGG-118 结转规则结转并置已结转，下一年度另开新账户（收敛新增终态）
   transitions:
   - {from: null, to: 已开账, command: 开立年度额度账户, guard: [INV-123], kind: forward}
   - {from: 已开账, to: 已开账, command: 占用余额, guard: [INV-68], kind: forward, effect: 占用 +}
   - {from: 已开账, to: 已开账, command: 批准转已用, guard: [], kind: forward, effect: 占用 −，已用 +}
   - {from: 已开账, to: 已开账, command: 释放余额占用, guard: [], kind: reverse, effect: 占用 −}
   - {from: 已开账, to: 已开账, command: 回冲已用额度, guard: [回冲不超已用], kind: reverse, effect: 已用 −}
-  - {from: 已开账, to: 已结转, command: 年度结转并关闭额度账户, guard: [年度届满, AGG-118 结转规则版本取得到（取不到失败并告警）, 无占用中的占用行], kind: forward}
+  - {from: 已开账, to: 已结转, command: 年度结转额度账户, guard: [年度届满, AGG-118 结转规则版本取得到（取不到失败并告警）, 无占用中的占用行], kind: forward}
 - aggregate: AGG-71
   machine: leave_balance_hold
   entity: leave_balance_holds
@@ -169,7 +169,7 @@ process_steps:
 - {process: PRC-119, step: 2, command: 发布标准工时版本, machine: standard_work_hour_version, transition: [null, 已生效], outcome: 标准工时版本已发布, outcome_on_reject: 版本被拒（前置条件 INV-116 失败）}
 # 事件策略（非 PRC 步骤）
 - {process: 事件策略, step: 孤儿占用定时释放, command: 释放余额占用, machine: leave_balance_hold, transition: [占用, 已释放]}
-- {process: PRC-160, step: 1, command: 年度结转并关闭额度账户, machine: leave_balance_account, transition: [已开账, 已结转]}
+- {process: PRC-160, step: 1, command: 年度结转额度账户, machine: leave_balance_account, transition: [已开账, 已结转]}
 - {process: PRC-160, step: 2, command: 开立年度额度账户, machine: leave_balance_account, transition: [null, 已开账], outcome: 年度账户已开立}
 - {process: 事件策略, step: 确认期限届满默认确认, command: 默认确认月度考勤, machine: monthly_attendance_confirmation, transition: [已生成, 已确认]}
 - {process: 事件策略, step: 离职当月考勤默认确认, command: 默认确认月度考勤, machine: monthly_attendance_confirmation, transition: [已生成, 已确认]}

@@ -664,7 +664,7 @@ processes:
         where: automatic
         command: 计算
         aggregate: AGG-73
-        reads: [AGG-97, AGG-74, AGG-76, AGG-93, AGG-62]
+        reads: [AGG-97, AGG-74, AGG-76, AGG-93, AGG-62, AGG-119, AGG-120]
         pending: U7
         desc: >-
           薪酬自算（intent 2026-10-16-152603，聚合稿“薪酬汇总导入”口径作废），月度考勤已锁定后由系统自动计算，不再由人手工发起。
@@ -1047,9 +1047,9 @@ event_policies:
     steps:
       - actor: system
         where: automatic
-        command: 年度结转并关闭额度账户
+        command: 年度结转额度账户
         aggregate: AGG-71
-        desc: 按 AGG-118 当日生效规则版本的结转与清零规则计算上年账户的结转额度并关闭账户，结转额度记在上年账户上供下一步读取；规则版本取不到失败并告警，不静默（CLAUDE.md 第 6 条）；年中入职触发时无上年账户，跳过本步
+        desc: 按 AGG-118 当日生效规则版本的结转与清零规则计算上年账户的结转额度并置账户为已结转，结转额度记在上年账户上供下一步读取；规则版本取不到失败并告警，不静默（CLAUDE.md 第 6 条）；年中入职触发时无上年账户，跳过本步
         audit: true
         notify: [{to: SH-E6, how: 企业微信待办}]
         decision:
@@ -1218,7 +1218,7 @@ single_aggregate:
         page: 专项附加扣除页
         audit: true
         outcome: 专项附加扣除已更新
-    notes: AGG-93 含敏感个人信息，按 ADR-0043 登记访问级别。建立薪酬档案在 PRC-84。S-42 事件入口：B-15 订阅 B-13 的〔缺〕转正已办理（事件策略「转正后复核薪酬」，边 B-15 → B-13 事件已有），生成待办提醒薪酬岗按劳动合同约定的转正工资调整薪酬档案，版本生效日 = 转正日（U-12），不自动改薪（工资金额以劳动合同约定为准，系统不推定）；待办处理仍走第 1 步，须引用调薪决定依据（劳动合同或转正决定文件）；取代原 PG-10「转正调薪靠人力人工发现」。
+    notes: 单聚合维护含 AGG-93 与 AGG-120 两个聚合，不拆（S-43 #24 同类）：同一 BC（B-15）、同一页面与同一权限组；每条命令与每条转换各只改一个聚合（调整薪酬档案改 AGG-93，更新专项附加扣除改 AGG-120），一个事务一个聚合，检查口径以条目级 aggregate 为准。AGG-93 含敏感个人信息，按 ADR-0043 登记访问级别。建立薪酬档案在 PRC-84。S-42 事件入口：B-15 订阅 B-13 的〔缺〕转正已办理（事件策略「转正后复核薪酬」，边 B-15 → B-13 事件已有），生成待办提醒薪酬岗按劳动合同约定的转正工资调整薪酬档案，版本生效日 = 转正日（U-12），不自动改薪（工资金额以劳动合同约定为准，系统不推定）；待办处理仍走第 1 步，须引用调薪决定依据（劳动合同或转正决定文件）；取代原 PG-10「转正调薪靠人力人工发现」。
 
   - id: PRC-162
     name: 发布假期规则版本
@@ -1249,3 +1249,34 @@ single_aggregate:
           - {when: 同一假期类型同一适用范围的生效区间与既有版本重叠, goto: end, rule: INV-123, outcome: 版本被拒}
           - {when: otherwise, goto: end, outcome: 假期规则版本已发布}
     notes: AGG-71 开立年度额度账户与年度结转时按 ID 与日期读取生效版本，不订阅事件。无人工审批：版本区间唯一由不变量守卫。
+
+  - id: PRC-180
+    name: 发布薪酬规则版本
+    type: single_aggregate
+    aggregate: AGG-119
+    owner_bc: B-15
+    stages: [VS-13.3]
+    desc: 人力编制、财务确认并发布个税、专项附加扣除标准、社保公积金比例与基数、计算口径的薪酬规则版本（S-43）
+    triggers:
+      - {type: human, name: "人力依据法规或公司制度变化编制并发布新的薪酬规则版本"}
+    migration: "首版按现行法规与公司制度初始化录入（老系统无结构化薪酬规则表）；历史规则版本回补待用户定（P13-17）；迁入不发事件（ADR-0036 M7）"
+    scope: "人力薪酬岗编制、财务确认；薪酬计算只读生效版本；规则版本为内部配置，不含个人信息；已生效版本不可改"
+    outcomes: [薪酬规则版本已发布, 版本被拒]
+    scenarios: [PRC-180-S01, PRC-180-S02]
+    roles:
+      - {id: SH-E6, as: performer, org_needs: {responsibility: "依据法规与公司制度编制并发布薪酬规则版本，对依据完整性负责；编制人与确认人不得为同一人（U7③ 推荐）", approval_right: "无（区间唯一由不变量守卫；编制与确认分人见 U7③）", department_hint: "人力资源部与财务部", position_hint: "薪酬岗（编制）、财务确认人（职能：薪酬规则确认）"}}      # 人力出、财务确认
+    steps:
+      - actor: SH-E6
+        where: in_system
+        command: 发布薪酬规则版本
+        aggregate: AGG-119
+        emits: [薪酬规则已生效]
+        pending: U7
+        desc: 同一规则类别同一适用范围同一时点只有一个生效版本（INV-139）；草稿由编制页保存，确认后发布即生效，后继版本发布时同事务结束旧区间；生效后不得修改，更正另发布新版本，不追溯已批准的月度薪酬（D15）；编制人与确认人是否分设见 notes 待用户定 U7③（推荐分设）；AGG-73 计算时按薪酬期间读取生效版本，取不到则失败并告警（CLAUDE.md 第 6 条），不订阅事件
+        permission: 薪酬规则.发布
+        page: 薪酬规则版本页
+        audit: true
+        decision:
+          - {when: 同一规则类别同一适用范围的生效区间与既有版本重叠, goto: end, rule: INV-139, outcome: 版本被拒}
+          - {when: otherwise, goto: end, outcome: 薪酬规则版本已发布}
+    notes: S-43 新增，补 AGG-119 无维护流程的缺口（PRC-124 第 1 步 reads 补 AGG-119、AGG-120）。写法同 PRC-162。无人工审批流程：区间唯一由 INV-139 守卫，编制与确认分人是职责分离（U7③ 推荐），不走 platform.approval。

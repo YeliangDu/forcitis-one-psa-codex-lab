@@ -726,7 +726,7 @@ machines:
     effect: 已用 −
   - from: leave_balance_account:已开账
     to: leave_balance_account:已结转
-    command: 年度结转并关闭额度账户
+    command: 年度结转额度账户
     guard:
     - 年度届满
     - AGG-118 结转规则版本取得到（取不到失败并告警）
@@ -1013,7 +1013,7 @@ machines:
     command: 登记绩效更正
     guard:
     - INV-114：追加更正记录引用原评估，不改原评估
-    kind: non_state
+    kind: reverse
   source_part: vs13pay
 - aggregate: AGG-73
   machine: payroll_settlement
@@ -1449,15 +1449,17 @@ machines:
 - aggregate: AGG-119
   machine: payroll_rule_version
   entity: payroll_rule_versions
+  perpetual: true
+  reason: 配置型版本聚合：发布即生效，被后继版本取代时旧版本置已被取代，无业务终结命令；更正出新版本，不修改、不冲销旧版本（D15）
   added_states:
   - 草稿
   - 已生效
-  - 已结束
-  note: 数据模型「版本状态」列未列取值，本稿取草稿、已生效、已结束；草稿即编制页保存。每版本一个聚合，同类别同适用范围生效区间不重叠（D15）
+  - 已被取代
+  note: 数据模型「版本状态」列未列取值，本稿取草稿、已生效、已被取代（S-43 取代原「已结束」，口径同 AGG-118、AGG-108）；草稿即编制页保存。每版本一个聚合，同类别同适用范围生效区间不重叠（INV-139）
   states:
   - 草稿
   - 已生效
-  - name: 已结束
+  - name: 已被取代
     terminal: true
   initial: 草稿
   transitions:
@@ -1465,14 +1467,15 @@ machines:
     to: 已生效
     command: 发布薪酬规则版本
     guard:
-    - D15：区间不重叠
+    - INV-139：区间不重叠
     - U7③：编制人 ≠ 确认人〔推〕
     kind: forward
+    process_outcome: 薪酬规则版本已发布
   - from: 已生效
-    to: 已结束
+    to: 已被取代
     command: 发布薪酬规则版本
     guard:
-    - 后继版本发布，同事务结束旧区间（D15）
+    - 后继版本发布，同事务结束旧区间（INV-139）
     kind: forward
   source_part: vs13pay
 - aggregate: AGG-79
@@ -1636,6 +1639,7 @@ machines:
   - from: null
     to: 预算占用行（budget_reservations.状态）:占用中
     command: 预算占用
+    kind: entry
     guard:
     - G-3 拦截或预警待定
     - AR-03

@@ -230,18 +230,18 @@ commands:
   emits: （内部）
   used_by: [PRC-160 第 2 步（事件策略「年度开账」）]
   orphan: false
-- name: 年度结转并关闭额度账户
+- name: 年度结转额度账户
   aggregate: AGG-71
   entity: leave_balance_accounts
   kind: automatic
-  name_status: 〔缺〕收敛新增，待 one-glossary 登记（carry_over_and_close_leave_balance_account）
+  name_status: 〔缺〕收敛新增，待 one-glossary 登记（carry_over_leave_balance_account）
   source: 收敛新增（AGG-118 已有结转规则，AGG-71 缺年度届满的终结命令）
   params: [员工ID, 假期类型, 年度]
   preconditions:
-  - {ref: 结转规则, text: 按 AGG-118 当日生效规则版本的结转与清零规则计算结转额度，记在本账户并关闭；下一年度账户开立时读取该结转额度计入应享；取不到规则版本失败并告警}
+  - {ref: 结转规则, text: 按 AGG-118 当日生效规则版本的结转与清零规则计算结转额度，记在本账户并置已结转；下一年度账户开立时读取该结转额度计入应享；取不到规则版本失败并告警}
   - {ref: 状态, text: 账户为已开账，年度已届满，无占用中的占用行（占用中的跨年请假先处理）}
   authority:
-    ref: raci:AGG-71/年度结转并关闭额度账户
+    ref: raci:AGG-71/年度结转额度账户
     A: {resolve: type, role: SH-E6, function: 人力（考勤）}
     R: [system]
   idempotency_key: 员工ID + 假期类型 + 年度（已结转无操作）

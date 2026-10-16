@@ -1765,11 +1765,11 @@ commands:
   - PRC-160 第 2 步（事件策略「年度开账」）
   orphan: false
   source_part: vs13att
-- name: 年度结转并关闭额度账户
+- name: 年度结转额度账户
   aggregate: AGG-71
   entity: leave_balance_accounts
   kind: automatic
-  name_status: 〔缺〕收敛新增，待 one-glossary 登记（carry_over_and_close_leave_balance_account）
+  name_status: 〔缺〕收敛新增，待 one-glossary 登记（carry_over_leave_balance_account）
   source: 收敛新增（AGG-118 已有结转规则，AGG-71 缺年度届满的终结命令）
   params:
   - 员工ID
@@ -1777,11 +1777,11 @@ commands:
   - 年度
   preconditions:
   - ref: 结转规则
-    text: 按 AGG-118 当日生效规则版本的结转与清零规则计算结转额度，记在本账户并关闭；下一年度账户开立时读取该结转额度计入应享；取不到规则版本失败并告警
+    text: 按 AGG-118 当日生效规则版本的结转与清零规则计算结转额度，记在本账户并置已结转；下一年度账户开立时读取该结转额度计入应享；取不到规则版本失败并告警
   - ref: 状态
     text: 账户为已开账，年度已届满，无占用中的占用行（占用中的跨年请假先处理）
   authority:
-    ref: raci:AGG-71/年度结转并关闭额度账户
+    ref: raci:AGG-71/年度结转额度账户
     A:
       resolve: type
       role: SH-E6
@@ -3309,7 +3309,6 @@ commands:
   source_part: vs13pay
 - name: 发布薪酬规则版本
   aggregate: AGG-119
-  unused_ok: 维护用：配置型版本发布，无业务流程（vs13pay.notes.md 结构问题 3）
   entity: payroll_rule_versions
   kind: human
   name_status: 〔缺〕沿用分片提议名（vs13.notes.md 新用语 publish_payroll_rule_version）
@@ -3321,8 +3320,8 @@ commands:
   - 规则明细
   - 依据引用（法规条文或公司制度）
   preconditions:
-  - ref: D15
-    text: 每版本一个聚合，同类别同适用范围的生效区间不重叠
+  - ref: INV-139
+    text: 同一规则类别同一适用范围的生效区间不重叠（每版本一个聚合，D15；S-43 给号）
   - ref: U7③
     text: 编制与确认由谁维护待定（人力出、财务确认）；推荐编制人 ≠ 确认人〔推〕
   - ref: 状态
@@ -3336,10 +3335,10 @@ commands:
     R:
     - SH-E6
   idempotency_key: 规则版本ID（客户端预生成 UUIDv7）
-  state_change: 草稿 → 已生效；已生效 → 已结束（前一版本，同事务）
+  state_change: 草稿 → 已生效；已生效 → 已被取代（前一版本，同事务）
   emits: 薪酬规则已生效
   used_by:
-  - 维护（薪酬规则版本维护，无流程步骤；AGG-73 计算读取其生效版本，见 notes 结构问题 3）
+  - PRC-180 第 1 步
   orphan: false
   source_part: vs13pay
 - name: 编制经营计划版本

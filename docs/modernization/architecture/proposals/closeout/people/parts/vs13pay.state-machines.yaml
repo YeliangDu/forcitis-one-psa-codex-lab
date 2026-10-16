@@ -23,7 +23,7 @@ machines:
   - {from: 草拟, to: 已提交, command: 提交绩效评估, guard: [U11：接收方未定], kind: forward}
   - {from: 已提交, to: 已确认, command: 确认绩效评估, guard: [INV-114], kind: forward, process_outcome: 已确认}
   - {from: 草拟, to: 已确认, command: 确认绩效评估, guard: [试用期评估无提交环节（PRC-85 步 2）〔推〕], kind: forward, process_outcome: 已确认}
-  - {from: 已确认, to: 已确认, command: 登记绩效更正, guard: [INV-114：追加更正记录引用原评估，不改原评估], kind: non_state}
+  - {from: 已确认, to: 已确认, command: 登记绩效更正, guard: [INV-114：追加更正记录引用原评估，不改原评估], kind: reverse}
 
 - aggregate: AGG-73
   machine: payroll_settlement
@@ -154,11 +154,13 @@ machines:
 - aggregate: AGG-119
   machine: payroll_rule_version
   entity: payroll_rule_versions
-  states: [草稿, 已生效, 已结束]
+  states: [草稿, 已生效, 已被取代]
   initial: [草稿]
-  terminal: [已结束]
-  added_states: [草稿, 已生效, 已结束]
-  note: 数据模型「版本状态」列未列取值，本稿取草稿、已生效、已结束；草稿即编制页保存。每版本一个聚合，同类别同适用范围生效区间不重叠（D15）
+  terminal: [已被取代]
+  perpetual: true
+  reason: "配置型版本聚合：发布即生效，被后继版本取代时旧版本置已被取代，无业务终结命令；更正出新版本，不修改、不冲销旧版本（D15）"
+  added_states: [草稿, 已生效, 已被取代]
+  note: 数据模型「版本状态」列未列取值，本稿取草稿、已生效、已被取代（S-43 取代原「已结束」，口径同 AGG-118、AGG-108）；草稿即编制页保存。每版本一个聚合，同类别同适用范围生效区间不重叠（INV-139）
   transitions:
-  - {from: 草稿, to: 已生效, command: 发布薪酬规则版本, guard: [D15：区间不重叠, U7③：编制人 ≠ 确认人〔推〕], kind: forward}
-  - {from: 已生效, to: 已结束, command: 发布薪酬规则版本, guard: [后继版本发布，同事务结束旧区间（D15）], kind: forward}
+  - {from: 草稿, to: 已生效, command: 发布薪酬规则版本, guard: [INV-139：区间不重叠, U7③：编制人 ≠ 确认人〔推〕], kind: forward, process_outcome: 薪酬规则版本已发布}
+  - {from: 已生效, to: 已被取代, command: 发布薪酬规则版本, guard: [后继版本发布，同事务结束旧区间（INV-139）], kind: forward}

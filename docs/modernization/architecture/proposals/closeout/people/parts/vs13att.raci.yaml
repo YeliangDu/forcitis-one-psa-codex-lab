@@ -126,7 +126,7 @@ entries:
     I: []
   sensitive: false
 - object: AGG-71
-  command: 年度结转并关闭额度账户
+  command: 年度结转额度账户
   raci:
     A: {resolve: type, role: SH-E6, function: 人力（考勤）}
     R: [system]

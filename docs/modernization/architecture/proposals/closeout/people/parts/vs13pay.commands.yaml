@@ -11,7 +11,7 @@
 # 同名命令按「聚合 + 名称」唯一：提交过账候选在 AGG-73 与 AGG-95 各一条。
 # 事件载荷不含个人级薪酬、奖金、个税金额与账户（ADR-0026 第 7 项 L3 不进事件），见 vs13pay.events.yaml。
 # state_change: none 的命令只写属性（引用、标志），不改状态，列在 vs13pay.state-machines.yaml 的 non_state_commands。
-# 「孤儿」= 未被任一流程步骤、事件策略或维护用到。本稿 0 个孤儿命令（发布薪酬规则版本只被「维护」用到，见 notes 结构问题 3）。
+# 「孤儿」= 未被任一流程步骤、事件策略或维护用到。本稿 0 个孤儿命令（S-43：发布薪酬规则版本由 PRC-180 承接）。
 
 bc: B-15
 also_bc: {AGG-106: B-13}
@@ -705,14 +705,13 @@ commands:
 # ───────────── AGG-119 ─────────────
 - name: 发布薪酬规则版本
   aggregate: AGG-119
-  unused_ok: "维护用：配置型版本发布，无业务流程（vs13pay.notes.md 结构问题 3）"
   entity: payroll_rule_versions
   kind: human
   name_status: 〔缺〕沿用分片提议名（vs13.notes.md 新用语 publish_payroll_rule_version）
   source: 分片 vs13.notes.md 结构问题 1、新用语
   params: [规则类别（个税税率与起征、专项附加扣除标准、社保公积金比例与基数、计算口径）, 适用范围（参保地或法人，可空为全国默认）, 生效区间, 规则明细, 依据引用（法规条文或公司制度）]
   preconditions:
-  - {ref: D15, text: 每版本一个聚合，同类别同适用范围的生效区间不重叠}
+  - {ref: INV-139, text: 同一规则类别同一适用范围的生效区间不重叠（每版本一个聚合，D15；S-43 给号）}
   - {ref: U7③, text: 编制与确认由谁维护待定（人力出、财务确认）；推荐编制人 ≠ 确认人〔推〕}
   - {ref: 状态, text: 版本为草稿}
   authority:
@@ -720,9 +719,9 @@ commands:
     A: {resolve: type, role: SH-E6, function: 薪酬规则确认}
     R: [SH-E6]
   idempotency_key: 规则版本ID（客户端预生成 UUIDv7）
-  state_change: 草稿 → 已生效；已生效 → 已结束（前一版本，同事务）
+  state_change: 草稿 → 已生效；已生效 → 已被取代（前一版本，同事务）
   emits: 薪酬规则已生效
-  used_by: [维护（薪酬规则版本维护，无流程步骤；AGG-73 计算读取其生效版本，见 notes 结构问题 3）]
+  used_by: [PRC-180 第 1 步]
   orphan: false
 
 # ───────────── 事件策略（非聚合命令，调用上面的命令） ─────────────

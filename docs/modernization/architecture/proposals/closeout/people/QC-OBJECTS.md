@@ -278,3 +278,24 @@ object_check 人员组 90 条分项：无人修改 9、无人创建 11、无人�
 | 误报（工具读法） | 2：AGG-93 更新专项附加扣除权责缺项、AGG-120 未触及（同一原因，二选一：改检查读命令条目聚合，或拆 PRC-123） |
 
 豁免表建议条目（对象 × 检查项 × 理由）：AGG-93 × 逆向；OBJ-64 × 逆向；AGG-118 × 修改、逆向；OBJ-104 × 修改；OBJ-70 × 修改、逆向；OBJ-28 × 逆向。待 one-architecture 对象划分类裁定后，按判定落分片；真缺口补法涉及的确认页题影响见 `PAGE_IMPACT.md`。
+
+## S-43 落实（暂停时进度，2026-10-16）
+
+依据：one-architecture 对象划分类裁定 S-43。用户新决定：CRUD 缺口清零暂停，已改的保留，其余不再开新项。自检（rebuild 后）：closeout_check --qc 本组各项 0；converge_check 只剩 AGG-52（财务对象）；bpmn_gen 全部通过。object_check 本地跑因缺别组骨架仍有大量误报，且豁免表尚未登记，不作清零依据。
+
+已完成（修前 → 修后）：
+
+| 项 | 修前 | 修后 |
+|---|---|---|
+| PRC-180 发布薪酬规则版本 | AGG-119 未被任何流程触及，命令标 unused_ok | 新增 B-15 单聚合维护 PRC-180（第 1 步 发布薪酬规则版本，INV-139 守卫，两个场景）；撤 unused_ok；AGG-119 状态机标 perpetual，「已结束」改名「已被取代」；PRC-124 第 1 步 reads 补 AGG-119、AGG-120 |
+| PRC-160 命令改名 | 年度结转并关闭额度账户（名含「并」被报多聚合） | 年度结转额度账户（commands、raci、state-machines、processes、scenarios、notes、NOTES.keep 同步） |
+| PRC-123 | 被报单聚合维护含 AGG-120 与 AGG-93 | 不拆；notes 写明理由（同一 BC、每条命令与转换各改一个聚合、一事务一聚合），按 S-43 #24 同类处理 |
+| AGG-80 预算占用 | 子生命周期入口未标 | 「预算占用」转换标 kind: entry（S-43 #43） |
+| AGG-106 登记绩效更正 | 标 non_state，检查看不到逆向 | 标 kind: reverse |
+
+未做（暂停）：
+- 撤销组织单元（AGG-61，挂 PRC-80，新增第 13 步，状态机到「已撤销」；`调整组织单元` 去掉撤销）。
+- 重新启用岗位、撤销岗位（AGG-64，挂 PRC-80 第 14、15 步，岗位状态机改为 启用 ⇄ 已停用 并增终态「已撤销」）。
+- 撤销增员（AGG-74，挂 PRC-84 步 1 的出口，新增步 3 与场景）。
+- 豁免表条目（待 one-architecture 启用 OBJECT_EXEMPTIONS.yaml）：AGG-93 × 逆向；OBJ-64 × 逆向；AGG-118 × 修改、逆向；OBJ-104 × 修改；OBJ-70 × 修改、逆向（并标 stateless）；OBJ-28 × 逆向（AGG-108 标 perpetual）；PRC-123 × 单聚合维护含多个聚合（S-43 #24 同类，建议登记，理由见 PRC-123 notes）。
+- PAGE_IMPACT.md 仅更新 P13-17；P13-09 随撤销增员未做而保持预判。
