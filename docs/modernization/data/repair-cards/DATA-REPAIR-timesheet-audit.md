@@ -119,7 +119,7 @@ B 部分（one-1a-next-4）允许改动：
 
 - RULING-DR-TB01-1（one-1a-next-4，2026-10-16）：用户答 U-7b「改写员工 ID，阅读时再解析姓名」后，运维命令 `--operator`、`--witness` 入参改为员工 ID；5 个验收文件中这两个参数的取值随之机械改为员工 ID，断言未动。
 
-- 后续小卡 DR-TB01-FU1（one-data 2026-10-16 准许移出 PR-2，交 one-1a-next-5）：运维证明的操作人、见证人员工 ID 须为存在员工（不存在 → 用法错误退出码 2，不写审计）；需在 5 个验收文件造出操作人 / 见证人员工（测试代理按 Acceptance-Ruling 改）。PR-2 暂未校验存在，「阅读时再解析姓名」可能遇到解析不到的 ID。落地时须统一退出码：RUNBOOK 现写格式错误为退出码 1，本卡写不存在为 2。
+- 后续小卡 DR-TB01-FU1（one-data 2026-10-16 准许移出 PR-2，交 one-1a-next-5）：运维证明的操作人、见证人员工 ID 须为存在员工（不存在 → 退出码 1，不写审计）；需在 5 个验收文件造出操作人 / 见证人员工（测试代理按 Acceptance-Ruling 改）。PR-2 暂未校验存在，「阅读时再解析姓名」可能遇到解析不到的 ID。退出码 1（one-data 2026-10-16 裁定：与格式错误同为拒绝，沿用错误码 PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED）；已在 one-1a-next-5 落地。
 
 #### TB-02　IR-1　高（OV 确认）　整份应答正文落库 24 小时，无分级、无内容边界、无长度上限
 - 问题：`IdempotencyFilter` 对所有非 `/sessions`、`/login-states` 的 POST 保存完整应答正文（黑名单），`response_text` 是任意接口应答副本；`data-classification.txt` 无该列。

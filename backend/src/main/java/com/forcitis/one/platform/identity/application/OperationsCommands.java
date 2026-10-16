@@ -3,6 +3,7 @@ package com.forcitis.one.platform.identity.application;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WorkContext;
+import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import java.io.PrintStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -31,14 +32,16 @@ public class OperationsCommands {
     private final DisableEmergencyAdmin disable;
     private final EnableEmergencyAdmin enable;
     private final GrantRoleByOperations grant;
+    private final OrgDirectory orgDirectory;
 
     OperationsCommands(RegisterEmergencyAdmin register, ResetEmergencyAdminCredentials reset, DisableEmergencyAdmin disable,
-            EnableEmergencyAdmin enable, GrantRoleByOperations grant) {
+            EnableEmergencyAdmin enable, GrantRoleByOperations grant, OrgDirectory orgDirectory) {
         this.register = register;
         this.reset = reset;
         this.disable = disable;
         this.enable = enable;
         this.grant = grant;
+        this.orgDirectory = orgDirectory;
     }
 
     public int run(ApplicationArguments arguments, PrintStream out, PrintStream err) {
@@ -50,6 +53,7 @@ public class OperationsCommands {
         }
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "platform.identity.operations")) {
             OperationAttestation attestation = OperationAttestation.of(single(arguments, OPERATOR), single(arguments, WITNESS));
+            requireExisting(attestation);
             EmployeeId employeeId = employeeId(arguments);
             return switch (operation) {
                 case "register-emergency-admin" -> registerAdmin(attestation, employeeId, single(arguments, LOGIN_NAME), out);
@@ -69,6 +73,13 @@ public class OperationsCommands {
         } catch (IllegalArgumentException wrongUsage) {
             err.println("wrong usage: " + wrongUsage.getMessage());
             return 2;
+        }
+    }
+
+    /** Separated employees still count: the snapshot keeps them, and the audit trail must be able to name them. */
+    private void requireExisting(OperationAttestation attestation) {
+        if (orgDirectory.findEmployee(attestation.operator()).isEmpty() || orgDirectory.findEmployee(attestation.witness()).isEmpty()) {
+            throw OperationAttestation.required();
         }
     }
 

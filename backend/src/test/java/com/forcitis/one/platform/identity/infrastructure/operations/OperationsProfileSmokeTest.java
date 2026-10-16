@@ -1,18 +1,30 @@
 package com.forcitis.one.platform.identity.infrastructure.operations;
 
-import com.forcitis.one.fixture.doubles.TestAccounts;
-import com.forcitis.one.fixture.doubles.TestOrgIds;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.OneApplication;
 import com.forcitis.one.TestPostgres;
+import com.forcitis.one.fixture.doubles.TestAccounts;
+import com.forcitis.one.fixture.doubles.TestOrgIds;
+import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.organization.workforce.api.EmployeeProfile;
+import com.forcitis.one.organization.workforce.api.EmploymentStatus;
+import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.AdditionalAnswers;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.web.server.context.WebServerApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -40,11 +52,28 @@ class OperationsProfileSmokeTest {
         return bytes;
     }
 
+    /** The organisation snapshot belongs to another module; the real service answers, except that the two synthetic attestors are known to exist. */
+    private static OrgDirectory withAttestors(OrgDirectory real) {
+        OrgDirectory directory = Mockito.mock(OrgDirectory.class, AdditionalAnswers.delegatesTo(real));
+        for (String attestor : List.of(OPERATOR_ID, WITNESS_ID)) {
+            EmployeeId id = EmployeeId.parse(attestor);
+            Mockito.doReturn(Optional.of(new EmployeeProfile(id, "Synthetic attestor", TestOrgIds.orgUnit(10), null, EmploymentStatus.EMPLOYED, false)))
+                    .when(directory).findEmployee(id);
+        }
+        return directory;
+    }
+
     private Finished run(String... commandLine) {
         AtomicInteger exit = new AtomicInteger(-1);
         SpringApplication application = new SpringApplication(OneApplication.class);
         application.setAdditionalProfiles("identity-operations");
         application.addInitializers(context -> context.getBeanFactory().registerSingleton("processExit", (ProcessExit) exit::set));
+        application.addInitializers(context -> context.addBeanFactoryPostProcessor(beans -> beans.addBeanPostProcessor(new BeanPostProcessor() {
+            @Override
+            public Object postProcessAfterInitialization(Object bean, String beanName) {
+                return "orgDirectoryService".equals(beanName) && bean instanceof OrgDirectory real ? withAttestors(real) : bean;
+            }
+        })));
         String[] infrastructure = {
                 "--spring.datasource.url=" + POSTGRES.getJdbcUrl(), "--spring.datasource.username=" + POSTGRES.getUsername(),
                 "--spring.datasource.password=" + POSTGRES.getPassword(), "--spring.datasource.hikari.connection-timeout=2000",
@@ -54,14 +83,14 @@ class OperationsProfileSmokeTest {
                 "--forcitis.platform.audit.archive.enabled=false", "--forcitis.platform.approval.process-administrator-required=false", "--forcitis.platform.identity.sso.enabled=false",
                 "--forcitis.platform.identity.emergency.totp-encryption-key=" + Base64.getEncoder().encodeToString(random(32)),
                 "--FORCITIS_TICKET_KEY_KM=" + HexFormat.of().formatHex(random(32))};
-        String[] all = java.util.stream.Stream.concat(java.util.Arrays.stream(infrastructure), java.util.Arrays.stream(commandLine))
+        String[] all = Stream.concat(Arrays.stream(infrastructure), Arrays.stream(commandLine))
                 .toArray(String[]::new);
         try (ConfigurableApplicationContext context = application.run(all)) {
-            boolean anyJobBean = java.util.stream.Stream.of("emergencyAdminCheckJob", "credentialPurgeJob", "orgSnapshotSyncJob",
+            boolean anyJobBean = Stream.of("emergencyAdminCheckJob", "credentialPurgeJob", "orgSnapshotSyncJob",
                     "shortNameRefreshJob", "eventPublicationJobs").anyMatch(context::containsBean);
             boolean anyScheduledTask = context.getBeanProvider(ScheduledAnnotationBeanPostProcessor.class).stream()
                     .flatMap(processor -> processor.getScheduledTasks().stream()).anyMatch(task -> task.toString().matches(".*(EmergencyAdminCheckJob|CredentialPurgeJob|OrgSnapshotSyncJob|ShortNameRefreshJob|EventPublicationJobs).*"));
-            int port = context instanceof org.springframework.boot.web.server.context.WebServerApplicationContext web ? web.getWebServer().getPort() : -2;
+            int port = context instanceof WebServerApplicationContext web ? web.getWebServer().getPort() : -2;
             boolean schedulingProcessor = context.getBeanNamesForType(ScheduledAnnotationBeanPostProcessor.class).length > 0;
             return new Finished(exit.get(), anyJobBean, anyScheduledTask, schedulingProcessor, port);
         }
@@ -84,7 +113,7 @@ class OperationsProfileSmokeTest {
     void aCommandEndsCleanlyAndItsEventIsNotLost() {
         run("--operator=" + OPERATOR_ID, "--witness=" + WITNESS_ID);
         JdbcClient jdbc = JdbcClient.create(new DriverManagerDataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()));
-        jdbc.sql("insert into platform_identity.user_accounts (user_id, employee_id) values (" + com.forcitis.one.fixture.doubles.TestAccounts.sql(7) + "::uuid, " + TestOrgIds.sqlEmployee(7) + "::uuid) on conflict do nothing").update();
+        jdbc.sql("insert into platform_identity.user_accounts (user_id, employee_id) values (" + TestAccounts.sql(7) + "::uuid, " + TestOrgIds.sqlEmployee(7) + "::uuid) on conflict do nothing").update();
 
         Finished finished = run("--operation=grant-role", "--employee-id=" + TestAccounts.employee(7).value(), "--role-code=business_admin", "--operator=" + OPERATOR_ID, "--witness=" + WITNESS_ID);
 
