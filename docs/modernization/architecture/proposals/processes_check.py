@@ -7,7 +7,8 @@ Checks
   1. every value-stream stage is covered by at least one process, or listed in stages_without_process
   2. every process has a trigger (event with a published aggregate event, time, human, or call)
   3. every non-read step has a command and an existing aggregate; emitted events exist on that aggregate (section 2.2);
-     steps marked `named` use a command name that literally appears in the aggregate draft;
+     the command must be listed in that aggregate's command column ("命令（→ 事件；前置 INV）") in section 2.2, for the step's
+     aggregate and for every `also` and `inner` aggregate (no derived command names any more);
      only the C-class exception (`also` + `c_exception`) changes two aggregates in one step
   4. dependency direction: every aggregate a process touches lies in owner_bc or in an upstream BC (section 4.1 edges)
   5. internal references (calls, gap ids) resolve; human_orchestration processes carry a reason
@@ -32,6 +33,8 @@ AGG_ROW = re.compile(r"^\|\s*((?:AGG|REF)-\d+)\s*\|")
 BC_HEADING = re.compile(r"^\*\*(B-\d+)\b")
 
 errors = []
+COMMANDS = {}
+INV_ID = re.compile(r"^\|\s*(INV-\d+[ab]?)\s*\|", re.M)
 
 
 def err(msg):
@@ -90,9 +93,25 @@ def parse_events(cell):
     return events
 
 
+def parse_commands(cell):
+    """Return {command name: (events, invs)} from a cell like '提交检查记录（→（内部）；前置 INV-55）；锁定检查（→ 检查已锁定）'."""
+    out = {}
+    for item in split_top(cell, "；"):
+        if item.startswith("—"):
+            continue
+        name = re.split(r"[（(]", item, 1)[0].strip()
+        m = re.search(r"（→\s*(.*)）\s*$", item)
+        body = m.group(1) if m else ""
+        head, _, inv = body.partition("；前置")
+        evs = [] if head.strip() in ("（内部）", "") else [e.strip() for e in split_top(head.strip(), "、")]
+        out[name] = (evs, re.findall(r"INV-\d+[ab]?", inv))
+    return out
+
+
 def load_draft():
     text = DRAFT.read_text(encoding="utf-8")
     owner, events, section, current = {}, {}, None, None
+    COMMANDS.clear()
     for line in text.splitlines():
         if line.startswith("### "):
             section = line[4:].split(" ")[0]
@@ -108,6 +127,7 @@ def load_draft():
             agg = m.group(1)
             owner[agg] = current
             events[agg] = parse_events(row[-2]) if len(row) >= 3 else {}
+            COMMANDS[agg] = parse_commands(row[-3])
     return text, owner, events
 
 
@@ -169,7 +189,8 @@ def main():
             err(f"{where}: direction {base} -> {b} ({ref}) is not an edge in section 4.1")
 
     covered, touched = set(), set()
-    named_total = derived_total = 0
+    listed_total = 0
+    used_cmds = set()
     nosub, time_flows = {}, []
     human_n = 0
     step_n = write_n = read_n = task_n = 0
@@ -259,12 +280,11 @@ def main():
             touched.add(("write", agg))
             if agg.startswith("REF-") and not s.get("gap"):
                 err(f"{where}: {agg} has no aggregate; the step must reference a gap")
-            if s.get("named"):
-                named_total += 1
-                if cmd and cmd not in draft_text:
-                    err(f"{where}: command '{cmd}' is marked named but is not in the aggregate draft")
+            used_cmds.add((agg, cmd))
+            if cmd and cmd in COMMANDS.get(agg, {}):
+                listed_total += 1
             else:
-                derived_total += 1
+                err(f"{where}: command '{cmd}' is not in the command column of {agg} (section 2.2)")
             for ev in s.get("emits", []) or []:
                 if ev not in events_of.get(agg, {}):
                     err(f"{where}: event '{ev}' is not an event of {agg}")
@@ -276,9 +296,15 @@ def main():
                 for a in s["also"]:
                     check_agg(a, where, owner_bc)
                     touched.add(("write", a))
+                    used_cmds.add((a, cmd))
+                    if cmd not in COMMANDS.get(a, {}):
+                        err(f"{where}: command '{cmd}' is not in the command column of {a} (also)")
             for inn in s.get("inner", []) or []:
                 if not inn.get("command"):
                     err(f"{where}: inner step needs command")
+                used_cmds.add((inn.get("aggregate"), inn.get("command")))
+                if inn.get("command") not in COMMANDS.get(inn.get("aggregate"), {}):
+                    err(f"{where}: inner command '{inn.get('command')}' is not in the command column of {inn.get('aggregate')}")
                 check_agg(inn.get("aggregate"), where + " inner", owner_bc, relative_to=bc_of.get(agg))
                 touched.add(("write", inn.get("aggregate")))
 
@@ -293,6 +319,21 @@ def main():
     for s in uncovered:
         err(f"stage {s} is covered by no process and not listed in stages_without_process")
 
+    inv_ids = set(INV_ID.findall(draft_text))
+    col_total = unused = 0
+    for agg, cs in COMMANDS.items():
+        evs = events_of.get(agg, {})
+        for c, (cev, cinv) in cs.items():
+            col_total += 1
+            if (agg, c) not in used_cmds:
+                unused += 1
+                err(f"{agg}: command '{c}' in the command column is used by no process step")
+            for e in cev:
+                if e not in evs:
+                    err(f"{agg}: command '{c}' emits '{e}', which is not in the event column of {agg}")
+            for i in cinv:
+                if i not in inv_ids:
+                    err(f"{agg}: command '{c}' cites {i}, which is not in the invariant table")
     written = {a for k, a in touched if k == "write"}
     agg_all = sorted((a for a in bc_of if a.startswith("AGG-")), key=lambda x: int(x[4:]))
     no_command = [a for a in agg_all if a not in written]
@@ -310,7 +351,7 @@ def main():
     print(f"流程数：{len(procs)}；人工编排流程：{human_n}；触发类型：" + "，".join(
         f"{k} {sum(1 for p in procs if p['trigger'].get('type') == k)}" for k in sorted(TRIGGER_TYPES)))
     print(f"步骤数：{step_n}（改状态 {write_n}，只读 {read_n}，平台任务 {task_n}）；"
-          f"命令名字面见于聚合稿 {named_total}，反推 {derived_total}")
+          f"命令可在聚合命令列中找到 {listed_total}/{write_n}；命令列共 {col_total} 个命令，未被任何步骤使用 {unused}")
     print(f"阶段数：{len(all_stages)}；已覆盖：{len(covered & stage_set)}；无需系统支持：{len(data.get('stages_without_process') or [])}")
     print(f"gaps 数：{len(gaps)}（" + "，".join(f"{k} {v}" for k, v in sorted(by_kind.items())) + "）")
     print(f"C 类同事务步骤：{len(c_exceptions)}（" + "，".join(sorted({c for _, _, c in c_exceptions})) + "）")
