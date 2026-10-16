@@ -12,13 +12,13 @@ aggregates:
     versioned: append_only
     history_migration: none
     sensitivity: internal
-    reason: 配置类版本，新系统首版由财务评审后录入，不迁入旧版本；历史分摊规则是否需要迁入以重算历史待定
-    data_category: 配置
+    pi: none
+    reason: 配置类版本，新系统首版由财务评审后录入，不迁入旧版本；至少录入覆盖 U-10 重算两个期间（投产前最近两个已结期间）的版本；版本行在确认时才写入，草稿另存（不在版本表更新状态），是否生效由生效日推出
     column_families:
     - 版本号与生效日
     - 作者与确认人
     - 决定出处
-    - 状态
+    notes: 草稿存放位置待 one-data 定
   - name: allocation_rule_pools
     role: child
     key: uuid_v7
@@ -28,8 +28,8 @@ aggregates:
     versioned: append_only
     history_migration: none
     sensitivity: internal
+    pi: none
     reason: 随规则版本
-    data_category: 配置
     column_families:
     - 池的职能类别
     - 基数
@@ -41,20 +41,16 @@ aggregates:
   - name: labor_cost_allocation_runs
     role: root
     key: uuid_v7
-    references:
-    - to: AGG-81
-      by: accounting_period_id
-      cross_bc: true
     versioned: none
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: 运行单据：投产前最近两期按 U-10 重算比对；历史期间的结果迁入还是重算待定；口径待 FD-09
-    data_category: 交易
+    pi: none
+    reason: 运行单据：结果由迁入的权责事实承载（U-3），投产前两期按 U-10 重算；口径待 FD-09
     column_families:
     - 法人
     - 业务日期
     - 单据编号
-    - 落账期间
+    - 落账期间（会计年度、期间序号）
     - 状态
     - 口径版本引用
     - version
@@ -65,15 +61,15 @@ aggregates:
     key: uuid_v7
     references:
     - to: labor_cost_allocation_runs
-      by: run_id
+      by: labor_cost_allocation_run_id
     - to: AGG-77
       by: business_fact_id
       cross_bc: true
     versioned: none
-    history_migration: tbd
+    history_migration: none
     sensitivity: sensitive
-    reason: 按人员分配时含个人工时成本，逐行是否到人待定
-    data_category: 交易
+    pi: tbd
+    reason: 运行单据：结果由迁入的权责事实承载（U-3），投产前两期按 U-10 重算；按人员分配时含个人工时成本，访问级别按 sensitive；逐行是否到人待 FD-09 与 one-data（DM-8），到人则 pi
     column_families:
     - 分配对象(项目)
     - 工时与成本引用
@@ -81,43 +77,41 @@ aggregates:
 - aggregate: AGG-42
   bc: B-07
   tables:
-  - name: allocation_runs
+  - name: allocation_results
     role: root
     key: uuid_v7
     references:
     - to: AGG-40
       by: allocation_rule_version_id
-    - to: AGG-81
-      by: accounting_period_id
-      cross_bc: true
     versioned: none
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: 运行单据：投产前最近两期按 U-10 重算比对；历史期间的结果迁入还是重算待定
-    data_category: 交易
+    pi: none
+    reason: 运行单据：结果由迁入的权责事实承载（U-3），投产前两期按 U-10 重算
     column_families:
     - 法人
     - 业务日期
     - 单据编号
-    - 落账期间
+    - 落账期间（会计年度、期间序号）
     - 状态
     - 分摊规则版本引用
+    - 试算或全量
     - version
     - 审计列
-  - name: allocation_run_lines
+  - name: allocation_result_lines
     role: child
     key: uuid_v7
     references:
-    - to: allocation_runs
-      by: allocation_run_id
+    - to: allocation_results
+      by: allocation_result_id
     - to: AGG-77
       by: business_fact_id
       cross_bc: true
     versioned: none
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: 运行单据：投产前最近两期按 U-10 重算比对；历史期间的结果迁入还是重算待定
-    data_category: 交易
+    pi: none
+    reason: 运行单据：结果由迁入的权责事实承载（U-3），投产前两期按 U-10 重算
     column_families:
     - 分摊对象
     - 池
@@ -126,42 +120,41 @@ aggregates:
 - aggregate: AGG-43
   bc: B-07
   tables:
-  - name: cost_carryover_batches
+  - name: cost_transfer_batches
     role: root
     key: uuid_v7
-    references:
-    - to: AGG-81
-      by: accounting_period_id
-      cross_bc: true
     versioned: none
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: 运行单据：投产前最近两期按 U-10 重算比对；历史期间的结果迁入还是重算待定；INV-88 待定 Q20
-    data_category: 交易
+    pi: none
+    reason: 运行单据：结果由迁入的权责事实承载（U-3），投产前两期按 U-10 重算；INV-88 待定 Q20
     column_families:
     - 法人
     - 业务日期
     - 单据编号
-    - 落账期间
+    - 落账期间（会计年度、期间序号）
     - 结转类型
     - 状态
     - 幂等键
     - version
     - 审计列
-  - name: cost_carryover_lines
+  - name: cost_transfer_batch_lines
     role: child
     key: uuid_v7
     references:
-    - to: cost_carryover_batches
-      by: cost_carryover_batch_id
+    - to: cost_transfer_batches
+      by: cost_transfer_batch_id
     - to: AGG-19
       by: project_id
       cross_bc: true
+    - to: AGG-77
+      by: business_fact_id
+      cross_bc: true
     versioned: none
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: 运行单据：投产前最近两期按 U-10 重算比对；历史期间的结果迁入还是重算待定
-    data_category: 交易
+    pi: none
+    reason: 运行单据：结果由迁入的权责事实承载（U-3），投产前两期按 U-10 重算
     column_families:
     - 结转对象(项目、合同)
     - 方向(转入/转出/超期转费用/终止清算)
@@ -183,8 +176,9 @@ aggregates:
     versioned: none
     history_migration: full
     sensitivity: internal
-    pi: true
-    reason: 来源 A8 付款与报销、老系统分包应付；报销与应付薪酬按人员 ID 引用（ADR-0043 第 4 项第 2 条）
+    pi: pi
+    source: A8 付款与报销表单；老系统分包应付
+    reason: 报销与应付薪酬按人员 ID 引用（ADR-0043 第 4 项第 2 条）
     column_families:
     - 法人
     - 业务日期
@@ -195,6 +189,7 @@ aggregates:
     - 未结余额（投影，可由核销重算）
     - version
     - 审计列
+    notes: 争议状态只在 payable_dispute_records；应付类型含分包、采购、报销、其他应付、预付、质保金扣留、应付薪酬、应付利润，不含员工借款（S-18）
   - name: payable_sources
     role: child
     key: uuid_v7
@@ -208,23 +203,29 @@ aggregates:
     - to: AGG-73
       by: source_id
       cross_bc: true
+    - to: payables
+      by: payable_id
     versioned: none
     history_migration: full
     sensitivity: internal
+    pi: none
+    source: 随应付迁入，与应付同来源
     column_families:
     - 来源单据类型
     - 来源单据引用（不校验）
     - 来源金额
-    pi: false
   - name: payable_application_holds
     role: child
     key: uuid_v7
     references:
+    - to: payables
+      by: payable_id
     - to: AGG-53
       by: cash_payment_id
     versioned: none
     history_migration: open_items
     sensitivity: internal
+    pi: none
     reason: 只迁在途占用；已完成付款的占用已转核销，体现在 payable_applications
     column_families:
     - 占用付款引用
@@ -232,39 +233,45 @@ aggregates:
     - 状态（占用 / 释放 / 已转核销）
     - 幂等键
     - version
-    pi: false
   - name: payable_applications
     role: child
     key: uuid_v7
     references:
+    - to: payables
+      by: payable_id
     - to: AGG-53
       by: cash_payment_id
     versioned: append_only
     history_migration: full
     sensitivity: internal
+    pi: none
+    source: A8 付款与报销表单；老系统分包付款
     column_families:
     - 核销金额
     - 付款引用
     - 核销日期
     - 落账期间（会计年度、期间序号）
     - 冲销关联
-    pi: false
   - name: payable_dispute_records
     role: child
     key: uuid_v7
+    references:
+    - to: payables
+      by: payable_id
     versioned: append_only
     history_migration: full
     sensitivity: internal
+    pi: none
+    source: 老系统分包应付的争议记录（若有）；无则不迁
     column_families:
     - 争议状态
     - 处置分类（取值待用户定，只确认「诉讼」）
     - 诉讼文书附件引用
     - 作者与时刻
-    pi: false
 - aggregate: AGG-53
   bc: B-10
   tables:
-  - name: payments
+  - name: cash_payments
     role: root
     key: uuid_v7
     references:
@@ -277,50 +284,54 @@ aggregates:
     versioned: none
     history_migration: full
     sensitivity: sensitive
-    reason: 含员工付款与个人收款账户引用
-    data_category: 交易
+    pi: pi
+    source: A8 付款表单；老系统分包付款
+    reason: 含员工付款与个人收款账户引用（账号本体在往来单位，不在本表）；个人对象按 pi 标记
     column_families:
     - 法人
     - 业务日期
     - 单据编号
-    - 落账期间
+    - 落账期间（会计年度、期间序号）
     - 状态
     - 收款账户引用
     - 审批引用
     - 执行人
     - 幂等键
+    - 银行回单引用
     - version
     - 审计列
     notes: U-3、U-4 全部历史明细迁入，经 ADR-0036 迁入用例
-  - name: payment_allocations
+  - name: cash_payment_allocations
     role: child
     key: uuid_v7
     references:
-    - to: payments
-      by: payment_id
-    - to: payable_items
-      by: payable_item_id
+    - to: cash_payments
+      by: cash_payment_id
+    - to: AGG-52
+      by: payable_id
     versioned: none
     history_migration: full
     sensitivity: internal
-    data_category: 交易
+    pi: none
+    source: A8 付款表单；老系统分包付款
     column_families:
     - 分配金额
     - 应付引用
     - 核销占用引用
-  - name: payment_bank_matches
+  - name: cash_payment_bank_matches
     role: link
     key: uuid_v7
     references:
-    - to: payments
-      by: payment_id
+    - to: cash_payments
+      by: cash_payment_id
     - to: AGG-88
       by: bank_statement_line_id
       cross_bc: true
     versioned: append_only
-    history_migration: full
+    history_migration: none
     sensitivity: internal
-    data_category: 事实
+    pi: none
+    reason: 匹配对象银行流水不迁入（来源在银行与 U8C，见 AGG-88）；历史付款的银行结果以付款单上的银行回单引用承载
     column_families:
     - 银行流水引用
     - 匹配金额
@@ -341,17 +352,17 @@ aggregates:
       by: partner_id
       cross_bc: true
     versioned: none
-    history_migration: full
+    history_migration: none
     sensitivity: sensitive
-    reason: 合伙人与股东个人信息及出资
-    data_category: 交易
+    pi: pi
+    reason: 历史出资来源在 U8C 与线下出资凭证，不在老系统与 A8（待 one-data 取证，若有结构化记录则改 full）；投产日累计实缴由期初余额表（AGG-新-F1）承载；合伙人与股东个人信息及出资
     column_families:
     - 法人
     - 出资人引用
     - 认缴金额
     - 业务日期
     - 单据编号
-    - 落账期间
+    - 落账期间（会计年度、期间序号）
     - version
     - 审计列
   - name: partner_contribution_entries
@@ -361,15 +372,15 @@ aggregates:
     - to: partner_contributions
       by: partner_contribution_id
     versioned: append_only
-    history_migration: full
+    history_migration: none
     sensitivity: sensitive
-    reason: 同上
-    data_category: 事实
+    pi: pi
+    reason: 同根表
     column_families:
     - 类型(认缴/实缴/退回)
     - 金额
     - 业务日期
-    - 落账期间
+    - 落账期间（会计年度、期间序号）
     - 幂等键
 - aggregate: AGG-109
   bc: B-10
@@ -385,19 +396,21 @@ aggregates:
       by: period_balance_snapshot_id
       cross_bc: true
     versioned: none
-    history_migration: full
+    history_migration: none
     sensitivity: sensitive
-    reason: 股东个人分配信息
-    data_category: 交易
+    pi: pi
+    reason: 历史利润分配来源在 U8C 与股东会决议原件，不在老系统与 A8（待 one-data 取证）；未分配利润期初由期初余额表承载；股东个人分配信息
     column_families:
     - 法人
     - 会计年度
+    - 业务日期
     - 单据编号
+    - 落账期间（会计年度、期间序号）
     - 状态
     - 可分配利润快照引用
     - version
     - 审计列
-    notes: 迁入历史分配记录；未分配利润期初归期初余额迁移方案
+    notes: 决议原件线下，本系统登记引用
   - name: profit_distribution_lines
     role: child
     key: uuid_v7
@@ -409,12 +422,11 @@ aggregates:
       cross_bc: true
     - to: AGG-54
       by: partner_contribution_id
-      cross_bc: true
     versioned: none
-    history_migration: full
+    history_migration: none
     sensitivity: sensitive
-    reason: 股东个人
-    data_category: 交易
+    pi: pi
+    reason: 同根表；股东个人
     column_families:
     - 股东引用
     - 金额
@@ -426,9 +438,10 @@ aggregates:
     - to: profit_distributions
       by: profit_distribution_id
     versioned: append_only
-    history_migration: full
+    history_migration: none
     sensitivity: internal
-    data_category: 事实
+    pi: none
+    reason: 同根表
     column_families:
     - 决议文件引用
     - 决议日期
@@ -440,18 +453,17 @@ aggregates:
     - to: profit_distributions
       by: profit_distribution_id
     - to: AGG-52
-      by: payable_item_id
-      cross_bc: true
+      by: payable_id
     versioned: append_only
-    history_migration: full
+    history_migration: none
     sensitivity: sensitive
-    reason: 股东个人
-    data_category: 事实
+    pi: pi
+    reason: 同根表；股东个人
     column_families:
     - 支付金额
     - 业务日期
     - 应付引用
-    - 落账期间
+    - 落账期间（会计年度、期间序号）
 - aggregate: AGG-55
   bc: B-11
   tables:
@@ -471,7 +483,9 @@ aggregates:
     versioned: none
     history_migration: full
     sensitivity: internal
-    data_category: 交易
+    pi: tbd
+    source: 老系统分包与采购合同；A8 采购、租赁、保险单、居间、劳务派遣协议表单
+    reason: 居间与劳务派遣协议对方可能为自然人，是否按对方类型判定个人信息交 one-data
     column_families:
     - 法人
     - 协议类型
@@ -479,11 +493,12 @@ aggregates:
     - 项目与主协议引用
     - 状态
     - 签订日期
+    - 业务日期
     - 单据编号
     - 结算结论
     - version
     - 审计列
-    notes: 居间与劳务派遣协议对方若为个人，分级待复核
+    notes: 首次登记含请购前单据
   - name: supplier_agreement_terms
     role: child
     key: uuid_v7
@@ -496,7 +511,8 @@ aggregates:
     versioned: none
     history_migration: full
     sensitivity: internal
-    data_category: 交易
+    pi: none
+    source: 同供方协议
     column_families:
     - 基线金额
     - 付款条件
@@ -512,10 +528,11 @@ aggregates:
     - to: AGG-02
       by: qualification_id
       cross_bc: true
-    versioned: none
+    versioned: append_only
     history_migration: full
     sensitivity: internal
-    data_category: 事实
+    pi: none
+    source: 同供方协议
     column_families:
     - 资质证书引用
     - 同意证据附件引用
@@ -526,18 +543,21 @@ aggregates:
     role: root
     key: uuid_v7
     references:
-    - to: supplier_agreements
+    - to: AGG-55
       by: supplier_agreement_id
     versioned: none
     history_migration: full
     sensitivity: internal
-    data_category: 交易
+    pi: none
+    source: 老系统分包变更
     column_families:
+    - 法人
+    - 业务日期
+    - 单据编号
+    - 落账期间（会计年度、期间序号）
     - 协议引用
     - 变更金额与范围
     - 状态
-    - 单据编号
-    - 落账期间
     - version
     - 审计列
   - name: subcontract_change_impacts
@@ -549,7 +569,8 @@ aggregates:
     versioned: none
     history_migration: full
     sensitivity: internal
-    data_category: 交易
+    pi: none
+    source: 同分包变更
     column_families:
     - 影响评估
 - aggregate: AGG-57
@@ -559,7 +580,7 @@ aggregates:
     role: root
     key: uuid_v7
     references:
-    - to: supplier_agreements
+    - to: AGG-55
       by: supplier_agreement_id
     - to: AGG-19
       by: project_id
@@ -567,12 +588,13 @@ aggregates:
     versioned: append_only
     history_migration: full
     sensitivity: internal
-    data_category: 事实
+    pi: none
+    source: 老系统分包履约确认
     column_families:
     - 法人
     - 业务日期
     - 单据编号
-    - 落账期间
+    - 落账期间（会计年度、期间序号）
     - 协议引用
     - 项目引用
     - 确认金额
@@ -588,7 +610,8 @@ aggregates:
     versioned: append_only
     history_migration: full
     sensitivity: internal
-    data_category: 事实
+    pi: none
+    source: 同履约确认
     column_families:
     - 确认对象
     - 金额
@@ -599,13 +622,13 @@ aggregates:
     role: root
     key: uuid_v7
     references:
-    - to: supplier_agreements
+    - to: AGG-55
       by: supplier_agreement_id
     versioned: none
     history_migration: none
     sensitivity: internal
-    reason: 由迁入的协议与履约确认由迁入用例同步写（§14.2 M7）
-    data_category: 技术
+    pi: none
+    reason: 派生投影，由迁入的协议与履约确认经迁入用例同步写（§14.2 M7）
     column_families:
     - 协议金额
     - 已确认累计(派生投影)
@@ -620,8 +643,8 @@ aggregates:
     versioned: append_only
     history_migration: none
     sensitivity: internal
-    reason: 同上，随迁入用例重建
-    data_category: 技术
+    pi: none
+    reason: 同根表，随迁入用例重建
     column_families:
     - 占用来源
     - 占用金额
@@ -642,8 +665,9 @@ aggregates:
     versioned: none
     history_migration: full
     sensitivity: internal
-    pi: true
-    reason: 来源 A8 报销表单（ADR-0022 决定 6、ADR-0021 6a–6c），经 ADR-0036 迁入用例；按人员 ID 引用，代理键属个人信息（ADR-0043 第 4 项第 2 条）
+    pi: pi
+    source: A8 报销表单（ADR-0022 决定 6、ADR-0021 6a–6c），经 ADR-0036 迁入用例
+    reason: 按人员 ID 引用，代理键属个人信息（ADR-0043 第 4 项第 2 条）
     column_families:
     - 法人
     - 业务日期
@@ -659,6 +683,8 @@ aggregates:
     role: child
     key: uuid_v7
     references:
+    - to: expense_claims
+      by: expense_claim_id
     - to: AGG-19
       by: project_id
       cross_bc: true
@@ -668,25 +694,30 @@ aggregates:
     versioned: none
     history_migration: full
     sensitivity: internal
+    pi: none
+    source: 同报销单
     column_families:
     - 费用类别
     - 项目或商机归属
     - 金额与税额
     - 票据附件引用
-    pi: false
   - name: expense_claim_invoice_refs
     role: child
     key: uuid_v7
     references:
+    - to: expense_claims
+      by: expense_claim_id
     - to: AGG-89
       by: input_invoice_id
       cross_bc: true
     versioned: none
     history_migration: full
     sensitivity: internal
+    pi: none
+    source: 同报销单
     column_families:
     - 进项发票引用
-    pi: false
+    notes: 占用金额与状态只在 AGG-89 的占用行（R-11）
 - aggregate: AGG-77
   bc: B-16
   tables:
@@ -701,6 +732,7 @@ aggregates:
     history_migration: full
     sensitivity: internal
     pi: tbd
+    source: 老系统各业务历史（工时、成本、收入、薪酬等）与 A8 报销、付款，经迁入过账通道（ADR-0036）
     reason: 全部历史权责事实经迁入过账通道写入（U-3、§14.2 M8）；工时与薪酬事实是否逐人存放待 one-data 定，逐人则 pi
     column_families:
     - 法人
@@ -722,6 +754,7 @@ aggregates:
     versioned: append_only
     history_migration: none
     sensitivity: internal
+    pi: none
     reason: 投产后的被拒候选告警记录，历史无此记录；聚合内技术表，不挂在事实行下
     column_families:
     - 来源 BC 与来源单据引用
@@ -729,61 +762,18 @@ aggregates:
     - 拒收原因代码
     - 幂等键
     - 时刻
-    pi: false
   - name: post_sequence_counters
     role: child
     key: uuid_v7
     versioned: none
     history_migration: none
     sensitivity: internal
+    pi: none
     reason: 序号由迁入过账通道按原业务顺序重新分配，来源序号不保留；聚合内技术表，不挂在事实行下
     column_families:
     - 法人
     - 序号当前值
     - version
-    pi: false
-- aggregate: AGG-78
-  bc: B-17
-  tables:
-  - name: metric_definition_versions
-    role: root
-    key: uuid_v7
-    versioned: append_only
-    history_migration: none
-    sensitivity: internal
-    reason: 配置类版本，新系统首版由财务评审后录入，不迁入旧版本
-    data_category: 配置
-    column_families:
-    - 指标定义
-    - OAT 原语声明
-    - 核算基础与含税口径
-    - 口径版本号
-    - 生效日
-    - 作者与确认人
-    - 决定出处
-    notes: 聚合稿不计、表仍需要：ADR-0023 指标定义在 operations.policy，按版本生效、审批留痕
-  - name: reconciliation_variance_cases
-    role: child
-    key: uuid_v7
-    references:
-    - to: AGG-81
-      by: accounting_period_id
-      cross_bc: true
-    versioned: none
-    history_migration: tbd
-    sensitivity: internal
-    reason: ADR-0016/0023 勾稽差异案；历史期间是否补建待定
-    data_category: 交易
-    column_families:
-    - 法人
-    - 期间
-    - 等式类别
-    - 差异金额
-    - 归因
-    - 状态
-    - 处置与确认人
-    - 审计列
-    notes: 聚合稿不计、表仍需要
 - aggregate: AGG-81
   bc: B-19
   tables:
@@ -797,8 +787,9 @@ aggregates:
     versioned: none
     history_migration: full
     sensitivity: internal
+    pi: none
+    source: 迁入用例按各法人历史年度生成，非来源系统迁入
     reason: D17 豁免：单一状态且审计能完整还原（ADR-0046 §8.6）；历史年度只建 1-12 期历史期间
-    data_category: 主数据
     column_families:
     - 法人
     - 会计年度
@@ -815,8 +806,8 @@ aggregates:
     versioned: none
     history_migration: none
     sensitivity: internal
+    pi: none
     reason: 迁入过程性占用，批次完成后只留审计（§14.2 M8）
-    data_category: 技术
     column_families:
     - 迁入批次引用
     - 状态(提交中/已完成)
@@ -830,8 +821,8 @@ aggregates:
     versioned: append_only
     history_migration: none
     sensitivity: internal
+    pi: none
     reason: 配置类版本，新系统首版由财务评审后录入，不迁入旧版本
-    data_category: 配置
     column_families:
     - 会计年度
     - 是否启用
@@ -847,29 +838,29 @@ aggregates:
     key: uuid_v7
     references:
     - to: AGG-83
-      by: ledger_book_id
+      by: ledger_id
     versioned: append_only
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: U8C 收付科目表与新系统科目表的对照迁入方式归 ADR-0022 迁移方案与 U-8
-    data_category: 配置
+    pi: none
+    reason: 来源 U8C 科目表，不在老系统与 A8；新系统首版由财务录入并与 U8C 科目建立对照（对照表见结构问题），不迁 U8C 历史版本；期初余额见 AGG-新-F1
     column_families:
     - 账簿口径(权责/收付)
     - 版本号
     - 生效日(期间首日)
     - 作者与确认人
     - 决定出处
-  - name: chart_accounts
+  - name: accounts
     role: child
     key: uuid_v7
     references:
     - to: chart_of_account_versions
       by: chart_of_account_version_id
     versioned: append_only
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: 同上
-    data_category: 参考数据
+    pi: none
+    reason: 同科目表版本
     column_families:
     - 科目编码
     - 名称
@@ -880,7 +871,7 @@ aggregates:
 - aggregate: AGG-83
   bc: B-20
   tables:
-  - name: ledger_books
+  - name: ledgers
     role: root
     key: uuid_v7
     references:
@@ -890,8 +881,8 @@ aggregates:
     versioned: none
     history_migration: none
     sensitivity: internal
+    pi: none
     reason: 每法人两个，随法人登记创建；D17 参照数据，只由法人登记驱动，审计能还原
-    data_category: 参考数据
     column_families:
     - 法人
     - 口径(权责/收付)
@@ -908,28 +899,26 @@ aggregates:
       by: business_fact_id
       cross_bc: true
     - to: AGG-83
-      by: ledger_book_id
-    - to: AGG-81
-      by: accounting_period_id
-      cross_bc: true
+      by: ledger_id
     versioned: append_only
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: U8C 历史凭证与期初余额如何进入未定：ADR-0022 迁移方案、U-8；M7 迁入事实不生成分录
-    data_category: 事实
+    pi: none
+    reason: 历史凭证在 U8C，不迁入（来源不在老系统与 A8）；迁入事实不生成分录（§14.2 M7）；投产日余额由期初余额表（AGG-新-F1）承载（DM-1）
     column_families:
     - 法人
     - 账簿
     - 业务日期
     - 单据编号
-    - 落账期间
+    - 落账期间（会计年度、期间序号）
+    - 原期间（会计年度、期间序号）
     - 来源事实引用
     - 来源通道
     - 口径转换规则ID与版本
-    - 状态(待处理/已记账)
     - 幂等键
     - PostSeq
     - 审计列
+    notes: 只写已记账分录；表名与词表 journal_voucher 的关系交 one-glossary
   - name: journal_entry_lines
     role: child
     key: uuid_v7
@@ -942,16 +931,42 @@ aggregates:
       by: person_id
       cross_bc: true
     versioned: append_only
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: 同上
-    data_category: 事实
+    pi: pi
+    reason: 同分录；辅助维度含人员 ID，代理键属个人信息（ADR-0043 第 4 项第 2 条）
     column_families:
     - 科目引用
     - 借贷方向与金额
     - 辅助核算维度
     - 现金流量项目标注
     - 科目表版本引用
+  - name: journal_entry_pending_items
+    role: child
+    key: uuid_v7
+    references:
+    - to: AGG-77
+      by: business_fact_id
+      cross_bc: true
+    versioned: none
+    history_migration: none
+    sensitivity: internal
+    pi: none
+    reason: 投产后产生的待处理队列（R-02）；历史无此队列；处理后转成分录，不挂在分录行下
+    column_families:
+    - 法人
+    - 业务日期
+    - 单据编号
+    - 落账期间（会计年度、期间序号）
+    - 来源事实引用
+    - 来源通道
+    - 待处理原因(来源不在授权表，INV-98)
+    - 处理状态(待处理/已转分录/已退回)
+    - 转出分录引用
+    - 幂等键
+    - version
+    - 审计列
+    notes: B-20 内技术表，不属 journal_entries 的状态列
   - name: journal_entry_push_records
     role: child
     key: uuid_v7
@@ -961,27 +976,31 @@ aggregates:
     versioned: append_only
     history_migration: none
     sensitivity: internal
+    pi: none
     reason: 推送只针对投产后的收付凭证；历史凭证已在 U8C
-    data_category: 事实
     column_families:
     - 推送状态(待推送/已推送/已确认记账/死信)
     - 投递尝试
     - 外部凭证引用
     - 时刻
+    notes: 每次投递结果逐行追加，不更新旧行
   - name: ledger_account_balances
     role: child
     key: uuid_v7
+    references:
+    - to: AGG-83
+      by: ledger_id
     versioned: none
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: 投影可重算并有对账；期初取自期初余额迁移方案（U-8）
-    data_category: 技术
+    pi: none
+    reason: 投影可重算并有对账；投产日期初取自期初余额表（AGG-新-F1）
     column_families:
     - 法人
     - 账簿
     - 科目
     - 辅助维度
-    - 落账期间
+    - 落账期间（会计年度、期间序号）
     - 期初/借方/贷方发生额(投影)
     - version
     notes: D1 投影；是否独立表待 one-data 复核
@@ -997,8 +1016,8 @@ aggregates:
     versioned: append_only
     history_migration: none
     sensitivity: internal
+    pi: none
     reason: 配置类版本，新系统首版由财务评审后录入，不迁入旧版本
-    data_category: 配置
     column_families:
     - 版本号
     - 生效日
@@ -1013,8 +1032,8 @@ aggregates:
     versioned: append_only
     history_migration: none
     sensitivity: internal
+    pi: none
     reason: 随版本
-    data_category: 配置
     column_families:
     - 收付科目
     - 权责科目
@@ -1031,8 +1050,8 @@ aggregates:
     versioned: append_only
     history_migration: none
     sensitivity: internal
+    pi: none
     reason: 配置类版本，新系统首版由财务评审后录入，不迁入旧版本
-    data_category: 配置
     column_families:
     - 版本号
     - 生效日
@@ -1043,12 +1062,12 @@ aggregates:
     key: uuid_v7
     references:
     - to: control_account_authorization_versions
-      by: authorization_version_id
+      by: control_account_authorization_version_id
     versioned: append_only
     history_migration: none
     sensitivity: internal
+    pi: none
     reason: 随版本
-    data_category: 配置
     column_families:
     - 科目
     - 事实类型
@@ -1062,20 +1081,19 @@ aggregates:
     references:
     - to: AGG-94
       by: authorization_version_id
-      cross_bc: true
     - to: AGG-83
-      by: ledger_book_id
+      by: ledger_id
     versioned: none
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: 历史手工凭证在 U8C，进入方式归 ADR-0022 迁移方案与 U-8
-    data_category: 交易
+    pi: none
+    reason: 历史手工凭证在 U8C，不迁入（来源不在老系统与 A8）；投产日余额见期初余额表
     column_families:
     - 法人
     - 账簿
     - 业务日期
     - 单据编号
-    - 落账期间
+    - 落账期间（会计年度、期间序号）
     - 凭证类别
     - 差异类别代码
     - 理由
@@ -1092,10 +1110,10 @@ aggregates:
     - to: manual_vouchers
       by: manual_voucher_id
     versioned: none
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: 同上
-    data_category: 交易
+    pi: none
+    reason: 同手工凭证
     column_families:
     - 科目
     - 借贷金额
@@ -1108,19 +1126,17 @@ aggregates:
   - name: period_end_carryover_runs
     role: root
     key: uuid_v7
-    references:
-    - to: AGG-81
-      by: accounting_period_id
-      cross_bc: true
     versioned: none
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: 运行单据：投产前最近两期按 U-10 重算比对；历史期间的结果迁入还是重算待定
-    data_category: 交易
+    pi: none
+    reason: 运行单据：结果由迁入的权责事实承载（U-3），投产前两期按 U-10 重算
     column_families:
     - 法人
     - 账簿
-    - 落账期间
+    - 业务日期
+    - 单据编号
+    - 落账期间（会计年度、期间序号）
     - 模板版本引用
     - 状态
     - 幂等键
@@ -1133,10 +1149,10 @@ aggregates:
     - to: period_end_carryover_runs
       by: period_end_carryover_run_id
     versioned: none
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: 运行单据：投产前最近两期按 U-10 重算比对；历史期间的结果迁入还是重算待定
-    data_category: 交易
+    pi: none
+    reason: 运行单据：结果由迁入的权责事实承载（U-3），投产前两期按 U-10 重算
     column_families:
     - 科目
     - 方向与金额
@@ -1146,18 +1162,20 @@ aggregates:
   - name: period_balance_snapshots
     role: root
     key: uuid_v7
+    references:
+    - to: AGG-83
+      by: ledger_id
     versioned: snapshot
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: 历史期间快照是迁入还是重算待定（U-8、ADR-0022 迁移方案）；上年末报表另有 G-3 确认
-    data_category: 事实
+    pi: none
+    reason: 历史期间余额在 U8C，不迁入快照（来源不在老系统与 A8）；投产日余额由期初余额表承载；上年末报表另有 G-3 确认
     column_families:
     - 法人
     - 账簿
-    - 落账期间
+    - 落账期间（会计年度、期间序号）
+    - 原期间（会计年度、期间序号）
     - 生成时刻
-    - 上年调整栏
-    - 以前期间更正栏
     notes: 只追加，已关账不重述
   - name: period_balance_snapshot_lines
     role: child
@@ -1166,14 +1184,16 @@ aggregates:
     - to: period_balance_snapshots
       by: period_balance_snapshot_id
     versioned: snapshot
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: 同上
-    data_category: 事实
+    pi: none
+    reason: 同快照
     column_families:
     - 科目
     - 辅助维度
     - 期初/发生额/期末
+    - 上年调整栏
+    - 以前期间更正栏
 - aggregate: AGG-101
   bc: B-20
   tables:
@@ -1189,8 +1209,8 @@ aggregates:
     versioned: none
     history_migration: none
     sensitivity: internal
-    reason: 对账针对投产后的推送，历史对账不迁
-    data_category: 交易
+    pi: pi
+    reason: 对账针对投产后的推送，历史对账不迁；签字人为人员引用
     column_families:
     - 法人
     - 期间
@@ -1208,8 +1228,8 @@ aggregates:
     versioned: none
     history_migration: none
     sensitivity: internal
-    reason: 同上
-    data_category: 交易
+    pi: none
+    reason: 同对账
     column_families:
     - 科目
     - 差异金额
@@ -1220,16 +1240,99 @@ aggregates:
     references:
     - to: statutory_reconciliations
       by: statutory_reconciliation_id
-    - to: journal_entries
+    - to: AGG-84
       by: journal_entry_id
     versioned: none
     history_migration: none
     sensitivity: internal
-    reason: 同上
-    data_category: 交易
+    pi: none
+    reason: 同对账
     column_families:
     - 分录引用
     - 推送时刻
+- aggregate: AGG-新-F1
+  bc: B-20
+  tables:
+  - name: opening_balance_sets
+    role: root
+    key: uuid_v7
+    references:
+    - to: AGG-60
+      by: legal_entity_id
+      cross_bc: true
+    - to: AGG-83
+      by: ledger_id
+    versioned: none
+    history_migration: none
+    sensitivity: internal
+    pi: none
+    reason: 投产时一次性建立：收付期初取 U8C 上年末余额，权责期初 = 收付期初经映射 + 口径差异（ADR-0022 决定 9、11）；无法定审计，由内部审计复核（G-2）；聚合号待 one-architecture 给
+    column_families:
+    - 法人
+    - 账簿(权责/收付)
+    - 启用日(投产日)
+    - 状态(草稿/已签字/已复核)
+    - 财务负责人签字与签字日
+    - 内部审计复核引用
+    - 来源说明(U8C 上年末余额)
+    - version
+    - 审计列
+  - name: opening_balance_lines
+    role: child
+    key: uuid_v7
+    references:
+    - to: opening_balance_sets
+      by: opening_balance_set_id
+    - to: AGG-82
+      by: chart_of_account_version_id
+    versioned: append_only
+    history_migration: none
+    sensitivity: internal
+    pi: none
+    reason: 随期初表，投产时一次性写入
+    column_families:
+    - 科目
+    - 辅助维度
+    - 借方期初
+    - 贷方期初
+    - 科目表版本引用
+  - name: opening_balance_basis_differences
+    role: child
+    key: uuid_v7
+    references:
+    - to: opening_balance_sets
+      by: opening_balance_set_id
+    - to: AGG-85
+      by: account_mapping_version_id
+    versioned: append_only
+    history_migration: none
+    sensitivity: internal
+    pi: none
+    reason: 随期初表；权责与收付期初的口径差异归因
+    column_families:
+    - 科目
+    - 辅助维度
+    - 口径差异金额
+    - 归因类别
+    - 归因说明
+    - 映射版本引用
+  - name: opening_balance_sign_offs
+    role: child
+    key: uuid_v7
+    references:
+    - to: opening_balance_sets
+      by: opening_balance_set_id
+    versioned: append_only
+    history_migration: none
+    sensitivity: internal
+    pi: pi
+    reason: 随期初表；人员引用
+    column_families:
+    - 签字类型(财务负责人签字/内部审计复核)
+    - 签字或复核人引用
+    - 日期
+    - 结论
+    - 附件引用
 - aggregate: AGG-86
   bc: B-21
   tables:
@@ -1239,11 +1342,12 @@ aggregates:
     references:
     - to: AGG-82
       by: chart_of_account_version_id
+      cross_bc: true
     versioned: append_only
     history_migration: none
     sensitivity: internal
+    pi: none
     reason: 配置类版本，新系统首版由财务评审后录入，不迁入旧版本
-    data_category: 配置
     column_families:
     - 版本号
     - 生效日
@@ -1258,8 +1362,8 @@ aggregates:
     versioned: append_only
     history_migration: none
     sensitivity: internal
+    pi: none
     reason: 随版本
-    data_category: 配置
     column_families:
     - 行项目
     - 科目或现金流量项目
@@ -1274,19 +1378,18 @@ aggregates:
     - to: AGG-60
       by: legal_entity_id
       cross_bc: true
-    versioned: effective_dated
+    versioned: none
     history_migration: full
     sensitivity: sensitive
+    pi: none
+    source: A8 付款表单所用付款账户；缺项由财务账户清单一次性补录（经 ADR-0036 迁入用例）
     reason: 银行账号
-    data_category: 主数据
     column_families:
     - 法人
     - 开户行
     - 账号
     - 币种
-    - 当前状态(投影)
-    - version
-    notes: 维度型，业务声明日 DECLARED；账号不进版本表（最小化）
+    notes: 根表只存不变的身份列；状态与可变属性只在版本表（D17 第 5 条）；账号不进版本表（最小化）
   - name: fund_account_versions
     role: version
     key: uuid_v7
@@ -1296,35 +1399,57 @@ aggregates:
     versioned: effective_dated
     history_migration: full
     sensitivity: internal
-    data_category: 主数据
+    pi: none
+    source: 同资金账户
     column_families:
     - 状态(开立/冻结/销户)
+    - 账户用途
     - 生效日
     - 失效日
     - 决定依据
-    notes: 左闭右开，gist 防重叠
+    notes: 维度型，业务声明日 DECLARED；左闭右开，gist 防重叠
 - aggregate: AGG-88
   bc: B-22
   tables:
-  - name: bank_statement_lines
+  - name: bank_statement_imports
     role: root
     key: uuid_v7
     references:
     - to: AGG-87
       by: fund_account_id
     versioned: append_only
-    history_migration: full
+    history_migration: none
     sensitivity: sensitive
-    reason: 含对方户名与账号
-    data_category: 事实
+    pi: none
+    reason: 历史流水在银行与 U8C，不在老系统与 A8，投产后按文件导入；根表指向含对方账号的原始银行文件
     column_families:
     - 资金账户引用
-    - 交易日期
+    - 文件校验和（唯一，INV-85）
+    - 原始文件引用
+    - 导入时刻
+    - 导入人
+    - 行数与对账汇总
+  - name: bank_statement_lines
+    role: child
+    key: uuid_v7
+    references:
+    - to: bank_statement_imports
+      by: bank_statement_import_id
+    - to: AGG-87
+      by: fund_account_id
+    versioned: append_only
+    history_migration: none
+    sensitivity: sensitive
+    pi: spi
+    reason: 同导入批次；含对方户名与账号，对方可能为自然人（金融账户，个人信息保护法第二十八条）
+    column_families:
+    - 法人
+    - 业务日期（交易日期）
+    - 单据编号
+    - 落账期间（会计年度、期间序号）
     - 金额与方向
     - 对方户名与账号
     - 银行流水号
-    - 导入批次(来源对照)
-    - 落账期间
     notes: 不记匹配；利息手续费过账另走候选
 - aggregate: AGG-89
   bc: B-23
@@ -1339,7 +1464,8 @@ aggregates:
     versioned: none
     history_migration: full
     sensitivity: internal
-    reason: 来源待 one-data 核对（A8 报销所附发票信息、老系统分包发票或税务平台）
+    pi: none
+    source: A8 报销所附发票信息；老系统分包发票（待 one-data 核对）
     column_families:
     - 法人
     - 业务日期（开票日期）
@@ -1352,11 +1478,12 @@ aggregates:
     - 状态
     - version
     - 审计列
-    pi: false
   - name: input_invoice_holds
     role: child
     key: uuid_v7
     references:
+    - to: input_invoices
+      by: input_invoice_id
     - to: AGG-52
       by: payable_id
       cross_bc: true
@@ -1366,23 +1493,28 @@ aggregates:
     versioned: none
     history_migration: full
     sensitivity: internal
+    pi: none
+    source: 随进项发票迁入
     column_families:
     - 占用方类型（报销 / 供方来源的应付）
     - 占用方引用
     - 占用金额
     - 状态（占用 / 释放）
-    pi: false
   - name: input_invoice_transfers_out
     role: child
     key: uuid_v7
+    references:
+    - to: input_invoices
+      by: input_invoice_id
     versioned: append_only
     history_migration: full
     sensitivity: internal
+    pi: none
+    source: 随进项发票迁入
     column_families:
     - 转出金额
     - 原因
     - 落账期间（会计年度、期间序号）
-    pi: false
 - aggregate: AGG-90
   bc: B-23
   tables:
@@ -1393,17 +1525,16 @@ aggregates:
     - to: AGG-60
       by: legal_entity_id
       cross_bc: true
-    - to: AGG-81
-      by: accounting_period_id
-      cross_bc: true
     versioned: none
-    history_migration: full
+    history_migration: none
     sensitivity: internal
-    data_category: 交易
+    pi: none
+    reason: 历史申报在税务端与 U8C，不在老系统与 A8（待用户定是否从税务端取回，DM-11）；累计税额期初由期初余额表承载
     column_families:
     - 法人
     - 税种
-    - 所属期
+    - 所属期（会计年度、期间序号）
+    - 业务日期（申报日期）
     - 单据编号
     - 状态
     - version
@@ -1415,13 +1546,14 @@ aggregates:
     - to: tax_returns
       by: tax_return_id
     versioned: append_only
-    history_migration: full
+    history_migration: none
     sensitivity: internal
-    data_category: 事实
+    pi: none
+    reason: 同申报
     column_families:
     - 缴款金额
     - 缴款日期
-    - 落账期间
+    - 落账期间（会计年度、期间序号）
   - name: tax_return_corrections
     role: child
     key: uuid_v7
@@ -1429,9 +1561,10 @@ aggregates:
     - to: tax_returns
       by: tax_return_id
     versioned: append_only
-    history_migration: full
+    history_migration: none
     sensitivity: internal
-    data_category: 事实
+    pi: none
+    reason: 同申报
     column_families:
     - 更正原因
     - 更正后金额
@@ -1449,19 +1582,17 @@ aggregates:
     - to: AGG-55
       by: supplier_agreement_id
       cross_bc: true
-    versioned: effective_dated
-    history_migration: tbd
+    versioned: none
+    history_migration: none
     sensitivity: internal
-    reason: 卡片来源（U8C 固定资产模块或清单）与迁入口径归 ADR-0022 迁移方案、U-8
-    data_category: 主数据
+    pi: none
+    reason: 卡片来源 U8C 固定资产清单与 A8 IT 资产登记，不在老系统；投产日在用资产经期初余额表对账后一次性建卡（初始化，非历史迁入），累计折旧取期初（DM-1）；公司资产类别含 IT 资产（intent 2026-10-16-152926）
     column_families:
     - 法人
-    - 资产类别
+    - 资产类别（含 IT 资产）
     - 取得协议引用
     - 取得日期
-    - 当前状态(投影)
-    - version
-    notes: 维度型，业务声明日 DECLARED
+    notes: 根表只存不变的身份列（D17 第 5 条）
   - name: company_asset_versions
     role: version
     key: uuid_v7
@@ -1469,17 +1600,19 @@ aggregates:
     - to: company_assets
       by: company_asset_id
     versioned: effective_dated
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: 同上
-    data_category: 主数据
+    pi: pi
+    reason: 同公司资产；责任人引用
     column_families:
+    - 状态
     - 原值
     - 折旧方法与年限
     - 残值率
     - 责任部门与人员引用
     - 生效日
     - 失效日
+    notes: 维度型，业务声明日 DECLARED
   - name: asset_depreciation_records
     role: child
     key: uuid_v7
@@ -1490,12 +1623,15 @@ aggregates:
       by: business_fact_id
       cross_bc: true
     versioned: append_only
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: 同上；历史折旧可迁入或由重算得到
-    data_category: 事实
+    pi: none
+    reason: 历史折旧事实由迁入的权责事实承载（U-3），累计折旧取期初余额表；投产前两期按 U-10 重算
     column_families:
-    - 落账期间
+    - 法人
+    - 业务日期
+    - 单据编号
+    - 落账期间（会计年度、期间序号）
     - 本期折旧或摊销
     - 累计
     - 幂等键
@@ -1505,13 +1641,18 @@ aggregates:
     references:
     - to: company_assets
       by: company_asset_id
+    - to: AGG-77
+      by: business_fact_id
+      cross_bc: true
     versioned: append_only
-    history_migration: tbd
+    history_migration: none
     sensitivity: internal
-    reason: 同上
-    data_category: 事实
+    pi: none
+    reason: 历史处置事实由迁入的权责事实承载（U-3）；已处置资产不建卡
     column_families:
-    - 处置日期
+    - 法人
+    - 业务日期（处置日期）
+    - 单据编号
     - 处置金额
     - 损益
-    - 落账期间
+    - 落账期间（会计年度、期间序号）
