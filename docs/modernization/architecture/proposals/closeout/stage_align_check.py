@@ -311,8 +311,17 @@ def arrivals_of(unit, steps, machines, aggs):
     return out
 
 
-def texts_of(unit, steps):
-    """流程的结局文本：[(kind, text)]。"""
+def texts_of(unit, steps, aggs=None, onames=None):
+    """流程的结局文本：[(kind, text)]。单聚合维护单元的 states / transitions 不带对象名：按条目 aggregate（缺则单元 aggregate；
+    条目聚合是技术聚合、没有对象时同样退回单元聚合）对应的信息图对象名补一条「对象名+状态」文本。"""
+    aggs, onames = aggs or {}, onames or {}
+
+    def objnames(*agg_ids):
+        for a in agg_ids:
+            objs = (aggs.get(a) or {}).get("objs") or []
+            if objs:
+                return [onames[o] for o in objs if onames.get(o)]
+        return []
     out = []
     seen = set()
 
@@ -331,11 +340,19 @@ def texts_of(unit, steps):
                 add("分支结局", d.get("outcome"))
         for e in s.get("emits") or []:
             add("事件", e)
-    for st in unit.get("states") or []:
-        add("状态", st.get("name") if isinstance(st, dict) else st)
+    sts = unit.get("states") or []
+    if isinstance(sts, dict):   # 按子对象分组的 {组: [状态]}
+        sts = [x for v in sts.values() for x in (v or [])]
+    for st in sts:
+        name = st.get("name") if isinstance(st, dict) else st
+        add("状态", name)
+        for on in objnames(unit.get("aggregate")):
+            add("状态", f"{on}{name}")
     for tr in unit.get("transitions") or []:
         if isinstance(tr, dict) and not is_self_loop(tr):
             add("状态", tr.get("to"))
+            for on in objnames(tr.get("aggregate"), unit.get("aggregate")):
+                add("状态", f"{on}{tr.get('to')}")
     return out
 
 
@@ -365,7 +382,7 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
     cand, arr = {}, {}
     for p in procs:
         u = skeletons.get(p["id"])
-        t = texts_of(*u) if u else []
+        t = texts_of(*u, aggs, onames) if u else []
         cand[p["id"]] = t
         arr[p["id"]] = arrivals_of(u[0], u[1], machines, aggs) if u else []
         if u:
@@ -620,8 +637,11 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
                     tier, ev = find_in([p["id"]], lf, use_name=False, stage=sid)
                     if tier == "exact" and ev[0][1] != "步骤到达":
                         on_ = norm(re.sub(r"[（(].*?[）)]", "", onames.get(lf.get("ref"), "")))
-                        if on_ and on_ not in norm(ev[0][2]):
+                        named = [e for e in ev if e[1] == "步骤到达" or on_ in norm(e[2])]   # 同档证据里任一条带对象名即可
+                        if on_ and not named:
                             tier = "approx"   # 结局只写了通用状态词（如「已关闭」）、没写对象名：不算精确
+                        elif named:
+                            ev = named + [e for e in ev if e not in named]
                     if tier:
                         put(sid, tier, ev)
         sup = set(exact) | set(approx)
@@ -1167,6 +1187,9 @@ def self_test():
     assert "E1" not in {r["id"] for r in Re["unsupported"]}, Re["unsupported"]        # 纯事件触发的 business 经 emits 映射归 VS-E.1
     assert "E2" in {r["id"] for r in Re["unsupported"]}, Re["unsupported"]            # 含人工入口的不按事件策略；结局不造退出条件
     assert "E3" in {r["id"] for r in Re["unsupported"]}, Re["unsupported"]            # non_state 转换不算到达
+    tt = texts_of({"aggregate": "AGG-S", "states": {"g": ["已关联"]}, "transitions": [{"from": "a", "to": "已封存", "aggregate": "AGG-T"}, {"from": "a", "to": "已解除"}]}, [],
+                  {"AGG-S": {"objs": ["OBJ-7"]}, "AGG-T": {"objs": []}}, {"OBJ-7": "证据"})
+    assert ("状态", "证据已关联") in tt and ("状态", "证据已封存") in tt and ("状态", "证据已解除") in tt, tt   # 单聚合状态带对象名（条目聚合无对象退回单元聚合）
     assert load_event_map.__doc__
     txt = render(R, on, {}, 2, 6)
     assert "匹配口径" in txt and "VS-X.3" in txt
