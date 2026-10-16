@@ -142,12 +142,25 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
     static final int REFUSED = 1;
     static final String WITNESS_REQUIRED = "PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED";
 
+    /** All audit entries whose detail starts with the text (null for every entry, also those without a detail), counted in the table, not through the capped query. */
+    private long auditEntryCount(String detailPrefix) throws SQLException {
+        try (Connection audit = schemaConnection("platform_audit"); PreparedStatement count = audit.prepareStatement(
+                "select count(*) from audit_entries where ?::text is null or detail like ? || '%'")) {
+            count.setString(1, detailPrefix);
+            count.setString(2, detailPrefix);
+            try (ResultSet rs = count.executeQuery()) {
+                rs.next();
+                return rs.getLong(1);
+            }
+        }
+    }
+
     /** Runs a grant-role for a fresh employee with the given attestation; asserts it is refused, writes nothing and is not audited. */
     private void assertRefusedAndNothingDone(String operator, String witness, String why) throws Exception {
         UUID person = newEmployeeId();
         employee(person, unit, null);
         List<Integer> before = identityRows();
-        int auditedBefore = auditedActions("platform.identity.operations").size();
+        long auditedBefore = auditEntryCount(null);
 
         Outcome outcome = runAs(operator, witness, "--operation=grant-role", "--employee-id=" + person, "--role-code=business_admin");
 
@@ -155,7 +168,7 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
         assertThat(outcome.err()).as(why).contains(WITNESS_REQUIRED);
         assertThat(identityRows()).as("%s: nothing written", why).isEqualTo(before);
         assertThat(accountsOfEmployee(person)).as("%s: no account opened", why).isEmpty();
-        assertThat(auditedActions("platform.identity.operations")).as("%s: no audit entry", why).hasSize(auditedBefore);
+        assertThat(auditEntryCount(null)).as("%s: no audit entry of any kind", why).isEqualTo(auditedBefore);
     }
 
     @Test
@@ -190,13 +203,14 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
     void fu1TwoDifferentExistingEmployeesProceed() throws Exception {
         UUID person = newEmployeeId();
         employee(person, unit, null);
-        int auditedBefore = auditedActions("platform.identity.operations").size();
+        String detail = "operatorId=" + OPERATOR_ID + " witnessId=" + WITNESS_ID + " role=business_admin";
+        long auditedBefore = auditEntryCount(detail);
 
         Outcome outcome = run("--operation=grant-role", "--employee-id=" + person, "--role-code=business_admin");
 
         assertThat(outcome.exit()).as(outcome.err()).isZero();
         assertThat(accountsOfEmployee(person)).hasSize(1);
-        assertThat(auditedActions("platform.identity.operations").size()).isGreaterThan(auditedBefore);
+        assertThat(auditEntryCount(detail)).as("an audit entry whose detail names the operator and the witness by employee id").isEqualTo(auditedBefore + 1);
     }
 
     @Test
