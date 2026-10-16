@@ -17,6 +17,9 @@ HEAVY = re.compile(r"@SpringBootTest|@Testcontainers|@DataJdbcTest|@WebMvcTest|@
 
 
 def strip_comments(text):
+    """Comments and string literals out: a guard that only scans sources names PostgreSQLContainer in a string and starts nothing."""
+    text = re.sub(r'""".*?"""', '""', text, flags=re.S)
+    text = re.sub(r'"(?:\\.|[^"\\\n])*"', '""', text)
     text = re.sub(r"/\*.*?\*/", " ", text, flags=re.S)
     return re.sub(r"//[^\n]*", " ", text)
 
@@ -76,6 +79,7 @@ def self_test():
         }
         files["CommentTest"] = "/** a note about class Foo */ class CommentTest { }"
         files["EnumTest"] = "enum EnumTest { A }"
+        files["StringMentionTest"] = 'class StringMentionTest { String x = "new PostgreSQLContainer( and TestPostgres.container()"; }'
         for name, text in files.items():
             open(os.path.join(root, name + ".java"), "w", encoding="utf-8").write(text)
         os.makedirs(os.path.join(root, "a")); os.makedirs(os.path.join(root, "b"))
@@ -83,9 +87,9 @@ def self_test():
         open(os.path.join(root, "b", "TwinTest.java"), "w", encoding="utf-8").write("package b; @SpringBootTest class TwinTest { }")
         open(os.path.join(root, "a", "OnlyLightTwinTest.java"), "w", encoding="utf-8").write("package a; class OnlyLightTwinTest { }")
         got = light_classes(read_sources(root))
-    assert got == ["CommentTest", "LightChildTest", "NamesTest", "OnlyLightTwinTest", "PlainTest", "ScanTest"], got
+    assert got == ["CommentTest", "LightChildTest", "NamesTest", "OnlyLightTwinTest", "PlainTest", "ScanTest", "StringMentionTest"], got
     real = light_classes(read_sources(ROOT)) if os.path.isdir(ROOT) else []
-    assert not os.path.isdir(ROOT) or ("SeeyonSourceScanTest" in real and "ArchitectureRulesTest" in real and "ApplicationIntegrationTest" not in real and "ListPagingGuardTest" not in real), "the real test sources: scan and guard tests are light, container tests are not"
+    assert not os.path.isdir(ROOT) or ("SeeyonSourceScanTest" in real and "ArchitectureRulesTest" in real and "TestContainerGuardTest" in real and "ApplicationIntegrationTest" not in real and "ListPagingGuardTest" not in real), "the real test sources: scan and guard tests are light, container tests are not"
     print("light_unit_classes self-test: ok")
 
 
