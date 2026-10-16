@@ -1,0 +1,363 @@
+{
+ "sheet": "GL2",
+ "title": "聚合与 BC 用语确认",
+ "lede": "one-architecture 的聚合与 BC 草案带来的用语：BC 名称与去向、聚合命名、阶段类型同名异义，共 11 题。每题已预选推荐。",
+ "groups": [
+  {
+   "id": "gl2-bc",
+   "title": "BC 标识与客户去向（2 题）",
+   "desc": "合并后的售前、合同两个 BC 叫什么，客户词条怎么处理。"
+  },
+  {
+   "id": "gl2-agg",
+   "title": "聚合命名（6 题）",
+   "desc": "过账、应收应付、收付款、收入确认、送达记录、认可与验收。"
+  },
+  {
+   "id": "gl2-stage",
+   "title": "阶段类型（3 题）",
+   "desc": "阶段的英文名、初步设计、结算三处含义。"
+  }
+ ],
+ "items": [
+  {
+   "no": "B2-X01",
+   "grp": "gl2-bc",
+   "title": "合并后的「售前」「合同」两个 BC 叫什么标识",
+   "src": "ENTERPRISE_AGGREGATES_DRAFT.md §3.2 B-03、B-05，§8 第 1 条；intent 2026-10-15-210513（合并）、2026-10-16-061232",
+   "ctx": "用户已定售前合为一个 BC、合同三合一，标识要在词表定下来。两个都还没建模块，现在改名几乎没有代码成本。合并还会触发一条登记规则：合同三个 BC 里的「责任方」（changeorder）和「责任承担方」（riskdelivery）英文名都是 ResponsibleParty，并入同一个 BC 后违反「同一 BC 内一个概念一个英文名」，须先改掉其中一个。",
+   "now": "现有标识：合同 contract.baseline（63 条词条）、contract.changeorder（19 条）、contract.riskdelivery（14 条）；售前 presales.quoting（7 条）、presales.customer（5 条，客户主数据部分随往来单位迁出）。",
+   "check": "contract.agreement、presales.opportunity 在 bcs.yaml 和全部词条中均未被占用。",
+   "basis": [
+    "ADR-0003 决定 1、2：BC = 模块 = schema，标识要与职责相符",
+    "ADR-0017 决定 1：模块结构沿用现有子域划分（合并后的 BC 标识由 one-glossary 定，草案 §3.3）",
+    "CODING_STANDARD 命名：以聚合根或统一语言命名模块"
+   ],
+   "practice": [
+    "DDD 通行做法：BC 以其中心概念命名（协议、商机），不以历史上的某一个聚合命名"
+   ],
+   "opts": [
+    {
+     "label": "新标识：contract.agreement（协议与变更索赔）、presales.opportunity（商机与投标报价）",
+     "effect": "标识与合并后的职责一致（协议、变更、索赔、风险交付授权同在；线索、商机、投标、报价同在）。词条 bc 字段一次迁完约 108 条；同时把 ResponsibleParty 两条之一改名。",
+     "rec": true
+    },
+    {
+     "label": "沿用旧标识：contract.baseline 改中文名「合同」、presales.quoting 改中文名「售前」",
+     "effect": "词条迁移最少（只迁 33 + 5 条）。但标识里的 baseline、quoting 与实际职责（索赔、风险交付授权、线索、投标）不符，以后建模块时再改名，成本更高。",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-X02",
+   "grp": "gl2-bc",
+   "title": "「客户」怎么处理：往来单位上位后，customer 词条的去向",
+   "src": "ENTERPRISE_AGGREGATES_DRAFT.md §3.2 B-01；§8 第 1 条（往来单位 BC）；intent 2026-10-16-061232 D-2",
+   "ctx": "往来单位（AGG-01）取代 presales.customer 的客户主数据部分。词表里的 customer（客户）定义是「具备独立签约与付款主体资格的法律责任实体的主数据档案」，与往来单位定义同源。两个聚合并存会出现一个主体两份主数据。",
+   "now": "customer（客户，聚合，presales.customer，已确认）；同 BC 还有 customer_group 客户集团、customer_tier 客户分级、lead_conversion_rate 线索转化率、external_reference_dataset 外部参考数据集；contract.baseline 另有 customer_party 客户方主体（角色）。",
+   "check": "往来单位 / Counterparty 在词表和全部提议文件中无同名、无别名撞车。",
+   "basis": [
+    "intent 2026-10-16-061232 D-2：往来单位单独作主数据，含外部工程登记",
+    "term_rules：同一 bc 内一个概念一个中文名",
+    "SESSION_PLAYBOOK §14：一个主体一份主数据"
+   ],
+   "practice": [
+    "ERP / CRM 通行做法：Party（往来单位）为主体，客户、供应商是它的角色"
+   ],
+   "opts": [
+    {
+     "label": "customer 弃用（replaced_by: counterparty），「客户」改登记为往来单位的角色；客户集团、客户分级迁往来单位 BC，线索转化率迁售前",
+     "effect": "一个主体一份主数据，与 D-2 一致。改动 1 条已确认词条的状态，需写 until 与 owner。external_reference_dataset 的去向另议。",
+     "rec": true
+    },
+    {
+     "label": "保留 customer 聚合，作为往来单位的「客户角色」聚合",
+     "effect": "不动已确认词条。但客户、供方各一个聚合，主体信息分散在多处，违反「往来单位为主数据」的决定。",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-X03",
+   "grp": "gl2-agg",
+   "title": "AGG-77「过账」：聚合根叫「过账」还是沿用「经营事实」",
+   "src": "ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-77，§6 C-39，§8 第 2 条",
+   "ctx": "草案把单一过账管道的聚合写作「过账」（技术聚合），并说信息图已去掉「经营事实」，同时 ADR-0016 决定 1 要求保留管道。词表里 business_fact 经营事实（聚合，2026-10-15 用户 B2 类别判定确认）正是同一件事：内含过账候选、事实明细、PostSeq、原期间。",
+   "now": "business_fact 经营事实（聚合，operations.facts，已确认）；posting_candidate 过账候选（值对象）；事件 business_fact_attributed 事实归属、business_fact_restated 事实重述。",
+   "check": "「过账」「Posting」无同名词条；migration_posting_channel 迁入过账通道（提议）用到「过账」作修饰。",
+   "basis": [
+    "ADR-0016 决定 1：operations.facts 为单一过账管道",
+    "terms.yaml business_fact 已由用户确认（2026-10-15）",
+    "term_rules：同 bc 一个概念一个中文名"
+   ],
+   "practice": [
+    "会计与 ERP 通行：「过账（posting）」是把凭证记入账簿的动作，不是被记入的对象"
+   ],
+   "opts": [
+    {
+     "label": "聚合根沿用「经营事实」；「过账」只作动作（命令）用语",
+     "effect": "不改已确认词条，事件名（事实归属、事实重述）与聚合名保持一致。草案 AGG-77 的名字改为经营事实；信息图 C-39 的去掉与否是另一件事，不影响名字。",
+     "rec": true
+    },
+    {
+     "label": "新登记「过账」聚合，经营事实降为其内实体",
+     "effect": "与草案一致；但要改已确认词条的类别，两个事件的聚合名前缀也要一起改。",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-X04",
+   "grp": "gl2-agg",
+   "title": "应收、应付「往来款项」：与既有「应收单」怎么合",
+   "src": "ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-49、AGG-52，§8 第 2 条",
+   "ctx": "草案的应收往来款项（AGG-49）含销售应收、其他应收、客户扣留质保金、我方交存的现金保证金；词表 ar_item 应收单的定义是「一张发票一个应收载体（只能由开票产生）」，范围窄得多，且质量保证金（retention_money）已是同 BC 的另一个聚合，保证金与押金（AGG-51）又是一个。应付侧词表没有对应词。",
+   "now": "ar_item 应收单（聚合，receivables.collection，已确认）；retention_money 质量保证金（聚合）；accounts_receivable 应收账款（指标）。应付侧只有 expense_payment 费用支付（指标）。",
+   "check": "「应收款项」「应付款项」「往来款项」在词表中均无；「应收账款」已被指标占用（同 bc 同名要避开）。",
+   "basis": [
+    "企业会计准则第 22 号——金融工具确认和计量：应收款项",
+    "term_rules：同一 bc 内一个概念一个中文名",
+    "草案 AGG-49 与 retention_money 边界待 one-architecture 对齐"
+   ],
+   "practice": [
+    "往来款项是会计实务的统称，准则正式写法是应收款项、应付款项"
+   ],
+   "opts": [
+    {
+     "label": "登记「应收款项」(Receivable)、「应付款项」(Payable) 两个聚合，ar_item 弃用并入应收款项（开票产生是它的一种来源）",
+     "effect": "用准则正式用语，应收应付对称。质量保证金、保证金仍是各自的聚合，应收款项只含应收账款与其他应收款（需与 one-architecture 确认 AGG-49 去掉质保金类）。改动 1 条已确认词条。",
+     "rec": true
+    },
+    {
+     "label": "沿用草案字面「应收往来款项」「应付往来款项」",
+     "effect": "与草案一致，不动 ar_item（二者并存，需另写边界）。「往来款项」不是准则用语，与往来单位也易混。",
+     "rec": false
+    },
+    {
+     "label": "保留「应收单」为聚合名，扩大定义；应付侧另登记「应付单」",
+     "effect": "改动最小。但「单」是单据，AGG-49 内是余额与核销记录，不是一张单据。",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-X05",
+   "grp": "gl2-agg",
+   "title": "收方向、付方向的资金凭证：叫「收款/付款」还是沿用「回款单」",
+   "src": "ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-50、AGG-53，§8 第 2 条",
+   "ctx": "草案把收方向、付方向写成对称的「收款」「付款」。词表收方向已有 cash_receipt 回款单（聚合）、cash_received 回款（事件）、receipt_claiming 到账认领、receipt_allocation 回款分配；付方向没有对应词。「回款」又是回款率、回款计划等指标的用语。",
+   "now": "cash_receipt 回款单（聚合）、cash_received 回款（事件），均 receivables.collection，已确认。",
+   "check": "「付款单」「CashPayment」无同名；「收款」「付款」在聚合和事件名中无同名（付款条件项 payment_term_item 是另一个词）。",
+   "basis": [
+    "terms.yaml 已确认词条 cash_receipt",
+    "国际通行：Cash Receipt / Cash Payment（现金收入、现金支出）对称用法"
+   ],
+   "practice": [
+    "AEC 与专业服务行业口头多说「回款」，财务凭证称「收款」「付款」"
+   ],
+   "opts": [
+    {
+     "label": "收方向沿用「回款单」，付方向新登记「付款单」(CashPayment)",
+     "effect": "不动已确认词条及其牵连的指标用语。对称性靠英文名 CashReceipt / CashPayment 保证，中文「回款单」对「付款单」略不对称。",
+     "rec": true
+    },
+    {
+     "label": "改称「收款」「付款」，回款单弃用",
+     "effect": "与草案、财务凭证叫法对称。要改回款单、回款、到账认领、回款分配等 4 条已确认词条，回款率等指标的叫法也会不一致。",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-X06",
+   "grp": "gl2-agg",
+   "title": "「收入确认」是一张单，还是一条规则加若干行",
+   "src": "ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-44、AGG-47，§6 N-12；ADR-0016 决定 4；ADR-0047 影响面「用语」",
+   "ctx": "草案把收入确认（AGG-47）定为无状态规则层，规则在开票与收入额度的「收入确认行」上执行；词表 revenue_recognition 收入确认单是聚合，定义里还写着「收入期间取客户签字日所在月」，ADR-0047 已要求改写。Q20（收入确认是否有状态对象）交财务，尚未定。",
+   "now": "revenue_recognition 收入确认单（聚合，receivables.wip，已确认，定义含签字日）；revenue_recognized 收入已确认（事件）；progress_assessment 履约进度认定（聚合）。",
+   "check": "「收入确认行」「RevenueRecognitionLine」无同名；已先放入 proposed.yaml。",
+   "basis": [
+    "ADR-0016 决定 4：收入确认是无状态规则层（草案 §3.1）",
+    "ADR-0047 第 3 条：收入期间取认可日所在月，须改写词条定义",
+    "草案 §2.2 AGG-47：Q20 若选有状态对象须新开 ADR"
+   ],
+   "practice": [
+    "CAS 14 / IFRS 15 把收入确认作五步法的规则，不是一张单据"
+   ],
+   "opts": [
+    {
+     "label": "revenue_recognition 保留标识与英文名，类别改 business_rule，中文名改「收入确认」，定义按 ADR-0047 改写，「收入确认单」列为方言别名",
+     "effect": "与草案一致，收入确认行作为额度聚合内的实体登记。若 Q20 之后财务选有状态对象，再另开词条。",
+     "rec": true
+    },
+    {
+     "label": "保留收入确认单为聚合，收入确认行作其内实体",
+     "effect": "不动已确认词条的类别，只改定义。但与草案、ADR-0016 决定 4 的「无状态规则层」冲突，要等 Q20 才能定，现在不能写。",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-X07",
+   "grp": "gl2-agg",
+   "title": "「送达记录」的英文名（ADR-0047 已提议 service_record）",
+   "src": "ADR-0047 影响面「用语」；ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-27、§8 第 4、5 条",
+   "ctx": "ADR-0047 提议 送达记录 service_record，并自己指出 service 易与「服务」（设计服务、检查服务）混，宜改 delivery_record 或另议。事件「交付物已送达」的英文名也随这一条定。",
+   "now": "词表无送达相关词条；delivery_confirmation 交付确认单（delivery.execution，完成申报的证据载体）、delivery_* 系列词条表示「交付」。",
+   "check": "DeliveryRecord、ServiceRecord、DeliverableDelivered 均无同名。",
+   "basis": [
+    "ADR-0047 影响面「用语」：service_record 宜改 delivery_record",
+    "GF-2015-0209 第 7.2、8.1 条：提交与签收、送达起算审查期",
+    "法律用语：送达的英文通行写法是 service"
+   ],
+   "practice": [],
+   "opts": [
+    {
+     "label": "送达记录 DeliveryRecord；事件「交付物已送达」DeliverableDelivered",
+     "effect": "不与「服务」相混，沿用 ADR-0047 自己给的备选。「交付」与「送达」中文分得开，英文都是 delivery，定义里须写明：送达是把提交轮次送到发包人手中并起算审查期，交付是项目成果移交。",
+     "rec": true
+    },
+    {
+     "label": "送达记录 ServiceRecord（ADR-0047 原文）；事件 DeliverableServed",
+     "effect": "符合法律用语，且与 ADR 原文一致。但与「服务」混淆，ADR 已提示风险。",
+     "rec": false
+    },
+    {
+     "label": "送达记录 SubmissionDeliveryRecord；事件 SubmissionDelivered",
+     "effect": "点明送达的是提交轮次，歧义最小。名字较长，且事件的聚合名前缀变成提交轮次而不是交付物。",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-X08",
+   "grp": "gl2-agg",
+   "title": "「认可」和「验收」是不是同一回事",
+   "src": "ADR-0047 影响面「用语」；ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-27，§3.2 B-28",
+   "ctx": "草案把交付侧 BC 改称「质量与认可」，事件有「交付物已认可」，ADR-0047 要登记 认可日 acceptance_date、视为同意 deemed_acceptance。词表已有 acceptance_record 验收单（统一验收裁定载体）、milestone_accepted 验收通过、acceptance_returned 验收退回，英文也都带 Acceptance。ADR-0047 还提出验收单、交付确认单与其第 1、2a、2b 类是否同义，交本词表裁定。",
+   "now": "acceptance_record 验收单、milestone_accepted 验收通过、acceptance_returned 验收退回、acceptance_status 交付验收状态（均 delivery.acceptance，已确认）。老系统「验收单」对应 DeliverableSubmission(DLV_ACCEPTED)。",
+   "check": "认可日 AcceptanceDate、视为同意 DeemedAcceptance 等已放入 proposed.yaml，不与现有词条同名。",
+   "basis": [
+    "企业会计准则第 14 号第十三条：客户已接受该商品（时点履约迹象之一）",
+    "ADR-0047 第 2 条：八类客户认可证据，不限于签收或验收",
+    "GB 50300 一类国标：验收是有明确合格判定的程序"
+   ],
+   "practice": [
+    "IFRS 15 称 customer acceptance；国内合同多写「审查同意」「签收」，「验收」多指有合格判定的程序"
+   ],
+   "opts": [
+    {
+     "label": "两词并存、分工写清：认可 = 客户方接受成果这一事实，由八类证据证明（含邮件、纪要、视为同意）；验收 = 验收单上的裁定行为（通过、退回、有条件通过）",
+     "effect": "不改任何已确认词条。「交付物已认可」与「验收通过」是两个事件：前者是收入证据，后者是质量裁定；定义里互相写明区别。",
+     "rec": true
+    },
+    {
+     "label": "统一用「验收」：认可日改验收日，交付物已认可改交付物已验收",
+     "effect": "只剩一个词。但邮件确认、视为同意并非验收程序，用「验收」会让证据类型名别扭；ADR-0047 的 acceptance_date、列名也要改。",
+     "rec": false
+    },
+    {
+     "label": "统一用「认可」：验收单、验收通过、验收退回改名",
+     "effect": "与草案和 BC 名「质量与认可」一致。要改 4 条以上已确认词条，且 GB 50300 一类国标沿用「验收」，违反国标优先。",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-X09",
+   "grp": "gl2-stage",
+   "title": "「阶段」的英文：Phase 还是 Stage",
+   "src": "STAGE_TYPES_DRAFT.md §3、§4；ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-04",
+   "ctx": "阶段类型草案全篇用 Stage（StageType）。词表已有 phased_delivery 阶段性交付 PhasedDelivery 用 Phase；BIZBOK 的「价值流阶段」英文是 value stream stage，草案也说它与项目里程碑阶段的关系待裁定；RIBA 工作计划的 Stage 只用作外部阶段对照码表。",
+   "now": "词表无「阶段」「阶段类型」词条；phased_delivery 阶段性交付（delivery.execution，已确认）用 Phase。",
+   "check": "StageType、PhaseType、Stage、Phase 在词表中均无同名词条。",
+   "basis": [
+    "naming_priority 第 2 条：工程标准与 PMBOK 优先；PMBOK 项目阶段是 phase",
+    "GB/T 50326：项目管理阶段",
+    "既有词条 PhasedDelivery 已用 Phase"
+   ],
+   "practice": [
+    "RIBA Plan of Work 用 Stage；BIZBOK 价值流用 stage"
+   ],
+   "opts": [
+    {
+     "label": "内部一律 Phase（阶段类型 PhaseType）；RIBA 等外部码表照其原文 Stage，只在对照码表里出现",
+     "effect": "依据 PMBOK 与既有 PhasedDelivery，且避开 BIZBOK 价值流阶段的 Stage，防止以后两种阶段同名。",
+     "rec": true
+    },
+    {
+     "label": "一律 Stage（阶段类型 StageType）",
+     "effect": "与草案、RIBA 一致。但与 BIZBOK 价值流阶段英文撞名，也和 PhasedDelivery 不一致。",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-X10",
+   "grp": "gl2-stage",
+   "title": "「初设 / 扩初 / 初步设计」三个叫法",
+   "src": "STAGE_TYPES_DRAFT.md §4 第 10 条、§7；§5 与老系统任务数对账",
+   "ctx": "三个叫法并存。目录里的「初设」是独立阶段（老系统 4,125 个任务、654 个项目）；景观产品线的「扩初设计」在深化阶段之内，与目录的「初设」不是同一件事。",
+   "now": "词表无任何一个；老系统生产任务按「初设」记录。",
+   "check": "「初步设计」「初设」「扩初」在词表、别名、禁用写法中均无。",
+   "basis": [
+    "《建设工程勘察设计管理条例》第 26 条、《建筑工程设计文件编制深度规定》：设计分方案设计、初步设计、施工图设计",
+    "naming_priority：国标优先，缩写与口语作别名",
+    "CODING_STANDARD：禁用自造缩写"
+   ],
+   "practice": [
+    "行业口语把初步设计简称「初设」，「扩初」是扩大初步设计的口语"
+   ],
+   "opts": [
+    {
+     "label": "正式名「初步设计」（PreliminaryDesign），「初设」列为缩写别名；「扩初设计」不并入，作景观等产品线在深化阶段内的子阶段名，不进阶段类型目录",
+     "effect": "与国标一致；景观数据不会错位。别名「初设」类型为 abbr，不进代码与界面。",
+     "rec": true
+    },
+    {
+     "label": "三者合一，「初设」「扩初」都作「初步设计」的别名",
+     "effect": "词最少。但景观的扩初在深化阶段内，合一后景观的阶段数据会错位到初步设计。",
+     "rec": false
+    },
+    {
+     "label": "「扩初设计」另立阶段类型，与初步设计并列",
+     "effect": "最直观。但目录多一个只有景观使用的值，与「目录全局、产品选组合」的 S1 决定矛盾。",
+     "rec": false
+    }
+   ]
+  },
+  {
+   "no": "B2-X11",
+   "grp": "gl2-stage",
+   "title": "「结算」的三处含义，各用什么名字",
+   "src": "STAGE_TYPES_DRAFT.md §4 第 10 条、§7；ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-13、AGG-73，§8 第 4 条",
+   "ctx": "「结算」在草案里有三处：① 造价产品线的子阶段（估算、概算、预算、结算）；② 交付阶段 7「结算」（项目结算与复盘）；③ 协议的事件「已结算」。词表里 final_account 竣工结算（receivables.wip，国标 GB/T 50500 用语）已占用「结算」，并把「结算单」「项目结算」列为禁用写法。草案另有「月度薪酬结算」（AGG-73）是第四处。造价线的「估算」与成本口径的「估算」（成本估算树、完工估算）也不是同一件事。",
+   "now": "final_account 竣工结算（聚合，禁用写法：结算单、项目结算）；final_account_discount 结算折让；intercompany_settlement 内部结算（命令）；claim_settled 达成。",
+   "check": "「收尾」「Closing」无同名；「协议已竣工结算」「AgreementFinalAccountConfirmed」无同名。",
+   "basis": [
+    "GB/T 50500：竣工结算",
+    "GB/T 50326 / PMBOK：项目收尾（closing）",
+    "terms.yaml final_account：禁用「结算单」「项目结算」",
+    "企业会计准则第 9 号：职工薪酬"
+   ],
+   "practice": [
+    "造价咨询行业按估算、概算、预算、结算四类造价文件分阶段，其对象是客户的建设项目造价"
+   ],
+   "opts": [
+    {
+     "label": "阶段 7 正式名「收尾」(Closing)，「结算」作其别名；协议事件改称「协议竣工结算已确认」(AgreementFinalAccountConfirmed)，复用既有词条竣工结算；造价线四个子阶段按国标称投资估算、设计概算、施工图预算、竣工结算审核，不单用「估算」「结算」；月度薪酬结算建议改称月度薪酬核算",
+     "effect": "每一处都有唯一名字，「结算」一词只留给 final_account。造价线加限定词后与成本口径的估算不再相混。事件含义（协议最终价款确认）是我的推断，请财务确认。",
+     "rec": true
+    },
+    {
+     "label": "阶段 7 沿用「结算」，在定义里与竣工结算区分；协议事件保留「协议已结算」",
+     "effect": "少改。但同一个词指阶段、聚合、事件三种东西，且与 final_account 的禁用写法「项目结算」冲突。",
+     "rec": false
+    }
+   ]
+  }
+ ],
+ "info": [],
+ "side": []
+}
