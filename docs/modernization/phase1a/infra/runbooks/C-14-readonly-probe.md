@@ -55,6 +55,13 @@ DENY INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VI
 - 预期三个都「通过」；记录只写每个账号的标记与错误号。
 - 任一账号出现 (g)（例如老库把 EXECUTE 授给了 public）或其他拒绝标记：停下报 one-coordinator，不临场调整授权，也不继续做逐项。
 
+## 预检与停止（`c14_run.py` 开工前，什么都没改，失败退出码 3）
+
+- 结果文件可写；`app.jar` 的 SHA-256 与参数一致；ECS 上没有残留的 `readonly-probe.env`。
+- 执行账号能打开 msdb、rdscore（收尾要在这两库删探针自己的用户）；并且能看到取证账号 `one_evidence_ro` 在这两库的用户（对照），否则回读的「0」可能只是看不见，不能证明已删。
+- 回读五项（探针登录、探针库、master / msdb / rdscore 里的探针用户）开工前必须全为 0。
+- 收尾顺序：先停 ECS 上的 `one-c14-probe-*` 单元，再杀探针登录的会话，然后逐条删除探针对象，回读五项为 0；任何一步失败都继续做下一步，最后不干净则告警、退出码 2。收到 SIGTERM / SIGHUP / Ctrl-C 也走同一条收尾。
+
 ## 逐项（偏离 → 预期标记 → 回退）
 
 偏离均在 `one_readonly_probe_db` 上下文执行（第 9、10 项另注），每项：对照计数 → 偏离 → 跑校验 → 回退 → 计数复原。

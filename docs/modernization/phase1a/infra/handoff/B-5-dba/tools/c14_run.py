@@ -14,6 +14,7 @@ ALTER ROLE SQLAgentOperatorRole DROP MEMBER 并回读。不带该选项时不做
 """
 import json
 import re
+import signal
 import sys
 from pathlib import Path
 
@@ -143,9 +144,18 @@ class Stop(Exception):
 
 
 def refuse(message):
-    """Exit 3: nothing was changed (wrong usage, failed preflight)."""
+    """Exit 3: nothing was changed (wrong usage, failed preflight). The records so far go to the result file too, when one was given."""
     print(message)
+    if len(sys.argv) > 1:
+        try:
+            save(sys.argv[1])
+        except OSError:
+            pass
     sys.exit(3)
+
+
+def interrupted(signum, frame):
+    raise KeyboardInterrupt(f'signal {signum}')
 
 
 def numbers(out):
@@ -307,6 +317,10 @@ def preflight(jar_sha256):
     record(step='preflight', readback=rows[-1] if rows else None)
     if rc != 0 or not rows or rows[-1] != CLEAN_READBACK:
         refuse('preflight: probe objects already exist or the readback failed; clean up by hand first, nothing was changed')
+    for system_database in ('msdb', 'rdscore'):
+        rc, _, out = legacy_sql(f'preflight connect {system_database}', system_database, 'SELECT 1 AS reachable;', mode='ro')
+        if rc != 0 or (1,) not in numbers(out):
+            refuse(f'preflight: the execution account cannot open {system_database}, the cleanup could not remove the probe user there; nothing was changed')
     # Control: the evidence account's own users in msdb and rdscore must be visible to u8c, else a "0" for the probe would only mean "not visible"
     rc, _, out = legacy_sql('preflight visibility control', 'master', VISIBILITY_CONTROL, mode='ro')
     rows = numbers(out)
@@ -369,7 +383,14 @@ def main(target, jar_sha256, msdb_trial=False):
         save(target)
     except OSError as failure:
         refuse(f'the result file cannot be written ({type(failure).__name__}); nothing was changed')
-    preflight(jar_sha256)
+    try:
+        preflight(jar_sha256)
+    except SystemExit:
+        raise
+    except BaseException as failure:  # noqa: BLE001 nothing has been changed yet
+        refuse(f'preflight failed ({type(failure).__name__}); nothing was changed')
+    for number in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(number, interrupted)
     stopped = False
     try:
         transfer_pub = key_pair(ONE_SERVER, W, 'transfer')
