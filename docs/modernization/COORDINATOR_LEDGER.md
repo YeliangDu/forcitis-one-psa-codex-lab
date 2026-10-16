@@ -1,17 +1,18 @@
 # one-coordinator 台账（速查）
 
-只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-16 18:05（one-coordinator）
+只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-16 20:40（one-coordinator）
 
 ## 作战图（派工前先看；SESSION_PLAYBOOK §11「战队协作」第 5 条）
 | 主线 | 负责 | 当前 | 下一步 | 阻塞 |
 |---|---|---|---|---|
-| dev 首次部署 · C-14 | one-ops | rc.4 经法兰克福 OSS 中转到 ECS；C-14 第一步三账号全 PASSED；探针被预检拦：u8c 在 msdb、rdscore 无 VIEW DEFINITION/ALTER ANY USER，RDS 删登录不清系统库用户（两库各留孤儿 one_readonly_probe）；用户选 B（RDS 接口建删同名账号试清理） | B 成功→改 c14_run 用 USER_ID 回读、opus 复审→跑探针→删 101→用户批准→北京夜里部署；B 失败→用户控制台手工删（A） | 安装器只认 GitHub（部署后改卡：本地预置包+签名校验） |
-| 架构收尾（全貌级） | one-architecture + one-arch-revenue / finance / people（临时，已解绑顶层） | 收尾计划 #384 已合；三组初稿已出（未评审）；样板页 5TrrTc7…（待用户）；用户要求先定「流程设计方法」：唯一流程目录、标准 BPMN 2.0.2（.bpmn+bpmn-js）、上下游追溯 | 方法稿+研究→opus→批准页；批准前三组不铺开（intent 155312/155412） | 约 3 个工作日 |
-| 收入确认专题 | one-architecture / one-rules / one-arch-revenue | 用户事实：对外财报与增值税按开票；权责以客户确认为准；进度估计只作内部产值；无法定审计；企业会计准则 | A1 后续页 TaLY2… 待用户；Q-04 合并页；ADR-0047 无外部审计修订 | — |
-| 数据修复批 | one-1a-next-5 | 全部 PR 已开：#349 #354 #366 #369 #370 #377 #383 #387 在队；#388 文档 | 依序合入 | 签发 #343 已合 |
-| 工时唯一 TS-UNIQ | one-1a-par | #335 已合；#340 实现在队（CI 环境偶发重排） | 合入后重建开发库→TA 部分 | — |
-| 质量与工具 | one-quality | 工件治理工具 #371 #374 #375 #376 #381 在队；#392 偶发测试根因修复在队；合并队列评估：Team 套餐不可用，不迁 | 错题本迁移；小批量合集脚本（PR 额度降下后） | 在制 PR 超 3 |
-| 用语 / 岗位 | one-glossary / one-data | 用语 PR #320 #339 #355 #358 #389 未报→入今晚合集；岗位映射 #363 已合 | J-1/J-2 职级页 | — |
+| dev 首次部署 | one-ops / one-1a-par | rc.4 手工装 ECS 运行（不改安装器，intent dev 验证）；A8 同步已灌员工；C-14 完成、101 已删（#414）；临时开关 PROCESS_ADMINISTRATOR_REQUIRED=false 在位 | SINGLE-OP P1 #415（队中）→ P2 → 新 rc → grant-role 用户本人（员工 ID 末 6cd894）process_administrator+super_admin → 删开关重启 | P2 未开 |
+| 流程与业务架构对齐 | one-architecture + 三组 | 用户定按 BIZBOK §3.4 逐层：阶段→（对象）→能力→信息→干系人；第一步阶段对齐：未落阶段 0、跳段 0，SD-01～10 已裁（#422），VS-02.7 改名收尾 | 落实 SD、筛完条件 → 我重出对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL（生成：scratchpad(e1ce474b)/align）交用户审 → 派对象层（主对象+涉及对象）→ 能力层 | CRUD 缺口清零暂停（intent 缺口先清零已被对齐顺序取代） |
+| 确认页（7 页在收件箱） | one-architecture | 收入 49+34、人员 16（+余题）、财务 14+37、阈值 6，均经独立审题；用户定：缺口清零/对齐前暂不作答 | 对齐后按 PAGE_IMPACT.md 改题→check_pages→审题→一次交用户；VS04-00 保持（Q24 与 Q-10 134134 确为矛盾） | 对齐完成 |
+| 出题与决策工具 | one-quality / one-rules | check_pages #419、决策速查表 #418 已合；#362 整页检查待 CI | intent 片段在 governance 分支未入 main（134134 等）→ one-architecture 拆小 PR；速查表补 Q24/Q-10 矛盾行 | — |
+| CI 与合并 | one-quality / 调度 | 用户定：保留 strict、main push 只跑轻量、重步骤 queued 标签才跑（#406 队中）；merge_pr.sh 已打 queued；代码合集脚本 #410；合集 #411 #412 #405 在队 | #406 合入后核后缀与重步骤；偶发 #392 #408 #409 | — |
+| 工时 TA | one-1a-par | A1 #396、A2 #397 已合 | A3 在 SINGLE-OP 后 | — |
+| 用语 | one-glossary | 积压 131 已过门槛；四合一 #403 已合 | 出决策单（按领域/共享内核/ACL、再按 bc 分组）；触发器命名查重 | — |
+| 取证 | one-ops | E-B6、N/V/S 已交；F05-06/09 待取 | E-B 其余项 | — |
 
 ## 授权与边界
 - 合并 PR、开会话、派子代理：调度自定（「合 PR 交给你审核，决定权给你」）。不替用户定：部署、生产变更、购买、对外账号、ADR 变更。
