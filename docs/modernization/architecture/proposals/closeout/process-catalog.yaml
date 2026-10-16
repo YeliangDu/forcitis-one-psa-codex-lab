@@ -1647,3 +1647,13 @@ processes:
     human_orchestration: false
     bpmn: ~
     note: "S-41；两个入口：B-27「补休已到期未休」、B-13 Separated"
+  - id: PRC-179
+    name: "项目开始执行后协议转入履行中"
+    type: event_policy
+    stages: [VS-04.1]
+    owner_bc: "B-05"
+    group: revenue
+    status: draft
+    human_orchestration: false
+    bpmn: ~
+    note: "S-42；订阅 AGG-19「项目已开始执行」，按协议幂等"
