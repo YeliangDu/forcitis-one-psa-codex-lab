@@ -1,12 +1,18 @@
 package com.forcitis.one.platform.identity.infrastructure.startup;
 
+import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import javax.sql.DataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 
 /**
@@ -14,7 +20,8 @@ import org.springframework.beans.factory.config.BeanPostProcessor;
  * (process engine tables, event registry, scheduler locks, operations command, web server) has touched a wrong database. The database and the session
  * user are a whitelist. The announcement (one WARN line, one audit entry) is written before the context finishes refreshing.
  */
-final class SingleOperatorModeStartup implements BeanPostProcessor {
+final class SingleOperatorModeStartup implements BeanPostProcessor, SmartInitializingSingleton {
+    private static final Logger LOG = LoggerFactory.getLogger(SingleOperatorModeStartup.class);
     static final String DATABASE = "forcitis_one_dev";
     static final String USER_PREFIX = "one_dev_";
 
@@ -51,5 +58,17 @@ final class SingleOperatorModeStartup implements BeanPostProcessor {
         } catch (SQLException failure) {
             throw new IllegalStateException(SingleOperatorModeListener.KEY + ": the database check could not run (ADR-0030)", failure);
         }
+    }
+
+    @Override
+    public void afterSingletonsInstantiated() {
+        if (!enabled) {
+            return;
+        }
+        if (database == null) {
+            throw new IllegalStateException(SingleOperatorModeListener.KEY + ": the mode is on but no database was checked (ADR-0030)");
+        }
+        LOG.warn("SINGLE OPERATOR MODE IS ON (ADR-0030): profiles={} database={}; the two-person rules of the operations commands are relaxed", profiles, database);
+        audit.getObject().recordIndependently(new AuditEntry("platform.identity.single-operator-mode.enabled", null, null, AuditSubject.without(AuditSubjectKind.OPERATION), "profile=" + profiles));
     }
 }
