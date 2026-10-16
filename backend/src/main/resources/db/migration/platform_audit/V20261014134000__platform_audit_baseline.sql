@@ -3,7 +3,7 @@ COMMENT ON SCHEMA platform_audit IS '审计日志（权限流程与集成平台 
 
 -- 审计订阅领域事件：事件号与创建时间一起兼作幂等键，重复投递不产生重复条目；关联号把条目与同一操作的事件、日志串起来。
 -- 按创建时间（UTC 月）范围分区（ADR-0048，O-8）：在线 3 年后归档、校验，再由维护角色整块删除分区；不建默认分区，落不进任何分区的行直接报错。
--- 登录与会话类条目的来源地址、结果、登录方式放在结构化列：员工查自己的登录记录只取这些列，不解析说明文字（意图 155、ADR-0027 第 3 项）。
+-- 带登录与会话轨迹的条目（登录、会话、管理员模式、拒绝访问、特权请求、强制下线等）的来源地址、结果、登录方式放在结构化列：员工查自己的登录记录只取这些列，不解析说明文字（意图 155、ADR-0027 第 3 项）。
 CREATE TABLE platform_audit.audit_entries (
     id                uuid        NOT NULL,
     action            text        NOT NULL,
@@ -53,9 +53,9 @@ COMMENT ON COLUMN platform_audit.audit_entries.correlation_id IS '关联号：�
 COMMENT ON COLUMN platform_audit.audit_entries.change_reason IS '变更说明：操作人填写的原因（放行、强制下线等必填原因的动作）';
 COMMENT ON COLUMN platform_audit.audit_entries.before_text IS '变更前的值：只写业务值，不含密钥和个人敏感信息（L3 / L4 不进审计）';
 COMMENT ON COLUMN platform_audit.audit_entries.after_text IS '变更后的值：规则同变更前';
-COMMENT ON COLUMN platform_audit.audit_entries.source_address IS '来源地址：请求有来源时的客户端地址（只取受信代理解析后的地址）；系统动作与取不到可信地址时为空';
+COMMENT ON COLUMN platform_audit.audit_entries.source_address IS '来源地址：带登录与会话轨迹的条目（登录、会话、管理员模式、拒绝访问、特权请求、强制下线）记录的客户端地址；其他条目、系统动作与取不到可信地址时为空';
 COMMENT ON COLUMN platform_audit.audit_entries.outcome_kind IS '结果：SUCCEEDED / FAILED；记录动作成败的条目才有（登录与会话、拒绝访问、特权请求、归属更正被拒等），其他条目为空';
-COMMENT ON COLUMN platform_audit.audit_entries.login_method_kind IS '登录方式：企业微信（工作台、小程序、扫码）、单点登录、签名票据、应急登录；当次会话的登录方式已知的条目才有，有登录方式必有结果';
+COMMENT ON COLUMN platform_audit.audit_entries.login_method_kind IS '登录方式：企业微信（工作台、小程序、扫码）、单点登录、签名票据、应急登录；登录、会话、管理员模式、特权请求类条目才有，强制下线、拒绝访问等为空；有登录方式必有结果';
 
 CREATE FUNCTION platform_audit.reject_audit_entry_change() RETURNS trigger
     LANGUAGE plpgsql AS $$
