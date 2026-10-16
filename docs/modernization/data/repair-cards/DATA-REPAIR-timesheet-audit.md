@@ -60,6 +60,13 @@ B 部分（one-1a-next-4）允许改动：
 - 验收要点：周六 / 周日调休通过；周三调休行被拒；`CalendarDay` 原有异常用例原样重跑。
 - 依据：门禁 O4、B5；D2。
 
+#### TA-03　TS-UNIQ 待核 5　中　`timesheets` 保留期 10 年的登记与归档 / 清理作业
+- 问题：用户已认可 `timesheets` 保留 10 年、归档到对象存储后在线删除（`data/RETENTION_PROPOSAL.md`，用户「按 one-data 建议」）；注册表现为 `BUSINESS_RECORD`（无期限），没有清理或归档作业；GUIDING_PRINCIPLES §6 无该行。TS-UNIQ 不改保留期，故不阻塞该卡；本条是承接。
+- 改法：注册表 `retention` 改 `{policy: 10y, job: cost.timesheet.timesheet.archive}`；归档 / 清理作业按审计、审批归档同一口径新建（属功能补做，与财务是否认定工时单为会计档案原始凭证（改 30 年）一并在 Phase 2 工时规格前定；**作业未建成前**，注册表登记带 owner 与到期日的 gap，不得静默留空）；GUIDING_PRINCIPLES §6 补一行（交 one-architecture / one-coordinator）。
+- 预期表结构 diff：无 DDL；注册表与作业。
+- 验收要点：注册表有 10y 与作业名，作业按期归档并删除在线行；或有 gap 条目含 owner、到期日。
+- 依据：门禁 C3；ADR-0043 R-2（`timesheets` 含员工 ID，属个人信息关联数据）；用户决定（保留期，intent 随 #319）。
+
 低级顺带（A 部分，不阻塞）：CE-1（`consumed_events` 登记 `APPEND_ONLY` 但 `ConsumedEventsPurgeJob.java:49` 会 DELETE，应登记 `INSERT_DELETE`，`unversioned-table-writes.txt:26`）、CE-2（`consumed_at` 索引）、WD-3（`day_kind` 内联 CHECK 具名，随 G-D12）、T-8（列注释与实现不符）。
 
 ### 第二部分　审计与幂等（建议 one-1a-next-4）
