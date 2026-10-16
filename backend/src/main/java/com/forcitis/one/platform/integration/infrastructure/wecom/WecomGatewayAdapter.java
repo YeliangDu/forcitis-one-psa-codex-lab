@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.integration.infrastructure.wecom;
 
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.platform.integration.api.DeliverySubject;
 import com.forcitis.one.platform.integration.api.WecomCard;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import com.forcitis.one.platform.integration.api.WecomGateway;
@@ -34,7 +35,7 @@ class WecomGatewayAdapter implements WecomGateway {
     }
 
     @Override
-    public void markHandled(String deduplicationKey, String handledNote) {
-        markHandled.execute(deduplicationKey, handledNote);
+    public void markHandled(DeliverySubject subject, String handledNote) {
+        markHandled.execute(subject, handledNote);
     }
 }

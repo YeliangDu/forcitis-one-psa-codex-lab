@@ -20,6 +20,8 @@ import com.forcitis.one.platform.approval.events.TaskClosed;
 import com.forcitis.one.platform.approval.events.TaskReleased;
 import com.forcitis.one.platform.approval.events.TaskReassigned;
 import com.forcitis.one.platform.approval.events.TaskTransferred;
+import com.forcitis.one.platform.integration.api.DeliveryPurpose;
+import com.forcitis.one.platform.integration.api.DeliverySubject;
 import com.forcitis.one.platform.integration.api.WecomCard;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -35,7 +37,7 @@ import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Recipients are exact WeCom user ids, never a broadcast (I-6); the dedup key per card makes at-least-once sending idempotent. A
+ * Recipients are exact WeCom user ids, never a broadcast (I-6); the delivery subject per card makes at-least-once sending idempotent. A
  * separated person gets no card (D-1a-141); a card nobody can receive is logged as an error and counted, never dropped quietly.
  */
 @SystemActorName("platform.approval.task-notification")
@@ -70,86 +72,87 @@ class TaskNotifier {
         send(event.taskId(), event.candidates(), ApprovalTexts.assignedTitle(event.nodeName().value()),
                 ApprovalTexts.assignedBody(event.processName().value(), event.summary().value(), initiator.map(EmployeeProfile::name).orElse(null),
                         department, moment(event.envelope().occurredAt()), event.dueAt() == null ? null : moment(event.dueAt())),
-                dedupKey(event.taskId()));
+                subject(DeliveryPurpose.TASK_ASSIGNED, event.taskId()));
     }
 
     @ApplicationModuleListener
     void onTaskClaimed(TaskClaimed event) {
-        wecom.markHandled(dedupKey(event.taskId()), ApprovalTexts.handledNote(nameOf(event.claimedBy())));
+        wecom.markHandled(assigned(event.taskId()), ApprovalTexts.handledNote(nameOf(event.claimedBy())));
     }
 
     @ApplicationModuleListener
     void onTaskTransferred(TaskTransferred event) {
         String name = accountEmployees.employeeOf(event.from()).flatMap(org::findEmployee).map(EmployeeProfile::name).orElse(ApprovalTexts.aColleague());
         send(event.taskId(), List.of(event.to()), ApprovalTexts.transferredTitle(event.document()),
-                ApprovalTexts.transferredBody(name, event.reason().value()), dedupKey(event.taskId()) + ":transfer:" + event.envelope().eventId());
+                ApprovalTexts.transferredBody(name, event.reason().value()),
+                DeliverySubject.of(DeliveryPurpose.TASK_TRANSFERRED, event.taskId().value(), event.envelope().eventId()));
     }
 
     @ApplicationModuleListener
     void onTaskReassigned(TaskReassigned event) {
         send(event.taskId(), List.of(event.to()), ApprovalTexts.reassignedTitle(event.document()), ApprovalTexts.reassignedBody(event.reason().value()),
-                dedupKey(event.taskId()) + ":reassign:" + event.envelope().eventId());
+                DeliverySubject.of(DeliveryPurpose.TASK_REASSIGNED, event.taskId().value(), event.envelope().eventId()));
     }
 
     @ApplicationModuleListener
     void onTaskOverdue(ApprovalTaskOverdue event) {
         send(event.taskId(), event.holders(), ApprovalTexts.overdueTitle(event.document()), ApprovalTexts.overdueBody(moment(event.dueAt())),
-                dedupKey(event.taskId()) + ":overdue");
+                subject(DeliveryPurpose.TASK_OVERDUE, event.taskId()));
     }
 
     @ApplicationModuleListener
     void onTaskEscalated(ApprovalTaskEscalated event) {
         send(event.taskId(), event.escalatedTo(), ApprovalTexts.escalatedTitle(event.document()), ApprovalTexts.escalatedBody(event.target()),
-                dedupKey(event.taskId()) + ":escalated");
+                subject(DeliveryPurpose.TASK_ESCALATED, event.taskId()));
         List<String> names = event.escalatedTo().stream().map(this::nameOf).toList();
-        wecom.markHandled(dedupKey(event.taskId()), ApprovalTexts.escalatedNote(names));
+        wecom.markHandled(assigned(event.taskId()), ApprovalTexts.escalatedNote(names));
     }
 
     @ApplicationModuleListener
     void onTaskReleased(TaskReleased event) {
-        wecom.markHandled(dedupKey(event.taskId()), ApprovalTexts.releasedNote(nameOf(event.releasedBy())));
+        wecom.markHandled(assigned(event.taskId()), ApprovalTexts.releasedNote(nameOf(event.releasedBy())));
     }
 
     @ApplicationModuleListener
     void onTaskClosed(TaskClosed event) {
-        wecom.markHandled(dedupKey(event.taskId()), ApprovalTexts.closedNote());
+        wecom.markHandled(assigned(event.taskId()), ApprovalTexts.closedNote());
     }
 
     @ApplicationModuleListener
     void onApprovalCompleted(ApprovalCompleted event) {
         Optional<UserId> initiator = accountEmployees.accountOf(event.initiator());
         if (initiator.isEmpty()) {
-            log.warn("Card approval-instance:{}:completed: initiator {} has no account, no card sent", event.instanceId().value(), event.initiator().value());
+            log.warn("Card {}: initiator {} has no account, no card sent", completed(event), event.initiator().value());
             meters.counter("forcitis.platform.approval.notification.skipped").increment();
             return;
         }
         send(null, List.of(initiator.get()), ApprovalTexts.completedTitle(event.outcome()),
                 ApprovalTexts.completedBody(event.processKey(), event.document(), event.round().value(),
                         event.reason() == null ? null : event.reason().value()),
-                "approval-instance:" + event.instanceId().value() + ":completed");
+                completed(event));
     }
 
-    private void send(ApprovalTaskId taskId, List<UserId> recipients, String title, String description, String dedupKey) {
+    private void send(ApprovalTaskId taskId, List<UserId> recipients, String title, String description, DeliverySubject subject) {
         List<WecomUserId> wecomIds = new ArrayList<>();
         for (UserId recipient : recipients) {
             Optional<EmployeeProfile> profile = accountEmployees.employeeOf(recipient).flatMap(org::findEmployee);
             if (profile.isPresent() && profile.get().employmentStatus() != EmploymentStatus.EMPLOYED) {
-                log.info("Card {}: {} has separated, no card sent", dedupKey, recipient.value());
+                log.info("Card {}: {} has separated, no card sent", subject, recipient.value());
                 meters.counter("forcitis.platform.approval.notification.skipped").increment();
             } else if (profile.isEmpty() || profile.get().wecomUserId() == null) {
-                log.warn("Card {}: {} has no WeCom user id, no card sent", dedupKey, recipient.value());
+                log.warn("Card {}: {} has no WeCom user id, no card sent", subject, recipient.value());
                 meters.counter("forcitis.platform.approval.notification.skipped").increment();
             } else {
                 wecomIds.add(profile.get().wecomUserId());
             }
         }
         if (wecomIds.isEmpty()) {
-            log.error("ALERT card {} reaches nobody: none of {} can receive it", dedupKey, recipients);
+            log.error("ALERT card {} reaches nobody: none of {} can receive it", subject, recipients);
             meters.counter("forcitis.platform.approval.notification.failed").increment();
             return;
         }
-        String target = taskId == null ? properties.taskUrlTemplate().replace("/{taskId}", "") : properties.taskUrlTemplate().replace("{taskId}", taskId.value());
-        wecom.send(new WecomCard(wecomIds, title, description, target, dedupKey));
+        String target = taskId == null ? properties.taskUrlTemplate().replace("/{taskId}", "") : properties.taskUrlTemplate().replace("{taskId}", taskId.toString());
+        wecom.send(new WecomCard(wecomIds, title, description, target, subject));
     }
 
     private String nameOf(UserId user) {
@@ -160,7 +163,15 @@ class TaskNotifier {
         return MOMENT.format(instant.atZone(zone.zone()));
     }
 
-    private static String dedupKey(ApprovalTaskId taskId) {
-        return "approval-task:" + taskId.value();
+    private static DeliverySubject subject(DeliveryPurpose purpose, ApprovalTaskId taskId) {
+        return DeliverySubject.of(purpose, taskId.value());
+    }
+
+    private static DeliverySubject assigned(ApprovalTaskId taskId) {
+        return subject(DeliveryPurpose.TASK_ASSIGNED, taskId);
+    }
+
+    private static DeliverySubject completed(ApprovalCompleted event) {
+        return DeliverySubject.of(DeliveryPurpose.APPROVAL_COMPLETED, event.instanceId().value());
     }
 }

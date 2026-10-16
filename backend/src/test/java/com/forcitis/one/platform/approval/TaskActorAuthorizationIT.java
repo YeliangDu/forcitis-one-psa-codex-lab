@@ -80,10 +80,10 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
     }
 
     Snapshot snapshot(Scene scene) {
-        var task = taskService.createTaskQuery().processInstanceId(scene.instance().value()).singleResult();
+        var task = taskService.createTaskQuery().processInstanceId(scene.instance().value().toString()).singleResult();
         return new Snapshot(task.getId(), task.getAssignee(),
                 taskService.getIdentityLinksForTask(task.getId()).stream().map(l -> l.getUserId() + ":" + l.getType()).sorted().toList(),
-                requestStatus(scene.key()), (int) events.resulted().stream().filter(e -> e.document().documentId().value().equals(scene.key())).count());
+                requestStatus(scene.key()), (int) events.resulted().stream().filter(e -> e.document().documentId().toString().equals(scene.key())).count());
     }
 
     void assertForbiddenAndUnchanged(Scene scene, Function<Scene, org.springframework.test.web.servlet.ResultActions> call) throws Exception {
@@ -96,7 +96,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
     @DisplayName("I-7 claim / decide / return by a stranger or by the initiator -> 404 over HTTP, task untouched")
     void nonHandlersAreForbiddenOverHttp() throws Exception {
         Scene scene = scene();
-        String id = scene.task().value();
+        String id = scene.task().value().toString();
         for (long outsider : new long[] {scene.stranger(), scene.initiator()}) {
             assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(currentEtag())
                     .with(approver(outsider)), 404));
@@ -113,7 +113,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
     @DisplayName("I-7 a refusal is still 404 when its audit entry cannot be written")
     void refusalSurvivesAFailingAudit() throws Exception {
         Scene scene = scene();
-        String id = scene.task().value();
+        String id = scene.task().value().toString();
         org.mockito.Mockito.doThrow(new IllegalStateException("audit store is down")).when(audit).recordIndependently(any());
         try {
             assertForbiddenAndUnchanged(scene, s -> perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(currentEtag())
@@ -127,7 +127,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
     @DisplayName("I-7 after a claim only the claimer may act: the other candidate gets 404 for claim, decide and return")
     void afterAClaimOnlyTheClaimerActs() throws Exception {
         Scene scene = scene();
-        String id = scene.task().value();
+        String id = scene.task().value().toString();
         mvc.perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(currentEtag()).with(approver(scene.candidate())))
                 .andExpect(status().isNoContent());
         assertThat(snapshot(scene).assignee()).isEqualTo(TestAccounts.account(scene.candidate()).value().toString());
@@ -175,7 +175,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
     @DisplayName("I-7 the actor is the session user, never a field of the request: a forged userId in the body changes nothing")
     void bodyCannotNameTheActor() throws Exception {
         Scene scene = scene();
-        String id = scene.task().value();
+        String id = scene.task().value().toString();
         Snapshot before = snapshot(scene);
         mvc.perform(post("/api/v1/platform/approval-tasks/" + id + ":decide").with(csrf()).with(currentEtag()).with(approver(scene.stranger()))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -241,14 +241,14 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         assertThat(results.stream().filter(r -> !r.equals("won"))).allMatch(r -> r.equals("PLATFORM_APPROVAL_TASK_NOT_FOUND")
                 || r.equals("PLATFORM_APPROVAL_TASK_NOT_FOUND") || r.equals("PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED"));
         assertThat(approvals.isFinished(scene.instance())).isTrue();
-        assertThat(events.resulted().stream().filter(e -> e.document().documentId().value().equals(scene.key())).count()).isLessThanOrEqualTo(1);
+        assertThat(events.resulted().stream().filter(e -> e.document().documentId().toString().equals(scene.key())).count()).isLessThanOrEqualTo(1);
     }
 
     @Test
     @DisplayName("D-1a-179 acting on a task needs to be its handler or candidate and no permission code; the inbox needs a signed-in session only")
     void noPermissionCodeIsNeededToAct() throws Exception {
         Scene scene = scene();
-        String id = scene.task().value();
+        String id = scene.task().value().toString();
         mvc.perform(get("/api/v1/platform/approval-tasks").with(approver(scene.candidate()))).andExpect(status().isOk());
         mvc.perform(get("/api/v1/platform/approval-tasks").with(reader(scene.candidate()))).andExpect(status().isOk());
         mvc.perform(post("/api/v1/platform/approval-tasks/" + id + ":claim").with(csrf()).with(currentEtag()).with(reader(scene.candidate())))
@@ -260,7 +260,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
     @DisplayName("RULE-310 task details are visible to participants only; a stranger is told the task does not exist")
     void detailsAreForParticipantsOnly() throws Exception {
         Scene scene = scene();
-        String id = scene.task().value();
+        String id = scene.task().value().toString();
         mvc.perform(get("/api/v1/platform/approval-tasks/" + id).with(reader(scene.stranger()))).andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errorCode").value("PLATFORM_APPROVAL_TASK_NOT_FOUND"));
         mvc.perform(get("/api/v1/platform/approval-tasks/" + id).with(reader(scene.candidate()))).andExpect(status().isOk())
@@ -272,9 +272,9 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
     @Test
     @DisplayName("an unknown task is 404 for every operation, not 403 and not a server error")
     void unknownTaskIsNotFound() throws Exception {
-        mvc.perform(post("/api/v1/platform/approval-tasks/no-such-task:claim").with(csrf()).with(currentEtag()).with(approver(newId())))
+        mvc.perform(post("/api/v1/platform/approval-tasks/" + com.forcitis.one.TestIds.uuid(404) + ":claim").with(csrf()).with(currentEtag()).with(approver(newId())))
                 .andExpect(status().isNotFound());
-        mvc.perform(post("/api/v1/platform/approval-tasks/no-such-task:decide").with(csrf()).with(currentEtag()).with(approver(newId()))
+        mvc.perform(post("/api/v1/platform/approval-tasks/" + com.forcitis.one.TestIds.uuid(404) + ":decide").with(csrf()).with(currentEtag()).with(approver(newId()))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"outcome\":\"APPROVE\"}")).andExpect(status().isNotFound());
     }
 
@@ -287,7 +287,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
             String body = "{\"outcome\":\"APPROVE\",\"reason\":\"x\",\"assigneeId\":\"" + TestAccounts.employee(scene.otherCandidate()) + "\"}";
             var foreign = mvc.perform(post("/api/v1/platform/approval-tasks/" + scene.task().value() + action).with(csrf()).with(currentEtag())
                     .with(approver(scene.stranger())).contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse();
-            var missing = mvc.perform(post("/api/v1/platform/approval-tasks/no-such-task" + action).with(csrf()).with(currentEtag())
+            var missing = mvc.perform(post("/api/v1/platform/approval-tasks/" + com.forcitis.one.TestIds.uuid(404) + "" + action).with(csrf()).with(currentEtag())
                     .with(approver(scene.stranger())).contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse();
             assertThat(foreign.getStatus()).as(action).isEqualTo(404).isEqualTo(missing.getStatus());
             assertThat(foreign.getContentType()).as(action).isEqualTo(missing.getContentType());

@@ -22,6 +22,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
@@ -94,6 +95,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
@@ -149,6 +151,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
@@ -211,6 +214,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId
@@ -273,6 +277,7 @@ components:
               documentId:
                 type: string
                 x-type: DocumentId
+                format: uuid
           employee:
             type: string
             x-type: EmployeeId

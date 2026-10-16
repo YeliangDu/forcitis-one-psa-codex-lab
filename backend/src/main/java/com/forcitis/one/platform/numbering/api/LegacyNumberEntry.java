@@ -2,7 +2,6 @@ package com.forcitis.one.platform.numbering.api;
 
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.LegalEntityId;
-import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.ValueObject;
 import com.forcitis.one.platform.integration.api.ExternalSource;
 import com.forcitis.one.platform.integration.api.MigrationBatchId;
@@ -25,11 +24,6 @@ public record LegacyNumberEntry(DocumentReference document, ExternalSource sourc
         Objects.requireNonNull(legacyNumber, "legacyNumber");
         Objects.requireNonNull(legalEntity, "legalEntity");
         Objects.requireNonNull(migrationBatchId, "migrationBatchId");
-        try {
-            Uuids.parseCanonical(document.documentId().value());
-        } catch (IllegalArgumentException notAUuid) {
-            throw new IllegalArgumentException("A legacy link needs the UUID of the document: " + document.documentId().value(), notAUuid);
-        }
         if (legacyNumber.isBlank() || !legacyNumber.equals(legacyNumber.strip()) || legacyNumber.length() > MAX_LENGTH) {
             throw new IllegalArgumentException("Legacy number must be 1.." + MAX_LENGTH + " characters without surrounding blanks");
         }

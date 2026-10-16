@@ -19,9 +19,10 @@ import org.junit.jupiter.api.Test;
 /** R-1b-0 C-5: the old system's two views as registered equal, column by column, the statements the integration layer sends (ADR-0037 item 6.1). */
 class LegacyReadRegisterTest {
 
-    static final String TODO_VIEW = "dbo.v_psa_one_legacy_todo";
+    static final String TODO_VIEW = LegacyInboxProperties.DEFAULT_VIEW;
     static final String SHORT_NAME_VIEW = "dbo.v_one_legacy_org_short_name";
-    static final Pattern STATEMENT = Pattern.compile("(?is)^\\s*SELECT\\s+(.+?)\\s+FROM\\s+(\\S+)(?:\\s+WHERE\\s+(\\w+)\\s*=.*)?$");
+    static final Pattern STATEMENT = Pattern.compile("(?is)^\\s*SELECT\\s+(.+?)\\s+FROM\\s+(\\S+)(?:\\s+WHERE\\s+(.+?))?(?:\\s+ORDER\\s+BY\\s+(.+?))?\\s*$");
+    static final Pattern FILTER_COLUMN = Pattern.compile("(?i)(\\w+)\\s*(?:=|<>|!=|>=|<=|>|<|\\bIN\\b|\\bLIKE\\b|\\bIS\\b)");
 
     /** Registered columns per old-system object whose purpose is run-time, sorted. */
     static Map<String, TreeSet<String>> registered(List<Row> rows) {
@@ -34,7 +35,7 @@ class LegacyReadRegisterTest {
         return byObject;
     }
 
-    /** The object a statement reads and every column it names, in the select list or the filter. */
+    /** The object a statement reads and every column it names: in the select list, in every filter comparison and in the ordering. */
     static Map<String, TreeSet<String>> sent(String... statements) {
         Map<String, TreeSet<String>> byObject = new TreeMap<>();
         for (String statement : statements) {
@@ -43,7 +44,13 @@ class LegacyReadRegisterTest {
             TreeSet<String> columns = byObject.computeIfAbsent(m.group(2), k -> new TreeSet<>());
             Arrays.stream(m.group(1).split(",")).map(String::trim).forEach(columns::add);
             if (m.group(3) != null) {
-                columns.add(m.group(3));
+                Matcher filter = FILTER_COLUMN.matcher(m.group(3));
+                while (filter.find()) {
+                    columns.add(filter.group(1));
+                }
+            }
+            if (m.group(4) != null) {
+                Arrays.stream(m.group(4).split(",")).map(order -> order.trim().split("\\s+")[0]).forEach(columns::add);
             }
         }
         return byObject;
@@ -79,6 +86,12 @@ class LegacyReadRegisterTest {
         assertThat(mismatches(rows, todo.replace("process_title, ", ""), names)).hasSize(1);
         assertThat(mismatches(rows, todo, "SELECT id FROM " + SHORT_NAME_VIEW)).hasSize(1);
         assertThat(mismatches(rows, todo, names, "SELECT secret_value FROM dbo.other_table")).hasSize(1);
+        assertThat(mismatches(rows, todo.replace(":user", ":user AND status = 1"), names)).as("a second filter column nobody registered").hasSize(1);
+        for (String operator : List.of("> 1", "< 1", "IN (1)", "LIKE 'x'", "IS NULL", "<> 1")) {
+            assertThat(mismatches(rows, todo.replace(":user", ":user AND status " + operator), names)).as("a second filter column compared with " + operator).hasSize(1);
+        }
+        assertThat(mismatches(rows, todo.replace(":user", ":user AND status = 1 AND other_flag IS NULL"), names)).hasSize(1);
+        assertThat(mismatches(rows, todo.replace("ORDER BY created_at DESC", "ORDER BY sort_key DESC"), names)).as("an ordering column nobody registered").hasSize(1);
         List<Row> extra = new ArrayList<>(rows);
         extra.add(new Row(0, Map.<String, Object>of("database", rows.stream().filter(r -> !r.database().equals(ExternalReadRegister.A8)).findFirst().orElseThrow().database(), "object", SHORT_NAME_VIEW, "column", "extra_column",
                 "source", "dbo.other_table.extra_column", "category", "ORG_UNIT", "sensitivity", "INTERNAL", "purpose", "RUNTIME_SYNC")));

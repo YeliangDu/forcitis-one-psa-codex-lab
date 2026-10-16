@@ -11,5 +11,6 @@ public interface WecomClient {
     /** The response code that later allows the card to be replaced; empty when WeCom returned none. */
     Optional<String> sendCard(OutboundDelivery delivery);
 
-    void replaceWithHandledNote(OutboundDelivery delivery, String handledNote);
+    /** Replaces the sent card by the note, which is a delivery of its own and gives the replacement its task id. */
+    void replaceWithHandledNote(OutboundDelivery card, OutboundDelivery note);
 }

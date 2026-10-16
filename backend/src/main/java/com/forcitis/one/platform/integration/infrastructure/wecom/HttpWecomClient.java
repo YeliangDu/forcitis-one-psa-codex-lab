@@ -87,26 +87,26 @@ class HttpWecomClient implements WecomClient {
     @Override
     public Optional<String> sendCard(OutboundDelivery delivery) {
         Map<String, Object> body = WecomMessagePayload.textNotice(agentId, delivery.recipients(), delivery.title(),
-                delivery.description(), delivery.targetUrl(), delivery.deduplicationKey());
+                delivery.description(), delivery.targetUrl(), delivery.deliveryId().value());
         int[] duplicateTask = settings.delivery().duplicateTaskErrorCodes().stream().mapToInt(Integer::intValue).toArray();
         JsonNode answer = call(token -> post("/cgi-bin/message/send", token, body), duplicateTask);
         int errcode = answer.path("errcode").asInt(0);
         if (errcode != 0) {
-            log.info("WeCom card {} was sent before (errcode {}): treated as sent", delivery.deduplicationKey(), errcode);
+            log.info("WeCom card {} was sent before (errcode {}): treated as sent", delivery.subject(), errcode);
             return Optional.empty();
         }
         String invalid = answer.path("invaliduser").asString("");
         if (!invalid.isBlank()) {
-            log.warn("WeCom card {}: WeCom rejected {} recipient(s) as unknown", delivery.deduplicationKey(), invalid.split("\\|").length);
+            log.warn("WeCom card {}: WeCom rejected {} recipient(s) as unknown", delivery.subject(), invalid.split("\\|").length);
         }
         String responseCode = answer.path("response_code").asString("");
         return responseCode.isBlank() ? Optional.empty() : Optional.of(responseCode);
     }
 
     @Override
-    public void replaceWithHandledNote(OutboundDelivery delivery, String handledNote) {
-        Map<String, Object> body = WecomMessagePayload.handledReplacement(agentId, delivery.recipients(), delivery.responseCode(),
-                delivery.title(), handledNote, delivery.targetUrl(), delivery.deduplicationKey());
+    public void replaceWithHandledNote(OutboundDelivery card, OutboundDelivery note) {
+        Map<String, Object> body = WecomMessagePayload.handledReplacement(agentId, card.recipients(), card.responseCode(),
+                card.title(), note.description(), card.targetUrl(), note.deliveryId().value());
         call(token -> post("/cgi-bin/message/update_template_card", token, body));
     }
 

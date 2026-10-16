@@ -22,7 +22,7 @@ class DisabledWecomClient implements WecomClient {
     }
 
     @Override
-    public void replaceWithHandledNote(OutboundDelivery delivery, String handledNote) {
+    public void replaceWithHandledNote(OutboundDelivery card, OutboundDelivery note) {
         throw new ExternalSystemUnavailableException(MESSAGE);
     }
 }

@@ -80,7 +80,7 @@ class ErrorContractIT {
      * Endpoints that still answer 500 to an empty body, owned by the approval work stream (a null outcome is dereferenced before it is
      * checked). Remove the entry when it is fixed: the test fails for an entry that is no longer needed.
      */
-    private static final java.util.Set<String> KNOWN_SERVER_FAULTS = java.util.Set.of("POST /api/v1/platform/approval-tasks/{taskId}:decide");
+    private static final java.util.Set<String> KNOWN_SERVER_FAULTS = java.util.Set.of();
 
     private final java.util.Set<String> serverFaults = new java.util.TreeSet<>();
 

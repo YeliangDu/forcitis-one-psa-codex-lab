@@ -23,8 +23,8 @@ import org.junit.jupiter.api.Test;
 class TaskPolicyTest {
 
     static TaskView task(UserId assignee, Set<UserId> candidates) {
-        return new TaskView(new ApprovalTaskId("t1"), new ApprovalInstanceId("i1"), ProcessKey.COST_TIMESHEET_APPROVAL,
-                new DocumentReference(DocumentType.TIMESHEET, new DocumentId("doc-1")), new LegalEntityId(TestIds.uuid(1)), "approverReview",
+        return new TaskView(com.forcitis.one.TestApprovalIds.task("t1"), com.forcitis.one.TestApprovalIds.instance("i1"), ProcessKey.COST_TIMESHEET_APPROVAL,
+                new DocumentReference(DocumentType.TIMESHEET, com.forcitis.one.TestApprovalIds.document("doc-1")), new LegalEntityId(TestIds.uuid(1)), "approverReview",
                 "Approver review", TestAccounts.employee(1), Optional.ofNullable(assignee), candidates, Instant.EPOCH, true, Optional.empty(), false,
                 new ContentHash("hash"));
     }

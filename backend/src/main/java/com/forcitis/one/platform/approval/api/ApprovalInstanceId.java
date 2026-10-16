@@ -1,16 +1,14 @@
 package com.forcitis.one.platform.approval.api;
 
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.ValueObject;
-import java.util.Objects;
+import java.util.UUID;
 
 @ValueObject
-public record ApprovalInstanceId(String value) {
+public record ApprovalInstanceId(UUID value) {
 
     public ApprovalInstanceId {
-        Objects.requireNonNull(value, "value");
-        if (value.isBlank()) {
-            throw new IllegalArgumentException("ApprovalInstanceId must not be blank");
-        }
+        value = Uuids.requireKey(value, "ApprovalInstanceId");
     }
 
     @Override
