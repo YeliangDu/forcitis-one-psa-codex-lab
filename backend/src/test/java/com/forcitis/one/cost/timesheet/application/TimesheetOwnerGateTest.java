@@ -71,7 +71,7 @@ class TimesheetOwnerGateTest {
     }
 
     static Timesheet submittedBy(EmployeeId employee) {
-        return Timesheet.restore(ID, new DocumentNumber("TS-ABC-202610-0007"), employee, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(5), DAY,
+        return Timesheet.restore(ID, new DocumentNumber("TS-ABC-202610-0007"), null, employee, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(5), DAY,
                 Hours.of("8"), TestAccounts.employee(40), TimesheetStatus.SUBMITTED, 1, DAY, 3, 2);
     }
 
