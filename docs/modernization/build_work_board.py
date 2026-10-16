@@ -22,20 +22,26 @@ CARD_DIRS = ("phase1a/cards", "data/repair-cards", "work/cards")
 STATES = ("待派", "进行中", "阻塞", "完成", "并入", "暂缓")
 KEYS = ("卡号", "状态", "负责会话", "前置", "并入到", "暂缓原因")
 DONE = ("完成", "并入")
-FRONT = re.compile(r"\A---\n(.*?)\n---\n", re.S)
+FRONT = re.compile(r"\A---[ \t]*\n(?:(.*?)\n)?---[ \t]*(?:\n|\Z)", re.S)
+SOURCE = re.compile(r"intent|#\d+|ADR-\d{4}|§|SESSION_PLAYBOOK|用户|\.md")
 
 
 def parse_card(path, text):
     """返回卡 dict；没有键值头返回 None；键值头不合规抛 ValueError。"""
+    text = text.lstrip("\ufeff").replace("\r\n", "\n")
     m = FRONT.match(text)
     if not m:
+        if text.startswith("---"):
+            raise ValueError(f"{path}：以 --- 开头但键值头不完整（结尾的 --- 须独占一行）")
         return None
     fields = {}
-    for line in m.group(1).split("\n"):
+    for line in (m.group(1) or "").split("\n"):
         k, sep, v = line.partition(":")
         k, v = k.strip(), re.sub(r"\s{2,}#\s.*$", "", v.strip())
         if not sep or k not in KEYS or k in fields:
             raise ValueError(f"{path}：键值头每行须为「键: 值」，键取自 {'、'.join(KEYS)} 且不重复：{line[:30]}")
+        if v.startswith("<"):
+            raise ValueError(f"{path}：「{k}」还是模板占位：{v[:20]}")
         fields[k] = v
     for k in ("卡号", "状态"):
         if not fields.get(k):
@@ -57,7 +63,7 @@ def validate(cards, active):
             errors.append(f"{tag}：状态须为 {'、'.join(STATES)}：{c['state']}")
         if c["state"] in ("进行中", "阻塞") and not c["owner"]:
             errors.append(f"{tag}：状态 {c['state']} 须有负责会话")
-        if c["owner"] and c["owner"] not in active:
+        if c["owner"] and c["state"] in ("待派", "进行中", "阻塞") and c["owner"] not in active:
             errors.append(f"{tag}：负责会话 {c['owner']} 不是在用的会话（sessions/ 下没有画像）")
         for p in c["after"]:
             if p not in by_id:
@@ -66,6 +72,16 @@ def validate(cards, active):
             errors.append(f"{tag}：状态并入须有存在的并入到：{c['merged_into'] or '空'}")
         if c["state"] == "暂缓" and not c["reason"]:
             errors.append(f"{tag}：状态暂缓须写暂缓原因（含出处）")
+        elif c["state"] == "暂缓" and not SOURCE.search(c["reason"]):
+            errors.append(f"{tag}：暂缓原因须带出处（intent、#PR、ADR-NNNN、§ 或 .md 路径）：{c['reason'][:30]}")
+        if c["state"] == "并入" and c["merged_into"] == c["id"]:
+            errors.append(f"{tag}：不能并入自己")
+    for c in cards:   # 并入成环
+        seen, cur = {c["id"]}, c
+        while cur["state"] == "并入" and cur["merged_into"] in by_id and cur["merged_into"] not in seen:
+            seen.add(cur["merged_into"]); cur = by_id[cur["merged_into"]]
+        if cur["state"] == "并入" and cur["merged_into"] in seen and cur["merged_into"] != cur["id"]:
+            errors.append(f"{c['path']}（{c['id']}）：并入成环")
     for start in by_id:   # 前置成环
         stack, seen = [start], set()
         while stack:
@@ -133,8 +149,9 @@ def main(argv):
     except ValueError as e:
         sys.exit(f"工作卡键值头校验失败：{e}")
     errors = validate(cards, active_sessions(BASE))
-    for c in ready_unclaimed(cards):
-        print(f"可开工但没人认领：{c['id']} {c['title']}", file=sys.stderr)
+    ready = ready_unclaimed(cards)
+    if ready:
+        print(f"可开工但没人认领 {len(ready)} 张（见 WORK_BOARD.md）：{'、'.join(c['id'] for c in ready[:8])}" + ("…" if len(ready) > 8 else ""), file=sys.stderr)
     if errors:
         sys.exit("工作卡键值头校验失败：\n" + "\n".join(errors))
     if argv == ["--check"]:
@@ -168,14 +185,30 @@ def self_test():
     assert bad("不是在用的会话", mk("A", "进行中", "one-gone")) and bad("不是在用的会话", mk("A", "待派", "one-gone"))
     assert bad("前置 Z 不存在", mk("A", after="Z"))
     assert bad("并入", mk("A", "并入")) and bad("并入", mk("A", "并入", "", "", "Z"))
-    assert bad("暂缓原因", mk("A", "暂缓"))
+    assert bad("暂缓原因", mk("A", "暂缓")) and bad("须带出处", mk("A", "暂缓", "", "", "", "等一等"))
+    assert bad("不能并入自己", mk("A", "并入", "", "", "A")) and bad("并入成环", mk("A", "并入", "", "", "B"), mk("B", "并入", "", "", "A"))
+    assert ok(mk("A", "完成", "one-gone"))   # 历史卡的负责会话退役后不报错
+    for text in ("---\r\n卡号: A\r\n状态: 待派\r\n---\r\n# t\r\n", "\ufeff---\n卡号: A\n状态: 待派\n---", "---\n卡号: A\n状态: 待派\n---  \n# t\n"):
+        assert card(text)["id"] == "A", text
+    for text in ("---\n---\n", "---\n卡号: A\n状态: 待派\n", "---\n卡号: A\n状态: 待派\n暂缓原因: <原因（出处）> # x\n---\n"):
+        try:
+            card(text); raise AssertionError(text)
+        except ValueError:
+            pass
     assert bad("重复", mk("A"), mk("A"))
     assert bad("成环", mk("A", after="B"), mk("B", after="A")) and bad("成环", mk("A", after="A"))
     assert ok(mk("A", "完成"), mk("B", after="A"), mk("C", after="A, B"))
     ready = ready_unclaimed([mk("A", "完成"), mk("B", after="A"), mk("C", after="B"), mk("D", "待派", "one-a", "A"), mk("E")])
     assert sorted(c["id"] for c in ready) == ["B", "E"], ready
+    assert {c["id"] for c in ready_unclaimed([mk("A", "并入", "", "", "B"), mk("B"), mk("C", after="A")])} == {"B", "C"}
     board = render([mk("A", "完成"), mk("B", after="A"), mk("C", "暂缓", "", "", "", "原因|竖线")], ["old.md"])
     assert "可开工但没人认领（1）" in board and "| B |" in board and "原因／竖线" in board and "old.md" in board
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:
+        os.makedirs(os.path.join(d, "sessions"))
+        for n in ("one-x.md", "_retired.md", "note.txt"):
+            open(os.path.join(d, "sessions", n), "w").write("x")
+        assert active_sessions(d) == {"one-x"}
     cards, headerless = collect(BASE)   # 仓库现状不得报错
     assert not validate(cards, active_sessions(BASE))
     print("build_work_board self-test: ok")
