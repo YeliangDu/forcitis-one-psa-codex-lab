@@ -3,6 +3,8 @@
 # Usage: scripts/precheck.sh [base-ref] [--run-backend]
 #   base-ref       defaults to origin/main; the script never fetches, so fetch first if the base may be stale
 #   --run-backend  also run the suggested backend tests (Testcontainers starts containers: ask the user first, CLAUDE.md)
+# A check the change requires but this machine cannot run is a FAIL, not a SKIP (SESSION_PLAYBOOK §11): the term tests when the glossary changed, the frontend
+# when frontend/ or the glossary changed. scripts/hooks/precheck_before_pr.py runs this before `gh pr create` and blocks the PR unless it ends "ready".
 # Reviewers do not run this on a branch they do not trust: it executes the branch's own scripts. CI is the gate there.
 # Bash 3.2 compatible (macOS): no associative arrays, no mapfile.
 set -uo pipefail
@@ -45,6 +47,24 @@ show_tail() {
 
 # corepack picks pnpm from the nearest package.json at start-up, and only frontend/ names it; `pnpm -C frontend` would start at the root
 in_frontend() { (cd frontend && "$@"); }
+
+# Empty when the frontend can run here; otherwise the reason, which always says to ask the user (installing downloads packages, CLAUDE.md 9)
+frontend_missing() {
+  if ! command -v pnpm >/dev/null; then echo "pnpm 未安装：需先问用户安装"; return; fi
+  if [ ! -d frontend/node_modules ]; then echo "前端依赖未安装：需先问用户安装（pnpm install --frozen-lockfile 会下载包）"; return; fi
+  if ! node --version 2>/dev/null | grep -q '^v24\.'; then echo "Node $(node --version 2>/dev/null) found, CI uses Node 24：需先问用户安装"; fi
+}
+
+# Backend test classes that start no container: run by name; a class that did not run (typo, moved) fails instead of passing vacuously
+backend_classes() {
+  local classes=$1 class
+  for class in $(printf '%s' "$classes" | tr ',' ' '); do rm -f backend/target/surefire-reports/*"$class".* backend/target/surefire-reports/TEST-*."$class".xml; done
+  # surefire:test after test-compile, not the test phase: pom.xml binds the export-openapi execution (OpenApiExportTest: a PostgreSQL container, rewrites openapi.json) to process-test-classes, and -Dtest cannot switch it off
+  (cd backend && ./mvnw -q test-compile surefire:test -Dtest="$classes") || return 1
+  for class in $(printf '%s' "$classes" | tr ',' ' '); do
+    ls backend/target/surefire-reports/TEST-*."$class".xml >/dev/null 2>&1 || { echo "$class produced no report: it did not run"; return 1; }
+  done
+}
 
 run_step() {
   local name=$1; shift
@@ -145,6 +165,16 @@ else
   report SKIP "docs read by builds are registered" "no backend, frontend or script changed"
 fi
 
+if touches '(^(backend/src/main/resources/db/migration/|backend/architecture/(data-classification\.txt|module-dependencies\.txt)|scripts/ci/baseline_ddl_scan)|/togaf/transitions\.yaml$)'; then
+  run_step "baseline DDL scan (self-test)" py scripts/ci/baseline_ddl_scan.py --self-test
+  ddl_scan=$(py scripts/ci/baseline_ddl_scan.py 2>&1) && ddl_counts=$(printf '%s\n' "$ddl_scan" | grep '^== [1-8]' | sed -E 's/^== ([1-8]) [^:]*: ([0-9]+).*/\1=\2/' | paste -sd' ' -)
+  if [ -n "${ddl_counts:-}" ]; then
+    report PASS "baseline DDL scan (report only)" "${ddl_counts} (class=count; 8 must stay 0; details: python3 scripts/ci/baseline_ddl_scan.py)"
+  else
+    report FAIL "baseline DDL scan (report only)" "the scan itself failed:"
+    printf '%s\n' "$ddl_scan" | tail -n 8 | sed 's/^/      | /'
+  fi
+fi
 if touches '^scripts/ci/(assertion_drift|ci_git)\.py$'; then
   run_step "assertion drift (self-test)" py scripts/ci/assertion_drift.py --self-test
 fi
@@ -175,6 +205,40 @@ if [ -s "$work/shell.present" ]; then
     while IFS= read -r file; do bash -n "$file" || return 1; done <"$work/shell.present"
   }
   run_step "shell syntax (bash -n)" syntax_all
+fi
+
+if touches '^(docs/modernization/glossary/(terms|bcs)\.yaml|backend/glossary/)'; then
+  missing=$(frontend_missing)
+  if [ -n "$missing" ]; then
+    report FAIL "glossary: frontend check:copy, test:scripts" "$missing"
+  else
+    run_step "glossary: frontend check:copy" in_frontend pnpm run check:copy
+    run_step "glossary: frontend test:scripts" in_frontend pnpm run test:scripts
+  fi
+  run_step "glossary: backend term tests" backend_classes GlossaryTest,ErrorCodeGlossaryTest,NamingSurfaceTest,DocumentTypeCodeTest
+else
+  report SKIP "glossary: check:copy, test:scripts, term tests" "terms.yaml, bcs.yaml and backend/glossary unchanged"
+fi
+
+guard_pattern='^backend/src/test/java/.*(Guard|ArchitectureRules|Modularity|ModuleDependency|NamingSurface|Glossary|DdlNaming|LegacyShape)[A-Za-z]*Test\.java$'
+guard_classes="ArchitectureRulesTest,ModularityTest,ModuleDependencyTest,NamingSurfaceTest,GlossaryTest,ErrorCodeGlossaryTest,DdlNamingTest,LegacyShapeTest,TimeSourceGuardTest,TestIsolationGuardTest,TestContainerGuardTest"
+if touches '^backend/architecture/'; then
+  guard_run="$guard_classes"
+else
+  # present files only (a deleted guard has nothing to run) and no container-starting classes (*IntegrationTest, *IT): CI runs those
+  guard_run=$(grep -E "$guard_pattern" "$work/changed" | grep -vE '(IntegrationTest|IT)\.java$' | while IFS= read -r file; do [ -f "$file" ] && printf '%s\n' "$file"; done \
+    | sed 's#.*/##; s#\.java$##' | sort -u | paste -sd, -)
+fi
+if [ -n "$guard_run" ]; then
+  run_step "guards: backend guard tests" backend_classes "$guard_run"
+else
+  report SKIP "guards: backend guard tests" "no guard test or architecture list changed"
+fi
+if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/precheck_before_pr\.py)$'; then
+  for guard in migrations_immutable acceptance_guard acceptance_reports db_scripts_aligned relevant_change assertion_drift; do
+    run_step "guards: $guard (self-test)" py "scripts/ci/$guard.py" --self-test
+  done
+  run_step "guards: precheck_before_pr (self-test)" py scripts/hooks/precheck_before_pr.py --self-test
 fi
 
 if [ "$builds_relevant" = true ]; then
@@ -238,24 +302,23 @@ if $builds_relevant; then
       echo "      run the full suite: scripts/ci/backend_verify.sh (Testcontainers: ask the user before starting containers)"
     fi
   elif $run_backend; then
-    run_step "backend tests (affected + guards)" sh -c 'cd backend && ./mvnw -q test -Dtest="$1" -Dsurefire.failIfNoSpecifiedTests=false' precheck "$tests"
+    run_step "backend tests (affected + guards)" sh -c 'cd backend && ./mvnw -q test-compile surefire:test -Dtest="$1" -Dsurefire.failIfNoSpecifiedTests=false' precheck "$tests"
   else
     report SKIP "backend tests" "not run by default; $scope"
-    echo "      run: (cd backend && ./mvnw -q test -Dtest='$tests' -Dsurefire.failIfNoSpecifiedTests=false)"
+    echo "      run: (cd backend && ./mvnw -q test-compile surefire:test -Dtest='$tests' -Dsurefire.failIfNoSpecifiedTests=false)"
     echo "      before delivery run everything: scripts/ci/backend_verify.sh (Testcontainers: ask the user before starting containers)"
   fi
   if touches '^backend/src/main/java/.*/(web|api)/' && ! touches '^frontend/packages/api/openapi\.json$'; then
     echo "      note: web or api code changed but openapi.json did not; the export test rewrites it — commit the result (CS-1.10)"
   fi
 
-  if ! command -v pnpm >/dev/null; then
-    report SKIP "frontend verify" "pnpm not installed"
-  elif [ ! -d frontend/node_modules ]; then
-    report SKIP "frontend verify" "dependencies not installed (pnpm install --frozen-lockfile downloads packages: ask first)"
-  elif ! node --version 2>/dev/null | grep -q '^v24\.'; then
-    report SKIP "frontend verify" "Node $(node --version 2>/dev/null) found, CI uses Node 24"
-  else
+  missing=$(frontend_missing)
+  if [ -z "$missing" ]; then
     run_step "frontend verify (pnpm verify)" in_frontend pnpm verify
+  elif touches '^frontend/'; then
+    report FAIL "frontend verify" "frontend changed: $missing"
+  else
+    report SKIP "frontend verify" "${missing}（本次未改 frontend/，CI 仍会跑）"
   fi
 else
   report SKIP "backend tests" "relevant_change.py: nothing the builds read changed"

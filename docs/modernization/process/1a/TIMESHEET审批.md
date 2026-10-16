@@ -178,7 +178,7 @@ flowchart TD
 | T8 | 合并待办 = 新任务 + 老库视图的老待办（行任务按 RULE-261 合并），不缓存 | `DOC/REIMAGINED_ARCHITECTURE.md:3.6 节`；RULE-261 | 已实现：`BE/platform/approval/application/ListInbox.java:28-44`；`domain/InboxMerger.java` |
 | T9 | 工时单状态归各业务 BC；`cost.timesheet` 应监听 `ApprovalCompleted` 改工时单状态并发 `TimesheetApproved` | `DOC/AI_NATIVE_SPEC.md:29`（C1a-12「类型化结果事件」）；ArchUnit 事件命名例 `BET/ArchitectureRulesTest.java:55`；「1a 不接入业务单据」`DOC/REIMAGINED_ARCHITECTURE.md:136` | 已实现：`cost.timesheet` 经 `@ApplicationModuleListener` 监听 `ApprovalCompleted`（`BE/cost/timesheet/application/ApplyApprovalResult.java:41`），按结果调用 `approve` / `reject` / `returnForRevision` / `cancelSubmission` 并发布 `TimesheetApproved` 等事件（`domain/Timesheet.java:149-176`）；已消费事件按 eventId 去重（`ConsumedEvents`），非本轮结果忽略（`isAwaitingResultOfRound`）；工时单有表 `cost_timesheet.timesheets` 与仓储（`BE/cost/timesheet/domain/TimesheetRepository.java`，`BER/db/migration/cost_timesheet/V20261014140000__cost_timesheet_baseline.sql:4`）。`TimesheetStatus` 为 DRAFT、SUBMITTED、RETURNED、APPROVED、REJECTED（`api/TimesheetStatus.java:4-9`）；撤销回到 DRAFT，不记驳回（RULE-279）；`Timesheet` 为 1a 骨架，只有总工时、无工时行 |
 | T10 | 回放工具（C1a-13）：老审批人 ∈ 新候选集，节点集合须相等，三路不比较顺序；差异分类 `MATCH` / `REVIEWED_*`（按类别由用户接受）/ `DEFECT`（逐条修，命令行状态码 1） | 用户 Q-4「四项都同意 (Recommended)」；`DOC/phase1a/TIMESHEET_REPLAY.md:5-47` | 工具与合成夹具已实现：`BE/platform/approval/infrastructure/replay/TimesheetApproverReplay.java`、`TimesheetBranches.java:11-14`；`BET/.../TimesheetApproverReplayIT.java`、`BET/resources/replay/synthetic-timesheet-export.json`；真实导出尚未做（`TIMESHEET_REPLAY.md:195-201` 执行步骤） |
-| T11 | 审批时限 T+1（见下 (d)） | 用户决定 `DOC/intent/2026-10-14-116…119`；`DOC/INTENT.md:152-155` | 已实现（提醒、升级、逾期标红；审批时效统计未核实）：`BE/platform/approval/application/DeadlinePlanner.java:31`（按工作日历算截止 / 提醒 / 升级时刻）、`TaskRegistrar.java:46`（任务创建时计划）、`TaskDeadline.java:57-96`（到点提醒、升级）、`infrastructure/scheduling/ApprovalDeadlineJob.java:20-21`（定时作业）、`InboxItem.java:12`（`dueAt` / `overdue` 待办标红）、`events/ApprovalTaskOverdue.java`、`events/ApprovalTaskEscalated.java`；日历取自 `organization.attendance` 的 `WorkCalendar` |
+| T11 | 审批时限 T+1（见下 (d)） | 用户决定 `DOC/intent/2026-10-14-116…119`；`DOC/INTENT.md:152-155` | 已实现（提醒、升级、逾期标红；审批时效统计未核实）：`BE/platform/approval/application/DeadlinePlanner.java:31`（按工作日历算截止 / 提醒 / 升级时刻）、`TaskRegistrar.java:46`（任务创建时计划）、`TaskDeadline.java:57-96`（到点提醒、升级）、`infrastructure/scheduling/ApprovalDeadlineJob.java:20-21`（定时作业）、`InboxItem.java:12`（`dueAt` / `overdue` 待办标红）、`events/ApprovalTaskBecameOverdue.java`、`events/ApprovalTaskEscalated.java`；日历取自 `organization.attendance` 的 `WorkCalendar` |
 
 ### 2.3 (a)–(d)
 
@@ -195,7 +195,7 @@ flowchart TD
 
 **(c) 审批与工时单的状态归属与协作事件**
 - 归属：审批请求状态归 `platform.approval`（`approval_requests.status` ∈ RUNNING / RETURNED / APPROVED / REJECTED / CANCELLED，`V20261014132000…sql:12`）；工时单状态归 `cost.timesheet`（`TimesheetStatus` DRAFT / SUBMITTED / RETURNED / APPROVED / REJECTED，撤销回到 DRAFT，RULE-279）。老系统反过来：状态在 fst 头表 `approve_status`，bpm 通过 MQ 通知 fst 回写，且 bpm 也有自己的实例结果。
-- 协作事件（新）：`cost.timesheet` → approval：`Timesheet` 提交时记录 `DocumentSubmittedForApproval`，`platform.approval` 订阅后发起一轮审批（`StartApprovalOnSubmission.java:54`）；approval → 业务：`ApprovalCompleted(instanceId, processKey, businessKey, round, outcome, reason)`、`TaskResulted`；approval → 通知：`TaskAssigned`、`TaskClaimed`；`cost.timesheet` 自发：`TimesheetSubmitted`、`TimesheetApproved`、`TimesheetRejected`、`TimesheetReturned`、`TimesheetCancelled`；approval → 业务：`ApprovalCompleted` 由 `ApplyApprovalResult` 消费。
+- 协作事件（新）：`cost.timesheet` → approval：`Timesheet` 提交时记录 `DocumentSubmittedForApproval`，`platform.approval` 订阅后发起一轮审批（`StartApprovalOnSubmission.java:54`）；approval → 业务：`ApprovalCompleted(instanceId, processKey, businessKey, round, outcome, reason)`、`TaskHandled`；approval → 通知：`TaskAssigned`、`TaskClaimed`；`cost.timesheet` 自发：`TimesheetSubmitted`、`TimesheetApproved`、`TimesheetRejected`、`TimesheetReturned`、`TimesheetCancelled`；approval → 业务：`ApprovalCompleted` 由 `ApplyApprovalResult` 消费。
 - 业务键：`"timesheet:" + timesheetId`（`SubmitTimesheet.java:46`）；幂等键 `(processKey, businessKey)` 与 `(processKey, businessKey, round)`（`V20261014132000…sql:17, 43`）。
 - 映射：`RETURNED` → 工时单 RETURNED（可修改后重提），`CANCELLED` → DRAFT，`REJECTED` → REJECTED；`TimesheetSubmitted` 暂无消费方（分析层将订阅，见 `events/timesheet.yaml`）。
 
@@ -206,7 +206,7 @@ flowchart TD
 - 提醒触发点：超过截止后**次日早上**，向审批人发企业微信卡片，并在合并待办中标红（`DOC/intent/2026-10-14-116, 118`）。1a 已实现：定时作业 `ApprovalDeadlineJob.java:20-21` 调 `EnforceDeadlines`，`TaskDeadline.java:57-80` 标记逾期并提醒，合并待办带 `dueAt` / `overdue`（`InboxItem.java:12`）。
 - 升级触发点：提醒之后**再过 1 个工作日**，升级给直属上级；取不到给流程管理员并告警（同上）。`AssigneeResolver` 的 `INITIATOR_SUPERVISOR` 取的是**发起人**的上级（`:122-137`），升级需要的「审批人的直属上级」只有 `OrgDirectory.findSupervisor` 可用（`:48`、`:127`），升级用例为 `TaskDeadline.escalate`（`TaskDeadline.java:85-106`），取不到人转流程管理员并告警。
 - 不自动通过（`DOC/intent/2026-10-14-116`）：1a 代码没有任何超时自动完成路径，一致。
-- 统计触发点：计入审批时效统计；耗时按工作日小时计（非工作日不计）；按审批人、部门、月份统计当期办结率与超时件数（`DOC/intent/2026-10-14-118`）。逾期与升级有事件 `ApprovalTaskOverdue`、`ApprovalTaskEscalated`；按审批人、部门、月份的统计载体未核实。
+- 统计触发点：计入审批时效统计；耗时按工作日小时计（非工作日不计）；按审批人、部门、月份统计当期办结率与超时件数（`DOC/intent/2026-10-14-118`）。逾期与升级有事件 `ApprovalTaskBecameOverdue`、`ApprovalTaskEscalated`；按审批人、部门、月份的统计载体未核实。
 - 范围外：填报截止（COST-R02）留到 Phase 2（`DOC/intent/2026-10-14-119`）。
 
 ---
@@ -332,10 +332,10 @@ stateDiagram-v2
 | `TimesheetSubmitted` | `Timesheet.submit` | `document`、`number`、`employee`、`projectManager`、`submittedHours`、`submittedOn`、`round`（`events/TimesheetSubmitted.java:16`） | 无消费方（分析层将订阅） | 发布已实现 `BE/cost/timesheet/domain/Timesheet.java:140` |
 | `TaskAssigned` | Flowable 任务创建且取到候选人（跳过的节点不发） | `taskId`、`instanceId`、`processKey`、`businessKey`、`nodeKey`、`nodeName`、`initiator`、`candidates`（排序） | `TaskNotifier.onTaskAssigned`：给每位候选人一张企业微信卡片（无按钮，去重键 `approval-task:{taskId}`）；候选人无企业微信 ID 则告警跳过 | 已实现 `BE/platform/approval/infrastructure/flowable/TaskAssignmentListener.java:94-96`；`infrastructure/notification/TaskNotifier.java:39-58`；`events/TaskAssigned.java:10-11` |
 | `TaskClaimed` | 候选人认领 / 办理时自动认领 | `taskId`、`claimedBy` | `TaskNotifier.onTaskClaimed`：其他卡片置「已由 X 处理」 | 已实现 `ApprovalLifecycle.java:44`；`TaskNotifier.java:60-64` |
-| `TaskResulted` | 通过 / 驳回 / 退回办理（自动完成不发；`advisory` 恒 false） | `taskId`、`instanceId`、`processKey`、`businessKey`、`nodeKey`、`assignee`、`outcome`、`advisory`、`reason` | 无业务方消费（工时行级回写在 Phase 2） | 发布已实现 `ApprovalLifecycle.java:47-50`；`events/TaskResulted.java:10-12` |
+| `TaskHandled` | 通过 / 驳回 / 退回办理（自动完成不发；`advisory` 恒 false） | `taskId`、`instanceId`、`processKey`、`businessKey`、`nodeKey`、`assignee`、`outcome`、`advisory`、`reason` | 无业务方消费（工时行级回写在 Phase 2） | 发布已实现 `ApprovalLifecycle.java:47-50`；`events/TaskHandled.java:10-12` |
 | `ApprovalCompleted` | 全部节点完成（APPROVED）；退回（RETURNED）；顶层驳回（REJECTED）；撤销（CANCELLED） | `instanceId`、`processKey`、`businessKey`、`round`、`outcome`、`reason`；至少一次，消费方按 `(processKey, businessKey, round)` 幂等 | 工时单：`ApplyApprovalResult` 更新状态 | 发布已实现 `ApprovalLifecycle.java:76-80`；`events/ApprovalCompleted.java:7-9` |
 | `TimesheetApproved` | 工时单 SUBMITTED → APPROVED | `document`、`employee`、`submittedHours`、`round` | 应由 Phase 2 的成本归集 / 过账管道消费 | 已实现 `BE/cost/timesheet/domain/Timesheet.java:149-153` |
-| `ApprovalTaskOverdue` / `ApprovalTaskEscalated` | 任务到点逾期 / 升级（见 2.3 (d)） | 见 `events/approval.yaml` | 企业微信卡片、合并待办标红 | 已实现 `BE/platform/approval/events/ApprovalTaskOverdue.java`、`ApprovalTaskEscalated.java` |
+| `ApprovalTaskBecameOverdue` / `ApprovalTaskEscalated` | 任务到点逾期 / 升级（见 2.3 (d)） | 见 `events/approval.yaml` | 企业微信卡片、合并待办标红 | 已实现 `BE/platform/approval/events/ApprovalTaskBecameOverdue.java`、`ApprovalTaskEscalated.java` |
 
 ### 4.2 老系统（对照）
 
