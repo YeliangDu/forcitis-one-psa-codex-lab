@@ -145,7 +145,7 @@ class TimesheetOwnerGateTest {
         when(directory.findEmployee(TestAccounts.employee(40))).thenReturn(Optional.of(manager));
         LegalEntityId legalEntity = new LegalEntityId(TestIds.uuid(1));
         when(legalEntities.on(eq(EMPLOYEE), any())).thenReturn(legalEntity);
-        when(numbers.next(eq(DocumentType.TIMESHEET), eq(legalEntity), any())).thenReturn(new DocumentNumber("TS-ABC-202610-0007"));
+        when(numbers.next(eq(DocumentType.TIMESHEET), eq(legalEntity), any())).thenReturn(new com.forcitis.one.platform.numbering.api.IssuedNumber(new DocumentNumber("TS-ABC-202610-0007"), new com.forcitis.one.platform.numbering.api.NumberingCounterId(TestIds.uuid(11))));
 
         submit.execute(command);
 

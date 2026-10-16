@@ -83,7 +83,7 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("platform.identity.operations.emergency-admin.registered")).singleElement()
                 .satisfies(entry -> {
                     assertThat(entry.detail()).contains("operator=alice", "witness=bob", "loginName=breakglass").doesNotContain(password).doesNotContain(secret);
-                    assertThat(entry.subjectKey()).isEqualTo("emergency-admin:" + accountOf(7));
+                    assertThat(entry.subject()).isEqualTo(com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.EMERGENCY_ADMIN, accountOf(7)));
                 });
         assertThat(logs.getAll()).as("a secret never reaches a log line").doesNotContain(password).doesNotContain(secret);
 

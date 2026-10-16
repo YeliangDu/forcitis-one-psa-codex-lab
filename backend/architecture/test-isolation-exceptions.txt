@@ -4,3 +4,4 @@
 acceptance/platform/approval/ApprovalOwnIdColumnsIT.java#platform_approval  # R-1b P4 acceptance: reads the approval and integration tables from the catalogue to prove the final column shapes; no module api shows column types
 acceptance/platform/approval/ApprovalOwnIdColumnsIT.java#platform_integration  # R-1b P4 acceptance: same, for outbound_deliveries
 acceptance/platform/integration/OutboundDeliveryKeysIT.java#platform_integration  # R-1b P4 acceptance: the delivery rows and their key columns are the thing under test; the gateway api has no read side
+acceptance/platform/audit/AuditSubjectColumnsIT.java#platform_audit  # R-1b P5 acceptance: reads the audit_entries and audit_archive_batches catalogue and inserts rolled-back rows to prove the subject columns and their CHECKs; no module api shows column types

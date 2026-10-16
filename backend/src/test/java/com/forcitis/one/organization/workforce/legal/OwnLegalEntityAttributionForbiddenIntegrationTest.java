@@ -110,7 +110,7 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
 
         assertThat(count("legal_entity_attributions")).isZero();
         verify(audit).recordIndependently(argThat((AuditEntry entry) -> entry.action().equals("organization.workforce.legal-entity-attribution.refused")
-                && entry.actorId().equals(TestAccounts.account(1)) && entry.subjectKey().equals("legal-entity-attribution:employee:" + TestAccounts.employee(1).value())));
+                && entry.actorId().equals(TestAccounts.account(1)) && entry.subject().equals(com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.EMPLOYEE, TestAccounts.employee(1).value()))));
     }
 
     @Test

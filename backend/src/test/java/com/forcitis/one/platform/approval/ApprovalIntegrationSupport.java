@@ -140,10 +140,13 @@ public abstract class ApprovalIntegrationSupport {
     @Autowired
     protected com.forcitis.one.kernel.event.EventEnvelopes envelopes;
 
-    protected com.forcitis.one.kernel.event.EventEnvelope envelope(String eventType, String aggregateType, String aggregateId, long aggregateVersion) {
+    protected UUID requestIdOf(String documentKey) {
+        return jdbc.queryForObject("select id from platform_approval.approval_requests where document_id = cast(? as uuid)", UUID.class, documentKey);
+    }
+
+    protected com.forcitis.one.kernel.event.EventEnvelope envelope(String eventType, String aggregateType, UUID aggregateId, long aggregateVersion) {
         return envelopes.wrap(new com.forcitis.one.kernel.event.EventDraft(eventType, 1, aggregateType, aggregateId, aggregateVersion, LEGAL_ENTITY,
-                java.time.LocalDate.now(), new com.forcitis.one.kernel.event.EventSource(com.forcitis.one.kernel.event.SourceSystem.ONE, null),
-                java.util.List.of()));
+                java.time.LocalDate.now(), java.util.List.of()));
     }
 
     @Autowired
@@ -200,7 +203,8 @@ public abstract class ApprovalIntegrationSupport {
         events = new Events(recorded);
         organisation.person(ADMINISTRATOR, 1, null).role("process_administrator", ADMINISTRATOR);
         org.mockito.Mockito.when(numbers.next(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
-                .thenAnswer(call -> new DocumentNumber("TS-T-" + NUMBERS.incrementAndGet()));
+                .thenAnswer(call -> new com.forcitis.one.platform.numbering.api.IssuedNumber(new DocumentNumber("TS-T-" + NUMBERS.incrementAndGet()),
+                        new com.forcitis.one.platform.numbering.api.NumberingCounterId(UUID.randomUUID())));
     }
 
     /** Unique ids so tests sharing database and context cannot see each other's data. */

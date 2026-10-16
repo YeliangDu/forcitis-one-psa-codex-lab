@@ -43,7 +43,8 @@ class OrgDataAdminRoleIntegrationTest extends IdentityIntegrationTest {
         assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.access.denied")).hasSize(1)
                 .singleElement().satisfies(entry -> {
                     assertThat(entry.actorId().value()).isEqualTo(accountOf(1771));
-                    assertThat(entry.subjectKey()).startsWith("operation:RoleController.list");
+                    assertThat(entry.subject()).isEqualTo(com.forcitis.one.platform.audit.api.AuditSubject.without(com.forcitis.one.platform.audit.api.AuditSubjectKind.OPERATION));
+                    assertThat(entry.detail()).startsWith("access refused: RoleController.list");
                 });
     }
 
@@ -66,7 +67,8 @@ class OrgDataAdminRoleIntegrationTest extends IdentityIntegrationTest {
                 .cookie(new Cookie("SESSION", administrator))).andReturn();
 
         assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("platform.identity.privileged.request"))
-                .extracting(AuditEntry::subjectKey)
-                .containsExactly("request:GET /api/v1/platform/roles", "request:POST /api/v1/platform/user-accounts/" + accountOrNone(404) + ":disable");
+                .extracting(AuditEntry::subject, AuditEntry::detail)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(com.forcitis.one.platform.audit.api.AuditSubject.without(com.forcitis.one.platform.audit.api.AuditSubjectKind.REQUEST), "GET /api/v1/platform/roles"),
+                        org.assertj.core.groups.Tuple.tuple(com.forcitis.one.platform.audit.api.AuditSubject.without(com.forcitis.one.platform.audit.api.AuditSubjectKind.REQUEST), "POST /api/v1/platform/user-accounts/" + accountOrNone(404) + ":disable"));
     }
 }

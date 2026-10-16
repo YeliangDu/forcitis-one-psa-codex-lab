@@ -2,6 +2,8 @@ package com.forcitis.one.platform.audit.infrastructure.persistence;
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.platform.audit.domain.AuditEntryId;
 import com.forcitis.one.platform.audit.domain.AuditEntryQueries;
 import com.forcitis.one.platform.audit.domain.AuditPage;
@@ -22,7 +24,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 class JdbcAuditEntryQueries implements AuditEntryQueries {
 
-    private static final String COLUMNS = "id, created_at, action, actor_id, on_behalf_of_id, subject_key, detail, source_address, outcome_kind, login_method_kind, change_reason, before_text, after_text, correlation_id";
+    private static final String COLUMNS = "id, created_at, action, actor_id, on_behalf_of_id, subject_kind, subject_id, detail, source_address, outcome_kind, login_method_kind, change_reason, before_text, after_text, correlation_id";
 
     private final JdbcClient jdbc;
 
@@ -72,11 +74,11 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
         return jdbc.sql("""
                         select created_at, action, outcome_kind, source_address, login_method_kind
                           from platform_audit.audit_entries
-                         where subject_key = :subject and action in (:actions)
+                         where subject_kind = :subjectKind and subject_id = :subject and action in (:actions)
                          order by created_at desc, id desc
                          limit :limit
                         """)
-                .param("subject", "user-account:" + subject.value()).param("actions", OwnLoginRecords.ACTIONS).param("limit", limit)
+                .param("subjectKind", AuditSubjectKind.USER_ACCOUNT.name()).param("subject", subject.value()).param("actions", OwnLoginRecords.ACTIONS).param("limit", limit)
                 .query((rs, n) -> new OwnLoginRecord(rs.getTimestamp("created_at").toInstant(), rs.getString("action"), outcome(rs),
                         rs.getString("source_address"), rs.getString("login_method_kind")))
                 .list();
@@ -108,9 +110,14 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
             conditions.add("outcome_kind = :outcome");
             params.put("outcome", query.outcome().name());
         }
-        if (query.subjectKey() != null) {
-            conditions.add("subject_key = :subject");
-            params.put("subject", query.subjectKey());
+        AuditSubjectKind kind = query.subject() != null ? query.subject().kind() : query.subjectKind();
+        if (kind != null) {
+            conditions.add("subject_kind = :subjectKind");
+            params.put("subjectKind", kind.name());
+        }
+        if (query.subject() != null && query.subject().id() != null) {
+            conditions.add("subject_id = :subjectId");
+            params.put("subjectId", query.subject().id());
         }
         if (query.from() != null) {
             conditions.add("created_at >= :from");
@@ -125,7 +132,8 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
 
     private static AuditRecord row(ResultSet rs) throws SQLException {
         return new AuditRecord(new AuditEntryId(rs.getObject("id", java.util.UUID.class)), rs.getTimestamp("created_at").toInstant(), rs.getString("action"),
-                userId(rs, "actor_id"), userId(rs, "on_behalf_of_id"), rs.getString("subject_key"), rs.getString("detail"),
+                userId(rs, "actor_id"), userId(rs, "on_behalf_of_id"),
+                new AuditSubject(AuditSubjectKind.valueOf(rs.getString("subject_kind")), rs.getObject("subject_id", java.util.UUID.class)), rs.getString("detail"),
                 rs.getString("source_address"), outcome(rs), rs.getString("login_method_kind"), rs.getString("change_reason"),
                 rs.getString("before_text"), rs.getString("after_text"), rs.getObject("correlation_id", java.util.UUID.class));
     }

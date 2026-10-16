@@ -68,7 +68,7 @@ class LegalEntityStateMachineTest {
         List<DomainEvent> events = saved.drainEvents(TestEnvelopes.INSTANCE);
         assertThat(events).singleElement().isInstanceOfSatisfying(LegalEntityRegistered.class, e -> {
             assertThat(e.code()).isEqualTo(new LegalEntityCode("FST"));
-            assertThat(e.envelope().aggregateId()).isEqualTo(TestIds.uuid(4).toString());
+            assertThat(e.envelope().aggregateId()).isEqualTo(TestIds.uuid(4));
             assertThat(e.envelope().legalEntityId()).isEqualTo(ID);
             assertThat(e.envelope().aggregateVersion()).isEqualTo(1);
         });

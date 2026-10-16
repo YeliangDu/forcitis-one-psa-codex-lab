@@ -6,6 +6,8 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditError;
 import com.forcitis.one.platform.audit.api.AuditLog;
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.platform.audit.domain.AuditEntryQueries;
 import com.forcitis.one.platform.audit.domain.AuditQuery;
 import com.forcitis.one.platform.audit.domain.AuditRecord;
@@ -35,7 +37,7 @@ public class ExportAuditEntries {
         try {
             filters = new AuditQuery(search.actorId() == null ? null : new UserId(search.actorId()),
                     search.onBehalfOfId() == null ? null : new UserId(search.onBehalfOfId()), AuditSearch.blankToNull(search.action()),
-                    AuditSearch.blankToNull(search.actionPrefix()), AuditSearch.blankToNull(search.subjectKey()),
+                    AuditSearch.blankToNull(search.actionPrefix()), search.subjectKind(), search.subject(),
                     AuditSearch.blankToNull(search.sourceAddress()), search.outcome(), search.from(), search.to(), null, AuditQuery.MAX_LIMIT);
         } catch (IllegalArgumentException invalid) {
             throw new DomainException(AuditError.PLATFORM_AUDIT_QUERY_INVALID, ErrorKind.INVALID, invalid.getMessage());
@@ -46,7 +48,7 @@ public class ExportAuditEntries {
                     matching + " entries match; narrow the filter to at most " + maxRows);
         }
         List<AuditRecord> rows = entries.findAll(filters, maxRows);
-        audit.record(new AuditEntry("platform.audit.audit-entry.exported", actor, null, "audit-entries:export",
+        audit.record(new AuditEntry("platform.audit.audit-entry.exported", actor, null, AuditSubject.without(AuditSubjectKind.OPERATION),
                 "rows=" + rows.size() + " filter=" + search.describe()));
         return new AuditExport(AuditCsv.write(rows).getBytes(StandardCharsets.UTF_8), rows.size());
     }

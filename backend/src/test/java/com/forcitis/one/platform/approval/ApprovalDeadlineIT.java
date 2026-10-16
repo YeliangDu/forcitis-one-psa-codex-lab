@@ -251,7 +251,7 @@ class ApprovalDeadlineIT extends ApprovalIntegrationSupport {
         assertThat(overdue.getFirst().holders()).containsExactly(TestAccounts.account(s.manager()));
         assertThat(overdue.getFirst().dueAt()).isEqualTo(dueOf(s));
         assertThat(overdue.getFirst().envelope().aggregateType()).isEqualTo("ApprovalRequest");
-        assertThat(overdue.getFirst().envelope().aggregateId()).isEqualTo("TIMESHEET:" + s.key());
+        assertThat(overdue.getFirst().envelope().aggregateId()).isEqualTo(requestIdOf(s.key()));
         assertThat(overdue.getFirst().envelope().aggregateVersion()).as("round started = 1, assigned = 2, overdue = 3").isEqualTo(3);
         assertThat(overdue.getFirst().envelope().businessDate()).isEqualTo(LocalDate.of(2026, 10, 20));
         assertThat(overdue.getFirst().envelope().actorType().name()).as("a job acts as the system").isEqualTo("SYSTEM");

@@ -134,7 +134,7 @@ class WorkCalendarIT {
         assertThat(workCalendar.endOfWorkdayAfter(LocalDate.parse("2026-10-09"), 2, fst)).isEqualTo(Instant.parse("2026-10-13T16:00:00Z"));
         assertThat(events.stream(WorkCalendarYearMaintained.class)).singleElement().satisfies(e -> {
             assertThat(e.envelope().aggregateId()).isEqualTo("default:2026");
-            assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value().toString());
+            assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value());
             assertThat(e.envelope().correlationId()).isNotNull();
         });
     }

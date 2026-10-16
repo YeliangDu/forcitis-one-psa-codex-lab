@@ -245,7 +245,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
                 .andExpect(jsonPath("$.syncRun.status").value("SUCCEEDED"));
         assertThat(events.stream(SyncRunReleased.class)).singleElement().satisfies(e -> {
             assertThat(e.envelope().actorType()).isEqualTo(ActorType.USER);
-            assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value().toString());
+            assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value());
         });
         assertThat(jdbc.sql("select count(*) from organization_workforce.employees where employment_status = 'SEPARATED'").query(Integer.class).single()).isEqualTo(4);
 

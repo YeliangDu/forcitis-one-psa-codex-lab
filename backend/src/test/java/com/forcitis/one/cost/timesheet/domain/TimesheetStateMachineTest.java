@@ -54,7 +54,7 @@ class TimesheetStateMachineTest {
     }
 
     static Timesheet drafted() {
-        return Timesheet.draft(new TimesheetId(TestIds.uuid(7)), new DocumentNumber("TS-ABC-202610-0007"), new AggregateReference("NumberingRule", "TIMESHEET"),
+        return Timesheet.draft(new TimesheetId(TestIds.uuid(7)), new DocumentNumber("TS-ABC-202610-0007"), new AggregateReference("NumberingCounter", TestIds.uuid(11)),
                 OWNER, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(5), WORK_DATE, Hours.of("8"), TestAccounts.employee(40), TODAY);
     }
 
@@ -86,11 +86,11 @@ class TimesheetStateMachineTest {
     @Test
     @DisplayName("H-6 D-1a-126 the work date is what the employee entered: it cannot be after today, and a resubmission cannot rewrite it")
     void theWorkDateIsEnteredAndKept() {
-        assertThatThrownBy(() -> Timesheet.draft(new TimesheetId(TestIds.uuid(7)), new DocumentNumber("TS-1"), new AggregateReference("NumberingRule", "TIMESHEET"),
+        assertThatThrownBy(() -> Timesheet.draft(new TimesheetId(TestIds.uuid(7)), new DocumentNumber("TS-1"), new AggregateReference("NumberingCounter", TestIds.uuid(11)),
                 OWNER, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(5), TODAY.plusDays(1), Hours.of("8"), TestAccounts.employee(40), TODAY))
                 .isInstanceOfSatisfying(DomainException.class,
                         e -> assertThat(e.errorCode()).isEqualTo(TimesheetError.COST_TIMESHEET_WORK_DATE_IN_FUTURE));
-        Timesheet today = Timesheet.draft(new TimesheetId(TestIds.uuid(8)), new DocumentNumber("TS-2"), new AggregateReference("NumberingRule", "TIMESHEET"),
+        Timesheet today = Timesheet.draft(new TimesheetId(TestIds.uuid(8)), new DocumentNumber("TS-2"), new AggregateReference("NumberingCounter", TestIds.uuid(11)),
                 OWNER, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(5), TODAY, Hours.of("8"), TestAccounts.employee(40), TODAY);
         assertThat(today.workDate()).isEqualTo(TODAY);
 
@@ -149,7 +149,7 @@ class TimesheetStateMachineTest {
             assertThat(submitted.envelope().legalEntityId()).isEqualTo(new LegalEntityId(TestIds.uuid(1)));
             assertThat(submitted.envelope().aggregateVersion()).isEqualTo(1);
             assertThat(submitted.envelope().relatedAggregates()).as("DDD-1 the counter that took the number in the same transaction")
-                    .containsExactly(new AggregateReference("NumberingRule", "TIMESHEET"));
+                    .containsExactly(new AggregateReference("NumberingCounter", TestIds.uuid(11)));
         });
         assertThat(events.get(1)).isInstanceOfSatisfying(DocumentSubmittedForApproval.class, requested -> {
             assertThat(requested.envelope().eventType()).isEqualTo("platform.approval.DocumentSubmittedForApproval");
@@ -184,7 +184,7 @@ class TimesheetStateMachineTest {
         assertThat(events).extracting(e -> e.envelope().aggregateVersion()).containsExactly(5L, 6L, 7L, 8L, 9L, 10L);
         assertThat(events).extracting(e -> e.envelope().businessDate()).containsOnly(WORK_DATE);
         assertThat(events).extracting(e -> e.envelope().legalEntityId()).containsOnly(new LegalEntityId(TestIds.uuid(1)));
-        assertThat(events).extracting(e -> e.envelope().aggregateId()).containsOnly(TestIds.uuid(7).toString());
+        assertThat(events).extracting(e -> e.envelope().aggregateId()).containsOnly(TestIds.uuid(7));
         assertThat(((TimesheetSubmitted) events.get(0)).round()).isEqualTo(new RoundNumber(3));
         assertThat(((DocumentSubmittedForApproval) events.get(1)).round()).isEqualTo(new RoundNumber(3));
         assertThat(events.get(2)).isInstanceOf(TimesheetReturned.class);

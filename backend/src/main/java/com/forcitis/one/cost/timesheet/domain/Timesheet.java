@@ -28,8 +28,6 @@ import com.forcitis.one.kernel.event.AggregateReference;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelope;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ContentHash;
@@ -208,7 +206,7 @@ public final class Timesheet extends AggregateRoot {
 
     private void record(String eventType, Function<EventEnvelope, DomainEvent> assemble) {
         record((envelopes, sequence) -> assemble.apply(envelopes.wrap(new EventDraft(eventType, 1, "Timesheet",
-                String.valueOf(timesheetId.value()), sequence, legalEntityId, workDate, new EventSource(SourceSystem.ONE, null),
+                timesheetId.value(), sequence, legalEntityId, workDate,
                 touchedTogether))));
     }
 

@@ -7,6 +7,7 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.platform.audit.api.AuditError;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.platform.audit.application.AuditEntryPageView;
 import com.forcitis.one.platform.audit.application.AuditSearch;
 import com.forcitis.one.platform.audit.application.SearchAuditEntries;
@@ -34,13 +35,13 @@ class AuditEntryController {
     CursorPage<AuditEntryResponse> list(@RequestParam(required = false) UUID actorId, @RequestParam(required = false) UUID onBehalfOfId,
                            @RequestParam(required = false) String action, @RequestParam(required = false) String actionPrefix,
                            @RequestParam(required = false) String sourceAddress, @RequestParam(required = false) AuditOutcome outcome,
-                           @RequestParam(required = false) String subjectKey,
+                           @RequestParam(required = false) AuditSubjectKind subjectKind, @RequestParam(required = false) UUID subjectId,
                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
                            @RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor, UserId caller) {
         AuditEntryPageView page;
         try {
-            page = search.execute(new AuditSearch(actorId, onBehalfOfId, action, actionPrefix, subjectKey, sourceAddress, outcome, from, to,
+            page = search.execute(new AuditSearch(actorId, onBehalfOfId, action, actionPrefix, subjectKind, subjectId, sourceAddress, outcome, from, to,
                     PageRequest.of(limit, cursor, "audit-entries")), caller);
         } catch (IllegalArgumentException invalid) {
             throw new DomainException(AuditError.PLATFORM_AUDIT_QUERY_INVALID, ErrorKind.INVALID, invalid.getMessage());

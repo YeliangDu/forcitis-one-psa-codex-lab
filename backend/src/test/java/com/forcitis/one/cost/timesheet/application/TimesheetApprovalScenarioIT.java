@@ -25,8 +25,6 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.EventEnvelope;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.platform.approval.ApprovalIntegrationSupport;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalOutcome;
@@ -197,7 +195,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         assertThat(event.round()).isEqualTo(new RoundNumber(1));
         assertThat(event.submittedHours()).isEqualTo(Hours.of("8"));
         assertThat(event.envelope().aggregateType()).isEqualTo("Timesheet");
-        assertThat(event.envelope().aggregateId()).isEqualTo(String.valueOf(id.value()));
+        assertThat(event.envelope().aggregateId()).isEqualTo(id.value());
         assertThat(event.envelope().aggregateVersion()).isEqualTo(1);
         assertThat(event.envelope().businessDate()).as("the business date of the fact is the work date, not the day of submission").isEqualTo(workDay());
         assertThat(event.submittedOn()).isEqualTo(LocalDate.now(ZONE));
@@ -266,7 +264,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         TimesheetId id = newTimesheet();
         DocumentReference document = documentOf(id);
         submit(id, "5");
-        EventEnvelope envelope = envelope("platform.approval.ApprovalCompleted", "ApprovalRequest", "TIMESHEET:" + id.value(), 9);
+        EventEnvelope envelope = envelope("platform.approval.ApprovalCompleted", "ApprovalRequest", java.util.UUID.randomUUID(), 9);
 
         tx.executeWithoutResult(s -> applyApprovalResult.apply(new ApprovalCompleted(envelope, document, ProcessKey.COST_TIMESHEET_APPROVAL,
                 com.forcitis.one.TestApprovalIds.instance("i"), new RoundNumber(7), TestAccounts.employee(employee), ApprovalOutcome.APPROVED, null, null)));
@@ -280,7 +278,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     void resultsForUnknownTimesheetsAreCounted() {
         double before = meters.counter("forcitis.cost.timesheet.approval.result.unknown").count();
         for (java.util.UUID documentId : List.of(com.forcitis.one.TestIds.uuid(900001), com.forcitis.one.TestIds.uuid(900002))) {
-            EventEnvelope envelope = envelope("platform.approval.ApprovalCompleted", "ApprovalRequest", "TIMESHEET:" + documentId, 1);
+            EventEnvelope envelope = envelope("platform.approval.ApprovalCompleted", "ApprovalRequest", java.util.UUID.randomUUID(), 1);
             tx.executeWithoutResult(s -> applyApprovalResult.apply(new ApprovalCompleted(envelope,
                     new DocumentReference(DocumentType.TIMESHEET, new DocumentId(documentId)), ProcessKey.COST_TIMESHEET_APPROVAL,
                     com.forcitis.one.TestApprovalIds.instance("i"), new RoundNumber(1), TestAccounts.employee(employee), ApprovalOutcome.APPROVED, null, null)));

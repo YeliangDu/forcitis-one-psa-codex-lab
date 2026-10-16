@@ -30,7 +30,7 @@ class WorkCalendarYearTest {
         EventDraft draft = CatalogueBusinessDates.check(unchecked);
         return new EventEnvelope(UUID.randomUUID(), draft.eventType(), draft.schemaVersion(),
                 Instant.EPOCH, draft.aggregateType(), draft.aggregateId(), draft.aggregateVersion(), UUID.randomUUID(), null,
-                ActorType.SYSTEM, com.forcitis.one.kernel.SystemActors.idOf("test.envelope").toString(), draft.legalEntityId(), draft.businessDate(), draft.source(), null, draft.relatedAggregates());
+                ActorType.SYSTEM, com.forcitis.one.kernel.SystemActors.idOf("test.envelope"), draft.legalEntityId(), draft.businessDate(), null, draft.relatedAggregates());
     };
 
     static final LocalDate TODAY = LocalDate.parse("2026-01-01");
@@ -57,7 +57,7 @@ class WorkCalendarYearTest {
     @Test
     @DisplayName("a day of another year or a day listed twice is refused and leaves the calendar untouched")
     void invalidList() {
-        WorkCalendarYear year = WorkCalendarYear.unmaintained(WorkCalendarKey.defaultFor(2026));
+        WorkCalendarYear year = WorkCalendarYear.unmaintained(TestIds.uuid(7), WorkCalendarKey.defaultFor(2026));
         assertThatThrownBy(() -> year.maintain(List.of(day("2027-01-01", DayKind.HOLIDAY)), TODAY, false)).isInstanceOfSatisfying(DomainException.class,
                 e -> assertThat(e.errorCode()).isEqualTo(AttendanceError.ORGANIZATION_ATTENDANCE_DAY_OUTSIDE_YEAR));
         assertThatThrownBy(() -> year.maintain(List.of(day("2026-10-01", DayKind.HOLIDAY), day("2026-10-01", DayKind.HOLIDAY)), TODAY, false))
@@ -78,7 +78,7 @@ class WorkCalendarYearTest {
         assertThat(events).singleElement().isInstanceOfSatisfying(WorkCalendarYearMaintained.class, e -> {
             assertThat(e.calendarYear()).isEqualTo(Year.of(2026));
             assertThat(e.envelope().eventType()).isEqualTo("organization.attendance.WorkCalendarYearMaintained");
-            assertThat(e.envelope().aggregateId()).isEqualTo("default:2026");
+            assertThat(e.envelope().aggregateId()).isEqualTo(TestIds.uuid(7));
             assertThat(e.envelope().aggregateVersion()).isEqualTo(4);
             assertThat(e.envelope().legalEntityId()).isNull();
         });
@@ -172,7 +172,7 @@ class WorkCalendarYearTest {
     @Test
     @DisplayName("T2 the first maintenance of a year may list days before today: nothing computed on them has been changed; the lock starts with the second")
     void firstMaintenanceOfAPastYearIsAllowed() {
-        WorkCalendarYear year = WorkCalendarYear.unmaintained(WorkCalendarKey.defaultFor(2024));
+        WorkCalendarYear year = WorkCalendarYear.unmaintained(TestIds.uuid(7), WorkCalendarKey.defaultFor(2024));
 
         year.maintain(List.of(day("2024-10-01", DayKind.HOLIDAY), day("2024-10-02", DayKind.HOLIDAY)), LocalDate.parse("2026-10-14"), false);
 

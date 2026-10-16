@@ -6,8 +6,6 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.StateMachine;
 import com.forcitis.one.kernel.event.EventDraft;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.events.LegalEntityActivated;
@@ -153,7 +151,7 @@ public final class LegalEntity extends AggregateRoot {
     }
 
     private EventDraft draft(String eventName, long version) {
-        return new EventDraft("organization.workforce." + eventName, 1, "LegalEntity", String.valueOf(legalEntityId.value()), version,
-                legalEntityId, null, new EventSource(SourceSystem.ONE, null), List.of());
+        return new EventDraft("organization.workforce." + eventName, 1, "LegalEntity", legalEntityId.value(), version,
+                legalEntityId, null, List.of());
     }
 }

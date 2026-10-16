@@ -2,8 +2,6 @@ package com.forcitis.one.platform.integration.domain;
 
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.event.EventDraft;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.platform.integration.api.ExternalSource;
 import com.forcitis.one.platform.integration.api.SourceObjectKind;
 import com.forcitis.one.platform.integration.events.SourceReferenceRegistrationRefused;
@@ -26,7 +24,7 @@ public final class SourceReferenceRefusal extends AggregateRoot {
     }
 
     private EventDraft draft(long version) {
-        return new EventDraft("platform.integration.SourceReferenceRegistrationRefused", 1, "SourceReferenceRefusal", refusalId.toString(), version, null,
-                null, new EventSource(SourceSystem.ONE, null), List.of());
+        return new EventDraft("platform.integration.SourceReferenceRegistrationRefused", 1, "SourceReferenceRefusal", refusalId.value(), version, null,
+                null, List.of());
     }
 }

@@ -90,7 +90,7 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         assertThat(read(session, "/" + unit(10)).getResponse().getStatus()).isEqualTo(404);
         assertThat(denials()).singleElement().satisfies(entry -> {
             assertThat(entry.actorId()).isEqualTo(TestAccounts.account(21));
-            assertThat(entry.subjectKey()).isEqualTo("org-unit:" + unit(10));
+            assertThat(entry.subject()).isEqualTo(com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.ORG_UNIT, java.util.UUID.fromString(unit(10))));
         });
     }
 
@@ -104,7 +104,7 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         assertThat(read(session, "/" + unit(10)).getResponse().getStatus()).isEqualTo(200);
         assertThat(read(session, "/" + unit(11)).getResponse().getStatus()).isEqualTo(404);
         assertThat(read(session, "/" + unit(20)).getResponse().getStatus()).isEqualTo(404);
-        assertThat(denials()).extracting(AuditEntry::subjectKey).containsExactlyInAnyOrder("org-unit:" + unit(11), "org-unit:" + unit(20));
+        assertThat(denials()).extracting(AuditEntry::subject).containsExactlyInAnyOrder(com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.ORG_UNIT, java.util.UUID.fromString(unit(11))), com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.ORG_UNIT, java.util.UUID.fromString(unit(20))));
     }
 
     @Test
@@ -180,7 +180,7 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         assertThat(body(otherUnit).path("errorCode").asString()).as("the same answer as for a unit that does not exist")
                 .isEqualTo(body(missingUnit).path("errorCode").asString());
         assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("organization.workforce.legal-entity-attribution.denied"))
-                .extracting(AuditEntry::subjectKey).containsExactlyInAnyOrder("org_unit:" + unit(20), "employee:" + employee(902));
+                .extracting(AuditEntry::subject).containsExactlyInAnyOrder(com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.ORG_UNIT, java.util.UUID.fromString(unit(20))), com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.EMPLOYEE, java.util.UUID.fromString(employee(902))));
     }
 
     @Test

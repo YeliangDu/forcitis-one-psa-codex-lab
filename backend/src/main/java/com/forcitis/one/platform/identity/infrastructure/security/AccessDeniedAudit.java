@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.infrastructure.security;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import io.micrometer.core.instrument.MeterRegistry;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntry;
@@ -63,28 +65,31 @@ class AccessDeniedAudit implements AuthorizationEventPublisher {
             meters.counter("forcitis.platform.identity.session.principal.broken", "where", "access-denied").increment();
             return;
         }
-        String resource = resourceOf(object);
+        Resource resource = resourceOf(object);
         Instant now = clock.instant();
-        Instant previous = lastWritten.get(actor.value() + " " + resource);
+        Instant previous = lastWritten.get(actor.value() + " " + resource.text());
         if (previous != null && previous.plus(QUIET).isAfter(now)) {
             return;
         }
-        lastWritten.put(actor.value() + " " + resource, now);
+        lastWritten.put(actor.value() + " " + resource.text(), now);
         try {
-            audit.recordIndependently(new AuditEntry("platform.identity.access.denied", actor, null, resource, "access refused")
+            audit.recordIndependently(new AuditEntry("platform.identity.access.denied", actor, null, AuditSubject.without(resource.kind()), "access refused: " + resource.text())
                     .withTrace(origin.address(), AuditOutcome.FAILED, null));
         } catch (RuntimeException failed) {
-            log.error("The refusal of user {} for {} could not be written to the audit trail: {}", actor.value(), resource, failed.toString());
+            log.error("The refusal of user {} for {} could not be written to the audit trail: {}", actor.value(), resource.text(), failed.toString());
         }
     }
 
-    private static String resourceOf(Object object) {
+    private record Resource(AuditSubjectKind kind, String text) {
+    }
+
+    private static Resource resourceOf(Object object) {
         if (object instanceof MethodInvocation invocation) {
-            return "operation:" + invocation.getMethod().getDeclaringClass().getSimpleName() + "." + invocation.getMethod().getName();
+            return new Resource(AuditSubjectKind.OPERATION, invocation.getMethod().getDeclaringClass().getSimpleName() + "." + invocation.getMethod().getName());
         }
         if (object instanceof RequestAuthorizationContext context) {
-            return "request:" + context.getRequest().getMethod() + " " + context.getRequest().getRequestURI();
+            return new Resource(AuditSubjectKind.REQUEST, context.getRequest().getMethod() + " " + context.getRequest().getRequestURI());
         }
-        return "resource:unknown";
+        return new Resource(AuditSubjectKind.REQUEST, "unknown resource");
     }
 }

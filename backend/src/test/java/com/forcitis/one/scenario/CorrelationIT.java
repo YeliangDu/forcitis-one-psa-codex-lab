@@ -23,8 +23,6 @@ import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelope;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
@@ -127,8 +125,7 @@ class CorrelationIT {
         }
 
         void happen() {
-            record((envelopes, version) -> new Thing(envelopes.wrap(new EventDraft("platform.eventing.Thing", 1, "Thing", "1", version, null, null,
-                    new EventSource(SourceSystem.ONE, null), List.of())), TestAccounts.account(1)));
+            record((envelopes, version) -> new Thing(envelopes.wrap(new EventDraft("platform.eventing.Thing", 1, "Thing", com.forcitis.one.TestIds.uuid(1), version, null, null, List.of())), TestAccounts.account(1)));
         }
     }
 
@@ -199,7 +196,7 @@ class CorrelationIT {
         Thing thing = seen.events.getFirst();
         assertThat(thing.envelope().correlationId()).isEqualTo(correlation);
         assertThat(thing.envelope().actorType()).isEqualTo(ActorType.USER);
-        assertThat(thing.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value().toString());
+        assertThat(thing.envelope().actorId()).isEqualTo(TestAccounts.account(9001).value());
         assertThat(thing.envelope().causationId()).as("the request is the root").isNull();
         assertThat(thing.envelope().eventId().version()).isEqualTo(7);
 

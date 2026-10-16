@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.domain.ApprovalTaskQueries;
 import com.forcitis.one.platform.approval.domain.ProcessAdministrator;
@@ -35,10 +37,10 @@ public class ListAllTasks {
     @Transactional(readOnly = true)
     public TaskOverviewPage execute(UserId actor, boolean overdueOnly, ListPage page) {
         if (!administrator.isAdministrator(actor)) {
-            denials.record(new AuditEntry("platform.approval.task.denied", actor, null, "approval-task:all", "list"));
+            denials.record(new AuditEntry("platform.approval.task.denied", actor, null, AuditSubject.without(AuditSubjectKind.OPERATION), "list"));
             throw new AccessDeniedException("User " + actor.value() + " is not the process administrator");
         }
-        audit.recordIndependently(new AuditEntry("platform.approval.task.list-all", actor, null, "approval-task:all",
+        audit.recordIndependently(new AuditEntry("platform.approval.task.list-all", actor, null, AuditSubject.without(AuditSubjectKind.OPERATION),
                 overdueOnly ? "overdue only" : null));
         Instant now = time.now();
         List<TaskRecord> rows = tasks.openTasks(overdueOnly ? Optional.of(now) : Optional.empty(), page.cursor().map(ListPage.Position::at),

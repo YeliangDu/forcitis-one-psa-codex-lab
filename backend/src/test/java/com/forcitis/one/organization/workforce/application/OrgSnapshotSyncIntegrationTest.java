@@ -87,7 +87,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
                 .as("the guard sees the run and the snapshot written together").contains(java.util.Set.of("OrgSnapshot", "SyncRun"));
         assertThat(com.forcitis.one.fixture.doubles.AggregateWriteGuard.entries(java.nio.file.Files.readAllLines(java.nio.file.Path.of("architecture/multi-aggregate-exceptions.txt"))))
                 .as("and that pair is registered").anyMatch(set -> set.containsAll(java.util.Set.of("OrgSnapshot", "SyncRun")));
-        var snapshot = new com.forcitis.one.kernel.event.AggregateReference("OrgSnapshot", String.valueOf(result.syncRunId().value()));
+        var snapshot = new com.forcitis.one.kernel.event.AggregateReference("OrgSnapshot", result.syncRunId().value());
         assertThat(events.stream(com.forcitis.one.organization.workforce.events.SyncRunSucceeded.class)).singleElement()
                 .satisfies(e -> assertThat(e.envelope().relatedAggregates()).containsExactly(snapshot));
         assertThat(events.stream(OrgSnapshotChanged.class)).singleElement().satisfies(e -> assertThat(e.envelope().relatedAggregates()).containsExactly(snapshot));
@@ -282,7 +282,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
                 .query(String.class).single()).isEqualTo("RELEASED:" + TestAccounts.account(9001L).value());
         assertThat(events.stream(SyncRunReleased.class)).singleElement().satisfies(e -> {
             assertThat(e.syncRunId()).isEqualTo(held.syncRunId());
-            assertThat(e.envelope().aggregateId()).isEqualTo(String.valueOf(held.syncRunId().value()));
+            assertThat(e.envelope().aggregateId()).isEqualTo(held.syncRunId().value());
         });
         assertThat(events.stream(OrgSnapshotChanged.class).filter(e -> e.separatedEmployees().size() == 3)).hasSize(1);
         assertThat(registry.get("forcitis.organization.workforce.sync.held.runs").gauge().value()).isEqualTo(0.0);

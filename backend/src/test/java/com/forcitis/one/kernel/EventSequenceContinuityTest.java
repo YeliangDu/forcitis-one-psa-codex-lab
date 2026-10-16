@@ -131,7 +131,7 @@ class EventSequenceContinuityTest {
     @Test
     @DisplayName("WorkCalendarYear: events are numbered 1..n")
     void workCalendarYear() {
-        checkMany(() -> WorkCalendarYear.unmaintained(WorkCalendarKey.defaultFor(2026)), List.of(
+        checkMany(() -> WorkCalendarYear.unmaintained(TestIds.uuid(3), WorkCalendarKey.defaultFor(2026)), List.of(
                 y -> y.maintain(List.of(), LocalDate.of(2026, 6, 1), true),
                 y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2026, 5, 1), DayKind.HOLIDAY)), LocalDate.of(2026, 6, 1), true),
                 y -> y.maintain(List.of(new CalendarDay(LocalDate.of(2027, 5, 1), DayKind.HOLIDAY)), LocalDate.of(2026, 6, 1), true)));
@@ -142,7 +142,7 @@ class EventSequenceContinuityTest {
     void numberingRule() {
         NumberingPattern pattern = new NumberingPattern("{TYPE}-{LE}-{yyyyMM}-{seq:4}", ResetPolicy.MONTHLY);
         TemplateVersion seeded = new TemplateVersion(1, pattern, 1, LocalDate.of(2026, 10, 15), null, NOW, VersionStatus.PENDING_CONFIRMATION, null, null, null, null);
-        checkMany(() -> NumberingRule.restore(DocumentType.QUOTE, List.of(seeded), 0, 0), List.of(
+        checkMany(() -> NumberingRule.restore(new com.forcitis.one.platform.numbering.api.NumberingRuleId(TestIds.uuid(4)), DocumentType.QUOTE, List.of(seeded), 0, 0), List.of(
                 r -> r.confirm(TestAccounts.account(2), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(1)), r -> r.propose(pattern, 5, LocalDate.of(2026, 10, 16), TestAccounts.account(3), NOW),
                 r -> r.propose(pattern, 0, LocalDate.of(2026, 10, 16), TestAccounts.account(3), NOW),
                 r -> r.confirm(TestAccounts.account(3), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(2)), r -> r.confirm(TestAccounts.account(4), NOW, LocalDate.of(2026, 10, 15), new RuleVersion(2))));
@@ -152,7 +152,7 @@ class EventSequenceContinuityTest {
     @DisplayName("LegalEntityAttribution: events are numbered 1..n")
     void legalEntityAttribution() {
         Random dates = new Random(7);
-        checkMany(() -> LegalEntityAttribution.empty(AttributionSubject.of(com.forcitis.one.fixture.doubles.TestOrgIds.orgUnit(3))), List.of(
+        checkMany(() -> LegalEntityAttribution.empty(new com.forcitis.one.organization.workforce.api.AttributionId(TestIds.uuid(5)), AttributionSubject.of(com.forcitis.one.fixture.doubles.TestOrgIds.orgUnit(3))), List.of(
                 a -> a.attribute(new LegalEntityId(TestIds.uuid(1 + dates.nextInt(2))), LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(400))),
                 a -> a.end(LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(800))),
                 a -> a.correct(LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(400)), LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(800)),

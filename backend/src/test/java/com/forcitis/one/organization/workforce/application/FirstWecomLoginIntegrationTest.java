@@ -75,7 +75,7 @@ class FirstWecomLoginIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(accountEmployees.accountOf(TestAccounts.employee(3001))).as("the account is opened").isPresent();
         assertThat(events.stream(EmployeeRegistered.class).map(EmployeeRegistered::envelope)).singleElement().satisfies(envelope -> {
             assertThat(envelope.actorType()).isEqualTo(ActorType.SYSTEM);
-            assertThat(envelope.actorId()).isEqualTo(SystemActors.idOf("organization.workforce.login-registration").toString());
+            assertThat(envelope.actorId()).isEqualTo(SystemActors.idOf("organization.workforce.login-registration"));
         });
     }
 

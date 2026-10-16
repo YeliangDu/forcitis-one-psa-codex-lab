@@ -99,7 +99,7 @@ class IdentityStateMachineTest {
                 e -> assertThat(e.roleIds()).containsExactly(new RoleId(TestIds.uuid(3)), new RoleId(TestIds.uuid(9))));
         assertThat(accountEvents).extracting(e -> e.envelope().aggregateVersion()).containsExactly(6L, 7L);
         assertThat(accountEvents.get(0).envelope().aggregateType()).isEqualTo("UserAccount");
-        assertThat(accountEvents.get(0).envelope().aggregateId()).isEqualTo(TestAccounts.account(1001).value().toString());
+        assertThat(accountEvents.get(0).envelope().aggregateId()).isEqualTo(TestAccounts.account(1001).value());
         assertThat(accountEvents.get(0).envelope().legalEntityId()).isNull();
 
         UserAccount again = account(DISABLED);

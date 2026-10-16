@@ -26,13 +26,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class LegalEntityAttributionTest {
+    static final com.forcitis.one.organization.workforce.api.AttributionId ATTRIBUTION_ID = new com.forcitis.one.organization.workforce.api.AttributionId(TestIds.uuid(5));
     static final LegalEntityId LE1 = new LegalEntityId(TestIds.uuid(1));
     static final LegalEntityId LE2 = new LegalEntityId(TestIds.uuid(2));
     static final LocalDate JAN = LocalDate.of(2026, 1, 1);
     static final LocalDate JUL = LocalDate.of(2026, 7, 1);
 
     static LegalEntityAttribution unit() {
-        return LegalEntityAttribution.empty(AttributionSubject.of(TestOrgIds.orgUnit(3)));
+        return LegalEntityAttribution.empty(ATTRIBUTION_ID, AttributionSubject.of(TestOrgIds.orgUnit(3)));
     }
 
     @Test
@@ -51,7 +52,7 @@ class LegalEntityAttributionTest {
     @Test
     @DisplayName("each attribution and each ending announces its own event, numbered after the stored count, with the legal entity and the day")
     void events() {
-        LegalEntityAttribution attribution = LegalEntityAttribution.restore(new com.forcitis.one.organization.workforce.api.AttributionId(java.util.UUID.randomUUID()), AttributionSubject.of(TestAccounts.employee(42)),
+        LegalEntityAttribution attribution = LegalEntityAttribution.restore(ATTRIBUTION_ID, AttributionSubject.of(TestAccounts.employee(42)),
                 List.of(), 2, 2);
         attribution.attribute(LE1, JAN);
         attribution.end(JUL);
@@ -63,7 +64,7 @@ class LegalEntityAttributionTest {
             assertThat(e.effectiveFrom()).isEqualTo(JAN);
             assertThat(e.envelope().legalEntityId()).isEqualTo(LE1);
             assertThat(e.envelope().businessDate()).isEqualTo(JAN);
-            assertThat(e.envelope().aggregateId()).isEqualTo("EMPLOYEE:" + TestAccounts.employee(42).value());
+            assertThat(e.envelope().aggregateId()).isEqualTo(ATTRIBUTION_ID.value());
         });
         assertThat(events.get(1)).isInstanceOfSatisfying(LegalEntityAttributionEnded.class, e -> {
             assertThat(e.effectiveTo()).isEqualTo(JUL);

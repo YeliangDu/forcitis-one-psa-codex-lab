@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.UserId;
@@ -62,7 +64,7 @@ public class ForceUserLogout {
         AccessProfile held = AccessProfile.of(accounts.findEnabledRoles(target));
         sessions.revokeAll(target);
         cache.evict(target);
-        audit.record(new AuditEntry("platform.identity.session.revoked", actor, null, "user-account:" + target.value(),
+        audit.record(new AuditEntry("platform.identity.session.revoked", actor, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, target.value()),
                 "forced logout: " + cleaned).withTrace(origin.address(), AuditOutcome.SUCCEEDED, null));
         if (held.isAdministrator() || held.roleCodes().contains(Role.SECURITY_AUDITOR)) {
             meters.counter("forcitis.platform.identity.administrator.logouts").increment();

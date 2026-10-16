@@ -84,7 +84,7 @@ class TaskTransferIT extends ApprovalIntegrationSupport {
             assertThat(event.from()).isEqualTo(TestAccounts.account(s.handler()));
             assertThat(event.to()).isEqualTo(TestAccounts.account(s.colleague()));
             assertThat(event.reason()).isEqualTo(new com.forcitis.one.kernel.Reason("on leave"));
-            assertThat(event.envelope().actorId()).isEqualTo(TestAccounts.account(s.handler()).value().toString());
+            assertThat(event.envelope().actorId()).isEqualTo(TestAccounts.account(s.handler()).value());
         });
         verify(wecom, timeout(10_000)).send(argThat(card -> card.wecomUserIds().equals(List.of(new WecomUserId(organisation.wecomOf(s.colleague()))))
                 && card.subject().purpose() == com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_TRANSFERRED && card.subject().id().equals(s.task().value())));

@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
@@ -38,7 +40,7 @@ public class EnableEmergencyAdmin {
         admin.enable();
         admins.save(admin);
         events.publish(admin);
-        audit.record(new AuditEntry("platform.identity.operations.emergency-admin.enabled", null, null, "emergency-admin:" + person.value(),
+        audit.record(new AuditEntry("platform.identity.operations.emergency-admin.enabled", null, null, AuditSubject.of(AuditSubjectKind.EMERGENCY_ADMIN, person.value()),
                 attestation.describe()));
         return true;
     }

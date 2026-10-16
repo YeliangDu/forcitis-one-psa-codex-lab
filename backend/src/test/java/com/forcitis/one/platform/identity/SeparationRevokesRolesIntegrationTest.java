@@ -50,7 +50,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     TotpSecretVault vault;
 
     private UUID publish(List<EmployeeId> changed, List<EmployeeId> separated) {
-        OrgSnapshotChanged event = new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", "1"), changed, separated,
+        OrgSnapshotChanged event = new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", com.forcitis.one.TestIds.uuid(1)), changed, separated,
                 List.of(), java.time.LocalDate.of(2026, 10, 15));
         tx.executeWithoutResult(status -> events.publishEvent(event));
         return event.envelope().eventId();
@@ -87,7 +87,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
                 .extracting(AuditEntry::detail)
                 .containsExactlyInAnyOrder("role=employee cause=separation", "role=org_data_admin cause=separation", "role=super_admin cause=separation");
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("platform.identity.account.role.revoked"))
-                .allSatisfy(entry -> assertThat(entry.subjectKey()).isEqualTo("user-account:" + accountOf(1001)));
+                .allSatisfy(entry -> assertThat(entry.subject()).isEqualTo(com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.USER_ACCOUNT, accountOf(1001))));
         assertThat(recorded()).extracting(AuditEntry::action).contains("platform.identity.session.revoked");
         assertThat(domainEvents.of(AccountRolesReplaced.class)).singleElement().satisfies(e -> {
             assertThat(e.userId()).isEqualTo(new com.forcitis.one.kernel.UserId(accountOf(1001)));

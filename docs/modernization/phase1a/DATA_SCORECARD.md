@@ -73,7 +73,7 @@
 | 30 | `platform_integration.outbound_deliveries` | 投递队列 | ✗ 收件人以竖线拼接 | ✓ | ✓ | ✓ | ✓ | — | ✓ 关联号 | △ | ✗ 认可 90 天 / 1 年，无清理作业 | ✗ 收件人未登记 | 新系统 | K7 K10 K14 |
 | 31 | `platform_numbering.numbering_rules` | 配置（编号规则） | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ 无版本历史与生效日 | — | △ | 永久 | — | 新系统 | K11 |
 | 32 | `platform_numbering.numbering_counters` | 计数器 | ✓ | ✓ 代理主键 numbering_counter_id；（单据类型，法人，周期）唯一，法人为空表示全局计数 | —（原子递增） | — | ✓ | — | — | ✓ | 永久 | — | 新系统 | — |
-| 33 | `platform_numbering.legacy_numbers` | 对照（血缘） | ✓ | △ 唯一约束未按 `uk_` 命名 | —（只插入） | — | ✓ | — | ✓（即信封的 `source.documentRef`） | ✓ | ✓ 永久 | — | 迁入 | — |
+| 33 | `platform_numbering.legacy_numbers` | 对照（血缘） | ✓ | △ 唯一约束未按 `uk_` 命名 | —（只插入） | — | ✓ | — | ✓ | ✓ | ✓ 永久 | — | 迁入 | — |
 | 34 | `platform_scheduling.scheduler_locks` | 框架 | 框架 | ✓ | — | — | ✓ | — | — | ✓ | — | — | 框架 | 豁免 |
 
 主键、唯一约束未按 `pk_` / `uk_` 命名的项（第 3、12、13、22、33 行）已在 main 的命名守护基线中，或将被它捕获，不另列问题。

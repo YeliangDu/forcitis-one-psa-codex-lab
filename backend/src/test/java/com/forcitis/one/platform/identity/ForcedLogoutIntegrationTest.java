@@ -54,7 +54,7 @@ class ForcedLogoutIntegrationTest extends IdentityIntegrationTest {
         assertThat(status(other)).isEqualTo(200);
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("platform.identity.session.revoked")).singleElement().satisfies(entry -> {
             assertThat(entry.actorId().value()).isEqualTo(accountOf(9));
-            assertThat(entry.subjectKey()).isEqualTo("user-account:" + accountOf(1001));
+            assertThat(entry.subject()).isEqualTo(com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.USER_ACCOUNT, accountOf(1001)));
             assertThat(entry.detail()).contains("lost phone");
             assertThat(entry.sourceAddress()).as("who did it, from where").isEqualTo("127.0.0.1");
             assertThat(entry.outcome()).isEqualTo(AuditOutcome.SUCCEEDED);

@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.audit.web;
 
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.platform.audit.application.AuditExport;
 import com.forcitis.one.platform.audit.application.AuditSearch;
 import com.forcitis.one.platform.audit.application.ExportAuditEntries;
@@ -32,10 +33,10 @@ class AuditExportController {
     @GetMapping(path = "/audit-entries:export")
     @PreAuthorize("hasAuthority('" + AuditPermissions.ENTRY_EXPORT + "')")
     ResponseEntity<byte[]> export(@RequestParam(required = false) UUID actorId, @RequestParam(required = false) String action,
-                                  @RequestParam(required = false) String subjectKey,
+                                  @RequestParam(required = false) AuditSubjectKind subjectKind, @RequestParam(required = false) UUID subjectId,
                                   @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
                                   @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to, UserId caller) {
-        AuditExport result = export.execute(new AuditSearch(actorId, null, action, null, subjectKey, null, null, from, to, null), caller);
+        AuditExport result = export.execute(new AuditSearch(actorId, null, action, null, subjectKind, subjectId, null, null, from, to, null), caller);
         return ResponseEntity.ok()
                 .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename("audit-entries.csv").build().toString())

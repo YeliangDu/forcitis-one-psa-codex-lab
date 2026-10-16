@@ -89,7 +89,7 @@ class SourceReferenceStateMachineTest {
         SourceReference first = registered();
         first.confirm(DECIDER, NOW);
 
-        assertThat(confirmedEnvelope(correction).relatedAggregates()).containsExactly(new AggregateReference("SourceReference", superseded.toString()));
+        assertThat(confirmedEnvelope(correction).relatedAggregates()).containsExactly(new AggregateReference("SourceReference", superseded.value()));
         assertThat(confirmedEnvelope(first).relatedAggregates()).isEmpty();
     }
 

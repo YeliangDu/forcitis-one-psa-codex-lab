@@ -961,12 +961,16 @@ export interface components {
             onBehalfOfId?: string;
             outcome?: components["schemas"]["AuditOutcome"] | (string & {});
             sourceAddress?: string;
-            subjectKey: string;
+            /** Format: uuid */
+            subjectId?: string;
+            subjectKind: components["schemas"]["AuditSubjectKind"] | (string & {});
             /** Format: uuid */
             traceNumber?: string;
         };
         /** @enum {string} */
         AuditOutcome: "SUCCEEDED" | "FAILED";
+        /** @enum {string} */
+        AuditSubjectKind: "USER_ACCOUNT" | "EMPLOYEE" | "ORG_UNIT" | "EMERGENCY_ADMIN" | "ROLE" | "APPROVAL_TASK" | "APPROVAL_REQUEST" | "SYNC_RUN" | "LEGAL_ENTITY" | "LEGAL_ENTITY_ATTRIBUTION" | "TIMESHEET" | "WORK_CALENDAR_YEAR" | "NUMBERING_RULE" | "SOURCE_REFERENCE" | "SOURCE_REFERENCE_REFUSAL" | "AUTHORIZATION_REQUEST" | "REQUEST" | "OPERATION" | "LOGIN_ATTEMPT";
         AuthorizationRequestView: {
             kind?: string;
             permissionCodes?: string[];
@@ -1481,6 +1485,7 @@ export interface components {
             dueAt?: string;
             effect?: string;
             history: components["schemas"]["HistoryEntry"][];
+            /** Format: uuid */
             initiator: string;
             initiatorName: string;
             initiatorOrgUnitName?: string;
@@ -3359,7 +3364,8 @@ export interface operations {
                 actionPrefix?: string;
                 sourceAddress?: string;
                 outcome?: components["schemas"]["AuditOutcome"];
-                subjectKey?: string;
+                subjectKind?: components["schemas"]["AuditSubjectKind"];
+                subjectId?: string;
                 from?: string;
                 to?: string;
                 limit?: number;
@@ -3396,7 +3402,8 @@ export interface operations {
             query?: {
                 actorId?: string;
                 action?: string;
-                subjectKey?: string;
+                subjectKind?: components["schemas"]["AuditSubjectKind"];
+                subjectId?: string;
                 from?: string;
                 to?: string;
             };

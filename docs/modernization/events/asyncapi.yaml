@@ -1228,7 +1228,6 @@ components:
       - correlationId
       - actorType
       - actorId
-      - source
       - relatedAggregates
       properties:
         eventId:
@@ -1249,6 +1248,8 @@ components:
           type: string
         aggregateId:
           type: string
+          format: uuid
+          description: 该聚合自己的主键
         aggregateVersion:
           type: integer
           format: int64
@@ -1281,17 +1282,6 @@ components:
           format: date
           nullable: true
           description: 按 Asia/Shanghai 截日；取哪个日期见各事件的 x-event.businessDate
-        source:
-          type: object
-          properties:
-            system:
-              type: string
-              enum:
-              - ONE
-              - MIGRATION
-            documentRef:
-              type: string
-              nullable: true
         accountingPeriod:
           type: string
           nullable: true
@@ -1305,11 +1295,12 @@ components:
                 type: string
               aggregateId:
                 type: string
+                format: uuid
   messages:
     ApprovalCompleted:
       name: ApprovalCompleted
       title: 审批结束（已通过 / 已驳回 / 已退回 / 已撤销）
-      description: 审批结束（已通过、已驳回、已退回、已撤销）。aggregateId 是 单据类型:单据标识，如 TIMESHEET:7；过程里程碑，不过账。发起人撤回（RULE-269）以 RETURNED 结束本轮，与审批人退回同形，区别看信封 actorId 是否为发起人以及 reason。消费方 cost.timesheet 按 eventId 幂等，轮次与等待中的轮次不符则忽略；分析层 L1 用于审批时效。 发起人撤回与审批人退回同形，用 returnSource 区分；platform.approval 的通知监听器据此给发起人发完成卡片（D-1a-135）。
+      description: 审批结束（已通过、已驳回、已退回、已撤销）。aggregateId 是审批请求 ID；过程里程碑，不过账。发起人撤回（RULE-269）以 RETURNED 结束本轮，与审批人退回同形，区别看信封 actorId 是否为发起人以及 reason。消费方 cost.timesheet 按 eventId 幂等，轮次与等待中的轮次不符则忽略；分析层 L1 用于审批时效。 发起人撤回与审批人退回同形，用 returnSource 区分；platform.approval 的通知监听器据此给发起人发完成卡片（D-1a-135）。
       x-event:
         eventType: platform.approval.ApprovalCompleted
         version: 1
@@ -2221,7 +2212,7 @@ components:
     ApprovalRoundStarted:
       name: ApprovalRoundStarted
       title: 审批开新一轮
-      description: 审批开始新一轮：首次发起，或退回、驳回、撤销之后重新发起（D-1a-78）；过程里程碑，不过账。aggregateId 是 单据类型:单据标识。
+      description: 审批开始新一轮：首次发起，或退回、驳回、撤销之后重新发起（D-1a-78）；过程里程碑，不过账。aggregateId 是审批请求 ID。
       x-event:
         eventType: platform.approval.ApprovalRoundStarted
         version: 1

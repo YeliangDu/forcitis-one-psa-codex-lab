@@ -46,7 +46,7 @@ class Approvals {
     /** Strong comparison with the version of the request as locked; a caller that sent none (a job, another module) is not held to one. */
     void requireVersion(ApprovalRequest request, OptionalLong expected) {
         if (expected.isPresent() && expected.getAsLong() != request.version()) {
-            throw new com.forcitis.one.kernel.VersionMismatchException("Approval " + request.aggregateId() + " is at version " + request.version() + ", the caller read "
+            throw new com.forcitis.one.kernel.VersionMismatchException("Approval " + request.id().value() + " is at version " + request.version() + ", the caller read "
                     + expected.getAsLong());
         }
     }

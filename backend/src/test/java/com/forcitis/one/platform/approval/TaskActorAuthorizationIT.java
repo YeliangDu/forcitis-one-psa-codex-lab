@@ -106,7 +106,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
                     .with(approver(outsider)).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"x\"}"), 404));
         }
         verify(audit, atLeastOnce()).recordIndependently(argThat(entry -> entry.action().equals("platform.approval.task.denied")
-                && entry.actorId().equals(TestAccounts.account(scene.stranger())) && entry.subjectKey().equals("approval-task:" + id)));
+                && entry.actorId().equals(TestAccounts.account(scene.stranger())) && entry.subject().equals(com.forcitis.one.platform.audit.api.AuditSubject.of(com.forcitis.one.platform.audit.api.AuditSubjectKind.APPROVAL_TASK, java.util.UUID.fromString(id)))));
     }
 
     @Test

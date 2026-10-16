@@ -477,8 +477,7 @@ class ApplicationIntegrationTest {
     }
 
     private String issue(DocumentType type, LegalEntityId legalEntity, LocalDate day) {
-        DocumentNumber n = tx.execute(status -> numbers.next(type, legalEntity, day));
-        return n.value();
+        return tx.execute(status -> numbers.next(type, legalEntity, day)).value();
     }
 
     private Integer count(String schema) {

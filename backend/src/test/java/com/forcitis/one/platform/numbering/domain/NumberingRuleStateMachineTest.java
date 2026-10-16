@@ -40,7 +40,7 @@ class NumberingRuleStateMachineTest {
     }
 
     static NumberingRule rule(DocumentType type, TemplateVersion... versions) {
-        return NumberingRule.restore(type, List.of(versions), 4, 4);
+        return NumberingRule.restore(new com.forcitis.one.platform.numbering.api.NumberingRuleId(com.forcitis.one.TestIds.uuid(4)), type, List.of(versions), 4, 4);
     }
 
     static DomainException refusal(Runnable action) {

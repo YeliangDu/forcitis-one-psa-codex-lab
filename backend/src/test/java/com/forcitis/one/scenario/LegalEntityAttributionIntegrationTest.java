@@ -281,7 +281,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
                     assertThat(e.previousEffectiveTo()).isEqualTo(day.plusDays(10));
                     assertThat(e.newEffectiveTo()).isEqualTo(day.plusDays(5));
                     assertThat(e.reason().value()).isEqualTo("typed the wrong end day");
-                    assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9003).value().toString());
+                    assertThat(e.envelope().actorId()).isEqualTo(TestAccounts.account(9003).value());
                 });
         assertThatThrownBy(() -> jdbc.sql("update organization_workforce.legal_entity_attribution_corrections set correction_reason = 'x'").update())
                 .hasMessageContaining("append-only");
