@@ -27,7 +27,7 @@ def red(run=100, bucket="fail"):
 
 class FakeGh:
     def __init__(self):
-        self.prs, self.calls, self.runs, self.main_runs, self.lock, self.slow = {}, [], {}, {"push": None, "schedule": None}, threading.RLock(), False
+        self.prs, self.calls, self.runs, self.main_runs, self.lock, self.slow, self.step_failures = {}, [], {}, {"push": None, "schedule": None}, threading.RLock(), False, {}
 
     def add(self, n, merge="CLEAN", labels=(), rounds=None, update_ok=True, merge_results=((True, ""),), behind=0, state="OPEN"):
         self.prs[n] = dict(state=state, merge=merge, labels=set(labels), branch=f"b{n}", head=f"{n:040x}", behind=behind, rounds=rounds or [dict(pending=0, checks=green())], round=0, pend=None,
@@ -81,6 +81,9 @@ class FakeGh:
             if run in self.runs[k]:
                 self.runs[k].remove(run)
         return True
+
+    def failed_steps(self, run):
+        return self.step_failures.get(str(run), [])
 
     def rerun(self, run):
         self.calls.append(("rerun", run))
@@ -211,6 +214,16 @@ def _scenarios(mq, d):
     proc, q, log, slept = _proc(mq, d, "d", gh, [9])
     assert proc.process(9) == "MERGED" and ("rerun", "777") in gh.calls and events(log).count("RERUN-FAILED") == 1, events(log)
     assert any("RERUN-FAILED pr=#9 run=777" in l and "fail" in l for l in log.lines) and log.lines[-1].split()[3] == "run=778"
+
+    # the repeat step of ci.yml is red: a new test is flaky, so no rerun, HOLD at once; another red step is re-run as before
+    gh = FakeGh(); gh.add(110, rounds=[dict(pending=0, checks=red(31)), dict(pending=0, checks=green(32))])
+    gh.step_failures = {"31": ["new or changed test classes, repeated"]}
+    proc, q, log, _ = _proc(mq, d, "rp1", gh, [110])
+    assert proc.process(110) == "HOLD" and not any(c[0] == "rerun" for c in gh.calls) and "repeat runs" in log.lines[-1] and "run=31" in log.lines[-1] and not any(c[0] == "merge" for c in gh.calls)
+    gh = FakeGh(); gh.add(111, rounds=[dict(pending=0, checks=red(41)), dict(pending=0, checks=green(42))])
+    gh.step_failures = {"41": ["surefire and failsafe, side by side"]}
+    proc, q, log, _ = _proc(mq, d, "rp2", gh, [111])
+    assert proc.process(111) == "MERGED" and ("rerun", "41") in gh.calls, "any other red step is re-run once"
 
     # still red after the one re-run: HOLD, no second re-run, never merged; the run ids of both rounds are in the log (numeric order)
     gh = FakeGh(); gh.add(10, rounds=[dict(pending=0, checks=red(9)), dict(pending=0, checks=red(1000))])
@@ -797,6 +810,8 @@ def _gh_commands(mq, d):
                  (["api", "repos/{owner}/{repo}/compare/abc123...main", "--jq", ".files | length"], "2\n", "", 0),
                  (["api", "repos/{owner}/{repo}/compare/big000...main", "--jq", "[.files[] | .filename, .previous_filename] | map(select(. != null)) | .[]"], "docs/x.md\n", "", 0),
                  (["api", "repos/{owner}/{repo}/compare/big000...main", "--jq", ".files | length"], "300\n", "", 0),
+                 (["run", "view", "7", "--json", "jobs", "--jq", '.jobs[].steps[] | select(.conclusion == "failure") | .name'], "step one\nnew or changed test classes, repeated\n", "", 0),
+                 (["run", "view", "8", "--json", "jobs", "--jq", '.jobs[].steps[] | select(.conclusion == "failure") | .name'], "", "boom", 1),
                  (["pr", "checks", "1"], json.dumps([{"name": "x", "bucket": "pass", "link": ""}]), "", 0),
                  (["pr", "checks", "2"], "", "no checks reported on the 'br' branch\n", 0),
                  (["pr", "checks", "3"], "", "network down\n", 1),
@@ -813,6 +828,7 @@ def _gh_commands(mq, d):
         assert gh.files(9) == ["docs/a.md", "docs/old.md"]
         assert gh.behind_files("abc123") == ["docs/x.md", "docs/old.md"] and gh.behind_files("big000") is None, "a cut-off list (300 files) is no answer"
         assert gh.checks(1) == [{"name": "x", "bucket": "pass", "link": ""}] and gh.checks(2) == [] and gh.checks(3) is None, "no check yet is an empty list, a failed call is None"
+        assert gh.failed_steps(7) == ["step one", "new or changed test classes, repeated"] and gh.failed_steps(8) is None
         assert gh.merge(4, "h4") == (False, "Pull request is not mergeable") and gh.merge(5, "h5") == (True, "merged")
         run = gh.main_run("push")
         assert run and run["id"] == 5 and run["conclusion"] == "failure", "the newest ended, not cancelled run decides; a running or cancelled newer one does not hide it"

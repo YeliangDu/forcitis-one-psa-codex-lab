@@ -53,6 +53,8 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REQUIRED = ("backend verify", "frontend verify", "secret scan")
+# ci.yml's step that runs the pull request's new or changed test classes again (scripts/ci/repeat_new_tests.py): red there is a flaky new test, and a rerun that passes would let it in
+REPEAT_STEP = "new or changed test classes, repeated"
 OK = ("pass", "skipping")
 LINE = re.compile(r"^\s*(\d+)\s*$")
 LANES = ("code", "docs")
@@ -189,6 +191,11 @@ class Gh:
         except ValueError:
             # a pull request whose CI has not registered anything yet: empty stdout, exit 0, "no checks reported on the '<branch>' branch" on stderr
             return [] if "no checks reported" in r.stderr else None
+
+    def failed_steps(self, run):
+        """Names of the steps that failed in a ci run, or None when gh cannot say."""
+        r = sh(["gh", "run", "view", str(run), "--json", "jobs", "--jq", '.jobs[].steps[] | select(.conclusion == "failure") | .name'])
+        return r.stdout.splitlines() if r.returncode == 0 else None
 
     def update_branch(self, n):
         return sh(["gh", "pr", "update-branch", str(n)]).returncode == 0
@@ -528,6 +535,9 @@ class Processor:
                     self.log.event("BEHIND-AFTER-FAIL", n, runs[0] if runs else None, since, "update and run again")
                     attempt += 1
                     continue
+                repeated = [r for r in runs if REPEAT_STEP in (self.gh.failed_steps(r) or [])]
+                if repeated:   # a new test that fails when it runs again is flaky: no rerun (it would pass the second time and get in), straight to the author
+                    return self.hold(n, ",".join(repeated), since, f"a new or changed test class failed its repeat runs ({REPEAT_STEP}): not rerun, back to the author")
                 if attempt == 1:
                     for r in runs:
                         self.gh.rerun(r)
