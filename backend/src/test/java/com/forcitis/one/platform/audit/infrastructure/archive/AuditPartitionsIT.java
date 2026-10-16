@@ -358,12 +358,12 @@ class AuditPartitionsIT {
         }
 
         UUID id = insertEntry("2026-10-05T00:00:00Z");
-        insertBatch(id, "2026-10-05T00:00:00Z", id, "2040-01-01T00:00:00Z", 1);
+        insertBatch(id, "2026-10-05T00:00:00Z", id, at(100, 1), 1);
         var meters = new SimpleMeterRegistry();
         LocalDate far = now.plusMonths(40).atDay(15);
         new AuditPartitionJob(jdbc, Clock.fixed(far.atStartOfDay().toInstant(ZoneOffset.UTC), ZoneOffset.UTC), new AuditPartitionJob.Policy(3), meters).ensurePartitions();
 
-        assertThat(meters.counter("forcitis.platform.audit.partitions.failures").count()).as("the months of a far future are already within an archived position of 2040").isEqualTo(1.0);
+        assertThat(meters.counter("forcitis.platform.audit.partitions.failures").count()).as("the months of a far future are already within an archived position far beyond them").isEqualTo(1.0);
         Consumer<Integer> invalid = months -> assertThatThrownBy(() -> new AuditPartitionJob.Policy(months)).isInstanceOf(IllegalArgumentException.class);
         invalid.accept(null);
         invalid.accept(0);
@@ -373,28 +373,28 @@ class AuditPartitionsIT {
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TB-07 the drop function waits for an uncommitted insert into the month and fails on the lock timeout; the row survives, and once it is committed the check refuses the drop")
     void aRowInFlightIsNeitherLostNorDropped() throws Exception {
-        created("2033-02-01", "2033-02-01");
-        UUID archived = insertEntry("2033-02-03T00:00:00Z");
-        insertBatch(archived, "2033-02-03T00:00:00Z", archived, "2033-02-03T00:00:00Z", 1);
+        created(day(60, 1), day(60, 1));
+        UUID archived = insertEntry(at(60, 3));
+        insertBatch(archived, at(60, 3), archived, at(60, 3), 1);
 
         try (java.sql.Connection writer = dataSource.getConnection()) {
             writer.setAutoCommit(false);
             try (var statement = writer.createStatement()) {
-                statement.execute("insert into platform_audit.audit_entries (id, created_at, updated_at, action, subject_kind, subject_id) values (uuidv7(), '2033-02-10T00:00:00Z', '2033-02-10T00:00:00Z', 'test.audit.inflight', 'USER_ACCOUNT', gen_random_uuid())");
+                statement.execute("insert into platform_audit.audit_entries (id, created_at, updated_at, action, subject_kind, subject_id) values (uuidv7(), '" + at(60, 10) + "', '" + at(60, 10) + "', 'test.audit.inflight', 'USER_ACCOUNT', gen_random_uuid())");
 
-                assertThatThrownBy(() -> drop("2033-02-01")).rootCause().isInstanceOfSatisfying(java.sql.SQLException.class, e -> assertThat(e.getSQLState()).as("lock_not_available").isEqualTo("55P03"));
+                assertThatThrownBy(() -> drop(day(60, 1))).rootCause().isInstanceOfSatisfying(java.sql.SQLException.class, e -> assertThat(e.getSQLState()).as("lock_not_available").isEqualTo("55P03"));
                 statement.execute("lock table platform_audit.audit_entries in share update exclusive mode");
-                assertThatThrownBy(() -> created("2033-08-01", "2033-08-01")).as("a partition being created needs a lock that conflicts with the one held on the table, so it times out as well")
+                assertThatThrownBy(() -> created(day(66, 1), day(66, 1))).as("a partition being created needs a lock that conflicts with the one held on the table, so it times out as well")
                         .rootCause().isInstanceOfSatisfying(java.sql.SQLException.class, e -> assertThat(e.getSQLState()).isEqualTo("55P03"));
-                assertThat(exists("audit_entries_p203308")).isFalse();
+                assertThat(exists(partition(66))).isFalse();
                 writer.commit();
             }
         }
 
-        assertThat(exists("audit_entries_p203302")).isTrue();
+        assertThat(exists(partition(60))).isTrue();
         assertThat(jdbc.sql("select count(*) from " + ENTRIES + " where action = 'test.audit.inflight'").query(Long.class).single()).isEqualTo(1L);
-        assertThatThrownBy(() -> drop("2033-02-01")).hasMessageContaining("after the archived position");
-        assertThat(exists("audit_entries_p203302")).isTrue();
+        assertThatThrownBy(() -> drop(day(60, 1))).hasMessageContaining("after the archived position");
+        assertThat(exists(partition(60))).isTrue();
         assertThat(jdbc.sql("select count(*) from " + ENTRIES + " where action = 'test.audit.inflight'").query(Long.class).single()).isEqualTo(1L);
     }
 
@@ -408,7 +408,7 @@ class AuditPartitionsIT {
             for (int i = 0; i < 2; i++) {
                 calls.add(pool.submit(() -> {
                     start.await();
-                    return created("2033-05-01", "2033-05-01");
+                    return created(day(63, 1), day(63, 1));
                 }));
             }
             start.countDown();
@@ -420,6 +420,6 @@ class AuditPartitionsIT {
         } finally {
             pool.shutdownNow();
         }
-        assertThat(exists("audit_entries_p203305")).isTrue();
+        assertThat(exists(partition(63))).isTrue();
     }
 }
