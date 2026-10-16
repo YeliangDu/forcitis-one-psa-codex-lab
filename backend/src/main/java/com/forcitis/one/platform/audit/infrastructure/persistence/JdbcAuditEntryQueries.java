@@ -8,9 +8,11 @@ import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.platform.audit.domain.AuditEntryId;
 import com.forcitis.one.platform.audit.domain.AuditEntryQueries;
 import com.forcitis.one.platform.audit.domain.AuditPage;
-import com.forcitis.one.platform.audit.domain.AuditQuery;
+import com.forcitis.one.platform.audit.domain.AuditFilter;
+import com.forcitis.one.platform.audit.domain.AuditPosition;
 import com.forcitis.one.platform.audit.domain.AuditRecord;
 import com.forcitis.one.platform.audit.domain.OwnLoginRecord;
+import com.forcitis.one.platform.audit.domain.OwnLoginRecordPage;
 import com.forcitis.one.platform.audit.domain.OwnLoginRecords;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -34,58 +36,68 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
     }
 
     @Override
-    public AuditPage findPage(AuditQuery query) {
+    public AuditPage findPage(AuditFilter filter, AuditPosition after, int limit) {
         Map<String, Object> params = new HashMap<>();
-        String where = where(query, params);
-        if (query.after() != null) {
-            where += (where.isEmpty() ? " where " : " and ") + "(created_at, id) < (:afterAt, :afterId)";
-            params.put("afterAt", Timestamp.from(query.after().createdAt()));
-            params.put("afterId", query.after().entryId().value());
-        }
+        String where = after(where(filter, params), after, params);
         List<AuditRecord> items = jdbc.sql("select " + COLUMNS + " from platform_audit.audit_entries" + where + """
 
                          order by created_at desc, id desc
                          limit :limit
                         """)
-                .params(params).param("limit", query.limit() + 1).query((rs, n) -> row(rs)).list();
-        if (items.size() <= query.limit()) {
+                .params(params).param("limit", limit + 1).query((rs, n) -> row(rs)).list();
+        if (items.size() <= limit) {
             return new AuditPage(items, null);
         }
-        List<AuditRecord> page = items.subList(0, query.limit());
+        List<AuditRecord> page = items.subList(0, limit);
         AuditRecord last = page.getLast();
-        return new AuditPage(page, new AuditQuery.Position(last.createdAt(), last.entryId()));
+        return new AuditPage(page, new AuditPosition(last.createdAt(), last.entryId()));
     }
 
     @Override
-    public long count(AuditQuery filters) {
+    public List<AuditRecord> findLatest(AuditFilter filter, int limit) {
         Map<String, Object> params = new HashMap<>();
-        return jdbc.sql("select count(*) from platform_audit.audit_entries" + where(filters, params)).params(params).query(Long.class).single();
+        return jdbc.sql("select " + COLUMNS + " from platform_audit.audit_entries" + where(filter, params)
+                + " order by created_at desc, id desc limit :limit")
+                .params(params).param("limit", limit).query((rs, n) -> row(rs)).list();
     }
 
     @Override
-    public List<AuditRecord> findAll(AuditQuery filters, int maxRows) {
+    public OwnLoginRecordPage findOwnLoginRecords(UserId subject, AuditPosition after, int limit) {
         Map<String, Object> params = new HashMap<>();
-        return jdbc.sql("select " + COLUMNS + " from platform_audit.audit_entries" + where(filters, params)
-                + " order by created_at desc, id desc limit :maxRows")
-                .params(params).param("maxRows", maxRows).query((rs, n) -> row(rs)).list();
-    }
+        params.put("subjectKind", AuditSubjectKind.USER_ACCOUNT.name());
+        params.put("subject", subject.value());
+        params.put("actions", OwnLoginRecords.ACTIONS);
+        params.put("limit", limit + 1);
+        String where = after(" where subject_kind = :subjectKind and subject_id = :subject and action in (:actions)", after, params);
+        List<OwnLoginRecord> items = jdbc.sql("""
+                        select id, created_at, action, outcome_kind, source_address, login_method_kind
+                          from platform_audit.audit_entries""" + where + """
 
-    @Override
-    public List<OwnLoginRecord> findOwnLoginRecords(UserId subject, int limit) {
-        return jdbc.sql("""
-                        select created_at, action, outcome_kind, source_address, login_method_kind
-                          from platform_audit.audit_entries
-                         where subject_kind = :subjectKind and subject_id = :subject and action in (:actions)
                          order by created_at desc, id desc
                          limit :limit
                         """)
-                .param("subjectKind", AuditSubjectKind.USER_ACCOUNT.name()).param("subject", subject.value()).param("actions", OwnLoginRecords.ACTIONS).param("limit", limit)
-                .query((rs, n) -> new OwnLoginRecord(rs.getTimestamp("created_at").toInstant(), rs.getString("action"), outcome(rs),
-                        rs.getString("source_address"), rs.getString("login_method_kind")))
+                .params(params)
+                .query((rs, n) -> new OwnLoginRecord(new AuditEntryId(rs.getObject("id", UUID.class)), rs.getTimestamp("created_at").toInstant(),
+                        rs.getString("action"), outcome(rs), rs.getString("source_address"), rs.getString("login_method_kind")))
                 .list();
+        if (items.size() <= limit) {
+            return new OwnLoginRecordPage(items, null);
+        }
+        List<OwnLoginRecord> page = items.subList(0, limit);
+        OwnLoginRecord last = page.getLast();
+        return new OwnLoginRecordPage(page, new AuditPosition(last.occurredAt(), last.entryId()));
     }
 
-    private static String where(AuditQuery query, Map<String, Object> params) {
+    private static String after(String where, AuditPosition after, Map<String, Object> params) {
+        if (after == null) {
+            return where;
+        }
+        params.put("afterAt", Timestamp.from(after.createdAt()));
+        params.put("afterId", after.entryId().value());
+        return where + (where.isEmpty() ? " where " : " and ") + "(created_at, id) < (:afterAt, :afterId)";
+    }
+
+    private static String where(AuditFilter query, Map<String, Object> params) {
         List<String> conditions = new ArrayList<>();
         if (query.actorId() != null) {
             conditions.add("actor_id = :actor");

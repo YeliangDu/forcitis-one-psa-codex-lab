@@ -175,7 +175,7 @@ Phase 1a 修复批 B1（身份与授权）新增术语（proposed，待业务评
 
 无错误码以外的术语。
 
-另有错误码 28 个（kind 为 `error_code`）、技术词 18 个（`common_words`），不在表中。
+另有错误码 27 个（kind 为 `error_code`）、技术词 18 个（`common_words`），不在表中。
 
 ## organization.attendance（`fix-b2-data.yaml`）
 

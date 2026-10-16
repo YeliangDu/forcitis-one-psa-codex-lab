@@ -3,16 +3,14 @@ package com.forcitis.one.platform.audit.domain;
 import com.forcitis.one.kernel.UserId;
 import java.util.List;
 
-/** Reading side of the audit trail. */
+/** Reading side of the audit trail. Every list is ordered by created_at desc, id desc. */
 public interface AuditEntryQueries {
 
-    AuditPage findPage(AuditQuery query);
+    AuditPage findPage(AuditFilter filter, AuditPosition after, int limit);
 
-    long count(AuditQuery filters);
+    /** The newest limit entries that match; no paging, no count. */
+    List<AuditRecord> findLatest(AuditFilter filter, int limit);
 
-    /** Newest first, at most maxRows; the paging fields of the query are ignored. */
-    List<AuditRecord> findAll(AuditQuery filters, int maxRows);
-
-    /** Newest first; only entries about this person, only the login and session actions, only the structured columns. */
-    List<OwnLoginRecord> findOwnLoginRecords(UserId subject, int limit);
+    /** Only entries about this person, only the login and session actions, only the structured columns. */
+    OwnLoginRecordPage findOwnLoginRecords(UserId subject, AuditPosition after, int limit);
 }

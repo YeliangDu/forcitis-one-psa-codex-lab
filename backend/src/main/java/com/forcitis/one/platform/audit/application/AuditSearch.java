@@ -1,28 +1,45 @@
 package com.forcitis.one.platform.audit.application;
 
-import com.forcitis.one.kernel.PageRequest;
+import com.forcitis.one.kernel.InvalidRequestException;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
 import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
+import com.forcitis.one.platform.audit.domain.AuditFilter;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-/** page is absent for an export, which takes every match up to its own limit. */
+/** The filter of a search and of an export alike (NAMING_STANDARD A-4); an unusable combination is refused at construction. */
 public record AuditSearch(UUID actorId, UUID onBehalfOfId, String action, String actionPrefix, AuditSubjectKind subjectKind, UUID subjectId, String sourceAddress,
-                          AuditOutcome outcome, Instant from, Instant to, PageRequest page) {
+                          AuditOutcome outcome, Instant from, Instant to) {
 
-    /** The object a search names: an id needs its kind, because the ids of different kinds are not told apart. */
-    AuditSubject subject() {
-        if (subjectId == null) {
-            return null;
+    public AuditSearch {
+        try {
+            toFilter(actorId, onBehalfOfId, action, actionPrefix, subjectKind, subjectId, sourceAddress, outcome, from, to);
+        } catch (IllegalArgumentException invalid) {
+            throw new InvalidRequestException(invalid.getMessage());
         }
-        if (subjectKind == null) {
-            throw new IllegalArgumentException("subjectId needs subjectKind");
+    }
+
+    AuditFilter toFilter() {
+        return toFilter(actorId, onBehalfOfId, action, actionPrefix, subjectKind, subjectId, sourceAddress, outcome, from, to);
+    }
+
+    /** An id needs its kind, because the ids of different kinds are not told apart. */
+    private static AuditFilter toFilter(UUID actorId, UUID onBehalfOfId, String action, String actionPrefix, AuditSubjectKind subjectKind, UUID subjectId,
+                                        String sourceAddress, AuditOutcome outcome, Instant from, Instant to) {
+        AuditSubject subject = null;
+        if (subjectId != null) {
+            if (subjectKind == null) {
+                throw new IllegalArgumentException("subjectId needs subjectKind");
+            }
+            subject = AuditSubject.of(subjectKind, subjectId);
         }
-        return AuditSubject.of(subjectKind, subjectId);
+        return new AuditFilter(actorId == null ? null : new UserId(actorId), onBehalfOfId == null ? null : new UserId(onBehalfOfId), blankToNull(action),
+                blankToNull(actionPrefix), subjectKind, subject, blankToNull(sourceAddress), outcome, from, to);
     }
 
     /** The filter as text for the audit entry about the search or the export; control characters cannot forge a line. */
@@ -37,7 +54,7 @@ public record AuditSearch(UUID actorId, UUID onBehalfOfId, String action, String
         return value == null ? null : name + "=" + String.valueOf(value).replaceAll("\\p{Cntrl}", " ");
     }
 
-    static String blankToNull(String value) {
+    private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }
 }
