@@ -1,8 +1,10 @@
-package com.forcitis.one.platform.identity.infrastructure.startup;
+package com.forcitis.one.acceptance.platform.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -14,14 +16,34 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
 import org.springframework.boot.support.SpringApplicationJsonEnvironmentPostProcessor;
+import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.SimpleCommandLinePropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.env.SystemEnvironmentPropertySource;
 
-/** Lives in the package of the listener so that its package-private static decision is reachable (the same way MigrateOnlyIT reaches MigrateOnlyListener). */
+/** The listener and its decision are package-private to the module, so the decision is reached by reflection. */
 class SingleOperatorModeListenerTest {
+
+    static boolean resolve(ConfigurableEnvironment environment) {
+        try {
+            Method decision = Class.forName("com.forcitis.one.platform.identity.infrastructure.startup.SingleOperatorModeListener").getDeclaredMethod("resolve",
+                    ConfigurableEnvironment.class);
+            decision.setAccessible(true);
+            return (boolean) decision.invoke(null, environment);
+        } catch (InvocationTargetException failure) {
+            if (failure.getCause() instanceof RuntimeException runtime) {
+                throw runtime;
+            }
+            if (failure.getCause() instanceof Error error) {
+                throw error;
+            }
+            throw new IllegalStateException(failure.getCause());
+        } catch (ReflectiveOperationException unexpected) {
+            throw new AssertionError("the listener's decision method is not where the acceptance expects it", unexpected);
+        }
+    }
 
     static final String KEY = "forcitis.platform.identity.single-operator-mode";
     static final String ENV_NAME = "FORCITIS_PLATFORM_IDENTITY_SINGLE_OPERATOR_MODE";
@@ -78,13 +100,13 @@ class SingleOperatorModeListenerTest {
     @MethodSource("notProd")
     @DisplayName("SINGLE-OP P1-01 键未设置：无 profile、dev、dev+identity-operations 都不失败，模式为关闭")
     void p101_unsetIsOff(List<String> profiles) {
-        assertThat(SingleOperatorModeListener.resolve(withoutKey(profiles.toArray(String[]::new)))).isFalse();
+        assertThat(resolve(withoutKey(profiles.toArray(String[]::new)))).isFalse();
     }
 
     @Test
     @DisplayName("SINGLE-OP P1-01 键未设置：prod 同样不因此失败，模式为关闭")
     void p101_unsetUnderProdIsOff() {
-        assertThat(SingleOperatorModeListener.resolve(withoutKey("prod"))).isFalse();
+        assertThat(resolve(withoutKey("prod"))).isFalse();
     }
 
     static Stream<List<String>> notProd() {
@@ -95,7 +117,7 @@ class SingleOperatorModeListenerTest {
     @MethodSource("falseProfiles")
     @DisplayName("SINGLE-OP P1-02 值恰为 false：dev、无 profile、非 dev 非 prod 的 profile 都通过，模式为关闭")
     void p102_falseIsOff(List<String> profiles) {
-        assertThat(SingleOperatorModeListener.resolve(withKey("false", profiles.toArray(String[]::new)))).isFalse();
+        assertThat(resolve(withKey("false", profiles.toArray(String[]::new)))).isFalse();
     }
 
     static Stream<List<String>> falseProfiles() {
@@ -105,37 +127,37 @@ class SingleOperatorModeListenerTest {
     @Test
     @DisplayName("SINGLE-OP P1-03 值恰为 true 且 profile 含 dev 不含 prod：通过，模式为开启（含 dev 与其他 profile 同时出现）")
     void p103_trueWithDevIsOn() {
-        assertThat(SingleOperatorModeListener.resolve(withKey("true", "dev"))).isTrue();
-        assertThat(SingleOperatorModeListener.resolve(withKey("true", "dev", "identity-operations"))).isTrue();
-        assertThat(SingleOperatorModeListener.resolve(withKey("true", "dev", "test"))).isTrue();
+        assertThat(resolve(withKey("true", "dev"))).isTrue();
+        assertThat(resolve(withKey("true", "dev", "identity-operations"))).isTrue();
+        assertThat(resolve(withKey("true", "dev", "test"))).isTrue();
     }
 
     @ParameterizedTest(name = "[{index}] \"{0}\"")
     @ValueSource(strings = {"", "   ", " true", "true ", "TRUE", "True", "yes", "1", "on", "null", "FALSE", "False", "0", "no"})
     @DisplayName("SINGLE-OP P1-04 取值不是字面量 true 或 false 时启动失败（逐值）")
     void p104_notALiteralFails(String value) {
-        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(withKey(value, "dev"))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> resolve(withKey(value, "dev"))).isInstanceOf(IllegalStateException.class);
     }
 
     @ParameterizedTest(name = "[{index}] {0}")
     @ValueSource(strings = {"environment variable", "command line", "SPRING_APPLICATION_JSON", "camel case on the command line"})
     @DisplayName("SINGLE-OP P1-05 同一判定覆盖全部来源：字面量 true 在每个来源下都被识别为开启")
     void p105_everySourceIsRead(String source) {
-        assertThat(SingleOperatorModeListener.resolve(bySource(source, "true"))).isTrue();
+        assertThat(resolve(bySource(source, "true"))).isTrue();
     }
 
     @ParameterizedTest(name = "[{index}] {0}")
     @ValueSource(strings = {"environment variable", "command line", "SPRING_APPLICATION_JSON", "camel case on the command line"})
     @DisplayName("SINGLE-OP P1-05 同一判定覆盖全部来源：空串在每个来源下都失败，不被当作未设置")
     void p105_emptyFailsInEverySource(String source) {
-        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(bySource(source, ""))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> resolve(bySource(source, ""))).isInstanceOf(IllegalStateException.class);
     }
 
     @ParameterizedTest(name = "[{index}] {0}")
     @ValueSource(strings = {"environment variable", "command line", "SPRING_APPLICATION_JSON", "camel case on the command line"})
     @DisplayName("SINGLE-OP P1-05 同一判定覆盖全部来源：乱码在每个来源下都失败")
     void p105_garbageFailsInEverySource(String source) {
-        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(bySource(source, "maybe"))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> resolve(bySource(source, "maybe"))).isInstanceOf(IllegalStateException.class);
     }
 
     @ParameterizedTest(name = "[{index}] {0}")
@@ -144,7 +166,7 @@ class SingleOperatorModeListenerTest {
     void p105_prodRefusesInEverySource(String source) {
         StandardEnvironment environment = bySource(source, "false");
         environment.setActiveProfiles("prod");
-        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(environment)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> resolve(environment)).isInstanceOf(IllegalStateException.class);
     }
 
     static StandardEnvironment bySource(String source, String value) {
@@ -161,9 +183,9 @@ class SingleOperatorModeListenerTest {
     @ValueSource(strings = {"true", "false", "", "garbage", " true", "true "})
     @DisplayName("SINGLE-OP P1-06 激活 profile 含 prod 时，键存在即启动失败（逐值）")
     void p106_prodWithKeyFails(String value) {
-        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(withKey(value, "prod"))).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(withKey(value, "prod", "identity-operations"))).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(withKey(value, "dev", "prod"))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> resolve(withKey(value, "prod"))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> resolve(withKey(value, "prod", "identity-operations"))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> resolve(withKey(value, "dev", "prod"))).isInstanceOf(IllegalStateException.class);
     }
 
     static Stream<List<String>> notDev() {
@@ -175,24 +197,24 @@ class SingleOperatorModeListenerTest {
     @MethodSource("notDev")
     @DisplayName("SINGLE-OP P1-07 值为 true 时 profile 必须含 dev 且不含 prod，其余一律失败（逐组合）")
     void p107_trueNeedsDevWithoutProd(List<String> profiles) {
-        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(withKey("true", profiles.toArray(String[]::new)))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> resolve(withKey("true", profiles.toArray(String[]::new)))).isInstanceOf(IllegalStateException.class);
     }
 
     @ParameterizedTest(name = "[{index}] key={0}")
     @ValueSource(strings = {"unset", "false", "true", "garbage"})
     @DisplayName("SINGLE-OP P1-08 identity-operations 不带 dev 或 prod 时启动失败，无论模式键是否设置")
     void p108_identityOperationsNeedsAnEnvironmentProfile(String key) {
-        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(key.equals("unset") ? withoutKey("identity-operations") : withKey(key, "identity-operations")))
+        assertThatThrownBy(() -> resolve(key.equals("unset") ? withoutKey("identity-operations") : withKey(key, "identity-operations")))
                 .isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(key.equals("unset") ? withoutKey("identity-operations", "test") : withKey(key, "identity-operations", "test")))
+        assertThatThrownBy(() -> resolve(key.equals("unset") ? withoutKey("identity-operations", "test") : withKey(key, "identity-operations", "test")))
                 .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     @DisplayName("SINGLE-OP P1-08 identity-operations+dev 与 identity-operations+prod 在键未设置时通过，模式为关闭")
     void p108_identityOperationsWithAnEnvironmentProfilePasses() {
-        assertThat(SingleOperatorModeListener.resolve(withoutKey("identity-operations", "dev"))).isFalse();
-        assertThat(SingleOperatorModeListener.resolve(withoutKey("identity-operations", "prod"))).isFalse();
+        assertThat(resolve(withoutKey("identity-operations", "dev"))).isFalse();
+        assertThat(resolve(withoutKey("identity-operations", "prod"))).isFalse();
     }
 
     @Test
@@ -203,7 +225,7 @@ class SingleOperatorModeListenerTest {
         List<StandardEnvironment> failing = List.of(withKey("bogus", "dev"), withKey("true", "prod"), withKey("true", "dev", "prod"), withKey("true"));
         for (StandardEnvironment environment : failing) {
             environment.getPropertySources().addLast(new MapPropertySource("secrets", Map.of("spring.datasource.password", fakePassword, "spring.datasource.url", fakeUrl)));
-            assertThatThrownBy(() -> SingleOperatorModeListener.resolve(environment)).isInstanceOf(IllegalStateException.class)
+            assertThatThrownBy(() -> resolve(environment)).isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining(KEY).hasMessageContaining("ADR-0030").hasMessageNotContaining(fakePassword).hasMessageNotContaining(fakeUrl)
                     .hasMessageNotContaining("fake-host-p109");
         }
@@ -220,14 +242,14 @@ class SingleOperatorModeListenerTest {
     @ValueSource(strings = {"true", "false", "", "garbage", " true"})
     @DisplayName("SINGLE-OP P1-06 没有激活 profile 时 default profile 起作用：default 含 prod 且键存在（任何取值，含 false）即启动失败")
     void p106_defaultProfileProdWithKeyFails(String value) {
-        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(byDefaultProfiles(value, "prod"))).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(byDefaultProfiles(value, "dev", "prod"))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> resolve(byDefaultProfiles(value, "prod"))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> resolve(byDefaultProfiles(value, "dev", "prod"))).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     @DisplayName("SINGLE-OP P1-06 default profile 含 prod 而键未设置：通过，模式为关闭")
     void p106_defaultProfileProdWithoutKeyPasses() {
-        assertThat(SingleOperatorModeListener.resolve(byDefaultProfiles(null, "prod"))).isFalse();
+        assertThat(resolve(byDefaultProfiles(null, "prod"))).isFalse();
     }
 
     @ParameterizedTest(name = "[{index}] key={0}")
@@ -235,21 +257,21 @@ class SingleOperatorModeListenerTest {
     @DisplayName("SINGLE-OP P1-08 没有激活 profile、default profile 含 identity-operations 而 default 不含 dev 或 prod：启动失败")
     void p108_defaultProfileIdentityOperationsAloneFails(String key) {
         String value = key.equals("unset") ? null : key;
-        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(byDefaultProfiles(value, "identity-operations"))).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(byDefaultProfiles(value, "identity-operations", "test"))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> resolve(byDefaultProfiles(value, "identity-operations"))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> resolve(byDefaultProfiles(value, "identity-operations", "test"))).isInstanceOf(IllegalStateException.class);
     }
 
     @Test
     @DisplayName("SINGLE-OP P1-08 没有激活 profile、default profile 含 identity-operations,dev（或 identity-operations,prod）在键未设置时通过，模式为关闭")
     void p108_defaultProfileIdentityOperationsWithEnvironmentPasses() {
-        assertThat(SingleOperatorModeListener.resolve(byDefaultProfiles(null, "identity-operations", "dev"))).isFalse();
-        assertThat(SingleOperatorModeListener.resolve(byDefaultProfiles(null, "identity-operations", "prod"))).isFalse();
+        assertThat(resolve(byDefaultProfiles(null, "identity-operations", "dev"))).isFalse();
+        assertThat(resolve(byDefaultProfiles(null, "identity-operations", "prod"))).isFalse();
     }
 
     @Test
     @DisplayName("SINGLE-OP P1-07 值为 true 时仍要求激活 profile 显式含 dev：default 里的 dev 不算开启")
     void p107_devInTheDefaultProfilesDoesNotEnable() {
-        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(byDefaultProfiles("true", "dev"))).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> SingleOperatorModeListener.resolve(byDefaultProfiles("true", "identity-operations", "dev"))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> resolve(byDefaultProfiles("true", "dev"))).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> resolve(byDefaultProfiles("true", "identity-operations", "dev"))).isInstanceOf(IllegalStateException.class);
     }
 }
