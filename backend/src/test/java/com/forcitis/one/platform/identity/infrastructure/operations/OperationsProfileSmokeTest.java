@@ -6,12 +6,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.OneApplication;
 import com.forcitis.one.TestPostgres;
+import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.organization.workforce.api.EmployeeProfile;
+import com.forcitis.one.organization.workforce.api.EmploymentStatus;
+import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import java.util.Optional;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -40,11 +47,26 @@ class OperationsProfileSmokeTest {
         return bytes;
     }
 
+    /** The organisation snapshot belongs to another module; the command only asks whether the operator and the witness exist in it. */
+    private static OrgDirectory attestorsOnly() {
+        OrgDirectory directory = Mockito.mock(OrgDirectory.class);
+        for (String attestor : java.util.List.of(OPERATOR_ID, WITNESS_ID)) {
+            EmployeeId id = EmployeeId.parse(attestor);
+            Mockito.when(directory.findEmployee(id)).thenReturn(Optional.of(new EmployeeProfile(id, "Synthetic attestor", TestOrgIds.orgUnit(10), null,
+                    EmploymentStatus.EMPLOYED, false)));
+        }
+        return directory;
+    }
+
     private Finished run(String... commandLine) {
         AtomicInteger exit = new AtomicInteger(-1);
         SpringApplication application = new SpringApplication(OneApplication.class);
         application.setAdditionalProfiles("identity-operations");
         application.addInitializers(context -> context.getBeanFactory().registerSingleton("processExit", (ProcessExit) exit::set));
+        application.addInitializers(context -> context.addBeanFactoryPostProcessor(beans -> {
+            ((BeanDefinitionRegistry) beans).removeBeanDefinition("orgDirectoryService");
+            beans.registerSingleton("orgDirectoryService", attestorsOnly());
+        }));
         String[] infrastructure = {
                 "--spring.datasource.url=" + POSTGRES.getJdbcUrl(), "--spring.datasource.username=" + POSTGRES.getUsername(),
                 "--spring.datasource.password=" + POSTGRES.getPassword(), "--spring.datasource.hikari.connection-timeout=2000",
