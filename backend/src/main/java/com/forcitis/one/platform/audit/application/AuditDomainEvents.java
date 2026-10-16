@@ -3,7 +3,6 @@ package com.forcitis.one.platform.audit.application;
 import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.kernel.SystemActors;
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventEnvelope;
@@ -11,6 +10,8 @@ import com.forcitis.one.kernel.event.NotAudited;
 import com.forcitis.one.kernel.event.Reasoned;
 import com.forcitis.one.platform.audit.api.AuditDetail;
 import com.forcitis.one.platform.audit.api.AuditEntry;
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.platform.audit.domain.AuditEntryRepository;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -39,19 +40,27 @@ class AuditDomainEvents {
             return;
         }
         EventEnvelope envelope = event.envelope();
-        UserId actor = envelope.actorType() == ActorType.USER ? UserId.parse(envelope.actorId()) : null;
+        AuditSubject subject;
+        try {
+            subject = AuditSubject.of(AuditSubjectKind.ofAggregateType(envelope.aggregateType()), envelope.aggregateId());
+        } catch (IllegalArgumentException unknown) {
+            LOG.error("ALERT platform.audit event {} ({}) is about an aggregate type {} that has no audit subject kind: not audited",
+                    envelope.eventId(), envelope.eventType(), envelope.aggregateType());
+            throw unknown;
+        }
+        UserId actor = envelope.actorType() == ActorType.USER ? new UserId(envelope.actorId()) : null;
         String detail = event instanceof AuditDetail detailed ? detailed.auditDetail()
                 : envelope.actorType() == ActorType.USER ? null : "by " + systemActorName(envelope);
         String reason = event instanceof Reasoned reasoned && reasoned.reason() != null ? reasoned.reason().value() : null;
         AuditEntry entry = new AuditEntry(envelope.eventType(), actor, null,
-                envelope.aggregateType() + ":" + envelope.aggregateId(), detail).withChange(reason, null, null);
+                subject, detail).withChange(reason, null, null);
         if (!entries.saveForEvent(entry, envelope.occurredAt(), envelope.eventId(), envelope.correlationId())) {
             LOG.info("platform.audit event {} was audited before: ignored", envelope.eventId());
         }
     }
 
     private static String systemActorName(EventEnvelope envelope) {
-        UUID id = Uuids.parseCanonical(envelope.actorId());
+        UUID id = envelope.actorId();
         return SystemActors.nameOf(id).orElseGet(() -> {
             LOG.error("ALERT platform.audit event {} names system actor {} that this instance does not know: audited by its id",
                     envelope.eventId(), id);

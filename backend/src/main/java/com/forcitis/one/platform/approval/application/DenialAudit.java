@@ -25,7 +25,7 @@ class DenialAudit {
         try {
             audit.recordIndependently(entry);
         } catch (RuntimeException failed) {
-            log.error("Audit entry {} for {} could not be written: {}", entry.action(), entry.subjectKey(), failed.toString());
+            log.error("Audit entry {} for {} could not be written: {}", entry.action(), entry.subject(), failed.toString());
             meters.counter("forcitis.platform.approval.audit.failed").increment();
         }
     }

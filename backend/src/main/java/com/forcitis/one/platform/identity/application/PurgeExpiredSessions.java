@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +40,7 @@ public class PurgeExpiredSessions {
             for (ExpiredSessions.Expired expired : batch) {
                 UserId user = accountOf(expired.principalName());
                 audit.record(new AuditEntry("platform.identity.session.expired", user, null,
-                        user == null ? "session:unknown" : "user-account:" + user.value(), "cause=" + expired.cause()));
+                        user == null ? AuditSubject.without(AuditSubjectKind.OPERATION) : AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, user.value()), "cause=" + expired.cause()));
             }
             removed += sessions.deleteSessions(batch.stream().map(ExpiredSessions.Expired::primaryKey).toList());
         } while (batch.size() == BATCH);

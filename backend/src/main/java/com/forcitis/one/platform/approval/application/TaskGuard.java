@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.approval.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.UserId;
@@ -49,7 +51,7 @@ class TaskGuard {
 
     void deny(TaskView task, UserId actor, String action) {
         audit.record(new AuditEntry("platform.approval.task.denied", actor, null,
-                "approval-task:" + task.taskId().value(), action));
+                AuditSubject.of(AuditSubjectKind.APPROVAL_TASK, task.taskId().value()), action));
         throw notFound(task.taskId());
     }
 

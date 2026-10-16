@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import java.time.LocalDate;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.TestPostgres;
@@ -23,9 +24,9 @@ import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
 import com.forcitis.one.platform.approval.events.ApprovalTaskEscalated;
-import com.forcitis.one.platform.approval.events.ApprovalTaskOverdue;
+import com.forcitis.one.platform.approval.events.ApprovalTaskBecameOverdue;
 import com.forcitis.one.platform.approval.events.TaskAssigned;
-import com.forcitis.one.platform.approval.events.TaskResulted;
+import com.forcitis.one.platform.approval.events.TaskHandled;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.CurrentUser;
 import com.forcitis.one.platform.integration.api.ExternalCallKind;
@@ -63,6 +64,9 @@ import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import com.forcitis.one.kernel.event.EventEnvelope;
+import com.forcitis.one.platform.numbering.api.IssuedNumber;
+import com.forcitis.one.platform.numbering.api.NumberingCounterId;
 
 /** One PostgreSQL 18 container per test JVM and a cached application context; the Flowable schema is created by the engine only in tests; other modules' dependencies are doubles. */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "forcitis.platform.approval.deadline.enabled=false", "flowable.database-schema-update=true",
@@ -140,10 +144,13 @@ public abstract class ApprovalIntegrationSupport {
     @Autowired
     protected com.forcitis.one.kernel.event.EventEnvelopes envelopes;
 
-    protected com.forcitis.one.kernel.event.EventEnvelope envelope(String eventType, String aggregateType, String aggregateId, long aggregateVersion) {
+    protected UUID requestIdOf(String documentKey) {
+        return jdbc.queryForObject("select id from platform_approval.approval_requests where document_id = cast(? as uuid)", UUID.class, documentKey);
+    }
+
+    protected EventEnvelope envelope(String eventType, String aggregateType, UUID aggregateId, long aggregateVersion) {
         return envelopes.wrap(new com.forcitis.one.kernel.event.EventDraft(eventType, 1, aggregateType, aggregateId, aggregateVersion, LEGAL_ENTITY,
-                java.time.LocalDate.now(), new com.forcitis.one.kernel.event.EventSource(com.forcitis.one.kernel.event.SourceSystem.ONE, null),
-                java.util.List.of()));
+                LocalDate.now(), List.of()));
     }
 
     @Autowired
@@ -200,7 +207,8 @@ public abstract class ApprovalIntegrationSupport {
         events = new Events(recorded);
         organisation.person(ADMINISTRATOR, 1, null).role("process_administrator", ADMINISTRATOR);
         org.mockito.Mockito.when(numbers.next(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
-                .thenAnswer(call -> new DocumentNumber("TS-T-" + NUMBERS.incrementAndGet()));
+                .thenAnswer(call -> new IssuedNumber(new DocumentNumber("TS-T-" + NUMBERS.incrementAndGet()),
+                        new NumberingCounterId(UUID.randomUUID())));
     }
 
     /** Unique ids so tests sharing database and context cannot see each other's data. */
@@ -293,7 +301,7 @@ public abstract class ApprovalIntegrationSupport {
         public volatile boolean failing;
 
         @org.springframework.transaction.event.TransactionalEventListener(phase = org.springframework.transaction.event.TransactionPhase.BEFORE_COMMIT)
-        void on(TaskResulted event) {
+        void on(TaskHandled event) {
             if (failing) {
                 throw new IllegalStateException("the event store is down");
             }
@@ -329,16 +337,16 @@ public abstract class ApprovalIntegrationSupport {
             return recorded.stream(ApprovalCompleted.class).toList();
         }
 
-        public List<TaskResulted> resulted() {
-            return recorded.stream(TaskResulted.class).toList();
+        public List<TaskHandled> resulted() {
+            return recorded.stream(TaskHandled.class).toList();
         }
 
         public List<TaskAssigned> assigned() {
             return recorded.stream(TaskAssigned.class).toList();
         }
 
-        public List<ApprovalTaskOverdue> overdue() {
-            return recorded.stream(ApprovalTaskOverdue.class).toList();
+        public List<ApprovalTaskBecameOverdue> overdue() {
+            return recorded.stream(ApprovalTaskBecameOverdue.class).toList();
         }
 
         public List<ApprovalTaskEscalated> escalated() {

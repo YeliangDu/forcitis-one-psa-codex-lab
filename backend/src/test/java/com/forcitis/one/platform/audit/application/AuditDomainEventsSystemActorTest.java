@@ -13,8 +13,6 @@ import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.EventEnvelope;
-import com.forcitis.one.kernel.event.EventSource;
-import com.forcitis.one.kernel.event.SourceSystem;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.events.LegalEntityRegistered;
 import com.forcitis.one.platform.audit.api.AuditEntry;
@@ -62,10 +60,9 @@ class AuditDomainEventsSystemActorTest {
         return new UUID(high, low);
     }
 
-    private AuditEntry auditedBy(String actorId) {
+    private AuditEntry auditedBy(UUID actorId) {
         EventEnvelope envelope = new EventEnvelope(UUID.randomUUID(), "organization.workforce.LegalEntityRegistered", 1, Instant.parse("2026-10-15T02:00:00Z"),
-                "LegalEntity", TestIds.uuid(9).toString(), 1, UUID.randomUUID(), null, ActorType.SYSTEM, actorId, new LegalEntityId(TestIds.uuid(9)), null,
-                new EventSource(SourceSystem.ONE, null), null, List.of());
+                "LegalEntity", TestIds.uuid(9), 1, UUID.randomUUID(), null, ActorType.SYSTEM, actorId, new LegalEntityId(TestIds.uuid(9)), null, null, List.of());
         audit.on(new LegalEntityRegistered(envelope, new LegalEntityId(TestIds.uuid(9)), new LegalEntityCode("SYS")));
         ArgumentCaptor<AuditEntry> saved = ArgumentCaptor.forClass(AuditEntry.class);
         verify(entries).saveForEvent(saved.capture(), any(), any(), any());
@@ -79,7 +76,7 @@ class AuditDomainEventsSystemActorTest {
     @Test
     @DisplayName("P2-H1 重启后重投的 SYSTEM 事件仍写出作业名：本实例尚未运行该作业，名字从声明的目录反查，不告警")
     void P2_H1_aRedeliveredSystemEventNamesItsJob() throws Exception {
-        AuditEntry entry = auditedBy(version5("platform.approval.deadline.enforce").toString());
+        AuditEntry entry = auditedBy(version5("platform.approval.deadline.enforce"));
 
         assertThat(entry.actorId()).isNull();
         assertThat(entry.detail()).isEqualTo("by platform.approval.deadline.enforce");
@@ -91,7 +88,7 @@ class AuditDomainEventsSystemActorTest {
     void P2_H1_anUndeclaredSystemActorIsAuditedByItsIdAndAlerts() throws Exception {
         UUID unknown = version5("no.such.job.declared");
 
-        AuditEntry entry = auditedBy(unknown.toString());
+        AuditEntry entry = auditedBy(unknown);
 
         assertThat(entry.detail()).isEqualTo("by " + unknown);
         assertThat(alerts()).hasSize(1);

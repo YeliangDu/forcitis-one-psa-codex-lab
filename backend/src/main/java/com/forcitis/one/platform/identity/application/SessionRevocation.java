@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
@@ -18,6 +20,6 @@ class SessionRevocation {
 
     void revokeAll(UserId userId, String reason) {
         sessions.revokeAll(userId);
-        audit.record(new AuditEntry("platform.identity.session.revoked", null, null, "user-account:" + userId.value(), reason));
+        audit.record(new AuditEntry("platform.identity.session.revoked", null, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()), reason));
     }
 }

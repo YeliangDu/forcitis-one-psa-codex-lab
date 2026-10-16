@@ -26,7 +26,7 @@ describe('availableActions', () => {
   });
 
   it('已认领的任务不再显示认领', () => {
-    expect(availableActions({ ...TASK, assignee: '1001' })).toEqual({ claim: false, approve: true, reject: true, returnToInitiator: true });
+    expect(availableActions({ ...TASK, assignee: '019a0000-0000-7000-8000-000000001001' })).toEqual({ claim: false, approve: true, reject: true, returnToInitiator: true });
   });
 
   it('服务端说现在不能办理（例如只是发起人）时一个按钮都没有', () => {

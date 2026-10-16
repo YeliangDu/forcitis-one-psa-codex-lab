@@ -1,5 +1,7 @@
 package com.forcitis.one.platform.identity.infrastructure.security;
 
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.SessionRoles;
 import com.forcitis.one.platform.audit.api.AuditEntry;
@@ -88,7 +90,7 @@ final class SessionGuardFilter extends OncePerRequestFilter {
         }
         session.setAttribute(EXPIRY_AUDITED, until);
         audit.recordIndependently(new AuditEntry("platform.identity.administrator-mode.exited", account, null,
-                "user-account:" + account.value(), "expired at " + until).withTrace(request.getRemoteAddr(), AuditOutcome.SUCCEEDED,
+                AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, account.value()), "expired at " + until).withTrace(request.getRemoteAddr(), AuditOutcome.SUCCEEDED,
                 identity.loginMethod().name()));
         log.error("ALERT platform.identity administrator mode of user {} expired at {}", account.value(), until);
     }

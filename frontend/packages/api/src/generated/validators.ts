@@ -28,11 +28,14 @@ export const AuditEntryResponseSchema = z.object({
   onBehalfOfId: z.string().nullable().optional(),
   get outcome() { return AuditOutcomeSchema.optional(); },
   sourceAddress: z.string().nullable().optional(),
-  subjectKey: z.string(),
+  subjectId: z.string().nullable().optional(),
+  get subjectKind() { return AuditSubjectKindSchema; },
   traceNumber: z.string().nullable().optional(),
 });
 
 export const AuditOutcomeSchema = lenientEnum("AuditOutcome", ["SUCCEEDED", "FAILED"]);
+
+export const AuditSubjectKindSchema = lenientEnum("AuditSubjectKind", ["USER_ACCOUNT", "EMPLOYEE", "ORG_UNIT", "EMERGENCY_ADMIN", "ROLE", "APPROVAL_TASK", "APPROVAL_REQUEST", "SYNC_RUN", "LEGAL_ENTITY", "LEGAL_ENTITY_ATTRIBUTION", "TIMESHEET", "WORK_CALENDAR_YEAR", "NUMBERING_RULE", "SOURCE_REFERENCE", "SOURCE_REFERENCE_REFUSAL", "AUTHORIZATION_REQUEST", "REQUEST", "OPERATION", "LOGIN_ATTEMPT"]);
 
 export const AuthorizationRequestViewSchema = z.object({
   kind: z.string().optional(),
