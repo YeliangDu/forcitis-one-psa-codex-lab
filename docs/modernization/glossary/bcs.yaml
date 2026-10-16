@@ -312,6 +312,41 @@ bcs:
   status: proposed
   subdomain: platform
   description: "公司门户，致远单点登录的入口"
+- id: u8c
+  zh: U8C 财务核算系统
+  en: U8C
+  kind: system
+  status: proposed
+  subdomain: platform
+  description: "财务核算外部系统；只在防腐层与集成册出现，领域模块不出现其名称（#432 架构用语门禁报告建议登记）"
+- id: a8
+  zh: A8 协同办公系统
+  en: A8
+  kind: system
+  status: proposed
+  subdomain: platform
+  description: "协同办公外部系统；只在防腐层与集成册出现，领域模块不出现其名称（#432 架构用语门禁报告建议登记）"
+- id: fenbeitong
+  zh: 分贝通
+  en: Fenbeitong
+  kind: system
+  status: proposed
+  subdomain: platform
+  description: "差旅与费用外部服务商；只在防腐层与集成册出现，领域模块不出现其名称（#432 架构用语门禁报告建议登记）"
+- id: aliyun_oss
+  zh: 阿里云 OSS
+  en: AliyunOss
+  kind: system
+  status: proposed
+  subdomain: platform
+  description: "对象存储外部服务；只在防腐层与集成册出现，领域模块不出现其名称（#432 架构用语门禁报告建议登记）"
+- id: digital_invoice_platform
+  zh: 数电发票平台
+  en: DigitalInvoicePlatform
+  kind: system
+  status: proposed
+  subdomain: platform
+  description: "全面数字化电子发票外部平台；只在防腐层与集成册出现，领域模块不出现其名称（#432 架构用语门禁报告建议登记）"
 - id: masterdata
   zh: 主数据
   subdomain: masterdata
@@ -330,6 +365,12 @@ bcs:
   kind: bc
   business_owner: 用户兼任
   description: "服务产品、阶段类型、标准成本费率表、计费系数、协议价目的版本化目录"
+- id: delivery.closeout
+  zh: 项目结项
+  subdomain: delivery
+  kind: bc
+  business_owner: 用户兼任
+  description: "项目结项（B-29）；无聚合的流程模块，D-9 用户已定 a（ENTERPRISE_AGGREGATES_DRAFT）"
 - id: delivery.inspection
   zh: 检查与检测
   subdomain: delivery
