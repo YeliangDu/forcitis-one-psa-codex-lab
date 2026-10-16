@@ -52,7 +52,7 @@ class IssueDocumentNumber implements DocumentNumbers {
         String periodKey = template.pattern().resetPolicy().periodKey(businessDate);
         ReservedValue reserved = rules.reserveNext(type, counterScope, periodKey, template.startValue());
         return new IssuedNumber(new DocumentNumber(template.pattern().render(type.code().orElse(null), template.pattern().usesLegalEntityCode() ? legalEntityCode : null, businessDate, reserved.value())),
-                reserved.counterId());
+                reserved.counterId(), template.id());
     }
 
     private DomainException notConfirmed(DocumentType type, LocalDate businessDate) {
