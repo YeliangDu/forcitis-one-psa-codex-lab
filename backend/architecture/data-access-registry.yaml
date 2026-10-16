@@ -12,6 +12,7 @@
 # references   role columns that point at a table of the same schema although the name does not say which (K6)
 # optional     the table exists only on one side of a pending integration; the entry is checked when the table is there and then removed or made required.
 #              An optional entry carries a due date (due) and fails once it has passed.
+# partition     a range-partitioned table (ADR-0048): key column, granularity, the job that pre-creates partitions and who removes an archived one
 # gaps         known violations with an owner: {rule, column?, due, owner, ref, note}. Only D3 and D4 may leave out the column; a gap past its due date fails the test. A gap that is no longer violated fails the test, so it is removed in the
 #              same change that fixes it. Gaps are handed over to the owner named; none may be added to hide a new violation.
 tables:
@@ -202,8 +203,11 @@ tables:
     readers: [platform.approval]
 
   platform_audit.audit_entries:
+    # Online 3 years, archived 10 years in total. Whole months leave the table only as partitions: the maintenance role runs
+    # platform_audit.drop_archived_audit_entry_partition after the month is archived and checked (O-8); the application never deletes a row.
     role: LOG_APPEND_ONLY
     mutability: APPEND_ONLY
+    partition: {key: created_at, granularity: month_utc, precreate_job: platform.audit.entry.partitions, drop: audit maintenance role via platform_audit.drop_archived_audit_entry_partition}
     retention: {policy: 3y, job: platform.audit.entry.archive}
     lineage: {source: NEW}
     writers: [platform.audit]

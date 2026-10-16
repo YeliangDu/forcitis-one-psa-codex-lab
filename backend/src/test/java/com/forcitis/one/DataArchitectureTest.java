@@ -136,7 +136,7 @@ class DataArchitectureTest {
             try (ResultSet rs = c.createStatement().executeQuery("""
                     select n.nspname || '.' || r.relname, obj_description(r.oid, 'pg_class')
                       from pg_class r join pg_namespace n on n.oid = r.relnamespace
-                     where r.relkind in ('r', 'p') and n.nspname not like 'pg\\_%' and n.nspname not in ('information_schema', 'public', 'one_migration')
+                     where r.relkind in ('r', 'p') and not r.relispartition and n.nspname not like 'pg\\_%' and n.nspname not in ('information_schema', 'public', 'one_migration')
                     """)) {
                 while (rs.next()) {
                     Table t = new Table(rs.getString(1));

@@ -14,6 +14,8 @@ import java.time.OffsetDateTime;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.Period;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,8 +37,8 @@ import tools.jackson.databind.json.JsonMapper;
  * Audit entries older than the online period (3 years) are written to the archive store in batches, in (created_at, id) order and only as a prefix of
  * the entries that all qualify, so a late-written old entry is never skipped; the position is a moment and an id, never an id alone. A batch counts as archived when the vault confirmed the
  * object and the batch row is saved (the progress). An old entry written after the archive passed its moment is never archived and shows only as a
- * reconciliation alert, so a migration of old entries must be loaded before the archive position moves past their dates. Online rows are kept: the table refuses DELETE (G34), and removing them needs
- * its own decision. The archive is kept by the bucket's WORM retention; the application never deletes it.
+ * reconciliation alert, so a migration of old entries must be loaded before the archive position moves past their dates. Online rows are never deleted row by row (the table refuses DELETE, G34); a whole month leaves only when the maintenance role removes its partition after the batches
+ * of that month are checked against it (platform_audit.drop_archived_audit_entry_partition). A batch never spans two UTC months. The archive is kept by the bucket's WORM retention; the application never deletes it.
  */
 @Component
 @EnableConfigurationProperties(AuditArchiveJob.Policy.class)
@@ -111,15 +113,23 @@ class AuditArchiveJob implements SmartInitializingSingleton {
 
     /**
      * Archiving goes by (created_at, id) and remembers the last entry's moment and id; an entry written later with an earlier moment
-     * (a clock step) would never be archived. Every entry up to the archived position must be in a batch, and none is deleted online,
-     * so the counts must match.
+     * (a clock step) would never be archived. Every online entry up to the archived position must be in a batch of an online month (a month whose
+     * partition the maintenance role has removed is no longer compared), and none is deleted row by row, so the counts must match.
      */
     void reconcile() {
         Optional<Position> last = position();
         if (last.isEmpty()) {
             return;
         }
-        long archived = jdbc.sql("select coalesce(sum(entry_count), 0) from platform_audit.audit_archive_batches").query(Long.class).single();
+        List<String> online = jdbc.sql("""
+                select substring(c.relname from '[0-9]{6}$') from pg_inherits i join pg_class c on c.oid = i.inhrelid
+                 where i.inhparent = 'platform_audit.audit_entries'::regclass
+                """).query(String.class).list();
+        if (online.isEmpty()) {
+            return;
+        }
+        long archived = jdbc.sql("select coalesce(sum(entry_count), 0) from platform_audit.audit_archive_batches where to_char(first_entry_created_at at time zone 'UTC', 'YYYYMM') in (:online)")
+                .param("online", online).query(Long.class).single();
         long upToTheLast = jdbc.sql("select count(*) from platform_audit.audit_entries where (created_at, id) <= (:at, :id)")
                 .param("at", last.get().createdAt()).param("id", last.get().entryId()).query(Long.class).single();
         if (archived != upToTheLast) {
@@ -154,14 +164,24 @@ class AuditArchiveJob implements SmartInitializingSingleton {
             if (due == 0) {
                 return total;
             }
-            List<Map<String, Object>> batch = entries.subList(0, due);
+            YearMonth month = monthOf(entries.getFirst());
+            int inMonth = 1;
+            while (inMonth < due && monthOf(entries.get(inMonth)).equals(month)) {
+                inMonth++;
+            }
+            List<Map<String, Object>> batch = entries.subList(0, inMonth);
             ArchivedObject stored = vault.archive(KIND, batch.stream().map(json::writeValueAsString).toList());
             insertBatch(batch.getFirst(), batch.getLast(), batch.size(), stored);
             total += batch.size();
-            if (due < BATCH) {
+            if (inMonth == due && due < BATCH) {
                 return total;
             }
         }
+    }
+
+    /** A batch never spans two UTC months, so every batch belongs to one partition and a partition can be checked against its batches. */
+    private static YearMonth monthOf(Map<String, Object> entry) {
+        return YearMonth.from(Instant.parse((String) entry.get("created_at")).atOffset(ZoneOffset.UTC));
     }
 
     /** Only the listed columns, only types whose JSON form is unambiguous; any other type is a failure, not a toString. */

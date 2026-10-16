@@ -4299,6 +4299,10 @@ x-system-actors:
   actorId: 304a2664-74ef-54c4-82d6-ceacbf79aa27
   module: platform.audit
   description: 作业：审计归档探测
+- name: platform.audit.entry.partitions
+  actorId: 1f8be478-7a1b-5986-b21a-577054158fb6
+  module: platform.audit
+  description: 作业：预建审计月分区
 - name: platform.idempotency.cleanup
   actorId: 5dcad602-9ae4-5a53-be29-95914598ca0d
   module: platform.idempotency
