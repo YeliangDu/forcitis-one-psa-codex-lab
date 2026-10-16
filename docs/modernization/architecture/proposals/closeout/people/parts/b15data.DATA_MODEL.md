@@ -21,8 +21,8 @@
 | AGG-76 | `bonus_determination_evidences`（关联） | 新建 | 事实 | 不需要：随核定行 | 全量，随核定行 | SENSITIVE / pi：只存绩效评估 ID |
 | AGG-93 人员薪酬档案 | `payroll_profiles`（根） | 新建（SAMPLE 已定稿） | 主数据 | 不需要：根只留所属人员（D17 第四类，个人信息最小化） | 全量，待取证 | SENSITIVE / pi |
 | AGG-93 | `payroll_profile_versions`（版本） | 新建（SAMPLE 已定稿，增列族「调薪依据引用」） | 主数据 | D6 维度型，DECLARED；调薪 = 新版本 | 全量；信息图证 OA 调薪申请 #60 只作证据，来源待取证 | SENSITIVE / spi：薪资与发薪账户（金融账户），个人信息保护法第 28 条、ADR-0043 最高访问级别 |
-| AGG-93 | `payroll_special_deduction_declarations`（次级） | 新建 | 主数据 | D6 维度型：年度内可修订，追加新生效区间 | 全量；个税端下载件是否留存待取证 | SENSITIVE / spi |
-| AGG-93 | `payroll_special_deduction_items`（次级） | 新建 | 主数据 | 随申报；记所用扣除标准版本 ID（D7） | 同上 | SENSITIVE / spi：含受益人关系与未成年子女信息（第 28 条，U-11） |
+| AGG-120 专项附加扣除声明（S-32 自 AGG-93 拆出） | `payroll_special_deduction_declarations`（根） | 新建 | 主数据 | D6 维度型：年度内可修订，追加新生效区间 | 全量；个税端下载件是否留存待取证 | SENSITIVE / spi |
+| 同上 | `payroll_special_deduction_items`（次级） | 新建 | 主数据 | 随申报；记所用扣除标准版本 ID（D7） | 同上 | SENSITIVE / spi：含受益人关系与未成年子女信息（第 28 条，U-11） |
 | AGG-95 个税扣缴与社保公积金申报 | `tax_social_filings`（根） | 新建 | 交易 | 不需要：单据，状态由审计还原，更正另立申报（自引用） | 全量；政府端是权威登记，老系统只可能有登记行，待取证，缺口入对账 | SENSITIVE / 无：法人级税费汇总 |
 | AGG-95 | `tax_social_filing_lines`（次级） | 新建 | 事实 | 期间快照，提交后不改 | 同上 | SENSITIVE / spi：含证件号码 |
 | AGG-95 | `tax_social_filing_receipts`（次级） | 新建 | 事实 | 只追加：外部回执事实 | 同上 | INTERNAL / 无 |
@@ -33,12 +33,12 @@
 | 同上 | `contribution_rate_rules`（次级） | 新建 | 配置 | 随版本 | 同上 | INTERNAL / 无 |
 | 同上 | `payroll_calculation_parameters`（次级） | 新建 | 配置 | 随版本 | 同上 | INTERNAL / 无 |
 
-表数：24 张（7 个聚合：AGG-73 四、AGG-74 二、AGG-75 三、AGG-76 二、AGG-93 四、AGG-95 四、规则版本 五，合计 24），全部新建。
+表数：24 张（8 个聚合：AGG-73 四、AGG-74 二、AGG-75 三、AGG-76 二、AGG-93 二、AGG-120 二、AGG-95 四、规则版本 五，合计 24），全部新建。
 
 ### 关系概要
 
-- 同聚合内外键：行表 → 结算根；项目行 → 薪酬行；规则引用 → 结算根；回执、缴款、明细 → 申报根；扣除明细 → 申报（declarations）→ 档案根。
-- 同 BC 跨聚合按 ID（D3，不建外键）：结算行 → 档案版本（AGG-93）、参保版本（AGG-74）；项目行 → 奖金核定（AGG-76）；结算 → 规则版本；申报 → 结算（AGG-73）；核定 → 方案版本（AGG-75）。
+- 同聚合内外键：行表 → 结算根；项目行 → 薪酬行；规则引用 → 结算根；回执、缴款、明细 → 申报根；扣除明细 → 声明根（AGG-120）。
+- 同 BC 跨聚合按 ID（D3，不建外键）：声明 → 档案（AGG-120 → AGG-93，按 ID）；结算行 → 档案版本（AGG-93）、参保版本（AGG-74）；项目行 → 奖金核定（AGG-76）；结算 → 规则版本；申报 → 结算（AGG-73）；核定 → 方案版本（AGG-75）。
 - 跨 BC 按 ID：B-13（员工 AGG-62、法人 AGG-60、组织单元 AGG-61、绩效评估 AGG-106）；B-27（月度考勤确认 AGG-97）；B-10（应付 AGG-52、利润分配 AGG-109）；B-16（过账 AGG-77）；B-19（会计期间 AGG-81）。
 - 业务唯一与排他约束（交 one-data 在 DDL 阶段落）：结算（法人 × 月 × 正常类型）；参保版本（人员 × 区间不重叠）；档案版本（人员 × 区间不重叠）；规则版本（类别 × 范围 × 区间不重叠）；申报（扣缴义务人 × 类别 × 所属期，更正除外）。
 - 个人信息保护：spi 表在首次读取、收集或处理前完成影响评估（ADR-0043 第 5 项，U-10）；SPI 与 L3 不进日志、事件、审计 detail 原值、企业微信卡片、分析层明细（ADR-0043 第 4、7 项）；事件只带自有 ID。保留期（D12）与 ADR-0043 R-2 不得 PERMANENT，待 one-data 登记。

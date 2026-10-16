@@ -326,3 +326,33 @@ processes:
         metric_event: true
         outcome: 已废止
     notes: 合并原 PRC-108、109、110（⑥a 评审 H2 c）。已发布版本不得修改（INV-115）；引用方按 ID 与版本引用，不订阅。B-04 → B-30 边已有。项目复盘提炼入口的页面在 B-04，命令在本 BC。评审是专业判断，保留人工，按聚合内审批写；补 B-30 → platform.approval 边的影响见 NOTES 结构问题 1。
+
+event_policies:
+
+  - id: PRC-161
+    name: 年末关闭预算账户
+    type: event_policy
+    trigger:
+      type: time
+      desc: 预算期届满（年末）
+    triggers:
+      - {type: time, name: "预算期届满（B-18 向 platform.scheduling 登记，幂等键 = 聚合 ID + 到期时点）"}
+    stages: [VS-09.3]
+    owner_bc: B-18
+    migration: "迁入不触发（ADR-0036 M7）；迁入时已届满的预算账户按迁入对账核对状态，不回放关闭"
+    outcomes: [预算账户已关闭, 关闭待处理]
+    scenarios: [PRC-161-S01, PRC-161-S02]   # S01 预算期届满，账户无占用中的占用行，关闭；S02 仍有占用中的占用行，关闭待处理并告警财务
+    roles:
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "接收关闭待处理告警，先释放或消耗占用中的占用行后重新触发", approval_right: "无", department_hint: "财务部", position_hint: "预算会计、财务负责人"}}       # 财务：占用未清告警
+    steps:
+      - actor: system
+        where: automatic
+        command: 关闭预算账户
+        aggregate: AGG-80
+        desc: 预算期届满或已被同计划新基线取代的账户关闭，之后不再接受占用与调剂；仍有占用中的占用行的账户不关闭，告警财务先释放或消耗，不静默（CLAUDE.md 第 6 条）；已关闭无操作
+        audit: true
+        notify: [{to: SH-E6, how: 企业微信待办}]
+        decision:
+          - {when: 账户仍有占用中的占用行, goto: end, outcome: 关闭待处理}
+          - {when: otherwise, goto: end, outcome: 预算账户已关闭}
+    notes: 定时由 B-18 向 platform.scheduling 登记，到点调本 BC 命令，边 B-18 → platform.scheduling 按平台依赖登记（CONVENTIONS §5）。账户关闭后占用方单据（B-11、B-12）再调用预算占用会被拒绝并提示，由占用方单据所属流程处理。无人工审批：关闭由日期与占用状态守卫。

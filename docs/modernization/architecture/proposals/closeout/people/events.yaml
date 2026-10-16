@@ -17,6 +17,9 @@ by_part:
       - type: 事件策略
         who: platform.identity 标记数据范围待复核并通知区域负责人
         used_by: PRC-80 第 6 步（P-31）
+      - type: 事件策略
+        who: B-13 向差旅服务商同步员工与组织
+        used_by: PRC-177 触发器（同 BC）
       - &id001
         type: 仅分析
       note: 已在聚合稿登记订阅方 platform.identity；P-31 现只由本事件触发，需扩任职已变更（接缝问题 5）
@@ -119,6 +122,9 @@ by_part:
         ref: PRC-84
         who: B-15
         used_by: PRC-84 第 1 步触发器
+      - type: 事件策略
+        who: B-13 向差旅服务商同步员工与组织
+        used_by: PRC-177 触发器（同 BC）
       - type: 流程
         ref: PRC-137
         who: platform.identity
@@ -154,7 +160,10 @@ by_part:
       - type: 流程
         ref: PRC-130
         who: B-15
-        used_by: PRC-130 触发器（参保减员）
+        used_by: PRC-130 触发器（终止薪酬档案、参保减员）
+      - type: 事件策略
+        who: B-13 向差旅服务商同步员工与组织
+        used_by: PRC-177 触发器（同 BC）
       - type: 事件策略
         who: B-31 离职生成归还待办
         used_by: PRC-143C 触发器（b31.events 已列）
@@ -200,6 +209,9 @@ by_part:
         ref: PRC-136
         who: B-15
         used_by: PRC-136 第 11 步（调整薪酬档案）
+      - type: 事件策略
+        who: B-13 向差旅服务商同步员工与组织
+        used_by: PRC-177 触发器（同 BC）
       note: 须在业务生效日发出（U-12）：任职变更生效发出，写入未来版本的变更任职不发；离职终止任职先于 Separated 之后发出，platform.identity 对已离职人员忽略（PG-12）。聚合稿「仅分析」，订阅方列需补 platform.identity、B-15；B-27 是否订阅待 B-27 组确认（不列）
     - name: 劳动合同已签订
       published_by: AGG-67
@@ -634,7 +646,7 @@ by_part:
     - name: Separated
       from: B-13
       handled_by:
-      - 事件策略「离职后办理参保减员」→ 参保减员
+      - PRC-130「离职后参保减员」→ 终止薪酬档案、参保减员
       used_by:
       - PRC-130 触发器
     - name: 劳动合同已签订

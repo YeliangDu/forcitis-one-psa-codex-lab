@@ -956,6 +956,45 @@ event_policies:
         - {mode: api, direction: out, bc: B-13, name: 读取劳动合同用人单位与数据范围法人}
     notes: B-15 → B-13（api、事件）已有边；扣缴义务人在本 BC。
 
+  - id: PRC-160
+    name: 开立年度假期额度账户
+    type: event_policy
+    trigger:
+      type: time
+      desc: 每年年初（按日历年度）；年中入职由入职生效触发
+    triggers:
+      - {type: time, name: "每年年初（B-27 向 platform.scheduling 登记，幂等键 = 聚合 ID + 到期时点）"}
+      - {type: event, name: "入职生效（年中入职）", event: Employed, bc: B-13}
+    stages: [VS-13.1]
+    owner_bc: B-27
+    migration: "迁入不触发（ADR-0036 M7）；迁入年度的在途额度账户随 AGG-71 迁入，不重新开账"
+    outcomes: [年度账户已开立, 结转待处理]
+    scenarios: [PRC-160-S01, PRC-160-S02, PRC-160-S03]   # S01 年初先结转上年账户再开立新年账户；S02 年中入职无上年账户，直接开立；S03 上年账户仍有占用中的占用行，结转待处理并告警
+    roles:
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "接收结转或开账失败告警并跟进处理", approval_right: "无", department_hint: "人力资源部", position_hint: "人力资源专员、考勤管理员"}}       # 人力（考勤）：结转或开账失败告警
+      - {id: SH-E3, as: informed, org_needs: {responsibility: "查看本人当年度假期额度", approval_right: "无", department_hint: "员工所在部门", position_hint: "全体在职员工"}}       # 员工：当年额度可查看
+    steps:
+      - actor: system
+        where: automatic
+        command: 年度结转并关闭额度账户
+        aggregate: AGG-71
+        desc: 按 AGG-118 当日生效规则版本的结转与清零规则计算上年账户的结转额度并关闭账户，结转额度记在上年账户上供下一步读取；规则版本取不到失败并告警，不静默（CLAUDE.md 第 6 条）；年中入职触发时无上年账户，跳过本步
+        audit: true
+        notify: [{to: SH-E6, how: 企业微信待办}]
+        decision:
+          - {when: 无上年度账户（年中入职触发）, goto: 2}
+          - {when: 上年账户仍有占用中的占用行, goto: end, outcome: 结转待处理}
+          - {when: otherwise, goto: 2}
+      - actor: system
+        where: automatic
+        command: 开立年度额度账户
+        aggregate: AGG-71
+        desc: 对每名在职人员 × 占额度的假期类型开立该年度账户，应享按 AGG-118 当日生效规则版本计算（含上年结转；年中入职按规则折算）；取不到生效版本失败并告警，不回退默认值；已开账无操作
+        audit: true
+        notify: [{to: SH-E3, how: 企业微信通知（本年度额度已开立）}]
+        outcome: 年度账户已开立
+    notes: B-27 → B-13 订阅 Employed 的事件边需补登（vs13att.notes.md 接缝问题 2）。定时由 B-27 向 platform.scheduling 登记，到点调本 BC 命令，边 B-27 → platform.scheduling 按平台依赖登记（CONVENTIONS §5）。无人工审批。
+
 single_aggregate:
 
   - id: PRC-119
@@ -1013,14 +1052,14 @@ single_aggregate:
     desc: 调薪、年度专项附加扣除更新
     triggers:
       - {type: human, name: "人力按调薪决定登记薪酬档案新版本"}
-      - {type: human, name: "人力按年度更新专项附加扣除"}
+      - {type: human, name: "员工本人年度申报专项附加扣除（人力可代录入）"}
     migration: "历史薪酬档案版本与专项附加扣除（老系统调薪申请单约 1 千行、工资补录档案）按生效区间迁入；迁入不发事件、不触发三口径预警（ADR-0036 M7）"
     scope: "仅人力薪酬岗与财务主管可见和调整；员工只读本人；薪酬与专项附加扣除均为敏感个人信息（ADR-0043）"
     outcomes: [薪酬档案已调整, 专项附加扣除已更新, 调整被拒]
     scenarios: [PRC-123-S01, PRC-123-S02, PRC-123-S03, PRC-123-S04]   # S01 调薪生效日在未结月份；S02 生效日早于已批准薪酬所属月，补发补扣走下月；S03 年度更新专项附加扣除；S04 未引用调薪决定依据，调整被拒
     roles:
       - {id: SH-E6, as: performer, org_needs: {responsibility: "依据调薪决定登记薪酬档案版本，年度更新专项附加扣除，对依据完整性负责", approval_right: "无（无依据即由规则拒绝；调薪决定是否进审批待用户定 U9）", department_hint: "人力资源部（薪酬岗）", position_hint: "薪酬岗"}}      # 人力（薪酬岗）
-      - {id: SH-E3, as: informed, org_needs: {responsibility: "接收本人薪酬变更通知并核对", approval_right: "无", department_hint: "员工所在部门", position_hint: "全体在职员工"}}       # 员工：本人薪酬变更通知
+      - {id: SH-E3, as: initiator, org_needs: {responsibility: "本人年度申报或修改专项附加扣除，对申报内容负责；接收本人薪酬变更通知并核对", approval_right: "无（员工对申报内容负责，税务端核验）", department_hint: "员工所在部门", position_hint: "全体在职员工"}}       # 员工：本人发令（AGG-120），并接收本人薪酬变更通知
     commands:
       - actor: SH-E6
         where: in_system
@@ -1040,14 +1079,44 @@ single_aggregate:
           - {when: otherwise, goto: end, outcome: 薪酬档案已调整}
         cross_bc:
           - {mode: api, direction: out, bc: B-13, name: 读取人员与任职}
-      - actor: SH-E6
+      - actor: SH-E3
         where: in_system
         command: 更新专项附加扣除
-        aggregate: AGG-93
+        aggregate: AGG-120
         pending: U9
-        desc: 年度属性；来源是员工自行申报信息，由人力代录入还是员工自助见 notes 待用户定 U9；不设审批（员工对申报内容负责，税务端核验）；含未成年子女等信息，按敏感个人信息处理（拿不准归 SPI，交 U-11）
+        desc: AGG-120 专项附加扣除声明（S-32 自 AGG-93 拆出）：员工本人发令，年度生命周期，与薪酬档案版本无共享命令与不变量；人力代录入是否保留见 notes 待用户定 U9；不设审批（员工对申报内容负责，税务端核验）；含未成年子女等信息，按敏感个人信息处理（拿不准归 SPI，交 U-11）
         permission: 专项附加扣除.更新
         page: 专项附加扣除页
         audit: true
         outcome: 专项附加扣除已更新
     notes: AGG-93 含敏感个人信息，按 ADR-0043 登记访问级别。建立薪酬档案在 PRC-84；PRC-85 办理转正不通知 B-15，转正调薪靠人力人工发现（PG-10）。
+
+  - id: PRC-162
+    name: 发布假期规则版本
+    type: single_aggregate
+    aggregate: AGG-118
+    owner_bc: B-27
+    stages: [VS-13.1]
+    desc: 人力发布假期类型的年度应享、结转与清零规则版本
+    triggers:
+      - {type: human, name: "人力依据制度或法规变化发布新的假期规则版本"}
+    migration: "现行假期规则按生效区间作为首个版本初始化录入（老系统无结构化假期规则表，来源待取证）；迁入不发事件（ADR-0036 M7）"
+    scope: "人力（考勤）维护；全员可读规则；已生效版本不可改"
+    outcomes: [假期规则版本已发布, 版本被拒]
+    scenarios: [PRC-162-S01, PRC-162-S02]
+    roles:
+      - {id: SH-E6, as: performer, org_needs: {responsibility: "依据制度与法规发布假期规则版本，对依据完整性负责", approval_right: "无（区间唯一由不变量守卫）", department_hint: "人力资源部", position_hint: "人力资源专员、考勤管理员"}}      # 人力（考勤）
+    steps:
+      - actor: SH-E6
+        where: in_system
+        command: 发布假期规则版本
+        aggregate: AGG-118
+        emits: [假期规则已生效]
+        desc: 同一假期类型同一适用范围同一时点只有一个生效版本（INV-123）；生效后不得修改，更正另发布新版本，不追溯已结算额度（D15）；新版本只影响其生效日之后开立的年度额度账户与结转
+        permission: 假期规则.发布
+        page: 假期规则版本页
+        audit: true
+        decision:
+          - {when: 同一假期类型同一适用范围的生效区间与既有版本重叠, goto: end, rule: INV-123, outcome: 版本被拒}
+          - {when: otherwise, goto: end, outcome: 假期规则版本已发布}
+    notes: AGG-71 开立年度额度账户与年度结转时按 ID 与日期读取生效版本，不订阅事件。无人工审批：版本区间唯一由不变量守卫。

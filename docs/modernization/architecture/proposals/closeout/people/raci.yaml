@@ -1153,6 +1153,20 @@ entries:
   sensitive: false
   source_part: vs13pay
 - object: AGG-106
+  command: 登记绩效更正
+  raci:
+    A:
+      resolve: instance
+      field: 绩效评估.评估人
+    R:
+    - SH-E1
+    C:
+    - SH-E6
+    I: []
+  sensitive: false
+  note: 追加更正记录引用原已确认评估，不改原评估（INV-114）；S-32 新增
+  source_part: vs13pay
+- object: AGG-106
   command: 编制试用期绩效评估
   raci:
     A:
@@ -1379,6 +1393,22 @@ entries:
   note: 减员只写减员日与回执引用，不写缴费基数
   source_part: vs13pay
 - object: AGG-74
+  command: 调整缴费基数
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 社保岗
+    R:
+    - SH-E6
+    C: []
+    I:
+    - SH-M1
+  sensitive: true
+  sensitive_reason: 登记缴费基数，基数是工资的映射（SPI），同参保增员
+  note: 年度调整，追加新版本；S-32 新增
+  source_part: vs13pay
+- object: AGG-74
   command: 变更参保缴纳主体
   raci:
     A:
@@ -1572,14 +1602,29 @@ entries:
   note: U9 未定：若调薪决定进审批，A 改为员工所在组织单元负责人，并拆出提交与批准
   source_part: vs13pay
 - object: AGG-93
+  command: 终止薪酬档案
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+    C: []
+    I:
+    - SH-E6
+  sensitive: false
+  note: 离职事件（Separated）后系统自动结束最后一个生效版本，不读写薪资金额与发薪账户，无人持有执行权限；S-32 新增
+  source_part: vs13pay
+- object: AGG-120
   command: 更新专项附加扣除
   raci:
     A:
       resolve: instance
-      field: 薪酬档案.所属人员
+      field: 专项附加扣除声明.所属人员
     R:
-    - SH-E6
     - SH-E3
+    - SH-E6
     C: []
     I: []
   sensitive: false
@@ -1805,6 +1850,20 @@ entries:
   sensitive: false
   source_part: vs0911
 - object: AGG-79
+  command: 作废经营计划草稿
+  raci:
+    A:
+      resolve: instance
+      field: 经营计划版本.归属组织单元.负责人
+    R:
+    - SH-M1
+    C: []
+    I: []
+  boundary:
+    when: 仅编制中，审批中须先撤回
+  sensitive: false
+  source_part: vs0911
+- object: AGG-79
   command: 基线化经营计划
   raci:
     A:
@@ -1925,7 +1984,7 @@ entries:
   sensitive: false
   source_part: vs0911
 - object: AGG-80
-  command: 〔缺〕关闭预算账户
+  command: 关闭预算账户
   raci:
     A:
       resolve: type
@@ -1936,7 +1995,7 @@ entries:
     C: []
     I: []
   boundary:
-    note: 周期结束或新基线取代时关闭
+    note: 预算期届满或新基线取代时由 PRC-161 定时关闭
   sensitive: false
   source_part: vs0911
 - object: AGG-107
@@ -2441,7 +2500,7 @@ entries:
       to: 原组织单元负责人（SH-M1）提醒，非审批
   sensitive: false
   source_part: b31
-- object: AGG-115
+- object: AGG-121
   command: 报修资产
   raci:
     A:
@@ -2454,7 +2513,7 @@ entries:
     - SH-E6
   sensitive: false
   source_part: b31
-- object: AGG-115
+- object: AGG-121
   command: 登记维修结果
   raci:
     A:

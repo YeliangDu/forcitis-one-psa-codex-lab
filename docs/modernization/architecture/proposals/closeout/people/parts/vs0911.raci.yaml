@@ -28,6 +28,7 @@ entries:
     sensitive: false
   - {object: AGG-79, command: 〔缺〕通过经营计划审批, raci: {A: {resolve: instance, field: 经营计划版本.归属组织单元.负责人}, R: [platform.approval], C: [], I: [SH-M1]}, boundary: {note: 回调命令，不另设审批；审批权在上一条}, sensitive: false}
   - {object: AGG-79, command: 〔缺〕驳回经营计划审批, raci: {A: {resolve: instance, field: 经营计划版本.归属组织单元.负责人}, R: [platform.approval], C: [], I: [SH-M1]}, boundary: {note: 回调命令}, sensitive: false}
+  - {object: AGG-79, command: 作废经营计划草稿, raci: {A: {resolve: instance, field: 经营计划版本.归属组织单元.负责人}, R: [SH-M1], C: [], I: []}, boundary: {when: 仅编制中，审批中须先撤回}, sensitive: false}
   - {object: AGG-79, command: 基线化经营计划, raci: {A: {resolve: instance, field: 经营计划版本.归属组织单元.负责人}, R: [system], C: [], I: [SH-E6]}, boundary: {rule: INV-101, note: 审批通过自动执行，不设人工确认（待用户定 9）}, sensitive: false}
   - {object: AGG-79, command: 编制预测版本, raci: {A: {resolve: instance, field: 预测人员.直属上级}, R: [SH-E5], C: [], I: [SH-M1]}, boundary: {note: 预测不审批；逾期升级对象与期限待用户定 4}, sensitive: false}
   - {object: AGG-79, command: 编制现金流预测, raci: {A: {resolve: type, role: 财务负责人}, R: [SH-E6], C: [SH-E5], I: [SH-M1]}, boundary: {note: 限财务与管理层可见}, sensitive: false}
@@ -39,7 +40,7 @@ entries:
   - {object: AGG-80, command: 释放预算占用, raci: {A: {resolve: type, role: 财务负责人}, R: [system（B-11、B-12、定时对账）], C: [], I: []}, boundary: {}, sensitive: false}
   - {object: AGG-80, command: 〔缺〕消耗预算占用, raci: {A: {resolve: type, role: 财务负责人}, R: [system], C: [], I: []}, boundary: {note: 孤儿命令}, sensitive: false}
 
-  - {object: AGG-80, command: 〔缺〕关闭预算账户, raci: {A: {resolve: type, role: 财务负责人}, R: [system, SH-E6], C: [], I: []}, boundary: {note: 周期结束或新基线取代时关闭}, sensitive: false}
+  - {object: AGG-80, command: 关闭预算账户, raci: {A: {resolve: type, role: 财务负责人}, R: [system, SH-E6], C: [], I: []}, boundary: {note: 预算期届满或新基线取代时由 PRC-161 定时关闭}, sensitive: false}
 
   # AGG-107 知识条目
   - {object: AGG-107, command: 创建知识条目, raci: {A: {resolve: instance, field: 知识条目.归属组织单元.负责人}, R: [SH-E4, SH-E2], C: [], I: []}, boundary: {note: SH-E2 经 B-04 提炼入口调用}, sensitive: false}

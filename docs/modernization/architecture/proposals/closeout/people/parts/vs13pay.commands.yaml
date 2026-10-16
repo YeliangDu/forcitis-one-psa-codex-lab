@@ -1,5 +1,5 @@
 # VS-13 薪酬类聚合命令目录（收敛产物，提议稿；规格见 closeout/RESPONSIBILITY_MATRIX_SPEC.md 第 B 节）
-# 范围：B-15 的 AGG-73 月度薪酬结算、AGG-74 社保与公积金参保、AGG-75 激励方案版本、AGG-76 奖金核定、AGG-93 人员薪酬档案、
+# 范围：B-15 的 AGG-73 月度薪酬结算、AGG-74 社保与公积金参保、AGG-75 激励方案版本、AGG-76 奖金核定、AGG-93 人员薪酬档案、AGG-120 专项附加扣除声明（S-32 自 AGG-93 拆出）、
 #   AGG-95 个税扣缴与社保公积金申报、提议的「AGG-119」；B-13 的 AGG-106 绩效评估（PRC-85、120 用）。
 # 依据：vs13.processes.yaml、vs13.notes.md、vs07.processes.yaml（PRC-84、85、130、145 的相关步骤）、聚合稿 §2.2、data-model.people.yaml、terms.yaml。
 # 命令名沿用聚合稿与分片，不自造。name_status 非空的是〔缺〕命令：
@@ -15,7 +15,7 @@
 
 bc: B-15
 also_bc: {AGG-106: B-13}
-aggregates: [AGG-73, AGG-74, AGG-75, AGG-76, AGG-93, AGG-95, AGG-119, AGG-106]
+aggregates: [AGG-73, AGG-74, AGG-75, AGG-76, AGG-93, AGG-120, AGG-95, AGG-119, AGG-106]
 commands:
 
 # ───────────── AGG-106 绩效评估（B-13） ─────────────
@@ -90,6 +90,26 @@ commands:
   state_change: 已提交 → 已确认（试用期可草拟 → 已确认）
   emits: 绩效评估已确认
   used_by: [PRC-120 第 3 步, PRC-85 第 2 步]
+  orphan: false
+- name: 登记绩效更正
+  aggregate: AGG-106
+  unused_ok: "更正类维护命令：已确认评估发现差错后由评估人事后发起，不在 PRC-85、PRC-120 主线上；S-32 未给流程号，归属流程待 one-architecture 定"
+  entity: performance_review_corrections
+  kind: human
+  name_status: 〔缺〕S-32 裁定新增，待回补聚合稿，待 one-glossary 登记（register_performance_correction）
+  source: S-32（one-architecture 裁定）；INV-114（已确认后不得改，更正另记）
+  params: [原评估ID, 更正项, 更正后结论, 更正原因, 依据引用]
+  preconditions:
+  - {ref: INV-114, text: 原评估须已确认；更正追加一条记录引用原评估，不改原评估}
+  - {ref: 下游, text: 原评估已被奖金核定引用的，更正登记后提示 B-15 复核奖金核定（不自动改已核定奖金，经 api 读取）}
+  authority:
+    ref: raci:AGG-106/登记绩效更正
+    A: {resolve: instance, field: 绩效评估.评估人}
+    R: [SH-E1]
+  idempotency_key: 原评估ID + 更正序号（同序号重复提交返回已有）
+  state_change: 已确认 → 已确认（追加更正记录，不改状态）
+  emits: （内部）
+  used_by: []
   orphan: false
 
 # ───────────── AGG-73 月度薪酬结算 ─────────────
@@ -306,6 +326,27 @@ commands:
   emits: 参保已减员、参保已增员
   used_by: [PRC-136 第 12 步]
   orphan: false
+- name: 调整缴费基数
+  aggregate: AGG-74
+  unused_ok: "年度维护类命令：每年随社保公积金缴费基数核定通知办理，不在 PRC-84、130、136 主线上；S-32 未给流程号，归属流程待 one-architecture 定"
+  entity: insurance_enrollment_versions
+  kind: human
+  name_status: 〔缺〕S-32 裁定新增，待回补聚合稿，待 one-glossary 登记（adjust_contribution_base）
+  source: S-32（one-architecture 裁定）；对象增删改查检查 QC-OBJECTS.md（缴费基数年度调整无命令）
+  params: [参保登记ID, 缴费年度, 新缴费基数, 生效日, 基数核定依据引用（核定通知或工资基数）]
+  preconditions:
+  - {ref: 状态, text: 登记为在保；已减员的登记不得调整}
+  - {ref: D17, text: 追加新版本，同事务结束旧版本区间；同一登记同一缴费年度至多一次调整，更正另出新版本}
+  - {ref: 重新入职, text: 重新入职建新参保登记（同一人员同缴纳主体至多一个在保），不在已减员登记上调整}
+  authority:
+    ref: raci:AGG-74/调整缴费基数
+    A: {resolve: type, role: SH-E6, function: 社保岗}
+    R: [SH-E6]
+  idempotency_key: 参保登记ID + 缴费年度（同键返回已有版本）
+  state_change: 在保 → 在保（追加新版本，不改状态）
+  emits: （内部）
+  used_by: []
+  orphan: false
 
 # ───────────── AGG-75 激励方案版本 ─────────────
 - name: 编制激励方案版本
@@ -488,20 +529,43 @@ commands:
   emits: 薪酬档案已变更
   used_by: [PRC-123 第 1 步]
   orphan: false
-- name: 更新专项附加扣除
+- name: 终止薪酬档案
   aggregate: AGG-93
+  entity: payroll_profile_versions
+  kind: automatic
+  name_status: 〔缺〕S-32 裁定新增（B-15 订阅 Separated 后结束最后一个生效版本，显式优于由人员状态推断），待回补聚合稿，待 one-glossary 登记（terminate_payroll_profile）
+  source: S-32（one-architecture 裁定）；对象增删改查检查 QC-OBJECTS.md（离职后薪酬档案版本无结束命令）
+  params: [人员, 终止日（离职日）, 离职事件ID]
+  preconditions:
+  - {ref: 状态, text: 人员存在生效或未来生效的档案版本；无任何版本失败并告警薪酬岗，不静默（CLAUDE.md 第 6 条）；最后一个版本已终止则无操作}
+  - {ref: D17, text: 结束最后一个生效版本的区间，止于离职日；终止日之后才生效的版本一并作废；离职当月的入离职折算仍读离职日之前有效的版本，不受影响}
+  - {ref: 重新入职, text: 重新入职按 PRC-84 在原档案根下建立新版本，不重用已终止版本}
+  authority:
+    ref: raci:AGG-93/终止薪酬档案
+    A: {resolve: type, role: SH-E6, function: 薪酬岗}
+    R: [system]
+  idempotency_key: 人员 + 离职事件ID（已终止无操作）
+  state_change: 生效 → 已结束（最后一个版本）
+  emits: （内部）
+  used_by: [PRC-130 第 1 步]
+  orphan: false
+
+# ───────────── AGG-120 专项附加扣除声明（S-32 自 AGG-93 拆出） ─────────────
+- name: 更新专项附加扣除
+  aggregate: AGG-120
   entity: payroll_special_deduction_declarations
   kind: human
-  source: 聚合稿 AGG 命令列
-  params: [档案ID, 扣除年度, 扣除项目（类别、月扣除额、分摊比例、受益人、证明材料引用）, 来源（本人填报或个税端下载）]
+  source: 聚合稿 AGG 命令列（S-32 自 AGG-93 拆出为 AGG-120 专项附加扣除声明）
+  params: [人员, 扣除年度, 扣除项目（类别、月扣除额、分摊比例、受益人、证明材料引用）, 来源（本人填报或个税端下载）]
   preconditions:
   - {ref: D17, text: 年度属性；年内修改追加新声明并结束旧声明}
   - {ref: 规则版本, text: 扣除额不超所用扣除标准版本的标准额（薪酬规则版本）}
+  - {ref: 发令人, text: 员工本人发令（自助填报）；人力代录入是否保留见 U9；本命令与薪酬档案版本无共享命令与不变量，按人员 ID 关联档案（AGG-93），不读写档案内容}
   authority:
-    ref: raci:AGG-93/更新专项附加扣除
-    A: {resolve: instance, field: 薪酬档案.所属人员}
+    ref: raci:AGG-120/更新专项附加扣除
+    A: {resolve: instance, field: 专项附加扣除声明.所属人员}
     R: [SH-E6, SH-E3]
-  idempotency_key: 档案ID + 扣除年度 + 提交序号
+  idempotency_key: 人员 + 扣除年度 + 提交序号
   state_change: 创建 → 有效；有效 → 已取代（旧声明，同事务）
   emits: （内部）
   used_by: [PRC-123 第 2 步]
@@ -729,8 +793,8 @@ event_policies:
   note: 订阅 B-13 Employed 的边已有（聚合稿 §4.3.2 阶段 2）
 - name: 离职后办理参保减员
   trigger_event: Separated（B-13 发布）
-  effect: 生成参保减员待办，由人力办理
-  uses_command: 参保减员
+  effect: 先终止薪酬档案（系统自动），再生成参保减员待办，由人力办理
+  uses_command: 终止薪酬档案 / 参保减员
   used_by: [PRC-130 触发器]
   rules: []
   note: ''

@@ -15,6 +15,7 @@ processes:
     name: 用印申请与用印登记
     type: business
     stages: []
+    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people
     status: draft
@@ -134,6 +135,7 @@ processes:
     name: IT 需求工单
     type: business
     stages: []
+    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people
     status: draft
@@ -271,6 +273,7 @@ processes:
     name: IT 资产领用
     type: business
     stages: []
+    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people
     status: draft
@@ -385,6 +388,7 @@ processes:
     name: IT 资产调拨
     type: business
     stages: []
+    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people
     status: draft
@@ -464,6 +468,7 @@ processes:
     name: IT 资产归还
     type: business
     stages: []
+    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people
     status: draft
@@ -531,6 +536,7 @@ processes:
     name: IT 资产报修与维修登记
     type: business
     stages: []
+    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people
     status: draft
@@ -568,7 +574,7 @@ processes:
       - actor: SH-E3
         where: in_system
         command: 报修资产
-        aggregate: AGG-115
+        aggregate: AGG-121
         desc: 使用人填故障描述，生成维修工单；报修不经审批（维修结果登记与采购、费用报销各走各自的审批；单项维修费用若超限额走采购 / 费控，不属 B-31）
         permission: IT资产.报修
         page: IT资产报修页
@@ -582,7 +588,7 @@ processes:
         where: external:维修服务商
         evidence: [维修单或发票引用, 维修结果, 完成日期]
         command: 登记维修结果
-        aggregate: AGG-115
+        aggregate: AGG-121
         desc: 维修在系统外（内部处理或送修厂商），无接口，本系统只登记结果与证据；无法修复的资产由财务在 B-24 另行报废，B-31 不发起（B-31 → B-24 只有读取边，见 notes 接缝问题 1）
         permission: IT资产.登记维修结果
         page: IT资产维修工单页
@@ -596,6 +602,7 @@ processes:
     name: 员工活动类申请（周年贺卡、节日活动、创新项目发布）
     type: business
     stages: []
+    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people
     status: draft

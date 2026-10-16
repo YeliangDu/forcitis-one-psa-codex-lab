@@ -195,17 +195,30 @@ commands:
     orphan: false
     note: 孤儿：本片段无步骤，PRC-70、PRC-87 是否有消耗步骤未核；交 one-architecture 定命令名与归属。
 
-  - name: 〔缺〕关闭预算账户
+  - name: 关闭预算账户
     aggregate: AGG-80
-    unused_ok: "计划周期结束或被新基线取代时的定时作业或财务维护，无业务流程步骤"
-    status: 〔缺〕（收敛新增；聚合稿与数据模型仅写「可冻结」，无关闭命令；名为本稿提议，待 one-glossary 核）
+    status: 〔缺〕（收敛新增；聚合稿与数据模型仅写「可冻结」，无关闭命令；S-32 裁定由 PRC-161 年末触发，名待 one-glossary 核）
     params: [预算账户, 关闭原因（周期结束、被新基线取代）]
     preconditions:
       - {ref: 状态, desc: 账户为已开立}
       - {ref: 占用, desc: 无占用中的占用行}
     raci_A: {resolve: type, role: 财务负责人}
     raci_R: [system, SH-E6]
-    idempotency_key: 预算账户ID
+    idempotency_key: 预算账户ID（已关闭无操作）
+    emits: []
+    used_by: [PRC-161#1]
+    orphan: false
+
+  - name: 作废经营计划草稿
+    aggregate: AGG-79
+    unused_ok: "维护类命令：编制人放弃编制中的废弃草稿，不在 PRC-88 主线上；S-32 未给流程号，归属流程待 one-architecture 定"
+    status: 〔缺〕（S-32 裁定新增，待回补聚合稿，名待 one-glossary 核；notes 结构问题 10(a)）
+    params: [版本ID, 作废原因]
+    preconditions:
+      - {ref: INV-101, desc: 仅编制中的版本可作废；审批中须先撤回，基线不可作废（只出新版本）}
+    raci_A: {resolve: instance, field: 经营计划版本.归属组织单元.负责人}
+    raci_R: [SH-M1]
+    idempotency_key: 版本ID（已作废无操作）
     emits: []
     used_by: []
     orphan: false

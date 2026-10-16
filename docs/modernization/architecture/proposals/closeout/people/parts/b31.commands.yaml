@@ -6,7 +6,7 @@
 # 「孤儿」= 未被任一流程步骤、事件策略或维护用到。本稿 0 个孤儿命令。
 
 bc: B-31
-aggregates: [AGG-113, AGG-114, AGG-115, AGG-116]
+aggregates: [AGG-113, AGG-114, AGG-115, AGG-116, AGG-121]
 commands:
 - name: 提交用印申请
   aggregate: AGG-113
@@ -411,15 +411,15 @@ commands:
   used_by: [PRC-156 第 1 步]
   orphan: false
 - name: 报修资产
-  aggregate: AGG-115
+  aggregate: AGG-121
   entity: it_asset_repair_orders
   kind: human
   source: 聚合稿 AGG 命令列
   params: [资产卡片ID, 报修人, 故障描述]
   preconditions:
-  - {ref: R-B31-8, text: 报修人须为该资产当前使用人（资产管理员代报时选使用人）}
+  - {ref: R-B31-8, text: 报修人须为该资产当前使用人（资产管理员代报时选使用人）；当前使用人由 AGG-115 的使用期间读取（同 BC 跨聚合按 ID 读，AGG-121 不共享 AGG-115 的命令与不变量）}
   authority:
-    ref: raci:AGG-115/报修资产
+    ref: raci:AGG-121/报修资产
     A: {resolve: instance, field: 使用人}
     R: [SH-E3]
   idempotency_key: 维修工单ID（客户端预生成 UUIDv7）
@@ -427,7 +427,7 @@ commands:
   used_by: [PRC-157 第 1 步]
   orphan: false
 - name: 登记维修结果
-  aggregate: AGG-115
+  aggregate: AGG-121
   entity: it_asset_repair_orders
   kind: human
   source: 聚合稿 AGG 命令列
@@ -435,7 +435,7 @@ commands:
   preconditions:
   - {ref: 状态, text: 工单为已报修}
   authority:
-    ref: raci:AGG-115/登记维修结果
+    ref: raci:AGG-121/登记维修结果
     A: {resolve: type, role: SH-E6, function: 信息（IT）资产管理员/处理人}
     R: [SH-E6]
   idempotency_key: 维修工单ID（已登记无操作）

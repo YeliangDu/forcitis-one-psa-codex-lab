@@ -348,6 +348,18 @@
       sensitivity: SENSITIVE
       column_families: [单据类型（管理层一对一 / 成长记录）, 记录日期, 记录内容, 参与人]
       reason: "信息图 OBJ-109「单据」列只写了名称，本表形状为推断，待第 6 步复核（NOTES 结构问题）；来源：一对一档案 458、成长记录近年 2 单；PI 标记：PI，SPI 与否交 U-11"
+    - name: performance_review_corrections
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-106, by: performance_review_id}
+        - {to: AGG-62, by: corrector_employee_id, cross_bc: true}
+      versioned: append_only
+      history_migration: none
+      reason: "S-32 登记绩效更正：已确认评估不得改（INV-114），更正追加一条记录引用原评估；新建，老系统更正多在原评估上覆盖，无独立更正记录可迁，故历史不迁"
+      sensitivity: SENSITIVE
+      pi: pi
+      column_families: [原评估引用, 更正项, 更正后结论, 更正原因, 依据引用, 更正人, 更正时间]
 
 # ───────────────────────── B-14 organization.attendance ─────────────────────────
 - aggregate: AGG-68
@@ -727,8 +739,13 @@
       pi: spi
       column_families: [生效区间, 薪资结构与标准, 个税扣缴义务人, 发薪账户, 调薪依据引用]
       reason: "敏感个人信息与金融账户信息（个人信息保护法第 28 条，ADR-0043 最高访问级别）；扣缴义务人是三口径之一（S13）；调薪为新版本事件，依据引用调薪申请单据 ID；迁入按 ADR-0036，来源待取证（信息图证 OA 调薪申请 #60 只作证据）；发薪账户列级 SPI（金融账户），不进分析层、日志、审计原值"
+
+# ───────────────────────── AGG-120 专项附加扣除声明（S-32 自 AGG-93 拆出；员工本人发令、年度生命周期、含未成年人敏感信息） ─────────────────────────
+- aggregate: AGG-120
+  bc: B-15
+  tables:
     - name: payroll_special_deduction_declarations
-      role: child
+      role: root
       key: uuid_v7
       references:
         - {to: AGG-93, by: payroll_profile_id}
@@ -737,12 +754,12 @@
       sensitivity: SENSITIVE
       pi: spi
       column_families: [扣除年度, 生效月区间, 提交日期与来源（本人填报 / 个税端下载）, 状态]
-      reason: "专项附加扣除年度属性（聚合稿 AGG-93）；每年重新确认，年内可修改，修改追加新生效区间；SENSITIVE + spi：涉子女、赡养、住房等家庭与财产信息，个人信息保护法第 28 条、ADR-0043；迁入来源待取证（个税端下载件是否留存未知）"
+      reason: "专项附加扣除年度属性（S-32 自 AGG-93 拆出为 AGG-120）；每年重新确认，年内可修改，修改追加新生效区间；SENSITIVE + spi：涉子女、赡养、住房等家庭与财产信息，个人信息保护法第 28 条、ADR-0043；迁入来源待取证（个税端下载件是否留存未知）"
     - name: payroll_special_deduction_items
       role: child
       key: uuid_v7
       references:
-        - {to: AGG-93, by: payroll_special_deduction_declaration_id}
+        - {to: AGG-120, by: payroll_special_deduction_declaration_id}
         - {to: AGG-119, by: deduction_standard_version_id}
       versioned: none
       history_migration: full
@@ -1109,8 +1126,13 @@
       pi: pi
       column_families: [使用期间起止（止为空表示在用）, 使用人, 来源申请, 归还验收人, 归还时状态]
       reason: "使用期间是业务事实区间，不是维度版本；同一卡片期间不重叠由条件排除约束保证（INV-新-P4）；调拨在同一事务结束旧期间并开启新期间；全量来源 A8 领用、调拨、归还记录（待取证）；pi：使用人"
+
+# ───────────────────────── AGG-121 IT 资产维修单（S-32 自 AGG-115 拆出；与领用、调拨、使用期无共享命令与不变量） ─────────────────────────
+- aggregate: AGG-121
+  bc: B-31
+  tables:
     - name: it_asset_repair_orders
-      role: child
+      role: root
       key: uuid_v7
       references:
         - {to: AGG-115, by: it_asset_use_ledger_id}
@@ -1120,7 +1142,7 @@
       sensitivity: INTERNAL
       pi: pi
       column_families: [工单号（沿用 A8 原号用 legacy_numbers）, 报修人, 故障描述, 报修时间, 维修结果（已修复 / 无法修复）, 完成日期, 维修单或发票引用, 状态, 审计列]
-      reason: "单据，状态由审计还原；全量来源 A8 IT 资产报修（累计 128、在途 2，字段待取证）；维修费用若产生，账务归 B-24 / 费控，不记在此"
+      reason: "S-32 自 AGG-115 拆出为 AGG-121；单据，状态由审计还原；全量来源 A8 IT 资产报修（累计 128、在途 2，字段待取证）；维修费用若产生，账务归 B-24 / 费控，不记在此"
 
 - aggregate: AGG-116
   bc: B-31

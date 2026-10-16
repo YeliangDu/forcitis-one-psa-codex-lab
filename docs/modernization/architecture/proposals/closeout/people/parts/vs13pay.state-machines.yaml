@@ -2,7 +2,7 @@
 # kind：forward 正向；reverse 逆向（驳回、撤回、更正）。from: null = 创建。守卫引用 INV / P / AR（聚合稿与 APPROVAL_RULES）、
 #   R-VS13-a…j（vs13.notes.md 结构问题 14 的候选规则，交 one-rules）、U（vs13.notes.md 待用户定）。
 # 状态取值以 data-model.people.yaml 的「状态」列为底，缺的状态在 added_states 列出（交 one-data 回填）。
-# 版本型聚合（AGG-93、AGG-119）按版本行立机器，根表无生命周期。
+# 版本型聚合（AGG-93、AGG-119）按版本行立机器，根表无生命周期；AGG-120 专项附加扣除声明由 S-32 自 AGG-93 拆出，独立一台。
 # non_state_commands：只写属性、不改状态的命令；流程步骤对到这里即视为已覆盖。
 # 自检（可达性、非终态到终态、流程步骤对转换）见 vs13pay.notes.md「收敛自检」。
 
@@ -16,13 +16,14 @@ machines:
   states: [草拟, 已提交, 已确认]
   initial: [草拟]
   terminal: [已确认]
-  note: 已确认后不得改，更正另记（INV-114）；更正没有命令，见 notes 结构问题 8
+  note: 已确认后不得改，更正另记（INV-114）；更正由 S-32 新增的登记绩效更正追加记录，不改状态
   transitions:
   - {from: null, to: 草拟, command: 编制绩效评估, guard: [INV-114], kind: forward}
   - {from: null, to: 草拟, command: 编制试用期绩效评估, guard: [INV-114], kind: forward}
   - {from: 草拟, to: 已提交, command: 提交绩效评估, guard: [U11：接收方未定], kind: forward}
   - {from: 已提交, to: 已确认, command: 确认绩效评估, guard: [INV-114], kind: forward, process_outcome: 已确认}
   - {from: 草拟, to: 已确认, command: 确认绩效评估, guard: [试用期评估无提交环节（PRC-85 步 2）〔推〕], kind: forward, process_outcome: 已确认}
+  - {from: 已确认, to: 已确认, command: 登记绩效更正, guard: [INV-114：追加更正记录引用原评估，不改原评估], kind: non_state}
 
 - aggregate: AGG-73
   machine: payroll_settlement
@@ -56,7 +57,9 @@ machines:
   initial: [在保]
   terminal: [已减员]
   added_states: [在保, 已减员]
-  note: 数据模型状态列只写「状态」未列取值，本稿取在保与已减员。重新入职另建登记（同一人员同缴纳主体至多一个在保）。缴费基数年度调整没有命令，见 notes 结构问题 9
+  non_state_commands:
+  - {command: 调整缴费基数, reason: 追加缴费基数新版本（同事务结束旧版本区间），状态仍为在保；S-32 新增}
+  note: 数据模型状态列只写「状态」未列取值，本稿取在保与已减员。重新入职另建登记（同一人员同缴纳主体至多一个在保）。缴费基数年度调整由 S-32 新增的调整缴费基数追加新版本
   transitions:
   - {from: null, to: 在保, command: 参保增员, guard: [人员已入职, 同人同主体无在保, 用工类型不是退休返聘或实习〔推〕], kind: forward}
   - {from: 在保, to: 已减员, command: 参保减员, guard: [用工类型不是退休返聘或实习], kind: forward, process_outcome: 参保已减员}
@@ -105,13 +108,14 @@ machines:
   initial: [生效]
   terminal: [已结束]
   added_states: [生效, 已结束]
-  note: 根表 payroll_profiles 无生命周期；版本行按生效区间，调薪追加新版本并结束旧版本（D17）。未来生效日的版本也记为生效（区间决定何时适用）
+  note: 根表 payroll_profiles 无生命周期；版本行按生效区间，调薪追加新版本并结束旧版本（D17）。未来生效日的版本也记为生效（区间决定何时适用）。离职后由 S-32 新增的终止薪酬档案结束最后一个生效版本；重新入职在原根下建立新版本
   transitions:
   - {from: null, to: 生效, command: 建立薪酬档案, guard: [人员已入职, 一人一档案], kind: forward, process_outcome: 薪酬档案已建立}
   - {from: null, to: 生效, command: 调整薪酬档案, guard: [R-VS13-j：引用调薪决定依据, U9], kind: forward, process_outcome: 薪酬档案已调整}
   - {from: 生效, to: 已结束, command: 调整薪酬档案, guard: [同事务结束旧版本区间（D17）], kind: forward}
+  - {from: 生效, to: 已结束, command: 终止薪酬档案, guard: [Separated：区间止于离职日, 无版本时失败并告警], kind: forward, process_outcome: 薪酬档案已终止}
 
-- aggregate: AGG-93
+- aggregate: AGG-120
   machine: special_deduction_declaration
   entity: payroll_special_deduction_declarations
   states: [有效, 已取代]

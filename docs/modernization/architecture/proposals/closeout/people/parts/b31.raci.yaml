@@ -223,7 +223,7 @@ entries:
     segregation: [验收人 ≠ 归还人]
     escalate: {when: 离职后逾期未归还 P7D〔推〕, to: 原组织单元负责人（SH-M1）提醒，非审批}
   sensitive: false
-- object: AGG-115
+- object: AGG-121
   command: 报修资产
   raci:
     A: {resolve: instance, field: 使用人}
@@ -231,7 +231,7 @@ entries:
     C: []
     I: [SH-E6]
   sensitive: false
-- object: AGG-115
+- object: AGG-121
   command: 登记维修结果
   raci:
     A: {resolve: type, role: SH-E6, function: 信息（IT）资产管理员/处理人}

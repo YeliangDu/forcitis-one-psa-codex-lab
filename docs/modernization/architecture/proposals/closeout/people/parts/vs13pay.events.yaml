@@ -130,7 +130,7 @@ consumed:
   used_by: [PRC-84 触发器]
 - name: Separated
   from: B-13
-  handled_by: [事件策略「离职后办理参保减员」→ 参保减员]
+  handled_by: [PRC-130「离职后参保减员」→ 终止薪酬档案、参保减员]
   used_by: [PRC-130 触发器]
 - name: 劳动合同已签订
   from: B-13

@@ -1737,7 +1737,6 @@ commands:
   source_part: vs13att
 - name: 开立年度额度账户
   aggregate: AGG-71
-  unused_ok: 年度开账定时作业（事件策略「年度开账」），不在业务流程步骤中
   entity: leave_balance_accounts
   kind: automatic
   name_status: 〔缺〕收敛新增，待 one-glossary 登记（open_leave_balance_account）
@@ -1762,12 +1761,11 @@ commands:
   idempotency_key: 员工ID + 假期类型 + 年度（已开账无操作）
   emits: （内部）
   used_by:
-  - 事件策略「年度开账」
+  - PRC-160 第 2 步（事件策略「年度开账」）
   orphan: false
   source_part: vs13att
 - name: 年度结转并关闭额度账户
   aggregate: AGG-71
-  unused_ok: 年度结转定时作业（事件策略「年度开账」同批），不在业务流程步骤中
   entity: leave_balance_accounts
   kind: automatic
   name_status: 〔缺〕收敛新增，待 one-glossary 登记（carry_over_and_close_leave_balance_account）
@@ -1778,7 +1776,7 @@ commands:
   - 年度
   preconditions:
   - ref: 结转规则
-    text: 按 AGG-118 当日生效规则版本的结转与清零规则计算结转额度，写入下一年度账户的应享（含上年结转）；取不到规则版本失败并告警
+    text: 按 AGG-118 当日生效规则版本的结转与清零规则计算结转额度，记在本账户并关闭；下一年度账户开立时读取该结转额度计入应享；取不到规则版本失败并告警
   - ref: 状态
     text: 账户为已开账，年度已届满，无占用中的占用行（占用中的跨年请假先处理）
   authority:
@@ -2034,15 +2032,14 @@ commands:
       function: 人力（考勤）
     R:
     - system
-  idempotency_key: 月度考勤确认ID（已锁定无操作）
-  emits: 月度考勤已锁定
+  idempotency_key: 员工ID + 假期类型 + 年度（已关闭无操作）
+  emits: （内部）
   used_by:
-  - PRC-118 第 4 步
+  - PRC-160 第 1 步
   orphan: false
   source_part: vs13att
 - name: 发布假期规则版本
   aggregate: AGG-118
-  unused_ok: 维护用：配置型版本发布，无业务流程；待 one-architecture 补维护流程（vs13att.notes.md 接缝问题 3）
   entity: leave_entitlement_rule_versions
   kind: human
   source: 聚合稿 AGG 命令列
@@ -2070,9 +2067,9 @@ commands:
     - SH-E6
   idempotency_key: 假期类型 + 适用范围 + 生效日（重复发布同一版本返回已有版本）
   emits: 假期规则已生效
-  used_by: []
+  used_by:
+  - PRC-162 第 1 步
   orphan: false
-  orphan_note: PRC-115–119 无流程覆盖 AGG-118 的维护（PRC-119 只含 AGG-68、AGG-108）；需补一个 single_aggregate 维护流程，或并入 PRC-119，交 one-architecture（vs13att.notes.md 接缝问题 3）
   source_part: vs13att
 - name: 维护工作日历年度
   aggregate: AGG-68
@@ -2241,6 +2238,37 @@ commands:
   used_by:
   - PRC-120 第 3 步
   - PRC-85 第 2 步
+  orphan: false
+  source_part: vs13pay
+- name: 登记绩效更正
+  aggregate: AGG-106
+  unused_ok: 更正类维护命令：已确认评估发现差错后由评估人事后发起，不在 PRC-85、PRC-120 主线上；S-32 未给流程号，归属流程待 one-architecture 定
+  entity: performance_review_corrections
+  kind: human
+  name_status: 〔缺〕S-32 裁定新增，待回补聚合稿，待 one-glossary 登记（register_performance_correction）
+  source: S-32（one-architecture 裁定）；INV-114（已确认后不得改，更正另记）
+  params:
+  - 原评估ID
+  - 更正项
+  - 更正后结论
+  - 更正原因
+  - 依据引用
+  preconditions:
+  - ref: INV-114
+    text: 原评估须已确认；更正追加一条记录引用原评估，不改原评估
+  - ref: 下游
+    text: 原评估已被奖金核定引用的，更正登记后提示 B-15 复核奖金核定（不自动改已核定奖金，经 api 读取）
+  authority:
+    ref: raci:AGG-106/登记绩效更正
+    A:
+      resolve: instance
+      field: 绩效评估.评估人
+    R:
+    - SH-E1
+  idempotency_key: 原评估ID + 更正序号（同序号重复提交返回已有）
+  state_change: 已确认 → 已确认（追加更正记录，不改状态）
+  emits: （内部）
+  used_by: []
   orphan: false
   source_part: vs13pay
 - name: 计算
@@ -2584,6 +2612,40 @@ commands:
   - PRC-136 第 12 步
   orphan: false
   source_part: vs13pay
+- name: 调整缴费基数
+  aggregate: AGG-74
+  unused_ok: 年度维护类命令：每年随社保公积金缴费基数核定通知办理，不在 PRC-84、130、136 主线上；S-32 未给流程号，归属流程待 one-architecture 定
+  entity: insurance_enrollment_versions
+  kind: human
+  name_status: 〔缺〕S-32 裁定新增，待回补聚合稿，待 one-glossary 登记（adjust_contribution_base）
+  source: S-32（one-architecture 裁定）；对象增删改查检查 QC-OBJECTS.md（缴费基数年度调整无命令）
+  params:
+  - 参保登记ID
+  - 缴费年度
+  - 新缴费基数
+  - 生效日
+  - 基数核定依据引用（核定通知或工资基数）
+  preconditions:
+  - ref: 状态
+    text: 登记为在保；已减员的登记不得调整
+  - ref: D17
+    text: 追加新版本，同事务结束旧版本区间；同一登记同一缴费年度至多一次调整，更正另出新版本
+  - ref: 重新入职
+    text: 重新入职建新参保登记（同一人员同缴纳主体至多一个在保），不在已减员登记上调整
+  authority:
+    ref: raci:AGG-74/调整缴费基数
+    A:
+      resolve: type
+      role: SH-E6
+      function: 社保岗
+    R:
+    - SH-E6
+  idempotency_key: 参保登记ID + 缴费年度（同键返回已有版本）
+  state_change: 在保 → 在保（追加新版本，不改状态）
+  emits: （内部）
+  used_by: []
+  orphan: false
+  source_part: vs13pay
 - name: 编制激励方案版本
   aggregate: AGG-75
   entity: incentive_plan_versions
@@ -2870,13 +2932,45 @@ commands:
   - PRC-123 第 1 步
   orphan: false
   source_part: vs13pay
-- name: 更新专项附加扣除
+- name: 终止薪酬档案
   aggregate: AGG-93
+  entity: payroll_profile_versions
+  kind: automatic
+  name_status: 〔缺〕S-32 裁定新增（B-15 订阅 Separated 后结束最后一个生效版本，显式优于由人员状态推断），待回补聚合稿，待 one-glossary 登记（terminate_payroll_profile）
+  source: S-32（one-architecture 裁定）；对象增删改查检查 QC-OBJECTS.md（离职后薪酬档案版本无结束命令）
+  params:
+  - 人员
+  - 终止日（离职日）
+  - 离职事件ID
+  preconditions:
+  - ref: 状态
+    text: 人员存在生效或未来生效的档案版本；无任何版本失败并告警薪酬岗，不静默（CLAUDE.md 第 6 条）；最后一个版本已终止则无操作
+  - ref: D17
+    text: 结束最后一个生效版本的区间，止于离职日；终止日之后才生效的版本一并作废；离职当月的入离职折算仍读离职日之前有效的版本，不受影响
+  - ref: 重新入职
+    text: 重新入职按 PRC-84 在原档案根下建立新版本，不重用已终止版本
+  authority:
+    ref: raci:AGG-93/终止薪酬档案
+    A:
+      resolve: type
+      role: SH-E6
+      function: 薪酬岗
+    R:
+    - system
+  idempotency_key: 人员 + 离职事件ID（已终止无操作）
+  state_change: 生效 → 已结束（最后一个版本）
+  emits: （内部）
+  used_by:
+  - PRC-130 第 1 步
+  orphan: false
+  source_part: vs13pay
+- name: 更新专项附加扣除
+  aggregate: AGG-120
   entity: payroll_special_deduction_declarations
   kind: human
-  source: 聚合稿 AGG 命令列
+  source: 聚合稿 AGG 命令列（S-32 自 AGG-93 拆出为 AGG-120 专项附加扣除声明）
   params:
-  - 档案ID
+  - 人员
   - 扣除年度
   - 扣除项目（类别、月扣除额、分摊比例、受益人、证明材料引用）
   - 来源（本人填报或个税端下载）
@@ -2885,15 +2979,17 @@ commands:
     text: 年度属性；年内修改追加新声明并结束旧声明
   - ref: 规则版本
     text: 扣除额不超所用扣除标准版本的标准额（薪酬规则版本）
+  - ref: 发令人
+    text: 员工本人发令（自助填报）；人力代录入是否保留见 U9；本命令与薪酬档案版本无共享命令与不变量，按人员 ID 关联档案（AGG-93），不读写档案内容
   authority:
-    ref: raci:AGG-93/更新专项附加扣除
+    ref: raci:AGG-120/更新专项附加扣除
     A:
       resolve: instance
-      field: 薪酬档案.所属人员
+      field: 专项附加扣除声明.所属人员
     R:
     - SH-E6
     - SH-E3
-  idempotency_key: 档案ID + 扣除年度 + 提交序号
+  idempotency_key: 人员 + 扣除年度 + 提交序号
   state_change: 创建 → 有效；有效 → 已取代（旧声明，同事务）
   emits: （内部）
   used_by:
@@ -3424,10 +3520,9 @@ commands:
   orphan: false
   note: 孤儿：本片段无步骤，PRC-70、PRC-87 是否有消耗步骤未核；交 one-architecture 定命令名与归属。
   source_part: vs0911
-- name: 〔缺〕关闭预算账户
+- name: 关闭预算账户
   aggregate: AGG-80
-  unused_ok: 计划周期结束或被新基线取代时的定时作业或财务维护，无业务流程步骤
-  status: 〔缺〕（收敛新增；聚合稿与数据模型仅写「可冻结」，无关闭命令；名为本稿提议，待 one-glossary 核）
+  status: 〔缺〕（收敛新增；聚合稿与数据模型仅写「可冻结」，无关闭命令；S-32 裁定由 PRC-161 年末触发，名待 one-glossary 核）
   params:
   - 预算账户
   - 关闭原因（周期结束、被新基线取代）
@@ -3442,7 +3537,28 @@ commands:
   raci_R:
   - system
   - SH-E6
-  idempotency_key: 预算账户ID
+  idempotency_key: 预算账户ID（已关闭无操作）
+  emits: []
+  used_by:
+  - PRC-161#1
+  orphan: false
+  source_part: vs0911
+- name: 作废经营计划草稿
+  aggregate: AGG-79
+  unused_ok: 维护类命令：编制人放弃编制中的废弃草稿，不在 PRC-88 主线上；S-32 未给流程号，归属流程待 one-architecture 定
+  status: 〔缺〕（S-32 裁定新增，待回补聚合稿，名待 one-glossary 核；notes 结构问题 10(a)）
+  params:
+  - 版本ID
+  - 作废原因
+  preconditions:
+  - ref: INV-101
+    desc: 仅编制中的版本可作废；审批中须先撤回，基线不可作废（只出新版本）
+  raci_A:
+    resolve: instance
+    field: 经营计划版本.归属组织单元.负责人
+  raci_R:
+  - SH-M1
+  idempotency_key: 版本ID（已作废无操作）
   emits: []
   used_by: []
   orphan: false
@@ -4285,7 +4401,7 @@ commands:
   orphan: false
   source_part: b31
 - name: 报修资产
-  aggregate: AGG-115
+  aggregate: AGG-121
   entity: it_asset_repair_orders
   kind: human
   source: 聚合稿 AGG 命令列
@@ -4295,9 +4411,9 @@ commands:
   - 故障描述
   preconditions:
   - ref: R-B31-8
-    text: 报修人须为该资产当前使用人（资产管理员代报时选使用人）
+    text: 报修人须为该资产当前使用人（资产管理员代报时选使用人）；当前使用人由 AGG-115 的使用期间读取（同 BC 跨聚合按 ID 读，AGG-121 不共享 AGG-115 的命令与不变量）
   authority:
-    ref: raci:AGG-115/报修资产
+    ref: raci:AGG-121/报修资产
     A:
       resolve: instance
       field: 使用人
@@ -4310,7 +4426,7 @@ commands:
   orphan: false
   source_part: b31
 - name: 登记维修结果
-  aggregate: AGG-115
+  aggregate: AGG-121
   entity: it_asset_repair_orders
   kind: human
   source: 聚合稿 AGG 命令列
@@ -4323,7 +4439,7 @@ commands:
   - ref: 状态
     text: 工单为已报修
   authority:
-    ref: raci:AGG-115/登记维修结果
+    ref: raci:AGG-121/登记维修结果
     A:
       resolve: type
       role: SH-E6

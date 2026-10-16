@@ -1,4 +1,4 @@
-# B-31 状态机（收敛产物，提议稿）。AGG-115 按次级实体分 4 台机器（领用、调拨、使用期间、维修工单），根 it_asset_use_ledgers 只存当前使用人投影，无生命周期。
+# B-31 状态机（收敛产物，提议稿）。AGG-115 按次级实体分 3 台机器（领用、调拨、使用期间）、AGG-121 IT 资产维修单 1 台（S-32 自 AGG-115 拆出，原维修工单子机独立），AGG-115 根 it_asset_use_ledgers 只存当前使用人投影，无生命周期。
 # kind：forward 正向；reverse 逆向（驳回、撤回、放弃、重开、归还）。from 为空 = 创建。守卫引用 INV（聚合稿）、R-B31-n（分片 notes 规则卡候选，交 one-rules）、AR（APPROVAL_RULES）。
 # 自检（可达性、非终态到终态、流程步骤对转换）见 b31.notes.md「收敛自检」。
 
@@ -200,7 +200,7 @@ machines:
     guard: [R-B31-9：须有未结束期间]
     kind: reverse
     process_outcome: 已归还
-- aggregate: AGG-115
+- aggregate: AGG-121
   machine: repair_order
   entity: it_asset_repair_orders
   states: [草稿, 已报修, 已维修登记]

@@ -22,6 +22,15 @@ entries:
     I: []
   sensitive: false
 - object: AGG-106
+  command: 登记绩效更正
+  raci:
+    A: {resolve: instance, field: 绩效评估.评估人}
+    R: [SH-E1]
+    C: [SH-E6]
+    I: []
+  sensitive: false
+  note: 追加更正记录引用原已确认评估，不改原评估（INV-114）；S-32 新增
+- object: AGG-106
   command: 编制试用期绩效评估
   raci:
     A: {resolve: instance, field: 绩效评估.评估人}
@@ -154,6 +163,16 @@ entries:
   sensitive: false
   note: 减员只写减员日与回执引用，不写缴费基数
 - object: AGG-74
+  command: 调整缴费基数
+  raci:
+    A: {resolve: type, role: SH-E6, function: 社保岗}
+    R: [SH-E6]
+    C: []
+    I: [SH-M1]
+  sensitive: true
+  sensitive_reason: 登记缴费基数，基数是工资的映射（SPI），同参保增员
+  note: 年度调整，追加新版本；S-32 新增
+- object: AGG-74
   command: 变更参保缴纳主体
   raci:
     A: {resolve: type, role: SH-E6, function: 社保岗}
@@ -268,10 +287,19 @@ entries:
   pending: {U9: 调薪是否走 platform.approval}
   note: U9 未定：若调薪决定进审批，A 改为员工所在组织单元负责人，并拆出提交与批准
 - object: AGG-93
+  command: 终止薪酬档案
+  raci:
+    A: {resolve: type, role: SH-E6, function: 薪酬岗}
+    R: [system]
+    C: []
+    I: [SH-E6]
+  sensitive: false
+  note: 离职事件（Separated）后系统自动结束最后一个生效版本，不读写薪资金额与发薪账户，无人持有执行权限；S-32 新增
+- object: AGG-120
   command: 更新专项附加扣除
   raci:
-    A: {resolve: instance, field: 薪酬档案.所属人员}
-    R: [SH-E6, SH-E3]
+    A: {resolve: instance, field: 专项附加扣除声明.所属人员}
+    R: [SH-E3, SH-E6]
     C: []
     I: []
   sensitive: false

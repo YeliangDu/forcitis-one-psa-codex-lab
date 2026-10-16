@@ -91,6 +91,8 @@ machines:
   states: [已生效]
   initial: []
   terminal: [已生效]
+  perpetual: true
+  reason: "配置型版本聚合：发布即生效，被新版本取代不改旧版本状态，无业务终结"
   note: 每版本一个聚合，发布即生效，生效后不可改（D15），更正另发布新版本；假期类型（leave_types）为受控代码表，只由迁移维护，无命令（见 vs13att.notes.md 结构问题 6）
   transitions:
   - {from: null, to: 已生效, command: 发布假期规则版本, guard: [INV-123], kind: forward}
@@ -101,7 +103,7 @@ machines:
   initial: []
   terminal: []
   perpetual: true
-  exempt_terminal: 长期存续配置（按日历年度反复维护的可变根，无业务终结；年度过去后只读，不是状态）
+  reason: 长期存续配置（按日历年度反复维护的可变根，无业务终结；年度过去后只读，不是状态）
   note: 可变根 + 审计，过去日期锁定；首次维护创建，之后每年反复维护（现状为整集替换，是否改按配置型版本化待 one-data）
   transitions:
   - {from: null, to: 已建, command: 维护工作日历年度, guard: [], kind: forward}
@@ -148,7 +150,8 @@ process_steps:
 - {process: PRC-119, step: 2, command: 发布标准工时版本, machine: standard_work_hour_version, transition: [null, 已生效], outcome: 标准工时版本已发布, outcome_on_reject: 版本被拒（前置条件 INV-116 失败）}
 # 事件策略（非 PRC 步骤）
 - {process: 事件策略, step: 孤儿占用定时释放, command: 释放余额占用, machine: leave_balance_hold, transition: [占用, 已释放]}
-- {process: 事件策略, step: 年度开账, command: 开立年度额度账户, machine: leave_balance_account, transition: [null, 已开账]}
+- {process: PRC-160, step: 1, command: 年度结转并关闭额度账户, machine: leave_balance_account, transition: [已开账, 已结转]}
+- {process: PRC-160, step: 2, command: 开立年度额度账户, machine: leave_balance_account, transition: [null, 已开账], outcome: 年度账户已开立}
 - {process: 事件策略, step: 确认期限届满默认确认, command: 默认确认月度考勤, machine: monthly_attendance_confirmation, transition: [已生成, 已确认]}
 - {process: 事件策略, step: 离职当月考勤默认确认, command: 默认确认月度考勤, machine: monthly_attendance_confirmation, transition: [已生成, 已确认]}
-- {process: 孤立, step: 发布假期规则版本, command: 发布假期规则版本, machine: leave_entitlement_rule_version, transition: [null, 已生效], note: 无流程步骤引用，孤儿命令}
+- {process: PRC-162, step: 1, command: 发布假期规则版本, machine: leave_entitlement_rule_version, transition: [null, 已生效], outcome: 假期规则版本已发布, outcome_on_reject: 版本被拒（前置条件 INV-123 失败）}

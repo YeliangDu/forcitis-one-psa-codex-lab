@@ -13,9 +13,11 @@ state_machines:
       - {name: 基线, desc: 不可变（INV-101）}
       - {name: 已编制, desc: "提议：预测与现金流预测版本的结果态，不经审批、不基线化；数据模型状态列未列"}
       - {name: 被取代, terminal: true, desc: 被同计划新基线或新滚动版本取代}
+      - {name: 已作废, terminal: true, desc: S-32：编制人放弃的废弃草稿，不再进入审批}
     transitions:
       - {from: "[新建]", to: 编制中, command: 编制经营计划版本, guard: [INV-101], steps: [PRC-88#1]}
       - {from: 编制中, to: 编制中, command: 编制经营计划版本, guard: [INV-101], steps: [PRC-88#1], note: 编辑}
+      - {from: 编制中, to: 已作废, command: 作废经营计划草稿, guard: [INV-101：仅编制中，审批中须先撤回], steps: [], reverse: 作废}
       - {from: 编制中, to: 审批中, command: 〔缺〕提交经营计划审批, guard: [候选规则-目标值完整], steps: [PRC-88#2]}
       - {from: 审批中, to: 编制中, command: 〔缺〕撤回经营计划审批, guard: [平台可取消审批实例], steps: ["PRC-88#3(withdraw)"], reverse: 撤回}
       - {from: 审批中, to: 编制中, command: 〔缺〕驳回经营计划审批, guard: [], steps: [PRC-88#4], reverse: 驳回}
@@ -30,20 +32,18 @@ state_machines:
     reverse_paths: [撤回（审批中 → 编制中）, 驳回（审批中 → 编制中）]
     no_reverse: 基线不可冲销、不可撤销，更正只出新版本（INV-101）
     open_questions:
-      - 撤回后版本回到编制中，而流程结局记「已撤回」；是否需要独立「已撤回」状态由 one-architecture 定（编制中的废弃草稿无作废命令）
+      - 撤回后版本回到编制中，而流程结局记「已撤回」；是否需要独立「已撤回」状态由 one-architecture 定（废弃草稿已由 S-32 新增作废经营计划草稿处理）
       - 预测类型是否经审批成基线（待用户定 4，VS-09.2 notes 与 PRC-89 不一致）
 
   - aggregate: AGG-80
     entity: 预算账户（budget_accounts.状态）
-    open_ended: true
-    open_ended_reason: 账户的结束（预算期届满、冻结）聚合稿与数据模型都没有命令和状态（数据模型仅写「可冻结」）；本稿不自造终态，交 one-architecture 补，自检将其列为豁免
     states:
       - {name: 已开立, desc: 生效，可占用、可调剂}
       - {name: 已关闭, terminal: true, desc: 计划周期结束或被新基线取代后关闭，不再接受占用与调剂（收敛新增终态）}
     transitions:
       - {from: "[新建]", to: 已开立, command: 开立预算账户, guard: [INV-101, 候选规则-预算类型分流, 候选规则-额度不超基线], steps: [PRC-88#7]}
       - {from: 已开立, to: 已开立, command: 调整预算, guard: [候选规则-额度总额内调剂], steps: [PRC-88#8], note: 额度调剂，状态不变，记调整记录}
-      - {from: 已开立, to: 已关闭, command: 〔缺〕关闭预算账户, guard: [计划周期已结束或已被新基线取代, 无占用中的占用行（占用中的先释放或消耗）], steps: [], note: 命令为〔缺〕，周期结束定时作业或财务维护}
+      - {from: 已开立, to: 已关闭, command: 关闭预算账户, guard: [计划周期已结束或已被新基线取代, 无占用中的占用行（占用中的先释放或消耗）], steps: [PRC-161#1], note: S-32：PRC-161 年末定时触发，B-18 向 platform.scheduling 登记}
     reverse_paths: []
     no_reverse: 调整只追加（budget_account_adjustments）；反向调整另记一条
 

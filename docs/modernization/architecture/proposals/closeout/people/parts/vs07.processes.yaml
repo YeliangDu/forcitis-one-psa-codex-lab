@@ -1161,29 +1161,80 @@ event_policies:
     owner_bc: B-15
     migration: "不适用（迁入不发事件；历史参保减员记录随 AGG-74 全量迁入）"
     outcomes: [参保已减员, 无需减员]
-    scenarios: [PRC-130-S01, PRC-130-S02, PRC-130-S03]
+    scenarios: [PRC-130-S01, PRC-130-S02, PRC-130-S03, PRC-130-S04, PRC-130-S05]
     roles:
       - {id: SH-E6, as: performer, org_needs: {responsibility: "办理参保减员与公积金封存或转移", approval_right: "无", department_hint: "人力资源部（薪酬与社保）", position_hint: "薪酬与社保专员（职能：参保经办）"}}      # 人力（薪酬与社保）
-    step:
-      actor: SH-E6
-      where: offline
-      evidence: [社保减员回执, 公积金封存或转移回执, 办理日]
-      command: 参保减员
-      aggregate: AGG-74
-      emits: [参保已减员]
-      desc: 社保减员与公积金封存 / 转移在人社与公积金网办办理，没有面向本系统的接口，办理后回填；离职日起 15 日内（P-32）。退休返聘与实习不参保，无需减员（用户已定 T-4）
-      permission: 参保.减员
-      page: 参保登记页
-      audit: true
-      notify: [{to: SH-E6, how: 企业微信待办}]
-      timeout: {after: "P15D", escalate_to: SH-M1, interrupting: false}   # P-32 提醒，逾期升级给职能高管〔推〕
-      decision:
-        - {when: 用工类型为退休返聘或实习, goto: end, outcome: 无需减员}
-        - {when: otherwise, goto: end, outcome: 参保已减员}
-      cross_bc:
-        - {mode: event, direction: in, bc: B-13, name: Separated}
-        - {mode: api, direction: out, bc: B-13, name: 读取用工类型}
-    notes: B-15 → B-13（api、事件）已有边。工资结清与离职当月社保费用口径属 B-15 薪酬结算，不在本策略。无人工审批。
+    steps:
+      - actor: system
+        where: automatic
+        command: 终止薪酬档案
+        aggregate: AGG-93
+        desc: S-32：B-15 订阅 Separated 后结束人员最后一个生效的薪酬档案版本，区间止于离职日（显式优于由人员状态推断）；离职当月的入离职折算仍读离职日之前有效的版本；人员无任何档案版本失败并告警薪酬岗，不静默，不阻断后续参保减员；已终止无操作
+        audit: true
+        notify: [{to: SH-E6, how: 企业微信待办}]
+        cross_bc:
+          - {mode: event, direction: in, bc: B-13, name: Separated}
+        decision:
+          - {when: 人员无任何薪酬档案版本, goto: 2}
+          - {when: otherwise, goto: 2}
+      - actor: SH-E6
+        where: offline
+        evidence: [社保减员回执, 公积金封存或转移回执, 办理日]
+        command: 参保减员
+        aggregate: AGG-74
+        emits: [参保已减员]
+        desc: 社保减员与公积金封存 / 转移在人社与公积金网办办理，没有面向本系统的接口，办理后回填；离职日起 15 日内（P-32）。退休返聘与实习不参保，无需减员（用户已定 T-4）
+        permission: 参保.减员
+        page: 参保登记页
+        audit: true
+        notify: [{to: SH-E6, how: 企业微信待办}]
+        timeout: {after: "P15D", escalate_to: SH-M1, interrupting: false}   # P-32 提醒，逾期升级给职能高管〔推〕
+        decision:
+          - {when: 用工类型为退休返聘或实习, goto: end, outcome: 无需减员}
+          - {when: otherwise, goto: end, outcome: 参保已减员}
+        cross_bc:
+          - {mode: api, direction: out, bc: B-13, name: 读取用工类型}
+    notes: B-15 → B-13（api、事件）已有边。工资结清与离职当月社保费用口径属 B-15 薪酬结算，不在本策略。无人工审批。流程名沿用目录「离职后参保减员」，第 1 步终止薪酬档案是 S-32 并入的第二类离职反应（目录名待 one-architecture 视情改为含薪酬档案）。
+
+  - id: PRC-177
+    name: 向差旅服务商同步员工与组织
+    type: event_policy
+    trigger:
+      type: event
+      events:
+        - {event: Employed, aggregate: AGG-62}
+        - {event: Separated, aggregate: AGG-62}
+        - {event: 任职已变更, aggregate: AGG-63}
+        - {event: 组织单元已调整, aggregate: AGG-61}
+    triggers:
+      - {type: event, name: "入职生效", event: Employed, bc: B-13}
+      - {type: event, name: "离职已生效", event: Separated, bc: B-13}
+      - {type: event, name: "任职已变更（调岗）", event: 任职已变更, bc: B-13}
+      - {type: event, name: "组织单元已调整", event: 组织单元已调整, bc: B-13}
+    stages: []
+    support: "行政支撑：员工与组织的单向同步，服务差旅预订，不在客户价值流上（S-31 SQ-31）"
+    owner_bc: B-13
+    basis: S-31 SQ-31（one-architecture）：platform.integration 在 L0，不能订阅 B-13（S-22 不采用平台订阅业务事件），故由 B-13 订阅本 BC 事件并经既有边 B-13 → platform.integration 推送
+    migration: "迁入不触发（ADR-0036 M7）；上线时由集成册登记的一次性全量初始同步另办，不属本策略"
+    outcomes: [已同步, 同步失败已告警]
+    scenarios: [PRC-177-S01, PRC-177-S02, PRC-177-S03]   # S01 入职后推送新员工；S02 组织单元调整后推送组织树；S03 差旅服务商返回失败，告警不静默
+    roles:
+      - {id: SH-E6, as: informed, org_needs: {responsibility: "接收同步失败告警并跟进重试", approval_right: "无", department_hint: "信息部门、人力资源部", position_hint: "信息管理员、人事专员"}}       # 信息（IT）与人力：同步失败告警
+    steps:
+      - actor: system
+        where: external:差旅服务商
+        evidence: [推送批次编号, 差旅服务商回执（受理结果与失败明细）]
+        bc: platform.integration
+        command: 推送员工与组织
+        desc: 单向推送：入职、调岗、组织调整推送最新员工与组织单元，离职推送停用；只推送差旅预订必需的字段（姓名、工号、所属组织单元、状态），不含薪酬、证件等敏感个人信息（个人信息保护法最小必要）；按事件 ID 幂等，重复事件不重复推送；差旅服务商返回失败或回执缺失告警信息部门与人力，保留批次待重试，不静默（CLAUDE.md 第 6 条）
+        audit: true
+        notify: [{to: SH-E6, how: 企业微信待办}]
+        cross_bc:
+          - {mode: api, direction: out, bc: platform.integration, name: 推送员工与组织}
+        decision:
+          - {when: 差旅服务商返回失败或回执缺失, goto: end, outcome: 同步失败已告警}
+          - {when: otherwise, goto: end, outcome: 已同步}
+    notes: 方向 B-13 → platform.integration 为既有边，不新增边；订阅的是本 BC 事件。外部系统名按 S-31 写「差旅服务商」，集成册登记（SESSION_PLAYBOOK §14.3）。差旅订单、账单、审批进 B-12（S-31 SQ-27、28），与本策略无关。无人工审批。
 
 single_aggregate:
 

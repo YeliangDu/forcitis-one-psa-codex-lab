@@ -14,6 +14,7 @@ machines:
   initial: []
   terminal: []
   perpetual: true
+  reason: "法人主体只增不删、可停用可启用，长期存在，无业务终结"
   note: 根只留代码，名称与状态随版本表；聚合稿只列登记法人主体，更名 / 停用 / 启用三条〔缺〕命令取自词表事件（法人主体已更名 / 已停用 / 已启用），经对象增删改查检查补入（vs07.notes.md 结构问题 19）；词表区分已登记与已启用，本稿登记即有效；代码已更正（仅未发号前）仍不建模
   transitions:
   - from: null
@@ -88,6 +89,7 @@ machines:
   initial: []
   terminal: []
   perpetual: true
+  reason: "归属对象的期间聚合，期间在版本表追加，历史只能关闭不能改写，随归属对象长期存续，无生命周期终态"
   note: 根是归属对象（部门或员工）的期间聚合，期间在版本表追加，历史只能关闭不能改写；无生命周期终态
   transitions:
   - from: null

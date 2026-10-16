@@ -121,8 +121,13 @@
       pi: pi
       column_families: [使用期间起止（止为空表示在用）, 使用人, 来源申请, 归还验收人, 归还时状态]
       reason: "使用期间是业务事实区间，不是维度版本；同一卡片期间不重叠由条件排除约束保证（INV-新-P4）；调拨在同一事务结束旧期间并开启新期间；全量来源 A8 领用、调拨、归还记录（待取证）；pi：使用人"
+
+# ───────────────────────── AGG-121 IT 资产维修单（S-32 自 AGG-115 拆出；与领用、调拨、使用期无共享命令与不变量） ─────────────────────────
+- aggregate: AGG-121
+  bc: B-31
+  tables:
     - name: it_asset_repair_orders
-      role: child
+      role: root
       key: uuid_v7
       references:
         - {to: AGG-115, by: it_asset_use_ledger_id}
@@ -132,7 +137,7 @@
       sensitivity: INTERNAL
       pi: pi
       column_families: [工单号（沿用 A8 原号用 legacy_numbers）, 报修人, 故障描述, 报修时间, 维修结果（已修复 / 无法修复）, 完成日期, 维修单或发票引用, 状态, 审计列]
-      reason: "单据，状态由审计还原；全量来源 A8 IT 资产报修（累计 128、在途 2，字段待取证）；维修费用若产生，账务归 B-24 / 费控，不记在此"
+      reason: "S-32 自 AGG-115 拆出为 AGG-121；单据，状态由审计还原；全量来源 A8 IT 资产报修（累计 128、在途 2，字段待取证）；维修费用若产生，账务归 B-24 / 费控，不记在此"
 
 - aggregate: AGG-116
   bc: B-31

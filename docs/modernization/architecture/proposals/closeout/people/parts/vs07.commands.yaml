@@ -1571,6 +1571,15 @@ platform_commands:
   - PRC-80 第 6 步
   - PRC-136 第 10 步
   kind: event_reaction
+- name: 推送员工与组织
+  name_status: 〔缺〕（出站，ACL；S-31 SQ-31 给号 PRC-177）
+  service: platform.integration（由 B-13 事件策略编排，经既有边 B-13 → platform.integration）
+  trigger: Employed、Separated、任职已变更、组织单元已调整（B-13）
+  purpose: 把员工与组织单向推送到差旅服务商，离职推送停用；按事件 ID 幂等；失败或回执缺失告警，保留批次待重试
+  used_by:
+  - PRC-177 第 1 步
+  kind: outbound_api
+  english: PushWorkforceToTravelProvider
 removed:
 - name: 批准离职申请
   from: 聚合稿 AGG-62 命令列

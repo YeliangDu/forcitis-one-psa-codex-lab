@@ -4,6 +4,7 @@ machines:
   machine: legal_entity
   entity: legal_entities
   perpetual: true
+  reason: 法人主体只增不删、可停用可启用，长期存在，无业务终结
   note: 根只留代码，名称与状态随版本表；聚合稿只列登记法人主体，更名 / 停用 / 启用三条〔缺〕命令取自词表事件（法人主体已更名 / 已停用 / 已启用），经对象增删改查检查补入（vs07.notes.md 结构问题 19）；词表区分已登记与已启用，本稿登记即有效；代码已更正（仅未发号前）仍不建模
   states:
   - 有效
@@ -86,6 +87,7 @@ machines:
   machine: legal_entity_attribution
   entity: legal_entity_attributions
   perpetual: true
+  reason: 归属对象的期间聚合，期间在版本表追加，历史只能关闭不能改写，随归属对象长期存续，无生命周期终态
   note: 根是归属对象（部门或员工）的期间聚合，期间在版本表追加，历史只能关闭不能改写；无生命周期终态
   states:
   - 已指定
@@ -843,6 +845,8 @@ machines:
 - aggregate: AGG-118
   machine: leave_entitlement_rule_version
   entity: leave_entitlement_rule_versions
+  perpetual: true
+  reason: 配置型版本聚合：发布即生效，被新版本取代不改旧版本状态，无业务终结
   note: 每版本一个聚合，发布即生效，生效后不可改（D15），更正另发布新版本；假期类型（leave_types）为受控代码表，只由迁移维护，无命令（见 vs13att.notes.md 结构问题 6）
   states:
   - name: 已生效
@@ -860,7 +864,7 @@ machines:
   machine: work_calendar_year
   entity: work_calendar_years
   perpetual: true
-  exempt_terminal: 长期存续配置（按日历年度反复维护的可变根，无业务终结；年度过去后只读，不是状态）
+  reason: 长期存续配置（按日历年度反复维护的可变根，无业务终结；年度过去后只读，不是状态）
   note: 可变根 + 审计，过去日期锁定；首次维护创建，之后每年反复维护（现状为整集替换，是否改按配置型版本化待 one-data）
   states:
   - 已建
@@ -897,7 +901,7 @@ machines:
 - aggregate: AGG-106
   machine: performance_review
   entity: performance_reviews
-  note: 已确认后不得改，更正另记（INV-114）；更正没有命令，见 notes 结构问题 8
+  note: 已确认后不得改，更正另记（INV-114）；更正由 S-32 新增的登记绩效更正追加记录，不改状态
   states:
   - 草拟
   - 已提交
@@ -937,6 +941,12 @@ machines:
     - 试用期评估无提交环节（PRC-85 步 2）〔推〕
     kind: forward
     process_outcome: 已确认
+  - from: 已确认
+    to: 已确认
+    command: 登记绩效更正
+    guard:
+    - INV-114：追加更正记录引用原评估，不改原评估
+    kind: non_state
   source_part: vs13pay
 - aggregate: AGG-73
   machine: payroll_settlement
@@ -1057,7 +1067,7 @@ machines:
   added_states:
   - 在保
   - 已减员
-  note: 数据模型状态列只写「状态」未列取值，本稿取在保与已减员。重新入职另建登记（同一人员同缴纳主体至多一个在保）。缴费基数年度调整没有命令，见 notes 结构问题 9
+  note: 数据模型状态列只写「状态」未列取值，本稿取在保与已减员。重新入职另建登记（同一人员同缴纳主体至多一个在保）。缴费基数年度调整由 S-32 新增的调整缴费基数追加新版本
   states:
   - 在保
   - name: 已减员
@@ -1092,6 +1102,10 @@ machines:
     guard:
     - 新主体无在保登记
     kind: forward
+  - from: 在保
+    to: 在保
+    command: 调整缴费基数
+    kind: non_state
   source_part: vs13pay
 - aggregate: AGG-75
   machine: incentive_plan_version
@@ -1211,19 +1225,20 @@ machines:
     process_outcome: 已驳回
   source_part: vs13pay
 - aggregate: AGG-93
-  sub_machines:
-  - payroll_profile_version
-  - special_deduction_declaration
+  machine: payroll_profile_version
+  entity: payroll_profile_versions
+  added_states:
+  - 生效
+  - 已结束
+  note: 根表 payroll_profiles 无生命周期；版本行按生效区间，调薪追加新版本并结束旧版本（D17）。未来生效日的版本也记为生效（区间决定何时适用）。离职后由 S-32 新增的终止薪酬档案结束最后一个生效版本；重新入职在原根下建立新版本
   states:
-  - payroll_profile_version:生效
-  - name: payroll_profile_version:已结束
+  - 生效
+  - name: 已结束
     terminal: true
-  - special_deduction_declaration:有效
-  - name: special_deduction_declaration:已取代
-    terminal: true
+  initial: 生效
   transitions:
   - from: null
-    to: payroll_profile_version:生效
+    to: 生效
     command: 建立薪酬档案
     guard:
     - 人员已入职
@@ -1231,34 +1246,55 @@ machines:
     kind: forward
     process_outcome: 薪酬档案已建立
   - from: null
-    to: payroll_profile_version:生效
+    to: 生效
     command: 调整薪酬档案
     guard:
     - R-VS13-j：引用调薪决定依据
     - U9
     kind: forward
     process_outcome: 薪酬档案已调整
-  - from: payroll_profile_version:生效
-    to: payroll_profile_version:已结束
+  - from: 生效
+    to: 已结束
     command: 调整薪酬档案
     guard:
     - 同事务结束旧版本区间（D17）
     kind: forward
+  - from: 生效
+    to: 已结束
+    command: 终止薪酬档案
+    guard:
+    - Separated：区间止于离职日
+    - 无版本时失败并告警
+    kind: forward
+    process_outcome: 薪酬档案已终止
+  source_part: vs13pay
+- aggregate: AGG-120
+  machine: special_deduction_declaration
+  entity: payroll_special_deduction_declarations
+  added_states:
+  - 有效
+  - 已取代
+  note: 数据模型状态列只写「状态」未列取值，本稿取有效与已取代；年内修改追加新声明并取代旧声明
+  states:
+  - 有效
+  - name: 已取代
+    terminal: true
+  initial: 有效
+  transitions:
   - from: null
-    to: special_deduction_declaration:有效
+    to: 有效
     command: 更新专项附加扣除
     guard:
     - 扣除额不超扣除标准版本
     kind: forward
     process_outcome: 专项附加扣除已更新
-  - from: special_deduction_declaration:有效
-    to: special_deduction_declaration:已取代
+  - from: 有效
+    to: 已取代
     command: 更新专项附加扣除
     guard:
     - 同事务取代旧声明
     kind: forward
   source_part: vs13pay
-  note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
 - aggregate: AGG-95
   machine: tax_social_filing
   entity: tax_social_filings
@@ -1378,7 +1414,7 @@ machines:
   - 驳回（审批中 → 编制中）
   no_reverse: 基线不可冲销、不可撤销，更正只出新版本（INV-101）
   open_questions:
-  - 撤回后版本回到编制中，而流程结局记「已撤回」；是否需要独立「已撤回」状态由 one-architecture 定（编制中的废弃草稿无作废命令）
+  - 撤回后版本回到编制中，而流程结局记「已撤回」；是否需要独立「已撤回」状态由 one-architecture 定（废弃草稿已由 S-32 新增作废经营计划草稿处理）
   - 预测类型是否经审批成基线（待用户定 4，VS-09.2 notes 与 PRC-89 不一致）
   states:
   - 编制中
@@ -1387,6 +1423,8 @@ machines:
   - 基线
   - 已编制
   - name: 被取代
+    terminal: true
+  - name: 已作废
     terminal: true
   initial: null
   transitions:
@@ -1405,6 +1443,13 @@ machines:
     steps:
     - PRC-88#1
     note: 编辑
+  - from: 编制中
+    to: 已作废
+    command: 作废经营计划草稿
+    guard:
+    - INV-101：仅编制中，审批中须先撤回
+    steps: []
+    reverse: 作废
   - from: 编制中
     to: 审批中
     command: 〔缺〕提交经营计划审批
@@ -1509,12 +1554,13 @@ machines:
     note: 额度调剂，状态不变，记调整记录
   - from: 预算账户（budget_accounts.状态）:已开立
     to: 预算账户（budget_accounts.状态）:已关闭
-    command: 〔缺〕关闭预算账户
+    command: 关闭预算账户
     guard:
     - 计划周期已结束或已被新基线取代
     - 无占用中的占用行（占用中的先释放或消耗）
-    steps: []
-    note: 命令为〔缺〕，周期结束定时作业或财务维护
+    steps:
+    - PRC-161#1
+    note: S-32：PRC-161 年末定时触发，B-18 向 platform.scheduling 登记
   - from: null
     to: 预算占用行（budget_reservations.状态）:占用中
     command: 预算占用
@@ -1777,7 +1823,6 @@ machines:
   - use_request
   - transfer_request
   - use_period
-  - repair_order
   states:
   - use_request:草稿
   - use_request:审批中
@@ -1798,10 +1843,6 @@ machines:
     terminal: true
   - use_period:在用
   - name: use_period:已结束
-    terminal: true
-  - repair_order:草稿
-  - repair_order:已报修
-  - name: repair_order:已维修登记
     terminal: true
   transitions:
   - from: use_request:草稿
@@ -1904,24 +1945,31 @@ machines:
     - R-B31-9：须有未结束期间
     kind: reverse
     process_outcome: 已归还
-  - from: repair_order:草稿
-    to: repair_order:已报修
+  source_part: b31
+  note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
+- aggregate: AGG-121
+  machine: repair_order
+  entity: it_asset_repair_orders
+  note: 维修结果（已修复 / 无法修复）是工单属性，不分状态；无法修复的报废归 B-24
+  states:
+  - 草稿
+  - 已报修
+  - name: 已维修登记
+    terminal: true
+  initial: 草稿
+  transitions:
+  - from: 草稿
+    to: 已报修
     command: 报修资产
     guard:
     - R-B31-8
     kind: forward
-  - from: repair_order:已报修
-    to: repair_order:已维修登记
+  - from: 已报修
+    to: 已维修登记
     command: 登记维修结果
     guard: []
     kind: forward
-  - from: null
-    to: repair_order:草稿
-    command: null
-    kind: entry
-    note: 子生命周期入口
   source_part: b31
-  note: 同一聚合的多个子生命周期合成一台（rebuild.py）；状态名带子机前缀
 - aggregate: AGG-116
   machine: employee_activity
   entity: employee_activity_requests
