@@ -198,7 +198,6 @@ value_streams:
       in_stage_states:
         - {ref: OBJ-34, state: 在岗, note: 组建团队；项目团队名册待 Q13，不作门（STEP3 C-02）}
         - {ref: OBJ-42, state: 已提供, note: 发包人首批资料（STEP3 C-02）}
-        - {ref: OBJ-25, state: 启用, note: 立项生成的 WBS 阶段节点所用阶段类型为启用；目录引用，不是门（STEP3 C-02）}
       value_item: 客户与我方对范围、计划和团队有一致的基线。
       notes: 进入条件同价值流起始条件；立项是本段的结果，不是 BD1 → 启动的门（STAGE_TYPES_DRAFT §3.1）；启动会纪要作证据类型「会议纪要」（OBJ-53）。
     - id: VS-02.1
@@ -328,7 +327,6 @@ value_streams:
       in_stage_states:
         - {ref: OBJ-46, state: 已竣工（在用）, note: 受检建设工程；外部引用对象，只记录、不控制（R5），不作门（STEP3 C-20）}
         - {ref: OBJ-47, state: 在用, note: 受检建筑系统与部位（仅 IDI 完整登记，Q31a）}
-        - {ref: OBJ-25, state: 启用, note: 「检查」类阶段类型为启用；目录引用，不是门（STEP3 C-04）}
       value_item: 委托方确认检查范围、时间与方法。
       notes: 本段起五段为阶段类型目录「检查」类的自有阶段（用户答复 Q-A 选 a，intent 2026-10-16-082311）；运营期周期检查同样适用，不套招采、施工段。
     - id: VS-03.2
@@ -424,7 +422,7 @@ value_streams:
       notes: 协议变更（OBJ-09「已生效（新基线）」）、索赔（OBJ-10）在本段重入；依法招标的项目合同须与投标承诺比对（不变量）。
     - id: VS-04.2
       name: 收入确认
-      description: 依客户认可的交付侧事实确认收入（规则层），形成合同资产；视为同意的期满判定在本段（D-8）。
+      description: 依客户认可的交付侧事实确认收入（规则层，无状态，ADR-0016 决定 4），形成合同资产；视为同意的期满判定在本段，判定记在 B-08 收入确认行上（D-8、AGG-44）。
       participants: [SH-E6, SH-E2, SH-C6e]
       entry:
         all:
@@ -437,19 +435,15 @@ value_streams:
       exit:
         all:
           - {ref: OBJ-08, state: 部分履行 / 已履行}
-          - {ref: OBJ-81, state: 已确认（锁定）, caveat: SC-05}
-      in_stage_states:
-        - {ref: 派生, state: 视为同意已成立, note: 段内读模型按合同审查期与送达日判定期满，不是对象状态（D-8，receivables.wip）}
-        - {ref: OBJ-07, state: 可结算, note: 以认可为条件的付款条件项在收入确认后可结算；VS-04.3 以其进入，原无产出阶段（STEP3 C-22）}
       value_item: 已交付并被认可的价值在账上可见。
-      notes: 进入用与 VS-02 退出同一组交付侧事实；期满无结论且无声明的情形如何进入，见 STEP1 第 6 节第 8 条。
+      notes: 进入用与 VS-02 退出同一组交付侧事实；「视为同意已成立」是存在收入确认行上的判定（按合同审查期与送达日，D-8、AGG-44），不是读模型派生，也不是对象状态，故不入条件；门只留 OBJ-08；期满无结论且无声明的情形如何进入，见 STEP1 第 6 节第 8 条。
     - id: VS-04.3
       name: 开票
       description: 开票申请准入，开具销项发票并改写在制余额。
       participants: [SH-E6, SH-C6d]
       entry:
         any:
-          - {ref: OBJ-07, state: 可结算}
+          - {ref: OBJ-07, state: 可结算, note: 以认可为条件的付款条件项，在交付物「已认可」（OBJ-35，VS-02 退出）后可结算；其余按日期或里程碑触发，由节点事实决定（STEP3 C-22 改）}
           - {ref: OBJ-82, state: 草稿, note: 回签前只允许预收 / 首付款类型且附委托或中标证据（intent 074053 P-1）}
       exit:
         all:
@@ -471,21 +465,20 @@ value_streams:
               - {ref: OBJ-86, state: 已分配, note: 收方向}
           - {ref: OBJ-85, state: 已核销（坏账）, note: 坏账核销没有收款，原写法要求同时「已分配」，改为两路之一（STEP3 C-09）}
       value_item: 客户付款被准确认领与核对。
-      notes: 预收款（OBJ-85 类型「预收」）可先于第 2、3 段，之后核销时重入；争议（OBJ-85「争议」）回到本段。
+      in_stage_states:
+        - {ref: 派生, state: 质保金到期可收, note: 质保金类型应收（OBJ-85「未结」）按到期日在读模型派生的提示，不是对象状态，不作门，不重入 VS-04.5（STEP3 C-10 改）}
+      notes: 质保金类型应收（OBJ-85 类型「质保金」，状态「未结」）已被本段进入条件覆盖，到期收回在本段完成；预收款（OBJ-85 类型「预收」）可先于第 2、3 段，之后核销时重入；争议（OBJ-85「争议」）回到本段。
       pending: [待定：Q-E 第 2 项法律纠纷——选 b 时往来款项「争议」加处置分类「诉讼」，选 a 时新增法律纠纷对象；商业汇票待取证，票据收款是否另有对象状态未定]
     - id: VS-04.5
       name: 最终价款确认
-      description: 竣工或协议完成后编制结算书、双方确认最终价款，处理质保金到期收回。
+      description: 竣工或协议完成后编制结算书、双方确认最终价款；质保金收回归回款段（VS-04.4）。
       participants: [SH-E2, SH-E6, SH-C6c, SH-X4]
       entry:
-        any:
+        all:
           - {ref: OBJ-05, state: 已完成}
-          - {ref: 缺对象状态, gap: MS-15, text: 质保金「到期可收」, note: 质保期满收回质保金时重入（STEP3 C-10）}
       exit:
         all:
           - {ref: OBJ-05, state: 已结算（结算书经双方确认）}
-      in_stage_states:
-        - {ref: OBJ-85, state: 已结清, note: 质保金类型收回；质保期常在结算后一至两年，不作本段退出条件（STEP3 C-10）}
       value_item: 最终交易价格确定，双方债权债务了结。
       notes: 可跳过（无结算条款的协议）；阶段名避开「结算」，与协议状态「已结算」同名异义问题见 STEP1 第 6 节。
 
@@ -540,8 +533,6 @@ value_streams:
       exit:
         all:
           - {ref: OBJ-87, state: 已确认, caveat: SC-07}
-      in_stage_states:
-        - {ref: OBJ-93, state: 在用, note: 公司级采购取得的资产验收后登记（如有），不是门（STEP3 C-11）}
       value_item: 需求方得到经验收的成果或产品。
     - id: VS-05.4
       name: 应付确认
@@ -783,7 +774,7 @@ value_streams:
   value_receivers: [SH-M1, SH-O1]
   cross_stage_activities:
     - name: 事实过账
-      description: 来源单据到达可过账状态后经单一过账管道过账，生成两账分录；已关账期间的事实路由到开放期间并标原期间。
+      description: 来源单据到达可过账状态后经单一过账管道过账（收入确认是无状态规则层，ADR-0016 决定 4，由 B-08 收入确认行提交过账候选，不作对象状态输入），生成两账分录；已关账期间的事实路由到开放期间并标原期间。
       inputs:
         - {ref: OBJ-66, state: 已通过}
         - {ref: OBJ-87, state: 已确认}
@@ -794,7 +785,6 @@ value_streams:
         - {ref: OBJ-98, state: 已审核, note: 受控手工凭证类型}
         - {ref: OBJ-97, state: 开放}
         # 以下为第 ③ 步补（STEP3 C-16）：各价值流中提交过账候选、原未列入的来源状态
-        - {ref: OBJ-81, state: 已确认（锁定）, caveat: SC-05, note: 收入确认（规则层，ADR-0016 决定 4）}
         - {ref: OBJ-86, state: 已成功, note: 付方向}
         - {ref: OBJ-83, state: 已入账, note: 进项}
         - {ref: OBJ-85, state: 已核销（坏账）}
@@ -1045,18 +1035,17 @@ step3_warnings:
   - {ref: OBJ-24, status: 已补引用, note: VS-01.2 进入补「启用」}
   - {ref: OBJ-26, status: 已补引用, note: VS-01.2 进入补「生效」}
   # 第 ③ 步逐段对账后的裁定见 STEP3_STAGES.md 第 2 节
-  - {ref: OBJ-25, status: 已补引用, note: 第 ③ 步对账：阶段类型目录给出 VS-02、VS-03 的阶段骨架，VS-02.0、VS-03.1 段内补「启用」（不是门）}
+  - {ref: OBJ-25, status: 不支撑价值流, reason: 目录型参考数据，给出 VS-02、VS-03 的阶段骨架；自身「启用 / 停用」是服务产品与 WBS 的不变量（INV-34），不是阶段进出事实，也无段内业务理由（STEP3 评审撤回 C-02、C-04 的引用）}
   - {ref: OBJ-54, status: 经二级能力支撑, reason: 法人主体是各对象的归属维度，自身的筹建 / 存续 / 注销不是任何阶段的进出事实；一级能力 CAP-054 经二级能力（资质证书 VS-06.2、月度薪酬结算 VS-13、合伙人出资与利润分配 VS-12）支撑阶段}
-  - {ref: OBJ-93, status: 已补引用, note: 第 ③ 步对账：VS-05.3 段内补资产登记「在用」，VS-10 事实过账、期末结转活动补输入}
+  - {ref: OBJ-93, status: 已补引用, note: 仅经 VS-10 贯穿活动（事实过账、期末结转）输入引用；无阶段支撑（STEP3 评审撤回 C-11 的 VS-05.3 段内引用），能力对账写「不支撑价值流」}
   - {ref: OBJ-13, status: 不支撑价值流（候选）, reason: 保证金与押金的收付走资金收付（VS-04.4、VS-05.5），自身的待缴 / 已缴 / 已退不是阶段门；担保关系作协议与投标的属性（次级对象，不计入一级对账）}
   - {ref: OBJ-01, status: 经二级能力支撑, reason: 往来单位是主数据，角色（OBJ-02）才有准入状态并在 VS-05.1 作门；客户活动（OBJ-105）在 VS-01.1 作进入条件}
   - {ref: OBJ-19, status: 已补引用, note: 第 ③ 步对账：VS-01.2 段内补外部状态「已公告 / 定标」，只记录、不作门}
   - {ref: OBJ-46, status: 已补引用, note: 第 ③ 步对账：VS-02.6、VS-03.1 段内补外部状态，只记录、不作门}
   - {ref: OBJ-103, status: 经二级能力支撑, reason: 财务是汇聚对象，其次级（OBJ-83、85、86、92、97、98）已在条件中引用}
 
-# 缺对象状态（第 ② 步回补输入）：条件指不到信息图中任何对象的状态。仍在条件中使用的 2 项（第 ③ 步复核后）
+# 缺对象状态（第 ② 步回补输入）：条件指不到信息图中任何对象的状态。仍在条件中使用的 1 项（第 ③ 步复核后）
 missing_states:
-  - {id: MS-15, used_in: [VS-04.5], text: 质保金「到期可收」, now: 原 OBJ-14 并入 OBJ-85 后，OBJ-85 状态无「到期可收」；第 ③ 步改作 VS-04.5 重入的进入条件, ask: OBJ-85 补质保金类型的状态（存为状态还是按到期日派生，见 STEP3 用户题 U-3）}
   - {id: MS-16, used_in: [VS-02.4], text: 施工图审查「已通过」, now: VS-02.4 价值项写明通过施工图审查，信息图无对象承载外部审查结论（第 ③ 步发现）, ask: 作证据类型、交付物状态或不进系统（STEP3 用户题 U-4）}
 
 # 随用户题 Q-B 的两项：用户答复选 a（intent 2026-10-16-082311），已移入 resolved_missing_states
@@ -1064,6 +1053,7 @@ conditional_missing_states: []
 
 # 已重判并消除的缺对象状态（评审 B3 逐项重判）
 resolved_missing_states:
+  - {id: MS-15, was_in: VS-04.5, text: 质保金「到期可收」, disposition: 质保金收回归 VS-04.4（OBJ-85 质保金类型「未结」已覆盖），到期只作 VS-04.4 段内派生提示，不重入 VS-04.5（STEP3 C-10 改）}
   - {id: MS-02, was_in: VS-10.1, text: 业务事实「已过账」, disposition: 过账是贯穿活动，不是阶段；该阶段取消，成果由 OBJ-98「已记账」承载}
   - {id: MS-03, was_in: VS-10.2, text: 人工成本分配、分摊运行「已过账 / 生效」, disposition: 成本结转是贯穿活动；成果是成本结转类型的 OBJ-98 分录}
   - {id: MS-04, was_in: VS-10.2, text: 成本结转批次「已过账」, disposition: 同 MS-03}
@@ -1095,6 +1085,6 @@ state_caveats:
   - {id: SC-02, ref: OBJ-35, issue: D-8 已定（intent 061232）视为同意的期满判定在 receivables.wip，交付侧只记送达与无异议声明；信息图交付物状态仍含「视为同意」, fix: 已定执行——信息图 OBJ-35 去掉「视为同意」状态，补记「无异议声明已登记」为交付侧登记事实；本稿 VS-02 退出与 VS-04.2 进入已按此写}
   - {id: SC-03, ref: OBJ-60, issue: 信息图「已提出 → 已批准 → 招聘中 → 已关闭」与 AGG-65「草稿 → 已提交 → 已批准 / 已驳回 → 已关闭」不一致, fix: 统一一处}
   - {id: SC-04, ref: OBJ-29, issue: 项目状态机 Q09 暂不定（收尾中、已暂停）, fix: 随 Q09}
-  - {id: SC-05, ref: OBJ-81, issue: 收入确认形态待定 Q20（ADR-0016 决定 4 为无状态规则层）；VS-04.2 以 OBJ-08 履约义务状态为主, fix: 随 Q20}
+  - {id: SC-05, ref: OBJ-81, issue: 收入确认形态待定 Q20（ADR-0016 决定 4 为无状态规则层）；VS-04.2 以 OBJ-08 履约义务状态为主, fix: 随 Q20；STEP3 评审后 VS-04.2 门与 VS-10 输入均不再引用 OBJ-81}
   - {id: SC-06, ref: OBJ-109, issue: 绩效评估「已确认」为推断，待第 6 步, fix: 第 ④ 步确认}
   - {id: SC-07, ref: OBJ-87, issue: 供方履约确认形态随 Q20, fix: 随 Q20}
