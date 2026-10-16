@@ -2421,6 +2421,11 @@ processes:
     aggregates:
     - AGG-44
     ops: UD
+  - obj: AGG-92
+    name: 可触发确认的证据类型开放配置版本
+    aggregates:
+    - AGG-92
+    ops: R
 - id: PRC-149
   name: 冲销收入确认
   group: revenue
@@ -2857,4 +2862,28 @@ processes:
     name: 知识条目
     aggregates:
     - AGG-107
+    ops: R
+- id: PRC-183
+  name: 作出参投决策
+  group: revenue
+  objects:
+  - obj: OBJ-01
+    name: 往来单位
+    aggregates:
+    - AGG-01
+    ops: R
+  - obj: OBJ-18
+    name: 商机
+    aggregates:
+    - AGG-10
+    ops: UDR
+  - obj: OBJ-21
+    name: 报价
+    aggregates:
+    - AGG-12
+    ops: R
+  - obj: OBJ-23
+    name: 独立性检查
+    aggregates:
+    - AGG-18
     ops: R

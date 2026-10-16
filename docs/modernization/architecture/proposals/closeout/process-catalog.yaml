@@ -561,8 +561,8 @@ processes:
     type: event_policy
     stages: [VS-04.1, VS-04.2, VS-04.3]
     stages_note: "判据（事件策略看触发状态）：触发事件 ContractSigned 对应 VS-04.1 退出（协议已签署生效）；新基线已生效随协议变更，在 VS-04.6 重入。VS-04.2、VS-04.3 保留：额度是收入确认（INV-22）与开票的占用额度，服务两段（PRC-53 第 1 步、PRC-57）。VS-04.6 是否补标待 one-architecture 随阶段定义定"
-    primary_object: "AGG-44"
-    primary_object_note: "开票与收入额度；无 OBJ，信息层待定（Q20、Q-04）"
+    primary_object: "none"
+    primary_object_note: "额度是开票与收入额度（AGG-44）上的技术记录，按履约义务与付款条件项分行；本策略不改任何业务对象的状态，故不设主对象"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -573,6 +573,8 @@ processes:
     type: single_aggregate
     stages: []
     support: "收入确认证据类型开放是 B-08 的版本化配置（财务负责人书面确认后逐类开放），决定哪类客户确认证据可触发收入确认，本身不造任何段的进入或退出对象状态"
+    primary_object: "none"
+    primary_object_note: "版本化配置（AGG-92 证据类型开放配置版本），无业务对象"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -583,8 +585,8 @@ processes:
     type: event_policy
     stages: [VS-04.2]
     stages_note: "判据（事件策略看触发状态）：触发状态「交付物已认可」是 VS-04.2 进入条件（OBJ-35 已认可），策略是该段进入后的反应，故留在 VS-04.2。脚本只在退出条件里找触发状态，所以报 VS-03.5（及 VS-02 各段 exit_common）；是否改按退出所在段归，待用户确认"
-    primary_object: "AGG-44"
-    primary_object_note: "收入确认行在开票与收入额度上；无 OBJ，信息层待定（Q20、Q-04）"
+    primary_object: "OBJ-81"
+    primary_object_note: "发起收入确认（占用额度并提交审批），即收入确认进入「审批中」；OBJ-81 形态待定（Q20、Q-04），存储暂在 AGG-44 的收入确认行"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -595,8 +597,8 @@ processes:
     type: business
     stages: [VS-04.2]
     stages_note: "判据：阶段说明写明视为同意的期满判定在 VS-04.2（D-8），判定记在收入确认行上，不是对象状态。字面误判：「标记付款条件项可结算」在协议上是状态不变（已签署生效 / 履行中 / 已完成各自保持），不造 VS-04.1 退出、VS-04.6 退出，更不属 VS-05.2、VS-07.3"
-    primary_object: "AGG-44"
-    primary_object_note: "认定记在收入确认行上（AGG-44）；VS-04.2 退出缺对象状态（MS-17），信息层待定"
+    primary_object: "OBJ-81"
+    primary_object_note: "视为同意的认定是收入确认的证据成立，认定记在收入确认行上；OBJ-81 形态待定（Q20、Q-04）"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -1524,6 +1526,8 @@ processes:
     type: business
     stages: []
     support: "合同档案支持活动（B-05 合同模块档案功能，C-4，intent 144943）：只处理已归档合同原件的借阅流转，不改变任何价值流阶段的进入或退出对象状态"
+    primary_object: "OBJ-05"
+    primary_object_note: "借阅的是已归档协议原件，借阅流转记在协议档案上（AGG-13 子表），协议状态不变"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -1534,6 +1538,8 @@ processes:
     type: business
     stages: []
     support: "合同档案支持活动（B-05，C-4 归档并入合同模块档案功能，intent 144943）：回签后原件移交档案，不改变 VS-04.1 退出状态"
+    primary_object: "OBJ-05"
+    primary_object_note: "归档记在协议档案上（AGG-13 子表 agreement_archive_records），协议状态不变"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -1587,6 +1593,8 @@ processes:
     type: event_policy
     stages: []
     support: "合同档案支持活动（B-05）：借阅逾期催还，随 PRC-140，不改变任何阶段状态"
+    primary_object: "OBJ-05"
+    primary_object_note: "催还对象是借出的协议原件（随 PRC-140），协议状态不变"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -1607,8 +1615,8 @@ processes:
     type: event_policy
     stages: [VS-04.2]
     stages_note: "SD-08：本流程出口结局由「收入已确认」改为「收入确认事实已过账」（outcomes、decision.outcome、scenarios PRC-148-S01 同改）；过账经 B-16 过账管道（PRC-92）完成。VS-04.2 退出现为「缺对象状态」（MS-17），脚本不能匹配，故仍报不支持，待对象状态定后复跑。近似项（审批已通过）是不同对象撞名，不改"
-    primary_object: "AGG-44"
-    primary_object_note: "收入确认行占用转实；无 OBJ，信息层待定（Q20、Q-04）"
+    primary_object: "OBJ-81"
+    primary_object_note: "审批通过后收入确认到「已确认（锁定）」并提交过账；OBJ-81 形态待定（Q20、Q-04）"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -1619,8 +1627,8 @@ processes:
     type: business
     stages: [VS-04.2, VS-04.5]
     stages_note: "理由：冲销是收入确认的逆向（VS-04.2 退出「收入确认事实已过账」的反向，追加冲销行并提交过账），人工更正随时可发起（VS-04.2），结算审减或协议终止触发的属 VS-04.5；不经开票与回款阶段。近似项是通用状态词撞名，不改"
-    primary_object: "AGG-44"
-    primary_object_note: "冲销收入确认行；无 OBJ，信息层待定（Q20、Q-04）"
+    primary_object: "OBJ-81"
+    primary_object_note: "冲销收入确认（反向事实）；OBJ-81 形态待定（Q20、Q-04）"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -2027,6 +2035,7 @@ processes:
     name: "作出参投决策"
     type: business
     stages: [VS-01.2]
+    stages_note: "判据：作出参投决策使商机（OBJ-18）到「已决定参投」，是 VS-01.2 段内状态；放弃商机到「放弃」，是 VS-01.2 退出"
     primary_object: "OBJ-18"
     owner_bc: "B-03"
     group: revenue

@@ -1,7 +1,7 @@
 # 对象层与能力层对齐报告（object_layer_check.py 生成，勿手改）
 
-非支撑流程 143 条：已确认 115、声明无业务对象 22、提议 0、多候选 0、无候选 0、读模型 6。
-检查：① 无主对象 0；② 阶段承载对象无主流程 0；③ 主对象多流程 23；④ 能力不在所标段清单 8（另主对象无能力 5）；主对象不是业务对象 5。
+非支撑流程 143 条：已确认 114、声明无业务对象 23、提议 0、多候选 0、无候选 0、读模型 6。
+检查：① 无主对象 0；② 阶段承载对象无主流程 0；③ 主对象多流程 23；④ 能力不在所标段清单 11（另主对象无能力 0）；主对象不是业务对象 0。
 
 提议口径：第 1 档 所标段退出条件精确命中；第 2 档 所标段段内状态精确命中；第 3 档 退出或段内近似命中；第 4 档 所标段退出条件引用；第 5 档 唯一写入对象。只取本流程写入的对象；第 4、5 档把握低，组确认时重点看。
 
@@ -137,9 +137,9 @@
 | PRC-48 提出并生效协议变更或签证 | business | VS-04.6 | OBJ-09 协议变更 | confirmed | 2 | OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项、OBJ-09 协议变更 | CAP-005 |
 | PRC-49 提出并认定索赔 | business | VS-04.6、VS-04.5 | OBJ-10 索赔 | confirmed | 2 | OBJ-10 索赔 | CAP-005 |
 | PRC-50 占用框架限额并提交任务订单 | business | VS-04.6 | OBJ-05 协议 | confirmed | 3 | AGG-14、OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项 | CAP-005 |
-| PRC-51 建立并更新开票与收入额度 | event_policy | VS-04.1、VS-04.2、VS-04.3 | AGG-44 | confirmed | 5 | AGG-44 | — |
-| PRC-53 确认收入 | event_policy | VS-04.2 | AGG-44 | confirmed | 5 | AGG-44 | — |
-| PRC-54 视为同意期满处理 | business | VS-04.2 | AGG-44 | confirmed | — | AGG-44、OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项 | — |
+| PRC-51 建立并更新开票与收入额度 | event_policy | VS-04.1、VS-04.2、VS-04.3 | — | declared_none | 5 | AGG-44 | — |
+| PRC-53 确认收入 | event_policy | VS-04.2 | OBJ-81 收入确认 | confirmed | 5 | AGG-44 | CAP-005 |
+| PRC-54 视为同意期满处理 | business | VS-04.2 | OBJ-81 收入确认 | confirmed | — | AGG-44、OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项 | CAP-005 |
 | PRC-56 付款条件项转为可结算 | event_policy | VS-04.3 | OBJ-07 付款条件项 | confirmed | — | OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项 | CAP-005 |
 | PRC-57 申请并开具销项发票 | business | VS-04.3 | OBJ-83 增值税发票 | confirmed | 1 | OBJ-82 开票申请、OBJ-83 增值税发票 | CAP-103 |
 | PRC-58 红冲销项发票 | business | VS-04.3 | OBJ-83 增值税发票 | confirmed | 4 | AGG-44、OBJ-83 增值税发票 | CAP-103 |
@@ -155,15 +155,15 @@
 | PRC-86 发放、归还与催还员工借款 | business | VS-08.1 | OBJ-85 往来款项 | confirmed | 1 | OBJ-85 往来款项、OBJ-86 资金收付 | CAP-103 |
 | PRC-91 认定工时有效性 | event_policy | VS-10.1 | OBJ-66 工时单 | confirmed | 5 | OBJ-66 工时单 | CAP-056 |
 | PRC-147 费用报销核定后冲抵员工借款并确认应付 | event_policy | VS-08.2 | OBJ-88 费用报销 | confirmed | 4 | OBJ-85 往来款项、OBJ-88 费用报销 | CAP-056 |
-| PRC-148 收入确认审批通过后占用转实并提交过账 | event_policy | VS-04.2 | AGG-44 | confirmed | 5 | AGG-44 | — |
-| PRC-149 冲销收入确认 | business | VS-04.2、VS-04.5 | AGG-44 | confirmed | 5 | AGG-44 | — |
+| PRC-148 收入确认审批通过后占用转实并提交过账 | event_policy | VS-04.2 | OBJ-81 收入确认 | confirmed | 5 | AGG-44 | CAP-005 |
+| PRC-149 冲销收入确认 | business | VS-04.2、VS-04.5 | OBJ-81 收入确认 | confirmed | 5 | AGG-44 | CAP-005 |
 | PRC-150 发票红冲后冲减应收 | event_policy | VS-04.4 | OBJ-85 往来款项 | confirmed | 4 | OBJ-85 往来款项 | CAP-103 |
 | PRC-151 填报经营产值 | business | VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-33 完工估算 | confirmed | 5 | OBJ-33 完工估算 | CAP-029 |
 | PRC-152 登记付款条件达成 | business | VS-04.3 | OBJ-07 付款条件项 | confirmed | — | OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项 | CAP-005 |
 | PRC-153 退还投标保证金 | business | VS-01.2、VS-04.1 | OBJ-13 保证金与押金 | confirmed | 5 | OBJ-13 保证金与押金 | CAP-005 |
 | PRC-154 收入三口径对照 | read_model | VS-04.2、VS-04.3 | — | read_model | — |  | — |
 | PRC-179 项目开始执行后协议转入履行中 | event_policy | VS-04.6 | OBJ-05 协议 | confirmed | 4 | OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项 | CAP-005 |
-| PRC-183 作出参投决策 | business | VS-01.2 | OBJ-18 商机 | confirmed | — |  | CAP-018 |
+| PRC-183 作出参投决策 | business | VS-01.2 | OBJ-18 商机 | confirmed | 1 | OBJ-18 商机 | CAP-018 |
 
 ## ② 阶段承载对象在该段无流程以它为主对象或次要对象
 
@@ -171,15 +171,10 @@
 
 ## 主对象不是业务对象（技术聚合不承载价值项：改为业务对象，或写 none 并说明）
 
-- PRC-51 建立并更新开票与收入额度（revenue）：AGG-44
-- PRC-53 确认收入（revenue）：AGG-44
-- PRC-54 视为同意期满处理（revenue）：AGG-44
-- PRC-148 收入确认审批通过后占用转实并提交过账（revenue）：AGG-44
-- PRC-149 冲销收入确认（revenue）：AGG-44
+无
 
 ## ③ 同一主对象被多条流程使用（判断重复或合理分工）
 
-- AGG-44：PRC-51 建立并更新开票与收入额度（VS-04.1、VS-04.2、VS-04.3，confirmed）；PRC-53 确认收入（VS-04.2，confirmed）；PRC-54 视为同意期满处理（VS-04.2，confirmed）；PRC-148 收入确认审批通过后占用转实并提交过账（VS-04.2，confirmed）；PRC-149 冲销收入确认（VS-04.2、VS-04.5，confirmed）
 - OBJ-05 协议：PRC-47 起草、评审并回签协议（VS-04.1，confirmed）；PRC-50 占用框架限额并提交任务订单（VS-04.6，confirmed）；PRC-66 发起结算，确认最终价款并结算协议（VS-04.5、VS-04.6，confirmed）；PRC-68 终止协议（VS-04.5，confirmed）；PRC-70 起草并生效供方协议（VS-05.2，confirmed）；PRC-76 完成并结算供方协议（VS-05.6，confirmed）；PRC-179 项目开始执行后协议转入履行中（VS-04.6，confirmed）
 - OBJ-07 付款条件项：PRC-56 付款条件项转为可结算（VS-04.3，confirmed）；PRC-152 登记付款条件达成（VS-04.3，confirmed）
 - OBJ-09 协议变更：PRC-48 提出并生效协议变更或签证（VS-04.6，confirmed）；PRC-71 生效分包变更（VS-05.2，confirmed）
@@ -192,6 +187,7 @@
 - OBJ-62 社保与公积金参保：PRC-84 入职后参保增员与建立薪酬档案（VS-07.3，confirmed）；PRC-130 离职后参保减员（VS-13.6，confirmed）
 - OBJ-66 工时单：PRC-23 填报并审批工时（VS-01.2、VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6，confirmed）；PRC-91 认定工时有效性（VS-10.1，confirmed）
 - OBJ-73 算薪运行：PRC-124 计算、审核并批准月度薪酬（VS-13.3，confirmed）；PRC-127 薪酬发放完成（VS-13.5，confirmed）；PRC-134 薪酬事实已过账置位（VS-13.5，confirmed）
+- OBJ-81 收入确认：PRC-53 确认收入（VS-04.2，confirmed）；PRC-54 视为同意期满处理（VS-04.2，confirmed）；PRC-148 收入确认审批通过后占用转实并提交过账（VS-04.2，confirmed）；PRC-149 冲销收入确认（VS-04.2、VS-04.5，confirmed）
 - OBJ-83 增值税发票：PRC-57 申请并开具销项发票（VS-04.3，confirmed）；PRC-58 红冲销项发票（VS-04.3，confirmed）；PRC-73 登记并查验进项发票（VS-05.4，confirmed）
 - OBJ-85 往来款项：PRC-59 由销项发票创建应收（VS-04.4，confirmed）；PRC-60 认领收款并核销应收（VS-04.4，confirmed）；PRC-61 检测应收逾期并催收（VS-04.4，confirmed）；PRC-63 商业汇票兑付与逾期（VS-04.4，confirmed）；PRC-74 提交供方应付（VS-05.4，confirmed）；PRC-86 发放、归还与催还员工借款（VS-08.1，confirmed）；PRC-126 提交应付薪酬（VS-13.5，confirmed）；PRC-131 付款成功后核销应付（VS-05.5、VS-08.3、VS-13.5，confirmed）；PRC-150 发票红冲后冲减应收（VS-04.4，confirmed）；PRC-159 申报已提交后确认税费应付（VS-06.1，confirmed）；PRC-171 核对差旅服务商月账单并确认应付（VS-05.4，confirmed）；PRC-175 直接付款申请（VS-05.5，confirmed）；PRC-176 预付款核销（VS-05.5，confirmed）
 - OBJ-86 资金收付：PRC-75 发起、审批并执行付款（VS-05.5、VS-08.3、VS-13.5，confirmed）；PRC-132 应付核销后置付款已核销并提交过账候选（VS-05.5、VS-08.3、VS-13.5，confirmed）
@@ -208,25 +204,24 @@
 - PRC-23 填报并审批工时：OBJ-66 工时单 → CAP-056；所标段 VS-01.2 ['CAP-018', 'CAP-019', 'CAP-024', 'CAP-026']、VS-02.0 ['CAP-029']、VS-02.1 ['CAP-029']、VS-02.2 ['CAP-029']、VS-02.3 ['CAP-029']、VS-02.4 ['CAP-029']、VS-02.5 ['CAP-029']、VS-02.6 ['CAP-029', 'CAP-046']
 - PRC-41 制定检查计划并使其生效：OBJ-48 检查计划 → CAP-005；所标段 VS-03.1 ['CAP-029', 'CAP-046']
 - PRC-42 发布检查表模板版本：OBJ-50 检查表模板 → CAP-024；所标段 VS-03.1 ['CAP-029', 'CAP-046']
+- PRC-53 确认收入：OBJ-81 收入确认 → CAP-005；所标段 VS-04.2 ['CAP-053']
+- PRC-54 视为同意期满处理：OBJ-81 收入确认 → CAP-005；所标段 VS-04.2 ['CAP-053']
 - PRC-56 付款条件项转为可结算：OBJ-07 付款条件项 → CAP-005；所标段 VS-04.3 ['CAP-103']
 - PRC-79 登记继续教育并延续注册执业证书：OBJ-64 注册执业证书 → CAP-056；所标段 VS-06.2 ['CAP-054']
 - PRC-91 认定工时有效性：OBJ-66 工时单 → CAP-056；所标段 VS-10.1 ['CAP-103']
 - PRC-99 计提折旧并处置公司资产：OBJ-93 公司资产 → CAP-093；所标段 VS-10.1 ['CAP-103']
+- PRC-148 收入确认审批通过后占用转实并提交过账：OBJ-81 收入确认 → CAP-005；所标段 VS-04.2 ['CAP-053']
 - PRC-152 登记付款条件达成：OBJ-07 付款条件项 → CAP-005；所标段 VS-04.3 ['CAP-103']
 
 ### 主对象无对应能力（无 OBJ 的聚合，或对象未入能力图）
 
-- PRC-51 建立并更新开票与收入额度：AGG-44
-- PRC-53 确认收入：AGG-44
-- PRC-54 视为同意期满处理：AGG-44
-- PRC-148 收入确认审批通过后占用转实并提交过账：AGG-44
-- PRC-149 冲销收入确认：AGG-44
+无
 
 ## 支撑与集成流程「支撑本段」（47 条，有支撑段 37；自动得出，不手写）
 
 | 流程 | 主对象 | 状态 | 类别 | 支撑段（条件 / 使用） |
 |---|---|---|---|---|
-| PRC-52 开放可触发收入确认的证据类型 | AGG-92 | support_proposed | — | VS-04.2（使用） |
+| PRC-52 开放可触发收入确认的证据类型 | — | support_declared_none | — | VS-04.2（使用） |
 | PRC-64 导入银行流水 | OBJ-90 银行流水 | support | support | VS-01.2（使用）、VS-04.1（使用）、VS-04.4（使用）、VS-05.5（使用）、VS-08.3（使用）、VS-13.5（使用） |
 | PRC-65 维护资金账户 | OBJ-89 资金账户 | support | support | VS-04.4（使用）、VS-05.5（使用）、VS-08.3（使用）、VS-13.5（使用） |
 | PRC-80 维护法人、组织与岗位 | OBJ-55 组织单元 | support | — | VS-05.5（使用）、VS-06.2（使用）、VS-07.1（条件） |
@@ -238,12 +233,12 @@
 | PRC-121 制定激励方案 | OBJ-74 激励方案 | support | management | VS-13.2（条件） |
 | PRC-123 调整薪酬档案与专项附加扣除 | — | support_declared_none | — | VS-07.3（使用）、VS-13.3（使用）、VS-13.6（使用） |
 | PRC-139 用印申请与用印登记 | OBJ-113 用印申请 | support | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
-| PRC-140 合同借阅 | — | support_none | — | VS-01.2（使用）、VS-02.0（条件）、VS-02.7（条件）、VS-03.1（使用）、VS-04.1（条件）、VS-04.6（条件）、VS-04.2（条件）、VS-04.3（使用）、VS-04.5（条件）、VS-05.2（条件）、VS-05.3（条件）、VS-05.6（条件）、VS-07.3（条件）、VS-10.1（使用）、VS-13.6（条件） |
-| PRC-141 销售合同归档 | — | support_none | — | VS-01.2（使用）、VS-02.0（条件）、VS-02.7（条件）、VS-03.1（使用）、VS-04.1（条件）、VS-04.6（条件）、VS-04.2（条件）、VS-04.3（使用）、VS-04.5（条件）、VS-05.2（条件）、VS-05.3（条件）、VS-05.6（条件）、VS-07.3（条件）、VS-10.1（使用）、VS-13.6（条件） |
+| PRC-140 合同借阅 | OBJ-05 协议 | support | business | VS-01.2（使用）、VS-02.0（条件）、VS-02.7（条件）、VS-03.1（使用）、VS-04.1（条件）、VS-04.6（条件）、VS-04.2（条件）、VS-04.3（使用）、VS-04.5（条件）、VS-05.2（条件）、VS-05.3（条件）、VS-05.6（条件）、VS-07.3（条件）、VS-10.1（使用）、VS-13.6（条件） |
+| PRC-141 销售合同归档 | OBJ-05 协议 | support | business | VS-01.2（使用）、VS-02.0（条件）、VS-02.7（条件）、VS-03.1（使用）、VS-04.1（条件）、VS-04.6（条件）、VS-04.2（条件）、VS-04.3（使用）、VS-04.5（条件）、VS-05.2（条件）、VS-05.3（条件）、VS-05.6（条件）、VS-07.3（条件）、VS-10.1（使用）、VS-13.6（条件） |
 | PRC-142 IT 需求工单 | OBJ-114 IT 需求工单 | support | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
 | PRC-143 IT 资产领用 | OBJ-115 IT 资产使用记录 | support | — | VS-10.1（使用） |
 | PRC-144 员工活动类申请（周年贺卡、节日活动、创新项目发布） | OBJ-116 员工活动申请 | support | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
-| PRC-146 协议借阅逾期催还 | — | support_none | — | VS-01.2（使用）、VS-02.0（条件）、VS-02.7（条件）、VS-03.1（使用）、VS-04.1（条件）、VS-04.6（条件）、VS-04.2（条件）、VS-04.3（使用）、VS-04.5（条件）、VS-05.2（条件）、VS-05.3（条件）、VS-05.6（条件）、VS-07.3（条件）、VS-10.1（使用）、VS-13.6（条件） |
+| PRC-146 协议借阅逾期催还 | OBJ-05 协议 | support | business | VS-01.2（使用）、VS-02.0（条件）、VS-02.7（条件）、VS-03.1（使用）、VS-04.1（条件）、VS-04.6（条件）、VS-04.2（条件）、VS-04.3（使用）、VS-04.5（条件）、VS-05.2（条件）、VS-05.3（条件）、VS-05.6（条件）、VS-07.3（条件）、VS-10.1（使用）、VS-13.6（条件） |
 | PRC-155 IT 资产调拨 | OBJ-115 IT 资产使用记录 | support | — | VS-10.1（使用） |
 | PRC-156 IT 资产归还 | OBJ-115 IT 资产使用记录 | support | — | VS-10.1（使用） |
 | PRC-157 IT 资产报修与维修登记 | OBJ-115 IT 资产使用记录 | support | — | VS-10.1（使用） |
@@ -274,20 +269,17 @@
 | PRC-199 推送出差申请并回写审批 | — | integration_none | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
 | PRC-200 拉取企业微信打卡记录 | OBJ-70 考勤记录 | integration_proposed | support | VS-13.1（使用） |
 
-## 无用途类别（32）：归段跨不同类别价值流且主对象无能力，或支撑流程主对象缺 / 是技术聚合
+## 无用途类别（29）：归段跨不同类别价值流且主对象无能力，或支撑流程主对象缺 / 是技术聚合
 
 - PRC-90 出具经营月报（read_model，主对象 —）
-- PRC-52 开放可触发收入确认的证据类型（support_proposed，主对象 AGG-92）
+- PRC-52 开放可触发收入确认的证据类型（support_declared_none，主对象 —）
 - PRC-80 维护法人、组织与岗位（support，主对象 OBJ-55）
 - PRC-97 批准并生效分摊规则版本（support，主对象 OBJ-78）
 - PRC-123 调整薪酬档案与专项附加扣除（support_declared_none，主对象 —）
 - PRC-139 用印申请与用印登记（support，主对象 OBJ-113）
-- PRC-140 合同借阅（support_none，主对象 —）
-- PRC-141 销售合同归档（support_none，主对象 —）
 - PRC-142 IT 需求工单（support，主对象 OBJ-114）
 - PRC-143 IT 资产领用（support，主对象 OBJ-115）
 - PRC-144 员工活动类申请（周年贺卡、节日活动、创新项目发布）（support，主对象 OBJ-116）
-- PRC-146 协议借阅逾期催还（support_none，主对象 —）
 - PRC-155 IT 资产调拨（support，主对象 OBJ-115）
 - PRC-156 IT 资产归还（support，主对象 OBJ-115）
 - PRC-157 IT 资产报修与维修登记（support，主对象 OBJ-115）

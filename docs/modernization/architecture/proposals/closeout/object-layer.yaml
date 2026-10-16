@@ -1284,8 +1284,7 @@ processes:
   - VS-04.1
   - VS-04.2
   - VS-04.3
-  primary_object: AGG-44
-  status: confirmed
+  status: declared_none
   candidates:
   - AGG-44
   category: business
@@ -1297,10 +1296,12 @@ processes:
   type: event_policy
   stages:
   - VS-04.2
-  primary_object: AGG-44
+  primary_object: OBJ-81
   status: confirmed
   candidates:
   - AGG-44
+  capability_l1: CAP-005
+  capability: CAP-005.081
   category: business
   category_by: 价值流
 - id: PRC-54
@@ -1310,8 +1311,10 @@ processes:
   type: business
   stages:
   - VS-04.2
-  primary_object: AGG-44
+  primary_object: OBJ-81
   status: confirmed
+  capability_l1: CAP-005
+  capability: CAP-005.081
   category: business
   category_by: 价值流
 - id: PRC-55
@@ -2373,10 +2376,12 @@ processes:
   type: event_policy
   stages:
   - VS-04.2
-  primary_object: AGG-44
+  primary_object: OBJ-81
   status: confirmed
   candidates:
   - AGG-44
+  capability_l1: CAP-005
+  capability: CAP-005.081
   category: business
   category_by: 价值流
 - id: PRC-149
@@ -2387,10 +2392,12 @@ processes:
   stages:
   - VS-04.2
   - VS-04.5
-  primary_object: AGG-44
+  primary_object: OBJ-81
   status: confirmed
   candidates:
   - AGG-44
+  capability_l1: CAP-005
+  capability: CAP-005.081
   category: business
   category_by: 价值流
 - id: PRC-150
@@ -2687,6 +2694,8 @@ processes:
   - VS-01.2
   primary_object: OBJ-18
   status: confirmed
+  candidates:
+  - OBJ-18
   capability_l1: CAP-018
   capability: CAP-018
   category: business
@@ -2699,8 +2708,7 @@ processes:
   - VS-04.2
   supports_basis:
     VS-04.2: 使用
-  primary_object: AGG-92
-  status: support_proposed
+  status: support_declared_none
 - id: PRC-64
   name: 导入银行流水
   group: finance
@@ -2903,7 +2911,11 @@ processes:
     VS-07.3: 条件
     VS-10.1: 使用
     VS-13.6: 条件
-  status: support_none
+  primary_object: OBJ-05
+  status: support
+  capability_l1: CAP-005
+  capability: CAP-005
+  category: business
 - id: PRC-141
   name: 销售合同归档
   group: revenue
@@ -2940,7 +2952,11 @@ processes:
     VS-07.3: 条件
     VS-10.1: 使用
     VS-13.6: 条件
-  status: support_none
+  primary_object: OBJ-05
+  status: support
+  capability_l1: CAP-005
+  capability: CAP-005
+  category: business
 - id: PRC-142
   name: IT 需求工单
   group: people
@@ -2999,7 +3015,11 @@ processes:
     VS-07.3: 条件
     VS-10.1: 使用
     VS-13.6: 条件
-  status: support_none
+  primary_object: OBJ-05
+  status: support
+  capability_l1: CAP-005
+  capability: CAP-005
+  category: business
 - id: PRC-155
   name: IT 资产调拨
   group: people
