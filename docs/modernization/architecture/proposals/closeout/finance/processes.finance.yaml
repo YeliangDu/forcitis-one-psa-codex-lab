@@ -616,7 +616,7 @@ processes:
   migration: 历史：全部已结报销及明细迁入（U-4，来源 A8 日常 / 差旅 / 业务招待报销单），经迁入用例写入，不启动审批、不发事件、不生成分录（§14.2 M7）。在途：审批中的单据投产前办结；投产时仍未办结的退回员工在新系统重提；已核定未付的迁为「已核定」并同时迁入未结应付（AGG-52 open_items）
   scope: 报销人看本人单据；审批人经审批待办看所审单据；财务按所负责法人的数据范围（ADR-0026）
   segregation:
-  - 报销人 ≠ 任一级审批人
+  - 报销人 ≠ 审批人（责任人就是报销人本人时按 AR-11 处理，待用户定）
   - 报销人 ≠ 核定人
   - 审批人 ≠ 核定人
   triggers:
@@ -625,6 +625,7 @@ processes:
   outcomes:
   - 已核定
   - 已退回
+  - 已撤回
   - 已拒收（项目已关闭）
   - 已拒收（发票不可用）
   scenarios:
@@ -638,6 +639,8 @@ processes:
   - PRC-87-S08
   - PRC-87-S09
   - PRC-87-S10
+  - PRC-87-S11
+  - PRC-87-S12
   roles:
   - id: SH-E3
     as: initiator
@@ -747,6 +750,9 @@ processes:
     notify:
     - to: 审批人
       how: 企业微信待办
+    withdraw:
+      to: 8
+      outcome: 已撤回
   - actor: platform
     where: in_system
     platform_task: true
@@ -756,23 +762,30 @@ processes:
     approval:
       engine: platform.approval
       doc_type: 费用报销审批
-      approver: SH-E1
-      multi_level: true
+      approver: cost_object_owner
+      multi_level: false
+      escalation:
+      - AR-01
+      - AR-02
+      - AR-06
+      - AR-07
+      - AR-11
+      - AR-12
+      why_human: 费用是否真实、是否为业务所需、金额是否合理，要对这笔费用负责的人判断；格式、发票真伪与重复、预算余额、项目状态、期间都已由规则拦截或预警，不靠审批
       on_reject: 8
-      levels:
-      - approver: SH-E2
-        when: 费用归属项目
-      - approver: SH-E1
-        when: otherwise
-      - approver: SH-M1
-        when: 报销金额超过阈值（阈值待用户定，F-Q1）
     cross_bc:
     - mode: api
       direction: out
       bc: platform.approval
       name: 提交审批
-    pending:
-    - F-Q1-阈值
+    - mode: event
+      direction: in
+      bc: platform.approval
+      name: 审批已通过
+    - mode: event
+      direction: in
+      bc: platform.approval
+      name: 审批已驳回
     permission: 报销.审批
     page: 审批待办（审批平台）
     audit: true
@@ -784,6 +797,12 @@ processes:
     notify:
     - to: SH-E3
       how: 驳回时企业微信消息
+    pending:
+    - F-Q1-阈值（AR-01、AR-02 的报销阈值）
+    desc: 项目费用由项目经理批，非项目费用由部门负责人批（谁负责谁批）；超阈值等异常按 APPROVAL_RULES 加审（F-Q1 已改，用户原则 intent 163556）
+    withdraw:
+      to: 8
+      outcome: 已撤回
   - actor: SH-E6
     where: in_system
     evidence:
@@ -817,10 +836,10 @@ processes:
       bc: B-16
       name: 提交过账候选（PostingCandidate）
     decision:
-    - when: 所属期间已关账
+    - when: 所属期间已关账（自动落当前开放期间并标原期间）
       goto: end
       outcome: 已核定
-      rule: ADR-0045 决定 2：落当前开放期间并标原期间
+      rule: ADR-0045 决定 2；INV-92
     - when: otherwise
       goto: end
       outcome: 已核定
