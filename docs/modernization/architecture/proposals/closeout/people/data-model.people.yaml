@@ -1,0 +1,550 @@
+# 表级数据模型 · 人员组试点片段（B-13 organization.workforce、B-14 organization.attendance、B-27 organization.leave）
+# 字段约定：以 closeout/CONVENTIONS.md §3 为准（one-architecture 2026-10-16），本片段只用其固定字段，未加字段：
+#   aggregate 聚合编号 AGG-NN；bc BC 编号 B-NN；tables 该聚合的表。
+#   表字段：name（snake_case 复数，不写 schema）、role（root 根 / child 次级 / version 版本 / link 关联 / staging 迁入暂存）、
+#     key（uuid_v7）、references（{to: AGG-NN, by: xxx_id, cross_bc: true}；同 BC 跨聚合省略 cross_bc；不指向聚合的 platform.* 引用见 DATA_MODEL.md）、
+#     versioned（none / effective_dated / snapshot / append_only）、history_migration（full / open_items / none，非 full 写 reason）、
+#     sensitivity（取 data-classification.txt 的访问级别名 PUBLIC / INTERNAL / SENSITIVE / RESTRICTED；拿不准写 tbd 并写 reason）、
+#     column_families（列族，不列字段）、reason（history_migration、sensitivity 非默认或 versioned 为 none 时必填）。
+# 本片段的约定：
+#   1. 个人信息标记（NONE / PI / SPI，ADR-0043）无专用字段，写在 reason 里（以「PI」「SPI」起头）；格式问题见 NOTES.data.md。
+#   2. 聚合号 AGG-117（法人归属）、AGG-118（假期类型与额度规则）已由 one-architecture 补号（PRC_ALLOCATIONS）；仍无号者写「AGG-待定-<名称>」。
+#   3. 已建 / 改形 / 新建、D17 依据、迁入来源与 via、数据类别，放 DATA_MODEL.md，不在本文件。
+#   4. B-13 升级为自有人事记录系统（用户 2026-10-16 U-1、U-7；one-architecture 裁定为已定事项的落地改写）：
+#      快照来源撤销，版本表生效依据为 DECLARED 人事业务生效日（U-12）；sync_* 表不属任何聚合，见 DATA_MODEL.md「不属聚合的技术表」。
+
+# ───────────────────────── B-13 organization.workforce ─────────────────────────
+- aggregate: AGG-60
+  bc: B-13
+  tables:
+    - name: legal_entities
+      role: root
+      key: uuid_v7
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      column_families: [法人代码（发号后不可改）, 创建与乐观锁, 事件序号]
+      reason: "versioned none：根表只留代码与标识，名称、状态随 legal_entity_versions（D17 细则 5、8）；历史：五家法人由初始化录入，全量即全部版本。PI 标记：NONE"
+    - name: legal_entity_versions
+      role: version
+      key: uuid_v7
+      references:
+        - {to: AGG-60, by: legal_entity_id}
+      versioned: effective_dated
+      history_migration: full
+      sensitivity: INTERNAL
+      column_families: [生效区间, 修订序号, 名称, 状态, 创建时间]
+      reason: "生效依据 DECLARED（业务声明日）；PI 标记：NONE"
+
+- aggregate: AGG-117
+  bc: B-13
+  tables:
+    - name: legal_entity_attributions
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-61, by: org_unit_id}
+        - {to: AGG-62, by: employee_id}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      column_families: [归属对象（部门或员工）, 乐观锁与事件序号]
+      reason: "versioned none：只是归属期间的聚合根，期间在 org_unit_legal_entities 与 employee_legal_entities；PI 标记：员工行为 PI，访问级别 INTERNAL。已建聚合（terms 法人归属）聚合稿无编号"
+    - name: org_unit_legal_entities
+      role: version
+      key: uuid_v7
+      references:
+        - {to: AGG-117, by: legal_entity_attribution_id}
+        - {to: AGG-60, by: legal_entity_id}
+        - {to: AGG-61, by: org_unit_id}
+      versioned: effective_dated
+      history_migration: full
+      sensitivity: INTERNAL
+      column_families: [生效区间, 部门默认法人, 子树覆盖]
+      reason: "数据范围法人口径（ADR-0026 D-1）；生效依据 DECLARED；PI 标记：NONE"
+    - name: employee_legal_entities
+      role: version
+      key: uuid_v7
+      references:
+        - {to: AGG-117, by: legal_entity_attribution_id}
+        - {to: AGG-60, by: legal_entity_id}
+        - {to: AGG-62, by: employee_id}
+      versioned: effective_dated
+      history_migration: full
+      sensitivity: INTERNAL
+      column_families: [生效区间, 员工单独指定的法人]
+      reason: "数据范围法人口径，优先于部门对照；生效依据 DECLARED；PI 标记：PI（与可识别自然人有关），访问级别 INTERNAL"
+    - name: legal_entity_attribution_corrections
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-61, by: org_unit_id}
+        - {to: AGG-62, by: employee_id}
+      versioned: append_only
+      history_migration: none
+      sensitivity: INTERNAL
+      column_families: [更正对象, 原期间, 更正后结束日, 更正理由, 更正人, 更正序号]
+      reason: "history_migration none：更正只发生在新系统内，迁入不产生更正；PI 标记：PI（员工行），访问级别 INTERNAL"
+
+- aggregate: AGG-61
+  bc: B-13
+  tables:
+    - name: org_units
+      role: root
+      key: uuid_v7
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      column_families: [组织单元编码, 创建与乐观锁, 事件序号]
+      reason: "versioned none：根表只留标识与编码，名称、父节点、状态、负责人、单元类型随 org_unit_versions（D17 细则 5）；撤销时间也进版本。PI 标记：NONE"
+    - name: org_unit_versions
+      role: version
+      key: uuid_v7
+      references:
+        - {to: AGG-61, by: org_unit_id}
+        - {to: AGG-61, by: parent_org_unit_id}
+        - {to: AGG-62, by: head_employee_id}
+      versioned: effective_dated
+      history_migration: full
+      sensitivity: INTERNAL
+      column_families: [生效区间, 修订序号, 名称与简称, 上级组织单元, 状态（启用 / 停用 / 撤销）, 单元类型, 是否交付单元, 负责人]
+      reason: "生效依据由 OBSERVED 改 DECLARED（U-12）；PI 标记：NONE（负责人为 ID 引用）。区域应收负责人列的归属见 NOTES 结构问题"
+
+- aggregate: AGG-62
+  bc: B-13
+  tables:
+    - name: employees
+      role: root
+      key: uuid_v7
+      versioned: none
+      history_migration: full
+      sensitivity: SENSITIVE
+      column_families: [工号, 姓名, 性别, 企业邮箱, 登录名, 权限用在职二值, 创建与乐观锁, 事件序号, 来源对照标识]
+      reason: "versioned none：个人信息最小化只留当前值（D17 细则 2 第四类）；用工类型、状态、收费标识随 employment_versions。PI 标记：PI；列级访问级别按 ADR-0043 另议（邮箱、性别、企业微信 ID 现登 SENSITIVE，ADR-0043 拟改 INTERNAL）。企业微信 userid 不留在本表，走来源对照（D16、Q-03）"
+    - name: employment_versions
+      role: version
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: employee_id}
+      versioned: effective_dated
+      history_migration: full
+      sensitivity: SENSITIVE
+      column_families: [生效区间, 修订序号, 用工类型, 用工状态（候选 → 试用 → 正式 → 待离职 → 已离职 / 未录用 / 停薪留职）, 入职日 / 转正日 / 离职日, 是否收费员工]
+      reason: "新建；生效依据 DECLARED 人事业务生效日（U-12），可提前登记、补登落回真实日期；PI 标记：PI，用工状态含离职原因等时按 U-11 复判"
+    - name: interviews
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: employee_id}
+        - {to: AGG-65, by: recruitment_requisition_id}
+      versioned: none
+      history_migration: none
+      sensitivity: SENSITIVE
+      column_families: [面试轮次, 面试时间, 面试人, 评价与结论]
+      reason: "versioned none：单一记录，审计可还原；history_migration none：候选阶段记录不迁（旧系统用人申请只作证据，来源 OA 表单未建对照，待 one-data 取证确认）；PI 标记：PI（候选人评价），SPI 与否交 U-11"
+    - name: hiring_decisions
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: employee_id}
+        - {to: AGG-65, by: recruitment_requisition_id}
+        - {to: AGG-64, by: job_id}
+      versioned: none
+      history_migration: none
+      sensitivity: SENSITIVE
+      column_families: [录用结论（录用 / 未录用）, 拟入职日, 拟任职位与职级, 决定人与时间]
+      reason: "versioned none：单一记录，审计可还原；history_migration none：已入职者的结果已体现在 employment_versions 与 assignment_versions；PI 标记：PI"
+    - name: separation_requests
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: employee_id}
+      versioned: none
+      history_migration: full
+      sensitivity: SENSITIVE
+      column_families: [申请日期, 期望离职日, 离职原因类别, 状态（已申请 → 已批准 / 已驳回）, 批准人与时间]
+      reason: "versioned none：单级批准的单据，状态由审计还原；历史来源待取证（老系统离职申请表单）；PI 标记：PI，离职原因含健康等时可能 SPI，交 U-11"
+
+- aggregate: AGG-63
+  bc: B-13
+  tables:
+    - name: assignments
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: employee_id}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      column_families: [所属员工, 主任职或兼任, 创建与乐观锁]
+      reason: "versioned none：根只是任职槽位标识，内容随 assignment_versions；改形：由员工 1:1 的主岗投影改为每员工多行（兼职并行，INV-62）。PI 标记：PI，访问级别 INTERNAL"
+    - name: assignment_versions
+      role: version
+      key: uuid_v7
+      references:
+        - {to: AGG-63, by: assignment_id}
+        - {to: AGG-62, by: employee_id}
+        - {to: AGG-61, by: org_unit_id}
+        - {to: AGG-64, by: job_id}
+        - {to: AGG-64, by: job_grade_id}
+        - {to: AGG-62, by: reports_to_employee_id}
+      versioned: effective_dated
+      history_migration: full
+      sensitivity: INTERNAL
+      column_families: [生效区间, 修订序号, 组织单元, 职位, 职级, 汇报线, 主兼标识]
+      reason: "生效依据 DECLARED（U-12）；INV-62 主任职区间不重叠；来源：老系统员工异动（信息图证 4,247 条）按人事生效日回放。PI 标记：PI，访问级别 INTERNAL"
+
+- aggregate: AGG-64
+  bc: B-13
+  tables:
+    - name: jobs
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-64, by: job_family_id}
+      versioned: none
+      history_migration: none
+      sensitivity: INTERNAL
+      column_families: [职位编码（跨版本不变）, 创建与乐观锁]
+      reason: "versioned none：根只留跨版本不变的编码与标识（JOB_CATALOG P-6）；history_migration none：公司重梳职位体系，不按旧 136 个岗位建对照（intent 2026-10-15-001632 P-031），初始目录由新目录初始化录入；旧岗位只经 one-data JOB_MAPPING 映射任职。PI 标记：NONE。聚合稿 AGG-64 现为「岗位」一对一，职位目录范围见 NOTES 结构问题"
+    - name: job_versions
+      role: version
+      key: uuid_v7
+      references:
+        - {to: AGG-64, by: job_id}
+        - {to: AGG-64, by: job_family_id}
+      versioned: effective_dated
+      history_migration: none
+      sensitivity: INTERNAL
+      column_families: [生效区间, 修订序号, 职位名称（不含级别）, 所属职位族与子族, 可适用职级区间, 状态, 简述与典型任职要求]
+      reason: "生效依据 DECLARED（P-6，维度型）；history_migration none 同 jobs；PI 标记：NONE"
+    - name: job_families
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-64, by: parent_job_family_id}
+      versioned: none
+      history_migration: none
+      sensitivity: INTERNAL
+      column_families: [族或子族编码, 层级]
+      reason: "versioned none：只留编码与层级标识，名称随 job_family_versions；history_migration none 同 jobs；PI 标记：NONE"
+    - name: job_family_versions
+      role: version
+      key: uuid_v7
+      references:
+        - {to: AGG-64, by: job_family_id}
+        - {to: AGG-64, by: parent_job_family_id}
+      versioned: effective_dated
+      history_migration: none
+      sensitivity: INTERNAL
+      column_families: [生效区间, 修订序号, 族名称, 上级族, 状态]
+      reason: "P-6：职位族与子族版本化，DECLARED；PI 标记：NONE"
+    - name: job_grades
+      role: child
+      key: uuid_v7
+      versioned: none
+      history_migration: none
+      sensitivity: INTERNAL
+      column_families: [职级编码, 序位]
+      reason: "versioned none：编码与序位标识，定义随 job_grade_versions；职级与职位是两个独立维度（JOB_CATALOG P-0）；history_migration none 同 jobs（旧「岗位编码」实为职级编码，只作映射证据）；PI 标记：NONE"
+    - name: job_grade_versions
+      role: version
+      key: uuid_v7
+      references:
+        - {to: AGG-64, by: job_grade_id}
+      versioned: effective_dated
+      history_migration: none
+      sensitivity: INTERNAL
+      column_families: [生效区间, 修订序号, 职级名称, 职级说明, 状态]
+      reason: "P-6：职级定义版本化，DECLARED；标准成本费率表以职级为键（Q17）按发生日取值；PI 标记：NONE"
+
+- aggregate: AGG-65
+  bc: B-13
+  tables:
+    - name: recruitment_requisitions
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-64, by: job_id}
+        - {to: AGG-61, by: org_unit_id}
+        - {to: AGG-62, by: requested_by_employee_id}
+      versioned: none
+      history_migration: open_items
+      sensitivity: INTERNAL
+      column_families: [需求单号, 需求组织单元, 需求职位与职级区间, 需求说明, 状态（草稿 → 已提交 → 已批准 / 已驳回 → 招聘中 → 已关闭）, 批准人与时间, 关闭原因, 乐观锁]
+      reason: "versioned none：单一状态，审计可还原（D17 第二类）；history_migration open_items：只迁未结的用人申请，已关闭的不迁（来源为 OA 表单 #67，只作证据，待 one-data 取证，与用户 2026-10-16 全部历史迁入（U-1–U-4）的关系见 NOTES）；不含编制、超编列（Q-08 已关 Q26）；PI 标记：NONE。AGG-65 是否保留见 NOTES"
+
+- aggregate: AGG-66
+  bc: B-13
+  tables:
+    - name: practice_certificates
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: employee_id}
+      versioned: none
+      history_migration: full
+      sensitivity: SENSITIVE
+      column_families: [资格类别, 证书编号, 发证与注册机构, 状态（有效 / 到期 / 注销）, 乐观锁]
+      reason: "versioned none：单一状态，审计可还原；注册期的延续由 certificate_registration_periods 追加；history_migration 来源待取证（旧系统是否有证书登记未核）；PI 标记：PI（证书编号为证件类标识）"
+    - name: certificate_registration_periods
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-66, by: practice_certificate_id}
+      versioned: append_only
+      history_migration: full
+      sensitivity: INTERNAL
+      column_families: [注册期起止, 必修与选修学时要求, 达标结论, 延续注册结果]
+      reason: "每次延续注册追加一期，不改写；学时要求来自各注册制度（信息图 OBJ-64 行）；PI 标记：PI，访问级别 INTERNAL"
+    - name: continuing_education_records
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-66, by: certificate_registration_period_id}
+      versioned: append_only
+      history_migration: full
+      sensitivity: INTERNAL
+      column_families: [学时类别（必修 / 选修）, 学时数, 完成日期, 课程或活动说明, 证明材料引用]
+      reason: "按注册期累计，更正另记；证明材料的存放走证据类型（intent 090004），本表只存引用；PI 标记：PI"
+
+- aggregate: AGG-67
+  bc: B-13
+  tables:
+    - name: labor_contracts
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: employee_id}
+        - {to: AGG-60, by: employing_legal_entity_id}
+      versioned: none
+      history_migration: full
+      sensitivity: SENSITIVE
+      column_families: [合同编号, 用人单位（劳动合同法人口径）, 合同类型与期限, 试用期, 状态（草案 → 审批中 → 已批准 → 已签署生效 → 已终止）, 终止原因, 批准人与时间, 签署日期, 乐观锁]
+      reason: "versioned none：单据，状态由审计可还原；续订另立新合同；history_migration full：来源待取证（旧系统是否记录劳动合同未核；全量，用户 2026-10-16 U-1–U-4）；用人单位是 Q-09 三口径之一；PI 标记：PI，合同条款含薪酬时 L3"
+    
+- aggregate: AGG-106
+  bc: B-13
+  tables:
+    - name: performance_reviews
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: reviewee_employee_id}
+        - {to: AGG-62, by: reviewer_employee_id}
+        - {to: AGG-63, by: assignment_version_id}
+      versioned: none
+      history_migration: full
+      sensitivity: SENSITIVE
+      column_families: [评估单号, 类型（月度 / 试用期）, 评估期间, 被评人与评估人, 评估时任职版本引用, 结论, 状态（草拟 → 已提交 → 已确认）, 确认时间, 乐观锁]
+      reason: "versioned none：单据，已确认后不改，更正另记（INV-114）；history_migration full：来源 A8 月度评估三模板与试用期评估（信息图证：月度近一年 782 单、档案 2,325；试用期 139 单 / 年、档案 188），via legacy_numbers；PI 标记：PI，SPI 与否交 U-11"
+    - name: performance_review_documents
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-106, by: performance_review_id}
+      versioned: none
+      history_migration: full
+      sensitivity: SENSITIVE
+      column_families: [单据类型（管理层一对一 / 成长记录）, 记录日期, 记录内容, 参与人]
+      reason: "信息图 OBJ-109「单据」列只写了名称，本表形状为推断，待第 6 步复核（NOTES 结构问题）；来源：一对一档案 458、成长记录近年 2 单；PI 标记：PI，SPI 与否交 U-11"
+
+# ───────────────────────── B-14 organization.attendance ─────────────────────────
+- aggregate: AGG-68
+  bc: B-14
+  tables:
+    - name: work_calendar_years
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-60, by: legal_entity_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      column_families: [法人（空为默认日历）, 年份, 乐观锁, 事件序号]
+      reason: "versioned none 为现状（可变根 + 审计），与 D17 细则 8「工作日历按配置型版本化」不一致，待 one-data 裁定是否改形（DATA_MODEL.md 口径 1）；history_migration：2016–2026 日历一次性导入（ONE_OFF_IMPORT）；PI 标记：NONE。B-14 → B-13 无登记依赖边，见 NOTES 接缝问题"
+    - name: work_calendar_days
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-68, by: work_calendar_year_id}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      column_families: [例外日期, 日类型（节假日 / 调休上班日）]
+      reason: "现状为整集替换（REPLACE_SET），过去日期锁定；同 work_calendar_years 的版本化待裁定；PI 标记：NONE"
+
+- aggregate: AGG-108
+  bc: B-14
+  tables:
+    - name: standard_work_hour_versions
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-60, by: legal_entity_id, cross_bc: true}
+        - {to: AGG-68, by: work_calendar_year_id}
+      versioned: effective_dated
+      history_migration: none
+      sensitivity: INTERNAL
+      column_families: [法人（空为默认）, 生效区间, 确认人与确认时间, 依据引用 decision_ref, 版本状态]
+      reason: "配置型（D15）又带法人 × 日期区间不重叠（INV-116），每版本一个聚合 + 排除约束；history_migration none：首版由初始化按 FD-10（五家同值 450 分钟）录入，旧系统无对应版本历史（未取证，待 one-data 核）；PI 标记：NONE"
+    - name: standard_work_hour_day_rules
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-108, by: standard_work_hour_version_id}
+      versioned: none
+      history_migration: none
+      sensitivity: INTERNAL
+      column_families: [日类型（工作日 / 调休上班日）, 每日标准工时（分钟）]
+      reason: "随所属版本，版本生效后不可改（INV-116）；PI 标记：NONE"
+    - name: standard_work_hour_date_overrides
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-108, by: standard_work_hour_version_id}
+      versioned: none
+      history_migration: none
+      sensitivity: INTERNAL
+      column_families: [覆盖日期, 当日标准工时（分钟）, 覆盖原因（如半天调休）]
+      reason: "随所属版本，版本生效后不可改；PI 标记：NONE"
+
+# ───────────────────────── B-27 organization.leave ─────────────────────────
+- aggregate: AGG-69
+  bc: B-27
+  tables:
+    - name: attendance_records
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: employee_id, cross_bc: true}
+        - {to: AGG-69, by: corrected_record_id}
+      versioned: append_only
+      history_migration: full
+      sensitivity: tbd
+      column_families: [员工, 考勤日期与时刻, 记录类型（打卡 / 外勤 / 补卡）, 被补记录引用, 来源系统与来源对照标识, 导入批次]
+      reason: "只追加，补卡另记（INV-69）；体量：旧打卡约 79 万行、外勤约 3.8 万单（信息图证），按年分区规划交 one-data（D18 第 8 条）；日常打卡来源为企业微信（保留为外部服务，经 platform.integration 进本表；用户事实 intent 2026-10-16-152603），外部打卡记录 ID 按 D16 只作来源对照列，不作主键；历史打卡来自 A8，经迁入通道，来源对照分来源系统；sensitivity tbd：外勤、打卡若带位置属行踪轨迹，落入个人信息保护法第二十八条列举（ADR-0043 拿不准按 SPI），交 U-11；PI 标记：PI"
+
+- aggregate: AGG-70
+  bc: B-27
+  tables:
+    - name: leave_requests
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: employee_id, cross_bc: true}
+        - {to: AGG-71, by: leave_balance_hold_id}
+        - {to: AGG-118, by: leave_type_id}
+      versioned: none
+      history_migration: full
+      sensitivity: tbd
+      column_families: [请假单号, 员工, 假期类型, 起止时刻, 时长（分钟）, 事由, 状态（草稿 → 审批中 → 已批准 / 已驳回 → 已销假 / 已撤销）, 审批流程引用, 乐观锁]
+      reason: "versioned none：状态由审计还原；history_migration full：来源老系统请假档案（信息图证 24,260），via legacy_numbers，原单号作展示号；sensitivity tbd：病假、产假等可推断医疗健康信息，按 ADR-0043 拿不准按 SPI，交 U-11；PI 标记：PI"
+    - name: leave_request_day_splits
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-70, by: leave_request_id}
+        - {to: AGG-108, by: standard_work_hour_version_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: tbd
+      column_families: [日期, 当日计入分钟数, 所用标准工时版本引用, 是否工作日]
+      reason: "版本引用供事后复算（D7、INV-116，不追溯）；迁入行的所用版本取当日生效版本，无则拒收；sensitivity 随 leave_requests；PI 标记：PI"
+
+- aggregate: AGG-71
+  bc: B-27
+  tables:
+    - name: leave_balance_accounts
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: employee_id, cross_bc: true}
+        - {to: AGG-118, by: leave_type_id}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      column_families: [员工, 假期类型, 年度, 应享, 已用, 占用, 乐观锁]
+      reason: "versioned none：投影，可由请假与额度规则重算并对账（D1）；history_migration full：迁入请假后重算，来源是否有余额表待取证；PI 标记：PI，访问级别 INTERNAL"
+    - name: leave_balance_holds
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-71, by: leave_balance_account_id}
+      versioned: none
+      history_migration: none
+      sensitivity: INTERNAL
+      column_families: [占用时长, 占用状态（占用 / 已转用 / 已释放）, 占用方单据引用, 占用时间]
+      reason: "额度占用模式：占用行在额度聚合内；history_migration none：迁入请假为终态，不留在途占用，在途请假按 ADR-0036 第 5 条处理；PI 标记：PI"
+
+- aggregate: AGG-72
+  bc: B-27
+  tables:
+    - name: overtime_requests
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: employee_id, cross_bc: true}
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      column_families: [加班单号, 员工, 加班日期与时长, 加班类型（工作日延时 / 休息日 / 法定节假日）, 补偿方式（付薪 / 调休）, 状态（申请 → 批准 → 已补偿）, 审批流程引用, 乐观锁]
+      reason: "versioned none：状态由审计还原；history_migration full：来源待取证（老系统加班申请表单未核；认定以考勤与审批为准，工时超日标准不自动生成加班，Q16）；PI 标记：PI，访问级别 INTERNAL"
+
+- aggregate: AGG-97
+  bc: B-27
+  tables:
+    - name: monthly_attendance_confirmations
+      role: root
+      key: uuid_v7
+      references:
+        - {to: AGG-62, by: employee_id, cross_bc: true}
+      versioned: snapshot
+      history_migration: none
+      sensitivity: SENSITIVE
+      column_families: [员工, 月份, 出勤天数, 状态（已生成 → 已确认 → 已锁定）, 员工确认时间, 锁定时间, 乐观锁]
+      reason: "期间快照，锁定后不改（INV-105）；history_migration none：老系统月度考勤确认粒度为月 × 一级部门，与本对象的人员 × 月不对应（信息图 OBJ-111 证），无法一对一迁入，与用户 2026-10-16 全部历史迁入（U-1–U-4）需 one-data / 用户核定（NOTES 待用户定）；sensitivity SENSITIVE：算薪输入；PI 标记：PI"
+    - name: monthly_attendance_confirmation_lines
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-97, by: monthly_attendance_confirmation_id}
+        - {to: AGG-70, by: leave_request_id}
+        - {to: AGG-72, by: overtime_request_id}
+      versioned: snapshot
+      history_migration: none
+      sensitivity: SENSITIVE
+      column_families: [汇总类别（请假按类型 / 加班按补偿方式）, 时长汇总, 汇入的单据引用]
+      reason: "同 monthly_attendance_confirmations；按类型汇总的请假可推断病假等，故 SENSITIVE；PI 标记：PI，SPI 与否交 U-11"
+    - name: monthly_attendance_adjustments
+      role: child
+      key: uuid_v7
+      references:
+        - {to: AGG-97, by: monthly_attendance_confirmation_id}
+      versioned: append_only
+      history_migration: none
+      sensitivity: SENSITIVE
+      column_families: [更正类别, 原月份, 更正时长, 更正依据引用]
+      reason: "锁定后的补卡、请假、加班变动计入下月并标原月份（INV-105），只追加；history_migration none 同 monthly_attendance_confirmations；PI 标记：PI"
+
+- aggregate: AGG-118
+  bc: B-27
+  tables:
+    - name: leave_types
+      role: root
+      key: uuid_v7
+      versioned: none
+      history_migration: full
+      sensitivity: INTERNAL
+      column_families: [假期类型码, 名称, 是否占额度, 是否带薪, 是否按小时]
+      reason: "受控代码表，versioned none 的依据是只由迁移维护（D17 第一类），若业务要在线增改须改版本化，待 one-data；聚合稿无此聚合，见 NOTES 结构问题；来源：旧假期类型只经映射；PI 标记：NONE"
+    - name: leave_entitlement_rule_versions
+      role: version
+      key: uuid_v7
+      references:
+        - {to: AGG-118, by: leave_type_id}
+      versioned: effective_dated
+      history_migration: none
+      sensitivity: INTERNAL
+      column_families: [生效区间, 确认人与确认时间, 依据引用 decision_ref, 城市类别, 年度应享规则（如年休假按工龄档）, 结转与清零规则]
+      reason: "配置型（D15）：额度按城市类别配置（信息图 OBJ-68），不追溯；history_migration none：新系统首版按现行制度录入，旧额度规则取证待 one-data；PI 标记：NONE"

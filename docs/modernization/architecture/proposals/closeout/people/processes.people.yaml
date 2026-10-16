@@ -1,0 +1,523 @@
+# 人员组 ⑥b 流程骨架片段（one-arch-people）。试点：只含 VS-07 任用员工的 PRC-80–85，加入转调离成套的 PRC-128（VS-13.6）、
+# 事件策略 PRC-129、130，以及新增 PRC-136–138（身份生命周期）。
+# 字段按 closeout/CONVENTIONS.md §2：v1 字段原样保留，只增补 roles / steps[].actor / decision / approval / cross_bc。
+# v1 的中文 actor（人力、用人经理…）已换成 SH- 编号；SH-E6 内部分「人力 / 信息」无法在编号上区分，改用行尾注释（见 NOTES.process.md「格式问题」）。
+# 本片段中的 gap: PG-xx 指向 PROCESS_SKELETONS.md 第 4 节；命令名写〔缺〕表示聚合稿 §2.2 / 平台没有这条命令或事件，不假装存在。
+# 已定口径：U-12 业务生效日；Q-03 企业微信登录且无首日兜底；Q-08 只要职位目录；Q-09 三口径分别记录、不一致预警；
+#   F-3（intent 114200）B-13 内批准是聚合单级命令，不经 platform.approval；U-1、U-7 B-13 自为人事记录系统，A8 不再是来源。
+# 判断点依据写在 decision 后的注释行（CONVENTIONS 无 basis 字段）。
+
+meta:
+  version: 2
+  group: people
+  status: proposal-fragment
+  date: "2026-10-16"
+  scope: [VS-07, VS-13.6]
+
+processes:
+
+  # ───────────── VS-07 任用员工 ─────────────
+
+  - id: PRC-80
+    name: 维护法人、组织与岗位
+    trigger: {type: human, desc: 人力调整组织、岗位或登记法人主体}
+    stages: [VS-07.1, VS-07.3]
+    owner_bc: B-13
+    human_orchestration: false
+    roles:
+      - {id: SH-E6, as: initiator}      # 人力
+      - {id: SH-M1, as: informed}       # 区域负责人在数据范围待复核时被通知（P-31）；区域负责人是否归 SH-M1 见 NOTES
+    steps:
+      - actor: SH-E6      # 人力
+        command: 登记法人主体
+        aggregate: AGG-60
+        desc: 已建 LegalEntity，法人代码发号后不可改（INV-59，命令前置检查，被拒即失败告警）
+      - actor: SH-E6
+        command: 调整组织单元
+        aggregate: AGG-61
+        emits: [组织单元已调整]
+        desc: 有在职任职的组织单元不得撤销（INV-60）；调整按业务生效日生效（U-12）；B-13 自为记录系统，不再有 A8 同步来源（U-1、U-7）
+        gap: PG-14
+        decision:
+          - {when: 撤销的组织单元下仍有在职任职, goto: end}   # INV-60：拒绝并提示先调岗
+          - {when: otherwise, goto: 3}
+        cross_bc:
+          - {mode: event, direction: out, bc: platform.identity, name: 组织单元已调整}   # P-31；聚合稿 AGG-61 订阅方已写 platform.identity
+      - actor: SH-E6
+        command: 停用岗位
+        aggregate: AGG-64
+        emits: [岗位已停用]
+        desc: Q-08 后 AGG-64 应为职位目录条目，「岗位」改称待 one-architecture 与职位目录定稿
+        gap: PG-08
+        decision:
+          - {when: 职位仍被在职任职引用, goto: end}          # INV-63：拒绝
+          - {when: otherwise, goto: 4}
+      - actor: platform
+        bc: platform.identity
+        platform_task: true
+        service: platform.identity
+        command: 标记数据范围待复核并通知区域负责人
+        on_event: [{aggregate: AGG-61, event: 组织单元已调整}]
+        desc: P-31 事件反应；术语上对应词表「待调整权限」（ADR-0032 第 4 项第 3 条），只提醒不收回
+        cross_bc:
+          - {mode: event, direction: in, bc: B-13, name: 组织单元已调整}
+    notes: 6e 前组织与人员为同步快照，本流程在 6e 起由本系统守；U-1、U-7 后 B-13 即为记录系统，无同步来源。
+
+  - id: PRC-81
+    name: 提出并批准招聘需求
+    trigger: {type: human, desc: 用人经理提出}
+    stages: [VS-07.1]
+    owner_bc: B-13
+    human_orchestration: true
+    human_note: 提交、批准或驳回，批准为本聚合命令
+    roles:
+      - {id: SH-E1, as: initiator}
+      - {id: SH-E6, as: approver}       # 人力；批准人是否为人力负责人或用人经理的上级：待用户（NOTES）
+      - {id: SH-M1, as: informed}       # VS-07.1 participants 含 SH-M1，本骨架无其动作，仅知会
+    steps:
+      - actor: SH-E1
+        read: true
+        reads: [AGG-64, AGG-61]
+        desc: 读职位目录与组织单元；Q-08 后无编制，超编 P-33 随 Q26 已关闭，不再检查
+        gap: PG-08
+      - actor: SH-E1
+        command: 提交招聘需求
+        aggregate: AGG-65
+      - actor: SH-E6      # 人力
+        command: 批准招聘需求
+        aggregate: AGG-65
+        emits: [招聘需求已批准]
+        approval:
+          doc_type: 招聘需求批准（B-13 聚合内单级批准命令，不经 platform.approval，intent 114200 F-3）
+          approver: SH-E6
+          multi_level: false
+          on_reject: 4
+        decision:
+          - {when: 批准, goto: end}
+          - {when: otherwise, goto: 4}
+        # 依据：聚合稿 §4.3.4 第 4 条、§7 第 12 条；多级审批若业务要求则移出 B-13（待用户）
+      - actor: SH-E6
+        command: 关闭招聘需求
+        aggregate: AGG-65
+        branch: 驳回或关闭
+        emits: [招聘需求已关闭]
+        gap: PG-08
+        desc: v1 以关闭代驳回；状态「已驳回」无独立命令
+    notes: 批准不经 platform.approval（会成环，§4.3.4 第 4 条）；多级审批的处理见聚合稿 §7 第 12 条。调入等非招聘入职跳过本流程。
+
+  - id: PRC-82
+    name: 登记候选人并作出录用决定
+    trigger: {type: human, desc: 求职者应聘或用人经理推荐}
+    stages: [VS-07.2]
+    owner_bc: B-13
+    human_orchestration: false
+    roles:
+      - {id: SH-H1, as: external}
+      - {id: SH-E6, as: performer}      # 人力
+      - {id: SH-E1, as: performer}
+    steps:
+      - actor: SH-E6
+        command: 登记候选人
+        aggregate: AGG-62
+        emits: [人员已登记]
+        desc: 候选人并入人员的候选阶段（OBJ-59）；与招聘需求的关联命令未见（PG-08）
+      - actor: SH-E1
+        command: 记录面试
+        aggregate: AGG-62
+        decision:
+          - {when: 面试通过并决定录用, goto: 3}
+          - {when: otherwise, goto: 4}
+        # 依据：v1 步骤分支；录用是否需上级批准：待用户（聚合稿无录用审批）
+      - actor: SH-E1
+        command: 作出录用决定
+        aggregate: AGG-62
+        emits: [录用决定已作出]
+        decision:
+          - {when: 候选人确认入职日期, goto: PRC-83}
+          - {when: 候选人放弃或录用决定撤销, goto: end}      # 命令缺：PG-09
+        # 依据：v1 PRC-83 触发说明「候选人确认入职日期」；放弃分支无命令
+      - actor: SH-E1
+        command: 标记未录用
+        aggregate: AGG-62
+        branch: 未录用
+        decision:
+          - {when: otherwise, goto: end}
+    notes: 候选人个人信息按 ADR-0043 分级（数据组表级处理）。
+
+  - id: PRC-83
+    name: 办理入职与任职
+    trigger:
+      type: event
+      events: [{event: 录用决定已作出, aggregate: AGG-62}]
+      desc: 录用决定后候选人确认入职日期，人力办理入职（同 BC）
+    stages: [VS-07.3]
+    owner_bc: B-13
+    human_orchestration: false
+    roles:
+      - {id: SH-E6, as: performer}      # 人力；批准劳动合同的人力负责人也按 SH-E6
+      - {id: SH-E6, as: approver}
+      - {id: SH-H1, as: external}       # 候选人确认入职日期、签订劳动合同
+      - {id: SH-E1, as: informed}
+    steps:
+      - actor: SH-E6
+        command: 登记入职
+        aggregate: AGG-62
+        emits: [Employed]
+        desc: 入职日为人事业务生效日（U-12），可提前登记、到日生效，补登落回真实日期；Employed 何时发出（登记时 / 生效日）聚合稿未定
+        gap: PG-01
+        cross_bc:
+          - {mode: event, direction: out, bc: B-15, name: Employed}      # 订阅方 B-15，聚合稿已登记
+        # platform.identity / PRC-137 对 Employed 的订阅聚合稿未登记（PG-02），故不在此写 out
+      - actor: SH-E6
+        command: 建立任职
+        aggregate: AGG-63
+        emits: [任职已变更]
+        desc: 主任职区间不重叠（INV-62）；任职版本以业务生效日为准（U-12）；职位取自职位目录，职级另列（Q-08）
+        decision:
+          - {when: 新主任职区间与现有主任职重叠, goto: end}    # INV-62：拒绝并告警
+          - {when: otherwise, goto: 3}
+      - actor: SH-E6
+        command: 提交劳动合同
+        aggregate: AGG-67
+      - actor: SH-E6      # v1：人力负责人
+        command: 批准劳动合同
+        aggregate: AGG-67
+        approval:
+          doc_type: 劳动合同批准（B-13 聚合内单级批准命令，不经 platform.approval，intent 114200 F-3）
+          approver: SH-E6
+          multi_level: false
+          on_reject: 3
+        decision:
+          - {when: 批准, goto: 5}
+          - {when: otherwise, goto: 3}
+        # 驳回后的命令聚合稿无：PG-09
+      - actor: SH-E6
+        command: 签订劳动合同
+        aggregate: AGG-67
+        emits: [劳动合同已签订]
+        desc: 试用期不超法定上限（INV-14）；满一个月未签 P-05 提醒
+        decision:
+          - {when: 试用期超过法定上限, goto: 3}             # INV-14：拒绝，回改合同
+          - {when: 员工法人三口径不一致, goto: 6}           # Q-09：只预警不拒绝
+          - {when: otherwise, goto: end}
+      - actor: system
+        desc: 员工法人三口径（Q-09）不一致预警；三口径各落哪个聚合、由哪个策略发预警，聚合稿未写
+        gap: PG-11
+    notes: 后续参保与薪酬档案见 PRC-84；账号开通见 PRC-137（Q-03：无首日兜底，故开通须早于入职生效）。
+
+  - id: PRC-84
+    name: 入职后参保增员与建立薪酬档案
+    trigger:
+      type: event
+      events: [{event: Employed, aggregate: AGG-62}]
+    stages: [VS-07.3]
+    owner_bc: B-15
+    human_orchestration: false
+    roles:
+      - {id: SH-E6, as: performer}      # 人力
+    steps:
+      - actor: SH-E6
+        command: 参保增员
+        aggregate: AGG-74
+        emits: [参保已增员]
+        decision:
+          - {when: 用工类型无需参保, goto: end}    # 待用户：聚合稿无「无需参保」的用工类型清单
+          - {when: otherwise, goto: 2}
+        cross_bc:
+          - {mode: event, direction: in, bc: B-13, name: Employed}     # B-15 → B-13（api、事件）已有边
+      - actor: SH-E6
+        command: 建立薪酬档案
+        aggregate: AGG-93
+        emits: [薪酬档案已变更]
+        desc: 薪酬属性版本按业务生效日（U-12、D17）；含敏感个人信息，按 ADR-0036、ADR-0043
+    notes: 生成待办、30 日内办理（P-32）是提醒，无超时分支，按非人工编排（⑥a 评审 M1）。订阅方向 B-15 → B-13。
+
+  - id: PRC-85
+    name: 试用期评估与转正
+    trigger: {type: time, desc: 试用期届满前（P-46）}
+    stages: [VS-07.3, VS-13.2]
+    owner_bc: B-13
+    human_orchestration: false
+    roles:
+      - {id: SH-E1, as: performer}
+      - {id: SH-E6, as: performer}      # 人力
+    steps:
+      - actor: SH-E1
+        command: 编制试用期绩效评估
+        aggregate: AGG-106
+        desc: 触发为定时，聚合稿无「定时命令」约定（STEP6A G-04 未处理）
+        gap: PG-10
+      - actor: SH-E1
+        command: 确认绩效评估
+        aggregate: AGG-106
+        emits: [绩效评估已确认]
+        desc: INV-114：同期同类型只一份，确认后不可改
+        cross_bc:
+          - {mode: event, direction: out, bc: B-15, name: 绩效评估已确认}     # 奖金核定依据，聚合稿已登记订阅方
+      - actor: SH-E6
+        command: 办理转正
+        aggregate: AGG-62
+        desc: 转正前读评估（P-46）；评估结果是转正输入，不是拒绝条件
+        gap: PG-10
+        decision:
+          - {when: 公司决定不予转正, goto: PRC-128}       # 待用户：不予转正的处理与依据；聚合稿无此分支
+          - {when: otherwise, goto: end}
+    notes: 办理转正只发内部事件，B-15 无从得知转正后薪酬是否调整（PG-10）。
+
+  # ───────────── VS-13.6 离职结清（入转调离成套）─────────────
+
+  - id: PRC-128
+    name: 办理离职
+    trigger: {type: human, desc: 员工提出离职或公司决定终止}
+    stages: [VS-13.6]
+    owner_bc: B-13
+    human_orchestration: false
+    roles:
+      - {id: SH-E3, as: initiator}      # 申请人是任一类员工；stakeholders 无泛员工编号，暂取 VS-13.6 participants 的 SH-E3（NOTES 格式问题）
+      - {id: SH-E6, as: approver}       # 人力负责人
+      - {id: SH-E6, as: performer}      # 人力
+      - {id: SH-E1, as: informed}
+    steps:
+      - actor: SH-E3
+        command: 申请离职
+        aggregate: AGG-62
+        decision:
+          - {when: 公司决定终止且无员工申请, goto: 2}      # 缺发起终止命令：PG-09
+          - {when: otherwise, goto: 2}
+      - actor: SH-E6      # v1：人力负责人
+        command: 批准离职申请
+        aggregate: AGG-62
+        approval:
+          doc_type: 离职申请批准（B-13 聚合内单级批准命令，不经 platform.approval，intent 114200 F-3）
+          approver: SH-E6
+          multi_level: false
+          on_reject: end
+        decision:
+          - {when: 批准, goto: 3}
+          - {when: otherwise, goto: end}                   # 驳回 / 撤回命令缺：PG-09
+      - actor: SH-E6
+        command: 办理离职
+        aggregate: AGG-62
+        emits: [Separated]
+        desc: 离职日为人事业务生效日（U-12），可提前登记、到日生效；离职生效即吊销会话与访问（RULE-363）。Separated 须在生效时发，不得在登记时提前发
+        gap: PG-12
+        cross_bc:
+          - {mode: event, direction: out, bc: B-15, name: Separated}               # 参保减员 PRC-130，聚合稿已登记
+          - {mode: event, direction: out, bc: platform.identity, name: Separated}  # PRC-129 / PRC-138，聚合稿 §1.4 G-2 已登记
+      - actor: SH-E6
+        command: 终止劳动合同
+        aggregate: AGG-67
+        emits: [劳动合同已终止]
+        gap: PG-12
+      - actor: SH-E6
+        command: 终止任职
+        aggregate: AGG-63
+        emits: [任职已变更]
+        gap: PG-12
+        desc: 任职终止晚于 Separated，则 platform.identity 收到的任职已变更对象已离职，需忽略或合并
+    notes: 最后一期薪酬随月度结算发放。账号停用见 PRC-129（会话）、PRC-138（企业微信账号与外部身份）；参保减员见 PRC-130。
+
+  # ───────────── 新增流程（one-architecture 编号 PRC-136–138）─────────────
+
+  - id: PRC-136
+    name: 调岗（任职变更）
+    trigger: {type: human, desc: 人力按人事业务生效日登记调岗、职级调整或汇报线变更（发起人是用人经理还是人力，待用户）}
+    stages: [VS-07.3]
+    owner_bc: B-13
+    human_orchestration: false
+    new: true
+    basis: 老系统与 A8 的人事异动只作证据（OA_PROCESS_INVENTORY §组织与人事「人事异动」）；U-12；词表「待调整权限」；P-31 只覆盖组织单元已调整
+    roles:
+      - {id: SH-E6, as: performer}      # 人力
+      - {id: SH-E1, as: initiator}      # 待用户：是否用人经理发起
+      - {id: SH-M1, as: informed}       # 区域负责人，数据范围待复核时被通知
+    steps:
+      - actor: SH-E6
+        read: true
+        reads: [AGG-64, AGG-61]
+        desc: 读新职位（职位目录）与新组织单元，须未停用（INV-63）
+        decision:
+          - {when: 新职位已停用或新组织单元已撤销, goto: end}      # INV-63 / INV-60 相关：拒绝并告警
+          - {when: otherwise, goto: 2}
+      - actor: SH-E6
+        command: 终止任职
+        aggregate: AGG-63
+        emits: [任职已变更]
+        desc: 旧任职区间止于调岗业务生效日（U-12）；提前登记则到日生效，补登落回真实日期
+        gap: PG-05
+      - actor: SH-E6
+        command: 建立任职
+        aggregate: AGG-63
+        emits: [任职已变更]
+        desc: 新任职区间始于同一业务生效日，主任职不重叠（INV-62）；兼职任职不受此限
+        gap: PG-05
+        decision:
+          - {when: 调岗同时调整薪酬或改变用人单位法人, goto: 5}      # Q-09；待用户：是否此处联动
+          - {when: otherwise, goto: end}                              # 步骤 4 为事件反应，不依赖本判断
+        cross_bc:
+          - {mode: event, direction: out, bc: platform.identity, name: 任职已变更}   # 订阅方聚合稿现为「仅分析」，未登记（PG-02、PG-06）
+      - actor: platform
+        bc: platform.identity
+        platform_task: true
+        service: platform.identity
+        command: 标记数据范围待复核并通知区域负责人
+        on_event: [{aggregate: AGG-63, event: 任职已变更}]
+        desc: 沿用 PRC-80 步骤 4 的命令；P-31 现只由组织单元已调整触发，任职已变更触发需新增策略，生成待调整权限条目，只提醒不收回
+        gap: PG-06
+        cross_bc:
+          - {mode: event, direction: in, bc: B-13, name: 任职已变更}
+      - actor: SH-E6
+        bc: B-15
+        command: 调整薪酬档案
+        aggregate: AGG-93
+        emits: [薪酬档案已变更]
+        branch: 调岗引起薪酬变化
+        desc: B-15 对任职已变更的订阅聚合稿未登记（B-15 → B-13 边已有，AGG-63 订阅方需补）
+        gap: PG-07
+        cross_bc:
+          - {mode: event, direction: in, bc: B-13, name: 任职已变更}
+    notes: 调岗是否需批准、批准人是谁：待用户（聚合稿无调岗批准命令）。晋升只改职级不换职位（JOB_CATALOG_DRAFT §1 P-1），同走本流程。
+
+  - id: PRC-137
+    name: 入职开通企业微信并绑定外部身份
+    trigger:
+      type: event
+      events: [{event: Employed, aggregate: AGG-62}]
+      desc: 触发事件的发出时机见 PG-01；Q-03 无首日兜底，应早于入职生效日开通，建议改由登记时发出的新事件触发
+    stages: [VS-07.3]
+    owner_bc: B-13
+    human_orchestration: false
+    new: true
+    basis: intent 2026-10-16-134134 Q-03；IDENTITY_LIFECYCLE.md（招聘入职是人力过程，企业微信是信息过程，有前后顺序）
+    roles:
+      - {id: SH-E6, as: performer}      # 信息（IT）
+      - {id: SH-E6, as: informed}       # 人力，逾期未开通时被告警
+    steps:
+      - actor: SH-E6      # 信息
+        desc: 在企业微信开通成员账号（外部系统内的动作，FORCITIS one 无命令）
+        gap: PG-03
+      - actor: system
+        bc: platform.integration
+        platform_task: true
+        service: platform.integration
+        command: 〔缺〕接收企业微信成员已创建并匹配人员
+        desc: 匹配键（工号、手机号或其他）待用户；匹配不到唯一人员须告警，不静默
+        gap: PG-03
+        decision:
+          - {when: 无法匹配到唯一人员, goto: 4}
+          - {when: otherwise, goto: 3}
+        cross_bc:
+          - {mode: event, direction: out, bc: B-13, name: 〔缺〕企业微信成员已创建}   # B-13 → platform.integration 现为 api，上游向下游通知须补事件方式（PG-04）
+      - actor: platform
+        bc: platform.identity
+        platform_task: true
+        service: platform.identity
+        command: 〔缺〕建立登录身份并绑定外部身份
+        desc: 以人员 ID 为键；绑定后新员工方可经企业微信登录（Q-03，不另设口令兜底）
+        gap: PG-03
+        decision:
+          - {when: otherwise, goto: end}
+        cross_bc:
+          - {mode: event, direction: in, bc: B-13, name: Employed}      # 订阅未登记：PG-02
+      - actor: system
+        on_time: 入职业务生效日前仍未绑定
+        desc: 告警信息与人力，不静默；提前量与责任时限待用户
+        gap: PG-13
+    notes: 本流程是 Q-03 的落点；开通与吊销（PRC-138）均为安全关键。
+
+  - id: PRC-138
+    name: 离职停用企业微信并解绑
+    trigger:
+      type: event
+      events: [{event: Separated, aggregate: AGG-62}]
+      desc: 与 PRC-129（吊销会话）互补；离职生效即时，不等企业微信账号停用
+    stages: [VS-13.6]
+    owner_bc: B-13
+    human_orchestration: false
+    new: true
+    basis: intent 2026-10-16-134134 Q-03；规则卡 RULE-363；ADR-0027 第 1 项（删除全部角色授予、停用应急账号、吊销会话）；IDENTITY_LIFECYCLE.md §对 C1 设计的含义第 3 条（在职判断以人事离职为准，不以企业微信账号是否存在为准）
+    roles:
+      - {id: SH-E6, as: performer}      # 信息（IT）
+      - {id: SH-E6, as: informed}       # 人力
+    steps:
+      - actor: platform
+        bc: platform.identity
+        platform_task: true
+        service: platform.identity
+        command: 吊销会话
+        calls: PRC-129
+        desc: 同时按 ADR-0027 删除全部角色授予、停用应急账号；PRC-129 现只登记「吊销会话」，其余两项见 PG-13
+        gap: PG-13
+        cross_bc:
+          - {mode: event, direction: in, bc: B-13, name: Separated}
+      - actor: platform
+        bc: platform.identity
+        platform_task: true
+        service: platform.identity
+        command: 〔缺〕停用登录身份
+        desc: 登录以人员在职为准，离职后即使企业微信账号未停用也拒绝登录
+        gap: PG-03
+      - actor: SH-E6      # 信息
+        desc: 在企业微信停用或删除成员账号（外部系统内的动作）
+        gap: PG-03
+      - actor: system
+        bc: platform.integration
+        platform_task: true
+        service: platform.integration
+        command: 〔缺〕接收企业微信成员已停用
+        gap: PG-03
+        cross_bc:
+          - {mode: event, direction: out, bc: B-13, name: 〔缺〕企业微信成员已停用}     # 方向问题：PG-04
+      - actor: platform
+        bc: platform.identity
+        platform_task: true
+        service: platform.identity
+        command: 〔缺〕解绑外部身份
+        gap: PG-03
+        decision:
+          - {when: otherwise, goto: end}
+      - actor: system
+        on_time: 离职生效后规定时限内企业微信账号仍未停用
+        desc: 告警信息与人力；老系统取证 15% 离职者离职后仍成功登录（IDENTITY_LIFECYCLE）；时限待用户
+        gap: PG-13
+    notes: 参保减员由 PRC-130 另行处理。
+
+event_policies:
+
+  - id: PRC-129
+    name: 离职后吊销会话
+    trigger:
+      type: event
+      events: [{event: Separated, aggregate: AGG-62}]
+    stages: [VS-13.6]
+    owner_bc: platform.identity
+    roles:
+      - {id: SH-E6, as: informed}
+    step:
+      actor: platform
+      platform_task: true
+      service: platform.identity
+      command: 吊销会话
+      desc: 聚合稿 §1.4 G-2 强制事件反应，已建
+      cross_bc:
+        - {mode: event, direction: in, bc: B-13, name: Separated}
+    notes: 平台已建模块，不是企业聚合；与 PRC-138 配合。
+
+  - id: PRC-130
+    name: 离职后参保减员
+    trigger:
+      type: event
+      events: [{event: Separated, aggregate: AGG-62}]
+      desc: 人力收到离职事件后 15 日内办理转移手续（P-32）
+    stages: [VS-13.6]
+    owner_bc: B-15
+    roles:
+      - {id: SH-E6, as: performer}      # 人力
+    step:
+      actor: SH-E6
+      command: 参保减员
+      aggregate: AGG-74
+      emits: [参保已减员]
+      cross_bc:
+        - {mode: event, direction: in, bc: B-13, name: Separated}
+    notes: B-15 → B-13 边已有。
