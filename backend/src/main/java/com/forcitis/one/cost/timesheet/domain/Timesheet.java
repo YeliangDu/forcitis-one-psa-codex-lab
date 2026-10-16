@@ -33,6 +33,7 @@ import com.forcitis.one.platform.approval.api.ApprovalSummary;
 import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
+import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -42,23 +43,29 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * A timesheet moves DRAFT, SUBMITTED, then APPROVED or REJECTED; a return gives it back to its owner for changes (RETURNED) and a cancel
- * gives it back as a draft. The approval module owns the process state, this aggregate owns the timesheet's state, and only events join
+ * A timesheet moves DRAFT, SUBMITTED, then APPROVED or REJECTED; a return gives it back to its owner for changes (RETURNED), a cancel
+ * gives it back as a draft, and a rejected one may be changed and submitted again as the same timesheet. Only APPROVED has no way out. The approval module owns the process state, this aggregate owns the timesheet's state, and only events join
  * them. The work date is what the employee entered and never changes afterwards; the day of submission is a separate fact.
  */
 public final class Timesheet extends AggregateRoot {
 
+    private static final Logger log = LoggerFactory.getLogger(Timesheet.class);
+
     public static final StateMachine<TimesheetStatus> MACHINE = StateMachine.of(TimesheetStatus.class)
             .allow(TimesheetStatus.DRAFT, TimesheetStatus.SUBMITTED)
             .allow(TimesheetStatus.RETURNED, TimesheetStatus.SUBMITTED)
+            .allow(TimesheetStatus.REJECTED, TimesheetStatus.SUBMITTED)
             .allow(TimesheetStatus.SUBMITTED, TimesheetStatus.APPROVED, TimesheetStatus.REJECTED, TimesheetStatus.RETURNED,
                     TimesheetStatus.DRAFT)
             .build();
 
     private final TimesheetId timesheetId;
     private final DocumentNumber number;
+    private final NumberingRuleVersionId numberingRuleVersionId;
     private final EmployeeId employee;
     private final LegalEntityId legalEntityId;
     private final OrgUnitId orgUnitId;
@@ -72,12 +79,13 @@ public final class Timesheet extends AggregateRoot {
     private int round;
     private LocalDate submittedOn;
 
-    private Timesheet(TimesheetId timesheetId, DocumentNumber number, EmployeeId employee, LegalEntityId legalEntityId, OrgUnitId orgUnitId,
+    private Timesheet(TimesheetId timesheetId, DocumentNumber number, NumberingRuleVersionId numberingRuleVersionId, EmployeeId employee, LegalEntityId legalEntityId, OrgUnitId orgUnitId,
             LocalDate workDate, Hours submittedHours, EmployeeId projectManager, TimesheetStatus status,
             int round, LocalDate submittedOn, List<AggregateReference> touchedTogether, long version, long eventSequence, boolean isNew) {
         super(version, eventSequence);
         this.timesheetId = Objects.requireNonNull(timesheetId, "timesheetId");
         this.number = Objects.requireNonNull(number, "number");
+        this.numberingRuleVersionId = numberingRuleVersionId;
         this.employee = Objects.requireNonNull(employee, "employee");
         this.legalEntityId = Objects.requireNonNull(legalEntityId, "legalEntityId");
         this.orgUnitId = Objects.requireNonNull(orgUnitId, "orgUnitId");
@@ -94,22 +102,29 @@ public final class Timesheet extends AggregateRoot {
 
     /**
      * counter: the numbering aggregate that took a number in the same transaction as this timesheet is created; the events of this
-     * unit of work name it as a related aggregate.
+     * unit of work name it as a related aggregate. ruleVersionId: the numbering rule version the number was issued under.
      */
-    public static Timesheet draft(TimesheetId timesheetId, DocumentNumber number, AggregateReference counter, EmployeeId employee,
+    public static Timesheet draft(TimesheetId timesheetId, DocumentNumber number, AggregateReference counter, NumberingRuleVersionId ruleVersionId,
+            EmployeeId employee,
             LegalEntityId legalEntityId, OrgUnitId orgUnitId, LocalDate workDate, Hours submittedHours,
             EmployeeId projectManager, LocalDate today) {
         if (workDate.isAfter(today)) {
             throw TimesheetError.COST_TIMESHEET_WORK_DATE_IN_FUTURE.refusal("The work date " + workDate + " is after today, " + today);
         }
-        return new Timesheet(timesheetId, number, employee, legalEntityId, orgUnitId, workDate, submittedHours,
+        if (ruleVersionId == null) {
+            log.error("ALERT P2 cost.timesheet timesheet {} was issued a number without the numbering rule version it was issued under",
+                    timesheetId.value());
+            throw new IllegalStateException("A new timesheet needs the numbering rule version its number was issued under");
+        }
+        return new Timesheet(timesheetId, number, ruleVersionId, employee, legalEntityId, orgUnitId, workDate, submittedHours,
                 projectManager, TimesheetStatus.DRAFT, 0, null, List.of(counter), 0, 0, true);
     }
 
-    public static Timesheet restore(TimesheetId timesheetId, DocumentNumber number, EmployeeId employee, LegalEntityId legalEntityId,
+    /** ruleVersionId is empty for a timesheet carried over from the old system, whose number was not issued here. */
+    public static Timesheet restore(TimesheetId timesheetId, DocumentNumber number, NumberingRuleVersionId ruleVersionId, EmployeeId employee, LegalEntityId legalEntityId,
             OrgUnitId orgUnitId, LocalDate workDate, Hours submittedHours, EmployeeId projectManager,
             TimesheetStatus status, int round, LocalDate submittedOn, long version, long eventSequence) {
-        return new Timesheet(timesheetId, number, employee, legalEntityId, orgUnitId, workDate, submittedHours,
+        return new Timesheet(timesheetId, number, ruleVersionId, employee, legalEntityId, orgUnitId, workDate, submittedHours,
                 projectManager, status, round, submittedOn, List.of(), version, eventSequence, false);
     }
 
@@ -220,6 +235,10 @@ public final class Timesheet extends AggregateRoot {
 
     public DocumentNumber number() {
         return number;
+    }
+
+    public Optional<NumberingRuleVersionId> numberingRuleVersionId() {
+        return Optional.ofNullable(numberingRuleVersionId);
     }
 
     public EmployeeId employee() {

@@ -11,6 +11,7 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
+import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -18,6 +19,9 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
+import org.postgresql.util.PSQLException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -25,8 +29,13 @@ import org.springframework.stereotype.Repository;
 @Repository
 class JdbcTimesheetRepository implements TimesheetRepository {
 
-    private static final String COLUMNS = "id, timesheet_number, employee_id, legal_entity_id, org_unit_id, work_date,"
+    private static final Logger log = LoggerFactory.getLogger(JdbcTimesheetRepository.class);
+    private static final String COLUMNS = "id, timesheet_number, numbering_rule_version_id, employee_id, legal_entity_id, org_unit_id, work_date,"
             + " submitted_hours, project_manager_id, status, round_number, submitted_date, event_count, version";
+
+    private static final String CLASH_OF_EMPLOYEE_DAY = "uk_timesheets_employee_id_work_date";
+    private static final String CLASH_OF_NUMBER = "uk_timesheets_timesheet_number";
+    private static final String CLASH_OF_ID = "pk_timesheets";
 
     private final JdbcClient jdbc;
     private final Clock clock;
@@ -40,6 +49,12 @@ class JdbcTimesheetRepository implements TimesheetRepository {
     public Optional<Timesheet> find(TimesheetId timesheetId) {
         return jdbc.sql("SELECT " + COLUMNS + " FROM cost_timesheet.timesheets WHERE id = :id")
                 .param("id", timesheetId.value()).query((rs, n) -> read(rs)).optional();
+    }
+
+    @Override
+    public boolean existsFor(EmployeeId employee, LocalDate workDate) {
+        return jdbc.sql("SELECT EXISTS (SELECT 1 FROM cost_timesheet.timesheets WHERE employee_id = :employee AND work_date = :workDate)")
+                .param("employee", employee.value()).param("workDate", workDate).query(Boolean.class).single();
     }
 
     @Override
@@ -59,12 +74,13 @@ class JdbcTimesheetRepository implements TimesheetRepository {
         if (timesheet.isNew()) {
             try {
                 jdbc.sql("""
-                        INSERT INTO cost_timesheet.timesheets (id, timesheet_number, employee_id, legal_entity_id, org_unit_id,
+                        INSERT INTO cost_timesheet.timesheets (id, timesheet_number, numbering_rule_version_id, employee_id, legal_entity_id, org_unit_id,
                                work_date, submitted_hours, project_manager_id, status, round_number, submitted_date, event_count, version)
-                        VALUES (:id, :number, :employee, :legalEntity, :orgUnit, :workDate, :hours, :manager, :status, :round,
+                        VALUES (:id, :number, :ruleVersion, :employee, :legalEntity, :orgUnit, :workDate, :hours, :manager, :status, :round,
                                 :submittedDate, :sequence, :next)
                         """)
                         .param("id", timesheet.timesheetId().value()).param("number", timesheet.number().value())
+                        .param("ruleVersion", timesheet.numberingRuleVersionId().map(NumberingRuleVersionId::value).orElseThrow())
                         .param("employee", timesheet.employee().value()).param("legalEntity", timesheet.legalEntityId().value())
                         .param("orgUnit", timesheet.orgUnitId().value())
                         .param("workDate", timesheet.workDate()).param("hours", timesheet.submittedHours().value())
@@ -72,7 +88,7 @@ class JdbcTimesheetRepository implements TimesheetRepository {
                         .param("round", timesheet.round()).param("submittedDate", timesheet.submittedOn().orElse(null))
                         .param("sequence", timesheet.eventSequenceAfterSave()).param("next", timesheet.versionAfterSave()).update();
             } catch (DuplicateKeyException exists) {
-                throw changedByOthers(timesheet);
+                throw clashOf(exists, timesheet);
             }
             return;
         }
@@ -94,6 +110,27 @@ class JdbcTimesheetRepository implements TimesheetRepository {
         }
     }
 
+    private static DomainException clashOf(DuplicateKeyException exists, Timesheet timesheet) {
+        String constraint = constraintOf(exists);
+        if (CLASH_OF_EMPLOYEE_DAY.equals(constraint)) {
+            return TimesheetError.COST_TIMESHEET_WORK_DATE_DUPLICATE.refusal("The employee already has a timesheet for " + timesheet.workDate());
+        }
+        if (CLASH_OF_NUMBER.equals(constraint) || CLASH_OF_ID.equals(constraint)) {
+            return changedByOthers(timesheet);
+        }
+        log.error("ALERT P2 cost.timesheet a timesheet was refused by the unique constraint {}: {}", constraint, exists.getClass().getName());
+        throw exists;
+    }
+
+    private static String constraintOf(Throwable failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof PSQLException psql && psql.getServerErrorMessage() != null) {
+                return psql.getServerErrorMessage().getConstraint();
+            }
+        }
+        return null;
+    }
+
     private static DomainException changedByOthers(Timesheet timesheet) {
         return TimesheetError.COST_TIMESHEET_CONCURRENT_CHANGE.refusal("Timesheet " + timesheet.timesheetId().value()
                 + " was changed by somebody else");
@@ -101,6 +138,7 @@ class JdbcTimesheetRepository implements TimesheetRepository {
 
     private static Timesheet read(ResultSet rs) throws SQLException {
         return Timesheet.restore(new TimesheetId(rs.getObject("id", UUID.class)), new DocumentNumber(rs.getString("timesheet_number")),
+                Optional.ofNullable(rs.getObject("numbering_rule_version_id", UUID.class)).map(NumberingRuleVersionId::new).orElse(null),
                 new EmployeeId(rs.getObject("employee_id", UUID.class)), new LegalEntityId(rs.getObject("legal_entity_id", UUID.class)),
                 new OrgUnitId(rs.getObject("org_unit_id", UUID.class)),
                 rs.getObject("work_date", LocalDate.class), new Hours(rs.getBigDecimal("submitted_hours")),
