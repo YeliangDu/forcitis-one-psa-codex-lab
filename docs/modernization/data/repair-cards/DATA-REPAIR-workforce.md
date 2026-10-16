@@ -273,6 +273,45 @@
     - 裁 8　**卡 §3 的允许文件清单**：§3 只列 `sync_runs`、`sync_diffs`、`org_units`、`assignments`、`assignment_versions`、`org_unit_versions`、`legal_entity_versions`，并写「不碰 `positions`、`employees` 的列」，而 WF-11、WF-12 要动 `positions`、`employees`、`legal_entities`、期间表、更正表的约束。本节只加约束、不改列，是否按此执行并修订 §3；若不接受，WF-11 中 `positions`、`employees` 三行并入 W2（DA-7）。
     - 裁 9　**不进域层守卫**：不在 `Position`、`OrgUnit`、`Employee` 构造里加非空白校验（来源适配器已规范化，库作最后防线）；是否同意。
 
+- **数据设计补（PR-8b：WF-11 长度上限，one-data 2026-10-16 裁定）**（叠在 PR-8 #366 之上；依据 `../reviews/DATA-REPAIR-workforce-PR8.md` 末段「追加：来源列长度取证与长度上限」；基线 SQL 即 PR-8 之后的 `V20261014131000__organization_workforce_baseline.sql`，行号取 PR-8 头 aa82e57f；本节只做文档核实，未执行 DDL，未跑测试）
+  - **裁定**：长度上限取来源视图声明列宽（不取实际最大值，不取老系统列宽）；法人名称仍 100（PR-8 已落）；`correction_reason` 取 200，与 `ReleaseSyncRun.MAX_REASON_LENGTH`（`application/ReleaseSyncRun.java:26`）、`ForceUserLogout.MAX_REASON_LENGTH`（`platform/identity/application/ForceUserLogout.java:26`）同口径；先入口校验、再库内 CHECK。
+  - **约束写法：合并，不另加**。PR-8 已有的同列非空白 CHECK 就地改写成「长度 AND 非空白」一条，约束名不变，与 PR-8 已落的 `ck_legal_entities_name`、`ck_legal_entity_versions_name`（基线 :229、:406，`char_length(name) <= 100 AND btrim(name) <> ''`）同一形态。不新增约束名，故 `DdlNamingTest` 的命名与长度检查、`ddl-naming-baseline.txt`、注册表不受影响；可空列写成 `col IS NULL OR (char_length(col) <= N AND btrim(col) <> '')`。每条 CHECK 仍单行写完（`WorkforceSchemaGuardTest` 按 `,\n` 切列）。`char_length` 按码点计，来源（SQL Server `nvarchar(n)` 按 UTF-16 单元计）只会更长地计、不会更短，库内只会更松，同步不会因此被拒。
+  - **逐列 DDL**（行号为 PR-8 头基线；列均已存在，不改列）：
+    | 表.列 | 约束名（不变） | 上限 | 基线行 |
+    |---|---|---|---|
+    | `positions.name` | `ck_positions_name` | 500 | :14 |
+    | `positions.code` | `ck_positions_code` | 500 | :15 |
+    | `org_units.name` | `ck_org_units_name` | 500 | :45 |
+    | `org_units.code` | `ck_org_units_code` | 500 | :46 |
+    | `org_units.short_name` | `ck_org_units_short_name` | 255 | :47 |
+    | `org_unit_versions.name` | `ck_org_unit_versions_name` | 500 | :338 |
+    | `org_unit_versions.code` | `ck_org_unit_versions_code` | 500 | :339 |
+    | `employees.employee_code` | `ck_employees_employee_code` | 500 | :84 |
+    | `employees.display_name` | `ck_employees_display_name` | 500 | :85 |
+    | `employees.email`（约束名按 R-2a 目标列名） | `ck_employees_email_address` | 100 | :86 |
+    | `legal_entity_attribution_corrections.correction_reason` | `ck_legal_entity_attribution_corrections_reason` | 200 | :438 |
+    ```sql
+    CONSTRAINT ck_positions_name CHECK (char_length(name) <= 500 AND btrim(name) <> ''),
+    CONSTRAINT ck_positions_code CHECK (code IS NULL OR (char_length(code) <= 500 AND btrim(code) <> '')),
+    CONSTRAINT ck_org_units_name CHECK (char_length(name) <= 500 AND btrim(name) <> ''),
+    CONSTRAINT ck_org_units_code CHECK (code IS NULL OR (char_length(code) <= 500 AND btrim(code) <> '')),
+    CONSTRAINT ck_org_units_short_name CHECK (short_name IS NULL OR (char_length(short_name) <= 255 AND btrim(short_name) <> '')),
+    CONSTRAINT ck_org_unit_versions_name CHECK (char_length(name) <= 500 AND btrim(name) <> ''),
+    CONSTRAINT ck_org_unit_versions_code CHECK (code IS NULL OR (char_length(code) <= 500 AND btrim(code) <> '')),
+    CONSTRAINT ck_employees_employee_code CHECK (char_length(employee_code) <= 500 AND btrim(employee_code) <> ''),
+    CONSTRAINT ck_employees_display_name CHECK (char_length(display_name) <= 500 AND btrim(display_name) <> ''),
+    CONSTRAINT ck_employees_email_address CHECK (email IS NULL OR (char_length(email) <= 100 AND btrim(email) <> '')),
+    CONSTRAINT ck_legal_entity_attribution_corrections_reason CHECK (char_length(correction_reason) <= 200 AND btrim(correction_reason) <> ''),
+    ```
+    列注释补长度：`correction_reason` 改为「更正原因：操作人填写，不得为空，最多 200 个字符」（基线 :458）；其余列注释不动。
+  - **`correction_reason` 入口校验**：写更正原因的应用入口只有 `application/CorrectLegalEntityAttribution.execute`（`backend/src/main/java/com/forcitis/one/organization/workforce/application/CorrectLegalEntityAttribution.java:47`），HTTP 入口 `web/LegalEntityAttributionController.java:85-91`（部门）与 `:93-99`（员工）都只转交它；`web/CorrectLegalEntityAttributionRequest.java` 无 `@Size`，`kernel/Reason.java` 只禁空白。校验放在该文件 :57 `Reason.ofNullable(reasonText)` 与 :58-61 空白拒绝之后：新增常量 `static final int MAX_REASON_LENGTH = 200`（与 `ReleaseSyncRun` 同名同值），`reason.value().length() > MAX_REASON_LENGTH` 时抛 `DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED, ErrorKind.UNPROCESSABLE, "a reason of 1.." + MAX_REASON_LENGTH + " characters is required")`，并照 `ReleaseSyncRun.java:51-56` 记一条 `ALERT organization.workforce` 错误日志（缺失或无效输入失败并告警）。不在检查之前读库、不写更正表、不发事件。
+  - **错误码**：复用 `ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED`（HTTP 422），不新增。核对先例（`git grep MAX_REASON_LENGTH`）：`ReleaseSyncRun` 超长复用 `ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED`（`ErrorKind.INVALID`），`ForceUserLogout` 超长复用 `PLATFORM_IDENTITY_FORCED_LOGOUT_REASON_REQUIRED`（`ErrorKind.UNPROCESSABLE`）——都是「缺失与超长共用一个 *_REASON_REQUIRED」，本入口的空白原因本就是 422，故超长同 422。
+  - **与先例的一处差别**：`ReleaseSyncRun`、`ForceUserLogout` 先 `strip()` 再量；本入口量 `reason.value().length()`（原值）。理由：更正表存入的是 `Reason.value()` 原值（`JdbcLegalEntityAttributionRepository.java:130` 的插入），库内 CHECK 量的也是存入值，入口与库内用同一把尺，不会出现「入口放行、库内拒绝」的 500。前后空白计入长度；若 one-data 要求先 `strip` 再存，另议。
+  - **Java（本补丁只此一处）**：上述入口校验。来源列长度不加 Java 校验（来源适配器与同步不会超限；库作最后防线，与 PR-8 裁 9 一致）。
+  - **预期表结构 diff**（两个空库分别执行 PR-8 与 PR-8b 的基线，`pg_dump --schema-only` 对比）：只有上表十一条 CHECK 的定义文本变化（新增 `char_length(...) <= N`），无新增、删除、重命名约束，无列变化，无索引变化；`legal_entity_attribution_corrections.correction_reason` 的列注释一行变化。
+  - **验收要点**：各列恰为上限的值通过、上限 + 1 被拒（23514 + 约束名）；更正原因 200 字经 `POST /api/v1/organization/employee-legal-entities/{employeeId}:correct` 通过，201 字 422 `ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_REASON_REQUIRED` 且更正表无新行；PR-8 的 `WorkforceRowConstraintsIT` 空白用例（空串、纯空格、带内容）原样重跑通过，`RULE-385` 既有用例（原因 `r`、`typed the wrong end day`）不受影响。
+  - **改断言 / 夹具**：无。
+
 ## 5. 待用户决定
 1. 保留期：`sync_run_held_separations` 随运行 2 年是否认可并补 GUIDING §6 一行；「待离职名单」整表的敏感级别（OW 待决 3、4；规则卡认定未公开离职信息敏感）；离职人员在 `employees` 保留多久（X-5，属 W2）。
 2. SR-4：是否在 `sync_runs` 增 `release_reason`，还是以审计为唯一记录（OW 待决 9）。
