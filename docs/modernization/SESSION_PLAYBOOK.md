@@ -76,7 +76,7 @@
 
 ## 4. 收尾协议（结束前，或上下文接近上限时）
 
-0. **只改片段，不直接编辑生成产物**（用户 2026-10-14：「一条记录一个文件 + ADR 拆开」）：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、`MODERNIZATION_BRIEF.md` 与提议术语清单 `backend/glossary/proposed/README.md`（源为同目录 `*.yaml`）都由 `python3 docs/modernization/build_all.py` 生成；改完片段后运行它。ADR、`adr/README.md`、brief、提议术语清单连同产物提交，CI 的「generated docs match fragments」一步会拦下不一致；`INTENT.md`、`SESSION_LOG.md`、`STATUS.md` 不入仓（用户 2026-10-14：「改：记录类产物不入仓，main 自动生成到只读分支 (Recommended)」），只提交片段，main 更新后由 `.github/workflows/generated-docs.yml` 发布到 generated-docs 分支。
+0. **只改片段，不直接编辑生成产物**（用户 2026-10-14：「一条记录一个文件 + ADR 拆开」）：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`phase1a/infra/LEGACY_READ_REGISTER.md`（源为 `phase1a/infra/legacy-read/` 片段，用 `new_legacy_read.py` 新增；不入仓）、`adr/ADR-*.md`、`adr/README.md`、`MODERNIZATION_BRIEF.md` 与提议术语清单 `backend/glossary/proposed/README.md`（源为同目录 `*.yaml`）都由 `python3 docs/modernization/build_all.py` 生成；改完片段后运行它。ADR、`adr/README.md`、brief、提议术语清单连同产物提交，CI 的「generated docs match fragments」一步会拦下不一致；`INTENT.md`、`SESSION_LOG.md`、`STATUS.md` 不入仓（用户 2026-10-14：「改：记录类产物不入仓，main 自动生成到只读分支 (Recommended)」），只提交片段，main 更新后由 `.github/workflows/generated-docs.yml` 发布到 generated-docs 分支。
 1. 把本会话的决定（用户原话）用 `python3 docs/modernization/new_intent.py --session=<会话名> "<原话>" "<落点>"` 新增为 `intent/` 片段，并写进相应 ADR 的源文件 `adr/src/`。
 2. 勾选 brief 中已满足的条件；不满足的不勾，不改写条件。
 3. 用 `python3 docs/modernization/new_log.py <会话名> "<工作单元>"` 新增一条会话日志片段（模板见 §8），填好各项，写明下一条要运行的命令。
@@ -128,7 +128,7 @@
 - **生产取证不逐次请示**（用户 2026-10-15：「新系统可以读任何旧系统数据」「两者都是」「修改权限」，取证改为取消逐次请示、保留两条底线，经 one-coordinator 转达；ADR-0037 第 7 项与 Q6「按建议批准 (Recommended)」；起因：ADR-0029 取证时关联了只读视图以外的底表）：
   - 取证只用取证专用只读账号（ADR-0037 第 5 项第 4 条），取证前账号校验通过；不用运行时账号、高权限账号或老系统应用的数据源；
   - 明细与个人信息不进会话记录与仓库：只出计数或聚合，或落 ECS 数据盘专用目录（0700，属主为取证执行用户，最长保留 7 天）；不带回本机；凭据值任何情况下不输出，取证执行器对凭据列只允许 COUNT；
-  - 每次取证在 `phase1a/infra/LEGACY_READ_REGISTER.md` 登记一行：账号、库与表、目的、输出形式与去向、落盘目录与删除时点（删除后补删除时刻）；不需审批；
+  - 每次取证用 `phase1a/infra/new_legacy_read.py` 在 `phase1a/infra/legacy-read/` 登记一个片段（总表 `LEGACY_READ_REGISTER.md` 由 `build_all.py` 生成，不直接编辑）：账号、库与表、目的、输出形式与去向、落盘目录与删除时点（删除后补删除时刻）；不需审批；
   - 读取口径按 ADR-0037 第 8 项：不用 NOLOCK / READ UNCOMMITTED，设语句与锁等待超时，大表按主键分批、低峰执行；
   - 结果按「把大输出放进文件」处理，会话里只留结论。
 - **迁入读取授权**（用户 2026-10-15：对 DDL 审计、原则核对 A / B 其余待决项答「全部按推荐 (Recommended)」；按 ADR-0037 Q4 修订，用户对 ADR-0037 答「按建议批准 (Recommended)」，intent `2026-10-15-081242-one-coordinator-ADR-0037-#136-按建.md`）：历史数据迁入要读老系统与 A8 的明细，超出上一条「只出计数或聚合」：
@@ -399,7 +399,7 @@
 | D13 | 敏感分级 | 个人信息、口令、密钥、会话、收件人等登记在 `data-classification.txt`；不进分析层明细；依据《个人信息保护法》与 GB/T 35273-2020（用户 2026-10-15 采纳，ADR-0041，FRAMEWORKS §9（intent 195827）） | 守护（D5） |
 | D14 | 血缘 | 每张表在数据访问注册表中登记来源（新建 / A8 / 老系统表 / 迁入）与对照方式 | 守护（D8） |
 | D15 | 配置版本化 | 配置类（编号规则、口径、DMN、参数）按版本只追加，带生效日与确认人，不追溯（§12.2） | 守护（D10） |
-| D16 | 自有标识与值域 | 新系统的数据设计从规格、规则卡、ADR 与 `terms.yaml` 出发，老系统与外部系统（A8、老系统库、U8C 等）的表结构、主键、编码、状态取值只作参考证据：所有自有表主键为 UUIDv7（RFC 9562，用户 2026-10-15 采纳，ADR-0041，FRAMEWORKS §9（intent 195827）；用户「主键统一」；排序用业务时间列，不用 ID）；外部 ID 只作来源对照列（唯一，限定来源系统），只在同步防腐层使用；外部状态码、类型码在防腐层映射为新系统自有枚举，不直接入库；表、列的拆分与粒度按本系统的聚合与分析需要定，不按来源表照搬 | 部分（主键类型守护；其余复审） |
+| D16 | 自有标识与值域 | 新系统的数据设计从规格、规则卡、ADR 与 `terms.yaml` 出发，老系统与外部系统（A8、老系统库、U8C 等）的表结构、主键、编码、状态取值只作参考证据：所有自有表主键为 UUIDv7（RFC 9562，用户 2026-10-15 采纳，ADR-0041，FRAMEWORKS §9（intent 195827）；用户「主键统一」；排序用业务时间列，不用 ID）；外部 ID 只作来源对照列（唯一，限定来源系统），只在同步防腐层使用；外部状态码、类型码在防腐层映射为新系统自有枚举，不直接入库；表、列的拆分与粒度按本系统的聚合与分析需要定，不按来源表照搬；例外：按时间分区的只追加审计表主键为（UUIDv7 ID，分区键），见 ADR-0048（用户 2026-10-16 批准） | 部分（主键类型守护；其余复审） |
 | D17 | 主数据默认版本化 | 见下方「D17 细则」 | 守护（G-D11，K-2 同期实现；实现前复审逐表检查） |
 | D18 | DDL 设计原则 | 符合 NAMING_STANDARD §2.4a 十条（业务唯一约束、外键与查询路径索引、空值与默认值、删除语义、代码格式与文本长度、枚举演进、jsonb 边界、大表分区规划、上线后迁移安全、高频更新行） | 部分（见 §2.4a 各条） |
 | D19 | 查询路径性能（用户 2026-10-15：对原则核对 B 的待决项答「全部按推荐 (Recommended)」） | 每条列表 / 查询路径在数据访问注册表登记过滤列、排序列与预期行数，有索引覆盖（NAMING_STANDARD §2.4a 第 2 条）；语句数不随行数增长、结果集有上限、延迟在预算内（GUIDING_PRINCIPLES §7a R-P1–R-P3）；读外部来源的路径有超时与降级（§14.3 I2、I7） | 部分（G-P2、G-P3，待实现） |

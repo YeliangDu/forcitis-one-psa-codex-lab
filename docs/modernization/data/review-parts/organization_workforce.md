@@ -9,23 +9,23 @@
 
 | 表 | 结论 | 阻断 / 高 / 中 / 低 |
 |---|---|---|
-| positions | 需修改 | 0 / 1 / 0 / 2 |
-| org_units | 需修改 | 0 / 0 / 3 / 3 |
+| positions | 需修改 | 0 / 1 / 1 / 1 |
+| org_units | 需修改 | 0 / 0 / 2 / 4 |
 | employees | 需修改 | 0 / 1 / 1 / 2 |
 | assignments | 需修改 | 0 / 0 / 2 / 0 |
-| sync_runs | 需修改 | 0 / 1 / 2 / 4 |
-| sync_diffs | 需修改 | 0 / 0 / 2 / 2 |
-| legal_entities | 需修改 | 0 / 0 / 2 / 1 |
-| legal_entity_attributions | 需修改 | 0 / 0 / 0 / 2 |
+| sync_runs | 需修改 | 0 / 0 / 3 / 4 |
+| sync_diffs | 需修改 | 0 / 1 / 2 / 1 |
+| legal_entities | 需修改 | 0 / 0 / 3 / 0 |
+| legal_entity_attributions | 需修改 | 0 / 0 / 1 / 1 |
 | org_unit_legal_entities | 通过 | 0 / 0 / 0 / 0 |
 | employee_legal_entities | 通过 | 0 / 0 / 0 / 0 |
 | org_unit_versions | 需修改 | 0 / 0 / 1 / 0 |
 | assignment_versions | 需修改 | 0 / 0 / 1 / 0 |
 | legal_entity_versions | 需修改 | 0 / 0 / 1 / 0 |
-| legal_entity_attribution_corrections | 需修改 | 0 / 0 / 0 / 2 |
-| sync_run_held_separations | 需修改 | 1 / 0 / 2 / 0 |
-| 跨表共性（X 系列，不计入各表） | — | 0 / 0 / 5 / 8 |
-| **合计** | | **1 / 3 / 22 / 26** |
+| legal_entity_attribution_corrections | 需修改 | 0 / 0 / 1 / 1 |
+| sync_run_held_separations | 需修改 | 0 / 1 / 2 / 0 |
+| 跨表共性（X 系列，不计入各表） | — | 0 / 0 / 7 / 6 |
+| **合计** | | **0 / 4 / 28 / 20** |
 
 ## 问题清单
 
@@ -33,7 +33,7 @@
 
 **P-1 [高] O6 / D17 细则 2、3**　岗位属受控目录（主数据 / 参考数据），当前覆盖写，无版本表也无「不需要」豁免。证据：REG L50-55 `retention: CURRENT_STATE`、无数据类别与时态字段；`J/infrastructure/persistence/JdbcOrgSnapshotRepository.java` `save()` 对 `positions` 做 `on conflict (id) do update set code, name, sort_order, status`；`assignment_versions.position_id`（M:L352）只存 ID，岗位名称与状态一改，历史任职上读到的是今天的岗位；`DATA_SCORECARD.md` 第 6 行「覆盖，无历史」仍未关闭。建议：三选一（见「待用户决定」1）：加 `position_versions`（维度型，OBSERVED，列覆盖 code / name / sort_order / status）；或在注册表写「不需要」并选 D17 细则 2 四类理由之一（须用户认可）。依据：D17 细则 1–3、D6。
 
-**P-2 [低] O8**　`code` 无格式 CHECK、`name` 无长度上限（M:L7-8）；删除类状态用语与组织单元不一致：岗位用 `DELETED`，组织单元用 `REVOKED`，含义同为「组织源不再返回」（M:L10 对 M:L31）。建议：统一词表（`terms.yaml` 已有 `revoked`），或在列注释写明两者为何不同。依据：NAMING_STANDARD §2.4a-5、§2.4（枚举词汇）。
+**P-2 [中] O8**　`code` 无格式 CHECK、`name` 无长度上限（M:L7-8）；删除类状态用语与组织单元不一致：岗位用 `DELETED`，组织单元用 `REVOKED`，含义同为「组织源不再返回」（M:L10 对 M:L31）。建议：统一词表（`terms.yaml` 已有 `revoked`），或在列注释写明两者为何不同。依据：NAMING_STANDARD §2.4a-5、§2.4（枚举词汇）。
 
 **P-3 [低] C1**　可空列注释未写「为空表示」：`code`（M:L17）、`sort_order`（M:L19）。依据：§2.4a-3、D10。
 
@@ -41,7 +41,7 @@
 
 **OU-1 [中] O4 / B3**　`status = 'REVOKED'` 与 `revoked_at` 成对约束缺失。证据：M:L31、L37；`JdbcOrgSnapshotRepository.upsertOrgUnit` 写 `revoked_at = case when status = 'REVOKED' then … end`，两者恒同时有值或同时为空。建议：`CONSTRAINT ck_org_units_revoked_at CHECK ((status = 'REVOKED') = (revoked_at IS NOT NULL))`。依据：D2、门禁 B3「终态与时间 / 原因成对」。
 
-**OU-2 [中] O8 / D10**　同一属性两个列名且口径漂移：`org_units.region_category`（M:L34）对 `org_unit_versions.region_kind`（M:L318）。`ddl-naming-baseline.txt:6` 已登记 `region_category` 待改名为 `region_kind` 并「加 CHECK」，现 CHECK 为未命名内联（M:L34）。版本表已用目标名，快照表仍是旧名，`SELECT_ORG_UNITS`（`OrgSnapshotRows.java:24`）与 `OrgHistory.java` 靠别名在两个名字间转换。建议：基线开放期内直接改名并具名为 `ck_org_units_region_kind`，清掉基线行。依据：NAMING_STANDARD §2.4（`_kind` 枚举、`ck_<表>_<列>`）、G-D12。
+**OU-2 [低] O8 / D10**　同一属性两个列名且口径漂移：`org_units.region_category`（M:L34）对 `org_unit_versions.region_kind`（M:L318）。`ddl-naming-baseline.txt:6` 已登记 `region_category` 待改名为 `region_kind` 并「加 CHECK」，现 CHECK 为未命名内联（M:L34）。版本表已用目标名，快照表仍是旧名，`SELECT_ORG_UNITS`（`OrgSnapshotRows.java:24`）与 `OrgHistory.java` 靠别名在两个名字间转换。建议：基线开放期内直接改名并具名为 `ck_org_units_region_kind`，清掉基线行。依据：NAMING_STANDARD §2.4（`_kind` 枚举、`ck_<表>_<列>`）、G-D12。
 
 **OU-3 [中] O6 / D17 细则 3、4；D11**　（a）列覆盖：`sort_order`、`short_name` 不在 `org_unit_versions`（M:L307-328），注册表无逐列不进版本的理由（REG L56-64）。（b）一行两个来源：`short_name` 由「每天从老系统只读刷新」（M:L55；`J/application/RefreshShortNames`、`updateShortNames`），其余列来自组织源，同一行被两个来源写；`ShortNameAdapter` 对 ID 的假定见 ADR-0033 第 2 项第 6 条，DA-8（改为自有属性）未落。建议：逐列登记理由；`short_name` 在 DA-8 落地前单列登记为跨来源列，落地后拆表或改自有属性。依据：D17 细则 3、4；ADR-0033 第 2 项第 6 条。
 
@@ -69,7 +69,7 @@
 
 ### sync_runs
 
-**SR-1 [高] B3 / O4**　状态与原因 / 时间字段无成对 CHECK，门禁 B3 明文要求「原因必填的终态有成对 CHECK」。证据：M:L120-149 除 `status` 枚举外无任何跨列约束；`SyncRun.fail()`（`J/domain/SyncRun.java`）不校验原因非空，`BeginSyncRun` 以固定串关闭遗弃运行。建议（取值须对照 `SyncRunStateMachineTest` 复核，见 opus 项 1）：`ck_sync_runs_failure_reason`：`status <> 'FAILED' OR failure_reason IS NOT NULL`；`ck_sync_runs_held_reason`：`status <> 'HELD' OR (held_reason IS NOT NULL AND cardinality(hold_kind_codes) > 0)`；`ck_sync_runs_released`：`status <> 'RELEASED' OR (released_at IS NOT NULL AND released_by_run_id IS NOT NULL)`；`ck_sync_runs_finished_at`：`(status = 'RUNNING') = (finished_at IS NULL)`。依据：B3、§14.1 D2（成对 / 互斥落约束）。
+**SR-1 [中] B3 / O4**　状态与原因 / 时间字段无成对 CHECK，门禁 B3 明文要求「原因必填的终态有成对 CHECK」。证据：M:L120-149 除 `status` 枚举外无任何跨列约束；`SyncRun.fail()`（`J/domain/SyncRun.java`）不校验原因非空，`BeginSyncRun` 以固定串关闭遗弃运行。建议（取值须对照 `SyncRunStateMachineTest` 复核，见 opus 项 1）：`ck_sync_runs_failure_reason`：`status <> 'FAILED' OR failure_reason IS NOT NULL`；`ck_sync_runs_held_reason`：`status <> 'HELD' OR (held_reason IS NOT NULL AND cardinality(hold_kind_codes) > 0)`；`ck_sync_runs_released`：`status <> 'RELEASED' OR (released_at IS NOT NULL AND released_by_run_id IS NOT NULL)`；`ck_sync_runs_finished_at`：`(status = 'RUNNING') = (finished_at IS NULL)`。依据：B3、§14.1 D2（成对 / 互斥落约束）。
 
 **SR-2 [中] O4**　其余可落约束：（a）`released_kind_codes <@ hold_kind_codes`（`SyncRun.hold()` 在类型变化时清空已放行类型，`J/domain/SyncRun.java:190-197`，不变量成立）；（b）12 个统计列要么全空要么全有（`SyncRunRows.stats()` 以 `source_org_unit_count` 为空作哨兵，`SyncRunRows.java` 约 L75-78）；（c）计数列 `>= 0`（M:L126-137）；（d）`finished_at >= started_at`；（e）`held_reason`、`failure_reason` 长度（代码按 2000 截断，`JdbcSyncRunRepository.java:93、141`，库里无上限）。依据：D2、§2.4a-5。
 
@@ -85,13 +85,13 @@
 
 ### sync_diffs
 
-**SD-1 [中] O9 / O8**　`subject_key` 把对象类别与 ID 拼成字符串：`"employee:" + id`、`"position:" + id`、`"org-unit:" + id`（`SnapshotReconciler.java:58、148、246`；`EmployeeChecks.java:24`），`entity_kind` 已有一列，ID 是自有 UUID；注释举例 `employee:2001`（M:L202）是老系统数值 ID 形状，已不符。建议：`subject_key text` 改 `subject_id uuid NOT NULL`，注释改写。依据：D1（无多值拼字符串）、§2.4（`_id` 一律 uuid）、D16。
+**SD-1 [高] O9 / O8**　`subject_key` 把对象类别与 ID 拼成字符串：`"employee:" + id`、`"position:" + id`、`"org-unit:" + id`（`SnapshotReconciler.java:58、148、246`；`EmployeeChecks.java:24`），`entity_kind` 已有一列，ID 是自有 UUID；注释举例 `employee:2001`（M:L202）是老系统数值 ID 形状，已不符。建议：`subject_key text` 改 `subject_id uuid NOT NULL`，注释改写。依据：D1（无多值拼字符串）、§2.4（`_id` 一律 uuid）、D16。
 
 **SD-2 [中] B3 / O8 / O4**　`issue_kind` 无 CHECK（M:L189），`IssueKind` 有 16 个取值；`ddl-naming-baseline.txt:8` 仍登记待补。`change_kind = 'ISSUE'` 与 `issue_kind` 非空应成对（`SyncDiff.issue()` / `change()` 工厂保证，M 未约束）。`changed_field_codes` 元素是 Java 属性名（`parentOrgUnitId`、`loginName` 等，`SyncedFields.java`），无取值约束，且含将随 DA-3 删除的字段。建议：补 `ck_sync_diffs_issue_kind`（16 值）、`ck_sync_diffs_issue_pair`（`(change_kind = 'ISSUE') = (issue_kind IS NOT NULL)`）；字段代码改词表名并加 `<@` 约束。依据：D5、G-D12、B3。
 
 **SD-3 [低] O10**　`sync_diffs_sync_run_id_idx`（M:L196）与唯一约束 `uk_sync_diffs_sync_run_id_diff_number`（M:L194）前缀相同，冗余；`ddl-naming-baseline.txt:65` 还在为它登记改名。建议：删除该索引与基线行。依据：§2.4a-2。
 
-**SD-4 [低] O7 / O8**　注册表登记 `APPEND_ONLY`（REG L105-111），库内未禁 UPDATE（版本表有触发器，M:L511-530），`updated_at` 列对永不更新的行无意义；`detail` 无长度上限（代码截 2000，`JdbcSyncRunRepository.java:137`）。清理作业需要 DELETE，故只禁 UPDATE 即可。建议：加禁止 UPDATE 的触发器，`detail` 加长度 CHECK。依据：D8、§2.4a-5。
+**SD-4 [中] O7 / O8**　注册表登记 `APPEND_ONLY`（REG L105-111），库内未禁 UPDATE（版本表有触发器，M:L511-530），`updated_at` 列对永不更新的行无意义；`detail` 无长度上限（代码截 2000，`JdbcSyncRunRepository.java:137`）。清理作业需要 DELETE，故只禁 UPDATE 即可。建议：加禁止 UPDATE 的触发器，`detail` 加长度 CHECK。依据：D8、§2.4a-5。
 
 ### legal_entities
 
@@ -99,7 +99,7 @@
 
 **LE-2 [中] O6 / D17 细则 5　待核**　新系统自有主数据，根表仍存可版本化的列：`legal_entities.code / name / status`（M:L211-217）与 `legal_entity_versions` 同列（M:L383-385）并存，`JdbcLegalEntityRepository.insert/save` 同事务写两处（`history.recordLegalEntity`）。D17 细则 5：新系统自有的根表不存可版本化的列，按业务日期取当时版本；外部快照才保留当前投影并须有一致性测试。是否有「根表与最新版本一致」的测试，我没有核实（只看到 `LegalEntityHistoryIntegrationTest` 的追加与禁改断言）。建议：注册表登记「当前值投影 + 一致性测试」或改为根表只留不可版本化的列。依据：D17 细则 5、D1。
 
-**LE-3 [低] O8**　`legal_entities_code_format`、`legal_entities_code_key`、`legal_entities_pkey` 仍是默认 / 旧名（`ddl-naming-baseline.txt:31-33`）；`name` 无长度上限、无业务唯一（是否要求名称唯一属业务口径，见「待用户决定」7）。依据：§2.4。
+**LE-3 [中] O8**　`legal_entities_code_format`、`legal_entities_code_key`、`legal_entities_pkey` 仍是默认 / 旧名（`ddl-naming-baseline.txt:31-33`）；`name` 无长度上限、无业务唯一（是否要求名称唯一属业务口径，见「待用户决定」7）。依据：§2.4。
 
 ### legal_entity_versions
 
@@ -107,7 +107,7 @@
 
 ### legal_entity_attributions（含两张期间表的约束说明）
 
-**LA-1 [低] D3 / O4**　期间表（M:L259-297）与更正表（M:L407-426）的子行不指向聚合根 `legal_entity_attributions`（持有 `version`），根行存在与否由 `JdbcLegalEntityAttributionRepository.save` 先写根保证，库里不拦。根的 `org_unit_id`、`employee_id` 各有唯一约束（M:L246-247），可作外键目标。建议：期间表对根加外键（`org_unit_id` / `employee_id` 引用根的同名唯一列），或写明不建的理由。依据：D3（子表随根）、D2。
+**LA-1 [中] D3 / O4**　期间表（M:L259-297）与更正表（M:L407-426）的子行不指向聚合根 `legal_entity_attributions`（持有 `version`），根行存在与否由 `JdbcLegalEntityAttributionRepository.save` 先写根保证，库里不拦。根的 `org_unit_id`、`employee_id` 各有唯一约束（M:L246-247），可作外键目标。建议：期间表对根加外键（`org_unit_id` / `employee_id` 引用根的同名唯一列），或写明不建的理由。依据：D3（子表随根）、D2。
 
 **LA-2 [低] O4　无法落约束的说明**　更正后的期间结束日取「最新更正的新结束日」（`EffectiveAttributionPeriods.select`），不受期间表排他约束（M:L272、L296）约束；聚合 `correct()` 校验「不得与同主体其他期间相撞」（`LegalEntityAttribution.java:124-125`）。若绕过聚合写入造成相撞，`JdbcLegalEntityResolutionSources.attribution()`（`:37` `.optional()`）会抛多行异常而非静默出错，属于失败可见。请在卡里写明「只能在应用里保证，原因：更正与期间分表，约束跨两表」。依据：O4（写明为何落不成约束）。
 
@@ -123,11 +123,11 @@
 
 **CR-1 [低] O2**　`correction_number bigint GENERATED ALWAYS AS IDENTITY`（M:L409）：由数据库序列赋值，虽然不是主键也不是 `_id` 列，但 ADR-0033 第 1 项第 1 条的精神是「数据库不分配标识」；「序号最大的为准」靠它排序（M:L433、`EffectiveAttributionPeriods.select` 的 `order by correction_number desc`），事务提交顺序与序号顺序不一致时的语义由聚合 `version` 串行同主体写入兜底。建议：改为聚合内序号（应用侧由 `legal_entity_attributions.event_count` 或同期间已有更正数 + 1 赋值，`(subject, period_from, sequence)` 唯一）。依据：O2、ADR-0033 第 1 项。
 
-**CR-2 [低] O4 / O8**　`new_effective_to_date <> previous_effective_to_date` 无 CHECK（空更正）；`correction_reason` 只有非空白检查（M:L422），无长度上限；两个索引（M:L427-430）对另一类主体的行为空列，可加部分索引。依据：D2、§2.4a-2、-5。
+**CR-2 [中] O4 / O8**　`new_effective_to_date <> previous_effective_to_date` 无 CHECK（空更正）；`correction_reason` 只有非空白检查（M:L422），无长度上限；两个索引（M:L427-430）对另一类主体的行为空列，可加部分索引。依据：D2、§2.4a-2、-5。
 
 ### sync_run_held_separations
 
-**HS-1 [阻断] O2**　复合主键 `(sync_run_id, employee_id)`（M:L449）。ADR-0033 第 1 项第 2 条逐表点名：`sync_run_held_separations（sync_run_id, employee_id）` 须改 UUIDv7 主键 + 命名唯一约束；`primary-key-type-baseline.txt:5` 登记为 R-1b 待改欠账，仍是已采纳 ADR 的明确违反。建议：加 `sync_run_held_separation_id uuid PRIMARY KEY`（应用侧 UUIDv7），原复合键改 `uk_sync_run_held_separations_sync_run_id_employee_id`；同时处理 HS-3。依据：ADR-0033 第 1 项第 1、2 条；O2；D16。
+**HS-1 [高] O2**　复合主键 `(sync_run_id, employee_id)`（M:L449）。ADR-0033 第 1 项第 2 条逐表点名：`sync_run_held_separations（sync_run_id, employee_id）` 须改 UUIDv7 主键 + 命名唯一约束；`primary-key-type-baseline.txt:5` 登记为 R-1b 待改欠账，仍是已采纳 ADR 的明确违反。建议：加 `sync_run_held_separation_id uuid PRIMARY KEY`（应用侧 UUIDv7），原复合键改 `uk_sync_run_held_separations_sync_run_id_employee_id`；同时处理 HS-3。依据：ADR-0033 第 1 项第 1、2 条；O2；D16。
 
 **HS-2 [中] C3**　注册表保留期与实际不符：REG L112-118 登记 `1y`、作业 `organization.workforce.sync.purge`，但 `SyncPurgeJob` 只删 `sync_diffs` 与 `sync_runs`（`SyncPurgeJob.java:69、74`），本表只在 runs 被删时经 `ON DELETE CASCADE`（M:L450）连带删除，实际保留 = 运行保留期（2 年），不是 1 年；GUIDING_PRINCIPLES §6（L115）只列 `sync_runs` / `sync_diffs`，本表没有认可记录。表内容是「待离职名单」，规则卡认定未公开的离职信息敏感（`WORKFORCE_HISTORY_RULES.md`「敏感性与最小列」）。建议：见「待用户决定」3；无论取几年，作业要真删本表（或注册表改写为随运行删除）。依据：D12、ADR-0043 R-2（待核是否适用，列均为代理键）。
 
@@ -149,13 +149,13 @@
 
 **X-5 [中] C3**　个人信息保留期缺口：`employees` 保留 `CURRENT_STATE` 且从不删除（含离职人员姓名、邮箱、登录名），无清理作业，GUIDING §6 无快照与版本表的认可记录；`assignment_versions`、`employee_legal_entities`、`legal_entity_attribution_corrections` 登记 `PERMANENT`，含代理键但仍是个人信息（ADR-0043 第 4 项第 2 条）。守护按「含 PI 列的表」判，故这些表按字母不违 R-2，实质是个人任职史永久保存。依据：D12、ADR-0043 R-2；见「待用户决定」3。
 
-**X-6 [低] O8**　全 schema 无文本长度上限（`name`、`display_name`、`email`、`code` 系列、各类原因与 `detail`），`_code` 格式 CHECK 只有 `legal_entities.code`（M:L219）；`positions.code`、`org_units.code`、`org_unit_versions.code`、`legal_entity_versions.code`、`employee_code` 均无。依据：§2.4a-5。
+**X-6 [中] O8**　全 schema 无文本长度上限（`name`、`display_name`、`email`、`code` 系列、各类原因与 `detail`），`_code` 格式 CHECK 只有 `legal_entities.code`（M:L219）；`positions.code`、`org_units.code`、`org_unit_versions.code`、`legal_entity_versions.code`、`employee_code` 均无。依据：§2.4a-5。
 
 **X-7 [低] O8**　枚举 CHECK 未具名（`ck_<表>_<列>`），涉及 13 处：positions.status（M:L10）、org_units.status / region_category（L31、L34）、employees.gender / employment_status（L68、L70）、sync_runs.trigger_kind / status / hold_kind_codes / released_kind_codes（L122-123、L147-148）、sync_diffs.entity_kind / change_kind（L186、L188）、legal_entities.status（L214）；三张版本表已具名（L315、L318、L385）。`ddl-naming-baseline.txt` 里只有主键、外键、唯一的改名行，没有这些 CHECK，G-D12（R-2a，首次部署前）未覆盖到。依据：NAMING_STANDARD §2.4。
 
 **X-8 [低] C1**　可空列注释缺「为空表示」：见 P-3、OU-6，另有 `employees.email`、`wecom_user_id`、`separated_at`、`last_sync_run_id`（M:L87、L89、L92、L93），`sync_runs` 的 `finished_at`、各计数列、`held_reason`、`failure_reason`、`released_*`（M:L157-174），`sync_diffs.detail`、`org_unit_versions.head_employee_id` 等。依据：§2.4a-3。
 
-**X-9 [低] D2 / O7**　同 schema 引用无外键：`org_units.last_sync_run_id`、`employees.last_sync_run_id`（登记为 `fk_exceptions`：运行 2 年后被删，快照行仍在，REG L56-72，指针之后悬空）；`sync_runs.released_by_run_id`（M:L142）无外键也未登记为 `references` 或例外，清理作业会先删较早的被放行运行，被引用的放行运行可能在同一轮被删。建议：外键 + `ON DELETE SET NULL`（须作为新增的删除语义登记），或写明悬空指针的容忍理由。依据：D2、§2.4a-4。
+**X-9 [中] D2 / O7**　同 schema 引用无外键：`org_units.last_sync_run_id`、`employees.last_sync_run_id`（登记为 `fk_exceptions`：运行 2 年后被删，快照行仍在，REG L56-72，指针之后悬空）；`sync_runs.released_by_run_id`（M:L142）无外键也未登记为 `references` 或例外，清理作业会先删较早的被放行运行，被引用的放行运行可能在同一轮被删。建议：外键 + `ON DELETE SET NULL`（须作为新增的删除语义登记），或写明悬空指针的容忍理由。依据：D2、§2.4a-4。
 
 **X-10 [低] O12**　`CREATE EXTENSION IF NOT EXISTS btree_gist`（M:L233）写在业务 BC 基线里，`platform_integration` 基线的做法是「建库脚本预建，迁移只检查存在」（`platform_integration/V20261014133000…sql:125-129`）；建库脚本 `one_db_roles_schemas.sql:27-29` 也已预建，且承认迁移角色可能无权建扩展。建议：改成同样的检查式写法。依据：ADR-0038、D2（只建本 schema 的对象）。
 
