@@ -59,10 +59,14 @@ processes:
       - {actor: 市场和客户经理, read: true, reads: [AGG-01, AGG-08], desc: 关联往来单位（可无）与市场活动}
       - {actor: 市场和客户经理, command: 登记线索, aggregate: AGG-09}
       - {actor: 市场和客户经理, command: 认领线索, aggregate: AGG-09}
-      - {actor: 市场和客户经理, command: 确认线索, aggregate: AGG-09, emits: [线索已确认], desc: 门 = 线索已确认 → 商机新建}
-      - {actor: 市场和客户经理, command: 关闭线索, aggregate: AGG-09, branch: 无价值, emits: [线索已关闭], desc: 须填原因（INV-24）}
-      - {actor: 市场和客户经理, command: 新建商机, aggregate: AGG-10, desc: 线索已确认后的下一步（合并原 PRC-04，⑥a 评审 H2、M2）；须有正式往来单位与唯一负责人（INV-25、26）}
-    notes: 线索可跳过（客户直接邀标或委托时从新建商机开始）；线索挂起与恢复属线索自身状态转换。「线索已确认」订阅方暂无，本流程内顺序衔接，不另作事件触发。新建商机只发内部事件，无外部消费者（⑥a 评审 L3，可接受）。
+      - {actor: 市场和客户经理, command: 挂起线索, aggregate: AGG-09, branch: 挂起, desc: 线索自身状态转换（跟进中 ⇄ 挂起）}
+      - {actor: 市场和客户经理, command: 恢复线索, aggregate: AGG-09, branch: 挂起, desc: 挂起可恢复为跟进中（INV-24）}
+      - {actor: 市场和客户经理, command: 新建商机, aggregate: AGG-10, desc: 先建商机（回溯检查 RD-01）：来源线索须为「跟进中」（前置读 AGG-09，同 BC），须有正式往来单位与唯一负责人（INV-25、26）；被拒时线索留在「跟进中」，补资料后重试，或按 INV-24 关闭（无价值）}
+      - {actor: 市场和客户经理, command: 确认线索, aggregate: AGG-09, emits: [线索已确认], desc: 商机建成后确认，命令携带商机 ID 并按商机 ID 幂等，确认失败留在「跟进中」重试；已确认的线索不可再关闭（INV-24），故不先确认}
+      - {actor: 市场和客户经理, command: 关闭线索, aggregate: AGG-09, branch: 无价值, emits: [线索已关闭], desc: 须填原因（INV-24）；新建商机被拒且不再跟进时走此分支}
+      - {actor: 市场和客户经理, command: 变更商机负责人, aggregate: AGG-10, branch: 维护, desc: 只有一个负责人（INV-26）}
+      - {actor: 市场和客户经理, command: 维护商机参与团队, aggregate: AGG-10, branch: 维护}
+    notes: 线索可跳过（客户直接邀标或委托时从新建商机开始）；线索挂起与恢复属线索自身状态转换。「线索已确认」订阅方仅分析，本流程内顺序衔接，不另作事件触发。顺序为新建商机在先、确认线索在后（回溯检查 RD-01，与信息图 OBJ-17 状态机一致：只有商机建成才进入「已确认」）。新建商机只发内部事件，无外部消费者（⑥a 评审 L3，可接受）。
 
   - id: PRC-06
     name: 做独立性检查
@@ -72,8 +76,9 @@ processes:
     human_orchestration: false
     steps:
       - {actor: 市场和客户经理, read: true, reads: [AGG-33], desc: 读建设工程与我方参与记录}
+      - {actor: 市场和客户经理, read: true, reads: [AGG-18], desc: 读既有检查结论（INV-33：有冲突不得承接，或已获书面同意）}
       - {actor: 技术专家, command: 登记独立性检查结论, aggregate: AGG-18, emits: [独立性检查已有结论]}
-    notes: 有冲突时须取得并登记书面同意，结论写入后无超时或退回分支。「独立性检查已有结论」无事件消费者：签约时读取拦截（INV-33，见「起草、评审并回签协议」），可接受（⑥a 评审 L3）。
+    notes: 有冲突时须取得并登记书面同意，结论写入后无超时或退回分支。「独立性检查已有结论」无事件消费者：拦截点在递交投标、直接委托赢单（售前，D-4 b）与签约前读取（INV-33，见「参加投标，登记结果并处理保证金」「起草、评审并回签协议」），可接受（⑥a 评审 L3）。
 
   - id: PRC-07
     name: 编制并生效报价
@@ -85,8 +90,12 @@ processes:
     steps:
       - {actor: 市场和客户经理, read: true, reads: [AGG-05, AGG-06, AGG-07], desc: 读费率、系数与协议价目的生效版本（INV-32）}
       - {actor: 市场和客户经理, command: 编制报价版本, aggregate: AGG-12}
-      - {actor: 项目总监, platform_task: true, service: platform.approval, command: 报价评审, gap: G-02}
-      - {actor: 市场和客户经理, command: 生效报价版本, aggregate: AGG-12, emits: [报价版本已生效, 报价版本已被取代], desc: 旧版同事务被取代（INV-30）}
+      - {actor: 市场和客户经理, command: 提交报价评审, aggregate: AGG-12}
+      - {actor: 项目总监, platform_task: true, service: platform.approval, command: 报价评审}
+      - {actor: 系统策略, command: 通过报价评审, aggregate: AGG-12, desc: 审批通过结果回调（已通过 = 评审通过并冻结，INV-31）}
+      - {actor: 系统策略, command: 驳回报价评审, aggregate: AGG-12, branch: 驳回, desc: 审批驳回结果回调，退回编制}
+      - {actor: 市场和客户经理, command: 生效报价版本, aggregate: AGG-12, emits: [报价版本已生效, 报价版本已被取代], desc: 旧版同事务被取代（INV-30）；生效 = 成为当前版本，须已通过}
+      - {actor: 市场和客户经理, command: 作废报价版本, aggregate: AGG-12, branch: 作废, desc: 草拟或驳回的版本作废}
     notes: 报价被取代、投标被撤回时在本段内重入。「报价版本已生效」无事件消费者：签约时经投标承诺快照读取（见「起草、评审并回签协议」），可接受（⑥a 评审 L3）。
 
   - id: PRC-08
@@ -99,16 +108,21 @@ processes:
     merged_from: [PRC-09, PRC-11]
     steps:
       - {actor: 市场和客户经理, read: true, reads: [REF-01, AGG-01], desc: 读招标项目登记与联合体成员}
+      - {actor: 市场和客户经理, read: true, reads: [AGG-18], desc: 读独立性检查结论（INV-33，D-4 b）：我方为 IDI 风险管理机构且有冲突未获书面同意的，不得递交投标、不得凭委托赢单}
       - {actor: 市场和客户经理, command: 登记资格预审结果, aggregate: AGG-11}
       - {actor: 市场和客户经理, command: 递交投标, aggregate: AGG-11, emits: [投标已递交], desc: 携承诺快照}
       - {actor: 市场和客户经理, command: 撤回或撤销投标, aggregate: AGG-11, branch: 撤回, emits: [投标已撤销]}
       - {actor: 市场和客户经理, command: 登记中标, aggregate: AGG-11, emits: [投标已中标]}
       - {actor: 市场和客户经理, command: 登记未中标, aggregate: AGG-11, branch: 未中标, emits: [投标未中标]}
+      - {actor: 市场和客户经理, command: 登记废标, aggregate: AGG-11, branch: 废标, emits: [投标已废标], desc: 评标阶段被宣布废标；重新招标的另建投标，不重新招标的客户经理人工登记商机丢单或放弃商机}
+      - {actor: 市场和客户经理, command: 放弃投标, aggregate: AGG-11, branch: 放弃}
       - {actor: 系统策略, command: 商机赢单, aggregate: AGG-10, on_event: [{aggregate: AGG-11, event: 投标已中标}], emits: [OpportunityAccepted], desc: 事件策略（⑥a 评审 M5）：中标即赢单；须中标或委托证据（INV-27）}
       - {actor: 系统策略, command: 登记商机丢单, aggregate: AGG-10, on_event: [{aggregate: AGG-11, event: 投标未中标}], emits: [商机已丢单], desc: 事件策略（M5）：未中标即丢单；非投标商机的丢单由客户经理人工登记同一命令}
-      - {actor: 市场和客户经理, command: 商机赢单, aggregate: AGG-10, branch: 委托赢单, emits: [OpportunityAccepted], desc: 人工：直接委托凭委托证据赢单（INV-27）}
+      - {actor: 市场和客户经理, command: 商机赢单, aggregate: AGG-10, branch: 委托赢单, emits: [OpportunityAccepted], desc: 人工：直接委托凭委托证据（本聚合附件）赢单（INV-27）；我方为 IDI 风险管理机构的，须已读独立性检查结论无冲突或已获书面同意（INV-33，D-4 b）}
       - {actor: 市场和客户经理, command: 放弃商机, aggregate: AGG-10, branch: 放弃, emits: [商机已放弃]}
       - {actor: 系统策略, bc: B-09, command: 退还保证金, aggregate: AGG-51, on_event: [{aggregate: AGG-11, event: 投标未中标}], emits: [保证金已退], post: true, calls: PRC-92, desc: B-09 订阅投标未中标退还保证金（P-10 签约后 5 日未退提醒）；B-09 → B-03 边已有}
+      - {actor: 系统策略, bc: B-09, command: 退还保证金, aggregate: AGG-51, branch: 废标, on_event: [{aggregate: AGG-11, event: 投标已废标}], emits: [保证金已退], post: true, calls: PRC-92, desc: B-09 订阅投标已废标退还保证金（回溯检查 RD-07）}
+      - {actor: 系统策略, bc: B-09, command: 退还保证金, aggregate: AGG-51, branch: 截止前撤回, on_event: [{aggregate: AGG-11, event: 投标已撤销}], emits: [保证金已退], post: true, calls: PRC-92, desc: 仅截止前撤回时退还；是否退还按条例第 35 条另行核对，不写死；截止后撤销不适用}
       - {actor: 系统策略, read: true, reads: [AGG-11], desc: P-13 投标截止临近提醒}
     notes: 合并原 PRC-09（商机赢单或丢单）、PRC-11（投标未中标后退还保证金）（⑥a 评审 H2 c）；步骤带 bc 的是下游 BC 订阅事件后的反应（编舞），不是 B-03 的命令。联合体协议作投标的次级对象，不放合同。OpportunityAccepted 的订阅方 B-04、B-05、B-07 见「建立项目并组建团队」「起草、评审并回签协议」及事件策略「转入售前投入」。
 
@@ -120,6 +134,8 @@ processes:
     human_orchestration: false
     steps:
       - {actor: 出纳, command: 登记保证金缴纳, aggregate: AGG-51, emits: [保证金已缴]}
+      - {actor: 出纳, command: 登记保函开立, aggregate: AGG-51, branch: 保函}
+      - {actor: 出纳, command: 扣减保证金, aggregate: AGG-51, branch: 扣减, desc: 履约保证金可部分扣减（INV-20）}
       - {actor: 出纳, command: 退还保证金, aggregate: AGG-51, emits: [保证金已退]}
       - {actor: 出纳, command: 没收保证金, aggregate: AGG-51, branch: 没收, emits: [保证金已没收]}
       - {actor: 出纳, command: 登记保函到期或索赔, aggregate: AGG-51, branch: 保函, emits: [保函已到期]}
@@ -186,7 +202,7 @@ processes:
       - {actor: 项目经理, command: 建立项目 WBS, aggregate: AGG-20, desc: 每项目一棵，阶段按协议范围裁剪}
       - {actor: 项目经理, command: 维护项目团队成员, aggregate: AGG-24, gap: G-14}
       - {actor: 项目经理, command: 开始执行, aggregate: AGG-19, emits: [项目已开始执行], desc: 已立项 → 执行中；VS-02.0 退出、VS-03.1 进入与 VS-02 贯穿活动都以「执行中」为条件（符合性审查 必-7）}
-    notes: 项目已建立的订阅方 B-07（售前投入转入，P-43）；项目建立前置（赢单或先行投入授权）见 G-13。「项目已开始执行」订阅方暂无，不作任何流程触发（符合性审查 必-7；事件订阅规则待用户，见 G-05）。VS-03 各流程不建项目，进入条件「执行中」由本流程提供（符合性审查 必-6）。
+    notes: 项目已建立的订阅方 B-07（售前投入转入，P-43）；项目建立前置（赢单或先行投入授权）见 G-13。「项目已开始执行」订阅方仅分析，不作任何流程触发（符合性审查 必-7；事件订阅规则 intent 114200 F-4，见 G-05）。VS-03 各流程不建项目，进入条件「执行中」由本流程提供（符合性审查 必-6）。
 
   - id: PRC-18
     name: 编制并批准交付计划
@@ -363,7 +379,7 @@ processes:
       - {actor: 项目经理, platform_task: true, service: platform.approval, command: 提交结项申请, desc: 编排方实现审批钩子，提交时与审批通过时各跑一次检查}
       - {actor: 系统策略, command: 结项, aggregate: AGG-19, emits: [项目已结项], desc: 审批通过后调用，按结项申请 ID 幂等（INV-40）}
       - {actor: 项目经理, command: 归档项目, aggregate: AGG-19, emits: [项目已归档], desc: 项目已结项后归档（合并原 PRC-40，⑥a 评审 M2）；封存条件已在结项检查时核过}
-    notes: 合并原 PRC-39、PRC-40（⑥a 评审 H2 c）。D-9 用户已定 a：无聚合的流程模块 B-29，位于 B-04、B-05、B-06、B-08、B-11、B-28 下游；收入覆盖结论载体随 Q20。
+    notes: 合并原 PRC-39、PRC-40（⑥a 评审 H2 c）。D-9 用户已定 a：无聚合的流程模块 B-29（模块标识 delivery.closeout，intent 114200 F-5），位于 B-04、B-05、B-06、B-08、B-11、B-28 下游；收入覆盖结论载体随 Q20。
 
   - id: PRC-37
     name: 回访客户满意度
@@ -865,7 +881,9 @@ processes:
     steps:
       - {actor: 人力, command: 登记入职, aggregate: AGG-62, emits: [Employed]}
       - {actor: 人力, command: 建立任职, aggregate: AGG-63, emits: [任职已变更], desc: 主任职区间不重叠（INV-62）}
-      - {actor: 人力, command: 签订劳动合同, aggregate: AGG-67, emits: [劳动合同已签订], gap: G-03, desc: 试用期不超法定上限（INV-14）；满一个月未签 P-05 提醒}
+      - {actor: 人力, command: 提交劳动合同, aggregate: AGG-67}
+      - {actor: 人力负责人, command: 批准劳动合同, aggregate: AGG-67, desc: B-13 内单级批准，不经 platform.approval（intent 114200 F-3，同 AGG-65）}
+      - {actor: 人力, command: 签订劳动合同, aggregate: AGG-67, emits: [劳动合同已签订], desc: 试用期不超法定上限（INV-14）；满一个月未签 P-05 提醒}
     notes: 后续参保与薪酬档案见「入职后参保增员与建立薪酬档案」。
 
   - id: PRC-84
@@ -1133,7 +1151,7 @@ processes:
       - {actor: 技术专家, command: 发布知识条目, aggregate: AGG-107, emits: [知识条目已发布]}
       - {actor: 技术专家, command: 修订知识条目, aggregate: AGG-107, on_time: 有效期届满或适用范围变化, emits: [知识条目已修订], desc: 产生新版本并引用被取代版本，修订须重新评审}
       - {actor: 技术专家, command: 废止知识条目, aggregate: AGG-107, branch: 废止, on_time: 有效期届满, emits: [知识条目已废止], desc: 废止后不得被新引用}
-    notes: 合并原 PRC-108、109、110（⑥a 评审 H2 c）。已发布版本不得修改（INV-115）；引用方按 ID 与版本引用，不订阅。B-04 → B-30 边已有。「项目复盘已发布」订阅方暂无（G-05）。
+    notes: 合并原 PRC-108、109、110（⑥a 评审 H2 c）。已发布版本不得修改（INV-115）；引用方按 ID 与版本引用，不订阅。B-04 → B-30 边已有。「项目复盘已发布」订阅方同 BC：B-04 的提炼步骤（G-05）。
 
 
   # ───────────── VS-12 获得投资回报 ─────────────
@@ -1305,6 +1323,7 @@ processes:
     human_orchestration: false
     steps:
       - {actor: 员工, command: 申请离职, aggregate: AGG-62}
+      - {actor: 人力负责人, command: 批准离职申请, aggregate: AGG-62, desc: B-13 内单级批准，不经 platform.approval（intent 114200 F-3，同 AGG-65）}
       - {actor: 人力, command: 办理离职, aggregate: AGG-62, emits: [Separated]}
       - {actor: 人力, command: 终止劳动合同, aggregate: AGG-67, emits: [劳动合同已终止]}
       - {actor: 人力, command: 终止任职, aggregate: AGG-63, emits: [任职已变更]}
@@ -1527,6 +1546,7 @@ single_aggregate:
     stages: [VS-01.1]
     desc: 市场部立项并开展活动
     commands:
+      - {actor: 市场和客户经理, command: 计划市场活动}
       - {actor: 市场和客户经理, command: 开展市场活动}
       - {actor: 市场和客户经理, command: 结束市场活动, emits: [市场活动已结束]}
     notes: 活动产生的线索由「登记并跟进线索，转为商机」承接，活动对象只在线索上留来源引用。
@@ -1566,6 +1586,8 @@ single_aggregate:
     commands:
       - {actor: 技术专家, command: 发布服务产品版本, emits: [服务产品版本已发布]}
       - {actor: 技术专家, command: 发布阶段类型版本, aggregate: AGG-04, emits: [阶段类型版本已发布]}
+      - {actor: 技术专家, command: 停用服务产品版本, aggregate: AGG-03, branch: 停用, desc: 「启用」= 版本已发布，停用后进入 VS-01.2 的报价不得再选该版本（回溯检查 RD-10）}
+      - {actor: 技术专家, command: 停用阶段类型版本, aggregate: AGG-04, branch: 停用}
     notes: 被引用版本不可改，只增版本（INV-34）；两个版本聚合同 BC，分两步各改一个。
 
   - id: PRC-21
@@ -1603,10 +1625,11 @@ single_aggregate:
     commands:
       - {actor: 设计师和顾问, command: 采集证据}
       - {actor: 设计师和顾问, command: 上传证据摘要}
-      - {actor: 设计师和顾问, command: 关联证据, desc: 挂交付物、阶段、不符合项或检查（引用方按 ID 引用证据）}
+      - {actor: 设计师和顾问, command: 关联证据, aggregate: AGG-110, desc: 证据关联（intent 114200 F-1）：记证据 ID → 交付物 / WBS 阶段节点；不符合项、检查等引用方按 ID 引用证据}
+      - {actor: 设计师和顾问, command: 解除证据关联, aggregate: AGG-110, branch: 挂错, desc: 证据已封存后不得解除（INV-58）}
       - {actor: 项目经理, command: 封存证据, emits: [证据已封存]}
       - {actor: 项目经理, command: 作废证据, branch: 作废, desc: 须原因，保留原件}
-    notes: 证据位置与保存期随 Q29、Q34；施工图审查意见与合格书作证据类型（R-06）。
+    notes: 证据位置与保存期随 Q29、Q34；施工图审查意见与合格书作证据类型（R-06）。关联证据、解除证据关联属 AGG-110 证据关联（技术聚合，同 B-28；intent 114200 F-1），其余命令属 AGG-38。
 
   - id: PRC-42
     name: 发布检查表模板版本
@@ -1652,7 +1675,7 @@ single_aggregate:
       - {actor: 财务, command: 登记出资认缴}
       - {actor: 财务, command: 登记出资实缴, emits: [出资已实缴]}
       - {actor: 系统策略, command: 提交过账候选, calls: PRC-92}
-    notes: 出资已实缴暂无业务订阅方，过账走 api（R-10）。
+    notes: 出资已实缴仅分析（无业务订阅方），过账走 api（R-10）。
 
   - id: PRC-119
     name: 维护工作日历与标准工时版本
@@ -1777,7 +1800,7 @@ gaps:
   - id: G-02
     kind: 缺依赖边
     severity: 高
-    status: 待用户（确认页）；不动依赖边
+    status: 已处理（intent 114200 F-2：AGG-05、12、13、15、17、22、40、45、59、75、79 引用列补 platform.approval（api），新增 8 条 BC 边 B-02、B-03、B-04、B-05、B-07、B-08、B-12、B-18 → platform.approval（B-15 已有），边数 133 → 141，查环无环，分层 L0–L13 变为 L0–L14；AGG-21 的批准是登记发包人对客批准的事实、AGG-26 的确认是部门负责人单级命令，均不走审批流，不加边）
     title: 含「审批」状态的聚合没有写 platform.approval 依赖
     detail: 'AGG-55、39、53、70、72、73、98 已写 platform.approval（api），下列聚合的信息图状态含审批 / 批准却没有：AGG-12 报价（草拟 → 审批中 → 已通过）、AGG-13 协议（审批中，合同评审）、AGG-15 协议变更、AGG-17 风险交付授权（申请 → 批准）、AGG-22 项目预算（审批中）、AGG-45 开票申请（审批中）、AGG-59 费用报销（审批中）、AGG-75 激励方案、AGG-79 经营计划（审批）、AGG-05 费率表与 AGG-40 分摊规则（草拟 → 已批准）。二选一：① 引用列补 platform.approval（api），新增 B-02、B-03、B-04、B-05、B-07、B-08、B-12、B-18 到 platform.approval 的边（platform.approval 只依赖人员组织、工作日历与平台，按 §4.3.4 的论证不成环，但 B-18 等层位会变，本稿未改聚合稿故未重跑 aggregates_dep_check.py）；② 像 AGG-65 那样把批准写成本聚合的命令。AGG-26 资源分配的部门负责人审批、AGG-21 交付计划对客批准是否走审批流也一并确定。'
     back_to: 第 ④ 步（引用与依赖方式列）；第 ⑤ 步（重跑查环与分层）
@@ -1786,7 +1809,7 @@ gaps:
   - id: G-03
     kind: 方向冲突
     severity: 高
-    status: 待用户（确认页）；不动依赖边
+    status: 已处理（intent 114200 F-3：劳动合同与离职申请同 AGG-65，在 B-13 内单级批准命令，不经 platform.approval；劳动合同不移出 B-13，BC 边界不变；PRC-83、PRC-128 加批准步骤）
     title: 劳动合同「审批中」与 B-13 不得依赖 platform.approval 冲突
     detail: AGG-67 状态序列含「审批中」，引用列无审批；而已建边 platform.approval → organization.workforce 使 B-13 不能调用 platform.approval（§4.3.4 第 4 条对 AGG-65 的同一论证）。AGG-67 的「审批中」因此没有承载方式。离职申请审批（PRC-128，人工编排在 B-13）是同一论证的另一处，符合性审查指出原稿漏列，且可能把劳动合同移出 B-13、改变 BC 边界。
     back_to: 第 ④ 步
@@ -1804,9 +1827,9 @@ gaps:
   - id: G-05
     kind: 缺订阅方
     severity: 中
-    status: 待用户（确认页，事件订阅规则）
-    title: 以订阅方为「暂无」的事件作流程触发
-    detail: 下列事件在 §2.2 订阅方为「暂无」，本稿的流程却以其触发或衔接：供方履约已确认（AGG-57，同 BC 的应付提交与供方协议完成）、项目复盘已发布（AGG-103，知识提炼）、RevenueRecognized（AGG-44，协议完成判定）、期间余额快照已生成（AGG-100，外部法定账对账）。同 BC 衔接的应在订阅方写「同 BC：…」，跨 BC 的补 B-xx。reporting 订阅全部事件（ADR-0023），阶段已完成等不计。新增事件「项目已开始执行」（AGG-19，符合性审查 必-7）订阅方同样暂无，未作任何流程的触发。
+    status: 已处理（intent 114200 F-4：分析库订阅也算订阅方，无业务订阅方的事件保留并标「仅分析」；原作触发的 4 个事件改记同 BC 订阅方，「项目已开始执行」标「仅分析」，未作触发）
+    title: 无业务订阅方（仅分析）的事件作流程触发
+    detail: 下列事件原在 §2.2 订阅方为「暂无」（intent 114200 F-4 后改称「仅分析」），本稿的流程却以其触发或衔接：供方履约已确认（AGG-57，同 BC 的应付提交与供方协议完成）、项目复盘已发布（AGG-103，知识提炼）、RevenueRecognized（AGG-44，协议完成判定）、期间余额快照已生成（AGG-100，外部法定账对账）。同 BC 衔接的应在订阅方写「同 BC：…」，跨 BC 的补 B-xx。reporting 订阅全部事件（ADR-0023），阶段已完成等不计。新增事件「项目已开始执行」（AGG-19，符合性审查 必-7）订阅方同样仅分析，未作任何流程的触发。
     back_to: 第 ④ 步（事件列）
     change: AGG-57、103、44、100
     flows: [PRC-74, PRC-76, PRC-107, PRC-66, PRC-104]
@@ -1822,9 +1845,9 @@ gaps:
   - id: G-07
     kind: 缺命令
     severity: 中
-    status: 部分处理（⑥a 评审 H4：AGG-13「完成协议」发新事件「协议已完成」，订阅方同 BC：B-05 结算流程，PRC-66 合并后由它触发结算；触发事件 RevenueRecognized 订阅方仍暂无，归 G-05；AGG-44 判定「全部履约义务已履行」的命令与事件仍未写）
+    status: 部分处理（⑥a 评审 H4：AGG-13「完成协议」发新事件「协议已完成」，订阅方同 BC：B-05 结算流程，PRC-66 合并后由它触发结算；触发事件 RevenueRecognized 订阅方已记同 BC：B-08，G-05 已处理；AGG-44 判定「全部履约义务已履行」的命令与事件仍未写）
     title: 「完成协议」的编排方与触发依据未写
-    detail: R-01 定「已完成」由下游编排调用合同命令，聚合稿 AGG-13 写了命令「完成协议」，但没有指定编排方、触发事件与依据载体，「协议已完成」也没有事件。本稿取 B-08（B-08 → B-05 边已有），在每次 RevenueRecognized 后判定全部履约义务已履行；该事件订阅方为「暂无」（G-05）。
+    detail: R-01 定「已完成」由下游编排调用合同命令，聚合稿 AGG-13 写了命令「完成协议」，但没有指定编排方、触发事件与依据载体，「协议已完成」也没有事件。本稿取 B-08（B-08 → B-05 边已有），在每次 RevenueRecognized 后判定全部履约义务已履行；该事件订阅方已记同 BC：B-08（G-05 已处理）。
     back_to: 第 ④ 步
     change: AGG-13（可加事件「协议已完成」）、AGG-44（全部履约义务已履行的判定与事件）
     flows: [PRC-66]
@@ -1896,7 +1919,7 @@ gaps:
     severity: 低
     status: 未处理
     title: 聚合表中三处文字前后不一
-    detail: ① AGG-108 事件「标准工时版本已生效」订阅方格写 B-06、B-27，同格又写「均按 ID 与日期经 api 读取，不订阅」，应写暂无。② AGG-13 内含写「付款条件项记可结算，由交付物认可事件触发（AGG-27 订阅…）」，主语应是 AGG-13 订阅 AGG-27 的事件。③ AGG-52 的「应付已结清（B-15：薪酬已发放）」同格带评审注记，订阅方只列 B-15，与 G-09 合并处理。
+    detail: ① AGG-108 事件「标准工时版本已生效」订阅方格写 B-06、B-27，同格又写「均按 ID 与日期经 api 读取，不订阅」，应写仅分析。② AGG-13 内含写「付款条件项记可结算，由交付物认可事件触发（AGG-27 订阅…）」，主语应是 AGG-13 订阅 AGG-27 的事件。③ AGG-52 的「应付已结清（B-15：薪酬已发放）」同格带评审注记，订阅方只列 B-15，与 G-09 合并处理。
     back_to: 第 ④ 步（文字）
     change: AGG-108、AGG-13、AGG-52
     flows: [PRC-56, PRC-119]

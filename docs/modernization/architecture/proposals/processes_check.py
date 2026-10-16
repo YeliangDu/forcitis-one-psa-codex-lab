@@ -29,7 +29,7 @@ Findings (printed, not violations)
     reacting to it; compared with the list in gap G-19
   - stage mapping hints (M4): a unit mapped to a stage touches none of the aggregates of the objects in the stage's entry or exit
     condition (object -> aggregate by the object column of section 2.2)
-  - events used as triggers although their subscriber column says 暂无 (G-05)
+  - events used as triggers although their subscriber column says 仅分析 (G-05)
 
 Formal checks only (L1): the command-column checks (3) and the stage checks (1) prove that names and references resolve, not that the
 list is complete or right; the independent review of the command column is step 4.
@@ -112,7 +112,7 @@ def parse_events(cell, own_bc):
             continue
         name = re.sub(r"^已有\s*", "", name)
         rest = rest.split("沿已有边")[0]
-        nosub = "暂无" in rest
+        nosub = "仅分析" in rest
         subs = set()
         if not nosub and "不订阅" not in rest:
             subs = set(re.findall(r"B-\d+|platform\.[a-z]+", rest))
@@ -628,7 +628,7 @@ def main():
     print(f"无命令发出的事件：{len(orphan_events)} 个（提示：" + "；".join(f"{a} {e}" for a, e in orphan_events) + "）")
     print(f"C 类同事务步骤：{len(c_exceptions)}（" + "，".join(sorted({c for _, _, c in c_exceptions})) + "）")
     print("定时触发的流程：" + str(len(time_flows)))
-    print("以订阅方为「暂无」的事件作触发：" + (
+    print("以订阅方为「仅分析」的事件作触发：" + (
         "；".join(f"{a} {ev}（{'、'.join(sorted(set(v)))}）" for (a, ev), v in sorted(nosub.items())) or "无"))
     print(f"阶段映射提示：{len(stage_hints)} 对（流程触达的聚合不含该阶段进入或退出条件对象的聚合；提示，不判违规）")
     for uid, s in stage_hints:
