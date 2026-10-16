@@ -583,6 +583,7 @@ processes:
     name: "由销项发票创建应收"
     type: event_policy
     stages: [VS-04.4]
+    stages_note: "判据②（与 PRC-56 同口径）：触发状态发票 OBJ-83「已开具」是 VS-04.3 退出、VS-04.4 进入；本策略创建应收（OBJ-85「未结」），是收款段的起点，不归 VS-04.3：开票段到「已开具」即结束，本策略不碰发票"
     owner_bc: "B-09"
     group: revenue
     status: draft
