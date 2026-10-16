@@ -14,7 +14,8 @@
 
 Lanes. docs: every changed path is pure documentation (scripts/ci/relevant_change.py tier=docs: nothing a build or test reads). code: everything else, also the middle tier (docs a container-free test reads).
 With branch protection's "branch must be up to date" off, GitHub no longer blocks a merge of a branch behind main; the queue does it itself: the code lane merges only a head that contains the current main and whose full
-CI ran on that head, the docs lane syncs main and waits for the light run before merging. Merges are serialized by a lock, so two lanes never merge on a stale main: the one that comes second sees it is behind,
+CI ran on that head, the docs lane syncs main and waits for the light run before merging. A head that lacks only commits whose files are all tier=docs (nothing a build or test reads, the same verdict as the release gate)
+counts as up to date: no sync, no new CI run; a lack that includes a middle-tier or code file is synced and tested again. The safety net for the docs-only case is main's push alarm and the nightly full run (see Pause). Merges are serialized by a lock, so two lanes never merge on a stale main: the one that comes second sees it is behind,
 updates and goes through CI again.
 
 Per pull request: cancel the CI runs of the other queued pull requests (they are re-run after their own update; until then they only take runners), bring the branch up to date (gh update-branch; a pull request that
@@ -163,6 +164,15 @@ class Gh:
     def behind_by(self, n, head):
         r = sh(["gh", "api", f"repos/{{owner}}/{{repo}}/compare/main...{head}", "--jq", ".behind_by"])
         return int(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip().isdigit() else None
+
+    def behind_files(self, head):
+        """Paths main changed since the branch point of `head` (what the head lacks), or None when gh cannot say or the list is cut off (the compare API lists at most 300 files)."""
+        r = sh(["gh", "api", f"repos/{{owner}}/{{repo}}/compare/{head}...main", "--jq", "[.files[] | .filename, .previous_filename] | map(select(. != null)) | .[]"])
+        if r.returncode:
+            return None
+        files = [x for x in r.stdout.splitlines() if x]
+        n = sh(["gh", "api", f"repos/{{owner}}/{{repo}}/compare/{head}...main", "--jq", ".files | length"])
+        return files if n.returncode == 0 and n.stdout.strip().isdigit() and int(n.stdout.strip()) < 300 else None
 
     def files(self, n):
         r = sh(["gh", "api", "--paginate", f"repos/{{owner}}/{{repo}}/pulls/{n}/files", "--jq", ".[] | .filename, .previous_filename"])
@@ -349,28 +359,34 @@ def runner_lock(directory):
             fcntl.flock(f, fcntl.LOCK_UN)
 
 
-def default_lane(repo):
-    """'docs' when scripts/ci/relevant_change.py says tier=docs for every path of the pull request, else 'code'; a lookup that fails is 'code' (the stricter lane)."""
-    def lane(gh, n):
-        files = gh.files(n)
+def docs_only(repo):
+    """files -> True when scripts/ci/relevant_change.py says tier=docs for every path (nothing a build or test reads); an empty list, a failing or silent script is False."""
+    def check(files):
         if not files:
-            return "code"
+            return False
         with tempfile.NamedTemporaryFile("w", suffix=".paths", delete=False, encoding="utf-8") as f:
             f.write("\n".join(files) + "\n")
         try:
             r = sh([sys.executable, os.path.join(repo, "scripts/ci/relevant_change.py"), "--paths-from", f.name], cwd=repo)
         finally:
             os.unlink(f.name)
-        return "docs" if r.returncode == 0 and "tier=docs" in r.stdout.splitlines() else "code"
-    return lane
+        return r.returncode == 0 and "tier=docs" in r.stdout.splitlines()
+    return check
+
+
+def default_lane(repo):
+    """'docs' when every path of the pull request is docs (docs_only), else 'code'; a lookup that fails is 'code' (the stricter lane)."""
+    check = docs_only(repo)
+    return lambda gh, n: "docs" if check(gh.files(n)) else "code"
 
 
 class Processor:
-    def __init__(self, gh, queue, log, repo, sleep=time.sleep, updater=update_over_ssh, ci_timeout=90 * 60, wt=None, lane=None, pause=None):
+    def __init__(self, gh, queue, log, repo, sleep=time.sleep, updater=update_over_ssh, ci_timeout=90 * 60, wt=None, lane=None, pause=None, docs_only_fn=None):
         self.gh, self.queue, self.log, self.repo, self.sleep = gh, queue, log, repo, sleep
         self.updater, self.ci_timeout = updater, ci_timeout
         self.wt = wt or os.path.join(os.path.dirname(os.path.abspath(queue.path)), "mq-wt")
         self.lane_of = lane or default_lane(repo)
+        self.docs_only = docs_only_fn or docs_only(repo)
         self.pause = pause or Pause(os.path.dirname(os.path.abspath(queue.path)), gh, log)
         self.lanes, self.busy, self.code_testing = {}, set(), set()
         self.guard = threading.Lock()
@@ -395,6 +411,17 @@ class Processor:
                     self.busy.add(n)
                 return n
         return None
+
+    def stale(self, n, head):
+        """None when gh cannot say; 0 when the head contains main, or lacks only commits that changed nothing a build or test reads (docs only: counted as up to date, no sync, no new CI run);
+        else the number of main commits the head lacks."""
+        behind = self.gh.behind_by(n, head)
+        if not behind:
+            return behind
+        files = self.gh.behind_files(head)
+        if files is not None and self.docs_only(files):
+            return 0
+        return behind
 
     def cancel_others(self, head, since):
         for other in self.queue.numbers():
@@ -468,7 +495,7 @@ class Processor:
             if v["merge"] == "DIRTY":
                 self.log.event("CONFLICT", n, None, since, "back to the author (text conflict)")
                 return "CONFLICT"
-            behind = self.gh.behind_by(n, v["head"])
+            behind = self.stale(n, v["head"])
             if v["merge"] == "BEHIND" or (behind or 0) > 0:
                 res = self.update(n, v["branch"], since)
                 if res != "ok":
@@ -493,7 +520,7 @@ class Processor:
             if red:
                 runs = sorted({r for c in red if (r := run_id(c.get("link")))}, key=int)
                 now = self.gh.view(n) or v
-                if (self.gh.behind_by(n, now["head"]) or 0) > 0:
+                if (self.stale(n, now["head"]) or 0) > 0:
                     self.log.event("BEHIND-AFTER-FAIL", n, runs[0] if runs else None, since, "update and run again")
                     attempt += 1
                     continue
@@ -549,7 +576,7 @@ class Processor:
             if v is None or v["state"] != "OPEN":
                 return self.hold(n, None, since, "the pull request changed state before the merge")
             head = v["head"]
-            behind = self.gh.behind_by(n, head)
+            behind = self.stale(n, head)
             if behind is None:
                 return self.hold(n, None, since, "could not tell whether the head contains main")
             if behind > 0:

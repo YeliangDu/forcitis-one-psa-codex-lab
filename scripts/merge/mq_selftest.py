@@ -54,6 +54,12 @@ class FakeGh:
                 return [dict(c, bucket="pending") for c in r["checks"]]
             return r["checks"]
 
+    def behind_files(self, head):
+        for n, p in self.prs.items():
+            if p["head"] == head:
+                return p.get("behind_files")
+        return None
+
     def update_branch(self, n):
         self.calls.append(("update-branch", n))
         p = self.prs[n]
@@ -138,6 +144,7 @@ def _proc(mq, d, name, gh, queue_numbers=(), lane=None, on_sleep=None, **kw):
         if on_sleep:
             on_sleep(seconds)
     updater = kw.pop("updater", lambda repo, branch, wt: "ok")
+    kw.setdefault("docs_only_fn", lambda files: bool(files) and all(f.startswith("docs/") and not f.startswith("docs/guarded/") for f in files))
     return mq.Processor(gh, q, log, "/repo", sleep=sleep, updater=updater, lane=lane or (lambda g, n: "code"), **kw), q, log, slept
 
 
@@ -673,6 +680,21 @@ def _signals(mq, d):
     gh.checks = late
     assert proc.process(93) == "MERGED" and slept.count(15) >= 3 and "REQUIRED-NOT-GREEN" not in events(log), (slept, events(log))
 
+    # behind main by docs-only commits: counted as up to date (no update, no new run, merged as it is); by a middle-tier (guarded) or code file: synced and tested again; a list gh cannot give: synced
+    for name, files, synced in (("only", ["docs/a.md", "docs/b/c.md"], False), ("guarded", ["docs/a.md", "docs/guarded/terms.yaml"], True), ("code", ["docs/a.md", "backend/pom.xml"], True), ("unknown", None, True), ("empty", [], True)):
+        gh = FakeGh(); gh.add(100, behind=3)
+        gh.prs[100]["behind_files"] = files
+        proc, q, log, _ = _proc(mq, d, "bd-" + name, gh, [100])
+        assert proc.process(100) == "MERGED", name
+        assert (("update-branch", 100) in gh.calls) == synced, (name, events(log))
+        if not synced:
+            assert gh.merged_behind == [3], "merged while behind docs-only commits, on purpose"
+    # the strict protection still being on (GitHub says BEHIND) keeps the sync: GitHub would refuse the merge otherwise
+    gh = FakeGh(); gh.add(101, merge="BEHIND", behind=2)
+    gh.prs[101]["behind_files"] = ["docs/a.md"]
+    proc, q, log, _ = _proc(mq, d, "bd-strict", gh, [101])
+    assert proc.process(101) == "MERGED" and ("update-branch", 101) in gh.calls
+
     # two ssh updates at once never share the scratch worktree
     inside = {"n": 0, "max": 0}
 
@@ -717,6 +739,10 @@ def _gh_commands(mq, d):
         rules = [(["pr", "view"], json.dumps({"state": "OPEN", "mergeStateStatus": "CLEAN", "labels": [{"name": "queued"}], "headRefName": "br", "headRefOid": "abc123"}), "", 0),
                  (["api", "repos/{owner}/{repo}/compare/main...abc123"], "3\n", "", 0),
                  (["api", "--paginate", "repos/{owner}/{repo}/pulls/9/files"], "docs/a.md\ndocs/old.md\n", "", 0),
+                 (["api", "repos/{owner}/{repo}/compare/abc123...main", "--jq", "[.files[] | .filename, .previous_filename] | map(select(. != null)) | .[]"], "docs/x.md\ndocs/old.md\n", "", 0),
+                 (["api", "repos/{owner}/{repo}/compare/abc123...main", "--jq", ".files | length"], "2\n", "", 0),
+                 (["api", "repos/{owner}/{repo}/compare/big000...main", "--jq", "[.files[] | .filename, .previous_filename] | map(select(. != null)) | .[]"], "docs/x.md\n", "", 0),
+                 (["api", "repos/{owner}/{repo}/compare/big000...main", "--jq", ".files | length"], "300\n", "", 0),
                  (["pr", "checks", "1"], json.dumps([{"name": "x", "bucket": "pass", "link": ""}]), "", 0),
                  (["pr", "checks", "2"], "", "no checks reported on the 'br' branch\n", 0),
                  (["pr", "checks", "3"], "", "network down\n", 1),
@@ -731,6 +757,7 @@ def _gh_commands(mq, d):
         assert gh.view(1) == {"state": "OPEN", "merge": "CLEAN", "labels": ["queued"], "branch": "br", "head": "abc123"}
         assert gh.behind_by(1, "abc123") == 3
         assert gh.files(9) == ["docs/a.md", "docs/old.md"]
+        assert gh.behind_files("abc123") == ["docs/x.md", "docs/old.md"] and gh.behind_files("big000") is None, "a cut-off list (300 files) is no answer"
         assert gh.checks(1) == [{"name": "x", "bucket": "pass", "link": ""}] and gh.checks(2) == [] and gh.checks(3) is None, "no check yet is an empty list, a failed call is None"
         assert gh.merge(4, "h4") == (False, "Pull request is not mergeable") and gh.merge(5, "h5") == (True, "merged")
         run = gh.main_run("push")
