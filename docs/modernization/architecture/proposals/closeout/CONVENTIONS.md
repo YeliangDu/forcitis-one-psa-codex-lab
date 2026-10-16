@@ -20,6 +20,8 @@
 
 ```yaml
 - id: PRC-03
+  migration: "在途实例按当前状态迁入；已结实例只迁结局与证据"   # 必填（提议中）：投产时在途与历史实例的迁入口径
+  scope: "按项目承担部门的数据范围"   # 可选（提议中）：谁能看到、经办
   segregation:                        # 可选；不相容职务约束：同一人不得同时担任所列角色（流程级）
     - {roles: [SH-E5, SH-M2], rule: "制单与审批不得为同一人"}
   roles:                              # 必填；本流程全部参与角色
@@ -31,7 +33,7 @@
       where: in_system                # 必填（提议中，随样板页请用户确认）：in_system 用户在本系统操作 / automatic 本系统自动 / external:<系统名> 经集成由外部系统完成（如 external:企业微信、external:U8C、external:银行、external:税务）/ offline 线下完成、本系统只登记结果
       evidence: []                    # where 为 offline 或 external 时必填：本系统登记的结果与证据（如「客户签认单扫描件＋签认日」「银行回单」）
       decision:                       # 可选；本步之后的判断点，按顺序求值
-        - {when: "报价金额超过授权额度", goto: 3}       # goto：步骤序号（从 1 起）、end、或另一流程 PRC-NN
+        - {when: "报价金额超过授权额度", goto: 3, rule: RC-NN}   # goto：步骤序号（从 1 起）、end、或另一流程 PRC-NN；rule：引用的规则卡编号（提议中）
         - {when: otherwise, goto: 4}
       approval:                       # 可选；人工编排流程中审批节点必填
         engine: platform.approval     # platform.approval 审批平台 / aggregate 聚合内命令（如交付物内部校审） / external 系统外（客户书面认可等，只登记证据）
@@ -39,6 +41,13 @@
         approver: SH-M1               # 审批人角色
         multi_level: false            # 是否多级
         on_reject: 2                  # 驳回后去向：步骤序号 / end
+      permission: 报价.提交            # 用户任务必填（提议中）：权限码暂名
+      page: 报价编辑页                 # 用户任务必填（提议中）：页面或页面操作暂名
+      notify: [{to: SH-M1, how: 企业微信待办}]   # 可选：谁在何时收到通知
+      period_gate: false              # 触账步骤写 true，并在 decision 写期间已关账的拒绝分支
+      legal_entity: 承担法人           # 可选：本步按哪个法人口径执行
+      audit: true                     # 可选：必须留操作审计
+      metric_event: false             # 可选：产生分析事实（总线矩阵的行）
       cross_bc:                       # 可选；本步跨 BC 的交互，可多条
         - {mode: event, direction: out, bc: B-05, name: 报价已通过}   # mode：event / api；direction：out 本步发出（事件）或调用（api），in 本步由对方触发或读取
 ```
