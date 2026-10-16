@@ -35,7 +35,9 @@ CREATE TABLE platform_identity.roles (
     created_at        timestamptz NOT NULL DEFAULT now(),
     updated_at        timestamptz NOT NULL DEFAULT now(),
     version           bigint      NOT NULL DEFAULT 0,
-    event_count       bigint      NOT NULL DEFAULT 0
+    event_count       bigint      NOT NULL DEFAULT 0,
+    CONSTRAINT ck_roles_reserved_code CHECK (lower(code) <> 'super_admin' OR kind = 'SYSTEM'),
+    CONSTRAINT ck_roles_code CHECK (code ~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$')
 );
 CREATE UNIQUE INDEX uq_roles_code ON platform_identity.roles (lower(code));
 CREATE UNIQUE INDEX uq_roles_name ON platform_identity.roles (lower(name));
