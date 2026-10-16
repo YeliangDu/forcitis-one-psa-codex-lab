@@ -24,6 +24,7 @@ import tempfile
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 MIGRATIONS = os.path.join(ROOT, "backend", "src", "main", "resources", "db", "migration")
+PAIRS = os.path.join(ROOT, "scripts", "ci", "baseline_ddl_scan_pairs.txt")
 CLASSIFICATION = os.path.join(ROOT, "backend", "architecture", "data-classification.txt")
 TRANSITIONS = os.path.join(ROOT, "docs", "modernization", "architecture", "togaf", "transitions.yaml")
 FRAMEWORK = re.compile(r"^(?:[a-z_]+\.)?(event_publication|sessions|scheduler_locks)")
@@ -44,9 +45,9 @@ def unbuilt(value, where_table, built):
     return label if module is None or module not in built else None
 
 
-# the implicit wording (才有 / 仅 / 清空) is only a hint: one-data counted 16 by hand, this pattern finds 12
+# the implicit wording (才有 / 仅 / 清空) is only a hint: one-data counted 16 by hand, this pattern finds 13; the other three (effect_kind, escalate_at, handled_result) are implicit by context, not by a keyword
 NULL_WORDS = re.compile(r"为空|留空|空表示|NULL|未设置|没有则空")
-IMPLICIT = re.compile(r"才有|仅|清空")
+IMPLICIT = re.compile(r"才有|仅|只在|只有|清空")
 FORMAT_CHECK = re.compile(r"char_length|length\s*\(|~|similar to|\bIN\s*\(|=\s*ANY\s*\(\s*ARRAY|<@|=\s*'", re.I)
 
 
@@ -236,6 +237,19 @@ def load(migrations):
     return tables, inserts, unsupported
 
 
+def declared_pairs(path):
+    pairs = []
+    if os.path.exists(path):
+        for number, line in enumerate(open(path, encoding="utf-8"), 1):
+            if not line.strip() or line.startswith("#"):
+                continue
+            parts = [part.strip() for part in line.split("|")]
+            if len(parts) != 3 or not re.fullmatch(r"[a-z0-9_]+\.[a-z0-9_]+", parts[0]) or not all(parts[1].split(",")) or not parts[2]:
+                raise SystemExit(f"{path}:{number}: expected `<schema.table> | <column>, <column> | <why>`")
+            pairs.append((parts[0], [c.strip() for c in parts[1].split(",")], parts[2]))
+    return pairs
+
+
 def classification(path):
     registered = set()
     if os.path.exists(path):
@@ -259,7 +273,7 @@ def built_modules(path):
     return modules
 
 
-def scan(tables, inserts, registered, built):
+def scan(tables, inserts, registered, built, pairs=()):
     r = {k: [] for k in ("text_no_format", "business_default", "null_meaning", "paired_nullable", "default_now", "inline_enum_check", "unbuilt_value")}
     extra = {"named_enum_checks": 0, "technical_zero": 0, "now_in_insert": []}
     for tname, table in tables.items():
@@ -323,6 +337,15 @@ def scan(tables, inserts, registered, built):
             if col["nullable"] and (re.search(r"(reason|_at|_kind)$", cname) and cname not in ("created_at", "updated_at")) and status and f"{tname}.{cname}" not in pair_at:
                 if not any(re.search(rf"\b{cname}\b", e) and any(re.search(rf"\b{s}\b", e) for s in status) for _, e in all_checks):
                     r["paired_nullable"].append({"group": f"{tname}.{cname} with status", "missing": "CHECK tying it to " + "/".join(status)})
+    for tname, columns, why in pairs:
+        table = tables.get(tname)
+        unknown = [c for c in columns if not table or c not in table["columns"]]
+        if unknown:
+            r["paired_nullable"].append({"group": f"{tname} (declared: {'/'.join(columns)})", "missing": "declared column does not exist: " + ", ".join(unknown)})
+            continue
+        checks = table["checks"] + [c for cn in table["order"] for c in table["columns"][cn]["checks"]]
+        if not any(all(re.search(rf"\b{c}\b", expr) for c in columns) for _, expr in checks):
+            r["paired_nullable"].append({"group": f"{tname} (declared: {'/'.join(columns)})", "missing": "no CHECK mentions all of them: " + why})
     for file, stmt in inserts:
         if re.search(r"\bnow\(\)", stmt, re.I):
             m = re.match(r"INSERT INTO\s+([a-z0-9_.]+)", stmt, re.I)
@@ -370,7 +393,7 @@ def report(result, extra, unsupported, as_json):
 
 def run(migrations=MIGRATIONS):
     tables, inserts, unsupported = load(migrations)
-    return scan(tables, inserts, classification(CLASSIFICATION), built_modules(TRANSITIONS)), tables, unsupported
+    return scan(tables, inserts, classification(CLASSIFICATION), built_modules(TRANSITIONS), declared_pairs(PAIRS)), tables, unsupported
 
 
 def self_test():
@@ -421,6 +444,25 @@ ALTER TABLE platform_approval.approval_requests ADD CONSTRAINT ck_approval_reque
     assert unbuilt("QUOTE", "x.y", {"presales.quoting"}) is None, "class 7: once the module is built the value is fine"
     assert any("released_by" in i["group"] for i in result["paired_nullable"]), "class 4: released_by/_at without a paired CHECK"
     assert strip_statements("SELECT 'a;b'; -- x; y\nSELECT 2") == ["SELECT 'a;b'", "SELECT 2"], "statement splitting respects quotes and comments"
+    fixture = """
+CREATE TABLE platform_idempotency.idempotent_responses (id uuid PRIMARY KEY, response_number integer, response_name text, response_text text, response_header_text text);
+CREATE TABLE cost_timesheet.timesheets (id uuid PRIMARY KEY, submitted_date date, round_number integer NOT NULL, CONSTRAINT ck_timesheets_round CHECK (round_number >= 0));
+"""
+    with tempfile.TemporaryDirectory() as folder:
+        open(os.path.join(folder, "V1__f.sql"), "w", encoding="utf-8").write(fixture)
+        ft, fi, _ = load(folder)
+        declared = declared_pairs(PAIRS)
+        found, _ = scan(ft, fi, set(), set(), declared)
+        stale, _ = scan(ft, fi, set(), set(), [("cost_timesheet.timesheets", ["submitted_date", "no_such_column"], "x")])
+    groups = " ".join(i["group"] for i in found["paired_nullable"])
+    assert "idempotent_responses (declared: response_number/response_name/response_text/response_header_text)" in groups, "class 4 declared: the response_* group is found"
+    assert "timesheets (declared: submitted_date/round_number)" in groups, "class 4 declared: submitted_date with round_number is found"
+    with tempfile.TemporaryDirectory() as folder:
+        open(os.path.join(folder, "V1__f.sql"), "w", encoding="utf-8").write(fixture.replace("CHECK (round_number >= 0)", "CHECK (round_number >= 0 AND (submitted_date IS NULL) = (round_number = 0))"))
+        ft2, fi2, _ = load(folder)
+        fixed, _ = scan(ft2, fi2, set(), set(), [("cost_timesheet.timesheets", ["submitted_date", "round_number"], "x")])
+    assert not [i for i in fixed["paired_nullable"] if "declared" in i["group"]], "class 4 declared: a CHECK naming all columns satisfies the group"
+    assert any("declared column does not exist" in i["missing"] for i in stale["paired_nullable"]), "class 4 declared: a stale declaration is reported"
     kinds_all = {i["column"]: i["wording"] for i in result["null_meaning"]}
     assert kinds_all[f"{ar}.released_at"] == "none", "class 3"
     assert any(i["where"] == "seed platform_approval.approval_requests" and i["value"] == "QUOTE" for i in result["unbuilt_value"]), "class 7: a seed row holding QUOTE"
