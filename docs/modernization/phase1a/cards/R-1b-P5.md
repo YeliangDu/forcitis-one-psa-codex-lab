@@ -222,3 +222,8 @@
 | D-15 | ADR-0033 守护 2 的 ArchUnit「除 `kernel.Uuids` 外不调 `UUID.randomUUID`」尚无；`OperationsCommands:51` 由 OPS-CID 修，`ObjectStoreArchiveVault:61`、`OssObjectStore:85` 用于临时文件名与探针键（不是标识） | 本卡加规则；两处对象存储用法改经 `kernel.Uuids` 或登记为「不是标识」的例外；`OperationsCommands` 若 OPS-CID 未先合并，登记为到期例外（OPS-CID） |
 | D-16 | 改名范围：除代码、事件目录、`aggregates.yaml`、`MUST_AUDIT_ACTIONS.yaml`、用语基线外，`REIMAGINED_ARCHITECTURE.md`、`AI_NATIVE_SPEC.md`、`process/1a/` 三份流程文档、`rules/APPROVAL_DEADLINE_RULES.md` 也有旧名 | 本卡不改这些文档，交 one-rules / one-glossary 随用语写回；已采纳 ADR、intent、session-log、复审报告是历史记录，不改 |
 | D-17 | 审计对象类别从 `aggregateType` 机械换算，新增聚合时容易漏枚举值 | 加一条守护：事件目录中每个 `aggregate` 都能换算到审计对象类别枚举、CHECK 取值与枚举一致（放事件目录守护内） |
+
+## 13. 负责会话裁定（one-1a-next-4，2026-10-16）
+- RULING-P5-D1..D11、D13..D17：按第 12 节建议采纳。其中：D-2 `actorId` 一并改 UUID；D-5 `subject_id` 可空（CHECK：为空当且仅当类别为 `REQUEST` / `OPERATION` / `LOGIN_ATTEMPT`），路径与方法名写进 `detail`；D-7 审计归档本卡改为按 `(created_at, id)` 取批与记水位；D-9 本卡交付 `phase1a/ID_CARRIERS.md`；D-11 前端测试数据先问 one-1a-par 是否在途改同批文件，无冲突则 P5 直接改；D-13 守护识别名单加「类型:ID」文本键，`OTHER_ID_NAMES` = `InboxItemResponse.taskId`（RULING-P4-D6）+ `SyncDiffResponse.subjectKey`（拆分 a），`EmployeeIdContractTest` 精确断言由测试代理按 RULING-P5-1 改。
+- D-12（`primary-key-type-baseline.txt` 保留三行到期例外）**待 one-coordinator 认可**（偏离 ADR-0033 守护 1「最后一个子 PR 删除」字面）。
+- 开工条件：第 11 节新词经 one-glossary 定稿；D-12 认可。体量若超出 sonnet 能力（实现中途），停下报告，可按「信封与审计」「守护与 G-A1 收尾」拆两个 PR，不缩小范围。
