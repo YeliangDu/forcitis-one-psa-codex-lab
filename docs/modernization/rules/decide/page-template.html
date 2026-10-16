@@ -262,6 +262,11 @@ const stamp = () => { const d = new Date(), z = n => String(n).padStart(2, "0");
 async function finalSubmit(){
   if (!db){ flash = "存储不可用，未能提交"; render(); return; }
   if (!(loaded.ans && loaded.sub) || submitting) return;   // 读到已选答案之前提交会把没读到的选择当成没动过；提交中不重入
+  for (const [k, t] of [...pending]){   // 防抖里还没写入的备注先落实，免得提交漏掉
+    clearTimeout(t); pending.delete(k);
+    const it = ITEMS.find(i => i.key === k), el = document.getElementById("nt-" + k);
+    if (it && el){ const b = {item: it.no, choice: pick(it).choice, note: el.value, by: myId, at: new Date().toISOString()}; decisions.set(k, b); store(k, b); }
+  }
   submitting = true; render();
   const picks = {};
   for (const it of ITEMS){ const p = pick(it); picks[it.key] = {no: it.no, choice: p.choice, label: labelOf(it, p), recommended: p.choice !== null && p.choice === recOf(it), defaulted: p.defaulted, unanswered: !!p.unanswered, note: p.note}; }
