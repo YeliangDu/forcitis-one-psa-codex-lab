@@ -70,4 +70,17 @@
 
 ## ④ ApprovalAccountsIT / TimesheetApprovalScenarioIT 各一次失败
 
-（sonnet 诊断中，结论补入本节。）
+sonnet 诊断（只读，读 CI 日志与源码），证据状态逐条标注；**不是实跑复现**。
+
+**TimesheetApprovalScenarioIT（运行 38805349816，main，112abd60）——偶发，等待方式有竞态（机理为读代码推断，未实测）**
+- 失败：`cancelledTimesheetIsADraft`（`TimesheetApprovalScenarioIT.java:364`）调 `cancelTimesheet.execute` 得 `DomainException: The timesheet is not in a running approval`（`Retractions.require`，即 `Retraction.cancel` 里 `findForUpdate` 查不到审批请求）。同类 18 个测试仅此一个失败；下一提交起连续成功（已核实）。
+- 根因：`submitAndAwaitApproval`（`:151-157`）只用 Modulith `Scenario.andWaitForEventOfType(TaskAssigned)` 等事件。审批请求由 `StartApprovalOnSubmission` 的 `@ApplicationModuleListener`（异步）在自己的事务里创建，`TaskAssigned` 在该事务内发布；事件到达时审批请求可能还没提交，测试线程随即取消就查不到。没有 sleep、不依赖时钟，**违反 CS-5.6 的是等待条件不是“审批已可见”**。
+- 建议：在 `:154-155` 的等待之后，用 Awaitility 条件等待，在独立事务里查 `requests.find(COST_TIMESHEET_APPROVAL, document)` 直到存在，统一放进 `submitAndAwaitApproval`，其他提交后取消 / 撤回 / 驳回的用例同受益。
+
+**ApprovalAccountsIT（运行 38791490769，main，ec37a8be）——无法判定，倾向偶发**
+- 失败：`theInitiatorNeverApprovesTheirOwnTimesheet`（`ApprovalAccountsIT.java:132`，经 `candidatesSeenBy:121`）`expected: 200 but was: 401`，响应 `PLATFORM_WEB_UNAUTHENTICATED`（请求带了 `SESSION` cookie 却被当成未登录）；同类另两个用例通过，全后端 541 个测试只此一败；同分支其后约 8 次运行该测试都通过（已核实）。
+- 等待方式：没有 sleep，没有靠时间的断言（已抽查），不是 CS-5.6 问题。
+- 可疑点：`SessionGuardFilter` 在会话主体被判非活跃、或主体不是账号 ID 时会 `invalidate` 会话而返回 401；成功的运行说明平时不触发，但日志里找不到触发原因，也没有 ALERT 可佐证。
+- 建议：先不改产品代码；在该测试的断言处加诊断（失败时打出 `principals.resolve` 结果与会话状态），若再现再定。
+
+**处理方式**：TimesheetApprovalScenarioIT 的修复是改测试的等待（不放宽断言），属于“修不稳定测试”，我自己做小 PR；该类若在验收测试目录，提交需带 `Acceptance-Test-Author` 或裁定，请调度确认。ApprovalAccountsIT 只加诊断。两项都登记进 `QUALITY_CONTEXT.md` 的不稳定测试台账。
