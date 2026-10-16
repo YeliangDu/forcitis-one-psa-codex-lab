@@ -10,7 +10,7 @@
   {
    "id": "bc",
    "title": "聚合与 BC 划分",
-   "desc": "全企业不变量 → 聚合（92 个）→ 业务 BC（27 个），依赖已脚本查环、无环。详见 proposals/ENTERPRISE_AGGREGATES_DRAFT.md。G1 期间进项发票池一题缺证据，取证后另问。"
+   "desc": "全企业不变量 → 聚合（92 个）→ 业务 BC（27 个），依赖已脚本查环、无环。详见 proposals/ENTERPRISE_AGGREGATES_DRAFT.md。另含「视为同意」落点一题；G1 期间进项发票池一题缺证据，取证后另问。"
   }
  ],
  "items": [
@@ -490,6 +490,40 @@
    "now": "",
    "check": "",
    "key": "STAGEBC~D-6"
+  },
+  {
+   "no": "D-8",
+   "grp": "bc",
+   "title": "「视为同意」的期满判定放在哪个 BC",
+   "src": "proposals/ENTERPRISE_AGGREGATES_DRAFT.md §6 N-15；ADR-0047",
+   "ctx": "ADR-0047 已采纳：视为同意须合同约定审查期、附送达与期满证据、期满后人工确认。它的影响面把期满计算写在交付（delivery.acceptance）。草案把交付放在合同上游（项目可先于合同），交付读不到合同里的审查期，所以改为：交付只记送达、退回和项目经理的无异议声明，期满判定放在收入侧（receivables.wip）。ADR-0047 的成立条件不变，只是落点不同。",
+   "opts": [
+    {
+     "label": "改到收入侧（receivables.wip）：交付只记送达与无异议声明，期满由收入侧按合同审查期判定；交付物上的「视为同意」状态改为读模型派生显示",
+     "effect": "依赖无环；ADR-0047 状态行加注落地记录",
+     "rec": false,
+     "sug": true
+    },
+    {
+     "label": "维持交付（delivery.acceptance）：立项或挂接合同时把审查期复制到交付，交付按复制值判定期满并改交付物状态",
+     "effect": "不改 ADR-0047；合同变更审查期时要同步复制，复制值可能过期",
+     "rec": false,
+     "sug": false
+    },
+    {
+     "label": "暂不定（我先不选）",
+     "effect": "不预设，留待以后",
+     "rec": true
+    }
+   ],
+   "basis": [
+    "交付在合同上游，直接读合同会成环（草案 §4.1 查环）",
+    "收入侧本来就要读合同与交付物认可来确认收入（ADR-0016、ADR-0047）"
+   ],
+   "practice": [],
+   "now": "",
+   "check": "",
+   "key": "STAGEBC~D-8"
   }
  ]
 }
