@@ -114,6 +114,21 @@ terms:
   until: "R-2a，生产前：DocumentTypeCodeTest 改为读 document_type_code 的取值后删除本条"
   owner: "one-1a-next-3"
   note: 例 JV-FST-202610-0001；模板待管理员确认
+- id: error__platform_numbering_single_operator_mode_required
+  zh: 须开启单人运维模式
+  en: PlatformNumberingSingleOperatorModeRequired
+  snake: platform_numbering_single_operator_mode_required
+  kind: error_code
+  bc: platform.numbering
+  scope: domain
+  definition: 编号运维起草命令只在单人运维模式开启时可用，模式关闭时一律拒绝（403）
+  standard_ref:
+  - adr/src/ADR-0030.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 登记会话 one-1a-par（派工卡 SINGLE-OP P3）；ErrorKind 与 HTTP 状态由实现者按 CS-2.24 复核
 common_words:
 - confirm
 - reconfigure
