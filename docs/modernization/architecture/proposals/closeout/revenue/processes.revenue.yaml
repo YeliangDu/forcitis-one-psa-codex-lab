@@ -10931,6 +10931,54 @@ event_policies:
   - PRC-150-S06
   - PRC-150-S07
   frequency_ref: 待取证（E-B1）；经验估计：每月约 3 次
+- id: PRC-179
+  name: 项目开始执行后协议转入履行中
+  owner_bc: B-05
+  stages:
+  - VS-04.1
+  triggers:
+  - type: event
+    name: 项目已开始执行
+    publisher: B-04
+  - type: event
+    name: 合同—项目关联已登记
+    publisher: B-05
+  migration: 迁入不发事件：投产时由迁入编排按迁入项目的执行状态直接写协议状态（ADR-0036 第 5 条），本策略不补跑
+  scenarios:
+  - PRC-179-S01
+  - PRC-179-S02
+  - PRC-179-S03
+  - PRC-179-S04
+  steps:
+  - command: 开始履行协议
+    aggregate: AGG-13
+    actor: system
+    where: automatic
+    added_in: closeout
+    cross_bc:
+    - mode: event
+      direction: in
+      bc: B-04
+      name: 项目已开始执行
+    - mode: api
+      direction: out
+      bc: B-04
+      name: 读关联项目是否已开始执行
+    decision:
+    - when: 该项目未关联已签署生效的协议，或（关联登记触发时）关联项目尚未开始执行
+      goto: end
+      outcome: 无需处理
+      p: 0.1
+    - when: 关联协议已在履行中或之后状态
+      goto: end
+      outcome: 无需处理
+      p: 0.3
+    - when: otherwise
+      goto: end
+      outcome: 协议已转入履行中
+      p: 0.6
+    desc: S-33：经合同—项目关联（INV-09，生效期内）找到已签署生效的协议，转入履行中；一份协议关联多个项目时任一项目开始执行即转；按协议 ID 幂等，重复事件不重复转换；先立项后签约的情形：协议回签后登记合同—项目关联时（同 BC 事件）读关联项目状态，已在执行即转入履行中，否则等项目开始执行事件
+  notes: S-42 接缝承接：AGG-19「项目已开始执行」订阅方 B-05；B-05 → B-04 边已加事件方式（cb39fc65）
 single_aggregate:
 - id: PRC-01
   name: 举办市场活动

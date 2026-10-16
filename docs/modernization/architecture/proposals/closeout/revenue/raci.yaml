@@ -3754,3 +3754,19 @@ entries:
   sensitive: false
   sensitive_reason: 业务记录，无个人信息
   source_part: revenue
+- object: AGG-13
+  command: 开始履行协议
+  raci:
+    A:
+      resolve: instance
+      field: 协议.合同负责人
+      field_status: proposed
+      pending: 新题「合同负责人是谁」
+    R:
+    - system
+    C: []
+    I:
+    - SH-E2
+  sensitive: false
+  sensitive_reason: 状态转换，无个人信息与资金动作
+  source_part: revenue

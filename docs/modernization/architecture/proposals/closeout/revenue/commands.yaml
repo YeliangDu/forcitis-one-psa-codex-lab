@@ -3445,3 +3445,18 @@ commands:
   - 原记录ID
   emits: []
   note: S-37 采纳
+- name: 开始履行协议
+  aggregate: AGG-13
+  proposed: true
+  trigger_event: 项目已开始执行（AGG-19，B-04）
+  params:
+  - 协议
+  - 项目
+  preconditions:
+  - INV-09
+  authority:
+    A: 协议.合同负责人（待新题）
+  idempotency_key:
+  - 协议ID
+  emits: []
+  note: S-33、S-42；PRC-179

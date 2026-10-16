@@ -389,7 +389,7 @@ machines:
     - INV-33
   - from: 已签署生效
     to: 履行中
-    command: null
+    command: 开始履行协议
     guard:
     - 事件触发：履行启动（触发条件待定，见 NOTES 结构 3）
     event: 项目已开始执行（AGG-19，B-04）
