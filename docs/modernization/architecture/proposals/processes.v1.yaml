@@ -475,7 +475,7 @@ processes:
   - id: PRC-48
     name: 提出并生效协议变更或签证
     trigger: {type: human, desc: 范围、价款、工期变化，或现场发生签证事项}
-    stages: [VS-04.1]
+    stages: [VS-04.6]
     owner_bc: B-05
     human_orchestration: true
     human_note: 提出 → 影响评估 → 审批 → 已生效 / 驳回
@@ -492,7 +492,7 @@ processes:
   - id: PRC-49
     name: 提出并认定索赔
     trigger: {type: human, desc: 对方或我方出现可索赔事项，在时限内通知}
-    stages: [VS-04.1, VS-04.5]
+    stages: [VS-04.6, VS-04.5]
     owner_bc: B-05
     human_orchestration: true
     human_note: 已通知 → 已提交 → 已认定 / 已拒绝 / 撤回，索赔时限
@@ -506,7 +506,7 @@ processes:
   - id: PRC-50
     name: 占用框架限额并提交任务订单
     trigger: {type: human, desc: 商务按框架协议起草任务订单}
-    stages: [VS-04.1]
+    stages: [VS-04.6]
     owner_bc: B-05
     human_orchestration: true
     human_note: 占用被拒则订单不得提交；驳回、作废、终止释放
@@ -1787,6 +1787,7 @@ merged:
 # 没有业务流程覆盖的阶段（coverage：事件策略 / 单聚合维护 / 无需系统支持）
 stages_without_process:
   - {stage: VS-12.1, coverage: 单聚合维护, reason: 出资到账只有出资聚合（AGG-54）的认缴与实缴，单聚合维护 PRC-111 覆盖，不构成跨聚合的业务流程}
+  - {stage: VS-08.0, coverage: 无需系统支持, reason: 本文件只收 PRC-01–135；事前申请段由收尾目录 PRC-170、172、173 承担（closeout/process-catalog.yaml，SD-03 用户裁定 2026-10-16）}
 
 gaps:
   - id: G-01

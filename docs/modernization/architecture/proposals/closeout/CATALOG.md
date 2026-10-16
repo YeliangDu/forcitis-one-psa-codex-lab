@@ -42,10 +42,10 @@
 | VS-02 | 19 |
 | VS-03 | 7 |
 | VS-04 | 16 |
-| VS-05 | 12 |
+| VS-05 | 11 |
 | VS-06 | 3 |
 | VS-07 | 8 |
-| VS-08 | 6 |
+| VS-08 | 7 |
 | VS-09 | 3 |
 | VS-10 | 12 |
 | VS-11 | 1 |
@@ -85,7 +85,7 @@
 | PRC-23 | 填报并审批工时 | business |  | VS-01.2, VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6 | B-06 | revenue | draft | 是 |  |
 | PRC-24 | 暂停、恢复、终止或取消项目 | business |  | VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7 | B-04 | revenue | draft | 否 |  |
 | PRC-25 | 转入售前投入 | event_policy |  | VS-02.0, VS-04.1 | B-07 | finance | draft | 否 |  |
-| PRC-26 | 接收并确认发包人提供资料 | business |  | VS-02.0, VS-02.2, VS-02.3, VS-02.4 | B-28 | revenue | draft | 是 |  |
+| PRC-26 | 接收并确认发包人提供资料 | business |  | VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4 | B-28 | revenue | draft | 是 |  |
 | PRC-27 | 登记并处置项目风险与问题 | single_aggregate |  | VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7 | B-04 | revenue | draft | 否 |  |
 | PRC-28 | 编制、评审并签发交付物，送达并登记客户认可 | business |  | VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-03.5 | B-28 | revenue | user_confirmed | 是 |  |
 | PRC-29 | 签发到认可：交付物签发后送达与登记客户认可是同一交付物的连续步骤 | merged | PRC-28 |  |  | revenue | draft | 待定 |  |
@@ -94,7 +94,7 @@
 | PRC-32 | 申请并答复延期 | business |  | VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6 | B-04 | revenue | draft | 是 |  |
 | PRC-33 | 采集、关联并封存证据 | single_aggregate |  | VS-02.4, VS-02.7, VS-03.2, VS-04.2 | B-28 | revenue | draft | 否 |  |
 | PRC-34 | 处置我方成果不符合项 | business |  | VS-02.6, VS-02.7 | B-28 | revenue | draft | 否 |  |
-| PRC-35 | 项目或协议终止、结项后清算成本 | event_policy |  | VS-02.7, VS-04.5 | B-07 | finance | draft | 否 |  |
+| PRC-35 | 项目或协议终止、结项后清算成本 | event_policy |  | VS-02.7 | B-07 | finance | draft | 否 |  |
 | PRC-36 | 封存成果、结项并归档项目 | business |  | VS-02.7 | B-29 | revenue | draft | 是 |  |
 | PRC-37 | 回访客户满意度 | business |  | VS-02.7 | B-28 | revenue | draft | 否 |  |
 | PRC-38 | 编制并发布项目复盘 | business |  | VS-02.7 | B-04 | revenue | draft | 否 |  |
@@ -107,9 +107,9 @@
 | PRC-45 | 跟踪整改并复查闭合 | business |  | VS-03.4 | B-26 | revenue | draft | 是 |  |
 | PRC-46 | 采信外部检测报告 | business |  | VS-03.4 | B-26 | revenue | draft | 否 |  |
 | PRC-47 | 起草、评审并回签协议 | business |  | VS-04.1 | B-05 | revenue | draft | 是 |  |
-| PRC-48 | 提出并生效协议变更或签证 | business |  | VS-04.1 | B-05 | revenue | draft | 是 |  |
-| PRC-49 | 提出并认定索赔 | business |  | VS-04.1, VS-04.5 | B-05 | revenue | draft | 是 |  |
-| PRC-50 | 占用框架限额并提交任务订单 | business |  | VS-04.1 | B-05 | revenue | draft | 是 |  |
+| PRC-48 | 提出并生效协议变更或签证 | business |  | VS-04.6 | B-05 | revenue | draft | 是 |  |
+| PRC-49 | 提出并认定索赔 | business |  | VS-04.6, VS-04.5 | B-05 | revenue | draft | 是 |  |
+| PRC-50 | 占用框架限额并提交任务订单 | business |  | VS-04.6 | B-05 | revenue | draft | 是 |  |
 | PRC-51 | 建立并更新开票与收入额度 | event_policy |  | VS-04.1, VS-04.2, VS-04.3 | B-08 | revenue | draft | 否 |  |
 | PRC-52 | 开放可触发收入确认的证据类型 | single_aggregate |  | VS-04.2 | B-08 | revenue | draft | 否 |  |
 | PRC-53 | 确认收入 | event_policy |  | VS-04.2 | B-08 | revenue | draft | 否 |  |
@@ -229,10 +229,10 @@
 | PRC-167 | 编制并签字确认期初余额 | single_aggregate |  |  | B-20 | finance | draft | 否 |  |
 | PRC-168 | 发布口径版本 | single_aggregate |  |  | B-17 | finance | draft | 否 |  |
 | PRC-169 | 处置勾稽差异案 | single_aggregate |  | VS-10.1 | B-17 | finance | draft | 否 |  |
-| PRC-170 | 申请费用事前额度 | business |  | VS-08.2 | B-12 | finance | draft | 是 |  |
+| PRC-170 | 申请费用事前额度 | business |  | VS-08.0 | B-12 | finance | draft | 是 |  |
 | PRC-171 | 核对差旅服务商月账单并确认应付 | business |  | VS-05.4 | B-12 | finance | draft | 是 |  |
-| PRC-172 | 申请出差并同步差旅服务商 | business |  | VS-08.2 | B-12 | finance | draft | 是 |  |
-| PRC-173 | 审批差旅超标订单 | business |  | VS-05.2 | B-12 | finance | draft | 是 |  |
+| PRC-172 | 申请出差并同步差旅服务商 | business |  | VS-08.0 | B-12 | finance | draft | 是 |  |
+| PRC-173 | 审批差旅超标订单 | business |  | VS-08.0 | B-12 | finance | draft | 是 |  |
 | PRC-174 | 发布出差补贴标准版本 | single_aggregate |  |  | B-12 | finance | draft | 否 |  |
 | PRC-175 | 直接付款申请 | business |  | VS-05.5 | B-10 | finance | draft | 是 |  |
 | PRC-176 | 预付款核销 | single_aggregate |  | VS-05.4 | B-10 | finance | draft | 否 |  |

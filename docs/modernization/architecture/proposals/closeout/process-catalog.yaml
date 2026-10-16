@@ -237,8 +237,8 @@ processes:
   - id: PRC-26
     name: "接收并确认发包人提供资料"
     type: business
-    stages: [VS-02.0, VS-02.2, VS-02.3, VS-02.4]
-    stages_note: "理由：VS-02.2–.4 入口要求 OBJ-42 发包人资料「已提供」，VS-02.1 概念入口不要求，故不标 .1；概念阶段是否也应要求提资属阶段定义，单列交 one-architecture"
+    stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4]
+    stages_note: "VS-02.1 概念入口同 VS-02.2–.4 要求 OBJ-42 发包人资料「已提供」，补标 .1（SD-01 用户裁定 2026-10-16）"
     owner_bc: "B-28"
     group: revenue
     status: draft
@@ -322,7 +322,8 @@ processes:
   - id: PRC-35
     name: "项目或协议终止、结项后清算成本"
     type: event_policy
-    stages: [VS-02.7, VS-04.5]
+    stages: [VS-02.7]
+    stages_note: "按触发状态「项目已结项」归段；终止类结局不归段（SD-10 用户裁定 2026-10-16）"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -444,7 +445,7 @@ processes:
   - id: PRC-48
     name: "提出并生效协议变更或签证"
     type: business
-    stages: [VS-04.1]
+    stages: [VS-04.6]
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -453,8 +454,8 @@ processes:
   - id: PRC-49
     name: "提出并认定索赔"
     type: business
-    stages: [VS-04.1, VS-04.5]
-    stages_note: "理由：索赔在履约中提出、在最终价款确认时认定或并入结算；VS-04.2–.4（收入确认、开票、回款）与索赔无关。VS-04 在合同签订与最终价款确认之间没有「履约」阶段，是否补阶段属阶段定义，单列交 one-architecture"
+    stages: [VS-04.6, VS-04.5]
+    stages_note: "理由：索赔在履约（VS-04.6）中提出、在最终价款确认时认定或并入结算；VS-04.2–.4（收入确认、开票、回款）与索赔无关（SD-02 用户裁定 2026-10-16，增设 VS-04.6 履约）"
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -463,7 +464,7 @@ processes:
   - id: PRC-50
     name: "占用框架限额并提交任务订单"
     type: business
-    stages: [VS-04.1]
+    stages: [VS-04.6]
     owner_bc: "B-05"
     group: revenue
     status: draft
@@ -1580,8 +1581,8 @@ processes:
   - id: PRC-170
     name: "申请费用事前额度"
     type: business
-    stages: [VS-08.2]
-    stages_note: "暂挂「报销核定」：事前额度是报销核定的前置依据；VS-08 没有「事前申请」阶段，见待定 ST-1"
+    stages: [VS-08.0]
+    stages_note: "费用事前额度属「事前申请」（SD-03 用户裁定 2026-10-16）"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1602,8 +1603,8 @@ processes:
   - id: PRC-172
     name: "申请出差并同步差旅服务商"
     type: business
-    stages: [VS-08.2]
-    stages_note: "暂挂「报销核定」：出差申请是差旅报销与补贴的前置依据；见待定 ST-1"
+    stages: [VS-08.0]
+    stages_note: "出差申请属「事前申请」（SD-03 用户裁定 2026-10-16）"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1613,8 +1614,8 @@ processes:
   - id: PRC-173
     name: "审批差旅超标订单"
     type: business
-    stages: [VS-05.2]
-    stages_note: "超标订单审批发生在向差旅服务商下单时，是对外部资源的采购决定，挂「供方签约」；见待定 ST-1"
+    stages: [VS-08.0]
+    stages_note: "差旅超标订单审批属「事前申请」（SD-03 用户裁定 2026-10-16）"
     owner_bc: "B-12"
     group: finance
     status: draft
