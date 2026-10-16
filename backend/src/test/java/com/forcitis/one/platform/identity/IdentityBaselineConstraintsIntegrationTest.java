@@ -102,4 +102,13 @@ class IdentityBaselineConstraintsIntegrationTest extends IdentityIntegrationTest
         refused(() -> jdbc.sql("update platform_identity.user_accounts set last_login_at = null where employee_id = :e")
                 .param("e", com.forcitis.one.fixture.doubles.TestAccounts.employee(203).value()).update(), "ck_user_accounts_last_login");
     }
+
+    @Test
+    @DisplayName("DATA-REPAIR-identity ID-12 a last login address is 1 to 64 characters; empty and over-long are refused, a zone id is legal")
+    void id12AddressLength() {
+        refused(() -> insertAccount(205, "2026-10-16T08:00:00Z", ""), "ck_user_accounts_last_login_address");
+        refused(() -> insertAccount(206, "2026-10-16T08:00:00Z", "1".repeat(65)), "ck_user_accounts_last_login_address");
+        insertAccount(207, "2026-10-16T08:00:00Z", "1".repeat(64));
+        insertAccount(208, "2026-10-16T08:00:00Z", "fe80::1%eth0");
+    }
 }
