@@ -10088,17 +10088,21 @@ terms:
   zh: 商业承兑汇票
   en: CommercialAcceptanceBill
   snake: commercial_acceptance_bill
-  kind: aggregate
+  kind: entity
   bc: receivables.collection
-  definition: 客户以商业承兑汇票支付的票据，签收计入回款并单列，到期兑付时计现金流入（FD-40 推荐）；报表列应收票据
+  definition: 客户以商业承兑汇票支付的票据，作回款方式「商票」，加到期日与兑付状态，不单独成对象（内含于回款单）；签收计入回款并单列，到期兑付时计现金流入（FD-40 推荐）
   standard_ref:
   - 《中华人民共和国票据法》（汇票）；《商业汇票承兑、贴现与再贴现管理办法》（中国人民银行、原银保监会）；财会〔2019〕6 号（应收票据）
   confidence: medium
-  aliases: []
+  aliases:
+  - name: 商票
+    type: standard-zh
+    deprecated: true
+    source: 用户 2026-10-16 ADR-0048 确认页选推荐（intent 2026-10-16-090004，one-architecture）：商业汇票作收款方式「商票」，不单独成对象
   forbidden: []
   status: approved
   note: 用语确认第三轮转正式（R0 第三轮输入 N-commercial_acceptance_bill，R3-RN-41）
-  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；2026-10-15（用户，B2 类别判定）
+  confirmed: 2026-10-15（用户，用语确认第三轮）；2026-10-15（用户，B1 用语登记规则决策页）；2026-10-15（用户，B2 类别判定）；用户 2026-10-16 ADR-0048 确认页选推荐（intent 2026-10-16-090004，one-architecture）：商业汇票作收款方式「商票」，不单独成对象（用户裁定，rulings.yaml）
   scope: domain
 - id: aged_receivable
   zh: 账龄超 N 天应收

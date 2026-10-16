@@ -384,3 +384,21 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 | `round3_pending__qt` | 报价单据类型代码 | Qt | 领域 · platform.numbering | 第三轮用语确认（R3-NU-17）已定为：并入 document_type_code。代码与界面改名合入前保留旧写法。 |  | 代码仍用 Qt（main） |
 | `round3_pending__jv` | 记账凭证单据类型代码 | Jv | 领域 · platform.numbering | 第三轮用语确认（R3-NU-18）已定为：并入 document_type_code。代码与界面改名合入前保留旧写法。 |  | 代码仍用 Jv（main） |
 | `round3_pending__journal_voucher` | 会计凭证 | JournalVoucher | 领域 · accounting.voucher | 第三轮用语确认（R3-AP-26）已定为：记账凭证 / JournalVoucher（journal_voucher）。代码与界面改名合入前保留旧写法。 |  | 界面文字仍用「会计凭证」 |
+
+## `step3-objects.yaml`
+
+涉及模块：`delivery.acceptance`、`organization.workforce`、`receivables.collection`。
+
+信息图 ADR-0048 确认页（用户 2026-10-16 选推荐）带来的新用语：one-architecture 交，one-glossary 2026-10-16 查重后登记；争议状态与争议应收是否同义待用户裁定（待决定收件箱）。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `bill_redemption_status` | 兑付状态 | BillRedemptionStatus | 领域 · receivables.collection | 商业承兑汇票从收到到兑付的状态：收到 → 已兑付 / 逾期；到期日到而未兑付为逾期 |  | OBJ-35 之外：商票作回款方式、加到期日与兑付状态，不单独成对象 |
+| `bill_redemption_status__received` | 收到 | Received | 领域 · receivables.collection | 商业承兑汇票已收到，尚未到期兑付 |  |  |
+| `bill_redemption_status__redeemed` | 已兑付 | Redeemed | 领域 · receivables.collection | 商业承兑汇票到期已兑付，计现金流入（FD-40） |  |  |
+| `bill_redemption_status__overdue` | 已逾期 | BillOverdue | 领域 · receivables.collection | 商业承兑汇票到期日已过而未兑付；与应收账款的逾期（逾期应收）、审批任务的已超时不同 |  |  |
+| `receivable_disposition_category` | 往来款项处置分类 | ReceivableDispositionCategory | 领域 · receivables.collection | 应收、应付往来款项出现争议或无法正常收付时的处置分类，诉讼是其中一类；其余取值待 one-architecture 列出 |  | 取值清单待 one-architecture 补 |
+| `litigation` | 诉讼 | Litigation | 领域 · receivables.collection | 往来款项处置分类之一：已进入诉讼或仲裁程序 |  |  |
+| `continuing_education_hours` | 继续教育学时 | ContinuingEducationHours | 领域 · organization.workforce | 注册执业证书的属性：持证人在周期内已完成的继续教育学时，用于证书续期条件的判断 |  | 依据待核原文 |
+| `drawing_review_opinion` | 施工图审查意见 | DrawingReviewOpinion | 领域 · delivery.acceptance | 施工图审查机构对施工图出具的审查意见，作证据类型 |  | 随证据（Q29）暂不定的部分一并确认 |
+| `drawing_review_certificate` | 施工图审查合格书 | DrawingReviewCertificate | 领域 · delivery.acceptance | 施工图审查通过后出具的合格书，作证据类型 |  |  |
