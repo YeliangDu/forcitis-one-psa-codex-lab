@@ -51,10 +51,10 @@ show_tail() {
 # corepack picks pnpm from the nearest package.json at start-up, and only frontend/ names it; `pnpm -C frontend` would start at the root
 in_frontend() { (cd frontend && "$@"); }
 
-# Empty when the frontend can run here; otherwise the reason, which always says to ask the user (installing downloads packages, CLAUDE.md 9)
+# Empty when the frontend can run here; otherwise the reason. Installing from the local pnpm cache (--offline) downloads nothing and needs no asking; anything that downloads does (CLAUDE.md 9)
 frontend_missing() {
   if ! command -v pnpm >/dev/null; then echo "pnpm 未安装：需先问用户安装"; return; fi
-  if [ ! -d frontend/node_modules ]; then echo "前端依赖未安装：需先问用户安装（pnpm install --frozen-lockfile 会下载包）"; return; fi
+  if [ ! -d frontend/node_modules ]; then echo "前端依赖未安装：先在 frontend/ 运行 pnpm install --frozen-lockfile --offline（只用本机缓存、不下载）；缓存缺包而失败时，再问用户是否联网安装"; return; fi
   if ! node --version 2>/dev/null | grep -q '^v24\.'; then echo "Node $(node --version 2>/dev/null) found, CI uses Node 24：需先问用户安装"; fi
 }
 
