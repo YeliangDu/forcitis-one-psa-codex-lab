@@ -3,6 +3,9 @@ package com.forcitis.one.cost.timesheet.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
 import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.fixture.doubles.TestAccounts;
@@ -16,6 +19,7 @@ import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 class TimesheetRuleVersionTest {
 
@@ -44,5 +48,27 @@ class TimesheetRuleVersionTest {
                 TimesheetStatus.APPROVED, 1, TODAY, 3, 2);
 
         assertThat(migrated.numberingRuleVersionId()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("TS-UNIQ 新建路径取不到版本 ID 时记 ALERT 日志，日志不含个人信息")
+    void aMissingRuleVersionRaisesAnAlertWithoutPersonalData() {
+        Logger logger = (Logger) LoggerFactory.getLogger(Timesheet.class);
+        ListAppender<ILoggingEvent> logged = new ListAppender<>();
+        logged.start();
+        logger.addAppender(logged);
+        try {
+            assertThatThrownBy(() -> draftedWith(null)).isInstanceOf(IllegalStateException.class);
+        } finally {
+            logger.detachAppender(logged);
+        }
+
+        assertThat(logged.list).singleElement().satisfies(event -> {
+            assertThat(event.getFormattedMessage()).startsWith("ALERT");
+            assertThat(event.getFormattedMessage()).contains(TestIds.uuid(7).toString())
+                    .doesNotContain(TestAccounts.employee(30).value().toString())
+                    .doesNotContain(TestAccounts.employee(40).value().toString())
+                    .doesNotContain("TS-ABC-202610-0007");
+        });
     }
 }
