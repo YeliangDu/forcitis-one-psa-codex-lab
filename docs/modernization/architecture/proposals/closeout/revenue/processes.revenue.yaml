@@ -8939,12 +8939,12 @@ processes:
     branch: 发放
     command: 创建应收
     aggregate: AGG-49
-    desc: 员工借款走 OBJ-85「其他应收：员工借款」，INV-76 只限销售应收；审批通过后创建应收并向 B-10 发起借款付款（M12）
+    desc: 员工借款走 OBJ-85「其他应收：员工借款」，INV-76 只限销售应收；审批通过后创建应收并经 B-10「发起付款」（AGG-53，付款用途为员工借款）发起借款付款（M12）
     cross_bc:
     - mode: api
       direction: out
       bc: B-10
-      name: 发起借款付款
+      name: 发起付款（付款用途：员工借款）
     - mode: event
       direction: in
       bc: platform.approval
@@ -8962,12 +8962,13 @@ processes:
     branch: 发放
     evidence:
     - 借款付款银行回单（由 B-10 付款登记，回传借款付款已成功）
-    desc: 借款付款由 B-10 经银行执行，B-09 订阅结果
+    desc: 订阅 B-10「付款已成功」，只处理付款用途为员工借款的（S-42 接缝；原写「借款付款已成功」）
     cross_bc:
     - mode: event
       direction: in
       bc: B-10
-      name: 借款付款已成功
+      name: 付款已成功
+      filter: 付款用途 = 员工借款，按应收 ID 关联
     gap: 命令缺口：B-09 订阅 B-10「借款付款已成功」后无记录命令（聚合稿 AGG-49 仅在依赖列写事件，命令列无对应），见 NOTES 新用语·命令缺口
     wait:
       typical_h: 4
@@ -9086,7 +9087,7 @@ processes:
     where: automatic
     platform_task: true
     branch: 到期催还
-    desc: 借款到期仍有未结余额：提醒借款人与财务催还；逾期超过期限的转工资扣回（与薪酬模块的对接是拟规则，NOTES 待用户定）
+    desc: 借款到期仍有未结余额：提醒借款人与财务催还；逾期超过期限的登记争议与处置（PRC-61 同口径），不从工资代扣（Q24，工资支付暂行规定第 15、16 条；审题 VS04-22）
     decision:
     - when: otherwise
       goto: end
@@ -9925,7 +9926,13 @@ processes:
     rule: 登记退还与导入银行流水不得为同一人
   triggers:
   - type: event
-    name: 投标保证金待退还（PRC-08 发出的信号事件，拆分后与 PRC-08 以信号衔接，不用调用活动）
+    name: 投标未中标
+    publisher: B-03
+  - type: event
+    name: 投标已废标
+    publisher: B-03
+  - type: event
+    name: 投标已撤销
     publisher: B-03
   outcomes:
   - 保证金已退
@@ -9969,7 +9976,7 @@ processes:
     reads:
     - AGG-51
     - AGG-11
-    desc: 读投标保证金与投标结果；退还与没收互斥各只一次（INV-20），已退或已没收的不再退还
+    desc: 订阅 PRC-08 发出的投标未中标、已废标、已撤销（S-42 接缝）；读投标保证金与投标结果；退还与没收互斥各只一次（INV-20），已退或已没收的不再退还
     decision:
     - when: 保证金未缴，或已退还、已没收
       goto: end
@@ -9983,7 +9990,15 @@ processes:
     - mode: event
       direction: in
       bc: B-03
-      name: 投标保证金待退还
+      name: 投标未中标
+    - mode: event
+      direction: in
+      bc: B-03
+      name: 投标已废标
+    - mode: event
+      direction: in
+      bc: B-03
+      name: 投标已撤销
     - mode: api
       direction: out
       bc: B-03
