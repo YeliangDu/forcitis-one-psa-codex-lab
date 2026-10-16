@@ -8,11 +8,11 @@
 --
 -- 新系统怎么用它：
 --   * 连接配置只走环境变量，不写进仓库：
---       FORCITIS_PLATFORM_APPROVAL_LEGACY_URL      jdbc:sqlserver://<host>:1433;databaseName=ruoyi-vue-pro;encrypt=true
---       FORCITIS_PLATFORM_APPROVAL_LEGACY_USERNAME psa_one_legacy_ro
---       FORCITIS_PLATFORM_APPROVAL_LEGACY_PASSWORD （由 DBA 生成，放密钥服务，不进任何文件）
---       FORCITIS_PLATFORM_APPROVAL_LEGACY_VIEW_NAME（可选，默认 dbo.v_psa_one_legacy_todo）
---       FORCITIS_PLATFORM_APPROVAL_LEGACY_DETAIL_URL_TEMPLATE  老系统详情页，含 {processInstanceId} 与 {taskId} 占位符
+--       FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL      jdbc:sqlserver://<host>:1433;databaseName=ruoyi-vue-pro;encrypt=true
+--       FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_USERNAME psa_one_legacy_ro
+--       FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_PASSWORD （由 DBA 生成，放密钥服务，不进任何文件）
+--       FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_VIEW_NAME（可选，默认 dbo.v_psa_one_legacy_todo）
+--       FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_DETAIL_URL_TEMPLATE  老系统详情页，含 {processInstanceId} 与 {taskId} 占位符
 --   * 新系统每次打开待办都查询一次，不缓存（约每天 540 次）。
 --   * 新系统启动时核对：该账号能 SELECT 的对象必须【恰好只有本视图】，否则拒绝启动（I-1：令牌表等一律不授权）。
 --

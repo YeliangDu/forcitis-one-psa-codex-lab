@@ -12,7 +12,7 @@
 | `emergency-totp-key` | `EMERGENCY_TOTP_ENCRYPTION_KEY` | 365 天 | 手工；须先用新钥重新加密已存 TOTP 密钥（需代码提供重加密命令） |
 | `ticket-key-<kid>` | `FORCITIS_TICKET_KEY_<KID>` | 180 天 | 双钥过渡：新 kid 上线 → 签发方切换 → 旧 kid 下线 |
 | `a8-views-ro` | `A8_DB_PASSWORD` | 90 天 | 手工，由 A8 DBA 改口令 |
-| `legacy-inbox-ro` | `FORCITIS_PLATFORM_APPROVAL_LEGACY_PASSWORD` | 90 天 | 手工，老系统 DBA |
+| `legacy-inbox-ro` | `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_PASSWORD` | 90 天 | 手工，老系统 DBA |
 | `legacy-names-ro` | `LEGACY_DB_RO_PASSWORD` | 90 天 | 手工，老系统 DBA |
 | `evidence-ro` | `EVIDENCE_DB_PASSWORD`（`/etc/forcitis-one/evidence.env`，不在 `one.env`） | 90 天 | 手工：以 RDS 高权限账号 `ALTER LOGIN [one_evidence_ro] WITH PASSWORD`，口令在服务器端生成、只经密文（同 `handoff/B-5-dba/tools/b5_evidence_run.py`）；应用不用此口令，轮换无须重启 |
 | `alert-webhooks` | C-7 的群机器人 Webhook | 泄露时 | 手工 |
