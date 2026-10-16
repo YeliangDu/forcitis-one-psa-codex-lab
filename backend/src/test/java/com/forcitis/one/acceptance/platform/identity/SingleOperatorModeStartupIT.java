@@ -32,6 +32,11 @@ class SingleOperatorModeStartupIT {
         return SingleOperatorModeEnvironment.launch(SingleOperatorModeEnvironment.residentArguments("dev", database, user, mode, SingleOperatorModeEnvironment.freePort(), false));
     }
 
+    /** For a start that is expected to succeed and is not asked about its port: the system picks the port, so no other process can have taken it. */
+    private static Outcome residentUp(String database, String user, String mode) throws Exception {
+        return SingleOperatorModeEnvironment.launch(SingleOperatorModeEnvironment.residentArguments("dev", database, user, mode, 0, false));
+    }
+
     private static void assertRefusedByTheCheck(Outcome outcome) {
         assertThat(outcome.started()).as(outcome.output()).isFalse();
         assertThat(outcome.exitCode()).as(outcome.output()).isNotZero();
@@ -63,7 +68,7 @@ class SingleOperatorModeStartupIT {
     @Test
     @DisplayName("SINGLE-OP P1-13 库名与会话用户都满足时启动通过")
     void p113_rightDatabaseAndUserStarts() throws Exception {
-        Outcome outcome = resident(DEV_DATABASE, DEV_USER, "true");
+        Outcome outcome = residentUp(DEV_DATABASE, DEV_USER, "true");
 
         assertThat(outcome.started()).as(outcome.output()).isTrue();
     }
@@ -72,11 +77,11 @@ class SingleOperatorModeStartupIT {
     @DisplayName("SINGLE-OP P1-13 模式关闭（键为 false 或未设置）时不做这两项检查：库名 forcitis_one_prod 的环境照常启动")
     void p113_modeOffDoesNotCheckTheDatabase() throws Exception {
         for (String mode : new String[] {"false", null}) {
-            Outcome outcome = resident(PROD_DATABASE, DEV_USER, mode);
+            Outcome outcome = residentUp(PROD_DATABASE, DEV_USER, mode);
 
             assertThat(outcome.started()).as("mode=%s: %s", mode, outcome.output()).isTrue();
         }
-        Outcome otherUser = resident(DEV_DATABASE, SingleOperatorModeEnvironment.OTHER_USERS.getFirst(), "false");
+        Outcome otherUser = residentUp(DEV_DATABASE, SingleOperatorModeEnvironment.OTHER_USERS.getFirst(), "false");
         assertThat(otherUser.started()).as(otherUser.output()).isTrue();
     }
 
@@ -118,7 +123,7 @@ class SingleOperatorModeStartupIT {
     @DisplayName("SINGLE-OP P1-16 模式开启时每次启动写一行固定文本的 WARN 日志，含激活 profile、数据库名与「ADR-0030」")
     void p116_warnLineWhenOn() throws Exception {
         for (int start = 1; start <= 2; start++) {
-            Outcome outcome = resident(DEV_DATABASE, DEV_USER, "true");
+            Outcome outcome = residentUp(DEV_DATABASE, DEV_USER, "true");
 
             assertThat(outcome.started()).as(outcome.output()).isTrue();
             List<String> warnings = outcome.lines().stream().filter(line -> line.contains("ADR-0030")).toList();
@@ -131,7 +136,7 @@ class SingleOperatorModeStartupIT {
     @DisplayName("SINGLE-OP P1-16 模式关闭时没有这行（键为 false 与未设置）")
     void p116_noWarnLineWhenOff() throws Exception {
         for (String mode : new String[] {"false", null}) {
-            Outcome outcome = resident(DEV_DATABASE, DEV_USER, mode);
+            Outcome outcome = residentUp(DEV_DATABASE, DEV_USER, mode);
 
             assertThat(outcome.started()).as(outcome.output()).isTrue();
             assertThat(outcome.output()).doesNotContain("ADR-0030");
@@ -144,7 +149,7 @@ class SingleOperatorModeStartupIT {
         long before = enabledEntries(null);
 
         for (int start = 1; start <= 2; start++) {
-            Outcome outcome = resident(DEV_DATABASE, DEV_USER, "true");
+            Outcome outcome = residentUp(DEV_DATABASE, DEV_USER, "true");
 
             assertThat(outcome.started()).as(outcome.output()).isTrue();
             assertThat(enabledEntries(null)).as("after start %d", start).isEqualTo(before + start);
@@ -158,7 +163,7 @@ class SingleOperatorModeStartupIT {
         long before = enabledEntries(null);
 
         for (String mode : new String[] {"false", null}) {
-            Outcome outcome = resident(DEV_DATABASE, DEV_USER, mode);
+            Outcome outcome = residentUp(DEV_DATABASE, DEV_USER, mode);
 
             assertThat(outcome.started()).as(outcome.output()).isTrue();
         }

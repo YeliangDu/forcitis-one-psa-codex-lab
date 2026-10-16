@@ -61,10 +61,10 @@ class SingleOperatorModeFailClosedIT {
     @DisplayName("SINGLE-OP P1-17 启动审计写入失败则拒绝启动：库连接默认只读，库名与用户都满足判据；值为 true 时进程退出码非 0、无 Started、端口无监听；对照：键为 false 的同一环境正常启动")
     void p117_failedAnnouncementAuditRefusesTheStart() throws Exception {
         Outcome warmUp = SingleOperatorModeEnvironment.launch(SingleOperatorModeEnvironment.residentArguments("dev", DEV_DATABASE, DEV_USER, "false",
-                SingleOperatorModeEnvironment.freePort(), false));
+                0, false));
         assertThat(warmUp.started()).as("the process engine's tables exist before the read-only account starts: " + warmUp.output()).isTrue();
         Outcome control = SingleOperatorModeEnvironment.launch(SingleOperatorModeEnvironment.residentArguments("dev", DEV_DATABASE, READ_ONLY_USER, "false",
-                SingleOperatorModeEnvironment.freePort(), false));
+                0, false));
         assertThat(control.started()).as("the read-only account can start with the mode off, so a refusal below is the announcement's: " + control.output()).isTrue();
 
         int port = SingleOperatorModeEnvironment.freePort();
