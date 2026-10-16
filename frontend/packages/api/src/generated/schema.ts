@@ -3365,6 +3365,7 @@ export interface operations {
                 sourceAddress?: string;
                 outcome?: components["schemas"]["AuditOutcome"];
                 subjectKind?: components["schemas"]["AuditSubjectKind"];
+                /** @description Id of the audited object. Must be given together with subjectKind: subjectId alone answers 400, because one id can name several kinds of object; kinds without an object (REQUEST, OPERATION, LOGIN_ATTEMPT) take no subjectId. */
                 subjectId?: string;
                 from?: string;
                 to?: string;
@@ -3403,6 +3404,7 @@ export interface operations {
                 actorId?: string;
                 action?: string;
                 subjectKind?: components["schemas"]["AuditSubjectKind"];
+                /** @description Id of the audited object. Must be given together with subjectKind: subjectId alone answers 400, because one id can name several kinds of object; kinds without an object (REQUEST, OPERATION, LOGIN_ATTEMPT) take no subjectId. */
                 subjectId?: string;
                 from?: string;
                 to?: string;

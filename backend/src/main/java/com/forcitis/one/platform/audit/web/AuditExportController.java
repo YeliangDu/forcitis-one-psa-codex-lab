@@ -6,6 +6,7 @@ import com.forcitis.one.platform.audit.application.AuditExport;
 import com.forcitis.one.platform.audit.application.AuditSearch;
 import com.forcitis.one.platform.audit.application.ExportAuditEntries;
 import java.nio.charset.StandardCharsets;
+import io.swagger.v3.oas.annotations.Parameter;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -33,7 +34,7 @@ class AuditExportController {
     @GetMapping(path = "/audit-entries:export")
     @PreAuthorize("hasAuthority('" + AuditPermissions.ENTRY_EXPORT + "')")
     ResponseEntity<byte[]> export(@RequestParam(required = false) UUID actorId, @RequestParam(required = false) String action,
-                                  @RequestParam(required = false) AuditSubjectKind subjectKind, @RequestParam(required = false) UUID subjectId,
+                                  @RequestParam(required = false) AuditSubjectKind subjectKind, @Parameter(description = "Id of the audited object. Must be given together with subjectKind: subjectId alone answers 400, because one id can name several kinds of object; kinds without an object (REQUEST, OPERATION, LOGIN_ATTEMPT) take no subjectId.") @RequestParam(required = false) UUID subjectId,
                                   @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
                                   @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to, UserId caller) {
         AuditExport result = export.execute(new AuditSearch(actorId, null, action, null, subjectKind, subjectId, null, null, from, to, null), caller);
