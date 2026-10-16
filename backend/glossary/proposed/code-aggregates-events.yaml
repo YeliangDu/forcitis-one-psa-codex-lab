@@ -91,7 +91,6 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 类名 Cancelled 与「撤销审批」略不符，类名是否改为 ApprovalWithdrawn 之类待确认
 - id: timesheet_rejected
   zh: 工时单已驳回
   en: TimesheetRejected
@@ -796,7 +795,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 聚合 SourceReferenceRefusal；类名 RegistrationRefused 与聚合名有重复
+  note: 聚合 SourceReferenceRefusal
 - id: source_reference_rejected
   zh: 来源对照已拒绝
   en: SourceReferenceRejected
