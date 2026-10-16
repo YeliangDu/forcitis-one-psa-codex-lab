@@ -94,7 +94,7 @@ def main():
     print(re.sub(r'ENC:[A-Za-z0-9+/=]+', 'ENC:<ciphertext>', out))
     if st != 'Success':
         raise SystemExit('apply or verify failed; see output above (nothing written to one.env)')
-    secrets = dict(re.findall(r'^\s*\S+ \| (FORCITIS_PLATFORM_APPROVAL_LEGACY_PASSWORD|LEGACY_DB_RO_PASSWORD) \| ENC:([A-Za-z0-9+/=]+)', out, re.M))
+    secrets = dict(re.findall(r'^\s*\S+ \| (FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_PASSWORD|LEGACY_DB_RO_PASSWORD) \| ENC:([A-Za-z0-9+/=]+)', out, re.M))
     if len(secrets) != 2:
         raise SystemExit('expected two encrypted secrets in the apply output')
 
@@ -107,12 +107,12 @@ def main():
               + put(f'{ONE_WORK}/logintest.pub', logintest_pub)
               + ''.join(put(f'{ONE_WORK}/{k}.enc', v) for k, v in secrets.items()) + dec
               + f'E=/etc/forcitis-one/one.env\n'
-              f'dec {ONE_WORK}/FORCITIS_PLATFORM_APPROVAL_LEGACY_PASSWORD.enc | python3 {ONE_WORK}/set_env.py $E FORCITIS_PLATFORM_APPROVAL_LEGACY_PASSWORD '
-              f'"FORCITIS_PLATFORM_APPROVAL_LEGACY_URL={LEGACY_URL}" FORCITIS_PLATFORM_APPROVAL_LEGACY_USERNAME=psa_one_legacy_ro\n'
+              f'dec {ONE_WORK}/FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_PASSWORD.enc | python3 {ONE_WORK}/set_env.py $E FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_PASSWORD '
+              f'"FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL={LEGACY_URL}" FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_USERNAME=psa_one_legacy_ro\n'
               f'dec {ONE_WORK}/LEGACY_DB_RO_PASSWORD.enc | python3 {ONE_WORK}/set_env.py $E LEGACY_DB_RO_PASSWORD '
               f'"LEGACY_DB_RO_URL={LEGACY_URL}" LEGACY_DB_RO_USERNAME=one_legacy_names_ro "A8_DB_URL={A8_URL}"\n'
               "stat -c '%U:%G %a %n' $E\n"
-              'echo "INBOX:$(dec ' + f'{ONE_WORK}/FORCITIS_PLATFORM_APPROVAL_LEGACY_PASSWORD.enc | enc)"\n'
+              'echo "INBOX:$(dec ' + f'{ONE_WORK}/FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_PASSWORD.enc | enc)"\n'
               'echo "NAMES:$(dec ' + f'{ONE_WORK}/LEGACY_DB_RO_PASSWORD.enc | enc)"\n'
               f'rm -rf {ONE_WORK}\n')
     invoke, st, code, out = run(ONE_SERVER, script)

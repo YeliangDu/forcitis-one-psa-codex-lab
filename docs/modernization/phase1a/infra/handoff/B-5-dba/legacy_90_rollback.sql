@@ -1,5 +1,5 @@
 -- FORCITIS one · B-5 · 老系统库回滚：删除两个专用账号与两个视图。不触碰任何老表。
--- 先让运维清空 one.env 中的 FORCITIS_PLATFORM_APPROVAL_LEGACY_URL（合并待办只显示新待办）并关闭
+-- 先让运维清空 one.env 中的 FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL（合并待办只显示新待办）并关闭
 -- INTEGRATION_LEGACY_ENABLED、WORKFORCE_SHORT_NAME_ENABLED，重启应用后再执行。
 -- 用法：sqlcmd -S <老系统 RDS 内网地址> -d ruoyi-vue-pro -U <高权限账号> -b -i legacy_90_rollback.sql
 :setvar INBOX_LOGIN psa_one_legacy_ro
