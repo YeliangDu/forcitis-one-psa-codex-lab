@@ -116,6 +116,135 @@
 - 验收要点：模拟删除失败，日志与表中均无异常原文；`ProcessArchiveJobIT` 对应断言单列理由。
 - 依据：门禁 O8、C4；§2.4a-5；O-3。
 
+- **数据设计（PR-6：AP-01..05、AP-08，one-1a-next-5 补，待 one-data 签）**（基线：`origin/main` 4d0b7c34；下文行号取该基线；「基线」＝`platform_approval/V20261014132000__platform_approval_baseline.sql`；Java 路径省略前缀 `backend/src/main/java/com/forcitis/one/platform/approval/`，测试路径省略前缀 `backend/src/test/java/com/forcitis/one/`；本节只做文档核实，未在库内执行 DDL，未跑测试）
+  - **范围与顺序**：AP-06、AP-07 并入 DA-10，AP-09 起归 PR-7，均不在本 PR。同一 PR 分两个提交：提交 A（AP-01 的 Java 与测试，不含 DDL）先于提交 B（全部 DDL 与夹具），保证 CHECK 不早于删分支。无新增列、无新术语，只新增具名约束、触发器、外键；按 ADR-0038 直接改基线，已部署库重建。
+  - **① AP-01　驳回、退回、撤销须有原因**
+    - 核实（对卡中「待核」的结论）：
+      1. `hookDecidesReason` 在 `application/DecideTasks.java:106-108`；`validateShape` 对所有 REJECT 决定一视同仁，不看 `view.advisory()`（:124 才分流），故删分支后加签人驳回自然须原因，无需另加分支。
+      2. 域内不拦：`ApprovalRequest.completeTask`（`domain/ApprovalRequest.java:206-212`）、`ApprovalTask.complete`（`domain/ApprovalTask.java:124-134`）、`ApprovalRequest.end`（:286-296）都不校验原因；现靠应用层保证：`DecideTasks:107`、`ReturnToInitiator:41-43`、`Retraction:91` 与 `ApprovalRequest.requireWithdrawable:283`、`RefuseApprovalStart:42`（`new Reason`）。加 CHECK 后违规会变成库错误（500），故在域内补校验（见 Java）。
+      3. 卡所问「撤销、撤回类 `action_kind` 是否存在」：不存在。`api/TaskRecordAction.java` 九个取值无撤销/撤回；`withdraw`/`cancel` 走 `end()`，只关任务、不写办理记录（:286-296 无 `note`）。办理记录 CHECK 因此只含 REJECTED、RETURNED、TRANSFERRED、REASSIGNED（后两者 `requireReason`：`ApprovalRequest.java:186,196`）。
+      4. 加签人驳回写的记录 `action_kind` 是 ADVISED（:210），而 ADVISED 也可能是加签人通过（无原因），记录表不能按 ADVISED 约束；加签人驳回的原因由 `approval_tasks` 的 `outcome_kind='REJECTED'` 条件兜住（`complete` 对加签人也写 `outcome=REJECTED`，:128-130）。
+      5. 状态机 `REJECTED/CANCELLED → RUNNING` 保留（:66-67）；`restart` 先置 `resultReason=null` 再发新轮（:134），库层更新同一语句写 `status='RUNNING', result_reason=NULL`（`infrastructure/persistence/JdbcApprovalRequestRepository.java:185`），CHECK 相容。
+    - Java：`DecideTasks.validateShape` 删 :106 的 `hookDecidesReason` 与 :107 的 `&& !hookDecidesReason`（保留 `HookGate`、`TaskView.beforeHookKey`，钩子仍可拦截，只是不能替人免填）；`ApprovalRequest.completeTask` 在 `outcome != APPROVED` 时 `requireReason(reason, "A rejection or a return")`，`end()` 在目标为 REJECTED/RETURNED/CANCELLED 时 `requireReason`。均抛现有 `PLATFORM_APPROVAL_REASON_REQUIRED`，不新增错误码。
+    - DDL（三列均加 `<> ''`：`Reason` 在 Java 侧已禁空白，库层补空串）：
+      ```sql
+      -- approval_requests（表级）
+      CONSTRAINT ck_approval_requests_result_reason CHECK (
+          (status IN ('REJECTED', 'RETURNED', 'CANCELLED')) = (result_reason IS NOT NULL)
+          AND (result_reason IS NULL OR result_reason <> ''))
+      -- approval_task_records（表级）
+      CONSTRAINT ck_approval_task_records_record_reason CHECK (
+          (action_kind NOT IN ('REJECTED', 'RETURNED', 'TRANSFERRED', 'REASSIGNED') OR record_reason IS NOT NULL)
+          AND (record_reason IS NULL OR record_reason <> ''))
+      -- approval_tasks（表级，单向，不带 effect_kind 条件）
+      CONSTRAINT ck_approval_tasks_result_reason CHECK (
+          (outcome_kind IS NULL OR outcome_kind NOT IN ('REJECTED', 'RETURNED') OR result_reason IS NOT NULL)
+          AND (result_reason IS NULL OR result_reason <> ''))
+      ```
+      三列注释补「为空表示」：`approval_requests.result_reason` 改为「驳回、退回、撤销的原因；为空表示状态为运行中或已通过」，`approval_tasks.result_reason` 为「办理意见……；为空表示没填（通过时可不填，驳回、退回必填）」，`approval_task_records.record_reason` 同口径。
+    - 测试：新增 `platform/approval/ApprovalRowConstraintsIT`（`@DisplayName` 前缀 `DATA-REPAIR-approval AP-nn`，不进 `acceptance/` 目录）：先写「钩子节点无原因驳回应 422」，再删分支；直插 REJECTED/RETURNED/CANCELLED 无原因被拒、RUNNING/APPROVED 带原因被拒、空串被拒；加签人（`CountersignIT` 夹具）无原因驳回 422；`REJECTED → RUNNING`、`CANCELLED → RUNNING` 再发起通过（沿用 `IdempotentStartIT.whichEndedApprovalsMayStartAgain`）；`ApprovalTaskStateMachineTest`、`ApprovalRequestStateMachineTest` 各加域内「无原因被拒」一例（现有 `completeTask` 调用 `ApprovalTaskStateMachineTest:100,166,175,180,192,196,235` 均为 APPROVED 或带原因，不受影响）。
+    - 改断言与夹具的逐处理由：
+      - `platform/approval/BeforeHookIT.java:203-212` `rejectionReasonCanBeLeftToTheHook`：现断言「钩子节点无原因驳回成功、状态 REJECTED」，与用户 2026-10-16「删掉免填放行」直接冲突，**反转断言**（改名 `rejectionWithoutReasonIsRefusedEvenWhenTheNodeHasAHook`：抛 `PLATFORM_APPROVAL_REASON_REQUIRED`、`hook.calls` 为空、请求仍 RUNNING）；PR 与报告单列。
+      - `platform/approval/IdempotentStartIT.java:192`（`update … set status = ?` 把请求置 RETURNED/REJECTED/CANCELLED）与 `platform/approval/AggregateConcurrencyIT.java:95`（置 CANCELLED）：新 CHECK 要求同时写原因，夹具 SQL 加 `result_reason = 'synthetic: ended'`；断言不动。
+      - `IdempotentStartIT:200` 置 APPROVED 不带原因，合法，不改。
+  - **② AP-02　`approval_tasks` 成对约束（两个坑已避开）**
+    - 核实（逐条对 `domain/ApprovalTask.java` 全部写路径；状态机只有 PENDING/CLAIMED 有出边，COMPLETED/CLOSED 为终态，:22-25）：
+      - PENDING ⇒ 无处理人无认领时刻：`assigned` 不赋值（:59-62）；`release` 清空（:96-101）；`escalate` 回 PENDING 清空（:148-159）；`reassign` 经 PENDING 立即转 CLAIMED（:112-122）。成立。CLOSED 不清（`close` 只 `move`，:136-138），故不对 CLOSED 写（坑 1）。
+      - 结果三件套：`complete` 同时写 `outcome`、`effect`（:128-129）；`passedBySystem` 同时写（:69-70）。同空同非空成立。
+      - AUTOMATIC ⇒ APPROVED：仅 `passedBySystem` 产生，固定 APPROVED（:69-70）。成立；AUTOMATIC 无 `claimed_at`、无 hash，故不写「COMPLETED ⇒ claimed_at」（坑 2）。
+      - `approved_hash` 仅在 `APPROVED && !advisory` 时写（:131-133），即 effect=BINDING。成立（单向）。
+      - `overdue_at` ⇒ `due_at`：`markOverdue` 要求 `deadline != null`（:141），`due_at` 随 `deadline` 写（`JdbcApprovalRequestRepository.java:212`）；`escalated_at` ⇒ `overdue_at`：`escalate` 要求 `overdueAt != null`（:149）。成立。
+      - 「非 COMPLETED ⇒ 办结字段全空」（卡上原标待核）：已核实可落——`completedAt`、`outcome`、`effect`、`resultReason`、`approvedHash` 只在 `complete`/`passedBySystem` 写，`close()` 不写；`complete` 先 `move(COMPLETED)` 后赋值（:126-130）。落。
+    - DDL（表级，名称 `ck_approval_tasks_<规则>`）：
+      ```sql
+      CONSTRAINT ck_approval_tasks_pending_unassigned CHECK (status <> 'PENDING' OR (assignee_id IS NULL AND claimed_at IS NULL)),
+      CONSTRAINT ck_approval_tasks_outcome_effect CHECK ((outcome_kind IS NULL) = (effect_kind IS NULL)),
+      CONSTRAINT ck_approval_tasks_automatic CHECK (effect_kind IS DISTINCT FROM 'AUTOMATIC' OR outcome_kind = 'APPROVED'),
+      CONSTRAINT ck_approval_tasks_approved_hash CHECK (approved_hash IS NULL OR (outcome_kind = 'APPROVED' AND effect_kind = 'BINDING')),
+      CONSTRAINT ck_approval_tasks_overdue CHECK (overdue_at IS NULL OR due_at IS NOT NULL),
+      CONSTRAINT ck_approval_tasks_escalated CHECK (escalated_at IS NULL OR overdue_at IS NOT NULL),
+      CONSTRAINT ck_approval_tasks_not_completed CHECK (status = 'COMPLETED' OR (completed_at IS NULL AND outcome_kind IS NULL
+          AND effect_kind IS NULL AND result_reason IS NULL AND approved_hash IS NULL))
+      ```
+    - Java：无。测试：`ApprovalRowConstraintsIT` 每条一例违反行被拒；正例走既有路径回归（认领、释放、升级、关闭、自动通过 `RepeatApproverIT`、加签 `CountersignIT`）。
+    - 夹具：`platform/approval/ApprovalDeadlineIT.java:98` 置 CLOSED（保留处理人，合法）、`:359` 置 PENDING 且清 `completed_at`（该任务在 `scene(true)` 里未认领，`assignee_id`、`claimed_at` 本为空，合法）；均不改。
+  - **③ AP-03　三处 `instance_id` 外键、`current_instance_id` 非空、`current_round >= 1`**
+    - 核实：`start_rounds.instance_id` 是 `uuid`（基线 :47），且有 `uk_start_rounds_instance_id UNIQUE (instance_id)`（:53）→ 属「仅由 uuid 列组成的唯一约束」，按 one-architecture 判定直接作外键目标，不走 AP-17 的 CHECK 路线。三个引用列均为 `uuid`（:11、:69、:134）。
+    - 写入次序（决定哪条外键须延迟）：`save`（`JdbcApprovalRequestRepository.java:100-131`）先写或更新请求（含 `current_instance_id`）→ 再插 `start_rounds`（:107-116）→ 再写任务 → 再写办理记录。故 `approval_requests` 一侧须 `DEFERRABLE INITIALLY DEFERRED`，任务与办理记录两侧立即检查即可。`start_rounds` 无更新删除（AP-05 后由触发器保证），外键共享锁不与 `lockForStart`（:65 咨询锁）冲突。同类先例：workforce 基线 :463-468。
+    - `current_round`：`ApprovalRequest.begin` 固定从 1 起（`domain/ApprovalRequest.java:112`），`restart` 递增（:130），无写 0 的路径。`current_instance_id`：构造即 `requireNonNull`（:99），`readRow`（`JdbcApprovalRequestRepository.java:270`）经 `ApprovalInstanceId` 的 `Uuids.requireKey` 拒空，无须改 Java。
+    - DDL：
+      ```sql
+      -- approval_requests 建表处
+      current_round       integer     NOT NULL,
+      current_instance_id uuid        NOT NULL,
+      CONSTRAINT ck_approval_requests_current_round CHECK (current_round >= 1),
+      CREATE UNIQUE INDEX uk_approval_requests_current_instance_id ON platform_approval.approval_requests (current_instance_id);  -- 去掉 WHERE
+      -- start_rounds 建表之后追加
+      ALTER TABLE platform_approval.approval_requests ADD CONSTRAINT fk_approval_requests_current_instance_id
+          FOREIGN KEY (current_instance_id) REFERENCES platform_approval.start_rounds (instance_id) DEFERRABLE INITIALLY DEFERRED;
+      -- approval_tasks、approval_task_records 表内
+      CONSTRAINT fk_approval_tasks_instance_id FOREIGN KEY (instance_id) REFERENCES platform_approval.start_rounds (instance_id),
+      CONSTRAINT fk_approval_task_records_instance_id FOREIGN KEY (instance_id) REFERENCES platform_approval.start_rounds (instance_id),
+      ```
+      注释：`current_round` 去掉「0 表示刚建立、尚未发起」；`current_instance_id` 加「不为空」。
+    - 测试：`ApprovalRowConstraintsIT`：直插指向不存在实例的任务、办理记录被拒（23503）；`current_round = 0` 被拒；`current_instance_id` 空被拒（23502）；请求与首轮同事务提交通过，请求无首轮在提交时被拒；对账 IT：每个请求的 `current_round`、`current_instance_id` 等于其 `start_rounds` 最大轮次那一行（SESSION_PLAYBOOK §14.1 D1「投影可重算并有对账」）。发起、重新发起（`IdempotentStartIT`、`RetractionIT`）、转交（`TaskTransferIT`）、系统退回（`RefuseApprovalStart`）全路径回归。
+    - 夹具（直插请求者，必须改，否则被 NOT NULL 与延迟外键拒；断言均不动）：
+      - `platform/approval/IdempotentStartIT.java:139-142`（`roundsAreUniqueInTheDatabase`）：请求没有 `current_instance_id`，且分两条自动提交语句，第一条提交时延迟外键即失败。改成**单条语句**：`WITH r AS (INSERT INTO approval_requests (…, current_instance_id) VALUES (…, :instance) RETURNING id) INSERT INTO start_rounds (…, instance_id, …) SELECT …, :instance, … FROM r`，首轮 `instance_id` 取同一值；其后两条期望 `DuplicateKeyException` 的插入（:144-148）不改。
+      - `IdempotentStartIT.java:156-159`（`requestsAreUniqueInTheDatabase`）：第一条同上改单条语句带首轮；第二条期望 `DuplicateKeyException` 的插入补一个 `current_instance_id`（任意新 uuid；否则先撞 NOT NULL，异常类型变成 `DataIntegrityViolationException`）。
+      - `platform/approval/AggregateConcurrencyIT.java:133-135`、`:141-143`：两条反例（缺法人、缺请求）仍被拒，不改。
+    - 验收目录受影响（`acceptance/`，卡 §9 不改，须 Acceptance-Ruling，见裁 1）：`acceptance/platform/approval/ApprovalUniqueKeysIT.java:76-86` `requestsWithoutACurrentInstanceMayBeMany`（把 `current_instance_id` 置空，前提消失）、`acceptance/platform/approval/ApprovalOwnIdColumnsIT.java:179-180` 对 `WHERE (current_instance_id IS NOT NULL)` 的断言。`ApprovalUniqueKeysIT:52-73`（唯一冲突先于延迟外键）与 `ApprovalOwnIdColumnsIT:144-165`（子表外键计数，新增外键方向不是指向 `approval_requests`）经核不受影响。
+    - 未核实，不落：卡中「注册表登记 `current_round`、`current_instance_id` 为投影」——`data-access-registry.yaml` 与 `DataArchitectureTest` 没有投影登记的键（后者只读 role、mutability、condition、retention、lineage、references、fk_exceptions 等），登记形式须先定（裁 2）；本 PR 用对账 IT 代替。
+  - **④ AP-04　办理记录的任务与请求须同属一个请求**
+    - 核实：复合外键目标 `(task_id, approval_request_id)` 两列都是 `uuid`，属「仅由 uuid 列组成的唯一约束」，按 one-architecture 判定放行，不登例外；任务入库时 `approval_request_id` 写所属请求 ID（`JdbcApprovalRequestRepository.java:202-209`），办理记录用同一请求 ID（:148-153），任务先于记录入库（:117-130）。保留 `fk_approval_task_records_approval_request_id`（`DataArchitectureTest.d6` 要求 `approval_request_id` 列有指向 `approval_requests` 的外键；`ApprovalOwnIdColumnsIT:150-158` 也数它）。
+    - DDL：
+      ```sql
+      -- approval_tasks
+      CONSTRAINT uk_approval_tasks_task_id_approval_request_id UNIQUE (task_id, approval_request_id),
+      -- approval_task_records：删 fk_approval_task_records_task_id，换成
+      CONSTRAINT fk_approval_task_records_task FOREIGN KEY (task_id, approval_request_id)
+          REFERENCES platform_approval.approval_tasks (task_id, approval_request_id),
+      ```
+    - 测试：`ApprovalRowConstraintsIT` 反例：任务属请求甲、记录挂请求乙被拒（23503，约束名 `fk_approval_task_records_task`）；既有 `TaskHandlingRecordsIT`、`ApprovalOrderNotFromIdsIT.numbersRestartPerRequestAndNeverRepeat`（:94-111 复制既有行，任务与请求一致；期望 23505 的断言先于外键触发）回归，不改。无夹具改动；全仓测试无引用 `fk_approval_task_records_task_id`（`git grep` 无命中）。
+    - 索引：复合外键首列 `task_id` 已有 `ix_approval_task_records_task_id`（:170）。新唯一约束的索引以 `task_id` 开头，与主键索引前缀相同，G-DDL3（待实现）实现时须豁免「作外键目标的唯一约束」（裁 4）。
+  - **⑤ AP-05　`start_rounds` 加只追加触发器**
+    - 核实：全仓对 `start_rounds` 只有一处 INSERT（`JdbcApprovalRequestRepository.java:109`）和两处 SELECT（:251、`infrastructure/persistence/JdbcApprovalTaskQueries.java:43`）；测试只插入与查询，无 UPDATE、DELETE、TRUNCATE（`git grep` 核）；无测试对 `platform_approval` 清库式截断。`unversioned-table-writes.txt:13` 已写「insert-only」，注册表 `APPEND_ONLY`（`data-access-registry.yaml:176-182`）从此名实相符。
+    - DDL（照 `approval_task_records` 的函数与触发器形态，基线 :172-186；错误码 `restrict_violation`，`DataArchitectureTest.truncateIsRefused` 认 23001）：
+      ```sql
+      CREATE FUNCTION platform_approval.reject_start_round_change() RETURNS trigger LANGUAGE plpgsql AS $$
+      BEGIN
+          RAISE EXCEPTION 'platform_approval.start_rounds is append-only: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
+      END;
+      $$;
+      CREATE TRIGGER start_rounds_reject_update_delete BEFORE UPDATE OR DELETE ON platform_approval.start_rounds
+          FOR EACH ROW EXECUTE FUNCTION platform_approval.reject_start_round_change();
+      CREATE TRIGGER start_rounds_reject_truncate BEFORE TRUNCATE ON platform_approval.start_rounds
+          FOR EACH STATEMENT EXECUTE FUNCTION platform_approval.reject_start_round_change();
+      ```
+      表注释保留「发起轮次」，补「只追加」。守护扩展（`DataArchitectureTest.d1` 对 `AGGREGATE_CHILD + APPEND_ONLY` 也查触发器，现 :278 只查日志与版本表）归 one-quality，不在本 PR。
+    - 测试：`ApprovalRowConstraintsIT`：UPDATE、DELETE、TRUNCATE 被拒（参照 `TaskHandlingRecordsIT.java:91-96`），INSERT 照常。无夹具改动。
+  - **⑥ AP-08　`process_archive_skips.failure_message` 不存引擎异常原文**
+    - 核实：日志在 `infrastructure/flowable/ProcessArchiveJob.java:177`，入库在 :179 → `insertSkipped`（:185-190）；该列只被这一处写。`ProcessArchiveJobIT`（`platform/approval/infrastructure/flowable/`）对 `failure_message` 与日志**没有任何现有断言**（T3 用例 :174-193 只断言跳过计数、记录存在、不重复归档），故没有断言需要放宽或删除；卡里「`ProcessArchiveJobIT` 对应断言单列理由」按实际改为「新增断言，不改既有断言」。
+    - Java：新增私有方法 `failureKind(Throwable)`：从外到内最多 5 层，取 `getClass().getName()` 以 `" <- "` 连接，绝不含 `getMessage()`，Java 侧截到 2000 字（与 CHECK 同值常量，避免 `insertSkipped` 因超限抛错而中断整批归档——此时实例已归档，中断会重复归档）；:177 日志与 :179 入库都用它，日志不再传异常对象、不带 `getMessage()`（SLF4J 的异常参数会打印消息与栈）。:113 的探测失败日志带 `failure.getMessage()`，属对象存储探测，非数据库错误，不在本条（见「不在本 PR」）。
+    - DDL：`CONSTRAINT ck_process_archive_skips_failure_message CHECK (char_length(failure_message) BETWEEN 1 AND 2000)`；列注释改为「引擎删除失败的异常类名链（由外到内，至多 5 层）；不含异常消息，消息可能带数据库服务端错误详情（GUIDING_PRINCIPLES §11 O-3）」。列名不改（改名牵动验收测试 `ApprovalUniqueKeysIT:92`，见裁 5）。
+    - 测试（新增断言，加在 `ProcessArchiveJobIT` 的 T3 用例旁，不改既有断言）：`doThrow(new IllegalStateException("secret-detail"))` 后，用 Logback `ListAppender`（参照 `acceptance/platform/web/ErrorLogDetailIT.java`）捕获 `ProcessArchiveJob` 日志；断言日志与 `failure_message` 都**不含** `secret-detail`、**含** `IllegalStateException`；另一例直插空串、超长被拒。`ApprovalUniqueKeysIT:92-100` 直插 `'synthetic failure'` 满足新 CHECK，不改。
+  - **预期表结构 diff（两个空库 `pg_dump --schema-only` 对比，只应出现）**：
+    - `approval_requests`：`current_round` 的无名 CHECK（`>= 0`）换为具名 `ck_approval_requests_current_round (>= 1)`；`current_instance_id` 变 NOT NULL；`uk_approval_requests_current_instance_id` 去掉 `WHERE`；新增 `ck_approval_requests_result_reason`、`fk_approval_requests_current_instance_id`（`DEFERRABLE INITIALLY DEFERRED`）；`current_round`、`current_instance_id`、`result_reason` 三条列注释。
+    - `start_rounds`：新增函数 `reject_start_round_change()` 与触发器 `start_rounds_reject_update_delete`、`start_rounds_reject_truncate`；表注释。
+    - `approval_tasks`：新增 `ck_approval_tasks_result_reason` 与 `pending_unassigned`、`outcome_effect`、`automatic`、`approved_hash`、`overdue`、`escalated`、`not_completed` 共 8 条 CHECK、`uk_approval_tasks_task_id_approval_request_id`、`fk_approval_tasks_instance_id`；`result_reason` 列注释。
+    - `approval_task_records`：新增 `ck_approval_task_records_record_reason`、`fk_approval_task_records_instance_id`；`fk_approval_task_records_task_id` 换成复合的 `fk_approval_task_records_task`；`record_reason` 列注释；（裁 3 通过时）新增 `ix_approval_task_records_instance_id`。
+    - `process_archive_skips`：新增 `ck_process_archive_skips_failure_message`；`failure_message` 列注释。
+    - 不得出现：列类型或列名变化、主键变化、种子数据变化、`act_*` 变化。
+  - **验收要点**：`DdlNamingTest`、`DataArchitectureTest`、`GlossaryTest` 全绿；`scripts/ci/baseline_ddl_scan.py` 无新增；新增约束全部具名；`scripts/precheck.sh` 输出贴 PR；报告分开写「已验证」「未运行」。
+  - **不在本 PR**：AP-06、AP-07（并入 DA-10）；AP-09 至 AP-18（PR-7，含 AP-13 注册表、AP-16 的 `on_behalf_of_id`/`assignee_id` 成对）。本 PR 顺带不做：`infrastructure/persistence/JdbcApprovalTaskQueries.java:43` 的 `COALESCE((SELECT … start_rounds …), 0)` 在外键落地后成为死路径，留待下次动该查询时简化；`ProcessArchiveJob.java:113` 的探测日志；`current_round` 改名 `current_round_number`（R-2a，`ddl-naming-baseline.txt:9`）；全库文本列长度（X-1，one-quality）。
+  - **请 one-data 裁定**：
+    1. **AP-03 与验收目录**：`current_instance_id` 改 NOT NULL 后，`acceptance/…/ApprovalUniqueKeysIT.java:76-86`（空值可多条）前提消失、`ApprovalOwnIdColumnsIT.java:179-180` 的部分索引谓词断言失效。方案 A（推荐，与卡一致）：普通唯一索引，由 Acceptance-Ruling 授权测试代理把前者改为「空值被 23502 拒绝」、后者去掉谓词断言（先例 RULING-DR-TB01-1）；方案 B：保留部分索引不动（对非空列谓词恒真，无验收改动，但留下冗余谓词）。
+    2. **AP-03 投影登记**：注册表无投影键，是否新增 `projections`（列、重算来源、对账测试名）并扩展守护；本 PR 先落对账 IT，登记待你定形式。
+    3. **AP-03 外键索引**：`approval_task_records.instance_id` 新外键无以该列开头的索引（G-DDL2 待实现将要求；父表只追加，无性能必要）。默认随本 PR 加 `ix_approval_task_records_instance_id`，请确认或判缓。
+    4. **AP-04 命名与 G-DDL3**：复合外键名取卡上的 `fk_approval_task_records_task`，或沿用旧名 `fk_approval_task_records_task_id`（R-1b P4 卡写该名不变，见「不一致」d），请定；`uk_approval_tasks_task_id_approval_request_id` 的索引与主键前缀相同，G-DDL3 实现时须豁免「作外键目标的唯一约束」。
+    5. **AP-08 列语义**：`failure_message` 改存类名链后名实不符，是否改列名（如 `failure_kind`；须先查词表并同改验收测试 `ApprovalUniqueKeysIT:92`）；上限取 2000（与卡一致，类名链实际远小于此）。
+    6. **范围**：卡 §3「允许改动」的 Java 只列 `DecideTasks.java`、`ProcessArchiveJob.java`，AP-01 的域内补校验要改 `domain/ApprovalRequest.java`（`completeTask`、`end`）；请确认纳入本 PR（不纳入则无原因的驳回会在库层才失败，得到 500 而非 422）。
+  - **与卡或既有文字的不一致（列出，不自行解释）**：(a) 卡 AP-08 称 `ProcessArchiveJobIT` 有对应断言需单列理由，实际无此断言（⑥）。(b) 卡 AP-01 步骤 3 写撤销、撤回类 `action_kind` 待核，实际取值全集无此类（①-3）。(c) `BUSINESS_RULES.md` RULE-272 正文（:4473「A rejection needs a reason unless the node delegates that check to a business pre-check hook」）仍写钩子可免填，与用户 2026-10-16 决定及 RULE-280 修订冲突；`process/1a/审批通用流程.md` T10 行（:169）「原因规则」同源；文档同步不在本 PR。(d) R-1b P4 卡（`phase1a/cards/R-1b-P4.md:34`）写 `fk_approval_task_records_task_id` 名称不变，AP-04 换成复合外键后名称不同。(e) 卡 AP-03 与 AP-17 写「外键目标为唯一约束，待核是否放行」，NAMING_STANDARD G-DDL1（:365）已写明放行「仅由 uuid 列组成的唯一约束」，该「待核」已结。
+
 ### AP-09　NV-2　高（OV 升级，原中；统一分级维持高）　`numbering_rule_versions` 的 CONFIRMED 不要求确认人
 - 问题：迁移只约束「作者不得确认自己的版本」「两个确认人不同」「确认人与确认时间成对」；触发器 `guard_rule_version_change` 只管状态流转，INSERT 不受控；与 authorization_requests 同类的双人确认防线缺口。
 - 证据：PA `:94-120`、`:104,:114-119`、`:141-163`；`JdbcNumberingRuleRepository.update`（`:148-166`）；`NumberingRule.completeIfAllGiven`（`NumberingRule.java:187-193`）；ADR-0027 第 2 项第 4 条；OV「PA NV-2 确认，建议升为高」：所有现有写入点不会撞上（种子与 `propose` 都是 PENDING）。
