@@ -100,16 +100,16 @@ rules:
 - id: AR-11
   name: 责任人就是提交人本人
   condition: 解析出的基础审批人＝提交人
-  level: tbd
+  level: delegate
   escalate_to: 责任人的上级（汇报线）
-  note: 处理方式交用户定（上级代批 / 按异常加审 / 只事后抽查）
+  note: 用户已定：上级代批（审批口径页，intent 2026-10-16-164324）
   guard: approval
 - id: AR-12
   name: 责任人缺位
   condition: 归属对象无责任人，或责任人离职、休假超期
-  level: tbd
+  level: delegate
   escalate_to: 归属对象的上级组织负责人
-  note: 处理方式交用户定（上级代批 / 指定代理人 / 退回补登责任人）
+  note: 用户已定：上级组织负责人代批（审批口径页，intent 2026-10-16-164324）
   guard: approval
 - id: AR-13
   name: 交付物校审：项目重要性 V 级
