@@ -43,3 +43,12 @@
 
 1. PRC-08 元素 52 个（> 50）：NOTES 结构问题 7，去 one-architecture 拆分。
 2. 生成器局限（不读 `decision[].outcome`、`withdraw`；非中断超时回接主线；`read` 步计缺 command）：NOTES 格式问题与结构问题 6，去 one-architecture 改生成器；本批已用数据写法绕开，无遗留错误。
+
+## 当前状态（评审改稿后复跑，2026-10-16；本节取代上文各节中的「不符」与脚本结果）
+
+- 改稿依据：opus 首轮评审 `REVIEW.md`（高 8、中 15、低 8）；sonnet 复核：已落实 27、部分 2、未落实 1、转交 1，复核新发现 5 条已全部改（PRC-148 驳回分支、PRC-149 事件触发的冲销额与原因来源、PRC-08 重新投标结局、PAY-R1 补「预付」、NOTES 阅读提示）。
+- 脚本（取 `claude/one-architecture-adr-governance` 最新）：`closeout_check --qc` revenue 人工审批 39，无 why_human 0、approver 不符 0、加审引用无效 0、缺 permission/page 0、出口 / 超时 / 结局无场景 0、用语无着落 0；`bpmn_gen` 45 个业务流程全部「检查：通过」（含 R13 无死路、R14 无死锁、R15 元素数；生成器不中断期限缺陷已由 one-architecture 修复）；`build_catalog --check` 错误 0。
+- 复审项仍开着的（不阻断交页，已有去向）：
+  - 与 A8 同类模板逐项功能比对：本组没有 A8 覆盖对照输入，转 one-architecture（⑦ A8 覆盖对照）。
+  - 审批回调的事件方式边（M11 后半）：one-architecture 在 §4.1 统一补。
+  - `object_check`（对象 CRUD 矩阵）问题随下一步命令目录与状态机收敛处理。

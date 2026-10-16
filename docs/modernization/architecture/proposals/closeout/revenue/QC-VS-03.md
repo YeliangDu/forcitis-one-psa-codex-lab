@@ -22,3 +22,12 @@
 - `build_catalog.py --check`：错误 0；警告为「未登记 bpmn」，待生成图入目录。
 - `raci_build.py --local`：A 为固定角色 0、多个不同 A 0；外部（客户）审批不入 A 3；其余缺 A 为无审批节点的命令（预期）。
 - `bpmn_gen.py`（含 R13–R15）：41 个流程 30 个通过；11 个（PRC-32、37、41、46、49、54、57、58、61、63、140）报 R14，原因是生成器把**不中断**期限的升级任务接回主线（`bpmn_gen.py` 第 369–371 行 `self.flow(esc, first["tgt"])`），产生双令牌——生成器缺陷，骨架无误；已报 one-architecture，建议不中断时升级任务接独立结束事件「已提醒」。另 17 条「按位置猜测结局」警告为生成器不读 `decision[].outcome`，建议补丁见 `tools/bpmn_gen.suggested.patch`。
+
+## 当前状态（评审改稿后复跑，2026-10-16；本节取代上文各节中的「不符」与脚本结果）
+
+- 改稿依据：opus 首轮评审 `REVIEW.md`（高 8、中 15、低 8）；sonnet 复核：已落实 27、部分 2、未落实 1、转交 1，复核新发现 5 条已全部改（PRC-148 驳回分支、PRC-149 事件触发的冲销额与原因来源、PRC-08 重新投标结局、PAY-R1 补「预付」、NOTES 阅读提示）。
+- 脚本（取 `claude/one-architecture-adr-governance` 最新）：`closeout_check --qc` revenue 人工审批 39，无 why_human 0、approver 不符 0、加审引用无效 0、缺 permission/page 0、出口 / 超时 / 结局无场景 0、用语无着落 0；`bpmn_gen` 45 个业务流程全部「检查：通过」（含 R13 无死路、R14 无死锁、R15 元素数；生成器不中断期限缺陷已由 one-architecture 修复）；`build_catalog --check` 错误 0。
+- 复审项仍开着的（不阻断交页，已有去向）：
+  - 与 A8 同类模板逐项功能比对：本组没有 A8 覆盖对照输入，转 one-architecture（⑦ A8 覆盖对照）。
+  - 审批回调的事件方式边（M11 后半）：one-architecture 在 §4.1 统一补。
+  - `object_check`（对象 CRUD 矩阵）问题随下一步命令目录与状态机收敛处理。
