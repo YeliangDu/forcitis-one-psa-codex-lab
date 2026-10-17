@@ -4,6 +4,7 @@
 新格式笔记（带 YAML 信息栏）逐项校验；旧格式笔记只计数为待迁移，--strict 时也算失败。
 锚点定义在四节内表格首列，写作 `编号#概念名`，概念名只用汉字、字母、数字、`-`、`·`；命中 terms.yaml 词条别名或禁用词时须改用词条中文名。
 产品资料用证据号（E01 式）代替页码时，证据号须在 notes/_evidence/<编号>.yaml 登记且有路径与定位。
+笔记里引用的 VS-、阶段、PRC-、OBJ- 编号须存在于全景模型 panorama.yaml（价值流以 v2 为准）；编号后紧跟的名称若是同类另一节点的名称，判为编号与名称不符。
 全仓 docs/modernization 下（剔除代码块、行内代码与 URL 后）形如 `编号#概念名` 的引用：编号属已登记笔记时须能解析到锚点，否则告警。
 """
 import argparse
@@ -28,6 +29,9 @@ CONCEPT = rf"(?:(?!{ID}#)[一-鿿A-Za-z0-9\-·])+"
 CONCEPT_RE = re.compile(rf"^{CONCEPT}$")
 REF_RE = re.compile(rf"(?<![A-Za-z0-9])({ID})#({CONCEPT})")
 ANCHOR_CELL_RE = re.compile(rf"^({ID})#(.+)$")
+PANORAMA = HERE.parent / "panorama" / "panorama.yaml"
+INFO_MAP = HERE.parent / "proposals" / "ENTERPRISE_INFO_MAP_DRAFT.md"
+SYS_REF_RE = re.compile(r"(?<![A-Za-z0-9-])(VS-\d{2}(?:\.\d+)?|PRC-\d{2,3}|OBJ-\d{2,3})(?![\d.])(?:\s*[「“（(]?\s*)([\u4e00-\u9fff]{2,12})?")
 FENCE_RE = re.compile(r"^(```|~~~).*?^\1[^\n]*$", re.M | re.S)
 NOISE_RE = re.compile(r"`[^`\n]*`|https?://\S+")
 
@@ -141,6 +145,44 @@ def check_core(name, nid, body, sink):
             sink.append(f"{name}: 核心思想第 {i} 条缺 {'、'.join(missing)}（格式见 _TEMPLATE.md）")
 
 
+def load_system():
+    """全景模型的价值流、阶段、流程、对象（编号 → 名称），以及信息图上所有对象行（含已非对象）。"""
+    if not PANORAMA.exists():
+        return None
+    nodes = yaml.safe_load(PANORAMA.read_text(encoding="utf-8"))["nodes"]
+    sysmap = {}
+    for kind in ("vs", "stage", "prc", "obj"):
+        for k, v in nodes[kind].items():
+            sysmap[k] = (kind, v.get("name", ""), v.get("type"))
+    all_obj = set(re.findall(r"^\|\s*\**(OBJ-\d{2,3})", INFO_MAP.read_text(encoding="utf-8"), re.M))
+    names = {}
+    for k, (kind, n, _) in sysmap.items():
+        names.setdefault((kind, n[:4]), set()).add(k)
+    return sysmap, all_obj, names
+
+
+def check_system_refs(name, body, system, errors, warnings):
+    sysmap, all_obj, names = system
+    for m in SYS_REF_RE.finditer(strip_code(body)):
+        ref, follow = m.group(1), m.group(2)
+        if ref not in sysmap:
+            if ref.startswith("OBJ-") and ref in all_obj:
+                warnings.append(f"{name}: {ref} 在信息图上已非对象")
+            else:
+                errors.append(f"{name}: 引用的 {ref} 不存在（价值流与阶段以 proposals/value-streams.v2.yaml 为准）")
+            continue
+        kind, real, typ = sysmap[ref]
+        if typ in ("retired", "merged"):
+            warnings.append(f"{name}: {ref} 已{'退役' if typ == 'retired' else '合并'}")
+        bigrams = lambda s: {s[i:i + 2] for i in range(len(s) - 1)}
+        if follow and real and not (bigrams(follow) & bigrams(real)) and not (set(follow[:4]) >= set(real[:2])):
+            other = names.get((kind, follow[:4]), set()) - {ref}
+            if other:
+                errors.append(f"{name}: {ref} 后写「{follow}」，实为「{real}」；该名称属于 {'、'.join(sorted(other))}")
+            elif kind in ("vs", "stage") and len(follow) >= 4 and not ({follow[i:i + 2] for i in range(len(follow) - 1)} & {real[i:i + 2] for i in range(len(real) - 1)}):
+                warnings.append(f"{name}: {ref} 后写「{follow}」，与实名「{real}」无一处相同（疑似旧版编号，价值流以 v2 为准）")
+
+
 def check_note(path, meta, body, vocab, aliases, errors, warnings):
     name = path.name
     if "_error" in meta:
@@ -202,6 +244,7 @@ def main():
 
     vocab = yaml.safe_load((NOTES / "_vocab.yaml").read_text(encoding="utf-8"))
     aliases = load_term_aliases()
+    system = load_system()
     errors, warnings, legacy, index = [], [], [], {}
     for path in sorted(NOTES.glob("*.md")):
         if path.name.startswith("_"):
@@ -211,6 +254,8 @@ def main():
             legacy.append(path.name)
             continue
         nid, anchors = check_note(path, meta, body, vocab, aliases, errors, warnings)
+        if system:
+            check_system_refs(path.name, body, system, errors, warnings)
         if nid is None:
             continue
         if nid in index:
