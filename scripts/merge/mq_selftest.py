@@ -128,6 +128,7 @@ def run(mq):
             _signals(mq, d)
             _gh_commands(mq, d)
             _lanes(mq, d)
+            _dependencies(mq, d)
             _runner(mq, d)
             _ssh_update(mq, d)
             _queue_lock(mq, d)
@@ -453,6 +454,112 @@ def _lanes(mq, d):
     assert gh.merged_behind == [0, 0], f"a pull request was merged while behind main: {gh.merged_behind}"
     first, second = [c for c in gh.calls if c[0] == "merge" and c[2]]
     assert second[3] != f"{second[1]:040x}", "the second pull request was updated onto the new main before its merge"
+
+
+def _dependencies(mq, d):
+    # the queue file: "<n> after=<m>,<m>", kept through before(), read by numbers(), refused when it loops
+    gh = FakeGh()
+    for n in (70, 71, 72, 73):
+        gh.add(n)
+    proc, q, log, _ = _proc(mq, d, "dep1", gh, [])
+    assert q.enqueue(71, after=[70]) == [71] and q.enqueue(70, 72) == [70, 72] and q.numbers() == [71, 70, 72]
+    assert open(q.path).read() == "71 after=70\n70\n72\n" and q.deps(71) == {70} and q.deps(70) == set() and q.deps(99) == set()
+    assert q.enqueue(71, after=[72]) == [] and q.deps(71) == {70, 72} and open(q.path).read().splitlines()[0] == "71 after=70,72", "an already queued entry gains the dependency"
+    q.before(71, 72)
+    assert open(q.path).read().splitlines() == ["70", "71 after=70,72", "72"], "before() keeps the dependency"
+    for bad in (lambda: q.enqueue(70, after=[70]), lambda: q.enqueue(70, after=[71]), lambda: q.enqueue(72, after=[71])):
+        try:
+            bad()
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("a self-dependency or a cycle was accepted")
+    assert q.deps(70) == set() and q.deps(72) == set(), "a refused enqueue changed nothing"
+    q.remove(70)
+    assert q.numbers() == [71, 72] and q.deps(71) == {70, 72}, "a dependency stays recorded when the pull request it names leaves the queue"
+    with open(q.path, "a") as f:
+        f.write("keep me\n")
+    q.enqueue(73, after=[70])
+    assert "keep me" in open(q.path).read()
+
+    # pick: a waiting pull request is skipped (once in the log per change), the next one is not held up; merged dependency releases it
+    lanes = {70: "docs", 71: "code", 72: "code", 73: "code"}
+    gh = FakeGh()
+    for n in lanes:
+        gh.add(n)
+    proc, q, log, _ = _proc(mq, d, "dep2", gh, [], lane=lambda g, n: lanes[n])
+    q.enqueue(71, after=[70]); q.enqueue(72, 70)
+    assert proc.pick("code") == 72, "71 waits for 70, 72 does not"
+    assert proc.pick("code") is None and proc.pick("code") is None
+    waits = [l for l in log.lines if " WAIT-DEP " in l]
+    assert len(waits) == 1 and "pr=#71" in waits[0] and "lane=code" in waits[0] and "waits for #70" in waits[0], waits
+    gh.prs[70]["state"] = "MERGED"
+    assert proc.pick("code") == 71 and not proc.waiting, "released once the dependency is merged"
+    assert len([l for l in log.lines if " WAIT-DEP " in l]) == 1
+
+    # gh cannot say what a dependency is: not released, and the log says so
+    gh = FakeGh(); gh.add(76); gh.add(77)
+    proc, q, log, _ = _proc(mq, d, "dep6", gh, [])
+    q.enqueue(77, after=[76])
+    real_view = gh.view
+    gh.view = lambda n: None if n == 76 else real_view(n)
+    assert proc.pick("code") is None and any("gh could not tell the state of #76" in l and "(not in the queue)" in l for l in log.lines), log.lines
+    # a dependency that never merges stays loud: logged again after wait_repeat seconds, not on every round
+    gh.view = real_view
+    n_before = len(log.lines)
+    assert proc.pick("code") is None and len(log.lines) == n_before, "same dependency, no repeat yet"
+    proc.wait_repeat = 0
+    assert proc.pick("code") is None and len(log.lines) == n_before + 1 and " WAIT-DEP " in log.lines[-1], "repeated once the interval has passed"
+
+    # the command line: values are checked, one call queues all or nothing, unreadable lines are named
+    qpath, lpath = os.path.join(d, "cli", "merge.queue"), os.path.join(d, "cli", "merge.log")
+    script = os.path.abspath(mq.__file__)
+
+    def cli(*args):
+        return subprocess.run([sys.executable, script, "--queue", qpath, "--log", lpath, *args], capture_output=True, text=True)
+    assert cli("enqueue", "449", "--after", "448").returncode == 0 and open(qpath).read() == "449 after=448\n"
+    for bad in (["enqueue", "500", "--after=-5"], ["enqueue", "500", "--after", "0"], ["enqueue", "500", "--after", "x"]):
+        r = cli(*bad)
+        assert r.returncode != 0 and "500" not in open(qpath).read(), (bad, r.stderr)
+    r = cli("enqueue", "452", "451", "--after", "451")
+    assert r.returncode != 0 and "nothing queued" in r.stderr and open(qpath).read() == "449 after=448\n", "a refused call queues none of its pull requests"
+    r = cli("enqueue", "449", "--after", "447")
+    assert r.returncode == 0 and "already queued" in r.stderr and open(qpath).read() == "449 after=447,448\n"
+    with open(qpath, "a") as f:
+        f.write("600 after=#448\n")
+    r = cli("list")
+    assert r.stdout.split("\n")[0] == "449 after=447,448" and "600" in r.stderr and "not understood" in r.stderr, (r.stdout, r.stderr)
+
+    # a dependency closed without merge: HOLD, taken out of the queue
+    gh = FakeGh()
+    for n in (74, 75):
+        gh.add(n)
+    gh.prs[74]["state"] = "CLOSED"
+    proc, q, log, _ = _proc(mq, d, "dep3", gh, [])
+    q.enqueue(75, after=[74])
+    assert proc.pick("code") is None and q.numbers() == [], "taken out"
+    assert any(" HOLD " in l and "pr=#75" in l and "dependency #74 was closed without merge" in l for l in log.lines) and events(log) == ["HOLD", "DEQUEUE"], log.lines
+
+    # across lanes with the real runner: 81 (code lane) is queued first but waits for 80 (docs lane): 80 merges first
+    lanes = {80: "docs", 81: "code"}
+    gh = FakeGh(); gh.add(80); gh.add(81)
+    proc, q, log, _ = _proc(mq, d, "dep4", gh, [], lane=lambda g, n: lanes[n])
+    q.enqueue(81, after=[80]); q.enqueue(80)
+    mq.run_loop(proc, idle=0, stop=lambda: q.numbers() == [] or len(log.lines) > 600)
+    assert [c[1] for c in gh.calls if c[0] == "merge" and c[2]] == [80, 81] and q.numbers() == [], gh.calls
+    starts = [l for l in log.lines if " START " in l]
+    assert [("pr=#80" in l and "lane=docs" in l) or ("pr=#81" in l and "lane=code" in l) for l in starts] == [True, True] and "pr=#81" in starts[1], starts
+    assert all("lane=" in l for l in log.lines if "pr=#80" in l or "pr=#81" in l), "events of a taken pull request carry its lane"
+    assert all(LOG_LINE.match(l) for l in log.lines)
+
+    # `once` (process without pick) learns the lane from the lane function
+    gh = FakeGh(); gh.add(90)
+    proc, q, log, _ = _proc(mq, d, "dep5", gh, [], lane=lambda g, n: "docs")
+    proc.process(90)
+    assert " START " in log.lines[0] and "lane=docs" in log.lines[0] and all("lane=docs" in l for l in log.lines), log.lines
+    # a line of the log that names no pull request has no lane
+    log.event("ERROR", None, None, None, "x")
+    assert "lane=" not in log.lines[-1]
 
 
 def _runner(mq, d):
