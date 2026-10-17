@@ -5,13 +5,13 @@
 ## 1. 结论（先看这里）
 
 1. **一次完整 PR 运行（带 `queued` 标签）典型 934 秒，其中 90% 是后端 `surefire and failsafe, side by side` 一步（839 秒）**；排队 52 秒（5.6%），其余检查与收尾约 40 秒。前端、gitleaks、轻量检查都不在关键路径上。要缩短「16 分钟」，只有后端集成测试这一步值得动。
-2. 这一步里，**failsafe（集成测试）808–858 秒，surefire（单元）82–98 秒并行**，单元测试不在关键路径。failsafe 有 142 个 IT 类、类耗时合计 1299 秒，实际墙钟 ≈ 830 秒，等效并行度只有 1.56（`-Dtest.forks=2`，理想 2.0）；**最慢的 3 个类合计 505 秒，占 39%：`ReadOnlyAccountCheckIT` 单类 324 秒（192 个用例）**、`SingleOperatorModeStartupIT` 100 秒、`ReadOnlyVerificationCommandIT` 82 秒。
+2. 这一步里，**failsafe（集成测试）808–858 秒，surefire（单元）82–98 秒并行**，单元测试不在关键路径。failsafe 有 142 个 IT 类、类耗时合计 1299 秒，实际墙钟 ≈ 830 秒，等效并行度只有 1.56（`-Dtest.forks=2`，理想 2.0）；**最慢的 3 个类合计 505 秒，占 39%：`ReadOnlyAccountCheckIT` 单类 324 秒（192 个用例，每例约 1.7 秒）**、`SingleOperatorModeStartupIT` 100 秒（19 例，每例 5.4 秒）、`ReadOnlyVerificationCommandIT` 82 秒（79 例，每例 1.1 秒）。
 3. **自托管 runner 在白天是满载的**：四台（mac-one-1..4）窗口内各占用约 1370–1520 分钟（约 60%），每个整点小时都是 4 并发满载，同时排队峰值 23 个，已领用作业的排队中位数 20 秒、P90 199 秒、最大 990 秒。
 4. **约 25% 的 runner 分钟（1439 / 5869）花在最终被取消的运行上**；其中 255 个运行取消时同分支已出现新 SHA（疑似被推送取代，未能确认原因，见缺口）。
 5. **main 的 push 运行里，gitleaks 作业 81% 的时间（中位数 155 秒）花在「release and deploy scripts self-test」**：该步骤写成 `if: github.event_name == 'push' || …relevant`，每次 push 无条件跑，160 次 push 共约 423 runner 分钟，占全部 runner 分钟的 7%，对 PR 关键路径没有影响，但占着满载的 runner。
 
 前三条建议（详见 §4，按性价比）：
-- **A. 修 `ReadOnlyAccountCheckIT` 等三个慢类里的固定时间等待**（日志里 ERROR 以整 60 秒间隔出现，疑似等超时），不碰守护文件，预计关键路径 −130 到 −260 秒。
+- **A. 压缩三个慢类里的完整应用启动次数**（`ReadOnlyAccountCheckIT` 的 192 个用例里日志可见 145 次「Application run failed」（故意失败的启动）与 51 次成功启动，约每例一次应用启动，≈1.65 秒/次；不是固定等待），共用上下文或把校验逻辑下沉到更小的测试，不碰守护文件，预计类耗时 −250 到 −400 秒，关键路径 −130 到 −260 秒。
 - **B. push 到 main 时让 release 脚本自测也按「改了才跑」**（改 `ci.yml`，守护档 opus 复审），预计回收 ~420 runner 分钟 / 2.5 天，缓解满载排队，风险低。
 - **C. 调整 failsafe 的类调度（最长类先跑或拆开最慢的 3 个类）使 2 个 fork 更均衡**，预计关键路径 −100 到 −180 秒；动 `backend_verify.sh` / `pom.xml`，守护档 opus 复审，需先在试验分支量。
 
@@ -48,7 +48,7 @@ PR 上 backend verify 共 2647 runner 分钟，占全部 5869 的 45%；其中�
 - 397 个类、类耗时合计 1470 s（IT 142 个合计 1299 s）；`-Dtest.forks=2`。
 - 按类前 8（中位数）：ReadOnlyAccountCheckIT 324 s、SingleOperatorModeStartupIT 100 s、ReadOnlyVerificationCommandIT 82 s、StalledExternalSourceIT 32 s、A8SourceFlagsIT 28 s、SingleOperatorModeFailClosedIT 25 s、SingleOperatorEndToEndIT 20 s、SingleOperatorModeQueryIT 17 s；第 9–30 名每个 9–15 s。
 - Testcontainers：每次完整运行起 133–134 个容器（postgres:18 中位数 0.73 s，mssql 5.5 s 共 8 个次），启动区间并集 89–122 s（占 job 9–14%）；未见启动重试证据。
-- `ReadOnlyAccountCheckIT` 的日志里，`SpringApplication` 的 ERROR（Application run failed）以整 60 秒间隔出现（例：08:06:45、08:07:45、08:07:45.7…），疑似用例在等一个 60 秒的超时；**这是假设，待该类的维护会话确认**。
+- `ReadOnlyAccountCheckIT` 在 324 秒里有 11,903 条应用日志（时间戳无超过 15 秒的空档），其中 145 次「Application run failed」与 51 次成功的 `Started … in …`：用例几乎每例启动一次 Spring 应用（含大量故意失败的启动）。更正：本报告先前版本曾把它推断为「等 60 秒超时」，核对日志后不成立（那是两条抽样日志的时间戳，不是间隔）。
 
 ### 2.4 runner 与排队
 
@@ -93,7 +93,7 @@ PR 上 backend verify 共 2647 runner 分钟，占全部 5869 的 45%；其中�
 
 | # | 做什么 | 预计节省 | 改动面 | 风险 |
 |---|---|---|---|---|
-| A | 查 `ReadOnlyAccountCheckIT`（324 s）、`SingleOperatorModeStartupIT`（100 s）、`ReadOnlyVerificationCommandIT`（82 s）里的固定等待与长超时，改成可配置的短超时或确定性等待，断言不变 | 类耗时合计可降 350–450 s；关键路径 −130 到 −260 s（取决于排布） | 只改这三个测试类（验收测试目录，按 §6.1 由测试代理改）；不碰守护 | 低到中：要确认 60 s 是等超时而不是真要等的流程；不得放宽断言（CLAUDE.md 第 5 条） |
+| A | 压缩 `ReadOnlyAccountCheckIT`（324 s，192 例）、`SingleOperatorModeStartupIT`（100 s，19 例）、`ReadOnlyVerificationCommandIT`（82 s，79 例）的应用启动次数：同一配置的用例共用启动好的上下文，或把只验校验逻辑的用例下沉到不启动应用的测试；断言不变 | 类耗时合计可降 250–400 s；关键路径 −130 到 −260 s（取决于排布） | 只改这三个测试类（验收测试目录，按 §6.1 由测试代理改，one-1a-par 负责）；不碰守护 | 中：共用上下文要守隔离（CS-5.5/5.6）；下沉测试不得放宽断言（CLAUDE.md 第 5 条） |
 | B | `ci.yml` 里 release 自测与 shellcheck 步骤的条件改成「push 时按 `github.event.before..after` 判断 release 脚本及其读取的文档是否变了」，不变则跳过；定时全量与 workflow_dispatch 照跑 | 160 次 push × ≈155 s；回收 ≈ 420 runner 分钟 / 2.5 天（占 7%），缓解满载排队；PR 关键路径不变 | `ci.yml`（守护档，opus 复审）；push 上 `relevant_change.py` 需接受前一提交作基线 | 低：release 脚本变了仍会跑；要保证 `before` 为全零（新分支）时回落为全跑 |
 | C | failsafe 调度：试验 `runOrder`/拆分最慢的 3 个类/按类历史耗时分桶，使 2 个 fork 均衡；必要时评估 forks=3（只在试验分支量白天满载下的争用） | 关键路径 −100 到 −180 s（失去并行度 0.44 的部分） | `backend_verify.sh`、`pom.xml`（守护档，opus 复审）；试验分支先量 | 中：forks 增加会加剧 Docker 内存/CPU 争用，满载时可能反而变慢；先量再改 |
 | D | 把无需 Docker 的小作业（assertion drift、frontend light、gitleaks）改到 GitHub 托管 runner，或增设第 5 个自托管 runner（one-ops 评估机器余量） | 去掉小作业 P90 ~200 s 的排队，PR 总时长 P90 可降 ~100–200 s；托管 runner 窗口内才用 25 分钟，成本可忽略 | `ci.yml` 的 `runs-on`（守护档，opus 复审）；第 5 个 runner 属 one-ops | 中：托管 runner 的可用性与私有仓库分钟配额；第 5 个 runner 要看内存（4 个已满载） |
@@ -111,5 +111,5 @@ PR 上 backend verify 共 2647 runner 分钟，占全部 5869 的 45%；其中�
 - 取消原因、被推送取代的确认、PR synchronize 事件均缺失，只能给「候选」；`headBranch` 是 PR 的代理。
 - 缺 1 个 job 文件，9 个运行 job 列表为空；下载非原子，3 个未结束运行只给下界。
 - 88 条测试汇总行是 JUnit 显示名而非类名（例如 OperationsProfile…），原样保留。
-- 「ReadOnlyAccountCheckIT 在等 60 秒超时」是对日志 ERROR 间隔的推断，须由该类的维护会话看代码确认。
+- ReadOnlyAccountCheckIT 慢的原因（约每例一次应用启动）来自日志计数，具体能否共用上下文须由该类的维护会话看代码确认。
 - 当前 `ci.yml` 与窗口早期的工作流不一致（heavy gate、light 后缀、repeat step 是中途加入的），统计保留了实际 job/step 名，没有按当前文件回推历史行为。
