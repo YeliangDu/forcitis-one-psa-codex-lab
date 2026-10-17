@@ -1174,3 +1174,7 @@
 - office_flow_perm_policy｜assetaudit｜0｜0｜null
 - office_flow_perm_policy｜assetaudit｜0｜0｜null
 - office_flow_perm_policy｜zhihui｜0｜0｜null
+
+## 取证结论旁注（B31 页）
+
+新增报价流程的条件表达式中有 1 处把具体人员写死在分支条件里（形如「销售负责人 == 〔具体人员〕」）：老系统用具体人员而不是角色或规则来决定分支，迁入新系统时不能照搬，应改为角色或规则表达，并列入迁入核对清单。该表达式在 `l.c` 属性中（新增报价模板的条件分支）。
