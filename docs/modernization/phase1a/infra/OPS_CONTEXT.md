@@ -90,6 +90,7 @@
 - 后续 rc 的 dev 部署与重建：每次基线迁移有改动即要重建 dev 库并重新扫码（dev-db-rebuild.md；回滚脚本对旧库缺维护角色不幂等，见错题本 OPS-007）。
 - c14_run 自测 PR、OPS-007（回滚脚本 DROP ROLE IF EXISTS 与 check.sh 旧库用例）：待做，可交 Codex。
 - 维护角色 one_dev_audit_maintainer 口令未设。
+- org_data_admin（用户本人持有，2026-10-17 用户批准授予，为导日历）：是否收回**用户未表态**，暂留；dev 单人运维、仅 dev。要收回用 identity-operations 的 revoke-role（同样不带 --witness），收回后其会话被撤销。
 
 - 2026-10-16 暂停（one-coordinator 决定）：C-6 回放 6 条差异的原因取证（#254，加密中转脚本与诊断查询，草稿，未运行）。理由：成本与风险偏高（新的安全类脚本加一轮复审），生产数据只作参考，A8 没有上级字段，做完也只能间接判断。6 条归为「回放方法限制」，未取证坐实；以后真要坐实再启用，须先过复审并合并。
 
