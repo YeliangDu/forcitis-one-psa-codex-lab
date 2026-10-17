@@ -239,6 +239,17 @@ def review_self_test():
     user = read_decisions()
     design = read_decisions(filename="decisions-recon-b.yaml")
     assert {f"S{n:03d}" for n in range(1, 98)} <= set(user["sources"])
+    import hashlib
+    import json
+    original = {f"S{n:03d}": user["sources"][f"S{n:03d}"] for n in range(1, 98)}
+    digest = hashlib.sha256(json.dumps(original, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    assert digest == "98a6884d0ed58f9fd4ec54d104fec47293e0e87f1cdb3969555aecd3f41cfe66", "原 97 个来源的内容被改动：" + digest
+    orphan = copy.deepcopy(user)
+    orphan["sources"]["S101"] = copy.deepcopy(orphan["sources"]["S100"])
+    reject(lambda: verify_source_keys(orphan), "来源未被任何写回")
+    gap = copy.deepcopy(user)
+    gap["sources"]["S102"] = copy.deepcopy(gap["sources"].pop("S100"))
+    reject(lambda: verify_source_keys(gap), "来源键须连续")
     test_review_sources(user, reject)
     test_review_design(design, reject)
     test_review_outcomes(user, reject)
