@@ -6,7 +6,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -17,6 +19,7 @@ import java.util.Set;
 import org.flywaydb.core.Flyway;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
+import org.testcontainers.DockerClientFactory;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** The one way tests start PostgreSQL: same sort order (built-in C.UTF-8) as the dev database, so an ORDER BY on text answers the same everywhere (DDL-11). */
@@ -26,6 +29,14 @@ public final class TestPostgres {
     static final String SOCKET_TIMEOUT = "120";
     static final String LOGIN_TIMEOUT = "30";
     static final String INITDB_ARGS = "--locale-provider=builtin --locale=C.UTF-8 --builtin-locale=C.UTF-8";
+    /**
+     * CI saw a container that was up but whose connections were cut during SSL set-up for the whole wait (121 s, a startup failure for the class), and one whose connection broke mid-run. The wait for the
+     * first JDBC connection (the init script of a class, 120 s by default) is shortened and repeated: a container that does not answer within START_CONNECT_SECONDS is thrown away and a fresh one started,
+     * START_ATTEMPTS times; the wait for the "ready" log line (60 s) is left as it is. An infrastructure retry; no assertion is relaxed.
+     */
+    static final int START_ATTEMPTS = 3;
+    static final int START_CONNECT_SECONDS = 90;
+    static final int LOG_LINES = 40;
     /** Every cached Spring context keeps its connection pool open on the shared instance until the fork ends. */
     static final String MAX_CONNECTIONS = "500";
 
@@ -43,9 +54,80 @@ public final class TestPostgres {
     }
 
     public static PostgreSQLContainer container() {
-        return new PostgreSQLContainer(TestImages.startingWith("postgres:")).withEnv("POSTGRES_INITDB_ARGS", INITDB_ARGS)
+        return new Diagnosed(TestImages.startingWith("postgres:")).withEnv("POSTGRES_INITDB_ARGS", INITDB_ARGS)
                 .withUrlParam("connectTimeout", CONNECT_TIMEOUT).withUrlParam("socketTimeout", SOCKET_TIMEOUT)
-                .withUrlParam("loginTimeout", LOGIN_TIMEOUT);
+                .withUrlParam("loginTimeout", LOGIN_TIMEOUT).withStartupAttempts(START_ATTEMPTS).withConnectTimeoutSeconds(START_CONNECT_SECONDS);
+    }
+
+    /** What an exhausted start says: the cause, the last lines the container wrote (a removed container has no logs left to ask for), and how loaded the Docker engine was. */
+    static String describeFailure(String image, int attempts, int connectSeconds, Throwable cause, List<String> logTail, String docker) {
+        List<String> tail = logTail.size() > LOG_LINES ? logTail.subList(logTail.size() - LOG_LINES, logTail.size()) : logTail;
+        Throwable root = cause;
+        while (root.getCause() != null && root.getCause() != root) {
+            root = root.getCause();
+        }
+        return "container " + image + " did not become usable in " + attempts + " attempts (connection wait " + connectSeconds + " s each): " + root + "\n--- docker: " + docker
+                + "\n--- last " + tail.size() + " container log lines" + (logTail.size() > tail.size() ? " (of " + logTail.size() + ")" : "") + " ---\n"
+                + String.join("\n", tail);
+    }
+
+    /** The engine's own numbers, or why they could not be read: this runs while a test class is already failing, so it never throws. */
+    static String dockerSummary() {
+        try {
+            var info = DockerClientFactory.lazyClient().infoCmd().exec();
+            return info.getContainersRunning() + " of " + info.getContainers() + " containers running, " + info.getNCPU() + " CPUs, "
+                    + (info.getMemTotal() == null ? "?" : info.getMemTotal() / (1024 * 1024)) + " MiB, engine " + info.getServerVersion();
+        } catch (RuntimeException e) {
+            return "info unavailable (" + e + ")";
+        }
+    }
+
+    /** Remembers the last lines any attempt's container wrote (80 kept, the last 40 shown), because Testcontainers removes a failed attempt's container before the next one. */
+    static final class Diagnosed extends PostgreSQLContainer {
+        private final Deque<String> tail = new ArrayDeque<>();
+        private final String image;
+
+        Diagnosed(String image) {
+            super(image);
+            this.image = image;
+            withLogConsumer(frame -> remember(frame.getUtf8String()));
+        }
+
+        synchronized void remember(String text) {
+            for (String line : text.split("\\R")) {
+                if (!line.isBlank()) {
+                    tail.addLast(line);
+                    if (tail.size() > 2 * LOG_LINES) {
+                        tail.removeFirst();
+                    }
+                }
+            }
+        }
+
+        /** What this container actually waits for a first JDBC connection, in seconds. */
+        int connectSeconds() {
+            return getConnectTimeoutSeconds();
+        }
+
+        private Runnable starter = super::start;
+
+        /** Replaces the real start so that a test can fail it without Docker (a test must not subclass the container: TestContainerGuardTest). */
+        void startWith(Runnable replacement) {
+            starter = replacement;
+        }
+
+        @Override
+        public void start() {
+            try {
+                starter.run();
+            } catch (RuntimeException e) {
+                List<String> lines;
+                synchronized (this) {
+                    lines = List.copyOf(tail);
+                }
+                throw new IllegalStateException(describeFailure(image, getStartupAttempts(), connectSeconds(), e, lines, dockerSummary()), e);
+            }
+        }
     }
 
     /** One instance per test JVM, started on first use; Ryuk removes it when the JVM ends. */
