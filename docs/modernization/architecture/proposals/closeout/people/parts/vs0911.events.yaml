@@ -26,7 +26,7 @@ events:
 
   - name: BudgetReserved
     publisher: AGG-80
-    emitted_by: 预算占用
+    emitted_by: 占用预算
     payload: [预算账户ID, 占用ID, 占用额（金额值对象）, 占用方类型, 占用方单据ID（不校验）, 是否超额]
     subscribers: [仅分析]
     note: 超额预警（AR-03 / RULE-406）若采预警方案，由命令返回标志加预警策略承接，策略归属待用户定 1 后定。

@@ -2185,7 +2185,7 @@ commands:
     R:
     - SH-E6
   idempotency_key: 日历年度 + 法人（整集替换幂等）
-  emits: 工作日历锁定日期被修改
+  emits: 工作日历锁定日期已修改
   used_by:
   - PRC-119 第 1 步
   orphan: false

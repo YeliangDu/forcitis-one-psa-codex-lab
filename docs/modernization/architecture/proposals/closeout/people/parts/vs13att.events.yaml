@@ -75,7 +75,7 @@ published:
   subscribers:
   - {type: 流程, who: B-15, used_by: PRC-178 触发器（入口 1）}
   note: 补休额度有效期（时长待 U15）届满仍有未休余额时发；载荷不含余额，B-15 经 api 读取（边 B-15 → B-27 已有）；离职时不发此事件，B-15 直接订阅 Separated（PRC-178 入口 2），B-27 不再有离职结算补休的订阅（S-42）
-- name: 工作日历锁定日期被修改
+- name: 工作日历锁定日期已修改
   published_by: AGG-68
   by_command: 维护工作日历年度
   payload: [日历年度, 法人ID（可空）, 变更日期集合]
