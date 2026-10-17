@@ -125,7 +125,9 @@ class AttributionSubjectColumnsIT extends AccountsAcceptanceSupport {
         refusedBy(() -> correction(Uuids.timeOrdered(NOW), null), FOREIGN_KEY_VIOLATION, "legal_entity_attribution_corrections");
         refusedBy(() -> correction(null, Uuids.timeOrdered(NOW)), FOREIGN_KEY_VIOLATION, "legal_entity_attribution_corrections");
 
+        attribution(unit, null);
         correction(unit, null);
+        attribution(null, person);
         correction(null, person);
     }
 }

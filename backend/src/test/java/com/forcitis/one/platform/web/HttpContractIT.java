@@ -112,8 +112,7 @@ class HttpContractIT {
 
     /** A list that answers a bare array instead of a cursor page, with the reason: the whole tree is needed to draw the hierarchy. */
     private static final java.util.Map<String, String> UNPAGED_LISTS = java.util.Map.of(
-            "/api/v1/organization/org-units", "the organisation tree is drawn and scoped as a whole and is bounded by the size of the firm",
-            "/api/v1/platform/own-login-records", "the person's own recent login history: the newest records of one person, at most 200, read for a glance");
+            "/api/v1/organization/org-units", "the organisation tree is drawn and scoped as a whole and is bounded by the size of the firm");
 
     @Test
     @DisplayName("every list endpoint answers a cursor page with limit and cursor parameters, or is an unpaged list with its reason on record")

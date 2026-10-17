@@ -84,7 +84,7 @@ class SingleOperatorMarkTransactionIT extends AccountsAcceptanceSupport {
     @DisplayName("SINGLE-OP P2-02 模式开启省略见证人并提交：真实审计里正常条目与标注条目各一条，主体（种类与 ID）相同，标注 detail 恰为 relaxation=WITNESS_OMITTED，正常条目 detail 为 operatorId=<UUID> witnessId=none role=<码>")
     void p202_committedTogether() throws Exception {
         UUID person = newPerson();
-        UUID operator = UUID.randomUUID();
+        UUID operator = newPerson();
 
         grantWithoutWitness(person, operator);
 
@@ -107,7 +107,7 @@ class SingleOperatorMarkTransactionIT extends AccountsAcceptanceSupport {
     @DisplayName("SINGLE-OP P2-02 命令在写完正常审计后失败回滚时两条都不留：调用方事务回滚，账号、授予、正常审计、标注审计全部不存在（证明二者加入调用方事务，而非独立提交）")
     void p202_rolledBackTogether() throws Exception {
         UUID person = newPerson();
-        UUID operator = UUID.randomUUID();
+        UUID operator = newPerson();
         long marksBefore = marks();
 
         assertThatThrownBy(() -> transaction.executeWithoutResult(status -> {
@@ -150,9 +150,6 @@ class SingleOperatorMarkTransactionIT extends AccountsAcceptanceSupport {
         }
     }
 
-    private static final String WITNESS = "01900000-0000-7000-8000-00000000a002";
-    private static final String BOTH = "--witness=" + WITNESS;
-
     @Autowired
     com.forcitis.one.platform.identity.application.GrantRoleByOperations grant;
 
@@ -183,7 +180,7 @@ class SingleOperatorMarkTransactionIT extends AccountsAcceptanceSupport {
     void p202_revokeWithoutWitnessIsRefusedWithTheModeOff() throws Exception {
         modeSwitch.turn(false);
         UUID person = newPerson();
-        attestedCommand("--operation=grant-role", "--employee-id=" + text(person), "--role-code=business_admin", "--operator=" + UUID.randomUUID(), BOTH);
+        attestedCommand("--operation=grant-role", "--employee-id=" + text(person), "--role-code=business_admin", "--operator=" + newPerson(), "--witness=" + newPerson());
         UUID operator = UUID.randomUUID();
         long marksBefore = marks();
 
@@ -200,8 +197,8 @@ class SingleOperatorMarkTransactionIT extends AccountsAcceptanceSupport {
     void p202_disableWithoutWitnessIsRefusedWithTheModeOff() throws Exception {
         modeSwitch.turn(false);
         UUID person = newPerson();
-        attestedCommand("--operation=grant-role", "--employee-id=" + text(person), "--role-code=super_admin", "--operator=" + UUID.randomUUID(), BOTH);
-        attestedCommand("--operation=register-emergency-admin", "--employee-id=" + text(person), "--login-name=breakglass", "--operator=" + UUID.randomUUID(), BOTH);
+        attestedCommand("--operation=grant-role", "--employee-id=" + text(person), "--role-code=super_admin", "--operator=" + newPerson(), "--witness=" + newPerson());
+        attestedCommand("--operation=register-emergency-admin", "--employee-id=" + text(person), "--login-name=breakglass", "--operator=" + newPerson(), "--witness=" + newPerson());
         UUID operator = UUID.randomUUID();
         long marksBefore = marks();
 
@@ -211,7 +208,7 @@ class SingleOperatorMarkTransactionIT extends AccountsAcceptanceSupport {
         assertThat(entries("platform.identity.operations.emergency-admin.disabled")).noneMatch(entry -> String.valueOf(entry.get("detail")).contains(operator.toString()));
         assertThat(marks()).isEqualTo(marksBefore);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        int exit = commands.run(new DefaultApplicationArguments("--operation=disable-emergency-admin", "--employee-id=" + text(person), "--operator=" + UUID.randomUUID(), BOTH),
+        int exit = commands.run(new DefaultApplicationArguments("--operation=disable-emergency-admin", "--employee-id=" + text(person), "--operator=" + newPerson(), "--witness=" + newPerson()),
                 new PrintStream(out, true, StandardCharsets.UTF_8), new PrintStream(out, true, StandardCharsets.UTF_8));
         assertThat(exit).isZero();
         assertThat(out.toString(StandardCharsets.UTF_8)).isEqualTo("disabled\n");

@@ -7,6 +7,7 @@ import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
+import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +43,8 @@ public class RefreshShortNames {
             failures.increment();
             return 0;
         }
-        return snapshots.updateShortNames(names, clock.instant());
+        Map<OrgUnitId, String> normalized = new HashMap<>();
+        names.forEach((unit, name) -> normalized.put(unit, name == null || name.isBlank() ? null : name));
+        return snapshots.updateShortNames(normalized, clock.instant());
     }
 }
