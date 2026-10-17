@@ -28,6 +28,12 @@ class JdbcOrgSnapshotQueries implements OrgSnapshotQueries {
     }
 
     @Override
+    public boolean employeeExists(EmployeeId employeeId) {
+        return Boolean.TRUE.equals(jdbc.sql("select exists(select 1 from organization_workforce.employees where id = :id)")
+                .param("id", employeeId.value()).query(Boolean.class).single());
+    }
+
+    @Override
     public Optional<StaffEmployee> findStaffByWecomUser(WecomUserId wecomUserId) {
         return jdbc.sql(OrgSnapshotRows.SELECT_STAFF + " where e.wecom_user_id = :wecom order by (e.employment_status = 'EMPLOYED') desc, e.updated_at desc limit 1")
                 .param("wecom", wecomUserId.value()).query((rs, n) -> OrgSnapshotRows.staff(rs)).optional();
