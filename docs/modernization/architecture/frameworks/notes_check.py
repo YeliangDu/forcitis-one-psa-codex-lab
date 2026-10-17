@@ -97,10 +97,10 @@ def check_note(path, meta, body, vocab, aliases, errors):
         errors.append(f"{name}: 附节须在四节之后")
 
     anchors = []
-    table = re.search(r"^## 概念及页码\s*$(.*?)(?=^## |\Z)", body, re.M | re.S)
-    if table:
-        for row in re.findall(r"^\|\s*([^|]+?)\s*\|", table.group(1), re.M):
-            if row in ("锚点",) or set(row) <= set("-: "):
+    scope = re.split(r"^## 附：", body, maxsplit=1, flags=re.M)[0]
+    if scope:
+        for row in re.findall(r"^\|\s*([^|]+?)\s*\|", scope, re.M):
+            if "#" not in row:
                 continue
             if not row.startswith(f"{nid}#") or len(row) == len(nid) + 1:
                 errors.append(f"{name}: 锚点 {row} 须以 {nid}# 开头并带概念名")
@@ -110,7 +110,7 @@ def check_note(path, meta, body, vocab, aliases, errors):
                 errors.append(f"{name}: 锚点 {row} 是词条别名或禁用词，须用词条中文名 {aliases[concept]}")
             anchors.append(concept)
     if not anchors:
-        errors.append(f"{name}: 概念及页码表没有锚点")
+        errors.append(f"{name}: 没有锚点（四节内表格首列 编号#概念名）")
     dup = {a for a in anchors if anchors.count(a) > 1}
     for a in sorted(dup):
         errors.append(f"{name}: 锚点 {nid}#{a} 重复")
