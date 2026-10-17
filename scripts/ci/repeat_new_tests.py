@@ -5,7 +5,7 @@
 基线引用如 origin/main；比较 `<基线>...HEAD` 里新增或改动的 backend/src/test/java 下以 Test 或 IT 结尾的类（文件仍存在的）。*Test 用 surefire，*IT 用 failsafe，各自在已编译的目录上
 重复 --times 遍，每遍一个新的 Maven 进程（新 JVM、新容器）；任何一遍失败、或某个类没产生报告，整体失败（挂一次即不过）。类多于 --max 时只重复前 --max 个（按路径排序）并明说，不失败。
 CI 里接在 `surefire and failsafe, side by side` 之后，只在 pull_request、tier=code、重步骤门控放行（带 queued 标签）时跑。
-不重复的：抽象类（改它则改重复它的子类，沿 `extends` 找，最多三层）、`*MssqlIT`（pom 的 testExcludes 不编译它，由 legacy-it 跑）、`OpenApiExportTest`（pom 的 excludes：它要单独先跑，且改写 openapi.json）。
+不重复的：抽象类（改它则改重复它的子类，沿 `extends` 找，最多三层）、pom 的 legacy.it.acceptance 清单与 `*MssqlIT`（由 legacy-it 跑）、`OpenApiExportTest`（pom 的 excludes：它要单独先跑，且改写 openapi.json）。
 名额（--max）先给集成测试再给单元测试：偶发失败主要出在 IT，一个改了几十个 IT 的 PR 不能把 IT 整批挤掉。
 Maven 参数沿用 CI（backend_verify.sh）：每个插件 2 个 fork、fork 总超时 900 秒，挂起的测试不会等到步骤超时。
 """
@@ -15,6 +15,8 @@ import re
 import subprocess
 import sys
 import tempfile
+
+from acceptance_reports import legacy_acceptance_paths
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BACKEND = os.path.normpath(os.path.join(HERE, "..", "..", "backend"))
@@ -51,13 +53,13 @@ def concrete_subclasses(name, sources, depth=3):
 
 
 def changed_test_classes(base, git=None, sources=None, note=print):
-    """([surefire 类], [failsafe 类])：新增或改动且仍存在的测试类，按路径排序；抽象类换成它的具体子类，*MssqlIT 与 SKIP 里的不算。"""
+    """([surefire 类], [failsafe 类])：新增或改动的测试类；抽象类换成具体子类，SQL Server 清单、*MssqlIT 与 SKIP 不算。"""
     git = git or (lambda *a: subprocess.run(["git", "-c", "core.quotepath=off", *a], capture_output=True, text=True, check=True).stdout)
     out = git("diff", "--no-renames", "--name-only", "--diff-filter=AM", f"{base}...HEAD")
     names = []
     for path in sorted(out.splitlines()):
-        if path.startswith(TEST_ROOT) and path.endswith(".java") and (m := CLASS.match(os.path.basename(path))):
-            names.append(m.group("name"))
+        if path.startswith(TEST_ROOT) and path.endswith(".java"):
+            names.append(os.path.basename(path)[:-5])
     sources = test_sources() if sources is None else sources
     chosen = []
     for name in names:
@@ -65,11 +67,14 @@ def changed_test_classes(base, git=None, sources=None, note=print):
             subs = concrete_subclasses(name, sources)
             note(f"abstract {name}: repeating its {len(subs)} concrete subclass(es)")
             chosen += subs
-        else:
+        elif CLASS.match(name + ".java"):
             chosen.append(name)
     unit, integration = [], []
+    legacy = {os.path.basename(p)[:-5] for p in legacy_acceptance_paths(os.path.dirname(BACKEND))}
     for name in dict.fromkeys(chosen):
-        if name.endswith("MssqlIT") or name in SKIP:
+        if name in legacy or name.endswith("MssqlIT"):
+            note(f"not repeated: {name} (SQL Server; handled by the legacy-it step)")
+        elif name in SKIP:
             note(f"not repeated: {name} (excluded from the default build, run elsewhere)")
         else:
             (integration if name.endswith("IT") else unit).append(name)
@@ -147,6 +152,20 @@ def self_test():
     assert calls == [("diff", "--no-renames", "--name-only", "--diff-filter=AM", "origin/main...HEAD")], "added or modified only (a deleted test has nothing to run), renames not folded"
     assert any("abstract AbstractBaseTest: repeating its 4" in n for n in notes) and any("SeeyonMssqlIT" in n for n in notes) and any("OpenApiExportTest" in n for n in notes), notes
     assert "AbstractBaseTest" not in unit and "MidAbstractTest" not in unit and "SeeyonMssqlIT" not in integration and "OpenApiExportTest" not in unit, "abstract, Mssql and the excluded export test are never run"
+    root = os.path.dirname(BACKEND)
+    paths = legacy_acceptance_paths(root)
+    changed = [TEST_ROOT + p for p in paths]
+    changed.append(TEST_ROOT + "com/forcitis/one/acceptance/platform/integration/OrgSourceWorldSupport.java")
+    notes = []
+    unit, integration = changed_test_classes("origin/main", git=lambda *a: "\n".join(changed), note=notes.append)
+    assert not unit and not integration, "QUAL-CARD-H-R2-5: POM-listed SQL Server classes must never repeat in the default tier"
+    for path in paths:
+        name = os.path.basename(path)[:-5]
+        assert any(name in n and "legacy-it" in n for n in notes), f"must explain legacy-it owns {name}: {notes}"
+    notes = []
+    support = [p for p in changed if p.endswith("OrgSourceWorldSupport.java")]
+    unit, integration = changed_test_classes("origin/main", git=lambda *a: "\n".join(support), note=notes.append)
+    assert not unit and not integration and any("legacy-it" in n for n in notes), "QUAL-CARD-H-R2-5: abstract helper changes must expand then skip SQL Server subclasses"
     assert maven_args("unit", ["A", "B"]) == ["./mvnw", "-B", "-q", "surefire:test", "-Dtest=A,B", "-Dtest.forks=2", "-Dtest.fork.timeout=900"]
     assert maven_args("integration", ["C"]) == ["./mvnw", "-B", "-q", "failsafe:integration-test", "failsafe:verify", "-Dit.test=C", "-Dtest.forks=2", "-Dtest.fork.timeout=900"], "failsafe:verify is what fails the run"
     with tempfile.TemporaryDirectory() as tmp:

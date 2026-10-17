@@ -129,7 +129,9 @@ jobs:
       - name: SQL Server integration tests (profile legacy-it)
         if: steps.change.outputs.legacy_it == 'true' && steps.heavy.outputs.run == 'true'
         timeout-minutes: 30
-        run: scripts/ci/legacy_it.sh
+        env:
+          BACKEND_WATCHDOG_SECONDS: '1500'
+        run: scripts/ci/legacy_it.sh -Dtest.forks=2 -Dtest.fork.timeout=1800
       # a test container that did not come up or lost its connection leaves no trace once its attempt is removed: the engine's events since the job started, the logs of the test containers created since, and the engine summary (scripts/ci/docker_diagnostics.py)
       - name: docker evidence for the failed job
         if: failure()

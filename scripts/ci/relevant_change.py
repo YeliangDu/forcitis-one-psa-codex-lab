@@ -78,6 +78,11 @@ READ_BY_ALWAYS_RUN_CHECKS = (
 
 LEGACY_IT_PATHS = (
     "backend/src/main/java/com/forcitis/one/platform/integration/",
+    "backend/src/main/java/com/forcitis/one/organization/workforce/",
+    "backend/src/main/resources/application",
+    "backend/src/main/resources/config/platform_integration.properties",
+    "backend/src/main/resources/db/migration/platform_integration/",
+    "backend/src/main/resources/db/migration/organization_workforce/",
     "backend/src/main/java/com/forcitis/one/platform/approval/infrastructure/legacy/",
     "backend/src/test/java/com/forcitis/one/platform/integration/",
     "backend/src/test/java/com/forcitis/one/platform/approval/infrastructure/legacy/",
@@ -100,17 +105,6 @@ LEGACY_IT_PATHS = (
     "backend/src/main/java/com/forcitis/one/kernel/UserId.java",
     "backend/src/main/java/com/forcitis/one/kernel/Uuids.java",
     "backend/src/main/java/com/forcitis/one/kernel/WorkContext.java",
-    "backend/src/main/java/com/forcitis/one/organization/workforce/api/OrgDirectory.java",
-    "backend/src/main/java/com/forcitis/one/organization/workforce/api/OrgUnitId.java",
-    "backend/src/main/java/com/forcitis/one/organization/workforce/application/GetSyncRun.java",
-    "backend/src/main/java/com/forcitis/one/organization/workforce/application/RefreshShortNames.java",
-    "backend/src/main/java/com/forcitis/one/organization/workforce/application/RegisterEmployeeOnLoginName.java",
-    "backend/src/main/java/com/forcitis/one/organization/workforce/application/SyncOrgSnapshot.java",
-    "backend/src/main/java/com/forcitis/one/organization/workforce/application/SyncResult.java",
-    "backend/src/main/java/com/forcitis/one/organization/workforce/application/SyncRunDetailView.java",
-    "backend/src/main/java/com/forcitis/one/organization/workforce/domain/PositionId.java",
-    "backend/src/main/java/com/forcitis/one/organization/workforce/domain/SyncRunStatus.java",
-    "backend/src/main/java/com/forcitis/one/organization/workforce/domain/SyncTrigger.java",
     "backend/src/main/java/com/forcitis/one/platform/audit/api/AuditLog.java",
     "backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java",
     "backend/src/main/java/com/forcitis/one/platform/identity/api/SessionRoles.java",
@@ -126,6 +120,8 @@ LEGACY_IT_PATHS = (
     "scripts/ci/legacy_it.sh",
     "scripts/ci/backend_verify.sh",
     "scripts/ci/acceptance_reports.py",
+    "scripts/ci/ci_git.py",
+    "scripts/ci/repeat_new_tests.py",
     "scripts/ci/relevant_change.py",
     ".github/workflows/nightly-legacy-it.yml",
     ".github/workflows/ci.yml",
@@ -601,6 +597,24 @@ def real_tiers_self_test(root):
 
 def self_test():
     root = Path(__file__).resolve().parents[2]
+    for path in (
+        "backend/src/main/resources/application.properties",
+        "backend/src/main/resources/application-read-only-verification.properties",
+        "backend/src/main/resources/application-read-only-verification.yml",
+        "backend/src/main/resources/application-read-only-verification.yaml",
+        "backend/src/main/resources/application-prod.properties",
+        "backend/src/main/resources/config/platform_integration.properties",
+        "backend/src/main/resources/db/migration/platform_integration/V20261014133000__platform_integration_baseline.sql",
+        "backend/src/main/resources/db/migration/organization_workforce/V20261014000000__organization_workforce_baseline.sql",
+        "backend/src/main/java/com/forcitis/one/organization/workforce/application/ApplySourceSnapshot.java",
+        "scripts/ci/ci_git.py",
+        "scripts/ci/repeat_new_tests.py",
+    ):
+        assert is_legacy_it(path), f"QUAL-CARD-H-R2-3: direct SQL Server input must trigger legacy-it: {path}"
+    scheduled = subprocess.run([sys.executable, str(Path(__file__).resolve()), "main"],
+                               env={**os.environ, "GITHUB_EVENT_NAME": "schedule", "GITHUB_OUTPUT": os.devnull},
+                               capture_output=True, text=True, check=True)
+    assert "legacy_it=true" in scheduled.stdout.splitlines(), "QUAL-CARD-H-R2-7: schedule must always run SQL Server"
     mssql_inputs_self_test()
     unlisted = uncovered_mssql_inputs(root)
     assert not unlisted, "files the SQL Server tests or their helpers import or read are not in LEGACY_IT_PATHS (add them in scripts/ci/relevant_change.py):\n  " + "\n  ".join(unlisted)
@@ -652,7 +666,7 @@ def self_test():
     assert is_legacy_it("docs/modernization/phase1a/infra/handoff/B-5-dba/read-all/a8_apply.sql")
     assert not is_legacy_it("docs/modernization/phase1a/infra/handoff/B-5-dba/README.md")
     assert not is_legacy_it("backend/src/main/java/com/forcitis/one/platform/integrationx/Other.java")
-    assert not is_legacy_it("backend/src/main/java/com/forcitis/one/organization/workforce/WorkforceService.java")
+    assert is_legacy_it("backend/src/main/java/com/forcitis/one/organization/workforce/WorkforceService.java")
     assert not is_legacy_it("backend/src/test/java/com/forcitis/one/organization/workforce/WorkforceServiceTest.java")
     assert not is_legacy_it("frontend/package.json")
     assert is_legacy_it(".github/workflows/ci.yml")
@@ -662,7 +676,7 @@ def self_test():
     assert is_legacy_it("backend/src/main/java/com/forcitis/one/kernel/WecomUserId.java")
     assert not is_legacy_it("backend/src/main/java/com/forcitis/one/kernel/Money.java")
     assert any_legacy_it(["README.md", "backend/pom.xml", ""])
-    assert not any_legacy_it(["README.md", "", "backend/src/main/java/com/forcitis/one/organization/workforce/WorkforceService.java"])
+    assert not any_legacy_it(["README.md", "", "backend/src/main/java/com/forcitis/one/cost/timesheet/Timesheet.java"])
     assert not any_legacy_it([])
 
 

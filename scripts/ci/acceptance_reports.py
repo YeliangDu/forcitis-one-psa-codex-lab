@@ -4,8 +4,10 @@ The SQL Server list lives in backend/pom.xml, property legacy.it.acceptance. Nes
 Usage: acceptance_reports.py [--tier default|legacy-it|full] [--report-dir <path>] | --legacy-it-tests | --self-test
 """
 import argparse
+import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
@@ -52,7 +54,11 @@ def legacy_acceptance_paths(root):
 
 
 def legacy_classes(root, classes):
-    listed = {path[:-5].replace("/", ".") for path in legacy_acceptance_paths(root)}
+    paths = set(legacy_acceptance_paths(root))
+    missing = sql_server_acceptance_users(root) - paths
+    if missing:
+        raise CiError("SQL Server acceptance users missing from legacy.it.acceptance: " + ", ".join(sorted(missing)))
+    listed = {path[:-5].replace("/", ".") for path in paths}
     return listed | {cls for cls in classes if cls.endswith("MssqlIT")}
 
 
@@ -92,37 +98,138 @@ def fixture_pom(root, paths):
                       + ",".join(paths) + '</legacy.it.acceptance></properties></project>', encoding="utf-8")
 
 
+def sql_server_acceptance_users(root):
+    sources = {p: p.read_text(encoding="utf-8") for p in Path(root, SOURCES).rglob("*.java")}
+    users = {p for p, text in sources.items() if re.search(r"\bTestMssql\b", text)}
+    while True:
+        added = {p for p, text in sources.items()
+                 if any(p.parent == helper.parent and re.search(rf"\b{re.escape(helper.stem)}\b", text)
+                        for helper in users)}
+        if added <= users:
+            break
+        users |= added
+    return {p.relative_to(Path(root, SOURCES)).as_posix() for p in users
+            if p.is_relative_to(Path(root, SOURCES, PACKAGE)) and TEST_CLASS.fullmatch(p.name)}
+
+
+def discovery_self_test():
+    with tempfile.TemporaryDirectory() as root:
+        base = SOURCES + PACKAGE + "platform/integration/"
+        files = {
+            "StaticImportIT": "import static com.forcitis.one.TestMssql.shared; class StaticImportIT {}",
+            "OrgSourceWorldSupport": "abstract class OrgSourceWorldSupport { Object sql = TestMssql.shared(); }",
+            "InheritedIT": "class InheritedIT extends OrgSourceWorldSupport {}",
+            "CompositeIT": "class CompositeIT { Object sql = OrgSourceWorldSupport.World.MSSQL; }",
+            "IndirectSupport": "class IndirectSupport { Object sql = OrgSourceWorldSupport.World.MSSQL; }",
+            "TransitiveIT": "class TransitiveIT { Object sql = IndirectSupport.sql; }",
+            "NormalIT": "class NormalIT {}",
+        }
+        for name, body in files.items():
+            touch(root, base + name + ".java")
+            Path(root, base + name + ".java").write_text(body)
+        expected = {PACKAGE + "platform/integration/" + n + ".java"
+                    for n in ("StaticImportIT", "InheritedIT", "CompositeIT", "TransitiveIT")}
+        assert sql_server_acceptance_users(root) == expected, "QUAL-CARD-H-R2-4: static imports, composite references and transitive helpers must be discovered"
+        fixture_pom(root, sorted(expected))
+        touch(root, base + "UnregisteredIT.java")
+        Path(root, base + "UnregisteredIT.java").write_text("class UnregisteredIT extends OrgSourceWorldSupport {}")
+        try:
+            legacy_classes(root, test_classes(root))
+        except CiError as error:
+            assert "UnregisteredIT.java" in str(error), str(error)
+        else:
+            raise AssertionError("QUAL-CARD-H-R2-4: unregistered SQL Server acceptance class must fail and name the class")
+
+
+def legacy_script_self_test(root):
+    with tempfile.TemporaryDirectory() as tmp:
+        base = Path(tmp)
+        scripts = base / "scripts/ci"
+        scripts.mkdir(parents=True)
+        script = scripts / "legacy_it.sh"
+        script.write_text(Path(root, "scripts/ci/legacy_it.sh").read_text())
+        (scripts / "acceptance_reports.py").write_text(
+            'import sys\nprint("SelectedIT" if "--legacy-it-tests" in sys.argv else "reports checked")\n')
+        backend = base / "backend"
+        backend.mkdir()
+        mvnw = backend / "mvnw"
+        mvnw.write_text(f"#!{sys.executable}\n" + '''import json, os, signal, sys
+from pathlib import Path
+args = sys.argv[1:]
+with open("calls.jsonl", "a") as out:
+    out.write(json.dumps(args) + "\\n")
+if "package" in args:
+    assert "-DskipTests" in args and "-Djacoco.skip=true" in args
+    Path("target/classes").mkdir(parents=True, exist_ok=True)
+    Path("target/classes/Current.class").write_text("current")
+    Path("target/forcitis-one-current.jar").write_text("current")
+    sys.exit(int(os.environ.get("PACKAGE_STATUS", "0")))
+assert Path("target/forcitis-one-current.jar").stat().st_mtime_ns >= Path("target/classes/Current.class").stat().st_mtime_ns
+assert "-Dit.test=SelectedIT" in args
+if os.environ.get("HANG_FAILSAFE"):
+    signal.pause()
+sys.exit(int(os.environ.get("FAILSAFE_STATUS", "0")))
+''')
+        mvnw.chmod(0o755)
+        env = {**os.environ, "BACKEND_WATCHDOG_SECONDS": "1500"}
+        args = ["bash", str(script), "-Dtest.forks=2", "-Dtest.fork.timeout=1800"]
+        passed = subprocess.run(args, env=env, capture_output=True, text=True, timeout=10)
+        assert passed.returncode == 0 and "reports checked" in passed.stdout, passed.stdout + passed.stderr
+        calls = [json.loads(line) for line in (backend / "calls.jsonl").read_text().splitlines()]
+        assert len(calls) == 2 and calls[0][1] == "package" and calls[1][1:3] == ["failsafe:integration-test", "failsafe:verify"], calls
+        assert all("-Plegacy-it" in c and all(p in c for p in args[2:]) for c in calls), calls
+        for setting, status in (("PACKAGE_STATUS", 17), ("FAILSAFE_STATUS", 19)):
+            failed = subprocess.run(args, env={**env, setting: str(status)}, capture_output=True, text=True, timeout=10)
+            assert failed.returncode == status and "reports checked" not in failed.stdout, (setting, failed)
+        bin_dir = base / "bin"
+        bin_dir.mkdir()
+        stubs = {"pgrep": "echo 424242", "jcmd": "echo thread-dump", "pkill": "exit 0",
+                 "sleep": 'if [ "$1" = 20 ]; then /bin/sleep 0.01; else /bin/sleep "$1"; fi'}
+        for name, body in stubs.items():
+            command = bin_dir / name
+            command.write_text("#!/bin/sh\n" + body + "\n")
+            command.chmod(0o755)
+        hung = subprocess.run(args, env={**env, "PATH": str(bin_dir) + os.pathsep + env["PATH"],
+                                        "BACKEND_WATCHDOG_SECONDS": "0.3", "HANG_FAILSAFE": "1"},
+                              capture_output=True, text=True, timeout=10)
+        assert hung.returncode == 124 and "exceeded 0.3 s" in hung.stdout, hung.stdout + hung.stderr
+        assert (backend / "target/thread-dumps/424242.txt").read_text().strip() == "thread-dump"
+
+
 def configuration_self_test(root):
     pom = ET.parse(Path(root, "backend/pom.xml"))
     plugins = pom.findall("m:build/m:plugins/m:plugin", NS)
     configs = {p.findtext("m:artifactId", namespaces=NS): p.find("m:configuration", NS) for p in plugins}
     failsafe = configs["maven-failsafe-plugin"]
-    assert [e.text for e in failsafe.findall("m:excludes/m:exclude", NS)] == ["${legacy.it.acceptance}", "**/*MssqlIT.java"], "default failsafe must exclude the single SQL Server list and *MssqlIT"
+    assert [e.text for e in failsafe.findall("m:excludes/m:exclude", NS)] == ["${legacy.it.acceptance}", "**/*MssqlIT.java", "**/*$*"], "QUAL-CARD-H-R2-6: default failsafe must exclude the SQL Server list, *MssqlIT and nested classes"
     assert failsafe.findtext("m:reportsDirectory", namespaces=NS) == "${integration.reports}", "PR SQL Server reports must be isolated"
     assert failsafe.findtext("m:summaryFile", namespaces=NS) == "${integration.reports}/failsafe-summary.xml"
     profile = pom.find("m:profiles/m:profile[m:id='legacy-it']", NS)
     override = profile.find("m:build/m:plugins/m:plugin[m:artifactId='maven-failsafe-plugin']/m:configuration/m:excludes", NS)
     assert override is not None and override.attrib.get("combine.self") == "override" and not list(override), "full legacy-it must restore all ITs, including the moved classes"
     assert profile.find("m:build/m:plugins/m:plugin[m:artifactId='maven-failsafe-plugin']/m:configuration/m:includes", NS) is None, "nightly must keep the default ITs too"
-    # Discover actual SQL Server users through test helpers and inheritance; the image-name guard itself starts no container.
-    sources = {p: p.read_text(encoding="utf-8") for p in Path(root, SOURCES).rglob("*.java")}
-    users = {p for p, text in sources.items() if re.search(r"\bTestMssql\.(?:shared|database)\(", text)}
-    while True:
-        names = {p.stem for p in users}
-        added = {p for p, text in sources.items() if re.search(r"\bextends\s+(?:" + "|".join(sorted(names)) + r")\b", text)}
-        if added <= users:
-            break
-        users |= added
-    actual = {p.relative_to(Path(root, SOURCES)).as_posix() for p in users if p.as_posix().startswith(Path(root, SOURCES, PACKAGE).as_posix() + "/") and TEST_CLASS.fullmatch(p.name)}
+    actual = sql_server_acceptance_users(root)
     assert actual == set(legacy_acceptance_paths(root)), f"SQL Server acceptance users differ from legacy.it.acceptance: missing={actual - set(legacy_acceptance_paths(root))}, stale={set(legacy_acceptance_paths(root)) - actual}"
     script = Path(root, "scripts/ci/legacy_it.sh").read_text()
     assert "--legacy-it-tests" in script and '-Dit.test="$tests"' in script and "-Plegacy-it" in script, "PR must select the POM list, not just *MssqlIT"
     assert "--tier legacy-it" in script and "--report-dir" in script
+    package = './mvnw -B package -DskipTests -Djacoco.skip=true -Plegacy-it "$@"'
+    assert package in script and script.index(package) < script.index("./mvnw -B failsafe:integration-test"), "QUAL-CARD-H-R2-1: package the current classes before SQL Server tests need the jar"
+    assert "test-compile" not in script, "package already compiles tests; failsafe goals must not repeat the lifecycle"
+    assert 'sleep "${BACKEND_WATCHDOG_SECONDS:-1500}"' in script and 'Thread.print -l' in script and 'status=124' in script, "QUAL-CARD-H-R2-2: SQL Server must dump hung forks and fail before the fork timeout"
+    ci = Path(root, ".github/workflows/ci.yml").read_text()
+    report_step = ci.index("- name: every acceptance test class produced")
+    repeat_step = ci.index("- name: new or changed test classes, repeated")
+    assert report_step < repeat_step and "acceptance_reports.py --tier default" in ci[report_step:repeat_step], "QUAL-CARD-H-R2-7: default reports must be checked before explicit reruns"
+    sql_step = ci.split("- name: SQL Server integration tests (profile legacy-it)", 1)[1].split("\n      - ", 1)[0]
+    assert "run: scripts/ci/legacy_it.sh -Dtest.forks=2 -Dtest.fork.timeout=1800" in sql_step, "QUAL-CARD-H-R2-2: SQL Server must use two bounded forks"
+    assert "BACKEND_WATCHDOG_SECONDS: '1500'" in sql_step and "timeout-minutes: 30" in sql_step, "QUAL-CARD-H-R2-2: watchdog must run before the step deadline"
     nightly = Path(root, ".github/workflows/nightly-legacy-it.yml").read_text()
     assert "scripts/ci/backend_verify.sh -Plegacy-it" in nightly and "acceptance_reports.py --tier full" in nightly, "nightly must run and check both tiers"
 
 
 def self_test():
+    discovery_self_test()
     with tempfile.TemporaryDirectory() as root:
         source = PACKAGE + "platform/identity/"
         normal = "com.forcitis.one.acceptance.platform.identity.LoginAcceptanceTest"
@@ -172,6 +279,7 @@ def self_test():
         assert any("GhostAcceptanceTest" in p for p in problems(root, "full")[0]), "orphan report still fails"
         assert legacy_it_tests(root) == "**/*MssqlIT.java," + source + "SessionAcceptanceIT.java"
     configuration_self_test(Path(__file__).resolve().parents[2])
+    legacy_script_self_test(Path(__file__).resolve().parents[2])
     print("acceptance_reports self-test: ok (tiers, stale entries, new/orphan classes, POM selection, SQL Server discovery, nightly)")
     return 0
 
