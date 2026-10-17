@@ -23,7 +23,7 @@
 
 ## 给 ADR-0058 的几点判断
 
-1. **schema 数 5 个**（cost_timesheet、organization_workforce、platform_approval、platform_identity、platform_integration）加 platform_numbering 共 6 个，即 6 张表，不是 14 张。
+1. **涉及 6 个 schema**（cost_timesheet、organization_workforce、platform_approval、platform_identity、platform_integration、platform_numbering），即 6 张 `state_transitions`，不是 14 张。
 2. **建议登记例外的 2 张**：`sync_runs`（技术运行，已有 `sync_diffs` 细节；且 ADR-0054/0055 一次投产路线下运行时同步退役）、`outbound_deliveries`（队列状态，重试与死信已有 attempts 字段）。例外逐行评审，由 one-architecture 判。
 3. **数据源口径变化**：`employees`、`org_units`、`positions` 目前是外部来源快照；ADR-0054/0055 把它们变成自有记录后，状态才由业务动作改变，转换记录才有意义。表项在自有化的卡里一并建，不在快照阶段补。
 4. **聚合未登记**：`employees`、`org_units`、`positions` 在注册表没有 `aggregate`。建转换表前先在 `aggregates.yaml` 与注册表补聚合（我建议分别为 Employee、OrgUnit、Position）。
