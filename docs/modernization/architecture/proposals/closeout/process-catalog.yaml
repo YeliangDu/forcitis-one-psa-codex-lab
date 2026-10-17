@@ -1011,7 +1011,8 @@ processes:
   - id: PRC-92
     name: "过账业务事实"
     type: business
-    stages: [VS-10.1]
+    stages: [VS-10.0]
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已过账 / 已更正」经 PRC-93 生成分录，对应该段「本期分录已记账」退出条件。"
     primary_object: "none"
     primary_object_note: "过账事实是设计构件，信息图 OBJ-75 经营事实已去掉（BIZBOK p197）；过账不改业务对象状态"
     owner_bc: "B-16"
@@ -1022,7 +1023,8 @@ processes:
   - id: PRC-93
     name: "生成会计分录"
     type: event_policy
-    stages: [VS-10.1]
+    stages: [VS-10.0]
+    stages_note: "按事件策略看触发状态的判据②归 VS-10.0「执行记账结转」（SD-11 已批），触发为业务事实已过账或已更正，结局「已记账无需推送 / 已推送」对应该段「本期分录已记账」退出条件。"
     primary_object: "OBJ-98"
     owner_bc: "B-20"
     group: finance
@@ -1032,7 +1034,8 @@ processes:
   - id: PRC-94
     name: "制单并过账受控手工凭证"
     type: business
-    stages: [VS-10.1]
+    stages: [VS-10.0]
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已提交过账」经 PRC-92、PRC-93 形成手工调整分录，对应该段「本期分录已记账」退出条件。"
     primary_object: "OBJ-98"
     owner_bc: "B-20"
     group: finance
@@ -1042,7 +1045,8 @@ processes:
   - id: PRC-95
     name: "期末结转"
     type: business
-    stages: [VS-10.1]
+    stages: [VS-10.0]
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已过账」经 PRC-93 形成期末结转分录，对应该段「本期分录已记账」退出条件。"
     primary_object: "none"
     primary_object_note: "期末结转运行属流程与事实，结转凭证经过账生成 OBJ-98 会计分录，由 PRC-93 承载"
     owner_bc: "B-20"
@@ -1053,7 +1057,8 @@ processes:
   - id: PRC-96
     name: "分配人工成本"
     type: business
-    stages: [VS-10.1]
+    stages: [VS-10.0]
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「人工成本分配已过账」经 PRC-93 形成成本结转分录，对应该段「本期分录已记账」退出条件。"
     primary_object: "none"
     primary_object_note: "人工成本分配属流程与事实，信息图 OBJ-76 已去掉"
     owner_bc: "B-07"
@@ -1075,7 +1080,8 @@ processes:
   - id: PRC-98
     name: "分摊间接成本"
     type: business
-    stages: [VS-10.1]
+    stages: [VS-10.0]
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「分摊已生效」经 PRC-92 过账、PRC-93 生成分摊分录，对应该段「本期分录已记账」退出条件；「分摊已冲销」经冲销并重过账同样落在本段。"
     primary_object: "none"
     primary_object_note: "分摊运行属流程与事实，信息图 OBJ-79 已去掉"
     owner_bc: "B-07"
@@ -1086,7 +1092,8 @@ processes:
   - id: PRC-99
     name: "计提折旧并处置公司资产"
     type: business
-    stages: [VS-10.1]
+    stages: [VS-10.0]
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已过账」使折旧与资产处置事实经 PRC-93 生成分录，对应该段「本期分录已记账」退出条件。"
     primary_object: "OBJ-93"
     owner_bc: "B-24"
     group: finance
@@ -1469,8 +1476,8 @@ processes:
   - id: PRC-135
     name: "处理会计分录待处理队列与推送重投"
     type: single_aggregate
-    stages: [VS-10.1]
-    stages_note: "VS-10.1：待处理队列为空、推送死信为空是 VS-10.1 期间关账的前置检查（ADR-0022 决定 10、INV-100）；本流程清理队列与死信，是关账得以达成的必要环节。期间内记账与结转段 VS-10.0 待 SD-11 裁定，定后改归 VS-10.0"
+    stages: [VS-10.0]
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），待处理项补齐授权或映射后生成分录并转为「待推送」，对应该段「会计分录待处理队列已清空」退出条件。"
     primary_object: "OBJ-98"
     owner_bc: "B-20"
     group: finance
@@ -1725,8 +1732,8 @@ processes:
   - id: PRC-158
     name: "处置过账拒收记录"
     type: single_aggregate
-    stages: [VS-10.1]
-    stages_note: "VS-10.1：「拒收记录已处置」是 VS-10.1 期间关账的前置检查项（S-29 SQ-54，INV-100）；期间内记账段 VS-10.0 待 SD-11 裁定，定后改归 VS-10.0"
+    stages: [VS-10.0]
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已重提 / 已结案」消除待处置拒收记录，对应该段「过账拒收记录已处置」退出条件。"
     primary_object: "none"
     primary_object_note: "同 PRC-92：拒收记录是过账管道的技术记录"
     owner_bc: "B-16"
@@ -1860,8 +1867,8 @@ processes:
   - id: PRC-169
     name: "处置勾稽差异案"
     type: single_aggregate
-    stages: [VS-10.1]
-    stages_note: "VS-10.1：勾稽差异案须在关账前处置，是 VS-10.1 期间关账的前置检查（INV-100 扩展项，S-29 SQ-54；ADR-0016 决定 1 勾稽等式）；期间内记账段 VS-10.0 待 SD-11 裁定，定后再判是否改归 VS-10.0"
+    stages: [VS-10.0]
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已解释关闭 / 已修正关闭 / 已豁免关闭」消除未结差异案，对应该段「勾稽差异案已处置」退出条件。"
     primary_object: "none"
     primary_object_note: "勾稽差异案在词表是聚合（operations.policy），信息图没有对象；是否立对象随信息层定"
     owner_bc: "B-17"

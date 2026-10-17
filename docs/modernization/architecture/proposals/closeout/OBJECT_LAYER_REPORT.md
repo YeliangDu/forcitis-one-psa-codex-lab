@@ -1,7 +1,7 @@
 # 对象层与能力层对齐报告（object_layer_check.py 生成，勿手改）
 
 非支撑流程 143 条：已确认 114、声明无业务对象 23、提议 0、多候选 0、无候选 0、读模型 6。
-检查：① 无主对象 0；② 阶段承载对象无主流程 1；③ 主对象多流程 23；④ 能力不在所标段清单 11（另主对象无能力 0）；主对象不是业务对象 0。
+检查：① 无主对象 0；② 阶段承载对象无主流程 0；③ 主对象多流程 23；④ 能力不在所标段清单 11（另主对象无能力 0）；主对象不是业务对象 0。
 
 提议口径：第 1 档 所标段退出条件精确命中；第 2 档 所标段段内状态精确命中；第 3 档 退出或段内近似命中；第 4 档 所标段退出条件引用；第 5 档 唯一写入对象。只取本流程写入的对象；第 4、5 档把握低，组确认时重点看。
 
@@ -25,13 +25,13 @@
 | PRC-77 申报并缴纳增值税、附加税与企业所得税 | business | VS-06.1 | OBJ-92 法定申报 | confirmed | 1 | OBJ-92 法定申报 | CAP-103 |
 | PRC-87 提交、核定并确认报销应付 | business | VS-08.2 | OBJ-88 费用报销 | confirmed | 1 | AGG-77、OBJ-83 增值税发票、OBJ-88 费用报销、OBJ-100 经营计划 | CAP-056 |
 | PRC-90 出具经营月报 | read_model | VS-09.3、VS-10.2 | — | read_model | — |  | — |
-| PRC-92 过账业务事实 | business | VS-10.1 | — | declared_none | 5 | AGG-77 | — |
-| PRC-93 生成会计分录 | event_policy | VS-10.1 | OBJ-98 会计分录 | confirmed | 5 | OBJ-98 会计分录 | CAP-103 |
-| PRC-94 制单并过账受控手工凭证 | business | VS-10.1 | OBJ-98 会计分录 | confirmed | 5 | OBJ-98 会计分录 | CAP-103 |
-| PRC-95 期末结转 | business | VS-10.1 | — | declared_none | — | AGG-77、AGG-99 | — |
-| PRC-96 分配人工成本 | business | VS-10.1 | — | declared_none | — | AGG-41、AGG-77 | — |
-| PRC-98 分摊间接成本 | business | VS-10.1 | — | declared_none | — | AGG-42、AGG-77 | — |
-| PRC-99 计提折旧并处置公司资产 | business | VS-10.1 | OBJ-93 公司资产 | confirmed | 5 | OBJ-93 公司资产 | CAP-093 |
+| PRC-92 过账业务事实 | business | VS-10.0 | — | declared_none | 5 | AGG-77 | — |
+| PRC-93 生成会计分录 | event_policy | VS-10.0 | OBJ-98 会计分录 | confirmed | 4 | OBJ-98 会计分录 | CAP-103 |
+| PRC-94 制单并过账受控手工凭证 | business | VS-10.0 | OBJ-98 会计分录 | confirmed | 4 | OBJ-98 会计分录 | CAP-103 |
+| PRC-95 期末结转 | business | VS-10.0 | — | declared_none | — | AGG-77、AGG-99 | — |
+| PRC-96 分配人工成本 | business | VS-10.0 | — | declared_none | — | AGG-41、AGG-77 | — |
+| PRC-98 分摊间接成本 | business | VS-10.0 | — | declared_none | — | AGG-42、AGG-77 | — |
+| PRC-99 计提折旧并处置公司资产 | business | VS-10.0 | OBJ-93 公司资产 | confirmed | 5 | OBJ-93 公司资产 | CAP-093 |
 | PRC-101 月结检查并关账 | business | VS-10.1 | OBJ-97 会计期间 | confirmed | 1 | OBJ-97 会计期间 | CAP-103 |
 | PRC-102 启用第 13 期并年末关账 | business | VS-10.1 | OBJ-97 会计期间 | confirmed | 1 | AGG-96、OBJ-97 会计期间 | CAP-103 |
 | PRC-103 生成期间余额快照 | event_policy | VS-10.1 | — | declared_none | 5 | AGG-100 | — |
@@ -43,12 +43,12 @@
 | PRC-131 付款成功后核销应付 | event_policy | VS-05.5、VS-08.3、VS-13.5 | OBJ-85 往来款项 | confirmed | 4 | OBJ-85 往来款项 | CAP-103 |
 | PRC-132 应付核销后置付款已核销并提交过账候选 | event_policy | VS-05.5、VS-08.3、VS-13.5 | OBJ-86 资金收付 | confirmed | 4 | OBJ-86 资金收付 | CAP-103 |
 | PRC-133 应付结清后报销置已付 | event_policy | VS-08.3 | OBJ-88 费用报销 | confirmed | 4 | OBJ-88 费用报销 | CAP-056 |
-| PRC-135 处理会计分录待处理队列与推送重投 | single_aggregate | VS-10.1 | OBJ-98 会计分录 | confirmed | 5 | OBJ-98 会计分录 | CAP-103 |
-| PRC-158 处置过账拒收记录 | single_aggregate | VS-10.1 | — | declared_none | 5 | AGG-77 | — |
+| PRC-135 处理会计分录待处理队列与推送重投 | single_aggregate | VS-10.0 | OBJ-98 会计分录 | confirmed | 4 | OBJ-98 会计分录 | CAP-103 |
+| PRC-158 处置过账拒收记录 | single_aggregate | VS-10.0 | — | declared_none | 5 | AGG-77 | — |
 | PRC-159 申报已提交后确认税费应付 | event_policy | VS-06.1 | OBJ-85 往来款项 | confirmed | 5 | OBJ-85 往来款项 | CAP-103 |
 | PRC-163 应付结清后登记利润分配支付 | event_policy | VS-12.2 | OBJ-112 利润分配 | confirmed | 4 | OBJ-112 利润分配 | CAP-054 |
 | PRC-164 收入确认冲销后冲回已配对成本结转 | event_policy | VS-04.2 | — | declared_none | 5 | AGG-43 | — |
-| PRC-169 处置勾稽差异案 | single_aggregate | VS-10.1 | — | declared_none | 5 | AGG-126 | — |
+| PRC-169 处置勾稽差异案 | single_aggregate | VS-10.0 | — | declared_none | 5 | AGG-126 | — |
 | PRC-170 申请费用事前额度 | business | VS-08.0 | — | declared_none | 5 | AGG-130 | — |
 | PRC-171 核对差旅服务商月账单并确认应付 | business | VS-05.4 | OBJ-85 往来款项 | confirmed | 4 | AGG-131、OBJ-85 往来款项 | CAP-103 |
 | PRC-172 申请出差并同步差旅服务商 | business | VS-08.0 | — | declared_none | 5 | AGG-132 | — |
@@ -167,7 +167,7 @@
 
 ## ② 阶段承载对象在该段无流程以它为主对象或次要对象
 
-- VS-10.0 执行记账结转：OBJ-98 会计分录
+无
 
 ## 主对象不是业务对象（技术聚合不承载价值项：改为业务对象，或写 none 并说明）
 
@@ -195,7 +195,7 @@
 - OBJ-91 合伙人出资：PRC-111 认缴并实缴出资（VS-12.1，confirmed）；PRC-114 退回出资（VS-12.3，confirmed）
 - OBJ-92 法定申报：PRC-77 申报并缴纳增值税、附加税与企业所得税（VS-06.1，confirmed）；PRC-113 并入股息红利个税扣缴申报（VS-12.2，confirmed）；PRC-125 申报个税扣缴与社保公积金（VS-13.4、VS-06.1，confirmed）
 - OBJ-97 会计期间：PRC-101 月结检查并关账（VS-10.1，confirmed）；PRC-102 启用第 13 期并年末关账（VS-10.1，confirmed）
-- OBJ-98 会计分录：PRC-93 生成会计分录（VS-10.1，confirmed）；PRC-94 制单并过账受控手工凭证（VS-10.1，confirmed）；PRC-135 处理会计分录待处理队列与推送重投（VS-10.1，confirmed）
+- OBJ-98 会计分录：PRC-93 生成会计分录（VS-10.0，confirmed）；PRC-94 制单并过账受控手工凭证（VS-10.0，confirmed）；PRC-135 处理会计分录待处理队列与推送重投（VS-10.0，confirmed）
 - OBJ-100 经营计划：PRC-88 编制、批准并基线化经营计划与预算（VS-09.1、VS-09.3，confirmed）；PRC-89 编制滚动预测（VS-09.2，confirmed）；PRC-181 记录经营复盘并跟踪经营动作（VS-09.3，confirmed）
 - OBJ-112 利润分配：PRC-112 决议并支付利润分配（VS-12.2，confirmed）；PRC-163 应付结清后登记利润分配支付（VS-12.2，confirmed）
 
@@ -209,7 +209,7 @@
 - PRC-56 付款条件项转为可结算：OBJ-07 付款条件项 → CAP-005；所标段 VS-04.3 ['CAP-103']
 - PRC-79 登记继续教育并延续注册执业证书：OBJ-64 注册执业证书 → CAP-056；所标段 VS-06.2 ['CAP-054']
 - PRC-91 认定工时有效性：OBJ-66 工时单 → CAP-056；所标段 VS-10.1 ['CAP-103']
-- PRC-99 计提折旧并处置公司资产：OBJ-93 公司资产 → CAP-093；所标段 VS-10.1 ['CAP-103']
+- PRC-99 计提折旧并处置公司资产：OBJ-93 公司资产 → CAP-093；所标段 VS-10.0 ['CAP-103']
 - PRC-148 收入确认审批通过后占用转实并提交过账：OBJ-81 收入确认 → CAP-005；所标段 VS-04.2 ['CAP-053']
 - PRC-152 登记付款条件达成：OBJ-07 付款条件项 → CAP-005；所标段 VS-04.3 ['CAP-103']
 
@@ -225,29 +225,29 @@
 | PRC-64 导入银行流水 | OBJ-90 银行流水 | support | support | VS-01.2（使用）、VS-04.1（使用）、VS-04.4（使用）、VS-05.5（使用）、VS-08.3（使用）、VS-13.5（使用） |
 | PRC-65 维护资金账户 | OBJ-89 资金账户 | support | support | VS-04.4（使用）、VS-05.5（使用）、VS-08.3（使用）、VS-13.5（使用） |
 | PRC-80 维护法人、组织与岗位 | OBJ-55 组织单元 | support | — | VS-05.5（使用）、VS-06.2（使用）、VS-07.1（条件） |
-| PRC-97 批准并生效分摊规则版本 | OBJ-78 间接成本池 → 分摊规则版本 | support | — | VS-10.1（使用） |
-| PRC-100 发布总账配置版本 | OBJ-95 会计科目 | support | support | VS-10.1（使用） |
+| PRC-97 批准并生效分摊规则版本 | OBJ-78 间接成本池 → 分摊规则版本 | support | — | VS-10.0（使用） |
+| PRC-100 发布总账配置版本 | OBJ-95 会计科目 | support | support | VS-10.0（使用） |
 | PRC-105 评审并生效报表行定义版本 | OBJ-99 报表行定义 | support | support | VS-10.2（使用） |
 | PRC-115 导入考勤记录并补卡 | OBJ-70 考勤记录 | support | support | VS-13.1（使用） |
 | PRC-119 维护工作日历与标准工时版本 | OBJ-28 工作日历 | support | support | VS-01.2（使用）、VS-02.0（使用）、VS-02.1（使用）、VS-02.2（使用）、VS-02.3（使用）、VS-02.4（使用）、VS-02.5（使用）、VS-02.6（使用）、VS-13.1（条件） |
 | PRC-121 制定激励方案 | OBJ-74 激励方案 | support | management | VS-13.2（条件） |
 | PRC-123 调整薪酬档案与专项附加扣除 | — | support_declared_none | — | VS-07.3（使用）、VS-13.3（使用）、VS-13.6（使用） |
 | PRC-139 用印申请与用印登记 | OBJ-113 用印申请 | support | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
-| PRC-140 合同借阅 | OBJ-05 协议 | support | business | VS-01.2（使用）、VS-02.0（条件）、VS-02.7（条件）、VS-03.1（使用）、VS-04.1（条件）、VS-04.6（条件）、VS-04.2（条件）、VS-04.3（使用）、VS-04.5（条件）、VS-05.2（条件）、VS-05.3（条件）、VS-05.6（条件）、VS-07.3（条件）、VS-10.1（使用）、VS-13.6（条件） |
-| PRC-141 销售合同归档 | OBJ-05 协议 | support | business | VS-01.2（使用）、VS-02.0（条件）、VS-02.7（条件）、VS-03.1（使用）、VS-04.1（条件）、VS-04.6（条件）、VS-04.2（条件）、VS-04.3（使用）、VS-04.5（条件）、VS-05.2（条件）、VS-05.3（条件）、VS-05.6（条件）、VS-07.3（条件）、VS-10.1（使用）、VS-13.6（条件） |
+| PRC-140 合同借阅 | OBJ-05 协议 | support | business | VS-01.2（使用）、VS-02.0（条件）、VS-02.7（条件）、VS-03.1（使用）、VS-04.1（条件）、VS-04.6（条件）、VS-04.2（条件）、VS-04.3（使用）、VS-04.5（条件）、VS-05.2（条件）、VS-05.3（条件）、VS-05.6（条件）、VS-07.3（条件）、VS-10.0（使用）、VS-13.6（条件） |
+| PRC-141 销售合同归档 | OBJ-05 协议 | support | business | VS-01.2（使用）、VS-02.0（条件）、VS-02.7（条件）、VS-03.1（使用）、VS-04.1（条件）、VS-04.6（条件）、VS-04.2（条件）、VS-04.3（使用）、VS-04.5（条件）、VS-05.2（条件）、VS-05.3（条件）、VS-05.6（条件）、VS-07.3（条件）、VS-10.0（使用）、VS-13.6（条件） |
 | PRC-142 IT 需求工单 | OBJ-114 IT 需求工单 | support | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
-| PRC-143 IT 资产领用 | OBJ-115 IT 资产使用记录 | support | — | VS-10.1（使用） |
+| PRC-143 IT 资产领用 | OBJ-115 IT 资产使用记录 | support | — | VS-10.0（使用） |
 | PRC-144 员工活动类申请（周年贺卡、节日活动、创新项目发布） | OBJ-116 员工活动申请 | support | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
-| PRC-146 协议借阅逾期催还 | OBJ-05 协议 | support | business | VS-01.2（使用）、VS-02.0（条件）、VS-02.7（条件）、VS-03.1（使用）、VS-04.1（条件）、VS-04.6（条件）、VS-04.2（条件）、VS-04.3（使用）、VS-04.5（条件）、VS-05.2（条件）、VS-05.3（条件）、VS-05.6（条件）、VS-07.3（条件）、VS-10.1（使用）、VS-13.6（条件） |
-| PRC-155 IT 资产调拨 | OBJ-115 IT 资产使用记录 | support | — | VS-10.1（使用） |
-| PRC-156 IT 资产归还 | OBJ-115 IT 资产使用记录 | support | — | VS-10.1（使用） |
-| PRC-157 IT 资产报修与维修登记 | OBJ-115 IT 资产使用记录 | support | — | VS-10.1（使用） |
+| PRC-146 协议借阅逾期催还 | OBJ-05 协议 | support | business | VS-01.2（使用）、VS-02.0（条件）、VS-02.7（条件）、VS-03.1（使用）、VS-04.1（条件）、VS-04.6（条件）、VS-04.2（条件）、VS-04.3（使用）、VS-04.5（条件）、VS-05.2（条件）、VS-05.3（条件）、VS-05.6（条件）、VS-07.3（条件）、VS-10.0（使用）、VS-13.6（条件） |
+| PRC-155 IT 资产调拨 | OBJ-115 IT 资产使用记录 | support | — | VS-10.0（使用） |
+| PRC-156 IT 资产归还 | OBJ-115 IT 资产使用记录 | support | — | VS-10.0（使用） |
+| PRC-157 IT 资产报修与维修登记 | OBJ-115 IT 资产使用记录 | support | — | VS-10.0（使用） |
 | PRC-161 年末关闭预算账户 | OBJ-100 经营计划 | support | management | VS-05.2（条件）、VS-08.2（使用）、VS-09.1（条件）、VS-09.2（条件）、VS-09.3（条件）、VS-10.2（使用） |
 | PRC-162 发布假期规则版本 | — | support_declared_none | — | VS-13.1（使用） |
 | PRC-165 发布成本核算参数版本 | — | support_declared_none | — | VS-01.2（使用） |
-| PRC-166 发布资产类别与折旧政策版本 | — | support_declared_none | — | VS-10.1（使用） |
+| PRC-166 发布资产类别与折旧政策版本 | — | support_declared_none | — | VS-10.0（使用） |
 | PRC-167 编制并签字确认期初余额 | — | support_declared_none | — | VS-10.1（使用） |
-| PRC-168 发布口径版本 | — | support_declared_none | — | VS-10.1（使用） |
+| PRC-168 发布口径版本 | — | support_declared_none | — | VS-10.0（使用）、VS-10.1（使用） |
 | PRC-174 发布出差补贴标准版本 | — | support_declared_none | — | VS-08.2（使用） |
 | PRC-177 向差旅服务商同步员工与组织 | — | support_declared_none | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
 | PRC-180 发布薪酬规则版本 | — | support_declared_none | — | VS-13.3（使用） |

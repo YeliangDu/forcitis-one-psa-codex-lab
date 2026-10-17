@@ -1828,24 +1828,24 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-92
-  display: 10.2.02
+  display: 10.1.01
   name: 过账业务事实
   group: finance
   type: business
   stages:
-  - VS-10.1
+  - VS-10.0
   status: declared_none
   candidates:
   - AGG-77
   category: support
   category_by: 价值流
 - id: PRC-93
-  display: 10.2.03
+  display: 10.1.02
   name: 生成会计分录
   group: finance
   type: event_policy
   stages:
-  - VS-10.1
+  - VS-10.0
   primary_object: OBJ-98
   status: confirmed
   candidates:
@@ -1855,12 +1855,12 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-94
-  display: 10.2.04
+  display: 10.1.03
   name: 制单并过账受控手工凭证
   group: finance
   type: business
   stages:
-  - VS-10.1
+  - VS-10.0
   primary_object: OBJ-98
   status: confirmed
   candidates:
@@ -1870,42 +1870,42 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-95
-  display: 10.2.05
+  display: 10.1.04
   name: 期末结转
   group: finance
   type: business
   stages:
-  - VS-10.1
+  - VS-10.0
   status: declared_none
   category: support
   category_by: 价值流
 - id: PRC-96
-  display: 10.2.06
+  display: 10.1.05
   name: 分配人工成本
   group: finance
   type: business
   stages:
-  - VS-10.1
+  - VS-10.0
   status: declared_none
   category: support
   category_by: 价值流
 - id: PRC-98
-  display: 10.2.07
+  display: 10.1.06
   name: 分摊间接成本
   group: finance
   type: business
   stages:
-  - VS-10.1
+  - VS-10.0
   status: declared_none
   category: support
   category_by: 价值流
 - id: PRC-99
-  display: 10.2.08
+  display: 10.1.07
   name: 计提折旧并处置公司资产
   group: finance
   type: business
   stages:
-  - VS-10.1
+  - VS-10.0
   primary_object: OBJ-93
   status: confirmed
   candidates:
@@ -1915,7 +1915,7 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-101
-  display: 10.2.09
+  display: 10.2.02
   name: 月结检查并关账
   group: finance
   type: business
@@ -1930,7 +1930,7 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-102
-  display: 10.2.10
+  display: 10.2.03
   name: 启用第 13 期并年末关账
   group: finance
   type: business
@@ -1945,7 +1945,7 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-103
-  display: 10.2.11
+  display: 10.2.04
   name: 生成期间余额快照
   group: finance
   type: event_policy
@@ -2302,12 +2302,12 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-135
-  display: 10.2.12
+  display: 10.1.08
   name: 处理会计分录待处理队列与推送重投
   group: finance
   type: single_aggregate
   stages:
-  - VS-10.1
+  - VS-10.0
   primary_object: OBJ-98
   status: confirmed
   candidates:
@@ -2487,12 +2487,12 @@ processes:
   category: business
   category_by: 价值流
 - id: PRC-158
-  display: 10.2.13
+  display: 10.1.09
   name: 处置过账拒收记录
   group: finance
   type: single_aggregate
   stages:
-  - VS-10.1
+  - VS-10.0
   status: declared_none
   candidates:
   - AGG-77
@@ -2553,12 +2553,12 @@ processes:
   category: business
   category_by: 价值流
 - id: PRC-169
-  display: 10.2.14
+  display: 10.1.10
   name: 处置勾稽差异案
   group: finance
   type: single_aggregate
   stages:
-  - VS-10.1
+  - VS-10.0
   status: declared_none
   candidates:
   - AGG-126
@@ -2782,9 +2782,9 @@ processes:
   group: finance
   type: business
   supports:
-  - VS-10.1
+  - VS-10.0
   supports_basis:
-    VS-10.1: 使用
+    VS-10.0: 使用
   primary_object: OBJ-78
   status: support
 - id: PRC-100
@@ -2792,9 +2792,9 @@ processes:
   group: finance
   type: business
   supports:
-  - VS-10.1
+  - VS-10.0
   supports_basis:
-    VS-10.1: 使用
+    VS-10.0: 使用
   primary_object: OBJ-95
   status: support
   capability_l1: CAP-103
@@ -2905,7 +2905,7 @@ processes:
   - VS-05.3
   - VS-05.6
   - VS-07.3
-  - VS-10.1
+  - VS-10.0
   - VS-13.6
   supports_basis:
     VS-01.2: 使用
@@ -2921,7 +2921,7 @@ processes:
     VS-05.3: 条件
     VS-05.6: 条件
     VS-07.3: 条件
-    VS-10.1: 使用
+    VS-10.0: 使用
     VS-13.6: 条件
   primary_object: OBJ-05
   status: support
@@ -2946,7 +2946,7 @@ processes:
   - VS-05.3
   - VS-05.6
   - VS-07.3
-  - VS-10.1
+  - VS-10.0
   - VS-13.6
   supports_basis:
     VS-01.2: 使用
@@ -2962,7 +2962,7 @@ processes:
     VS-05.3: 条件
     VS-05.6: 条件
     VS-07.3: 条件
-    VS-10.1: 使用
+    VS-10.0: 使用
     VS-13.6: 条件
   primary_object: OBJ-05
   status: support
@@ -2980,9 +2980,9 @@ processes:
   group: people
   type: business
   supports:
-  - VS-10.1
+  - VS-10.0
   supports_basis:
-    VS-10.1: 使用
+    VS-10.0: 使用
   primary_object: OBJ-115
   status: support
 - id: PRC-144
@@ -3009,7 +3009,7 @@ processes:
   - VS-05.3
   - VS-05.6
   - VS-07.3
-  - VS-10.1
+  - VS-10.0
   - VS-13.6
   supports_basis:
     VS-01.2: 使用
@@ -3025,7 +3025,7 @@ processes:
     VS-05.3: 条件
     VS-05.6: 条件
     VS-07.3: 条件
-    VS-10.1: 使用
+    VS-10.0: 使用
     VS-13.6: 条件
   primary_object: OBJ-05
   status: support
@@ -3037,9 +3037,9 @@ processes:
   group: people
   type: business
   supports:
-  - VS-10.1
+  - VS-10.0
   supports_basis:
-    VS-10.1: 使用
+    VS-10.0: 使用
   primary_object: OBJ-115
   status: support
 - id: PRC-156
@@ -3047,9 +3047,9 @@ processes:
   group: people
   type: business
   supports:
-  - VS-10.1
+  - VS-10.0
   supports_basis:
-    VS-10.1: 使用
+    VS-10.0: 使用
   primary_object: OBJ-115
   status: support
 - id: PRC-157
@@ -3057,9 +3057,9 @@ processes:
   group: people
   type: business
   supports:
-  - VS-10.1
+  - VS-10.0
   supports_basis:
-    VS-10.1: 使用
+    VS-10.0: 使用
   primary_object: OBJ-115
   status: support
 - id: PRC-161
@@ -3108,9 +3108,9 @@ processes:
   group: finance
   type: single_aggregate
   supports:
-  - VS-10.1
+  - VS-10.0
   supports_basis:
-    VS-10.1: 使用
+    VS-10.0: 使用
   status: support_declared_none
 - id: PRC-167
   name: 编制并签字确认期初余额
@@ -3126,8 +3126,10 @@ processes:
   group: finance
   type: single_aggregate
   supports:
+  - VS-10.0
   - VS-10.1
   supports_basis:
+    VS-10.0: 使用
     VS-10.1: 使用
   status: support_declared_none
 - id: PRC-174
