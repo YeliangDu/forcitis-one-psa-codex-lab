@@ -460,14 +460,14 @@ processes:
   - id: PRC-42
     name: "发布检查表模板版本"
     type: single_aggregate
-    stages: []
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.1 草拟新版本、VS-15.2 已生效、VS-15.3 旧版本已停用，均由本流程完成（判据只推出 VS-15.2）；原支撑理由：CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题（页首不补列清单）；检查表模板发布维护供检查策划引用的主数据，不作阶段办理结果，不补服务产品管理"
     primary_object: "OBJ-50"
     owner_bc: "B-26"
     group: revenue
     status: draft
     human_orchestration: false
     bpmn: ~
-    support: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题（页首不补列清单）；检查表模板发布维护供检查策划引用的主数据，不作阶段办理结果，不补服务产品管理"
   - id: PRC-43
     name: "实施并锁定检查记录"
     type: business
@@ -573,8 +573,8 @@ processes:
   - id: PRC-52
     name: "开放收入确认证据类型"
     type: single_aggregate
-    stages: []
-    support: "收入确认证据类型开放是 B-08 的版本化配置（财务负责人书面确认后逐类开放），决定哪类客户确认证据可触发收入确认，本身不造任何段的进入或退出对象状态"
+    stages: [VS-15.2]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：证据类型开放即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：收入确认证据类型开放是 B-08 的版本化配置（财务负责人书面确认后逐类开放），决定哪类客户确认证据可触发收入确认，本身不造任何段的进入或退出对象状态"
     primary_object: "none"
     primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-08"
@@ -722,8 +722,8 @@ processes:
   - id: PRC-65
     name: "维护资金账户"
     type: single_aggregate
-    stages: []
-    support: "资金账户是主数据维护，不推进任何价值流对象的阶段状态（#421 判据①不支持归段）"
+    stages: [VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.2 开户在用、VS-15.3 销户；判据只推出 VS-15.3，开户在用由本流程完成；原支撑理由：资金账户是主数据维护，不推进任何价值流对象的阶段状态（#421 判据①不支持归段）"
     primary_object: "OBJ-89"
     owner_bc: "B-22"
     group: finance
@@ -884,8 +884,8 @@ processes:
   - id: PRC-80
     name: "维护法人、组织与岗位"
     type: business
-    stages: []
-    support: "B-13 主数据维护：法人主体、组织单元、法人归属、职位目录条目的维护，结局不造任何阶段的退出条件（职位「启用」只是 VS-07.1 的进入条件，判据按退出条件归段），服务多条价值流（STAGE_ALIGN.md 归段判据第 6 项）"
+    stages: [VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.2 组织单元与岗位启用、VS-15.3 停用；法人主体筹建存续不作门；法人主体筹建存续不作门；原支撑理由：B-13 主数据维护：法人主体、组织单元、法人归属、职位目录条目的维护，结局不造任何阶段的退出条件（职位「启用」只是 VS-07.1 的进入条件，判据按退出条件归段），服务多条价值流（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: "OBJ-55"
     secondary_objects: [OBJ-54, OBJ-58]
     owner_bc: "B-13"
@@ -1072,8 +1072,8 @@ processes:
   - id: PRC-97
     name: "批准并生效分摊规则版本"
     type: business
-    stages: []
-    support: "分摊规则版本是配置，供 VS-10 的分摊运行使用，本身不造出阶段退出条件（#421）"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.1 草稿、VS-15.2 已生效、VS-15.3 旧版本被取代，均由本流程完成（判据推出 VS-15.1、VS-15.2）；原支撑理由：分摊规则版本是配置，供 VS-10 的分摊运行使用，本身不造出阶段退出条件（#421）"
     primary_object: "OBJ-78"
     owner_bc: "B-07"
     group: finance
@@ -1106,8 +1106,8 @@ processes:
   - id: PRC-100
     name: "发布总账配置版本"
     type: business
-    stages: []
-    support: "科目表、映射表、授权表版本是总账配置，不造出阶段退出条件（#421）"
+    stages: [VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.2 科目表版本启用、VS-15.3 科目停用；判据暂推不出（科目对象无版本态）；判据暂推不出（科目对象无版本态）；原支撑理由：科目表、映射表、授权表版本是总账配置，不造出阶段退出条件（#421）"
     primary_object: "OBJ-95"
     primary_object_note: "科目表版本；映射表、授权表是技术配置（AGG-85、94），无对象"
     owner_bc: "B-20"
@@ -1162,8 +1162,8 @@ processes:
   - id: PRC-105
     name: "评审并生效报表行定义版本"
     type: business
-    stages: []
-    support: "报表行定义版本是配置，供出具报表使用，不造出阶段退出条件（#421）"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.1 草拟与财务评审、VS-15.2 已生效、VS-15.3 旧版本被取代，均由本流程完成（判据只推出 VS-15.2）；原支撑理由：报表行定义版本是配置，供出具报表使用，不造出阶段退出条件（#421）"
     primary_object: "OBJ-99"
     owner_bc: "B-21"
     group: finance
@@ -1309,8 +1309,8 @@ processes:
   - id: PRC-119
     name: "维护工作日历与标准工时版本"
     type: single_aggregate
-    stages: []
-    support: "B-14 工作日历与标准工时版本的配置维护，结局不造任何阶段的退出条件（工作日历「已维护」是 VS-13.1 的进入条件，判据按退出条件归段）（STAGE_ALIGN.md 归段判据第 6 项）"
+    stages: [VS-15.2]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；判据：工作日历「已维护」为 VS-15.2 退出；原支撑理由：B-14 工作日历与标准工时版本的配置维护，结局不造任何阶段的退出条件（工作日历「已维护」是 VS-13.1 的进入条件，判据按退出条件归段）（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: "OBJ-28"
     owner_bc: "B-14"
     group: people
@@ -1330,8 +1330,8 @@ processes:
   - id: PRC-121
     name: "制定激励方案"
     type: business
-    stages: []
-    support: "B-15 激励方案版本的配置维护，结局（已生效）不造 VS-13.2 的退出条件（激励方案「生效」是 VS-13.2 的进入条件；退出是评估已确认、奖金已核定）（STAGE_ALIGN.md 归段判据第 6 项）"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.1 编制、VS-15.2 已生效、VS-15.3 已结束，均由本流程完成（判据推出 VS-15.2、VS-15.3）；原支撑理由：B-15 激励方案版本的配置维护，结局（已生效）不造 VS-13.2 的退出条件（激励方案「生效」是 VS-13.2 的进入条件；退出是评估已确认、奖金已核定）（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: "OBJ-74"
     owner_bc: "B-15"
     group: people
@@ -1792,8 +1792,8 @@ processes:
   - id: PRC-162
     name: "发布假期规则版本"
     type: single_aggregate
-    stages: []
-    support: "B-27 假期规则版本的配置维护，结局（假期规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
+    stages: [VS-15.2]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：B-27 假期规则版本的配置维护，结局（假期规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: "none"
     primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-27"
@@ -1829,8 +1829,8 @@ processes:
   - id: PRC-165
     name: "发布成本核算参数版本"
     type: single_aggregate
-    stages: []
-    support: "成本核算参数是配置版本，供 VS-10.1 的成本分配与分摊使用，本身不推进任何阶段的对象状态"
+    stages: [VS-15.2]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：成本核算参数是配置版本，供 VS-10.1 的成本分配与分摊使用，本身不推进任何阶段的对象状态"
     primary_object: "none"
     primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-07"
@@ -1842,8 +1842,8 @@ processes:
   - id: PRC-166
     name: "发布资产类别与折旧政策版本"
     type: single_aggregate
-    stages: []
-    support: "资产类别与折旧政策是配置版本，供 PRC-99 计提折旧使用，不推进阶段"
+    stages: [VS-15.2]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：资产类别与折旧政策是配置版本，供 PRC-99 计提折旧使用，不推进阶段"
     primary_object: "none"
     primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-24"
@@ -1868,8 +1868,8 @@ processes:
   - id: PRC-168
     name: "发布口径版本"
     type: single_aggregate
-    stages: []
-    support: "口径版本是勾稽侧配置（ADR-0023 决定 2），不推进阶段"
+    stages: [VS-15.2]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：口径版本是勾稽侧配置（ADR-0023 决定 2），不推进阶段"
     primary_object: "none"
     primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-17"
@@ -1947,8 +1947,8 @@ processes:
   - id: PRC-174
     name: "发布出差补贴标准版本"
     type: single_aggregate
-    stages: []
-    support: "出差补贴标准是配置版本，供 PRC-87 生成补贴行使用，不推进阶段"
+    stages: [VS-15.2]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：出差补贴标准是配置版本，供 PRC-87 生成补贴行使用，不推进阶段"
     primary_object: "none"
     primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-12"
@@ -2023,8 +2023,8 @@ processes:
   - id: PRC-180
     name: "发布薪酬规则版本"
     type: single_aggregate
-    stages: []
-    support: "B-15 薪酬规则版本的配置维护，结局（薪酬规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
+    stages: [VS-15.2]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：B-15 薪酬规则版本的配置维护，结局（薪酬规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: "none"
     primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-15"

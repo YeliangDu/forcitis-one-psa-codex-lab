@@ -1387,6 +1387,106 @@ value_streams:
       value_item: 服务办结，办理记录可追溯。
       notes: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；B31-7 离职生效后 7 个日历日未归还提醒原组织单元负责人，归还完成取消，手工入口不沿用；离职触发归还待办不作 VS-13.6 的退出条件；CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C14 题，合同档案服务保持原归属。已驳回、已撤回及已退回可提前结束本次服务，不要求先解决；正常办结路径仍需本段。已归还是归还命令的流程结局，不是已结束的全局同义词。依据 ARCH-VS14 A3、A4，AGG-115 use_period 的归还资产转换及 PRC-156。
 
+# intent 2026-10-17-174814（PAN-02 用户答「确认增加价值流」）：内部价值流，收纳 PROCESS_ANCHORING_RESEARCH.md B 类 15 条；名称与阶段名均为暂名，交 one-glossary。
+- id: VS-15
+  name: 确立经营基准
+  name_status: 暂名（intent 2026-10-17-174814；交 one-glossary 登记）
+  category: management
+  category_note: 暂定 management（规则、参数与主数据约束其他价值流的办理）；categories.proposal.yaml 未列，待用户认可用途类别时一并确认
+  working_name: 规则参数主数据拟订到生效
+  description: 职能负责人拟订一版业务规则、参数或主数据（检查表模板、分摊规则、科目表、报表行定义、工作日历与标准工时、激励方案、资金账户、法人组织岗位，以及假期、成本核算、折旧、口径、出差补贴、薪酬、收入确认证据类型等规则版本），经批准后生效，后续业务按生效版本办理；修订产生新版本，旧版本被取代或停用。
+  triggering_stakeholders: [SH-M1, SH-E6]
+  trigger_note: 内部触发（BIZBOK Part 2 §2.4 第 160 页、§2.8 第 272 页，页码待独立复核，见 PROCESS_ANCHORING_RESEARCH.md）；制度变化、年度维护或业务新需要触发。
+  value: 一版规则、参数或主数据生效，后续业务按它办。
+  value_receivers: [SH-M1, SH-E1, SH-E2, SH-E3, SH-E5, SH-E6]
+  ends_in:
+    - {ref: OBJ-50, state: 已生效 / 已停用}
+    - {ref: OBJ-78, state: 已生效 / 被取代}
+    - {ref: OBJ-99, state: 已生效 / 被取代}
+    - {ref: OBJ-74, state: 已生效 / 已结束}
+    - {ref: 缺对象状态, state: 业务规则（暂名）版本已生效 / 已停用, gap: MS-25}
+  stages:
+    - id: VS-15.1
+      order: 1
+      name: 拟订
+      name_status: 暂名
+      capabilities: [CAP-024, CAP-028, CAP-054, CAP-058, CAP-074, CAP-103]
+      description: 职能负责人起草新版本或主数据变更，写明生效日与适用范围。
+      participants: [SH-E6, SH-M1]
+      entry:
+        all:
+          - {ref: 缺对象状态, state: 需新建或修订一版经营基准, gap: MS-26, note: 触发事实（制度变化、年度维护、业务新需要），不自造对象状态}
+      exit:
+        any:
+          - {ref: OBJ-50, state: 草拟}
+          - {ref: OBJ-78, state: 草稿}
+          - {ref: OBJ-99, state: 草拟 / 财务评审}
+          - {ref: OBJ-74, state: 编制}
+          - {ref: 缺对象状态, state: 业务规则（暂名）版本草稿, gap: MS-25}
+      value_item: 新版本草稿已成形，待批准。
+      notes: 资金账户、法人与组织岗位、工作日历、科目这类主数据无草稿态，直接在 VS-15.2 生效（skippable）。
+      skippable: true
+    - id: VS-15.2
+      order: 2
+      name: 批准生效
+      name_status: 暂名
+      capabilities: [CAP-024, CAP-028, CAP-054, CAP-058, CAP-074, CAP-103]
+      description: 按制度批准并在生效日启用；需书面确认的（收入确认证据类型由财务负责人确认）留确认记录。
+      participants: [SH-M1, SH-E6, SH-X7]
+      entry:
+        any:
+          - {ref: OBJ-50, state: 草拟}
+          - {ref: OBJ-78, state: 草稿 / 已批准}
+          - {ref: OBJ-99, state: 财务评审}
+          - {ref: OBJ-74, state: 审批}
+          - {ref: 缺对象状态, state: 业务规则（暂名）版本草稿, gap: MS-25}
+          - {ref: 缺对象状态, state: 需新建或修订一版经营基准, gap: MS-26, note: 无草稿态的主数据从触发直接进入}
+      exit:
+        any:
+          - {ref: OBJ-50, state: 已生效}
+          - {ref: OBJ-78, state: 已生效}
+          - {ref: OBJ-99, state: 已生效}
+          - {ref: OBJ-74, state: 已生效}
+          - {ref: OBJ-28, state: 已维护}
+          - {ref: OBJ-95, state: 已启用}
+          - {ref: OBJ-58, state: 已启用}
+          - {ref: OBJ-55, state: 已启用}
+          - {ref: OBJ-89, state: 在用}
+          - {ref: 缺对象状态, state: 业务规则（暂名）版本已生效, gap: MS-25}
+      value_item: 新版本已生效，后续业务按它办。
+      notes: 资金账户开立、销户有银行参与（SH-X7）。OBJ-54 法人主体的筹建、存续是经营主体事实，不作本段门；PRC-80 经组织单元与岗位进入本段。
+    - id: VS-15.3
+      order: 3
+      name: 修订停用
+      name_status: 暂名
+      capabilities: [CAP-024, CAP-028, CAP-058, CAP-074, CAP-103]
+      description: 新版本生效时旧版本被取代，或基准整体停用；被引用的不删除，只停用。
+      participants: [SH-E6, SH-M1, SH-X7]
+      skippable: true
+      entry:
+        any:
+          - {ref: OBJ-50, state: 已生效}
+          - {ref: OBJ-78, state: 已生效}
+          - {ref: OBJ-99, state: 已生效}
+          - {ref: OBJ-74, state: 已生效}
+          - {ref: OBJ-95, state: 已启用}
+          - {ref: OBJ-58, state: 已启用}
+          - {ref: OBJ-55, state: 已启用}
+          - {ref: OBJ-89, state: 在用}
+          - {ref: 缺对象状态, state: 业务规则（暂名）版本已生效, gap: MS-25}
+      exit:
+        any:
+          - {ref: OBJ-50, state: 已停用}
+          - {ref: OBJ-78, state: 被取代}
+          - {ref: OBJ-99, state: 被取代}
+          - {ref: OBJ-74, state: 已结束}
+          - {ref: OBJ-95, state: 已停用}
+          - {ref: OBJ-58, state: 已停用}
+          - {ref: OBJ-55, state: 已停用 / 已撤销}
+          - {ref: OBJ-89, state: 已销户}
+          - {ref: 缺对象状态, state: 业务规则（暂名）版本已停用, gap: MS-25}
+      value_item: 旧版本退出使用，历史办理仍按当时版本可追溯。
+      notes: 修订即新一轮 VS-15.1 起草；本段只记旧版本退出。
 
 # 第 ③ 步预警：一级对象未被任何阶段条件引用（脚本核对，列表与脚本结果须一致）
 step3_warnings:
@@ -1408,6 +1508,8 @@ step3_warnings:
 # SD-13（用户 2026-10-17 ANM 批准）
 # 缺对象状态（第 ② 步回补输入）：条件指不到信息图中任何对象的状态。仍在条件中使用的 7 项（MS-17–MS-20 为 2026-10-16 阶段对齐裁定新增，MS-21–MS-23 为本次 SD-11、SD-15、SD-13 新增；原 0 项，用户答复 U-4 后 MS-16 消除，intent 2026-10-16-090004）
 missing_states:
+  - {id: MS-25, text: 业务规则（暂名）版本草稿 / 已生效 / 已停用, used_in: [VS-15.1, VS-15.2, VS-15.3], note: intent 2026-10-17-174814；PROCESS_ANCHORING_RESEARCH 提议对象「业务规则」（暂名）未立，立对象后改指；交 one-glossary}
+  - {id: MS-26, text: 需新建或修订一版经营基准, used_in: [VS-15.1, VS-15.2], note: intent 2026-10-17-174814；触发事实，不自造对象状态}
   - {id: MS-24, text: 员工有需办理的内部服务事项, used_in: [VS-14.1], note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；仅为触发事实，不自造对象状态}
   - {id: MS-17, text: 收入确认事实已过账, used_in: [VS-04.2], note: SD-08 用户裁定 2026-10-16；经营事实已非对象（OBJ-75），收入确认形态待定 Q20（OBJ-81），无对象状态可指；随 Q20 回补信息图}
   - {id: MS-18, text: 员工有需事前申请的支出计划, used_in: [VS-08.0], note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I05 题；批准结果已改指 OBJ-118、119，此处仅剩触发事实，不表示仍缺申请记录}
