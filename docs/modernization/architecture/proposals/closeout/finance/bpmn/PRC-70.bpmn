@@ -110,8 +110,8 @@
       <outgoing>Flow_8</outgoing>
       <outgoing>Flow_9</outgoing>
     </exclusiveGateway>
-    <serviceTask id="S2_8" name="预算占用 → B-18">
-      <documentation>AGG-80 预算占用；B-11；automatic</documentation>
+    <serviceTask id="S2_8" name="占用预算 → B-18">
+      <documentation>AGG-80 占用预算；B-11；automatic</documentation>
       <incoming>Flow_9</incoming>
       <outgoing>Flow_10</outgoing>
       <ioSpecification id="IO_S2_8">

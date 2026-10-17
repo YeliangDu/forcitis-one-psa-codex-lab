@@ -109,7 +109,7 @@ processes:
       name: 提交过账候选（PostingCandidate）
   - actor: system
     where: automatic
-    command: 标记已过账
+    command: 标记成本结转已过账
     aggregate: AGG-43
     branch: 订阅过账结果
     emits:
@@ -308,7 +308,7 @@ processes:
       name: 提交过账候选（PostingCandidate）
   - actor: system
     where: automatic
-    command: 标记已过账
+    command: 标记成本结转已过账
     aggregate: AGG-43
     branch: 订阅过账结果
     emits:
@@ -342,7 +342,7 @@ processes:
   primary_object: none
   primary_object_note: 同 PRC-15：转入售前投入是成本结转，不改业务对象状态
 - id: PRC-35
-  name: 项目或协议终止、结项后清算成本
+  name: 清算项目成本
   type: event_policy
   owner_bc: B-07
   stages:
@@ -449,7 +449,7 @@ processes:
       name: 提交过账候选（PostingCandidate）
   - actor: system
     where: automatic
-    command: 标记已过账
+    command: 标记成本结转已过账
     aggregate: AGG-43
     branch: 订阅过账结果
     emits:
@@ -573,7 +573,7 @@ processes:
       name: 提交过账候选（PostingCandidate）
   - actor: system
     where: automatic
-    command: 标记已过账
+    command: 标记成本结转已过账
     aggregate: AGG-43
     branch: 订阅过账结果
     emits:
@@ -1048,7 +1048,7 @@ processes:
     command: 读取供方准入资质与项目
   - actor: SH-E2
     where: automatic
-    command: 预算占用
+    command: 占用预算
     aggregate: AGG-80
     emits:
     - BudgetReserved
@@ -1061,7 +1061,7 @@ processes:
     - mode: api
       direction: out
       bc: B-18
-      name: 预算占用
+      name: 占用预算
     notify:
     - to: 审批人
       how: 审批待办中标注「超预算」
@@ -1641,7 +1641,7 @@ processes:
   notes: 形态待定 Q20；履约确认冲销另走 AGG-57。步骤 2 的占用与步骤 3 的确认同一用户操作内先后完成。 冲销分支（步骤 6–9）：财务发起 → 审批平台加审 AR-06 → 冲销供方履约确认 → 释放履约额度 → 冲销并重过账（S-29 SQ-43）。
   primary_object: OBJ-87
 - id: PRC-73
-  name: 登记并查验进项发票
+  name: 登记并查验进项增值税发票
   type: business
   trigger:
     type: human
@@ -1823,7 +1823,7 @@ processes:
   stages_note: 结局「进项发票已用途确认 / 已入账」造出 VS-05.4 应付确认的退出条件（#421 判据①）
   primary_object: OBJ-83
 - id: PRC-74
-  name: 提交供方应付
+  name: 提交供方应付款项
   type: business
   trigger:
     type: event
@@ -2245,7 +2245,7 @@ processes:
     aggregate: AGG-53
     emits:
     - 付款已成功
-    desc: 出纳在银行完成支付后登记；之后由事件策略接续：付款已成功 → 核销应付（PRC-131）→ 应付已核销 → 置付款已核销并提交过账候选（PRC-132）；报销置已付见 PRC-133；回单金额与时刻由银行流水匹配（PRC-64 已导入）自动带出，出纳只确认；出纳是否单列角色（会计法要求出纳不得兼管稽核、档案和收支、债权债务账目登记）交用户，推荐单列并在 platform.identity
+    desc: 出纳在银行完成支付后登记；之后由事件策略接续：付款已成功 → 核销应付（PRC-131）→ 应付已核销 → 标记付款已核销并提交过账候选（PRC-132）；报销置已付见 PRC-133；回单金额与时刻由银行流水匹配（PRC-64 已导入）自动带出，出纳只确认；出纳是否单列角色（会计法要求出纳不得兼管稽核、档案和收支、债权债务账目登记）交用户，推荐单列并在 platform.identity
       设不相容权限组，属 J 系列岗位体系（S-31 SQ-09）
     decision:
     - when: 出纳与发起人或审批人为同一人 → 拒收并告警，改由其他出纳登记
@@ -2379,7 +2379,7 @@ processes:
       bc: B-16
       name: 冲销并重过账
     legal_entity: 资金账户所属法人
-  notes: 应付已结清的订阅方 B-15（薪酬，PRC-127）。原步骤 6–8（核销应付、置付款已核销、提交过账候选）改为事件策略 PRC-131、PRC-132（⑥a 评审 M6）。审批人 SH-M1 为占位（F-01）。 付款成功后退票（S-30 ③）：步骤 7 登记退票发付款已退票，步骤 8–9 为同 BC 反应（AGG-52 冲回应付核销，再冲销并重过账），不用「已被取代」。 预付款登记（PRC-175
+  notes: 应付已结清的订阅方 B-15（薪酬，PRC-127）。原步骤 6–8（核销应付、标记付款已核销、提交过账候选）改为事件策略 PRC-131、PRC-132（⑥a 评审 M6）。审批人 SH-M1 为占位（F-01）。 付款成功后退票（S-30 ③）：步骤 7 登记退票发付款已退票，步骤 8–9 为同 BC 反应（AGG-52 冲回应付核销，再冲销并重过账），不用「已被取代」。 预付款登记（PRC-175
     步 5）与「预付款冲抵应付」（PRC-176）：预付款进待付清单的触发待补（见 NOTES 结构问题）。
   stages_note: 结局「付款已成功 / 已核销」造出 VS-05.5 付款、VS-08.3 报销付款、VS-13.5 的退出条件（#421 判据①）；借款发放不让借款结清，不归 VS-08.1；利润分配与出资退回的退出条件由 PRC-163、PRC-114 造出
   primary_object: OBJ-86
@@ -2578,7 +2578,7 @@ processes:
   notes: 结项编排经 api 读状态，事件无业务订阅方。人工终止是独立入口 4（不先执行完成供方协议）；结算与终止加责任人审批（QC-VS05-08）。
   primary_object: OBJ-05
 - id: PRC-77
-  name: 申报并缴纳增值税、附加税与企业所得税
+  name: 申报并缴纳税款
   type: business
   trigger:
     type: time
@@ -2956,7 +2956,7 @@ processes:
       aggregate: AGG-89
   - actor: SH-E3
     where: automatic
-    command: 预算占用
+    command: 占用预算
     aggregate: AGG-80
     emits:
     - BudgetReserved
@@ -2971,7 +2971,7 @@ processes:
     - mode: api
       direction: out
       bc: B-18
-      name: 预算占用
+      name: 占用预算
     notify:
     - to: SH-E1
       how: 审批待办中标注「超预算」
@@ -3133,7 +3133,7 @@ processes:
       name: 审批已驳回
   - actor: system
     where: automatic
-    command: 驳回释放
+    command: 释放进项发票占用
     aggregate: AGG-89
     branch: 驳回或补偿（占用中途失败）
     desc: 释放发票占用
@@ -3148,7 +3148,7 @@ processes:
     - mode: api
       direction: out
       bc: B-23
-      name: 驳回释放
+      name: 释放进项发票占用
     notify:
     - to: SH-E3
       how: 企业微信消息：已退回，可修改后重新提交
@@ -3638,7 +3638,7 @@ processes:
     reads_note: 配置读取（版本按业务日期取当时有效版本，D17 第 5、6 条）
   - actor: system
     where: external:U8C
-    command: 推送与重投
+    command: 推送分录
     aggregate: AGG-84
     added_in: closeout
     legal_entity: 事实所属法人（推送到该法人在 U8C 的收付账套）
@@ -3930,7 +3930,7 @@ processes:
   - PRC-94-S24
   primary_object: OBJ-98
 - id: PRC-95
-  name: 期末结转
+  name: 执行期末结转
   trigger:
     type: time
     desc: 月末业务过账完成后
@@ -5327,7 +5327,7 @@ processes:
   primary_object: OBJ-95
   primary_object_note: 科目表版本；映射表、授权表是技术配置（AGG-85、94），无对象
 - id: PRC-101
-  name: 月结检查并关账
+  name: 检查并关闭会计期间
   trigger:
     type: human
     desc: 财务在会计期间结束时发起月结
@@ -5540,7 +5540,7 @@ processes:
   - PRC-101-S15
   primary_object: OBJ-97
 - id: PRC-102
-  name: 启用第 13 期并年末关账
+  name: 启用并关闭第 13 期
   trigger:
     type: time
     desc: 会计年度末，12 月关账前
@@ -5932,7 +5932,7 @@ processes:
   primary_object: none
   primary_object_note: 期间余额快照是派生、只追加的技术聚合，不改业务对象状态
 - id: PRC-104
-  name: 外部法定账对账与签字
+  name: 对账外部法定账并签字
   trigger:
     type: event
     events:
@@ -6004,7 +6004,7 @@ processes:
     added_in: closeout
     evidence:
     - U8C 记账结果（凭证号、返回码）
-    desc: 对账读到 U8C 记账结果后，对已推送的凭证登记已确认记账（已推送 → 已确认记账）；触发方为对账（AGG-101，同 BC）、执行与推送不同，不并入「推送与重投」（S-31 SQ-11）
+    desc: 对账读到 U8C 记账结果后，对已推送的凭证登记已确认记账（已推送 → 已确认记账）；触发方为对账（AGG-101，同 BC）、执行与推送不同，不并入「推送分录」（S-31 SQ-11）
     decision:
     - when: 记账结果对应的凭证未推送或外部键不符，不置已确认记账，作为对账差异在下一步登记
       goto: 3
@@ -6228,7 +6228,7 @@ processes:
   - PRC-106-S05
   stages_note: 读模型不造对象状态，按读取的对象状态归段（#421）：读 OBJ-97「已关账」的期间余额与生效的报表行定义，三大报表是 VS-10.2 报表发布的产物（已裁定退出条件「三大报表已出具」）。
 - id: PRC-111
-  name: 认缴并实缴出资
+  name: 认缴并实缴合伙人出资
   type: single_aggregate
   owner_bc: B-10
   aggregate: AGG-54
@@ -6236,9 +6236,9 @@ processes:
   - VS-12.1
   desc: 股东或合伙人认缴，财务登记到账
   states:
-  - 认缴
-  - 部分实缴
-  - 实缴（到账）
+  - 已认缴
+  - 已部分实缴
+  - 已实缴
   permission: 出资.登记认缴 / 出资.登记实缴 / 出资.更正实缴
   page: 出资登记页
   migration: 全部历史出资（认缴、实缴、退回）迁入（U-3、U-4），迁入走迁入过账通道，不触发过账候选；无在途实例
@@ -6300,7 +6300,7 @@ processes:
     evidence:
     - 出资协议或章程出资条款扫描件
     from: null
-    to: 认缴
+    to: 已认缴
     audit: true
     decision:
     - when: otherwise
@@ -6314,9 +6314,9 @@ processes:
     evidence:
     - 银行到账回单
     from:
-    - 认缴
-    - 部分实缴
-    to: 部分实缴
+    - 已认缴
+    - 已部分实缴
+    to: 已部分实缴
     audit: true
     decision:
     - when: 累计实缴将超过认缴额
@@ -6327,7 +6327,7 @@ processes:
     - when: otherwise
       goto: end
       outcome: 出资已实缴
-    desc: 可分期实缴，累计实缴不超过认缴额（INV-127）；累计等于认缴额时置实缴（到账）；累计小于认缴额时置部分实缴
+    desc: 可分期实缴，累计实缴不超过认缴额（INV-127）；累计等于认缴额时置已实缴；累计小于认缴额时置已部分实缴
     guard: 累计实缴小于认缴额（INV-127）
   - actor: SH-E6
     command: 登记出资实缴
@@ -6337,9 +6337,9 @@ processes:
     evidence:
     - 银行到账回单
     from:
-    - 认缴
-    - 部分实缴
-    to: 实缴（到账）
+    - 已认缴
+    - 已部分实缴
+    to: 已实缴
     audit: true
     decision:
     - when: 累计实缴将超过认缴额
@@ -6350,15 +6350,15 @@ processes:
     - when: otherwise
       goto: end
       outcome: 出资已实缴
-    desc: 可分期实缴，累计实缴不超过认缴额（INV-127）；累计等于认缴额时置实缴（到账）；累计小于认缴额时置部分实缴
+    desc: 可分期实缴，累计实缴不超过认缴额（INV-127）；累计等于认缴额时置已实缴；累计小于认缴额时置已部分实缴
     guard: 累计实缴等于认缴额（INV-127）
   - actor: SH-E6
     command: 更正出资登记
     where: external:银行
     evidence:
     - 银行回单更正或退回凭证、更正说明
-    from: 实缴（到账）
-    to: 部分实缴
+    from: 已实缴
+    to: 已部分实缴
     audit: true
     added_in: closeout
     emits: []
@@ -6377,8 +6377,8 @@ processes:
     where: external:银行
     evidence:
     - 银行回单更正或退回凭证、更正说明
-    from: 部分实缴
-    to: 认缴
+    from: 已部分实缴
+    to: 已认缴
     audit: true
     added_in: closeout
     emits: []
@@ -6397,8 +6397,8 @@ processes:
     where: external:银行
     evidence:
     - 银行回单更正或退回凭证、更正说明
-    from: 部分实缴
-    to: 部分实缴
+    from: 已部分实缴
+    to: 已部分实缴
     audit: true
     added_in: closeout
     emits: []
@@ -6430,8 +6430,8 @@ processes:
       goto: end
       outcome: 出资已实缴
     desc: 出资已实缴仅分析（无业务订阅方），过账走 api（R-10）；系统触账遇已关账期间落开放期间（ADR-0045）
-    from: 部分实缴
-    to: 部分实缴
+    from: 已部分实缴
+    to: 已部分实缴
     note: 自环：过账不改出资状态
   - actor: system
     command: 提交过账候选
@@ -6451,10 +6451,10 @@ processes:
       goto: end
       outcome: 出资已实缴
     desc: 出资已实缴仅分析（无业务订阅方），过账走 api（R-10）；系统触账遇已关账期间落开放期间（ADR-0045）
-    from: 实缴（到账）
-    to: 实缴（到账）
+    from: 已实缴
+    to: 已实缴
     note: 自环：过账不改出资状态
-  states_note: '退回两态（部分退回、已退回）由 PRC-114 触及，不在本流程（S-43 #35）'
+  states_note: '退回两态（已部分退回、已退回）由 PRC-114 触及，不在本流程（S-43 #35）'
   primary_object: OBJ-91
 - id: PRC-112
   name: 决议并支付利润分配
@@ -6473,7 +6473,7 @@ processes:
   - VS-12.2
   owner_bc: B-10
   human_orchestration: false
-  migration: 在途（草拟未决议）投产前办结或以草拟状态迁入；已决议、部分支付、已支付的利润分配全部迁入（U-3、U-4），迁入决议号、决议日期与证据引用，迁入不触发决议、支付与过账
+  migration: 在途（草拟未决议）投产前办结或以草拟状态迁入；已决议、已部分支付、已支付的利润分配全部迁入（U-3、U-4），迁入决议号、决议日期与证据引用，迁入不触发决议、支付与过账
   scope: 按法人与股东关系的数据范围（财务负责人与财务岗位）
   outcomes:
   - 已决议待支付
@@ -6666,7 +6666,7 @@ processes:
     - when: 撤销决议未通过
       goto: end
       outcome: 撤销未通过
-    - when: 已有支付（部分支付或已支付），不可撤销，拒收并告警
+    - when: 已有支付（已部分支付或已支付），不可撤销，拒收并告警
       goto: end
       rule: 状态机：仅已决议可撤销
       outcome: 已拒收
@@ -6739,7 +6739,7 @@ processes:
     rule: 草拟利润分配与登记决议证据不得为同一人（决议证据另由财务负责人复核，提议）
   primary_object: OBJ-112
 - id: PRC-114
-  name: 退回出资
+  name: 退回合伙人出资
   type: business
   trigger:
     type: human
@@ -6751,11 +6751,11 @@ processes:
   - VS-12.3
   owner_bc: B-10
   human_orchestration: false
-  migration: 在途（已申请未登记）投产前办结；已退回、部分退回的出资全部迁入（U-3、U-4），迁入不触发过账
+  migration: 在途（已申请未登记）投产前办结；已退回、已部分退回的出资全部迁入（U-3、U-4），迁入不触发过账
   scope: 按被投资法人的数据范围（财务负责人与财务岗位）
   outcomes:
   - 已退回
-  - 部分退回
+  - 已部分退回
   - 申请未通过
   - 已拒收
   - 过账被拒收
@@ -6853,13 +6853,13 @@ processes:
     - when: 所属期间已关账且退回后仍有已实缴余额，自动落当前开放期间并标原期间
       goto: end
       rule: ADR-0045 决定 2；INV-92；AR-05
-      outcome: 部分退回
+      outcome: 已部分退回
     - when: 退回后已实缴余额为零
       goto: end
       outcome: 已退回
     - when: otherwise
       goto: end
-      outcome: 部分退回
+      outcome: 已部分退回
     cross_bc:
     - mode: api
       direction: out
@@ -6869,7 +6869,7 @@ processes:
   notes: 退回的资金收付走「发起、审批并执行付款」，应付类型承载见 G-11 末段。R-27：决议环节按外部决议登记证据写入（external），是否需要决议待用户定（U-15）。
   primary_object: OBJ-91
 - id: PRC-131
-  name: 付款成功后核销应付
+  name: 核销应付款项
   type: event_policy
   owner_bc: B-10
   stages:
@@ -6978,7 +6978,7 @@ processes:
   steps:
   - actor: system
     where: automatic
-    command: 置付款已核销
+    command: 标记付款已核销
     aggregate: AGG-53
     post: true
     calls: PRC-92
@@ -7019,7 +7019,7 @@ processes:
   stages_note: VS-05.5、VS-08.3、VS-13.5：事件策略按触发状态归段（#421 判据②）——触发「应付已核销」是 AGG-52 往来款项走向「已结清 / 部分结」的一步，供方应付对应 VS-05.5 付款、报销应付对应 VS-08.3 报销付款、薪酬应付对应 VS-13.5 的退出条件；与 PRC-131 同段
   primary_object: OBJ-86
 - id: PRC-133
-  name: 应付结清后报销置已付
+  name: 标记报销已付
   type: event_policy
   owner_bc: B-12
   stages:
@@ -7074,7 +7074,7 @@ processes:
   stages_note: VS-08.3：事件策略按触发状态归段（#421 判据②）——触发「应付已结清」限于报销类型的应付（AGG-52），正是 VS-08.3 报销付款退出条件 OBJ-85「已结清」（agg AGG-52，应付「报销」）；本策略再把 OBJ-88 置「已付」，补齐 VS-08.3 的另一退出条件
   primary_object: OBJ-88
 - id: PRC-135
-  name: 处理会计分录待处理队列与推送重投
+  name: 处理并重投会计分录
   type: single_aggregate
   owner_bc: B-20
   aggregate: AGG-84
@@ -7109,7 +7109,7 @@ processes:
     from: 待处理
     to: 待推送
     guard: 来源已在授权表或映射表已补齐（INV-98）
-  - command: 推送与重投
+  - command: 推送分录
     actor: system
     where: external:U8C
     permission: 总账.重投外部法定账推送
@@ -7123,7 +7123,7 @@ processes:
     - S-05
     from: 待推送
     to: 已推送
-  - command: 推送与重投
+  - command: 推送分录
     actor: system
     where: external:U8C
     permission: 总账.重投外部法定账推送
@@ -7138,7 +7138,7 @@ processes:
     from: 已推送
     to: 死信
     guard: U8C 拒收，带返回码
-  - command: 推送与重投
+  - command: 推送分录
     actor: system
     where: external:U8C
     permission: 总账.重投外部法定账推送
@@ -7153,7 +7153,7 @@ processes:
     from: 死信
     to: 待推送
     guard: 财务处理原因后重投
-  - command: 推送与重投
+  - command: 推送分录
     actor: system
     where: external:U8C
     permission: 总账.重投外部法定账推送
@@ -7168,7 +7168,7 @@ processes:
     from: 待推送
     to: 挂起
     guard: 凭证依赖的主数据尚未同步到 U8C
-  - command: 推送与重投
+  - command: 推送分录
     actor: system
     where: external:U8C
     permission: 总账.重投外部法定账推送
@@ -7183,7 +7183,7 @@ processes:
     from: 挂起
     to: 已推送
     guard: 每日定时重投成功
-  - command: 推送与重投
+  - command: 推送分录
     actor: system
     where: external:U8C
     permission: 总账.重投外部法定账推送
@@ -7310,7 +7310,7 @@ processes:
   primary_object: none
   primary_object_note: 同 PRC-92：拒收记录是过账管道的技术记录
 - id: PRC-159
-  name: 申报已提交后确认税费应付
+  name: 确认税费应付
   type: event_policy
   owner_bc: B-10
   stages:
@@ -7406,7 +7406,7 @@ processes:
   stages_note: VS-06.1：事件策略按触发状态归段（#421 判据②）——触发「申报已提交」即 OBJ-92 法定申报（agg AGG-90）「已申报」，是 VS-06.1 申报缴款退出条件「已申报 → 已缴款」的前半；本策略确认税费应付，后接 PRC-75 缴款完成后半
   primary_object: OBJ-85
 - id: PRC-163
-  name: 应付结清后登记利润分配支付
+  name: 登记利润分配支付
   type: event_policy
   owner_bc: B-10
   stages:
@@ -7433,7 +7433,7 @@ processes:
     aggregate: AGG-109
     emits:
     - 利润分配已支付
-    desc: 订阅应付已结清，读来源为利润分配的应付，置利润分配部分支付或已支付；应付由决议后的 AGG-52 提交应付利润产生（过账分工见 S-31 SQ-02），付款事实由 PRC-75、132 过账，本策略不触账
+    desc: 订阅应付已结清，读来源为利润分配的应付，置利润分配已部分支付或已支付；应付由决议后的 AGG-52 提交应付利润产生（过账分工见 S-31 SQ-02），付款事实由 PRC-75、132 过账，本策略不触账
     decision:
     - when: 应付来源不是利润分配
       goto: end
@@ -8415,7 +8415,7 @@ processes:
   primary_object: none
   primary_object_note: 费用事前申请是真实业务单据（A8 业务招待申请表），信息图缺对象；建议信息层补对象「费用事前申请」后改填
 - id: PRC-171
-  name: 核对差旅服务商月账单并确认应付
+  name: 核对差旅账单并确认应付
   type: business
   owner_bc: B-12
   stages:
@@ -9168,7 +9168,7 @@ processes:
   primary_object: none
   primary_object_note: 出差补贴标准版本（AGG-133）是配置，信息图无对象
 - id: PRC-175
-  name: 直接付款申请
+  name: 申请直接付款
   type: business
   owner_bc: B-10
   stages:
@@ -9432,7 +9432,7 @@ processes:
   stages_note: VS-05.5：豁免清单内的直接付款不经 VS-05.4 应付确认（无发票或来源单据，RULE-407 豁免，S-34 ④）；本流程登记应付后即进入 PRC-75 付款，结局随 PRC-75 达成 VS-05.5 付款的退出条件「已成功 / 已核销」与「已结清」（#421 判据①经同段付款完成）
   primary_object: OBJ-85
 - id: PRC-176
-  name: 预付款核销
+  name: 核销预付款
   type: single_aggregate
   owner_bc: B-10
   aggregate: AGG-52
@@ -9443,11 +9443,11 @@ processes:
   desc: 财务用已付的预付款冲抵同一往来方的应付
   states:
   - 预付款已登记
-  - 部分冲抵
+  - 已部分冲抵
   - 已冲抵
   permission: 预付款.冲抵
   page: 预付款冲抵页
-  migration: 在途：投产前未冲抵的预付款以「预付款已登记」或「部分冲抵」迁入（AGG-52 open_items）；已冲抵的随应付与付款事实全部迁入（U-3、U-4），不触发过账
+  migration: 在途：投产前未冲抵的预付款以「预付款已登记」或「已部分冲抵」迁入（AGG-52 open_items）；已冲抵的随应付与付款事实全部迁入（U-3、U-4），不触发过账
   cross_bc:
   - mode: api
     direction: out
@@ -9485,8 +9485,8 @@ processes:
     where: in_system
     from:
     - 预付款已登记
-    - 部分冲抵
-    to: 部分冲抵
+    - 已部分冲抵
+    to: 已部分冲抵
     audit: true
     legal_entity: 应付所属法人
     decision:
@@ -9536,5 +9536,5 @@ processes:
     - when: otherwise
       goto: end
       outcome: 预付款已冲抵
-  stages_note: 预付款核销使应付「已结清 / 部分结」，造出 VS-05.5 付款的退出条件（#421 判据①）
+  stages_note: 核销预付款使应付「已结清 / 部分结」，造出 VS-05.5 付款的退出条件（#421 判据①）
   primary_object: OBJ-85

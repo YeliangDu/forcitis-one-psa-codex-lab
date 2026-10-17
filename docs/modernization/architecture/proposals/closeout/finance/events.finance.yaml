@@ -22,7 +22,7 @@ events:
   mismatch: 聚合稿命令列无命令发出此事件
 - name: 成本结转已过账
   publisher: AGG-43
-  emitted_by: 标记已过账
+  emitted_by: 标记成本结转已过账
   subscribers:
   - 仅分析
 - name: 应付已确认

@@ -12,7 +12,7 @@
     <messageFlow id="Msg_3" name="登记外部记账确认" sourceRef="S2_6" targetRef="Pool_1"/>
     <messageFlow id="Msg_4" name="U8C返回结果" sourceRef="Pool_1" targetRef="S2_recv_7"/>
   </collaboration>
-  <process id="PRC-104" name="外部法定账对账与签字" isExecutable="false">
+  <process id="PRC-104" name="对账外部法定账并签字" isExecutable="false">
     <documentation>owner B-20；VS-10.2</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E6" name="职能人员（SH-E6）">

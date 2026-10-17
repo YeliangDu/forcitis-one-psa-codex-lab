@@ -6,7 +6,7 @@
   <collaboration id="Collab_PRC-74">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-74"/>
   </collaboration>
-  <process id="PRC-74" name="提交供方应付" isExecutable="false">
+  <process id="PRC-74" name="提交供方应付款项" isExecutable="false">
     <documentation>owner B-11；VS-05.4</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_system" name="系统">

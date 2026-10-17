@@ -13,7 +13,7 @@
     <messageFlow id="Msg_3" name="登记缴款" sourceRef="S4_15" targetRef="Pool_1"/>
     <messageFlow id="Msg_4" name="税务返回结果" sourceRef="Pool_1" targetRef="S4_recv_18"/>
   </collaboration>
-  <process id="PRC-77" name="申报并缴纳增值税、附加税与企业所得税" isExecutable="false">
+  <process id="PRC-77" name="申报并缴纳税款" isExecutable="false">
     <documentation>owner B-23；VS-06.1</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E6" name="职能人员（SH-E6）">

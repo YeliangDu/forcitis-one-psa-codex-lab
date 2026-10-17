@@ -311,7 +311,7 @@
     <sequenceFlow id="Flow_24" sourceRef="S6_manual_18" targetRef="S6_reg_19"/>
     <sequenceFlow id="Flow_25" sourceRef="S6_reg_19" targetRef="S6_gw_20"/>
     <sequenceFlow id="Flow_26" name="撤销决议未通过" sourceRef="S6_gw_20" targetRef="End_31"/>
-    <sequenceFlow id="Flow_27" name="已有支付（部分支付或已支付），不可撤销，拒收并告警" sourceRef="S6_gw_20" targetRef="End_25"/>
+    <sequenceFlow id="Flow_27" name="已有支付（已部分支付或已支付），不可撤销，拒收并告警" sourceRef="S6_gw_20" targetRef="End_25"/>
     <sequenceFlow id="Flow_28" name="其他" sourceRef="S6_gw_20" targetRef="S7_21"/>
     <sequenceFlow id="Flow_29" sourceRef="S7_21" targetRef="S7_gw_22"/>
     <sequenceFlow id="Flow_30" name="该决议的应付已有核销（已付款）" sourceRef="S7_gw_22" targetRef="End_25"/>

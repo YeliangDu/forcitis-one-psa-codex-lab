@@ -174,7 +174,7 @@ commands:
   idempotency_key:
   - 过账事实引用
   emits: []
-- name: 标记已过账
+- name: 标记成本结转已过账
   aggregate: AGG-43
   params:
   - 结转批次引用, 过账事实引用
@@ -358,7 +358,7 @@ commands:
   - 银行回单号
   emits:
   - 付款已失败
-- name: 置付款已核销
+- name: 标记付款已核销
   aggregate: AGG-53
   params:
   - 付款引用
@@ -1002,7 +1002,7 @@ commands:
   idempotency_key:
   - 分录ID
   emits: []
-- name: 推送与重投
+- name: 推送分录
   aggregate: AGG-84
   params:
   - 分录引用或批次
@@ -1414,7 +1414,7 @@ commands:
   idempotency_key:
   - 占用方引用
   emits: []
-- name: 驳回释放
+- name: 释放进项发票占用
   aggregate: AGG-89
   params:
   - 发票引用

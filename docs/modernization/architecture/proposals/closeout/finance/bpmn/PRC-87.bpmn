@@ -158,8 +158,8 @@
       <outgoing>Flow_12</outgoing>
       <outgoing>Flow_13</outgoing>
     </exclusiveGateway>
-    <serviceTask id="S3_11" name="预算占用 → B-18">
-      <documentation>AGG-80 预算占用；B-12；automatic</documentation>
+    <serviceTask id="S3_11" name="占用预算 → B-18">
+      <documentation>AGG-80 占用预算；B-12；automatic</documentation>
       <incoming>Flow_11</incoming>
       <incoming>Flow_13</incoming>
       <outgoing>Flow_14</outgoing>
@@ -288,8 +288,8 @@
       </ioSpecification>
       <dataOutputAssociation id="DOA_S8_26_1"><sourceRef>DOut_S8_26_1</sourceRef><targetRef>SR_S8_26_w1</targetRef></dataOutputAssociation>
     </serviceTask>
-    <serviceTask id="S9_27" name="驳回释放 → B-23">
-      <documentation>AGG-89 驳回释放；B-12；automatic</documentation>
+    <serviceTask id="S9_27" name="释放进项发票占用 → B-23">
+      <documentation>AGG-89 释放进项发票占用；B-12；automatic</documentation>
       <incoming>Flow_36</incoming>
       <outgoing>Flow_37</outgoing>
       <ioSpecification id="IO_S9_27">
@@ -299,7 +299,7 @@
       </ioSpecification>
       <dataOutputAssociation id="DOA_S9_27_1"><sourceRef>DOut_S9_27_1</sourceRef><targetRef>SR_S9_27_w1</targetRef></dataOutputAssociation>
     </serviceTask>
-    <exclusiveGateway id="S9_gw_28" name="驳回释放？">
+    <exclusiveGateway id="S9_gw_28" name="释放进项发票占用？">
       <incoming>Flow_37</incoming>
       <outgoing>Flow_38</outgoing>
       <outgoing>Flow_39</outgoing>

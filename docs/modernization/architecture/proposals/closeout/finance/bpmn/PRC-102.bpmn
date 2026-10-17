@@ -9,7 +9,7 @@
   <collaboration id="Collab_PRC-102">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-102"/>
   </collaboration>
-  <process id="PRC-102" name="启用第 13 期并年末关账" isExecutable="false">
+  <process id="PRC-102" name="启用并关闭第 13 期" isExecutable="false">
     <documentation>owner B-17；VS-10.1</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E6" name="职能人员（SH-E6）">

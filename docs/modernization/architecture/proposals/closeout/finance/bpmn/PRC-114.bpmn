@@ -7,7 +7,7 @@
     <participant id="Pool_1" name="股东和合伙人（SH-O1）"/>
     <messageFlow id="Msg_1" name="减资或退伙决议" sourceRef="Pool_1" targetRef="S1_2"/>
   </collaboration>
-  <process id="PRC-114" name="退回出资" isExecutable="false">
+  <process id="PRC-114" name="退回合伙人出资" isExecutable="false">
     <documentation>owner B-10；VS-12.3</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E6" name="职能人员（SH-E6）">
@@ -94,7 +94,7 @@
       <incoming>Flow_10</incoming>
       <incoming>Flow_12</incoming>
     </endEvent>
-    <endEvent id="End_12" name="部分退回">
+    <endEvent id="End_12" name="已部分退回">
       <incoming>Flow_11</incoming>
       <incoming>Flow_13</incoming>
     </endEvent>

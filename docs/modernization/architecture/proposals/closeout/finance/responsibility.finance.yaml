@@ -59,7 +59,7 @@ entries:
   boundary: {}
   sensitive: false
 - object: AGG-43
-  command: 标记已过账
+  command: 标记成本结转已过账
   raci:
     A:
       resolve: type
@@ -344,7 +344,7 @@ entries:
     - 出纳 ≠ 发起人、审批人（INV-81）
   sensitive: false
 - object: AGG-53
-  command: 置付款已核销
+  command: 标记付款已核销
   raci:
     A:
       resolve: type
@@ -1037,7 +1037,7 @@ entries:
   boundary: {}
   sensitive: true
 - object: AGG-84
-  command: 推送与重投
+  command: 推送分录
   raci:
     A:
       resolve: type
@@ -1420,7 +1420,7 @@ entries:
   boundary: {}
   sensitive: false
 - object: AGG-89
-  command: 驳回释放
+  command: 释放进项发票占用
   raci:
     A:
       resolve: type

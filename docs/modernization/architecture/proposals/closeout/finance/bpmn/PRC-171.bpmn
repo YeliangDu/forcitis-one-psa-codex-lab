@@ -13,7 +13,7 @@
     <messageFlow id="Msg_5" name="〔缺〕处理账单差异" sourceRef="S5_14" targetRef="Pool_1"/>
     <messageFlow id="Msg_6" name="分贝通返回结果" sourceRef="Pool_1" targetRef="S5_recv_15"/>
   </collaboration>
-  <process id="PRC-171" name="核对差旅服务商月账单并确认应付" isExecutable="false">
+  <process id="PRC-171" name="核对差旅账单并确认应付" isExecutable="false">
     <documentation>owner B-12；VS-05.4</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E6" name="职能人员（SH-E6）">

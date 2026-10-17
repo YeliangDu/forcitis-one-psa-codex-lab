@@ -7,7 +7,7 @@
     <messageFlow id="Msg_1" name="查验进项发票" sourceRef="S2_5" targetRef="Pool_1"/>
     <messageFlow id="Msg_2" name="税务返回结果" sourceRef="Pool_1" targetRef="S2_recv_8"/>
   </collaboration>
-  <process id="PRC-73" name="登记并查验进项发票" isExecutable="false">
+  <process id="PRC-73" name="登记并查验进项增值税发票" isExecutable="false">
     <documentation>owner B-23；VS-05.4、VS-08.2</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E6" name="职能人员（SH-E6）">

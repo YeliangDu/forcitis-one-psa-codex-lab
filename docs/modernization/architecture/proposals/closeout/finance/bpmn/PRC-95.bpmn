@@ -6,7 +6,7 @@
   <collaboration id="Collab_PRC-95">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-95"/>
   </collaboration>
-  <process id="PRC-95" name="期末结转" isExecutable="false">
+  <process id="PRC-95" name="执行期末结转" isExecutable="false">
     <documentation>owner B-20；VS-10.1</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E6" name="职能人员（SH-E6）">
