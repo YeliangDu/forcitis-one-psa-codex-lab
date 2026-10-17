@@ -26,14 +26,15 @@ class OperationsCommandsSnapshotUnavailableTest {
         ResetEmergencyAdminCredentials reset = Mockito.mock(ResetEmergencyAdminCredentials.class);
         DisableEmergencyAdmin disable = Mockito.mock(DisableEmergencyAdmin.class);
         EnableEmergencyAdmin enable = Mockito.mock(EnableEmergencyAdmin.class);
+        RevokeRoleByOperations revoke = Mockito.mock(RevokeRoleByOperations.class);
         OrgDirectory directory = Mockito.mock(OrgDirectory.class);
         Mockito.when(directory.findEmployee(Mockito.any(EmployeeId.class))).thenThrow(new DataAccessResourceFailureException("snapshot down"));
-        OperationsCommands commands = new OperationsCommands(register, reset, disable, enable, grant, directory);
+        OperationsCommands commands = new OperationsCommands(register, reset, disable, enable, grant, revoke, () -> false, directory);
 
         assertThatThrownBy(() -> commands.run(new DefaultApplicationArguments("--operation=grant-role", "--employee-id=" + EMPLOYEE_ID,
                 "--role-code=business_admin", "--operator=" + OPERATOR_ID, "--witness=" + WITNESS_ID),
                 new PrintStream(new ByteArrayOutputStream()), new PrintStream(new ByteArrayOutputStream()))).isInstanceOf(DataAccessResourceFailureException.class);
 
-        Mockito.verifyNoInteractions(grant, register, reset, disable, enable);
+        Mockito.verifyNoInteractions(grant, register, reset, disable, enable, revoke);
     }
 }
