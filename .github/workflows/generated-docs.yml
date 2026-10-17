@@ -1,6 +1,6 @@
 name: generated-docs
 
-# main 每次更新后，把由片段生成的记录（INTENT / SESSION_LOG / STATUS / SESSIONS / 用语问题清单 / 老系统读取登记）连同 ADR 与 brief 的快照
+# main 每次更新后，把由片段生成的记录（INTENT / SESSION_LOG / STATUS / SESSIONS / 用语问题清单 / 老系统读取登记 / 任务总表）连同 ADR 与 brief 的快照
 # 强制推到不受保护的 generated-docs 孤儿分支，便于不在本地生成也能阅读；不向 main 推送任何内容。
 on:
   push:
@@ -21,6 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          fetch-depth: 0
           persist-credentials: false
       - run: python3 docs/modernization/build_all.py
       - name: push snapshot to generated-docs
@@ -32,10 +33,10 @@ jobs:
           src=docs/modernization
           cp "$src/INTENT.md" "$src/SESSION_LOG.md" "$src/STATUS.md" "$src/SESSIONS.md" "$src/DECISION_DIGEST.md" "$src/MODERNIZATION_BRIEF.md" "$out/"
           cp "$src/glossary/ISSUES.md" "$out/GLOSSARY_ISSUES.md"
-          cp "$src/phase1a/infra/LEGACY_READ_REGISTER.md" "$out/"
+          cp "$src/phase1a/infra/LEGACY_READ_REGISTER.md" "$src/tasks/TASKS.md" "$out/"
           mkdir -p "$out/adr"
           cp "$src"/adr/ADR-*.md "$src/adr/README.md" "$out/adr/"
-          printf '# 生成文档快照\n\n由 main@%s 的片段生成（docs/modernization/build_all.py），每次 main 更新时整体覆盖。不要在此分支上修改；改片段后合入 main。\n\n- [INTENT.md](INTENT.md)\n- [SESSION_LOG.md](SESSION_LOG.md)\n- [STATUS.md](STATUS.md)\n- [SESSIONS.md](SESSIONS.md)\n- [DECISION_DIGEST.md](DECISION_DIGEST.md)\n- [GLOSSARY_ISSUES.md](GLOSSARY_ISSUES.md)\n- [MODERNIZATION_BRIEF.md](MODERNIZATION_BRIEF.md)\n- [adr/README.md](adr/README.md)\n' "$GITHUB_SHA" > "$out/README.md"
+          printf '# 生成文档快照\n\n由 main@%s 的片段生成（docs/modernization/build_all.py），每次 main 更新时整体覆盖。不要在此分支上修改；改片段后合入 main。\n\n- [INTENT.md](INTENT.md)\n- [SESSION_LOG.md](SESSION_LOG.md)\n- [STATUS.md](STATUS.md)\n- [SESSIONS.md](SESSIONS.md)\n- [DECISION_DIGEST.md](DECISION_DIGEST.md)\n- [GLOSSARY_ISSUES.md](GLOSSARY_ISSUES.md)\n- [TASKS.md](TASKS.md)\n- [MODERNIZATION_BRIEF.md](MODERNIZATION_BRIEF.md)\n- [adr/README.md](adr/README.md)\n' "$GITHUB_SHA" > "$out/README.md"
           cd "$out"
           git init -q -b generated-docs
           git add -A
