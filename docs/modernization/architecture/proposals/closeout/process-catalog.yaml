@@ -1101,14 +1101,14 @@ processes:
   - id: PRC-99
     name: "计提折旧并处置公司资产"
     type: business
-    stages: []
+    stages: [VS-10.0]
     primary_object: "OBJ-93"
     owner_bc: "B-24"
     group: finance
     status: draft
     human_orchestration: false
     bpmn: ~
-    support: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题（页首不补列清单）；折旧与处置提供期间报告的贯穿活动输入，不因输入给期间关账补公司资产管理"
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已过账」使折旧与资产处置事实经 PRC-93 生成分录，对应该段「本期分录已记账」退出条件。CAPINFO 页首不补列清单只涉及能力（不因折旧给期间关账补公司资产管理能力），不改本流程归段。"
     acts_on: [OBJ-124]
     acts_on_note: "CON-1017-ARC-10：骨架：按资产类别取资产类别与折旧政策版本（AGG-124）"
   - id: PRC-100
