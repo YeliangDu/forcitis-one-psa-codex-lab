@@ -289,9 +289,10 @@ if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(pre
   run_step "guards: failure_summary (self-test)" py scripts/ci/failure_summary.py --self-test
   run_step "guards: repeat_new_tests (self-test)" py scripts/ci/repeat_new_tests.py --self-test
 fi
-if touches '^(scripts/hooks/((postcompact_context|sessionend_snapshot)\.sh|(handoff_snapshot|handoff_selftest|playbook_digest)\.py)|scripts/precheck\.sh|.*build_all\.py|\.claude/settings\.json)$'; then
+if touches '^(scripts/hooks/((postcompact_context|sessionend_snapshot|precompact_snapshot)\.sh|(handoff_snapshot|handoff_selftest|handoff_safe_selftest|handoff_storage_selftest|playbook_digest|session_context)\.py)|scripts/precheck\.sh|.*build_all\.py|\.claude/settings\.json)$' || grep -Fxq 'docs/modernization/SESSION_PLAYBOOK.md' "$work/changed"; then
   run_step "guards: playbook_digest (self-test)" py scripts/hooks/playbook_digest.py --self-test
   run_step "guards: handoff (self-test)" py scripts/hooks/handoff_selftest.py --self-test
+  run_step "guards: session_context (self-test)" py scripts/hooks/session_context.py --self-test
 fi
 
 if [ "$builds_relevant" = true ]; then

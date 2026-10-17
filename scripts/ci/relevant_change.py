@@ -63,7 +63,7 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/rulings/",
     # session profiles: checked by build_all.py --check, injected by scripts/hooks/session_context.py
     "docs/modernization/sessions/",
-    # SESSION_PLAYBOOK §11: scripts/hooks/playbook_digest.py (SessionStart digest) and its self-test in the precheck and gitleaks job
+    # SESSION_PLAYBOOK §11: playbook_digest.py 的自测对真实文件断言；SessionStart 钩子读取它
     "docs/modernization/SESSION_PLAYBOOK.md",
     "docs/modernization/check_legacy_name.py",
     # decision page question rules: run by scripts/precheck.sh when a decision page changes
