@@ -5,7 +5,7 @@ Scope: Phase 2 `cost.timesheet` and the leave and overtime context (`organizatio
 | ID | Domain | Title | Priority | Review |
 |---|---|---|---|---|
 | RULE-412 | timesheet | The timesheet context never reads an overtime approval or a comp-time balance; the leave context owns both | P0 | No |
-| RULE-413 | timesheet | A comp-time (补休) leave reduces the minimum hours of that day like any approved or pending leave, once comp time is modelled as a leave type | P1 | Yes |
+| RULE-413 | timesheet | A comp-time (补休) leave reduces the minimum hours of that day like any approved or pending leave, once comp time is modelled as a leave type | P1 | No |
 
 ### RULE-412: The timesheet context never reads an overtime approval or a comp-time balance; the leave context owns both
 **Category:** Policy
@@ -23,11 +23,11 @@ Scope: Phase 2 `cost.timesheet` and the leave and overtime context (`organizatio
 ### RULE-413: A comp-time (补休) leave reduces the minimum hours of that day like any approved or pending leave, once comp time is modelled as a leave type
 **Category:** Calculation
 **Priority:** P1
-**Source:** RULE-398 (user decision FD2-02, 2026-10-16); people design proposal (seam question 8: comp time as leave type 「补休」, taking from a comp-time balance line); not decided by the user
+**Source:** RULE-398 (user decision FD2-02, 2026-10-16); user decision N1-02, 2026-10-17; people design (seam question 8: comp time as leave type 「补休」, taking from a comp-time balance line)
 **Plain English:** If comp time is booked as a leave type, the day taken as comp time is a day not worked, so RULE-398 applies unchanged: minimum hours = standard day minus approved and pending leave hours, now including comp-time hours. The timesheet context reads only the leave hours of the day, never the balance or the overtime that produced it.
 **Specification:**
 - Given a 8-hour day with an approved 8-hour comp-time leave, Then the minimum is 0 and the day may be filed voluntarily (RULE-400).
 - Given a 4-hour comp-time leave pending, Then the minimum is the standard day minus 4 and the timesheet is marked 「含待批请假」 (RULE-404).
-**Open (Review):** the user has not been asked whether comp time counts as leave for this purpose, and the people group's design is a proposal. Confirm with the people group's adopted design; ask the user only if the design models comp time otherwise.
+**Decided:** user decision N1-02 (intent `2026-10-17-085044-one-rules-N1-页提交-N1-202610.md`, preselected recommendation unchanged): comp time counts as leave for the minimum hours. It still depends on the people group modelling comp time as a leave type; if their design differs, this rule is revisited with them.
 **Tests:** to be written with the Phase 2 timesheet card.
 **Confidence:** Medium.
