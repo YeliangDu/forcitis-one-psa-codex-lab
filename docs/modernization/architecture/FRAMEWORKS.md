@@ -278,3 +278,4 @@ ARC-1017-ARC-21（2026-10-17）新增的阅读笔记。以下只登记文件、�
 - [buchtik-wbs2.md](frameworks/notes/buchtik-wbs2.md)：Liliana Buchtik，Secrets to Mastering the WBS in Real-World Projects: The Most Practical Approach to Work Breakdown Structures (WBS)!；Second Edition，Project Management Institute，2013；已审定（one-architecture 2026-10-18）。
 - [silverston-dmrb3.md](frameworks/notes/silverston-dmrb3.md)：Len Silverston、Paul Agnew，The Data Model Resource Book, Volume 3: Universal Patterns for Data Modeling；Wiley Publishing，版权 2009，EPUB 包日期 2011 不替代版权年；已审定（one-architecture 2026-10-18）。
 - [unanet-ae.md](frameworks/notes/unanet-ae.md)：Unanet University，Unanet AE 八份 Participant Guide；封面修订日期分列于笔记，范围 2023-02 至 2026-03，未确认统一产品发布版本；已审定（one-architecture 2026-10-18）。
+- [vantagepoint-2026.md](frameworks/notes/vantagepoint-2026.md)：AEC 项目制服务产品 2026.2 离线资料库对照（与 unanet-ae 并列，成熟产品依据，CLAUDE.md 第 4 条）；只写概括与资料库路径索引，不含源码、DDL 或字段名；已审定（one-architecture 2026-10-18）。
