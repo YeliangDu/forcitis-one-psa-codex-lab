@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Daily session report data: one JSON object per one-* session for a time window, from git, gh and the merge queue log (the coordinator adds grade / assessment / action and publishes).
 
-Per session: commits and their themes, pull requests opened and merged, queue returns (CONFLICT, HOLD from the timestamped queue log), CI failures, the review verdict written in the pull request body,
+Per session: commits and their themes, pull requests opened and merged, open_prs at the window's end (exclusive) and open_prs_peak, conflict_returns (CONFLICT only), queue returns (CONFLICT, HOLD from the timestamped queue log), CI failures, the review verdict written in the pull request body,
 commits pushed after the pull request was queued, defect-bank entries dated inside the window, and loop candidates (the same kind of commit or queue event repeating).
 Attribution is by branch name: a session owns the branches `claude/<prefix>*` listed in SESSIONS. Anything else is counted in the notes, not in a session.
 Usage: session_daily.py [--date YYYY-MM-DD | --start ISO --end ISO] [--out FILE] [--log merge.log] [--tz Europe/Berlin]   |   session_daily.py --self-test
@@ -98,7 +98,7 @@ class Gh:
         return json.loads(result.stdout or "null")
 
     def prs(self):
-        return self._json("pr", "list", "--state", "all", "--limit", "1000", "--json", "number,title,headRefName,createdAt,mergedAt,body,mergeCommit")
+        return self._json("pr", "list", "--state", "all", "--limit", "1000", "--json", "number,title,headRefName,createdAt,mergedAt,closedAt,body,mergeCommit")
 
     def runs(self):
         return self._json("run", "list", "--workflow", "ci", "--limit", "1000", "--json", "databaseId,conclusion,createdAt,headBranch,event")
@@ -135,6 +135,35 @@ def in_window(text, window):
     return window[0] <= when(text) < window[1]
 
 
+def open_pr_counts(prs, window):
+    changes = collections.Counter()
+    opened = 0
+    for p in prs:
+        try:
+            created = aware(p["createdAt"])
+            if created >= window[1]:
+                continue
+            ends = [aware(p[key]) for key in ("mergedAt", "closedAt") if p[key] is not None]
+            closed = min(ends) if ends else None
+            if closed is not None and closed < created:
+                raise ValueError("关闭或合并早于创建")
+        except (KeyError, ValueError, TypeError, AttributeError) as error:
+            return None, None, f"PR #{p.get('number', '?')} 生命周期字段缺失或无效（{error}）"
+        if closed is None or closed >= window[1]:
+            opened += 1
+        start = max(created, window[0])
+        end = min(closed, window[1]) if closed is not None else window[1]
+        if start < end:
+            changes[start] += 1
+            changes[end] -= 1
+    current = peak = 0
+    for time, delta in sorted(changes.items()):
+        if time < window[1]:
+            current += delta
+            peak = max(peak, current)
+    return opened, peak, None
+
+
 def commit_rows(root, refs, window):
     """[(sha, committed, subject)] without merge commits, committed inside the window, over the given revisions."""
     out = git(root, "log", "--first-parent", "--no-merges", f"--since={window[0].isoformat()}", f"--until={window[1].isoformat()}", "--format=%H%x1f%cI%x1f%s", *refs)
@@ -166,7 +195,12 @@ def queue_log(path):
     if not path or not os.path.exists(path):
         return []
     rows = []
-    for line in open(path, encoding="utf-8", errors="replace"):
+    try:
+        with open(path, encoding="utf-8", errors="replace") as stream:
+            lines = stream.readlines()
+    except OSError:
+        return []
+    for line in lines:
         match = QUEUE_LINE.match(line.strip())
         if match:
             try:
@@ -370,6 +404,9 @@ def build(root, gh, window, log_path):
     returns = collections.defaultdict(lambda: collections.Counter())
     for _, event, number, _ in events:
         returns[owner.get(number)][event] += 1
+    missing_conflict_prs = sorted({n for _, event, n, _ in events if event == "CONFLICT" and n not in prs})
+    conflict_complete = (covered_from is not None and covered_from <= window[0]
+                         and len(prs_list) < 1000 and not missing_conflict_prs)
     pushed, unreadable = collections.Counter(), []
     for number, queued in queued_at.items():
         if owner.get(number):
@@ -383,7 +420,7 @@ def build(root, gh, window, log_path):
                 continue
             pushed[owner[number]] += sum(1 for date, headline in commits if when(date) > queued and window[0] <= when(date) < window[1] and not SYNC_COMMIT.match(headline))
     codex, rework, task_notes = task_counts(root, window)
-    sessions = []
+    sessions, observation_notes = [], []
     for name, role, _ in SESSIONS:
         opened = sorted((p for p in prs.values() if owner[p["number"]] == name and in_window(p["createdAt"], window)), key=lambda p: p["number"])
         merged = sorted(p["number"] for p in prs.values() if owner[p["number"]] == name and p.get("mergedAt") and in_window(p["mergedAt"], window))
@@ -391,16 +428,40 @@ def build(root, gh, window, log_path):
         new_entries, empty = defect_entries(root, name, owned_refs[name], window)
         subjects = per[name]["subjects"]
         counts = returns.get(name, collections.Counter())
+        open_prs, open_peak, reason = open_pr_counts([p for n, p in prs.items() if owner[n] == name], window)
+        if len(prs_list) >= 1000:
+            open_prs = open_peak = None
+        elif reason:
+            observation_notes.append(f"{name} 的 open_prs 与 open_prs_peak 为 null：{reason}。")
         sessions.append({
             "name": name, "commits": len(subjects), "themes": themes_of(subjects),
             "prs_opened": [f"#{p['number']} {p['title'][:60]}" for p in opened], "prs_merged": merged,
             "prs_opened_count": len(opened), "prs_merged_count": len(merged),
+            "open_prs": open_prs, "open_prs_peak": open_peak,
+            "conflict_returns": counts["CONFLICT"] if conflict_complete else None,
             "returns": {"conflict": counts["CONFLICT"] if log_complete else None, "hold": counts["HOLD"] if log_complete else None},
             "ci_failures": ci[name], "reviews": reviews, "pushed_after_queue": pushed[name] if log_complete else None,
             "codex_cards": codex[name], "codex_rework_rounds": rework[name],
             "defect_bank_new": new_entries, "defect_bank_empty": empty,
             "loop_candidates": loop_candidates(subjects, counts if log_complete else {}), "role": role})
     notes = [f"窗口 {window[0].isoformat(timespec='minutes')} ~ {window[1].isoformat(timespec='minutes')}（本机时区 {window[0].tzname()}）。提交按分支名归属会话（SESSIONS 的前缀表，整名或「前缀-」开头），去重；沿分支 first-parent 的非合并提交，committer 时间在窗口内（合入 main 的提交不重复算）；已删除分支的提交取窗口内合入 PR 的第二父链补算。数据取自本机 git 引用（origin/main 最新提交 {fetched or '未知'}），脚本不 fetch，出数前请先 git fetch origin。"]
+    notes.append("open_prs 为左闭右开窗口的右边界前一刻同时在开的 PR 数；open_prs_peak 为窗口内同时在开峰值。按 headRefName 归属会话，含窗口前创建及草稿 PR，不区分代码或文档 PR，不直接判定代码 PR 上限是否违规。同一次 PR 查询增加 closedAt，以 createdAt 到 mergedAt/closedAt 较早者的区间重放，同刻事件合并计算，无额外联网调用；未提供重开历史，曾关闭后重开的 PR 可能高估，不能还原其实际在开区间。生命周期字段缺失或无效时对应会话两列为 null。")
+    notes.append("conflict_returns 只计窗口内队列日志的 CONFLICT 事件次数（同一 PR 多次退回逐次计），与 returns.conflict 同源；HOLD、SSH-UPDATE-CONFLICT、DEQUEUE 不重复计入，不从自由文本猜原因。日志须从窗口开始或更早可读，不沿用旧 returns 的 5 分钟容差；缺失、不含可解析行或起始较晚时为 null，不是 0。日志中途缺行或停止写入无法仅凭首条记录证明完整。")
+    if not conflict_complete:
+        reasons = []
+        if covered_from is None or covered_from > window[0]:
+            reasons.append("队列日志缺失、不可读、无可解析行或起始晚于窗口开始")
+        if missing_conflict_prs:
+            reasons.append("冲突事件对应 PR 读不到，无法归属会话：" + "、".join(f"#{n}" for n in missing_conflict_prs))
+        if len(prs_list) >= 1000:
+            reasons.append("PR 列表达到 1000 条上限，无法确认归属完整")
+        notes.append("conflict_returns 为 null：" + "；".join(reasons) + "。")
+    unowned_conflicts = sorted({n for _, event, n, _ in events if event == "CONFLICT" and n in owner and owner[n] is None})
+    if unowned_conflicts:
+        notes.append("冲突退回的 PR 分支未归属会话，不计入任何会话：" + "、".join(f"#{n}" for n in unowned_conflicts) + "。")
+    if len(prs_list) >= 1000:
+        notes.append("open_prs 与 open_prs_peak 为 null：PR 列表达到 1000 条上限，窗口前遗留 PR 可能未取全，不能当作 0 或准确总数。")
+    notes.extend(observation_notes)
     if log_complete:
         notes.append(f"队列返回次数读带时间戳的队列日志（CONFLICT、HOLD，日志自 {covered_from.isoformat(timespec='minutes')} 起），按 PR 的分支归属；pushed_after_queue = 该 PR 首次 LABEL-QUEUED 之后、窗口内、非「合并 main」的提交数（提交时间，不是推送时间；返工也计入）。")
     else:
@@ -523,7 +584,36 @@ def task_self_test():
         assert counts["one-quality"] == 3 and changes["one-quality"] == 9, "逐条历史里的回填事件不计入，取消标记后的真实增量仍计入"
 
 
+def open_pr_self_test():
+    class QueryGh(Gh):
+        def _json(self, *args):
+            return args
+    query = QueryGh("unused").prs()
+    assert query[:4] == ("pr", "list", "--state", "all") and "closedAt" in query[-1].split(","), "关闭时间须随原 PR 查询取回，不新增调用"
+    window = window_of("2026-10-17", None, None)
+    def pr(created, closed=None, merged=None):
+        return {"createdAt": created, "closedAt": closed, "mergedAt": merged}
+    rows = [pr("2026-10-15T09:00+02:00", "2026-10-16T10:00+02:00"),
+            pr("2026-10-15T09:00+02:00"),
+            pr("2026-10-16T09:00+02:00", merged="2026-10-16T11:00+02:00"),
+            pr("2026-10-16T10:00+02:00", "2026-10-16T12:00+02:00"),
+            pr("2026-10-16T11:00+02:00", window[1].isoformat())]
+    assert open_pr_counts(rows, window) == (2, 3, None), "GOV-1017-QUA-02：末刻数与窗口峰值须重放关闭和合并，同刻事件不产生虚假峰值"
+    edges = [pr("2026-10-15T09:00+02:00", window[0].isoformat()),
+             pr(window[0].isoformat(), "2026-10-18T09:00+02:00"),
+             pr(window[1].isoformat())]
+    assert open_pr_counts(edges, window) == (1, 1, None), "GOV-1017-QUA-02：左闭右开，末刻指右边界前一刻；窗口后关闭仍在开"
+    assert open_pr_counts([], window) == (0, 0, None), "完整空列表才可报零"
+    assert open_pr_counts([pr(window[0].isoformat(), window[0].isoformat())], window) == (0, 0, None)
+    for bad in ({"createdAt": window[0].isoformat(), "mergedAt": None},
+                pr(window[0].isoformat(), "invalid"), pr("2026-10-16T08:00"),
+                pr(window[0].isoformat(), "2026-10-15T09:00+02:00")):
+        end, peak, reason = open_pr_counts([bad], window)
+        assert end is None and peak is None and reason, "生命周期字段缺失或无效须为 null 并说明原因"
+
+
 def self_test():
+    open_pr_self_test()
     task_self_test()
     with tempfile.TemporaryDirectory() as tmp:
         repo = os.path.join(tmp, "repo")
@@ -622,6 +712,8 @@ def self_test():
                {"number": 16, "title": "claude work", "headRefName": "claude/one-ops-y", "createdAt": "2026-10-16T09:51:00+02:00", "mergedAt": None, "body": "没有这个词", "mergeCommit": None},
                {"number": 9, "title": "after the window", "headRefName": "claude/one-ops-y", "createdAt": "2026-10-17T10:00:00+02:00", "mergedAt": None, "body": "", "mergeCommit": None},
                {"number": 8, "title": "someone else", "headRefName": "feature/x", "createdAt": "2026-10-16T09:30:00+02:00", "mergedAt": None, "body": "", "mergeCommit": None}]
+        for p in prs:
+            p["closedAt"] = p["mergedAt"]
         runs = [{"databaseId": 1, "conclusion": "failure", "createdAt": "2026-10-16T10:00:00Z", "headBranch": "claude/one-quality-x", "event": "pull_request"},
                 {"databaseId": 2, "conclusion": "success", "createdAt": "2026-10-16T10:00:00Z", "headBranch": "claude/one-quality-x", "event": "pull_request"},
                 {"databaseId": 3, "conclusion": "failure", "createdAt": "2026-10-10T10:00:00Z", "headBranch": "claude/one-quality-x", "event": "pull_request"},
@@ -657,6 +749,10 @@ def self_test():
         assert events[1]["返工增量"] == 3 and not events[1]["新增"], "Git 轮次记录由日报验证"
         data = build(repo, FakeGh(prs, runs, commits), window, log)
         by = {s["name"]: s for s in data["sessions"]}
+        assert (by["one-quality"]["open_prs"], by["one-quality"]["open_prs_peak"]) == (1, 1)
+        assert (by["one-ops"]["open_prs"], by["one-ops"]["open_prs_peak"]) == (6, 6), "跨窗口遗留 PR 计入在开数，窗口后创建不计"
+        assert (by["one-data"]["open_prs"], by["one-data"]["open_prs_peak"]) == (0, 1), "合入后末刻数归零，峰值保留"
+        assert by["one-quality"]["conflict_returns"] == 1 and by["one-ops"]["conflict_returns"] == 0, "CONFLICT 才计冲突，HOLD 不计"
         assert len(data["sessions"]) == 13 and data["date"] == "2026-10-17" and data["window"] == "2026-10-16T08:00+02:00 ~ 2026-10-17T09:00+02:00", data["window"]
         assert by["one-quality"]["commits"] == 5, by["one-quality"]["commits"]  # 4 fixes + the book commit; the ops commit it merged is not its own
         assert by["one-rules"]["commits"] == 0, "one commit is counted once, for the first session that owns a branch holding it"
@@ -681,16 +777,48 @@ def self_test():
         assert by["one-ops"]["loop_candidates"] == [] and by["one-quality"]["themes"][0].startswith("ci（4）")
         assert all(k in by["one-quality"] for k in ("grade", "assessment", "action")) is False, "the coordinator fills grade, assessment and action"
         assert set(by["one-quality"]) == {"name", "commits", "themes", "prs_opened", "prs_merged", "prs_opened_count", "prs_merged_count", "returns", "ci_failures", "reviews", "pushed_after_queue",
-                                          "defect_bank_new", "defect_bank_empty", "loop_candidates", "role", "codex_cards", "codex_rework_rounds"}
+                                          "defect_bank_new", "defect_bank_empty", "loop_candidates", "role", "codex_cards", "codex_rework_rounds", "open_prs", "open_prs_peak", "conflict_returns"}
         json.dumps(data, ensure_ascii=False)
         assert session_of("origin/claude/one-1a-next-5-train-x") == "one-coordinator" and session_of("claude/one-1a-next-5-data-pr1") == "one-1a-next-5" and session_of("feature/x") is None
         empty = build(repo, FakeGh([], [], {}), window, os.path.join(tmp, "no-such.log"))
         assert all(s["returns"] == {"conflict": None, "hold": None} and s["pushed_after_queue"] is None for s in empty["sessions"]), "no queue data is null, not zero"
         assert any("null（无数据，不是 0）" in n for n in empty["notes"])
+        assert all(s["conflict_returns"] is None and s["open_prs"] == 0 and s["open_prs_peak"] == 0 for s in empty["sessions"])
+        missing_closed = [dict(p) for p in prs]
+        del missing_closed[0]["closedAt"]
+        incomplete = build(repo, FakeGh(missing_closed, runs, commits), window, log)
+        incomplete_by = {s["name"]: s for s in incomplete["sessions"]}
+        assert incomplete_by["one-quality"]["open_prs"] is None and incomplete_by["one-quality"]["open_prs_peak"] is None
+        assert incomplete_by["one-ops"]["open_prs"] == 6 and any("one-quality 的 open_prs 与 open_prs_peak 为 null" in n for n in incomplete["notes"])
+        capped_prs = [dict(prs[-1], number=1000 + n) for n in range(1000)]
+        capped = build(repo, FakeGh(capped_prs, [], {}), window, log)
+        assert all(s["open_prs"] is None and s["open_prs_peak"] is None and s["conflict_returns"] is None for s in capped["sessions"]), "达到取数上限不得把缺数据报零"
+        assert any("open_prs 与 open_prs_peak 为 null" in n and "1000 条上限" in n for n in capped["notes"])
+        edge_log = os.path.join(tmp, "conflicts.log")
+        with open(edge_log, "w") as f:
+            f.write(f"{window[0].isoformat()} CONFLICT pr=#5 first\n"
+                    f"{inside} CONFLICT pr=#5 again\n"
+                    f"{inside} SSH-UPDATE-CONFLICT pr=#5 detail only\n"
+                    f"{inside} DEQUEUE pr=#5 CONFLICT\n"
+                    f"{inside} HOLD pr=#5 conflict word is not a category\n"
+                    f"{window[1].isoformat()} CONFLICT pr=#5 outside\n")
+        repeated = build(repo, FakeGh(prs, [], {}), window, edge_log)
+        assert next(s for s in repeated["sessions"] if s["name"] == "one-quality")["conflict_returns"] == 2, "按事件次数计，左边界计入、右边界排除、不重复计底层事件"
+        with open(edge_log, "a") as f:
+            f.write(f"{inside} CONFLICT pr=#999 unknown PR\n")
+        unmapped = build(repo, FakeGh(prs, [], {}), window, edge_log)
+        assert all(s["conflict_returns"] is None for s in unmapped["sessions"])
+        assert any("冲突事件对应 PR 读不到" in n and "#999" in n for n in unmapped["notes"]), "PR 归属缺失不能当零"
+        unreadable_log = build(repo, FakeGh(prs, [], {}), window, tmp)
+        assert all(s["conflict_returns"] is None for s in unreadable_log["sessions"]), "队列日志路径不可读返回 null"
         late = os.path.join(tmp, "late.log")
         with open(late, "w") as f:
             f.write("2026-10-17T07:21:00+02:00 HOLD pr=#5 run=- elapsed=0s checks red\n")
         assert all(s["returns"]["hold"] is None for s in build(repo, FakeGh([], [], {}), window, late)["sessions"]), "a log that starts after the window says nothing about it"
+        with open(late, "w") as f:
+            f.write("2026-10-16T08:01:00+02:00 START pr=#5 first\n")
+        short_gap = build(repo, FakeGh(prs, [], {}), window, late)
+        assert all(s["conflict_returns"] is None for s in short_gap["sessions"]), "新指标不把旧五分钟容差内的缺口当零"
         assert by["one-quality"]["returns"]["hold"] == 0, "a log that covers the window gives real zeros"
         class Failing(FakeGh):
             def pr_commits(self, number):
