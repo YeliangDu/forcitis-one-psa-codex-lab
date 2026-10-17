@@ -714,7 +714,10 @@ processes:
   type: single_aggregate
   owner_bc: B-22
   aggregate: AGG-87
-  stages: []
+  stages:
+  - VS-15.2
+  - VS-15.3
+  stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.2 开户在用、VS-15.3 销户；判据只推出 VS-15.3，开户在用由本流程完成；原支撑理由：资金账户是主数据维护，不推进任何价值流对象的阶段状态（#421 判据①不支持归段）"
   desc: 财务开立、冻结或销户
   states:
   - name: 待确认开立
@@ -941,7 +944,6 @@ processes:
     - when: otherwise
       goto: end
       outcome: 已销户
-  support: 资金账户是主数据维护，不推进任何价值流对象的阶段状态（#421 判据①不支持归段）
   primary_object: OBJ-89
 - id: PRC-70
   name: 起草并生效供方协议
@@ -4445,7 +4447,11 @@ processes:
   trigger:
     type: human
     desc: 财务按期间首日发布规则
-  stages: []
+  stages:
+  - VS-15.1
+  - VS-15.2
+  - VS-15.3
+  stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.1 草稿、VS-15.2 已生效、VS-15.3 旧版本被取代，均由本流程完成（判据推出 VS-15.1、VS-15.2）；原支撑理由：分摊规则版本是配置，供 VS-10 的分摊运行使用，本身不造出阶段退出条件（#421）"
   owner_bc: B-07
   human_orchestration: false
   migration: 在途：未批准草稿不迁，投产前办结或重编；历史：已生效版本全部迁入（被引用版本只追加不可改），至少覆盖 U-10 重算所需的最近两个已结期间（R-08）
@@ -4576,7 +4582,6 @@ processes:
       bc: platform.approval
       name: 审批已通过
   notes: 被引用版本不可改。
-  support: 分摊规则版本是配置，供 VS-10 的分摊运行使用，本身不造出阶段退出条件（#421）
   primary_object: OBJ-78
 - id: PRC-98
   name: 分摊间接成本
@@ -5055,7 +5060,10 @@ processes:
   trigger:
     type: human
     desc: 财务评审并发布科目表、映射表、授权表新版本
-  stages: []
+  stages:
+  - VS-15.2
+  - VS-15.3
+  stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.2 科目表版本启用、VS-15.3 科目停用；判据暂推不出（科目对象无版本态）；判据暂推不出（科目对象无版本态）；原支撑理由：科目表、映射表、授权表版本是总账配置，不造出阶段退出条件（#421）"
   owner_bc: B-20
   human_orchestration: false
   migration: 在途：草稿版本投产前办结或作废。历史：科目表（收付科目表沿用 U8C 编码，ADR-0022 决定 2）作为首版本迁入；映射表与授权表只建投产版本，历史分录走迁入通道、不经授权表校验。
@@ -5323,7 +5331,6 @@ processes:
   - PRC-100-S16
   - PRC-100-S17
   - PRC-100-S18
-  support: 科目表、映射表、授权表版本是总账配置，不造出阶段退出条件（#421）
   primary_object: OBJ-95
   primary_object_note: 科目表版本；映射表、授权表是技术配置（AGG-85、94），无对象
 - id: PRC-101
@@ -6095,7 +6102,11 @@ processes:
   trigger:
     type: human
     desc: 财务编制报表行到科目的映射
-  stages: []
+  stages:
+  - VS-15.1
+  - VS-15.2
+  - VS-15.3
+  stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.1 草拟与财务评审、VS-15.2 已生效、VS-15.3 旧版本被取代，均由本流程完成（判据只推出 VS-15.2）；原支撑理由：报表行定义版本是配置，供出具报表使用，不造出阶段退出条件（#421）"
   owner_bc: B-21
   human_orchestration: false
   migration: 在途：草稿版本投产前办结或作废。历史：投产版本为首个版本；上年末报表按首版报表行定义出具，由财务负责人书面确认、内部审计复核（投产准入 G-2、G-3）；历史期间不重出报表。
@@ -6188,7 +6199,6 @@ processes:
   - PRC-105-S05
   - PRC-105-S06
   - PRC-105-S07
-  support: 报表行定义版本是配置，供出具报表使用，不造出阶段退出条件（#421）
   primary_object: OBJ-99
 - id: PRC-106
   name: 出具三大报表
@@ -7580,7 +7590,9 @@ processes:
   type: single_aggregate
   owner_bc: B-07
   aggregate: AGG-123
-  stages: []
+  stages:
+  - VS-15.2
+  stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：成本核算参数是配置版本，供 VS-10.1 的成本分配与分摊使用，本身不推进任何阶段的对象状态"
   added_in: closeout
   basis: S-31 SQ-18
   desc: 财务编制成本核算参数（售前投入超期转费用的月数 N，默认 6 个月，A7、GL-026），财务负责人批准后按版本生效
@@ -7672,7 +7684,6 @@ processes:
     on_event: 后继版本已生效
     desc: 新版本生效时原生效版本置已取代，已生效版本不可改
     audit: true
-  support: 成本核算参数是配置版本，供 VS-10.1 的成本分配与分摊使用，本身不推进任何阶段的对象状态
   primary_object: none
   primary_object_note: 成本核算参数版本（AGG-123）是配置，信息图无对象
 - id: PRC-166
@@ -7680,7 +7691,9 @@ processes:
   type: single_aggregate
   owner_bc: B-24
   aggregate: AGG-124
-  stages: []
+  stages:
+  - VS-15.2
+  stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：资产类别与折旧政策是配置版本，供 PRC-99 计提折旧使用，不推进阶段"
   added_in: closeout
   basis: S-31 SQ-19
   desc: 财务按资产类别编制折旧方法、年限、残值率，财务负责人批准后按版本生效
@@ -7775,7 +7788,6 @@ processes:
     on_event: 后继版本已生效
     desc: 新版本生效时原生效版本置已取代，已生效版本不可改
     audit: true
-  support: 资产类别与折旧政策是配置版本，供 PRC-99 计提折旧使用，不推进阶段
   primary_object: none
   primary_object_note: 资产类别与折旧政策版本（AGG-124）是配置，信息图无对象
 - id: PRC-167
@@ -7917,7 +7929,9 @@ processes:
   type: single_aggregate
   owner_bc: B-17
   aggregate: AGG-78
-  stages: []
+  stages:
+  - VS-15.2
+  stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：口径版本是勾稽侧配置（ADR-0023 决定 2），不推进阶段"
   added_in: closeout
   basis: S-31 SQ-22
   desc: 财务编制指标口径与勾稽容差，批准后按版本生效、审批留痕（ADR-0023 决定 2 L3）
@@ -8011,7 +8025,6 @@ processes:
     on_event: 后继版本已生效
     desc: 新版本生效时原生效版本置已取代，已生效版本不可改
     audit: true
-  support: 口径版本是勾稽侧配置（ADR-0023 决定 2），不推进阶段
   primary_object: none
   primary_object_note: 口径版本（AGG-78）：信息图 OBJ-102 指标定义已去掉，移入第 11 步指标元数据
 - id: PRC-169
@@ -9069,7 +9082,9 @@ processes:
   type: single_aggregate
   owner_bc: B-12
   aggregate: AGG-133
-  stages: []
+  stages:
+  - VS-15.2
+  stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：出差补贴标准是配置版本，供 PRC-87 生成补贴行使用，不推进阶段"
   added_in: closeout
   basis: S-31 SQ-28
   desc: 财务编制出差补贴标准（按差旅类型与天数），财务负责人批准后按版本生效
@@ -9164,7 +9179,6 @@ processes:
     on_event: 后继版本已生效
     desc: 新版本生效时原生效版本置已取代，已生效版本不可改
     audit: true
-  support: 出差补贴标准是配置版本，供 PRC-87 生成补贴行使用，不推进阶段
   primary_object: none
   primary_object_note: 出差补贴标准版本（AGG-133）是配置，信息图无对象
 - id: PRC-175
