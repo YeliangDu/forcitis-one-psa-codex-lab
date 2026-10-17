@@ -8,13 +8,11 @@ import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
+import com.forcitis.one.platform.audit.AuditPartitionsTestSupport;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.EmployeeExistence;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import java.security.SecureRandom;
-import java.time.LocalDate;
-import java.time.YearMonth;
-import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HexFormat;
@@ -78,10 +76,11 @@ class OperationsProfileSmokeTest {
 
     /** The profile does not create partitions, so a command that writes audit needs the running month to exist; the function exists only once an earlier start has migrated. */
     private static void ensureCurrentMonthPartition() {
-        JdbcClient jdbc = JdbcClient.create(new DriverManagerDataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()));
-        if (Boolean.TRUE.equals(jdbc.sql("select to_regprocedure('platform_audit.create_audit_entry_partitions(date,date)') is not null").query(Boolean.class).single())) {
-            LocalDate month = YearMonth.now(ZoneOffset.UTC).atDay(1);
-            jdbc.sql("select platform_audit.create_audit_entry_partitions(:from, :through)").param("from", month).param("through", month).query(Integer.class).single();
+        DriverManagerDataSource source = new DriverManagerDataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+        try (java.sql.Connection connection = source.getConnection()) {
+            AuditPartitionsTestSupport.ensureCurrentMonthIfMigrated(connection);
+        } catch (java.sql.SQLException failed) {
+            throw new IllegalStateException(failed);
         }
     }
 
