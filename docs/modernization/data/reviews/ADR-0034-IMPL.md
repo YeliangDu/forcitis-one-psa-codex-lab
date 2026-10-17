@@ -37,3 +37,13 @@
 
 - 结论：部分通过
 - 数据设计：通过（one-data，2026-10-17，依据 `claude/one-1a-par-adr0034-card@bc7c14bc`，范围限 PR-1 的 `role_versions`、`account_role_grants` 及其函数、触发器、btree_gist 存在性检查，与 PR-2 的 `roles` 收窄、`role_permissions` 与 `account_roles` 退役、种子移出；不含 `authorization_requests` 的任何改动与 B 组）
+
+---
+
+## 补签（2026-10-17，依据 `claude/one-1a-par-f1-card@e0d60120` 上的 ADR-0034-IMPL 卡）
+
+- 自 `bc7c14bc` 起该卡「数据设计」一节与第 7 节 DDL 无改动（比对了差异，只动了测试表、第 13 节的裁定记录与 A-13 的复职触发方式），原签发继续有效。
+- 新裁定使两项可补签：A-3（one-architecture 取 (a)：`NAMING_STANDARD` §2.4 增 `_ids`（uuid[]）类别词并同 PR 改 `DdlNamingTest`）、A-11（接受具名与 `ck_authorization_requests_base`）。
+  - **补签**：`authorization_requests` 的 `base_account_version_number`、`base_role_version_ids` 两列及其注释，与 `ck_authorization_requests_base`（前提：§2.4 与守护改动在同一 PR）。
+  - **仍不签**：`VOIDED` 取值与具名 `ck_authorization_requests_request_status`——B3a ④ 要求事件与转换一一对应，而作废的事件 / 审计动作（A-7）仍未裁；B 组仍待 C-3。
+- 数据设计：通过（one-data，2026-10-17，补签，依据 `claude/one-1a-par-f1-card@e0d60120`；增加范围：`authorization_requests` 两列与 `ck_authorization_requests_base`；其余同原签发）
