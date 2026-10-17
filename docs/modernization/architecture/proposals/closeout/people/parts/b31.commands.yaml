@@ -1,7 +1,7 @@
 # B-31 命令目录（收敛产物，提议稿；规格见 closeout/RESPONSIBILITY_MATRIX_SPEC.md 第 B 节）
 # 依据：b31.processes.yaml、b31.notes.md、聚合稿 AGG-113–116 命令列、data-model.people.yaml。命令名沿用聚合稿与分片，不自造；
 #   「name_status」非空的是〔缺〕命令：沿用分片提议名的 3 条（撤回用印申请、驳回 IT 需求、申请调拨资产），
-#   以及收敛时新增的 2 条（撤回 IT 需求、撤销调拨申请）；B31-5、8 已撤领用/活动的审批期撤回（ARCH_VS14），历史状态与轮次保留。
+#   以及收敛时新增的 2 条（撤回 IT 需求、撤销调拨申请）和本卡新增的取消员工活动登记；B31-5、8 已撤领用/活动的审批期撤回（ARCH_VS14），历史状态与轮次保留。
 # 发令权 authority 指向 b31.raci.yaml 的条目（A 取 SPEC 第 A 节口径）。kind：human 人发起；callback 审批平台回调；automatic 系统规则。
 # 「孤儿」= 未被任一流程步骤、事件策略或维护用到。本稿 0 个孤儿命令。
 
@@ -40,9 +40,9 @@ commands:
   - {ref: R-B31-12, text: ARCH_VS14.md「上线前须填的 D15 配置与规则约束」：用印加审范围与授权层级须有正式制度版本；AR-16 候选范围不直接启用}
   authority:
     ref: raci:AGG-113/批准用印申请
-    A: {resolve: instance, field: 按用印用途、法人、归属对象的制度责任配置解析, alias: cost_object_owner}
+    A: {resolve: instance, field: 按用印用途、法人、归属对象的制度责任配置解析, alias: cost_object_owner}  # 解析别名；实际责任人按 ARCH_VS14 D15 配置
     R: [SH-M1]
-    approval: {approver: cost_object_owner, doc_type: 用印审批}
+    approval: {approver: cost_object_owner, doc_type: 用印审批}  # 解析别名；实际责任人按 ARCH_VS14 D15 配置
   idempotency_key: 审批实例ID（同一审批实例重复回调不重复生效）
   emits: 用印申请已批准
   used_by: [PRC-139 第 2 步]
@@ -57,7 +57,7 @@ commands:
   - {ref: 状态, text: 申请为审批中且审批实例ID一致；须匹配当前审批轮次，历史或重复回调不得作用新轮}
   authority:
     ref: raci:AGG-113/驳回用印申请
-    A: {resolve: instance, field: 按用印用途、法人、归属对象的制度责任配置解析, alias: cost_object_owner}
+    A: {resolve: instance, field: 按用印用途、法人、归属对象的制度责任配置解析, alias: cost_object_owner}  # 解析别名；实际责任人按 ARCH_VS14 D15 配置
     R: [platform.approval]
   idempotency_key: 审批实例ID
   emits: （内部）
@@ -99,7 +99,7 @@ commands:
     A: {resolve: type, role: SH-E6, function: 行政经办}
     R: [SH-E6]
   idempotency_key: 登记请求ID（客户端预生成 UUIDv7；重复登记返回已有登记行）
-  emits: 已用印
+  emits: 用印已办理
   used_by: [PRC-139 第 4 步]
   orphan: false
 - name: 关闭用印申请
@@ -148,9 +148,9 @@ commands:
   - {ref: R-B31-11, text: 按业务日期取已批准且已生效的唯一 D15 版本；版本只追加，含版本、生效日、作者、批准人、确认时间及制度名称、版本、条款或本次答复依据；单据保存所用版本。配置缺失、重叠、无有效版或不能执行时拒绝并告警，不设默认负责人、不补零、不当不限额；本人及缺位沿 AR-11、AR-12，不能替代制度责任归属}
   authority:
     ref: raci:AGG-114/批准 IT 需求
-    A: {resolve: instance, field: 按 IT 类别和正式制度责任配置解析, alias: cost_object_owner}
+    A: {resolve: instance, field: 按 IT 类别和正式制度责任配置解析, alias: cost_object_owner}  # 解析别名；实际责任人按 ARCH_VS14 D15 配置
     R: [SH-M1]
-    approval: {approver: cost_object_owner, doc_type: IT需求审批}
+    approval: {approver: cost_object_owner, doc_type: IT需求审批}  # 解析别名；实际责任人按 ARCH_VS14 D15 配置
   idempotency_key: 审批实例ID
   emits: （内部）
   used_by: [PRC-142 第 2 步]
@@ -166,7 +166,7 @@ commands:
   - {ref: 状态, text: 工单为审批中且审批实例ID一致；须匹配当前审批轮次，历史或重复回调不得作用新轮}
   authority:
     ref: raci:AGG-114/驳回 IT 需求
-    A: {resolve: instance, field: 按 IT 类别和正式制度责任配置解析, alias: cost_object_owner}
+    A: {resolve: instance, field: 按 IT 类别和正式制度责任配置解析, alias: cost_object_owner}  # 解析别名；实际责任人按 ARCH_VS14 D15 配置
     R: [platform.approval]
   idempotency_key: 审批实例ID
   emits: （内部）
@@ -405,7 +405,7 @@ commands:
   entity: employee_activity_requests
   kind: automatic
   source: 聚合稿 AGG 命令列
-  params: [活动类型码, 参与人, 说明, 费用预估引用（只记录）, 员工引用（周年）, 入职日期（B-13）, 周年日期, 所用活动与周年规则配置版本]
+  params: [活动类型码, 参与人, 说明, 费用预估引用（只记录）, 员工引用（周年）, 入职日期（B-13）, 周年日期, 所用活动与周年规则配置版本, 被取消登记引用（显式重登时）]
   preconditions:
   - {ref: R-B31-10, text: 全部活动只登记，类型、预算、组织安排可执行规则通过直达已批准；规则或维护责任缺失、无有效版或不满足拒绝并告警，不设人工批准或活动金额加审}
   - {ref: ARCH_VS14.md「上线前须填的 D15 配置与规则约束」, text: 周年自动生成读取 B-13 人员事实，由 platform.scheduling 按业务日触发；适用员工、闰日、重新入职、补跑口径须填，缺失拒绝并告警；未实现触发器}
@@ -413,11 +413,11 @@ commands:
     ref: raci:AGG-116/提交员工活动申请
     A: {resolve: type, role: SH-E6, function: 行政}
     R: [system, SH-E3]
-  idempotency_key: 周年：员工 + 入职日期 + 周年日期 + 活动类型；其他活动：申请ID；重复调度或补跑返回原记录，不重办
+  idempotency_key: 周年自动入口：员工 + 入职日期 + 周年日期 + 活动类型；其他活动首次登记：申请ID；显式重登：被取消登记引用；重复请求返回原记录或已有后继登记，不重办
   emits: 员工活动申请已批准（规则通过，非人审）
   used_by: [PRC-144 第 1 步]
   orphan: false
-  note: 周年由系统自动登记；其他活动保留人工登记入口，仍经相同规则校验。
+  note: 周年由系统自动登记；其他活动保留人工登记入口，仍经相同规则校验。登记内容不可改，记错或活动取消先取消再重登；自动调度及补跑返回原记录（含已取消），显式重登另建登记并关联被取消原单，不覆盖旧单或历史。
 - name: 完成员工活动
   aggregate: AGG-116
   entity: employee_activity_requests
@@ -425,15 +425,35 @@ commands:
   source: 聚合稿 AGG 命令列
   params: [申请ID, 活动完成确认, 实际参与人〔推〕]
   preconditions:
-  - {ref: 状态, text: 申请为已批准（类型、预算及组织安排规则通过，无审批回调前提）；重复命令返回已有完成结果}
+  - {ref: 状态, text: 申请为已批准（类型、预算及组织安排规则通过，无审批回调前提）；重复命令返回已有完成结果；已取消拒绝完成，不修改原登记内容}
   authority:
     ref: raci:AGG-116/完成员工活动
     A: {resolve: type, role: SH-E6, function: 行政}
     R: [SH-E6]
-  idempotency_key: 申请ID（已完成无操作）
+  idempotency_key: 申请ID（已完成回放原完成结果；已取消拒绝完成）
   emits: （内部）
   used_by: [PRC-144 现第 2 步（原第 3 步）]
   orphan: false
+- name: 取消员工活动登记
+  aggregate: AGG-116
+  entity: employee_activity_requests
+  kind: human
+  name_status: 〔缺〕ARC-1017-APE-02 提议命令，待 one-glossary 定名
+  source: one-architecture 2026-10-17 答复②（B31-8）；分片 b31.notes.md 新用语 CancelEmployeeActivityRegistration
+  params: [申请ID, 取消原因]
+  preconditions:
+  - {ref: 状态, text: 登记为已批准或已完成；取消到提议终态已取消，不能在原单恢复或修改内容}
+  - {ref: B31-8, text: 登记内容不可修改，记错或活动取消时先取消再按需重登；不设人审，不恢复审批期撤回}
+  - {ref: 审计, text: 取消原因必填，缺失拒绝并告警；取消人从执行身份取得，时间由应用传入；保留原状态、登记与完成历史}
+  authority:
+    ref: raci:AGG-116/取消员工活动登记
+    A: {resolve: type, role: SH-E6, function: 行政}
+    R: [SH-E6]
+  idempotency_key: 申请ID（已取消重试回放原结果，不覆盖首次取消原因、人和时间）
+  emits: （内部）
+  used_by: [PRC-144 第 3 步（已批准或已完成的取消入口）]
+  orphan: false
+  note: 无跨 BC 消费需求，不新增领域事件；审计留痕，不删除历史，不自动冲销费用、报销或采购；已取消不作 VS-14.4 退出。
 event_policies:
 - name: 离职生成归还待办
   trigger_event: Separated（B-13 发布）
@@ -464,7 +484,7 @@ event_policies:
   rules: []
   note: 事件名以 platform.approval 事件目录为准，本稿不自造
 - name: 用印份数到齐关闭
-  trigger_event: 已用印（本聚合内部）
+  trigger_event: 用印已办理（本聚合内部）
   effect: 累计份数达批准份数或确认放弃后系统发关闭用印申请
   uses_command: 关闭用印申请
   used_by: [PRC-139 第 5 步]

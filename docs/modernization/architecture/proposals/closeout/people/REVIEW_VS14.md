@@ -321,3 +321,100 @@ SKIP  SQL Server integration tests           relevant_change.py: nothing the *Ms
 
 SUMMARY: 2 PASS, 0 FAIL, 13 SKIP (base HEAD) — ready
 ```
+
+## ARC-1017-APE-02
+
+本卡文档同步和限定检查已执行，未提交、未推送；交 one-arch-people 审稿。整体架构仍为 PARTIAL，未把报告型检查退出 0 当作全局清零。基线 `6d928dc913c1a5533542b69d5506d619148b4ca0`，分支 `claude/one-arch-people-closeout`，worktree `zealous-shaw-1e4eba`。此节取代 C9 中关于依赖环、旧快照冲突及活动无逆向的现行判断；旧节原文完整保留作历史。 执行期间外部新增提交 `e9836b7d`（GOV-1017-COO-04），仅改人员组画像与 README；本会话未执行提交命令，未覆盖这两份外部改动。本卡19份改动文件在该提交中均无变化，改前证据仍固定初始6d928dc9，最终precheck的HEAD为e9836b7d。
+
+### 改动与依据
+
+- 已先读根 CLAUDE.md、CODING_STANDARD.md、NAMING_STANDARD.md、SESSION_PLAYBOOK §5 / §6.1；权威内容经本地 `git show 33e28272:<路径>` 读取聚合稿 B-31、AGG-113、AGG-116、REF-04 / B-32、`adr/ADR-0057.md`、ARCH_VS14.md 与 OBJECT_EXEMPTIONS.yaml。未联网、未安装依赖、未起容器或建账号。
+- PRC-139：将旧 B-03→B-31 环未闭合、旧快照冲突和本地事件投影说法同步为 REF-04（暂名，图节点 B-32，无聚合流程模块）→B-31（api）核验；登记步新增 incoming api 接缝。匹配同一报价版本、法人、拟发文件及实际用印凭据，读不到、未用印、对应不符、缺凭据或核验失败拒绝发出并告警；已用印与关闭后的实际登记可核验。B-03 不依赖或订阅 B-31，状态仍叫已用印，事件同步为用印已办理、仅分析。ADR-0057 仍为提议稿待用户批；模块名称、标识与命名空间待 one-glossary，未改 ADR、SSOT 或收入骨架。
+- PRC-144：新增第 3 步取消员工活动登记，已批准及已完成分别到提议终态已取消，两条转换均 `kind: reverse`。登记内容（含参与人）不可修改，记错或活动取消先留原因、人、时间、原状态及审计，再按需另建重登并关联原单；不删登记/完成历史、不设人审、不自动冲销费用等其他单据。原已完成仍是 VS-14.4 正常退出；已取消属 PRC-144 登记生命周期的逆向纠错，不算该段正常退出、不新增阶段。取消重试回放首次结果，已取消不能完成或恢复内容。
+- 周年幂等边界补齐：自动重复/补跑仍返回原记录（含已取消），显式重登通过被取消登记引用识别并幂等返回后继登记，重新校验当前有效规则。PRC-144 新增分支后概率整组留 null 待取证，未自定取消发生率或制度值；其他流程经验估值未改。
+- 命令目录、RACI、事件说明、场景及两份表级模型同步。取消只记内部结果与审计，无跨 BC 消费需求，不新增取消事件；既有 13 张表仅补取消原因/人/时间及重登原单引用列族。完整检索 terms.yaml 的 663 个 terms，未找到相应命令、状态或 organization.administration 词条；在 b31.notes.md 按领域 / organization.administration 登记 CancelEmployeeActivityRegistration（command）、Cancelled（state）提议，未修改正式词表。
+- PRC-139、PRC-142 的 approver 保留 cost_object_owner，并行内注明“解析别名；实际责任人按 ARCH_VS14 D15 配置”；命令及 RACI 的对应 alias / approval 同步注明，未更改审批责任配置或 INV。
+- 手工逐处文本替换 9 份 b31 分片；仅通过原 `parts/rebuild.py` 重建 7 份合并产物；手工模型 data-model.people.yaml / DATA_MODEL.md 只同步 B-31 段；本文件只追加本节。共 19 个卡内 tracked 文件。卡片登记文件 ARC-1017-APE-02.md 原字节保留、仍未跟踪；其他分片、脚本、验收目录、SSOT、OBJECT_EXEMPTIONS 均未修改。
+
+### 已验证：改前 → 改后
+
+固定 scratch `/private/tmp/ARC-1017-APE-02-9wvorqw6`。两侧规范与检查器均由 `git archive 33e28272 docs/modernization backend/architecture` 解出；before 覆盖 HEAD 的整个 people，after 覆盖本 worktree 的整个 people；所有指定检查 cwd 为各侧 closeout，解释器固定 `/Users/yeliang/.pyenv/versions/3.12.13/bin/python3 -I`。未写主仓库 `.git`。精确命令、退出码及原始日志见 before-results.json、after-results.json、logs/；复跑入口 validate.py 仅位于 scratch。
+
+- **PASS（设计 QC）** `closeout_check.py --local --qc --all`：exit 0→0；people 人审12→12、用户任务90→91、判断出口158→163、超时16→16、结局116→117；无 why_human、approver 不符、加审引用无效、缺 permission/page、出口/超时/结局无场景、用语无着落均0→0。此为启发式设计检查。
+- **PARTIAL（原存缺口）** `converge_check.py --local --commands people/commands.yaml --states people/state-machines.yaml --all`：exit 0→0；用到聚合×命令149→150，孤儿0→0、骨架未入目录1→1、改状态无转换0→0、聚合无状态机1→1；两处原存缺口均 AGG-52 / 提交应付薪酬，本卡新增命令与两条逆向转换匹配。
+- **PASS（本卡归段）／PARTIAL（全局）** `stage_align_check.py --local --all`：exit 0→0；覆盖47/190，未说明归段0→0、已说明4→4、待人工137→137、参与者不在段1→1、退出不匹配22→22、进入无产生方16→16，完整输出未变。独立逐条核对七流程 stages 均与33e28272目录一致；取消不被作为VS-14.4正常退出。
+- **PASS（OBJ-116逆向）／PARTIAL（默认全局权责）** `object_check.py --local --states people/state-machines.yaml --all`：exit 0→0、问题132→132、已豁免4→4；缺逆向15→14，明细确认OBJ-116缺逆向1→0；无人修改9→9，其中OBJ-116仍1→1，按B31-8交架构加豁免。本卡不改豁免。默认全局权责表缺对象×命令1→2，新增为AGG-116 / 取消员工活动登记；该表不在卡内，未冒改。
+- **PASS（本组权责）／PARTIAL（原存全局项）** 另以相同 object_check 参数追加 `--matrix people/raci.yaml --write`：本组矩阵下问题132→131、权责缺项1→1，仅原存AGG-52；取消命令已有唯一A及R，不是本组漏登。默认矩阵与本组矩阵的完整明细分别见 before/after-object-detail.md、before/after-object-people-raci.md；辅助命令及日志见 logs/ 与对象证据清单。
+- **PASS（依赖方向与无环）／PARTIAL（原存接缝）** `seam_check.py --local --all`：exit 0→0；交互124→125、通过119→120，REF-04→B-31 api接缝有已登记边；边缺2→2、反向0→0、方式不符0→0、事件对接0→0、跨组聚合无目录1→1、骨架外边1→1、孤儿事件36→36；§4.1自身环及加骨架后环均0→0。
+- **PASS（设计查环）** `../aggregates_dep_check.py`：exit 0→0；128聚合、160规划边，含B-32→B-03/B-31/platform.audit三条api边，B-03无B-31依赖；“环：无”与§4.1分层一致均保持。无环来自33e28272的权威结构，不能把上一轮03adf7eb到本次的跨快照变化冒记为本卡消环成果。脚本标题计31个BC节点，B-32实际为流程模块图节点，非新增业务BC。
+- **PASS（图结构）** `bpmn_gen.py --self-test`：exit 0→0，全部通过。`bpmn_gen.py people/processes.people.yaml --out <各侧绝对目录>`：exit 0→0、business图30/30→30/30、失败0→0、警告0→0，B-31七图7/7；PRC-144显示取消任务与已取消结局。图目录before-bpmn/、after-bpmn/，非47个单元的运行验收。
+- **PASS（生成幂等）** 在 before 的 HEAD people 与本 worktree 分别执行两次 `python3 parts/rebuild.py`，解释器均3.12.13；七产物逐字节相同0差异，逐文件SHA-256及两次输出见 before-rebuild.json、after-rebuild.json。仓库生成器未改。
+- **PASS（字面及范围）** audit.py / audit.json：B-31流程7→7、步骤21→22、人审2→2、命令/权责24→25、状态机7→7、表13→13、场景60→70、判断出口47→52、超时1→1、取消逆向0→2；covers漏项/非字面均0→0、索引/goto合法、已估概率合计1或整组null。命令与RACI一一对应，原有INV引用未减少。35个非B31分片（含rebuild.py）逐字不变，两份手工模型非B31前段、NOTES非B31块逐字不变，非目标流程/合并命令/状态/权责/事件语义不变；`git diff --check`通过。
+
+归段、对象、接缝检查只加载people，archive没有revenue/finance骨架、命令及状态机，缺输入警告原样保留；默认权责表虽有586条，但不是同步后本组RACI。报告型exit 0不表示上述全局发现清零，也不证明运行时入口、实际发送或制度配置已生效。
+
+### 注释与版式审计
+
+计数口径：YAML含注释行数（整行及行内，每行至多计1）；Markdown计HTML注释，不把标题计成注释。每份卡内文件改前→改后如下，原注释未减少。
+
+- `DATA_MODEL.md`：3→3。
+- `NOTES.md`：0→0。
+- `REVIEW_VS14.md`：0→0。
+- `commands.yaml`：1→1。
+- `data-model.people.yaml`：24→24。
+- `events.yaml`：1→1。
+- `parts/b31.DATA_MODEL.md`：0→0。
+- `parts/b31.commands.yaml`：6→12。
+- `parts/b31.data-model.yaml`：7→7。
+- `parts/b31.events.yaml`：3→3。
+- `parts/b31.notes.md`：0→0。
+- `parts/b31.processes.yaml`：96→97。
+- `parts/b31.raci.yaml`：5→11。
+- `parts/b31.scenarios.yaml`：1→1。
+- `parts/b31.state-machines.yaml`：3→3。
+- `processes.people.yaml`：338→339。
+- `raci.yaml`：1→1。
+- `scenarios.people.yaml`：1→1。
+- `state-machines.yaml`：1→1。
+
+未改语义的最大YAML子树中，1059个原文本逐字一致；12个只差卡要求的D15别名注释，另2个只差解析器节点末尾对新增列表项缩进的截取边界；排除这两种已解释差异后，非注释版式漂移0。证据见audit.json与raw-changes.json，未整体dump任何分片；允许的合并产物由既有生成器生成。
+
+### 仍未闭合项
+
+1. one-architecture须将本卡新增命令及已取消提议状态回补AGG-116和全局权责表；按B31-8补OBJ-116“无人修改”豁免。本卡本组目录/RACI齐全、缺逆向已消，未改全局表、聚合SSOT或OBJECT_EXEMPTIONS。
+2. ADR-0057仍待用户批；REF-04的正式名称、标识与命名空间，以及取消命令/状态提议交one-glossary定名。D15正式制度与配置材料ARCH-B31-materials 1–8仍须原负责方补齐，不重复询问九项已答选择、不猜制度值。
+3. PRC-144“已批准/已完成直接进入取消步”的契约已写明；当前通用多入口BPMN生成器把开始事件统一接步1，不能证明已完成后可直接进入步3且不重做登记/完成。图结构通过只证明XML及引用有效；实现入口需另卡验证，未改卡外生成器或新增未约定字段藏入口。
+4. 原存AGG-52、其他组缺输入、全局对象/接缝/阶段提示仍在；NOTES.keep.md中的旧聚合回补和方法段只保留历史，本卡现行b31.notes优先。历史资产卡片对应、停用活动在途、零份/完全不用等原存事项仍由原负责方处理，未放宽INV、历史全迁或ADR-0036 U-4。
+
+### 未运行
+
+- 业务运行时/验收测试：REF-04核验、审计失败次序及入口不可绕过、真实报价发出、取消/重登命令、周年触发补跑、离职绝对到期/取消/幂等、真实消息发送均未执行。本卡仅设计文档，禁止代码、容器和联网，未以设计场景当测试通过。
+- 后端、前端、SQL Server构建及测试、CI、部署均未运行；没有修改验收目录或删改/放宽任何测试断言。one-arch-people独立审稿尚待负责会话执行。
+- build_all --check受precheck的未提交保护SKIP；本卡禁止提交，未为规避保护而提交或改脚本。完整precheck及其余SKIP理由附下；全历史gitleaks不覆盖本卡未提交文档。
+
+### precheck.sh 输出
+
+命令 `scripts/precheck.sh HEAD`，最终实测退出码0；`SUMMARY: 2 PASS, 0 FAIL, 13 SKIP (base HEAD) — ready`。仅以本卡未提交文档为差异范围；每个SKIP理由由脚本逐项输出。先前外层zsh保存退出码时误用只读变量，已改为Python直接执行并记录脚本返回码，未改precheck；证据见precheck-result.json，最终输出如下。
+
+```text
+precheck: base HEAD (e9836b7d), HEAD e9836b7d, 20 changed files (20 uncommitted)
+
+SKIP  generated docs (build_all --check)     docs/modernization or backend/glossary/proposed has uncommitted changes: commit first, then run again (请先提交再运行)
+PASS  legacy system name                     check_legacy_name: 无违规
+SKIP  migrations immutable                   no migration, marker or Flyway setting changed
+SKIP  system actors append-only              system-actors.txt and its script did not change
+SKIP  acceptance guard                       no acceptance test changed
+SKIP  database scripts aligned               no database script or migration changed
+SKIP  docs read by builds are registered     no backend, frontend or script changed
+SKIP  assertion drift (warning only)         no test file changed
+SKIP  glossary: check:copy, test:scripts, term tests terms.yaml, bcs.yaml and backend/glossary unchanged
+SKIP  guards: backend guard tests            no guard test or architecture list changed
+SKIP  release scripts self-test, shellcheck  relevant_change.py: nothing the release scripts or the builds read changed
+PASS  gitleaks (full history)                2847 commits scanned; no leaks
+      note: uncommitted files are not in history; the pre-commit hook scans them on commit
+SKIP  backend tests                          relevant_change.py: nothing the builds read changed
+SKIP  frontend verify                        relevant_change.py: nothing the builds read changed
+SKIP  SQL Server integration tests           relevant_change.py: nothing the *MssqlIT tests exercise changed
+
+SUMMARY: 2 PASS, 0 FAIL, 13 SKIP (base HEAD) — ready
+```

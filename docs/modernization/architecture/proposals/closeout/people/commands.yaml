@@ -4174,7 +4174,7 @@ commands:
     R:
     - SH-E6
   idempotency_key: 登记请求ID（客户端预生成 UUIDv7；重复登记返回已有登记行）
-  emits: 已用印
+  emits: 用印已办理
   used_by:
   - PRC-139 第 4 步
   orphan: false
@@ -4682,6 +4682,7 @@ commands:
   - 入职日期（B-13）
   - 周年日期
   - 所用活动与周年规则配置版本
+  - 被取消登记引用（显式重登时）
   preconditions:
   - ref: R-B31-10
     text: 全部活动只登记，类型、预算、组织安排可执行规则通过直达已批准；规则或维护责任缺失、无有效版或不满足拒绝并告警，不设人工批准或活动金额加审
@@ -4696,12 +4697,12 @@ commands:
     R:
     - system
     - SH-E3
-  idempotency_key: 周年：员工 + 入职日期 + 周年日期 + 活动类型；其他活动：申请ID；重复调度或补跑返回原记录，不重办
+  idempotency_key: 周年自动入口：员工 + 入职日期 + 周年日期 + 活动类型；其他活动首次登记：申请ID；显式重登：被取消登记引用；重复请求返回原记录或已有后继登记，不重办
   emits: 员工活动申请已批准（规则通过，非人审）
   used_by:
   - PRC-144 第 1 步
   orphan: false
-  note: 周年由系统自动登记；其他活动保留人工登记入口，仍经相同规则校验。
+  note: 周年由系统自动登记；其他活动保留人工登记入口，仍经相同规则校验。登记内容不可改，记错或活动取消先取消再重登；自动调度及补跑返回原记录（含已取消），显式重登另建登记并关联被取消原单，不覆盖旧单或历史。
   source_part: b31
 - name: 完成员工活动
   aggregate: AGG-116
@@ -4714,7 +4715,7 @@ commands:
   - 实际参与人〔推〕
   preconditions:
   - ref: 状态
-    text: 申请为已批准（类型、预算及组织安排规则通过，无审批回调前提）；重复命令返回已有完成结果
+    text: 申请为已批准（类型、预算及组织安排规则通过，无审批回调前提）；重复命令返回已有完成结果；已取消拒绝完成，不修改原登记内容
   authority:
     ref: raci:AGG-116/完成员工活动
     A:
@@ -4723,9 +4724,40 @@ commands:
       function: 行政
     R:
     - SH-E6
-  idempotency_key: 申请ID（已完成无操作）
+  idempotency_key: 申请ID（已完成回放原完成结果；已取消拒绝完成）
   emits: （内部）
   used_by:
   - PRC-144 现第 2 步（原第 3 步）
   orphan: false
+  source_part: b31
+- name: 取消员工活动登记
+  aggregate: AGG-116
+  entity: employee_activity_requests
+  kind: human
+  name_status: 〔缺〕ARC-1017-APE-02 提议命令，待 one-glossary 定名
+  source: one-architecture 2026-10-17 答复②（B31-8）；分片 b31.notes.md 新用语 CancelEmployeeActivityRegistration
+  params:
+  - 申请ID
+  - 取消原因
+  preconditions:
+  - ref: 状态
+    text: 登记为已批准或已完成；取消到提议终态已取消，不能在原单恢复或修改内容
+  - ref: B31-8
+    text: 登记内容不可修改，记错或活动取消时先取消再按需重登；不设人审，不恢复审批期撤回
+  - ref: 审计
+    text: 取消原因必填，缺失拒绝并告警；取消人从执行身份取得，时间由应用传入；保留原状态、登记与完成历史
+  authority:
+    ref: raci:AGG-116/取消员工活动登记
+    A:
+      resolve: type
+      role: SH-E6
+      function: 行政
+    R:
+    - SH-E6
+  idempotency_key: 申请ID（已取消重试回放原结果，不覆盖首次取消原因、人和时间）
+  emits: （内部）
+  used_by:
+  - PRC-144 第 3 步（已批准或已完成的取消入口）
+  orphan: false
+  note: 无跨 BC 消费需求，不新增领域事件；审计留痕，不删除历史，不自动冲销费用、报销或采购；已取消不作 VS-14.4 退出。
   source_part: b31

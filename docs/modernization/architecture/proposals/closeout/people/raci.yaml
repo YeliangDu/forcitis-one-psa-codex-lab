@@ -2635,6 +2635,21 @@ entries:
     - SH-E3
   sensitive: false
   source_part: b31
+- object: AGG-116
+  command: 取消员工活动登记
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 行政
+    R:
+    - SH-E6
+    C: []
+    I:
+    - SH-E3
+  sensitive: false
+  note: 沿活动组织办理职能执行取消，不持人工批准权；已批准或已完成均可取消，原因必填，记取消人、时间及审计，保留原登记和完成历史；重登另建记录关联原单（B31-8）。
+  source_part: b31
 roles:
   SH-E3:
   - positions:
@@ -2791,7 +2806,7 @@ roles:
         - 读 B-24 资产卡片
       行政:
         org_needs:
-        - 组织员工活动并确认完成的行政人员
+        - 组织员工活动并确认完成、办理取消登记及留痕的行政人员
   SH-E7:
   - positions:
     - 待岗位体系定
