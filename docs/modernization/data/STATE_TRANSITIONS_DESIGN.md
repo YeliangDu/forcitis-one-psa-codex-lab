@@ -98,6 +98,7 @@ c3 / c9 两份运行时脚本同步。`DataArchitectureTest` 核对：注册表�
 ## 4. 保留期到期后的清理通道（B3）
 
 - 清理由 schema 属主经函数 `<schema>.purge_expired_state_transitions(p_cutoff date) RETURNS bigint`（`SECURITY DEFINER`，属主 `one_*_owner`，`REVOKE EXECUTE … FROM PUBLIC`，只授予维护角色，做法同 `drop_archived_audit_entry_partition`）；函数里 `current_user` 是属主，触发器放行 DELETE（第 1 节），运行角色没有 EXECUTE，也删不了。
+- 已知边界：触发器放行的是「当前用户是表属主」的 DELETE，不区分是不是经由清理函数；属主身份只在迁移与受控特权路径（运维命令、见证规则，ADR-0030）使用，运行角色不是属主，守护与 §4b 回收保证这一点。
 - 一次只删「整个聚合都到期」的转换：该聚合所有转换的 `recorded_at < p_cutoff`，且聚合所属业务记录已按其保留期清理；同一语句删完整条冲销链，复合外键 `RESTRICT` 不触发。
 - 作业归属：**不归本批卡**。保留期 10 年，清理作业与审计在线删除（ADR-0048）、ADR-0034 授权历史清理同批实现（见 ADR-0034-IMPL 的 D-1 登记），期限 = 首次生产部署后 30 个月内，负责人 one-1a-par 或其接班人；registry 先写 `{policy: PERMANENT}` + 注释四项（口径、清理落点、负责人、期限），与 role_versions 同法。本批卡只交付函数与放行触发器的**结构**，不交付作业。
 
