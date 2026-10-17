@@ -3279,8 +3279,8 @@ processes:
   trigger:
     type: call
     desc: 各触账 BC 的「提交过账候选」调用本管道（开放主机服务 + 发布语言）；更正入口为来源 BC 另行调用「冲销并重过账」
-  stages:
-  - VS-10.1
+  stages: [VS-10.0]
+  stages_note: 按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已过账 / 已更正」经 PRC-93 生成分录，对应该段「本期分录已记账」退出条件。
   owner_bc: B-16
   human_orchestration: false
   migration: 在途：同步调用，当场成功或拒收，无在途实例。历史：全部历史事实经迁入过账通道直接写入事实表，不经本流程的期间闸门与事件发布（ADR-0036 第 6 条、SESSION_PLAYBOOK §14.2 M8）；投产前以最近两个已结期间重算比对（U-10）。
@@ -3565,8 +3565,8 @@ processes:
   name: 生成会计分录
   type: event_policy
   owner_bc: B-20
-  stages:
-  - VS-10.1
+  stages: [VS-10.0]
+  stages_note: 按事件策略看触发状态的判据②归 VS-10.0「执行记账结转」（SD-11 已批），触发为业务事实已过账或已更正，结局「已记账无需推送 / 已推送」对应该段「本期分录已记账」退出条件。
   triggers:
   - type: event
     event: BusinessFactAttributed
@@ -3692,8 +3692,8 @@ processes:
   trigger:
     type: human
     desc: 财务因调整、差异或年度审计调整制单
-  stages:
-  - VS-10.1
+  stages: [VS-10.0]
+  stages_note: 按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已提交过账」经 PRC-92、PRC-93 形成手工调整分录，对应该段「本期分录已记账」退出条件。
   owner_bc: B-20
   human_orchestration: true
   human_note: 制单、复核、审批，复核人不同于制单人
@@ -3934,8 +3934,8 @@ processes:
   trigger:
     type: time
     desc: 月末业务过账完成后
-  stages:
-  - VS-10.1
+  stages: [VS-10.0]
+  stages_note: 按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已过账」经 PRC-93 形成期末结转分录，对应该段「本期分录已记账」退出条件。
   owner_bc: B-20
   human_orchestration: false
   migration: 在途：投产日所在期间的首次结转在新系统生成，无在途。历史：只迁已记账的结转分录，不重建运行单据（历史期间为终态）；投产前最近两个已结期间用模板重算比对（U-10）。
@@ -4146,8 +4146,8 @@ processes:
   trigger:
     type: time
     desc: 月结日程定时（platform.scheduling 到点创建待办，幂等键 = 聚合 ID + 到期时点）或财务人工发起
-  stages:
-  - VS-10.1
+  stages: [VS-10.0]
+  stages_note: 按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「人工成本分配已过账」经 PRC-93 形成成本结转分录，对应该段「本期分录已记账」退出条件。
   owner_bc: B-07
   human_orchestration: false
   migration: 在途：已试算未确认的分配运行不迁，投产前办结或投产后重新试算；历史：不作为单据迁入，结果由迁入的权责事实承载（U-3，R-08），投产前最近两个已结期间按 U-10 重算比对
@@ -4584,8 +4584,8 @@ processes:
   trigger:
     type: time
     desc: 月末
-  stages:
-  - VS-10.1
+  stages: [VS-10.0]
+  stages_note: 按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「分摊已生效」经 PRC-92 过账、PRC-93 生成分摊分录，对应该段「本期分录已记账」退出条件；「分摊已冲销」经冲销并重过账同样落在本段。
   owner_bc: B-07
   human_orchestration: false
   migration: 在途：未生效的试算不迁，投产后重新试算；历史：不作为单据迁入，结果由迁入的权责事实承载（U-3，R-08），投产前最近两个已结期间按 U-10 重算比对
@@ -4797,8 +4797,8 @@ processes:
   trigger:
     type: time
     desc: 月末按期计提
-  stages:
-  - VS-10.1
+  stages: [VS-10.0]
+  stages_note: 按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已过账」使折旧与资产处置事实经 PRC-93 生成分录，对应该段「本期分录已记账」退出条件。
   owner_bc: B-24
   human_orchestration: false
   migration: 在途：采购已完成未建卡的资产在投产前办结建卡；历史：全部资产卡片迁入，已提折旧与已处置记录全量迁入（U-3、U-4），折旧不重新生成（迁入事实不经候选，M8），投产前最近两个已结期间按 U-10 重算比对
@@ -7078,8 +7078,7 @@ processes:
   type: single_aggregate
   owner_bc: B-20
   aggregate: AGG-84
-  stages:
-  - VS-10.1
+  stages: [VS-10.0]
   states:
   - 待处理
   - 待推送
@@ -7200,15 +7199,14 @@ processes:
     to: 死信
     guard: 重投仍被拒收
   states_note: '分录本身只追加、不改状态；状态在待处理队列项与外部法定账推送状态上（INV-95a，S-31 SQ-23）；「已确认记账」由 PRC-104 登记，不在本流程（S-43 #44）'
-  stages_note: VS-10.1：待处理队列为空、推送死信为空是 VS-10.1 期间关账的前置检查（ADR-0022 决定 10、INV-100）；本流程清理队列与死信，是关账得以达成的必要环节。期间内记账与结转段 VS-10.0 待 SD-11 裁定，定后改归 VS-10.0
+  stages_note: 按判据①归 VS-10.0「执行记账结转」（SD-11 已批），待处理项补齐授权或映射后生成分录并转为「待推送」，对应该段「会计分录待处理队列已清空」退出条件。
   primary_object: OBJ-98
 - id: PRC-158
   name: 处置过账拒收记录
   type: single_aggregate
   owner_bc: B-16
   aggregate: AGG-77
-  stages:
-  - VS-10.1
+  stages: [VS-10.0]
   desc: 过账管道拒收的候选写入技术性拒收记录（AGG-77 内部表，不作聚合根）；财务查看原因，补主数据或开放期间后以同一幂等键重提，或登记结案结论；超期告警；结论留痕（S-29 SQ-41）
   states:
   - name: 待处置
@@ -7308,7 +7306,7 @@ processes:
   - PRC-158-S04
   - PRC-158-S05
   - PRC-158-S06
-  stages_note: VS-10.1：「拒收记录已处置」是 VS-10.1 期间关账的前置检查项（S-29 SQ-54，INV-100）；期间内记账段 VS-10.0 待 SD-11 裁定，定后改归 VS-10.0
+  stages_note: 按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已重提 / 已结案」消除待处置拒收记录，对应该段「过账拒收记录已处置」退出条件。
   primary_object: none
   primary_object_note: 同 PRC-92：拒收记录是过账管道的技术记录
 - id: PRC-159
@@ -8021,8 +8019,7 @@ processes:
   type: single_aggregate
   owner_bc: B-17
   aggregate: AGG-126
-  stages:
-  - VS-10.1
+  stages: [VS-10.0]
   added_in: closeout
   basis: S-31 SQ-22
   desc: 对账等式超容差的差异开案，须解释、修正、豁免之一关闭，未关闭的差异案使关账前置检查不通过
@@ -8179,7 +8176,7 @@ processes:
       goto: end
       rule: INV-135
       outcome: 已豁免关闭
-  stages_note: VS-10.1：勾稽差异案须在关账前处置，是 VS-10.1 期间关账的前置检查（INV-100 扩展项，S-29 SQ-54；ADR-0016 决定 1 勾稽等式）；期间内记账段 VS-10.0 待 SD-11 裁定，定后再判是否改归 VS-10.0
+  stages_note: 按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已解释关闭 / 已修正关闭 / 已豁免关闭」消除未结差异案，对应该段「勾稽差异案已处置」退出条件。
   primary_object: none
   primary_object_note: 勾稽差异案在词表是聚合（operations.policy），信息图没有对象；是否立对象随信息层定
   reads:
