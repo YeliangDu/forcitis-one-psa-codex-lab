@@ -67,3 +67,14 @@
 - **漏过于**：推送钩子（precheck 不跑 `c3_dev_db_check.sh`，它需要容器）
 - **新增检查项**：改完 `runbooks/sql/` 下脚本，先单独跑 `c3_dev_db_check.sh` 看退出码为 0，再 add、commit、push；不把检查与提交连在同一条命令里。写入 OPS_CONTEXT「坑」
 - **状态**：已落实（`docs/modernization/phase1a/infra/OPS_CONTEXT.md`「坑」）
+
+### OPS-007　回滚脚本对「角色不存在」不幂等，重建时中途报错
+
+- **日期**：2026-10-17
+- **类别**：局部测试
+- **现象**：dev 重建时执行 `c3_dev_db_rollback.sql`，库删掉后在 `DROP ROLE one_dev_audit_maintainer` 处报「角色不存在」而停止（旧 dev 库按 #448 之前的脚本建，没有该角色），剩下四个角色要手工删，再重跑建库脚本；没有造成数据损失
+- **根因**：#448 给建库脚本加了新角色，回滚脚本同步加了 `DROP ROLE`，但按「新建库」的状态写，没考虑旧库升级路径；`c3_dev_db_check.sh` 只测新建库
+- **拦下于**：作者执行时（重建当场）；one-coordinator 指出
+- **漏过于**：独立评审（#448 复审未覆盖「旧库没有新角色」）；check.sh（无回滚用例）
+- **新增检查项**：回滚脚本的 `DROP ROLE` 改 `IF EXISTS`；`c3_dev_db_check.sh` 补「旧库缺维护角色时回滚仍通过」用例；待补
+- **状态**：待落实（负责：one-ops，2026-10-17 起；随 c14_run 自测一起做，rc.6 部署后）
