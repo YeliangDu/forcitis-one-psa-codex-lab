@@ -170,3 +170,14 @@
 - **漏过于**：机械检查（precheck 覆盖不全）；作者自审。
 - **新增检查项**：#342（改 `backend/architecture` 时跑全部读它的免容器守护类）；`scripts/ci/light_unit_classes.py` 自动列出免容器单测（含新增守护）；CI 三档里 guarded 档按读取关系触发（`relevant_change.py`）；待补：precheck 对新增或改动的 `*Test` 类自身必跑，负责人 one-quality。
 - **状态**：待落实（#342 合入后改为已落实；负责：one-quality 2026-10-24）
+
+### QUAL-017　验收测试改动的裁定尾注只查有无，不查真伪
+
+- **日期**：2026-10-17
+- **类别**：其他
+- **现象**：`Acceptance-Ruling: RULING-x` 尾注只要形式对就放行（`acceptance_guard.py`），裁定是否真有记录、是不是复审作出的、是否被反复借用都没人核对；#405 train 自拟 10 条裁定曾无任何记录，历史上 45 个裁定号无记录。报错特征：验收测试被改的提交带裁定尾注但仓库里找不到对应裁定。
+- **根因**：守护把尾注当作裁定本身，没有裁定记录这一可核对的来源。
+- **拦下于**：调度人工发现（one-coordinator 2026-10-17）。
+- **漏过于**：机械检查（acceptance_guard 只查尾注格式）。
+- **新增检查项**：`scripts/ci/acceptance_rulings.py`：尾注裁定号须在 PR base 的 `docs/modernization/rulings/ACCEPTANCE_RULINGS.yaml`，记录要素齐全且裁定人不是实现会话，裁定一次只放行一次，改动文件须被 files 覆盖；已知缺口：`Acceptance-Test-Author` 尾注仍可自填。
+- **状态**：待落实（合入后改已落实；负责：one-quality 2026-10-24）
