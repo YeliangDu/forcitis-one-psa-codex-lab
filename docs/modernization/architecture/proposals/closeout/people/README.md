@@ -41,6 +41,7 @@
 - 2026-10-17 C7-people：SD-12 roles 已核对，SD-15 归段说明与闭环结局映射已对齐；rebuild 生成，origin/main 8ff6baf4 检查复跑并按五个价值流/支撑章节形成 REVIEW_PACK.md。QC 缺口 0、BPMN 30/30/0 警告、stage 6a 未说明 0；AGG-52、PRC-181 依赖边、命名/对象残余交架构。one-arch-people 审稿通过，返工 0 轮。
 - 2026-10-17 并入云端试点 VS-11（claude/arch-cloud-pilot @ 1b914e4d，pilot/RESULT.md 第 4 节，one-architecture 裁定）：PRC-107 第 1–12 条采纳试点写法（去〔缺〕退回知识条目，退回由评审结论表达；结局加已修订；加定时复审触发；评审 P10D 非中断升级 SH-M1，估值仍归待用户定 8），PRC-182 保留本组版本；AGG-107 撤回与逾期中断回补、目录 stages_note 由 one-architecture 做。复跑 QC 缺口 0、converge 同前、BPMN 30/30、接缝同前。
 - 2026-10-17 C8-people-VS14：B-31 七个流程（PRC-139、142、143、144、155、156、157）按 VS-14「获得内部服务」归段，去 support、写专属 stages_note、补负担估值与提醒结局；QC 缺口 0、BPMN 30/30、七流程归段未说明 0；评审包 REVIEW_VS14.md（交架构 A1–A9、待用户定 B31-1–10）。Codex 起草，审稿通过，返工 0 轮；rebuild.py 空行累积已修。
+- 2026-10-17 ARC-1017-APE-01（旧编号 C9-people-B31）：按 B31 答复（one-architecture 03adf7eb）同步 B-31 七个流程，9aaf20dc；Codex 返工 1 轮（首轮丢注释）。进行中 ARC-1017-APE-02：按 33e28272 改 REF-04 用印核验口径、补取消员工活动登记。
 
 ## 待办（对外承诺）
 

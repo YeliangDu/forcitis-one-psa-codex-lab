@@ -26,7 +26,7 @@
 ## 输入
 
 - one-architecture：`ARCH_CLOSEOUT_PLAN.md`、`ENTERPRISE_AGGREGATES_DRAFT.md`、`STEP6A_PROCESSES.md`、`processes.v1.yaml`、`value-streams.v2.yaml`、`IDENTITY_LIFECYCLE.md`、`JOB_CATALOG_DRAFT.md`。
-- 规则：ADR-0050/0051、`terms.yaml`、SESSION_PLAYBOOK §14、§14.1、§14.2；`backend/architecture/data-access-registry.yaml`（已建表）。
+- 规则：ADR-0050/0051，已采纳的 ADR-0052、0054、0055、0056，`terms.yaml`、SESSION_PLAYBOOK §14、§14.1、§14.2；`backend/architecture/data-access-registry.yaml`（已建表）。
 
 ## 输出
 
@@ -46,6 +46,7 @@
 
 ## 上下文文档
 
+- `docs/modernization/sessions/one-arch-people.md`（本画像，恢复时先读）
 - `docs/modernization/architecture/proposals/closeout/people/README.md`（本组进度与待办）
 
 ## 交接条件
@@ -55,10 +56,14 @@
 ## 权限边界
 
 - 不自行出确认页，用户待定事项交 one-architecture。
-- 执行类产出先交 Codex（用户 2026-10-17，intent 085534；SESSION_PLAYBOOK §5「Codex 派工」）：`codex exec -m gpt-6.1-sol -c model_reasoning_effort=xhigh -s workspace-write --ephemeral -o <结果>`，派工单用 `templates/WORK_CARD.md`，后台跑不轮询；本会话只派工、审稿、交用户前验收，并记每张卡的返工轮次与耗时。生产取证、安全改动、opus 复审不交 Codex。
+- 执行类产出先交 Codex（用户 2026-10-17，intent 085534；SESSION_PLAYBOOK §5「Codex 派工」「任务命名与登记」）：派工单用 `templates/WORK_CARD.md`，派卡时登记 `tasks/<任务号>.md`（`ARC-MMDD-APE-nn`）；本会话用 Bash `run_in_background` 启动，description 写 `<任务号> <任务名> (codex)`，完整提示词随命令传入，跑完由通知唤醒，不轮询：
+  `codex exec -m gpt-6.1-sol -c model_reasoning_effort=xhigh -s workspace-write --ephemeral -o <结果> "<完整提示词>" < /dev/null > <日志> 2>&1`
+  本会话只派工、审稿、交用户前验收，记每张卡的返工轮次与耗时。生产取证、安全改动、opus 复审不交 Codex。
+- 人事骨架、对象与表级候选稿可交 Codex；账号开通 / 吊销、授权与安全不变量的设计改动、代码、验收测试及生产取证均由负责会话按安全流程处理，不因本组含人事对象就把身份生命周期改动打包派给 Codex。
+- 只交 closeout/people/ 片段，one-architecture 写共享文件；one-data 签发表口径，one-rules 管规则，用户事项由 one-architecture 合页后登记收件箱。
 - 子代理显式指定模型：opus 只用于首轮评审，复核用 sonnet，取数用 haiku。
 - 不做生产取证以外的对外调用；取证按 ADR-0037 登记、明细与个人信息不进仓库。
 
 ## 当前状态
 
-人员组流程骨架、表级模型、QC、聚合收敛、阶段对齐、对象层已交（分支 claude/one-arch-people-closeout，草稿 PR #390 已按开 PR 新规关闭，文档只提交不开 PR）；待用户答人员线确认页与 one-architecture 下一层（能力、信息、干系人）安排（2026-10-17）。
+2026-10-17 13:40+02:00 人员组流程骨架、表级模型、QC、聚合收敛、阶段与对象对齐已交（分支 claude/one-arch-people-closeout，文档只提交不开 PR）。当天另交：PRC-107 并入云端试点（0d220033）、VS-14 归段（fdba0fd5、A3 379f2483）、B31 答复同步 ARC-1017-APE-01（9aaf20dc）；进行中 ARC-1017-APE-02（按 33e28272 同步 REF-04 用印核验口径、补取消员工活动登记）。B31 制度材料 1–8 仍缺（one-architecture ARCH-B31-materials 经调度转用户）；人事记录系统与业务生效日沿已定口径，身份授权变更交安全流程。
