@@ -10,6 +10,7 @@
 | C6 工时审批回放差异（Phase 1a 出口 D-3，2 类） | `sheets/C6.json`（计数取自 `phase1a/infra/runbooks/C-6-legacy-export.md`「回放结果」，one-ops） | https://claude.ai/artifact/Y7ogz8AWPmZdeuE4HCEGqL（2026-10-16 起） |
 | FD2 工时填报义务（6 题） | `sheets/FD2.json`（取证 `phase1a/infra/handoff/B-5-dba/evidence/timesheet_filing_duty.sql`，行业调研 one-rules） | https://claude.ai/artifact/DWcj2U7HrYZ2zmVNreBmfS（2026-10-16 起） |
 | A1 重议后续（A1 维不维持、无法定年审的替代把关，3 题） | `sheets/A1.json`（依据收入事实页 R-1～R-8 的答复） | https://claude.ai/artifact/TaLY2TVGaoqhZCpt7uPMrG（2026-10-16 起，未实看渲染） |
+| ANM 流程方法与命名体系批准（ADR-0052、0053 与 SD-11–15，11 题；one-architecture） | `sheets/ANM.json` | https://claude.ai/artifact/KTzjRe3S2FvJEiDu1Priey（2026-10-17 起） |
 
 | 步骤 | 做法 |
 |---|---|
