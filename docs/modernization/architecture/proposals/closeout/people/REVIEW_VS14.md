@@ -153,3 +153,171 @@ SUMMARY: 2 PASS, 0 FAIL, 13 SKIP (base HEAD) — ready
 ## 后续修订
 
 - 2026-10-17 按 one-architecture ARCH_VS14（638afdf0）A3：PRC-142 判断「需求不成立或无法实现」由步 4 解决之后移到步 3 受理之后，退回路径不再经过解决命令与 IT 需求已解决事件；状态机守卫保持处理中 → 已退回，不放宽为已解决可退回；场景 PRC-142-S06 路径同步。
+
+## C9 B31 答复同步
+
+**任务号 ARC-1017-APE-01（旧号 C9-people-B31）；返工 1 轮。原因：上一轮整体 YAML 序列化丢失原注释与版式，按审稿意见以 HEAD 379f2483 为底稿逐处文本修复。** 本节检查已于本轮全部重跑；恢复版式后语义与返工前工作区快照一致，无语义例外。
+
+卡号 C9-people-B31；只改文件、未提交、未推送、未改分支。基线 `379f248396c2cede61c0f385bc1b573a61146339`，分支 `claude/one-arch-people-closeout`，审稿交 one-arch-people。**卡内七流程文档已同步；整体交付仍为 FAIL／未闭合**：聚合依赖环返回 1，不能用 precheck 的 0 FAIL 代替架构通过。本节是现行结果，C8 的待选人审、定时及周年人工入口仅留历史，不再待用户重复答复。
+
+### 依据与改动文件
+
+先读根 CLAUDE.md、编码/命名规范及 SESSION_PLAYBOOK §5、§6.1；权威按 `git show 03adf7eb:<路径>` 读取 ARCH_VS14.md（含 D15 表）、VS-14、七条流程目录、AGG-113–116/121、capabilities.v2.yaml、CONVENTIONS.md；同步清单及制度缺口按本卡 scratchpad 的 ARCH-B31-people.md / ARCH-B31-materials.md；用语核对 terms.yaml，参考 PRC-107 和本文件 C8 评审包。未修改 SSOT、ADR、B-03、其他分片、验收测试或任何仓库脚本；未联网、未起容器、未安装依赖、未写主仓库 `.git`。
+
+改动文件（20 个）：
+
+- `DATA_MODEL.md`
+- `NOTES.md`
+- `REVIEW_VS14.md`
+- `STAGE_ALIGN.md`
+- `commands.yaml`
+- `data-model.people.yaml`
+- `events.yaml`
+- `parts/b31.DATA_MODEL.md`
+- `parts/b31.commands.yaml`
+- `parts/b31.data-model.yaml`
+- `parts/b31.events.yaml`
+- `parts/b31.notes.md`
+- `parts/b31.processes.yaml`
+- `parts/b31.raci.yaml`
+- `parts/b31.scenarios.yaml`
+- `parts/b31.state-machines.yaml`
+- `processes.people.yaml`
+- `raci.yaml`
+- `scenarios.people.yaml`
+- `state-machines.yaml`
+
+`parts/rebuild.py` 生成七个合并产物，脚本未改。`data-model.people.yaml` / `DATA_MODEL.md` 为手工合并，本卡只替换 B-31 尾段，其他段逐字不变；既有 13 张表只补列族、D15 版本引用和历史口径，未新造对象、表、状态、术语或 DDL。原有未登记词留在 b31.notes.md 新用语，现行缺命令 5 条（撤回用印申请、驳回 IT 需求、申请调拨资产、撤回 IT 需求、撤销调拨申请），不将脚本通过视为术语批准。
+
+### 返工 1 轮：注释、版式与语义核对
+
+返工前语义快照：`/private/tmp/arc-1017-ape-01-r1/semantic-target/`；底稿：`git show HEAD:<path>`，保存于 `head/`。对底稿执行字段级文本替换、条目插入/删除及注释改写，未对任何分片调用 `yaml.dump` / `yaml.safe_dump`；定位用 `yaml.compose`，语义核对用 `yaml.safe_load`。沿用原缩进、流式字典、引号、折叠段落、行内注释及空行；新增条目按所在列表原写法插入。重建仍调用原封不动的 `parts/rebuild.py`，其既有合并序列化逻辑未改。
+
+逐文件注释数（统计独立注释与行内注释所在行；与本卡七个文件的实际 YAML 注释数一致）：
+
+- `parts/b31.commands.yaml`：HEAD 6 → 返工后 6。
+- `parts/b31.data-model.yaml`：HEAD 7 → 返工后 7。
+- `parts/b31.events.yaml`：HEAD 3 → 返工后 3。
+- `parts/b31.processes.yaml`：HEAD 110 → 返工后 96。
+- `parts/b31.raci.yaml`：HEAD 6 → 返工后 5。
+- `parts/b31.scenarios.yaml`：HEAD 1 → 返工后 1。
+- `parts/b31.state-machines.yaml`：HEAD 3 → 返工后 3。
+
+`comment-inventory.json` 逐项核账通过，未列明的原注释均逐字保留。合计 136 → 121：删除 15 条、改写 12 条；另有 2 条仍适用的注释原样移到新对应位置，不计删除：HEAD `b31.processes.yaml:362`「规则自动通过，不设审批」移至 PRC-143 规则通过出口；`:723`「仅分析」移至 PRC-144 规则登记的同名 emits。B-13 回补新边、既有 platform.approval 边、OA 非节点事实边界、仍适用的〔推〕、经验估值、A3 分流及 PRC-156 非中断提醒说明均原样保留。
+
+删除 / 改写清单（每行一条，行号均指 HEAD 379f2483，非返工后行号）：
+
+- 改写 `b31.commands.yaml:3`「「name_status」非空的是〔缺〕命令：沿用分片提议名的 4 条（撤回用印申请、驳回 IT 需求、驳回领用、申请调拨资产），」 →「「name_status」非空的是〔缺〕命令：沿用分片提议名的 3 条（撤回用印申请、驳回 IT 需求、申请调拨资产），」；原因：B31-5 取消领用驳回现行命令；不删除历史数据。
+- 改写 `b31.commands.yaml:4`「以及收敛时新增的 4 条（撤回 IT 需求、撤回领用、撤销调拨申请、撤回员工活动申请：分片只在审批步写了 withdraw 边，状态机需要命令落地）。」 →「以及收敛时新增的 2 条（撤回 IT 需求、撤销调拨申请）；B31-5、8 已撤领用/活动的审批期撤回（ARCH_VS14），历史状态与轮次保留。」；原因：B31-5、8 取消领用与活动审批期撤回，缺命令合计由 8 条减为 5 条。
+- 改写 `b31.processes.yaml:2`「字段按 closeout/CONVENTIONS.md（含 §5）；归段按 2acfd46e 的 VS-14 与目录（C8-people-VS14），不沿用 S-31 的空 stages。」 →「字段按 closeout/CONVENTIONS.md（含 §5）；归段按 03adf7eb 的 VS-14 与目录、ARCH_VS14 的 B31 答复同步，不沿用 S-31 的空 stages。」；原因：归段依据更新为本卡指定的 03adf7eb；PRC-143/144 已按答复去掉 VS-14.2。
+- 改写 `b31.processes.yaml:6`「用户新原则（修订，2026-10-16）：能由规则和不变量守卫的不设人工审批；保留的人审 approver 一律 cost_object_owner（申请人所在组织单元的负责人），」 →「用户原则：能由规则和不变量守卫的不设人工审批；保留的人审 approver 沿用 cost_object_owner 解析别名，责任按 ARCH_VS14 D15 用印人工批准责任、IT 受控类别与责任表配置，」；原因：ARCH_VS14 D15 要求正式制度决定责任归属，撤销默认申请人部门负责人的假定；只保留既有解析别名。
+- 改写 `b31.processes.yaml:7`「加审只引用 APPROVAL_RULES.yaml 中 guard: approval 的规则（本组可命中 AR-01、AR-11、AR-12、AR-16），每个人审写 why_human。」 →「本人及缺位沿 AR-11、AR-12；加审范围须填 ARCH_VS14 D15 用印加审范围、IT 金额适用口径，AR-16 候选不能直接启用；每个人审写 why_human。」；原因：ARCH_VS14 D15 取消活动金额加审，保留两个人审的责任与加审配置前置；候选 AR-16 不直接启用。
+- 改写 `b31.processes.yaml:47`「申请人所在组织单元的负责人（cost_object_owner）」 →「ARCH_VS14 D15 用印人工批准责任解析的负责人（cost_object_owner 别名）」；原因：用印责任按正式制度配置，不能固定为申请人部门负责人。
+- 改写 `b31.processes.yaml:91`「申请人所在组织单元的负责人」 →「解析别名；责任依据 ARCH_VS14 D15 用印人工批准责任」；原因：同上；AR-11/AR-12 不替代制度责任归属。
+- 改写 `b31.processes.yaml:178`「提出人所在组织单元的负责人（仅受控类别表标为需审批的类别）」 →「ARCH_VS14 D15 IT 受控类别与责任表指定的负责人（仅需人审类别）」；原因：IT 负责人按类别和正式制度配置，不默认提出人部门。
+- 改写 `b31.processes.yaml:218`「提出人所在组织单元的负责人」 →「解析别名；责任依据 ARCH_VS14 D15 IT 受控类别与责任表」；原因：同上；保留既有解析别名，撤固定负责人假定。
+- 删除 `b31.processes.yaml:243`「非中断超时分支结局为已提醒，原任务继续；提醒不改对象状态。」；原因：PRC-142 的 P2D 受理提醒已按 B31-2 撤销，不能残留提醒分支说明。
+- 删除 `b31.processes.yaml:244`「〔推〕2 个工作日内受理，逾期提醒信息部门负责人（SH-M1 职能高管），待用户定 2」；原因：B31-2 撤销 P2D 受理提醒，不再征集 2 日参数或登记到期任务。
+- 删除 `b31.processes.yaml:268`「〔推〕解决后 5 日未确认自动关闭，待用户定 2」；原因：B31-2 撤销 P5D 系统代关，仅提出人人工确认且满足 INV-120 才关闭。
+- 删除 `b31.processes.yaml:331`「申请人所在组织单元的负责人（仅超出岗位标准配置时）」；原因：B31-5 取消全部领用人审及其 SH-M1 批准角色。
+- 删除 `b31.processes.yaml:368`「经验估值；null 表示待取证」；原因：PRC-143 原步 2 批准领用已删除，其 wait 经验估值不再适用。
+- 删除 `b31.processes.yaml:369`「经验估值；null 表示待取证」；原因：PRC-143 原步 2 批准领用已删除，其 effort 经验估值不再适用。
+- 删除 `b31.processes.yaml:374`「申请人所在组织单元的负责人」；原因：PRC-143 原步 2 批准领用及审批人解析绑定已删除。
+- 删除 `b31.processes.yaml:398`「仅超出标准配置、经审批的领用」；原因：B31-5 改为规则通过后签收登记，不再以审批通过事件为入口。
+- 改写 `b31.processes.yaml:572`「〔推〕离职后 7 日仍未归还提醒原部门负责人，待用户定 7」 →「ARCH_VS14 D15 离职归还提醒：仅离职生效后 7 个日历日，完成取消；起点非任务启动/事件到达」；原因：B31-7 已定期限，删除推断及待选说法，限定离职入口和绝对起算点。
+- 删除 `b31.processes.yaml:687`「申请人所在组织单元的负责人（仅受控活动类型表标为需审批的类型）」；原因：B31-8 取消全部活动人审及其 SH-M1 批准角色。
+- 删除 `b31.processes.yaml:705`「经验估值；null 表示待取证」；原因：PRC-144 原步 1 改系统自动统一规则登记，原人工 effort 估值已删除。
+- 删除 `b31.processes.yaml:721`「经验估值；null 表示待取证」；原因：PRC-144 原步 2 批准活动已删除，其 wait 经验估值不再适用。
+- 删除 `b31.processes.yaml:722`「经验估值；null 表示待取证」；原因：PRC-144 原步 2 批准活动已删除，其 effort 经验估值不再适用。
+- 删除 `b31.processes.yaml:728`「申请人所在组织单元的负责人」；原因：PRC-144 原步 2 批准活动及审批人解析绑定已删除。
+- 删除 `b31.processes.yaml:752`「仅经审批的活动类型」；原因：B31-8 活动登记完成不再以审批通过事件为前提。
+- 改写 `b31.raci.yaml:2`「口径：每个「对象×命令」恰一个 A。审批类命令（批准用印申请、批准 IT 需求、批准领用、批准员工活动申请）A = 实例级 cost_object_owner」 →「口径：每个「对象×命令」恰一个 A。现行审批类命令仅批准用印申请、批准 IT 需求，A = 按 ARCH_VS14 D15 正式责任配置解析的实例级 cost_object_owner」；原因：B31-5、8 取消领用/活动人审；剩余人审责任依 D15，不采用固定部门负责人。
+- 改写 `b31.raci.yaml:3`「（申请人 / 提出人所在组织单元的负责人；批准用印申请仅无来源单据的申请有人审），与 b31.processes.yaml 骨架 approval.approver 一致，escalation_rules 对应 boundary.delegate=AR-11、escalate=AR-12。」 →「（用印人工批准责任、IT 受控类别与责任表；用印仅无来源单据有人审），与 b31.processes.yaml 的解析别名一致；AR-11、AR-12 只处理本人及缺位，不代替制度责任归属。」；原因：ARCH_VS14 D15 对负责人解析及 AR-11/AR-12 的职责边界已有新依据。
+- 删除 `b31.raci.yaml:25`「无来源单据的高风险用印加总经理一级（S-41）；无金额限额」；原因：ARCH_VS14 D15 用印加审范围须按正式制度填定；AR-16 高风险用印加总经理候选及无金额限额不可直接启用。
+
+`format-audit.json`：7/7 YAML 分片、6/6 YAML 重建产物及手工合并 `data-model.people.yaml` 的 `yaml.safe_load` 结果与返工前快照相同（共 14 份，0 例外）；未发现须改变语义目标的问题。1,367 个语义未变子树的原始文本片段逐字相同，版式漂移 0；35 个卡外分片逐字未变。两份手工模型的非 B-31 前段及 NOTES 非 B-31 段逐字未变；手工 YAML 的 B-31 尾段按修复分片合并，Markdown 的 B-31 小节恢复 HEAD 原有二级标题写法，保留本卡语义增补。
+
+`focused-verification.json` 本轮独立复验：步骤 25→21、判断出口 43→47、超时 3→1、场景 47→60，covers 漏项/非字面项均 0→0；命令与 RACI 30→24 且一一对应，状态机 7→7、表 13→13；归段不一致 2→0、stages_note 7→7。双次重建的逐文件 SHA-256 见 `before-rebuild-result.json`、`after-rebuild-result.json`。本轮各主检查退出码及原始日志见本节下方验证说明；依赖环仍 FAIL、对象提示仍 129→131，不以格式返工掩盖未闭合项。
+
+### 逐流程改动
+
+| 流程 | 改前 → 改后及保留边界 |
+|---|---|
+| PRC-139 | 无来源用印固定部门负责人/AR-16 候选范围 → 用途、法人、归属对象的 D15 正式责任及加审配置；AR-11/12 仅处理本人/缺位，不替代责任归属；来源审批通过且 INV-138 满足仍直通。原单已驳回/已撤回补合法重提转换，新轮重新校验、旧轮次/意见/原编号保留。实际登记补报价版本、用印法人、拟发文件及盖章凭据可核验关系，关闭不抹凭据；INV-118/119/138 保持。B-03 发出前入口及依赖环未闭合 |
+| PRC-142 | 受控类别/固定负责人候选 → 逐类 D15 是否人审、理由、负责人、提供/维护方、默认路由、采购交接；IT/采购金额先分承载，IT 自身承载才填两档阈值和币种。撤 P2D/P5D、到期策略及 system 代关权，保留人工关闭、催办、逾期查询；缺结论不关（INV-120）。A3 继续在步 3 受理后、步 4 解决前分流，不先发解决事件。原单重提沿既有提交命令保留旧轮 |
+| PRC-143 | .1/.2/.3 → .1/.3；原步 2 批准、4 驳回、审批期撤回及 AR/SH-M1 绑定退出当前目录/状态机/权责/事件。所有领用规则通过草稿直达已通过，规则缺失/不满足拒绝告警，不恢复超配审批；现步 2（原 3）签收登记，申请提前检查、交付时 INV-121 兜底，同事务开在用期间。历史审批状态/轮次/原编号全保留 |
+| PRC-155 | 调入方确认待选 → 同一核算主体内跨组织仅通知双方负责人，不新增批准/驳回命令。保留卡片、调入人在职及唯一使用人校验，双方实物交接与结束旧期间/开新期间同事务；旧期间结束不当归还，跨法人转让与账务交固定资产 |
+| PRC-156 | 混合入口统一 P7D/期限待定 → 手工归还不套期限，仅已生效 Separated 生成待办；离职生效后 7 个日历日仍未归还非中断提醒原组织单元负责人，固定到期时点非事件到达/流程启动时点；归还完成取消，聚合 ID + 到期时点幂等，晚到/重试不重置。登记 B-31 → platform.scheduling；本次答复作 D15 版本依据，七天不再待选；不订阅离职登记已撤销、不阻塞 VS-13.6 |
+| PRC-144 | .1/.2/.4 → .1/.4；全部活动规则登记到已批准（规则结果）后直接登记完成，原步 2/4、审批期撤回、AR-01/02 活动金额加审及 SH-M1 批准权删除。周年入口改系统读 B-13 入职日期/有效人员事实、platform.scheduling 按业务日自动生成，共用登记入口；员工 + 入职日期 + 周年日期 + 类型去重；适用、闰日、重新入职、补跑及维护责任须填。其他活动可人工登记；费用/报销/采购自身控制保留；触发器尚未实现 |
+| PRC-157 | 保留独立 AGG-121、已报修 → 已维修登记，无新增审批；已修复/无法修复仅结果属性；卡片/折旧/报废账务归 B-24；全量明细及 ADR-0036 U-4 不因取消其他审批而改写历史或批量改草稿 |
+
+配置一律按业务日期取已批准且生效的唯一版，逐版只追加并含生效日、作者、批准人、确认时间和依据，单据保存所用版本；缺失/重叠/无有效版/无法执行/规则不满足拒绝并告警，不设默认负责人、不补零或不限额。pending 均指 ARCH_VS14.md 的具体 D15 项或材料编号，不再指已答复 B31-n。离职七天与周年自动入口已定，未将尚缺的配置材料当作批准发布。
+
+### 已验证：改前 → 改后
+
+验证根目录 `/private/tmp/arc-1017-ape-01-r1`。两侧均先 `git archive 03adf7eb docs/modernization backend/architecture` 解包：before 覆盖 HEAD 379f2483 的整个 people，after 覆盖最终 worktree 整个 people；不写主仓库 `.git`。检查 cwd 为各侧 `docs/modernization/architecture/proposals/closeout`，全部用 `/Users/yeliang/.pyenv/versions/3.12.13/bin/python3 -I`；命令、退出码和原始日志分别在 `before-results.json` / `after-results.json` 与 `logs/`。复跑入口 `validate.py`、字面覆盖与状态目录检查 `focused.py`、版式审计 `audit.py` 均仅在该 scratch，未改仓库脚本。原始 stage/object/seam 等报告只在 scratch 生成。
+
+| 检查（python3 -I 后的参数） | 改前 → 改后 | 判定 |
+|---|---|---|
+| closeout_check.py --local --qc --all | people 人审 14→12；用户任务93→90；出口152→158、超时18→16、结局121→116；各项缺口及无着落用语均0→0 | PASS；仅设计 QC，非运行时验收 |
+| converge_check.py --local --commands people/commands.yaml --states people/state-machines.yaml --all | 孤儿0→0；骨架未入目录1→1；无转换0→0；聚合无状态机1→1 | PARTIAL；两项均原存 AGG-52/提交应付薪酬，卡外未改 |
+| stage_align_check.py --local --all | 全目录未说明归段0→0；七流程未说明0→0；待人工138→137；参与者不在段3→1；其他退出不匹配22/进入无产生方16未变 | 本卡归段 PASS；全局仍 PARTIAL，余项含原存 PRC-83 等 |
+| 独立七流程 stages 与 03adf7eb 目录逐条比对 | 不一致2→0（PRC-143/144）；专属 stages_note 7→7 | PASS；不靠脚本对非空阶段的盲区 |
+| object_layer_check.py --local | 无主对象0→0；阶段承载对象无主流程0→0；主对象多流程23→23；能力不在段0→0 | 本卡无新增问题；全局 PARTIAL |
+| object_check.py --local --states people/state-machines.yaml --all | 问题129→131；无人修改8→9、缺逆向14→15，其余未变；已豁免4→4 | PARTIAL；新增2项为 OBJ-116/AGG-116 员工活动取消审批后的通用生命周期提示，未为消提示造修改/撤回命令或改豁免 |
+| seam_check.py --local --all | 边缺失2→2；反向0→0；方式不符0→0；事件对接0→0；跨组聚合无目录1→1；自身环1→1、加骨架后环1→1；孤儿事件37→37；同名不同义候选0→0 | FAIL／未闭合；报告型 exit 0 不能视为无环 |
+| ../aggregates_dep_check.py（按脚本用法用默认聚合稿与 backend/architecture/module-dependencies.txt） | exit 1→1；128聚合、30业务BC、158规划边；同一强连通分量含 B-03/04/05/08/10/11/23/24/28/31 | FAIL；基线已成环，不称本卡新增或解决 |
+| bpmn_gen.py --self-test | exit 0→0，全部通过 | PASS；03adf7eb 自测已读独立 bpmn_gen_fixtures/timeout.yaml，未复现卡文旧 KeyError，未改生成器/配置/断言 |
+| bpmn_gen.py people/processes.people.yaml --out <各侧绝对输出目录> | business图30/30→30/30，失败0→0，警告0→0；七流程7/7→7/7 | PASS（图结构）；非运行时调度语义或业务验收 |
+| 连续两次 python3 parts/rebuild.py | HEAD before 七产物字节相同→返工 after 七产物字节相同 | PASS；各文件 SHA-256 见 before-rebuild-result.json / after-rebuild-result.json；旧空行累积问题本版未复现 |
+| B-31 covers 字面与索引/命令/RACI/状态自查 | 场景47→60；判断出口43→47、超时3→1；漏覆盖/非字面均0→0；现行命令30→24、权责30→24、状态机7→7、步骤25→21 | PASS；字段逐字匹配、goto合法、概率合计1、命令/RACI一一对应、现行取消审批路径无残留；focused-verification.json |
+| 范围及差异 | 返工前20个卡内未提交文件→返工后仍20个；35个非B31分片逐字不变；合并产物1367个语义未变子树版式无漂移；两份模型非B31前段、NOTES非B31段逐字不变；git diff --check 通过 | PASS；未动测试断言 |
+| scripts/precheck.sh HEAD | 本轮重跑：2 PASS、0 FAIL、13 SKIP，exit 0 | PASS（本卡文档范围）；逐项理由见下，不代表依赖环通过 |
+
+closeout/stage/seam/object 只加载到 people（47/190 单元），revenue/finance 骨架、命令、状态机在该 archive 中缺失，原始警告未隐藏；不能将这一组合验证称作三组全覆盖。people 全目录 12 人审包含其他分片，本卡 B-31 现行仅 2 人审。BPMN 30 张仅 business 流程，不是 47 个单元的运行验收。双入口提醒在骨架描述中限定离职和绝对生效起点，通用 BPMN 边界图本身不能证明运行时不从任务开始计时。
+
+场景变更依据是本次用户答复：PRC-142-S05/S07 撤旧提醒/代关期望并补人工超期不改状态；PRC-143-S02/S03/S04 撤超配审批/驳回/撤回期望，改规则通过/缺失/拒绝；PRC-144-S02–S06 撤人工审批/加审/撤回旧期望，改统一规则登记及周年规则/幂等。真实用印/IT 人审驳回、INV-118/119/120/121/138 的拒绝守卫保留。未删除或放宽任何仓库验收测试断言；本卡场景是 YAML 设计材料。
+
+### 未闭合项（交 one-architecture）
+
+1. **FAIL：报价实际用印与依赖环**。B-03 发出前必须核验实际用印，本卡的 API 校验方案及 ARCH_VS14 保留环未闭合。03adf7eb 聚合稿已出现事件“用印已办理”及 B-03 本地投影，和同提交 ARCH_VS14/同步卡冲突；实测依赖脚本也把该 B-03→B-31 事件边纳入同一环。须架构统一依赖口径、事件名/载荷/订阅及投影滞后拒绝，再另卡交收入组落实入口，不能标不校验或假称事件化已无环。
+2. **PARTIAL：取消审批后的活动生命周期提示**。object_check 新增 OBJ-116 无修改/无逆向各1；现行已按用户撤批准、驳回及审批期撤回，不能为脚本加回。请架构按真实业务决定检查口径或另卡处理，本卡不改检查脚本/OBJECT_EXEMPTIONS/状态目录。
+3. **PARTIAL：卡外历史合并底稿**。NOTES.keep.md 的旧聚合稿回补/方法验证仍含旧人审、空 stages、PB31 候选；它不在卡内，未修改；b31.notes.md 已明确这些是历史，C9 现行口径优先，交负责会话清理卡外源。当前命令/权责/状态机已清理六个审批命令，未把历史记录删除。
+4. **未实现的后续实施**。D15 正式配置承载及审批责任接入、离职固定到期/取消/幂等调度、周年触发及补跑、B-03 前置核验均无运行时实现。本卡只给骨架/场景/列族；不报已运行。INV、历史全迁及 ADR-0036 U-4 保持；历史资产卡片对应、停用活动在途逐项处置及零份/完全不用细则仍需原负责方处理。
+5. 原存 AGG-52 收敛缺口、缺其他两组输入及其他全局对象/阶段/接缝提示保持原样；未越界补齐，不以 exit 0 代替通过。卡文旧 BPMN 自测 KeyError 和 rebuild 空行问题在本次固定版本均未复现，不继续报成现行 FAIL。
+
+仍缺的制度材料：`ARCH-B31-materials` **1、2、3、4（条件适用）、5、6、7、8**。仅引用材料编号，不视为已经收到或正式制度已经生效；九项选择不再重复询问。离职七天不再作为候选值征集，按本次答复登记所需版本元数据。
+
+### 未运行
+
+- 运行时周年触发器、离职提醒/取消/重试、真实消息发送、报价发出前核验及业务验收测试；本卡仅文档，且禁止容器/联网/代码修改。
+- backend/frontend/SQL Server 测试及构建：本卡只改文档，precheck 判定不相关；未触发 CI、部署、账号创建或安装。
+- build_all --check：precheck 按未提交文档规则 SKIP；卡明确禁止提交，未为通过擅自提交。验收测试目录和断言完全未改。
+- 本轮 gitleaks 全历史扫描提交数见下方原始 precheck 输出，无泄露；它不覆盖未提交文档，未把该边界当已完成未提交差异扫描。
+
+### precheck.sh 输出
+
+命令 `scripts/precheck.sh HEAD`；完整输出如下。基线 HEAD 用于隔离本卡未提交文档范围，所有 SKIP 已由脚本逐项给理由；生成文档 SKIP 与本卡“不提交”约束一致。
+
+```text
+precheck: base HEAD (379f2483), HEAD 379f2483, 20 changed files (20 uncommitted)
+
+SKIP  generated docs (build_all --check)     docs/modernization or backend/glossary/proposed has uncommitted changes: commit first, then run again (请先提交再运行)
+PASS  legacy system name                     check_legacy_name: 无违规
+SKIP  migrations immutable                   no migration, marker or Flyway setting changed
+SKIP  system actors append-only              system-actors.txt and its script did not change
+SKIP  acceptance guard                       no acceptance test changed
+SKIP  database scripts aligned               no database script or migration changed
+SKIP  docs read by builds are registered     no backend, frontend or script changed
+SKIP  assertion drift (warning only)         no test file changed
+SKIP  glossary: check:copy, test:scripts, term tests terms.yaml, bcs.yaml and backend/glossary unchanged
+SKIP  guards: backend guard tests            no guard test or architecture list changed
+SKIP  release scripts self-test, shellcheck  relevant_change.py: nothing the release scripts or the builds read changed
+PASS  gitleaks (full history)                2820 commits scanned; no leaks
+      note: uncommitted files are not in history; the pre-commit hook scans them on commit
+SKIP  backend tests                          relevant_change.py: nothing the builds read changed
+SKIP  frontend verify                        relevant_change.py: nothing the builds read changed
+SKIP  SQL Server integration tests           relevant_change.py: nothing the *MssqlIT tests exercise changed
+
+SUMMARY: 2 PASS, 0 FAIL, 13 SKIP (base HEAD) — ready
+```

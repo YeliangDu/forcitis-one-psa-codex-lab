@@ -4024,6 +4024,8 @@ commands:
   - 用印文件（名称、份数、引用）
   - 申请份数
   - 来源单据（类型、审批实例ID，可空；无来源单据的申请为空）
+  - 审批轮次（原单重提时新轮）
+  - 所用制度配置版本
   preconditions:
   - ref: R-B31-1
     text: 用印法人须为申请日有效法人主体，否则拒绝并留在草稿
@@ -4032,7 +4034,9 @@ commands:
   - ref: INV-138
     text: 同一来源审批实例的累计用印份数（本申请份数加上该实例已被其他有效用印申请占用的份数）不超审批载荷份数；超出则拒绝并告诉申请人原因，留在草稿，不静默
   - ref: 状态
-    text: 申请为草稿
+    text: 申请为草稿或已驳回、已撤回；原单重提保留原编号及旧轮次，新建本轮审批实例，旧回调不得作用新轮
+  - ref: ARCH_VS14.md「上线前须填的 D15 配置与规则约束」
+    text: 无来源单据时用印责任、加审配置须完整有效，否则拒绝并告警；来源直通仍按 INV-138
   authority:
     ref: raci:AGG-113/提交用印申请
     A:
@@ -4040,7 +4044,7 @@ commands:
       field: 申请人
     R:
     - SH-E3
-  idempotency_key: 申请ID（客户端预生成 UUIDv7；同一 ID 重复提交返回已有结果）
+  idempotency_key: 申请ID + 提交轮次（同轮重试回放，重提增加轮次并保留历史）
   emits: 用印申请已批准（仅来源审批校验通过时直接置已批准；其余情形为内部）
   used_by:
   - PRC-139 第 1 步
@@ -4056,16 +4060,16 @@ commands:
   - 审批结果（通过）
   preconditions:
   - ref: 状态
-    text: 申请为审批中且审批实例ID一致；仅无来源单据的申请有此审批
-  - ref: AR-11/AR-12
-    text: 审批人就是申请人上交其上级；负责人缺位上交上级组织负责人（APPROVAL_RULES，已有）
-  - ref: AR-16
-    text: 授权委托书，以及公章、法定代表人名章用于无来源单据的，加一级由总经理批（APPROVAL_RULES AR-16「无来源单据的高风险用印」，abnormal，S-41）；待用户在 PB31-01 确认，pending B31-1
+    text: 申请为审批中且审批实例ID一致；仅无来源单据的申请有此审批；须匹配当前审批轮次，历史或重复回调不得作用新轮
+  - ref: R-B31-11
+    text: 按业务日期取已批准且已生效的唯一 D15 版本；版本只追加，含版本、生效日、作者、批准人、确认时间及制度名称、版本、条款或本次答复依据；单据保存所用版本。配置缺失、重叠、无有效版或不能执行时拒绝并告警，不设默认负责人、不补零、不当不限额；AR-11、AR-12 不替代责任归属
+  - ref: R-B31-12
+    text: ARCH_VS14.md「上线前须填的 D15 配置与规则约束」：用印加审范围与授权层级须有正式制度版本；AR-16 候选范围不直接启用
   authority:
     ref: raci:AGG-113/批准用印申请
     A:
       resolve: instance
-      field: 申请人所在组织单元.负责人
+      field: 按用印用途、法人、归属对象的制度责任配置解析
       alias: cost_object_owner
     R:
     - SH-M1
@@ -4088,12 +4092,12 @@ commands:
   - 驳回意见
   preconditions:
   - ref: 状态
-    text: 申请为审批中且审批实例ID一致
+    text: 申请为审批中且审批实例ID一致；须匹配当前审批轮次，历史或重复回调不得作用新轮
   authority:
     ref: raci:AGG-113/驳回用印申请
     A:
       resolve: instance
-      field: 申请人所在组织单元.负责人
+      field: 按用印用途、法人、归属对象的制度责任配置解析
       alias: cost_object_owner
     R:
     - platform.approval
@@ -4144,6 +4148,10 @@ commands:
   - 经办人
   - 盖章文件扫描件引用
   - 确认放弃剩余份数（是 / 否）
+  - 报价版本引用（报价用途，仅记录）
+  - 用印法人
+  - 拟发文件及实际盖章凭据对应
+  - 所用核验配置版本
   preconditions:
   - ref: INV-118
     text: 申请须已批准（来源审批校验通过或负责人已批准）
@@ -4153,6 +4161,10 @@ commands:
     text: 本次用印份数为 0 仅当确认放弃剩余份数〔推〕；达到批准份数或确认放弃后触发关闭
   - ref: 职责分离
     text: 经办人不得是申请人本人（PRC-139 segregation）
+  - ref: INV-138
+    text: 同一来源实例累计用印份数不超过批准份数
+  - ref: ARCH_VS14.md「上线前须填的 D15 配置与规则约束」
+    text: 报价实际用印须与同一报价版本、用印法人、拟发文件和实际盖章凭据可核验对应；缺失或不一致拒绝并告警，审批通过不算已用印
   authority:
     ref: raci:AGG-113/登记用印
     A:
@@ -4177,6 +4189,8 @@ commands:
   preconditions:
   - ref: R-B31-2
     text: 累计登记份数已达批准份数，或经办人已确认放弃剩余份数；不设人工关闭
+  - ref: 凭据保留
+    text: 关闭不抹去实际用印登记和凭据对应，已关闭仍可核验
   authority:
     ref: raci:AGG-113/关闭用印申请
     A:
@@ -4200,11 +4214,15 @@ commands:
   - 需求类别
   - 描述
   - 优先级
+  - 所用类别、责任及金额适用配置版本
+  - 提交轮次
   preconditions:
   - ref: R-B31-3
-    text: 需求类别由受控类别表决定进审批（审批中）或直接受理（已提交）
+    text: 逐类填是否需人审、理由、批准责任人、提供方、维护方、默认路由及采购交接；未列类别或无有效版拒绝并告警，不默认常规支持
   - ref: 状态
-    text: 工单为草稿
+    text: 工单为草稿或已退回、已撤回；仅提出人原单重提，保留旧轮次、意见和原编号，新轮重新核对配置
+  - ref: ARCH_VS14.md「上线前须填的 D15 配置与规则约束」
+    text: 先明确金额由 IT 或采购承载；采购金额留采购，IT 自身承载须有两档阈值和币种，不补零、不作不限额
   authority:
     ref: raci:AGG-114/提交 IT 需求
     A:
@@ -4212,7 +4230,7 @@ commands:
       field: 提出人
     R:
     - SH-E3
-  idempotency_key: 工单ID（客户端预生成 UUIDv7）
+  idempotency_key: 工单ID + 提交轮次（同轮回放，重提增加轮次）
   emits: （内部）
   used_by:
   - PRC-142 第 1 步
@@ -4228,14 +4246,14 @@ commands:
   - 审批结果（通过）
   preconditions:
   - ref: 状态
-    text: 工单为审批中且审批实例ID一致
-  - ref: AR-11/AR-12
-    text: 同用印
+    text: 工单为审批中且审批实例ID一致；须匹配当前审批轮次，历史或重复回调不得作用新轮
+  - ref: R-B31-11
+    text: 按业务日期取已批准且已生效的唯一 D15 版本；版本只追加，含版本、生效日、作者、批准人、确认时间及制度名称、版本、条款或本次答复依据；单据保存所用版本。配置缺失、重叠、无有效版或不能执行时拒绝并告警，不设默认负责人、不补零、不当不限额；本人及缺位沿 AR-11、AR-12，不能替代制度责任归属
   authority:
     ref: raci:AGG-114/批准 IT 需求
     A:
       resolve: instance
-      field: 提出人所在组织单元.负责人
+      field: 按 IT 类别和正式制度责任配置解析
       alias: cost_object_owner
     R:
     - SH-M1
@@ -4259,12 +4277,12 @@ commands:
   - 驳回意见
   preconditions:
   - ref: 状态
-    text: 工单为审批中且审批实例ID一致
+    text: 工单为审批中且审批实例ID一致；须匹配当前审批轮次，历史或重复回调不得作用新轮
   authority:
     ref: raci:AGG-114/驳回 IT 需求
     A:
       resolve: instance
-      field: 提出人所在组织单元.负责人
+      field: 按 IT 类别和正式制度责任配置解析
       alias: cost_object_owner
     R:
     - platform.approval
@@ -4314,8 +4332,6 @@ commands:
   preconditions:
   - ref: 状态
     text: 工单为已提交；或已解决且提出人反馈未解决（重开，回处理中）
-  - ref: R-B31-4
-    text: 受理时限 2 个工作日〔推〕，逾期提醒信息部门负责人（B31-2）
   authority:
     ref: raci:AGG-114/受理 IT 需求
     A:
@@ -4345,6 +4361,8 @@ commands:
     text: 工单为处理中
   - ref: INV-120
     text: 解决须写出处理结论（供关闭时校验）
+  - ref: A3
+    text: 受理之后解决之前已判定需求成立且可实现；否则由处理中直接退回，不写已解决、不发解决事件
   authority:
     ref: raci:AGG-114/解决 IT 需求
     A:
@@ -4366,12 +4384,14 @@ commands:
   source: 聚合稿 AGG 命令列
   params:
   - 工单ID
-  - 关闭方式（提出人确认 / 超期自动关闭）
+  - 提出人人工确认
   preconditions:
+  - ref: 状态
+    text: 工单为已解决且仅提出人本人确认；系统无代关权
   - ref: INV-120
-    text: 关闭须有处理结论
+    text: 关闭须有处理结论；无结论拒绝；未解决可回受理重开
   - ref: R-B31-4
-    text: 解决后 5 日未确认自动关闭〔推〕（B31-2）
+    text: 人工超期不自动改变状态；不登记受理提醒或代关任务，保留人工催办和逾期查询
   authority:
     ref: raci:AGG-114/关闭 IT 需求
     A:
@@ -4379,7 +4399,6 @@ commands:
       field: 提出人
     R:
     - SH-E3
-    - system
   idempotency_key: 工单ID（已关闭无操作）
   emits: （内部）
   used_by:
@@ -4420,9 +4439,10 @@ commands:
   - 资产卡片ID（AGG-91，仅引用）
   - 使用人
   - 领用说明
+  - 所用领用规则及清单配置版本
   preconditions:
   - ref: R-B31-5
-    text: 资产类别在使用人岗位标准配置内则自动通过，超出才进审批（B31-5）
+    text: 全部领用只登记，岗位标准及超配可执行规则通过直达已通过；规则缺失、无有效版或不满足拒绝并告警，不转人审；清单提供方及维护责任上线前须填
   - ref: R-B31-6
     text: 资产无未归还使用人，申请时提前拒绝（INV-121 的提前判定）
   - ref: 卡片有效
@@ -4440,90 +4460,6 @@ commands:
   - PRC-143 第 1 步
   orphan: false
   source_part: b31
-- name: 批准领用
-  aggregate: AGG-115
-  entity: it_asset_use_requests
-  kind: callback
-  source: 聚合稿 AGG 命令列
-  params:
-  - 审批实例ID
-  - 审批结果（通过）
-  preconditions:
-  - ref: 状态
-    text: 申请为审批中且审批实例ID一致
-  - ref: AR-11/AR-12
-    text: 同用印
-  authority:
-    ref: raci:AGG-115/批准领用
-    A:
-      resolve: instance
-      field: 申请人所在组织单元.负责人
-      alias: cost_object_owner
-    R:
-    - SH-M1
-    approval:
-      approver: cost_object_owner
-      doc_type: IT资产领用审批
-  idempotency_key: 审批实例ID
-  emits: （内部）
-  used_by:
-  - PRC-143 第 2 步
-  orphan: false
-  source_part: b31
-- name: 驳回领用
-  aggregate: AGG-115
-  entity: it_asset_use_requests
-  kind: callback
-  name_status: 〔缺〕沿用分片提议名（notes 新用语）
-  source: 分片 b31.notes.md 新用语〔缺〕驳回领用（RejectAssetIssue）
-  params:
-  - 审批实例ID
-  - 驳回意见
-  preconditions:
-  - ref: 状态
-    text: 申请为审批中且审批实例ID一致
-  authority:
-    ref: raci:AGG-115/驳回领用
-    A:
-      resolve: instance
-      field: 申请人所在组织单元.负责人
-      alias: cost_object_owner
-    R:
-    - platform.approval
-  idempotency_key: 审批实例ID
-  emits: （内部）
-  used_by:
-  - PRC-143 第 4 步
-  orphan: false
-  source_part: b31
-- name: 撤回领用
-  aggregate: AGG-115
-  entity: it_asset_use_requests
-  kind: human
-  name_status: 〔缺〕收敛新增，沿用分片命名模式，待 one-glossary 登记
-  source: 收敛新增（分片仅写 withdraw 边，无命令）
-  params:
-  - 申请ID
-  - 撤回原因
-  preconditions:
-  - ref: 状态
-    text: 申请为审批中
-  - ref: 权限
-    text: 仅申请人本人
-  authority:
-    ref: raci:AGG-115/撤回领用
-    A:
-      resolve: instance
-      field: 使用人
-    R:
-    - SH-E3
-  idempotency_key: 申请ID
-  emits: （内部）
-  used_by:
-  - PRC-143 第 2 步（撤回边 withdraw）
-  orphan: false
-  source_part: b31
-  unused_ok: 由骨架 withdraw 边触发
 - name: 登记领用
   aggregate: AGG-115
   entity: it_asset_use_periods
@@ -4540,7 +4476,7 @@ commands:
   - ref: R-B31-6
     text: 登记时兜底拒绝已有未归还使用人的资产
   - ref: 状态
-    text: 申请为已通过（标准配置内自动通过，或审批通过）
+    text: 申请为已通过（岗位标准及超配规则已通过，无审批回调前提）
   - ref: 职责分离
     text: 使用人不得登记自己的领用
   authority:
@@ -4554,7 +4490,7 @@ commands:
   idempotency_key: 申请ID（同一申请只开一个使用期间）
   emits: 资产已领用
   used_by:
-  - PRC-143 第 3 步
+  - PRC-143 现第 2 步（原第 3 步）
   orphan: false
   source_part: b31
 - name: 申请调拨资产
@@ -4570,9 +4506,11 @@ commands:
   - 调拨说明
   preconditions:
   - ref: R-B31-7
-    text: 调入使用人须在调拨日在职；资产无当前使用人转领用；跨组织单元通知两侧负责人
+    text: 调入使用人须在调拨日在职；资产无当前使用人转领用；跨组织单元通知两侧负责人；同一核算主体内跨组织只通知双方，不增批准；跨法人转让归固定资产流程
   - ref: R-B31-6
     text: 调出方须为当前使用人
+  - ref: 卡片有效
+    text: 卡片存在、未处置且属于同一核算主体；跨法人转让归 B-24 固定资产流程，不在本命令办理
   authority:
     ref: raci:AGG-115/申请调拨资产
     A:
@@ -4655,11 +4593,15 @@ commands:
   - 归还验收人
   - 归还日期
   - 归还时设备状态
+  - 离职生效时点（仅离职入口）
+  - 固定到期时点及所用提醒配置版本（仅离职入口）
   preconditions:
   - ref: R-B31-9
     text: 资产须有未结束的使用期间，否则拒绝（待办重复或已先行归还）
   - ref: 职责分离
     text: 资产管理员不得验收登记自己名下资产的归还
+  - ref: R-B31-9
+    text: 仅 Separated 生效后生成待办，生效后 7 个日历日未归还非中断提醒原组织单元负责人；归还完成取消；聚合 ID + 到期时点幂等，晚到及重试不重置；手工入口不套期限
   authority:
     ref: raci:AGG-115/归还资产
     A:
@@ -4729,112 +4671,38 @@ commands:
 - name: 提交员工活动申请
   aggregate: AGG-116
   entity: employee_activity_requests
-  kind: human
+  kind: automatic
   source: 聚合稿 AGG 命令列
   params:
   - 活动类型码
   - 参与人
   - 说明
   - 费用预估引用（只记录）
+  - 员工引用（周年）
+  - 入职日期（B-13）
+  - 周年日期
+  - 所用活动与周年规则配置版本
   preconditions:
   - ref: R-B31-10
-    text: 活动类型由受控类型表决定进审批；福利型（周年贺卡）只登记，自动通过（B31-8）
+    text: 全部活动只登记，类型、预算、组织安排可执行规则通过直达已批准；规则或维护责任缺失、无有效版或不满足拒绝并告警，不设人工批准或活动金额加审
+  - ref: ARCH_VS14.md「上线前须填的 D15 配置与规则约束」
+    text: 周年自动生成读取 B-13 人员事实，由 platform.scheduling 按业务日触发；适用员工、闰日、重新入职、补跑口径须填，缺失拒绝并告警；未实现触发器
   authority:
     ref: raci:AGG-116/提交员工活动申请
     A:
-      resolve: instance
-      field: 申请人
+      resolve: type
+      role: SH-E6
+      function: 行政
     R:
+    - system
     - SH-E3
-  idempotency_key: 申请ID（客户端预生成 UUIDv7）
-  emits: （内部）
+  idempotency_key: 周年：员工 + 入职日期 + 周年日期 + 活动类型；其他活动：申请ID；重复调度或补跑返回原记录，不重办
+  emits: 员工活动申请已批准（规则通过，非人审）
   used_by:
   - PRC-144 第 1 步
   orphan: false
+  note: 周年由系统自动登记；其他活动保留人工登记入口，仍经相同规则校验。
   source_part: b31
-- name: 批准员工活动申请
-  aggregate: AGG-116
-  entity: employee_activity_requests
-  kind: callback
-  source: 聚合稿 AGG 命令列
-  params:
-  - 审批实例ID
-  - 审批结果（通过）
-  preconditions:
-  - ref: 状态
-    text: 申请为审批中且审批实例ID一致
-  - ref: AR-01/AR-11/AR-12
-    text: 费用预估超单据类型阈值命中 AR-01 加审（阈值待财务）；AR-11、AR-12 同用印
-  authority:
-    ref: raci:AGG-116/批准员工活动申请
-    A:
-      resolve: instance
-      field: 申请人所在组织单元.负责人
-      alias: cost_object_owner
-    R:
-    - SH-M1
-    approval:
-      approver: cost_object_owner
-      doc_type: 员工活动审批
-  idempotency_key: 审批实例ID
-  emits: 员工活动申请已批准
-  used_by:
-  - PRC-144 第 2 步
-  orphan: false
-  source_part: b31
-- name: 驳回员工活动申请
-  aggregate: AGG-116
-  entity: employee_activity_requests
-  kind: callback
-  source: 聚合稿 AGG 命令列
-  params:
-  - 审批实例ID
-  - 驳回意见
-  preconditions:
-  - ref: 状态
-    text: 申请为审批中且审批实例ID一致
-  authority:
-    ref: raci:AGG-116/驳回员工活动申请
-    A:
-      resolve: instance
-      field: 申请人所在组织单元.负责人
-      alias: cost_object_owner
-    R:
-    - platform.approval
-  idempotency_key: 审批实例ID
-  emits: （内部）
-  used_by:
-  - PRC-144 第 4 步
-  orphan: false
-  source_part: b31
-- name: 撤回员工活动申请
-  aggregate: AGG-116
-  entity: employee_activity_requests
-  kind: human
-  name_status: 〔缺〕收敛新增，沿用分片命名模式，待 one-glossary 登记
-  source: 收敛新增（分片仅写 withdraw 边，无命令）
-  params:
-  - 申请ID
-  - 撤回原因
-  preconditions:
-  - ref: 状态
-    text: 申请为审批中
-  - ref: 权限
-    text: 仅申请人本人
-  authority:
-    ref: raci:AGG-116/撤回员工活动申请
-    A:
-      resolve: instance
-      field: 申请人
-    R:
-    - SH-E3
-  idempotency_key: 申请ID
-  emits: （内部）
-  used_by:
-  - PRC-144 第 2 步（撤回边 withdraw）
-  orphan: false
-  source_part: b31
-  unused_ok: 由骨架 withdraw 边触发
 - name: 完成员工活动
   aggregate: AGG-116
   entity: employee_activity_requests
@@ -4846,7 +4714,7 @@ commands:
   - 实际参与人〔推〕
   preconditions:
   - ref: 状态
-    text: 申请为已批准（审批通过或福利型自动通过）
+    text: 申请为已批准（类型、预算及组织安排规则通过，无审批回调前提）；重复命令返回已有完成结果
   authority:
     ref: raci:AGG-116/完成员工活动
     A:
@@ -4858,6 +4726,6 @@ commands:
   idempotency_key: 申请ID（已完成无操作）
   emits: （内部）
   used_by:
-  - PRC-144 第 3 步
+  - PRC-144 现第 2 步（原第 3 步）
   orphan: false
   source_part: b31

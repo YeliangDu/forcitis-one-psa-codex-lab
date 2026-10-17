@@ -850,9 +850,13 @@ by_part:
       - 本次用印份数
       - 累计用印份数
       - 实际用印时间
+      - 对应报价版本引用（报价用途）
+      - 用印法人ID
+      - 拟发文件引用
+      - 实际用印凭据对应
       subscribers:
       - type: 仅分析
-      note: 每次登记发布一次
+      note: 每次实际登记发布；关闭不删除凭据。03adf7eb 聚合稿已改称用印已办理并列 B-03 订阅，与同提交 ARCH_VS14/API 派工口径冲突；本卡不自定事件替换或订阅契约，交架构裁定，未闭合
     - name: IT 需求已解决
       published_by: AGG-114
       by_command: 解决 IT 需求
@@ -864,6 +868,7 @@ by_part:
       - 解决时间
       subscribers:
       - type: 仅分析
+      note: 仅受理后、解决命令前判定成立且可实现才发布；不成立或无法实现直接退回，不发布
     - name: 资产已领用
       published_by: AGG-115
       by_command: 登记领用
@@ -903,44 +908,40 @@ by_part:
       note: 离职交接（PRC-128）经读模型读取
     - name: 员工活动申请已批准
       published_by: AGG-116
-      by_command: 批准员工活动申请
+      by_command: 提交员工活动申请
       payload:
       - 员工活动申请ID
       - 活动类型码
-      - 申请人ID
-      - 审批实例ID
-      - 批准时间
+      - 参与人员引用
+      - 所用活动规则版本
+      - 所用周年规则版本（周年入口）
+      - 入职日期（周年入口）
+      - 周年日期（周年入口）
+      - 规则通过时间
       subscribers:
       - type: 仅分析
+      note: 全部活动规则通过的登记结果，非人工批准；周年触发器尚未实现
     consumed:
     - name: 审批已通过
       from: platform.approval
       handled_by:
       - 批准用印申请
       - 批准 IT 需求
-      - 批准领用
-      - 批准员工活动申请
       used_by:
-      - PRC-139 第 4 步入口
-      - PRC-142 第 3 步入口
-      - PRC-143 第 3 步入口
-      - PRC-144 第 3 步入口
+      - PRC-139 第 4 步入口（仅本轮人工审批）
+      - PRC-142 第 3 步入口（仅受控类别）
     - name: 审批已驳回
       from: platform.approval
       handled_by:
       - 驳回用印申请
       - 驳回 IT 需求
-      - 驳回领用
-      - 驳回员工活动申请
       used_by:
       - PRC-139 第 3 步
       - PRC-142 第 7 步
-      - PRC-143 第 4 步
-      - PRC-144 第 4 步
     - name: Separated
       from: B-13
       handled_by:
       - 事件策略「离职生成归还待办」→ 归还资产
       used_by:
       - PRC-156 触发器
-      note: B-31 → B-13 订阅边及 events/*.yaml 的订阅方清单需补登（分片接缝问题 3） S-42：B-31 不订阅〔缺〕离职登记已撤销（归还待办只在 Separated 后生成，撤销发生在离职生效前，无待办可取消）
+      note: 仅离职已生效后生成仍在用资产待办；按生效时点 + 7 个日历日登记固定期限，晚到/重试不重置，已归还不重建；归还完成取消。B-31 → B-13 事件与 → platform.scheduling 登记；不订阅离职登记已撤销，不阻塞 VS-13.6

@@ -2276,7 +2276,7 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 申请人所在组织单元.负责人
+      field: 按用印用途、法人、归属对象的制度责任配置解析
       alias: cost_object_owner
     R:
     - SH-M1
@@ -2284,8 +2284,7 @@ entries:
     I:
     - SH-E3
   boundary:
-    limit_rule: AR-16
-    pending: B31-1：授权委托书，以及公章、法定代表人名章用于无来源单据的，加一级由总经理批（AR-16，S-41 已给号；总经理加审范围待用户在 PB31-01 确认）
+    pending: ARCH_VS14.md「上线前须填的 D15 配置与规则约束」：用印人工批准责任及加审范围（ARCH-B31-materials 1、2）
     segregation:
     - 提交人 ≠ A
     delegate:
@@ -2298,14 +2297,14 @@ entries:
   approval:
     approver: cost_object_owner
     doc_type: 用印审批
-  note: 仅无来源单据的申请有此审批；有已批准来源单据的走规则核对，不进审批
+  note: 仅无来源单据人审，责任及加审按正式制度配置；AR-16 候选不直接启用；来源直通不增加人审
   source_part: b31
 - object: AGG-113
   command: 驳回用印申请
   raci:
     A:
       resolve: instance
-      field: 申请人所在组织单元.负责人
+      field: 按用印用途、法人、归属对象的制度责任配置解析
       alias: cost_object_owner
     R:
     - platform.approval
@@ -2377,7 +2376,7 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 提出人所在组织单元.负责人
+      field: 按 IT 类别和正式制度责任配置解析
       alias: cost_object_owner
     R:
     - SH-M1
@@ -2393,6 +2392,7 @@ entries:
     escalate:
       when: AR-12
       to: 上级组织负责人
+    pending: ARCH_VS14.md「上线前须填的 D15 配置与规则约束」：IT 受控类别与责任表、IT 金额适用口径（ARCH-B31-materials 3、4）
   sensitive: false
   approval:
     approver: cost_object_owner
@@ -2403,7 +2403,7 @@ entries:
   raci:
     A:
       resolve: instance
-      field: 提出人所在组织单元.负责人
+      field: 按 IT 类别和正式制度责任配置解析
       alias: cost_object_owner
     R:
     - platform.approval
@@ -2436,10 +2436,6 @@ entries:
     C: []
     I:
     - SH-E3
-  boundary:
-    escalate:
-      when: 受理逾期 P2D〔推〕
-      to: 信息部门负责人（SH-M1）提醒，非审批
   sensitive: false
   source_part: b31
 - object: AGG-114
@@ -2464,12 +2460,11 @@ entries:
       field: 提出人
     R:
     - SH-E3
-    - system
     C: []
     I:
     - SH-E6
   sensitive: false
-  note: 提出人确认关闭；解决后 P5D 未确认由 system 代关〔推〕
+  note: 仅提出人人工确认且有处理结论才关闭（INV-120），无系统代关权，人工超期保持状态
   source_part: b31
 - object: AGG-114
   command: 退回 IT 需求
@@ -2495,59 +2490,6 @@ entries:
     - SH-E3
     C:
     - SH-E6
-    I: []
-  sensitive: false
-  source_part: b31
-- object: AGG-115
-  command: 批准领用
-  raci:
-    A:
-      resolve: instance
-      field: 申请人所在组织单元.负责人
-      alias: cost_object_owner
-    R:
-    - SH-M1
-    C: []
-    I:
-    - SH-E3
-  boundary:
-    limit_rule: 岗位标准配置（R-B31-5）：仅超出标准配置才进审批
-    segregation:
-    - 提交人 ≠ A
-    delegate:
-      when: AR-11
-      to: 汇报线上级
-    escalate:
-      when: AR-12
-      to: 上级组织负责人
-  sensitive: false
-  approval:
-    approver: cost_object_owner
-    doc_type: IT资产领用审批
-  source_part: b31
-- object: AGG-115
-  command: 驳回领用
-  raci:
-    A:
-      resolve: instance
-      field: 申请人所在组织单元.负责人
-      alias: cost_object_owner
-    R:
-    - platform.approval
-    C: []
-    I:
-    - SH-E3
-  sensitive: false
-  source_part: b31
-- object: AGG-115
-  command: 撤回领用
-  raci:
-    A:
-      resolve: instance
-      field: 使用人
-    R:
-    - SH-E3
-    C: []
     I: []
   sensitive: false
   source_part: b31
@@ -2581,7 +2523,7 @@ entries:
     I:
     - SH-M1
   sensitive: false
-  note: 调拨不设人审，由规则守卫；跨组织单元时知会两侧负责人（B31-6 待用户定是否改为调入方负责人批准）
+  note: 同一核算主体内跨组织只通知调出、调入两侧负责人，不增加批准；交接同事务结束旧期间、开启新期间
   source_part: b31
 - object: AGG-115
   command: 撤销调拨申请
@@ -2631,8 +2573,8 @@ entries:
     segregation:
     - 验收人 ≠ 归还人
     escalate:
-      when: 离职后逾期未归还 P7D〔推〕
-      to: 原组织单元负责人（SH-M1）提醒，非审批
+      when: 仅离职生效后 7 个日历日仍未归还
+      to: 原组织单元负责人（SH-M1）提醒，非中断、非审批；完成取消；聚合 ID + 到期时点幂等
   sensitive: false
   source_part: b31
 - object: AGG-121
@@ -2668,67 +2610,16 @@ entries:
   command: 提交员工活动申请
   raci:
     A:
-      resolve: instance
-      field: 申请人
+      resolve: type
+      role: SH-E6
+      function: 行政
     R:
+    - system
     - SH-E3
     C: []
     I: []
   sensitive: false
-  source_part: b31
-- object: AGG-116
-  command: 批准员工活动申请
-  raci:
-    A:
-      resolve: instance
-      field: 申请人所在组织单元.负责人
-      alias: cost_object_owner
-    R:
-    - SH-M1
-    C: []
-    I:
-    - SH-E3
-    - SH-E6
-  boundary:
-    limit_rule: AR-01
-    segregation:
-    - 提交人 ≠ A
-    delegate:
-      when: AR-11
-      to: 汇报线上级
-    escalate:
-      when: AR-12
-      to: 上级组织负责人
-  sensitive: false
-  approval:
-    approver: cost_object_owner
-    doc_type: 员工活动审批
-  source_part: b31
-- object: AGG-116
-  command: 驳回员工活动申请
-  raci:
-    A:
-      resolve: instance
-      field: 申请人所在组织单元.负责人
-      alias: cost_object_owner
-    R:
-    - platform.approval
-    C: []
-    I:
-    - SH-E3
-  sensitive: false
-  source_part: b31
-- object: AGG-116
-  command: 撤回员工活动申请
-  raci:
-    A:
-      resolve: instance
-      field: 申请人
-    R:
-    - SH-E3
-    C: []
-    I: []
-  sensitive: false
+  note: 周年系统自动，其他活动人工登记；全部规则控制，不设 SH-M1 批准或 AR-01/AR-02 活动金额加审，规则维护责任上线前须填
   source_part: b31
 - object: AGG-116
   command: 完成员工活动
@@ -2820,11 +2711,11 @@ roles:
     - 能受理 AR-11 / AR-12 转来的上级代批
   - positions:
     - 待岗位体系定
-    note: A 的实例级解析：申请人（提出人）所在组织单元的负责人 = cost_object_owner
+    note: 仅用印、受控 IT 人审及离职资产逾期通知角色；领用及活动无批准权
     org_needs:
-    - 每个组织单元恰有一名负责人字段（责任人），AR-12 判缺位
-    - 汇报线上级（AR-11 上交对象）与上级组织负责人（AR-12 上交对象）
-    - 另：信息部门负责人收超时提醒（受理逾期、离职逾期未归还），非审批
+    - 正式制度配置的用印责任与加审角色、按 IT 类别配置的批准负责人，上线前须填，不默认申请人或提出人部门负责人
+    - AR-11 本人、AR-12 缺位委派不替代制度责任归属
+    - 离职生效后 7 个日历日未归还时原组织单元负责人收提醒，非审批；无 IT 受理超时提醒角色需求
   SH-E6:
   - positions:
     - 待岗位体系定
@@ -2921,7 +2812,7 @@ roles:
   platform.approval:
   - note: 审批平台回调落地批准 / 驳回命令，非人；审批结果的责任归 A（cost_object_owner）
   - note: 审批平台回调落地批准 / 驳回命令，非人；审批结果的责任归 A（cost_object_owner）
-  - note: 审批平台回调落地批准 / 驳回命令，非人；审批结果的责任归 A（cost_object_owner）
+  - note: 仅用印及受控 IT 需求审批回调，责任人按 D15 制度配置；领用及活动无审批绑定
   SH-E5:
   - positions:
     - 待岗位体系定
