@@ -1,3 +1,9 @@
+---
+卡号: DATA-REPAIR-timesheet-audit
+状态: 进行中
+负责会话: one-1a-next-5
+前置: R-1b-P5, TS-UNIQ
+---
 # 派工卡 DATA-REPAIR-timesheet-audit：工时、考勤日历、审计、幂等已建表的数据设计缺陷修复（草稿）
 
 - 草稿（第二版）：one-data 起草助手，2026-10-16；第二版并入用户 2026-10-16 的决定、统一分级（阻断 0）与 `SCAN_SUPPLEMENT.md` 补入；待 one-data 终审、one-coordinator 派工。
@@ -102,13 +108,15 @@ B 部分（one-1a-next-4）允许改动：
 | 12 | detail | `LoginAdmission:100` 的 `reason`，来自 `LoginWithSso:65-66` | `no employee for login name <登录名>`（登录名由请求方输入，可能是任何字符串） | **PI**（登录名，ADR-0043 第 3 项表 U-2） | 禁；改 `login name unknown`。**本项不在 ADR 第 4 项第 5 条三处之列，属本次核实新发现** |
 | 13 | detail | `LoginAdmission:100` 的 `reason`，来自 `WecomIdentification:57-58`（经 `LoginWithWecom:28`） | `no employee for WeCom user id <企业微信 ID>` | **PI**（企业微信 ID） | 禁；改 `wecom user not bound`。**新发现** |
 | 14 | detail | `RegisterEmergencyAdmin:79` | `operator=<姓名> witness=<姓名> loginName=<登录名>` | 代理键（姓名已改员工 ID） | `loginName=` 删，主体已是应急账号 ID（`AuditSubject`），读时再解析。**新发现** |
-| 15 | detail | `GrantRoleByOperations:68`、`EnableEmergencyAdmin:43`、`DisableEmergencyAdmin:50`、`ResetEmergencyAdminCredentials:49` | `OperationAttestation.describe()`：`operator=<姓名> witness=<姓名>`（`GrantRoleByOperations` 另加 `role=<角色码>`）；姓名由命令行/运维入参，正则 `[\p{L}\p{N}][\p{L}\p{N} ._-]{0,63}` | 代理键（员工 ID） | 改写员工 ID：`operatorId=<UUID> witnessId=<UUID>` |
+| 15 | detail | `GrantRoleByOperations:68`、`EnableEmergencyAdmin:43`、`DisableEmergencyAdmin:50`、`ResetEmergencyAdminCredentials:49` | `OperationAttestation.describe()`：`operator=<姓名> witness=<姓名>`（`GrantRoleByOperations` 另加 `role=<角色码>`）；姓名由命令行/运维入参，正则 `[\p{L}\p{N}][\p{L}\p{N} ._-]{0,63}` | 代理键（员工 ID） | 改写员工 ID：`operatorId=<员工 UUID> witnessId=<员工 UUID 或 none>`（单人运维模式省略见证人时写 `none`）；`RevokeRoleByOperations` 同归此行 |
 | 16 | detail | `ForceUserLogout:67` | `forced logout: <原因>`，原因由人填，去控制字符，1 至 200 字（`MAX_REASON_LENGTH`） | 可能（人填自由文本） | 允许，与 `change_reason` 同口径：只提示不拦截（ADR-0043 第 4 项第 1 条表） |
 | 17 | detail | `RecordSyncRunRelease:38`（调用方 `ReleaseSyncRun:67-70`） | `reason: <人填原因>; session mode: …; held: <UUID 列表>; applied: <UUID 列表>; remaining super_admin: <数>` | 可能（人填原因）；其余代理键与计数 | 允许；原因无长度上限，超 2000 字 `AuditEntry` 构造会抛 `IllegalArgumentException`，见「拿不准」 |
 | 18 | change_reason | `AuditDomainEvents:56`（`withChange(reason, null, null)`，唯一调用） | 事件实现 `Reasoned` 时取 `reason().value()`：目前 `SyncRunReleased`、`LegalEntityAttributionCorrected`，人填自由文本 | 可能 | 允许，只提示不拦截（U-7(b)） |
 | 19 | before_text / after_text | 无（全库唯一写入点 `AuditDomainEvents:56` 写 `null, null`） | 现在不写 | — | **现在一律不得写非空值**；将来写入按 U-7(b)：被变更字段自身的 L2 个人信息原值可写，L3 及以上与 `SPI` 不记，并在本表追加一行 |
+| 20 | detail | `SingleOperatorModeStartup`（启动审计 `platform.identity.single-operator-mode.enabled`，ADR-0030 第 1 节第 7 条） | 恰为 `profile=<profile 名>`；actor 为空；不写数据库名 | 否 | 允许（one-data 签发，SINGLE-OP P1） |
+| 21 | detail | `SingleOperatorMarks`（放宽项标注 `platform.identity.single-operator-mode.applied`，ADR-0030 第 2 项） | 恰为 `relaxation=<固定代码>`，代码取 `WITNESS_OMITTED`、`EMERGENCY_ACCOUNT_MINIMUM_ONE`、`SUPER_ADMIN_MINIMUM_ONE`（第四个 `TEMPLATE_VERSION_WITHOUT_AUTHOR` 随编号运维起草落地） | 否 | 允许（one-data 签发，SINGLE-OP P2） |
 
-  - 清单共 19 行（`detail` 17 行、`change_reason` 1 行、`before_text` / `after_text` 合 1 行）；覆盖全部 41 处 `new AuditEntry(`。所有写入点另受 `AuditEntry` 构造的既有限制：每段至多 2000 字，含 `password|secret|token|…=` 样式文本即拒绝（`AuditEntry.java:15-25`）。
+  - 清单共 21 行（`detail` 19 行、`change_reason` 1 行、`before_text` / `after_text` 合 1 行）；覆盖全部 44 处 `new AuditEntry(`。所有写入点另受 `AuditEntry` 构造的既有限制：每段至多 2000 字，含 `password|secret|token|…=` 样式文本即拒绝（`AuditEntry.java:15-25`）。
   - **登记四列分级**（建议，待用户第 5 节待决 2 与 ADR-0043 实施 PR 的四段格式；落地前按本表视为已登记，C4 末句）：
       `platform_audit.audit_entries.detail | INTERNAL | PI | 用途：说明动作的上下文；不得含直接标识（IP、登录名、企业微信 ID）与人名，操作人、见证人只记员工 ID`
       `platform_audit.audit_entries.change_reason | INTERNAL | PI | 用途：人填的变更理由；只提示不拦截`

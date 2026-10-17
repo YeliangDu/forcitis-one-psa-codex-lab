@@ -40,15 +40,17 @@ public class RegisterEmergencyAdmin {
     private final EmergencyCredentialsFactory credentials;
     private final DomainEvents events;
     private final AuditLog audit;
+    private final SingleOperatorMarks marks;
 
     RegisterEmergencyAdmin(AccountProvisioning provisioning, EmergencyAdminRepository admins, EmergencyBinding binding, EmergencyCredentialsFactory credentials, DomainEvents events,
-            AuditLog audit) {
+            AuditLog audit, SingleOperatorMarks marks) {
         this.provisioning = provisioning;
         this.admins = admins;
         this.binding = binding;
         this.credentials = credentials;
         this.events = events;
         this.audit = audit;
+        this.marks = marks;
     }
 
     @Transactional
@@ -76,8 +78,9 @@ public class RegisterEmergencyAdmin {
                     "the login name " + loginName + " is taken");
         }
         events.publish(admin);
-        audit.record(new AuditEntry("platform.identity.operations.emergency-admin.registered", null, null, AuditSubject.of(AuditSubjectKind.EMERGENCY_ADMIN, person.value()),
-                attestation.describe()));
+        AuditSubject subject = AuditSubject.of(AuditSubjectKind.EMERGENCY_ADMIN, person.value());
+        audit.record(new AuditEntry("platform.identity.operations.emergency-admin.registered", null, null, subject, attestation.describe()));
+        marks.witnessOmitted(attestation, subject);
         return new Outcome.Registered(generated.shown(), binding.usableCount());
     }
 }

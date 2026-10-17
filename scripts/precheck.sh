@@ -51,10 +51,10 @@ show_tail() {
 # corepack picks pnpm from the nearest package.json at start-up, and only frontend/ names it; `pnpm -C frontend` would start at the root
 in_frontend() { (cd frontend && "$@"); }
 
-# Empty when the frontend can run here; otherwise the reason, which always says to ask the user (installing downloads packages, CLAUDE.md 9)
+# Empty when the frontend can run here; otherwise the reason. Installing from the local pnpm cache (--offline) downloads nothing and needs no asking; anything that downloads does (CLAUDE.md 9)
 frontend_missing() {
   if ! command -v pnpm >/dev/null; then echo "pnpm 未安装：需先问用户安装"; return; fi
-  if [ ! -d frontend/node_modules ]; then echo "前端依赖未安装：需先问用户安装（pnpm install --frozen-lockfile 会下载包）"; return; fi
+  if [ ! -d frontend/node_modules ]; then echo "前端依赖未安装：先在 frontend/ 运行 pnpm install --frozen-lockfile --offline（只用本机缓存、不下载）；缓存缺包而失败时，再问用户是否联网安装"; return; fi
   if ! node --version 2>/dev/null | grep -q '^v24\.'; then echo "Node $(node --version 2>/dev/null) found, CI uses Node 24：需先问用户安装"; fi
 }
 
@@ -102,11 +102,11 @@ if ! git rev-parse --verify --quiet "$base^{commit}" >/dev/null; then
 fi
 
 {
-  gitq diff --name-only "$base...HEAD"
-  gitq diff --name-only HEAD
+  gitq diff --name-only --no-renames "$base...HEAD"
+  gitq diff --name-only --no-renames HEAD
   gitq ls-files --others --exclude-standard
 } | grep . | sort -u >"$work/changed"
-{ gitq diff --name-only HEAD; gitq ls-files --others --exclude-standard; } | grep . | sort -u >"$work/uncommitted"
+{ gitq diff --name-only --no-renames HEAD; gitq ls-files --others --exclude-standard; } | grep . | sort -u >"$work/uncommitted"
 changed_count=$(grep -c . "$work/changed")
 uncommitted=$(grep -c . "$work/uncommitted")
 
@@ -137,6 +137,13 @@ else
   run_step "generated docs (build_all --check)" py docs/modernization/build_all.py --check
 fi
 run_step "legacy system name" py docs/modernization/check_legacy_name.py
+if touches 'rules/decide/(build_decision_page\.py|page-template\.html)$'; then
+  run_step "decision page generator (self-test)" py docs/modernization/rules/decide/build_decision_page.py --self-test
+fi
+if touches 'architecture/decision-page/[^/]+\.json$|rules/decide/sheets/[^/]+\.json$|architecture/decision-page/check_pages\.py$'; then
+  run_step "decision pages: question rules (self-test)" py docs/modernization/architecture/decision-page/check_pages.py --self-test
+  run_step "decision pages: question rules" py docs/modernization/architecture/decision-page/check_pages.py --changed "$base"
+fi
 
 if touches '^(backend/src/(main/resources/db/migration|test/resources/db/testdata)/|backend/architecture/migration-baseline-open|backend/src/main/resources/application.*\.(properties|ya?ml)$|scripts/ci/(migrations_immutable|ci_git)\.py$)'; then
   run_step "migrations immutable (self-test)" py scripts/ci/migrations_immutable.py --self-test
@@ -268,13 +275,17 @@ if [ -n "$guard_run" ]; then
 else
   report SKIP "guards: backend guard tests" "no guard test or architecture list changed"
 fi
-if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(precheck_before_pr|pre_push_gate)\.py|scripts/ci/light_unit_classes\.py|\.claude/settings\.json)$'; then
+if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(precheck_before_pr|pre_push_gate)\.py|scripts/ci/(light_unit_classes|heavy_gate|docker_diagnostics|failure_summary|repeat_new_tests)\.py|\.claude/settings\.json)$'; then
   for guard in migrations_immutable acceptance_guard acceptance_reports db_scripts_aligned relevant_change assertion_drift; do
     run_step "guards: $guard (self-test)" py "scripts/ci/$guard.py" --self-test
   done
   run_step "guards: precheck_before_pr (self-test)" py scripts/hooks/precheck_before_pr.py --self-test
   run_step "guards: pre_push_gate (self-test)" py scripts/hooks/pre_push_gate.py --self-test
   run_step "guards: light_unit_classes (self-test)" py scripts/ci/light_unit_classes.py --self-test
+  run_step "guards: heavy_gate (self-test)" py scripts/ci/heavy_gate.py --self-test
+  run_step "guards: docker_diagnostics (self-test)" py scripts/ci/docker_diagnostics.py --self-test
+  run_step "guards: failure_summary (self-test)" py scripts/ci/failure_summary.py --self-test
+  run_step "guards: repeat_new_tests (self-test)" py scripts/ci/repeat_new_tests.py --self-test
 fi
 
 if [ "$builds_relevant" = true ]; then

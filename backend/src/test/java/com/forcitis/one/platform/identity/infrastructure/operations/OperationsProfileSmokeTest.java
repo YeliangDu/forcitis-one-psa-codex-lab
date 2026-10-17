@@ -25,7 +25,10 @@ class OperationsProfileSmokeTest {
     static final String WITNESS_ID = "01900000-0000-7000-8000-00000000a002";
 
     static final PostgreSQLContainer POSTGRES = TestPostgres.container()
-            .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
+            .withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval")
+            .withCommand("sh", "-c", "openssl req -new -x509 -days 1 -nodes -subj /CN=localhost -out /var/lib/postgresql/server.crt -keyout /var/lib/postgresql/server.key"
+                    + " && chmod 600 /var/lib/postgresql/server.key && chown postgres:postgres /var/lib/postgresql/server.key /var/lib/postgresql/server.crt"
+                    + " && exec docker-entrypoint.sh postgres -c ssl=on -c ssl_cert_file=/var/lib/postgresql/server.crt -c ssl_key_file=/var/lib/postgresql/server.key");
 
     static {
         POSTGRES.start();
@@ -43,10 +46,10 @@ class OperationsProfileSmokeTest {
     private Finished run(String... commandLine) {
         AtomicInteger exit = new AtomicInteger(-1);
         SpringApplication application = new SpringApplication(OneApplication.class);
-        application.setAdditionalProfiles("identity-operations");
+        application.setAdditionalProfiles("dev", "identity-operations");
         application.addInitializers(context -> context.getBeanFactory().registerSingleton("processExit", (ProcessExit) exit::set));
         String[] infrastructure = {
-                "--spring.datasource.url=" + POSTGRES.getJdbcUrl(), "--spring.datasource.username=" + POSTGRES.getUsername(),
+                "--spring.datasource.url=" + POSTGRES.getJdbcUrl() + "&sslmode=require", "--spring.flyway.enabled=true", "--spring.datasource.username=" + POSTGRES.getUsername(),
                 "--spring.datasource.password=" + POSTGRES.getPassword(), "--spring.datasource.hikari.connection-timeout=2000",
                 "--flowable.database-schema-update=true", "--spring.flyway.create-schemas=true", "--forcitis.cost.timesheet.consumed-events.enabled=false",
                 "--forcitis.platform.approval.process-archive.enabled=false", "--forcitis.organization.workforce.sync-purge.enabled=false",
