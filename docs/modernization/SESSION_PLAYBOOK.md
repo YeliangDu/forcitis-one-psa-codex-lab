@@ -144,6 +144,12 @@
   - 调用：在独立 worktree 中 `codex exec -m gpt-6.1-sol -c model_reasoning_effort=xhigh -s <read-only|workspace-write> --ephemeral -o <结果文件> < /dev/null`（必须关闭标准输入，否则会停在「Reading additional input from stdin」干等，10-17 N9 因此空等 77 分钟）（本机 Codex 目录中最强模型；机械活可用 high），不联网；提示词用 `templates/WORK_CARD.md`，要求先读 `CLAUDE.md`（Codex 读仓库根 `AGENTS.md`，指向同一套规则）、本文件 §5、§6.1 与 `CODING_STANDARD.md`、`NAMING_STANDARD.md`，并以中文写结果。一律用会话 Bash 的 `run_in_background` 启动，在本会话后台任务里可见、完成自动唤醒；不得用 nohup、`&`、setsid 等脱离会话（用户 2026-10-17「所有会话调动 codex 任务都要在自己的后台任务显示」）；不轮询。
   - 流程不变：设计初稿照常走评审、批准页；代码卡验收测试由测试代理先写，Codex 产出照常开 PR、过 CI，合并前 opus 复审；PR 正文与文档状态行注明「Codex 起草 / 实现（模型、强度）」。
   - 记录每张 Codex 卡的返工轮次与耗时，完成点报告带上；调度按返工率每日在日报里评估，返工两轮以上的同类工作收回 Claude。
+- **任务命名与登记**（用户 2026-10-17「后台任务要显示任务名……要对所有任务卡进行复盘能搞清是什么bc的什么任务」，intent 见本日「任务命名」）：
+  - 每张卡（派给 Codex、子代理或工作会话的一件事，含设计、文档、取证、复审）一个**任务号** `<主线码>-<MMDD>-<会话码>-<两位序号>`，如 `NAM-1017-GLO-03`；序号由派卡会话当天自增，全局不重。主线码：NAM 命名、CON 施工图、ARC 架构整合、RUL 规则、DAT 数据、IMP 代码实现、CI 合并与 CI、OPS 运维、GOV 流程治理。会话码取会话名去掉 `one-` 的前三个字母大写（one-glossary→GLO、one-arch-finance→AFI、one-arch-revenue→ARE、one-arch-people→APE、one-architecture→ARC、one-1a-par→PAR、one-1a-next-5→NX5、one-quality→QUA、one-rules→RUL、one-data→DAT、one-ops→OPS、one-merge→MRG、one-coordinator→COO）。
+  - **任务名**：`[主线·bc] 动作 + 对象`，bc 取 `glossary/bcs.yaml` 的 id，跨 bc 写 `跨域`，如 `[命名·glossary] 登记 NM5 名词`。
+  - **后台任务显示**：`run_in_background` 的 description 写 `<任务号> <任务名> (<执行者>)`，侧边栏和状态栏据此显示。
+  - **登记**：派卡时在 `docs/modernization/tasks/<任务号>.md` 写一个片段（frontmatter：任务号、任务名、主线、bc、种类〔设计/编码/测试/取证/复审/确认页/文档〕、会话、执行者与模型、状态、分支、提交、返工轮次、用时、旧编号）；完成点更新状态与提交。总表由 `build_all.py` 生成，供复盘与日报统计。原有卡号（F-1、SINGLE-OP、NITS-1、N9、C1、B31 等）写进「旧编号」，不改名。
+  - PR 标题、提交说明、完成点报告都带任务号。
 - **子代理必须指定模型**（用户 2026-10-14：「派出子代理要指定最合适的模型，不要都默认，所有新会话都应该遵循」）：每次派子代理（`Agent` 工具，以及 Workflow 里的 `agent()`）都显式写 `model`，按任务难度选，不留默认：
   - `haiku`：机械性工作——按名称或模式查找文件、列清单、统计、格式转换、跑命令并汇总输出。
   - `sonnet`：常规工程——按骨架和规格写代码与测试、迁移单个模块、核对引用和链接、按模板生成文档、一般复审。
