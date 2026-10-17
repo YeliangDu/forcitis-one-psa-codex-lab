@@ -5,7 +5,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
 import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
-import com.forcitis.one.platform.audit.domain.AuditEntryId;
+import com.forcitis.one.platform.audit.api.AuditEntryId;
 import com.forcitis.one.platform.audit.domain.AuditEntryQueries;
 import com.forcitis.one.platform.audit.domain.AuditPage;
 import com.forcitis.one.platform.audit.domain.AuditFilter;

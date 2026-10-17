@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.audit.domain;
 
+import com.forcitis.one.platform.audit.api.AuditEntryId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
 import com.forcitis.one.platform.audit.api.AuditSubject;

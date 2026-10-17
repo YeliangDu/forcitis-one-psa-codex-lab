@@ -110,6 +110,19 @@ class AuditLogIT {
     }
 
     @Test
+    @DisplayName("C-6: record returns the id of the entry it wrote, so the caller can keep it in the same transaction")
+    void recordReturnsTheIdOfTheWrittenEntry() {
+        UUID subject = UUID.randomUUID();
+
+        com.forcitis.one.platform.audit.api.AuditEntryId id = tx.execute(s -> audit.record(
+                new AuditEntry("platform.audit.test.recorded", TestAccounts.account(5), null, subj(subject), "returned")));
+
+        assertThat(id).isNotNull();
+        assertThat(jdbc.sql("select id from platform_audit.audit_entries where subject_id = :subject").param("subject", subject)
+                .query(UUID.class).single()).isEqualTo(id.value());
+    }
+
+    @Test
     @DisplayName("record outside a transaction is refused: an audit entry is never written on its own by accident")
     void recordNeedsTheCallersTransaction() {
         assertThatThrownBy(() -> audit.record(new AuditEntry("platform.audit.test.recorded", null, null, subj(UUID.randomUUID()), "x")))
