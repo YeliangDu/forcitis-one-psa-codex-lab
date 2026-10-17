@@ -700,6 +700,7 @@ class ReadOnlyAccountCheckIT {
                 "--spring.datasource.password=" + POSTGRES.getPassword(),
                 "--flowable.async-executor-activate=false",
                 "--forcitis.platform.approval.deadline.enabled=false",
+                "--forcitis.platform.integration.external-connection.background.acquire-timeout=1s",
                 "--forcitis.platform.integration.seeyon.views.enabled=" + enabled.containsKey(ReadOnlyConnection.A8),
                 "--forcitis.platform.integration.legacy.enabled=" + enabled.containsKey(ReadOnlyConnection.LEGACY_NAMES)));
         Account a8 = enabled.get(ReadOnlyConnection.A8);
