@@ -6,8 +6,8 @@
   "no": "N1-01",
   "note": "",
   "recommended": true,
-  "submission": "N1-20261017-075213-qyj",
-  "submitted": "2026-10-17T05:52:13.884Z",
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
   "unanswered": false
  },
  "N1~N1-02": {
@@ -17,8 +17,8 @@
   "no": "N1-02",
   "note": "",
   "recommended": true,
-  "submission": "N1-20261017-075213-qyj",
-  "submitted": "2026-10-17T05:52:13.884Z",
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
   "unanswered": false
  },
  "N1~N1-03": {
@@ -28,8 +28,8 @@
   "no": "N1-03",
   "note": "",
   "recommended": true,
-  "submission": "N1-20261017-075213-qyj",
-  "submitted": "2026-10-17T05:52:13.884Z",
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
   "unanswered": false
  },
  "N1~N1-04": {
@@ -39,8 +39,8 @@
   "no": "N1-04",
   "note": "",
   "recommended": true,
-  "submission": "N1-20261017-075213-qyj",
-  "submitted": "2026-10-17T05:52:13.884Z",
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
   "unanswered": false
  },
  "N1~N1-05": {
@@ -50,19 +50,19 @@
   "no": "N1-05",
   "note": "",
   "recommended": true,
-  "submission": "N1-20261017-075213-qyj",
-  "submitted": "2026-10-17T05:52:13.884Z",
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
   "unanswered": false
  },
  "N1~N1-06": {
-  "choice": 3,
+  "choice": 0,
   "defaulted": false,
-  "label": "两项都另加（在说明里写值）",
+  "label": "先只用这三项，以后按需要加",
   "no": "N1-06",
   "note": "",
-  "recommended": false,
-  "submission": "N1-20261017-075213-qyj",
-  "submitted": "2026-10-17T05:52:13.884Z",
+  "recommended": true,
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
   "unanswered": false
  },
  "N1~N1-07": {
@@ -72,8 +72,8 @@
   "no": "N1-07",
   "note": "",
   "recommended": true,
-  "submission": "N1-20261017-075213-qyj",
-  "submitted": "2026-10-17T05:52:13.884Z",
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
   "unanswered": false
  },
  "N1~N1-08": {
@@ -83,8 +83,8 @@
   "no": "N1-08",
   "note": "",
   "recommended": true,
-  "submission": "N1-20261017-075213-qyj",
-  "submitted": "2026-10-17T05:52:13.884Z",
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
   "unanswered": false
  },
  "N1~N1-09": {
@@ -94,8 +94,8 @@
   "no": "N1-09",
   "note": "",
   "recommended": true,
-  "submission": "N1-20261017-075213-qyj",
-  "submitted": "2026-10-17T05:52:13.884Z",
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
   "unanswered": false
  },
  "N1~N1-10": {
@@ -105,8 +105,8 @@
   "no": "N1-10",
   "note": "",
   "recommended": true,
-  "submission": "N1-20261017-075213-qyj",
-  "submitted": "2026-10-17T05:52:13.884Z",
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
   "unanswered": false
  }
 }
