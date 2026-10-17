@@ -1,20 +1,5 @@
 # ADR-0039（防腐层边界）引入的术语（proposed，待业务评审，ADR-0018）。登记会话：one-architecture，2026-10-15。
 terms:
-- id: org_change_set
-  zh: 组织变更集
-  en: OrgChangeSet
-  snake: org_change_set
-  kind: value_object
-  bc: organization.workforce
-  scope: domain
-  definition: 集成层翻译成新系统用语后交给组织人事的一批组织单元、员工与任职变更；以同步运行 ID 作幂等键，整批在一个事务内应用
-  standard_ref:
-  - ADR-0039
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: apply_org_change_set
   zh: 应用组织变更
   en: ApplyOrgChangeSet
