@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """统一生成入口：依次生成 INTENT / SESSION_LOG / STATUS、正式术语 glossary/terms.yaml、会话一览 SESSIONS、用语问题清单 glossary/ISSUES、ADR 与 README、brief、
-已定决策速查表 DECISION_DIGEST.md（由 intent/ 片段汇总，不入仓）、提议术语清单（backend/glossary/proposed/README.md）、老系统读取登记（phase1a/infra/LEGACY_READ_REGISTER.md，由 legacy-read/ 片段生成，不入仓）。
+已定决策速查表 DECISION_DIGEST.md（由 intent/ 片段汇总，不入仓）、提议术语清单（backend/glossary/proposed/README.md）、老系统读取登记（phase1a/infra/LEGACY_READ_REGISTER.md，由 legacy-read/ 片段生成，不入仓）、公共会话摘要 sessions/_COMMON.md（由 SESSION_PLAYBOOK §2.1/§5/§11 生成，--check 检查是否过期）。
 
 用法：
   python3 docs/modernization/build_all.py          生成全部产物
@@ -38,6 +38,15 @@ else:
     print(f"警告：{sys.executable} 缺少 PyYAML，本次未重新生成 glossary/terms.yaml；--check 会因此失败（依赖见 SUPPLY_CHAIN.md S1）", file=sys.stderr)
 STEPS.append("architecture/check_proposals.py")   # 提议稿状态行检查（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
 SELF_TESTED.append("architecture/check_proposals.py")
+
+digest_spec = importlib.util.spec_from_file_location("playbook_digest", os.path.join(BASE, "../../scripts/hooks/playbook_digest.py"))
+digest = importlib.util.module_from_spec(digest_spec)
+digest_spec.loader.exec_module(digest)
+try:
+    digest.write_common(os.path.join(BASE, "SESSION_PLAYBOOK.md"), os.path.join(BASE, "sessions/_COMMON.md"), check="--check" in sys.argv)
+except (OSError, ValueError) as error:
+    sys.exit(f"sessions/_COMMON.md 失败：{error}")
+print("sessions/_COMMON.md: 已校验" if "--check" in sys.argv else "sessions/_COMMON.md: 已生成")
 
 for step in STEPS:
     r = subprocess.run([sys.executable, os.path.join(BASE, step)], cwd=BASE, capture_output=True, text=True)

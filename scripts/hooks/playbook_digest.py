@@ -3,12 +3,15 @@ import contextlib
 import io
 from pathlib import Path
 import re
+import subprocess
 import sys
 import tempfile
 
 
-HEADER = "【SESSION_PLAYBOOK §5、§11 摘要（Codex 派工、任务命名与登记、调度职责、消息约定、战队协作；原文生成，一条一行；全文见文件）】"
-WARNING = "【SESSION_PLAYBOOK §5、§11 摘要】告警：无法读取或解析条目；请手动读全文。"
+GENERATED_HEADER = "<!-- 由 scripts/hooks/playbook_digest.py 从 SESSION_PLAYBOOK.md 生成，docs/modernization/build_all.py 写出；请勿手改。 -->"
+HEADER = "【SESSION_PLAYBOOK §2.1、§5、§11 摘要（会话管理、Codex 派工、任务命名与登记、调度职责、消息约定、战队协作；原文生成，一条一行；全文见文件）】"
+WARNING = "【SESSION_PLAYBOOK §2.1、§5、§11 摘要】告警：无法读取或解析条目；请手动读全文。"
+SECTION21_WARNING = "【SESSION_PLAYBOOK §2.1 摘要】告警：无法读取或解析会话管理编号条目；请手动读全文。"
 SECTION11_WARNING = "【SESSION_PLAYBOOK §11 摘要】告警：无法读取或解析编号条目；请手动读全文。"
 
 
@@ -59,8 +62,12 @@ def summaries(text):
     section = re.search(r"(?ms)^## 11[.\s].*?\n(.*?)(?=^## |\Z)", text)
     if not section:
         return []
+    return numbered_summaries(section.group(1))
+
+
+def numbered_summaries(section):
     entries, group, parents, fenced = [], "", [], False
-    for line in section.group(1).splitlines():
+    for line in section.splitlines():
         if re.match(r"^\s*(```|~~~)", line):
             fenced = not fenced
         if fenced:
@@ -94,12 +101,42 @@ def summaries(text):
     return entries
 
 
+def section21_summaries(text):
+    section = re.search(r"(?ms)^### 2\.1 会话管理[^\n]*\n(.*?)(?=^#{1,3} |\Z)", text)
+    if not section:
+        return [SECTION21_WARNING]
+    entries = numbered_summaries(section.group(1))
+    numbers = [int(match.group(1)) for line in entries if (match := re.match(r"第(\d+)条：", line))]
+    for number in range(1, max([16, *numbers]) + 1):
+        if numbers.count(number) != 1:
+            entries.append(f"【SESSION_PLAYBOOK §2.1 摘要】告警：第{number}条缺失或重复；请手动读全文。")
+    return entries
+
+
+def render_common(text):
+    sections = [("§2.1 会话管理", section21_summaries(text)),
+                ("§5 上下文管理", section5_summaries(text)),
+                ("§11 总调度会话", summaries(text) or [SECTION11_WARNING])]
+    return GENERATED_HEADER + "\n\n" + HEADER + "\n\n" + "\n\n".join(
+        f"## {title}\n\n" + "\n".join(entries) for title, entries in sections) + "\n"
+
+
+def write_common(source, output, check=False):
+    content = render_common(Path(source).read_text(encoding="utf-8"))
+    if "告警：" in content:
+        raise ValueError("摘要抽取告警，拒绝生成：\n" + "\n".join(line for line in content.splitlines() if "告警：" in line))
+    output = Path(output)
+    if check:
+        if not output.is_file() or output.read_text(encoding="utf-8") != content:
+            raise ValueError("sessions/_COMMON.md 缺失或过期；请运行 python3 docs/modernization/build_all.py")
+    else:
+        output.write_text(content, encoding="utf-8")
+
+
 def run(path):
     try:
         text = Path(path).read_text(encoding="utf-8")
-        print(HEADER)
-        print("\n".join(section5_summaries(text)))
-        print("\n".join(summaries(text) or [SECTION11_WARNING]))
+        print(render_common(text), end="")
     except Exception:
         print(WARNING)
 
@@ -185,7 +222,8 @@ def section5_self_test(text):
             out = io.StringIO()
             with contextlib.redirect_stdout(out):
                 run(path)
-            assert out.getvalue().splitlines() == [HEADER, *actual, *expected]
+            assert out.getvalue().splitlines() == [GENERATED_HEADER, "", HEADER, "", "## §2.1 会话管理", "",
+                *section21_summaries(source), "", "## §5 上下文管理", "", *actual, "", "## §11 总调度会话", "", *expected]
 
     # coordinator 089cd7ffca5026162dd8326173521f8f1ee7bd99 的原文固定样例，自测不依赖本地分支引用。
     coordinator = '## 5. 上下文管理\n- **Codex 派工**：\n  - 调用：在独立 worktree 中 `codex exec -m gpt-6.1-sol -c model_reasoning_effort=xhigh -s <read-only|workspace-write> --ephemeral -o <结果文件> < /dev/null`（必须关闭标准输入，否则会停在「Reading additional input from stdin」干等，10-17 N9 因此空等 77 分钟）（本机 Codex 目录中最强模型；机械活可用 high），不联网；提示词用 `templates/WORK_CARD.md`，要求先读 `CLAUDE.md`（Codex 读仓库根 `AGENTS.md`，指向同一套规则）、本文件 §5、§6.1 与 `CODING_STANDARD.md`、`NAMING_STANDARD.md`，并以中文写结果。一律用会话 Bash 的 `run_in_background` 启动，在本会话后台任务里可见、完成自动唤醒；不得用 nohup、`&`、setsid 等脱离会话（用户 2026-10-17「所有会话调动 codex 任务都要在自己的后台任务显示」）；不轮询。\n'
@@ -215,19 +253,24 @@ def self_test():
             out = io.StringIO()
             with contextlib.redirect_stdout(out):
                 run(path)
-            assert out.getvalue().splitlines() == [HEADER, *section5_summaries(""), *(expected or [SECTION11_WARNING])]
+            assert out.getvalue().splitlines() == [GENERATED_HEADER, "", HEADER, "", "## §2.1 会话管理", "",
+                SECTION21_WARNING, "", "## §5 上下文管理", "", *section5_summaries(""), "", "## §11 总调度会话", "",
+                *(expected or [SECTION11_WARNING])]
             assert all(len(line) <= 80 for line in expected)
         path.unlink()
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             run(path)
         assert out.getvalue().splitlines() == [WARNING]
-    assert HEADER == "【SESSION_PLAYBOOK §5、§11 摘要（Codex 派工、任务命名与登记、调度职责、消息约定、战队协作；原文生成，一条一行；全文见文件）】"
+    assert HEADER == "【SESSION_PLAYBOOK §2.1、§5、§11 摘要（会话管理、Codex 派工、任务命名与登记、调度职责、消息约定、战队协作；原文生成，一条一行；全文见文件）】"
     real = Path(__file__).resolve().parents[2] / "docs/modernization/SESSION_PLAYBOOK.md"
     actual = summaries(real.read_text(encoding="utf-8"))
     assert actual and any(line.startswith("战队协作第") for line in actual), "真实 §11 必须能解析且含战队协作组"
     mutation_count = section5_self_test(real.read_text(encoding="utf-8"))
-    print(f"self-test: ok (原有 {len(cases) + 2} 项；真实 SESSION_PLAYBOOK §5 四条、§11；coordinator 固定样例；{mutation_count} 项破坏验证)")
+    result = subprocess.run([sys.executable, "-B", "-I", str(Path(__file__).with_name("playbook_digest_selftest.py")), "--self-test"],
+                            capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    print(f"self-test: ok (原有 {len(cases) + 2} 项；真实 §5 四条、§11；coordinator 固定样例；§5 {mutation_count} 项破坏验证；公共摘要 §2.1/§5/§11 四组自测)")
 
 
 if __name__ == "__main__":
