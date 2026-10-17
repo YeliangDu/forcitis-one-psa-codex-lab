@@ -181,3 +181,14 @@
 - **漏过于**：机械检查（acceptance_guard 只查尾注格式）。
 - **新增检查项**：`scripts/ci/acceptance_rulings.py`：尾注裁定号须在 PR base 的 `docs/modernization/rulings/ACCEPTANCE_RULINGS.yaml`，记录要素齐全且裁定人不是实现会话，裁定一次只放行一次，改动文件须被 files 覆盖；已知缺口：`Acceptance-Test-Author` 尾注仍可自填。
 - **状态**：待落实（合入后改已落实；负责：one-quality 2026-10-24）
+
+### QUAL-018　参考 DDL 给了函数授权，可执行脚本没有，守护只比 schema 与版本表
+
+- **日期**：2026-10-17
+- **类别**：其他
+- **现象**：#405 草稿的 `one_db_roles_schemas.sql` 给了 `platform_audit.create_audit_entry_partitions` 的 EXECUTE 和新角色 `one_dev_audit_maintainer`，可执行的 `runbooks/sql` c3、c9 脚本没有；`db_scripts_aligned.py` 通过。报错特征：运行时「permission denied for function …」，或建库脚本跑出来缺角色。
+- **根因**：守护只比 schema 列表、版本表和审计表的追加专用授权，函数授权与角色创建没纳入对齐。
+- **拦下于**：#405 的 ultrareview（人工）。
+- **漏过于**：机械检查（db_scripts_aligned 不比函数授权与角色）。
+- **新增检查项**：`scripts/ci/db_scripts_aligned.py` 比对 CREATE ROLE 集合、函数的 GRANT/REVOKE/默认权限语句、授权对象角色须已创建；PR 待开（分支 claude/one-quality-db-grants），负责人 one-quality。
+- **状态**：待落实（合入后改已落实；负责：one-quality 2026-10-24）
