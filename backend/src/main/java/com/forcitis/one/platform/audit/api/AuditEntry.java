@@ -23,10 +23,15 @@ public record AuditEntry(String action, UserId actorId, UserId onBehalfOfId, Aud
             throw new IllegalArgumentException("an audit entry with a login method carries an outcome (ck_audit_entries_login_method_outcome): " + action);
         }
         for (String text : new String[] {detail, changeReason, beforeText, afterText}) {
-            if (text != null && (text.length() > MAX_TEXT || SECRET.matcher(text).find())) {
+            if (!acceptsText(text)) {
                 throw new IllegalArgumentException("an audit text is at most " + MAX_TEXT + " characters and carries no secret");
             }
         }
+    }
+
+    /** The same test the constructor applies, for callers that must refuse a request before it reaches the constructor. */
+    public static boolean acceptsText(@Nullable String text) {
+        return text == null || (text.length() <= MAX_TEXT && !SECRET.matcher(text).find());
     }
 
     public AuditEntry(String action, UserId actorId, UserId onBehalfOfId, AuditSubject subject, String detail) {
