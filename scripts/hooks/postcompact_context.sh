@@ -1,23 +1,7 @@
 #!/bin/bash
-# SessionStart(startup|clear|compact) hook: on a new session (the desktop app's /clear starts one), /clear or compaction, re-inject the session's profile and the context documents
-# it lists (session_context.py), plus its latest pre-compact snapshot, so key state survives beyond the compaction summary
-# (SESSION_PLAYBOOK §2.1 #13, #16).
-set -u
-input=$(cat)
-field() { printf '%s' "$input" | python3 -I -c "import json,sys; print(json.load(sys.stdin).get('$1',''))" 2>/dev/null; }
-session_id=$(field session_id)
-cwd=$(field cwd)
-[ -n "$cwd" ] || cwd=$PWD
-root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null) || exit 0
-
-if [ -f "$root/scripts/hooks/session_context.py" ]; then
-  python3 -I "$root/scripts/hooks/session_context.py" "$root"
-fi
-
-snapshot=$(ls -t "$HOME/.modernize/psa/handoff/"*"-${session_id}.md" 2>/dev/null | head -1)
-if [ -n "$snapshot" ]; then
-  echo
-  echo "【压缩前快照】${snapshot}"
-  cat "$snapshot"
-fi
+hook_dir=$(CDPATH= cd -- "${BASH_SOURCE[0]%/*}" 2>/dev/null && pwd) || {
+  printf '%s\n' '【交接快照】告警：找不到钩子目录；请手动交接。'
+  exit 0
+}
+python3 -I "$hook_dir/handoff_snapshot.py" --start 2>/dev/null || printf '%s\n' '【交接快照】告警：恢复脚本不可用；请手动读取上下文。'
 exit 0
