@@ -7,7 +7,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * actorId is null for system actions; onBehalfOfId only for explicit proxy actions; subject is the kind and id of what it was done to. The source address,
- * outcome and login method are structured columns for entries that have them (logins and session ends): detail must not carry them.
+ * outcome and login method are structured columns for entries that have them (logins, sessions, administrator mode, denied access, privileged requests, forced logouts): detail must not carry them.
  * Nothing here may carry a secret or personal data (L3 / L4, ADR-0026 section 7): text that looks like one is refused.
  */
 public record AuditEntry(String action, UserId actorId, UserId onBehalfOfId, AuditSubject subject, String detail,
@@ -19,6 +19,9 @@ public record AuditEntry(String action, UserId actorId, UserId onBehalfOfId, Aud
     public AuditEntry {
         Objects.requireNonNull(action, "action");
         Objects.requireNonNull(subject, "subject");
+        if (loginMethod != null && outcome == null) {
+            throw new IllegalArgumentException("an audit entry with a login method carries an outcome (ck_audit_entries_login_method_outcome): " + action);
+        }
         for (String text : new String[] {detail, changeReason, beforeText, afterText}) {
             if (text != null && (text.length() > MAX_TEXT || SECRET.matcher(text).find())) {
                 throw new IllegalArgumentException("an audit text is at most " + MAX_TEXT + " characters and carries no secret");

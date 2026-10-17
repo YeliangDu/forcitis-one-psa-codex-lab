@@ -1,0 +1,116 @@
+# 验收测试裁定记录（SESSION_PLAYBOOK §6.1 第 8 条）：实现代理认为验收测试有误时停下报告，由复审（不是实现会话本人）裁定；
+# 改验收测试的提交在说明里写 `Acceptance-Ruling: RULING-<编号>`，scripts/ci/acceptance_rulings.py 核对该编号必须记在这里，
+# 并且记录在 PR 的 base（main）上已有：同一个 PR 里自己补的记录不算（那是实现会话自己裁定自己）。
+#
+# 条目：
+#   - id: RULING-12                  # 编号，唯一
+#     date: 2026-10-17
+#     ruled_by: one-coordinator      # 谁裁定：复审会话、调度或用户；不得是想改测试的实现会话本人
+#     implementer: one-1a-next-5     # 想改测试的实现会话（测试挡住了它）
+#     files: [backend/src/test/java/com/forcitis/one/acceptance/xxx/FooIT.java]   # 裁定允许改的文件或目录前缀，至少一项
+#     reason: 一句话，测试哪里有误
+#     ref: 裁定写在哪里（intent 文件、评审记录、ADR），可选
+#
+# 存量：本守护合入 main 之前的提交里的裁定尾注不查（调度 2026-10-17 决定，不补记录）；合入之后的 PR 一律要求记录。
+# 下面 10 条是 one-1a-next-5 的 #405 train 在守护合入前已写进提交的裁定，由调度追认后登记，files 取各提交实际改动的验收文件。
+rulings:
+  - id: RULING-DR-PR1-1
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/PrimaryKeyExemptionsTest.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/audit/AuditArchiveOrderIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/audit/AuditSubjectColumnsIT.java
+    reason: PR-1 使四个验收测试的前提消失，按新前提改
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-DR-PR6-1
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalOwnIdColumnsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalUniqueKeysIT.java
+    reason: 审批请求当前实例改 NOT NULL 后的两处验收断言
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-DR-PR6-2
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRowRulesIT.java
+    reason: 收紧 start_rounds TRUNCATE 用例，精确断言 0A000 并核对触发器目录
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-DR-PR7-1
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRowRulesIT.java
+    reason: 办理记录夹具按动作带处理人，使 record_reason 约束可单独触发
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-DR-PR7-2
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRequestTextAndRecordRulesIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRowConstraintsPr7IT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/NumberingRowConstraintsPr7IT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/NumberingRowRulesIT.java
+    reason: PR-7 验收类按内容改名
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-DR-PR8-1
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/AttributionSubjectColumnsIT.java
+    reason: 归属主体列用例补建根归属
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-DR-TB01-FU1-1
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/AccountsAcceptanceSupport.java
+    reason: 夹具造员工时补组织单元与任职
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-DR-TB01-FU1-2
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/OperationsCommandEmployeeIdIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ExternalSubjectLookupCommandIT.java
+    reason: DR-TB01-FU1 验收复审修正（Low-3/4/7）
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-K3B4-1
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/AuditIdContractTest.java
+      - backend/src/test/java/com/forcitis/one/acceptance/UserIdContractTest.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/audit/OwnLoginRecordsBySubjectIT.java
+    reason: 契约变化引起的三处现有验收改断言（本人登录记录响应改 items；导出路径新增 onBehalfOfId）
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-K3B4-2
+    date: 2026-10-17
+    ruled_by: one-coordinator（独立 opus 复审追认，见 #405 评论 issuecomment-6228726676）
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/audit/K3b4AuditPagingIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/web/IdQueryParameterIT.java
+    reason: 验收补 onBehalfOfId 畸形 uuid 用例并让 no-count 测试复原数据库设置
+    ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-COORD-20261017-01
+    date: 2026-10-17
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorEndToEndIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorMarkTransactionIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorWitnessOmissionIT.java
+    reason: 单人模式验收前置改为每例新造员工作操作人（断言不变），并新增操作人不存在例
+    ref: "#405 评论 issuecomment-6228726676"

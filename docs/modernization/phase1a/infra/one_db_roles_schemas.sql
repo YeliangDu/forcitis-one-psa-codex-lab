@@ -50,7 +50,10 @@ ALTER ROLE one_dev_app SET idle_in_transaction_session_timeout = '60s';
 -- 只读排障角色（可选）：运维排查只读，不授予审计以外的个人数据写权限
 CREATE ROLE one_dev_readonly LOGIN NOINHERIT CONNECTION LIMIT 3;
 
-GRANT CONNECT ON DATABASE forcitis_one_dev TO one_dev_migrator, one_dev_app, one_dev_readonly;
+-- 审计维护角色：只用来执行「删除已归档并校验的审计在线月分区」函数（O-8、ADR-0048）；应用不使用此角色，口令由运维设置，连接上限 1
+CREATE ROLE one_dev_audit_maintainer LOGIN NOINHERIT CONNECTION LIMIT 1;
+
+GRANT CONNECT ON DATABASE forcitis_one_dev TO one_dev_migrator, one_dev_app, one_dev_readonly, one_dev_audit_maintainer;
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- §2 schema（与 backend/src/main/resources/db/migration/<schema>/ 一一对应；Flyway 历史表单独放 one_migration）
@@ -117,9 +120,15 @@ BEGIN
     END LOOP;
 END $$;
 
+-- 审计月分区（ADR-0048）：两个函数是 SECURITY DEFINER、属主 one_dev_owner，基线已对 PUBLIC 撤销 EXECUTE。
+-- 运行角色只能预建分区（应用的预建作业调用），仍无 CREATE，也不能 DETACH / DROP；删除已归档分区只有维护角色能执行，应用代码不调用。
+GRANT EXECUTE ON FUNCTION platform_audit.create_audit_entry_partitions(date, date) TO one_dev_app;
+GRANT USAGE ON SCHEMA platform_audit TO one_dev_audit_maintainer;
+GRANT EXECUTE ON FUNCTION platform_audit.drop_archived_audit_entry_partition(date) TO one_dev_audit_maintainer;
+
 -- ---------------------------------------------------------------------------------------------------------------------
 -- §5 撤销（回滚本文件；仅在尚无数据时使用）
 -- ---------------------------------------------------------------------------------------------------------------------
 -- DROP SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering,
 --             platform_scheduling, organization_workforce, organization_attendance, platform_idempotency, cost_timesheet, one_migration CASCADE;
--- DROP ROLE one_dev_app; DROP ROLE one_dev_readonly; DROP ROLE one_dev_migrator; DROP ROLE one_dev_owner;
+-- DROP ROLE one_dev_audit_maintainer; DROP ROLE one_dev_app; DROP ROLE one_dev_readonly; DROP ROLE one_dev_migrator; DROP ROLE one_dev_owner;

@@ -43,7 +43,8 @@ class UserIdContractTest {
             new String[] {"/api/v1/platform/user-accounts/{userId}:force-logout", "userId"},
             new String[] {"/api/v1/platform/audit-entries", "actorId"},
             new String[] {"/api/v1/platform/audit-entries", "onBehalfOfId"},
-            new String[] {"/api/v1/platform/audit-entries:export", "actorId"});
+            new String[] {"/api/v1/platform/audit-entries:export", "actorId"},
+            new String[] {"/api/v1/platform/audit-entries:export", "onBehalfOfId"});
 
     static boolean isStringUuid(JsonNode schema) {
         JsonNode type = schema.path("type");

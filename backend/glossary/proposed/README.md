@@ -16,6 +16,16 @@ ADR-0039（防腐层边界）引入的术语（proposed，待业务评审，ADR-
 | `apply_org_change_set` | 应用组织变更 | ApplyOrgChangeSet | 领域 · organization.workforce | 组织人事 api 中唯一的同步入口：应用一份组织变更集，管理员离职挂为待放行离职，其余变更照常生效；同一变更集重复调用返回上次结果 |  |  |
 | `separation_hold` | 待放行离职 | SeparationHold | 领域 · organization.workforce | 会使可用超级管理员少于 2 名、或涉及超级管理员与安全审计员持有人的离职，被单独挂起等待另一名持有人放行的记录（ADR-0027 第 1 项第 7 条、ADR-0028） |  | 权限码 organization.workforce:separation-hold:approve 已用此词（ADR-0028 第 2 条） |
 
+## `audit-partition.yaml`
+
+审计条目按月分区（ADR-0048、DATA-REPAIR-timesheet-audit TB-07）用到的技术词：分区只是存储与删除的单位，不是业务术语，只登记为技术词（proposed，ADR-0018）。
+
+登记会话：one-1a-next-5 数据修复 PR-1。使用范围：platform.audit 内部的作业、配置键、指标名与锁名。
+
+无错误码以外的术语。
+
+另有技术词 2 个（`common_words`），不在表中。
+
 ## `code-aggregates-events.yaml`
 
 涉及模块：`cost.timesheet`、`platform.approval`、`platform.identity`、`platform.integration`。
@@ -174,7 +184,7 @@ Phase 1a 修复批 B1（身份与授权）新增术语（proposed，待业务评
 
 无错误码以外的术语。
 
-另有错误码 28 个（kind 为 `error_code`）、技术词 18 个（`common_words`），不在表中。
+另有错误码 27 个（kind 为 `error_code`）、技术词 18 个（`common_words`），不在表中。
 
 ## organization.attendance（`fix-b2-data.yaml`）
 
@@ -286,6 +296,16 @@ platform.approval 提议术语（proposed，待业务评审，ADR-0018）。单�
 无错误码以外的术语。
 
 另有错误码 29 个（kind 为 `error_code`）、技术词 111 个（`common_words`），不在表中。
+
+## platform.audit（`platform-audit-paging.yaml`）
+
+K-3b-4 审计列表、导出、本人登录记录接入分页公共契约新增的标识符（proposed）。登记会话：one-1a-next-5，2026-10-16。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `audit_filter` | 审计筛选条件 | AuditFilter | 领域 · platform.audit | 审计条目列表与导出共用的十个筛选条件（操作人、代办人、动作、动作前缀、对象种类、对象、来源地址、结果、起止时间）；构造时校验对象与种类一致、起早于止 |  | K-3b-4，取代原 AuditQuery 中的筛选部分 |
+| `audit_page_mark` | 审计页标记 | AuditPageMark | 领域 · platform.audit | 审计条目键集分页的位置：上一页最后一条的发生时间与条目标识；只供生成下一页游标 | 「AuditPosition」已禁用 | K-3b-4 复审 M1；原名 AuditPosition 与岗位 Position（organization.workforce）同名异义，故改名 |
+| `own_login_record_page_view` | 本人登录记录分页视图 | OwnLoginRecordPageView | 领域 · platform.audit | 本人登录记录一页的应用层读模型：记录列表加下一页游标；不含条目标识 |  | K-3b-4，构词沿用审计条目分页视图 |
 
 ## platform.identity（`platform-identity.yaml`）
 
