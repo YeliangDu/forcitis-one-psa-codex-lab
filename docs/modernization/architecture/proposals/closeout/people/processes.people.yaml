@@ -2578,19 +2578,19 @@ processes:
         # 非中断超时分支结局为已提醒，原任务继续；提醒不改对象状态。
         timeout: {after: "P2D", escalate_to: SH-M1, interrupting: false}   # 〔推〕2 个工作日内受理，逾期提醒信息部门负责人（SH-M1 职能高管），待用户定 2
         pending: B31-2
+        decision:                          # 先分流再解决：不成立时不执行解决命令、不发 IT 需求已解决（ARCH_VS14 A3）
+          - {when: 需求不成立或无法实现, goto: 6, p: 0.1}
+          - {when: otherwise, goto: 4, p: 0.9}
       - actor: SH-E6
         where: in_system
         command: 解决 IT 需求
         aggregate: AGG-114
         effort: {typical_min: 30, p90_min: 120}  # 经验估值；null 表示待取证
         emits: [IT 需求已解决]            # 仅分析
-        desc: 记录处理过程与处理结论；实际排查在系统外进行，本系统登记过程与结论；成功登记结论后到已解决；异常退回分支与状态机的衔接见 REVIEW_VS14.md A3
+        desc: 记录处理过程与处理结论；实际排查在系统外进行，本系统登记过程与结论；只在需求成立时执行，处理中 → 已解决；不成立的已在步 3 后分流到步 6 退回
         permission: IT需求.解决
         page: IT需求工作台
         metric_event: true
-        decision:
-          - {when: 需求不成立或无法实现, goto: 6, p: 0.1}
-          - {when: otherwise, goto: 5, p: 0.9}
       - actor: SH-E3
         where: in_system
         command: 关闭 IT 需求
