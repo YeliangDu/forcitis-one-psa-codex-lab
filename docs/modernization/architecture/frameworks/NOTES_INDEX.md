@@ -591,27 +591,20 @@ TOGAF、ArchiMate 等企业架构方法与建模语言
 
 笔记正文引用到的价值流编号。
 
-### VS-01（15）
+### VS-01（8）
 
 | 编号 | 题名 | 年份 | 资料类型 | 状态 | 锚点 |
 |---|---|---|---|---|---|
-| AIA15 | [The Architect’s Handbook of Professional Practice](notes/aia-handbook-15.md) | 2014 | 书籍 | 草稿 | 15 |
 | PCF8 | [APQC 跨行业流程分类框架 v8.0](notes/apqc-pcf-80.md) | 2026 | 规范标准 | 草稿 | 15 |
-| BPMN | [Business Process Model and Notation（BPMN）](notes/bpmn-202.md) | 2013 | 规范标准 | 草稿 | 14 |
 | CERT | [Certinia 与 FinancialForce 专业服务产品公开资料](notes/certinia-psa.md) | 入门指南2022更新；其他未核 | 产品资料 | 草稿 | 14 |
 | FEE | [工程勘察设计收费管理规定及收费标准](notes/design-fee-2002.md) | 2002 | 行业规范 | 草稿 | 16 |
-| DMN | [Decision Model and Notation](notes/dmn-15.md) | 2024 | 规范标准 | 草稿 | 15 |
-| GFQ | [全过程咨询、监理、造价与工程咨询服务合同资料合读](notes/gf-consulting-contracts.md) | 2024、2012、2015；工程咨询本未核 | 合同范本 | 草稿 | 32 |
-| GFD | [建设工程设计合同示范文本（房屋建筑工程、专业建设工程）](notes/gf-design-contracts.md) | 2015 | 合同范本 | 草稿 | 10 |
 | QCG | [全过程工程咨询政策与服务指南合读](notes/qcg-guides.md) | 2019、2025、2022；监理协会稿未核 | 行业规范 | 草稿 | 32 |
-| QINS | [建设工程质量保险与质量保障体系资料合读](notes/quality-insurance.md) | 2005、2025、2019；深圳转发2006 | 行业规范 | 草稿 | 24 |
 | SPI26 | [2026 Professional Services Maturity Benchmark](notes/spi-psmb-2026.md) | 2026 | 行业规范 | 草稿 | 153 |
 | TOGS | [TOGAF Series Guides；Business Capabilities, Version 2；Value Streams；The TOGAF Integrated Information Infrastructure Reference Model (III-RM): An Architected Approach to Boundaryless Information Flow](notes/togaf-series-summaries.md) | 2022；2017；目录发布年未核 | 规范标准 | 草稿 | 10 |
 | UAW | [Unanet AEC 中标概率、资源、收入与项目盈利白皮书](notes/unanet-whitepapers.md) | 资源2025；收入及盈利版权2023；中标概率未核 | 产品资料 | 草稿 | 16 |
 | WHI | [Enterprise Business Architecture: The Formal Link between Strategy and Results](notes/whittle-eba.md) | 2005 | 书籍 | 草稿 | 18 |
-| XIA | [勘察设计企业全过程工程咨询管理指南](notes/xia-qcg-2019.md) | 2019 | 书籍 | 草稿 | 17 |
 
-### VS-02（33）
+### VS-02（30）
 
 | 编号 | 题名 | 年份 | 资料类型 | 状态 | 锚点 |
 |---|---|---|---|---|---|
@@ -630,8 +623,6 @@ TOGAF、ArchiMate 等企业架构方法与建模语言
 | GFQ | [全过程咨询、监理、造价与工程咨询服务合同资料合读](notes/gf-consulting-contracts.md) | 2024、2012、2015；工程咨询本未核 | 合同范本 | 草稿 | 32 |
 | GFD | [建设工程设计合同示范文本（房屋建筑工程、专业建设工程）](notes/gf-design-contracts.md) | 2015 | 合同范本 | 草稿 | 10 |
 | GLD | [The Business Architecture Metamodel Guide V3.0；Using Business Architecture in Conjunction with BIAN Service Domains to Drive Business Value；Business Architecture Government Reference Model Workshop](notes/guild-whitepapers.md) | 2024；2021；2019 | 规范标准 | 草稿 | 16 |
-| IFRSC | [新的收入准则对建筑业的影响；Revenue from contracts with customers — Engineering and construction industry supplement；Implementing IFRS 15 Revenue from Contracts with Customers — A practical guide to implementation issues for the industrial products and services sector](notes/ifrs15-construction.md) | 2014、2016、2015（原件封面或版权年） | 事务所指南 | 草稿 | 17 |
-| IFRSH | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 2017、2018、2020、2021、2025（逐件证据见附录） | 事务所指南 | 草稿 | 24 |
 | IFRS15 | [IFRS 15 Revenue from Contracts with Customers](notes/ifrs15-summary.md) | 2026（摘要页版权年；页内历史记2014年发布准则） | 准则法规 | 草稿 | 10 |
 | KAN | [Kantata 专业服务云、资源优化案例与规模化白皮书](notes/kantata-psa.md) | 未核 | 产品资料 | 草稿 | 12 |
 | BSC | [平衡计分卡：化战略为行动](notes/kaplan-norton-bsc.md) | 2013 | 书籍 | 草稿 | 20 |
@@ -641,7 +632,6 @@ TOGAF、ArchiMate 等企业架构方法与建模语言
 | PMB7 | [项目管理标准和项目管理知识体系指南（PMBOK® 指南）](notes/pmbok7-zh.md) | 2021 | 书籍 | 草稿 | 16 |
 | WBS3 | [Practice Standard for Work Breakdown Structures](notes/pmi-wbs3.md) | 2019 | 书籍 | 草稿 | 17 |
 | QCG | [全过程工程咨询政策与服务指南合读](notes/qcg-guides.md) | 2019、2025、2022；监理协会稿未核 | 行业规范 | 草稿 | 32 |
-| QINS | [建设工程质量保险与质量保障体系资料合读](notes/quality-insurance.md) | 2005、2025、2019；深圳转发2006 | 行业规范 | 草稿 | 24 |
 | BMS | [BPMN Method and Style: With BPMN Implementer's Guide](notes/silver-bpmn-ms2.md) | 版权页列 2011、2017、2019；本件发行年未核 | 书籍 | 草稿 | 16 |
 | SPI26 | [2026 Professional Services Maturity Benchmark](notes/spi-psmb-2026.md) | 2026 | 行业规范 | 草稿 | 153 |
 | TOGS | [TOGAF Series Guides；Business Capabilities, Version 2；Value Streams；The TOGAF Integrated Information Infrastructure Reference Model (III-RM): An Architected Approach to Boundaryless Information Flow](notes/togaf-series-summaries.md) | 2022；2017；目录发布年未核 | 规范标准 | 草稿 | 10 |
@@ -649,12 +639,20 @@ TOGAF、ArchiMate 等企业架构方法与建模语言
 | WHI | [Enterprise Business Architecture: The Formal Link between Strategy and Results](notes/whittle-eba.md) | 2005 | 书籍 | 草稿 | 18 |
 | XIA | [勘察设计企业全过程工程咨询管理指南](notes/xia-qcg-2019.md) | 2019 | 书籍 | 草稿 | 17 |
 
-### VS-03（25）
+### VS-03（2）
+
+| 编号 | 题名 | 年份 | 资料类型 | 状态 | 锚点 |
+|---|---|---|---|---|---|
+| PCF8 | [APQC 跨行业流程分类框架 v8.0](notes/apqc-pcf-80.md) | 2026 | 规范标准 | 草稿 | 15 |
+| QINS | [建设工程质量保险与质量保障体系资料合读](notes/quality-insurance.md) | 2005、2025、2019；深圳转发2006 | 行业规范 | 草稿 | 24 |
+
+### VS-04（32）
 
 | 编号 | 题名 | 年份 | 资料类型 | 状态 | 锚点 |
 |---|---|---|---|---|---|
 | ACCB | [企业会计准则——基本准则；会计基础工作规范；会计档案管理办法；企业会计准则第4号——固定资产；企业会计准则第22号——金融工具确认和计量](notes/acc-basics.md) | 2014、2019、2015、2006；CAS22未核 | 准则法规 | 草稿 | 47 |
 | ADAM | [Star Schema: The Complete Reference](notes/adamson-star-schema.md) | 2010 | 书籍 | 草稿 | 24 |
+| AIA15 | [The Architect’s Handbook of Professional Practice](notes/aia-handbook-15.md) | 2014 | 书籍 | 草稿 | 15 |
 | AJE | [Ajera 实施、会计基础与移动费用资料](notes/ajera.md) | 实施2019；移动费用2021；会计基础版权2011 | 产品资料 | 草稿 | 16 |
 | PCF8 | [APQC 跨行业流程分类框架 v8.0](notes/apqc-pcf-80.md) | 2026 | 规范标准 | 草稿 | 15 |
 | BPMN | [Business Process Model and Notation（BPMN）](notes/bpmn-202.md) | 2013 | 规范标准 | 草稿 | 14 |
@@ -664,7 +662,9 @@ TOGAF、ArchiMate 等企业架构方法与建模语言
 | CASQ | [收入准则实施问答（五则）](notes/cas14-qa.md) | 2020、2021 | 准则法规 | 草稿 | 8 |
 | CERT | [Certinia 与 FinancialForce 专业服务产品公开资料](notes/certinia-psa.md) | 入门指南2022更新；其他未核 | 产品资料 | 草稿 | 14 |
 | CORR | [Agile Data Warehouse Design](notes/corr-adwd.md) | 2012 | 书籍 | 草稿 | 20 |
+| DMN | [Decision Model and Notation](notes/dmn-15.md) | 2024 | 规范标准 | 草稿 | 15 |
 | EINV | [国家税务总局关于推广应用全面数字化电子发票的公告；关于铁路客运推广使用全面数字化的电子发票的公告；关于民航旅客运输服务推广使用全面数字化的电子发票的公告（含附件）](notes/e-invoice-2024.md) | 2024 | 准则法规 | 草稿 | 29 |
+| COSTGB | [建设工程造价咨询规范](notes/gbt51095-2015.md) | 2015 | 规范标准 | 草稿 | 10 |
 | GFQ | [全过程咨询、监理、造价与工程咨询服务合同资料合读](notes/gf-consulting-contracts.md) | 2024、2012、2015；工程咨询本未核 | 合同范本 | 草稿 | 32 |
 | GFD | [建设工程设计合同示范文本（房屋建筑工程、专业建设工程）](notes/gf-design-contracts.md) | 2015 | 合同范本 | 草稿 | 10 |
 | IFRSC | [新的收入准则对建筑业的影响；Revenue from contracts with customers — Engineering and construction industry supplement；Implementing IFRS 15 Revenue from Contracts with Customers — A practical guide to implementation issues for the industrial products and services sector](notes/ifrs15-construction.md) | 2014、2016、2015（原件封面或版权年） | 事务所指南 | 草稿 | 17 |
@@ -673,77 +673,47 @@ TOGAF、ArchiMate 等企业架构方法与建模语言
 | KGR2 | [The Kimball Group Reader: Relentlessly Practical Tools for Data Warehousing and Business Intelligence](notes/kimball-reader-2.md) | 2016 | 书籍 | 草稿 | 22 |
 | MIL | [Patterns, Principles, and Practices of Domain-Driven Design](notes/millett-pppddd.md) | 2015 | 书籍 | 草稿 | 15 |
 | PMB7 | [项目管理标准和项目管理知识体系指南（PMBOK® 指南）](notes/pmbok7-zh.md) | 2021 | 书籍 | 草稿 | 16 |
+| QCG | [全过程工程咨询政策与服务指南合读](notes/qcg-guides.md) | 2019、2025、2022；监理协会稿未核 | 行业规范 | 草稿 | 32 |
+| QINS | [建设工程质量保险与质量保障体系资料合读](notes/quality-insurance.md) | 2005、2025、2019；深圳转发2006 | 行业规范 | 草稿 | 24 |
 | BMS | [BPMN Method and Style: With BPMN Implementer's Guide](notes/silver-bpmn-ms2.md) | 版权页列 2011、2017、2019；本件发行年未核 | 书籍 | 草稿 | 16 |
+| SPI26 | [2026 Professional Services Maturity Benchmark](notes/spi-psmb-2026.md) | 2026 | 行业规范 | 草稿 | 153 |
 | SMOD | [Spring Modulith（2.1.1）；Spring Modulith — Reference documentation（1.0.8）](notes/spring-modulith.md) | 2022–2025（2.1.1文档版权，发布日期未核）；2024（1.0.8页首） | 规范标准 | 草稿 | 20 |
 | UAW | [Unanet AEC 中标概率、资源、收入与项目盈利白皮书](notes/unanet-whitepapers.md) | 资源2025；收入及盈利版权2023；中标概率未核 | 产品资料 | 草稿 | 16 |
 | VAT | [中华人民共和国增值税法；中华人民共和国增值税法实施条例；财政部 国家税务总局关于全面推开营业税改征增值税试点的通知](notes/vat-law.md) | 2024；2025；2016 | 准则法规 | 草稿 | 26 |
 | WHI | [Enterprise Business Architecture: The Formal Link between Strategy and Results](notes/whittle-eba.md) | 2005 | 书籍 | 草稿 | 18 |
+| XIA | [勘察设计企业全过程工程咨询管理指南](notes/xia-qcg-2019.md) | 2019 | 书籍 | 草稿 | 17 |
 
-### VS-04（13）
-
-| 编号 | 题名 | 年份 | 资料类型 | 状态 | 锚点 |
-|---|---|---|---|---|---|
-| ACCB | [企业会计准则——基本准则；会计基础工作规范；会计档案管理办法；企业会计准则第4号——固定资产；企业会计准则第22号——金融工具确认和计量](notes/acc-basics.md) | 2014、2019、2015、2006；CAS22未核 | 准则法规 | 草稿 | 47 |
-| ADAM | [Star Schema: The Complete Reference](notes/adamson-star-schema.md) | 2010 | 书籍 | 草稿 | 24 |
-| AJE | [Ajera 实施、会计基础与移动费用资料](notes/ajera.md) | 实施2019；移动费用2021；会计基础版权2011 | 产品资料 | 草稿 | 16 |
-| PCF8 | [APQC 跨行业流程分类框架 v8.0](notes/apqc-pcf-80.md) | 2026 | 规范标准 | 草稿 | 15 |
-| CASD | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 2021 | 书籍 | 草稿 | 20 |
-| CASQ | [收入准则实施问答（五则）](notes/cas14-qa.md) | 2020、2021 | 准则法规 | 草稿 | 8 |
-| CERT | [Certinia 与 FinancialForce 专业服务产品公开资料](notes/certinia-psa.md) | 入门指南2022更新；其他未核 | 产品资料 | 草稿 | 14 |
-| CORR | [Agile Data Warehouse Design](notes/corr-adwd.md) | 2012 | 书籍 | 草稿 | 20 |
-| IFRSH | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 2017、2018、2020、2021、2025（逐件证据见附录） | 事务所指南 | 草稿 | 24 |
-| KGR2 | [The Kimball Group Reader: Relentlessly Practical Tools for Data Warehousing and Business Intelligence](notes/kimball-reader-2.md) | 2016 | 书籍 | 草稿 | 22 |
-| BMS | [BPMN Method and Style: With BPMN Implementer's Guide](notes/silver-bpmn-ms2.md) | 版权页列 2011、2017、2019；本件发行年未核 | 书籍 | 草稿 | 16 |
-| SPI26 | [2026 Professional Services Maturity Benchmark](notes/spi-psmb-2026.md) | 2026 | 行业规范 | 草稿 | 153 |
-| WHI | [Enterprise Business Architecture: The Formal Link between Strategy and Results](notes/whittle-eba.md) | 2005 | 书籍 | 草稿 | 18 |
-
-### VS-05（3）
-
-| 编号 | 题名 | 年份 | 资料类型 | 状态 | 锚点 |
-|---|---|---|---|---|---|
-| AJE | [Ajera 实施、会计基础与移动费用资料](notes/ajera.md) | 实施2019；移动费用2021；会计基础版权2011 | 产品资料 | 草稿 | 16 |
-| PCF8 | [APQC 跨行业流程分类框架 v8.0](notes/apqc-pcf-80.md) | 2026 | 规范标准 | 草稿 | 15 |
-| SPI26 | [2026 Professional Services Maturity Benchmark](notes/spi-psmb-2026.md) | 2026 | 行业规范 | 草稿 | 153 |
-
-### VS-06（8）
+### VS-05（2）
 
 | 编号 | 题名 | 年份 | 资料类型 | 状态 | 锚点 |
 |---|---|---|---|---|---|
 | PCF8 | [APQC 跨行业流程分类框架 v8.0](notes/apqc-pcf-80.md) | 2026 | 规范标准 | 草稿 | 15 |
-| CASD | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 2021 | 书籍 | 草稿 | 20 |
-| IIT | [中华人民共和国个人所得税法；中华人民共和国个人所得税法实施条例；个人所得税专项附加扣除暂行办法](notes/iit-law.md) | 2018 | 准则法规 | 草稿 | 24 |
+| QINS | [建设工程质量保险与质量保障体系资料合读](notes/quality-insurance.md) | 2005、2025、2019；深圳转发2006 | 行业规范 | 草稿 | 24 |
+
+### VS-06（1）
+
+| 编号 | 题名 | 年份 | 资料类型 | 状态 | 锚点 |
+|---|---|---|---|---|---|
+| PCF8 | [APQC 跨行业流程分类框架 v8.0](notes/apqc-pcf-80.md) | 2026 | 规范标准 | 草稿 | 15 |
+
+### VS-07（4）
+
+| 编号 | 题名 | 年份 | 资料类型 | 状态 | 锚点 |
+|---|---|---|---|---|---|
+| PCF8 | [APQC 跨行业流程分类框架 v8.0](notes/apqc-pcf-80.md) | 2026 | 规范标准 | 草稿 | 15 |
 | LAB | [中华人民共和国劳动合同法；中华人民共和国劳动合同法实施条例](notes/labor-contract.md) | 2012；2008 | 准则法规 | 草稿 | 19 |
-| LEAV | [职工带薪年休假条例；企业职工带薪年休假实施办法；工资支付暂行规定](notes/leave-wage.md) | 2007；2008；1994 | 准则法规 | 草稿 | 26 |
 | PIPL | [中华人民共和国个人信息保护法；信息安全技术 个人信息安全规范](notes/pipl.md) | 法律年份未核；国标2020 | 准则法规 | 草稿 | 24 |
-| SOC | [中华人民共和国社会保险法；住房公积金管理条例](notes/social-insurance.md) | 2018；2019 | 准则法规 | 草稿 | 17 |
 | SPI26 | [2026 Professional Services Maturity Benchmark](notes/spi-psmb-2026.md) | 2026 | 行业规范 | 草稿 | 153 |
 
-### VS-07（20）
+### VS-08（3）
 
 | 编号 | 题名 | 年份 | 资料类型 | 状态 | 锚点 |
 |---|---|---|---|---|---|
-| ACCB | [企业会计准则——基本准则；会计基础工作规范；会计档案管理办法；企业会计准则第4号——固定资产；企业会计准则第22号——金融工具确认和计量](notes/acc-basics.md) | 2014、2019、2015、2006；CAS22未核 | 准则法规 | 草稿 | 47 |
-| ADAM | [Star Schema: The Complete Reference](notes/adamson-star-schema.md) | 2010 | 书籍 | 草稿 | 24 |
 | AJE | [Ajera 实施、会计基础与移动费用资料](notes/ajera.md) | 实施2019；移动费用2021；会计基础版权2011 | 产品资料 | 草稿 | 16 |
 | PCF8 | [APQC 跨行业流程分类框架 v8.0](notes/apqc-pcf-80.md) | 2026 | 规范标准 | 草稿 | 15 |
-| CASD | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 2021 | 书籍 | 草稿 | 20 |
-| CASC | [收入准则应用案例（十四份，逐件题名见附录）](notes/cas14-cases.md) | 未核 | 准则法规 | 草稿 | 14 |
-| CASG | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 2018 | 书籍 | 草稿 | 21 |
-| CASQ | [收入准则实施问答（五则）](notes/cas14-qa.md) | 2020、2021 | 准则法规 | 草稿 | 8 |
-| CIT | [中华人民共和国企业所得税法；中华人民共和国企业所得税法实施条例](notes/cit-law.md) | 2018；2024 | 准则法规 | 草稿 | 20 |
-| CORR | [Agile Data Warehouse Design](notes/corr-adwd.md) | 2012 | 书籍 | 草稿 | 20 |
-| DSEC | [中华人民共和国数据安全法；中华人民共和国网络安全法；信息安全技术 网络安全等级保护基本要求](notes/data-security.md) | 法律年份未核；国标2019 | 准则法规 | 草稿 | 25 |
-| DMN | [Decision Model and Notation](notes/dmn-15.md) | 2024 | 规范标准 | 草稿 | 15 |
-| IFRSC | [新的收入准则对建筑业的影响；Revenue from contracts with customers — Engineering and construction industry supplement；Implementing IFRS 15 Revenue from Contracts with Customers — A practical guide to implementation issues for the industrial products and services sector](notes/ifrs15-construction.md) | 2014、2016、2015（原件封面或版权年） | 事务所指南 | 草稿 | 17 |
-| IFRSH | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 2017、2018、2020、2021、2025（逐件证据见附录） | 事务所指南 | 草稿 | 24 |
-| IFRS15 | [IFRS 15 Revenue from Contracts with Customers](notes/ifrs15-summary.md) | 2026（摘要页版权年；页内历史记2014年发布准则） | 准则法规 | 草稿 | 10 |
-| KGR2 | [The Kimball Group Reader: Relentlessly Practical Tools for Data Warehousing and Business Intelligence](notes/kimball-reader-2.md) | 2016 | 书籍 | 草稿 | 22 |
-| DDIA2 | [Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems](notes/kleppmann-ddia2.md) | 2026 | 书籍 | 草稿 | 13 |
-| MIL | [Patterns, Principles, and Practices of Domain-Driven Design](notes/millett-pppddd.md) | 2015 | 书籍 | 草稿 | 15 |
 | SPI26 | [2026 Professional Services Maturity Benchmark](notes/spi-psmb-2026.md) | 2026 | 行业规范 | 草稿 | 153 |
-| UAW | [Unanet AEC 中标概率、资源、收入与项目盈利白皮书](notes/unanet-whitepapers.md) | 资源2025；收入及盈利版权2023；中标概率未核 | 产品资料 | 草稿 | 16 |
 
-### VS-08（7）
+### VS-09（7）
 
 | 编号 | 题名 | 年份 | 资料类型 | 状态 | 锚点 |
 |---|---|---|---|---|---|
@@ -755,7 +725,54 @@ TOGAF、ArchiMate 等企业架构方法与建模语言
 | MAI | [Managing the Professional Service Firm](notes/maister-mpsf.md) | 1993 | 书籍 | 草稿 | 13 |
 | SPI26 | [2026 Professional Services Maturity Benchmark](notes/spi-psmb-2026.md) | 2026 | 行业规范 | 草稿 | 153 |
 
-### VS-09（1）
+### VS-10（18）
+
+| 编号 | 题名 | 年份 | 资料类型 | 状态 | 锚点 |
+|---|---|---|---|---|---|
+| ACCB | [企业会计准则——基本准则；会计基础工作规范；会计档案管理办法；企业会计准则第4号——固定资产；企业会计准则第22号——金融工具确认和计量](notes/acc-basics.md) | 2014、2019、2015、2006；CAS22未核 | 准则法规 | 草稿 | 47 |
+| ADAM | [Star Schema: The Complete Reference](notes/adamson-star-schema.md) | 2010 | 书籍 | 草稿 | 24 |
+| AJE | [Ajera 实施、会计基础与移动费用资料](notes/ajera.md) | 实施2019；移动费用2021；会计基础版权2011 | 产品资料 | 草稿 | 16 |
+| PCF8 | [APQC 跨行业流程分类框架 v8.0](notes/apqc-pcf-80.md) | 2026 | 规范标准 | 草稿 | 15 |
+| CASD | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 2021 | 书籍 | 草稿 | 20 |
+| CASG | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 2018 | 书籍 | 草稿 | 21 |
+| CASQ | [收入准则实施问答（五则）](notes/cas14-qa.md) | 2020、2021 | 准则法规 | 草稿 | 8 |
+| CIT | [中华人民共和国企业所得税法；中华人民共和国企业所得税法实施条例](notes/cit-law.md) | 2018；2024 | 准则法规 | 草稿 | 20 |
+| CORR | [Agile Data Warehouse Design](notes/corr-adwd.md) | 2012 | 书籍 | 草稿 | 20 |
+| DSEC | [中华人民共和国数据安全法；中华人民共和国网络安全法；信息安全技术 网络安全等级保护基本要求](notes/data-security.md) | 法律年份未核；国标2019 | 准则法规 | 草稿 | 25 |
+| DMN | [Decision Model and Notation](notes/dmn-15.md) | 2024 | 规范标准 | 草稿 | 15 |
+| IFRSC | [新的收入准则对建筑业的影响；Revenue from contracts with customers — Engineering and construction industry supplement；Implementing IFRS 15 Revenue from Contracts with Customers — A practical guide to implementation issues for the industrial products and services sector](notes/ifrs15-construction.md) | 2014、2016、2015（原件封面或版权年） | 事务所指南 | 草稿 | 17 |
+| IFRSH | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 2017、2018、2020、2021、2025（逐件证据见附录） | 事务所指南 | 草稿 | 24 |
+| KGR2 | [The Kimball Group Reader: Relentlessly Practical Tools for Data Warehousing and Business Intelligence](notes/kimball-reader-2.md) | 2016 | 书籍 | 草稿 | 22 |
+| DDIA2 | [Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems](notes/kleppmann-ddia2.md) | 2026 | 书籍 | 草稿 | 13 |
+| MIL | [Patterns, Principles, and Practices of Domain-Driven Design](notes/millett-pppddd.md) | 2015 | 书籍 | 草稿 | 15 |
+| SPI26 | [2026 Professional Services Maturity Benchmark](notes/spi-psmb-2026.md) | 2026 | 行业规范 | 草稿 | 153 |
+| UAW | [Unanet AEC 中标概率、资源、收入与项目盈利白皮书](notes/unanet-whitepapers.md) | 资源2025；收入及盈利版权2023；中标概率未核 | 产品资料 | 草稿 | 16 |
+
+### VS-11（1）
+
+| 编号 | 题名 | 年份 | 资料类型 | 状态 | 锚点 |
+|---|---|---|---|---|---|
+| PCF8 | [APQC 跨行业流程分类框架 v8.0](notes/apqc-pcf-80.md) | 2026 | 规范标准 | 草稿 | 15 |
+
+### VS-12（1）
+
+| 编号 | 题名 | 年份 | 资料类型 | 状态 | 锚点 |
+|---|---|---|---|---|---|
+| PCF8 | [APQC 跨行业流程分类框架 v8.0](notes/apqc-pcf-80.md) | 2026 | 规范标准 | 草稿 | 15 |
+
+### VS-13（7）
+
+| 编号 | 题名 | 年份 | 资料类型 | 状态 | 锚点 |
+|---|---|---|---|---|---|
+| PCF8 | [APQC 跨行业流程分类框架 v8.0](notes/apqc-pcf-80.md) | 2026 | 规范标准 | 草稿 | 15 |
+| CASD | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 2021 | 书籍 | 草稿 | 20 |
+| IIT | [中华人民共和国个人所得税法；中华人民共和国个人所得税法实施条例；个人所得税专项附加扣除暂行办法](notes/iit-law.md) | 2018 | 准则法规 | 草稿 | 24 |
+| LEAV | [职工带薪年休假条例；企业职工带薪年休假实施办法；工资支付暂行规定](notes/leave-wage.md) | 2007；2008；1994 | 准则法规 | 草稿 | 26 |
+| PIPL | [中华人民共和国个人信息保护法；信息安全技术 个人信息安全规范](notes/pipl.md) | 法律年份未核；国标2020 | 准则法规 | 草稿 | 24 |
+| SOC | [中华人民共和国社会保险法；住房公积金管理条例](notes/social-insurance.md) | 2018；2019 | 准则法规 | 草稿 | 17 |
+| SPI26 | [2026 Professional Services Maturity Benchmark](notes/spi-psmb-2026.md) | 2026 | 行业规范 | 草稿 | 153 |
+
+### VS-14（1）
 
 | 编号 | 题名 | 年份 | 资料类型 | 状态 | 锚点 |
 |---|---|---|---|---|---|
