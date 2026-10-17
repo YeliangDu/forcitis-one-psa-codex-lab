@@ -1,5 +1,6 @@
 package com.forcitis.one;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.methods;
@@ -26,6 +27,12 @@ import org.junit.jupiter.api.Test;
 class ArchitectureRulesTest {
     static final String ROOT = "com.forcitis.one";
     static final int MAX_API_METHODS_PER_MODULE = 12;
+    // 登记例外：模块 -> {上限, 出处}；全局上限不抬，新增例外须有出处并经 one-architecture 裁定
+    static final Map<String, ApiLimitException> API_LIMIT_EXCEPTIONS = Map.of(
+            ROOT + ".organization.workforce", new ApiLimitException(13,
+                    "NITS-1 项⑤；one-coordinator 同意；one-architecture 裁定 2026-10-17"));
+
+    record ApiLimitException(int max, String source) {}
 
     static final JavaClasses CLASSES = new ClassFileImporter()
             .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
@@ -62,9 +69,33 @@ class ArchitectureRulesTest {
                 .filter(c -> c.getPackageName().matches(".*\\.api(\\..*)?$") && c.isInterface())
                 .collect(Collectors.groupingBy(c -> c.getPackageName().replaceFirst("\\.api(\\..*)?$", ""),
                         Collectors.summingLong(c -> c.getMethods().size())));
+        assertApiSurfaceNarrow(perModule);
+    }
+
+    @Test
+    void apiSurfaceExceptionModuleAllowsExactlyItsLimit() {
+        String module = ROOT + ".organization.workforce";
+        assertApiSurfaceNarrow(Map.of(module, 13L));
+        assertThatThrownBy(() -> assertApiSurfaceNarrow(Map.of(module, 14L)))
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("Deepen the module instead of widening its interface.");
+    }
+
+    @Test
+    void apiSurfaceNonExceptionModuleFailsAboveGlobalLimit() {
+        assertApiSurfaceNarrow(Map.of(ROOT + ".billing.invoicing", 12L));
+        assertThatThrownBy(() -> assertApiSurfaceNarrow(Map.of(ROOT + ".billing.invoicing", 13L)))
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining("Deepen the module instead of widening its interface.");
+    }
+
+    static void assertApiSurfaceNarrow(Map<String, Long> perModule) {
         perModule.forEach((module, count) -> {
-            if (count > MAX_API_METHODS_PER_MODULE) {
-                throw new AssertionError(module + " exposes " + count + " api methods (max " + MAX_API_METHODS_PER_MODULE
+            int max = API_LIMIT_EXCEPTIONS.containsKey(module)
+                    ? API_LIMIT_EXCEPTIONS.get(module).max()
+                    : MAX_API_METHODS_PER_MODULE;
+            if (count > max) {
+                throw new AssertionError(module + " exposes " + count + " api methods (max " + max
                         + "). Deepen the module instead of widening its interface.");
             }
         });
