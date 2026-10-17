@@ -41,7 +41,7 @@ def sheet_fd():
                       "basis": [], "practice": [], "opts": FACT_OPTS})
     ex = doc["example"]
     return {"sheet": "FD", "title": "财务口径决策单",
-            "lede": f"共 {sum(len(s['items']) for s in doc['stages'])} 题，按阶段卡点分组，最急的在前；最后一组是 {len(doc['facts'])} 条需向财务核实的事实。每题已预选推荐项，同意就不用动；要改就点别的选项并写理由。每组底部「提交本组」，确认后才算数。",
+            "lede": f"共 {sum(len(s['items']) for s in doc['stages'])} 题，按阶段卡点分组，最急的在前；最后一组是 {len(doc['facts'])} 条需向财务核实的事实。每题已预选推荐项，同意就不用动；要改就点别的选项并写理由。全部选完后到页面最后一个标签「检查答案」，核对后一次提交。",
             "groups": groups, "items": items,
             "info": [{"title": "卷首示例：两本账怎么记", "lines": ex["intro"], "table": ex["rows"], "after": ex["after"]}],
             "side": [{"title": f"已定口径（{len(doc['decided'])} 条，供核对）", "lines": doc["decided"]},
@@ -117,7 +117,7 @@ def self_test():
     bad(None, (False, False), "恰好一个推荐"); bad("choice", (True, True), "恰好一个推荐")
     bad("fact", (True, False), "没有默认项"); bad("selection", (False, True), "没有默认项"); bad("bogus", (True, False), "kind 须取自")
     template = (HERE / "page-template.html").read_text(encoding="utf-8")
-    for needle in ('"open"', "未答", "counts(foot.dataset.g).open", "yes.hidden = open > 0", "if (counts(gid).open)"):
+    for needle in ('"none"', '"answered"', "未答", "recOf(i) < 0 && pick(i).choice === null", "blocked === 0"):
         assert needle in template, f"page-template.html 缺少无默认项题的处理：{needle}"
     print("build_decision_page self-test: ok")
 
@@ -131,10 +131,13 @@ def main():
     sheets = [load(n) for n in sys.argv[1].split(",")]
     validate(sheets)
     items = [dict(i, key=f"{sh['sheet']}~{i['no']}") for sh in sheets for i in sh["items"]]
-    data = {"items": items, "groups": [g for sh in sheets for g in sh["groups"]],
+    flags = {sh.get("preselect", True) for sh in sheets}
+    if len(flags) > 1:
+        sys.exit("同一页上的单子 preselect 须一致（业务口径单默认预选推荐项；框架、标准、选型类单子写 preselect:false）")
+    data = {"preselect": flags.pop(), "items": items, "groups": [g for sh in sheets for g in sh["groups"]],
             "info": [b for sh in sheets for b in sh.get("info", [])], "side": [b for sh in sheets for b in sh.get("side", [])]}
     title = sheets[0]["title"] if len(sheets) == 1 else "业务口径决策"
-    lede = sheets[0]["lede"] if len(sheets) == 1 else f"共 {len(data['groups'])} 组、{len(items)} 题；每题已预选推荐项，每组底部「提交本组」，确认后才算数。"
+    lede = sheets[0]["lede"] if len(sheets) == 1 else f"共 {len(data['groups'])} 组、{len(items)} 题；每题已预选推荐项，全部选完后到页面最后一个标签「检查答案」，核对后一次提交。"
     dump = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     page = (HERE / "page-template.html").read_text(encoding="utf-8")
     page = page.replace("/*__DATA__*/null", dump).replace("/*__TITLE__*/", title).replace("/*__LEDE__*/", lede)
