@@ -274,4 +274,25 @@ class SingleOperatorModeListenerTest {
         assertThatThrownBy(() -> resolve(byDefaultProfiles("true", "dev"))).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> resolve(byDefaultProfiles("true", "identity-operations", "dev"))).isInstanceOf(IllegalStateException.class);
     }
+
+    @Test
+    @DisplayName("SINGLE-OP P1-07 激活 profile 含 dev、default profile 含 prod、值为 true：只看激活 profile，通过，模式为开启；default 的 prod 不拖累")
+    void p107_activeDevWinsOverProdInTheDefaultProfiles() {
+        StandardEnvironment environment = withKey("true", "dev");
+        environment.setDefaultProfiles("prod");
+
+        assertThat(resolve(environment)).isTrue();
+    }
+
+    @Test
+    @DisplayName("SINGLE-OP P1-06 激活 profile 含 dev、default profile 含 prod、键为 false 或未设置：通过，模式为关闭")
+    void p106_activeDevWithProdInTheDefaultProfilesIsOffWhenNotTrue() {
+        StandardEnvironment falseKey = withKey("false", "dev");
+        falseKey.setDefaultProfiles("prod");
+        StandardEnvironment unset = withoutKey("dev");
+        unset.setDefaultProfiles("prod");
+
+        assertThat(resolve(falseKey)).isFalse();
+        assertThat(resolve(unset)).isFalse();
+    }
 }
