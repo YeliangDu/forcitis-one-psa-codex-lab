@@ -4,7 +4,7 @@
 
 同一概念在各资料中的叫法与位置。收录跨两份及以上资料出现、或在 terms.yaml 有词条的概念；只在一份资料出现的概念见各笔记。差异说明手写在 `concept_notes.yaml`。
 
-收录 27 个概念（全部锚点 419 个）。
+收录 73 个概念（全部锚点 1415 个）。
 
 ## WBS
 
@@ -13,6 +13,7 @@
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
 | WBS2#WBS | [Secrets to Mastering the WBS in Real-World Projects: The Most Practical Approach to Work Breakdown Structures (WBS)!](notes/buchtik-wbs2.md) | 定义、范围与交付物导向 | 第 1 章 What Is the WBS? | 1–3 / 23–25 |
+| WBS3#WBS | [Practice Standard for Work Breakdown Structures](notes/pmi-wbs3.md) | Work Breakdown Structure | §1.2.1；§2.1 | 3、11–12 / 20、28–29 |
 
 ## 一致性维度
 
@@ -32,6 +33,7 @@
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
 | DDDR#上下文映射 | [Domain-Driven Design Reference: Definitions and Pattern Summaries](notes/ddd-reference.md) | 上下文关系和显式翻译 | DDD，Context Map | 29 / 36 |
+| MIL#上下文映射 | [Patterns, Principles, and Practices of Domain-Driven Design](notes/millett-pppddd.md) | Context Map | 第 7 章开篇、A Reality Map | 91–92 / 137–138 |
 | VER#上下文映射 | [Implementing Domain-Driven Design](notes/vernon-iddd.md) | 第 3 章 Context Maps | 第 3 章 Context Maps | 87 / 130 |
 
 ## 业务对象与信息概念
@@ -43,6 +45,34 @@
 | BZ11#业务对象与信息概念 | [A Guide to the Business Architecture Body of Knowledge®（BIZBOK® Guide）](notes/bizbok-v11.md) | 业务对象、信息概念与数据库边界 | BZ，Part 2 §2.5 | 186 / 190 |
 | BZ9#业务对象与信息概念 | [A Guide to the Business Architecture Body of Knowledge（BIZBOK Guide）](notes/bizbok-v9-diff.md) | 业务对象、信息概念与数据库边界 | V9：§2.5，spine 11 `BB90F_split_009.htm`，L185–210；V11：§2.5，186 / 190 | 186 / 190 |
 
+## 业务能力
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| PCF8#业务能力 | [APQC 跨行业流程分类框架 v8.0](notes/apqc-pcf-80.md) | 业务能力 | PCF ID 10013；13.0 | — |
+| TOG10#业务能力 | [The TOGAF Standard 与 TOGAF Series Guides](notes/togaf10.md) | 能力、对象命名与实现要素 | G211，§2 / §2.1.1 / §2.2 | 2-3 / 12-13 |
+
+## 主要责任人与代理人
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| CAS14#主要责任人与代理人 | [企业会计准则第 14 号——收入](notes/cas14-2017.md) | 主要责任人 / 代理人 | 第三十四条 | 14 / 14 |
+| CASC#主要责任人与代理人 | [收入准则应用案例（十四份，逐件题名见附录）](notes/cas14-cases.md) | 主要责任人与代理人 | 案例《主要责任人和代理人的判断》例1–3及各例分析；CAS14第四、三十四条 | 1–6 / 1–6 |
+| CASG#主要责任人与代理人 | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 交易身份及总额、净额列示 | 七（三）开头及 1、2 | 87–88 / 92–93 |
+
+## 事件溯源
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| KHO#事件溯源 | [Learning Domain-Driven Design: Aligning Software Architecture and Business Strategy](notes/khononov-lddd.md) | 事件溯源 | 第 7 章 Event-Sourced Domain Model / Event Sourcing；16，`ch07.html`；L3 起 | — |
+| MIL#事件溯源 | [Patterns, Principles, and Practices of Domain-Driven Design](notes/millett-pppddd.md) | Event Sourcing | 第 22 章开篇、The Limitations of Storing State as a Snapshot | 595–596 / 641–642 |
+
 ## 事实与维度
 
 词条：无（terms.yaml 未收）
@@ -52,13 +82,49 @@
 | KIM2#事实与维度 | [The Data Warehouse Toolkit: The Complete Guide to Dimensional Modeling](notes/kimball-dwt2.md) | 事实、粒度、可加性与维度 | K2，第 1 章 Fact Table / Dimension Tables | 17-19 / 43-45 |
 | KIM3#事实与维度 | [The Data Warehouse Toolkit: The Definitive Guide to Dimensional Modeling](notes/kimball-dwt3.md) | Fact Tables / Dimension Tables | 第 1 章 | 10-14 / 46-50 |
 
+## 亏损合同
+
+词条：`onerous_contract`（OnerousContract，delivery.execution）——履行合同义务不可避免的成本超过预期经济利益的合同
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| CASC#亏损合同 | [收入准则应用案例（十四份，逐件题名见附录）](notes/cas14-cases.md) | 亏损合同及质量保证金 | 案例《亏损合同案例》2×19、2×20年处理及2×21–2×22年处理 | 3–7 |
+
+## 交付计划
+
+词条：`delivery_plan`（DeliveryPlan，delivery.execution）——WBS/里程碑/计划价值的版本化计划
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| FIDW#交付计划 | [Client/Consultant Model Services Agreement](notes/fidic-white-book-2017.md) | 服务实施计划及依赖日期 | 附件 4；通用条件 4.3.1–4.3.3 | g；12 / 17；35 |
+
 ## 交易价格
 
 词条：`transaction_price`（TransactionPrice，contract.agreement）——企业因向客户转让商品或服务而预期有权收取的对价金额，含可变对价估计
 
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
+| CASD#交易价格 | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 交易价格 | 第 15 章 §15.2.3、§15.2.4（一）分摊的一般原则；part0019.xhtml | — |
 | CAS14#交易价格 | [企业会计准则第 14 号——收入](notes/cas14-2017.md) | 交易价格 | 第十四条、第十五条 | 7 / 7 |
+| CASG#交易价格 | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 对价与合同标价的区别 | 五（一）开头 | 53 / 58 |
+| IFRS15#交易价格 | [IFRS 15 Revenue from Contracts with Customers](notes/ifrs15-summary.md) | 交易价格 | About五步列表第3项前两句 | — |
+
+## 产出法
+
+词条：`output_method`（OutputMethod，receivables.wip）——按里程碑/交付物完成的计量法（固定总价，F039）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| CASG#产出法 | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 按客户取得价值计量进度 | 四（三）1（2）①及例 19 | 40–41 / 45–46 |
+| IFRSH#产出法 | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 产出法 | G§7.1.4.A | 349 / 349 |
+
+## 人工成本产出倍数
+
+词条：`labor_cost_multiplier`（LaborCostMultiplier，operations.policy）——指定分子（收入确认、开票或回款）÷ 同期人工成本；指标名须写明分子，例如「人工成本产出倍数（回款）」；人工成本范围按口径参数
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| SPI26#人工成本产出倍数 | [2026 Professional Services Maturity Benchmark](notes/spi-psmb-2026.md) | 人工成本产出倍数（财务与运营，自写概括） | 附录 D，表 275 | 240 / 247 |
 
 ## 仓储
 
@@ -68,6 +134,42 @@
 |---|---|---|---|---|
 | DDDR#仓储 | [Domain-Driven Design Reference: Definitions and Pattern Summaries](notes/ddd-reference.md) | 聚合根的仓储访问 | DDD，Repositories | 17 / 24 |
 | PEAA#仓储 | [Patterns of Enterprise Application Architecture](notes/fowler-poeaa.md) | 领域对象访问抽象 | 第 13 章 Repository（Edward Hieatt / Rob Mee）；`EPUB/Text/0321127420_ch13lev1sec3.html` | — |
+| MIL#仓储 | [Patterns, Principles, and Practices of Domain-Driven Design](notes/millett-pppddd.md) | Repository | 第 14 章，Repositories；第 21 章，Repository Antipatterns | 323；507 / 369；553 |
+
+## 价值流与阶段
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| GLD#价值流与阶段 | [The Business Architecture Metamodel Guide V3.0；Using Business Architecture in Conjunction with BIAN Service Domains to Drive Business Value；Business Architecture Government Reference Model Workshop](notes/guild-whitepapers.md) | 价值流与阶段 | GLD-02，第5.1节 | 13 / 13 |
+| TOG10#价值流与阶段 | [The TOGAF Standard 与 TOGAF Series Guides](notes/togaf10.md) | 价值流与流程、阶段及其能力映射 | G178，§1.4 / §2.1-§2.3 | 3,5-6 / 13,15-16 |
+
+## 价值流指南书目
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| TOGS#价值流指南书目 | [TOGAF Series Guides；Business Capabilities, Version 2；Value Streams；The TOGAF Integrated Information Infrastructure Reference Model (III-RM): An Architected Approach to Boundaryless Information Flow](notes/togaf-series-summaries.md) | 价值流指南书目 | TOGS-02，产品标题、编号及Additional Information | — |
+| TOG10#价值流指南书目 | [The TOGAF Standard 与 TOGAF Series Guides](notes/togaf10.md) | G178 书目与更新 | G178，版权页 | iv / 4 |
+
+## 价格分摊
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| CAS14#价格分摊 | [企业会计准则第 14 号——收入](notes/cas14-2017.md) | 按单独售价分摊 | 第二十条至第二十三条 | 9-10 / 9-10 |
+| CASG#价格分摊 | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 各履约义务的单独售价相对比例 | 五（二）1 及例 36 | 66 / 71 |
+
+## 会计期间
+
+词条：`accounting_period`（AccountingPeriod，accounting.period）——按（期间, 法人）粒度的期间状态载体，只有会计期间 BC 能写
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| ACCB#会计期间 | [企业会计准则——基本准则；会计基础工作规范；会计档案管理办法；企业会计准则第4号——固定资产；企业会计准则第22号——金融工具确认和计量](notes/acc-basics.md) | 会计期间 | B第一章第七条 | — |
 
 ## 值对象
 
@@ -76,6 +178,7 @@
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
 | DDDR#值对象 | [Domain-Driven Design Reference: Definitions and Pattern Summaries](notes/ddd-reference.md) | 值对象、特征与不可变性 | DDD，Value Objects | 12 / 19 |
+| MIL#值对象 | [Patterns, Principles, and Practices of Domain-Driven Design](notes/millett-pppddd.md) | Value Object | 第 14 章，Value Objects，图 14-3 | 314–315 / 360–361 |
 | VER#值对象 | [Implementing Domain-Driven Design](notes/vernon-iddd.md) | 第 6 章 Value Characteristics | 第 6 章 Value Characteristics | 221 / 264 |
 
 ## 关联号
@@ -86,13 +189,43 @@
 |---|---|---|---|---|
 | EIP#关联号 | [Enterprise Integration Patterns: Designing, Building, and Deploying Messaging Solutions](notes/hohpe-eip.md) | 请求与回复关联 | EIP1，第 5 章 Correlation Identifier | 163–164 / 219–220 |
 
+## 利用率
+
+词条：`utilization_rate`（UtilizationRate，cost.timesheet）——可计费工时 / 可用工时（PSA 通行指标）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| SPI26#利用率 | [2026 Professional Services Maturity Benchmark](notes/spi-psmb-2026.md) | 利用率（人才，自写概括） | 第 10 章，利用率定义；附录 D 印刷 238 | 146 / 153 |
+
+## 变更
+
+词条：`change_order`（ChangeOrder，contract.agreement）——合同范围/价格/工期的正式修改（增补协议是落地形式之一）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| FIDW#变更 | [Client/Consultant Model Services Agreement](notes/fidic-white-book-2017.md) | 服务变更的发起与识别 | 通用条件 5.1.1–5.1.4 | 14 / 37 |
+
 ## 可变对价
 
 词条：`variable_consideration`（VariableConsideration，contract.agreement）——交易价格中随折让、违约金、奖励、索赔结果等变动的部分
 
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
+| CASD#可变对价 | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 可变对价 | 第 15 章 §15.2.3（一）（二）；part0019.xhtml | — |
 | CAS14#可变对价 | [企业会计准则第 14 号——收入](notes/cas14-2017.md) | 可变对价及限制 | 第十六条 | 7-8 / 7-8 |
+| CASG#可变对价 | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 估计方法、转回限制及期末更新 | 五（一）1（1）、（2），例 25–29 | 54–57 / 59–62 |
+| IFRSC#可变对价 | [新的收入准则对建筑业的影响；Revenue from contracts with customers — Engineering and construction industry supplement；Implementing IFRS 15 Revenue from Contracts with Customers — A practical guide to implementation issues for the industrial products and services sector](notes/ifrs15-construction.md) | 可变对价 | K§2.3，IFRS15.50–59 | 7–8 / 9–10 |
+| IFRSH#可变对价 | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 可变对价 | K§3.1、3.1.1，IFRS15.51–53；C第三步（一） | K46、51；C9 / K48、53；C10 |
+| IFRS15#可变对价 | [IFRS 15 Revenue from Contracts with Customers](notes/ifrs15-summary.md) | 可变对价 | About五步列表第3项末句 | — |
+
+## 合同
+
+词条：`contract`（Contract，contract.agreement）——与客户的收入合同（采购/分包合同另属采购子域，独立语义）；四形态：独立合同/框架协议/任务订单/内部结算协议
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| CASD#合同 | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 合同 | 第 15 章 §15.1.2、§15.2.1 合同识别、合并及变更；part0019.xhtml | — |
+| IFRS15#合同 | [IFRS 15 Revenue from Contracts with Customers](notes/ifrs15-summary.md) | 合同 | About五步列表第1项 | — |
 
 ## 合同取得成本
 
@@ -100,7 +233,11 @@
 
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
+| CASD#合同取得成本 | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 合同取得成本 | 第 15 章 §15.3.2、例 15-37；part0019.xhtml | — |
 | CAS14#合同取得成本 | [企业会计准则第 14 号——收入](notes/cas14-2017.md) | 合同取得成本 | 第二十八条、第二十九条 | 12 / 12 |
+| CASG#合同取得成本 | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 取得合同增量成本及佣金案例 | 六（二），例 42、例 43 | 76–78 / 81–83 |
+| IFRSC#合同取得成本 | [新的收入准则对建筑业的影响；Revenue from contracts with customers — Engineering and construction industry supplement；Implementing IFRS 15 Revenue from Contracts with Customers — A practical guide to implementation issues for the industrial products and services sector](notes/ifrs15-construction.md) | 合同取得成本 | K§1.1，IFRS15.91–94；P Contract costs | K2；P17 / K4；P17 |
+| IFRSH#合同取得成本 | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 合同取得成本 | K§7.1，IFRS15.91–94 | 160 / 162 |
 
 ## 合同履约成本
 
@@ -108,7 +245,65 @@
 
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
+| CASD#合同履约成本 | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 合同履约成本 | 第 15 章 §15.3.1；part0019.xhtml | — |
 | CAS14#合同履约成本 | [企业会计准则第 14 号——收入](notes/cas14-2017.md) | 合同履约成本 | 第二十六条、第二十七条 | 11-12 / 11-12 |
+| CASG#合同履约成本 | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 合同履约成本的资产条件与费用化边界 | 六（一），例 41 | 75–76 / 80–81 |
+| IFRSC#合同履约成本 | [新的收入准则对建筑业的影响；Revenue from contracts with customers — Engineering and construction industry supplement；Implementing IFRS 15 Revenue from Contracts with Customers — A practical guide to implementation issues for the industrial products and services sector](notes/ifrs15-construction.md) | 合同履约成本 | K§1.1、2.1，IFRS15.95–98；P Contract costs | K2、6；P17 / K4、8；P17 |
+| IFRSH#合同履约成本 | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 合同履约成本 | K§7.2，IFRS15.95–98；G§9.3.2 | K165；G451 / K167；G451 |
+
+## 合同成本减值
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| CASD#合同成本减值 | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 与合同成本有关的资产的减值 | 第 15 章 §15.3.4；part0019.xhtml | — |
+| CAS14#合同成本减值 | [企业会计准则第 14 号——收入](notes/cas14-2017.md) | 与合同成本有关资产的减值 | 第三十条、第三十一条 | 12-13 / 12-13 |
+| IFRSH#合同成本减值 | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 合同成本资产减值 | K§7.4，IFRS15.101–104 | 175 / 177 |
+
+## 合同成本摊销
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| CASD#合同成本摊销 | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 与合同成本有关的资产的摊销 | 第 15 章 §15.3.3；part0019.xhtml | — |
+| CASG#合同成本摊销 | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 合同成本相关资产的摊销 | 六（三）1 | 79 / 84 |
+| IFRSH#合同成本摊销 | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 合同成本资产摊销 | K§7.3例12及IFRS15.99 | 171 / 173 |
+
+## 合同成立条件
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| CAS14#合同成立条件 | [企业会计准则第 14 号——收入](notes/cas14-2017.md) | 合同识别五条件 | 第五条、第六条 | 2-3 / 2-3 |
+| CASG#合同成立条件 | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 与客户订立合同的识别条件 | 四（一）1（1） | 13 / 18 |
+
+## 合同范围
+
+词条：`contract_scope`（ContractScope，contract.agreement）——基线内的范围条目，WBS 挂接与超范围判断的基准
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| FIDW#合同范围 | [Client/Consultant Model Services Agreement](notes/fidic-white-book-2017.md) | 服务范围 | 附件 1；通用条件 1.1.23、3.1.1–3.1.2 | d；3；9 / 14；26；32 |
+
+## 合同负债
+
+词条：`contract_liability`（ContractLiability，receivables.wip）——企业已收或应收客户对价而应向客户转让商品或服务的义务（预收款、超额开票），按合同与合同资产净额列示
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| CASG#合同负债 | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 履约前已收或应收对价 | 八（一）1 | 112 / 117 |
+| CASQ#合同负债 | [收入准则实施问答（五则）](notes/cas14-qa.md) | 合同负债 | Q4《因转让商品收到的预收款及相关增值税应当使用什么会计科目？》答段第1段 | — |
+
+## 合同资产
+
+词条：`contract_asset`（ContractAsset，receivables.wip）——准则口径：企业已向客户转让商品或服务而有权收取对价、且该权利取决于时间流逝之外因素的权利；按合同与合同负债净额列示
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| CASG#合同资产 | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 附条件收款权与应收款项的区别 | 八（一）1，例 66 | 112–113 / 117–118 |
 
 ## 员工
 
@@ -127,6 +322,15 @@
 | KHO#命令查询职责分离 | [Learning Domain-Driven Design: Aligning Software Architecture and Business Strategy](notes/khononov-lddd.md) | 命令查询职责分离 | 第 8 章 Command-Query Responsibility Segregation；17，`ch08.html`；L180 起 | — |
 | VER#命令查询职责分离 | [Implementing Domain-Driven Design](notes/vernon-iddd.md) | 第 4 章 Command-Query Responsibility Segregation | 第 4 章 Command-Query Responsibility Segregation | 138–140 / 181–183 |
 
+## 商业账单复核
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| AJE#商业账单复核 | [Ajera 实施、会计基础与移动费用资料](notes/ajera.md) | Billing review | 实施指南 Phase 4 / Using billing review | 64 / 64 |
+| UAE#商业账单复核 | [Unanet AE Participant Guide（八份手册）](notes/unanet-ae.md) | PM／PA Bill Review 及交接状态 | BI 6、11–16；AR 39–47 | — |
+
 ## 商机
 
 词条：`opportunity`（Opportunity，presales.opportunity）——立项跟进的销售机会，评估→报价→承诺→转化的全生命周期对象
@@ -134,6 +338,41 @@
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
 | UAE#商机 | [Unanet AE Participant Guide（八份手册）](notes/unanet-ae.md) | Opportunity 主档 | AD 67、98 | — |
+
+## 固定资产后续支出
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| ACCB#固定资产后续支出 | [企业会计准则——基本准则；会计基础工作规范；会计档案管理办法；企业会计准则第4号——固定资产；企业会计准则第22号——金融工具确认和计量](notes/acc-basics.md) | 后续支出 | F第二章第六条 | — |
+| CASD#固定资产后续支出 | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 固定资产的后续支出 | 第 5 章 §5.3.2；part0009.xhtml | — |
+
+## 固定资产确认
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| ACCB#固定资产确认 | [企业会计准则——基本准则；会计基础工作规范；会计档案管理办法；企业会计准则第4号——固定资产；企业会计准则第22号——金融工具确认和计量](notes/acc-basics.md) | 固定资产定义与确认 | F第二章第三、四条 | — |
+| CASD#固定资产确认 | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 固定资产的定义、确认条件及单项固定资产 | 第 5 章 §5.1.1–§5.1.3；part0009.xhtml | — |
+
+## 固定资产终止确认
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| ACCB#固定资产终止确认 | [企业会计准则——基本准则；会计基础工作规范；会计档案管理办法；企业会计准则第4号——固定资产；企业会计准则第22号——金融工具确认和计量](notes/acc-basics.md) | 处置及替换部分终止确认 | F第五章第二十一、二十三、二十四条 | — |
+| CASD#固定资产终止确认 | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 固定资产终止确认的条件 | 第 5 章 §5.4.1；part0009.xhtml | — |
+
+## 完工估算
+
+词条：`estimate_at_completion`（EstimateAtCompletion，delivery.execution）——EAC = 实际成本 AC + 完工尚需估算 ETC
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| PMB7#完工估算 | [项目管理标准和项目管理知识体系指南（PMBOK® 指南）](notes/pmbok7-zh.md) | EAC、ETC预测 | 《PMBOK 指南》§2.7.2.7、图2-26 | 104–105 / 199–200 |
 
 ## 对象分类与汇聚例外
 
@@ -144,13 +383,30 @@
 | BZ11#对象分类与汇聚例外 | [A Guide to the Business Architecture Body of Knowledge®（BIZBOK® Guide）](notes/bizbok-v11.md) | 一级、次级、类型与汇聚例外 | BZ，Part 2 §2.5 | 194-195 / 198-199 |
 | BZ9#对象分类与汇聚例外 | [A Guide to the Business Architecture Body of Knowledge（BIZBOK Guide）](notes/bizbok-v9-diff.md) | primary/secondary 与汇聚例外均已存在 | V9：同上，L565 起、L878 附近；V11：§2.5，194–195、199 / 198–199、203 | 194–195、199 / 198–199、203 |
 
+## 履约义务
+
+词条：`performance_obligation`（PerformanceObligation，contract.agreement）——合同中向客户转让可明确区分商品或服务的承诺，收入确认的计量单元
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| CASD#履约义务 | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 履约义务 | 第 15 章 §15.2.2；part0019.xhtml | — |
+| CASG#履约义务 | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 单项履约义务及一系列服务 | 四（二）开头 | 24–25 / 29–30 |
+| IFRSC#履约义务 | [新的收入准则对建筑业的影响；Revenue from contracts with customers — Engineering and construction industry supplement；Implementing IFRS 15 Revenue from Contracts with Customers — A practical guide to implementation issues for the industrial products and services sector](notes/ifrs15-construction.md) | 履约义务 | K§1.2，IFRS15.22–30 | 3 / 5 |
+| IFRSH#履约义务 | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 履约义务 | K§2.1，IFRS15.22–29；G§4.2.1；C五步法第二步 | K21–22；G123；C7 / K23–24；G123；C8 |
+| IFRS15#履约义务 | [IFRS 15 Revenue from Contracts with Customers](notes/ifrs15-summary.md) | 履约义务 | About五步列表第2项 | — |
+
 ## 履约进度
 
 词条：`measure_of_progress`（MeasureOfProgress，receivables.wip）——履约义务完成程度的计量值，取值 [0,1]（F041），按投入法或产出法计量
 
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
+| CASD#履约进度 | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 履约进度 | 第 15 章 §15.2.5（一）（二）；part0019.xhtml | — |
 | CAS14#履约进度 | [企业会计准则第 14 号——收入](notes/cas14-2017.md) | 履约进度、产出法、投入法 | 第十二条 | 6 / 6 |
+| CASG#履约进度 | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 方法一致、重新估计及进度不可合理确定 | 四（三）1（2），时段收入计量说明末段 | 45 / 50 |
+| IFRSC#履约进度 | [新的收入准则对建筑业的影响；Revenue from contracts with customers — Engineering and construction industry supplement；Implementing IFRS 15 Revenue from Contracts with Customers — A practical guide to implementation issues for the industrial products and services sector](notes/ifrs15-construction.md) | 履约进度 | K§2.2，IFRS15.39–45；P Measuring performance | K7；P13 / K9；P13 |
+| IFRSH#履约进度 | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 履约进度 | K§5.3.1，IFRS15.39–45；G§7.1.4 | K123–124；G346 / K125–126；G346 |
+| IFRS15#履约进度 | [IFRS 15 Revenue from Contracts with Customers](notes/ifrs15-summary.md) | 履约进度 | About五步列表第5项末句 | — |
 
 ## 工作包
 
@@ -159,6 +415,7 @@
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
 | WBS2#工作包 | [Secrets to Mastering the WBS in Real-World Projects: The Most Practical Approach to Work Breakdown Structures (WBS)!](notes/buchtik-wbs2.md) | 工作包、细度和分支深度 | 第 5 章 What Is a Work Package? / Decomposition | 52–58 / 74–80 |
+| WBS3#工作包 | [Practice Standard for Work Breakdown Structures](notes/pmi-wbs3.md) | Work Package | §2.1；§2.2.5 | 12、29 / 29、46 |
 
 ## 工作日历
 
@@ -168,6 +425,40 @@
 |---|---|---|---|---|
 | UAE#工作日历 | [Unanet AE Participant Guide（八份手册）](notes/unanet-ae.md) | Holiday Calendar | AD 22–23 | — |
 
+## 应收周转天数
+
+词条：`days_sales_outstanding`（DaysSalesOutstanding，receivables.collection）——应收余额（合同资产、应收账款、应收票据分别及合计）÷ 对应额 × 天数；分子分母与天数基准按 FD-39
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| SPI26#应收周转天数 | [2026 Professional Services Maturity Benchmark](notes/spi-psmb-2026.md) | 应收周转天数（财务与运营，自写概括） | 第 12 章，DSO；附录 D 印刷 239；附录 E 题 147 | 203 / 210 |
+
+## 应收款项
+
+词条：`receivable`（Receivable，receivables.collection）——应收账款与其他应收款的往来款项；开票产生是它的一种来源；不含质量保证金、保证金（各自是聚合）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| CASD#应收款项 | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 应收款项的损失准备 | 第 22 章 §22.7.5（二）（三）；part0026.xhtml | — |
+
+## 建模范围
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| LAN#建模范围 | [Enterprise Architecture at Work: Modelling, Communication and Analysis](notes/lankhorst-eaw.md) | §6.3.1–6.3.2 建模前提、内容与范围 | §6.3.1–6.3.2 建模前提、内容与范围 | 134–135 / 150–151 |
+| BMS#建模范围 | [BPMN Method and Style: With BPMN Implementer's Guide](notes/silver-bpmn-ms2.md) | Determine Process Scope | index_split_001.html；第5章 Step 1 | — |
+
+## 投入法
+
+词条：`input_method`（InputMethod，receivables.wip）——按累计投入占预计总投入的计量法（T&M 用工时、成本加酬金用成本，F040）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| CASG#投入法 | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 以投入计量并校正不对应进度的成本 | 四（三）1（2）②及例 20、例 21 | 41–44 / 46–49 |
+| IFRSH#投入法 | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 投入法 | G§7.1.4.B；K§5.3.1 | G351；K124 / G351；K126 |
+
 ## 挣值
 
 词条：`earned_value`（EarnedValue，delivery.execution）——截至某时点已完成工作的预算价值（EV；GB/T 50358 称赢得值）
@@ -175,6 +466,16 @@
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
 | PMB6#挣值 | [项目管理知识体系指南（PMBOK® 指南）第六版](notes/pmbok6-zh.md) | §7.4.2.2 数据分析中的挣值分析、偏差与预测 | §7.4.2.2 数据分析中的挣值分析、偏差与预测；spine / 文档：3，同上；位置：L253 起 | — |
+| PMB7#挣值 | [项目管理标准和项目管理知识体系指南（PMBOK® 指南）](notes/pmbok7-zh.md) | 基准绩效、挣值分析 | 《PMBOK 指南》§2.7.2.3、图2-24 | 100–101 / 195–196 |
+| WBS3#挣值 | [Practice Standard for Work Breakdown Structures](notes/pmi-wbs3.md) | Earned Value Management Example | §5.2.8、表5-8 | 96 / 113 |
+
+## 收入确认
+
+词条：`revenue_recognition`（RevenueRecognition，receivables.wip）——按客户确认的事实与合同条款确认收入的规则（时点与金额的判定口径），在开票与收入额度聚合内逐行执行，每行是一条收入确认行；不是一张单据；审批通过即确认收入，收入期间取客户签字日所在月；法定入账另为 StatutoryRevenueBooked
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| IFRS15#收入确认 | [IFRS 15 Revenue from Contracts with Customers](notes/ifrs15-summary.md) | 收入确认 | About第2段第2句 | — |
 
 ## 数据质量
 
@@ -185,6 +486,42 @@
 | DAMA2#数据质量 | [The DAMA Guide to the Data Management Body of Knowledge](notes/dama-dmbok2.md) | 数据质量标准、源头预防与根因改进 | D2，第 13 章 §1.2 / §1.3.10.2 前文 | 未核 / 555-556,580 |
 | HAY#数据质量 | [Data Model Patterns: A Metadata Map](notes/hay-dmp.md) | 数据质量 | 第 7 章数据质量特征；ROW SIX: MEASURING DATA QUALITY；16，同上；L249；L340 起 | — |
 
+## 时段履约
+
+词条：`satisfied_over_time`（SatisfiedOverTime，receivables.wip）——在某一时段内履行的履约义务，按履约进度确认收入
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| CASG#时段履约 | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 某一时段内履行的条件 | 四（三）1（1）的三项条件 | 33–35；39 / 38–40；44 |
+
+## 时段履约条件
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| CAS14#时段履约条件 | [企业会计准则第 14 号——收入](notes/cas14-2017.md) | 时段履约 / 时点履约 | 第十一条 | 5-6 / 5-6 |
+| IFRSC#时段履约条件 | [新的收入准则对建筑业的影响；Revenue from contracts with customers — Engineering and construction industry supplement；Implementing IFRS 15 Revenue from Contracts with Customers — A practical guide to implementation issues for the industrial products and services sector](notes/ifrs15-construction.md) | 时段或时点履约 | K§1.3，IFRS15.31–38；D Step5 | K4–5；D12 / K6–7；D14 |
+| IFRSH#时段履约条件 | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 时段履约的三种路径 | K§5.2，IFRS15.35；C五步法第五步 | K110；C15–16 / K112；C16–17 |
+
+## 服务系列
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| IFRSC#服务系列 | [新的收入准则对建筑业的影响；Revenue from contracts with customers — Engineering and construction industry supplement；Implementing IFRS 15 Revenue from Contracts with Customers — A practical guide to implementation issues for the industrial products and services sector](notes/ifrs15-construction.md) | 一系列实质相同服务 | D Step2及识别流程图 | 6–7 / 8–9 |
+| IFRSH#服务系列 | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 一系列实质相同且转让模式相同的服务 | K§2.3，IFRS15.22(b)–23；G§4.2.2 | K38；G137 / K40；G137 |
+
+## 未定价变更
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| IFRSC#未定价变更 | [新的收入准则对建筑业的影响；Revenue from contracts with customers — Engineering and construction industry supplement；Implementing IFRS 15 Revenue from Contracts with Customers — A practical guide to implementation issues for the industrial products and services sector](notes/ifrs15-construction.md) | 范围已批准的未定价变更 | P Contract modifications及Example1 | 3–4 / 3–4 |
+| IFRSH#未定价变更 | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 范围获批但价格未定的变更 | P§2.9.1例2-11；K§8.1 | P2-23；K177 / P51；K179 |
+
 ## 流程与功能
 
 词条：无（terms.yaml 未收）
@@ -193,6 +530,31 @@
 |---|---|---|---|---|
 | AM32#流程与功能 | [ArchiMate® 3.2 Specification](notes/archimate32.md) | 流程、功能与业务行为 | AM，§8.3 / §8.3.1 | 62-63 / 86-87 |
 | AM4#流程与功能 | [ArchiMate 4 Specification](notes/archimate4.md) | Process / Function，§4.2.2–4.2.3 | 14，`chapter04.xhtml`；L37 起 | — |
+
+## 消息流
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| BPMN#消息流 | [Business Process Model and Notation（BPMN）](notes/bpmn-202.md) | Message Flow | §7.6.2；§9.4 | 41；119 / 71；149 |
+| BMS#消息流 | [BPMN Method and Style: With BPMN Implementer's Guide](notes/silver-bpmn-ms2.md) | Message Flow | index_split_001.html；第4章 Message Flow | — |
+
+## 离职率
+
+词条：`attrition_rate`（AttritionRate，organization.workforce）——期间离职人数 ÷ 平均在册人数，分主动、被动
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| SPI26#离职率 | [2026 Professional Services Maturity Benchmark](notes/spi-psmb-2026.md) | 离职率（人才，自写概括） | 附录 D，表 275 | 238 / 245 |
+
+## 竣工结算审核
+
+词条：`final_account_review`（FinalAccountReview，masterdata.catalog）——造价线的子阶段之一：对竣工结算的审核；与成本口径的估算、与协议的竣工结算确认不同
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| COSTGB#竣工结算审核 | [建设工程造价咨询规范](notes/gbt51095-2015.md) | 竣工结算编制与审核 | 8.2.1–8.3.4 | 40–42 |
 
 ## 粒度
 
@@ -203,6 +565,14 @@
 | KIM2#粒度 | [The Data Warehouse Toolkit: The Complete Guide to Dimensional Modeling](notes/kimball-dwt2.md) | 按测量活动设计、先明确粒度 | K2，第 2 章 Four-Step Dimensional Design Process | 30-31 / 56-57 |
 | KIM3#粒度 | [The Data Warehouse Toolkit: The Definitive Guide to Dimensional Modeling](notes/kimball-dwt3.md) | Grain | 第 2 章 Business Processes / Grain | 39-40 / 75-76 |
 
+## 索赔
+
+词条：`claim`（Claim，contract.agreement）——一方对另一方的补偿主张（双向：我方主张/客户主张）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| IFRSC#索赔 | [新的收入准则对建筑业的影响；Revenue from contracts with customers — Engineering and construction industry supplement；Implementing IFRS 15 Revenue from Contracts with Customers — A practical guide to implementation issues for the industrial products and services sector](notes/ifrs15-construction.md) | 索赔 | P Example3及分析 | 6–7 / 6–7 |
+
 ## 缓慢变化维
 
 词条：无（terms.yaml 未收）
@@ -211,6 +581,15 @@
 |---|---|---|---|---|
 | KIM2#缓慢变化维 | [The Data Warehouse Toolkit: The Complete Guide to Dimensional Modeling](notes/kimball-dwt2.md) | Type 2、版本键与有效期说明 | K2，第 4 章 Type 2: Add a Dimension Row | 97-98 / 123-124 |
 | KIM3#缓慢变化维 | [The Data Warehouse Toolkit: The Definitive Guide to Dimensional Modeling](notes/kimball-dwt3.md) | Slowly Changing Dimension Type 0/1/2 | 第 2 章 | 54 / 90 |
+
+## 聚合
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| DDDR#聚合 | [Domain-Driven Design Reference: Definitions and Pattern Summaries](notes/ddd-reference.md) | 聚合根、不变量及一致性边界 | DDD，Aggregates | 16 / 23 |
+| MIL#聚合 | [Patterns, Principles, and Practices of Domain-Driven Design](notes/millett-pppddd.md) | Aggregate | 第 14 章，Lifecycle Patterns，图 14-6 | 320 / 366 |
 
 ## 能力与价值流
 
@@ -221,6 +600,56 @@
 | AM32#能力与价值流 | [ArchiMate® 3.2 Specification](notes/archimate32.md) | 能力与价值流的抽象层次 | AM，§7.3.1 / §7.3.2 | 52-53 / 76-77 |
 | BAH#能力与价值流 | [Practical Model-Driven Enterprise Architecture: Design a mature enterprise architecture repository using Sparx Systems Enterprise Architect and ArchiMate® 3.1](notes/bahri-togaf.md) | 第 9 章 Defining capabilities / Value streams | 第 9 章 Defining capabilities / Value streams | 289、292 / 308、311 |
 
+## 计费费率卡
+
+词条：`bill_rate_card`（BillRateCard，contract.agreement）——对客计费费率卡（与成本费率卡 StandardCostRateCard 对称）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| AJE#计费费率卡 | [Ajera 实施、会计基础与移动费用资料](notes/ajera.md) | Billing rate tables | 实施指南 Phase 2 / About billing rate tables | 34 / 34 |
+
+## 记账凭证
+
+词条：`journal_voucher`（JournalVoucher，accounting.ledger）——可追溯来源业务事件的分录载体（外购系统承载，主权在本 BC）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| ACCB#记账凭证 | [企业会计准则——基本准则；会计基础工作规范；会计档案管理办法；企业会计准则第4号——固定资产；企业会计准则第22号——金融工具确认和计量](notes/acc-basics.md) | 记账凭证内容与更正 | W第三章第二节第五十、五十一、五十三条 | — |
+
+## 质量标准
+
+词条：`quality_standard`（QualityStandard，delivery.acceptance）——验收检查项的依据（源自合同履约条件与公司制度）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| PMB7#质量标准 | [项目管理标准和项目管理知识体系指南（PMBOK® 指南）](notes/pmbok7-zh.md) | 质量 | 《PMBOK 指南》§2.6.3 | 87 / 182 |
+
+## 赢单率
+
+词条：`win_rate`（WinRate，presales.opportunity）——赢单数 ÷（赢单数 + 丢单数）；金额口径另列
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| SPI26#赢单率 | [2026 Professional Services Maturity Benchmark](notes/spi-psmb-2026.md) | 赢单率（客户关系，自写概括） | 附录 D，表 275；附录 E 题 65 | 238 / 245 |
+
+## 顺序流
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| BPMN#顺序流 | [Business Process Model and Notation（BPMN）](notes/bpmn-202.md) | Sequence Flow | §7.6.1；§8.4.13 | 40；95 / 70；125 |
+| BMS#顺序流 | [BPMN Method and Style: With BPMN Implementer's Guide](notes/silver-bpmn-ms2.md) | Sequence Flow | index_split_001.html；第4章 Sequence Flow | — |
+
+## 预期信用损失
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| ACCB#预期信用损失 | [企业会计准则——基本准则；会计基础工作规范；会计档案管理办法；企业会计准则第4号——固定资产；企业会计准则第22号——金融工具确认和计量](notes/acc-basics.md) | 预期信用损失 | E第八章第四十七条 | 23 / 23 |
+| CASD#预期信用损失 | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 预期信用损失 | 第 22 章 §22.7.3（一）第 1、3、4 项；part0026.xhtml | — |
+
 ## 领域事件
 
 词条：无（terms.yaml 未收）
@@ -228,6 +657,7 @@
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
 | DDDR#领域事件 | [Domain-Driven Design Reference: Definitions and Pattern Summaries](notes/ddd-reference.md) | 领域事件、状态原因与两种时刻 | DDD，Domain Events | 13 / 20 |
+| MIL#领域事件 | [Patterns, Principles, and Practices of Domain-Driven Design](notes/millett-pppddd.md) | Domain Event | 第 14 章，Emerging Patterns；第 18 章开篇 | 324；405 / 370；451 |
 | VER#领域事件 | [Implementing Domain-Driven Design](notes/vernon-iddd.md) | 第 8 章 Modeling Events | 第 8 章 Modeling Events | 288–289 / 331–332 |
 
 ## 领域服务
@@ -238,4 +668,5 @@
 |---|---|---|---|---|
 | DDDR#领域服务 | [Domain-Driven Design Reference: Definitions and Pattern Summaries](notes/ddd-reference.md) | 不自然归属对象的领域操作 | DDD，Services | 14 / 21 |
 | EVA#领域服务 | [Domain-Driven Design: Tackling Complexity in the Heart of Software](notes/evans-ddd2003.md) | 领域服务及其边界 | 第 5 章 Services；L873 起 | — |
+| MIL#领域服务 | [Patterns, Principles, and Practices of Domain-Driven Design](notes/millett-pppddd.md) | Domain Service | 第 14 章，Domain Services | 317 / 363 |
 | VER#领域服务 | [Implementing Domain-Driven Design](notes/vernon-iddd.md) | 第 7 章 Make Sure You Need a Service | 第 7 章 Make Sure You Need a Service | 268 / 311 |

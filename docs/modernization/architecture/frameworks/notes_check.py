@@ -63,16 +63,20 @@ def cells(line):
 
 
 def anchor_rows(body):
-    """四节内（附节之前、代码块之外）首列形如 编号#… 的表格行：[(编号, 概念名, 各列)]。"""
+    """四节内（附节之前、代码块之外）首列恰为一个 编号#… 的表格行：[(编号, 概念名, 各列, 表序号)]。
+    首列含多个锚点（以「、」或空格分隔）的是引用，不是定义；同一锚点可在不同表中各出现一次。"""
     scope = re.split(r"^## 附：", strip_fences(body), maxsplit=1, flags=re.M)[0]
-    rows = []
+    rows, table, in_table = [], 0, False
     for line in scope.splitlines():
         if not line.lstrip().startswith("|"):
+            in_table = False
             continue
+        if not in_table:
+            table, in_table = table + 1, True
         c = cells(line)
         m = ANCHOR_CELL_RE.match(c[0]) if c else None
-        if m:
-            rows.append((m.group(1), m.group(2), c))
+        if m and len(REF_RE.findall(c[0])) <= 1 and not re.search(r"[、，\s]", m.group(2)):
+            rows.append((m.group(1), m.group(2), c, table))
     return rows
 
 
@@ -151,8 +155,8 @@ def check_note(path, meta, body, vocab, aliases, errors, warnings):
     if any(h.startswith("附：") for h in heads[: len(main)]):
         errors.append(f"{name}: 附节须在四节之后")
 
-    anchors = []
-    for prefix, concept, _ in anchor_rows(body):
+    anchors, per_table = [], []
+    for prefix, concept, _, table in anchor_rows(body):
         row = f"{prefix}#{concept}"
         if prefix != nid:
             errors.append(f"{name}: 锚点 {row} 的前缀与编号 {nid} 不符")
@@ -163,10 +167,11 @@ def check_note(path, meta, body, vocab, aliases, errors, warnings):
         if norm(concept) in aliases:
             errors.append(f"{name}: 锚点 {row} 是词条别名或禁用词，须用词条中文名 {aliases[norm(concept)]}")
         anchors.append(concept)
+        per_table.append((table, concept))
     if not anchors:
         errors.append(f"{name}: 没有锚点（四节内表格首列 编号#概念名）")
-    for a in sorted({a for a in anchors if anchors.count(a) > 1}):
-        errors.append(f"{name}: 锚点 {nid}#{a} 重复")
+    for table, a in sorted({x for x in per_table if per_table.count(x) > 1}):
+        errors.append(f"{name}: 锚点 {nid}#{a} 在同一张表内重复")
     if meta.get("资料类型") == "产品资料":
         check_evidence(name, nid, body, errors, warnings)
     return nid, set(anchors)

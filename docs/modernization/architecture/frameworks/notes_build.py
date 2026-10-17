@@ -30,8 +30,11 @@ def load_notes():
         if path.name.startswith("_"):
             continue
         meta, body = split_front_matter(path.read_text(encoding="utf-8"))
-        anchors = []
-        for _, concept, c in anchor_rows(body):
+        anchors, seen = [], set()
+        for _, concept, c, _ in anchor_rows(body):
+            if concept in seen:
+                continue
+            seen.add(concept)
             pages = " / ".join(p for p in c[3:5] if p and p != "—") if len(c) >= 6 else ""
             anchors.append({"concept": concept, "name": c[1] if len(c) > 1 else "",
                             "where": c[2] if len(c) > 2 else "", "pages": pages})
@@ -114,6 +117,7 @@ def self_test():
     c = cells("| KIM3#粒度 | Grain | 第 2 章 | 39-40 | 75-76 | 先声明一行含义 |")
     assert c[0] == "KIM3#粒度" and c[3] == "39-40" and len(c) == 6
     assert anchor_rows("## 核心思想\n```\n| KIM3#假 | x |\n```\n| KIM3#真 | y |\n## 附：核对\n| KIM3#附 | z |")[0][1] == "真"
+    assert anchor_rows("## 核心思想\n| KIM3#甲、KIM3#乙 | x |\n") == []
     assert link_text("a[b]|c") == "a［b］／c"
     assert VS_RE.findall("见 VS-15、PRC-190、XVS-01") == ["VS-15"]
     print("self-test ok")
