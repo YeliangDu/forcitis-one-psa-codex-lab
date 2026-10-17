@@ -756,7 +756,7 @@ AGG-93 含敏感个人信息与金融账户类信息，按 ADR-0043 在数据访
 | B-15 | 薪酬 | `organization.payroll` | **规划项重推导**（自建；并入 `organization.incentive`，D-5） | AGG-73–76、93、95、119、120（AGG-119 此前漏列） | 激励方案、人员薪酬档案 | → B-16：同上；→ `platform.integration`：防腐层 | 深（触账） |
 | B-16 | 过账 | `operations.facts` | **沿用**（ADR-0016） | AGG-77 | — | 对触账 BC 提供开放主机服务 + 发布语言（`PostingCandidate`） | 深 |
 | B-17 | 口径与勾稽 | `operations.policy` | **沿用**（ADR-0016、0023；以 ADR-0016、ADR-0023 为据，原不在本稿推导其聚合，符合性审查 建-9；S-31 SQ-22 起 AGG-78 口径版本、AGG-126 勾稽差异案入 §2.2） | AGG-78、126 | 口径版本 | → B-16：遵奉者 | 深 |
-| B-18 | 计划与预算 | `operations.planning` | **合并** `operations.planning` + `operations.budgeting`（旧稿 D-6） | AGG-79、80 | 经营计划 | — | 薄（预算账户若拦截则深） |
+| B-18 | 计划与预算 | `operations.planning` | **合并** `operations.planning` + `operations.budgeting`（旧稿 D-6） | AGG-79、80 | 经营计划 | → B-19：事件（订阅会计期间关账，PRC-181 经营复盘；people REVIEW_PACK dab07edd，2026-10-17） | 薄（预算账户若拦截则深） |
 | B-19 | 会计期间 | `accounting.period` | **沿用**（ADR-0016） | AGG-81、96 | 会计期间 | — | 深 |
 | B-20 | 总账 | `accounting.ledger` | **沿用**（ADR-0022） | AGG-82、84、85、94、98–101、125、127–129 | 科目表、映射表、授权表 | → B-16：遵奉者；→ `platform.integration`：防腐层（外部法定账推送；新旧科目对照在 U8C 适配器内翻译，不入聚合，S-31 SQ-15） | 深 |
 | B-21 | 法定报表 | `accounting.reporting` | **沿用**（ADR-0022） | AGG-86 | 报表行定义 | → B-20：遵奉者 | 薄（只读） |
