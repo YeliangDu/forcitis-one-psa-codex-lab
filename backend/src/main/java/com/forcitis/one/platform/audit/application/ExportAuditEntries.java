@@ -2,6 +2,7 @@ package com.forcitis.one.platform.audit.application;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.ListLimits;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditError;
@@ -27,6 +28,9 @@ public class ExportAuditEntries {
     ExportAuditEntries(AuditEntryQueries entries, AuditLog audit, @Value("${forcitis.platform.audit.export.max-rows}") int maxRows) {
         this.entries = entries;
         this.audit = audit;
+        if (maxRows < 1 || maxRows > ListLimits.EXPORT_MAX) {
+            throw new IllegalArgumentException("forcitis.platform.audit.export.max-rows must be between 1 and " + ListLimits.EXPORT_MAX);
+        }
         this.maxRows = maxRows;
     }
 

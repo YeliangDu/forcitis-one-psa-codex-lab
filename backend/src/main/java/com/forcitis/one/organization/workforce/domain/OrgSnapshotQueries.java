@@ -10,6 +10,9 @@ import java.util.Optional;
 public interface OrgSnapshotQueries {
     Optional<StaffEmployee> findStaff(EmployeeId employeeId);
 
+    /** The employees row alone: no assignment is joined, unlike findStaff. */
+    boolean employeeExists(EmployeeId employeeId);
+
     /** Prefers the employed person. */
     Optional<StaffEmployee> findStaffByWecomUser(WecomUserId wecomUserId);
 
