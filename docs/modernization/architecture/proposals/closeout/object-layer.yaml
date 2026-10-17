@@ -33,7 +33,7 @@ stages:
 - id: VS-01.1
   display: '01.1'
   order: 1
-  name: 市场与线索
+  name: 采集线索
   objects:
   - OBJ-17
   capabilities:
@@ -44,7 +44,7 @@ stages:
 - id: VS-01.2
   display: '01.2'
   order: 2
-  name: 业务拓展
+  name: 赢得委托
   objects:
   - OBJ-18
   capabilities:
@@ -55,7 +55,7 @@ stages:
 - id: VS-02.0
   display: '02.1'
   order: 1
-  name: 启动
+  name: 开始项目
   objects:
   - OBJ-29
   - OBJ-31
@@ -66,7 +66,7 @@ stages:
 - id: VS-02.1
   display: '02.2'
   order: 2
-  name: 概念
+  name: 确认概念
   objects:
   - OBJ-35
   - OBJ-30
@@ -75,7 +75,7 @@ stages:
 - id: VS-02.2
   display: '02.3'
   order: 3
-  name: 方案
+  name: 确认方案
   objects:
   - OBJ-35
   - OBJ-30
@@ -84,7 +84,7 @@ stages:
 - id: VS-02.3
   display: '02.4'
   order: 4
-  name: 初设
+  name: 完成初步设计
   objects:
   - OBJ-35
   - OBJ-30
@@ -93,7 +93,7 @@ stages:
 - id: VS-02.4
   display: '02.5'
   order: 5
-  name: 深化
+  name: 完成深化设计
   objects:
   - OBJ-35
   - OBJ-30
@@ -102,7 +102,7 @@ stages:
 - id: VS-02.5
   display: '02.6'
   order: 6
-  name: 招采
+  name: 完成招标采购配合
   objects:
   - OBJ-35
   - OBJ-30
@@ -111,7 +111,7 @@ stages:
 - id: VS-02.6
   display: '02.7'
   order: 7
-  name: 施工
+  name: 完成施工配合
   objects:
   - OBJ-35
   - OBJ-30
@@ -122,7 +122,7 @@ stages:
 - id: VS-02.7
   display: '02.8'
   order: 8
-  name: 收尾
+  name: 完成收尾
   objects:
   - OBJ-107
   - OBJ-106
@@ -135,7 +135,7 @@ stages:
 - id: VS-03.1
   display: '03.1'
   order: 1
-  name: 检查策划
+  name: 编制检查计划
   objects:
   - OBJ-49
   capabilities:
@@ -145,7 +145,7 @@ stages:
 - id: VS-03.2
   display: '03.2'
   order: 2
-  name: 现场检查
+  name: 完成现场检查
   objects:
   - OBJ-49
   capabilities:
@@ -153,7 +153,7 @@ stages:
 - id: VS-03.3
   display: '03.3'
   order: 3
-  name: 发现发布
+  name: 发布不符合项
   objects:
   - OBJ-38
   capabilities:
@@ -161,7 +161,7 @@ stages:
 - id: VS-03.4
   display: '03.4'
   order: 4
-  name: 整改跟踪
+  name: 跟进整改
   objects:
   - OBJ-38
   capabilities:
@@ -169,7 +169,7 @@ stages:
 - id: VS-03.5
   display: '03.5'
   order: 5
-  name: 报告认可
+  name: 登记报告认可
   objects:
   - OBJ-35
   capabilities:
@@ -177,7 +177,7 @@ stages:
 - id: VS-04.1
   display: '04.1'
   order: 1
-  name: 合同签订
+  name: 签署合同
   objects:
   - OBJ-05
   - OBJ-07
@@ -187,7 +187,7 @@ stages:
 - id: VS-04.6
   display: '04.2'
   order: 2
-  name: 履约
+  name: 完成合同履行
   objects:
   - OBJ-05
   capabilities:
@@ -195,7 +195,7 @@ stages:
 - id: VS-04.2
   display: '04.3'
   order: 3
-  name: 收入确认
+  name: 确认收入
   objects: []
   capabilities:
   - CAP-053
@@ -203,7 +203,7 @@ stages:
 - id: VS-04.3
   display: '04.4'
   order: 4
-  name: 开票
+  name: 开具发票
   objects:
   - OBJ-82
   - OBJ-83
@@ -213,7 +213,7 @@ stages:
 - id: VS-04.4
   display: '04.5'
   order: 5
-  name: 回款
+  name: 回收款项
   objects:
   - OBJ-85
   - OBJ-86
@@ -222,7 +222,7 @@ stages:
 - id: VS-04.5
   display: '04.6'
   order: 6
-  name: 最终价款确认
+  name: 确认最终价款
   objects:
   - OBJ-05
   capabilities:
@@ -230,7 +230,7 @@ stages:
 - id: VS-05.1
   display: '05.1'
   order: 1
-  name: 供方准入
+  name: 完成供方准入
   objects:
   - OBJ-02
   - OBJ-65
@@ -239,7 +239,7 @@ stages:
 - id: VS-05.2
   display: '05.2'
   order: 2
-  name: 供方签约
+  name: 签署供方协议
   objects:
   - OBJ-05
   capabilities:
@@ -247,7 +247,7 @@ stages:
 - id: VS-05.3
   display: '05.3'
   order: 3
-  name: 履约确认
+  name: 确认供方履约
   objects:
   - OBJ-87
   capabilities:
@@ -255,7 +255,7 @@ stages:
 - id: VS-05.4
   display: '05.4'
   order: 4
-  name: 应付确认
+  name: 确认应付款项
   objects:
   - OBJ-85
   - OBJ-83
@@ -264,7 +264,7 @@ stages:
 - id: VS-05.5
   display: '05.5'
   order: 5
-  name: 付款
+  name: 完成付款
   objects:
   - OBJ-86
   - OBJ-85
@@ -273,7 +273,7 @@ stages:
 - id: VS-05.6
   display: '05.6'
   order: 6
-  name: 供方结算
+  name: 完成供方结算
   objects:
   - OBJ-05
   capabilities:
@@ -281,7 +281,7 @@ stages:
 - id: VS-06.1
   display: '06.1'
   order: 1
-  name: 申报缴款
+  name: 完成申报缴款
   objects:
   - OBJ-92
   capabilities:
@@ -289,7 +289,7 @@ stages:
 - id: VS-06.2
   display: '06.2'
   order: 2
-  name: 资质维护
+  name: 完成资质维护
   objects:
   - OBJ-64
   - OBJ-65
@@ -299,7 +299,7 @@ stages:
 - id: VS-07.1
   display: '07.1'
   order: 1
-  name: 招聘需求
+  name: 提出招聘需求
   objects:
   - OBJ-60
   capabilities:
@@ -308,7 +308,7 @@ stages:
 - id: VS-07.2
   display: '07.2'
   order: 2
-  name: 应聘录用
+  name: 完成录用
   objects:
   - OBJ-56
   capabilities:
@@ -316,7 +316,7 @@ stages:
 - id: VS-07.3
   display: '07.3'
   order: 3
-  name: 入职任职
+  name: 完成人员入职与任职
   objects:
   - OBJ-56
   - OBJ-05
@@ -327,7 +327,7 @@ stages:
 - id: VS-08.0
   display: '08.1'
   order: 1
-  name: 事前申请
+  name: 批准事前申请
   objects:
   - OBJ-118
   - OBJ-119
@@ -337,7 +337,7 @@ stages:
 - id: VS-08.1
   display: '08.2'
   order: 2
-  name: 借支
+  name: 完成借款发放与归还
   objects:
   - OBJ-85
   capabilities:
@@ -346,7 +346,7 @@ stages:
 - id: VS-08.2
   display: '08.3'
   order: 3
-  name: 报销核定
+  name: 完成报销核定
   objects:
   - OBJ-88
   - OBJ-83
@@ -356,7 +356,7 @@ stages:
 - id: VS-08.3
   display: '08.4'
   order: 4
-  name: 报销付款
+  name: 完成报销付款
   objects:
   - OBJ-85
   - OBJ-86
@@ -367,7 +367,7 @@ stages:
 - id: VS-09.1
   display: '09.1'
   order: 1
-  name: 计划编制
+  name: 编制计划
   objects:
   - OBJ-100
   capabilities:
@@ -375,7 +375,7 @@ stages:
 - id: VS-09.2
   display: '09.2'
   order: 2
-  name: 滚动预测
+  name: 变更预测
   objects:
   - OBJ-100
   capabilities:
@@ -383,7 +383,7 @@ stages:
 - id: VS-09.3
   display: '09.3'
   order: 3
-  name: 经营复盘
+  name: 完成经营复盘
   objects:
   - OBJ-100
   capabilities:
@@ -399,7 +399,7 @@ stages:
 - id: VS-10.1
   display: '10.2'
   order: 2
-  name: 期间关账
+  name: 关闭会计期间
   objects:
   - OBJ-97
   capabilities:
@@ -407,14 +407,14 @@ stages:
 - id: VS-10.2
   display: '10.3'
   order: 3
-  name: 报表发布
+  name: 发布报表
   objects: []
   capabilities:
   - CAP-103
 - id: VS-11.1
   display: '11.1'
   order: 1
-  name: 知识起草
+  name: 编制知识条目
   objects:
   - OBJ-110
   capabilities:
@@ -422,7 +422,7 @@ stages:
 - id: VS-11.2
   display: '11.2'
   order: 2
-  name: 评审发布
+  name: 审核并发布知识条目
   objects:
   - OBJ-110
   capabilities:
@@ -430,7 +430,7 @@ stages:
 - id: VS-11.3
   display: '11.3'
   order: 3
-  name: 修订废止
+  name: 修订并废除知识条目
   objects:
   - OBJ-110
   capabilities:
@@ -438,7 +438,7 @@ stages:
 - id: VS-12.1
   display: '12.1'
   order: 1
-  name: 出资到账
+  name: 确认收到出资
   objects:
   - OBJ-91
   capabilities:
@@ -446,7 +446,7 @@ stages:
 - id: VS-12.2
   display: '12.2'
   order: 2
-  name: 利润分配
+  name: 分配利润
   objects:
   - OBJ-112
   capabilities:
@@ -455,7 +455,7 @@ stages:
 - id: VS-12.3
   display: '12.3'
   order: 3
-  name: 出资退回
+  name: 退还出资
   objects:
   - OBJ-91
   capabilities:
@@ -463,7 +463,7 @@ stages:
 - id: VS-13.1
   display: '13.1'
   order: 1
-  name: 考勤确认
+  name: 确认月度考勤
   objects:
   - OBJ-111
   - OBJ-68
@@ -474,7 +474,7 @@ stages:
 - id: VS-13.2
   display: '13.2'
   order: 2
-  name: 绩效激励
+  name: 完成绩效评估与奖金核定
   objects:
   - OBJ-109
   - OBJ-104
@@ -484,7 +484,7 @@ stages:
 - id: VS-13.3
   display: '13.3'
   order: 3
-  name: 薪酬结算
+  name: 完成薪酬结算
   objects:
   - OBJ-73
   capabilities:
@@ -493,7 +493,7 @@ stages:
 - id: VS-13.4
   display: '13.4'
   order: 4
-  name: 申报缴纳
+  name: 完成个税及社保公积金申报缴纳
   objects:
   - OBJ-92
   capabilities:
@@ -503,7 +503,7 @@ stages:
 - id: VS-13.5
   display: '13.5'
   order: 5
-  name: 薪酬发放
+  name: 完成薪酬发放
   objects:
   - OBJ-85
   - OBJ-86
@@ -515,7 +515,7 @@ stages:
 - id: VS-13.6
   display: '13.6'
   order: 6
-  name: 离职结清
+  name: 完成离职结清
   objects:
   - OBJ-56
   - OBJ-62
@@ -552,7 +552,7 @@ stages:
 - id: VS-14.3
   display: '14.3'
   order: 3
-  name: 办理事项
+  name: 完成事项办理
   objects:
   - OBJ-113
   - OBJ-114
@@ -654,7 +654,7 @@ processes:
   category_by: 价值流
 - id: PRC-03
   display: 01.1.03
-  name: 登记并跟进线索，转为商机
+  name: 跟进线索并转商机
   group: revenue
   type: business
   stages:
@@ -907,7 +907,7 @@ processes:
   category_by: 价值流
 - id: PRC-22
   display: 02.1.06
-  name: 阶段门预警
+  name: 查看阶段门预警
   group: revenue
   type: read_model
   stages:
@@ -924,7 +924,7 @@ processes:
   category_by: 价值流
 - id: PRC-24
   display: 02.1.07
-  name: 暂停、恢复、终止或取消项目
+  name: 变更项目状态
   group: revenue
   type: business
   stages:
@@ -1060,7 +1060,7 @@ processes:
   category_by: 价值流
 - id: PRC-32
   display: 02.3.02
-  name: 申请并答复延期
+  name: 申请并答复工期顺延
   group: revenue
   type: business
   stages:
@@ -1079,7 +1079,7 @@ processes:
   category_by: 价值流
 - id: PRC-33
   display: 02.5.01
-  name: 采集、关联并封存证据
+  name: 采集并封存证据
   group: revenue
   type: single_aggregate
   stages:
@@ -1113,7 +1113,7 @@ processes:
   category_by: 价值流
 - id: PRC-35
   display: 02.8.01
-  name: 项目或协议终止、结项后清算成本
+  name: 清算项目成本
   group: finance
   type: event_policy
   stages:
@@ -1125,7 +1125,7 @@ processes:
   category_by: 价值流
 - id: PRC-36
   display: 02.8.02
-  name: 封存成果、结项并归档项目
+  name: 结项并归档项目
   group: revenue
   type: business
   stages:
@@ -1145,7 +1145,7 @@ processes:
   category_by: 价值流
 - id: PRC-37
   display: 02.8.03
-  name: 回访客户满意度
+  name: 开展客户满意度调查
   group: revenue
   type: business
   stages:
@@ -1175,7 +1175,7 @@ processes:
   category_by: 价值流
 - id: PRC-41
   display: 03.1.01
-  name: 制定检查计划并使其生效
+  name: 制定并生效检查计划
   group: revenue
   type: business
   stages:
@@ -1190,7 +1190,7 @@ processes:
   category_by: 价值流
 - id: PRC-43
   display: 02.7.02
-  name: 实施现场检查并锁定
+  name: 实施并锁定检查记录
   group: revenue
   type: business
   stages:
@@ -1253,7 +1253,7 @@ processes:
   category_by: 价值流
 - id: PRC-47
   display: 04.1.01
-  name: 起草、评审并回签协议
+  name: 起草并回签协议
   group: revenue
   type: business
   stages:
@@ -1385,7 +1385,7 @@ processes:
   category_by: 价值流
 - id: PRC-57
   display: 04.4.02
-  name: 申请并开具销项发票
+  name: 申请并开具销项增值税发票
   group: revenue
   type: business
   stages:
@@ -1418,7 +1418,7 @@ processes:
   category_by: 价值流
 - id: PRC-59
   display: 04.5.01
-  name: 由销项发票创建应收
+  name: 创建应收款项
   group: revenue
   type: event_policy
   stages:
@@ -1451,7 +1451,7 @@ processes:
   category_by: 价值流
 - id: PRC-61
   display: 04.5.03
-  name: 检测应收逾期并催收
+  name: 检测并催收逾期应收款项
   group: revenue
   type: business
   stages:
@@ -1466,7 +1466,7 @@ processes:
   category_by: 价值流
 - id: PRC-62
   display: 04.5.04
-  name: 质量保证金到期提示
+  name: 查看质量保证金到期提示
   group: revenue
   type: read_model
   stages:
@@ -1491,7 +1491,7 @@ processes:
   category_by: 价值流
 - id: PRC-66
   display: 04.2.04
-  name: 发起结算，确认最终价款并结算协议
+  name: 确认最终价款并结算协议
   group: revenue
   type: business
   stages:
@@ -1522,7 +1522,7 @@ processes:
   category_by: 价值流
 - id: PRC-69
   display: 05.1.01
-  name: 供应商准入与资质核验
+  name: 申请并核验供方角色
   group: revenue
   type: business
   stages:
@@ -1583,7 +1583,7 @@ processes:
   category_by: 价值流
 - id: PRC-73
   display: 05.4.01
-  name: 登记并查验进项发票
+  name: 登记并查验进项增值税发票
   group: finance
   type: business
   stages:
@@ -1598,7 +1598,7 @@ processes:
   category_by: 价值流
 - id: PRC-74
   display: 05.4.02
-  name: 提交供方应付
+  name: 提交供方应付款项
   group: finance
   type: business
   stages:
@@ -1645,7 +1645,7 @@ processes:
   category_by: 价值流
 - id: PRC-77
   display: 06.1.01
-  name: 申报并缴纳增值税、附加税与企业所得税
+  name: 申报并缴纳税款
   group: finance
   type: business
   stages:
@@ -1720,7 +1720,7 @@ processes:
   category_by: 价值流
 - id: PRC-83
   display: 07.3.01
-  name: 办理入职与任职
+  name: 办理员工入职与任职
   group: people
   type: business
   stages:
@@ -1739,7 +1739,7 @@ processes:
   category_by: 价值流
 - id: PRC-84
   display: 07.3.02
-  name: 入职后参保增员与建立薪酬档案
+  name: 增员参保并建立薪酬档案
   group: people
   type: business
   stages:
@@ -1754,7 +1754,7 @@ processes:
   category_by: 价值流
 - id: PRC-85
   display: 07.3.03
-  name: 试用期评估与转正
+  name: 评估并转正试用期员工
   group: people
   type: business
   stages:
@@ -1887,7 +1887,7 @@ processes:
   category_by: 价值流
 - id: PRC-95
   display: 10.1.04
-  name: 期末结转
+  name: 执行期末结转
   group: finance
   type: business
   stages:
@@ -1917,7 +1917,7 @@ processes:
   category_by: 价值流
 - id: PRC-101
   display: 10.2.01
-  name: 月结检查并关账
+  name: 检查并关闭会计期间
   group: finance
   type: business
   stages:
@@ -1932,7 +1932,7 @@ processes:
   category_by: 价值流
 - id: PRC-102
   display: 10.2.02
-  name: 启用第 13 期并年末关账
+  name: 启用并关闭第 13 期
   group: finance
   type: business
   stages:
@@ -1959,7 +1959,7 @@ processes:
   category_by: 价值流
 - id: PRC-104
   display: 10.3.01
-  name: 外部法定账对账与签字
+  name: 对账外部法定账并签字
   group: finance
   type: business
   stages:
@@ -1996,7 +1996,7 @@ processes:
   category_by: 价值流
 - id: PRC-111
   display: 12.1.01
-  name: 认缴并实缴出资
+  name: 认缴并实缴合伙人出资
   group: finance
   type: single_aggregate
   stages:
@@ -2041,7 +2041,7 @@ processes:
   category_by: 价值流
 - id: PRC-114
   display: 12.3.01
-  name: 退回出资
+  name: 退回合伙人出资
   group: finance
   type: business
   stages:
@@ -2182,7 +2182,7 @@ processes:
   category_by: 价值流
 - id: PRC-127
   display: 13.5.02
-  name: 薪酬发放完成
+  name: 标记薪酬已发放
   group: people
   type: event_policy
   stages:
@@ -2197,7 +2197,7 @@ processes:
   category_by: 价值流
 - id: PRC-128
   display: 13.6.01
-  name: 办理离职
+  name: 办理员工离职
   group: people
   type: business
   stages:
@@ -2225,7 +2225,7 @@ processes:
   category_by: 价值流
 - id: PRC-130
   display: 13.6.03
-  name: 离职后参保减员
+  name: 办理参保减员
   group: people
   type: event_policy
   stages:
@@ -2240,7 +2240,7 @@ processes:
   category_by: 价值流
 - id: PRC-131
   display: 05.5.02
-  name: 付款成功后核销应付
+  name: 核销应付款项
   group: finance
   type: event_policy
   stages:
@@ -2274,7 +2274,7 @@ processes:
   category_by: 价值流
 - id: PRC-133
   display: 08.4.01
-  name: 应付结清后报销置已付
+  name: 标记报销已付
   group: finance
   type: event_policy
   stages:
@@ -2289,7 +2289,7 @@ processes:
   category_by: 价值流
 - id: PRC-134
   display: 13.5.03
-  name: 薪酬事实已过账置位
+  name: 标记薪酬已过账
   group: people
   type: event_policy
   stages:
@@ -2304,7 +2304,7 @@ processes:
   category_by: 价值流
 - id: PRC-135
   display: 10.1.07
-  name: 处理会计分录待处理队列与推送重投
+  name: 处理并重投会计分录
   group: finance
   type: single_aggregate
   stages:
@@ -2319,7 +2319,7 @@ processes:
   category_by: 价值流
 - id: PRC-136
   display: 07.3.04
-  name: 调岗（任职变更，按人事业务生效日，触发数据范围复核）
+  name: 变更任职
   group: people
   type: business
   stages:
@@ -2410,7 +2410,7 @@ processes:
   category_by: 价值流
 - id: PRC-144
   display: 14.1.04
-  name: 员工活动类申请（周年贺卡、节日活动、创新项目发布）
+  name: 申请员工活动
   group: people
   type: business
   stages:
@@ -2437,7 +2437,7 @@ processes:
   category_by: 价值流
 - id: PRC-147
   display: 08.3.02
-  name: 费用报销核定后冲抵员工借款并确认应付
+  name: 冲抵借款并确认报销应付
   group: revenue
   type: event_policy
   stages:
@@ -2483,7 +2483,7 @@ processes:
   category_by: 价值流
 - id: PRC-150
   display: 04.5.06
-  name: 发票红冲后冲减应收
+  name: 冲减应收款项
   group: revenue
   type: event_policy
   stages:
@@ -2517,7 +2517,7 @@ processes:
   category_by: 价值流
 - id: PRC-152
   display: 04.4.04
-  name: 登记付款条件达成
+  name: 登记付款条件项达成
   group: revenue
   type: business
   stages:
@@ -2548,7 +2548,7 @@ processes:
   category_by: 价值流
 - id: PRC-154
   display: 04.3.06
-  name: 收入三口径对照
+  name: 查看收入三口径对照
   group: revenue
   type: read_model
   stages:
@@ -2617,7 +2617,7 @@ processes:
   category_by: 价值流
 - id: PRC-159
   display: 06.1.03
-  name: 申报已提交后确认税费应付
+  name: 确认税费应付
   group: finance
   type: event_policy
   stages:
@@ -2647,7 +2647,7 @@ processes:
   category_by: 价值流
 - id: PRC-163
   display: 12.2.03
-  name: 应付结清后登记利润分配支付
+  name: 登记利润分配支付
   group: finance
   type: event_policy
   stages:
@@ -2704,7 +2704,7 @@ processes:
   category_by: 价值流
 - id: PRC-171
   display: 05.4.03
-  name: 核对差旅服务商月账单并确认应付
+  name: 核对差旅账单并确认应付
   group: finance
   type: business
   stages:
@@ -2749,7 +2749,7 @@ processes:
   category_by: 价值流
 - id: PRC-175
   display: 05.5.04
-  name: 直接付款申请
+  name: 申请直接付款
   group: finance
   type: business
   stages:
@@ -2764,7 +2764,7 @@ processes:
   category_by: 价值流
 - id: PRC-176
   display: 05.5.05
-  name: 预付款核销
+  name: 核销预付款
   group: finance
   type: single_aggregate
   stages:
@@ -2779,7 +2779,7 @@ processes:
   category_by: 价值流
 - id: PRC-178
   display: 13.6.05
-  name: 补休到期未休或离职时转计发加班工资
+  name: 转计发加班工资
   group: people
   type: event_policy
   stages:
@@ -2809,7 +2809,7 @@ processes:
   category_by: 价值流
 - id: PRC-181
   display: 09.3.02
-  name: 记录经营复盘并跟踪经营动作
+  name: 记录经营复盘并跟踪动作
   group: people
   type: business
   stages:
@@ -2824,7 +2824,7 @@ processes:
   category_by: 价值流
 - id: PRC-182
   display: 11.3.01
-  name: 知识条目使用情况
+  name: 查看知识条目使用情况
   group: people
   type: read_model
   stages:
@@ -2834,7 +2834,7 @@ processes:
   category_by: 价值流
 - id: PRC-183
   display: 01.2.11
-  name: 作出参投决策
+  name: 作出商机参投决策
   group: revenue
   type: business
   stages:
@@ -2848,7 +2848,7 @@ processes:
   category: business
   category_by: 价值流
 - id: PRC-23
-  name: 填报并审批工时
+  name: 填报并审批工时单
   group: revenue
   type: business
   supports:
@@ -2928,7 +2928,7 @@ processes:
   capability: CAP-024.050
   category: business
 - id: PRC-52
-  name: 开放可触发收入确认的证据类型
+  name: 开放收入确认证据类型
   group: revenue
   type: single_aggregate
   supports:
@@ -2993,7 +2993,7 @@ processes:
   primary_object: OBJ-55
   status: support
 - id: PRC-91
-  name: 认定工时有效性
+  name: 认定工时单有效性
   group: revenue
   type: event_policy
   supports:
@@ -3161,7 +3161,7 @@ processes:
   capability: CAP-056.123
   category: support
 - id: PRC-140
-  name: 合同借阅
+  name: 借阅协议原件
   group: revenue
   type: business
   supports:
@@ -3200,7 +3200,7 @@ processes:
   capability: CAP-005
   category: business
 - id: PRC-141
-  name: 销售合同归档
+  name: 归档协议
   group: revenue
   type: business
   supports:
@@ -3239,7 +3239,7 @@ processes:
   capability: CAP-005
   category: business
 - id: PRC-146
-  name: 协议借阅逾期催还
+  name: 催还逾期协议原件
   group: revenue
   type: event_policy
   supports:
@@ -3278,7 +3278,7 @@ processes:
   capability: CAP-005
   category: business
 - id: PRC-161
-  name: 年末关闭预算账户
+  name: 关闭预算账户
   group: people
   type: event_policy
   supports:
