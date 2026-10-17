@@ -1,0 +1,35 @@
+{
+ "NM5~NM5-01": {
+  "choice": 1,
+  "defaulted": false,
+  "label": "各法人各自的财务职责",
+  "no": "NM5-01",
+  "note": "",
+  "recommended": false,
+  "submission": "NM5-20261017-113346-5l9",
+  "submitted": "2026-10-17T09:33:46.313Z",
+  "unanswered": false
+ },
+ "NM5~NM5-02": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "是，按每条规则说明所用的量",
+  "no": "NM5-02",
+  "note": "",
+  "recommended": true,
+  "submission": "NM5-20261017-113346-5l9",
+  "submitted": "2026-10-17T09:33:46.313Z",
+  "unanswered": false
+ },
+ "NM5~NM5-03": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "指人员擅长的专业",
+  "no": "NM5-03",
+  "note": "",
+  "recommended": true,
+  "submission": "NM5-20261017-113346-5l9",
+  "submitted": "2026-10-17T09:33:46.313Z",
+  "unanswered": false
+ }
+}
