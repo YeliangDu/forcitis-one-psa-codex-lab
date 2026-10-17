@@ -7,11 +7,11 @@
 ## 职责
 
 - 合并执行（用户 2026-10-16 同意把合并执行从 one-coordinator 分出）：照 one-coordinator 批准的清单组合集——文档按「分支 + 提交号」逐个合并（不用 octopus），合并前核对 `git diff origin/main...<提交号> --name-only` 只含 `docs/`（守护文件除外须清单写明），不符即退回调度，代码合集按批准的 PR 组；放入合并队列。
-- 盯合并队列：队列进程在跑、队首失败读日志，分偶发（重跑一次）与真失败（报调度退回作者）。
+- 盯合并队列：队列进程在跑、队首失败读日志，分偶发（重跑一次）与真失败、语义冲突（报调度，由调度定退回谁）。
 - 冲突：生成产物取一边后跑 `build_all.py`，推送前跑 `scripts/precheck.sh`；非生成文件或语义冲突不改，报调度。
 - 合入后收尾：关掉被合集包含的原 PR；按清单刷新工作台与对齐图；向 one-coordinator 报完成点（合入哪些、CI 次数、失败原因）。
 - 积压 PR 盘点（用户 2026-10-16 同意）：每次组文档合集时（中午、晚上）列积压 PR 清单报 one-coordinator，分「被合集包含待关、冲突、超 48 小时无进展、草稿、原因不明」五类；按调度逐条定的去向执行（关闭、退回作者、入队）。
-- 运行与反馈队列脚本问题；脚本由 one-quality 编写与维护。
+- 运行与反馈队列脚本问题：反馈 one-quality（附日志时间戳与 PR 号）；脚本由 one-quality 编写与维护。
 
 ## 独占
 
@@ -36,11 +36,11 @@
 ## 触发与节奏
 
 - 事件：收到批准清单即组合集入队；队列事件（合入、冲突、挂起）即处理。
-- 定时：文档合集与积压 PR 盘点每天两次（中午、晚上，SESSION_PLAYBOOK §11 第 13 条）。
+- 定时：文档合集与积压 PR 盘点每天两次（中午、晚上，SESSION_PLAYBOOK §11 第 14 条）。
 
 ## 自动化
 
-- 队列脚本（迁入仓库前沿用 one-coordinator scratchpad 的 `mq_run2.sh`、`merge_pr.sh`，见 COORDINATOR_LEDGER「合并」节）；队列事件用 Monitor 盯（30 分钟到期重挂）。
+- 队列脚本 `scripts/merge/mq.py`（2026-10-17 起取代旧 `mq_run2.sh`；队列与日志在 `<git-common-dir>/merge-queue/`，切换步骤见 `quality/MERGE_QUEUE_CUTOVER.md`）；队列事件用 Monitor 盯 `merge.log`（30 分钟到期重挂）。入队、改队列只用 `mq.py enqueue/remove/before`，不手工改队列文件。
 - 守护：推送前钩子 `pre_push_gate.py`、`build_all.py --check`。已知坑：
   - octopus 合并会触发验收测试署名守护（#435）：逐个分支合并。
   - gh 令牌无 workflow 权限：改 `.github/workflows` 的 PR，把 main 合进该 PR 分支后经 ssh 推送到该 PR 分支（不是推 main）；main 只经 `gh pr merge` 合入，且只合已批准、CI 通过的那个提交。
