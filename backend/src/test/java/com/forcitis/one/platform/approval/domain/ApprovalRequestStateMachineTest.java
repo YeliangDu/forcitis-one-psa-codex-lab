@@ -217,6 +217,18 @@ class ApprovalRequestStateMachineTest {
     }
 
     @Test
+    @DisplayName("DATA-REPAIR-approval AP-01 a rejection, a return or a cancellation without a reason is refused and the request keeps running")
+    void anEndingWithoutAReasonIsRefused() {
+        for (java.util.function.Consumer<ApprovalRequest> ending : List.<java.util.function.Consumer<ApprovalRequest>>of(
+                r -> r.reject(null, NOW), r -> r.returnRound(null, NOW), r -> r.cancel(INITIATOR, false, null, NOW))) {
+            ApprovalRequest request = in(ApprovalStatus.RUNNING);
+            assertThatThrownBy(() -> ending.accept(request)).isInstanceOfSatisfying(DomainException.class,
+                    e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+            assertThat(request.status()).isEqualTo(ApprovalStatus.RUNNING);
+        }
+    }
+
+    @Test
     @DisplayName("RULE-269 the check names the reason: not the initiator, not running, cut-off passed")
     void theCheckNamesTheReason() {
         assertThat(in(ApprovalStatus.RUNNING).checkWithdraw(INITIATOR, false)).isEqualTo(WithdrawCheck.ALLOWED);

@@ -160,6 +160,19 @@ class ApprovalTaskStateMachineTest {
     }
 
     @Test
+    @DisplayName("DATA-REPAIR-approval AP-01 a rejection or a return without a reason is refused, for an advisor too; the task stays claimed")
+    void aRejectionWithoutAReasonIsRefused() {
+        for (boolean advisory : new boolean[] {false, true}) {
+            for (TaskOutcome outcome : new TaskOutcome[] {TaskOutcome.REJECTED, TaskOutcome.RETURNED}) {
+                ApprovalRequest request = in(ApprovalTaskStatus.CLAIMED);
+                assertThatThrownBy(() -> request.completeTask(TASK, HOLDER, outcome, advisory, null, new ContentHash("d"), NOW))
+                        .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+                assertThat(statusOf(request)).isEqualTo(ApprovalTaskStatus.CLAIMED);
+            }
+        }
+    }
+
+    @Test
     @DisplayName("RULE-276 only the person who claimed the task completes it")
     void onlyTheAssigneeCompletes() {
         ApprovalRequest request = in(ApprovalTaskStatus.CLAIMED);

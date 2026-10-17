@@ -205,6 +205,9 @@ public final class ApprovalRequest extends AggregateRoot {
 
     public void completeTask(ApprovalTaskId taskId, UserId by, TaskOutcome outcome, boolean advisory, Reason reason,
             ContentHash digest, Moment now) {
+        if (outcome != TaskOutcome.APPROVED) {
+            requireReason(reason, "A rejection or a return");
+        }
         ApprovalTask task = task(taskId);
         task.complete(by, outcome, advisory, reason, digest, now.at());
         note(task, advisory ? TaskRecordAction.ADVISED : TaskRecordAction.valueOf(outcome.name()), by, null, null, reason, now);
@@ -284,6 +287,9 @@ public final class ApprovalRequest extends AggregateRoot {
     }
 
     private void end(ApprovalStatus target, ApprovalOutcome outcome, Reason reason, ReturnSource source, Moment now) {
+        if (target != ApprovalStatus.APPROVED) {
+            requireReason(reason, "A rejection, a return or a cancellation");
+        }
         status = MACHINE.require(status, target, ApprovalError.PLATFORM_APPROVAL_TRANSITION_ILLEGAL);
         for (ApprovalTask open : openTasks()) {
             closeOne(open, now);

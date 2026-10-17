@@ -92,7 +92,7 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
         long version = jdbc.queryForObject("select version from platform_approval.approval_requests where document_id = cast(? as uuid)", Long.class, key);
         ApprovalInstanceId instance = new ApprovalInstanceId(jdbc.queryForObject(
                 "select current_instance_id from platform_approval.approval_requests where document_id = cast(? as uuid)", java.util.UUID.class, key));
-        jdbc.update("update platform_approval.approval_requests set status = 'CANCELLED' where document_id = cast(? as uuid)", key);
+        jdbc.update("update platform_approval.approval_requests set status = 'CANCELLED', result_reason = 'synthetic: ended' where document_id = cast(? as uuid)", key);
 
         ApprovalRequest copy = ApprovalRequest.restore(com.forcitis.one.TestApprovalIds.requestId(), com.forcitis.one.TestApprovalIds.generator(), ProcessKey.COST_TIMESHEET_APPROVAL, document(key), LEGAL_ENTITY, TestAccounts.employee(initiator), 1,
                 instance, ApprovalStatus.RUNNING, null, new ApprovalSummary("copy"), List.of(), version, 0);
@@ -131,7 +131,7 @@ class AggregateConcurrencyIT extends ApprovalIntegrationSupport {
     @DisplayName("DDD-5 the database refuses a request without a legal entity")
     void legalEntityIsMandatoryInTheDatabase() {
         assertThatThrownBy(() -> jdbc.update("insert into platform_approval.approval_requests (id, process_key, document_type, document_id, initiator_id,"
-                + " current_round, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', uuidv7(), " + TestOrgIds.sqlEmployee(1) + ", 1, 'RUNNING', 's')"))
+                + " current_round, current_instance_id, status, summary_text) values (uuidv7(), 'COST_TIMESHEET_APPROVAL', 'TIMESHEET', uuidv7(), " + TestOrgIds.sqlEmployee(1) + ", 1, uuidv7(), 'RUNNING', 's')"))
                 .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     }
 

@@ -9,6 +9,9 @@ import java.lang.reflect.Method;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +80,15 @@ class AuditArchiveOrderIT extends P5Support {
         return id;
     }
 
+    private void createPartitionOf(Instant moment) throws Exception {
+        LocalDate month = YearMonth.from(moment.atOffset(ZoneOffset.UTC)).atDay(1);
+        try (var audit = schemaConnection(P5Names.AUDIT_SCHEMA); var create = audit.prepareStatement("select platform_audit.create_audit_entry_partitions(?, ?)")) {
+            create.setObject(1, month);
+            create.setObject(2, month);
+            create.execute();
+        }
+    }
+
     private void runTheJob() throws Exception {
         Object job = context.getBean(Class.forName(JOB));
         Method run = job.getClass().getDeclaredMethod("run");
@@ -97,6 +109,9 @@ class AuditArchiveOrderIT extends P5Support {
     @DisplayName("R-1b P5 ADR-0033 第 1 项第 10 条：审计归档不依赖 ID 次序——递减 ID、时刻递增的到期条目全部进批次，批次记首末条时刻，水位是最后创建的那条（不是最大 ID），对账无差异；之后写入的 ID 更小而时刻更晚的到期条目下一轮也归档")
     void theArchiveFollowsMomentsNotIds() throws Exception {
         Instant first = NOW.minus(Duration.ofDays(1300));
+        // ADR-0048: the partition of the old month must exist; the five moments (days 1 to 6 after first) all fall in one UTC month, so batches do not split
+        assertThat(YearMonth.from(first.plus(Duration.ofDays(1)).atOffset(ZoneOffset.UTC))).isEqualTo(YearMonth.from(first.plus(Duration.ofDays(6)).atOffset(ZoneOffset.UTC)));
+        createPartitionOf(first.plus(Duration.ofDays(1)));
         List<UUID> ids = new ArrayList<>();
         for (int n = 1; n <= 5; n++) {
             ids.add(oldEntry(n, first.plus(Duration.ofDays(n))));

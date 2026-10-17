@@ -76,7 +76,8 @@ class SingleOperatorEndToEndIT extends AccountsAcceptanceSupport {
         orgUnit(unit, null, null);
         UUID person = newEmployeeId();
         employee(person, unit, null);
-        UUID operator = UUID.randomUUID();
+        UUID operator = newEmployeeId();
+        employee(operator, unit, null);
         int enabledBefore = audit("platform.identity.single-operator-mode.enabled").size();
 
         SingleOperatorModeProcess.Ended ended = SingleOperatorModeProcess.runToEnd(commandLine("true", "--operation=grant-role", "--employee-id=" + text(person),
@@ -108,9 +109,11 @@ class SingleOperatorEndToEndIT extends AccountsAcceptanceSupport {
         employee(person, unit, null);
         int enabledBefore = audit("platform.identity.single-operator-mode.enabled").size();
         int marksBefore = audit("platform.identity.single-operator-mode.applied").size();
+        UUID operator = newEmployeeId();
+        employee(operator, unit, null);
 
         SingleOperatorModeProcess.Ended ended = SingleOperatorModeProcess.runToEnd(commandLine(null, "--operation=grant-role", "--employee-id=" + text(person),
-                "--role-code=business_admin", "--operator=" + UUID.randomUUID()));
+                "--role-code=business_admin", "--operator=" + operator));
 
         assertThat(ended.exitCode()).as(ended.output()).isEqualTo(1);
         assertThat(ended.output()).contains("PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED").doesNotContain("ADR-0030");
