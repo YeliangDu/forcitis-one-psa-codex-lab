@@ -9,6 +9,7 @@ import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
+import com.forcitis.one.organization.workforce.api.EmployeeExistence;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -16,6 +17,7 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -66,6 +68,11 @@ class OperationsProfileSmokeTest {
         return directory;
     }
 
+    private static EmployeeExistence withAttestors(EmployeeExistence real) {
+        Set<EmployeeId> attestors = Set.of(EmployeeId.parse(OPERATOR_ID), EmployeeId.parse(WITNESS_ID));
+        return id -> attestors.contains(id) || real.exists(id);
+    }
+
     private Finished run(String... commandLine) {
         AtomicInteger exit = new AtomicInteger(-1);
         SpringApplication application = new SpringApplication(OneApplication.class);
@@ -74,6 +81,9 @@ class OperationsProfileSmokeTest {
         application.addInitializers(context -> context.addBeanFactoryPostProcessor(beans -> beans.addBeanPostProcessor(new BeanPostProcessor() {
             @Override
             public Object postProcessAfterInitialization(Object bean, String beanName) {
+                if ("employeeExistenceService".equals(beanName) && bean instanceof EmployeeExistence real) {
+                    return withAttestors(real);
+                }
                 return "orgDirectoryService".equals(beanName) && bean instanceof OrgDirectory real ? withAttestors(real) : bean;
             }
         })));
