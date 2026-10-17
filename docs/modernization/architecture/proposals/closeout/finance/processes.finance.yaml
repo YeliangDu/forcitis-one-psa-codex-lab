@@ -6094,9 +6094,9 @@ processes:
   - PRC-104-S08
   - PRC-104-S09
   - PRC-104-S10
-  stages_note: 外部法定账对账完成是 VS-10.2 退出条件改定后的「外部法定账对账已完成」（SD 已裁定的 VS-10.2 退出条件）；改定前检查器匹配不上。
-  primary_object: none
-  primary_object_note: 外部法定账对账是运行单据（技术聚合），只读会计分录与快照；对账结论作关账与出表的依据，不改业务对象状态
+  stages_note: "外部法定账对账完成是 VS-10.2 退出条件改定后的「外部法定账对账已完成」（SD 已裁定的 VS-10.2 退出条件）；改定前检查器匹配不上。；CON-1017-ARC-10：退出条件对账部分改指 OBJ-125「已签字」"
+  primary_object: "OBJ-125"
+  primary_object_note: "CON-1017-ARC-10 O-2：对账并签字形成外部法定账对账（OBJ-125，暂名，待 one-glossary 定名，承载聚合 AGG-101）；原 none（CAPINFO-I01）；须同步骨架"
 - id: PRC-105
   name: 评审并生效报表行定义版本
   trigger:
@@ -7591,8 +7591,10 @@ processes:
   owner_bc: B-07
   aggregate: AGG-123
   stages:
+  - VS-15.1
   - VS-15.2
-  stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：成本核算参数是配置版本，供 VS-10.1 的成本分配与分摊使用，本身不推进任何阶段的对象状态"
+  - VS-15.3
+  stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：成本核算参数是配置版本，供 VS-10.1 的成本分配与分摊使用，本身不推进任何阶段的对象状态；CON-1017-ARC-10：补 VS-15.1（编制版本草稿）、VS-15.3（新版本发布取代旧版本即停用），OBJ-124 三段状态由本流程完成；须同步骨架"
   added_in: closeout
   basis: S-31 SQ-18
   desc: 财务编制成本核算参数（售前投入超期转费用的月数 N，默认 6 个月，A7、GL-026），财务负责人批准后按版本生效
@@ -7684,16 +7686,18 @@ processes:
     on_event: 后继版本已生效
     desc: 新版本生效时原生效版本置已取代，已生效版本不可改
     audit: true
-  primary_object: none
-  primary_object_note: 成本核算参数版本（AGG-123）是配置，信息图无对象
+  primary_object: "OBJ-124"
+  primary_object_note: "CON-1017-ARC-10 O-1：发布一版业务规则（OBJ-124，暂名，待 one-glossary 定名，按类型区分）；原 none（CAPINFO-I01）由 intent 2026-10-17-174814 与审题后修订第 4 条的结构决定取代；须同步骨架"
 - id: PRC-166
   name: 发布资产类别与折旧政策版本
   type: single_aggregate
   owner_bc: B-24
   aggregate: AGG-124
   stages:
+  - VS-15.1
   - VS-15.2
-  stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：资产类别与折旧政策是配置版本，供 PRC-99 计提折旧使用，不推进阶段"
+  - VS-15.3
+  stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象已立 OBJ-124（CON-1017-ARC-10 O-1），MS-25 消除；原支撑理由：资产类别与折旧政策是配置版本，供 PRC-99 计提折旧使用，不推进阶段；CON-1017-ARC-10：补 VS-15.1（编制版本草稿）、VS-15.3（新版本发布取代旧版本即停用），OBJ-124 三段状态由本流程完成；须同步骨架"
   added_in: closeout
   basis: S-31 SQ-19
   desc: 财务按资产类别编制折旧方法、年限、残值率，财务负责人批准后按版本生效
@@ -7788,14 +7792,15 @@ processes:
     on_event: 后继版本已生效
     desc: 新版本生效时原生效版本置已取代，已生效版本不可改
     audit: true
-  primary_object: none
-  primary_object_note: 资产类别与折旧政策版本（AGG-124）是配置，信息图无对象
+  primary_object: "OBJ-124"
+  primary_object_note: "CON-1017-ARC-10 O-1：发布一版业务规则（OBJ-124，暂名，待 one-glossary 定名，按类型区分）；原 none（CAPINFO-I01）由 intent 2026-10-17-174814 与审题后修订第 4 条的结构决定取代；须同步骨架"
 - id: PRC-167
   name: 编制并签字确认期初余额
-  type: single_aggregate
+  type: retired
   owner_bc: B-20
   aggregate: AGG-125
   stages: []
+  note: "S-31；阶段由 finance 组铺开时填；CON-1017-ARC-10 R-2：移出流程目录，进迁移规划 togaf/transitions.yaml（审题后修订第 3 条；ADR-0022 决定 11 投产一次）"
   added_in: closeout
   basis: S-31 SQ-21
   desc: 财务按法人和账簿编制期初余额，财务负责人签字后生效
@@ -7921,7 +7926,6 @@ processes:
     pending:
     - A1-02
     - S-05
-  support: 期初余额只在投产时编制一次（ADR-0022 决定 11），是上线初始化，不是周期性价值流阶段
   primary_object: none
   primary_object_note: 期初余额（AGG-125）是投产初始化的余额载体，信息图无对象
 - id: PRC-168
@@ -7930,8 +7934,10 @@ processes:
   owner_bc: B-17
   aggregate: AGG-78
   stages:
+  - VS-15.1
   - VS-15.2
-  stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：口径版本是勾稽侧配置（ADR-0023 决定 2），不推进阶段"
+  - VS-15.3
+  stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：口径版本是勾稽侧配置（ADR-0023 决定 2），不推进阶段；CON-1017-ARC-10：补 VS-15.1（编制版本草稿）、VS-15.3（新版本发布取代旧版本即停用），OBJ-124 三段状态由本流程完成；须同步骨架"
   added_in: closeout
   basis: S-31 SQ-22
   desc: 财务编制指标口径与勾稽容差，批准后按版本生效、审批留痕（ADR-0023 决定 2 L3）
@@ -8025,8 +8031,8 @@ processes:
     on_event: 后继版本已生效
     desc: 新版本生效时原生效版本置已取代，已生效版本不可改
     audit: true
-  primary_object: none
-  primary_object_note: 口径版本（AGG-78）：信息图 OBJ-102 指标定义已去掉，移入第 11 步指标元数据
+  primary_object: "OBJ-124"
+  primary_object_note: "CON-1017-ARC-10 O-1：发布一版业务规则（OBJ-124，暂名，待 one-glossary 定名，按类型区分）；原 none（CAPINFO-I01）由 intent 2026-10-17-174814 与审题后修订第 4 条的结构决定取代；须同步骨架"
 - id: PRC-169
   name: 处置勾稽差异案
   type: single_aggregate
@@ -9083,8 +9089,10 @@ processes:
   owner_bc: B-12
   aggregate: AGG-133
   stages:
+  - VS-15.1
   - VS-15.2
-  stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：出差补贴标准是配置版本，供 PRC-87 生成补贴行使用，不推进阶段"
+  - VS-15.3
+  stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：出差补贴标准是配置版本，供 PRC-87 生成补贴行使用，不推进阶段；CON-1017-ARC-10：补 VS-15.1（编制版本草稿）、VS-15.3（新版本发布取代旧版本即停用），OBJ-124 三段状态由本流程完成；须同步骨架"
   added_in: closeout
   basis: S-31 SQ-28
   desc: 财务编制出差补贴标准（按差旅类型与天数），财务负责人批准后按版本生效
@@ -9179,8 +9187,8 @@ processes:
     on_event: 后继版本已生效
     desc: 新版本生效时原生效版本置已取代，已生效版本不可改
     audit: true
-  primary_object: none
-  primary_object_note: 出差补贴标准版本（AGG-133）是配置，信息图无对象
+  primary_object: "OBJ-124"
+  primary_object_note: "CON-1017-ARC-10 O-1：发布一版业务规则（OBJ-124，暂名，待 one-glossary 定名，按类型区分）；原 none（CAPINFO-I01）由 intent 2026-10-17-174814 与审题后修订第 4 条的结构决定取代；须同步骨架"
 - id: PRC-175
   name: 申请直接付款
   type: business
