@@ -5,7 +5,8 @@ A class is light when its name ends in `Test`, it is not abstract, and neither i
 marker of a heavy test: @SpringBootTest, Testcontainers, a call that starts a database (TestPostgres.container / shared / database, any TestMssql call), a container class, or an *Support / *IntegrationTest base. `*IT` classes belong to failsafe and are never listed.
 The list is generated from the sources on purpose: a hand-kept list or a path-to-test map would leave out the next scan test (SeeyonSourceScanTest ran in CI only, three times).
 
-Usage: light_unit_classes.py [test-source-root] | light_unit_classes.py --self-test
+Usage: light_unit_classes.py [test-source-root] | light_unit_classes.py --reading <text> [--heavy] [test-source-root] | light_unit_classes.py --self-test
+--reading keeps the classes that read the thing named by the text (it occurs inside a string literal, or the class uses a helper class that reads it), e.g. `architecture` for the guards that read backend/architecture; with --heavy it lists the classes that mention it but start a container (CI only).
 """
 import os
 import re
@@ -32,6 +33,30 @@ def read_sources(root):
             if name.endswith(".java"):
                 sources.setdefault(name[:-5], []).append(strip_comments(open(os.path.join(folder, name), encoding="utf-8").read()))
     return sources
+
+
+def mentions(root, needle, main_root=None):
+    """Simple names of the classes that read the thing named by the text: the text occurs inside a string literal of the class (comments removed), or the class uses a helper
+    class (a class not named *Test, in the tests or in src/main, e.g. PrimaryKeyExemptions, ExternalReadRegister, IdempotencyScope) that does. One level of helper only: a helper of a helper is not followed."""
+    if main_root is None:
+        guess = os.path.normpath(os.path.join(root, "..", "..", "main", "java"))
+        main_root = guess if os.path.isdir(guess) else None
+
+    def read(folder_root):
+        texts = {}
+        for folder, _, files in os.walk(folder_root):
+            for name in files:
+                if name.endswith(".java"):
+                    text = open(os.path.join(folder, name), encoding="utf-8").read()
+                    texts.setdefault(name[:-5], []).append(re.sub(r"//[^\n]*", " ", re.sub(r"/\*.*?\*/", " ", text, flags=re.S)))
+        return texts
+
+    reads = lambda ts: any(needle in lit for t in ts for lit in re.findall(r'"(?:\\.|[^"\\\n])*"', t))
+    texts, main_texts = read(root), read(main_root) if main_root else {}
+    literal = {n for n, ts in texts.items() if reads(ts)}
+    helpers = {n for n in literal if not n.endswith("Test")} | {n for n, ts in main_texts.items() if reads(ts)}
+    uses = {n for n, ts in texts.items() if n not in literal and any(re.search(rf"\b{re.escape(h)}\b", t) for t in ts for h in helpers)}
+    return literal | uses
 
 
 def light_classes(sources):
@@ -90,12 +115,43 @@ def self_test():
     assert got == ["CommentTest", "LightChildTest", "NamesTest", "OnlyLightTwinTest", "PlainTest", "ScanTest", "StringMentionTest"], got
     real = light_classes(read_sources(ROOT)) if os.path.isdir(ROOT) else []
     assert not os.path.isdir(ROOT) or ("SeeyonSourceScanTest" in real and "ArchitectureRulesTest" in real and "TestContainerGuardTest" in real and "ApplicationIntegrationTest" not in real and "ListPagingGuardTest" not in real), "the real test sources: scan and guard tests are light, container tests are not"
+    with tempfile.TemporaryDirectory() as base:
+        root = os.path.join(base, "src", "test", "java")
+        os.makedirs(root)
+        os.makedirs(os.path.join(base, "src", "main", "java"))
+        open(os.path.join(base, "src", "main", "java", "MainScope.java"), "w", encoding="utf-8").write('class MainScope { static Object read() { return "/architecture/idempotent-endpoints.txt"; } }')
+        for name, text in {"ReadsLightTest": 'class ReadsLightTest { Path p = Path.of("architecture/x.txt"); }', "ReadsJoinedTest": 'class ReadsJoinedTest { Path p = Path.of("architecture").resolve("y.txt"); }',
+                           "ReadsViaHelperTest": "class ReadsViaHelperTest { Object o = RegistryReader.load(); }", "RegistryReader": 'class RegistryReader { static Object load() { return Path.of("architecture/z.txt"); } }',
+                           "ReadsHeavyTest": '@SpringBootTest class ReadsHeavyTest { String s = "architecture/y.txt"; }', "HelperOfHelperTest": "class HelperOfHelperTest { Object o = ViaReader.go(); }",
+                           "ViaReader": "class ViaReader { static Object go() { return RegistryReader.load(); } }", "OtherTest": "class OtherTest { }",
+                           "CommentOnlyTest": 'class CommentOnlyTest { /* "architecture/z.txt" */ }', "IdentifierTest": "class IdentifierTest { Object architecture = null; Object o = new ArchitectureRules(); }",
+                           "ViaMainTest": "class ViaMainTest { Object o = MainScope.read(); }"}.items():
+            open(os.path.join(root, name + ".java"), "w", encoding="utf-8").write(text)
+        light = cli(["--reading", "architecture", root]).split(",")
+        heavy = cli(["--reading", "architecture", "--heavy", root]).split(",")
+        everything = cli([root]).split(",")
+    assert light == ["ReadsJoinedTest", "ReadsLightTest", "ReadsViaHelperTest", "ViaMainTest"], f"--reading: a string literal or a helper that reads, not comments, identifiers or a helper of a helper: {light}"
+    assert heavy == ["ReadsHeavyTest"], f"--heavy: the readers that start a container: {heavy}"
+    assert "OtherTest" in everything and "ReadsHeavyTest" not in everything, "without --reading the whole light list"
+    if os.path.isdir(ROOT):
+        real = set(cli(["--reading", "architecture"]).split(","))
+        assert {"PrimaryKeyTypeGuardTest", "RepositoryWriteGuardTest", "SystemActorCatalogueTest", "CredentialColumnGuardTest", "PrimaryKeyExemptionsTest", "SeeyonSourceScanTest", "QualifiedBaseTableGuardTest", "IdempotencyScopeTest", "SystemActorsTest"} <= real, sorted(real)
     print("light_unit_classes self-test: ok")
+
+
+def cli(args, root=ROOT):
+    needle = args[args.index("--reading") + 1] if "--reading" in args else None
+    rest = [a for i, a in enumerate(args) if not a.startswith("--") and not (i > 0 and args[i - 1] == "--reading")]
+    root = rest[0] if rest else root
+    names = light_classes(read_sources(root))
+    if needle:
+        read = mentions(root, needle)
+        names = sorted(n for n in read if n.endswith("Test") and n not in names) if "--heavy" in args else [n for n in names if n in read]
+    return ",".join(names)
 
 
 if __name__ == "__main__":
     if sys.argv[1:] == ["--self-test"]:
         self_test()
         sys.exit(0)
-    root = sys.argv[1] if len(sys.argv) > 1 else ROOT
-    print(",".join(light_classes(read_sources(root))))
+    print(cli(sys.argv[1:]))
