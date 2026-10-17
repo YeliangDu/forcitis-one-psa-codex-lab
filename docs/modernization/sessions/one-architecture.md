@@ -16,7 +16,7 @@
 
 ## 独占
 
-- `docs/modernization/architecture/`（SSOT、生成器、生成的图、`ARCH_CONTEXT.md`、架构决策页及其答复导入）。
+- architecture/ 正式 SSOT、架构语义生成器与接缝整合（含 `ARCH_CONTEXT.md`、架构决策页及其答复导入）；排除 proposals/closeout/finance/、revenue/、people/ 的受派片段，以及 decision-page/check_pages.py（one-quality）。三组只写分组片段，本会话整合后写共享文件；不与子组同时编辑同一文件。
 - 架构校验脚本 `scripts/ci/architecture_*.py` 及其 CI job（守护文件改动单列，opus 复审）。
 
 ## 不碰
@@ -34,7 +34,8 @@
 
 ## 输出
 
-- 架构 SSOT 与 4 张图的 PR → one-coordinator 合并；在线图页与决策页 → 用户。
+- 纯架构文档与画像：及时提交推送，报分支和提交号，由 one-merge 按调度批准收合集；代码、生成器、守护脚本按工作单元单独 PR。提议设计稿仍按评审与用户确认里程碑合入。
+- 结构与财务待决先查 DECISION_DIGEST，确认页链接登记收件箱；不把已采纳 ADR 重新列成待批准。在线图页 → 用户。
 - 漂移与不一致 → 开卡交负责会话；合规评审结论 → one-coordinator。
 
 ## 触发与节奏
@@ -45,7 +46,8 @@
 ## 自动化
 
 - 钩子：压缩前快照；压缩或清空后注入 `ARCH_CONTEXT.md` 与本画像。
-- 守护与脚本：`architecture/` 下的生成器与校验脚本（随第一批 PR 落地，落地后在此列出）。
+- 守护与脚本（已落地）：`architecture/build_architecture.py`（`--check`）、`architecture/check_proposals.py`、`proposals/aggregates_dep_check.py`、`proposals/closeout/{closeout_check,stage_align_check,object_layer_check,name_id_check,object_check,seam_check,converge_check,bpmn_gen,bpmn_check}.py`（三个检查支持 `--extra <yaml>`）。
+- 会话标记：worktree 内固定写 `one-architecture` 会话名标记（调度已写），不改。
 
 ## 上下文文档
 
@@ -72,4 +74,4 @@
 
 ## 当前状态
 
-2026-10-17 04:47+02:00：对象层主对象全部确认（object-layer.yaml，含 supports、category 提议、集成流程 PRC-184–200）；命名彻底清理的改名对照表 A/B/C 提议稿（497 处改动）待 one-glossary 判定后合页交用户；阶段层 SD-11–15 待交用户；确认页已答归档、未答撤出待改题（PAGE_IMPACT）；待用户定：ADR-0030 补标注的 kernel 端口方案。交接见 `architecture/proposals/HANDOFF_2026-10-16-LATE.md` 与 ARCH_CONTEXT。
+2026-10-17 15:30+02:00 三组骨架已铺完，转接缝与新决定回写；ADR-0052/0054/0055/0056 已采纳，ADR-0057（报价发出编排模块，部分取代 ADR-0051）已批并采纳，采纳记录与实施完成分开跟踪；命名接续 N9→N7，规范名、指称登记与施工图回写按已批准方法推进，旧改名对照表只作输入；SSOT 整合确认包（ARCH_SSOT_CONSOLIDATION_PLAN，8 册）待 N7 完成后开工。在途：B31 参数清单页（ARC-1017-ARC-06）与 A8 现行做法取证（ARC-1017-ARC-07，one-data 经 one-ops 通道）。实际下一卡见调度派工与 ARCH_CONTEXT，dev 暂停。

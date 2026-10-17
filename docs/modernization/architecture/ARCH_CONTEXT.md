@@ -1,6 +1,6 @@
 # one-architecture 速查（2026-10-15）
 
-> **接续必读（2026-10-17）**：先读 `proposals/HANDOFF_2026-10-17.md`，再读本文件。
+> **接续必读（2026-10-17）**：先读本文件「现状」，交接历史见 `proposals/HANDOFF_2026-10-17.md`。
 
 
 规矩：结构性选择只推荐、不裁定，用户答复为准；先在 SSOT 登记再写代码；已有 SSOT 只引用不复制；一行一项，过程放链接（SESSION_PLAYBOOK §2.1 第 13 条）。
@@ -23,11 +23,11 @@
 
 | 项 | 值 |
 |---|---|
-| 在途 PR | #365 已入队（文档改动今后不开 PR，提交推送后报分支 + 提交号，调度每日两次收合集） |
-| 当前步 | 2026-10-17：①对象层、能力层数据已交（closeout/object-layer.yaml：主对象全定、supports、category 提议、集成 PRC-184–200；检查 object_layer_check、name_id_check）；②命名：用户改为先定「命名体系 ADR」（全命名面；稳定原则进 ADR、细则进 NAMING_STANDARD；用户原话「现在刚开始，代价是最低的时候」——按长期正确完整采用：概念与名称分离、多语言指称、标签角色、组合规则，迁移只排期），研究由调度转来后本会话主笔、one-glossary 合写、opus 起草与首轮复审；改名对照表 rename/RENAME_A/B/C 暂停作输入；③ADR-0052（取代 ADR-0050 九处冲突、METHOD 第 4 稿）opus 起草中，与 SD-09、SD-11–15 合进下一张确认页；④待用户：ADR-0030 补标注 kernel 端口方案（推荐身份模块实现端口、同事务写 platform.identity 动作名）；⑤确认页已答归档、未答撤出，改题见 closeout/PAGE_IMPACT.md |
+| 在途 PR | 无；文档不开 PR，提交推送后报分支 + 提交号，one-merge 按调度批准收合集 |
+| 当前步 | 2026-10-17 15:30：①ADR-0052/0054/0055/0056 已采纳（b4dc1f6a），ADR-0057 报价发出编排模块已批并采纳（bcda802f，部分取代 ADR-0051 三处）；transitions.yaml 与 DDD SSOT 随整合确认包 T、D 册写入（intent 2026-10-17-112814）；②CAPINFO、TRN、B31、ADR57 确认页已答并写回；③命名接续 N9→N7，模块与新命令名随 N7；④SSOT 整合确认包方案 `proposals/ARCH_SSOT_CONSOLIDATION_PLAN.md`（8 册，R 册已记「不引入 DMN、判断走 D15 版本化配置」），N7 完成后开工；⑤在途：B31 参数清单页 ARC-1017-ARC-06（Codex）、A8 现行做法取证 ARC-1017-ARC-07（one-data 经 one-ops 通道，等参数清单）；⑥检查脚本 `--extra` 已落地，云端试点验收通过（`proposals/closeout/pilot/ACCEPTANCE.md`），铺开待调度定 |
 | 已定（2026-10-16 晚） | 结构裁定 S-29–S-44；VS-02.7 改名收尾；新增 VS-04.6 履约、VS-08.0 事前申请；归段判据写进 stage_align_check；权责表 586 条冲突 0；跨组接缝清零 |
 | 已定（2026-10-16） | ADR-0046（12 月与第 13 期同时关账）、ADR-0047（视为同意）已采纳；阶段类型 S1–S6；BC 划分 D-1–D-9、D-8 期满判定在 receivables.wip；完整性 C-1–C-8、INV-62、Q29 宽口径（证据升一级）；D-7 提前拆 accounting.tax；K-1 知识条目（OBJ-110，km.knowledge）；P-1 回签前开票规则；METHOD M-1–M-7（7 步、两份一次性 ADR） |
 | 草稿位置 | proposals/：ENTERPRISE_INFO_MAP_DRAFT（一级 21）、ENTERPRISE_AGGREGATES_DRAFT（聚合 103、BC 29、查环脚本 aggregates_dep_check.py）、STAGE_TYPES_DRAFT、METHOD_V4_DRAFT、FRAMEWORKS_V4_DRAFT、OBJECT_COMPLETENESS_REPORT、STEP1_VALUE_STREAMS + value-streams.v2.yaml、STEP2_CAPABILITIES + capabilities.v2.yaml |
 | 规矩（白天） | 要用户定的：确认页：框架、标准、选型类不预选（ADR-0041 决定 6），业务口径页推荐项预选（用户 #362 裁定 B；rules/decide/README.md）＋待决定收件箱 https://claude.ai/artifact/RVU6nNNSsygF5sVRWLhQ15 （集合 inbox）；确认页用 contract 0.2.80；纯文档作者自检，结构判定仍 opus；直连 one-glossary、one-data（数据落点与第 11 步）；取证登记 #298 合入后用 phase1a/infra/new_legacy_read.py 片段，在途分支合 main 时丢老表改动重登 |
 | 规矩 | 确认页先交 one-coordinator 独立审题再进收件箱（status pending）；结构性选择只推荐；目录阶段以骨架为准经 sync_catalog_stages 同步；依赖列括注不用全角分号（查环脚本） |
-| 待办 | 见 `proposals/HANDOFF_2026-10-16-LATE.md`「下一步」 |
+| 待办 | 见「当前步」⑤；任务登记 `docs/modernization/tasks/*-ARC-*.md` |
