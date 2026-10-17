@@ -1,5 +1,7 @@
 # 四项新增地基：main 现状、缺口与校准切片最小范围（2026-10-16，只读核对，未评审）
 
+状态：评审中｜2026-10-16｜负责：one-architecture
+
 依据：施工方案 `CONSTRUCTION_PLAN_DRAFT.md` §4.2、§5.3、§10、§10.1；`CALIBRATION_SLICE.md`；ADR-0035、0036、0031、0037。
 核对基线：origin/main @ `cf3b9a3e`（2026-10-16，#372 合并后）。证据路径相对 `backend/`、`frontend/`、`docs/modernization/`（main 上的同名目录）。
 「车道周」= 一个会话加其 Codex 派工一周的产出，**全部为粗估，未实测**，按 CS-1.8 只估切片用得到的部分，另列「全量」仅供排期参考。

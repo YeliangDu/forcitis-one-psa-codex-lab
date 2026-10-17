@@ -1,6 +1,8 @@
 <!-- 快照 2026-10-16：流程目录与 bc-map.yaml 取自 one-architecture 提交 5c2d14e2（尚未合入 main）；重新生成见 term_gate_check.py 文件头 -->
 # 架构用语门禁报告（term_gate_check.py 生成）
 
+状态：评审中｜2026-10-16｜负责：one-quality
+
 - **未检查（输入缺失）**：bc 映射：B-29 delivery.closeout 未在 bcs.yaml 登记（in_bcs_yaml: false，待 one-glossary）
 - **未检查（输入缺失）**：bc 映射：B-31 organization.administration 未在 bcs.yaml 登记（in_bcs_yaml: false，待 one-glossary）
 

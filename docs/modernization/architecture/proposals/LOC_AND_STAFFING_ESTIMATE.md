@@ -1,5 +1,7 @@
 # FORCITIS one 代码量与人机配比估算（只读分析，2026-10-16）
 
+状态：历史记录｜2026-10-16｜负责：one-architecture
+
 基线：origin/main `ad9439b2`（2026-10-16 14:08 +0200）；施工方案与聚合清单取 `origin/claude/one-architecture-adr-governance` 上的 `CONSTRUCTION_PLAN_DRAFT.md`、`ENTERPRISE_AGGREGATES_DRAFT.md` §3.2。行数口径：非空、非注释行（`//`、`/* */`、`*`、`--` 开头的行不计），统计脚本与模型在本目录 `loc.py`、`model.py`。所有估算标明「实测 / 假设 / 推论」；没有任何一个 BC 已走完「规则卡 → 实现 → 评审 → dev 部署 → 验收」，所以**每 BC 的产出速度目前没有实测值**，下文所有工期判断都依赖待校准的参数（第 5 节）。
 
 ---

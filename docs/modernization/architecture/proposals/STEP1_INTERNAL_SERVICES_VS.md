@@ -1,5 +1,7 @@
 # 面向员工的内部服务价值流（提议稿，待用户决定是否作为价值流定义修改）
 
+状态：评审中｜2026-10-16｜负责：one-architecture
+
 日期：2026-10-16。性质：业务口径提议，不改 `value-streams.v2.yaml`、`closeout/process-catalog.yaml` 及任何其他文件；用户采纳后再由 one-architecture 落地。
 
 范围（用户点名）：用印、合同借阅与归档、IT 需求、IT 资产领用 / 调拨 / 归还 / 报修、员工活动申请。

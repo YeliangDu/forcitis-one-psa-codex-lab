@@ -1,5 +1,7 @@
 # one-architecture 交接（2026-10-16 深夜）
 
+状态：历史记录｜2026-10-16｜负责：one-architecture
+
 接续先读本文件，再读 `ARCH_CONTEXT.md`；下午交接 `HANDOFF_2026-10-16-PM.md` 只作历史。
 
 ## 分支与 PR

@@ -1,5 +1,7 @@
 # FRAMEWORKS 第 3 稿增补（草案，待 opus 评审与用户确认；并入最终一次性 ADR）
 
+状态：已取代→FRAMEWORKS_V4_DRAFT.md｜2026-10-15｜负责：one-architecture
+
 起因：本轮推导实际依赖 BIZBOK v11 与 TOGAF 系列指南 G178、G190、G211，但它们未在 FRAMEWORKS 中锁定（ADR-0041 把 TOGAF 收窄为过渡架构），违反防漂移规则 1。用户 2026-10-15 要求补齐理论基础（「我们现在这个推导理论基础完整吗？」→「开始」）。
 
 ## 新增：BIZBOK v11（Business Architecture Guild，*A Guide to the Business Architecture Body of Knowledge*，Version 11.0，2022）

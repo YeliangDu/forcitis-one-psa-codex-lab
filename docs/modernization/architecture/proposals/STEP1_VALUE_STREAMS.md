@@ -1,5 +1,7 @@
 # 第 ① 步：干系人与价值流（提议稿）
 
+状态：已确认｜2026-10-16｜负责：one-architecture
+
 状态：提议稿，已按 opus 对抗评审意见修改（见文末「评审处理记录」），用户已答复第 5 节四道题（Q-A 至 Q-D 均选推荐，intent 082311），已按答复落文并完成第 ② 步回补（METHOD 第 4 稿 §1.1 回补顺序第 1 位）· 日期：2026-10-16 · 作者：one-architecture 子代理 · 机器可读稿：同目录 `value-streams.v2.yaml`（不改现行 `togaf/value-streams.yaml`，用户确认后按 METHOD 第 ① 步重写该文件）· 派生表生成脚本：同目录 `vs_links_gen.py`。
 
 依据：

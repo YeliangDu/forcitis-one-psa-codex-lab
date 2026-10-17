@@ -1,5 +1,7 @@
 # 全企业业务对象信息图（草案）
 
+状态：评审中｜2026-10-16｜负责：one-architecture
+
 状态：草案（用户 2026-10-15 已答复确认页 Q01–Q39，逐题落笔见 `ENTERPRISE_INFO_MAP_ANSWERS.md`；暂不定的题目保留为待定） · 日期：2026-10-15 · 作者：one-architecture 子代理 · METHOD 第 2 步（业务对象与范围）的统一产出；第 3 步（一级对象对抗检验，intent `2026-10-15-215658`）已按 opus 评审修订，结果见 `PRIMARY_OBJECT_TEST.md`（用户 2026-10-15 Q38 已认可）。交用户确认的问题见 `ENTERPRISE_INFO_MAP_QUESTIONS.md`（Q01–Q39）。
 
 修订说明（2026-10-15，opus 评审的一级对象检验）：OBJ 编号不变；去掉或合并的对象保留行号并标「非对象」；新增 OBJ-103（财务）、OBJ-104（奖金核定）；问题 Q 编号已重排并删并，新旧对照见 `ENTERPRISE_INFO_MAP_QUESTIONS.md` 末尾；本稿正文的 Q 编号均为新编号；变更清单见 §1.1。

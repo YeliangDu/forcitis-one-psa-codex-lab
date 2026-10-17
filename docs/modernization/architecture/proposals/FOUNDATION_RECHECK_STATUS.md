@@ -1,5 +1,7 @@
 # 地基项复核：矩阵 vs main 现状
 
+状态：历史记录｜2026-10-16｜负责：one-architecture
+
 日期：2026-10-16 · 只读核对，未改任何代码。
 - 规格来源：`docs/modernization/CROSS_CUTTING_MATRIX.md`（2026-10-14 版，含 10-15 增补的 §2.9）。
 - 代码现状：origin/main `cf3b9a3e`（只读工作树），自 2026-10-14 起合入约 1946 个提交。

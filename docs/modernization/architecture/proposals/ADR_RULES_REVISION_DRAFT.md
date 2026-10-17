@@ -1,5 +1,7 @@
 # ADR 规则修订稿（P1–P7 落成规则）
 
+状态：已确认｜2026-10-16｜负责：one-architecture
+
 - 日期：2026-10-16 · 起草：one-architecture · 状态：用户已批准（intent `2026-10-16-134434-one-architecture-ADR-规则修订批准页提交-D.md`，D-1 至 D-6、A-1、A-2），已落文到 `adr/src/_readme_*.md` 与 SESSION_PLAYBOOK §11、§12；生成器与工具由 one-quality 按文末「R 需求终版」实现；本稿 U-n 题号及第 4 至 6 节的「待用户」字样为批准前原文，答案见文末「用户答复与落文」。第 2 版按 opus 首轮评审 `ADR_RULES_REVISION_REVIEW.md` 13 条改，第 3 版按 sonnet 复核改，处理记录见文末；不改任何已采纳 ADR
 - 依据：用户对 ADR 管理研究方案 P1–P7 答「采纳」（intent `2026-10-16-131918-one-coordinator-ADR-管理优化-采纳-集中解决.md`，PR #351；落点写明 P2 字段为「状态、用户原话、证据、部分取代」）；研究报告 `ADR_PRACTICES_RESEARCH.md`；评审 `ADR_0050_0051_REVIEW.md` B-1、H-6；ADR-0051 决定 1 第 1、2 条（规范性 / 参考性；用户认可的清单进 SSOT）；intent `2026-10-16-124649`（「我认可的规划，要进SSOT」）；intent `2026-10-14-089`（「新 ADR 必须写影响面、迁移方案、回滚方案，并同步修改对应守护规则」）；ADR-0049 提交 `6719c407`（「取代」行写细目、过不了生成器）；错题本 `quality/defect-bank/one-architecture.md` 第 5 条
 - 结构：第 1–3 节是拟替换的三份 readme 全文（批准后按用户答题定稿，落入 `adr/src/`）；第 4 节改动说明与过渡；第 5 节需同步修改清单与分工；第 6 节待用户题；文末评审处理记录

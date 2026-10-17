@@ -1,5 +1,7 @@
 # ADR 待决问题全量盘点
 
+状态：评审中｜2026-10-16｜负责：one-architecture
+
 - 日期：2026-10-16 · 作者：one-architecture 子代理（sonnet）· 状态：盘点稿，不改任何 ADR
 - 范围：`docs/modernization/adr/src/ADR-*.md` 全部 50 份（含 ADR-0050、0051）；在途提议 ADR-0029（PR #96）；用户决定以 `docs/modernization/intent/` 核对；施工方案题号对照 `CONSTRUCTION_PLAN_DRAFT.md` 第 9 节 U-1 至 U-18。
 - 方法：按「待定、未决、待用户、暂不定、待决、待确认、待财务、待审计、到期、例外、TODO、未核实、随 Q」及「另立 ADR、再定、生产前」检索，逐条读上下文；已被后续 ADR、intent、财务决策单解决的归入第 6 节；仍未决的列入第 1 至 5 节。

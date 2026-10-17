@@ -1,5 +1,7 @@
 # 第 ③ 步：阶段写实与能力—阶段对账（提议稿）
 
+状态：已确认｜2026-10-16｜负责：one-architecture
+
 状态：提议稿，已按 opus 首轮对抗评审修改（见文末「评审处理记录」），已经改后 sonnet 复核通过（2026-10-16，独立审查前提） · 日期：2026-10-16 · 作者：one-architecture 子代理 · 方法：`METHOD_V4_DRAFT.md` 第 ③ 步 · 理论参照：`FRAMEWORKS_V4_DRAFT.md` 第 0 节、B1、B3、§3.2 · 数据文件：同目录 `value-streams.v2.yaml`（本步已改，修正处 note 标「STEP3 C-xx」）、`capabilities.v2.yaml`（本步未改） · 派生表：`vs_links_gen.py` 写回 `STEP1_VALUE_STREAMS.md` 的三处派生块，`--check` 退出码 0。
 
 依据：

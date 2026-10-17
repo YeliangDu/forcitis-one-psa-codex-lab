@@ -1,5 +1,7 @@
 # ADR 业界最佳实践研究与本项目优化方案（2026-10-16，只读研究）
 
+状态：历史记录｜2026-10-16｜负责：one-architecture
+
 ## 0. 取证说明
 一手来源均 2026-10-16 抓取。未核实：Backstage ADR 插件的文件名与前置字段规则（官方 README 被截断）、log4brains 最近提交日期、adr-tools 的 link/generate 子命令（页面未列）、Spotify 文章对已采纳 ADR 取代的做法（文中未述）。GOV.UK 服务手册无 ADR 页（404），改取 GOV.UK ADR 框架与 GDS Way。
 

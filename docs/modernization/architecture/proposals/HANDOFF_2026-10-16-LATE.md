@@ -1,5 +1,7 @@
 # one-architecture 交接（2026-10-16 晚，/clear 前）
 
+状态：历史记录｜2026-10-16｜负责：one-architecture
+
 接续先读本文件，再读 `ARCH_CONTEXT.md`；更早的交接（NIGHT、PM）只作历史。
 
 ## 进行中：阶段对齐（BIZBOK v11 §3.4：阶段 → 能力 → 信息 → 干系人，第一层）

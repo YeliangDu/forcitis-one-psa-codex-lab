@@ -1,5 +1,7 @@
 # 研究计划：收入确认是无状态规则层，还是有状态对象
 
+状态：历史记录｜2026-10-16｜负责：one-architecture
+
 状态：计划稿（只定怎么研究，不含研究结论）。起因：ADR 待决题 Q-04 用户选「暂不定」，附注「这个研究下再决议」（intent `intent/2026-10-16-134134-*.md`）。
 出处：盘点 `ADR_PENDING_INVENTORY.md` P-041；ADR-0016 决定 4；ADR-0047 第 5 条；ADR-0049 第 4 条；`ENTERPRISE_AGGREGATES_DRAFT.md` Q20、AGG-44/47/57/43、INV-22/40；信息图 OBJ-81；`CONSTRUCTION_PLAN_DRAFT.md`（一次投产、全量历史进交易库）；`decision-page/PENDING.json` Q-04。
 

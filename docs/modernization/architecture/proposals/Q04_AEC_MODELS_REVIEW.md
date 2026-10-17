@@ -1,5 +1,7 @@
 # 《AEC 合同计价模式与收入确认》专题研究：opus 首轮对抗评审（2026-10-16）
 
+状态：历史记录｜2026-10-16｜负责：one-architecture
+
 - 评审对象：`Q04_AEC_CONTRACT_MODELS.md`（下称「本稿」，行号按该文件）。对照：`Q04_REVENUE_OBJECT_RESEARCH.md`（主研究）、`Q04_OVER_TIME_PROGRESS_RESEARCH.md`（进度研究）、`Q04_LITIGATION_EVIDENCE_RESEARCH.md`（证据研究）、`Q04_REVIEW.md`、ADR-0016 / 0047 / 0049、`terms.yaml`、`ENTERPRISE_AGGREGATES_DRAFT.md`。
 - 只读评审，未访问外部来源与生产库；下文凡评审方自己提出的准则或法规要点，均标「请核对」，不作结论。
 

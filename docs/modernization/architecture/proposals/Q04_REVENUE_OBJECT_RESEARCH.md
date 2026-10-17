@@ -1,5 +1,7 @@
 # Q-04 研究：收入确认是无状态规则层，还是有状态对象
 
+状态：历史记录｜2026-10-16｜负责：one-architecture
+
 状态：已按 Q04_REVIEW 与 sonnet 复核修订（2026-10-16）。研究稿（只读研究，未改仓库）。按 `docs/modernization/architecture/proposals/RESEARCH_PLAN_REVENUE_RECOGNITION_OBJECT.md`（下称「计划」）的 S1–S11、三个选项与交付格式写。基线：`origin/claude/one-architecture-adr-governance`（2026-10-16 fetch）。引用行号以 `adr/src` 与聚合稿当前实际行号为准（2026-10-16 逐条核对）。
 未做：生产取证（列为第 6 节取证需求表，由调度转 one-ops，相关结论标「待取证」）；ADR-0037 登记行（取证执行时由 one-ops 登记）。
 
