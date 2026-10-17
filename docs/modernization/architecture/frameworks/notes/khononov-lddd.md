@@ -1,64 +1,78 @@
-# Khononov《Learning Domain-Driven Design》要点笔记
+---
+编号: "KHO"
+题名: "Learning Domain-Driven Design: Aligning Software Architecture and Business Strategy"
+作者: ["Vlad Khononov（版权名 Vladislav Khononov）"]
+年份: "2021（首版；版权年 2022）"
+版本: "首版（2021 年 10 月），本地文本为 2024-03-22 第二次发布"
+资料类型: "书籍"
+主题标签: ["领域建模", "集成", "度量与BI"]
+状态: "已审定"
+派工: "ARC-1018-ARC-01"
+---
 
-状态：已审定（one-architecture 2026-10-18，已抽查）｜派工：ARC-1018-ARC-01｜2026-10-17
+# Khononov《Learning Domain-Driven Design》要点笔记
 
 本文自行概括，不引入书中整套技术方案。短引：0 处。章节位置已抽查。
 
-## 1. 书目与阅读范围
+原笔记审定记录：已审定（one-architecture 2026-10-18，已抽查）；记录日期：2026-10-17。
 
-- 书名：Learning Domain-Driven Design: Aligning Software Architecture and Business Strategy；作者：Vlad Khononov（版权名 Vladislav Khononov）。
-- 版本：First Edition，October 2021；版权年：2022；本地版权页还列 2021-10-08 First Release、2024-03-22 Second Release。
-- 出版者：O’Reilly Media, Inc.；ISBN：978-1-098-10013-1。
-- 本地源 K：桌面同名 EPUB，34 个 spine 文档；书目 spine 3–4。本次按本地第二次发布文本阅读，不声称它仍是 2021 初始文件。
-- 无稳定页码，索引为章节、小节与 spine/去标签文本行号。聚焦战略设计与实现选择、通信和分析数据责任。
+## 核心思想
 
-## 2. 与本项目相关的核心思想
+- **设计深度取决于业务复杂性。** 复杂状态变化须保护不变量，简单业务可以选择更简单的逻辑组织。（KHO#领域模型与聚合、KHO#设计启发式）
+- **子域与上下文回答不同问题。** 前者描述问题空间，后者限定模型，不机械一一对应或都拆成最小服务。（KHO#子域分类、KHO#限界上下文与子域、KHO#设计启发式）
+- **状态保存与事件投递须协调。** 发件箱把状态和待发事件一起提交，跨步骤还须明确重复处理和流程状态。（KHO#发件箱与过程管理器）
+- **事件溯源与 CQRS 是独立选择。** 事件重建状态不同于附加审计，分开读写职责不自动意味着采用事件溯源。（KHO#事件溯源、KHO#命令查询职责分离）
+- **分析数据责任和跨域翻译须明确。** 分析模型归属可供比较，但不直接取代一致性维度、指标定义或本系统的主数据规则。（KHO#限界上下文与子域、KHO#领域分析数据责任）
 
-### 业务对象
-
-复杂业务逻辑涉及相互约束的状态变化，不能退化为 CRUD 界面。实体和值对象应配合聚合保护业务不变量；较简单的业务可采用更简单的逻辑组织方式，战术模式不应脱离业务复杂性独立推广。（K-03、K-06）
-
-### 价值流
-
-本书不涉及 BIZBOK 价值流图。业务战略与竞争差异帮助判断设计投入重点，不直接提供价值阶段或退出判据。（K-01）
-
-### 能力
-
-核心、通用与支撑子域描述业务差异及解决难度；这种分类服务于设计和投入选择。子域属于问题空间，限界上下文属于模型的解决方案边界，不要求机械一一对应，也不能将上下文都拆成最小服务。（K-01、K-02、K-06）
-
-### 流程
-
-保存聚合后再随意发消息会留下失败窗口。发件箱模式将状态和待发事件一起提交，再由转发过程发布；跨步骤还须明确重复处理与状态。作者区分线性事件—命令配对与持有流程状态、选择下一步的过程管理器，不能仅凭异步就认作同一种流程模式。（K-05）
-
-### 数据建模
-
-事件溯源让事件成为重建聚合状态的依据，与保存当前状态、附加审计日志不同。CQRS 则分开写入和读取职责，是另一项选择；这些模式可以组合，但不互相蕴含。（K-04、K-07）
-
-### 度量与 BI
-
-分析数据的提供方、质量与消费契约值得明确。数据网格章节提出领域对分析模型负责、将分析数据作为产品；这是可比较的治理观点，不能据此否定所有集中仓库或取代一致性维度及指标定义。（K-08；后半句为项目比较）
-
-### 主数据
-
-统一语言在限界上下文内保持一致，跨域应公开契约并明确翻译责任。业务主数据身份与某个上下文里的完整模型不能直接画等号；本书不提供本项目的匹配合并、权威来源优先级或版本表规则。（K-02）
-
-## 3. 概念章节索引
+## 概念及页码
 
 源 K；文档位于 EPUB `OEBPS/`；`L` 为对应 spine 抽取文本行号或小节定位。
 
-| 索引 | 概念 / 章节小节 | spine / 文件 | 位置 |
-|---|---|---|---|
-| K-B1 | 书目与发布历史 | 3，`titlepage01.html`；4，`copyright-page01.html` | 开头 |
-| K-01 | 第 1 章 Core / Generic / Supporting subdomains | 9，`ch01.html` | Core L17、Supporting L34 起 |
-| K-02 | 第 3 章 Bounded Contexts / Bounded Contexts Versus Subdomains | 11，`ch03.html` | 后者 L45 起 |
-| K-03 | 第 6 章 Domain Model / Value Objects / Aggregates | 15，`ch06.html` | 开头与同名小节 |
-| K-04 | 第 7 章 Event-Sourced Domain Model / Event Sourcing | 16，`ch07.html` | L3 起 |
-| K-05 | 第 9 章 Outbox / Saga / Process Manager | 18，`ch09.html` | L100、L138、L213 起 |
-| K-06 | 第 10 章 Heuristic / Bounded Contexts | 20，`ch10.html` | 开头 |
-| K-07 | 第 8 章 Command-Query Responsibility Segregation | 17，`ch08.html` | L180 起 |
-| K-08 | 第 16 章 Decompose Data Around Domains / Data as a Product | 27，`ch16.html` | L63、L68 起 |
+本地重排电子书无可靠版面页码，两列均记「—」；原章节、成员路径、spine 与文本行号合并保存在「原文位置」。
 
-## 4. 对本项目的取舍
+| 锚点 | 概念 | 原文位置 | 印刷页 | PDF 页 | 要点 |
+|---|---|---|---|---|---|
+| KHO#书目 | 书目 | 书目与发布历史；3，`titlepage01.html`；4，`copyright-page01.html`；开头 | — | — | 书目与发布历史分别记录 |
+| KHO#子域分类 | 子域分类 | 第 1 章 Core / Generic / Supporting subdomains；9，`ch01.html`；Core L17、Supporting L34 起 | — | — | 核心、通用和支撑子域帮助判断设计投入 |
+| KHO#限界上下文与子域 | 限界上下文与子域 | 第 3 章 Bounded Contexts / Bounded Contexts Versus Subdomains；11，`ch03.html`；后者 L45 起 | — | — | 问题空间和模型解决方案边界不必一一对应 |
+| KHO#领域模型与聚合 | 领域模型与聚合 | 第 6 章 Domain Model / Value Objects / Aggregates；15，`ch06.html`；开头与同名小节 | — | — | 复杂业务由实体、值对象与聚合维护不变量 |
+| KHO#事件溯源 | 事件溯源 | 第 7 章 Event-Sourced Domain Model / Event Sourcing；16，`ch07.html`；L3 起 | — | — | 以事件重建状态不同于当前状态加审计 |
+| KHO#发件箱与过程管理器 | 发件箱与过程管理器 | 第 9 章 Outbox / Saga / Process Manager；18，`ch09.html`；L100、L138、L213 起 | — | — | 状态与待发事件一起提交，流程状态与重复另行明确 |
+| KHO#设计启发式 | 设计启发式 | 第 10 章 Heuristic / Bounded Contexts；20，`ch10.html`；开头 | — | — | 设计深度须适配业务复杂性 |
+| KHO#命令查询职责分离 | 命令查询职责分离 | 第 8 章 Command-Query Responsibility Segregation；17，`ch08.html`；L180 起 | — | — | 写入与读取职责分开是独立选择 |
+| KHO#领域分析数据责任 | 领域分析数据责任 | 第 16 章 Decompose Data Around Domains / Data as a Product；27，`ch16.html`；L63、L68 起 | — | — | 分析提供方、质量和消费契约须明确 |
+
+## 对本系统的启示
+
+### 业务对象
+
+复杂业务逻辑涉及相互约束的状态变化，不能退化为 CRUD 界面。实体和值对象应配合聚合保护业务不变量；较简单的业务可采用更简单的逻辑组织方式，战术模式不应脱离业务复杂性独立推广。（KHO#领域模型与聚合、KHO#设计启发式） 本系统对照：原笔记未列本系统编号。
+
+### 价值流
+
+本书不涉及 BIZBOK 价值流图。业务战略与竞争差异帮助判断设计投入重点，不直接提供价值阶段或退出判据。（KHO#子域分类） 本系统对照：原笔记未列本系统编号。
+
+### 能力
+
+核心、通用与支撑子域描述业务差异及解决难度；这种分类服务于设计和投入选择。子域属于问题空间，限界上下文属于模型的解决方案边界，不要求机械一一对应，也不能将上下文都拆成最小服务。（KHO#子域分类、KHO#限界上下文与子域、KHO#设计启发式） 本系统对照：原笔记未列本系统编号。
+
+### 流程
+
+保存聚合后再随意发消息会留下失败窗口。发件箱模式将状态和待发事件一起提交，再由转发过程发布；跨步骤还须明确重复处理与状态。作者区分线性事件—命令配对与持有流程状态、选择下一步的过程管理器，不能仅凭异步就认作同一种流程模式。（KHO#发件箱与过程管理器） 本系统对照：原笔记未列本系统编号。
+
+### 数据建模
+
+事件溯源让事件成为重建聚合状态的依据，与保存当前状态、附加审计日志不同。CQRS 则分开写入和读取职责，是另一项选择；这些模式可以组合，但不互相蕴含。（KHO#事件溯源、KHO#命令查询职责分离） 本系统对照：原笔记未列本系统编号。
+
+### 度量与 BI
+
+分析数据的提供方、质量与消费契约值得明确。数据网格章节提出领域对分析模型负责、将分析数据作为产品；这是可比较的治理观点，不能据此否定所有集中仓库或取代一致性维度及指标定义。（KHO#领域分析数据责任；后半句为项目比较） 本系统对照：原笔记未列本系统编号。
+
+### 主数据
+
+统一语言在限界上下文内保持一致，跨域应公开契约并明确翻译责任。业务主数据身份与某个上下文里的完整模型不能直接画等号；本书不提供本项目的匹配合并、权威来源优先级或版本表规则。（KHO#限界上下文与子域） 本系统对照：原笔记未列本系统编号。
+
+## 我们的取舍
 
 **已审定（one-architecture 2026-10-18，已抽查）。**
 
@@ -67,23 +81,43 @@
 - **不采纳：把只追加经营事实认定为全系统事件溯源。** 理由：后者要求从事件重建状态的完整契约，现有事实与审计记录不自动满足。
 - **不采纳：因数据网格章节而重建数据平台或取消 Kimball 总线。** 理由：分析归属的观点可供比较，具体平台和指标治理仍按已采纳 ADR，未在本卡裁定。
 
-## 5. 使用边界与短引
+**使用边界：** 短引：0 处。书中启发式是条件化设计建议，不是能自动推出 FORCITIS one 子域、BC、核心业务或数据产品归属的事实。
 
-短引：0 处。书中启发式是条件化设计建议，不是能自动推出 FORCITIS one 子域、BC、核心业务或数据产品归属的事实。
+## 附：书目与阅读范围
 
-## 页码抽查（ARC-1018-ARC-04）
+- 书名：Learning Domain-Driven Design: Aligning Software Architecture and Business Strategy；作者：Vlad Khononov（版权名 Vladislav Khononov）。
+- 版本：First Edition，October 2021；版权年：2022；本地版权页还列 2021-10-08 First Release、2024-03-22 Second Release。
+- 出版者：O’Reilly Media, Inc.；ISBN：978-1-098-10013-1。
+- 本地源 K：桌面同名 EPUB，34 个 spine 文档；书目 spine 3–4。本次按本地第二次发布文本阅读，不声称它仍是 2021 初始文件。
+- 无稳定页码，索引为章节、小节与 spine/去标签文本行号。聚焦战略设计与实现选择、通信和分析数据责任。
+
+## 附：核对记录
+
+原记录：页码抽查（ARC-1018-ARC-04）。
 
 核对源：本地 EPUB 各 spine 文件去标签后的非空行（行号以独立重新抽取为准）。
 
 | 抽查项 | 笔记所记位置 | 实际位置 | 结果 |
 |---|---|---|---|
-| K-01 核心 / 支撑子域 | ch01；Core L17、Supporting L34 | ch01 Core subdomains L17、Supporting subdomains L34，章名 Analyzing Business Domains | 一致 |
-| K-02 限界上下文与子域 | ch03；L45 起 | ch03 小节 Bounded Contexts Versus Subdomains L45 | 一致 |
-| K-03 领域模型 / 值对象 / 聚合 | ch06 | ch06 章名 Tackling Complex Business Logic，含 Domain Model、Value object、Aggregates 各小节 | 一致 |
-| K-04 事件溯源领域模型 | ch07；L3 起 | ch07 章名 Modeling the Dimension of Time，Event Sourcing 小节 L6，Event-Sourced Domain Model L393 | 一致 |
-| K-05 Outbox / Saga / Process Manager | ch09；L100、L138、L213 | ch09 对应小节恰在 L100、L138、L213 | 一致 |
-| K-06 设计启发式 / 限界上下文 | ch10；开头 | ch10 章名 Design Heuristics，Heuristic 与 Bounded Contexts 小节在开头 | 一致 |
-| K-07 CQRS | ch08；L180 起 | ch08 Command-Query Responsibility Segregation 小节 L180 | 一致 |
-| K-08 按领域拆分数据 / 数据即产品 | ch16；L63、L68 | ch16 Decompose Data Around Domains L63、Data as a Product L68 | 一致 |
+| KHO#子域分类 核心 / 支撑子域 | ch01；Core L17、Supporting L34 | ch01 Core subdomains L17、Supporting subdomains L34，章名 Analyzing Business Domains | 一致 |
+| KHO#限界上下文与子域 限界上下文与子域 | ch03；L45 起 | ch03 小节 Bounded Contexts Versus Subdomains L45 | 一致 |
+| KHO#领域模型与聚合 领域模型 / 值对象 / 聚合 | ch06 | ch06 章名 Tackling Complex Business Logic，含 Domain Model、Value object、Aggregates 各小节 | 一致 |
+| KHO#事件溯源 事件溯源领域模型 | ch07；L3 起 | ch07 章名 Modeling the Dimension of Time，Event Sourcing 小节 L6，Event-Sourced Domain Model L393 | 一致 |
+| KHO#发件箱与过程管理器 Outbox / Saga / Process Manager | ch09；L100、L138、L213 | ch09 对应小节恰在 L100、L138、L213 | 一致 |
+| KHO#设计启发式 设计启发式 / 限界上下文 | ch10；开头 | ch10 章名 Design Heuristics，Heuristic 与 Bounded Contexts 小节在开头 | 一致 |
+| KHO#命令查询职责分离 CQRS | ch08；L180 起 | ch08 Command-Query Responsibility Segregation 小节 L180 | 一致 |
+| KHO#领域分析数据责任 按领域拆分数据 / 数据即产品 | ch16；L63、L68 | ch16 Decompose Data Around Domains L63、Data as a Product L68 | 一致 |
 
 抽查 8 条，偏差 0 条。
+
+## 附：旧索引对照
+
+- K-B1 → KHO#书目
+- K-01 → KHO#子域分类
+- K-02 → KHO#限界上下文与子域
+- K-03 → KHO#领域模型与聚合
+- K-04 → KHO#事件溯源
+- K-05 → KHO#发件箱与过程管理器
+- K-06 → KHO#设计启发式
+- K-07 → KHO#命令查询职责分离
+- K-08 → KHO#领域分析数据责任
