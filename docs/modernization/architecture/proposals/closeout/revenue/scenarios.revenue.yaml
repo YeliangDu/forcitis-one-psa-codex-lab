@@ -173,13 +173,13 @@ PRC-06:
   expect: 递交投标、直接委托赢单、签约前读到该结论均被拒绝（INV-33）
 PRC-07:
 - id: PRC-07-S01
-  path: 1→2 otherwise→3→4 审批通过→5（审批已通过）→7
+  path: 1→2 otherwise→3→4 审批通过→5（审批已通过）→7 投标场景（发出经 PRC-08 递交投标）→end
   outcome: 报价已生效
   covers:
   - 第 2 步 otherwise
   - 第 4 步「审批通过」
   - 第 5 步 otherwise
-  - 第 7 步 otherwise
+  - 第 7 步「投标场景（发出经 PRC-08 递交投标）」
   expect: 报价版本已通过且冻结（INV-31）；生效后成为（商机，标段）的当前版本，旧版同事务被取代（INV-30）；发报价版本已生效、已被取代（仅分析）
 - id: PRC-07-S02
   path: 2 所引费率或系数版本并非生效版本
@@ -195,7 +195,7 @@ PRC-07:
   - 第 6 步「客户仍要报价」
   expect: 驳回意见回传编制人，退回编制后可重新提交评审
 - id: PRC-07-S04
-  path: 6 otherwise→8
+  path: 6 otherwise→10
   outcome: 报价已作废
   covers:
   - 第 6 步 otherwise
@@ -219,18 +219,45 @@ PRC-07:
   - 第 3 步撤回
   - 第 4 步「申请人已撤回评审」
   expect: 撤回评审后版本回草拟，审批平台单据作废；可修改后重新提交，不产生评审结论
+- id: PRC-07-S08
+  path: 7 otherwise（非投标：询价、议标、直接委托）→8 核验实际用印 otherwise→9 登记报价发出
+  outcome: 报价已发出
+  covers:
+  - 第 7 步 otherwise
+  - 第 8 步 otherwise
+  - 第 9 步 otherwise
+  expect: 非投标发出成功；REF-03 核验同一报价版本、法人、拟发文件的实际用印后调用 AGG-12 登记报价发出，记录发出方式、日期、客户联系人、用印登记 ID；报价仍为已生效，不校验用印真伪，不发领域事件
+- id: PRC-07-S09
+  path: 7 otherwise→8 未用印→end
+  outcome: 报价发出被拒（未用印）
+  covers:
+  - 第 8 步「未用印，或报价版本、法人、拟发文件不符，或读不到用印登记、调用失败」
+  expect: 未用印或仅审批通过时发出失败并向 SH-E5 告警；版本、法人、拟发文件任一不符同样拒绝，不调用登记报价发出，不改报价状态
+- id: PRC-07-S10
+  path: 7 otherwise→8 B-31 读不到用印登记或调用失败→end
+  outcome: 报价发出被拒（未用印）
+  covers:
+  - 第 8 步「未用印，或报价版本、法人、拟发文件不符，或读不到用印登记、调用失败」
+  expect: B-31 读不到被拒，调用失败也拒绝并向 SH-E5 告警，不放行、不调用登记报价发出
+- id: PRC-07-S11
+  path: 7 投标场景（发出经 PRC-08 递交投标）→end
+  outcome: 报价已生效
+  covers:
+  - 第 7 步「投标场景（发出经 PRC-08 递交投标）」
+  expect: 投标场景生效即止，不在本流程核验用印或登记报价发出；发出经 PRC-08 在递交投标前由 REF-03 核验实际用印
 PRC-08:
 - id: PRC-08-S01
-  path: 1→2→3 otherwise→6（定时提醒）→7 otherwise
+  path: 1→2→3 otherwise→6（定时提醒）→7 核验实际用印 otherwise→8 otherwise
   outcome: 已递交待评标
   covers:
   - 第 2 步 otherwise
   - 第 3 步招标文件不要求保证金
   - 定时提醒
+  - 第 7 步 otherwise
   - 递交投标 otherwise
   expect: 无需保证金的投标携承诺快照递交，发「投标已递交」（仅分析）；评标结果到达后由登记步骤重入
 - id: PRC-08-S02
-  path: 2 直接委托，无招标→15
+  path: 2 直接委托，无招标→16
   outcome: 商机已赢单
   covers:
   - 第 2 步「直接委托，无招标」
@@ -243,7 +270,7 @@ PRC-08:
   - 第 2 步 INV-33 出口
   expect: 拒绝递交并告警（INV-33）
 - id: PRC-08-S04
-  path: 3 资格预审未通过→12→16
+  path: 3 资格预审未通过→13→17
   outcome: 商机已放弃
   covers:
   - 第 3 步「资格预审未通过」
@@ -251,7 +278,7 @@ PRC-08:
   - 放弃商机 otherwise
   expect: 资格预审未通过不得递交（INV-29）；放弃投标后客户经理放弃商机，发商机已放弃（仅分析，B-07）
 - id: PRC-08-S05
-  path: 7 评标结果为中标→8→13
+  path: 8 评标结果为中标→9→14
   outcome: 商机已赢单
   covers:
   - 递交投标「评标结果为中标」
@@ -259,7 +286,7 @@ PRC-08:
   - 商机赢单策略 otherwise
   expect: 中标通知书必填；投标已中标触发商机赢单，发 OpportunityAccepted，订阅方 B-04、B-05
 - id: PRC-08-S06
-  path: 7 评标结果为未中标→9→14
+  path: 8 评标结果为未中标→10→15
   outcome: 商机已丢单
   covers:
   - 递交投标「评标结果为未中标」
@@ -274,64 +301,64 @@ PRC-08:
   - 第 5 步登记缴纳
   expect: 付款经 B-10 审批（命中 AR-01 加一级、AR-02 加两级），付款成功后出纳登记保证金缴纳（P-10），过账由 PRC-10 提交
 - id: PRC-08-S08
-  path: 7 评标阶段被宣布废标→10 重新招标，另建投标→PRC-08
+  path: 8 评标阶段被宣布废标→11 重新招标，另建投标→PRC-08
   outcome: null
   covers:
   - 递交投标「评标阶段被宣布废标」
   - 登记废标「重新招标，另建投标」
   expect: 发「投标已废标」（PRC-153 接续退还）；重入本流程另建投标
 - id: PRC-08-S09
-  path: 10 不重新招标且商机丢失→17
+  path: 11 不重新招标且商机丢失→18
   outcome: 商机已丢单
   covers:
   - 登记废标「不重新招标且商机丢失」
   - 废标后丢单 otherwise
   expect: 客户经理人工登记商机丢单，发商机已丢单（仅分析）
 - id: PRC-08-S10
-  path: 10 otherwise→12→16
+  path: 11 otherwise→13→17
   outcome: 商机已放弃
   covers:
   - 登记废标 otherwise
   expect: 废标后放弃商机，发商机已放弃
 - id: PRC-08-S11
-  path: 7 决定撤回→11 撤回发生在截止前，商机继续跟进
+  path: 8 决定撤回→12 撤回发生在截止前，商机继续跟进
   outcome: 已撤回
   covers:
   - 递交投标「决定撤回或撤销投标」
   - 撤销投标「截止前撤回，商机继续跟进」
   expect: 登记投标已撤销（PRC-153 订阅后按截止前撤回接续退还，条例第 35 条另行核对）；商机继续跟进
 - id: PRC-08-S12
-  path: 11 otherwise→12→16
+  path: 12 otherwise→13→17
   outcome: 商机已放弃
   covers:
   - 撤销投标 otherwise
   expect: 截止后撤销不触发退还，客户经理放弃商机
 - id: PRC-08-S13
-  path: 11 截止前撤回，不再跟进该商机→12→16
+  path: 12 截止前撤回，不再跟进该商机→13→17
   outcome: 商机已放弃
   covers:
   - 撤销投标「截止前撤回，不再跟进该商机」
   expect: 撤回后放弃商机；退还由 PRC-153 接续
 - id: PRC-08-S14
-  path: 4 保证金付款审批被驳回→12→16
+  path: 4 保证金付款审批被驳回→13→17
   outcome: 商机已放弃
   covers:
   - 第 4 步审批驳回 on_reject
   expect: 保证金付款审批驳回即不缴保证金（资金审批，参投已在 PRC-183 决定）；放弃投标后放弃商机
 - id: PRC-08-S15
-  path: 15 委托赢单时独立性检查有冲突未获书面同意
+  path: 16 委托赢单时独立性检查有冲突未获书面同意
   outcome: null
   covers:
   - 委托赢单前置 INV-33
   expect: 拒绝并告警
 - id: PRC-08-S16
-  path: 7 同一招标同一标段重复参加
+  path: 8 同一招标同一标段重复参加
   outcome: null
   covers:
   - 递交投标前置 INV-28
   expect: 拒绝并告警（键为招标项目登记 ID + 标段）
 - id: PRC-08-S17
-  path: 8 中标但缺中标通知书
+  path: 9 中标但缺中标通知书
   outcome: null
   covers:
   - 登记中标前置 INV-27
@@ -343,18 +370,24 @@ PRC-08:
   - 定时提醒
   expect: 提醒商机负责人（P-13），不改变投标状态
 - id: PRC-08-S19
-  path: 7 决定撤回→11 撤回发生在截止后，商机继续跟进
+  path: 8 决定撤回→12 撤回发生在截止后，商机继续跟进
   outcome: 已撤回
   covers:
   - 递交投标「决定撤回或撤销投标」
   - 撤销投标「截止后，商机继续跟进」
   expect: 登记投标已撤销；截止后撤销不适用退还；商机仍可继续跟进
 - id: PRC-08-S20
-  path: 第 10 步登记废标→出口「重新招标，另建投标」
+  path: 第 11 步登记废标→出口「重新招标，另建投标」
   outcome: 已转重新投标
   covers:
-  - 第 10 步「重新招标，另建投标」
+  - 第 11 步「重新招标，另建投标」
   expect: 本投标以已转重新投标结束，商机保持跟进中，新投标另起 PRC-08 实例；投标保证金退还由 PRC-153 订阅「投标已废标」接续
+- id: PRC-08-S21
+  path: 1→2→3 otherwise→6→7 递交前用印核验失败→end
+  outcome: 递交被拒（未用印）
+  covers:
+  - 第 7 步「未用印，或报价版本、法人、拟发文件不符，或读不到用印登记、调用失败」
+  expect: REF-03 发现未用印（含仅审批通过）、报价版本或法人或拟发文件不符、B-31 读不到或调用失败时，递交失败并向 SH-E5 告警；不调用 AGG-11 递交投标，不发投标已递交，不改投标状态
 PRC-10:
 - id: PRC-10-S01
   path: 待缴→已缴

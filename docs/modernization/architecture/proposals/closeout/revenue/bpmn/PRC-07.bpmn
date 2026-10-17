@@ -4,6 +4,7 @@
   <dataStore id="DS_AGG-06" name="AGG-06"/>
   <dataStore id="DS_AGG-07" name="AGG-07"/>
   <dataStore id="DS_AGG-12" name="AGG-12"/>
+  <dataStore id="DS_AGG-113" name="AGG-113"/>
   <collaboration id="Collab_PRC-07">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-07"/>
   </collaboration>
@@ -16,11 +17,14 @@
         <flowNodeRef>S3_6</flowNodeRef>
         <flowNodeRef>S3_gw_8</flowNodeRef>
         <flowNodeRef>S7_14</flowNodeRef>
-        <flowNodeRef>S8_15</flowNodeRef>
-        <flowNodeRef>End_16</flowNodeRef>
-        <flowNodeRef>End_17</flowNodeRef>
-        <flowNodeRef>End_18</flowNodeRef>
-        <flowNodeRef>End_19</flowNodeRef>
+        <flowNodeRef>S7_gw_15</flowNodeRef>
+        <flowNodeRef>S9_18</flowNodeRef>
+        <flowNodeRef>S10_19</flowNodeRef>
+        <flowNodeRef>End_20</flowNodeRef>
+        <flowNodeRef>End_21</flowNodeRef>
+        <flowNodeRef>End_22</flowNodeRef>
+        <flowNodeRef>End_24</flowNodeRef>
+        <flowNodeRef>End_25</flowNodeRef>
       </lane>
       <lane id="Lane_system" name="系统">
         <flowNodeRef>Start_1</flowNodeRef>
@@ -32,6 +36,9 @@
         <flowNodeRef>S5_11</flowNodeRef>
         <flowNodeRef>S6_12</flowNodeRef>
         <flowNodeRef>S6_gw_13</flowNodeRef>
+        <flowNodeRef>S8_16</flowNodeRef>
+        <flowNodeRef>S8_gw_17</flowNodeRef>
+        <flowNodeRef>End_23</flowNodeRef>
       </lane>
     </laneSet>
     <startEvent id="Start_1" name="商机跟进中，客户询价或邀标">
@@ -150,50 +157,94 @@
       </ioSpecification>
       <dataOutputAssociation id="DOA_S7_14_1"><sourceRef>DOut_S7_14_1</sourceRef><targetRef>SR_S7_14_w1</targetRef></dataOutputAssociation>
     </userTask>
-    <userTask id="S8_15" name="作废报价版本">
+    <exclusiveGateway id="S7_gw_15" name="生效报价版本？">
+      <incoming>Flow_19</incoming>
+      <outgoing>Flow_20</outgoing>
+      <outgoing>Flow_21</outgoing>
+    </exclusiveGateway>
+    <serviceTask id="S8_16" name="核验实际用印 → B-31">
+      <documentation>核验实际用印；B-03；automatic</documentation>
+      <incoming>Flow_21</incoming>
+      <outgoing>Flow_22</outgoing>
+      <ioSpecification id="IO_S8_16">
+        <dataInput id="DIn_S8_16_1"/>
+        <inputSet><dataInputRefs>DIn_S8_16_1</dataInputRefs></inputSet>
+        <outputSet></outputSet>
+      </ioSpecification>
+      <dataInputAssociation id="DIA_S8_16_1"><sourceRef>SR_S8_16_r1</sourceRef><targetRef>DIn_S8_16_1</targetRef></dataInputAssociation>
+    </serviceTask>
+    <exclusiveGateway id="S8_gw_17" name="核验实际用印？">
+      <incoming>Flow_22</incoming>
+      <outgoing>Flow_23</outgoing>
+      <outgoing>Flow_24</outgoing>
+    </exclusiveGateway>
+    <userTask id="S9_18" name="登记报价发出">
+      <documentation>AGG-12 登记报价发出；B-03；in_system；报价.登记发出；报价发出登记页</documentation>
+      <incoming>Flow_24</incoming>
+      <outgoing>Flow_25</outgoing>
+      <ioSpecification id="IO_S9_18">
+        <dataOutput id="DOut_S9_18_1"/>
+        <inputSet></inputSet>
+        <outputSet><dataOutputRefs>DOut_S9_18_1</dataOutputRefs></outputSet>
+      </ioSpecification>
+      <dataOutputAssociation id="DOA_S9_18_1"><sourceRef>DOut_S9_18_1</sourceRef><targetRef>SR_S9_18_w1</targetRef></dataOutputAssociation>
+    </userTask>
+    <userTask id="S10_19" name="作废报价版本">
       <documentation>AGG-12 作废报价版本；B-03；in_system；报价.作废；报价编制页</documentation>
       <incoming>Flow_18</incoming>
-      <outgoing>Flow_20</outgoing>
-      <ioSpecification id="IO_S8_15">
-        <dataOutput id="DOut_S8_15_1"/>
+      <outgoing>Flow_26</outgoing>
+      <ioSpecification id="IO_S10_19">
+        <dataOutput id="DOut_S10_19_1"/>
         <inputSet></inputSet>
-        <outputSet><dataOutputRefs>DOut_S8_15_1</dataOutputRefs></outputSet>
+        <outputSet><dataOutputRefs>DOut_S10_19_1</dataOutputRefs></outputSet>
       </ioSpecification>
-      <dataOutputAssociation id="DOA_S8_15_1"><sourceRef>DOut_S8_15_1</sourceRef><targetRef>SR_S8_15_w1</targetRef></dataOutputAssociation>
+      <dataOutputAssociation id="DOA_S10_19_1"><sourceRef>DOut_S10_19_1</sourceRef><targetRef>SR_S10_19_w1</targetRef></dataOutputAssociation>
     </userTask>
-    <endEvent id="End_16" name="报价未编制">
+    <endEvent id="End_20" name="报价未编制">
       <incoming>Flow_5</incoming>
     </endEvent>
-    <endEvent id="End_17" name="已撤回">
+    <endEvent id="End_21" name="已撤回">
       <incoming>Flow_10</incoming>
       <incoming>Flow_13</incoming>
     </endEvent>
-    <endEvent id="End_18" name="报价已生效">
-      <incoming>Flow_19</incoming>
-    </endEvent>
-    <endEvent id="End_19" name="报价已作废">
+    <endEvent id="End_22" name="报价已生效">
       <incoming>Flow_20</incoming>
+    </endEvent>
+    <endEvent id="End_23" name="报价发出被拒（未用印）">
+      <incoming>Flow_23</incoming>
+    </endEvent>
+    <endEvent id="End_24" name="报价已发出">
+      <incoming>Flow_25</incoming>
+    </endEvent>
+    <endEvent id="End_25" name="报价已作废">
+      <incoming>Flow_26</incoming>
     </endEvent>
     <sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="S1_3"/>
     <sequenceFlow id="Flow_2" sourceRef="Start_2" targetRef="S1_3"/>
     <sequenceFlow id="Flow_3" sourceRef="S1_3" targetRef="S2_4"/>
     <sequenceFlow id="Flow_4" sourceRef="S2_4" targetRef="S2_gw_5"/>
-    <sequenceFlow id="Flow_5" name="所引费率或系数版本并非生效版本" sourceRef="S2_gw_5" targetRef="End_16"/>
+    <sequenceFlow id="Flow_5" name="所引费率或系数版本并非生效版本" sourceRef="S2_gw_5" targetRef="End_20"/>
     <sequenceFlow id="Flow_6" name="其他" sourceRef="S2_gw_5" targetRef="S3_6"/>
     <sequenceFlow id="Flow_7" sourceRef="S3_6" targetRef="S3_api_7"/>
     <sequenceFlow id="Flow_8" sourceRef="S3_api_7" targetRef="S3_gw_8"/>
     <sequenceFlow id="Flow_9" name="其他" sourceRef="S3_gw_8" targetRef="S4_9"/>
-    <sequenceFlow id="Flow_10" name="撤回" sourceRef="S3_gw_8" targetRef="End_17"/>
+    <sequenceFlow id="Flow_10" name="撤回" sourceRef="S3_gw_8" targetRef="End_21"/>
     <sequenceFlow id="Flow_11" sourceRef="S4_9" targetRef="S4_gw_10"/>
     <sequenceFlow id="Flow_12" name="审批通过" sourceRef="S4_gw_10" targetRef="S5_11"/>
-    <sequenceFlow id="Flow_13" name="申请人已撤回评审" sourceRef="S4_gw_10" targetRef="End_17"/>
+    <sequenceFlow id="Flow_13" name="申请人已撤回评审" sourceRef="S4_gw_10" targetRef="End_21"/>
     <sequenceFlow id="Flow_14" name="其他" sourceRef="S4_gw_10" targetRef="S6_12"/>
     <sequenceFlow id="Flow_15" sourceRef="S5_11" targetRef="S7_14"/>
     <sequenceFlow id="Flow_16" sourceRef="S6_12" targetRef="S6_gw_13"/>
     <sequenceFlow id="Flow_17" name="客户仍要报价" sourceRef="S6_gw_13" targetRef="S2_4"/>
-    <sequenceFlow id="Flow_18" name="其他" sourceRef="S6_gw_13" targetRef="S8_15"/>
-    <sequenceFlow id="Flow_19" sourceRef="S7_14" targetRef="End_18"/>
-    <sequenceFlow id="Flow_20" sourceRef="S8_15" targetRef="End_19"/>
+    <sequenceFlow id="Flow_18" name="其他" sourceRef="S6_gw_13" targetRef="S10_19"/>
+    <sequenceFlow id="Flow_19" sourceRef="S7_14" targetRef="S7_gw_15"/>
+    <sequenceFlow id="Flow_20" name="投标场景（发出经 PRC-08 递交投标）" sourceRef="S7_gw_15" targetRef="End_22"/>
+    <sequenceFlow id="Flow_21" name="其他" sourceRef="S7_gw_15" targetRef="S8_16"/>
+    <sequenceFlow id="Flow_22" sourceRef="S8_16" targetRef="S8_gw_17"/>
+    <sequenceFlow id="Flow_23" name="未用印，或报价版本、法人、拟发文件不符，或读不到用印登记、调用失败" sourceRef="S8_gw_17" targetRef="End_23"/>
+    <sequenceFlow id="Flow_24" name="其他" sourceRef="S8_gw_17" targetRef="S9_18"/>
+    <sequenceFlow id="Flow_25" sourceRef="S9_18" targetRef="End_24"/>
+    <sequenceFlow id="Flow_26" sourceRef="S10_19" targetRef="End_25"/>
     <dataStoreReference id="SR_S1_3_r1" name="AGG-05" dataStoreRef="DS_AGG-05"/>
     <dataStoreReference id="SR_S1_3_r2" name="AGG-06" dataStoreRef="DS_AGG-06"/>
     <dataStoreReference id="SR_S1_3_r3" name="AGG-07" dataStoreRef="DS_AGG-07"/>
@@ -202,18 +253,20 @@
     <dataStoreReference id="SR_S5_11_w1" name="AGG-12" dataStoreRef="DS_AGG-12"/>
     <dataStoreReference id="SR_S6_12_w1" name="AGG-12" dataStoreRef="DS_AGG-12"/>
     <dataStoreReference id="SR_S7_14_w1" name="AGG-12" dataStoreRef="DS_AGG-12"/>
-    <dataStoreReference id="SR_S8_15_w1" name="AGG-12" dataStoreRef="DS_AGG-12"/>
+    <dataStoreReference id="SR_S8_16_r1" name="AGG-113" dataStoreRef="DS_AGG-113"/>
+    <dataStoreReference id="SR_S9_18_w1" name="AGG-12" dataStoreRef="DS_AGG-12"/>
+    <dataStoreReference id="SR_S10_19_w1" name="AGG-12" dataStoreRef="DS_AGG-12"/>
   </process>
   <bpmndi:BPMNDiagram id="Diagram_PRC-07">
     <bpmndi:BPMNPlane id="Plane_PRC-07" bpmnElement="Collab_PRC-07">
       <bpmndi:BPMNShape id="Shape_P_main" bpmnElement="P_main" isHorizontal="true">
-        <dc:Bounds x="0" y="0" width="2520" height="260"/>
+        <dc:Bounds x="0" y="0" width="3220" height="260"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Lane_SH-E5" bpmnElement="Lane_SH-E5" isHorizontal="true">
-        <dc:Bounds x="30" y="0" width="2490" height="130"/>
+        <dc:Bounds x="30" y="0" width="3190" height="130"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Lane_system" bpmnElement="Lane_system" isHorizontal="true">
-        <dc:Bounds x="30" y="130" width="2490" height="130"/>
+        <dc:Bounds x="30" y="130" width="3190" height="130"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_Start_1" bpmnElement="Start_1">
         <dc:Bounds x="87" y="177" width="36" height="36"/>
@@ -261,20 +314,40 @@
       <bpmndi:BPMNShape id="Shape_S7_14" bpmnElement="S7_14">
         <dc:Bounds x="1825" y="35" width="100" height="60"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_S8_15" bpmnElement="S8_15">
-        <dc:Bounds x="1995" y="35" width="100" height="60"/>
+      <bpmndi:BPMNShape id="Shape_S7_gw_15" bpmnElement="S7_gw_15" isMarkerVisible="true">
+        <dc:Bounds x="1980" y="40" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="1960" y="6" width="90" height="28"/></bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_End_16" bpmnElement="End_16">
-        <dc:Bounds x="2157" y="47" width="36" height="36"/>
+      <bpmndi:BPMNShape id="Shape_S8_16" bpmnElement="S8_16">
+        <dc:Bounds x="2085" y="165" width="100" height="60"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_End_17" bpmnElement="End_17">
-        <dc:Bounds x="2247" y="47" width="36" height="36"/>
+      <bpmndi:BPMNShape id="Shape_S8_gw_17" bpmnElement="S8_gw_17" isMarkerVisible="true">
+        <dc:Bounds x="2240" y="170" width="50" height="50"/>
+        <bpmndi:BPMNLabel><dc:Bounds x="2220" y="136" width="90" height="28"/></bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_End_18" bpmnElement="End_18">
-        <dc:Bounds x="2337" y="47" width="36" height="36"/>
+      <bpmndi:BPMNShape id="Shape_S9_18" bpmnElement="S9_18">
+        <dc:Bounds x="2345" y="35" width="100" height="60"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_End_19" bpmnElement="End_19">
-        <dc:Bounds x="2427" y="47" width="36" height="36"/>
+      <bpmndi:BPMNShape id="Shape_S10_19" bpmnElement="S10_19">
+        <dc:Bounds x="2515" y="35" width="100" height="60"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_20" bpmnElement="End_20">
+        <dc:Bounds x="2677" y="47" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_21" bpmnElement="End_21">
+        <dc:Bounds x="2767" y="47" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_22" bpmnElement="End_22">
+        <dc:Bounds x="2857" y="47" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_23" bpmnElement="End_23">
+        <dc:Bounds x="2947" y="177" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_24" bpmnElement="End_24">
+        <dc:Bounds x="3037" y="47" width="36" height="36"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_End_25" bpmnElement="End_25">
+        <dc:Bounds x="3127" y="47" width="36" height="36"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Shape_SR_S1_3_r1" bpmnElement="SR_S1_3_r1">
         <dc:Bounds x="265" y="134" width="36" height="26"/>
@@ -300,8 +373,14 @@
       <bpmndi:BPMNShape id="Shape_SR_S7_14_w1" bpmnElement="SR_S7_14_w1">
         <dc:Bounds x="1857" y="4" width="36" height="26"/>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Shape_SR_S8_15_w1" bpmnElement="SR_S8_15_w1">
-        <dc:Bounds x="2027" y="4" width="36" height="26"/>
+      <bpmndi:BPMNShape id="Shape_SR_S8_16_r1" bpmnElement="SR_S8_16_r1">
+        <dc:Bounds x="2117" y="134" width="36" height="26"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_SR_S9_18_w1" bpmnElement="SR_S9_18_w1">
+        <dc:Bounds x="2377" y="4" width="36" height="26"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_SR_S10_19_w1" bpmnElement="SR_S10_19_w1">
+        <dc:Bounds x="2547" y="4" width="36" height="26"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Edge_Flow_1" bpmnElement="Flow_1">
         <di:waypoint x="105" y="213"/>
@@ -326,8 +405,8 @@
       <bpmndi:BPMNEdge id="Edge_Flow_5" bpmnElement="Flow_5">
         <di:waypoint x="625" y="90"/>
         <di:waypoint x="625" y="124"/>
-        <di:waypoint x="2175" y="124"/>
-        <di:waypoint x="2175" y="83"/>
+        <di:waypoint x="2695" y="124"/>
+        <di:waypoint x="2695" y="83"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_6" bpmnElement="Flow_6">
         <di:waypoint x="650" y="65"/>
@@ -353,8 +432,8 @@
       <bpmndi:BPMNEdge id="Edge_Flow_10" bpmnElement="Flow_10">
         <di:waypoint x="1055" y="90"/>
         <di:waypoint x="1055" y="119"/>
-        <di:waypoint x="2265" y="119"/>
-        <di:waypoint x="2265" y="83"/>
+        <di:waypoint x="2785" y="119"/>
+        <di:waypoint x="2785" y="83"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_11" bpmnElement="Flow_11">
         <di:waypoint x="1235" y="195"/>
@@ -367,8 +446,8 @@
       <bpmndi:BPMNEdge id="Edge_Flow_13" bpmnElement="Flow_13">
         <di:waypoint x="1315" y="220"/>
         <di:waypoint x="1315" y="249"/>
-        <di:waypoint x="2265" y="249"/>
-        <di:waypoint x="2265" y="83"/>
+        <di:waypoint x="2785" y="249"/>
+        <di:waypoint x="2785" y="83"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_14" bpmnElement="Flow_14">
         <di:waypoint x="1315" y="220"/>
@@ -393,22 +472,50 @@
         <di:waypoint x="495" y="95"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_18" bpmnElement="Flow_18">
-        <di:waypoint x="1770" y="195"/>
-        <di:waypoint x="1975" y="195"/>
-        <di:waypoint x="1975" y="65"/>
-        <di:waypoint x="1995" y="65"/>
+        <di:waypoint x="1745" y="220"/>
+        <di:waypoint x="1745" y="244"/>
+        <di:waypoint x="2565" y="244"/>
+        <di:waypoint x="2565" y="95"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_19" bpmnElement="Flow_19">
-        <di:waypoint x="1875" y="95"/>
-        <di:waypoint x="1875" y="114"/>
-        <di:waypoint x="2355" y="114"/>
-        <di:waypoint x="2355" y="83"/>
+        <di:waypoint x="1925" y="65"/>
+        <di:waypoint x="1980" y="65"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_Flow_20" bpmnElement="Flow_20">
-        <di:waypoint x="2045" y="95"/>
-        <di:waypoint x="2045" y="124"/>
-        <di:waypoint x="2445" y="124"/>
-        <di:waypoint x="2445" y="83"/>
+        <di:waypoint x="2005" y="90"/>
+        <di:waypoint x="2005" y="114"/>
+        <di:waypoint x="2875" y="114"/>
+        <di:waypoint x="2875" y="83"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_21" bpmnElement="Flow_21">
+        <di:waypoint x="2005" y="90"/>
+        <di:waypoint x="2005" y="195"/>
+        <di:waypoint x="2085" y="195"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_22" bpmnElement="Flow_22">
+        <di:waypoint x="2185" y="195"/>
+        <di:waypoint x="2240" y="195"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_23" bpmnElement="Flow_23">
+        <di:waypoint x="2290" y="195"/>
+        <di:waypoint x="2947" y="195"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_24" bpmnElement="Flow_24">
+        <di:waypoint x="2265" y="170"/>
+        <di:waypoint x="2265" y="65"/>
+        <di:waypoint x="2345" y="65"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_25" bpmnElement="Flow_25">
+        <di:waypoint x="2395" y="95"/>
+        <di:waypoint x="2395" y="124"/>
+        <di:waypoint x="3055" y="124"/>
+        <di:waypoint x="3055" y="83"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_26" bpmnElement="Flow_26">
+        <di:waypoint x="2565" y="95"/>
+        <di:waypoint x="2565" y="119"/>
+        <di:waypoint x="3145" y="119"/>
+        <di:waypoint x="3145" y="83"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Edge_DIA_S1_3_1" bpmnElement="DIA_S1_3_1">
         <di:waypoint x="283" y="160"/>
@@ -442,9 +549,17 @@
         <di:waypoint x="1875" y="35"/>
         <di:waypoint x="1875" y="30"/>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Edge_DOA_S8_15_1" bpmnElement="DOA_S8_15_1">
-        <di:waypoint x="2045" y="35"/>
-        <di:waypoint x="2045" y="30"/>
+      <bpmndi:BPMNEdge id="Edge_DIA_S8_16_1" bpmnElement="DIA_S8_16_1">
+        <di:waypoint x="2135" y="160"/>
+        <di:waypoint x="2135" y="165"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_DOA_S9_18_1" bpmnElement="DOA_S9_18_1">
+        <di:waypoint x="2395" y="35"/>
+        <di:waypoint x="2395" y="30"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_DOA_S10_19_1" bpmnElement="DOA_S10_19_1">
+        <di:waypoint x="2565" y="35"/>
+        <di:waypoint x="2565" y="30"/>
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>

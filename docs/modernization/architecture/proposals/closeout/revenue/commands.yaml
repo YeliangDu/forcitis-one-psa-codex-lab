@@ -2302,6 +2302,7 @@ commands:
   - 投标报价（报价版本）
   - 承诺快照
   - 投标文件终稿
+  - 用印登记 ID
   preconditions:
   - INV-33
   authority:
@@ -2438,6 +2439,22 @@ commands:
   emits:
   - 报价版本已生效
   - 报价版本已被取代
+- name: 登记报价发出
+  aggregate: AGG-12
+  params:
+  - 报价版本
+  - 发出方式
+  - 日期
+  - 客户联系人
+  - 用印登记 ID
+  preconditions:
+  - 报价版本为「已生效」
+  authority:
+    A: 待定（权责表未登）
+  idempotency_key:
+  - 报价版本ID
+  - 发出序号
+  emits: []
 - name: 作废报价版本
   aggregate: AGG-12
   params:

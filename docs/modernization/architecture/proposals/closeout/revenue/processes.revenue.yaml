@@ -352,6 +352,8 @@ processes:
   - 报价已作废
   - 报价未编制
   - 已撤回
+  - 报价已发出
+  - 报价发出被拒（未用印）
   scenarios:
   - PRC-07-S01
   - PRC-07-S02
@@ -360,6 +362,10 @@ processes:
   - PRC-07-S05
   - PRC-07-S06
   - PRC-07-S07
+  - PRC-07-S08
+  - PRC-07-S09
+  - PRC-07-S10
+  - PRC-07-S11
   roles:
   - id: SH-E5
     as: initiator
@@ -531,7 +537,7 @@ processes:
       goto: 2
       p: 0.6
     - when: otherwise
-      goto: 8
+      goto: 10
       p: 0.4
     actor_v1: 系统策略
     audit: true
@@ -552,11 +558,15 @@ processes:
     - 报价版本已被取代
     desc: 旧版同事务被取代（INV-30）；生效 = 成为当前版本，须已通过
     decision:
-    - when: otherwise
+    - when: 投标场景（发出经 PRC-08 递交投标）
       goto: end
+      p: 0.4
       rule: INV-30
-      p: 1.0
       outcome: 报价已生效
+    - when: otherwise
+      goto: 8
+      p: 0.6
+      rule: INV-30
     actor_v1: 市场和客户经理
     permission: 报价.生效
     page: 报价生效页
@@ -566,6 +576,46 @@ processes:
     effort:
       typical_min: 5
       p90_min: 15
+  - actor: system
+    where: automatic
+    added_in: closeout
+    service: REF-03
+    read: true
+    reads:
+    - AGG-113
+    desc: 核验实际用印（报价发出编排 REF-03 暂名）：非投标场景（询价、议标、直接委托）经 api 向 B-31 核验，须为同一报价版本、法人、拟发文件的实际用印登记；仅审批通过不够，核验不通过或读不到、调用失败一律拒绝并告警，不调用登记报价发出
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-31
+      name: 核验实际用印
+    decision:
+    - when: 未用印，或报价版本、法人、拟发文件不符，或读不到用印登记、调用失败
+      goto: end
+      outcome: 报价发出被拒（未用印）
+      p: 0.03
+    - when: otherwise
+      goto: 9
+      p: 0.97
+    notify:
+    - to: SH-E5
+      how: 核验失败时告警（企业微信消息，附拒绝原因）
+  - actor: SH-E5
+    where: in_system
+    added_in: closeout
+    command: 登记报价发出
+    aggregate: AGG-12
+    emits: []
+    desc: 由报价发出编排（REF-03 暂名）在实际用印核验通过后调用，入参为报价版本、发出方式、日期、客户联系人、用印登记 ID；只登记发出记录，不改报价状态、不校验用印真伪；报价聚合不依赖 B-31
+    permission: 报价.登记发出
+    page: 报价发出登记页
+    audit: true
+    decision:
+    - when: otherwise
+      goto: end
+      outcome: 报价已发出
+      p: 1.0
+    outcome: 报价已发出
   - actor: SH-E5
     where: in_system
     command: 作废报价版本
@@ -585,7 +635,7 @@ processes:
     effort:
       typical_min: 5
       p90_min: 10
-  notes: 报价被取代、投标被撤回时在本段内重入。「报价版本已生效」无事件消费者：签约时经投标承诺快照读取（见「起草、评审并回签协议」），可接受（⑥a 评审 L3）。审批结果回调写在下一步 cross_bc（event in platform.approval，CONVENTIONS 第 5 节）。
+  notes: 报价被取代、投标被撤回时在本段内重入。「报价版本已生效」无事件消费者：签约时经投标承诺快照读取（见「起草、评审并回签协议」），可接受（⑥a 评审 L3）。审批结果回调写在下一步 cross_bc（event in platform.approval，CONVENTIONS 第 5 节）。B31-16 的实际用印核验只在报价发出编排（REF-03 暂名）执行；非投标生效后登记报价发出，投标经 PRC-08 递交，报价与投标聚合均不依赖 B-31。
   frequency_ref: 待取证（E-B1）；经验估计：报价版本每月约 20 份，评审通过约 80%
   stages_note: 判据：通过报价评审使报价（OBJ-21）到「已通过」，即 VS-01.2 段内状态。字面误判：「报价已生效」被匹到 VS-04.1 退出的付款条件项「生效」，是不同对象
 - id: PRC-08
@@ -616,6 +666,7 @@ processes:
   - 不得投标
   - 已撤回
   - 已转重新投标
+  - 递交被拒（未用印）
   scenarios:
   - PRC-08-S01
   - PRC-08-S02
@@ -637,6 +688,7 @@ processes:
   - PRC-08-S18
   - PRC-08-S19
   - PRC-08-S20
+  - PRC-08-S21
   roles:
   - id: SH-E5
     as: initiator
@@ -710,7 +762,7 @@ processes:
     desc: 读独立性检查结论（INV-33，D-4 b）：我方为 IDI 风险管理机构且有冲突未获书面同意的，不得递交投标、不得凭委托赢单
     decision:
     - when: 直接委托，无招标
-      goto: 15
+      goto: 16
       p: 0.25
     - when: 我方为 IDI 风险管理机构且独立性检查有冲突、未获书面同意
       goto: end
@@ -732,7 +784,7 @@ processes:
     - 通知日期与招标项目标段
     decision:
     - when: 资格预审未通过
-      goto: 12
+      goto: 13
       rule: INV-29
       p: 0.1
     - when: 招标文件要求缴纳投标保证金
@@ -770,7 +822,7 @@ processes:
       escalation_rules:
       - AR-01
       - AR-02
-      on_reject: 12
+      on_reject: 13
       why_human: 保证金金额是否与招标文件要求一致、资金占用是否可承受需要人核对招标文件与资金安排，系统只能核对金额阈值与收款账户；参投判断不在此（PRC-183）。
     permission: 保证金付款.发起
     page: 保证金付款申请页
@@ -827,28 +879,53 @@ processes:
     audit: false
     platform_task: true
     on_time: 投标截止时间前的提醒提前量（P-13，具体量以规则卡为准）
+  - actor: system
+    where: automatic
+    added_in: closeout
+    service: REF-03
+    read: true
+    reads:
+    - AGG-113
+    desc: 核验实际用印（报价发出编排 REF-03 暂名）：递交投标前经 api 向 B-31 核验，须为同一报价版本、法人、拟发文件的实际用印登记；仅审批通过不够，核验不通过或读不到、调用失败一律拒绝并告警，不调用递交投标
+    cross_bc:
+    - mode: api
+      direction: out
+      bc: B-31
+      name: 核验实际用印
+    decision:
+    - when: 未用印，或报价版本、法人、拟发文件不符，或读不到用印登记、调用失败
+      goto: end
+      outcome: 递交被拒（未用印）
+      p: 0.03
+    - when: otherwise
+      goto: 8
+      p: 0.97
+    notify:
+    - to: SH-E5
+      how: 核验失败时告警（企业微信消息，附拒绝原因）
   - actor: SH-E5
     where: offline
     command: 递交投标
     aggregate: AGG-11
     emits:
     - 投标已递交
-    desc: 携承诺快照；在电子招投标平台或按招标文件约定的方式递交，本系统登记递交结果与投标文件终稿
+    desc: 由报价发出编排（REF-03 暂名）在实际用印核验通过后调用，入参带用印登记 ID；携承诺快照，在电子招投标平台或按招标文件约定的方式递交，本系统登记递交结果与投标文件终稿；投标聚合不依赖 B-31
     evidence:
     - 递交回执（电子招投标平台回执、签收单或快递妥投记录之一）
     - 投标文件终稿与报价版本引用、承诺快照
+    - 用印登记 ID
     decision:
     - when: 评标结果为中标
-      goto: 8
+      goto: 9
       p: 0.2
     - when: 评标结果为未中标
-      goto: 9
+      goto: 10
       p: 0.4
     - when: 评标阶段被宣布废标
-      goto: 10
+      goto: 11
       p: 0.03
     - when: 决定撤回或撤销投标
-      goto: 11
+      goto: 12
       p: 0.04
     - when: otherwise
       goto: end
@@ -870,7 +947,7 @@ processes:
       typical_h: 360
       p90_h: 720
     withdraw:
-      to: 11
+      to: 12
       outcome: 已撤回
   - actor: SH-E5
     where: offline
@@ -882,7 +959,7 @@ processes:
     - 中标通知书（文件引用与日期，本聚合附件，登记时必填并校验已上传）
     decision:
     - when: otherwise
-      goto: 13
+      goto: 14
       p: 1.0
     actor_v1: 市场和客户经理
     permission: 投标.登记结果
@@ -903,7 +980,7 @@ processes:
     - 未中标通知或中标结果公示（扫描件或网页存档）
     decision:
     - when: otherwise
-      goto: 14
+      goto: 15
       p: 1.0
     cross_bc:
     - mode: event
@@ -935,10 +1012,10 @@ processes:
       p: 0.3
       outcome: 已转重新投标
     - when: 不重新招标且商机丢失
-      goto: 17
+      goto: 18
       p: 0.3
     - when: otherwise
-      goto: 12
+      goto: 13
       p: 0.4
     cross_bc:
     - mode: event
@@ -968,14 +1045,14 @@ processes:
       outcome: 已撤回
       p: 0.45
     - when: 撤回发生在截止前，不再跟进该商机
-      goto: 12
+      goto: 13
       p: 0.15
     - when: 撤回发生在截止后，商机继续跟进，投标已撤回
       goto: end
       outcome: 已撤回
       p: 0.1
     - when: otherwise
-      goto: 12
+      goto: 13
       p: 0.3
     cross_bc:
     - mode: event
@@ -999,7 +1076,7 @@ processes:
     - 投标已放弃
     decision:
     - when: otherwise
-      goto: 16
+      goto: 17
       p: 1.0
     actor_v1: 市场和客户经理
     permission: 投标.放弃
@@ -1151,7 +1228,7 @@ processes:
     effort:
       typical_min: 10
       p90_min: 30
-  notes: 合并原 PRC-09（商机赢单或丢单）、PRC-11（投标未中标后退还保证金）（⑥a 评审 H2 c）。联合体协议作投标的次级对象，不放合同。OpportunityAccepted 的订阅方 B-04、B-05；赢单不触发售前投入转入（P-2）。收尾改动：第 4、5 步（评审 M15）保证金缴纳走 B-10 付款审批并登记缴纳；原第 15–20 步（三个退还分支及过账提交）移出，保证金退还改由
+  notes: 合并原 PRC-09（商机赢单或丢单）、PRC-11（投标未中标后退还保证金）（⑥a 评审 H2 c）。联合体协议作投标的次级对象，不放合同。OpportunityAccepted 的订阅方 B-04、B-05；赢单不触发售前投入转入（P-2）。收尾改动：第 4、5 步（评审 M15）保证金缴纳走 B-10 付款审批并登记缴纳；原三个退还分支及过账提交已移出（原稿第 15–20 步，非本版步号），保证金退还改由
     PRC-153（B-09）订阅本流程发出的投标未中标、投标已废标、投标已撤销事件接续（信号事件衔接，不用调用活动；S-27）；废标、撤回出口在本流程直接收口。过账候选遇期间已关账按 INV-92 落开放期间、标原期间，不拒绝。
   frequency_ref: 待取证（E-B1）；经验估计：投标每月约 8 次，中标约 25%
   segregation:
