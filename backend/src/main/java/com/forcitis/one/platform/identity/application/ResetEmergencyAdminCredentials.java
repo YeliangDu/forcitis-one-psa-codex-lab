@@ -23,9 +23,10 @@ public class ResetEmergencyAdminCredentials {
     private final AccessCache cache;
     private final DomainEvents events;
     private final AuditLog audit;
+    private final SingleOperatorMarks marks;
 
     ResetEmergencyAdminCredentials(EmergencyAdminRepository admins, EmergencyBinding binding, EmergencyCredentialsFactory credentials,
-            SessionRegistry sessions, AccessCache cache, DomainEvents events, AuditLog audit) {
+            SessionRegistry sessions, AccessCache cache, DomainEvents events, AuditLog audit, SingleOperatorMarks marks) {
         this.admins = admins;
         this.binding = binding;
         this.credentials = credentials;
@@ -33,6 +34,7 @@ public class ResetEmergencyAdminCredentials {
         this.cache = cache;
         this.events = events;
         this.audit = audit;
+        this.marks = marks;
     }
 
     @Transactional
@@ -46,8 +48,9 @@ public class ResetEmergencyAdminCredentials {
         events.publish(admin);
         sessions.revokeAll(person);
         cache.evict(person);
-        audit.record(new AuditEntry("platform.identity.operations.emergency-admin.credentials-reset", null, null, AuditSubject.of(AuditSubjectKind.EMERGENCY_ADMIN, person.value()),
-                attestation.describe()));
+        AuditSubject subject = AuditSubject.of(AuditSubjectKind.EMERGENCY_ADMIN, person.value());
+        audit.record(new AuditEntry("platform.identity.operations.emergency-admin.credentials-reset", null, null, subject, attestation.describe()));
+        marks.witnessOmitted(attestation, subject);
         return generated.shown();
     }
 }
