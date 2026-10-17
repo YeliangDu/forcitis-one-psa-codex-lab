@@ -67,7 +67,7 @@ def processes():
                 raise SystemExit(f"{k} 在两个分片里")
             src[k] = v
     t = (OUT / "processes.people.yaml").read_text(encoding="utf-8")
-    out = [t[: t.index("\nprocesses:")], ""]
+    out = [t[: t.index("\nprocesses:")].rstrip("\n"), ""]
     for sec in ["processes", "event_policies", "single_aggregate", "read_models"]:
         out.append(f"{sec}:\n")
         out += [src[k][1] + "\n" for k in sorted((k for k, (s, _) in src.items() if s == sec), key=key)]

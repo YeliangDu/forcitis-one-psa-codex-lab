@@ -11,72 +11,6 @@ meta:
   date: "2026-10-16"
   scope: [VS-07, VS-09, VS-11, VS-13, B-31]
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 processes:
 
   - id: PRC-80
@@ -2417,9 +2351,10 @@ processes:
   - id: PRC-139
     name: 用印申请与用印登记
     type: business
-    stages: []
+    stages: [VS-14.1, VS-14.2, VS-14.3, VS-14.4]
+    stages_note: >-
+      VS-14.1：步 1 记录员工用印事项，无来源单据时 AGG-113（OBJ-113）草稿 → 审批中，满足本段退出及 VS-14.2 进入。VS-14.2：步 2 从审批中批准到已批准，满足本段退出及 VS-14.3 进入；步 3 驳回为已驳回（异常结局）。来源审批校验已通过且份数不超载荷时，步 1 直接到已批准，跳过 skippable 的 VS-14.2；此路径没有审批中，VS-14.1 出口例外交 REVIEW_VS14.md A1，不伪造人审。VS-14.3：步 4 从已批准登记到已用印，分次登记仍为已用印，满足本段退出及 VS-14.4 进入。VS-14.4：步 5 在份数到齐或确认放弃剩余份数后，由已用印自动关闭到已关闭，满足本段退出；不需再加人工确认。
     primary_object: OBJ-113
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people
     status: draft
@@ -2432,6 +2367,7 @@ processes:
       - {roles: [SH-E3, SH-M1], rule: "申请人不得批准自己的用印申请（解析出的审批人就是申请人时按 AR-11 上交其上级）"}
     triggers:
       - {type: human, name: "员工申请用印"}
+    frequency_ref: "待取证（OA_PROCESS_INVENTORY.md 表第 111 项用印申请；需按申请日期去重并明确统计窗口）"
     outcomes: [已关闭, 已驳回, 已撤回]
     scenarios: [PRC-139-S01, PRC-139-S02, PRC-139-S03, PRC-139-S04, PRC-139-S05, PRC-139-S06, PRC-139-S07, PRC-139-S08, PRC-139-S09, PRC-139-S10, PRC-139-S11, PRC-139-S12, PRC-139-S13]
     roles:
@@ -2461,7 +2397,8 @@ processes:
         where: in_system
         command: 提交用印申请
         aggregate: AGG-113
-        desc: 选印章类别（公章 / 合同专用章 / 法定代表人名章 / 财务章等）和用印法人；填用印事由、文件、份数。有已批准来源单据（合同、报价等）的填其审批实例 ID，系统经 platform.approval 校验该实例已通过、份数不超审批载荷份数，通过则不设人审，直接进入用印登记；校验不过则拒绝提交并告诉申请人原因，不静默。无来源单据的（证明、介绍信、授权委托书等）进入负责人审批（S-40）
+        effort: {typical_min: 5, p90_min: 15}  # 经验估值；null 表示待取证
+        desc: 选印章类别（公章 / 合同专用章 / 法定代表人名章 / 财务章等）和用印法人；填用印事由、文件、份数。有已批准来源单据（合同、报价等）的填其审批实例 ID，系统经 platform.approval 校验该实例已通过、份数不超审批载荷份数，通过则不设人审，直接进入用印登记；校验不过则拒绝提交并告诉申请人原因，不静默。无来源单据的（证明、介绍信、授权委托书等）进入负责人审批（S-40）；无来源单据到审批中；来源校验通过到已批准
         permission: 用印申请.提交
         page: 用印申请编辑页
         added_in: closeout
@@ -2469,17 +2406,20 @@ processes:
           - {mode: api, direction: out, bc: B-13, name: 读取用印法人与申请人}          # B-31 → B-13（回补新边）
           - {mode: api, direction: out, bc: platform.approval, name: 提交审批}          # B-31 → platform.approval（回补新边）
           - {mode: api, direction: out, bc: platform.approval, name: 校验来源审批实例已通过并读取审批载荷份数}   # 既有边 B-31 → platform.approval，不加 B-31 → B-03 / B-05（S-40）
+        notify: [{to: SH-E6, how: 企业微信待办（来源审批校验通过且份数不超载荷、直接进入用印登记时）}]
         decision:
-          - {when: 用印法人在申请日不是有效法人主体, goto: 1}     # 规则拒绝并要求改正，不进审批
-          - {when: 来源审批实例未通过或申请份数超过审批载荷份数, goto: 1}   # 规则拒绝并告诉申请人原因，不进审批、不静默
-          - {when: 来源审批实例已通过且份数不超审批载荷份数, goto: 4}   # 规则核对通过，不设人审，由印章保管人用印登记
-          - {when: otherwise, goto: 2}                           # 无来源单据，进负责人审批
+          - {when: 用印法人在申请日不是有效法人主体, goto: 1, p: 0.02}     # 规则拒绝并要求改正，不进审批
+          - {when: 来源审批实例未通过或申请份数超过审批载荷份数, goto: 1, p: 0.03}   # 规则拒绝并告诉申请人原因，不进审批、不静默
+          - {when: 来源审批实例已通过且份数不超审批载荷份数, goto: 4, p: 0.7}   # 规则核对通过，不设人审，由印章保管人用印登记
+          - {when: otherwise, goto: 2, p: 0.25}                           # 无来源单据，进负责人审批
       - actor: SH-M1
         where: in_system
         command: 批准用印申请
         aggregate: AGG-113
+        wait: {typical_h: 24, p90_h: 72}  # 经验估值；null 表示待取证
+        effort: {typical_min: 5, p90_min: 15}  # 经验估值；null 表示待取证
         emits: [用印申请已批准]           # 仅分析
-        desc: 仅无来源单据的申请进入：申请人所在组织单元负责人在审批平台审批；授权委托书，以及公章、法定代表人名章用于无来源单据的，加一级由总经理批（引用 AR-16「无来源单据的高风险用印」，待用户在 PB31-01 确认，pending B31-1）；批准时由 platform.approval 回调本聚合命令
+        desc: 仅无来源单据的申请进入：申请人所在组织单元负责人在审批平台审批；授权委托书，以及公章、法定代表人名章用于无来源单据的，加一级由总经理批（引用 AR-16「无来源单据的高风险用印」，待用户在 PB31-01 确认，pending B31-1）；批准时由 platform.approval 回调本聚合命令；批准后到已批准
         approval:
           engine: platform.approval
           doc_type: 用印审批
@@ -2495,26 +2435,28 @@ processes:
         pending: B31-1
         notify: [{to: SH-E3, how: 企业微信待办结果}]
         decision:
-          - {when: 审批已驳回, goto: 3}
-          - {when: otherwise, goto: 4}
+          - {when: 审批已驳回, goto: 3, p: 0.1}
+          - {when: otherwise, goto: 4, p: 0.9}
       - actor: platform
         where: automatic
         command: 驳回用印申请
         aggregate: AGG-113
-        desc: 审批平台回调：申请标为已驳回，写驳回意见
+        desc: 审批平台回调：申请标为已驳回，写驳回意见；回调到已驳回
         cross_bc:
           - {mode: event, direction: in, bc: platform.approval, name: 审批已驳回}
         notify: [{to: SH-E3, how: 企业微信}]
         decision:
-          - {when: otherwise, goto: end, outcome: 已驳回}
+          - {when: otherwise, goto: end, outcome: 已驳回, p: 1}
         outcome: 已驳回
       - actor: SH-E6
         where: offline
         evidence: [实际用印时间, 用印份数, 经办人, 已盖章文件扫描件〔推〕]
         command: 登记用印
         aggregate: AGG-113
+        wait: {typical_h: 8, p90_h: 48}  # 经验估值；null 表示待取证
+        effort: {typical_min: 10, p90_min: 30}  # 经验估值；null 表示待取证
         emits: [已用印]                   # 仅分析
-        desc: 印章保管人核对已批准（来源审批实例已通过，或负责人已批准）后在系统外盖章（实物印章），本系统登记结果；可分多次登记，累计份数不得超过批准份数
+        desc: 印章保管人核对已批准（来源审批实例已通过，或负责人已批准）后在系统外盖章（实物印章），本系统登记结果；可分多次登记，累计份数不得超过批准份数；首次登记到已用印，后续登记仍为已用印
         cross_bc:
           - {mode: event, direction: in, bc: platform.approval, name: 审批已通过}
         permission: 用印申请.登记用印
@@ -2522,15 +2464,15 @@ processes:
         audit: true
         metric_event: true
         decision:
-          - {when: 累计登记份数超过批准份数, goto: 4}      # INV-新-P2 拒绝
-          - {when: 申请未批准, goto: 4}                    # INV-新-P1 拒绝（状态机已挡，兜底）
-          - {when: 累计登记份数已达批准份数或经办人确认放弃剩余份数, goto: 5}
-          - {when: otherwise, goto: 4}                     # 仍有未用印份数，继续登记
+          - {when: 累计登记份数超过批准份数, goto: 4, p: 0.01}      # INV-新-P2 拒绝
+          - {when: 申请未批准, goto: 4, p: 0.01}                    # INV-新-P1 拒绝（状态机已挡，兜底）
+          - {when: 累计登记份数已达批准份数或经办人确认放弃剩余份数, goto: 5, p: 0.88}
+          - {when: otherwise, goto: 4, p: 0.1}                     # 仍有未用印份数，继续登记
       - actor: system
         where: automatic
         command: 关闭用印申请
         aggregate: AGG-113
-        desc: 规则关闭：累计份数达到批准份数或经办人确认放弃剩余份数后自动关闭，不设人工关闭
+        desc: 规则关闭：累计份数达到批准份数或经办人确认放弃剩余份数后自动关闭，不设人工关闭；由已用印到已关闭
         outcome: 已关闭
     notes: >
       撤回（申请人在审批中撤回）聚合稿无命令，沿用 platform.approval 通用撤回并回调〔缺〕撤回用印申请，见 notes 新用语。
@@ -2541,9 +2483,10 @@ processes:
   - id: PRC-142
     name: IT 需求工单
     type: business
-    stages: []
+    stages: [VS-14.1, VS-14.2, VS-14.3, VS-14.4]
+    stages_note: >-
+      VS-14.1：步 1 记录员工 IT 事项，常规类别草稿 → 已提交，满足 OBJ-114 出口；需审批类别直接到审批中，能满足 VS-14.2 进入，但缺先经已提交的顺序，交 REVIEW_VS14.md A2。VS-14.2：步 2 批准后 AGG-114 为已提交，步 3 受理后到处理中，合起来满足本段退出及 VS-14.3 进入；无需审批的类别由步 1 直接到步 3，跳过 skippable 的批准人审。VS-14.3：步 4 从处理中登记解决到已解决，满足本段退出及 VS-14.4 进入。VS-14.4：步 5 从已解决由提出人确认（或待定超时规则代关）到已关闭，满足本段退出；认为未解决则回步 3 重入 VS-14.3。步 6 主动退回、步 7 审批驳回均到已退回，属于终止服务的异常路径，并未先到已解决，交 A3；非中断超时的已提醒只结束提醒分支，主工单继续。
     primary_object: OBJ-114
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people
     status: draft
@@ -2555,7 +2498,8 @@ processes:
       - {roles: [SH-E3, SH-M1], rule: "提出人不得批准自己的 IT 需求（解析出的审批人就是提出人时按 AR-11 上交其上级）"}
     triggers:
       - {type: human, name: "员工提出 IT 需求"}
-    outcomes: [已关闭, 已退回, 已撤回]
+    frequency_ref: "待取证（OA_PROCESS_INVENTORY.md 表第 112 项需求工单；需按工单日期、类别去重并明确统计窗口）"
+    outcomes: [已关闭, 已退回, 已撤回, 已提醒]
     scenarios: [PRC-142-S01, PRC-142-S02, PRC-142-S03, PRC-142-S04, PRC-142-S05, PRC-142-S06, PRC-142-S07, PRC-142-S08, PRC-142-S09]
     roles:
       - id: SH-E3
@@ -2584,21 +2528,25 @@ processes:
         where: in_system
         command: 提交 IT 需求
         aggregate: AGG-114
-        desc: 选需求类别，写描述和优先级；常规类别不审批、直接受理，受控类别表标为需审批的类别（如权限提升〔推〕）才进审批
+        effort: {typical_min: 5, p90_min: 15}  # 经验估值；null 表示待取证
+        desc: 选需求类别，写描述和优先级；常规类别不审批、直接受理，受控类别表标为需审批的类别（如权限提升〔推〕）才进审批；常规类别到已提交；需审批类别到审批中
         permission: IT需求.提交
         page: IT需求提交页
         added_in: closeout
         cross_bc:
           - {mode: api, direction: out, bc: B-13, name: 读取提出人与处理人}
         pending: B31-3
+        notify: [{to: SH-E6, how: 企业微信待办（无需审批类别直接受理时）}]
         decision:
-          - {when: 需求类别要求审批, goto: 2}
-          - {when: otherwise, goto: 3}
+          - {when: 需求类别要求审批, goto: 2, p: 0.2}
+          - {when: otherwise, goto: 3, p: 0.8}
       - actor: SH-M1
         where: in_system
         command: 批准 IT 需求
         aggregate: AGG-114
-        desc: 仅受控类别表标为需审批的类别；提出人所在组织单元的负责人审批
+        wait: {typical_h: 24, p90_h: 72}  # 经验估值；null 表示待取证
+        effort: {typical_min: 5, p90_min: 15}  # 经验估值；null 表示待取证
+        desc: 仅受控类别表标为需审批的类别；提出人所在组织单元的负责人审批；批准后到已提交（待受理）
         approval:
           engine: platform.approval
           doc_type: IT需求审批
@@ -2614,61 +2562,68 @@ processes:
         audit: true
         pending: B31-3
         decision:
-          - {when: 审批已驳回, goto: 7}
-          - {when: otherwise, goto: 3}
+          - {when: 审批已驳回, goto: 7, p: 0.1}
+          - {when: otherwise, goto: 3, p: 0.9}
       - actor: SH-E6
         where: in_system
         command: 受理 IT 需求
         aggregate: AGG-114
-        desc: 信息部门指定处理人，进入处理中
+        wait: {typical_h: 8, p90_h: 48}  # 经验估值；null 表示待取证
+        effort: {typical_min: 5, p90_min: 15}  # 经验估值；null 表示待取证
+        desc: 常规类别从已提交受理；需审批类别步 2 批准后也是已提交，本步指定处理人后进入处理中；与步 2 合起来达到 VS-14.2 退出，不把已提交误改为处理中
         cross_bc:
           - {mode: event, direction: in, bc: platform.approval, name: 审批已通过}      # 仅经审批的类别
         permission: IT需求.受理
         page: IT需求工作台
+        # 非中断超时分支结局为已提醒，原任务继续；提醒不改对象状态。
         timeout: {after: "P2D", escalate_to: SH-M1, interrupting: false}   # 〔推〕2 个工作日内受理，逾期提醒信息部门负责人（SH-M1 职能高管），待用户定 2
         pending: B31-2
       - actor: SH-E6
         where: in_system
         command: 解决 IT 需求
         aggregate: AGG-114
+        effort: {typical_min: 30, p90_min: 120}  # 经验估值；null 表示待取证
         emits: [IT 需求已解决]            # 仅分析
-        desc: 记录处理过程与处理结论；实际排查在系统外进行，本系统登记过程与结论
+        desc: 记录处理过程与处理结论；实际排查在系统外进行，本系统登记过程与结论；成功登记结论后到已解决；异常退回分支与状态机的衔接见 REVIEW_VS14.md A3
         permission: IT需求.解决
         page: IT需求工作台
         metric_event: true
         decision:
-          - {when: 需求不成立或无法实现, goto: 6}
-          - {when: otherwise, goto: 5}
+          - {when: 需求不成立或无法实现, goto: 6, p: 0.1}
+          - {when: otherwise, goto: 5, p: 0.9}
       - actor: SH-E3
         where: in_system
         command: 关闭 IT 需求
         aggregate: AGG-114
-        desc: 提出人确认后关闭；解决后超期未确认由系统代关〔推〕
+        wait: {typical_h: 24, p90_h: 120}  # 经验估值；null 表示待取证
+        effort: {typical_min: 3, p90_min: 10}  # 经验估值；null 表示待取证
+        desc: 提出人确认后关闭；解决后超期未确认由系统代关〔推〕；确认后已解决 → 已关闭；反馈未解决则回步 3 重开到处理中
         permission: IT需求.关闭
         page: IT需求详情页
         timeout: {after: "P5D", escalate_to: system, interrupting: true}   # 〔推〕解决后 5 日未确认自动关闭，待用户定 2
         pending: B31-2
         decision:
-          - {when: 无处理结论, goto: 4}      # INV-新-P3 拒绝
-          - {when: 提出人认为未解决, goto: 3}
-          - {when: otherwise, goto: end, outcome: 已关闭}
+          - {when: 无处理结论, goto: 4, p: 0.01}      # INV-新-P3 拒绝
+          - {when: 提出人认为未解决, goto: 3, p: 0.09}
+          - {when: otherwise, goto: end, outcome: 已关闭, p: 0.9}
         outcome: 已关闭
       - actor: SH-E6
         where: in_system
         command: 退回 IT 需求
         aggregate: AGG-114
-        desc: 需求不成立或无法实现时退回提出人，写退回原因
+        effort: {typical_min: 5, p90_min: 15}  # 经验估值；null 表示待取证
+        desc: 需求不成立或无法实现时退回提出人，写退回原因；由处理中到已退回
         permission: IT需求.退回
         page: IT需求工作台
         notify: [{to: SH-E3, how: 企业微信}]
         decision:
-          - {when: otherwise, goto: end, outcome: 已退回}
+          - {when: otherwise, goto: end, outcome: 已退回, p: 1}
         outcome: 已退回
       - actor: platform
         where: automatic
         command: 驳回 IT 需求
         aggregate: AGG-114
-        desc: 审批平台回调：需求标为已退回，写驳回意见
+        desc: 审批平台回调：需求标为已退回，写驳回意见；由审批中到已退回
         cross_bc:
           - {mode: event, direction: in, bc: platform.approval, name: 审批已驳回}
         notify: [{to: SH-E3, how: 企业微信}]
@@ -2680,9 +2635,10 @@ processes:
   - id: PRC-143
     name: IT 资产领用
     type: business
-    stages: []
+    stages: [VS-14.1, VS-14.2, VS-14.3]
+    stages_note: >-
+      VS-14.1：步 1 记录领用事项，AGG-115 的领用申请草稿 → 审批中（超配置）或已通过（标准配置内规则自动通过），正好对应 OBJ-115 的两种退出。VS-14.2：仅超配置走步 2，由审批中 → 已通过，满足本段退出；步 4 驳回为已驳回。标准配置内从步 1 直接到步 3，跳过 skippable 的 VS-14.2，不新增审批。VS-14.3：步 3 在已通过后登记实物交付，申请到已领用并创建在用使用期间，满足本段退出及 VS-14.4 进入；本流程在已领用结束，不等归还，后续由 PRC-156 重入 VS-14.4、PRC-155 重入 VS-14.3 或 PRC-157 重入维修服务。
     primary_object: OBJ-115
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people
     status: draft
@@ -2695,6 +2651,7 @@ processes:
       - {roles: [SH-E3, SH-M1], rule: "申请人不得批准自己的超标配置领用（AR-11 上交其上级）"}
     triggers:
       - {type: human, name: "申请领用"}
+    frequency_ref: "待取证（OA_PROCESS_INVENTORY.md 表第 121 项 IT资产领用申请；需核对线下领用记录及统计窗口）"
     outcomes: [已领用, 已驳回, 已撤回]
     scenarios: [PRC-143-S01, PRC-143-S02, PRC-143-S03, PRC-143-S04, PRC-143-S05, PRC-143-S06, PRC-143-S07]
     roles:
@@ -2724,7 +2681,8 @@ processes:
         where: in_system
         command: 申请领用资产
         aggregate: AGG-115
-        desc: 选 B-24 资产卡片（只引用卡片 ID，不复制卡片信息）；在使用人岗位标准配置内的领用由规则自动通过、只登记，超出标准配置才进审批
+        effort: {typical_min: 5, p90_min: 10}  # 经验估值；null 表示待取证
+        desc: 选 B-24 资产卡片（只引用卡片 ID，不复制卡片信息）；在使用人岗位标准配置内的领用由规则自动通过、只登记，超出标准配置才进审批；标准配置内到已通过，超配置到审批中
         permission: IT资产.申请领用
         page: IT资产领用申请页
         added_in: closeout
@@ -2732,16 +2690,19 @@ processes:
           - {mode: api, direction: out, bc: B-24, name: 读取资产卡片}      # B-31 → B-24（回补新边，intent 152926）
           - {mode: api, direction: out, bc: B-13, name: 读取使用人}
         pending: B31-5
+        notify: [{to: SH-E6, how: 企业微信待办（标准配置内自动通过、待登记领用时）}]
         decision:
-          - {when: 资产卡片不存在、已处置或不属 IT 资产类别, goto: 1}
-          - {when: 该资产已有未归还的使用人, goto: 1}                      # INV-新-P4 提前拒绝；应先归还或改走调拨
-          - {when: 领用的资产类别在使用人岗位标准配置内, goto: 3}           # 规则自动通过，不设审批
-          - {when: otherwise, goto: 2}
+          - {when: 资产卡片不存在、已处置或不属 IT 资产类别, goto: 1, p: 0.01}
+          - {when: 该资产已有未归还的使用人, goto: 1, p: 0.04}                      # INV-新-P4 提前拒绝；应先归还或改走调拨
+          - {when: 领用的资产类别在使用人岗位标准配置内, goto: 3, p: 0.75}           # 规则自动通过，不设审批
+          - {when: otherwise, goto: 2, p: 0.2}
       - actor: SH-M1
         where: in_system
         command: 批准领用
         aggregate: AGG-115
-        desc: 仅超出岗位标准配置的领用；申请人所在组织单元负责人审批
+        wait: {typical_h: 24, p90_h: 72}  # 经验估值；null 表示待取证
+        effort: {typical_min: 5, p90_min: 15}  # 经验估值；null 表示待取证
+        desc: 仅超出岗位标准配置的领用；申请人所在组织单元负责人审批；由审批中到已通过
         approval:
           engine: platform.approval
           doc_type: IT资产领用审批
@@ -2757,15 +2718,17 @@ processes:
         audit: true
         pending: B31-5
         decision:
-          - {when: 审批已驳回, goto: 4}
-          - {when: otherwise, goto: 3}
+          - {when: 审批已驳回, goto: 4, p: 0.1}
+          - {when: otherwise, goto: 3, p: 0.9}
       - actor: SH-E6
         where: offline
         evidence: [领用人签收, 交付日期, 设备实物状态〔推〕]
         command: 登记领用
         aggregate: AGG-115
+        wait: {typical_h: 8, p90_h: 48}  # 经验估值；null 表示待取证
+        effort: {typical_min: 15, p90_min: 30}  # 经验估值；null 表示待取证
         emits: [资产已领用]               # 仅分析；离职交接可读
-        desc: 实物在系统外交付，本系统登记使用人与起始日，打开该卡片的一个使用期间
+        desc: 实物在系统外交付，本系统登记使用人与起始日，打开该卡片的一个使用期间；领用申请已通过 → 已领用，使用期间新建为在用
         cross_bc:
           - {mode: event, direction: in, bc: platform.approval, name: 审批已通过}      # 仅超出标准配置、经审批的领用
         permission: IT资产.登记领用
@@ -2773,14 +2736,14 @@ processes:
         audit: true
         metric_event: true
         decision:
-          - {when: 该资产已有未归还的使用人, goto: 1}      # INV-新-P4 拒绝（兜底，申请时已提前拒绝）
-          - {when: otherwise, goto: end}
+          - {when: 该资产已有未归还的使用人, goto: 1, p: 0.02}      # INV-新-P4 拒绝（兜底，申请时已提前拒绝）
+          - {when: otherwise, goto: end, p: 0.98}
         outcome: 已领用
       - actor: platform
         where: automatic
         command: 〔缺〕驳回领用
         aggregate: AGG-115
-        desc: 审批平台回调：领用申请标为已驳回
+        desc: 审批平台回调：领用申请标为已驳回；由审批中到已驳回
         cross_bc:
           - {mode: event, direction: in, bc: platform.approval, name: 审批已驳回}
         notify: [{to: SH-E3, how: 企业微信}]
@@ -2796,9 +2759,10 @@ processes:
   - id: PRC-144
     name: 员工活动类申请（周年贺卡、节日活动、创新项目发布）
     type: business
-    stages: []
+    stages: [VS-14.1, VS-14.2, VS-14.4]
+    stages_note: >-
+      VS-14.1：步 1 记录活动事项，AGG-116（OBJ-116）需审批类型草稿 → 审批中，满足本段退出及 VS-14.2 进入。VS-14.2：步 2 从审批中 → 已批准，满足本段退出及 VS-14.4 进入，步 4 驳回为已驳回；福利型步 1 直接已批准，跳过 skippable 的 VS-14.2，其 VS-14.1 未经过审批中的出口例外交 REVIEW_VS14.md A1。VS-14.3 为 skippable，活动举办没有独立对象状态，不另造办理态或办理命令；批准后直接进入 VS-14.4，由步 3 组织活动并登记完成，已批准 → 已完成，满足退出。
     primary_object: OBJ-116
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people
     status: draft
@@ -2810,6 +2774,7 @@ processes:
       - {roles: [SH-E3, SH-M1], rule: "申请人不得批准自己的活动申请（解析出的审批人就是申请人时按 AR-11 上交其上级）"}
     triggers:
       - {type: human, name: "员工提出活动申请"}
+    frequency_ref: "待取证（OA_PROCESS_INVENTORY.md 表第 113、118、120 项周年贺卡、感恩节活动、创新项目发布；需区分已停用类型及统计窗口）"
     outcomes: [已完成, 已驳回, 已撤回]
     scenarios: [PRC-144-S01, PRC-144-S02, PRC-144-S03, PRC-144-S04, PRC-144-S05, PRC-144-S06]
     roles:
@@ -2839,22 +2804,26 @@ processes:
         where: in_system
         command: 提交员工活动申请
         aggregate: AGG-116
-        desc: 选活动类型（受控参考数据），填参与人、费用预估（只记录引用，不是预算控制）；周年贺卡一类福利型活动只登记，节日活动、创新项目发布进审批
+        effort: {typical_min: 5, p90_min: 15}  # 经验估值；null 表示待取证
+        desc: 选活动类型（受控参考数据），填参与人、费用预估（只记录引用，不是预算控制）；周年贺卡一类福利型活动只登记，节日活动、创新项目发布进审批；需审批类型到审批中，福利型直接到已批准
         permission: 员工活动.提交
         page: 员工活动申请页
         added_in: closeout
         cross_bc:
           - {mode: api, direction: out, bc: B-13, name: 读取申请人与参与人}
         pending: B31-8
+        notify: [{to: SH-E6, how: 企业微信待办（福利型自动通过、待组织活动时）}]
         decision:
-          - {when: 活动类型要求审批, goto: 2}
-          - {when: otherwise, goto: 3}
+          - {when: 活动类型要求审批, goto: 2, p: 0.3}
+          - {when: otherwise, goto: 3, p: 0.7}
       - actor: SH-M1
         where: in_system
         command: 批准员工活动申请
         aggregate: AGG-116
+        wait: {typical_h: 24, p90_h: 72}  # 经验估值；null 表示待取证
+        effort: {typical_min: 5, p90_min: 15}  # 经验估值；null 表示待取证
         emits: [员工活动申请已批准]       # 仅分析
-        desc: 申请人所在组织单元的负责人在审批平台审批
+        desc: 申请人所在组织单元的负责人在审批平台审批；由审批中到已批准
         approval:
           engine: platform.approval
           doc_type: 员工活动审批
@@ -2871,26 +2840,28 @@ processes:
         metric_event: true
         pending: B31-8
         decision:
-          - {when: 审批已驳回, goto: 4}
-          - {when: otherwise, goto: 3}
+          - {when: 审批已驳回, goto: 4, p: 0.1}
+          - {when: otherwise, goto: 3, p: 0.9}
       - actor: SH-E6
         where: offline
         evidence: [活动完成确认, 实际参与人〔推〕]
         command: 完成员工活动
         aggregate: AGG-116
-        desc: 活动在系统外举办，本系统登记完成；活动费用若报销，由 B-12 费用报销单引用本申请 ID（不校验，B-12 不被本聚合依赖）
+        wait: {typical_h: null, p90_h: null}  # 经验估值；null 表示待取证
+        effort: {typical_min: null, p90_min: null}  # 经验估值；null 表示待取证
+        desc: 活动在系统外举办，本系统登记完成；活动费用若报销，由 B-12 费用报销单引用本申请 ID（不校验，B-12 不被本聚合依赖）；由已批准到已完成
         cross_bc:
           - {mode: event, direction: in, bc: platform.approval, name: 审批已通过}      # 仅经审批的活动类型
         permission: 员工活动.完成
         page: 员工活动详情页
         decision:
-          - {when: otherwise, goto: end}
+          - {when: otherwise, goto: end, p: 1}
         outcome: 已完成
       - actor: platform
         where: automatic
         command: 驳回员工活动申请
         aggregate: AGG-116
-        desc: 审批平台回调：申请标为已驳回，写驳回意见
+        desc: 审批平台回调：申请标为已驳回，写驳回意见；由审批中到已驳回
         cross_bc:
           - {mode: event, direction: in, bc: platform.approval, name: 审批已驳回}
         notify: [{to: SH-E3, how: 企业微信}]
@@ -2900,9 +2871,10 @@ processes:
   - id: PRC-155
     name: IT 资产调拨
     type: business
-    stages: []
+    stages: [VS-14.3]
+    stages_note: >-
+      仅占 VS-14.3：已领用或已调拨资产的使用期间在用，符合 OBJ-115 的在用进入条件；步 1 提出调拨请求（调拨申请草稿 → 已申请），本次为已使用资产重入，不是 VS-14.1 的初次领用申请，也无须重复 VS-14.2 人审。步 2 登记交接，调拨申请已申请 → 已调拨，并同事务结束调出期间、开启调入期间，满足本段已调拨退出；使用未结束，不归 VS-14.4，日后归还由 PRC-156 承接。无当前使用人的请求转 PRC-143 初次领用，结局已转领用；撤销只结束本次调拨。
     primary_object: OBJ-115
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people
     status: draft
@@ -2914,6 +2886,7 @@ processes:
       - {roles: [SH-E3, SH-E6], rule: "调出使用人不得登记自己的调拨（交接登记由资产管理员完成）"}
     triggers:
       - {type: human, name: "申请调拨"}
+    frequency_ref: "待取证（OA_PROCESS_INVENTORY.md 表第 115 项 IT资产调拨申请；需核对交接登记及统计窗口）"
     outcomes: [已调拨, 已转领用, 已撤销]
     scenarios: [PRC-155-S01, PRC-155-S02, PRC-155-S03, PRC-155-S04, PRC-155-S05]
     roles:
@@ -2943,7 +2916,8 @@ processes:
         where: in_system
         command: 〔缺〕申请调拨资产
         aggregate: AGG-115
-        desc: 调出使用人（或资产管理员）选调入使用人；调拨不设人工审批，由规则守卫（同一时刻只有一个使用人、调入使用人须在职），跨组织单元的调拨通知两侧负责人（A8 有调拨申请表单，聚合稿回补只有「调拨资产」命令）
+        effort: {typical_min: 5, p90_min: 10}  # 经验估值；null 表示待取证
+        desc: 调出使用人（或资产管理员）选调入使用人；调拨不设人工审批，由规则守卫（同一时刻只有一个使用人、调入使用人须在职），跨组织单元的调拨通知两侧负责人（A8 有调拨申请表单，聚合稿回补只有「调拨资产」命令）；调拨请求到已申请；无使用人转领用时为已转领用
         permission: IT资产.申请调拨
         page: IT资产调拨申请页
         added_in: closeout
@@ -2954,23 +2928,25 @@ processes:
         withdraw: {to: end, outcome: 已撤销}
         pending: B31-6
         decision:
-          - {when: 资产没有当前使用人, goto: PRC-143}      # 无使用人的资产走领用，不走调拨
-          - {when: 调入使用人在调拨日不是在职员工, goto: 1}
-          - {when: otherwise, goto: 2}
+          - {when: 资产没有当前使用人, goto: PRC-143, p: 0.05}      # 无使用人的资产走领用，不走调拨
+          - {when: 调入使用人在调拨日不是在职员工, goto: 1, p: 0.02}
+          - {when: otherwise, goto: 2, p: 0.93}
       - actor: SH-E6
         where: offline
         evidence: [调出方与调入方交接确认, 交接日期]
         command: 调拨资产
         aggregate: AGG-115
+        wait: {typical_h: 8, p90_h: 48}  # 经验估值；null 表示待取证
+        effort: {typical_min: 15, p90_min: 30}  # 经验估值；null 表示待取证
         emits: [资产已调拨]               # 仅分析
-        desc: 实物交接在系统外；本系统同一事务结束调出方的使用期间并开启调入方的使用期间，保证同一时刻只有一个使用人
+        desc: 实物交接在系统外；本系统同一事务结束调出方的使用期间并开启调入方的使用期间，保证同一时刻只有一个使用人；调拨申请到已调拨；旧期间在用 → 已结束，新期间为在用
         permission: IT资产.登记调拨
         page: IT资产使用登记页
         audit: true
         metric_event: true
         decision:
-          - {when: 调出方不是该资产当前使用人, goto: 1}      # INV-新-P4 拒绝
-          - {when: otherwise, goto: end}
+          - {when: 调出方不是该资产当前使用人, goto: 1, p: 0.02}      # INV-新-P4 拒绝
+          - {when: otherwise, goto: end, p: 0.98}
         outcome: 已调拨
     notes: >
       调拨取消人工审批：资产归属与折旧在 B-24，B-31 只换使用人；是否要求跨组织单元调拨由调入方负责人确认，见 notes 待用户定 6。
@@ -2981,9 +2957,10 @@ processes:
   - id: PRC-156
     name: IT 资产归还
     type: business
-    stages: []
+    stages: [VS-14.4]
+    stages_note: >-
+      仅占 VS-14.4：承接 PRC-143 的已领用或 PRC-155 的已调拨，已有在用使用期间时，由人工登记或 B-13 Separated 生成归还待办重入，不重复 VS-14.1–VS-14.3。步 1 验收并归还资产，结局已归还对应 OBJ-115 的本段退出；本组 AGG-115 使用期间转换仍写在用 → 已结束且 process_outcome 为已归还，因调拨也会结束旧期间，不能把所有已结束等同已归还，状态字面差异交 REVIEW_VS14.md A4。离职触发的归还待办不作 VS-13.6 退出条件；离职逾期的已提醒只结束非中断提醒分支，不代替归还。
     primary_object: OBJ-115
-    support: "B-31 资产归还：离职生效（Separated）触发的归还待办只是 VS-13.6 退出事件的反应，另有资产管理员人工登记触发（在职换机、收回）；结局不造 VS-13.6 的任一退出条件（人员已离职、参保减员、劳动合同已终止），不挂阶段（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: B-31
     group: people
     status: draft
@@ -2996,7 +2973,8 @@ processes:
     triggers:
       - {type: human, name: "资产管理员登记归还"}
       - {type: event, name: "员工已离职", event: Separated, bc: B-13}
-    outcomes: [已归还]
+    frequency_ref: "待取证（OA_PROCESS_INVENTORY.md 未列独立归还模板；线索为 AGG-115 使用期间结束日、归还记录与 Separated 后待办，需区分调拨结束与归还）"
+    outcomes: [已归还, 已提醒]
     scenarios: [PRC-156-S01, PRC-156-S02, PRC-156-S03, PRC-156-S04]
     roles:
       - id: SH-E6
@@ -3026,8 +3004,10 @@ processes:
         evidence: [归还验收人, 归还日期, 设备实物状态]
         command: 归还资产
         aggregate: AGG-115
+        wait: {typical_h: null, p90_h: null}  # 经验估值；null 表示待取证
+        effort: {typical_min: 15, p90_min: 30}  # 经验估值；null 表示待取证
         emits: [资产已归还]               # 仅分析；离职交接可读
-        desc: 实物验收在系统外，本系统登记归还日并结束使用期间；员工离职事件触发时，系统为该员工名下每件未归还资产生成一个归还待办（即本流程的实例，聚合稿回补 §1 的建议），待办的出现就是本步的开始
+        desc: 实物验收在系统外，本系统登记归还日并结束使用期间；员工离职事件触发时，系统为该员工名下每件未归还资产生成一个归还待办（即本流程的实例，聚合稿回补 §1 的建议），待办的出现就是本步的开始；使用期间在用 → 已结束，process_outcome 为已归还（状态字面差异见 REVIEW_VS14.md A4）
         cross_bc:
           - {mode: event, direction: in, bc: B-13, name: Separated}      # 事件触发时；人工触发无此项
         permission: IT资产.登记归还
@@ -3035,11 +3015,12 @@ processes:
         audit: true
         metric_event: true
         notify: [{to: SH-E6, how: 企业微信待办（事件触发时）}]
+        # 非中断超时分支结局为已提醒，原任务继续；提醒不改对象状态。
         timeout: {after: "P7D", escalate_to: SH-M1, interrupting: false}   # 〔推〕离职后 7 日仍未归还提醒原部门负责人，待用户定 7
         pending: B31-7
         decision:
-          - {when: 该资产没有未结束的使用期间, goto: 1}      # 已先行归还或待办重复：拒绝登记，待办由事件处理器取消
-          - {when: otherwise, goto: end}
+          - {when: 该资产没有未结束的使用期间, goto: 1, p: 0.02}      # 已先行归还或待办重复：拒绝登记，待办由事件处理器取消
+          - {when: otherwise, goto: end, p: 0.98}
         outcome: 已归还
     notes: >
       原稿的〔缺〕生成归还待办一步取消：事件启动流程实例，实例的第一个任务就是归还待办；订阅 Separated 的 B-31 → B-13 事件边仍需登记（接缝问题 3、V-15）。
@@ -3050,10 +3031,11 @@ processes:
   - id: PRC-157
     name: IT 资产报修与维修登记
     type: business
-    stages: []
+    stages: [VS-14.3, VS-14.4]
+    stages_note: >-
+      VS-14.3：已有在用资产故障后重入，步 1 报修资产创建 AGG-121 维修单到已报修，步 2 登记维修结果到已维修登记，对应本段 OBJ-115 / AGG-121 退出；不重复初次领用的 VS-14.1、VS-14.2，也不设维修审批。VS-14.3 进入条件把已报修限定在 AGG-115，本组该状态属于 AGG-121，交 REVIEW_VS14.md A5，不跨聚合伪造状态。VS-14.4：步 2 同时确认本次维修登记，已维修登记保持为该次服务办结事实（进入与退出同态），不加空转命令；已修复或无法修复是结果属性，不作状态，维修结束不等于资产已归还。
     primary_object: OBJ-115
     primary_object_note: "AGG-121 维修单是 OBJ-115 的维修工单子生命周期"
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
     owner_bc: B-31
     group: people
     status: draft
@@ -3063,6 +3045,7 @@ processes:
     scope: "使用人看自己名下资产；信息部门（资产管理员）看全部"
     triggers:
       - {type: human, name: "报修"}
+    frequency_ref: "待取证（OA_PROCESS_INVENTORY.md 表第 116 项 IT资产报修申请；需核对维修完成记录及统计窗口）"
     outcomes: [已维修登记]
     scenarios: [PRC-157-S01, PRC-157-S02, PRC-157-S03]
     roles:
@@ -3092,21 +3075,24 @@ processes:
         where: in_system
         command: 报修资产
         aggregate: AGG-121
-        desc: 使用人填故障描述，生成维修工单；报修不经审批（维修结果登记与采购、费用报销各走各自的审批；单项维修费用若超限额走采购 / 费控，不属 B-31）
+        effort: {typical_min: 5, p90_min: 10}  # 经验估值；null 表示待取证
+        desc: 使用人填故障描述，生成维修工单；报修不经审批（维修结果登记与采购、费用报销各走各自的审批；单项维修费用若超限额走采购 / 费控，不属 B-31）；维修单草稿 → 已报修
         permission: IT资产.报修
         page: IT资产报修页
         added_in: closeout
         cross_bc:
           - {mode: api, direction: out, bc: B-24, name: 读取资产卡片}
         decision:
-          - {when: 报修人不是该资产当前使用人, goto: 1}      # 规则拒绝，使用人名下才能报修；资产管理员代报时选使用人
-          - {when: otherwise, goto: 2}
+          - {when: 报修人不是该资产当前使用人, goto: 1, p: 0.02}      # 规则拒绝，使用人名下才能报修；资产管理员代报时选使用人
+          - {when: otherwise, goto: 2, p: 0.98}
       - actor: SH-E6
         where: external:维修服务商
         evidence: [维修单或发票引用, 维修结果, 完成日期]
         command: 登记维修结果
         aggregate: AGG-121
-        desc: 维修在系统外（内部处理或送修厂商），无接口，本系统只登记结果与证据；无法修复的资产由财务在 B-24 另行报废，B-31 不发起（B-31 → B-24 只有读取边，见 notes 接缝问题 1）
+        wait: {typical_h: 24, p90_h: 120}  # 经验估值；null 表示待取证
+        effort: {typical_min: 10, p90_min: 30}  # 经验估值；null 表示待取证
+        desc: 从已报修登记到已维修登记，同时确认本次维修服务办结；维修在系统外（内部处理或送修厂商），无接口，本系统只登记结果与证据；无法修复的资产由财务在 B-24 另行报废，B-31 不发起（B-31 → B-24 只有读取边，见 notes 接缝问题 1）
         permission: IT资产.登记维修结果
         page: IT资产维修工单页
         audit: true
