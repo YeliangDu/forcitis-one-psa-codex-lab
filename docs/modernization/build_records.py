@@ -72,6 +72,13 @@ def build_session_log():
     return read(os.path.join(BASE, "session-log/_header.md")) + "\n" + "\n".join(entries)
 
 
+def adr_section():
+    import datetime, importlib.util
+    spec = importlib.util.spec_from_file_location("build_adrs", os.path.join(BASE, "adr", "build_adrs.py"))
+    b = importlib.util.module_from_spec(spec); spec.loader.exec_module(b)
+    return b.status_section(b.load_adrs(os.path.join(b.BASE, "src")), dict(today=datetime.date.today()))
+
+
 def build_status():
     units = []
     for p in fragments("status/units"):
@@ -94,7 +101,7 @@ def build_status():
     return (read(os.path.join(BASE, "status/_header.md")) + "\n"
             + read(os.path.join(BASE, "status/_position.md")) + "\n"
             + head + "".join(r for _, _, r in sorted(units))
-            + "\n## 阻塞与待用户决定\n\n" + "".join(blockers))
+            + "\n## 阻塞与待用户决定\n\n" + "".join(blockers) + adr_section())
 
 
 def main():

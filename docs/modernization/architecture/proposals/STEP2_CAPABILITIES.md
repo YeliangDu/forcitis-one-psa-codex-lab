@@ -1,5 +1,7 @@
 # 第 ② 步：按对象命名的能力图（提议稿）
 
+状态：已确认｜2026-10-16｜负责：one-architecture
+
 状态：提议稿，已按 opus 对抗评审意见修改（见文末「评审处理记录」）；用户已答复 STEP1 四题（intent 082311），已完成第 ② 步回补（§10），回补引出用户题 Q-E（§11，已答：intent 090004 三项均选 b） · 日期：2026-10-16 · 作者：one-architecture 子代理 · 方法：`METHOD_V4_DRAFT.md` 第 ② 步第 6、7 条 · 理论参照：`FRAMEWORKS_V4_DRAFT.md` B3、B5、§3.4 · 数据文件：同目录 `capabilities.v2.yaml`（现行 `togaf/capabilities.yaml` 不改，定稿后随最终一次性 ADR 替换）。
 
 依据：

@@ -1,5 +1,7 @@
 # 业务对象完整性检查报告（四项交叉）
 
+状态：评审中｜2026-10-16｜负责：one-architecture
+
 状态：草案，待用户就 `decision-page/COMPLETENESS_QUESTIONS.json` 作答 · 日期：2026-10-16 · 作者：one-architecture 子代理 · 对照：`ENTERPRISE_INFO_MAP_DRAFT.md`（下称「信息图」，OBJ 编号）、`ENTERPRISE_INFO_MAP_ANSWERS.md`（Q01–Q39、R1–R5）、`PRIMARY_OBJECT_TEST.md`（一级对象检验判据）、`ENTERPRISE_AGGREGATES_DRAFT.md`（下称「聚合稿」，INV / AGG / D 号）、`STAGE_TYPES_DRAFT.md`（下称「阶段稿」，S 号）；用户已定 intent 见文末「依据」。
 
 用语按最新口径：合同 BC 为 `contract.agreement`，售前 BC 为 `presales.opportunity`；「客户」指往来单位（OBJ-01）的客户角色（OBJ-02）；「应收单」已并入应收款项（OBJ-85 应收方向）。
