@@ -73,12 +73,12 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 | `locale` | `zh-CN / en / und`；`und` 表示语言未确定，不能当作已启用的界面语言；英文用 `en`，不以地区标签区分英美拼写 | 迁移工具取值；N3 定稿第 7 项 |
 | `locale / role` 配对 | `zh-CN / canonical`、`en / code_name`；分别用于中文规范名与内部英文代码名 | 采纳迁移工具取值 |
 | `role` | `canonical / code_name` 现用；`terse / verbose / column_header / documentation / ui_label` 预留、未启用，登记缺失不失败 | N3 定稿第 1 项 |
-| `usage_status` | `preferred / permitted / forbidden`（首选 / 可用 / 禁用）；`standard-zh` 且 `deprecated` 的迁移按下表采用 `permitted-deprecated`（不再首选，不禁用） | 迁移工具取值；N3 定稿第 3 项 |
+| `usage_status` | `preferred / permitted / forbidden`（首选 / 可用 / 禁用），仅此三值 | 迁移工具取值；N3 定稿第 3 项 |
 | `approval_status` | `proposed / pending_confirmation / approved`（提议 / 待确认 / 已批准） | 采纳迁移工具取值 |
 
 使用资格同时检查两种状态：`forbidden` 或 `pending_confirmation` 均禁止引用；`proposed` 按 ADR-0053 决定 5.2 构建提醒。各面默认取指定语言、角色的唯一 `preferred` 指称，不能把 `permitted` 当缺失时的回退。
 
-**N3 七项定稿对照**：出处均为 `glossary/arch-naming/N3_DECISIONS.md @ f22d6b0b`；第 5 项先采用下列字段骨架，正式结构随 NAM-1017-GLO-06 产出后核对。
+**N3 七项定稿对照**：出处均为 `glossary/arch-naming/N3_DECISIONS.md @ 7e4eb96b`；第 5 项先采用下列字段骨架，正式结构随 NAM-1017-GLO-06 产出后核对。
 
 | 项 | 定稿内容 |
 |---|---|
@@ -90,16 +90,14 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 | 6. 消息状态与缺译 | `proposed / approved / deprecated / retired`，与概念生命周期一致；缺译回退按 ADR-0053 决定 6.4，运行时回退须告警 |
 | 7. 英文 locale | 用 `en`；英式、美式拼写另待用户裁定（N4 Q13），裁定前新代码词形按 N4 候选，不由 locale 区分拼写变体 |
 
-**别名与禁用写法的迁移映射**（N3 定稿第 3 项；以下保留定稿给出的机器值，不沿用前稿的来源类型）：
+**别名与禁用写法的迁移映射**（N3 定稿第 3 项修订版，`glossary/arch-naming/N3_DECISIONS.md @ 7e4eb96b`；与已过复审、往返无损的 `glossary/migrate_to_concepts.py` 一致）：`source_type` 原样保留旧类型值；语义分类由本细则按 `source_type` 查表。
 
 | 旧输入 | 定稿映射 |
 |---|---|
-| `type: dialect` | `usage_status: forbidden`、`source_type: dialect` |
-| `type: old-code / legacy-code / legacy-table` | `usage_status: forbidden`、`source_type: old_name`；§6 以 `old_name` 为老名机器值 |
-| `type: standard-zh` 且 `deprecated` | `permitted-deprecated`：不再首选，不禁用 |
-| `zh-internal` 未判定 | `approval_status: pending_confirmation`（待确认），禁止使用 |
-| `forbidden` 清单项 | `usage_status: forbidden` |
-| `type: kpi-symbol` | `usage_status: permitted`、`source_type: symbol` |
+| `deprecated`，或 `type` 属 `dialect / forbidden / old-code / legacy-code / legacy-table` | `usage_status: forbidden`；`source_type` 为原类型值 |
+| 其余类型（如 `standard-zh`、`kpi-symbol`） | `usage_status: permitted`；`source_type` 为原类型值 |
+| 状态 `undetermined` | `approval_status: pending_confirmation`（待确认） |
+| 其余 | `approval_status` 沿用概念状态 |
 
 #### 2.1.2 用途角色与 AN-05
 
@@ -112,7 +110,7 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 | 内部英文名（代码名） | **采纳迁移工具取值**：`locale: en`、`role: code_name`，名称为英文 ASCII | `migrate_to_concepts.py:18–19`；ADR-0053 决定 2.2、6.3 | 现有 ASCII、拆词检查；角色选择待补守护 |
 | 英文界面叫法（AN-05） | 与内部英文名分开登记，允许不同；即使同词也按两种用途记录。当前未交付英文界面，不要求补齐英文界面指称 | ANM 批准记录（intent `2026-10-17-084935-one-coordinator`，AN-04、AN-05）；ADR-0053 决定 6.2–3；登记方案 §2 | 待补守护（角色区分在切换前；英文完整性在启用前） |
 | 缩写 | 指称以布尔属性 `abbreviation` 表示缩写形式，不占角色；先按 §2.1.4 登记全称与用途，不默认把所有缩写当可用别名 | N3 定稿第 2 项；ADR-0053 决定 2.2、8；登记方案 §5 | 现有拆词检查不能证明缩写已授权；待补守护 |
-| 旧称、方言、别名 | 以 `source_type` 与两种状态分别登记，不作用途角色；映射见 §2.1.1，§6 的老名来源机器值为 `old_name` | N3 定稿第 3 项；ADR-0053 背景「取代」与决定 2.2、5.3 | 现有禁用写法守护；新结构待补守护 |
+| 旧称、方言、别名 | 以 `source_type` 与两种状态分别登记，不作用途角色；映射见 §2.1.1，§6 的老名来源机器值为 `old-code / legacy-code / legacy-table` | N3 定稿第 3 项；ADR-0053 背景「取代」与决定 2.2、5.3 | 现有禁用写法守护；新结构待补守护 |
 
 #### 2.1.3 源语言与当前交付语言
 
@@ -137,11 +135,11 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 | 权限码 | `{子域}.{BC}:{kebab资源}:{标准动作}`；资源与 API 共指概念，沿现有权限目录用单数，不将 API 复数串直接复制；动词映射到 `standard_actions` 后使用 | ADR-0053 决定 2.3、4；DRAFT §1（动作映射为候选，须核对）；§4 G43、§7 第 9 项 | `NamingSurfaceTest` G43 查现有格式、资源和动作；概念引用投影待补守护 |
 | 界面文字与消息键 | 业务名词现阶段取 `zh-CN / canonical` 的首选指称；整条消息登记在 §2.1.6。键为 `{子域}.{BC}.{单数kebab资源}.{小写点分用途}`，跨 BC 共用消息为 `kernel.{单数kebab资源}.{小写点分用途}`，与业务指称分别维护 | N3 定稿第 1 项；ADR-0053 决定 6.3–4；登记方案 §2；键格式由本节规定 | 现有 `check-copy-glossary.mjs / OutwardTextGuardTest` 只查旧用语；键、角色与占位符待补守护（新页面采用前） |
 
-**schema 字段路径**：以 BC 引用精确匹配 `bcs.yaml` 的 `bcs[].id`，要求 `kind: bc`；用该行 `subdomain` 精确引用 `kind: subdomain` 的条目。子域片段取子域条目的 `designations[].name`，BC 片段取 BC 条目的 `designations[].name`，两者均按本节的 `en / code_name / preferred` 选择与状态检查，分别转 snake_case，以 `_` 连接。`id`、`subdomain` 只作引用，不拆字符串来充当名字。任一字段缺失、引用无效或指称不可用即失败，不回退到 `id`、`zh` 或手填片段。当前 `bcs.yaml` 尚无 `designations`，新投影须在补齐后启用，现有格式检查通过不能证明此路径可执行。
+**schema 字段路径**：以 BC 引用精确匹配 `bcs.yaml` 的 `bcs[].id`，要求 `kind: bc`；`kind: kernel` 的条目不经本路径投影（直接失败即为预期），kernel 的 schema 安排以 ADR-0051 决定 2 为准；用该行 `subdomain` 精确引用 `kind: subdomain` 的条目。子域片段取子域条目的 `designations[].name`，BC 片段取 BC 条目的 `designations[].name`，两者均按本节的 `en / code_name / preferred` 选择与状态检查，分别转 snake_case，以 `_` 连接。`id`、`subdomain` 只作引用，不拆字符串来充当名字。任一字段缺失、引用无效或指称不可用即失败，不回退到 `id`、`zh` 或手填片段。当前 `bcs.yaml` 尚无 `designations`，新投影须在补齐后启用，现有格式检查通过不能证明此路径可执行。
 
 **受控复数**：表名与 API 资源必须查到针对该概念与命名面的已登记复数词形 / 模板；**未登记即失败，不自动加 `s`**，也不自动套英语变形规则。`Analysis` 的复数不能生成为 `Analysiss`；集合名 `Staff` 也不能默认生成为 `Staffs`。这些只是反例，不批准其业务用法；词形登记结构随 §2.1.1 待定模板由 one-glossary 定，定后迁移工具须同步。
 
-**消息键用途**：用途由一个或多个 `[a-z]+` 段以 `.` 连接，采用点分小写，与 `NamingSurfaceTest.java:73` 的 `DOTTED`、`:302` 的 `OWN_KEY` 共同的小写段风格一致；不沿用 JSON 字段的 camelCase。资源槽位保持单数 kebab-case，例 `cost.timesheet.timesheet.submit.succeeded`；跨 BC 共用例 `kernel.document.version.conflict`。这两个现有正则分别检查作业 / 指标与配置键，均不是消息键守护；完整消息键另按本节格式检查，不能直接套 `DOTTED` 排除 kebab 资源。
+**消息键用途**：用途由一个或多个 `[a-z]+` 段以 `.` 连接，采用点分小写，与 `NamingSurfaceTest` 中常量 `DOTTED`、`OWN_KEY` 共同的小写段风格一致；不沿用 JSON 字段的 camelCase。资源槽位保持单数 kebab-case，例 `cost.timesheet.timesheet.submit.succeeded`；跨 BC 共用例 `kernel.document.version.conflict`。这两个现有正则分别检查作业 / 指标与配置键，均不是消息键守护；完整消息键另按本节格式检查，不能直接套 `DOTTED` 排除 kebab 资源。
 
 **不投影对象**：价值流名、价值流阶段名是业务架构名，只登记 `zh-CN canonical`，不投影为代码标识、表列名、事件名或消息键，不套命令 / 事件命名模板。价值流名用动宾、结果视角（如「获得内部服务」）；阶段名用动宾（如「提交申请」），动词须在受控动词表内。出处：one-architecture 与 one-glossary 2026-10-17 直连口径（NAM-1017-ARC-04）。守护：待补（价值流与阶段名动词在受控表内的检查）。
 
@@ -547,7 +545,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 
 ## 6. 老名 → 新名对照（历史快照，待由指称投影替换）
 
-维护入口改为 `source_type: old_name` 且 `usage_status: forbidden` 的指称，按 N3 定稿第 3 项（`glossary/arch-naming/N3_DECISIONS.md @ f22d6b0b`）：旧别名类型 `old-code / legacy-code / legacy-table` 均映射为来源类型 `old_name`，不是三个来源机器值。按 ADR-0053 背景「取代」与决定 5 投影到本节；负责：one-glossary 提供源，one-architecture 定投影。下表保留为历史快照，不再手工补写，不用于批准新名或代替迁移映射。生成替换待词源切换同批实施；守护：待补守护（§6 投影可复现，新旧对照一致；切换前）。
+维护入口改为 `source_type` 属 `old-code / legacy-code / legacy-table` 且 `usage_status: forbidden` 的指称，按 N3 定稿第 3 项修订版（`glossary/arch-naming/N3_DECISIONS.md @ 7e4eb96b`）：来源类型保留三个原值。按 ADR-0053 背景「取代」与决定 5 投影到本节；负责：one-glossary 提供源，one-architecture 定投影。下表保留为历史快照，不再手工补写，不用于批准新名或代替迁移映射。生成替换待词源切换同批实施；守护：待补守护（§6 投影可复现，新旧对照一致；切换前）。
 
 | 老（老系统） | 新（模块.对象 / schema.table） |
 |---|---|
