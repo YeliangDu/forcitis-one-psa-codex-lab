@@ -130,12 +130,7 @@ if [ "$relevant_status" -ne 0 ] || printf '%s\n' "$relevant_output" | grep -qx '
   legacy_it_relevant=true
 fi
 
-records_dir=$(dirname docs/modernization/build_all.py)
-if [ -n "$(gitq status --porcelain -- "$records_dir" backend/glossary/proposed)" ]; then
-  report SKIP "generated docs (build_all --check)" "$records_dir or backend/glossary/proposed has uncommitted changes: commit first, then run again (请先提交再运行)"
-else
-  run_step "generated docs (build_all --check)" py docs/modernization/build_all.py --check
-fi
+run_step "generated docs (build_all --check)" py docs/modernization/build_all.py --check
 run_step "legacy system name" py docs/modernization/check_legacy_name.py
 if touches 'rules/decide/(build_decision_page\.py|page-template\.html)$'; then
   run_step "decision page generator (self-test)" py docs/modernization/rules/decide/build_decision_page.py --self-test
@@ -277,12 +272,13 @@ if [ -n "$guard_run" ]; then
 else
   report SKIP "guards: backend guard tests" "no guard test or architecture list changed"
 fi
-if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(precheck_before_pr|pre_push_gate)\.py|scripts/ci/(light_unit_classes|heavy_gate|docker_diagnostics|failure_summary|repeat_new_tests)\.py|\.claude/settings\.json)$'; then
+if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(precheck_before_pr|pre_push_gate|codex_stdin_gate)\.py|scripts/ci/(light_unit_classes|heavy_gate|docker_diagnostics|failure_summary|repeat_new_tests)\.py|\.claude/settings\.json)$'; then
   for guard in migrations_immutable acceptance_guard acceptance_reports db_scripts_aligned relevant_change assertion_drift; do
     run_step "guards: $guard (self-test)" py "scripts/ci/$guard.py" --self-test
   done
   run_step "guards: precheck_before_pr (self-test)" py scripts/hooks/precheck_before_pr.py --self-test
   run_step "guards: pre_push_gate (self-test)" py scripts/hooks/pre_push_gate.py --self-test
+  run_step "guards: codex_stdin_gate (self-test)" py scripts/hooks/codex_stdin_gate.py --self-test
   run_step "guards: light_unit_classes (self-test)" py scripts/ci/light_unit_classes.py --self-test
   run_step "guards: heavy_gate (self-test)" py scripts/ci/heavy_gate.py --self-test
   run_step "guards: docker_diagnostics (self-test)" py scripts/ci/docker_diagnostics.py --self-test

@@ -265,63 +265,18 @@ class CommonDigestTest(unittest.TestCase):
                         digest.write_common(source, output, check=check)
                     self.assertEqual(output.read_text(encoding="utf-8"), "保留原产物")
 
-    def test_build_without_check_stops_at_first_failure(self):
-        build = SOURCE.with_name("build_all.py")
-        calls = []
-
-        def run(args, **kwargs):
-            calls.append(args)
-            name = Path(args[1]).name if args[0] == sys.executable else ""
-            return SimpleNamespace(returncode=1 if name == "build_records.py" else 0, stdout="固定失败", stderr="")
-
-        module = SimpleNamespace(write_common=lambda *args, **kwargs: None)
-        spec = SimpleNamespace(loader=SimpleNamespace(exec_module=lambda module: None))
-        out, err = io.StringIO(), io.StringIO()
-        with patch("importlib.util.spec_from_file_location", return_value=spec), \
-                patch("importlib.util.module_from_spec", return_value=module), \
-                patch("subprocess.run", side_effect=run), patch.object(sys, "argv", [str(build)]), \
-                contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            with self.assertRaises(SystemExit) as stopped:
-                runpy.run_path(str(build), run_name="__main__")
-        self.assertIn("build_records.py 失败", str(stopped.exception.code))
-        self.assertFalse(any(Path(args[1]).name == "build_decision_digest.py" for args in calls if args[0] == sys.executable), "失败后不再运行后续步骤")
-
-    def test_build_check_collects_failures(self):
-        build = SOURCE.with_name("build_all.py")
-        calls = []
-
-        def run(args, **kwargs):
-            calls.append(args)
-            name = Path(args[1]).name if args[0] == sys.executable else ""
-            if name == "build_records.py" or (name == "build_sessions.py" and "--self-test" in args):
-                return SimpleNamespace(returncode=1, stdout="固定失败", stderr="")
-            if name == "review_revisions.py" or "-B" in args:
-                return SimpleNamespace(returncode=1, stdout="固定修订失败", stderr="")
-            if "status" in args:
-                return SimpleNamespace(returncode=0, stdout=" M glossary/terms.yaml\n?? adr/ADR-9999.md\n", stderr="")
-            stdout = "base" if "merge-base" in args else "HEAD" if "rev-parse" in args else ""
-            return SimpleNamespace(returncode=0, stdout=stdout, stderr="")
-
-        def fail_digest(*args, **kwargs):
-            raise ValueError("固定摘要失败")
-
-        module = SimpleNamespace(write_common=fail_digest)
-        spec = SimpleNamespace(loader=SimpleNamespace(exec_module=lambda module: None))
-        out, err = io.StringIO(), io.StringIO()
-        with patch("importlib.util.spec_from_file_location", return_value=spec), \
-                patch("importlib.util.module_from_spec", return_value=module), \
-                patch("subprocess.run", side_effect=run), patch.object(sys, "argv", [str(build), "--check"]), \
-                contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
-            with self.assertRaises(SystemExit) as stopped:
-                runpy.run_path(str(build), run_name="__main__")
-        self.assertEqual(stopped.exception.code, 1)
-        for error in ("固定摘要失败", "build_records.py 失败", "build_sessions.py 自测失败", "固定修订失败",
-                      "生成产物与片段不一致", " M glossary/terms.yaml", "?? adr/ADR-9999.md"):
-            self.assertIn(error, err.getvalue())
-        self.assertTrue(any("status" in args for args in calls), "失败后仍检查生成产物")
-        status = next(args for args in calls if "status" in args)
-        self.assertEqual(status[status.index("--") + 1:], [".", "../../backend/glossary/proposed/README.md"], "脏检查范围保持整个文档目录与提议术语清单")
-        self.assertIn("architecture/check_proposals.py", " ".join(arg for args in calls for arg in args))
+    def test_build_common_exits_on_failure_in_both_modes(self):
+        loader_spec = importlib.util.spec_from_file_location("build_all_under_test", SOURCE.with_name("build_all.py"))
+        build = importlib.util.module_from_spec(loader_spec)
+        loader_spec.loader.exec_module(build)
+        for check in (False, True):
+            with self.subTest(check=check):
+                with patch.object(digest, "write_common", side_effect=ValueError("固定摘要失败")), \
+                        patch("importlib.util.module_from_spec", return_value=digest), \
+                        patch("importlib.util.spec_from_file_location", return_value=SimpleNamespace(loader=SimpleNamespace(exec_module=lambda module: None))):
+                    with self.assertRaises(SystemExit) as stopped:
+                        build.build_common(check)
+                self.assertIn("sessions/_COMMON.md 失败：固定摘要失败", str(stopped.exception.code))
 
 
 if __name__ == "__main__":

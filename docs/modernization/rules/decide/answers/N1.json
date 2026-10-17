@@ -1,0 +1,112 @@
+{
+ "N1~N1-01": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "收款单位和账户须与招标文件写明的一致",
+  "no": "N1-01",
+  "note": "",
+  "recommended": true,
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
+  "unanswered": false
+ },
+ "N1~N1-02": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "算：补休和请假一样扣减当天最低工时",
+  "no": "N1-02",
+  "note": "",
+  "recommended": true,
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
+  "unanswered": false
+ },
+ "N1~N1-03": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "按业务线分别设",
+  "no": "N1-03",
+  "note": "",
+  "recommended": true,
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
+  "unanswered": false
+ },
+ "N1~N1-04": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "按岗位比较所需人天与可用人天",
+  "no": "N1-04",
+  "note": "",
+  "recommended": true,
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
+  "unanswered": false
+ },
+ "N1~N1-05": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "按触发原因分别指定加审角色",
+  "no": "N1-05",
+  "note": "",
+  "recommended": true,
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
+  "unanswered": false
+ },
+ "N1~N1-06": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "先只用这三项，以后按需要加",
+  "no": "N1-06",
+  "note": "",
+  "recommended": true,
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
+  "unanswered": false
+ },
+ "N1~N1-07": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "追加更正版本，写明原因，由组织数据管理员办理",
+  "no": "N1-07",
+  "note": "",
+  "recommended": true,
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
+  "unanswered": false
+ },
+ "N1~N1-08": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "在当前开放的会计期间做调整，并标明原期间",
+  "no": "N1-08",
+  "note": "",
+  "recommended": true,
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
+  "unanswered": false
+ },
+ "N1~N1-09": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "交给组织数据管理员转交办理",
+  "no": "N1-09",
+  "note": "",
+  "recommended": true,
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
+  "unanswered": false
+ },
+ "N1~N1-10": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "在线 3 年，归档到满 10 年（非法定要求）",
+  "no": "N1-10",
+  "note": "",
+  "recommended": true,
+  "submission": "N1-20261017-091846-15s",
+  "submitted": "2026-10-17T07:18:46.548Z",
+  "unanswered": false
+ }
+}
