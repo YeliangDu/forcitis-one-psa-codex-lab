@@ -174,6 +174,22 @@ class SingleOperatorWitnessOmissionIT extends SingleOperatorIdentitySupport {
     }
 
     @Test
+    @DisplayName("RULING-COORD-20261017-01 单人模式开启、操作人在组织快照中不存在、不带 --witness：退出码 1（PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED），不写授予、不写 relaxation 标注")
+    void rulingCoord20261017_01_unknownOperatorWithoutWitnessIsRefused() {
+        mode(true);
+        knownEmployee(33, EmploymentStatus.EMPLOYED);
+        List<Long> before = identityRows();
+
+        Result result = run("--operation=grant-role", employee(33), "--role-code=business_admin", "--operator=01900000-0000-7000-8000-00000000a0ff");
+
+        assertThat(result.exitCode()).as(result.err()).isEqualTo(REFUSED);
+        assertThat(result.err()).contains(WITNESS_REQUIRED);
+        assertThat(holds(33, "business_admin")).isFalse();
+        assertThat(entries(ROLE_GRANTED)).isEmpty();
+        assertNothingChanged(before);
+    }
+
+    @Test
     @DisplayName("SINGLE-OP P2-05 模式开启：操作人与见证人同一员工 ID 仍被拒，无变化、无标注")
     void p205_sameEmployeeIsStillRefused() {
         mode(true);
