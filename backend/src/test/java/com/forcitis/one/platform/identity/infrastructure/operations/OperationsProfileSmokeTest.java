@@ -8,7 +8,9 @@ import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
+import com.forcitis.one.platform.audit.AuditPartitionsTestSupport;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
+import com.forcitis.one.organization.workforce.api.EmployeeExistence;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -16,6 +18,7 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -66,7 +69,23 @@ class OperationsProfileSmokeTest {
         return directory;
     }
 
+    private static EmployeeExistence withAttestors(EmployeeExistence real) {
+        Set<EmployeeId> attestors = Set.of(EmployeeId.parse(OPERATOR_ID), EmployeeId.parse(WITNESS_ID));
+        return id -> attestors.contains(id) || real.exists(id);
+    }
+
+    /** The profile does not create partitions, so a command that writes audit needs the running month to exist; the function exists only once an earlier start has migrated. */
+    private static void ensureCurrentMonthPartition() {
+        DriverManagerDataSource source = new DriverManagerDataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+        try (java.sql.Connection connection = source.getConnection()) {
+            AuditPartitionsTestSupport.ensureCurrentMonthIfMigrated(connection);
+        } catch (java.sql.SQLException failed) {
+            throw new IllegalStateException(failed);
+        }
+    }
+
     private Finished run(String... commandLine) {
+        ensureCurrentMonthPartition();
         AtomicInteger exit = new AtomicInteger(-1);
         SpringApplication application = new SpringApplication(OneApplication.class);
         application.setAdditionalProfiles("dev", "identity-operations");
@@ -74,6 +93,9 @@ class OperationsProfileSmokeTest {
         application.addInitializers(context -> context.addBeanFactoryPostProcessor(beans -> beans.addBeanPostProcessor(new BeanPostProcessor() {
             @Override
             public Object postProcessAfterInitialization(Object bean, String beanName) {
+                if ("employeeExistenceService".equals(beanName) && bean instanceof EmployeeExistence real) {
+                    return withAttestors(real);
+                }
                 return "orgDirectoryService".equals(beanName) && bean instanceof OrgDirectory real ? withAttestors(real) : bean;
             }
         })));
