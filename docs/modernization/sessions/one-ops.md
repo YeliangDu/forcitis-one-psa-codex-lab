@@ -58,4 +58,4 @@
 
 ## 当前状态
 
-rc.1 已发布验签；R-11 演练与 C-14 剧本在途；首次 dev 部署待门禁解除与用户批准。
+2026-10-17 04:47+02:00 rc.5 已发布验签；C-14 完成（阻塞项 101 已删，#414）；dev 已手工装 rc.4 并运行（WECOM_ENABLED=true，临时开关 PROCESS_ADMINISTRATOR_REQUIRED=false 在位）；rc.5 部署与 grant-role 待用户批准；取证 E-B1、E-B6、N/V/S、F05-06、F05-09 已交，E-B2–E-B5、E-B7、E-B8 在后。
