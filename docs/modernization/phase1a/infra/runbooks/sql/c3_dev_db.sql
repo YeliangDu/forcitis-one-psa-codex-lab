@@ -52,7 +52,10 @@ ALTER ROLE one_dev_readonly SET statement_timeout = '60s';
 ALTER ROLE one_dev_readonly SET idle_in_transaction_session_timeout = '60s';
 ALTER ROLE one_dev_readonly SET work_mem = '8MB';
 
-GRANT CONNECT ON DATABASE forcitis_one_dev TO one_dev_migrator, one_dev_app, one_dev_readonly;
+-- 审计维护角色：只用来执行「删除已归档并校验的审计在线月分区」函数（O-8、ADR-0048）；应用不使用此角色，口令由运维设置，连接上限 1
+CREATE ROLE one_dev_audit_maintainer LOGIN NOINHERIT CONNECTION LIMIT 1;
+
+GRANT CONNECT ON DATABASE forcitis_one_dev TO one_dev_migrator, one_dev_app, one_dev_readonly, one_dev_audit_maintainer;
 
 -- ===== STEP 4 schema =====
 CREATE SCHEMA one_migration           AUTHORIZATION one_dev_owner;
@@ -81,7 +84,7 @@ BEGIN
   END LOOP;
 END $$;
 
-GRANT USAGE ON SCHEMA platform_audit TO one_dev_app, one_dev_readonly;
+GRANT USAGE ON SCHEMA platform_audit TO one_dev_app, one_dev_readonly, one_dev_audit_maintainer;
 ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_audit GRANT SELECT, INSERT ON TABLES TO one_dev_app;
 ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_audit GRANT USAGE, SELECT ON SEQUENCES TO one_dev_app;
 ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_audit GRANT SELECT ON TABLES TO one_dev_readonly;

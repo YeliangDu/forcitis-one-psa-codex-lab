@@ -1,7 +1,7 @@
 -- FORCITIS one · C-3 校验（只读；连 forcitis_one_dev 执行，结果截图或导出留档）
 -- 用法：psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one_dev -f c3_dev_db_verify.sql
 
--- V1 角色与属性：期望 4 行；owner 不可登录；app / readonly 为 NOINHERIT；连接上限 2 / 40 / 3
+-- V1 角色与属性：期望 5 行；owner 不可登录；app / readonly / audit_maintainer 为 NOINHERIT；连接上限 migrator 2、app 40、readonly 3、audit_maintainer 1
 SELECT rolname, rolcanlogin, rolinherit, rolconnlimit
   FROM pg_roles WHERE rolname LIKE 'one\_dev\_%' ORDER BY rolname;
 
@@ -45,3 +45,6 @@ SELECT schemaname, count(*) FROM pg_tables WHERE tablename LIKE 'act\_%' GROUP B
 -- V9 审计分区预建函数仅运行角色可执行：迁移前函数不存在，两行均为 NULL；迁移与 after_migrations 之后期望 one_dev_app = t、one_dev_readonly = f
 SELECT r.rolname, has_function_privilege(r.rolname, to_regprocedure('platform_audit.create_audit_entry_partitions(date,date)'), 'EXECUTE') AS can_execute
   FROM (VALUES ('one_dev_app'), ('one_dev_readonly')) r(rolname);
+-- 维护角色只能删除已归档分区：期望 drop = t、create = f
+SELECT has_function_privilege('one_dev_audit_maintainer', to_regprocedure('platform_audit.drop_archived_audit_entry_partition(date)'), 'EXECUTE') AS can_drop,
+       has_function_privilege('one_dev_audit_maintainer', to_regprocedure('platform_audit.create_audit_entry_partitions(date,date)'), 'EXECUTE') AS can_create;
