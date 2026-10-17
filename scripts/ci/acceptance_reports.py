@@ -21,6 +21,7 @@ REPORT_DIRS = ("backend/target/surefire-reports", "backend/target/failsafe-repor
 TEST_CLASS = re.compile(r"(Test.*|.*Tests?|.*TestCase|IT.*|.*IT|.*ITCase)\.java")
 REPORT = re.compile(r"TEST-(com\.forcitis\.one\.acceptance\..+)\.xml")
 NS = {"m": "http://maven.apache.org/POM/4.0.0"}
+JAVA_NON_CODE = re.compile(r'//[^\r\n]*|/\*.*?\*/|"""(?:\\.|(?!""").)*"""|"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'', re.DOTALL)
 
 
 def test_classes(root):
@@ -99,7 +100,7 @@ def fixture_pom(root, paths):
 
 
 def sql_server_acceptance_users(root):
-    sources = {p: p.read_text(encoding="utf-8") for p in Path(root, SOURCES).rglob("*.java")}
+    sources = {p: JAVA_NON_CODE.sub(" ", p.read_text(encoding="utf-8")) for p in Path(root, SOURCES).rglob("*.java")}
     users = {p for p, text in sources.items() if re.search(r"\bTestMssql\b", text)}
     while True:
         added = {p for p, text in sources.items()
@@ -122,14 +123,22 @@ def discovery_self_test():
             "CompositeIT": "class CompositeIT { Object sql = OrgSourceWorldSupport.World.MSSQL; }",
             "IndirectSupport": "class IndirectSupport { Object sql = OrgSourceWorldSupport.World.MSSQL; }",
             "TransitiveIT": "class TransitiveIT { Object sql = IndirectSupport.sql; }",
+            "LineCommentIT": "class LineCommentIT {} // see TestMssql OrgSourceWorldSupport StaticImportIT",
+            "BlockCommentIT": '/* " TestMssql\n OrgSourceWorldSupport StaticImportIT */ class BlockCommentIT {}',
+            "StringLiteralIT": r'class StringLiteralIT { String ref = "// TestMssql /* OrgSourceWorldSupport */ \\\" StaticImportIT"; }',
+            "TextBlockIT": 'class TextBlockIT { String ref = """\n"TestMssql" // OrgSourceWorldSupport\n/* StaticImportIT */\n"""; }',
+            "CommentReferenceIT": "class CommentReferenceIT {} // see StaticImportIT",
+            "StringReferenceIT": 'class StringReferenceIT { String ref = "IndirectSupport"; }',
+            "ReferenceAfterNoiseIT": 'class ReferenceAfterNoiseIT { String ref = "/*"; /* "ignored" */ Object sql = IndirectSupport.sql; }',
             "NormalIT": "class NormalIT {}",
         }
         for name, body in files.items():
             touch(root, base + name + ".java")
             Path(root, base + name + ".java").write_text(body)
         expected = {PACKAGE + "platform/integration/" + n + ".java"
-                    for n in ("StaticImportIT", "InheritedIT", "CompositeIT", "TransitiveIT")}
-        assert sql_server_acceptance_users(root) == expected, "QUAL-CARD-H-R2-4: static imports, composite references and transitive helpers must be discovered"
+                    for n in ("StaticImportIT", "InheritedIT", "CompositeIT", "TransitiveIT", "ReferenceAfterNoiseIT")}
+        actual = sql_server_acceptance_users(root)
+        assert actual == expected, f"QUAL-CARD-H-R3-B: ignore comments, strings and text blocks; keep static imports, inheritance and real transitive references: {actual ^ expected}"
         fixture_pom(root, sorted(expected))
         touch(root, base + "UnregisteredIT.java")
         Path(root, base + "UnregisteredIT.java").write_text("class UnregisteredIT extends OrgSourceWorldSupport {}")
@@ -160,6 +169,8 @@ with open("calls.jsonl", "a") as out:
     out.write(json.dumps(args) + "\\n")
 if "package" in args:
     assert "-DskipTests" in args and "-Djacoco.skip=true" in args
+    if os.environ.get("HANG_PACKAGE"):
+        signal.pause()
     Path("target/classes").mkdir(parents=True, exist_ok=True)
     Path("target/classes/Current.class").write_text("current")
     Path("target/forcitis-one-current.jar").write_text("current")
@@ -189,11 +200,17 @@ sys.exit(int(os.environ.get("FAILSAFE_STATUS", "0")))
             command = bin_dir / name
             command.write_text("#!/bin/sh\n" + body + "\n")
             command.chmod(0o755)
-        hung = subprocess.run(args, env={**env, "PATH": str(bin_dir) + os.pathsep + env["PATH"],
-                                        "BACKEND_WATCHDOG_SECONDS": "0.3", "HANG_FAILSAFE": "1"},
-                              capture_output=True, text=True, timeout=10)
-        assert hung.returncode == 124 and "exceeded 0.3 s" in hung.stdout, hung.stdout + hung.stderr
-        assert (backend / "target/thread-dumps/424242.txt").read_text().strip() == "thread-dump"
+        dump = backend / "target/thread-dumps/424242.txt"
+        for phase in ("PACKAGE", "FAILSAFE"):
+            (backend / "calls.jsonl").unlink()
+            dump.unlink(missing_ok=True)
+            hung = subprocess.run(args, env={**env, "PATH": str(bin_dir) + os.pathsep + env["PATH"],
+                                            "BACKEND_WATCHDOG_SECONDS": "0.3", "HANG_" + phase: "1"},
+                                  capture_output=True, text=True, timeout=10)
+            assert hung.returncode == 124 and "exceeded 0.3 s" in hung.stdout, (phase, hung.stdout + hung.stderr)
+            assert dump.read_text().strip() == "thread-dump", phase
+            calls = [json.loads(line) for line in (backend / "calls.jsonl").read_text().splitlines()]
+            assert len(calls) == (1 if phase == "PACKAGE" else 2), f"QUAL-CARD-H-R3-D: timed-out packaging must not start failsafe: {calls}"
 
 
 def configuration_self_test(root):
@@ -215,6 +232,8 @@ def configuration_self_test(root):
     assert "--tier legacy-it" in script and "--report-dir" in script
     package = './mvnw -B package -DskipTests -Djacoco.skip=true -Plegacy-it "$@"'
     assert package in script and script.index(package) < script.index("./mvnw -B failsafe:integration-test"), "QUAL-CARD-H-R2-1: package the current classes before SQL Server tests need the jar"
+    assert script.index("watchdog_pid=$!") < script.index(package), "QUAL-CARD-H-R3-D: start the watchdog before packaging"
+    assert script.count('sleep "${BACKEND_WATCHDOG_SECONDS:-1500}"') == 1, "QUAL-CARD-H-R3-D: packaging and failsafe must share one watchdog budget"
     assert "test-compile" not in script, "package already compiles tests; failsafe goals must not repeat the lifecycle"
     assert 'sleep "${BACKEND_WATCHDOG_SECONDS:-1500}"' in script and 'Thread.print -l' in script and 'status=124' in script, "QUAL-CARD-H-R2-2: SQL Server must dump hung forks and fail before the fork timeout"
     ci = Path(root, ".github/workflows/ci.yml").read_text()

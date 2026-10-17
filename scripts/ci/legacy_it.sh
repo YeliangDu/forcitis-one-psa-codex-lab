@@ -6,11 +6,6 @@ set -euo pipefail
 cd "$(dirname "$0")/../../backend"
 
 tests=$(python3 ../scripts/ci/acceptance_reports.py --legacy-it-tests)
-./mvnw -B package -DskipTests -Djacoco.skip=true -Plegacy-it "$@"
-rm -rf target/legacy-it-reports
-./mvnw -B failsafe:integration-test failsafe:verify -Plegacy-it -Dit.test="$tests" -Dintegration.reports="$PWD/target/legacy-it-reports" "$@" &
-integration_pid=$!
-
 watchdog_dir=$(mktemp -d)
 watchdog_mark="$watchdog_dir/timed-out"
 dumps=target/thread-dumps
@@ -24,7 +19,9 @@ forks="$PWD/target/surefire/"
     jcmd "$pid" Thread.print -l >"$dumps/$pid.txt" 2>&1 || true
   done
   touch "$watchdog_mark"
-  kill "$integration_pid" 2>/dev/null || true
+  if [ -s "$watchdog_dir/maven.pid" ]; then
+    kill "$(cat "$watchdog_dir/maven.pid")" 2>/dev/null || true
+  fi
   pkill -f "java .*$forks" 2>/dev/null || true
   sleep 20
   pkill -9 -f "java .*$forks" 2>/dev/null || true
@@ -36,8 +33,22 @@ cleanup() {
   rm -rf "$watchdog_dir"
 }
 trap cleanup EXIT
+wait_maven() {
+  local maven_pid=$1
+  printf '%s\n' "$maven_pid" >"$watchdog_dir/maven.pid"
+  if [ -e "$watchdog_mark" ]; then
+    kill "$maven_pid" 2>/dev/null || true
+  fi
+  wait "$maven_pid"
+}
 status=0
-wait "$integration_pid" || status=$?
+./mvnw -B package -DskipTests -Djacoco.skip=true -Plegacy-it "$@" &
+wait_maven "$!" || status=$?
+if [ "$status" -eq 0 ] && [ ! -e "$watchdog_mark" ]; then
+  rm -rf target/legacy-it-reports
+  ./mvnw -B failsafe:integration-test failsafe:verify -Plegacy-it -Dit.test="$tests" -Dintegration.reports="$PWD/target/legacy-it-reports" "$@" &
+  wait_maven "$!" || status=$?
+fi
 if [ -e "$watchdog_mark" ]; then
   wait "$watchdog_pid" 2>/dev/null || true
   echo "::error::SQL Server tests exceeded ${BACKEND_WATCHDOG_SECONDS:-1500} s; thread dumps are in backend/$dumps"
