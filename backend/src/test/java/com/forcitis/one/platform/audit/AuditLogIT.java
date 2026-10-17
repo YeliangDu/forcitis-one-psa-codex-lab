@@ -14,6 +14,7 @@ import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditEntry;
+import com.forcitis.one.platform.audit.api.AuditEntryId;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
@@ -114,7 +115,7 @@ class AuditLogIT {
     void recordReturnsTheIdOfTheWrittenEntry() {
         UUID subject = UUID.randomUUID();
 
-        com.forcitis.one.platform.audit.api.AuditEntryId id = tx.execute(s -> audit.record(
+        AuditEntryId id = tx.execute(s -> audit.record(
                 new AuditEntry("platform.audit.test.recorded", TestAccounts.account(5), null, subj(subject), "returned")));
 
         assertThat(id).isNotNull();
