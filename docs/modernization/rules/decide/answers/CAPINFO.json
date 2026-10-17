@@ -1,0 +1,101 @@
+{
+ "CAPINFO~CAPINFO-C12": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "批准",
+  "no": "CAPINFO-C12",
+  "note": "",
+  "recommended": true,
+  "submission": "CAPINFO-20261017-111010-cfy",
+  "submitted": "2026-10-17T09:10:10.445Z",
+  "unanswered": false
+ },
+ "CAPINFO~CAPINFO-C13": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "合成一条（暂名获得内部服务）",
+  "no": "CAPINFO-C13",
+  "note": "",
+  "recommended": true,
+  "submission": "CAPINFO-20261017-111010-cfy",
+  "submitted": "2026-10-17T09:10:10.445Z",
+  "unanswered": false
+ },
+ "CAPINFO~CAPINFO-C14": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "暂不纳入，保留合同档案支撑",
+  "no": "CAPINFO-C14",
+  "note": "",
+  "recommended": true,
+  "submission": "CAPINFO-20261017-111010-cfy",
+  "submitted": "2026-10-17T09:10:10.445Z",
+  "unanswered": false
+ },
+ "CAPINFO~CAPINFO-I01": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "保留处理结果和设置，信息图不逐项单列",
+  "no": "CAPINFO-I01",
+  "note": "",
+  "recommended": true,
+  "submission": "CAPINFO-20261017-111010-cfy",
+  "submitted": "2026-10-17T09:10:10.445Z",
+  "unanswered": false
+ },
+ "CAPINFO~CAPINFO-I02": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "单列勾稽差异案业务记录",
+  "no": "CAPINFO-I02",
+  "note": "",
+  "recommended": true,
+  "submission": "CAPINFO-20261017-111010-cfy",
+  "submitted": "2026-10-17T09:10:10.445Z",
+  "unanswered": false
+ },
+ "CAPINFO~CAPINFO-I05": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "分别单列费用事前申请与出差申请",
+  "no": "CAPINFO-I05",
+  "note": "",
+  "recommended": true,
+  "submission": "CAPINFO-20261017-111010-cfy",
+  "submitted": "2026-10-17T09:10:10.445Z",
+  "unanswered": false
+ },
+ "CAPINFO~CAPINFO-I07": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "在信息图补明差旅订单与月账单",
+  "no": "CAPINFO-I07",
+  "note": "",
+  "recommended": true,
+  "submission": "CAPINFO-20261017-111010-cfy",
+  "submitted": "2026-10-17T09:10:10.445Z",
+  "unanswered": false
+ },
+ "CAPINFO~CAPINFO-I08": {
+  "choice": 1,
+  "defaulted": false,
+  "label": "单列假期余额账户记录",
+  "no": "CAPINFO-I08",
+  "note": "",
+  "recommended": false,
+  "submission": "CAPINFO-20261017-111010-cfy",
+  "submitted": "2026-10-17T09:10:10.445Z",
+  "unanswered": false
+ },
+ "CAPINFO~CAPINFO-I09": {
+  "choice": 1,
+  "defaulted": false,
+  "label": "单列薪酬档案业务记录",
+  "no": "CAPINFO-I09",
+  "note": "",
+  "recommended": false,
+  "submission": "CAPINFO-20261017-111010-cfy",
+  "submitted": "2026-10-17T09:10:10.445Z",
+  "unanswered": false
+ }
+}
