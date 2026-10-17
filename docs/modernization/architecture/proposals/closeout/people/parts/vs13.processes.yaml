@@ -492,9 +492,9 @@ processes:
       desc: 管理层与人力制定
     triggers:
       - {type: human, name: "人力按管理层要求编制激励方案版本"}
-    stages: []
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.1 编制、VS-15.2 已生效、VS-15.3 已结束，均由本流程完成（判据推出 VS-15.2、VS-15.3）；原支撑理由：B-15 激励方案版本的配置维护，结局（已生效）不造 VS-13.2 的退出条件（激励方案「生效」是 VS-13.2 的进入条件；退出是评估已确认、奖金已核定）（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: OBJ-74
-    support: "B-15 激励方案版本的配置维护，结局（已生效）不造 VS-13.2 的退出条件（激励方案「生效」是 VS-13.2 的进入条件；退出是评估已确认、奖金已核定）（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: B-15
     human_orchestration: true
     human_note: 编制 → 审批 → 到期自动生效
@@ -1152,9 +1152,9 @@ single_aggregate:
     type: single_aggregate
     aggregate: AGG-68
     owner_bc: B-14
-    stages: []
+    stages: [VS-15.2]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；判据：工作日历「已维护」为 VS-15.2 退出；原支撑理由：B-14 工作日历与标准工时版本的配置维护，结局不造任何阶段的退出条件（工作日历「已维护」是 VS-13.1 的进入条件，判据按退出条件归段）（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: OBJ-28
-    support: "B-14 工作日历与标准工时版本的配置维护，结局不造任何阶段的退出条件（工作日历「已维护」是 VS-13.1 的进入条件，判据按退出条件归段）（STAGE_ALIGN.md 归段判据第 6 项）"
     desc: 人力每年维护或调整标准工时
     triggers:
       - {type: human, name: "人力每年维护工作日历，或调整标准工时"}
@@ -1254,10 +1254,10 @@ single_aggregate:
     type: single_aggregate
     aggregate: AGG-118
     owner_bc: B-27
-    stages: []
+    stages: [VS-15.2]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：B-27 假期规则版本的配置维护，结局（假期规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: none
     primary_object_note: "AGG-118 假期类型与额度规则为配置，信息图无对象（假期类型是 OBJ-68 属性、OBJ-69 额度非对象；F-6）"
-    support: "B-27 假期规则版本的配置维护，结局（假期规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
     desc: 人力发布假期类型的年度应享、结转与清零规则版本
     triggers:
       - {type: human, name: "人力依据制度或法规变化发布新的假期规则版本"}
@@ -1287,10 +1287,10 @@ single_aggregate:
     type: single_aggregate
     aggregate: AGG-119
     owner_bc: B-15
-    stages: []
+    stages: [VS-15.2]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：B-15 薪酬规则版本的配置维护，结局（薪酬规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: none
     primary_object_note: "AGG-119 薪酬规则版本为配置，信息图无对象"
-    support: "B-15 薪酬规则版本的配置维护，结局（薪酬规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
     desc: 人力编制、财务确认并发布个税、专项附加扣除标准、社保公积金比例与基数、计算口径的薪酬规则版本（S-43）
     triggers:
       - {type: human, name: "人力依据法规或公司制度变化编制并发布新的薪酬规则版本"}

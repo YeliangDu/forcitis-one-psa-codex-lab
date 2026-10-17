@@ -24,10 +24,10 @@ processes:
       - {type: human, name: "人力更名、停用或启用法人主体"}
       - {type: human, name: "人力新建或修改职位"}
       - {type: human, name: "人力更正法人归属"}
-    stages: []
+    stages: [VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.2 组织单元与岗位启用、VS-15.3 停用；法人主体筹建存续不作门；原支撑理由：B-13 主数据维护：法人主体、组织单元、法人归属、职位目录条目的维护，结局不造任何阶段的退出条件（职位「启用」只是 VS-07.1 的进入条件，判据按退出条件归段），服务多条价值流（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: OBJ-55
     secondary_objects: [OBJ-54, OBJ-58]
-    support: "B-13 主数据维护：法人主体、组织单元、法人归属、职位目录条目的维护，结局不造任何阶段的退出条件（职位「启用」只是 VS-07.1 的进入条件，判据按退出条件归段），服务多条价值流（STAGE_ALIGN.md 归段判据第 6 项）"
     owner_bc: B-13
     human_orchestration: false
     type: business
