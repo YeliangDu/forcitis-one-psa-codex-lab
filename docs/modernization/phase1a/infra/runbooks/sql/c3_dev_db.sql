@@ -54,6 +54,9 @@ ALTER ROLE one_dev_readonly SET work_mem = '8MB';
 
 -- 审计维护角色：只用来执行「删除已归档并校验的审计在线月分区」函数（O-8、ADR-0048）；应用不使用此角色，口令由运维设置，连接上限 1
 CREATE ROLE one_dev_audit_maintainer LOGIN NOINHERIT CONNECTION LIMIT 1;
+-- 删除函数持 ACCESS EXCLUSIVE 锁并做 count(*)：语句时限放宽到 10 分钟，空闲事务 60 秒断开，免得不提交的会话堵住审计写入
+ALTER ROLE one_dev_audit_maintainer SET statement_timeout = '10min';
+ALTER ROLE one_dev_audit_maintainer SET idle_in_transaction_session_timeout = '60s';
 
 GRANT CONNECT ON DATABASE forcitis_one_dev TO one_dev_migrator, one_dev_app, one_dev_readonly, one_dev_audit_maintainer;
 
@@ -91,6 +94,6 @@ ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_audit GRANT S
 
 REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering,
                         platform_scheduling, organization_workforce, organization_attendance, platform_idempotency, cost_timesheet, one_migration
-  FROM one_dev_app, one_dev_readonly;
+  FROM one_dev_app, one_dev_readonly, one_dev_audit_maintainer;
 
--- 下一步：c3_dev_db_verify.sql；每次迁移之后执行 c3_dev_db_after_migrations.sql（版本表只追加）；之后在 RDS 控制台为 one_dev_migrator、one_dev_app、one_dev_readonly 设口令（≥24 位随机）。
+-- 下一步：c3_dev_db_verify.sql；每次迁移之后执行 c3_dev_db_after_migrations.sql（版本表只追加）；之后在 RDS 控制台为 one_dev_migrator、one_dev_app、one_dev_readonly、one_dev_audit_maintainer 设口令（≥24 位随机）。

@@ -21,7 +21,7 @@
 ## 执行前确认点
 
 1. C-1 已完成（或用户明确先在现规格上建 dev 库）；`SHOW max_connections` 已记录。
-2. 连接预算：`one_dev_*` 合计 45（app 40、migrator 2、readonly 3），加上 it_portal 与以后的 `one_prod_*`，合计须小于 `max_connections` 减保留；不满足时先由用户决定下调哪一方。
+2. 连接预算：`one_dev_*` 合计 46（app 40、migrator 2、readonly 3、audit_maintainer 1），加上 it_portal 与以后的 `one_prod_*`，合计须小于 `max_connections` 减保留；不满足时先由用户决定下调哪一方。
 3. 排序规则：脚本用 PG 内置 provider 的 `C.UTF-8`（PG 17 起可用），不依赖操作系统 locale；执行前确认 `SELECT collname FROM pg_collation WHERE collprovider = 'b'` 含 `pg_c_utf8`。
 4. 执行账号是 FORCITIS one 专用高权限账号 `one_admin`（用户 2026-10-15「新建 FORCITIS one 专用高权限账号 (Recommended)」「先建后轮换 (Recommended)」；只用于建库建角色，不碰 IT 服务门户的 `portal_migrator` 与 `forcitis_one` 库），口令文件 ECS `/etc/forcitis-one/one-admin.pgpass`（root 0600）；执行环境可连 RDS 内网地址（ECS 已装发行版 `postgresql` 15 客户端，2026-10-15）。高权限口令只能经用户提供的安全通道到 ECS（例如用 ECS 上临时 RSA 公钥加密后传入），不经聊天、命令行参数或日志。
 5. 1a 修复批已合并（status/blockers/080）——**建库可先做，但首次 Flyway 迁移与应用启动须等修复批合并**。
@@ -65,7 +65,7 @@ CA 证书：实例 SSL 已开启（阿里云签发，`ApsaraDB cn-hangzhou regio
 |---|---|
 | `one_admin` | 用户决定「先建后轮换」：口令在运维机进程内存中随机生成，同一进程用阿里云 SDK 调 `CreateAccount`（Super），经云助手 SendFile（f-hz0701colwwbzsw）写 ECS `/etc/forcitis-one/one-admin.pgpass`（root 0600），口令不进命令行参数、环境变量、日志与磁盘。登录验证：`rolcreaterole`、`rolcreatedb` 为真。**已轮换（2026-10-15，t-hz0701tj8quuccg）**：`scripts/c3_rotate_admin_password.py` 在 ECS 上生成新口令，用现有口令连接执行 `ALTER ROLE one_admin PASSWORD '<SCRAM 校验值>'`（PostgreSQL 允许角色改自己的口令，RDS 高权限账号实测可行），先写 `.new` 再改口令、新口令登录验证通过才替换正式文件；创建时经运维机进程内存的那个口令已作废。以后按同一脚本定期轮换，不依赖 RAM 角色 |
 | STEP 0 | 4 项冲突检查全为空；`max_connections` 1620 |
-| 建库与授权 | `c3_dev_db.sql` 退出码 0；`c3_dev_db_verify.sql`：4 个角色、10 个 schema 属主 `one_dev_owner`、默认权限 18 项、连接上限合计 45、无外来属主（云助手 t-hz0701ctw0hn3eo） |
+| 建库与授权 | `c3_dev_db.sql` 退出码 0；`c3_dev_db_verify.sql`：4 个角色（此后脚本建 5 个）、10 个 schema 属主 `one_dev_owner`、默认权限 18 项、连接上限合计 45、无外来属主（云助手 t-hz0701ctw0hn3eo） |
 | 口令 | `scripts/c3_set_role_passwords.py dev <RDS 内网地址>`（t-hz0701cxo2kjbpc）：在 ECS 上生成，数据库只收到 SCRAM-SHA-256 校验值；app → `one.env`，migrator → `/etc/forcitis-one/migrate/spring.flyway.{user,password}`，readonly → `/etc/forcitis-one/one-dev-readonly.pgpass`；三个角色真实登录，readonly 确认只读 |
 | 增量补齐（2026-10-15，one-coordinator 批准） | dev 库按旧版脚本建成、未执行过迁移，不删库：以 `one_admin` 执行 `btree_gist`、`platform_idempotency` schema、USAGE、三条默认权限与 REVOKE CREATE（云助手 t-hz070246r8f8074）；新版 verify：11 个 schema 属主均为 `one_dev_owner`，默认权限 20 行（含 `platform_idempotency`），运行角色无 CREATE。`c3_dev_db_after_migrations.sql` 待首次迁移后执行；首次部署前不执行任何迁移（W1 仍在改基线） |
 | 已按旧脚本建库的补授（2026-10-17 one-ops 起草，随含 #405 的 rc 部署一并执行） | 部署含 #405 的 rc、迁移跑完之后，以 `one_admin` 先补建维护角色：`CREATE ROLE one_dev_audit_maintainer LOGIN NOINHERIT CONNECTION LIMIT 1; GRANT CONNECT ON DATABASE forcitis_one_dev TO one_dev_audit_maintainer; GRANT USAGE ON SCHEMA platform_audit TO one_dev_audit_maintainer;`（口令由运维另设），再执行 `sql/c3_dev_db_after_migrations.sql`（幂等，本就是每次发布迁移后的固定一步；含两条函数 EXECUTE 授权）；再跑 `c3_dev_db_verify.sql` 的 V9，期望 `one_dev_app = t`、`one_dev_readonly = f`，维护角色 `can_drop = t`、`can_create = f` |
@@ -89,4 +89,4 @@ REVOKE CREATE ON SCHEMA platform_idempotency FROM one_dev_app, one_dev_readonly;
 
 ## 回滚
 
-`sql/c3_dev_db_rollback.sql`（删库与 4 个角色；只在无须保留的数据时）。不影响 `forcitis_one` 库与 it_portal 角色。
+`sql/c3_dev_db_rollback.sql`（删库与 5 个角色；只在无须保留的数据时）。不影响 `forcitis_one` 库与 it_portal 角色。

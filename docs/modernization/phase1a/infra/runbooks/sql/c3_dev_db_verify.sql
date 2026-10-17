@@ -20,7 +20,7 @@ SELECT nspname, pg_get_userbyid(nspowner) AS owner
 
 -- V4 运行角色无建对象权限：期望 0 行
 SELECT n.nspname, r.rolname
-  FROM pg_namespace n CROSS JOIN (VALUES ('one_dev_app'), ('one_dev_readonly')) r(rolname)
+  FROM pg_namespace n CROSS JOIN (VALUES ('one_dev_app'), ('one_dev_readonly'), ('one_dev_audit_maintainer')) r(rolname)
  WHERE n.nspname LIKE ANY (ARRAY['platform\_%', 'organization\_%', 'cost\_%', 'one\_migration'])
    AND has_schema_privilege(r.rolname, n.oid, 'CREATE');
 
@@ -29,8 +29,19 @@ SELECT n.nspname, d.defaclobjtype, d.defaclacl
   FROM pg_default_acl d JOIN pg_namespace n ON n.oid = d.defaclnamespace
  WHERE pg_get_userbyid(d.defaclrole) = 'one_dev_owner' ORDER BY n.nspname, d.defaclobjtype;
 
--- V6 库级权限：PUBLIC 无 CONNECT；owner 有 CREATE；三个登录角色有 CONNECT
+-- V6 库级权限：PUBLIC 无 CONNECT；owner 有 CREATE；四个登录角色有 CONNECT
 SELECT datname, datacl FROM pg_database WHERE datname = 'forcitis_one_dev';
+
+-- V6b 维护角色只有 platform_audit 的 USAGE 与那一个函数：以下四条均期望 0 行（最后一条是 TEMP 为 f）
+SELECT nspname FROM pg_namespace
+ WHERE nspname ~ '^(platform_|organization_|cost_|one_migration)' AND nspname <> 'platform_audit'
+   AND has_schema_privilege('one_dev_audit_maintainer', oid, 'USAGE');
+SELECT n.nspname, c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+ WHERE c.relkind IN ('r', 'p', 'v', 'm', 'S') AND n.nspname ~ '^(platform_|organization_|cost_|one_migration)'
+   AND (has_table_privilege('one_dev_audit_maintainer', c.oid, 'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER')
+        OR (c.relkind = 'S' AND has_sequence_privilege('one_dev_audit_maintainer', c.oid, 'USAGE, SELECT, UPDATE')));
+SELECT roleid::regrole FROM pg_auth_members WHERE member = 'one_dev_audit_maintainer'::regrole;
+SELECT has_database_privilege('one_dev_audit_maintainer', 'forcitis_one_dev', 'TEMP') AS can_temp;
 
 -- V7 连接预算：本实例全部有上限角色之和，须小于 max_connections 减保留（superuser_reserved_connections 与 RDS 保留）
 SELECT sum(rolconnlimit) AS limited_total FROM pg_roles WHERE rolconnlimit > 0;

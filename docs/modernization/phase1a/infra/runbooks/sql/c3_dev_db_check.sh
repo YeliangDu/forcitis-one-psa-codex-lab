@@ -8,7 +8,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 repo="$(cd "$here/../../../../../.." && pwd)"
 migrations="$repo/backend/src/main/resources/db/migration"
 name="one-c3-check-$$"
-superpw="$(openssl rand -hex 16)"; migpw="$(openssl rand -hex 16)"; apppw="$(openssl rand -hex 16)"; ropw="$(openssl rand -hex 16)"
+superpw="$(openssl rand -hex 16)"; migpw="$(openssl rand -hex 16)"; apppw="$(openssl rand -hex 16)"; ropw="$(openssl rand -hex 16)"; mtpw="$(openssl rand -hex 16)"
 trap 'docker rm -f "$name" >/dev/null 2>&1 || true' EXIT
 
 docker run -d --rm --name "$name" -e POSTGRES_PASSWORD="$superpw" postgres:18 >/dev/null
@@ -19,7 +19,7 @@ q() { local user="$1" pw="$2" db="$3"; shift 3; docker exec -i -e PGPASSWORD="$p
 # RDS's high-privilege account is a member of rds_superuser and may grant on schemas it does not own; a plain CREATEROLE role
 # may not, so the container runs the script as its superuser (the script itself ran on RDS as one_admin on 2026-10-15)
 q postgres "$superpw" postgres -f - < "$here/c3_dev_db.sql" >/dev/null
-q postgres "$superpw" postgres -c "ALTER ROLE one_dev_migrator PASSWORD '$migpw'" -c "ALTER ROLE one_dev_app PASSWORD '$apppw'" -c "ALTER ROLE one_dev_readonly PASSWORD '$ropw'"
+q postgres "$superpw" postgres -c "ALTER ROLE one_dev_migrator PASSWORD '$migpw'" -c "ALTER ROLE one_dev_app PASSWORD '$apppw'" -c "ALTER ROLE one_dev_readonly PASSWORD '$ropw'" -c "ALTER ROLE one_dev_audit_maintainer PASSWORD '$mtpw'"
 
 while IFS= read -r file; do
   q one_dev_migrator "$migpw" forcitis_one_dev -f - < "$file" >/dev/null
@@ -33,9 +33,12 @@ check() {
   if out="$(q "$role" "$pw" forcitis_one_dev -At -v VERBOSITY=verbose -c "$sql" 2>&1)"; then out="ok"
   elif grep -q '42501' <<< "$out"; then out="denied"
   else out="error: $(head -1 <<< "$out")"; fi
+  # rule = the call got past the privilege check and the function itself refused (an unarchived month), i.e. an error other than 42501
+  if [ "$expect" = rule ] && [ "${out#error: }" != "$out" ]; then out="rule"; fi
   if [ "$out" = "$expect" ]; then echo "PASS  $label"; else echo "FAIL  $label (expected $expect, got $out)"; failed=1; fi
 }
 app() { check "$1" one_dev_app "$apppw" "$2" "$3"; }
+mt() { check "$1" one_dev_audit_maintainer "$mtpw" "$2" "$3"; }
 ro() { check "$1" one_dev_readonly "$ropw" "$2" "$3"; }
 app "idempotency table readable"           "SELECT count(*) FROM platform_idempotency.idempotent_responses" ok
 app "idempotency insert / update / delete" "BEGIN; INSERT INTO platform_idempotency.idempotent_responses (idempotent_response_id, user_id, idempotency_key, request_hash, expires_at) VALUES (gen_random_uuid(), '00000000-0000-7000-8000-000000000001', 'check', repeat('a', 64), now()); UPDATE platform_idempotency.idempotent_responses SET response_number = 200 WHERE user_id = '00000000-0000-7000-8000-000000000001'; DELETE FROM platform_idempotency.idempotent_responses WHERE user_id = '00000000-0000-7000-8000-000000000001'; ROLLBACK" ok
@@ -45,9 +48,19 @@ app "no table creation in module schemas"  "CREATE TABLE platform_idempotency.no
 app "version table delete refused"         "DELETE FROM organization_workforce.legal_entity_versions WHERE false" denied
 app "version table has no TRUNCATE grant"  "DO \$\$ BEGIN IF has_table_privilege('organization_workforce.org_unit_versions', 'TRUNCATE') THEN RAISE insufficient_privilege; END IF; END \$\$" ok
 app "audit delete refused"                 "DELETE FROM platform_audit.audit_entries WHERE false" denied
-app "audit partition pre-creation allowed"  "SELECT platform_audit.create_audit_entry_partitions(date '2026-10-01', date '2026-10-01')" ok
-ro  "audit partition pre-creation refused for readonly" "SELECT platform_audit.create_audit_entry_partitions(date '2026-10-01', date '2026-10-01')" denied
+# A month beyond the baseline's six pre-created ones, so the SECURITY DEFINER function really creates a partition (an existing month returns 0 without creating)
+future=2030-01-01
+app "audit partition pre-creation (creates)"   "BEGIN; SELECT platform_audit.create_audit_entry_partitions(date '$future', date '$future'); ROLLBACK" ok
+app "app cannot drop an archived partition"    "SELECT platform_audit.drop_archived_audit_entry_partition(date '2026-10-01')" denied
+ro  "readonly cannot pre-create partitions"    "SELECT platform_audit.create_audit_entry_partitions(date '2026-10-01', date '2026-10-01')" denied
+mt  "maintainer cannot pre-create partitions"  "SELECT platform_audit.create_audit_entry_partitions(date '2026-10-01', date '2026-10-01')" denied
+mt  "maintainer may call drop (refused by the archive rule, not by privilege)" "SELECT platform_audit.drop_archived_audit_entry_partition(date '2026-10-01')" rule
+mt  "maintainer cannot read audit entries"       "SELECT count(*) FROM platform_audit.audit_entries" denied
 ro  "readonly reads idempotency table"     "SELECT count(*) FROM platform_idempotency.idempotent_responses" ok
 # The readonly role's sessions default to read-only; opening a read-write transaction tests the grant itself
 ro  "readonly has no write grant"          "BEGIN READ WRITE; INSERT INTO platform_idempotency.idempotent_responses (idempotent_response_id, user_id, idempotency_key, request_hash, expires_at) VALUES (gen_random_uuid(), '00000000-0000-7000-8000-000000000001', 'x', repeat('a', 64), now()); ROLLBACK" denied
+# The verify script runs without error after the migrations, and the maintainer role has nothing beyond platform_audit (V6b: empty result sets, can_temp f)
+verify="$(q postgres "$superpw" forcitis_one_dev -At -f - < "$here/c3_dev_db_verify.sql" 2>&1)" || { echo "FAIL  c3_dev_db_verify.sql ran with an error: $(head -3 <<< "$verify")"; failed=1; }
+if grep -q '^f$' <<< "$verify" && ! grep -q 'audit_maintainer.*|' <<< "$verify"; then echo "PASS  verify script runs; maintainer cannot use temp"; else echo "FAIL  verify output for the maintainer role"; failed=1; fi
+[ -n "${DEBUG_VERIFY:-}" ] && echo "$verify"
 exit "$failed"
