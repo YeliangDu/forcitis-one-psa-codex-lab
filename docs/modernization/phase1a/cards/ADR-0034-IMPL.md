@@ -338,7 +338,7 @@ COMMENT ON COLUMN platform_identity.account_role_grants.user_id IS '用户 ID：
 COMMENT ON COLUMN platform_identity.account_role_grants.role_id IS '角色 ID';
 COMMENT ON COLUMN platform_identity.account_role_grants.effective_from_at IS '生效时刻（含）：greatest(注入时钟, 此人此角色已有行的最大失效时刻)';
 COMMENT ON COLUMN platform_identity.account_role_grants.effective_to_at IS '失效时刻（不含，即收回时刻）：greatest(注入时钟, 生效时刻)；为空表示当前有效。是系统实际收回的时刻，不是离职日期';
-COMMENT ON COLUMN platform_identity.account_role_grants.granted_by IS '授予人用户 ID：MANUAL 必有；为空表示非界面授予（默认角色、运维命令、迁入；运维命令的操作人与见证人记在审计）';
+COMMENT ON COLUMN platform_identity.account_role_grants.granted_by IS '授予人用户 ID：有且只有 MANUAL 有；为空表示非界面授予（默认角色、运维命令、迁入；运维命令的操作人与见证人记在审计）。将来增加授予渠道时同步改 ck_account_role_grants_grant';
 COMMENT ON COLUMN platform_identity.account_role_grants.grant_channel_kind IS '授予渠道：MANUAL 账号授权界面（含经双人确认的申请）/ DEFAULT_ROLE 建档或复职时的默认角色 / OPERATIONS 运维命令 grant-role / MIGRATION 老角色迁入';
 COMMENT ON COLUMN platform_identity.account_role_grants.grant_authorization_request_id IS '授予所据的授权申请 ID；为空表示未经双人确认（只 MANUAL 可有）';
 COMMENT ON COLUMN platform_identity.account_role_grants.migration_batch_id IS '迁入批次 ID（跨模块，只存 ID）：只 MIGRATION 有；为空表示不是迁入';
@@ -491,11 +491,11 @@ CREATE TRIGGER tg_roles_identity_immutable BEFORE UPDATE ON platform_identity.ro
 
 ### 待 one-data 核
 - **D-1** 保留期写法：0034-Q2 已答「在线 3 年 + 归档到满 10 年」，但注册表 `{policy: 3y}` 必须指名已存在的 `@SchedulerLock` 作业（`DataArchitectureTest`:323-326），而 ADR 影响面写清理作业「3 年内不会有到期行，届时随审计在线删除一并实现」。本卡草拟 `{policy: PERMANENT}` 加注释写明 0034-Q2 口径与作业落点（与 `authorization_requests` 先例 `RETENTION_PROPOSAL.md`:20 同法）；F-1 的 `role_version_custom_org_units` 跟随。是否接受，或改 `gaps` 写法。
-- **D-2** `_by` 列（`recorded_by`、`closed_by`、`granted_by`、`revoked_by`）建同 schema 外键与部分索引（门禁 B4，与 ID-10 方向一致）；F-1 待核 5 用的是「不建外键、注册表 `references`」，两卡口径须统一。
-- **D-3** 门禁 B7：`MIGRATION`、`MIGRATION_ROLLBACK` 取值与 `migration_batch_id` 列在老角色迁入实现前落库。出自已采纳 ADR-0034 第 1 项第 2 条、第 2 项第 1、3、4、6 条，按门禁文件头「与上位规则冲突时以上位规则为准」保留；请 one-data 确认不判 B7 不通过。
-- **D-4** PR-1 注册表 `writers: []`（`DataArchitectureTest`:571-573），PR-2 / PR-3 改为 `[platform.identity]`；或 PR-1 用 `optional` + `due`。
-- **D-5** 本卡对 `granted_by` 的成对规则比 ADR 收紧：ADR 只写「MANUAL 须有」「OPERATIONS 为空」，本卡写「有且只有 MANUAL 有」（`DEFAULT_ROLE`、`MIGRATION` 也为空）。
-- **D-6** 外键索引 G-DDL2：`account_role_grants.role_id` 只有部分索引（`WHERE effective_to_at IS NULL`），`role_versions.role_id` 由 `uk_role_versions_role_id_version_number` 前缀覆盖；`roles` 行不删除，外键 `RESTRICT` 检查不会发生。是否接受不建全量索引。
+- **D-2** **已答（one-data 2026-10-17，`data/reviews/ADR-0034-IMPL.md` @35643e0f）**：接受，见该记录。原问题：`_by` 列（`recorded_by`、`closed_by`、`granted_by`、`revoked_by`）建同 schema 外键与部分索引（门禁 B4，与 ID-10 方向一致）；F-1 待核 5 用的是「不建外键、注册表 `references`」，两卡口径须统一。
+- **D-3** **已答（one-data 2026-10-17，`data/reviews/ADR-0034-IMPL.md` @35643e0f）**：接受，见该记录。原问题：门禁 B7：`MIGRATION`、`MIGRATION_ROLLBACK` 取值与 `migration_batch_id` 列在老角色迁入实现前落库。出自已采纳 ADR-0034 第 1 项第 2 条、第 2 项第 1、3、4、6 条，按门禁文件头「与上位规则冲突时以上位规则为准」保留；请 one-data 确认不判 B7 不通过。
+- **D-4** **已答（one-data 2026-10-17，`data/reviews/ADR-0034-IMPL.md` @35643e0f）**：接受，见该记录。原问题：PR-1 注册表 `writers: []`（`DataArchitectureTest`:571-573），PR-2 / PR-3 改为 `[platform.identity]`；或 PR-1 用 `optional` + `due`。
+- **D-5** **已答（one-data 2026-10-17，`data/reviews/ADR-0034-IMPL.md` @35643e0f）**：接受，见该记录。原问题：本卡对 `granted_by` 的成对规则比 ADR 收紧：ADR 只写「MANUAL 须有」「OPERATIONS 为空」，本卡写「有且只有 MANUAL 有」（`DEFAULT_ROLE`、`MIGRATION` 也为空）。
+- **D-6** **已答（one-data 2026-10-17，`data/reviews/ADR-0034-IMPL.md` @35643e0f）**：接受，见该记录。原问题：外键索引 G-DDL2：`account_role_grants.role_id` 只有部分索引（`WHERE effective_to_at IS NULL`），`role_versions.role_id` 由 `uk_role_versions_role_id_version_number` 前缀覆盖；`roles` 行不删除，外键 `RESTRICT` 检查不会发生。是否接受不建全量索引。
 
 ### 待核（开工前由实现者核实）
 1. `runbooks/sql/c3_dev_db_after_migrations.sql` 的实际路径与 §4b 内容（C-3-dev-db.md:17 提到，未打开）。
@@ -656,7 +656,7 @@ CREATE TRIGGER tg_roles_identity_immutable BEFORE UPDATE ON platform_identity.ro
 
 ```yaml
   platform_identity.role_versions:
-    # 保留：0034-Q2 (b) 在线 3 年、归档到满 10 年；清理作业 3 年内无到期行，随审计在线删除实现（ADR-0034 影响面），届时改 {policy: 3y, job: …}（D-1）。
+    # 保留：0034-Q2 在线 3 年、归档到满 10 年。清理作业落点：随审计在线删除作业实现（ADR-0034 影响面），届时改 {policy: 3y, job: …}。负责人：one-1a-par。期限：首次生产部署后 30 个月内。清理按依赖顺序（先 account_role_grants、后 role_versions，再其引用的行）（D-1，one-data 2026-10-17 接受）。
     # D17 细则 2：维度型，生效依据 DECLARED。roles 的 code、kind、is_administrative 不进版本：决定角色本质、无修改路径（ADR-0034 第 1 项第 1 条）。
     role: DIMENSION_VERSIONED
     aggregate: Role
