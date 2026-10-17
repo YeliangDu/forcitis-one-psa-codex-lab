@@ -27,7 +27,7 @@ def red(run=100, bucket="fail"):
 
 class FakeGh:
     def __init__(self):
-        self.prs, self.calls, self.runs, self.main_runs, self.lock, self.slow = {}, [], {}, {"push": None, "schedule": None}, threading.RLock(), False
+        self.prs, self.calls, self.runs, self.main_runs, self.lock, self.slow, self.step_failures = {}, [], {}, {"push": None, "schedule": None}, threading.RLock(), False, {}
 
     def add(self, n, merge="CLEAN", labels=(), rounds=None, update_ok=True, merge_results=((True, ""),), behind=0, state="OPEN"):
         self.prs[n] = dict(state=state, merge=merge, labels=set(labels), branch=f"b{n}", head=f"{n:040x}", behind=behind, rounds=rounds or [dict(pending=0, checks=green())], round=0, pend=None,
@@ -82,6 +82,9 @@ class FakeGh:
                 self.runs[k].remove(run)
         return True
 
+    def failed_steps(self, run):
+        return self.step_failures.get(str(run), [])
+
     def rerun(self, run):
         self.calls.append(("rerun", run))
         for p in self.prs.values():
@@ -118,6 +121,7 @@ def run(mq):
     try:
         with tempfile.TemporaryDirectory() as d:
             _required(mq)
+            _ci_step_name(mq)
             _scenarios(mq, d)
             _merge_guards(mq, d)
             _pause(mq, d)
@@ -163,6 +167,12 @@ def _required(mq):
     assert not mq.required_state([])[0]
     assert mq.required_state(green() + [{"name": "assertion drift (warning only)", "bucket": "fail", "link": ""}])[0], "only the three required checks decide"
     assert mq.required_state(green(light=True) + green())[0], "light and full next to each other: the full ones count"
+
+
+def _ci_step_name(mq):
+    """The step name the queue looks for is the one ci.yml has (a renamed step would silently turn the no-rerun rule off)."""
+    ci = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".github", "workflows", "ci.yml")
+    assert f"- name: {mq.REPEAT_STEP}" in open(ci, encoding="utf-8").read(), f"ci.yml has no step named {mq.REPEAT_STEP!r}"
 
 
 def _scenarios(mq, d):
@@ -211,6 +221,20 @@ def _scenarios(mq, d):
     proc, q, log, slept = _proc(mq, d, "d", gh, [9])
     assert proc.process(9) == "MERGED" and ("rerun", "777") in gh.calls and events(log).count("RERUN-FAILED") == 1, events(log)
     assert any("RERUN-FAILED pr=#9 run=777" in l and "fail" in l for l in log.lines) and log.lines[-1].split()[3] == "run=778"
+
+    # the repeat step of ci.yml is red: a new test is flaky, so no rerun, HOLD at once; another red step is re-run as before
+    gh = FakeGh(); gh.add(110, rounds=[dict(pending=0, checks=red(31)), dict(pending=0, checks=green(32))])
+    gh.step_failures = {"31": ["new or changed test classes, repeated"]}
+    proc, q, log, _ = _proc(mq, d, "rp1", gh, [110])
+    assert proc.process(110) == "HOLD" and not any(c[0] == "rerun" for c in gh.calls) and "repeat runs" in log.lines[-1] and "run=31" in log.lines[-1] and not any(c[0] == "merge" for c in gh.calls)
+    gh = FakeGh(); gh.add(112, rounds=[dict(pending=0, checks=red(51)), dict(pending=0, checks=green(52))])
+    gh.failed_steps = lambda run: None
+    proc, q, log, _ = _proc(mq, d, "rp3", gh, [112])
+    assert proc.process(112) == "MERGED" and ("rerun", "51") in gh.calls and "FAILED-STEPS-UNKNOWN" in events(log), "unknown steps: rerun as before, and say so"
+    gh = FakeGh(); gh.add(111, rounds=[dict(pending=0, checks=red(41)), dict(pending=0, checks=green(42))])
+    gh.step_failures = {"41": ["surefire and failsafe, side by side"]}
+    proc, q, log, _ = _proc(mq, d, "rp2", gh, [111])
+    assert proc.process(111) == "MERGED" and ("rerun", "41") in gh.calls, "any other red step is re-run once"
 
     # still red after the one re-run: HOLD, no second re-run, never merged; the run ids of both rounds are in the log (numeric order)
     gh = FakeGh(); gh.add(10, rounds=[dict(pending=0, checks=red(9)), dict(pending=0, checks=red(1000))])
@@ -689,6 +713,44 @@ def _signals(mq, d):
         assert (("update-branch", 100) in gh.calls) == synced, (name, events(log))
         if not synced:
             assert gh.merged_behind == [3], "merged while behind docs-only commits, on purpose"
+    # strict protection still on, main moved by a docs commit while the full CI ran: GitHub says BEHIND although the queue counts the head as up to date. No merge is attempted; sync and run again, no HOLD, no refusal counted
+    gh = FakeGh(); gh.add(102)
+    gh.prs[102]["behind_files"] = ["docs/a.md"]
+    proc, q, log, _ = _proc(mq, d, "bd-strict2", gh, [102])
+    real_checks = gh.checks
+    polls = {"n": 0}
+
+    def strict_main_moves(n):
+        polls["n"] += 1
+        if polls["n"] == 2:   # the checks have just ended green; main moves by a docs commit
+            gh.prs[102]["merge"], gh.prs[102]["behind"] = "BEHIND", 1
+        return real_checks(n)
+    gh.checks = strict_main_moves
+    assert proc.process(102) == "MERGED", events(log)
+    assert events(log).count("BEHIND-AT-MERGE") == 1 and "UPDATE" in events(log) and "RETRY-MERGE" not in events(log) and "HOLD" not in events(log), events(log)
+    kinds = [c[0] for c in gh.calls]
+    assert kinds.count("merge") == 1 and kinds.index("update-branch") < kinds.index("merge"), "gh merge was called once, after the sync"
+
+    # the same, but main moves between our look and the merge itself: gh refuses (BEHIND), and that is a sync again, not a refusal; it never reaches the five refusals
+    gh = FakeGh(); gh.add(103, merge_results=((False, "Head branch is not up to date with the base branch"), (False, "Head branch is not up to date with the base branch"), (True, "")))
+    gh.prs[103]["behind_files"] = ["docs/a.md"]
+    proc, q, log, _ = _proc(mq, d, "bd-strict3", gh, [103])
+    real_merge = gh.merge
+
+    def merge_then_behind(n, head):
+        out = real_merge(n, head)
+        if not out[0]:
+            gh.prs[n]["merge"], gh.prs[n]["behind"] = "BEHIND", 1   # GitHub's answer to a refused merge: the branch is behind
+        return out
+    gh.merge = merge_then_behind
+    assert proc.process(103) == "MERGED" and events(log).count("UPDATE") == 2 and events(log).count("RETRY-MERGE") == 2, events(log)
+    gh = FakeGh(); gh.add(104, merge_results=((False, "behind"),) * 20)
+    gh.prs[104]["behind_files"] = ["docs/a.md"]
+    proc, q, log, _ = _proc(mq, d, "bd-strict4", gh, [104])
+    real_merge = gh.merge
+    gh.merge = lambda n, head: (lambda out: (gh.prs[n].update(merge="BEHIND", behind=1), out)[1])(real_merge(n, head))
+    assert proc.process(104) == "HOLD" and "main moved" in log.lines[-1] and "refused" not in log.lines[-1], "main that keeps moving ends in the moved limit, not in a refusal count"
+
     # the strict protection still being on (GitHub says BEHIND) keeps the sync: GitHub would refuse the merge otherwise
     gh = FakeGh(); gh.add(101, merge="BEHIND", behind=2)
     gh.prs[101]["behind_files"] = ["docs/a.md"]
@@ -797,6 +859,8 @@ def _gh_commands(mq, d):
                  (["api", "repos/{owner}/{repo}/compare/abc123...main", "--jq", ".files | length"], "2\n", "", 0),
                  (["api", "repos/{owner}/{repo}/compare/big000...main", "--jq", "[.files[] | .filename, .previous_filename] | map(select(. != null)) | .[]"], "docs/x.md\n", "", 0),
                  (["api", "repos/{owner}/{repo}/compare/big000...main", "--jq", ".files | length"], "300\n", "", 0),
+                 (["run", "view", "7", "--json", "jobs", "--jq", '.jobs[].steps[] | select(.conclusion == "failure") | .name'], "step one\nnew or changed test classes, repeated\n", "", 0),
+                 (["run", "view", "8", "--json", "jobs", "--jq", '.jobs[].steps[] | select(.conclusion == "failure") | .name'], "", "boom", 1),
                  (["pr", "checks", "1"], json.dumps([{"name": "x", "bucket": "pass", "link": ""}]), "", 0),
                  (["pr", "checks", "2"], "", "no checks reported on the 'br' branch\n", 0),
                  (["pr", "checks", "3"], "", "network down\n", 1),
@@ -813,6 +877,7 @@ def _gh_commands(mq, d):
         assert gh.files(9) == ["docs/a.md", "docs/old.md"]
         assert gh.behind_files("abc123") == ["docs/x.md", "docs/old.md"] and gh.behind_files("big000") is None, "a cut-off list (300 files) is no answer"
         assert gh.checks(1) == [{"name": "x", "bucket": "pass", "link": ""}] and gh.checks(2) == [] and gh.checks(3) is None, "no check yet is an empty list, a failed call is None"
+        assert gh.failed_steps(7) == ["step one", "new or changed test classes, repeated"] and gh.failed_steps(8) is None
         assert gh.merge(4, "h4") == (False, "Pull request is not mergeable") and gh.merge(5, "h5") == (True, "merged")
         run = gh.main_run("push")
         assert run and run["id"] == 5 and run["conclusion"] == "failure", "the newest ended, not cancelled run decides; a running or cancelled newer one does not hide it"

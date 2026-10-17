@@ -53,6 +53,8 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REQUIRED = ("backend verify", "frontend verify", "secret scan")
+# ci.yml's step that runs the pull request's new or changed test classes again (scripts/ci/repeat_new_tests.py): red there is a flaky new test, and a rerun that passes would let it in
+REPEAT_STEP = "new or changed test classes, repeated"
 OK = ("pass", "skipping")
 LINE = re.compile(r"^\s*(\d+)\s*$")
 LANES = ("code", "docs")
@@ -189,6 +191,11 @@ class Gh:
         except ValueError:
             # a pull request whose CI has not registered anything yet: empty stdout, exit 0, "no checks reported on the '<branch>' branch" on stderr
             return [] if "no checks reported" in r.stderr else None
+
+    def failed_steps(self, run):
+        """Names of the steps that failed in a ci run, or None when gh cannot say."""
+        r = sh(["gh", "run", "view", str(run), "--json", "jobs", "--jq", '.jobs[].steps[] | select(.conclusion == "failure") | .name'])
+        return r.stdout.splitlines() if r.returncode == 0 else None
 
     def update_branch(self, n):
         return sh(["gh", "pr", "update-branch", str(n)]).returncode == 0
@@ -528,6 +535,13 @@ class Processor:
                     self.log.event("BEHIND-AFTER-FAIL", n, runs[0] if runs else None, since, "update and run again")
                     attempt += 1
                     continue
+                steps = {r: self.gh.failed_steps(r) for r in runs}
+                unknown = [r for r, st in steps.items() if st is None]
+                if unknown:   # gh could not say which step failed: the one rerun still happens (the lenient direction), but it is on record
+                    self.log.event("FAILED-STEPS-UNKNOWN", n, unknown[0], since, "could not read the failed steps; a failed repeat step would not be recognised")
+                repeated = [r for r, st in steps.items() if REPEAT_STEP in (st or [])]
+                if repeated:   # a new test that fails when it runs again is flaky: no rerun (it would pass the second time and get in), straight to the author
+                    return self.hold(n, ",".join(repeated), since, f"a new or changed test class failed its repeat runs ({REPEAT_STEP}): not rerun, back to the author")
                 if attempt == 1:
                     for r in runs:
                         self.gh.rerun(r)
@@ -553,12 +567,15 @@ class Processor:
                 attempt += 1
                 continue
             if result == "refused":
+                if (self.gh.view(n) or {}).get("merge") == "BEHIND":   # main moved between the look and the merge (strict protection): a sync, not a refusal that counts
+                    moved += 1
+                    if moved > 6:
+                        return self.hold(n, None, since, f"main moved {moved} times while this pull request waited for its merge")
+                    continue
                 refused += 1
-                v = self.gh.view(n) or {}
                 if refused >= 5:
                     return self.hold(n, None, since, f"merge refused {refused} times")
-                if v.get("merge") != "BEHIND":
-                    self.sleep(20 * 2 ** (refused - 1))
+                self.sleep(20 * 2 ** (refused - 1))
                 continue
             return result
         return self.hold(n, None, since, "attempts exhausted")
@@ -583,6 +600,10 @@ class Processor:
             behind = self.stale(n, head)
             if behind is None:
                 return self.hold(n, None, since, "could not tell whether the head contains main")
+            if v["merge"] == "BEHIND" and not behind:
+                # the protection "branch must be up to date" is still on: GitHub counts a head that lacks only docs commits as behind and would refuse the merge; no attempt, sync and test again
+                self.log.event("BEHIND-AT-MERGE", n, None, since, "GitHub reports BEHIND (protection still requires an up-to-date branch) although only docs commits are missing: update and run again")
+                return "moved"
             if behind > 0:
                 self.log.event("BEHIND-AT-MERGE", n, None, since, f"main moved by {behind} commit(s) while the full CI ran: update and run again")
                 return "moved"
