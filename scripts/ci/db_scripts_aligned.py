@@ -69,7 +69,7 @@ def has_append_only_grant(text):
 
 
 def widens_append_only(text):
-    return any(re.search(r"\b(UPDATE|DELETE|TRUNCATE|ALL)\b", statement)
+    return any(re.search(r"\b(UPDATE|DELETE|TRUNCATE|ALL(?!\s+(?:FUNCTIONS|ROUTINES|PROCEDURES|SEQUENCES)\b))\b", statement)
                for statement in re.findall(rf"[^;]*\bGRANT\b[^;]*\b{APPEND_ONLY_SCHEMA}\b[^;]*;", text))
 
 
@@ -89,7 +89,7 @@ def function_privileges(text):
 
 
 def grantees(statement):
-    match = re.search(r"\)?\s(?:to|from)\s+(.*?);", statement)
+    match = re.search(r"^.*\s(?:to|from)\s+(.*?);", statement)
     if not match:
         return set()
     tail = re.sub(r"\s+(with\s+grant\s+option|granted\s+by\s+\S+|cascade|restrict)\b", "", match.group(1))
@@ -187,7 +187,10 @@ def self_test():
     assert any(p.startswith("c3_dev_db_after_migrations.sql: grant execute") and "one_dev_ghost" in p for p in problems(modules, reference + ghost, c3, c3_after + ghost, c3_verify)), "a ghost role in the script after the migrations"
     all_grant = "\nGRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA platform_audit TO one_dev_app;\n"
     assert differ(reference + all_grant, c3), "ON ALL FUNCTIONS only in the reference"
-    assert not differ(reference + all_grant, c3, c3_after + all_grant)
+    assert problems(modules, reference + all_grant, c3, c3_after + all_grant, c3_verify) == [], "ON ALL FUNCTIONS IN SCHEMA platform_audit is no widening of the append-only tables"
+    interval = "\nGRANT EXECUTE ON FUNCTION platform_audit.f(interval day to second) TO one_dev_app;\n"
+    assert problems(modules, reference + interval, c3, c3_after + interval, c3_verify) == [], "a type name with `to` inside the signature"
+    assert any("granted UPDATE" in p for p in problems(modules, reference + "\nGRANT ALL ON ALL FUNCTIONS IN SCHEMA platform_audit TO one_dev_app;\n", c3, c3_after, c3_verify)), "GRANT ALL is still a widening"
     not_ghosts = ["TO one_dev_app, one_dev_readonly", "TO one_dev_app WITH GRANT OPTION", "TO GROUP one_dev_app", 'TO "one_dev_app"', "TO PUBLIC", "TO CURRENT_USER", "TO one_dev_app GRANTED BY one_dev_owner"]
     for tail in not_ghosts:
         text = f"\nGRANT EXECUTE ON FUNCTION platform_audit.f() {tail};\n"
