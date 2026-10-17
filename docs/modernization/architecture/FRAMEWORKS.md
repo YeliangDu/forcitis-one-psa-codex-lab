@@ -261,7 +261,7 @@ DAMA-DMBOK 第 2 版修订版（2024，https://dama.org/dama-dmbok-revision/ ）
 
 ## 15. 要点笔记
 
-ARC-1017-ARC-21（2026-10-17）新增的阅读笔记。以下只登记文件、书目和已读版本；各份项目取舍已由 one-architecture 2026-10-18 审定，页码待 sonnet 独立抽查。笔记不改变本文件既有采用范围、冲突规则或锁定版本；本地书目缺口在各笔记中明示。
+ARC-1017-ARC-21（2026-10-17）新增的阅读笔记。以下只登记文件、书目和已读版本；各份项目取舍已由 one-architecture 2026-10-18 审定，页码待 sonnet 独立抽查。笔记不改变本文件既有采用范围、冲突规则或锁定版本；本地书目缺口在各笔记中明示。（依据 intent 2026-10-17-204331：用户「把书的核心思想，跟我们架构设计相关的，持久化存下来」）
 
 - [kimball-dwt3.md](frameworks/notes/kimball-dwt3.md)：Kimball、Ross，The Data Warehouse Toolkit: The Definitive Guide to Dimensional Modeling；Third Edition，Wiley，2013。
 - [kimball-dwt2.md](frameworks/notes/kimball-dwt2.md)：Kimball、Ross，The Data Warehouse Toolkit: The Complete Guide to Dimensional Modeling；Second Edition，Wiley，2002。
