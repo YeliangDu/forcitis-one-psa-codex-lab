@@ -53,6 +53,8 @@ def line_verdict(line):
         return "可合并"
     return None
 QUEUE_LINE = re.compile(r"^(\S+)\s+([A-Z][A-Z-]*)\s+pr=#(\d+)\s*(.*)$")
+CODEX_PR = re.compile(r"Codex\s*(?:起草|实现)")   # the pull request body names the work as Codex's (SESSION_PLAYBOOK §5)
+REWORK_COMMIT = re.compile(r"返工|复审修正|复审意见|按.{0,12}复审(?:修正|意见|修)|review fix", re.IGNORECASE)
 SYNC_COMMIT = re.compile(r"^Merge (branch|remote-tracking branch) '(origin/)?main'")
 LOOP_MIN = 4
 
@@ -301,6 +303,14 @@ def build(root, gh, window, log_path):
                 unreadable.append(number)
                 continue
             pushed[owner[number]] += sum(1 for date, headline in commits if when(date) > queued and window[0] <= when(date) < window[1] and not SYNC_COMMIT.match(headline))
+    codex, rework = collections.Counter(), collections.Counter()
+    for number, p in prs.items():
+        if owner[number] and in_window(p["createdAt"], window) and CODEX_PR.search(p.get("body") or ""):
+            codex[owner[number]] += 1
+            try:
+                rework[owner[number]] += sum(1 for _, headline in gh.pr_commits(number) if REWORK_COMMIT.search(headline) and not SYNC_COMMIT.match(headline))
+            except RuntimeError:
+                unreadable.append(number)
     sessions = []
     for name, role, _ in SESSIONS:
         opened = sorted((p for p in prs.values() if owner[p["number"]] == name and in_window(p["createdAt"], window)), key=lambda p: p["number"])
@@ -315,6 +325,7 @@ def build(root, gh, window, log_path):
             "prs_opened_count": len(opened), "prs_merged_count": len(merged),
             "returns": {"conflict": counts["CONFLICT"] if log_complete else None, "hold": counts["HOLD"] if log_complete else None},
             "ci_failures": ci[name], "reviews": reviews, "pushed_after_queue": pushed[name] if log_complete else None,
+            "codex_cards": codex[name], "codex_rework_rounds": rework[name],
             "defect_bank_new": new_entries, "defect_bank_empty": empty,
             "loop_candidates": loop_candidates(subjects, counts if log_complete else {}), "role": role})
     notes = [f"窗口 {window[0].isoformat(timespec='minutes')} ~ {window[1].isoformat(timespec='minutes')}（本机时区 {window[0].tzname()}）。提交按分支名归属会话（SESSIONS 的前缀表，整名或「前缀-」开头），去重；沿分支 first-parent 的非合并提交，committer 时间在窗口内（合入 main 的提交不重复算）；已删除分支的提交取窗口内合入 PR 的第二父链补算。数据取自本机 git 引用（origin/main 最新提交 {fetched or '未知'}），脚本不 fetch，出数前请先 git fetch origin。"]
@@ -336,6 +347,7 @@ def build(root, gh, window, log_path):
         notes.append(f"gh 返回已达上限（PR {len(prs_list)} 条、CI 运行 {len(runs)} 条，运行最早 {runs_from.isoformat(timespec='minutes') if runs_from else '无'}）：窗口前段的 PR 或 CI 失败可能被截掉，ci_failures 与 PR 数是下限。")
     notes.append("reviews 只看窗口内新开的 PR 正文里含 opus/复审/终审/ultrareview 的行，按「修后可合并 > 有阻塞 > 可合并」归类，「无阻塞」「阻塞项已修」不算阻塞，未识别写「有复审（结论未识别）」，无复审行不列。ci_failures 只数 conclusion=failure，按分支名归属。")
     notes.append("defect_bank_new 取各会话错题本（origin/main 版，及该会话分支上最近改过它的版本）里日期不早于窗口开始日的条目（`###` 小节的日期行或表格行的日期列）；册不存在或无条目时 defect_bank_empty 为 true；补跑过去日期时窗口之后的条目也会计入。")
+    notes.append("codex_cards = 窗口内新开、PR 正文含「Codex 起草」或「Codex 实现」的 PR 数；codex_rework_rounds = 这些 PR 上提交标题含「返工」「复审修正」「按…复审…修」的提交数（近似：没有结构化的返工记录，PR 正文与提交标题没按此写就数不到，请各会话照 SESSION_PLAYBOOK §5 在正文注明 Codex）。")
     notes.append("loop_candidates 是机械统计（同类提交主题重复≥4 次、队列事件重复），automation 留空由调度填。")
     return {"date": window[1].date().isoformat(), "window": f"{window[0].isoformat(timespec='minutes')} ~ {window[1].isoformat(timespec='minutes')}",
             "sessions": sessions, "notes": notes, "title": window[1].date().isoformat()}
@@ -451,6 +463,10 @@ def self_test():
                {"number": 7, "title": "gone", "headRefName": "claude/one-data-gone", "createdAt": "2026-10-16T09:30:00+02:00", "mergedAt": "2026-10-16T13:00:00+02:00", "body": "复审：有阻塞", "mergeCommit": {"oid": merge_oid}},
                *[{"number": n, "title": f"review {n}", "headRefName": "claude/one-rules-t", "createdAt": "2026-10-16T09:40:00+02:00", "mergedAt": None, "body": body, "mergeCommit": None}
                  for n, body in ((10, "opus 复审：无阻塞，可合并"), (11, "终审：未通过"), (12, "opus 复审：阻塞项 B1 已修，待 sonnet 复核"), (13, "说明\n这是 opus 复审 B1 的修法\n复审结论：修后可合并"), (14, "复审：有阻塞"))],
+               {"number": 15, "title": "codex work", "headRefName": "claude/one-ops-y", "createdAt": "2026-10-16T09:50:00+02:00", "mergedAt": None, "body": "Codex 实现（gpt-6.1-sol，xhigh）", "mergeCommit": None},
+               {"number": 17, "title": "codex work before the window", "headRefName": "claude/one-ops-y", "createdAt": "2026-10-15T09:50:00+02:00", "mergedAt": None, "body": "Codex 实现（gpt-6.1-sol，xhigh）", "mergeCommit": None},
+               {"number": 18, "title": "mentions codex without being codex work", "headRefName": "claude/one-ops-y", "createdAt": "2026-10-16T09:52:00+02:00", "mergedAt": None, "body": "这张卡没有交给 Codex 做", "mergeCommit": None},
+               {"number": 16, "title": "claude work", "headRefName": "claude/one-ops-y", "createdAt": "2026-10-16T09:51:00+02:00", "mergedAt": None, "body": "没有这个词", "mergeCommit": None},
                {"number": 9, "title": "after the window", "headRefName": "claude/one-ops-y", "createdAt": "2026-10-17T10:00:00+02:00", "mergedAt": None, "body": "", "mergeCommit": None},
                {"number": 8, "title": "someone else", "headRefName": "feature/x", "createdAt": "2026-10-16T09:30:00+02:00", "mergedAt": None, "body": "", "mergeCommit": None}]
         runs = [{"databaseId": 1, "conclusion": "failure", "createdAt": "2026-10-16T10:00:00Z", "headBranch": "claude/one-quality-x", "event": "pull_request"},
@@ -458,7 +474,9 @@ def self_test():
                 {"databaseId": 3, "conclusion": "failure", "createdAt": "2026-10-10T10:00:00Z", "headBranch": "claude/one-quality-x", "event": "pull_request"},
                 {"databaseId": 5, "conclusion": "failure", "createdAt": "2026-10-17T09:30:00Z", "headBranch": "claude/one-quality-x", "event": "pull_request"},
                 {"databaseId": 4, "conclusion": "failure", "createdAt": "2026-10-16T10:00:00Z", "headBranch": "dependabot/x", "event": "pull_request"}]
-        commits = {5: [("2026-10-16T09:30:00+02:00", "before queue"), ("2026-10-16T10:30:00+02:00", "after queue"), ("2026-10-16T10:45:00+02:00", "Merge branch 'main' into claude/one-quality-x"),
+        commits = {15: [("2026-10-16T10:00:00+02:00", "feat: first"), ("2026-10-16T11:00:00+02:00", "fix: 按 opus 复审修正"), ("2026-10-16T12:00:00+02:00", "fix: 返工一轮"), ("2026-10-16T12:30:00+02:00", "Merge branch 'main' into x")],
+                   16: [("2026-10-16T10:00:00+02:00", "fix: 复审修正")], 17: [("2026-10-16T10:00:00+02:00", "fix: 返工")], 18: [("2026-10-16T10:00:00+02:00", "fix: 返工")],
+                   5: [("2026-10-16T09:30:00+02:00", "before queue"), ("2026-10-16T10:30:00+02:00", "after queue"), ("2026-10-16T10:45:00+02:00", "Merge branch 'main' into claude/one-quality-x"),
                        ("2026-10-16T10:50:00+02:00", "after queue again")]}
         window = window_of("2026-10-17", None, None)
         assert window[0].isoformat() == "2026-10-16T08:00:00+02:00" and window[1].isoformat() == "2026-10-17T09:00:00+02:00"
@@ -469,11 +487,12 @@ def self_test():
         assert by["one-rules"]["commits"] == 0, "one commit is counted once, for the first session that owns a branch holding it"
         assert by["one-ops"]["commits"] == 1 and by["one-data"]["commits"] == 1, "the commit of a deleted branch is found through the merge commit"
         assert by["one-quality"]["prs_opened_count"] == 1 and by["one-quality"]["prs_opened"] == ["#5 quality tool"]
-        assert by["one-data"]["prs_merged"] == [7] and by["one-data"]["prs_merged_count"] == 1 and by["one-ops"]["prs_opened_count"] == 0
+        assert by["one-data"]["prs_merged"] == [7] and by["one-data"]["prs_merged_count"] == 1 and by["one-ops"]["prs_opened_count"] == 3
         assert by["one-glossary"]["commits"] == 1 and by["one-glossary"]["themes"][0].endswith("exactly at the start"), "the window is half open: the start is in, the end is out"
         assert by["one-rules"]["reviews"] == ["#10:可合并", "#11:有阻塞", "#12:有复审（结论未识别）", "#13:修后可合并", "#14:有阻塞"], by["one-rules"]["reviews"]
         assert by["one-rules"]["defect_bank_new"] == ["RB-01 / 2026-10-16 / new row"] and by["one-rules"]["defect_bank_empty"] is False, "a table book is read"
         assert any("claude/mystery-z 1 个" in n for n in data["notes"]) and not any("未计入" in n and "claude/one-" in n for n in data["notes"]), data["notes"]
+        assert by["one-ops"]["codex_cards"] == 1 and by["one-ops"]["codex_rework_rounds"] == 2 and by["one-quality"]["codex_cards"] == 0 and by["one-quality"]["codex_rework_rounds"] == 0, "only a pull request that names Codex counts"
         assert by["one-quality"]["returns"] == {"conflict": 1, "hold": 0} and by["one-ops"]["returns"] == {"conflict": 0, "hold": 1}, (by["one-quality"]["returns"], by["one-ops"]["returns"])
         assert by["one-quality"]["ci_failures"] == 1 and by["one-ops"]["ci_failures"] == 0
         assert by["one-quality"]["reviews"] == ["#5:修后可合并"] and by["one-data"]["reviews"] == ["#7:有阻塞"] and by["one-ops"]["reviews"] == []
@@ -484,7 +503,7 @@ def self_test():
         assert by["one-ops"]["loop_candidates"] == [] and by["one-quality"]["themes"][0].startswith("ci（4）")
         assert all(k in by["one-quality"] for k in ("grade", "assessment", "action")) is False, "the coordinator fills grade, assessment and action"
         assert set(by["one-quality"]) == {"name", "commits", "themes", "prs_opened", "prs_merged", "prs_opened_count", "prs_merged_count", "returns", "ci_failures", "reviews", "pushed_after_queue",
-                                          "defect_bank_new", "defect_bank_empty", "loop_candidates", "role"}
+                                          "defect_bank_new", "defect_bank_empty", "loop_candidates", "role", "codex_cards", "codex_rework_rounds"}
         json.dumps(data, ensure_ascii=False)
         assert session_of("origin/claude/one-1a-next-5-train-x") == "one-coordinator" and session_of("claude/one-1a-next-5-data-pr1") == "one-1a-next-5" and session_of("feature/x") is None
         empty = build(repo, FakeGh([], [], {}), window, os.path.join(tmp, "no-such.log"))
