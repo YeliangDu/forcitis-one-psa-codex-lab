@@ -104,3 +104,13 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/platform/web/IdQueryParameterIT.java
     reason: 验收补 onBehalfOfId 畸形 uuid 用例并让 no-count 测试复原数据库设置
     ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-COORD-20261017-01
+    date: 2026-10-17
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorEndToEndIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorMarkTransactionIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorWitnessOmissionIT.java
+    reason: 单人模式验收前置改为每例新造员工作操作人（断言不变），并新增操作人不存在例
+    ref: "#405 评论 issuecomment-6228726676"
