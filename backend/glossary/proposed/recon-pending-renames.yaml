@@ -16,3 +16,5 @@ terms:
   forbidden: []
   status: proposed
   note: 代码仍用 RoleDeleted
+  owner: platform.identity
+  until: NAM-1017-N7 identity 事件改名合入前（首次部署前）

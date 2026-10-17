@@ -1,9 +1,13 @@
 meta:
   card: NAM-1017-GLO-06
+  promotion_counts:
+    A: 66
   rework: 1
   date: '2026-10-17'
   source: 60 项漏登、7 项不一致、A66 分类；只执行用户已裁定部分
-  policy: A66 含 24 proposed 和 42 deprecated；22 新增转正、2 复用转正、42 复用正式目标并保留迁移兼容条目；B105/C3 不处理。
+  policy: 本源只处理 A66 与漏登；B105 由 meta.design_decisions 接入；原 C3 不给结论。
+  missing_count: 60
+  design_decisions: decisions-recon-b.yaml
 sources:
   S001:
     file: docs/modernization/rules/decide/answers/NM4.json
@@ -102,6 +106,8 @@ sources:
       note: 区域是介于项目和公司之间的一层组织，属于变动频率较高的一层，目前有区域和事业部之分。
       recommended: false
       submitted: '2026-10-15T20:21:12.166Z'
+    reviewed_note: 区域是介于项目和公司之间的一层组织，属于变动频率较高的一层，目前有区域和事业部之分。
+    note_review_reason: F1-05 的区域层级说明与已选项一并逐字核对；不以默认推荐替代说明。
   S007:
     file: docs/modernization/rules/decide/answers/FD.json
     question: FD~FD-33
@@ -142,18 +148,8 @@ sources:
     submission: null
     sha256: 8b4f7320e0b9ba1ed576cc7854f0ba2a158eff8a4a73e7279acc469895fb2f5d
     evidence:
-      text: '## 原话
-
-
-        我们存在三套费率，标准成本费率用于签约后交付阶段；在售前阶段我们采用的是计费费率，是标准成本费率乘系数，还有一套费率是实际成本费率，用于核算
-
-
-        ## 落点
-
-
-        售前报价用计费费率（= 标准成本费率 × 系数，记所用版本）；三套费率用语交 one-glossary；费率表作为售前与成本共同上游的配置，避免依赖成环（PRESALES_AGGREGATES 第 3 稿）
-
-        '
+      text: 我们存在三套费率，标准成本费率用于签约后交付阶段；在售前阶段我们采用的是计费费率，是标准成本费率乘系数，还有一套费率是实际成本费率，用于核算
+    content_sha256: 0131e42da30e76049094520c38f8702e37f523a758e0434b61cbde026950b757
   S010:
     file: docs/modernization/rules/decide/answers/FD.json
     question: FD~FD-23
@@ -178,19 +174,12 @@ sources:
     submission: null
     sha256: 3c5cf9fe1be21be8725a4f9d9bb3eab01ee56c960551aef6b726e0c59d0d514d
     evidence:
-      text: '## 原话
-
-
-        锁定对照标准与 ADR-0047 修订确认页提交：L-1、L-2、L-4 至 L-12 选推荐项；L-3 改选「新建 architecture/business/」（说明：放当前仓库）
-
-
-        ## 落点
-
-
-        两层映射采纳（METHOD 第④步第 7 条）；聚合实现做法写成方法规则；三份定稿 SSOT 文件放新建的 docs/modernization/architecture/business/（非推荐）；信息图与聚合转写 YAML、脚本并入 build_all --check；提议稿不进 SSOT；总线矩阵行改称度量事件（随最终 ADR 修订 ADR-0041）；BC
-        释义改为语言与模型一致范围、不变量决定聚合；成本读已过账事实；Vernon 与 PMBOK 未核实参照删去；三条无出处写法确认；推出项认可；另立小 ADR 修订 ADR-0047 第 5 条第 4 点等三处（交付物不再有视为同意状态）
-
-        '
+      text: 锁定对照标准与 ADR-0047 修订确认页提交：L-1、L-2、L-4 至 L-12 选推荐项；L-3 改选「新建 architecture/business/」（说明：放当前仓库）
+      rulings:
+      - 总线矩阵行改称度量事件（随最终 ADR 修订 ADR-0041）
+    content_sha256: de6cb96cc4201cabf8e1b1c9d14fc5a00be8447700f22195cabed43be6fe7ece
+    ruling_clauses:
+    - 总线矩阵行
   S012:
     file: docs/modernization/rules/decide/answers/GL2.json
     question: GL2~B2-X10
@@ -281,19 +270,10 @@ sources:
     submission: null
     sha256: 57e7636e5133e450d21197b3664ed8b1a272c7b6bceb15505450b567601c9425
     evidence:
-      text: '## 原话
-
-
-        财务确认单第 2 版答复的 13 处分歧（用户逐条选择）：A1 FQ-02 改为时点履行并请审计师书面确认；A2 维持两账同时关账、吸收财务三项检查；A3 个独与工抵卡不计入报表现金流量、经营分析另设资金流指标；A4 FQ-03 按财务方案收付只在开票时记销项；A5 FQ-21 首付款按合同条款分流；A6 质保金与工抵按性质分开记账、另设专项台账；A7
-        签约前投入先挂账、超 N 个月未签约自动转费用；A8 期初用期初调整分录补差；A9 维持一次切换；A10 现金口径变更年度附注披露；A11 保理按追索权分流、管理回款单列；A12 维持现金标注加间接法；A13 设第 13 期只收年度审计调整
-
-
-        ## 落点
-
-
-        规则卡 GL_FINANCE_DECISIONS（D17-6、D17-8、GL-026、GL-051 等）随第 4 版问卷修订；A13 须在法定账切换前新立 ADR 取代 GL-124；A1、A10 待审计师书面意见；A4 应收账款与销项税额列两账差异类
-
-        '
+      text: 财务确认单第 2 版答复的 13 处分歧（用户逐条选择）：A1 FQ-02 改为时点履行并请审计师书面确认；A2 维持两账同时关账、吸收财务三项检查；A3 个独与工抵卡不计入报表现金流量、经营分析另设资金流指标；A4 FQ-03
+        按财务方案收付只在开票时记销项；A5 FQ-21 首付款按合同条款分流；A6 质保金与工抵按性质分开记账、另设专项台账；A7 签约前投入先挂账、超 N 个月未签约自动转费用；A8 期初用期初调整分录补差；A9 维持一次切换；A10
+        现金口径变更年度附注披露；A11 保理按追索权分流、管理回款单列；A12 维持现金标注加间接法；A13 设第 13 期只收年度审计调整
+    content_sha256: 75b63a019d50c3eb17780fb38ac41ca4271adb081ff67d0fbd72325c718ffac2
   S018:
     file: docs/modernization/intent/2026-10-16-144613-one-architecture-收入确认事实页第-1-组提交-8.md
     question: ''
@@ -302,19 +282,8 @@ sources:
     submission: null
     sha256: 116f4cb28d3113ee80e317f272fe9ba09e399ed4c4a56f3fb0d4f86a0173e7fd
     evidence:
-      text: '## 原话
-
-
-        收入确认事实页第 1 组提交（8 题）：R-1「只作经营产值，不进财务账」；R-2「多数用客户（开发商）的格式合同」；R-3「企业会计准则」；R-4「没有法定年审」；R-5「缺客户签认或签收（成果交了但没有书面确认）」；R-6「两者都要：我先写印象，再用数据核对」；R-7「多数直接对发包人」，说明「但分包占比越来越高。」；R-8「都有书面委托」
-
-
-        ## 落点
-
-
-        每期估进度为管理产值，Q-04 否决条件 1 不触发，A1（时点）可维持，产值与收入分开登记；解约条款须按客户格式合同分类由法务核对；适用 CAS 14；无法定年审——A1 与 ADR-0047「审计师书面认可」前提须改写为其他把关方式（待起草交用户）；证据补强优先交付回执与阶段签认；计价方式占比待用户写印象并由 one-ops 取计数核对；分包趋势须在合同模型中预留；R-9
-        财务组未提交
-
-        '
+      text: 收入确认事实页第 1 组提交（8 题）：R-1「只作经营产值，不进财务账」；R-2「多数用客户（开发商）的格式合同」；R-3「企业会计准则」；R-4「没有法定年审」；R-5「缺客户签认或签收（成果交了但没有书面确认）」；R-6「两者都要：我先写印象，再用数据核对」；R-7「多数直接对发包人」，说明「但分包占比越来越高。」；R-8「都有书面委托」
+    content_sha256: 343e56c4346970f17c6802793413a246a7b16c292c02e099d23bfae6e4e336de
   S019:
     file: docs/modernization/rules/decide/answers/A1.json
     question: A1~A1-01
@@ -421,19 +390,14 @@ sources:
     submission: null
     sha256: a322d96647d4595051bc36b5aeba7817bdb46475632018a049a0d73ab3d8f79a
     evidence:
-      text: '## 原话
-
-
-        符合性审查确认页提交：F-1 至 F-5 都选第 1 项（推荐）；ADR-0049 批准页选「批准」
-
-
-        ## 落点
-
-
-        F-1 证据挂法：在质量与认可 BC（delivery.acceptance）内加「证据关联」记录，记证据挂哪个交付物或阶段，证据本身只存内容、采集人只存 ID（不新增 BC、不新增边，多一个技术聚合）；F-2 含审批状态的 11 个聚合统一走 platform.approval，各 BC 加依赖边；F-3 劳动合同与离职申请同招聘需求，在 organization.workforce
-        内单级批准；F-4 改 METHOD 第④步第 8 条：分析库订阅也算订阅方，无业务订阅方的事件保留并标「仅分析」；F-5 项目结项流程模块 delivery.closeout（项目结项，Closeout）；ADR-0049 批准成文（视为同意期满判定归收入侧、交付物无视为同意状态，修订 ADR-0047）
-
-        '
+      text: 符合性审查确认页提交：F-1 至 F-5 都选第 1 项（推荐）；ADR-0049 批准页选「批准」
+      rulings:
+      - F-1 证据挂法：在质量与认可 BC（delivery.acceptance）内加「证据关联」记录，记证据挂哪个交付物或阶段，证据本身只存内容、采集人只存 ID（不新增 BC、不新增边，多一个技术聚合）
+      - F-3 劳动合同与离职申请同招聘需求，在 organization.workforce 内单级批准
+    content_sha256: 10fe139f58154209fcd97f6fc03d5e834fe1469f42086c7b1972f2eec69af5d2
+    ruling_clauses:
+    - 'F-1 '
+    - 'F-3 '
   S026:
     file: docs/modernization/intent/2026-10-15-202939-one-architecture-售前业务对象问题页保存-线索单独.md
     question: ''
@@ -442,18 +406,9 @@ sources:
     submission: null
     sha256: dcd5feaa772924cc714ff2d3cf9d62d099276b2563eec5f5375bdf2d863a65c6
     evidence:
-      text: '## 原话
-
-
-        售前业务对象问题页保存：线索单独登记，确认后才建商机；线索来源有招标公告、老客户再委托、介绍、主动开发、市场活动、内部推荐；大部分项目要投标；投标是独立过程，报价只是其中一部分；一个商机经常多轮报价；丢单要记原因；框架协议偶尔用（约 40% 是战略客户，战略协议约定单价，具体项目仍签约并采用协议价格）；签约前先行投入常见；分包合同要在新系统管；需要按客户集团汇总；负责人是销售，商机阶段交付团队和方案团队提交方案、辅助投标，商务谈判由公司管理层参与
-
-
-        ## 落点
-
-
-        售前到签约信息图（architecture/proposals/）；页面 https://claude.ai/artifact/YCApcxzQgznsU7kDsZMFss （db decisions/presales-objects）
-
-        '
+      text: 售前业务对象问题页保存：线索单独登记，确认后才建商机；线索来源有招标公告、老客户再委托、介绍、主动开发、市场活动、内部推荐；大部分项目要投标；投标是独立过程，报价只是其中一部分；一个商机经常多轮报价；丢单要记原因；框架协议偶尔用（约
+        40% 是战略客户，战略协议约定单价，具体项目仍签约并采用协议价格）；签约前先行投入常见；分包合同要在新系统管；需要按客户集团汇总；负责人是销售，商机阶段交付团队和方案团队提交方案、辅助投标，商务谈判由公司管理层参与
+    content_sha256: 1027a273ca9a318a4045dd2e0805ebd94f6b9ef97160f59373b523b079a8991d
   S027:
     file: docs/modernization/intent/2026-10-15-210513-one-architecture-售前聚合与-BC-确认页保存-一.md
     question: ''
@@ -462,19 +417,9 @@ sources:
     submission: null
     sha256: 799d901ed8175251226bd14007bff0fab5ca487e805adfd0537a5cfaef707dad
     evidence:
-      text: '## 原话
-
-
-        售前聚合与 BC 确认页保存：一个商机按标段分报价链、商机与合同 1:N；项目可先于合同建立，合同—项目关联由合同登记、多对多；有限额的战略协议即框架协议，提交审批占用、回签后超额只预警，只定单价型为协议价目，承诺量只做度量；保证金在应收里管、6b 前先做登记；售前合为一个 BC；开新 ADR 合并合同三个 BC（保留签证、索赔）并把往来单位提前到
-        6a 之前。备注：TOGAF 的价值流和价值流阶段等所有业务对象梳理完毕再来？子域如何划分？
-
-
-        ## 落点
-
-
-        architecture/proposals/PRESALES_AGGREGATES.md；页面 https://claude.ai/artifact/RXUryW6oyUQTDi1v8rT2c4 （db decisions/presales-aggregates）；新 ADR 待起草
-
-        '
+      text: 售前聚合与 BC 确认页保存：一个商机按标段分报价链、商机与合同 1:N；项目可先于合同建立，合同—项目关联由合同登记、多对多；有限额的战略协议即框架协议，提交审批占用、回签后超额只预警，只定单价型为协议价目，承诺量只做度量；保证金在应收里管、6b
+        前先做登记；售前合为一个 BC；开新 ADR 合并合同三个 BC（保留签证、索赔）并把往来单位提前到 6a 之前。备注：TOGAF 的价值流和价值流阶段等所有业务对象梳理完毕再来？子域如何划分？
+    content_sha256: 0b07c63364f2b6ab692ec6e3e5cb6922e8eb25b444990f2ec222f44602fd50eb
   S028:
     file: docs/modernization/rules/decide/answers/GL.json
     question: GL~B2-A27
@@ -515,18 +460,18 @@ sources:
     submission: null
     sha256: c60cc34b08dc66043aadc47912b9ea5ef7837051a7c0ddde3706152eae000576
     evidence:
-      text: '## 原话
-
-
-        阶段写实、对象回补与 ADR-0048 确认页提交：8 题均选推荐项（ADR48 批准）
-
-
-        ## 落点
-
-
-        ADR-0048 批准；商业汇票作收款方式「商票」加到期日与兑付状态（收到 → 已兑付 / 逾期），不单独成对象；客户反馈与投诉：成果问题归不符合项、过程问题归项目风险与问题；法律纠纷：往来款项加「争议」状态与「诉讼」分类；培训：继续教育学时作注册执业证书属性；阶段目录加「检查」类别下挂五个阶段类型；检查计划到期只作提醒、人工转线索或商机另签协议，按周期或按次结算用协议付款节点；施工图审查作证据类型（审查意见与合格书），挂交付物或阶段
-
-        '
+      text: 阶段写实、对象回补与 ADR-0048 确认页提交：8 题均选推荐项（ADR48 批准）
+      rulings:
+      - 商业汇票作收款方式「商票」加到期日与兑付状态（收到 → 已兑付 / 逾期），不单独成对象
+      - 法律纠纷：往来款项加「争议」状态与「诉讼」分类
+      - 培训：继续教育学时作注册执业证书属性
+      - 施工图审查作证据类型（审查意见与合格书），挂交付物或阶段
+    content_sha256: 06d40b3b27915f44eb73b6316fe1638dd9d209d14adba80777a6637d65eeb84a
+    ruling_clauses:
+    - 商业汇票
+    - 法律纠纷
+    - 培训
+    - 施工图审查
   S031:
     file: docs/modernization/intent/2026-10-15-234418-one-architecture-答复复核-R1–R5-提交-已提.md
     question: ''
@@ -535,19 +480,12 @@ sources:
     submission: null
     sha256: c617eb365605549c37530aedcf7e24129936190696f77acb9fd67cd126d4d3b9
     evidence:
-      text: '## 原话
-
-
-        答复复核 R1–R5 提交（「已提交」）
-
-
-        ## 落点
-
-
-        R1 各法人企业规模交财务按划型标准逐个核定；R2 确认市场活动、资源需求与分配、考勤原始记录、交付计划基线四项首版都建；R3 管理口径以回签为界，会计保留 A7（立项后回签前履约投入先挂合同履约成本，超 N 个月转费用，N 交财务）；R4 起草 ADR-0016 决定 4 修订（视为同意可作收入证据，附送达与期满证据，期间取期满日所在月，审计师书面认可为生效前提）；R5
-        建设工程为一个对象，竣工在用后即受检对象、跨业主延续
-
-        '
+      text: 答复复核 R1–R5 提交（「已提交」）
+      rulings:
+      - R5 建设工程为一个对象，竣工在用后即受检对象、跨业主延续
+    content_sha256: 0abaa30fe8ef4c09f78509631e979819c8afb4a71b81527433390c4ee04cd775
+    ruling_clauses:
+    - 'R5 '
   S032:
     file: docs/modernization/intent/2026-10-16-061232-one-architecture-阶段类型与-BC-划分确认页提交.md
     question: ''
@@ -556,19 +494,12 @@ sources:
     submission: null
     sha256: 8505a945d95a0df18718014f11ffde4c9c4274ebc6a8c95effe4d95adb469374
     evidence:
-      text: '## 原话
-
-
-        阶段类型与 BC 划分确认页提交（14 题全部作答，无说明）
-
-
-        ## 落点
-
-
-        S1 全局阶段目录＋服务产品组合与显示名；S1b 按协议范围在 WBS 裁剪；S2 门全部只预警留痕、审定走审批不挡下一阶段；S3 阶段只表示工作进程、与商务分界脱开（成本分界按 R3 回签）；S4 外部阶段码表只作对照；S5 合同范围条目挂阶段节点或子项；S6 检查类服务产品只启用招采、施工或自有子阶段；D-1 协议按收入侧（合同 BC）、供方侧（采购分包）、劳动合同（人事）分；D-2
-        改选新命名空间两个 BC：往来单位（含外部工程登记）、服务与定价目录；D-3 改选三个 BC：交付执行、质量与认可、检查；D-4 独立性检查在售前拦截；D-5 激励并入薪酬、请假加班考勤记录另建 BC、考勤只留工作日历；D-6 工作包未发布可删、已发布只作废；D-8 视为同意期满判定改到 receivables.wip
-
-        '
+      text: 阶段类型与 BC 划分确认页提交（14 题全部作答，无说明）
+      rulings:
+      - D-8 视为同意期满判定改到 receivables.wip
+    content_sha256: 36ff5b9874c4fcf0c0b13c321ec423901089dbd16eda6d2cd76ce006cff39668
+    ruling_clauses:
+    - 'D-8 '
   S033:
     file: docs/modernization/adr/src/ADR-0049.md
     question: 决定
@@ -577,7 +508,12 @@ sources:
     submission: null
     sha256: 39b5e6cf061f8a657213784d9e9b598a29bbe270a51799e96b97299b8d8c8811
     evidence:
-      clause: ''
+      clause: '2'
+      text: 2. **期满判定归收入侧**（D-8）：期满日由 `receivables.wip` 按合同审查期参数与交付侧送达日计算；期满且交付侧已有项目经理的无异议声明、该轮未被退回，`receivables.wip` 才认定视为同意成立，形成第
+        6 类收入确认证据并发布视为同意事件（聚合稿暂名「视为同意已成立」，名称交 one-glossary）。`receivables.wip` 经 api 读交付侧，并订阅交付侧的送达、退回与「无异议已声明」事件（B-08 → B-28
+        已有边，方式 api、事件），不新增边。
+    selector: '2'
+    content_sha256: 1dce5ffa88dce4076eeb253fb0da248f93c80f398a69c500da86cbcdb3418626
   S034:
     file: docs/modernization/intent/2026-10-16-072440-one-architecture-对象完整性与方法第-4-稿确认页.md
     question: ''
@@ -586,19 +522,14 @@ sources:
     submission: null
     sha256: 81b92b24fd43cc12de4fb9c20368b166fe7d7d5d7c0c27d9da15aa29901520a3
     evidence:
-      text: '## 原话
-
-
-        对象完整性与方法第 4 稿确认页提交（19 题全答；M-4 说明：「知识文档能不能算作对象？」）
-
-
-        ## 落点
-
-
-        C-1 新增次级对象客户活动；C-2 客户满意度调查；C-3 项目复盘（可被以后报价引用）；C-4 项目风险与问题；C-5 绩效评估；C-6 项目级别作项目属性、立项定级走审批；C-7 知识资产不建对象；C-8 成本更新表是完工估算的更新；D-7 提前把 accounting.tax 拆为独立 BC，先只含进项发票与入账占用（改选，非推荐）；D-9
-        新建无聚合的项目结项流程模块；INV-62 主任职不重叠、兼职不设上限；Q29 证据取宽口径；M-1 7 步；M-2 通则；M-3 方向规则与两条测试；M-4 km.knowledge 保持现状（改选，非推荐）；M-5 按判据改深；M-6 手册七段即价值流阶段、门按对象状态重写；M-7 同时起草两份 ADR
-
-        '
+      text: 对象完整性与方法第 4 稿确认页提交（19 题全答；M-4 说明：「知识文档能不能算作对象？」）
+      rulings:
+      - D-7 提前把 accounting.tax 拆为独立 BC，先只含进项发票与入账占用（改选，非推荐）
+      - Q29 证据取宽口径
+    content_sha256: 46704fa3c4a66eda7935717d63ba7fcdd70a68b4426f6a17482049f5b83ac81b
+    ruling_clauses:
+    - 'D-7 '
+    - 'Q29 '
   S035:
     file: docs/modernization/intent/2026-10-15-205406-one-architecture-售前信息图确认页保存-合同与项目.md
     question: ''
@@ -607,18 +538,8 @@ sources:
     submission: null
     sha256: a9a3f93e14eabf312de012a278d4517f465d2cf5cfb19e57c9f468e07dba9957
     evidence:
-      text: '## 原话
-
-
-        售前信息图确认页保存：合同与项目分开；风险交付登记 + 度量 + 预警；报价只有版本链；所有竞争性采购建投标，商机会多次投标、会做联合体；保证金要管；战略协议两种都有（只定单价、有限额或承诺量）；回签即生效；线索关闭保留无价值关闭、挂起、公海池；分类两套；线索不强制建客户、虚拟客户不迁；客户与供应商共用单位档案分角色；丢单记竞争对手、中标单位、中标价；市场活动作为来源记录；投标与编方案的工时费用记到商机、赢单后转入项目
-
-
-        ## 落点
-
-
-        architecture/proposals/PRESALES_INFO_MAP.md；页面 https://claude.ai/artifact/E81Q66FndvdBFSA4ufVrvH （db decisions/presales-info-map）；下一步聚合与 BC 推导
-
-        '
+      text: 售前信息图确认页保存：合同与项目分开；风险交付登记 + 度量 + 预警；报价只有版本链；所有竞争性采购建投标，商机会多次投标、会做联合体；保证金要管；战略协议两种都有（只定单价、有限额或承诺量）；回签即生效；线索关闭保留无价值关闭、挂起、公海池；分类两套；线索不强制建客户、虚拟客户不迁；客户与供应商共用单位档案分角色；丢单记竞争对手、中标单位、中标价；市场活动作为来源记录；投标与编方案的工时费用记到商机、赢单后转入项目
+    content_sha256: b5ad90cb740c191e3032c516db21dfeecf45885b5f3ccfd41bd50872c778bc49
   S036:
     file: docs/modernization/glossary/decisions-gate-R-1b-0.json
     question: GATE-R-1b-0-G03
@@ -787,7 +708,55 @@ sources:
     submission: CAPINFO-20261017-111010-cfy
     sha256: 21211f7d4b8d9aeaf3b41123492b673cb01944258b02a1aed5f7d541fe94f18f
     evidence:
-      confirmed: 2026-10-17（用户授权登记；one-architecture 对象移交，提交 CAPINFO-20261017-111010-cfy）
+      answer:
+        key: CAPINFO~OBJ-122
+        label: 假期余额账户
+        en: LeaveBalanceAccount
+        bc: organization.leave
+        submission: CAPINFO-20261017-111010-cfy
+        noun_refs:
+        - OBJ-122
+        terms:
+        - leave_balance_account
+        verbs: []
+        effect: 合并 leave_balance 提议的业务内容，按 CAPINFO 已确认对象定名转正；提议源保留，通知所属会话删除原条目。
+      terms:
+      - op: add
+        source: CAPINFO~OBJ-122
+        answers:
+        - CAPINFO~OBJ-122
+        term:
+          id: leave_balance_account
+          zh: 假期余额账户
+          en: LeaveBalanceAccount
+          snake: leave_balance_account
+          kind: aggregate
+          scope: domain
+          bc: organization.leave
+          definition: 一名人员在一个假期类型、一个年度内的余额账户，承载额度核定、使用、结转、折算与手工调整；记录应享、已用及占用（待批请假）三项数量，守住「已用加占用不超过应享」。本概念的账户指假期额度载体，与会计账户区分。
+          standard_ref:
+          - ../../.codex-inputs/CAPINFO_NEWTERMS.md OBJ-122
+          - backend/glossary/proposed/enterprise-aggregates.yaml terms[id=leave_balance]
+          - ENTERPRISE_AGGREGATES_DRAFT.md AGG-71
+          - 《职工带薪年休假条例》
+          confidence: medium
+          aliases:
+          - name: 假期余额
+            type: standard-zh
+            deprecated: true
+            context: organization.leave
+            source: backend/glossary/proposed/enterprise-aggregates.yaml#leave_balance
+            note: 原提议中文名；本对象首选名按 CAPINFO 改为假期余额账户，不全局禁用假期余额。
+          - name: LeaveBalance
+            type: old-code
+            deprecated: true
+            source: backend/glossary/proposed/enterprise-aggregates.yaml#leave_balance
+            note: 原提议英文名；CAPINFO 已确认对象采用 LeaveBalanceAccount，保留旧英文供追溯。
+          forbidden: []
+          status: approved
+          confirmed: 2026-10-17（用户授权登记；one-architecture 对象移交，提交 CAPINFO-20261017-111010-cfy）
+          note: NAM-1017-GLO-02 返工第1轮；合并原提议 leave_balance 的数量边界与标准依据，CAPINFO 的账户叫法取代原提议否定账户的说明；organization.leave 已在 bcs.yaml
+            登记。按本卡保留提议源的要求，以正式名称对应 id 登记并在 N9_WRITEBACK.md 交接原提议删除；不另批准业务实现。
   S047:
     file: docs/modernization/glossary/arch-naming/CAPINFO_NEWTERMS.md
     question: OBJ-122
@@ -796,9 +765,11 @@ sources:
     submission: CAPINFO-20261017-111010-cfy
     sha256: 4ad623d573cd9b21ff06e12a70fbf20f16080a9b04d0a8e6aa31f566e9cdbfa9
     evidence:
-      at: '2026-10-17'
-      questions: CAPINFO-I02/I05/I07/I08/I09/C13
+      row: '| OBJ-122 | 假期余额账户 | LeaveBalanceAccount | organization.leave | 领域 domain；人员 × 假期类型 × 年度账户及核定、使用、结转、折算、手工调整依据
+        |'
+      questions: CAPINFO-I02、CAPINFO-I05、CAPINFO-I07、CAPINFO-I08、CAPINFO-I09、CAPINFO-C13
       submission: CAPINFO-20261017-111010-cfy
+      at: '2026-10-17'
   S048:
     file: docs/modernization/glossary/decisions-nm.yaml
     question: CAPINFO~OBJ-123
@@ -807,7 +778,56 @@ sources:
     submission: CAPINFO-20261017-111010-cfy
     sha256: 21211f7d4b8d9aeaf3b41123492b673cb01944258b02a1aed5f7d541fe94f18f
     evidence:
-      confirmed: 2026-10-17（用户授权登记；one-architecture 对象移交，提交 CAPINFO-20261017-111010-cfy）
+      answer:
+        key: CAPINFO~OBJ-123
+        label: 人员薪酬档案
+        en: EmployeeCompensationProfile
+        bc: organization.payroll
+        submission: CAPINFO-20261017-111010-cfy
+        noun_refs:
+        - OBJ-123
+        terms:
+        - employee_compensation_profile
+        verbs: []
+        effect: 合并 employee_compensation 提议的业务内容，按 CAPINFO 已确认对象定名转正；提议源保留，通知所属会话删除原条目。
+      terms:
+      - op: add
+        source: CAPINFO~OBJ-123
+        answers:
+        - CAPINFO~OBJ-123
+        term:
+          id: employee_compensation_profile
+          zh: 人员薪酬档案
+          en: EmployeeCompensationProfile
+          snake: employee_compensation_profile
+          kind: aggregate
+          scope: domain
+          bc: organization.payroll
+          definition: 关联人员与任职、按生效日期只追加薪资历史的档案，保留薪酬属性版本（职级、薪档等），供按月开展的薪酬结算引用；专项附加扣除等独立扣除记录另行关联，不并入本档案属性。含敏感个人信息，按 ADR-0043
+            登记访问级别。
+          standard_ref:
+          - ../../.codex-inputs/CAPINFO_NEWTERMS.md OBJ-123
+          - backend/glossary/proposed/enterprise-aggregates.yaml terms[id=employee_compensation]
+          - ENTERPRISE_AGGREGATES_DRAFT.md AGG-93
+          - 企业会计准则第 9 号——职工薪酬
+          confidence: medium
+          aliases:
+          - name: 员工薪酬
+            type: standard-zh
+            deprecated: true
+            context: organization.payroll
+            source: backend/glossary/proposed/enterprise-aggregates.yaml#employee_compensation
+            note: 原提议中文名；仅标记本对象旧指称，不全局禁用员工薪酬。
+          - name: EmployeeCompensation
+            type: old-code
+            deprecated: true
+            source: backend/glossary/proposed/enterprise-aggregates.yaml#employee_compensation
+            note: 原提议英文名；CAPINFO 已确认对象采用 EmployeeCompensationProfile，保留旧英文供追溯。
+          forbidden: []
+          status: approved
+          confirmed: 2026-10-17（用户授权登记；one-architecture 对象移交，提交 CAPINFO-20261017-111010-cfy）
+          note: NAM-1017-GLO-02 返工第1轮；合并原提议 employee_compensation 的薪酬版本、敏感分级与标准依据；人员薪酬档案已获 CAPINFO 确认，不沿用旧提议把该首选名列作 dialect
+            的判定，独立扣除记录按本次对象范围分开。按本卡保留提议源的要求，以正式名称对应 id 登记并在 N9_WRITEBACK.md 交接原提议删除；不另批准业务实现。
   S049:
     file: docs/modernization/glossary/arch-naming/CAPINFO_NEWTERMS.md
     question: OBJ-123
@@ -816,9 +836,11 @@ sources:
     submission: CAPINFO-20261017-111010-cfy
     sha256: 4ad623d573cd9b21ff06e12a70fbf20f16080a9b04d0a8e6aa31f566e9cdbfa9
     evidence:
-      at: '2026-10-17'
-      questions: CAPINFO-I02/I05/I07/I08/I09/C13
+      row: '| OBJ-123 | 人员薪酬档案 | EmployeeCompensationProfile | organization.payroll | 领域 domain；按生效日期只追加薪资历史；关联人员、任职、薪酬结算与独立扣除记录
+        |'
+      questions: CAPINFO-I02、CAPINFO-I05、CAPINFO-I07、CAPINFO-I08、CAPINFO-I09、CAPINFO-C13
       submission: CAPINFO-20261017-111010-cfy
+      at: '2026-10-17'
   S050:
     file: docs/modernization/glossary/decisions-round3-2026-10-15.json
     question: R3-NU-06
@@ -1211,13 +1233,13 @@ sources:
     submission: null
     sha256: fe57182e5ec220639b5a41cd4890874c8dc96c99ff89ca90986756f6408897c6
     evidence:
-      definition: 工时审批中由部门负责人办理的节点，对应售前工时；审批人是售前对象归属部门在组织架构登记的部门负责人（D5-06）
-      en: OrgUnitHeadApproval
-      id: regional_head_approval
       op: rename
-      source: 用户 2026-10-15 工时审批路径决策页 D5-06（intent 2026-10-15-222619-one-rules-工时审批路径决策页第二组-D5）；用户：节点与用语改称「部门负责人审批」
+      id: regional_head_approval
       to_id: org_unit_head_approval
       zh: 部门负责人审批
+      en: OrgUnitHeadApproval
+      definition: 工时审批中由部门负责人办理的节点，对应售前工时；审批人是售前对象归属部门在组织架构登记的部门负责人（D5-06）
+      source: 用户 2026-10-15 工时审批路径决策页 D5-06（intent 2026-10-15-222619-one-rules-工时审批路径决策页第二组-D5）；用户：节点与用语改称「部门负责人审批」
   S075:
     file: docs/modernization/rules/decide/answers/D5.json
     question: D5~D5-06
@@ -1466,13 +1488,13 @@ sources:
     submission: null
     sha256: 46e584f7986860e429f3e0e403fa8bfa86864564c361f7db68a900a308dbb8b9
     evidence:
-      at: '2026-10-14T08:01:17.342Z'
-      choice: formal
-      en: OrgUnit
       item: C114
-      note: ''
-      renameTo: ''
       zh: 组织单元
+      en: OrgUnit
+      choice: formal
+      renameTo: ''
+      note: ''
+      at: '2026-10-14T08:01:17.342Z'
   S091:
     file: docs/modernization/glossary/decisions-round3-2026-10-15.json
     question: R3-AP-09
@@ -1576,7 +1598,104 @@ sources:
     submission: NM2-20261017-105418-xsj
     sha256: 21211f7d4b8d9aeaf3b41123492b673cb01944258b02a1aed5f7d541fe94f18f
     evidence:
-      confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+      answer:
+        key: NM2~NM2-10
+        label: 分开叫，凭证承载会计分录
+        choice: 0
+        submission: NM2-20261017-105418-xsj
+        noun_refs:
+        - N5-005
+        - N5-008
+        terms:
+        - journal_entry
+        - controlled_manual_voucher
+        - journal_voucher
+        verbs: []
+        effect: journal_entry、journal_voucher、controlled_manual_voucher 区分借贷内容与凭证载体。
+      terms:
+      - op: add
+        source: N5-005
+        answers:
+        - NM2~NM2-07
+        - NM2~NM2-10
+        term:
+          id: journal_entry
+          zh: 会计分录
+          en: JournalEntry
+          snake: journal_entry
+          kind: aggregate
+          bc: accounting.ledger
+          scope: domain
+          definition: 一次经济业务的借贷科目及金额记录；由记账凭证承载，区别于承载制单、审核和记账的整张凭证。
+          standard_ref:
+          - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-84
+          - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-98
+          - docs/modernization/glossary/arch-naming/objects-draft.yaml terms[id=journal_entry]
+          confidence: low
+          note: N9 名词写回（N5-005）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+          aliases: []
+          forbidden: []
+          status: approved
+          confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+      - op: add
+        source: N5-008
+        answers:
+        - NM2~NM2-22
+        - NM2~NM2-10
+        term:
+          id: controlled_manual_voucher
+          zh: 受控手工凭证
+          en: ControlledManualVoucher
+          snake: controlled_manual_voucher
+          kind: aggregate
+          bc: accounting.ledger
+          scope: domain
+          definition: 财务附理由与附件并经复核审批后提交过账的手工记账凭证，承载会计分录；分录与凭证分开命名。
+          standard_ref:
+          - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md §2.2 AGG-98
+          confidence: medium
+          note: N9 名词写回（N5-008）；kind 与英文沿用设计草稿，中文认可不批准聚合边界、版本合并、权限或实现。
+          aliases: []
+          forbidden: []
+          status: approved
+          confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+      - op: update
+        source: 既有概念 journal_voucher
+        answers:
+        - NM2~NM2-10
+        term:
+          id: journal_voucher
+          zh: 记账凭证
+          en: JournalVoucher
+          snake: journal_voucher
+          kind: aggregate
+          bc: accounting.ledger
+          definition: 记账凭证承载会计分录，并承载制单、审核与记账信息，可追溯来源业务事件；主权在 accounting.ledger，与其中的借贷记录会计分录分开。
+          standard_ref:
+          - 会计基础工作规范（财政部）
+          confidence: high
+          aliases:
+          - name: VoucherDO / U8cVoucherDO
+            type: legacy-code
+            deprecated: true
+          - name: psa_voucher* / psa_u8c_voucher
+            type: legacy-table
+            deprecated: true
+          - name: AccountingVoucherText
+            type: old-code
+            deprecated: true
+            source: 第三轮并入（R3-AP-26）
+          - name: 会计凭证
+            type: dialect
+            deprecated: true
+          forbidden:
+          - 会计凭证
+          status: approved
+          core: true
+          confirmed: 2026-10-17（用户，命名第 2 批确认页，提交 NM2-20261017-105418-xsj）
+          scope: domain
+        fields:
+        - definition
 missing:
 - 'no': 1
   zh: 个人所得税申报
@@ -1840,6 +1959,7 @@ missing:
   zh: 视为同意
   sources:
   - S032
+  - S033
   result: registered
   target: deemed_acceptance
 - 'no': 44
@@ -2516,7 +2636,8 @@ terms:
     confidence: medium
     aliases: []
     forbidden: []
-    note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+    note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。；Q29 按宽口径登记，中文「证据」及定义已裁定；英文 AcceptanceEvidence
+      为设计候选，尚待确认，用户裁定不涵盖此英文指称。
 - op: add
   sources:
   - S026
@@ -2746,7 +2867,8 @@ terms:
     forbidden: []
     id: counterparty
     kind: aggregate
-    note: 与 presales.customer 的 customer（客户）定义同源，处置见确认单 B2-X02；英文 Counterparty 取 IFRS 9 通行写法；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+    note: 与 presales.customer 的 customer（客户）定义同源，处置见确认单 B2-X02；英文 Counterparty 取 IFRS 9 通行写法；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc
+      按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
     scope: domain
     snake: counterparty
     standard_ref:
@@ -2876,7 +2998,8 @@ terms:
     forbidden: []
     id: input_invoice
     kind: aggregate
-    note: bc accounting.tax 须先登记入 bcs.yaml（ADR-0022 第 7 条）；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+    note: bc accounting.tax 须先登记入 bcs.yaml（ADR-0022 第 7 条）；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules
+      定稿；不以用语登记另批业务对象边界。
     scope: domain
     snake: input_invoice
     standard_ref:
@@ -2942,7 +3065,8 @@ terms:
     forbidden: []
     id: migration_tie_out
     kind: entity
-    note: 不用 Reconciliation：已批准术语「经营勾稽」Reconciliation 指跨口径对账；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+    note: 不用 Reconciliation：已批准术语「经营勾稽」Reconciliation 指跨口径对账；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules
+      定稿；不以用语登记另批业务对象边界。
     scope: acl
     snake: migration_tie_out
     standard_ref:
@@ -3027,7 +3151,8 @@ terms:
     forbidden: []
     id: revenue_recognition_line
     kind: entity
-    note: 与词表 revenue_recognition（收入确认单，聚合）的关系见确认单 B2-X06；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+    note: 与词表 revenue_recognition（收入确认单，聚合）的关系见确认单 B2-X06；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules
+      定稿；不以用语登记另批业务对象边界。
     scope: domain
     snake: revenue_recognition_line
     standard_ref:
@@ -3053,7 +3178,7 @@ terms:
     forbidden: []
     id: role_deleted
     kind: domain_event
-    note: 事件目录称「角色删除」；「删除」属技术泛词，业务说法（废除/撤销）待用户确认；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+    note: GL B2-B06 已裁定「角色已废除 / RoleAbolished」；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
     scope: domain
     snake: role_abolished
     standard_ref:
@@ -3159,6 +3284,7 @@ terms:
     confirmed: 2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B09）
 - op: update
   fields:
+  - zh
   - en
   - aliases
   - snake
@@ -3174,13 +3300,19 @@ terms:
       type: old-code
       deprecated: true
       source: docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
+    - name: ECL 预警
+      type: standard-zh
+      deprecated: true
+      source: GL~B2-B09
     snake: ecl_alerted
     standard_ref:
     - docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
     note: NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
     confirmed: 2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B09）
+    zh: 预期信用损失已预警
 - op: update
   fields:
+  - zh
   - en
   - aliases
   - snake
@@ -3196,13 +3328,19 @@ terms:
       type: old-code
       deprecated: true
       source: docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
+    - name: 质量保证金到期返还
+      type: standard-zh
+      deprecated: true
+      source: GL~B2-B09
     snake: retention_money_release_due_reached
     standard_ref:
     - docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
     note: NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
     confirmed: 2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B09）
+    zh: 质量保证金返还已到期
 - op: update
   fields:
+  - zh
   - en
   - aliases
   - snake
@@ -3218,13 +3356,19 @@ terms:
       type: old-code
       deprecated: true
       source: docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
+    - name: 收入冲减
+      type: standard-zh
+      deprecated: true
+      source: GL~B2-B09
     snake: revenue_reduced
     standard_ref:
     - docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
     note: NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
     confirmed: 2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B09）
+    zh: 收入已冲减
 - op: update
   fields:
+  - zh
   - en
   - aliases
   - snake
@@ -3240,11 +3384,16 @@ terms:
       type: old-code
       deprecated: true
       source: docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
+    - name: 规则执行
+      type: standard-zh
+      deprecated: true
+      source: GL~B2-B09
     snake: rule_executed
     standard_ref:
     - docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
     note: NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
     confirmed: 2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B09）
+    zh: 规则已执行
 - op: update
   fields:
   - en
@@ -3610,6 +3759,7 @@ promotions:
   reason: 同批转正并删除精确 id 的源条目。
   sources:
   - S032
+  - S033
   original:
     aliases: []
     bc: delivery.acceptance
@@ -3627,6 +3777,10 @@ promotions:
     - GF-2015-0209 第 8.1 条
     status: proposed
     zh: 视为同意
+  bc_change:
+    from: delivery.acceptance
+    to: receivables.wip
+    source: S033
 - file: backend/glossary/proposed/enterprise-aggregates.yaml
   id: bid
   target: bid
