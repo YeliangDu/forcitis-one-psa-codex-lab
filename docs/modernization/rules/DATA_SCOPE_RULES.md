@@ -1,4 +1,4 @@
-# Data scope business rules — RULE-387, RULE-393..RULE-396
+# Data scope business rules — RULE-387, RULE-393..RULE-417
 
 Scope: Phase 1a `platform.identity`, data scope of roles whose access scope is `CUSTOM_ORG_UNITS` (ADR-0026 「1a 交付范围」, ADR-0032 第 4–5 项, ADR-0034 第 5 项). These are rules of FORCITIS one itself; the old system had no custom-department scope that survived an org change. Origin: F-1 AEC practice check item 4 (`phase1a/cards/F-1-aec-check.md`, one-1a-par), handed to one-rules by one-coordinator on 2026-10-15; the gap was that a revoked or merged department silently narrowed the scope.
 
@@ -9,6 +9,7 @@ Scope: Phase 1a `platform.identity`, data scope of roles whose access scope is `
 | RULE-394 | identity | An overdue permission adjustment is escalated, never revoked automatically | P0 | No |
 | RULE-395 | identity | Sensitive roles are suspended during leave or secondment of more than 30 days and restored on return | P1 | No |
 | RULE-396 | identity | From 1b, a quote is visible by department scope or to its owner and team members | P1 | No |
+| RULE-417 | identity | A transfer scope review whose new department has no head goes to the organization data administrator, who only forwards it; no business owner field, no expiry | P1 | No |
 
 ### RULE-387: A revoked or merged department in a custom scope raises an alert and a scope review; the reference is kept, never replaced
 **Category:** Policy
@@ -64,4 +65,16 @@ Scope: Phase 1a `platform.identity`, data scope of roles whose access scope is `
 **Specification:**
 - Given a quote of department D with owner O and team member T from department E, When T has a scope of E only, Then T sees the quote; a colleague of T in E who is not on the team does not.
 **Tests:** with the 1b quoting card.
+**Confidence:** High.
+
+### RULE-417: A transfer scope review whose new department has no head goes to the organization data administrator, who only forwards it; no business owner field, no expiry
+**Category:** Policy
+**Priority:** P1
+**Source:** user decision N1-09, 2026-10-17 (intent `2026-10-17-085044-one-rules-N1-页提交-N1-202610.md`, preselected recommendation unchanged); fills a gap in ADR-0044 item 2 point 6, which only says that a scope review from a transfer is handled by the new department's head (one-architecture: not an ADR change, a business detail kept in this card)
+**Plain English:** When a person with a custom-department or listed-legal-entity scope transfers, the new department's head normally decides whether to keep or adjust the scope. If the new department has no head, the entry goes to the organization data administrator, the same path as a scope review caused by a revoked or merged department (RULE-387). The administrator only forwards the entry; keeping or adjusting is still confirmed by the person who needs the scope, and the administrator may name that person in the reason. The entry has no business owner field and no expiry. Generating such an entry is logged as an alert once. If a head is appointed later the entry is not reassigned.
+**Specification:**
+- Given a transfer into a department with no head, When the scope review is generated, Then the recipient is empty, the entry is handled by the organization data administrator, and one alert is logged.
+- Given a head appointed afterwards, Then the entry stays with the administrator.
+- Given the entry is kept, Then no business owner and no expiry are recorded; the reason may name who confirmed.
+**Tests:** with the F-1 card.
 **Confidence:** High.
