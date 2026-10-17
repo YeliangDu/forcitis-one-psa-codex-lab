@@ -159,13 +159,15 @@ else
   report SKIP "system actors append-only" "system-actors.txt and its script did not change"
 fi
 
-if touches '^(backend/src/test/java/com/forcitis/one/acceptance/|backend/src/test/resources/acceptance/|frontend/.*__acceptance__/|scripts/ci/(acceptance_|ci_git))'; then
+if touches '^(backend/src/test/java/com/forcitis/one/acceptance/|backend/src/test/resources/acceptance/|frontend/.*__acceptance__/|docs/modernization/rulings/|scripts/ci/(acceptance_|ci_git))'; then
   run_step "acceptance guard (self-test)" py scripts/ci/acceptance_guard.py --self-test
   run_step "acceptance reports (self-test)" py scripts/ci/acceptance_reports.py --self-test
+  run_step "acceptance rulings (self-test)" py scripts/ci/acceptance_rulings.py --self-test
   if grep -Eq '__acceptance__/|/acceptance/' "$work/uncommitted"; then
     echo "      note: uncommitted acceptance changes are judged only once committed (trailers live in commit messages)"
   fi
   run_step "acceptance guard" py scripts/ci/acceptance_guard.py "$base"
+  run_step "acceptance rulings (report only)" py scripts/ci/acceptance_rulings.py "$base"
 else
   report SKIP "acceptance guard" "no acceptance test changed"
 fi
