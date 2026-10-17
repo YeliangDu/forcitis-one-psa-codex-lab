@@ -16,8 +16,6 @@ import importlib.util, os, subprocess, sys
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 GLOSSARY_INDEX = os.path.join("..", "..", "backend", "glossary", "proposed", "README.md")
-TRACKED_OUTPUTS = ["glossary/terms.yaml", "adr/ADR-*.md", "adr/README.md", "adr/INDEX.md",
-                   "MODERNIZATION_BRIEF.md", "architecture/generated/", GLOSSARY_INDEX]
 CHECK = "--check" in sys.argv
 failures = []
 
@@ -94,7 +92,7 @@ if "--check" in sys.argv:
         fail(f"RULE_REVIEWS.json 修订记录校验失败：\n{r.stdout}")
     else:
         print(f"rules/review_revisions.py: {r.stdout.strip()}")
-    status = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all", "--", *TRACKED_OUTPUTS], cwd=BASE, capture_output=True, text=True)
+    status = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all", "--", ".", GLOSSARY_INDEX], cwd=BASE, capture_output=True, text=True)
     if status.returncode:
         fail("生成产物工作区检查失败：\n" + status.stderr)
     elif status.stdout:
