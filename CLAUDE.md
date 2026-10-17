@@ -21,7 +21,7 @@
 11. 派子代理必须显式指定模型（haiku / sonnet / opus，按任务难度）；委派 Codex 按 SESSION_PLAYBOOK §5「Codex 派工」，派工用 `docs/modernization/templates/WORK_CARD.md`。
 12. 记录只改片段：`INTENT.md`、`SESSION_LOG.md`、`STATUS.md`、`adr/ADR-*.md`、`adr/README.md`、brief 由 `build_all.py` 生成，用 `new_intent.py --session=<会话名>`、`new_log.py <会话名>` 新增片段，不直接编辑生成产物（SESSION_PLAYBOOK §4 第 0 步）。
 13. 交付前运行 `scripts/precheck.sh`，输出贴进 PR「precheck.sh 输出」一栏。
-14. main 受分支保护：只在自己的 worktree 分支上工作并开 PR，不在主检出目录留未提交改动；CI 三项通过后由调度会话 one-coordinator 合并；工作会话结束前向 one-coordinator 报告。用户已决定的事照做，有异议停下报告，不得自行推迟或改变。
+14. main 受分支保护：只在自己的 worktree 分支上工作并开 PR，不在主检出目录留未提交改动；CI 三项通过后由调度会话 one-coordinator 批准入队、one-merge 执行合并；工作会话结束前向 one-coordinator 报告。用户已决定的事照做，有异议停下报告，不得自行推迟或改变。
 15. 会话管理按 SESSION_PLAYBOOK §2.1：新开会话先写或认领画像 `docs/modernization/sessions/<会话名>.md`；一个会话一个工作单元、超过约 8 小时或压缩两次在批次边界交接；`one-*` 命名且不重名；权限模式与调度会话一致；每个完成点向调度会话报告；用户在本会话的决定当场记 intent 并报调度会话；后台任务与持久配置登记台账。
 
 另须遵守：CS-1.8 只实现当前阶段、CS-1.9 当期做对、CS-1.10 契约先行、CS-5.5 / 5.6 测试只断言本模块与确定性等待、CS-7.6 并行子代理同一基线、CS-2.24 通用错误码只在 kernel（编号见 `docs/modernization/CODING_STANDARD.md`）。
