@@ -8,6 +8,7 @@ SELECT pid, usename, application_name FROM pg_stat_activity WHERE datname = 'for
 DROP DATABASE forcitis_one_dev;
 
 -- 角色是实例级；库已删除，角色不再拥有对象
+DROP ROLE one_dev_audit_maintainer;
 DROP ROLE one_dev_app;
 DROP ROLE one_dev_readonly;
 DROP ROLE one_dev_migrator;

@@ -2,6 +2,7 @@ package com.forcitis.one.platform.audit.infrastructure.persistence;
 
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.platform.audit.api.AuditEntry;
+import com.forcitis.one.platform.audit.api.AuditEntryId;
 import com.forcitis.one.platform.audit.domain.AuditEntryRepository;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -34,17 +35,18 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
     }
 
     @Override
-    public void save(AuditEntry entry, Instant createdAt) {
+    public AuditEntryId save(AuditEntry entry, Instant createdAt) {
         String sourceAddress = storableAddress(entry.sourceAddress());
         try {
-            insert(entry, createdAt, sourceAddress);
+            return insert(entry, createdAt, sourceAddress);
         } catch (DataAccessException failure) {
             alertWhenNoPartition(failure, "audit entry", null, createdAt);
             throw failure;
         }
     }
 
-    private void insert(AuditEntry entry, Instant createdAt, String sourceAddress) {
+    private AuditEntryId insert(AuditEntry entry, Instant createdAt, String sourceAddress) {
+        UUID id = ids.next();
         jdbc.sql("""
                         insert into platform_audit.audit_entries (id, created_at, updated_at, action, actor_id, on_behalf_of_id, subject_kind, subject_id, detail,
                                                                   source_address, outcome_kind, login_method_kind,
@@ -52,7 +54,7 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
                         values (:id, :createdAt, :createdAt, :action, :actor, :onBehalfOf, :subjectKind, :subjectId, :detail, :sourceAddress, :outcome, :loginMethod,
                                 :reason, :before, :after)
                         """)
-                .param("id", ids.next())
+                .param("id", id)
                 .param("createdAt", Timestamp.from(createdAt))
                 .param("action", entry.action())
                 .param("actor", entry.actorId() == null ? null : entry.actorId().value(), Types.OTHER)
@@ -67,6 +69,7 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
                 .param("before", entry.beforeText(), Types.VARCHAR)
                 .param("after", entry.afterText(), Types.VARCHAR)
                 .update();
+        return new AuditEntryId(id);
     }
 
     @Override

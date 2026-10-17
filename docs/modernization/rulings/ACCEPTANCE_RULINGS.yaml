@@ -114,3 +114,27 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorWitnessOmissionIT.java
     reason: 单人模式验收前置改为每例新造员工作操作人（断言不变），并新增操作人不存在例
     ref: "#405 评论 issuecomment-6228726676"
+  - id: RULING-COORD-20261017-02
+    date: 2026-10-17
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/LegacyNumberSourceIT.java
+    reason: 目录遍历跳过以「.」开头的隐藏文件（macOS .DS_Store 非 UTF-8 致 MalformedInputException），断言与样本集不变
+    ref: docs/modernization/rulings/COORD-2026-10-17.md
+  - id: RULING-COORD-20261017-03
+    date: 2026-10-17
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/OperationsCommandEmployeeRowOnlyIT.java
+    reason: 依 one-data reviews/DR-TB01-FU1-1.md 新增用例「有员工行、无任职 → 运维证明通过」，不改既有用例断言
+    ref: docs/modernization/rulings/COORD-2026-10-17.md
+  - id: RULING-COORD-20261017-04
+    date: 2026-10-17
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorEndToEndIT.java
+    reason: 子进程用例启动运维命令前，用管理账号对运行时 UTC 当月调用 platform_audit.create_audit_entry_partitions 预建分区（运维档案关了建分区，新库缺当月分区），断言不变，只改前置步骤
+    ref: docs/modernization/rulings/COORD-2026-10-17.md
