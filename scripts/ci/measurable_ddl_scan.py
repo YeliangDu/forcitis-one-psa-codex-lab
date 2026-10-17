@@ -7,10 +7,9 @@ The database must keep the raw material the metrics are built from, so the check
        a column named quantity / qty needs a unit column (`unit_code`, `<x>_unit`), unless the unit is in the name (`_hours`, `_minutes`, `_days`)
   M2 the three times of a business fact: when it happened (business date), when it was booked or confirmed, when it was entered (created_at)
        applies to BUSINESS_DOCUMENT tables (data-access-registry role) and to tables that name a business_date_column
-  M3 state transition history: who, when, from which state to which
-       a table with a status column that has an enumeration CHECK must say where the history lives: a sibling `<table>_status_history` /
-       `<table>_transitions` table, or the registry field `status_history: audit | events | table:<name>` (audit rows carry actor, time and
-       before / after text; events carry the new state and the aggregate version)
+  M3 state transition history: who, when, from which state to which (ADR-0058, proposed: one same-shaped `state_transitions` table per schema)
+       a table with a status column that has an enumeration CHECK needs the schema to have a `state_transitions` table, or the registry
+       field `state_transitions_exempt: <reason>` (exceptions are reviewed row by row); version tables (DIMENSION_VERSIONED) are their own history
   M4 master data keeps validity intervals (source of slowly changing dimensions)
        a MUTABLE AGGREGATE_ROOT / SNAPSHOT / CONFIG table of a master data schema has a versions table in the same schema,
        or the registry field `versioning: none:<reason>`; candidates only: the registry has no data-category field yet (DG-0)
@@ -133,10 +132,9 @@ def scan_all(root):
         status_cols = [c for c in cols if c == "status" or c.endswith("_status")]
         enum_status = [c for c in status_cols if has_enum_check(t, c)]
         if enum_status and entry.get("role") not in ("DIMENSION_VERSIONED",):
-            declared = entry.get("status_history")
-            sibling = any(s in by_schema[schema] for s in (f"{short}_status_history", f"{short}_transitions", f"{short}_status_changes"))
-            if not declared and not sibling:
-                found["M3"].append((f"{name}.{enum_status[0]}", "state column without a declared transition history (registry status_history or a history table)"))
+            exempt = entry.get("state_transitions_exempt")
+            if not exempt and "state_transitions" not in by_schema[schema]:
+                found["M3"].append((f"{name}.{enum_status[0]}", "state column in a schema without a state_transitions table (ADR-0058) and no registry state_transitions_exempt reason"))
         # M4
         if schema in MASTER_SCHEMAS and entry.get("role") in ("AGGREGATE_ROOT", "SNAPSHOT", "CONFIG") and entry.get("mutability") in ("MUTABLE", "REPLACE_SET", None):
             stem = re.sub(r"ies$", "y", short) if short.endswith("ies") else short.rstrip("s")
@@ -184,10 +182,13 @@ CREATE TABLE demo.orders (
     order_status text NOT NULL CHECK (order_status IN ('OPEN','DONE')), created_at timestamptz NOT NULL
 );
 CREATE TABLE demo.customers (id uuid PRIMARY KEY);
+CREATE TABLE demo2.tickets (id uuid PRIMARY KEY, ticket_status text NOT NULL CHECK (ticket_status IN ('NEW','CLOSED')), created_at timestamptz NOT NULL);
+CREATE TABLE demo2.state_transitions (id uuid PRIMARY KEY);
+CREATE TABLE demo3.notes (id uuid PRIMARY KEY, note_status text NOT NULL CHECK (note_status IN ('A','B')));
 CREATE TABLE demo.lines (id uuid PRIMARY KEY, order_id uuid NOT NULL REFERENCES demo.orders (id), unit_code text, line_quantity numeric(10,2), price_currency text, price numeric);
 """)
         open(os.path.join(tmp, "backend", "architecture", "data-access-registry.yaml"), "w", encoding="utf-8").write(
-            "tables:\n  demo.orders:\n    role: BUSINESS_DOCUMENT\n    business_date_column: order_date\n")
+            "tables:\n  demo.orders:\n    role: BUSINESS_DOCUMENT\n    business_date_column: order_date\n  demo3.notes:\n    state_transitions_exempt: technical note, no lifecycle\n")
         found, total, _ = scan_all(tmp)
         items = {k: {i for i, _ in v} for k, v in found.items()}
         assert "demo.orders.total_amount" in items["M1"], "M1 money without currency"
@@ -195,6 +196,8 @@ CREATE TABLE demo.lines (id uuid PRIMARY KEY, order_id uuid NOT NULL REFERENCES 
         assert "demo.lines.line_quantity" not in items["M1"] and "demo.lines.price" not in items["M1"], "M1: unit / currency present"
         assert "demo.orders" in items["M2"], "M2"
         assert "demo.orders.order_status" in items["M3"], "M3"
+        assert "demo2.tickets.ticket_status" not in items["M3"], "M3: the schema has a state_transitions table"
+        assert "demo3.notes.note_status" not in items["M3"], "M3: a registry exemption with a reason"
         assert "demo.orders.customer_id" in items["M5"], "M5: same-schema table without FK"
         assert "demo.lines.order_id" not in items["M5"], "M5: inline REFERENCES counts"
     print("self-test: ok")
