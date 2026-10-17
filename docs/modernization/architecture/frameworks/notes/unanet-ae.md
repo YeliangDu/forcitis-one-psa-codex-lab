@@ -19,7 +19,7 @@
 | UA-QB | UnanetAE_CreatingAnalyticModelsUsingQueryBuilder_PG.pdf | Creating Analytic Models using Query Builder | March 2024 | 30 |
 | UA-DD | UnanetAE_UsingAnalyticDashboardDesigner_PG.pdf | Using Analytic Dashboard Designer | March 2024 | 214 |
 
-原处：用户 Desktop 下的 Unanet-AE-教材 目录。UA-PM 封面 ©2025、正文多页 ©2024；UA-QB 个别内页 ©2023，不据此改写封面修订日期。UA-AP p33 将发票审批限定为 Cloud 客户，初始配置在 Windows 完成；UA-PM p27 将 WBS 模板应用限定为 Desktop。这些是该版资料的适用条件，未实测现行产品。
+原处：用户提供的本地产品手册（不进仓库）。UA-PM 封面 ©2025、正文多页 ©2024；UA-QB 个别内页 ©2023，不据此改写封面修订日期。UA-AP p33 将发票审批限定为 Cloud 客户，初始配置在 Windows 完成；UA-PM p27 将 WBS 模板应用限定为 Desktop。这些是该版资料的适用条件，未实测现行产品。
 
 补充阅读目录另有三份白皮书：Project-Profitability.pdf（题名 The Great Project Profitability Debate，7 页）、Putting-the-ERP-Pieces-Together.pdf（题名 Putting the ERP Pieces Together，6 页）、Revenue-Recognition.pdf（题名 Revenue Recognition，3 页）。本卡只核对其题名、页数与前两页，未发现可据以确认统一修订版的封面日期；不以文件元数据年份或白皮书观点替代以下手册证据，也不把其收入准则表述作为中国会计政策依据。
 

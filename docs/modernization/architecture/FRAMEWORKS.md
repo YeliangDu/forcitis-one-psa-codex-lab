@@ -279,3 +279,16 @@ ARC-1017-ARC-21（2026-10-17）新增的阅读笔记。以下只登记文件、�
 - [silverston-dmrb3.md](frameworks/notes/silverston-dmrb3.md)：Len Silverston、Paul Agnew，The Data Model Resource Book, Volume 3: Universal Patterns for Data Modeling；Wiley Publishing，版权 2009，EPUB 包日期 2011 不替代版权年；已审定（one-architecture 2026-10-18）。
 - [unanet-ae.md](frameworks/notes/unanet-ae.md)：Unanet University，Unanet AE 八份 Participant Guide；封面修订日期分列于笔记，范围 2023-02 至 2026-03，未确认统一产品发布版本；已审定（one-architecture 2026-10-18）。
 - [vantagepoint-2026.md](frameworks/notes/vantagepoint-2026.md)：AEC 项目制服务产品 2026.2 离线资料库对照（与 unanet-ae 并列，成熟产品依据，CLAUDE.md 第 4 条）；只写概括与资料库路径索引，不含源码、DDL 或字段名；已审定（one-architecture 2026-10-18）。
+- [silverston-dmrb1.md](frameworks/notes/silverston-dmrb1.md)：Len Silverston，The Data Model Resource Book, Revised Edition, Volume 1: A Library of Universal Data Models for All Enterprises；John Wiley & Sons，2001。
+- [silverston-dmrb2.md](frameworks/notes/silverston-dmrb2.md)：Len Silverston，The Data Model Resource Book, Revised Edition, Volume 2: A Library of Universal Data Models by Industry Types；John Wiley & Sons，2001。PDF 无可抽取正文，专业服务章选页补充目视核读，未覆盖全书。
+- [hay-dmp.md](frameworks/notes/hay-dmp.md)：David C. Hay，Data Model Patterns: A Metadata Map；Morgan Kaufmann／Elsevier，2006。按匿名 EPUB 的书内题名核定，未冒充 Conventions of Thought。
+- [evans-ddd2003.md](frameworks/notes/evans-ddd2003.md)：Eric Evans，Domain-Driven Design: Tackling Complexity in the Heart of Software；Addison-Wesley，首次印刷 2003-08，版权年 2004。原书 MOBI 离线解析成功，与 2015 Reference 分开登记。
+- [vernon-iddd.md](frameworks/notes/vernon-iddd.md)：Vaughn Vernon，Implementing Domain-Driven Design；Addison-Wesley／Pearson，2013。
+- [khononov-lddd.md](frameworks/notes/khononov-lddd.md)：Vlad Khononov，Learning Domain-Driven Design: Aligning Software Architecture and Business Strategy；O’Reilly，2021 首版，版权年 2022，本地文本列 2024-03-22 第二次发布。
+- [archimate4.md](frameworks/notes/archimate4.md)：The Open Group，ArchiMate 4 Specification，C260；Van Haren Publishing，2026-04，Eighth edition。仅作对照，不因此采用该语言。
+- [archimate4-pocket.md](frameworks/notes/archimate4-pocket.md)：**未能读取对应口袋指南**。桌面候选 PDF 虽有该文件名，书内实际为 C260 规范，与规范 EPUB 重复；本项只留输入缺口及书目核对。
+- [lankhorst-eaw.md](frameworks/notes/lankhorst-eaw.md)：Marc Lankhorst et al.，Enterprise Architecture at Work: Modelling, Communication and Analysis；Second Edition，Springer，2009。
+- [bahri-togaf.md](frameworks/notes/bahri-togaf.md)：Mudar Bahri、Joe Williams；本地 PDF 实际为 Practical Model-Driven Enterprise Architecture: Design a mature enterprise architecture repository using Sparx Systems Enterprise Architect and ArchiMate 3.1，Packt，2022。与文件名所称 Modeling Enterprise Architecture with TOGAF 不同，笔记仅覆盖实际输入。
+- [pmbok6-zh.md](frameworks/notes/pmbok6-zh.md)：Project Management Institute，项目管理知识体系指南（PMBOK 指南）第六版；中文译本电子工业出版社，2018-04 第 1 版；对应英文第六版 2017。
+- [charrett-fidic.md](frameworks/notes/charrett-fidic.md)：Donald Charrett 主编，The International Application of FIDIC Contracts: A Practical Guide；First，Informa Law from Routledge，2020。历史阅读笔记，不作当前法律有效性判断。
+- [bizbok-v9-diff.md](frameworks/notes/bizbok-v9-diff.md)：Business Architecture Guild，BIZBOK Guide Version 9.0，2020-07；只记录与 v11 的相关差异及未核范围，不降低现行 v11 锁定版本。
