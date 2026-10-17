@@ -33,4 +33,16 @@
 - `people/parts/vs0911.events.yaml:29` — 预算占用 → 占用预算（NM6-07#7，command；所属 AGG-80；字段 `emitted_by`）
 - `people/parts/vs13att.commands.yaml:500` — 工作日历锁定日期被修改 → 工作日历锁定日期已修改（NM6-10#11，event；所属 AGG-68；字段 `emits`）
 
-说明：`people/events.yaml:731` 与 `people/parts/vs0911.events.yaml:29` 是同一槽（合并产物与分部源文件），回写时两处都改；`commands.yaml:2188` 与 `parts/vs13att.commands.yaml:500` 同理。
+说明（第二轮更正）：`events.yaml:731` 与 `parts/vs0911.events.yaml:29` 是 `emitted_by`，`commands.yaml:2188` 与 `parts/vs13att.commands.yaml:500` 是 `emits`，各为独立槽；合并产物与分部源文件需分别核对，此前把两类配对写反。
+
+## 第二轮（NAM-1017-ARC-10 追加）
+
+漏因：生成器只匹配 `emitted_by` 等引用字段，事件目录里事件自身的 `name`（如 `parts/vs13att.events.yaml:78`）未纳入；其所属字段是 `published_by`，生成器也只认 `publisher`，所属判定落空。已修：events 文件的事件 `name` 纳入事件类，`published_by` 纳入所属来源。
+
+重跑（回写前版本，无误报：所有新增命中行都在其后回写提交中被改动）：
+- finance a0f4f296：新增 16，漏报 0，误报 0（与 90c32dba 对照）。
+- revenue ba245c50^：新增 12，无事件 `name` 槽，误报 0。
+- people 9d557a98^：新增 14，含事件 `name` 槽 2（`people/events.yaml:389`、`people/parts/vs13att.events.yaml:78`，工作日历锁定日期被修改 → 工作日历锁定日期已修改，AGG-68，NM6-10#11），误报 0。
+- 所属不明 4 处（上下文无聚合），均已在后续回写中改动：`vs13att.state-machines.yaml:153` 加班申请 → 提交加班申请；`vs13pay.commands.yaml:739` 计算 → 计算月度薪酬；`vs13pay.commands.yaml:795` 标记已过账，同名命中两行（标记成本结转已过账 / 标记薪酬已过账），须按所属聚合人工取舍。
+
+最新残留：finance d4679ab8 为 0；revenue 76a372c0 为 0；people a453d253 为 0。

@@ -17,6 +17,8 @@
 | ADR57 报价发出前用印核验的模块安排（1 题；one-architecture） | `sheets/ADR57.json` | https://claude.ai/artifact/HUEe8RUcHHVpY5MH7zkZkd（2026-10-17 起，未实看渲染） |
 | B31P 内部服务制度参数（14 题；one-architecture） | `sheets/B31P.json` | https://claude.ai/artifact/B9YzD6twHGRWoLFXqJxbcP（2026-10-17 起，未实看渲染） |
 | PAN 流程挂阶段与业务对象的规则（1 题；one-architecture） | `sheets/PAN.json` | https://claude.ai/artifact/SfHTmA4r4wYAh1hFVGvFFT（2026-10-17 起，未实看渲染） |
+| NM8A 生成命名检查（一）（113 题；one-architecture） | `sheets/NM8A.json` | https://claude.ai/artifact/SgUfRc2BhoDaJXyrp9BW9S（2026-10-17 起，未实看渲染） |
+| NM8B 生成命名检查（二）（117 题；one-architecture） | `sheets/NM8B.json` | https://claude.ai/artifact/ELUazxUJ3r14K4B8a17T3E（2026-10-17 起，未实看渲染） |
 
 | 步骤 | 做法 |
 |---|---|
