@@ -3,15 +3,14 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-17 13:28（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
-更新：2026-10-17 09:40（one-coordinator）
-- 清空后第一步：通读 SESSION_PLAYBOOK §11 全文（`sed -n '/^## 11\./,/^## 12\./p'`），再做「开场核对」。
-- 本会话已犯、不得再犯（用户 10-17 指出）：①要用户定、补值、转财务、需配合的事一律写收件箱 inbox（status pending），对话里不问（§11 第 1 条，记忆 inbox-only）；②会话之间技术问题直连，不居中转述、不要求抄送（第 2 条）；③跨会话消息首行标「派工：/通知：/请用户决定：」；④每日简报每天早上发；⑤转述注明已核实 / 已抽查 / 未核实（第 12 条）。
-- 派工用 mcp__ccd_session_mgmt__send_message（会直接开启对方回合）；SendMessage 跨会话常停在「未读」不唤醒空闲会话（10-17 全员停工的原因）。
-- Codex 优先（intent 085534，§5 已改，记忆 codex-first）：各会话能交 Codex 的先交（gpt-6.1-sol xhigh），Claude 只派工、首轮审稿、安全、验收；按日报「Codex 卡数 / 返工轮次」评估，返工两轮以上收回。
-- 在途：strict 已关，快慢两道试行到 10-19（main 并行合入变红一次即 `gh api -X PATCH .../required_status_checks -F strict=true`）；收件箱待答 3 项（N1 五个值、AN-06 转财务、dev 日历）；one-architecture 下一件起草一次投产过渡 ADR（C1，施工图关键路径），前提清单 `architecture/proposals/PREREQ_NAMING_CONSTRUCTION_2026-10-17.md`（分支 one-architecture-adr-governance）；今日简报未发。
-- 主线常驻条（用户 10-17 要求钉住、滚动更新）：本会话 mod mainline-band 读 ~/.modernize/psa/handoff/mainline-band.txt 显示在输入框上方；每个命名主线完成点更新该文件（首行目标，后续行进度，末行「要你做」与更新时间，≤8 行）。同一 mod 另有状态栏（队列、在开 PR、main 红绿、strict 试行剩余天数、Codex 在跑任务自动取；收件箱待答数读 ~/.modernize/psa/handoff/status-extra.txt，收件箱增减时更新）。
-- 本分支待收进文档合集：claude/one-coordinator-two-lanes（intent 4 条、§5 改动、裁定 -05、台账）。
-
+更新：2026-10-17 16:49（one-coordinator）
+- 清空后第一步：通读 SESSION_PLAYBOOK §11 全文与 §5「Codex 派工」「任务命名与登记」；核对开场注入的公共守则（_COMMON）含 10-17 新规（Codex A/B 分工、在制代码 PR≤3、并行、`< /dev/null`、禁网 -s workspace-write＋network_access=false）。没有就查插队小合集（two-lanes@07d39403）是否已合，未合催 one-merge。
+- 不得再犯：①要用户定的一律进收件箱（pending），对话里不问；②会话间技术问题直连，不居中转；③跨会话消息首行标「派工：/通知：」；④转述注明已核实/已抽查/未核实；⑤派工用 mcp__ccd_session_mgmt__send_message（唤醒），SendMessage 不唤醒；⑥会话报的结果先读分支/PR 原文再转；⑦确认页答完读 answers-submit 原文，不信「已在确认页答复」。
+- 常用：收件箱 https://claude.ai/artifact/RVU6nNNSsygF5sVRWLhQ15（只订阅 pending）；本会话 mod mainline-band（输入框上方两块进度＋状态行；进度文件 ~/.modernize/psa/handoff/mainline-band.txt，待答数 status-extra.txt，完成点即更新）；审题报告放 ~/.modernize/psa/handoff/reviews/。
+- 命名：词表 833（#481 在队）；N7 分流 497→A17/B17/C207/D110/E146，NM6 起「整表认可＋点不顺口」约 25–30 题，首页待我审；D110 由 one-glossary 自判；N3 已合；N6 切换、N8（#479 已合，QUA-02 待 N14）、事件/消息目录登记在分支。
+- 施工图：ADR-0052～0057 已采纳在 main；三组骨架＋VS-14 已铺；B31P 参数页待取证预填后重做；架构整合 8 册待 N7 后。
+- CI：strict 关、两道试行至 10-19；SQL Server 挪档已合；选测 S＋影子日志、并行度、B/E/C 在 one-quality；Linux CI 主机规格测算在 one-quality。dev 暂停。
+- 用户在对话中待答：全局 ~/.codex/config.toml 默认 danger-full-access 是否改；是否试点阿里云 Linux CI（问过海外价）；GitHub 支持清除旧对象（建议不必）。
 ## 作战图（派工前先看；SESSION_PLAYBOOK §11「战队协作」第 5 条）
 | 主线 | 负责 | 当前 | 下一步 | 阻塞 |
 |---|---|---|---|---|
