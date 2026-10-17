@@ -23,8 +23,8 @@
 
 | 项 | 值 |
 |---|---|
-| 在途 PR | #365（本会话分支，里程碑合入）；#425 intent 片段 18 条待入队 |
-| 当前步 | 业务架构逐层对齐（BIZBOK §3.4）第一层「阶段」收尾：SD-01–10 已落地，SD-11–15 待交用户；之后能力层 → 信息层 → 干系人层。CRUD 缺口清零暂停（S-43 保留，豁免表已建）。确认页 7 页用户暂不作答，对齐与清零后改题再交 |
+| 在途 PR | #365 已入队（文档改动今后不开 PR，提交推送后报分支 + 提交号，调度每日两次收合集） |
+| 当前步 | 2026-10-17：①对象层、能力层数据已交（closeout/object-layer.yaml：主对象全定、supports、category 提议、集成 PRC-184–200；检查 object_layer_check、name_id_check）；②命名：用户改为先定「命名体系 ADR」（全命名面；稳定原则进 ADR、细则进 NAMING_STANDARD；用户原话「现在刚开始，代价是最低的时候」——按长期正确完整采用：概念与名称分离、多语言指称、标签角色、组合规则，迁移只排期），研究由调度转来后本会话主笔、one-glossary 合写、opus 起草与首轮复审；改名对照表 rename/RENAME_A/B/C 暂停作输入；③ADR-0052（取代 ADR-0050 九处冲突、METHOD 第 4 稿）opus 起草中，与 SD-09、SD-11–15 合进下一张确认页；④待用户：ADR-0030 补标注 kernel 端口方案（推荐身份模块实现端口、同事务写 platform.identity 动作名）；⑤确认页已答归档、未答撤出，改题见 closeout/PAGE_IMPACT.md |
 | 已定（2026-10-16 晚） | 结构裁定 S-29–S-44；VS-02.7 改名收尾；新增 VS-04.6 履约、VS-08.0 事前申请；归段判据写进 stage_align_check；权责表 586 条冲突 0；跨组接缝清零 |
 | 已定（2026-10-16） | ADR-0046（12 月与第 13 期同时关账）、ADR-0047（视为同意）已采纳；阶段类型 S1–S6；BC 划分 D-1–D-9、D-8 期满判定在 receivables.wip；完整性 C-1–C-8、INV-62、Q29 宽口径（证据升一级）；D-7 提前拆 accounting.tax；K-1 知识条目（OBJ-110，km.knowledge）；P-1 回签前开票规则；METHOD M-1–M-7（7 步、两份一次性 ADR） |
 | 草稿位置 | proposals/：ENTERPRISE_INFO_MAP_DRAFT（一级 21）、ENTERPRISE_AGGREGATES_DRAFT（聚合 103、BC 29、查环脚本 aggregates_dep_check.py）、STAGE_TYPES_DRAFT、METHOD_V4_DRAFT、FRAMEWORKS_V4_DRAFT、OBJECT_COMPLETENESS_REPORT、STEP1_VALUE_STREAMS + value-streams.v2.yaml、STEP2_CAPABILITIES + capabilities.v2.yaml |
