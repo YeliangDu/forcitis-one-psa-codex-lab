@@ -12,20 +12,68 @@ import os
 import re
 import shlex
 import sys
+import time
 
 SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "|&"}
-WRAPPERS = {"env", "command", "time", "nohup", "exec", "timeout", "nice", "sudo", "stdbuf", "builtin"}
-SHELLS = {"bash", "sh", "zsh", "dash", "ksh"}
+KEYWORDS = {"if", "then", "do", "else", "elif", "while", "until", "!", "{", "}", "fi", "done", "esac"}
+# wrapper -> options that take a value
+WRAPPERS = {"command": set(), "env": {"-u", "-C", "-S"}, "time": {"-f", "-o"}, "exec": {"-a"}, "nohup": set(), "sudo": {"-u", "-g", "-h", "-p", "-C", "-D", "-R", "-T", "-U"},
+            "builtin": set(), "timeout": {"-s", "-k"}, "nice": {"-n"}, "stdbuf": {"-i", "-o", "-e"}}
+SHELLS = {"bash", "sh", "zsh", "dash", "ksh", "eval"}
+CODEX_VALUE_OPTIONS = {"-c", "--config", "-m", "--model", "-p", "--profile", "-C", "--cd", "-s", "--sandbox", "-a", "--ask-for-approval", "--enable", "--disable", "-i", "--image"}
+REDIRECTS = {"<", "<<", "<<-", "<<<", "<&"}
 ENV = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
+HEREDOC = re.compile(r"<<-?\s*(?:'([^']+)'|\"([^\"]+)\"|\\?([A-Za-z_][A-Za-z0-9_]*))")
 MESSAGE = ("codex exec 没有关闭标准输入，会停在「Reading additional input from stdin」干等。"
            "在命令末尾加 `< /dev/null`（SESSION_PLAYBOOK §5）；确需从管道或文件喂提示词时用 `| codex exec -` 或 `< 文件`。")
 
 
+def without_heredoc_bodies(command):
+    """The lines of a command line, with here-document bodies dropped (a body is text, not commands)."""
+    lines, out, end = command.replace("\\\n", " ").split("\n"), [], None
+    for line in lines:
+        if end is not None:
+            if line.strip() == end:
+                end = None
+            continue
+        out.append(line)
+        found = HEREDOC.search(line)
+        if found and "<<<" not in line[found.start():found.start() + 3]:
+            end = next(g for g in found.groups() if g)
+    return out
+
+
 def tokens_of(command):
-    lexer = shlex.shlex(command.replace("`", " ; ").replace("\n", " ; "), posix=True, punctuation_chars=True)
-    lexer.whitespace_split = True
-    lexer.commenters = "#"
-    return list(lexer)
+    """Shell tokens of a command line; lines are tokenised on their own so a # comment ends with its line, and a quote left open continues onto the next line."""
+    tokens, pending = [], ""
+    for line in without_heredoc_bodies(command):
+        pending = pending + "\n" + line if pending else line
+        lexer = shlex.shlex(pending.replace("`", " ; "), posix=True, punctuation_chars=True)
+        lexer.whitespace_split = True
+        lexer.commenters = "#"
+        try:
+            found = list(lexer)
+        except ValueError:
+            continue
+        tokens += found + [";"]
+        pending = ""
+    if pending:
+        raise ValueError("unterminated quote")
+    return tokens
+
+
+def stdin_open(seg, piped_in):
+    return not piped_in and not any(t in REDIRECTS for t in seg)
+
+
+def is_codex_exec(seg, i):
+    """True when seg[i] is codex and its first sub-command is exec (not --help)."""
+    if os.path.basename(seg[i]) != "codex":
+        return False
+    j = i + 1
+    while j < len(seg) and seg[j].startswith("-"):
+        j += 2 if seg[j] in CODEX_VALUE_OPTIONS else 1
+    return j < len(seg) and seg[j] == "exec" and not any(t in ("--help", "-h") for t in seg[j + 1:])
 
 
 def unclosed(command, depth=0):
@@ -35,7 +83,7 @@ def unclosed(command, depth=0):
     try:
         tokens = tokens_of(command)
     except ValueError:
-        return re.search(r"\bcodex\b.*\bexec\b", command) is not None
+        return re.search(r"\bcodex\b", command) is not None and re.search(r"\bexec\b", command) is not None
     segments, cur, piped = [], [], False
     for token in tokens:
         if token in SEPARATORS or set(token) <= set(";&|()"):
@@ -48,13 +96,24 @@ def unclosed(command, depth=0):
         segments.append((cur, piped))
     for seg, piped_in in segments:
         i = 0
-        while i < len(seg) and (ENV.match(seg[i]) or seg[i] in WRAPPERS or seg[i].startswith("-") or re.fullmatch(r"[0-9.]+[smhd]?", seg[i])):
-            i += 1
-        if i < len(seg) and os.path.basename(seg[i]) == "codex" and "exec" in seg[i + 1:i + 5]:
-            if not piped_in and not any(t.startswith("<") for t in seg):
+        while i < len(seg):
+            tok = seg[i]
+            if ENV.match(tok) or tok in KEYWORDS:
+                i += 1
+            elif tok in WRAPPERS:
+                valued = WRAPPERS[tok]
+                i += 1
+                while i < len(seg) and (seg[i].startswith("-") or ENV.match(seg[i]) or (tok == "timeout" and re.fullmatch(r"[0-9.]+[smhd]?", seg[i]))):
+                    i += 2 if seg[i] in valued else 1
+            else:
+                break
+        if i >= len(seg):
+            continue
+        if is_codex_exec(seg, i):
+            if stdin_open(seg, piped_in):
                 return True
-        elif depth < 3 and i < len(seg) and os.path.basename(seg[i]) in SHELLS:
-            for token in seg:
+        elif depth < 3 and os.path.basename(seg[i]) in SHELLS:
+            for token in seg[i + 1:]:
                 if " " in token and "codex" in token and unclosed(token, depth + 1):
                     return True
     return False
@@ -71,7 +130,8 @@ def main():
         return 2
     if payload.get("tool_name", "Bash") != "Bash":
         return 0
-    command = (payload.get("tool_input") or {}).get("command")
+    tool_input = payload.get("tool_input")
+    command = tool_input.get("command") if isinstance(tool_input, dict) else None
     if isinstance(command, str) and unclosed(command):
         print(MESSAGE, file=sys.stderr)
         return 2
@@ -95,6 +155,15 @@ def self_test():
         assert unclosed(command), command
     for command in ok:
         assert not unclosed(command), command
+    for command in ("codex exec - <<'EOF'\nit's fine\nEOF", "cat > card.md <<'EOF'\ncodex exec p\nEOF", "cat > card.md <<'EOF'\n用 `codex exec` 派工\nEOF", "codex exec \\\n  -o o.md \\\n  'p' \\\n  < /dev/null",
+                    "codex exec --help", "codex exec p 0</dev/null", "codex exec p <&-", "codex exec '<p>x</p>' < /dev/null", "git commit -m \"$(cat <<'EOF'\ncodex exec x\nEOF\n)\""):
+        assert not unclosed(command), command
+    for command in ("# 派工\ncodex exec p", "ls # 先看\ncodex exec p", "for f in a b; do codex exec $f; done", "if true; then codex exec p; fi", "{ codex exec p; }", "! codex exec p", "timeout -s KILL 600 codex exec p",
+                    "sudo -u me codex exec p", "env -u FOO codex exec p", "eval 'codex exec p'", "codex -c a=b -c c=d -c e=f -c g=h exec p", "codex exec '<p>请改</p>'", "codex exec p <(cat f)", "codex\nexec p 'x"):
+        assert unclosed(command), command
+    started = time.monotonic()
+    assert unclosed("codex " * 50000 + "' exec")
+    assert time.monotonic() - started < 5, "the fallback search must not backtrack quadratically"
     assert unclosed("codex exec a < /dev/null; codex exec b"), "a second codex exec without redirection is still caught"
     print("codex_stdin_gate self-test: ok")
     return 0
