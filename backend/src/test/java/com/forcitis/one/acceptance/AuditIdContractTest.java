@@ -82,6 +82,8 @@ class AuditIdContractTest {
             assertThat(id).as("subjectId on " + path).isNotNull();
             assertThat(UserIdContractTest.isStringUuid(id.path("schema"))).as("subjectId on %s = %s", path, id.path("schema")).isTrue();
             assertThat(UserIdContractTest.isStringUuid(parameter(path, "actorId").path("schema"))).isTrue();
+            assertThat(parameter(path, "onBehalfOfId")).as("onBehalfOfId on " + path).isNotNull();
+            assertThat(UserIdContractTest.isStringUuid(parameter(path, "onBehalfOfId").path("schema"))).as("onBehalfOfId on " + path).isTrue();
         }
     }
 

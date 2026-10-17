@@ -77,7 +77,7 @@ class AccessDeniedAudit implements AuthorizationEventPublisher {
             audit.recordIndependently(new AuditEntry("platform.identity.access.denied", actor, null, AuditSubject.without(resource.kind()), "access refused: " + resource.text())
                     .withTrace(origin.address(), AuditOutcome.FAILED, null));
         } catch (RuntimeException failed) {
-            log.error("The refusal of user {} for {} could not be written to the audit trail: {}", actor.value(), resource.text(), failed.toString());
+            log.error("The refusal of user {} for {} could not be written to the audit trail: {}", actor.value(), resource.text(), failed.getClass().getName());
         }
     }
 

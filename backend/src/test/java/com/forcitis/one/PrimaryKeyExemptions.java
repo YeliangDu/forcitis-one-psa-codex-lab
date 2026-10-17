@@ -36,7 +36,19 @@ final class PrimaryKeyExemptions {
         return exemptions;
     }
 
+    /** A line whose reason names an ADR is a registered partitioned table (ADR-0048): its key shape is checked, it is not left out of the naming rules. */
+    static boolean isPartitionException(String reason) {
+        return reason.contains("ADR-");
+    }
+
+    /** The tables whose key and column names a framework fixes; the registered partitioned table is not among them. */
     static Set<String> tables() {
-        return Set.copyOf(read().keySet());
+        Set<String> tables = new java.util.TreeSet<>();
+        read().forEach((table, reason) -> {
+            if (!isPartitionException(reason)) {
+                tables.add(table);
+            }
+        });
+        return Set.copyOf(tables);
     }
 }

@@ -33,8 +33,8 @@ class NumberingVersionMigrationIT {
                 .as("the seeded template has no author's day to wait for").isEqualTo("2000-01-01");
         assertThat(jdbc.sql("""
                 select count(*) from information_schema.columns where table_schema = 'platform_numbering' and table_name = 'numbering_rules'
-                   and column_name in ('pattern', 'reset_policy', 'start_value', 'confirmation_status') and is_nullable = 'YES'
-                """).query(Long.class).single()).as("the old columns stay, no longer required").isEqualTo(4);
+                   and column_name in ('pattern', 'reset_policy', 'start_value', 'confirmation_status', 'is_active')
+                """).query(Long.class).single()).as("the retired columns are gone").isZero();
         assertThat(jdbc.sql("select count(*) from platform_numbering.numbering_rule_versions where status <> 'PENDING_CONFIRMATION'").query(Long.class).single())
                 .as("nothing stays confirmed").isZero();
         assertThat(jdbc.sql("select count(*) from platform_numbering.numbering_rule_versions").query(Long.class).single())

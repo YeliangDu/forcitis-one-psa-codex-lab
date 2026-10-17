@@ -108,14 +108,14 @@ class AuditExportAndOwnRecordsIT {
     void ownRecordsOnly() throws Exception {
         mvc.perform(get(OWN).with(EMPLOYEE))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(4))
-                .andExpect(jsonPath("$[0].action").value("platform.identity.session.revoked"))
-                .andExpect(jsonPath("$[1].action").value("platform.identity.logout"))
-                .andExpect(jsonPath("$[2].action").value("platform.identity.login.failed"))
-                .andExpect(jsonPath("$[2].outcome").value("FAILED"))
-                .andExpect(jsonPath("$[2].sourceAddress").value("10.0.0.6"))
-                .andExpect(jsonPath("$[3].action").value("platform.identity.login.succeeded"))
-                .andExpect(jsonPath("$[3].loginMethod").value("WECOM_WORKBENCH"));
+                .andExpect(jsonPath("$.items.length()").value(4))
+                .andExpect(jsonPath("$.items[0].action").value("platform.identity.session.revoked"))
+                .andExpect(jsonPath("$.items[1].action").value("platform.identity.logout"))
+                .andExpect(jsonPath("$.items[2].action").value("platform.identity.login.failed"))
+                .andExpect(jsonPath("$.items[2].outcome").value("FAILED"))
+                .andExpect(jsonPath("$.items[2].sourceAddress").value("10.0.0.6"))
+                .andExpect(jsonPath("$.items[3].action").value("platform.identity.login.succeeded"))
+                .andExpect(jsonPath("$.items[3].loginMethod").value("WECOM_WORKBENCH"));
     }
 
     @Test
@@ -124,13 +124,13 @@ class AuditExportAndOwnRecordsIT {
         String body = mvc.perform(get(OWN).with(EMPLOYEE)).andReturn().getResponse().getContentAsString();
 
         assertThat(body).doesNotContain("detail", "actorId", "subjectKind", "subjectId", "secret-reason", "lost phone", "forced logout").doesNotContain("\"9\"");
-        mvc.perform(get(OWN).with(EMPLOYEE)).andExpect(jsonPath("$[0].keys()").exists());
+        mvc.perform(get(OWN).with(EMPLOYEE)).andExpect(jsonPath("$.items[0].keys()").exists());
     }
 
     @Test
     @DisplayName("the administrator who ended someone's sessions does not see that entry among their own, and nobody asks for another person")
     void theAdministratorDoesNotSeeWhatTheyDidToOthers() throws Exception {
-        mvc.perform(get(OWN).with(ADMINISTRATOR)).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+        mvc.perform(get(OWN).with(ADMINISTRATOR)).andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(0));
         mvc.perform(get(OWN).param("userId", "1001").with(ADMINISTRATOR)).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_REQUEST_INVALID")).andExpect(jsonPath("$.invalidParameters").value("userId"));
     }
@@ -140,9 +140,11 @@ class AuditExportAndOwnRecordsIT {
     void permissionsAndLimit() throws Exception {
         mvc.perform(get(OWN)).andExpect(status().isUnauthorized());
         mvc.perform(get(OWN).with(AUDITOR_READING)).andExpect(status().isForbidden());
-        mvc.perform(get(OWN).param("limit", "0").with(EMPLOYEE)).andExpect(status().isBadRequest());
-        mvc.perform(get(OWN).param("limit", "201").with(EMPLOYEE)).andExpect(status().isBadRequest());
-        mvc.perform(get(OWN).param("limit", "2").with(EMPLOYEE)).andExpect(jsonPath("$.length()").value(2));
+        mvc.perform(get(OWN).param("limit", "0").with(EMPLOYEE)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_REQUEST_INVALID"));
+        mvc.perform(get(OWN).param("limit", "201").with(EMPLOYEE)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_REQUEST_INVALID"));
+        mvc.perform(get(OWN).param("limit", "2").with(EMPLOYEE)).andExpect(jsonPath("$.items.length()").value(2));
     }
 
     @Test
