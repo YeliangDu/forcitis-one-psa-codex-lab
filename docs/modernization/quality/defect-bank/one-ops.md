@@ -78,3 +78,14 @@
 - **漏过于**：独立评审（#448 复审未覆盖「旧库没有新角色」）；check.sh（无回滚用例）
 - **新增检查项**：回滚脚本的 `DROP ROLE` 改 `IF EXISTS`；`c3_dev_db_check.sh` 补「旧库缺维护角色时回滚仍通过」用例；待补
 - **状态**：待落实（负责：one-ops，2026-10-17 起；随 c14_run 自测一起做，rc.6 部署后）
+
+### OPS-008　导出 SQL 按猜测的取值域写条件，导出缺一整类数据却没被发现
+
+- **日期**：2026-10-17
+- **类别**：转述未核
+- **现象**：C-6 工作日历导出 SQL 把休息日判成 `workday = 0`，老系统实际取值是 '1' 上班、'2' 休息；导出的 4,018 行里 HOLIDAY 一条没有（应为 207 条），只有 65 个调休日有 day_kind。导入前转换时才发现，没有导入过这份 CSV 的数据；此前是否用过它由 one-data 复核
+- **根因**：写 SQL 时没有先看列的取值域（只看了「新系统要什么」），剧本 3.1 的完整性校验只核总行数与每年天数，没核每类例外日各有多少
+- **拦下于**：作者在导入前转换时发现（对照 CSV 分布）
+- **漏过于**：剧本 3.1 校验（只核行数）；独立评审（C-6 剧本复审没要求列出取值域）
+- **新增检查项**：写取数或导出 SQL 条件前，先用只读取证查该列的取值域与分布，写进 SQL 注释和剧本；剧本校验补「每类各有计数、无意外取值」（C-6 剧本 3.1 已补：`holidays`、`make_up_workdays`、`unexpected_workday_values`）
+- **状态**：已落实（`docs/modernization/phase1a/infra/runbooks/sql/c6_legacy_readonly_export.sql` 3.1；`docs/modernization/phase1a/infra/runbooks/C-6-legacy-export.md` 步骤 3）
