@@ -143,6 +143,7 @@
   - 不交 Codex：生产取证与任何连生产的操作；身份、授权、凭据、单人模式防线等安全改动；opus 复审；验收测试；与用户和其他会话的沟通。
   - 调用：在独立 worktree 中 `codex exec -m gpt-6.1-sol -c model_reasoning_effort=xhigh -s <read-only|workspace-write> --ephemeral -o <结果文件> < /dev/null`（必须关闭标准输入，否则会停在「Reading additional input from stdin」干等，10-17 N9 因此空等 77 分钟）（本机 Codex 目录中最强模型；机械活可用 high），不联网；提示词用 `templates/WORK_CARD.md`，要求先读 `CLAUDE.md`（Codex 读仓库根 `AGENTS.md`，指向同一套规则）、本文件 §5、§6.1 与 `CODING_STANDARD.md`、`NAMING_STANDARD.md`，并以中文写结果。一律用会话 Bash 的 `run_in_background` 启动，在本会话后台任务里可见、完成自动唤醒；不得用 nohup、`&`、setsid 等脱离会话（用户 2026-10-17「所有会话调动 codex 任务都要在自己的后台任务显示」）；不轮询。
   - 流程不变：设计初稿照常走评审、批准页；代码卡验收测试由测试代理先写，Codex 产出照常开 PR、过 CI，合并前 opus 复审；PR 正文与文档状态行注明「Codex 起草 / 实现（模型、强度）」。
+  - 并行：互不改同一批文件的卡各开独立 worktree 同时交 Codex 后台跑，不串行排队（用户 2026-10-17「如果不限制后台任务，让他多跑几个」）；会改同一文件的卡串行；全机同时运行的 Codex 以 CI 不明显变慢为度，状态栏可见在跑数。
   - 记录每张 Codex 卡的返工轮次与耗时，完成点报告带上；调度按返工率每日在日报里评估，返工两轮以上的同类工作收回 Claude。
 - **任务命名与登记**（用户 2026-10-17「后台任务要显示任务名……要对所有任务卡进行复盘能搞清是什么bc的什么任务」，intent 见本日「任务命名」）：
   - 每张卡（派给 Codex、子代理或工作会话的一件事，含设计、文档、取证、复审）一个**任务号** `<主线码>-<MMDD>-<会话码>-<两位序号>`，如 `NAM-1017-GLO-03`；序号由派卡会话当天自增，全局不重。主线码：NAM 命名、CON 施工图、ARC 架构整合、RUL 规则、DAT 数据、IMP 代码实现、CI 合并与 CI、OPS 运维、GOV 流程治理。会话码取会话名去掉 `one-` 的前三个字母大写（one-glossary→GLO、one-arch-finance→AFI、one-arch-revenue→ARE、one-arch-people→APE、one-architecture→ARC、one-1a-par→PAR、one-1a-next-5→NX5、one-quality→QUA、one-rules→RUL、one-data→DAT、one-ops→OPS、one-merge→MRG、one-coordinator→COO）。
