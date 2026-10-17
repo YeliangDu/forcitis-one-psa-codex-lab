@@ -4,15 +4,16 @@
 
 用法：
   python3 docs/modernization/build_all.py          生成全部产物
-  python3 docs/modernization/build_all.py --check  生成后要求 docs/modernization 与提议术语清单工作区无差异（CI 使用）：
-                                                   terms.yaml、ADR、README、brief 与提议术语清单与已提交的产物不一致、或有未提交的新产物时失败；
+  python3 docs/modernization/build_all.py --check  要求 docs/modernization 与提议术语清单重新生成前后无差异（CI 使用）：
+                                                   terms.yaml、ADR、README、brief、任务总表与提议术语清单过期或缺失时失败；允许已生成一致的未提交改动；
                                                    INTENT / SESSION_LOG / STATUS / DECISION_DIGEST / SESSIONS / glossary/ISSUES / LEGACY_READ_REGISTER 不入仓（.gitignore），只要求能生成、片段合规
                                                    （会话画像必备字段、会话名 one-* 且唯一；用语问题片段格式）；
                                                    另校验 RULE_REVIEWS.json 的原结论未被改写（与 origin/main 的合并基点比对；取不到时由 review_revisions.py
                                                    按环境处理：CI 失败，本地告警），
                                                    并运行提议术语清单、会话一览（含钩子 session_context.py）、用语问题清单生成器的自测
 """
-import importlib.util, os, subprocess, sys
+import hashlib, importlib.util, os, subprocess, sys
+from pathlib import Path
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 GLOSSARY_INDEX = os.path.join("..", "..", "backend", "glossary", "proposed", "README.md")
@@ -41,6 +42,16 @@ SELF_TESTED.append("architecture/check_proposals.py")
 
 STEPS.append("check_tasks.py")   # GOV-1017-COO-01：任务片段检查与 tasks/TASKS.md 总表
 SELF_TESTED.append("check_tasks.py")
+
+
+def snapshot():
+    files = subprocess.run(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", ".", GLOSSARY_INDEX],
+                           cwd=BASE, capture_output=True, text=True, check=True).stdout.split("\0")
+    return {name: hashlib.sha256(Path(BASE, name).read_bytes()).hexdigest() if Path(BASE, name).is_file() else None
+            for name in files if name}
+
+
+before = snapshot() if "--check" in sys.argv else None
 
 for step in STEPS:
     r = subprocess.run([sys.executable, os.path.join(BASE, step)], cwd=BASE, capture_output=True, text=True)
@@ -71,7 +82,8 @@ if "--check" in sys.argv:
     if r.returncode:
         sys.exit(f"RULE_REVIEWS.json 修订记录校验失败：\n{r.stdout}")
     print(f"rules/review_revisions.py: {r.stdout.strip()}")
-    dirty = subprocess.run(["git", "status", "--porcelain", "--", ".", GLOSSARY_INDEX], cwd=BASE, capture_output=True, text=True, check=True).stdout
+    after = snapshot()
+    dirty = "\n".join(sorted(name for name in before.keys() | after.keys() if before.get(name) != after.get(name)))
     if dirty:
-        sys.exit("生成产物与片段不一致（请运行 build_all.py 并提交结果，不要直接编辑生成产物）：\n" + dirty)
-    print("check: 生成后工作区无差异")
+        sys.exit("生成产物与片段不一致（请运行 build_all.py 后重新检查，不要直接编辑生成产物）：\n" + dirty)
+    print("check: 重新生成前后无差异")

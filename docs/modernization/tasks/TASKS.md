@@ -2,148 +2,149 @@
 
 由 `../check_tasks.py` 经 `../build_all.py` 生成，不手改。未知值不按零计；用时单位为分钟。
 
-共 38 张；返工轮次 12（待核 26 张）；用时 约40（待核 37 张）。
+共 38 张；返工轮次 13（待核 26 张）；用时 约40（待核 37 张）。
 
 ## 按主线汇总
 
 | 分组 | 卡数 | 返工轮次 | 用时（分钟） |
 |---|---|---|---|
-| ARC | 1 | 0（待核 0 张） | 0（待核 1 张） |
-| CI | 13 | 2（待核 12 张） | 0（待核 13 张） |
+| ARC | 1 | 0（待核 0 张） | 待核（待核 1 张） |
+| CI | 13 | 2（待核 12 张） | 待核（待核 13 张） |
 | CON | 11 | 7（待核 3 张） | 约40（待核 10 张） |
-| GOV | 3 | 3（待核 1 张） | 0（待核 3 张） |
-| IMP | 3 | 0（待核 3 张） | 0（待核 3 张） |
-| NAM | 7 | 0（待核 7 张） | 0（待核 7 张） |
+| GOV | 3 | 4（待核 1 张） | 待核（待核 3 张） |
+| IMP | 3 | 待核（待核 3 张） | 待核（待核 3 张） |
+| NAM | 7 | 待核（待核 7 张） | 待核（待核 7 张） |
 
 ## 按bc汇总
 
 | 分组 | 卡数 | 返工轮次 | 用时（分钟） |
 |---|---|---|---|
 | km.knowledge | 1 | 1（待核 0 张） | 约40（待核 0 张） |
-| 跨域 | 37 | 11（待核 26 张） | 0（待核 37 张） |
+| 跨域 | 37 | 12（待核 26 张） | 待核（待核 37 张） |
 
 ## 按会话汇总
 
 | 分组 | 卡数 | 返工轮次 | 用时（分钟） |
 |---|---|---|---|
-| one-1a-next-5 | 2 | 0（待核 2 张） | 0（待核 2 张） |
-| one-1a-par | 1 | 0（待核 1 张） | 0（待核 1 张） |
-| one-arch-finance | 1 | 0（待核 1 张） | 0（待核 1 张） |
-| one-arch-people | 1 | 0（待核 1 张） | 0（待核 1 张） |
-| one-arch-revenue | 1 | 0（待核 0 张） | 0（待核 1 张） |
-| one-architecture | 8 | 6（待核 1 张） | 0（待核 8 张） |
+| one-1a-next-5 | 2 | 待核（待核 2 张） | 待核（待核 2 张） |
+| one-1a-par | 1 | 待核（待核 1 张） | 待核（待核 1 张） |
+| one-arch-finance | 1 | 待核（待核 1 张） | 待核（待核 1 张） |
+| one-arch-people | 1 | 待核（待核 1 张） | 待核（待核 1 张） |
+| one-arch-revenue | 1 | 0（待核 0 张） | 待核（待核 1 张） |
+| one-architecture | 8 | 6（待核 1 张） | 待核（待核 8 张） |
 | one-cloud-pilot | 1 | 1（待核 0 张） | 约40（待核 0 张） |
-| one-glossary | 7 | 0（待核 7 张） | 0（待核 7 张） |
-| one-quality | 16 | 5（待核 13 张） | 0（待核 16 张） |
+| one-glossary | 7 | 待核（待核 7 张） | 待核（待核 7 张） |
+| one-quality | 16 | 6（待核 13 张） | 待核（待核 16 张） |
 
 ## 按状态汇总
 
 | 分组 | 卡数 | 返工轮次 | 用时（分钟） |
 |---|---|---|---|
-| 复审中 | 1 | 1（待核 0 张） | 0（待核 1 张） |
-| 已合并（本地合并记录） | 7 | 4（待核 5 张） | 0（待核 7 张） |
-| 已提交（后续返工另有登记） | 1 | 0（待核 1 张） | 0（待核 1 张） |
-| 已提交（审稿通过记录） | 1 | 0（待核 1 张） | 0（待核 1 张） |
-| 已提交（待后续整合） | 4 | 0（待核 1 张） | 0（待核 4 张） |
-| 已提交（待验收） | 12 | 0（待核 12 张） | 0（待核 12 张） |
-| 已提交（用户答复已写回） | 3 | 1（待核 2 张） | 0（待核 3 张） |
-| 已提交（用户答复已导出） | 2 | 3（待核 0 张） | 0（待核 2 张） |
-| 已提交（用户采纳已写回） | 2 | 2（待核 1 张） | 0（待核 2 张） |
-| 已提交（负责会话已审） | 1 | 0（待核 0 张） | 0（待核 1 张） |
-| 待核 | 2 | 0（待核 2 张） | 0（待核 2 张） |
-| 待派 | 1 | 0（待核 1 张） | 0（待核 1 张） |
+| 复审中 | 1 | 2（待核 0 张） | 待核（待核 1 张） |
+| 已合并 | 9 | 待核（待核 9 张） | 待核（待核 9 张） |
+| 已合并（本地合并记录） | 7 | 4（待核 5 张） | 待核（待核 7 张） |
+| 已提交（后续返工另有登记） | 1 | 待核（待核 1 张） | 待核（待核 1 张） |
+| 已提交（审稿通过记录） | 1 | 待核（待核 1 张） | 待核（待核 1 张） |
+| 已提交（待后续整合） | 4 | 0（待核 1 张） | 待核（待核 4 张） |
+| 已提交（待验收） | 4 | 待核（待核 4 张） | 待核（待核 4 张） |
+| 已提交（用户答复已写回） | 3 | 1（待核 2 张） | 待核（待核 3 张） |
+| 已提交（用户答复已导出） | 2 | 3（待核 0 张） | 待核（待核 2 张） |
+| 已提交（用户采纳已写回） | 2 | 2（待核 1 张） | 待核（待核 2 张） |
+| 已提交（负责会话已审） | 1 | 0（待核 0 张） | 待核（待核 1 张） |
+| 待核 | 1 | 待核（待核 1 张） | 待核（待核 1 张） |
+| 待派 | 1 | 待核（待核 1 张） | 待核（待核 1 张） |
 | 本机检查通过（非业务验收） | 1 | 1（待核 0 张） | 约40（待核 0 张） |
 
 ## 卡片明细
 
-| 任务号 | 任务名 | 主线 | bc | 种类 | 会话 | 执行者与模型 | 状态 | 分支 | 提交 | 返工轮次 | 用时 | 旧编号 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| [ARC-1017-COO-21](ARC-1017-COO-21.md) | [架构整合·跨域] 研究业务判断配置方式 | ARC | 跨域 | 文档 | one-architecture | Codex gpt-6.1-sol xhigh | 已提交（待后续整合） | 待核 | a1699515 | 0 | 待核 | 待核 |
-| [CI-1017-COO-24](CI-1017-COO-24.md) | [合并与 CI·跨域] 生成会话日报数据 | CI | 跨域 | 编码 | one-quality | 待核 | 已合并（本地合并记录） | claude/one-quality-session-daily | 91e09f8f | 待核 | 待核 | 待核 |
-| [CI-1017-COO-25](CI-1017-COO-25.md) | [合并与 CI·跨域] 统计日报 Codex 卡与返工 | CI | 跨域 | 编码 | one-quality | 待核 | 已合并（本地合并记录） | claude/one-quality-daily-codex | aec50ed5, 2c2ac012 | 待核 | 待核 | 待核 |
-| [CI-1017-COO-28](CI-1017-COO-28.md) | [合并与 CI·跨域] 登记失败特征与检测复发 | CI | 跨域 | 编码 | one-quality | 待核 | 已提交（待验收） | claude/one-quality-recurrence | 1376fb9e | 待核 | 待核 | 待核 |
-| [CI-1017-COO-29](CI-1017-COO-29.md) | [合并与 CI·跨域] 调度每夜复发检测 | CI | 跨域 | 编码 | one-quality | Codex gpt-6.1-sol xhigh | 已合并（本地合并记录） | claude/one-quality-recurrence-ci | 5ecde566, 2017909e, 85323908 | 待核 | 待核 | 待核 |
-| [CI-1017-COO-30](CI-1017-COO-30.md) | [合并与 CI·跨域] 分档运行 SQL Server 测试 | CI | 跨域 | 编码 | one-quality | Codex gpt-6.1-sol xhigh | 已合并（本地合并记录） | claude/one-quality-mssql-tier | 1d26033a, 7fdd83be, 7a8f6c21 | 2 | 待核 | 待核 |
-| [CI-1017-COO-31](CI-1017-COO-31.md) | [合并与 CI·跨域] 复盘持续集成耗时 | CI | 跨域 | 文档 | one-quality | Codex（模型与强度待核） | 已提交（待验收） | claude/one-quality-docs | cb2f3a91, 37519e75, 46fa7ccf, d30208a4 | 待核 | 待核 | 待核 |
-| [CI-1017-COO-32](CI-1017-COO-32.md) | [合并与 CI·跨域] 研究按改动影响选择测试 | CI | 跨域 | 文档 | one-quality | Codex（模型与强度待核） | 已提交（待验收） | claude/one-quality-docs | 7d96eef8 | 待核 | 待核 | 待核 |
-| [CI-1017-COO-33](CI-1017-COO-33.md) | [合并与 CI·跨域] 改造持续集成三档分流 | CI | 跨域 | 编码 | one-quality | 待核 | 已提交（待验收） | claude/one-quality-ci-tiers | 52493d5f, 168c7222, 2f4c378a | 待核 | 待核 | 待核 |
-| [CI-1017-COO-34](CI-1017-COO-34.md) | [合并与 CI·跨域] 重跑新增或修改测试类 | CI | 跨域 | 编码 | one-quality | 待核 | 已提交（待验收） | claude/one-quality-repeat-tests | 1e821c27, 116d58e8 | 待核 | 待核 | 待核 |
-| [CI-1017-COO-35](CI-1017-COO-35.md) | [合并与 CI·跨域] 诊断测试数据库启动失败 | CI | 跨域 | 编码 | one-quality | 待核 | 已提交（待验收） | claude/one-quality-tc-retry | cf535f07, 1b731721 | 待核 | 待核 | 待核 |
-| [CI-1017-COO-36](CI-1017-COO-36.md) | [合并与 CI·跨域] 拦截未入队的重检查 | CI | 跨域 | 编码 | one-quality | 待核 | 已提交（待验收） | claude/one-quality-ci-queue-gate | 25dfd191, f9a92ccd | 待核 | 待核 | 待核 |
-| [CI-1017-COO-37](CI-1017-COO-37.md) | [合并与 CI·跨域] 在提 PR 前运行检查 | CI | 跨域 | 编码 | one-quality | 待核 | 已提交（待验收） | 待核 | f162bc26, 39e9140e, 7189686f, d91fe8cd | 待核 | 待核 | 待核 |
-| [CI-1017-COO-38](CI-1017-COO-38.md) | [合并与 CI·跨域] 在推送前运行免容器检查 | CI | 跨域 | 编码 | one-quality | 待核 | 已提交（待验收） | claude/one-quality-pre-push-hook | e06c736d | 待核 | 待核 | 待核 |
-| [CON-1017-COO-10](CON-1017-COO-10.md) | [施工图·跨域] 起草一次投产过渡决策 | CON | 跨域 | 设计 | one-architecture | Codex gpt-6.1-sol xhigh | 已提交（用户采纳已写回） | 待核 | b4add5cb, dd43e23b, 01e5bd94, b4dc1f6a | 2 | 待核 | C1 |
-| [CON-1017-COO-11](CON-1017-COO-11.md) | [施工图·跨域] 写回价值流阶段裁定 | CON | 跨域 | 设计 | one-architecture | Codex gpt-6.1-sol xhigh | 已提交（待后续整合） | 待核 | b4add5cb | 0 | 待核 | C3 |
-| [CON-1017-COO-12](CON-1017-COO-12.md) | [施工图·跨域] 编制能力与信息层确认题面 | CON | 跨域 | 确认页 | one-architecture | Codex gpt-6.1-sol xhigh | 已提交（用户答复已导出） | 待核 | b4add5cb, 29df5c4b, 7e15a563, 18dfd09e | 2 | 待核 | C4C5、C45R1、CAPINFO |
-| [CON-1017-COO-13](CON-1017-COO-13.md) | [施工图·跨域] 铺开收入组流程图与评审包 | CON | 跨域 | 设计 | one-arch-revenue | Codex gpt-6.1-sol xhigh | 已提交（负责会话已审） | claude/one-arch-revenue-c7 | 745325bb, bd857d77, 5b31ba27 | 0 | 待核 | C7-REV-1 |
-| [CON-1017-COO-14](CON-1017-COO-14.md) | [施工图·跨域] 铺开人员组流程图与评审包 | CON | 跨域 | 设计 | one-arch-people | Codex（模型与强度待核） | 已提交（审稿通过记录） | 待核 | dab07edd, d726fb60 | 待核 | 待核 | C7 |
-| [CON-1017-COO-15](CON-1017-COO-15.md) | [施工图·跨域] 复核财务组阶段归属 | CON | 跨域 | 设计 | one-arch-finance | Codex gpt-6.1-sol xhigh | 已提交（待后续整合） | 待核 | be5152f5 | 待核 | 待核 | C7 |
-| [CON-1017-COO-16](CON-1017-COO-16.md) | [施工图·km.knowledge] 试点知识价值流流程图 | CON | km.knowledge | 设计 | one-cloud-pilot | 待核 | 本机检查通过（非业务验收） | claude/arch-cloud-pilot | 6531d301, 1b914e4d, 1e2ec33c | 1 | 约40m | C8、ARCH-C8 |
-| [CON-1017-COO-17](CON-1017-COO-17.md) | [施工图·跨域] 编制过渡决策批准题面 | CON | 跨域 | 确认页 | one-architecture | Codex gpt-6.1-sol xhigh | 已提交（用户答复已导出） | 待核 | 84c63302, 7c784046, 8d0fe086 | 1 | 待核 | TRN |
-| [CON-1017-COO-18](CON-1017-COO-18.md) | [施工图·跨域] 编制内部服务确认题面 | CON | 跨域 | 确认页 | one-architecture | Codex gpt-6.1-sol xhigh | 已提交（用户答复已写回） | 待核 | 638afdf0, c3c45d35, 03adf7eb | 1 | 待核 | B31 |
-| [CON-1017-COO-19](CON-1017-COO-19.md) | [施工图·跨域] 写回能力与信息层答复 | CON | 跨域 | 文档 | one-architecture | Codex gpt-6.1-sol xhigh | 已提交（待后续整合） | 待核 | 2acfd46e | 0 | 待核 | CAPINFO |
-| [CON-1017-COO-20](CON-1017-COO-20.md) | [施工图·跨域] 起草过渡期治理决策 | CON | 跨域 | 设计 | one-architecture | Codex gpt-6.1-sol xhigh | 已提交（用户采纳已写回） | 待核 | 40ac71b5, 154dd826, b4dc1f6a | 待核 | 待核 | 待核 |
-| [GOV-1017-COO-01](GOV-1017-COO-01.md) | [治理·跨域] 任务登记总表与检查 | GOV | 跨域 | 编码 | one-quality | Codex gpt-6.1-sol xhigh | 复审中 | claude/one-quality-task-register | 待核 | 1 | 待核 | 无 |
-| [GOV-1017-COO-26](GOV-1017-COO-26.md) | [流程治理·跨域] 保存会话交接快照 | GOV | 跨域 | 编码 | one-quality | Codex gpt-6.1-sol xhigh | 已合并（本地合并记录） | claude/one-quality-handoff-hooks | 3aff53c5, 36446a5e, d02a0342 | 2 | 待核 | 待核 |
-| [GOV-1017-COO-27](GOV-1017-COO-27.md) | [流程治理·跨域] 拦截未关闭标准输入的 Codex 调用 | GOV | 跨域 | 编码 | one-quality | 待核 | 已提交（待验收） | claude/one-quality-codex-stdin-gate | 9059fc28 | 待核 | 待核 | 待核 |
-| [IMP-1017-COO-02](IMP-1017-COO-02.md) | [代码实现·跨域] 实现数据访问范围 | IMP | 跨域 | 编码 | one-1a-par | 待核 | 待派 | 待核 | c10de6c5, 4d4a745c, 35643e0f | 待核 | 待核 | F-1 |
-| [IMP-1017-COO-03](IMP-1017-COO-03.md) | [代码实现·跨域] 实现单人运维模式 | IMP | 跨域 | 编码 | one-1a-next-5 | 待核 | 待核 | 待核 | 519fc88b, 510bad09, e86a01dd | 待核 | 待核 | SINGLE-OP |
-| [IMP-1017-COO-04](IMP-1017-COO-04.md) | [代码实现·跨域] 修复运维命令与审计边界 | IMP | 跨域 | 编码 | one-1a-next-5 | 待核 | 已合并（本地合并记录） | claude/one-1a-next-5-nits1 | 8dc40b79, d3aa040c, a2315add | 待核 | 待核 | NITS-1 |
-| [NAM-1017-COO-05](NAM-1017-COO-05.md) | [命名·跨域] 编制受控动词与状态词表 | NAM | 跨域 | 设计 | one-glossary | Codex gpt-6.1-sol xhigh | 已提交（用户答复已写回） | claude/one-glossary-codex-n4 | 729ca3a6, 80822d40, bc31cc02 | 待核 | 待核 | N4 |
-| [NAM-1017-COO-06](NAM-1017-COO-06.md) | [命名·跨域] 编制名词判定与命名题面 | NAM | 跨域 | 设计 | one-glossary | Codex gpt-6.1-sol xhigh | 已提交（用户答复已写回） | 待核 | 729ca3a6, e8bf87d4, b8c0083d | 待核 | 待核 | N5 |
-| [NAM-1017-COO-07](NAM-1017-COO-07.md) | [命名·跨域] 编制词表迁移说明与工具 | NAM | 跨域 | 编码 | one-glossary | Codex（模型与强度待核） | 已合并（本地合并记录） | claude/one-glossary-migrate-tool | 729ca3a6, 1c746040, 128b3d8e, 55123e9f | 待核 | 待核 | N6 |
-| [NAM-1017-COO-08](NAM-1017-COO-08.md) | [命名·跨域] 改造新词表结构读取检查 | NAM | 跨域 | 编码 | one-glossary | 待核 | 待核 | 待核 | 待核 | 待核 | 待核 | N8 |
-| [NAM-1017-COO-09](NAM-1017-COO-09.md) | [命名·跨域] 写回命名批次答复 | NAM | 跨域 | 编码 | one-glossary | Codex（模型与强度待核） | 已提交（后续返工另有登记） | claude/one-glossary-codex-n9 | 49aa95fc, 769e3d0a | 待核 | 待核 | N9 |
-| [NAM-1017-COO-22](NAM-1017-COO-22.md) | [命名·跨域] 盘点命名元词语 | NAM | 跨域 | 编码 | one-glossary | Codex（模型与强度待核） | 已提交（待验收） | 待核 | ea52a0cf, 13697078, 91f2aa32, bb77b189 | 待核 | 待核 | 待核 |
-| [NAM-1017-COO-23](NAM-1017-COO-23.md) | [命名·跨域] 核对动词三层覆盖 | NAM | 跨域 | 编码 | one-glossary | Codex（模型与强度待核） | 已提交（待验收） | 待核 | 8b18a37e, 619df3b7 | 待核 | 待核 | 待核 |
+| 任务号 | 任务名 | 主线 | bc | 种类 | 会话 | 执行者与模型 | 状态 | 分支 | 提交 | 返工轮次 | 用时 | 旧编号 | 来源 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| [ARC-1017-COO-21](ARC-1017-COO-21.md) | [架构整合·跨域] 研究业务判断配置方式 | ARC | 跨域 | 文档 | one-architecture | Codex gpt-6.1-sol xhigh | 已提交（待后续整合） | 待核 | a1699515 | 0 | 待核 | 待核 | 回填 |
+| [CI-1017-COO-24](CI-1017-COO-24.md) | [合并与 CI·跨域] 生成会话日报数据 | CI | 跨域 | 编码 | one-quality | 待核 | 已合并（本地合并记录） | claude/one-quality-session-daily | 91e09f8f | 待核 | 待核 | 待核 | 回填 |
+| [CI-1017-COO-25](CI-1017-COO-25.md) | [合并与 CI·跨域] 统计日报 Codex 卡与返工 | CI | 跨域 | 编码 | one-quality | 待核 | 已合并（本地合并记录） | claude/one-quality-daily-codex | aec50ed5, 2c2ac012 | 待核 | 待核 | 待核 | 回填 |
+| [CI-1017-COO-28](CI-1017-COO-28.md) | [合并与 CI·跨域] 登记失败特征与检测复发 | CI | 跨域 | 编码 | one-quality | 待核 | 已合并 | claude/one-quality-recurrence | 1376fb9e | 待核 | 待核 | 待核 | 回填 |
+| [CI-1017-COO-29](CI-1017-COO-29.md) | [合并与 CI·跨域] 调度每夜复发检测 | CI | 跨域 | 编码 | one-quality | Codex gpt-6.1-sol xhigh | 已合并（本地合并记录） | claude/one-quality-recurrence-ci | 5ecde566, 2017909e, 85323908 | 待核 | 待核 | 待核 | 回填 |
+| [CI-1017-COO-30](CI-1017-COO-30.md) | [合并与 CI·跨域] 分档运行 SQL Server 测试 | CI | 跨域 | 编码 | one-quality | Codex gpt-6.1-sol xhigh | 已合并（本地合并记录） | claude/one-quality-mssql-tier | 1d26033a, 7fdd83be, 7a8f6c21 | 2 | 待核 | 待核 | 回填 |
+| [CI-1017-COO-31](CI-1017-COO-31.md) | [合并与 CI·跨域] 复盘持续集成耗时 | CI | 跨域 | 文档 | one-quality | Codex（模型与强度待核） | 已提交（待验收） | claude/one-quality-docs | cb2f3a91, 37519e75, 46fa7ccf, d30208a4 | 待核 | 待核 | 待核 | 回填 |
+| [CI-1017-COO-32](CI-1017-COO-32.md) | [合并与 CI·跨域] 研究按改动影响选择测试 | CI | 跨域 | 文档 | one-quality | Codex（模型与强度待核） | 已提交（待验收） | claude/one-quality-docs | 7d96eef8 | 待核 | 待核 | 待核 | 回填 |
+| [CI-1017-COO-33](CI-1017-COO-33.md) | [合并与 CI·跨域] 改造持续集成三档分流 | CI | 跨域 | 编码 | one-quality | 待核 | 已合并 | claude/one-quality-ci-tiers | 52493d5f, 168c7222, 2f4c378a | 待核 | 待核 | 待核 | 回填 |
+| [CI-1017-COO-34](CI-1017-COO-34.md) | [合并与 CI·跨域] 重跑新增或修改测试类 | CI | 跨域 | 编码 | one-quality | 待核 | 已合并 | claude/one-quality-repeat-tests | 1e821c27, 116d58e8 | 待核 | 待核 | 待核 | 回填 |
+| [CI-1017-COO-35](CI-1017-COO-35.md) | [合并与 CI·跨域] 诊断测试数据库启动失败 | CI | 跨域 | 编码 | one-quality | 待核 | 已合并 | claude/one-quality-tc-retry | cf535f07, 1b731721 | 待核 | 待核 | 待核 | 回填 |
+| [CI-1017-COO-36](CI-1017-COO-36.md) | [合并与 CI·跨域] 拦截未入队的重检查 | CI | 跨域 | 编码 | one-quality | 待核 | 已合并 | claude/one-quality-ci-queue-gate | 25dfd191, f9a92ccd | 待核 | 待核 | 待核 | 回填 |
+| [CI-1017-COO-37](CI-1017-COO-37.md) | [合并与 CI·跨域] 在提 PR 前运行检查 | CI | 跨域 | 编码 | one-quality | 待核 | 已合并 | 待核 | f162bc26, 39e9140e, 7189686f, d91fe8cd | 待核 | 待核 | 待核 | 回填 |
+| [CI-1017-COO-38](CI-1017-COO-38.md) | [合并与 CI·跨域] 在推送前运行免容器检查 | CI | 跨域 | 编码 | one-quality | 待核 | 已合并 | claude/one-quality-pre-push-hook | e06c736d | 待核 | 待核 | 待核 | 回填 |
+| [CON-1017-COO-10](CON-1017-COO-10.md) | [施工图·跨域] 起草一次投产过渡决策 | CON | 跨域 | 设计 | one-architecture | Codex gpt-6.1-sol xhigh | 已提交（用户采纳已写回） | 待核 | b4add5cb, dd43e23b, 01e5bd94, b4dc1f6a | 2 | 待核 | C1 | 回填 |
+| [CON-1017-COO-11](CON-1017-COO-11.md) | [施工图·跨域] 写回价值流阶段裁定 | CON | 跨域 | 设计 | one-architecture | Codex gpt-6.1-sol xhigh | 已提交（待后续整合） | 待核 | b4add5cb | 0 | 待核 | C3 | 回填 |
+| [CON-1017-COO-12](CON-1017-COO-12.md) | [施工图·跨域] 编制能力与信息层确认题面 | CON | 跨域 | 确认页 | one-architecture | Codex gpt-6.1-sol xhigh | 已提交（用户答复已导出） | 待核 | b4add5cb, 29df5c4b, 7e15a563, 18dfd09e | 2 | 待核 | C4C5、C45R1、CAPINFO | 回填 |
+| [CON-1017-COO-13](CON-1017-COO-13.md) | [施工图·跨域] 铺开收入组流程图与评审包 | CON | 跨域 | 设计 | one-arch-revenue | Codex gpt-6.1-sol xhigh | 已提交（负责会话已审） | claude/one-arch-revenue-closeout | 745325bb, bd857d77, 5b31ba27 | 0 | 待核 | C7-REV-1 | 回填 |
+| [CON-1017-COO-14](CON-1017-COO-14.md) | [施工图·跨域] 铺开人员组流程图与评审包 | CON | 跨域 | 设计 | one-arch-people | Codex（模型与强度待核） | 已提交（审稿通过记录） | 待核 | dab07edd, d726fb60 | 待核 | 待核 | C7 | 回填 |
+| [CON-1017-COO-15](CON-1017-COO-15.md) | [施工图·跨域] 复核财务组阶段归属 | CON | 跨域 | 设计 | one-arch-finance | Codex gpt-6.1-sol xhigh | 已提交（待后续整合） | 待核 | be5152f5 | 待核 | 待核 | C7 | 回填 |
+| [CON-1017-COO-16](CON-1017-COO-16.md) | [施工图·km.knowledge] 试点知识价值流流程图 | CON | km.knowledge | 设计 | one-cloud-pilot | 待核 | 本机检查通过（非业务验收） | claude/arch-cloud-pilot, claude/one-architecture-adr-governance | 6531d301, 1b914e4d, 1e2ec33c | 1 | 约40m | C8、ARCH-C8 | 回填 |
+| [CON-1017-COO-17](CON-1017-COO-17.md) | [施工图·跨域] 编制过渡决策批准题面 | CON | 跨域 | 确认页 | one-architecture | Codex gpt-6.1-sol xhigh | 已提交（用户答复已导出） | 待核 | 84c63302, 7c784046, 8d0fe086 | 1 | 待核 | TRN | 回填 |
+| [CON-1017-COO-18](CON-1017-COO-18.md) | [施工图·跨域] 编制内部服务确认题面 | CON | 跨域 | 确认页 | one-architecture | Codex gpt-6.1-sol xhigh | 已提交（用户答复已写回） | 待核 | 638afdf0, c3c45d35, 03adf7eb | 1 | 待核 | B31 | 回填 |
+| [CON-1017-COO-19](CON-1017-COO-19.md) | [施工图·跨域] 写回能力与信息层答复 | CON | 跨域 | 文档 | one-architecture | Codex gpt-6.1-sol xhigh | 已提交（待后续整合） | 待核 | 2acfd46e | 0 | 待核 | CAPINFO | 回填 |
+| [CON-1017-COO-20](CON-1017-COO-20.md) | [施工图·跨域] 起草过渡期治理决策 | CON | 跨域 | 设计 | one-architecture | Codex gpt-6.1-sol xhigh | 已提交（用户采纳已写回） | 待核 | 40ac71b5, 154dd826, b4dc1f6a | 待核 | 待核 | 待核 | 回填 |
+| [GOV-1017-COO-01](GOV-1017-COO-01.md) | [流程治理·跨域] 任务登记总表与检查 | GOV | 跨域 | 编码 | one-quality | Codex gpt-6.1-sol xhigh | 复审中 | claude/one-quality-task-register | 待核 | 2 | 待核 | 无 | 派工 |
+| [GOV-1017-COO-26](GOV-1017-COO-26.md) | [流程治理·跨域] 保存会话交接快照 | GOV | 跨域 | 编码 | one-quality | Codex gpt-6.1-sol xhigh | 已合并（本地合并记录） | claude/one-quality-handoff-hooks | 3aff53c5, 36446a5e, d02a0342 | 2 | 待核 | 待核 | 回填 |
+| [GOV-1017-COO-27](GOV-1017-COO-27.md) | [流程治理·跨域] 拦截未关闭标准输入的 Codex 调用 | GOV | 跨域 | 编码 | one-quality | 待核 | 已合并 | claude/one-quality-codex-stdin-gate | 9059fc28 | 待核 | 待核 | 待核 | 回填 |
+| [IMP-1017-COO-02](IMP-1017-COO-02.md) | [代码实现·跨域] 实现数据访问范围 | IMP | 跨域 | 编码 | one-1a-par | 待核 | 待派 | 待核 | c10de6c5, 4d4a745c, 35643e0f | 待核 | 待核 | F-1 | 回填 |
+| [IMP-1017-COO-03](IMP-1017-COO-03.md) | [代码实现·跨域] 实现单人运维模式 | IMP | 跨域 | 编码 | one-1a-next-5 | 待核 | 已合并 | 待核 | 519fc88b, 510bad09, e86a01dd | 待核 | 待核 | SINGLE-OP | 回填 |
+| [IMP-1017-COO-04](IMP-1017-COO-04.md) | [代码实现·跨域] 修复运维命令与审计边界 | IMP | 跨域 | 编码 | one-1a-next-5 | 待核 | 已合并（本地合并记录） | claude/one-1a-next-5-docs3, claude/one-1a-next-5-nits1 | 8dc40b79, d3aa040c, a2315add | 待核 | 待核 | NITS-1 | 回填 |
+| [NAM-1017-COO-05](NAM-1017-COO-05.md) | [命名·跨域] 编制受控动词与状态词表 | NAM | 跨域 | 设计 | one-glossary | Codex gpt-6.1-sol xhigh | 已提交（用户答复已写回） | claude/one-glossary-bcs-systems | 729ca3a6, 80822d40, bc31cc02 | 待核 | 待核 | N4 | 回填 |
+| [NAM-1017-COO-06](NAM-1017-COO-06.md) | [命名·跨域] 编制名词判定与命名题面 | NAM | 跨域 | 设计 | one-glossary | Codex gpt-6.1-sol xhigh | 已提交（用户答复已写回） | 待核 | 729ca3a6, e8bf87d4, b8c0083d | 待核 | 待核 | N5 | 回填 |
+| [NAM-1017-COO-07](NAM-1017-COO-07.md) | [命名·跨域] 编制词表迁移说明与工具 | NAM | 跨域 | 编码 | one-glossary | Codex（模型与强度待核） | 已合并（本地合并记录） | claude/one-glossary-migrate-tool | 55123e9f | 待核 | 待核 | N6 | 回填 |
+| [NAM-1017-COO-08](NAM-1017-COO-08.md) | [命名·跨域] 改造新词表结构读取检查 | NAM | 跨域 | 编码 | one-glossary | 待核 | 待核 | 待核 | 待核 | 待核 | 待核 | N8 | 回填 |
+| [NAM-1017-COO-09](NAM-1017-COO-09.md) | [命名·跨域] 写回命名批次答复 | NAM | 跨域 | 编码 | one-glossary | Codex（模型与强度待核） | 已提交（后续返工另有登记） | claude/one-glossary-bcs-systems | 49aa95fc, 769e3d0a | 待核 | 待核 | N9 | 回填 |
+| [NAM-1017-COO-22](NAM-1017-COO-22.md) | [命名·跨域] 盘点命名元词语 | NAM | 跨域 | 编码 | one-glossary | Codex（模型与强度待核） | 已提交（待验收） | 待核 | ea52a0cf, 13697078, 91f2aa32, bb77b189 | 待核 | 待核 | 待核 | 回填 |
+| [NAM-1017-COO-23](NAM-1017-COO-23.md) | [命名·跨域] 核对动词三层覆盖 | NAM | 跨域 | 编码 | one-glossary | Codex（模型与强度待核） | 已提交（待验收） | 待核 | 8b18a37e, 619df3b7 | 待核 | 待核 | 待核 | 回填 |
 
-## 日报机器数据
+## 片段机器数据
 
-日报读下方 JSON；按片段首次提交时刻计新登记卡，返工按后续累计值之差计。首次登记的历史返工及未知基数无法分配到日期。未提交片段无时间证据，不编造派工时刻。
+JSON 只含片段字段与内容摘要，不含 Git 元数据。日报独立读取 origin/main 的片段与首次登记、返工轮次变更历史；来源为回填的卡不计入日报两列。
 
 <!-- TASKS-DATA v1 -->
 ```json
 {
   "version": 1,
   "片段摘要": {
-    "ARC-1017-COO-21.md": "2b76e44e69521468701ebdd750cd1269a506f6e3a7d5ff869625a6836117bb0f",
-    "CI-1017-COO-24.md": "99aa6c7bbeea36d28b96e830b39833486dd602cbb39ea86ef95df0434448cc34",
-    "CI-1017-COO-25.md": "dbf3b017eda8b37232d7f69c0512a5df180488f0280ae81c4d0500811268f0cf",
-    "CI-1017-COO-28.md": "1c99ec83535184057be15b3ed7246b7c565f194f0e7b5d8d386522d25d9a78fb",
-    "CI-1017-COO-29.md": "58743e059a365c3161e72d1e55954a9a516d0f0ce64650fdf0d90e1f7bb3c60e",
-    "CI-1017-COO-30.md": "a76ba174a4ec4e77d2f4ba6b6e33d719ba3a544e9cfdaa825da56ddeab64a308",
-    "CI-1017-COO-31.md": "6d80daaf7b48df063355a0e9c92f0055f113db41ee9130441d3aa576b3aba571",
-    "CI-1017-COO-32.md": "6da2e33e92fa67de2ad44769e7141b9a042776fd667b2099d0459f002dd7dfca",
-    "CI-1017-COO-33.md": "5eeb68c10a1ca775f9f82b882bb753e68da50fbab13cdeb6657f5a0f3cc53f46",
-    "CI-1017-COO-34.md": "e2871da6960a587651da63886176591ab0b56e3e8e14abdb0469191d2007e1b9",
-    "CI-1017-COO-35.md": "8fbf23b3a1dc2dbc38f07d2aff91623122aeb9aae22056fc286760f1ee9af389",
-    "CI-1017-COO-36.md": "9a719465e83160ed4b611b353967c0acf930aeea3e0f40602b90a335cca0b87d",
-    "CI-1017-COO-37.md": "89651f5cd09db989ad160bfb296b7c1d341cb9928b825eb8cfeb80541085c540",
-    "CI-1017-COO-38.md": "b6b8c528ccd8a754ad4e8bfac47f24851fe711d5670647b087e5e8bdf88b9fac",
-    "CON-1017-COO-10.md": "e34892074bd51dc191d363e3f75b219653b7197796837ff143fe8f52b3180276",
-    "CON-1017-COO-11.md": "f8b0a25f9d21a357e9c01b2e7f80453b336484cab81cffdf34030a439b31d320",
-    "CON-1017-COO-12.md": "bb3d44fe5722cd8407d0a7dc2abe5258237f1dd1c32094082ce26dad37941ce6",
-    "CON-1017-COO-13.md": "83ca104d7184599b8ca58905fc364b9d2de5873c0e1c3c98266d7d2b6395af53",
-    "CON-1017-COO-14.md": "93f77c3573267ef8f0b6d7bcbdb3e657554cd256f9614be5832504d22ec111f4",
-    "CON-1017-COO-15.md": "c7ce52414892365be2c4c74a5c89b9a8a68eb903f2b47f4792f41094833307c9",
-    "CON-1017-COO-16.md": "5e74d68b599b1a283c5343ff63e53163d7948722c094ff3ce7c51df81f88ac56",
-    "CON-1017-COO-17.md": "01c2a81ce3ced7c4fbda3f41cbc4617cd886ca95b9436c9fd184c06efd0b6963",
-    "CON-1017-COO-18.md": "4025540c55c570926c77b9cd9fc6e1fd6d48f0cf2191663e729f8a7124739a0a",
-    "CON-1017-COO-19.md": "14808b7bd1a6b3a2481972175865c4377fe8b6b9837b4a895c0667b36f4e4c85",
-    "CON-1017-COO-20.md": "1432bfff20ae82930f7e6aa4533877a40650e490e5d1b4b8c289c58ea06957ce",
-    "GOV-1017-COO-01.md": "7ca306d14fe48d234d2865e2e6827c697ee1ff45066cfd7eae2dc3270d79a164",
-    "GOV-1017-COO-26.md": "995ef5ac87f81a4d7588c10ea8552190742018db0c0009e3339213a055806f56",
-    "GOV-1017-COO-27.md": "18b40902329dd9f2e39d7e7d0b3d04127f73f8be056f74eff504c807616150e1",
-    "IMP-1017-COO-02.md": "2fc7a9b95c87a9d8d859090437c8b3e939393220f57496a8c67917ccf1f08102",
-    "IMP-1017-COO-03.md": "97d8e380dccb048668484d9dcc0ae8003e831a3063dd7f2d3df0e9d621bbe46a",
-    "IMP-1017-COO-04.md": "b01be7130a81478014980e4d4d2b0caf62b8e85ff53cc3fe7c6c1dca0b80cab1",
-    "NAM-1017-COO-05.md": "08d0bc0c1a0b008d00031fcf70e4489580eaf6b1c95252fb538f18fcd86254fa",
-    "NAM-1017-COO-06.md": "df0d41d12f2c17fe4090baf9ffd4c15ead97a2905450e073395d565bda752cb8",
-    "NAM-1017-COO-07.md": "2cced22db4af77c371a244cb98eba969b191f93eda55dbc9865e052490ea28ae",
-    "NAM-1017-COO-08.md": "728d49b46629199da840f52fb8ddbfef81cb48878ae68b4c8463b0101ffc6ebe",
-    "NAM-1017-COO-09.md": "506d87678fcdfa7464f4f1111adba01de5c4ed73da18a0a9ff88e4ecb1fa5994",
-    "NAM-1017-COO-22.md": "0654ef1001b86ba92cabcd368abf431ff7263dcc4b23d54e65384397d13dc7ab",
-    "NAM-1017-COO-23.md": "6127c1a55e48b12a8d718aa4a8a406f982915eedcf0cc549979f60bbc1d6abc9"
+    "ARC-1017-COO-21.md": "ae554a97eb091c1710fb6a41660b834f7616a3d17bba9021e20b05a74f493ea4",
+    "CI-1017-COO-24.md": "6563a0d9596466bfd0f0f6fefbe59fd375ebee8c2109c7b06d6fdb600519c87c",
+    "CI-1017-COO-25.md": "afb0c0e0c0b403865e548669eacc39d436de79ad64611c49cea0d3690ea2aad7",
+    "CI-1017-COO-28.md": "25624effe3d2898134f161da59d752b27f7ba16f3deda1bf91b71dcc0b0de1e1",
+    "CI-1017-COO-29.md": "170400860b609de5dff8979291673aeec4f5a3eb6887341d3a27bb0bd517c3bf",
+    "CI-1017-COO-30.md": "d0d22917f63944bac4584730811d562565dcb16dacb5bf16131b880504c8407c",
+    "CI-1017-COO-31.md": "380569ddb6bf6561ad697fd002238c8006ef6d6658094c80f92afc2b1b2e9d77",
+    "CI-1017-COO-32.md": "1adaa8f60883a7f18ed3e66587fffb0c4f8234596a6de4e59c02a9ff09e8930f",
+    "CI-1017-COO-33.md": "6a5a9aa2c52c563447b34bc39ee2a4225219a15a5bb5b8eca7e8e3d813dff917",
+    "CI-1017-COO-34.md": "514df672c7f63b5adaae678f49dc7989a76238020d33be5d6e425648bd21a84e",
+    "CI-1017-COO-35.md": "9f64205c61924c409e285a83dc8c8babe1d5455b69659825dbb42ed885e4453c",
+    "CI-1017-COO-36.md": "5ac91530c6a097ea165ebb74419cbf862579f05baa5351231aec04926b2ade06",
+    "CI-1017-COO-37.md": "ef0b1b85c2eae9918b99b3536491baa0a22ea3ee71a50d465d2de28a08653f1c",
+    "CI-1017-COO-38.md": "a511aef059968f696996f98227c0882a0df8c39d655d2bd26ab46e9177323036",
+    "CON-1017-COO-10.md": "9fb8ed7408dd6bfdd07dad44d18dd3045328aa7e66e1fcce1832e6c4ecd9cfe7",
+    "CON-1017-COO-11.md": "4d9cc499fb674744140cba8e6aecf67482247e062db95b66c9cd92bf14b443f8",
+    "CON-1017-COO-12.md": "7b2d1966a8987122c7687639a1a5fdba3d9b83e11b7bd6e755e680f23b27f011",
+    "CON-1017-COO-13.md": "257b5373f66272f8a9a1be1d3d669cb21c5d84fe45633d646853e55fa7e4e433",
+    "CON-1017-COO-14.md": "4c41ed76ec8fb100714f6b39e25a5636e27e3d41330ed572c0314531650878e2",
+    "CON-1017-COO-15.md": "75fdd46bcda993248de02d09d01cc19e980c76963ede9d013cbf98869d089165",
+    "CON-1017-COO-16.md": "8bea837e52371fd1778820559d979d2db8a4331393fece7d1589449d8f9c0680",
+    "CON-1017-COO-17.md": "96ea3e08f7ae37b1e780724d6cd9d9e1069a5a12709a34ddad808f1641bea15b",
+    "CON-1017-COO-18.md": "af250fbfc2ada22b6caff2f7b2ee417becee62bc2c64dc668924041691dbf75a",
+    "CON-1017-COO-19.md": "b1d07380235f21e09ee953643a7a1289cf8d8eb9a80f71b49446f6e21694771e",
+    "CON-1017-COO-20.md": "3c366dc1e3e03f4ed452040023bd6cfa6c72cbb87520866df1c428d056079ae7",
+    "GOV-1017-COO-01.md": "f999dbb7d508f264d18250b8c598b53cd22d9a2fbc1aea6d868d8fdd6c6858c7",
+    "GOV-1017-COO-26.md": "c727c82cdec886c01352f11a15ee3906dd91e44da4601aa722c4dd8a98524a7b",
+    "GOV-1017-COO-27.md": "5888271aee09c173cc2aa1905cddff4dfd3fab78eab07f82da75fff1c51267b8",
+    "IMP-1017-COO-02.md": "3873098864d3c04abcc8f916e767b68fdf4bfd7d6ba65fdea165f2647d46b804",
+    "IMP-1017-COO-03.md": "7da4d14ad591b87884b24437de56d26326ef90c365cf67ccd051ac283b51e882",
+    "IMP-1017-COO-04.md": "7d2cc661fdb880f6353092de46b53e18e51b7d97a5ff50eafdf0a35bbe59bdf4",
+    "NAM-1017-COO-05.md": "b376bf6cd9471fb70565d91407b5140c4d41a4193fd5798758eb96864359e34e",
+    "NAM-1017-COO-06.md": "5f8f5c22a3dd65b29f56fd2143cf84794110fefc8dbc48a1779cda958320eda6",
+    "NAM-1017-COO-07.md": "493328947aadef2d54aa008c6973739c1e3b5c2f5b57d291a2eefc9adad9aaa7",
+    "NAM-1017-COO-08.md": "c9352ef27ec4f36df84740a39209d17c0b55d5db0374c1241c1e3cc181f91fcc",
+    "NAM-1017-COO-09.md": "e983dd0600844ed98fc8a4d958be0f46be05fd9592fc5cd52685cbb8f1c56119",
+    "NAM-1017-COO-22.md": "88802fd506409dfee27d56352a6ab3172ac069fe4c4cbeefbf97d2e138597566",
+    "NAM-1017-COO-23.md": "4153c95954847485b72043b22b906ec197b77ffffa50bf190ac331c848c18e16"
   },
   "tasks": [
     {
@@ -159,9 +160,8 @@
       "提交": "a1699515",
       "返工轮次": "0",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     },
     {
       "任务号": "CI-1017-COO-24",
@@ -176,9 +176,8 @@
       "提交": "91e09f8f",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     },
     {
       "任务号": "CI-1017-COO-25",
@@ -193,9 +192,8 @@
       "提交": "aec50ed5, 2c2ac012",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     },
     {
       "任务号": "CI-1017-COO-28",
@@ -205,14 +203,13 @@
       "种类": "编码",
       "会话": "one-quality",
       "执行者与模型": "待核",
-      "状态": "已提交（待验收）",
+      "状态": "已合并",
       "分支": "claude/one-quality-recurrence",
       "提交": "1376fb9e",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     },
     {
       "任务号": "CI-1017-COO-29",
@@ -227,9 +224,8 @@
       "提交": "5ecde566, 2017909e, 85323908",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     },
     {
       "任务号": "CI-1017-COO-30",
@@ -244,9 +240,8 @@
       "提交": "1d26033a, 7fdd83be, 7a8f6c21",
       "返工轮次": "2",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     },
     {
       "任务号": "CI-1017-COO-31",
@@ -261,9 +256,8 @@
       "提交": "cb2f3a91, 37519e75, 46fa7ccf, d30208a4",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     },
     {
       "任务号": "CI-1017-COO-32",
@@ -278,9 +272,8 @@
       "提交": "7d96eef8",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     },
     {
       "任务号": "CI-1017-COO-33",
@@ -290,14 +283,13 @@
       "种类": "编码",
       "会话": "one-quality",
       "执行者与模型": "待核",
-      "状态": "已提交（待验收）",
+      "状态": "已合并",
       "分支": "claude/one-quality-ci-tiers",
       "提交": "52493d5f, 168c7222, 2f4c378a",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     },
     {
       "任务号": "CI-1017-COO-34",
@@ -307,14 +299,13 @@
       "种类": "编码",
       "会话": "one-quality",
       "执行者与模型": "待核",
-      "状态": "已提交（待验收）",
+      "状态": "已合并",
       "分支": "claude/one-quality-repeat-tests",
       "提交": "1e821c27, 116d58e8",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     },
     {
       "任务号": "CI-1017-COO-35",
@@ -324,14 +315,13 @@
       "种类": "编码",
       "会话": "one-quality",
       "执行者与模型": "待核",
-      "状态": "已提交（待验收）",
+      "状态": "已合并",
       "分支": "claude/one-quality-tc-retry",
       "提交": "cf535f07, 1b731721",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     },
     {
       "任务号": "CI-1017-COO-36",
@@ -341,14 +331,13 @@
       "种类": "编码",
       "会话": "one-quality",
       "执行者与模型": "待核",
-      "状态": "已提交（待验收）",
+      "状态": "已合并",
       "分支": "claude/one-quality-ci-queue-gate",
       "提交": "25dfd191, f9a92ccd",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     },
     {
       "任务号": "CI-1017-COO-37",
@@ -358,14 +347,13 @@
       "种类": "编码",
       "会话": "one-quality",
       "执行者与模型": "待核",
-      "状态": "已提交（待验收）",
+      "状态": "已合并",
       "分支": "待核",
       "提交": "f162bc26, 39e9140e, 7189686f, d91fe8cd",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     },
     {
       "任务号": "CI-1017-COO-38",
@@ -375,14 +363,13 @@
       "种类": "编码",
       "会话": "one-quality",
       "执行者与模型": "待核",
-      "状态": "已提交（待验收）",
+      "状态": "已合并",
       "分支": "claude/one-quality-pre-push-hook",
       "提交": "e06c736d",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     },
     {
       "任务号": "CON-1017-COO-10",
@@ -397,9 +384,8 @@
       "提交": "b4add5cb, dd43e23b, 01e5bd94, b4dc1f6a",
       "返工轮次": "2",
       "用时": "待核",
-      "旧编号": "C1",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "C1"
     },
     {
       "任务号": "CON-1017-COO-11",
@@ -414,9 +400,8 @@
       "提交": "b4add5cb",
       "返工轮次": "0",
       "用时": "待核",
-      "旧编号": "C3",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "C3"
     },
     {
       "任务号": "CON-1017-COO-12",
@@ -431,9 +416,8 @@
       "提交": "b4add5cb, 29df5c4b, 7e15a563, 18dfd09e",
       "返工轮次": "2",
       "用时": "待核",
-      "旧编号": "C4C5、C45R1、CAPINFO",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "C4C5、C45R1、CAPINFO"
     },
     {
       "任务号": "CON-1017-COO-13",
@@ -444,13 +428,12 @@
       "会话": "one-arch-revenue",
       "执行者与模型": "Codex gpt-6.1-sol xhigh",
       "状态": "已提交（负责会话已审）",
-      "分支": "claude/one-arch-revenue-c7",
+      "分支": "claude/one-arch-revenue-closeout",
       "提交": "745325bb, bd857d77, 5b31ba27",
       "返工轮次": "0",
       "用时": "待核",
-      "旧编号": "C7-REV-1",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "C7-REV-1"
     },
     {
       "任务号": "CON-1017-COO-14",
@@ -465,9 +448,8 @@
       "提交": "dab07edd, d726fb60",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "C7",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "C7"
     },
     {
       "任务号": "CON-1017-COO-15",
@@ -482,9 +464,8 @@
       "提交": "be5152f5",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "C7",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "C7"
     },
     {
       "任务号": "CON-1017-COO-16",
@@ -495,13 +476,12 @@
       "会话": "one-cloud-pilot",
       "执行者与模型": "待核",
       "状态": "本机检查通过（非业务验收）",
-      "分支": "claude/arch-cloud-pilot",
+      "分支": "claude/arch-cloud-pilot, claude/one-architecture-adr-governance",
       "提交": "6531d301, 1b914e4d, 1e2ec33c",
       "返工轮次": "1",
       "用时": "约40m",
-      "旧编号": "C8、ARCH-C8",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "C8、ARCH-C8"
     },
     {
       "任务号": "CON-1017-COO-17",
@@ -516,9 +496,8 @@
       "提交": "84c63302, 7c784046, 8d0fe086",
       "返工轮次": "1",
       "用时": "待核",
-      "旧编号": "TRN",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "TRN"
     },
     {
       "任务号": "CON-1017-COO-18",
@@ -533,9 +512,8 @@
       "提交": "638afdf0, c3c45d35, 03adf7eb",
       "返工轮次": "1",
       "用时": "待核",
-      "旧编号": "B31",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "B31"
     },
     {
       "任务号": "CON-1017-COO-19",
@@ -550,9 +528,8 @@
       "提交": "2acfd46e",
       "返工轮次": "0",
       "用时": "待核",
-      "旧编号": "CAPINFO",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "CAPINFO"
     },
     {
       "任务号": "CON-1017-COO-20",
@@ -567,13 +544,12 @@
       "提交": "40ac71b5, 154dd826, b4dc1f6a",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     },
     {
       "任务号": "GOV-1017-COO-01",
-      "任务名": "[治理·跨域] 任务登记总表与检查",
+      "任务名": "[流程治理·跨域] 任务登记总表与检查",
       "主线": "GOV",
       "bc": "跨域",
       "种类": "编码",
@@ -582,11 +558,9 @@
       "状态": "复审中",
       "分支": "claude/one-quality-task-register",
       "提交": "待核",
-      "返工轮次": "1",
+      "返工轮次": "2",
       "用时": "待核",
-      "旧编号": "无",
-      "记录": [],
-      "未提交": true
+      "旧编号": "无"
     },
     {
       "任务号": "GOV-1017-COO-26",
@@ -601,9 +575,8 @@
       "提交": "3aff53c5, 36446a5e, d02a0342",
       "返工轮次": "2",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     },
     {
       "任务号": "GOV-1017-COO-27",
@@ -613,14 +586,13 @@
       "种类": "编码",
       "会话": "one-quality",
       "执行者与模型": "待核",
-      "状态": "已提交（待验收）",
+      "状态": "已合并",
       "分支": "claude/one-quality-codex-stdin-gate",
       "提交": "9059fc28",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     },
     {
       "任务号": "IMP-1017-COO-02",
@@ -635,9 +607,8 @@
       "提交": "c10de6c5, 4d4a745c, 35643e0f",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "F-1",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "F-1"
     },
     {
       "任务号": "IMP-1017-COO-03",
@@ -647,14 +618,13 @@
       "种类": "编码",
       "会话": "one-1a-next-5",
       "执行者与模型": "待核",
-      "状态": "待核",
+      "状态": "已合并",
       "分支": "待核",
       "提交": "519fc88b, 510bad09, e86a01dd",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "SINGLE-OP",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "SINGLE-OP"
     },
     {
       "任务号": "IMP-1017-COO-04",
@@ -665,13 +635,12 @@
       "会话": "one-1a-next-5",
       "执行者与模型": "待核",
       "状态": "已合并（本地合并记录）",
-      "分支": "claude/one-1a-next-5-nits1",
+      "分支": "claude/one-1a-next-5-docs3, claude/one-1a-next-5-nits1",
       "提交": "8dc40b79, d3aa040c, a2315add",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "NITS-1",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "NITS-1"
     },
     {
       "任务号": "NAM-1017-COO-05",
@@ -682,13 +651,12 @@
       "会话": "one-glossary",
       "执行者与模型": "Codex gpt-6.1-sol xhigh",
       "状态": "已提交（用户答复已写回）",
-      "分支": "claude/one-glossary-codex-n4",
+      "分支": "claude/one-glossary-bcs-systems",
       "提交": "729ca3a6, 80822d40, bc31cc02",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "N4",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "N4"
     },
     {
       "任务号": "NAM-1017-COO-06",
@@ -703,9 +671,8 @@
       "提交": "729ca3a6, e8bf87d4, b8c0083d",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "N5",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "N5"
     },
     {
       "任务号": "NAM-1017-COO-07",
@@ -717,12 +684,11 @@
       "执行者与模型": "Codex（模型与强度待核）",
       "状态": "已合并（本地合并记录）",
       "分支": "claude/one-glossary-migrate-tool",
-      "提交": "729ca3a6, 1c746040, 128b3d8e, 55123e9f",
+      "提交": "55123e9f",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "N6",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "N6"
     },
     {
       "任务号": "NAM-1017-COO-08",
@@ -737,9 +703,8 @@
       "提交": "待核",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "N8",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "N8"
     },
     {
       "任务号": "NAM-1017-COO-09",
@@ -750,13 +715,12 @@
       "会话": "one-glossary",
       "执行者与模型": "Codex（模型与强度待核）",
       "状态": "已提交（后续返工另有登记）",
-      "分支": "claude/one-glossary-codex-n9",
+      "分支": "claude/one-glossary-bcs-systems",
       "提交": "49aa95fc, 769e3d0a",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "N9",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "N9"
     },
     {
       "任务号": "NAM-1017-COO-22",
@@ -771,9 +735,8 @@
       "提交": "ea52a0cf, 13697078, 91f2aa32, bb77b189",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     },
     {
       "任务号": "NAM-1017-COO-23",
@@ -788,9 +751,8 @@
       "提交": "8b18a37e, 619df3b7",
       "返工轮次": "待核",
       "用时": "待核",
-      "旧编号": "待核",
-      "记录": [],
-      "未提交": true
+      "来源": "回填",
+      "旧编号": "待核"
     }
   ]
 }

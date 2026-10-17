@@ -130,14 +130,8 @@ if [ "$relevant_status" -ne 0 ] || printf '%s\n' "$relevant_output" | grep -qx '
   legacy_it_relevant=true
 fi
 
-records_dir=$(dirname docs/modernization/build_all.py)
-if [ -n "$(gitq status --porcelain -- "$records_dir" backend/glossary/proposed)" ]; then
-  report SKIP "generated docs (build_all --check)" "$records_dir or backend/glossary/proposed has uncommitted changes: commit first, then run again (请先提交再运行)"
-else
-  run_step "generated docs (build_all --check)" py docs/modernization/build_all.py --check
-fi
+run_step "generated docs (build_all --check)" py docs/modernization/build_all.py --check
 run_step "legacy system name" py docs/modernization/check_legacy_name.py
-run_step "task register" py docs/modernization/check_tasks.py --check
 if touches '^(docs/modernization/tasks/|.*/check_tasks[.]py|.*/build_all[.]py|scripts/ops/session_daily\.py|scripts/precheck\.sh)'; then
   run_step "task register (self-test)" py docs/modernization/check_tasks.py --self-test
   run_step "session daily (self-test)" py scripts/ops/session_daily.py --self-test

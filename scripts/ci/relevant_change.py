@@ -70,7 +70,7 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     # SESSION_PLAYBOOK §11: playbook_digest.py 的自测对真实文件断言；SessionStart 钩子读取它
     "docs/modernization/SESSION_PLAYBOOK.md",
     "docs/modernization/check_legacy_name.py",
-    # task register: check_tasks.py runs in build_all.py's always-run steps and in scripts/precheck.sh; session_daily.py reads tasks/
+    # task register: check_tasks.py runs in build_all.py; session_daily.py reads origin/main's tasks/
     "docs/modernization/check_tasks.py",
     "docs/modernization/tasks/",
     # decision page question rules: run by scripts/precheck.sh when a decision page changes
