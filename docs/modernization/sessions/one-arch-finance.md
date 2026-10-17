@@ -56,4 +56,4 @@
 
 ## 当前状态
 
-2026-10-16 晚：财务组 54 条流程、44 个聚合（105 表）、命令 168、状态机 44、事件 60、场景 662、BPMN 29 张（0 错 0 警），已落实 S-15–S-39 涉及本组的裁定，本组检查脚本无缺口，五个价值流有条件通过；分支 claude/one-arch-finance-closeout（cfd9fb31，未开 PR，等里程碑）。等 one-architecture 合成财务确认页（待用户定 48 条）后按答复改稿。
+2026-10-17：财务组 54 条流程、44 聚合（105 表）、命令 168、状态机 44、事件 60、场景 662、BPMN 29 张全部通过；已落实 S-15–S-43 涉及本组的裁定、阶段对齐（#421 判据、SD-03/10/11）、对象层（primary_object，#422）；五个价值流有条件通过，C7 已交。分支 claude/one-arch-finance-closeout @ ded5ebab（文档类不开 PR，调度收合集）。等 one-architecture 出确认页与信息层；新活先写派工卡交 Codex（run_in_background），本会话只派工、审稿、验收。接续读本画像、finance/NOTES.md、STAGES.md、OBJECTS.md、共享笔记 one-arch-finance-status.md。
