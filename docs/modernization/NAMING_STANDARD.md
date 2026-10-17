@@ -2,6 +2,8 @@
 
 日期：2026-10-14 · 适用范围：`reimagine` 产出的全部新代码（后端、PC、H5、数据库、事件、API）
 
+N3 细则更新：2026-10-17 · NAM-1017-ARC-01 · Codex 起草（gpt-6.1-sol，xhigh）；词源与指称结构由 one-glossary 负责，投影、格式与守护清单由 one-architecture 负责（ADR-0053 决定 7.2）。
+
 用户诉求原话：
 - 「可以在现代化过程中规范命名吗？将原代码的命名和编码规范化」
 - 「命名要符合英文、行业、规范的习惯，agent 开发友好。而且要考虑 archunit 和包结构来保证目录结构不会让 agent 犯错。」
@@ -21,7 +23,7 @@
 |---|---|---|
 | **深模块** | 每个模块（= 一个 BC）把复杂度藏在内部：工时的费率锁定、人天折算、行级审批，都在 `timesheet` 内部完成，调用方只看到一个结果 | 模块内部（domain / application / infrastructure / web）对外不可见，由 Modulith 校验 |
 | **窄接口** | 模块对外只有两个出口：`api`（查询或命令的接口 + record）和 `events`（已发生事实的 record） | 规则：`api` 只放接口和 record；签名不得出现内部类型；每个模块的 api 方法总数 ≤ 12（超出说明应加深模块，而不是加宽接口） |
-| **对 agent 的约束** | 每个概念只有一个名字、一个位置。规则失败时直接说明「为什么」和「放哪里」 | 规则文本里写 `because(...)`；每个模块带 `package-info.java` 说明职责、拥有的 schema 和允许的依赖；仓库里配「代码放哪里」速查表（§3） |
+| **对 agent 的约束** | 名字按概念、语言与用途定位（§2.1）；代码按职责放在固定位置。规则失败时直接说明「为什么」和「放哪里」 | 规则文本里写 `because(...)`；每个模块带 `package-info.java` 说明职责、拥有的 schema 和允许的依赖；仓库里配「代码放哪里」速查表（§3） |
 | **防错代码** | 让错误代码在编译期或 CI 阶段就失败，而不是靠 review 发现 | ArchUnit + Modulith + Checkstyle / Error Prone + 以规则 ID 命名的测试 |
 
 ## 1. 老代码的命名问题（实测）
@@ -42,31 +44,100 @@
 
 ### 2.1 词源
 
-**唯一来源是 `docs/domain/00_战略设计/03-通用语言.md` 的「代码名」列。新概念先进词表定名，再进代码。** 词表本身已经采用 PSA / 专业服务和财务的行业惯用语，新代码直接使用：
+本节只放登记与投影细则。稳定原则、三层模型、组合、生命周期、改名及多语言结构分别引用 **ADR-0053 决定 1、2、3、5、6**，不在此复制决定正文。词源入口按其决定 1.3 指向 `glossary/terms.yaml` 及并入源、`glossary/bcs.yaml` 与 ACL 归类数据；`03-通用语言.md` 是历史来源，不是新增命名的登记入口。现有词条状态与含义以这些源为准，本节示例不裁定改词。
 
-| 中文 | 代码名（行业惯用） | 不用 |
-|---|---|---|
-| 报价单 | `Quote` | Quotation、BaoJia |
-| 工时单 / 工时条目 | `Timesheet` / `TimeEntry` | ManHour、Works、WorkHour |
-| 可计费工时 | `BillableHours` | |
-| 费率表 | `RateCard` / `RateCardItem` | HourlyRate、BillRate 表 |
-| 交付物 | `Deliverable` | |
-| ETC / EAC / 完工百分比 | `EstimateToComplete` / `EacAssessment` / `PercentageOfCompletion`（简写 `Poc`） | |
-| WIP / 合同资产 | `Wip` / `WipAccount` | |
-| 结转批次 / 分摊 | `CarryBatch` / `AllocateOverhead` | |
-| 合同 / 条款 | `Contract` / `ContractClause` | Term（与「期间」歧义） |
-| 验收 | `AcceptanceRecord` / `MilestoneAccepted` | |
-| 核算主体 | `LegalEntity` / `legal_entity_id` | companyCode |
+**本轮出处版本**（均从本地 Git 引用读取，不代表已并入 main）：ADR-0053 为 `origin/claude/one-architecture-adr-governance` 的 `adr/src/ADR-0053.md`；下称「登记方案」为 `origin/claude/one-glossary-bcs-systems` 的 `glossary/arch-naming/NAMING_ATOMS_REGISTRATION_PLANS.md`。同分支 `NAMING_ATOMS_DRAFT.md` §4 与 `NAMING_ATOMS_PREP.md`「目标结构」只作候选字段的补充出处。路径均相对 `docs/modernization/`。登记方案标为「仅方案」：下列未定项不因列入本标准而成为已定 schema 或角色枚举。
 
-**词表改词建议**：这几处词表本身不够地道，需要按「同批改词表」的规则处理：
-- `ManhourEstimateItem` → `LaborEstimateLine`：manhour 是旧称，行业用 labor 或 effort。
-- `TimeEntry`（工时）与 `TimesheetLine`（工时明细）是同义重复，建议统一为 `TimeEntry`。
-- 「费率版本」`RateVersion` 与客户域的 `CustomerRateCard` 建议统一到 `RateCard` 词族。
+**守护现状**：`GlossaryTest`、`glossary/term_rules.py`、`NamingSurfaceTest` 仍读取现行词表形状；概念与指称的新结构、角色选择及投影一致性均为**待补守护**，由 one-quality 按后续命名卡实施、one-coordinator 排期，须在新结构切换前到位。本卡仅改细则，期间按出处复审。出处：ADR-0053 决定 4、7 与迁移方案第 2、5 项；登记方案「落地次序与出口」。
+
+#### 2.1.1 概念条目与叫法条目
+
+负责：one-glossary。本文「叫法条目」对应 ADR 的「指称」。以下分列概念字段、指称字段与派生结果；字段的最终序列化形状由 one-glossary 定，不用旧的 `zh / en / snake` 三字段代替设计。
+
+| 层次 | 字段或登记项 | 细则与待定边界 | 出处 | 守护 |
+|---|---|---|---|---|
+| 概念 | `id`、`kind` | 概念主条目保留这两个字段；`kind` 沿 DDD 分类，元词语另分 `atom_kind` | ADR-0053 决定 2.1；登记方案「共用结构与职责」；DRAFT §4 | 现有 `term_rules.py` 查 id、kind；新结构待补守护 |
+| 概念 | `bc / scope / definition` | 登记所属范围与定义；具体值域沿词表与 `bcs.yaml` | ADR-0053 决定 2.1；登记方案「共用结构与职责」 | 现有 `term_rules.py` 查范围；新结构待补守护 |
+| 概念 | `standard_ref / relations / status` | 标准依据、概念关系与概念状态；关系的边结构、`homonyms / upstream_term` 迁入方式待 one-glossary 定 | ADR-0053 决定 2.1、5.1 与影响面；登记方案「共用结构与职责」；DRAFT §4 | 现有守护只查旧结构；待补守护 |
+| 概念 / 元词语并入行 | `concept_ref / atom_kind / designations / decision_ref` | 登记方案已列这些字段；`concept_ref` 是并入行引用还是主条目标识、与 `id` 的对应，以及 `decision_ref` 是否逐条必填，待 one-glossary 定；`atom_kind` 不替代 `kind` | 登记方案「共用结构与职责」、§3–6；ADR-0053 决定 2 | 待补守护（切换前） |
+| 指称 | 语言、名称、用途角色；候选字段 `locale / name / role` | 字段拼写来自 DRAFT；语言与角色分列，角色选择见 §2.1.2；不把 snake、接口或权限串放进语言字段 | ADR-0053 决定 2.2–3、6.1；登记方案「共用结构与职责」；DRAFT §4 | 待补守护（切换前） |
+| 指称 | 使用状态、审批状态、来源类型 | 分别登记，不能共用一个 `status` 或将别名、方言等塞入用途角色；三个字段名、枚举机器值及迁移对照待 one-glossary 定 | ADR-0053 决定 2.2、5.2；登记方案「共用结构与职责」 | 现有禁用词检查不等于新状态组合检查；待补守护 |
+| 指称 | 改名后的替代引用、出处与生效 / 退役时间 | 替代引用按 ADR；时间字段来自 PREP 候选，字段名、必填条件与概念状态的边界待 one-glossary 定 | ADR-0053 决定 5.3；PREP「目标结构」 | 待补守护（改名迁移前） |
+| 派生结果 | snake / camel / kebab、各命名面成品 | 按 §2.1.4 产生；旧字段仅作为兼容投影，切换核对逐项对照 `zh / en / snake / aliases / forbidden` | ADR-0053 决定 2.3 与迁移方案第 2 项；登记方案「共用结构与职责」「落地次序与出口」 | 待补守护（新旧投影比对，切换前） |
+
+#### 2.1.2 用途角色与 AN-05
+
+负责：one-glossary 定角色与指称，one-architecture 定各面取用角色。下表区分已定用途和候选角色；没有给待定用途自造机器枚举值。
+
+| 用途 / 叫法 | 登记与取用细则 | 出处 | 守护 |
+|---|---|---|---|
+| 规范名 | DRAFT 的 `canonical` 是候选；与界面用途是否分立、其适用语言及必填范围待 one-glossary 定 | ADR-0053 决定 2.2、1.5；DRAFT §4；登记方案未列完整角色枚举 | 待补守护（切换前） |
+| 界面叫法 | 单独的用途；DRAFT 的 `terse / verbose / column_header / documentation` 均为候选，是否采用及与规范名的对应待 one-glossary 定；消息占位符显式选择 `designation_role` | ADR-0053 决定 6.3–4；登记方案 §2；DRAFT §4 | 待补守护（消息目录启用前） |
+| 内部英文名（代码名） | 取英文 ASCII 的「代码名」角色；机器角色值待 one-glossary 定，不直接沿用候选 `canonical` | ADR-0053 决定 2.2、6.3；登记方案「共用结构与职责」 | 现有 ASCII、拆词检查；角色选择待补守护 |
+| 英文界面叫法（AN-05） | 与内部英文名分开登记，允许不同；即使同词也按两种用途记录。当前未交付英文界面，不要求补齐英文界面指称 | ANM 批准记录（intent `2026-10-17-084935-one-coordinator`，AN-04、AN-05）；ADR-0053 决定 6.2–3；登记方案 §2 | 待补守护（角色区分在切换前；英文完整性在启用前） |
+| 缩写 | 先按 §2.1.4 登记全称与用途；登记方案未定缩写是独立用途角色还是其他属性，待 one-glossary 定，不默认把所有缩写当可用别名 | ADR-0053 决定 2.2、8；登记方案 §5；DRAFT §4 未列缩写角色 | 现有拆词检查不能证明缩写已授权；待补守护 |
+| 旧称、方言、别名 | 当前归类引用 ADR；PREP 的 `alias / forbidden` 角色候选与之不一致，待 one-glossary 修订方案并给出各用途下的迁移对照，不在此定新枚举 | ADR-0053 背景「取代」与决定 2.2、5.3；PREP「目标结构」与 DRAFT §4（候选有差异） | 现有禁用写法守护；新结构待补守护 |
+
+#### 2.1.3 源语言与当前交付语言
+
+负责：one-glossary 登记语言，前后端负责会话使用；投影格式由 one-architecture 维护。
+
+| 项目 | 细则 | 出处 | 守护 |
+|---|---|---|---|
+| 源语言 | `zh-CN`；语言标签采用 ADR-0053 决定 6.1 所引规则 | ADR-0053 决定 6.2；登记方案 §2 | 待补守护（标签及源语言登记，切换前） |
+| 当前启用的界面语言 | 仅 `zh-CN`，覆盖 PC、H5、服务端给人的文字、打印、报表和通知；英文界面无本期交付安排 | ANM AN-04；ADR-0053 决定 6.4；登记方案 §2 | F19 中文配置、消息与指称完整性均待补守护 |
+| 英文代码名 | 英文代码名的登记不等于启用英文界面；已启用语言的必填角色清单由 one-glossary 补定，界面不得取代码名作回退 | ANM AN-05；ADR-0053 决定 1.5、6.3–4；登记方案 §2 | 待补守护（切换前） |
+
+#### 2.1.4 从指称到各命名面的投影
+
+负责：**one-architecture**。投影以登记的概念引用选择指称，再按下表格式输出；指称选取、组合与缺失处理引用 ADR-0053 决定 1.5、2.3、3。示例只解释格式，不新增词条或批准改名。下表的新格式属于本节细则（ADR-0053 决定 4、8），已有格式仍指向原节。
+
+| 命名面 | 取用与格式 | 示例 | 出处 | 守护与边界 |
+|---|---|---|---|---|
+| 代码标识 | 英文代码名按用途转 PascalCase 类型、camelCase 字段 / 方法、UPPER_SNAKE_CASE 常量；技术前后缀取 §2.2，不能从概念 id 拆词 | `Timesheet`；`LegalEntity` + ID 技术形态 → `LegalEntityId / legalEntityId` | ADR-0053 决定 2.3、6.3；登记方案「共用结构与职责」、§5；§2.2 | `ArchitectureRulesTest`、`GlossaryTest`；角色选取与正向投影待补守护 |
+| schema、表、列、约束、索引 | 子域与 BC 的代码角色片段由 `bcs.yaml` 词源提供（角色字段待定），不拆 BC 概念 id；snake_case，表名复数形式由受控词形 / 模板确定；列取限定词与 §2.4 类别词，约束、索引套 §2.4 模板；不另填 snake 指称 | 代码片段 `cost + timesheet` → `cost_timesheet`；`Timesheet` → `timesheets`；`LegalEntity` + `_id` → `legal_entity_id`；`ix_timesheets_legal_entity_id` | ADR-0053 决定 1.2、2.3、4；登记方案「共用结构与职责」、§5；§2.3–2.4 | `DdlNamingTest`、`GlossaryTest`；新结构、受控复数与长度待补守护 |
+| 事件名、事件 JSON 键 | 事件用对象与受控动词槽位按 §2.1.5 渲染为英文代码名；类型 PascalCase，载荷键 camelCase | `Timesheet` + `Submit` 的事件词形 → `TimesheetSubmitted`；`legalEntityId` | ADR-0053 决定 3；登记方案 §1；§2.2–2.3 | `ArchitectureRulesTest`、`GlossaryTest`、`NamingSurfaceTest`（载荷组件）；槽位等值待补守护 |
+| API 路径与参数 | 子域 slug + 已登记资源的复数 kebab-case，动作取受控动作；参数 camelCase；BC 不代替子域，客户端由 OpenAPI 生成 | `/api/v1/cost/timesheets/{id}:submit`；`legalEntityId` | ADR-0053 决定 2.3、4；登记方案「共用结构与职责」；§2.3、§2.6 A-1、A-4 | `NamingSurfaceTest` G41 查路径，`ApplicationIntegrationTest` 查 OpenAPI 命名；角色选取与受控词形待补守护 |
+| 权限码 | `{子域}.{BC}:{kebab资源}:{标准动作}`；资源与 API 共指概念，沿现有权限目录用单数，不将 API 复数串直接复制；动词映射到 `standard_actions` 后使用 | `cost.timesheet:timesheet:submit` | ADR-0053 决定 2.3、4；DRAFT §1（动作映射为候选，须核对）；§4 G43、§7 第 9 项 | `NamingSurfaceTest` G43 查现有格式、资源和动作；概念引用投影待补守护 |
+| 界面文字与消息键 | 业务名词取 `zh-CN` 界面用途的首选指称，具体角色机器值待定；整条消息登记在 §2.1.6。键按 `{子域}.{BC}.{kebab资源}.{camelCase用途}` 登记，与业务指称分别维护 | 格式示例 `cost.timesheet.timesheet.submitSucceeded`；消息模式 `{document}已提交审批`，`document` 引用 `timesheet` | ADR-0053 决定 6.3–4；登记方案 §2；键格式由本节规定 | 现有 `check-copy-glossary.mjs / OutwardTextGuardTest` 只查旧用语；键、角色与占位符待补守护（新页面采用前） |
+
+**长度与缩写**（one-architecture 负责格式，one-glossary 负责缩写指称）：
+
+| # | 细则 | 出处 | 守护 |
+|---|---|---|---|
+| N3-L1 | PostgreSQL 每个标识符最多 **63 字节**，对最终输出按 UTF-8 计数，前后缀与分隔符均计入；schema 与对象分别检查，不对 `schema.object` 合计。适用于 schema、表、列、约束、索引、视图、触发器、函数、序列等；不得依赖数据库截断 | ADR-0053 背景、需同步修改的守护规则；决定 4（本节长度细则） | **待补守护**：`DdlNamingTest` 现无长度检查；新命名 / 改名 DDL 应用前补齐，期间复审 |
+| N3-L2 | 默认用全称；标准或行业惯用缩写已登记且适用该面，或全称投影超过 63 字节时，才选已登记缩写。先记录全称投影与字节数，再按登记的替换位置生成短名，复查长度和同一命名空间内冲突；缩不下来交 one-glossary / one-architecture，不截字、不拼首字母、不临时附随机串 | ADR-0053 决定 4、8；登记方案 §5；§1 自造缩写问题、§2.2（本节补使用条件） | **待补守护**：长度、登记来源及冲突检查；DDL 应用前，期间复审 |
+| N3-L3 | 缩写登记须能追到概念、完整指称、缩写文本、语言、适用命名面与决定出处；字段 schema 及角色归属待 one-glossary 定。投影只替换已登记部分，保留类别词与约束 / 索引前缀。类名把缩写当单词：`WbsNode / PocValue / ArItem`，不用 `WBSNode`；这些既有写法示例不自动放行所有同形缩写 | ADR-0053 决定 2.2、4、8；登记方案 §5；§2.2 | 现有拆词与 ASCII 检查仅部分覆盖；缩写授权与投影待补守护（切换前） |
+
+#### 2.1.5 事件写法与动词 / 模板登记
+
+负责：one-glossary 登记词形，one-architecture 定槽位与格式，one-quality 承接守护。动词与模板的建议位置如下；文件未建立不等于规则已机器化。
+
+| 项目 | 细则 | 出处 | 守护 |
+|---|---|---|---|
+| 命令与事件词形 | 命令用原形动词 + 对象；事件用对象 + 已发生事实的过去式 / 过去分词，无 `Event / Request / Command` 后缀，继续禁止 G29 的 `Requested / Query` 结尾。`SubmitTimesheet → TimesheetSubmitted` 只说明英文词形，中文仍取登记指称，不据示例更名 | ADR-0053 决定 3；登记方案 §1；§2.2、§4 G5、G29；SESSION_PLAYBOOK §5 第二批第 5 条 | `ArchitectureRulesTest`、`GlossaryTest`、`term_rules.py`；新槽位渲染等值待补守护 |
+| 动词登记 | 建议 `glossary/verbs.yaml`：`verb_ref / forms{base, participle, action_noun} / language / code_role / status / decision_ref`；词义、词形与权限标准动作的对应逐项核对，缺 `action_noun` 不自动补 `ing` | ADR-0053 决定 3、7.1；登记方案 §1；DRAFT §1 | 待补守护（动词源启用与组合迁移前） |
+| 模板登记 | 建议 `glossary/naming-templates.yaml`：`template_ref / surface / slots / aspect / render / exception_reason`；`perfective / pending / progressive` 是体标记，不作业务对象。补语、介词尾与连接片段须在模板允许位置使用 | ADR-0053 决定 3；登记方案 §1、§5 | 现有 `GlossaryTest / term_rules.py` 识别部分过去式、介词尾；槽位合法性待补守护 |
+| 词汇化事实与反例 | `BecameOverdue` 按词汇化事实模板登记；`WrittenOff / SubmittedForApproval` 沿现行词形识别。`Locked` 位于对象内、`Changed` 位于事件尾时，不凭词尾将两者都判作主事件动词；未登记例外不得靠尾缀规则放行 | ADR-0053 决定 3；登记方案 §1；现行 `GlossaryTest.pastTense` | 现有词形检查部分覆盖；对象 / 主动词区分及例外引用待补守护（组合迁移前） |
+
+#### 2.1.6 界面消息目录
+
+负责：前后端负责会话编目录，one-glossary 审业务指称，one-architecture 定共用契约，one-quality 实现检查。建议源位置为 **`glossary/messages/zh-CN.yaml`**，前后端从同一源各生成适用格式；这是待实施位置，本卡不创建文件。出处：登记方案 §2；ADR-0053 决定 6.4、7。守护：待补守护（目录启用、新页面采用前）；实施由后续命名卡承接，本卡文件范围不含实现。
+
+| 字段 | 登记内容 | 出处 | 守护 |
+|---|---|---|---|
+| `key` | §2.1.4 的稳定用途键；格式示例不代表已登记 | 登记方案 §2；ADR-0053 决定 6.4；§2.1.4 | 待补守护：唯一、已登记、使用点存在 |
+| `pattern` | 完整消息模式，使用 ADR 所引 CLDR / ICU 消息格式；不把完整句子登记成业务概念 | 登记方案 §2；ADR-0053 决定 6.4 | 待补守护：模式解析；具体语法版本与库待定 |
+| `placeholders` | 每个占位符有类型；业务名词以 `concept_ref + designation_role` 引用，普通数值 / 日期等按类型声明。不可把程序表达式 `${...}` 原样当术语；嵌套字段形状、类型枚举待 one-glossary 与 one-architecture 定 | 登记方案 §2；ADR-0053 决定 6.4–5 | 待补守护：引用存在、角色可用、模式与参数类型一致 |
+| `use_sites` | 前端、H5、服务端文字及打印 / 报表 / 通知的使用位置；日志、测试文字与注释不作为给人的消息登记 | 登记方案 §2；ADR-0053 决定 6.4 | 待补守护：使用点与目录对应、无写死文字 |
+| `status / decision_ref` | 消息状态与决定出处；状态值域与必填条件另定，不直接套用概念或指称状态 | 登记方案 §2 | 待补守护（消息目录启用前） |
+
+语言完整性、运行时回退与告警、地区格式引用 ADR-0053 决定 1.5、6.4–5；本期校验语言范围见 §2.1.3。现有 `copy-allow-list.yaml`、`*Texts` 与中文切词守护仅是迁移输入，不能证明完整消息已经登记。出处：登记方案 §2；守护：`check-copy-glossary.mjs / OutwardTextGuardTest` 改验消息目录**待补守护**，不得以现行检查通过替代消息键验收。
 
 ### 2.2 写法
 
 - 只用英文 ASCII 标识符；中文只出现在 UI 文案、i18n 和注释里（由 ArchUnit `identifiersAreAscii` 守护）。
-- 缩写按单词处理：`WbsNode`、`PocValue`、`ArItem`，不写 `WBSNode`。
+- 缩写按单词处理：`WbsNode`、`PocValue`、`ArItem`，不写 `WBSNode`；何时可缩及登记要求见 §2.1.4 N3-L2–L3。
 - 类名后缀**只允许**下表这些，每种后缀对应唯一的位置：
 
 | 后缀 / 形态 | 位置 | 例子 |
@@ -390,7 +461,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 - **U1 品牌色与字体**：VI 色值按 sRGB 十六进制写入设计令牌的原始调色板，语义层只引用调色板：FOR 灰 `#595757`、CITIS 红 `#CF000E`（精确值，取代现有近似的 `oklch` 值，并同步设计令牌正本）。使用 `oklch` 时取值必须落在 sRGB 色域内。品牌字标用 SVG，不用字体渲染。Montserrat 等字体按 OFL 随包分发，字体文件在 1b 前入库。
 - **U2 对比度**：文字对比度 ≥ 4.5:1（大字 ≥ 3:1），非文字元素（图标、边框、焦点环）≥ 3:1，按令牌实际配对（文字色 × 所在背景）计算。三级文字色与待审批状态文字色加深到达标，其余配对保持。
 - **U3 无障碍**：全部操作键盘可达，焦点可见，弹层关闭后焦点回到触发处；错误提示 `role="alert"`，非打断的状态提示 `role="status"`（H5 同样）；只有图标的按钮带 `aria-label`。
-- **U4 语言与格式**：只做简体中文，不做多语言；antd 设 `zhCN`、dayjs 设 `zh-cn`；日期、时刻、金额、数量的格式化只经 core 的格式化函数。
+- **U4 语言与格式**：源语言与本期界面语言为 `zh-CN`，本期只交付中文；指称与消息结构见 §2.1.2–2.1.3、§2.1.6。antd 设 `zhCN`、dayjs 设 `zh-cn`；日期、时刻、金额、数量的格式化只经 core 的格式化函数。出处：ANM AN-04、AN-05；ADR-0053 决定 6；登记方案 §2。守护：F19（中文配置，待实现）；消息目录与语言完整性待补守护，目录启用前落实。
 - **U5 加载、空、错误三态**：数据视图统一经查询视图组件呈现三态；5xx 错误显示可复制的「关联号」（即 correlationId，与 §2.6 A-9 同一个值），便于报障时对日志。
 - **U6 不做乐观更新**：单据、审批、金额相关的命令等服务端确认后再更新界面；只有无业务后果的界面偏好可乐观更新。
 - **U7 组件契约只定义一次**：语义组件（状态标签、金额、审批动作等）的契约只在 `shared/design-system` 定义一次，PC 与 H5 各自实现同一契约；core 只用 React 18 API。
@@ -404,7 +475,9 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 - 生成的代码（OpenAPI 客户端、jOOQ 之类）只放在 `generated/` 目录，不手改，并排除在守护规则之外。
 - 守护规则的失败信息必须包含「放哪里 / 用什么名字」，这样 agent 读到报错就能自我修正。
 
-## 6. 老名 → 新名对照（起点，各阶段补全）
+## 6. 老名 → 新名对照（历史快照，待由指称投影替换）
+
+维护入口改为来源类型「老名」的禁用指称，按 ADR-0053 背景「取代」与决定 5 投影到本节；负责：one-glossary 提供源，one-architecture 定投影。下表保留为历史快照，不再手工补写，不用于批准新名或代替迁移映射。生成替换待词源切换同批实施；守护：待补守护（§6 投影可复现，新旧对照一致；切换前）。
 
 | 老（老系统） | 新（模块.对象 / schema.table） |
 |---|---|
@@ -431,11 +504,11 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | 包 `dal/mysql`、`dal/dataobject`、`service/impl`、`controller/admin` | 模块内的 `infrastructure.persistence`、`domain`、`application`、`web` |
 | 前端 `views/costopenning`、`socail` | `modules/cost-costing/pages/opening`、`modules/platform-identity/pages/social-login` |
 
-完整对照表在每个阶段开工前，由 reimagine 的骨架步骤从 `DATA_OBJECTS.md` 和词表补全。它同时就是该阶段反向同步和数据迁移的字段映射。
+阶段迁移映射按本节的词源投影核对业务规格与数据对象，另走迁入规则；这份历史名字快照不证明字段映射完整。
 
 ## 7. 命名面清单：新系统中所有需要统一命名的地方（2026-10-14）
 
-统一的来源只有一个：`glossary/terms.yaml`（ADR-0018）。下表逐项列出命名面、规则和守护。状态：✔ 已有守护并实测（G41–G48 于 2026-10-14 实测：模板 68 项测试全绿，8 类注入全部被拦下）；○ 有规则、尚无守护，按阶段补建。
+词源入口见 §2.1（ADR-0053 决定 1.3）；命名面范围引用 ADR-0053 决定 4，本节与各细则共同作为入口。下表既有 ✔ 只表示原格式守护已存在及历史实测，不代表已经改读概念 / 指称或覆盖新投影；新结构覆盖与待补守护见 §2.1。状态：✔ 既有格式守护；○ 待建或部分覆盖。负责：概念、指称及受控词归 one-glossary；各面的格式、投影与守护清单归 one-architecture；检查实施由 one-quality 与各面负责会话承接（ADR-0053 决定 7；登记方案「共用结构与职责」）。
 
 | # | 命名面 | 规则 | 守护 | 状态 |
 |---|---|---|---|---|
@@ -443,7 +516,7 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | 2 | 类、record、枚举、方法 | 英文、行业标准词；禁含糊词、老名、拼音、`fst`、`cn.iocoder` | G12–G15、G26、G37、G38、G40 | ✔ |
 | 3 | 领域事件 | 过去式事实（`TimesheetSubmitted`），不以 Event / Request / Command 结尾 | G5、G29、G37 | ✔ |
 | 4 | 值对象、类型化 ID | `Money`、`Hours`、`TimesheetId`… | G16、G17、G21–G23、G31 | ✔ |
-| 5 | 数据库 schema、表、列、约束、注释 | `<子域>_<BC>`；snake_case 复数表名；审计列、金额 + 币种、`is_` / `has_`；列注释中文与词表一致 | D2、D3、G37、G39 | ✔ |
+| 5 | 数据库 schema、表、列、约束、注释 | §2.1.4、§2.3–2.4；列注释比对概念的 `zh-CN` 首选标准名（ADR-0053 背景「取代」ADR-0018 决定 3） | D2、D3、G37、G39（现有旧投影检查） | ✔；新指称比对待补守护（切换前） |
 | 6 | Flyway 文件名 | `V{时间戳}__{module}_{english_snake}.sql` | D2；G44 | ✔ |
 | 7 | HTTP 路径 | `/api/v{n}/{子域}/{kebab 复数资源}[:{动作}]` | G20（版本）；G41（子域与资源登记） | ✔ |
 | 8 | JSON 字段、OpenAPI schema、事件载荷 | 一律 camelCase，schema 名 PascalCase，拆词已登记 | G42 | ✔ |
@@ -454,12 +527,15 @@ architecture/module-dependencies.txt  已批准的模块依赖图（上下文映
 | 13 | 错误码 | `{SUBDOMAIN}_{BC}_{REASON}` | G48 | ✔ |
 | 14 | 前端 PC 目录、文件、组件、hooks | `modules/<m>`；kebab-case 文件、PascalCase 组件、`useXxx` | F1–F8、F13 | ✔ |
 | 15 | 设计令牌 | 只用正本语义令牌名（`--surface-*`、`--status-*`…） | F14 | ✔ |
-| 16 | 前端界面中文文案 | 业务名词取词表 `zh`，同一概念全站同一叫法 | 无 | ○ 建议在 `shared/i18n` 由词表生成文案键，lint 禁止页面硬写业务名词 |
+| 16 | 界面文字与消息键（PC、H5、服务端、打印、报表、通知） | §2.1.2–2.1.3、§2.1.6；整条消息入目录，业务名词占位符取指称，键格式见 §2.1.4 | 现有 `check-copy-glossary.mjs / OutwardTextGuardTest` 查旧用语 | ○ 消息目录、角色、占位符与完整性待补守护（目录启用、新页面采用前） |
 | 17 | H5（Taro） | 目录、命名、接口客户端与 PC 同规则 | 无（守护模板只覆盖 PC） | ○ Phase 2 前为 H5 建同等 lint |
 | 18 | `reporting` 视图与 BI 列 | 视图名 `rpt_<主题>`，列名与词表 `snake` 一致 | 无 | ○ Phase 5 前补 |
 | 19 | 外部投递通道与防腐层 | 外部系统名统一（`wecom`、`seeyon`、`u8c`、`fenbeitong`），外部字段只在防腐层内出现 | G1（防腐层隔离） | ○ 补名称约定守护 |
 | 20 | 日志字段、追踪属性 | 结构化日志键 camelCase，业务键取词表；字段集与追踪键见 GUIDING_PRINCIPLES §11 O-1 | G-O1、G-O3（待实现） | ○ |
 | 21 | Git 分支、提交、PR | 沿用老仓库约定（`feature/issue-{N}-…`、`type(scope): 中文`，scope 用子域 slug） | 老仓库 pr-hygiene | ○ 新仓库 CI 复用 |
+| 22 | 概念、指称、用途角色与语言 | §2.1.1–2.1.3；ADR-0053 决定 2、5–6；登记方案「共用结构与职责」、§2 | 现有 `term_rules.py / GlossaryTest` 查旧结构 | ○ 新 schema、角色及状态组合待补守护（切换前） |
+| 23 | 动词、状态体标记、事件组合与模板 | §2.1.5；ADR-0053 决定 3；登记方案 §1、§5 | 现有事件词形守护 | ○ 正向渲染与例外引用待补守护（组合迁移前） |
+| 24 | PostgreSQL 标识符长度与缩写 | §2.1.4 N3-L1–L3；ADR-0053「需同步修改的守护规则」 | `DdlNamingTest` 尚无长度检查 | ○ 待补守护（新命名 / 改名 DDL 应用前） |
 
 **本次统一时发现并更正的不一致**：
 - HTTP 示例 `/api/v1/timesheet/timesheets` 把 BC 当成子域，已改为 `/api/v1/cost/timesheets`；
