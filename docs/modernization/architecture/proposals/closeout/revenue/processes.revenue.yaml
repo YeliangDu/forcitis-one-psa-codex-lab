@@ -12721,7 +12721,10 @@ single_aggregate:
   aggregate: AGG-36
   owner_bc: B-26
   stages:
-  - VS-03.1
+  - VS-15.1
+  - VS-15.2
+  - VS-15.3
+  stages_note: 'intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.1 草拟新版本、VS-15.2 已生效、VS-15.3 旧版本已停用，均由本流程完成（判据只推出 VS-15.2）；原支撑理由：CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题（页首不补列清单）；检查表模板发布维护供检查策划引用的主数据，不作阶段办理结果，不补服务产品管理'
   primary_object: OBJ-50
   human_orchestration: false
   frequency_ref: 待取证（E-B1）；经验估计：每年 2–6 次新版本发布
@@ -12805,12 +12808,13 @@ single_aggregate:
       goto: end
       outcome: 已生效
       p: 1.0
-  stages_note: 'SD-13 已写回：发布检查表模板版本即 OBJ-50「生效」，是 VS-03.1 段内状态（版本只追加，不作门），保留 VS-03.1。VS-04.1 的「生效」是付款条件项，不同对象，近似项不补标。'
 - id: PRC-52
   name: 开放收入确认证据类型
   aggregate: AGG-92
   owner_bc: B-08
-  stages: []
+  stages:
+  - VS-15.2
+  stages_note: 'intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：证据类型开放即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：收入确认证据类型开放是 B-08 的版本化配置（财务负责人书面确认后逐类开放），决定哪类客户确认证据可触发收入确认，本身不造任何段的进入或退出对象状态'
   primary_object: none
   primary_object_note: 版本化配置（AGG-92 证据类型开放配置版本），无业务对象
   migration: 既有开放配置版本全部迁入（U-4），记生效日、批准人与依据文件；投产初始开放集由首版配置给出
@@ -12864,7 +12868,6 @@ single_aggregate:
       position_hint: 财务负责人、财务会计
   gap: 命令缺口：聚合稿 AGG-92 只有「开放证据类型」，无关闭或撤销已开放类型的命令；年度复核发现不再适用时的处理待 one-architecture 补
   frequency_ref: 待取证（E-B1）；经验估计：每年约 1 次
-  support: 收入确认证据类型开放是 B-08 的版本化配置（财务负责人书面确认后逐类开放），决定哪类客户确认证据可触发收入确认，本身不造任何段的进入或退出对象状态
 - id: PRC-68
   name: 终止协议
   aggregate: AGG-13
