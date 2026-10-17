@@ -1,5 +1,7 @@
 # 全企业业务对象确认页答复落笔
 
+状态：历史记录｜2026-10-15｜负责：one-architecture
+
 状态：记录 · 日期：2026-10-15 · 作者：one-architecture 子代理 · 依据：用户对确认页（`decision-page/INFOMAP.json`，共 42 项：Q01–Q39，其中 Q31、Q37 各分小问）的答复，摘要见 intent `2026-10-15-233152-*`。落点以 `ENTERPRISE_INFO_MAP_DRAFT.md`（下称「草案」）的 OBJ 编号与 § 为准。「暂不定」的题目草案保留为待定。
 
 ## 一、逐题落笔

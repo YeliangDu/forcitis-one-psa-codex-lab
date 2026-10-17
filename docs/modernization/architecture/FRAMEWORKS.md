@@ -24,9 +24,9 @@
 
 复审问题（来自 REA 会计本体，McCarthy 1982，不作框架采用）：每个经济事件的对偶事件在哪里；合同承诺如何成为事实。用于 ADR-0016 相关阶段的过账设计复审。
 
-## 2. BPMN 2.0.2（OMG，formal/2013-12-09）
+## 2. BPMN 2.0.2（OMG，formal/13-12-09，2014-01 发布）
 
-出处：https://www.omg.org/spec/BPMN/2.0.2/ 。
+出处：https://www.omg.org/spec/BPMN/2.0.2/ 。ISO/IEC 19510:2013 对应的是 2.0.1（OMG formal/13-11-03），不与 2.0.2 等同。核实：2026-10-16 查 OMG 官网，当前正式版仍为 2.0.2，无 2.1 或后续版本公告（`proposals/closeout/PROCESS_METHOD_RESEARCH.md` 第 1 节；intent `2026-10-16-155312`）。画法约定提议稿见 `proposals/closeout/BPMN_STYLE.md`，与下表「只用可执行 Process」「登记由 `.bpmn20.xml` 生成」两句的冲突随流程设计方法稿交用户批。
 
 | 概念 | 本项目怎么用 |
 |---|---|

@@ -1,5 +1,7 @@
 # 售前到签约信息图（草案，待用户确认）
 
+状态：已取代→ENTERPRISE_INFO_MAP_DRAFT.md｜2026-10-16｜负责：one-architecture
+
 **已被全企业稿取代（回溯检查 RD-17）**：以 `ENTERPRISE_INFO_MAP_DRAFT.md` 为准；本稿对象表保留为历史对照，之后不再双改。线索行已按 OBJ-17 订正。
 
 **与全企业信息图统一（2026-10-16）**：按 `ENTERPRISE_INFO_MAP_DRAFT.md`（下称全企业稿，一级对象 19 个，Q01–Q39 与复核 R1–R5 已落笔）、`ENTERPRISE_INFO_MAP_ANSWERS.md`、`PRIMARY_OBJECT_TEST.md` 回溯统一口径（C-38）。用户已定决定（intent `202939`、`205406`、`210513`、`211139`、`211634`、`215632`）一律不改；与它们有冲突或需结构性判断的，不改本稿，列入全企业稿 §4 C-53 至 C-57。改动清单（每处依据写在括号里）：

@@ -1,6 +1,6 @@
 # one-architecture 速查（2026-10-15）
 
-> **接续必读（2026-10-16 下午）**：本表「在途 PR」「当前步」为准；`proposals/HANDOFF_2026-10-16.md` 只作上午的历史。
+> **接续必读（2026-10-16 晚）**：先读 `proposals/HANDOFF_2026-10-16-LATE.md`，再读本文件。
 
 
 规矩：结构性选择只推荐、不裁定，用户答复为准；先在 SSOT 登记再写代码；已有 SSOT 只引用不复制；一行一项，过程放链接（SESSION_PLAYBOOK §2.1 第 13 条）。
@@ -23,9 +23,11 @@
 
 | 项 | 值 |
 |---|---|
-| 在途 PR | #324（ADR-0048 成文、G-DDL1、第③步答复落文）→ #327（第④步回溯，叠在 #324）→ #334（⑥a 流程清单、J 检查清单、对照标准确认页，叠在 #327）；均待 one-coordinator 入队 |
+| 在途 PR | #365（本会话分支，里程碑合入）；#425 intent 片段 18 条待入队 |
+| 当前步 | 业务架构逐层对齐（BIZBOK §3.4）第一层「阶段」收尾：SD-01–10 已落地，SD-11–15 待交用户；之后能力层 → 信息层 → 干系人层。CRUD 缺口清零暂停（S-43 保留，豁免表已建）。确认页 7 页用户暂不作答，对齐与清零后改题再交 |
+| 已定（2026-10-16 晚） | 结构裁定 S-29–S-44；VS-02.7 改名收尾；新增 VS-04.6 履约、VS-08.0 事前申请；归段判据写进 stage_align_check；权责表 586 条冲突 0；跨组接缝清零 |
 | 已定（2026-10-16） | ADR-0046（12 月与第 13 期同时关账）、ADR-0047（视为同意）已采纳；阶段类型 S1–S6；BC 划分 D-1–D-9、D-8 期满判定在 receivables.wip；完整性 C-1–C-8、INV-62、Q29 宽口径（证据升一级）；D-7 提前拆 accounting.tax；K-1 知识条目（OBJ-110，km.knowledge）；P-1 回签前开票规则；METHOD M-1–M-7（7 步、两份一次性 ADR） |
 | 草稿位置 | proposals/：ENTERPRISE_INFO_MAP_DRAFT（一级 21）、ENTERPRISE_AGGREGATES_DRAFT（聚合 103、BC 29、查环脚本 aggregates_dep_check.py）、STAGE_TYPES_DRAFT、METHOD_V4_DRAFT、FRAMEWORKS_V4_DRAFT、OBJECT_COMPLETENESS_REPORT、STEP1_VALUE_STREAMS + value-streams.v2.yaml、STEP2_CAPABILITIES + capabilities.v2.yaml |
-| 当前步 | ⑥a 提议稿已出（`proposals/STEP6A_PROCESSES.md`，gaps 18 条），等 one-coordinator 派的独立 opus 审查（不自审）；对照标准确认页 https://claude.ai/artifact/9M1be9qRAfRF4LxVMpV2iN （收件箱 2026-10-16-one-architecture-lock，含 ADR-0047 修订）待用户；J1–J7 清单已交 one-quality 写脚本 → 审查与答复回来后处理 gaps 回溯 → 回溯售前段 → 两份一次性 ADR |
-| 规矩 | 要用户定的：确认页（不预选，ADR-0041 决定 6）＋待决定收件箱 https://claude.ai/artifact/RVU6nNNSsygF5sVRWLhQ15 （集合 inbox）；确认页用 contract 0.2.80；纯文档作者自检，结构判定仍 opus；直连 one-glossary、one-data（数据落点与第 11 步）；取证登记 #298 合入后用 phase1a/infra/new_legacy_read.py 片段，在途分支合 main 时丢老表改动重登 |
-| 待办 | 新用语交 one-glossary（#320 已登记商票、诉讼等；STEP6A §4 流程用语待交；「核销」处置取值与「已核销」重名）；往来款项处置分类其余取值待用户；「争议」与「争议应收」待用户（one-glossary 收件箱）；WY-1 待用户追认；工时单填报义务待 one-rules |
+| 规矩（白天） | 要用户定的：确认页：框架、标准、选型类不预选（ADR-0041 决定 6），业务口径页推荐项预选（用户 #362 裁定 B；rules/decide/README.md）＋待决定收件箱 https://claude.ai/artifact/RVU6nNNSsygF5sVRWLhQ15 （集合 inbox）；确认页用 contract 0.2.80；纯文档作者自检，结构判定仍 opus；直连 one-glossary、one-data（数据落点与第 11 步）；取证登记 #298 合入后用 phase1a/infra/new_legacy_read.py 片段，在途分支合 main 时丢老表改动重登 |
+| 规矩 | 确认页先交 one-coordinator 独立审题再进收件箱（status pending）；结构性选择只推荐；目录阶段以骨架为准经 sync_catalog_stages 同步；依赖列括注不用全角分号（查环脚本） |
+| 待办 | 见 `proposals/HANDOFF_2026-10-16-LATE.md`「下一步」 |

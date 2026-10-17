@@ -69,4 +69,4 @@
 
 ## 当前状态
 
-2026-10-16 下午：第③步答复已落文、ADR-0048 成文（#324）；第④步回溯（#327）；⑥a 流程清单提议稿与对照标准确认页（#334），等独立审查与用户答复。详见 `architecture/ARCH_CONTEXT.md`「现状」。
+2026-10-17 04:47+02:00：对象层主对象全部确认（object-layer.yaml，含 supports、category 提议、集成流程 PRC-184–200）；命名彻底清理的改名对照表 A/B/C 提议稿（497 处改动）待 one-glossary 判定后合页交用户；阶段层 SD-11–15 待交用户；确认页已答归档、未答撤出待改题（PAGE_IMPACT）；待用户定：ADR-0030 补标注的 kernel 端口方案。交接见 `architecture/proposals/HANDOFF_2026-10-16-LATE.md` 与 ARCH_CONTEXT。
