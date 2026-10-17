@@ -42,6 +42,6 @@ SELECT schemaname, count(*) AS tables, count(*) FILTER (WHERE tableowner <> 'one
   FROM pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema') GROUP BY schemaname ORDER BY schemaname;
 SELECT schemaname, count(*) FROM pg_tables WHERE tablename LIKE 'act\_%' GROUP BY schemaname;
 
--- V9 迁移后补查：审计分区预建函数仅运行角色可执行（期望 one_prod_app = t；one_prod_readonly = f）
-SELECT r.rolname, has_function_privilege(r.rolname, 'platform_audit.create_audit_entry_partitions(date, date)', 'EXECUTE') AS can_execute
+-- V9 审计分区预建函数仅运行角色可执行：迁移前函数不存在，两行均为 NULL；迁移与 after_migrations 之后期望 one_prod_app = t、one_prod_readonly = f
+SELECT r.rolname, has_function_privilege(r.rolname, to_regprocedure('platform_audit.create_audit_entry_partitions(date,date)'), 'EXECUTE') AS can_execute
   FROM (VALUES ('one_prod_app'), ('one_prod_readonly')) r(rolname);
