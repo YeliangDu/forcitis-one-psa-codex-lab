@@ -6,7 +6,7 @@
   <collaboration id="Collab_PRC-66">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-66"/>
   </collaboration>
-  <process id="PRC-66" name="发起结算，确认最终价款并结算协议" isExecutable="false">
+  <process id="PRC-66" name="确认最终价款并结算协议" isExecutable="false">
     <documentation>owner B-08；VS-04.5、VS-04.6</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E5" name="市场和客户经理（SH-E5）">

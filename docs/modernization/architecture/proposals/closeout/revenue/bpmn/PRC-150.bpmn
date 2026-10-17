@@ -5,7 +5,7 @@
   <collaboration id="Collab_PRC-150">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-150"/>
   </collaboration>
-  <process id="PRC-150" name="发票红冲后冲减应收" isExecutable="false">
+  <process id="PRC-150" name="冲减应收款项" isExecutable="false">
     <documentation>owner B-09；VS-04.4</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_system" name="系统">

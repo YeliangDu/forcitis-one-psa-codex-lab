@@ -5,7 +5,7 @@
   <collaboration id="Collab_PRC-141">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-141"/>
   </collaboration>
-  <process id="PRC-141" name="销售合同归档" isExecutable="false">
+  <process id="PRC-141" name="归档协议" isExecutable="false">
     <documentation>owner B-05；</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E2" name="项目经理（SH-E2）">

@@ -6,7 +6,7 @@
   <collaboration id="Collab_PRC-24">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-24"/>
   </collaboration>
-  <process id="PRC-24" name="暂停、恢复、终止或取消项目" isExecutable="false">
+  <process id="PRC-24" name="变更项目状态" isExecutable="false">
     <documentation>owner B-04；VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-M1" name="管理层（SH-M1）">

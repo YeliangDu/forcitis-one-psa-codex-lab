@@ -5,7 +5,7 @@
   <collaboration id="Collab_PRC-69">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-69"/>
   </collaboration>
-  <process id="PRC-69" name="供应商准入与资质核验" isExecutable="false">
+  <process id="PRC-69" name="申请并核验供方角色" isExecutable="false">
     <documentation>owner B-01；VS-05.1</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E2" name="项目经理（SH-E2）">

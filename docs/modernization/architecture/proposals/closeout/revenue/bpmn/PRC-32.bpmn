@@ -6,7 +6,7 @@
     <participant id="Pool_1" name="客户决策链·发起人（SH-C6a）"/>
     <messageFlow id="Msg_1" name="延期申请答复" sourceRef="Pool_1" targetRef="S2_reg_11"/>
   </collaboration>
-  <process id="PRC-32" name="申请并答复延期" isExecutable="false">
+  <process id="PRC-32" name="申请并答复工期顺延" isExecutable="false">
     <documentation>owner B-04；VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E2" name="项目经理（SH-E2）">

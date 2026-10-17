@@ -22,7 +22,7 @@ commands:
   idempotency_key:
   - 检查计划ID
   emits: []
-- name: 标记不再受托
+- name: 标记检查计划不再受托
   aggregate: AGG-34
   params:
   - 检查计划
@@ -1258,7 +1258,7 @@ commands:
   - 付款条件项ID
   - 申请序号
   emits: []
-- name: 开票申请准入
+- name: 准入开票申请
   aggregate: AGG-45
   params:
   - 开票申请
@@ -2211,7 +2211,7 @@ commands:
   - 商机ID
   - 成员ID
   emits: []
-- name: 商机赢单
+- name: 登记商机赢单
   aggregate: AGG-10
   params:
   - 商机
@@ -2552,7 +2552,7 @@ commands:
   - 项目编号
   emits:
   - 项目已建立
-- name: 开始执行
+- name: 开始执行项目
   aggregate: AGG-19
   params:
   - 项目

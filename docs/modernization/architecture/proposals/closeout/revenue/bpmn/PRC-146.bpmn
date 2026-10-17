@@ -5,7 +5,7 @@
   <collaboration id="Collab_PRC-146">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-146"/>
   </collaboration>
-  <process id="PRC-146" name="协议借阅逾期催还" isExecutable="false">
+  <process id="PRC-146" name="催还逾期协议原件" isExecutable="false">
     <documentation>owner B-05；</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_system" name="系统">

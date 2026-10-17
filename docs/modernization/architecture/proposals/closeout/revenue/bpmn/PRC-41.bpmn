@@ -7,7 +7,7 @@
   <collaboration id="Collab_PRC-41">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-41"/>
   </collaboration>
-  <process id="PRC-41" name="制定检查计划并使其生效" isExecutable="false">
+  <process id="PRC-41" name="制定并生效检查计划" isExecutable="false">
     <documentation>owner B-26；VS-03.1</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E4" name="技术专家（SH-E4）">
@@ -102,8 +102,8 @@
       <outgoing>Flow_8</outgoing>
       <outgoing>Flow_9</outgoing>
     </exclusiveGateway>
-    <userTask id="S5_10" name="标记不再受托">
-      <documentation>AGG-34 标记不再受托；B-26；in_system；检查计划.标记不再受托；检查计划页</documentation>
+    <userTask id="S5_10" name="标记检查计划不再受托">
+      <documentation>AGG-34 标记检查计划不再受托；B-26；in_system；检查计划.标记不再受托；检查计划页</documentation>
       <incoming>Flow_8</incoming>
       <outgoing>Flow_12</outgoing>
       <ioSpecification id="IO_S5_10">

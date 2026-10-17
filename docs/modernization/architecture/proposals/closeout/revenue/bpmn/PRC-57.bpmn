@@ -11,7 +11,7 @@
     <messageFlow id="Msg_1" name="开具销项发票并改写 WIP" sourceRef="S6_13" targetRef="Pool_1"/>
     <messageFlow id="Msg_2" name="税务返回结果" sourceRef="Pool_1" targetRef="S6_recv_16"/>
   </collaboration>
-  <process id="PRC-57" name="申请并开具销项发票" isExecutable="false">
+  <process id="PRC-57" name="申请并开具销项增值税发票" isExecutable="false">
     <documentation>owner B-08；VS-04.3</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E5" name="市场和客户经理（SH-E5）">
@@ -93,8 +93,8 @@
       </ioSpecification>
       <dataOutputAssociation id="DOA_S2_4_1"><sourceRef>DOut_S2_4_1</sourceRef><targetRef>SR_S2_4_w1</targetRef></dataOutputAssociation>
     </userTask>
-    <serviceTask id="S3_5" name="开票申请准入">
-      <documentation>AGG-45 开票申请准入；B-08；automatic</documentation>
+    <serviceTask id="S3_5" name="准入开票申请">
+      <documentation>AGG-45 准入开票申请；B-08；automatic</documentation>
       <incoming>Flow_4</incoming>
       <outgoing>Flow_5</outgoing>
       <ioSpecification id="IO_S3_5">
@@ -104,7 +104,7 @@
       </ioSpecification>
       <dataOutputAssociation id="DOA_S3_5_1"><sourceRef>DOut_S3_5_1</sourceRef><targetRef>SR_S3_5_w1</targetRef></dataOutputAssociation>
     </serviceTask>
-    <exclusiveGateway id="S3_gw_6" name="开票申请准入？">
+    <exclusiveGateway id="S3_gw_6" name="准入开票申请？">
       <incoming>Flow_5</incoming>
       <outgoing>Flow_6</outgoing>
       <outgoing>Flow_7</outgoing>

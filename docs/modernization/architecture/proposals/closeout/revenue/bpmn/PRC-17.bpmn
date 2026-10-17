@@ -141,8 +141,8 @@
         <outputSet></outputSet>
       </ioSpecification>
     </serviceTask>
-    <userTask id="S6_14" name="开始执行">
-      <documentation>AGG-19 开始执行；B-04；in_system；项目.开始执行；项目概览页</documentation>
+    <userTask id="S6_14" name="开始执行项目">
+      <documentation>AGG-19 开始执行项目；B-04；in_system；项目.开始执行；项目概览页</documentation>
       <incoming>Flow_14</incoming>
       <outgoing>Flow_15</outgoing>
       <ioSpecification id="IO_S6_14">

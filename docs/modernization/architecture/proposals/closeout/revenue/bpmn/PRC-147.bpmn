@@ -7,7 +7,7 @@
   <collaboration id="Collab_PRC-147">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-147"/>
   </collaboration>
-  <process id="PRC-147" name="费用报销核定后冲抵员工借款并确认应付" isExecutable="false">
+  <process id="PRC-147" name="冲抵借款并确认报销应付" isExecutable="false">
     <documentation>owner B-09；VS-08.2</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_system" name="系统">

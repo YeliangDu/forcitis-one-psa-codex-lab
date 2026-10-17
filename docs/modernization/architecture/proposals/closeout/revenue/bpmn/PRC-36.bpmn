@@ -11,7 +11,7 @@
   <collaboration id="Collab_PRC-36">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-36"/>
   </collaboration>
-  <process id="PRC-36" name="封存成果、结项并归档项目" isExecutable="false">
+  <process id="PRC-36" name="结项并归档项目" isExecutable="false">
     <documentation>owner B-29；VS-02.7</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E2" name="项目经理（SH-E2）">

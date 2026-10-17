@@ -5,7 +5,7 @@
   <collaboration id="Collab_PRC-152">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-152"/>
   </collaboration>
-  <process id="PRC-152" name="登记付款条件达成" isExecutable="false">
+  <process id="PRC-152" name="登记付款条件项达成" isExecutable="false">
     <documentation>owner B-05；VS-04.3</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E5" name="市场和客户经理（SH-E5）">

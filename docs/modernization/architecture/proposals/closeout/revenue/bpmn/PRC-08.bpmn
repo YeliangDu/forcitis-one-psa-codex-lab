@@ -370,8 +370,8 @@
       </ioSpecification>
       <dataOutputAssociation id="DOA_S13_33_1"><sourceRef>DOut_S13_33_1</sourceRef><targetRef>SR_S13_33_w1</targetRef></dataOutputAssociation>
     </userTask>
-    <serviceTask id="S14_34" name="商机赢单">
-      <documentation>AGG-10 商机赢单；B-03；automatic</documentation>
+    <serviceTask id="S14_34" name="登记商机赢单">
+      <documentation>AGG-10 登记商机赢单；B-03；automatic</documentation>
       <incoming>Flow_31</incoming>
       <outgoing>Flow_49</outgoing>
       <ioSpecification id="IO_S14_34">
@@ -402,8 +402,8 @@
       <outgoing>Flow_52</outgoing>
       <signalEventDefinition signalRef="Signal_5"/>
     </intermediateThrowEvent>
-    <userTask id="S16_38" name="商机赢单">
-      <documentation>AGG-10 商机赢单；B-03；in_system；商机.赢单；商机赢单页</documentation>
+    <userTask id="S16_38" name="登记商机赢单">
+      <documentation>AGG-10 登记商机赢单；B-03；in_system；商机.赢单；商机赢单页</documentation>
       <incoming>Flow_5</incoming>
       <outgoing>Flow_53</outgoing>
       <ioSpecification id="IO_S16_38">

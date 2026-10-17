@@ -1,7 +1,7 @@
 # 收入线组 ⑥b 流程骨架片段（one-arch-revenue；格式按 closeout/CONVENTIONS.md；actor_v1 为 v1 原 actor 文字，合并时由 one-architecture 定去留）
 processes:
 - id: PRC-03
-  name: 登记并跟进线索，转为商机
+  name: 跟进线索并转商机
   trigger:
     type: human
     desc: 客户来询、转介绍或市场活动产生线索
@@ -1088,7 +1088,7 @@ processes:
     cross_bc: []
   - actor: system
     where: automatic
-    command: 商机赢单
+    command: 登记商机赢单
     aggregate: AGG-10
     on_event:
     - aggregate: AGG-11
@@ -1143,7 +1143,7 @@ processes:
     outcome: 商机已丢单
   - actor: SH-E5
     where: in_system
-    command: 商机赢单
+    command: 登记商机赢单
     aggregate: AGG-10
     branch: 委托赢单
     emits:
@@ -1238,7 +1238,7 @@ processes:
     rule: 保证金付款申请人与出纳登记缴纳不得为同一人（INV-81 经办与出纳分离）
   stages_note: '判据①：登记结果使商机赢单、丢单或放弃，造出 VS-01.2 退出；登记投标保证金缴纳也符合 SD-13 在 VS-01.2 补的 OBJ-13「已缴」。不加 VS-04.1：该段 OBJ-13 说明限履约保证金、押金及中标后退还的投标保证金；本流程步骤是投标前缴纳，不是上述业务，签约后退还由 PRC-153 承担。'
 - id: PRC-183
-  name: 作出参投决策
+  name: 作出商机参投决策
   trigger:
     type: human
     desc: 商机跟进到需决定是否投入投标或承接时（招标、议标、直接委托均适用）
@@ -2092,7 +2092,7 @@ processes:
   - actor: SH-E2
     where: in_system
     actor_v1: 项目经理
-    command: 开始执行
+    command: 开始执行项目
     aggregate: AGG-19
     emits:
     - 项目已开始执行
@@ -2576,7 +2576,7 @@ processes:
   notes: 具名人员、时段与工作包；审批在聚合自身状态（已计划 → 已确认），未走 platform.approval（G-02 已明确），故不算引擎调度的人工编排。部分满足时项目经理就缺口另提需求或调整后再分配（回第 1 步）。
   stages_note: 贯穿 VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：判据：资源需求与分配（OBJ-44、45）是 VS-02 贯穿活动「资源与工时」的产出，不属某一段的退出条件；各段均可提出，含 VS-02.1（概念同样提出资源需求）。近似项是通用状态词撞名，不改
 - id: PRC-23
-  name: 填报并审批工时
+  name: 填报并审批工时单
   trigger:
     type: human
     desc: 员工按日填报工时
@@ -2919,7 +2919,7 @@ processes:
   notes: 以已建 cost.timesheet 为准（状态草稿、已提交、已退回、已通过、已驳回；撤回与取消回到草稿；审批流程 cost_timesheet_approval）。阶段映射已收窄（⑥a 评审 M4）：只留进入或退出条件触及商机、工作包的阶段，去掉 VS-02.7 与 VS-03.2。INV-37 缺费率的工时失败并告警；售前阶段可记工时归集到商机或客户活动（AGG-102）。
   stages_note: '贯穿 VS-01.2、VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：工时（OBJ-66）「已通过」是 VS-02 贯穿活动「资源与工时」的产出；VS-01.2 的商机承接售前工时归集。保留既有归段，通用状态近似项不补标。'
 - id: PRC-24
-  name: 暂停、恢复、终止或取消项目
+  name: 变更项目状态
   trigger:
     type: human
     desc: 项目总监或项目经理按情形发起
@@ -3947,7 +3947,7 @@ processes:
   notes: 合同侧的协议变更、索赔单向引用设计变更 ID；交付不读合同。「不主张」没有独立命令，同「标记待主张」按参数记（见 NOTES 新用语）。
   stages_note: 贯穿 VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：判据：设计变更（OBJ-40）「关闭」是 VS-02 贯穿活动「变更、延期与风险」的产出；字面误判：结局「已关闭」无对象名，未匹到 OBJ-40
 - id: PRC-32
-  name: 申请并答复延期
+  name: 申请并答复工期顺延
   trigger:
     type: human
     desc: 出现影响进度的客观原因，项目经理发出延期通知
@@ -4377,7 +4377,7 @@ processes:
   notes: 客户反馈的成果问题归本流程，过程问题归项目风险与问题（Q-E）。我方成果类不符合项未关闭只在阶段门预警（VS-02.6 出口）。
   stages_note: '判据①：关闭我方成果类不符合项使 OBJ-38 到「关闭」，是 VS-02.6 退出；VS-02.7 保留收尾回访发现的成果问题处置（VS-02 贯穿活动「变更、延期与风险」），不作门。不加 VS-03.2：该段 OBJ-38「已识别」明确限客户资产类，本流程为我方成果类。'
 - id: PRC-36
-  name: 封存成果、结项并归档项目
+  name: 结项并归档项目
   trigger:
     type: human
     desc: 项目经理收尾，结项前封存已发布交付物并发起结项检查
@@ -4639,7 +4639,7 @@ processes:
   notes: 合并原 PRC-39、PRC-40（⑥a 评审 H2 c）。D-9 用户已定 a：无聚合的流程模块 B-29（模块标识 delivery.closeout，intent 114200 F-5），位于 B-04、B-05、B-06、B-08、B-11、B-28 下游；收入覆盖结论载体随 Q20。封存证据步为收尾新增，使 INV-40 第三项（交付物与证据均已封存）可由本流程达成。
   stages_note: '判据①：封存已发布成果与证据、结项归档分别造出 VS-02.7 的 OBJ-35「已封存」、OBJ-53「已封存」、OBJ-29「已结项 → 已归档」。不加 VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：这些段的 exit_common 要交付物「已认可」或「已交付（签收）/ 审查中」且「已声明」，本流程只作最终封存，不产生客户认可或声明；「交付物已封存」的文本匹配不能替代上述业务条件。'
 - id: PRC-37
-  name: 回访客户满意度
+  name: 开展客户满意度调查
   trigger:
     type: human
     desc: 项目收尾，项目经理发出满意度调查
@@ -4907,7 +4907,7 @@ processes:
     outcome: 已发布
   notes: 报价只存复盘 ID，不回读（§7 第 19 条）；知识提炼由 B-04 经 api 调 B-30（PRC-107），不是事件订阅。
 - id: PRC-41
-  name: 制定检查计划并使其生效
+  name: 制定并生效检查计划
   trigger:
     type: event
     events:
@@ -5056,7 +5056,7 @@ processes:
   - actor: SH-E4
     where: in_system
     actor_v1: 检查负责人
-    command: 标记不再受托
+    command: 标记检查计划不再受托
     aggregate: AGG-34
     branch: 不再受托
     desc: 生效 → 不再受托，VS-03 ends_in 状态（符合性审查 必-6）；原因建议必填（待用户定）
@@ -5073,7 +5073,7 @@ processes:
       p: 1.0
   stages_note: 'SD-14 已写回：生效检查计划使 OBJ-48 到「生效」，是 VS-03.1 段内状态；本流程虽由 ContractSigned 触发，仍是含制定与生效步骤的检查策划业务流程。不加 VS-02.0：触发协议已签署是启动段读取的共享状态，本流程不建立项目、交付计划或预算，也不完成启动阶段节点；按实际产出保留 VS-03.1。'
 - id: PRC-43
-  name: 实施现场检查并锁定
+  name: 实施并锁定检查记录
   trigger:
     type: human
     desc: 检查负责人安排检查并派人现场检查
@@ -6069,7 +6069,7 @@ processes:
       p: 1.0
   stages_note: 判据：采信、不采信外部检测报告使 OBJ-52 到「已采信 / 未采信」，是 VS-03.4 段内状态，结局用语与之一致
 - id: PRC-47
-  name: 起草、评审并回签协议
+  name: 起草并回签协议
   trigger:
     type: event
     events:
@@ -7184,7 +7184,7 @@ processes:
   frequency_ref: 待取证（E-B1）；经验估计：每月约 10 次
   stages_note: 判据：阶段说明写明视为同意的期满判定在 VS-04.2（D-8），判定记在收入确认行上，不是对象状态。字面误判：「标记付款条件项可结算」在协议上是状态不变（已签署生效 / 履行中 / 已完成各自保持），不造 VS-04.1 退出、VS-04.6 退出，更不属 VS-05.2、VS-07.3
 - id: PRC-57
-  name: 申请并开具销项发票
+  name: 申请并开具销项增值税发票
   trigger:
     type: event
     events:
@@ -7326,7 +7326,7 @@ processes:
   - actor: system
     where: automatic
     actor_v1: 财务
-    command: 开票申请准入
+    command: 准入开票申请
     aggregate: AGG-45
     emits:
     - InvoiceEligibilityConfirmed
@@ -8092,7 +8092,7 @@ processes:
   human_note: 第三方代付须有委托付款函并经加审（AR-15）；其余出纳认领核销
   stages_note: 判据：核销应收使往来款项（OBJ-85）到「已结清」、记收款分配（OBJ-86 已分配），是 VS-04.4 退出。字面误判：匹到的 VS-05.5、VS-08.1、VS-08.3、VS-13.5 是应付、员工借款、报销、薪酬类型，本流程是销售应收
 - id: PRC-61
-  name: 检测应收逾期并催收
+  name: 检测并催收逾期应收款项
   trigger:
     type: time
     desc: 每日定时检测账龄与到期
@@ -8443,7 +8443,7 @@ processes:
   frequency_ref: 待取证（E-B1）；经验估计：每月约 3 张
   stages_note: 判据：商票逾期时释放占用、恢复应收，使应收回到「未结」，是 VS-04.4 进入条件（重入）。字面误判：VS-05.4 退出的「未结」限应付方向
 - id: PRC-66
-  name: 发起结算，确认最终价款并结算协议
+  name: 确认最终价款并结算协议
   trigger:
     type: human
     desc: 商务在最后一份成果认可或项目结项后发起结算；与累计确认是否等于分摊价格脱钩，累计确认只作前置提示
@@ -8696,7 +8696,7 @@ processes:
     rule: 结算书编制人与最终价款让价审批人不得为同一人
   stages_note: '判据①：完成协议到 OBJ-05「已完成」造出 VS-04.6 退出，结算客户协议到「已结算」造出 VS-04.5 退出。不加 VS-02.7、VS-05.6：VS-02.7 段内协议「已结算 / 已终止」与 VS-05.6 退出明确限供方类型，本流程为客户协议。'
 - id: PRC-69
-  name: 供应商准入与资质核验
+  name: 申请并核验供方角色
   trigger:
     type: human
     desc: 项目经理或职能提出新供方，财务发起准入
@@ -9440,7 +9440,7 @@ processes:
   human_note: 借款须审批（用途与必要性）；发放与归还是两个实例，到期未还催还
   stages_note: 判据：归还核销使往来款项（OBJ-85，其他应收「员工借款」）到「已结清」，是 VS-08.1 退出。字面误判：匹到的 VS-04.4、VS-05.4、VS-05.5、VS-08.3、VS-13.5 是销售应收、应付、报销、薪酬类型
 - id: PRC-140
-  name: 合同借阅
+  name: 借阅协议原件
   trigger:
     type: human
     desc: 员工因投标、诉讼、审计或结算需要借阅已归档的合同原件或复印件
@@ -9636,7 +9636,7 @@ processes:
   frequency_ref: 待取证（E-B1）；经验估计：每月约 4 笔
   support: 合同档案支持活动（B-05 合同模块档案功能，C-4，intent 144943）：只处理已归档合同原件的借阅流转，不改变任何价值流阶段的进入或退出对象状态
 - id: PRC-141
-  name: 销售合同归档
+  name: 归档协议
   trigger:
     type: event
     events:
@@ -10110,7 +10110,7 @@ processes:
   notes: 评审 M7：补承载「经营产值」的业务流程。AGG-23 现有命令只有提出、批准完工估算，填报产值估计为新命令（新用语）；数据落点见 Q04_STORAGE。产值与收入三口径对照见读模型 PRC-154。填报与抽查均不设审批（用户原则：能规则化的不要人来守，产值不进财务）。
   stages_note: 'VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：SD-13 已列段内「产值已填报 / 产值已抽查」，ref 仍为「缺对象状态」，gap MS-23。流程只向完工估算追加产值估计行，不改 OBJ-33 批准状态；保留这些段与真实结局，不以「已批准」替代，信息图对象状态待回补。'
 - id: PRC-152
-  name: 登记付款条件达成
+  name: 登记付款条件项达成
   added_in: closeout
   trigger:
     type: human
@@ -10702,7 +10702,7 @@ event_policies:
   frequency_ref: 待取证（E-B1）；经验估计：每月约 40 次
   stages_note: 判据②：开票侧反应。本策略把以认可为条件的付款条件项置为「可结算」，即 VS-04.3 进入条件 OBJ-07「可结算」；VS-04.3 进入条件的说明写明该状态在交付物「已认可」时产生，触发状态即该进入条件的前提。不归 VS-04.2：收入确认由 PRC-53 承接，本策略不碰收入
 - id: PRC-59
-  name: 由销项发票创建应收
+  name: 创建应收款项
   trigger:
     type: event
     events:
@@ -10742,7 +10742,7 @@ event_policies:
   notes: §4.3 步 8 写事件「应收已创建」，AGG-49 事件列无此名，见 G-08。「发票已红冲」的反应见 PRC-150（H7）。
   frequency_ref: 待取证（E-B1）；经验估计：每月约 30 次
 - id: PRC-91
-  name: 认定工时有效性
+  name: 认定工时单有效性
   trigger:
     type: event
     events:
@@ -10846,7 +10846,7 @@ event_policies:
     metric_event: true
   notes: 认定结果是人工成本分配的输入（INV-89 只分配已锁定工时）。一个事件、一步命令，无超时或退回分支，由业务流程移入事件策略（⑥a 复核）；收尾新增「生成待认定清单」自动步，使人工认定有待办可依。
 - id: PRC-146
-  name: 协议借阅逾期催还
+  name: 催还逾期协议原件
   trigger:
     type: event
     events:
@@ -10904,7 +10904,7 @@ event_policies:
   frequency_ref: 待取证（E-B1）；经验估计：每月约 2 次
   support: 合同档案支持活动（B-05）：借阅逾期催还，随 PRC-140，不改变任何阶段状态
 - id: PRC-147
-  name: 费用报销核定后冲抵员工借款并确认应付
+  name: 冲抵借款并确认报销应付
   trigger:
     type: event
     events:
@@ -11203,7 +11203,7 @@ event_policies:
   frequency_ref: 待取证（E-B1）；经验估计：每月约 25 次
   stages_note: SD-08：本流程出口结局由「收入已确认」改为「收入确认事实已过账」（outcomes、decision.outcome、scenarios PRC-148-S01 同改）；过账经 B-16 过账管道（PRC-92）完成。VS-04.2 退出现为「缺对象状态」（MS-17），脚本不能匹配，故仍报不支持，待对象状态定后复跑。近似项（审批已通过）是不同对象撞名，不改
 - id: PRC-150
-  name: 发票红冲后冲减应收
+  name: 冲减应收款项
   added_in: closeout
   trigger:
     type: event
@@ -11385,22 +11385,22 @@ single_aggregate:
       typical_min: 10
       p90_min: 30
   states:
-  - 计划
+  - 已计划
   - 进行中
-  - 结束
+  - 已结束
   transitions:
   - from: null
-    to: 计划
+    to: 已计划
     command: 计划市场活动
     by:
     - SH-E5
-  - from: 计划
+  - from: 已计划
     to: 进行中
     command: 开展市场活动
     by:
     - SH-E5
   - from: 进行中
-    to: 结束
+    to: 已结束
     command: 结束市场活动
     by:
     - SH-E5
@@ -11479,19 +11479,19 @@ single_aggregate:
       typical_min: 10
       p90_min: 30
   states:
-  - 计划
+  - 已计划
   - 已变更
   - 已完成
   - 取消
   transitions:
   - from: null
-    to: 计划
+    to: 已计划
     command: 计划客户活动
     by:
     - SH-E5
     emits:
     - 客户活动已计划
-  - from: 计划
+  - from: 已计划
     to: 已变更
     command: 变更客户活动
     by:
@@ -11507,7 +11507,7 @@ single_aggregate:
     emits:
     - 客户活动已变更
     rule: INV-110
-  - from: 计划
+  - from: 已计划
     to: 已完成
     command: 完成客户活动
     by:
@@ -11523,7 +11523,7 @@ single_aggregate:
     emits:
     - 客户活动已完成
     rule: INV-110
-  - from: 计划
+  - from: 已计划
     to: 取消
     command: 取消客户活动
     by:
@@ -11635,7 +11635,7 @@ single_aggregate:
   - 待核实
   - 有效
   - 已合并
-  - 停用
+  - 已停用
   transitions:
   - from: null
     to: 待核实
@@ -11676,7 +11676,7 @@ single_aggregate:
     - 往来单位已合并
     rule: INV-03a
   - from: 有效
-    to: 停用
+    to: 已停用
     command: 停用往来单位
     by:
     - SH-E6
@@ -11887,7 +11887,7 @@ single_aggregate:
   - 已退
   - 被没收
   - 已开立
-  - 到期
+  - 已到期
   - 被索赔
   transitions:
   - from: 待缴
@@ -11961,7 +11961,7 @@ single_aggregate:
       - AR-02
       on_reject: 转移不发生，保证金保持已缴
   - from: 已开立
-    to: 到期
+    to: 已到期
     command: 登记保函到期或索赔
     by:
     - SH-E6
@@ -12567,7 +12567,7 @@ single_aggregate:
   notes: 客户满意度低分经 P-45 自动登记（见「回访客户满意度」）。已关闭或已接受后不得再改应对记录，重开须另记一条（INV-113）。
   stages_note: 贯穿 VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7：判据：风险与问题（OBJ-108）「已关闭 / 已接受」是 VS-02 贯穿活动「变更、延期与风险」的产出，各段均可登记；近似项「已关闭」是不同对象撞名，不改
 - id: PRC-33
-  name: 采集、关联并封存证据
+  name: 采集并封存证据
   stages:
   - VS-02.4
   - VS-02.7
@@ -12807,7 +12807,7 @@ single_aggregate:
       p: 1.0
   stages_note: 'SD-13 已写回：发布检查表模板版本即 OBJ-50「生效」，是 VS-03.1 段内状态（版本只追加，不作门），保留 VS-03.1。VS-04.1 的「生效」是付款条件项，不同对象，近似项不补标。'
 - id: PRC-52
-  name: 开放可触发收入确认的证据类型
+  name: 开放收入确认证据类型
   aggregate: AGG-92
   owner_bc: B-08
   stages: []
@@ -12978,7 +12978,7 @@ single_aggregate:
   stages_note: 'SD-13 已写回：终止客户协议使 OBJ-05 到「已终止（原因必填）」，VS-04.5 现以 any 接受「已结算」或「已终止」，并为 VS-04 ends_in，保留 VS-04.5。不加 VS-04.1、VS-04.6：states 中「已签署生效 / 履行中」为终止前状态，不是终止命令的到达状态；VS-04.6 的「已签署生效」另限任务订单。不加 VS-02.7、VS-05.2、VS-05.6、VS-07.3、VS-13.6：分别为供方类型协议、供方签约结算、劳动合同或员工终止，不是本流程的客户协议终止。'
 read_models:
 - id: PRC-22
-  name: 阶段门预警
+  name: 查看阶段门预警
   stages:
   - VS-02.0
   - VS-02.1
@@ -13115,7 +13115,7 @@ read_models:
   page: 项目阶段门预警页
   notes: 只读、无命令，由业务流程移出为读模型（⑥a 复核）。企业微信推送预警是否需要，待用户定（reporting 对 platform.integration 无依赖边）。阶段「已认可」只存在于本读模型（§4.4.1），WBS 不记。
 - id: PRC-62
-  name: 质量保证金到期提示
+  name: 查看质量保证金到期提示
   owner_bc: B-09
   stages:
   - VS-04.4
@@ -13157,7 +13157,7 @@ read_models:
       department_hint: 财务部
       position_hint: 应收会计
 - id: PRC-154
-  name: 收入三口径对照
+  name: 查看收入三口径对照
   owner_bc: reporting
   stages:
   - VS-04.2

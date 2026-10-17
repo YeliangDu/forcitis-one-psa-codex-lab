@@ -5,7 +5,7 @@ machines:
   initial: 已登记
   states:
   - 已登记
-  - 生效
+  - 已生效
   - name: 不再受托
     terminal: true
   transitions:
@@ -13,11 +13,11 @@ machines:
     to: 已登记
     command: 登记检查计划
   - from: 已登记
-    to: 生效
+    to: 已生效
     command: 生效检查计划
-  - from: 生效
+  - from: 已生效
     to: 不再受托
-    command: 标记不再受托
+    command: 标记检查计划不再受托
     guard:
     - 拟规则：原因必填
     kind: reverse
@@ -847,7 +847,7 @@ machines:
     command: 提交开票申请
   - from: 已提交
     to: 已准入
-    command: 开票申请准入
+    command: 准入开票申请
     guard:
     - INV-71
     - RULE-407
@@ -934,8 +934,8 @@ machines:
   initial: 未结
   states:
   - 未结
-  - 部分结清
-  - 逾期
+  - 已部分结清
+  - 已逾期
   - 争议中
   - name: 已结清
     terminal: true
@@ -957,13 +957,13 @@ machines:
     guard:
     - INV-77
     - 核销合计=未结余额
-  - from: 部分结清
+  - from: 已部分结清
     to: 已结清
     command: 在应收上核销占用
     guard:
     - INV-77
     - 核销合计=未结余额
-  - from: 逾期
+  - from: 已逾期
     to: 已结清
     command: 在应收上核销占用
     guard:
@@ -976,50 +976,50 @@ machines:
     - INV-77
     - 核销合计=未结余额
   - from: 未结
-    to: 部分结清
+    to: 已部分结清
     command: 在应收上核销占用
     guard:
     - INV-77
     - 核销合计<未结余额
-  - from: 部分结清
-    to: 部分结清
+  - from: 已部分结清
+    to: 已部分结清
     command: 在应收上核销占用
     guard:
     - INV-77
     - 核销合计<未结余额
-  - from: 逾期
-    to: 部分结清
+  - from: 已逾期
+    to: 已部分结清
     command: 在应收上核销占用
     guard:
     - INV-77
     - 核销合计<未结余额
   - from: 争议中
-    to: 部分结清
+    to: 已部分结清
     command: 在应收上核销占用
     guard:
     - INV-77
     - 核销合计<未结余额
   - from: 未结
-    to: 逾期
+    to: 已逾期
     command: 检测应收逾期
-  - from: 部分结清
-    to: 逾期
+  - from: 已部分结清
+    to: 已逾期
     command: 检测应收逾期
   - from: 未结
     to: 争议中
     command: 登记争议与处置分类
-  - from: 部分结清
+  - from: 已部分结清
     to: 争议中
     command: 登记争议与处置分类
-  - from: 逾期
+  - from: 已逾期
     to: 争议中
     command: 登记争议与处置分类
-  - from: 部分结清
+  - from: 已部分结清
     to: 坏账已核销
     command: 核销坏账
     guard:
     - 拟规则：坏账核销审批
-  - from: 逾期
+  - from: 已逾期
     to: 坏账已核销
     command: 核销坏账
     guard:
@@ -1035,20 +1035,20 @@ machines:
     guard:
     - INV-77
     - 冲抵额=未结余额
-  - from: 部分结清
+  - from: 已部分结清
     to: 已结清
     command: 冲抵员工借款
     guard:
     - INV-77
     - 冲抵额=未结余额
   - from: 未结
-    to: 部分结清
+    to: 已部分结清
     command: 冲抵员工借款
     guard:
     - INV-77
     - 冲抵额<未结余额
-  - from: 部分结清
-    to: 部分结清
+  - from: 已部分结清
+    to: 已部分结清
     command: 冲抵员工借款
     guard:
     - INV-77
@@ -1058,12 +1058,12 @@ machines:
     command: 冲减应收
     guard:
     - 红冲额=未结余额
-  - from: 部分结清
+  - from: 已部分结清
     to: 已冲减
     command: 冲减应收
     guard:
     - 红冲额=未结余额
-  - from: 逾期
+  - from: 已逾期
     to: 已冲减
     command: 冲减应收
     guard:
@@ -1074,22 +1074,22 @@ machines:
     guard:
     - 红冲额=未结余额
   - from: 未结
-    to: 部分结清
+    to: 已部分结清
     command: 冲减应收
     guard:
     - 红冲额<未结余额
-  - from: 部分结清
-    to: 部分结清
+  - from: 已部分结清
+    to: 已部分结清
     command: 冲减应收
     guard:
     - 红冲额<未结余额
-  - from: 逾期
-    to: 部分结清
+  - from: 已逾期
+    to: 已部分结清
     command: 冲减应收
     guard:
     - 红冲额<未结余额
   - from: 争议中
-    to: 部分结清
+    to: 已部分结清
     command: 冲减应收
     guard:
     - 红冲额<未结余额
@@ -1105,20 +1105,20 @@ machines:
     guard:
     - 释放后无其他核销
     reverse_of: 在应收上核销占用
-  - from: 部分结清
+  - from: 已部分结清
     to: 未结
     command: 释放占用、恢复应收
     guard:
     - 释放后无其他核销
     reverse_of: 在应收上核销占用
   - from: 已结清
-    to: 部分结清
+    to: 已部分结清
     command: 释放占用、恢复应收
     guard:
     - 释放后仍有其他核销
     reverse_of: 在应收上核销占用
-  - from: 部分结清
-    to: 部分结清
+  - from: 已部分结清
+    to: 已部分结清
     command: 释放占用、恢复应收
     guard:
     - 释放后仍有其他核销
@@ -1129,14 +1129,14 @@ machines:
     guard:
     - INV-92
     note: 不改变业务状态，只追加过账候选提交事实
-  - from: 部分结清
-    to: 部分结清
+  - from: 已部分结清
+    to: 已部分结清
     command: 提交过账候选
     guard:
     - INV-92
     note: 不改变业务状态，只追加过账候选提交事实
-  - from: 逾期
-    to: 逾期
+  - from: 已逾期
+    to: 已逾期
     command: 提交过账候选
     guard:
     - INV-92
@@ -1251,7 +1251,7 @@ machines:
   - name: 被没收
     terminal: true
   - 已开立
-  - name: 到期
+  - name: 已到期
     terminal: true
   - name: 被索赔
     terminal: true
@@ -1283,7 +1283,7 @@ machines:
     guard:
     - INV-20
   - from: 已开立
-    to: 到期
+    to: 已到期
     command: 登记保函到期或索赔
     guard:
     - 结果=到期
@@ -1317,14 +1317,14 @@ machines:
   - 有效
   - name: 已合并
     terminal: true
-  - name: 停用
+  - name: 已停用
     terminal: true
   - 角色申请中
   - 角色合格
-  - 角色暂停
-  - name: 角色停用
+  - 角色已暂停
+  - name: 角色已停用
     terminal: true
-  - 银行账户版本生效
+  - 银行账户版本已生效
   - name: 银行账户版本被取代
     terminal: true
   transitions:
@@ -1345,9 +1345,9 @@ machines:
     command: 变更银行账户
     note: 档案本身状态不变，账户版本见下两条
   - from: null
-    to: 银行账户版本生效
+    to: 银行账户版本已生效
     command: 变更银行账户
-  - from: 银行账户版本生效
+  - from: 银行账户版本已生效
     to: 银行账户版本被取代
     command: 变更银行账户
     note: 同事务：旧版本被新版本取代
@@ -1357,7 +1357,7 @@ machines:
     guard:
     - INV-01
   - from: 有效
-    to: 停用
+    to: 已停用
     command: 停用往来单位
   - from: null
     to: 角色申请中
@@ -1369,32 +1369,32 @@ machines:
     command: 核准往来单位角色合格
     guard:
     - INV-02
-  - from: 角色暂停
+  - from: 角色已暂停
     to: 角色合格
     command: 核准往来单位角色合格
     guard:
     - INV-02
   - from: 角色合格
-    to: 角色暂停
+    to: 角色已暂停
     command: 暂停往来单位角色
     guard:
     - INV-02
     - 原因必填
     reverse_of: 核准往来单位角色合格
   - from: 角色申请中
-    to: 角色停用
+    to: 角色已停用
     command: 停用往来单位角色
     guard:
     - INV-02
     - 原因必填
   - from: 角色合格
-    to: 角色停用
+    to: 角色已停用
     command: 停用往来单位角色
     guard:
     - INV-02
     - 原因必填
-  - from: 角色暂停
-    to: 角色停用
+  - from: 角色已暂停
+    to: 角色已停用
     command: 停用往来单位角色
     guard:
     - INV-02
@@ -1593,21 +1593,21 @@ machines:
     note: 同事务：被新生效版本取代（旧版本实例）
 - aggregate: AGG-08
   name: 市场活动
-  initial: 计划
+  initial: 已计划
   states:
-  - 计划
+  - 已计划
   - 进行中
-  - name: 结束
+  - name: 已结束
     terminal: true
   transitions:
   - from: null
-    to: 计划
+    to: 已计划
     command: 计划市场活动
-  - from: 计划
+  - from: 已计划
     to: 进行中
     command: 开展市场活动
   - from: 进行中
-    to: 结束
+    to: 已结束
     command: 结束市场活动
 - aggregate: AGG-09
   name: 线索
@@ -1708,7 +1708,7 @@ machines:
     command: 维护商机参与团队
   - from: 已决定参投
     to: 已赢单
-    command: 商机赢单
+    command: 登记商机赢单
     guard:
     - INV-27
     - INV-33
@@ -1868,9 +1868,9 @@ machines:
     - INV-33
 - aggregate: AGG-102
   name: 客户活动
-  initial: 计划
+  initial: 已计划
   states:
-  - 计划
+  - 已计划
   - 已变更
   - name: 已完成
     terminal: true
@@ -1878,9 +1878,9 @@ machines:
     terminal: true
   transitions:
   - from: null
-    to: 计划
+    to: 已计划
     command: 计划客户活动
-  - from: 计划
+  - from: 已计划
     to: 已变更
     command: 变更客户活动
     guard:
@@ -1890,7 +1890,7 @@ machines:
     command: 变更客户活动
     guard:
     - INV-110
-  - from: 计划
+  - from: 已计划
     to: 已完成
     command: 完成客户活动
     guard:
@@ -1902,7 +1902,7 @@ machines:
     guard:
     - INV-110
     - 结果反馈必填
-  - from: 计划
+  - from: 已计划
     to: 已取消
     command: 取消客户活动
     guard:
@@ -1919,7 +1919,7 @@ machines:
   states:
   - 已立项
   - 执行中
-  - 暂停
+  - 已暂停
   - 已结项
   - name: 已终止
     terminal: true
@@ -1933,13 +1933,13 @@ machines:
     command: 建立项目
   - from: 已立项
     to: 执行中
-    command: 开始执行
+    command: 开始执行项目
   - from: 执行中
-    to: 暂停
+    to: 已暂停
     command: 暂停项目
     guard:
     - 原因必填
-  - from: 暂停
+  - from: 已暂停
     to: 执行中
     command: 恢复项目
     reverse_of: 暂停项目
@@ -1948,7 +1948,7 @@ machines:
     command: 终止项目
     guard:
     - 原因必填
-  - from: 暂停
+  - from: 已暂停
     to: 已终止
     command: 终止项目
     guard:
@@ -1965,7 +1965,7 @@ machines:
     guard:
     - 原因必填
     - 无任何投入
-  - from: 暂停
+  - from: 已暂停
     to: 已取消
     command: 取消项目
     guard:

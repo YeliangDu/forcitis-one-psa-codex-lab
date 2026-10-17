@@ -8,7 +8,7 @@
   <collaboration id="Collab_PRC-03">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-03"/>
   </collaboration>
-  <process id="PRC-03" name="登记并跟进线索，转为商机" isExecutable="false">
+  <process id="PRC-03" name="跟进线索并转商机" isExecutable="false">
     <documentation>owner B-03；VS-01.1、VS-01.2</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E5" name="市场和客户经理（SH-E5）">

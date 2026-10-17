@@ -32,7 +32,7 @@ entries:
   sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
   source_part: revenue
 - object: AGG-34
-  command: 标记不再受托
+  command: 标记检查计划不再受托
   raci:
     A:
       resolve: instance
@@ -1330,7 +1330,7 @@ entries:
   sensitive_reason: 无个人信息（PI 标记 NONE），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
   source_part: revenue
 - object: AGG-45
-  command: 开票申请准入
+  command: 准入开票申请
   raci:
     A:
       resolve: instance
@@ -2442,7 +2442,7 @@ entries:
   sensitive_reason: 含普通个人信息（员工标识），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
   source_part: revenue
 - object: AGG-10
-  command: 商机赢单
+  command: 登记商机赢单
   raci:
     A:
       resolve: instance
@@ -2767,7 +2767,7 @@ entries:
   sensitive_reason: 含普通个人信息（员工标识），对象为 INTERNAL，按数据范围可见（ADR-0026），不涉及资金敏感权限
   source_part: revenue
 - object: AGG-19
-  command: 开始执行
+  command: 开始执行项目
   raci:
     A:
       resolve: instance

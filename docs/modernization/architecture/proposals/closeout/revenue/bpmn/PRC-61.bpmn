@@ -4,7 +4,7 @@
   <collaboration id="Collab_PRC-61">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-61"/>
   </collaboration>
-  <process id="PRC-61" name="检测应收逾期并催收" isExecutable="false">
+  <process id="PRC-61" name="检测并催收逾期应收款项" isExecutable="false">
     <documentation>owner B-09；VS-04.4</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E6" name="职能人员（SH-E6）">

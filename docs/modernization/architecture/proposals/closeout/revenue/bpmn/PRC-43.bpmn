@@ -11,7 +11,7 @@
   <collaboration id="Collab_PRC-43">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-43"/>
   </collaboration>
-  <process id="PRC-43" name="实施现场检查并锁定" isExecutable="false">
+  <process id="PRC-43" name="实施并锁定检查记录" isExecutable="false">
     <documentation>owner B-26；VS-03.1、VS-03.2、VS-02.6</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E4" name="技术专家（SH-E4）">

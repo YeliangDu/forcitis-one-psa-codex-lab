@@ -4,7 +4,7 @@
   <collaboration id="Collab_PRC-140">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-140"/>
   </collaboration>
-  <process id="PRC-140" name="合同借阅" isExecutable="false">
+  <process id="PRC-140" name="借阅协议原件" isExecutable="false">
     <documentation>owner B-05；</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-M1" name="管理层（SH-M1）">

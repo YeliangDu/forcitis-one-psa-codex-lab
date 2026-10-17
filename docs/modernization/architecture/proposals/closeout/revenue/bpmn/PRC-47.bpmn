@@ -13,7 +13,7 @@
   <collaboration id="Collab_PRC-47">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-47"/>
   </collaboration>
-  <process id="PRC-47" name="起草、评审并回签协议" isExecutable="false">
+  <process id="PRC-47" name="起草并回签协议" isExecutable="false">
     <documentation>owner B-05；VS-04.1</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E5" name="市场和客户经理（SH-E5）">

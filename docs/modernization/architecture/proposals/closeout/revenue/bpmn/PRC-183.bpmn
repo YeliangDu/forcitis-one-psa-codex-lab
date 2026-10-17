@@ -7,7 +7,7 @@
   <collaboration id="Collab_PRC-183">
     <participant id="P_main" name="FORCITIS one" processRef="PRC-183"/>
   </collaboration>
-  <process id="PRC-183" name="作出参投决策" isExecutable="false">
+  <process id="PRC-183" name="作出商机参投决策" isExecutable="false">
     <documentation>owner B-03；VS-01.2</documentation>
     <laneSet id="LaneSet_1">
       <lane id="Lane_SH-E5" name="市场和客户经理（SH-E5）">
