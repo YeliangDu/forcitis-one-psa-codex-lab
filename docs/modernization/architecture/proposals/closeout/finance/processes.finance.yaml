@@ -4802,7 +4802,9 @@ processes:
   trigger:
     type: time
     desc: 月末按期计提
-  stages: []
+  stages:
+  - VS-10.0
+  stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已过账」使折旧与资产处置事实经 PRC-93 生成分录，对应该段「本期分录已记账」退出条件。CAPINFO 页首不补列清单只涉及能力（不因折旧给期间关账补公司资产管理能力），不改本流程归段。"
   owner_bc: B-24
   human_orchestration: false
   migration: 在途：采购已完成未建卡的资产在投产前办结建卡；历史：全部资产卡片迁入，已提折旧与已处置记录全量迁入（U-3、U-4），折旧不重新生成（迁入事实不经候选，M8），投产前最近两个已结期间按 U-10 重算比对
@@ -5054,7 +5056,6 @@ processes:
     - ADR22-G1G2
   notes: 形态待过渡 ADR（S-05；R-28）。
   primary_object: OBJ-93
-  support: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题（页首不补列清单）；折旧与处置提供期间报告的贯穿活动输入，不因输入给期间关账补公司资产管理"
 - id: PRC-100
   name: 发布总账配置版本
   trigger:
@@ -8680,6 +8681,8 @@ processes:
   stages_note: 公司直付分贝通订单：核对月账单后确认供方应付，属「应付确认」；之后付款进 VS-05.5（PRC-75）；结局「应付已确认」即 OBJ-85「未结」（应付方向），是 VS-05.4 退出条件（同 PRC-74 的写法，检查器因结局没写「未结」匹配不上）
   primary_object: "OBJ-121"
   primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I07 题；信息图现单列 OBJ-121，保留处理、审批及核对依据。"
+  secondary_objects:
+  - OBJ-85
 - id: PRC-172
   name: 申请出差并同步差旅服务商
   type: business
