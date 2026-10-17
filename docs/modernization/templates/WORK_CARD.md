@@ -47,7 +47,7 @@ bc: <bcs.yaml id 或 跨域>
 
 ## 5. 执行者与模型
 - 执行者：<子代理 / Codex / 工作会话名>
-- 模型与强度：<sonnet | opus | Codex：codex exec -m <模型> -c model_reasoning_effort=<强度> -s workspace-write --ephemeral>
+- 模型与强度：<sonnet | opus | Codex：codex exec -m <模型> -c model_reasoning_effort=<强度> -s workspace-write -c sandbox_workspace_write.network_access=false --ephemeral -o <结果文件> < /dev/null>
 - 工作区：独立 worktree，分支 <claude/…>，基线 <main 提交号>
 - 复审：<opus，推理强度 high>
 
@@ -116,7 +116,7 @@ bc: <bcs.yaml id 或 跨域>
 
 ## 5. 执行者与模型
 - 执行者：Codex（试点）
-- 模型与强度：`codex exec -m gpt-6.1-sol -c model_reasoning_effort=high -s workspace-write --ephemeral -o <结果文件>`
+- 模型与强度：`codex exec -m gpt-6.1-sol -c model_reasoning_effort=high -s workspace-write -c sandbox_workspace_write.network_access=false --ephemeral -o <结果文件> < /dev/null`
 - 工作区：独立 worktree，分支 `claude/one-1a-next-r4`，基线为 R-2 合并后的 main
 - 复审：opus，high；PR 正文注明「Codex 实现（gpt-6.1-sol，high）」
 
