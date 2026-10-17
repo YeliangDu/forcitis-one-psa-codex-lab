@@ -280,7 +280,7 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
 
         org.mockito.ArgumentCaptor<AuditEntry> entry = org.mockito.ArgumentCaptor.forClass(AuditEntry.class);
         verify(audit, atLeastOnce()).record(entry.capture());
-        assertThat(entry.getAllValues()).filteredOn(e -> e.action().equals("organization.workforce.sync-run.released")).singleElement()
+        assertThat(entry.getAllValues()).filteredOn(e -> e.action().equals("organization.workforce.sync-run.released") && held.syncRunId().value().equals(e.subject().id())).singleElement()
                 .satisfies(released -> assertThat(released.detail()).startsWith("reason: line one line two end; ").doesNotContainPattern("\\p{Cntrl}"));
     }
 
@@ -324,8 +324,9 @@ class OrgSnapshotSyncIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(jdbc.sql("select status from organization_workforce.sync_runs where id = ?").param(held.syncRunId().value()).query(String.class).single())
                 .isEqualTo("RELEASED");
         assertThat(registry.get("forcitis.organization.workforce.sync.held.runs").gauge().value()).isEqualTo(0.0);
-        // identity reacts to earlier events asynchronously; what must not appear is a workforce audit entry
-        verify(audit, never()).record(argThat((AuditEntry e) -> e.action().startsWith("organization.workforce")));
+        // the audit mock is shared and identity reacts to earlier events asynchronously: only entries about this test's own runs count
+        java.util.Set<java.util.UUID> thisTest = java.util.Set.of(held.syncRunId().value(), recovered.syncRunId().value());
+        verify(audit, never()).record(argThat((AuditEntry e) -> e.action().startsWith("organization.workforce") && thisTest.contains(e.subject().id())));
     }
 
     @Test
