@@ -100,7 +100,7 @@ class LoginAdmission {
             audit.recordIndependently(new AuditEntry("platform.identity.login.failed", actor, null, subject, describe(method, reason))
                     .withTrace(origin.address(), AuditOutcome.FAILED, method.name()));
         } catch (RuntimeException failed) {
-            log.error("Audit entry for the failed login of {} could not be written: {}", subject, failed.toString());
+            log.error("Audit entry for the failed login of {} could not be written: {}", subject, failed.getClass().getName());
             meters.counter("forcitis.platform.identity.login.audit.failed").increment();
         }
         meters.counter("forcitis.platform.identity.login", "method", method.name(), "outcome", "failure").increment();
