@@ -69,6 +69,9 @@
 - corepack 按启动目录选 pnpm 版本 → 进 frontend 再调（#151、#156）
 - CI 偶发 postgres:18 测试容器起不来 → `gh run rerun --failed`
 
+- 部署前核对基线迁移（错题本 OPS-005）：任何 dev 部署前先跑 `git diff --name-status <当前运行提交> <目标提交> -- backend/src/main/resources/db/migration`，有 M（已有文件被改）即走 [dev-db-rebuild](runbooks/dev-db-rebuild.md)，先问用户。
+- 改 `runbooks/sql/` 下脚本后：先单独跑 `c3_dev_db_check.sh` 看退出码为 0，再 add、commit、push，不把检查与提交连在一条命令里（错题本 OPS-006）。
+
 - 工作方式：生产取证走 handoff/B-5-dba/tools/b5_evidence_scan.py（one_evidence_ro，两库各跑；SQL 里用 DB_NAME() 守卫只在 a8_db 出结果）；工具与 c14_run 等必须与 origin/main 逐字节一致；本机无 timeout 命令；`timeout`/管道会让长任务出问题，长任务用 run_in_background。
 
 ## 偏离记录
