@@ -31,7 +31,7 @@ class AdministratorSeparationReviewAccountsTest {
     final AccountRepository accounts = mock(AccountRepository.class);
     final OrgDirectory directory = mock(OrgDirectory.class);
     final SessionContext session = mock(SessionContext.class);
-    final AdministratorSeparationReview review = new AdministratorSeparationReview(accounts, directory, session, TestAccounts.everyoneHasOne());
+    final AdministratorSeparationReview review = new AdministratorSeparationReview(accounts, directory, session, TestAccounts.everyoneHasOne(), () -> false);
 
     AdministratorSeparationReviewAccountsTest() {
         for (long employee : new long[] {1001, 1002, 1003}) {
