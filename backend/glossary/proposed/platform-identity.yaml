@@ -186,7 +186,69 @@ terms:
   forbidden: []
   status: proposed
   note: 登记会话 one-1a-par（派工卡 SINGLE-OP P2）；G37 要求枚举取值 SUPER_ADMIN_MINIMUM_ONE 的词；查重：terms.yaml 与 proposed 中同一 bc 无同名、同中文名
+- id: role_version
+  zh: 角色版本
+  en: RoleVersion
+  snake: role_version
+  kind: entity
+  bc: platform.identity
+  scope: domain
+  definition: 角色定义（名称、状态、数据范围类型、完整权限集合）的每次变化一行，只追加；当前版本是没有失效时刻的那一行，每个角色至多一个；删除角色是关闭最后一个版本（ADR-0034 第 1 项）
+  standard_ref:
+  - adr/src/ADR-0034.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 登记会话 one-1a-par（IMP-1017-PAR-02，派工卡 ADR-0034-IMPL 第 11 节）；查重：terms.yaml 与 proposed 中同一 bc 无同名、同中文名
+- id: account_role_grant
+  zh: 角色授予
+  en: AccountRoleGrant
+  snake: account_role_grant
+  kind: entity
+  bc: platform.identity
+  scope: domain
+  definition: 某账号在一段时间内持有某角色，只追加；结束一律称收回，收回是关闭开放行，再次获得新增一行（ADR-0034 第 2 项）
+  standard_ref:
+  - adr/src/ADR-0034.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 登记会话 one-1a-par（IMP-1017-PAR-02，派工卡 ADR-0034-IMPL 第 11 节）；查重：terms.yaml 与 proposed 中同一 bc 无同名、同中文名
+- id: revocation_cause
+  zh: 收回原因
+  en: RevocationCause
+  snake: revocation_cause
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 角色授予被收回的原因：账号授权、离职、运维命令、迁入批次回退（ADR-0034 第 2 项）；列名 revocation_cause_kind
+  standard_ref:
+  - adr/src/ADR-0034.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 登记会话 one-1a-par（IMP-1017-PAR-02，派工卡 ADR-0034-IMPL 第 11 节）；查重：terms.yaml 与 proposed 中同一 bc 无同名、同中文名
+- id: role_version_closure
+  zh: 角色版本关闭
+  en: RoleVersionClosure
+  snake: role_version_closure
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 删除角色时给最后一个角色版本写下失效时刻、关闭人、关闭理由与审计条目，不再开新版本；被新版本接替的关闭不记这三项（ADR-0034 第 1 项）
+  standard_ref:
+  - adr/src/ADR-0034.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 登记会话 one-1a-par（IMP-1017-PAR-02）；查重：terms.yaml 与 proposed 中同一 bc 无同名、同中文名
 common_words:
+- granted
+- recorded
 - absent
 - absolute
 - accept
