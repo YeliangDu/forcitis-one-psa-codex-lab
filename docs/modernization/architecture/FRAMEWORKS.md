@@ -271,3 +271,10 @@ ARC-1017-ARC-21（2026-10-17）新增的阅读笔记。以下只登记文件、�
 - [togaf10.md](frameworks/notes/togaf10.md)：The Open Group，The TOGAF Standard, 10th Edition（C220）；2022，含 2025-05 TC1；配套 G178、G190、G211 Version 2 分别登记其 2022 版与 2025-05 更新。
 - [archimate32.md](frameworks/notes/archimate32.md)：The Open Group，ArchiMate 3.2 Specification（C226）；2022，本地本含 2023-02 更正；仍按 §9 仅作对照，不采用该语言。
 - [ddd-reference.md](frameworks/notes/ddd-reference.md)：Eric Evans，Domain-Driven Design Reference: Definitions and Pattern Summaries；2015 Reference，本地文件标为 2015-03，题名页列 Domain Language, Inc.。
+- [fowler-ap.md](frameworks/notes/fowler-ap.md)：Martin Fowler（派工与文件标识），Analysis Patterns: Reusable Object Models；本地 361 页 PDF 缺题名／版权页，文件名标 1996，版次、出版年与 ISBN 未核实；已审定（one-architecture 2026-10-18）。
+- [fowler-poeaa.md](frameworks/notes/fowler-poeaa.md)：Martin Fowler 等，Patterns of Enterprise Application Architecture；Addison-Wesley，版权 2003，首次印刷 October 2002，书目入口另列 November 05, 2002；已审定（one-architecture 2026-10-18）。
+- [hohpe-eip.md](frameworks/notes/hohpe-eip.md)：Gregor Hohpe、Bobby Woolf，Enterprise Integration Patterns: Designing, Building, and Deploying Messaging Solutions；Addison-Wesley，版权 2004，本地本第二次印刷 December 2003；已审定（one-architecture 2026-10-18）。
+- [brandolini-es.md](frameworks/notes/brandolini-es.md)：Alberto Brandolini，Introducing EventStorming: An act of Deliberate Collective Learning；Leanpub，本地版本发布 2018-06-06，Main version 0.1.0.2，未完成稿；已审定（one-architecture 2026-10-18）。
+- [buchtik-wbs2.md](frameworks/notes/buchtik-wbs2.md)：Liliana Buchtik，Secrets to Mastering the WBS in Real-World Projects: The Most Practical Approach to Work Breakdown Structures (WBS)!；Second Edition，Project Management Institute，2013；已审定（one-architecture 2026-10-18）。
+- [silverston-dmrb3.md](frameworks/notes/silverston-dmrb3.md)：Len Silverston、Paul Agnew，The Data Model Resource Book, Volume 3: Universal Patterns for Data Modeling；Wiley Publishing，版权 2009，EPUB 包日期 2011 不替代版权年；已审定（one-architecture 2026-10-18）。
+- [unanet-ae.md](frameworks/notes/unanet-ae.md)：Unanet University，Unanet AE 八份 Participant Guide；封面修订日期分列于笔记，范围 2023-02 至 2026-03，未确认统一产品发布版本；已审定（one-architecture 2026-10-18）。
