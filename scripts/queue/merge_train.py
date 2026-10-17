@@ -5,6 +5,10 @@
         merge the heads of the pull requests, in the order given, onto origin/main in a scratch worktree (--no-ff), add a commit that records the members
         ("Train-Member: #123 <head sha>"), print the result. --push pushes the branch (refused when the branch already exists locally or on origin); --open-pr (needs --push) opens the
         train pull request, whose body repeats the member lines.
+  merge_train.py docs   --branch claude/one-coordinator-docs-0616 [--max 20] [--push [--open-pr]] <会话分支>@<提交号> [<会话分支>@<提交号> ...]
+        collect documentation commits that sessions pushed to their own branches (no pull request of their own): fetch each branch, require the commit to be on it and not yet in main,
+        require that what the commit brings (diff origin/main...commit) touches only docs/, merge the commits ONE BY ONE with --no-ff (never an octopus merge: that fires the acceptance-test
+        signature guard), re-check docs/-only on the result (a commit brings its unlisted ancestors on that branch too; list older commits first), add a commit that records "Train-Doc: <branch> <sha>". --push / --open-pr as for build.
   merge_train.py split  --pr <failed-train-pr> --prefix claude/one-coordinator-train-14       members from the train pull request body; prints the two `build` commands for the halves
   merge_train.py finish --pr <merged-train-pr> [--squashed]
         close the member pull requests GitHub did not mark merged. A member is closed only when its head still is the recorded one (a member that got new commits after the train was built
@@ -16,7 +20,7 @@ so GitHub marks each member merged once its head is in main. Members are taken f
 A conflict names the pull request and what it conflicts with and builds nothing (take that pull request out, or have it updated from main). Whether the members are reviewed and complete is the
 queue's decision, not checked here. A semantic conflict between members (no text conflict, red CI) is found by split.
 
-Usage: merge_train.py build|split|finish ...   |   merge_train.py --self-test
+Usage: merge_train.py build|docs|split|finish ...   |   merge_train.py --self-test
 """
 import argparse
 import json
@@ -144,6 +148,84 @@ def build(args, gh, repo="."):
             git(repo, "branch", "-D", args.branch, check=False)   # the scratch branch lives in the pushed ref, not here
 
 
+SPEC = re.compile(r"([A-Za-z0-9._/-]+)@([0-9a-f]{7,40})")
+
+
+def non_docs(repo, *rng):
+    """Paths a `git diff` range changes outside docs/. --no-renames: a file moved into docs/ must still list the path it left."""
+    out = git(repo, "diff", "--name-only", "--no-renames", "-z", *rng).stdout
+    return [p for p in out.split("\0") if p and not p.startswith("docs/")]
+
+
+def fetch_branch_commit(repo, branch, short):
+    """Full sha of `short`, which must be an ancestor of (or equal to) origin's `branch` and not yet in origin/main."""
+    if git(repo, "fetch", "-q", "origin", f"refs/heads/{branch}", check=False).returncode:
+        raise SystemExit(f"branch {branch} not found on origin")
+    tip = git(repo, "rev-parse", "FETCH_HEAD").stdout.strip()
+    r = git(repo, "rev-parse", "--verify", "-q", f"{short}^{{commit}}", check=False)
+    if r.returncode:
+        raise SystemExit(f"{branch}@{short}: commit unknown here (not pushed to origin?)")
+    sha = r.stdout.strip()
+    if git(repo, "merge-base", "--is-ancestor", sha, tip, check=False).returncode:
+        raise SystemExit(f"{branch}@{short} is not on origin/{branch}: push it first")
+    if git(repo, "merge-base", "--is-ancestor", sha, "origin/main", check=False).returncode == 0:
+        raise SystemExit(f"{branch}@{short} is already in origin/main: nothing to collect")
+    return sha
+
+
+def build_docs(args, gh, repo="."):
+    if len(args.specs) > args.max:
+        raise SystemExit(f"at most {args.max} commits per docs train (--max)")
+    if args.open_pr and not args.push:
+        raise SystemExit("--open-pr needs --push")
+    specs = []
+    for x in args.specs:
+        m = SPEC.fullmatch(x)
+        if not m:
+            raise SystemExit(f"{x!r}: write <session branch>@<commit sha>")
+        specs.append(m.groups())
+    where = branch_exists(repo, args.branch)
+    if where:
+        raise SystemExit(f"branch {args.branch} already exists {where}: pick another name")
+    git(repo, "fetch", "-q", "origin", "main")
+    members = []
+    for branch, short in specs:
+        sha = fetch_branch_commit(repo, branch, short)
+        bad = non_docs(repo, f"origin/main...{sha}")
+        if bad:
+            raise SystemExit(f"{branch}@{short} touches files outside docs/ ({', '.join(bad[:5])}{' ...' if len(bad) > 5 else ''}): code goes in a pull request, not into a docs train")
+        for ob, osha in members:
+            if git(repo, "merge-base", "--is-ancestor", sha, osha, check=False).returncode == 0:
+                raise SystemExit(f"{branch}@{short} is already contained in {ob}@{osha[:10]} listed before it (the same commit twice, or a newer commit first): list older commits first")
+        members.append((branch, sha))
+    wt = None
+    try:
+        wt = tempfile.mkdtemp(prefix="train-")
+        git(repo, "worktree", "add", "-q", "--detach", wt, "origin/main")
+        ok, why = merge_members(wt, "origin/main", args.branch, [(f"{b}@{sha[:10]}", sha) for b, sha in members])
+        if not ok:
+            raise SystemExit(f"no docs train built: {why}; take that commit out or have its branch updated from main")
+        # the three-dot check above uses one merge base only; what lands on main is the two-dot difference
+        bad = non_docs(wt, "origin/main", "HEAD")
+        if bad:
+            raise SystemExit(f"the merged result differs from origin/main outside docs/ ({', '.join(bad[:5])}{' ...' if len(bad) > 5 else ''}): take the commit out or have its branch updated from main")
+        msg = f"docs train {args.branch}: " + ", ".join(f"{b}@{sha[:10]}" for b, sha in members) + "\n\n" + "\n".join(f"Train-Doc: {b} {sha}" for b, sha in members) + "\n"
+        git(wt, "commit", "-q", "--allow-empty", "-m", msg)
+        commit = git(wt, "rev-parse", "HEAD").stdout.strip()
+        print(f"docs train {args.branch} at {commit[:10]} with {', '.join(f'{b}@{sha[:10]}' for b, sha in members)}")
+        if args.push:
+            git(wt, "push", "-q", "origin", f"{args.branch}:refs/heads/{args.branch}")
+            print(f"pushed {args.branch}")
+            if args.open_pr:
+                body = "Documentation commits collected from session branches (docs/ only, merged one by one). Merge it with a MERGE COMMIT (not squash). Commits:\n\n" + \
+                       "\n".join(f"Train-Doc: {b} {sha}" for b, sha in members) + "\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n"
+                print(gh.create(args.branch, f"docs train: {len(members)} commit(s)", body))
+    finally:
+        if wt:
+            git(repo, "worktree", "remove", "-f", wt, check=False)
+            git(repo, "branch", "-D", args.branch, check=False)
+
+
 def split(args, gh):
     d = gh.pr(args.pr)
     members = members_of(d["body"])
@@ -204,6 +286,7 @@ def self_test():
         sh(work, "git", "config", "commit.gpgsign", "false")
 
         def commit(path, text, msg, repo=work):
+            os.makedirs(os.path.dirname(os.path.join(repo, path)), exist_ok=True)
             with open(os.path.join(repo, path), "w") as f:
                 f.write(text)
             sh(repo, "git", "add", path); sh(repo, "git", "commit", "-q", "-m", msg)
@@ -252,6 +335,84 @@ def self_test():
         # a scratch branch name that exists locally is refused too (checkout -B must never reset it)
         sh(work, "git", "branch", "keepme", "main")
         fails(lambda: build(argparse.Namespace(branch="keepme", prs=[1], max=3, push=False, open_pr=False, force_members=False), gh, work), "already exists locally")
+        # docs train: session-branch commits collected one by one, docs/ only
+        def mk(branch, files, msg):
+            sh(work, "git", "checkout", "-q", "-B", branch, "main")
+            for path, text in files:
+                commit(path, text, msg)
+            sh(work, "git", "push", "-q", "origin", branch)
+            return sh(work, "git", "rev-parse", "HEAD")
+
+        d1 = mk("d1", [("docs/a1.md", "one\n")], "doc one")
+        d2 = mk("d2", [("docs/a2.md", "two\n")], "doc two")
+        d3 = mk("d3", [("docs/a1.md", "conflicting\n")], "doc conflicting")
+        d4 = mk("d4", [("docs/x.md", "x\n"), ("code/y.py", "y\n")], "mixed")
+        mk("d5", [("code/z.py", "z\n")], "code first")
+        d5 = commit("docs/q.md", "q\n", "docs after code")
+        sh(work, "git", "push", "-q", "origin", "d5")
+        sh(work, "git", "checkout", "-q", "main")
+        base_sha = sh(work, "git", "rev-parse", "main")
+
+        def docs(branch, specs, **kw):
+            ns = dict(branch=branch, specs=specs, max=20, push=False, open_pr=False)
+            ns.update(kw)
+            return lambda: build_docs(argparse.Namespace(**ns), gh, work)
+
+        docs("docs-1", [f"d1@{d1[:10]}", f"d2@{d2}"], push=True, open_pr=True)()
+        assert gh.created[-1][2].count("Train-Doc: ") == 2 and f"Train-Doc: d1 {d1}" in gh.created[-1][2] and f"Train-Doc: d2 {d2}" in gh.created[-1][2]
+        sh(work, "git", "fetch", "-q", "origin")
+        assert sh(work, "git", "rev-list", "--merges", "--count", "origin/main..origin/docs-1") == "2", "one merge commit per commit, no octopus"
+        assert all(len(l.split()) == 3 for l in sh(work, "git", "rev-list", "--merges", "--parents", "origin/main..origin/docs-1").splitlines()), "every merge has exactly two parents"
+        assert sh(work, "git", "diff", "--name-only", "origin/main", "origin/docs-1").split() == ["docs/a1.md", "docs/a2.md"]
+        assert f"Train-Doc: d1 {d1}" in sh(work, "git", "log", "-1", "--format=%B", "origin/docs-1")
+        fails(docs("docs-2", [f"d4@{d4}"]), f"d4@{d4} touches files outside docs/ (code/y.py)")
+        fails(docs("docs-2", [f"d5@{d5}"]), f"d5@{d5} touches files outside docs/ (code/z.py)")
+        fails(docs("docs-2", [f"d1@{d1}", f"d3@{d3}"]), "d3@" + d3[:10] + " conflicts with main plus d1@" + d1[:10])
+        fails(docs("docs-2", [f"nobranch@{d1}"]), "branch nobranch not found on origin")
+        fails(docs("docs-2", [f"d1@{d2}"]), f"d1@{d2} is not on origin/d1")
+        fails(docs("docs-2", [f"d1@{base_sha}"]), "already in origin/main")
+        fails(docs("docs-2", ["d1@deadbeefdead"]), "commit unknown here")
+        fails(docs("docs-2", ["d1"]), "write <session branch>@<commit sha>")
+        fails(docs("docs-1", [f"d1@{d1}"]), "already exists on origin")
+        fails(docs("docs-2", [f"d1@{d1}", f"d2@{d2}"], max=1), "at most 1")
+        fails(docs("docs-2", [f"d1@{d1}", f"d1@{d1}"]), "is already contained in d1@")
+        fails(docs("docs-2", [f"d1@{d1}\n"]), "write <session branch>@<commit sha>")
+        fails(docs("docs-2", [f"d1@{d1}"], open_pr=True), "--open-pr needs --push")
+        assert branch_exists(work, "docs-2") is None and sh(work, "git", "worktree", "list", "--porcelain").count("worktree ") == 1, "nothing is left behind"
+        # main moving on with a code change must not make an older docs commit look like a code change (three-dot diff)
+        sh(work, "git", "checkout", "-q", "-B", "advance", "main")
+        commit("code/new.py", "n\n", "code lands in main")
+        sh(work, "git", "push", "-q", "origin", "advance:main")
+        sh(work, "git", "checkout", "-q", "main")
+        docs("docs-3", [f"d1@{d1}"])()
+        sh(work, "git", "push", "-q", "-f", "origin", f"{base_sha}:main")
+        sh(work, "git", "branch", "-D", "advance")
+        sh(work, "git", "fetch", "-q", "origin")
+        assert non_docs(work, f"origin/main...{d1}") == [] and non_docs(work, f"origin/main...{d4}") == ["code/y.py"]
+        # two merge bases (criss-cross): the three-dot diff sees only one of them, the two-dot check on the merged result still catches the code revert
+        sh(work, "git", "checkout", "-q", "-B", "x2", "main"); commit("base.txt", "changed\n", "x2 code"); sh(work, "git", "push", "-q", "origin", "x2")
+        sh(work, "git", "checkout", "-q", "-B", "x1", "main"); os.makedirs(os.path.join(work, "docs"), exist_ok=True); open(os.path.join(work, "docs/m1.md"), "w").write("m1\n")
+        sh(work, "git", "add", "docs/m1.md"); sh(work, "env", "GIT_COMMITTER_DATE=2099-01-01T00:00:00", "git", "commit", "-q", "-m", "x1")   # newest, so the three-dot diff picks it as THE merge base
+        sh(work, "git", "push", "-q", "origin", "x1")
+        sh(work, "git", "checkout", "-q", "-B", "advance2", "main"); sh(work, "git", "merge", "-q", "--no-ff", "--no-edit", "x1"); sh(work, "git", "merge", "-q", "--no-ff", "--no-edit", "x2")
+        sh(work, "git", "push", "-q", "origin", "advance2:main")
+        sh(work, "git", "checkout", "-q", "-B", "crisscross", "x2"); sh(work, "git", "merge", "-q", "--no-ff", "--no-edit", "x1")
+        commit("base.txt", "base\n", "revert the code change"); dcc = commit("docs/s.md", "s\n", "doc")
+        sh(work, "git", "push", "-q", "origin", "crisscross")
+        sh(work, "git", "checkout", "-q", "main"); sh(work, "git", "fetch", "-q", "origin")
+        fails(docs("docs-2", [f"crisscross@{dcc}"]), "the merged result differs from origin/main outside docs/ (base.txt)")
+        sh(work, "git", "push", "-q", "-f", "origin", f"{base_sha}:main")
+        sh(work, "git", "branch", "-D", "x1", "x2", "advance2", "crisscross")
+        sh(work, "git", "fetch", "-q", "origin")
+        # a code file moved into docs/ must be caught (rename detection would list only the new path)
+        sh(work, "git", "checkout", "-q", "-B", "mv", "main")
+        os.makedirs(os.path.join(work, "docs"), exist_ok=True)
+        sh(work, "git", "mv", "base.txt", "docs/base.txt"); sh(work, "git", "commit", "-q", "-m", "move code into docs")
+        sh(work, "git", "push", "-q", "origin", "mv")
+        dmv = sh(work, "git", "rev-parse", "HEAD")
+        sh(work, "git", "checkout", "-q", "main")
+        fails(docs("docs-2", [f"mv@{dmv}"]), f"mv@{dmv} touches files outside docs/ (base.txt)")
+        sh(work, "git", "branch", "-D", "mv")
         # split reads the pull request body, so a strict update (extra commit on the branch) does not matter
         gh.prs[900] = dict(headRefOid="a" * 40, state="OPEN", isDraft=False, baseRefName="main", body=gh.created[0][2])
         import io, contextlib
@@ -310,11 +471,13 @@ def main():
     b = sub.add_parser("build"); b.add_argument("--branch", required=True); b.add_argument("--max", type=int, default=3)
     b.add_argument("--push", action="store_true"); b.add_argument("--open-pr", action="store_true"); b.add_argument("--force-members", action="store_true")
     b.add_argument("prs", type=int, nargs="+")
+    d = sub.add_parser("docs"); d.add_argument("--branch", required=True); d.add_argument("--max", type=int, default=20)
+    d.add_argument("--push", action="store_true"); d.add_argument("--open-pr", action="store_true"); d.add_argument("specs", nargs="+")
     s = sub.add_parser("split"); s.add_argument("--pr", type=int, required=True); s.add_argument("--prefix", required=True)
     f = sub.add_parser("finish"); f.add_argument("--pr", type=int, required=True); f.add_argument("--squashed", action="store_true")
     args = p.parse_args()
     gh = Gh()
-    {"build": lambda: build(args, gh), "split": lambda: split(args, gh), "finish": lambda: finish(args, gh)}[args.cmd]()
+    {"build": lambda: build(args, gh), "docs": lambda: build_docs(args, gh), "split": lambda: split(args, gh), "finish": lambda: finish(args, gh)}[args.cmd]()
 
 
 if __name__ == "__main__":

@@ -162,6 +162,9 @@ WIDE = re.compile(r"""[(,]\s*(["'`](?:docs|modernization)["'`])|(?<=\.\./)(docs\
 WIDE_NOT_READERS = {
     "scripts/ci/heavy_gate.py": "the test strings use \"docs\" as a label name",
     "scripts/release/ci_passed.py": "its self-test builds a temporary git repository with a docs directory; it reads no document of this repository",
+    "scripts/merge/mq.py": "\"docs\" is the name of a merge lane (and of the train subcommand); the only path it builds is relevant_change.py's, to ask it about a pull request's file list",
+    "scripts/merge/mq_selftest.py": "lane names, and a stub relevant_change.py in a temporary directory; it reads no document of this repository",
+    "scripts/queue/merge_train.py": "the `docs` subcommand collects documentation commits from session branches (git diff against paths under docs/); its self-test builds temporary repositories with a docs directory; it reads no document of the working tree",
 }
 # frontend scripts that `pnpm run check:copy` and `pnpm run test:scripts` run (checked against package.json by the self-test); any other frontend reader needs the full verify
 GUARDED_FRONTEND = ("frontend/scripts/check-copy-glossary.mjs", "frontend/scripts/copy-glossary.mjs", "frontend/scripts/copy-glossary.test.mjs")
