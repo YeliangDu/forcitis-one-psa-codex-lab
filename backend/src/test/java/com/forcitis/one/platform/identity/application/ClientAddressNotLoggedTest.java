@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -20,6 +21,7 @@ import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.CurrentUser;
+import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.Role;
 import com.forcitis.one.platform.integration.api.WecomEntry;
@@ -130,11 +132,11 @@ class ClientAddressNotLoggedTest {
     @Test
     @DisplayName("O-3: when the failed-login audit entry cannot be written, the log line carries the failure type but not the client address from its message")
     void failedAuditWriteOmitsClientAddress() {
-        org.mockito.Mockito.doThrow(new IllegalStateException("Failing row contains (" + CLIENT_ADDRESS + ")")).when(audit).recordIndependently(any());
+        doThrow(new IllegalStateException("Failing row contains (" + CLIENT_ADDRESS + ")")).when(audit).recordIndependently(any());
         LoginAdmission admission = new LoginAdmission(mock(AccountProvisioning.class), mock(AccountRepository.class), audit, mock(SessionRegistry.class),
                 origin, Clock.fixed(UNTIL, ZoneOffset.UTC), new SimpleMeterRegistry(), mock(BrowserIdentity.class));
 
-        admission.reject(com.forcitis.one.platform.identity.api.IdentityError.values()[0], LoginMethod.EMERGENCY, ACCOUNT, "reason");
+        admission.reject(IdentityError.PLATFORM_IDENTITY_ACCOUNT_DISABLED, LoginMethod.EMERGENCY, ACCOUNT, "reason");
 
         assertThat(logged.list).isNotEmpty();
         assertThat(logged.list).anySatisfy(event -> assertThat(event.getFormattedMessage()).contains("IllegalStateException"));
