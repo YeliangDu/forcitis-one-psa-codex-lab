@@ -30,7 +30,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           recurrence_exit=0
-          python3 scripts/ci/ci_recurrence.py --hours 26 --fail-on-recurrence 2>&1 | tee -a "$GITHUB_STEP_SUMMARY" || recurrence_exit=$?
+          report=$(python3 -u scripts/ci/ci_recurrence.py --hours 26 --fail-on-recurrence 2>&1) || recurrence_exit=$?
+          printf '%s\n' "$report"
+          { echo '```text'; printf '%s\n' "$report"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           if [ "$recurrence_exit" -ne 0 ]; then
             echo "::error::CI 复发检测失败（发现复发或检测异常），请查看完整摘要。"
             exit "$recurrence_exit"

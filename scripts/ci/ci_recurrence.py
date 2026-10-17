@@ -302,10 +302,17 @@ def self_test():
                 ("AssertionFailedError", ["--fail-on-recurrence"], 1, "复发（未能判断修复是否在 PR 头里）"),
                 ("an unregistered failure", ["--fail-on-recurrence"], 0, "未登记"),
                 ("TooManyActualInvocations", ["--fail-on-recurrence", "--json"], 1, '"result": "recurrence"'),
+                ("", ["--fail-on-recurrence"], 0, "日志不可得"),
             ):
                 result = subprocess.run([sys.executable, os.path.abspath(__file__), "--hours", "26", "--bank", d, *options],
-                                        capture_output=True, text=True, timeout=30, env={**os.environ, "FAKE_FAILURE": "[ERROR] " + log})
+                                        capture_output=True, text=True, timeout=30, env={**os.environ, **({"FAKE_FAILURE": "[ERROR] " + log} if log else {})})
                 assert result.returncode == code and expected in result.stdout, (options, log, result.returncode, result.stdout, result.stderr)
+            empty = os.path.join(d, "empty-bank")
+            os.makedirs(empty)
+            open(os.path.join(empty, "one-y.md"), "w", encoding="utf-8").write("### TST-009　无特征\n- **现象**：没写特征\n- **状态**：已落实\n")
+            for options, code in ((["--fail-on-recurrence"], 1), ([], 0)):
+                result = subprocess.run([sys.executable, os.path.abspath(__file__), "--hours", "26", "--bank", empty, *options], capture_output=True, text=True, timeout=30, env={**os.environ, "FAKE_FAILURE": "[ERROR] x"})
+                assert result.returncode == code and (code == 0 or "复发检测是空的" in result.stdout), (options, result.returncode, result.stdout, result.stderr)
         finally:
             for k, v in old.items():
                 os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
@@ -332,6 +339,9 @@ def main():
         else:
             sys.exit(__doc__)
     entries, featureless = parse_bank(bank)
+    if fail_on_recurrence and not entries:
+        print(f"复发检测是空的：错题本里没有任何带报错特征的条目（{len(featureless)} 条不在检测范围），不能当作没有复发。")
+        return 1
     gh = Gh()
     runs, capped = gh.runs(hours)
     rows = report(runs, gh, entries)
