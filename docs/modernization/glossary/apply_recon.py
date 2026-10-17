@@ -156,7 +156,19 @@ def read_decisions(doc=None, filename="decisions-recon.yaml", *, verify_hashes=F
         if any(sources[k].get("type") == "design" for k in op["sources"]):
             if {n.lower() for n in apply_nm.banned_names(op["term"])} & common: fail(f"{op['term']['id']} 通用词不得写入 forbidden 或禁用别名")
     verify_coverage(doc)
+    verify_source_keys(doc)
     return doc
+def verify_source_keys(doc):
+    """来源键须连续 S001…Snnn，且每个来源至少被一项写回、漏登或转正引用；孤立来源与跳号即失败。"""
+    keys = list(doc["sources"])
+    if not all(re.fullmatch(r"S\d{3}", k) for k in keys): return  # 设计方决定文件用 D*/U_* 键，另有校验
+    expected = [f"S{n:03d}" for n in range(1, len(keys) + 1)]
+    if sorted(keys) != expected: fail("来源键须连续编号 S001…S%03d，不得跳号" % len(keys))
+    used = set()
+    for op in doc.get("terms", []): used.update(op["sources"])
+    for row in doc.get("promotions", []) + doc.get("missing", []): used.update(row.get("sources") or [])
+    orphans = sorted(set(keys) - used)
+    if orphans: fail("来源未被任何写回、漏登或转正引用：" + "、".join(orphans[:5]))
 def verify_missing(doc, audit):
     if "missing" in doc:
         rows, expected = doc["missing"], audit["missing_terms"]
