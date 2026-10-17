@@ -1602,7 +1602,7 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
-      states: 草稿 → 已计算 → 审核中 → 已批准 → 已发放 → 已过账；更正走冲销
+      states: 草稿 → 已计算 → 审核中 → 已批准 → 已发放 → 已过账；更正走冲销；员工薪酬行支付状态：待支付 → 已实付 / 支付失败（待补发）；部分成功时成功行保留实付，失败行待补发，整期仍为「已批准」，应付薪酬行全部实付后才转整期「已发放」
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:136
     OBJ-74:
       name: 激励方案
@@ -1866,7 +1866,7 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
-      states: 领用申请：草稿 → 审批中 → 已通过 → 已领用 / 已驳回 / 已撤回；调拨申请：草稿 → 已申请 → 已调拨 / 已转领用 / 已撤销；使用期间：在用 → 已结束；归还记录：已归还（期间已结束）；维修：草稿 → 已报修 → 已维修登记
+      states: 领用申请：草稿 → 已通过（规则直通，无人审）→ 已领用；规则缺失或不满足时拒绝并告警；调拨申请：草稿 → 已申请 → 已调拨 / 已转领用 / 已撤销；使用期间：在用 → 已结束；归还记录：已归还（期间已结束）；维修：草稿 → 已报修 → 已维修登记；原领用审批中、已驳回、已撤回及审批轮次只作迁入历史保留（PRC-143，B31-5）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:185
     OBJ-116:
       name: 员工活动申请
@@ -1874,7 +1874,7 @@ nodes:
       primary: false
       class: 业务对象
       parent: null
-      states: 草稿 → 审批中 → 已批准 / 已驳回 → 已完成
+      states: 草稿 → 已批准（规则直通，无人工批准）→ 已完成；登记取消路径：已批准 / 已完成 → 已取消（提议状态名，待 one-glossary 定名），取消不构成 VS-14.4 正常退出；原审批中、已驳回及审批轮次只作迁入历史保留（PRC-144，B31-8）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:186
     OBJ-117:
       name: 勾稽差异案
@@ -2309,6 +2309,9 @@ nodes:
       name: 处置我方成果不符合项
       type: business
       stages:
+      - VS-02.2
+      - VS-02.3
+      - VS-02.4
       - VS-02.6
       - VS-02.7
       primary_object:
@@ -2642,7 +2645,7 @@ nodes:
       bc: B-11
       group: finance
     PRC-71:
-      name: 生效分包变更
+      name: 生效分包或采购变更（含增减量、部分取消）
       type: business
       stages:
       - VS-05.2
@@ -2915,7 +2918,7 @@ nodes:
       bc: B-20
       group: finance
     PRC-101:
-      name: 检查并关闭会计期间
+      name: 逐账户核对银行账单、处理未达并留存结论，检查并关闭会计期间
       type: business
       stages:
       - VS-10.1
@@ -3127,7 +3130,7 @@ nodes:
       bc: B-15
       group: people
     PRC-125:
-      name: 申报个税扣缴与社保公积金
+      name: 准备申报，按实付扣缴事实申报个税并缴库登记回执，办理社保公积金申报缴款
       type: business
       stages:
       - VS-13.4
@@ -3146,7 +3149,7 @@ nodes:
       bc: B-15
       group: people
     PRC-127:
-      name: 标记薪酬已发放
+      name: 按逐人实付结果更新薪酬行并标记整期已发放
       type: event_policy
       stages:
       - VS-13.5
@@ -3155,7 +3158,7 @@ nodes:
       bc: B-15
       group: people
     PRC-128:
-      name: 办理员工离职
+      name: 办理员工离职，出具并交付证明，办理档案及社保转移并登记回执
       type: business
       stages:
       - VS-13.6
@@ -3171,7 +3174,7 @@ nodes:
       bc: platform.identity
       group: people
     PRC-130:
-      name: 办理参保减员
+      name: 办理社保减员及公积金转移或封存，登记申请与经办回执
       type: event_policy
       stages:
       - VS-13.6
@@ -8005,6 +8008,18 @@ links:
   from: OBJ-53
   to: PRC-33
   src: architecture/proposals/closeout/process-catalog.yaml#PRC-33.primary_object
+- kind: stage-prc
+  from: VS-02.2
+  to: PRC-34
+  src: architecture/proposals/closeout/process-catalog.yaml#PRC-34.stages
+- kind: stage-prc
+  from: VS-02.3
+  to: PRC-34
+  src: architecture/proposals/closeout/process-catalog.yaml#PRC-34.stages
+- kind: stage-prc
+  from: VS-02.4
+  to: PRC-34
+  src: architecture/proposals/closeout/process-catalog.yaml#PRC-34.stages
 - kind: stage-prc
   from: VS-02.6
   to: PRC-34
