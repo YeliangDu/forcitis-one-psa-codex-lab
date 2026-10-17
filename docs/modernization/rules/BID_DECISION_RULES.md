@@ -32,6 +32,7 @@ Scope: the independent flow 「作出参投决策」 on an opportunity (OBJ-18),
 - Given a decision to bid with an independence conflict, Then it waits for one extra approver.
 - Given none of the three, Then RULE-414 applies and there is no approval.
 - Given 「放弃」, Then no condition applies.
-**Open (Review):** the margin floor value, the capacity measure and its limit, who the extra approver is, and whether "the user's words 如低于毛利底线、超产能、独立性冲突" is the full list (the user wrote 「如」, an example list). The list is therefore kept as configuration, with these three as the first entries.
+**Decided (N1-03 to N1-06, intent `2026-10-17-085044-one-rules-N1-页提交-N1-202610.md`, preselected recommendations unchanged except N1-06):** the margin floor is set per business line, as a contribution-margin percentage on the quoted price, the values given by finance as experience values and adjustable in configuration; capacity is compared as required person-days against available person-days per post, from the staffing schedule, the available limits given by each business line's resource owner; the extra approval role is named per trigger reason (not one role for all). The user also chose to add two more triggers, a customer credit score below a value and an expected transaction price above a value, **but gave no values and no role names**.
+**Still open (Review):** the margin floor values, the capacity limits, the role for each trigger, and the two thresholds of the added triggers. Until the user gives the two thresholds, only the first three triggers are in force; the added two are not enforced. Role names go to the glossary once given.
 **Tests:** to be written with the sales card.
 **Confidence:** Medium.
