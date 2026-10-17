@@ -252,4 +252,4 @@ adrs:
   category: "边界与模块"
   bc: ["全局"]
   stage: ["全阶段"]
-  partially_superseded: []
+  partially_superseded: ["ADR-0057 决定 1、2、7 中流程模块三处"]
