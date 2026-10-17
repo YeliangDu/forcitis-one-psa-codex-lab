@@ -355,6 +355,19 @@ def texts_of(unit, steps, aggs=None, onames=None):
 
 # ---------------------------------------------------------------- 分析
 
+def declared_supports(p, unit, stage_pos):
+    """supports 声明的「支撑本段」：骨架优先、目录兜底；阶段须存在，且不得同时在 stages 里。"""
+    raw = unit[0]["supports"] if unit and "supports" in unit[0] else p.get("supports")
+    sup = raw if isinstance(raw, list) else ([] if raw is None else [raw])
+    bad = [x for x in sup if x not in stage_pos]
+    if bad:
+        raise ValueError(f"{p['id']} supports 指向不存在的阶段：{'、'.join(map(str, bad))}")
+    both = [x for x in sup if x in (p.get("stages") or []) or (unit and x in (unit[0].get("stages") or []))]
+    if both:
+        raise ValueError(f"{p['id']} 的阶段同时在 stages 与 supports：{'、'.join(both)}")
+    return set(sup)
+
+
 def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=None, events=None):
     norm = Norm(alias_map)
     ev_by_norm = {}
@@ -564,6 +577,7 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
             continue
         u = skeletons.get(p["id"])
         cat = [x for x in (p.get("stages") or []) if x in stage_pos]
+        sup_decl = declared_supports(p, u, stage_pos)
         exact, approx, why, unres = {}, {}, [], False
 
         hit_log = R["hit_refs"].setdefault(p["id"], [])
@@ -665,8 +679,8 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
         P["ok"] += sum(1 for x in cat if x in exact)
         P["ok_approx"] += sum(1 for x in cat if x in approx and x not in exact)
         # 判据支持但目录没标
-        ex_new = [x for x in exact if x not in cat]
-        ap_new = [x for x in approx if x not in cat and x not in exact]
+        ex_new = [x for x in exact if x not in cat and x not in sup_decl]
+        ap_new = [x for x in approx if x not in cat and x not in exact and x not in sup_decl]
         if ex_new:
             P["missing"].append(dict(row, stages=ex_new))
         if ap_new:
@@ -1214,6 +1228,24 @@ def self_test():
     tt = texts_of({"aggregate": "AGG-S", "states": {"g": ["已关联"]}, "transitions": [{"from": "a", "to": "已封存", "aggregate": "AGG-T"}, {"from": "a", "to": "已解除"}]}, [],
                   {"AGG-S": {"objs": ["OBJ-7"]}, "AGG-T": {"objs": []}}, {"OBJ-7": "证据"})
     assert ("状态", "证据已关联") in tt and ("状态", "证据已封存") in tt and ("状态", "证据已解除") in tt, tt   # 单聚合状态带对象名（条目聚合无对象退回单元聚合）
+    vsu = {"value_streams": [{"id": "VS-U", "name": "u", "stages": [
+        {"id": "VS-U.1", "name": "甲", "exit": {"all": [{"ref": "OBJ-1", "state": "已生效"}]}},
+        {"id": "VS-U.2", "name": "乙", "exit": {"all": [{"ref": "OBJ-2", "state": "已结项"}]}}]}]}
+    onu = {"OBJ-1": "协议", "OBJ-2": "项目"}
+    sku = {"U1": ({"outcomes": ["协议已生效"], "stages": ["VS-U.2"]}, [])}
+    catu = [{"id": "U1", "name": "支撑协议", "type": "business", "stages": ["VS-U.2"], "owner_bc": "B-1"}]
+    assert [r["id"] for r in analyze(vsu, catu, sku, onu, {})["place"]["missing"]] == ["U1"]   # 未声明照报 6b
+    catus = [dict(catu[0], supports=["VS-U.1"])]
+    assert not analyze(vsu, catus, sku, onu, {})["place"]["missing"]                          # supports 视为已声明
+    sku_s = {"U1": (dict(sku["U1"][0], supports=["VS-U.1"]), [])}
+    assert not analyze(vsu, catu, sku_s, onu, {})["place"]["missing"]                         # 骨架声明同样认
+    for bad_cat in ([dict(catu[0], supports=["VS-U.9"])], [dict(catu[0], supports=["VS-U.2"])]):
+        try:
+            analyze(vsu, bad_cat, sku, onu, {})
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"无效 supports 未拦下：{bad_cat[0]['supports']}")
     assert load_event_map.__doc__
     txt = render(R, on, {}, 2, 6)
     assert "匹配口径" in txt and "VS-X.3" in txt
@@ -1235,7 +1267,10 @@ def main():
     skeletons = load_skeletons(local, extra)
     onames = load_objnames()
     machines, aggs = load_machines(local), cc.load_aggregates()
-    R = analyze(vs_doc, catalog, skeletons, onames, load_alias_map(), machines, aggs, load_event_map(local, machines, aggs))
+    try:
+        R = analyze(vs_doc, catalog, skeletons, onames, load_alias_map(), machines, aggs, load_event_map(local, machines, aggs))
+    except ValueError as error:
+        sys.exit(str(error))
     procs = [p for p in catalog if p.get("type") != "merged"]
     skel_n = sum(1 for p in procs if p["id"] in skeletons)
     text = render(R, onames, {p["id"]: p for p in procs}, skel_n, len(procs))
