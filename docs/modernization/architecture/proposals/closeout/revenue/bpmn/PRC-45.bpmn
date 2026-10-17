@@ -320,7 +320,7 @@
     <endEvent id="End_31" name="客户书面接受风险">
       <incoming>Flow_29</incoming>
     </endEvent>
-    <endEvent id="End_32" name="不再跟踪">
+    <endEvent id="End_32" name="已停止跟踪">
       <incoming>Flow_31</incoming>
     </endEvent>
     <sequenceFlow id="Flow_1" sourceRef="Start_1" targetRef="S1_3"/>

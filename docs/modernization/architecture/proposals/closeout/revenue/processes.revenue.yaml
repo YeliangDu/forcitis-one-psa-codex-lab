@@ -4131,7 +4131,7 @@ processes:
     aggregate: AGG-31
     branch: 超时
     emits:
-    - 延期视为批准
+    - 延期已视为批准
     desc: 合同约定的答复期满仍无书面答复，定时命令登记视为批准，按延期申请 ID 幂等；这是延期的合同约定，与交付物视为同意（归 B-08，ADR-0049）不同，不合并
     decision:
     - when: otherwise
@@ -5629,7 +5629,7 @@ processes:
   outcomes:
   - 已闭合
   - 客户书面接受风险
-  - 不再跟踪
+  - 已停止跟踪
   scenarios:
   - PRC-45-S01
   - PRC-45-S02
@@ -5890,7 +5890,7 @@ processes:
     decision:
     - when: otherwise
       goto: end
-      outcome: 不再跟踪
+      outcome: 已停止跟踪
       p: 1.0
     cross_bc:
     - mode: api
@@ -11482,7 +11482,7 @@ single_aggregate:
   - 已计划
   - 已变更
   - 已完成
-  - 取消
+  - 已取消
   transitions:
   - from: null
     to: 已计划
@@ -11524,7 +11524,7 @@ single_aggregate:
     - 客户活动已完成
     rule: INV-110
   - from: 已计划
-    to: 取消
+    to: 已取消
     command: 取消客户活动
     by:
     - SH-E5
@@ -11532,7 +11532,7 @@ single_aggregate:
     - 客户活动已取消
     rule: INV-110
   - from: 已变更
-    to: 取消
+    to: 已取消
     command: 取消客户活动
     by:
     - SH-E5

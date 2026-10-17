@@ -3,7 +3,7 @@
 PRC-01:
 - id: PRC-01-S01
   path: 计划→进行中→结束
-  outcome: 结束
+  outcome: 已结束
   covers:
   - 转移「计划市场活动」「开展市场活动」「结束市场活动」
   expect: 发市场活动已结束（仅分析）；线索上的来源活动引用保持
@@ -34,7 +34,7 @@ PRC-02:
   expect: 计划变更保留历史，只追加
 - id: PRC-02-S04
   path: 取消，或对已完成、已取消的活动再变更
-  outcome: 取消
+  outcome: 已取消
   covers:
   - 转移「取消客户活动」
   - 转移约束「已完成、已取消不得再变更」
@@ -148,7 +148,7 @@ PRC-05:
   expect: 发往来单位已合并（仅分析）；合并后不得新建协议与付款（INV-03a）
 - id: PRC-05-S06
   path: 有效→停用
-  outcome: 停用
+  outcome: 已停用
   covers:
   - 转移「停用往来单位」
   expect: 发往来单位已停用（仅分析）；停用后不得新建协议与付款（INV-03a）
@@ -415,7 +415,7 @@ PRC-10:
   expect: 拒绝并告警
 - id: PRC-10-S05
   path: 保函已开立→到期 / 被索赔
-  outcome: 到期
+  outcome: 已到期
   covers:
   - 转移「登记保函开立」
   - 转移「登记保函到期或索赔」
@@ -1588,7 +1588,7 @@ PRC-45:
   expect: 无委托人书面确认证据时拒绝登记
 - id: PRC-45-S04
   path: 5 确认不再跟踪→9
-  outcome: 不再跟踪
+  outcome: 已停止跟踪
   covers:
   - 第 5 步「确认不再跟踪」
   - 第 9 步 otherwise

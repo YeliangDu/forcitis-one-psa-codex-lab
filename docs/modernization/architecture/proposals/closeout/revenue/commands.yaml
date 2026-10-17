@@ -3100,7 +3100,7 @@ commands:
   idempotency_key:
   - 延期申请ID
   emits:
-  - 延期视为批准
+  - 延期已视为批准
 - name: 登记资料需求
   aggregate: AGG-32
   proposed: true
