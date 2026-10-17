@@ -166,16 +166,16 @@ def self_test():
     assert any("not owned by" in p for p in problems(modules, reference, app_owned, c3_after, c3_verify))
     widened = c3 + "\nGRANT UPDATE, DELETE ON ALL TABLES IN SCHEMA platform_audit TO one_dev_app;\n"
     assert any("granted UPDATE" in p for p in problems(modules, reference, widened, c3_after, c3_verify))
-    grant = "\nGRANT EXECUTE ON FUNCTION platform_audit.create_audit_entry_partitions(date, date) TO one_dev_app;\n"
+    grant = "\nGRANT EXECUTE ON FUNCTION platform_audit.selftest_only_fn(date, date) TO one_dev_app;\n"
     differ = lambda ref, c3_, after=c3_after: [p for p in problems(modules, ref, c3_, after, c3_verify) if "function grants differ" in p]
     assert differ(reference + grant, c3), "a function grant only in the reference"
     assert not differ(reference + grant, c3, c3_after + grant), "the grant after the migrations, where it belongs, satisfies the reference"
     assert not differ(reference + grant, c3 + grant), "the same function grant in c3"
     assert differ(reference + grant, c3, c3_after + grant.replace("(date, date)", "(date)")), "another signature"
     assert differ(reference + grant, c3, c3_after + grant.replace("one_dev_app", "one_dev_readonly")), "another role"
-    spaced = "\ngrant   execute on function platform_audit.create_audit_entry_partitions(date, date)\n  to one_dev_app;\n"
+    spaced = "\ngrant   execute on function platform_audit.selftest_only_fn(date, date)\n  to one_dev_app;\n"
     assert not differ(reference + grant, c3, c3_after + spaced), "case and layout do not matter"
-    assert differ(reference + grant, c3, c3_after + grant.replace("FUNCTION platform_audit.create_audit_entry_partitions(date, date)", "ALL FUNCTIONS IN SCHEMA platform_audit")), "ON ALL FUNCTIONS is not ON FUNCTION"
+    assert differ(reference + grant, c3, c3_after + grant.replace("FUNCTION platform_audit.selftest_only_fn(date, date)", "ALL FUNCTIONS IN SCHEMA platform_audit")), "ON ALL FUNCTIONS is not ON FUNCTION"
     assert differ(reference + grant.replace("FUNCTION", "ROUTINE"), c3), "ON ROUTINE is read too"
     assert differ(reference + grant.replace("FUNCTION", "PROCEDURE"), c3), "ON PROCEDURE is read too"
     default_a = "\nALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_audit GRANT EXECUTE ON FUNCTIONS TO one_dev_app;\n"
@@ -200,9 +200,9 @@ def self_test():
     assert differ(reference + revoke, c3), "a revoke only in the reference"
     dynamic = "\nDO $$ BEGIN EXECUTE format('GRANT EXECUTE ON FUNCTION %I.f() TO one_dev_app', 'x'); END $$;\n"
     assert any("inside EXECUTE format" in p for p in problems(modules, reference + dynamic, c3, c3_after, c3_verify))
-    audit = "\nCREATE ROLE one_dev_audit_maintainer LOGIN NOINHERIT CONNECTION LIMIT 1;\n"
-    assert any(p == "c3_dev_db.sql CREATE ROLE one_dev_audit_maintainer: missing" for p in problems(modules, reference + audit, c3, c3_after, c3_verify)), "a role only in the reference"
-    assert any(p == "c3_dev_db.sql CREATE ROLE one_dev_audit_maintainer: extra" for p in problems(modules, reference, c3 + audit, c3_after, c3_verify)), "a role only in c3"
+    audit = "\nCREATE ROLE one_dev_selftest_role LOGIN NOINHERIT CONNECTION LIMIT 1;\n"
+    assert any(p == "c3_dev_db.sql CREATE ROLE one_dev_selftest_role: missing" for p in problems(modules, reference + audit, c3, c3_after, c3_verify)), "a role only in the reference"
+    assert any(p == "c3_dev_db.sql CREATE ROLE one_dev_selftest_role: extra" for p in problems(modules, reference, c3 + audit, c3_after, c3_verify)), "a role only in c3"
     assert any("differs from one_db_roles_schemas.sql" in p for p in problems(modules, reference + audit, c3 + audit.replace("NOINHERIT", "INHERIT IN ROLE one_dev_owner"), c3_after, c3_verify)), "the same role with other attributes"
     commented_grant = c3 + "\n-- GRANT EXECUTE ON FUNCTION platform_audit.x() TO one_dev_app;\n"
     assert problems(modules, reference, commented_grant, c3_after, c3_verify) == [], "a commented grant is no grant"
