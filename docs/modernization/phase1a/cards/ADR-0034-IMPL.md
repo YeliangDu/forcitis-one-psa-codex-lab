@@ -479,15 +479,15 @@ CREATE TRIGGER tg_roles_identity_immutable BEFORE UPDATE ON platform_identity.ro
 - **A-13** 复职的判定：ADR「同步把离职者重新标为在职时」；`OrgSnapshotChanged` 只给 `changedEmployees`，`OrgDirectory` 只给当前在职状态，没有「由离职转在职」的事实。本卡草拟：账号存在、当前在职、无当前有效授予，且该账号最近一次授予变化是 `SEPARATION` 关闭、其后无新开授予时，开 `DEFAULT_ROLE` 的 `employee`。离职时本无角色的账号（今天 `recordSeparation` 对空角色不写任何东西）复职时不会被识别——是否需要 workforce 提供「复职」事实，请裁定（或交 one-rules）。
 
 ### 待 one-coordinator 定
-- **C-1** 时点口径不一致：NEXT_BATCH_PLAN:587 与 ADR-0034 第 6 项「首次部署任何环境前」/「dev 前」；DATA-REPAIR-identity §6 写「R-1 `roles` 版本化 … 生产前闸门（用户「同意，不挡 dev」）」。以哪条为准（先问 one-data / one-ops 是否另有答复）。
-- **C-2** F-13（NEXT_BATCH_PLAN:133，复职重授）由本卡 PR-3 承担（ADR 第 3 项第 5 条、HANDOFF_one-1a-next:42「含复职 F-13」），F-13 状态改「并入 ADR-0034-IMPL」。
-- **C-3** DATA-REPAIR-identity 的 ID-01、ID-02、ID-10、ID-13（授权申请部分）、AQ-2、AQ-6 是否由本卡承担（HANDOFF_one-1a-next-4:34「→ W2」，W2 不止本卡）；承担则 one-data 对这几条补签。
-- **C-4** DDL-17 后半（`ApplySourceSnapshot.java`:126 删除合并的同步运行，登记 `delete_reason`）属 `organization.workforce`，不在本卡；归哪张卡。
+- **C-1** **已裁定（one-coordinator 2026-10-17）**：按台账“dev 前阻塞”口径（NEXT_BATCH_PLAN 第 8 节）：须在 dev 正式交用户使用前完成，不挡 rc.6 重建；DATA-REPAIR-identity 的“生产前闸门”表述同步改为一致。原问题：时点口径不一致：NEXT_BATCH_PLAN:587 与 ADR-0034 第 6 项「首次部署任何环境前」/「dev 前」；DATA-REPAIR-identity §6 写「R-1 `roles` 版本化 … 生产前闸门（用户「同意，不挡 dev」）」。以哪条为准（先问 one-data / one-ops 是否另有答复）。
+- **C-2** **已裁定（one-coordinator 2026-10-17）**：F-13 与本卡同表（`account_role_grants`）同模块（identity）、建在授予版本化之上，**并入本卡 PR-3**，不留原卡。原问题：F-13（NEXT_BATCH_PLAN:133，复职重授）由本卡 PR-3 承担（ADR 第 3 项第 5 条、HANDOFF_one-1a-next:42「含复职 F-13」），F-13 状态改「并入 ADR-0034-IMPL」。
+- **C-3** **已裁定（one-coordinator 2026-10-17）**：只承担落在角色 / 授予 / 版本表上的 ID 项，其余留在 DATA-REPAIR-identity。原问题：DATA-REPAIR-identity 的 ID-01、ID-02、ID-10、ID-13（授权申请部分）、AQ-2、AQ-6 是否由本卡承担（HANDOFF_one-1a-next-4:34「→ W2」，W2 不止本卡）；承担则 one-data 对这几条补签。
+- **C-4** **已裁定（one-coordinator 2026-10-17）**：同表进本卡，不同表另起小卡并两卡互链（DDL-17 后半在 workforce 同步运行表，不同表，另起小卡）。原问题：DDL-17 后半（`ApplySourceSnapshot.java`:126 删除合并的同步运行，登记 `delete_reason`）属 `organization.workforce`，不在本卡；归哪张卡。
 - **C-5** workforce 基线 :243 `CREATE EXTENSION IF NOT EXISTS btree_gist` 改为「只检查存在」：ADR 影响面写「各基线迁移」，NEXT_BATCH_PLAN:254 归 DDL-26 / DDL-28 卡。本卡只改 identity 基线与测试建库，workforce 那一行留给 DDL-28 卡。
-- **C-6** `AuditLog.record` 返回条目 ID 是 `platform.audit` 的 api 变更（ADR 第 3 项第 3 条），由本卡改，需 audit 归属会话知悉。
+- **C-6** **已裁定（one-coordinator 2026-10-17）**：`AuditLog.record` 返回条目 ID 是 `platform.audit` 的 api 变更，按契约先行（CS-1.10）单独一个小 PR 先合，并请 one-architecture 确认接口形状；不并入本卡三个 PR。原问题：`AuditLog.record` 返回条目 ID 是 `platform.audit` 的 api 变更（ADR 第 3 项第 3 条），由本卡改，需 audit 归属会话知悉。
 - **C-7** K-2 时态基座的时刻变体（ADR 第 6 项第 2 条）尚无卡、未实现；本卡自行扩展 D2 守护的时刻变体，K-2 复用。
 - **C-8** `permission-grant-modes.txt`（F-1 C-2「谁先用谁建」）：本卡不用（授予方式随 ADR-0032 / F-1），由 F-1 建。
-- **C-9** PR 拆分：三 PR（第 12 节第 2–4 条）还是一 PR（第 5 条）。
+- **C-9** **已裁定（one-coordinator 2026-10-17）**：拆成依次合入的三个 PR（DDL 与迁移 → 领域与应用 → 接口），每个能独立过 CI 与复审，不拆更细。原问题：PR 拆分：三 PR（第 12 节第 2–4 条）还是一 PR（第 5 条）。
 
 ### 待 one-data 核
 - **D-1** 保留期写法：0034-Q2 已答「在线 3 年 + 归档到满 10 年」，但注册表 `{policy: 3y}` 必须指名已存在的 `@SchedulerLock` 作业（`DataArchitectureTest`:323-326），而 ADR 影响面写清理作业「3 年内不会有到期行，届时随审计在线删除一并实现」。本卡草拟 `{policy: PERMANENT}` 加注释写明 0034-Q2 口径与作业落点（与 `authorization_requests` 先例 `RETENTION_PROPOSAL.md`:20 同法）；F-1 的 `role_version_custom_org_units` 跟随。是否接受，或改 `gaps` 写法。
