@@ -527,7 +527,7 @@ CREATE TRIGGER tg_roles_identity_immutable BEFORE UPDATE ON platform_identity.ro
 
 ### 状态、关系、基数落点（B3、B3a、B4）
 - 角色版本状态 `ENABLED / DISABLED` = `RoleStatus` 枚举（`domain/RoleStatus.java`）= `ck_role_versions_role_status`；「已删除」不是状态值，是「无开放版本」（A-1）。转换 ↔ 事件：新建 → `RoleCreated`（版本 1）；修订 → `RoleRevised`；启用 / 停用 → `RoleEnabled` / `RoleDisabled`；删除 → `RoleDeleted`（关闭最后版本）。审计动作见 A-6。
-- 授权申请状态：`PENDING → CONFIRMED / REJECTED`、`CONFIRMED → VOIDED`；`CHECK` 取值 = `AuthorizationRequestStatus` 枚举 = 状态机（G-D12 同一测试）。事件：`AuthorizationOpened`、`AuthorizationConfirmed`、`AuthorizationRejected`、作废见 A-7。`VOIDED` 无原因列：原因（基准已变 / 已有持有人）只进审计 detail（ADR 第 2 项第 5 条）。
+- 授权申请状态：`PENDING → CONFIRMED / REJECTED`、`CONFIRMED → VOIDED`；`CHECK` 取值 = `AuthorizationRequestStatus` 枚举 = 状态机（G-D12 同一测试）。事件：`AuthorizationOpened`、`AuthorizationConfirmed`、`AuthorizationRejected`、`AuthorizationVoided`（A-7 已裁）。`VOIDED` 无原因列：原因（基准已变 / 已有持有人）只进审计 detail（ADR 第 2 项第 5 条）。
 - 授予无状态列：开放 / 已收回由 `effective_to_at` 表达；收回原因 `revocation_cause_kind` 成对（`ck_account_role_grants_revocation`）。
 - 关系：版本 → 1 角色（`NOT NULL` 外键）；版本 → 0..1 授权申请、0..1 记录人、0..1 关闭人（可空外键）；授予 → 1 账号、1 角色（`NOT NULL` 外键）、0..1 授予人 / 收回人、0..1 开启 / 收回申请（可空外键）；迁入批次、同步运行、审计条目跨 schema 只存 ID。
 
@@ -702,6 +702,6 @@ CREATE TRIGGER tg_roles_identity_immutable BEFORE UPDATE ON platform_identity.ro
 - T4 回滚：首次部署前回退实现提交即恢复基线（随库重建）；首次部署后不回到删除语义，按 ADR 回滚方案（只读视图投影、提高声明修订号回退定义）。
 
 ### 专项（E1–E3）
-- E1：`AccountRolesReplaced` 加 `openedGrantIds`、`closedGrantIds`（ID 列表），`RoleCreated`、`RoleRevised`、`RoleEnabled`、`RoleDisabled` 加 `roleVersionId`；作废事件见 A-7。载荷只含 ID；加字段属兼容变更（ADR-0035，首次生产部署前），事件目录同步；不改 `EventEnvelope`。
+- E1：`AccountRolesReplaced` 加 `openedGrantIds`、`closedGrantIds`（ID 列表），`RoleCreated`、`RoleRevised`、`RoleEnabled`、`RoleDisabled` 加 `roleVersionId`；作废事件 `AuthorizationVoided`（A-7 已裁：同时直写审计 `platform.identity.authorization.voided`，事件标 @NotAudited）。载荷只含 ID；加字段属兼容变更（ADR-0035，首次生产部署前），事件目录同步；不改 `EventEnvelope`。
 - E2：无读模型。E3：无迁入映射。
 - 预期表结构 diff：见第 7 节。
