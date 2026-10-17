@@ -9,16 +9,18 @@ repository record docs/modernization/rulings/ACCEPTANCE_RULINGS.yaml, **as of th
     implementer: one-1a-next-5       # the session whose implementation the test blocked
     files: [backend/src/test/java/com/forcitis/one/acceptance/...]   # what the ruling lets change (at least one path or directory prefix)
     reason: one line, what was wrong with the test
-    ref: where the decision is written down (intent file, review record, ADR)        # optional
+    ref: where the decision is written down (intent file, review record, ADR, comment link)
 Per commit of base..head that carries Acceptance-Ruling trailers, a trailer is
   unrecorded  the id is not in the base's record
-  invalid     the entry lacks date / ruled_by / implementer / files / reason, or ruled_by equals implementer (or is a session name starting with `self`), or the date is not a date
-  out of scope  the commit changes an acceptance test that none of the entry's `files` covers (path equal to, or under, an entry)
+  invalid     the entry lacks date / ruled_by / implementer / files / reason / ref, the id is listed twice, or ruled_by equals implementer (compared by the session name each starts with, case-insensitively) or starts with `self`, or the date is not a date
+  reused      the id was already relied on by an earlier commit of the base (a ruling lets one change through once)
+  out of scope  the commit changes an acceptance test that none of the ruling entries it names covers together (`files`: path equal to, or under, an entry)
 Enforcing (ENFORCE = True): any finding fails; `--report` prints them as warnings and exits 0. Only the commits of base..head are judged, so rulings in the history before this check reached main (see `--history`; the coordinator decided on 2026-10-17 not to back-fill them) are not checked.
 Usage: acceptance_rulings.py <base-ref> [head-ref] [--report]  |  acceptance_rulings.py --history [rev-range]  |  acceptance_rulings.py --self-test"""
 import datetime
 import os
 import re
+import subprocess
 import sys
 import tempfile
 
@@ -27,7 +29,7 @@ from ci_git import CiError, commit_of, git, git_ok, require_full_history, run, t
 
 RECORD = "docs/modernization/rulings/ACCEPTANCE_RULINGS.yaml"
 ENFORCE = True
-FIELDS = ("id", "date", "ruled_by", "implementer", "files", "reason")
+FIELDS = ("id", "date", "ruled_by", "implementer", "files", "reason", "ref")
 
 
 def load_record(text):
@@ -38,7 +40,11 @@ def load_record(text):
     out = {}
     for i, e in enumerate(entries):
         if isinstance(e, dict) and e.get("id"):
-            out[str(e["id"])] = e
+            rid = str(e["id"])
+            if rid in out:
+                out[rid]["_duplicates"] = out[rid].get("_duplicates", 0) + 1
+            else:
+                out[rid] = e
         else:
             out[f"?{i}"] = e if isinstance(e, dict) else {}
     return out
@@ -49,13 +55,21 @@ def record_at(ref, root):
     return load_record(result.stdout) if result.returncode == 0 else {}
 
 
+def session_of(value):
+    """The session name a free-text field starts with, lowercase (`One-X（追认）` and `[one-x]` both name one-x)."""
+    match = re.search(r"[\w][\w-]*", str(value or ""))
+    return match.group(0).casefold() if match else ""
+
+
 def problems_of(entry):
     """Why an entry is not a ruling by a review: a list of short reasons, empty when it is one."""
     why = [f"{f} missing" for f in FIELDS if f != "id" and not entry.get(f)]
-    ruled, implementer = str(entry.get("ruled_by") or "").strip(), str(entry.get("implementer") or "").strip()
+    if entry.get("_duplicates"):
+        why.append("the id appears more than once in the record")
+    ruled, implementer = session_of(entry.get("ruled_by")), session_of(entry.get("implementer"))
     if ruled and implementer and ruled == implementer:
         why.append("ruled_by is the implementing session itself")
-    if ruled.lower().startswith("self"):
+    if ruled.startswith("self"):
         why.append("ruled_by names the author itself")
     try:
         if entry.get("date"):
@@ -73,6 +87,14 @@ def covers(entry, path):
     return any(isinstance(f, str) and f.strip() and (path == f.strip().rstrip("/") or path.startswith(f.strip().rstrip("/") + "/")) for f in files)
 
 
+def used_before(base_sha, rid, root):
+    """The first commit reachable from the base that already carries the trailer for rid, or ''."""
+    for sha in git("rev-list", "--no-merges", "-F", f"--grep=Acceptance-Ruling: {rid}", base_sha, cwd=root).split():
+        if rid in trailer_values(sha, "Acceptance-Ruling", root):
+            return sha
+    return ""
+
+
 def findings(base, head, root):
     """[(sha, subject, id, kind, detail)]: every Acceptance-Ruling trailer of base..head that is not backed by a ruling of the base's record."""
     base_sha, head_sha = commit_of(base, root), commit_of(head, root)
@@ -84,6 +106,7 @@ def findings(base, head, root):
             continue
         subject = git("log", "-1", "--format=%s", sha, cwd=root).strip()
         touched = [f for f in changed_files(sha, parents_of(sha, root), root) if ACCEPTANCE.match(f)]
+        valid = []
         for rid in ids:
             entry = record.get(rid)
             if entry is None:
@@ -92,9 +115,15 @@ def findings(base, head, root):
             bad = problems_of(entry)
             if bad:
                 found.append((sha, subject, rid, "invalid", "; ".join(bad)))
-            uncovered = [f for f in touched if not covers(entry, f)]
-            if uncovered and not bad:
-                found.append((sha, subject, rid, "out of scope", f"changes {', '.join(uncovered[:5])} which the ruling's files do not cover"))
+                continue
+            earlier = used_before(base_sha, rid, root)
+            if earlier:
+                found.append((sha, subject, rid, "reused", f"already relied on by {earlier[:10]} on the base: a ruling lets one change through once, ask for a new one"))
+                continue
+            valid.append((rid, entry))
+        uncovered = [f for f in touched if valid and not any(covers(e, f) for _, e in valid)]
+        if uncovered:
+            found.append((sha, subject, "+".join(rid for rid, _ in valid), "out of scope", f"changes {', '.join(uncovered[:5])} which the ruling's files do not cover"))
     return found
 
 
@@ -130,12 +159,18 @@ def commit(repo, files, message):
 def self_test():
     ACC = "backend/src/test/java/com/forcitis/one/acceptance/platform/FooIT.java"
     OTHER = "backend/src/test/java/com/forcitis/one/acceptance/platform/BarIT.java"
-    good = ("rulings:\n  - id: RULING-1\n    date: 2026-10-17\n    ruled_by: one-coordinator\n    implementer: one-1a-next-5\n    files: [backend/src/test/java/com/forcitis/one/acceptance/platform/FooIT.java]\n    reason: the test asserted the old name\n"
-            "  - id: RULING-2\n    date: 2026-10-17\n    ruled_by: one-1a-next-5\n    implementer: one-1a-next-5\n    files: [backend/src/test/java/com/forcitis/one/acceptance/platform]\n    reason: self ruled\n"
-            "  - id: RULING-3\n    date: not-a-date\n    ruled_by: one-coordinator\n    implementer: x\n    files: [backend/src/test/java/com/forcitis/one/acceptance/platform]\n    reason: r\n"
+    good = ("rulings:\n  - id: RULING-1\n    date: 2026-10-17\n    ruled_by: one-coordinator\n    implementer: one-1a-next-5\n    files: [backend/src/test/java/com/forcitis/one/acceptance/platform/FooIT.java]\n    reason: the test asserted the old name\n    ref: r\n"
+            "  - id: RULING-2\n    date: 2026-10-17\n    ruled_by: one-1a-next-5\n    implementer: one-1a-next-5\n    files: [backend/src/test/java/com/forcitis/one/acceptance/platform]\n    reason: self ruled\n    ref: r\n"
+            "  - id: RULING-3\n    date: not-a-date\n    ruled_by: one-coordinator\n    implementer: x\n    files: [backend/src/test/java/com/forcitis/one/acceptance/platform]\n    reason: r\n    ref: r\n"
             "  - id: RULING-4\n    date: 2026-10-17\n    ruled_by: one-coordinator\n    implementer: x\n    reason: no files\n"
-            "  - id: RULING-5\n    date: 2026-10-17\n    ruled_by: self-review\n    implementer: x\n    files: [backend/src/test/java/com/forcitis/one/acceptance]\n    reason: r\n"
-            "  - id: RULING-6\n    date: 2026-10-17\n    ruled_by: 用户\n    implementer: x\n    files: [backend/src/test/java/com/forcitis/one/acceptance/platform]\n    reason: r\n")
+            "  - id: RULING-5\n    date: 2026-10-17\n    ruled_by: self-review\n    implementer: x\n    files: [backend/src/test/java/com/forcitis/one/acceptance]\n    reason: r\n    ref: r\n"
+            "  - id: RULING-7\n    date: 2026-10-17\n    ruled_by: one-coordinator\n    implementer: x\n    files: [backend/src/test/java/com/forcitis/one/acceptance/platform]\n    reason: no ref\n"
+            "  - id: RULING-8\n    date: 2026-10-17\n    ruled_by: one-coordinator\n    implementer: x\n    files: [backend/src/test/java/com/forcitis/one/acceptance/platform/FooIT.java]\n    reason: r\n    ref: r\n"
+            "  - id: RULING-8\n    date: 2026-10-17\n    ruled_by: one-coordinator\n    implementer: x\n    files: [backend/src/test/java/com/forcitis/one/acceptance]\n    reason: widened\n    ref: r\n"
+            "  - id: RULING-10\n    date: 2026-10-17\n    ruled_by: One-X（追认）\n    implementer: [one-x]\n    files: [backend/src/test/java/com/forcitis/one/acceptance/platform]\n    reason: r\n    ref: r\n"
+            "  - id: RULING-11\n    date: 2026-10-17\n    ruled_by: one-coordinator\n    implementer: x\n    files: [backend/src/test/java/com/forcitis/one/acceptance/platform/Foo]\n    reason: a sibling prefix, not FooIT\n    ref: r\n"
+            "  - id: RULING-12\n    date: 2026-10-17\n    ruled_by: one-coordinator\n    implementer: x\n    files: [backend/src/test/java/com/forcitis/one/acceptance/platform/BarIT.java]\n    reason: r\n    ref: r\n"
+            "  - id: RULING-6\n    date: 2026-10-17\n    ruled_by: 用户\n    implementer: x\n    files: [backend/src/test/java/com/forcitis/one/acceptance/platform]\n    reason: r\n    ref: r\n")
     with tempfile.TemporaryDirectory() as tmp:
         repo = new_repo(tmp)
         commit(repo, {"README.md": "x\n", ACC: "v1\n", OTHER: "v1\n"}, "base without a record")
@@ -160,6 +195,31 @@ def self_test():
         assert run_case({"backend/src/main/java/A.java": "a\n"}, "no acceptance change, no ruling") == []
         assert run_case({ACC: "v11\n"}, "no trailer at all") == [], "a commit without the trailer is acceptance_guard's business, not this check's"
         assert run_case({ACC: "v12\n"}, "fix" + trailer("not-an-id")) == [], "a trailer that is not a ruling id is acceptance_guard's business"
+        assert run_case({ACC: "v15\n"}, "fix" + trailer("RULING-7")) == [("RULING-7", "invalid")], "no ref"
+        assert run_case({ACC: "v16\n"}, "fix" + trailer("RULING-8")) == [("RULING-8", "invalid")], "an id listed twice"
+        assert run_case({ACC: "v17\n"}, "fix" + trailer("RULING-10")) == [("RULING-10", "invalid")], "the same session named with different case, an annotation and a list"
+        assert run_case({ACC: "v18\n"}, "fix" + trailer("RULING-11")) == [("RULING-11", "out of scope")], "a prefix is a path prefix, not a string prefix"
+        assert run_case({ACC: "v19\n", OTHER: "v19\n"}, "both\n\nAcceptance-Ruling: RULING-1\nAcceptance-Ruling: RULING-12\n") == [], "two rulings cover together"
+        assert run_case({"backend/src/main/java/B.java": "b\n"}, "fix" + trailer("RULING-1")) == [], "only acceptance tests are judged against the files"
+        # a ruling lets one change through once
+        git("checkout", "-q", "-B", "used", "base-with-record", cwd=repo)
+        commit(repo, {ACC: "used\n"}, "first" + trailer("RULING-6"))
+        git("tag", "-f", "base-used", cwd=repo)
+        assert run_case({ACC: "again\n"}, "second" + trailer("RULING-6"), base="base-used") == [("RULING-6", "reused")]
+        assert run_case({ACC: "v20\n"}, "fix" + trailer("RULING-1"), base="base-used") == [], "RULING-6 used earlier does not make RULING-1 used"
+        git("checkout", "-q", "-B", "prefixed", "base-with-record", cwd=repo)
+        commit(repo, {ACC: "p\n"}, "fix" + trailer("RULING-12"))
+        git("tag", "-f", "base-prefixed", cwd=repo)
+        assert run_case({ACC: "v21\n"}, "fix" + trailer("RULING-1"), base="base-prefixed") == [], "RULING-12 used earlier does not make RULING-1 used"
+        # a merge that resolves a conflict inside a test the ruling does not cover
+        git("checkout", "-q", "-B", "mainline", "base-with-record", cwd=repo)
+        commit(repo, {OTHER: "mainline\n"}, "mainline change")
+        git("checkout", "-q", "-B", "merging", "base-with-record", cwd=repo)
+        commit(repo, {OTHER: "side\n"}, "side change")
+        merged = subprocess.run(["git", "merge", "--no-commit", "--no-ff", "mainline"], cwd=repo, capture_output=True, text=True)
+        assert merged.returncode != 0, "the two branches change BarIT differently"
+        commit(repo, {OTHER: "resolved\n"}, "Merge mainline" + trailer("RULING-1"))
+        assert [(rid, kind) for _, _, rid, kind, _ in findings("base-with-record", "merging", repo)] == [("RULING-1", "out of scope")]
         # the record is read at the base: a ruling recorded in the same pull request is the implementer ruling for itself
         git("checkout", "-q", "-B", "same-pr", "no-record", cwd=repo)
         commit(repo, {RECORD: good}, "record in the same pull request")
@@ -171,7 +231,6 @@ def self_test():
         assert [(rid, kind) for _, _, rid, kind, _ in findings("base-with-record", "two", repo)] == [("RULING-9", "unrecorded")]
         assert history("no-record..same-pr", repo) == {"RULING-1": [(git("rev-parse", "same-pr", cwd=repo).strip(), "fix")]}
         # the command line: report mode warns and exits 0, --enforce errors and exits 1, a clean pull request exits 0 either way
-        import subprocess
         me = os.path.abspath(__file__)
         git("checkout", "-q", "-B", "cli", "base-with-record", cwd=repo)
         commit(repo, {ACC: "cli\n"}, "fix" + trailer("RULING-9"))
