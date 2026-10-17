@@ -700,6 +700,7 @@ class ReadOnlyAccountCheckIT {
     static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled, Function<ReadOnlyConnection, String> urlOf, List<String> extraArguments) {
         List<String> args = new ArrayList<>(List.of(
                 "--server.port=0",
+                "--server.address=127.0.0.1",
                 "--spring.main.banner-mode=off",
                 "--spring.datasource.url=" + POSTGRES.getJdbcUrl(),
                 "--spring.datasource.username=" + POSTGRES.getUsername(),
