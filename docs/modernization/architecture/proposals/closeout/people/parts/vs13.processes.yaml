@@ -1026,6 +1026,7 @@ event_policies:
       - {type: event, name: "薪酬档案已变更（同 BC）"}
     stages: [VS-07.3]
     primary_object: none
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: B-15
     basis: S-20（one-architecture）；用户 Q-09（intent 2026-10-16-134134）
     migration: "迁入不触发（ADR-0036 M7）；迁入完成后由人力用对账清单一次性核对三口径，不批量发预警"
@@ -1057,8 +1058,9 @@ event_policies:
       - {type: time, name: "每年年初（B-27 向 platform.scheduling 登记，幂等键 = 聚合 ID + 到期时点）"}
       - {type: event, name: "入职生效（年中入职）", event: Employed, bc: B-13}
     stages: [VS-07.3]
-    stages_note: "事件触发「入职生效」（Employed）是 VS-07.3 退出条件「人员试用期 / 正式」的产生事件，按事件策略归 VS-07.3；年初定时触发没有对象状态，不单独归段（归段判据第 6 项）"
-    primary_object: none
+    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I08 题（页首架构处理告知）：VS-07.3 仅对应入职生效 Employed 入口；年初定时开户为年度例行支撑，不表示完成入职。补休按额度行有效期处理，不随年度开户结转。"
+    primary_object: OBJ-122
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I08 题；信息图现单列 OBJ-122，保留处理、审批及核对依据。"
     owner_bc: B-27
     migration: "迁入不触发（ADR-0036 M7）；迁入年度的在途额度账户随 AGG-71 迁入，不重新开账"
     outcomes: [年度账户已开立, 结转待处理]
@@ -1100,8 +1102,9 @@ event_policies:
       - {type: event, name: "〔缺〕补休已到期未休（B-27 发布）", event: 补休已到期未休, bc: B-27}
       - {type: event, entry: 2, name: "员工离职生效（B-13 发布 Separated）", event: Separated, bc: B-13}
     stages: [VS-13.6]
-    stages_note: "事件触发「员工离职生效」（Separated）是 VS-13.6 退出条件「人员已离职」的产生事件，按事件策略归 VS-13.6；「补休已到期未休」是 B-27 的事实、没有阶段对象状态，不单独归段（归段判据第 6 项）"
-    primary_object: none
+    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I09 题：VS-13.6 仅对应 Separated 离职入口；到期入口仅支撑薪酬结算，不表示离职结清；两入口向 OBJ-123 登记待计发调整并留幂等依据，U15 未定。"
+    primary_object: OBJ-123
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I09 题；信息图现单列 OBJ-123，保留处理、审批及核对依据。"
     owner_bc: B-15
     basis: S-41（one-architecture）；用户页 P13-05；劳动法第四十四条（休息日加班不能安排补休的，支付不低于工资 200% 的报酬）、工资支付暂行规定第十三条（以加班工资基数折算）
     migration: "迁入不触发（ADR-0036 M7）；迁入的补偿方式为调休的加班，其未休余额是否迁为补休额度行待取证后定，迁入后到期的补休余额按本策略转计发"
@@ -1201,8 +1204,8 @@ single_aggregate:
     aggregate: AGG-93
     owner_bc: B-15
     stages: []
-    primary_object: none
-    primary_object_note: "OBJ-61 薪酬档案在信息图定为人员属性版本、非对象；AGG-120 专项附加扣除声明无对象（F-6 随信息层交用户）"
+    primary_object: OBJ-123
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I09 题；信息图现单列 OBJ-123，保留处理、审批及核对依据。"
     support: "B-15 薪酬档案与专项附加扣除的维护，结局（档案已调整、扣除已更新）不造 VS-13.3、VS-13.4 的任一退出条件（月度薪酬结算已批准、法定申报已申报缴款），服务薪酬结算的输入（STAGE_ALIGN.md 归段判据第 6 项）"
     desc: 调薪、年度专项附加扣除更新
     triggers:
@@ -1257,7 +1260,7 @@ single_aggregate:
     stages: [VS-15.2]
     stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：B-27 假期规则版本的配置维护，结局（假期规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: none
-    primary_object_note: "AGG-118 假期类型与额度规则为配置，信息图无对象（假期类型是 OBJ-68 属性、OBJ-69 额度非对象；F-6）"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     desc: 人力发布假期类型的年度应享、结转与清零规则版本
     triggers:
       - {type: human, name: "人力依据制度或法规变化发布新的假期规则版本"}
@@ -1290,7 +1293,7 @@ single_aggregate:
     stages: [VS-15.2]
     stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：B-15 薪酬规则版本的配置维护，结局（薪酬规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: none
-    primary_object_note: "AGG-119 薪酬规则版本为配置，信息图无对象"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     desc: 人力编制、财务确认并发布个税、专项附加扣除标准、社保公积金比例与基数、计算口径的薪酬规则版本（S-43）
     triggers:
       - {type: human, name: "人力依据法规或公司制度变化编制并发布新的薪酬规则版本"}

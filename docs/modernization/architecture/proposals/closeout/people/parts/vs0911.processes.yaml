@@ -212,6 +212,7 @@ processes:
       type: human
       desc: 技术专家主动起草；项目复盘发布后由复盘编制人决定提炼；已发布版本修订时以新版本重新进入
     stages: [VS-11.1, VS-11.2, VS-11.3]
+    stages_note: "VS-11.1 由第 1–3 步承载（提交评审使 OBJ-110 到评审，即本段退出）"
     primary_object: OBJ-110
     owner_bc: B-30
     human_orchestration: true

@@ -25,7 +25,7 @@ processes:
       - {type: human, name: "人力新建或修改职位"}
       - {type: human, name: "人力更正法人归属"}
     stages: [VS-15.2, VS-15.3]
-    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.2 组织单元与岗位启用、VS-15.3 停用；法人主体筹建存续不作门；原支撑理由：B-13 主数据维护：法人主体、组织单元、法人归属、职位目录条目的维护，结局不造任何阶段的退出条件（职位「启用」只是 VS-07.1 的进入条件，判据按退出条件归段），服务多条价值流（STAGE_ALIGN.md 归段判据第 6 项）"
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.2 组织单元与岗位启用、VS-15.3 停用；法人主体筹建存续不作门；法人主体筹建存续不作门；原支撑理由：B-13 主数据维护：法人主体、组织单元、法人归属、职位目录条目的维护，结局不造任何阶段的退出条件（职位「启用」只是 VS-07.1 的进入条件，判据按退出条件归段），服务多条价值流（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: OBJ-55
     secondary_objects: [OBJ-54, OBJ-58]
     owner_bc: B-13
@@ -592,6 +592,7 @@ processes:
     stages: [VS-07.3]
     stages_note: "留 VS-07.3：纯事件触发（入职已登记 = Employed，即 VS-07.3 退出条件「人员试用期 / 正式」的产生事件）的多步反应，行为等同事件策略；因 type 为 business，脚本按结局归段而判不支持，已列 STAGE_ALIGN.md 请 one-architecture 裁定"
     primary_object: none
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     notes: "无业务对象，primary_object: none。理由：企业微信账号是平台身份事项，不是业务对象状态（VS-13.6 notes）。"
     owner_bc: platform.identity   # J-1 / S-14 one-architecture 同意
     human_orchestration: false
@@ -1034,6 +1035,7 @@ processes:
     stages: [VS-13.6]
     stages_note: "留 VS-13.6：纯事件触发（离职已生效 = Separated，即 VS-13.6 退出条件「人员已离职」的产生事件）的多步反应，行为等同事件策略；因 type 为 business，脚本按结局归段而判不支持，已列 STAGE_ALIGN.md 请 one-architecture 裁定"
     primary_object: none
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: platform.identity   # S-14（one-architecture 同意 J-1）
     human_orchestration: false
     basis: intent 2026-10-16-134134 Q-03；规则卡 RULE-363；ADR-0027 第 1 项第 6 点、第 7 点；IDENTITY_LIFECYCLE.md 对 C1 设计的含义第 3 条（在职判断以人事离职为准，不以企业微信账号是否存在为准）；S-14
@@ -1150,6 +1152,7 @@ event_policies:
       - {type: event, name: "离职已生效", event: Separated, bc: B-13}
     stages: [VS-13.6]
     primary_object: none
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: platform.identity
     migration: "不适用（迁入不发事件，ADR-0036 M7；历史离职人员的会话与授予按迁入对账）"
     outcomes: [会话已吊销]
@@ -1236,7 +1239,7 @@ event_policies:
       - {type: event, name: "组织单元已调整", event: 组织单元已调整, bc: B-13}
     stages: []
     primary_object: none
-    primary_object_note: "外部同步（推送员工与组织到差旅服务商），不改任何业务对象状态"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     support: "行政支撑：员工与组织的单向同步，服务差旅预订；四个触发分属 VS-07.3 退出、VS-13.6 退出、任职版本变更、组织单元调整，无共同阶段，不在客户或员工价值流的阶段门上（S-31 SQ-31；STAGE_ALIGN.md）"
     owner_bc: B-13
     basis: S-31 SQ-31（one-architecture）：platform.integration 在 L0，不能订阅 B-13（S-22 不采用平台订阅业务事件），故由 B-13 订阅本 BC 事件并经既有边 B-13 → platform.integration 推送
