@@ -10,6 +10,10 @@
 - 流程梳理：`process/` 下各流程文档与 Phase 2 流程梳理前置项（如 ARCH-D5 工时行类型到审批旗标的映射、区域负责人来源）。
 - 待用户定的业务问题：汇总成在线决策页（私有 Artifact，db 存选择，推荐预选，性能按 `glossary/gate/README.md`），读答复后写回规则卡并记 intent；财务口径经财务确认（ADR-0018）。
 - 复刻老行为以生产数据为证：取证交 sonnet 子代理经只读账号，只取汇总，每次登记 `LEGACY_READ_REGISTER`（ADR-0037）。
+- 外部三包答题单（财务 / 审计 / 法务类题）：用户与调度共同答，私有文件 `~/.modernize/psa/finance/ADVISOR_BATCH_*.md`、`external-drafts/`，不入仓；题面按「依据、选项与代价、推荐、未核实项」写，条文先核官方原文。
+- 已定决策速查表维护：`build_decision_digest.py`、`decision-digest/`（词表 `topics.txt`、取代与矛盾 `relations.txt`、分类回归 `expected.txt`）；发现取代或矛盾时登记，新决定用 `new_intent.py --supersedes` / `--rules`；设计组出题前对照该表（SESSION_PLAYBOOK §11 第 1 条）。
+- 独立评审：评审作者为别的会话的规则卡（如 one-data 的 DATA-RULE-01…08，结论写 `rules/DATA_RULE_REVIEW.md`，不写入只记用户作答的 `RULE_REVIEWS.json`）；结论有分歧交 one-architecture。
+- 未评审规则按派工触发评审：用 `rules/build_rule_index.py --dispatch` 看模块卡引用到哪些未评审规则，引用到哪些评哪些，P0 优先，不预先全评；新卡 Review 列与规则索引状态词保持一致。
 - 首件事：接手财务口径决策单（46 题，私有文件 `~/.modernize/psa/finance/FINANCE_DECISIONS.html`，#176；A1、A10 待审计师意见）与 ARCH-D5 前置项。
 
 ## 独占
