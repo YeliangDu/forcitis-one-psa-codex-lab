@@ -392,3 +392,11 @@ SUMMARY: 8 PASS, 1 FAIL, 10 SKIP (base origin/main) — not ready
 ```
 
 本轮构建、后端、前端、自测、破坏验证及 precheck 原始日志位于 `/tmp/nam-1017-glo-14/`；关键结果与完整 precheck 已附于本节。
+
+## NAM-1017-GLO-14 收口更正（负责会话，2026-10-17）
+本节取代上文 GLO-14 小节里“自测退出 1”“precheck 8 PASS、1 FAIL”“本卡不报完成”“未提交”等过程性表述（那些是 Codex 沙箱内的中间状态）：
+- 自测：`apply_recon_selftest.py` 把“来源总数 == 97”改为“原 97 个来源的内容摘要不变（sha256 锁定）”，并在 `apply_recon.py` 新增来源键校验（S 编号须连续，且每个来源至少被引用一次），补孤立来源、跳号两个负向用例；全部自测通过（72 + 84）。
+- precheck：在已安装前端依赖的工作区 11 PASS、0 FAIL。
+- 引用：新增词条不再引用未入库的 `.codex-inputs/*`；“计算月度薪酬”引用动词表 V158（随本 PR 一并入库，N4_VERBS_STATES.md）。
+- 别名“计算”（bare verb）只作 standard-zh / deprecated，不得升为 dialect 或进 forbidden（否则会被前端文案检查当全局子串）。
+- opus 复审（#485）遗留的低风险项：closeout/stage_align_check.py 对 3 字以上别名做全局子串替换（不在 CI 门禁），“结果词不受控”（不再受托无状态词条）待补用语页。

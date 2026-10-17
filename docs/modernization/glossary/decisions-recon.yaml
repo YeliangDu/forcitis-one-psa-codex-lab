@@ -3443,7 +3443,6 @@ terms:
     - docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-07/row_no=2
     - docs/modernization/rules/decide/sheets/NM6.json#NM6-07
     - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md#AGG-19
-    - .codex-inputs/revenue-NOTES.md#L1326
     - docs/modernization/glossary/arch-naming/N4_VERBS_STATES.md#V046
     status: approved
     confirmed: 2026-10-17（用户裁定，NM6，提交 NM6-20261017-171527-lg9）；2026-10-17（用户裁定，2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20，docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md）
@@ -3455,7 +3454,7 @@ terms:
       context: delivery.execution
       source: docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-07/row_no=2
     forbidden: []
-    note: NAM-1017-GLO-14：NM6 整表认可中文命令名；英文按动词加宾语定稿，旧名仅作可检索弃用别名，不全局禁用。
+    note: NAM-1017-GLO-14：NM6 整表认可中文命令名；用户只认可中文名；英文名、定义、kind、bc、scope 为设计方定稿；旧名仅作可检索弃用别名，不得升为 dialect 或进 forbidden。
 - op: add
   sources:
   - S098
@@ -3475,7 +3474,6 @@ terms:
     - docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-07/row_no=3
     - docs/modernization/rules/decide/sheets/NM6.json#NM6-07
     - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md#AGG-34
-    - .codex-inputs/revenue-NOTES.md#L1326
     - docs/modernization/glossary/arch-naming/N4_VERBS_STATES.md#V004
     status: approved
     confirmed: 2026-10-17（用户裁定，NM6，提交 NM6-20261017-171527-lg9）；2026-10-17（用户裁定，2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20，docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md）
@@ -3487,7 +3485,7 @@ terms:
       context: delivery.inspection
       source: docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-07/row_no=3
     forbidden: []
-    note: NAM-1017-GLO-14：NM6 整表认可中文命令名；英文按动词加宾语定稿，旧名仅作可检索弃用别名，不全局禁用。
+    note: NAM-1017-GLO-14：NM6 整表认可中文命令名；用户只认可中文名；英文名、定义、kind、bc、scope 为设计方定稿；旧名仅作可检索弃用别名，不得升为 dialect 或进 forbidden。
 - op: add
   sources:
   - S098
@@ -3507,7 +3505,6 @@ terms:
     - docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-07/row_no=1
     - docs/modernization/rules/decide/sheets/NM6.json#NM6-07
     - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md#AGG-10
-    - .codex-inputs/revenue-NOTES.md#L1326
     - docs/modernization/glossary/arch-naming/N4_VERBS_STATES.md#V001
     status: approved
     confirmed: 2026-10-17（用户裁定，NM6，提交 NM6-20261017-171527-lg9）；2026-10-17（用户裁定，2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20，docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md）
@@ -3519,7 +3516,7 @@ terms:
       context: presales.opportunity
       source: docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-07/row_no=1
     forbidden: []
-    note: NAM-1017-GLO-14：NM6 整表认可中文命令名；英文按动词加宾语定稿，旧名仅作可检索弃用别名，不全局禁用。
+    note: NAM-1017-GLO-14：NM6 整表认可中文命令名；用户只认可中文名；英文名、定义、kind、bc、scope 为设计方定稿；旧名仅作可检索弃用别名，不得升为 dialect 或进 forbidden。
 - op: add
   sources:
   - S099
@@ -3539,7 +3536,7 @@ terms:
     - docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-08/row_no=2
     - docs/modernization/rules/decide/sheets/NM6.json#NM6-08
     - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md#AGG-73
-    - .codex-inputs/people-NOTES.md#L439
+    - docs/modernization/glossary/arch-naming/N4_VERBS_STATES.md#V158
     status: approved
     confirmed: 2026-10-17（用户裁定，NM6，提交 NM6-20261017-171527-lg9）；2026-10-17（用户裁定，2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20，docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md）
     confidence: medium
@@ -3550,7 +3547,7 @@ terms:
       context: organization.payroll
       source: docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-08/row_no=2
     forbidden: []
-    note: NAM-1017-GLO-14：NM6 整表认可中文命令名；英文按动词加宾语定稿，旧名仅作可检索弃用别名，不全局禁用。 动词表增补项：计算；负责会话已裁定本名称使用 Calculate / Calculated / calculate，N4 的 V158 由负责会话另行补入。
+    note: NAM-1017-GLO-14：NM6 整表认可中文命令名；用户只认可中文名；英文名、定义、kind、bc、scope 为设计方定稿；旧名仅作可检索弃用别名，不得升为 dialect 或进 forbidden。 动词表增补项：计算；负责会话已裁定本名称使用 Calculate / Calculated / calculate，N4 的 V158 由负责会话另行补入。
 promotions:
 - file: backend/glossary/proposed/code-aggregates-events.yaml
   id: timesheet_approval_withdrawn
