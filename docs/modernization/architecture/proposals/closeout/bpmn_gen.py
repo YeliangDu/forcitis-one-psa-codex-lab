@@ -238,13 +238,12 @@ class Process:
         trigs = self.triggers()
         self.starts = []
         self.entries = []
-        for t in trigs:
+        for index, t in enumerate(trigs, 1):
             e = t.get("entry", 1)
-            if isinstance(e, str) and e.strip().isdigit():
+            if isinstance(e, str) and re.fullmatch(r"[0-9]+", e.strip()):
                 e = int(e)
-            if not (isinstance(e, int) and not isinstance(e, bool) and 1 <= e <= max(n, 1)):
-                self.warn(f"trigger.entry「{e}」不是有效步骤序号，连第 1 步")
-                e = 1
+            if not (isinstance(e, int) and not isinstance(e, bool) and 1 <= e <= n):
+                raise ValueError(f"{self.pid}: triggers[{index}].entry「{e}」须为 1–{n} 的步骤序号")
             self.entries.append(e)
         entry_set = set(self.entries)
         for t, e in zip(trigs, self.entries):
@@ -811,6 +810,49 @@ def flow_edges(root):
     return [(names[f.get("sourceRef")], f.get("name"), names[f.get("targetRef")]) for f in root.iter(ns + "sequenceFlow")]
 
 
+def test_trigger_entries(stake, checker, expect):
+    from copy import deepcopy
+
+    p = yaml.safe_load((HERE / "bpmn_gen_fixtures/activity_cancel.yaml").read_text(encoding="utf-8"))["processes"][0]
+    cat = {p["id"]: {"name": "员工活动类申请"}}
+    pr, root = build_xml(p, cat, stake)
+    errors, _ = checker.check_root(root, False, {p["id"]: cat[p["id"]]["name"]})
+    expect(not errors and not pr.warns, f"CON-1017-ARC-08：取消入口夹具须通过 BPMN 检查且无警告：{errors} {pr.warns}")
+    targets = lambda src: {f["tgt"] for f in pr.flows if f["src"] == src}
+    for start, entry in zip(pr.starts, [1, 1, 3, 3]):
+        expect(targets(start.id) == {pr.plan[entry - 1]["chain"][0]}, "ARC-08：每个开始事件只能直连指定步骤")
+        expect(start.lane == pr.plan[entry - 1]["lane"], "ARC-08：开始事件须在入口步骤泳道")
+    cancel = pr.plan[2]["chain"][0]
+    seen, pending = set(), [s.id for s in pr.starts[2:]]
+    while pending:
+        node = pending.pop()
+        if node not in seen:
+            seen.add(node)
+            pending.extend(targets(node))
+    expect(cancel in seen and pr.ends["已取消"] in seen, "ARC-08：取消入口可到达取消任务及已取消结局")
+    expect(not seen.intersection(n for info in pr.plan[:2] for n in info["chain"]), "ARC-08：取消入口不得重做登记或完成")
+    for kind in ("human", "event", "time", "call"):
+        for entry, target in [("1", 0), (2, 1), ("3", 2)]:
+            varied = deepcopy(p)
+            varied["triggers"].append({"type": kind, "name": "指定入口", "entry": entry})
+            varied["steps"][target]["on_time"] = "等待办理时点"
+            variant, variant_root = build_xml(varied, cat, stake)
+            errors, _ = checker.check_root(variant_root, False, {p["id"]: cat[p["id"]]["name"]})
+            expect(not errors, f"ARC-08：{kind} entry={entry!r} 须通过 BPMN 检查：{errors}")
+            entered = {f["tgt"] for f in variant.flows if f["src"] == variant.starts[-1].id}
+            expect(variant.entries[-1] == int(entry) and entered == {variant.plan[target]["chain"][0]},
+                   f"ARC-08：{kind} entry={entry!r} 须连目标步骤首节点，保留步骤内部前置办理")
+    for entry in (0, -1, 4, True, False, None, "", "0", "-1", "3.0", "²", "已完成", "end", "PRC-03", 1.0, [], {}):
+        invalid = deepcopy(p)
+        invalid["triggers"][2]["entry"] = entry
+        try:
+            build_xml(invalid, cat, stake)
+        except ValueError as error:
+            expect("PRC-144" in str(error) and "triggers[3].entry" in str(error), "ARC-08：非法入口须明确流程及触发位置")
+        else:
+            expect(False, f"ARC-08：非法 entry={entry!r} 必须失败，不得回退第 1 步")
+
+
 def test_timeout_actions(stake, checker, expect):
     from copy import deepcopy
 
@@ -890,6 +932,7 @@ def self_test():
     expect(("申请丁？", "驳回", "申请甲") in got, "on_reject 为序号时连回该步骤")
     expect(("申请丁？", "撤回", "申请乙") in got, "withdraw.to 为序号时连回该步骤")
     test_timeout_actions(stake, checker, expect)
+    test_trigger_entries(stake, checker, expect)
     print("bpmn_gen 自测：" + ("全部通过" if ok else "有失败"))
     return 0 if ok else 1
 

@@ -10265,6 +10265,25 @@ entries:
   sources:
   - people:片段
 - object: AGG-116
+  command: 取消员工活动登记
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 行政
+    R:
+    - SH-E6
+    C: []
+    I:
+    - SH-E3
+  sensitive: false
+  note: 沿活动组织办理职能执行取消，不持人工批准权；已批准或已完成均可取消，原因必填，记取消人、时间及审计，保留原登记和完成历史；重登另建记录关联原单（B31-8）。
+  source_part: b31
+  a_source: group:people
+  sources:
+  - people:PRC-144#3
+  - people:片段
+- object: AGG-116
   command: 完成员工活动
   raci:
     A:
