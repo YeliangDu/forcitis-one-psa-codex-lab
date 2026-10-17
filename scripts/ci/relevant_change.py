@@ -640,6 +640,8 @@ def self_test():
     assert not is_covered("docs/modernization/glossary/issues/x.md"), "a build reading NOT_READ_BY_BUILDS must fail the scan"
     assert not is_covered("docs/modernization/glossary/issues")
     assert is_covered("docs/modernization/sessions/one-ops.md")
+    assert is_covered("docs/modernization/sessions/_COMMON.md")
+    assert not is_relevant("docs/modernization/sessions/_COMMON.md")
     assert is_relevant("docs/modernization/phase1a/SEEYON_VIEWS.sql")
     assert is_relevant("docs/modernization/status/blockers/080-1a-no-deploy-until-fix.md")
     assert not is_relevant("docs/modernization/adr/src/ADR-0001.md")
