@@ -1,6 +1,6 @@
 # DDD Reference 要点笔记
 
-状态：已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）｜派工：ARC-1017-ARC-21｜2026-10-17
+状态：已审定（one-architecture 2026-10-18，页码已抽查）｜派工：ARC-1017-ARC-21｜2026-10-17
 
 本笔记保存语言、身份、一致性和模型集成的要点，不把模式名称直接当作企业对象清单。正文为自行概括；本地 PDF 的页脚可经空白归一化读出，以下同时登记印刷页与物理页，待 sonnet 独立抽查。
 
@@ -76,3 +76,20 @@
 ## 5. 使用边界
 
 本文不核对 Evans 原著 2003 年版章节，也不引用其页码。DDD 模式不是 FORCITIS 的业务政策；ISBN 和独立出版标记尚未核出，语言／模型一致也需通过实际场景与实现验证。
+
+## 6. 页码抽查（ARC-1017-ARC-23）
+
+抽查方法：pdftotext/pdfinfo 按 /tmp/ARC-1017-ARC-21/pages.md 参数重抽，核对概念、印刷页、物理页及第 2 节概括（DDD 本地 PDF（印刷页 = 物理页 - 7））。抽查 12 条，偏差 0 条。
+
+- DD-B1｜PDF 1 题名页作者 Evans｜一致
+- DD-01｜PDF 9-11 印刷 2-4，Bounded Context/Ubiquitous Language 标题｜一致
+- DD-02｜PDF 17 印刷 10，Layered Architecture｜一致
+- DD-03｜PDF 18 印刷 11，Entities｜一致
+- DD-04｜PDF 19 印刷 12，Value Objects｜一致
+- DD-05｜PDF 20 印刷 13，Domain Events｜一致
+- DD-06｜PDF 23 印刷 16，Aggregates｜一致
+- DD-07｜PDF 24 印刷 17，Repositories｜一致
+- DD-08｜PDF 21 印刷 14，Services｜一致
+- DD-09｜PDF 36 印刷 29，Context Map｜一致
+- DD-10｜PDF 38、41 印刷 31、34，Shared Kernel、Anticorruption Layer｜一致
+- DD-11｜PDF 42-43 印刷 35-36，Open-host Service、Published Language｜一致
