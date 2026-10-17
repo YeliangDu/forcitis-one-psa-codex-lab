@@ -1,5 +1,7 @@
 # 工程层标准适配评审（对抗式，2026-10-15）
 
+状态：历史记录｜2026-10-15｜负责：one-architecture
+
 起因：用户 2026-10-15「关于架构的任何选择都要非常谨慎，必须深入研究后才能决策」（intent `2026-10-15-193135`）。评审：opus 子代理（architecture-critic，只读、未联网），one-architecture 抽查核实（见文末）。外部事实（版本、条款、文号）待联网核实，核实前不作硬依据（FRAMEWORKS 防漂移规则 3）。结论待用户在确认页重新定；在用户决定前，FRAMEWORKS §9 不改。
 
 评审对象：`architecture/FRAMEWORKS.md` §9 的 13 项，盘点 `proposals/ENGINEERING_STANDARDS.md`。
