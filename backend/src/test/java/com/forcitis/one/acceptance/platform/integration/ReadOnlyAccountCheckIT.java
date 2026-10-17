@@ -683,15 +683,21 @@ class ReadOnlyAccountCheckIT {
     }
 
     static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled) {
-        return start(enabled, c -> url(c.database));
+        return start(enabled, c -> url(c.database), List.of());
     }
 
+    /** The database named is not there, so the check waits out its connection limit: a short one keeps the case from dragging, and no other case is given it. */
     static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled, String approvalDatabaseOverride) {
-        return start(enabled, c -> url(c == ReadOnlyConnection.LEGACY_APPROVAL ? approvalDatabaseOverride : c.database));
+        return start(enabled, c -> url(c == ReadOnlyConnection.LEGACY_APPROVAL ? approvalDatabaseOverride : c.database),
+                List.of("--forcitis.platform.integration.external-connection.background.acquire-timeout=1s"));
     }
 
     /** Command-line arguments: they rank above application.properties, which switches every external connection off by default. */
     static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled, Function<ReadOnlyConnection, String> urlOf) {
+        return start(enabled, urlOf, List.of());
+    }
+
+    static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled, Function<ReadOnlyConnection, String> urlOf, List<String> extraArguments) {
         List<String> args = new ArrayList<>(List.of(
                 "--server.port=0",
                 "--spring.main.banner-mode=off",
@@ -700,7 +706,6 @@ class ReadOnlyAccountCheckIT {
                 "--spring.datasource.password=" + POSTGRES.getPassword(),
                 "--flowable.async-executor-activate=false",
                 "--forcitis.platform.approval.deadline.enabled=false",
-                "--forcitis.platform.integration.external-connection.background.acquire-timeout=1s",
                 "--forcitis.platform.integration.seeyon.views.enabled=" + enabled.containsKey(ReadOnlyConnection.A8),
                 "--forcitis.platform.integration.legacy.enabled=" + enabled.containsKey(ReadOnlyConnection.LEGACY_NAMES)));
         Account a8 = enabled.get(ReadOnlyConnection.A8);
@@ -723,6 +728,7 @@ class ReadOnlyAccountCheckIT {
         } else {
             args.add(inbox + "url=");
         }
+        args.addAll(extraArguments);
         return new SpringApplicationBuilder(OneApplication.class).run(args.toArray(String[]::new));
     }
 
