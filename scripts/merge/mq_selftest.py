@@ -709,6 +709,43 @@ def _signals(mq, d):
         assert (("update-branch", 100) in gh.calls) == synced, (name, events(log))
         if not synced:
             assert gh.merged_behind == [3], "merged while behind docs-only commits, on purpose"
+    # strict protection still on, main moved by a docs commit while the full CI ran: GitHub says BEHIND although the queue counts the head as up to date. No merge is attempted; sync and run again, no HOLD, no refusal counted
+    gh = FakeGh(); gh.add(102)
+    gh.prs[102]["behind_files"] = ["docs/a.md"]
+    proc, q, log, _ = _proc(mq, d, "bd-strict2", gh, [102])
+    real_checks = gh.checks
+    polls = {"n": 0}
+
+    def strict_main_moves(n):
+        polls["n"] += 1
+        if polls["n"] == 2:   # the checks have just ended green; main moves by a docs commit
+            gh.prs[102]["merge"], gh.prs[102]["behind"] = "BEHIND", 1
+        return real_checks(n)
+    gh.checks = strict_main_moves
+    assert proc.process(102) == "MERGED", events(log)
+    assert events(log).count("BEHIND-AT-MERGE") == 1 and "UPDATE" in events(log) and "RETRY-MERGE" not in events(log) and "HOLD" not in events(log), events(log)
+    assert [c for c in gh.calls if c[0] == "merge" and not c[2]] == [] and len([c for c in gh.calls if c[0] == "merge"]) == 1, "gh merge was called once, after the sync"
+
+    # the same, but main moves between our look and the merge itself: gh refuses (BEHIND), and that is a sync again, not a refusal; it never reaches the five refusals
+    gh = FakeGh(); gh.add(103, merge_results=((False, "Head branch is not up to date with the base branch"), (False, "Head branch is not up to date with the base branch"), (True, "")))
+    gh.prs[103]["behind_files"] = ["docs/a.md"]
+    proc, q, log, _ = _proc(mq, d, "bd-strict3", gh, [103])
+    real_merge = gh.merge
+
+    def merge_then_behind(n, head):
+        out = real_merge(n, head)
+        if not out[0]:
+            gh.prs[n]["merge"], gh.prs[n]["behind"] = "BEHIND", 1   # GitHub's answer to a refused merge: the branch is behind
+        return out
+    gh.merge = merge_then_behind
+    assert proc.process(103) == "MERGED" and events(log).count("UPDATE") == 2 and events(log).count("RETRY-MERGE") == 2, events(log)
+    gh = FakeGh(); gh.add(104, merge_results=((False, "behind"),) * 20)
+    gh.prs[104]["behind_files"] = ["docs/a.md"]
+    proc, q, log, _ = _proc(mq, d, "bd-strict4", gh, [104])
+    real_merge = gh.merge
+    gh.merge = lambda n, head: (lambda out: (gh.prs[n].update(merge="BEHIND", behind=1), out)[1])(real_merge(n, head))
+    assert proc.process(104) == "HOLD" and "main moved" in log.lines[-1] and "refused" not in log.lines[-1], "main that keeps moving ends in the moved limit, not in a refusal count"
+
     # the strict protection still being on (GitHub says BEHIND) keeps the sync: GitHub would refuse the merge otherwise
     gh = FakeGh(); gh.add(101, merge="BEHIND", behind=2)
     gh.prs[101]["behind_files"] = ["docs/a.md"]

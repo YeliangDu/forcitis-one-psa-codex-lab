@@ -563,12 +563,15 @@ class Processor:
                 attempt += 1
                 continue
             if result == "refused":
+                if (self.gh.view(n) or {}).get("merge") == "BEHIND":   # main moved between the look and the merge (strict protection): a sync, not a refusal that counts
+                    moved += 1
+                    if moved > 6:
+                        return self.hold(n, None, since, f"main moved {moved} times while this pull request waited for its merge")
+                    continue
                 refused += 1
-                v = self.gh.view(n) or {}
                 if refused >= 5:
                     return self.hold(n, None, since, f"merge refused {refused} times")
-                if v.get("merge") != "BEHIND":
-                    self.sleep(20 * 2 ** (refused - 1))
+                self.sleep(20 * 2 ** (refused - 1))
                 continue
             return result
         return self.hold(n, None, since, "attempts exhausted")
@@ -593,6 +596,10 @@ class Processor:
             behind = self.stale(n, head)
             if behind is None:
                 return self.hold(n, None, since, "could not tell whether the head contains main")
+            if v["merge"] == "BEHIND" and not behind:
+                # the protection "branch must be up to date" is still on: GitHub counts a head that lacks only docs commits as behind and would refuse the merge; no attempt, sync and test again
+                self.log.event("BEHIND-AT-MERGE", n, None, since, "GitHub reports BEHIND (protection still requires an up-to-date branch) although only docs commits are missing: update and run again")
+                return "moved"
             if behind > 0:
                 self.log.event("BEHIND-AT-MERGE", n, None, since, f"main moved by {behind} commit(s) while the full CI ran: update and run again")
                 return "moved"
