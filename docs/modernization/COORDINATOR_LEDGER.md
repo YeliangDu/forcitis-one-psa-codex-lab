@@ -9,7 +9,7 @@
 - 派工用 mcp__ccd_session_mgmt__send_message（会直接开启对方回合）；SendMessage 跨会话常停在「未读」不唤醒空闲会话（10-17 全员停工的原因）。
 - Codex 优先（intent 085534，§5 已改，记忆 codex-first）：各会话能交 Codex 的先交（gpt-6.1-sol xhigh），Claude 只派工、首轮审稿、安全、验收；按日报「Codex 卡数 / 返工轮次」评估，返工两轮以上收回。
 - 在途：strict 已关，快慢两道试行到 10-19（main 并行合入变红一次即 `gh api -X PATCH .../required_status_checks -F strict=true`）；收件箱待答 3 项（N1 五个值、AN-06 转财务、dev 日历）；one-architecture 下一件起草一次投产过渡 ADR（C1，施工图关键路径），前提清单 `architecture/proposals/PREREQ_NAMING_CONSTRUCTION_2026-10-17.md`（分支 one-architecture-adr-governance）；今日简报未发。
-- 主线常驻条（用户 10-17 要求钉住、滚动更新）：本会话 mod mainline-band 读 ~/.modernize/psa/handoff/mainline-band.txt 显示在输入框上方；每个命名主线完成点更新该文件（首行目标，后续行进度，末行「要你做」与更新时间，≤8 行）。同一 mod 另有侧边面板「主线作战图」（读本台账「作战图」节，/battle-map 打开）与状态栏（队列、在开 PR、main 红绿、strict 试行剩余天数自动取；收件箱待答数读 ~/.modernize/psa/handoff/status-extra.txt，收件箱增减时更新）。
+- 主线常驻条（用户 10-17 要求钉住、滚动更新）：本会话 mod mainline-band 读 ~/.modernize/psa/handoff/mainline-band.txt 显示在输入框上方；每个命名主线完成点更新该文件（首行目标，后续行进度，末行「要你做」与更新时间，≤8 行）。同一 mod 另有状态栏（队列、在开 PR、main 红绿、strict 试行剩余天数、Codex 在跑任务自动取；收件箱待答数读 ~/.modernize/psa/handoff/status-extra.txt，收件箱增减时更新）。
 - 本分支待收进文档合集：claude/one-coordinator-two-lanes（intent 4 条、§5 改动、裁定 -05、台账）。
 
 ## 作战图（派工前先看；SESSION_PLAYBOOK §11「战队协作」第 5 条）
