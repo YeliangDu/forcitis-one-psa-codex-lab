@@ -138,3 +138,13 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorEndToEndIT.java
     reason: 子进程用例启动运维命令前，用管理账号对运行时 UTC 当月调用 platform_audit.create_audit_entry_partitions 预建分区（运维档案关了建分区，新库缺当月分区），断言不变，只改前置步骤
     ref: docs/modernization/rulings/COORD-2026-10-17.md
+  - id: RULING-COORD-20261017-06
+    date: 2026-10-17
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ReadOnlyAccountCheckIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorModeStartupIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ReadOnlyVerificationCommandIT.java
+    reason: 慢验收类（CI 耗时复盘）只在测试启动参数里调短外部连接池获取超时（ExternalConnectionFactory limits.acquireTimeout），使「库不可达」用例尽快失败；断言、用例集合与前置数据一字不动，不改生产代码默认值；拆文件暂缓，不在本登记内
+    ref: docs/modernization/rulings/COORD-2026-10-17.md
