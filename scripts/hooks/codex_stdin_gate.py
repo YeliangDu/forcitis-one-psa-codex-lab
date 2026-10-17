@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
-"""PreToolUse 钩子（Bash）：命令里的 `codex exec` 没有关闭或接管标准输入就拒绝。
+"""PreToolUse 钩子（Bash）：`codex exec` 未接管标准输入就拒绝，未显式禁网则告警。
 
 起因：不带 `< /dev/null` 的 codex exec 会停在「Reading additional input from stdin」干等（one-coordinator 2026-10-17，SESSION_PLAYBOOK §5）。
 放行：同一段命令里有输入重定向（`<`、`<<`、`<<<`）、或前面接着管道（`x | codex exec -`）。
 只看命令位置的 codex（echo、grep 里写的不算），`bash -c '…'` 的引号内容递归检查；读不懂的命令行含 `codex exec` 时按拒绝。
-退出码 2 + 标准错误 = 拒绝，0 = 放行；出错一律拒绝（崩溃的退出码 1 对钩子来说是「不拦截」）。
+退出码 2 + 标准错误 = 拒绝；0 + JSON additionalContext = 告警；0 + 无输出 = 放行。拒绝不叠加告警。
+出错一律拒绝（崩溃的退出码 1 对钩子来说是「不拦截」）。
 用法：codex_stdin_gate.py  |  codex_stdin_gate.py --self-test
 """
 import json
 import os
 import re
 import shlex
+import subprocess
 import sys
 import time
+from pathlib import Path
 
 SEPARATORS = {";", "&&", "||", "|", "&", "(", ")", "|&"}
 KEYWORDS = {"if", "then", "do", "else", "elif", "while", "until", "!", "{", "}", "fi", "done", "esac"}
@@ -26,6 +29,9 @@ ENV = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 HEREDOC = re.compile(r"<<-?\s*(?:'([^']+)'|\"([^\"]+)\"|\\?([A-Za-z_][A-Za-z0-9_]*))")
 MESSAGE = ("codex exec 没有关闭标准输入，会停在「Reading additional input from stdin」干等。"
            "在命令末尾加 `< /dev/null`（SESSION_PLAYBOOK §5）；确需从管道或文件喂提示词时用 `| codex exec -` 或 `< 文件`。")
+NETWORK_WARNING = ("告警：codex exec 未显式禁网，或使用了 danger-full-access / --dangerously-bypass-approvals-and-sandbox。"
+                   "按 SESSION_PLAYBOOK §5 使用 `-c sandbox_workspace_write.network_access=false` 与受限沙箱（或 `-s read-only`）；"
+                   "前端命令使用 `pnpm --offline --config.verify-deps-before-run=false`。本告警不拦截调用。")
 
 
 def without_heredoc_bodies(command):
@@ -76,14 +82,15 @@ def is_codex_exec(seg, i):
     return j < len(seg) and seg[j] in ("exec", "e") and not any(t in ("--help", "-h") for t in seg[j + 1:])
 
 
-def unclosed(command, depth=0, closed=False):
-    """True when some `codex exec` in the command line has its standard input left open."""
+def codex_invocations(command, depth=0, closed=False):
     if "codex" not in command:
-        return False
+        return
     try:
         tokens = tokens_of(command)
     except ValueError:
-        return re.search(r"\bcodex\b", command) is not None and re.search(r"\bexec\b", command) is not None
+        if re.search(r"\bcodex\b", command) is not None and re.search(r"\bexec\b", command) is not None:
+            yield [], True
+        return
     segments, cur, piped = [], [], False
     for token in tokens:
         if token in SEPARATORS or set(token) <= set(";&|()"):
@@ -97,8 +104,8 @@ def unclosed(command, depth=0, closed=False):
     for seg, piped_in in segments:
         if depth < 3:
             for token in seg:
-                if "$(" in token and "codex" in token and unclosed(token.replace("$(", " ; ").replace(")", " ; "), depth + 1, piped_in or closed):
-                    return True
+                if "$(" in token and "codex" in token:
+                    yield from codex_invocations(token.replace("$(", " ; ").replace(")", " ; "), depth + 1, piped_in or closed)
         i = 0
         while i < len(seg):
             tok = seg[i]
@@ -114,13 +121,40 @@ def unclosed(command, depth=0, closed=False):
         if i >= len(seg):
             continue
         if is_codex_exec(seg, i):
-            if stdin_open(seg, piped_in or closed):
-                return True
+            yield seg[i + 1:], stdin_open(seg, piped_in or closed)
         elif depth < 3 and os.path.basename(seg[i]) in SHELLS:
             for token in seg[i + 1:]:
-                if " " in token and "codex" in token and unclosed(token, depth + 1, piped_in or closed or any(t in REDIRECTS for t in seg)):
-                    return True
-    return False
+                if " " in token and "codex" in token:
+                    yield from codex_invocations(token, depth + 1, piped_in or closed or any(t in REDIRECTS for t in seg))
+
+
+def unclosed(command):
+    return any(open_stdin for _, open_stdin in codex_invocations(command))
+
+
+def network_disabled(args):
+    """True only when the sandbox mode is given explicitly and cannot reach the network: read-only, or workspace-write with network_access=false (the local default mode is danger-full-access)."""
+    explicit, mode, unsafe, i = False, None, False, 0
+    while i < len(args):
+        token = args[i]
+        option, _, inline = token.partition("=")
+        if token == "--":
+            break
+        if option in ("-c", "--config", "-s", "--sandbox"):
+            value = inline if "=" in token else (args[i + 1] if i + 1 < len(args) else "")
+            if option in ("-c", "--config"):
+                if re.fullmatch(r"sandbox_workspace_write\.network_access\s*=\s*false", value):
+                    explicit = True
+                found = re.fullmatch(r"sandbox_mode\s*=\s*[\"']?([a-z-]+)[\"']?", value)
+                if found:
+                    mode = found.group(1)
+            else:
+                mode = value
+            i += 1 if "=" in token else 2
+        else:
+            unsafe |= token in ("--dangerously-bypass-approvals-and-sandbox", "--yolo")
+            i += 2 if token in CODEX_VALUE_OPTIONS else 1
+    return not unsafe and (mode == "read-only" or (mode == "workspace-write" and explicit))
 
 
 def main():
@@ -136,9 +170,13 @@ def main():
         return 0
     tool_input = payload.get("tool_input")
     command = tool_input.get("command") if isinstance(tool_input, dict) else None
-    if isinstance(command, str) and unclosed(command):
-        print(MESSAGE, file=sys.stderr)
-        return 2
+    if isinstance(command, str):
+        invocations = list(codex_invocations(command))
+        if any(open_stdin for _, open_stdin in invocations):
+            print(MESSAGE, file=sys.stderr)
+            return 2
+        if any(not network_disabled(args) for args, _ in invocations):
+            print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": NETWORK_WARNING}}))
     return 0
 
 
@@ -148,6 +186,86 @@ def guarded_main():
     except Exception as error:
         print(f"codex_stdin_gate.py 出错（{error.__class__.__name__}: {error}），按失败处理", file=sys.stderr)
         return 2
+
+
+def hook_cases():
+    allow = (
+        "codex exec -s workspace-write -c sandbox_workspace_write.network_access=false p < /dev/null",
+        "codex -s workspace-write -c 'sandbox_workspace_write.network_access=false' exec p < /dev/null",
+        "codex exec --sandbox=workspace-write --config=sandbox_workspace_write.network_access=false p < /dev/null",
+        "codex exec p -c sandbox_mode=workspace-write -c sandbox_workspace_write.network_access=false < /dev/null",
+        "codex exec -c sandbox_mode=read-only p < /dev/null",
+        "codex exec -s read-only p < /dev/null",
+        "codex --sandbox read-only exec p < /dev/null",
+        "codex exec --sandbox=read-only p < /dev/null",
+        "cat card.md | codex exec -s workspace-write -c sandbox_workspace_write.network_access=false -",
+        "bash -c 'codex exec -s read-only p' < /dev/null",
+        "cat > card.md <<'EOF'\ncodex exec p\nEOF",
+        "echo 'codex exec p'", "grep -n 'codex exec' file",
+        "git commit -m 'codex exec p'",
+        "git commit -m \"$(cat <<'EOF'\ncodex exec p\nEOF\n)\"",
+        "git status", "codex --version", "codex exec --help",
+    )
+    warn = (
+        "codex exec p < /dev/null",
+        "codex exec -s workspace-write p < /dev/null",
+        "codex exec -c sandbox_workspace_write.network_access=true p < /dev/null",
+        "codex exec -s danger-full-access p < /dev/null",
+        "codex exec --sandbox danger-full-access -c sandbox_workspace_write.network_access=false p < /dev/null",
+        "codex exec --dangerously-bypass-approvals-and-sandbox p < /dev/null",
+        "codex exec -s read-only p --yolo < /dev/null",
+        "codex exec -c sandbox_workspace_write.network_access=false p < /dev/null",
+        "codex -c sandbox_workspace_write.network_access=false exec p < /dev/null",
+        "codex exec -s workspace-write p < /dev/null",
+        "codex exec p < /dev/null",
+        "codex exec -c sandbox_workspace_write.network_access=false -c sandbox_mode=danger-full-access p < /dev/null",
+        "codex exec -c sandbox_workspace_write.network_access=false -c 'sandbox_mode=\"danger-full-access\"' p < /dev/null",
+        "codex exec -c foo.sandbox_workspace_write.network_access=false p < /dev/null",
+        "codex exec -c sandbox_workspace_write.network_access=falsey p < /dev/null",
+        "codex --dangerously-bypass-approvals-and-sandbox exec -s read-only p < /dev/null",
+        "codex exec -s read-only p --dangerously-bypass-approvals-and-sandbox < /dev/null",
+        "codex exec -c sandbox_workspace_write.network_access=false p -s danger-full-access < /dev/null",
+        "codex exec 'network_access=false' < /dev/null",
+        "echo 'network_access=false'; codex exec p < /dev/null",
+        "codex exec -s read-only p < /dev/null; codex exec q < /dev/null",
+        "env A=1 timeout 60 codex exec p < /dev/null",
+        "bash -c 'codex exec p' < /dev/null",
+        "echo \"$(codex exec p < /dev/null)\"",
+        "cat card.md | codex exec -",
+        "codex exec - <<'EOF'\nnetwork_access=false\nEOF",
+    )
+    deny = (
+        "codex exec p", "codex exec -s read-only p",
+        "codex exec -c sandbox_workspace_write.network_access=false p",
+        "codex exec --dangerously-bypass-approvals-and-sandbox p",
+        "codex exec p < /dev/null; codex exec q",
+    )
+    return ([(command, 0, "allow") for command in allow]
+            + [(command, 0, "warn") for command in warn]
+            + [(command, 2, "deny") for command in deny])
+
+
+def hook_self_test():
+    script = Path(__file__).resolve()
+    for runner in ([sys.executable, str(script)], [sys.executable, "-I", str(script)]):
+        for command, status, kind in hook_cases():
+            payload = {"tool_name": "Bash", "tool_input": {"command": command}}
+            result = subprocess.run(["/usr/bin/env", "-i", "LC_ALL=C", *runner], input=json.dumps(payload),
+                                    capture_output=True, text=True, encoding="utf-8", timeout=10)
+            assert result.returncode == status, (runner, command, result)
+            if kind == "allow":
+                assert not result.stdout and not result.stderr, (runner, command, result)
+            elif kind == "warn":
+                assert result.stdout, (runner, command, result)
+                output = json.loads(result.stdout)
+                assert set(output) == {"hookSpecificOutput"}, (command, output)
+                specific = output["hookSpecificOutput"]
+                assert set(specific) == {"hookEventName", "additionalContext"}, (command, output)
+                assert specific["hookEventName"] == "PreToolUse" and specific["additionalContext"], (command, output)
+                assert "sandbox_workspace_write.network_access=false" in specific["additionalContext"], (command, output)
+                assert not result.stderr, (command, result)
+            else:
+                assert not result.stdout and result.stderr.strip() == MESSAGE, (runner, command, result)
 
 
 def self_test():
@@ -174,6 +292,7 @@ def self_test():
     assert unclosed('out="$(codex exec p)"') and unclosed('echo "$(codex exec p)"'), "command substitutions inside double quotes"
     assert not unclosed('echo "$(codex exec p < /dev/null)"')
     assert unclosed("codex exec a < /dev/null; codex exec b"), "a second codex exec without redirection is still caught"
+    hook_self_test()
     print("codex_stdin_gate self-test: ok")
     return 0
 

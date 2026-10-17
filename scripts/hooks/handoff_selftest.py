@@ -93,6 +93,17 @@ def self_test():
         restored = invoke("postcompact_context.sh", new_session, env, repo)
         assert "【交接快照】" not in restored and "第1条：硬规则" in restored, "no snapshot must inject only context"
 
+        fixture_text = playbook.read_text(encoding="utf-8")
+        shutil.copy2(HOOKS.parents[1] / "docs/modernization/SESSION_PLAYBOOK.md", playbook)
+        expected = subprocess.run([sys.executable, "-I", str(hooks / "playbook_digest.py"), str(playbook)],
+                                  capture_output=True, text=True, check=True).stdout
+        restored = invoke("postcompact_context.sh", new_session, env, repo)
+        assert restored.startswith(expected), "start must inject the shared renderer before the profile"
+        assert all(f"## {section}" in restored for section in ["§2.1 会话管理", "§5 上下文管理", "§11 总调度会话"])
+        assert "告警：" not in expected and "PROFILE-MARKER" in restored
+        assert "【交接快照】" not in restored, "common rules must be injected even without a snapshot"
+        playbook.write_text(fixture_text, encoding="utf-8")
+
         def fixture(age, session, body, root=repo, clear=False):
             stamp = datetime.now() - timedelta(days=age)
             path = directory / f"{stamp:%Y%m%d-%H%M%S}-{session}{'-clear' if clear else ''}.md"

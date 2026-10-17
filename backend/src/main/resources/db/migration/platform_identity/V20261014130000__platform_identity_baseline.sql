@@ -1,6 +1,14 @@
 CREATE SCHEMA IF NOT EXISTS platform_identity;
 COMMENT ON SCHEMA platform_identity IS '身份与权限（权限流程与集成平台 BC · 身份）：登录、会话、角色、导航';
 
+-- 文件开头（CREATE SCHEMA 之后）：排他约束需要 btree_gist，由建库脚本预建，迁移只检查存在（ADR-0034 影响面、DDL-28）。
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'btree_gist') THEN
+        RAISE EXCEPTION 'extension btree_gist is missing: the database setup script (one_db_roles_schemas.sql) creates it before the migrations run';
+    END IF;
+END $$;
+
 CREATE TABLE platform_identity.user_accounts (
     user_id            uuid        PRIMARY KEY,
     employee_id        uuid        NOT NULL,
@@ -285,6 +293,8 @@ CREATE TABLE platform_identity.authorization_requests (
     is_enabled        boolean,
     access_scope_kind text CHECK (access_scope_kind IN ('ALL', 'CUSTOM_ORG_UNITS', 'OWN_ORG_UNIT', 'OWN_ORG_UNIT_SUBTREE', 'SELF', 'SELF_AND_DIRECT_REPORTS')),
     permission_codes  text[]      NOT NULL DEFAULT '{}',
+    base_account_version_number bigint,
+    base_role_version_ids       uuid[]      NOT NULL DEFAULT '{}',
     request_status    text        NOT NULL CHECK (request_status IN ('PENDING', 'CONFIRMED', 'REJECTED')),
     decided_by        uuid,
     decided_at        timestamptz,
@@ -308,6 +318,8 @@ COMMENT ON COLUMN platform_identity.authorization_requests.role_name IS '角色�
 COMMENT ON COLUMN platform_identity.authorization_requests.is_enabled IS '角色是否启用：CREATE_ROLE、UPDATE_ROLE 才有';
 COMMENT ON COLUMN platform_identity.authorization_requests.access_scope_kind IS '角色数据范围类型；为空表示沿用';
 COMMENT ON COLUMN platform_identity.authorization_requests.permission_codes IS '角色的完整权限码集合：CREATE_ROLE、UPDATE_ROLE 才有';
+COMMENT ON COLUMN platform_identity.authorization_requests.base_account_version_number IS '基准账号版本：账号授权申请记申请时 user_accounts.version；为空表示不是账号授权申请';
+COMMENT ON COLUMN platform_identity.authorization_requests.base_role_version_ids IS '基准角色版本：申请时相关角色的当前 role_version_id；账号授权申请为申请后集合与当时持有集合中每个角色，角色修改申请为该角色一个；新建角色为空数组（列名见待裁定 A-3）';
 COMMENT ON COLUMN platform_identity.authorization_requests.request_status IS '申请状态：PENDING 待确认 / CONFIRMED 已确认并交监听器执行 / REJECTED 已拒绝';
 COMMENT ON COLUMN platform_identity.authorization_requests.decided_by IS '确认人或拒绝人用户 ID；确认人不是申请人，也不是受益人';
 COMMENT ON COLUMN platform_identity.authorization_requests.decided_at IS '确认或拒绝的时间';
@@ -315,6 +327,198 @@ COMMENT ON COLUMN platform_identity.authorization_requests.version IS '乐观锁
 COMMENT ON COLUMN platform_identity.authorization_requests.event_count IS '事件序号：该聚合已发出的事件数，作为事件信封的 aggregateVersion；与乐观锁 version 分开';
 COMMENT ON COLUMN platform_identity.authorization_requests.created_at IS '创建时间';
 COMMENT ON COLUMN platform_identity.authorization_requests.updated_at IS '更新时间';
+
+CREATE FUNCTION platform_identity.is_normalized_code_set(codes text[]) RETURNS boolean LANGUAGE sql IMMUTABLE STRICT AS $$
+    SELECT (array_ndims(codes) IS NULL OR array_ndims(codes) = 1)
+       AND array_position(codes, NULL) IS NULL
+       AND codes = ARRAY(SELECT c FROM (SELECT DISTINCT c FROM unnest(codes) AS c) AS d ORDER BY c COLLATE "C")
+$$;
+COMMENT ON FUNCTION platform_identity.is_normalized_code_set(text[]) IS '代码集合是否已规范化：一维、无空元素、无重复、按 C 排序升序；应用写入前先规范化（ADR-0034 第 1 项第 2 条）';
+
+-- 两张授权历史表共用：开放行只能被关闭一次（只改 TG_ARGV 所列的关闭列），已关闭的行不能改，任何行不能删或清空。
+CREATE FUNCTION platform_identity.refuse_history_rewrite() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
+        RAISE EXCEPTION 'authorization history is append-only: % on %.% is refused', lower(TG_OP), TG_TABLE_SCHEMA, TG_TABLE_NAME
+            USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF OLD.effective_to_at IS NOT NULL THEN
+        RAISE EXCEPTION 'a closed row cannot change: %.%', TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF NEW.effective_to_at IS NULL OR (to_jsonb(NEW) - TG_ARGV) <> (to_jsonb(OLD) - TG_ARGV) THEN
+        RAISE EXCEPTION 'an open row can only be closed: %.%', TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
+    END IF;
+    RETURN NEW;
+END $$;
+COMMENT ON FUNCTION platform_identity.refuse_history_rewrite() IS '授权历史只追加：开放行只许一次性写入关闭列（参数列出），已关闭的行不能改，任何行不能删或清空（ADR-0034 第 1 项第 2 条、第 2 项第 2 条）';
+
+CREATE TABLE platform_identity.role_versions (
+    role_version_id             uuid        NOT NULL,
+    role_id                     uuid        NOT NULL,
+    version_number              integer     NOT NULL,
+    effective_from_at           timestamptz NOT NULL,
+    effective_to_at             timestamptz,
+    role_name                   text        NOT NULL,
+    role_status                 text        NOT NULL,
+    access_scope_kind           text        NOT NULL,
+    permission_codes            text[]      NOT NULL,
+    change_channel_kind         text        NOT NULL,
+    recorded_by                 uuid,
+    change_reason               text        NOT NULL,
+    authorization_request_id    uuid,
+    declaration_revision_number integer,
+    version_audit_entry_id      uuid        NOT NULL,
+    closed_by                   uuid,
+    closure_reason              text,
+    closure_audit_entry_id      uuid,
+    created_at                  timestamptz NOT NULL,
+    updated_at                  timestamptz NOT NULL,
+    CONSTRAINT pk_role_versions PRIMARY KEY (role_version_id),
+    CONSTRAINT fk_role_versions_role_id FOREIGN KEY (role_id) REFERENCES platform_identity.roles (role_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_role_versions_authorization_request_id FOREIGN KEY (authorization_request_id)
+        REFERENCES platform_identity.authorization_requests (request_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_role_versions_recorded_by FOREIGN KEY (recorded_by) REFERENCES platform_identity.user_accounts (user_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_role_versions_closed_by FOREIGN KEY (closed_by) REFERENCES platform_identity.user_accounts (user_id) ON DELETE RESTRICT,
+    CONSTRAINT uk_role_versions_role_id_version_number UNIQUE (role_id, version_number),
+    CONSTRAINT ck_role_versions_version_number CHECK (version_number >= 1),
+    CONSTRAINT ck_role_versions_role_name CHECK (btrim(role_name) <> '' AND char_length(role_name) <= 100),
+    CONSTRAINT ck_role_versions_role_status CHECK (role_status IN ('ENABLED', 'DISABLED')),
+    CONSTRAINT ck_role_versions_access_scope_kind CHECK (access_scope_kind IN ('ALL', 'CUSTOM_ORG_UNITS', 'OWN_ORG_UNIT', 'OWN_ORG_UNIT_SUBTREE', 'SELF', 'SELF_AND_DIRECT_REPORTS')),
+    CONSTRAINT ck_role_versions_permission_codes CHECK (platform_identity.is_normalized_code_set(permission_codes)),
+    CONSTRAINT ck_role_versions_change_channel_kind CHECK (change_channel_kind IN ('SEED', 'MANUAL', 'MIGRATION')),
+    CONSTRAINT ck_role_versions_change_reason CHECK (btrim(change_reason) <> '' AND char_length(change_reason) <= 500),
+    CONSTRAINT ck_role_versions_seed CHECK ((change_channel_kind = 'SEED') = (declaration_revision_number IS NOT NULL)
+        AND (change_channel_kind <> 'SEED' OR recorded_by IS NULL)),
+    CONSTRAINT ck_role_versions_manual CHECK (change_channel_kind <> 'MANUAL' OR recorded_by IS NOT NULL),
+    CONSTRAINT ck_role_versions_declaration_revision_number CHECK (declaration_revision_number IS NULL OR declaration_revision_number >= 1),
+    CONSTRAINT ck_role_versions_closure CHECK ((closed_by IS NULL) = (closure_reason IS NULL)
+        AND (closure_reason IS NULL) = (closure_audit_entry_id IS NULL)
+        AND (closure_reason IS NULL OR effective_to_at IS NOT NULL)),
+    CONSTRAINT ck_role_versions_closure_reason CHECK (closure_reason IS NULL OR (btrim(closure_reason) <> '' AND char_length(closure_reason) <= 500)),
+    CONSTRAINT ck_role_versions_period CHECK (effective_to_at IS NULL OR effective_to_at >= effective_from_at),
+    CONSTRAINT ck_role_versions_finite CHECK (isfinite(effective_from_at) AND (effective_to_at IS NULL OR isfinite(effective_to_at))),
+    CONSTRAINT ex_role_versions_role_id_period EXCLUDE USING gist (role_id WITH =, tstzrange(effective_from_at, effective_to_at, '[)') WITH &&),
+    CONSTRAINT ex_role_versions_role_name_period EXCLUDE USING gist (lower(role_name) WITH =, tstzrange(effective_from_at, effective_to_at, '[)') WITH &&)
+);
+CREATE INDEX ix_role_versions_role_id_current ON platform_identity.role_versions (role_id) WHERE effective_to_at IS NULL;
+CREATE INDEX ix_role_versions_authorization_request_id ON platform_identity.role_versions (authorization_request_id) WHERE authorization_request_id IS NOT NULL;
+CREATE INDEX ix_role_versions_recorded_by ON platform_identity.role_versions (recorded_by) WHERE recorded_by IS NOT NULL;
+CREATE INDEX ix_role_versions_closed_by ON platform_identity.role_versions (closed_by) WHERE closed_by IS NOT NULL;
+CREATE TRIGGER tg_role_versions_append_only BEFORE UPDATE OR DELETE ON platform_identity.role_versions
+    FOR EACH ROW EXECUTE FUNCTION platform_identity.refuse_history_rewrite('effective_to_at', 'closed_by', 'closure_reason', 'closure_audit_entry_id', 'updated_at');
+CREATE TRIGGER tg_role_versions_append_only_truncate BEFORE TRUNCATE ON platform_identity.role_versions
+    FOR EACH STATEMENT EXECUTE FUNCTION platform_identity.refuse_history_rewrite();
+COMMENT ON TABLE platform_identity.role_versions IS '角色版本：角色定义（名称、状态、范围类型、完整权限集合）的每次变化一行，只追加；当前版本 = effective_to_at 为空的那一行，每个角色至多一个；删除角色 = 关闭最后一个版本、不再开新版本（ADR-0034 第 1 项、RULE-345 修订）。粒度：每个角色的每个定义版本一行';
+COMMENT ON COLUMN platform_identity.role_versions.role_version_id IS '角色版本 ID（UUIDv7，应用生成）';
+COMMENT ON COLUMN platform_identity.role_versions.role_id IS '角色 ID';
+COMMENT ON COLUMN platform_identity.role_versions.version_number IS '版本序号：同一角色从 1 起递增';
+COMMENT ON COLUMN platform_identity.role_versions.effective_from_at IS '生效时刻（含）：greatest(注入时钟, 当前版本生效时刻, 该角色已有版本的最大失效时刻)';
+COMMENT ON COLUMN platform_identity.role_versions.effective_to_at IS '失效时刻（不含）；为空表示当前版本。与生效时刻相等为零长区间，不出现在任何时刻的还原中';
+COMMENT ON COLUMN platform_identity.role_versions.role_name IS '角色名称：同一时刻内不区分大小写唯一（排他约束），1 至 100 字';
+COMMENT ON COLUMN platform_identity.role_versions.role_status IS '角色状态：ENABLED / DISABLED；只有 ENABLED 计入权限与数据范围（RULE-343/349）';
+COMMENT ON COLUMN platform_identity.role_versions.access_scope_kind IS '数据范围类型：新角色默认 SELF（RULE-345）；CUSTOM_ORG_UNITS 的部门明细挂在本版本下（F-1）';
+COMMENT ON COLUMN platform_identity.role_versions.permission_codes IS '完整权限集合：权限码 {子域}.{BC}:{资源}:{动作}，规范化存储（无空、无重复、C 排序升序）；按原文本保存，不随权限目录改写';
+COMMENT ON COLUMN platform_identity.role_versions.change_channel_kind IS '变更渠道：SEED 系统角色声明对账 / MANUAL 角色管理界面 / MIGRATION 老角色迁入';
+COMMENT ON COLUMN platform_identity.role_versions.recorded_by IS '记录人用户 ID；为空表示系统写入（SEED 必为空，MANUAL 必有）';
+COMMENT ON COLUMN platform_identity.role_versions.change_reason IS '变更理由：SEED 写声明出处，MANUAL 写操作说明，1 至 500 字（来源见 ADR-0034-IMPL 待裁定 A-5）';
+COMMENT ON COLUMN platform_identity.role_versions.authorization_request_id IS '授权申请 ID：经双人确认的版本必填；为空表示未经授权申请';
+COMMENT ON COLUMN platform_identity.role_versions.declaration_revision_number IS '声明修订号：只有 SEED 版本有，单调递增；为空表示不是声明写入';
+COMMENT ON COLUMN platform_identity.role_versions.version_audit_entry_id IS '写入本版本的同一事务中写下的审计条目 ID（跨 schema，只存 ID、不建外键）';
+COMMENT ON COLUMN platform_identity.role_versions.closed_by IS '关闭人用户 ID：删除角色关闭最后版本时写入；为空表示未关闭，或被新版本接替（由接替版本记操作人）';
+COMMENT ON COLUMN platform_identity.role_versions.closure_reason IS '关闭理由：删除角色时写入，1 至 500 字；为空表示未关闭或被新版本接替';
+COMMENT ON COLUMN platform_identity.role_versions.closure_audit_entry_id IS '关闭（删除角色）的审计条目 ID（跨 schema）；为空表示未关闭或被新版本接替';
+COMMENT ON COLUMN platform_identity.role_versions.created_at IS '创建时间（应用注入时钟）';
+COMMENT ON COLUMN platform_identity.role_versions.updated_at IS '更新时间（应用注入时钟）：关闭时写入关闭时刻（见待裁定 A-4）';
+
+CREATE TABLE platform_identity.account_role_grants (
+    account_role_grant_id               uuid        NOT NULL,
+    user_id                             uuid        NOT NULL,
+    role_id                             uuid        NOT NULL,
+    effective_from_at                   timestamptz NOT NULL,
+    effective_to_at                     timestamptz,
+    granted_by                          uuid,
+    grant_channel_kind                  text        NOT NULL,
+    grant_authorization_request_id      uuid,
+    migration_batch_id                  uuid,
+    grant_audit_entry_id                uuid        NOT NULL,
+    revoked_by                          uuid,
+    revocation_cause_kind               text,
+    revocation_authorization_request_id uuid,
+    revocation_sync_run_id              uuid,
+    revocation_audit_entry_id           uuid,
+    created_at                          timestamptz NOT NULL,
+    updated_at                          timestamptz NOT NULL,
+    CONSTRAINT pk_account_role_grants PRIMARY KEY (account_role_grant_id),
+    CONSTRAINT fk_account_role_grants_user_id FOREIGN KEY (user_id) REFERENCES platform_identity.user_accounts (user_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_account_role_grants_role_id FOREIGN KEY (role_id) REFERENCES platform_identity.roles (role_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_account_role_grants_granted_by FOREIGN KEY (granted_by) REFERENCES platform_identity.user_accounts (user_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_account_role_grants_revoked_by FOREIGN KEY (revoked_by) REFERENCES platform_identity.user_accounts (user_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_account_role_grants_grant_authorization_request_id FOREIGN KEY (grant_authorization_request_id)
+        REFERENCES platform_identity.authorization_requests (request_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_account_role_grants_revocation_authorization_request_id FOREIGN KEY (revocation_authorization_request_id)
+        REFERENCES platform_identity.authorization_requests (request_id) ON DELETE RESTRICT,
+    CONSTRAINT ck_account_role_grants_grant_channel_kind CHECK (grant_channel_kind IN ('MANUAL', 'DEFAULT_ROLE', 'OPERATIONS', 'MIGRATION')),
+    CONSTRAINT ck_account_role_grants_revocation_cause_kind CHECK (revocation_cause_kind IS NULL
+        OR revocation_cause_kind IN ('MANUAL', 'SEPARATION', 'OPERATIONS', 'MIGRATION_ROLLBACK')),
+    CONSTRAINT ck_account_role_grants_grant CHECK ((grant_channel_kind = 'MANUAL') = (granted_by IS NOT NULL)
+        AND (grant_channel_kind = 'MIGRATION') = (migration_batch_id IS NOT NULL)
+        AND (grant_authorization_request_id IS NULL OR grant_channel_kind = 'MANUAL')),
+    CONSTRAINT ck_account_role_grants_revocation CHECK ((effective_to_at IS NULL) = (revocation_cause_kind IS NULL)
+        AND (revocation_cause_kind IS NULL) = (revocation_audit_entry_id IS NULL)
+        AND (revocation_cause_kind IS DISTINCT FROM 'MANUAL' OR revoked_by IS NOT NULL)
+        AND ((revocation_cause_kind IS NOT DISTINCT FROM 'SEPARATION') = (revocation_sync_run_id IS NOT NULL))
+        AND (revocation_cause_kind IS DISTINCT FROM 'SEPARATION' OR revoked_by IS NULL)
+        AND (revocation_authorization_request_id IS NULL OR revocation_cause_kind = 'MANUAL')
+        AND (revoked_by IS NULL OR effective_to_at IS NOT NULL)),
+    CONSTRAINT ck_account_role_grants_period CHECK (effective_to_at IS NULL OR effective_to_at >= effective_from_at),
+    CONSTRAINT ck_account_role_grants_finite CHECK (isfinite(effective_from_at) AND (effective_to_at IS NULL OR isfinite(effective_to_at))),
+    CONSTRAINT ex_account_role_grants_user_id_role_id_period EXCLUDE USING gist
+        (user_id WITH =, role_id WITH =, tstzrange(effective_from_at, effective_to_at, '[)') WITH &&)
+);
+CREATE INDEX ix_account_role_grants_user_id_current ON platform_identity.account_role_grants (user_id) WHERE effective_to_at IS NULL;
+CREATE INDEX ix_account_role_grants_role_id_current ON platform_identity.account_role_grants (role_id) WHERE effective_to_at IS NULL;
+CREATE INDEX ix_account_role_grants_user_id_effective_from_at ON platform_identity.account_role_grants (user_id, effective_from_at);
+CREATE INDEX ix_account_role_grants_migration_batch_id ON platform_identity.account_role_grants (migration_batch_id) WHERE migration_batch_id IS NOT NULL;
+CREATE INDEX ix_account_role_grants_granted_by ON platform_identity.account_role_grants (granted_by) WHERE granted_by IS NOT NULL;
+CREATE INDEX ix_account_role_grants_revoked_by ON platform_identity.account_role_grants (revoked_by) WHERE revoked_by IS NOT NULL;
+CREATE INDEX ix_account_role_grants_grant_authorization_request_id ON platform_identity.account_role_grants (grant_authorization_request_id)
+    WHERE grant_authorization_request_id IS NOT NULL;
+CREATE INDEX ix_account_role_grants_revocation_authorization_request_id ON platform_identity.account_role_grants (revocation_authorization_request_id)
+    WHERE revocation_authorization_request_id IS NOT NULL;
+
+CREATE FUNCTION platform_identity.require_open_role_version() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM platform_identity.role_versions v WHERE v.role_id = NEW.role_id AND v.effective_to_at IS NULL) THEN
+        RAISE EXCEPTION 'role % has no open version (deleted) and cannot be granted', NEW.role_id USING ERRCODE = 'restrict_violation';
+    END IF;
+    RETURN NEW;
+END $$;
+COMMENT ON FUNCTION platform_identity.require_open_role_version() IS '新开授予前检查角色仍有当前版本：已删除的角色不能再授予（ADR-0034 第 2 项第 1 条）';
+CREATE TRIGGER tg_account_role_grants_open_role_version BEFORE INSERT ON platform_identity.account_role_grants
+    FOR EACH ROW EXECUTE FUNCTION platform_identity.require_open_role_version();
+CREATE TRIGGER tg_account_role_grants_append_only BEFORE UPDATE OR DELETE ON platform_identity.account_role_grants
+    FOR EACH ROW EXECUTE FUNCTION platform_identity.refuse_history_rewrite('effective_to_at', 'revoked_by', 'revocation_cause_kind',
+        'revocation_authorization_request_id', 'revocation_sync_run_id', 'revocation_audit_entry_id', 'updated_at');
+CREATE TRIGGER tg_account_role_grants_append_only_truncate BEFORE TRUNCATE ON platform_identity.account_role_grants
+    FOR EACH STATEMENT EXECUTE FUNCTION platform_identity.refuse_history_rewrite();
+COMMENT ON TABLE platform_identity.account_role_grants IS '角色授予：某账号在一段时间内持有某角色，只追加；收回 = 关闭开放行，再次获得新增一行；当前有效授予 = effective_to_at 为空；离职关闭全部当前有效授予（ADR-0034 第 2、3 项）。粒度：每个账号每次持有某角色一行';
+COMMENT ON COLUMN platform_identity.account_role_grants.account_role_grant_id IS '角色授予 ID（UUIDv7，应用生成）';
+COMMENT ON COLUMN platform_identity.account_role_grants.user_id IS '用户 ID：持有人账号';
+COMMENT ON COLUMN platform_identity.account_role_grants.role_id IS '角色 ID';
+COMMENT ON COLUMN platform_identity.account_role_grants.effective_from_at IS '生效时刻（含）：greatest(注入时钟, 此人此角色已有行的最大失效时刻)';
+COMMENT ON COLUMN platform_identity.account_role_grants.effective_to_at IS '失效时刻（不含，即收回时刻）：greatest(注入时钟, 生效时刻)；为空表示当前有效。是系统实际收回的时刻，不是离职日期';
+COMMENT ON COLUMN platform_identity.account_role_grants.granted_by IS '授予人用户 ID：有且只有 MANUAL 有；为空表示非界面授予（默认角色、运维命令、迁入；运维命令的操作人与见证人记在审计）。将来增加授予渠道时同步改 ck_account_role_grants_grant';
+COMMENT ON COLUMN platform_identity.account_role_grants.grant_channel_kind IS '授予渠道：MANUAL 账号授权界面（含经双人确认的申请）/ DEFAULT_ROLE 建档或复职时的默认角色 / OPERATIONS 运维命令 grant-role / MIGRATION 老角色迁入';
+COMMENT ON COLUMN platform_identity.account_role_grants.grant_authorization_request_id IS '授予所据的授权申请 ID；为空表示未经双人确认（只 MANUAL 可有）';
+COMMENT ON COLUMN platform_identity.account_role_grants.migration_batch_id IS '迁入批次 ID（跨模块，只存 ID）：只 MIGRATION 有；为空表示不是迁入';
+COMMENT ON COLUMN platform_identity.account_role_grants.grant_audit_entry_id IS '开启本行的同一事务中写下的审计条目 ID（跨 schema，只存 ID、不建外键）';
+COMMENT ON COLUMN platform_identity.account_role_grants.revoked_by IS '收回人用户 ID：MANUAL 必有、SEPARATION 必为空；为空表示未收回或系统收回';
+COMMENT ON COLUMN platform_identity.account_role_grants.revocation_cause_kind IS '收回原因：MANUAL 账号授权 / SEPARATION 离职 / OPERATIONS 运维命令 revoke-role / MIGRATION_ROLLBACK 迁入批次回退；为空表示未收回';
+COMMENT ON COLUMN platform_identity.account_role_grants.revocation_authorization_request_id IS '收回所据的授权申请 ID；为空表示未收回或未经双人确认（只 MANUAL 可有）';
+COMMENT ON COLUMN platform_identity.account_role_grants.revocation_sync_run_id IS '触发离职收回的同步运行 ID（跨 schema，只存 ID）：只 SEPARATION 有；为空表示不是离职收回';
+COMMENT ON COLUMN platform_identity.account_role_grants.revocation_audit_entry_id IS '收回本行的审计条目 ID（platform.identity.account.role.revoked 等，跨 schema）；为空表示未收回';
+COMMENT ON COLUMN platform_identity.account_role_grants.created_at IS '创建时间（应用注入时钟）';
+COMMENT ON COLUMN platform_identity.account_role_grants.updated_at IS '更新时间（应用注入时钟）：关闭时写入关闭时刻（见待裁定 A-4）';
 
 -- 系统角色：super_admin 为预留码（RULE-340/345），只能在此建立；employee 是新员工建档时显式授予一次的默认角色（RULE-344），仅含最小权限。
 INSERT INTO platform_identity.roles (role_id, code, name, kind, status, access_scope, is_administrative) VALUES
