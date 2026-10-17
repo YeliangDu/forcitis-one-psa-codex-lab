@@ -154,6 +154,7 @@ class AuditLogIT {
     void searchFiltersAndPages() throws Exception {
         UUID subject = UUID.randomUUID();
         String action = unique("platform.audit.test");
+        jdbc.sql("select platform_audit.create_audit_entry_partitions(date '2026-01-01', date '2026-01-01')").query(Integer.class).single();
         insertAt("2026-01-01T08:00:00Z", action, 41L, subject);
         insertAt("2026-01-02T08:00:00Z", action, 41L, subject);
         insertAt("2026-01-03T08:00:00Z", action, 42L, subject);
