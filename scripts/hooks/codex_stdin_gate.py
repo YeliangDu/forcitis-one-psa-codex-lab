@@ -55,7 +55,7 @@ def tokens_of(command):
             found = list(lexer)
         except ValueError:
             continue
-        tokens += found + [";"]
+        tokens += found if found and found[-1] in ("|", "&&", "||", "|&") else found + [";"]
         pending = ""
     if pending:
         raise ValueError("unterminated quote")
@@ -73,10 +73,10 @@ def is_codex_exec(seg, i):
     j = i + 1
     while j < len(seg) and seg[j].startswith("-"):
         j += 2 if seg[j] in CODEX_VALUE_OPTIONS else 1
-    return j < len(seg) and seg[j] == "exec" and not any(t in ("--help", "-h") for t in seg[j + 1:])
+    return j < len(seg) and seg[j] in ("exec", "e") and not any(t in ("--help", "-h") for t in seg[j + 1:])
 
 
-def unclosed(command, depth=0):
+def unclosed(command, depth=0, closed=False):
     """True when some `codex exec` in the command line has its standard input left open."""
     if "codex" not in command:
         return False
@@ -95,6 +95,10 @@ def unclosed(command, depth=0):
     if cur:
         segments.append((cur, piped))
     for seg, piped_in in segments:
+        if depth < 3:
+            for token in seg:
+                if "$(" in token and "codex" in token and unclosed(token.replace("$(", " ; ").replace(")", " ; "), depth + 1, piped_in or closed):
+                    return True
         i = 0
         while i < len(seg):
             tok = seg[i]
@@ -110,11 +114,11 @@ def unclosed(command, depth=0):
         if i >= len(seg):
             continue
         if is_codex_exec(seg, i):
-            if stdin_open(seg, piped_in):
+            if stdin_open(seg, piped_in or closed):
                 return True
         elif depth < 3 and os.path.basename(seg[i]) in SHELLS:
             for token in seg[i + 1:]:
-                if " " in token and "codex" in token and unclosed(token, depth + 1):
+                if " " in token and "codex" in token and unclosed(token, depth + 1, piped_in or closed or any(t in REDIRECTS for t in seg)):
                     return True
     return False
 
@@ -164,6 +168,11 @@ def self_test():
     started = time.monotonic()
     assert unclosed("codex " * 50000 + "' exec")
     assert time.monotonic() - started < 5, "the fallback search must not backtrack quadratically"
+    assert unclosed("codex e p"), "e is the alias of exec"
+    assert not unclosed("cat card.md |\n  codex exec -"), "a pipe at the end of a line continues on the next"
+    assert not unclosed("bash -c 'codex exec p' < /dev/null"), "the outer redirection closes stdin of the inner command"
+    assert unclosed('out="$(codex exec p)"') and unclosed('echo "$(codex exec p)"'), "command substitutions inside double quotes"
+    assert not unclosed('echo "$(codex exec p < /dev/null)"')
     assert unclosed("codex exec a < /dev/null; codex exec b"), "a second codex exec without redirection is still caught"
     print("codex_stdin_gate self-test: ok")
     return 0
