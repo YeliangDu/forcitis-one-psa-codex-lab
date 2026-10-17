@@ -102,7 +102,7 @@ class RoleSeparatedDeploymentIT {
     private static void installTheProcessEngine() {
         List<String> args = new ArrayList<>(List.of("--spring.profiles.active=dev", "--spring.datasource.url=" + url(), "--spring.datasource.username=" + MIGRATOR,
                 "--spring.datasource.password=" + MIGRATOR_PASSWORD, "--flowable.database-schema-update=true", "--flowable.async-executor-activate=false",
-                "--forcitis.platform.approval.process-administrator-required=false", "--spring.main.banner-mode=off", "--server.port=0"));
+                "--forcitis.platform.approval.process-administrator-required=false", "--spring.main.banner-mode=off", "--server.port=0", "--server.address=127.0.0.1"));
         List.of(JOBS_OFF).forEach(p -> args.add("--" + p));
         try (var engineInstaller = new SpringApplicationBuilder(OneApplication.class).web(WebApplicationType.SERVLET).run(args.toArray(String[]::new))) {
             assertThat(engineInstaller.isRunning()).isTrue();
