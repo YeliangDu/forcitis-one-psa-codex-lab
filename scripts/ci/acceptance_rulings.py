@@ -14,9 +14,8 @@ Per commit of base..head that carries Acceptance-Ruling trailers, a trailer is
   unrecorded  the id is not in the base's record
   invalid     the entry lacks date / ruled_by / implementer / files / reason, or ruled_by equals implementer (or is a session name starting with `self`), or the date is not a date
   out of scope  the commit changes an acceptance test that none of the entry's `files` covers (path equal to, or under, an entry)
-Report mode (default): prints the findings as warnings, exit 0; `--enforce` exits 1 on any. Existing rulings in the history (see `--history`) have no record yet: the report lists them so the coordinator can write the entries; enforcement
-is switched on (ENFORCE = True) after that.
-Usage: acceptance_rulings.py <base-ref> [head-ref] [--enforce]  |  acceptance_rulings.py --history [rev-range]  |  acceptance_rulings.py --self-test"""
+Enforcing (ENFORCE = True): any finding fails; `--report` prints them as warnings and exits 0. Only the commits of base..head are judged, so rulings in the history before this check reached main (see `--history`; the coordinator decided on 2026-10-17 not to back-fill them) are not checked.
+Usage: acceptance_rulings.py <base-ref> [head-ref] [--report]  |  acceptance_rulings.py --history [rev-range]  |  acceptance_rulings.py --self-test"""
 import datetime
 import os
 import re
@@ -27,7 +26,7 @@ from acceptance_guard import ACCEPTANCE, RULING_ID, changed_files, parents_of, t
 from ci_git import CiError, commit_of, git, git_ok, require_full_history, run, toplevel
 
 RECORD = "docs/modernization/rulings/ACCEPTANCE_RULINGS.yaml"
-ENFORCE = False
+ENFORCE = True
 FIELDS = ("id", "date", "ruled_by", "implementer", "files", "reason")
 
 
@@ -176,11 +175,11 @@ def self_test():
         me = os.path.abspath(__file__)
         git("checkout", "-q", "-B", "cli", "base-with-record", cwd=repo)
         commit(repo, {ACC: "cli\n"}, "fix" + trailer("RULING-9"))
-        report = subprocess.run([sys.executable, me, "base-with-record", "cli"], cwd=repo, capture_output=True, text=True)
+        report = subprocess.run([sys.executable, me, "base-with-record", "cli", "--report"], cwd=repo, capture_output=True, text=True)
         assert report.returncode == 0 and "::warning title=Acceptance rulings::" in report.stdout and "RULING-9 unrecorded" in report.stdout and "(report only)" in report.stdout, report.stdout
-        enforced = subprocess.run([sys.executable, me, "base-with-record", "cli", "--enforce"], cwd=repo, capture_output=True, text=True)
+        enforced = subprocess.run([sys.executable, me, "base-with-record", "cli"], cwd=repo, capture_output=True, text=True)
         assert enforced.returncode == 1 and "::error title=Acceptance rulings::" in enforced.stdout, enforced.stdout
-        clean = subprocess.run([sys.executable, me, "base-with-record", "base-with-record", "--enforce"], cwd=repo, capture_output=True, text=True)
+        clean = subprocess.run([sys.executable, me, "base-with-record", "base-with-record"], cwd=repo, capture_output=True, text=True)
         assert clean.returncode == 0 and "0 finding(s)" in clean.stdout, clean.stdout
         listing = subprocess.run([sys.executable, me, "--history", "base-with-record..cli"], cwd=repo, capture_output=True, text=True)
         assert listing.returncode == 0 and "RULING-9: NOT RECORDED" in listing.stdout, listing.stdout
@@ -194,8 +193,8 @@ def main():
     args = sys.argv[1:]
     if args == ["--self-test"]:
         return self_test()
-    enforce = ENFORCE or "--enforce" in args
-    args = [a for a in args if a != "--enforce"]
+    enforce = ENFORCE and "--report" not in args or "--enforce" in args
+    args = [a for a in args if a not in ("--enforce", "--report")]
     try:
         root = toplevel()
         if args[:1] == ["--history"]:

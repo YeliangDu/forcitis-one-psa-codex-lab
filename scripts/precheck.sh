@@ -167,7 +167,7 @@ if touches '^(backend/src/test/java/com/forcitis/one/acceptance/|backend/src/tes
     echo "      note: uncommitted acceptance changes are judged only once committed (trailers live in commit messages)"
   fi
   run_step "acceptance guard" py scripts/ci/acceptance_guard.py "$base"
-  run_step "acceptance rulings (report only)" py scripts/ci/acceptance_rulings.py "$base"
+  run_step "acceptance rulings" py scripts/ci/acceptance_rulings.py "$base"
 else
   report SKIP "acceptance guard" "no acceptance test changed"
 fi
