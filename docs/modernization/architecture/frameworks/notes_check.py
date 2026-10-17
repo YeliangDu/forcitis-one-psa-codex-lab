@@ -124,6 +124,23 @@ def check_evidence(name, nid, body, errors, warnings):
         warnings.append(f"_evidence/{nid}.yaml: {eid} 已登记但笔记未用")
 
 
+THREE_PART_ENFORCED = False
+
+
+def check_core(name, nid, body, sink):
+    """核心思想每条须有「论断」「依据：」（至少一个本笔记锚点）「含义：」三段。"""
+    m = re.search(r"^## 核心思想\s*$(.*?)(?=^## )", strip_fences(body), re.M | re.S)
+    items = re.findall(r"^- (.+(?:\n(?!- |\n).+)*)", m.group(1), re.M) if m else []
+    if not items:
+        sink.append(f"{name}: 核心思想没有条目")
+    for i, item in enumerate(items, 1):
+        missing = [k for k in ("论断", "依据：", "含义：") if k not in item]
+        if "依据：" in item and not re.search(rf"{nid}#", item.split("依据：", 1)[1]):
+            missing.append("依据中的本笔记锚点")
+        if missing:
+            sink.append(f"{name}: 核心思想第 {i} 条缺 {'、'.join(missing)}（格式见 _TEMPLATE.md）")
+
+
 def check_note(path, meta, body, vocab, aliases, errors, warnings):
     name = path.name
     if "_error" in meta:
@@ -155,6 +172,7 @@ def check_note(path, meta, body, vocab, aliases, errors, warnings):
     if any(h.startswith("附：") for h in heads[: len(main)]):
         errors.append(f"{name}: 附节须在四节之后")
 
+    check_core(name, nid, body, warnings if not THREE_PART_ENFORCED else errors)
     anchors, per_table = [], []
     for prefix, concept, _, table in anchor_rows(body):
         row = f"{prefix}#{concept}"
