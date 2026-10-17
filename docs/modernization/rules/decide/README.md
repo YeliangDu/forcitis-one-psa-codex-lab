@@ -14,6 +14,7 @@
 | CAPINFO 能力层与信息层确认（9 题；one-architecture） | `sheets/CAPINFO.json` | https://claude.ai/artifact/HfPaPW8QrbBoct65sS6w8g（2026-10-17 起，未实看渲染） |
 | TRN 过渡 ADR 批准（ADR-0054、0055、0056，14 题；one-architecture） | `sheets/TRN.json` | https://claude.ai/artifact/ViNWQdAhmyGLAA919TFBwN（2026-10-17 起，未实看渲染） |
 | B31 内部服务价值流（9 题；one-architecture） | `sheets/B31.json` | https://claude.ai/artifact/96WEt2s9swq3LNsjyfpcMz（2026-10-17 起，未实看渲染） |
+| ADR57 报价发出前用印核验的模块安排（1 题；one-architecture） | `sheets/ADR57.json` | https://claude.ai/artifact/HUEe8RUcHHVpY5MH7zkZkd（2026-10-17 起，未实看渲染） |
 
 | 步骤 | 做法 |
 |---|---|
