@@ -133,7 +133,8 @@ def unclosed(command):
 
 
 def network_disabled(args):
-    explicit, read_only, unsafe, i = False, False, False, 0
+    """True only when the sandbox mode is given explicitly and cannot reach the network: read-only, or workspace-write with network_access=false (the local default mode is danger-full-access)."""
+    explicit, mode, unsafe, i = False, None, False, 0
     while i < len(args):
         token = args[i]
         option, _, inline = token.partition("=")
@@ -141,18 +142,19 @@ def network_disabled(args):
             break
         if option in ("-c", "--config", "-s", "--sandbox"):
             value = inline if "=" in token else (args[i + 1] if i + 1 < len(args) else "")
-            if option in ("-c", "--config") and re.fullmatch(r"sandbox_workspace_write\.network_access\s*=\s*false", value):
-                explicit = True
-            if option in ("-c", "--config") and re.fullmatch(r"sandbox_mode\s*=\s*[\"']?danger-full-access[\"']?", value):
-                unsafe = True
-            if option in ("-s", "--sandbox"):
-                read_only = value == "read-only"
-                unsafe |= value == "danger-full-access"
+            if option in ("-c", "--config"):
+                if re.fullmatch(r"sandbox_workspace_write\.network_access\s*=\s*false", value):
+                    explicit = True
+                found = re.fullmatch(r"sandbox_mode\s*=\s*[\"']?([a-z-]+)[\"']?", value)
+                if found:
+                    mode = found.group(1)
+            else:
+                mode = value
             i += 1 if "=" in token else 2
         else:
             unsafe |= token in ("--dangerously-bypass-approvals-and-sandbox", "--yolo")
             i += 2 if token in CODEX_VALUE_OPTIONS else 1
-    return (explicit or read_only) and not unsafe
+    return not unsafe and (mode == "read-only" or (mode == "workspace-write" and explicit))
 
 
 def main():
@@ -188,14 +190,15 @@ def guarded_main():
 
 def hook_cases():
     allow = (
-        "codex exec -c sandbox_workspace_write.network_access=false p < /dev/null",
-        "codex -c 'sandbox_workspace_write.network_access=false' exec p < /dev/null",
-        "codex exec --config=sandbox_workspace_write.network_access=false p < /dev/null",
-        "codex exec p -c sandbox_workspace_write.network_access=false < /dev/null",
+        "codex exec -s workspace-write -c sandbox_workspace_write.network_access=false p < /dev/null",
+        "codex -s workspace-write -c 'sandbox_workspace_write.network_access=false' exec p < /dev/null",
+        "codex exec --sandbox=workspace-write --config=sandbox_workspace_write.network_access=false p < /dev/null",
+        "codex exec p -c sandbox_mode=workspace-write -c sandbox_workspace_write.network_access=false < /dev/null",
+        "codex exec -c sandbox_mode=read-only p < /dev/null",
         "codex exec -s read-only p < /dev/null",
         "codex --sandbox read-only exec p < /dev/null",
         "codex exec --sandbox=read-only p < /dev/null",
-        "cat card.md | codex exec -c sandbox_workspace_write.network_access=false -",
+        "cat card.md | codex exec -s workspace-write -c sandbox_workspace_write.network_access=false -",
         "bash -c 'codex exec -s read-only p' < /dev/null",
         "cat > card.md <<'EOF'\ncodex exec p\nEOF",
         "echo 'codex exec p'", "grep -n 'codex exec' file",
@@ -211,6 +214,10 @@ def hook_cases():
         "codex exec --sandbox danger-full-access -c sandbox_workspace_write.network_access=false p < /dev/null",
         "codex exec --dangerously-bypass-approvals-and-sandbox p < /dev/null",
         "codex exec -s read-only p --yolo < /dev/null",
+        "codex exec -c sandbox_workspace_write.network_access=false p < /dev/null",
+        "codex -c sandbox_workspace_write.network_access=false exec p < /dev/null",
+        "codex exec -s workspace-write p < /dev/null",
+        "codex exec p < /dev/null",
         "codex exec -c sandbox_workspace_write.network_access=false -c sandbox_mode=danger-full-access p < /dev/null",
         "codex exec -c sandbox_workspace_write.network_access=false -c 'sandbox_mode=\"danger-full-access\"' p < /dev/null",
         "codex exec -c foo.sandbox_workspace_write.network_access=false p < /dev/null",
