@@ -1,17 +1,22 @@
 # one-coordinator 台账（速查）
 
-只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-17 00:25（one-coordinator）
+只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-17 08:45（one-coordinator）
 
 ## 作战图（派工前先看；SESSION_PLAYBOOK §11「战队协作」第 5 条）
 | 主线 | 负责 | 当前 | 下一步 | 阻塞 |
 |---|---|---|---|---|
-| dev | one-ops / one-1a-par | rc.5 已发布（含 #437 SINGLE-OP P2、#438 新发布门禁、#440），未装 | 用户批准后：中转装 rc.5（停服 2–3 分）→ 开单人模式 → grant-role super_admin、process_administrator → 删 PROCESS_ADMINISTRATOR_REQUIRED=false 重启 | 等用户批准 |
+| dev | one-ops | rc.6（含 #405 #447 #448）已在重建后的 dev 上运行，after_migrations/verify 过 | 等用户企业微信扫码 → one-ops 授 super_admin、process_administrator（员工 ID 末 6cd894）→ 删 PROCESS_ADMINISTRATOR_REQUIRED=false 重启；工作日历重导 one-ops 在做 | 等用户扫码 |
 | 流程与业务架构对齐 | one-architecture + 三组 | 阶段层：SD-01～10 已裁（#422）；对象层：主对象脚本提议、三组确认中；VS01-10 定独立流程「作出参投决策」（#428）；已派五件（#429）：支撑本段、配置补读关系、内部服务价值流评估、集成类型、业务/管理/支撑分类 | 数据到后刷新对齐图（scratchpad(e1ce474b)/align/refresh.sh 后以同 file_path+files 重发；流程栏按业务/管理/支撑分三行，归属实线、支撑虚线，集成单列） | — |
 | 命名与用语 | one-architecture / one-glossary / one-quality | 规则在 PROCESS_METHOD_DRAFT §11、name_id_check.py；用户定「先规范再登记」（#430）：架构产物只用规范名，改名对照表与用语决策单合并交用户，认可后再登记、再定稿；对象名一律名词（结果或记录）；86 个对象未登记 | #431 拆分：审计报告与用语问题先合，提议稿改为规范名+原名别名后随页交用户；one-quality 写架构用语检查 | — |
 | 确认页 | one-architecture | 7 页在收件箱，用户暂不作答，待对齐与命名后一次改版 | PAGE_IMPACT.md | 对齐完成 |
-| CI 与合并 | 调度批准 / one-merge 执行（跟班阶段，队列仍由调度运行）/ one-quality 写脚本 | 新规：文档不开 PR、按分支+提交号收合集（next-docs-train.txt）；队列在跑（见 merge.queue）；#442 CI 三档、#441 队列第一步（mq.py，快慢两道、合并锁、落后自查、红即暂停）在队 | #441 合入→迁队列给 one-merge；#442+#441 合入→报用户→关 strict 试行 2 天（intent 224143，main 因并行合入变红一次即恢复）；后续：自动批量、乐观并行、错题本三件（strict 检查、每晚复发检测、新测试重复 3 遍） | — |
+| CI 与合并 | 调度批准 / one-merge 执行（10-17 已切 scripts/merge/mq.py，队列在 <git-common-dir>/merge-queue/）/ one-quality 写脚本 | 今日合入 #437–#453、#455；CI 三档、重复跑新测试、复发检测、验收裁定守护、GRANT 比对已上线；剩 #454 在合 | #454 合入后向用户提议关 strict（快慢两道试行 2 天，条件见 PLAYBOOK §11 第 14 条） | 等 #454 |
 
 ## 调度惯例（本日新增）
+- 在线页：会话日报 https://claude.ai/artifact/8CAmf8sAJsoaFNwetoGC7x （每天早上：scripts/ops/session_daily.py 出数 → 补 grade/assessment/action → 数据放 scratchpad(19432a27)/daily/site/data/<日期>.json 并更新 index.json → 以同一 file_path 重发 session-daily.html 与 files）；对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL （源与 refresh.sh 在 scratchpad(19432a27)/align，已钉左栏）。
+- 收件箱待用户答：ANM 命名体系与施工图方法 https://claude.ai/artifact/KTzjRe3S2FvJEiDu1Priey ；N1 规则待定 https://claude.ai/artifact/BTo6TuYzW7H8vgjCanh4Vq 。用户说「答完」即取答复分发。
+- 下一文档合集清单：scratchpad(57026514)/next-docs-train.txt（调度批准、one-merge 中午/晚上收）；调度自己的规则、画像、台账、intent、裁定改动都在分支 claude/one-coordinator-two-lanes。
+- 裁定：rulings/COORD-2026-10-17.md（RULING-COORD-20261017-01..04），one-quality 登记 ACCEPTANCE_RULINGS.yaml。
+- 在途：one-1a-par ADR-0034-IMPL（3 PR，PR-3 依赖 one-1a-next-5 的 WF-REINSTATE）；one-1a-next-5 NITS-1 待 #454 后入队；one-architecture 云端试点派单待写；ultrareview 免费剩 2 次（只能电脑发起）；云会话额度 11-05 到期。
 - **首要目标（用户 2026-10-17）**：把每个会话调成本项目最优秀的团队——会话日报（每天早上，同一在线页）→ 每周胜任力评审 → 改进动作落为守护、评审模板、画像工作守则（intent 本日）。
 - 云端额度（用户免费额度，2026-11-05 到期）：先试点一个价值流的流程骨架（等 #405 后，one-architecture 写派单）；497 处改名待 ADR-0053 批准、用户认可规范名后考虑走云端（intent 062720）。
 - 合并执行归 one-merge（10-17 切到 mq.py），调度只批准入队。
