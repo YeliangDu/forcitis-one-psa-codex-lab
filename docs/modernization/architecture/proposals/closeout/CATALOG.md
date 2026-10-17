@@ -89,7 +89,7 @@
 | PRC-27 | 登记并处置项目风险与问题 | single_aggregate |  | VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7 | B-04 | revenue | draft | 否 |  |
 | PRC-28 | 编制、评审并签发交付物，送达并登记客户认可 | business |  | VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-03.5 | B-28 | revenue | user_confirmed | 是 |  |
 | PRC-29 | 签发到认可：交付物签发后送达与登记客户认可是同一交付物的连续步骤 | merged | PRC-28 |  |  | revenue | draft | 待定 |  |
-| PRC-30 | 提出并批准完工估算 | business |  | VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6 | B-04 | revenue | draft | 否 |  |
+| PRC-30 | 提出并批准完工估算 | business |  | VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7 | B-04 | revenue | draft | 否 |  |
 | PRC-31 | 提出并发出设计变更 | business |  | VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6 | B-28 | revenue | draft | 否 |  |
 | PRC-32 | 申请并答复延期 | business |  | VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6 | B-04 | revenue | draft | 是 |  |
 | PRC-33 | 采集、关联并封存证据 | single_aggregate |  | VS-02.4, VS-02.7, VS-03.2, VS-04.2 | B-28 | revenue | draft | 否 |  |
@@ -110,7 +110,7 @@
 | PRC-48 | 提出并生效协议变更或签证 | business |  | VS-04.6 | B-05 | revenue | draft | 是 |  |
 | PRC-49 | 提出并认定索赔 | business |  | VS-04.6, VS-04.5 | B-05 | revenue | draft | 是 |  |
 | PRC-50 | 占用框架限额并提交任务订单 | business |  | VS-04.6 | B-05 | revenue | draft | 是 |  |
-| PRC-51 | 建立并更新开票与收入额度 | event_policy |  | VS-04.1, VS-04.2, VS-04.3 | B-08 | revenue | draft | 否 |  |
+| PRC-51 | 建立并更新开票与收入额度 | event_policy |  | VS-04.1, VS-04.2, VS-04.3, VS-04.6 | B-08 | revenue | draft | 否 |  |
 | PRC-52 | 开放可触发收入确认的证据类型 | single_aggregate |  |  | B-08 | revenue | draft | 否 |  |
 | PRC-53 | 确认收入 | event_policy |  | VS-04.2 | B-08 | revenue | draft | 否 |  |
 | PRC-54 | 视为同意期满处理 | business |  | VS-04.2 | B-08 | revenue | draft | 是 |  |

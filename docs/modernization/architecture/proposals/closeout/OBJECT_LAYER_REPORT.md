@@ -119,7 +119,7 @@
 | PRC-26 接收并确认发包人提供资料 | business | VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4 | OBJ-42 发包人提供资料 | confirmed | 2 | OBJ-42 发包人提供资料 | CAP-029 |
 | PRC-27 登记并处置项目风险与问题 | single_aggregate | VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7 | OBJ-108 项目风险与问题 | confirmed | 5 | OBJ-108 项目风险与问题 | CAP-029 |
 | PRC-28 编制、评审并签发交付物，送达并登记客户认可 | business | VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-03.5 | OBJ-35 交付物 | confirmed | 1 | OBJ-35 交付物、OBJ-37 内部评审 | CAP-029 |
-| PRC-30 提出并批准完工估算 | business | VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-33 完工估算 | confirmed | 2 | OBJ-33 完工估算 | CAP-029 |
+| PRC-30 提出并批准完工估算 | business | VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7 | OBJ-33 完工估算 | confirmed | 2 | OBJ-33 完工估算 | CAP-029 |
 | PRC-31 提出并发出设计变更 | business | VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-40 设计变更 | confirmed | 5 | OBJ-40 设计变更 | CAP-029 |
 | PRC-32 申请并答复延期 | business | VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-41 延期申请 | confirmed | 5 | OBJ-41 延期申请 | CAP-029 |
 | PRC-33 采集、关联并封存证据 | single_aggregate | VS-02.4、VS-02.7、VS-03.2、VS-04.2 | OBJ-53 证据 | confirmed | 1 | AGG-110、OBJ-53 证据 | CAP-053 |
@@ -137,7 +137,7 @@
 | PRC-48 提出并生效协议变更或签证 | business | VS-04.6 | OBJ-09 协议变更 | confirmed | 2 | OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项、OBJ-09 协议变更 | CAP-005 |
 | PRC-49 提出并认定索赔 | business | VS-04.6、VS-04.5 | OBJ-10 索赔 | confirmed | 2 | OBJ-10 索赔 | CAP-005 |
 | PRC-50 占用框架限额并提交任务订单 | business | VS-04.6 | OBJ-05 协议 | confirmed | 3 | AGG-14、OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项 | CAP-005 |
-| PRC-51 建立并更新开票与收入额度 | event_policy | VS-04.1、VS-04.2、VS-04.3 | — | declared_none | 5 | AGG-44 | — |
+| PRC-51 建立并更新开票与收入额度 | event_policy | VS-04.1、VS-04.2、VS-04.3、VS-04.6 | — | declared_none | 5 | AGG-44 | — |
 | PRC-53 确认收入 | event_policy | VS-04.2 | OBJ-81 收入确认 | confirmed | 5 | AGG-44 | CAP-005 |
 | PRC-54 视为同意期满处理 | business | VS-04.2 | OBJ-81 收入确认 | confirmed | — | AGG-44、OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项 | CAP-005 |
 | PRC-56 付款条件项转为可结算 | event_policy | VS-04.3 | OBJ-07 付款条件项 | confirmed | — | OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项 | CAP-005 |
@@ -181,7 +181,7 @@
 - OBJ-13 保证金与押金：PRC-10 收付保证金与保函（VS-01.2、VS-04.1，confirmed）；PRC-153 退还投标保证金（VS-01.2、VS-04.1，confirmed）
 - OBJ-18 商机：PRC-08 参加投标，缴纳保证金并登记结果（VS-01.2，confirmed）；PRC-183 作出参投决策（VS-01.2，confirmed）
 - OBJ-29 项目：PRC-17 建立项目并组建团队（VS-02.0、VS-03.1，confirmed）；PRC-24 暂停、恢复、终止或取消项目（VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7，confirmed）；PRC-36 封存成果、结项并归档项目（VS-02.7，confirmed）
-- OBJ-33 完工估算：PRC-30 提出并批准完工估算（VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6，confirmed）；PRC-151 填报经营产值（VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6，confirmed）
+- OBJ-33 完工估算：PRC-30 提出并批准完工估算（VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7，confirmed）；PRC-151 填报经营产值（VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6，confirmed）
 - OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32）：PRC-34 处置我方成果不符合项（VS-02.6、VS-02.7，confirmed）；PRC-44 发布客户资产类不符合项并建议外部检测（VS-03.2、VS-03.3，confirmed）；PRC-45 跟踪整改并复查闭合（VS-03.4，confirmed）
 - OBJ-56 员工：PRC-82 登记候选人并作出录用决定（VS-07.2，confirmed）；PRC-83 办理入职与任职（VS-07.3，confirmed）；PRC-85 试用期评估与转正（VS-07.3、VS-13.2，confirmed）；PRC-128 办理离职（VS-13.6，confirmed）
 - OBJ-62 社保与公积金参保：PRC-84 入职后参保增员与建立薪酬档案（VS-07.3，confirmed）；PRC-130 离职后参保减员（VS-13.6，confirmed）

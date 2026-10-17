@@ -976,16 +976,19 @@ processes:
   category: business
   category_by: 价值流
 - id: PRC-30
-  display: 02.3.01
+  display: 02.1.11
   name: 提出并批准完工估算
   group: revenue
   type: business
   stages:
+  - VS-02.0
+  - VS-02.1
   - VS-02.2
   - VS-02.3
   - VS-02.4
   - VS-02.5
   - VS-02.6
+  - VS-02.7
   primary_object: OBJ-33
   status: confirmed
   candidates:
@@ -995,7 +998,7 @@ processes:
   category: business
   category_by: 价值流
 - id: PRC-31
-  display: 02.3.02
+  display: 02.3.01
   name: 提出并发出设计变更
   group: revenue
   type: business
@@ -1014,7 +1017,7 @@ processes:
   category: business
   category_by: 价值流
 - id: PRC-32
-  display: 02.3.03
+  display: 02.3.02
   name: 申请并答复延期
   group: revenue
   type: business
@@ -1294,6 +1297,7 @@ processes:
   - VS-04.1
   - VS-04.2
   - VS-04.3
+  - VS-04.6
   status: declared_none
   candidates:
   - AGG-44
@@ -2426,7 +2430,7 @@ processes:
   category: business
   category_by: 价值流
 - id: PRC-151
-  display: 02.3.04
+  display: 02.3.03
   name: 填报经营产值
   group: revenue
   type: business
