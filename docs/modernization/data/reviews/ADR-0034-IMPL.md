@@ -47,3 +47,14 @@
   - **补签**：`authorization_requests` 的 `base_account_version_number`、`base_role_version_ids` 两列及其注释，与 `ck_authorization_requests_base`（前提：§2.4 与守护改动在同一 PR）。
   - **仍不签**：`VOIDED` 取值与具名 `ck_authorization_requests_request_status`——B3a ④ 要求事件与转换一一对应，而作废的事件 / 审计动作（A-7）仍未裁；B 组仍待 C-3。
 - 数据设计：通过（one-data，2026-10-17，补签，依据 `claude/one-1a-par-f1-card@e0d60120`；增加范围：`authorization_requests` 两列与 `ck_authorization_requests_base`；其余同原签发）
+
+---
+
+## 第二次补签（2026-10-17，依据 `claude/one-1a-par-f1-card@f46c9bf5` 上的 ADR-0034-IMPL 卡）
+
+- 三处小改已落卡并核对：保留期注释四项（口径、清理落点、负责人 one-1a-par、期限首次生产部署后 30 个月内、按依赖顺序清理）、`granted_by` 注释写明「有且只有 MANUAL 有」并提示加渠道时同步改约束、待核 D-1…D-6 改为已答。
+- A-7 已裁定（one-architecture 2026-10-17）：直写审计 `platform.identity.authorization.voided`，同时发事件 `AuthorizationVoided` 给消费方并标 `@NotAudited`。B3a ④ 成立：转换 `CONFIRMED → VOIDED` ↔ 事件 `AuthorizationVoided` ↔ 审计动作 `authorization.voided` ↔ 状态值 `VOIDED` ↔ `AuthorizationRequestStatus` 枚举。
+- **补签**：`VOIDED` 取值与具名 `ck_authorization_requests_request_status`（A-11 已接受具名）。
+- 请在卡的「状态、关系、基数落点」一段把「作废见 A-7」改为写明上述事件名（文字更新，不影响本次签发）。
+- 仍不在范围：B 组（待 C-3）。
+- 数据设计：通过（one-data，2026-10-17，第二次补签，依据 `claude/one-1a-par-f1-card@f46c9bf5`；增加范围：`authorization_requests` 的 `VOIDED` 取值与 `ck_authorization_requests_request_status`；至此 PR-1、PR-2、PR-3 的 DDL 均已签发，B 组除外）
