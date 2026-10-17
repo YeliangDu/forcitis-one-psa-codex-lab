@@ -148,3 +148,12 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ReadOnlyVerificationCommandIT.java
     reason: 慢验收类（CI 耗时复盘）只在测试启动参数里调短外部连接池获取超时（ExternalConnectionFactory limits.acquireTimeout），使「库不可达」用例尽快失败；断言、用例集合与前置数据一字不动，不改生产代码默认值；拆文件暂缓，不在本登记内
     ref: docs/modernization/rulings/COORD-2026-10-17.md
+  - id: RULING-COORD-20261017-07
+    date: 2026-10-17
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorModeEnvironment.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ReadOnlyAccountCheckIT.java
+    reason: 验收测试启动被测应用的参数里加一行 --server.address=127.0.0.1（SIGTERM 后卡在 Tomcat 停止监听约 2 秒，加参数后关闭 2.4 秒到 0.3–0.4 秒）；不改断言、用例集合、前置数据与生产代码。「同类在进程内或子进程中启动应用的验收类」须逐类实测后列入实现 PR，由调度确认后再补登记本条的 files
+    ref: docs/modernization/rulings/COORD-2026-10-17.md
