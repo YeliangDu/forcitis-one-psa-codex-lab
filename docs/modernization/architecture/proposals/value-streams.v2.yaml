@@ -78,6 +78,7 @@ value_streams:
 # ───────────── 外部：客户触发 ─────────────
 
 - id: VS-01
+  category: business  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首价值流用途分类告知
   name: 选定服务方
   working_name: 获客到赢单
   description: 客户为一项建设或检查需求寻找、比较并选定专业服务方，直到以中标或委托确立我方承接；手册售前 BD0、BD1 两段。
@@ -149,6 +150,7 @@ value_streams:
       notes: 报价被取代、投标被撤回时在本段内重入；联合体协议是投标的次级对象（OBJ-05 类型）。
 
 - id: VS-02
+  category: business  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首价值流用途分类告知
   name: 获得交付成果
   working_name: 交付到认可
   description: 客户获得按服务产品与协议范围约定的专业成果（设计咨询、品控、造价等），逐段提交、认可，直到项目结算与复盘；阶段即手册交付七段（另含目录中的「概念」），按协议范围在 WBS 上裁剪。品控类服务在施工期做的检查留在施工段（VS-02.6）；资本方或既有建筑业主委托的检查、尽调归 VS-03。
@@ -375,6 +377,7 @@ value_streams:
       notes: 结项的三项拒绝（收入覆盖、供方协议已结算、资料已归档，INV-40）是项目结项编排读取的对象不变量，不是门；它们读取的对象状态是履约义务 OBJ-08 的「部分履行 / 已履行」与供方类型协议 OBJ-05 的「已结算 / 已终止」，见共享依赖表。 客户反馈与投诉不新增对象与价值流（用户答复 Q-E 第 1 项选 b，intent 2026-10-16-090004）：回访中的成果问题归不符合项（OBJ-38，来源「客户」），过程问题归项目风险与问题（OBJ-108，类型「问题」）；本段不引用投诉状态。
 
 - id: VS-03
+  category: business  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首价值流用途分类告知
   name: 获得风险结论
   working_name: 检查服务
   description: 资本方或既有建筑业主为投资、承保或安全合规委托我方做技术尽调、IDI 技术检查、周期检查，获得独立的检查结论与整改闭合状态。独立成价值流【推出】：触发者（资本方、既有建筑业主）与价值（风险结论）都与交付成果不同，BIZBOK 第 157–158 页要求触发者与价值各异的价值流各自独立，只经共享对象状态相互影响。边界：品控类服务在施工期做的检查留在 VS-02.6；资本方或既有建筑业主委托的检查归本价值流。阶段用自有阶段（检查策划、现场检查、发现发布、整改跟踪、报告认可），阶段类型目录另设「检查」类（用户答复 Q-A 选 a，intent 2026-10-16-082311）。
@@ -393,7 +396,7 @@ value_streams:
     - id: VS-03.1
       order: 1
       name: 检查策划
-      capabilities: [CAP-029, CAP-046]
+      capabilities: [CAP-029, CAP-046, CAP-005]  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首阶段能力补列与处理清单
       description: 确定受检建设工程与部位、检查表模板与频次，安排检查。
       participants: [SH-E2, SH-E4, SH-C5, SH-C3, SH-X8]
       entry:
@@ -480,6 +483,7 @@ value_streams:
       value_item: 委托方据报告作投资、承保或运维决策。
 
 - id: VS-04
+  category: business  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首价值流用途分类告知
   name: 约定并支付服务价款
   working_name: 收入链（签约到回款）
   description: 客户与我方约定价款与付款条件，按认可的成果确认应付、取得合规发票、付款并最终确认价款；与交付经对象状态衔接，不随交付阶段推进（S3）。
@@ -521,7 +525,7 @@ value_streams:
     - id: VS-04.6
       order: 2
       name: 履约
-      capabilities: [CAP-005]  # STEP3 后新增段，按阶段描述映射（one-architecture 提议）
+      capabilities: [CAP-005]  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首阶段能力补列与处理清单  # STEP3 后新增段，按阶段描述映射（one-architecture 提议）
       description: 协议生效后履行期内的协议变更、签证、索赔与框架协议下的任务订单；与收入确认、开票、回款在时间上并行。
       # SD-12（用户 2026-10-17 ANM 批准）
       participants: [SH-E2, SH-E5, SH-E6, SH-C6b, SH-C6c, SH-C6a, SH-M1]
@@ -540,7 +544,7 @@ value_streams:
     - id: VS-04.2
       order: 3
       name: 收入确认
-      capabilities: [CAP-053]
+      capabilities: [CAP-053, CAP-005]  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首阶段能力补列与处理清单
       description: 依客户认可的交付侧事实确认收入（规则层，无状态，ADR-0016 决定 4），形成合同资产；视为同意的期满判定在本段，判定记在 B-08 收入确认行上（D-8、AGG-44）。
       participants: [SH-E6, SH-E2, SH-C6e]
       entry:
@@ -559,7 +563,7 @@ value_streams:
     - id: VS-04.3
       order: 4
       name: 开票
-      capabilities: [CAP-103]
+      capabilities: [CAP-103, CAP-005]  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首阶段能力补列与处理清单
       description: 开票申请准入，开具销项发票并改写在制余额。
       # SD-12（用户 2026-10-17 ANM 批准）
       participants: [SH-E6, SH-C6d, SH-E2, SH-E5, SH-M1, SH-R2, SH-C6a, SH-R1]
@@ -616,6 +620,7 @@ value_streams:
 # ───────────── 外部：合作伙伴与监管机构 ─────────────
 
 - id: VS-05
+  category: support  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首价值流用途分类告知
   name: 获得外部资源
   working_name: 采购到付款
   description: 项目或职能部门向合格的交付伙伴与供应商取得分包服务、产品、工具与保险，确认履约、取得发票、确认应付并付款，直到供方协议结算。
@@ -725,6 +730,7 @@ value_streams:
       value_item: 双方最终价款确定；项目可据此结项。
 
 - id: VS-06
+  category: support  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首价值流用途分类告知
   name: 确认企业合规
   working_name: 申报与资质
   description: 企业监管机构按法定期限要求申报、缴款与资质维护，确认我方按期合规；个税扣缴与社保公积金申报随月度薪酬在 VS-13 完成，本价值流管增值税及附加、企业所得税与资质维护。资质维护纳入；工商年报与统计报送不做（用户答复 Q-D，intent 2026-10-16-082311；不做清单见文末 out_of_scope）。
@@ -750,7 +756,7 @@ value_streams:
     - id: VS-06.2
       order: 2
       name: 资质维护
-      capabilities: [CAP-054]
+      capabilities: [CAP-054, CAP-056]  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首阶段能力补列与处理清单
       description: 企业资质与注册执业证书的年检、动态核查、延续与变更。
       participants: [SH-E6, SH-E7, SH-M1, SH-R2]
       entry:
@@ -772,6 +778,7 @@ value_streams:
 # ───────────── 内部 ─────────────
 
 - id: VS-07
+  category: support  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首价值流用途分类告知
   name: 任用员工
   working_name: 招聘到入职
   description: 用人经理提出用人需要、候选人应聘，经录用决定办理入职，直到新员工开始任职；入职后的考勤、报酬与离职见 VS-13。
@@ -831,6 +838,7 @@ value_streams:
       notes: 任职（OBJ-57）是按生效区间版本化的对象、没有状态机，主任职生效随登记入职完成，不作门条件。
 
 - id: VS-08
+  category: support  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首价值流用途分类告知
   name: 报销垫付费用
   working_name: 报销到付款
   description: 员工为公务垫付或借支后，提交报销或还款，经核定、入账并付款结清。
@@ -845,7 +853,7 @@ value_streams:
     - id: VS-08.0
       order: 1
       name: 事前申请
-      capabilities: [CAP-056]  # STEP3 后新增段，按阶段描述映射（one-architecture 提议）
+      capabilities: [CAP-118, CAP-119]  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I05 题；页首阶段能力补列与处理清单  # STEP3 后新增段，按阶段描述映射（one-architecture 提议）
       description: 员工对需事前申请的费用类别（业务招待、差旅等）在支出前申请额度或出差，经批准后才可占用。
       # SD-12（用户 2026-10-17 ANM 批准）
       participants: [SH-E3, SH-E2, SH-M1, SH-E6, SH-E1, SH-P2]
@@ -855,8 +863,10 @@ value_streams:
           - {ref: 缺对象状态, state: 员工有需事前申请的支出计划, gap: MS-18, note: 触发事实，非对象状态}
       exit:
         any:
-          - {ref: 缺对象状态, state: 费用事前申请已批准, gap: MS-18, note: AGG-130（聚合稿）；信息图无对应对象，事前申请是单据（信息图 §3，评二 H6），对象号待定}
-          - {ref: 缺对象状态, state: 出差申请已批准, gap: MS-18, note: AGG-132（聚合稿）；同上}
+          - {ref: OBJ-118, state: 已批准, note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I05 题；AGG-130，独立金额批准记录}
+          - {ref: OBJ-119, state: 已批准, note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I05 题；AGG-132，独立行程批准记录}
+      in_stage_states:
+        - {ref: OBJ-120, state: 已批准 / 已驳回, note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I07 题；PRC-173 超标订单审批，独立于出差申请批准与月账单核对，不作所有申请的门}
       value_item: 员工在支出前已取得额度或出差批准，报销时有据可依。
       notes: 只对需事前申请的类别；其余报销直接从 VS-08.1 开始（SD-03 用户裁定 2026-10-16）。
     - id: VS-08.1
@@ -906,6 +916,7 @@ value_streams:
       value_item: 员工收到补偿款。
 
 - id: VS-09
+  category: management  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首价值流用途分类告知
   name: 达成经营目标
   working_name: 计划到复盘
   description: 管理层制定经营计划与预算，滚动预测，按期复盘偏差并确定经营动作。
@@ -960,6 +971,7 @@ value_streams:
       notes: 经营复盘闭环或经营动作写入计划新版本均可退出（PRC-181、PRC-88）；偏差解释仍是复盘单据，口径差异案仍按第 ② 步回补判为非对象（ADR-0025 的勾稽差异案是数据管道对账记录），MS-10 消除；新增复盘闭环条件缺对象状态，列 MS-22。
 
 - id: VS-10
+  category: support  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首价值流用途分类告知
   name: 获得期间报告
   working_name: 记录到报告
   # SD-11（用户 2026-10-17 ANM 批准）
@@ -1022,7 +1034,9 @@ value_streams:
       exit:
         all:
           - {ref: OBJ-98, state: 已记账（不可逆）, note: 本期间期末结转、成本结转与手工调整类型分录}
-          - {ref: 缺对象状态, state: 会计分录待处理队列已清空、过账拒收记录与勾稽差异案已处置, gap: MS-21, note: PRC-135、PRC-158、PRC-169；指无待处理队列、无未处置拒收记录或未结差异案，信息图无对应对象状态}
+          - {ref: 缺对象状态, state: 会计分录待处理队列已清空、过账拒收记录已处置, gap: MS-21, note: PRC-135、PRC-158、PRC-169；指无待处理队列、无未处置拒收记录或未结差异案，信息图无对应对象状态}
+      in_stage_states:
+        - {ref: OBJ-117, state: 已解释 / 已修正 / 已豁免, note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I02 题；PRC-169 解释、修正或批准豁免后结案；关账前不得有超容差未结案（INV-135），不以一个已关案件代替全量核对}
       value_item: 期间业务与调整已记账，成本与损益已结转，关账前待处理事项已清理。
       notes: 期间内记账与结转（finance STAGES.md ST-3）；承载 PRC-92–96、PRC-98、PRC-99、PRC-135、PRC-158、PRC-169。对象状态取 OBJ-97、OBJ-98 原值，队列与处置记录以 MS-21 保留缺口；原贯穿活动保留来源与产出说明。
     - id: VS-10.1
@@ -1061,6 +1075,7 @@ value_streams:
       notes: 关账与记账两项由退出移到进入条件，退出改为「三大报表已出具、对账已完成」（SD-05 用户裁定 2026-10-16）。用户答复 Q-B 选 a（intent 2026-10-16-082311）：门只用对象状态，原定为期间关账、报表发布两段，本次 SD-11 增补 VS-10.0 期间内记账与结转；贯穿活动保留来源与产出说明，非对象的清理条件另列 MS-21；MS-08、MS-09 消除。
 
 - id: VS-11
+  category: support  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首价值流用途分类告知
   name: 沉淀复用知识
   working_name: 知识沉淀
   description: 技术专家与项目团队把项目复盘与专业积累整理为经评审的知识条目，发布供报价、服务产品与交付引用，按需修订或废止。
@@ -1113,6 +1128,7 @@ value_streams:
       value_item: 引用的知识保持有效。
 
 - id: VS-12
+  category: management  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首价值流用途分类告知
   name: 获得投资回报
   working_name: 出资到回报
   description: 股东和合伙人出资，按年度经营结果取得回报，必要时退回出资。单列（用户答复 Q-C 选 a，intent 2026-10-16-082311）；利润分配经第 ② 步回补为信息图 OBJ-112（法人主体的次级）。
@@ -1166,6 +1182,7 @@ value_streams:
       value_item: 退出的合伙人取回出资。
 
 - id: VS-13
+  category: support  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首价值流用途分类告知
   name: 获得报酬
   working_name: 考勤到发薪（含离职结清）
   description: 在职员工按月确认考勤、核定激励，薪酬经计算、批准后发放，个税与社保公积金依法申报缴纳；离职时依法结清劳动关系。由原 VS-07 拆出（触发者与价值不同）。
@@ -1274,6 +1291,106 @@ value_streams:
       value_item: 员工依法离职、结清权益。
       notes: 可在任何时点进入；账号停用是平台身份事项，不是业务对象状态；工作交接清单是单据，不作门（用户答复 Q-D 第 3 项不做，intent 2026-10-16-082311）。 劳动仲裁不入条件：Q-E 第 2 项选 b（intent 2026-10-16-090004），法律纠纷不新增对象，劳动合同不产生往来款项，仲裁案件过程线下。
 
+
+# CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C14 题：采用一条内部服务价值流，合同档案三流程保持支撑。
+- id: VS-14
+  name: 获得内部服务
+  category: support
+  working_name: 内部服务申请到办结
+  description: 员工提出用印、IT 需求、IT 资产使用或员工活动申请，取得批准后办理，直到事项办结或资产归还；不含合同借阅、归档及逾期催还。
+  triggering_stakeholders: [SH-E1, SH-E2, SH-E3, SH-E4, SH-E5, SH-E6, SH-E7]
+  trigger_note: 四类事务各自独立，一次申请只对应一种服务；资产调拨、报修、归还是已领用后的重入。
+  value: 员工所需行政与信息技术服务办妥，用印和资产使用有据可查。
+  value_receivers: [SH-E1, SH-E2, SH-E3, SH-E4, SH-E5, SH-E6, SH-E7]
+  ends_in:
+    - {ref: OBJ-113, state: 已关闭}
+    - {ref: OBJ-114, state: 已关闭 / 已退回}
+    - {ref: OBJ-115, state: "已归还", note: "归还结束使用，维修登记仅结束当次维修服务", agg: AGG-115}
+    - {ref: OBJ-115, state: "已维修登记", note: "归还结束使用，维修登记仅结束当次维修服务", agg: AGG-121}
+    - {ref: OBJ-116, state: 已完成}
+  stages:
+    - id: VS-14.1
+      order: 1
+      name: 提交申请
+      capabilities: [CAP-054, CAP-056, CAP-093]
+      description: 员工提交用印、IT 需求、IT 资产领用或员工活动申请。
+      participants: [SH-E1, SH-E2, SH-E3, SH-E4, SH-E5, SH-E6, SH-E7]
+      entry:
+        all:
+          - {ref: 缺对象状态, state: 员工有需办理的内部服务事项, gap: MS-24, note: 触发事实}
+      exit:
+        any:
+          - {ref: OBJ-113, state: 审批中}
+          - {ref: OBJ-114, state: 已提交}
+          - {ref: OBJ-115, state: "审批中 / 已通过", note: "领用申请，标准配置内可自动通过", agg: AGG-115}
+          - {ref: OBJ-116, state: 审批中}
+      value_item: 服务诉求已正式记录。
+      notes: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；能力沿现有对象父链映射，行政类一级能力拆分与名称仍待后续确认。
+    - id: VS-14.2
+      order: 2
+      name: 批准申请
+      capabilities: [CAP-054, CAP-056, CAP-093]
+      description: 需审批的申请得到有权人的批准或驳回，无需审批的 IT 需求类别直接受理。
+      participants: [SH-E1, SH-M1, SH-E6]
+      skippable: true
+      entry:
+        any:
+          - {ref: OBJ-113, state: 审批中}
+          - {ref: OBJ-114, state: 审批中（需审批的类别）}
+          - {ref: OBJ-115, state: "审批中", note: "领用申请", agg: AGG-115}
+          - {ref: OBJ-116, state: 审批中}
+      exit:
+        any:
+          - {ref: OBJ-113, state: 已批准}
+          - {ref: OBJ-114, state: 处理中}
+          - {ref: OBJ-115, state: "已通过", note: "领用申请", agg: AGG-115}
+          - {ref: OBJ-116, state: 已批准}
+      value_item: 申请得到明确答复。
+      notes: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；各类事务分别保存批准条件与依据，审批仍由 platform.approval 办理；驳回可重提。
+    - id: VS-14.3
+      order: 3
+      name: 办理事项
+      capabilities: [CAP-054, CAP-056, CAP-093]
+      description: 登记用印、处理 IT 需求、领用调拨资产或维修登记；员工活动从批准申请直接到确认办结。
+      participants: [SH-E6, SH-E3]
+      skippable: true
+      entry:
+        any:
+          - {ref: OBJ-113, state: 已批准}
+          - {ref: OBJ-114, state: 处理中}
+          - {ref: OBJ-115, state: "已通过 / 在用 / 已报修", agg: AGG-115}
+      exit:
+        any:
+          - {ref: OBJ-113, state: 已用印}
+          - {ref: OBJ-114, state: 已解决}
+          - {ref: OBJ-115, state: "已领用 / 已调拨", agg: AGG-115}
+          - {ref: OBJ-115, state: "已维修登记", agg: AGG-121}
+      value_item: 服务事项已办理并留有结果。
+      notes: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；资产维修结果为已修复或无法修复的属性，办理完成状态统一为已维修登记。
+    - id: VS-14.4
+      order: 4
+      name: 确认办结
+      capabilities: [CAP-054, CAP-056, CAP-093]
+      description: 确认用印、IT 需求或活动完成；资产使用结束后登记归还，当次维修服务以维修登记完成。
+      participants: [SH-E1, SH-E6, SH-E3]
+      entry:
+        any:
+          - {ref: OBJ-113, state: 已用印}
+          - {ref: OBJ-114, state: 已解决}
+          - {ref: OBJ-115, state: "已领用 / 已调拨", agg: AGG-115}
+          - {ref: OBJ-115, state: "已维修登记", agg: AGG-121}
+          - {ref: OBJ-116, state: 已批准}
+      exit:
+        any:
+          - {ref: OBJ-113, state: 已关闭}
+          - {ref: OBJ-114, state: 已关闭 / 已退回}
+          - {ref: OBJ-115, state: "已归还", agg: AGG-115}
+          - {ref: OBJ-115, state: "已维修登记", agg: AGG-121}
+          - {ref: OBJ-116, state: 已完成}
+      value_item: 服务办结，办理记录可追溯。
+      notes: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；离职触发归还待办不作 VS-13.6 的退出条件；CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C14 题，合同档案服务保持原归属。
+
+
 # 第 ③ 步预警：一级对象未被任何阶段条件引用（脚本核对，列表与脚本结果须一致）
 step3_warnings:
   - {ref: OBJ-24, status: 已补引用, note: VS-01.2 进入补「启用」}
@@ -1281,10 +1398,10 @@ step3_warnings:
   # 第 ③ 步逐段对账后的裁定见 STEP3_STAGES.md 第 2 节
   - {ref: OBJ-25, status: 不支撑价值流, reason: 目录型参考数据，给出 VS-02、VS-03 的阶段骨架；自身「启用 / 停用」是服务产品与 WBS 的不变量（INV-34），不是阶段进出事实，也无段内业务理由（STEP3 评审撤回 C-02、C-04 的引用）}
   - {ref: OBJ-54, status: 经二级能力支撑, reason: 法人主体是各对象的归属维度，自身的筹建 / 存续 / 注销不是任何阶段的进出事实；一级能力 CAP-054 经二级能力（资质证书 VS-06.2、月度薪酬结算 VS-13、合伙人出资与利润分配 VS-12）支撑阶段}
-  - {ref: OBJ-93, status: 已补引用, note: 仅经 VS-10 贯穿活动（事实过账、期末结转）输入引用；无阶段支撑（STEP3 评审撤回 C-11 的 VS-05.3 段内引用），能力对账写「不支撑价值流」}
+  - {ref: OBJ-93, status: 已补引用, note: 原仅经 VS-10 贯穿活动输入；CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题 后经 OBJ-115 的次级能力支撑 VS-14，仍不因折旧、处置向期间关账补列公司资产管理}
   # SD-13（用户 2026-10-17 ANM 批准）
   - {ref: OBJ-13, status: 已补引用, note: VS-01.2、VS-04.1 段内承载保证金现金的待缴、已缴、已退或被没收，以及保函的已开立、到期或被索赔；如有，不作门（次级对象，不计入一级对账）}
-  - {ref: OBJ-01, status: 经二级能力支撑, reason: 往来单位是主数据，角色（OBJ-02）才有准入状态并在 VS-05.1 作门；客户活动（OBJ-105）在 VS-01.1 作进入条件}
+  - {ref: OBJ-01, status: 已补引用, reason: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题页首清单同步核对；当前已直接引用往来单位，另经角色与客户活动支撑；订正原过时预警标签以重生成派生表，不改变阶段条件}
   - {ref: OBJ-19, status: 已补引用, note: 第 ③ 步对账：VS-01.2 段内补外部状态「已公告 / 定标」，只记录、不作门}
   - {ref: OBJ-46, status: 已补引用, note: 第 ③ 步对账：VS-02.6、VS-03.1 段内补外部状态，只记录、不作门}
   - {ref: OBJ-103, status: 经二级能力支撑, reason: 财务是汇聚对象，其次级（OBJ-83、85、86、92、97、98）已在条件中引用}
@@ -1294,12 +1411,13 @@ step3_warnings:
 # SD-13（用户 2026-10-17 ANM 批准）
 # 缺对象状态（第 ② 步回补输入）：条件指不到信息图中任何对象的状态。仍在条件中使用的 7 项（MS-17–MS-20 为 2026-10-16 阶段对齐裁定新增，MS-21–MS-23 为本次 SD-11、SD-15、SD-13 新增；原 0 项，用户答复 U-4 后 MS-16 消除，intent 2026-10-16-090004）
 missing_states:
+  - {id: MS-24, text: 员工有需办理的内部服务事项, used_in: [VS-14.1], note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；仅为触发事实，不自造对象状态}
   - {id: MS-17, text: 收入确认事实已过账, used_in: [VS-04.2], note: SD-08 用户裁定 2026-10-16；经营事实已非对象（OBJ-75），收入确认形态待定 Q20（OBJ-81），无对象状态可指；随 Q20 回补信息图}
-  - {id: MS-18, text: 员工有需事前申请的支出计划 / 费用事前申请已批准（AGG-130）/ 出差申请已批准（AGG-132）, used_in: [VS-08.0], note: SD-03 用户裁定 2026-10-16；事前申请是单据、信息图无对象（§3，评二 H6），对象号与状态待信息图回补}
+  - {id: MS-18, text: 员工有需事前申请的支出计划, used_in: [VS-08.0], note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I05 题；批准结果已改指 OBJ-118、119，此处仅剩触发事实，不表示仍缺申请记录}
   - {id: MS-19, text: 三大报表已出具、外部法定账对账已完成, used_in: [VS-10.2], note: SD-05 用户裁定 2026-10-16；流程 PRC-106、PRC-104 的结局，信息图无对应对象状态}
   - {id: MS-20, text: 法定申报期已到 / 年检或核查通知已到 / 资质有效期临近, used_in: [VS-06.1, VS-06.2], note: SD-06、SD-07 用户裁定 2026-10-16；定时或外部通知触发，不是对象状态；派生值只能作段内状态，故以缺对象状态记}
   # SD-11（用户 2026-10-17 ANM 批准）
-  - {id: MS-21, text: 会计分录待处理队列已清空、过账拒收记录与勾稽差异案已处置, used_in: [VS-10.0], note: finance STAGES.md ST-3；PRC-135、PRC-158、PRC-169 的队列清理与处置记录在信息图中无对象状态，须回补或明确非对象条件口径}
+  - {id: MS-21, text: 会计分录待处理队列已清空、过账拒收记录已处置, used_in: [VS-10.0], note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题、CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I02 题；PRC-169 已有 OBJ-117，剩余队列清理与拒收处置仍保留结果，不逐项新增对象}
   # SD-15（用户 2026-10-17 ANM 批准）
   - {id: MS-22, text: 经营复盘已闭环, used_in: [VS-09.3], note: people STAGE_ALIGN.md J-13；PRC-181 的结局，信息图无经营复盘对象及其闭环状态，须回补}
   # SD-13（用户 2026-10-17 ANM 批准）

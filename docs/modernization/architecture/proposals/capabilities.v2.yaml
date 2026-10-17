@@ -18,12 +18,13 @@ meta:
   source: docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md
   method: docs/modernization/architecture/proposals/METHOD_V4_DRAFT.md（第 ② 步第 6、7 条）
   counts:
-    level1: 21
-    level2: 67  # 第 ② 步回补新增 CAP-056.111、CAP-054.112（intent 2026-10-16-082311）
+    level1: 23  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I05 题
+    level2: 76  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I02 题、I07–I09；C13 四个既有次级对象补齐
     pending: 1
     excluded: 1
 capabilities:
 - id: CAP-001
+  category: business  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   name: 往来单位管理
   en: Counterparty Management
   object: OBJ-01
@@ -46,6 +47,7 @@ capabilities:
     via: OBJ-02
     definition: 计划、变更并记录对客户的一次拜访或跟进及其结果反馈。
 - id: CAP-005
+  category: business  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   name: 协议管理
   en: Agreement Management
   object: OBJ-05
@@ -109,16 +111,19 @@ capabilities:
     object: OBJ-87
     definition: 确认分包方或采购供应商某期已完成的工作或已到货物。
 - id: CAP-016
+  category: business  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   name: 市场活动管理
   en: Campaign Management
   object: OBJ-16
   definition: 策划、执行并评估面向一批客户的推广，及其带来的线索。
 - id: CAP-017
+  category: business  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   name: 线索管理
   en: Lead Management
   object: OBJ-17
   definition: 登记、甄别并转化或关闭尚未确认值得跟进的业务信息。
 - id: CAP-018
+  category: business  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   name: 商机管理
   en: Opportunity Management
   object: OBJ-18
@@ -155,6 +160,7 @@ capabilities:
     other_parents: [OBJ-20]
     definition: 承接前核对我方及关联方是否参与过同一工程的设计、施工等工作，并记录结论。
 - id: CAP-019
+  category: business  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   name: 招标项目管理
   en: Tender Management
   object: OBJ-19
@@ -162,6 +168,7 @@ capabilities:
   note: 外部引用对象，只记录、不控制。
   unsupported_reason: 外部引用对象，只在段内条件中引用（招标项目 VS-01.2 段内条件），不作阶段门；按 J_CHECKS J4.4「仅段内也算支撑」口径实际支撑（J 检查）
 - id: CAP-024
+  category: business  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   name: 服务产品管理
   en: Service Product Management
   object: OBJ-24
@@ -173,12 +180,14 @@ capabilities:
     object: OBJ-50
     definition: 按版本维护某类检查须查看的项目及其依据标准。
 - id: CAP-025
+  category: business  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   unsupported_reason: 阶段类型是全局目录（配置），各价值流阶段按类型取值，不作任何阶段的门条件；支撑全部阶段的分类与报表维度（独立审查建-6）
   name: 阶段类型管理
   en: Phase Type Management
   object: OBJ-25
   definition: 定义并维护设计深度或服务进程的标准阶段及其默认交付物、评审要求与外部阶段对照。
 - id: CAP-026
+  category: business  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   name: 标准成本费率表管理
   en: Standard Cost Rate Table Management
   object: OBJ-26
@@ -190,11 +199,13 @@ capabilities:
     object: OBJ-27
     definition: 按版本维护把标准成本费率换算为对客费率的乘数。
 - id: CAP-028
+  category: support  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   name: 工作日历管理
   en: Work Calendar Management
   object: OBJ-28
   definition: 按年维护工作日、节假日与调休安排。
 - id: CAP-029
+  category: business  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   name: 项目管理
   en: Project Management
   object: OBJ-29
@@ -308,6 +319,7 @@ capabilities:
     object: OBJ-108
     definition: 登记、应对并关闭执行中的过程风险与问题。
 - id: CAP-046
+  category: business  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   name: 建设工程管理
   en: Construction Works Management
   object: OBJ-46
@@ -321,11 +333,13 @@ capabilities:
     object: OBJ-47
     definition: 登记建筑物受检的外立面、照明等系统及其分区与构件层级。
 - id: CAP-053
+  category: business  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   name: 证据管理
   en: Evidence Management
   object: OBJ-53
   definition: 采集、登记、封存并保存证明某个事实的原始材料及其采集时间、人员、地点与摘要。
 - id: CAP-054
+  category: support  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题
   name: 法人主体管理
   en: Legal Entity Management
   object: OBJ-54
@@ -354,7 +368,14 @@ capabilities:
     object: OBJ-112
     definition: 按年度决议向股东或合伙人分配税后利润并跟踪支付。
     note: 第 ② 步回补新增（用户答复 Q-C 选 a 后一级对象检验，intent 2026-10-16-082311）；英文为提议译名，待 one-glossary 查重。
+  - id: CAP-054.113
+    name: 用印申请管理
+    en: Seal Use Request Management
+    object: OBJ-113
+    definition: 受理并批准法人用印申请，登记实际用印与关闭结果。
+    note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题
 - id: CAP-056
+  category: support  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   name: 人员管理
   en: Person Management
   object: OBJ-56
@@ -411,7 +432,32 @@ capabilities:
     object: OBJ-111
     definition: 按月汇总个人出勤、请假与加班，经本人确认后锁定作为计薪依据。
     note: 第 ② 步回补新增（MS-01 一级对象检验，intent 2026-10-16-082311）；英文为提议译名，待 one-glossary 查重。
+  - id: CAP-056.114
+    name: IT 需求工单管理
+    en: IT Service Request Management
+    object: OBJ-114
+    definition: 受理员工提出的信息技术需求并记录处理和关闭结果。
+    note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题
+  - id: CAP-056.116
+    name: 员工活动申请管理
+    en: Employee Activity Request Management
+    object: OBJ-116
+    definition: 受理员工提出的活动申请并记录批准和完成结果。
+    note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题
+  - id: CAP-056.122
+    name: 假期余额账户管理
+    en: Leave Balance Account Management
+    object: OBJ-122
+    definition: 按人员、假期类型与年度核定额度，记录使用、结转、折算及手工调整。
+    note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I08 题
+  - id: CAP-056.123
+    name: 人员薪酬档案管理
+    en: Employee Compensation Profile Management
+    object: OBJ-123
+    definition: 按生效日期保存历次薪资并登记计薪调整依据，关联任职与结算并限制敏感访问。
+    note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I09 题
 - id: CAP-058
+  category: support  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   name: 岗位管理
   en: Position Management
   object: OBJ-58
@@ -423,6 +469,7 @@ capabilities:
     object: OBJ-60
     definition: 提出、审批并关闭组织单元对某职责类别的增补要求。
 - id: CAP-074
+  category: management  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   name: 激励方案管理
   en: Incentive Scheme Management
   object: OBJ-74
@@ -434,17 +481,27 @@ capabilities:
     object: OBJ-104
     definition: 依方案为个人核定应得金额。
 - id: CAP-093
+  category: support  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   unsupported_reason: 公司资产（固定资产、办公设备）是企业运营支撑，不在 13 条价值流的进出或段内条件中；折旧过账经 VS-10 期间报告的过账事实间接体现（独立审查建-6）
   name: 公司资产管理
   en: Company Asset Management
   object: OBJ-93
   definition: 取得、登记、使用并处置公司拥有或控制的固定资产、使用权资产与无形资产。
+  l2:
+  - id: CAP-093.115
+    name: IT 资产使用记录管理
+    en: IT Asset Usage Record Management
+    object: OBJ-115
+    definition: 受理设备使用申请并记录批准、领用、调拨、归还与维修结果。
+    note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题
 - id: CAP-100
+  category: management  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   name: 经营计划管理
   en: Business Plan Management
   object: OBJ-100
   definition: 编制、批准、分解并修订计划周期内的目标、动作与目标值，涵盖承诺、预测与预算等类型。
 - id: CAP-103
+  category: support  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   name: 财务管理
   en: Finance Management
   object: OBJ-103
@@ -508,11 +565,45 @@ capabilities:
     en: Report Line Definition Management
     object: OBJ-99
     definition: 按版本维护报表行项目到科目或现金流量项目的映射。
+  - id: CAP-103.117
+    name: 勾稽差异案管理
+    en: Reconciliation Deviation Case Management
+    object: OBJ-117
+    definition: 逐案登记核对差异并以解释、修正或批准豁免留据结案。
+    note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I02 题
+  - id: CAP-103.121
+    name: 差旅订单月账单管理
+    en: Travel Monthly Statement Management
+    object: OBJ-121
+    definition: 逐项核对服务商账单与订单，保存签字、差异处置及应付确认依据。
+    note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I07 题
 - id: CAP-110
+  category: support  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
   name: 知识条目管理
   en: Knowledge Item Management
   object: OBJ-110
   definition: 编写、审批、发布并停用跨项目复用的标准做法、技术案例与规范解读。
+- id: CAP-118
+  category: support
+  name: 费用事前申请管理
+  en: Expense Preapproval Management
+  object: OBJ-118
+  definition: 受理独立的支出金额申请，记录批准结果并关联后续费用。
+  note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I05 题
+- id: CAP-119
+  category: support
+  name: 出差申请管理
+  en: Travel Request Management
+  object: OBJ-119
+  definition: 受理出行计划并记录行程批准、同步及后续费用的联系。
+  note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I05 题
+  l2:
+  - id: CAP-119.120
+    name: 差旅订单管理
+    en: Travel Order Management
+    object: OBJ-120
+    definition: 保存行程订单的超标审批、退改、归属与结算核对依据。
+    note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I07 题
 # 待定：信息图中归类未定的对象，不计入上面的一级 / 二级计数（STEP2_CAPABILITIES.md §2.2）
 pending:
 - object: OBJ-78
@@ -525,3 +616,30 @@ excluded:
 - object: OBJ-55
   name: 组织单元
   reason: 信息图把组织单元列为组织图元素、不计入一级，也未列为次级；G-1 生成不出来，组织另画组织图（BIZBOK 第 151 页：组织与能力是并列的域）。
+
+# CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题：以下为四项行政类一级能力草稿，拆分、名称与对象层级仍待确认；不加入生效能力索引。
+proposed_l1:
+- id: CAP-113
+  name: 用印申请管理
+  en: Seal Use Request Management
+  object: OBJ-113
+  definition: 受理并批准法人用印申请，登记实际用印与关闭结果。
+  note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；仅为一级方案草稿；当前对象依附及阶段映射仍使用 CAP-054.113，确认前不提升对象层级。
+- id: CAP-114
+  name: IT 需求工单管理
+  en: IT Service Request Management
+  object: OBJ-114
+  definition: 受理员工提出的信息技术需求并记录处理和关闭结果。
+  note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；仅为一级方案草稿；当前对象依附及阶段映射仍使用 CAP-056.114，确认前不提升对象层级。
+- id: CAP-115
+  name: IT 资产使用记录管理
+  en: IT Asset Usage Record Management
+  object: OBJ-115
+  definition: 受理设备使用申请并记录批准、领用、调拨、归还与维修结果。
+  note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；仅为一级方案草稿；当前对象依附及阶段映射仍使用 CAP-093.115，确认前不提升对象层级。
+- id: CAP-116
+  name: 员工活动申请管理
+  en: Employee Activity Request Management
+  object: OBJ-116
+  definition: 受理员工提出的活动申请并记录批准和完成结果。
+  note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；仅为一级方案草稿；当前对象依附及阶段映射仍使用 CAP-056.116，确认前不提升对象层级。

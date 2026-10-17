@@ -166,7 +166,7 @@ processes:
     stages: [VS-01.2]
     stages_note: "事件策略按触发状态归段（#421）：商机已丢单、已放弃=OBJ-18「丢单 / 放弃」，是 VS-01.2 退出条件；超期未签约的定时触发无对象状态，随同一策略归 VS-01.2。"
     primary_object: "none"
-    primary_object_note: "成本结转属流程与事实，信息图 OBJ-80 成本结转批次已去掉；售前投入是派生度量（信息图 §度量），不改业务对象状态，价值落在过账事实与账簿余额"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -249,14 +249,14 @@ processes:
   - id: PRC-23
     name: "填报并审批工时"
     type: business
-    stages: [VS-01.2, VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
-    stages_note: "贯穿 VS-01.2、VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：工时（OBJ-66）「已通过」是 VS-02 贯穿活动「资源与工时」的产出；VS-01.2 的商机承接售前工时归集。保留既有归段，通用状态近似项不补标。"
+    stages: []
     primary_object: "OBJ-66"
     owner_bc: "B-06"
     group: revenue
     status: draft
     human_orchestration: true
     bpmn: ~
+    support: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题（页首不补列清单）；工时为业务拓展与交付各段提供贯穿成本输入，不因输入给阶段补人员管理"
   - id: PRC-24
     name: "暂停、恢复、终止或取消项目"
     type: business
@@ -274,7 +274,7 @@ processes:
     stages: [VS-02.0, VS-04.1]
     stages_note: "事件策略按触发状态归段（#421）：项目已建立=OBJ-29「已立项」，是 VS-02.0 退出条件；合同已签回（ContractSigned）=OBJ-05「已签署生效」，是 VS-04.1 退出条件。两段在不同价值流，是按触发状态跨价值流归两段，不是跳段。触发名用事件名而非状态原文，检查器因此匹配不上。"
     primary_object: "none"
-    primary_object_note: "同 PRC-15：转入售前投入是成本结转，不改业务对象状态"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -385,7 +385,7 @@ processes:
     stages: [VS-02.7]
     stages_note: "按触发状态「项目已结项」归段；终止类结局不归段（SD-10）"
     primary_object: "none"
-    primary_object_note: "同 PRC-15：终止或结项清算是成本结转，不改业务对象状态"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -460,14 +460,14 @@ processes:
   - id: PRC-42
     name: "发布检查表模板版本"
     type: single_aggregate
-    stages: [VS-03.1]
-    stages_note: "SD-13 已写回：发布检查表模板版本即 OBJ-50「生效」，是 VS-03.1 段内状态（版本只追加，不作门），保留 VS-03.1。VS-04.1 的「生效」是付款条件项，不同对象，近似项不补标。"
+    stages: []
     primary_object: "OBJ-50"
     owner_bc: "B-26"
     group: revenue
     status: draft
     human_orchestration: false
     bpmn: ~
+    support: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题（页首不补列清单）；检查表模板发布维护供检查策划引用的主数据，不作阶段办理结果，不补服务产品管理"
   - id: PRC-43
     name: "实施现场检查并锁定"
     type: business
@@ -564,7 +564,7 @@ processes:
     stages: [VS-04.1, VS-04.2, VS-04.3, VS-04.6]
     stages_note: "判据②：ContractSigned 对应 VS-04.1 退出并为 VS-04.2、VS-04.6 进入的协议状态；新基线已生效是 VS-04.6 协议变更段内状态，本策略随之更新额度，补标 VS-04.6。保留 VS-04.1、VS-04.2、VS-04.3：额度由签约建立，供收入确认（INV-22、PRC-53）与开票（PRC-57）占用；VS-04.3 为服务该段的技术记录，不声称额度是新增业务对象。"
     primary_object: "none"
-    primary_object_note: "额度是开票与收入额度（AGG-44）上的技术记录，按履约义务与付款条件项分行；本策略不改任何业务对象的状态，故不设主对象"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -576,7 +576,7 @@ processes:
     stages: []
     support: "收入确认证据类型开放是 B-08 的版本化配置（财务负责人书面确认后逐类开放），决定哪类客户确认证据可触发收入确认，本身不造任何段的进入或退出对象状态"
     primary_object: "none"
-    primary_object_note: "版本化配置（AGG-92 证据类型开放配置版本），无业务对象"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -612,7 +612,7 @@ processes:
     stages: [VS-04.2]
     stages_note: "事件策略按触发状态归段（#421）：触发是收入确认类型分录的过账回执，对应 OBJ-98「已记账（不可逆）」，是 VS-04.2 退出条件（收入确认类型分录）。触发名是事件名，检查器匹配不上。"
     primary_object: "none"
-    primary_object_note: "同 PRC-15：结转合同履约成本是成本结转，不改业务对象状态"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1003,20 +1003,21 @@ processes:
   - id: PRC-91
     name: "认定工时有效性"
     type: event_policy
-    stages: [VS-10.1]
+    stages: []
     primary_object: "OBJ-66"
     owner_bc: "B-06"
     group: revenue
     status: draft
     human_orchestration: false
     bpmn: ~
+    support: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题（页首不补列清单）；工时有效性认定提供关账输入，与折旧采用同一规则，不补人员管理"
   - id: PRC-92
     name: "过账业务事实"
     type: business
     stages: [VS-10.0]
     stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已过账 / 已更正」经 PRC-93 生成分录，对应该段「本期分录已记账」退出条件。"
     primary_object: "none"
-    primary_object_note: "过账事实是设计构件，信息图 OBJ-75 经营事实已去掉（BIZBOK p197）；过账不改业务对象状态"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-16"
     group: finance
     status: draft
@@ -1050,7 +1051,7 @@ processes:
     stages: [VS-10.0]
     stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已过账」经 PRC-93 形成期末结转分录，对应该段「本期分录已记账」退出条件。"
     primary_object: "none"
-    primary_object_note: "期末结转运行属流程与事实，结转凭证经过账生成 OBJ-98 会计分录，由 PRC-93 承载"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -1062,7 +1063,7 @@ processes:
     stages: [VS-10.0]
     stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「人工成本分配已过账」经 PRC-93 形成成本结转分录，对应该段「本期分录已记账」退出条件。"
     primary_object: "none"
-    primary_object_note: "人工成本分配属流程与事实，信息图 OBJ-76 已去掉"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1085,7 +1086,7 @@ processes:
     stages: [VS-10.0]
     stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「分摊已生效」经 PRC-92 过账、PRC-93 生成分摊分录，对应该段「本期分录已记账」退出条件；「分摊已冲销」经冲销并重过账同样落在本段。"
     primary_object: "none"
-    primary_object_note: "分摊运行属流程与事实，信息图 OBJ-79 已去掉"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1094,14 +1095,14 @@ processes:
   - id: PRC-99
     name: "计提折旧并处置公司资产"
     type: business
-    stages: [VS-10.0]
-    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已过账」使折旧与资产处置事实经 PRC-93 生成分录，对应该段「本期分录已记账」退出条件。"
+    stages: []
     primary_object: "OBJ-93"
     owner_bc: "B-24"
     group: finance
     status: draft
     human_orchestration: false
     bpmn: ~
+    support: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题（页首不补列清单）；折旧与处置提供期间报告的贯穿活动输入，不因输入给期间关账补公司资产管理"
   - id: PRC-100
     name: "发布总账配置版本"
     type: business
@@ -1140,7 +1141,7 @@ processes:
     stages: [VS-10.1]
     stages_note: "事件策略按触发状态「会计期间已关账」归段（#421 判据②），该状态是 VS-10.1 期间关账的退出条件"
     primary_object: "none"
-    primary_object_note: "期间余额快照是派生、只追加的技术聚合，不改业务对象状态"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -1152,7 +1153,7 @@ processes:
     stages: [VS-10.2]
     stages_note: "外部法定账对账完成是 VS-10.2 退出条件改定后的「外部法定账对账已完成」（SD 已裁定的 VS-10.2 退出条件）；改定前检查器匹配不上。"
     primary_object: "none"
-    primary_object_note: "外部法定账对账是运行单据（技术聚合），只读会计分录与快照；对账结论作关账与出表的依据，不改业务对象状态"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -1351,8 +1352,8 @@ processes:
     type: single_aggregate
     stages: []
     support: "B-15 薪酬档案与专项附加扣除的维护，结局（档案已调整、扣除已更新）不造 VS-13.3、VS-13.4 的任一退出条件（月度薪酬结算已批准、法定申报已申报缴款），服务薪酬结算的输入（STAGE_ALIGN.md 归段判据第 6 项）"
-    primary_object: "none"
-    primary_object_note: "OBJ-61 薪酬档案在信息图定为人员属性版本、非对象；AGG-120 专项附加扣除声明无对象（F-6 随信息层交用户）"
+    primary_object: "OBJ-123"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I09 题；信息图现单列 OBJ-123，保留处理、审批及核对依据。"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1421,6 +1422,7 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
   - id: PRC-130
     name: "离职后参保减员"
     type: event_policy
@@ -1508,6 +1510,7 @@ processes:
     status: user_confirmed
     human_orchestration: ~
     bpmn: ~
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
   - id: PRC-138
     name: "离职停用企业微信账号并解绑"
     type: business
@@ -1519,17 +1522,18 @@ processes:
     status: draft
     human_orchestration: ~
     bpmn: ~
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
   - id: PRC-139
     name: "用印申请与用印登记"
     type: business
-    stages: []
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    stages: ["VS-14.1", "VS-14.2", "VS-14.3", "VS-14.4"]
     primary_object: "OBJ-113"
     owner_bc: "B-31"
     group: people
     status: draft
     human_orchestration: ~
     bpmn: ~
+    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；归 VS-14 四类服务；以申请、批准、办理、办结的实际结果归段。调拨维修可重入；离职归还待办不作为 VS-13.6 的完成条件。"
   - id: PRC-140
     name: "合同借阅"
     type: business
@@ -1542,6 +1546,7 @@ processes:
     status: draft
     human_orchestration: ~
     bpmn: ~
+    note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C14 题；保持原 B-05 合同档案支撑，不纳入 VS-14，不新增借阅对象或协议归档状态。"
   - id: PRC-141
     name: "销售合同归档"
     type: business
@@ -1554,39 +1559,40 @@ processes:
     status: draft
     human_orchestration: ~
     bpmn: ~
+    note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C14 题；保持原 B-05 合同档案支撑，不纳入 VS-14，不新增借阅对象或协议归档状态。"
   - id: PRC-142
     name: "IT 需求工单"
     type: business
-    stages: []
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    stages: ["VS-14.1", "VS-14.2", "VS-14.3", "VS-14.4"]
     primary_object: "OBJ-114"
     owner_bc: "B-31"
     group: people
     status: draft
     human_orchestration: ~
     bpmn: ~
+    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；归 VS-14 四类服务；以申请、批准、办理、办结的实际结果归段。调拨维修可重入；离职归还待办不作为 VS-13.6 的完成条件。"
   - id: PRC-143
     name: "IT 资产领用"
     type: business
-    stages: []
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    stages: ["VS-14.1", "VS-14.2", "VS-14.3"]
     primary_object: "OBJ-115"
     owner_bc: "B-31"
     group: people
     status: draft
     human_orchestration: ~
     bpmn: ~
+    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；VS-14.1 申请领用资产形成审批中或自动已通过的申请记录；VS-14.2 批准领用到已通过；VS-14.3 登记领用到已领用。状态按 people 组 AGG-115 状态机回读，原阶段草稿无对应状态时的缺口现已补齐。"
   - id: PRC-144
     name: "员工活动类申请（周年贺卡、节日活动、创新项目发布）"
     type: business
-    stages: []
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    stages: ["VS-14.1", "VS-14.2", "VS-14.4"]
     primary_object: "OBJ-116"
     owner_bc: "B-31"
     group: people
     status: draft
     human_orchestration: ~
     bpmn: ~
+    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；归 VS-14 四类服务；以申请、批准、办理、办结的实际结果归段。调拨维修可重入；离职归还待办不作为 VS-13.6 的完成条件。"
   - id: PRC-145
     name: "员工法人三口径不一致预警"
     type: event_policy
@@ -1597,6 +1603,7 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
   - id: PRC-146
     name: "协议借阅逾期催还"
     type: event_policy
@@ -1609,6 +1616,7 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
+    note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C14 题；保持原 B-05 合同档案支撑，不纳入 VS-14，不新增借阅对象或协议归档状态。"
   - id: PRC-147
     name: "费用报销核定后冲抵员工借款并确认应付"
     type: event_policy
@@ -1700,30 +1708,29 @@ processes:
   - id: PRC-155
     name: "IT 资产调拨"
     type: business
-    stages: []
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    stages: ["VS-14.3"]
     primary_object: "OBJ-115"
     owner_bc: "B-31"
     group: people
     status: draft
     human_orchestration: false
     bpmn: ~
+    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；归 VS-14 四类服务；以申请、批准、办理、办结的实际结果归段。调拨维修可重入；离职归还待办不作为 VS-13.6 的完成条件。"
   - id: PRC-156
     name: "IT 资产归还"
     type: business
-    stages: []
-    support: "B-31 资产归还：离职生效（Separated）触发的归还待办只是 VS-13.6 退出事件的反应，另有资产管理员人工登记触发（在职换机、收回）；结局不造 VS-13.6 的任一退出条件（人员已离职、参保减员、劳动合同已终止），不挂阶段（STAGE_ALIGN.md 归段判据第 6 项）"
+    stages: ["VS-14.4"]
     primary_object: "OBJ-115"
     owner_bc: "B-31"
     group: people
     status: draft
     human_orchestration: false
     bpmn: ~
+    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；归 VS-14 四类服务；以申请、批准、办理、办结的实际结果归段。调拨维修可重入；离职归还待办不作为 VS-13.6 的完成条件。"
   - id: PRC-157
     name: "IT 资产报修与维修登记"
     type: business
-    stages: []
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    stages: ["VS-14.3", "VS-14.4"]
     primary_object: "OBJ-115"
     primary_object_note: "AGG-121 维修单是 OBJ-115 的维修工单子生命周期"
     owner_bc: "B-31"
@@ -1731,13 +1738,14 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
+    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；归 VS-14 四类服务；以申请、批准、办理、办结的实际结果归段。调拨维修可重入；离职归还待办不作为 VS-13.6 的完成条件。"
   - id: PRC-158
     name: "处置过账拒收记录"
     type: single_aggregate
     stages: [VS-10.0]
     stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已重提 / 已结案」消除待处置拒收记录，对应该段「过账拒收记录已处置」退出条件。"
     primary_object: "none"
-    primary_object_note: "同 PRC-92：拒收记录是过账管道的技术记录"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-16"
     group: finance
     status: draft
@@ -1758,13 +1766,15 @@ processes:
     name: "开立年度假期额度账户"
     type: event_policy
     stages: [VS-07.3]
-    stages_note: "事件触发「入职生效」（Employed）是 VS-07.3 退出条件「人员试用期 / 正式」的产生事件，按事件策略归 VS-07.3；年初定时触发没有对象状态，不单独归段（归段判据第 6 项）"
-    primary_object: "none"
+    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I08 题（页首架构处理告知）：VS-07.3 仅对应入职生效 Employed 入口；年初定时开户为年度例行支撑，不表示完成入职。补休按额度行有效期处理，不随年度开户结转。"
+    primary_object: "OBJ-122"
     owner_bc: "B-27"
     group: people
     status: draft
     human_orchestration: false
     bpmn: ~
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I08 题；信息图现单列 OBJ-122，保留处理、审批及核对依据。"
+    stage_scope: {"VS-07.3": "仅入职生效入口；年初定时入口不归段"}
   - id: PRC-161
     name: "年末关闭预算账户"
     type: event_policy
@@ -1783,7 +1793,7 @@ processes:
     stages: []
     support: "B-27 假期规则版本的配置维护，结局（假期规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: "none"
-    primary_object_note: "AGG-118 假期类型与额度规则为配置，信息图无对象（假期类型是 OBJ-68 属性、OBJ-69 额度非对象；F-6）"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-27"
     group: people
     status: draft
@@ -1807,7 +1817,7 @@ processes:
     stages: [VS-04.2]
     stages_note: "收入确认冲销后冲回已配对的成本结转，随收入确认所在阶段（VS-04.2，revenue 价值流）；触发是收入确认类型过账事实被冲销并重过账，对应 OBJ-98「已记账（不可逆）」，是 VS-04.2 退出条件（触发名是事件名，检查器匹配不上）"
     primary_object: "none"
-    primary_object_note: "同 PRC-15：冲回已配对成本结转，不改业务对象状态"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1820,7 +1830,7 @@ processes:
     stages: []
     support: "成本核算参数是配置版本，供 VS-10.1 的成本分配与分摊使用，本身不推进任何阶段的对象状态"
     primary_object: "none"
-    primary_object_note: "成本核算参数版本（AGG-123）是配置，信息图无对象"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1833,7 +1843,7 @@ processes:
     stages: []
     support: "资产类别与折旧政策是配置版本，供 PRC-99 计提折旧使用，不推进阶段"
     primary_object: "none"
-    primary_object_note: "资产类别与折旧政策版本（AGG-124）是配置，信息图无对象"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-24"
     group: finance
     status: draft
@@ -1846,7 +1856,7 @@ processes:
     stages: []
     support: "期初余额只在投产时编制一次（ADR-0022 决定 11），是上线初始化，不是周期性价值流阶段"
     primary_object: "none"
-    primary_object_note: "期初余额（AGG-125）是投产初始化的余额载体，信息图无对象"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -1859,7 +1869,7 @@ processes:
     stages: []
     support: "口径版本是勾稽侧配置（ADR-0023 决定 2），不推进阶段"
     primary_object: "none"
-    primary_object_note: "口径版本（AGG-78）：信息图 OBJ-102 指标定义已去掉，移入第 11 步指标元数据"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-17"
     group: finance
     status: draft
@@ -1871,8 +1881,8 @@ processes:
     type: single_aggregate
     stages: [VS-10.0]
     stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已解释关闭 / 已修正关闭 / 已豁免关闭」消除未结差异案，对应该段「勾稽差异案已处置」退出条件。"
-    primary_object: "none"
-    primary_object_note: "勾稽差异案在词表是聚合（operations.policy），信息图没有对象；是否立对象随信息层定"
+    primary_object: "OBJ-117"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I02 题；信息图现单列 OBJ-117，保留处理、审批及核对依据。"
     owner_bc: "B-17"
     group: finance
     status: draft
@@ -1884,8 +1894,8 @@ processes:
     type: business
     stages: [VS-08.0]
     stages_note: "按判据归 VS-08.0 事前申请（SD-03）：费用事前额度批准是该阶段的退出条件"
-    primary_object: "none"
-    primary_object_note: "费用事前申请是真实业务单据（A8 业务招待申请表），信息图缺对象；建议信息层补对象「费用事前申请」后改填"
+    primary_object: "OBJ-118"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I05 题；信息图现单列 OBJ-118，保留处理、审批及核对依据。"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1897,20 +1907,22 @@ processes:
     type: business
     stages: [VS-05.4]
     stages_note: "公司直付分贝通订单：核对月账单后确认供方应付，属「应付确认」；之后付款进 VS-05.5（PRC-75）；结局「应付已确认」即 OBJ-85「未结」（应付方向），是 VS-05.4 退出条件（同 PRC-74 的写法，检查器因结局没写「未结」匹配不上）"
-    primary_object: "OBJ-85"
+    primary_object: "OBJ-121"
     owner_bc: "B-12"
     group: finance
     status: draft
     human_orchestration: true
     bpmn: ~
     note: "S-31；阶段由 finance 组铺开时填"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I07 题；信息图现单列 OBJ-121，保留处理、审批及核对依据。"
+    secondary_objects: ["OBJ-85"]
   - id: PRC-172
     name: "申请出差并同步差旅服务商"
     type: business
     stages: [VS-08.0]
     stages_note: "按判据归 VS-08.0 事前申请（SD-03）：出差申请批准是该阶段的退出条件"
-    primary_object: "none"
-    primary_object_note: "出差申请是真实业务单据，信息图缺对象；建议信息层补对象「出差申请」后改填"
+    primary_object: "OBJ-119"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I05 题；信息图现单列 OBJ-119，保留处理、审批及核对依据。"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1922,8 +1934,8 @@ processes:
     type: business
     stages: [VS-08.0]
     stages_note: "按判据归 VS-08.0 事前申请（SD-03）：超标订单审批是下单前的事前申请"
-    primary_object: "none"
-    primary_object_note: "差旅订单（分贝通直付）是真实业务对象，信息图缺对象；建议信息层补对象「差旅订单」后改填"
+    primary_object: "OBJ-120"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I07 题；信息图现单列 OBJ-120，保留处理、审批及核对依据。"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1936,7 +1948,7 @@ processes:
     stages: []
     support: "出差补贴标准是配置版本，供 PRC-87 生成补贴行使用，不推进阶段"
     primary_object: "none"
-    primary_object_note: "出差补贴标准版本（AGG-133）是配置，信息图无对象"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1973,7 +1985,7 @@ processes:
     stages: []
     support: "行政支撑：员工与组织的单向同步，服务差旅预订；四个触发分属 VS-07.3 退出、VS-13.6 退出、任职版本变更、组织单元调整，无共同阶段，不在客户或员工价值流的阶段门上（S-31 SQ-31；STAGE_ALIGN.md）"
     primary_object: "none"
-    primary_object_note: "外部同步（推送员工与组织到差旅服务商），不改任何业务对象状态"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-13"
     group: people
     status: draft
@@ -1984,14 +1996,16 @@ processes:
     name: "补休到期未休或离职时转计发加班工资"
     type: event_policy
     stages: [VS-13.6]
-    stages_note: "事件触发「员工离职生效」（Separated）是 VS-13.6 退出条件「人员已离职」的产生事件，按事件策略归 VS-13.6；「补休已到期未休」是 B-27 的事实、没有阶段对象状态，不单独归段（归段判据第 6 项）"
-    primary_object: "none"
+    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I09 题：VS-13.6 仅对应 Separated 离职入口；到期入口仅支撑薪酬结算，不表示离职结清；两入口向 OBJ-123 登记待计发调整并留幂等依据，U15 未定。"
+    primary_object: "OBJ-123"
     owner_bc: "B-15"
     group: people
     status: draft
     human_orchestration: false
     bpmn: ~
     note: "S-41；两个入口：B-27「补休已到期未休」、B-13 Separated"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I09 题；信息图现单列 OBJ-123，保留处理、审批及核对依据。"
+    stage_scope: {"VS-13.6": "仅离职生效入口；补休到期入口不归段"}
   - id: PRC-179
     name: "项目开始执行后协议转入履行中"
     type: event_policy
@@ -2010,7 +2024,7 @@ processes:
     stages: []
     support: "B-15 薪酬规则版本的配置维护，结局（薪酬规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: "none"
-    primary_object_note: "AGG-119 薪酬规则版本为配置，信息图无对象"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-15"
     group: people
     status: draft
