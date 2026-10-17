@@ -1,15 +1,15 @@
 # Silverston《The Data Model Resource Book》第 2 卷要点笔记
 
-状态：已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）｜派工：ARC-1018-ARC-01｜2026-10-17
+状态：已审定（one-architecture 2026-10-18，页码已抽查）｜派工：ARC-1018-ARC-01｜2026-10-17
 
-本文自行概括专业服务局部内容；不重建全书行业模型。短引：0 处。页码待 sonnet 独立抽查。
+本文自行概括专业服务局部内容；不重建全书行业模型。短引：0 处。页码已抽查。
 
 ## 1. 书目与阅读范围
 
 - 书名：The Data Model Resource Book, Revised Edition, Volume 2: A Library of Universal Data Models by Industry Types。
 - 作者：Len Silverston；版本：Revised Edition；出版者：John Wiley & Sons, Inc.；版权年：2001。
 - ISBN：0-471-35348-5（版权页目视读取）。
-- 本地源 S2：开工时桌面 `annas-arch-c0947c0b4330.pdf`，288 个 PDF 物理页，双页扫描。执行期间相同内容出现在 `用户提供的本地文件（不进仓库）��资料/书籍/Domain-Driven Design-Eric Evans-2003.pdf`，已核 SHA-256 一致；**现文件名与书内题名不符，内容仍为 Silverston 第 2 卷**。本卡未移动或改名，定位须以版权、页码和内容为准。
+- 本地源 S2：开工时桌面 `annas-arch-c0947c0b4330.pdf`，288 个 PDF 物理页，双页扫描。执行期间相同内容出现在 用户提供的本地文件（不进仓库，书已移至资料目录），已核 SHA-256 一致；**现文件名与书内题名不符，内容仍为 Silverston 第 2 卷**。本卡未移动或改名，定位须以版权、页码和内容为准。
 - **抽取限制**：`pdfinfo` 成功，`pdftotext -layout -enc UTF-8` 成功退出但全部页面无可用正文。未安装 OCR；补充将题名、版权、目录及第 7 章选页渲染后目视核读。属于局部目视阅读，不是全文可检索阅读；其他行业章未读。
 
 ## 2. 与本项目相关的核心思想
@@ -58,7 +58,7 @@
 
 ## 4. 对本项目的取舍
 
-**已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）。**
+**已审定（one-architecture 2026-10-18，页码已抽查）。**
 
 - **采纳：承诺内容、资源安排、实际投入与成果移交分别追溯。** 理由：适合 AEC 项目制专业服务，但与现有协议、WBS、履约义务及交付物的映射仍须核验。
 - **采纳：通用模式按服务业务裁剪。** 理由：书中专业服务章本身就有删除库存结构、调整产品组合等处理。

@@ -1,8 +1,8 @@
 # Bahri、Williams 企业架构建模书要点笔记
 
-状态：已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）｜派工：ARC-1018-ARC-01｜2026-10-17
+状态：已审定（one-architecture 2026-10-18，已抽查）｜派工：ARC-1018-ARC-01｜2026-10-17
 
-本文按实际输入题名阅读，自行概括；短引：0 处。页码待 sonnet 独立抽查。
+本文按实际输入题名阅读，自行概括；短引：0 处。已抽查。
 
 ## 1. 书目与阅读范围
 
@@ -58,7 +58,7 @@
 
 ## 4. 对本项目的取舍
 
-**已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）。**
+**已审定（one-architecture 2026-10-18，已抽查）。**
 
 - **采纳：模型元素复用、聚焦视图及明确维护责任。** 理由：适用于现有文件化架构资料，能够减少同物多名和关系漂移。
 - **采纳：用稳定抽象隔离不必要的实现细节。** 理由：企业视图不宜被某个内部组件或临时端点绑住。
@@ -68,3 +68,17 @@
 ## 5. 使用边界与短引
 
 短引：0 处。文件名对应的目标书目尚未核到；本卡交付的是实际提供文件的局部阅读笔记，不能宣称另一本题名已读完。
+
+## 页码抽查（ARC-1018-ARC-04）
+
+| 抽查项 | 笔记所记位置 | 实际位置 | 结果 |
+|---|---|---|---|
+| B-B1 题名与版权 | PDF 2–3 | PDF 2 为 Practical Model-Driven EA 题名，PDF 3 为版权页 | 一致 |
+| B-01 Use smaller metamodels / focused metamodel | 印刷 19、96；PDF 38、115 | 页眉印刷页与 PDF 均吻合，内容为缩小元模型与聚焦元模型 | 一致 |
+| B-02 Modeling best practices | 印刷 115；PDF 134 | 页眉 115，讲每图只用适合受众的元素 | 一致 |
+| B-03 Keeping your diagram focused | 印刷 116；PDF 135 | 小节标题在此页 | 一致 |
+| B-04 Defining capabilities / Value streams | 印刷 289、292；PDF 308、311 | 289 页末为 Defining capabilities，292 页有 Value streams 标题 | 一致 |
+| B-05 Model abstraction / replication / Version management | 印刷 328–329；PDF 347–348 | 抽象在 328 起，replication 与 Version management 在 329 | 一致 |
+| B-06 Repository governance | 印刷 343–344；PDF 362–363 | Repository governance 标题在 343，治理内容续至 344 | 一致 |
+
+抽查 7 条，偏差 0 条。

@@ -1,6 +1,6 @@
 # Silverston、Agnew《The Data Model Resource Book》第三卷要点笔记
 
-状态：已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）｜派工：ARC-1018-ARC-02｜2026-10-17
+状态：已审定（one-architecture 2026-10-18，页码已抽查）｜派工：ARC-1018-ARC-02｜2026-10-17
 
 本笔记保存与 FORCITIS one 相关的阅读要点，不构成新增架构决定。正文为自行概括；PARTY 等书中原词及候选译名仅用于来源讨论，不建立正式术语。项目取舍与对象候选均待审定。
 
@@ -61,7 +61,7 @@
 | S3-09 | 不同用途的模型与物理设计边界 | 第 9 章 Application / Enterprise / Data Warehouse Models / Other Thoughts | `OEBPS/9781118080832c09.xhtml#c09_level1_4`、`#c09_level1_5`、`#c09_level1_6`、`#c09_level1_8` |
 | S3-10 | MDM 场景及身份整合边界 | 第 9 章 Master Data Management | `OEBPS/9781118080832c09.xhtml#c09_level1_7` |
 
-## 4. 对本项目的取舍（已审定（one-architecture 2026-10-18，页码待 sonnet 抽查））
+## 4. 对本项目的取舍（已审定（one-architecture 2026-10-18，页码已抽查））
 
 - **建议采纳：用角色、关系、分类、状态、联系方式和规则六类问题复核对象信息。** 理由：可以发现同一主体重复建档、参与身份缺上下文或历史解释不足等设计风险。应先寻找已有承载，再判断是对象、关系属性还是参考数据。
 - **建议采纳：区别企业一般角色与具体协议、项目内身份。** 对象图 §2.2 已有两层处理；本书可作为旁证与核对清单，不重开用户已定的划分，也不把业务角色直接当授权角色。
@@ -89,3 +89,16 @@
 ## 6. 使用边界
 
 本书是通用逻辑数据模式参考，不提供 AEC 合同、会计、人事或法律事实；未读取本书第一、二卷，不能将那两卷的领域模型归于第三卷。对象图对照只覆盖设计文字，未审查实现、运行数据或全部规格，因此没有形成系统功能缺失清单。未修改正式术语、对象图、FRAMEWORKS、状态机或数据模型；稳定锚点已检查存在，独立内容抽查尚未运行。
+
+## 页码抽查（ARC-1018-ARC-04）
+
+| 抽查项 | 笔记所记位置 | 实际位置 | 结果 |
+|---|---|---|---|
+| S3-02 角色有效期 | c02 #c02_level1_6 | 锚点存在，小节为 Level 3 Declarative Role Pattern | 一致 |
+| S3-06 状态间规则 | c06 #c06_level1_9 | 锚点存在，小节为 Status Type with Multi Rollup and Rules | 一致 |
+| S3-07 其他联系数据 | c07 #c07_level1_10 | 锚点存在，小节为 Other Common Contact Mechanism Data | 一致 |
+| S3-10 MDM | c09 #c09_level1_7 | 锚点存在，小节为 Master Data Management | 一致 |
+| S3-05 分类体系 | c05 #c05_level1_7 | 锚点存在，小节讨论分类体系与来源，概括不失真 | 一致 |
+| S3-08 业务规则模式 | c08 #c08_level1_4 | 锚点存在，小节为 Level 2 Business Rules Pattern | 一致 |
+
+抽查 6 条，偏差 0 条。

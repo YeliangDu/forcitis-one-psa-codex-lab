@@ -1,6 +1,6 @@
 # Fowler《Patterns of Enterprise Application Architecture》要点笔记
 
-状态：已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）｜派工：ARC-1018-ARC-02｜2026-10-17
+状态：已审定（one-architecture 2026-10-18，已抽查）｜派工：ARC-1018-ARC-02｜2026-10-17
 
 本笔记保存与 FORCITIS one 相关的阅读要点，不构成新增架构决定。正文为自行概括；英文模式名是来源术语，中文说明不据此确立正式术语。项目取舍均为草拟，现行决定优先。
 
@@ -62,7 +62,7 @@ Value Object 以值而不是身份判断相等，不可变性可避免共享引�
 
 ## 4. 对本项目的取舍
 
-以下均为**已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）**；现行约束见 [FRAMEWORKS](../../FRAMEWORKS.md) §2、CODING_STANDARD 与 NAMING_STANDARD。
+以下均为**已审定（one-architecture 2026-10-18，已抽查）**；现行约束见 [FRAMEWORKS](../../FRAMEWORKS.md) §2、CODING_STANDARD 与 NAMING_STANDARD。
 
 - **建议借鉴：把逻辑组织方式的理由写到 BC 的建模选择中。** 可用规则复杂度、变化与行为重复解释深建模或薄 CRUD；具体标记继续按 ADR-0041 与现行方法由用户决定，本书不替代该决定。
 - **建议借鉴：以应用协调和领域行为的分工检查用例。** 本项目一类一用例、事务只在 application、聚合维护不变量是 CS-2.2–2.5 的现行规则；书中 Service Layer 的多种实现不能据此放宽。
@@ -75,3 +75,20 @@ Value Object 以值而不是身份判断相等，不可变性可避免共享引�
 ## 5. 使用边界
 
 本书是企业应用模式集，不是本企业的业务规格、DDD 聚合目录或数据库设计标准。它不证明某个聚合应包含哪些对象，不给出 FORCITIS 的收入、成本和审批规则，也不证明现有代码已满足事务或并发要求。本笔记只提出复审问题与模式对照，未新增框架、依赖、实现或验收结论。
+
+## 页码抽查（ARC-1018-ARC-04）
+
+本笔记以 EPUB 成员路径定位，无印刷页；逐一核成员存在及主题。
+
+| 抽查项 | 笔记所记位置 | 实际位置 | 结果 |
+|---|---|---|---|
+| P-B1 作者与出版信息 | main.html；copyrightpg.html | main 列作者 Fowler 等六人、出版社、日期、ISBN 0-321-12742-0；copyrightpg 为版权页，含首印 2002 年 10 月 | 一致 |
+| P-01 逻辑复杂度与组织选择 | 第 2 章 Making a Choice，ch02lev1sec1 | 成员存在，标题为 Making a Choice，讨论三种领域逻辑模式选择 | 一致 |
+| P-03 应用边界 | ch02lev1sec2；ch09lev1sec4 | 前者为 Service Layer 简介，后者为 Service Layer（Randy Stafford）定义应用边界 | 一致 |
+| P-04 领域与映射分离 | 第 10 章 Data Mapper，ch10lev1sec4 | 成员为 Data Mapper，主题为对象与库互相独立 | 一致 |
+| P-09 并发与业务事务 | ch05lev1sec1；ch05lev1sec5 | sec1 为 Concurrency Problems，sec5 为 Transactions 并在其内含 Business and System Transactions 小标题 | 一致 |
+| P-10 提交时检查冲突 | ch16lev1sec1 | Optimistic Offline Lock（David Rice），检测冲突并回滚 | 一致 |
+| P-12 值相等与币种金额 | ch18lev1sec6；ch18lev1sec7 | 分别为 Value Object 与 Money | 一致 |
+| P-08 推迟加载 | ch11lev1sec3 | Lazy Load，主题为加载关联对象的代价 | 一致 |
+
+抽查 8 条，偏差 0 条。

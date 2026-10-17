@@ -1,15 +1,15 @@
 # Hay《Data Model Patterns: A Metadata Map》要点笔记
 
-状态：已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）｜派工：ARC-1018-ARC-01｜2026-10-17
+状态：已审定（one-architecture 2026-10-18，页码已抽查）｜派工：ARC-1018-ARC-01｜2026-10-17
 
-本文自行概括，不构成新框架采用决定。短引：0 处。章节位置待 sonnet 独立抽查。
+本文自行概括，不构成新框架采用决定。短引：0 处。章节位置已抽查（ARC-1018-ARC-04）。
 
 ## 1. 书目与阅读范围
 
 - 实际书名：Data Model Patterns: A Metadata Map；作者：David C. Hay。
 - 版本：版权页未另列版次；出版者：Morgan Kaufmann Publishers（Elsevier 旗下）；年份：2006。
 - ISBN：978-0-12-088798-9；ISBN-10：0-12-088798-3（版权页）。
-- 本地源 H：开工时桌面 `annas-arch-6767a89b00a4.epub`，20 个 spine 文档；题名 spine 2，版权 spine 5。执行期间相同内容已位于 `用户提供的本地文件（不进仓库）��资料/书籍/Data Model Patterns A Metadata Map-David C. Hay-2006.epub`，已核 SHA-256 一致；本卡未移动或改名。
+- 本地源 H：开工时桌面 `annas-arch-6767a89b00a4.epub`，20 个 spine 文档；题名 spine 2，版权 spine 5。执行期间相同内容已位于 用户提供的本地文件（不进仓库，书已移至资料目录），已核 SHA-256 一致；本卡未移动或改名。
 - **题名边界**：本地核到的是元数据地图这一部，不是其参考书目所引的 Data Model Patterns: Conventions of Thought。不能把两书的内容或年代混记。无稳定页码，以下用章节、spine 与去标签文本行号。
 - 聚焦业务语义到逻辑实体、表列、程序和质量责任的追溯；不按全书框架矩阵重建内容。
 
@@ -61,7 +61,7 @@
 
 ## 4. 对本项目的取舍
 
-**已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）。**
+**已审定（one-architecture 2026-10-18，页码已抽查）。**
 
 - **采纳：保留对象、用语、规则、逻辑实体、表列与验证证据的映射。** 理由：能支持对象与表双向核对，又不要求它们一一对应。
 - **采纳：分别记录业务责任和数据质量标准。** 理由：模型正确、来源一致和业务事实正确是不同的核验问题。

@@ -1,15 +1,15 @@
 # Silverston《The Data Model Resource Book》第 1 卷要点笔记
 
-状态：已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）｜派工：ARC-1018-ARC-01｜2026-10-17
+状态：已审定（one-architecture 2026-10-18，页码已抽查）｜派工：ARC-1018-ARC-01｜2026-10-17
 
-本文为自行概括；索引供复查，项目建议不构成架构决定。短引：0 处。页码待 sonnet 独立抽查。
+本文为自行概括；索引供复查，项目建议不构成架构决定。短引：0 处。页码已抽查。
 
 ## 1. 书目与阅读范围
 
 - 书名：The Data Model Resource Book, Revised Edition, Volume 1: A Library of Universal Data Models for All Enterprises。
 - 作者：Len Silverston；版本：Revised Edition（正文称第二版）；出版者：John Wiley & Sons, Inc.；版权年：2001。
 - ISBN：978-0-471-38023-8，版权页可核；页面制作日期 2007、2008 不作为出版年。
-- 本地源 S1：开工时桌面 `annas-arch-5cf1dfb2cf85.pdf`，562 个 PDF 物理页；题名 PDF 3，版权 PDF 4。执行期间观察到相同内容已位于 `用户提供的本地文件（不进仓库）��资料/书籍/The Data Model Resource Book Vol 1 Rev Ed-Len Silverston-2001.pdf`，已核 SHA-256 一致；本卡未移动或改名。
+- 本地源 S1：开工时桌面 `annas-arch-5cf1dfb2cf85.pdf`，562 个 PDF 物理页；题名 PDF 3，版权 PDF 4。执行期间观察到相同内容已位于 用户提供的本地文件（不进仓库，书已移至资料目录），已核 SHA-256 一致；本卡未移动或改名。
 - 阅读聚焦主体、角色、联系、工作投入、开账及企业模型向分析模型的转换，未逐项复述模型或图中的属性。
 
 ## 2. 与本项目相关的核心思想
@@ -60,7 +60,7 @@ PDF 物理页从 1 开始；以下正文印刷页与物理页差 20，按各处�
 
 ## 4. 对本项目的取舍
 
-**已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）。** 现行边界见 [FRAMEWORKS](../../FRAMEWORKS.md)、SESSION_PLAYBOOK §14.1。
+**已审定（one-architecture 2026-10-18，页码已抽查）。** 现行边界见 [FRAMEWORKS](../../FRAMEWORKS.md)、SESSION_PLAYBOOK §14.1。
 
 - **采纳：用主体、角色、关系及其有效期复核对象模型。** 理由：与现有往来单位共用身份、角色分开的口径相容，能检查一人多角色和跨期归属。
 - **采纳：用工作投入到需求、工时到计费的链路查漏。** 理由：AEC 服务既要解释履约，也要解释实际投入；两条链路不可用一项总额代替。

@@ -1,6 +1,6 @@
 # Hohpe / Woolf《Enterprise Integration Patterns》要点笔记
 
-状态：已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）｜派工：ARC-1018-ARC-02｜2026-10-17
+状态：已审定（one-architecture 2026-10-18，页码已抽查）｜派工：ARC-1018-ARC-02｜2026-10-17
 
 本笔记保存与 FORCITIS one 相关的阅读要点，不构成新增架构决定。正文为自行概括；英文模式名是来源术语，中文说明不据此确立正式术语。项目取舍和流程对照均为草拟，现行决定优先。
 
@@ -60,7 +60,7 @@ PDF 物理页从 1 开始。下列为选读定位范围，不是复刻原书目�
 
 ## 4. 对本项目的取舍
 
-以下均为**已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）**。现行约束仍以已采纳 ADR 和规范为准：
+以下均为**已审定（one-architecture 2026-10-18，页码已抽查）**。现行约束仍以已采纳 ADR 和规范为准：
 
 - **建议借鉴：逐个外部契约分开说明适配、语义翻译、去重、关联与失败处置。** 可用本书模式检查遗漏，不把模式名当作实现完成证据。外部名称、标识和取值只在 `platform.integration`，翻译后才交业务模块，是 ADR-0039 决定 1 与 CS-2.29 的现行要求。
 - **建议借鉴：按确认丢失和重复到达检验出站结果。** 本书为为什么需要幂等提供解释；本项目的发件箱、可靠投递、超时、重试、死信与告警按 GUIDING_PRINCIPLES §7、SESSION_PLAYBOOK §14.3，U8C 按 ADR-0022 决定 8 及 ADR-0054 决定 3.4–3.5；本笔记没有另定键、期限或重投权限。
@@ -70,7 +70,7 @@ PDF 物理页从 1 开始。下列为选读定位范围，不是复刻原书目�
 
 ## 5. 集成流程草案逐条对照
 
-只读对照 [process-catalog.yaml](../../proposals/closeout/process-catalog.yaml) 中全部 `type: integration` 行，共 15 条：PRC-184–189、PRC-192–200。目录这些行均为 `draft`；PRC-190、PRC-191 仍保留目录行但 type 为 retired，不能算入本次集成集合。下表是**模式借鉴建议，已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）**，不改变流程归属、生命期或现行 ADR。
+只读对照 [process-catalog.yaml](../../proposals/closeout/process-catalog.yaml) 中全部 `type: integration` 行，共 15 条：PRC-184–189、PRC-192–200。目录这些行均为 `draft`；PRC-190、PRC-191 仍保留目录行但 type 为 retired，不能算入本次集成集合。下表是**模式借鉴建议，已审定（one-architecture 2026-10-18，页码已抽查）**，不改变流程归属、生命期或现行 ADR。
 
 | 流程 | 可借鉴的来源模式 | 与现行决定和证据的边界 |
 |---|---|---|
@@ -93,3 +93,21 @@ PDF 物理页从 1 开始。下列为选读定位范围，不是复刻原书目�
 ## 6. 使用边界
 
 本书提供消息集成的模式语言，不证明本企业的事实归属、外部接口能力、接口调用方、合法读取范围或运行可靠性。第 5 节对照的是基线文档，没有复核生产、接口或实现；目录与 ADR 不一致之处只作提示，未修改目录。原书的商业中间件、JMS、示例共享模型和跨资源事务均未因本笔记被采纳。
+
+## 页码抽查（ARC-1018-ARC-04）
+
+| 抽查项 | 笔记所记位置 | 实际位置 | 结果 |
+|---|---|---|---|
+| EIP-01 | PDF 103–110，印刷 47–54 | 103 为 Shared Database，107 Remote Procedure Invocation，109 Messaging（印刷 53） | 一致 |
+| EIP-02 | PDF 141–144 | 141 起 Message Translator，含 Levels of Transformation | 一致 |
+| EIP-03 | PDF 183–184 | 183 Channel Adapter | 一致 |
+| EIP-04 | PDF 178–179 | 178 Guaranteed Delivery | 一致 |
+| EIP-05 | PDF 175–176 | 175 Dead Letter Channel | 一致 |
+| EIP-06 | PDF 540–541，印刷 484 | 540 页眉印刷 484，Transactional Client | 一致 |
+| EIP-07 | PDF 584–586 | 584 Idempotent Receiver | 一致 |
+| EIP-08 | PDF 219–220 | 219 Correlation Identifier | 一致 |
+| EIP-09 | PDF 201–204；207–208 | 201 Command Message，207 Event Message | 一致 |
+| EIP-10 | PDF 411–412 | 411 Canonical Data Model | 一致 |
+| EIP-11 | PDF 611–612 | 611 Message Store | 一致 |
+
+抽查 11 条，偏差 0 条。

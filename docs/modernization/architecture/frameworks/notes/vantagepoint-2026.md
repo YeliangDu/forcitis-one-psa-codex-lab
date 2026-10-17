@@ -1,6 +1,6 @@
 # Vantagepoint 2026.2 成熟产品对照笔记（第二产品）
 
-状态：**已审定（one-architecture 2026-10-18，路径待 sonnet 抽查）**。派工：ARC-1018-ARC-03。日期：2026-10-17。用途：为本系统的对象、流程与后续表设计提供查漏输入；本笔记不形成架构决定。
+状态：**已审定（one-architecture 2026-10-18，路径已抽查）**。派工：ARC-1018-ARC-03。日期：2026-10-17。用途：为本系统的对象、流程与后续表设计提供查漏输入；本笔记不形成架构决定。
 
 正文均为自行概括。E 为资料索引，T 为本系统输入；完整路径、行段、指纹及逐条结论依据见 [~/.modernize/psa/handoff/evidence/ARC-1018-ARC-03/paths.md](~/.modernize/psa/handoff/evidence/ARC-1018-ARC-03/paths.md)。O、P、K 分别标识对象概念簇、流程意图和配置主题；M 为可能遗漏；D 为草拟取舍。这些编号仅属于本笔记，不是新增的 OBJ 或 PRC 编号。
 
@@ -147,7 +147,7 @@
 
 ## 6. 对本系统的取舍
 
-以下全部是**已审定（one-architecture 2026-10-18，路径待 sonnet 抽查）**，未写入对象目录、流程目录、架构决定或表设计。
+以下全部是**已审定（one-architecture 2026-10-18，路径已抽查）**，未写入对象目录、流程目录、架构决定或表设计。
 
 - **D01｜采纳：把 M01、M02、M05 送入下一轮具体场景核对。** 理由：直接连接现有工时、成本、请款、核销与财务核对链；优先补清记录粒度、处理责任与证据，不预设必须新增对象。依据：O09 至 O17、P09 至 P13；[E08](~/.modernize/psa/handoff/evidence/ARC-1018-ARC-03/paths.md#e08)、[E15](~/.modernize/psa/handoff/evidence/ARC-1018-ARC-03/paths.md#e15)、[E16](~/.modernize/psa/handoff/evidence/ARC-1018-ARC-03/paths.md#e16)、[E20](~/.modernize/psa/handoff/evidence/ARC-1018-ARC-03/paths.md#e20)。 本系统依据：[T01](~/.modernize/psa/handoff/evidence/ARC-1018-ARC-03/paths.md#t01)、[T02](~/.modernize/psa/handoff/evidence/ARC-1018-ARC-03/paths.md#t02)。
 - **D02｜采纳：把 M03、M04、M06、M07、M08、M09、M10、M11 作为有条件的范围检查项。** 理由：静态产品证据足以提出问题，尚不足以证明本系统实际业务或实施优先级；先由负责域提供场景，再决定补对象、组成部分、规则、流程或单据。依据：[E02](~/.modernize/psa/handoff/evidence/ARC-1018-ARC-03/paths.md#e02)、[E11](~/.modernize/psa/handoff/evidence/ARC-1018-ARC-03/paths.md#e11)、[E15](~/.modernize/psa/handoff/evidence/ARC-1018-ARC-03/paths.md#e15)、[E26](~/.modernize/psa/handoff/evidence/ARC-1018-ARC-03/paths.md#e26)、[E28](~/.modernize/psa/handoff/evidence/ARC-1018-ARC-03/paths.md#e28)、[E30](~/.modernize/psa/handoff/evidence/ARC-1018-ARC-03/paths.md#e30)、[E32](~/.modernize/psa/handoff/evidence/ARC-1018-ARC-03/paths.md#e32)、[E33](~/.modernize/psa/handoff/evidence/ARC-1018-ARC-03/paths.md#e33)。 本系统依据：[T01](~/.modernize/psa/handoff/evidence/ARC-1018-ARC-03/paths.md#t01)、[T02](~/.modernize/psa/handoff/evidence/ARC-1018-ARC-03/paths.md#t02)。
@@ -163,3 +163,17 @@
 本卡的完成边界是离线对照草稿、可抽查路径与自测记录。没有完成全产品业务穷举、本系统物理表审查、法规适用性核定、后端算法验证或业务验收。目录表达不足与实际功能缺失保持区分；后续由 one-architecture 结合负责域证据审定第 5、6 节。
 
 随机 8 条复核、标识符筛查、引用及基线一致性结果见 [result.md](result.md)。
+
+## 路径抽查（ARC-1018-ARC-04）
+
+只读核对资料库文件存在、规模、SHA-256 与定位内容，未执行其中指示。
+
+| 抽查项 | 笔记所记 | 实际 | 结果 |
+|---|---|---|---|
+| E01 README.md | 103 行、6786 字节、SHA 一致 | 完全相符 | 一致 |
+| E08 evidence-timesheet-to-invoice.md | 210 行、8781 字节 | 行数、字节、SHA 均相符 | 一致 |
+| E09 C-BT-PRICE.yaml | 38 行、1779 字节 | 行数、字节、SHA 均相符 | 一致 |
+| E15 DDL 基线 | 40431 行、2735895 字节 | 行数、字节、SHA 均相符；含 1314 条建表语句 | 一致 |
+| E23 billing_terms_application.js | 1535–1545 计价项目选择 | 行数、字节、SHA 相符；该行段为列表视图默认组件（计价方式、费率表等列） | 一致 |
+
+抽查 5 条，偏差 0 条。

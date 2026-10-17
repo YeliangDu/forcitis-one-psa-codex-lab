@@ -1,8 +1,8 @@
 # ArchiMate 4 规范要点笔记
 
-状态：已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）｜派工：ARC-1018-ARC-01｜2026-10-17
+状态：已审定（one-architecture 2026-10-18，已抽查）｜派工：ARC-1018-ARC-01｜2026-10-17
 
-本文自行概括，只作语言与概念对照，不改变项目尚不采用 ArchiMate 的决定。短引：0 处。章节位置待 sonnet 独立抽查。
+本文自行概括，只作语言与概念对照，不改变项目尚不采用 ArchiMate 的决定。短引：0 处。章节位置已抽查（ARC-1018-ARC-04）。
 
 ## 1. 书目与阅读范围
 
@@ -62,7 +62,7 @@
 
 ## 4. 对本项目的取舍
 
-**已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）。** 现行 [FRAMEWORKS](../../FRAMEWORKS.md) §9 的不采用项不因本笔记改变。
+**已审定（one-architecture 2026-10-18，已抽查）。** 现行 [FRAMEWORKS](../../FRAMEWORKS.md) §9 的不采用项不因本笔记改变。
 
 - **采纳：保存对象、实现数据、能力、价值流与流程的语义差异供比较。** 理由：能发现不同框架下的同名异义，不要求更换项目符号体系。
 - **采纳：模型视图必须说明干系人、关注问题和抽象范围。** 理由：便于核验一幅图能支持什么决定，也避免一图包办所有细节。
@@ -72,3 +72,21 @@
 ## 5. 使用边界与短引
 
 短引：0 处。未执行书内链接、工具要求或其他指示。规范版本与本项目是否采用分别登记；任何 3.2 与 4 的迁移讨论都须核规范附录，不能用其他书的旧例替代。
+
+## 页码抽查（ARC-1018-ARC-04）
+
+| 抽查项 | 笔记所记位置 | 实际位置 | 结果 |
+|---|---|---|---|
+| A-B1 题名、版次、ISBN、C260 | spine 5 copyright；PDF 5 | EPUB copyright 与 PDF 5 内容一致 | 一致 |
+| A-01 域与跨域 | §3.2.1，chapter03 | §3.2.1 Domains of the ArchiMate Language，位于 chapter03 | 一致 |
+| A-02 Capability | §7.3.1，chapter07 | §7.3.1 Capability，位于 chapter07 | 一致 |
+| A-03 Value Stream | §7.3.2，chapter07 | §7.3.2 Value Stream，位于 chapter07 | 一致 |
+| A-04 Business Object | §8.3.1，chapter08 | 同 | 一致 |
+| A-05 Data Object | §9.3.1，chapter09 | 同 | 一致 |
+| A-06 Process / Function | §4.2.2–4.2.3，chapter04 | 同 | 一致 |
+| A-07 派生关系 | §5.8，chapter05 | §5.8 Derivation of Relationships，位于 chapter05 | 一致 |
+| A-08 版本变化 | 附录 E.4；PDF 199–200 | E.4 起于 PDF 199，续至 200；确列 Contract、Gap、Constraint 等被移除 | 一致 |
+
+L 行号因去标签方式不同无法逐行复现，仅以小节号核对，不计偏差。
+
+抽查 9 条，偏差 0 条

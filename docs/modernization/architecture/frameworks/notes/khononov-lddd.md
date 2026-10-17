@@ -1,8 +1,8 @@
 # Khononov《Learning Domain-Driven Design》要点笔记
 
-状态：已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）｜派工：ARC-1018-ARC-01｜2026-10-17
+状态：已审定（one-architecture 2026-10-18，已抽查）｜派工：ARC-1018-ARC-01｜2026-10-17
 
-本文自行概括，不引入书中整套技术方案。短引：0 处。章节位置待 sonnet 独立抽查。
+本文自行概括，不引入书中整套技术方案。短引：0 处。章节位置已抽查。
 
 ## 1. 书目与阅读范围
 
@@ -60,7 +60,7 @@
 
 ## 4. 对本项目的取舍
 
-**已审定（one-architecture 2026-10-18，页码待 sonnet 抽查）。**
+**已审定（one-architecture 2026-10-18，已抽查）。**
 
 - **采纳：以业务复杂性和模型含义选择设计深度。** 理由：当前阶段不应让模式的统一外观取代需求和不变量判断；现行代码规范仍须遵守。
 - **采纳：明确状态、事件投递和分析数据的责任。** 理由：能分别核验交易成功、消息发布及分析可用，避免一处成功代表全链路成功。
@@ -70,3 +70,20 @@
 ## 5. 使用边界与短引
 
 短引：0 处。书中启发式是条件化设计建议，不是能自动推出 FORCITIS one 子域、BC、核心业务或数据产品归属的事实。
+
+## 页码抽查（ARC-1018-ARC-04）
+
+核对源：本地 EPUB 各 spine 文件去标签后的非空行（行号以独立重新抽取为准）。
+
+| 抽查项 | 笔记所记位置 | 实际位置 | 结果 |
+|---|---|---|---|
+| K-01 核心 / 支撑子域 | ch01；Core L17、Supporting L34 | ch01 Core subdomains L17、Supporting subdomains L34，章名 Analyzing Business Domains | 一致 |
+| K-02 限界上下文与子域 | ch03；L45 起 | ch03 小节 Bounded Contexts Versus Subdomains L45 | 一致 |
+| K-03 领域模型 / 值对象 / 聚合 | ch06 | ch06 章名 Tackling Complex Business Logic，含 Domain Model、Value object、Aggregates 各小节 | 一致 |
+| K-04 事件溯源领域模型 | ch07；L3 起 | ch07 章名 Modeling the Dimension of Time，Event Sourcing 小节 L6，Event-Sourced Domain Model L393 | 一致 |
+| K-05 Outbox / Saga / Process Manager | ch09；L100、L138、L213 | ch09 对应小节恰在 L100、L138、L213 | 一致 |
+| K-06 设计启发式 / 限界上下文 | ch10；开头 | ch10 章名 Design Heuristics，Heuristic 与 Bounded Contexts 小节在开头 | 一致 |
+| K-07 CQRS | ch08；L180 起 | ch08 Command-Query Responsibility Segregation 小节 L180 | 一致 |
+| K-08 按领域拆分数据 / 数据即产品 | ch16；L63、L68 | ch16 Decompose Data Around Domains L63、Data as a Product L68 | 一致 |
+
+抽查 8 条，偏差 0 条。
