@@ -149,6 +149,8 @@ one-architecture另须冻结资料清单（提交号、文件摘要、计数口�
 
 **R册：DMN决策登记与暂缓范围**
 
+- 已定（用户 2026-10-17「不引入但要版本化配置」，intent 已由调度记）：本轮不引入 DMN；业务判断规则统一走 D15 版本化配置表，每版记生效日、批准人、依据并登记变更，不写死在代码。DEC-06 及 `DMN_FIT_RESEARCH.md` 认定适合成表的判断点按 D15 设计。本册逐条登记：判断进配置表还是留在代码，各写理由；下列「未定」中引擎选型一项随之撤下。
+
 - 写入：只核对`dmn/decisions.yaml`，不新增DMN执行文件。骨架为`DEC-ID/所属BC/location/input/output/rule_refs/execution/evidence/test_ref/status/decision_ref`，消除“dmn-planned=已选引擎”的歧义。
 - 数量：现有15个代码决策点；本轮拟新增真实DMN表0张。骨架判断点与DEC差异先列出，补录数在manifest冻结时给出。
 - 未定：没有已批准的引擎/版本/首张真实表；将来出现真实表才按FRAMEWORKS §7另开选型ADR，比较DMN与D15版本化配置表，不为完成本册强迫用户选型。依赖G/D/P的判断点归类。
