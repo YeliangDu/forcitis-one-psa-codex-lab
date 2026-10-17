@@ -683,15 +683,21 @@ class ReadOnlyAccountCheckIT {
     }
 
     static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled) {
-        return start(enabled, c -> url(c.database));
+        return start(enabled, c -> url(c.database), List.of());
     }
 
+    /** The named database is missing and the check waits out its connection limit, so only this case gets a short one. */
     static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled, String approvalDatabaseOverride) {
-        return start(enabled, c -> url(c == ReadOnlyConnection.LEGACY_APPROVAL ? approvalDatabaseOverride : c.database));
+        return start(enabled, c -> url(c == ReadOnlyConnection.LEGACY_APPROVAL ? approvalDatabaseOverride : c.database),
+                List.of("--forcitis.platform.integration.external-connection.background.acquire-timeout=1s"));
     }
 
     /** Command-line arguments: they rank above application.properties, which switches every external connection off by default. */
     static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled, Function<ReadOnlyConnection, String> urlOf) {
+        return start(enabled, urlOf, List.of());
+    }
+
+    static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled, Function<ReadOnlyConnection, String> urlOf, List<String> extraArguments) {
         List<String> args = new ArrayList<>(List.of(
                 "--server.port=0",
                 "--spring.main.banner-mode=off",
@@ -722,6 +728,7 @@ class ReadOnlyAccountCheckIT {
         } else {
             args.add(inbox + "url=");
         }
+        args.addAll(extraArguments);
         return new SpringApplicationBuilder(OneApplication.class).run(args.toArray(String[]::new));
     }
 
