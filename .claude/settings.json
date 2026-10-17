@@ -1,5 +1,16 @@
 {
   "hooks": {
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/hooks/sessionend_snapshot.sh",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
     "PreCompact": [
       {
         "hooks": [
