@@ -126,4 +126,18 @@ class ClientAddressNotLoggedTest {
         assertAuditKeepsAddress("platform.identity.administrator-mode.entered");
         assertAlertWithoutAddress();
     }
+
+    @Test
+    @DisplayName("O-3: when the failed-login audit entry cannot be written, the log line carries the failure type but not the client address from its message")
+    void failedAuditWriteOmitsClientAddress() {
+        org.mockito.Mockito.doThrow(new IllegalStateException("Failing row contains (" + CLIENT_ADDRESS + ")")).when(audit).recordIndependently(any());
+        LoginAdmission admission = new LoginAdmission(mock(AccountProvisioning.class), mock(AccountRepository.class), audit, mock(SessionRegistry.class),
+                origin, Clock.fixed(UNTIL, ZoneOffset.UTC), new SimpleMeterRegistry(), mock(BrowserIdentity.class));
+
+        admission.reject(com.forcitis.one.platform.identity.api.IdentityError.values()[0], LoginMethod.EMERGENCY, ACCOUNT, "reason");
+
+        assertThat(logged.list).isNotEmpty();
+        assertThat(logged.list).anySatisfy(event -> assertThat(event.getFormattedMessage()).contains("IllegalStateException"));
+        assertThat(logged.list).allSatisfy(event -> assertThat(event.getFormattedMessage()).doesNotContain(CLIENT_ADDRESS));
+    }
 }
