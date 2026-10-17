@@ -121,6 +121,7 @@ def run(mq):
     try:
         with tempfile.TemporaryDirectory() as d:
             _required(mq)
+            _ci_step_name(mq)
             _scenarios(mq, d)
             _merge_guards(mq, d)
             _pause(mq, d)
@@ -166,6 +167,12 @@ def _required(mq):
     assert not mq.required_state([])[0]
     assert mq.required_state(green() + [{"name": "assertion drift (warning only)", "bucket": "fail", "link": ""}])[0], "only the three required checks decide"
     assert mq.required_state(green(light=True) + green())[0], "light and full next to each other: the full ones count"
+
+
+def _ci_step_name(mq):
+    """The step name the queue looks for is the one ci.yml has (a renamed step would silently turn the no-rerun rule off)."""
+    ci = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".github", "workflows", "ci.yml")
+    assert f"- name: {mq.REPEAT_STEP}" in open(ci, encoding="utf-8").read(), f"ci.yml has no step named {mq.REPEAT_STEP!r}"
 
 
 def _scenarios(mq, d):
