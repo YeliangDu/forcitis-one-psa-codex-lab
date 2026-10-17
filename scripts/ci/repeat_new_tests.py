@@ -4,7 +4,7 @@
 用法：repeat_new_tests.py <基线引用> [--times 3] [--max 40] [--dry-run]  |  repeat_new_tests.py --self-test
 基线引用如 origin/main；比较 `<基线>...HEAD` 里新增或改动的 backend/src/test/java 下以 Test 或 IT 结尾的类（文件仍存在的）。*Test 用 surefire，*IT 用 failsafe，各自在已编译的目录上
 重复 --times 遍，每遍一个新的 Maven 进程（新 JVM、新容器）；任何一遍失败、或某个类没产生报告，整体失败（挂一次即不过）。类多于 --max 时只重复前 --max 个（按路径排序）并明说，不失败。
-CI 里接在 `surefire and failsafe, side by side` 之后，只在 pull_request、重步骤门控放行（带 queued 标签）时跑。
+CI 里接在 `surefire and failsafe, side by side` 之后，只在 pull_request、tier=code、重步骤门控放行（带 queued 标签）时跑。
 不重复的：抽象类（改它则改重复它的子类，沿 `extends` 找，最多三层）、`*MssqlIT`（pom 的 testExcludes 不编译它，由 legacy-it 跑）、`OpenApiExportTest`（pom 的 excludes：它要单独先跑，且改写 openapi.json）。
 名额（--max）先给集成测试再给单元测试：偶发失败主要出在 IT，一个改了几十个 IT 的 PR 不能把 IT 整批挤掉。
 Maven 参数沿用 CI（backend_verify.sh）：每个插件 2 个 fork、fork 总超时 900 秒，挂起的测试不会等到步骤超时。
