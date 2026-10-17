@@ -686,7 +686,7 @@ class ReadOnlyAccountCheckIT {
         return start(enabled, c -> url(c.database), List.of());
     }
 
-    /** The database named is not there, so the check waits out its connection limit: a short one keeps the case from dragging, and no other case is given it. */
+    /** The named database is missing and the check waits out its connection limit, so only this case gets a short one. */
     static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled, String approvalDatabaseOverride) {
         return start(enabled, c -> url(c == ReadOnlyConnection.LEGACY_APPROVAL ? approvalDatabaseOverride : c.database),
                 List.of("--forcitis.platform.integration.external-connection.background.acquire-timeout=1s"));
