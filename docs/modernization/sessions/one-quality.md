@@ -30,7 +30,7 @@
 ## 独占
 
 - `docs/modernization/quality/QUALITY_CONTEXT.md`；不稳定测试台账（同目录）。
-- `scripts/merge/`（`mq.py`、`mq_selftest.py`、合集脚本 `scripts/queue/merge_train.py`）：只写与维护，运行与合并由 one-merge、one-coordinator 负责。
+- scripts/merge/ 与 scripts/queue/merge_train.py 的源码与自测由本会话维护；运行、入队、合并归 one-merge，批准归 one-coordinator。architecture/decision-page/check_pages.py 由本会话维护，architecture 目录独占显式排除此文件。
 - CI 与本地门禁脚本：`scripts/ci/` 下的 `relevant_change.py`（CI 三档）、`ci_recurrence.py`、`acceptance_rulings.py`、`repeat_new_tests.py`、`docker_diagnostics.py`、`failure_summary.py`，推送前钩子 `scripts/hooks/`、`scripts/precheck.sh`。
 - 检查脚本：`docs/modernization/architecture/decision-page/check_pages.py`、`docs/modernization/quality/defect-bank/defect_bank_check.py`。
 - 测试基础设施公共件（`TestPostgres`、`AcceptanceSupport` 等）的修复 PR；改动守护文件时 PR 单列、opus 复审。
@@ -71,7 +71,8 @@
 ## 权限边界
 
 - 起容器只限 Testcontainers 且镜像在 `backend/architecture/test-images.txt`；其他容器先问用户（CLAUDE.md 第 9 条）。
+- 普通脚本与离线自测按卡优先交 Codex；涉及安全、权限、凭据、生产防线或相关守护的改动先由负责会话判定，不因属于 CI 就一律派 Codex。验收测试仍由独立测试代理编写。
 
 ## 当前状态
 
-2026-10-17 07:04+02:00 常驻；在途 PR：#449（db_scripts_aligned 比对角色与函数授权，已复审）、#450（登记裁定 -02、-03）；队列、CI 三档、验收裁定守护等已合入 main。待办见 QUALITY_CONTEXT（复发检测迁 CI 定时工作流、集成测试反模式检查先只报告）。规则：入队后的 PR 不再推送（#439、#446 各推过一次，不再发生）；在制代码 PR ≤1，队列与 CI 改造期间为调度给的例外，改造收尾后恢复。
+2026-10-17 13:15+02:00 队列、CI 三档与裁定守护已有本地合入记录；strict 已关试行至 10-19，监控与回退按现行队列规则。旧 #449/#450 等 PR 状态需回读后再列，不能由旧画像当作仍在途；新增或改动测试重复运行三次，失败复发记错题本并报关键节点。
