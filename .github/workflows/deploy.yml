@@ -73,6 +73,7 @@ jobs:
     permissions:
       contents: read
       actions: read
+      pull-requests: read   # ci_passed.py: the pull request that merged the commit
       id-token: write
     env:
       TARGET_ENV: ${{ inputs.environment }}
