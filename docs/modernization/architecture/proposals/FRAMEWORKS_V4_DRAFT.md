@@ -1,5 +1,7 @@
 # 架构知识框架第 4 稿（草案，已按 opus 评审修改；待用户确认；随最终一次性 ADR 落地）
 
+状态：评审中｜2026-10-16｜负责：one-architecture
+
 状态：草案 · 日期：2026-10-16 · 作者：one-architecture 子代理 · 取代：`FRAMEWORKS_V3_ADDITIONS_DRAFT.md`；落地后取代现行 `architecture/FRAMEWORKS.md`（ADR-0041）。方法见同目录 `METHOD_V4_DRAFT.md`，最终一次性 ADR 的条目清单见该文件第 8 节。
 
 依据：用户 2026-10-15「你需要有一个稳定的知识框架，不能漂移」（intent `2026-10-15-163920`）；ADR-0041 适配评审收窄；框架纳入页「BIZBOK 五项（干系人与价值流、业务对象判据、能力命名、流程映射、参考模型查漏）、TOGAF G178、G190、G211 全部纳入（按所列范围）」（intent `2026-10-15-222319`）；「G178 与 BIZBOK 冲突时：以 BIZBOK 为准；TOGAF 许可：已有许可」（intent `2026-10-15-222350`）；方法评审决定（intent `2026-10-15-221201`）；本地原文可用（intent `2026-10-15-220121`）。适配评审（opus，逐页核对原文）见 `decision-page/frameworks-fit.html`。
