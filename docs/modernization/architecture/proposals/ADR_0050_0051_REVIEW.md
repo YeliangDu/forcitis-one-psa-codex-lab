@@ -1,5 +1,7 @@
 # ADR-0050 / ADR-0051 提议稿独立对抗评审
 
+状态：历史记录｜2026-10-16｜负责：one-architecture
+
 - 评审对象：`origin/claude/one-architecture-adr-0050-0051`（`41830f9d`）下 `docs/modernization/architecture/proposals/ADR_DRAFT_0050_METHOD_AND_FRAMEWORKS.md`、`ADR_DRAFT_0051_ENTERPRISE_BC_NAMESPACES.md`
 - 评审人：独立 opus 子代理，未参与起草；只读（用 `git archive` 导出到会话临时目录后运行脚本，未改仓库）
 - 日期：2026-10-16

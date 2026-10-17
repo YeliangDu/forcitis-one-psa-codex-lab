@@ -1,5 +1,7 @@
 # 售前到签约：不变量 → 聚合 → BC（第 2 稿，待用户定）
 
+状态：已取代→ENTERPRISE_AGGREGATES_DRAFT.md｜2026-10-16｜负责：one-architecture
+
 **已被全企业稿取代（回溯检查 RD-16）**：聚合、BC 与依赖以 `ENTERPRISE_AGGREGATES_DRAFT.md` §2.2、§3.2、§4.1 为准（ADR-0041 决定 4：一个事实只手写一处）。本稿 §2 不变量表保留为来源对照（I-1 至 I-12 与 INV 的对应见 `RETRO_PRESALES.md` 第 2 节）；§1 依赖骨架与 §4 BC 表已改为指针。
 
 **与全企业信息图统一（2026-10-16）**：按 `ENTERPRISE_INFO_MAP_DRAFT.md`（下称全企业稿）、`ENTERPRISE_INFO_MAP_ANSWERS.md`、`PRIMARY_OBJECT_TEST.md` 回溯统一口径（C-38）。用户已定决定（intent `205406`、`210513`、`211139`、`211634`）不改；冲突与结构性判断列入全企业稿 §4 C-53 至 C-57，本稿未改。改动清单：
