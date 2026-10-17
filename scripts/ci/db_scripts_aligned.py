@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The executable database scripts (C-3 dev, C-9 prod) must list the same schemas and version tables as the reference DDL
 one_db_roles_schemas.sql, and every migration module directory must have its schema created, owned by the owner role and granted. These lists are kept
-in step by hand and drift; the guard compares lists and the few grants that make a schema append-only, not full semantics
+in step by hand and drift; the guard compares lists, the created roles, every statement that grants or revokes on functions, and the few grants that make a schema append-only, not full semantics
 (c3_dev_db_check.sh exercises the grants in a container).
 Usage: db_scripts_aligned.py  |  db_scripts_aligned.py --self-test"""
 import re
@@ -73,6 +73,21 @@ def widens_append_only(text):
                for statement in re.findall(rf"[^;]*\bGRANT\b[^;]*\b{APPEND_ONLY_SCHEMA}\b[^;]*;", text))
 
 
+def created_roles(text):
+    return set(re.findall(r"^\s*CREATE ROLE\s+(\w+)", text, re.MULTILINE | re.IGNORECASE))
+
+
+def function_privileges(text):
+    """Every GRANT / REVOKE / ALTER DEFAULT PRIVILEGES that is about functions, whitespace and case normalised (a function nobody may execute is a runtime failure no table-level check sees)."""
+    statements = re.findall(r"(?:\bALTER\s+DEFAULT\s+PRIVILEGES\b[^;]*?)?\b(?:GRANT|REVOKE)\b[^;]*?\bON\s+(?:ALL\s+)?FUNCTIONS?\b[^;]*;", text, re.IGNORECASE)
+    return {" ".join(statement.lower().split()) for statement in statements}
+
+
+def grantees(statement):
+    match = re.search(r"\b(?:to|from)\s+(.*?);", statement)
+    return {role.strip() for role in match.group(1).split(",")} - {"public"} if match else set()
+
+
 def problems(modules, reference, c3, c3_after, c3_verify):
     reference, c3, c3_after, c3_verify = map(without_comments, (reference, c3, c3_after, c3_verify))
     schemas = set(modules) | {HISTORY_SCHEMA}
@@ -90,6 +105,14 @@ def problems(modules, reference, c3, c3_after, c3_verify):
         ("c3_dev_db_after_migrations.sql version tables", version_tables(c3_after), version_tables(reference)),
     ]
     found = [f"{where}: missing {sorted(want - got)}, extra {sorted(got - want)}" for where, got, want in expected if got != want]
+    found += [f"c3_dev_db.sql CREATE ROLE: missing {sorted(created_roles(reference) - created_roles(c3))}, extra {sorted(created_roles(c3) - created_roles(reference))}"
+              for _ in [0] if created_roles(c3) != created_roles(reference)]
+    reference_functions, c3_functions = function_privileges(reference), function_privileges(c3)
+    if reference_functions != c3_functions:
+        found.append(f"c3_dev_db.sql function grants differ from one_db_roles_schemas.sql: missing {sorted(reference_functions - c3_functions)}, extra {sorted(c3_functions - reference_functions)}")
+    for where, text in (("one_db_roles_schemas.sql", reference), ("c3_dev_db.sql", c3)):
+        found += [f"{where}: {statement} names role {role}, which the file does not create"
+                  for statement in sorted(function_privileges(text)) for role in sorted(grantees(statement) - created_roles(text))]
     prefixes = like_prefixes(c3_verify)
     found += [f"c3_dev_db_verify.sql V4: no pattern covers {schema}" for schema in sorted(schemas) if not any(p.match(schema) for p in prefixes)]
     for where, text in (("one_db_roles_schemas.sql", reference), ("c3_dev_db.sql", c3)):
@@ -130,6 +153,22 @@ def self_test():
     assert any("not owned by" in p for p in problems(modules, reference, app_owned, c3_after, c3_verify))
     widened = c3 + "\nGRANT UPDATE, DELETE ON ALL TABLES IN SCHEMA platform_audit TO one_dev_app;\n"
     assert any("granted UPDATE" in p for p in problems(modules, reference, widened, c3_after, c3_verify))
+    grant = "\nGRANT EXECUTE ON FUNCTION platform_audit.create_audit_entry_partitions(date, date) TO one_dev_app;\n"
+    assert problems(modules, reference + grant, c3, c3_after, c3_verify) != [] and any("function grants differ" in p for p in problems(modules, reference + grant, c3, c3_after, c3_verify)), "a function grant only in the reference"
+    assert problems(modules, reference + grant, c3 + grant, c3_after, c3_verify) == [], "the same function grant in both"
+    assert any("function grants differ" in p for p in problems(modules, reference + grant, c3 + grant.replace("(date, date)", "(date)"), c3_after, c3_verify)), "another signature"
+    assert any("function grants differ" in p for p in problems(modules, reference + grant, c3 + grant.replace("one_dev_app", "one_dev_readonly"), c3_after, c3_verify)), "another role"
+    spaced = "\ngrant   execute on function platform_audit.create_audit_entry_partitions(date, date)\n  to one_dev_app;\n"
+    assert problems(modules, reference + grant, c3 + spaced, c3_after, c3_verify) == [], "case and layout do not matter"
+    assert any("function grants differ" in p for p in problems(modules, reference + "\nALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner GRANT EXECUTE ON FUNCTIONS TO one_dev_app;\n", c3, c3_after, c3_verify)), "default privileges on functions"
+    default_a = "\nALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_audit GRANT EXECUTE ON FUNCTIONS TO one_dev_app;\n"
+    assert any("function grants differ" in p for p in problems(modules, reference + default_a, c3 + default_a.replace("platform_audit", "cost_timesheet"), c3_after, c3_verify)), "default privileges for another schema"
+    ghost = "\nGRANT EXECUTE ON FUNCTION platform_audit.f() TO one_dev_ghost;\n"
+    assert any("one_dev_ghost, which the file does not create" in p for p in problems(modules, reference + ghost, c3 + ghost, c3_after, c3_verify))
+    extra_role = reference + "\nCREATE ROLE one_dev_audit_maintainer LOGIN;\n"
+    assert any("CREATE ROLE: missing" in p or "CREATE ROLE:" in p for p in problems(modules, extra_role, c3, c3_after, c3_verify)), "a role only in the reference"
+    commented_grant = c3 + "\n-- GRANT EXECUTE ON FUNCTION platform_audit.x() TO one_dev_app;\n"
+    assert problems(modules, reference, commented_grant, c3_after, c3_verify) == [], "a commented grant is no grant"
     hardened = c3 + "\nREVOKE CREATE ON SCHEMA public FROM PUBLIC;\n"
     assert problems(modules, reference, hardened, c3_after, c3_verify) == []
     print("db_scripts_aligned self-test passed")
