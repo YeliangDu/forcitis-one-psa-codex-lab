@@ -2,7 +2,7 @@
 """资料笔记格式与锚点引用检查。
 
 新格式笔记（带 YAML 信息栏）逐项校验；旧格式笔记只计数为待迁移，--strict 时也算失败。
-锚点概念名命中 terms.yaml 词条的别名或禁用词时须改用词条中文名；产品资料的证据号须在 notes/_evidence/<编号>.yaml 登记且有路径与定位。
+锚点概念名命中 terms.yaml 词条的别名或禁用词时须改用词条中文名；产品资料用证据号（E01 式）代替页码时，证据号须在 notes/_evidence/<编号>.yaml 登记且有路径与定位。
 全仓 docs/modernization 下形如 `编号#概念名` 的引用，编号属已登记笔记时须能解析到锚点。
 """
 import argparse
@@ -50,6 +50,9 @@ def load_term_aliases():
 
 
 def check_evidence(name, nid, body, errors):
+    used = sorted(set(EVID_RE.findall(body)))
+    if not used:
+        return
     reg_path = EVIDENCE / f"{nid}.yaml"
     if not reg_path.exists():
         errors.append(f"{name}: 产品资料须有证据登记 _evidence/{nid}.yaml")
@@ -58,7 +61,7 @@ def check_evidence(name, nid, body, errors):
     for eid, entry in reg.items():
         if not (entry or {}).get("路径") or not (entry or {}).get("定位"):
             errors.append(f"_evidence/{nid}.yaml: {eid} 缺路径或定位")
-    for eid in sorted(set(EVID_RE.findall(body))):
+    for eid in used:
         if eid not in reg:
             errors.append(f"{name}: 证据号 {eid} 未在 _evidence/{nid}.yaml 登记")
 
