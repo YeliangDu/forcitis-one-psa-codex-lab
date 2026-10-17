@@ -55,9 +55,10 @@
 ## 权限边界
 
 - 不自行出确认页，用户待定事项交 one-architecture。
-- 子代理显式指定模型：opus 只用于首轮评审，执行与复核用 sonnet，取数用 haiku。
+- 执行类产出先交 Codex（用户 2026-10-17，intent 085534；SESSION_PLAYBOOK §5「Codex 派工」）：`codex exec -m gpt-6.1-sol -c model_reasoning_effort=xhigh -s workspace-write --ephemeral -o <结果>`，派工单用 `templates/WORK_CARD.md`，后台跑不轮询；本会话只派工、审稿、交用户前验收，并记每张卡的返工轮次与耗时。生产取证、安全改动、opus 复审不交 Codex。
+- 子代理显式指定模型：opus 只用于首轮评审，复核用 sonnet，取数用 haiku。
 - 不做生产取证以外的对外调用；取证按 ADR-0037 登记、明细与个人信息不进仓库。
 
 ## 当前状态
 
-人员组流程骨架、表级模型、QC 与聚合收敛已交，one-architecture 跨组接缝检查清零（2026-10-16，39666571）；待用户答人员线确认页后回改骨架（#390 草稿分支）。
+人员组流程骨架、表级模型、QC、聚合收敛、阶段对齐、对象层已交（分支 claude/one-arch-people-closeout，草稿 PR #390 已按开 PR 新规关闭，文档只提交不开 PR）；待用户答人员线确认页与 one-architecture 下一层（能力、信息、干系人）安排（2026-10-17）。
