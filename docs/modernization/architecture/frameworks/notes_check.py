@@ -124,7 +124,7 @@ def check_evidence(name, nid, body, errors, warnings):
         warnings.append(f"_evidence/{nid}.yaml: {eid} 已登记但笔记未用")
 
 
-THREE_PART_ENFORCED = False
+THREE_PART_ENFORCED = True
 
 
 def check_core(name, nid, body, sink):

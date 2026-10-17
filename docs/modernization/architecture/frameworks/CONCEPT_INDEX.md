@@ -4,7 +4,7 @@
 
 同一概念在各资料中的叫法与位置。收录跨两份及以上资料出现、或在 terms.yaml 有词条的概念；只在一份资料出现的概念见各笔记。差异说明手写在 `concept_notes.yaml`。
 
-收录 73 个概念（全部锚点 1415 个）。
+收录 92 个概念（全部锚点 1719 个）。
 
 ## WBS
 
@@ -25,6 +25,15 @@
 |---|---|---|---|---|
 | KIM2#总线矩阵与一致性维度 | [The Data Warehouse Toolkit: The Complete Guide to Dimensional Modeling](notes/kimball-dwt2.md) | 总线架构、矩阵与一致性维度 | K2，第 3 章 Data Warehouse Bus Matrix / Conformed Dimensions | 79-83 / 105-109 |
 | KIM3#一致性维度 | [The Data Warehouse Toolkit: The Definitive Guide to Dimensional Modeling](notes/kimball-dwt3.md) | Conformed Dimensions / Drilling Across | 第 2 章 | 51 / 87 |
+
+## 一致维度
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| ADAM#一致维度 | [Star Schema: The Complete Reference](notes/adamson-star-schema.md) | Shared Dimension Tables | 第 5 章，Types of Dimensional Conformance | 93–94 / 120–121 |
+| KGR2#一致维度 | [The Kimball Group Reader: Relentlessly Practical Tools for Data Warehousing and Business Intelligence](notes/kimball-reader-2.md) | Conformed Dimensions | 第 5 章，§5.4 Conformed Dimensions and Facts | 164–165 / 196–197 |
 
 ## 上下文映射
 
@@ -54,6 +63,15 @@
 | PCF8#业务能力 | [APQC 跨行业流程分类框架 v8.0](notes/apqc-pcf-80.md) | 业务能力 | PCF ID 10013；13.0 | — |
 | TOG10#业务能力 | [The TOGAF Standard 与 TOGAF Series Guides](notes/togaf10.md) | 能力、对象命名与实现要素 | G211，§2 / §2.1.1 / §2.2 | 2-3 / 12-13 |
 
+## 主体关系
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| SIL1#主体关系 | [The Data Model Resource Book, Revised Edition, Volume 1: A Library of Universal Data Models for All Enterprises](notes/silverston-dmrb1.md) | 第 2 章 Party Relationship | 第 2 章 Party Relationship | 39–41 / 59–61 |
+| SIL2#主体关系 | [The Data Model Resource Book, Revised Edition, Volume 2: A Library of Universal Data Models by Industry Types](notes/silverston-dmrb2.md) | PARTY RELATIONSHIP | OBJ-01、OBJ-02、OBJ-05、OBJ-57 | — |
+
 ## 主要责任人与代理人
 
 词条：无（terms.yaml 未收）
@@ -79,6 +97,7 @@
 
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
+| CORR#事实与维度 | [Agile Data Warehouse Design](notes/corr-adwd.md) | Fact and Dimension Tables | 第 1 章，同名小节 | 8–9 / 26–27 |
 | KIM2#事实与维度 | [The Data Warehouse Toolkit: The Complete Guide to Dimensional Modeling](notes/kimball-dwt2.md) | 事实、粒度、可加性与维度 | K2，第 1 章 Fact Table / Dimension Tables | 17-19 / 43-45 |
 | KIM3#事实与维度 | [The Data Warehouse Toolkit: The Definitive Guide to Dimensional Modeling](notes/kimball-dwt3.md) | Fact Tables / Dimension Tables | 第 1 章 | 10-14 / 46-50 |
 
@@ -90,13 +109,30 @@
 |---|---|---|---|---|
 | CASC#亏损合同 | [收入准则应用案例（十四份，逐件题名见附录）](notes/cas14-cases.md) | 亏损合同及质量保证金 | 案例《亏损合同案例》2×19、2×20年处理及2×21–2×22年处理 | 3–7 |
 
+## 交付物
+
+词条：`deliverable`（Deliverable，delivery.execution）——向客户交付的成果物（验收对象类型之一）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| SIL2#交付物 | [The Data Model Resource Book, Revised Edition, Volume 2: A Library of Universal Data Models by Industry Types](notes/silverston-dmrb2.md) | DELIVERABLE | OBJ-35 | — |
+
 ## 交付计划
 
 词条：`delivery_plan`（DeliveryPlan，delivery.execution）——WBS/里程碑/计划价值的版本化计划
 
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
-| FIDW#交付计划 | [Client/Consultant Model Services Agreement](notes/fidic-white-book-2017.md) | 服务实施计划及依赖日期 | 附件 4；通用条件 4.3.1–4.3.3 | g；12 / 17；35 |
+| FIDW#交付计划 | [Client/Consultant Model Services Agreement](notes/fidic-white-book-2017.md) | 提交、回应及依赖日期 | 附件 4；4.3.1–4.3.3 | g；12 / 17；35 |
+
+## 交易事实表
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| ADAM#交易事实表 | [Star Schema: The Complete Reference](notes/adamson-star-schema.md) | Transaction Fact Tables | 第 11 章，同名小节 | 260–261 / 287–288 |
+| KGR2#交易事实表 | [The Kimball Group Reader: Relentlessly Practical Tools for Data Warehousing and Business Intelligence](notes/kimball-reader-2.md) | Transaction Grain | 第 8 章，§8.5 | 278–279 / 310–311 |
 
 ## 交易价格
 
@@ -117,6 +153,14 @@
 |---|---|---|---|---|
 | CASG#产出法 | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 按客户取得价值计量进度 | 四（三）1（2）①及例 19 | 40–41 / 45–46 |
 | IFRSH#产出法 | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 产出法 | G§7.1.4.A | 349 / 349 |
+
+## 人员
+
+词条：`person`（Person，organization.workforce）——与我方法人存在劳动或劳务关系、或处于招聘过程中的自然人；类型含员工、候选人等；「员工」保持现名，作为人员的一种类型
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| SIL2#人员 | [The Data Model Resource Book, Revised Edition, Volume 2: A Library of Universal Data Models by Industry Types](notes/silverston-dmrb2.md) | PERSON | OBJ-56、OBJ-01、OBJ-03 | — |
 
 ## 人工成本产出倍数
 
@@ -197,13 +241,30 @@
 |---|---|---|---|---|
 | SPI26#利用率 | [2026 Professional Services Maturity Benchmark](notes/spi-psmb-2026.md) | 利用率（人才，自写概括） | 第 10 章，利用率定义；附录 D 印刷 238 | 146 / 153 |
 
+## 协议
+
+词条：`agreement`（Agreement，contract.agreement）——各类协议的统称，信息图一级对象；类型有合同（项目合同）、框架协议、任务订单、联合体协议、劳务派遣协议、居间协议、租赁合同、职业责任保险单等；「合同」是协议下的一种类型
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| SIL2#协议 | [The Data Model Resource Book, Revised Edition, Volume 2: A Library of Universal Data Models by Industry Types](notes/silverston-dmrb2.md) | AGREEMENT | OBJ-05 | — |
+
 ## 变更
 
 词条：`change_order`（ChangeOrder，contract.agreement）——合同范围/价格/工期的正式修改（增补协议是落地形式之一）
 
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
-| FIDW#变更 | [Client/Consultant Model Services Agreement](notes/fidic-white-book-2017.md) | 服务变更的发起与识别 | 通用条件 5.1.1–5.1.4 | 14 / 37 |
+| FIDW#变更 | [Client/Consultant Model Services Agreement](notes/fidic-white-book-2017.md) | 发起、识别、回应和异议 | 5.1.1–5.1.4 | 14 / 37 |
+
+## 可加组成量
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| ADAM#可加组成量 | [Star Schema: The Complete Reference](notes/adamson-star-schema.md) | Capturing Facts | 第 3 章，Capture All Measurements | 39–40 / 66–67 |
+| KGR2#可加组成量 | [The Kimball Group Reader: Relentlessly Practical Tools for Data Warehousing and Business Intelligence](notes/kimball-reader-2.md) | Additive Facts | 第 1 章，§1.5 Dividing the World，可加性段 | 12 / 44 |
 
 ## 可变对价
 
@@ -286,7 +347,7 @@
 
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
-| FIDW#合同范围 | [Client/Consultant Model Services Agreement](notes/fidic-white-book-2017.md) | 服务范围 | 附件 1；通用条件 1.1.23、3.1.1–3.1.2 | d；3；9 / 14；26；32 |
+| FIDW#合同范围 | [Client/Consultant Model Services Agreement](notes/fidic-white-book-2017.md) | 服务范围、目的及接口 | 附件 1；1.1.23、3.1.1–3.1.2、3.2.1 | d；3；9–10 / 14；26；32–33 |
 
 ## 合同负债
 
@@ -311,7 +372,17 @@
 
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
+| SIL2#员工 | [The Data Model Resource Book, Revised Edition, Volume 2: A Library of Universal Data Models by Industry Types](notes/silverston-dmrb2.md) | EMPLOYEE | OBJ-56、OBJ-05 | — |
 | UAE#员工 | [Unanet AE Participant Guide（八份手册）](notes/unanet-ae.md) | Employee | AD 21、33、49–50、67 | — |
+
+## 周期快照
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| ADAM#周期快照 | [Star Schema: The Complete Reference](notes/adamson-star-schema.md) | Periodic Snapshot Fact Table | 第 11 章，Snapshot Fact Tables | 261–262 / 288–289 |
+| KGR2#周期快照 | [The Kimball Group Reader: Relentlessly Practical Tools for Data Warehousing and Business Intelligence](notes/kimball-reader-2.md) | Periodic Snapshot Grain | 第 8 章，§8.5 | 278–279 / 310–311 |
 
 ## 命令查询职责分离
 
@@ -374,6 +445,22 @@
 |---|---|---|---|---|
 | PMB7#完工估算 | [项目管理标准和项目管理知识体系指南（PMBOK® 指南）](notes/pmbok7-zh.md) | EAC、ETC预测 | 《PMBOK 指南》§2.7.2.7、图2-26 | 104–105 / 199–200 |
 
+## 审计日志
+
+词条：`audit_log`（AuditLog，platform.audit）——只追加、不可篡改、可回放的变更轨迹
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| PIPL#审计日志 | [中华人民共和国个人信息保护法；信息安全技术 个人信息安全规范](notes/pipl.md) | 审计日志 | PIPL-02，11.3、11.7 | 20–22 / 22–24 |
+
+## 客户
+
+词条：`customer_role`（CustomerRole，masterdata.counterparty）——往来单位承担的客户角色：具备独立签约与付款主体资格，带准入状态；主数据只有一份（往来单位），客户是它的一个角色，不是另一个主体
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| SIL2#客户 | [The Data Model Resource Book, Revised Edition, Volume 2: A Library of Universal Data Models by Industry Types](notes/silverston-dmrb2.md) | CLIENT | OBJ-01、OBJ-02 | — |
+
 ## 对象分类与汇聚例外
 
 词条：无（terms.yaml 未收）
@@ -425,6 +512,14 @@
 |---|---|---|---|---|
 | UAE#工作日历 | [Unanet AE Participant Guide（八份手册）](notes/unanet-ae.md) | Holiday Calendar | AD 22–23 | — |
 
+## 工时
+
+词条：`time_entry`（TimeEntry，cost.timesheet）——员工填报的时间投入记录
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| SIL2#工时 | [The Data Model Resource Book, Revised Edition, Volume 2: A Library of Universal Data Models by Industry Types](notes/silverston-dmrb2.md) | TIME ENTRY | OBJ-66 | — |
+
 ## 应收周转天数
 
 词条：`days_sales_outstanding`（DaysSalesOutstanding，receivables.collection）——应收余额（合同资产、应收账款、应收票据分别及合计）÷ 对应额 × 天数；分子分母与天数基准按 FD-39
@@ -450,6 +545,15 @@
 | LAN#建模范围 | [Enterprise Architecture at Work: Modelling, Communication and Analysis](notes/lankhorst-eaw.md) | §6.3.1–6.3.2 建模前提、内容与范围 | §6.3.1–6.3.2 建模前提、内容与范围 | 134–135 / 150–151 |
 | BMS#建模范围 | [BPMN Method and Style: With BPMN Implementer's Guide](notes/silver-bpmn-ms2.md) | Determine Process Scope | index_split_001.html；第5章 Step 1 | — |
 
+## 总线矩阵
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| KIM3#总线矩阵 | [The Data Warehouse Toolkit: The Definitive Guide to Dimensional Modeling](notes/kimball-dwt3.md) | Value Chain / Enterprise DW Bus Matrix | 第 2 章 | 52-53 / 88-89 |
+| KGR2#总线矩阵 | [The Kimball Group Reader: Relentlessly Practical Tools for Data Warehousing and Business Intelligence](notes/kimball-reader-2.md) | Data Warehouse Bus Matrix | 第 5 章，§5.5 The Matrix、图 5-6 | 166–167 / 198–199 |
+
 ## 投入法
 
 词条：`input_method`（InputMethod，receivables.wip）——按累计投入占预计总投入的计量法（T&M 用工时、成本加酬金用成本，F040）
@@ -458,6 +562,14 @@
 |---|---|---|---|---|
 | CASG#投入法 | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 以投入计量并校正不对应进度的成本 | 四（三）1（2）②及例 20、例 21 | 41–44 / 46–49 |
 | IFRSH#投入法 | [Revenue — IFRS 15 handbook；Revenue from contracts with customers（Global edition）；Im Fokus: der neue Standard zur Umsatzrealisierung；A closer look at IFRS 15, the revenue recognition standard；Revenue from Contracts with Customers — A guide to IFRS 15；中国新收入准则《企业会计准则第14号——收入》概览](notes/ifrs15-handbooks.md) | 投入法 | G§7.1.4.B；K§5.3.1 | G351；K124 / G351；K126 |
+
+## 报价单
+
+词条：`quote`（Quote，presales.opportunity）——报价编制、审批与定价的独立聚合（2026-07-05 聚合根严格评估拆出）：工时估算×职级费率、五分量全成本、折扣管控、版本链（**每版本一个聚合实例**：调整产生新实例携前版引用，SUPERSEDED/VOIDED 为实例终态——冷启动提问 5 显式化 2026-07-07）；草拟→提交→BU 审定→生效流转
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| SIL2#报价单 | [The Data Model Resource Book, Revised Edition, Volume 2: A Library of Universal Data Models by Industry Types](notes/silverston-dmrb2.md) | QUOTE | OBJ-21 | — |
 
 ## 挣值
 
@@ -485,6 +597,15 @@
 |---|---|---|---|---|
 | DAMA2#数据质量 | [The DAMA Guide to the Data Management Body of Knowledge](notes/dama-dmbok2.md) | 数据质量标准、源头预防与根因改进 | D2，第 13 章 §1.2 / §1.3.10.2 前文 | 未核 / 555-556,580 |
 | HAY#数据质量 | [Data Model Patterns: A Metadata Map](notes/hay-dmp.md) | 数据质量 | 第 7 章数据质量特征；ROW SIX: MEASURING DATA QUALITY；16，同上；L249；L340 起 | — |
+
+## 无数值事件
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| ADAM#无数值事件 | [Star Schema: The Complete Reference](notes/adamson-star-schema.md) | Factless Fact Table | 第 12 章，Events with No Facts | 292、294 / 319、321 |
+| KGR2#无数值事件 | [The Kimball Group Reader: Relentlessly Practical Tools for Data Warehousing and Business Intelligence](notes/kimball-reader-2.md) | Factless Event Table | 第 8 章，§8.13 | 295 / 327 |
 
 ## 时段履约
 
@@ -562,8 +683,11 @@
 
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
+| ADAM#粒度 | [Star Schema: The Complete Reference](notes/adamson-star-schema.md) | Grain | 第 3 章，同名小节 | 42 / 69 |
+| CORR#粒度 | [Agile Data Warehouse Design](notes/corr-adwd.md) | Granularity | 第 1 章，Fact and Dimension Tables | 8–9 / 26–27 |
 | KIM2#粒度 | [The Data Warehouse Toolkit: The Complete Guide to Dimensional Modeling](notes/kimball-dwt2.md) | 按测量活动设计、先明确粒度 | K2，第 2 章 Four-Step Dimensional Design Process | 30-31 / 56-57 |
 | KIM3#粒度 | [The Data Warehouse Toolkit: The Definitive Guide to Dimensional Modeling](notes/kimball-dwt3.md) | Grain | 第 2 章 Business Processes / Grain | 39-40 / 75-76 |
+| KGR2#粒度 | [The Kimball Group Reader: Relentlessly Practical Tools for Data Warehousing and Business Intelligence](notes/kimball-reader-2.md) | Declaring the Grain | 第 8 章，§8.1 In Business Terms | 267–269 / 299–301 |
 
 ## 索赔
 
@@ -572,6 +696,24 @@
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
 | IFRSC#索赔 | [新的收入准则对建筑业的影响；Revenue from contracts with customers — Engineering and construction industry supplement；Implementing IFRS 15 Revenue from Contracts with Customers — A practical guide to implementation issues for the industrial products and services sector](notes/ifrs15-construction.md) | 索赔 | P Example3及分析 | 6–7 / 6–7 |
+
+## 累积快照
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| ADAM#累积快照 | [Star Schema: The Complete Reference](notes/adamson-star-schema.md) | Accumulating Snapshot | 第 11 章，Tracking Process with an Accumulating Snapshot | 278–279 / 305–306 |
+| KIM2#累积快照 | [The Data Warehouse Toolkit: The Complete Guide to Dimensional Modeling](notes/kimball-dwt2.md) | 累积快照更新与配套交易事实 | K2，第 5 章 Accumulating Snapshot Fact Tables 续页 | 135 / 161 |
+| KGR2#累积快照 | [The Kimball Group Reader: Relentlessly Practical Tools for Data Warehousing and Business Intelligence](notes/kimball-reader-2.md) | Accumulating Snapshot Grain | 第 8 章，§8.5–8.6 | 279–280 / 311–312 |
+
+## 组织单元
+
+词条：`org_unit`（OrgUnit，organization.workforce）——法人→BU→部门层级（组织单元必挂法人主体）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| SIL2#组织单元 | [The Data Model Resource Book, Revised Edition, Volume 2: A Library of Universal Data Models by Industry Types](notes/silverston-dmrb2.md) | ORGANIZATION UNIT | OBJ-55 | — |
 
 ## 缓慢变化维
 
@@ -624,6 +766,15 @@
 |---|---|---|---|---|
 | PMB7#质量标准 | [项目管理标准和项目管理知识体系指南（PMBOK® 指南）](notes/pmbok7-zh.md) | 质量 | 《PMBOK 指南》§2.6.3 | 87 / 182 |
 
+## 资源需求
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| PMB6#资源需求 | [项目管理知识体系指南（PMBOK® 指南）第六版](notes/pmbok6-zh.md) | §9.2 估算活动资源 | §9.2 估算活动资源；spine / 文档：3，同上；位置：L890 起 | — |
+| SIL2#资源需求 | [The Data Model Resource Book, Revised Edition, Volume 2: A Library of Universal Data Models by Industry Types](notes/silverston-dmrb2.md) | RESOURCE REQUIREMENT | OBJ-44、OBJ-60 | — |
+
 ## 赢单率
 
 词条：`win_rate`（WinRate，presales.opportunity）——赢单数 ÷（赢单数 + 丢单数）；金额口径另列
@@ -631,6 +782,23 @@
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
 | SPI26#赢单率 | [2026 Professional Services Maturity Benchmark](notes/spi-psmb-2026.md) | 赢单率（客户关系，自写概括） | 附录 D，表 275；附录 E 题 65 | 238 / 245 |
+
+## 跨过程合并
+
+词条：无（terms.yaml 未收）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| ADAM#跨过程合并 | [Star Schema: The Complete Reference](notes/adamson-star-schema.md) | Drilling Across | 第 4 章，同名小节、图 4-12 | 74、76 / 101、103 |
+| KGR2#跨过程合并 | [The Kimball Group Reader: Relentlessly Practical Tools for Data Warehousing and Business Intelligence](notes/kimball-reader-2.md) | Drilling Across | 第 5 章，§5.4 The Data Warehouse Bus Architecture | 165 / 197 |
+
+## 项目
+
+词条：`project`（Project，delivery.execution）——交付执行的项目聚合（词表未收录，补入）
+
+| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
+|---|---|---|---|---|
+| SIL2#项目 | [The Data Model Resource Book, Revised Edition, Volume 2: A Library of Universal Data Models by Industry Types](notes/silverston-dmrb2.md) | PROJECT | OBJ-29 | — |
 
 ## 顺序流
 
