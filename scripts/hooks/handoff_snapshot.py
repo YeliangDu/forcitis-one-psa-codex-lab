@@ -28,11 +28,18 @@ def safe(text):
             r"\bLTAI[0-9A-Za-z]{12,}|\bAKIA[0-9A-Z]{16}|"
             r"\b(?:gh[pousr]_|github_pat_|sk-)[A-Za-z0-9_-]+|\beyJ[A-Za-z0-9_-]+\.", line)
         for word in re.findall(r"(?<![\w/.-])[A-Za-z0-9_+=.-]{32,}(?![\w/.-])", line):
-            mixed = all(re.search(pattern, word) for pattern in (r"[a-z]", r"[A-Z]", r"[0-9]"))
-            if mixed and not re.fullmatch(r"[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}", word):
+            hexadecimal = re.fullmatch(r"[0-9a-fA-F]+", word)
+            mixed = re.search(r"[A-Za-z]", word) and re.search(r"[0-9]", word)
+            readable_name = re.fullmatch(r"[A-Za-z]+(?:-[A-Za-z]+|-[A-Za-z]*[0-9]+)+", word)
+            if (hexadecimal or mixed) and not readable_name and not re.fullmatch(
+                    r"[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}", word):
                 sensitive = True
         lines.append("[敏感内容已隐藏]" if sensitive else "".join(c for c in line if c >= " " or c == "\t"))
     return "\n".join(lines)
+
+
+def header_field(value):
+    return safe(str(value).replace("\n", " ").replace("\r", " ")).replace("\n", " ")
 
 
 def command(args, cwd, deadline, timeout=2):
@@ -99,12 +106,20 @@ def atomic_snapshot(path):
     temporary = path.with_name(f".{path.name}.{secrets.token_hex(6)}.tmp")
     fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
-        os.fchmod(fd, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as out:
+            os.fchmod(out.fileno(), 0o600)
             yield out
             out.flush()
             os.fsync(out.fileno())
         os.replace(temporary, path)
+        try:
+            directory_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+        except OSError:
+            pass
     finally:
         temporary.unlink(missing_ok=True)
 
@@ -119,7 +134,7 @@ def end(payload):
 
 
 def compact(payload):
-    path = save_snapshot(payload, safe(payload.get("trigger") or "auto"), "", compact=True)
+    path = save_snapshot(payload, payload.get("trigger") or "auto", "", compact=True)
     print(f"压缩前快照已写入 {safe(path)}；压缩后先读它，并按 SESSION_PLAYBOOK §2.1 判断是否交接。")
 
 
@@ -135,8 +150,8 @@ def save_snapshot(payload, reason, suffix, compact=False):
     path = directory / f"{now:%Y%m%d-%H%M%S-%f}-{session}{'-' + suffix if suffix else ''}.md"
     with atomic_snapshot(path) as out:
         title = "压缩前快照" if compact else "会话结束前快照"
-        out.write(f"# {title}（{reason}）\n\n- 时间：{now:%Y-%m-%d %H:%M:%S %z}\n- 会话：{safe(session)}\n")
-        out.write(f"- 会话记录：{safe(payload.get('transcript_path') or '未知')}\n")
+        out.write(f"# {title}（{header_field(reason)}）\n\n- 时间：{now:%Y-%m-%d %H:%M:%S %z}\n- 会话：{header_field(session)}\n")
+        out.write(f"- 会话记录：{header_field(payload.get('transcript_path') or '未知')}\n")
         if not valid_session:
             out.write("跳过：session_id 缺失或无效，文件名使用 unknown\n")
         try:
@@ -144,9 +159,9 @@ def save_snapshot(payload, reason, suffix, compact=False):
             if not isinstance(cwd, str) or not os.path.isabs(cwd):
                 raise SnapshotError("cwd 缺失或不是绝对路径")
             root = git(cwd, deadline, "rev-parse", "--show-toplevel")
-            out.write(f"- 工作目录：{safe(root)}\n")
+            out.write(f"- 工作目录：{header_field(root)}\n")
             branch = git(root, deadline, "rev-parse", "--abbrev-ref", "HEAD")
-            out.write(f"- 分支：{safe(branch)}\n")
+            out.write(f"- 分支：{header_field(branch)}\n")
         except Exception as error:
             out.write(f"跳过：无法读取工作目录或分支（{str(error) if isinstance(error, SnapshotError) else type(error).__name__}）\n")
             root = branch = None
@@ -160,9 +175,15 @@ def save_snapshot(payload, reason, suffix, compact=False):
                      "--jq", r'.[] | "#\(.number) [\(.state)] \(.title)"'], root, pr_deadline, timeout=10))
         write_section(out, "最近跨会话消息标题", lambda: messages(payload.get("transcript_path"), deadline))
 
-    for expired in final_snapshots(directory)[50:]:
-        if stat.S_ISREG(expired.lstat().st_mode):
-            expired.unlink()
+    try:
+        for expired in final_snapshots(directory)[50:]:
+            try:
+                if stat.S_ISREG(expired.lstat().st_mode):
+                    expired.unlink()
+            except OSError:
+                continue
+    except OSError:
+        pass
     return path
 
 
