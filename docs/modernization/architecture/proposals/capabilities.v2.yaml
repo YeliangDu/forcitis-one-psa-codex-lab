@@ -372,7 +372,7 @@ capabilities:
     name: 用印申请管理
     en: Seal Use Request Management
     object: OBJ-113
-    definition: 记录法人用印申请，按来源审批与份数守卫直通，需人审时按正式制度配置责任人与加审范围，登记实际用印与关闭结果，供报价发出前校验。
+    definition: 记录法人用印申请，按来源审批与份数守卫直通，需人审时按正式制度配置责任人与加审范围，登记实际用印与关闭结果，供下游 REF-04 报价发出编排（暂名）经 api 核验同一报价版本、法人及拟发文件的实际用印；报价本身不依赖用印，设计说明见提议稿 ADR-0057。
     note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题
 - id: CAP-056
   category: support  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；其余项按页首告知清单
@@ -623,7 +623,7 @@ proposed_l1:
   name: 用印申请管理
   en: Seal Use Request Management
   object: OBJ-113
-  definition: 记录用印申请，按来源审批与份数守卫决定直通或按制度配置人审，登记实际用印、规则关闭及异常终态，供报价发出前校验；负责人和加审范围须上线前填入 D15 版本化配置。
+  definition: 记录用印申请，按来源审批与份数守卫决定直通或按制度配置人审，登记实际用印、规则关闭及异常终态，供下游 REF-04 报价发出编排（暂名）经 api 核验同一报价版本、法人及拟发文件的实际用印；报价本身不依赖用印，设计说明见提议稿 ADR-0057；负责人和加审范围须上线前填入 D15 版本化配置。
   note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；仅为一级方案草稿；当前对象依附及阶段映射仍使用 CAP-054.113，确认前不提升对象层级。
   review_basis: ARCH-VS14 A6；people 评审包及 b31 命令分片；四项能力拆分为设计方暂定，能力图定稿前复核，不提升生效父链；业务口径按 B31-20261017-122917-ctg 写回，配置缺口见 ARCH_VS14.md。
   proposed_stages: "VS-14.1–4"
