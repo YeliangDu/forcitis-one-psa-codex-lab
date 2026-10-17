@@ -11,15 +11,10 @@ import term_rules
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
 UPDATE_FIELDS = {"zh", "en", "snake", "aliases", "forbidden", "standard_ref", "note"}
-
 def fail(message):
     raise SystemExit("RECON 写回：" + message)
-
-
 def snake(en):
     return "_".join(term_rules.words(en))
-
-
 def validate(term):
     apply_nm.validate_term(term)
     for field in ("kind", "scope", "bc", "confidence", "confirmed"):
@@ -27,13 +22,9 @@ def validate(term):
     for field in ("aliases", "forbidden", "standard_ref"):
         if not isinstance(term[field], list): fail(f"{term['id']} 的 {field} 必须为列表")
     if not term["standard_ref"] or term["snake"] != snake(term["en"]): fail(f"{term['id']} 缺依据或 snake 不由 en 派生")
-
-
 def source_ref(source):
     return source["file"] + ("#" + source.get("question", source.get("clause", ""))
                              if source.get("question") or source.get("clause") else "")
-
-
 def clause_text(path, clause):
     body = path.read_text(encoding="utf-8")
     if path.name.startswith("ADR-"):
@@ -65,8 +56,6 @@ def clause_text(path, clause):
     rest = body[match.end():]
     end = re.search(r"^#{2,4} |^\*\*CS-", rest, re.M)
     return (match[0] + (rest[:end.start()] if end else rest)).strip()
-
-
 def source_content(source, path):
     body, question = path.read_text(encoding="utf-8"), source.get("question", "")
     if path.suffix == ".json":
@@ -94,8 +83,6 @@ def source_content(source, path):
         clauses = body.split("## 落点\n", 1)[-1].split("；")
         entry["rulings"] = [next((c.strip() for c in clauses if c.strip().startswith(p)), "") for p in source["ruling_clauses"]]
     return entry
-
-
 def verify_source(key, source, card, verify_hashes=False):
     path = (REPO / source["file"]).resolve()
     if not path.is_relative_to(REPO) or not path.is_file(): fail(f"{key} 裁定来源不存在或越界")
@@ -130,24 +117,22 @@ def verify_source(key, source, card, verify_hashes=False):
     elif path.name == "CAPINFO_NEWTERMS.md":
         if not actual["row"] or source.get("submission") != actual["submission"] or source.get("date") != actual["at"]: fail(f"{key} 交接条目缺来源或日期不一致")
     elif path.name.startswith("ADR-"):
-        if not re.search(r"^- \*\*日期\*\*：" + re.escape(source.get("date", "")) + r"$", path.read_text(), re.M): fail(f"{key} ADR 日期不一致")
+        if not re.search(r"^- \*\*日期\*\*：" + re.escape(source.get("date", "")) + r"$", path.read_text(encoding="utf-8"), re.M): fail(f"{key} ADR 日期不一致")
+    elif source.get("origin") == "session_instruction":
+        if not all(source.get(k) and source[k] in actual["text"] for k in ("date", "batch")): fail(f"{key} 会话指令缺日期或任务号")
     elif source.get("date", "") not in actual.get("source", ""):
         fail(f"{key} 裁定日期不一致")
-
-
 def confirmation(keys, sources):
     return "；".join(dict.fromkeys(
-        f"设计方定稿，ADR-0053 决定 {sources[k]['decision']} 条，{sources[k]['task']}"
+        (f"设计方定稿，ADR-0053 决定 {sources[k]['decision']} 条，{sources[k]['task']}"
+         if Path(sources[k]['file']).name == "ADR-0053.md" else
+         f"设计方定稿，{Path(sources[k]['file']).name} {sources[k]['clause']}，{sources[k]['task']}")
         if sources[k].get("type") == "design" else
         f"{sources[k]['date']}（用户裁定，{sources[k]['batch']}，"
         f"{('提交 ' + sources[k]['submission']) if sources[k].get('submission') else source_ref(sources[k])}）"
         for k in keys))
-
-
 def require_sources(keys, sources, label):
     if not isinstance(keys, list) or not keys or len(keys) != len(set(keys)) or set(keys) - sources.keys(): fail(f"{label} 缺已核实裁定来源")
-
-
 def read_decisions(doc=None, filename="decisions-recon.yaml", *, verify_hashes=False):
     if doc is None:
         path = (HERE / filename).resolve()
@@ -164,10 +149,14 @@ def read_decisions(doc=None, filename="decisions-recon.yaml", *, verify_hashes=F
             fail(f"{term['id']} standard_ref 未列裁定出处")
     for row in doc["promotions"] + doc.get("missing", []):
         require_sources(row.get("sources"), sources, row.get("id", row.get("zh")))
+    common = set(yaml.safe_load((HERE / "terms.yaml").read_text(encoding="utf-8"))["common_words"])
+    common.update(yaml.safe_load((REPO / "backend/glossary/terms.yaml").read_text(encoding="utf-8"))["common_words"])
+    common.update(term_rules.GENERIC_FIRST + term_rules.GENERIC_LAST)
+    for op in doc["terms"]:
+        if any(sources[k].get("type") == "design" for k in op["sources"]):
+            if {n.lower() for n in apply_nm.banned_names(op["term"])} & common: fail(f"{op['term']['id']} 通用词不得写入 forbidden 或禁用别名")
     verify_coverage(doc)
     return doc
-
-
 def verify_missing(doc, audit):
     if "missing" in doc:
         rows, expected = doc["missing"], audit["missing_terms"]
@@ -182,10 +171,9 @@ def verify_missing(doc, audit):
                 if (not target or row["zh"] != target["term"].get("zh")
                         or set(row["sources"]) != set(target["sources"])):
                     fail(f"漏登 {row['no']} target、zh、sources 与写回不一致")
+                if target["term"].get("status") != "approved": fail(f"漏登 {row['no']} 登记状态不一致")
             elif row["result"] != "not_registered" or not row.get("reason"):
                 fail(f"漏登 {row['no']} 未登记须有原因")
-
-
 def verify_coverage(doc):
     audit = json.loads((HERE / "arch-naming/reconcile-decided.json").read_text(encoding="utf-8"))
     verify_missing(doc, audit)
@@ -224,14 +212,14 @@ def verify_coverage(doc):
             fail(f"{row['id']} 提议来源与设计方写回不一致")
         if "promote" in row and (row["promote"] != row["id"] or not operation or operation["op"] != "add"): fail(f"{row['id']} 转正必须保留 id 并有新增词条操作")
         if row.get("escalate_to") and (row["escalate_to"] != "C" or "keep_proposed" not in row): fail(f"{row['id']} 业务含义只能转交 C 并维持提议")
-    common = set(yaml.safe_load((HERE / "terms.yaml").read_text(encoding="utf-8"))["common_words"])
-    common.update(yaml.safe_load((REPO / "backend/glossary/terms.yaml").read_text(encoding="utf-8"))["common_words"])
-    common.update(term_rules.GENERIC_FIRST + term_rules.GENERIC_LAST)
-    for op in doc["terms"]:
-        if any(doc["sources"][k].get("type") == "design" for k in op["sources"]):
-            if {n.lower() for n in apply_nm.banned_names(op["term"])} & common: fail(f"{op['term']['id']} 通用词不得写入 forbidden 或禁用别名")
-
-
+        if row.get("category") == "B":
+            if row.get("semantic_class") not in ("technical", "business"): fail(f"{row['id']} 缺逐条语义分类")
+            if row["semantic_class"] == "business" and (row.get("escalate_to") != "C" or "keep_proposed" not in row): fail(f"{row['id']} 业务含义只能转交 C 并维持提议")
+            if "keep_proposed" not in row:
+                if row.get("technical") is not True or not row.get("technical_reason", "").strip(): fail(f"{row['id']} 设计方转正须声明 technical:true 及理由")
+                if not row["original"].get("standard_ref"): fail(f"{row['id']} 缺实质出处，须维持提议")
+            if "promote" in row:
+                verify_design_fields(operation["term"], row, doc["sources"])
 def update(target, operation):
     entry = operation["term"]
     fields = operation.get("fields", [])
@@ -248,8 +236,6 @@ def update(target, operation):
         else:
             target[field] = value
     target["confirmed"] = apply_nm.append_text(target.get("confirmed", ""), entry["confirmed"])
-
-
 def apply_operations(terms, operations, *, proposed, contexts, allow_homonyms=False):
     result = copy.deepcopy(terms)
     byid = {t["id"]: t for t in result}
@@ -303,7 +289,6 @@ def apply_operations(terms, operations, *, proposed, contexts, allow_homonyms=Fa
     terms[:] = result
     return counts
 
-
 def verify_promotions(terms, promotions, proposed_by_file, doc=None):
     byid = {t["id"]: t for t in terms}
     seen = set()
@@ -312,7 +297,7 @@ def verify_promotions(terms, promotions, proposed_by_file, doc=None):
         if key in seen: fail(f"重复提议来源 {key}")
         seen.add(key)
         if row.get("category") == "B":
-            verify_design_result(byid, row, proposed_by_file[row["file"]])
+            verify_design_result(byid, row, proposed_by_file[row["file"]], doc["sources"] if doc else None)
             continue
         target = byid.get(row["target"])
         if not target or target.get("status") != "approved": fail(f"{key} 没有已批准正式目标")
@@ -342,15 +327,31 @@ def verify_promotions(terms, promotions, proposed_by_file, doc=None):
         else:
             fail(f"{key} 未知清理方式")
 
+def verify_design_fields(target, row, sources=None):
+    original = row["original"]
+    metadata = set() if "keep_proposed" in row else {"status", "confirmed", "standard_ref", "note"}
+    changed = {k for k in set(original) | set(target) if k not in metadata and original.get(k) != target.get(k)}
+    declarations = row.get("field_changes", {})
+    if set(declarations) != changed: fail(f"{row['id']} 转正字段与原提议不一致，须逐字段列原因与来源")
+    for field, change in declarations.items():
+        if (field not in {"zh", "definition", "en", "snake", "kind", "bc", "scope", "used_by"}
+                or change.get("from") != original.get(field) or change.get("to") != target.get(field)
+                or not isinstance(change.get("reason"), str) or not change["reason"].strip()): fail(f"{row['id']} {field} 字段变更缺原因或值不一致")
+        require_sources(change.get("sources"), sources or {}, row["id"] + ":" + field)
+        if field in {"zh", "definition"} and any(sources[k].get("type", "user") != "user" for k in change["sources"]): fail(f"{row['id']} {field} 不得由设计方修改，须用户指令")
+        for source in (sources[k] for k in change["sources"]):
+            if source.get("origin") == "session_instruction" and (field not in source.get("field_authorizations", {}).get(row["id"], []) or row["id"] not in source["evidence"]["text"]): fail(f"{row['id']} {field} 会话指令未授权该字段")
 
-def verify_design_result(byid, row, entries):
+def verify_design_result(byid, row, entries, sources=None):
     rows = [t for t in entries if t["id"] == row["id"]]
     if "keep_proposed" in row:
-        if rows != [row["original"]] or not row["keep_proposed"].strip(): fail(f"{row['id']} 维持提议缺原因或源条目已漂移")
+        if len(rows) != 1 or not row["keep_proposed"].strip(): fail(f"{row['id']} 维持提议缺原因或源条目已漂移")
+        verify_design_fields(rows[0], row, sources)
         return
     choice = next(k for k in ("promote", "merge_into", "replaced_by") if k in row)
     target = byid.get(row[choice])
     if not target or target.get("status") != "approved": fail(f"{row['id']} 没有已批准正式目标")
+    if choice == "promote": verify_design_fields(target, row, sources)
     if choice == "replaced_by":
         expected = dict(row["original"], status="deprecated", replaced_by=row[choice],
                         until=row.get("until"), owner=row.get("owner"))
@@ -362,7 +363,6 @@ def verify_design_result(byid, row, entries):
                    ("dialect", "old-code", "legacy-code", "legacy-table", "forbidden")}
         for field in ("zh", "en"):
             if row["original"][field] != target[field] and row["original"][field] not in aliases: fail(f"{row['id']} 合并旧名须作可检索别名，不全局禁用")
-
 
 def apply(terms):
     doc = read_decisions()
@@ -382,7 +382,7 @@ def apply(terms):
             fail("设计方操作必须逐项对应 B 类结论，不得操作 C 类或无关词条")
         extra = apply_operations(terms, design["terms"], contexts=contexts, allow_homonyms=True,
                                  proposed=[t for entries in proposed_by_file.values() for t in entries])
-        verify_promotions(terms, rows, proposed_by_file)
+        verify_promotions(terms, rows, proposed_by_file, design)
         counts = {k: counts[k] + extra[k] for k in counts}
     return counts
 

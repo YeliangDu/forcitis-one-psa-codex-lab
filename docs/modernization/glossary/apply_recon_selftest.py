@@ -244,26 +244,57 @@ def review_self_test():
     test_review_outcomes(user, reject)
     test_review_files(user, design, reject)
     test_intent_clauses(user, reject)
+    test_round2_fields(design, reject)
     compatibility_self_test()
     print(f"RECON 复审/机制自测：通过（{failures} 个新增负向用例；97 来源；四种结论；无关变动可通过）")
 
 
 def compatibility_self_test():
-    import hashlib
-    import re
+    import contextlib
+    import io
+    import os
+    import runpy
+    from unittest.mock import patch
+    import apply_recon as recon
+    upstream = []
+    class Captured(Exception): pass
+    def capture(terms):
+        upstream.extend(copy.deepcopy(terms))
+        raise Captured
+    previous = Path.cwd()
+    try:
+        os.chdir(HERE.parent)
+        with patch.object(recon, "apply", capture), contextlib.redirect_stdout(io.StringIO()):
+            try: runpy.run_path(str(HERE / "build_terms.py"))
+            except Captured: pass
+    finally:
+        os.chdir(previous)
+    assert upstream, "须在 RECON 写回前截取真实生成输入"
     doc = read_decisions()
-    text = (HERE / "terms.yaml").read_text(encoding="utf-8")
-    body = text.split("\nterms:\n", 1)[1].split("\ncommon_words:", 1)[0] + "\n"
-    blocks = {yaml.safe_load(part)[0]["id"]: part.encode() for part in re.split(r"(?=^- )", body, flags=re.M) if part.strip()}
-    exceptions = {"role_deleted", "acceptance_evidence"}
-    groups = [("A66", {r["target"] for r in doc["promotions"]},
-               "0562a30065c14528e2781b86428040fa69f39f9efe2f4f8f03c598f10d1ed3ae"),
-              ("漏登60", {r["target"] for r in doc["missing"] if r["target"]},
-               "53e395cdf7694fe76cc830c26ca3cbb78386d3f2cf66940dd8088f2ef800b573")]
-    for name, ids, expected in groups:
-        digest = hashlib.sha256(b"".join(blocks[i] for i in sorted(ids - exceptions))).hexdigest()
-        assert digest == expected, name + " 的既有词条字节发生变化"
-    print("RECON 兼容快照：通过（A66、漏登60，仅排除中3/中4明确允许的词条）")
+    expected = {t["id"]: copy.deepcopy(t) for t in upstream}
+    for operation in doc["terms"]:
+        entry = operation["term"]
+        if operation["op"] == "add":
+            assert entry["id"] not in expected
+            expected[entry["id"]] = copy.deepcopy(entry)
+        else:
+            target = expected[entry["id"]]
+            for field in operation["fields"]:
+                if field in ("aliases", "forbidden", "standard_ref"):
+                    target[field] += [v for v in entry[field] if v not in target[field]]
+                elif field == "note": target[field] = apply_nm.append_text(target.get(field, ""), entry[field])
+                else: target[field] = entry[field]
+            target["confirmed"] = apply_nm.append_text(target.get("confirmed", ""), entry["confirmed"])
+    contexts = yaml.safe_load((HERE / "bcs.yaml").read_text(encoding="utf-8"))["bcs"]
+    apply_operations(upstream, doc["terms"], proposed=[], contexts=contexts)
+    ids = {r["target"] for r in doc["promotions"]} | {r["target"] for r in doc["missing"] if r["target"]}
+    actual = {t["id"]: t for t in upstream}
+    class Dumper(yaml.SafeDumper):
+        def ignore_aliases(self, data): return True
+    Dumper.add_representer(__import__("collections").OrderedDict, lambda d, v: d.represent_dict(v.items()))
+    emit = lambda values: yaml.dump(values, Dumper=Dumper, allow_unicode=True, sort_keys=False, width=200).encode()
+    assert emit([actual[i] for i in sorted(ids)]) == emit([expected[i] for i in sorted(ids)])
+    print("RECON 生成时点对照：通过（A66、漏登60，期望由当前决定与写回前输入计算，不锁最终词表）")
 
 
 def test_intent_clauses(user, reject):
@@ -282,3 +313,37 @@ def test_intent_clauses(user, reject):
             reject(lambda: verify_source('S025', source, user['meta']['card']), 'evidence 与裁定原文不一致')
     doc = copy.deepcopy(user); doc['sources']['S025']['evidence']['rulings'] = []
     reject(lambda: read_decisions(doc), 'evidence 与裁定原文不一致')
+
+
+def test_round2_fields(design, reject):
+    for field in ("zh", "definition", "bc", "scope", "en", "snake", "kind"):
+        doc = copy.deepcopy(design); doc["terms"][0]["term"][field] = "越界修改"
+        reject(lambda: read_decisions(doc), "逐字段列原因与来源" if field != "definition" else "字段变更缺原因或值不一致")
+    for field in ("technical", "technical_reason"):
+        doc = copy.deepcopy(design); del doc["promotions"][0][field]
+        reject(lambda: read_decisions(doc), "technical:true 及理由")
+    doc = copy.deepcopy(design); doc["promotions"][0]["semantic_class"] = "business"
+    reject(lambda: read_decisions(doc), "业务含义只能转交 C")
+    for field in ("reason", "sources"):
+        doc = copy.deepcopy(design); del doc["promotions"][0]["field_changes"]["definition"][field]
+        reject(lambda: read_decisions(doc), "字段变更缺原因" if field == "reason" else "缺已核实裁定来源")
+    doc = copy.deepcopy(design); doc["promotions"][0]["field_changes"]["definition"]["sources"] = ["D4"]
+    reject(lambda: read_decisions(doc), "不得由设计方修改")
+    doc = copy.deepcopy(design); row = doc["promotions"][0]; entry = doc["terms"][0]["term"]
+    row["field_changes"]["zh"] = dict(**{"from": row["original"]["zh"], "to": "自定中文"}, reason="设计自行更名", sources=["D4"])
+    entry["zh"] = "自定中文"
+    reject(lambda: read_decisions(doc), "不得由设计方修改")
+    row["field_changes"]["zh"]["sources"] = ["U_R2"]
+    reject(lambda: read_decisions(doc), "会话指令未授权该字段")
+    doc = copy.deepcopy(design); row = next(r for r in doc["promotions"] if r["id"] == "supersede")
+    row["field_changes"]["en"]["to"] = "自造英文"
+    reject(lambda: read_decisions(doc), "字段变更缺原因或值不一致")
+    for key in ("D3", "D4"):
+        assert "ADR-0053" in confirmation([key], design["sources"])
+    source = dict(design["sources"]["D4"], file="docs/modernization/NAMING_STANDARD.md", clause="§2.4")
+    assert confirmation(["S"], {"S": source}) == "设计方定稿，NAMING_STANDARD.md §2.4，NAM-1017-GLO-07"
+
+
+if __name__ == "__main__":
+    self_test()
+    review_self_test()
