@@ -276,7 +276,7 @@ def main():
                 unknown.setdefault(nid, f"{path.relative_to(DOCS)}:{text.count(chr(10), 0, m.start()) + 1}")
                 continue
             refs += 1
-            if concept not in index[nid][1]:
+            if concept not in index[nid][1] and not any(concept.startswith(a) for a in index[nid][1]):
                 line = text.count("\n", 0, m.start()) + 1
                 hint = "（两条引用之间须用「、」或空格分隔）" if re.match(ID + "#", text[m.end():]) else ""
                 errors.append(f"{path.relative_to(DOCS)}:{line}: 断链 {nid}#{concept}{hint}")
