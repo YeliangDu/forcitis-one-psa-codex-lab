@@ -22,6 +22,8 @@ SELF_TESTED = ["build_decision_digest.py", "build_sessions.py", "build_work_boar
                "phase1a/infra/build_legacy_read_register.py", STEPS[-1]]
 SELF_TESTED.append("../../scripts/ci/ci_recurrence.py")   # 每晚复发检测：失败 CI 按错题本报错特征归类
 # 正式术语 glossary/terms.yaml 由 build_terms.py 生成，--check 要求可复现；PyYAML 依赖登记于 SUPPLY_CHAIN.md S1
+STEPS.append("quality/defect-bank/defect_bank_check.py")   # 错题本检查（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
+SELF_TESTED.append("quality/defect-bank/defect_bank_check.py")
 if importlib.util.find_spec("yaml"):
     STEPS.insert(1, "glossary/build_terms.py")
     STEPS.insert(-1, "architecture/build_architecture.py")   # 架构施工图（architecture/DESIGN.md §3）：mmd 可复现、SVG 未过期
