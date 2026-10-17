@@ -10,8 +10,8 @@
   未登记   没有任何条目命中。
   日志不可得  取不到日志（不当作未登记）。
 被合并队列「失败重跑一次」吸收的偶发失败（运行最终成功、尝试次数大于 1）也检查：逐次取前面各次尝试的失败日志。
-用法：ci_recurrence.py [--hours 26] [--bank 目录] [--json]  |  ci_recurrence.py --self-test
-退出码 0（只报告，由调度会话读后处理）；错题本目录不存在、条目标题像条目却格式不对，直接失败（不静默当作没有）。
+用法：ci_recurrence.py [--hours 26] [--bank 目录] [--json] [--fail-on-recurrence]  |  ci_recurrence.py --self-test
+默认退出码 0（只报告）；加 --fail-on-recurrence 时有复发类（含未能判断修复是否在 PR 头里）退出码 1，其余 0。错题本目录不存在、条目标题像条目却格式不对，直接失败（不静默当作没有）。
 """
 import datetime
 import json
@@ -281,7 +281,7 @@ def self_test():
         rows = [{"databaseId": 1, "headBranch": "a", "event": "push", "createdAt": "x", "headSha": "s", "attempt": 1, "conclusion": "failure"}, {"databaseId": 2, "headBranch": "b", "event": "push", "createdAt": "x", "headSha": "s", "attempt": 1, "conclusion": "success"},
                 {"databaseId": 3, "headBranch": "c", "event": "push", "createdAt": "x", "headSha": "s", "attempt": 2, "conclusion": "success"}]
         open(os.path.join(d, "gh"), "w").write("#!/usr/bin/env python3\nimport json, os, sys\nopen(os.environ['FAKE_LOG'], 'a').write(json.dumps(sys.argv[1:]) + '\\n')\n"
-                                              f"if sys.argv[1:3] == ['run', 'list']:\n    print(json.dumps({json.dumps(rows)}))\nelif sys.argv[1:3] == ['run', 'view'] and '--attempt' in sys.argv:\n    print('attempt log')\nelse:\n    sys.exit(1)\n")
+                                              f"if sys.argv[1:3] == ['run', 'list']:\n    print(json.dumps({json.dumps(rows)}))\nelif sys.argv[1:3] == ['run', 'view'] and '--attempt' in sys.argv:\n    print('attempt log')\nelif sys.argv[1:3] == ['run', 'view'] and 'FAKE_FAILURE' in os.environ:\n    print(os.environ['FAKE_FAILURE'])\nelse:\n    sys.exit(1)\n")
         os.chmod(os.path.join(d, "gh"), 0o755)
         old = {k: os.environ.get(k) for k in ("PATH", "FAKE_LOG")}
         os.environ["PATH"], os.environ["FAKE_LOG"] = d + os.pathsep + os.environ["PATH"], os.path.join(d, "log")
@@ -291,6 +291,34 @@ def self_test():
             assert (Gh().log(7, 2, False) or "").strip() == "attempt log" and Gh().log(7, 2, True) is None, "the last attempt is asked without --attempt (the fake has no such answer)"
             calls = [json.loads(l) for l in open(os.path.join(d, "log")).read().splitlines()]
             assert calls[0][:8] == ["run", "list", "--workflow", "ci", "--status", "completed", "--created", calls[0][7]] and "--limit" in calls[0] and calls[0][calls[0].index("--limit") + 1] == str(LIMIT)
+            open(os.path.join(d, "one-x.md"), "w", encoding="utf-8").write(
+                "### TST-001　一\n- **现象**：报错特征：`TooManyActualInvocations`\n- **状态**：已落实\n"
+                "### TST-002　二\n- **现象**：报错特征：`Container startup failed`\n- **状态**：待落实\n"
+                "### TST-003　三\n- **现象**：报错特征：`AssertionFailedError`\n- **状态**：已落实\n- **新增检查项**：修复提交：`ffffffffffffffffffffffffffffffffffffffff`\n")
+            for log, options, code, expected in (
+                ("TooManyActualInvocations", ["--fail-on-recurrence"], 1, "复发 TST-001"),
+                ("TooManyActualInvocations", [], 0, "复发 TST-001"),
+                ("Container startup failed", ["--fail-on-recurrence"], 0, "已登记（待落实或早于登记）"),
+                ("AssertionFailedError", ["--fail-on-recurrence"], 1, "复发（未能判断修复是否在 PR 头里）"),
+                ("an unregistered failure", ["--fail-on-recurrence"], 0, "未登记"),
+                ("TooManyActualInvocations", ["--fail-on-recurrence", "--json"], 1, '"result": "recurrence"'),
+                ("", ["--fail-on-recurrence"], 0, "日志不可得 1 次"),
+            ):
+                result = subprocess.run([sys.executable, os.path.abspath(__file__), "--hours", "26", "--bank", d, *options],
+                                        capture_output=True, text=True, timeout=30, env={**os.environ, **({"FAKE_FAILURE": "[ERROR] " + log} if log else {})})
+                assert result.returncode == code and expected in result.stdout, (options, log, result.returncode, result.stdout, result.stderr)
+            empty = os.path.join(d, "empty-bank")
+            os.makedirs(empty)
+            open(os.path.join(empty, "one-y.md"), "w", encoding="utf-8").write("### TST-009　无特征\n- **现象**：没写特征\n- **状态**：已落实\n")
+            nothing = os.path.join(d, "no-entries")
+            os.makedirs(nothing)
+            open(os.path.join(nothing, "README.md"), "w", encoding="utf-8").write("# no book here\n")
+            for bank_dir in (nothing, empty):
+                result = subprocess.run([sys.executable, os.path.abspath(__file__), "--hours", "26", "--bank", bank_dir, "--fail-on-recurrence"], capture_output=True, text=True, timeout=30, env={**os.environ, "FAKE_FAILURE": "[ERROR] x"})
+                assert result.returncode == 1 and "复发检测是空的" in result.stdout, (bank_dir, result.returncode, result.stdout, result.stderr)
+            for options, code in ((["--fail-on-recurrence"], 1), ([], 0)):
+                result = subprocess.run([sys.executable, os.path.abspath(__file__), "--hours", "26", "--bank", empty, *options], capture_output=True, text=True, timeout=30, env={**os.environ, "FAKE_FAILURE": "[ERROR] x"})
+                assert result.returncode == code and (code == 0 or "复发检测是空的" in result.stdout), (options, result.returncode, result.stdout, result.stderr)
         finally:
             for k, v in old.items():
                 os.environ.pop(k, None) if v is None else os.environ.__setitem__(k, v)
@@ -303,7 +331,7 @@ def main():
     if args == ["--self-test"]:
         self_test()
         return
-    hours, bank, as_json = 26, BANK, False
+    hours, bank, as_json, fail_on_recurrence = 26, BANK, False, False
     while args:
         a = args.pop(0)
         if a == "--hours" and args and args[0].isdigit():
@@ -312,9 +340,14 @@ def main():
             bank = args.pop(0)
         elif a == "--json":
             as_json = True
+        elif a == "--fail-on-recurrence":
+            fail_on_recurrence = True
         else:
             sys.exit(__doc__)
     entries, featureless = parse_bank(bank)
+    if fail_on_recurrence and not entries:
+        print(f"复发检测是空的：错题本里没有任何带报错特征的条目（{len(featureless)} 条不在检测范围），不能当作没有复发。")
+        return 1
     gh = Gh()
     runs, capped = gh.runs(hours)
     rows = report(runs, gh, entries)
@@ -322,7 +355,8 @@ def main():
         print(json.dumps({"rows": rows, "featureless": featureless, "capped": capped}, ensure_ascii=False, default=str))
     else:
         print(render(rows, featureless, capped))
+    return int(fail_on_recurrence and any(r["result"] == "recurrence" for r in rows))
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
