@@ -16,6 +16,7 @@
 | B31 内部服务价值流（9 题；one-architecture） | `sheets/B31.json` | https://claude.ai/artifact/96WEt2s9swq3LNsjyfpcMz（2026-10-17 起，未实看渲染） |
 | ADR57 报价发出前用印核验的模块安排（1 题；one-architecture） | `sheets/ADR57.json` | https://claude.ai/artifact/HUEe8RUcHHVpY5MH7zkZkd（2026-10-17 起，未实看渲染） |
 | B31P 内部服务制度参数（14 题；one-architecture） | `sheets/B31P.json` | https://claude.ai/artifact/B9YzD6twHGRWoLFXqJxbcP（2026-10-17 起，未实看渲染） |
+| PAN 流程挂阶段与业务对象的规则（1 题；one-architecture） | `sheets/PAN.json` | https://claude.ai/artifact/SfHTmA4r4wYAh1hFVGvFFT（2026-10-17 起，未实看渲染） |
 
 | 步骤 | 做法 |
 |---|---|
