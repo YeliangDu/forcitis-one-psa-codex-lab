@@ -143,12 +143,14 @@ def network_disabled(args):
             value = inline if "=" in token else (args[i + 1] if i + 1 < len(args) else "")
             if option in ("-c", "--config") and re.fullmatch(r"sandbox_workspace_write\.network_access\s*=\s*false", value):
                 explicit = True
+            if option in ("-c", "--config") and re.fullmatch(r"sandbox_mode\s*=\s*[\"']?danger-full-access[\"']?", value):
+                unsafe = True
             if option in ("-s", "--sandbox"):
                 read_only = value == "read-only"
                 unsafe |= value == "danger-full-access"
             i += 1 if "=" in token else 2
         else:
-            unsafe |= token == "--dangerously-bypass-approvals-and-sandbox"
+            unsafe |= token in ("--dangerously-bypass-approvals-and-sandbox", "--yolo")
             i += 2 if token in CODEX_VALUE_OPTIONS else 1
     return (explicit or read_only) and not unsafe
 
@@ -208,6 +210,11 @@ def hook_cases():
         "codex exec -s danger-full-access p < /dev/null",
         "codex exec --sandbox danger-full-access -c sandbox_workspace_write.network_access=false p < /dev/null",
         "codex exec --dangerously-bypass-approvals-and-sandbox p < /dev/null",
+        "codex exec -s read-only p --yolo < /dev/null",
+        "codex exec -c sandbox_workspace_write.network_access=false -c sandbox_mode=danger-full-access p < /dev/null",
+        "codex exec -c sandbox_workspace_write.network_access=false -c 'sandbox_mode=\"danger-full-access\"' p < /dev/null",
+        "codex exec -c foo.sandbox_workspace_write.network_access=false p < /dev/null",
+        "codex exec -c sandbox_workspace_write.network_access=falsey p < /dev/null",
         "codex --dangerously-bypass-approvals-and-sandbox exec -s read-only p < /dev/null",
         "codex exec -s read-only p --dangerously-bypass-approvals-and-sandbox < /dev/null",
         "codex exec -c sandbox_workspace_write.network_access=false p -s danger-full-access < /dev/null",
