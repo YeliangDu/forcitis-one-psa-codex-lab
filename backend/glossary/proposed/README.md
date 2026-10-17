@@ -55,6 +55,15 @@ cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）�
 
 另有错误码 13 个（kind 为 `error_code`）、技术词 23 个（`common_words`），不在表中。
 
+## platform.audit（`data-classification.yaml`）
+
+数据分级的个人信息标记（ADR-0043）：个人信息 PI、敏感个人信息 SENSITIVE_PI；盘点 P-029 改名，one-glossary 2026-10-16 登记提议。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `personal_information` | 个人信息 | PersonalInformation | 领域 · platform.audit | 以电子或者其他方式记录的与已识别或者可识别的自然人有关的各种信息，不包括匿名化处理后的信息；数据分级的个人信息标记取值 PI |  |  |
+| `sensitive_personal_information` | 敏感个人信息 | SensitivePersonalInformation | 领域 · platform.audit | 一旦泄露或者非法使用，容易导致自然人的人格尊严受到侵害或者人身、财产安全受到危害的个人信息；数据分级的个人信息标记取值 SENSITIVE_PI（原 SPI，与进度绩效指数 SPI 缩写同名，用户已选改名，P-029） |  | P-029：个人信息标记取值 SPI 改为 SENSITIVE_PI，PI 与 NONE 不变；缩写 SPI 只留给进度绩效指数 |
+
 ## `data-migration.yaml`
 
 涉及模块：`accounting.period`、`operations.facts`、`platform.integration`、`platform.migration`。
@@ -310,8 +319,11 @@ platform.identity 新增术语（proposed，待业务评审，ADR-0018）。登�
 | `external_identity` | 外部身份 | ExternalIdentity | ACL（长期） · platform.identity | 用户账号在某个身份提供方（企业微信、致远登录）中的标识与该账号的绑定，带绑定区间；登录只经此绑定解析用户 |  | ADR-0033（提议）登记，待用语确认 |
 | `provider_kind` | 身份提供方类别 | ProviderKind | ACL（长期） · platform.identity | 外部身份所属的身份提供方类别，如企业微信用户 ID、致远登录名 |  | ADR-0033（提议）登记，待用语确认 |
 | `external_subject` | 外部主体标识 | ExternalSubject | ACL（长期） · platform.identity | 身份提供方给出的用户标识文本（企业微信 userid、致远登录名），只存于外部身份绑定 |  | ADR-0033（提议）登记，待用语确认 |
+| `single_operator_mode` | 单人运维模式 | SingleOperatorMode | 领域 · platform.identity | 仅 dev 环境、仅在进程启动时按配置读定的运行方式：运维命令可省略见证人，应急账号与超级管理员下限按 1 计，并可经运维命令起草无作者的编号模板版本；放宽项封闭为单人运维放宽项的取值，每次放宽都写标注审计（ADR-0030） |  | 登记会话 one-1a-par（派工卡 SINGLE-OP）；配置键 forcitis.platform.identity.single-operator-mode；查重：terms.yaml 与 proposed 中同一 bc 无同名、同中文名 |
+| `single_operator_relaxation` | 单人运维放宽项 | SingleOperatorRelaxation | 领域 · platform.identity | 单人运维模式下被放宽的规则，封闭为四个取值：见证人省略、应急账号下限一个、超级管理员下限一个（只改同步暂停原因文本）、模板版本无作者；写入标注审计的 detail；新增取值须另立 ADR（ADR-0030 第 2 项） |  | 登记会话 one-1a-par（派工卡 SINGLE-OP）；四个取值的标识符与中文名由派工卡第 11 节列出，实现 PR 前由 one-glossary 确认 |
+| `super_admin` | 超级管理员 | SuperAdmin | 领域 · platform.identity | 持有全部平台管理权限的内置角色的角色码；单人运维放宽项「超级管理员下限一个」的取值名由它构成（ADR-0027、ADR-0030） |  | 登记会话 one-1a-par（派工卡 SINGLE-OP P2）；G37 要求枚举取值 SUPER_ADMIN_MINIMUM_ONE 的词；查重：terms.yaml 与 proposed 中同一 bc 无同名、同中文名 |
 
-另有错误码 3 个（kind 为 `error_code`）、技术词 107 个（`common_words`），不在表中。
+另有错误码 3 个（kind 为 `error_code`）、技术词 108 个（`common_words`），不在表中。
 
 ## platform.integration（`platform-integration.yaml`）
 
@@ -347,7 +359,7 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 | `ts` | 工时单据类型代码 | Ts | 领域 · platform.numbering | 工时（DocumentType.TIMESHEET）的单据类型代码 TS，沿用种子模板中的前缀字母，正式词表尚无对应词 |  | 例 TS-FST-202610-0001；模板待管理员确认 |
 | `jv` | 记账凭证单据类型代码 | Jv | 领域 · platform.numbering | 记账凭证（DocumentType.JOURNAL_VOUCHER）的单据类型代码 JV，沿用种子模板中的前缀字母，正式词表尚无对应词 |  | 例 JV-FST-202610-0001；模板待管理员确认 |
 
-另有错误码 4 个（kind 为 `error_code`）、技术词 3 个（`common_words`），不在表中。
+另有错误码 5 个（kind 为 `error_code`）、技术词 3 个（`common_words`），不在表中。
 
 ## platform.web（`platform-web.yaml`）
 
@@ -357,7 +369,7 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 
 ## `round3-pending-renames.yaml`
 
-涉及模块：`accounting.voucher`、`cost.timesheet`、`organization.workforce`、`platform.approval`、`platform.identity`、`platform.integration`、`platform.numbering`。
+涉及模块：`accounting.ledger`、`cost.timesheet`、`organization.workforce`、`platform.approval`、`platform.identity`、`platform.integration`、`platform.numbering`。
 
 第三轮用语确认的待改名登记（one-glossary 生成，round3/writeback.py）：用户已定新名，旧名仍在代码或界面中使用。
 
@@ -403,4 +415,22 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 | `round3_pending__ts` | 工时单据类型代码 | Ts | 领域 · platform.numbering | 第三轮用语确认（R3-NU-06）已定为：并入 document_type_code。代码与界面改名合入前保留旧写法。 |  | 代码仍用 Ts（claude/one-design-sync-staging） |
 | `round3_pending__qt` | 报价单据类型代码 | Qt | 领域 · platform.numbering | 第三轮用语确认（R3-NU-17）已定为：并入 document_type_code。代码与界面改名合入前保留旧写法。 |  | 代码仍用 Qt（main） |
 | `round3_pending__jv` | 记账凭证单据类型代码 | Jv | 领域 · platform.numbering | 第三轮用语确认（R3-NU-18）已定为：并入 document_type_code。代码与界面改名合入前保留旧写法。 |  | 代码仍用 Jv（main） |
-| `round3_pending__journal_voucher` | 会计凭证 | JournalVoucher | 领域 · accounting.voucher | 第三轮用语确认（R3-AP-26）已定为：记账凭证 / JournalVoucher（journal_voucher）。代码与界面改名合入前保留旧写法。 |  | 界面文字仍用「会计凭证」 |
+| `round3_pending__journal_voucher` | 会计凭证 | JournalVoucher | 领域 · accounting.ledger | 第三轮用语确认（R3-AP-26）已定为：记账凭证 / JournalVoucher（journal_voucher）。代码与界面改名合入前保留旧写法。 |  | 界面文字仍用「会计凭证」 |
+
+## `step3-objects.yaml`
+
+涉及模块：`delivery.acceptance`、`organization.workforce`、`receivables.collection`。
+
+信息图 ADR-0048 确认页（用户 2026-10-16 选推荐）带来的新用语：one-architecture 交，one-glossary 2026-10-16 查重后登记；争议状态与争议应收是否同义待用户裁定（待决定收件箱）。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `bill_redemption_status` | 兑付状态 | BillRedemptionStatus | 领域 · receivables.collection | 商业承兑汇票从收到到兑付的状态：收到 → 已兑付 / 逾期；到期日到而未兑付为逾期 |  | OBJ-35 之外：商票作回款方式、加到期日与兑付状态，不单独成对象 |
+| `bill_redemption_status__received` | 收到 | Received | 领域 · receivables.collection | 商业承兑汇票已收到，尚未到期兑付 |  |  |
+| `bill_redemption_status__redeemed` | 已兑付 | Redeemed | 领域 · receivables.collection | 商业承兑汇票到期已兑付，计现金流入（FD-40） |  |  |
+| `bill_redemption_status__overdue` | 已逾期 | BillOverdue | 领域 · receivables.collection | 商业承兑汇票到期日已过而未兑付；与应收账款的逾期（逾期应收）、审批任务的已超时不同 |  |  |
+| `receivable_disposition_category` | 往来款项处置分类 | ReceivableDispositionCategory | 领域 · receivables.collection | 应收、应付往来款项出现争议或无法正常收付时的处置分类，诉讼是其中一类；其余取值未定（信息图候选：复工、结算、诉讼、核销，待用户确认页定） |  | 信息图候选取值：复工、结算、诉讼、核销，待用户确认页定，目前只登记诉讼 |
+| `litigation` | 诉讼 | Litigation | 领域 · receivables.collection | 往来款项处置分类之一：已进入诉讼或仲裁程序 |  |  |
+| `continuing_education_hours` | 继续教育学时 | ContinuingEducationHours | 领域 · organization.workforce | 注册执业证书的属性：持证人在注册有效期内累计完成的继续教育学时，分必修与选修；达标是延续注册的条件 |  | 依据已由 one-architecture 核对原文（2026-10-16） |
+| `drawing_review_opinion` | 施工图审查意见 | DrawingReviewOpinion | 领域 · delivery.acceptance | 施工图审查机构对施工图出具的审查意见，作证据类型 |  | 随证据（Q29）暂不定的部分一并确认 |
+| `drawing_review_certificate` | 施工图审查合格书 | DrawingReviewCertificate | 领域 · delivery.acceptance | 施工图审查通过后出具的合格书，作证据类型 |  |  |

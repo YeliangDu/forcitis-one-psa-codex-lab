@@ -131,8 +131,13 @@ class ProcessArchiveJobIT {
         return history.createHistoricProcessInstanceQuery().processDefinitionKey("archive_probe").finished().count();
     }
 
+    /** The probes finish at START (the engine reads the injected clock), so the retention window is counted from START: counting from the real now made this test fail once the real date moved two days past START. */
+    private static Instant afterRetention(int days) {
+        return ZonedDateTime.ofInstant(START, ZoneId.of("Asia/Shanghai")).plusYears(3).plusDays(days).toInstant();
+    }
+
     private static Instant after3Years() {
-        return ZonedDateTime.now(ZoneId.of("Asia/Shanghai")).plusYears(3).plusDays(2).toInstant();
+        return afterRetention(2);
     }
 
     @Test
@@ -142,7 +147,7 @@ class ProcessArchiveJobIT {
         finishedProbe();
         runtime.startProcessInstanceByKey("archive_probe", "still-running");
 
-        clock.set(ZonedDateTime.now(ZoneId.of("Asia/Shanghai")).plusYears(3).minusDays(2).toInstant());
+        clock.set(afterRetention(-2));
         job.run();
         assertThat(vault.batches).isEmpty();
         assertThat(finished()).isEqualTo(2);

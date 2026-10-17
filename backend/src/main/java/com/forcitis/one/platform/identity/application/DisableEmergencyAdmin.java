@@ -23,15 +23,17 @@ public class DisableEmergencyAdmin {
     private final AccessCache cache;
     private final DomainEvents events;
     private final AuditLog audit;
+    private final SingleOperatorMarks marks;
 
     DisableEmergencyAdmin(EmergencyAdminRepository admins, EmergencyBinding binding, SessionRegistry sessions, AccessCache cache,
-            DomainEvents events, AuditLog audit) {
+            DomainEvents events, AuditLog audit, SingleOperatorMarks marks) {
         this.admins = admins;
         this.binding = binding;
         this.sessions = sessions;
         this.cache = cache;
         this.events = events;
         this.audit = audit;
+        this.marks = marks;
     }
 
     /** True when the account was enabled and now is not. */
@@ -47,8 +49,9 @@ public class DisableEmergencyAdmin {
         events.publish(admin);
         sessions.revokeAll(person);
         cache.evict(person);
-        audit.record(new AuditEntry("platform.identity.operations.emergency-admin.disabled", null, null, AuditSubject.of(AuditSubjectKind.EMERGENCY_ADMIN, person.value()),
-                attestation.describe()));
+        AuditSubject subject = AuditSubject.of(AuditSubjectKind.EMERGENCY_ADMIN, person.value());
+        audit.record(new AuditEntry("platform.identity.operations.emergency-admin.disabled", null, null, subject, attestation.describe()));
+        marks.witnessOmitted(attestation, subject);
         return true;
     }
 }

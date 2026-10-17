@@ -61,12 +61,13 @@ class StartApprovalOnSubmissionIT extends ApprovalIntegrationSupport {
                     assertThat(e.reason().value()).contains("PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID");
                 });
 
-        assertThat(requestStatus(key)).isEqualTo("RETURNED");
+        // the event is published inside the listener's transaction: it can arrive before the commit, so the committed state is awaited, not read once
+        eventually(() -> assertThat(requestStatus(key)).isEqualTo("RETURNED"));
         assertThat(jdbc.queryForObject("select count(*) from platform_approval.approval_tasks where approval_request_id in (select id from platform_approval.approval_requests where document_id = cast(? as uuid))", Integer.class, key)).isZero();
 
         scenario.publish(request(key, initiator, manager, 2, "projectHours")).andWaitForEventOfType(com.forcitis.one.platform.approval.events.TaskAssigned.class)
                 .matching(e -> e.document().equals(document(key))).toArrive();
-        assertThat(requestStatus(key)).isEqualTo("RUNNING");
+        eventually(() -> assertThat(requestStatus(key)).isEqualTo("RUNNING"));
     }
 
     @Test

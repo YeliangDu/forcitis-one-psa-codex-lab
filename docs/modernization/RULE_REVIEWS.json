@@ -145,6 +145,16 @@
       "title": "A resubmission after a return must belong to the current return round",
       "note": "正确（整批同意评估会话建议）：所有续跑入口都执行该检查。"
     },
+    "RULE-268": {
+      "verdict": "confirmed",
+      "at": "2026-10-16T12:39:24+02:00",
+      "title": "Only the initiator may cancel, before any cutoff node, with a reason",
+      "note": "正确+修（用户 2026-10-16）：撤销一律须填原因，有业务钩子也不免（去掉「或钩子决定」）；仅发起人、截止节点前不变。",
+      "quote": "「A」（撤销也一律写原因，与驳回统一）",
+      "source": [
+        "2026-10-16-123736-one-coordinator-撤销-撤回时要不要也一律写原因.md"
+      ]
+    },
     "RULE-269": {
       "verdict": "confirmed",
       "at": "2026-10-14T10:29:26+02:00",
@@ -183,6 +193,16 @@
       "title": "Only the assigned approver may act on a task",
       "note": "正确（整批同意评估会话建议）：与 249 配套，先认领再处理，各入口口径统一。"
     },
+    "RULE-277": {
+      "verdict": "confirmed",
+      "at": "2026-10-16T12:39:24+02:00",
+      "title": "BEFORE-hook commit gate",
+      "note": "正确+修（用户 2026-10-16）：撤销、撤回除钩子放行外一律还须原因，明确的动作值不能代替原因；任务驳回另见 RULE-272。",
+      "quote": "「A」（撤销也一律写原因，与驳回统一）",
+      "source": [
+        "2026-10-16-123736-one-coordinator-撤销-撤回时要不要也一律写原因.md"
+      ]
+    },
     "RULE-278": {
       "verdict": "confirmed",
       "at": "2026-10-14T10:29:26+02:00",
@@ -205,7 +225,18 @@
       "verdict": "wrong",
       "at": "2026-10-14T10:29:26+02:00",
       "title": "Initiator cancels the whole process",
-      "note": "错误（整批同意评估会话建议）：撤销不删历史，原审批人仍可见单据与审批记录。"
+      "note": "错误（整批同意评估会话建议）：撤销不删历史，原审批人仍可见单据与审批记录。",
+      "revisions": [
+        {
+          "verdict": "wrong",
+          "at": "2026-10-16T12:39:24+02:00",
+          "note": "错误（撤销不删历史，原审批人仍可见单据与审批记录）不变；用户 2026-10-16 补：撤销一律须填原因，有业务钩子也不免。",
+          "quote": "「A」（撤销也一律写原因，与驳回统一）",
+          "source": [
+            "2026-10-16-123736-one-coordinator-撤销-撤回时要不要也一律写原因.md"
+          ]
+        }
+      ]
     },
     "RULE-289": {
       "verdict": "confirmed",
