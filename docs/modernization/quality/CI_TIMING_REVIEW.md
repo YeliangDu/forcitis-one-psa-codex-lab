@@ -10,6 +10,8 @@
 4. **约 25% 的 runner 分钟（1439 / 5869）花在最终被取消的运行上**；其中 255 个运行取消时同分支已出现新 SHA（疑似被推送取代，未能确认原因，见缺口）。
 5. **main 的 push 运行里，gitleaks 作业 81% 的时间（中位数 155 秒）花在「release and deploy scripts self-test」**：该步骤写成 `if: github.event_name == 'push' || …relevant`，每次 push 无条件跑，160 次 push 共约 423 runner 分钟，占全部 runner 分钟的 7%，对 PR 关键路径没有影响，但占着满载的 runner。
 
+**补充发现（2026-10-17，SQL Server 测试）**：默认 failsafe 里有四个验收类用 SQL Server 容器（`TestMssql`）：ReadOnlyAccountCheckIT 324 s、ReadOnlyVerificationCommandIT 82 s、StalledExternalSourceIT 32 s、A8SourceFlagsIT 28 s，合计 ≈466 s，占 failsafe 类耗时 1299 s 的 36%，每个完整 PR 都跑。用户 2026-10-17：投产后仍用 U8C 但经防腐层（ACL）访问，下一步开发只有财务权责事实到收付 U8C 时才设计，所以这些老系统只读核实与迁入适配器的 SQL Server 测试不必每个 PR 都跑——只在相关路径（`relevant_change.py` 的 `LEGACY_IT_PATHS`）变了和每夜全量时跑（方案 H）。这条比方案 A 的收益大，且与 A 重叠（A 压缩的正是这几个类）。
+
 前三条建议（详见 §4，按性价比）：
 - **A. 压缩三个慢类里的完整应用启动次数**（`ReadOnlyAccountCheckIT` 的 192 个用例里日志可见 145 次「Application run failed」（故意失败的启动）与 51 次成功启动，约每例一次应用启动，≈1.65 秒/次；不是固定等待），共用上下文或把校验逻辑下沉到更小的测试，不碰守护文件，预计类耗时 −250 到 −400 秒，关键路径 −130 到 −260 秒。
 - **B. push 到 main 时让 release 脚本自测也按「改了才跑」**（改 `ci.yml`，守护档 opus 复审），预计回收 ~420 runner 分钟 / 2.5 天，缓解满载排队，风险低。
@@ -98,11 +100,14 @@ PR 上 backend verify 共 2647 runner 分钟，占全部 5869 的 45%；其中�
 | C | failsafe 调度：试验 `runOrder`/拆分最慢的 3 个类/按类历史耗时分桶，使 2 个 fork 均衡；必要时评估 forks=3（只在试验分支量白天满载下的争用） | 关键路径 −100 到 −180 s（失去并行度 0.44 的部分） | `backend_verify.sh`、`pom.xml`（守护档，opus 复审）；试验分支先量 | 中：forks 增加会加剧 Docker 内存/CPU 争用，满载时可能反而变慢；先量再改 |
 | D | 把无需 Docker 的小作业（assertion drift、frontend light、gitleaks）改到 GitHub 托管 runner，或增设第 5 个自托管 runner（one-ops 评估机器余量） | 去掉小作业 P90 ~200 s 的排队，PR 总时长 P90 可降 ~100–200 s；托管 runner 窗口内才用 25 分钟，成本可忽略 | `ci.yml` 的 `runs-on`（守护档，opus 复审）；第 5 个 runner 属 one-ops | 中：托管 runner 的可用性与私有仓库分钟配额；第 5 个 runner 要看内存（4 个已满载） |
 | E | 补测「取消原因」数据（PR synchronize、标签、队列更新分支）：为 CI 运行加原因标注，量出 25% 取消里多少是可避免的 | 目前无法估计；若其中一半可避免，≈ 12% runner 分钟 | 先只加日志/标注，不改行为 | 低 |
+| H | 把四个用 SQL Server 的验收类从默认 failsafe 挪到 legacy-it 档：pom 的 failsafe excludes（默认档）与 legacy-it 档 includes 这四类，「每个验收类都出报告」检查按档计，路径命中 `LEGACY_IT_PATHS` 时才在 PR 上跑，每夜全量照跑；不改验收测试文件 | 类耗时 −466 s，完整 PR 关键路径 −300 秒以上（934 s → ~600 s）；每个 PR 轮次都省 | `backend/pom.xml`、`ci.yml`、`scripts/ci/backend_verify.sh`/`relevant_change.py`（守护档，opus 复审） | 中：PR 上不再发现这四类的回归（只在相关路径变化与夜间发现）；须保证 `LEGACY_IT_PATHS` 覆盖它们读的东西（relevant_change 自测已核对 *MssqlIT 的输入，要对新增四类同样核对） |
 | F | 容器复用（同 JVM 单例容器） | 墙钟 −30 到 −50 s | 测试基础设施公共件（TestPostgres）、隔离守护 | 中到高：隔离被破坏会引入偶发（QUAL 系列的教训）；排在 A–C 之后 |
 | G | 把 Flyway 检查、验收测试守护两步（~17 s）挪到并行的轻 job | −17 s | `ci.yml` | 低，收益小，不单独做 |
 | — | 重复跑新测试 3 遍 | 不改 | — | 成本占 0.9%，保持 |
 
-建议顺序：先 A 与 B（互相独立、风险低、立刻有数），同时 E 的数据先加；C 在拿到 A 之后的新类耗时再量（A 改变了最长类，C 的收益要重算）；D 视 A–C 后队列是否仍长，再让 one-ops 评估；F 最后。
+**U8C 防腐层设计的测试建议（调度 2026-10-17）**：将来为 U8C 做防腐层时，测试以契约测试和替身（fake / stub）为主，不再每个 PR 起真实的 SQL Server；真实库只放在每夜全量与按路径触发的少量冒烟测试里。这样新增的 U8C 适配器不会重演「几个类占默认测试 36%」。
+
+建议顺序：先 H（最大收益，见上）、再 A 与 B（互相独立、风险低、立刻有数），同时 E 的数据先加；C 在拿到 A 之后的新类耗时再量（A 改变了最长类，C 的收益要重算）；D 视 A–C 后队列是否仍长，再让 one-ops 评估；F 最后。
 
 ## 5. 数据缺口与不确定
 
