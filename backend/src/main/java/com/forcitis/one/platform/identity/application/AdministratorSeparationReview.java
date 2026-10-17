@@ -7,6 +7,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.identity.api.RoleCode;
+import com.forcitis.one.platform.identity.api.SingleOperatorMode;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.Role;
 import java.util.HashSet;
@@ -24,14 +25,17 @@ import org.springframework.transaction.annotation.Transactional;
 class AdministratorSeparationReview implements SeparationReview {
 
     static final int MINIMUM_SUPER_ADMINISTRATORS = 2;
+    static final int MINIMUM_SUPER_ADMINISTRATORS_SINGLE_OPERATOR = 1;
 
     private final AccountRepository accounts;
     private final OrgDirectory directory;
     private final SessionContext session;
     private final AccountEmployees accountEmployees;
+    private final SingleOperatorMode mode;
 
     AdministratorSeparationReview(AccountRepository accounts, OrgDirectory directory, SessionContext session,
-            AccountEmployees accountEmployees) {
+            AccountEmployees accountEmployees, SingleOperatorMode mode) {
+        this.mode = mode;
         this.accountEmployees = accountEmployees;
         this.accounts = accounts;
         this.directory = directory;
@@ -50,8 +54,9 @@ class AdministratorSeparationReview implements SeparationReview {
         remaining.removeAll(separating);
         EmployeeId releasingEmployee = releaser == null ? null : accountEmployees.employeeOf(releaser).orElse(null);
         boolean retained = releasingEmployee != null && !separating.contains(releasingEmployee) && everyone.contains(releasingEmployee);
-        String shortage = remaining.size() < MINIMUM_SUPER_ADMINISTRATORS
-                ? "; only " + remaining.size() + " usable super_admin holder(s) would remain, at least " + MINIMUM_SUPER_ADMINISTRATORS + " are needed"
+        int minimum = mode.enabled() ? MINIMUM_SUPER_ADMINISTRATORS_SINGLE_OPERATOR : MINIMUM_SUPER_ADMINISTRATORS;
+        String shortage = remaining.size() < minimum
+                ? "; only " + remaining.size() + " usable super_admin holder(s) would remain, at least " + minimum + " are needed"
                 : "";
         String reason = separatedAdministrators.isEmpty() ? "" : separatedAdministrators.size() + " separated person(s) hold super_admin or security_auditor" + shortage
                 + "; another holder must confirm";
