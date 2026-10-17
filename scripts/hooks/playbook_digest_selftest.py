@@ -296,7 +296,7 @@ class CommonDigestTest(unittest.TestCase):
             self.assertIn(error, err.getvalue())
         self.assertTrue(any("status" in args for args in calls), "失败后仍检查生成产物")
         status = next(args for args in calls if "status" in args)
-        self.assertEqual(status[status.index("--") + 1:], [".", "../../backend/glossary/proposed/README.md"], "脏检查范围保持整个 docs/modernization 与提议术语清单")
+        self.assertEqual(status[status.index("--") + 1:], [".", "../../backend/glossary/proposed/README.md"], "脏检查范围保持整个文档目录与提议术语清单")
         self.assertIn("architecture/check_proposals.py", " ".join(arg for args in calls for arg in args))
 
 
