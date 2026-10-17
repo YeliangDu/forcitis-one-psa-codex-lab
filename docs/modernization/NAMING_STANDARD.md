@@ -242,6 +242,7 @@ N3 细则更新：2026-10-17 · NAM-1017-ARC-04（返工第 2 轮）· Codex 起
 | 类别词 | 含义 | 类型 |
 |---|---|---|
 | `_id` | 标识符 | `bigint`、`uuid`；`text` 只用于外部系统标识（如企业微信 userid）。**随 ADR-0033 采纳生效**：一律 `uuid`；唯一例外 `platform_integration.source_references.source_id`（按来源实际类型，A8 为 `bigint`，可为负数）；外部系统的文本标识不用 `_id`，用 `_key`（如 `external_identities.external_subject_key`） |
+| `_ids` | 标识符集合：只存只做相等比较的快照值（如授权申请的基准角色版本 `base_role_version_ids`），元素不建外键，不得用于查询路径（ADR-0034-IMPL 待裁定 A-3，one-architecture 2026-10-17 取 (a)） | `uuid[]` |
 | `_key` | 业务键、幂等键；**随 ADR-0033 采纳生效**：另含外部系统的文本标识（如 `external_identities.external_subject_key`） | `text` |
 | `_code` / `_codes` | 代码 / 代码集合 | `text` / `text[]` |
 | `_name` | 名称 | `text` |

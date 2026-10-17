@@ -41,6 +41,7 @@ class DdlNamingTest {
 
     enum ClassWord {
         ID("_id", "bigint", "uuid", "text"),
+        IDS("_ids", "uuid[]"),
         KEY("_key", "text"),
         CODE("_code", "text", "varchar"),
         CODES("_codes", "text[]"),
@@ -256,6 +257,23 @@ class DdlNamingTest {
         assertThat(violations(model(files))).isEmpty();
     }
 
+    @Test
+    @DisplayName("ADR-0034-IMPL A-3: _ids is a uuid[] class word; an enum column is checked by a named table-level CHECK that lists its values, and is still caught without any CHECK")
+    void idsClassWordAndNamedEnumChecks() {
+        String head = "CREATE TABLE cost_timesheet.time_entries (\n    id uuid NOT NULL,\n    created_at timestamptz NOT NULL,\n    updated_at timestamptz NOT NULL,\n";
+        String good = head + "    base_role_version_ids uuid[] NOT NULL DEFAULT '{}',\n    entry_status text NOT NULL,\n"
+                + "    CONSTRAINT pk_time_entries PRIMARY KEY (id),\n"
+                + "    CONSTRAINT ck_time_entries_entry_status CHECK (entry_status IN ('DRAFT', 'SUBMITTED'))\n);\n";
+        assertThat(violations(model(Map.of("V20990101000000__cost_timesheet_x.sql", good)))).isEmpty();
+
+        String wrongType = head + "    base_role_version_ids text NOT NULL,\n    CONSTRAINT pk_time_entries PRIMARY KEY (id)\n);\n";
+        assertThat(violations(model(Map.of("V20990101000000__cost_timesheet_x.sql", wrongType))).keySet()).contains("column cost_timesheet.time_entries.base_role_version_ids");
+
+        String unchecked = head + "    entry_status text NOT NULL,\n    CONSTRAINT pk_time_entries PRIMARY KEY (id),\n"
+                + "    CONSTRAINT ck_time_entries_note CHECK (char_length(entry_status) < 20)\n);\n";
+        assertThat(violations(model(Map.of("V20990101000000__cost_timesheet_x.sql", unchecked))).keySet()).contains("column cost_timesheet.time_entries.entry_status");
+    }
+
     static final Pattern REFERENCES_AUDIT_ENTRIES = Pattern.compile("REFERENCES\\s+platform_audit\\.audit_entries\\b", Pattern.CASE_INSENSITIVE);
     static final Pattern EVENT_ID_KEY = Pattern.compile("CONSTRAINT\\s+uk_audit_entries_event_id_created_at\\s+UNIQUE\\s*\\(\\s*event_id\\s*,\\s*created_at\\s*\\)", Pattern.CASE_INSENSITIVE);
 
@@ -448,6 +466,14 @@ class DdlNamingTest {
                 default -> table + "_check";
             };
         }
+        if (kind.equals("check")) {
+            // A named table-level CHECK that lists a column's values (NAMING_STANDARD §2.4: ck_<table>_<column>) checks the enum column as well as an inline one.
+            for (Column c : List.copyOf(model.columns.values())) {
+                if (!c.checked() && Pattern.compile("\\b" + c.name() + "\\s+in\\s*\\(").matcher(lower).find()) {
+                    model.columns.put(c.name(), new Column(c.name(), c.type(), true));
+                }
+            }
+        }
         if (kind.equals("primary key")) {
             Matcher keyColumns = Pattern.compile("primary key\\s*\\(([^)]*)\\)").matcher(lower);
             if (keyColumns.find()) {
@@ -615,7 +641,8 @@ class DdlNamingTest {
                 if (type.startsWith("boolean") && !(column.startsWith("is_") || column.startsWith("has_"))) {
                     problems.add(where + ": boolean column " + column + " must start with is_ or has_");
                 }
-                if ((column.equals("status") || column.endsWith("_status") || column.endsWith("_policy")) && !type.contains("check")) {
+                boolean listedByNamedCheck = Pattern.compile("(?i)constraint\\s+\\w+\\s+check\\s*\\(\\s*" + column + "\\s+in\\s*\\(").matcher(t.group(3)).find();
+                if ((column.equals("status") || column.endsWith("_status") || column.endsWith("_policy")) && !type.contains("check") && !listedByNamedCheck) {
                     problems.add(where + ": " + column + " must be text with a CHECK listing the enum names");
                 }
                 if (column.endsWith("_amount") && !t.group(3).contains(column.replace("_amount", "_currency"))) {
