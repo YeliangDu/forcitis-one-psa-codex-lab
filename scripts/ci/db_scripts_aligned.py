@@ -73,19 +73,28 @@ def widens_append_only(text):
                for statement in re.findall(rf"[^;]*\bGRANT\b[^;]*\b{APPEND_ONLY_SCHEMA}\b[^;]*;", text))
 
 
+def role_statements(text):
+    """{role: the CREATE ROLE statement, whitespace and case normalised}: the attributes (LOGIN, INHERIT, IN ROLE) decide what the role may do, so they are compared too."""
+    return {m.group(1).lower(): " ".join(m.group(0).lower().split()) for m in re.finditer(r"^\s*CREATE ROLE\s+(\w+)[^;]*;", text, re.MULTILINE | re.IGNORECASE)}
+
+
 def created_roles(text):
-    return set(re.findall(r"^\s*CREATE ROLE\s+(\w+)", text, re.MULTILINE | re.IGNORECASE))
+    return set(role_statements(text))
 
 
 def function_privileges(text):
     """Every GRANT / REVOKE / ALTER DEFAULT PRIVILEGES that is about functions, whitespace and case normalised (a function nobody may execute is a runtime failure no table-level check sees)."""
-    statements = re.findall(r"(?:\bALTER\s+DEFAULT\s+PRIVILEGES\b[^;]*?)?\b(?:GRANT|REVOKE)\b[^;]*?\bON\s+(?:ALL\s+)?FUNCTIONS?\b[^;]*;", text, re.IGNORECASE)
+    statements = re.findall(r"(?:\bALTER\s+DEFAULT\s+PRIVILEGES\b[^;]*?)?\b(?:GRANT|REVOKE)\b[^;]*?\bON\s+(?:ALL\s+)?(?:FUNCTIONS?|ROUTINES?|PROCEDURES?)\b[^;]*;", text, re.IGNORECASE)
     return {" ".join(statement.lower().split()) for statement in statements}
 
 
 def grantees(statement):
-    match = re.search(r"\b(?:to|from)\s+(.*?);", statement)
-    return {role.strip() for role in match.group(1).split(",")} - {"public"} if match else set()
+    match = re.search(r"\)?\s(?:to|from)\s+(.*?);", statement)
+    if not match:
+        return set()
+    tail = re.sub(r"\s+(with\s+grant\s+option|granted\s+by\s+\S+|cascade|restrict)\b", "", match.group(1))
+    roles = {re.sub(r"^group\s+", "", role.strip()).strip('"') for role in tail.split(",")}
+    return roles - {"public", "current_user", "current_role", "session_user"}
 
 
 def problems(modules, reference, c3, c3_after, c3_verify):
@@ -105,14 +114,18 @@ def problems(modules, reference, c3, c3_after, c3_verify):
         ("c3_dev_db_after_migrations.sql version tables", version_tables(c3_after), version_tables(reference)),
     ]
     found = [f"{where}: missing {sorted(want - got)}, extra {sorted(got - want)}" for where, got, want in expected if got != want]
-    found += [f"c3_dev_db.sql CREATE ROLE: missing {sorted(created_roles(reference) - created_roles(c3))}, extra {sorted(created_roles(c3) - created_roles(reference))}"
-              for _ in [0] if created_roles(c3) != created_roles(reference)]
-    reference_functions, c3_functions = function_privileges(reference), function_privileges(c3)
+    reference_roles, c3_roles = role_statements(reference), role_statements(c3)
+    found += [f"c3_dev_db.sql CREATE ROLE {role}: {'missing' if role not in c3_roles else 'extra' if role not in reference_roles else 'differs from one_db_roles_schemas.sql'}"
+              for role in sorted(set(reference_roles) | set(c3_roles)) if reference_roles.get(role) != c3_roles.get(role)]
+    # the functions come from the migrations, so their grants belong after them (c3_dev_db_after_migrations.sql); c3 runs before the functions exist
+    reference_functions, c3_functions = function_privileges(reference), function_privileges(c3) | function_privileges(c3_after)
     if reference_functions != c3_functions:
-        found.append(f"c3_dev_db.sql function grants differ from one_db_roles_schemas.sql: missing {sorted(reference_functions - c3_functions)}, extra {sorted(c3_functions - reference_functions)}")
-    for where, text in (("one_db_roles_schemas.sql", reference), ("c3_dev_db.sql", c3)):
-        found += [f"{where}: {statement} names role {role}, which the file does not create"
-                  for statement in sorted(function_privileges(text)) for role in sorted(grantees(statement) - created_roles(text))]
+        found.append(f"c3_dev_db*.sql function grants differ from one_db_roles_schemas.sql: missing {sorted(reference_functions - c3_functions)}, extra {sorted(c3_functions - reference_functions)}")
+    for where, text, roles in (("one_db_roles_schemas.sql", reference, created_roles(reference)), ("c3_dev_db.sql", c3, created_roles(c3)), ("c3_dev_db_after_migrations.sql", c3_after, created_roles(c3))):
+        found += [f"{where}: {statement} names role {role}, which the scripts do not create"
+                  for statement in sorted(function_privileges(text)) for role in sorted(grantees(statement) - roles)]
+        if re.search(r"EXECUTE\s+format\s*\(\s*'[^']*\b(?:GRANT|REVOKE)\b[^']*\b(?:FUNCTIONS?|ROUTINES?|PROCEDURES?)\b", text, re.IGNORECASE):
+            found.append(f"{where}: grant or revoke on functions inside EXECUTE format(...): write them as plain statements so they can be compared")
     prefixes = like_prefixes(c3_verify)
     found += [f"c3_dev_db_verify.sql V4: no pattern covers {schema}" for schema in sorted(schemas) if not any(p.match(schema) for p in prefixes)]
     for where, text in (("one_db_roles_schemas.sql", reference), ("c3_dev_db.sql", c3)):
@@ -154,19 +167,40 @@ def self_test():
     widened = c3 + "\nGRANT UPDATE, DELETE ON ALL TABLES IN SCHEMA platform_audit TO one_dev_app;\n"
     assert any("granted UPDATE" in p for p in problems(modules, reference, widened, c3_after, c3_verify))
     grant = "\nGRANT EXECUTE ON FUNCTION platform_audit.create_audit_entry_partitions(date, date) TO one_dev_app;\n"
-    assert problems(modules, reference + grant, c3, c3_after, c3_verify) != [] and any("function grants differ" in p for p in problems(modules, reference + grant, c3, c3_after, c3_verify)), "a function grant only in the reference"
-    assert problems(modules, reference + grant, c3 + grant, c3_after, c3_verify) == [], "the same function grant in both"
-    assert any("function grants differ" in p for p in problems(modules, reference + grant, c3 + grant.replace("(date, date)", "(date)"), c3_after, c3_verify)), "another signature"
-    assert any("function grants differ" in p for p in problems(modules, reference + grant, c3 + grant.replace("one_dev_app", "one_dev_readonly"), c3_after, c3_verify)), "another role"
+    differ = lambda ref, c3_, after=c3_after: [p for p in problems(modules, ref, c3_, after, c3_verify) if "function grants differ" in p]
+    assert differ(reference + grant, c3), "a function grant only in the reference"
+    assert not differ(reference + grant, c3, c3_after + grant), "the grant after the migrations, where it belongs, satisfies the reference"
+    assert not differ(reference + grant, c3 + grant), "the same function grant in c3"
+    assert differ(reference + grant, c3, c3_after + grant.replace("(date, date)", "(date)")), "another signature"
+    assert differ(reference + grant, c3, c3_after + grant.replace("one_dev_app", "one_dev_readonly")), "another role"
     spaced = "\ngrant   execute on function platform_audit.create_audit_entry_partitions(date, date)\n  to one_dev_app;\n"
-    assert problems(modules, reference + grant, c3 + spaced, c3_after, c3_verify) == [], "case and layout do not matter"
-    assert any("function grants differ" in p for p in problems(modules, reference + "\nALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner GRANT EXECUTE ON FUNCTIONS TO one_dev_app;\n", c3, c3_after, c3_verify)), "default privileges on functions"
+    assert not differ(reference + grant, c3, c3_after + spaced), "case and layout do not matter"
+    assert differ(reference + grant, c3, c3_after + grant.replace("FUNCTION platform_audit.create_audit_entry_partitions(date, date)", "ALL FUNCTIONS IN SCHEMA platform_audit")), "ON ALL FUNCTIONS is not ON FUNCTION"
+    assert differ(reference + grant.replace("FUNCTION", "ROUTINE"), c3), "ON ROUTINE is read too"
+    assert differ(reference + grant.replace("FUNCTION", "PROCEDURE"), c3), "ON PROCEDURE is read too"
     default_a = "\nALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_audit GRANT EXECUTE ON FUNCTIONS TO one_dev_app;\n"
-    assert any("function grants differ" in p for p in problems(modules, reference + default_a, c3 + default_a.replace("platform_audit", "cost_timesheet"), c3_after, c3_verify)), "default privileges for another schema"
+    assert differ(reference + default_a, c3), "default privileges on functions"
+    assert differ(reference + default_a, c3 + default_a.replace("platform_audit", "cost_timesheet")), "default privileges for another schema"
     ghost = "\nGRANT EXECUTE ON FUNCTION platform_audit.f() TO one_dev_ghost;\n"
-    assert any("one_dev_ghost, which the file does not create" in p for p in problems(modules, reference + ghost, c3 + ghost, c3_after, c3_verify))
-    extra_role = reference + "\nCREATE ROLE one_dev_audit_maintainer LOGIN;\n"
-    assert any("CREATE ROLE: missing" in p or "CREATE ROLE:" in p for p in problems(modules, extra_role, c3, c3_after, c3_verify)), "a role only in the reference"
+    assert any("one_dev_ghost, which the scripts do not create" in p for p in problems(modules, reference + ghost, c3, c3_after + ghost, c3_verify))
+    assert any("one_db_roles_schemas.sql: grant execute" in p and "one_dev_ghost" in p for p in problems(modules, reference + ghost, c3, c3_after + ghost, c3_verify)), "a ghost role in the reference alone is found too"
+    assert any(p.startswith("c3_dev_db_after_migrations.sql: grant execute") and "one_dev_ghost" in p for p in problems(modules, reference + ghost, c3, c3_after + ghost, c3_verify)), "a ghost role in the script after the migrations"
+    all_grant = "\nGRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA platform_audit TO one_dev_app;\n"
+    assert differ(reference + all_grant, c3), "ON ALL FUNCTIONS only in the reference"
+    assert not differ(reference + all_grant, c3, c3_after + all_grant)
+    not_ghosts = ["TO one_dev_app, one_dev_readonly", "TO one_dev_app WITH GRANT OPTION", "TO GROUP one_dev_app", 'TO "one_dev_app"', "TO PUBLIC", "TO CURRENT_USER", "TO one_dev_app GRANTED BY one_dev_owner"]
+    for tail in not_ghosts:
+        text = f"\nGRANT EXECUTE ON FUNCTION platform_audit.f() {tail};\n"
+        assert problems(modules, reference + text, c3, c3_after + text, c3_verify) == [], tail
+    revoke = "\nREVOKE EXECUTE ON FUNCTION platform_audit.f() FROM PUBLIC CASCADE;\n"
+    assert problems(modules, reference + revoke, c3, c3_after + revoke, c3_verify) == [], "REVOKE FROM PUBLIC names no role"
+    assert differ(reference + revoke, c3), "a revoke only in the reference"
+    dynamic = "\nDO $$ BEGIN EXECUTE format('GRANT EXECUTE ON FUNCTION %I.f() TO one_dev_app', 'x'); END $$;\n"
+    assert any("inside EXECUTE format" in p for p in problems(modules, reference + dynamic, c3, c3_after, c3_verify))
+    audit = "\nCREATE ROLE one_dev_audit_maintainer LOGIN NOINHERIT CONNECTION LIMIT 1;\n"
+    assert any(p == "c3_dev_db.sql CREATE ROLE one_dev_audit_maintainer: missing" for p in problems(modules, reference + audit, c3, c3_after, c3_verify)), "a role only in the reference"
+    assert any(p == "c3_dev_db.sql CREATE ROLE one_dev_audit_maintainer: extra" for p in problems(modules, reference, c3 + audit, c3_after, c3_verify)), "a role only in c3"
+    assert any("differs from one_db_roles_schemas.sql" in p for p in problems(modules, reference + audit, c3 + audit.replace("NOINHERIT", "INHERIT IN ROLE one_dev_owner"), c3_after, c3_verify)), "the same role with other attributes"
     commented_grant = c3 + "\n-- GRANT EXECUTE ON FUNCTION platform_audit.x() TO one_dev_app;\n"
     assert problems(modules, reference, commented_grant, c3_after, c3_verify) == [], "a commented grant is no grant"
     hardened = c3 + "\nREVOKE CREATE ON SCHEMA public FROM PUBLIC;\n"
