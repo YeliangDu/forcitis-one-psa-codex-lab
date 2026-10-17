@@ -12,6 +12,9 @@ import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.EmployeeExistence;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import java.security.SecureRandom;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.HexFormat;
@@ -73,7 +76,17 @@ class OperationsProfileSmokeTest {
         return id -> attestors.contains(id) || real.exists(id);
     }
 
+    /** The profile does not create partitions, so a command that writes audit needs the running month to exist; the function exists only once an earlier start has migrated. */
+    private static void ensureCurrentMonthPartition() {
+        JdbcClient jdbc = JdbcClient.create(new DriverManagerDataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()));
+        if (Boolean.TRUE.equals(jdbc.sql("select to_regprocedure('platform_audit.create_audit_entry_partitions(date,date)') is not null").query(Boolean.class).single())) {
+            LocalDate month = YearMonth.now(ZoneOffset.UTC).atDay(1);
+            jdbc.sql("select platform_audit.create_audit_entry_partitions(:from, :through)").param("from", month).param("through", month).query(Integer.class).single();
+        }
+    }
+
     private Finished run(String... commandLine) {
+        ensureCurrentMonthPartition();
         AtomicInteger exit = new AtomicInteger(-1);
         SpringApplication application = new SpringApplication(OneApplication.class);
         application.setAdditionalProfiles("dev", "identity-operations");

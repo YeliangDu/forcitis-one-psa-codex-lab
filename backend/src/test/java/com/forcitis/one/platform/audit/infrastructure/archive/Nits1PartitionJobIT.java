@@ -9,7 +9,6 @@ import com.forcitis.one.platform.integration.api.WecomGateway;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Clock;
 import java.time.YearMonth;
-import java.time.ZoneOffset;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,12 +43,13 @@ class Nits1PartitionJobIT {
     @DisplayName("NITS-1 months-ahead=23 时跨度为 24 个月，数据库函数接受：作业不报失败，最远一个月的分区已建")
     void theLargestMonthsAheadSpans24MonthsAndTheFunctionAccepts() {
         SimpleMeterRegistry meters = new SimpleMeterRegistry();
-        AuditPartitionJob job = new AuditPartitionJob(jdbc, Clock.systemUTC(), new AuditPartitionJob.Policy(AuditPartitionJob.MAX_MONTHS_AHEAD), meters);
+        Clock clock = Clock.systemUTC();
+        AuditPartitionJob job = new AuditPartitionJob(jdbc, clock, new AuditPartitionJob.Policy(AuditPartitionJob.MAX_MONTHS_AHEAD), meters);
 
         job.ensurePartitions();
 
         assertThat(meters.get("forcitis.platform.audit.partitions.failures").counter().count()).isZero();
-        String farthest = "platform_audit.audit_entries_p" + YearMonth.now(ZoneOffset.UTC).plusMonths(23).toString().replace("-", "");
+        String farthest = "platform_audit.audit_entries_p" + YearMonth.now(clock).plusMonths(23).toString().replace("-", "");
         assertThat(jdbc.sql("select to_regclass(:name) is not null").param("name", farthest).query(Boolean.class).single()).isTrue();
     }
 }

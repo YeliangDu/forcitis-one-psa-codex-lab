@@ -77,6 +77,7 @@ public class OperationsCommands {
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "platform.identity.operations")) {
             OperationAttestation attestation = attestation(arguments);
             EmployeeId employeeId = employeeId(arguments);
+            requireUsage(operation, arguments);
             YearMonth month = YearMonth.from(clock.instant().atOffset(ZoneOffset.UTC));
             if (!auditPartitions.exists(month)) {
                 err.println("refused: the audit partition for " + month + " does not exist, so no audit entry could be written. The resident application creates it ahead of time and "
@@ -93,10 +94,7 @@ public class OperationsCommands {
                         "the role is already held, nothing changed");
                 case "revoke-role" -> done(revoke.execute(attestation, employeeId, single(arguments, ROLE_CODE)), out, "role revoked",
                         "the role is not held, nothing changed");
-                default -> {
-                    err.println("unknown operation " + operation);
-                    yield 2;
-                }
+                default -> throw new IllegalArgumentException("unknown operation " + operation);
             };
         } catch (DomainException refused) {
             err.println("refused: " + refused.errorCode().code() + " - " + refused.getMessage());
@@ -104,6 +102,23 @@ public class OperationsCommands {
         } catch (IllegalArgumentException wrongUsage) {
             err.println("wrong usage: " + wrongUsage.getMessage());
             return 2;
+        }
+    }
+
+    /** Usage errors are answered before the partition check, so a missing partition never hides them behind exit code 1. */
+    private static void requireUsage(String operation, ApplicationArguments arguments) {
+        switch (operation) {
+            case "register-emergency-admin" -> requireOption(arguments, LOGIN_NAME);
+            case "grant-role", "revoke-role" -> requireOption(arguments, ROLE_CODE);
+            case "reset-emergency-admin-credentials", "disable-emergency-admin", "enable-emergency-admin" -> {
+            }
+            default -> throw new IllegalArgumentException("unknown operation " + operation);
+        }
+    }
+
+    private static void requireOption(ApplicationArguments arguments, String name) {
+        if (single(arguments, name) == null) {
+            throw new IllegalArgumentException("--" + name + " is required for this operation and must be given exactly once");
         }
     }
 

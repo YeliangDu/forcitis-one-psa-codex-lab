@@ -90,4 +90,21 @@ class Nits1OperationsCommandsAuditPartitionIT extends IdentityIntegrationTest {
         assertThat(malformedEmployeeId.exitCode()).isEqualTo(2);
         assertThat(missingOperation.err() + unknownOption.err() + malformedEmployeeId.err()).doesNotContain("partition");
     }
+
+    @Test
+    @DisplayName("NITS-1 分区缺失加用法错误（未知操作、缺 --role-code、缺 --login-name）仍退出码 2，而不是 1")
+    void usageErrorsAreAnsweredBeforeThePartitionCheck() {
+        createAccount(7);
+        withoutPartition();
+        String employee = "--employee-id=" + TestAccounts.employee(7).value();
+        String[] attestors = {"--operator=" + OPERATOR_ID, "--witness=" + WITNESS_ID};
+
+        for (String[] wrong : new String[][] {{"--operation=no-such-operation", employee}, {"--operation=grant-role", employee}, {"--operation=revoke-role", employee},
+                {"--operation=register-emergency-admin", employee}}) {
+            String[] line = java.util.stream.Stream.concat(java.util.Arrays.stream(wrong), java.util.Arrays.stream(attestors)).toArray(String[]::new);
+            Result result = run(line);
+            assertThat(result.exitCode()).as(String.join(" ", wrong)).isEqualTo(2);
+            assertThat(result.err()).startsWith("wrong usage:");
+        }
+    }
 }
