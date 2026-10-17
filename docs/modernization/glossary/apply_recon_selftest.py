@@ -238,7 +238,7 @@ def review_self_test():
     reject(lambda: read_decisions(filename="missing-recon.yaml"), "决策数据缺失或越界")
     user = read_decisions()
     design = read_decisions(filename="decisions-recon-b.yaml")
-    assert len(user["sources"]) == 97
+    assert {f"S{n:03d}" for n in range(1, 98)} <= set(user["sources"])
     test_review_sources(user, reject)
     test_review_design(design, reject)
     test_review_outcomes(user, reject)
@@ -246,7 +246,7 @@ def review_self_test():
     test_intent_clauses(user, reject)
     test_round2_fields(design, reject)
     compatibility_self_test()
-    print(f"RECON 复审/机制自测：通过（{failures} 个新增负向用例；97 来源；四种结论；无关变动可通过）")
+    print(f"RECON 复审/机制自测：通过（{failures} 个新增负向用例；原 97 来源仍在；四种结论；无关变动可通过）")
 
 
 def compatibility_self_test():
