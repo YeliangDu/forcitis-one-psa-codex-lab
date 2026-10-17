@@ -226,6 +226,19 @@ def load_categories():
     return out
 
 
+def object_dispositions(text):
+    """信息图 §2.18 处置定论表 → {OBJ: {kind, parent_object}}；kind 为 subordinate / reference_data / view。"""
+    m = re.search(r"### 2\.18[^\n]*\n(.*?)(?=\n## )", text, re.S)
+    out = {}
+    for line in (m.group(1) if m else "").splitlines():
+        c = [x.strip() for x in line.strip().strip("|").split("|")]
+        if len(c) >= 5 and re.fullmatch(r"OBJ-\d+", c[0]):
+            if c[2] not in ("subordinate", "reference_data", "view") or (c[2] == "subordinate") != bool(re.fullmatch(r"OBJ-\d+", c[3])):
+                raise ValueError(f"信息图 §2.18 {c[0]} 的 kind / parent_object 无效：{c[2]} / {c[3]}")
+            out[c[0]] = {"kind": c[2], **({"parent_object": c[3]} if c[2] == "subordinate" else {}), "note": "用户定论 intent 2026-10-17-201810（OBJD-20261017-201658-837）；不再要求承载流程，条目保留"}
+    return out
+
+
 def render_yaml(A):
     keys = ("id", "display", "name", "group", "type", "external_system", "lifespan", "feeds", "stages", "supports", "supports_basis", "primary_object", "secondary_objects", "status", "candidates",
             "capability_l1", "capability", "category", "category_by")
@@ -237,6 +250,7 @@ def render_yaml(A):
            "stages": [{"id": s, "display": "%s.%s" % A["disp"][s], "order": A["disp"][s][1], "name": A["sname"][s], "objects": A["st_objs"][s],
                        "capabilities": A["st_caps"][s]} for s in A["order"]],
            "capabilities": [{"id": c, "category": v} for c, v in A["vs_cat"].items() if c.startswith("CAP-")],
+           "object_dispositions": [{"id": o, **d} for o, d in object_dispositions(sac.INFO_MAP.read_text(encoding="utf-8")).items()],
            "processes": [{k: r.get(k) for k in keys if r.get(k) not in (None, [], {})} for r in A["rows"] + A["support_rows"]]}
     return yaml.safe_dump(doc, allow_unicode=True, sort_keys=False, width=200)
 

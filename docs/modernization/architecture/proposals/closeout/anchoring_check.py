@@ -71,7 +71,7 @@ def stage_index(vs_doc):
     return stage_vs, cond, cats
 
 
-def analyse(catalog, stage_vs, vs_cond, vs_cat, touched, supports, objects):
+def analyse(catalog, stage_vs, vs_cond, vs_cat, touched, supports, objects, dispositions=None):
     """touched: 流程 → 作用对象集合（读写、主、次、feeds）；supports: 流程 → 支撑本段的段列表。"""
     live = [p for p in catalog if p.get("type") not in SKIP_TYPES and p.get("status") != "retired"]
     bad_stage = [(p["id"], s) for p in live for s in p.get("stages") or [] if s not in stage_vs]
@@ -97,7 +97,21 @@ def analyse(catalog, stage_vs, vs_cond, vs_cat, touched, supports, objects):
         if why:
             C["C1"].append((p["id"], p["name"], "；".join(why)))
     used = {o for ps in touched.values() for o in ps}
-    C["C2"] = [(o, n, "无任何流程读写或以它为主、次对象") for o, n in sorted(objects.items(), key=lambda x: olc.num(x[0])) if o not in used]
+    disp = dispositions or {}
+    unknown = [o for o in disp if o not in objects]
+    if unknown:
+        raise InputError("处置定论引用了不在对象清单的对象：" + "、".join(unknown))
+    C["C2"], C["excluded"] = [], []
+    for o, n in sorted(objects.items(), key=lambda x: olc.num(x[0])):
+        if o in used:
+            continue
+        d = disp.get(o)
+        if d and d["kind"] != "subordinate":
+            C["excluded"].append((o, n, {"reference_data": "参照数据", "view": "视图"}[d["kind"]] + "，已定论不要求承载流程"))
+        elif d and d["parent_object"] in used:
+            C["excluded"].append((o, n, f"从属对象，由父对象 {d['parent_object']} 的流程承载"))
+        else:
+            C["C2"].append((o, n, "无任何流程读写或以它为主、次对象" + (f"（从属对象，父对象 {d['parent_object']} 也无流程）" if d else "")))
     homes = collections.defaultdict(set)
     for p in live:
         if p.get("type") != "read_model":
@@ -154,6 +168,8 @@ def render(C, stale):
     for k, t in TITLES.items():
         out += ["", f"## {k} {t}（{len(C[k])}）", ""]
         out += [f"- {a} {b}：{c}" for a, b, c in C[k]] or ["无"]
+    out += ["", f"## 已定论排除（{len(C['excluded'])}，不计入 C2；intent 2026-10-17-201810）", ""]
+    out += [f"- {a} {b}：{c}" for a, b, c in C["excluded"]] or ["无"]
     return "\n".join(out) + "\n"
 
 
@@ -183,11 +199,12 @@ def run(argv):
     supports = {r["id"]: r["supports"] for r in A["support_rows"]}
     stage_vs, vs_cond, vs_cat = stage_index(vs_doc)
     anchor_objects(catalog, olc.written_objs(pobj_doc, agg_objs))
-    C = analyse(catalog, stage_vs, vs_cond, vs_cat, touched_objects(catalog, pobj_doc, agg_objs), supports, objects)
+    C = analyse(catalog, stage_vs, vs_cond, vs_cat, touched_objects(catalog, pobj_doc, agg_objs), supports, objects,
+                olc.object_dispositions(sac.INFO_MAP.read_text(encoding="utf-8")))
     md = render(C, stale_note(catalog, olc.OUT_YAML))
     if "--report" in argv:
         REPORT.write_text(md, encoding="utf-8")
-    print("；".join(f"{k} {len(v)}" for k, v in C.items()))
+    print("；".join(f"{k} {len(C[k])}" for k in TITLES) + f"；已定论排除 {len(C['excluded'])}")
     return 1 if C["C1"] or C["C2"] else 0
 
 
@@ -206,13 +223,13 @@ def self_test():
     touch = {"P1": {"OBJ-01", "OBJ-09"}, "P2": {"OBJ-02"}, "P3": {"OBJ-02"}, "P4": {"OBJ-09"}, "P5": {"OBJ-01"}}
     sup = {"P2": ["VS-A.1"], "P3": ["VS-A.1"]}
 
-    def go(cat, tch=touch, sp=sup, objs=objects, cond=vs_cond):
+    def go(cat, tch=touch, sp=sup, objs=objects, cond=vs_cond, dispositions=None):
         cat = anchor_objects([dict(p) for p in cat], tch)
-        return analyse(cat, stage_vs, cond, vs_cat, tch, sp, objs)
+        return analyse(cat, stage_vs, cond, vs_cat, tch, sp, objs, dispositions)
 
     ok = lambda n, c: print(f"自测 {n}: {'通过' if c else '失败'}") or c
     base = go(clean)
-    res = [ok("干净夹具五项全空（支撑本段、集成按供给、管理关联、读模型归段均算归集）", all(not v for v in base.values()))]
+    res = [ok("干净夹具五项全空（支撑本段、集成按供给、管理关联、读模型归段均算归集）", all(not v for k, v in base.items() if k != 'excluded'))]
     c1 = go(clean + [{"id": "P7", "name": "孤立", "type": "business", "stages": []}, {"id": "P8", "name": "孤立集成", "type": "integration", "stages": []}],
             dict(touch, P7={"OBJ-01"}), sup)
     res.append(ok("破坏 C1：无阶段业务流程与未挂接集成流程被抓", [x[0] for x in c1["C1"]] == ["P7", "P8"]))
@@ -220,6 +237,15 @@ def self_test():
     res.append(ok("破坏 C1：无作用对象被抓", [x[0] for x in c1b["C1"]] == ["P1"] and "无作用对象" in c1b["C1"][0][2]))
     c2 = go(clean, objs=dict(objects, **{"OBJ-03": "丙"}))
     res.append(ok("破坏 C2：新增无流程对象被抓", [x[0] for x in c2["C2"]] == ["OBJ-03"]))
+    sub = {"OBJ-03": {"kind": "subordinate", "parent_object": "OBJ-01"}}
+    d1 = go(clean, objs=dict(objects, **{"OBJ-03": "丙"}), dispositions=sub)
+    res.append(ok("定论：从属对象父有流程不报 C2，列入已定论排除", not d1["C2"] and [x[0] for x in d1["excluded"]] == ["OBJ-03"]))
+    d2 = go(clean, objs=dict(objects, **{"OBJ-03": "丙"}), dispositions={"OBJ-03": {"kind": "subordinate", "parent_object": "OBJ-77"}})
+    res.append(ok("破坏定论：从属对象父无流程仍报 C2", [x[0] for x in d2["C2"]] == ["OBJ-03"] and not d2["excluded"]))
+    d3 = go(clean, objs=dict(objects, **{"OBJ-96": "账", "OBJ-103": "财"}), dispositions={"OBJ-96": {"kind": "reference_data"}, "OBJ-103": {"kind": "view"}})
+    res.append(ok("定论：参照数据与视图不报 C2", not d3["C2"] and [x[0] for x in d3["excluded"]] == ["OBJ-96", "OBJ-103"]))
+    d4 = go(clean, objs=dict(objects, **{"OBJ-96": "账"}), dispositions={})
+    res.append(ok("破坏定论：无定论的无流程对象仍报 C2", [x[0] for x in d4["C2"]] == ["OBJ-96"]))
     pobj = {"processes": [{"id": "P1", "objects": [{"obj": "OBJ-01", "aggregates": ["AGG-1"], "ops": "U"}]}]}
     tc = touched_objects([{"id": "P1"}, {"id": "P2", "acts_on": ["OBJ-02"]}], pobj, {"AGG-1": ["OBJ-01"]})
     res.append(ok("作用对象：目录 acts_on 计入", tc["P1"] == {"OBJ-01"} and tc["P2"] == {"OBJ-02"}))
