@@ -61,6 +61,6 @@ ro  "readonly reads idempotency table"     "SELECT count(*) FROM platform_idempo
 ro  "readonly has no write grant"          "BEGIN READ WRITE; INSERT INTO platform_idempotency.idempotent_responses (idempotent_response_id, user_id, idempotency_key, request_hash, expires_at) VALUES (gen_random_uuid(), '00000000-0000-7000-8000-000000000001', 'x', repeat('a', 64), now()); ROLLBACK" denied
 # The verify script runs without error after the migrations, and the maintainer role has nothing beyond platform_audit (V6b: empty result sets, can_temp f)
 verify="$(q postgres "$superpw" forcitis_one_dev -At -f - < "$here/c3_dev_db_verify.sql" 2>&1)" || { echo "FAIL  c3_dev_db_verify.sql ran with an error: $(head -3 <<< "$verify")"; failed=1; }
-if grep -q '^f$' <<< "$verify" && ! grep -q 'audit_maintainer.*|' <<< "$verify"; then echo "PASS  verify script runs; maintainer cannot use temp"; else echo "FAIL  verify output for the maintainer role"; failed=1; fi
-[ -n "${DEBUG_VERIFY:-}" ] && echo "$verify"
+# -At prints nothing for an empty result, so the row right after the V6 database ACL row is V6b's can_temp (f)
+if [ "$(awk 'index($0, "forcitis_one_dev|") == 1 {getline; print; exit}' <<< "$verify")" = f ]; then echo "PASS  verify script runs; maintainer holds nothing outside platform_audit and no temp"; else echo "FAIL  verify output for the maintainer role"; failed=1; fi
 exit "$failed"
