@@ -32,7 +32,8 @@ would starve a 14 minute code lane. One `mq.py run` or `once` per queue (flock o
 unit test (ci.yml), the nightly the full ci: together they are the alarm for a merge whose tree no full run tested exactly as merged.
 
 Queue file: one pull request number per line, optionally "<n> after=<m>[,<m>...]" (`mq.py enqueue <n> --after <m>`: n is not started until every m is MERGED, whatever lane either is in; WAIT-DEP in the log
-while it waits, HOLD when a dependency was closed unmerged; a dependency cycle is refused at enqueue), anything else is kept as it is. Every change goes through flock on <queue>.lock and an atomic replace (temporary file, then rename), so an enqueue can no longer be
+while it waits and again every hour, HOLD when a dependency was closed unmerged (also when a merge train closed it: the content is in main, the message is only about the state; the dependent then goes back with `enqueue` without --after);
+`once <n>` does not look at dependencies; after deploying this version restart the running runner first: an older runner does not understand "after=" lines and never starts them, and its enqueue would drop the dependency; a dependency cycle is refused at enqueue), anything else is kept as it is. Every change goes through flock on <queue>.lock and an atomic replace (temporary file, then rename), so an enqueue can no longer be
 lost to the runner removing a finished entry (a raw `echo n >> merge.queue` or `sed -i` outside this script is not safe). Log: one line per event,
 "<ISO time> <EVENT> pr=#<n> run=<ci run id or -> elapsed=<seconds since the pull request was taken>s [lane=code|docs] <detail>" (lane= once the lane of the pull request is known), appended to <queue dir>/merge.log and echoed. A failing runner step is logged as ERROR and retried
 with a growing pause; the third failure in a row puts the pull request on HOLD and takes it out of the queue.
@@ -442,7 +443,7 @@ class Processor:
         self.docs_only = docs_only_fn or docs_only(repo)
         self.pause = pause or Pause(os.path.dirname(os.path.abspath(queue.path)), gh, log)
         self.lanes, self.busy, self.code_testing = {}, set(), set()
-        self.waiting = {}   # pull request -> the dependencies it was last logged as waiting for
+        self.waiting, self.wait_repeat = {}, 3600   # pull request -> (the dependencies it was last logged as waiting for, when): logged again when they change and every wait_repeat seconds, so a dependency that never merges stays loud
         self.guard = threading.Lock()
 
     def lane(self, n, head=None):
@@ -471,11 +472,13 @@ class Processor:
 
     def dependencies_met(self, n):
         """True when every pull request n was queued after is merged; otherwise logs once per change of what it waits for (WAIT-DEP) and False. A dependency closed unmerged puts n on HOLD and takes it out."""
-        unmet, closed = [], []
+        unmet, closed, unknown = [], [], []
         for m in sorted(self.queue.deps(n)):
             v = self.gh.view(m)
             if v and v["state"] == "MERGED":
                 continue
+            if v is None:
+                unknown.append(m)
             (closed if v and v["state"] == "CLOSED" else unmet).append(m)
         if closed:
             self.log.event("HOLD", n, None, None, f"dependency #{closed[0]} was closed without merge")
@@ -484,9 +487,11 @@ class Processor:
             self.waiting.pop(n, None)
             return False
         if unmet:
-            if self.waiting.get(n) != tuple(unmet):
-                self.waiting[n] = tuple(unmet)
-                self.log.event("WAIT-DEP", n, None, None, f"waits for {' '.join('#' + str(m) for m in unmet)} to be merged")
+            now = time.monotonic()
+            if self.waiting.get(n, (None,))[0] != tuple(unmet) or now - self.waiting[n][1] >= self.wait_repeat:
+                queued = set(self.queue.numbers())
+                self.log.event("WAIT-DEP", n, None, None, f"waits for {' '.join('#' + str(m) + ('' if m in queued else ' (not in the queue)') for m in unmet)} to be merged" + (f"; gh could not tell the state of {' '.join('#' + str(m) for m in unknown)}" if unknown else ""))
+                self.waiting[n] = (tuple(unmet), now)
             return False
         self.waiting.pop(n, None)
         return True
@@ -763,6 +768,12 @@ def default_queue():
     return os.path.join(common.stdout.strip(), "merge-queue", "merge.queue")
 
 
+def positive(text):
+    if not text.isdigit() or int(text) < 1:
+        raise argparse.ArgumentTypeError(f"{text!r} is not a pull request number")
+    return int(text)
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     if argv == ["--self-test"]:
@@ -786,7 +797,7 @@ def main(argv=None):
     sub.add_parser("once").add_argument("pr", type=int)
     e = sub.add_parser("enqueue")
     e.add_argument("prs", type=int, nargs="+")
-    e.add_argument("--after", type=int, action="append", default=[], metavar="M", help="start only once pull request M is merged (repeatable; whatever lane either is in)")
+    e.add_argument("--after", type=positive, action="append", default=[], metavar="M", help="start only once pull request M is merged (repeatable; whatever lane either is in)")
     sub.add_parser("remove").add_argument("prs", type=int, nargs="+")
     b = sub.add_parser("before"); b.add_argument("pr", type=int); b.add_argument("other", type=int)
     a = p.parse_args(argv)
@@ -794,14 +805,18 @@ def main(argv=None):
     directory = os.path.dirname(os.path.abspath(q.path))
     log = Log(a.log or os.path.join(directory, "merge.log"))
     if a.cmd == "list":
+        for l in q._read():
+            if l.strip() and not LINE.match(l):
+                print(f"mq: line not understood, never started, kept as it is: {l!r}", file=sys.stderr)
         print("\n".join(f"{n}" + (f" after={','.join(map(str, sorted(q.deps(n))))}" if q.deps(n) else "") for n in q.numbers()))
     elif a.cmd == "enqueue":
         try:
-            for n in a.prs:
-                if not q.enqueue(n, after=a.after):
-                    print(f"#{n} is already queued" + (f"; now waits for {sorted(q.deps(n))}" if a.after else " (a pull request being processed stays queued until it is done)"), file=sys.stderr)
+            added = q.enqueue(*a.prs, after=a.after)
         except ValueError as e:
-            raise SystemExit(f"not queued: {e}")
+            raise SystemExit(f"nothing queued: {e}")
+        for n in a.prs:
+            if n not in added:
+                print(f"#{n} is already queued" + (f"; now waits for {sorted(q.deps(n))} (a pull request already being processed does not look at it again)" if a.after else " (a pull request being processed stays queued until it is done)"), file=sys.stderr)
     elif a.cmd == "remove":
         q.remove(*a.prs)
     elif a.cmd == "before":

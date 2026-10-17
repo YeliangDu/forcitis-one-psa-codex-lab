@@ -497,6 +497,39 @@ def _dependencies(mq, d):
     assert proc.pick("code") == 71 and not proc.waiting, "released once the dependency is merged"
     assert len([l for l in log.lines if " WAIT-DEP " in l]) == 1
 
+    # gh cannot say what a dependency is: not released, and the log says so
+    gh = FakeGh(); gh.add(76); gh.add(77)
+    proc, q, log, _ = _proc(mq, d, "dep6", gh, [])
+    q.enqueue(77, after=[76])
+    real_view = gh.view
+    gh.view = lambda n: None if n == 76 else real_view(n)
+    assert proc.pick("code") is None and any("gh could not tell the state of #76" in l and "(not in the queue)" in l for l in log.lines), log.lines
+    # a dependency that never merges stays loud: logged again after wait_repeat seconds, not on every round
+    gh.view = real_view
+    n_before = len(log.lines)
+    assert proc.pick("code") is None and len(log.lines) == n_before, "same dependency, no repeat yet"
+    proc.wait_repeat = 0
+    assert proc.pick("code") is None and len(log.lines) == n_before + 1 and " WAIT-DEP " in log.lines[-1], "repeated once the interval has passed"
+
+    # the command line: values are checked, one call queues all or nothing, unreadable lines are named
+    qpath, lpath = os.path.join(d, "cli", "merge.queue"), os.path.join(d, "cli", "merge.log")
+    script = os.path.abspath(mq.__file__)
+
+    def cli(*args):
+        return subprocess.run([sys.executable, script, "--queue", qpath, "--log", lpath, *args], capture_output=True, text=True)
+    assert cli("enqueue", "449", "--after", "448").returncode == 0 and open(qpath).read() == "449 after=448\n"
+    for bad in (["enqueue", "500", "--after=-5"], ["enqueue", "500", "--after", "0"], ["enqueue", "500", "--after", "x"]):
+        r = cli(*bad)
+        assert r.returncode != 0 and "500" not in open(qpath).read(), (bad, r.stderr)
+    r = cli("enqueue", "452", "451", "--after", "451")
+    assert r.returncode != 0 and "nothing queued" in r.stderr and open(qpath).read() == "449 after=448\n", "a refused call queues none of its pull requests"
+    r = cli("enqueue", "449", "--after", "447")
+    assert r.returncode == 0 and "already queued" in r.stderr and open(qpath).read() == "449 after=447,448\n"
+    with open(qpath, "a") as f:
+        f.write("600 after=#448\n")
+    r = cli("list")
+    assert r.stdout.split("\n")[0] == "449 after=447,448" and "600" in r.stderr and "not understood" in r.stderr, (r.stdout, r.stderr)
+
     # a dependency closed without merge: HOLD, taken out of the queue
     gh = FakeGh()
     for n in (74, 75):
