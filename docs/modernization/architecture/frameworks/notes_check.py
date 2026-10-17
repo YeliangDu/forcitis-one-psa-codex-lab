@@ -2,12 +2,14 @@
 """资料笔记格式与锚点引用检查。
 
 新格式笔记（带 YAML 信息栏）逐项校验；旧格式笔记只计数为待迁移，--strict 时也算失败。
-锚点概念名命中 terms.yaml 词条的别名或禁用词时须改用词条中文名；产品资料用证据号（E01 式）代替页码时，证据号须在 notes/_evidence/<编号>.yaml 登记且有路径与定位。
-全仓 docs/modernization 下形如 `编号#概念名` 的引用，编号属已登记笔记时须能解析到锚点。
+锚点定义在四节内表格首列，写作 `编号#概念名`，概念名只用汉字、字母、数字、`-`、`·`；命中 terms.yaml 词条别名或禁用词时须改用词条中文名。
+产品资料用证据号（E01 式）代替页码时，证据号须在 notes/_evidence/<编号>.yaml 登记且有路径与定位。
+全仓 docs/modernization 下（剔除代码块、行内代码与 URL 后）形如 `编号#概念名` 的引用：编号属已登记笔记时须能解析到锚点，否则告警。
 """
 import argparse
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 import yaml
@@ -20,63 +22,116 @@ EVIDENCE = NOTES / "_evidence"
 EVID_RE = re.compile(r"(?<![A-Za-z0-9])E[0-9]{2,3}(?![0-9])")
 SECTIONS = ["核心思想", "概念及页码", "对本系统的启示", "我们的取舍"]
 REQUIRED = ["编号", "题名", "作者", "年份", "版本", "资料类型", "主题标签", "状态", "派工"]
-ID_RE = re.compile(r"^[A-Z]{2,6}[0-9]{0,4}$")
-REF_RE = re.compile(r"(?<![A-Za-z0-9])([A-Z]{2,6}[0-9]{0,4})#([^\s|，。、；;：:（）()\[\]`'\"]+)")
+ID = r"[A-Z]{2,6}[0-9]{0,4}"
+ID_RE = re.compile(rf"^{ID}$")
+CONCEPT = rf"(?:(?!{ID}#)[一-鿿A-Za-z0-9\-·])+"
+CONCEPT_RE = re.compile(rf"^{CONCEPT}$")
+REF_RE = re.compile(rf"(?<![A-Za-z0-9])({ID})#({CONCEPT})")
+ANCHOR_CELL_RE = re.compile(rf"^({ID})#(.+)$")
+FENCE_RE = re.compile(r"^(```|~~~).*?^\1[^\n]*$", re.M | re.S)
+NOISE_RE = re.compile(r"`[^`\n]*`|https?://\S+")
+
+
+def strip_fences(text):
+    return FENCE_RE.sub(lambda m: "\n" * m.group(0).count("\n"), text)
+
+
+def strip_code(text):
+    return NOISE_RE.sub("", strip_fences(text))
 
 
 def split_front_matter(text):
+    """返回 (meta, body)；无信息栏时 meta 为 None；信息栏有误时 meta 含 _error。"""
+    if not text.strip():
+        return {"_error": "文件为空"}, ""
     if not text.startswith("---\n"):
         return None, text
     end = text.find("\n---\n", 4)
     if end < 0:
-        return None, text
+        return {"_error": "信息栏缺结束行 ---"}, text
     try:
         meta = yaml.safe_load(text[4:end]) or {}
     except yaml.YAMLError as exc:
-        meta = {"_error": str(exc).splitlines()[0]}
+        return {"_error": f"信息栏不是合法 YAML（{str(exc).splitlines()[0]}），含冒号的值须加引号"}, text[end + 5:]
+    if not isinstance(meta, dict):
+        return {"_error": "信息栏须为「键: 值」映射"}, text[end + 5:]
     return meta, text[end + 5:]
+
+
+def cells(line):
+    return [c.strip() for c in line.strip().strip("|").split("|")]
+
+
+def anchor_rows(body):
+    """四节内（附节之前、代码块之外）首列形如 编号#… 的表格行：[(编号, 概念名, 各列)]。"""
+    scope = re.split(r"^## 附：", strip_fences(body), maxsplit=1, flags=re.M)[0]
+    rows = []
+    for line in scope.splitlines():
+        if not line.lstrip().startswith("|"):
+            continue
+        c = cells(line)
+        m = ANCHOR_CELL_RE.match(c[0]) if c else None
+        if m:
+            rows.append((m.group(1), m.group(2), c))
+    return rows
+
+
+def norm(s):
+    return unicodedata.normalize("NFKC", s).casefold().strip()
 
 
 def load_term_aliases():
     zh_names, alias_to_zh = set(), {}
     for term in yaml.safe_load(TERMS.read_text(encoding="utf-8"))["terms"]:
-        zh_names.add(term["zh"])
-        names = [a["name"] for a in term.get("aliases") or [] if isinstance(a, dict)]
+        zh_names.add(norm(term["zh"]))
+        names = [a["name"] for a in term.get("aliases") or [] if isinstance(a, dict) and a.get("name")]
         names += [f for f in term.get("forbidden") or [] if isinstance(f, str)]
         for name in names:
-            for part in name.split(" / "):
-                alias_to_zh.setdefault(part.strip(), term["zh"])
+            for part in re.split(r"\s*/\s*", name):
+                if part.strip():
+                    alias_to_zh.setdefault(norm(part), term["zh"])
     return {a: z for a, z in alias_to_zh.items() if a not in zh_names}
 
 
-def check_evidence(name, nid, body, errors):
-    used = sorted(set(EVID_RE.findall(body)))
-    if not used:
-        return
+def check_evidence(name, nid, body, errors, warnings):
+    used = sorted(set(EVID_RE.findall(strip_code(body))))
     reg_path = EVIDENCE / f"{nid}.yaml"
-    if not reg_path.exists():
-        errors.append(f"{name}: 产品资料须有证据登记 _evidence/{nid}.yaml")
+    if not used and not reg_path.exists():
         return
-    reg = (yaml.safe_load(reg_path.read_text(encoding="utf-8")) or {}).get("证据") or {}
+    if not reg_path.exists():
+        errors.append(f"{name}: 用了证据号却没有证据登记 _evidence/{nid}.yaml")
+        return
+    try:
+        data = yaml.safe_load(reg_path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as exc:
+        errors.append(f"_evidence/{nid}.yaml: 不是合法 YAML（{str(exc).splitlines()[0]}）")
+        return
+    reg = data.get("证据") if isinstance(data, dict) else None
+    if not isinstance(reg, dict):
+        errors.append(f"_evidence/{nid}.yaml: 须有映射「证据: {{E01: {{路径: …, 定位: …}}}}」")
+        return
     for eid, entry in reg.items():
-        if not (entry or {}).get("路径") or not (entry or {}).get("定位"):
+        if not isinstance(entry, dict) or not entry.get("路径") or not entry.get("定位"):
             errors.append(f"_evidence/{nid}.yaml: {eid} 缺路径或定位")
     for eid in used:
         if eid not in reg:
             errors.append(f"{name}: 证据号 {eid} 未在 _evidence/{nid}.yaml 登记")
+    for eid in sorted(set(reg) - set(used)):
+        warnings.append(f"_evidence/{nid}.yaml: {eid} 已登记但笔记未用")
 
 
-def check_note(path, meta, body, vocab, aliases, errors):
+def check_note(path, meta, body, vocab, aliases, errors, warnings):
     name = path.name
     if "_error" in meta:
-        errors.append(f"{name}: 信息栏不是合法 YAML（{meta['_error']}），含冒号的值须加引号")
-        return "", set()
+        errors.append(f"{name}: {meta['_error']}")
+        return None, set()
     for key in REQUIRED:
         if meta.get(key) in (None, "", []):
             errors.append(f"{name}: 信息栏缺 {key}")
-    nid = str(meta.get("编号", ""))
-    if nid and not ID_RE.match(nid):
-        errors.append(f"{name}: 编号 {nid} 不符合 大写字母 2-6 位 + 可选数字")
+    nid = str(meta.get("编号") or "")
+    if not ID_RE.match(nid):
+        errors.append(f"{name}: 编号「{nid}」须为大写字母 2-6 位加可选数字；本笔记其余检查跳过")
+        return None, set()
     if meta.get("资料类型") and meta["资料类型"] not in vocab["资料类型"]:
         errors.append(f"{name}: 资料类型 {meta['资料类型']} 不在 _vocab.yaml")
     if meta.get("状态") and meta["状态"] not in vocab["状态"]:
@@ -89,33 +144,31 @@ def check_note(path, meta, body, vocab, aliases, errors):
         if tag not in vocab["主题标签"]:
             errors.append(f"{name}: 主题标签 {tag} 不在 _vocab.yaml")
 
-    heads = re.findall(r"^## (.+?)\s*$", body, re.M)
+    heads = re.findall(r"^## (.+?)\s*$", strip_code(body), re.M)
     main = [h for h in heads if not h.startswith("附：")]
     if main != SECTIONS:
         errors.append(f"{name}: 二级标题须依次为 {'、'.join(SECTIONS)}（附节以「附：」开头），实为 {'、'.join(main)}")
-    if heads and any(h.startswith("附：") for h in heads[: len(main)]):
+    if any(h.startswith("附：") for h in heads[: len(main)]):
         errors.append(f"{name}: 附节须在四节之后")
 
     anchors = []
-    scope = re.split(r"^## 附：", body, maxsplit=1, flags=re.M)[0]
-    if scope:
-        for row in re.findall(r"^\|\s*([^|]+?)\s*\|", scope, re.M):
-            if "#" not in row:
-                continue
-            if not row.startswith(f"{nid}#") or len(row) == len(nid) + 1:
-                errors.append(f"{name}: 锚点 {row} 须以 {nid}# 开头并带概念名")
-                continue
-            concept = row.split("#", 1)[1]
-            if concept in aliases:
-                errors.append(f"{name}: 锚点 {row} 是词条别名或禁用词，须用词条中文名 {aliases[concept]}")
-            anchors.append(concept)
+    for prefix, concept, _ in anchor_rows(body):
+        row = f"{prefix}#{concept}"
+        if prefix != nid:
+            errors.append(f"{name}: 锚点 {row} 的前缀与编号 {nid} 不符")
+            continue
+        if not CONCEPT_RE.match(concept):
+            errors.append(f"{name}: 锚点 {row} 的概念名只能用汉字、字母、数字、-、·")
+            continue
+        if norm(concept) in aliases:
+            errors.append(f"{name}: 锚点 {row} 是词条别名或禁用词，须用词条中文名 {aliases[norm(concept)]}")
+        anchors.append(concept)
     if not anchors:
         errors.append(f"{name}: 没有锚点（四节内表格首列 编号#概念名）")
-    dup = {a for a in anchors if anchors.count(a) > 1}
-    for a in sorted(dup):
+    for a in sorted({a for a in anchors if anchors.count(a) > 1}):
         errors.append(f"{name}: 锚点 {nid}#{a} 重复")
-    if meta.get("资料类型") == "产品资料" and nid:
-        check_evidence(name, nid, body, errors)
+    if meta.get("资料类型") == "产品资料":
+        check_evidence(name, nid, body, errors, warnings)
     return nid, set(anchors)
 
 
@@ -126,7 +179,7 @@ def main():
 
     vocab = yaml.safe_load((NOTES / "_vocab.yaml").read_text(encoding="utf-8"))
     aliases = load_term_aliases()
-    errors, legacy, index = [], [], {}
+    errors, warnings, legacy, index = [], [], [], {}
     for path in sorted(NOTES.glob("*.md")):
         if path.name.startswith("_"):
             continue
@@ -134,33 +187,39 @@ def main():
         if meta is None:
             legacy.append(path.name)
             continue
-        nid, anchors = check_note(path, meta, body, vocab, aliases, errors)
+        nid, anchors = check_note(path, meta, body, vocab, aliases, errors, warnings)
+        if nid is None:
+            continue
         if nid in index:
             errors.append(f"{path.name}: 编号 {nid} 与 {index[nid][0]} 重复")
         else:
             index[nid] = (path.name, anchors)
 
-    refs = 0
+    refs, unknown = 0, {}
     for path in sorted(DOCS.rglob("*")):
         if path.suffix not in (".md", ".yaml", ".yml", ".json") or not path.is_file():
             continue
-        if path.parent == NOTES and path.name.startswith("_"):
+        if (path.parent == NOTES and path.name.startswith("_")) or "generated" in path.parts:
             continue
-        if "generated" in path.parts:
-            continue
-        text = path.read_text(encoding="utf-8", errors="replace")
+        text = strip_code(path.read_text(encoding="utf-8", errors="replace"))
         for m in REF_RE.finditer(text):
             nid, concept = m.group(1), m.group(2)
             if nid not in index:
+                unknown.setdefault(nid, f"{path.relative_to(DOCS)}:{text.count(chr(10), 0, m.start()) + 1}")
                 continue
             refs += 1
             if concept not in index[nid][1]:
                 line = text.count("\n", 0, m.start()) + 1
-                errors.append(f"{path.relative_to(DOCS)}:{line}: 断链 {nid}#{concept}")
+                hint = "（两条引用之间须用「、」或空格分隔）" if re.match(ID + "#", text[m.end():]) else ""
+                errors.append(f"{path.relative_to(DOCS)}:{line}: 断链 {nid}#{concept}{hint}")
+    for nid, where in sorted(unknown.items()):
+        warnings.append(f"{where}: {nid}# 不是已登记笔记编号（拼错或尚未迁移？）")
 
     print(f"新格式笔记 {len(index)} 份，锚点 {sum(len(a) for _, a in index.values())} 个，引用 {refs} 处；旧格式待迁移 {len(legacy)} 份")
     if args.strict and legacy:
         errors.extend(f"{n}: 旧格式，未按 _TEMPLATE.md 迁移" for n in legacy)
+    for w in warnings:
+        print(f"WARN {w}")
     for e in errors:
         print(f"ERROR {e}")
     return 1 if errors else 0

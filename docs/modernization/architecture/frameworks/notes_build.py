@@ -11,6 +11,8 @@ from pathlib import Path
 
 import yaml
 
+from notes_check import anchor_rows, cells, split_front_matter
+
 HERE = Path(__file__).resolve().parent
 NOTES = HERE / "notes"
 TERMS = HERE.parents[1] / "glossary" / "terms.yaml"
@@ -22,30 +24,16 @@ SKIP = {"书目"}
 HEADER = "<!-- 由 frameworks/notes_build.py 生成，勿手改 -->\n"
 
 
-def split_front_matter(text):
-    end = text.find("\n---\n", 4)
-    return yaml.safe_load(text[4:end]), text[end + 5:]
-
-
-def cells(line):
-    return [c.strip() for c in line.strip().strip("|").split("|")]
-
-
 def load_notes():
     notes = []
     for path in sorted(NOTES.glob("*.md")):
         if path.name.startswith("_"):
             continue
         meta, body = split_front_matter(path.read_text(encoding="utf-8"))
-        nid = str(meta["编号"])
-        scope = re.split(r"^## 附：", body, maxsplit=1, flags=re.M)[0]
         anchors = []
-        for line in scope.splitlines():
-            if not line.startswith(f"| {nid}#"):
-                continue
-            c = cells(line)
+        for _, concept, c in anchor_rows(body):
             pages = " / ".join(p for p in c[3:5] if p and p != "—") if len(c) >= 6 else ""
-            anchors.append({"concept": c[0].split("#", 1)[1], "name": c[1] if len(c) > 1 else "",
+            anchors.append({"concept": concept, "name": c[1] if len(c) > 1 else "",
                             "where": c[2] if len(c) > 2 else "", "pages": pages})
         notes.append({"file": path.name, "meta": meta, "anchors": anchors, "vs": sorted(set(VS_RE.findall(body)))})
     return notes
@@ -53,6 +41,10 @@ def load_notes():
 
 def esc(s):
     return str(s).replace("|", "／").replace("\n", " ")
+
+
+def link_text(s):
+    return esc(s).replace("[", "［").replace("]", "］")
 
 
 def build_concepts(notes):
@@ -81,7 +73,7 @@ def build_concepts(notes):
             lines.append(f"差异：{esc(diffs[k]['差异'])}\n")
         lines.append("| 锚点 | 资料 | 原文叫法 | 位置 | 页码 |\n|---|---|---|---|---|")
         for n, a in groups[k]:
-            lines.append(f"| {n['meta']['编号']}#{a['concept']} | [{esc(n['meta']['题名'])}](notes/{n['file']}) | {esc(a['name'])} | {esc(a['where'])} | {esc(a['pages']) or '—'} |")
+            lines.append(f"| {n['meta']['编号']}#{a['concept']} | [{link_text(n['meta']['题名'])}](notes/{n['file']}) | {esc(a['name'])} | {esc(a['where'])} | {esc(a['pages']) or '—'} |")
         lines.append("")
     return "\n".join(lines), unknown
 
@@ -91,7 +83,7 @@ def build_index(notes):
 
     def row(n):
         m = n["meta"]
-        return f"| {m['编号']} | [{esc(m['题名'])}](notes/{n['file']}) | {m['年份']} | {m['资料类型']} | {m['状态']} | {len(n['anchors'])} |"
+        return f"| {m['编号']} | [{link_text(m['题名'])}](notes/{n['file']}) | {m['年份']} | {m['资料类型']} | {m['状态']} | {len(n['anchors'])} |"
 
     head = "| 编号 | 题名 | 年份 | 资料类型 | 状态 | 锚点 |\n|---|---|---|---|---|---|"
     out = [HEADER, "# 资料笔记总目录\n",
@@ -121,6 +113,8 @@ def build_index(notes):
 def self_test():
     c = cells("| KIM3#粒度 | Grain | 第 2 章 | 39-40 | 75-76 | 先声明一行含义 |")
     assert c[0] == "KIM3#粒度" and c[3] == "39-40" and len(c) == 6
+    assert anchor_rows("## 核心思想\n```\n| KIM3#假 | x |\n```\n| KIM3#真 | y |\n## 附：核对\n| KIM3#附 | z |")[0][1] == "真"
+    assert link_text("a[b]|c") == "a［b］／c"
     assert VS_RE.findall("见 VS-15、PRC-190、XVS-01") == ["VS-15"]
     print("self-test ok")
 
