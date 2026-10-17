@@ -1,14 +1,13 @@
 package com.forcitis.one.platform.audit.infrastructure.persistence;
 
-import java.util.UUID;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.audit.api.AuditEntryId;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
 import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
-import com.forcitis.one.platform.audit.domain.AuditEntryId;
 import com.forcitis.one.platform.audit.domain.AuditEntryQueries;
-import com.forcitis.one.platform.audit.domain.AuditPage;
 import com.forcitis.one.platform.audit.domain.AuditFilter;
+import com.forcitis.one.platform.audit.domain.AuditPage;
 import com.forcitis.one.platform.audit.domain.AuditPageMark;
 import com.forcitis.one.platform.audit.domain.AuditRecord;
 import com.forcitis.one.platform.audit.domain.OwnLoginRecord;
@@ -21,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 

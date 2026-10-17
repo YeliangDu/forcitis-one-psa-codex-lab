@@ -1,4 +1,4 @@
-package com.forcitis.one.platform.audit.domain;
+package com.forcitis.one.platform.audit.api;
 
 import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.ValueObject;
