@@ -42,6 +42,8 @@ class ProcessArchiveJob implements SmartInitializingSingleton {
     private static final Logger LOG = LoggerFactory.getLogger(ProcessArchiveJob.class);
     static final String KIND = "process";
     static final int BATCH = 100;
+    static final int FAILURE_KIND_LENGTH = 2000;
+    private static final int FAILURE_KIND_DEPTH = 5;
     static final List<String> PROCESS_VARIABLES = List.of(FlowableApprovalEngine.VARIABLE_CONTENT_HASH, FlowableApprovalEngine.VARIABLE_LEGAL_ENTITY);
     static final String ROUTING_VARIABLE_PREFIX = FlowableApprovalEngine.VARIABLE_ROUTED_PREFIX;
     static final List<String> TASK_VARIABLES = List.of(FlowableApprovalEngine.VARIABLE_SYSTEM_COMPLETE, FlowableApprovalEngine.VARIABLE_ADVISORY,
@@ -174,12 +176,25 @@ class ProcessArchiveJob implements SmartInitializingSingleton {
                     engineHistory.deleteHistoricProcessInstance(id);
                     total++;
                 } catch (RuntimeException failure) {
-                    LOG.error("ALERT platform.approval process instance {} is archived but the engine cannot delete it: {}", id, failure.getMessage());
+                    String kind = failureKind(failure);
+                    LOG.error("ALERT platform.approval process instance {} is archived but the engine cannot delete it: {}", id, kind);
                     skipped.increment();
-                    insertSkipped(EngineIds.instance(id), stored.key(), String.valueOf(failure.getMessage()));
+                    insertSkipped(EngineIds.instance(id), stored.key(), kind);
                 }
             }
         }
+    }
+
+    /** Class names only: an engine message may carry database server error detail, which must not reach the log or the table. */
+    static String failureKind(Throwable failure) {
+        List<String> chain = new ArrayList<>();
+        Throwable cause = failure;
+        while (cause != null && chain.size() < FAILURE_KIND_DEPTH) {
+            chain.add(cause.getClass().getName());
+            cause = cause.getCause() == cause ? null : cause.getCause();
+        }
+        String joined = String.join(" <- ", chain);
+        return joined.length() <= FAILURE_KIND_LENGTH ? joined : joined.substring(0, FAILURE_KIND_LENGTH);
     }
 
     private void insertSkipped(ApprovalInstanceId instanceId, String objectKey, String failure) {

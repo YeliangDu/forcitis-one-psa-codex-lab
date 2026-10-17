@@ -26,13 +26,35 @@ import org.junit.jupiter.api.Test;
 class PrimaryKeyTypeGuardTest {
     static final Pattern GENERATED = Pattern.compile("(?i)\\bGENERATED\\b.*\\bAS IDENTITY\\b|\\b(big|small)?serial\\b|\\bDEFAULT\\b");
 
+    static List<String> problems(Map<String, String> migrations, Set<String> exempt) {
+        return problems(migrations, exempt, Map.of());
+    }
+
+    static List<String> problems(Map<String, String> migrations, Map<String, String> exemptions) {
+        return problems(migrations, exemptions, Map.of());
+    }
+
     static List<String> problems(Map<String, String> migrations, Set<String> exempt, Map<String, String> crossSchema) {
+        return problems(migrations, exempt.stream().collect(java.util.stream.Collectors.toMap(t -> t, t -> "framework", (a, b) -> a)), crossSchema);
+    }
+
+    /** exemptions: table to reason; a reason that names an ADR registers a partitioned table (ADR-0048), any other reason a framework-owned key. */
+    static List<String> problems(Map<String, String> migrations, Map<String, String> exemptions, Map<String, String> crossSchema) {
+        Set<String> exempt = exemptions.keySet();
         List<String> problems = new ArrayList<>();
         Map<String, DdlNamingTest.Schema> model = DdlNamingTest.model(migrations);
         Set<String> tables = new TreeSet<>();
         model.forEach((schema, m) -> m.tables.forEach((table, t) -> {
             String qualified = schema + "." + table;
             tables.add(qualified);
+            boolean registered = exempt.contains(qualified) && PrimaryKeyExemptions.isPartitionException(exemptions.get(qualified));
+            if (t.partitionKey != null && !registered) {
+                problems.add(qualified + ": a partitioned table (PARTITION BY) must be listed in architecture/primary-key-exemptions.txt with the ADR that approved it (ADR-0048 decision 6)");
+            }
+            if (registered) {
+                partitionShape(qualified, t, problems);
+                return;
+            }
             if (exempt.contains(qualified)) {
                 return;
             }
@@ -53,7 +75,7 @@ class PrimaryKeyTypeGuardTest {
             Matcher table = DdlNamingTest.CREATE_TABLE.matcher(sql);
             while (table.find()) {
                 String qualified = table.group(1) + "." + table.group(2);
-                if (exempt.contains(qualified)) {
+                if (exempt.contains(qualified) && !PrimaryKeyExemptions.isPartitionException(exemptions.get(qualified))) {
                     continue;
                 }
                 checkLines(qualified, table.group(3), model.get(table.group(1)).tables.get(table.group(2)), model, foreignKeys, crossSchema, problems);
@@ -61,6 +83,22 @@ class PrimaryKeyTypeGuardTest {
         });
         registryProblems(model, crossSchema, problems);
         return problems;
+    }
+
+    /** ADR-0048 decision 5: the key is exactly (id uuid, created_at timestamptz) and created_at is the range partition key. */
+    private static void partitionShape(String table, DdlNamingTest.Table t, List<String> problems) {
+        if (t.partitionKey == null || !"RANGE".equals(t.partitionMethod)) {
+            problems.add(table + ": registered as a partitioned table in architecture/primary-key-exemptions.txt but is not PARTITION BY RANGE");
+        }
+        boolean keyOk = t.primaryKey.equals(List.of("id", "created_at"))
+                && t.columns.get("id") != null && t.columns.get("id").type().equals("uuid")
+                && t.columns.get("created_at") != null && t.columns.get("created_at").type().equals("timestamptz");
+        if (!keyOk) {
+            problems.add(table + ": the primary key of the partitioned table must be exactly (id uuid, created_at timestamptz)");
+        }
+        if (t.partitionKey != null && !t.partitionKey.equals("created_at")) {
+            problems.add(table + ": created_at must be the range partition key, found " + t.partitionKey);
+        }
     }
 
     private static void registryProblems(Map<String, DdlNamingTest.Schema> model, Map<String, String> crossSchema, List<String> problems) {
@@ -202,14 +240,15 @@ class PrimaryKeyTypeGuardTest {
     }
 
     @Test
-    @DisplayName("every table has one uuid primary key made by the application, intervals are excluded from overlapping, *_version_id points at a version row or is in the cross-schema registry; only the five framework tables are exempt")
+    @DisplayName("every table has one uuid primary key made by the application, intervals are excluded from overlapping, *_version_id points at a version row or is in the cross-schema registry; only the five framework tables and the ADR-0048 partitioned table are exempt")
     void everyKeyIsOneUuidColumnTheApplicationMakes() throws IOException {
         Map<String, String> exemptions = PrimaryKeyExemptions.read();
 
-        assertThat(exemptions.keySet()).as("ADR-0033 section 1 item 8 allows these five framework tables and no other")
+        assertThat(exemptions.keySet()).as("ADR-0033 section 1 item 8 allows these five framework tables, ADR-0048 the partitioned audit_entries, and no other")
                 .containsExactlyInAnyOrder("platform_identity.sessions", "platform_identity.sessions_attributes", "platform_integration.event_publication",
-                        "platform_integration.event_publication_archive", "platform_scheduling.scheduler_locks");
-        assertThat(problems(DdlNamingTest.readMigrations(), exemptions.keySet(), CrossSchemaVersionReferences.read())).isEmpty();
+                        "platform_integration.event_publication_archive", "platform_scheduling.scheduler_locks", "platform_audit.audit_entries");
+        assertThat(exemptions.get("platform_audit.audit_entries")).contains("ADR-0048");
+        assertThat(problems(DdlNamingTest.readMigrations(), exemptions, CrossSchemaVersionReferences.read())).isEmpty();
     }
 
     private static final String SAMPLE = """
@@ -337,5 +376,33 @@ class PrimaryKeyTypeGuardTest {
         assertThatThrownBy(() -> CrossSchemaVersionReferences.parse(List.of("platform_sample.things.thing_version_id platform_other.thing_versions  # note")))
                 .isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> CrossSchemaVersionReferences.parse(List.of("a.b.c_version_id -> d.e -> f.g  # note"))).isInstanceOf(IllegalStateException.class);
+    }
+
+    private static final String PARTITIONED = """
+            CREATE TABLE platform_sample.entries (
+                id uuid NOT NULL,
+                created_at timestamptz NOT NULL,
+                CONSTRAINT pk_entries PRIMARY KEY (id, created_at)
+            )
+            PARTITION BY RANGE (created_at);
+            """;
+
+    @Test
+    @DisplayName("ADR-0048 guard 1 and 2: a partitioned table must be registered with an ADR and its key must be exactly (id uuid, created_at timestamptz) with created_at as range key")
+    void thePartitionedTableIsRegisteredAndKeepsItsShape() {
+        Map<String, String> registered = Map.of("platform_sample.entries", "partitioned; ADR-0048");
+        assertThat(problems(Map.of("V1__x.sql", PARTITIONED), registered)).isEmpty();
+
+        assertThat(problems(Map.of("V1__x.sql", PARTITIONED), Set.of())).anyMatch(p -> p.contains("must be listed in architecture/primary-key-exemptions.txt"));
+        assertThat(problems(Map.of("V1__x.sql", PARTITIONED), Map.of("platform_sample.entries", "framework table"))).anyMatch(p -> p.contains("must be listed"));
+        assertThat(problems(Map.of("V1__x.sql", PARTITIONED.replace("(id, created_at)", "(id)")), registered)).anyMatch(p -> p.contains("must be exactly (id uuid, created_at timestamptz)"));
+        assertThat(problems(Map.of("V1__x.sql", PARTITIONED.replace("(id, created_at)", "(created_at, id)")), registered)).anyMatch(p -> p.contains("must be exactly"));
+        assertThat(problems(Map.of("V1__x.sql", PARTITIONED.replace("id uuid", "id text")), registered)).anyMatch(p -> p.contains("must be exactly"));
+        assertThat(problems(Map.of("V1__x.sql", PARTITIONED.replace("created_at timestamptz NOT NULL,", "created_at timestamptz NOT NULL,\n    other_at timestamptz,").replace("RANGE (created_at)", "RANGE (other_at)")), registered))
+                .anyMatch(p -> p.contains("created_at must be the range partition key"));
+        assertThat(problems(Map.of("V1__x.sql", PARTITIONED.replace("\nPARTITION BY RANGE (created_at)", "")), registered)).anyMatch(p -> p.contains("is not PARTITION BY RANGE"));
+        String listed = PARTITIONED.replace("RANGE (created_at)", "LIST (created_at)");
+        assertThat(problems(Map.of("V1__x.sql", listed), registered)).anyMatch(p -> p.contains("is not PARTITION BY RANGE"));
+        assertThat(problems(Map.of("V1__x.sql", listed), Set.of())).as("a LIST table is seen as partitioned, so it is not waved through as an ordinary table").anyMatch(p -> p.contains("must be listed in architecture/primary-key-exemptions.txt"));
     }
 }
