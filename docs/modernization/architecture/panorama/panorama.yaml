@@ -11,7 +11,7 @@ meta:
   counts:
     vs: 15
     stage: 61
-    obj: 125
+    obj: 103
     prc: 200
     agg: 130
     inv: 134
@@ -21,15 +21,15 @@ meta:
     metric: 76
   checks:
     TD-1: 每个阶段都有对象状态作为门（进入或退出条件引用对象状态）
-    TD-2: 每个有效一级对象都有流程（流程的主要对象）
-    TD-3: 每个有效一级对象都有聚合（聚合「对应」列）
+    TD-2: 每个有效对象都有流程承载（同 anchoring_check C2；OBJD 定论的从属、参照、视图按定论排除）
+    TD-3: 每个有效一级业务对象都有聚合（聚合「对应」列；从属、参照、视图不要求）
     TD-4: 每个聚合都归属一个 BC
     TD-5: 每个聚合都有不变量
     TD-6: 每个聚合都有表
     TD-7: 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到）
     TD-8: 每个阶段都有指标
-    BU-1: 每个有效流程都挂到阶段，阶段存在
-    BU-2: 每个有效流程的主要对象存在且是有效对象
+    BU-1: 每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1）
+    BU-2: 流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 BU-1 / anchoring C1 判）
     BU-3: 每个不变量都归属存在的聚合
     BU-4: 每个聚合对应的对象都出现在某个阶段的门或段内状态中
     BU-5: 每张表都归属聚合，聚合能追到对象
@@ -1126,752 +1126,826 @@ nodes:
       name: 往来单位
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 待核实 → 有效（档案已核实）→ 已合并 / 已停用；档案按 D17 版本化；「正式往来单位」= 状态为「有效」（intent 120544 P-3）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:59
     OBJ-02:
       name: 往来单位角色
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已申请 → 合格 → 已暂停 → 已停用（原因必填；适用需准入的角色：供应商、合伙人、渠道伙伴、联合体伙伴、海外持牌伙伴）；客户角色无准入状态，往来单位档案已核实即可用（intent 120544 P-3）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:60
     OBJ-03:
       name: 联系人
       active: true
       primary: false
+      class: 从属对象
+      parent: OBJ-01
       states: 有效 / 已停用
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:61
-    OBJ-04:
-      name: 集团
-      active: false
-      primary: false
-      states: 有效 / 已停用
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:62
     OBJ-05:
       name: 协议
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 草案 → 审批中 → 已签署生效（回签即生效，基线 1）→ 履行中 → 已完成 → 已结算（结算书经双方确认）/ 已终止（原因必填）；生效后只经协议变更产生新基线；违法分包认定时标「无效」；审批中的「合同评审」是协议审批的单据，不另立对象（完整性检查（intent 072440），M-20）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:63
     OBJ-06:
       name: 合同范围条目
       active: true
       primary: false
+      class: 从属对象
+      parent: OBJ-05
       states: 有效 → 被取代（只经协议变更）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:64
     OBJ-07:
       name: 付款条件项
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 待生效 → 已生效 → 可结算 → 被取代 / 已作废
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:65
     OBJ-08:
       name: 履约义务
       active: true
       primary: false
+      class: 从属对象
+      parent: OBJ-05
       states: 未履行 → 已部分履行 → 已履行
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:66
     OBJ-09:
       name: 协议变更
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已提出 → 影响评估 → 审批 → 已生效（新基线）/ 驳回
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:67
     OBJ-10:
       name: 索赔
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已通知（时限内）→ 已提交 → 已认定 / 已拒绝 / 撤回
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:68
-    OBJ-11:
-      name: 合同—项目关联
-      active: false
-      primary: false
-      states: 已生效 → 已失效（带生效期）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:69
     OBJ-12:
       name: 风险交付授权
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已申请 → 已批准 → 已转正（并入协议）/ 叫停
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:70
     OBJ-13:
       name: 保证金与押金
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 现金：待缴 → 已缴 → 已退 / 被没收（可部分扣减）；保函：已开立 → 已到期 / 被索赔
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:71
-    OBJ-14:
-      name: 质量保证金
-      active: false
-      primary: false
-      states: 已扣留 → 到期可收（可付）→ 已收（已付）/ 被扣减
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:72
-    OBJ-15:
-      name: 协议结算
-      active: false
-      primary: false
-      states: 编制 → 双方已确认 → 已结清；结算折让留痕
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:73
     OBJ-16:
       name: 市场活动
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 已计划 → 进行中 → 已结束
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:75
     OBJ-17:
       name: 线索
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 新建 → 跟进中 ⇄ 挂起 → 已确认（转商机）/ 已关闭（无价值，原因必填）；公海池
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:76
     OBJ-18:
       name: 商机
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 跟进中（内部阶段）→ 已决定参投（参投决策，用户 VS01-10）→ 已赢单 / 丢单（原因、竞争对手、中标单位、中标价）/ 已放弃（跟进中或已决定参投均可放弃）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:77
     OBJ-19:
       name: 招标项目
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 外部：已公告 → 已截止 → 已开标 → 公示 → 已定标；已终止 / 已重新招标
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:78
     OBJ-20:
       name: 投标
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 准备中 →（资格预审：通过 / 未通过）→ 已递交 → 已开标 → 公示中 → 已中标 / 未中标 / 已废标；截止前撤回、截止后撤销、已放弃
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:79
     OBJ-21:
       name: 报价
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草拟 → 审批中 → 已通过 / 驳回 → 生效（成为该（商机，标段）的当前版本）；被取代；已作废（「已通过」= 评审通过并冻结，「生效」= 当前版本，回溯检查 RD-06）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:80
     OBJ-22:
       name: 报价估算分解
       active: true
       primary: false
+      class: 从属对象
+      parent: OBJ-21
       states: 随报价版本冻结
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:81
     OBJ-23:
       name: 独立性检查
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 待查 → 无冲突 / 有冲突已获书面同意 / 有冲突不得承接
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:82
     OBJ-24:
       name: 服务产品
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 已启用 → 已停用；版本化
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:84
     OBJ-25:
       name: 阶段类型
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 已启用 → 已停用；版本化
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:85
     OBJ-26:
       name: 标准成本费率表
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 草拟 → 已批准 → 已生效（生效期不重叠）→ 被取代
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:86
     OBJ-27:
       name: 计费系数
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草拟 → 已批准 → 已生效 → 被取代
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:87
     OBJ-28:
       name: 工作日历
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 年度：未维护 → 已维护；过去日期锁定
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:88
     OBJ-29:
       name: 项目
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 已立项 → 执行中 ⇄ 已暂停（原因）→ 收尾中 → 已结项 → 已归档（成果与证据已封存后）；已终止（解除或放弃，原因必填）；已取消（无任何投入时）（Q09：暂停期间拒绝记工时已答，intent 134134 Q-05；其余取值仍待定）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:90
     OBJ-30:
       name: WBS 节点
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 阶段：未开始 → 进行中 → 已完成（只记工作进程；成果的提交与认可是交付物 OBJ-35 的事实，SC-01，聚合稿 §4.4.1）；工作包：进行中 → 已完成 → 已锁定 → 返工中；均可作废（保留历史）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:91
     OBJ-31:
       name: 交付计划
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草拟 → 已批准（对客）/ 内部锁定 → 被修订版取代
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:92
     OBJ-32:
       name: 项目预算
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 编制中 → 审批中 → 已锁定（成本基线）→ 修订中 → 已锁定（新版本）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:93
     OBJ-33:
       name: 完工估算
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已提出 → 已批准 / 已驳回
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:94
     OBJ-34:
       name: 项目团队成员
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已拟派 → 在岗 → 已撤出
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:95
     OBJ-35:
       name: 交付物
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: '编制中 → 内审中 → 已签发（报告类）→ 已交付（签收）→ 审查中 → 已认可 / 退回修改（轮次 +1）/ 已声明（项目经理登记的无异议声明：期满前未收到发包人书面异议，附往来函件检索记录，声明人与复核人按 ADR-0047 U-2；交付侧登记事实，与「已交付（签收）/ 审查中」并列；送达、退回也记在交付侧；期满判定在 `receivables.wip`；「视为同意」不是交付物状态，由
         `reporting` 读模型派生显示，`delivery.acceptance` 不读、不订阅 `receivables.wip`；客户书面同意属认可，即「已认可」（ADR-0047 第 1 类），不是「已声明」；D-8，用户 2026-10-16，intent 061232；按 D-8 字面订正，ADR-0049 评审；状态名与事件「无异议已声明」一致，PR #320）；被取代 /
         撤回（原因必填）/ 已作废；结项归档时已发布成果「已封存」'
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:96
-    OBJ-36:
-      name: 设计文件版本
-      active: false
-      primary: false
-      states: 编制 → 已发布 → 被取代
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:97
     OBJ-37:
       name: 内部评审
       active: true
       primary: false
+      class: 从属对象
+      parent: OBJ-35
       states: 待评审 → 通过 / 已不通过（整改后复审）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:98
     OBJ-38:
       name: 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32）
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已识别 → 已确认 → 处置（返工 / 让步接受）→ 已关闭（我方成果类）；已识别 → 已复核 → 已发布 → 整改中 → 整改已申报 → 已闭合（复查通过）/ 回整改中 / 客户书面接受风险（推断，须有依据）/ 已停止跟踪（原因必填）（客户资产类）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:99
     OBJ-39:
       name: 返工认定
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草拟 → 已认定；可撤销（冲销）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:100
     OBJ-40:
       name: 设计变更
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已提出 → 原因认定与影响评估 → 编制 → 内审 → 已发出 → 已关闭
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:101
     OBJ-41:
       name: 延期申请
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已通知（5 天内）→ 已提交详细说明（10 天内）→ 已批准 / 已拒绝 / 视为批准
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:102
     OBJ-42:
       name: 发包人提供资料
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 待提供 → 已提供 → 已确认 / 有缺陷（退回）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:103
-    OBJ-43:
-      name: 项目档案
-      active: false
-      primary: false
-      states: 已开放 → 已封存（签发、结项）→ 已移交客户（如约定）→ 已归档 → 到期处置
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:104
     OBJ-44:
       name: 资源需求
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草拟 → 已提出 → 已部分满足 / 已满足 / 已取消
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:105
     OBJ-45:
       name: 资源分配
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已计划（项目经理自排）→ 已确认（部门负责人审批）→ 已释放
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:106
     OBJ-46:
       name: 建设工程
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 外部：规划 → 在建 → 已竣工（在用）→ 已超设计使用年限 → 改造中 → 已拆除
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:108
     OBJ-47:
       name: 建筑系统与部位
       active: true
       primary: false
+      class: 从属对象
+      parent: OBJ-46
       states: 在用 → 已超年限 → 改造中 → 已拆除；不再受托
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:109
     OBJ-48:
       name: 检查计划
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已生效 → 已执行 / 已逾期 / 不再受托（删「到期提醒」状态：到期只作提醒，派生 / 策略，人工转线索或商机，另签协议；按周期或按次结算用协议付款条件项，用户 intent 090004）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:110
     OBJ-49:
       name: 检查
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已计划 → 已安排 → 现场进行中 → 记录已提交 → 已审核 → 已锁定；已取消（原因必填）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:111
     OBJ-50:
       name: 检查表模板
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草拟 → 已生效 → 已停用（只增版本）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:112
-    OBJ-51:
-      name: 发现
-      active: false
-      primary: false
-      states: 见 OBJ-38
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:113
     OBJ-52:
       name: 外部检测
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已建议 → 业主已委托 → 报告已收到 → 已采信 / 未采信（原因）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:114
     OBJ-53:
       name: 证据
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已采集 → 已上传（摘要）→ 已关联 → 已封存；已作废（原因必填，保留原件）；「已关联」= 技术聚合「证据关联」（AGG-110，B-28）中存在该证据的挂接记录，证据聚合 AGG-38 不存该状态，只作段内状态、不入阶段门（intent 114200 F-1）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:115
     OBJ-54:
       name: 法人主体
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 筹建 → 存续 → 已注销
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:117
     OBJ-55:
       name: 组织单元
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已启用 → 已停用 / 已撤销；树按生效区间版本化（组织调整产生新版本）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:118
     OBJ-56:
       name: 人员（原「员工」；用户 2026-10-15 Q38 认可改名）
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 已登记（候选）→ 面试中 → 待入职 → 试用期 → 正式 → 待离职 → 已离职；未录用（候选阶段终态）；已停薪留职（可恢复）；权限用的在职 / 离职二值另存
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:119
     OBJ-57:
       name: 任职
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 生效区间版本（只追加）；主任职区间不重叠，兼职任职可多个并行、不设上限（用户 intent 072440 INV-62）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:120
     OBJ-58:
       name: 岗位
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 已启用 → 已停用
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:121
-    OBJ-59:
-      name: 候选人
-      active: false
-      primary: false
-      states: 已登记 → 面试中 → 已录用（转员工）/ 未录用
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:122
     OBJ-60:
       name: 招聘需求
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草稿 → 已提交 → 已批准 / 已驳回 → 招聘中 → 已关闭（录满 / 取消）（与 AGG-65 统一，SC-03）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:123
-    OBJ-61:
-      name: 薪酬档案
-      active: false
-      primary: false
-      states: 版本（调薪产生新版本）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:124
     OBJ-62:
       name: 社保与公积金参保
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 增员 → 在缴 → 减员（转移 / 封存）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:125
-    OBJ-63:
-      name: 专项附加扣除信息
-      active: false
-      primary: false
-      states: 年度有效
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:126
     OBJ-64:
       name: 注册执业证书
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 有效 → 已到期 / 已注销
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:127
     OBJ-65:
       name: 资质证书
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 有效 → 核查中（年检 / 动态核查）→ 有效 / 已降级 / 已撤销；有效 → 延续中 → 有效（新有效期）/ 已到期（未延续）（用户答复 Q-D 第 1 项纳入资质维护，intent 082311）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:128
     OBJ-66:
       name: 工时单
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草稿 → 已提交（含审批中）→ 已通过 / 已退回 / 已驳回（驳回、退回后改原单再提交，不设取消终态）；撤回是转换（已提交 → 草稿，事件 TimesheetApprovalWithdrawn），不是状态；已过账属 Phase 2；关期后只能冲销或修正（one-data TS-UNIQ 审查，intent 052923）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:129
-    OBJ-67:
-      name: 工时有效性认定
-      active: false
-      primary: false
-      states: 草拟 → 已认定（封期锁定）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:130
     OBJ-68:
       name: 请假
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草稿 → 审批中 → 已批准 / 已驳回 → 已销假 / 已撤销
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:131
-    OBJ-69:
-      name: 假期额度
-      active: false
-      primary: false
-      states: 已核定 → 使用中 → 已清零 / 已结转
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:132
     OBJ-70:
       name: 考勤记录
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 只追加
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:133
-    OBJ-71:
-      name: 月度考勤结果
-      active: false
-      primary: false
-      states: 已生成 → 员工确认 → 已锁定
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:134
     OBJ-72:
       name: 加班
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已申请 → 已批准 → 已补偿（付薪 / 调休）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:135
     OBJ-73:
       name: 月度薪酬结算（原「算薪运行」）
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草稿 → 已计算 → 审核中 → 已批准 → 已发放 → 已过账；更正走冲销
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:136
     OBJ-74:
       name: 激励方案
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 编制 → 审批 → 已生效 → 已结束
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:137
-    OBJ-75:
-      name: 经营事实
-      active: false
-      primary: false
-      states: 只追加；更正只能冲销（反向事实 + 新序号）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:139
-    OBJ-76:
-      name: 人工成本分配
-      active: false
-      primary: false
-      states: 已试算 → 已确认 → 已过账；整批冲销重做
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:140
-    OBJ-77:
-      name: 间接成本池
-      active: false
-      primary: false
-      states: 每期间：归集中 → 已分摊 / 已结转下期
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:141
     OBJ-78:
       name: 分摊规则（原「分摊规则版本」）
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草稿 → 已批准 → 已生效 → 被取代
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:142
-    OBJ-79:
-      name: 分摊运行
-      active: false
-      primary: false
-      states: 已试算 → 已生效；冲销按原比例
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:143
-    OBJ-80:
-      name: 成本结转批次
-      active: false
-      primary: false
-      states: 草稿 → 已确认 → 已过账；已冲销
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:144
     OBJ-81:
       name: 收入确认
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 若作对象：草稿 → 审批中 → 已确认（锁定）/ 驳回；更正走冲销
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:146
     OBJ-82:
       name: 开票申请
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草稿 → 审批中 → 准入通过 → 已开票 / 驳回 / 撤回 / 已作废（开具前）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:147
     OBJ-83:
       name: 增值税发票
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已开具 → 部分红冲 → 全额红冲（销项蓝字）；已开具（红字，引用蓝字）；已取得（查验）→ 已用途确认（抵扣 / 不抵扣）→ 已入账（进项）；进项转出；红冲确认中（蓝字已用途确认或入账者红冲前；红字信息确认单由税务平台登记，72 小时未确认自动作废则回到原状态；原 OBJ-84）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:148
-    OBJ-84:
-      name: 红字发票信息确认单
-      active: false
-      primary: false
-      states: 已发起 → 已确认 / 72 小时未确认自动作废
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:149
     OBJ-85:
       name: 往来款项
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 未结 → 已部分结清 → 已结清；争议（往来款项处置分类，候选取值复工 / 结算 / 诉讼 / 核销，证据为老系统经营报表对不良资产的「四选一」处置分类，见 `r0/structure/pptx.md` 第 416 行，取值待用户在后续确认页定；「诉讼」，起诉状、判决书、律师函作证据类型，案件过程线下，用户 intent 090004）；已核销（坏账）；红冲减少
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:150
     OBJ-86:
       name: 资金收付
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 收：待认领 → 已认领 → 已分配；付：已发起 → 审批中 → 已成功 / 已失败（退票）→ 已核销
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:151
     OBJ-87:
       name: 供方履约确认
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已提交 → 审核 → 已确认；已冲销
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:152
     OBJ-88:
       name: 费用报销
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草稿 → 已提交 → 审批中 → 已核定（所属期间确定）→ 已过账 → 已付；驳回、已冲销
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:153
     OBJ-89:
       name: 资金账户
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已开立 → 在用 → 已冻结 → 已销户
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:154
     OBJ-90:
       name: 银行流水
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已导入 → 已匹配 / 未匹配
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:155
     OBJ-91:
       name: 合伙人出资
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已认缴 → 已实缴（到账）→ 已部分退回 / 已退回
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:156
     OBJ-92:
       name: 法定申报
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 待申报 → 已申报 → 已缴款；更正申报
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:157
     OBJ-93:
       name: 公司资产
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 在用 → 已闲置 → 处置
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:158
-    OBJ-94:
-      name: 预提
-      active: false
-      primary: false
-      states: 已预提 → 已冲回 / 已结算
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:159
     OBJ-95:
       name: 会计科目
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已启用 → 已停用（被引用不可删）；科目表版本化
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:161
     OBJ-96:
       name: 账簿
       active: true
       primary: false
+      class: 参照数据
+      parent: null
       states: 已开立 → 在用 → 只读
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:162
     OBJ-97:
       name: 会计期间
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 未开 → 已开放 → 关账中 → 已关账；重开须审批
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:163
     OBJ-98:
       name: 会计分录
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草稿 → 已审核 → 已记账（不可逆）；更正只能冲销
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:164
     OBJ-99:
       name: 报表行定义
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草拟 → 财务评审 → 已生效 → 被取代
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:165
     OBJ-100:
       name: 经营计划
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 编制中 → 审批 → 基线（不可变）→ 新版本
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:166
-    OBJ-101:
-      name: 预算
-      active: false
-      primary: false
-      states: 编制 → 审批 → 生效基线 → 已调整（新版本）；账户可冻结
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:167
-    OBJ-102:
-      name: 指标定义
-      active: false
-      primary: false
-      states: 草拟 → 审批 → 已生效（不追溯）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:168
     OBJ-103:
       name: 财务
       active: true
       primary: true
+      class: 视图
+      parent: null
       states: —
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:170
     OBJ-104:
       name: 奖金核定
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草拟 → 已核定 → 已发放（经月度薪酬结算）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:171
     OBJ-105:
       name: 客户活动
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已计划 → 已变更 → 已完成（结果反馈）/ 已取消（原因必填）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:173
     OBJ-106:
       name: 客户满意度调查
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已发出 → 已回收 → 已评分 → 已跟进
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:174
     OBJ-107:
       name: 项目复盘
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草拟 → 已评审 → 已发布
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:175
     OBJ-108:
       name: 项目风险与问题
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已登记 → 应对中 → 已关闭 / 已接受（须记接受人与依据）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:176
     OBJ-109:
       name: 绩效评估
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草拟 → 已提交 → 已确认（推断，待第 6 步）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:177
     OBJ-110:
       name: 知识条目
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 起草 → 评审 → 已发布 → 已修订（新版本）→ 已废止
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:178
     OBJ-111:
       name: 月度考勤确认
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已生成 → 已确认（本人）→ 已锁定；锁定后不重开
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:180
     OBJ-112:
       name: 利润分配
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草拟 → 已决议 → 已部分支付 → 已支付；已决议后变更须新决议并引用被取代决议
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:181
     OBJ-113:
       name: 用印申请
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草稿 → 审批中 → 已批准 / 已驳回 → 已用印 → 已关闭
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:183
     OBJ-114:
       name: IT 需求工单
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已提交 → 审批中（需审批的类别）→ 处理中 → 已解决 → 已关闭 / 已退回
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:184
     OBJ-115:
       name: IT 资产使用记录
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 领用申请：草稿 → 审批中 → 已通过 → 已领用 / 已驳回 / 已撤回；调拨申请：草稿 → 已申请 → 已调拨 / 已转领用 / 已撤销；使用期间：在用 → 已结束；归还记录：已归还（期间已结束）；维修：草稿 → 已报修 → 已维修登记
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:185
     OBJ-116:
       name: 员工活动申请
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 草稿 → 审批中 → 已批准 / 已驳回 → 已完成
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:186
     OBJ-117:
       name: 勾稽差异案
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 未关闭 → 已解释 / 已修正 / 已豁免（均为关闭结局）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:189
     OBJ-118:
       name: 费用事前申请
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 已提交 → 已批准 / 已驳回 / 已撤回 → 已用尽 / 已关闭
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:190
     OBJ-119:
       name: 出差申请
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 已提交 → 已批准 / 已驳回 / 已撤回 → 已同步 / 已关闭
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:191
     OBJ-120:
       name: 差旅订单
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 超标审批：待审批 → 已批准 / 已驳回；归属、退改与核对依据分别记录
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:192
     OBJ-121:
       name: 差旅订单月账单
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 已登记 → 已核对 → 已确认应付
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:193
     OBJ-122:
       name: 假期余额账户
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 年度账户：已开账 → 已结转；占用行：已占用 → 已转用 / 已释放；补休额度行：有效 → 已转计薪 / 已休完
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:194
     OBJ-123:
       name: 人员薪酬档案
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 版本：生效（按生效区间）→ 已结束；根记录无单独生命周期
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:195
     OBJ-124:
       name: 业务规则（暂名，待 one-glossary 定名）
       active: true
       primary: true
+      class: 业务对象
+      parent: null
       states: 版本草稿 → 已生效 → 已停用（被新版本取代）
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:196
     OBJ-125:
       name: 外部法定账对账（暂名，待 one-glossary 定名）
       active: true
       primary: false
+      class: 业务对象
+      parent: null
       states: 对账中 → 已签字
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:197
   prc:

@@ -182,7 +182,8 @@ def stale_note(catalog, ol_path):
     return f"{len(diff)} 条所标段不同" if diff else ""
 
 
-def run(argv):
+def compute(argv=()):
+    """C1–C5 的判定结果与输入；全景追溯模型（architecture/panorama）共用这一份口径。"""
     import closeout_check as cc
     extra = cc.load_extra_units(cc.extra_paths(argv))
     vs_doc = load_yaml(sac.VS_FILE, "value_streams")
@@ -201,6 +202,12 @@ def run(argv):
     anchor_objects(catalog, olc.written_objs(pobj_doc, agg_objs))
     C = analyse(catalog, stage_vs, vs_cond, vs_cat, touched_objects(catalog, pobj_doc, agg_objs), supports, objects,
                 olc.object_dispositions(sac.INFO_MAP.read_text(encoding="utf-8")))
+    return {"C": C, "catalog": catalog, "objects": objects, "supports": supports, "stage_vs": stage_vs}
+
+
+def run(argv):
+    R = compute(argv)
+    C, catalog = R["C"], R["catalog"]
     md = render(C, stale_note(catalog, olc.OUT_YAML))
     if "--report" in argv:
         REPORT.write_text(md, encoding="utf-8")

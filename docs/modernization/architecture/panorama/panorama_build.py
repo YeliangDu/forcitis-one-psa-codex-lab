@@ -9,13 +9,16 @@ data/PANORAMA_TABLES.yaml（one-data 出，缺失时表层只用 ddd/aggregates.
 """
 import re
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 import yaml
 
 HERE = Path(__file__).resolve().parent
 ARCH = HERE.parent
+sys.path.insert(0, str(ARCH / "proposals" / "closeout"))
+import anchoring_check as anc  # noqa: E402  流程归集与对象承载的判定与 anchoring_check C1、C2 共用一份代码
+import object_layer_check as olc  # noqa: E402
 DOCS = ARCH.parent
 SRC = {
     "vs": ARCH / "proposals" / "value-streams.v2.yaml",
@@ -36,15 +39,15 @@ INACTIVE_PRC = {"retired", "merged"}
 
 CHECKS = {
     "TD-1": "每个阶段都有对象状态作为门（进入或退出条件引用对象状态）",
-    "TD-2": "每个有效一级对象都有流程（流程的主要对象）",
-    "TD-3": "每个有效一级对象都有聚合（聚合「对应」列）",
+    "TD-2": "每个有效对象都有流程承载（同 anchoring_check C2；OBJD 定论的从属、参照、视图按定论排除）",
+    "TD-3": "每个有效一级业务对象都有聚合（聚合「对应」列；从属、参照、视图不要求）",
     "TD-4": "每个聚合都归属一个 BC",
     "TD-5": "每个聚合都有不变量",
     "TD-6": "每个聚合都有表",
     "TD-7": "每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到）",
     "TD-8": "每个阶段都有指标",
-    "BU-1": "每个有效流程都挂到阶段，阶段存在",
-    "BU-2": "每个有效流程的主要对象存在且是有效对象",
+    "BU-1": "每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1）",
+    "BU-2": "流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 BU-1 / anchoring C1 判）",
     "BU-3": "每个不变量都归属存在的聚合",
     "BU-4": "每个聚合对应的对象都出现在某个阶段的门或段内状态中",
     "BU-5": "每张表都归属聚合，聚合能追到对象",
@@ -120,12 +123,17 @@ def load():
                 link(f"stage-gate-{g['side']}", st["id"], g["obj"], f"{rel(SRC['vs'])}#{st['id']}.{g['side']}")
 
     text = SRC["obj"].read_text(encoding="utf-8")
+    valid = anc.info_objects(text)
+    disp = olc.object_dispositions(text)
+    kinds = {"subordinate": "从属对象", "reference_data": "参照数据", "view": "视图"}
     for oid, c, no in md_rows(text, "## 1. 总表", "### 1.1", r"OBJ-\d{2,3}"):
-        dead = "已非对象" in " ".join(c) or "行号保留" in " ".join(c)
+        if oid not in valid:
+            continue
         level = c[3] if len(c) > 3 else ""
-        m["obj"][oid] = {"name": c[1].replace("*", ""), "active": not dead,
-                         "primary": level.startswith("一级"), "states": c[5] if len(c) > 5 else "",
-                         "src": f"{rel(SRC['obj'])}:{no}"}
+        d = disp.get(oid)
+        m["obj"][oid] = {"name": c[1].replace("*", ""), "active": True, "primary": level.startswith("一级"),
+                         "class": kinds[d["kind"]] if d else "业务对象", "parent": d.get("parent_object") if d else None,
+                         "states": c[5] if len(c) > 5 else "", "src": f"{rel(SRC['obj'])}:{no}"}
 
     for p in yaml.safe_load(SRC["prc"].read_text(encoding="utf-8"))["processes"]:
         po = str(p.get("primary_object") or "")
@@ -194,8 +202,11 @@ def load():
     return m, links, mod_to_bc
 
 
-def check(m):
+def check(m, anchoring=None):
     gaps = defaultdict(list)
+    if anchoring is not None:
+        gaps["BU-1"] = [f"{pid} {name}（{why}）" for pid, name, why in anchoring["C"]["C1"]]
+        gaps["TD-2"] = [f"{o} {name}（{why}）" for o, name, why in anchoring["C"]["C2"]]
     active_obj = {k for k, o in m["obj"].items() if o["active"]}
     primary = {k for k in active_obj if m["obj"][k]["primary"]}
     live_prc = {k: p for k, p in m["prc"].items() if p["type"] not in INACTIVE_PRC}
@@ -210,8 +221,10 @@ def check(m):
         if sid not in stage_metric:
             gaps["TD-8"].append(f"{sid} {s['name']}")
     for o in sorted(primary):
-        if o not in obj_with_prc:
+        if anchoring is None and o not in obj_with_prc:
             gaps["TD-2"].append(f"{o} {m['obj'][o]['name']}")
+        if m["obj"][o].get("class", "业务对象") != "业务对象":
+            continue
         if o not in obj_with_agg:
             gaps["TD-3"].append(f"{o} {m['obj'][o]['name']}")
     for aid, a in m["agg"].items():
@@ -229,10 +242,11 @@ def check(m):
             gaps["TD-7"].append(f"{bid} {b['name']}（模块 {b['module']}）")
     for pid, p in live_prc.items():
         bad = [s for s in p["stages"] if s not in m["stage"]]
-        if not p["stages"] or bad:
+        if anchoring is None and (not p["stages"] or bad):
             gaps["BU-1"].append(f"{pid} {p['name']}" + (f"（阶段不存在：{'、'.join(bad)}）" if bad else "（未挂阶段）"))
-        if not p["primary_object"] or any(o not in active_obj for o in p["primary_object"]):
-            gaps["BU-2"].append(f"{pid} {p['name']}（主要对象 {'、'.join(p['primary_object']) or '无'}）")
+        dangling = [o for o in p["primary_object"] if o not in active_obj]
+        if dangling:
+            gaps["BU-2"].append(f"{pid} {p['name']}（主要对象 {'、'.join(dangling)} 不是有效对象）")
     for iid, i in m["inv"].items():
         if not i["aggs"] or any(a not in m["agg"] for a in i["aggs"]):
             gaps["BU-3"].append(f"{iid}（聚合 {'、'.join(i['aggs']) or '无'}）")
@@ -253,6 +267,7 @@ def render(m, links, gaps):
     lines = ["<!-- 由 architecture/panorama/panorama_build.py 生成，勿手改 -->", "", "# 全景追溯缺口", "",
              "每轮生成一次，反复跑到收敛。缺口是「缺上层」还是「本身多余」，由 one-architecture 逐条判定，写进层笔记的待决问题。", "",
              "| 层 | 节点数 |", "|---|---|", *[f"| {k} | {v} |" for k, v in counts.items()], "",
+             "对象按分类：" + "、".join(f"{c} {n}" for c, n in sorted(Counter(o.get("class", "业务对象") for o in m["obj"].values()).items())) + "。", "",
              "| 检查 | 含义 | 缺口 |", "|---|---|---|", *[f"| {k} | {d} | {len(gaps.get(k, []))} |" for k, d in CHECKS.items()], ""]
     for k, d in CHECKS.items():
         if gaps.get(k):
@@ -277,7 +292,7 @@ def main():
         self_test()
         return 0
     m, links, _ = load()
-    gaps = check(m)
+    gaps = check(m, anc.compute())
     model, report = render(m, links, gaps)
     OUT_MODEL.write_text(model, encoding="utf-8")
     OUT_GAPS.write_text(report, encoding="utf-8")
