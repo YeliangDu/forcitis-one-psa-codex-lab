@@ -19,6 +19,7 @@
 | PAN 流程挂阶段与业务对象的规则（1 题；one-architecture） | `sheets/PAN.json` | https://claude.ai/artifact/SfHTmA4r4wYAh1hFVGvFFT（2026-10-17 起，未实看渲染） |
 | NM8A 生成命名检查（一）（113 题；one-architecture） | `sheets/NM8A.json` | https://claude.ai/artifact/SgUfRc2BhoDaJXyrp9BW9S（2026-10-17 起，未实看渲染） |
 | NM8B 生成命名检查（二）（117 题；one-architecture） | `sheets/NM8B.json` | https://claude.ai/artifact/ELUazxUJ3r14K4B8a17T3E（2026-10-17 起，未实看渲染） |
+| ANC 流程归集闭环首轮提议（2 题；one-architecture） | `sheets/ANC.json` | https://claude.ai/artifact/4hLPshAW69nzpxC9e6b2yd（2026-10-17 起，未实看渲染） |
 
 | 步骤 | 做法 |
 |---|---|
