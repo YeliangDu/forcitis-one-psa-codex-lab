@@ -69,4 +69,4 @@
 
 ## 当前状态
 
-2026-10-16 晚：业务架构逐层对齐的「阶段」层收尾中（SD-01–10 已落地，SD-11–15 待交用户），CRUD 缺口清零暂停，确认页待改题；详见 `architecture/proposals/HANDOFF_2026-10-16-LATE.md`。
+2026-10-17 04:47+02:00：对象层主对象全部确认（object-layer.yaml，含 supports、category 提议、集成流程 PRC-184–200）；命名彻底清理的改名对照表 A/B/C 提议稿（497 处改动）待 one-glossary 判定后合页交用户；阶段层 SD-11–15 待交用户；确认页已答归档、未答撤出待改题（PAGE_IMPACT）；待用户定：ADR-0030 补标注的 kernel 端口方案。交接见 `architecture/proposals/HANDOFF_2026-10-16-LATE.md` 与 ARCH_CONTEXT。
