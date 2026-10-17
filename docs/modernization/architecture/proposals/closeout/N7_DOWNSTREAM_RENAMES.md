@@ -9,10 +9,10 @@
 ## 本卡阻塞与生成器衔接
 
 - NM6-12#3：银行账户版本生效 → 银行账户版本已生效。八个目标文件无此状态位置；revenue/state-machines.yaml:1327、1348、1350 可直接定位 AGG-01。应由 revenue 骨架卡处理；架构摘要是否需要补充另卡处理，本卡不新增状态。
-- process-objects 生成漂移：PRC-07、PRC-08 增加 OBJ-113 的 R 引用，PRC-144 / OBJ-116 的 ops 从 CUD 改为 CD；本卡已撤回结构变化，只保留名字。证据 `/tmp/NAM-1017-ARC-07-generation-drift.json`。
-- object-layer 生成漂移也已撤回；具体路径见 `/tmp/NAM-1017-ARC-07-derived-structure-drift.json`。
+- process-objects 生成漂移：PRC-07、PRC-08 增加 OBJ-113 的 R 引用，PRC-144 / OBJ-116 的 ops 从 CUD 改为 CD；本卡已撤回结构变化，只保留名字。证据 `~/.modernize/psa/handoff/evidence/NAM-1017-ARC-07/NAM-1017-ARC-07-generation-drift.json`。
+- object-layer 生成漂移也已撤回；具体路径见 `~/.modernize/psa/handoff/evidence/NAM-1017-ARC-07/NAM-1017-ARC-07-derived-structure-drift.json`。
 
-完整文本命中（逐行含原文）：[grep 候选附录](/tmp/NAM-1017-ARC-07-grep-candidates.md)。结构化证据：`/tmp/NAM-1017-ARC-07-downstream.json`。
+完整文本命中（逐行含原文）：[grep 候选附录](~/.modernize/psa/handoff/evidence/NAM-1017-ARC-07/NAM-1017-ARC-07-grep-candidates.md)。结构化证据：`~/.modernize/psa/handoff/evidence/NAM-1017-ARC-07/NAM-1017-ARC-07-downstream.json`。
 
 ## finance 骨架
 
@@ -165,7 +165,7 @@
 - `docs/modernization/architecture/proposals/closeout/finance/state-machines.yaml:956` — NM6-07#8 / AGG-84：推送与重投 → 推送分录。
 - `docs/modernization/architecture/proposals/closeout/finance/state-machines.yaml:1256` — NM6-07#9 / AGG-89：驳回释放 → 释放进项发票占用。
 
-原始完整 grep：`/tmp/NAM-1017-ARC-07-grep-finance.txt`。
+原始完整 grep：`~/.modernize/psa/handoff/evidence/NAM-1017-ARC-07/NAM-1017-ARC-07-grep-finance.txt`。
 
 ## revenue 骨架
 
@@ -302,7 +302,7 @@
 - `docs/modernization/architecture/proposals/closeout/revenue/state-machines.yaml:1951` — NM6-11#4 / AGG-19：暂停 → 已暂停。
 - `docs/modernization/architecture/proposals/closeout/revenue/state-machines.yaml:1968` — NM6-11#4 / AGG-19：暂停 → 已暂停。
 
-原始完整 grep：`/tmp/NAM-1017-ARC-07-grep-revenue.txt`。
+原始完整 grep：`~/.modernize/psa/handoff/evidence/NAM-1017-ARC-07/NAM-1017-ARC-07-grep-revenue.txt`。
 
 ## people 骨架
 
@@ -447,7 +447,7 @@
 - `docs/modernization/architecture/proposals/closeout/people/state-machines.yaml:1338` — NM6-11#5 / AGG-93：生效 → 已生效。
 - `docs/modernization/architecture/proposals/closeout/people/state-machines.yaml:1710` — NM6-07#7 / AGG-80：预算占用 → 占用预算。
 
-原始完整 grep：`/tmp/NAM-1017-ARC-07-grep-people.txt`。
+原始完整 grep：`~/.modernize/psa/handoff/evidence/NAM-1017-ARC-07/NAM-1017-ARC-07-grep-people.txt`。
 
 ## 后端代码
 
@@ -629,7 +629,7 @@
 - `backend/src/test/resources/acceptance/platform/integration/r1b0b-pending/MemberFlagsCases.md:62` — NM6-01#3 [stage] 启动→开始项目
   - 命中：- Given 夹具库 `dbo.ORG_MEMBER` 缺 STATE。When 启动。Then 拒绝启动，异常链同一行内含 `ORG_MEMBER` 与 `\bSTATE\b`。前提：0b 在读取列登记中登记这三列（运行时用途）。
 
-原始完整 grep：`/tmp/NAM-1017-ARC-07-grep-后端代码.txt`。
+原始完整 grep：`~/.modernize/psa/handoff/evidence/NAM-1017-ARC-07/NAM-1017-ARC-07-grep-后端代码.txt`。
 
 ## 前端
 
@@ -701,7 +701,7 @@
 - `frontend/scripts/copy-glossary.test.mjs:42` — NM6-11#16 [state] 取消→已取消
   - 命中：for (const plain of ['确定', '取消', '加载中']) assert.deepEqual(kinds(plain), [], plain);
 
-原始完整 grep：`/tmp/NAM-1017-ARC-07-grep-前端.txt`。
+原始完整 grep：`~/.modernize/psa/handoff/evidence/NAM-1017-ARC-07/NAM-1017-ARC-07-grep-前端.txt`。
 
 ## 事件目录
 
@@ -841,5 +841,5 @@
 - `docs/modernization/events/identity.yaml:84` — NM6-12#2 [state] 角色停用→角色已停用
   - 命中：title: 角色停用
 
-原始完整 grep：`/tmp/NAM-1017-ARC-07-grep-事件目录.txt`。
+原始完整 grep：`~/.modernize/psa/handoff/evidence/NAM-1017-ARC-07/NAM-1017-ARC-07-grep-事件目录.txt`。
 
