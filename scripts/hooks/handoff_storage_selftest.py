@@ -376,7 +376,8 @@ class StorageTests(unittest.TestCase):
         condition = re.search(r"(?m)^if (.*); then\n  run_step \"guards: playbook_digest", script).group(1)
         with tempfile.TemporaryDirectory() as tmp:
             for path in ["scripts/hooks/session_context.py", "docs/modernization/SESSION_PLAYBOOK.md",
-                    "scripts/hooks/precompact_snapshot.sh", "scripts/hooks/handoff_safe_selftest.py", "scripts/hooks/handoff_storage_selftest.py"]:
+                    "scripts/hooks/precompact_snapshot.sh", "scripts/hooks/handoff_safe_selftest.py", "scripts/hooks/handoff_storage_selftest.py",
+                    "scripts/hooks/playbook_digest_selftest.py", "docs/modernization/sessions/_COMMON.md"]:
                 with self.subTest(path=path):
                     (Path(tmp) / "changed").write_text(path + "\n", encoding="utf-8")
                     code = 'touches() { grep -Eq "$1" "$work/changed"; }; if ' + condition + '; then exit 0; else exit 1; fi'

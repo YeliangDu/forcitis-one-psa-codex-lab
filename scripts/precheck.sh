@@ -130,12 +130,7 @@ if [ "$relevant_status" -ne 0 ] || printf '%s\n' "$relevant_output" | grep -qx '
   legacy_it_relevant=true
 fi
 
-records_dir=$(dirname docs/modernization/build_all.py)
-if [ -n "$(gitq status --porcelain -- "$records_dir" backend/glossary/proposed)" ]; then
-  report SKIP "generated docs (build_all --check)" "$records_dir or backend/glossary/proposed has uncommitted changes: commit first, then run again (请先提交再运行)"
-else
-  run_step "generated docs (build_all --check)" py docs/modernization/build_all.py --check
-fi
+run_step "generated docs (build_all --check)" py docs/modernization/build_all.py --check
 run_step "legacy system name" py docs/modernization/check_legacy_name.py
 if touches 'rules/decide/(build_decision_page\.py|page-template\.html)$'; then
   run_step "decision page generator (self-test)" py docs/modernization/rules/decide/build_decision_page.py --self-test
@@ -290,7 +285,7 @@ if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(pre
   run_step "guards: failure_summary (self-test)" py scripts/ci/failure_summary.py --self-test
   run_step "guards: repeat_new_tests (self-test)" py scripts/ci/repeat_new_tests.py --self-test
 fi
-if touches '^(scripts/hooks/((postcompact_context|sessionend_snapshot|precompact_snapshot)\.sh|(handoff_snapshot|handoff_selftest|handoff_safe_selftest|handoff_storage_selftest|playbook_digest|session_context)\.py)|scripts/precheck\.sh|.*build_all\.py|\.claude/settings\.json)$' || grep -Fxq 'docs/modernization/SESSION_PLAYBOOK.md' "$work/changed"; then
+if touches '^(scripts/hooks/((postcompact_context|sessionend_snapshot|precompact_snapshot)\.sh|(handoff_snapshot|handoff_selftest|handoff_safe_selftest|handoff_storage_selftest|playbook_digest(_selftest)?|session_context)\.py)|scripts/precheck\.sh|.*build_all\.py|\.claude/settings\.json)$' || grep -Fxq 'docs/modernization/SESSION_PLAYBOOK.md' "$work/changed" || grep -Fxq 'docs/modernization/sessions/_COMMON.md' "$work/changed"; then
   run_step "guards: playbook_digest (self-test)" py scripts/hooks/playbook_digest.py --self-test
   run_step "guards: handoff (self-test)" py scripts/hooks/handoff_selftest.py --self-test
   run_step "guards: session_context (self-test)" py scripts/hooks/session_context.py --self-test

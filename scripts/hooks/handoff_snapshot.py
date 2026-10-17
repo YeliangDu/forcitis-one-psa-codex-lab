@@ -251,7 +251,7 @@ def start(payload):
     cwd = payload.get("cwd") or os.getcwd()
     root = git(cwd, deadline, "rev-parse", "--show-toplevel")
     hooks = Path(root) / "scripts/hooks"
-    for script, args in [("session_context.py", [root]), ("playbook_digest.py", [str(Path(root) / "docs/modernization/SESSION_PLAYBOOK.md")])]:
+    for script, args in [("playbook_digest.py", [str(Path(root) / "docs/modernization/SESSION_PLAYBOOK.md")]), ("session_context.py", [root])]:
         try:
             print(command([sys.executable, "-I", str(hooks / script), *args], root, deadline, timeout=5))
         except SnapshotError:
