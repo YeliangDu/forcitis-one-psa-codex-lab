@@ -111,6 +111,7 @@
 |---|---|---|---|
 | `platform_audit.audit_entries` | 审计记录 | 在线 3 年，之后归档到对象存储，保留至满 10 年（流程归档与审计归档共用一个 10 年合规保留的国内 OSS bucket）；审批结论按此 10 年，不随会计档案 30 年（用户 2026-10-14：「不算，按 10 年」）；过账类审计的 30 年存放由首个产生过账的阶段定（见 phase1a/DEFERRED.md） | 《会计档案管理办法》会计凭证与账簿保管 30 年；《网络安全法》日志不少于 6 个月 |
 | `platform_integration.event_publication` | 模块间事件发布记录（Spring Modulith） | 已完成的保留 30 天后删除；未完成的不自动删除，超过 10 分钟告警（用户 2026-10-15：「10 分钟 (Recommended)」；配置 `stale-after`，告警见 §11 O-6） | 只用于可靠投递与重放，事件本身的业务结果已落在各 BC |
+| `cost_timesheet.consumed_events` | 工时监听方已处理事件记录 | 90 天后删除（作业 `cost.timesheet.consumed.events.purge`）。**提议，待用户认可**（one-data 2026-10-17 补登记，据 one-rules 评审 DATA-RULE-04） | 大于事件登记的归档期 30 天；幂等不靠本表，监听方按状态转换幂等（DATA-RULE-04） |
 | `platform_integration.outbound_deliveries` | 对外投递（企业微信通知等） | 成功的保留 90 天；失败与人工处理过的保留 1 年 | 排查与对账所需；内容含收件人，按内部级处理 |
 | `organization_workforce.sync_runs` / `sync_diffs` | A8 组织同步的运行与差异 | 运行记录保留 2 年；差异明细保留 1 年，被拦截（待放行）的运行及其差异在放行后再保留 1 年 | 追溯组织变更来源；6e 后同步方向反转再评估 |
 | `platform_numbering.legacy_numbers` | 老单据编号对照 | 永久保留，不清理 | 老编号检索与对账依据，随业务单据存续 |
