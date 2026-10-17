@@ -18,7 +18,7 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 GLOSSARY_INDEX = os.path.join("..", "..", "backend", "glossary", "proposed", "README.md")
 STEPS = ["build_records.py", "build_decision_digest.py", "build_sessions.py", "build_work_board.py", "glossary/build_issues.py", "adr/build_adrs.py", "rules/build_brief.py",
          "phase1a/infra/build_legacy_read_register.py", "../../backend/glossary/build_proposed_index.py"]
-SELF_TESTED = ["build_decision_digest.py", "build_sessions.py", "build_work_board.py", "../../scripts/hooks/session_context.py", "glossary/build_issues.py", "glossary/term_rules.py",
+SELF_TESTED = ["build_decision_digest.py", "build_sessions.py", "build_work_board.py", "../../scripts/queue/merge_train.py", "../../scripts/merge/mq.py", "../../scripts/hooks/session_context.py", "glossary/build_issues.py", "glossary/term_rules.py",
                "phase1a/infra/build_legacy_read_register.py", STEPS[-1]]
 SELF_TESTED.append("../../scripts/ci/ci_recurrence.py")   # 每晚复发检测：失败 CI 按错题本报错特征归类
 # 正式术语 glossary/terms.yaml 由 build_terms.py 生成，--check 要求可复现；PyYAML 依赖登记于 SUPPLY_CHAIN.md S1
