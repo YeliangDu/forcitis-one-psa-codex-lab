@@ -1,4 +1,4 @@
-# one-ops 速查（2026-10-17）
+# one-ops 速查（2026-10-17 13:25+02:00：rc.6 后 dev 暂停，待用户明确恢复；main 合入不自动触发部署；取证、部署不交 Codex）
 
 规矩：持久资源先报再做、回读再报 one-coordinator；不部署（门禁 090 / 100）；不打印密钥；取证登记 [LEGACY_READ_REGISTER](legacy-read/)（片段；总表由 build_all 生成，不入仓）。
 
