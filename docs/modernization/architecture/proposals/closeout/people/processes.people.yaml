@@ -2729,7 +2729,7 @@ processes:
     triggers:
       - {type: time, name: 系统按入职周年自动生成（经 platform.scheduling 按业务日触发，尚未实现）}
       - {type: human, name: 其他活动人工登记}
-      - {type: human, name: 已批准或已完成的活动登记取消（直接进入步 3，不重复登记或完成）}
+      - {type: human, name: 已批准或已完成的活动登记取消, entry: 3}   # CONVENTIONS entry：从步 3 进入，不重复登记或完成（CON-1017-ARC-08）
     frequency_ref: "待取证（OA_PROCESS_INVENTORY.md 表第 113、118、120 项周年贺卡、感恩节活动、创新项目发布；需区分已停用类型及统计窗口）"
     outcomes: [已完成, 已取消]
     scenarios: [PRC-144-S01, PRC-144-S02, PRC-144-S03, PRC-144-S04, PRC-144-S05, PRC-144-S06, PRC-144-S07, PRC-144-S08, PRC-144-S09, PRC-144-S10, PRC-144-S11, PRC-144-S12, PRC-144-S13]

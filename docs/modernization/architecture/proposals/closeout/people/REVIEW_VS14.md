@@ -418,3 +418,7 @@ SKIP  SQL Server integration tests           relevant_change.py: nothing the *Ms
 
 SUMMARY: 2 PASS, 0 FAIL, 13 SKIP (base HEAD) — ready
 ```
+
+## 后续修订（PRC-144 取消入口）
+
+- 2026-10-17 按 one-architecture CON-1017-ARC-08（fdfa9c3e）：PRC-144 取消触发加 `entry: 3`，其余触发仍从步 1；b31.notes 删「生成器统一连步 1」旧限制。上节第 3 条未闭合项（图上不能表达已完成后直达取消步）随之关闭，运行时入口仍未实现。
