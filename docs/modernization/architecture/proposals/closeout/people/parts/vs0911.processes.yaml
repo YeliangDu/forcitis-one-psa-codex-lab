@@ -12,7 +12,7 @@ processes:
       type: time
       desc: 经营计划周期开始
     stages: [VS-09.1, VS-09.3]
-    stages_note: "跳过 VS-09.2 有意：VS-09.3 退出条件「经营计划新版本」由本流程第二个触发（复盘后调整计划）产生，该路径不经滚动预测；VS-09.2 的新版本由 PRC-89 产生"
+    stages_note: "跳过 VS-09.2 有意：SD-15 已批准 VS-09.3 有两种退出：经营计划新版本、经营复盘已闭环；本流程第二个触发（复盘后调整计划）产生经营计划新版本，PRC-181 承接经营复盘已闭环，该路径不经滚动预测；VS-09.2 的新版本由 PRC-89 产生"
     primary_object: OBJ-100
     owner_bc: B-18
     human_orchestration: true
@@ -352,7 +352,7 @@ processes:
       type: event
       desc: 会计期间已关账（经营月报据此出具）；或季度、年度综合复盘到期
     stages: [VS-09.3]
-    stages_note: "留 VS-09.3：复盘是本段的核心工作，但本段退出条件只写「经营计划新版本」（由 PRC-88 第二个触发产生），本流程结局「经营复盘已闭环 / 已转调整计划」不是该状态，按归段判据第 6 项字面不支持；已列 STAGE_ALIGN.md 请 one-architecture 看 VS-09.3 退出条件是否补「经营复盘已闭环」"
+    stages_note: "归 VS-09.3：SD-15 已批准退出条件补「经营复盘已闭环」，由本流程无动作定稿或全部经营动作完成产生；需调整计划时转 PRC-88 产生另一种退出「经营计划新版本」。批准依据：intent 2026-10-17-084935-one-coordinator-ANM-页提交-ANM-2026.md（AN-11）；价值流定义由 one-architecture 写回"
     primary_object: OBJ-100
     owner_bc: B-18
     human_orchestration: true

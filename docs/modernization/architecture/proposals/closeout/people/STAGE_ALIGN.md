@@ -200,3 +200,13 @@
 - J-12：三处口径采纳（non_state 自环不算到达；纯事件触发的业务流程按事件策略归段；事件名经状态机 emits 映射到状态），脚本改好后复跑。
 - J-13：已登 SD-15（VS-09.3 退出条件补「经营复盘已闭环」）。
 - J-14：并入 SD-12（阶段参与者缺人）。
+
+
+## 八、C7 复核（2026-10-17；本节更新上述历史状态）
+
+批准依据：origin/main 的 intent `2026-10-17-084935-one-coordinator-ANM-页提交-ANM-2026.md`「AN-07～AN-11（SD-11～SD-15）批准」。本卡 C7-people 只落实人员组骨架，价值流定义与目录由 one-architecture 写回。
+
+- **SD-15 / J-13 已批准，骨架已落地**：PRC-181 的 `outcomes`、步骤 4/5 的结束出口、场景 S01/S02/S04 的 `covers` 与 `outcome`、状态机两条到达「已闭环」的转换 `process_outcome` 均为「经营复盘已闭环」。其中 outcomes、步骤与场景 outcome 在基线已逐字一致；本卡补齐显式场景 covers 与 process_outcome。PRC-88 的 `stages_note` 说明 VS-09.3 两种退出：经营计划新版本由 PRC-88 承接，经营复盘已闭环由 PRC-181 承接；不再以「该段退出没有其他产生方」作为必须挂段的理由。PRC-181 同步更新 stages_note；阶段定义写回后须再验字面匹配。
+- **SD-12 / J-14 已批准，roles 已核对**：`parts/vs07.processes.yaml` PRC-128 的 roles 含 `SH-M1 as approver`，对应第 2 步「批准公司终止」（engine aggregate，approver SH-M1），保持原样。VS-13.6 participants 补 SH-M1 交 one-architecture。
+- 本次 origin/main 快照 `8ff6baf4bedadbc18e5b9796b3a0f988c261560c` 的 STAGE_DEFINITION_ISSUES.md 仍列 SD-12/15「待交」，价值流尚未含两项批准；这是写回待办，不再列为待用户定。
+- C7 复核：使用该快照检查脚本，人员组 stage_align 第 6a「未说明」修前 0、修后 0；SD-15 仍列在已说明项、SD-12 仍报参与者 1 条，均待上述阶段定义写回。详见 REVIEW_PACK.md 的检查表与分价值流遗留项。

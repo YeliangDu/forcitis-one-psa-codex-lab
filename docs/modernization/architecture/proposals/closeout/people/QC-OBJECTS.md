@@ -299,3 +299,6 @@ object_check 人员组 90 条分项：无人修改 9、无人创建 11、无人�
 - 撤销增员（AGG-74，挂 PRC-84 步 1 的出口，新增步 3 与场景）。
 - 豁免表条目（待 one-architecture 启用 OBJECT_EXEMPTIONS.yaml）：AGG-93 × 逆向；OBJ-64 × 逆向；AGG-118 × 修改、逆向；OBJ-104 × 修改；OBJ-70 × 修改、逆向（并标 stateless）；OBJ-28 × 逆向（AGG-108 标 perpetual）；PRC-123 × 单聚合维护含多个聚合（S-43 #24 同类，建议登记，理由见 PRC-123 notes）。
 - PAGE_IMPACT.md 仅更新 P13-17；P13-09 随撤销增员未做而保持预判。
+
+
+- C7 复核（2026-10-17；origin/main 8ff6baf4）：object_check 全局 129、已豁免 4；本组直接相关 24（设计如此/已知暂停/写回待办分别解释），未载他组 105；object_layer 本组非支撑非读模型 24 已确认+6 明确 none；未扩 CRUD 施工范围，见 REVIEW_PACK。

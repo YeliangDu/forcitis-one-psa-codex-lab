@@ -46,9 +46,9 @@ state_machines:
       - {from: 复盘中, to: 复盘中, command: 〔缺〕记录偏差解释, guard: [], steps: [PRC-181#2], note: 编辑}
       - {from: 复盘中, to: 复盘中, command: 〔缺〕确定经营动作, guard: [候选规则-动作要素齐全], steps: [PRC-181#3], note: 追加动作}
       - {from: 复盘中, to: 已定稿, command: 〔缺〕定稿经营复盘, guard: [候选规则-偏差须解释, 候选规则-定稿后不可改], steps: [PRC-181#4]}
-      - {from: 复盘中, to: 已闭环, command: 〔缺〕定稿经营复盘, guard: [候选规则-偏差须解释], steps: [PRC-181#4], note: 无动作时直接闭环}
+      - {from: 复盘中, to: 已闭环, command: 〔缺〕定稿经营复盘, guard: [候选规则-偏差须解释], steps: [PRC-181#4], note: 无动作时直接闭环, process_outcome: 经营复盘已闭环}
       - {from: 已定稿, to: 已定稿, command: 〔缺〕完成经营动作, guard: [], steps: [PRC-181#5], note: 仍有未完成的动作}
-      - {from: 已定稿, to: 已闭环, command: 〔缺〕完成经营动作, guard: [], steps: [PRC-181#5], note: 最后一个动作完成}
+      - {from: 已定稿, to: 已闭环, command: 〔缺〕完成经营动作, guard: [], steps: [PRC-181#5], note: 最后一个动作完成, process_outcome: 经营复盘已闭环}
     reverse_paths: []
     no_reverse: 定稿后不可回退，更正另记经营动作；闭环为终态
     open_questions:

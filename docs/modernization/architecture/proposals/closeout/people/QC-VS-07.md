@@ -249,3 +249,6 @@
 修前 → 修后（people 行，仅本分片）：场景文件缺（出口、超时、结局三项跳过）→ 新写 `parts/vs07.scenarios.yaml`，出口 37（0 缺）、超时 7（0 缺）、结局 25（0 缺）；无 why_human 0 → 0；approver 不符 0 → 0（B-13 聚合内 4 个批准 PRC-81、83、128、136 由 cost_object_owner 改为类型级角色 SH-M1，notes 增「权责对照条目」`resolve: type`）；加审引用无效 0 → 0；用户任务缺 permission/page 0 → 0；用语「无」33（29 个词）→ 0（notes「新用语」补一词一行 29 条）；每个流程 roles 全部补 `org_needs`（13 个流程、34 个角色条目，岗位体系未定，position_hint 写职能描述）。`bpmn_gen.py`（one-architecture 77e5785d）10 个流程全部「检查：通过」，0 警告。PRC-83、84、137 样板仅补字段与场景，业务设计未改。
 
 - S-42 接缝（2026-10-16）：删〔缺〕离职登记已撤销 → B-31 的订阅方与 PRC-128 第 10 步 cross_bc；Separated 订阅方清单去掉 B-27 离职结算补休余额，转正已办理订阅方改指 PRC-123；脚本复跑结果见完成点报告。
+
+
+- C7 复核（2026-10-17；origin/main 8ff6baf4）：QC 缺口 0；BPMN 10/10 通过、0 警告；stage 6a 未说明 0，SD-12 参与者 1 条待架构写回；主对象已确认/明确 none；命名与对象残余见 REVIEW_PACK。

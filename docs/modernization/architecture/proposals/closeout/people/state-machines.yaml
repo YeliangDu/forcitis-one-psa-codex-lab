@@ -1633,6 +1633,7 @@ machines:
     steps:
     - PRC-181#4
     note: 无动作时直接闭环
+    process_outcome: 经营复盘已闭环
   - from: 经营复盘（business_reviews.状态；次级，PRC-181）:已定稿
     to: 经营复盘（business_reviews.状态；次级，PRC-181）:已定稿
     command: 〔缺〕完成经营动作
@@ -1647,6 +1648,7 @@ machines:
     steps:
     - PRC-181#5
     note: 最后一个动作完成
+    process_outcome: 经营复盘已闭环
   - from: null
     to: 经营动作（action_items.状态；次级，PRC-181）:待完成
     command: 〔缺〕确定经营动作

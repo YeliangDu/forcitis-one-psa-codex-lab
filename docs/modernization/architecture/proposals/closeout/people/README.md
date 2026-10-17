@@ -38,6 +38,8 @@
 - 2026-10-16 用户批准方法与样板（intent 162820、162821），铺开：26 个业务流程、7 个事件策略、3 个单聚合维护全部出骨架；32 个聚合、91 张表；NOTES 合并五个分片。下一步：按新原则（审批规则、why_human、八维度 QC）逐价值流修订并自检。
 - 2026-10-16 按新原则修订、八维度 QC、脚本缺口清零、聚合收敛（commands / state-machines / events / raci，parts/rebuild.py 合并）；落实 S-28、S-32、S-35、S-36、S-40、S-41、S-42；one-architecture 跨组接缝检查清零。待用户答确认页后回改。
 
+- 2026-10-17 C7-people：SD-12 roles 已核对，SD-15 归段说明与闭环结局映射已对齐；rebuild 生成，origin/main 8ff6baf4 检查复跑并按五个价值流/支撑章节形成 REVIEW_PACK.md。QC 缺口 0、BPMN 30/30/0 警告、stage 6a 未说明 0；AGG-52、PRC-181 依赖边、命名/对象残余交架构。审稿待 one-arch-people，返工 0 轮。
+
 ## 待办（对外承诺）
 
 - B-27 聚合稿定稿（补休建模为请假类型、补休额度记入时点）后通知 one-rules，以便其 RULE-413（补休扣减最低时数，现标 Review）转正；RULE-412 已写工时不读加班审批与补休余额。
