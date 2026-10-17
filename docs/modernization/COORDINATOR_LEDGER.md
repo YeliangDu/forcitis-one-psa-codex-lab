@@ -6,14 +6,16 @@
 更新：2026-10-17 09:40（one-coordinator）
 - 清空后第一步：通读 SESSION_PLAYBOOK §11 全文（`sed -n '/^## 11\./,/^## 12\./p'`），再做「开场核对」。
 - 本会话已犯、不得再犯（用户 10-17 指出）：①要用户定、补值、转财务、需配合的事一律写收件箱 inbox（status pending），对话里不问（§11 第 1 条，记忆 inbox-only）；②会话之间技术问题直连，不居中转述、不要求抄送（第 2 条）；③跨会话消息首行标「派工：/通知：/请用户决定：」；④每日简报每天早上发；⑤转述注明已核实 / 已抽查 / 未核实（第 12 条）。
+- 派工用 mcp__ccd_session_mgmt__send_message（会直接开启对方回合）；SendMessage 跨会话常停在「未读」不唤醒空闲会话（10-17 全员停工的原因）。
 - Codex 优先（intent 085534，§5 已改，记忆 codex-first）：各会话能交 Codex 的先交（gpt-6.1-sol xhigh），Claude 只派工、首轮审稿、安全、验收；按日报「Codex 卡数 / 返工轮次」评估，返工两轮以上收回。
 - 在途：strict 已关，快慢两道试行到 10-19（main 并行合入变红一次即 `gh api -X PATCH .../required_status_checks -F strict=true`）；收件箱待答 3 项（N1 五个值、AN-06 转财务、dev 日历）；one-architecture 下一件起草一次投产过渡 ADR（C1，施工图关键路径），前提清单 `architecture/proposals/PREREQ_NAMING_CONSTRUCTION_2026-10-17.md`（分支 one-architecture-adr-governance）；今日简报未发。
+- 主线常驻条（用户 10-17 要求钉住、滚动更新）：本会话 mod mainline-band 读 ~/.modernize/psa/handoff/mainline-band.txt 显示在输入框上方；每个命名主线完成点更新该文件（首行目标，后续行进度，末行「要你做」与更新时间，≤8 行）。同一 mod 另有状态栏（队列、在开 PR、main 红绿、strict 试行剩余天数、Codex 在跑任务自动取；收件箱待答数读 ~/.modernize/psa/handoff/status-extra.txt，收件箱增减时更新）。
 - 本分支待收进文档合集：claude/one-coordinator-two-lanes（intent 4 条、§5 改动、裁定 -05、台账）。
 
 ## 作战图（派工前先看；SESSION_PLAYBOOK §11「战队协作」第 5 条）
 | 主线 | 负责 | 当前 | 下一步 | 阻塞 |
 |---|---|---|---|---|
-| dev | one-ops | rc.6 在重建后的 dev 运行；用户本人已持 super_admin、process_administrator，单人运维模式开，临时开关已删，健康 UP（10-17，one-ops-r56 @ 783d4ecd；重建后员工 ID 末 6 位为 238eea） | 工作日历重导（one-ops 已问用户：用户会话与 2027 清单） | 等用户给日历清单 |
+| dev | one-ops | **暂停**（用户 10-17「ops 这一轮 rc 后，暂时不考虑 dev 的事儿了」）：rc.6 已授角色、单人运维模式开；日历未导（C-6 SQL 已修，one-ops-r56 @ 1da307b9） | 用户说恢复再排 | — |
 | 流程与业务架构对齐 | one-architecture + 三组 | 阶段层：SD-01～10 已裁（#422）；对象层：主对象脚本提议、三组确认中；VS01-10 定独立流程「作出参投决策」（#428）；已派五件（#429）：支撑本段、配置补读关系、内部服务价值流评估、集成类型、业务/管理/支撑分类 | 数据到后刷新对齐图（scratchpad(e1ce474b)/align/refresh.sh 后以同 file_path+files 重发；流程栏按业务/管理/支撑分三行，归属实线、支撑虚线，集成单列） | — |
 | 命名与用语 | one-architecture / one-glossary / one-quality | 规则在 PROCESS_METHOD_DRAFT §11、name_id_check.py；用户定「先规范再登记」（#430）：架构产物只用规范名，改名对照表与用语决策单合并交用户，认可后再登记、再定稿；对象名一律名词（结果或记录）；86 个对象未登记 | #431 拆分：审计报告与用语问题先合，提议稿改为规范名+原名别名后随页交用户；one-quality 写架构用语检查 | — |
 | 确认页 | one-architecture | 7 页在收件箱，用户暂不作答，待对齐与命名后一次改版 | PAGE_IMPACT.md | 对齐完成 |
