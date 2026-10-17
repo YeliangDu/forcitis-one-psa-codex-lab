@@ -81,15 +81,14 @@
 |---|---|---|
 | revenue | PRC-52 | `stages` → [VS-15.1, VS-15.2, VS-15.3]；`primary_object` OBJ-124；`stages_note`、`primary_object_note` |
 | revenue | PRC-42 | `stages`、`stages_note` 按目录（S-12）；可选加 `supports: [VS-03.1]` |
-| revenue | VS-15 的其余条目（PRC-65、100、119、121） | `stages` 按目录，去掉 `support`（S-13） |
 | finance | PRC-165、166、168、174 | `stages` → VS-15.1–15.3；`primary_object` OBJ-124；两个 note |
 | finance | PRC-104 | `primary_object` OBJ-125；`primary_object_note`、`stages_note` |
 | finance | PRC-167 | 标退役（迁移规划） |
-| finance | VS-15 的其余条目（PRC-97、105 等） | `stages` 按目录，去掉 `support`（S-13） |
+| finance | VS-15 的其余条目（PRC-65、97、100、105） | `stages` 按目录，去掉 `support`（S-13） |
 | people | PRC-162、180 | `stages` → VS-15.1–15.3；`primary_object` OBJ-124；两个 note |
 | people | PRC-129 | 标退役；PRC-138 第 1 步去掉 `calls: PRC-129`，改写为平台作业 |
 | people | PRC-177 | 标并入 PRC-197 |
-| people | PRC-80 等 VS-15 条目 | `stages` 按目录，去掉 `support`（S-13） |
+| people | VS-15 的其余条目（PRC-80、119、121） | `stages` 按目录，去掉 `support`（S-13） |
 
 S-13 共 15 条，按目录 `group` 字段分组逐条核对。`acts_on` 只在目录中维护，不需要同步。
 
