@@ -1,6 +1,6 @@
 {
   "sheet": "ADR58",
-  "preselect": true,
+  "preselect": false,
   "title": "状态转换记录批准（ADR-0058）",
   "lede": "共 1 题：批准 ADR-0058，让系统记下每张单据、每个对象在什么时候从什么状态变成什么状态。已过 opus 独立评审与 sonnet 复核。选完到最后一个标签检查答案，一次提交。",
   "groups": [
