@@ -50,14 +50,14 @@ machines:
 - aggregate: AGG-71
   machine: leave_balance_hold
   entity: leave_balance_holds
-  states: [占用, 已转用, 已释放]
+  states: [已占用, 已转用, 已释放]
   initial: []
   terminal: [已释放]
   note: 一张请假一条占用行；销假部分回冲时行仍为已转用（时长减少）
   transitions:
-  - {from: null, to: 占用, command: 占用余额, guard: [INV-68, 账户已开账], kind: forward}
-  - {from: 占用, to: 已转用, command: 批准转已用, guard: [], kind: forward}
-  - {from: 占用, to: 已释放, command: 释放余额占用, guard: [驳回 / 审批中撤销 / 孤儿占用], kind: reverse}
+  - {from: null, to: 已占用, command: 占用余额, guard: [INV-68, 账户已开账], kind: forward}
+  - {from: 已占用, to: 已转用, command: 批准转已用, guard: [], kind: forward}
+  - {from: 已占用, to: 已释放, command: 释放余额占用, guard: [驳回 / 审批中撤销 / 孤儿占用], kind: reverse}
   - {from: 已转用, to: 已释放, command: 回冲已用额度, guard: [已批准后撤销：全部回冲], kind: reverse}
   - {from: 已转用, to: 已转用, command: 回冲已用额度, guard: [销假：未休完部分回冲], kind: reverse}
 - aggregate: AGG-71
@@ -83,7 +83,7 @@ machines:
   terminal: [已补偿, 已计入补休额度, 已驳回]
   note: 登记即创建（无草稿）；批准由系统以打卡核实代替人工；登记后无撤销命令（见 vs13att.notes.md 结构问题 4）；付薪的随月度考勤确认标已补偿，补休的在计入补休额度时标已计入补休额度，之后补偿追踪转到 AGG-71 额度行（补休到期转计薪、休完）
   transitions:
-  - {from: null, to: 已申请, command: 加班申请, guard: [R-c], kind: forward}
+  - {from: null, to: 已申请, command: 提交加班申请, guard: [R-c], kind: forward}
   - {from: 已申请, to: 已批准, command: 批准加班, guard: [R-d], kind: forward}
   - {from: 已申请, to: 已驳回, command: 驳回加班, guard: [R-d：打卡不支持登记时长], kind: reverse}
   - {from: 已批准, to: 已补偿, command: 标记加班已补偿, guard: [月度考勤已确认, 补偿方式为付薪], kind: forward}
@@ -138,19 +138,19 @@ process_steps:
 - {process: PRC-115, step: 1, command: 导入考勤记录, machine: attendance_record, transition: [null, 已记录]}
 - {process: PRC-115, step: 3, command: 补卡, machine: attendance_record, transition: [null, 已记录]}
 # PRC-116
-- {process: PRC-116, step: 1, command: 占用余额, machine: leave_balance_hold, transition: [null, 占用], outcome_on_reject: 额度不足被拒（前置条件 INV-68 失败，不产生转换）}
+- {process: PRC-116, step: 1, command: 占用余额, machine: leave_balance_hold, transition: [null, 已占用], outcome_on_reject: 额度不足被拒（前置条件 INV-68 失败，不产生转换）}
 - {process: PRC-116, step: 2, command: 提交请假, machine: leave_request, transition: [草稿, 已提交], also: [草稿, 审批中]}
 - {process: PRC-116, step: 4, command: 批准请假, machine: leave_request, transition: [已提交, 已批准], also: [审批中, 已批准], outcome: 已批准}
-- {process: PRC-116, step: 5, command: 批准转已用, machine: leave_balance_hold, transition: [占用, 已转用]}
+- {process: PRC-116, step: 5, command: 批准转已用, machine: leave_balance_hold, transition: [已占用, 已转用]}
 - {process: PRC-116, step: 6, command: 驳回请假, machine: leave_request, transition: [审批中, 已驳回], outcome: 已驳回}
-- {process: PRC-116, step: 6, command: 释放余额占用, machine: leave_balance_hold, transition: [占用, 已释放], inner: true}
+- {process: PRC-116, step: 6, command: 释放余额占用, machine: leave_balance_hold, transition: [已占用, 已释放], inner: true}
 - {process: PRC-116, step: 7, command: 撤销请假, machine: leave_request, transition: [审批中, 已撤销], also: [已批准, 已撤销], outcome: 已撤销}
-- {process: PRC-116, step: 7, command: 释放余额占用, machine: leave_balance_hold, transition: [占用, 已释放], inner: true}
+- {process: PRC-116, step: 7, command: 释放余额占用, machine: leave_balance_hold, transition: [已占用, 已释放], inner: true}
 - {process: PRC-116, step: 7, command: 回冲已用额度, machine: leave_balance_hold, transition: [已转用, 已释放], inner: true}
 - {process: PRC-116, step: 8, command: 销假, machine: leave_request, transition: [已批准, 已销假], outcome: 已销假}
 - {process: PRC-116, step: 8, command: 回冲已用额度, machine: leave_balance_hold, transition: [已转用, 已转用], inner: true}
 # PRC-117
-- {process: PRC-117, step: 1, command: 加班申请, machine: overtime_request, transition: [null, 已申请]}
+- {process: PRC-117, step: 1, command: 提交加班申请, machine: overtime_request, transition: [null, 已申请]}
 - {process: PRC-117, step: 2, command: 批准加班, machine: overtime_request, transition: [已申请, 已批准], outcome: 已批准}
 - {process: PRC-117, step: 3, command: 驳回加班, machine: overtime_request, transition: [已申请, 已驳回], outcome: 已驳回}
 - {process: PRC-117, step: 4, command: 计入补休额度, machine: leave_comp_grant, transition: [null, 有效]}
@@ -168,7 +168,7 @@ process_steps:
 - {process: PRC-119, step: 1, command: 维护工作日历年度, machine: work_calendar_year, transition: [已建, 已建], also: [null, 已建], outcome: 工作日历已维护}
 - {process: PRC-119, step: 2, command: 发布标准工时版本, machine: standard_work_hour_version, transition: [null, 已生效], outcome: 标准工时版本已发布, outcome_on_reject: 版本被拒（前置条件 INV-116 失败）}
 # 事件策略（非 PRC 步骤）
-- {process: 事件策略, step: 孤儿占用定时释放, command: 释放余额占用, machine: leave_balance_hold, transition: [占用, 已释放]}
+- {process: 事件策略, step: 孤儿占用定时释放, command: 释放余额占用, machine: leave_balance_hold, transition: [已占用, 已释放]}
 - {process: PRC-160, step: 1, command: 年度结转额度账户, machine: leave_balance_account, transition: [已开账, 已结转]}
 - {process: PRC-160, step: 2, command: 开立年度额度账户, machine: leave_balance_account, transition: [null, 已开账], outcome: 年度账户已开立}
 - {process: 事件策略, step: 确认期限届满默认确认, command: 默认确认月度考勤, machine: monthly_attendance_confirmation, transition: [已生成, 已确认]}

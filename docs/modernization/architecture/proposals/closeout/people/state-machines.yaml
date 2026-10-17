@@ -41,42 +41,42 @@ machines:
   entity: org_units
   note: 状态取数据模型「启用 / 停用 / 撤销」；调整组织单元一条命令按「调整类型」参数新建、变更、停用、恢复、撤销（聚合稿只有这一条命令）；已撤销与停用是两个不同状态（RULE-355）
   states:
-  - 启用
-  - 停用
+  - 已启用
+  - 已停用
   - name: 已撤销
     terminal: true
   initial: null
   transitions:
   - from: null
-    to: 启用
+    to: 已启用
     command: 调整组织单元
     guard: []
     kind: forward
     note: 新建
-  - from: 启用
-    to: 启用
+  - from: 已启用
+    to: 已启用
     command: 调整组织单元
     guard: []
     kind: forward
     note: 变更名称、上级、负责人、单元类型
-  - from: 启用
-    to: 停用
+  - from: 已启用
+    to: 已停用
     command: 调整组织单元
     guard: []
     kind: forward
-  - from: 停用
-    to: 启用
+  - from: 已停用
+    to: 已启用
     command: 调整组织单元
     guard: []
     kind: reverse
     note: 恢复启用
-  - from: 启用
+  - from: 已启用
     to: 已撤销
     command: 调整组织单元
     guard:
     - INV-60：下有在职任职则拒绝
     kind: forward
-  - from: 停用
+  - from: 已停用
     to: 已撤销
     command: 调整组织单元
     guard:
@@ -117,23 +117,23 @@ machines:
   entity: jobs
   note: 新建 / 修改命令聚合稿缺（vs07.notes.md 结构问题 8），经对象增删改查检查补〔缺〕新建岗位、修改岗位（结构问题 19）；初始目录仍由初始化录入；职级、职位族暂随本聚合不拆（S-10）
   states:
-  - 启用
+  - 已启用
   - name: 已停用
     terminal: true
-  initial: 启用
+  initial: 已启用
   transitions:
   - from: null
-    to: 启用
+    to: 已启用
     command: 新建岗位
     guard: []
     kind: forward
-  - from: 启用
-    to: 启用
+  - from: 已启用
+    to: 已启用
     command: 修改岗位
     guard: []
     kind: forward
     note: 追加版本
-  - from: 启用
+  - from: 已启用
     to: 已停用
     command: 停用岗位
     guard:
@@ -682,7 +682,7 @@ machines:
   - leave_balance_account:已开账
   - name: leave_balance_account:已结转
     terminal: true
-  - leave_balance_hold:占用
+  - leave_balance_hold:已占用
   - leave_balance_hold:已转用
   - name: leave_balance_hold:已释放
     terminal: true
@@ -733,18 +733,18 @@ machines:
     - 无占用中的占用行
     kind: forward
   - from: null
-    to: leave_balance_hold:占用
+    to: leave_balance_hold:已占用
     command: 占用余额
     guard:
     - INV-68
     - 账户已开账
     kind: forward
-  - from: leave_balance_hold:占用
+  - from: leave_balance_hold:已占用
     to: leave_balance_hold:已转用
     command: 批准转已用
     guard: []
     kind: forward
-  - from: leave_balance_hold:占用
+  - from: leave_balance_hold:已占用
     to: leave_balance_hold:已释放
     command: 释放余额占用
     guard:
@@ -832,7 +832,7 @@ machines:
   transitions:
   - from: null
     to: 已申请
-    command: 加班申请
+    command: 提交加班申请
     guard:
     - R-c
     kind: forward
@@ -1039,7 +1039,7 @@ machines:
   transitions:
   - from: null
     to: 已计算
-    command: 计算
+    command: 计算月度薪酬
     guard:
     - R-VS13-h
     - INV-70
@@ -1047,26 +1047,26 @@ machines:
     kind: forward
   - from: 已计算
     to: 已计算
-    command: 计算
+    command: 计算月度薪酬
     guard:
     - 提交审核前发现输入有误重算
     kind: forward
   - from: 已退回
     to: 已计算
-    command: 计算
+    command: 计算月度薪酬
     guard:
     - 退回或撤回后重新计算
     kind: forward
   - from: 已计算
     to: 审核中
-    command: 提交审核
+    command: 提交薪酬审核
     guard:
     - 异常清单已生成
     - 制单人 ≠ 审批人（AR-11）
     kind: forward
   - from: 审核中
     to: 已批准
-    command: 批准
+    command: 批准月度薪酬
     guard:
     - INV-70
     - AR-01
@@ -1095,14 +1095,14 @@ machines:
     process_outcome: 已发放
   - from: 已批准
     to: 已批准
-    command: 标记已过账
+    command: 标记薪酬已过账
     guard:
     - 薪酬尚未发放：只置位过账事实已入账
     kind: forward
     process_outcome: 待发放后再置位
   - from: 已发放
     to: 已过账
-    command: 标记已过账
+    command: 标记薪酬已过账
     guard:
     - 来源单据类型为月度薪酬结算
     kind: forward
@@ -1295,17 +1295,17 @@ machines:
   machine: payroll_profile_version
   entity: payroll_profile_versions
   added_states:
-  - 生效
+  - 已生效
   - 已结束
   note: 根表 payroll_profiles 无生命周期；版本行按生效区间，调薪追加新版本并结束旧版本（D17）。未来生效日的版本也记为生效（区间决定何时适用）。离职后由 S-32 新增的终止薪酬档案结束最后一个生效版本；重新入职在原根下建立新版本
   states:
-  - 生效
+  - 已生效
   - name: 已结束
     terminal: true
-  initial: 生效
+  initial: 已生效
   transitions:
   - from: null
-    to: 生效
+    to: 已生效
     command: 建立薪酬档案
     guard:
     - 人员已入职
@@ -1313,20 +1313,20 @@ machines:
     kind: forward
     process_outcome: 社保与公积金参保在缴，薪酬档案已建立
   - from: null
-    to: 生效
+    to: 已生效
     command: 调整薪酬档案
     guard:
     - R-VS13-j：引用调薪决定依据
     - U9
     kind: forward
     process_outcome: 薪酬档案已调整
-  - from: 生效
+  - from: 已生效
     to: 已结束
     command: 调整薪酬档案
     guard:
     - 同事务结束旧版本区间（D17）
     kind: forward
-  - from: 生效
+  - from: 已生效
     to: 已结束
     command: 终止薪酬档案
     guard:
@@ -1334,8 +1334,8 @@ machines:
     - 无版本时失败并告警
     kind: forward
     process_outcome: 薪酬档案已终止
-  - from: 生效
-    to: 生效
+  - from: 已生效
+    to: 已生效
     command: 登记补休转加班工资
     kind: non_state
   source_part: vs13pay
@@ -1707,7 +1707,7 @@ machines:
     note: S-32：PRC-161 年末定时触发，B-18 向 platform.scheduling 登记
   - from: null
     to: 预算占用行（budget_reservations.状态）:占用中
-    command: 预算占用
+    command: 占用预算
     kind: entry
     guard:
     - G-3 拦截或预警待定

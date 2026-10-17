@@ -120,8 +120,8 @@ processes:
         permission: 预算账户.开立
         page: 预算账户管理页
         cross_bc:
-          - {mode: api, direction: in, bc: B-11, name: 预算占用}       # B-11 → B-18 api 边已有
-          - {mode: api, direction: in, bc: B-12, name: 预算占用}       # B-12 → B-18 api 边已有
+          - {mode: api, direction: in, bc: B-11, name: 占用预算}       # B-11 → B-18 api 边已有
+          - {mode: api, direction: in, bc: B-12, name: 占用预算}       # B-12 → B-18 api 边已有
         decision:
           - {when: 预算期内出现调整需求, goto: 8}
           - {when: otherwise, goto: end, outcome: 预算账户已开立}
@@ -344,7 +344,7 @@ processes:
     notes: 合并原 PRC-108、109、110（⑥a 评审 H2 c）；2026-10-17 并入云端试点 VS-11（pilot/RESULT.md 第 4 节第 1–12 条，one-architecture 裁定）。已发布版本不得修改（INV-115）；引用方按 ID 与版本引用，不订阅。项目复盘提炼入口的页面在 B-04，命令在本 BC。评审是专业判断，保留人工，按聚合内审批写；补 B-30 → platform.approval 边的影响见 NOTES 结构问题 1。评审中撤回提交、评审逾期中断处理 AGG-107 无命令，由 one-architecture 回补聚合稿，本稿只写非中断升级提醒。
 
   - id: PRC-181
-    name: 记录经营复盘并跟踪经营动作
+    name: 记录经营复盘并跟踪动作
     trigger:
       type: event
       desc: 会计期间已关账（经营月报据此出具）；或季度、年度综合复盘到期
@@ -438,7 +438,7 @@ processes:
 event_policies:
 
   - id: PRC-161
-    name: 年末关闭预算账户
+    name: 关闭预算账户
     type: event_policy
     trigger:
       type: time
@@ -471,7 +471,7 @@ event_policies:
 read_models:
 
   - id: PRC-182
-    name: 知识条目使用情况
+    name: 查看知识条目使用情况
     type: read_model
     stages: [VS-11.3]
     stages_note: "读模型只读 OBJ-110 已发布版本及其引用，不造任何状态；服务本段（修订废止）的复审决策，为旁路读，按其读取的「发布」状态（VS-11.3 进入条件）留在 VS-11.3（归段判据第 6 项）"

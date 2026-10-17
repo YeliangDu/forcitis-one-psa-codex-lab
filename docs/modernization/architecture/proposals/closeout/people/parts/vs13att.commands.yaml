@@ -291,7 +291,7 @@ commands:
   unused_ok: 由事件策略「补休额度到期转计薪」（定时）调用，不在流程步骤；计发归 B-15 的 PRC-178（S-41）
   orphan: false
 # ───────── AGG-72 加班 ─────────
-- name: 加班申请
+- name: 提交加班申请
   aggregate: AGG-72
   entity: overtime_requests
   kind: human

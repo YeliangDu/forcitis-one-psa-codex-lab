@@ -153,7 +153,7 @@ entries:
   note: 定时规则自动执行，不作废；转计薪待处理时告警人力；计发金额归 B-15（PRC-124）
 # ───────── AGG-72 加班 ─────────
 - object: AGG-72
-  command: 加班申请
+  command: 提交加班申请
   raci:
     A: {resolve: instance, field: 员工}
     R: [SH-E3, SH-E1]

@@ -222,7 +222,7 @@ commands:
     used_by: [PRC-88#8]
     orphan: false
 
-  - name: 预算占用
+  - name: 占用预算
     aggregate: AGG-80
     unused_ok: "他组流程：由财务组 PRC-70、PRC-87 调用"
     status: 聚合稿已有

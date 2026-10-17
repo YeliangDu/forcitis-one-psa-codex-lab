@@ -357,7 +357,7 @@ processes:
     notes: 候选人个人信息按 ADR-0043 分级，数据组表级处理；保留期待 one-data 按 D12 登记。本流程无人工审批（录用决定是用人经理对自己所辖的决定）；是否另设录用审批待用户 V-8。
 
   - id: PRC-85
-    name: 试用期评估与转正
+    name: 评估并转正试用期员工
     trigger: {type: time, desc: 试用期届满前（P-46）}
     triggers:
       - {type: time, name: "试用期届满前 N 日生成评估待办（N 待用户定）"}
@@ -419,7 +419,7 @@ processes:
     notes: "转正后薪酬是否调整由 B-15 自己的调薪流程处理，本流程只发事件（PG-10）。无人工审批：转正是评估确认后的登记，不予转正转入 PRC-128（保留审批）。次要对象：OBJ-109 绩效评估（试用期类型，已确认后才转正）。"
 
   - id: PRC-83
-    name: 办理入职与任职
+    name: 办理员工入职与任职
     trigger:
       type: event
       events: [{event: 录用决定已作出, aggregate: AGG-62}]
@@ -533,7 +533,7 @@ processes:
           - {when: otherwise, goto: end}    # 三口径预警移至 B-15 事件策略（S-20）
 
   - id: PRC-84
-    name: 入职后参保增员与建立薪酬档案
+    name: 增员参保并建立薪酬档案
     trigger:
       type: event
       events: [{event: Employed, aggregate: AGG-62}]
@@ -658,7 +658,7 @@ processes:
   # ───────────── VS-13.6 离职结清（入转调离成套）─────────────
 
   - id: PRC-128
-    name: 办理离职
+    name: 办理员工离职
     trigger: {type: human, desc: 员工提出离职或公司决定终止}
     triggers:
       - {type: human, name: "员工提出离职"}
@@ -823,7 +823,7 @@ processes:
 
       次要对象：OBJ-05 协议（劳动合同类型，终止是后续步骤，失败不回滚已离职）、OBJ-57 任职（任职区间止于离职日）。
   - id: PRC-136
-    name: 调岗（任职变更，按人事业务生效日，触发数据范围复核）
+    name: 变更任职
     trigger: {type: human, desc: 人力按人事业务生效日登记调岗、职级调整或汇报线变更}
     triggers:
       - {type: human, name: "人力登记调岗、职级调整或汇报线变更"}
@@ -1171,7 +1171,7 @@ event_policies:
     notes: "平台已建模块，不是企业聚合；与 PRC-138 配合。无人工审批：吊销是强制反应。无业务对象，primary_object: none。理由：会话吊销是平台身份事项，不是业务对象状态（VS-13.6 notes）。"
 
   - id: PRC-130
-    name: 离职后参保减员
+    name: 办理参保减员
     type: event_policy
     trigger:
       type: event

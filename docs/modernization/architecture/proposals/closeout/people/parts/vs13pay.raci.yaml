@@ -58,7 +58,7 @@ entries:
   sensitive: false
   sensitive_reason: 绩效评价属敏感个人信息（ADR-0043 访问级别），但不在 ADR-0032 首批双人逐人资源内；是否登记 two-person-resources.txt 交 one-rules 复核
 - object: AGG-73
-  command: 计算
+  command: 计算月度薪酬
   raci:
     A: {resolve: type, role: SH-E6, function: 薪酬岗}
     R: [system]
@@ -67,7 +67,7 @@ entries:
   sensitive: false
   note: 系统自动计算，无人持有执行权限；薪酬岗查看结果所需的薪酬查看权限在「提交审核」条目判定
 - object: AGG-73
-  command: 提交审核
+  command: 提交薪酬审核
   raci:
     A: {resolve: type, role: SH-E6, function: 薪酬岗}
     R: [SH-E6]
@@ -78,7 +78,7 @@ entries:
   sensitive: true
   sensitive_reason: 提交人核对全员实发与异常清单，需薪酬查看权限（个人级实发为 L3）
 - object: AGG-73
-  command: 批准
+  command: 批准月度薪酬
   raci:
     A: {resolve: instance, field: 薪酬结算.薪酬法人.财务责任人, alias: cost_object_owner}
     R: [SH-E6]
@@ -132,7 +132,7 @@ entries:
   sensitive: false
   note: 应付已结清事件自动执行，不设人工标记
 - object: AGG-73
-  command: 标记已过账
+  command: 标记薪酬已过账
   raci:
     A: {resolve: type, role: SH-E6, function: 薪酬岗}
     R: [system]

@@ -241,7 +241,7 @@ processes:
     steps:
       - actor: SH-E3
         where: in_system
-        command: 加班申请
+        command: 提交加班申请
         aggregate: AGG-72
         pending: U5
         desc: 登记即事前申请，不设审批：每月累计超 36 小时只预警并留痕，不拦截（P-34；劳动法第四十一条）；补偿方式由加班日类型限定：法定节假日只能付加班费（300%），不补休；休息日由单位安排补休，不能安排补休的付加班费（200%）（劳动法第四十四条：先安排补休，不能安排的支付不低于 200%）；工作日延时按现有补偿政策（口径不变，加班费 150%）；补偿方式不由员工选择：休息日加班默认计补休，确因工作不能安排补休的由直属上级在登记时标明「不能安排补休」，改付加班费；不设审批（劳动法第四十四条「单位安排补休」）。非工作日工时与加班、补休的衔接另定（BC 接缝由 one-architecture 负责，one-rules FD2-05 规则卡作输入）；事后补登的允许期限待用户定 U5
@@ -673,7 +673,7 @@ processes:
     steps:
       - actor: system
         where: automatic
-        command: 计算
+        command: 计算月度薪酬
         aggregate: AGG-73
         reads: [AGG-97, AGG-74, AGG-76, AGG-93, AGG-62, AGG-119, AGG-120]
         pending: U7
@@ -696,7 +696,7 @@ processes:
         # 依据：CLAUDE.md 第 6 条（缺失输入失败并告警）；阶段进入条件 VS-13.3（法人当月在职人员均已锁定）
       - actor: SH-E6               # 人力（薪酬岗）
         where: in_system
-        command: 提交审核
+        command: 提交薪酬审核
         aggregate: AGG-73
         desc: 薪酬岗核对计算结果与异常清单，确认无误提交审批；发现输入有误可先修正再重算，不进入审批
         permission: 薪酬结算.提交审核
@@ -732,7 +732,7 @@ processes:
           - {when: otherwise, goto: 4}
       - actor: system
         where: automatic
-        command: 批准
+        command: 批准月度薪酬
         aggregate: AGG-73
         emits: [薪酬已批准]
         desc: 审批通过的回调；代扣只限法定项目，以法定货币支付（INV-70）；薪酬已批准触发申报（PRC-125）与提交应付薪酬（PRC-126）；退回重算在聚合稿无命令，〔缺〕退回薪酬重算（notes 结构问题 2）
@@ -949,7 +949,7 @@ event_policies:
     notes: 应付薪酬类型由 B-10 的 AGG-52 承载；付款、核销见 PRC-75、PRC-131、PRC-132（B-10，财务组），本组只写接缝。
 
   - id: PRC-127
-    name: 薪酬发放完成
+    name: 标记薪酬已发放
     trigger:
       type: event
       events:
@@ -982,7 +982,7 @@ event_policies:
     notes: 订阅关系 B-15 → B-10（api、事件）。应付已结清事件需带应付类型与来源，B-15 与 B-12 都订阅，各自过滤（notes 结构问题 4）。
 
   - id: PRC-134
-    name: 薪酬事实已过账置位
+    name: 标记薪酬已过账
     trigger:
       type: event
       events:
@@ -1001,7 +1001,7 @@ event_policies:
     step:
       actor: system
       where: automatic
-      command: 标记已过账
+      command: 标记薪酬已过账
       aggregate: AGG-73
       desc: 按来源单据 ID 取薪酬行；已发放与事实已过账两个条件任一后到者触发（符合性审查 断链 7）
       audit: true
@@ -1089,7 +1089,7 @@ event_policies:
     notes: "补休额度独立于年度，不在本策略处理（结转与开账只对年度账户，补休额度行的到期未休与离职转计发加班工资见 PRC-178）。B-27 → B-13 订阅 Employed 的事件边需补登（vs13att.notes.md 接缝问题 2）。定时由 B-27 向 platform.scheduling 登记，到点调本 BC 命令，边 B-27 → platform.scheduling 按平台依赖登记（CONVENTIONS §5）。无人工审批。无业务对象，primary_object: none。理由：额度账户（AGG-71）在信息图无对应对象（OBJ-69 假期额度已降为派生余额），结局不改任何阶段对象状态。"
 
   - id: PRC-178
-    name: 补休到期未休或离职时转计发加班工资
+    name: 转计发加班工资
     type: event_policy
     trigger:
       type: event

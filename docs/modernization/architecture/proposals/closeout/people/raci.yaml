@@ -989,7 +989,7 @@ entries:
   note: 定时规则自动执行，不作废；转计薪待处理时告警人力；计发金额归 B-15（PRC-124）
   source_part: vs13att
 - object: AGG-72
-  command: 加班申请
+  command: 提交加班申请
   raci:
     A:
       resolve: instance
@@ -1257,7 +1257,7 @@ entries:
   sensitive_reason: 绩效评价属敏感个人信息（ADR-0043 访问级别），但不在 ADR-0032 首批双人逐人资源内；是否登记 two-person-resources.txt 交 one-rules 复核
   source_part: vs13pay
 - object: AGG-73
-  command: 计算
+  command: 计算月度薪酬
   raci:
     A:
       resolve: type
@@ -1272,7 +1272,7 @@ entries:
   note: 系统自动计算，无人持有执行权限；薪酬岗查看结果所需的薪酬查看权限在「提交审核」条目判定
   source_part: vs13pay
 - object: AGG-73
-  command: 提交审核
+  command: 提交薪酬审核
   raci:
     A:
       resolve: type
@@ -1290,7 +1290,7 @@ entries:
   sensitive_reason: 提交人核对全员实发与异常清单，需薪酬查看权限（个人级实发为 L3）
   source_part: vs13pay
 - object: AGG-73
-  command: 批准
+  command: 批准月度薪酬
   raci:
     A:
       resolve: instance
@@ -1384,7 +1384,7 @@ entries:
   note: 应付已结清事件自动执行，不设人工标记
   source_part: vs13pay
 - object: AGG-73
-  command: 标记已过账
+  command: 标记薪酬已过账
   raci:
     A:
       resolve: type
@@ -2069,7 +2069,7 @@ entries:
   sensitive: false
   source_part: vs0911
 - object: AGG-80
-  command: 预算占用
+  command: 占用预算
   raci:
     A:
       resolve: type

@@ -487,7 +487,7 @@ by_part:
       note: 金额不入载荷；PRC-124 在同 BC 内读已核定奖金，不订阅
     - name: 薪酬已批准
       published_by: AGG-73
-      by_command: 批准
+      by_command: 批准月度薪酬
       payload:
       - 薪酬结算ID
       - 法人ID
@@ -595,7 +595,7 @@ by_part:
       handled_by:
       - 生效激励方案版本
       - 核定奖金
-      - 批准
+      - 批准月度薪酬
       used_by:
       - PRC-121 第 3 步入口
       - PRC-122 第 3 步入口
@@ -629,7 +629,7 @@ by_part:
     - name: 月度考勤已锁定
       from: B-27
       handled_by:
-      - 计算
+      - 计算月度薪酬
       used_by:
       - PRC-124 触发器
       note: 按人员 × 月发出，法人级汇聚由计算的前置条件检查
@@ -643,7 +643,7 @@ by_part:
     - name: BusinessFactAttributed
       from: B-16
       handled_by:
-      - 标记已过账
+      - 标记薪酬已过账
       used_by:
       - PRC-134 触发器
       note: 按来源单据类型过滤只处理月度薪酬结算

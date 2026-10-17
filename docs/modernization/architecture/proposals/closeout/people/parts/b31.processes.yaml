@@ -609,7 +609,7 @@ processes:
   # ───────────── 员工活动 ─────────────
 
   - id: PRC-144
-    name: 员工活动类申请（周年贺卡、节日活动、创新项目发布）
+    name: 申请员工活动
     type: business
     stages: [VS-14.1, VS-14.4]
     stages_note: >-

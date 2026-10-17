@@ -43,41 +43,41 @@ machines:
   machine: org_unit
   entity: org_units
   states:
-  - 启用
-  - 停用
+  - 已启用
+  - 已停用
   - {name: 已撤销, terminal: true}
   initial: []
   note: 状态取数据模型「启用 / 停用 / 撤销」；调整组织单元一条命令按「调整类型」参数新建、变更、停用、恢复、撤销（聚合稿只有这一条命令）；已撤销与停用是两个不同状态（RULE-355）
   transitions:
   - from: null
-    to: 启用
+    to: 已启用
     command: 调整组织单元
     guard: []
     kind: forward
     note: 新建
-  - from: 启用
-    to: 启用
+  - from: 已启用
+    to: 已启用
     command: 调整组织单元
     guard: []
     kind: forward
     note: 变更名称、上级、负责人、单元类型
-  - from: 启用
-    to: 停用
+  - from: 已启用
+    to: 已停用
     command: 调整组织单元
     guard: []
     kind: forward
-  - from: 停用
-    to: 启用
+  - from: 已停用
+    to: 已启用
     command: 调整组织单元
     guard: []
     kind: reverse
     note: 恢复启用
-  - from: 启用
+  - from: 已启用
     to: 已撤销
     command: 调整组织单元
     guard: [INV-60：下有在职任职则拒绝]
     kind: forward
-  - from: 停用
+  - from: 已停用
     to: 已撤销
     command: 调整组织单元
     guard: [INV-60]
@@ -111,23 +111,23 @@ machines:
   machine: job_catalog_entry
   entity: jobs
   states:
-  - 启用
+  - 已启用
   - {name: 已停用, terminal: true}
-  initial: [启用]
+  initial: [已启用]
   note: 新建 / 修改命令聚合稿缺（vs07.notes.md 结构问题 8），经对象增删改查检查补〔缺〕新建岗位、修改岗位（结构问题 19）；初始目录仍由初始化录入；职级、职位族暂随本聚合不拆（S-10）
   transitions:
   - from: null
-    to: 启用
+    to: 已启用
     command: 新建岗位
     guard: []
     kind: forward
-  - from: 启用
-    to: 启用
+  - from: 已启用
+    to: 已启用
     command: 修改岗位
     guard: []
     kind: forward
     note: 追加版本
-  - from: 启用
+  - from: 已启用
     to: 已停用
     command: 停用岗位
     guard: [INV-63]
@@ -486,10 +486,10 @@ process_steps:
   step: 3
   command: 调整组织单元
   machine: org_unit
-  transition: [null, 启用]
+  transition: [null, 已启用]
   also:
-  - [启用, 启用]
-  - [启用, 已撤销]
+  - [已启用, 已启用]
+  - [已启用, 已撤销]
   outcome: 已维护
   rule_reject: 撤销下仍有在职任职被 INV-60 拒绝，退回本步，不产生转换
 - process: PRC-80
@@ -505,7 +505,7 @@ process_steps:
   step: 5
   command: 停用岗位
   machine: job_catalog_entry
-  transition: [启用, 已停用]
+  transition: [已启用, 已停用]
   outcome: 已维护
   rule_reject: 仍被在职任职引用被 INV-63 拒绝，退回本步
 - process: PRC-80
@@ -530,13 +530,13 @@ process_steps:
   step: 10
   command: 新建岗位
   machine: job_catalog_entry
-  transition: [null, 启用]
+  transition: [null, 已启用]
   outcome: 已维护
 - process: PRC-80
   step: 11
   command: 修改岗位
   machine: job_catalog_entry
-  transition: [启用, 启用]
+  transition: [已启用, 已启用]
   outcome: 已维护
 - process: PRC-80
   step: 12
@@ -643,7 +643,7 @@ process_steps:
   step: 2
   command: 建立薪酬档案
   machine: AGG-93:compensation_profile（vs13pay）
-  transition: [null, 生效]
+  transition: [null, 已生效]
   outcome: 社保与公积金参保在缴，薪酬档案已建立
   note: B-15 聚合，转换在 vs13pay.state-machines.yaml
 - process: PRC-85
@@ -816,9 +816,9 @@ process_steps:
   step: 11
   command: 调整薪酬档案
   machine: AGG-93:compensation_profile（vs13pay）
-  transition: [生效, 已结束]
+  transition: [已生效, 已结束]
   also:
-  - [null, 生效]
+  - [null, 已生效]
   outcome: 调岗已生效
   note: B-15 聚合，转换在 vs13pay
 - process: PRC-136

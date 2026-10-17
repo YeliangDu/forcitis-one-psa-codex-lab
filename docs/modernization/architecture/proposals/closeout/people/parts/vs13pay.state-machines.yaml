@@ -39,16 +39,16 @@ machines:
     审批驳回与提交人撤回后回到第 1 步重算，补「已退回」。已发放与已过账先后不定：过账可先于发放（PRC-134 出口「待发放后再置位」），
     故已批准上有一条只置位的自环；发放时若过账事实已入账，由 PRC-127 回到 PRC-134 补置已过账。结局「待锁定」「已中止」不建结算，不是状态。
   transitions:
-  - {from: null, to: 已计算, command: 计算, guard: [R-VS13-h, INV-70, 规则版本取得到（同 INV-116）], kind: forward}
-  - {from: 已计算, to: 已计算, command: 计算, guard: [提交审核前发现输入有误重算], kind: forward}
-  - {from: 已退回, to: 已计算, command: 计算, guard: [退回或撤回后重新计算], kind: forward}
-  - {from: 已计算, to: 审核中, command: 提交审核, guard: [异常清单已生成, 制单人 ≠ 审批人（AR-11）], kind: forward}
-  - {from: 审核中, to: 已批准, command: 批准, guard: [INV-70, AR-01, AR-02, AR-11], kind: forward, process_outcome: 已批准}
+  - {from: null, to: 已计算, command: 计算月度薪酬, guard: [R-VS13-h, INV-70, 规则版本取得到（同 INV-116）], kind: forward}
+  - {from: 已计算, to: 已计算, command: 计算月度薪酬, guard: [提交审核前发现输入有误重算], kind: forward}
+  - {from: 已退回, to: 已计算, command: 计算月度薪酬, guard: [退回或撤回后重新计算], kind: forward}
+  - {from: 已计算, to: 审核中, command: 提交薪酬审核, guard: [异常清单已生成, 制单人 ≠ 审批人（AR-11）], kind: forward}
+  - {from: 审核中, to: 已批准, command: 批准月度薪酬, guard: [INV-70, AR-01, AR-02, AR-11], kind: forward, process_outcome: 已批准}
   - {from: 审核中, to: 已退回, command: 退回薪酬重算, guard: [], kind: reverse}
   - {from: 审核中, to: 已退回, command: 撤回薪酬审核, guard: [仅提交人], kind: reverse}
   - {from: 已批准, to: 已发放, command: 标记薪酬已发放, guard: [应付已结清且应付类型为应付薪酬, 部分退票语义未定（结构问题 2④）], kind: forward, process_outcome: 已发放}
-  - {from: 已批准, to: 已批准, command: 标记已过账, guard: [薪酬尚未发放：只置位过账事实已入账], kind: forward, process_outcome: 待发放后再置位}
-  - {from: 已发放, to: 已过账, command: 标记已过账, guard: [来源单据类型为月度薪酬结算], kind: forward, process_outcome: 已过账}
+  - {from: 已批准, to: 已批准, command: 标记薪酬已过账, guard: [薪酬尚未发放：只置位过账事实已入账], kind: forward, process_outcome: 待发放后再置位}
+  - {from: 已发放, to: 已过账, command: 标记薪酬已过账, guard: [来源单据类型为月度薪酬结算], kind: forward, process_outcome: 已过账}
 
 - aggregate: AGG-74
   machine: insurance_enrollment
@@ -104,18 +104,18 @@ machines:
 - aggregate: AGG-93
   machine: payroll_profile_version
   entity: payroll_profile_versions
-  states: [生效, 已结束]
-  initial: [生效]
+  states: [已生效, 已结束]
+  initial: [已生效]
   terminal: [已结束]
-  added_states: [生效, 已结束]
+  added_states: [已生效, 已结束]
   non_state_commands:
   - {command: 登记补休转加班工资, reason: 只追加补休转加班工资登记行（表 payroll_comp_leave_conversions，只追加），不改档案版本状态；S-41 新增}
   note: 根表 payroll_profiles 无生命周期；版本行按生效区间，调薪追加新版本并结束旧版本（D17）。未来生效日的版本也记为生效（区间决定何时适用）。离职后由 S-32 新增的终止薪酬档案结束最后一个生效版本；重新入职在原根下建立新版本
   transitions:
-  - {from: null, to: 生效, command: 建立薪酬档案, guard: [人员已入职, 一人一档案], kind: forward, process_outcome: 社保与公积金参保在缴，薪酬档案已建立}
-  - {from: null, to: 生效, command: 调整薪酬档案, guard: [R-VS13-j：引用调薪决定依据, U9], kind: forward, process_outcome: 薪酬档案已调整}
-  - {from: 生效, to: 已结束, command: 调整薪酬档案, guard: [同事务结束旧版本区间（D17）], kind: forward}
-  - {from: 生效, to: 已结束, command: 终止薪酬档案, guard: [Separated：区间止于离职日, 无版本时失败并告警], kind: forward, process_outcome: 薪酬档案已终止}
+  - {from: null, to: 已生效, command: 建立薪酬档案, guard: [人员已入职, 一人一档案], kind: forward, process_outcome: 社保与公积金参保在缴，薪酬档案已建立}
+  - {from: null, to: 已生效, command: 调整薪酬档案, guard: [R-VS13-j：引用调薪决定依据, U9], kind: forward, process_outcome: 薪酬档案已调整}
+  - {from: 已生效, to: 已结束, command: 调整薪酬档案, guard: [同事务结束旧版本区间（D17）], kind: forward}
+  - {from: 已生效, to: 已结束, command: 终止薪酬档案, guard: [Separated：区间止于离职日, 无版本时失败并告警], kind: forward, process_outcome: 薪酬档案已终止}
 
 - aggregate: AGG-120
   machine: special_deduction_declaration

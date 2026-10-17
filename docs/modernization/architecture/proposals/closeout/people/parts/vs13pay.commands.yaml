@@ -112,7 +112,7 @@ commands:
   orphan: false
 
 # ───────────── AGG-73 月度薪酬结算 ─────────────
-- name: 计算
+- name: 计算月度薪酬
   aggregate: AGG-73
   entity: payroll_settlements
   kind: automatic
@@ -134,7 +134,7 @@ commands:
   emits: （内部）
   used_by: [PRC-124 第 1 步（第 2 步判断出口、第 3 步驳回与撤回出口回到本步）]
   orphan: false
-- name: 提交审核
+- name: 提交薪酬审核
   aggregate: AGG-73
   entity: payroll_settlements
   kind: human
@@ -153,7 +153,7 @@ commands:
   emits: （内部）
   used_by: [PRC-124 第 2 步]
   orphan: false
-- name: 批准
+- name: 批准月度薪酬
   aggregate: AGG-73
   entity: payroll_settlements
   kind: callback
@@ -248,7 +248,7 @@ commands:
   emits: 薪酬已发放
   used_by: [PRC-127 第 1 步]
   orphan: false
-- name: 标记已过账
+- name: 标记薪酬已过账
   aggregate: AGG-73
   entity: payroll_settlements
   kind: automatic
@@ -736,7 +736,7 @@ event_policies:
 - name: 月度考勤锁定后计算薪酬
   trigger_event: 月度考勤已锁定（B-27 发布，按人员 × 月）
   effect: 检查该法人当月在职人员是否全部已锁定，是则调用计算；人力补齐档案或规则版本后可手工重新发起
-  uses_command: 计算
+  uses_command: 计算月度薪酬
   used_by: [PRC-124 触发器]
   rules: [R-VS13-h]
   note: 法人级汇聚无事件承载，建议 B-27 提供只读查询「法人当月未锁定名单」（vs13.notes.md 结构问题 6）
@@ -792,7 +792,7 @@ event_policies:
 - name: 过账完成后置位已过账
   trigger_event: BusinessFactAttributed（B-16 发布；B-15 只处理薪酬来源）
   effect: 调用标记已过账
-  uses_command: 标记已过账
+  uses_command: 标记薪酬已过账
   used_by: [PRC-134 第 1 步]
   rules: []
   note: 事件须带来源单据类型（结构问题 4③）
