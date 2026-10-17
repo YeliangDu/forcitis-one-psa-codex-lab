@@ -1670,6 +1670,7 @@ processes:
   - VS-01.2
   - VS-02.0
   - VS-04.1
+  stages_note: '判据：申请使风险交付授权（OBJ-12）到「申请」、批准到「批准」，是 VS-01.2 段内状态和 VS-02.0 进入条件；转正是 VS-04.1 退出（OBJ-12 已转正）。三段均有依据'
   primary_object: OBJ-12
   owner_bc: B-05
   human_orchestration: true
@@ -1919,7 +1920,6 @@ processes:
     - SH-M1
     rule: 申请人与审批人不得为同一人（责任人即申请人时命中 AR-11，按上级代批或加审处理）
   frequency_ref: 待取证（E-B1）；经验估计：每月约 2 件，转正约 70%
-  stages_note: 判据：申请使风险交付授权（OBJ-12）到「申请」、批准到「批准」，是 VS-01.2 段内状态和 VS-02.0 进入条件；转正是 VS-04.1 退出（OBJ-12 转正）。三段均有依据
 - id: PRC-17
   name: 建立项目并组建团队
   trigger:
@@ -2580,15 +2580,8 @@ processes:
   trigger:
     type: human
     desc: 员工按日填报工时
-  stages:
-  - VS-01.2
-  - VS-02.0
-  - VS-02.1
-  - VS-02.2
-  - VS-02.3
-  - VS-02.4
-  - VS-02.5
-  - VS-02.6
+  stages: []
+  support: 'CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题（页首不补列清单）；工时为业务拓展与交付各段提供贯穿成本输入，不因输入给阶段补人员管理'
   primary_object: OBJ-66
   owner_bc: B-06
   human_orchestration: true
@@ -2917,7 +2910,6 @@ processes:
     - to: SH-E6
       how: 企业微信消息（工时过账失败，或已路由开放期间并标原期间，供财务核对）
   notes: 以已建 cost.timesheet 为准（状态草稿、已提交、已退回、已通过、已驳回；撤回与取消回到草稿；审批流程 cost_timesheet_approval）。阶段映射已收窄（⑥a 评审 M4）：只留进入或退出条件触及商机、工作包的阶段，去掉 VS-02.7 与 VS-03.2。INV-37 缺费率的工时失败并告警；售前阶段可记工时归集到商机或客户活动（AGG-102）。
-  stages_note: '贯穿 VS-01.2、VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：工时（OBJ-66）「已通过」是 VS-02 贯穿活动「资源与工时」的产出；VS-01.2 的商机承接售前工时归集。保留既有归段，通用状态近似项不补标。'
 - id: PRC-24
   name: 变更项目状态
   trigger:
@@ -6078,8 +6070,9 @@ processes:
     desc: 商机赢单（含直接委托）后商务起草项目合同或任务订单
   stages:
   - VS-04.1
+  stages_note: '判据①：回签客户协议使 OBJ-05 到「已签署生效」、付款条件项 OBJ-07「已生效」，造出 VS-04.1 退出。不加 VS-04.6：该段同状态明确限框架协议下任务订单，归 PRC-50；不加 VS-05.2、VS-07.3：分别限供方协议、劳动合同，本流程为客户主协议。'
   primary_object: OBJ-05
-  primary_object_note: 付款条件项 OBJ-07「生效」随协议回签同时生效（VS-04.1 退出），不另设流程
+  primary_object_note: '付款条件项 OBJ-07「已生效」随协议回签同时生效（VS-04.1 退出），不另设流程'
   secondary_objects:
   - OBJ-07
   owner_bc: B-05
@@ -6344,7 +6337,6 @@ processes:
       p90_h: 240
   notes: 直建例外须经审批（INV-06）；订阅方 B-07、B-08、B-26。报价版本已生效、独立性检查已有结论无事件消费者，签约时读取，可接受（⑥a 评审 L3）。回签后触发销售合同归档 PRC-141（同事件 ContractSigned）。
   frequency_ref: 待取证（E-B1）；经验估计：每月约 15 份
-  stages_note: '判据①：回签客户协议使 OBJ-05 到「已签署生效」、付款条件项 OBJ-07「生效」，造出 VS-04.1 退出。不加 VS-04.6：该段同状态明确限框架协议下任务订单，归 PRC-50；不加 VS-05.2、VS-07.3：分别限供方协议、劳动合同，本流程为客户主协议。'
 - id: PRC-48
   name: 提出并生效协议变更或签证
   trigger:
@@ -6352,6 +6344,7 @@ processes:
     desc: 范围、价款、工期变化，或现场发生签证事项
   stages:
   - VS-04.6
+  stages_note: 'SD-02：新段 VS-04.6「完成合同履行」，协议变更和签证在本段重入，不再挂 VS-04.1。判据：新基线已生效 / 驳回使协议变更（OBJ-09）到「已生效（新基线）/ 驳回」，是 VS-04.6 段内状态。字面误判：「应用变更→已签署生效」协议状态不变，匹到的 VS-04.1 退出不成立，VS-05.2、VS-07.3 限供方类型协议、劳动合同类型'
   primary_object: OBJ-09
   owner_bc: B-05
   human_orchestration: true
@@ -6640,7 +6633,6 @@ processes:
     - SH-M1
     rule: 变更提出人与审批人不得为同一人
   frequency_ref: 待取证（E-B1）；经验估计：每月约 8 份
-  stages_note: SD-02：新段 VS-04.6「履约」，协议变更和签证在本段重入，不再挂 VS-04.1。判据：新基线已生效 / 驳回使协议变更（OBJ-09）到「已生效（新基线）/ 驳回」，是 VS-04.6 段内状态。字面误判：「应用变更→已签署生效」协议状态不变，匹到的 VS-04.1 退出不成立，VS-05.2、VS-07.3 限供方类型协议、劳动合同类型
 - id: PRC-49
   name: 提出并认定索赔
   trigger:
@@ -6649,6 +6641,7 @@ processes:
   stages:
   - VS-04.6
   - VS-04.5
+  stages_note: 'SD-02：新段 VS-04.6「完成合同履行」，索赔在本段重入，不再挂 VS-04.1。判据：认定 / 拒绝 / 撤回使索赔（OBJ-10）到「已认定 / 已拒绝 / 撤回」，是 VS-04.6 段内状态；保留 VS-04.5：结算中双方未能确认最终价款时转索赔（PRC-66，H3），并入最终价款确认。VS-04.2–.4 与索赔无关'
   primary_object: OBJ-10
   owner_bc: B-05
   human_orchestration: true
@@ -6793,7 +6786,6 @@ processes:
       p90_min: 30
   notes: P-08 索赔时限临近提醒。是否补「索赔提交审批」见 NOTES 待用户定（原 D9，仍待定）。
   frequency_ref: 待取证（E-B1）；经验估计：每月约 2 份
-  stages_note: SD-02：新段 VS-04.6「履约」，索赔在本段重入，不再挂 VS-04.1。判据：认定 / 拒绝 / 撤回使索赔（OBJ-10）到「已认定 / 已拒绝 / 撤回」，是 VS-04.6 段内状态；保留 VS-04.5：结算中双方未能确认最终价款时转索赔（PRC-66，H3），并入最终价款确认。VS-04.2–.4 与索赔无关
 - id: PRC-50
   name: 占用框架限额并提交任务订单
   trigger:
@@ -6801,8 +6793,9 @@ processes:
     desc: 商务按框架协议起草任务订单
   stages:
   - VS-04.6
+  stages_note: 'SD-02：新段 VS-04.6「完成合同履行」；判据：提交任务订单使任务订单（OBJ-05）到「已签署生效」，是 VS-04.6 段内状态（框架任务订单在本段占用限额并提交），stages 只留 VS-04.6。字面误判：匹到的 VS-04.1 退出对应主协议，VS-05.2、VS-07.3 限供方类型协议、劳动合同类型，不加'
   primary_object: OBJ-05
-  primary_object_note: 任务订单是协议 OBJ-05 的类型
+  primary_object_note: '任务订单是协议 OBJ-05 的类型'
   owner_bc: B-05
   human_orchestration: true
   human_note: 占用被拒则订单不得提交；审批驳回、撤回、作废、终止释放
@@ -6948,7 +6941,6 @@ processes:
     - SH-M1
     rule: 订单提交人与审批人不得为同一人
   frequency_ref: 待取证（E-B1）；经验估计：每月约 6 份
-  stages_note: SD-02：新段 VS-04.6「履约」；判据：提交任务订单使任务订单（OBJ-05）到「已签署生效」，是 VS-04.6 段内状态（框架任务订单在本段占用限额并提交），stages 只留 VS-04.6。字面误判：匹到的 VS-04.1 退出对应主协议，VS-05.2、VS-07.3 限供方类型协议、劳动合同类型，不加
 - id: PRC-54
   name: 视为同意期满处理
   trigger:
@@ -10473,8 +10465,9 @@ event_policies:
   - VS-04.2
   - VS-04.3
   - VS-04.6
+  stages_note: '判据②：ContractSigned 对应 VS-04.1 退出并为 VS-04.2、VS-04.6 进入的协议状态；新基线已生效是 VS-04.6 协议变更段内状态，本策略随之更新额度，补标 VS-04.6。保留 VS-04.1、VS-04.2、VS-04.3：额度由签约建立，供收入确认（INV-22、PRC-53）与开票（PRC-57）占用；VS-04.3 为服务该段的技术记录，不声称额度是新增业务对象。'
   primary_object: none
-  primary_object_note: 额度是开票与收入额度（AGG-44）上的技术记录，按履约义务与付款条件项分行；本策略不改任何业务对象的状态，故不设主对象
+  primary_object_note: 'CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。'
   owner_bc: B-08
   migration: 迁入协议的额度行由迁入事实重放建立：累计开票额与累计确认额取自迁入的发票与确认事实（U-4），不重复发事件；投产前已回签的协议，由迁入编排模块的一次性离线命令在迁入完成时建额度；额度改动只追加变动行（data-model 补丁 L7）
   triggers:
@@ -10518,7 +10511,6 @@ event_policies:
   - PRC-51-S05
   notes: 协议已终止、协议已结算的订阅反应见 PRC-149（冲销收入确认，H2）；额度调整留变动行，记因哪个基线版本、谁、何时改。
   frequency_ref: 待取证（E-B1）；经验估计：每月约 15 次
-  stages_note: '判据②：ContractSigned 对应 VS-04.1 退出并为 VS-04.2、VS-04.6 进入的协议状态；新基线已生效是 VS-04.6 协议变更段内状态，本策略随之更新额度，补标 VS-04.6。保留 VS-04.1、VS-04.2、VS-04.3：额度由签约建立，供收入确认（INV-22、PRC-53）与开票（PRC-57）占用；VS-04.3 为服务该段的技术记录，不声称额度是新增业务对象。'
 - id: PRC-53
   name: 确认收入
   pending: Q-04
@@ -10749,8 +10741,8 @@ event_policies:
     - event: TimesheetApproved
       aggregate: AGG-39
     gate: 期间闸门——目标期间尚未封期（AGG-81 开放）；期间封期前由项目经理对已审批工时批量认定（⑥a 评审 M7）
-  stages:
-  - VS-10.1
+  stages: []
+  support: 'CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题（页首不补列清单）；工时有效性认定提供关账输入，与折旧采用同一规则，不补人员管理'
   primary_object: OBJ-66
   owner_bc: B-06
   migration: 全部历史工时条目的分类结果（有效、无效、返工、可计费）随工时单迁入（U-3、U-4）；投产时已通过未认定的工时按「待认定」迁入，进入项目经理待办，期间已封存的按已有分类迁入不再认定
@@ -11364,6 +11356,7 @@ single_aggregate:
   owner_bc: B-03
   stages:
   - VS-01.1
+  stages_note: 'SD-14 已写回：VS-01.1 段内 OBJ-16「已结束」，本流程完成市场活动到达该状态；保留 VS-01.1，依据是段内产出，不再以进入状态「进行中」归段。'
   primary_object: OBJ-16
   desc: 市场部立项并开展活动
   commands:
@@ -11437,7 +11430,6 @@ single_aggregate:
       department_hint: 市场与经营部门
       position_hint: 市场经理、客户经理
   frequency_ref: 待取证（E-B1）；经验估计：每月约 3 场
-  stages_note: 'SD-14 已写回：VS-01.1 段内 OBJ-16「结束」，本流程完成市场活动到达该状态；保留 VS-01.1，依据是段内产出，不再以进入状态「进行中」归段。'
 - id: PRC-02
   name: 计划并完成客户活动
   aggregate: AGG-102
@@ -12073,8 +12065,9 @@ single_aggregate:
   owner_bc: B-02
   stages:
   - VS-01.2
+  stages_note: 'SD-14 已写回：发布服务产品版本即 OBJ-24「已启用」（版本已发布），是 VS-01.2 段内状态，保留 VS-01.2，不再以进入条件归段。单聚合 states 仍为「已发布」，不在本卡改状态机；其他段「已发布」是不同对象，近似项不补标。'
   primary_object: OBJ-24
-  primary_object_note: 服务产品与阶段类型版本同批发布，取服务产品（VS-01.2 能力 CAP-024）；所标段无该对象退出条件，归段待 SD-14
+  primary_object_note: '服务产品与阶段类型版本同批发布，取服务产品（VS-01.2 能力 CAP-024）；所标段无该对象退出条件，归段待 SD-14'
   desc: 目录管理员发布新版本
   commands:
   - actor_v1: 技术专家
@@ -12178,7 +12171,6 @@ single_aggregate:
       department_hint: 技术委员会
       position_hint: 技术专家、目录管理员
   frequency_ref: 待取证（E-B1）；经验估计：每年约 4 次发布
-  stages_note: 'SD-14 已写回：发布服务产品版本即 OBJ-24「启用」（版本已发布），是 VS-01.2 段内状态，保留 VS-01.2，不再以进入条件归段。单聚合 states 仍为「已发布」，不在本卡改状态机；其他段「已发布」是不同对象，近似项不补标。'
 - id: PRC-14
   name: 登记建设工程与招标项目
   aggregate: REF-01
