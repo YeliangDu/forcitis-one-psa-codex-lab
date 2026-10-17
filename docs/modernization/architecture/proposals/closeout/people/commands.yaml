@@ -3942,28 +3942,7 @@ commands:
   used_by:
   - PRC-107#4
   orphan: false
-  note: 聚合内单级评审，不经 platform.approval（notes 结构问题 1、8）。
-  source_part: vs0911
-- name: 〔缺〕退回知识条目
-  aggregate: AGG-107
-  status: 〔缺〕（notes 新用语 return_knowledge_entry；v1 注明无独立命令）
-  params:
-  - 版本ID
-  - 退回意见
-  preconditions:
-  - ref: 版本状态
-    desc: 评审中
-  raci_A:
-    resolve: instance
-    field: 知识条目.归属组织单元.负责人
-  raci_R:
-  - SH-E4
-  idempotency_key: 版本ID + 评审轮次
-  emits: []
-  used_by:
-  - PRC-107#5
-  orphan: false
-  merge_note: 可并入「评审知识条目」（结论=退回）；聚合稿未并，保留独立命令等 one-architecture 裁定。
+  note: 聚合内单级评审，不经 platform.approval（notes 结构问题 1、8）；结论为退回时版本回到起草中，不另设退回命令（试点 VS-11 第 1 条，one-architecture 2026-10-17 裁定）。
   source_part: vs0911
 - name: 发布知识条目
   aggregate: AGG-107
@@ -3986,7 +3965,7 @@ commands:
   cross_bc_in:
   - B-02、B-03、B-04、B-28 校验知识条目版本存在且未废止（api）
   used_by:
-  - PRC-107#6
+  - PRC-107#5
   orphan: false
   source_part: vs0911
 - name: 修订知识条目
@@ -4007,7 +3986,7 @@ commands:
   emits:
   - 知识条目已修订
   used_by:
-  - PRC-107#7
+  - PRC-107#6
   orphan: false
   source_part: vs0911
 - name: 废止知识条目
@@ -4030,7 +4009,7 @@ commands:
   emits:
   - 知识条目已废止
   used_by:
-  - PRC-107#8
+  - PRC-107#7
   orphan: false
   source_part: vs0911
 - name: 提交用印申请

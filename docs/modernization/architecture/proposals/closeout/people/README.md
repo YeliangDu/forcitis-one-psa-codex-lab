@@ -39,6 +39,7 @@
 - 2026-10-16 按新原则修订、八维度 QC、脚本缺口清零、聚合收敛（commands / state-machines / events / raci，parts/rebuild.py 合并）；落实 S-28、S-32、S-35、S-36、S-40、S-41、S-42；one-architecture 跨组接缝检查清零。待用户答确认页后回改。
 
 - 2026-10-17 C7-people：SD-12 roles 已核对，SD-15 归段说明与闭环结局映射已对齐；rebuild 生成，origin/main 8ff6baf4 检查复跑并按五个价值流/支撑章节形成 REVIEW_PACK.md。QC 缺口 0、BPMN 30/30/0 警告、stage 6a 未说明 0；AGG-52、PRC-181 依赖边、命名/对象残余交架构。one-arch-people 审稿通过，返工 0 轮。
+- 2026-10-17 并入云端试点 VS-11（claude/arch-cloud-pilot @ 1b914e4d，pilot/RESULT.md 第 4 节，one-architecture 裁定）：PRC-107 第 1–12 条采纳试点写法（去〔缺〕退回知识条目，退回由评审结论表达；结局加已修订；加定时复审触发；评审 P10D 非中断升级 SH-M1，估值仍归待用户定 8），PRC-182 保留本组版本；AGG-107 撤回与逾期中断回补、目录 stages_note 由 one-architecture 做。复跑 QC 缺口 0、converge 同前、BPMN 30/30、接缝同前。
 
 ## 待办（对外承诺）
 

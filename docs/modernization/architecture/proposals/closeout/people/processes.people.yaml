@@ -76,6 +76,7 @@ meta:
 
 
 
+
 processes:
 
   - id: PRC-80
@@ -851,28 +852,30 @@ processes:
     name: 知识条目的起草、评审、发布与修订废止
     trigger:
       type: human
-      desc: 技术专家主动起草；或项目复盘发布后由复盘编制人决定提炼
+      desc: 技术专家主动起草；项目复盘发布后由复盘编制人决定提炼；已发布版本修订时以新版本重新进入
     stages: [VS-11.1, VS-11.2, VS-11.3]
     primary_object: OBJ-110
     owner_bc: B-30
     human_orchestration: true
-    human_note: 有效期届满的修订或废止（定时）；评审意见可退回起草
+    human_note: 有效期届满前定时提醒复审，修订或废止由人决定；评审结论可退回起草
     merged_from: [PRC-108, PRC-109, PRC-110]
-    migration: "全部历史迁入（U-1–U-4）：库内无知识条目实体（信息图 OBJ-110 取证），迁入集合为空；A8 文档中心 567 份文档与项目档案 203 条知识平台文件夹引用是否转条目，见 NOTES 待用户定 5"
-    scope: "已发布版本全员可读；起草中与评审中的版本限起草人、评审人与管理员；案例类若含客户信息，访问范围待用户定"
+    migration: "老系统无知识条目实体（信息图 OBJ-110 取证），迁入集合为空，无在途实例；A8 文档中心 567 份文档与项目档案 203 条知识平台文件夹引用是否转条目，见 NOTES 待用户定 5"
+    scope: "已发布版本全员可读；起草中与评审中的版本限起草人、评审人与知识管理员；案例类若含客户信息，访问范围见 NOTES 待用户定 6"
     segregation:
-      - {roles: [SH-E4], rule: "起草人与评审人不得为同一人；起草人就是归属责任人时按 AR-11 由其上级评审"}
+      - {roles: [SH-E4], rule: "同一知识条目版本的起草人与评审人不得为同一人（SH-E4 兼任起草与评审两种身份，按人区分）；起草人就是专业负责人时按 AR-11 由其上级评审"}
     triggers:
       - {type: human, name: 技术专家主动起草}
-      - {type: call, name: 项目复盘编制人在交付执行中决定提炼，调用创建知识条目, bc: B-04}
-    outcomes: [已发布, 已废止]
-    scenarios: [PRC-107-S01, PRC-107-S02, PRC-107-S03, PRC-107-S04, PRC-107-S05, PRC-107-S06]
+      - {type: call, name: 项目复盘编制人在复盘详情页决定提炼，调用创建知识条目, bc: B-04}
+      - {type: time, name: 已发布版本有效期届满前提前量到达，提醒复审}    # CONVENTIONS §5：登记 platform.scheduling，只提醒，不自动改状态
+    outcomes: [已发布, 已修订, 已废止, 已提醒]
+    frequency_ref: 待取证（老系统无知识条目，投产后起累计）
+    scenarios: [PRC-107-S01, PRC-107-S02, PRC-107-S03, PRC-107-S04, PRC-107-S05, PRC-107-S06, PRC-107-S07]
     roles:
       - {id: SH-E4, as: initiator, org_needs: {responsibility: 起草、提交、发布、修订与废止知识条目, approval_right: 无（起草与发布；评审由他人）, department_hint: 技术委员会及各专业组织单元, position_hint: 技术专家（专业组成员）}}       # 技术专家（技术委员会）
       - {id: SH-E4, as: approver, org_needs: {responsibility: 对知识条目的技术正确性、适用范围与有效期负专业责任, approval_right: 知识条目评审（类型级专业角色，聚合内单级评审）, department_hint: 知识条目所属专业类别对应的组织单元（技术委员会）, position_hint: 专业负责人（技术委员会的专业负责人）}}        # 评审人：类型级专业角色（resolve: type），与起草人分离见 segregation
       - {id: SH-E2, as: initiator, org_needs: {responsibility: 在项目复盘后决定提炼并从提炼入口创建知识条目, approval_right: 无, department_hint: 项目管理相关部门, position_hint: 项目经理职能岗（复盘编制人）}}       # 项目经理：复盘编制人，从复盘提炼
-      - {id: SH-E3, as: performer, org_needs: {responsibility: 参与起草（VS-11.1）, approval_right: 无, department_hint: 设计与咨询相关部门, position_hint: 设计师和顾问}}       # 设计师和顾问，VS-11.1 参与起草
-      - {id: SH-M1, as: informed, org_needs: {responsibility: 获知知识条目发布情况, approval_right: 无（评审不由管理层做）, department_hint: 管理层, position_hint: 管理层负责人}}        # VS-11.2 参与者含管理层；评审不由管理层做
+      - {id: SH-E3, as: performer, org_needs: {responsibility: 参与起草知识条目内容（VS-11.1）, approval_right: 无, department_hint: 设计与咨询相关部门, position_hint: 设计师和顾问}}       # 第 2 步协作编辑
+      - {id: SH-M1, as: informed, org_needs: {responsibility: 获知知识条目发布情况；评审逾期时收到升级提醒并督办, approval_right: 无（评审不由管理层做）, department_hint: 管理层, position_hint: 管理层负责人}}        # 第 4 步逾期升级、第 5 步发布通知
     steps:
       - actor: SH-E4
         where: in_system
@@ -881,60 +884,54 @@ processes:
         desc: 技术专家主动创建；从项目复盘提炼时由复盘编制人（SH-E2）在 B-04 的提炼入口调用同一命令，来源复盘 ID 只记录不校验。「项目复盘已发布」订阅方是 B-04 自身，不是本 BC（AGG-103），所以触发写 call，不写 event
         permission: 知识条目.创建
         page: 知识条目编辑页（提炼入口在 B-04 项目复盘详情页）
+        effort: {typical_min: 2, p90_min: 5}
         cross_bc:
           - {mode: api, direction: in, bc: B-04, name: 创建知识条目}    # B-04 → B-30 api 边已有
-        decision:
-          - {when: otherwise, goto: 2}
 
       - actor: SH-E4
         where: in_system
         command: 起草知识条目
         aggregate: AGG-107
-        desc: 填类别、适用范围、有效期、正文；退回后也回到本步
+        desc: 填类别、适用范围、有效期与正文；设计师和顾问（SH-E3）可协作编辑；评审退回后回到本步；修订产生的新版本经第三个触发从本步重新进入
         permission: 知识条目.起草
         page: 知识条目编辑页
+        effort: {typical_min: 120, p90_min: 480}
 
       - actor: SH-E4
         where: in_system
         command: 提交知识条目评审
         aggregate: AGG-107
-        desc: 类别、适用范围、有效期缺一不得提交（规则校验）
+        desc: 类别、适用范围、有效期缺一不得提交（规则校验）；提交后进入「评审中」，即 VS-11.1 退出
         permission: 知识条目.提交评审
         page: 知识条目详情页
+        effort: {typical_min: 2, p90_min: 5}
         notify: [{to: SH-E4, how: 企业微信待办}]      # 通知评审人（归属专业组织单元的责任人）
 
       - actor: SH-E4
         where: in_system
         command: 评审知识条目
         aggregate: AGG-107
-        desc: 审批人与审批记录在聚合内（审批人经 api 读人员）；B-30 无到 platform.approval 的边，评审是聚合内单级命令（见 NOTES 结构问题 1）
+        desc: 评审结论为通过或退回，退回由本命令的结论表达，不另设退回命令；审批人与审批记录在聚合内（审批人经 api 读人员）；B-30 无到 platform.approval 的边，评审是聚合内单级命令（见 NOTES 结构问题 1）
         approval:
           engine: aggregate
           doc_type: 知识条目评审           # B-30 聚合内单级评审命令，不经 platform.approval
           approver: SH-E4                 # 类型级专业角色（resolve: type）：知识条目所属专业类别对应的技术委员会专业负责人
           escalation_rules: [AR-11, AR-12]  # 评审人就是起草人本人 / 专业角色缺位：聚合内由系统改指其上级为审批人；金额类规则不适用
           why_human: 知识内容的技术正确性、适用范围与有效期是否恰当属专业判断，规则只能校验必填项、评审人不是起草人、已发布不可改（INV-115），不能替代
-          on_reject: 5
+          on_reject: 2
         permission: 知识条目.评审
         page: 知识条目评审页
         audit: true
+        effort: {typical_min: 30, p90_min: 120}
+        wait: {typical_h: 24, p90_h: 120}
+        timeout: {after: "P10D", escalate_to: SH-M1, interrupting: false}   # 10 天为估值，期限与升级对象仍归 NOTES 待用户定 8
+        pending: vs0911-待定8
         cross_bc:
           - {mode: api, direction: out, bc: B-13, name: 读取审批人}     # B-30 → B-13 api 边已有
+        notify: [{to: SH-E4, how: 企业微信通知}]      # 通知起草人评审结论
         decision:
-          - {when: 评审通过, goto: 6}
-          - {when: otherwise, goto: 5}
-
-      - actor: SH-E4
-        where: in_system
-        branch: 退回
-        command: 〔缺〕退回知识条目
-        aggregate: AGG-107
-        desc: 评审退回起草，v1 注明无独立命令
-        permission: 知识条目.退回
-        page: 知识条目评审页
-        notify: [{to: SH-E4, how: 企业微信通知}]      # 通知起草人
-        decision:
-          - {when: otherwise, goto: 2}
+          - {when: 评审通过, goto: 5, p: 0.8}
+          - {when: otherwise, goto: 2, p: 0.2}
 
       - actor: SH-E4
         where: in_system
@@ -942,35 +939,36 @@ processes:
         aggregate: AGG-107
         emits: [知识条目已发布]
         pending: vs0911-待定6               # 案例类含客户信息的访问范围与脱敏确认
-        desc: 已发布版本不得修改（INV-115）；引用方按 ID 与版本引用，不订阅
+        desc: 发布后为「已发布」，即 VS-11.2 退出；已发布版本不得修改（INV-115）；引用方按 ID 与版本引用，不订阅
         permission: 知识条目.发布
         page: 知识条目详情页
         audit: true
         metric_event: true
+        effort: {typical_min: 2, p90_min: 5}
+        notify: [{to: SH-M1, how: 企业微信通知}]      # 管理层获知发布情况
         cross_bc:
           - {mode: api, direction: in, bc: B-02, name: 校验知识条目版本存在且未废止}
           - {mode: api, direction: in, bc: B-03, name: 校验知识条目版本存在且未废止}
           - {mode: api, direction: in, bc: B-04, name: 校验知识条目版本存在且未废止}
           - {mode: api, direction: in, bc: B-28, name: 校验知识条目版本存在且未废止}
         decision:
-          - {when: 有效期届满或适用范围变化且仍适用, goto: 7}
-          - {when: 有效期届满且不再适用, goto: 8}
-          - {when: otherwise, goto: end, outcome: 已发布}
-        outcome: 已发布                   # 发布后无后续事件则流程在此结束
+          - {when: 复审认为仍适用但内容或适用范围需更新, goto: 6, p: 0.2}
+          - {when: 复审认为不再适用, goto: 7, p: 0.1}
+          - {when: otherwise, goto: end, outcome: 已发布, p: 0.7}
+        outcome: 已发布                   # 发布后无复审结论则流程在此结束
 
       - actor: SH-E4
         where: in_system
-        on_time: 有效期届满或适用范围变化
+        on_time: 有效期届满前提前量到达，或适用范围变化
         command: 修订知识条目
         aggregate: AGG-107
         emits: [知识条目已修订]
-        desc: 产生新版本并引用被取代版本，修订须重新评审（回到提交评审）
+        desc: 产生新版本（引用被取代版本），本实例以「已修订」结束；新版本以起草中经第三个触发重新进入本流程第 2 步，评审发布后才取代旧版本，旧版本此前仍可引用
         permission: 知识条目.修订
         page: 知识条目编辑页
         audit: true
         metric_event: true
-        decision:
-          - {when: otherwise, goto: 3}
+        outcome: 已修订
 
       - actor: SH-E4
         where: in_system
@@ -985,7 +983,7 @@ processes:
         audit: true
         metric_event: true
         outcome: 已废止
-    notes: 合并原 PRC-108、109、110（⑥a 评审 H2 c）。已发布版本不得修改（INV-115）；引用方按 ID 与版本引用，不订阅。B-04 → B-30 边已有。项目复盘提炼入口的页面在 B-04，命令在本 BC。评审是专业判断，保留人工，按聚合内审批写；补 B-30 → platform.approval 边的影响见 NOTES 结构问题 1。
+    notes: 合并原 PRC-108、109、110（⑥a 评审 H2 c）；2026-10-17 并入云端试点 VS-11（pilot/RESULT.md 第 4 节第 1–12 条，one-architecture 裁定）。已发布版本不得修改（INV-115）；引用方按 ID 与版本引用，不订阅。项目复盘提炼入口的页面在 B-04，命令在本 BC。评审是专业判断，保留人工，按聚合内审批写；补 B-30 → platform.approval 边的影响见 NOTES 结构问题 1。评审中撤回提交、评审逾期中断处理 AGG-107 无命令，由 one-architecture 回补聚合稿，本稿只写非中断升级提醒。
 
   - id: PRC-115
     name: 导入考勤记录并补卡

@@ -1744,7 +1744,7 @@ machines:
   - 废止（已发布 → 已废止）
   no_reverse: 已发布版本不可撤回，更正只出新版本；废止不可恢复，需要时新建条目或新版本
   open_questions:
-  - 评审中起草人撤回提交、评审逾期无命令（QC-VS-11 缺口，待用户定 8）
+  - 评审中起草人撤回提交、评审逾期中断无命令（one-architecture 回补聚合稿；骨架只写非中断升级提醒，期限待用户定 8）
   states:
   - 起草中
   - 评审中
@@ -1770,7 +1770,7 @@ machines:
     - INV-115
     steps:
     - PRC-107#2
-    note: 编辑；退回后也回到本步
+    note: 编辑；评审退回后也回到本步
   - from: 起草中
     to: 评审中
     command: 提交知识条目评审
@@ -1789,25 +1789,26 @@ machines:
     - PRC-107#4
   - from: 评审中
     to: 起草中
-    command: 〔缺〕退回知识条目
+    command: 评审知识条目
     guard: []
     steps:
-    - PRC-107#5
+    - PRC-107#4
     reverse: 退回
+    note: 评审结论为退回（不另设退回命令）
   - from: 已评审通过
     to: 已发布
     command: 发布知识条目
     guard:
     - INV-115
     steps:
-    - PRC-107#6
+    - PRC-107#5
   - from: 已发布
     to: 被取代
     command: 发布知识条目
     guard:
     - INV-115
     steps:
-    - PRC-107#6
+    - PRC-107#5
     cascade: true
     note: 修订版本发布时，其引用的被取代版本变被取代
   - from: null
@@ -1817,15 +1818,15 @@ machines:
     guard:
     - INV-115
     steps:
-    - PRC-107#7
-    note: 产生新版本（新行）起于起草中并引用被取代版本；原版本仍为已发布直至新版本发布；须重新评审
+    - PRC-107#6
+    note: 产生新版本（新行）起于起草中并引用被取代版本，经流程第三个触发从第 2 步重新进入；原版本仍为已发布直至新版本发布；须重新评审
   - from: 已发布
     to: 已废止
     command: 废止知识条目
     guard:
     - INV-115
     steps:
-    - PRC-107#8
+    - PRC-107#7
     reverse: 废止
   source_part: vs0911
 - aggregate: AGG-113
