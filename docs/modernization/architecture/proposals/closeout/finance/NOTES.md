@@ -202,7 +202,7 @@ SQ-01–SQ-33 已由 S-31 裁定：采纳或改写 23 条，已覆盖 3 条（SQ
 
 | 用语 | 用在 | 说明 |
 |---|---|---|
-| 命令暂名（聚合稿已有、词表未登记）：月结检查、发起关账、确认关账、退回开放、发起年末关账、确认年末关账、登记第 13 期启用、开放第 13 期、登记对账差异、签字接受差异、处理待处理队列、推送与重投 | PRC-101、102、104、135 | 领域，B-17 / B-19 / B-20 |
+| 命令暂名（聚合稿已有、词表未登记）：月结检查、发起关账、确认关账、退回开放、发起年末关账、确认年末关账、登记第 13 期启用、开放第 13 期、登记对账差异、签字接受差异、处理待处理队列、推送分录 | PRC-101、102、104、135 | 领域，B-17 / B-19 / B-20 |
 | 〔缺〕命令：起草科目表版本、起草映射表版本、起草授权表版本、登记外部记账确认、编制分摊规则版本、解冻资金账户；提议：冲销分摊运行、作废人工成本分配运行 | PRC-100、135、97、65 | 见 SQ-07、10、11、17；同 BC 查重通过 |
 | 单据类型暂名：供方协议审批、付款审批、费用报销审批、分摊规则审批、手工凭证审批、月结关账确认、年末关账确认、对账差异签字、利润分配决议 | 审批 | 0 条命中；聚合内确认的三项不走审批平台 |
 | 审批已通过、审批已驳回 | 审批回调事件 | 平台事件，bc 为 platform.approval；同 cost.timesheet 接审批的做法 |
@@ -316,7 +316,7 @@ SQ-01–SQ-33 已由 S-31 裁定：采纳或改写 23 条，已覆盖 3 条（SQ
 | 终止供方协议 | procurement.subcontracting | 聚合稿命令名（词表未登记） | 交 one-glossary |
 | 终止清算成本 | cost.costing | 聚合稿命令名（词表未登记） | 交 one-glossary |
 | 结算供方协议 | procurement.subcontracting | 聚合稿命令名（词表未登记） | 交 one-glossary |
-| 置付款已核销 | payables.payment | 聚合稿命令名（词表未登记） | 交 one-glossary |
+| 标记付款已核销 | payables.payment | 聚合稿命令名（词表未登记） | 交 one-glossary |
 | 草拟利润分配 | payables.payment | 聚合稿命令名（词表未登记） | 交 one-glossary |
 | 计提折旧与摊销 | accounting.fixedasset | 聚合稿命令名（词表未登记） | 交 one-glossary |
 | 试算人工成本分配 | cost.costing | 聚合稿命令名（词表未登记） | 交 one-glossary |
@@ -338,7 +338,7 @@ SQ-01–SQ-33 已由 S-31 裁定：采纳或改写 23 条，已覆盖 3 条（SQ
 | 进项转出 | accounting.tax | 聚合稿命令名（词表未登记） | 交 one-glossary |
 | 释放履约额度 | procurement.subcontracting | 聚合稿命令名（词表未登记） | 交 one-glossary |
 | 释放核销占用 | payables.payment | 聚合稿命令名（词表未登记） | 交 one-glossary |
-| 驳回释放 | accounting.tax | 聚合稿命令名（词表未登记） | 交 one-glossary |
+| 释放进项发票占用 | accounting.tax | 聚合稿命令名（词表未登记） | 交 one-glossary |
 
 另：「已作废」（PRC-94 结局）、「暂估应付已确认」「已申报无需缴款」「已放弃申报」「已决议待支付」「申请未通过」「出资已认缴」「已放弃」「已驳回」属结局词，bc 随各流程；「应付股利」「完税凭证」「税费应付」为概念用语，交 one-glossary 判是否入词表。
 
@@ -358,7 +358,8 @@ SQ-01–SQ-33 已由 S-31 裁定：采纳或改写 23 条，已覆盖 3 条（SQ
 | 更正出资实缴 | payables.payment | S-29 SQ-47 命令 | 交 one-glossary |
 | 开立会计年度 | accounting.period | S-30 ② 命令 | 交 one-glossary |
 | 登记外部记账确认 | accounting.ledger | S-30 ② 命令（原已在上表，现入骨架 PRC-93 步 3） | 交 one-glossary |
-| 标记已过账 | cost.costing | S-30 ① 命令（同薪酬结算的标记已过账，跨 bc 同名互列） | 交 one-glossary |
+| 标记成本结转已过账 | cost.costing | S-30 ① 命令（N7 定稿后与薪酬「标记薪酬已过账」分名） | 交 one-glossary |
+| 占用预算 | operations.planning（B-18，他组 AGG-80） | N7 定稿（NM6-07#7，原「预算占用」），本组 PRC-70、87 经 api 调用 | 交 one-glossary |
 | 重提过账候选、登记拒收处置结论 | operations.facts | S-29 SQ-41 命令（PRC-158） | 交 one-glossary |
 | 付款已退票、资金账户已解冻、外部法定账记账回执已到达 | 各 BC | 事件名；回执为 platform.integration 事件 | 交 one-glossary |
 | 已冲销、已退票、已撤销、已作废、挂起、部分实缴、待确认开立、待确认销户、已生成 | 各 BC | 状态值；「已冲销」用于运行单据，「已取代」只用于版本化配置（S-30 ③） | 交 one-glossary |
