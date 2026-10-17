@@ -1,4 +1,4 @@
-# one-ops 速查（2026-10-15 19:30）
+# one-ops 速查（2026-10-17 05:00+02:00）
 
 规矩：持久资源先报再做、回读再报 one-coordinator；不部署（门禁 090 / 100）；不打印密钥；取证登记 [LEGACY_READ_REGISTER](legacy-read/)（片段；总表由 build_all 生成，不入仓）。
 
@@ -20,7 +20,7 @@
 | OOS 参数 | forcitis-one-deploy-request-dev（+ -bundle / -bundle-sha256 / -statement / -statement-sig）、forcitis-one-deploy-result-dev | ✅ | R-7 |
 | 时间同步检查 | one-time-sync-check.timer（每 5 分钟，100 ms → P2、1 s → P1） | ✅ 运行 | INFRA_RUNBOOK §8 |
 | ECS 拉取 | /usr/local/sbin/forcitis-one-release、forcitis-one-release-pull.timer | ✅ 运行 | R-7 |
-| Release | v0.1.0-rc.3（6ff531ff，run 38799676121，含 #228、#235，已验签；jar sha256 fd920b98…，已放 ECS /root/one-ops-c14/app.jar 供 C-14） | ✅ | #151 |
+| Release | v0.1.0-rc.5（main 2694ecc6，run 38979438148；包 sha256 b3cef521…，jar sha256 4583f176…；本机 statement.sh verify + verify_bundle.sh 通过；已发布预发布）。更早：rc.4（f7cd54d0，jar 468d229a…，dev 当前运行版本）、rc.3、rc.2、rc.1。ECS 无 rc.5 整包（/root/one-ops-preload 里是 rc.4 的四个文件）；/root/one-ops-c14/app.jar 是 rc.4 jar | ✅ | #151 |
 | GitHub | sub 定制（不可变）；environments 只允许 main；dev 变量 3 个；仓库级构建变量 8 个（SSO 门户与 PROD_* 待替换） | ✅ | R-1、R-4、R-6、§6 |
 
 | ECS one.env | 2026-10-16 补 C-17 `SEEYON_VIEWS_ROOT_PATH`、C-18 `FORCITIS_JOBS_ENABLED=true`，`SSO_ENABLED` 改 false（t-hz07057zxlib280；备份 one.env.bak-20261016035106）；白名单仍 4 条，待用户指定保留哪 1 条 | 用 | intent 214511、215052 |
@@ -30,17 +30,27 @@
 
 | 步骤 | 下一步 | 卡在 |
 |---|---|---|
-| 首次 dev 部署 | deploy.yml dev 0.1.0-rc.1（R-11 ①⑦ 随此验证）；部署后 C-5 超管、B-12 流程管理员（用户本人） | 门禁 090（ADR-0026 数据范围）、100 / 101（#163） |
-| C-14 只读校验真实登录 | 按 [C-14](runbooks/C-14-readonly-probe.md) 执行（已批，intent #166；第 17 项追加批准，第 16 项不做） | #163 + 只读核实命令合并 → rc.2；#171 合并 |
-| dev 库重建剧本 | [dev-db-rebuild](runbooks/dev-db-rebuild.md)：删库重建 + 重置发布状态（current、previous、旧版本目录） | #174 合并；ADR-0038 用户批准前不触发 |
-| 审计分区维护角色 | 写角色、授权、建库脚本 | DDL-24 卡与 PR |
+| rc.5 部署 + grant-role（用户本人 process_administrator、super_admin，单人运维模式） | **等用户批准**。顺序（每步先报 one-coordinator）：①法兰克福临时桶放整包到 ECS（用后即删桶；安装器无本地入口，GitHub 直拉 ~19 KB/s）；②dev 手工装 rc.5（ECS 上 source 已装的 /usr/local/sbin/forcitis-one-release，只覆盖 read_request、write_result、download_asset，新 request_id 如 manual-20261017-1，migrate 函数按 rc.4 的做法改 servlet+随机端口；非首次安装，不放 Flowable 四项；停服约 2–3 分钟；装前列出 rc.5 比 rc.4 多的迁移）；③one.env（先备份）加 FORCITIS_PLATFORM_IDENTITY_SINGLE_OPERATOR_MODE=true；④identity-operations 不带 --witness，依次 grant-role super_admin、process_administrator，命令用 --spring.profiles.include=identity-operations（并 -p UnsetEnvironment=SERVER_PORT、MANAGEMENT_SERVER_PORT、MANAGEMENT_SERVER_ADDRESS），员工 ID 末 6 位 6cd894（已与用户核对登录名末 4 位 9968）；⑤删 FORCITIS_PLATFORM_APPROVAL_PROCESS_ADMINISTRATOR_REQUIRED=false 并重启，确认自检与健康；⑥报用户 | 用户批准 |
+| SINGLE-OP-GATE（P4 部署闸门） | 卡在 one-1a-par 文档分支 claude/one-1a-par-docs@33e345a2 的 phase1a/cards/SINGLE-OP-GATE.md：systemd ExecStartPre、安装器正则与 DropInPaths、deploy_gate C-11、PREDEPLOY C-11/C-12、运维手册改 --spring.profiles.include、SECURITY_INVARIANTS I-14、P1-18 扫描范围；测试代理先写验收，实现 sonnet，opus 首轮+终审，一个代码 PR；挡生产不挡 dev | 排在 rc.5 部署之后 |
+| 取证（ADR-0037，只出聚合，各登记片段） | 已交：Q-02 及补充、E-B1、E-B2、E-B6、N/V/S、F05-06、F05-09；待做：E-B3（退回/驳回/撤回比例）、E-B4（岗位待办与处理时长）、E-B5（客户签认等待）、E-B7（角色持有人数）、E-B8（外部回执时长），清单见 one-architecture 分支的 closeout/BURDEN_ANALYSIS_PLAN.md；收入专题 C1–C11（见 one-coordinator 消息里的 REVENUE_AEC_CONTRACT_MODELS.md 取证需求一节）；Q-04 E1–E10 | 逐项做；STATE/SUB_STATE 等枚举 A8 内无含义，须标注推测 |
+| 缺陷卡（首次部署暴露，部署后开） | ①current→bootstrap 被当版本比较（cmd_pull）；②应用没有 migrate 模式（无 application-migrate.properties，旧路径 web=none 起不来）；③one.env.template 与安装器校验缺 ARCHIVE_STORE_* 五项；④服务单元 ReadWritePaths 缺归档目录（INFRA_RUNBOOK §5.3 与单元不一致）；⑤首次启动 process_administrator 鸡生蛋 | 待开卡报 one-coordinator |
+| dev-db-rebuild 剧本 | 补一步「重新导入 2016–2026 与 2027 工作日历」（#396 合入后下次 dev 部署须按此重建开发库） | 待写（文档分支） |
+| 运维手册 profile 形态 | 改 --spring.profiles.active=<自身> 为 --spring.profiles.include=<自身>（dev 开单人模式前必须改好；随 SINGLE-OP-GATE 一并） | 同上 |
+| 审计分区维护角色（#370） | 单开 PR：c3/c9 建库脚本新建 one_*_audit_maintainer（LOGIN NOINHERIT CONNECTION LIMIT 1）、*_after_migrations.sql 授权、INFRA_RUNBOOK §5.3「在线行暂不删除」是否改写 | 等 #370 合入、出下一个 rc |
 | 迁入 ID 对照 | 抽取 | ADR-0037 实现 |
+
+## 近期完成（2026-10-16/17）
+
+- C-14 完成，阻塞项 101 已删（#414，文档 PR）；工具演进：探针账号经 RDS 云接口建删（#394）、第 15/17 项认平台拒绝（#399、#407）、rdscore 里 one_readonly_probe 用户为永久已知残留（msdb 随 DeleteAccount 清除）；第 14 项 (g) 口径待 one-1a-par、生产前须定。
+- dev 手工装 rc.4 成功运行（https://one.forcitis.com ，企业微信扫码登录；WECOM_ENABLED=true；A8 视图与组织同步已开；归档凭据 403 告警待另议）。
+- 发布门禁（#438）：ci_passed.py 沿第一父链证明重步骤（合并 PR 头的完整 pull_request 运行、步骤未跳过、与 M 只差纯文档，schedule 兜底）；残余风险用户 2026-10-16 已接受（写权限者可伪造同头 PR，见 RELEASE.md）。
+- 文档分支（新规：文档不开 PR，推分支报提交号）：origin/claude/one-ops-r56（OPS_CONTEXT/RESOURCES/画像）、origin/claude/one-ops-r60（取证登记片段与取证 SQL，取证 SQL 在 handoff/B-5-dba/evidence/）。
 
 ## 待批 / 待办
 
 - 首次真实换 STS：核对实际 sub（job_workflow_ref 段）
 - OIDC 首部署成功后：提醒用户删 R-13 后备令牌
-- 首次 dev 部署通过后：删 /root/one-ops-backup-20261015020632；白天测 GitHub 直拉速度
+- dev 稳定后：删 /root/one-ops-backup-20261015020632、one.env 各备份、/root/one-ops-preload、/root/one-ops-c14/app.jar、/data/forcitis-one/current.bootstrap-link；一次性脚本在会话 scratchpad（会话清理即失）
 - 构建变量待替换：SSO 门户地址（B-3 回传后）、PROD_*（生产前确认）
 - 拉取单元沙箱收紧：首次 dev 部署跑通后、下次改安装器或单元时（RELEASE §10，#157）
 - #228 合并后复核：迁移进程（migrate 模式参数未覆盖 FORCITIS_JOBS_ENABLED，沿用 one.env 的 true）不挂定时作业——migrate 模式在建上下文前退出，预期不挂；只有无 migrate 模式的旧包走整应用启动（#227 复审第 5 条）
@@ -58,6 +68,8 @@
 - 安装器比对 current 的 migrations.txt：基线文件被改后第二次部署必失败 → [dev-db-rebuild](runbooks/dev-db-rebuild.md) 第 6 步
 - corepack 按启动目录选 pnpm 版本 → 进 frontend 再调（#151、#156）
 - CI 偶发 postgres:18 测试容器起不来 → `gh run rerun --failed`
+
+- 工作方式：生产取证走 handoff/B-5-dba/tools/b5_evidence_scan.py（one_evidence_ro，两库各跑；SQL 里用 DB_NAME() 守卫只在 a8_db 出结果）；工具与 c14_run 等必须与 origin/main 逐字节一致；本机无 timeout 命令；`timeout`/管道会让长任务出问题，长任务用 run_in_background。
 
 ## 偏离记录
 
