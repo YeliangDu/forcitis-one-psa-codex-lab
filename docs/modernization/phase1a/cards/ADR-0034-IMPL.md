@@ -101,7 +101,7 @@
 | 0034-G3-03 | 文本守护：`src/main` 中触及 `account_role_grants`、`role_versions` 的 SQL 要么引用当前有效谓词常量、要么属于 `AuthorizationHistory`；注入一条手写 `effective_to_at is null` 的 SQL 被拦下 | 3 |
 | 0034-G4-01 | 同步标为离职：当前有效授予为零（含 `super_admin`、安全审计员）；授予行总数不变；每行原因 `SEPARATION`、带同步运行 ID 与审计条目 ID；每关一行一条 `platform.identity.account.role.revoked`，detail 含授予行 ID、原因、实际钟点；应急账号停用、会话吊销 | 3 |
 | 0034-G4-02 | HELD 期间不关闭；放行后关闭 | 3 |
-| 0034-G4-03 | 复职：重新标为在职后，只新开一条 `employee` 授予，渠道 `DEFAULT_ROLE`，写审计；离职前其他授予仍关闭（D-1a-17） | 3 |
+| 0034-G4-03 | 复职（`EmployeeReinstated` 事件触发，先核对目录当前状态，幂等）：重新标为在职后，只新开一条 `employee` 授予，渠道 `DEFAULT_ROLE`，写审计；离职前其他授予仍关闭（D-1a-17） | 3 |
 | 0034-G5-01 | 固定时钟「开立即关」：同一时刻开启并关闭得到零长区间，关闭成功、会话吊销；该行不出现在任何时刻的还原中 | 3 |
 | 0034-G5-02 | 时钟回拨到开启时刻之前再关闭：关闭时刻取开启时刻，成功，会话吊销，审计 detail 记实际钟点 | 3 |
 | 0034-G5-03 | 角色版本：时钟回拨时新版本开始时刻不早于当前版本，也不早于已关闭版本的最大失效时刻 | 2 |
@@ -476,7 +476,7 @@ CREATE TRIGGER tg_roles_identity_immutable BEFORE UPDATE ON platform_identity.ro
 - **A-10** **已裁定（one-architecture 2026-10-17）**：不改负载，在事件目录契约里写明信封 aggregateId 即同步运行 ID（即 ADR 所说“在契约中补上”）。原问题：ADR 第 3 项第 1 条「同步运行 ID 由 `OrgSnapshotChanged` 提供，现有负载没有该字段的，实现时在事件契约中补上」：负载确实没有，信封 `aggregateId` 就是同步运行 ID（`SyncRun.java`:240）。本卡草拟读信封、不改负载与事件契约。
 - **A-11** **已裁定（one-architecture 2026-10-17）**：接受（具名与配对约束比字面更严，属实现落点）。原问题：ADR 迁移方案第 2 条把 `authorization_requests` 的差异限为「加两列与一个状态值」；本卡重写状态 CHECK 时按 NAMING_STANDARD §2.4 具名（`ck_authorization_requests_request_status`），并加 `ck_authorization_requests_base` 配对约束——超出字面。
 - **A-12** **已裁定（one-architecture 2026-10-17）**：授权数据归 platform.identity 自有，出处 ADR-0034 与数据访问注册表，不进信息图。原问题：信息图（`architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md`）没有角色、角色版本、角色授予的对象（同 F-1 A-1，F-1 卡已检索），门禁 B1 业务类表无对象即停。请补对象或给出平台授权对象的出处口径。
-- **A-13** 复职的判定：ADR「同步把离职者重新标为在职时」；`OrgSnapshotChanged` 只给 `changedEmployees`，`OrgDirectory` 只给当前在职状态，没有「由离职转在职」的事实。本卡草拟：账号存在、当前在职、无当前有效授予，且该账号最近一次授予变化是 `SEPARATION` 关闭、其后无新开授予时，开 `DEFAULT_ROLE` 的 `employee`。离职时本无角色的账号（今天 `recordSeparation` 对空角色不写任何东西）复职时不会被识别——是否需要 workforce 提供「复职」事实，请裁定（或交 one-rules）。（进展 2026-10-17：workforce「离职转在职」事实卡已由 one-coordinator 派 one-1a-next-5，NITS-1 之后；本卡 PR-3 依赖它，开工前先与其对齐事实的接口形状，PR-1、PR-2 照常推进。）
+- **A-13** **已裁定并对齐（one-architecture 2026-10-17；契约 one-1a-next-5 卡 `WF-REINSTATE.md` §6、§6a）**：不靠授予历史推断。workforce 在“已落库的离职→在职”那次成功同步的事务内发布单独事件 `EmployeeReinstated`（载荷 `employeeId`、`effectiveFrom`，同步运行 ID 读信封，每人一个事件，去重键 eventId；不加 workforce api 方法，不改 `OrgSnapshotChanged` v1）。本卡 PR-3 的 identity 监听器用 `@ApplicationModuleListener`（提交之后、异步、可重投），先核对目录当前状态，账号当前在职且没有有效授予时才开 `DEFAULT_ROLE` 的 `employee`；离职分支乱序时也先核对当前状态再收回。PR-3 依赖 `WF-REINSTATE` 卡先合入；PR-1、PR-2 不依赖。原问题：复职的判定：ADR「同步把离职者重新标为在职时」；`OrgSnapshotChanged` 只给 `changedEmployees`，`OrgDirectory` 只给当前在职状态，没有「由离职转在职」的事实。本卡草拟：账号存在、当前在职、无当前有效授予，且该账号最近一次授予变化是 `SEPARATION` 关闭、其后无新开授予时，开 `DEFAULT_ROLE` 的 `employee`。离职时本无角色的账号（今天 `recordSeparation` 对空角色不写任何东西）复职时不会被识别——是否需要 workforce 提供「复职」事实，请裁定（或交 one-rules）。
 
 ### 待 one-coordinator 定
 - **C-1** **已裁定（one-coordinator 2026-10-17）**：按台账“dev 前阻塞”口径（NEXT_BATCH_PLAN 第 8 节）：须在 dev 正式交用户使用前完成，不挡 rc.6 重建；DATA-REPAIR-identity 的“生产前闸门”表述同步改为一致。原问题：时点口径不一致：NEXT_BATCH_PLAN:587 与 ADR-0034 第 6 项「首次部署任何环境前」/「dev 前」；DATA-REPAIR-identity §6 写「R-1 `roles` 版本化 … 生产前闸门（用户「同意，不挡 dev」）」。以哪条为准（先问 one-data / one-ops 是否另有答复）。
