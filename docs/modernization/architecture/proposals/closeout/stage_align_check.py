@@ -1,8 +1,9 @@
 """阶段对齐检查（只读）：流程目录与三组骨架，对照价值流阶段的进出条件。
 
-用法: python3 -I stage_align_check.py [--local] [--no-write] [--self-test]
+用法: python3 -I stage_align_check.py [--local] [--extra PATH]... [--no-write] [--self-test]
   默认          骨架读 origin/claude/one-arch-<组>-closeout（沿用 closeout_check.read_group_file）
   --local       骨架读 closeout/<组>/ 本地文件
+  --extra PATH  按 ID 覆盖或追加流程，后给的文件优先；归段说明骨架优先、目录兜底
   --no-write    只打印，不写 STAGE_ALIGN_REPORT.md
   --self-test   最小样例覆盖六项检查
 
@@ -191,15 +192,11 @@ def load_alias_map(path=GLOSSARY):
     return amap
 
 
-def load_skeletons(local):
+def load_skeletons(local, extra=None):
     import closeout_check as cc
     units = {}
-    for g in GROUPS:
-        txt = cc.read_group_file(g, "proc", local)
-        if not txt:
-            print(f"警告：读不到 {g} 组骨架（{'本地' if local else 'origin 分支'}）", file=sys.stderr)
-            continue
-        for _, u in cc.units_of(yaml.safe_load(txt)):
+    for doc in cc.load_process_docs(local, extra).values():
+        for _, u in cc.units_of(doc):
             units[u["id"]] = (u, cc.unit_steps(u))
     return units
 
@@ -656,7 +653,7 @@ def analyze(vs_doc, catalog, skeletons, onames, alias_map, machines=None, aggs=N
         # 目录标了但判据不支持
         no_sup = [x for x in cat if x not in sup]
         if no_sup and not unres:
-            note = str(p.get("stages_note") or "")
+            note = str((u[0].get("stages_note") if u and "stages_note" in u[0] else p.get("stages_note")) or "")
             expl = [x for x in no_sup if note and x in note]   # stages_note 点到该段 id：已说明（有理由）
             rest = [x for x in no_sup if x not in expl]
             if expl:
@@ -1145,6 +1142,27 @@ def self_test():
     assert "B" not in [r["id"] for r in P6n["unsupported"]] and [r["id"] for r in P6n["explained"]] == ["B"], (P6n["unsupported"], P6n["explained"])
     c6b = [dict(x, stages_note="留 VS-Z.9") if x["id"] == "B" else x for x in cat6]
     assert "B" in [r["id"] for r in analyze(vs6, c6b, sk6, on6, {})["place"]["unsupported"]]   # 未点到该段照常计入
+    sk6n = dict(sk6, B=(dict(sk6["B"][0], stages_note="骨架说明 VS-Z.1"), []))
+    noted = analyze(vs6, c6b, sk6n, on6, {})["place"]
+    assert [r["id"] for r in noted["explained"]] == ["B"] and noted["explained"][0]["note"] == "骨架说明 VS-Z.1"
+    sk6wrong = dict(sk6, B=(dict(sk6["B"][0], stages_note="骨架只说明 VS-Z.9"), []))
+    assert "B" in [r["id"] for r in analyze(vs6, c6, sk6wrong, on6, {})["place"]["unsupported"]]
+    sk6empty = dict(sk6, B=(dict(sk6["B"][0], stages_note=""), []))
+    assert "B" in [r["id"] for r in analyze(vs6, c6, sk6empty, on6, {})["place"]["unsupported"]]
+    import closeout_check as cc
+    import tempfile
+    from unittest.mock import patch
+    with tempfile.TemporaryDirectory() as directory:
+        path = Path(directory) / "extra.yaml"
+        path.write_text(yaml.safe_dump({"processes": [dict(cat6[1], **sk6n["B"][0]), dict(cat6[0], id="NEW", name="新增", outcomes=["甲已完成"])]}), encoding="utf-8")
+        extra = cc.load_extra_units(cc.extra_paths(["--extra", str(path), "--extra", str(path)]))
+        with patch.object(cc, "read_group_file", return_value=None), patch("sys.stderr"):
+            loaded = load_skeletons(True, extra)
+        assert set(loaded) == {"B", "NEW"} and loaded["B"][0]["stages_note"] == "骨架说明 VS-Z.1"
+        cextra = cc.overlay_catalog(cat6, extra)
+        pextra = analyze(vs6, cextra, dict(sk6, **loaded), on6, {})["place"]
+        assert "B" in [r["id"] for r in pextra["explained"]]
+        assert pextra["ok"] == P6["ok"] + 1, pextra
     assert [r["id"] for r in P6["unsupported"]] == ["B", "D"] and P6["unsupported"][0]["exact"].keys() == {"VS-Z.2"}, P6["unsupported"]
     assert {r["id"]: r["stages"] for r in P6["missing"]} == {"B": ["VS-Z.2"], "C": ["VS-Z.2"], "D": ["VS-Z.2"]}, P6["missing"]
     assert sorted(r["id"] for r in P6["uncertain"]) == ["E", "F"], P6["uncertain"]   # 读模型、触发事件对不上
@@ -1207,11 +1225,15 @@ def main():
         self_test()
         return
     local = "--local" in sys.argv
-    vs_doc = yaml.safe_load(VS_FILE.read_text(encoding="utf-8"))
-    catalog = yaml.safe_load(CATALOG.read_text(encoding="utf-8"))["processes"]
-    skeletons = load_skeletons(local)
-    onames = load_objnames()
     import closeout_check as cc
+    try:
+        extra = cc.load_extra_units(cc.extra_paths(sys.argv[1:]))
+    except ValueError as error:
+        sys.exit(str(error))
+    vs_doc = yaml.safe_load(VS_FILE.read_text(encoding="utf-8"))
+    catalog = cc.overlay_catalog(yaml.safe_load(CATALOG.read_text(encoding="utf-8"))["processes"], extra)
+    skeletons = load_skeletons(local, extra)
+    onames = load_objnames()
     machines, aggs = load_machines(local), cc.load_aggregates()
     R = analyze(vs_doc, catalog, skeletons, onames, load_alias_map(), machines, aggs, load_event_map(local, machines, aggs))
     procs = [p for p in catalog if p.get("type") != "merged"]

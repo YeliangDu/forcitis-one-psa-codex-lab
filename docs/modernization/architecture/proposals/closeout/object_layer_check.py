@@ -1,10 +1,11 @@
 """对象层与能力层对齐（只读；BIZBOK §3.4 第二、三层）：流程主对象、阶段承载对象、流程推出的能力与阶段能力清单。
 
-用法: python3 -I object_layer_check.py [--local] [--no-write] [--self-test]
+用法: python3 -I object_layer_check.py [--local] [--extra PATH]... [--no-write] [--self-test]
   输入  process-catalog.yaml（primary_object 为三组确认值，经 sync_catalog_stages 从骨架同步）；
         process-objects.yaml（object_check.py --objects-yaml 生成，先跑它）；value-streams.v2.yaml（各段 exit、capabilities）；
         capabilities.v2.yaml（对象 → 一级 / 二级能力）；stage_align_check.analyze 的归段命中（hit_refs）。
   输出  object-layer.yaml（生成，供对齐图读）与 OBJECT_LAYER_REPORT.md；--no-write 只打印汇总。
+  --extra PATH 按 ID 覆盖或追加流程（可重复，后给的优先）；附加流程的对象读写关系在内存中重算。
 
 主对象提议（目录未填 primary_object 时）：只取本流程写入（C/U/D）的对象，按档取第一档非空者——
   1 所标段退出条件精确命中；2 所标段段内状态精确命中；3 退出或段内近似命中；4 所标段退出条件引用到的对象；5 唯一写入对象。
@@ -285,6 +286,16 @@ def render_md(A, onames):
     return "\n".join(out) + "\n"
 
 
+def overlay_process_objects(pobj_doc, extra, aggs, machines):
+    import closeout_check as cc
+    import object_check as oc
+    docs = cc.merge_process_docs({}, extra)
+    new_aggs, _ = cc.load_allocations()
+    result = oc.analyse(docs, aggs, new_aggs, oc.load_catalog(), machines=machines)
+    refreshed = yaml.safe_load(oc.render_objects_yaml(result))["processes"]
+    return dict(pobj_doc, processes=[p for p in pobj_doc.get("processes") or [] if p["id"] not in extra] + refreshed)
+
+
 def self_test():
     vs = {"value_streams": [{"id": "VS-X", "stages": [
         {"id": "VS-X.1", "name": "一", "capabilities": ["CAP-001"], "exit": {"all": [{"ref": "OBJ-01", "state": "完"}]}},
@@ -319,6 +330,30 @@ def self_test():
            ok("② 次要对象算承载", ("VS-X.2", "OBJ-03") not in A["D"]["uncarried"] and ("VS-X.1", "OBJ-01") not in A["D"]["uncarried"]),
            ok("次要对象须本流程写入", [x["id"] for x in A["D"]["sec_bad"]] == ["P7"]),
            ok("④ 二级能力上溯一级后核对", any(x["id"] == "P4" for x in A["D"]["cap_off"]) and not any(x["id"] == "P3" for x in A["D"]["cap_off"]))]
+    import closeout_check as cc
+    import object_check as oc
+    import tempfile
+    from unittest.mock import patch
+    with tempfile.TemporaryDirectory() as directory:
+        first, last = Path(directory) / "first.yaml", Path(directory) / "last.yaml"
+        first.write_text(yaml.safe_dump({"processes": [dict(cat[0], steps=[{"aggregate": "AGG-1", "command": "修改"}]),
+                                                        {"id": "P9", "name": "新增", "stages": ["VS-X.1"], "steps": [{"aggregate": "AGG-9", "command": "修改"}]}]}), encoding="utf-8")
+        last.write_text(yaml.safe_dump({"read_models": [{"id": "P1", "name": "只读", "stages": ["VS-X.1"], "reads": ["AGG-2"]},
+                                                        {"id": "P8", "name": "无读取"}]}), encoding="utf-8")
+        extra = cc.load_extra_units(cc.extra_paths(["--extra", str(first), "--extra", str(last)]))
+        full_aggs = {a: {"objs": objs, "bc": "B-1", "commands": ["修改"], "name": a} for a, objs in dict(aggo, **{"AGG-9": ["OBJ-09"]}).items()}
+        with patch.object(cc, "load_allocations", return_value=({}, {})), patch.object(oc, "load_catalog", return_value={}):
+            refreshed = overlay_process_objects(pobj, extra, full_aggs, {})
+        objects = {p["id"]: p["objects"] for p in refreshed["processes"]}
+        assert objects["P1"][0]["obj"] == "OBJ-02" and objects["P1"][0]["ops"] == "R"
+        assert "P8" not in objects and objects["P2"] == pobj["processes"][1]["objects"]
+        assert objects["P9"][0]["obj"] == "OBJ-09" and objects["P9"][0]["ops"] == "U"
+        updated = analyse(cc.overlay_catalog(cat, extra), refreshed, {a: v["objs"] for a, v in full_aggs.items()}, vs, caps, {})
+        ur = {r["id"]: r for r in updated["rows"]}
+        assert ur["P1"]["status"] == "read_model" and ur["P1"]["writes"] == []
+        assert ur["P9"]["primary_object"] == "OBJ-09" and "P9" in {r["id"] for r in updated["D"]["cap_off"]}
+        assert pobj["processes"][0]["objects"][0]["obj"] == "OBJ-01"
+        print("自测 --extra：重复覆盖、追加、对象读写重算、旧关系移除、能力偏离仍检出：通过")
     if not all(res):
         sys.exit(1)
     print("自测 通过")
@@ -329,15 +364,22 @@ def main(argv):
         return self_test()
     import closeout_check as cc
     local = "--local" in argv
+    try:
+        extra = cc.load_extra_units(cc.extra_paths(argv))
+    except ValueError as error:
+        sys.exit(str(error))
     if not POBJ.exists():
         sys.exit("缺 process-objects.yaml：先跑 object_check.py --objects-yaml")
     vs_doc = yaml.safe_load(sac.VS_FILE.read_text(encoding="utf-8"))
-    catalog = yaml.safe_load(sac.CATALOG.read_text(encoding="utf-8"))["processes"]
+    catalog = cc.overlay_catalog(yaml.safe_load(sac.CATALOG.read_text(encoding="utf-8"))["processes"], extra)
     onames = sac.load_objnames()
     machines, aggs = sac.load_machines(local), cc.load_aggregates()
-    R = sac.analyze(vs_doc, catalog, sac.load_skeletons(local), onames, sac.load_alias_map(), machines, aggs,
+    R = sac.analyze(vs_doc, catalog, sac.load_skeletons(local, extra), onames, sac.load_alias_map(), machines, aggs,
                     sac.load_event_map(local, machines, aggs))
-    A = analyse(catalog, yaml.safe_load(POBJ.read_text(encoding="utf-8")), {a: v.get("objs") or [] for a, v in aggs.items()},
+    pobj_doc = yaml.safe_load(POBJ.read_text(encoding="utf-8"))
+    if extra:
+        pobj_doc = overlay_process_objects(pobj_doc, extra, aggs, machines)
+    A = analyse(catalog, pobj_doc, {a: v.get("objs") or [] for a, v in aggs.items()},
                 vs_doc, yaml.safe_load(CAPS.read_text(encoding="utf-8")), R["hit_refs"],
                 inner_children(sac.INFO_MAP.read_text(encoding="utf-8"), {a: v.get("objs") or [] for a, v in aggs.items()}), load_categories())
     md = render_md(A, onames)
