@@ -1,17 +1,21 @@
 # one-coordinator 台账（速查）
 
-只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-16 18:05（one-coordinator）
+只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-16 21:45（one-coordinator）
 
 ## 作战图（派工前先看；SESSION_PLAYBOOK §11「战队协作」第 5 条）
 | 主线 | 负责 | 当前 | 下一步 | 阻塞 |
 |---|---|---|---|---|
-| dev 首次部署 · C-14 | one-ops | rc.4 经法兰克福 OSS 中转到 ECS；C-14 第一步三账号全 PASSED；探针被预检拦：u8c 在 msdb、rdscore 无 VIEW DEFINITION/ALTER ANY USER，RDS 删登录不清系统库用户（两库各留孤儿 one_readonly_probe）；用户选 B（RDS 接口建删同名账号试清理） | B 成功→改 c14_run 用 USER_ID 回读、opus 复审→跑探针→删 101→用户批准→北京夜里部署；B 失败→用户控制台手工删（A） | 安装器只认 GitHub（部署后改卡：本地预置包+签名校验） |
-| 架构收尾（全貌级） | one-architecture + one-arch-revenue / finance / people（临时，已解绑顶层） | 收尾计划 #384 已合；三组初稿已出（未评审）；样板页 5TrrTc7…（待用户）；用户要求先定「流程设计方法」：唯一流程目录、标准 BPMN 2.0.2（.bpmn+bpmn-js）、上下游追溯 | 方法稿+研究→opus→批准页；批准前三组不铺开（intent 155312/155412） | 约 3 个工作日 |
-| 收入确认专题 | one-architecture / one-rules / one-arch-revenue | 用户事实：对外财报与增值税按开票；权责以客户确认为准；进度估计只作内部产值；无法定审计；企业会计准则 | A1 后续页 TaLY2… 待用户；Q-04 合并页；ADR-0047 无外部审计修订 | — |
-| 数据修复批 | one-1a-next-5 | 全部 PR 已开：#349 #354 #366 #369 #370 #377 #383 #387 在队；#388 文档 | 依序合入 | 签发 #343 已合 |
-| 工时唯一 TS-UNIQ | one-1a-par | #335 已合；#340 实现在队（CI 环境偶发重排） | 合入后重建开发库→TA 部分 | — |
-| 质量与工具 | one-quality | 工件治理工具 #371 #374 #375 #376 #381 在队；#392 偶发测试根因修复在队；合并队列评估：Team 套餐不可用，不迁 | 错题本迁移；小批量合集脚本（PR 额度降下后） | 在制 PR 超 3 |
-| 用语 / 岗位 | one-glossary / one-data | 用语 PR #320 #339 #355 #358 #389 未报→入今晚合集；岗位映射 #363 已合 | J-1/J-2 职级页 | — |
+| dev | one-ops / one-1a-par | rc.4 运行；用户已用企业微信扫码登录成功（WECOM_ENABLED=true，用户批准）；C-14 完成、101 已删；SINGLE-OP P1 #415 已合 | P2 → 新 rc → grant-role 用户本人（员工 ID 末 6cd894）process_administrator+super_admin → 删 PROCESS_ADMINISTRATOR_REQUIRED=false 开关重启 | P2 在写 |
+| 流程与业务架构对齐 | one-architecture + 三组 | 阶段层：SD-01～10 已裁（#422）；对象层：主对象脚本提议、三组确认中；VS01-10 定独立流程「作出参投决策」（#428）；已派五件（#429）：支撑本段、配置补读关系、内部服务价值流评估、集成类型、业务/管理/支撑分类 | 数据到后刷新对齐图（scratchpad(e1ce474b)/align/refresh.sh 后以同 file_path+files 重发；流程栏按业务/管理/支撑分三行，归属实线、支撑虚线，集成单列） | — |
+| 命名与用语 | one-architecture / one-glossary / one-quality | 规则在 PROCESS_METHOD_DRAFT §11、name_id_check.py；用户定「先规范再登记」（#430）：架构产物只用规范名，改名对照表与用语决策单合并交用户，认可后再登记、再定稿；对象名一律名词（结果或记录）；86 个对象未登记 | #431 拆分：审计报告与用语问题先合，提议稿改为规范名+原名别名后随页交用户；one-quality 写架构用语检查 | — |
+| 确认页 | one-architecture | 7 页在收件箱，用户暂不作答，待对齐与命名后一次改版 | PAGE_IMPACT.md | 对齐完成 |
+| CI 与合并 | 调度 / one-quality | 队列串行；merge_pr.sh 打 queued；#406（重步骤入队才跑）在队；合集 #411 #412 #405 在队 | #406 合入后核后缀 | — |
+
+## 调度惯例（本日新增）
+- 不向会话要排期、不向用户转报估算（记忆 no-schedule-relay）。
+- 会话报完成点即 get_usage 兜底查用量（≥75% 准备、≥85% 立即在批次边界交接）。
+- 对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL 只读源文件原样副本（src/），不在页里做人工映射。
+- 工作台 https://claude.ai/artifact/TXzKwZFyzVUNEXxQW9M16r ：sync.py 后 batch set board/{lines,cards,prs,meta}（版本号见 on-merge.txt）。
 
 ## 授权与边界
 - 合并 PR、开会话、派子代理：调度自定（「合 PR 交给你审核，决定权给你」）。不替用户定：部署、生产变更、购买、对外账号、ADR 变更。

@@ -24,7 +24,10 @@ categories:
   - platform.identity.AuthorizationRejected
   - platform.identity.grant.refused
   - platform.identity.operations.account.role.granted
+  - platform.identity.operations.account.role.revoked
   - platform.identity.privileged.request
+  - platform.identity.single-operator-mode.applied
+  - platform.identity.single-operator-mode.enabled
   - platform.identity.AccountDisabled
   - platform.identity.AccountEnabled
   - platform.identity.AccountOpened

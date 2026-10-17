@@ -22,7 +22,7 @@ def verdict(output, returncode, action="提 PR", retry="gh pr create"):
     if returncode == 0 and last and last[-1].endswith("— ready"):
         return None
     tail = "\n".join(output.splitlines()[-40:])
-    ask = "\n前端依赖未装：需先问用户安装依赖（pnpm install --frozen-lockfile 会下载包），用户同意后再装。" if "需先问用户安装" in output else ""
+    ask = "\n前端依赖未装：先用 pnpm install --frozen-lockfile --offline（只用本机缓存、不下载）；缓存缺包而失败时，再问用户是否联网安装。" if "前端依赖未安装" in output else ""
     return f"precheck.sh 未全过（退出码 {returncode}），不能{action}。先修好或按提示问用户，再重新 {retry}：{ask}\n{tail}"
 
 
@@ -62,7 +62,7 @@ def self_test():
     assert verdict("SUMMARY: 6 PASS, 1 FAIL, 7 SKIP (base origin/main) — not ready\n", 1)
     assert verdict("SUMMARY: 7 PASS, 0 FAIL, 7 SKIP (base origin/main) — ready\n", 1), "退出码非 0 即拒绝"
     assert verdict("没有 SUMMARY 行\n", 0), "没有 SUMMARY 行即拒绝"
-    assert "需先问用户安装依赖" in verdict("FAIL frontend verify 前端依赖未安装：需先问用户安装\nSUMMARY: 1 PASS, 1 FAIL, 0 SKIP (base origin/main) — not ready\n", 1)
+    assert "pnpm install --frozen-lockfile --offline" in verdict("FAIL frontend verify 前端依赖未安装：先在 frontend/ 运行 pnpm install --frozen-lockfile --offline\nSUMMARY: 1 PASS, 1 FAIL, 0 SKIP (base origin/main) — not ready\n", 1)
     print("precheck_before_pr self-test: ok")
     return 0
 

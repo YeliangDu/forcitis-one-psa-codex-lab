@@ -36,9 +36,10 @@ public class GrantRoleByOperations {
     private final AccessCache cache;
     private final DomainEvents events;
     private final AuditLog audit;
+    private final SingleOperatorMarks marks;
 
     GrantRoleByOperations(AccountRepository accounts, RoleRepository roles, AccountProvisioning provisioning,
-            SessionRegistry sessions, AccessCache cache, DomainEvents events, AuditLog audit) {
+            SessionRegistry sessions, AccessCache cache, DomainEvents events, AuditLog audit, SingleOperatorMarks marks) {
         this.accounts = accounts;
         this.roles = roles;
         this.provisioning = provisioning;
@@ -46,6 +47,7 @@ public class GrantRoleByOperations {
         this.cache = cache;
         this.events = events;
         this.audit = audit;
+        this.marks = marks;
     }
 
     /** True when the role was added. */
@@ -65,8 +67,9 @@ public class GrantRoleByOperations {
         events.publish(account);
         sessions.revokeAll(person);
         cache.evict(person);
-        audit.record(new AuditEntry("platform.identity.operations.account.role.granted", null, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, person.value()),
-                attestation.describe() + " role=" + role.code().value()));
+        AuditSubject subject = AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, person.value());
+        audit.record(new AuditEntry("platform.identity.operations.account.role.granted", null, null, subject, attestation.describe() + " role=" + role.code().value()));
+        marks.witnessOmitted(attestation, subject);
         return true;
     }
 }

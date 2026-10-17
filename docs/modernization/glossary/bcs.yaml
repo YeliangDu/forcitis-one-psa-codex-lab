@@ -170,6 +170,12 @@ bcs:
   kind: bc
   business_owner: 用户兼任
   description: ""
+- id: organization.administration
+  zh: 行政事务
+  subdomain: organization
+  kind: bc
+  business_owner: 用户兼任
+  description: "用印、印章等行政事务（B-31；用户 intent 2026-10-16-152807 选新增行政事务 BC）"
 - id: accounting
   zh: 财务
   subdomain: accounting
@@ -276,7 +282,7 @@ bcs:
   kind: system
   status: proposed
   subdomain: platform
-  description: "致远；组织主数据与单点登录验票的外部系统，由集成模块的防腐层读取"
+  description: "致远（产品 A8 协同办公）；组织主数据与单点登录验票的外部系统，由集成模块的防腐层读取"
 - id: org_source
   zh: 组织源
   en: OrgSource
@@ -290,7 +296,7 @@ bcs:
   kind: system
   status: proposed
   subdomain: platform
-  description: "接收凭证的核算系统，来源系统取值 ACCOUNTING_SYSTEM；法人在其中的数字编码（核算组织编码）登记在来源对照里"
+  description: "接收凭证的核算系统（用友 U8C），来源系统取值 ACCOUNTING_SYSTEM；法人在其中的数字编码（核算组织编码）登记在来源对照里"
 - id: legacy_system
   zh: 老系统
   en: LegacySystem
@@ -312,6 +318,27 @@ bcs:
   status: proposed
   subdomain: platform
   description: "公司门户，致远单点登录的入口"
+- id: fenbeitong
+  zh: 分贝通
+  en: Fenbeitong
+  kind: system
+  status: proposed
+  subdomain: platform
+  description: "差旅与费用外部服务商；只在防腐层与集成册出现，领域模块不出现其名称（#432 架构用语门禁报告建议登记）"
+- id: aliyun_oss
+  zh: 阿里云 OSS
+  en: AliyunOss
+  kind: system
+  status: proposed
+  subdomain: platform
+  description: "对象存储外部服务；只在防腐层与集成册出现，领域模块不出现其名称（#432 架构用语门禁报告建议登记）"
+- id: digital_invoice_platform
+  zh: 数电发票平台
+  en: DigitalInvoicePlatform
+  kind: system
+  status: proposed
+  subdomain: platform
+  description: "全面数字化电子发票外部平台；只在防腐层与集成册出现，领域模块不出现其名称（#432 架构用语门禁报告建议登记）"
 - id: masterdata
   zh: 主数据
   subdomain: masterdata
@@ -330,6 +357,12 @@ bcs:
   kind: bc
   business_owner: 用户兼任
   description: "服务产品、阶段类型、标准成本费率表、计费系数、协议价目的版本化目录"
+- id: delivery.closeout
+  zh: 项目结项
+  subdomain: delivery
+  kind: bc
+  business_owner: 用户兼任
+  description: "项目结项（B-29）；无聚合的流程模块，D-9 用户已定 a（ENTERPRISE_AGGREGATES_DRAFT）"
 - id: delivery.inspection
   zh: 检查与检测
   subdomain: delivery
