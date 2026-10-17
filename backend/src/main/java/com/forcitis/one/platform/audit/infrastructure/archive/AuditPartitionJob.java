@@ -30,11 +30,15 @@ class AuditPartitionJob implements SmartInitializingSingleton {
     private static final Logger LOG = LoggerFactory.getLogger(AuditPartitionJob.class);
     private static final DateTimeFormatter MONTH = DateTimeFormatter.ofPattern("yyyyMM");
 
+    /** The database function refuses a span over 24 months and the span runs from this month through the months ahead, so 23 ahead is the most. */
+    static final int MAX_MONTHS_AHEAD = 23;
+
     @ConfigurationProperties("forcitis.platform.audit.partitions")
     record Policy(Integer monthsAhead) {
         Policy {
-            if (monthsAhead == null || monthsAhead <= 0) {
-                throw new IllegalArgumentException("forcitis.platform.audit.partitions.months-ahead is required and must be positive");
+            if (monthsAhead == null || monthsAhead < 1 || monthsAhead > MAX_MONTHS_AHEAD) {
+                throw new IllegalArgumentException("forcitis.platform.audit.partitions.months-ahead is required and must be between 1 and " + MAX_MONTHS_AHEAD
+                        + " (the database function creates at most 24 months, this month included)");
             }
         }
     }

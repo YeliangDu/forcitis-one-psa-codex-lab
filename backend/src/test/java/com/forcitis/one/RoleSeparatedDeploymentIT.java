@@ -102,7 +102,7 @@ class RoleSeparatedDeploymentIT {
     private static void installTheProcessEngine() {
         List<String> args = new ArrayList<>(List.of("--spring.profiles.active=dev", "--spring.datasource.url=" + url(), "--spring.datasource.username=" + MIGRATOR,
                 "--spring.datasource.password=" + MIGRATOR_PASSWORD, "--flowable.database-schema-update=true", "--flowable.async-executor-activate=false",
-                "--forcitis.platform.approval.process-administrator-required=false", "--spring.main.banner-mode=off", "--server.port=0"));
+                "--forcitis.platform.approval.process-administrator-required=false", "--spring.main.banner-mode=off", "--server.port=0", "--server.address=127.0.0.1"));
         List.of(JOBS_OFF).forEach(p -> args.add("--" + p));
         try (var engineInstaller = new SpringApplicationBuilder(OneApplication.class).web(WebApplicationType.SERVLET).run(args.toArray(String[]::new))) {
             assertThat(engineInstaller.isRunning()).isTrue();
@@ -130,6 +130,12 @@ class RoleSeparatedDeploymentIT {
     @Autowired
     JdbcClient jdbc;
 
+    @Autowired
+    com.forcitis.one.platform.audit.api.AuditPartitions auditPartitions;
+
+    @Autowired
+    com.forcitis.one.organization.workforce.api.EmployeeExistence employeeExistence;
+
     @Test
     @DisplayName("the runtime account alone is enough: a write through the application (entity, versions, event registry, audit by listener) and a read both work")
     void smokeAsTheRuntimeAccount() throws Exception {
@@ -146,6 +152,17 @@ class RoleSeparatedDeploymentIT {
         assertThat(jdbc.sql("select current_user").query(String.class).single()).isEqualTo(RUNTIME);
         assertThat(jdbc.sql("select count(*) from platform_approval.approval_requests").query(Long.class).single()).as("the approval schema is readable").isZero();
         assertThat(jdbc.sql("select count(*) from platform_approval.act_ru_task").query(Long.class).single()).as("so are the engine tables").isZero();
+    }
+
+    @Test
+    @DisplayName("NITS-1 项1/项5：运行账号能读到分区是否存在（to_regclass 经 schema USAGE）与员工是否存在，缺的月份与员工答否而不是报错")
+    void theRuntimeAccountCanAskWhetherAPartitionAndAnEmployeeExist() {
+        java.time.YearMonth now = java.time.YearMonth.now(java.time.ZoneOffset.UTC);
+
+        assertThat(jdbc.sql("select current_user").query(String.class).single()).isEqualTo(RUNTIME);
+        assertThat(auditPartitions.exists(now)).as("the month the job pre-created").isTrue();
+        assertThat(auditPartitions.exists(now.plusYears(30))).isFalse();
+        assertThat(employeeExistence.exists(new com.forcitis.one.kernel.EmployeeId(UUID.randomUUID()))).isFalse();
     }
 
     @Test

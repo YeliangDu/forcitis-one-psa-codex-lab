@@ -1,17 +1,39 @@
 # one-coordinator 台账（速查）
 
-只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-16 21:45（one-coordinator）
+只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-17 09:00（one-coordinator）
+
+## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
+更新：2026-10-17 09:40（one-coordinator）
+- 清空后第一步：通读 SESSION_PLAYBOOK §11 全文（`sed -n '/^## 11\./,/^## 12\./p'`），再做「开场核对」。
+- 本会话已犯、不得再犯（用户 10-17 指出）：①要用户定、补值、转财务、需配合的事一律写收件箱 inbox（status pending），对话里不问（§11 第 1 条，记忆 inbox-only）；②会话之间技术问题直连，不居中转述、不要求抄送（第 2 条）；③跨会话消息首行标「派工：/通知：/请用户决定：」；④每日简报每天早上发；⑤转述注明已核实 / 已抽查 / 未核实（第 12 条）。
+- 派工用 mcp__ccd_session_mgmt__send_message（会直接开启对方回合）；SendMessage 跨会话常停在「未读」不唤醒空闲会话（10-17 全员停工的原因）。
+- Codex 优先（intent 085534，§5 已改，记忆 codex-first）：各会话能交 Codex 的先交（gpt-6.1-sol xhigh），Claude 只派工、首轮审稿、安全、验收；按日报「Codex 卡数 / 返工轮次」评估，返工两轮以上收回。
+- 在途：strict 已关，快慢两道试行到 10-19（main 并行合入变红一次即 `gh api -X PATCH .../required_status_checks -F strict=true`）；收件箱待答 3 项（N1 五个值、AN-06 转财务、dev 日历）；one-architecture 下一件起草一次投产过渡 ADR（C1，施工图关键路径），前提清单 `architecture/proposals/PREREQ_NAMING_CONSTRUCTION_2026-10-17.md`（分支 one-architecture-adr-governance）；今日简报未发。
+- 主线常驻条（用户 10-17 要求钉住、滚动更新）：本会话 mod mainline-band 读 ~/.modernize/psa/handoff/mainline-band.txt 显示在输入框上方；每个命名主线完成点更新该文件（首行目标，后续行进度，末行「要你做」与更新时间，≤8 行）。同一 mod 另有状态栏（队列、在开 PR、main 红绿、strict 试行剩余天数、Codex 在跑任务自动取；收件箱待答数读 ~/.modernize/psa/handoff/status-extra.txt，收件箱增减时更新）。
+- 本分支待收进文档合集：claude/one-coordinator-two-lanes（intent 4 条、§5 改动、裁定 -05、台账）。
 
 ## 作战图（派工前先看；SESSION_PLAYBOOK §11「战队协作」第 5 条）
 | 主线 | 负责 | 当前 | 下一步 | 阻塞 |
 |---|---|---|---|---|
-| dev | one-ops / one-1a-par | rc.4 运行；用户已用企业微信扫码登录成功（WECOM_ENABLED=true，用户批准）；C-14 完成、101 已删；SINGLE-OP P1 #415 已合 | P2 → 新 rc → grant-role 用户本人（员工 ID 末 6cd894）process_administrator+super_admin → 删 PROCESS_ADMINISTRATOR_REQUIRED=false 开关重启 | P2 在写 |
+| dev | one-ops | **暂停**（用户 10-17「ops 这一轮 rc 后，暂时不考虑 dev 的事儿了」）：rc.6 已授角色、单人运维模式开；日历未导（C-6 SQL 已修，one-ops-r56 @ 1da307b9） | 用户说恢复再排 | — |
 | 流程与业务架构对齐 | one-architecture + 三组 | 阶段层：SD-01～10 已裁（#422）；对象层：主对象脚本提议、三组确认中；VS01-10 定独立流程「作出参投决策」（#428）；已派五件（#429）：支撑本段、配置补读关系、内部服务价值流评估、集成类型、业务/管理/支撑分类 | 数据到后刷新对齐图（scratchpad(e1ce474b)/align/refresh.sh 后以同 file_path+files 重发；流程栏按业务/管理/支撑分三行，归属实线、支撑虚线，集成单列） | — |
 | 命名与用语 | one-architecture / one-glossary / one-quality | 规则在 PROCESS_METHOD_DRAFT §11、name_id_check.py；用户定「先规范再登记」（#430）：架构产物只用规范名，改名对照表与用语决策单合并交用户，认可后再登记、再定稿；对象名一律名词（结果或记录）；86 个对象未登记 | #431 拆分：审计报告与用语问题先合，提议稿改为规范名+原名别名后随页交用户；one-quality 写架构用语检查 | — |
 | 确认页 | one-architecture | 7 页在收件箱，用户暂不作答，待对齐与命名后一次改版 | PAGE_IMPACT.md | 对齐完成 |
-| CI 与合并 | 调度 / one-quality | 队列串行；merge_pr.sh 打 queued；#406（重步骤入队才跑）在队；合集 #411 #412 #405 在队 | #406 合入后核后缀 | — |
+| CI 与合并 | 调度批准 / one-merge 执行（10-17 已切 scripts/merge/mq.py，队列在 <git-common-dir>/merge-queue/）/ one-quality 写脚本 | 今日合入 #437–#455，队列空；10-17 08:5x 用户定「关」，strict 已关（intent 084339），快慢两道试行至 10-19 | 试行 2 天；main 因并行合入变红一次即恢复 strict（gh api PATCH required_status_checks strict=true） | — |
 
 ## 调度惯例（本日新增）
+- 在线页：会话日报 https://claude.ai/artifact/8CAmf8sAJsoaFNwetoGC7x （每天早上：scripts/ops/session_daily.py 出数 → 补 grade/assessment/action → 数据放 scratchpad(19432a27)/daily/site/data/<日期>.json 并更新 index.json → 以同一 file_path 重发 session-daily.html 与 files）；对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL （源与 refresh.sh 在 scratchpad(19432a27)/align，已钉左栏）。
+- 收件箱待用户答：ANM 命名体系与施工图方法 https://claude.ai/artifact/KTzjRe3S2FvJEiDu1Priey ；N1 规则待定 https://claude.ai/artifact/BTo6TuYzW7H8vgjCanh4Vq 。用户说「答完」即取答复分发。
+- 下一文档合集清单：scratchpad(57026514)/next-docs-train.txt（调度批准、one-merge 中午/晚上收）；调度自己的规则、画像、台账、intent、裁定改动都在分支 claude/one-coordinator-two-lanes。
+- 裁定：rulings/COORD-2026-10-17.md（RULING-COORD-20261017-01..04），one-quality 登记 ACCEPTANCE_RULINGS.yaml。
+- 在途：one-1a-par ADR-0034-IMPL（3 PR，PR-3 依赖 one-1a-next-5 的 WF-REINSTATE）；one-1a-next-5 NITS-1 待 #454 后入队；one-architecture 云端试点派单待写；ultrareview 免费剩 2 次（只能电脑发起）；云会话额度 11-05 到期。
+- **首要目标（用户 2026-10-17）**：把每个会话调成本项目最优秀的团队——会话日报（每天早上，同一在线页）→ 每周胜任力评审 → 改进动作落为守护、评审模板、画像工作守则（intent 本日）。
+- 云端额度（用户免费额度，2026-11-05 到期）：先试点一个价值流的流程骨架（等 #405 后，one-architecture 写派单）；497 处改名待 ADR-0053 批准、用户认可规范名后考虑走云端（intent 062720）。
+- 合并执行归 one-merge（10-17 切到 mq.py），调度只批准入队。
+- 合并：用户 10-16 定——文档不开 PR（会话报分支+提交号）；代码一工作单元一 PR、在制 ≤1（代码合集化暂不动）；main 只经队列合入；Auto-fix 已由用户在 app 统一关闭。
+- 积压 PR：one-merge 每天两次盘点五类报调度，调度定去向（intent 222637）。
+- 错题本：只抓两主线（落实须有真实检查、每晚复发检测）+ 新测试重复跑（intent 235811）。
+- 不稳定测试：不隔离、不放宽；外部失败找测试作者修。
 - 不向会话要排期、不向用户转报估算（记忆 no-schedule-relay）。
 - 会话报完成点即 get_usage 兜底查用量（≥75% 准备、≥85% 立即在批次边界交接）。
 - 对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL 只读源文件原样副本（src/），不在页里做人工映射。
@@ -26,6 +48,7 @@
 - 画像与当前状态见 `SESSIONS.md`（`build_all.py` 生成；画像 `sessions/<会话名>.md`，已结束的在 `sessions/_retired.md`）；实时情况看 `ListAgents`（SESSION_PLAYBOOK §2.1 第 16 条）。
 
 ## 开场核对
+- 先通读 SESSION_PLAYBOOK §11 全文（含消息约定、战队协作 1–14 条），本行记通读日期：2026-10-17（/clear 后漏读致违反第 1、2、8 条与首行约定，用户指出）。
 - `gh pr list`、`ListAgents`、合并队列（`pgrep -f mq_run2.sh`，须在仓库目录启动，gh 需仓库上下文）、`gh run list --workflow nightly-legacy-it.yml -L 1` 失败即开卡（#165 合并后生效）。
 
 ## 合并
@@ -57,6 +80,7 @@
 - 新系统只读账号可读凭据列（用户「全部可读，不排除」）；凭据值不得进入新系统任何表、日志、事件、会话。
 - CI runner 以用户本人账号运行（用户本次未选专用用户，SUPPLY_CHAIN S6）。
 - 老系统安全（实例白名单 0.0.0.0/0 等）：用户「老系统先不管」，已移出待办。
+- 发布门禁 #438：有写权限者可另建 PR 空转 CI 伪造成功运行、事后删 PR 则无法发现；写权限仅用户账号及其会话，门禁只管 dev，prod 另有用户审批（用户 2026-10-16「接受」）。
 
 ## 本机与调度自管
 - CI runner mac-one-1..4（~/actions-runners/one-N）与部署 runner mac-one-deploy（/opt/forcitis-one-runner）；main 分支保护 strict。
@@ -67,7 +91,7 @@
 - R-1b P6 老系统对照导入（one-ops）；WF-03（拆分 a）；AP-12、AP-18；新开以老系统为数据源的生产期功能卡；地基批与校准车道（等架构全貌，intent #380）；三组流程铺开（等流程设计方法批准）。
 
 ## 合并队列（18:05）
-- 规则：SESSION_PLAYBOOK §11 第 13 条（#393）：代码逐个入队；文档每天中午、晚上打包合集；提议稿到里程碑再合；文档不开 PR、每会话在制代码 PR ≤1（2026-10-16 新规）；未报不入队。队列文件与脚本见「合并」节；合入后待办在 scratchpad on-merge.txt，下一合集候选在 next-docs-train.txt（357 320 339 355 358 389 393 286）。文档合集 #386（15 个）在队。
+- 规则：SESSION_PLAYBOOK §11 第 14 条（#393，#365 重编号）：代码逐个入队；文档每天中午、晚上打包合集；提议稿到里程碑再合；文档不开 PR、每会话在制代码 PR ≤1（2026-10-16 新规）；未报不入队。队列文件与脚本见「合并」节；合入后待办在 scratchpad on-merge.txt，下一合集候选在 next-docs-train.txt（357 320 339 355 358 389 393 286）。文档合集 #386（15 个）在队。
 - 调度自检：合集推送前跑完整 precheck；答应「合入后通知」的挂 Monitor（每 30 分钟重挂）；开出的会话立即解绑顶层并改 one-* 标题；派工前查是否已有负责会话；对用户报「待答」前先核收件箱与页面 answers-submit。
 
 ## 排定后续（指针）
