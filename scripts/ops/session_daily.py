@@ -53,6 +53,21 @@ def line_verdict(line):
         return "可合并"
     return None
 QUEUE_LINE = re.compile(r"^(\S+)\s+([A-Z][A-Z-]*)\s+pr=#(\d+)\s*(.*)$")
+COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+CODEX_SECTION = re.compile(r"^##\s*Codex\s*实现[^\n]*\n(.*?)(?=^##\s|\Z)", re.MULTILINE | re.DOTALL | re.IGNORECASE)
+CODEX_INLINE = re.compile(r"Codex\s*(?:起草|实现)(?:\s*/\s*(?:起草|实现))?\s*[（(][^）)\n]+[）)]", re.IGNORECASE)
+REWORK_COMMIT = re.compile(r"返工|复审修正|复审意见|按.{0,12}复[审核](?:修正|意见|修)|address(?:ed)? review|review fix", re.IGNORECASE)
+CODEX_LOOKBACK = datetime.timedelta(days=7)   # a pull request opened up to a week ago can still be reworked inside the window
+
+
+def is_codex_pr(body):
+    """The pull request template's section `## Codex 实现（模型、强度）` is filled with something other than 不涉及, or the body names it inline as `Codex 实现（模型，强度）`; the template's own heading and comment do not count."""
+    text = COMMENT.sub("", body or "")
+    section = CODEX_SECTION.search(text)
+    if section:
+        content = section.group(1).strip()
+        return bool(content) and not content.startswith("不涉及") and "codex" in content.lower()
+    return bool(CODEX_INLINE.search(text))
 SYNC_COMMIT = re.compile(r"^Merge (branch|remote-tracking branch) '(origin/)?main'")
 LOOP_MIN = 4
 
@@ -301,6 +316,19 @@ def build(root, gh, window, log_path):
                 unreadable.append(number)
                 continue
             pushed[owner[number]] += sum(1 for date, headline in commits if when(date) > queued and window[0] <= when(date) < window[1] and not SYNC_COMMIT.match(headline))
+    codex, rework = collections.Counter(), collections.Counter()
+    for number, p in prs.items():
+        if not owner[number] or not is_codex_pr(p.get("body")):
+            continue
+        created_here = in_window(p["createdAt"], window)
+        if created_here:
+            codex[owner[number]] += 1
+        if not created_here and not (window[0] - CODEX_LOOKBACK <= when(p["createdAt"]) < window[0] and not (p.get("mergedAt") and when(p["mergedAt"]) < window[0])):
+            continue
+        try:
+            rework[owner[number]] += sum(1 for date, headline in gh.pr_commits(number) if window[0] <= when(date) < window[1] and REWORK_COMMIT.search(headline) and not SYNC_COMMIT.match(headline))
+        except RuntimeError:
+            unreadable.append(number)
     sessions = []
     for name, role, _ in SESSIONS:
         opened = sorted((p for p in prs.values() if owner[p["number"]] == name and in_window(p["createdAt"], window)), key=lambda p: p["number"])
@@ -315,6 +343,7 @@ def build(root, gh, window, log_path):
             "prs_opened_count": len(opened), "prs_merged_count": len(merged),
             "returns": {"conflict": counts["CONFLICT"] if log_complete else None, "hold": counts["HOLD"] if log_complete else None},
             "ci_failures": ci[name], "reviews": reviews, "pushed_after_queue": pushed[name] if log_complete else None,
+            "codex_cards": codex[name], "codex_rework_rounds": rework[name],
             "defect_bank_new": new_entries, "defect_bank_empty": empty,
             "loop_candidates": loop_candidates(subjects, counts if log_complete else {}), "role": role})
     notes = [f"窗口 {window[0].isoformat(timespec='minutes')} ~ {window[1].isoformat(timespec='minutes')}（本机时区 {window[0].tzname()}）。提交按分支名归属会话（SESSIONS 的前缀表，整名或「前缀-」开头），去重；沿分支 first-parent 的非合并提交，committer 时间在窗口内（合入 main 的提交不重复算）；已删除分支的提交取窗口内合入 PR 的第二父链补算。数据取自本机 git 引用（origin/main 最新提交 {fetched or '未知'}），脚本不 fetch，出数前请先 git fetch origin。"]
@@ -324,7 +353,7 @@ def build(root, gh, window, log_path):
         since = f"日志自 {covered_from.isoformat(timespec='minutes')} 起，晚于窗口开始" if covered_from else "队列日志缺失或无可解析的行"
         notes.append(f"returns 与 pushed_after_queue 为 null（无数据，不是 0）：{since}，这两项无法统计；用 --log 指定覆盖整个窗口的日志。")
     if unreadable:
-        notes.append(f"这些 PR 的提交列表读不到，pushed_after_queue 少算：{', '.join('#' + str(n) for n in unreadable)}。")
+        notes.append(f"这些 PR 的提交列表读不到，pushed_after_queue 与 codex_rework_rounds 少算：{', '.join('#' + str(n) for n in sorted(set(unreadable)))}。")
     if free_commits:
         notes.append("窗口内有提交但分支名不在 SESSIONS 前缀表的分支（未计入任何会话，需要时补表）：" + "、".join(f"{b} {n} 个" for b, n in free_commits.most_common(10)) + "。")
     unmatched_prs = sorted(n for n, p in prs.items() if not owner[n] and (in_window(p["createdAt"], window) or (p.get("mergedAt") and in_window(p["mergedAt"], window))))
@@ -336,6 +365,7 @@ def build(root, gh, window, log_path):
         notes.append(f"gh 返回已达上限（PR {len(prs_list)} 条、CI 运行 {len(runs)} 条，运行最早 {runs_from.isoformat(timespec='minutes') if runs_from else '无'}）：窗口前段的 PR 或 CI 失败可能被截掉，ci_failures 与 PR 数是下限。")
     notes.append("reviews 只看窗口内新开的 PR 正文里含 opus/复审/终审/ultrareview 的行，按「修后可合并 > 有阻塞 > 可合并」归类，「无阻塞」「阻塞项已修」不算阻塞，未识别写「有复审（结论未识别）」，无复审行不列。ci_failures 只数 conclusion=failure，按分支名归属。")
     notes.append("defect_bank_new 取各会话错题本（origin/main 版，及该会话分支上最近改过它的版本）里日期不早于窗口开始日的条目（`###` 小节的日期行或表格行的日期列）；册不存在或无条目时 defect_bank_empty 为 true；补跑过去日期时窗口之后的条目也会计入。")
+    notes.append("codex_cards = 窗口内新开、PR 正文的「## Codex 实现（模型、强度）」小节写了内容（不是「不涉及」）或正文行内写「Codex 实现（模型，强度）」的 PR 数（模板自带的标题与注释不算）。codex_rework_rounds = 这些 PR（窗口内新开，或 7 天内开、窗口内仍在改的）在窗口内的提交里标题含「返工」「复审修正」「按…复审…修」「address review」的提交数（排除合并 main）：数的是提交数不是轮次，Codex PR 上 Claude 会话自己的复审修改也会算进来，标题没这样写的数不到，是近似；正文里自报的返工轮次未读取。")
     notes.append("loop_candidates 是机械统计（同类提交主题重复≥4 次、队列事件重复），automation 留空由调度填。")
     return {"date": window[1].date().isoformat(), "window": f"{window[0].isoformat(timespec='minutes')} ~ {window[1].isoformat(timespec='minutes')}",
             "sessions": sessions, "notes": notes, "title": window[1].date().isoformat()}
@@ -442,6 +472,7 @@ def self_test():
             f.write("2026-10-16T08:01:00+02:00 START pr=#4 run=- elapsed=0s lane=code\n"
                     "2026-10-16T10:00:00+02:00 LABEL-QUEUED pr=#5 run=- elapsed=0s\n"
                     "2026-10-16T11:00:00+02:00 CONFLICT pr=#5 run=- elapsed=3s back to the author\n"
+                    "2026-10-16T10:30:00+02:00 LABEL-QUEUED pr=#15 run=- elapsed=0s\n"
                     "2026-10-16T11:30:00+02:00 HOLD pr=#6 run=1 elapsed=3s checks red\n"
                     "2026-10-15T11:30:00+02:00 HOLD pr=#6 run=1 elapsed=3s yesterday\n"
                     "garbage line\n")
@@ -451,6 +482,14 @@ def self_test():
                {"number": 7, "title": "gone", "headRefName": "claude/one-data-gone", "createdAt": "2026-10-16T09:30:00+02:00", "mergedAt": "2026-10-16T13:00:00+02:00", "body": "复审：有阻塞", "mergeCommit": {"oid": merge_oid}},
                *[{"number": n, "title": f"review {n}", "headRefName": "claude/one-rules-t", "createdAt": "2026-10-16T09:40:00+02:00", "mergedAt": None, "body": body, "mergeCommit": None}
                  for n, body in ((10, "opus 复审：无阻塞，可合并"), (11, "终审：未通过"), (12, "opus 复审：阻塞项 B1 已修，待 sonnet 复核"), (13, "说明\n这是 opus 复审 B1 的修法\n复审结论：修后可合并"), (14, "复审：有阻塞"))],
+               {"number": 15, "title": "codex work", "headRefName": "claude/one-ops-y", "createdAt": "2026-10-16T09:50:00+02:00", "mergedAt": None, "body": "## Codex 实现（模型、强度）\n\n<!-- 模板注释 Codex 实现（<模型>，<强度>） -->\n\nCodex 实现（gpt-6.1-sol，xhigh），返工 1 轮\n\n## 绕过推送前钩子\n\n无", "mergeCommit": None},
+               {"number": 17, "title": "codex work before the window", "headRefName": "claude/one-ops-y", "createdAt": "2026-10-15T09:50:00+02:00", "mergedAt": None, "body": "Codex 实现（gpt-6.1-sol，xhigh）", "mergeCommit": None},
+               {"number": 22, "title": "codex work opened long ago", "headRefName": "claude/one-ops-y", "createdAt": "2026-10-01T09:00:00+02:00", "mergedAt": None, "body": "Codex 实现（gpt-6.1-sol，xhigh）", "mergeCommit": None},
+               {"number": 18, "title": "mentions codex without being codex work", "headRefName": "claude/one-ops-y", "createdAt": "2026-10-16T09:52:00+02:00", "mergedAt": None, "body": "## Codex 实现（模型、强度）\n\n<!-- 由 Codex 实现的写「Codex 实现（<模型>，<强度>）」；不是写「不涉及」 -->\n\n不涉及\n", "mergeCommit": None},
+               {"number": 19, "title": "no section, inline", "headRefName": "claude/one-rules-t", "createdAt": "2026-10-16T09:53:00+02:00", "mergedAt": None, "body": "说明\n\ncodex 实现（gpt-6.1-sol，high）", "mergeCommit": None},
+               {"number": 20, "title": "not done by codex", "headRefName": "claude/one-rules-t", "createdAt": "2026-10-16T09:54:00+02:00", "mergedAt": None, "body": "不由 Codex 实现", "mergeCommit": None},
+               {"number": 21, "title": "opened two days ago, reworked inside the window", "headRefName": "claude/one-rules-t", "createdAt": "2026-10-14T09:00:00+02:00", "mergedAt": None, "body": "Codex 实现（gpt-6.1-sol，xhigh）", "mergeCommit": None},
+               {"number": 16, "title": "claude work", "headRefName": "claude/one-ops-y", "createdAt": "2026-10-16T09:51:00+02:00", "mergedAt": None, "body": "没有这个词", "mergeCommit": None},
                {"number": 9, "title": "after the window", "headRefName": "claude/one-ops-y", "createdAt": "2026-10-17T10:00:00+02:00", "mergedAt": None, "body": "", "mergeCommit": None},
                {"number": 8, "title": "someone else", "headRefName": "feature/x", "createdAt": "2026-10-16T09:30:00+02:00", "mergedAt": None, "body": "", "mergeCommit": None}]
         runs = [{"databaseId": 1, "conclusion": "failure", "createdAt": "2026-10-16T10:00:00Z", "headBranch": "claude/one-quality-x", "event": "pull_request"},
@@ -458,7 +497,11 @@ def self_test():
                 {"databaseId": 3, "conclusion": "failure", "createdAt": "2026-10-10T10:00:00Z", "headBranch": "claude/one-quality-x", "event": "pull_request"},
                 {"databaseId": 5, "conclusion": "failure", "createdAt": "2026-10-17T09:30:00Z", "headBranch": "claude/one-quality-x", "event": "pull_request"},
                 {"databaseId": 4, "conclusion": "failure", "createdAt": "2026-10-16T10:00:00Z", "headBranch": "dependabot/x", "event": "pull_request"}]
-        commits = {5: [("2026-10-16T09:30:00+02:00", "before queue"), ("2026-10-16T10:30:00+02:00", "after queue"), ("2026-10-16T10:45:00+02:00", "Merge branch 'main' into claude/one-quality-x"),
+        commits = {15: [("2026-10-16T10:00:00+02:00", "feat: first"), ("2026-10-16T11:00:00+02:00", "fix: 按 opus 复审修正"), ("2026-10-16T12:00:00+02:00", "fix: 返工一轮"), ("2026-10-16T12:30:00+02:00", "Merge branch 'main' into x（返工）")],
+                   16: [("2026-10-16T10:00:00+02:00", "fix: 复审修正")], 17: [("2026-10-16T10:00:00+02:00", "fix: 返工")], 22: [("2026-10-16T10:00:00+02:00", "fix: 返工")], 18: [("2026-10-16T10:00:00+02:00", "fix: 返工")],
+                   19: [("2026-10-16T10:00:00+02:00", "fix: address review"), ("2026-10-17T10:00:00+02:00", "fix: 返工（窗口外）")], 20: [("2026-10-16T10:00:00+02:00", "fix: 返工")],
+                   21: [("2026-10-14T10:00:00+02:00", "fix: 返工（窗口前）"), ("2026-10-16T11:00:00+02:00", "fix: 按 sonnet 复核修正"), ("2026-10-16T12:00:00+02:00", "docs: 记录返工率统计口径")],
+                   5: [("2026-10-16T09:30:00+02:00", "before queue"), ("2026-10-16T10:30:00+02:00", "after queue"), ("2026-10-16T10:45:00+02:00", "Merge branch 'main' into claude/one-quality-x"),
                        ("2026-10-16T10:50:00+02:00", "after queue again")]}
         window = window_of("2026-10-17", None, None)
         assert window[0].isoformat() == "2026-10-16T08:00:00+02:00" and window[1].isoformat() == "2026-10-17T09:00:00+02:00"
@@ -469,11 +512,18 @@ def self_test():
         assert by["one-rules"]["commits"] == 0, "one commit is counted once, for the first session that owns a branch holding it"
         assert by["one-ops"]["commits"] == 1 and by["one-data"]["commits"] == 1, "the commit of a deleted branch is found through the merge commit"
         assert by["one-quality"]["prs_opened_count"] == 1 and by["one-quality"]["prs_opened"] == ["#5 quality tool"]
-        assert by["one-data"]["prs_merged"] == [7] and by["one-data"]["prs_merged_count"] == 1 and by["one-ops"]["prs_opened_count"] == 0
+        assert by["one-data"]["prs_merged"] == [7] and by["one-data"]["prs_merged_count"] == 1 and by["one-ops"]["prs_opened_count"] == 3
         assert by["one-glossary"]["commits"] == 1 and by["one-glossary"]["themes"][0].endswith("exactly at the start"), "the window is half open: the start is in, the end is out"
         assert by["one-rules"]["reviews"] == ["#10:可合并", "#11:有阻塞", "#12:有复审（结论未识别）", "#13:修后可合并", "#14:有阻塞"], by["one-rules"]["reviews"]
         assert by["one-rules"]["defect_bank_new"] == ["RB-01 / 2026-10-16 / new row"] and by["one-rules"]["defect_bank_empty"] is False, "a table book is read"
         assert any("claude/mystery-z 1 个" in n for n in data["notes"]) and not any("未计入" in n and "claude/one-" in n for n in data["notes"]), data["notes"]
+        assert by["one-ops"]["codex_cards"] == 1 and by["one-ops"]["codex_rework_rounds"] == 3, (by["one-ops"]["codex_cards"], by["one-ops"]["codex_rework_rounds"])
+        # ops: pull request 15 (new, 2 rework commits in the window) and 17 (opened the day before the window, 1 rework commit inside it); 18 only mentions Codex under 不涉及
+        assert by["one-rules"]["codex_cards"] == 1 and by["one-rules"]["codex_rework_rounds"] == 3, (by["one-rules"]["codex_cards"], by["one-rules"]["codex_rework_rounds"])  # 19 inline (1 in the window, 1 after it), 21 opened earlier (2 in the window: the sonnet fix and the bookkeeping title)
+        assert by["one-quality"]["codex_cards"] == 0 and by["one-quality"]["codex_rework_rounds"] == 0
+        for body, expected in (("## Codex 实现（模型、强度）\n\n<!-- c -->\n\n不涉及", False), ("## Codex 实现（模型、强度）\n\n<!-- Codex 实现（<模型>，<强度>） -->", False), ("## Codex 实现（模型、强度）\n\nCodex 实现（x，y）", True), ("## Codex 实现（模型、强度）\n\n不涉及", False),
+                               ("Codex 起草 / 实现（gpt-6.1-sol，xhigh）", True), ("不由 Codex 实现", False), ("CODEX实现（a，b）", True), ("", False), (None, False)):
+            assert is_codex_pr(body) is expected, body
         assert by["one-quality"]["returns"] == {"conflict": 1, "hold": 0} and by["one-ops"]["returns"] == {"conflict": 0, "hold": 1}, (by["one-quality"]["returns"], by["one-ops"]["returns"])
         assert by["one-quality"]["ci_failures"] == 1 and by["one-ops"]["ci_failures"] == 0
         assert by["one-quality"]["reviews"] == ["#5:修后可合并"] and by["one-data"]["reviews"] == ["#7:有阻塞"] and by["one-ops"]["reviews"] == []
@@ -484,7 +534,7 @@ def self_test():
         assert by["one-ops"]["loop_candidates"] == [] and by["one-quality"]["themes"][0].startswith("ci（4）")
         assert all(k in by["one-quality"] for k in ("grade", "assessment", "action")) is False, "the coordinator fills grade, assessment and action"
         assert set(by["one-quality"]) == {"name", "commits", "themes", "prs_opened", "prs_merged", "prs_opened_count", "prs_merged_count", "returns", "ci_failures", "reviews", "pushed_after_queue",
-                                          "defect_bank_new", "defect_bank_empty", "loop_candidates", "role"}
+                                          "defect_bank_new", "defect_bank_empty", "loop_candidates", "role", "codex_cards", "codex_rework_rounds"}
         json.dumps(data, ensure_ascii=False)
         assert session_of("origin/claude/one-1a-next-5-train-x") == "one-coordinator" and session_of("claude/one-1a-next-5-data-pr1") == "one-1a-next-5" and session_of("feature/x") is None
         empty = build(repo, FakeGh([], [], {}), window, os.path.join(tmp, "no-such.log"))
@@ -499,7 +549,9 @@ def self_test():
             def pr_commits(self, number):
                 raise RuntimeError("gh api failed")
         broken = build(repo, Failing(prs, runs, commits), window, log)
-        assert any("读不到" in n and "#5" in n for n in broken["notes"]), "a pull request whose commits cannot be read is named, not counted as zero"
+        assert any("读不到" in n and "#5" in n and "codex_rework_rounds" in n for n in broken["notes"]), "a pull request whose commits cannot be read is named, not counted as zero"
+        unreadable_note = next(n for n in broken["notes"] if "读不到" in n)
+        assert unreadable_note.count("#15") == 1, "a pull request unreadable in both loops is named once: " + unreadable_note
         # sessions by branch name: whole name or prefix plus a dash
         assert session_of("claude/one-database-x") is None and session_of("claude/one-1a-par2-x") is None and session_of("claude/one-data") == "one-data" and session_of("claude/one-data-x") == "one-data"
         assert session_of("claude/one-1a-next-5-train") == "one-coordinator" and session_of("claude/one-quality-merge-train") == "one-coordinator" and session_of("claude/one-merge-train-1") == "one-coordinator"
