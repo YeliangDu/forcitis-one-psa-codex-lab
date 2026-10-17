@@ -12,7 +12,7 @@ The database must keep the raw material the metrics are built from, so the check
        field `state_transitions_exempt: <reason>` (exceptions are reviewed row by row); version tables (DIMENSION_VERSIONED) are their own history
   M4 master data keeps validity intervals (source of slowly changing dimensions)
        a MUTABLE AGGREGATE_ROOT / SNAPSHOT / CONFIG table of a master data schema has a versions table in the same schema,
-       or the registry field `versioning: none:<reason>`; candidates only: the registry has no data-category field yet (DG-0)
+       or the registry field `versioning: none:<reason>`; uses the registry field `data_category` (主数据 | 交易 | 参照 | 配置 | 技术) when present; without it the check falls back to a candidate list by role
   M5 key relations are foreign keys, not remarks
        a `<x>_id` column whose `<x>` is a table of the same schema (singular or plural, with `_id` of the table's own key excluded)
        needs a FOREIGN KEY unless the registry lists it in fk_exceptions; a cross-schema id is by design only an id, and is not reported
@@ -136,7 +136,12 @@ def scan_all(root):
             if not exempt and "state_transitions" not in by_schema[schema]:
                 found["M3"].append((f"{name}.{enum_status[0]}", "state column in a schema without a state_transitions table (ADR-0058) and no registry state_transitions_exempt reason"))
         # M4
-        if schema in MASTER_SCHEMAS and entry.get("role") in ("AGGREGATE_ROOT", "SNAPSHOT", "CONFIG") and entry.get("mutability") in ("MUTABLE", "REPLACE_SET", None):
+        category = entry.get("data_category")
+        if category is not None:
+            is_master = category == "主数据"          # the registry says: 主数据 | 交易 | 参照 | 配置 | 技术
+        else:
+            is_master = schema in MASTER_SCHEMAS and entry.get("role") in ("AGGREGATE_ROOT", "SNAPSHOT", "CONFIG") and entry.get("mutability") in ("MUTABLE", "REPLACE_SET", None)
+        if is_master and entry.get("mutability") in ("MUTABLE", "REPLACE_SET", None):
             stem = re.sub(r"ies$", "y", short) if short.endswith("ies") else short.rstrip("s")
             versioned = f"{stem}_versions" in by_schema[schema] or entry.get("versioning")
             if not versioned:
@@ -188,13 +193,14 @@ CREATE TABLE demo3.notes (id uuid PRIMARY KEY, note_status text NOT NULL CHECK (
 CREATE TABLE demo.lines (id uuid PRIMARY KEY, order_id uuid NOT NULL REFERENCES demo.orders (id), unit_code text, line_quantity numeric(10,2), price_currency text, price numeric);
 """)
         open(os.path.join(tmp, "backend", "architecture", "data-access-registry.yaml"), "w", encoding="utf-8").write(
-            "tables:\n  demo.orders:\n    role: BUSINESS_DOCUMENT\n    business_date_column: order_date\n  demo3.notes:\n    state_transitions_exempt: technical note, no lifecycle\n")
+            "tables:\n  demo.customers:\n    role: AGGREGATE_ROOT\n    mutability: MUTABLE\n    data_category: 主数据\n  demo.orders:\n    role: BUSINESS_DOCUMENT\n    business_date_column: order_date\n  demo3.notes:\n    state_transitions_exempt: technical note, no lifecycle\n")
         found, total, _ = scan_all(tmp)
         items = {k: {i for i, _ in v} for k, v in found.items()}
         assert "demo.orders.total_amount" in items["M1"], "M1 money without currency"
         assert "demo.orders.quantity" in items["M1"], "M1 quantity without unit"
         assert "demo.lines.line_quantity" not in items["M1"] and "demo.lines.price" not in items["M1"], "M1: unit / currency present"
         assert "demo.orders" in items["M2"], "M2"
+        assert "demo.customers" in items["M4"], "M4: a 主数据 table without a versions table"
         assert "demo.orders.order_status" in items["M3"], "M3"
         assert "demo2.tickets.ticket_status" not in items["M3"], "M3: the schema has a state_transitions table"
         assert "demo3.notes.note_status" not in items["M3"], "M3: a registry exemption with a reason"
