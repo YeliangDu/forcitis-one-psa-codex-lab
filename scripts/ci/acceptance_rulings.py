@@ -13,7 +13,7 @@ repository record docs/modernization/rulings/ACCEPTANCE_RULINGS.yaml, **as of th
 Per commit of base..head that carries Acceptance-Ruling trailers, a trailer is
   unrecorded  the id is not in the base's record
   invalid     the entry lacks date / ruled_by / implementer / files / reason / ref, the id is listed twice, or ruled_by equals implementer (compared by the session name each starts with, case-insensitively) or starts with `self`, or the date is not a date
-  reused      the id was already relied on by an earlier commit of the base (a ruling lets one change through once)
+  reused      the id was already relied on by an earlier commit of the base (a ruling lets one pull request through, any number of its commits)
   out of scope  the commit changes an acceptance test that none of the ruling entries it names covers together (`files`: path equal to, or under, an entry)
 Enforcing (ENFORCE = True): any finding fails; `--report` prints them as warnings and exits 0. Only the commits of base..head are judged, so rulings in the history before this check reached main (see `--history`; the coordinator decided on 2026-10-17 not to back-fill them) are not checked.
 Usage: acceptance_rulings.py <base-ref> [head-ref] [--report]  |  acceptance_rulings.py --history [rev-range]  |  acceptance_rulings.py --self-test"""
@@ -89,7 +89,7 @@ def covers(entry, path):
 
 def used_before(base_sha, rid, root):
     """The first commit reachable from the base that already carries the trailer for rid, or ''."""
-    for sha in git("rev-list", "--no-merges", "-F", f"--grep=Acceptance-Ruling: {rid}", base_sha, cwd=root).split():
+    for sha in git("rev-list", "-i", "--grep=Acceptance-Ruling", base_sha, cwd=root).split():
         if rid in trailer_values(sha, "Acceptance-Ruling", root):
             return sha
     return ""
@@ -211,6 +211,11 @@ def self_test():
         commit(repo, {ACC: "p\n"}, "fix" + trailer("RULING-12"))
         git("tag", "-f", "base-prefixed", cwd=repo)
         assert run_case({ACC: "v21\n"}, "fix" + trailer("RULING-1"), base="base-prefixed") == [], "RULING-12 used earlier does not make RULING-1 used"
+        # the earlier use may be a merge commit and its trailer key may be spelled in another case
+        git("checkout", "-q", "-B", "spelled", "base-with-record", cwd=repo)
+        commit(repo, {ACC: "s\n"}, "first\n\nacceptance-ruling:   RULING-12\n")
+        git("tag", "-f", "base-spelled", cwd=repo)
+        assert run_case({ACC: "v22\n"}, "second" + trailer("RULING-12"), base="base-spelled") == [("RULING-12", "reused")]
         # a merge that resolves a conflict inside a test the ruling does not cover
         git("checkout", "-q", "-B", "mainline", "base-with-record", cwd=repo)
         commit(repo, {OTHER: "mainline\n"}, "mainline change")
