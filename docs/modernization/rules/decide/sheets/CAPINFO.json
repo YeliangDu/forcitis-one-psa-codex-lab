@@ -2,329 +2,86 @@
   "sheet": "CAPINFO",
   "preselect": true,
   "title": "能力层与信息层确认",
-  "lede": "共 26 题：先确认各阶段需要的能力、用途分类和内部服务范围，再确认哪些业务记录应在信息图单列。业务口径题已预选推荐项；可改选或暂不定，最后到检查答案核对后一次提交。本页为题面初稿，尚待 one-architecture 首轮审稿及 one-coordinator 审题。",
+  "lede": "共 12 题：能力层与信息层各 6 题，先确认阶段能力、用途分类和内部服务范围，再确认信息图应单列的业务记录。除假期余额题不预选外，其他题已预选推荐项；可改选或暂不定，最后到检查答案核对后一次提交。",
   "groups": [
     {
       "id": "cap",
       "title": "能力层",
-      "desc": "17 题。按阶段实际做的事确认能力，明确公司资产的题源冲突，核对完整用途分类及内部服务方案。"
+      "desc": "6 题。合并确认补列与不补列的能力清单，再确认用途分类、内部服务方案及合同借阅与归档的范围。"
     },
     {
       "id": "info",
       "title": "信息层",
-      "desc": "9 题。按财务、收入、人员组归并 33 条流程，区分已有处理记录和需要单列的业务记录；每条流程只归一道题。"
+      "desc": "6 题。按核算、规则设置、账号与人员同步、费用与差旅、假期余额、薪酬档案分类确认；题源流程与合并后的题号在页首核对表逐条列明。"
     }
   ],
   "items": [
     {
-      "no": "CAPINFO-C01",
-      "grp": "cap",
-      "kind": "approve",
-      "title": "工时填报涉及的售前和交付阶段，要补列人员管理能力吗",
-      "src": "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④；docs/modernization/architecture/proposals/STEP3_STAGES.md §2.2–2.3",
-      "ctx": "售前和项目执行期间都要填报、审批工时。工时单归人员管理范围，而这些阶段目前只列商机、项目等能力。要定的是：是否把提供工时记录的人员管理也列为这些阶段需要的能力。",
-      "now": "VS-01.2 业务拓展：CAP-018 商机管理、CAP-019 招标项目管理、CAP-024 服务产品管理、CAP-026 标准成本费率表管理；VS-02.0 启动：CAP-029 项目管理；VS-02.1 概念：CAP-029 项目管理；VS-02.2 方案：CAP-029 项目管理；VS-02.3 初设：CAP-029 项目管理；VS-02.4 深化：CAP-029 项目管理；VS-02.5 招采：CAP-029 项目管理；VS-02.6 施工：CAP-029 项目管理、CAP-046 建设工程管理",
-      "check": "",
-      "basis": [
-        "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④：PRC-23 填报并审批工时，所用业务记录对应 CAP-056 人员管理，但涉及阶段未列这项能力。",
-        "docs/modernization/architecture/proposals/value-streams.v2.yaml stages：VS-01.2 业务拓展、VS-02.0 启动、VS-02.1 概念、VS-02.2 方案、VS-02.3 初设、VS-02.4 深化、VS-02.5 招采、VS-02.6 施工；docs/modernization/architecture/proposals/capabilities.v2.yaml 中 CAP-056 人员管理 的业务范围。",
-        "docs/modernization/architecture/proposals/STEP3_STAGES.md §2.1–2.3：按阶段实际做的事判断能力；引用某种记录本身不足以要求补列。此题提议补列，尚待确认。"
-      ],
-      "practice": [],
-      "opts": [
-        {
-          "label": "批准",
-          "effect": "在 VS-01.2 业务拓展、VS-02.0 启动、VS-02.1 概念、VS-02.2 方案、VS-02.3 初设、VS-02.4 深化、VS-02.5 招采、VS-02.6 施工 补列 CAP-056 人员管理，保留现有能力；上述流程仍按现有分工执行。",
-          "rec": true
-        },
-        {
-          "label": "修改后再看",
-          "effect": "在说明里写出要调整的阶段或能力及理由，由 one-architecture 重写后再交确认。",
-          "rec": false
-        },
-        {
-          "label": "不批准",
-          "effect": "维持现状：VS-01.2 业务拓展、VS-02.0 启动、VS-02.1 概念、VS-02.2 方案、VS-02.3 初设、VS-02.4 深化、VS-02.5 招采、VS-02.6 施工 保留当前能力清单，此项差异保留说明。",
-          "rec": false
-        }
-      ]
-    },
-    {
       "no": "CAPINFO-C02",
       "grp": "cap",
       "kind": "approve",
-      "title": "检查策划阶段要补列协议管理能力吗",
-      "src": "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④；docs/modernization/architecture/proposals/STEP3_STAGES.md §2.2–2.3",
-      "ctx": "检查计划用于安排检查范围、频次与执行。能力图把检查计划放在协议管理范围，检查策划阶段目前只列项目和建设工程管理。",
-      "now": "VS-03.1 检查策划：CAP-029 项目管理、CAP-046 建设工程管理",
-      "check": "",
+      "title": "下列阶段是否按清单补列或确认所需能力",
+      "src": "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④；docs/modernization/architecture/proposals/STEP3_STAGES.md §2.1 第 3 条、§2.2；docs/modernization/architecture/proposals/value-streams.v2.yaml",
+      "ctx": "把阶段实际办理的业务所需能力合并确认：检查策划、收入确认、开票补列协议管理；资质维护补列人员管理；履约确认采用协议管理，事前申请确认采用人员管理。各项阶段、现有能力、拟补列或确认的能力与理由见页首同题号清单。",
+      "now": "检查策划现列项目管理、建设工程管理；收入确认现列证据管理；开票现列财务管理；资质维护现列法人主体管理。新增履约、事前申请阶段暂填的能力仍为提议。",
+      "check": "若只同意清单中的部分项，选修改后再看，在说明中列出需改的阶段。事前申请的能力归属须结合 CAPINFO-I05 的申请记录选择核对，如需改变则重新确认。",
       "basis": [
-        "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④：PRC-41 制定检查计划并使其生效，所用业务记录对应 CAP-005 协议管理，但涉及阶段未列这项能力。",
-        "docs/modernization/architecture/proposals/value-streams.v2.yaml stages：VS-03.1 检查策划；docs/modernization/architecture/proposals/capabilities.v2.yaml 中 CAP-005 协议管理 的业务范围。",
-        "docs/modernization/architecture/proposals/STEP3_STAGES.md §2.1–2.3：按阶段实际做的事判断能力；引用某种记录本身不足以要求补列。此题提议补列，尚待确认。"
+        "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④：PRC-41 制定检查计划并使其生效；PRC-53 确认收入、PRC-54 视为同意期满处理、PRC-148 收入确认审批通过后占用转实并提交过账；PRC-56 付款条件项转为可结算、PRC-152 登记付款条件达成；PRC-79 登记继续教育并延续注册执业证书。",
+        "原 C02（检查策划）：本题修订 STEP3 §2.2 中“只是引用、不是阶段在做协议管理”的判断；PRC-41 实际制定并生效检查计划，属于协议管理下的业务，按 STEP3 §2.1 第 3 条计入一级能力。",
+        "原 C04（收入确认）：本题修订 STEP3 §2.2 中“只是引用、不是阶段在做协议管理”的判断；上述三条流程实际处理收入确认，按 STEP3 §2.1 第 3 条，阶段办理下一级能力的业务即由该一级能力支撑。",
+        "原 C05（开票）：本题修订 STEP3 §2.2 中“只是引用、不是阶段在做协议管理”的判断；两条流程实际办理付款条件达成及可结算认定，按 STEP3 §2.1 第 3 条计入协议管理。",
+        "docs/modernization/architecture/proposals/capabilities.v2.yaml：检查计划、收入确认、付款条件项属 CAP-005 协议管理下的业务；注册执业证书属 CAP-056 人员管理，资质维护实际办理其延续，故补列人员管理。",
+        "docs/modernization/architecture/proposals/value-streams.v2.yaml VS-04.6 履约、VS-08.0 事前申请：STEP3 后新增阶段的能力为提议；本题一并确认履约采用 CAP-005 协议管理、事前申请采用 CAP-056 人员管理。"
       ],
       "practice": [],
       "opts": [
         {
           "label": "批准",
-          "effect": "在 VS-03.1 检查策划 补列 CAP-005 协议管理，保留现有能力；上述流程仍按现有分工执行。",
+          "effect": "按页首清单补列或确认六项阶段能力：检查策划、收入确认、开票补列协议管理，资质维护补列人员管理，履约采用协议管理，事前申请采用人员管理；同步修订阶段对照中与前三项相反的判断，核对申请记录的能力归属。",
           "rec": true
         },
         {
           "label": "修改后再看",
-          "effect": "在说明里写出要调整的阶段或能力及理由，由 one-architecture 重写后再交确认。",
+          "effect": "在说明里列出需要调整的阶段、能力和理由，修订清单后再交确认。",
           "rec": false
         },
         {
           "label": "不批准",
-          "effect": "维持现状：VS-03.1 检查策划 保留当前能力清单，此项差异保留说明。",
+          "effect": "维持现有阶段能力清单；履约与事前申请的能力仍为提议，不作为已确认归属。",
           "rec": false
         }
       ]
     },
     {
-      "no": "CAPINFO-C03",
+      "no": "CAPINFO-C01",
       "grp": "cap",
       "kind": "approve",
-      "title": "检查策划阶段要补列服务产品管理能力吗",
-      "src": "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④；docs/modernization/architecture/proposals/STEP3_STAGES.md §2.2–2.3",
-      "ctx": "检查策划期间会发布检查表模板版本。能力图把检查表模板放在服务产品管理范围，阶段清单尚未列出这项能力。",
-      "now": "VS-03.1 检查策划：CAP-029 项目管理、CAP-046 建设工程管理",
-      "check": "",
+      "title": "工时、检查表模板与关账输入是否按清单不补列阶段能力",
+      "src": "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④；docs/modernization/architecture/proposals/STEP3_STAGES.md §2.1 第 4 条、§2.3",
+      "ctx": "工时填报是售前与交付的贯穿成本输入，检查表模板是供检查引用的主数据或设置，工时有效性认定为期间关账提供输入；这些流程不因提供记录就要求增加阶段能力。页首同题号清单列出三项不补列范围；折旧的相同处理规则见页首架构已定说明。",
+      "now": "VS-01.2 业务拓展与 VS-02.0–VS-02.6 启动至施工未列 CAP-056 人员管理；VS-03.1 检查策划未列 CAP-024 服务产品管理；VS-10.1 期间关账仅列 CAP-103 财务管理。",
+      "check": "本题确认不补列的清单；不改变 CAPINFO-C02 对检查策划补列协议管理的提议。公司资产的处理已经由架构确定，不随本题选项重开决定。",
       "basis": [
-        "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④：PRC-42 发布检查表模板版本，所用业务记录对应 CAP-024 服务产品管理，但涉及阶段未列这项能力。",
-        "docs/modernization/architecture/proposals/value-streams.v2.yaml stages：VS-03.1 检查策划；docs/modernization/architecture/proposals/capabilities.v2.yaml 中 CAP-024 服务产品管理 的业务范围。",
-        "docs/modernization/architecture/proposals/STEP3_STAGES.md §2.1–2.3：按阶段实际做的事判断能力；引用某种记录本身不足以要求补列。此题提议补列，尚待确认。"
+        "原 C01：PRC-23 填报并审批工时作为支撑流程，为售前、交付提供贯穿成本输入；按 STEP3 §2.1 第 4 条，贯穿活动不是阶段，不因工时单归人员管理而向各阶段补列人员管理。",
+        "原 C03：PRC-42 发布检查表模板的修订内容作为支撑流程；STEP3 §2.3 将检查表模板列为主数据、设置或被引用的明细，不作阶段门，故检查策划不补列服务产品管理。",
+        "原 C07：PRC-91 认定工时有效性与原 C08 的折旧采用同一规则，为 VS-10 获得期间报告提供贯穿活动输入，不因所用记录归人员管理而向期间关账补列人员管理。",
+        "docs/modernization/architecture/proposals/STEP3_STAGES.md §2.3：PRC-99 计提折旧并处置公司资产仅作期间报告的贯穿活动输入，不补列公司资产管理；该项由架构裁定，只在页首说明。"
       ],
       "practice": [],
       "opts": [
         {
           "label": "批准",
-          "effect": "在 VS-03.1 检查策划 补列 CAP-024 服务产品管理，保留现有能力；上述流程仍按现有分工执行。",
+          "effect": "按清单不补列人员管理、服务产品管理；PRC-23 工时填报与 PRC-42 检查表模板发布作为支撑流程，PRC-91 提供关账的贯穿活动输入，保留工时、模板及核定依据。",
           "rec": true
         },
         {
           "label": "修改后再看",
-          "effect": "在说明里写出要调整的阶段或能力及理由，由 one-architecture 重写后再交确认。",
+          "effect": "在说明中列出三项清单里需调整的阶段与业务理由，修订后再确认。",
           "rec": false
         },
         {
           "label": "不批准",
-          "effect": "维持现状：VS-03.1 检查策划 保留当前能力清单，此项差异保留说明。",
-          "rec": false
-        }
-      ]
-    },
-    {
-      "no": "CAPINFO-C04",
-      "grp": "cap",
-      "kind": "approve",
-      "title": "收入确认阶段要补列协议管理能力吗",
-      "src": "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④；docs/modernization/architecture/proposals/STEP3_STAGES.md §2.2–2.3",
-      "ctx": "确认收入、处理视为同意期满、审批后确认可用额度并提交过账，都处理收入确认记录。能力图把这类记录放在协议管理范围，阶段目前只列证据管理；三条流程对应同一次能力补列，在此一并确认。",
-      "now": "VS-04.2 收入确认：CAP-053 证据管理",
-      "check": "",
-      "basis": [
-        "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④：PRC-53 确认收入；PRC-54 视为同意期满处理；PRC-148 收入确认审批通过后占用转实并提交过账，所用业务记录对应 CAP-005 协议管理，但涉及阶段未列这项能力。",
-        "docs/modernization/architecture/proposals/value-streams.v2.yaml stages：VS-04.2 收入确认；docs/modernization/architecture/proposals/capabilities.v2.yaml 中 CAP-005 协议管理 的业务范围。",
-        "docs/modernization/architecture/proposals/STEP3_STAGES.md §2.1–2.3：按阶段实际做的事判断能力；引用某种记录本身不足以要求补列。此题提议补列，尚待确认。"
-      ],
-      "practice": [],
-      "opts": [
-        {
-          "label": "批准",
-          "effect": "在 VS-04.2 收入确认 补列 CAP-005 协议管理，保留现有能力；上述流程仍按现有分工执行。",
-          "rec": true
-        },
-        {
-          "label": "修改后再看",
-          "effect": "在说明里写出要调整的阶段或能力及理由，由 one-architecture 重写后再交确认。",
-          "rec": false
-        },
-        {
-          "label": "不批准",
-          "effect": "维持现状：VS-04.2 收入确认 保留当前能力清单，此项差异保留说明。",
-          "rec": false
-        }
-      ]
-    },
-    {
-      "no": "CAPINFO-C05",
-      "grp": "cap",
-      "kind": "approve",
-      "title": "开票阶段要补列协议管理能力吗",
-      "src": "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④；docs/modernization/architecture/proposals/STEP3_STAGES.md §2.2–2.3",
-      "ctx": "开票前需要登记付款条件已经达成，并把对应款项置为可结算。两条流程都处理协议约定的付款条件，阶段目前只列财务管理。",
-      "now": "VS-04.3 开票：CAP-103 财务管理",
-      "check": "",
-      "basis": [
-        "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④：PRC-56 付款条件项转为可结算；PRC-152 登记付款条件达成，所用业务记录对应 CAP-005 协议管理，但涉及阶段未列这项能力。",
-        "docs/modernization/architecture/proposals/value-streams.v2.yaml stages：VS-04.3 开票；docs/modernization/architecture/proposals/capabilities.v2.yaml 中 CAP-005 协议管理 的业务范围。",
-        "docs/modernization/architecture/proposals/STEP3_STAGES.md §2.1–2.3：按阶段实际做的事判断能力；引用某种记录本身不足以要求补列。此题提议补列，尚待确认。"
-      ],
-      "practice": [],
-      "opts": [
-        {
-          "label": "批准",
-          "effect": "在 VS-04.3 开票 补列 CAP-005 协议管理，保留现有能力；上述流程仍按现有分工执行。",
-          "rec": true
-        },
-        {
-          "label": "修改后再看",
-          "effect": "在说明里写出要调整的阶段或能力及理由，由 one-architecture 重写后再交确认。",
-          "rec": false
-        },
-        {
-          "label": "不批准",
-          "effect": "维持现状：VS-04.3 开票 保留当前能力清单，此项差异保留说明。",
-          "rec": false
-        }
-      ]
-    },
-    {
-      "no": "CAPINFO-C06",
-      "grp": "cap",
-      "kind": "approve",
-      "title": "资质维护阶段要补列人员管理能力吗",
-      "src": "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④；docs/modernization/architecture/proposals/STEP3_STAGES.md §2.2–2.3",
-      "ctx": "注册执业证书的继续教育与延续，既服务企业资质，也涉及员工持证记录。证书在能力图中归人员管理，阶段目前只列法人主体管理。",
-      "now": "VS-06.2 资质维护：CAP-054 法人主体管理",
-      "check": "",
-      "basis": [
-        "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④：PRC-79 登记继续教育并延续注册执业证书，所用业务记录对应 CAP-056 人员管理，但涉及阶段未列这项能力。",
-        "docs/modernization/architecture/proposals/value-streams.v2.yaml stages：VS-06.2 资质维护；docs/modernization/architecture/proposals/capabilities.v2.yaml 中 CAP-056 人员管理 的业务范围。",
-        "docs/modernization/architecture/proposals/STEP3_STAGES.md §2.1–2.3：按阶段实际做的事判断能力；引用某种记录本身不足以要求补列。此题提议补列，尚待确认。"
-      ],
-      "practice": [],
-      "opts": [
-        {
-          "label": "批准",
-          "effect": "在 VS-06.2 资质维护 补列 CAP-056 人员管理，保留现有能力；上述流程仍按现有分工执行。",
-          "rec": true
-        },
-        {
-          "label": "修改后再看",
-          "effect": "在说明里写出要调整的阶段或能力及理由，由 one-architecture 重写后再交确认。",
-          "rec": false
-        },
-        {
-          "label": "不批准",
-          "effect": "维持现状：VS-06.2 资质维护 保留当前能力清单，此项差异保留说明。",
-          "rec": false
-        }
-      ]
-    },
-    {
-      "no": "CAPINFO-C07",
-      "grp": "cap",
-      "kind": "approve",
-      "title": "期间关账阶段要补列人员管理能力吗",
-      "src": "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④；docs/modernization/architecture/proposals/STEP3_STAGES.md §2.2–2.3",
-      "ctx": "关账前会认定工时有效性，所用工时单归人员管理范围。该阶段目前只列财务管理。要定的是：是否把这项人员记录的处理也列入阶段能力。",
-      "now": "VS-10.1 期间关账：CAP-103 财务管理",
-      "check": "",
-      "basis": [
-        "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④：PRC-91 认定工时有效性，所用业务记录对应 CAP-056 人员管理，但涉及阶段未列这项能力。",
-        "docs/modernization/architecture/proposals/value-streams.v2.yaml stages：VS-10.1 期间关账；docs/modernization/architecture/proposals/capabilities.v2.yaml 中 CAP-056 人员管理 的业务范围。",
-        "docs/modernization/architecture/proposals/STEP3_STAGES.md §2.1–2.3：按阶段实际做的事判断能力；引用某种记录本身不足以要求补列。此题提议补列，尚待确认。"
-      ],
-      "practice": [],
-      "opts": [
-        {
-          "label": "批准",
-          "effect": "在 VS-10.1 期间关账 补列 CAP-056 人员管理，保留现有能力；上述流程仍按现有分工执行。",
-          "rec": true
-        },
-        {
-          "label": "修改后再看",
-          "effect": "在说明里写出要调整的阶段或能力及理由，由 one-architecture 重写后再交确认。",
-          "rec": false
-        },
-        {
-          "label": "不批准",
-          "effect": "维持现状：VS-10.1 期间关账 保留当前能力清单，此项差异保留说明。",
-          "rec": false
-        }
-      ]
-    },
-    {
-      "no": "CAPINFO-C08",
-      "grp": "cap",
-      "kind": "choice",
-      "title": "公司资产是否仍只为记账和结转提供依据，不列为阶段能力",
-      "src": "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④；docs/modernization/architecture/proposals/STEP3_STAGES.md §2.3",
-      "ctx": "这里有两份题源相冲突：流程对照报告把公司资产未列入期间关账能力视为差异；阶段对照文档则明确写公司资产不支撑价值流，只为记账和结转提供依据。须先决定采用哪一种口径。",
-      "now": "冲突涉及 PRC-99 计提折旧并处置公司资产 → CAP-093 公司资产管理 → VS-10.1 期间关账。",
-      "check": "",
-      "basis": [
-        "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④：PRC-99 计提折旧并处置公司资产，涉及 OBJ-93 公司资产、CAP-093 公司资产管理；VS-10.1 期间关账目前仅列 CAP-103 财务管理。",
-        "docs/modernization/architecture/proposals/STEP3_STAGES.md §2.3：CAP-093 公司资产管理不支撑价值流；资产取得经采购、折旧与处置经记账，只作为 VS-10 获得期间报告的贯穿活动输入。§1.2 C-11 已撤回为补覆盖而增加的引用。",
-        "docs/modernization/architecture/proposals/STEP3_STAGES.md §2.1：按阶段实际做的事与带来的价值判断，不能只因流程使用公司资产记录就要求补列。"
-      ],
-      "practice": [],
-      "opts": [
-        {
-          "label": "仍只为记账和结转提供依据",
-          "effect": "保留阶段对照文档的口径；公司资产记录及折旧、处置流程仍保留，阶段能力清单不增加公司资产管理，并为报告中的差异补说明。",
-          "rec": true
-        },
-        {
-          "label": "把公司资产管理补列为期间关账阶段能力",
-          "effect": "在 VS-10.1 期间关账补列 CAP-093 公司资产管理，同时修订 STEP3_STAGES.md §2.3 的相反结论，说明该阶段如何直接处理资产事项及带来什么价值。",
-          "rec": false
-        }
-      ]
-    },
-    {
-      "no": "CAPINFO-C09",
-      "grp": "cap",
-      "kind": "choice",
-      "title": "新增履约阶段所需的能力采用协议管理吗",
-      "src": "docs/modernization/architecture/proposals/value-streams.v2.yaml VS-04.6 履约（STEP3 后新增段注释）",
-      "ctx": "履约阶段处理协议生效后的变更、签证、索赔和框架任务订单。它是在阶段对照之后新增的，能力字段虽已填入协议管理，但注释明确标为提议，需单独确认。",
-      "now": "",
-      "check": "",
-      "basis": [
-        "docs/modernization/architecture/proposals/value-streams.v2.yaml VS-04.6 履约：阶段描述、段内处理内容及 capabilities 提议为 CAP-005 协议管理。",
-        "docs/modernization/architecture/proposals/capabilities.v2.yaml CAP-005 协议管理：订立、变更、履行与终止协议，覆盖本阶段业务。"
-      ],
-      "practice": [],
-      "opts": [
-        {
-          "label": "采用协议管理",
-          "effect": "确认 VS-04.6 履约由 CAP-005 协议管理支撑，后续阶段对照纳入这一项。",
-          "rec": true
-        },
-        {
-          "label": "调整能力后再确认",
-          "effect": "在说明里写出需要增加或更换的能力，由 one-architecture 核对阶段实际做的事后重写。",
-          "rec": false
-        }
-      ]
-    },
-    {
-      "no": "CAPINFO-C10",
-      "grp": "cap",
-      "kind": "choice",
-      "title": "新增事前申请阶段所需的能力采用人员管理吗",
-      "src": "docs/modernization/architecture/proposals/value-streams.v2.yaml VS-08.0 事前申请（STEP3 后新增段注释）",
-      "ctx": "事前申请阶段处理员工在支出前申请费用额度或出差批准，只适用于需要事先审批的费用类别。它在阶段对照之后新增，能力字段暂填人员管理；申请单是否单列业务记录，见信息层题目。",
-      "now": "",
-      "check": "",
-      "basis": [
-        "docs/modernization/architecture/proposals/value-streams.v2.yaml VS-08.0 事前申请：capabilities 提议为 CAP-056 人员管理；退出要求费用或出差申请已批准，缺记录问题标 MS-18。",
-        "docs/modernization/architecture/proposals/capabilities.v2.yaml CAP-056 人员管理及现有费用报销的能力归属；本题确认现有提议，不把申请记录的归属视为已定。"
-      ],
-      "practice": [],
-      "opts": [
-        {
-          "label": "采用人员管理",
-          "effect": "确认 VS-08.0 事前申请由 CAP-056 人员管理支撑；新增申请记录及其能力归属按信息层答复核对，如需改变此项则重新确认。",
-          "rec": true
-        },
-        {
-          "label": "调整能力后再确认",
-          "effect": "在说明里写出期望归属，由 one-architecture 连同申请记录一起核对后重写。",
+          "effect": "维持现有阶段能力清单，三项不补列的提议仍待确认；折旧与 IT 资产记录写法按页首架构已定说明处理。",
           "rec": false
         }
       ]
@@ -335,11 +92,11 @@
       "kind": "approve",
       "title": "13 条价值流是否按下面的用途归类",
       "src": "docs/modernization/architecture/proposals/categories.proposal.yaml value_streams 全部 13 条",
-      "ctx": "核心表示直接为客户创造并交付价值；战略表示定方向、配资源和对所有者负责；支撑表示提供人、财、物、合规与知识。下面列出全部归类，逐条理由见本组顶部同题号依据表。本题决定业务用途，不选择分类标准。",
+      "ctx": "核心表示直接为客户创造并交付价值；战略表示定方向、配资源和对所有者负责；支撑表示提供人、财、物、合规与知识。下面列出全部归类，逐条理由见页首同题号依据表。本题决定业务用途，不选择分类标准。",
       "now": "核心：VS-01 选定服务方、VS-02 获得交付成果、VS-03 获得风险结论、VS-04 约定并支付服务价款；战略：VS-09 达成经营目标、VS-12 获得投资回报；支撑：VS-05 获得外部资源、VS-06 确认企业合规、VS-07 任用员工、VS-08 报销垫付费用、VS-10 获得期间报告、VS-11 沉淀复用知识、VS-13 获得报酬",
       "check": "",
       "basis": [
-        "docs/modernization/architecture/proposals/categories.proposal.yaml value_streams：每条价值流的 category 与 basis，完整展开在本组顶部 CAPINFO-C11 依据表。",
+        "docs/modernization/architecture/proposals/categories.proposal.yaml value_streams：每条价值流的 category 与 basis，完整展开在页首 CAPINFO-C11 依据表。",
         "docs/modernization/architecture/proposals/categories.proposal.yaml 文件头引用 BIZBOK v11 §2.2 的 Strategic / Core / Supporting 分层；这里只确认对现有业务的具体归类。"
       ],
       "practice": [],
@@ -356,7 +113,7 @@
         },
         {
           "label": "不批准",
-          "effect": "维持现状：categories.proposal.yaml 的价值流用途分类仍为提议，不作为已确认分类。",
+          "effect": "维持现状：用途分类仍为提议，不作为已确认分类。",
           "rec": false
         }
       ]
@@ -365,21 +122,21 @@
       "no": "CAPINFO-C12",
       "grp": "cap",
       "kind": "approve",
-      "title": "21 个一级能力是否按下面的用途归类",
+      "title": "一级能力用途分类：法人主体管理改归支撑，其余按清单吗",
       "src": "docs/modernization/architecture/proposals/categories.proposal.yaml capabilities 全部 21 条",
-      "ctx": "一级能力按主要业务用途分为核心、战略、支撑，下一级能力随所属一级能力归类。协议管理还覆盖供方与劳动合同，但提议按收入合同为主归核心；法人主体管理按设立与注销等治理事项归战略。完整依据表在本组顶部。",
-      "now": "核心：CAP-001 往来单位管理、CAP-005 协议管理、CAP-016 市场活动管理、CAP-017 线索管理、CAP-018 商机管理、CAP-019 招标项目管理、CAP-024 服务产品管理、CAP-025 阶段类型管理、CAP-026 标准成本费率表管理、CAP-029 项目管理、CAP-046 建设工程管理、CAP-053 证据管理；战略：CAP-054 法人主体管理、CAP-074 激励方案管理、CAP-100 经营计划管理；支撑：CAP-028 工作日历管理、CAP-056 人员管理、CAP-058 岗位管理、CAP-093 公司资产管理、CAP-103 财务管理、CAP-110 知识条目管理",
+      "ctx": "一级能力按主要业务用途分为核心、战略、支撑，下一级随所属一级能力归类。现有提议将法人主体管理归战略，但其下一级能力还含资质证书管理、月度薪酬结算管理；维持现提议时，它们也随一级归战略。本题推荐法人主体管理改归支撑，覆盖其日常合规与薪酬服务；其余 20 项分类不变。页首依据表并列现有提议与本题推荐。",
+      "now": "当前提议：核心：CAP-001 往来单位管理、CAP-005 协议管理、CAP-016 市场活动管理、CAP-017 线索管理、CAP-018 商机管理、CAP-019 招标项目管理、CAP-024 服务产品管理、CAP-025 阶段类型管理、CAP-026 标准成本费率表管理、CAP-029 项目管理、CAP-046 建设工程管理、CAP-053 证据管理；战略：CAP-054 法人主体管理、CAP-074 激励方案管理、CAP-100 经营计划管理；支撑：CAP-028 工作日历管理、CAP-056 人员管理、CAP-058 岗位管理、CAP-093 公司资产管理、CAP-103 财务管理、CAP-110 知识条目管理",
       "check": "",
       "basis": [
-        "docs/modernization/architecture/proposals/categories.proposal.yaml capabilities：每个一级能力的 category 与 basis，完整展开在本组顶部 CAPINFO-C12 依据表。",
-        "docs/modernization/architecture/proposals/categories.proposal.yaml 文件头：参考 BIZBOK v11 §2.2，一级定层、二级继承；本题只确认业务用途归类。",
-        "docs/modernization/architecture/proposals/capabilities.v2.yaml CAP-005 协议管理、CAP-054 法人主体管理的范围宽于单一用途，本题保留题源按主要用途归类的提议供判断。"
+        "docs/modernization/architecture/proposals/categories.proposal.yaml capabilities：21 个一级能力的现有提议分类与理由；页首 CAPINFO-C12 依据表逐条列出现有提议和本题推荐，法人主体管理由战略改为支撑。",
+        "docs/modernization/architecture/proposals/categories.proposal.yaml 文件头：参考 BIZBOK v11 §2.2，一级定层、下一级继承；法人主体管理的日常合规与薪酬服务也须纳入用途判断。",
+        "docs/modernization/architecture/proposals/capabilities.v2.yaml CAP-054 法人主体管理：下一级含资质证书管理、月度薪酬结算管理、合伙人出资管理、利润分配管理。STEP3 §2.2 亦列出资质维护、薪酬结算与出资分配的阶段归处；本题推荐归支撑，不改变这些业务范围。"
       ],
       "practice": [],
       "opts": [
         {
           "label": "批准",
-          "effect": "确认列出的 21 个一级能力用途类别，下一级随所属一级能力归类；不据此改变能力原有业务范围。",
+          "effect": "确认法人主体管理归支撑，其下一级能力随之归支撑；其余 20 个一级能力按清单分类。能力的原有业务范围保持。",
           "rec": true
         },
         {
@@ -389,7 +146,7 @@
         },
         {
           "label": "不批准",
-          "effect": "维持现状：categories.proposal.yaml 的一级能力用途分类仍为提议，不作为已确认分类。",
+          "effect": "维持现状：用途分类仍为提议，不作为已确认分类。",
           "rec": false
         }
       ]
@@ -399,32 +156,41 @@
       "grp": "cap",
       "kind": "choice",
       "title": "员工办理行政与 IT 事务，要在价值流图上怎样呈现",
-      "src": "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §0–1、§7.1",
-      "ctx": "用印、IT 需求、IT 资产使用和员工活动目前作为内部支撑流程，价值流图上看不到一条从申请到办妥的完整服务。题源比较了合成一条、拆成三条和维持现状三种做法。合同借阅与归档的范围另见下一题。",
+      "src": "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §0–1、§4–7",
+      "ctx": "用印、IT 需求、IT 资产使用和员工活动目前作为内部支撑流程，价值流图上看不到一条从申请到办妥的完整服务。可合成一条、拆成三条，或保持现有支撑流程；名称和补能力的处理一并包含在各方案中。合同借阅与归档的范围另见下一题。",
       "now": "",
-      "check": "",
+      "check": "选择新增价值流时，同步起草覆盖四类事务的 2–4 项行政类一级能力，具体拆分和名称核对后再交确认；保持现有支撑流程不授权新增价值流或行政类能力。IT 资产各步记录的写法按页首架构已定说明执行。",
       "basis": [
-        "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §1 方案 A：合成一条获得内部服务，员工提出申请，经批准、办理到办结；与现有 VS-08 报销垫付费用的形态相近。",
-        "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §1 方案 B：拆成用印、IT 服务、员工活动三条，名称具体，但重复维护相似阶段；方案 C 保持支撑流程。",
-        "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §1、§4–5：方案 A 的阶段较笼统，需统一 IT 资产记录状态并补行政能力；这些工作也计入采纳代价。"
+        "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §1 方案 A：合成一条，员工提出申请，经批准、办理到办结，与 VS-08 报销垫付费用的形态相近；§6–7 的名称候选并入本题选项，当前暂名获得内部服务，备名获得行政支持。",
+        "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §1 方案 B：拆成用印、IT 服务、员工活动三条，名称具体，但需重复维护相似阶段；方案 C 保持支撑流程。",
+        "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §4、§5 G-5、§7.5：新增价值流需同时起草覆盖用印、IT 服务工单、IT 资产使用、员工活动的 2–4 项一级能力，具体拆分与名称待核对；本题合并原 C16 名称、C17 补能力两题。",
+        "用语提议：本题 terms_ok 中的获得内部服务、获得行政支持、用印管理、IT 服务工单、IT 资产使用、员工活动管理，范围为领域 B-31 organization.administration，待 one-glossary 登记；本题不定英文名或代码名。"
       ],
       "practice": [],
       "opts": [
         {
-          "label": "合成一条获得内部服务",
-          "effect": "采用方案 A，覆盖四类事务；补齐能力与记录状态后再写入正式图。需要维护通用阶段及各类事务不同的办结方式。",
+          "label": "合成一条（暂名获得内部服务）",
+          "effect": "采用一条价值流覆盖四类事务，暂名获得内部服务，备名获得行政支持；同步起草 2–4 项行政类一级能力，核对能力范围和提议名称后再交确认。需要维护通用阶段及各类事务不同的办结方式。",
           "rec": true
         },
         {
           "label": "拆成用印、IT 服务、员工活动三条",
-          "effect": "采用方案 B，逐类描述业务价值；需维护三套相似阶段，并重新核对各流程归属。",
+          "effect": "采用用印、IT 服务、员工活动三条价值流，IT 资产使用包含在 IT 服务内；同步起草覆盖四类事务的 2–4 项行政类一级能力。名称与拆分核对后再确认，并维护三套相似阶段。",
           "rec": false
         },
         {
           "label": "保持现有支撑流程",
-          "effect": "采用方案 C，保留现有办理流程；价值流图继续不单列这四类服务。",
+          "effect": "保留四类事务的现有办理流程；本题不新增内部服务价值流或行政类一级能力。",
           "rec": false
         }
+      ],
+      "terms_ok": [
+        "获得内部服务",
+        "获得行政支持",
+        "用印管理",
+        "IT 服务工单",
+        "IT 资产使用",
+        "员工活动管理"
       ]
     },
     {
@@ -433,12 +199,12 @@
       "kind": "choice",
       "title": "合同借阅与归档要纳入新增内部服务价值流吗",
       "src": "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §0、§3、§5 G-4、§7.2",
-      "ctx": "目前协议记录没有归档状态，也没有独立的借阅记录可用于确认借出与归还。若纳入新增价值流，须先补这些业务记录或状态，不能只把流程名字放进去。本题仅在上一题选择新增价值流时生效。",
+      "ctx": "目前协议记录没有归档办理进度，也没有独立的借阅记录可用于确认借出与归还。若纳入新增价值流，须先补借阅记录及归档办理进度，不能只把流程名字放进去。本题仅在上一题选择新增价值流时生效。",
       "now": "",
       "check": "若 CAPINFO-C13 选择保持现有支撑流程，本题不产生新增价值流或新增记录的授权。",
       "basis": [
         "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §3：PRC-140 合同借阅、PRC-141 销售合同归档、PRC-146 协议借阅逾期催还目前均为合同档案支撑。",
-        "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §5 G-4：OBJ-05 协议没有归档状态，信息图也未单列借阅记录；纳入前须先决定是否补记录或状态。"
+        "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §5 G-4：协议尚无归档办理进度，信息图也未单列借阅记录；纳入前须先明确这些记录及办理进度。"
       ],
       "practice": [],
       "opts": [
@@ -448,98 +214,8 @@
           "rec": true
         },
         {
-          "label": "纳入，并先补借阅记录及归档状态",
-          "effect": "授权 one-architecture 先提出借阅记录和协议归档状态方案，再交确认；确认前不能将其作为已具备完整记录的服务。",
-          "rec": false
-        }
-      ]
-    },
-    {
-      "no": "CAPINFO-C15",
-      "grp": "cap",
-      "kind": "approve",
-      "title": "是否批准先统一 IT 资产申请、领用、归还与维修的记录状态",
-      "src": "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §5 G-3、§7.3",
-      "ctx": "现有两份设计对资产是否已经申请、批准或领用，以及维修是否完成的写法不一致。即使采用一条内部服务价值流，也必须先说清每一步留下什么记录、何时算完成；这次只批准补齐方案，具体状态再核对。",
-      "now": "",
-      "check": "",
-      "basis": [
-        "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §5 G-3：OBJ-115 IT 资产使用记录缺申请与批准状态，领用及维修的状态名称在两份设计中不一致。",
-        "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §4：需同时核对信息图、资产使用设计与 AGG-121 维修登记设计；不得只为画图补一个没有业务依据的状态。"
-      ],
-      "practice": [],
-      "opts": [
-        {
-          "label": "批准",
-          "effect": "由 one-architecture 回补并统一申请、批准、领用、调拨、归还及维修记录的状态，再交核对；不在本题预定每个状态名称。",
-          "rec": true
-        },
-        {
-          "label": "修改后再看",
-          "effect": "在说明里列出哪些状态不应单列，或哪些完成条件仍不清楚，重写后再确认。",
-          "rec": false
-        },
-        {
-          "label": "不批准",
-          "effect": "维持现状：保留现有两份设计的差异说明，资产相关阶段不按状态已一致处理。",
-          "rec": false
-        }
-      ]
-    },
-    {
-      "no": "CAPINFO-C16",
-      "grp": "cap",
-      "kind": "choice",
-      "title": "新增价值流采用哪个名称",
-      "src": "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §6、§7.4",
-      "ctx": "若决定新增面向员工的行政与 IT 服务价值流，题源建议名称为获得内部服务，备选为获得行政支持。名称只是当前提议，正式用语仍需 one-glossary 核对登记；若不新增，本题不生效。",
-      "now": "",
-      "check": "仅在 CAPINFO-C13 选择新增价值流时生效，不据此扩大服务范围。",
-      "basis": [
-        "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §2、§6–7：拟编号 VS-14，名称候选为获得内部服务、获得行政支持；用语尚待 one-glossary 核对。"
-      ],
-      "practice": [],
-      "opts": [
-        {
-          "label": "获得内部服务",
-          "effect": "突出员工提出需求到事项办妥，覆盖行政与 IT 支持；作为提议名称交 one-glossary 核对。",
-          "rec": true
-        },
-        {
-          "label": "获得行政支持",
-          "effect": "采用备选名称；需说明 IT 支持也包含在内，并交 one-glossary 核对。",
-          "rec": false
-        }
-      ]
-    },
-    {
-      "no": "CAPINFO-C17",
-      "grp": "cap",
-      "kind": "approve",
-      "title": "新增内部服务价值流时，是否一并补齐行政类能力",
-      "src": "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §0.5、§4、§5 G-5、§7.5",
-      "ctx": "能力图目前没有用印、IT 工单、IT 资产使用和员工活动对应的一级能力。若新增价值流却不补这些能力，各阶段会找不到需要的能力。题源预计需补 2–4 项，具体拆分与名称仍需评审。",
-      "now": "",
-      "check": "若 CAPINFO-C13 选择保持现有支撑流程，本题不授权增加行政类能力。",
-      "basis": [
-        "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §4：候选范围为用印管理、IT 服务工单、IT 资产使用、员工活动管理；名称与拆分仍待第 ② 步能力梳理。",
-        "docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §5 G-5、§7.5：不补能力则新增阶段的能力清单为空，阶段对照仍有缺口。"
-      ],
-      "practice": [],
-      "opts": [
-        {
-          "label": "批准",
-          "effect": "选择新增价值流时，同步起草覆盖四类服务的 2–4 项一级能力，核对名称与范围后再交确认；本题不直接批准全部候选名称。",
-          "rec": true
-        },
-        {
-          "label": "修改后再看",
-          "effect": "在说明里列出应合并或拆开的服务范围，再起草能力清单。",
-          "rec": false
-        },
-        {
-          "label": "不批准",
-          "effect": "维持现状：能力图不增加行政类能力；新增内部服务方案仍保留能力未补齐的缺口。",
+          "label": "纳入，并先补借阅记录及归档办理进度",
+          "effect": "先提出借阅记录和协议归档办理进度的方案，再交确认；确认前不能将其作为已具备完整记录的服务。",
           "rec": false
         }
       ]
@@ -548,28 +224,67 @@
       "no": "CAPINFO-I01",
       "grp": "info",
       "kind": "choice",
-      "title": "财务组的核算处理和配置，要逐项单列业务记录吗",
-      "src": "docs/modernization/architecture/proposals/closeout/object-layer.yaml finance 组；origin/claude/one-arch-finance-closeout（本地引用 d35bbe1d）:docs/modernization/architecture/proposals/closeout/finance/OBJECTS.md §6",
-      "ctx": "下列 17 条流程分为成本与记账处理、核对结果、参数和规则维护。它们已有运行记录或配置，只是信息图没有为每种处理再单列一类业务记录。三类申请单和核对差异案另题确认，避免与本题重复。",
-      "now": "PRC-15 未签约的售前投入转费用；PRC-25 转入售前投入；PRC-35 项目或协议终止、结项后清算成本；PRC-55 结转合同履约成本；PRC-92 过账业务事实；PRC-95 期末结转；PRC-96 分配人工成本；PRC-98 分摊间接成本；PRC-103 生成期间余额快照；PRC-104 外部法定账对账与签字；PRC-158 处置过账拒收记录；PRC-164 收入确认冲销后冲回已配对成本结转；PRC-165 发布成本核算参数版本；PRC-166 发布资产类别与折旧政策版本；PRC-167 编制并签字确认期初余额；PRC-168 发布口径版本；PRC-174 发布出差补贴标准版本",
+      "title": "核算结果、规则设置与账号处理是否不逐项单列业务记录",
+      "src": "docs/modernization/architecture/proposals/closeout/object-layer.yaml；docs/modernization/architecture/proposals/closeout/process-catalog.yaml；origin/claude/one-arch-finance-closeout（本地引用 d35bbe1d）:docs/modernization/architecture/proposals/closeout/finance/OBJECTS.md §6；origin/claude/one-arch-people-closeout（本地引用 915cfc36）:docs/modernization/architecture/proposals/closeout/people/OBJECT_LAYER.md §6 F-6",
+      "ctx": "合并原 I01、I03、I04 的 26 条流程，按成本与记账、余额与核对、开票与收入限制、规则设置、账号与人员同步五类列在页首同题号清单。它们保存处理结果、规则修订记录或设置，不因有一条流程就在信息图增加一类业务记录。费用与出差申请、差旅订单月账单、勾稽差异案、假期余额及薪酬档案另题确认。",
+      "now": "成本与记账 9 条；余额与核对 4 条；开票与收入限制 1 条；规则设置 7 条；账号与人员同步 5 条。共 26 条，逐条业务内容见页首清单及题源核对表。",
       "check": "",
       "basis": [
-        "origin/claude/one-arch-finance-closeout（本地引用 d35bbe1d）:docs/modernization/architecture/proposals/closeout/finance/OBJECTS.md §6：成本结转、过账、期末结转、人工成本分配、分摊、余额快照及对账属于处理过程与结果，建议不因此另立业务记录种类；配置与期初余额也未在信息图单列。",
-        "docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md OBJ-75 经营事实、OBJ-76 人工成本分配、OBJ-79 分摊运行、OBJ-80 成本结转批次的保留行：均标为不再单列对象。",
-        "ADR-0016 决定 1–3：过账控制、财务数据与配置的职责仍须保留；图上不单列不等于删除记账或核对证据。"
+        "origin/claude/one-arch-finance-closeout（本地引用 d35bbe1d）:docs/modernization/architecture/proposals/closeout/finance/OBJECTS.md §6：成本结转、过账、期末结转、人工成本分配、分摊、余额快照、对账为处理过程及结果；参数、政策、标准与期初余额未在信息图单列。",
+        "docs/modernization/architecture/proposals/closeout/process-catalog.yaml PRC-51、PRC-52：前者按履约义务与付款条件记录可开票、可确认收入的金额及占用，后者保存可触发收入确认的证据类型设置与修订记录。",
+        "docs/modernization/architecture/proposals/closeout/object-layer.yaml PRC-129、PRC-137、PRC-138、PRC-145、PRC-177、PRC-162、PRC-180：账号开停、同步、提醒及规则发布均声明不单列业务记录；它们服务已有员工与组织资料或维护设置。",
+        "docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md 的经营事实、人工成本分配、分摊运行、成本结转批次保留行均不再单列；ADR-0016 决定 1–3 保留过账控制、财务数据、核对证据及设置的职责。图上不单列不等于删除这些记录。"
       ],
       "practice": [],
       "opts": [
         {
-          "label": "保持处理结果和配置，不逐项单列",
-          "effect": "保留现有核算、对账、拒收处置、版本与签字记录；信息图不为这 17 条流程逐项增加独立业务记录种类。",
+          "label": "保留处理结果和设置，信息图不逐项单列",
+          "effect": "继续保存 26 条流程的核算结果、金额占用、核对签字、拒收处置、账号与同步处理、提醒和规则修订记录；信息图不逐项增加独立业务记录种类。",
           "rec": true
         },
         {
           "label": "选定其中一些单列业务记录",
-          "effect": "在说明里逐条写流程编号、中文名，以及要单列记录的内容和完成条件，由 one-architecture 核对后交确认；不默认 17 条全部新增。",
+          "effect": "在说明中逐条写流程编号、中文名，以及要单列记录的业务内容、维护责任与完成条件，核对后再交确认。",
           "rec": false
         }
+      ]
+    },
+    {
+      "no": "CAPINFO-I05",
+      "grp": "info",
+      "kind": "choice",
+      "title": "费用事前申请与出差申请要单列为业务记录吗",
+      "src": "origin/claude/one-arch-finance-closeout（本地引用 d35bbe1d）:docs/modernization/architecture/proposals/closeout/finance/OBJECTS.md §6；docs/modernization/architecture/proposals/value-streams.v2.yaml VS-08.0 事前申请；docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md 事前申请行",
+      "ctx": "费用支出前先申请金额批准，出差前先申请行程批准，出差获批后把行程传给差旅服务商。两类流程已有设计，信息图目前把它们作为费用报销的预批单据，不单列。本题合并确认是否补为两类可独立跟踪的申请记录；采纳新增须同步修订原口径。",
+      "now": "PRC-170 申请费用事前批准、PRC-172 申请出差并同步差旅服务商：流程已有，信息图未单列两类申请记录。",
+      "check": "如只同意单列其中一类，选分别说明后再定。CAPINFO-C02 中事前申请的能力归属须按本题答复核对，不能直接把申请记录缺口视为已经解决。",
+      "basis": [
+        "origin/claude/one-arch-finance-closeout（本地引用 d35bbe1d）:docs/modernization/architecture/proposals/closeout/finance/OBJECTS.md §6：PRC-170、PRC-172 对应真实业务单据，建议分别新增费用事前申请、出差申请。",
+        "docs/modernization/architecture/proposals/value-streams.v2.yaml VS-08.0 事前申请：完成条件包括费用或出差申请已批准，需要有可核验的批准结果。",
+        "docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md 事前申请（出差、业务招待）行：当前归费用报销的预批单据，记录预算占用；本题采纳新增时同步修订该处理方式。",
+        "用语提议：本题 terms_ok 中的费用事前申请、出差申请，范围为领域 B-12 expense.spend，沿用题源名称，待 one-glossary 登记。"
+      ],
+      "practice": [],
+      "opts": [
+        {
+          "label": "分别单列费用事前申请与出差申请",
+          "effect": "在信息图补两类申请记录，同步修订原有处理方式；明确申请金额、行程、批准结果及与后续费用的联系，并核对所需能力。两类申请是否共用部分内容另行核对。",
+          "rec": true
+        },
+        {
+          "label": "保留审批单据信息，信息图不单列",
+          "effect": "继续办理费用与出差审批、同步差旅服务商；说明申请内容、批准结果与后续费用的记录去向，再核对事前申请阶段的完成依据。",
+          "rec": false
+        },
+        {
+          "label": "分别说明后再定",
+          "effect": "在说明中列出只同意单列的申请类型，以及另一类保存和核验批准结果的方式，修订后再确认。",
+          "rec": false
+        }
+      ],
+      "terms_ok": [
+        "费用事前申请",
+        "出差申请"
       ]
     },
     {
@@ -600,202 +315,186 @@
       ]
     },
     {
-      "no": "CAPINFO-I03",
-      "grp": "info",
-      "kind": "choice",
-      "title": "收入组的可用额度和证据类型设置，要单列业务记录吗",
-      "src": "docs/modernization/architecture/proposals/closeout/object-layer.yaml revenue 组；docs/modernization/architecture/proposals/closeout/process-catalog.yaml 对应两条流程",
-      "ctx": "收入组有两类设置未在信息图单列：按协议维护可开票、可确认收入的额度，以及决定哪些证据类型可用于收入确认。题源认为前者记录占用情况，后者记录规则版本，两者都不改变一类新的业务单据。",
-      "now": "PRC-51 建立并更新开票与收入额度；PRC-52 开放可触发收入确认的证据类型",
-      "check": "",
-      "basis": [
-        "docs/modernization/architecture/proposals/closeout/process-catalog.yaml PRC-51 建立并更新开票与收入额度：按履约义务与付款条件记录额度；PRC-52 开放可触发收入确认的证据类型：财务书面确认后逐类开放的版本设置。",
-        "docs/modernization/architecture/proposals/closeout/object-layer.yaml revenue 组：两条均声明不单列业务记录；docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §E 将是否新增信息图条目交信息层决定。"
-      ],
-      "practice": [],
-      "opts": [
-        {
-          "label": "保留额度记录与设置版本，信息图不单列",
-          "effect": "继续保存额度占用、更新与证据类型设置的版本；信息图说明用途，不把两种设置改作独立业务单据。",
-          "rec": true
-        },
-        {
-          "label": "把其中一些单列为业务记录",
-          "effect": "在说明里写明是额度记录还是证据类型设置、由谁维护及需跟踪的进度，核对后再定。",
-          "rec": false
-        }
-      ]
-    },
-    {
-      "no": "CAPINFO-I04",
-      "grp": "info",
-      "kind": "choice",
-      "title": "人员组的账号处理、提醒和规则设置，要单列业务记录吗",
-      "src": "docs/modernization/architecture/proposals/closeout/object-layer.yaml people 组；docs/modernization/architecture/proposals/closeout/process-catalog.yaml 对应七条流程",
-      "ctx": "这七条流程处理入离职账号、员工法人信息不一致提醒、差旅人员同步，以及假期和薪酬规则版本。它们已有处理记录或设置。假期额度、薪酬档案及相关三条流程由后两道专题决定，不包含在本题中。",
-      "now": "PRC-129 离职后吊销会话；PRC-137 入职开通企业微信账号并绑定外部身份；PRC-138 离职停用企业微信账号并解绑；PRC-145 员工法人三口径不一致预警；PRC-177 向差旅服务商同步员工与组织；PRC-162 发布假期规则版本；PRC-180 发布薪酬规则版本",
-      "check": "",
-      "basis": [
-        "docs/modernization/architecture/proposals/closeout/object-layer.yaml people 组：下列七条均声明不单列业务记录；账号开停与同步处理服务现有员工、组织资料，规则发布维护版本。",
-        "docs/modernization/architecture/proposals/closeout/process-catalog.yaml PRC-162 发布假期规则版本、PRC-180 发布薪酬规则版本的理由：两者为配置维护，不直接完成任一阶段要求的业务结果。",
-        "origin/claude/one-arch-people-closeout（本地引用 915cfc36）:docs/modernization/architecture/proposals/closeout/people/OBJECT_LAYER.md §6 F-6：假期额度与人员薪酬档案需另行决定，分别见 CAPINFO-I08、CAPINFO-I09。"
-      ],
-      "practice": [],
-      "opts": [
-        {
-          "label": "保留处理记录与规则版本，信息图不单列",
-          "effect": "账号、同步、提醒及规则版本继续保存和使用；本题不为这七条流程增加独立业务记录种类。",
-          "rec": true
-        },
-        {
-          "label": "把其中一些单列为业务记录",
-          "effect": "在说明里写明流程编号、中文名、需跟踪的业务内容与完成条件，由 one-architecture 核对后再确认。",
-          "rec": false
-        }
-      ]
-    },
-    {
-      "no": "CAPINFO-I05",
-      "grp": "info",
-      "kind": "choice",
-      "title": "费用事前申请要单列为业务记录吗",
-      "src": "origin/claude/one-arch-finance-closeout（本地引用 d35bbe1d）:docs/modernization/architecture/proposals/closeout/finance/OBJECTS.md §6；docs/modernization/architecture/proposals/value-streams.v2.yaml VS-08.0 事前申请",
-      "ctx": "费用支出前申请额度、获批后使用的流程已有设计。财务组建议单列申请记录，但信息图 §3 当前把事前申请作为费用报销的预批单据，不单列。本题是在两种做法之间选择；采纳新增要同步修订原口径。",
-      "now": "PRC-170 申请费用事前额度：流程已有，信息图未单列申请记录。",
-      "check": "",
-      "basis": [
-        "origin/claude/one-arch-finance-closeout（本地引用 d35bbe1d）:docs/modernization/architecture/proposals/closeout/finance/OBJECTS.md §6：PRC-170 申请费用事前额度对应真实业务单据，建议新增费用事前申请。",
-        "docs/modernization/architecture/proposals/closeout/process-catalog.yaml PRC-170 申请费用事前额度；docs/modernization/architecture/proposals/value-streams.v2.yaml VS-08.0 事前申请：退出条件包含费用事前申请已批准，缺口 MS-18。",
-        "docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §3 事前申请（出差、业务招待）一行：当前归为费用报销的预批单据（预算占用），依据评二 H6；与财务组此次新增建议不一致，不能仅因已有表单就视为可直接新增。"
-      ],
-      "practice": [],
-      "opts": [
-        {
-          "label": "单列费用事前申请",
-          "effect": "在信息图补费用事前申请，同步修订 §3 的原有处理方式；说明申请内容、额度、审批结果和后续费用联系，并核对所需能力，不在本题指定记录编号。",
-          "rec": true
-        },
-        {
-          "label": "保留审批单据信息，信息图不单列",
-          "effect": "申请与审批流程保留；须另外说明事前申请阶段怎样核验批准结果，MS-18 的记录缺口不能直接视为已补齐。",
-          "rec": false
-        }
-      ]
-    },
-    {
-      "no": "CAPINFO-I06",
-      "grp": "info",
-      "kind": "choice",
-      "title": "出差申请要单列为业务记录吗",
-      "src": "origin/claude/one-arch-finance-closeout（本地引用 d35bbe1d）:docs/modernization/architecture/proposals/closeout/finance/OBJECTS.md §6；docs/modernization/architecture/proposals/value-streams.v2.yaml VS-08.0 事前申请",
-      "ctx": "出差获批后把行程传给差旅服务商。财务组建议单列出差申请，但信息图 §3 目前把出差等事前申请作为费用报销的预批单据，不单列。若采纳新增，要同步改写这一口径，说明出差申请如何独立跟踪。",
-      "now": "PRC-172 申请出差并同步差旅服务商：流程已有，信息图未单列申请记录。",
-      "check": "",
-      "basis": [
-        "origin/claude/one-arch-finance-closeout（本地引用 d35bbe1d）:docs/modernization/architecture/proposals/closeout/finance/OBJECTS.md §6：PRC-172 申请出差并同步差旅服务商对应真实业务单据，建议新增出差申请。",
-        "docs/modernization/architecture/proposals/closeout/process-catalog.yaml PRC-172 申请出差并同步差旅服务商；docs/modernization/architecture/proposals/value-streams.v2.yaml VS-08.0 事前申请：退出条件包含出差申请已批准，缺口 MS-18。",
-        "docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §3 事前申请（出差、业务招待）一行：当前作为费用报销的预批单据；与财务组此次新增建议存在取舍，需用户确认。"
-      ],
-      "practice": [],
-      "opts": [
-        {
-          "label": "单列出差申请",
-          "effect": "在信息图补出差申请，同步修订 §3 的原有处理方式；说明批准结果及与行程和费用的联系，并核对所需能力，与费用事前申请是否共用部分内容另行核对。",
-          "rec": true
-        },
-        {
-          "label": "保留审批单据信息，信息图不单列",
-          "effect": "出差审批与差旅服务商同步仍保留；须另行说明如何查验出差批准依据，相关缺口不自动关闭。",
-          "rec": false
-        }
-      ]
-    },
-    {
       "no": "CAPINFO-I07",
       "grp": "info",
       "kind": "choice",
-      "title": "差旅订单要单列为业务记录吗",
-      "src": "origin/claude/one-arch-finance-closeout（本地引用 d35bbe1d）:docs/modernization/architecture/proposals/closeout/finance/OBJECTS.md §6；docs/modernization/architecture/proposals/closeout/process-catalog.yaml PRC-173 审批差旅超标订单",
-      "ctx": "差旅订单包含服务商办理的机票、住宿等预订。超过标准的订单需审批，月账单还要核对并确认应付。财务组认为它是真实业务记录，建议在信息图补上，与出差申请和应付款分别说明。",
-      "now": "PRC-173 审批差旅超标订单：流程已有，信息图未单列订单记录。",
-      "check": "",
+      "title": "差旅订单月账单",
+      "src": "origin/claude/one-arch-finance-closeout（本地引用 d35bbe1d）:docs/modernization/architecture/proposals/closeout/finance/OBJECTS.md §6；docs/modernization/architecture/proposals/closeout/process-catalog.yaml PRC-171、PRC-173；docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md 差旅订单与统一结算账单行",
+      "ctx": "本题把差旅订单与月账单一并处理：机票、住宿等订单中超过标准的部分需审批，服务商月账单需逐项核对并确认应付。建议在信息图补明订单、超标审批结果及月账单的联系；出差申请与应付款各自保留其业务含义。",
+      "now": "PRC-173 审批差旅超标订单尚无单列订单记录；PRC-171 核对差旅服务商月账单并确认应付目前归往来款项。信息图原将差旅订单与统一结算账单作为外部资料，不在本系统建立业务记录。",
+      "check": "两类事项合并作答仍须分别保存订单审批和月账单核对依据，不能把订单、月账单及应付款合成同一种记录。",
       "basis": [
-        "origin/claude/one-arch-finance-closeout（本地引用 d35bbe1d）:docs/modernization/architecture/proposals/closeout/finance/OBJECTS.md §6：建议新增差旅订单，供 PRC-173 审批差旅超标订单明确处理的记录。",
-        "docs/modernization/architecture/proposals/closeout/process-catalog.yaml PRC-171 核对差旅服务商月账单并确认应付、PRC-173 审批差旅超标订单：订单审批与月账单结算是不同事项。",
-        "docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md §1 第 3 条与 §3：单据不因存在就自动在信息图单列；本题采纳新增仍须说明订单的独立业务内容及与现有记录的关系。"
+        "origin/claude/one-arch-finance-closeout（本地引用 d35bbe1d）:docs/modernization/architecture/proposals/closeout/finance/OBJECTS.md §6：建议新增差旅订单，为 PRC-173 明确所处理的业务记录。",
+        "docs/modernization/architecture/proposals/closeout/process-catalog.yaml PRC-171、PRC-173：订单审批与月账单结算为不同事项，但需一并说明订单明细、核对签字和应付确认之间的联系。",
+        "docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md 第 1 节第 3 条及差旅订单与统一结算账单行：单据不因存在就自动单列，原口径为外部资料不建；采纳新增须同步修订该口径并核对 ADR-0039 的集成边界。",
+        "用语提议：本题 terms_ok 中的差旅订单、差旅订单月账单，范围为领域 B-12 expense.spend，后者表示订单和月账单合并审定的题名，不表示两种记录合并，待 one-glossary 登记核对。"
       ],
       "practice": [],
       "opts": [
         {
-          "label": "单列差旅订单",
-          "effect": "在信息图补订单与超标审批结果，说明它和出差申请、服务商账单及应付款的关系；服务商原始数据仍须核对后使用。",
+          "label": "在信息图补明差旅订单与月账单",
+          "effect": "补明订单、超标审批结果与月账单核对记录，说明它们和出差申请、应付款的联系；同步修订外部资料不建的原口径，服务商原始资料仍须核对后使用。",
           "rec": true
         },
         {
-          "label": "只保留服务商订单资料，信息图不单列",
-          "effect": "仍可审批超标订单和核对账单；须明确订单编号、审批结果及费用依据保存在哪里，不能用应付款记录替代全部订单信息。",
+          "label": "保留外部资料及现有核对记录，信息图不单列",
+          "effect": "继续审批超标订单、核对月账单并确认应付；明确订单明细、批准结果与核对依据保存在哪里，不能以应付款替代全部资料。",
           "rec": false
         }
+      ],
+      "terms_ok": [
+        "差旅订单",
+        "差旅订单月账单"
       ]
     },
     {
       "no": "CAPINFO-I08",
       "grp": "info",
-      "kind": "choice",
-      "title": "假期额度要单列业务记录，还是继续由请假和规则计算",
-      "src": "origin/claude/one-arch-people-closeout（本地引用 915cfc36）:docs/modernization/architecture/proposals/closeout/people/OBJECT_LAYER.md §6 F-6；docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md OBJ-69 假期额度保留行",
-      "ctx": "信息图把员工每年某类假期的应享、已用与结转天数视为计算余额，不再单列；人员组则已有开立年度额度账户的处理设计。要定的是：继续计算余额，还是管理一份独立的额度账户记录。",
-      "now": "PRC-160 开立年度假期额度账户；OBJ-69 假期额度：保留原行号，但当前不再单列业务记录。",
-      "check": "不论选择哪项，都要重看 PRC-160 开立年度假期额度账户与 VS-07.3 入职任职的关系；年初开立不能直接算作完成入职。",
+      "kind": "selection",
+      "title": "假期余额要单列业务记录，还是继续由请假和规则计算",
+      "src": "origin/claude/one-arch-people-closeout（本地引用 915cfc36）:docs/modernization/architecture/proposals/closeout/people/OBJECT_LAYER.md §6 F-6；docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md 假期余额保留行；docs/modernization/architecture/proposals/closeout/process-catalog.yaml PRC-160",
+      "ctx": "信息图把员工每年某类假期的应享、已用与结转天数作为计算余额，不再单列；流程设计则已有每年开立账户的处理。要选择继续计算，还是管理一份独立的假期余额账户。现有离线材料不足以支持推荐，本题不预选。",
+      "now": "PRC-160 已有年度开立记录的设计；信息图的假期余额保留行当前不再单列业务记录。",
+      "check": "不论选择哪项，都要核对 PRC-160 与 VS-07.3 入职任职的关系；年初开立不能直接算作完成入职。",
       "basis": [
-        "docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md OBJ-69 假期额度保留行：不再单列，余额由请假与额度政策计算；OBJ-68 请假仍记录申请与扣减。",
-        "origin/claude/one-arch-people-closeout（本地引用 915cfc36）:docs/modernization/architecture/proposals/closeout/people/OBJECT_LAYER.md §6 F-6：额度可单列，或明确作为 OBJ-56 员工、OBJ-57 任职的资料；若不单列，须一并检查 PRC-160 开立年度假期额度账户的阶段归属。",
-        "docs/modernization/architecture/proposals/closeout/process-catalog.yaml PRC-160 开立年度假期额度账户：入职触发与年初定时触发的依据不同，不能因余额写入就直接认定为阶段完成。"
+        "docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md 假期余额保留行：当前不再单列，余额由请假与假期规则计算；请假仍记录申请与扣减。",
+        "origin/claude/one-arch-people-closeout（本地引用 915cfc36）:docs/modernization/architecture/proposals/closeout/people/OBJECT_LAYER.md §6 F-6：相关账户可单列，或明确作为员工、任职的资料；若不单列，须连同 PRC-160 的阶段归属一起复核。",
+        "docs/modernization/architecture/proposals/closeout/process-catalog.yaml PRC-160：入职与年初定时开立的依据不同，不能因余额写入就认定阶段完成；离线题源未提供足以判断独立账户是否必要的行业依据，因此不预选。",
+        "用语提议：本题 terms_ok 中的假期余额、假期余额账户，范围为领域 B-27，请假与加班；本页统一采用假期余额表述，题源名称由 one-glossary 核对，待登记。"
       ],
       "practice": [],
       "opts": [
         {
-          "label": "继续按请假和规则计算余额，不单列",
-          "effect": "保留现有信息图口径，保存必要的核定、结转与扣减依据；核对年度额度账户的用途，并复核该流程是否仍归入入职任职阶段。",
-          "rec": true
+          "label": "继续按请假和规则计算假期余额，不单列",
+          "effect": "保留现有信息图口径，保存核定、结转与扣减依据；核对年度开立记录的用途，并复核该流程是否仍归入入职任职阶段。",
+          "rec": false
         },
         {
-          "label": "单列假期额度账户记录",
-          "effect": "在信息图补每人、每假期类型、每年度的额度账户，明确核定、使用与结转的业务要求，再核对流程归属和所属能力。",
+          "label": "单列假期余额账户记录",
+          "effect": "在信息图补每人、每假期类型、每年度的假期余额账户，明确核定、使用、结转、折算与手工调整的业务要求，再核对流程归属和所属能力。",
           "rec": false
         }
+      ],
+      "terms_ok": [
+        "假期余额",
+        "假期余额账户"
       ]
     },
     {
       "no": "CAPINFO-I09",
       "grp": "info",
       "kind": "choice",
-      "title": "薪酬档案要独立管理，还是继续作为员工和任职资料的历史版本",
-      "src": "origin/claude/one-arch-people-closeout（本地引用 915cfc36）:docs/modernization/architecture/proposals/closeout/people/OBJECT_LAYER.md §6 F-6；docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md OBJ-61 薪酬档案保留行",
-      "ctx": "信息图把薪资结构、薪档和生效日作为员工或任职资料的历史版本，调薪时新增版本。人员组另有档案调整和补休转加班工资的处理设计，因此提出是否需要单列薪酬档案。",
-      "now": "PRC-123 调整薪酬档案与专项附加扣除；PRC-178 补休到期未休或离职时转计发加班工资；OBJ-61 薪酬档案：保留原行号，但当前作为人员资料的历史版本。",
+      "title": "薪酬档案要独立管理，还是继续作为员工和任职资料的历次记录",
+      "src": "origin/claude/one-arch-people-closeout（本地引用 915cfc36）:docs/modernization/architecture/proposals/closeout/people/OBJECT_LAYER.md §6 F-6；docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md 薪酬档案保留行",
+      "ctx": "信息图把薪资结构、薪档和生效日作为员工或任职资料的历次记录，调薪时新增记录。流程另有档案调整和补休转加班工资的处理设计，因此需要确认是否单列薪酬档案。",
+      "now": "PRC-123 调整薪酬档案与专项附加扣除、PRC-178 补休到期未休或离职时转计发加班工资：薪酬档案当前作为员工或任职资料的历次记录，不单列业务记录。",
       "check": "PRC-178 补休到期未休或离职时转计发加班工资有到期、离职两个入口；复核其与 VS-13.6 离职结清的关系，不能把所有到期处理都算作离职事项。",
       "basis": [
-        "docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md OBJ-61 薪酬档案保留行、OBJ-57 任职：薪资结构与薪档当前不独立列出，按生效日期保留历史版本。",
-        "origin/claude/one-arch-people-closeout（本地引用 915cfc36）:docs/modernization/architecture/proposals/closeout/people/OBJECT_LAYER.md §6 F-6：薪酬档案是否单列交信息层决定；采用员工或任职属性时，须连同相关流程的阶段归属一起复核。",
+        "docs/modernization/architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md 薪酬档案保留行及任职条目：薪资结构与薪档不独立列出，按生效日期保留历次记录。",
+        "origin/claude/one-arch-people-closeout（本地引用 915cfc36）:docs/modernization/architecture/proposals/closeout/people/OBJECT_LAYER.md §6 F-6：薪酬档案是否单列交信息层决定；采用员工或任职资料时，须连同相关流程的阶段归属一起复核。",
         "docs/modernization/architecture/proposals/closeout/process-catalog.yaml PRC-123 调整薪酬档案与专项附加扣除、PRC-178 补休到期未休或离职时转计发加班工资；ADR-0032 规定相关敏感信息的访问范围。"
       ],
       "practice": [],
       "opts": [
         {
-          "label": "继续作为员工和任职资料的历史版本",
+          "label": "继续作为员工和任职资料的历次记录",
           "effect": "维持信息图口径，保留调薪生效日、历史薪资及扣除资料；核对两条流程实际修改或新增什么记录，并复核补休转工资流程的阶段归属。",
           "rec": true
         },
         {
           "label": "单列薪酬档案业务记录",
-          "effect": "在信息图补人员薪酬档案，明确与员工、任职、薪酬结算和专项附加扣除的关系，仍按生效日期保留历史版本并限制访问。",
+          "effect": "在信息图补人员薪酬档案，明确与员工、任职、薪酬结算和专项附加扣除的关系，仍按生效日期保留历次记录并限制访问。",
           "rec": false
         }
       ]
     }
   ],
   "info": [
+    {
+      "title": "架构已定说明（不再出题）",
+      "lines": [
+        "原 C08：PRC-99 计提折旧并处置公司资产按 STEP3 §2.3 作为 VS-10 获得期间报告的贯穿活动输入，不向期间关账补列公司资产管理。",
+        "原 C15：IT 资产申请、批准、领用、调拨、归还及维修各步记录的写法以信息图为准，由架构统一，不再交用户选定。"
+      ]
+    },
+    {
+      "title": "CAPINFO-C02 补列与确认能力清单（六项）",
+      "lines": [
+        "本表合并原 C02、C04、C05、C06、C09、C10。前三项修订 STEP3 §2.2 的判断；判断依据改用 STEP3 §2.1 第 3 条：阶段实际办理下一级能力的业务，就计入对应一级能力。"
+      ],
+      "table": [
+        [
+          "阶段",
+          "现有能力",
+          "补列或确认",
+          "业务理由"
+        ],
+        [
+          "VS-03.1 检查策划",
+          "CAP-029 项目管理、CAP-046 建设工程管理",
+          "补列 CAP-005 协议管理",
+          "PRC-41 制定并使检查计划生效"
+        ],
+        [
+          "VS-04.2 收入确认",
+          "CAP-053 证据管理",
+          "补列 CAP-005 协议管理",
+          "PRC-53、54、148 实际办理收入确认及后续过账"
+        ],
+        [
+          "VS-04.3 开票",
+          "CAP-103 财务管理",
+          "补列 CAP-005 协议管理",
+          "PRC-56、152 登记付款条件达成并认定可结算"
+        ],
+        [
+          "VS-06.2 资质维护",
+          "CAP-054 法人主体管理",
+          "补列 CAP-056 人员管理",
+          "PRC-79 实际登记继续教育并延续注册执业证书"
+        ],
+        [
+          "VS-04.6 履约",
+          "CAP-005 协议管理（提议）",
+          "确认采用 CAP-005 协议管理",
+          "实际处理协议变更、签证、索赔及框架任务订单"
+        ],
+        [
+          "VS-08.0 事前申请",
+          "CAP-056 人员管理（提议）",
+          "确认采用 CAP-056 人员管理",
+          "员工申请支出或出差批准，结合 CAPINFO-I05 核对申请记录归属"
+        ]
+      ]
+    },
+    {
+      "title": "CAPINFO-C01 不补列阶段能力清单（三项）",
+      "lines": [
+        "本表合并原 C01、C03、C07；原 C08 的相同规则在页首架构已定说明列出，不再作为选项。"
+      ],
+      "table": [
+        [
+          "范围",
+          "不补列能力",
+          "处理方式"
+        ],
+        [
+          "VS-01.2 业务拓展；VS-02.0 启动、VS-02.1 概念、VS-02.2 方案、VS-02.3 初设、VS-02.4 深化、VS-02.5 招采、VS-02.6 施工",
+          "CAP-056 人员管理",
+          "PRC-23 工时填报作为支撑流程，提供贯穿成本输入"
+        ],
+        [
+          "VS-03.1 检查策划",
+          "CAP-024 服务产品管理",
+          "PRC-42 检查表模板发布作为支撑流程，维护供引用的主数据或设置"
+        ],
+        [
+          "VS-10.1 期间关账",
+          "CAP-056 人员管理",
+          "PRC-91 认定工时有效性提供贯穿活动输入，与折旧采用同一规则"
+        ]
+      ]
+    },
     {
       "title": "CAPINFO-C11 价值流用途分类依据表（全部 13 条）",
       "lines": [
@@ -878,296 +577,356 @@
     {
       "title": "CAPINFO-C12 一级能力用途分类依据表（全部 21 条）",
       "lines": [
-        "题面现状栏列出全部归类；本表逐条说明原因。核心＝直接交付客户价值；战略＝定方向、配资源、对所有者负责；支撑＝提供人、财、物、合规与知识。",
-        "出处：docs/modernization/architecture/proposals/categories.proposal.yaml 的 capabilities 各条 basis；分类框架出处为该文件头引用的 BIZBOK v11 §2.2。"
+        "题面现状栏列出现有提议；本表并列现有提议与本题推荐，法人主体管理推荐由战略改为支撑，其余 20 项不变。核心＝直接交付客户价值；战略＝定方向、配资源、对所有者负责；支撑＝提供人、财、物、合规与知识。",
+        "现有提议出处：docs/modernization/architecture/proposals/categories.proposal.yaml capabilities；业务范围出处：capabilities.v2.yaml。推荐考虑下一级能力随一级归类后的日常用途。"
       ],
       "table": [
         [
           "一级能力",
-          "提议类别",
+          "现有提议",
+          "本题推荐",
           "业务理由"
         ],
         [
           "CAP-001 往来单位管理",
+          "核心",
           "核心",
           "客户与相对方档案，客户关系是主营前提"
         ],
         [
           "CAP-005 协议管理",
           "核心",
+          "核心",
           "收入合同为主的协议订立与履行"
         ],
         [
           "CAP-016 市场活动管理",
+          "核心",
           "核心",
           "面向客户的推广"
         ],
         [
           "CAP-017 线索管理",
           "核心",
+          "核心",
           "客户需求线索"
         ],
         [
           "CAP-018 商机管理",
+          "核心",
           "核心",
           "针对客户的机会"
         ],
         [
           "CAP-019 招标项目管理",
           "核心",
+          "核心",
           "客户采购活动的引用"
         ],
         [
           "CAP-024 服务产品管理",
+          "核心",
           "核心",
           "对外提供的服务类别"
         ],
         [
           "CAP-025 阶段类型管理",
           "核心",
+          "核心",
           "服务产品的标准阶段"
         ],
         [
           "CAP-026 标准成本费率表管理",
+          "核心",
           "核心",
           "定价与预算取用的人工单价"
         ],
         [
           "CAP-028 工作日历管理",
           "支撑",
+          "支撑",
           "工作日与节假日，考勤与时限的公共参照"
         ],
         [
           "CAP-029 项目管理",
+          "核心",
           "核心",
           "交付单元"
         ],
         [
           "CAP-046 建设工程管理",
           "核心",
+          "核心",
           "服务所指向的工程"
         ],
         [
           "CAP-053 证据管理",
+          "核心",
           "核心",
           "交付与收入确认的证据"
         ],
         [
           "CAP-054 法人主体管理",
           "战略",
-          "法人设立与注销属所有者与组织结构决策"
+          "支撑",
+          "现提议按设立注销归战略；下一级还含资质证书、月度薪酬结算等日常服务，推荐随一级归支撑"
         ],
         [
           "CAP-056 人员管理",
+          "支撑",
           "支撑",
           "人员档案"
         ],
         [
           "CAP-058 岗位管理",
           "支撑",
+          "支撑",
           "职位目录"
         ],
         [
           "CAP-074 激励方案管理",
           "战略",
-          "激励规则与额度属管理层分配政策"
+          "战略",
+          "激励规则与可分配金额属管理层分配政策"
         ],
         [
           "CAP-093 公司资产管理",
+          "支撑",
           "支撑",
           "公司资产"
         ],
         [
           "CAP-100 经营计划管理",
           "战略",
+          "战略",
           "经营目标、预测与预算"
         ],
         [
           "CAP-103 财务管理",
+          "支撑",
           "支撑",
           "账簿、资金、往来款与申报"
         ],
         [
           "CAP-110 知识条目管理",
           "支撑",
+          "支撑",
           "跨项目复用知识"
         ]
       ]
     },
     {
-      "title": "信息层题源核对表（33 条流程，各归一道题）",
+      "title": "CAPINFO-I01 处理结果与设置清单（26 条，按业务分类）",
       "lines": [
-        "docs/modernization/architecture/proposals/closeout/object-layer.yaml：财务组 21 条、人员组 10 条、收入组 2 条，含支撑流程。",
-        "docs/modernization/architecture/proposals/closeout/OBJECT_LAYER_REPORT.md §④ 后的能力对应缺失小节当前为无；本次按实际声明清单提问。"
+        "原 I01 的 17 条、原 I03 的 2 条、原 I04 的 7 条合并到本题，原题源的组织分组不作为业务分类。逐条流程名称见下方题源核对表。"
       ],
       "table": [
         [
-          "组别",
+          "业务分类",
           "流程",
-          "题号"
+          "保留内容"
         ],
         [
-          "财务",
+          "成本与记账",
+          "PRC-15、PRC-25、PRC-35、PRC-55、PRC-92、PRC-95、PRC-96、PRC-98、PRC-164",
+          "保存成本处理、结转、分配、分摊和过账结果"
+        ],
+        [
+          "余额与核对",
+          "PRC-103、PRC-104、PRC-158、PRC-167",
+          "保存余额快照、对账签字、拒收处置及期初余额依据"
+        ],
+        [
+          "开票与收入限制",
+          "PRC-51",
+          "记录可开票、可确认收入的金额及占用"
+        ],
+        [
+          "规则设置",
+          "PRC-52、PRC-165、PRC-166、PRC-168、PRC-174、PRC-162、PRC-180",
+          "保存证据类型、核算参数、折旧政策、核算口径、补贴、假期和薪酬规则的设置与修订记录"
+        ],
+        [
+          "账号与人员同步",
+          "PRC-129、PRC-137、PRC-138、PRC-145、PRC-177",
+          "保存入离职账号开停、人员与组织同步及法人信息不一致提醒"
+        ]
+      ]
+    },
+    {
+      "title": "信息层题源核对表（33 条原题源流程，各归一道合并题）",
+      "lines": [
+        "docs/modernization/architecture/proposals/closeout/object-layer.yaml 的 33 条原题源流程逐条列出，按业务内容分类，合并后每条只归一道题。",
+        "CAPINFO-I07 同时核对 PRC-171 差旅服务商月账单及应付确认；该流程原已归往来款项，不在这 33 条原题源流程中。"
+      ],
+      "table": [
+        [
+          "业务分类",
+          "流程",
+          "合并后题号"
+        ],
+        [
+          "成本与记账",
           "PRC-15 未签约的售前投入转费用",
           "CAPINFO-I01"
         ],
         [
-          "财务",
+          "成本与记账",
           "PRC-25 转入售前投入",
           "CAPINFO-I01"
         ],
         [
-          "财务",
+          "成本与记账",
           "PRC-35 项目或协议终止、结项后清算成本",
           "CAPINFO-I01"
         ],
         [
-          "财务",
+          "成本与记账",
           "PRC-55 结转合同履约成本",
           "CAPINFO-I01"
         ],
         [
-          "财务",
+          "成本与记账",
           "PRC-92 过账业务事实",
           "CAPINFO-I01"
         ],
         [
-          "财务",
+          "成本与记账",
           "PRC-95 期末结转",
           "CAPINFO-I01"
         ],
         [
-          "财务",
+          "成本与记账",
           "PRC-96 分配人工成本",
           "CAPINFO-I01"
         ],
         [
-          "财务",
+          "成本与记账",
           "PRC-98 分摊间接成本",
           "CAPINFO-I01"
         ],
         [
-          "财务",
+          "余额与核对",
           "PRC-103 生成期间余额快照",
           "CAPINFO-I01"
         ],
         [
-          "财务",
+          "余额与核对",
           "PRC-104 外部法定账对账与签字",
           "CAPINFO-I01"
         ],
         [
-          "财务",
+          "余额与核对",
           "PRC-158 处置过账拒收记录",
           "CAPINFO-I01"
         ],
         [
-          "财务",
+          "成本与记账",
           "PRC-164 收入确认冲销后冲回已配对成本结转",
           "CAPINFO-I01"
         ],
         [
-          "财务",
-          "PRC-165 发布成本核算参数版本",
+          "规则设置",
+          "PRC-165 发布成本核算参数修订内容",
           "CAPINFO-I01"
         ],
         [
-          "财务",
-          "PRC-166 发布资产类别与折旧政策版本",
+          "规则设置",
+          "PRC-166 发布资产类别与折旧政策修订内容",
           "CAPINFO-I01"
         ],
         [
-          "财务",
+          "余额与核对",
           "PRC-167 编制并签字确认期初余额",
           "CAPINFO-I01"
         ],
         [
-          "财务",
-          "PRC-168 发布口径版本",
+          "规则设置",
+          "PRC-168 发布核算口径修订内容",
           "CAPINFO-I01"
         ],
         [
-          "财务",
-          "PRC-174 发布出差补贴标准版本",
+          "规则设置",
+          "PRC-174 发布出差补贴标准修订内容",
           "CAPINFO-I01"
         ],
         [
-          "财务",
+          "核对差异处置",
           "PRC-169 处置勾稽差异案",
           "CAPINFO-I02"
         ],
         [
-          "收入",
-          "PRC-51 建立并更新开票与收入额度",
-          "CAPINFO-I03"
+          "开票与收入限制",
+          "PRC-51 维护可开票与可确认收入的金额",
+          "CAPINFO-I01"
         ],
         [
-          "收入",
+          "规则设置",
           "PRC-52 开放可触发收入确认的证据类型",
-          "CAPINFO-I03"
+          "CAPINFO-I01"
         ],
         [
-          "人员",
+          "账号与人员同步",
           "PRC-129 离职后吊销会话",
-          "CAPINFO-I04"
+          "CAPINFO-I01"
         ],
         [
-          "人员",
+          "账号与人员同步",
           "PRC-137 入职开通企业微信账号并绑定外部身份",
-          "CAPINFO-I04"
+          "CAPINFO-I01"
         ],
         [
-          "人员",
+          "账号与人员同步",
           "PRC-138 离职停用企业微信账号并解绑",
-          "CAPINFO-I04"
+          "CAPINFO-I01"
         ],
         [
-          "人员",
+          "账号与人员同步",
           "PRC-145 员工法人三口径不一致预警",
-          "CAPINFO-I04"
+          "CAPINFO-I01"
         ],
         [
-          "人员",
+          "账号与人员同步",
           "PRC-177 向差旅服务商同步员工与组织",
-          "CAPINFO-I04"
+          "CAPINFO-I01"
         ],
         [
-          "人员",
-          "PRC-162 发布假期规则版本",
-          "CAPINFO-I04"
+          "规则设置",
+          "PRC-162 发布假期规则修订内容",
+          "CAPINFO-I01"
         ],
         [
-          "人员",
-          "PRC-180 发布薪酬规则版本",
-          "CAPINFO-I04"
+          "规则设置",
+          "PRC-180 发布薪酬规则修订内容",
+          "CAPINFO-I01"
         ],
         [
-          "财务",
-          "PRC-170 申请费用事前额度",
+          "费用与出差申请",
+          "PRC-170 申请费用事前批准",
           "CAPINFO-I05"
         ],
         [
-          "财务",
+          "费用与出差申请",
           "PRC-172 申请出差并同步差旅服务商",
-          "CAPINFO-I06"
+          "CAPINFO-I05"
         ],
         [
-          "财务",
+          "差旅订单月账单",
           "PRC-173 审批差旅超标订单",
           "CAPINFO-I07"
         ],
         [
-          "人员",
-          "PRC-160 开立年度假期额度账户",
+          "假期余额",
+          "PRC-160 年度开立假期余额账户",
           "CAPINFO-I08"
         ],
         [
-          "人员",
+          "薪酬档案",
           "PRC-123 调整薪酬档案与专项附加扣除",
           "CAPINFO-I09"
         ],
         [
-          "人员",
+          "薪酬档案",
           "PRC-178 补休到期未休或离职时转计发加班工资",
           "CAPINFO-I09"
         ]
@@ -1176,12 +935,12 @@
   ],
   "side": [
     {
-      "title": "初稿与使用范围",
+      "title": "使用范围",
       "lines": [
-        "状态：草稿｜2026-10-17｜负责：one-architecture",
-        "Codex 起草（gpt-6.1-sol，xhigh）",
-        "只起草 CAPINFO.json；本页未批准或写回任何架构方案。",
-        "内部服务的范围、名称与能力补齐题依前题选择生效；若不新增价值流，相关题不授权新增。"
+        "题面草稿｜2026-10-17｜按架构首轮审题返工第 1 轮。",
+        "本页只起草确认题，不表示已批准或已写回架构方案。",
+        "内部服务名称和行政类能力起草一并包含在 CAPINFO-C13；合同借阅与归档由 CAPINFO-C14 结合其选择生效。",
+        "假期余额题不预选，其余 11 题预选推荐项。"
       ]
     },
     {
@@ -1189,11 +948,11 @@
       "lines": [
         "origin/claude/one-arch-finance-closeout（本地引用 d35bbe1d）:docs/modernization/architecture/proposals/closeout/finance/OBJECTS.md §6",
         "origin/claude/one-arch-people-closeout（本地引用 915cfc36）:docs/modernization/architecture/proposals/closeout/people/OBJECT_LAYER.md §6 F-6",
-        "已先查 docs/modernization/glossary/terms.yaml。业务名称沿用题源；勾稽差异案已有登记。其余尚未登记的题源名称在本页仍作为提议，不定英文名或代码名。",
-        "沿用提议：费用事前申请、出差申请、差旅订单；范围：领域，B-12 expense.spend；出处：财务组 OBJECTS.md §6。",
-        "沿用提议：假期额度账户；范围：领域，B-27；人员薪酬档案；范围：领域，B-15；出处：人员组 OBJECT_LAYER.md §6 F-6。",
-        "沿用提议：获得内部服务、获得行政支持及行政类能力候选；范围：领域，B-31 organization.administration；出处：docs/modernization/architecture/proposals/STEP1_INTERNAL_SERVICES_VS.md §4、§6–7。由 one-glossary 核对登记，本卡不改词表。",
-        "本机离线读取的分支引用仅代表上述提交内容，不代表已获取远端最新状态。"
+        "已先查 docs/modernization/glossary/terms.yaml；勾稽差异案已有登记。沿用的题源名称仍为提议，不在本页定英文名或代码名。",
+        "费用事前申请、出差申请、差旅订单、差旅订单月账单见各题 terms_ok，范围为领域 B-12 expense.spend；待 one-glossary 登记核对。",
+        "假期余额、假期余额账户见 CAPINFO-I08 terms_ok，范围为领域 B-27；题源相关名称待 one-glossary 统一。",
+        "获得内部服务及行政类能力候选见 CAPINFO-C13 terms_ok，范围为领域 B-31 organization.administration；名称与拆分仍待核对。",
+        "本机离线读取的分支引用仅代表上述提交内容，不代表远端当前内容。"
       ]
     }
   ]
