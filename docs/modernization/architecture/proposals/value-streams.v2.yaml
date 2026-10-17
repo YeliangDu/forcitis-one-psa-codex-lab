@@ -1126,7 +1126,7 @@ value_streams:
       name: 出资到账
       capabilities: [CAP-054]
       description: 认缴、实缴到账。
-      participants: [SH-O1, SH-E6]
+      participants: [SH-O1, SH-E6, SH-M1]  # SD-12（用户 2026-10-17 ANM 批准；PRC-111 审批人）
       entry:
         all:
           - {ref: OBJ-91, state: 认缴}
