@@ -256,6 +256,14 @@ K-3a 列表分页公共契约新增的纯技术词（proposed，NAMING_STANDARD 
 
 另有技术词 6 个（`common_words`），不在表中。
 
+## organization.workforce（`nits1.yaml`）
+
+NITS-1 项5 新增的标识符（proposed）。登记会话：one-1a-next-5，2026-10-17。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `employee_existence` | 员工存在判定 | EmployeeExistence | 领域 · organization.workforce | 员工存在 = 组织快照的员工表里有该 ID 的行；不要求有任职，也不要求在职（one-data 裁定 DR-TB01-FU1-1）；与需要任职的员工查询分开，只答有或无 |  | NITS-1 项5，运维命令的操作人与见证人检查用 |
+
 ## organization.attendance（`organization_attendance.yaml`）
 
 organization.attendance 提议术语（proposed，待业务评审，ADR-0018）。
