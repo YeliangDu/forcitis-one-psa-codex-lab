@@ -24,12 +24,13 @@ def section5_summaries(text):
             continue
         if not fenced:
             lines.append(line)
-    blocks = {
-        match.group(1): " ".join(match.group(2).split())
+    raw_blocks = {
+        match.group(1): match.group(2)
         for match in re.finditer(
             r"(?ms)^[-+*]\s+\*\*([^*\n]+)\*\*[^\n]*\n(.*?)(?=^[-+*]\s|\Z)", "\n".join(lines)
         )
     }
+    blocks = {title: " ".join(body.split()) for title, body in raw_blocks.items()}
     rules = [
         ("Codex 派工", "默认先交 Codex", [r"(默认先交 Codex[：:].+?)(?=——|[。；;]|$)"], "{0}"),
         ("Codex 派工", "run_in_background", [
@@ -55,14 +56,29 @@ def section5_summaries(text):
         parts = [part.strip() for match in matches for part in match.groups()]
         for line in template.format(*parts).splitlines():
             append_section5(entries, scope, key, line)
-    excluded = re.search(r"(?:^|\s)[-+*]\s+不交 Codex[：:](.*?)(?=\s+[-+*]\s|\Z)", blocks.get("Codex 派工", ""))
-    items = [item.strip().removesuffix("。").strip() for item in re.split(r"[；;]", excluded.group(1))] if excluded else []
+    items = [item.strip().removesuffix("。").strip() for item in re.split(r"[；;]", excluded_text(raw_blocks.get("Codex 派工", "")))]
+    items = [] if items == [""] else items
     if not items or not all(items):
         entries.append("【SESSION_PLAYBOOK §5 摘要】告警：无法解析「Codex 派工·不交 Codex 清单」；请手动读全文。")
     else:
         for item in items:
             append_section5(entries, "Codex 派工", "不交 Codex 清单", f"不交 Codex：{item}")
     return entries
+
+
+def excluded_text(body):
+    """The text of the `不交 Codex：` sub-item on its own lines, plus its indented continuation lines; ` - ` or ` + ` inside the text do not end it."""
+    lines = body.splitlines()
+    for index, line in enumerate(lines):
+        found = re.match(r"^\s*[-+*]\s+不交 Codex[：:](.*)$", line)
+        if found:
+            text = [found.group(1).strip()]
+            for follow in lines[index + 1:]:
+                if not follow.strip() or re.match(r"^\s*[-+*]\s", follow) or not follow[0].isspace():
+                    break
+                text.append(follow.strip())
+            return " ".join(text)
+    return ""
 
 
 def append_section5(entries, scope, key, text):

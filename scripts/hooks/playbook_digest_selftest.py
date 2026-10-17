@@ -68,6 +68,7 @@ def section5_mutation_test(text):
         ("写一个片段", "", tasks, 1),
         ("不交 Codex：", "交给 Codex：", exclusions, 1),
         ("fixed/tasks/<任务号>.md", "", tasks, 1),
+        ("fixed/tasks/<任务号>.md", "fixed/<任务号>.md", tasks, 1),
         ("`<主线码>-<MMDD>-<会话码>-<两位序号>`", "", tasks, 1),
     ]
     for before, after, missing, warnings in mutations:
@@ -127,6 +128,8 @@ def section5_self_test(text):
     ]
     for line, words in zip(actual, required):
         assert all(word in line for word in words), line
+    dashed = digest.section5_summaries(text.replace("opus 复审；", "opus 复审 - 首轮；", 1))
+    assert "Codex 派工：不交 Codex：opus 复审 - 首轮" in dashed and "Codex 派工：不交 Codex：验收测试" in dashed and not any("告警：" in line for line in dashed), dashed
     section5_generation_test(text, actual)
     section = re.search(r"(?ms)^## 5[.\s].*?\n(.*?)(?=^## |\Z)", text).group(1)
     with tempfile.TemporaryDirectory() as tmp:
@@ -152,7 +155,7 @@ class CommonDigestTest(unittest.TestCase):
             + "\n" + SECTION5_FIXTURE + "\n## 11. 总调度会话\n**战队协作**\n1. **待决定收件箱**：正文。\n")
 
     def test_section5_fixed_fixture(self):
-        self.assertEqual(section5_self_test(SECTION5_FIXTURE), 17)
+        self.assertEqual(section5_self_test(SECTION5_FIXTURE), 18)
 
     def test_real_source_parses_without_warnings(self):
         text = SOURCE.read_text(encoding="utf-8")
@@ -261,6 +264,27 @@ class CommonDigestTest(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError, "截断"):
                         digest.write_common(source, output, check=check)
                     self.assertEqual(output.read_text(encoding="utf-8"), "保留原产物")
+
+    def test_build_without_check_stops_at_first_failure(self):
+        build = SOURCE.with_name("build_all.py")
+        calls = []
+
+        def run(args, **kwargs):
+            calls.append(args)
+            name = Path(args[1]).name if args[0] == sys.executable else ""
+            return SimpleNamespace(returncode=1 if name == "build_records.py" else 0, stdout="固定失败", stderr="")
+
+        module = SimpleNamespace(write_common=lambda *args, **kwargs: None)
+        spec = SimpleNamespace(loader=SimpleNamespace(exec_module=lambda module: None))
+        out, err = io.StringIO(), io.StringIO()
+        with patch("importlib.util.spec_from_file_location", return_value=spec), \
+                patch("importlib.util.module_from_spec", return_value=module), \
+                patch("subprocess.run", side_effect=run), patch.object(sys, "argv", [str(build)]), \
+                contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            with self.assertRaises(SystemExit) as stopped:
+                runpy.run_path(str(build), run_name="__main__")
+        self.assertIn("build_records.py 失败", str(stopped.exception.code))
+        self.assertFalse(any(Path(args[1]).name == "build_decision_digest.py" for args in calls if args[0] == sys.executable), "失败后不再运行后续步骤")
 
     def test_build_check_collects_failures(self):
         build = SOURCE.with_name("build_all.py")
