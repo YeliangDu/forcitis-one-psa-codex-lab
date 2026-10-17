@@ -38,14 +38,16 @@ check() {
 app() { check "$1" one_dev_app "$apppw" "$2" "$3"; }
 ro() { check "$1" one_dev_readonly "$ropw" "$2" "$3"; }
 app "idempotency table readable"           "SELECT count(*) FROM platform_idempotency.idempotent_responses" ok
-app "idempotency insert / update / delete" "BEGIN; INSERT INTO platform_idempotency.idempotent_responses (user_id, idempotency_key, request_hash, expires_at) VALUES (1, 'check', 'h', now()); UPDATE platform_idempotency.idempotent_responses SET response_number = 200 WHERE user_id = 1; DELETE FROM platform_idempotency.idempotent_responses WHERE user_id = 1; ROLLBACK" ok
+app "idempotency insert / update / delete" "BEGIN; INSERT INTO platform_idempotency.idempotent_responses (idempotent_response_id, user_id, idempotency_key, request_hash, expires_at) VALUES (gen_random_uuid(), '00000000-0000-7000-8000-000000000001', 'check', repeat('a', 64), now()); UPDATE platform_idempotency.idempotent_responses SET response_number = 200 WHERE user_id = '00000000-0000-7000-8000-000000000001'; DELETE FROM platform_idempotency.idempotent_responses WHERE user_id = '00000000-0000-7000-8000-000000000001'; ROLLBACK" ok
 app "approval schema readable"             "SELECT count(*) FROM platform_approval.approval_requests" ok
 app "timesheet schema readable"            "SELECT count(*) FROM cost_timesheet.timesheets" ok
 app "no table creation in module schemas"  "CREATE TABLE platform_idempotency.not_allowed (id bigint)" denied
 app "version table delete refused"         "DELETE FROM organization_workforce.legal_entity_versions WHERE false" denied
 app "version table has no TRUNCATE grant"  "DO \$\$ BEGIN IF has_table_privilege('organization_workforce.org_unit_versions', 'TRUNCATE') THEN RAISE insufficient_privilege; END IF; END \$\$" ok
 app "audit delete refused"                 "DELETE FROM platform_audit.audit_entries WHERE false" denied
+app "audit partition pre-creation allowed"  "SELECT platform_audit.create_audit_entry_partitions(date '2026-10-01', date '2026-10-01')" ok
+ro  "audit partition pre-creation refused for readonly" "SELECT platform_audit.create_audit_entry_partitions(date '2026-10-01', date '2026-10-01')" denied
 ro  "readonly reads idempotency table"     "SELECT count(*) FROM platform_idempotency.idempotent_responses" ok
 # The readonly role's sessions default to read-only; opening a read-write transaction tests the grant itself
-ro  "readonly has no write grant"          "BEGIN READ WRITE; INSERT INTO platform_idempotency.idempotent_responses (user_id, idempotency_key, request_hash, expires_at) VALUES (1, 'x', 'h', now()); ROLLBACK" denied
+ro  "readonly has no write grant"          "BEGIN READ WRITE; INSERT INTO platform_idempotency.idempotent_responses (idempotent_response_id, user_id, idempotency_key, request_hash, expires_at) VALUES (gen_random_uuid(), '00000000-0000-7000-8000-000000000001', 'x', repeat('a', 64), now()); ROLLBACK" denied
 exit "$failed"

@@ -41,3 +41,7 @@ SHOW superuser_reserved_connections;
 SELECT schemaname, count(*) AS tables, count(*) FILTER (WHERE tableowner <> 'one_dev_owner') AS foreign_owner
   FROM pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema') GROUP BY schemaname ORDER BY schemaname;
 SELECT schemaname, count(*) FROM pg_tables WHERE tablename LIKE 'act\_%' GROUP BY schemaname;
+
+-- V9 迁移后补查：审计分区预建函数仅运行角色可执行（期望 one_dev_app = t；one_dev_readonly = f）
+SELECT r.rolname, has_function_privilege(r.rolname, 'platform_audit.create_audit_entry_partitions(date, date)', 'EXECUTE') AS can_execute
+  FROM (VALUES ('one_dev_app'), ('one_dev_readonly')) r(rolname);
