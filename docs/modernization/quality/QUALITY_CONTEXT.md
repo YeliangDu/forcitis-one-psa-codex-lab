@@ -54,3 +54,6 @@
 
 ## 临时工作目录
 `/private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-xin-61164f/138cb52b-4117-4136-9339-6ccc0ca6a2b4/scratchpad/` 下 `wt-*` 是各 PR 的独立 worktree（wt-ds=#368，wt-rules=#374，wt-prop=#375，wt-sess=#376，wt-bank=已合入分支，wt-ci=#406/#410 分支，wt-352=#352，wt-board=最近的测试修复分支，wt-adr=one-architecture 的 ADR 分支）；会话结束后可 `git worktree remove`。
+
+## 夜检记录
+- 2026-10-17 nightly-legacy-it 成功（运行 39062406822，约 14 分，schedule 19:25Z）；10-16 约 19 分、10-15 约 11 分，均成功。
