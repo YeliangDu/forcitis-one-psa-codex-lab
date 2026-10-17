@@ -1,5 +1,7 @@
 # 业务对象各段研究的对抗评审（opus，2026-10-15）
 
+状态：历史记录｜2026-10-15｜负责：one-architecture
+
 评审对象：`AEC_OBJECTS_DELIVERY_RESOURCES.md`、`AEC_OBJECTS_COST_REVENUE.md`、`AEC_OBJECTS_INSPECTION_EVIDENCE.md`、`DELIVERY_RESOURCES_EVIDENCE.md`（评审一）；`AEC_OBJECTS_SPEND_ORG_FINANCE.md`（评审二）。结论：均不能直接上确认页。以下为必须落实的发现摘要（行号指各原文件）。
 
 ## 评审一：交付资源、成本收入、检查证据、交付取证

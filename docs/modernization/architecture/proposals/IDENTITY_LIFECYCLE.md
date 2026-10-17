@@ -1,5 +1,7 @@
 # 人员入职到账号开通：身份生命周期研究（取证结论，供 ADR-0039 第 3 条 C1 设计）
 
+状态：评审中｜2026-10-16｜负责：one-architecture
+
 - 起因：用户 2026-10-15 备注「我们的人员从入职到有企业微信是有时间差的，招聘入职是hr的业务过程，企业微信是it的业务过程，有前后顺序」（intent 2026-10-15-164527）；one-coordinator 排期由 one-architecture 研究并设计 C1。
 - 取证：2026-10-15，sonnet 子代理经 `one_evidence_ro` 只读（ADR-0037），登记见 `phase1a/infra/LEGACY_READ_REGISTER.md` 末行；只取汇总，无明细与个人信息。来源：A8 `ORG_MEMBER`、`ORG_PRINCIPAL`、人事档案表单；老系统 `system_users`、`system_login_log`（日志自 2024-08-14）。
 
