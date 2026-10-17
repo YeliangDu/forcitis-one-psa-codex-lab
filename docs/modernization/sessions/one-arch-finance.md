@@ -53,6 +53,7 @@
 - 用户待定事项先交 one-architecture 合成确认页，不自行出页
 - 子代理显式指定模型：opus 只用于首轮评审，执行用 sonnet，取数用 haiku
 - 中文；系统称 FORCITIS one / 老系统；老系统只作证据
+- 派卡按 SESSION_PLAYBOOK §5「任务命名与登记」（2026-10-17 起）：任务号 `<主线码>-<MMDD>-AFI-<nn>`、任务名 `[主线·bc] 动作+对象`，每卡在 `docs/modernization/tasks/<任务号>.md` 登记片段，后台任务 description 写 `<任务号> <任务名> (codex)`；PR、提交、报告带任务号
 
 ## 当前状态
 
