@@ -1,5 +1,7 @@
 # 施工图方法第 4 稿（草案，已按 opus 评审修改；用户已答复 §7.1 七题（intent 072440）；随最终一次性 ADR 落地）
 
+状态：已确认｜2026-10-16｜负责：one-architecture
+
 状态：草案 · 日期：2026-10-16 · 作者：one-architecture 子代理 · 取代：`METHOD_V3_DRAFT.md`；落地后取代现行 `architecture/METHOD.md`（ADR-0041）。理论参照见同目录 `FRAMEWORKS_V4_DRAFT.md`。第 3 稿评审意见的处置位置见第 9 节，第 4 稿评审的处理记录见第 10 节。
 
 依据：

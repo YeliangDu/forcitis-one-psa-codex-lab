@@ -18,7 +18,7 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 GLOSSARY_INDEX = os.path.join("..", "..", "backend", "glossary", "proposed", "README.md")
 STEPS = ["build_records.py", "build_decision_digest.py", "build_sessions.py", "build_work_board.py", "glossary/build_issues.py", "adr/build_adrs.py", "rules/build_brief.py",
          "phase1a/infra/build_legacy_read_register.py", "../../backend/glossary/build_proposed_index.py"]
-SELF_TESTED = ["build_decision_digest.py", "build_sessions.py", "build_work_board.py", "../../scripts/queue/merge_train.py", "../../scripts/merge/mq.py", "../../scripts/hooks/session_context.py", "glossary/build_issues.py", "glossary/term_rules.py",
+SELF_TESTED = ["build_decision_digest.py", "build_sessions.py", "build_work_board.py", "adr/build_adrs.py", "adr/new_adr.py", "../../scripts/queue/merge_train.py", "../../scripts/merge/mq.py", "../../scripts/hooks/session_context.py", "glossary/build_issues.py", "glossary/term_rules.py",
                "phase1a/infra/build_legacy_read_register.py", STEPS[-1]]
 STEPS.append("rules/build_rule_index.py")   # 规则索引（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
 SELF_TESTED.append("rules/build_rule_index.py")

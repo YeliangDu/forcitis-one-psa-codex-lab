@@ -1,5 +1,7 @@
 # AEC 项目制专业服务公司的业务对象：检查与评估服务、品控证据线
 
+状态：历史记录｜2026-10-15｜负责：one-architecture
+
 状态：研究提议，待用户裁定 · 日期：2026-10-15 · 作者：one-architecture 子代理
 
 依据：用户原话「纳入，检查和证据线也一起梳理」（intent `2026-10-15-213845`）；行业通行做法与法规为主要依据，老系统只作参考（intent `2026-10-15-202634`）；干系人目录 `STAKEHOLDERS.md`（用户已确认，intent `2026-10-15-213742`）。格式、判据与来源缩写沿用 `AEC_BUSINESS_OBJECTS.md`（售前段）、`AEC_OBJECTS_DELIVERY_RESOURCES.md`（交付段）。
