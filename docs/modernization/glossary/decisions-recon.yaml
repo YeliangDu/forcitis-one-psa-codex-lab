@@ -2,7 +2,7 @@ meta:
   card: NAM-1017-GLO-06
   promotion_counts:
     A: 66
-  rework: 1
+  rework: 2
   date: '2026-10-17'
   source: 60 项漏登、7 项不一致、A66 分类；只执行用户已裁定部分
   policy: 本源只处理 A66 与漏登；B105 由 meta.design_decisions 接入；原 C3 不给结论。
@@ -270,9 +270,8 @@ sources:
     submission: null
     sha256: 57e7636e5133e450d21197b3664ed8b1a272c7b6bceb15505450b567601c9425
     evidence:
-      text: 财务确认单第 2 版答复的 13 处分歧（用户逐条选择）：A1 FQ-02 改为时点履行并请审计师书面确认；A2 维持两账同时关账、吸收财务三项检查；A3 个独与工抵卡不计入报表现金流量、经营分析另设资金流指标；A4 FQ-03
-        按财务方案收付只在开票时记销项；A5 FQ-21 首付款按合同条款分流；A6 质保金与工抵按性质分开记账、另设专项台账；A7 签约前投入先挂账、超 N 个月未签约自动转费用；A8 期初用期初调整分录补差；A9 维持一次切换；A10
-        现金口径变更年度附注披露；A11 保理按追索权分流、管理回款单列；A12 维持现金标注加间接法；A13 设第 13 期只收年度审计调整
+      text: 财务确认单第 2 版答复的 13 处分歧（用户逐条选择）：A1 FQ-02 改为时点履行并请审计师书面确认；A2 维持两账同时关账、吸收财务三项检查；A3 个独与工抵卡不计入报表现金流量、经营分析另设资金流指标；A4 FQ-03 按财务方案收付只在开票时记销项；A5 FQ-21 首付款按合同条款分流；A6 质保金与工抵按性质分开记账、另设专项台账；A7 签约前投入先挂账、超 N
+        个月未签约自动转费用；A8 期初用期初调整分录补差；A9 维持一次切换；A10 现金口径变更年度附注披露；A11 保理按追索权分流、管理回款单列；A12 维持现金标注加间接法；A13 设第 13 期只收年度审计调整
     content_sha256: 75b63a019d50c3eb17780fb38ac41ca4271adb081ff67d0fbd72325c718ffac2
   S018:
     file: docs/modernization/intent/2026-10-16-144613-one-architecture-收入确认事实页第-1-组提交-8.md
@@ -406,8 +405,7 @@ sources:
     submission: null
     sha256: dcd5feaa772924cc714ff2d3cf9d62d099276b2563eec5f5375bdf2d863a65c6
     evidence:
-      text: 售前业务对象问题页保存：线索单独登记，确认后才建商机；线索来源有招标公告、老客户再委托、介绍、主动开发、市场活动、内部推荐；大部分项目要投标；投标是独立过程，报价只是其中一部分；一个商机经常多轮报价；丢单要记原因；框架协议偶尔用（约
-        40% 是战略客户，战略协议约定单价，具体项目仍签约并采用协议价格）；签约前先行投入常见；分包合同要在新系统管；需要按客户集团汇总；负责人是销售，商机阶段交付团队和方案团队提交方案、辅助投标，商务谈判由公司管理层参与
+      text: 售前业务对象问题页保存：线索单独登记，确认后才建商机；线索来源有招标公告、老客户再委托、介绍、主动开发、市场活动、内部推荐；大部分项目要投标；投标是独立过程，报价只是其中一部分；一个商机经常多轮报价；丢单要记原因；框架协议偶尔用（约 40% 是战略客户，战略协议约定单价，具体项目仍签约并采用协议价格）；签约前先行投入常见；分包合同要在新系统管；需要按客户集团汇总；负责人是销售，商机阶段交付团队和方案团队提交方案、辅助投标，商务谈判由公司管理层参与
     content_sha256: 1027a273ca9a318a4045dd2e0805ebd94f6b9ef97160f59373b523b079a8991d
   S027:
     file: docs/modernization/intent/2026-10-15-210513-one-architecture-售前聚合与-BC-确认页保存-一.md
@@ -417,8 +415,8 @@ sources:
     submission: null
     sha256: 799d901ed8175251226bd14007bff0fab5ca487e805adfd0537a5cfaef707dad
     evidence:
-      text: 售前聚合与 BC 确认页保存：一个商机按标段分报价链、商机与合同 1:N；项目可先于合同建立，合同—项目关联由合同登记、多对多；有限额的战略协议即框架协议，提交审批占用、回签后超额只预警，只定单价型为协议价目，承诺量只做度量；保证金在应收里管、6b
-        前先做登记；售前合为一个 BC；开新 ADR 合并合同三个 BC（保留签证、索赔）并把往来单位提前到 6a 之前。备注：TOGAF 的价值流和价值流阶段等所有业务对象梳理完毕再来？子域如何划分？
+      text: 售前聚合与 BC 确认页保存：一个商机按标段分报价链、商机与合同 1:N；项目可先于合同建立，合同—项目关联由合同登记、多对多；有限额的战略协议即框架协议，提交审批占用、回签后超额只预警，只定单价型为协议价目，承诺量只做度量；保证金在应收里管、6b 前先做登记；售前合为一个 BC；开新 ADR 合并合同三个 BC（保留签证、索赔）并把往来单位提前到 6a 之前。备注：TOGAF
+        的价值流和价值流阶段等所有业务对象梳理完毕再来？子域如何划分？
     content_sha256: 0b07c63364f2b6ab692ec6e3e5cb6922e8eb25b444990f2ec222f44602fd50eb
   S028:
     file: docs/modernization/rules/decide/answers/GL.json
@@ -509,9 +507,8 @@ sources:
     sha256: 39b5e6cf061f8a657213784d9e9b598a29bbe270a51799e96b97299b8d8c8811
     evidence:
       clause: '2'
-      text: 2. **期满判定归收入侧**（D-8）：期满日由 `receivables.wip` 按合同审查期参数与交付侧送达日计算；期满且交付侧已有项目经理的无异议声明、该轮未被退回，`receivables.wip` 才认定视为同意成立，形成第
-        6 类收入确认证据并发布视为同意事件（聚合稿暂名「视为同意已成立」，名称交 one-glossary）。`receivables.wip` 经 api 读交付侧，并订阅交付侧的送达、退回与「无异议已声明」事件（B-08 → B-28
-        已有边，方式 api、事件），不新增边。
+      text: 2. **期满判定归收入侧**（D-8）：期满日由 `receivables.wip` 按合同审查期参数与交付侧送达日计算；期满且交付侧已有项目经理的无异议声明、该轮未被退回，`receivables.wip` 才认定视为同意成立，形成第 6 类收入确认证据并发布视为同意事件（聚合稿暂名「视为同意已成立」，名称交 one-glossary）。`receivables.wip`
+        经 api 读交付侧，并订阅交付侧的送达、退回与「无异议已声明」事件（B-08 → B-28 已有边，方式 api、事件），不新增边。
     selector: '2'
     content_sha256: 1dce5ffa88dce4076eeb253fb0da248f93c80f398a69c500da86cbcdb3418626
   S034:
@@ -755,8 +752,7 @@ sources:
           forbidden: []
           status: approved
           confirmed: 2026-10-17（用户授权登记；one-architecture 对象移交，提交 CAPINFO-20261017-111010-cfy）
-          note: NAM-1017-GLO-02 返工第1轮；合并原提议 leave_balance 的数量边界与标准依据，CAPINFO 的账户叫法取代原提议否定账户的说明；organization.leave 已在 bcs.yaml
-            登记。按本卡保留提议源的要求，以正式名称对应 id 登记并在 N9_WRITEBACK.md 交接原提议删除；不另批准业务实现。
+          note: NAM-1017-GLO-02 返工第1轮；合并原提议 leave_balance 的数量边界与标准依据，CAPINFO 的账户叫法取代原提议否定账户的说明；organization.leave 已在 bcs.yaml 登记。按本卡保留提议源的要求，以正式名称对应 id 登记并在 N9_WRITEBACK.md 交接原提议删除；不另批准业务实现。
   S047:
     file: docs/modernization/glossary/arch-naming/CAPINFO_NEWTERMS.md
     question: OBJ-122
@@ -765,8 +761,7 @@ sources:
     submission: CAPINFO-20261017-111010-cfy
     sha256: 4ad623d573cd9b21ff06e12a70fbf20f16080a9b04d0a8e6aa31f566e9cdbfa9
     evidence:
-      row: '| OBJ-122 | 假期余额账户 | LeaveBalanceAccount | organization.leave | 领域 domain；人员 × 假期类型 × 年度账户及核定、使用、结转、折算、手工调整依据
-        |'
+      row: '| OBJ-122 | 假期余额账户 | LeaveBalanceAccount | organization.leave | 领域 domain；人员 × 假期类型 × 年度账户及核定、使用、结转、折算、手工调整依据 |'
       questions: CAPINFO-I02、CAPINFO-I05、CAPINFO-I07、CAPINFO-I08、CAPINFO-I09、CAPINFO-C13
       submission: CAPINFO-20261017-111010-cfy
       at: '2026-10-17'
@@ -803,8 +798,7 @@ sources:
           kind: aggregate
           scope: domain
           bc: organization.payroll
-          definition: 关联人员与任职、按生效日期只追加薪资历史的档案，保留薪酬属性版本（职级、薪档等），供按月开展的薪酬结算引用；专项附加扣除等独立扣除记录另行关联，不并入本档案属性。含敏感个人信息，按 ADR-0043
-            登记访问级别。
+          definition: 关联人员与任职、按生效日期只追加薪资历史的档案，保留薪酬属性版本（职级、薪档等），供按月开展的薪酬结算引用；专项附加扣除等独立扣除记录另行关联，不并入本档案属性。含敏感个人信息，按 ADR-0043 登记访问级别。
           standard_ref:
           - ../../.codex-inputs/CAPINFO_NEWTERMS.md OBJ-123
           - backend/glossary/proposed/enterprise-aggregates.yaml terms[id=employee_compensation]
@@ -826,8 +820,7 @@ sources:
           forbidden: []
           status: approved
           confirmed: 2026-10-17（用户授权登记；one-architecture 对象移交，提交 CAPINFO-20261017-111010-cfy）
-          note: NAM-1017-GLO-02 返工第1轮；合并原提议 employee_compensation 的薪酬版本、敏感分级与标准依据；人员薪酬档案已获 CAPINFO 确认，不沿用旧提议把该首选名列作 dialect
-            的判定，独立扣除记录按本次对象范围分开。按本卡保留提议源的要求，以正式名称对应 id 登记并在 N9_WRITEBACK.md 交接原提议删除；不另批准业务实现。
+          note: NAM-1017-GLO-02 返工第1轮；合并原提议 employee_compensation 的薪酬版本、敏感分级与标准依据；人员薪酬档案已获 CAPINFO 确认，不沿用旧提议把该首选名列作 dialect 的判定，独立扣除记录按本次对象范围分开。按本卡保留提议源的要求，以正式名称对应 id 登记并在 N9_WRITEBACK.md 交接原提议删除；不另批准业务实现。
   S049:
     file: docs/modernization/glossary/arch-naming/CAPINFO_NEWTERMS.md
     question: OBJ-123
@@ -836,8 +829,7 @@ sources:
     submission: CAPINFO-20261017-111010-cfy
     sha256: 4ad623d573cd9b21ff06e12a70fbf20f16080a9b04d0a8e6aa31f566e9cdbfa9
     evidence:
-      row: '| OBJ-123 | 人员薪酬档案 | EmployeeCompensationProfile | organization.payroll | 领域 domain；按生效日期只追加薪资历史；关联人员、任职、薪酬结算与独立扣除记录
-        |'
+      row: '| OBJ-123 | 人员薪酬档案 | EmployeeCompensationProfile | organization.payroll | 领域 domain；按生效日期只追加薪资历史；关联人员、任职、薪酬结算与独立扣除记录 |'
       questions: CAPINFO-I02、CAPINFO-I05、CAPINFO-I07、CAPINFO-I08、CAPINFO-I09、CAPINFO-C13
       submission: CAPINFO-20261017-111010-cfy
       at: '2026-10-17'
@@ -1886,8 +1878,9 @@ missing:
   zh: 证据
   sources:
   - S025
-  result: registered
-  target: acceptance_evidence
+  result: not_registered
+  target: ''
+  reason: 中文宽口径与定义已裁定，英文待确认；候选保存在 backend/glossary/proposed/enterprise-aggregates.yaml#acceptance_evidence，交 C 类问题。
 - 'no': 32
   zh: 协议价格
   sources:
@@ -2619,27 +2612,6 @@ terms:
     note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
 - op: add
   sources:
-  - S025
-  term:
-    bc: delivery.acceptance
-    en: AcceptanceEvidence
-    id: acceptance_evidence
-    kind: aggregate
-    scope: domain
-    zh: 证据
-    snake: acceptance_evidence
-    standard_ref:
-    - docs/modernization/intent/2026-10-16-114200-one-architecture-符合性审查确认页提交-F-1-至.md
-    definition: 用于证明交付、认可等事实的证据内容；证据本身保存内容与采集人 ID，证据关联记录单独记录其挂在哪个交付物或阶段，归质量与认可 BC。
-    status: approved
-    confirmed: 2026-10-16（用户裁定，2026-10-16-114200-one-architecture-符合性审查确认页提交-F-1-至，docs/modernization/intent/2026-10-16-114200-one-architecture-符合性审查确认页提交-F-1-至.md）
-    confidence: medium
-    aliases: []
-    forbidden: []
-    note: NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。；Q29 按宽口径登记，中文「证据」及定义已裁定；英文 AcceptanceEvidence
-      为设计候选，尚待确认，用户裁定不涵盖此英文指称。
-- op: add
-  sources:
   - S026
   term:
     bc: masterdata.catalog
@@ -2867,8 +2839,7 @@ terms:
     forbidden: []
     id: counterparty
     kind: aggregate
-    note: 与 presales.customer 的 customer（客户）定义同源，处置见确认单 B2-X02；英文 Counterparty 取 IFRS 9 通行写法；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc
-      按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
+    note: 与 presales.customer 的 customer（客户）定义同源，处置见确认单 B2-X02；英文 Counterparty 取 IFRS 9 通行写法；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
     scope: domain
     snake: counterparty
     standard_ref:
@@ -2998,8 +2969,7 @@ terms:
     forbidden: []
     id: input_invoice
     kind: aggregate
-    note: bc accounting.tax 须先登记入 bcs.yaml（ADR-0022 第 7 条）；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules
-      定稿；不以用语登记另批业务对象边界。
+    note: bc accounting.tax 须先登记入 bcs.yaml（ADR-0022 第 7 条）；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
     scope: domain
     snake: input_invoice
     standard_ref:
@@ -3065,8 +3035,7 @@ terms:
     forbidden: []
     id: migration_tie_out
     kind: entity
-    note: 不用 Reconciliation：已批准术语「经营勾稽」Reconciliation 指跨口径对账；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules
-      定稿；不以用语登记另批业务对象边界。
+    note: 不用 Reconciliation：已批准术语「经营勾稽」Reconciliation 指跨口径对账；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
     scope: acl
     snake: migration_tie_out
     standard_ref:
@@ -3151,8 +3120,7 @@ terms:
     forbidden: []
     id: revenue_recognition_line
     kind: entity
-    note: 与词表 revenue_recognition（收入确认单，聚合）的关系见确认单 B2-X06；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules
-      定稿；不以用语登记另批业务对象边界。
+    note: 与词表 revenue_recognition（收入确认单，聚合）的关系见确认单 B2-X06；NAM-1017-GLO-06；设计定稿：英文、snake、kind、scope、bc 按已裁定含义与现行 term_rules 定稿；不以用语登记另批业务对象边界。
     scope: domain
     snake: revenue_recognition_line
     standard_ref:
@@ -3284,7 +3252,6 @@ terms:
     confirmed: 2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B09）
 - op: update
   fields:
-  - zh
   - en
   - aliases
   - snake
@@ -3300,19 +3267,13 @@ terms:
       type: old-code
       deprecated: true
       source: docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
-    - name: ECL 预警
-      type: standard-zh
-      deprecated: true
-      source: GL~B2-B09
     snake: ecl_alerted
     standard_ref:
     - docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
     note: NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
     confirmed: 2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B09）
-    zh: 预期信用损失已预警
 - op: update
   fields:
-  - zh
   - en
   - aliases
   - snake
@@ -3328,19 +3289,13 @@ terms:
       type: old-code
       deprecated: true
       source: docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
-    - name: 质量保证金到期返还
-      type: standard-zh
-      deprecated: true
-      source: GL~B2-B09
     snake: retention_money_release_due_reached
     standard_ref:
     - docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
     note: NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
     confirmed: 2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B09）
-    zh: 质量保证金返还已到期
 - op: update
   fields:
-  - zh
   - en
   - aliases
   - snake
@@ -3356,19 +3311,13 @@ terms:
       type: old-code
       deprecated: true
       source: docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
-    - name: 收入冲减
-      type: standard-zh
-      deprecated: true
-      source: GL~B2-B09
     snake: revenue_reduced
     standard_ref:
     - docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
     note: NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
     confirmed: 2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B09）
-    zh: 收入已冲减
 - op: update
   fields:
-  - zh
   - en
   - aliases
   - snake
@@ -3384,16 +3333,11 @@ terms:
       type: old-code
       deprecated: true
       source: docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
-    - name: 规则执行
-      type: standard-zh
-      deprecated: true
-      source: GL~B2-B09
     snake: rule_executed
     standard_ref:
     - docs/modernization/rules/decide/answers/GL.json#GL~B2-B09
     note: NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
     confirmed: 2026-10-16（用户裁定，GL，docs/modernization/rules/decide/answers/GL.json#GL~B2-B09）
-    zh: 规则已执行
 - op: update
   fields:
   - en
