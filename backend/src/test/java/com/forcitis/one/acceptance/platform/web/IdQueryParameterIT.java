@@ -67,6 +67,7 @@ class IdQueryParameterIT extends AcceptanceSupport {
                 new Case(AUDIT_ENTRIES, "onBehalfOfId", params(), AUDITOR),
                 new Case(AUDIT_ENTRIES, "subjectId", params("subjectKind", P5Names.USER_ACCOUNT), AUDITOR),
                 new Case(AUDIT_EXPORT, "actorId", params(), AUDITOR),
+                new Case(AUDIT_EXPORT, "onBehalfOfId", params(), AUDITOR),
                 new Case(AUDIT_EXPORT, "subjectId", params("subjectKind", P5Names.USER_ACCOUNT), AUDITOR),
                 new Case(SOURCE_REFERENCES, "ownId", params("sourceSystem", "ACCOUNTING_SYSTEM", "sourceObjectKind", "LEGAL_ENTITY"), REFERENCE_APPROVER));
     }
@@ -79,7 +80,7 @@ class IdQueryParameterIT extends AcceptanceSupport {
     }
 
     @Test
-    @DisplayName("R-1b P5 G-A1：ID 类查询参数不是规范 uuid 时答 400 ProblemDetail——legacy-numbers 的 documentId（必含）、audit-entries 的 actorId / onBehalfOfId / subjectId、audit-entries:export 的 actorId / subjectId、source-references 的 ownId；取值 42、not-a-uuid、大写 uuid、nil uuid")
+    @DisplayName("R-1b P5 G-A1：ID 类查询参数不是规范 uuid 时答 400 ProblemDetail——legacy-numbers 的 documentId（必含）、audit-entries 的 actorId / onBehalfOfId / subjectId、audit-entries:export 的 actorId / onBehalfOfId / subjectId、source-references 的 ownId；取值 42、not-a-uuid、大写 uuid、nil uuid")
     void aMalformedIdIsABadRequest() throws Exception {
         List<String> wrong = new ArrayList<>();
         for (Case request : cases()) {

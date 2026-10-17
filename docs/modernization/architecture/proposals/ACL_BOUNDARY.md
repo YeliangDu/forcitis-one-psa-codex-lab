@@ -1,5 +1,7 @@
 # 防腐层边界：外部系统概念搬出新系统模块（ADR-0039 草稿，第 2 版，待用户定）
 
+状态：已成文→ADR-0039｜2026-10-16｜负责：one-architecture
+
 - 起因：用户 2026-10-15「先等等，我没有同意所有用语」「所有用语检查下，acl用语单列，不能进入新系统模块」（经 one-coordinator 转达）；one-glossary 全量归类 `glossary/acl/acl-classification.json`（分支 `claude/one-glossary-term-gate`）。
 - 证据：代码以 origin/main 为准；计数口径写在各行。
 - 起草：one-architecture（Opus 5.5）。第 2 版按 one-coordinator opus 复审（2026-10-15）修改：删去原 ②b、②c；改写 A、B3、C、E、②a；排期按生产前后切分。每块第一个选项为推荐，结构性选择以用户答复为准。

@@ -199,6 +199,11 @@ public abstract class IdentityIntegrationTest {
         Mockito.reset(ssoVerifier);
         when(orgDirectory.employmentOf(ArgumentMatchers.any()))
                 .thenReturn(EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
+        for (String attestor : List.of("01900000-0000-7000-8000-00000000a001", "01900000-0000-7000-8000-00000000a002")) {
+            EmployeeId attestorId = EmployeeId.parse(attestor);
+            when(orgDirectory.findEmployee(attestorId)).thenReturn(Optional.of(new EmployeeProfile(attestorId, "Synthetic attestor", TestOrgIds.orgUnit(10),
+                    null, EmploymentStatus.EMPLOYED, false)));
+        }
         jdbc.sql("delete from platform_identity.sessions").update();
         jdbc.sql("delete from platform_identity.login_states").update();
         jdbc.sql("delete from platform_identity.sso_ticket_uses").update();

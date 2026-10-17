@@ -1,0 +1,7 @@
+- **日期**：2026-10-16
+- **执行账号**：one_evidence_ro
+- **库与表**：a8_db：`CAP_FORM_DEFINITION`（字段显示名与列名）、`CTP_ENUM_ITEM`（枚举显示值）、`ORG_UNIT`、`ORG_MEMBER`（计数）、`INFORMATION_SCHEMA.COLUMNS / TABLES`、销售合同档案 `formmain_0374` 与新增 `formmain_0432`（仅签约主体、客户编码、项目编号、交付部门、`start_date`）、项目开票申请 `formmain_0399`（销售方信息、客户名称、项目编号、开票金额、`start_date`）、付款申请单档案 `formmain_0638` 与特殊付款申请单档案 `formmain_1225`（收款单位、供应商名称、付款金额、`start_date`）；ruoyi-vue-pro：`system_users`、`system_dept`、`psa_dept_u8c`、`psa_time_sheet`、`psa_time_sheet_works`（工时）、`psa_pm_project`、`psa_voucher`、`psa_pl_ledger`、`psa_wip_entry`、`psa_cost_ledger`、`psa_u8c_voucher`、`psa_oa_payment_detail`、`psa_oa_accrual_detail`、`psa_wip_carry_forward_data_works`（法人列分布，只计数）
+- **用途**：五个法人之间的耦合度（one-architecture，check9 / 施工方案 T-1）：近 24 个月合同签约主体与开票销售方一致性、工时按项目签约主体的去向、名称匹配的关联付款、客户与多法人签约数
+- **输出形式与去向**：只出计数与比例（金额只出占比，无明细行、姓名、项目名）；会话内与 scratchpad 结果文件；查询脚本只在本机 scratchpad、未入仓库（通道要求脚本在 evidence 目录时仅临时拷贝并随运行删除）；通道同 b5_evidence_scan.py，云助手 InvokeId 自 t-hz0707hqfid7cw0 起至 t-hz0707iy8ns8jcw 共 25 次扫描步骤，其中 5 次因引用不存在的列或对象而失败
+- **落盘目录与删除时点**：不落盘（老系统服务器临时目录已删，每次运行后已核对 CLEAN）
+- **依据**：ADR-0037 第 7 项（不逐次请示）
