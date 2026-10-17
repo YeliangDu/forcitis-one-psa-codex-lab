@@ -21,6 +21,7 @@
 | NM8B 生成命名检查（二）（117 题；one-architecture） | `sheets/NM8B.json` | https://claude.ai/artifact/ELUazxUJ3r14K4B8a17T3E（2026-10-17 起，未实看渲染） |
 | ANC 流程归集闭环首轮提议（2 题；one-architecture） | `sheets/ANC.json` | https://claude.ai/artifact/4hLPshAW69nzpxC9e6b2yd（2026-10-17 起，未实看渲染） |
 | OBJD 业务对象定论（9 题；one-architecture） | `sheets/OBJD.json` | https://claude.ai/artifact/FezyF4PPr5mnPGcoxL5CxT（2026-10-17 起，未实看渲染） |
+| OBDS 业务对象界定标准（5 题；one-architecture） | `sheets/OBDS.json` | https://claude.ai/artifact/G5cAu3TNBSRr3nt2aFqVJA（2026-10-17 起，未实看渲染） |
 
 | 步骤 | 做法 |
 |---|---|
