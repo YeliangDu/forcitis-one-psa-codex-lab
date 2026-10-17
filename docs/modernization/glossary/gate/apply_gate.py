@@ -59,7 +59,7 @@ def apply(terms):
                          standard_ref=[i["refs"]], confidence="medium", aliases=[], forbidden=[], status="approved",
                          note=f"开工前术语门禁 {doc['card']}（GATE-{doc['card']}-{i['code']}）", confirmed=confirmed)
                 e.update({k: i[k] for k in ("scope", "acl_class") if i.get(k)})
-                if (zh, en) != (i["zh"], i["en"]) and term_id == parent:
+                if en != i["en"] and term_id == parent:
                     e["aliases"].append({"name": i["en"], "type": "old-code", "deprecated": True})
                 terms.append(e)
                 byid[term_id] = e
