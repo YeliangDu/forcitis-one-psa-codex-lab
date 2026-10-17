@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """统一生成入口：依次生成 INTENT / SESSION_LOG / STATUS、正式术语 glossary/terms.yaml、会话一览 SESSIONS、用语问题清单 glossary/ISSUES、ADR 与 README、brief、
-已定决策速查表 DECISION_DIGEST.md（由 intent/ 片段汇总，不入仓）、提议术语清单（backend/glossary/proposed/README.md）、老系统读取登记（phase1a/infra/LEGACY_READ_REGISTER.md，由 legacy-read/ 片段生成，不入仓）、公共会话摘要 sessions/_COMMON.md（由 SESSION_PLAYBOOK §2.1/§5/§11 生成，--check 检查是否过期）。
+已定决策速查表 DECISION_DIGEST.md（由 intent/ 片段汇总，不入仓）、提议术语清单（backend/glossary/proposed/README.md）、老系统读取登记（phase1a/infra/LEGACY_READ_REGISTER.md，由 legacy-read/ 片段生成，不入仓）、公共会话摘要 sessions/_COMMON.md（由 SESSION_PLAYBOOK §2.1/§5/§11 生成，不入仓，--check 要求两次生成无告警且内容一致）。
 
 用法：
   python3 docs/modernization/build_all.py          生成全部产物
-  python3 docs/modernization/build_all.py --check  生成后要求 docs/modernization 与提议术语清单工作区无差异（CI 使用）：
+  python3 docs/modernization/build_all.py --check  生成后要求入仓产物与已提交内容无差异（CI 使用）：
                                                    terms.yaml、ADR、README、brief 与提议术语清单与已提交的产物不一致、或有未提交的新产物时失败；
-                                                   INTENT / SESSION_LOG / STATUS / DECISION_DIGEST / SESSIONS / glossary/ISSUES / LEGACY_READ_REGISTER 不入仓（.gitignore），只要求能生成、片段合规
+                                                   INTENT / SESSION_LOG / STATUS / DECISION_DIGEST / SESSIONS / glossary/ISSUES / LEGACY_READ_REGISTER / sessions/_COMMON 不入仓（.gitignore），只要求能生成、片段合规
                                                    （会话画像必备字段、会话名 one-* 且唯一；用语问题片段格式）；
                                                    另校验 RULE_REVIEWS.json 的原结论未被改写（与 origin/main 的合并基点比对；取不到时由 review_revisions.py
                                                    按环境处理：CI 失败，本地告警），
@@ -16,6 +16,19 @@ import importlib.util, os, subprocess, sys
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 GLOSSARY_INDEX = os.path.join("..", "..", "backend", "glossary", "proposed", "README.md")
+TRACKED_OUTPUTS = ["glossary/terms.yaml", "adr/ADR-*.md", "adr/README.md", "adr/INDEX.md",
+                   "MODERNIZATION_BRIEF.md", "architecture/generated/", GLOSSARY_INDEX]
+CHECK = "--check" in sys.argv
+failures = []
+
+
+def fail(message):
+    if not CHECK:
+        sys.exit(message)
+    failures.append(message)
+    print(message, file=sys.stderr)
+
+
 STEPS = ["build_records.py", "build_decision_digest.py", "build_sessions.py", "build_work_board.py", "glossary/build_issues.py", "adr/build_adrs.py", "rules/build_brief.py",
          "phase1a/infra/build_legacy_read_register.py", "../../backend/glossary/build_proposed_index.py"]
 SELF_TESTED = ["build_decision_digest.py", "build_sessions.py", "build_work_board.py", "adr/build_adrs.py", "adr/new_adr.py", "../../scripts/queue/merge_train.py", "../../scripts/merge/mq.py", "../../scripts/hooks/session_context.py", "glossary/build_issues.py", "glossary/term_rules.py",
@@ -33,7 +46,7 @@ if importlib.util.find_spec("yaml"):
     STEPS.insert(-1, "architecture/build_architecture.py")   # 架构施工图（architecture/DESIGN.md §3）：mmd 可复现、SVG 未过期
     SELF_TESTED.append("architecture/build_architecture.py")   # 上下文映射边校验与 A1
 elif "--check" in sys.argv:
-    sys.exit(f"失败：{sys.executable} 缺少 PyYAML，无法运行 glossary/build_terms.py 校验 terms.yaml 可复现（依赖见 SUPPLY_CHAIN.md S1）")
+    fail(f"失败：{sys.executable} 缺少 PyYAML，无法运行 glossary/build_terms.py 校验 terms.yaml 可复现（依赖见 SUPPLY_CHAIN.md S1）")
 else:
     print(f"警告：{sys.executable} 缺少 PyYAML，本次未重新生成 glossary/terms.yaml；--check 会因此失败（依赖见 SUPPLY_CHAIN.md S1）", file=sys.stderr)
 STEPS.append("architecture/check_proposals.py")   # 提议稿状态行检查（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
@@ -45,13 +58,15 @@ digest_spec.loader.exec_module(digest)
 try:
     digest.write_common(os.path.join(BASE, "SESSION_PLAYBOOK.md"), os.path.join(BASE, "sessions/_COMMON.md"), check="--check" in sys.argv)
 except (OSError, ValueError) as error:
-    sys.exit(f"sessions/_COMMON.md 失败：{error}")
-print("sessions/_COMMON.md: 已校验" if "--check" in sys.argv else "sessions/_COMMON.md: 已生成")
+    fail(f"sessions/_COMMON.md 失败：{error}")
+else:
+    print("sessions/_COMMON.md: 两次生成无告警且内容一致" if CHECK else "sessions/_COMMON.md: 已生成")
 
 for step in STEPS:
     r = subprocess.run([sys.executable, os.path.join(BASE, step)], cwd=BASE, capture_output=True, text=True)
     if r.returncode:
-        sys.exit(f"{step} 失败：\n{r.stdout}{r.stderr}")
+        fail(f"{step} 失败：\n{r.stdout}{r.stderr}")
+        continue
     print(f"{step}: {r.stdout.strip().splitlines()[0] if r.stdout.strip() else 'ok'}")
     if r.stderr.strip():
         print(r.stderr.strip(), file=sys.stderr)
@@ -60,7 +75,8 @@ if "--check" in sys.argv:
     for step in SELF_TESTED:
         r = subprocess.run([sys.executable, os.path.join(BASE, step), "--self-test"], cwd=BASE, capture_output=True, text=True)
         if r.returncode:
-            sys.exit(f"{step} 自测失败：\n{r.stdout}{r.stderr}")
+            fail(f"{step} 自测失败：\n{r.stdout}{r.stderr}")
+            continue
         print(f"{os.path.basename(step)} --self-test: {r.stdout.strip()}")
     merge_base = subprocess.run(["git", "merge-base", "HEAD", "origin/main"], cwd=BASE, capture_output=True, text=True)
     base_args = ["--base", merge_base.stdout.strip()] if merge_base.returncode == 0 and merge_base.stdout.strip() else []
@@ -75,9 +91,15 @@ if "--check" in sys.argv:
     if r.stderr.strip():
         print(r.stderr.strip(), file=sys.stderr)
     if r.returncode:
-        sys.exit(f"RULE_REVIEWS.json 修订记录校验失败：\n{r.stdout}")
-    print(f"rules/review_revisions.py: {r.stdout.strip()}")
-    dirty = subprocess.run(["git", "status", "--porcelain", "--", ".", GLOSSARY_INDEX], cwd=BASE, capture_output=True, text=True, check=True).stdout
-    if dirty:
-        sys.exit("生成产物与片段不一致（请运行 build_all.py 并提交结果，不要直接编辑生成产物）：\n" + dirty)
-    print("check: 生成后工作区无差异")
+        fail(f"RULE_REVIEWS.json 修订记录校验失败：\n{r.stdout}")
+    else:
+        print(f"rules/review_revisions.py: {r.stdout.strip()}")
+    status = subprocess.run(["git", "status", "--porcelain", "--untracked-files=all", "--", *TRACKED_OUTPUTS], cwd=BASE, capture_output=True, text=True)
+    if status.returncode:
+        fail("生成产物工作区检查失败：\n" + status.stderr)
+    elif status.stdout:
+        fail("生成产物与片段不一致（请运行 build_all.py 并提交结果，不要直接编辑生成产物）：\n" + status.stdout)
+    if failures:
+        print(f"check: {len(failures)} 项失败；已运行其余检查", file=sys.stderr)
+        sys.exit(1)
+    print("check: 入仓生成产物无差异，记录类产物生成校验通过")
