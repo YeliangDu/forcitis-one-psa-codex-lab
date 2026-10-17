@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.audit.domain;
 
+import com.forcitis.one.platform.audit.api.AuditEntryId;
 import com.forcitis.one.platform.audit.api.AuditOutcome;
 import java.time.Instant;
 
