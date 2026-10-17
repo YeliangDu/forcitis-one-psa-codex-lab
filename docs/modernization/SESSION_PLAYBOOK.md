@@ -141,7 +141,7 @@
 - **Codex 派工**（用户 2026-10-15 起试点；2026-10-17 扩大：「照建议，用 codex 的最好模型，我 codex 额度充足。只要能给 codex 的都让他试试」，intent `2026-10-17-085534-one-coordinator`）：
   - 默认先交 Codex：凡结果能由 Claude 审出对错的产出都先交 Codex 写——编码（批量改名、按规则卡实现、补样板与映射、照复审意见改缺陷）、设计初稿（ADR 草稿、规格、流程骨架、词表条目与动词 / 状态表候选、改名对照表、确认页题面初稿）、取数汇总与文档整理。Claude（负责会话）只做：派工单、首轮 opus 审稿（一次）、安全判定、交用户前验收。
   - 不交 Codex：生产取证与任何连生产的操作；身份、授权、凭据、单人模式防线等安全改动；opus 复审；验收测试；与用户和其他会话的沟通。
-  - 调用：在独立 worktree 中 `codex exec -m gpt-6.1-sol -c model_reasoning_effort=xhigh -s <read-only|workspace-write> --ephemeral -o <结果文件>`（本机 Codex 目录中最强模型；机械活可用 high），不联网；提示词用 `templates/WORK_CARD.md`，要求先读 `CLAUDE.md`（Codex 读仓库根 `AGENTS.md`，指向同一套规则）、本文件 §5、§6.1 与 `CODING_STANDARD.md`、`NAMING_STANDARD.md`，并以中文写结果。一律用会话 Bash 的 `run_in_background` 启动，在本会话后台任务里可见、完成自动唤醒；不得用 nohup、`&`、setsid 等脱离会话（用户 2026-10-17「所有会话调动 codex 任务都要在自己的后台任务显示」）；不轮询。
+  - 调用：在独立 worktree 中 `codex exec -m gpt-6.1-sol -c model_reasoning_effort=xhigh -s <read-only|workspace-write> --ephemeral -o <结果文件> < /dev/null`（必须关闭标准输入，否则会停在「Reading additional input from stdin」干等，10-17 N9 因此空等 77 分钟）（本机 Codex 目录中最强模型；机械活可用 high），不联网；提示词用 `templates/WORK_CARD.md`，要求先读 `CLAUDE.md`（Codex 读仓库根 `AGENTS.md`，指向同一套规则）、本文件 §5、§6.1 与 `CODING_STANDARD.md`、`NAMING_STANDARD.md`，并以中文写结果。一律用会话 Bash 的 `run_in_background` 启动，在本会话后台任务里可见、完成自动唤醒；不得用 nohup、`&`、setsid 等脱离会话（用户 2026-10-17「所有会话调动 codex 任务都要在自己的后台任务显示」）；不轮询。
   - 流程不变：设计初稿照常走评审、批准页；代码卡验收测试由测试代理先写，Codex 产出照常开 PR、过 CI，合并前 opus 复审；PR 正文与文档状态行注明「Codex 起草 / 实现（模型、强度）」。
   - 记录每张 Codex 卡的返工轮次与耗时，完成点报告带上；调度按返工率每日在日报里评估，返工两轮以上的同类工作收回 Claude。
 - **子代理必须指定模型**（用户 2026-10-14：「派出子代理要指定最合适的模型，不要都默认，所有新会话都应该遵循」）：每次派子代理（`Agent` 工具，以及 Workflow 里的 `agent()`）都显式写 `model`，按任务难度选，不留默认：
