@@ -307,6 +307,15 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 - 一个实例写入归档后引擎删除失败，则跳过、记 `ALERT`、计数 `forcitis.platform.approval.archive.skipped`，并记入只追加表 `platform_approval.process_archive_skips`，之后不再重复归档；仍在引擎里的每次运行结束时再告警一次，直到人工处理。
 - 审计 3 年归档按 id 前缀成批，进度记在 `platform_audit.audit_archive_batches`。
 
+### 5.4 审计在线月分区的预建与删除（ADR-0048、O-8；DATA-REPAIR-timesheet-audit TB-07）
+
+- **预建**：`platform_audit.audit_entries` 按 UTC 月分区（`audit_entries_pYYYYMM`），没有默认分区，某月没有分区时该月的审计写入会失败。应用的 `AuditPartitionJob`（ShedLock `platform.audit.entry.partitions`）在启动时和每天 01:20 把当月起、再往后 `forcitis.platform.audit.partitions.months-ahead`（3）个月的分区补齐；失败记 `ALERT platform.audit …` 并计数 `forcitis.platform.audit.partitions.failures`。基线本身建 2026-10 起 6 个月。
+- **删除已归档月份**（在线 3 年之后；应用不做，只由维护角色手工执行）：
+  1. 确认该月已全部归档：`AuditArchiveJob` 最近一次运行无 `ALERT platform.audit the audit trail up to entry …`，`audit_archive_batches` 里该月的批次已写入归档库。
+  2. 用 `one_<环境>_audit_maintainer` 连接（口令由运维持有，不入仓库），执行：`SELECT platform_audit.drop_archived_audit_entry_partition(DATE 'YYYY-MM-01');`（月初，UTC 月）。（低峰执行：删除会锁住审计表全部月分区，最长阻塞写入 5 秒（`lock_timeout`），超时即失败，重试即可）
+  3. 函数自己校验：分区存在；分区里没有排在归档位置之后的行；分区行数等于该月归档批次的条目数之和。任一不符报错、不删，返回值为删除的行数；不符时不要绕过，先查清归档缺口。
+  4. 删除后无需其他操作：对账只比较仍在线的月份。运行角色（`one_<环境>_app`）没有此函数的执行权，也不能 DETACH 或 DROP。
+
 ## 6. 应急管理员与首批持有人开通（运维命令，已实现；执行需用户确认）
 
 - 不提供 HTTP 开通接口（设计如此）。入口是同一个 jar 以档案 `identity-operations` 启动，**一次只做一个命令，做完进程结束**：
@@ -326,7 +335,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
     ```
     每个匹配输出一行 `employee-id=<uuid> user-id=<uuid 或 (no account)>`；退出码 0 找到、1 无人匹配、2 用法错误。不按员工编号查（员工编号不作键，ADR-0033 第 6 项）。端口与 F-12 的注意事项同上。
   - 命令：`register-emergency-admin`（需 `--login-name`）、`reset-emergency-admin-credentials`、`disable-emergency-admin`、`enable-emergency-admin`、`grant-role`（需 `--role-code`，用于首批超级管理员、业务管理员、组织数据管理员）。
-  - **双人在场**：`--operator` 与 `--witness` 必填，各为员工 ID（小写规范 uuid 文本），且必须是两个不同的员工；运维证明的员工 ID 暂不校验是否存在（后续小卡 DR-TB01-FU1），执行前须人工核对；两人的员工 ID 记入审计 `detail`（`operatorId=`、`witnessId=`，姓名不入审计，读时再解析；ADR-0043 U-7b）；缺一、不是员工 ID 或相同则命令拒绝（退出码 1，错误码 `PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED`），什么也不做。原先填姓名的写法作废。
+  - **双人在场**：`--operator` 与 `--witness` 必填，各为员工 ID（小写规范 uuid 文本），且必须是两个不同的、已存在的员工（以组织快照为准，不要求在职）；两人的员工 ID 记入审计 `detail`（`operatorId=`、`witnessId=`，姓名不入审计，读时再解析；ADR-0043 U-7b）；缺一、不是员工 ID、员工不存在或相同则命令拒绝（退出码 1，错误码 `PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED`），什么也不做。组织快照读取失败（不可用）时命令同样失败、退出码非 0，什么也不做、不记审计。原先填姓名的写法作废。
   - 口令与 TOTP 密钥由命令**生成**，只在这一次输出里显示（口令、base32 密钥、认证器链接），库里只存口令的 Argon2id 哈希与加密后的密钥；不要把输出复制进文件或聊天。口令强度与密钥长度由代码保证，不经命令行参数传入。
   - 档案关闭所有定时任务（`forcitis.platform.scheduling.jobs-enabled=false` 及各任务自己的开关；总开关生效的前提是 Spring Modulith 的 `MomentsAutoConfiguration` 已被排除，#228 起，见 §9），Web 部分只监听本机随机端口，几秒钟后随进程结束；命令发布的事件若监听器没来得及处理，仍留在事件发布登记表里，由常驻应用的重投作业接手（§9）。
   - 退出码：0 成功（含「已是该状态，未改变」）；1 被拒绝（错误码在标准错误输出）；2 用法错误。

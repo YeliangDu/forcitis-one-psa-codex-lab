@@ -1,11 +1,13 @@
 package com.forcitis.one.platform.audit.web;
 
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.audit.api.AuditOutcome;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.platform.audit.application.AuditExport;
 import com.forcitis.one.platform.audit.application.AuditSearch;
 import com.forcitis.one.platform.audit.application.ExportAuditEntries;
 import java.nio.charset.StandardCharsets;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import java.time.Instant;
 import java.util.UUID;
@@ -32,12 +34,15 @@ class AuditExportController {
     }
 
     @GetMapping(path = "/audit-entries:export")
+    @Operation(description = "Takes the same filter parameters as the list and answers every match in the same fixed order, created_at desc, id desc, without paging. Answers 422 PLATFORM_AUDIT_EXPORT_TOO_LARGE when more entries match than the export limit allows.")
     @PreAuthorize("hasAuthority('" + AuditPermissions.ENTRY_EXPORT + "')")
-    ResponseEntity<byte[]> export(@RequestParam(required = false) UUID actorId, @RequestParam(required = false) String action,
+    ResponseEntity<byte[]> export(@RequestParam(required = false) UUID actorId, @RequestParam(required = false) UUID onBehalfOfId,
+                                  @RequestParam(required = false) String action, @RequestParam(required = false) String actionPrefix,
+                                  @RequestParam(required = false) String sourceAddress, @RequestParam(required = false) AuditOutcome outcome,
                                   @RequestParam(required = false) AuditSubjectKind subjectKind, @Parameter(description = "Id of the audited object. Must be given together with subjectKind: subjectId alone answers 400, because one id can name several kinds of object; kinds without an object (REQUEST, OPERATION, LOGIN_ATTEMPT) take no subjectId.") @RequestParam(required = false) UUID subjectId,
                                   @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
                                   @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to, UserId caller) {
-        AuditExport result = export.execute(new AuditSearch(actorId, null, action, null, subjectKind, subjectId, null, null, from, to, null), caller);
+        AuditExport result = export.execute(new AuditSearch(actorId, onBehalfOfId, action, actionPrefix, subjectKind, subjectId, sourceAddress, outcome, from, to), caller);
         return ResponseEntity.ok()
                 .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment().filename("audit-entries.csv").build().toString())

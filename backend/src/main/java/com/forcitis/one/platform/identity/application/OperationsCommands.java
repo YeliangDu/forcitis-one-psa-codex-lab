@@ -3,6 +3,7 @@ package com.forcitis.one.platform.identity.application;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WorkContext;
+import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.identity.api.SingleOperatorMode;
 import java.io.PrintStream;
 import java.net.URLEncoder;
@@ -37,9 +38,11 @@ public class OperationsCommands {
     private final GrantRoleByOperations grant;
     private final RevokeRoleByOperations revoke;
     private final SingleOperatorMode mode;
+    private final OrgDirectory orgDirectory;
 
     OperationsCommands(RegisterEmergencyAdmin register, ResetEmergencyAdminCredentials reset, DisableEmergencyAdmin disable,
-            EnableEmergencyAdmin enable, GrantRoleByOperations grant, RevokeRoleByOperations revoke, SingleOperatorMode mode) {
+            EnableEmergencyAdmin enable, GrantRoleByOperations grant, RevokeRoleByOperations revoke, SingleOperatorMode mode,
+            OrgDirectory orgDirectory) {
         this.register = register;
         this.reset = reset;
         this.disable = disable;
@@ -47,6 +50,7 @@ public class OperationsCommands {
         this.grant = grant;
         this.revoke = revoke;
         this.mode = mode;
+        this.orgDirectory = orgDirectory;
     }
 
     public int run(ApplicationArguments arguments, PrintStream out, PrintStream err) {
@@ -64,6 +68,7 @@ public class OperationsCommands {
         }
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "platform.identity.operations")) {
             OperationAttestation attestation = attestation(arguments);
+            requireExisting(attestation);
             EmployeeId employeeId = employeeId(arguments);
             return switch (operation) {
                 case "register-emergency-admin" -> registerAdmin(attestation, employeeId, single(arguments, LOGIN_NAME), out);
@@ -110,6 +115,14 @@ public class OperationsCommands {
             return OperationAttestation.withoutWitness(single(arguments, OPERATOR));
         }
         return OperationAttestation.of(single(arguments, OPERATOR), single(arguments, WITNESS));
+    }
+
+    /** Separated employees still count: the snapshot keeps them, and the audit trail must be able to name them. The witness is checked only when one was given. */
+    private void requireExisting(OperationAttestation attestation) {
+        if (orgDirectory.findEmployee(attestation.operator()).isEmpty()
+                || (!attestation.witnessOmitted() && orgDirectory.findEmployee(attestation.witness()).isEmpty())) {
+            throw OperationAttestation.required();
+        }
     }
 
     private int registerAdmin(OperationAttestation attestation, EmployeeId employeeId, String loginName, PrintStream out) {

@@ -2,9 +2,11 @@
 # Only these five, for good: the application cannot choose their key. A table is added only after a report to one-coordinator; a line whose table is gone fails PrimaryKeyTypeGuardTest.
 # Landing record (R-1b P5, RULING-P5-D12): primary-key-type-baseline.txt is deleted; account_roles, role_permissions and sync_run_held_separations
 # got a UUIDv7 single-column key and their old key became a named unique constraint, so no table of ours is listed apart from these five.
+# 非框架表只允许 ADR-0048 的 audit_entries；新增须另立 ADR（分区表的形状由 PrimaryKeyTypeGuardTest 校验，不是跳过）
 # Format: <schema.table>  # reason
 platform_identity.sessions  # Spring Session JDBC owns the table: the key is primary_id, a framework-made id
 platform_identity.sessions_attributes  # Spring Session JDBC owns the table: the key is (session_primary_id, attribute_name)
 platform_integration.event_publication  # Spring Modulith owns the table: the key is the publication id the library makes
 platform_integration.event_publication_archive  # Spring Modulith owns the table: the same shape as event_publication
 platform_scheduling.scheduler_locks  # ShedLock owns the table: the key is the lock name
+platform_audit.audit_entries  # 分区表：主键 (id uuid, created_at timestamptz)，按月 RANGE (created_at)；ADR-0048
