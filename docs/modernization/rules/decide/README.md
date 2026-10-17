@@ -13,6 +13,7 @@
 | ANM 流程方法与命名体系批准（ADR-0052、0053 与 SD-11–15，11 题；one-architecture） | `sheets/ANM.json` | https://claude.ai/artifact/KTzjRe3S2FvJEiDu1Priey（2026-10-17 起） |
 | CAPINFO 能力层与信息层确认（9 题；one-architecture） | `sheets/CAPINFO.json` | https://claude.ai/artifact/HfPaPW8QrbBoct65sS6w8g（2026-10-17 起，未实看渲染） |
 | TRN 过渡 ADR 批准（ADR-0054、0055、0056，14 题；one-architecture） | `sheets/TRN.json` | https://claude.ai/artifact/ViNWQdAhmyGLAA919TFBwN（2026-10-17 起，未实看渲染） |
+| B31 内部服务价值流（9 题；one-architecture） | `sheets/B31.json` | https://claude.ai/artifact/96WEt2s9swq3LNsjyfpcMz（2026-10-17 起，未实看渲染） |
 
 | 步骤 | 做法 |
 |---|---|
