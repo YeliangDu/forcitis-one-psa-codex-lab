@@ -189,9 +189,20 @@ class LegacyNumberSourceIT extends AcceptanceSupport {
         assertThat(change("delete from legacy_numbers where legacy_number = 'Q-2021-0001'")).isNotEqualTo(ACCEPTED);
     }
 
+    /** Hidden files and directories (a path segment below the root starting with a dot, such as macOS .DS_Store) are not source and need not be UTF-8. */
+    private static boolean hidden(Path root, Path file) {
+        Path relative = root.relativize(file);
+        for (Path segment : relative) {
+            if (segment.toString().startsWith(".")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static List<Path> filesContaining(Path root, java.util.function.Predicate<String> found) throws Exception {
         try (Stream<Path> files = Files.walk(root)) {
-            return files.filter(Files::isRegularFile).filter(file -> {
+            return files.filter(Files::isRegularFile).filter(file -> !hidden(root, file)).filter(file -> {
                 try {
                     return found.test(Files.readString(file));
                 } catch (java.io.IOException unreadable) {
