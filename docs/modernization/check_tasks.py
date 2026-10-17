@@ -25,14 +25,17 @@ KINDS = ('设计', '编码', '测试', '取证', '复审', '确认页', '文档'
 TASK_ID = re.compile(r'(' + '|'.join(LANES) + r')-(\d{4})-(' + '|'.join(SESSION_CODES) + r')-(\d{2})')
 UNKNOWN = '待核'
 MACHINE = '<!-- TASKS-DATA v1 -->'
+BACKFILL_DATE = datetime.date(2026, 10, 17)
 
 
-def parse_task(path, text, warnings=None):
+def parse_task(path, text, warnings=None, *, historical=False):
     text = text.lstrip('\ufeff').replace('\r\n', '\n')
     front = re.match(r'\A---[ \t]*\n(.*?)\n---[ \t]*(?:\n|\Z)', text, re.S)
     if not front:
         raise ValueError(f'{path}：须以完整的 --- 键值头开始')
     fields = {}
+    required = ('会话', '执行者与模型', '返工轮次') if historical else FIELDS
+    allowed = (*required, '来源') if historical else (*FIELDS, '来源')
     for line in front[1].splitlines():
         key, sep, value = line.partition(':')
         key, value = key.strip(), value.strip()
@@ -40,15 +43,17 @@ def parse_task(path, text, warnings=None):
             key = '执行者与模型'
             if warnings is not None:
                 warnings.append(f'{path}：执行者是执行者与模型的兼容别名，请后续统一字段名')
-        if not sep or key not in (*FIELDS, '来源') or key in fields:
+        if historical and key not in allowed:
+            continue
+        if not sep or key not in allowed or key in fields:
             raise ValueError(f'{path}：键未知、重复或缺冒号：{key}')
         if value.startswith(('"', "'")):
             if len(value) < 2 or value[-1] != value[0]:
                 raise ValueError(f'{path}：引号未闭合：{key}')
             value = value[1:-1]
         fields[key] = value or UNKNOWN
-    if not set(FIELDS) <= fields.keys():
-        raise ValueError(f'{path}：缺少字段 {"、".join(k for k in FIELDS if k not in fields)}')
+    if not set(required) <= fields.keys():
+        raise ValueError(f'{path}：缺少字段 {"、".join(k for k in required if k not in fields)}')
     return fields
 
 
@@ -95,8 +100,8 @@ def validate(tasks, bcs):
         seen.add(task['任务号'])
         if task['主线'] not in LANES:
             errors.append(f'{tag}：主线须取 {"/".join(LANES)}')
-        if '来源' in task and task['来源'] not in ('回填', UNKNOWN):
-            errors.append(f'{tag}：来源可省略，填写时须为回填或待核')
+        if '来源' in task and task['来源'] != '回填':
+            errors.append(f'{tag}：来源可省略，填写时须为回填')
         if task['bc'] not in bcs | {'跨域'}:
             errors.append(f'{tag}：bc 须取 glossary/bcs.yaml 的 id 或跨域：{task["bc"]}')
         if task['种类'] not in KINDS:
@@ -129,6 +134,21 @@ def collect(base, warnings=None):
     paths = sorted(folder.glob('*.md'))
     paths = [p for p in paths if p.name != 'TASKS.md' and not p.name.startswith('_')]
     return [(p, parse_task(p, p.read_text(encoding='utf-8'), warnings)) for p in paths]
+
+
+def backfill_warnings(tasks, base=BASE):
+    warnings = []
+    for path, task in tasks:
+        if task.get('来源') != '回填':
+            continue
+        result = subprocess.run(['git', 'log', '--no-renames', '--diff-filter=A', '--format=%cI', '--', str(path.relative_to(base))],
+                                cwd=base, capture_output=True, text=True)
+        dates = result.stdout.splitlines()
+        if result.returncode or not dates:
+            warnings.append(f'{path}：回填片段首次入库日期待核，无法核对 {BACKFILL_DATE} 截止规则')
+        elif datetime.date.fromisoformat(dates[-1][:10]) > BACKFILL_DATE:
+            warnings.append(f'{path}：首次入库日期 {dates[-1][:10]} 晚于回填登记截止日期 {BACKFILL_DATE}，新卡不可标回填')
+    return warnings
 
 
 def payload(tasks):
@@ -192,7 +212,7 @@ def main(argv):
     bcs = {b['id'] for b in yaml.safe_load((BASE / 'glossary/bcs.yaml').read_text(encoding='utf-8'))['bcs']}
     warnings = []
     tasks = collect(BASE, warnings)
-    for warning in warnings + task_warnings(tasks):
+    for warning in warnings + task_warnings(tasks) + backfill_warnings(tasks):
         print('警告：' + warning, file=sys.stderr)
     errors = validate(tasks, bcs)
     if errors:
@@ -207,6 +227,16 @@ def self_test():
     path = Path(task['任务号'] + '.md')
     text = '---\n' + '\n'.join(f'{k}: {v}' for k, v in task.items()) + '\n---\n正文\n'
     assert parse_task(path, text) == task
+    for key in ('提交', '返工轮次', '用时', '旧编号'):
+        blank = parse_task(path, text.replace(f'{key}: {task[key]}', f'{key}: '))
+        assert blank[key] == UNKNOWN, f'{key} 空值须转待核'
+    for key in FIELDS:
+        try:
+            parse_task(path, text.replace(f'{key}: {task[key]}\n', ''))
+        except ValueError as error:
+            assert '缺少字段' in str(error) and key in str(error)
+        else:
+            raise AssertionError(f'在途片段也不得缺少必填键 {key}')
     assert parse_task(path, text.replace(task['任务名'], '"' + task['任务名'] + '"')) == task
     warnings = []
     assert parse_task(path, text.replace('执行者与模型:', '执行者:'), warnings) == task
@@ -218,6 +248,7 @@ def self_test():
     assert not validate([(path, dict(task, bc='kernel'))], {'kernel'})
     assert not validate([(path, dict(task, **{'来源': '回填'}))], set())
     assert any('来源' in e for e in validate([(path, dict(task, **{'来源': '错误'}))], set()))
+    assert any('来源' in e for e in validate([(path, dict(task, 来源=UNKNOWN))], set())), '来源只允许回填'
     for code in SESSION_CODES:
         assert TASK_ID.fullmatch(f'NAM-1017-{code}-03')
     for code in LANES:
@@ -252,6 +283,9 @@ def self_test():
     assert '共 2 张；返工轮次 2（待核 1 张）；用时 90（待核 1 张）' in mixed, '合计须统计待核张数'
     assert metric([unknown], '返工轮次', rounds) == '待核（待核 1 张）', '整组待核不可显示 0'
     assert metric([dict(task, 用时='0')], '用时', minutes) == '0（待核 0 张）', '已知零仍显示 0'
+    approximate = render([(path, dict(task, 用时='约40m')), (path, task), (path, unknown)], data)
+    assert '共 3 张；返工轮次 4（待核 1 张）；用时 约130（待核 1 张）' in approximate, '总计保留约数标记'
+    assert '| NAM | 3 | 4（待核 1 张） | 约130（待核 1 张） |' in approximate, '分组保留约数标记'
     with tempfile.TemporaryDirectory() as tmp:
         base = Path(tmp)
         (base / 'tasks').mkdir()
@@ -269,6 +303,8 @@ def self_test():
         fragment.write_text(text.replace('返工轮次: 2', '返工轮次: 0'), encoding='utf-8')
         command('add', 'tasks/' + path.name)
         command('commit', '-qm', '初次登记', time='2026-10-16T08:00:00+02:00')
+        backfill = [(fragment, dict(task, 来源='回填'))]
+        assert not backfill_warnings(backfill, base), '截止日期前首次入库可回填'
         fragment.write_text(text.replace('返工轮次: 2', '返工轮次: 3'), encoding='utf-8')
         pending = render(collect(base), payload(collect(base)))
         command('add', 'tasks/' + path.name)
@@ -290,6 +326,20 @@ def self_test():
         assert render(collect(base), payload(collect(base))) == stable, '合并提交不影响总表'
         fragment.write_text(text, encoding='utf-8')
         assert render(collect(base), payload(collect(base))) != stable, '仅片段内容变化改变总表'
+        late = base / 'tasks/NAM-1017-GLO-04.md'
+        late.write_text(text.replace('NAM-1017-GLO-03', late.stem), encoding='utf-8')
+        command('add', 'tasks/' + late.name)
+        command('commit', '-qm', '截止当天新卡', time='2026-10-17T23:59:00+02:00')
+        assert not backfill_warnings([(late, dict(task, 来源='回填'))], base), '截止当天可回填'
+        later = base / 'tasks/NAM-1018-GLO-05.md'
+        later.write_text(text.replace('NAM-1017-GLO-03', later.stem), encoding='utf-8')
+        assert any('首次入库日期待核' in w for w in backfill_warnings([(later, dict(task, 来源='回填'))], base))
+        command('add', 'tasks/' + later.name)
+        command('commit', '-qm', '截止以后新卡', time='2026-10-18T00:01:00+02:00')
+        assert any('新卡不可标回填' in w for w in backfill_warnings([(later, dict(task, 来源='回填'))], base)), '截止以后从旧模板复制的新卡须按新路径首次入库日警告'
+        assert not backfill_warnings(backfill, base), '旧卡后续更新仍按首次入库日判断'
+        late.unlink()
+        later.unlink()
         (base / 'tasks/_RESULT.md').write_text('结果', encoding='utf-8')
         assert len(collect(base)) == 1, '结果文件不可当成片段'
     print('check_tasks --self-test：通过（格式、兼容字段、白名单、待核汇总、负向样例、生成与 Git 状态无关）')

@@ -257,13 +257,14 @@ def task_history(root, path):
     events, previous = [], None
     for line in revisions.splitlines():
         oid, time = line.split("\x1f")
-        task = TASK_RULES.parse_task(Path(path), task_git(root, "show", f"{oid}:{path}"))
+        task = TASK_RULES.parse_task(Path(path), task_git(root, "show", f"{oid}:{path}"), historical=True)
         current = TASK_RULES.rounds(task["返工轮次"])
         if not events:
-            delta = 0 if current == 0 else None
+            delta = 0 if current is not None else None
         else:
             delta = max(0, current - previous) if current is not None and previous is not None else None
-        events.append(dict(时间=time, 会话=task["会话"], 执行者与模型=task["执行者与模型"], 新增=not events, 返工增量=delta, 来源=task.get("来源")))
+        events.append(dict(时间=time, 会话=task["会话"], 执行者与模型=task["执行者与模型"], 新增=not events, 返工增量=delta,
+                           未定基数=not events and current is not None and current > 0, 来源=task.get("来源")))
         previous = current
     if not events:
         raise ValueError(f"片段 {path} 缺少首次登记历史")
@@ -275,6 +276,7 @@ def task_counts(root, window):
     names = {name for name, _, _ in SESSIONS}
     codex, rework = dict.fromkeys(names, 0), dict.fromkeys(names, 0)
     notes = []
+    unbased = collections.defaultdict(set)
     try:
         paths = task_git(root, "ls-tree", "-r", "--name-only", MAIN, "--", TASK_FOLDER).splitlines()
         paths = [p for p in paths if p.endswith(".md") and Path(p).name != "TASKS.md" and not Path(p).name.startswith("_")]
@@ -300,15 +302,19 @@ def task_counts(root, window):
                     continue
                 if event["新增"] and codex[owner] is not None:
                     codex[owner] += 1
+                if event["未定基数"]:
+                    unbased[owner].add(task['任务号'])
                 delta = event["返工增量"]
                 if delta is None:
                     rework[owner] = None
-                    notes.append(f"任务 {task['任务号']} 的首次历史返工或返工基数待核，codex_rework_rounds 为 null。")
+                    notes.append(f"任务 {task['任务号']} 的返工基数待核，codex_rework_rounds 为 null。")
                 elif rework[owner] is not None:
                     rework[owner] += delta
     except (OSError, ValueError, KeyError, IndexError, TypeError) as error:
         return dict.fromkeys(names), dict.fromkeys(names), [f"Codex 两列为 null：origin/main 任务片段或历史不可用（{error}）。"]
-    notes.append("codex_cards 读 origin/main 的任务片段：窗口内首次主线提交登记的 Codex 卡数；codex_rework_rounds 取 git log origin/main 的后续累计轮次增量，下降记 0。来源为回填的卡两列均排除。窗口左闭右开，不依赖 PR 正文、提交标题或工作区总表。首次历史返工、未知基数与执行者待核保留 null；登记时间不是原派工时间。")
+    for owner, cards in sorted(unbased.items()):
+        notes.append(f"{owner} 首次登记返工轮次已大于 0：未定基数 {len(cards)} 张（{'、'.join(sorted(cards))}），首登历史轮次不计入，其他卡及后续可确认增量照算。")
+    notes.append("codex_cards 读 origin/main 的任务片段：窗口内首次主线提交登记的 Codex 卡数；codex_rework_rounds 取 git log origin/main 的后续累计轮次增量，下降记 0。来源为回填的卡两列均排除。窗口左闭右开，不依赖 PR 正文、提交标题或工作区总表。首登轮次大于 0 单列未定基数张数；轮次待核或执行者待核保留 null；登记时间不是原派工时间。")
     return codex, rework, notes
 
 
@@ -452,12 +458,17 @@ def task_self_test():
         folder = os.path.join(repo, "docs/modernization/tasks")
         os.makedirs(folder)
         path = os.path.join(folder, "GOV-1016-COO-01.md")
-        def register(value, executor="Codex gpt-6.1-sol xhigh", source=None, at="2026-10-16T12:00:00+02:00"):
-            fields = dict(任务号="GOV-1016-COO-01", 任务名="[流程治理·跨域] 核对日报", 主线="GOV", bc="跨域", 种类="编码", 会话="one-quality",
+        def register(value, executor="Codex gpt-6.1-sol xhigh", source=None, at="2026-10-16T12:00:00+02:00", number=1, owner="one-quality", historical=False):
+            fields = dict(任务号=f"GOV-1016-COO-{number:02}", 任务名="[流程治理·跨域] 核对日报", 主线="GOV", bc="跨域", 种类="编码", 会话=owner,
                           执行者与模型=executor, 状态="进行中", 分支="待核", 提交="待核", 返工轮次=str(value), 用时="待核", 旧编号="无")
             if source:
                 fields["来源"] = source
-            with open(path, "w", encoding="utf-8") as stream:
+            if historical:
+                fields = {k: fields[k] for k in ("会话", "执行者与模型", "返工轮次")}
+                fields["执行者"] = fields.pop("执行者与模型")
+                fields["已退役旧键"] = "历史值"
+            target = os.path.join(folder, fields.get("任务号", f"GOV-1016-COO-{number:02}") + ".md")
+            with open(target, "w", encoding="utf-8") as stream:
                 stream.write("---\n" + "\n".join(f"{k}: {v}" for k, v in fields.items()) + "\n---\n")
             sh("add", "-A")
             sh("commit", "-qm", "登记片段", at=at)
@@ -465,8 +476,13 @@ def task_self_test():
         window = window_of("2026-10-17", None, None)
         sh("init", "-q", "-b", "main")
         register(4)
+        counts, changes, notes = task_counts(repo, window)
+        assert counts["one-quality"] == 1 and changes["one-quality"] == 0, "首次历史返工单列未定基数，不计当日返工"
+        assert any("未定基数 1 张" in note and "GOV-1016-COO-01" in note for note in notes)
+        register(0, number=8)
+        register(3, number=8)
         counts, changes, _ = task_counts(repo, window)
-        assert counts["one-quality"] == 1 and changes["one-quality"] is None, "首次历史返工不能算成当日返工"
+        assert counts["one-quality"] == 2 and changes["one-quality"] == 3, "首登历史轮次不得污染其他卡的增量"
         register(2, at="2026-10-16T13:00:00+02:00")
         later = (aware("2026-10-16T13:00:00+02:00"), window[1])
         assert task_counts(repo, later)[1]["one-quality"] == 0, "轮次下降是更正，不计负增量"
@@ -475,7 +491,7 @@ def task_self_test():
         assert unknown[0]["one-quality"] is None and unknown[1]["one-quality"] is None, "执行者待核须将两列置 null"
         register(4, source="回填", at="2026-10-16T15:00:00+02:00")
         counts, changes, _ = task_counts(repo, window)
-        assert counts["one-quality"] == changes["one-quality"] == 0, "回填卡排除全部历史统计"
+        assert counts["one-quality"] == 1 and changes["one-quality"] == 3, "回填卡排除全部历史统计，其他卡照算"
         sh("checkout", "-qb", "side")
         extra = os.path.join(folder, "GOV-1016-COO-02.md")
         with open(extra, "w", encoding="utf-8") as stream:
@@ -488,8 +504,23 @@ def task_self_test():
         sh("update-ref", "refs/remotes/origin/main", "HEAD")
         counts, changes, _ = task_counts(repo, window)
         events = task_history(repo, TASK_FOLDER + "/GOV-1016-COO-02.md")
-        assert counts["one-quality"] == 1 and changes["one-quality"] == 0, "首次主线登记按合并提交时刻计，不按旁支时刻计"
+        assert counts["one-quality"] == 2 and changes["one-quality"] == 3, "首次主线登记按合并提交时刻计，不按旁支时刻计"
         assert len(events) == 1 and events[0]["时间"] == "2026-10-16T16:00:00+02:00" and events[0]["新增"] and events[0]["返工增量"] == 0
+        prior = task_counts(repo, window)
+        register(0, executor="Claude sonnet", number=3)
+        register(7, executor="Claude sonnet", number=3)
+        assert task_counts(repo, window)[:2] == prior[:2], "非 Codex 执行者两列均不得计入"
+        register(0, owner="one-mystery", number=4)
+        free = task_counts(repo, window)
+        assert free[:2] == prior[:2] and any("one-mystery 未归属" in note for note in free[2]), "未归属会话只记 notes"
+        register(0, number=5, historical=True)
+        register(2, number=5)
+        counts, changes, _ = task_counts(repo, window)
+        assert counts["one-quality"] == 3 and changes["one-quality"] == 5, "旧版本只提取统计字段，不套用当前全部必填键"
+        register(0, number=6, source="回填")
+        register(4, number=6)
+        counts, changes, _ = task_counts(repo, window)
+        assert counts["one-quality"] == 3 and changes["one-quality"] == 9, "逐条历史里的回填事件不计入，取消标记后的真实增量仍计入"
 
 
 def self_test():
