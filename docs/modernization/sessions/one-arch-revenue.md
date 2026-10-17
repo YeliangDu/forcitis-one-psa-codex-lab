@@ -15,7 +15,7 @@
 ## 独占
 
 - `docs/modernization/architecture/proposals/closeout/revenue/`
-- `processes.v2.yaml`、`data-model.v1.yaml` 中 B-01–B-05、B-08、B-09、B-26、B-28、B-29 的条目（以片段交 one-architecture 合并）。
+- `processes.v2.yaml`、`data-model.v1.yaml` 中 B-01–B-05、B-08、B-09、B-26、B-28、B-29 的条目：仅写本组片段（`closeout/revenue/`），由 one-architecture 整合写入共享文件；本条只划本组边界，不据此变更 BC 划分。
 
 ## 不碰
 
@@ -25,7 +25,8 @@
 
 ## 输入
 
-- one-architecture：架构收尾计划、聚合稿 `ENTERPRISE_AGGREGATES_DRAFT.md`、`STEP6A_PROCESSES.md` 与 `processes.v1.yaml`、价值流 `value-streams.v2.yaml`、ADR-0050 / 0051、Q-04 研究稿。
+- 已采纳 ADR 为准：ADR-0052（流程设计与施工图方法第 4 稿，取代 ADR-0050 九处）、ADR-0054（一次投产路线）、ADR-0055（自成体系，不接老系统与 A8）、ADR-0056（视为同意生效前提修订）及其批准依据；ADR-0050 / 0051 只用未被取代的条款（以各自状态行所列取代范围为准），ADR-0057（流程模块准入，提议中）待采纳后再用。
+- one-architecture：聚合稿 `ENTERPRISE_AGGREGATES_DRAFT.md`、价值流 `value-streams.v2.yaml`（含 SD-11～15 写回）、`closeout/` 检查脚本、Q-04 研究稿；收入待决只保留尚未被上述 ADR 与用户答复覆盖的部分。
 - 规范：`terms.yaml`、SESSION_PLAYBOOK §14、§14.1、§14.2，NAMING_STANDARD §2.3–§2.5。
 - 用户收入事实答复（经 one-architecture / one-coordinator 转）。
 
@@ -56,9 +57,19 @@
 ## 权限边界
 
 - 用户待定事项先交 one-architecture 合成确认页，不自行出页。
-- 子代理显式指定模型：opus 只用于首轮评审，执行用 sonnet，取数用 haiku。
 - 中文；系统称 FORCITIS one / 老系统；老系统只作证据。
+
+### 全员工作守则
+
+- 可由负责会话审出对错的编码、设计初稿、整理与汇总，优先交 Codex：gpt-6.1-sol，model_reasoning_effort=xhigh；机械活按工作卡可用 high。Claude 负责派卡、首轮独立评审、安全判定、验收及会话沟通。生产取证、连生产操作、安全改动、opus 复审与验收测试不交 Codex。
+- Codex 在独立 worktree 执行，不联网，只改卡列文件；先读根 AGENTS.md 与所指规范。用本会话 Bash 的 run_in_background，任务在本会话后台列表可见、完成自动唤醒，不轮询，不用 nohup、& 或 setsid 脱离会话。
+- 调用形式：codex exec -m gpt-6.1-sol -c model_reasoning_effort=xhigh -s <read-only|workspace-write> --ephemeral -o <结果文件> '<完整工作卡提示>' < /dev/null。实际执行须选定一种 sandbox 模式并替换占位项；显式传提示词，关闭 stdin。本组经验：workspace-write 沙箱写不了共享 git 目录，卡上写明不提交，由本会话审后提交。
+- 每卡一个任务号与任务名，按 SESSION_PLAYBOOK §5 登记 docs/modernization/tasks/<任务号>.md（本会话码固定 ARE）；后台 description 为「<任务号> <任务名> (<执行者>)」，PR、提交、完成点报告带任务号；登记返工轮次与耗时。
+- 跨会话派工用可唤醒对方的 mcp__ccd_session_mgmt__send_message，首行「派工：<任务号> <任务名>」，附入口、出口、卡与结果路径；普通 SendMessage 不作已唤醒或已执行的证据。
+- 要用户定、补值、转财务或配合的事一律登记待决定收件箱；子组由 one-architecture 合成确认页后登记链接，不在各自会话另问。用户口头决定当场记 intent 并登记已定；出题先查 DECISION_DIGEST。
+- 只报完成、阻塞、验收失败、影响他人排期或需用户定的关键节点；不回纯确认，不广播例行入队/合并状态；同一对象一次说完，消息一到三行，长内容写文件。技术协调直连，不要求常规抄送调度。
+- 子代理显式指定模型（haiku / sonnet / opus 按难度）。
 
 ## 当前状态
 
-2026-10-16：骨架、表、质检、评审、聚合收敛、权责片段完成；阶段对齐第一层本组已无待改项（第 6 节裁定落地 8166b0b6），等 SD-08、13、14 用户答复与能力层开；接续读 closeout/revenue/README.md。
+2026-10-17 13:26+02:00 收入组骨架（46 业务 + 10 事件策略 + 13 单聚合 + 3 读模型）、表级稿、对象层与接缝产出已交；C7 按 SD-11～15 写回复核归段完毕（5b31ba27），VS-01～04 评审包 `VS_REVIEW.md` 已交 one-architecture 出确认页；报价发出编排 REF-04 已接入 PRC-07、08（58e97ab8）。旧待答重核（对照 ADR-0052/0054/0055/0056 与答复原文）：SD-08 已定、SD-11～15 已答（价值流写回 b4add5cb 注释、ARCH_SSOT_CONSOLIDATION_PLAN 第 130 行，已核实），SD-09 随 Q09；仍未定 Q-04 / VS04-01、Q09、Q13、Q20（MS-17 对象状态）、Q21，以及 MS-23；「合同负责人是谁」未在上述文件找到答复（未核实）。接续命名 N9→N7 与 one-architecture 当前层派工；用户事项合页后进收件箱；文档报分支和提交号。接续读 closeout/revenue/README.md。
