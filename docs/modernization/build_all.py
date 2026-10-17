@@ -30,6 +30,8 @@ elif "--check" in sys.argv:
     sys.exit(f"失败：{sys.executable} 缺少 PyYAML，无法运行 glossary/build_terms.py 校验 terms.yaml 可复现（依赖见 SUPPLY_CHAIN.md S1）")
 else:
     print(f"警告：{sys.executable} 缺少 PyYAML，本次未重新生成 glossary/terms.yaml；--check 会因此失败（依赖见 SUPPLY_CHAIN.md S1）", file=sys.stderr)
+STEPS.append("architecture/check_proposals.py")   # 提议稿状态行检查（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
+SELF_TESTED.append("architecture/check_proposals.py")
 
 for step in STEPS:
     r = subprocess.run([sys.executable, os.path.join(BASE, step)], cwd=BASE, capture_output=True, text=True)
