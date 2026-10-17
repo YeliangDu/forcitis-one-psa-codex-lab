@@ -41,7 +41,7 @@
 | CERT#费用工时审批 | 工时与费用 | 数据表 Time & Expense Management | — | 2 | 列委托填报、审批路由、缺报提醒、费用限额和多币种 |
 | CERT#外部门户范围 | 体验站点功能区 | 体验指南 Experience Cloud Sites Overview / `PSA Feature Areas` | 4–5 | 4–5 | 按权限让客户伙伴访问项目、费用、工时、需求和技能 |
 | CERT#计费事件处理 | Billing Events 页面 | 体验指南 `PSA Visualforce Pages` / Billing and Invoicing | 6–7 | 6–7 | 生成、录发票日期编号、重算与释放分别有动作；供应商待计费项另有确认入口 |
-| CERT#工时挂接粒度 | `PSA Time Entry` | 体验指南 PSA Lightning Components | 8 | 8 | 可向项目下的安排、里程碑及任务提交工时，支持批量审批 |
+| CERT#工时挂接粒度 | `PSA Time Entry` | 体验指南 `PSA Lightning Components` | 8 | 8 | 可向项目下的安排、里程碑及任务提交工时，支持批量审批 |
 | CERT#外部记录共享 | 组织默认与项目共享 | 体验指南 Define Organization-Wide Defaults；Making Projects Visible | 17–18 | 17–18 | 先限制外部记录访问，再对项目角色和各对象授予具体范围 |
 | CERT#审批与共享配置 | 自动共享及外部审批 | 体验指南 Updating Custom Settings and Configuration Groups；Workflow Approval | 19–20 | 19–20 | 项目经理和成员对预算费用工时的权限不同，该版仅伙伴用户可审批 |
 | CERT#对象权与记录权 | 页面可见但无记录的解释 | 体验指南 FAQ / Why can I see the Object page but no records | 24 | 24 | 对象访问与具体记录分享是不同前提 |
