@@ -1,0 +1,167 @@
+{
+ "NM3~NM3-01": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "以下中文名全部认可",
+  "no": "NM3-01",
+  "note": "",
+  "recommended": true,
+  "submission": "NM3-20261017-105653-1u6",
+  "submitted": "2026-10-17T08:56:53.986Z",
+  "unanswered": false
+ },
+ "NM3~NM3-02": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "以下中文名全部认可",
+  "no": "NM3-02",
+  "note": "",
+  "recommended": true,
+  "submission": "NM3-20261017-105653-1u6",
+  "submitted": "2026-10-17T08:56:53.986Z",
+  "unanswered": false
+ },
+ "NM3~NM3-03": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "以下中文名全部认可",
+  "no": "NM3-03",
+  "note": "",
+  "recommended": true,
+  "submission": "NM3-20261017-105653-1u6",
+  "submitted": "2026-10-17T08:56:53.986Z",
+  "unanswered": false
+ },
+ "NM3~NM3-04": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "以下中文名全部认可",
+  "no": "NM3-04",
+  "note": "",
+  "recommended": true,
+  "submission": "NM3-20261017-105653-1u6",
+  "submitted": "2026-10-17T08:56:53.986Z",
+  "unanswered": false
+ },
+ "NM3~NM3-05": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "以下中文名全部认可",
+  "no": "NM3-05",
+  "note": "",
+  "recommended": true,
+  "submission": "NM3-20261017-105653-1u6",
+  "submitted": "2026-10-17T08:56:53.986Z",
+  "unanswered": false
+ },
+ "NM3~NM3-07": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "以下中文名全部认可",
+  "no": "NM3-07",
+  "note": "",
+  "recommended": true,
+  "submission": "NM3-20261017-105653-1u6",
+  "submitted": "2026-10-17T08:56:53.986Z",
+  "unanswered": false
+ },
+ "NM3~NM3-08": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "以下中文名全部认可",
+  "no": "NM3-08",
+  "note": "",
+  "recommended": true,
+  "submission": "NM3-20261017-105653-1u6",
+  "submitted": "2026-10-17T08:56:53.986Z",
+  "unanswered": false
+ },
+ "NM3~NM3-09": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "只有约定单价，没有总额上限",
+  "no": "NM3-09",
+  "note": "",
+  "recommended": false,
+  "submission": "NM3-20261017-105653-1u6",
+  "submitted": "2026-10-17T08:56:53.986Z",
+  "unanswered": false
+ },
+ "NM3~NM3-10": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "包含全部参与人员，关键人员另作标记",
+  "no": "NM3-10",
+  "note": "",
+  "recommended": true,
+  "submission": "NM3-20261017-105653-1u6",
+  "submitted": "2026-10-17T08:56:53.986Z",
+  "unanswered": false
+ },
+ "NM3~NM3-11": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "按协议类型分别称变更",
+  "no": "NM3-11",
+  "note": "",
+  "recommended": true,
+  "submission": "NM3-20261017-105653-1u6",
+  "submitted": "2026-10-17T08:56:53.986Z",
+  "unanswered": false
+ },
+ "NM3~NM3-12": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "直接用申请作名称",
+  "no": "NM3-12",
+  "note": "",
+  "recommended": true,
+  "submission": "NM3-20261017-105653-1u6",
+  "submitted": "2026-10-17T08:56:53.986Z",
+  "unanswered": false
+ },
+ "NM3~NM3-13": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "以下中文名全部认可",
+  "no": "NM3-13",
+  "note": "",
+  "recommended": true,
+  "submission": "NM3-20261017-105653-1u6",
+  "submitted": "2026-10-17T08:56:53.986Z",
+  "unanswered": false
+ },
+ "NM3~NM3-14": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "以下中文名全部认可",
+  "no": "NM3-14",
+  "note": "",
+  "recommended": true,
+  "submission": "NM3-20261017-105653-1u6",
+  "submitted": "2026-10-17T08:56:53.986Z",
+  "unanswered": false
+ },
+ "NM3~NM3-15": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "以下中文名全部认可",
+  "no": "NM3-15",
+  "note": "",
+  "recommended": false,
+  "submission": "NM3-20261017-105653-1u6",
+  "submitted": "2026-10-17T08:56:53.986Z",
+  "unanswered": false
+ },
+ "NM3~NM3-16": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "以下中文名全部认可",
+  "no": "NM3-16",
+  "note": "",
+  "recommended": false,
+  "submission": "NM3-20261017-105653-1u6",
+  "submitted": "2026-10-17T08:56:53.986Z",
+  "unanswered": false
+ }
+}

@@ -102,7 +102,7 @@ class RoleSeparatedDeploymentIT {
     private static void installTheProcessEngine() {
         List<String> args = new ArrayList<>(List.of("--spring.profiles.active=dev", "--spring.datasource.url=" + url(), "--spring.datasource.username=" + MIGRATOR,
                 "--spring.datasource.password=" + MIGRATOR_PASSWORD, "--flowable.database-schema-update=true", "--flowable.async-executor-activate=false",
-                "--forcitis.platform.approval.process-administrator-required=false", "--spring.main.banner-mode=off", "--server.port=0"));
+                "--forcitis.platform.approval.process-administrator-required=false", "--spring.main.banner-mode=off", "--server.port=0", "--server.address=127.0.0.1"));
         List.of(JOBS_OFF).forEach(p -> args.add("--" + p));
         try (var engineInstaller = new SpringApplicationBuilder(OneApplication.class).web(WebApplicationType.SERVLET).run(args.toArray(String[]::new))) {
             assertThat(engineInstaller.isRunning()).isTrue();
@@ -173,6 +173,10 @@ class RoleSeparatedDeploymentIT {
         assertThatThrownBy(() -> jdbc.sql("truncate table organization_workforce.org_unit_versions").update()).rootCause().hasMessageContaining("permission denied");
         assertThatThrownBy(() -> jdbc.sql("delete from platform_audit.audit_entries").update()).rootCause().hasMessageContaining("permission denied");
         assertThatThrownBy(() -> jdbc.sql("update platform_audit.audit_entries set detail = 'x'").update()).rootCause().hasMessageContaining("permission denied");
+        for (String table : List.of("platform_identity.role_versions", "platform_identity.account_role_grants")) {
+            assertThatThrownBy(() -> jdbc.sql("delete from " + table).update()).as(table).rootCause().hasMessageContaining("permission denied");
+            assertThatThrownBy(() -> jdbc.sql("truncate table " + table).update()).as(table).rootCause().hasMessageContaining("permission denied");
+        }
     }
 
     @Test

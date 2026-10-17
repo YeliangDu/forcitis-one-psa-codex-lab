@@ -24,7 +24,7 @@ SELECT nspname FROM pg_namespace
 -- it_portal 现有对象一览（供核对，不修改）
 SELECT nspname, pg_get_userbyid(nspowner) AS owner FROM pg_namespace WHERE nspname NOT LIKE 'pg\_%' AND nspname <> 'information_schema';
 
--- 扩展：法人归属期间表用 EXCLUDE 约束防重叠，需要 btree_gist（PG 自带，属「受信任扩展」，库属主角色可建）。
+-- 扩展：法人归属期间表、角色版本与角色授予用 EXCLUDE 约束防重叠，需要 btree_gist（身份与集成的基线迁移只检查它存在）（PG 自带，属「受信任扩展」，库属主角色可建）。
 -- Flyway 迁移里也有 CREATE EXTENSION IF NOT EXISTS btree_gist；若迁移角色无权建扩展，先由有权限的账号在新库执行下面一句。
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
@@ -115,7 +115,8 @@ DECLARE t text;
 BEGIN
     FOREACH t IN ARRAY ARRAY['organization_workforce.org_unit_versions', 'organization_workforce.assignment_versions',
                              'organization_workforce.legal_entity_versions',
-                             'organization_workforce.org_unit_legal_entities', 'organization_workforce.employee_legal_entities'] LOOP
+                             'organization_workforce.org_unit_legal_entities', 'organization_workforce.employee_legal_entities',
+                             'platform_identity.role_versions', 'platform_identity.account_role_grants'] LOOP
         EXECUTE format('REVOKE DELETE, TRUNCATE ON %s FROM one_dev_app', t);
     END LOOP;
 END $$;

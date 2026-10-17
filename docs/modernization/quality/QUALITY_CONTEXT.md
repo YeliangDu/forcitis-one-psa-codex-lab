@@ -1,28 +1,56 @@
-# one-quality 速查（2026-10-17 12:00+02:00）
+# one-quality 速查（2026-10-17 13:15+02:00）
 
-一行一项，过程放链接（SESSION_PLAYBOOK §2.1 第 13 条）。接续会话先读本文件、`sessions/one-quality.md`、`quality/defect-bank/one-quality.md`，再 `gh pr list --author @me` 核对在途 PR（以 gh 为准）。
+一行一项，过程放链接（SESSION_PLAYBOOK §2.1 第 13 条）。接续会话先读本文件、`sessions/one-quality.md`、`quality/defect-bank/one-quality.md`，再 `gh pr list --author @me` 核对在途 PR（以 gh 为准，下表会过期）。
 
-## 工作守则要点
-- 动基础设施前过兼容性预检清单；耗时类改动先按步骤拆数据；新增自测先破坏验证；接钩子/CI 的脚本端到端各跑一次放行与拦截；评审意见先核实再采信；交出前回测错题本。
-- 子代理显式指定模型：首轮复审守护用 opus、改后复核 sonnet、取数 haiku；中文。**能交 Codex 的先交**（SESSION_PLAYBOOK §5：`codex exec -m gpt-6.1-sol -c model_reasoning_effort=xhigh -s workspace-write --ephemeral -o <结果>`，用 Bash run_in_background 启动，不用 nohup 脱离；派工单写在 scratchpad，我只做派工、审稿、验收）。守护文件改动 PR 单列、opus 首轮 +（有修正则）终审。
-- 推送前钩子在整条命令执行前检查：新建 worktree 与后续命令分开跑；`gh pr view/edit` 须在仓库目录内。入队后的 PR 不再推；在制代码 PR ≤1（改造期调度给例外）；文档不开 PR，推 claude/one-quality-docs 由调度收合集。
-- 验收裁定：实现会话来请求登记时，先请调度确认（或核对调度分支 COORD-2026-10-17.md 原文）再登记，ruled_by 写 one-coordinator。
+## 工作守则要点（全文见画像）
+- 动基础设施前过「兼容性预检清单」（Colima 试点事故，QUAL-004）；耗时类改动先按步骤拆数据；新增自测先破坏验证；接钩子/CI 的脚本端到端各跑一次放行与拦截；评审意见先核实再采信；交出前回测错题本。
+- 子代理显式指定模型：取数 sonnet/haiku，首轮复审 opus，改后复核 sonnet；子代理用中文。
+- **推送前钩子在整条命令执行前检查**：改动/提交与 `git push` 分两条命令；`cd` 用绝对路径、不用 `$变量`；检查在命令所在目录的仓库上跑。
+- 新开 PR 规则（用户 2026-10-16 采纳）：文档不开 PR，在制代码 PR ≤1，一个提交不混文档与代码；代码 PR 只在工作单元完成（验收、实现、opus 复审齐）时开，中间只提交；PR 开出必须报 one-coordinator；Auto-fix 已由用户在 app 统一关闭。
+- 文档提交推到会话分支 `claude/one-quality-docs` 后报「分支 + 提交号」，调度每天中午、晚上收进合集（`merge_train.py docs`，逐个合并、只许 docs/）；合集合入后同步一次 main；工具一个工作单元一个 PR，复审齐备即入队。
 
-## 在途（以 gh 为准）
-- 选测 S 规则 + 影子日志：Codex 在 worktree `scratchpad/wt-s`（分支 claude/one-quality-tia-shadow，卡 `scratchpad/card-s.md`）后台跑，结果文件 `scratchpad/codex-s-result.md`；**clear 后先看它是否完成**，完成则审稿→复跑自测与 precheck→提交→开 PR→opus 首轮。执行开关默认关，启用须调度/用户另批；S 下平均仅省 ~3.4 秒，不得启用激进规则 R（31% 已知失败会被省）。
-- B（push/PR 上 release 自测按「它读的东西变了才跑」）：Codex 已产出在 `scratchpad/wt-b`（分支 claude/one-quality-push-release-gate，结果 `scratchpad/codex-b-result.md`），**未审稿未提交未开 PR**；排在选测与并行度之后（每次只开一个 PR）。
-- #466（登记 RULING-COORD-20261017-07，含 A8SourceFlagsIT）、#456（日报 Codex 两列）、#458（复发检测 CI 工作流，须在文档合集之后入队）、#460（交接钩子）等：调度/one-merge 入队中，以 gh 为准。
+## 派工序列与现状（one-coordinator，2026-10-17 更新；顺序固定）
+1. docs 子命令 PR：分支 `claude/one-quality-train-docs`（merge_train.py docs 子命令 + precheck 前端依赖文案），已过 opus 复审；等 #410 合入后同步 main 再开 PR。
+2. CI 三档（一个 PR，改 ci.yml 属守护）：分支 `claude/one-quality-ci-tiers`（2f4c378a），已过 opus 首轮并修正；调度批准例外（不计在制数）：等 #438（也改 relevant_change.py 的两处 diff 参数）合入、同步 main 解冲突后立刻开 PR 并报调度插队。ApplicationIntegrationTest 豁免调度不批（词表改动仍走全量）；关 strict 后 guarded 与 code 都走代码道，只有 docs 档走快道。
+3. Testcontainers 稳定性：#439 已开（opus 首轮 + sonnet 改后复核），含 A 启动重试 3 次与首个 JDBC 连接等待 90 秒、耗尽时的诊断信息，B 失败时 docker 取证，并入失败摘要与 *.dump 保留；等调度入队。上线后观察一周仍出再报调度（VM 内存、fork 数先不动）。本机发现：Docker `system df` 报 rw 层快照丢失，残留 55 个已退出容器，属本机操作，已报调度转用户。
+4. 合并队列三步（`scripts/merge/mq.py`，分支 `claude/one-quality-merge-queue`）：第一步已写（并入 one-merge 的 6 项、快慢两道、合并锁、落后 main 自查、main push 与夜间红即暂停与 `mq.py resume`、文档合集 `mq.py train docs`），opus 首轮复审在跑，改完报调度；② 自动批量 N=4 合集与失败二分；③ 乐观并行（② 稳定后）。（strict 已关试行至 10-19，前提与回退按现行队列规则，调度手册为准。）
+5. 错题本三件改造（用户批，其余不做）：①`defect_bank_check.py` 校验每条「新增检查项」指向真实存在的守护/扫描/precheck 条目，没有则状态不得为「已落实」；②每晚复发检测：把当日失败 CI 按已登记报错特征归类，命中旧条目即标「复发」报调度；③新增或改动的测试类在引入它的 PR 上重复跑（默认 3 遍、可并发），挂一次即不过。排在队列第一步之后。QUAL-010 至 QUAL-016 已入册（含报错特征）。
+6. 集成测试反模式检查（#352 共享 mock 扫描基础上扩展，先只报告不拦）：固定时间等待、断言共享表或全局计数总行数、依赖其他测试残留、测试里真实时钟调用（全仓 57 处约 30 文件）；排在以上之后。
 
-## 待办（顺序按调度：选测 S → 并行度 → B → E → C）
-1. 并行度：failsafe/surefire 提高并行度或按类分片，压到单机 16 核上限，先在试验分支量实际节省（Docker 争用）再开 PR；改守护文件走 opus。
-2. B 见上；E：补「取消原因」数据（给 CI 运行加原因标注）；C：failsafe 类调度/拆最慢类（先试验分支量）。
-3. #464 合入后跑满 3–5 个代码 PR，用复盘脚本（`scratchpad/ci-data/fetch_jobs.py` 取数、`out/stats.py` 统计，未入库）复测 SQL Server 挪档的实际节省（SQL Server 步骤耗时、关键路径）报调度。
-4. 单跑超过 60 秒的类清单已发调度（ReadOnlyAccountCheckIT 324、SingleOperatorModeStartupIT 100、ReadOnlyVerificationCommandIT 82；A 缩成只调短超时与加 --server.address，one-1a-par 做）。
-5. 复发检测（#458）合入后撤会话内定时任务 227e981d 并删 RESOURCES.md 对应行；每晚 23:17 巡检会话内定时任务 b9569fde…（b9569dfe）7 天到期（约 10-22）前续设；`/clear` 后用 CronList 核对。
-6. 长期：集成测试反模式检查（先只报告）；队列 ② 自动批量、③ 乐观并行；Testcontainers 观察；CS-1.11 基线生命周期条款草案；错题本已入册至 QUAL-018（待落实项合入后改已落实）。
+已查结案：ProcessArchiveJobIT.archivesThenDeletes 的偶发失败是已修的真实 now 时间炸弹（c4cced3c），5 次失败的运行 head 都不含该修复，合 main 自愈（QUAL-010）。
 
-## 已合入 / 已做的要点（main）
-合并队列 mq.py（含 lane=、enqueue --after）、CI 三档、复发检测脚本与 CI 工作流（#458 待）、验收裁定守护 acceptance_rulings.py（ENFORCE，裁定记录 ACCEPTANCE_RULINGS.yaml）、db_scripts_aligned 比对函数授权与角色（#449）、会话日报 session_daily.py（#452，加 Codex 两列 #456）、SQL Server 七个验收类挪档（#464）、交接钩子（#460）。复盘文档：`quality/CI_TIMING_REVIEW.md`（含 §6 一分钟可行性、方案 H）、`quality/TEST_IMPACT_RESEARCH.md`（均在文档分支，随调度合集进 main）。
+## 已合入的工具（main）
+工作看板 `build_work_board.py`（#371）、研究报告（#357）、ProcessArchiveJobIT 时间炸弹修复（#413）、确认页出题检查 `architecture/decision-page/check_pages.py` + 生成器无默认项题型（#419）、此前的 assertion_drift、TestPostgres、precheck 与推送前钩子等（见画像与错题本）。
+
+## 在途 PR
+以 `gh pr list --author @me` 为准；原 10-16 的清单（#406、#408、#392、#410、#374–#381 等）已过期，需要时回读再列。build_all.py 里各治理工具的登记各占一行、位置分开，避免几个 PR 叠合时冲突。
+
+## 待办
+1. `.confirm{display:grid}` 盖掉 `hidden` 属性，确认框隐藏可能不生效（main 上原本如此，page-template.html，one-rules 的文件）。
+2. TimesheetApprovalScenarioIT 225/311/331/342 行事件先于提交的竞态（等已提交再读，用现成 eventually / awaitApprovalCommitted）。
+3. OrgSnapshotSyncIntegrationTest 两个偶发（共享 @MockitoBean audit 上断言未按本测试 syncRunId 限定）：改法已发 one-1a-par，催并跟踪。
+4. 4 个表格式错题本迁移成条目格式并补「类别」，之后 `defect_bank_check.py` 的 `STRICT_SOFT=True`（sonnet 子代理做，各册会话复核；PR 额度限制下排在入队后）。
+5. ADR R-11（intent 核对脚本）：先整理正反例样本集交 one-architecture 核对口径；ADR 工具已推到 one-architecture 的分支（catalog.yaml 与 ADR-0029 已并入）。
+6. CS-1.11 基线/例外统一生命周期条款草案（过 opus 后走收件箱请用户批准）与 G-C8 守护实现 PR（排在其后）。
+7. FD 财务口径单 9 条事实题是否改 `kind: fact`（one-rules 定，需重新发布页面）；GL/GL2 用语审定页下次改动加 `terms_review`。
+8. 每晚 23:17 本机 nightly-legacy-it 巡检的会话内定时任务（job b9569dfe）7 天到期（约 10-22）前续设；接续后用 CronList 核对。
+   nightly-legacy-it 近况：10-16 19:28Z 运行 38955221470 成功，19 分 16 秒；10-15 运行 38794167238 成功，11 分 35 秒。
+9. 合并队列评估结论：私有仓库在 team 套餐下不能用 GitHub 合并队列，用 `merge_train.py` 合集；strict 已关试行至 10-19，监控与回退按现行队列规则（调度手册）；仓库保护设置由用户定。
+10. 推送门禁缺失的 worktree 清单已交调度（#332 之前的老分支，合并 origin/main 即得）。
+
+## 不稳定测试台账
+| 测试 | 判断 | 状态 |
+|---|---|---|
+| ManagementEndpointIT、ApprovalAccountsIT、NumberingRuleConfirmerIT（401） | 会话清理与固定时钟不同源 / 管理端口安全链 | 已修（f31e91b0、d5d45336 #228），再出现一次即报调度派测试代理 |
+| TimesheetApprovalScenarioIT.cancelledTimesheetIsADraft | 事件先于提交 | 已修（#326），同类 4 处待清 |
+| StartApprovalOnSubmissionIT.aFixableRefusalEndsAsReturnedBySystem | 同上 | #408 |
+| SingleAggregateGuardTest 两条 | AspectJ lambda 目标 | #392 |
+| OrgSnapshotSyncIntegrationTest.recoveredSourceClosesTheHold / releaseReasonLosesControlCharacters | 共享 mock 次数断言 | one-1a-par 修 |
+| ProcessArchiveJobIT.archivesThenDeletes | 时间炸弹（真实 now 与固定 START 混用） | 已修 #413 |
+| SourceReference*IT | 先红后实现的提交，不是偶发 | 无需处理 |
+
+## 合入失败根因分析结论（2026-10-16，已报调度与用户）
+取消 + 被取代的成功运行约占 PR 运行时长一半；main push 运行约占全部 CI 时长 25%。用户当时的决定（历史，现行以调度手册为准）：strict 保留（已改为关闭试行）；main push 只跑轻量（#406）；重步骤只在入队时跑（#406）；偶发逐个修；推送前门禁挡自身缺陷；代码合集（#410）。
 
 ## 临时工作目录
-`/private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-xin-61164f/ee4b3c7c-49b4-41a8-92b2-999df1d808bc/scratchpad/`：`wt-*` 是各 PR 的 worktree（wt-docs=文档分支、wt-s=选测影子、wt-b=B、wt-gr=主 worktree 管理用），`ci-data/`（CI 复盘数据与脚本）、`tia-data/`、`tia-out/`（测试影响研究数据）、`card-*.md`（Codex 派工单）、`codex-*-result.md`。会话结束后可 `git worktree remove`。
+`/private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-xin-61164f/138cb52b-4117-4136-9339-6ccc0ca6a2b4/scratchpad/` 下 `wt-*` 是各 PR 的独立 worktree（wt-ds=#368，wt-rules=#374，wt-prop=#375，wt-sess=#376，wt-bank=已合入分支，wt-ci=#406/#410 分支，wt-352=#352，wt-board=最近的测试修复分支，wt-adr=one-architecture 的 ADR 分支）；会话结束后可 `git worktree remove`。

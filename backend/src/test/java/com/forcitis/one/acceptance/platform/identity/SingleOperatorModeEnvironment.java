@@ -172,7 +172,7 @@ final class SingleOperatorModeEnvironment {
         List<String> arguments = new ArrayList<>(List.of("--spring.profiles.active=" + profiles, "--spring.datasource.url=" + url(database),
                 "--spring.datasource.username=" + user, "--spring.datasource.password=" + PASSWORD, "--flowable.database-schema-update=true",
                 "--flowable.async-executor-activate=false", "--forcitis.platform.approval.process-administrator-required=false",
-                "--spring.main.banner-mode=off", "--server.port=" + port));
+                "--spring.main.banner-mode=off", "--server.address=127.0.0.1", "--server.port=" + port));
         for (String property : JOBS_OFF) {
             if (!(schedulerOn && property.startsWith("forcitis.platform.scheduling.jobs-enabled"))) {
                 arguments.add("--" + property);
