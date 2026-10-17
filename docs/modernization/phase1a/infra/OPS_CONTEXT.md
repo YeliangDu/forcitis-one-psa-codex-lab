@@ -30,7 +30,7 @@
 
 | 步骤 | 下一步 | 卡在 |
 |---|---|---|
-| 工作日历重导（dev） | rc.6 已授角色（2026-10-17 15:00）：用户本人（重建后员工 ID 末 6 位变为 238eea，以登录名末 4 位 9968 唯一匹配并刚登录核对）持 super_admin、process_administrator 各 1；one.env 已加 FORCITIS_PLATFORM_IDENTITY_SINGLE_OPERATOR_MODE=true，已删 PROCESS_ADMINISTRATOR_REQUIRED=false，重启健康 UP。下一步重导日历：2016–2026 取自 ECS /data/forcitis-one/import/c6/20261015/legacy-calendar.csv 转每年 {"days":[…]}，逐年 PUT /api/v1/organization/work-calendars/{年}，须用户会话（新系统无批量命令），再逐年 GET 核条数；2027 须组织数据管理员给清单（B-7） | 用户会话与 2027 清单 |
+| （已收尾）rc.6 与授角色 | rc.6 已装 dev；用户本人（员工 ID 末 6 位 238eea）持 super_admin、process_administrator、org_data_admin（后者 2026-10-17 经用户批准授，为导日历；授后其会话被撤销，须重新登录）；单人运维模式开；临时开关已删 | 完成 |
 | SINGLE-OP-GATE（P4 部署闸门） | 卡在 one-1a-par 文档分支 claude/one-1a-par-docs@33e345a2 的 phase1a/cards/SINGLE-OP-GATE.md：systemd ExecStartPre、安装器正则与 DropInPaths、deploy_gate C-11、PREDEPLOY C-11/C-12、运维手册改 --spring.profiles.include、SECURITY_INVARIANTS I-14、P1-18 扫描范围；测试代理先写验收，实现 sonnet，opus 首轮+终审，一个代码 PR；挡生产不挡 dev | 排在 rc.5 部署之后 |
 | 取证（ADR-0037，只出聚合，各登记片段） | 已交：Q-02 及补充、E-B1、E-B2、E-B6、N/V/S、F05-06、F05-09；待做：E-B3（退回/驳回/撤回比例）、E-B4（岗位待办与处理时长）、E-B5（客户签认等待）、E-B7（角色持有人数）、E-B8（外部回执时长），清单见 one-architecture 分支的 closeout/BURDEN_ANALYSIS_PLAN.md；收入专题 C1–C11（见 one-coordinator 消息里的 REVENUE_AEC_CONTRACT_MODELS.md 取证需求一节）；Q-04 E1–E10 | 逐项做；STATE/SUB_STATE 等枚举 A8 内无含义，须标注推测 |
 | 缺陷卡（首次部署暴露，部署后开） | ①current→bootstrap 被当版本比较（cmd_pull）；②应用没有 migrate 模式（无 application-migrate.properties，旧路径 web=none 起不来）；③one.env.template 与安装器校验缺 ARCHIVE_STORE_* 五项；④服务单元 ReadWritePaths 缺归档目录（INFRA_RUNBOOK §5.3 与单元不一致）；⑤首次启动 process_administrator 鸡生蛋 | 待开卡报 one-coordinator |
@@ -84,7 +84,12 @@
 - CI 不搬到 Linux 机器，不开试用机。本机测试提速调查：5 个数据库集成测试类单 fork 基线 46.3 秒、43.2 秒，PostgreSQL 容器改内存盘并关 fsync 后 41.7 秒，差距在波动内，不值得做；时间主要花在每类各自起容器、建应用环境、跑基线迁移（76 个类各起一个容器）；已做的 fork 降到 2、看门狗、停闲置容器够用，停止。
 - H-2（探针的 msdb 用户移出 SQLAgentOperatorRole）：平台不可构造（u8c 在 msdb 无 ALTER ANY ROLE，2026-10-16 实测），不做；探针账号改经 RDS 云接口建删（msdb 用户随之清除），rdscore 里同名用户是永久已知残留（用户 2026-10-16 决定接受，见 C-14 剧本与 RESOURCES）。
 
-## 暂停项
+## 暂停项（2026-10-17 用户「ops 这一轮 rc 后，暂时不考虑 dev 的事儿了」，one-coordinator 转达）
+
+- dev 工作日历重导：2016–2026 的 JSON 已按 workday 标记推出（HOLIDAY 207、调休 65，各年条数见 C-6 剧本步骤 3），本机会话临时目录里的 cal.json 会随会话清理而失；导入须有 org_data_admin 的登录会话逐年 PUT /api/v1/organization/work-calendars/{年}，再逐年 GET 核条数；dev 目前没有任何日历（重建后清空），依赖日历的审批时限会失败告警；导入的 207 条属推断数据，标临时。2027 年清单须组织数据管理员给（B-7）。
+- 后续 rc 的 dev 部署与重建：每次基线迁移有改动即要重建 dev 库并重新扫码（dev-db-rebuild.md；回滚脚本对旧库缺维护角色不幂等，见错题本 OPS-007）。
+- c14_run 自测 PR、OPS-007（回滚脚本 DROP ROLE IF EXISTS 与 check.sh 旧库用例）：待做，可交 Codex。
+- 维护角色 one_dev_audit_maintainer 口令未设。
 
 - 2026-10-16 暂停（one-coordinator 决定）：C-6 回放 6 条差异的原因取证（#254，加密中转脚本与诊断查询，草稿，未运行）。理由：成本与风险偏高（新的安全类脚本加一轮复审），生产数据只作参考，A8 没有上级字段，做完也只能间接判断。6 条归为「回放方法限制」，未取证坐实；以后真要坐实再启用，须先过复审并合并。
 
