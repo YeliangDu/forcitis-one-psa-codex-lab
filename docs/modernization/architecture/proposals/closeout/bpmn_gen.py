@@ -811,10 +811,13 @@ def flow_edges(root):
     return [(names[f.get("sourceRef")], f.get("name"), names[f.get("targetRef")]) for f in root.iter(ns + "sequenceFlow")]
 
 
-def test_timeout_actions(cat, stake, checker, cmap, expect):
+def test_timeout_actions(stake, checker, expect):
     from copy import deepcopy
 
-    p = yaml.safe_load((HERE / "bpmn_gen_fixtures/timeout.yaml").read_text(encoding="utf-8"))["processes"][0]
+    fixture = yaml.safe_load((HERE / "bpmn_gen_fixtures/timeout.yaml").read_text(encoding="utf-8"))
+    p = fixture["processes"][0]
+    cat = {c["id"]: c for c in fixture["catalog"]}
+    cmap = {pid: c["name"] for pid, c in cat.items()}
     pr, root = build_xml(p, cat, stake)
     errors, _ = checker.check_root(root, False, cmap)
     expect(not errors, f"ARCH-VS14 A8：超时夹具有错误：{errors}")
@@ -886,7 +889,7 @@ def self_test():
     expect(not any(a.startswith("申请丙") and b in ("驳回", "撤回") for a, b, _ in got), "decision 已画出的驳回、撤回不重复")
     expect(("申请丁？", "驳回", "申请甲") in got, "on_reject 为序号时连回该步骤")
     expect(("申请丁？", "撤回", "申请乙") in got, "withdraw.to 为序号时连回该步骤")
-    test_timeout_actions(cat, stake, checker, cmap, expect)
+    test_timeout_actions(stake, checker, expect)
     print("bpmn_gen 自测：" + ("全部通过" if ok else "有失败"))
     return 0 if ok else 1
 

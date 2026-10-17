@@ -1297,62 +1297,57 @@ value_streams:
   name: 获得内部服务
   category: support
   working_name: 内部服务申请到办结
-  description: 员工提出用印、IT 需求、IT 资产使用或员工活动申请，取得批准后办理，直到事项办结或资产归还；不含合同借阅、归档及逾期催还。
+  description: 员工登记用印、IT 需求、IT 资产使用或员工活动事项；用印及受控 IT 类别按制度配置审批，领用和活动全部由规则控制，不设批准步骤；周年贺卡按入职周年自动生成，直到事项办结或资产归还；不含合同借阅、归档及逾期催还。
   triggering_stakeholders: [SH-E1, SH-E2, SH-E3, SH-E4, SH-E5, SH-E6, SH-E7]
-  trigger_note: 四类事务各自独立，一次申请只对应一种服务；资产调拨、报修、归还是已领用后的重入。
+  trigger_note: 四类事务各自独立，一次登记只对应一种服务；周年贺卡由人员入职事实与调度触发，适用员工和周年口径须配置并按员工、入职日期、周年日期、类型去重；资产调拨、报修、归还是已领用后的重入。
   value: 员工所需行政与信息技术服务办妥，用印和资产使用有据可查。
   value_receivers: [SH-E1, SH-E2, SH-E3, SH-E4, SH-E5, SH-E6, SH-E7]
   ends_in:
     - {ref: OBJ-113, state: 已关闭 / 已驳回 / 已撤回}
     - {ref: OBJ-114, state: 已关闭 / 已退回 / 已撤回}
     - {ref: OBJ-115, state: "已结束", note: "仅归还资产命令结束的使用期间，流程结局为已归还；调拨结束旧期间不表示归还", agg: AGG-115}
-    - {ref: OBJ-115, state: "已驳回 / 已撤回", note: "领用申请提前结束，不产生在用期间", agg: AGG-115}
     - {ref: OBJ-115, state: "已维修登记", note: "归还结束使用，维修登记仅结束当次维修服务", agg: AGG-121}
-    - {ref: OBJ-116, state: 已完成 / 已驳回 / 已撤回}
+    - {ref: OBJ-116, state: 已完成}
   stages:
     - id: VS-14.1
       order: 1
       name: 提交申请
       capabilities: [CAP-054, CAP-056, CAP-093]
-      description: 员工提交用印、IT 需求、IT 资产领用或员工活动申请。
+      description: 员工登记用印、IT 需求、IT 资产领用或活动事项；周年贺卡按入职周年自动生成，同样先经活动规则校验。
       participants: [SH-E1, SH-E2, SH-E3, SH-E4, SH-E5, SH-E6, SH-E7]
       entry:
         all:
-          - {ref: 缺对象状态, state: 员工有需办理的内部服务事项, gap: MS-24, note: 触发事实}
+          - {ref: 缺对象状态, state: 员工有需办理的内部服务事项, gap: MS-24, note: 触发事实，含入职周年到期的自动登记，不要求员工主动申请}
       exit:
         any:
-          - {ref: OBJ-113, state: 审批中 / 已批准, note: 来源审批已通过且累计份数守卫满足时直通已批准，不新增人审}
+          - {ref: OBJ-113, state: 审批中 / 已批准, note: 来源审批已通过且累计份数守卫满足时直通已批准；需人审时按上线前须填的制度配置解析负责人和加审范围}
           - {ref: OBJ-114, state: 已提交 / 审批中, note: 已提交是待受理；需审批类别直接到审批中，批准后才到已提交}
-          - {ref: OBJ-115, state: "审批中 / 已通过", note: "领用申请，标准配置内可自动通过", agg: AGG-115}
-          - {ref: OBJ-116, state: 审批中 / 已批准, note: 福利型按规则直通已批准}
+          - {ref: OBJ-115, state: "已通过", note: "B31-5 全部领用只登记，规则通过即进入；缺规则或不满足时拒绝，不转人审", agg: AGG-115}
+          - {ref: OBJ-116, state: 已批准, note: B31-8 全部活动规则通过的登记结果，无人工批准；周年贺卡自动生成后同样校验}
       value_item: 服务诉求已正式记录。
       notes: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；能力沿现有对象父链映射，行政类一级能力拆分与名称仍待后续确认。
     - id: VS-14.2
       order: 2
       name: 批准申请
       capabilities: [CAP-054, CAP-056, CAP-093]
-      description: 需审批的申请得到有权人的批准或驳回，无需审批的 IT 需求类别直接受理。
+      description: 仅需人审的用印与受控 IT 类别按正式制度配置批准或驳回；常规 IT 类别直接受理。领用和活动跳过本段。
       participants: [SH-E1, SH-M1, SH-E6]
       skippable: true
       entry:
         any:
           - {ref: OBJ-113, state: 审批中}
           - {ref: OBJ-114, state: 审批中 / 已提交, note: 需审批类别先批准到已提交；常规类别已提交后直接受理}
-          - {ref: OBJ-115, state: "审批中", note: "领用申请", agg: AGG-115}
-          - {ref: OBJ-116, state: 审批中}
       exit:
         any:
           - {ref: OBJ-113, state: 已批准}
           - {ref: OBJ-114, state: 处理中}
-          - {ref: OBJ-115, state: "已通过", note: "领用申请", agg: AGG-115}
-          - {ref: OBJ-116, state: 已批准}
       value_item: 申请得到明确答复。
-      notes: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；IT 由批准和受理两步共同到处理中，已提交不等于处理中。审批仍由 platform.approval 办理；驳回、撤回是提前结束的异常路径，不要求再完成正常办理与办结。现有状态机没有终态重提转换，原单重提或另建申请待 B31-11 确认。依据 ARCH-VS14 A2、A3，people 评审包 PRC-139、142、143、144。
+      notes: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；IT 由批准和受理两步共同到处理中，已提交不等于处理中。仅用印和受控 IT 类别经 platform.approval，责任人、用印加审范围与 IT 类别表须上线前按 D15 填齐，禁止沿用候选负责人。领用、活动不占本段，金额不为它们增加批准。用印和 IT 的驳回、撤回可提前结束；原单重提已定，people 仍须补齐转换与审批轮次保留。依据 ARCH-VS14 A2、A3，people 评审包 PRC-139、142、143、144。
     - id: VS-14.3
       order: 3
       name: 办理事项
       capabilities: [CAP-054, CAP-056, CAP-093]
-      description: 登记用印、处理 IT 需求、领用调拨资产或维修登记；员工活动从批准申请直接到确认办结。
+      description: 登记用印、处理 IT 需求、领用调拨资产或维修登记；员工活动从规则登记的已批准直接到确认办结，跳过本段。
       participants: [SH-E6, SH-E3]
       skippable: true
       entry:
@@ -1373,7 +1368,7 @@ value_streams:
       order: 4
       name: 确认办结
       capabilities: [CAP-054, CAP-056, CAP-093]
-      description: 确认用印、IT 需求或活动完成；资产使用结束后登记归还，当次维修服务以维修登记完成。
+      description: 确认用印、IT 需求或活动完成；IT 仅提出人人工确认关闭，不设自动代关；资产使用结束后登记归还，当次维修服务以维修登记完成。
       participants: [SH-E1, SH-E6, SH-E3]
       entry:
         any:
@@ -1381,7 +1376,7 @@ value_streams:
           - {ref: OBJ-114, state: 已解决 / 处理中 / 审批中, note: 正常确认从已解决进入；主动退回从处理中、审批驳回从审批中直接进入异常办结，不以已解决为前提}
           - {ref: OBJ-115, state: "在用", note: 归还办理读取当前在用期间；已领用与已调拨是申请单结局, agg: AGG-115}
           - {ref: OBJ-115, state: "已维修登记", agg: AGG-121}
-          - {ref: OBJ-116, state: 已批准}
+          - {ref: OBJ-116, state: 已批准, note: 从 .1 规则登记直接进入，不经 .2 人工批准}
       exit:
         any:
           - {ref: OBJ-113, state: 已关闭}
@@ -1390,7 +1385,7 @@ value_streams:
           - {ref: OBJ-115, state: "已维修登记", agg: AGG-121}
           - {ref: OBJ-116, state: 已完成}
       value_item: 服务办结，办理记录可追溯。
-      notes: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；离职触发归还待办不作 VS-13.6 的退出条件；CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C14 题，合同档案服务保持原归属。已驳回、已撤回及已退回可提前结束本次服务，不要求先解决；正常办结路径仍需本段。已归还是归还命令的流程结局，不是已结束的全局同义词。依据 ARCH-VS14 A3、A4，AGG-115 use_period 的归还资产转换及 PRC-156。
+      notes: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；B31-7 离职生效后 7 个日历日未归还提醒原组织单元负责人，归还完成取消，手工入口不沿用；离职触发归还待办不作 VS-13.6 的退出条件；CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C14 题，合同档案服务保持原归属。已驳回、已撤回及已退回可提前结束本次服务，不要求先解决；正常办结路径仍需本段。已归还是归还命令的流程结局，不是已结束的全局同义词。依据 ARCH-VS14 A3、A4，AGG-115 use_period 的归还资产转换及 PRC-156。
 
 
 # 第 ③ 步预警：一级对象未被任何阶段条件引用（脚本核对，列表与脚本结果须一致）

@@ -1,6 +1,16 @@
-# ARCH-VS14 A8：同命令的人工作业与系统代关必须分路；使用真实 PRC-142 目录配置。
+# 通用超时动作自测：独立夹具目录保留 A8 的正向与负向覆盖，不代表现行 IT 需求流程。
+catalog:
+  - id: PRC-990142
+    name: 超时动作自测（生成器夹具）
+    timeout_actions:
+      - step_command: 关闭 IT 需求
+        after: P5D
+        command: 关闭 IT 需求
+        aggregate: AGG-114
+        outcome: 已关闭
+        guard: {condition: "有处理结论（INV-120）", goto: 4}
 processes:
-  - id: PRC-142
+  - id: PRC-990142
     owner_bc: B-31
     triggers: [{type: human, name: 员工提出 IT 需求}]
     outcomes: [已关闭, 已提醒]
