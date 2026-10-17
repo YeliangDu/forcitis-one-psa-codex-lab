@@ -92,6 +92,11 @@ processes:
     aggregates:
     - AGG-06
     ops: R
+  - obj: OBJ-113
+    name: 用印申请
+    aggregates:
+    - AGG-113
+    ops: R
 - id: PRC-08
   name: 参加投标，缴纳保证金并登记结果
   group: revenue
@@ -132,6 +137,11 @@ processes:
     - AGG-50
     - AGG-53
     ops: CUD
+  - obj: OBJ-113
+    name: 用印申请
+    aggregates:
+    - AGG-113
+    ops: R
 - id: PRC-10
   name: 收付保证金与保函
   group: revenue
@@ -215,10 +225,16 @@ processes:
     aggregates:
     - AGG-122
     ops: DR
-  - obj: AGG-123
-    name: 成本核算参数版本
+  - obj: OBJ-124
+    name: 业务规则（暂名，待 one-glossary 定名）
     aggregates:
+    - AGG-118
+    - AGG-119
     - AGG-123
+    - AGG-124
+    - AGG-133
+    - AGG-78
+    - AGG-92
     ops: R
 - id: PRC-16
   name: 申请并转正风险交付授权
@@ -879,9 +895,15 @@ processes:
   name: 开放收入确认证据类型
   group: revenue
   objects:
-  - obj: AGG-92
-    name: 可触发确认的证据类型开放配置版本
+  - obj: OBJ-124
+    name: 业务规则（暂名，待 one-glossary 定名）
     aggregates:
+    - AGG-118
+    - AGG-119
+    - AGG-123
+    - AGG-124
+    - AGG-133
+    - AGG-78
     - AGG-92
     ops: D
 - id: PRC-53
@@ -893,11 +915,6 @@ processes:
     aggregates:
     - AGG-44
     ops: U
-  - obj: AGG-92
-    name: 可触发确认的证据类型开放配置版本
-    aggregates:
-    - AGG-92
-    ops: R
   - obj: OBJ-05
     name: 协议
     aggregates:
@@ -910,6 +927,17 @@ processes:
     name: 证据
     aggregates:
     - AGG-38
+    ops: R
+  - obj: OBJ-124
+    name: 业务规则（暂名，待 one-glossary 定名）
+    aggregates:
+    - AGG-118
+    - AGG-119
+    - AGG-123
+    - AGG-124
+    - AGG-133
+    - AGG-78
+    - AGG-92
     ops: R
 - id: PRC-54
   name: 视为同意期满处理
@@ -1479,11 +1507,6 @@ processes:
     aggregates:
     - AGG-77
     ops: D
-  - obj: AGG-133
-    name: 出差补贴标准版本
-    aggregates:
-    - AGG-133
-    ops: R
   - obj: OBJ-18
     name: 商机
     aggregates:
@@ -1525,6 +1548,17 @@ processes:
     name: 出差申请
     aggregates:
     - AGG-132
+    ops: R
+  - obj: OBJ-124
+    name: 业务规则（暂名，待 one-glossary 定名）
+    aggregates:
+    - AGG-118
+    - AGG-119
+    - AGG-123
+    - AGG-124
+    - AGG-133
+    - AGG-78
+    - AGG-92
     ops: R
 - id: PRC-88
   name: 编制、批准并基线化经营计划与预算
@@ -1710,11 +1744,6 @@ processes:
   name: 计提折旧并处置公司资产
   group: finance
   objects:
-  - obj: AGG-124
-    name: 资产类别与折旧政策版本
-    aggregates:
-    - AGG-124
-    ops: R
   - obj: OBJ-05
     name: 协议
     aggregates:
@@ -1728,6 +1757,17 @@ processes:
     aggregates:
     - AGG-91
     ops: CUD
+  - obj: OBJ-124
+    name: 业务规则（暂名，待 one-glossary 定名）
+    aggregates:
+    - AGG-118
+    - AGG-119
+    - AGG-123
+    - AGG-124
+    - AGG-133
+    - AGG-78
+    - AGG-92
+    ops: R
 - id: PRC-100
   name: 发布总账配置版本
   group: finance
@@ -1766,11 +1806,6 @@ processes:
     aggregates:
     - AGG-77
     ops: R
-  - obj: AGG-78
-    name: 口径版本
-    aggregates:
-    - AGG-78
-    ops: R
   - obj: AGG-99
     name: 期末结转运行
     aggregates:
@@ -1791,6 +1826,17 @@ processes:
     name: 勾稽差异案
     aggregates:
     - AGG-126
+    ops: R
+  - obj: OBJ-124
+    name: 业务规则（暂名，待 one-glossary 定名）
+    aggregates:
+    - AGG-118
+    - AGG-119
+    - AGG-123
+    - AGG-124
+    - AGG-133
+    - AGG-78
+    - AGG-92
     ops: R
 - id: PRC-102
   name: 启用并关闭第 13 期
@@ -1845,17 +1891,17 @@ processes:
     aggregates:
     - AGG-100
     ops: R
-  - obj: AGG-101
-    name: 外部法定账对账
-    aggregates:
-    - AGG-101
-    ops: CUD
   - obj: OBJ-98
     name: 会计分录
     aggregates:
     - AGG-84
     - AGG-98
     ops: DR
+  - obj: OBJ-125
+    name: 外部法定账对账（暂名，待 one-glossary 定名）
+    aggregates:
+    - AGG-101
+    ops: CUD
 - id: PRC-105
   name: 评审并生效报表行定义版本
   group: finance
@@ -1874,11 +1920,6 @@ processes:
     aggregates:
     - AGG-100
     ops: R
-  - obj: AGG-101
-    name: 外部法定账对账
-    aggregates:
-    - AGG-101
-    ops: R
   - obj: OBJ-97
     name: 会计期间
     aggregates:
@@ -1888,6 +1929,11 @@ processes:
     name: 报表行定义
     aggregates:
     - AGG-86
+    ops: R
+  - obj: OBJ-125
+    name: 外部法定账对账（暂名，待 one-glossary 定名）
+    aggregates:
+    - AGG-101
     ops: R
 - id: PRC-107
   name: 知识条目的起草、评审、发布与修订废止
@@ -1981,11 +2027,6 @@ processes:
   name: 申请并审批请假
   group: people
   objects:
-  - obj: AGG-118
-    name: 假期类型与额度规则
-    aggregates:
-    - AGG-118
-    ops: R
   - obj: OBJ-28
     name: 工作日历
     aggregates:
@@ -2002,6 +2043,17 @@ processes:
     aggregates:
     - AGG-71
     ops: UD
+  - obj: OBJ-124
+    name: 业务规则（暂名，待 one-glossary 定名）
+    aggregates:
+    - AGG-118
+    - AGG-119
+    - AGG-123
+    - AGG-124
+    - AGG-133
+    - AGG-78
+    - AGG-92
+    ops: R
 - id: PRC-117
   name: 申请并批准加班
   group: people
@@ -2119,11 +2171,6 @@ processes:
   name: 计算、审核并批准月度薪酬
   group: people
   objects:
-  - obj: AGG-119
-    name: 薪酬规则版本
-    aggregates:
-    - AGG-119
-    ops: R
   - obj: AGG-120
     name: 专项附加扣除声明
     aggregates:
@@ -2158,6 +2205,17 @@ processes:
     name: 人员薪酬档案
     aggregates:
     - AGG-93
+    ops: R
+  - obj: OBJ-124
+    name: 业务规则（暂名，待 one-glossary 定名）
+    aggregates:
+    - AGG-118
+    - AGG-119
+    - AGG-123
+    - AGG-124
+    - AGG-133
+    - AGG-78
+    - AGG-92
     ops: R
 - id: PRC-125
   name: 申报个税扣缴与社保公积金
@@ -2384,7 +2442,7 @@ processes:
     name: 员工活动申请
     aggregates:
     - AGG-116
-    ops: CUD
+    ops: CD
 - id: PRC-146
   name: 催还逾期协议原件
   group: revenue
@@ -2421,9 +2479,15 @@ processes:
     aggregates:
     - AGG-44
     ops: UD
-  - obj: AGG-92
-    name: 可触发确认的证据类型开放配置版本
+  - obj: OBJ-124
+    name: 业务规则（暂名，待 one-glossary 定名）
     aggregates:
+    - AGG-118
+    - AGG-119
+    - AGG-123
+    - AGG-124
+    - AGG-133
+    - AGG-78
     - AGG-92
     ops: R
 - id: PRC-149
@@ -2595,10 +2659,16 @@ processes:
   name: 发布假期规则版本
   group: people
   objects:
-  - obj: AGG-118
-    name: 假期类型与额度规则
+  - obj: OBJ-124
+    name: 业务规则（暂名，待 one-glossary 定名）
     aggregates:
     - AGG-118
+    - AGG-119
+    - AGG-123
+    - AGG-124
+    - AGG-133
+    - AGG-78
+    - AGG-92
     ops: C
 - id: PRC-163
   name: 登记利润分配支付
@@ -2628,19 +2698,31 @@ processes:
   name: 发布成本核算参数版本
   group: finance
   objects:
-  - obj: AGG-123
-    name: 成本核算参数版本
+  - obj: OBJ-124
+    name: 业务规则（暂名，待 one-glossary 定名）
     aggregates:
+    - AGG-118
+    - AGG-119
     - AGG-123
+    - AGG-124
+    - AGG-133
+    - AGG-78
+    - AGG-92
     ops: CUD
 - id: PRC-166
   name: 发布资产类别与折旧政策版本
   group: finance
   objects:
-  - obj: AGG-124
-    name: 资产类别与折旧政策版本
+  - obj: OBJ-124
+    name: 业务规则（暂名，待 one-glossary 定名）
     aggregates:
+    - AGG-118
+    - AGG-119
+    - AGG-123
     - AGG-124
+    - AGG-133
+    - AGG-78
+    - AGG-92
     ops: CUD
     proposed_only: C
 - id: PRC-167
@@ -2656,26 +2738,38 @@ processes:
   name: 发布口径版本
   group: finance
   objects:
-  - obj: AGG-78
-    name: 口径版本
+  - obj: OBJ-124
+    name: 业务规则（暂名，待 one-glossary 定名）
     aggregates:
+    - AGG-118
+    - AGG-119
+    - AGG-123
+    - AGG-124
+    - AGG-133
     - AGG-78
+    - AGG-92
     ops: CUD
     proposed_only: C
 - id: PRC-169
   name: 处置勾稽差异案
   group: finance
   objects:
-  - obj: AGG-78
-    name: 口径版本
-    aggregates:
-    - AGG-78
-    ops: R
   - obj: OBJ-117
     name: 勾稽差异案
     aggregates:
     - AGG-126
     ops: CD
+  - obj: OBJ-124
+    name: 业务规则（暂名，待 one-glossary 定名）
+    aggregates:
+    - AGG-118
+    - AGG-119
+    - AGG-123
+    - AGG-124
+    - AGG-133
+    - AGG-78
+    - AGG-92
+    ops: R
 - id: PRC-170
   name: 申请费用事前额度
   group: finance
@@ -2752,10 +2846,16 @@ processes:
   name: 发布出差补贴标准版本
   group: finance
   objects:
-  - obj: AGG-133
-    name: 出差补贴标准版本
+  - obj: OBJ-124
+    name: 业务规则（暂名，待 one-glossary 定名）
     aggregates:
+    - AGG-118
+    - AGG-119
+    - AGG-123
+    - AGG-124
     - AGG-133
+    - AGG-78
+    - AGG-92
     ops: CUD
 - id: PRC-175
   name: 申请直接付款
@@ -2823,10 +2923,16 @@ processes:
   name: 发布薪酬规则版本
   group: people
   objects:
-  - obj: AGG-119
-    name: 薪酬规则版本
+  - obj: OBJ-124
+    name: 业务规则（暂名，待 one-glossary 定名）
     aggregates:
+    - AGG-118
     - AGG-119
+    - AGG-123
+    - AGG-124
+    - AGG-133
+    - AGG-78
+    - AGG-92
     ops: CD
 - id: PRC-181
   name: 记录经营复盘并跟踪动作

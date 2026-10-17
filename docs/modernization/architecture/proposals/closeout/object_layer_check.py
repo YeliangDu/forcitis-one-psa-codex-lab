@@ -133,7 +133,7 @@ def analyse(catalog, pobj_doc, agg_objs, vs_doc, caps_doc, hits, children=None, 
     touched = written_objs(pobj_doc, agg_objs, WRITE_OPS | {"R", "?"})
     used = collections.defaultdict(set)   # 段 → 归该段的流程用到的对象
     for p in catalog:
-        if p.get("type") != "merged" and not p.get("support"):
+        if p.get("type") not in ("merged", "retired") and not p.get("support"):
             for st in p.get("stages") or []:
                 used[st] |= touched.get(p["id"], set())
     cidx = cap_index(caps_doc)
@@ -142,7 +142,7 @@ def analyse(catalog, pobj_doc, agg_objs, vs_doc, caps_doc, hits, children=None, 
         ws |= {c for c, par in (children or {}).items() if par in ws}
     rows, support_rows = [], []
     for p in catalog:
-        if p.get("type") == "merged":
+        if p.get("type") in ("merged", "retired"):
             continue
         conf = p.get("primary_object")
         integ = p.get("type") == "integration"

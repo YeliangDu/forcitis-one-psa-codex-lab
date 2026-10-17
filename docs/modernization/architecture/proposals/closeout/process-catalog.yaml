@@ -172,6 +172,8 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
+    acts_on: [OBJ-124]
+    acts_on_note: "CON-1017-ARC-10：骨架：期限 N 取成本核算参数版本（AGG-123）"
   - id: PRC-16
     name: "申请并转正风险交付授权"
     type: business
@@ -468,6 +470,8 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
+    supports: [VS-03.1]
+    supports_note: "CON-1017-ARC-10（one-coordinator 转用户批准的 SD-13）：VS-03.1 段内 OBJ-50「已生效」，本流程支撑该段；主挂仍为 VS-15（含 VS-15.2）。目录专有字段，检查脚本暂不读取"
   - id: PRC-43
     name: "实施并锁定检查记录"
     type: business
@@ -573,10 +577,10 @@ processes:
   - id: PRC-52
     name: "开放收入确认证据类型"
     type: single_aggregate
-    stages: [VS-15.2]
-    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：证据类型开放即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：收入确认证据类型开放是 B-08 的版本化配置（财务负责人书面确认后逐类开放），决定哪类客户确认证据可触发收入确认，本身不造任何段的进入或退出对象状态"
-    primary_object: "none"
-    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：证据类型开放即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：收入确认证据类型开放是 B-08 的版本化配置（财务负责人书面确认后逐类开放），决定哪类客户确认证据可触发收入确认，本身不造任何段的进入或退出对象状态；CON-1017-ARC-10：补 VS-15.1（编制版本草稿）、VS-15.3（新版本发布取代旧版本即停用），OBJ-124 三段状态由本流程完成；须同步骨架"
+    primary_object: "OBJ-124"
+    primary_object_note: "CON-1017-ARC-10 O-1：发布一版业务规则（OBJ-124，暂名，待 one-glossary 定名，按类型区分）；原 none（CAPINFO-I01）由 intent 2026-10-17-174814 与审题后修订第 4 条的结构决定取代；须同步骨架"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -969,6 +973,8 @@ processes:
     status: user_confirmed
     human_orchestration: true
     bpmn: ~
+    acts_on: [OBJ-124]
+    acts_on_note: "CON-1017-ARC-10：骨架：差旅报销取出差补贴标准版本（AGG-133）"
   - id: PRC-88
     name: "编制、批准并基线化经营计划与预算"
     type: business
@@ -1103,6 +1109,8 @@ processes:
     human_orchestration: false
     bpmn: ~
     support: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题（页首不补列清单）；折旧与处置提供期间报告的贯穿活动输入，不因输入给期间关账补公司资产管理"
+    acts_on: [OBJ-124]
+    acts_on_note: "CON-1017-ARC-10：骨架：按资产类别取资产类别与折旧政策版本（AGG-124）"
   - id: PRC-100
     name: "发布总账配置版本"
     type: business
@@ -1151,9 +1159,9 @@ processes:
     name: "对账外部法定账并签字"
     type: business
     stages: [VS-10.2]
-    stages_note: "外部法定账对账完成是 VS-10.2 退出条件改定后的「外部法定账对账已完成」（SD 已裁定的 VS-10.2 退出条件）；改定前检查器匹配不上。"
-    primary_object: "none"
-    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
+    stages_note: "外部法定账对账完成是 VS-10.2 退出条件改定后的「外部法定账对账已完成」（SD 已裁定的 VS-10.2 退出条件）；改定前检查器匹配不上。；CON-1017-ARC-10：退出条件对账部分改指 OBJ-125「已签字」"
+    primary_object: "OBJ-125"
+    primary_object_note: "CON-1017-ARC-10 O-2：对账并签字形成外部法定账对账（OBJ-125，暂名，待 one-glossary 定名，承载聚合 AGG-101）；原 none（CAPINFO-I01）；须同步骨架"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -1234,6 +1242,8 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
+    acts_on: [OBJ-01, OBJ-54, OBJ-98]
+    acts_on_note: "CON-1017-ARC-10：骨架：读合伙人（B-01 往来单位）与法人主体，实缴经过账候选最终记会计分录（O-6，方法 ②）"
   - id: PRC-112
     name: "决议并支付利润分配"
     type: business
@@ -1285,6 +1295,8 @@ processes:
     status: draft
     human_orchestration: true
     bpmn: ~
+    acts_on: [OBJ-124]
+    acts_on_note: "CON-1017-ARC-10：骨架：按额度与假期规则（AGG-118）自动通过或转人工"
   - id: PRC-117
     name: "申请并批准加班"
     type: business
@@ -1370,6 +1382,8 @@ processes:
     status: draft
     human_orchestration: true
     bpmn: ~
+    acts_on: [OBJ-124]
+    acts_on_note: "CON-1017-ARC-10：骨架：取适用的薪酬规则版本（AGG-119）"
   - id: PRC-125
     name: "申报个税扣缴与社保公积金"
     type: business
@@ -1415,8 +1429,8 @@ processes:
     bpmn: ~
   - id: PRC-129
     name: "离职后吊销会话"
-    type: event_policy
-    stages: [VS-13.6]
+    type: retired
+    stages: []
     primary_object: "none"
     owner_bc: "platform.identity"
     group: people
@@ -1424,6 +1438,7 @@ processes:
     human_orchestration: false
     bpmn: ~
     primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
+    note: "CON-1017-ARC-10 R-1：移出流程目录，进平台作业登记（platform.identity 吊销会话作业；PROCESS_ANCHORING_RESEARCH 审题后修订第 3 条：平台身份机制的技术动作，不是业务人员按规则反复办理的流程）；PRC-138 第 1 步改为调用平台作业，不再 calls PRC-129"
   - id: PRC-130
     name: "办理参保减员"
     type: event_policy
@@ -1512,6 +1527,8 @@ processes:
     human_orchestration: ~
     bpmn: ~
     primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
+    acts_on: [OBJ-56]
+    acts_on_note: "CON-1017-ARC-10：骨架：订阅人员（AGG-62）入职已登记与 Employed，以人员 ID 为键建登录身份并绑定"
   - id: PRC-138
     name: "离职停用企业微信账号并解绑"
     type: business
@@ -1524,6 +1541,8 @@ processes:
     human_orchestration: ~
     bpmn: ~
     primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
+    acts_on: [OBJ-56]
+    acts_on_note: "CON-1017-ARC-10：骨架：订阅人员（AGG-62）Separated，以人员在职为准停用登录身份、收回授予"
   - id: PRC-139
     name: "用印申请与用印登记"
     type: business
@@ -1606,6 +1625,8 @@ processes:
     human_orchestration: false
     bpmn: ~
     primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
+    acts_on: [OBJ-05, OBJ-54, OBJ-123]
+    acts_on_note: "CON-1017-ARC-10：骨架：比对劳动合同（AGG-67，协议 OBJ-05）用人单位、数据范围法人（AGG-117，法人主体 OBJ-54）与薪酬档案（AGG-93，OBJ-123）扣缴义务人"
   - id: PRC-146
     name: "催还逾期协议原件"
     type: event_policy
@@ -1792,10 +1813,10 @@ processes:
   - id: PRC-162
     name: "发布假期规则版本"
     type: single_aggregate
-    stages: [VS-15.2]
-    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：B-27 假期规则版本的配置维护，结局（假期规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
-    primary_object: "none"
-    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：B-27 假期规则版本的配置维护，结局（假期规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）；CON-1017-ARC-10：补 VS-15.1（编制版本草稿）、VS-15.3（新版本发布取代旧版本即停用），OBJ-124 三段状态由本流程完成；须同步骨架"
+    primary_object: "OBJ-124"
+    primary_object_note: "CON-1017-ARC-10 O-1：发布一版业务规则（OBJ-124，暂名，待 one-glossary 定名，按类型区分）；原 none（CAPINFO-I01）由 intent 2026-10-17-174814 与审题后修订第 4 条的结构决定取代；须同步骨架"
     owner_bc: "B-27"
     group: people
     status: draft
@@ -1829,10 +1850,10 @@ processes:
   - id: PRC-165
     name: "发布成本核算参数版本"
     type: single_aggregate
-    stages: [VS-15.2]
-    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：成本核算参数是配置版本，供 VS-10.1 的成本分配与分摊使用，本身不推进任何阶段的对象状态"
-    primary_object: "none"
-    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：成本核算参数是配置版本，供 VS-10.1 的成本分配与分摊使用，本身不推进任何阶段的对象状态；CON-1017-ARC-10：补 VS-15.1（编制版本草稿）、VS-15.3（新版本发布取代旧版本即停用），OBJ-124 三段状态由本流程完成；须同步骨架"
+    primary_object: "OBJ-124"
+    primary_object_note: "CON-1017-ARC-10 O-1：发布一版业务规则（OBJ-124，暂名，待 one-glossary 定名，按类型区分）；原 none（CAPINFO-I01）由 intent 2026-10-17-174814 与审题后修订第 4 条的结构决定取代；须同步骨架"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1842,10 +1863,10 @@ processes:
   - id: PRC-166
     name: "发布资产类别与折旧政策版本"
     type: single_aggregate
-    stages: [VS-15.2]
-    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：资产类别与折旧政策是配置版本，供 PRC-99 计提折旧使用，不推进阶段"
-    primary_object: "none"
-    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象已立 OBJ-124（CON-1017-ARC-10 O-1），MS-25 消除；原支撑理由：资产类别与折旧政策是配置版本，供 PRC-99 计提折旧使用，不推进阶段；CON-1017-ARC-10：补 VS-15.1（编制版本草稿）、VS-15.3（新版本发布取代旧版本即停用），OBJ-124 三段状态由本流程完成；须同步骨架"
+    primary_object: "OBJ-124"
+    primary_object_note: "CON-1017-ARC-10 O-1：发布一版业务规则（OBJ-124，暂名，待 one-glossary 定名，按类型区分）；原 none（CAPINFO-I01）由 intent 2026-10-17-174814 与审题后修订第 4 条的结构决定取代；须同步骨架"
     owner_bc: "B-24"
     group: finance
     status: draft
@@ -1854,9 +1875,8 @@ processes:
     note: "S-31；阶段由 finance 组铺开时填"
   - id: PRC-167
     name: "编制并签字确认期初余额"
-    type: single_aggregate
+    type: retired
     stages: []
-    support: "期初余额只在投产时编制一次（ADR-0022 决定 11），是上线初始化，不是周期性价值流阶段"
     primary_object: "none"
     primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-20"
@@ -1864,14 +1884,14 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
-    note: "S-31；阶段由 finance 组铺开时填"
+    note: "S-31；阶段由 finance 组铺开时填；CON-1017-ARC-10 R-2：移出流程目录，进迁移规划 togaf/transitions.yaml（审题后修订第 3 条；ADR-0022 决定 11 投产一次）"
   - id: PRC-168
     name: "发布口径版本"
     type: single_aggregate
-    stages: [VS-15.2]
-    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：口径版本是勾稽侧配置（ADR-0023 决定 2），不推进阶段"
-    primary_object: "none"
-    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：口径版本是勾稽侧配置（ADR-0023 决定 2），不推进阶段；CON-1017-ARC-10：补 VS-15.1（编制版本草稿）、VS-15.3（新版本发布取代旧版本即停用），OBJ-124 三段状态由本流程完成；须同步骨架"
+    primary_object: "OBJ-124"
+    primary_object_note: "CON-1017-ARC-10 O-1：发布一版业务规则（OBJ-124，暂名，待 one-glossary 定名，按类型区分）；原 none（CAPINFO-I01）由 intent 2026-10-17-174814 与审题后修订第 4 条的结构决定取代；须同步骨架"
     owner_bc: "B-17"
     group: finance
     status: draft
@@ -1891,6 +1911,8 @@ processes:
     human_orchestration: false
     bpmn: ~
     note: "S-31；阶段由 finance 组铺开时填"
+    acts_on: [OBJ-124]
+    acts_on_note: "CON-1017-ARC-10：骨架：按差异所属口径版本（AGG-78）处置"
   - id: PRC-170
     name: "申请费用事前额度"
     type: business
@@ -1947,10 +1969,10 @@ processes:
   - id: PRC-174
     name: "发布出差补贴标准版本"
     type: single_aggregate
-    stages: [VS-15.2]
-    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：出差补贴标准是配置版本，供 PRC-87 生成补贴行使用，不推进阶段"
-    primary_object: "none"
-    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：出差补贴标准是配置版本，供 PRC-87 生成补贴行使用，不推进阶段；CON-1017-ARC-10：补 VS-15.1（编制版本草稿）、VS-15.3（新版本发布取代旧版本即停用），OBJ-124 三段状态由本流程完成；须同步骨架"
+    primary_object: "OBJ-124"
+    primary_object_note: "CON-1017-ARC-10 O-1：发布一版业务规则（OBJ-124，暂名，待 one-glossary 定名，按类型区分）；原 none（CAPINFO-I01）由 intent 2026-10-17-174814 与审题后修订第 4 条的结构决定取代；须同步骨架"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1983,9 +2005,8 @@ processes:
     note: "S-31；阶段由 finance 组铺开时填"
   - id: PRC-177
     name: "向差旅服务商同步员工与组织"
-    type: event_policy
+    type: merged
     stages: []
-    support: "行政支撑：员工与组织的单向同步，服务差旅预订；四个触发分属 VS-07.3 退出、VS-13.6 退出、任职版本变更、组织单元调整，无共同阶段，不在客户或员工价值流的阶段门上（S-31 SQ-31；STAGE_ALIGN.md）"
     primary_object: "none"
     primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-13"
@@ -1993,7 +2014,8 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
-    note: "S-31；阶段由 people 组铺开时填"
+    note: "S-31；阶段由 people 组铺开时填；CON-1017-ARC-10 R-3：并入集成流程 PRC-197 同步差旅员工与组织（审题后修订第 1 条）"
+    merged_into: PRC-197
   - id: PRC-178
     name: "转计发加班工资"
     type: event_policy
@@ -2023,10 +2045,10 @@ processes:
   - id: PRC-180
     name: "发布薪酬规则版本"
     type: single_aggregate
-    stages: [VS-15.2]
-    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：B-15 薪酬规则版本的配置维护，结局（薪酬规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
-    primary_object: "none"
-    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：B-15 薪酬规则版本的配置维护，结局（薪酬规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）；CON-1017-ARC-10：补 VS-15.1（编制版本草稿）、VS-15.3（新版本发布取代旧版本即停用），OBJ-124 三段状态由本流程完成；须同步骨架"
+    primary_object: "OBJ-124"
+    primary_object_note: "CON-1017-ARC-10 O-1：发布一版业务规则（OBJ-124，暂名，待 one-glossary 定名，按类型区分）；原 none（CAPINFO-I01）由 intent 2026-10-17-174814 与审题后修订第 4 条的结构决定取代；须同步骨架"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -2117,13 +2139,13 @@ processes:
     external_system: "致远协同（A8）单点登录门户"
     lifespan: transitional
     direction: in
-    feeds: [PRC-137]
+    feeds: [OBJ-56]
     owner_bc: "platform.integration"
     group: platform
     status: draft
     human_orchestration: false
     bpmn: ~
-    note: "feeds 填 PRC-137 仅表示登录与入职开通同属身份生命周期，不是数据供给关系，发号时请改填登录会话或留空。登录整体（联合身份）ADR-0039 只定方向，待「入职到账号开通」研究。；生命期为推断，待业务方认可（证据见 INTEGRATION_INVENTORY.md）"
+    note: "feeds 填 PRC-137 仅表示登录与入职开通同属身份生命周期，不是数据供给关系，发号时请改填登录会话或留空。登录整体（联合身份）ADR-0039 只定方向，待「入职到账号开通」研究。；生命期为推断，待业务方认可（证据见 INTEGRATION_INVENTORY.md）；CON-1017-ARC-10：feeds 由 PRC-137 改为供给对象人员（OBJ-56），票据校验结果是识别到的人员身份"
   - id: PRC-188
     name: "识别企业微信登录身份"
     type: integration
@@ -2154,7 +2176,7 @@ processes:
     note: "出站投递表 + 每 5 秒定时 worker + 重试计划，含默认只发白名单收件人的限制；审批任务经 TaskNotifier 入队。feeds 暂无稳定的对象或流程可填，写 PRC-135 仅为占位，请发号时改为审批任务相关对象。投递记录清理作业（OutboundDeliveryPurgeJob.java:55）并入本条。；生命期为推断，待业务方认可（证据见 INTEGRATION_INVENTORY.md）"
   - id: PRC-190
     name: "重投领域事件"
-    type: integration
+    type: retired
     stages: []
     external_system: "无（内部事件发布登记表，Spring Modulith 事件发布登记）"
     lifespan: long_term
@@ -2165,10 +2187,10 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
-    note: "每分钟重投未完成发布，最多 8 次，超限发运维告警；已完成的发布归档 30 天后每日 04:30 清理。事件信封的接收方是系统内部订阅者，不是外部系统。（证据见 INTEGRATION_INVENTORY.md）"
+    note: "每分钟重投未完成发布，最多 8 次，超限发运维告警；已完成的发布归档 30 天后每日 04:30 清理。事件信封的接收方是系统内部订阅者，不是外部系统。（证据见 INTEGRATION_INVENTORY.md）；CON-1017-ARC-10 R-4：用户答 ANC-02（intent 2026-10-17-181332）移出流程目录，记入平台作业登记（platform.integration 后台作业）；为 212218④「集成留目录」的例外，仅 PRC-190、PRC-191 两条"
   - id: PRC-191
     name: "归档数据到对象存储"
-    type: integration
+    type: retired
     stages: []
     external_system: "阿里云 OSS（只写保留桶，合规保留期）"
     lifespan: long_term
@@ -2179,7 +2201,7 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
-    note: "审计表与审批流程历史在删除前先归档。属技术支撑，与业务流程「封存成果、结项并归档项目」（PRC 目录 394-437 行）无关，不要混。同上，是否算业务流程目录条目待定。（证据见 INTEGRATION_INVENTORY.md）"
+    note: "审计表与审批流程历史在删除前先归档。属技术支撑，与业务流程「封存成果、结项并归档项目」（PRC 目录 394-437 行）无关，不要混。同上，是否算业务流程目录条目待定。（证据见 INTEGRATION_INVENTORY.md）；CON-1017-ARC-10 R-4：用户答 ANC-02（intent 2026-10-17-181332）移出流程目录，记入平台作业登记（platform.integration 后台作业）；为 212218④「集成留目录」的例外，仅 PRC-190、PRC-191 两条"
   - id: PRC-192
     name: "读取老系统待办"
     type: integration
@@ -2187,13 +2209,13 @@ processes:
     external_system: "老系统（只读视图 v_psa_one_legacy_todo）"
     lifespan: transitional
     direction: in
-    feeds: []
+    feeds: [OBJ-56]
     owner_bc: "platform.integration"
     group: platform
     status: draft
     human_orchestration: false
     bpmn: ~
-    note: "合并待办页时按人实时读老系统待办，老流程清零后即可下线，典型过渡期。（证据见 INTEGRATION_INVENTORY.md）"
+    note: "合并待办页时按人实时读老系统待办，老流程清零后即可下线，典型过渡期。（证据见 INTEGRATION_INVENTORY.md）；CON-1017-ARC-10 O-4：按人读老系统待办，供给对象为人员（OBJ-56，待办承办人）；合并待办页定稿后可补所供流程"
   - id: PRC-193
     name: "编排历史数据迁入"
     type: integration
@@ -2257,13 +2279,13 @@ processes:
     external_system: "分贝通（差旅服务商）"
     lifespan: long_term
     direction: out
-    feeds: [PRC-177]
+    feeds: [OBJ-56, OBJ-55]
     owner_bc: "platform.integration"
     group: platform
     status: draft
     human_orchestration: false
     bpmn: ~
-    note: "领域内称「差旅服务商」，分贝通只出现在集成登记。main 中未见代码。；生命期为推断，待业务方认可（证据见 INTEGRATION_INVENTORY.md）"
+    note: "领域内称「差旅服务商」，分贝通只出现在集成登记。main 中未见代码。；生命期为推断，待业务方认可（证据见 INTEGRATION_INVENTORY.md）；CON-1017-ARC-10 O-4：原 feeds PRC-177 已并入本条，改按供给对象挂接：人员（OBJ-56）与组织单元（OBJ-55）；触发为入职、离职、任职变更、组织调整"
   - id: PRC-198
     name: "接收差旅订单与账单"
     type: integration

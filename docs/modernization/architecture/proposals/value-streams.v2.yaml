@@ -146,6 +146,7 @@ value_streams:
         - {ref: OBJ-18, state: 跟进中（内部阶段）, note: PRC-03 新建并跟进商机；段内持续维护，不作门}
         - {ref: OBJ-24, state: 已启用, note: PRC-12 发布本段报价所据的服务产品版本；不作门}
         - {ref: OBJ-26, state: 已生效（生效期不重叠）, note: PRC-13 批准并生效报价估算所据的标准成本费率表版本；不作门}
+        - {ref: OBJ-46, state: 规划 / 在建（外部状态）, note: CON-1017-ARC-10 S-1：PRC-14 登记建设工程；外部引用对象只记录、不作门（同 VS-02.6、VS-03.1，STEP3 C-20）}
       value_item: 客户收到经我方审定的方案与报价承诺，并据此作出选择。
       notes: 报价被取代、投标被撤回时在本段内重入；联合体协议是投标的次级对象（OBJ-05 类型）。
 
@@ -227,6 +228,8 @@ value_streams:
         - {ref: OBJ-26, state: 已生效（生效期不重叠）, note: PRC-13 生效的费率版本供本段编制并锁定预算；按 SD-14 作为段内状态，不作门}
         # SD-14（用户 2026-10-17 ANM 批准）
         - {ref: OBJ-42, state: 已确认 / 有缺陷（退回）, note: PRC-26 在本段核对发包人资料，确认可用性或退回补充；区别于进入条件「已提供」，不作门}
+        - {ref: OBJ-44, state: 已提出 / 已部分满足 / 已满足, note: CON-1017-ARC-10 S-2：PRC-20 贯穿 VS-02.0–02.6，列在首段；只记录、不作门}
+        - {ref: OBJ-108, state: 已登记 / 应对中 / 已关闭, note: CON-1017-ARC-10 S-2：PRC-27 贯穿 VS-02.0–02.7，列在首段；只记录、不作门}
       value_item: 客户与我方对范围、计划和团队有一致的基线。
       notes: 进入条件同价值流起始条件；立项是本段的结果，不是 BD1 → 启动的门（STAGE_TYPES_DRAFT §3.1）；启动会纪要作证据类型「会议纪要」（OBJ-53）。
     - id: VS-02.1
@@ -270,6 +273,8 @@ value_streams:
         - {ref: 缺对象状态, state: 产值已填报 / 产值已抽查, gap: MS-23, note: PRC-151 向完工估算只追加产值估计行，不改估算批准状态；信息图 OBJ-33 无对应状态，不作门}
         # SD-14（用户 2026-10-17 ANM 批准）
         - {ref: OBJ-42, state: 已确认 / 有缺陷（退回）, note: PRC-26 在本段核对发包人资料，确认可用性或退回补充；区别于进入条件「已提供」，不作门}
+        - {ref: OBJ-40, state: 已发出 / 已关闭, note: CON-1017-ARC-10 S-2：PRC-31 贯穿 VS-02.2–02.6，列在首段；只记录、不作门}
+        - {ref: OBJ-41, state: 已批准 / 已拒绝 / 视为批准, note: CON-1017-ARC-10 S-2：PRC-32 贯穿 VS-02.2–02.6，列在首段；只记录、不作门}
       value_item: 客户确认的方案，可据以推进报规与初设。
     - id: VS-02.3
       order: 4
@@ -432,6 +437,7 @@ value_streams:
           - {ref: OBJ-49, state: 已审核 → 已锁定}
       in_stage_states:
         - {ref: OBJ-38, state: 已识别, note: 客户资产类不符合项在现场检查中识别；VS-03.3 以其进入，原无产出阶段（STEP3 C-24）}
+        - {ref: OBJ-53, state: 已采集 / 已封存, note: CON-1017-ARC-10 S-3：PRC-33 现场采集证据；只记录、不作门（intent 114200 F-1）}
       value_item: 受检对象的现状被客观记录并经审核。
     - id: VS-03.3
       order: 3
@@ -558,6 +564,8 @@ value_streams:
       exit:
         all:
           - {ref: 缺对象状态, state: 收入确认事实已过账, gap: MS-17, note: 收入确认行提交的过账候选已由过账服务（PRC-92，VS-10 事实过账）过账；信息图 OBJ-75 经营事实已非对象，OBJ-81 形态待定 Q20，暂无对象状态可指}
+      in_stage_states:
+        - {ref: OBJ-53, state: 已采集, note: CON-1017-ARC-10 S-3：PRC-33 采集触发确认的证据；只记录、不作门}
       value_item: 已交付并被认可的价值在账上可见。
       notes: 退出条件改为「收入确认事实已过账」（SD-08 用户裁定 2026-10-16：过账由 finance 的过账服务 PRC-92 完成、服务全部价值流，不给 PRC-92 逐段加标；收入线只提交过账候选）；此前曾改用存储状态 OBJ-98「已记账」（J 检查 J2.4，L-1）：原写 OBJ-08「已部分履行 / 已履行」是 B-08 按累计确认与分摊价格之比计算的派生值（AG §2.2 派生值清单，RD-11），门不引用派生值；ADR-0016 决定 4 定收入确认为无状态规则层，OBJ-81 无可作门的状态，与 STEP3 C-16 的写法（VS-10 输入为「收入确认行提交过账候选」、不引用 OBJ-81）一致；账上可见即 value_item。进入用与 VS-02 退出同一组交付侧事实；「视为同意已成立」是存在收入确认行上的判定（按合同审查期与送达日，D-8、AGG-44），不是读模型派生，也不是对象状态，故不入条件；门只留 OBJ-08；期满无结论且无声明的情形如何进入，见 STEP1 第 6 节第 8 条。
     - id: VS-04.3
@@ -667,6 +675,8 @@ value_streams:
       exit:
         all:
           - {ref: OBJ-05, state: 已签署生效, note: 供方类型}
+      in_stage_states:
+        - {ref: OBJ-09, state: 已生效（新基线）, note: CON-1017-ARC-10 S-5：PRC-71 生效分包变更，在本段重入；不作门}
       value_item: 双方对范围、价款与验收方式有生效约定。
     - id: VS-05.3
       order: 3
@@ -696,6 +706,8 @@ value_streams:
         all:
           - {ref: OBJ-85, state: 未结, note: 应付方向}
           - {ref: OBJ-83, state: 已用途确认 → 已入账, note: 适用条件：有票时（进项）；无票暂估时不适用，取得后重入；原写作单项 any，改为 all 并注适用条件（STEP3 C-12）}
+      in_stage_states:
+        - {ref: OBJ-121, state: 已核对 / 已确认应付, note: CON-1017-ARC-10 S-5：PRC-171 差旅账单核对后确认应付；不作门}
       value_item: 需求方的应付义务被确认。
     - id: VS-05.5
       order: 5
@@ -751,6 +763,9 @@ value_streams:
       exit:
         all:
           - {ref: OBJ-92, state: 已申报 → 已缴款, agg: AGG-90}
+      in_stage_states:
+        - {ref: OBJ-62, state: 在缴, note: CON-1017-ARC-10 S-6：PRC-125 社保公积金按期缴纳属申报缴款；参保增减员门在 VS-07.3、VS-13.6；不作门}
+        - {ref: OBJ-85, state: 未结（税费应付已确认）, note: CON-1017-ARC-10 S-6：PRC-159 申报后确认税费应付，缴款由 PRC-75 结清；不作门}
       value_item: 申报与税款按期到达监管机构。
       notes: 更正申报在本段重入。进入条件由「待申报」改为「法定申报期已到」（SD-06 用户裁定 2026-10-16）。
     - id: VS-06.2
@@ -834,6 +849,10 @@ value_streams:
           - {ref: OBJ-56, state: 试用期 / 正式, note: 不约定试用期的直接为「正式」（STEP3 C-14）}
           - {ref: OBJ-05, state: 已签署生效 / 履行中, note: 劳动合同类型；未满一个月未签只预警；生效后即转「履行中」（STEP3 C-14）}
           - {ref: OBJ-62, state: 在缴, note: 增员后的参保状态}
+      in_stage_states:
+        - {ref: OBJ-57, state: 生效（任职版本）, note: CON-1017-ARC-10 S-7：PRC-83、PRC-136 登记或变更任职；任职无状态机，只记录、不作门（见本段 notes）}
+        - {ref: OBJ-109, state: 已确认, note: CON-1017-ARC-10 S-8：PRC-85 试用期评估；状态推断，随 SC-06 定；不作门}
+        - {ref: OBJ-122, state: 已开账, note: CON-1017-ARC-10 S-8：PRC-160 入职开立年度假期额度账户；不作门}
       value_item: 员工开始工作并有合同与社保保障。
       notes: 任职（OBJ-57）是按生效区间版本化的对象、没有状态机，主任职生效随登记入职完成，不作门条件。
 
@@ -1069,7 +1088,8 @@ value_streams:
           - {ref: OBJ-98, state: 已记账（不可逆）, note: 期间内分录均已记账}
       exit:
         all:
-          - {ref: 缺对象状态, state: 三大报表已出具、外部法定账对账已完成, gap: MS-19, note: 流程 PRC-106 出具三大报表、PRC-104 对账外部法定账并签字；报表与对账无对应对象状态（OBJ-99 为报表行定义）}
+          - {ref: OBJ-125, state: 已签字, note: CON-1017-ARC-10 O-2 立对象外部法定账对账（暂名，待 one-glossary 定名）；PRC-104 对账并签字}
+          - {ref: 缺对象状态, state: 三大报表已出具, gap: MS-19, note: 流程 PRC-106 出具三大报表（读模型）；SD-05 用户裁定的退出条件保留，对账部分已改指 OBJ-125}
       value_item: 管理层与股东拿到可勾稽的期间报告。
       # SD-11（用户 2026-10-17 ANM 批准）
       notes: 关账与记账两项由退出移到进入条件，退出改为「三大报表已出具、对账已完成」（SD-05 用户裁定 2026-10-16）。用户答复 Q-B 选 a（intent 2026-10-16-082311）：门只用对象状态，原定为期间关账、报表发布两段，本次 SD-11 增补 VS-10.0 期间内记账与结转；贯穿活动保留来源与产出说明，非对象的清理条件另列 MS-21；MS-08、MS-09 消除。
@@ -1164,6 +1184,7 @@ value_streams:
           - {ref: OBJ-112, state: 已决议 → 已支付}
       in_stage_states:
         - {ref: OBJ-112, state: 已部分支付}
+        - {ref: OBJ-92, state: 已申报 / 已缴款, note: CON-1017-ARC-10 S-9：PRC-113 股息红利个税并入扣缴申报，随利润分配发生，归段保留；不作门}
       value_item: 股东和合伙人取得回报。
       notes: 分配额不得超过所属年度已关账的可分配利润（INV-117）；部分支付时停在「部分支付」，后续支付重入本段；自然人股东的股息红利个税经 OBJ-92 个税扣缴类型申报（VS-13.4 同一对象类型分工，不另设门）。
     - id: VS-12.3
@@ -1288,6 +1309,9 @@ value_streams:
           - {ref: OBJ-56, state: 已离职}
           - {ref: OBJ-62, state: 减员（转移 / 封存）}
           - {ref: OBJ-05, state: 已终止, note: 劳动合同类型}
+      in_stage_states:
+        - {ref: OBJ-57, state: 已结束（任职区间终止）, note: CON-1017-ARC-10 S-10：PRC-128 离职终止任职区间；只记录、不作门}
+        - {ref: OBJ-123, state: 生效（待计发调整已登记）/ 已结束, note: CON-1017-ARC-10 S-10：PRC-178 离职时补休转计发加班工资；不作门}
       value_item: 员工依法离职、结清权益。
       notes: 可在任何时点进入；账号停用是平台身份事项，不是业务对象状态；工作交接清单是单据，不作门（用户答复 Q-D 第 3 项不做，intent 2026-10-16-082311）。 劳动仲裁不入条件：Q-E 第 2 项选 b（intent 2026-10-16-090004），法律纠纷不新增对象，劳动合同不产生往来款项，仲裁案件过程线下。
 
@@ -1404,13 +1428,13 @@ value_streams:
     - {ref: OBJ-78, state: 已生效 / 被取代}
     - {ref: OBJ-99, state: 已生效 / 被取代}
     - {ref: OBJ-74, state: 已生效 / 已结束}
-    - {ref: 缺对象状态, state: 业务规则（暂名）版本已生效 / 已停用, gap: MS-25}
+    - {ref: OBJ-124, state: 版本已生效 / 已停用, note: CON-1017-ARC-10 O-1 立对象业务规则（暂名，待 one-glossary 定名），原 MS-25}
   stages:
     - id: VS-15.1
       order: 1
       name: 拟订
       name_status: 暂名
-      capabilities: [CAP-024, CAP-028, CAP-054, CAP-058, CAP-074, CAP-103]
+      capabilities: [CAP-024, CAP-028, CAP-054, CAP-058, CAP-074, CAP-078, CAP-103, CAP-124]
       description: 职能负责人起草新版本或主数据变更，写明生效日与适用范围。
       participants: [SH-E6, SH-M1]
       entry:
@@ -1422,7 +1446,7 @@ value_streams:
           - {ref: OBJ-78, state: 草稿}
           - {ref: OBJ-99, state: 草拟 / 财务评审}
           - {ref: OBJ-74, state: 编制}
-          - {ref: 缺对象状态, state: 业务规则（暂名）版本草稿, gap: MS-25}
+          - {ref: OBJ-124, state: 版本草稿, note: CON-1017-ARC-10 O-1 立对象业务规则（暂名，待 one-glossary 定名），原 MS-25}
       value_item: 新版本草稿已成形，待批准。
       notes: 资金账户、法人与组织岗位、工作日历、科目这类主数据无草稿态，直接在 VS-15.2 生效（skippable）。
       skippable: true
@@ -1430,7 +1454,7 @@ value_streams:
       order: 2
       name: 批准生效
       name_status: 暂名
-      capabilities: [CAP-024, CAP-028, CAP-054, CAP-058, CAP-074, CAP-103]
+      capabilities: [CAP-024, CAP-028, CAP-054, CAP-058, CAP-074, CAP-078, CAP-103, CAP-124]
       description: 按制度批准并在生效日启用；需书面确认的（收入确认证据类型由财务负责人确认）留确认记录。
       participants: [SH-M1, SH-E6, SH-X7]
       entry:
@@ -1439,7 +1463,7 @@ value_streams:
           - {ref: OBJ-78, state: 草稿 / 已批准}
           - {ref: OBJ-99, state: 财务评审}
           - {ref: OBJ-74, state: 审批}
-          - {ref: 缺对象状态, state: 业务规则（暂名）版本草稿, gap: MS-25}
+          - {ref: OBJ-124, state: 版本草稿, note: CON-1017-ARC-10 O-1 立对象业务规则（暂名，待 one-glossary 定名），原 MS-25}
           - {ref: 缺对象状态, state: 需新建或修订一版经营基准, gap: MS-26, note: 无草稿态的主数据从触发直接进入}
       exit:
         any:
@@ -1452,14 +1476,16 @@ value_streams:
           - {ref: OBJ-58, state: 已启用}
           - {ref: OBJ-55, state: 已启用}
           - {ref: OBJ-89, state: 在用}
-          - {ref: 缺对象状态, state: 业务规则（暂名）版本已生效, gap: MS-25}
+          - {ref: OBJ-124, state: 版本已生效, note: CON-1017-ARC-10 O-1 立对象业务规则（暂名，待 one-glossary 定名），原 MS-25}
+      in_stage_states:
+        - {ref: OBJ-54, state: 存续, note: CON-1017-ARC-10 S-11：PRC-80 次要对象；法人主体筹建存续不作门，只记录}
       value_item: 新版本已生效，后续业务按它办。
       notes: 资金账户开立、销户有银行参与（SH-X7）。OBJ-54 法人主体的筹建、存续是经营主体事实，不作本段门；PRC-80 经组织单元与岗位进入本段。
     - id: VS-15.3
       order: 3
       name: 修订停用
       name_status: 暂名
-      capabilities: [CAP-024, CAP-028, CAP-058, CAP-074, CAP-103]
+      capabilities: [CAP-024, CAP-028, CAP-058, CAP-074, CAP-078, CAP-103, CAP-124]
       description: 新版本生效时旧版本被取代，或基准整体停用；被引用的不删除，只停用。
       participants: [SH-E6, SH-M1, SH-X7]
       skippable: true
@@ -1473,7 +1499,7 @@ value_streams:
           - {ref: OBJ-58, state: 已启用}
           - {ref: OBJ-55, state: 已启用}
           - {ref: OBJ-89, state: 在用}
-          - {ref: 缺对象状态, state: 业务规则（暂名）版本已生效, gap: MS-25}
+          - {ref: OBJ-124, state: 版本已生效, note: CON-1017-ARC-10 O-1 立对象业务规则（暂名，待 one-glossary 定名），原 MS-25}
       exit:
         any:
           - {ref: OBJ-50, state: 已停用}
@@ -1484,7 +1510,7 @@ value_streams:
           - {ref: OBJ-58, state: 已停用}
           - {ref: OBJ-55, state: 已停用 / 已撤销}
           - {ref: OBJ-89, state: 已销户}
-          - {ref: 缺对象状态, state: 业务规则（暂名）版本已停用, gap: MS-25}
+          - {ref: OBJ-124, state: 版本已停用, note: CON-1017-ARC-10 O-1 立对象业务规则（暂名，待 one-glossary 定名），原 MS-25}
       value_item: 旧版本退出使用，历史办理仍按当时版本可追溯。
       notes: 修订即新一轮 VS-15.1 起草；本段只记旧版本退出。
 
@@ -1508,12 +1534,12 @@ step3_warnings:
 # SD-13（用户 2026-10-17 ANM 批准）
 # 缺对象状态（第 ② 步回补输入）：条件指不到信息图中任何对象的状态。仍在条件中使用的 7 项（MS-17–MS-20 为 2026-10-16 阶段对齐裁定新增，MS-21–MS-23 为本次 SD-11、SD-15、SD-13 新增；原 0 项，用户答复 U-4 后 MS-16 消除，intent 2026-10-16-090004）
 missing_states:
-  - {id: MS-25, text: 业务规则（暂名）版本草稿 / 已生效 / 已停用, used_in: [VS-15.1, VS-15.2, VS-15.3], note: intent 2026-10-17-174814；PROCESS_ANCHORING_RESEARCH 提议对象「业务规则」（暂名）未立，立对象后改指；交 one-glossary}
+  # MS-25 已消除：CON-1017-ARC-10 O-1 立 OBJ-124 业务规则（暂名，待 one-glossary 定名），VS-15 条件改指它
   - {id: MS-26, text: 需新建或修订一版经营基准, used_in: [VS-15.1, VS-15.2], note: intent 2026-10-17-174814；触发事实，不自造对象状态}
   - {id: MS-24, text: 员工有需办理的内部服务事项, used_in: [VS-14.1], note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；仅为触发事实，不自造对象状态}
   - {id: MS-17, text: 收入确认事实已过账, used_in: [VS-04.2], note: SD-08 用户裁定 2026-10-16；经营事实已非对象（OBJ-75），收入确认形态待定 Q20（OBJ-81），无对象状态可指；随 Q20 回补信息图}
   - {id: MS-18, text: 员工有需事前申请的支出计划, used_in: [VS-08.0], note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I05 题；批准结果已改指 OBJ-118、119，此处仅剩触发事实，不表示仍缺申请记录}
-  - {id: MS-19, text: 三大报表已出具、外部法定账对账已完成, used_in: [VS-10.2], note: SD-05 用户裁定 2026-10-16；流程 PRC-106、PRC-104 的结局，信息图无对应对象状态}
+  - {id: MS-19, text: 三大报表已出具, used_in: [VS-10.2], note: SD-05 用户裁定 2026-10-16；PRC-106 读模型的结局，无对象状态；对账部分 CON-1017-ARC-10 O-2 改指 OBJ-125 外部法定账对账（暂名）}
   - {id: MS-20, text: 法定申报期已到 / 年检或核查通知已到 / 资质有效期临近, used_in: [VS-06.1, VS-06.2], note: SD-06、SD-07 用户裁定 2026-10-16；定时或外部通知触发，不是对象状态；派生值只能作段内状态，故以缺对象状态记}
   # SD-11（用户 2026-10-17 ANM 批准）
   - {id: MS-21, text: 会计分录待处理队列已清空、过账拒收记录已处置, used_in: [VS-10.0], note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题、CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I02 题；PRC-169 已有 OBJ-117，剩余队列清理与拒收处置仍保留结果，不逐项新增对象}

@@ -6,6 +6,7 @@
         object-layer.yaml 只用于核对它是否落后于目录（落后只告警，本脚本在内存重算）。
   --extra PATH 按 ID 覆盖或追加流程（同 closeout_check），附加流程的对象读写关系在内存中重算。
   --report 写 ANCHORING_REPORT.md。
+作用对象另计目录 acts_on（读或经它改动、不作主次对象的业务对象）；type: retired 与 merged 不参与。
 检查：C1 无法归集的流程；C2 无流程的对象；C3 对象属价值流但不在其任何阶段（补阶段候选）；
       C4 管理流程未关联被管流程的对象；C5 读模型流程未归价值流。C1 或 C2 非空退出码 1；输入缺失或无效退出码 2。
 """
@@ -22,7 +23,7 @@ import object_layer_check as olc  # noqa: E402
 import stage_align_check as sac  # noqa: E402
 
 REPORT = HERE / "ANCHORING_REPORT.md"
-SKIP_TYPES = {"merged"}
+SKIP_TYPES = {"merged", "retired"}
 TITLES = {"C1": "无法归集的流程", "C2": "无流程的对象", "C3": "对象属价值流但不在其任何阶段（补阶段候选）",
           "C4": "管理流程未关联被管流程的对象", "C5": "读模型流程未归价值流"}
 
@@ -132,7 +133,7 @@ def anchor_objects(catalog, written):
 def touched_objects(catalog, pobj_doc, agg_objs):
     touched = olc.written_objs(pobj_doc, agg_objs, olc.WRITE_OPS | {"R", "?"})
     for p in catalog:
-        extra = {str(p.get("primary_object") or "")} | {str(o) for o in (p.get("secondary_objects") or []) + (p.get("feeds") or [])}
+        extra = {str(p.get("primary_object") or "")} | {str(o) for o in (p.get("secondary_objects") or []) + (p.get("feeds") or []) + (p.get("acts_on") or [])}
         touched[p["id"]] = set(touched.get(p["id"], set())) | {o for o in extra if o.startswith("OBJ-")}
     by_id = {p["id"]: p for p in catalog}
     for p in catalog:
@@ -219,6 +220,11 @@ def self_test():
     res.append(ok("破坏 C1：无作用对象被抓", [x[0] for x in c1b["C1"]] == ["P1"] and "无作用对象" in c1b["C1"][0][2]))
     c2 = go(clean, objs=dict(objects, **{"OBJ-03": "丙"}))
     res.append(ok("破坏 C2：新增无流程对象被抓", [x[0] for x in c2["C2"]] == ["OBJ-03"]))
+    pobj = {"processes": [{"id": "P1", "objects": [{"obj": "OBJ-01", "aggregates": ["AGG-1"], "ops": "U"}]}]}
+    tc = touched_objects([{"id": "P1"}, {"id": "P2", "acts_on": ["OBJ-02"]}], pobj, {"AGG-1": ["OBJ-01"]})
+    res.append(ok("作用对象：目录 acts_on 计入", tc["P1"] == {"OBJ-01"} and tc["P2"] == {"OBJ-02"}))
+    c1r = go(clean + [{"id": "P10", "name": "已退役", "type": "retired", "stages": [], "note": "移出"}])
+    res.append(ok("已退役（type: retired）不参与", not c1r["C1"]))
     c3 = go([dict(p, secondary_objects=["OBJ-02"]) if p["id"] == "P1" else p for p in clean], dict(touch, P1={"OBJ-01", "OBJ-02", "OBJ-09"}))
     res.append(ok("破坏 C3：主写入对象不在价值流阶段条件被抓", [x[0] for x in c3["C3"]] == ["VS-A OBJ-02"]))
     c4 = go(clean, dict(touch, P1={"OBJ-01"}))
