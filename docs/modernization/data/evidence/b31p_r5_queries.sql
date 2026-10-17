@@ -16,7 +16,7 @@ WITH wf AS (
 ), shortcn AS (
   SELECT * FROM attrs
    WHERE LEN(attribute_value) BETWEEN 2 AND 60
-     AND attribute_value LIKE N'%[一-龥]%'
+     AND attribute_value COLLATE Latin1_General_BIN2 LIKE N'%[一-龥]%'  -- 默认排序规则下这个范围几乎匹配不到，须用二进制排序规则（one-ops 首跑发现）
      AND attribute_value NOT LIKE N'%[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]%'
 ), allowed AS (
   SELECT * FROM shortcn
