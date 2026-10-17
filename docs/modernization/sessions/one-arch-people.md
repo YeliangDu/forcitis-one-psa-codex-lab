@@ -57,7 +57,7 @@
 
 - 不自行出确认页，用户待定事项交 one-architecture。
 - 执行类产出先交 Codex（用户 2026-10-17，intent 085534；SESSION_PLAYBOOK §5「Codex 派工」「任务命名与登记」）：派工单用 `templates/WORK_CARD.md`，派卡时登记 `tasks/<任务号>.md`（`ARC-MMDD-APE-nn`）；本会话用 Bash `run_in_background` 启动，description 写 `<任务号> <任务名> (codex)`，完整提示词随命令传入，跑完由通知唤醒，不轮询：
-  `codex exec -m gpt-6.1-sol -c model_reasoning_effort=xhigh -s workspace-write --ephemeral -o <结果> "<完整提示词>" < /dev/null > <日志> 2>&1`
+  `codex exec -m gpt-6.1-sol -c model_reasoning_effort=xhigh -s workspace-write -c sandbox_workspace_write.network_access=false --ephemeral -o <结果> "<完整提示词>" < /dev/null > <日志> 2>&1`
   本会话只派工、审稿、交用户前验收，记每张卡的返工轮次与耗时。生产取证、安全改动、opus 复审不交 Codex。
 - 人事骨架、对象与表级候选稿可交 Codex；账号开通 / 吊销、授权与安全不变量的设计改动、代码、验收测试及生产取证均由负责会话按安全流程处理，不因本组含人事对象就把身份生命周期改动打包派给 Codex。
 - 只交 closeout/people/ 片段，one-architecture 写共享文件；one-data 签发表口径，one-rules 管规则，用户事项由 one-architecture 合页后登记收件箱。
