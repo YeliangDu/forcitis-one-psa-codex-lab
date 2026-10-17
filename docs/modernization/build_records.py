@@ -51,14 +51,31 @@ def table_cell(text, where):
     return text
 
 
+INTENT_TAGS = {"规则": r"(?:[A-Z]+-)?RULE-\d+(?:、(?:[A-Z]+-)?RULE-\d+)*", "影响的 ADR": r"ADR-\d{4}(?:、ADR-\d{4})*", "单子": r"[A-Za-z0-9_-]+", "题号": r"[A-Za-z0-9_-]+(?:、[A-Za-z0-9_-]+)*"}
+
+
+def parse_intent(path, text):
+    """(原话, 落点, {可选标注: 值})；可选小节「取代」（多行名单）居先，再是「规则」「影响的 ADR」「单子」「题号」按此顺序附在「落点」之后，供规则索引与 ADR 治理反查。"""
+    m = re.fullmatch(r"## 原话\n\n(.*?)\n\n## 落点\n\n(.*?)\n(?:\n## 取代\n\n((?:- [^\n]+\n)+))?((?:\n## [^\n]+\n\n[^\n]+\n)*)", text, re.S)
+    if not m:
+        raise ValueError(f"{path}：格式须为「## 原话」空行 原话 空行「## 落点」空行 落点，之后可选「## 取代」（被取代的 intent 文件名，一行一个）及「## 规则」「## 影响的 ADR」「## 单子」「## 题号」各一行")
+    tags = {}
+    for name, value in re.findall(r"\n## ([^\n]+)\n\n([^\n]+)\n", m.group(4)):
+        if name not in INTENT_TAGS or name in tags or not re.fullmatch(INTENT_TAGS[name], value):
+            raise ValueError(f"{path}：可选小节「{name}」不合规（取自 {'、'.join(INTENT_TAGS)}，不重复，值形如 {INTENT_TAGS.get(name, '—')}）：{value[:30]}")
+        tags[name] = value
+    if list(tags) != [k for k in INTENT_TAGS if k in tags]:
+        raise ValueError(f"{path}：可选小节须按 {'、'.join(INTENT_TAGS)} 的顺序")
+    landing = m.group(2) + (f"（取代：{'、'.join(x.strip('- `') for x in m.group(3).splitlines() if x.strip())}）" if m.group(3) else "")
+    return m.group(1), landing, tags
+
+
 def build_intent():
     rows = []
     for p in dated_fragments("intent"):
-        m = re.fullmatch(r"## 原话\n\n(.*?)\n\n## 落点\n\n(.*?)(?:\n\n## 取代\n\n(.*?))?\n", read(p), re.S)
-        if not m:
-            raise ValueError(f"{p}：格式须为「## 原话」空行 原话 空行「## 落点」空行 落点，可再加「## 取代」段（被取代的 intent 文件名，一行一个）")
-        landing = m.group(2) + (f"（取代：{'、'.join(x.strip('- `') for x in m.group(3).splitlines() if x.strip())}）" if m.group(3) else "")
-        rows.append(f"| {table_cell(m.group(1), p)} | {table_cell(landing, p)} |\n")
+        quote, landing, tags = parse_intent(p, read(p))
+        extra = "".join(f"；{k}：{v}" for k, v in tags.items())
+        rows.append(f"| {table_cell(quote, p)} | {table_cell(landing + extra, p)} |\n")
     return read(os.path.join(BASE, "intent/_header.md")) + "".join(rows)
 
 
