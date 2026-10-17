@@ -155,5 +155,6 @@ rulings:
     files:
       - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/SingleOperatorModeEnvironment.java
       - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ReadOnlyAccountCheckIT.java
-    reason: 验收测试启动被测应用的参数里加一行 --server.address=127.0.0.1（SIGTERM 后卡在 Tomcat 停止监听约 2 秒，加参数后关闭 2.4 秒到 0.3–0.4 秒）；不改断言、用例集合、前置数据与生产代码。「同类在进程内或子进程中启动应用的验收类」须逐类实测后列入实现 PR，由调度确认后再补登记本条的 files
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/A8SourceFlagsIT.java
+    reason: 验收测试启动被测应用的参数里加一行 --server.address=127.0.0.1（SIGTERM 后卡在 Tomcat 停止监听约 2 秒，加参数后关闭 2.4 秒到 0.3–0.4 秒）；不改断言、用例集合、前置数据与生产代码。「同类在进程内或子进程中启动应用的验收类」经 one-1a-par 逐类实测、调度确认后补登记：A8SourceFlagsIT（11 例）；ManagementEndpointIT、StalledExternalSourceIT、ReadOnlyVerificationCommandIT 实测无需改
     ref: docs/modernization/rulings/COORD-2026-10-17.md
