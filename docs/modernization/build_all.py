@@ -39,6 +39,9 @@ else:
 STEPS.append("architecture/check_proposals.py")   # 提议稿状态行检查（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
 SELF_TESTED.append("architecture/check_proposals.py")
 
+STEPS.append("check_tasks.py")   # GOV-1017-COO-01：任务片段检查与 tasks/TASKS.md 总表
+SELF_TESTED.append("check_tasks.py")
+
 for step in STEPS:
     r = subprocess.run([sys.executable, os.path.join(BASE, step)], cwd=BASE, capture_output=True, text=True)
     if r.returncode:

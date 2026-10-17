@@ -9,6 +9,7 @@ Default window: 08:00 the day before --date (default today) to 09:00 on --date, 
 No queue data for the window (log missing or starting later): returns and pushed_after_queue are null, not 0."""
 import collections
 import datetime
+import hashlib
 import json
 import os
 import re
@@ -252,6 +253,66 @@ def loop_candidates(subjects, queue_counts):
     return found
 
 
+TASK_TABLE = "docs/modernization/tasks/TASKS.md"
+
+
+def task_counts(root, window):
+    """总表是统计来源；缺失、过期与未知轮次保留缺口，按登记变更时刻落日报窗口。"""
+    names = {name for name, _, _ in SESSIONS}
+    codex, rework = dict.fromkeys(names, 0), dict.fromkeys(names, 0)
+    notes = []
+    try:
+        with open(os.path.join(root, TASK_TABLE), encoding="utf-8") as stream:
+            table = stream.read()
+        data = json.loads(table.split("<!-- TASKS-DATA v1 -->\n```json\n", 1)[1].split("\n```", 1)[0])
+        if data["version"] != 1 or not isinstance(data["tasks"], list):
+            raise ValueError("总表机器数据格式不支持")
+        folder = os.path.dirname(os.path.join(root, TASK_TABLE))
+        actual = {name for name in os.listdir(folder) if name.endswith(".md") and name != "TASKS.md" and not name.startswith("_")}
+        if actual != set(data["片段摘要"]):
+            raise ValueError("总表与片段清单不一致")
+        for filename, digest in data["片段摘要"].items():
+            with open(os.path.join(folder, filename), "rb") as stream:
+                if hashlib.sha256(stream.read()).hexdigest() != digest:
+                    raise ValueError("总表已过期：" + filename)
+        for task in data["tasks"]:
+            name = task["会话"]
+            if name not in names:
+                notes.append(f"任务 {task['任务号']} 的会话 {name} 不在日报会话表，未归属。")
+                continue
+            if not task["记录"] or task.get("未提交", False):
+                codex[name] = rework[name] = None
+                notes.append(f"任务 {task['任务号']} 未提交或尚无已提交的登记时间证据，该会话 Codex 两列为 null。")
+            for event in task["记录"]:
+                if not in_window(event["时间"], window):
+                    continue
+                owner = event["会话"]
+                if owner not in names:
+                    notes.append(f"任务 {task['任务号']} 的历史会话 {owner} 未归属。")
+                    continue
+                executor = event["执行者与模型"]
+                if executor == "待核":
+                    codex[owner] = rework[owner] = None
+                    notes.append(f"任务 {task['任务号']} 的执行者待核，该会话 Codex 两列为 null。")
+                    continue
+                if not re.search(r"\bCodex\b", executor, re.IGNORECASE):
+                    continue
+                if event["新增"] and codex[owner] is not None:
+                    codex[owner] += 1
+                delta = event["返工增量"]
+                if delta is None:
+                    rework[owner] = None
+                    notes.append(f"任务 {task['任务号']} 的返工基数或时间待核，codex_rework_rounds 为 null。")
+                elif type(delta) is not int or delta < 0:
+                    raise ValueError("总表返工增量须为非负整数或 null")
+                elif rework[owner] is not None:
+                    rework[owner] += delta
+    except (OSError, ValueError, KeyError, IndexError, TypeError) as error:
+        return dict.fromkeys(names), dict.fromkeys(names), [f"Codex 两列为 null：任务总表不可用（{error}）；请运行 python3 docs/modernization/build_all.py。"]
+    notes.append("codex_cards 读 tasks/TASKS.md：窗口内首次提交登记的 Codex 卡数；codex_rework_rounds 读同表登记的累计轮次变更之差。窗口为左闭右开，不依赖 PR 正文与提交标题。历史回填的首次累计轮次无法分配日期时为 null；登记时间不是原派工时间，待核不按零计。")
+    return codex, rework, notes
+
+
 def build(root, gh, window, log_path):
     if not git(root, "rev-parse", "--verify", "-q", MAIN).strip():
         raise RuntimeError(f"{MAIN} not found: fetch first (git fetch origin)")
@@ -316,19 +377,7 @@ def build(root, gh, window, log_path):
                 unreadable.append(number)
                 continue
             pushed[owner[number]] += sum(1 for date, headline in commits if when(date) > queued and window[0] <= when(date) < window[1] and not SYNC_COMMIT.match(headline))
-    codex, rework = collections.Counter(), collections.Counter()
-    for number, p in prs.items():
-        if not owner[number] or not is_codex_pr(p.get("body")):
-            continue
-        created_here = in_window(p["createdAt"], window)
-        if created_here:
-            codex[owner[number]] += 1
-        if not created_here and not (window[0] - CODEX_LOOKBACK <= when(p["createdAt"]) < window[0] and not (p.get("mergedAt") and when(p["mergedAt"]) < window[0])):
-            continue
-        try:
-            rework[owner[number]] += sum(1 for date, headline in gh.pr_commits(number) if window[0] <= when(date) < window[1] and REWORK_COMMIT.search(headline) and not SYNC_COMMIT.match(headline))
-        except RuntimeError:
-            unreadable.append(number)
+    codex, rework, task_notes = task_counts(root, window)
     sessions = []
     for name, role, _ in SESSIONS:
         opened = sorted((p for p in prs.values() if owner[p["number"]] == name and in_window(p["createdAt"], window)), key=lambda p: p["number"])
@@ -353,7 +402,7 @@ def build(root, gh, window, log_path):
         since = f"日志自 {covered_from.isoformat(timespec='minutes')} 起，晚于窗口开始" if covered_from else "队列日志缺失或无可解析的行"
         notes.append(f"returns 与 pushed_after_queue 为 null（无数据，不是 0）：{since}，这两项无法统计；用 --log 指定覆盖整个窗口的日志。")
     if unreadable:
-        notes.append(f"这些 PR 的提交列表读不到，pushed_after_queue 与 codex_rework_rounds 少算：{', '.join('#' + str(n) for n in sorted(set(unreadable)))}。")
+        notes.append(f"这些 PR 的提交列表读不到，pushed_after_queue 少算（不影响已改读任务总表的 codex_rework_rounds）：{', '.join('#' + str(n) for n in sorted(set(unreadable)))}。")
     if free_commits:
         notes.append("窗口内有提交但分支名不在 SESSIONS 前缀表的分支（未计入任何会话，需要时补表）：" + "、".join(f"{b} {n} 个" for b, n in free_commits.most_common(10)) + "。")
     unmatched_prs = sorted(n for n, p in prs.items() if not owner[n] and (in_window(p["createdAt"], window) or (p.get("mergedAt") and in_window(p["mergedAt"], window))))
@@ -365,7 +414,7 @@ def build(root, gh, window, log_path):
         notes.append(f"gh 返回已达上限（PR {len(prs_list)} 条、CI 运行 {len(runs)} 条，运行最早 {runs_from.isoformat(timespec='minutes') if runs_from else '无'}）：窗口前段的 PR 或 CI 失败可能被截掉，ci_failures 与 PR 数是下限。")
     notes.append("reviews 只看窗口内新开的 PR 正文里含 opus/复审/终审/ultrareview 的行，按「修后可合并 > 有阻塞 > 可合并」归类，「无阻塞」「阻塞项已修」不算阻塞，未识别写「有复审（结论未识别）」，无复审行不列。ci_failures 只数 conclusion=failure，按分支名归属。")
     notes.append("defect_bank_new 取各会话错题本（origin/main 版，及该会话分支上最近改过它的版本）里日期不早于窗口开始日的条目（`###` 小节的日期行或表格行的日期列）；册不存在或无条目时 defect_bank_empty 为 true；补跑过去日期时窗口之后的条目也会计入。")
-    notes.append("codex_cards = 窗口内新开、PR 正文的「## Codex 实现（模型、强度）」小节写了内容（不是「不涉及」）或正文行内写「Codex 实现（模型，强度）」的 PR 数（模板自带的标题与注释不算）。codex_rework_rounds = 这些 PR（窗口内新开，或 7 天内开、窗口内仍在改的）在窗口内的提交里标题含「返工」「复审修正」「按…复审…修」「address review」的提交数（排除合并 main）：数的是提交数不是轮次，Codex PR 上 Claude 会话自己的复审修改也会算进来，标题没这样写的数不到，是近似；正文里自报的返工轮次未读取。")
+    notes.extend(task_notes)
     notes.append("loop_candidates 是机械统计（同类提交主题重复≥4 次、队列事件重复），automation 留空由调度填。")
     return {"date": window[1].date().isoformat(), "window": f"{window[0].isoformat(timespec='minutes')} ~ {window[1].isoformat(timespec='minutes')}",
             "sessions": sessions, "notes": notes, "title": window[1].date().isoformat()}
@@ -505,6 +554,17 @@ def self_test():
                        ("2026-10-16T10:50:00+02:00", "after queue again")]}
         window = window_of("2026-10-17", None, None)
         assert window[0].isoformat() == "2026-10-16T08:00:00+02:00" and window[1].isoformat() == "2026-10-17T09:00:00+02:00"
+        table_folder = os.path.join(repo, os.path.dirname(TASK_TABLE))
+        os.makedirs(table_folder)
+        registered = []
+        for name in ("one-ops", "one-rules"):
+            registered.append({"任务号": "GOV-1016-COO-" + ("01" if name == "one-ops" else "02"), "会话": name,
+                               "记录": [{"时间": inside, "会话": name, "执行者与模型": "Codex gpt-6.1-sol xhigh", "新增": True, "返工增量": 0},
+                                        {"时间": inside, "会话": name, "执行者与模型": "Codex gpt-6.1-sol xhigh", "新增": False, "返工增量": 3}]})
+        def write_table(rows, digests=None):
+            with open(os.path.join(repo, TASK_TABLE), "w", encoding="utf-8") as stream:
+                stream.write("<!-- TASKS-DATA v1 -->\n```json\n" + json.dumps({"version": 1, "片段摘要": digests or {}, "tasks": rows}, ensure_ascii=False) + "\n```\n")
+        write_table(registered)
         data = build(repo, FakeGh(prs, runs, commits), window, log)
         by = {s["name"]: s for s in data["sessions"]}
         assert len(data["sessions"]) == 13 and data["date"] == "2026-10-17" and data["window"] == "2026-10-16T08:00+02:00 ~ 2026-10-17T09:00+02:00", data["window"]
@@ -518,8 +578,8 @@ def self_test():
         assert by["one-rules"]["defect_bank_new"] == ["RB-01 / 2026-10-16 / new row"] and by["one-rules"]["defect_bank_empty"] is False, "a table book is read"
         assert any("claude/mystery-z 1 个" in n for n in data["notes"]) and not any("未计入" in n and "claude/one-" in n for n in data["notes"]), data["notes"]
         assert by["one-ops"]["codex_cards"] == 1 and by["one-ops"]["codex_rework_rounds"] == 3, (by["one-ops"]["codex_cards"], by["one-ops"]["codex_rework_rounds"])
-        # ops: pull request 15 (new, 2 rework commits in the window) and 17 (opened the day before the window, 1 rework commit inside it); 18 only mentions Codex under 不涉及
-        assert by["one-rules"]["codex_cards"] == 1 and by["one-rules"]["codex_rework_rounds"] == 3, (by["one-rules"]["codex_cards"], by["one-rules"]["codex_rework_rounds"])  # 19 inline (1 in the window, 1 after it), 21 opened earlier (2 in the window: the sonnet fix and the bookkeeping title)
+        # 登记表为两会话各记一张卡、三轮；PR 里的其他 Codex 描述与返工标题不参与计数。
+        assert by["one-rules"]["codex_cards"] == 1 and by["one-rules"]["codex_rework_rounds"] == 3, (by["one-rules"]["codex_cards"], by["one-rules"]["codex_rework_rounds"])
         assert by["one-quality"]["codex_cards"] == 0 and by["one-quality"]["codex_rework_rounds"] == 0
         for body, expected in (("## Codex 实现（模型、强度）\n\n<!-- c -->\n\n不涉及", False), ("## Codex 实现（模型、强度）\n\n<!-- Codex 实现（<模型>，<强度>） -->", False), ("## Codex 实现（模型、强度）\n\nCodex 实现（x，y）", True), ("## Codex 实现（模型、强度）\n\n不涉及", False),
                                ("Codex 起草 / 实现（gpt-6.1-sol，xhigh）", True), ("不由 Codex 实现", False), ("CODEX实现（a，b）", True), ("", False), (None, False)):
@@ -552,6 +612,30 @@ def self_test():
         assert any("读不到" in n and "#5" in n and "codex_rework_rounds" in n for n in broken["notes"]), "a pull request whose commits cannot be read is named, not counted as zero"
         unreadable_note = next(n for n in broken["notes"] if "读不到" in n)
         assert unreadable_note.count("#15") == 1, "a pull request unreadable in both loops is named once: " + unreadable_note
+        independent = build(repo, FakeGh([], [], {}), window, log)
+        assert next(s for s in independent["sessions"] if s["name"] == "one-ops")["codex_rework_rounds"] == 3, "无 PR 仍按登记表计真实轮次"
+        edge_task = {"任务号": "GOV-1016-COO-03", "会话": "one-quality", "记录": []}
+        for time, new, delta in ((window[0].isoformat(), True, 0), (inside, False, 2), (window[1].isoformat(), True, 9)):
+            edge_task["记录"].append({"时间": time, "会话": "one-quality", "执行者与模型": "Codex gpt-6.1-sol xhigh", "新增": new, "返工增量": delta})
+        write_table([edge_task])
+        counts, changes, _ = task_counts(repo, window)
+        assert counts["one-quality"] == 1 and changes["one-quality"] == 2, "开始计入、结束不计；轮次不是提交数"
+        edge_task["记录"][1]["返工增量"] = None
+        write_table([edge_task])
+        assert task_counts(repo, window)[1]["one-quality"] is None, "待核不能报零"
+        edge_task["记录"] = []
+        write_table([edge_task])
+        assert task_counts(repo, window)[0]["one-quality"] is None, "未提交登记无时间证据"
+        fragment = os.path.join(table_folder, "GOV-1016-COO-03.md")
+        with open(fragment, "w") as stream:
+            stream.write("changed")
+        write_table(registered, {os.path.basename(fragment): hashlib.sha256(b"before").hexdigest()})
+        assert all(v is None for v in task_counts(repo, window)[0].values()), "总表过期必须显式缺数据"
+        os.unlink(fragment)
+        os.unlink(os.path.join(repo, TASK_TABLE))
+        missing = task_counts(repo, window)
+        assert all(v is None for v in missing[0].values()) and "总表不可用" in missing[2][0]
+        write_table(registered)
         # sessions by branch name: whole name or prefix plus a dash
         assert session_of("claude/one-database-x") is None and session_of("claude/one-1a-par2-x") is None and session_of("claude/one-data") == "one-data" and session_of("claude/one-data-x") == "one-data"
         assert session_of("claude/one-1a-next-5-train") == "one-coordinator" and session_of("claude/one-quality-merge-train") == "one-coordinator" and session_of("claude/one-merge-train-1") == "one-coordinator"

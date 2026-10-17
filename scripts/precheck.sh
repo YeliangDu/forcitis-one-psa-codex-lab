@@ -137,6 +137,11 @@ else
   run_step "generated docs (build_all --check)" py docs/modernization/build_all.py --check
 fi
 run_step "legacy system name" py docs/modernization/check_legacy_name.py
+run_step "task register" py docs/modernization/check_tasks.py --check
+if touches '^(docs/modernization/tasks/|.*/check_tasks[.]py|.*/build_all[.]py|scripts/ops/session_daily\.py|scripts/precheck\.sh)'; then
+  run_step "task register (self-test)" py docs/modernization/check_tasks.py --self-test
+  run_step "session daily (self-test)" py scripts/ops/session_daily.py --self-test
+fi
 if touches 'rules/decide/(build_decision_page\.py|page-template\.html)$'; then
   run_step "decision page generator (self-test)" py docs/modernization/rules/decide/build_decision_page.py --self-test
 fi
