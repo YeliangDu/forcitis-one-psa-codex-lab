@@ -2,7 +2,7 @@
 # 负责会话改名并合入后，one-glossary 删除对应条目，旧名禁用随之生效。
 terms:
 - id: recon_pending__role_deleted
-  zh: 角色已废除
+  zh: 角色已删除
   en: RoleDeleted
   snake: role_deleted
   kind: domain_event

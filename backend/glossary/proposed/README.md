@@ -369,7 +369,7 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 
 | id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|---|
-| `recon_pending__role_deleted` | 角色已废除 | RoleDeleted | 领域 · platform.identity | 用户裁定（GL 确认单 B2-B06）已定为「角色已废除 / RoleAbolished」；代码事件类改名合入前保留旧写法 RoleDeleted。 |  | 代码仍用 RoleDeleted |
+| `recon_pending__role_deleted` | 角色已删除 | RoleDeleted | 领域 · platform.identity | 用户裁定（GL 确认单 B2-B06）已定为「角色已废除 / RoleAbolished」；代码事件类改名合入前保留旧写法 RoleDeleted。 |  | 代码仍用 RoleDeleted |
 
 ## `round3-pending-renames.yaml`
 
