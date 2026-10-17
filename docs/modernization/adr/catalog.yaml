@@ -23,7 +23,7 @@ adrs:
   category: "方法"
   bc: ["全局"]
   stage: ["全阶段"]
-  partially_superseded: []
+  partially_superseded: ["ADR-0053 决定 1 第一句、决定 3「同批修改 03」一句"]
 - id: "0006"   # 强类型与值对象
   category: "技术与平台"
   bc: ["全局"]
@@ -88,7 +88,7 @@ adrs:
   category: "方法"
   bc: ["全局"]
   stage: ["全阶段"]
-  partially_superseded: []
+  partially_superseded: ["ADR-0053 决定 1–3 与后果中的词条结构诸句"]
 - id: "0019"   # 退出 yudao（ruoyi-vue-pro）脚手架：只迁移在用能力，不迁移框架
   category: "技术与平台"
   bc: ["全局"]
