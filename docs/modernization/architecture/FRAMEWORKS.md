@@ -258,3 +258,16 @@ DAMA-DMBOK 第 2 版修订版（2024，https://dama.org/dama-dmbok-revision/ ）
 | 删去未核实参照 | Vernon 2013 第 10 章聚合经验规则、PMBOK WBS 定义（凭记忆引用，未核实） | 删去，不作依据；WBS 三类节点的依据仍取 BIZBOK §2.5 与用户决定（intent `2026-10-15-215632`） | intent `2026-10-16-112800` L-9 |
 | 防漂移规则 | 5 条 | 7 条（加冲突规则、许可受限文本的引用方式；区分「未核实」与「待独立复核」） | 本稿 |
 | 工程层标准 | §9 | 正文保留于 §10，同步 ADR-0043 两维分级及 ADR-0054 旧时点读法 | ADR-0043、ADR-0054 |
+
+## 15. 要点笔记
+
+ARC-1017-ARC-21（2026-10-17）新增的阅读笔记。以下只登记文件、书目和已读版本；各份项目取舍已由 one-architecture 2026-10-18 审定，页码待 sonnet 独立抽查。笔记不改变本文件既有采用范围、冲突规则或锁定版本；本地书目缺口在各笔记中明示。
+
+- [kimball-dwt3.md](frameworks/notes/kimball-dwt3.md)：Kimball、Ross，The Data Warehouse Toolkit: The Definitive Guide to Dimensional Modeling；Third Edition，Wiley，2013。
+- [kimball-dwt2.md](frameworks/notes/kimball-dwt2.md)：Kimball、Ross，The Data Warehouse Toolkit: The Complete Guide to Dimensional Modeling；Second Edition，Wiley，2002。
+- [dama-dmbok2.md](frameworks/notes/dama-dmbok2.md)：DAMA International，The DAMA Guide to the Data Management Body of Knowledge；Second Edition，First Printing 2017。本地已读版本为 2017，未替代 §6 的 2024 修订版参照；出版者全名、印刷页未核。
+- [bernstein-tp2.md](frameworks/notes/bernstein-tp2.md)：Bernstein、Newcomer，Principles of Transaction Processing；2nd ed.，Morgan Kaufmann／Elsevier，2009。
+- [bizbok-v11.md](frameworks/notes/bizbok-v11.md)：Business Architecture Guild，A Guide to the Business Architecture Body of Knowledge（BIZBOK Guide）；Version 11.0，2022。
+- [togaf10.md](frameworks/notes/togaf10.md)：The Open Group，The TOGAF Standard, 10th Edition（C220）；2022，含 2025-05 TC1；配套 G178、G190、G211 Version 2 分别登记其 2022 版与 2025-05 更新。
+- [archimate32.md](frameworks/notes/archimate32.md)：The Open Group，ArchiMate 3.2 Specification（C226）；2022，本地本含 2023-02 更正；仍按 §9 仅作对照，不采用该语言。
+- [ddd-reference.md](frameworks/notes/ddd-reference.md)：Eric Evans，Domain-Driven Design Reference: Definitions and Pattern Summaries；2015 Reference，本地文件标为 2015-03，题名页列 Domain Language, Inc.。
