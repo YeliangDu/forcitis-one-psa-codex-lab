@@ -535,7 +535,11 @@ class Processor:
                     self.log.event("BEHIND-AFTER-FAIL", n, runs[0] if runs else None, since, "update and run again")
                     attempt += 1
                     continue
-                repeated = [r for r in runs if REPEAT_STEP in (self.gh.failed_steps(r) or [])]
+                steps = {r: self.gh.failed_steps(r) for r in runs}
+                unknown = [r for r, st in steps.items() if st is None]
+                if unknown:   # gh could not say which step failed: the one rerun still happens (the lenient direction), but it is on record
+                    self.log.event("FAILED-STEPS-UNKNOWN", n, unknown[0], since, "could not read the failed steps; a failed repeat step would not be recognised")
+                repeated = [r for r, st in steps.items() if REPEAT_STEP in (st or [])]
                 if repeated:   # a new test that fails when it runs again is flaky: no rerun (it would pass the second time and get in), straight to the author
                     return self.hold(n, ",".join(repeated), since, f"a new or changed test class failed its repeat runs ({REPEAT_STEP}): not rerun, back to the author")
                 if attempt == 1:

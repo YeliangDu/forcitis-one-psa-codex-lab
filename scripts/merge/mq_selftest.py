@@ -227,6 +227,10 @@ def _scenarios(mq, d):
     gh.step_failures = {"31": ["new or changed test classes, repeated"]}
     proc, q, log, _ = _proc(mq, d, "rp1", gh, [110])
     assert proc.process(110) == "HOLD" and not any(c[0] == "rerun" for c in gh.calls) and "repeat runs" in log.lines[-1] and "run=31" in log.lines[-1] and not any(c[0] == "merge" for c in gh.calls)
+    gh = FakeGh(); gh.add(112, rounds=[dict(pending=0, checks=red(51)), dict(pending=0, checks=green(52))])
+    gh.failed_steps = lambda run: None
+    proc, q, log, _ = _proc(mq, d, "rp3", gh, [112])
+    assert proc.process(112) == "MERGED" and ("rerun", "51") in gh.calls and "FAILED-STEPS-UNKNOWN" in events(log), "unknown steps: rerun as before, and say so"
     gh = FakeGh(); gh.add(111, rounds=[dict(pending=0, checks=red(41)), dict(pending=0, checks=green(42))])
     gh.step_failures = {"41": ["surefire and failsafe, side by side"]}
     proc, q, log, _ = _proc(mq, d, "rp2", gh, [111])
@@ -724,7 +728,8 @@ def _signals(mq, d):
     gh.checks = strict_main_moves
     assert proc.process(102) == "MERGED", events(log)
     assert events(log).count("BEHIND-AT-MERGE") == 1 and "UPDATE" in events(log) and "RETRY-MERGE" not in events(log) and "HOLD" not in events(log), events(log)
-    assert [c for c in gh.calls if c[0] == "merge" and not c[2]] == [] and len([c for c in gh.calls if c[0] == "merge"]) == 1, "gh merge was called once, after the sync"
+    kinds = [c[0] for c in gh.calls]
+    assert kinds.count("merge") == 1 and kinds.index("update-branch") < kinds.index("merge"), "gh merge was called once, after the sync"
 
     # the same, but main moves between our look and the merge itself: gh refuses (BEHIND), and that is a sync again, not a refusal; it never reaches the five refusals
     gh = FakeGh(); gh.add(103, merge_results=((False, "Head branch is not up to date with the base branch"), (False, "Head branch is not up to date with the base branch"), (True, "")))
