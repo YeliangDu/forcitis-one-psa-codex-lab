@@ -113,12 +113,12 @@ class DdlNamingTest {
         Table table = schema.tables.get("things");
         assertThat(table.primaryKey).containsExactly("id");
         assertThat(table.constraints.keySet()).containsExactlyInAnyOrder("things_pkey", "things_employee_id_entry_code_key",
-                "things_employee_id_entry_code_fkey", "things_entry_code_employee_id_check");
+                "things_employee_id_entry_code_fkey", "things_check");
         assertThat(violations(Map.of("platform_sample", schema)).keySet()).contains(
                 "constraint platform_sample.things.things_pkey",
                 "constraint platform_sample.things.things_employee_id_entry_code_key",
                 "constraint platform_sample.things.things_employee_id_entry_code_fkey",
-                "constraint platform_sample.things.things_entry_code_employee_id_check");
+                "constraint platform_sample.things.things_check");
     }
 
     @Test
@@ -651,8 +651,9 @@ class DdlNamingTest {
             Matcher cols = Pattern.compile("\\(([^)]*)\\)").matcher(lower);
             String joined = cols.find() ? cols.group(1).replaceAll("\\s", "").replace(",", "_") : "";
             if (kind.equals("check")) {
-                joined = DdlIdentifierLengths.identifiers(lower).stream().filter(model.columns::containsKey)
-                        .distinct().collect(java.util.stream.Collectors.joining("_"));
+                // PostgreSQL names a CHECK after its column only when the de-duplicated expression refers to exactly one column; otherwise <table>_check.
+                List<String> referenced = DdlIdentifierLengths.identifiers(lower).stream().filter(model.columns::containsKey).distinct().toList();
+                joined = referenced.size() == 1 ? referenced.get(0) : "";
             }
             String suffix = switch (kind) {
                 case "primary key" -> "pkey";
