@@ -1,18 +1,21 @@
 # one-coordinator 台账（速查）
 
-只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-16 20:40（one-coordinator）
+只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-16 21:45（one-coordinator）
 
 ## 作战图（派工前先看；SESSION_PLAYBOOK §11「战队协作」第 5 条）
 | 主线 | 负责 | 当前 | 下一步 | 阻塞 |
 |---|---|---|---|---|
-| dev 首次部署 | one-ops / one-1a-par | rc.4 手工装 ECS 运行（不改安装器，intent dev 验证）；A8 同步已灌员工；C-14 完成、101 已删（#414）；临时开关 PROCESS_ADMINISTRATOR_REQUIRED=false 在位 | SINGLE-OP P1 #415（队中）→ P2 → 新 rc → grant-role 用户本人（员工 ID 末 6cd894）process_administrator+super_admin → 删开关重启 | P2 未开 |
-| 流程与业务架构对齐 | one-architecture + 三组 | 用户定按 BIZBOK §3.4 逐层：阶段→（对象）→能力→信息→干系人；第一步阶段对齐：未落阶段 0、跳段 0，SD-01～10 已裁（#422），VS-02.7 改名收尾 | 落实 SD、筛完条件 → 我重出对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL（生成：scratchpad(e1ce474b)/align）交用户审 → 派对象层（主对象+涉及对象）→ 能力层 | CRUD 缺口清零暂停（intent 缺口先清零已被对齐顺序取代） |
-| 确认页（7 页在收件箱） | one-architecture | 收入 49+34、人员 16（+余题）、财务 14+37、阈值 6，均经独立审题；用户定：缺口清零/对齐前暂不作答 | 对齐后按 PAGE_IMPACT.md 改题→check_pages→审题→一次交用户；VS04-00 保持（Q24 与 Q-10 134134 确为矛盾） | 对齐完成 |
-| 出题与决策工具 | one-quality / one-rules | check_pages #419、决策速查表 #418 已合；#362 整页检查待 CI | intent 片段在 governance 分支未入 main（134134 等）→ one-architecture 拆小 PR；速查表补 Q24/Q-10 矛盾行 | — |
-| CI 与合并 | one-quality / 调度 | 用户定：保留 strict、main push 只跑轻量、重步骤 queued 标签才跑（#406 队中）；merge_pr.sh 已打 queued；代码合集脚本 #410；合集 #411 #412 #405 在队 | #406 合入后核后缀与重步骤；偶发 #392 #408 #409 | — |
-| 工时 TA | one-1a-par | A1 #396、A2 #397 已合 | A3 在 SINGLE-OP 后 | — |
-| 用语 | one-glossary | 积压 131 已过门槛；四合一 #403 已合 | 出决策单（按领域/共享内核/ACL、再按 bc 分组）；触发器命名查重 | — |
-| 取证 | one-ops | E-B6、N/V/S 已交；F05-06/09 待取 | E-B 其余项 | — |
+| dev | one-ops / one-1a-par | rc.4 运行；用户已用企业微信扫码登录成功（WECOM_ENABLED=true，用户批准）；C-14 完成、101 已删；SINGLE-OP P1 #415 已合 | P2 → 新 rc → grant-role 用户本人（员工 ID 末 6cd894）process_administrator+super_admin → 删 PROCESS_ADMINISTRATOR_REQUIRED=false 开关重启 | P2 在写 |
+| 流程与业务架构对齐 | one-architecture + 三组 | 阶段层：SD-01～10 已裁（#422）；对象层：主对象脚本提议、三组确认中；VS01-10 定独立流程「作出参投决策」（#428）；已派五件（#429）：支撑本段、配置补读关系、内部服务价值流评估、集成类型、业务/管理/支撑分类 | 数据到后刷新对齐图（scratchpad(e1ce474b)/align/refresh.sh 后以同 file_path+files 重发；流程栏按业务/管理/支撑分三行，归属实线、支撑虚线，集成单列） | — |
+| 命名与用语 | one-architecture / one-glossary / one-quality | 规则在 PROCESS_METHOD_DRAFT §11、name_id_check.py；用户定「先规范再登记」（#430）：架构产物只用规范名，改名对照表与用语决策单合并交用户，认可后再登记、再定稿；对象名一律名词（结果或记录）；86 个对象未登记 | #431 拆分：审计报告与用语问题先合，提议稿改为规范名+原名别名后随页交用户；one-quality 写架构用语检查 | — |
+| 确认页 | one-architecture | 7 页在收件箱，用户暂不作答，待对齐与命名后一次改版 | PAGE_IMPACT.md | 对齐完成 |
+| CI 与合并 | 调度 / one-quality | 队列串行；merge_pr.sh 打 queued；#406（重步骤入队才跑）在队；合集 #411 #412 #405 在队 | #406 合入后核后缀 | — |
+
+## 调度惯例（本日新增）
+- 不向会话要排期、不向用户转报估算（记忆 no-schedule-relay）。
+- 会话报完成点即 get_usage 兜底查用量（≥75% 准备、≥85% 立即在批次边界交接）。
+- 对齐图 https://claude.ai/artifact/7M7q1KQTZ7XwaoXSELdETL 只读源文件原样副本（src/），不在页里做人工映射。
+- 工作台 https://claude.ai/artifact/TXzKwZFyzVUNEXxQW9M16r ：sync.py 后 batch set board/{lines,cards,prs,meta}（版本号见 on-merge.txt）。
 
 ## 授权与边界
 - 合并 PR、开会话、派子代理：调度自定（「合 PR 交给你审核，决定权给你」）。不替用户定：部署、生产变更、购买、对外账号、ADR 变更。
