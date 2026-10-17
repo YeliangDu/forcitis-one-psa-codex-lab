@@ -623,23 +623,34 @@ proposed_l1:
   name: 用印申请管理
   en: Seal Use Request Management
   object: OBJ-113
-  definition: 受理并批准法人用印申请，登记实际用印与关闭结果。
+  definition: 记录用印申请，按来源审批与份数守卫决定直通或审批，登记用印、规则关闭及异常终态。
   note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；仅为一级方案草稿；当前对象依附及阶段映射仍使用 CAP-054.113，确认前不提升对象层级。
+  review_basis: ARCH-VS14 A6；people 评审包及 b31 命令分片；具体拆分与名称见 B31-14，待确认后再迁移生效映射。
+  proposed_stages: "VS-14.1–4"
+
 - id: CAP-114
   name: IT 需求工单管理
   en: IT Service Request Management
   object: OBJ-114
-  definition: 受理员工提出的信息技术需求并记录处理和关闭结果。
+  definition: 记录 IT 需求，区分受控类别审批与待受理，记录解决、退回、重开及关闭结果。
   note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；仅为一级方案草稿；当前对象依附及阶段映射仍使用 CAP-056.114，确认前不提升对象层级。
+  review_basis: ARCH-VS14 A6；people 评审包及 b31 命令分片；具体拆分与名称见 B31-14，待确认后再迁移生效映射。
+  proposed_stages: "VS-14.1–4"
+
 - id: CAP-115
   name: IT 资产使用记录管理
   en: IT Asset Usage Record Management
   object: OBJ-115
-  definition: 受理设备使用申请并记录批准、领用、调拨、归还与维修结果。
+  definition: 记录领用申请、批准、调拨和归还；使用期间归 AGG-115，独立维修单及维修结果归 AGG-121，引用公司资产卡片。
   note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；仅为一级方案草稿；当前对象依附及阶段映射仍使用 CAP-093.115，确认前不提升对象层级。
+  review_basis: ARCH-VS14 A6；people 评审包及 b31 命令分片；具体拆分与名称见 B31-14，待确认后再迁移生效映射。
+  proposed_stages: "VS-14.1–4（调拨重入 .3，归还重入 .4，维修 .3–4）"
+
 - id: CAP-116
   name: 员工活动申请管理
   en: Employee Activity Request Management
   object: OBJ-116
-  definition: 受理员工提出的活动申请并记录批准和完成结果。
+  definition: 记录员工活动申请，按活动类型决定直通或审批，记录完成、驳回及撤回结果。
   note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；仅为一级方案草稿；当前对象依附及阶段映射仍使用 CAP-056.116，确认前不提升对象层级。
+  review_basis: ARCH-VS14 A6；people 评审包及 b31 命令分片；具体拆分与名称见 B31-14，待确认后再迁移生效映射。
+  proposed_stages: "VS-14.1、.2、.4"

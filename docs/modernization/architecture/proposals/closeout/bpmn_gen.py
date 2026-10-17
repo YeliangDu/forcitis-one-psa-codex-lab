@@ -85,7 +85,7 @@ class Node:
 
 
 class Process:
-    def __init__(self, p, name, stake):
+    def __init__(self, p, name, stake, timeout_actions=None):
         self.p, self.name, self.stake = p, name, stake
         self.pid = p["id"]
         self.warns = []
@@ -100,6 +100,8 @@ class Process:
         self.ends = {}
         self.pools = {}
         self.missing = {"where": 0, "permission/page": 0, "command": 0}
+        self.timeout_actions = timeout_actions or []
+        self.used_timeout_actions = set()
 
     def warn(self, text):
         if text not in self.warns:
@@ -386,6 +388,27 @@ class Process:
             if e > 1:
                 self.order.remove(st.id)
                 self.order.insert(self.order.index(self.plan[e - 1]["chain"][0]), st.id)
+        if len(self.used_timeout_actions) != len(self.timeout_actions):
+            raise ValueError(f"{self.pid}: timeout_actions 有未匹配的步骤或期限")
+
+    def timeout_action_for(self, s, timeout):
+        matches = [(i, a) for i, a in enumerate(self.timeout_actions)
+                   if a.get("step_command") == s.get("command") and a.get("after") == timeout.get("after")]
+        if not matches:
+            return None
+        if len(matches) != 1:
+            raise ValueError(f"{self.pid}: timeout_actions 的步骤与期限重复")
+        i, action = matches[0]
+        guard = action.get("guard") or {}
+        failure = guard.get("goto")
+        if (timeout.get("interrupting") is not True or timeout.get("escalate_to") != SYSTEM
+                or not action.get("command") or action.get("aggregate") != s.get("aggregate")
+                or not action.get("aggregate") or action.get("outcome") not in (self.p.get("outcomes") or [])
+                or not guard.get("condition") or not isinstance(failure, int) or isinstance(failure, bool)
+                or not 1 <= failure <= len(self.steps)):
+            raise ValueError(f"{self.pid}: timeout_actions 须明确系统中断、命令、同一聚合、结局及守卫失败步骤")
+        self.used_timeout_actions.add(i)
+        return action
 
     def timeout_for(self, s, main, lane, cmd, info):
         t = s.get("timeout")
@@ -395,6 +418,15 @@ class Process:
             self.warn("timeout 缺 interrupting，按 BPMN 缺省（中断）")
         bd = self.add("boundaryEvent", f"期限 {t.get('after')}", lane, prefix=f"{main.id}_bd", place=False,
                       attached=main.id, cancel=bool(t.get("interrupting", True)), duration=t.get("after"))
+        action = self.timeout_action_for(s, t)
+        if action:
+            guard = action["guard"]
+            gate = self.add("exclusiveGateway", guard["condition"] + "？", SYSTEM, prefix=f"{main.id}_guard")
+            task = self.add("serviceTask", action["command"], SYSTEM, prefix=f"{main.id}_auto",
+                            doc=f"{action['aggregate']} {action['command']}；超时系统代办；{guard['condition']}；期限 {t['after']}")
+            task.writes.append(action["aggregate"])
+            info["timeout_action"] = (bd.id, gate.id, task.id, action)
+            return
         esc_lane = self.lane_of(t.get("escalate_to"))
         esc = self.add("userTask", f"处理超时：{cmd}", esc_lane, prefix=f"{main.id}_esc",
                        doc=f"升级给 {t.get('escalate_to')}；期限 {t.get('after')}")
@@ -433,7 +465,14 @@ class Process:
                     label = info["labels"].get(when) or ("其他" if when == "otherwise" else str(when))
                 node_id = self.target_node(tgt, info["step"], when, info["lane"], info["exit_names"])
                 self.flow(tail, node_id, label)
-            if "timeout" in info:
+            if "timeout_action" in info:
+                bd, gate, task, action = info["timeout_action"]
+                self.flow(bd, gate)
+                self.flow(gate, task, "满足守卫")
+                failure = self.plan[action["guard"]["goto"] - 1]["chain"][0]
+                self.flow(gate, failure, "不满足守卫，不执行代关")
+                self.flow(task, self.target_node("end", {"outcome": action["outcome"]}, None, SYSTEM))
+            elif "timeout" in info:
                 bd, esc, interrupting, esc_lane = info["timeout"]
                 self.flow(bd, esc)
                 if interrupting:
@@ -759,7 +798,7 @@ def load_checker():
 
 
 def build_xml(p, cat, stake):
-    pr = Process(p, cat[p["id"]]["name"], stake)
+    pr = Process(p, cat[p["id"]]["name"], stake, cat[p["id"]].get("timeout_actions"))
     pr.build()
     pr.wire()
     pr.layout()
@@ -770,6 +809,43 @@ def flow_edges(root):
     ns = "{http://www.omg.org/spec/BPMN/20100524/MODEL}"
     names = {e.get("id"): e.get("name") for e in root.iter() if e.get("id")}
     return [(names[f.get("sourceRef")], f.get("name"), names[f.get("targetRef")]) for f in root.iter(ns + "sequenceFlow")]
+
+
+def test_timeout_actions(cat, stake, checker, cmap, expect):
+    from copy import deepcopy
+
+    p = yaml.safe_load((HERE / "bpmn_gen_fixtures/timeout.yaml").read_text(encoding="utf-8"))["processes"][0]
+    pr, root = build_xml(p, cat, stake)
+    errors, _ = checker.check_root(root, False, cmap)
+    expect(not errors, f"ARCH-VS14 A8：超时夹具有错误：{errors}")
+    bd, gate, task, action = pr.plan[4]["timeout_action"]
+    targets = lambda src: {f["tgt"] for f in pr.flows if f["src"] == src}
+    expect(pr.nodes[task].kind == "serviceTask" and pr.nodes[task].lane == SYSTEM, "A8：代关必须是系统服务任务")
+    expect(pr.nodes[bd].cancel and pr.nodes[bd].duration == "P5D", "A8：P5D 中断原确认任务")
+    expect(targets(bd) == {gate} and task in targets(gate), "A8：到期通过守卫后执行代关")
+    expect(targets(task) == {pr.ends["已关闭"]}, "A8：代关只能到已关闭，不能回人工确认网关")
+    expect(pr.plan[3]["chain"][0] in targets(gate), "A8：缺处理结论须回解决步骤，不得关闭")
+    edges = flow_edges(root)
+    expect(("关闭 IT 需求？", "提出人认为未解决", "受理 IT 需求") in edges, "A8：人工未解决分支仍可重开")
+    bd2, esc2, interrupting, _ = pr.plan[1]["timeout"]
+    expect(not interrupting and targets(esc2) and all(pr.nodes[t].name == "已提醒" for t in targets(esc2)),
+           "A8：P2D 非中断提醒单独结束，不关闭主工单")
+    for field, value in [("after", "P6D"), ("aggregate", "AGG-115"), ("outcome", "未登记结局"),
+                         ("guard", {"condition": "有结论", "goto": 99})]:
+        bad = deepcopy(cat)
+        bad[p["id"]]["timeout_actions"][0][field] = value
+        try:
+            build_xml(p, bad, stake)
+        except ValueError:
+            continue
+        expect(False, f"A8：无效 timeout_actions.{field} 必须失败")
+    bad_p = deepcopy(p)
+    bad_p["steps"][4]["timeout"]["interrupting"] = False
+    try:
+        build_xml(bad_p, cat, stake)
+    except ValueError:
+        return
+    expect(False, "A8：非中断超时不得套用中断代关配置")
 
 
 def self_test():
@@ -810,6 +886,7 @@ def self_test():
     expect(not any(a.startswith("申请丙") and b in ("驳回", "撤回") for a, b, _ in got), "decision 已画出的驳回、撤回不重复")
     expect(("申请丁？", "驳回", "申请甲") in got, "on_reject 为序号时连回该步骤")
     expect(("申请丁？", "撤回", "申请乙") in got, "withdraw.to 为序号时连回该步骤")
+    test_timeout_actions(cat, stake, checker, cmap, expect)
     print("bpmn_gen 自测：" + ("全部通过" if ok else "有失败"))
     return 0 if ok else 1
 
@@ -841,7 +918,7 @@ def main(argv):
             continue
         if c.get("type") != "business":
             continue
-        pr = Process(p, c["name"], stake)
+        pr = Process(p, c["name"], stake, c.get("timeout_actions"))
         pr.build()
         pr.wire()
         pr.layout()

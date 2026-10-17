@@ -1534,7 +1534,7 @@ processes:
     status: draft
     human_orchestration: ~
     bpmn: ~
-    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；归 VS-14 四类服务；以申请、批准、办理、办结的实际结果归段。调拨维修可重入；离职归还待办不作为 VS-13.6 的完成条件。"
+    stages_note: "ARCH-VS14 A1、A3；步 1 来源审批通过且份数守卫满足时直通已批准，其他申请到审批中；步 2/3 为批准/驳回，驳回或撤回提前结束；步 4 登记用印到已用印，步 5 规则关闭。终态重提方式待 B31-11。"
   - id: PRC-140
     name: "合同借阅"
     type: business
@@ -1571,7 +1571,15 @@ processes:
     status: draft
     human_orchestration: ~
     bpmn: ~
-    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；归 VS-14 四类服务；以申请、批准、办理、办结的实际结果归段。调拨维修可重入；离职归还待办不作为 VS-13.6 的完成条件。"
+    stages_note: "ARCH-VS14 A2、A3、A7、A8；已提交是待受理，常规提交直达、需审批提交先到审批中，批准后到已提交，步 3 受理到处理中；主动退回从处理中、审批驳回从审批中直接异常办结，不需先解决。步 4 的不成立分支须在解决命令及解决事件之前分流，people 骨架另卡落实。P2D 不表示两个工作日，B31-2 待定。P5D 按 timeout_actions 显式系统代关，不回人工确认网关。"
+    timeout_actions:
+      - step_command: 关闭 IT 需求
+        after: P5D
+        command: 关闭 IT 需求
+        aggregate: AGG-114
+        outcome: 已关闭
+        guard: {condition: "有处理结论（INV-120）", goto: 4}
+
   - id: PRC-143
     name: "IT 资产领用"
     type: business
@@ -1582,7 +1590,7 @@ processes:
     status: draft
     human_orchestration: ~
     bpmn: ~
-    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；VS-14.1 申请领用资产形成审批中或自动已通过的申请记录；VS-14.2 批准领用到已通过；VS-14.3 登记领用到已领用。状态按 people 组 AGG-115 状态机回读，原阶段草稿无对应状态时的缺口现已补齐。"
+    stages_note: "ARCH-VS14 A3、A4；标准配置内直通已通过，超配先审批；驳回或撤回提前结束。登记领用使申请已领用并开在用期间，当前流程结束，归还另由 PRC-156 重入 .4。"
   - id: PRC-144
     name: "员工活动类申请（周年贺卡、节日活动、创新项目发布）"
     type: business
@@ -1593,7 +1601,7 @@ processes:
     status: draft
     human_orchestration: ~
     bpmn: ~
-    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；归 VS-14 四类服务；以申请、批准、办理、办结的实际结果归段。调拨维修可重入；离职归还待办不作为 VS-13.6 的完成条件。"
+    stages_note: "ARCH-VS14 A1、A3；需审批活动提交到审批中，福利型规则直通已批准，驳回或撤回提前结束；活动举办无独立状态，跳 .3，在 .4 登记已完成。"
   - id: PRC-145
     name: "员工法人三口径不一致预警"
     type: event_policy
@@ -1716,7 +1724,7 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
-    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；归 VS-14 四类服务；以申请、批准、办理、办结的实际结果归段。调拨维修可重入；离职归还待办不作为 VS-13.6 的完成条件。"
+    stages_note: "ARCH-VS14 A4；在用资产从 .3 重入，调拨结束旧期间并开新在用期间；旧期间已结束不表示已归还。无使用人则转领用，撤销到已撤销。"
   - id: PRC-156
     name: "IT 资产归还"
     type: business
@@ -1727,7 +1735,7 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
-    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；归 VS-14 四类服务；以申请、批准、办理、办结的实际结果归段。调拨维修可重入；离职归还待办不作为 VS-13.6 的完成条件。"
+    stages_note: "ARCH-VS14 A4、A7；从在用期间重入 .4，归还资产命令使期间已结束，process_outcome 为已归还，排除调拨结束旧期间。离职触发归还待办不作 VS-13.6 退出条件；P7D 起算点和人工入口是否提醒待 B31-7。"
   - id: PRC-157
     name: "IT 资产报修与维修登记"
     type: business
@@ -1739,7 +1747,7 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
-    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；归 VS-14 四类服务；以申请、批准、办理、办结的实际结果归段。调拨维修可重入；离职归还待办不作为 VS-13.6 的完成条件。"
+    stages_note: "ARCH-VS14 A5；报修及维修结果只属于 AGG-121（OBJ-115 维修子生命周期），不把已报修放入 AGG-115；在用资产重入 .3，报修到已报修，登记到已维修登记；同一事实确认 .4 的当次服务，使用期间保持在用。"
   - id: PRC-158
     name: "处置过账拒收记录"
     type: single_aggregate

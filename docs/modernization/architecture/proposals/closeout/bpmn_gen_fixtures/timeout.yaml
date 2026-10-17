@@ -1,0 +1,26 @@
+# ARCH-VS14 A8：同命令的人工作业与系统代关必须分路；使用真实 PRC-142 目录配置。
+processes:
+  - id: PRC-142
+    owner_bc: B-31
+    triggers: [{type: human, name: 员工提出 IT 需求}]
+    outcomes: [已关闭, 已提醒]
+    roles: [{id: SH-E3, as: initiator}, {id: SH-E6, as: performer}, {id: SH-M1, as: informed}]
+    steps:
+      - {actor: SH-E6, where: in_system, command: 提交 IT 需求, aggregate: AGG-114}
+      - actor: SH-E6
+        where: in_system
+        command: 受理 IT 需求
+        aggregate: AGG-114
+        timeout: {after: P2D, escalate_to: SH-M1, interrupting: false}
+      - {actor: SH-E6, where: in_system, command: 受理 IT 需求, aggregate: AGG-114}
+      - {actor: SH-E6, where: in_system, command: 解决 IT 需求, aggregate: AGG-114}
+      - actor: SH-E3
+        where: in_system
+        command: 关闭 IT 需求
+        aggregate: AGG-114
+        timeout: {after: P5D, escalate_to: system, interrupting: true}
+        decision:
+          - {when: 无处理结论, goto: 4}
+          - {when: 提出人认为未解决, goto: 3}
+          - {when: otherwise, goto: end, outcome: 已关闭}
+        outcome: 已关闭

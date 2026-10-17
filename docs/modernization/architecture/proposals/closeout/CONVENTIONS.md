@@ -108,6 +108,8 @@
 - **单聚合维护的审批**：`commands[]`（命令清单，可逐条写 `aggregate` 覆盖单元级）或 `transitions[]`（状态迁移）上需要人工审批的条目（没收、扣减、终止、开户确认等）写 `approval:`，字段与步骤审批相同（`engine`、`approver`、`doc_type`、`why_human`、`escalation_rules`、`on_reject` 写驳回后状态不变的说明）；审批对象×命令 = 条目的 `aggregate`（没写取单元级）× 条目的 `command`；两处写了同一命令只算一次。`closeout_check.py --qc` 与 `raci_build.py` 一并扫描（one-architecture 2026-10-16 裁定，应 one-arch-revenue PRC-10、52、68）。
 - **类型级 A 手登**：platform.approval 的类型级例外在 `RESPONSIBILITY_MATRIX.yaml` 手登 `A: {resolve: type, role: SH-…, basis: <ADR 或 intent>}`，`raci_build.py --write` 重新生成时保留；engine 为 aggregate 的类型级 A 由脚本自动生成，不必手登。
 - **定时触发**：time 触发由所属 BC 向 `platform.scheduling` 登记定时，到点调本 BC 聚合命令，幂等键 = 聚合 ID + 到期时点；边「BC → platform.scheduling」按平台依赖登记（S-31 SQ-18）。
+- **超时的系统代办（ARCH-VS14 A8）**：骨架保持只读时，在 `process-catalog.yaml` 对应流程登记 `timeout_actions`，以 `step_command` + `after` 精确匹配原步骤；`command`、`aggregate`、`outcome` 指明代办命令、同一聚合和已登记结局，`guard: {condition: <业务守卫>, goto: <失败回到的步骤序号>}` 明确失败路径。仅适用于 `interrupting: true`、`escalate_to: system`。图画成中断边界 → 守卫网关 → 系统服务任务 → 指定结局，守卫失败转纠正步骤，不再经过人工确认网关。重复、未匹配或无效配置须失败；未登记配置的超时保留原升级语义，非中断提醒仍只结束提醒分支。本配置只修正描述图，不代表定时或领域命令已实现；PRC-142 的期限仍待 B31-2。
+- **B-31 超时登记（ARCH-VS14 A7）**：受理提醒、解决后代关登记在 AGG-114，离职后归还提醒登记在 AGG-115，依赖为 B-31 → `platform.scheduling`（api）。期限、业务日历、起算点及混合入口范围分别待 B31-2、B31-7，未确认前不把 P2D 当两个工作日、也不把人工归还统一套离职 P7D。执行时复核聚合当前状态，重开、办结时取消旧期限，重试使用上述幂等键；已批准的数值回写原骨架须另卡。
 - **支撑流程**：不在客户价值流上的业务流程（如 B-31 行政事务）写 `stages: []` 与 `support: <理由>`（S-32）。
 - **跨段说明**：流程在同一价值流内所标阶段不连续时，须写 `stages_note: <理由>`（阶段对齐，2026-10-16）；没有理由的跨段按跳段报。
 - **状态机豁免**：运行单据写 `stateless: true`，长期配置写 `perpetual: true`，两者都须写 `reason`（S-30、S-32）。

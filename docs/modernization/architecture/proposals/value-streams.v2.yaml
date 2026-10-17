@@ -1303,11 +1303,12 @@ value_streams:
   value: 员工所需行政与信息技术服务办妥，用印和资产使用有据可查。
   value_receivers: [SH-E1, SH-E2, SH-E3, SH-E4, SH-E5, SH-E6, SH-E7]
   ends_in:
-    - {ref: OBJ-113, state: 已关闭}
-    - {ref: OBJ-114, state: 已关闭 / 已退回}
-    - {ref: OBJ-115, state: "已归还", note: "归还结束使用，维修登记仅结束当次维修服务", agg: AGG-115}
+    - {ref: OBJ-113, state: 已关闭 / 已驳回 / 已撤回}
+    - {ref: OBJ-114, state: 已关闭 / 已退回 / 已撤回}
+    - {ref: OBJ-115, state: "已结束", note: "仅归还资产命令结束的使用期间，流程结局为已归还；调拨结束旧期间不表示归还", agg: AGG-115}
+    - {ref: OBJ-115, state: "已驳回 / 已撤回", note: "领用申请提前结束，不产生在用期间", agg: AGG-115}
     - {ref: OBJ-115, state: "已维修登记", note: "归还结束使用，维修登记仅结束当次维修服务", agg: AGG-121}
-    - {ref: OBJ-116, state: 已完成}
+    - {ref: OBJ-116, state: 已完成 / 已驳回 / 已撤回}
   stages:
     - id: VS-14.1
       order: 1
@@ -1320,10 +1321,10 @@ value_streams:
           - {ref: 缺对象状态, state: 员工有需办理的内部服务事项, gap: MS-24, note: 触发事实}
       exit:
         any:
-          - {ref: OBJ-113, state: 审批中}
-          - {ref: OBJ-114, state: 已提交}
+          - {ref: OBJ-113, state: 审批中 / 已批准, note: 来源审批已通过且累计份数守卫满足时直通已批准，不新增人审}
+          - {ref: OBJ-114, state: 已提交 / 审批中, note: 已提交是待受理；需审批类别直接到审批中，批准后才到已提交}
           - {ref: OBJ-115, state: "审批中 / 已通过", note: "领用申请，标准配置内可自动通过", agg: AGG-115}
-          - {ref: OBJ-116, state: 审批中}
+          - {ref: OBJ-116, state: 审批中 / 已批准, note: 福利型按规则直通已批准}
       value_item: 服务诉求已正式记录。
       notes: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；能力沿现有对象父链映射，行政类一级能力拆分与名称仍待后续确认。
     - id: VS-14.2
@@ -1336,7 +1337,7 @@ value_streams:
       entry:
         any:
           - {ref: OBJ-113, state: 审批中}
-          - {ref: OBJ-114, state: 审批中（需审批的类别）}
+          - {ref: OBJ-114, state: 审批中 / 已提交, note: 需审批类别先批准到已提交；常规类别已提交后直接受理}
           - {ref: OBJ-115, state: "审批中", note: "领用申请", agg: AGG-115}
           - {ref: OBJ-116, state: 审批中}
       exit:
@@ -1346,7 +1347,7 @@ value_streams:
           - {ref: OBJ-115, state: "已通过", note: "领用申请", agg: AGG-115}
           - {ref: OBJ-116, state: 已批准}
       value_item: 申请得到明确答复。
-      notes: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；各类事务分别保存批准条件与依据，审批仍由 platform.approval 办理；驳回可重提。
+      notes: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；IT 由批准和受理两步共同到处理中，已提交不等于处理中。审批仍由 platform.approval 办理；驳回、撤回是提前结束的异常路径，不要求再完成正常办理与办结。现有状态机没有终态重提转换，原单重提或另建申请待 B31-11 确认。依据 ARCH-VS14 A2、A3，people 评审包 PRC-139、142、143、144。
     - id: VS-14.3
       order: 3
       name: 办理事项
@@ -1358,7 +1359,8 @@ value_streams:
         any:
           - {ref: OBJ-113, state: 已批准}
           - {ref: OBJ-114, state: 处理中}
-          - {ref: OBJ-115, state: "已通过 / 在用 / 已报修", agg: AGG-115}
+          - {ref: OBJ-115, state: "已通过 / 在用", agg: AGG-115}
+          - {ref: OBJ-115, state: "已报修", note: 独立维修单的状态，不属于资产使用记录, agg: AGG-121}
       exit:
         any:
           - {ref: OBJ-113, state: 已用印}
@@ -1366,7 +1368,7 @@ value_streams:
           - {ref: OBJ-115, state: "已领用 / 已调拨", agg: AGG-115}
           - {ref: OBJ-115, state: "已维修登记", agg: AGG-121}
       value_item: 服务事项已办理并留有结果。
-      notes: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；资产维修结果为已修复或无法修复的属性，办理完成状态统一为已维修登记。
+      notes: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；资产维修结果为已修复或无法修复的属性，办理完成状态统一为已维修登记。IT 需求不成立或无法实现时，从处理中转入异常退回办理，不执行解决 IT 需求、不发 IT 需求已解决；仅成功解决后才能写已解决。people 步骤的命令前判断须另行落实，不能先写已解决再退回。依据 ARCH-VS14 A3、A5 与 AGG-114、AGG-121 状态机。
     - id: VS-14.4
       order: 4
       name: 确认办结
@@ -1376,19 +1378,19 @@ value_streams:
       entry:
         any:
           - {ref: OBJ-113, state: 已用印}
-          - {ref: OBJ-114, state: 已解决}
-          - {ref: OBJ-115, state: "已领用 / 已调拨", agg: AGG-115}
+          - {ref: OBJ-114, state: 已解决 / 处理中 / 审批中, note: 正常确认从已解决进入；主动退回从处理中、审批驳回从审批中直接进入异常办结，不以已解决为前提}
+          - {ref: OBJ-115, state: "在用", note: 归还办理读取当前在用期间；已领用与已调拨是申请单结局, agg: AGG-115}
           - {ref: OBJ-115, state: "已维修登记", agg: AGG-121}
           - {ref: OBJ-116, state: 已批准}
       exit:
         any:
           - {ref: OBJ-113, state: 已关闭}
           - {ref: OBJ-114, state: 已关闭 / 已退回}
-          - {ref: OBJ-115, state: "已归还", agg: AGG-115}
+          - {ref: OBJ-115, state: "已结束", note: 仅归还资产命令产生的期间结束，process_outcome 为已归还；排除调拨结束旧期间, agg: AGG-115}
           - {ref: OBJ-115, state: "已维修登记", agg: AGG-121}
           - {ref: OBJ-116, state: 已完成}
       value_item: 服务办结，办理记录可追溯。
-      notes: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；离职触发归还待办不作 VS-13.6 的退出条件；CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C14 题，合同档案服务保持原归属。
+      notes: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题；离职触发归还待办不作 VS-13.6 的退出条件；CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C14 题，合同档案服务保持原归属。已驳回、已撤回及已退回可提前结束本次服务，不要求先解决；正常办结路径仍需本段。已归还是归还命令的流程结局，不是已结束的全局同义词。依据 ARCH-VS14 A3、A4，AGG-115 use_period 的归还资产转换及 PRC-156。
 
 
 # 第 ③ 步预警：一级对象未被任何阶段条件引用（脚本核对，列表与脚本结果须一致）
