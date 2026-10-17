@@ -230,6 +230,7 @@ value_streams:
         - {ref: OBJ-42, state: 已确认 / 有缺陷（退回）, note: PRC-26 在本段核对发包人资料，确认可用性或退回补充；区别于进入条件「已提供」，不作门}
         - {ref: OBJ-44, state: 已提出 / 已部分满足 / 已满足, note: CON-1017-ARC-10 S-2：PRC-20 贯穿 VS-02.0–02.6，列在首段；只记录、不作门}
         - {ref: OBJ-108, state: 已登记 / 应对中 / 已关闭, note: CON-1017-ARC-10 S-2：PRC-27 贯穿 VS-02.0–02.7，列在首段；只记录、不作门}
+        - {ref: OBJ-45, state: 已计划 / 已确认, note: CON-1017-ARC-13：PRC-20 贯穿 VS-02.0–02.6，列在首段（同 OBJ-44）；只记录、不作门}
       value_item: 客户与我方对范围、计划和团队有一致的基线。
       notes: 进入条件同价值流起始条件；立项是本段的结果，不是 BD1 → 启动的门（STAGE_TYPES_DRAFT §3.1）；启动会纪要作证据类型「会议纪要」（OBJ-53）。
     - id: VS-02.1
@@ -354,6 +355,7 @@ value_streams:
         # SD-13（用户 2026-10-17 ANM 批准）
         - {ref: OBJ-33, state: 已提出 / 已批准 / 已驳回, note: 完工估算在阶段门处提出或更新（如有）；PRC-30 提出并批准估算，不作门}
         - {ref: 缺对象状态, state: 产值已填报 / 产值已抽查, gap: MS-23, note: PRC-151 向完工估算只追加产值估计行，不改估算批准状态；信息图 OBJ-33 无对应状态，不作门}
+        - {ref: OBJ-39, state: 已认定, note: CON-1017-ARC-13：PRC-34 在本段处置我方成果不符合项时认定返工（PRC-34 在 VS-02.6、VS-02.7）；只记录、不作门}
       value_item: 按设计意图建成，外立面与照明安全、效果达标（社会公众的非货币价值在此兑现）。
     - id: VS-02.7
       order: 8
@@ -1056,6 +1058,7 @@ value_streams:
           - {ref: 缺对象状态, state: 会计分录待处理队列已清空、过账拒收记录已处置, gap: MS-21, note: PRC-135、PRC-158、PRC-169；指无待处理队列、无未处置拒收记录或未结差异案，信息图无对应对象状态}
       in_stage_states:
         - {ref: OBJ-117, state: 已解释 / 已修正 / 已豁免, note: CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I02 题；PRC-169 解释、修正或批准豁免后结案；关账前不得有超容差未结案（INV-135），不以一个已关案件代替全量核对}
+        - {ref: OBJ-93, state: 在用 / 已闲置 / 处置, note: CON-1017-ARC-13：PRC-99 计提折旧并处置公司资产（本段）；折旧与处置损益过账，只记录、不作门}
       value_item: 期间业务与调整已记账，成本与损益已结转，关账前待处理事项已清理。
       notes: 期间内记账与结转（finance STAGES.md ST-3）；承载 PRC-92–96、PRC-98、PRC-99、PRC-135、PRC-158、PRC-169。对象状态取 OBJ-97、OBJ-98 原值，队列与处置记录以 MS-21 保留缺口；原贯穿活动保留来源与产出说明。
     - id: VS-10.1
@@ -1479,6 +1482,8 @@ value_streams:
           - {ref: OBJ-124, state: 版本已生效, note: CON-1017-ARC-10 O-1 立对象业务规则（暂名，待 one-glossary 定名），原 MS-25}
       in_stage_states:
         - {ref: OBJ-54, state: 存续, note: CON-1017-ARC-10 S-11：PRC-80 次要对象；法人主体筹建存续不作门，只记录}
+        - {ref: OBJ-25, state: 已启用, note: CON-1017-ARC-13：阶段类型版本批准后启用，不作门}
+        - {ref: OBJ-27, state: 已批准 / 已生效, note: CON-1017-ARC-13：计费系数版本批准并生效，不作门}
       value_item: 新版本已生效，后续业务按它办。
       notes: 资金账户开立、销户有银行参与（SH-X7）。OBJ-54 法人主体的筹建、存续是经营主体事实，不作本段门；PRC-80 经组织单元与岗位进入本段。
     - id: VS-15.3
@@ -1519,7 +1524,7 @@ step3_warnings:
   - {ref: OBJ-24, status: 已补引用, note: VS-01.2 进入补「启用」}
   - {ref: OBJ-26, status: 已补引用, note: VS-01.2 进入补「生效」}
   # 第 ③ 步逐段对账后的裁定见 STEP3_STAGES.md 第 2 节
-  - {ref: OBJ-25, status: 不支撑价值流, reason: 目录型参考数据，给出 VS-02、VS-03 的阶段骨架；自身「启用 / 停用」是服务产品与 WBS 的不变量（INV-34），不是阶段进出事实，也无段内业务理由（STEP3 评审撤回 C-02、C-04 的引用）}
+  - {ref: OBJ-25, status: 已补引用, note: CON-1017-ARC-13：VS-15.2 段内状态「已启用」；原「不支撑价值流」为 STEP3 评审的设计方裁定，用户 10-17 新建「确立经营基准」价值流（intent 174814）后改定为挂 VS-15.2}
   - {ref: OBJ-54, status: 经二级能力支撑, reason: 法人主体是各对象的归属维度，自身的筹建 / 存续 / 注销不是任何阶段的进出事实；一级能力 CAP-054 经二级能力（资质证书 VS-06.2、月度薪酬结算 VS-13、合伙人出资与利润分配 VS-12）支撑阶段}
   - {ref: OBJ-93, status: 已补引用, note: 原仅经 VS-10 贯穿活动输入；CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C13 题 后经 OBJ-115 的次级能力支撑 VS-14，仍不因折旧、处置向期间关账补列公司资产管理}
   # SD-13（用户 2026-10-17 ANM 批准）
