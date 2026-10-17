@@ -778,7 +778,7 @@ processes:
         metric_event: true
         pending: V-1
         cross_bc:
-          - {mode: event, direction: out, bc: platform.identity, name: Separated}   # PRC-129 吊销会话、PRC-138 停用企业微信与解绑；§1.4 G-2
+          - {mode: event, direction: out, bc: platform.identity, name: Separated}   # platform.identity 吊销会话作业（原 PRC-129，已退役）、PRC-138 停用企业微信与解绑；§1.4 G-2
           - {mode: event, direction: out, bc: B-15, name: Separated}               # PRC-130 参保减员，PRC-178 读取未休补休余额计入加班工资，并作为最后一期薪酬结算的在职终点
           - {mode: event, direction: out, bc: B-31, name: Separated}               # 生成 IT 资产归还待办（b31 PRC-143；聚合稿回补 §1），B-13 不依赖 B-31
           - {mode: event, direction: out, bc: B-27, name: Separated}               # B-27 默认确认离职当月考勤（PRC-118 第 7 步事件入口）；B-27 → B-13 现只有 api 边（接缝问题）
@@ -817,7 +817,7 @@ processes:
         added_in: closeout
         outcome: 离职登记已撤销
     notes: >
-      账号侧见 PRC-129（吊销会话）、PRC-138（角色授予、企业微信停用、解绑）；参保减员见 PRC-130；最后一期薪酬随月度结算发放（B-15），未休补休余额由 B-15 订阅 Separated，经 PRC-178 读取余额并计入加班工资，随最后一期薪酬一并计发（PRC-124）。
+      账号侧见 platform.identity 吊销会话作业（原 PRC-129，已退役）、PRC-138（角色授予、企业微信停用、解绑）；参保减员见 PRC-130；最后一期薪酬随月度结算发放（B-15），未休补休余额由 B-15 订阅 Separated，经 PRC-178 读取余额并计入加班工资，随最后一期薪酬一并计发（PRC-124）。
       工作交接清单是单据不作门（VS-13.6 备注，Q-D 第 3 项不做）；IT 资产归还待办由 B-31 订阅 Separated 生成，B-13 不读 B-31。
       离职当月考勤确认由谁代确认见 notes 待用户定。员工提出的离职不再设批准（V-20）；公司单方终止保留一级批准。
       「发起公司终止」不再是独立命令，并入「申请离职」的来源取值，以便两个入口汇合在同一首步。
@@ -1029,7 +1029,7 @@ processes:
     trigger:
       type: event
       events: [{event: Separated, aggregate: AGG-62}]
-      desc: 与 PRC-129（吊销会话）互补；离职生效即时，不等企业微信账号停用
+      desc: 与 platform.identity 吊销会话作业（原 PRC-129，已退役）互补；离职生效即时，不等企业微信账号停用
     triggers:
       - {type: event, name: "离职已生效", event: Separated, bc: B-13}
     stages: [VS-13.6]
@@ -1053,8 +1053,7 @@ processes:
         platform_task: true
         service: platform.identity
         command: 吊销会话
-        calls: PRC-129
-        desc: 即时，先于一切企业微信动作
+        desc: 即时，先于一切企业微信动作；调用 platform.identity 吊销会话平台作业（原 PRC-129 已退役移出流程目录，CON-1017-ARC-10 R-1）
         audit: true
         cross_bc:
           - {mode: event, direction: in, bc: B-13, name: Separated}
@@ -1144,13 +1143,15 @@ event_policies:
 
   - id: PRC-129
     name: 离职后吊销会话
-    type: event_policy
+    type: retired                     # 原 event_policy；CON-1017-ARC-10 R-1 退役，进平台作业登记
+    status: retired
+    note: "CON-1017-ARC-10 R-1：移出流程目录，进平台作业登记（platform.identity 吊销会话作业；PROCESS_ANCHORING_RESEARCH 审题后修订第 3 条：平台身份机制的技术动作，不是业务人员按规则反复办理的流程）；PRC-138 第 1 步改为调用平台作业，不再 calls PRC-129"
     trigger:
       type: event
       events: [{event: Separated, aggregate: AGG-62}]
     triggers:
       - {type: event, name: "离职已生效", event: Separated, bc: B-13}
-    stages: [VS-13.6]
+    stages: []
     primary_object: none
     primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: platform.identity
@@ -1224,7 +1225,9 @@ event_policies:
 
   - id: PRC-177
     name: 向差旅服务商同步员工与组织
-    type: event_policy
+    type: merged                      # 原 event_policy；CON-1017-ARC-10 R-3 并入集成流程 PRC-197
+    merged_into: PRC-197
+    status: merged
     trigger:
       type: event
       events:
@@ -1240,7 +1243,6 @@ event_policies:
     stages: []
     primary_object: none
     primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
-    support: "行政支撑：员工与组织的单向同步，服务差旅预订；四个触发分属 VS-07.3 退出、VS-13.6 退出、任职版本变更、组织单元调整，无共同阶段，不在客户或员工价值流的阶段门上（S-31 SQ-31；STAGE_ALIGN.md）"
     owner_bc: B-13
     basis: S-31 SQ-31（one-architecture）：platform.integration 在 L0，不能订阅 B-13（S-22 不采用平台订阅业务事件），故由 B-13 订阅本 BC 事件并经既有边 B-13 → platform.integration 推送
     migration: "迁入不触发（ADR-0036 M7）；上线时由集成册登记的一次性全量初始同步另办，不属本策略"
