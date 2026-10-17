@@ -862,11 +862,11 @@ value_streams:
   category: support  # CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题；页首价值流用途分类告知
   name: 完成垫付费用报销
   working_name: 报销到付款
-  description: 员工为公务垫付或借支后，提交报销或还款，经核定、入账并付款结清。
-  triggering_stakeholders: [SH-E2, SH-E3, SH-E5, SH-E6]
-  trigger_note: 员工已发生公务费用或需要借支（事前申请是预批单据，不是对象）。
-  value: 员工垫付的公务费用及时足额得到补偿。
-  value_receivers: [SH-E2, SH-E3, SH-E5, SH-E6]
+  description: "员工在公务支出前申请费用额度、出差批准或借支，费用发生后提交报销或还款，经核定、入账并付款结清。"
+  triggering_stakeholders: [SH-E1, SH-E2, SH-E3, SH-E4, SH-E5, SH-E6, SH-E7]
+  trigger_note: "适用费用制度的员工有需事前批准的公务支出 / 出差计划、需要借支，或已发生公务垫付费用时发起；费用事前申请（OBJ-118）和出差申请（OBJ-119）是独立对象，尚未垫付也可从 VS-08.0 进入。触发与受益清单覆盖各类员工角色，具体适用类别与办理权限仍依费用制度。"
+  value: "员工在支出前取得所需额度或出差批准，获得借支支持，公务垫付费用及时足额得到补偿。"
+  value_receivers: [SH-E1, SH-E2, SH-E3, SH-E4, SH-E5, SH-E6, SH-E7]
   ends_in:
     - {ref: OBJ-88, state: 已付}
     - {ref: OBJ-85, state: 已结清, note: 其他应收「员工借款」类型}
@@ -1066,7 +1066,7 @@ value_streams:
       order: 2
       name: 关闭会计期间
       capabilities: [CAP-103]
-      description: 期末结转完成后做前置检查与勾稽，发起与确认关账（两人）。
+      description: "期末结转完成后做前置检查与勾稽，发起与确认关账（两人）；财务核对人按资金账户（OBJ-89）×银行账单期间，将银行流水（OBJ-90）与银行存款日记账逐笔核对，登记未达项、手续费及利息的处理和记账依据，在余额调节表单据上留存核对人、日期、差异处置及完成结论（PRC-101；R1-C-10、R1-D-22）。银行流水匹配、收付核销与外部法定账对账（OBJ-125、PRC-104）各有用途，不能替代该结论。"
       # SD-12（用户 2026-10-17 ANM 批准）
       participants: [SH-E6, SH-M1, SH-E2]
       entry:
@@ -1211,11 +1211,13 @@ value_streams:
   working_name: 考勤到发薪（含离职结清）
   description: 在职员工按月确认考勤、核定激励，薪酬经计算、批准后发放，个税与社保公积金依法申报缴纳；离职时依法结清劳动关系。由原 VS-07 拆出（触发者与价值不同）。
   triggering_stakeholders: [SH-E1, SH-E2, SH-E3, SH-E4, SH-E5, SH-E6, SH-E7]
-  trigger_note: 在职员工每月出勤并确认考勤，或提出离职；各类在职员工均可触发。
+  trigger_note: "在职员工每月出勤并确认考勤，或提出离职；各类在职员工均可触发。月度薪酬发放 / 过账与本期适用申报缴款分别记录完成结果，下一月按新期间重入；人员已离职是劳动关系最终结束的结局。依据 R1-D-26。"
   value: 员工按时足额获得报酬与法定保障，离职时依法结清。
   value_receivers: [SH-E1, SH-E2, SH-E3, SH-E4, SH-E5, SH-E6, SH-E7]
   ends_in:
-    - {ref: OBJ-56, state: 已离职}
+    - {ref: OBJ-73, state: 已发放 → 已过账, note: 月度一轮的薪酬发放及过账完成，与 VS-13.5 退出一致；申报缴纳按下项分别跟踪}
+    - {ref: OBJ-92, state: 已申报 → 已缴款, note: 本期适用的个税及社保公积金申报缴款完成，与 VS-13.4 退出一致；不能代替薪酬实付}
+    - {ref: OBJ-56, state: 已离职, note: 劳动关系最终结束的结局，与正常月度循环分别记录}
   stages:
     - id: VS-13.1
       order: 1
@@ -1270,7 +1272,7 @@ value_streams:
       order: 4
       name: 完成个税及社保公积金申报缴纳
       capabilities: [CAP-054, CAP-056, CAP-103]
-      description: 个税扣缴、社保公积金申报与缴款。
+      description: "准备个税及社保公积金申报资料；正式个税申报逐薪酬行关联实际支付、扣缴事实与申报所属期，申报后缴库并登记金额、日期及回执。社保、公积金按各自义务所属期办理申报缴款，不以薪酬批准月份代替所得实际支付及扣缴月份。依据 R1-B-28、IIT#扣缴义务人 / 扣缴缴库期限 / 全员全额报送内容。"
       participants: [SH-E6, SH-R2]
       entry:
         all:
@@ -1280,7 +1282,7 @@ value_streams:
         all:
           - {ref: OBJ-92, state: 已申报 → 已缴款, note: 个税扣缴、社保公积金类型}
       value_item: 员工的法定保障与纳税义务按期履行。
-      notes: 与 VS-13.5 并行。
+      notes: "与 VS-13.5 并行；薪酬已批准可准备资料，正式个税申报须关联已发生的支付及扣缴事实、申报所属期，完成缴库后留存回执；本说明不将两个阶段强制串行。依据 R1-B-28。"
     - id: VS-13.5
       order: 5
       name: 完成薪酬发放
@@ -1296,12 +1298,12 @@ value_streams:
           - {ref: OBJ-86, state: 已成功 / 已核销, note: 成功后核销即转「已核销」（STEP3 C-13）}
           - {ref: OBJ-73, state: 已发放 → 已过账}
       value_item: 员工按时足额收到工资。
-      notes: 退票时付款「已失败」、薪酬保持「已批准」，重入本段。
+      notes: "部分员工成功、部分退票时，成功行保留实付金额、时间与领取依据，失败行待补发，整期薪酬保持「已批准」；仅失败部分重入本段补发，个人清单及送达记录关联薪酬行。全部应付薪酬行实付后整期转「已发放」，过账沿原流程。依据 R1-B-24。"
     - id: VS-13.6
       order: 6
       name: 完成离职结清
       capabilities: [CAP-005, CAP-056]
-      description: 离职申请、减员、劳动合同终止，最后一期薪酬随月度结算发放。
+      description: "离职申请、劳动合同终止，最后一期薪酬随月度结算发放；人力经办在解除或终止时出具并交付证明，登记交付证据。档案及社保转移、公积金变更及转移 / 封存分别记录责任人、法定到期日、申请日、经办结果日和回执；证明单据与回执挂证据（OBJ-53）。离职生效和外部办理成功分别留痕，期限据 LAB#离职证明与保管 / 解除证明内容、SOC#公积金增减员（R1-B-31），不以一次减员状态代替各项办结证据。"
       # SD-12（用户 2026-10-17 ANM 批准）
       participants: [SH-E3, SH-E1, SH-E6, SH-M1]
       entry:
