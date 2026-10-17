@@ -19,6 +19,7 @@ concurrency:
   cancel-in-progress: true
 
 # Self-hosted runners (docs/modernization/CI_RUNNERS.md). Their toolchain is installed on the machine, so the steps check versions instead of installing.
+# Three tiers (scripts/ci/relevant_change.py): docs (nothing the builds read changed: light checks only), guarded (only docs that container-free tests, the glossary copy scripts or the release scripts read: just those run, on every pull request event), code (everything). A push to main and the nightly run are always tier code.
 # Heavy steps (backend tests, OpenAPI check, SQL Server tests, frontend verify) run only for a pull request labelled `queued` and never on a push to main (scripts/ci/heavy_gate.py), where the nightly schedule runs everything; the light steps run on every event. Every job runs on every pull request and ends green, so the required checks always report; a documentation-only change skips the heavy steps (backend, frontend, release script self-test) via scripts/ci/relevant_change.py. A push to main runs the light steps (release approval depends on it); assertion drift runs on pull requests only.
 jobs:
   backend:
@@ -85,7 +86,7 @@ jobs:
           EVENT_LABEL: ${{ github.event.label.name }}
         run: python3 scripts/ci/heavy_gate.py
       - name: toolchain is Java 25
-        if: (steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true') && steps.heavy.outputs.run == 'true'
+        if: ((steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true') && steps.heavy.outputs.run == 'true') || steps.change.outputs.tier == 'guarded' || github.event_name == 'push'
         run: java -version 2>&1 | head -1 | grep -q '"25'
       - name: test images are present
         if: (steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true') && steps.heavy.outputs.run == 'true'
@@ -95,8 +96,18 @@ jobs:
           grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' backend/architecture/test-images.txt | while read -r image || [ -n "$image" ]; do
             docker image inspect "$image" >/dev/null 2>&1 || docker pull -q "$image"
           done
+      # middle tier (scripts/ci/relevant_change.py tier=guarded): only docs the builds read changed, and every file that reads them is a container-free test; runs on every pull request event, no queue label needed
+      - name: guarded docs changed - the container-free tests that read them
+        if: steps.change.outputs.tier == 'guarded' && steps.change.outputs.guard_classes != ''
+        env:
+          GUARD_CLASSES: ${{ steps.change.outputs.guard_classes }}
+        run: scripts/ci/guarded_tests.sh "$GUARD_CLASSES"
+      # a push to main runs the light steps only (scripts/ci/heavy_gate.py); this is the post-merge alarm for a merge that no heavy run tested on this exact tree: every container-free unit test, about 25 seconds
+      - name: container-free unit tests on a push to main
+        if: github.event_name == 'push'
+        run: scripts/ci/guarded_tests.sh "$(python3 scripts/ci/light_unit_classes.py)"
       - name: surefire and failsafe, side by side
-        if: steps.change.outputs.relevant == 'true' && steps.heavy.outputs.run == 'true'
+        if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
         # Two forks per plugin (four test JVMs per runner instead of eight): the runners share one Docker Desktop (CI_RUNNERS.md)
         env:
           BACKEND_WATCHDOG_SECONDS: '1500'
@@ -107,10 +118,10 @@ jobs:
         timeout-minutes: 20
         run: python3 scripts/ci/repeat_new_tests.py "origin/$GITHUB_BASE_REF" --times 3
       - name: every acceptance test class produced a surefire or failsafe report
-        if: steps.change.outputs.relevant == 'true' && steps.heavy.outputs.run == 'true'
+        if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
         run: python3 scripts/ci/acceptance_reports.py
       - name: OpenAPI contract unchanged (OpenApiExportTest rewrites frontend/packages/api/openapi.json)
-        if: steps.change.outputs.relevant == 'true' && steps.heavy.outputs.run == 'true'
+        if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
         run: git diff --exit-code -- frontend/packages/api/openapi.json
       - name: SQL Server integration tests (profile legacy-it)
         if: steps.change.outputs.legacy_it == 'true' && steps.heavy.outputs.run == 'true'
@@ -161,14 +172,27 @@ jobs:
           EVENT_LABEL: ${{ github.event.label.name }}
         run: python3 scripts/ci/heavy_gate.py
       - name: toolchain is Node 24 and the pinned pnpm
-        if: steps.change.outputs.relevant == 'true' && steps.heavy.outputs.run == 'true'
+        if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
         run: |
           node --version | grep -q '^v24\.'
           test "$(pnpm --version)" = "$(node -p "require('./package.json').packageManager.split('@')[1].split('+')[0]")"
-      - if: steps.change.outputs.relevant == 'true' && steps.heavy.outputs.run == 'true'
+      - if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
         run: pnpm install --frozen-lockfile --prefer-offline
-      - if: steps.change.outputs.relevant == 'true' && steps.heavy.outputs.run == 'true'
+      - if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
         run: pnpm verify
+      # middle tier: the glossary copy scripts read terms.yaml and bcs.yaml (scripts/precheck.sh runs the same two)
+      - name: guarded docs changed - toolchain is Node 24 and the pinned pnpm
+        if: steps.change.outputs.tier == 'guarded' && steps.change.outputs.guard_frontend == 'true'
+        run: |
+          node --version | grep -q '^v24\.'
+          test "$(pnpm --version)" = "$(node -p "require('./package.json').packageManager.split('@')[1].split('+')[0]")"
+      - if: steps.change.outputs.tier == 'guarded' && steps.change.outputs.guard_frontend == 'true'
+        run: pnpm install --frozen-lockfile --prefer-offline
+      - name: guarded docs changed - glossary copy check and script tests
+        if: steps.change.outputs.tier == 'guarded' && steps.change.outputs.guard_frontend == 'true'
+        run: |
+          pnpm run check:copy
+          pnpm run test:scripts
 
   gitleaks:
     name: secret scan (gitleaks)
