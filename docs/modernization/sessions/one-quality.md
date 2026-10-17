@@ -9,7 +9,9 @@
 - 测试与 CI 健康：不稳定测试（如 FLAKY-SESS）、CI 卡顿与超时（如 Testcontainers 连接无 socketTimeout）、CI 时长、runner 上的测试容器回收；发现即开卡、能手术式修的自己修。
 - 测试体系：验收测试约定（SESSION_PLAYBOOK §6.1）、测试只断言本模块与确定性等待（CS-5.5 / 5.6）、覆盖率门槛是否恢复（待用户）。
 - 守护规则整体治理：各守护（ArchUnit、Modulith、Glossary、TestContainerGuard 等）的基线只减不增是否落实，基线文件条数月度报告。
-- 每晚 `nightly-legacy-it.yml` 结果巡检，失败即开卡。
+- 每晚 `nightly-legacy-it.yml` 结果巡检，失败即开卡；成功只在 QUALITY_CONTEXT 记一行耗时。
+- 每晚复发检测（`scripts/ci/ci_recurrence.py`）：失败 CI 按错题本报错特征归类，已落实的检查项仍复发即报调度；后续迁为 CI 定时工作流（不依赖会话存活），迁后删 RESOURCES.md 对应行。
+- 合并队列与 CI 门控的脚本：队列（`scripts/merge/mq.py`）、CI 三档（`relevant_change.py`）、重复新测试（`repeat_new_tests.py`）、验收裁定（`acceptance_rulings.py`）等的实现、自测与维护。
 
 ### 工作守则
 
@@ -28,13 +30,16 @@
 ## 独占
 
 - `docs/modernization/quality/QUALITY_CONTEXT.md`；不稳定测试台账（同目录）。
+- `scripts/merge/`（`mq.py`、`mq_selftest.py`、合集脚本 `scripts/queue/merge_train.py`）：只写与维护，运行与合并由 one-merge、one-coordinator 负责。
+- CI 与本地门禁脚本：`scripts/ci/` 下的 `relevant_change.py`（CI 三档）、`ci_recurrence.py`、`acceptance_rulings.py`、`repeat_new_tests.py`、`docker_diagnostics.py`、`failure_summary.py`，推送前钩子 `scripts/hooks/`、`scripts/precheck.sh`。
+- 检查脚本：`docs/modernization/architecture/decision-page/check_pages.py`、`docs/modernization/quality/defect-bank/defect_bank_check.py`。
 - 测试基础设施公共件（`TestPostgres`、`AcceptanceSupport` 等）的修复 PR；改动守护文件时 PR 单列、opus 复审。
 
 ## 不碰
 
 - 业务断言：不为通过测试放宽或删除断言（CLAUDE.md 第 5 条）；业务测试失败交负责模块会话。
 - CI runner 主机与发布流水线（one-ops）。
-- 合并 PR（one-coordinator）。
+- 不批准、不执行合并（one-coordinator 批准，one-merge 执行），只写与维护合并脚本；手工 `gh pr merge` 不做。
 
 ## 输入
 
@@ -48,7 +53,7 @@
 ## 触发与节奏
 
 - 事件：CI 失败、卡顿、重跑才过。
-- 定时：每晚巡检 nightly 结果（会话内定时任务，`/clear` 后用 `CronList` 核对）。
+- 定时：每晚 23:17 巡检 nightly 结果（会话内定时任务 b9569dfe）；每晚 23:43 复发检测（会话内定时任务 227e981d）。均登记于 `phase1a/infra/RESOURCES.md`，7 天到期前续设，`/clear` 后用 `CronList` 核对；复发检测迁云端定时工作流后删该行。
 
 ## 自动化
 
@@ -69,4 +74,4 @@
 
 ## 当前状态
 
-2026-10-16 20:37+02:00 常驻；在途工具 PR #342 #345 #352 #368 #374 #375 #376 #381 #392 #406 #408 #410 均已复审等调度入队（明细与待办见 QUALITY_CONTEXT）；上下文 86%，已在批次边界交接，/clear 后接续。
+2026-10-17 07:04+02:00 常驻；在途 PR：#449（db_scripts_aligned 比对角色与函数授权，已复审）、#450（登记裁定 -02、-03）；队列、CI 三档、验收裁定守护等已合入 main。待办见 QUALITY_CONTEXT（复发检测迁 CI 定时工作流、集成测试反模式检查先只报告）。规则：入队后的 PR 不再推送（#439、#446 各推过一次，不再发生）；在制代码 PR ≤1，队列与 CI 改造期间为调度给的例外，改造收尾后恢复。
