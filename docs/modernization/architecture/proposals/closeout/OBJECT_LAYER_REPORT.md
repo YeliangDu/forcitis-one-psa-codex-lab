@@ -1,7 +1,7 @@
 # 对象层与能力层对齐报告（object_layer_check.py 生成，勿手改）
 
 非支撑流程 143 条：已确认 114、声明无业务对象 23、提议 0、多候选 0、无候选 0、读模型 6。
-检查：① 无主对象 0；② 阶段承载对象无主流程 0；③ 主对象多流程 23；④ 能力不在所标段清单 11（另主对象无能力 0）；主对象不是业务对象 0。
+检查：① 无主对象 0；② 阶段承载对象无主流程 1；③ 主对象多流程 23；④ 能力不在所标段清单 11（另主对象无能力 0）；主对象不是业务对象 0。
 
 提议口径：第 1 档 所标段退出条件精确命中；第 2 档 所标段段内状态精确命中；第 3 档 退出或段内近似命中；第 4 档 所标段退出条件引用；第 5 档 唯一写入对象。只取本流程写入的对象；第 4、5 档把握低，组确认时重点看。
 
@@ -96,16 +96,16 @@
 
 | 流程 | 类型 | 所标段 | 主对象 | 状态 | 依据档 | 候选 / 写入对象 | 一级能力 |
 |---|---|---|---|---|---|---|---|
-| PRC-01 举办市场活动 | single_aggregate | VS-01.1 | OBJ-16 市场活动 | confirmed | 5 | OBJ-16 市场活动 | CAP-016 |
-| PRC-02 计划并完成客户活动 | single_aggregate | VS-01.1 | OBJ-105 客户活动 | confirmed | 5 | OBJ-105 客户活动 | CAP-001 |
+| PRC-01 举办市场活动 | single_aggregate | VS-01.1 | OBJ-16 市场活动 | confirmed | 2 | OBJ-16 市场活动 | CAP-016 |
+| PRC-02 计划并完成客户活动 | single_aggregate | VS-01.1 | OBJ-105 客户活动 | confirmed | 2 | OBJ-105 客户活动 | CAP-001 |
 | PRC-03 登记并跟进线索，转为商机 | business | VS-01.1、VS-01.2 | OBJ-17 线索 | confirmed | 1 | OBJ-17 线索、OBJ-18 商机 | CAP-017 |
-| PRC-05 维护往来单位档案 | single_aggregate | VS-01.1、VS-05.1 | OBJ-01 往来单位 | confirmed | 4 | OBJ-01 往来单位、OBJ-02 往来单位角色、OBJ-03 联系人 | CAP-001 |
+| PRC-05 维护往来单位档案 | single_aggregate | VS-01.1、VS-05.1 | OBJ-01 往来单位 | confirmed | 2 | OBJ-01 往来单位、OBJ-02 往来单位角色、OBJ-03 联系人 | CAP-001 |
 | PRC-06 做独立性检查 | single_aggregate | VS-01.2 | OBJ-23 独立性检查 | confirmed | 2 | OBJ-23 独立性检查 | CAP-018 |
 | PRC-07 编制并生效报价 | business | VS-01.2 | OBJ-21 报价 | confirmed | 2 | OBJ-21 报价、OBJ-22 报价估算分解 | CAP-018 |
 | PRC-08 参加投标，缴纳保证金并登记结果 | business | VS-01.2 | OBJ-18 商机 | confirmed | 1 | OBJ-13 保证金与押金、OBJ-18 商机、OBJ-20 投标、OBJ-86 资金收付 | CAP-018 |
-| PRC-10 收付保证金与保函 | single_aggregate | VS-01.2、VS-04.1 | OBJ-13 保证金与押金 | confirmed | 5 | OBJ-13 保证金与押金 | CAP-005 |
+| PRC-10 收付保证金与保函 | single_aggregate | VS-01.2、VS-04.1 | OBJ-13 保证金与押金 | confirmed | 2 | OBJ-13 保证金与押金 | CAP-005 |
 | PRC-12 发布服务产品与阶段类型版本 | single_aggregate | VS-01.2 | OBJ-24 服务产品 | confirmed | — | OBJ-24 服务产品、OBJ-25 阶段类型 | CAP-024 |
-| PRC-13 批准并生效费率、计费系数与协议价目版本 | business | VS-01.2、VS-02.0 | OBJ-26 标准成本费率表 | confirmed | — | OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项、OBJ-26 标准成本费率表、OBJ-27 计费系数 | CAP-026 |
+| PRC-13 批准并生效费率、计费系数与协议价目版本 | business | VS-01.2、VS-02.0 | OBJ-26 标准成本费率表 | confirmed | 2 | OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项、OBJ-26 标准成本费率表、OBJ-27 计费系数 | CAP-026 |
 | PRC-14 登记建设工程与招标项目 | single_aggregate | VS-01.2、VS-02.6、VS-03.1 | OBJ-46 建设工程 | confirmed | 2 | OBJ-19 招标项目、OBJ-46 建设工程、OBJ-47 建筑系统与部位 | CAP-046 |
 | PRC-16 申请并转正风险交付授权 | business | VS-01.2、VS-02.0、VS-04.1 | OBJ-12 风险交付授权 | confirmed | 1 | OBJ-12 风险交付授权 | CAP-018 |
 | PRC-17 建立项目并组建团队 | business | VS-02.0、VS-03.1 | OBJ-29 项目 | confirmed | 1 | OBJ-29 项目、OBJ-30 WBS 节点、OBJ-34 项目团队成员、OBJ-46 建设工程、OBJ-47 建筑系统与部位 | CAP-029 |
@@ -119,7 +119,7 @@
 | PRC-26 接收并确认发包人提供资料 | business | VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4 | OBJ-42 发包人提供资料 | confirmed | 2 | OBJ-42 发包人提供资料 | CAP-029 |
 | PRC-27 登记并处置项目风险与问题 | single_aggregate | VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7 | OBJ-108 项目风险与问题 | confirmed | 5 | OBJ-108 项目风险与问题 | CAP-029 |
 | PRC-28 编制、评审并签发交付物，送达并登记客户认可 | business | VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-03.5 | OBJ-35 交付物 | confirmed | 1 | OBJ-35 交付物、OBJ-37 内部评审 | CAP-029 |
-| PRC-30 提出并批准完工估算 | business | VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-33 完工估算 | confirmed | 5 | OBJ-33 完工估算 | CAP-029 |
+| PRC-30 提出并批准完工估算 | business | VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-33 完工估算 | confirmed | 2 | OBJ-33 完工估算 | CAP-029 |
 | PRC-31 提出并发出设计变更 | business | VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-40 设计变更 | confirmed | 5 | OBJ-40 设计变更 | CAP-029 |
 | PRC-32 申请并答复延期 | business | VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-41 延期申请 | confirmed | 5 | OBJ-41 延期申请 | CAP-029 |
 | PRC-33 采集、关联并封存证据 | single_aggregate | VS-02.4、VS-02.7、VS-03.2、VS-04.2 | OBJ-53 证据 | confirmed | 1 | AGG-110、OBJ-53 证据 | CAP-053 |
@@ -128,7 +128,7 @@
 | PRC-37 回访客户满意度 | business | VS-02.7 | OBJ-106 客户满意度调查 | confirmed | 1 | OBJ-106 客户满意度调查、OBJ-108 项目风险与问题 | CAP-029 |
 | PRC-38 编制并发布项目复盘 | business | VS-02.7 | OBJ-107 项目复盘 | confirmed | 1 | OBJ-107 项目复盘 | CAP-029 |
 | PRC-41 制定检查计划并使其生效 | business | VS-03.1 | OBJ-48 检查计划 | confirmed | 5 | OBJ-48 检查计划 | CAP-005 |
-| PRC-42 发布检查表模板版本 | single_aggregate | VS-03.1 | OBJ-50 检查表模板 | confirmed | 5 | OBJ-50 检查表模板 | CAP-024 |
+| PRC-42 发布检查表模板版本 | single_aggregate | VS-03.1 | OBJ-50 检查表模板 | confirmed | 2 | OBJ-50 检查表模板 | CAP-024 |
 | PRC-43 实施现场检查并锁定 | business | VS-03.1、VS-03.2、VS-02.6 | OBJ-49 检查 | confirmed | 1 | AGG-110、OBJ-49 检查、OBJ-53 证据 | CAP-029 |
 | PRC-44 发布客户资产类不符合项并建议外部检测 | business | VS-03.2、VS-03.3 | OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32） | confirmed | 1 | AGG-110、OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32）、OBJ-52 外部检测 | CAP-029 |
 | PRC-45 跟踪整改并复查闭合 | business | VS-03.4 | OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32） | confirmed | 1 | AGG-110、OBJ-38 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32）、OBJ-49 检查、OBJ-53 证据 | CAP-029 |
@@ -149,7 +149,7 @@
 | PRC-62 质量保证金到期提示 | read_model | VS-04.4 | — | read_model | — |  | — |
 | PRC-63 商业汇票兑付与逾期 | business | VS-04.4 | OBJ-85 往来款项 | confirmed | 3 | OBJ-85 往来款项、OBJ-86 资金收付 | CAP-103 |
 | PRC-66 发起结算，确认最终价款并结算协议 | business | VS-04.5、VS-04.6 | OBJ-05 协议 | confirmed | 1 | OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项 | CAP-005 |
-| PRC-68 终止协议 | single_aggregate | VS-04.5 | OBJ-05 协议 | confirmed | 4 | OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项 | CAP-005 |
+| PRC-68 终止协议 | single_aggregate | VS-04.5 | OBJ-05 协议 | confirmed | 1 | OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项 | CAP-005 |
 | PRC-69 供应商准入与资质核验 | business | VS-05.1 | OBJ-02 往来单位角色 | confirmed | 1 | OBJ-01 往来单位、OBJ-02 往来单位角色、OBJ-03 联系人、OBJ-65 资质证书 | CAP-001 |
 | PRC-78 年检、核查与延续企业资质 | business | VS-06.2 | OBJ-65 资质证书 | confirmed | 1 | OBJ-65 资质证书 | CAP-054 |
 | PRC-86 发放、归还与催还员工借款 | business | VS-08.1 | OBJ-85 往来款项 | confirmed | 1 | OBJ-85 往来款项、OBJ-86 资金收付 | CAP-103 |
@@ -159,7 +159,7 @@
 | PRC-149 冲销收入确认 | business | VS-04.2、VS-04.5 | OBJ-81 收入确认 | confirmed | 5 | AGG-44 | CAP-005 |
 | PRC-150 发票红冲后冲减应收 | event_policy | VS-04.4 | OBJ-85 往来款项 | confirmed | 4 | OBJ-85 往来款项 | CAP-103 |
 | PRC-151 填报经营产值 | business | VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 | OBJ-33 完工估算 | confirmed | 5 | OBJ-33 完工估算 | CAP-029 |
-| PRC-152 登记付款条件达成 | business | VS-04.3 | OBJ-07 付款条件项 | confirmed | — | OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项 | CAP-005 |
+| PRC-152 登记付款条件达成 | business | VS-04.3 | OBJ-07 付款条件项 | confirmed | 2 | OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项 | CAP-005 |
 | PRC-153 退还投标保证金 | business | VS-01.2、VS-04.1 | OBJ-13 保证金与押金 | confirmed | 5 | OBJ-13 保证金与押金 | CAP-005 |
 | PRC-154 收入三口径对照 | read_model | VS-04.2、VS-04.3 | — | read_model | — |  | — |
 | PRC-179 项目开始执行后协议转入履行中 | event_policy | VS-04.6 | OBJ-05 协议 | confirmed | 4 | OBJ-05 协议、OBJ-06 合同范围条目、OBJ-07 付款条件项 | CAP-005 |
@@ -167,7 +167,7 @@
 
 ## ② 阶段承载对象在该段无流程以它为主对象或次要对象
 
-无
+- VS-10.0 执行记账结转：OBJ-98 会计分录
 
 ## 主对象不是业务对象（技术聚合不承载价值项：改为业务对象，或写 none 并说明）
 
@@ -256,13 +256,13 @@
 | PRC-186 刷新部门简称 | OBJ-55 组织单元 | integration_proposed | — | VS-05.5（使用）、VS-07.1（使用） |
 | PRC-187 校验致远单点登录票据 | — | integration_none | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
 | PRC-188 识别企业微信登录身份 | OBJ-56 员工 | integration_proposed | support | VS-01.1（使用）、VS-01.2（使用）、VS-02.0（使用）、VS-02.1（使用）、VS-02.2（使用）、VS-02.3（使用）、VS-02.4（使用）、VS-02.5（使用）、VS-02.6（使用）、VS-03.1（使用）、VS-03.2（使用）、VS-05.5（使用）、VS-07.2（条件）、VS-07.3（条件）、VS-08.0（使用）、VS-08.1（使用）、VS-08.2（使用）、VS-08.3（使用）、VS-13.1（条件）、VS-13.2（使用）、VS-13.3（使用）、VS-13.5（使用）、VS-13.6（条件） |
-| PRC-189 投递企业微信通知 | OBJ-98 会计分录 | integration_proposed | support | VS-06.1（使用）、VS-10.1（条件）、VS-10.2（条件） |
+| PRC-189 投递企业微信通知 | OBJ-98 会计分录 | integration_proposed | support | VS-06.1（使用）、VS-10.0（条件）、VS-10.1（条件）、VS-10.2（条件） |
 | PRC-190 重投领域事件 | — | integration_none | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
 | PRC-191 归档数据到对象存储 | — | integration_none | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
 | PRC-192 读取老系统待办 | — | integration_none | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
-| PRC-193 编排历史数据迁入 | OBJ-56 员工 | integration_proposed | support | VS-01.1（使用）、VS-01.2（使用）、VS-02.0（使用）、VS-02.1（使用）、VS-02.2（使用）、VS-02.3（使用）、VS-02.4（使用）、VS-02.5（使用）、VS-02.6（使用）、VS-03.1（使用）、VS-03.2（使用）、VS-04.2（使用）、VS-04.3（条件）、VS-05.4（条件）、VS-05.5（使用）、VS-06.1（使用）、VS-07.2（条件）、VS-07.3（条件）、VS-08.0（使用）、VS-08.1（使用）、VS-08.2（条件）、VS-08.3（使用）、VS-10.1（条件）、VS-10.2（条件）、VS-13.1（条件）、VS-13.2（使用）、VS-13.3（使用）、VS-13.5（使用）、VS-13.6（条件） |
-| PRC-194 推送凭证到U8C | OBJ-98 会计分录 | integration_proposed | support | VS-06.1（使用）、VS-10.1（条件）、VS-10.2（条件） |
-| PRC-195 同步U8C主数据 | OBJ-98 会计分录 | integration_proposed | support | VS-06.1（使用）、VS-10.1（条件）、VS-10.2（条件） |
+| PRC-193 编排历史数据迁入 | OBJ-56 员工 | integration_proposed | support | VS-01.1（使用）、VS-01.2（使用）、VS-02.0（使用）、VS-02.1（使用）、VS-02.2（使用）、VS-02.3（使用）、VS-02.4（使用）、VS-02.5（使用）、VS-02.6（使用）、VS-03.1（使用）、VS-03.2（使用）、VS-04.2（使用）、VS-04.3（条件）、VS-05.4（条件）、VS-05.5（使用）、VS-06.1（使用）、VS-07.2（条件）、VS-07.3（条件）、VS-08.0（使用）、VS-08.1（使用）、VS-08.2（条件）、VS-08.3（使用）、VS-10.0（条件）、VS-10.1（条件）、VS-10.2（条件）、VS-13.1（条件）、VS-13.2（使用）、VS-13.3（使用）、VS-13.5（使用）、VS-13.6（条件） |
+| PRC-194 推送凭证到U8C | OBJ-98 会计分录 | integration_proposed | support | VS-06.1（使用）、VS-10.0（条件）、VS-10.1（条件）、VS-10.2（条件） |
+| PRC-195 同步U8C主数据 | OBJ-98 会计分录 | integration_proposed | support | VS-06.1（使用）、VS-10.0（条件）、VS-10.1（条件）、VS-10.2（条件） |
 | PRC-196 对接数电发票平台 | OBJ-83 增值税发票 | integration_proposed | support | VS-04.2（使用）、VS-04.3（条件）、VS-05.4（条件）、VS-06.1（使用）、VS-08.2（条件） |
 | PRC-197 同步差旅员工与组织 | — | integration_none | — | 无：所触对象不在任何段条件里、也不被段内流程使用（配置类须在读取它的流程步骤补 reads） |
 | PRC-198 接收差旅订单与账单 | OBJ-85 往来款项 | integration_proposed | support | VS-04.4（条件）、VS-05.4（条件）、VS-05.5（条件）、VS-06.1（使用）、VS-08.1（条件）、VS-08.2（使用）、VS-08.3（条件）、VS-12.2（使用）、VS-12.3（使用）、VS-13.5（条件） |

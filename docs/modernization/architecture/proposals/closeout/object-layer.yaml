@@ -379,17 +379,25 @@ stages:
   - OBJ-100
   capabilities:
   - CAP-100
-- id: VS-10.1
+- id: VS-10.0
   display: '10.1'
   order: 1
+  name: 执行记账结转
+  objects:
+  - OBJ-98
+  capabilities:
+  - CAP-103
+- id: VS-10.1
+  display: '10.2'
+  order: 2
   name: 期间关账
   objects:
   - OBJ-97
   capabilities:
   - CAP-103
 - id: VS-10.2
-  display: '10.2'
-  order: 2
+  display: '10.3'
+  order: 3
   name: 报表发布
   objects: []
   capabilities:
@@ -607,7 +615,7 @@ processes:
   primary_object: OBJ-01
   status: confirmed
   candidates:
-  - OBJ-02
+  - OBJ-01
   capability_l1: CAP-001
   capability: CAP-001
   category: business
@@ -696,6 +704,8 @@ processes:
   - VS-02.0
   primary_object: OBJ-26
   status: confirmed
+  candidates:
+  - OBJ-26
   capability_l1: CAP-026
   capability: CAP-026
   category: business
@@ -1803,7 +1813,7 @@ processes:
   - VS-10.2
   status: read_model
 - id: PRC-91
-  display: 10.1.01
+  display: 10.2.01
   name: 认定工时有效性
   group: revenue
   type: event_policy
@@ -1818,7 +1828,7 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-92
-  display: 10.1.02
+  display: 10.2.02
   name: 过账业务事实
   group: finance
   type: business
@@ -1830,7 +1840,7 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-93
-  display: 10.1.03
+  display: 10.2.03
   name: 生成会计分录
   group: finance
   type: event_policy
@@ -1845,7 +1855,7 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-94
-  display: 10.1.04
+  display: 10.2.04
   name: 制单并过账受控手工凭证
   group: finance
   type: business
@@ -1860,7 +1870,7 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-95
-  display: 10.1.05
+  display: 10.2.05
   name: 期末结转
   group: finance
   type: business
@@ -1870,7 +1880,7 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-96
-  display: 10.1.06
+  display: 10.2.06
   name: 分配人工成本
   group: finance
   type: business
@@ -1880,7 +1890,7 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-98
-  display: 10.1.07
+  display: 10.2.07
   name: 分摊间接成本
   group: finance
   type: business
@@ -1890,7 +1900,7 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-99
-  display: 10.1.08
+  display: 10.2.08
   name: 计提折旧并处置公司资产
   group: finance
   type: business
@@ -1905,7 +1915,7 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-101
-  display: 10.1.09
+  display: 10.2.09
   name: 月结检查并关账
   group: finance
   type: business
@@ -1920,7 +1930,7 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-102
-  display: 10.1.10
+  display: 10.2.10
   name: 启用第 13 期并年末关账
   group: finance
   type: business
@@ -1935,7 +1945,7 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-103
-  display: 10.1.11
+  display: 10.2.11
   name: 生成期间余额快照
   group: finance
   type: event_policy
@@ -1947,7 +1957,7 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-104
-  display: 10.2.01
+  display: 10.3.01
   name: 外部法定账对账与签字
   group: finance
   type: business
@@ -1957,7 +1967,7 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-106
-  display: 10.2.02
+  display: 10.3.02
   name: 出具三大报表
   group: finance
   type: read_model
@@ -2292,7 +2302,7 @@ processes:
   category: support
   category_by: 价值流
 - id: PRC-135
-  display: 10.1.12
+  display: 10.2.12
   name: 处理会计分录待处理队列与推送重投
   group: finance
   type: single_aggregate
@@ -2443,6 +2453,8 @@ processes:
   - VS-04.3
   primary_object: OBJ-07
   status: confirmed
+  candidates:
+  - OBJ-07
   capability_l1: CAP-005
   capability: CAP-005.007
   category: business
@@ -2475,7 +2487,7 @@ processes:
   category: business
   category_by: 价值流
 - id: PRC-158
-  display: 10.1.13
+  display: 10.2.13
   name: 处置过账拒收记录
   group: finance
   type: single_aggregate
@@ -2541,7 +2553,7 @@ processes:
   category: business
   category_by: 价值流
 - id: PRC-169
-  display: 10.1.14
+  display: 10.2.14
   name: 处置勾稽差异案
   group: finance
   type: single_aggregate
@@ -3360,10 +3372,12 @@ processes:
   - PRC-135
   supports:
   - VS-06.1
+  - VS-10.0
   - VS-10.1
   - VS-10.2
   supports_basis:
     VS-06.1: 使用
+    VS-10.0: 条件
     VS-10.1: 条件
     VS-10.2: 条件
   primary_object: OBJ-98
@@ -3425,6 +3439,7 @@ processes:
   - VS-08.1
   - VS-08.2
   - VS-08.3
+  - VS-10.0
   - VS-10.1
   - VS-10.2
   - VS-13.1
@@ -3455,6 +3470,7 @@ processes:
     VS-08.1: 使用
     VS-08.2: 条件
     VS-08.3: 使用
+    VS-10.0: 条件
     VS-10.1: 条件
     VS-10.2: 条件
     VS-13.1: 条件
@@ -3477,10 +3493,12 @@ processes:
   - OBJ-98
   supports:
   - VS-06.1
+  - VS-10.0
   - VS-10.1
   - VS-10.2
   supports_basis:
     VS-06.1: 使用
+    VS-10.0: 条件
     VS-10.1: 条件
     VS-10.2: 条件
   primary_object: OBJ-98
@@ -3498,10 +3516,12 @@ processes:
   - OBJ-98
   supports:
   - VS-06.1
+  - VS-10.0
   - VS-10.1
   - VS-10.2
   supports_basis:
     VS-06.1: 使用
+    VS-10.0: 条件
     VS-10.1: 条件
     VS-10.2: 条件
   primary_object: OBJ-98
