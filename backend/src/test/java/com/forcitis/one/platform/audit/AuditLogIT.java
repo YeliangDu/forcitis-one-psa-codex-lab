@@ -14,6 +14,7 @@ import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditEntry;
+import com.forcitis.one.platform.audit.api.AuditEntryId;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
@@ -107,6 +108,19 @@ class AuditLogIT {
 
         assertThat(count(committed)).isEqualTo(1);
         assertThat(count(rolledBack)).isZero();
+    }
+
+    @Test
+    @DisplayName("C-6: record returns the id of the entry it wrote, so the caller can keep it in the same transaction")
+    void recordReturnsTheIdOfTheWrittenEntry() {
+        UUID subject = UUID.randomUUID();
+
+        AuditEntryId id = tx.execute(s -> audit.record(
+                new AuditEntry("platform.audit.test.recorded", TestAccounts.account(5), null, subj(subject), "returned")));
+
+        assertThat(id).isNotNull();
+        assertThat(jdbc.sql("select id from platform_audit.audit_entries where subject_id = :subject").param("subject", subject)
+                .query(UUID.class).single()).isEqualTo(id.value());
     }
 
     @Test

@@ -3,7 +3,7 @@ package com.forcitis.one.platform.audit.application;
 import com.forcitis.one.kernel.InvalidCursorException;
 import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.kernel.Uuids;
-import com.forcitis.one.platform.audit.domain.AuditEntryId;
+import com.forcitis.one.platform.audit.api.AuditEntryId;
 import com.forcitis.one.platform.audit.domain.AuditPageMark;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
