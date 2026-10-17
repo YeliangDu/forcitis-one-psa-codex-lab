@@ -43,6 +43,9 @@
 ## 上下文文档
 
 - `docs/modernization/sessions/one-arch-finance.md`（本画像）
+- `docs/modernization/architecture/proposals/closeout/finance/NOTES.md`（接缝、待定与裁定落实记录）
+- `docs/modernization/architecture/proposals/closeout/finance/STAGES.md`（阶段对齐）
+- `docs/modernization/architecture/proposals/closeout/finance/OBJECTS.md`（对象层）
 
 ## 交接条件
 
@@ -51,10 +54,10 @@
 ## 权限边界
 
 - 用户待定事项先交 one-architecture 合成确认页，不自行出页
-- 子代理显式指定模型：opus 只用于首轮评审，执行用 sonnet，取数用 haiku
+- 子代理显式指定模型：opus 只用于首轮评审，取数用 haiku；执行类先交 Codex（gpt-6.1-sol xhigh，run_in_background，关闭标准输入）
 - 中文；系统称 FORCITIS one / 老系统；老系统只作证据
 - 派卡按 SESSION_PLAYBOOK §5「任务命名与登记」（2026-10-17 起）：任务号 `<主线码>-<MMDD>-AFI-<nn>`、任务名 `[主线·bc] 动作+对象`，每卡在 `docs/modernization/tasks/<任务号>.md` 登记片段，后台任务 description 写 `<任务号> <任务名> (codex)`；PR、提交、报告带任务号
 
 ## 当前状态
 
-2026-10-17：财务组 54 条流程、44 聚合（105 表）、命令 168、状态机 44、事件 60、场景 662、BPMN 29 张全部通过；已落实 S-15–S-43 涉及本组的裁定、阶段对齐（#421 判据、SD-03/10/11）、对象层（primary_object，#422）；五个价值流有条件通过，C7 已交。分支 claude/one-arch-finance-closeout @ ded5ebab（文档类不开 PR，调度收合集）。等 one-architecture 出确认页与信息层；新活先写派工卡交 Codex（run_in_background），本会话只派工、审稿、验收。接续读本画像、finance/NOTES.md、STAGES.md、OBJECTS.md、共享笔记 one-arch-finance-status.md。
+2026-10-17 13:25：财务组 54 条流程、44 聚合（105 表）、命令 168、状态机 44、事件 60、场景 662、BPMN 29 张全部通过；已落实 S-15–S-43 涉及本组的裁定、阶段对齐（#421 判据、SD-03/10/11）、对象层（primary_object，#422）；五个价值流有条件通过，C7 已交。分支 claude/one-arch-finance-closeout @ ded5ebab（文档类不开 PR，调度收合集）。等 one-architecture 出确认页与信息层；新活先写派工卡交 Codex（run_in_background），本会话只派工、审稿、验收。接续读「上下文文档」所列文件与共享笔记 one-arch-finance-status.md。
