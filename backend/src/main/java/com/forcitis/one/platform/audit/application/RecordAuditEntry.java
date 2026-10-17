@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.audit.application;
 
 import com.forcitis.one.platform.audit.api.AuditEntry;
+import com.forcitis.one.platform.audit.api.AuditEntryId;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.audit.domain.AuditEntryRepository;
 import java.time.Clock;
@@ -21,8 +22,8 @@ class RecordAuditEntry implements AuditLog {
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
-    public void record(AuditEntry entry) {
-        entries.save(entry, clock.instant());
+    public AuditEntryId record(AuditEntry entry) {
+        return entries.save(entry, clock.instant());
     }
 
     @Override
