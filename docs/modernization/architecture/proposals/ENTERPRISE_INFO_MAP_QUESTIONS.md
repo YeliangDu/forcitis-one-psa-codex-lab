@@ -1,5 +1,7 @@
 # 全企业业务对象信息图：交用户确认的问题清单
 
+状态：历史记录｜2026-10-15｜负责：one-architecture
+
 状态：草案，供做在线确认页 · 日期：2026-10-15 · 作者：one-architecture 子代理 · 配套 `ENTERPRISE_INFO_MAP_DRAFT.md`（对象编号 OBJ-xx、冲突编号 C-xx 见该文件）。
 
 ## 说明
