@@ -23,6 +23,7 @@
 
 - one-architecture：ARCH_CLOSEOUT_PLAN、聚合稿（`ENTERPRISE_AGGREGATES_DRAFT.md`）、`STEP6A_PROCESSES.md`、`processes.v1.yaml`、`value-streams.v2.yaml`、ADR-0050/0051
 - `glossary/terms.yaml`；SESSION_PLAYBOOK §14、§14.1；财务相关 intent 与 ADR
+- 本组提议稿（在本分支 closeout/finance/，不进 main）：`NOTES.md`（接缝、待定与裁定落实记录）、`STAGES.md`（阶段对齐）、`OBJECTS.md`（对象层），接续时先读
 
 ## 输出
 
@@ -43,9 +44,6 @@
 ## 上下文文档
 
 - `docs/modernization/sessions/one-arch-finance.md`（本画像）
-- `docs/modernization/architecture/proposals/closeout/finance/NOTES.md`（接缝、待定与裁定落实记录）
-- `docs/modernization/architecture/proposals/closeout/finance/STAGES.md`（阶段对齐）
-- `docs/modernization/architecture/proposals/closeout/finance/OBJECTS.md`（对象层）
 
 ## 交接条件
 
@@ -60,4 +58,4 @@
 
 ## 当前状态
 
-2026-10-17 13:25：财务组 54 条流程、44 聚合（105 表）、命令 168、状态机 44、事件 60、场景 662、BPMN 29 张全部通过；已落实 S-15–S-43 涉及本组的裁定、阶段对齐（#421 判据、SD-03/10/11）、对象层（primary_object，#422）；五个价值流有条件通过，C7 已交。分支 claude/one-arch-finance-closeout @ ded5ebab（文档类不开 PR，调度收合集）。等 one-architecture 出确认页与信息层；新活先写派工卡交 Codex（run_in_background），本会话只派工、审稿、验收。接续读「上下文文档」所列文件与共享笔记 one-arch-finance-status.md。
+2026-10-17 13:25：财务组 54 条流程、44 聚合（105 表）、命令 168、状态机 44、事件 60、场景 662、BPMN 29 张全部通过；已落实 S-15–S-43 涉及本组的裁定、阶段对齐（#421 判据、SD-03/10/11）、对象层（primary_object，#422）；五个价值流有条件通过，C7 已交。分支 claude/one-arch-finance-closeout @ ded5ebab（文档类不开 PR，调度收合集）。等 one-architecture 出确认页与信息层；新活先写派工卡交 Codex（run_in_background），本会话只派工、审稿、验收。接续读本画像、「输入」所列本组提议稿与共享笔记 one-arch-finance-status.md。
