@@ -28,18 +28,11 @@ ADR-0039（防腐层边界）引入的术语（proposed，待业务评审，ADR-
 
 ## `code-aggregates-events.yaml`
 
-涉及模块：`cost.timesheet`、`platform.approval`、`platform.identity`、`platform.integration`。
-
 B2 登记：代码里的聚合根与领域事件各自要有词条（G40、G41）；
 
 登记会话 one-glossary，2026-10-15，中文名待用户确认。
 
-| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
-|---|---|---|---|---|---|---|
-| `timesheet_approval_withdrawn` | 工时单已撤回审批 | TimesheetApprovalWithdrawn | 领域 · cost.timesheet | 填报人撤销审批，工时单回到草稿；不记为驳回；以工作日期记业务日 |  |  |
-| `approval_task_became_overdue` | 任务已超时 | ApprovalTaskBecameOverdue | 领域 · platform.approval | 任务超过审批时限仍未处理；只提醒，不自动通过，计入时效统计 |  |  |
-| `role_deleted` | 角色已废除 | RoleDeleted | 领域 · platform.identity | 一个角色被废除，不再可用 |  | 事件目录称「角色删除」；「删除」属技术泛词，业务说法（废除/撤销）待用户确认 |
-| `source_reference_refused` | 来源对照登记已被拒绝 | SourceReferenceRefused | 领域 · platform.integration | 有人试图人工登记只能由同步或导入写入的来源对照，被拒绝，未存储任何对照 |  | 聚合 SourceReferenceRefusal |
+无错误码以外的术语。
 
 ## `contract-evolution.yaml`
 
@@ -84,7 +77,6 @@ cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）�
 | `migration_reject_reason__trial_commit_failed` | 试提交失败 | TrialCommitFailed | ACL（过渡期） · platform.integration | 迁入拒收原因代码：试提交中领域校验或数据库约束不通过（ADR-0036 第 7 条） |  |  |
 | `migration_reject_disposition__rerun_after_fix` | 修正后重跑 | RerunAfterFix | ACL（过渡期） · platform.integration | 迁入拒收处置取值：修正映射或来源后由新的暂存重跑（ADR-0036 第 7 条） |  |  |
 | `migration_reject_disposition__excluded` | 确认不迁 | Excluded | ACL（过渡期） · platform.integration | 迁入拒收处置取值：确认该行不迁入；权责事实须财务负责人确认，其他由业务管理员确认（ADR-0036 第 7 条） |  |  |
-| `migration_tie_out` | 迁入核对 | MigrationTieOut | ACL（过渡期） · platform.integration | 一个迁入批次按期间 × 法人 × 对象类型比对来源侧聚合与暂存的行数、金额合计、来源 ID 摘要与按来源单号的行数金额的结果；零差异或经财务签字后批次才能提交（ADR-0036 第 8 条） |  | 不用 Reconciliation：已批准术语「经营勾稽」Reconciliation 指跨口径对账 |
 | `migration_period_reservation` | 迁入占用 | MigrationPeriodReservation | ACL（过渡期） · accounting.period | 迁入批次对 (期间, 法人) 的占用登记，由 accounting.period 自持；有未解除占用的期间不得关账，批次转为提交中时加锁确认期间状态（ADR-0036 第 6 条） |  |  |
 | `migration_marker` | 迁入标记 | MigrationMarker | 领域 · operations.facts | 事实行上区分原生与迁入的标记；只在事实行，单据表不带；accounting.ledger 不为迁入标记的事实生成分录（ADR-0036 第 5、6 条） |  | 列名在实现 PR 中按 NAMING_STANDARD 定 |
 | `migration_posting_channel` | 迁入过账通道 | MigrationPostingChannel | ACL（过渡期） · operations.facts | operations.facts 中只供迁入用例使用的过账入口：期间可为历史期间或开放期间，不发布事件（ADR-0036 第 6 条） |  |  |
@@ -104,7 +96,7 @@ cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）�
 
 ## `enterprise-aggregates.yaml`
 
-涉及模块：`accounting.ledger`、`accounting.tax`、`contract.agreement`、`cost.costing`、`delivery.acceptance`、`delivery.execution`、`masterdata.counterparty`、`organization.leave`、`organization.payroll`、`payables.payment`、`presales.opportunity`、`procurement.subcontracting`、`receivables.collection`、`receivables.wip`。
+涉及模块：`accounting.ledger`、`accounting.tax`、`contract.agreement`、`cost.costing`、`delivery.acceptance`、`delivery.execution`、`masterdata.counterparty`、`payables.payment`、`presales.opportunity`、`procurement.subcontracting`、`receivables.collection`、`receivables.wip`。
 
 全企业聚合草案 §8 交 one-glossary 的新用语（预判登记稿，proposed，待业务评审，ADR-0018）。
 
@@ -114,38 +106,28 @@ cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）�
 
 | id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|---|
-| `counterparty` | 往来单位 | Counterparty | 领域 · masterdata.counterparty | 与我方发生业务往来的法律主体（企业、事业单位或自然人）的主数据：唯一法定标识，合并保留历史；客户、供方、联合体成员、建设单位等是它带准入状态的角色，不是不同的主体。不含我方法人（法人主体，组织人事）和员工。 |  | 与 presales.customer 的 customer（客户）定义同源，处置见确认单 B2-X02；英文 Counterparty 取 IFRS 9 通行写法 |
-| `construction_project` | 建设工程 | ConstructionProject | 领域 · masterdata.counterparty | 建设单位的工程项目的外部引用登记（含竣工在用后成为受检对象的工程）：被售前、交付执行、合同、检查共同引用，位于最上游；内含我方参与记录和往来单位角色（建设单位、业主、物业，带起止）。不是我方交付的项目（项目 project）。 |  | 本条不在草案 §8 清单内，因我方参与记录需要其聚合名而一并提议 |
 | `own_participation_record` | 我方参与记录 | OwnParticipationRecord | 领域 · masterdata.counterparty | 建设工程内记录我方在该工程中承担的角色及对应的我方项目（项目 ID 由交付登记）；一个工程可有多条，只作回溯线索，不触发校验。 |  |  |
 | `tender_project` | 招标项目 | TenderProject | 领域 · masterdata.counterparty | 依《招标投标法》公开或邀请招标的项目登记（招标标识、采购方式、标段），外部引用登记，被投标、合同和建设工程共同引用。草案称「招标项目登记」，登记是动作，名词取「招标项目」。与我方项目（project）不是一回事。 |  | 若架构定为不建聚合（REF，无聚合），kind 改 entity |
 | `project_wbs` | 项目 WBS | ProjectWbs | 领域 · delivery.execution | 一个项目一棵的工作分解结构树：节点（wbs_node）分阶段、子项、工作包三类，工作包为末级；节点挂接合同范围条目或已批准变更。wbs_node 是其内的实体，本词是聚合根。 |  | 词表已有 wbs_node（中文名「WBS」，实体）；本条为聚合根，两者是整体与部分，不是同义 |
 | `billing_revenue_limit` | 开票与收入额度 | BillingRevenueLimit | 领域 · receivables.wip | 每个协议一个，守住两条累计上限：累计开票不超过付款条件项的可开票额度，累计确认收入不超过履约义务的分摊价格；内含额度行、开票占用和收入确认行。是额度计数的载体，收入确认本身的规则不在这里。 |  | 草案称「履约义务收入台账并入开票与收入额度」；台账是方言，不用 |
-| `revenue_recognition_line` | 收入确认行 | RevenueRecognitionLine | 领域 · receivables.wip | 开票与收入额度内的一次收入确认记录：引用证据、证据类型、认可日和视为同意判定；收入期间由认可日派生，请求携带期间的一律拒绝。 |  | 与词表 revenue_recognition（收入确认单，聚合）的关系见确认单 B2-X06 |
 | `acceptance_evidence_type_admission` | 客户认可证据类型开放配置 | AcceptanceEvidenceTypeAdmission | 领域 · receivables.wip | 哪些客户认可证据类型已开放为可触发收入确认的版本化配置：每版本一个聚合，带生效日、批准人和依据文件，只追加；「历史迁入」永不开放。 |  | 开放（admit）取 ADR-0047 的说法；配置类聚合，每版本一个、已批准版本不可改 |
 | `output_invoice` | 销项发票 | OutputInvoice | 领域 · receivables.wip | 我方向客户开具的增值税发票（蓝字、红字），含平台开具结果与红冲确认；与开票事件（invoice_issued，开票）的关系是：销项发票是对象，开票是它被开具这件事。 |  | 英文取 output tax 的通行写法；若偏好 SalesInvoice 可改，中文名不变 |
-| `input_invoice` | 进项发票 | InputInvoice | 领域 · accounting.tax | 我方取得的增值税发票：查验、用途确认、入账占用和进项转出的载体；发票总额由入账占用分次消耗。 |  | bc accounting.tax 须先登记入 bcs.yaml（ADR-0022 第 7 条） |
 | `invoice_posting_reservation` | 发票入账占用 | InvoicePostingReservation | 领域 · accounting.tax | 进项发票金额被某笔入账（费用或应付）占用的记录；各笔占用合计不超过发票可入账金额。 |  |  |
 | `receivables_collection__cash_application_reservation` | 核销占用 | CashApplicationReservation | 领域 · receivables.collection | 回款分配行对应收款项余额的占用记录：分配行引用它，核销时转为核销记录，各笔占用合计不超过应收余额。 |  | 与应付侧同名，见 homonyms |
 | `payables_payment__cash_application_reservation` | 核销占用 | CashApplicationReservation | 领域 · payables.payment | 付款分配行对应付款项余额的占用记录：分配行引用它，核销时转为核销记录，各笔占用合计不超过应付余额。 |  | 与应收侧同名，见 homonyms |
 | `supplier_agreement` | 供方协议 | SupplierAgreement | 领域 · procurement.subcontracting | 我方与供方（分包方、采购供应商、出租方、保险人、居间人、劳务派遣单位）签订的协议，含基线、付款条件、质保金条款以及资质与同意证据；与客户侧收入协议（agreement，协议）相对。「供方」取 GB/T 19000 用语。 |  | 词表 agreement_type__lease_contract 等五个供方侧协议类型现登记在 contract.baseline，随本条迁入采购子域，见 PREJUDGE |
 | `supplier_agreement_performance_limit` | 供方协议履约额度 | SupplierAgreementPerformanceLimit | 领域 · procurement.subcontracting | 每个供方协议一个，守住「累计已确认履约金额不超过协议金额（含已生效分包变更）」；供方履约确认占用它。是额度计数的载体。 |  |  |
-| `subcontract_change` | 分包变更 | SubcontractChange | 领域 · procurement.subcontracting | 对分包协议金额、范围或工期的正式修改（含影响评估）；生效后调整供方协议履约额度。与客户侧变更（change_order）相对，二者不互相取代。 |  |  |
 | `subcontract_change_activated` | 分包变更已生效 | SubcontractChangeActivated | 领域 · procurement.subcontracting | 分包变更审批通过并生效；同 BC 内订阅，用于更新供方协议履约额度。 |  |  |
-| `leave_balance` | 假期余额 | LeaveBalance | 领域 · organization.leave | 一名员工在一个假期类型、一个年度内的应享、已用和占用（待批请假）三项数量，守住「已用加占用不超过应享」。草案称「假期余额账户」，「账户」与会计账户易混，不用。 |  | bc organization.leave 须先登记入 bcs.yaml |
-| `employee_compensation` | 员工薪酬 | EmployeeCompensation | 领域 · organization.payroll | 一名员工的薪酬属性版本（职级、薪档等，维度型版本）与专项附加扣除年度属性，月度薪酬核算以它为输入；含敏感个人信息，按 ADR-0043 登记访问级别。名称取企业会计准则第 9 号「职工薪酬」，员工与词表一致。 | 「人员薪酬档案」方言·已禁用 | 草案称「人员薪酬档案」：「人员」是已知待裁用语，「档案」是老系统表单叫法 |
 | `labor_cost_allocation_result` | 人工成本分配结果 | LaborCostAllocationResult | 领域 · cost.costing | 一个会计期间内，把已过账的工时与薪酬事实分配到项目的结果（分配行）；每期间只能有一份有效结果。人工成本称分配，间接费用称分摊（allocation_result）。 |  | 草案称「人工成本分配运行」；与既有 cost_transfer_batch（批次）、allocation_result（结果）同族，故称「结果」，不称「运行单据」 |
 | `cash_accrual_account_mapping` | 收付权责科目映射表 | CashAccrualAccountMapping | 领域 · accounting.ledger | 收付实现制科目与权责发生制科目的对应关系（映射行、对账类别）；每版本一个聚合，已生效版本不可改。与核算映射规则（accounting_mapping_rule_set，业务事件到凭证模板）不同：它对应的是科目，不是事件。 |  |  |
 | `control_account_authorization` | 控制科目授权表 | ControlAccountAuthorization | 领域 · accounting.ledger | 控制科目允许由哪些事实类型经哪些通道入账的版本化授权（科目 × 事实类型 × 通道）；每版本一个聚合，已生效版本不可改。 |  |  |
-| `no_objection_declaration` | 无异议声明 | NoObjectionDeclaration | 领域 · delivery.acceptance | 交付物内由项目经理作出的声明：截至某日未收到发包人的书面异议，附函件检索记录；是视为同意成立的须附证据之一。 |  |  |
 | `no_objection_declared` | 无异议已声明 | NoObjectionDeclared | 领域 · delivery.acceptance | 项目经理作出无异议声明；开票与收入侧订阅，用于视为同意的判定。 |  |  |
 | `design_change_claim_status` | 设计变更主张状态 | DesignChangeClaimStatus | 领域 · delivery.acceptance | 设计变更是否向对方主张：待主张，或不主张（附理由）；是否已主张由合同侧的变更、索赔记录，本 BC 不引用它们。草案称「主张标记」，标记是实现用语，业务上是状态。 |  |  |
-| `deemed_acceptance` | 视为同意 | DeemedAcceptance | 领域 · delivery.acceptance | 提交轮次送达后审查期满而发包人无结论也无异议，按合同约定视为发包人同意的状态；以送达记录、合同条款引用和期满记录成立，认可日取期满日。不同于发包人明确出具的书面认可。 |  |  |
 | `acceptance_date` | 认可日 | AcceptanceDate | 领域 · delivery.acceptance | 客户认可成果的日期，按证据类型取不同的日（签字日、签收日、邮件进入我方邮箱之日、纪要发出日、期满日等），决定收入期间。；认可是客户方接受成果这一事实，由八类证据证明（含邮件、纪要、视为同意），区别于验收（验收单上的裁定行为：通过、退回、有条件通过）；「交付物已认可」是收入证据，「验收通过」是质量裁定（GL2 B2-X08） |  | 「认可」与词表「验收」的关系见确认单 B2-X08 |
 | `review_period` | 审查期 | ReviewPeriod | 领域 · delivery.acceptance | 合同约定发包人审查设计文件的期限（天），期满无结论也无异议视为同意；不同意须书面说明，修改后重新报送、审查期重新起算。 |  |  |
 | `expiry_record` | 期满记录 | ExpiryRecord | 领域 · delivery.acceptance | 审查期届满的记录（期满日、计算所依参数），是视为同意的须附证据之一；期满日的判定在开票与收入侧（用户已定 D-8）。 |  |  |
 | `acceptance_evidence_type` | 客户认可证据类型 | AcceptanceEvidenceType | 领域 · delivery.acceptance | 客户认可成果的八类证据（书面认可文件、两类签收单、邮件确认、两类会议纪要或签认单、检查服务签认或报告签发、视为同意）加「历史迁入」；逐类开放，缺须附证据即拒绝。 |  | bc 随证据（OBJ-53）归属的 Q29 定；暂放 delivery.acceptance |
 | `counterparty_bank_account_changed` | 往来单位银行账户已变更 | CounterpartyBankAccountChanged | 领域 · masterdata.counterparty | 往来单位的收款银行账户变更；应付与付款侧订阅，用于拦截向旧账户付款。草案称「银行账户已变更」，与我方资金账户（银行与现金）相混，故加「往来单位」。 |  |  |
-| `bid` | 投标 | Bid | 领域 · presales.opportunity | 一次投标的全过程：招标项目与标段、参与方式、联合体协议、资格预审、投标报价、承诺快照、撤回与撤销。不是商机（opportunity）：一个商机可对应一次或多次投标。 |  |  |
 | `bid_won` | 投标已中标 | BidWon | 领域 · presales.opportunity | 投标收到中标通知；同 BC 内转为商机赢单。 |  |  |
 | `bid_lost` | 投标未中标 | BidLost | 领域 · presales.opportunity | 投标确认未中标；应收侧订阅，用于退还投标保证金。 |  |  |
 | `opportunity_lost` | 商机已输单 | OpportunityLost | 领域 · presales.opportunity | 商机以未赢结束，记录原因、竞争对手、中标单位和中标价；成本核算侧订阅，用于售前投入转费用。与词表「赢单」相对；「丢单」是口语，列为别名。 |  |  |
@@ -379,6 +361,16 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 
 另有错误码 5 个（kind 为 `error_code`）、技术词 13 个（`common_words`），不在表中。
 
+## platform.identity（`recon-pending-renames.yaml`）
+
+已裁定漏登补登（NAM-1017-GLO-06）里，新名已入正式词表而代码仍用旧名的待改名登记。
+
+负责会话改名并合入后，one-glossary 删除对应条目，旧名禁用随之生效。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `recon_pending__role_deleted` | 角色已废除 | RoleDeleted | 领域 · platform.identity | 用户裁定（GL 确认单 B2-B06）已定为「角色已废除 / RoleAbolished」；代码事件类改名合入前保留旧写法 RoleDeleted。 |  | 代码仍用 RoleDeleted |
+
 ## `round3-pending-renames.yaml`
 
 涉及模块：`accounting.ledger`、`cost.timesheet`、`organization.workforce`、`platform.approval`、`platform.identity`、`platform.integration`、`platform.numbering`。
@@ -431,18 +423,6 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 
 ## `step3-objects.yaml`
 
-涉及模块：`delivery.acceptance`、`organization.workforce`、`receivables.collection`。
-
 信息图 ADR-0048 确认页（用户 2026-10-16 选推荐）带来的新用语：one-architecture 交，one-glossary 2026-10-16 查重后登记；争议状态与争议应收是否同义待用户裁定（待决定收件箱）。
 
-| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
-|---|---|---|---|---|---|---|
-| `bill_redemption_status` | 兑付状态 | BillRedemptionStatus | 领域 · receivables.collection | 商业承兑汇票从收到到兑付的状态：收到 → 已兑付 / 逾期；到期日到而未兑付为逾期 |  | OBJ-35 之外：商票作回款方式、加到期日与兑付状态，不单独成对象 |
-| `bill_redemption_status__received` | 收到 | Received | 领域 · receivables.collection | 商业承兑汇票已收到，尚未到期兑付 |  |  |
-| `bill_redemption_status__redeemed` | 已兑付 | Redeemed | 领域 · receivables.collection | 商业承兑汇票到期已兑付，计现金流入（FD-40） |  |  |
-| `bill_redemption_status__overdue` | 已逾期 | BillOverdue | 领域 · receivables.collection | 商业承兑汇票到期日已过而未兑付；与应收账款的逾期（逾期应收）、审批任务的已超时不同 |  |  |
-| `receivable_disposition_category` | 往来款项处置分类 | ReceivableDispositionCategory | 领域 · receivables.collection | 应收、应付往来款项出现争议或无法正常收付时的处置分类，诉讼是其中一类；其余取值未定（信息图候选：复工、结算、诉讼、核销，待用户确认页定） |  | 信息图候选取值：复工、结算、诉讼、核销，待用户确认页定，目前只登记诉讼 |
-| `litigation` | 诉讼 | Litigation | 领域 · receivables.collection | 往来款项处置分类之一：已进入诉讼或仲裁程序 |  |  |
-| `continuing_education_hours` | 继续教育学时 | ContinuingEducationHours | 领域 · organization.workforce | 注册执业证书的属性：持证人在注册有效期内累计完成的继续教育学时，分必修与选修；达标是延续注册的条件 |  | 依据已由 one-architecture 核对原文（2026-10-16） |
-| `drawing_review_opinion` | 施工图审查意见 | DrawingReviewOpinion | 领域 · delivery.acceptance | 施工图审查机构对施工图出具的审查意见，作证据类型 |  | 随证据（Q29）暂不定的部分一并确认 |
-| `drawing_review_certificate` | 施工图审查合格书 | DrawingReviewCertificate | 领域 · delivery.acceptance | 施工图审查通过后出具的合格书，作证据类型 |  |  |
+无错误码以外的术语。

@@ -165,22 +165,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: migration_tie_out
-  zh: 迁入核对
-  en: MigrationTieOut
-  snake: migration_tie_out
-  kind: entity
-  bc: platform.integration
-  scope: acl
-  acl_class: "过渡期"
-  definition: 一个迁入批次按期间 × 法人 × 对象类型比对来源侧聚合与暂存的行数、金额合计、来源 ID 摘要与按来源单号的行数金额的结果；零差异或经财务签字后批次才能提交（ADR-0036 第 8 条）
-  standard_ref:
-  - ADR-0036 历史数据迁入
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 不用 Reconciliation：已批准术语「经营勾稽」Reconciliation 指跨口径对账
 - id: migration_period_reservation
   zh: 迁入占用
   en: MigrationPeriodReservation

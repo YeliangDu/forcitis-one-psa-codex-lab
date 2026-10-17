@@ -2,38 +2,6 @@
 # 前提：bcs.yaml 先并入 bcs-additions.yaml 中的 masterdata.*、organization.leave、accounting.tax 等；需要用户裁定的 11 项不在此文件，见 decide-items.json。
 # 聚合所在 bc 暂取现有 bc（presales.quoting、contract.baseline 等），B2-X01 定合并后的 BC 标识后整体迁移。
 terms:
-- id: counterparty
-  zh: 往来单位
-  en: Counterparty
-  snake: counterparty
-  kind: aggregate
-  bc: masterdata.counterparty
-  scope: domain
-  definition: 与我方发生业务往来的法律主体（企业、事业单位或自然人）的主数据：唯一法定标识，合并保留历史；客户、供方、联合体成员、建设单位等是它带准入状态的角色，不是不同的主体。不含我方法人（法人主体，组织人事）和员工。
-  standard_ref:
-  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-01
-  - 会计基础工作规范（往来结算）
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 与 presales.customer 的 customer（客户）定义同源，处置见确认单 B2-X02；英文 Counterparty 取 IFRS 9 通行写法
-- id: construction_project
-  zh: 建设工程
-  en: ConstructionProject
-  snake: construction_project
-  kind: aggregate
-  bc: masterdata.counterparty
-  scope: domain
-  definition: 建设单位的工程项目的外部引用登记（含竣工在用后成为受检对象的工程）：被售前、交付执行、合同、检查共同引用，位于最上游；内含我方参与记录和往来单位角色（建设单位、业主、物业，带起止）。不是我方交付的项目（项目 project）。
-  standard_ref:
-  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-33
-  - 《建设工程质量管理条例》
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 本条不在草案 §8 清单内，因我方参与记录需要其聚合名而一并提议
 - id: own_participation_record
   zh: 我方参与记录
   en: OwnParticipationRecord
@@ -98,22 +66,6 @@ terms:
   forbidden: []
   status: proposed
   note: 草案称「履约义务收入台账并入开票与收入额度」；台账是方言，不用
-- id: revenue_recognition_line
-  zh: 收入确认行
-  en: RevenueRecognitionLine
-  snake: revenue_recognition_line
-  kind: entity
-  bc: receivables.wip
-  scope: domain
-  definition: 开票与收入额度内的一次收入确认记录：引用证据、证据类型、认可日和视为同意判定；收入期间由认可日派生，请求携带期间的一律拒绝。
-  standard_ref:
-  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-44
-  - ADR-0047 第 3 条
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 与词表 revenue_recognition（收入确认单，聚合）的关系见确认单 B2-X06
 - id: acceptance_evidence_type_admission
   zh: 客户认可证据类型开放配置
   en: AcceptanceEvidenceTypeAdmission
@@ -146,22 +98,6 @@ terms:
   forbidden: []
   status: proposed
   note: 英文取 output tax 的通行写法；若偏好 SalesInvoice 可改，中文名不变
-- id: input_invoice
-  zh: 进项发票
-  en: InputInvoice
-  snake: input_invoice
-  kind: aggregate
-  bc: accounting.tax
-  scope: domain
-  definition: 我方取得的增值税发票：查验、用途确认、入账占用和进项转出的载体；发票总额由入账占用分次消耗。
-  standard_ref:
-  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-89
-  - 《增值税暂行条例》进项税额
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: bc accounting.tax 须先登记入 bcs.yaml（ADR-0022 第 7 条）
 - id: invoice_posting_reservation
   zh: 发票入账占用
   en: InvoicePostingReservation
@@ -242,22 +178,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: subcontract_change
-  zh: 分包变更
-  en: SubcontractChange
-  snake: subcontract_change
-  kind: aggregate
-  bc: procurement.subcontracting
-  scope: domain
-  definition: 对分包协议金额、范围或工期的正式修改（含影响评估）；生效后调整供方协议履约额度。与客户侧变更（change_order）相对，二者不互相取代。
-  standard_ref:
-  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-56
-  - FIDIC Variation
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: subcontract_change_activated
   zh: 分包变更已生效
   en: SubcontractChangeActivated
@@ -273,42 +193,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: leave_balance
-  zh: 假期余额
-  en: LeaveBalance
-  snake: leave_balance
-  kind: aggregate
-  bc: organization.leave
-  scope: domain
-  definition: 一名员工在一个假期类型、一个年度内的应享、已用和占用（待批请假）三项数量，守住「已用加占用不超过应享」。草案称「假期余额账户」，「账户」与会计账户易混，不用。
-  standard_ref:
-  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-71
-  - 《职工带薪年休假条例》
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: bc organization.leave 须先登记入 bcs.yaml
-- id: employee_compensation
-  zh: 员工薪酬
-  en: EmployeeCompensation
-  snake: employee_compensation
-  kind: aggregate
-  bc: organization.payroll
-  scope: domain
-  definition: 一名员工的薪酬属性版本（职级、薪档等，维度型版本）与专项附加扣除年度属性，月度薪酬核算以它为输入；含敏感个人信息，按 ADR-0043 登记访问级别。名称取企业会计准则第 9 号「职工薪酬」，员工与词表一致。
-  standard_ref:
-  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-93
-  - 企业会计准则第 9 号——职工薪酬
-  confidence: medium
-  aliases:
-  - name: 人员薪酬档案
-    type: dialect
-    deprecated: true
-    source: ENTERPRISE_AGGREGATES_DRAFT AGG-93
-  forbidden: []
-  status: proposed
-  note: 草案称「人员薪酬档案」：「人员」是已知待裁用语，「档案」是老系统表单叫法
 - id: labor_cost_allocation_result
   zh: 人工成本分配结果
   en: LaborCostAllocationResult
@@ -358,23 +242,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: no_objection_declaration
-  zh: 无异议声明
-  en: NoObjectionDeclaration
-  snake: no_objection_declaration
-  kind: entity
-  bc: delivery.acceptance
-  scope: domain
-  definition: 交付物内由项目经理作出的声明：截至某日未收到发包人的书面异议，附函件检索记录；是视为同意成立的须附证据之一。
-  standard_ref:
-  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-27
-  - ADR-0047 第 5 条
-  - FIDIC notice of no-objection
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: no_objection_declared
   zh: 无异议已声明
   en: NoObjectionDeclared
@@ -400,22 +267,6 @@ terms:
   definition: 设计变更是否向对方主张：待主张，或不主张（附理由）；是否已主张由合同侧的变更、索赔记录，本 BC 不引用它们。草案称「主张标记」，标记是实现用语，业务上是状态。
   standard_ref:
   - ENTERPRISE_AGGREGATES_DRAFT.md AGG-30
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: deemed_acceptance
-  zh: 视为同意
-  en: DeemedAcceptance
-  snake: deemed_acceptance
-  kind: state
-  bc: delivery.acceptance
-  scope: domain
-  definition: 提交轮次送达后审查期满而发包人无结论也无异议，按合同约定视为发包人同意的状态；以送达记录、合同条款引用和期满记录成立，认可日取期满日。不同于发包人明确出具的书面认可。
-  standard_ref:
-  - ADR-0047 第 5 条
-  - GF-2015-0209 第 8.1 条
   confidence: medium
   aliases: []
   forbidden: []
@@ -493,22 +344,6 @@ terms:
   definition: 往来单位的收款银行账户变更；应付与付款侧订阅，用于拦截向旧账户付款。草案称「银行账户已变更」，与我方资金账户（银行与现金）相混，故加「往来单位」。
   standard_ref:
   - ENTERPRISE_AGGREGATES_DRAFT.md AGG-01
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: bid
-  zh: 投标
-  en: Bid
-  snake: bid
-  kind: aggregate
-  bc: presales.opportunity
-  scope: domain
-  definition: 一次投标的全过程：招标项目与标段、参与方式、联合体协议、资格预审、投标报价、承诺快照、撤回与撤销。不是商机（opportunity）：一个商机可对应一次或多次投标。
-  standard_ref:
-  - ENTERPRISE_AGGREGATES_DRAFT.md AGG-11
-  - 《招标投标法》
   confidence: medium
   aliases: []
   forbidden: []

@@ -19,12 +19,12 @@
   "event_name": {
    "owner": "one-glossary",
    "where": "B2 存量：这 5 条是经营事件的名词写法，改名须业务确认；下一张用语决策单一并给用户（推荐如 ContractModified、EclAlerted、RetentionMoneyReleaseDueReached、RevenueReduced、RuleExecuted）；另含代码类 ApprovalTaskBecameOverdue（审批任务已超时；已按 B2-B02 改名，「Became + 形容词」的写法检查器仍判为非过去式，等 one-glossary 定检查器口径后删此行）",
-   "count": 5
+   "count": 0
   },
   "command_name": {
    "owner": "one-glossary",
    "where": "B2 存量：强制登出（ForcedLogout）改为祈使写法（ForceLogout），随下一张用语决策单确认",
-   "count": 1
+   "count": 0
   }
  },
  "entries": {
@@ -130,12 +130,6 @@
   "terms.yaml#uncontracted_exposure:metric": "指标须写口径：缺 formula、grain、as_of",
   "terms.yaml#uncontracted_wip:metric": "指标须写口径：缺 formula、grain、as_of",
   "terms.yaml#utilization_rate:metric": "指标须写口径：缺 formula、grain、as_of",
-  "terms.yaml#win_rate:metric": "指标须写口径：缺 formula、grain、as_of",
-  "terms.yaml#contract_modification:event_name": "领域事件名须以过去分词结尾，现为「ContractModification」",
-  "terms.yaml#ecl_alert:event_name": "领域事件名须以过去分词结尾，现为「EclAlert」",
-  "terms.yaml#retention_money_release_due:event_name": "领域事件名须以过去分词结尾，现为「RetentionMoneyReleaseDue」",
-  "terms.yaml#revenue_reduction:event_name": "领域事件名须以过去分词结尾，现为「RevenueReduction」",
-  "terms.yaml#rule_execution:event_name": "领域事件名须以过去分词结尾，现为「RuleExecution」",
-  "terms.yaml#forced_logout:command_name": "命令名须以祈使动词开头，现为「ForcedLogout」"
+  "terms.yaml#win_rate:metric": "指标须写口径：缺 formula、grain、as_of"
  }
 }
