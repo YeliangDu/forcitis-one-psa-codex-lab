@@ -1688,6 +1688,50 @@ sources:
           scope: domain
         fields:
         - definition
+  S098:
+    file: docs/modernization/rules/decide/answers/NM6.json
+    question: NM6~NM6-07
+    date: '2026-10-17'
+    batch: NM6
+    submission: NM6-20261017-171527-lg9
+    sha256: 106570f3becc3d9e65627a0e0bc2245eab462e961bd3bc387fcada922f4c7ebe
+    evidence:
+      choice: 0
+      defaulted: false
+      label: 以上叫法全部认可
+      'no': NM6-07
+      note: ''
+      recommended: false
+      submission: NM6-20261017-171527-lg9
+      submitted: '2026-10-17T15:15:27.566Z'
+      unanswered: false
+  S099:
+    file: docs/modernization/rules/decide/answers/NM6.json
+    question: NM6~NM6-08
+    date: '2026-10-17'
+    batch: NM6
+    submission: NM6-20261017-171527-lg9
+    sha256: 106570f3becc3d9e65627a0e0bc2245eab462e961bd3bc387fcada922f4c7ebe
+    evidence:
+      choice: 0
+      defaulted: false
+      label: 以上叫法全部认可
+      'no': NM6-08
+      note: ''
+      recommended: false
+      submission: NM6-20261017-171527-lg9
+      submitted: '2026-10-17T15:15:27.566Z'
+      unanswered: false
+  S100:
+    file: docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md
+    question: ''
+    date: '2026-10-17'
+    batch: 2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20
+    submission: null
+    sha256: ae30a277b8240a734117010eaec0855f6c65976841d6f9401b10577fb1e9254c
+    evidence:
+      text: NM6 决策页提交 NM6-20261017-171527-lg9：NM6-01「以上叫法全部认可」（按推荐预选，未改动）；NM6-02「以上叫法全部认可」（按推荐预选，未改动）；NM6-03「以上叫法全部认可」；NM6-04「以上叫法全部认可」；NM6-05「以上叫法全部认可」；NM6-06「以上叫法全部认可」；NM6-07「以上叫法全部认可」；NM6-08「以上叫法全部认可」；NM6-09「以上叫法全部认可」；NM6-10「以上叫法全部认可」；NM6-11「以上叫法全部认可」；NM6-12「以上叫法全部认可」；NM6-13「以上叫法全部认可」；NM6-14「以上叫法全部认可」；NM6-15「以上叫法全部认可」；NM6-16「以上叫法全部认可」；NM6-17「以上叫法全部认可」；NM6-18「以上叫法全部认可」；NM6-19「以上叫法全部认可」
+    content_sha256: 523b91bf711bb873531209db0e93c28581c029c5635eb4d1648b3fc641739d8c
 missing:
 - 'no': 1
   zh: 个人所得税申报
@@ -3380,6 +3424,130 @@ terms:
     - docs/modernization/rules/decide/answers/NM3.json#NM3~NM3-08
     note: NAM-1017-GLO-06：只改裁定涉及的指称及其 snake；旧指称保留可追溯别名，不全局禁用仍在代码或其他概念中使用的写法。
     confirmed: 2026-10-17（用户裁定，NM3，提交 NM3-20261017-105653-1u6）
+- op: add
+  sources:
+  - S098
+  - S100
+  term:
+    id: start_project_execution
+    zh: 开始执行项目
+    en: StartProjectExecution
+    snake: start_project_execution
+    kind: command
+    bc: delivery.execution
+    scope: domain
+    definition: 使项目从已立项进入执行中的命令。
+    standard_ref:
+    - docs/modernization/rules/decide/answers/NM6.json#NM6~NM6-07
+    - docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md
+    - docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-07/row_no=2
+    - docs/modernization/rules/decide/sheets/NM6.json#NM6-07
+    - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md#AGG-19
+    - docs/modernization/glossary/arch-naming/N4_VERBS_STATES.md#V046
+    status: approved
+    confirmed: 2026-10-17（用户裁定，NM6，提交 NM6-20261017-171527-lg9）；2026-10-17（用户裁定，2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20，docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md）
+    confidence: medium
+    aliases:
+    - name: 开始执行
+      type: standard-zh
+      deprecated: true
+      context: delivery.execution
+      source: docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-07/row_no=2
+    forbidden: []
+    note: NAM-1017-GLO-14：NM6 整表认可中文命令名；用户只认可中文名；英文名、定义、kind、bc、scope 为设计方定稿；旧名仅作可检索弃用别名，不得升为 dialect 或进 forbidden。
+- op: add
+  sources:
+  - S098
+  - S100
+  term:
+    id: mark_inspection_plan_as_no_longer_entrusted
+    zh: 标记检查计划不再受托
+    en: MarkInspectionPlanAsNoLongerEntrusted
+    snake: mark_inspection_plan_as_no_longer_entrusted
+    kind: command
+    bc: delivery.inspection
+    scope: domain
+    definition: 将检查计划标记为不再受托状态的命令。
+    standard_ref:
+    - docs/modernization/rules/decide/answers/NM6.json#NM6~NM6-07
+    - docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md
+    - docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-07/row_no=3
+    - docs/modernization/rules/decide/sheets/NM6.json#NM6-07
+    - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md#AGG-34
+    - docs/modernization/glossary/arch-naming/N4_VERBS_STATES.md#V004
+    status: approved
+    confirmed: 2026-10-17（用户裁定，NM6，提交 NM6-20261017-171527-lg9）；2026-10-17（用户裁定，2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20，docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md）
+    confidence: medium
+    aliases:
+    - name: 标记不再受托
+      type: standard-zh
+      deprecated: true
+      context: delivery.inspection
+      source: docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-07/row_no=3
+    forbidden: []
+    note: NAM-1017-GLO-14：NM6 整表认可中文命令名；用户只认可中文名；英文名、定义、kind、bc、scope 为设计方定稿；旧名仅作可检索弃用别名，不得升为 dialect 或进 forbidden。
+- op: add
+  sources:
+  - S098
+  - S100
+  term:
+    id: register_opportunity_win
+    zh: 登记商机赢单
+    en: RegisterOpportunityWin
+    snake: register_opportunity_win
+    kind: command
+    bc: presales.opportunity
+    scope: domain
+    definition: 登记商机已赢单事实的命令。
+    standard_ref:
+    - docs/modernization/rules/decide/answers/NM6.json#NM6~NM6-07
+    - docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md
+    - docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-07/row_no=1
+    - docs/modernization/rules/decide/sheets/NM6.json#NM6-07
+    - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md#AGG-10
+    - docs/modernization/glossary/arch-naming/N4_VERBS_STATES.md#V001
+    status: approved
+    confirmed: 2026-10-17（用户裁定，NM6，提交 NM6-20261017-171527-lg9）；2026-10-17（用户裁定，2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20，docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md）
+    confidence: medium
+    aliases:
+    - name: 商机赢单
+      type: standard-zh
+      deprecated: true
+      context: presales.opportunity
+      source: docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-07/row_no=1
+    forbidden: []
+    note: NAM-1017-GLO-14：NM6 整表认可中文命令名；用户只认可中文名；英文名、定义、kind、bc、scope 为设计方定稿；旧名仅作可检索弃用别名，不得升为 dialect 或进 forbidden。
+- op: add
+  sources:
+  - S099
+  - S100
+  term:
+    id: calculate_monthly_payroll
+    zh: 计算月度薪酬
+    en: CalculateMonthlyPayroll
+    snake: calculate_monthly_payroll
+    kind: command
+    bc: organization.payroll
+    scope: domain
+    definition: 计算某法人某月人员薪酬并形成月度薪酬结算结果的命令。
+    standard_ref:
+    - docs/modernization/rules/decide/answers/NM6.json#NM6~NM6-08
+    - docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md
+    - docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-08/row_no=2
+    - docs/modernization/rules/decide/sheets/NM6.json#NM6-08
+    - docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md#AGG-73
+    - docs/modernization/glossary/arch-naming/N4_VERBS_STATES.md#V158
+    status: approved
+    confirmed: 2026-10-17（用户裁定，NM6，提交 NM6-20261017-171527-lg9）；2026-10-17（用户裁定，2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20，docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md）
+    confidence: medium
+    aliases:
+    - name: 计算
+      type: standard-zh
+      deprecated: true
+      context: organization.payroll
+      source: docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json#NM6-08/row_no=2
+    forbidden: []
+    note: NAM-1017-GLO-14：NM6 整表认可中文命令名；用户只认可中文名；英文名、定义、kind、bc、scope 为设计方定稿；旧名仅作可检索弃用别名，不得升为 dialect 或进 forbidden。 动词表增补项：计算；负责会话已裁定本名称使用 Calculate / Calculated / calculate，N4 的 V158 由负责会话另行补入。
 promotions:
 - file: backend/glossary/proposed/code-aggregates-events.yaml
   id: timesheet_approval_withdrawn

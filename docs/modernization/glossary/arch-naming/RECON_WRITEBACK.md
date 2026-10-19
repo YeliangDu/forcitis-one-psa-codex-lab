@@ -300,3 +300,103 @@ SUMMARY: 7 PASS, 2 FAIL, 10 SKIP (base origin/main) — not ready
 本机验证留档：`/tmp/nam-1017-glo-06-r1/`（开工词表、基线与提议快照，删除前后实际问题集合，两次构建日志及逐字节比对副本，backend-glossary.log，frontend-copy.log，frontend-install-offline.log，precheck.log，verification.json）。临时目录只供本机复核；关键数量、逐项落点、失败信息、删除理由与完整 precheck 已写入本报告。
 
 交负责会话的未完成项：① identity 事件代码仍为 RoleDeleted，按已有用户裁定完成代码改名后重跑术语测试；② 在已有授权环境补齐前端依赖后重跑 check:copy／test:scripts；③ 42 条 deprecated 兼容旧名仍由原改名卡处理。未请求新的 Java 机制扩展，未擅自增加任何基线。
+
+
+## NAM-1017-GLO-14：NM6 四条命令登记（2026-10-17）
+
+状态：**本地登记已写入，验收未完成**。Codex 实现；本轮依据负责会话最新裁定继续登记四条，未修改 N4 动词表。开工 HEAD 与本地 origin/main 均为 `a70d8c5b421084b69025d5c3b84d0ef0c23405a1`，按禁网要求未 fetch。本轮仅改 `decisions-recon.yaml`、由 `build_terms.py` 生成的 `terms.yaml`，以及追加本小节；没有提交、推送、改动提议目录或验收测试。
+
+### 四条登记结果
+
+共同字段：`kind: command`、`scope: domain`、`status: approved`、`confidence: medium`。所有旧名均为 `type: standard-zh`、`deprecated: true` 的别名，带 bc 与定稿出处；`forbidden: []`。NM6 认可中文完整名称；前三条英文按 N4 受控动词加宾语组成，第四条按本卡负责会话裁定使用 Calculate。
+
+- **开始执行项目**：`id: start_project_execution`；`en: StartProjectExecution`；`snake: start_project_execution`；`bc: delivery.execution`；别名「开始执行」。定义：使项目从已立项进入执行中的命令。定稿为 `N7_RENAME_FINAL.json` 的 `NM6-07 / row_no=2`，聚合为 AGG-19，动词为 N4 V046 Start。
+- **标记检查计划不再受托**：`id: mark_inspection_plan_as_no_longer_entrusted`；`en: MarkInspectionPlanAsNoLongerEntrusted`；`snake: mark_inspection_plan_as_no_longer_entrusted`；`bc: delivery.inspection`；别名「标记不再受托」。定义：将检查计划标记为不再受托状态的命令。定稿为 `NM6-07 / row_no=3`，聚合为 AGG-34，状态为「不再受托」，动词为 N4 V004 Mark。
+- **登记商机赢单**：`id: register_opportunity_win`；`en: RegisterOpportunityWin`；`snake: register_opportunity_win`；`bc: presales.opportunity`；别名「商机赢单」。定义：登记商机已赢单事实的命令。定稿为 `NM6-07 / row_no=1`，聚合为 AGG-10，动词为 N4 V001 Register。
+- **计算月度薪酬**：`id: calculate_monthly_payroll`；`en: CalculateMonthlyPayroll`；`snake: calculate_monthly_payroll`；`bc: organization.payroll`；别名「计算」。定义：计算某法人某月人员薪酬并形成月度薪酬结算结果的命令。定稿为 `NM6-08 / row_no=2`，聚合为 AGG-73。
+
+### 出处与来源校验
+
+`decisions-recon.yaml` 精确追加 S098（NM6-07）、S099（NM6-08）及 S100（intent）。原有 97 个来源、所有既有操作与 A/B 提议对照不变。现有 JSON 来源类型直接支持「以上叫法全部认可」，无须扩展 `apply_recon.py`。
+
+- 答复：`docs/modernization/rules/decide/answers/NM6.json` 中 `NM6~NM6-07`、`NM6~NM6-08`，均为 choice 0、「以上叫法全部认可」，提交 **NM6-20261017-171527-lg9**，提交时间 `2026-10-17T15:15:27.566Z`。
+- 原话：`docs/modernization/intent/2026-10-17-171704-one-glossary-NM6-决策页提交-NM6-20.md` 的「原话」段。每条 `confirmed` 同时含 NM6 提交编号与该 intent 路径；来源记录带整文件 SHA-256，intent 另带原话段 SHA-256。
+- 题面与定稿：`docs/modernization/rules/decide/sheets/NM6.json`；`docs/modernization/glossary/arch-naming/N7_RENAME_FINAL.json` 的上述精确 question / row_no。二者未改。
+- 骨架：`docs/modernization/architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md` 的 AGG-19、AGG-34、AGG-10、AGG-73；移交依据为 `.codex-inputs/revenue-NOTES.md:1326` 与 `.codex-inputs/people-NOTES.md:439`。所有引用文件在当前 worktree 中实际存在。
+- 动词：`docs/modernization/glossary/arch-naming/N4_VERBS_STATES.md` 的 V046、V004、V001；这些标号只作表内定位，未创建新动词条目。
+
+**动词表增补项：计算**。本卡负责会话明确授权本名称使用 `Calculate / Calculated / calculate`；N4 当前尚无该动词，本卡没有把尚未存在的 V158 写成已存在的出处。V158 由负责会话另行增补，随下一页向用户说明。本轮不把此裁定扩大到其他名称。
+
+### 已验证
+
+- `build_terms.py` 连续两次退出 0，`cmp` 逐字节一致。SHA-256：`5b1fae7552cf932de43d2b91319a10433cdce2c38ae2f8f5839f1d0c58359377`。词表 **833 → 837**；原有 833 条逐字段相同，meta、common_words 相同，只增加本卡四条。术语规则存量问题为 102 条，基线外新问题 0。
+- `apply_recon.py --verify` 退出 0，原文 evidence、日期、批次、提交、intent 段落哈希及整文件审计哈希全部通过。
+- 本卡核验器 `/tmp/nam-1017-glo-14/verify-card.py` 退出 0，35 项负向检查均按预期失败：四条整组空输入、逐条缺失、逐条空来源、每条 zh/en/snake/bc/confirmed 空字段、四条各造一个不同 id/en/snake 但同 bc 同中文名的临时词条，以及 confirmed 出处篡改与来源文件不存在。
+- 上述四条数量完整性是本卡外部核验器的断言；现有生成器没有本卡专用「必须恰好四条」守护，不能把本次检查写成已新增永久门禁。空字段、空来源、重名与不存在来源均调用原有校验函数验证。
+- 故意破坏在 `/tmp/nam-1017-glo-14/mutation-repo/` 数据副本执行：先通过干净对照；将 `calculate_monthly_payroll.confirmed` 的 intent 出处改成不存在路径，报「确认来源不一致」；再把 S100 的 file 也改成该路径，报「裁定来源不存在或越界」；恢复后再次通过。未修改真实来源或脚本。
+- 后端命令 `cd backend && ./mvnw -o test-compile surefire:test -Dtest=GlossaryTest`（`MAVEN_ARGS=-o`、本机 Java 25）退出 0：**5 tests，0 failures，0 errors，0 skipped**。precheck 中 GlossaryTest 5、ErrorCodeGlossaryTest 2、NamingSurfaceTest 11、DocumentTypeCodeTest 3，共 21 项全通过，无容器。
+- `scripts/precheck.sh` 已实际执行，退出 **1**，汇总为 **8 PASS、1 FAIL、10 SKIP**。`build_all --check` 通过，所有 SKIP 原因见下方原始输出。gitleaks 8.30.1 全历史 2980 个提交扫描通过；该扫描不覆盖未提交文件。
+- `git diff --check` 通过。precheck 前后受控文件逐一哈希对照无额外变化。
+
+### 已运行但失败
+
+1. `apply_recon.py --self-test` 退出 **1**：第一段 72 个负向用例及正向检查通过；复审自测在 `apply_recon_selftest.py:241` 的 `assert len(user["sources"]) == 97` 失败，本卡追加来源后为 **100**。这是实际未通过的自测，不以第一段通过替代全命令结果。修正该硬编码断言需要改卡外自测文件，按工作卡边界停止于报告；没有放宽或删除断言，没有修改 apply_recon 行为。
+2. `cd frontend && pnpm install --frozen-lockfile --offline` 退出 **1**，`ERR_PNPM_NO_OFFLINE_TARBALL`：本次实际首个缺包为 **aria-query@5.3.0**，本地 store 无 tarball。使用 `COREPACK_ENABLE_NETWORK=0`、`npm_config_offline=true`，未补装或下载。
+3. 随后以 `pnpm --offline --config.verify-deps-before-run=false run check:copy` 执行，退出 **1**：`ERR_MODULE_NOT_FOUND`，缺 `typescript`。显式关闭运行前依赖自动安装，未改锁文件或依赖声明。本次离线安装生成的临时 `.pnpm-store` 已清理。
+4. precheck 唯一 FAIL 为前端术语检查所需依赖未安装；并非后端术语失败。未达到工作卡要求的 0 FAIL，故本卡不报完成。
+
+### 未运行与待负责会话处理
+
+- 因离线依赖不足，前端 `test:scripts`、完整 `pnpm verify` 未运行；`check:copy` 仅执行到缺模块错误，没有完成文案扫描。
+- 未运行容器、数据库集成测试、业务端到端验收；本卡没有指定独立业务验收测试。后端全量测试未运行，precheck 原文说明未改模块代码；已运行上述无容器术语专项。
+- 负责会话需处理自测来源数硬编码、在已有授权环境备齐离线依赖缓存，并补 N4 V158 后重跑。无需重新裁定 NM6 中文名称。
+- 输入 NM6 答复、题面、intent、N7 定稿表和 `.codex-inputs/` 开工时即为未跟踪移交文件，本卡未改其内容；后续交付须由负责会话保留这些依据，避免只拿本卡三个文件而丢失引用源。
+
+### 本轮 precheck.sh 原始输出
+
+命令（默认 origin/main，追加本报告小节之前执行，未缩小基线）：
+
+```sh
+PATH=/Users/yeliang/.pyenv/versions/3.12.13/bin:/Users/yeliang/.nvm/versions/node/v24.18.0/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin \
+JAVA_HOME=/opt/homebrew/opt/openjdk@25/libexec/openjdk.jdk/Contents/Home \
+MAVEN_ARGS=-o COREPACK_ENABLE_NETWORK=0 npm_config_offline=true npm_config_verify_deps_before_run=false CI=true scripts/precheck.sh
+```
+
+```text
+precheck: base origin/main (a70d8c5b), HEAD a70d8c5b, 15 changed files (15 uncommitted)
+
+PASS  generated docs (build_all --check)     review_revisions: 0 个问题
+PASS  legacy system name                     check_legacy_name: 无违规
+PASS  decision pages: question rules (self-test) check_pages self-test: ok
+PASS  decision pages: question rules         check_pages: 2 张页，0 处问题
+SKIP  migrations immutable                   no migration, marker or Flyway setting changed
+SKIP  system actors append-only              system-actors.txt and its script did not change
+SKIP  acceptance guard                       no acceptance test changed
+SKIP  database scripts aligned               no database script or migration changed
+SKIP  docs read by builds are registered     no backend, frontend or script changed
+SKIP  assertion drift (warning only)         no test file changed
+FAIL  glossary: frontend check:copy, test:scripts 前端依赖未安装：先在 frontend/ 运行 pnpm install --frozen-lockfile --offline（只用本机缓存、不下载）；缓存缺包而失败时，再问用户是否联网安装
+PASS  glossary: backend term tests             size (term round3_pending__size) -> com.forcitis.one.platform.integration.api.ArchivedOb
+SKIP  guards: backend guard tests            no guard test or architecture list changed
+PASS  release scripts self-test              deploy_gate.py self-test passed
+PASS  shellcheck scripts/release             ok
+PASS  gitleaks (full history)                2980 commits scanned; no leaks
+      note: uncommitted files are not in history; the pre-commit hook scans them on commit
+SKIP  backend tests                          not run by default; no module code changed (shared inputs, resources, build or architecture lists)
+      run: (cd backend && ./mvnw -q test-compile surefire:test -Dtest='ArchitectureRulesTest,ModularityTest,ModuleDependencyTest,NamingSurfaceTest,GlossaryTest,DdlNamingTest,LegacyShapeTest,TimeSourceGuardTest,TestIsolationGuardTest' -Dsurefire.failIfNoSpecifiedTests=false)
+      before delivery run everything: scripts/ci/backend_verify.sh (Testcontainers: ask the user before starting containers)
+SKIP  frontend verify                        前端依赖未安装：先在 frontend/ 运行 pnpm install --frozen-lockfile --offline（只用本机缓存、不下载）；缓存缺包而失败时，再问用户是否联网安装（本次未改 frontend/，CI 仍会跑）
+SKIP  SQL Server integration tests           relevant_change.py: nothing the *MssqlIT tests exercise changed
+
+SUMMARY: 8 PASS, 1 FAIL, 10 SKIP (base origin/main) — not ready
+```
+
+本轮构建、后端、前端、自测、破坏验证及 precheck 原始日志位于 `/tmp/nam-1017-glo-14/`；关键结果与完整 precheck 已附于本节。
+
+## NAM-1017-GLO-14 收口更正（负责会话，2026-10-17）
+本节取代上文 GLO-14 小节里“自测退出 1”“precheck 8 PASS、1 FAIL”“本卡不报完成”“未提交”等过程性表述（那些是 Codex 沙箱内的中间状态）：
+- 自测：`apply_recon_selftest.py` 把“来源总数 == 97”改为“原 97 个来源的内容摘要不变（sha256 锁定）”，并在 `apply_recon.py` 新增来源键校验（S 编号须连续，且每个来源至少被引用一次），补孤立来源、跳号两个负向用例；全部自测通过（72 + 84）。
+- precheck：在已安装前端依赖的工作区 11 PASS、0 FAIL。
+- 引用：新增词条不再引用未入库的 `.codex-inputs/*`；“计算月度薪酬”引用动词表 V158（随本 PR 一并入库，N4_VERBS_STATES.md）。
+- 别名“计算”（bare verb）只作 standard-zh / deprecated，不得升为 dialect 或进 forbidden（否则会被前端文案检查当全局子串）。
+- opus 复审（#485）遗留的低风险项：closeout/stage_align_check.py 对 3 字以上别名做全局子串替换（不在 CI 门禁），“结果词不受控”（不再受托无状态词条）待补用语页。
