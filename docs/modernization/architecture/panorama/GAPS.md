@@ -4,47 +4,114 @@
 
 每轮生成一次，反复跑到收敛。缺口是「缺上层」还是「本身多余」，由 one-architecture 逐条判定，写进层笔记的待决问题。
 
-| 层 | 节点数 |
-|---|---|
-| vs | 15 |
-| stage | 61 |
-| obj | 103 |
-| prc | 200 |
-| agg | 130 |
-| inv | 134 |
-| bc | 31 |
-| sd | 13 |
-| table | 25 |
-| metric | 76 |
+| 节点 | 层 | 条目数 |
+|---|---|---|
+| 01 干系人 | sh | 36 |
+| 02 关注点 | con | 0 |
+| 03 价值主张 | vp | 15 |
+| 04 取舍决定 | decr | 0 |
+| 05 业务能力 | cap | 24 |
+| 06 价值流与阶段 | vs | 15 |
+| 06 价值流与阶段 | stage | 61 |
+| 07 业务流程 | prc | 200 |
+| 08 约束与认定规则 | inv | 134 |
+| 09 业务对象 | obj | 103 |
+| 10 受控业务执行 | act | 59 |
+| 11 业务事实 | fact | 0 |
+| 12 维度 | dim | 0 |
+| 13 指标与评价 | metric | 76 |
+| 14 计算绑定 | bind | 0 |
+| 15 决策与行动 | dec | 0 |
+| 09/10 映射  | agg | 130 |
+| 09/10 映射  | bc | 31 |
+| 09/10 映射  | sd | 13 |
+| 09/10 映射  | table | 25 |
 
 对象按分类：业务对象 95、从属对象 6、参照数据 1、视图 1。
 
 | 检查 | 含义 | 缺口 |
 |---|---|---|
-| TD-1 | 每个阶段都有对象状态作为门（进入或退出条件引用对象状态） | 1 |
-| TD-2 | 每个有效对象都有流程承载（同 anchoring_check C2；OBJD 定论的从属、参照、视图按定论排除） | 0 |
-| TD-3 | 每个有效一级业务对象都有聚合（聚合「对应」列；从属、参照、视图不要求） | 1 |
-| TD-4 | 每个聚合都归属一个 BC | 10 |
-| TD-5 | 每个聚合都有不变量 | 29 |
-| TD-6 | 每个聚合都有表 | 130 |
-| TD-7 | 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到） | 3 |
-| TD-8 | 每个阶段都有指标 | 61 |
-| BU-1 | 每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1） | 0 |
-| BU-2 | 流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 BU-1 / anchoring C1 判） | 0 |
-| BU-3 | 每个不变量都归属存在的聚合 | 0 |
-| BU-4 | 每个聚合对应的对象都出现在某个阶段的门或段内状态中 | 8 |
-| BU-5 | 每张表都归属聚合，聚合能追到对象 | 25 |
-| BU-6 | 每个指标都能追到阶段或流程 | 76 |
+| N01-1 | 每个干系人都登记了关注点（02 CON 未登记时全部计为缺口） | 36 |
+| N03-1 | 每条价值流都有价值主张（暂以价值流的 value 字段作 03 的登记） | 0 |
+| N05-1 | 每个阶段都有业务能力支撑（阶段 capabilities 字段） | 0 |
+| N06-1 | 每个阶段都有对象状态作为门（进入或退出条件引用对象状态） | 1 |
+| N07-1 | 每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1） | 0 |
+| N07-2 | 流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 N07-1 / anchoring C1 判） | 0 |
+| N07-P1 | P-1：流程中改变对象状态的步骤都声明 Command（三组骨架未整合进本分支，暂未自动化） | 三组骨架（命令、状态机）未整合进本分支，未自动化 |
+| N08-1 | 每个不变量都归属存在的聚合 | 0 |
+| N09-1 | 每个有效对象都有流程承载（同 anchoring_check C2；OBJD 定论的从属、参照、视图按定论排除） | 0 |
+| N09-2 | 每个有效一级业务对象都有聚合（聚合「对应」列；从属、参照、视图不要求） | 1 |
+| N09-3 | 每个聚合对应的对象都出现在某个阶段的门或段内状态中 | 8 |
+| N09-M1 | 每个聚合都归属一个 BC | 10 |
+| N09-M2 | 每个聚合都有不变量 | 29 |
+| N09-M3 | 每个聚合至少一张表（ADR-0059 建表规则，不要求每个对象一张） | 130 |
+| N09-M4 | 每张表都能追到聚合，聚合能追到业务对象 | 25 |
+| N10-1 | 每个受控业务执行（命令）都有 owner BC | 0 |
+| N10-M1 | 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到） | 3 |
+| N11-1 | 每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列） | 4 |
+| N13-1 | 每个阶段都有指标 | 61 |
+| N13-2 | 每个指标都能追到阶段或流程 | 76 |
+| N13-3 | 度量链：每个指标都有业务事实来源与计算绑定（12、14 未登记时计为缺口） | 76 |
 
-## TD-1 每个阶段都有对象状态作为门（进入或退出条件引用对象状态）（1）
+## N01-1 每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）（36）
+
+- SH-C1 开发商
+- SH-C2 自用业主
+- SH-C3 既有建筑业主
+- SH-C4 发包方
+- SH-C5 资本方
+- SH-C6a 发起人
+- SH-C6b 决策人
+- SH-C6c 经济买方
+- SH-C6d 付款方
+- SH-C6e 使用者
+- SH-P1 交付伙伴
+- SH-P1c 交付伙伴
+- SH-P2 供应商
+- SH-P3 渠道伙伴
+- SH-R1 工程审批
+- SH-R2 企业监管
+- SH-H1 —
+- SH-S1 最终用户
+- SH-S2 市民
+- SH-M1 —
+- SH-E1 用人经理
+- SH-E2 项目经理
+- SH-E3 设计师和顾问
+- SH-E4 技术专家
+- SH-E5 市场和客户经理
+- SH-E6 职能人员
+- SH-E7 注册执业人员
+- SH-O1 —
+- SH-X1 None
+- SH-X2 None
+- SH-X3 None
+- SH-X4 None
+- SH-X5 None
+- SH-X6 None
+- SH-X7 None
+- SH-X8 None
+
+## N06-1 每个阶段都有对象状态作为门（进入或退出条件引用对象状态）（1）
 
 - VS-02.5 完成招标采购配合
 
-## TD-3 每个有效一级业务对象都有聚合（聚合「对应」列；从属、参照、视图不要求）（1）
+## N09-2 每个有效一级业务对象都有聚合（聚合「对应」列；从属、参照、视图不要求）（1）
 
 - OBJ-19 招标项目
 
-## TD-4 每个聚合都归属一个 BC（10）
+## N09-3 每个聚合对应的对象都出现在某个阶段的门或段内状态中（8）
+
+- AGG-01 → OBJ-03 联系人
+- AGG-12 → OBJ-22 报价估算分解
+- AGG-13 → OBJ-06 合同范围条目
+- AGG-39 → OBJ-66 工时单
+- AGG-47 → OBJ-81 收入确认
+- AGG-69 → OBJ-70 考勤记录
+- AGG-83 → OBJ-96 账簿
+- AGG-88 → OBJ-90 银行流水
+
+## N09-M1 每个聚合都归属一个 BC（10）
 
 - AGG-110 证据关联
 - AGG-47 收入确认
@@ -57,7 +124,7 @@
 - AGG-95 个税扣缴与社保公积金申报
 - AGG-83 账簿
 
-## TD-5 每个聚合都有不变量（29）
+## N09-M2 每个聚合都有不变量（29）
 
 - AGG-33 建设工程
 - AGG-08 市场活动
@@ -89,7 +156,7 @@
 - AGG-116 员工活动申请
 - AGG-121 IT 资产维修单
 
-## TD-6 每个聚合都有表（130）
+## N09-M3 每个聚合至少一张表（ADR-0059 建表规则，不要求每个对象一张）（130）
 
 - AGG-01 往来单位
 - AGG-02 资质证书
@@ -222,13 +289,48 @@
 - AGG-116 员工活动申请
 - AGG-121 IT 资产维修单
 
-## TD-7 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到）（3）
+## N09-M4 每张表都能追到聚合，聚合能追到业务对象（25）
+
+- cost_timesheet.timesheets（对象 无）
+- organization_attendance.work_calendar_years（对象 无）
+- organization_attendance.work_calendar_days（对象 无）
+- organization_workforce.legal_entities（对象 无）
+- organization_workforce.sync_runs（对象 无）
+- organization_workforce.sync_diffs（对象 无）
+- organization_workforce.sync_run_held_separations（对象 无）
+- organization_workforce.legal_entity_attributions（对象 无）
+- organization_workforce.org_unit_legal_entities（对象 无）
+- organization_workforce.employee_legal_entities（对象 无）
+- organization_workforce.legal_entity_attribution_corrections（对象 无）
+- platform_approval.approval_requests（对象 无）
+- platform_approval.approval_task_records（对象 无）
+- platform_approval.start_rounds（对象 无）
+- platform_approval.approval_tasks（对象 无）
+- platform_identity.user_accounts（对象 无）
+- platform_identity.account_roles（对象 无）
+- platform_identity.roles（对象 无）
+- platform_identity.role_permissions（对象 无）
+- platform_identity.emergency_admins（对象 无）
+- platform_identity.authorization_requests（对象 无）
+- platform_integration.source_references（对象 无）
+- platform_integration.outbound_deliveries（对象 无）
+- platform_numbering.numbering_rules（对象 无）
+- platform_numbering.numbering_rule_versions（对象 无）
+
+## N10-M1 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到）（3）
 
 - B-01 往来单位（含外部工程登记）（模块 masterdata.counterparty）
 - B-02 服务与定价目录（模块 masterdata.catalog）
 - B-32 报价发出编排（暂名）（模块 None）
 
-## TD-8 每个阶段都有指标（61）
+## N11-1 每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列）（4）
+
+- OBJ-19 招标项目
+- OBJ-28 工作日历
+- OBJ-46 建设工程
+- OBJ-58 岗位
+
+## N13-1 每个阶段都有指标（61）
 
 - VS-01.1 采集线索
 - VS-01.2 赢得委托
@@ -292,46 +394,86 @@
 - VS-15.2 批准生效
 - VS-15.3 修订停用
 
-## BU-4 每个聚合对应的对象都出现在某个阶段的门或段内状态中（8）
+## N13-2 每个指标都能追到阶段或流程（76）
 
-- AGG-01 → OBJ-03 联系人
-- AGG-12 → OBJ-22 报价估算分解
-- AGG-13 → OBJ-06 合同范围条目
-- AGG-39 → OBJ-66 工时单
-- AGG-47 → OBJ-81 收入确认
-- AGG-69 → OBJ-70 考勤记录
-- AGG-83 → OBJ-96 账簿
-- AGG-88 → OBJ-90 银行流水
+- business_variance 经营偏差
+- uncontracted_exposure 无合同风险敞口
+- estimate_to_complete ETC
+- delivery_variance 交付偏差
+- post_completion_service_hours 后期服务工时
+- quality_loss 质量损失
+- rework_rate 返工率
+- defect_rate 质量缺陷率
+- effective_hours 有效工时
+- ineffective_hours 无效工时
+- rework_hours 返工工时
+- billable_hours 可计费工时
+- capacity_realization 产能变现
+- idle_capacity 闲置产能
+- project_cost 项目成本
+- direct_labor 直接人工
+- direct_expense 直接费用
+- outsourcing_cost 外包成本
+- subcontract_cost 分包成本
+- cost_budget 成本预算
+- cost_budget_variance 成本预算偏差
+- unbilled_wip 未开票在制（WIP）
+- measure_of_progress 履约进度
+- uncontracted_wip 无合同 WIP
+- accounts_receivable 应收账款
+- aging 账龄
+- bad_debt_risk 坏账风险
+- impairment_risk 减值风险
+- cash_conversion 现金转化
+- time_capture_rate 工时捕获率
+- statutory_cost 法定成本
+- intercompany_balance 内部往来
+- costs_to_obtain_contract 合同取得成本
+- cost_of_sales 营业成本
+- remaining_performance_obligation 剩余履约义务
+- estimate_at_completion 完工估算
+- planned_value 计划价值
+- earned_value 挣值
+- actual_cost 实际成本
+- cost_performance_index 成本绩效指数
+- schedule_performance_index 进度绩效指数
+- schedule_variance 进度偏差
+- earned_value_cost_variance 挣值成本偏差
+- utilization_rate 利用率
+- accrual_basis_revenue 权责发生制收入
+- reversible_balance 可冲销余额
+- job_failure 作业失败
+- contribution_margin 贡献毛利
+- contribution_margin_ratio 贡献毛利率
+- net_service_revenue 净服务收入
+- management_operating_profit 经营利润
+- management_operating_profit_margin 经营利润率
+- indirect_cost 间接成本
+- pass_through_cost 转付成本
+- labor_cost_multiplier 人工成本产出倍数
+- target_variance 目标偏差
+- available_budget 可用额度
+- plan_target_value 计划目标值
+- target_attainment_rate 目标达成率
+- budget_consumption_rate 预算消耗率
+- new_contract_value 新签合同额
+- project_initiation_value 项目立项金额
+- aged_receivable 账龄超 N 天应收
+- days_sales_outstanding 应收周转天数
+- billing_conversion_rate 开票转化率
+- collection_rate 回款率
+- overdue_billing_commitment 承诺开票超期
+- allowance_for_bad_debts 坏账准备
+- average_headcount 平均在册人数
+- attrition_rate 离职率
+- pipeline_value 商机管道金额
+- win_rate 赢单率
+- lead_conversion_rate 线索转化率
+- expense_payment 费用支付
+- kickoff_completion_rate 启动会完成率
+- internal_review_coverage 内部评审覆盖率
 
-## BU-5 每张表都归属聚合，聚合能追到对象（25）
-
-- cost_timesheet.timesheets（对象 无）
-- organization_attendance.work_calendar_years（对象 无）
-- organization_attendance.work_calendar_days（对象 无）
-- organization_workforce.legal_entities（对象 无）
-- organization_workforce.sync_runs（对象 无）
-- organization_workforce.sync_diffs（对象 无）
-- organization_workforce.sync_run_held_separations（对象 无）
-- organization_workforce.legal_entity_attributions（对象 无）
-- organization_workforce.org_unit_legal_entities（对象 无）
-- organization_workforce.employee_legal_entities（对象 无）
-- organization_workforce.legal_entity_attribution_corrections（对象 无）
-- platform_approval.approval_requests（对象 无）
-- platform_approval.approval_task_records（对象 无）
-- platform_approval.start_rounds（对象 无）
-- platform_approval.approval_tasks（对象 无）
-- platform_identity.user_accounts（对象 无）
-- platform_identity.account_roles（对象 无）
-- platform_identity.roles（对象 无）
-- platform_identity.role_permissions（对象 无）
-- platform_identity.emergency_admins（对象 无）
-- platform_identity.authorization_requests（对象 无）
-- platform_integration.source_references（对象 无）
-- platform_integration.outbound_deliveries（对象 无）
-- platform_numbering.numbering_rules（对象 无）
-- platform_numbering.numbering_rule_versions（对象 无）
-
-## BU-6 每个指标都能追到阶段或流程（76）
+## N13-3 度量链：每个指标都有业务事实来源与计算绑定（12、14 未登记时计为缺口）（76）
 
 - business_variance 经营偏差
 - uncontracted_exposure 无合同风险敞口

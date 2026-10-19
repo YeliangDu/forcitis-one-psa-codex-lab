@@ -9,78 +9,448 @@ meta:
     sd: architecture/ddd/subdomains.yaml
     terms: glossary/terms.yaml
   counts:
+    sh: 36
+    con: 0
+    vp: 15
+    decr: 0
+    cap: 24
     vs: 15
     stage: 61
-    obj: 103
     prc: 200
-    agg: 130
     inv: 134
+    obj: 103
+    act: 59
+    fact: 0
+    dim: 0
+    metric: 76
+    bind: 0
+    dec: 0
+    agg: 130
     bc: 31
     sd: 13
     table: 25
-    metric: 76
   checks:
-    TD-1: 每个阶段都有对象状态作为门（进入或退出条件引用对象状态）
-    TD-2: 每个有效对象都有流程承载（同 anchoring_check C2；OBJD 定论的从属、参照、视图按定论排除）
-    TD-3: 每个有效一级业务对象都有聚合（聚合「对应」列；从属、参照、视图不要求）
-    TD-4: 每个聚合都归属一个 BC
-    TD-5: 每个聚合都有不变量
-    TD-6: 每个聚合都有表
-    TD-7: 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到）
-    TD-8: 每个阶段都有指标
-    BU-1: 每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1）
-    BU-2: 流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 BU-1 / anchoring C1 判）
-    BU-3: 每个不变量都归属存在的聚合
-    BU-4: 每个聚合对应的对象都出现在某个阶段的门或段内状态中
-    BU-5: 每张表都归属聚合，聚合能追到对象
-    BU-6: 每个指标都能追到阶段或流程
+    N01-1: 每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）
+    N03-1: 每条价值流都有价值主张（暂以价值流的 value 字段作 03 的登记）
+    N05-1: 每个阶段都有业务能力支撑（阶段 capabilities 字段）
+    N06-1: 每个阶段都有对象状态作为门（进入或退出条件引用对象状态）
+    N07-1: 每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1）
+    N07-2: 流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 N07-1 / anchoring C1 判）
+    N07-P1: P-1：流程中改变对象状态的步骤都声明 Command（三组骨架未整合进本分支，暂未自动化）
+    N08-1: 每个不变量都归属存在的聚合
+    N09-1: 每个有效对象都有流程承载（同 anchoring_check C2；OBJD 定论的从属、参照、视图按定论排除）
+    N09-2: 每个有效一级业务对象都有聚合（聚合「对应」列；从属、参照、视图不要求）
+    N09-3: 每个聚合对应的对象都出现在某个阶段的门或段内状态中
+    N09-M1: 每个聚合都归属一个 BC
+    N09-M2: 每个聚合都有不变量
+    N09-M3: 每个聚合至少一张表（ADR-0059 建表规则，不要求每个对象一张）
+    N09-M4: 每张表都能追到聚合，聚合能追到业务对象
+    N10-1: 每个受控业务执行（命令）都有 owner BC
+    N10-M1: 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到）
+    N11-1: 每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列）
+    N13-1: 每个阶段都有指标
+    N13-2: 每个指标都能追到阶段或流程
+    N13-3: 度量链：每个指标都有业务事实来源与计算绑定（12、14 未登记时计为缺口）
 nodes:
+  sh:
+    SH-C1:
+      name: 开发商
+      category: 客户
+    SH-C2:
+      name: 自用业主
+      category: 客户
+    SH-C3:
+      name: 既有建筑业主
+      category: 客户
+    SH-C4:
+      name: 发包方
+      category: 客户
+    SH-C5:
+      name: 资本方
+      category: 客户
+    SH-C6a:
+      name: 发起人
+      category: 客户决策链
+    SH-C6b:
+      name: 决策人
+      category: 客户决策链
+    SH-C6c:
+      name: 经济买方
+      category: 客户决策链
+    SH-C6d:
+      name: 付款方
+      category: 客户决策链
+    SH-C6e:
+      name: 使用者
+      category: 客户决策链
+    SH-P1:
+      name: 交付伙伴
+      category: 合作伙伴
+    SH-P1c:
+      name: 交付伙伴
+      category: 合作伙伴
+    SH-P2:
+      name: 供应商
+      category: 合作伙伴
+    SH-P3:
+      name: 渠道伙伴
+      category: 合作伙伴
+    SH-R1:
+      name: 工程审批
+      category: 监管机构
+    SH-R2:
+      name: 企业监管
+      category: 监管机构
+    SH-H1:
+      name: —
+      category: 人力资源（外部）
+    SH-S1:
+      name: 最终用户
+      category: 社会公众
+    SH-S2:
+      name: 市民
+      category: 社会公众
+    SH-M1:
+      name: —
+      category: 管理层
+    SH-E1:
+      name: 用人经理
+      category: 员工
+    SH-E2:
+      name: 项目经理
+      category: 员工
+    SH-E3:
+      name: 设计师和顾问
+      category: 员工
+    SH-E4:
+      name: 技术专家
+      category: 员工
+    SH-E5:
+      name: 市场和客户经理
+      category: 员工
+    SH-E6:
+      name: 职能人员
+      category: 员工
+    SH-E7:
+      name: 注册执业人员
+      category: 员工
+    SH-O1:
+      name: —
+      category: 股东和合伙人
+    SH-X1:
+      name: null
+      category: null
+    SH-X2:
+      name: null
+      category: null
+    SH-X3:
+      name: null
+      category: null
+    SH-X4:
+      name: null
+      category: null
+    SH-X5:
+      name: null
+      category: null
+    SH-X6:
+      name: null
+      category: null
+    SH-X7:
+      name: null
+      category: null
+    SH-X8:
+      name: null
+      category: null
+  con: {}
+  vp:
+    VP-01:
+      name: 客户得到可信的方案、报价与承诺，以合理代价选定能胜任的服务方。
+      vs: VS-01
+      provisional: 取自价值流 value 字段，待 03 正式登记
+    VP-02:
+      name: 客户按约获得可审查、可报审、可施工的专业成果，建成效果与安全达到要求。
+      vs: VS-02
+      provisional: 取自价值流 value 字段，待 03 正式登记
+    VP-03:
+      name: 委托方得到独立、可追溯的风险信息与合规结论，并能跟踪问题整改到闭合。
+      vs: VS-03
+      provisional: 取自价值流 value 字段，待 03 正式登记
+    VP-04:
+      name: 客户的权利义务明确，取得合规发票，按约付款，价款可核对、最终确认。
+      vs: VS-04
+      provisional: 取自价值流 value 字段，待 03 正式登记
+    VP-05:
+      name: 需求方及时获得合格、按约履约的外部能力与产品。
+      vs: VS-05
+      provisional: 取自价值流 value 字段，待 03 正式登记
+    VP-06:
+      name: 监管机构按期收到准确的申报与税款，确认企业持续具备经营与承接资格。
+      vs: VS-06
+      provisional: 取自价值流 value 字段，待 03 正式登记
+    VP-07:
+      name: 用人经理及时得到合格人员；候选人得到明确的录用结果并顺利入职。
+      vs: VS-07
+      provisional: 取自价值流 value 字段，待 03 正式登记
+    VP-08:
+      name: 员工在支出前取得所需额度或出差批准，获得借支支持，公务垫付费用及时足额得到补偿。
+      vs: VS-08
+      provisional: 取自价值流 value 字段，待 03 正式登记
+    VP-09:
+      name: 管理层有明确可追踪的目标，偏差能被解释并转化为行动。
+      vs: VS-09
+      provisional: 取自价值流 value 字段，待 03 正式登记
+    VP-10:
+      name: 管理层与股东得到按期、可勾稽、关账后不变的权责口径报表与经营报告。
+      vs: VS-10
+      provisional: 取自价值流 value 字段，待 03 正式登记
+    VP-11:
+      name: 员工能找到经审定的做法与案例并在新项目中复用，交付质量与效率提升。
+      vs: VS-11
+      provisional: 取自价值流 value 字段，待 03 正式登记
+    VP-12:
+      name: 股东和合伙人的出资被准确记录，并按经营结果取得回报。
+      vs: VS-12
+      provisional: 取自价值流 value 字段，待 03 正式登记
+    VP-13:
+      name: 员工按时足额获得报酬与法定保障，离职时依法结清。
+      vs: VS-13
+      provisional: 取自价值流 value 字段，待 03 正式登记
+    VP-14:
+      name: 员工所需行政与信息技术服务办妥，用印和资产使用有据可查。
+      vs: VS-14
+      provisional: 取自价值流 value 字段，待 03 正式登记
+    VP-15:
+      name: 一版规则、参数或主数据生效，后续业务按它办。
+      vs: VS-15
+      provisional: 取自价值流 value 字段，待 03 正式登记
+  decr: {}
+  cap:
+    CAP-001:
+      stages:
+      - VS-01.1
+      - VS-05.1
+    CAP-016:
+      stages:
+      - VS-01.1
+    CAP-017:
+      stages:
+      - VS-01.1
+    CAP-018:
+      stages:
+      - VS-01.1
+      - VS-01.2
+    CAP-019:
+      stages:
+      - VS-01.2
+    CAP-024:
+      stages:
+      - VS-01.2
+      - VS-15.1
+      - VS-15.2
+      - VS-15.3
+    CAP-026:
+      stages:
+      - VS-01.2
+    CAP-029:
+      stages:
+      - VS-02.0
+      - VS-02.1
+      - VS-02.2
+      - VS-02.3
+      - VS-02.4
+      - VS-02.5
+      - VS-02.6
+      - VS-02.7
+      - VS-03.1
+      - VS-03.2
+      - VS-03.3
+      - VS-03.4
+      - VS-03.5
+    CAP-046:
+      stages:
+      - VS-02.6
+      - VS-03.1
+    CAP-053:
+      stages:
+      - VS-02.7
+      - VS-04.2
+    CAP-005:
+      stages:
+      - VS-03.1
+      - VS-04.1
+      - VS-04.6
+      - VS-04.2
+      - VS-04.3
+      - VS-04.5
+      - VS-05.2
+      - VS-05.3
+      - VS-05.6
+      - VS-07.3
+      - VS-13.6
+    CAP-103:
+      stages:
+      - VS-04.3
+      - VS-04.4
+      - VS-05.4
+      - VS-05.5
+      - VS-06.1
+      - VS-08.1
+      - VS-08.2
+      - VS-08.3
+      - VS-10.0
+      - VS-10.1
+      - VS-10.2
+      - VS-12.2
+      - VS-13.4
+      - VS-13.5
+      - VS-15.1
+      - VS-15.2
+      - VS-15.3
+    CAP-054:
+      stages:
+      - VS-06.2
+      - VS-12.1
+      - VS-12.2
+      - VS-12.3
+      - VS-13.3
+      - VS-13.4
+      - VS-13.5
+      - VS-14.1
+      - VS-14.2
+      - VS-14.3
+      - VS-14.4
+      - VS-15.1
+      - VS-15.2
+    CAP-056:
+      stages:
+      - VS-06.2
+      - VS-07.1
+      - VS-07.2
+      - VS-07.3
+      - VS-08.1
+      - VS-08.2
+      - VS-08.3
+      - VS-13.1
+      - VS-13.2
+      - VS-13.3
+      - VS-13.4
+      - VS-13.5
+      - VS-13.6
+      - VS-14.1
+      - VS-14.2
+      - VS-14.3
+      - VS-14.4
+    CAP-058:
+      stages:
+      - VS-07.1
+      - VS-15.1
+      - VS-15.2
+      - VS-15.3
+    CAP-118:
+      stages:
+      - VS-08.0
+    CAP-119:
+      stages:
+      - VS-08.0
+    CAP-100:
+      stages:
+      - VS-09.1
+      - VS-09.2
+      - VS-09.3
+    CAP-110:
+      stages:
+      - VS-11.1
+      - VS-11.2
+      - VS-11.3
+    CAP-028:
+      stages:
+      - VS-13.1
+      - VS-15.1
+      - VS-15.2
+      - VS-15.3
+    CAP-074:
+      stages:
+      - VS-13.2
+      - VS-15.1
+      - VS-15.2
+      - VS-15.3
+    CAP-093:
+      stages:
+      - VS-14.1
+      - VS-14.2
+      - VS-14.3
+      - VS-14.4
+    CAP-078:
+      stages:
+      - VS-15.1
+      - VS-15.2
+      - VS-15.3
+    CAP-124:
+      stages:
+      - VS-15.1
+      - VS-15.2
+      - VS-15.3
   vs:
     VS-01:
       name: 完成服务方选定
       category: business
+      value: 客户得到可信的方案、报价与承诺，以合理代价选定能胜任的服务方。
     VS-02:
       name: 获得交付成果
       category: business
+      value: 客户按约获得可审查、可报审、可施工的专业成果，建成效果与安全达到要求。
     VS-03:
       name: 获得风险结论
       category: business
+      value: 委托方得到独立、可追溯的风险信息与合规结论，并能跟踪问题整改到闭合。
     VS-04:
       name: 完成服务价款约定与支付
       category: business
+      value: 客户的权利义务明确，取得合规发票，按约付款，价款可核对、最终确认。
     VS-05:
       name: 获得外部资源
       category: support
+      value: 需求方及时获得合格、按约履约的外部能力与产品。
     VS-06:
       name: 完成企业合规事项
       category: support
+      value: 监管机构按期收到准确的申报与税款，确认企业持续具备经营与承接资格。
     VS-07:
       name: 完成人员任用
       category: support
+      value: 用人经理及时得到合格人员；候选人得到明确的录用结果并顺利入职。
     VS-08:
       name: 完成垫付费用报销
       category: support
+      value: 员工在支出前取得所需额度或出差批准，获得借支支持，公务垫付费用及时足额得到补偿。
     VS-09:
       name: 完成经营目标
       category: management
+      value: 管理层有明确可追踪的目标，偏差能被解释并转化为行动。
     VS-10:
       name: 获得期间报告
       category: support
+      value: 管理层与股东得到按期、可勾稽、关账后不变的权责口径报表与经营报告。
     VS-11:
       name: 获得复用知识
       category: support
+      value: 员工能找到经审定的做法与案例并在新项目中复用，交付质量与效率提升。
     VS-12:
       name: 获得投资回报
       category: management
+      value: 股东和合伙人的出资被准确记录，并按经营结果取得回报。
     VS-13:
       name: 获得报酬
       category: support
+      value: 员工按时足额获得报酬与法定保障，离职时依法结清。
     VS-14:
       name: 获得内部服务
       category: support
+      value: 员工所需行政与信息技术服务办妥，用印和资产使用有据可查。
     VS-15:
       name: 确立经营基准
       category: management
+      value: 一版规则、参数或主数据生效，后续业务按它办。
   stage:
     VS-01.1:
       name: 采集线索
@@ -105,6 +475,11 @@ nodes:
       - OBJ-16
       - OBJ-105
       - OBJ-01
+      caps:
+      - CAP-001
+      - CAP-016
+      - CAP-017
+      - CAP-018
     VS-01.2:
       name: 赢得委托
       vs: VS-01
@@ -138,6 +513,11 @@ nodes:
       - OBJ-24
       - OBJ-26
       - OBJ-46
+      caps:
+      - CAP-018
+      - CAP-019
+      - CAP-024
+      - CAP-026
     VS-02.0:
       name: 开始项目
       vs: VS-02
@@ -172,6 +552,8 @@ nodes:
       - OBJ-44
       - OBJ-108
       - OBJ-45
+      caps:
+      - CAP-029
     VS-02.1:
       name: 确认概念
       vs: VS-02
@@ -182,6 +564,8 @@ nodes:
       in_stage:
       - OBJ-33
       - OBJ-42
+      caps:
+      - CAP-029
     VS-02.2:
       name: 确认方案
       vs: VS-02
@@ -195,6 +579,8 @@ nodes:
       - OBJ-42
       - OBJ-40
       - OBJ-41
+      caps:
+      - CAP-029
     VS-02.3:
       name: 完成初步设计
       vs: VS-02
@@ -206,6 +592,8 @@ nodes:
       - OBJ-37
       - OBJ-33
       - OBJ-42
+      caps:
+      - CAP-029
     VS-02.4:
       name: 完成深化设计
       vs: VS-02
@@ -218,12 +606,16 @@ nodes:
       - OBJ-53
       - OBJ-33
       - OBJ-42
+      caps:
+      - CAP-029
     VS-02.5:
       name: 完成招标采购配合
       vs: VS-02
       gates: []
       in_stage:
       - OBJ-33
+      caps:
+      - CAP-029
     VS-02.6:
       name: 完成施工配合
       vs: VS-02
@@ -236,6 +628,9 @@ nodes:
       - OBJ-46
       - OBJ-33
       - OBJ-39
+      caps:
+      - CAP-029
+      - CAP-046
     VS-02.7:
       name: 完成收尾
       vs: VS-02
@@ -262,6 +657,9 @@ nodes:
       - OBJ-08
       - OBJ-05
       - OBJ-33
+      caps:
+      - CAP-029
+      - CAP-053
     VS-03.1:
       name: 编制检查计划
       vs: VS-03
@@ -284,6 +682,10 @@ nodes:
       - OBJ-50
       - OBJ-29
       - OBJ-48
+      caps:
+      - CAP-029
+      - CAP-046
+      - CAP-005
     VS-03.2:
       name: 完成现场检查
       vs: VS-03
@@ -297,6 +699,8 @@ nodes:
       in_stage:
       - OBJ-38
       - OBJ-53
+      caps:
+      - CAP-029
     VS-03.3:
       name: 发布不符合项
       vs: VS-03
@@ -309,6 +713,8 @@ nodes:
         state: 已发布
       in_stage:
       - OBJ-52
+      caps:
+      - CAP-029
     VS-03.4:
       name: 跟进整改
       vs: VS-03
@@ -327,6 +733,8 @@ nodes:
         state: 已停止跟踪（原因必填）
       in_stage:
       - OBJ-52
+      caps:
+      - CAP-029
     VS-03.5:
       name: 登记报告认可
       vs: VS-03
@@ -338,6 +746,8 @@ nodes:
         obj: OBJ-35
         state: 已签发 → 已认可
       in_stage: []
+      caps:
+      - CAP-029
     VS-04.1:
       name: 签署合同
       vs: VS-04
@@ -360,6 +770,8 @@ nodes:
       in_stage:
       - OBJ-13
       - OBJ-13
+      caps:
+      - CAP-005
     VS-04.6:
       name: 完成合同履行
       vs: VS-04
@@ -374,6 +786,8 @@ nodes:
       - OBJ-09
       - OBJ-10
       - OBJ-05
+      caps:
+      - CAP-005
     VS-04.2:
       name: 确认收入
       vs: VS-04
@@ -383,6 +797,9 @@ nodes:
         state: 已签署生效 / 履行中 / 已完成
       in_stage:
       - OBJ-53
+      caps:
+      - CAP-053
+      - CAP-005
     VS-04.3:
       name: 开具发票
       vs: VS-04
@@ -401,6 +818,9 @@ nodes:
         state: 已开具
       in_stage:
       - OBJ-07
+      caps:
+      - CAP-103
+      - CAP-005
     VS-04.4:
       name: 回收款项
       vs: VS-04
@@ -412,6 +832,8 @@ nodes:
         obj: OBJ-85
         state: 已核销（坏账）
       in_stage: []
+      caps:
+      - CAP-103
     VS-04.5:
       name: 确认最终价款
       vs: VS-04
@@ -426,6 +848,8 @@ nodes:
         obj: OBJ-05
         state: 已终止（原因必填）
       in_stage: []
+      caps:
+      - CAP-005
     VS-05.1:
       name: 完成供方准入
       vs: VS-05
@@ -441,6 +865,8 @@ nodes:
         state: 有效
       in_stage:
       - OBJ-01
+      caps:
+      - CAP-001
     VS-05.2:
       name: 签署供方协议
       vs: VS-05
@@ -459,6 +885,8 @@ nodes:
         state: 已签署生效
       in_stage:
       - OBJ-09
+      caps:
+      - CAP-005
     VS-05.3:
       name: 确认供方履约
       vs: VS-05
@@ -470,6 +898,8 @@ nodes:
         obj: OBJ-87
         state: 已确认
       in_stage: []
+      caps:
+      - CAP-005
     VS-05.4:
       name: 确认应付款项
       vs: VS-05
@@ -485,6 +915,8 @@ nodes:
         state: 已用途确认 → 已入账
       in_stage:
       - OBJ-121
+      caps:
+      - CAP-103
     VS-05.5:
       name: 完成付款
       vs: VS-05
@@ -499,6 +931,8 @@ nodes:
         obj: OBJ-85
         state: 已结清 / 已部分结清
       in_stage: []
+      caps:
+      - CAP-103
     VS-05.6:
       name: 完成供方结算
       vs: VS-05
@@ -513,6 +947,8 @@ nodes:
         obj: OBJ-05
         state: 已终止（原因必填）
       in_stage: []
+      caps:
+      - CAP-005
     VS-06.1:
       name: 完成申报缴款
       vs: VS-06
@@ -523,6 +959,8 @@ nodes:
       in_stage:
       - OBJ-62
       - OBJ-85
+      caps:
+      - CAP-103
     VS-06.2:
       name: 完成资质维护
       vs: VS-06
@@ -539,6 +977,9 @@ nodes:
       in_stage:
       - OBJ-65
       - OBJ-65
+      caps:
+      - CAP-054
+      - CAP-056
     VS-07.1:
       name: 提出招聘需求
       vs: VS-07
@@ -553,6 +994,9 @@ nodes:
         obj: OBJ-60
         state: 已关闭（录满 / 取消）
       in_stage: []
+      caps:
+      - CAP-056
+      - CAP-058
     VS-07.2:
       name: 完成录用
       vs: VS-07
@@ -567,6 +1011,8 @@ nodes:
         obj: OBJ-56
         state: 未录用
       in_stage: []
+      caps:
+      - CAP-056
     VS-07.3:
       name: 完成人员入职与任职
       vs: VS-07
@@ -587,6 +1033,9 @@ nodes:
       - OBJ-57
       - OBJ-109
       - OBJ-122
+      caps:
+      - CAP-005
+      - CAP-056
     VS-08.0:
       name: 批准事前申请
       vs: VS-08
@@ -599,6 +1048,9 @@ nodes:
         state: 已批准
       in_stage:
       - OBJ-120
+      caps:
+      - CAP-118
+      - CAP-119
     VS-08.1:
       name: 完成借款发放与归还
       vs: VS-08
@@ -610,6 +1062,9 @@ nodes:
         obj: OBJ-85
         state: 已结清
       in_stage: []
+      caps:
+      - CAP-056
+      - CAP-103
     VS-08.2:
       name: 完成报销核定
       vs: VS-08
@@ -624,6 +1079,9 @@ nodes:
         obj: OBJ-83
         state: 已入账
       in_stage: []
+      caps:
+      - CAP-056
+      - CAP-103
     VS-08.3:
       name: 完成报销付款
       vs: VS-08
@@ -641,6 +1099,9 @@ nodes:
         obj: OBJ-88
         state: 已付
       in_stage: []
+      caps:
+      - CAP-056
+      - CAP-103
     VS-09.1:
       name: 编制计划
       vs: VS-09
@@ -652,6 +1113,8 @@ nodes:
         obj: OBJ-100
         state: 基线（不可变）
       in_stage: []
+      caps:
+      - CAP-100
     VS-09.2:
       name: 变更预测
       vs: VS-09
@@ -663,6 +1126,8 @@ nodes:
         obj: OBJ-100
         state: 新版本
       in_stage: []
+      caps:
+      - CAP-100
     VS-09.3:
       name: 完成经营复盘
       vs: VS-09
@@ -674,6 +1139,8 @@ nodes:
         obj: OBJ-100
         state: 新版本
       in_stage: []
+      caps:
+      - CAP-100
     VS-10.0:
       name: 执行记账结转
       vs: VS-10
@@ -687,6 +1154,8 @@ nodes:
       in_stage:
       - OBJ-117
       - OBJ-93
+      caps:
+      - CAP-103
     VS-10.1:
       name: 关闭会计期间
       vs: VS-10
@@ -701,6 +1170,8 @@ nodes:
         obj: OBJ-97
         state: 关账中 → 已关账
       in_stage: []
+      caps:
+      - CAP-103
     VS-10.2:
       name: 发布报表
       vs: VS-10
@@ -715,6 +1186,8 @@ nodes:
         obj: OBJ-125
         state: 已签字
       in_stage: []
+      caps:
+      - CAP-103
     VS-11.1:
       name: 编制知识条目
       vs: VS-11
@@ -729,6 +1202,8 @@ nodes:
         obj: OBJ-110
         state: 评审
       in_stage: []
+      caps:
+      - CAP-110
     VS-11.2:
       name: 审核并发布知识条目
       vs: VS-11
@@ -740,6 +1215,8 @@ nodes:
         obj: OBJ-110
         state: 已发布
       in_stage: []
+      caps:
+      - CAP-110
     VS-11.3:
       name: 修订并废除知识条目
       vs: VS-11
@@ -754,6 +1231,8 @@ nodes:
         obj: OBJ-110
         state: 已废止
       in_stage: []
+      caps:
+      - CAP-110
     VS-12.1:
       name: 确认收到出资
       vs: VS-12
@@ -765,6 +1244,8 @@ nodes:
         obj: OBJ-91
         state: 已实缴（到账）
       in_stage: []
+      caps:
+      - CAP-054
     VS-12.2:
       name: 分配利润
       vs: VS-12
@@ -778,6 +1259,9 @@ nodes:
       in_stage:
       - OBJ-112
       - OBJ-92
+      caps:
+      - CAP-054
+      - CAP-103
     VS-12.3:
       name: 退还出资
       vs: VS-12
@@ -789,6 +1273,8 @@ nodes:
         obj: OBJ-91
         state: 已部分退回 / 已退回
       in_stage: []
+      caps:
+      - CAP-054
     VS-13.1:
       name: 确认月度考勤
       vs: VS-13
@@ -809,6 +1295,9 @@ nodes:
         obj: OBJ-72
         state: 已批准 / 已补偿
       in_stage: []
+      caps:
+      - CAP-028
+      - CAP-056
     VS-13.2:
       name: 完成绩效评估与奖金核定
       vs: VS-13
@@ -826,6 +1315,9 @@ nodes:
         obj: OBJ-104
         state: 已核定
       in_stage: []
+      caps:
+      - CAP-056
+      - CAP-074
     VS-13.3:
       name: 完成薪酬结算
       vs: VS-13
@@ -841,6 +1333,9 @@ nodes:
         state: 已批准
       in_stage:
       - OBJ-104
+      caps:
+      - CAP-054
+      - CAP-056
     VS-13.4:
       name: 完成个税及社保公积金申报缴纳
       vs: VS-13
@@ -855,6 +1350,10 @@ nodes:
         obj: OBJ-92
         state: 已申报 → 已缴款
       in_stage: []
+      caps:
+      - CAP-054
+      - CAP-056
+      - CAP-103
     VS-13.5:
       name: 完成薪酬发放
       vs: VS-13
@@ -872,6 +1371,10 @@ nodes:
         obj: OBJ-73
         state: 已发放 → 已过账
       in_stage: []
+      caps:
+      - CAP-054
+      - CAP-056
+      - CAP-103
     VS-13.6:
       name: 完成离职结清
       vs: VS-13
@@ -891,6 +1394,9 @@ nodes:
       in_stage:
       - OBJ-57
       - OBJ-123
+      caps:
+      - CAP-005
+      - CAP-056
     VS-14.1:
       name: 提交申请
       vs: VS-14
@@ -908,6 +1414,10 @@ nodes:
         obj: OBJ-116
         state: 已批准
       in_stage: []
+      caps:
+      - CAP-054
+      - CAP-056
+      - CAP-093
     VS-14.2:
       name: 批准申请
       vs: VS-14
@@ -925,6 +1435,10 @@ nodes:
         obj: OBJ-114
         state: 处理中
       in_stage: []
+      caps:
+      - CAP-054
+      - CAP-056
+      - CAP-093
     VS-14.3:
       name: 完成事项办理
       vs: VS-14
@@ -954,6 +1468,10 @@ nodes:
         obj: OBJ-115
         state: 已维修登记
       in_stage: []
+      caps:
+      - CAP-054
+      - CAP-056
+      - CAP-093
     VS-14.4:
       name: 确认办结
       vs: VS-14
@@ -989,6 +1507,10 @@ nodes:
         obj: OBJ-116
         state: 已完成
       in_stage: []
+      caps:
+      - CAP-054
+      - CAP-056
+      - CAP-093
     VS-15.1:
       name: 拟订
       vs: VS-15
@@ -1009,6 +1531,15 @@ nodes:
         obj: OBJ-124
         state: 版本草稿
       in_stage: []
+      caps:
+      - CAP-024
+      - CAP-028
+      - CAP-054
+      - CAP-058
+      - CAP-074
+      - CAP-078
+      - CAP-103
+      - CAP-124
     VS-15.2:
       name: 批准生效
       vs: VS-15
@@ -1062,6 +1593,15 @@ nodes:
       - OBJ-54
       - OBJ-25
       - OBJ-27
+      caps:
+      - CAP-024
+      - CAP-028
+      - CAP-054
+      - CAP-058
+      - CAP-074
+      - CAP-078
+      - CAP-103
+      - CAP-124
     VS-15.3:
       name: 修订停用
       vs: VS-15
@@ -1121,833 +1661,14 @@ nodes:
         obj: OBJ-124
         state: 版本已停用
       in_stage: []
-  obj:
-    OBJ-01:
-      name: 往来单位
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 待核实 → 有效（档案已核实）→ 已合并 / 已停用；档案按 D17 版本化；「正式往来单位」= 状态为「有效」（intent 120544 P-3）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:59
-    OBJ-02:
-      name: 往来单位角色
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已申请 → 合格 → 已暂停 → 已停用（原因必填；适用需准入的角色：供应商、合伙人、渠道伙伴、联合体伙伴、海外持牌伙伴）；客户角色无准入状态，往来单位档案已核实即可用（intent 120544 P-3）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:60
-    OBJ-03:
-      name: 联系人
-      active: true
-      primary: false
-      class: 从属对象
-      parent: OBJ-01
-      states: 有效 / 已停用
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:61
-    OBJ-05:
-      name: 协议
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 草案 → 审批中 → 已签署生效（回签即生效，基线 1）→ 履行中 → 已完成 → 已结算（结算书经双方确认）/ 已终止（原因必填）；生效后只经协议变更产生新基线；违法分包认定时标「无效」；审批中的「合同评审」是协议审批的单据，不另立对象（完整性检查（intent 072440），M-20）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:63
-    OBJ-06:
-      name: 合同范围条目
-      active: true
-      primary: false
-      class: 从属对象
-      parent: OBJ-05
-      states: 有效 → 被取代（只经协议变更）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:64
-    OBJ-07:
-      name: 付款条件项
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 待生效 → 已生效 → 可结算 → 被取代 / 已作废
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:65
-    OBJ-08:
-      name: 履约义务
-      active: true
-      primary: false
-      class: 从属对象
-      parent: OBJ-05
-      states: 未履行 → 已部分履行 → 已履行
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:66
-    OBJ-09:
-      name: 协议变更
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已提出 → 影响评估 → 审批 → 已生效（新基线）/ 驳回
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:67
-    OBJ-10:
-      name: 索赔
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已通知（时限内）→ 已提交 → 已认定 / 已拒绝 / 撤回
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:68
-    OBJ-12:
-      name: 风险交付授权
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已申请 → 已批准 → 已转正（并入协议）/ 叫停
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:70
-    OBJ-13:
-      name: 保证金与押金
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 现金：待缴 → 已缴 → 已退 / 被没收（可部分扣减）；保函：已开立 → 已到期 / 被索赔
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:71
-    OBJ-16:
-      name: 市场活动
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 已计划 → 进行中 → 已结束
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:75
-    OBJ-17:
-      name: 线索
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 新建 → 跟进中 ⇄ 挂起 → 已确认（转商机）/ 已关闭（无价值，原因必填）；公海池
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:76
-    OBJ-18:
-      name: 商机
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 跟进中（内部阶段）→ 已决定参投（参投决策，用户 VS01-10）→ 已赢单 / 丢单（原因、竞争对手、中标单位、中标价）/ 已放弃（跟进中或已决定参投均可放弃）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:77
-    OBJ-19:
-      name: 招标项目
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 外部：已公告 → 已截止 → 已开标 → 公示 → 已定标；已终止 / 已重新招标
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:78
-    OBJ-20:
-      name: 投标
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 准备中 →（资格预审：通过 / 未通过）→ 已递交 → 已开标 → 公示中 → 已中标 / 未中标 / 已废标；截止前撤回、截止后撤销、已放弃
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:79
-    OBJ-21:
-      name: 报价
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草拟 → 审批中 → 已通过 / 驳回 → 生效（成为该（商机，标段）的当前版本）；被取代；已作废（「已通过」= 评审通过并冻结，「生效」= 当前版本，回溯检查 RD-06）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:80
-    OBJ-22:
-      name: 报价估算分解
-      active: true
-      primary: false
-      class: 从属对象
-      parent: OBJ-21
-      states: 随报价版本冻结
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:81
-    OBJ-23:
-      name: 独立性检查
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 待查 → 无冲突 / 有冲突已获书面同意 / 有冲突不得承接
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:82
-    OBJ-24:
-      name: 服务产品
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 已启用 → 已停用；版本化
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:84
-    OBJ-25:
-      name: 阶段类型
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 已启用 → 已停用；版本化
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:85
-    OBJ-26:
-      name: 标准成本费率表
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 草拟 → 已批准 → 已生效（生效期不重叠）→ 被取代
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:86
-    OBJ-27:
-      name: 计费系数
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草拟 → 已批准 → 已生效 → 被取代
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:87
-    OBJ-28:
-      name: 工作日历
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 年度：未维护 → 已维护；过去日期锁定
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:88
-    OBJ-29:
-      name: 项目
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 已立项 → 执行中 ⇄ 已暂停（原因）→ 收尾中 → 已结项 → 已归档（成果与证据已封存后）；已终止（解除或放弃，原因必填）；已取消（无任何投入时）（Q09：暂停期间拒绝记工时已答，intent 134134 Q-05；其余取值仍待定）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:90
-    OBJ-30:
-      name: WBS 节点
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 阶段：未开始 → 进行中 → 已完成（只记工作进程；成果的提交与认可是交付物 OBJ-35 的事实，SC-01，聚合稿 §4.4.1）；工作包：进行中 → 已完成 → 已锁定 → 返工中；均可作废（保留历史）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:91
-    OBJ-31:
-      name: 交付计划
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草拟 → 已批准（对客）/ 内部锁定 → 被修订版取代
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:92
-    OBJ-32:
-      name: 项目预算
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 编制中 → 审批中 → 已锁定（成本基线）→ 修订中 → 已锁定（新版本）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:93
-    OBJ-33:
-      name: 完工估算
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已提出 → 已批准 / 已驳回
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:94
-    OBJ-34:
-      name: 项目团队成员
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已拟派 → 在岗 → 已撤出
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:95
-    OBJ-35:
-      name: 交付物
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: '编制中 → 内审中 → 已签发（报告类）→ 已交付（签收）→ 审查中 → 已认可 / 退回修改（轮次 +1）/ 已声明（项目经理登记的无异议声明：期满前未收到发包人书面异议，附往来函件检索记录，声明人与复核人按 ADR-0047 U-2；交付侧登记事实，与「已交付（签收）/ 审查中」并列；送达、退回也记在交付侧；期满判定在 `receivables.wip`；「视为同意」不是交付物状态，由
-        `reporting` 读模型派生显示，`delivery.acceptance` 不读、不订阅 `receivables.wip`；客户书面同意属认可，即「已认可」（ADR-0047 第 1 类），不是「已声明」；D-8，用户 2026-10-16，intent 061232；按 D-8 字面订正，ADR-0049 评审；状态名与事件「无异议已声明」一致，PR #320）；被取代 /
-        撤回（原因必填）/ 已作废；结项归档时已发布成果「已封存」'
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:96
-    OBJ-37:
-      name: 内部评审
-      active: true
-      primary: false
-      class: 从属对象
-      parent: OBJ-35
-      states: 待评审 → 通过 / 已不通过（整改后复审）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:98
-    OBJ-38:
-      name: 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32）
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已识别 → 已确认 → 处置（返工 / 让步接受）→ 已关闭（我方成果类）；已识别 → 已复核 → 已发布 → 整改中 → 整改已申报 → 已闭合（复查通过）/ 回整改中 / 客户书面接受风险（推断，须有依据）/ 已停止跟踪（原因必填）（客户资产类）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:99
-    OBJ-39:
-      name: 返工认定
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草拟 → 已认定；可撤销（冲销）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:100
-    OBJ-40:
-      name: 设计变更
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已提出 → 原因认定与影响评估 → 编制 → 内审 → 已发出 → 已关闭
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:101
-    OBJ-41:
-      name: 延期申请
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已通知（5 天内）→ 已提交详细说明（10 天内）→ 已批准 / 已拒绝 / 视为批准
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:102
-    OBJ-42:
-      name: 发包人提供资料
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 待提供 → 已提供 → 已确认 / 有缺陷（退回）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:103
-    OBJ-44:
-      name: 资源需求
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草拟 → 已提出 → 已部分满足 / 已满足 / 已取消
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:105
-    OBJ-45:
-      name: 资源分配
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已计划（项目经理自排）→ 已确认（部门负责人审批）→ 已释放
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:106
-    OBJ-46:
-      name: 建设工程
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 外部：规划 → 在建 → 已竣工（在用）→ 已超设计使用年限 → 改造中 → 已拆除
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:108
-    OBJ-47:
-      name: 建筑系统与部位
-      active: true
-      primary: false
-      class: 从属对象
-      parent: OBJ-46
-      states: 在用 → 已超年限 → 改造中 → 已拆除；不再受托
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:109
-    OBJ-48:
-      name: 检查计划
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已生效 → 已执行 / 已逾期 / 不再受托（删「到期提醒」状态：到期只作提醒，派生 / 策略，人工转线索或商机，另签协议；按周期或按次结算用协议付款条件项，用户 intent 090004）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:110
-    OBJ-49:
-      name: 检查
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已计划 → 已安排 → 现场进行中 → 记录已提交 → 已审核 → 已锁定；已取消（原因必填）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:111
-    OBJ-50:
-      name: 检查表模板
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草拟 → 已生效 → 已停用（只增版本）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:112
-    OBJ-52:
-      name: 外部检测
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已建议 → 业主已委托 → 报告已收到 → 已采信 / 未采信（原因）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:114
-    OBJ-53:
-      name: 证据
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已采集 → 已上传（摘要）→ 已关联 → 已封存；已作废（原因必填，保留原件）；「已关联」= 技术聚合「证据关联」（AGG-110，B-28）中存在该证据的挂接记录，证据聚合 AGG-38 不存该状态，只作段内状态、不入阶段门（intent 114200 F-1）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:115
-    OBJ-54:
-      name: 法人主体
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 筹建 → 存续 → 已注销
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:117
-    OBJ-55:
-      name: 组织单元
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已启用 → 已停用 / 已撤销；树按生效区间版本化（组织调整产生新版本）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:118
-    OBJ-56:
-      name: 人员（原「员工」；用户 2026-10-15 Q38 认可改名）
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 已登记（候选）→ 面试中 → 待入职 → 试用期 → 正式 → 待离职 → 已离职；未录用（候选阶段终态）；已停薪留职（可恢复）；权限用的在职 / 离职二值另存
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:119
-    OBJ-57:
-      name: 任职
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 生效区间版本（只追加）；主任职区间不重叠，兼职任职可多个并行、不设上限（用户 intent 072440 INV-62）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:120
-    OBJ-58:
-      name: 岗位
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 已启用 → 已停用
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:121
-    OBJ-60:
-      name: 招聘需求
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草稿 → 已提交 → 已批准 / 已驳回 → 招聘中 → 已关闭（录满 / 取消）（与 AGG-65 统一，SC-03）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:123
-    OBJ-62:
-      name: 社保与公积金参保
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 增员 → 在缴 → 减员（转移 / 封存）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:125
-    OBJ-64:
-      name: 注册执业证书
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 有效 → 已到期 / 已注销
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:127
-    OBJ-65:
-      name: 资质证书
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 有效 → 核查中（年检 / 动态核查）→ 有效 / 已降级 / 已撤销；有效 → 延续中 → 有效（新有效期）/ 已到期（未延续）（用户答复 Q-D 第 1 项纳入资质维护，intent 082311）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:128
-    OBJ-66:
-      name: 工时单
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草稿 → 已提交（含审批中）→ 已通过 / 已退回 / 已驳回（驳回、退回后改原单再提交，不设取消终态）；撤回是转换（已提交 → 草稿，事件 TimesheetApprovalWithdrawn），不是状态；已过账属 Phase 2；关期后只能冲销或修正（one-data TS-UNIQ 审查，intent 052923）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:129
-    OBJ-68:
-      name: 请假
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草稿 → 审批中 → 已批准 / 已驳回 → 已销假 / 已撤销
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:131
-    OBJ-70:
-      name: 考勤记录
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 只追加
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:133
-    OBJ-72:
-      name: 加班
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已申请 → 已批准 → 已补偿（付薪 / 调休）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:135
-    OBJ-73:
-      name: 月度薪酬结算（原「算薪运行」）
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草稿 → 已计算 → 审核中 → 已批准 → 已发放 → 已过账；更正走冲销；员工薪酬行支付状态：待支付 → 已实付 / 支付失败（待补发）；部分成功时成功行保留实付，失败行待补发，整期仍为「已批准」，应付薪酬行全部实付后才转整期「已发放」
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:136
-    OBJ-74:
-      name: 激励方案
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 编制 → 审批 → 已生效 → 已结束
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:137
-    OBJ-78:
-      name: 分摊规则（原「分摊规则版本」）
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草稿 → 已批准 → 已生效 → 被取代
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:142
-    OBJ-81:
-      name: 收入确认
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 若作对象：草稿 → 审批中 → 已确认（锁定）/ 驳回；更正走冲销
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:146
-    OBJ-82:
-      name: 开票申请
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草稿 → 审批中 → 准入通过 → 已开票 / 驳回 / 撤回 / 已作废（开具前）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:147
-    OBJ-83:
-      name: 增值税发票
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已开具 → 部分红冲 → 全额红冲（销项蓝字）；已开具（红字，引用蓝字）；已取得（查验）→ 已用途确认（抵扣 / 不抵扣）→ 已入账（进项）；进项转出；红冲确认中（蓝字已用途确认或入账者红冲前；红字信息确认单由税务平台登记，72 小时未确认自动作废则回到原状态；原 OBJ-84）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:148
-    OBJ-85:
-      name: 往来款项
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 未结 → 已部分结清 → 已结清；争议（往来款项处置分类，候选取值复工 / 结算 / 诉讼 / 核销，证据为老系统经营报表对不良资产的「四选一」处置分类，见 `r0/structure/pptx.md` 第 416 行，取值待用户在后续确认页定；「诉讼」，起诉状、判决书、律师函作证据类型，案件过程线下，用户 intent 090004）；已核销（坏账）；红冲减少
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:150
-    OBJ-86:
-      name: 资金收付
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 收：待认领 → 已认领 → 已分配；付：已发起 → 审批中 → 已成功 / 已失败（退票）→ 已核销
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:151
-    OBJ-87:
-      name: 供方履约确认
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已提交 → 审核 → 已确认；已冲销
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:152
-    OBJ-88:
-      name: 费用报销
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草稿 → 已提交 → 审批中 → 已核定（所属期间确定）→ 已过账 → 已付；驳回、已冲销
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:153
-    OBJ-89:
-      name: 资金账户
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已开立 → 在用 → 已冻结 → 已销户
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:154
-    OBJ-90:
-      name: 银行流水
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已导入 → 已匹配 / 未匹配
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:155
-    OBJ-91:
-      name: 合伙人出资
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已认缴 → 已实缴（到账）→ 已部分退回 / 已退回
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:156
-    OBJ-92:
-      name: 法定申报
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 待申报 → 已申报 → 已缴款；更正申报
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:157
-    OBJ-93:
-      name: 公司资产
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 在用 → 已闲置 → 处置
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:158
-    OBJ-95:
-      name: 会计科目
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已启用 → 已停用（被引用不可删）；科目表版本化
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:161
-    OBJ-96:
-      name: 账簿
-      active: true
-      primary: false
-      class: 参照数据
-      parent: null
-      states: 已开立 → 在用 → 只读
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:162
-    OBJ-97:
-      name: 会计期间
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 未开 → 已开放 → 关账中 → 已关账；重开须审批
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:163
-    OBJ-98:
-      name: 会计分录
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草稿 → 已审核 → 已记账（不可逆）；更正只能冲销
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:164
-    OBJ-99:
-      name: 报表行定义
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草拟 → 财务评审 → 已生效 → 被取代
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:165
-    OBJ-100:
-      name: 经营计划
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 编制中 → 审批 → 基线（不可变）→ 新版本
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:166
-    OBJ-103:
-      name: 财务
-      active: true
-      primary: true
-      class: 视图
-      parent: null
-      states: —
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:170
-    OBJ-104:
-      name: 奖金核定
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草拟 → 已核定 → 已发放（经月度薪酬结算）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:171
-    OBJ-105:
-      name: 客户活动
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已计划 → 已变更 → 已完成（结果反馈）/ 已取消（原因必填）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:173
-    OBJ-106:
-      name: 客户满意度调查
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已发出 → 已回收 → 已评分 → 已跟进
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:174
-    OBJ-107:
-      name: 项目复盘
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草拟 → 已评审 → 已发布
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:175
-    OBJ-108:
-      name: 项目风险与问题
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已登记 → 应对中 → 已关闭 / 已接受（须记接受人与依据）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:176
-    OBJ-109:
-      name: 绩效评估
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草拟 → 已提交 → 已确认（推断，待第 6 步）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:177
-    OBJ-110:
-      name: 知识条目
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 起草 → 评审 → 已发布 → 已修订（新版本）→ 已废止
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:178
-    OBJ-111:
-      name: 月度考勤确认
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已生成 → 已确认（本人）→ 已锁定；锁定后不重开
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:180
-    OBJ-112:
-      name: 利润分配
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草拟 → 已决议 → 已部分支付 → 已支付；已决议后变更须新决议并引用被取代决议
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:181
-    OBJ-113:
-      name: 用印申请
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草稿 → 审批中 → 已批准 / 已驳回 → 已用印 → 已关闭
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:183
-    OBJ-114:
-      name: IT 需求工单
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已提交 → 审批中（需审批的类别）→ 处理中 → 已解决 → 已关闭 / 已退回
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:184
-    OBJ-115:
-      name: IT 资产使用记录
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 领用申请：草稿 → 已通过（规则直通，无人审）→ 已领用；规则缺失或不满足时拒绝并告警；调拨申请：草稿 → 已申请 → 已调拨 / 已转领用 / 已撤销；使用期间：在用 → 已结束；归还记录：已归还（期间已结束）；维修：草稿 → 已报修 → 已维修登记；原领用审批中、已驳回、已撤回及审批轮次只作迁入历史保留（PRC-143，B31-5）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:185
-    OBJ-116:
-      name: 员工活动申请
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 草稿 → 已批准（规则直通，无人工批准）→ 已完成；登记取消路径：已批准 / 已完成 → 已取消（提议状态名，待 one-glossary 定名），取消不构成 VS-14.4 正常退出；原审批中、已驳回及审批轮次只作迁入历史保留（PRC-144，B31-8）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:186
-    OBJ-117:
-      name: 勾稽差异案
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 未关闭 → 已解释 / 已修正 / 已豁免（均为关闭结局）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:189
-    OBJ-118:
-      name: 费用事前申请
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 已提交 → 已批准 / 已驳回 / 已撤回 → 已用尽 / 已关闭
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:190
-    OBJ-119:
-      name: 出差申请
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 已提交 → 已批准 / 已驳回 / 已撤回 → 已同步 / 已关闭
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:191
-    OBJ-120:
-      name: 差旅订单
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 超标审批：待审批 → 已批准 / 已驳回；归属、退改与核对依据分别记录
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:192
-    OBJ-121:
-      name: 差旅订单月账单
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 已登记 → 已核对 → 已确认应付
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:193
-    OBJ-122:
-      name: 假期余额账户
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 年度账户：已开账 → 已结转；占用行：已占用 → 已转用 / 已释放；补休额度行：有效 → 已转计薪 / 已休完
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:194
-    OBJ-123:
-      name: 人员薪酬档案
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 版本：生效（按生效区间）→ 已结束；根记录无单独生命周期
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:195
-    OBJ-124:
-      name: 业务规则（暂名，待 one-glossary 定名）
-      active: true
-      primary: true
-      class: 业务对象
-      parent: null
-      states: 版本草稿 → 已生效 → 已停用（被新版本取代）
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:196
-    OBJ-125:
-      name: 外部法定账对账（暂名，待 one-glossary 定名）
-      active: true
-      primary: false
-      class: 业务对象
-      parent: null
-      states: 对账中 → 已签字
-      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:197
+      caps:
+      - CAP-024
+      - CAP-028
+      - CAP-058
+      - CAP-074
+      - CAP-078
+      - CAP-103
+      - CAP-124
   prc:
     PRC-01:
       name: 举办市场活动
@@ -3795,6 +3516,2175 @@ nodes:
       primary_object: []
       bc: platform.integration（接口）与 B-27 organization.attendance（落考勤记录）
       group: platform
+  inv:
+    INV-01:
+      aggs:
+      - AGG-01
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:90
+    INV-02:
+      aggs:
+      - AGG-01
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:91
+    INV-03:
+      aggs:
+      - AGG-53
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:94
+    INV-04:
+      aggs:
+      - AGG-53
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:96
+    INV-05:
+      aggs:
+      - AGG-13
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:97
+    INV-06:
+      aggs:
+      - AGG-13
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:98
+    INV-07:
+      aggs:
+      - AGG-13
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:99
+    INV-08:
+      aggs:
+      - AGG-13
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:100
+    INV-09:
+      aggs:
+      - AGG-13
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:101
+    INV-10:
+      aggs:
+      - AGG-14
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:102
+    INV-11:
+      aggs:
+      - AGG-55
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:103
+    INV-12:
+      aggs:
+      - AGG-55
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:104
+    INV-13:
+      aggs:
+      - AGG-55
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:105
+    INV-14:
+      aggs:
+      - AGG-67
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:106
+    INV-15:
+      aggs:
+      - AGG-55
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:107
+    INV-16:
+      aggs:
+      - AGG-56
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:109
+    INV-17:
+      aggs:
+      - AGG-16
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:110
+    INV-18:
+      aggs:
+      - AGG-17
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:111
+    INV-19:
+      aggs:
+      - AGG-17
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:112
+    INV-20:
+      aggs:
+      - AGG-51
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:113
+    INV-21:
+      aggs:
+      - AGG-44
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:114
+    INV-22:
+      aggs:
+      - AGG-44
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:115
+    INV-23:
+      aggs:
+      - AGG-44
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:116
+    INV-24:
+      aggs:
+      - AGG-09
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:122
+    INV-25:
+      aggs:
+      - AGG-10
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:123
+    INV-26:
+      aggs:
+      - AGG-10
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:124
+    INV-27:
+      aggs:
+      - AGG-10
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:125
+    INV-28:
+      aggs:
+      - AGG-11
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:126
+    INV-29:
+      aggs:
+      - AGG-11
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:127
+    INV-30:
+      aggs:
+      - AGG-12
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:128
+    INV-31:
+      aggs:
+      - AGG-12
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:129
+    INV-32:
+      aggs:
+      - AGG-12
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:130
+    INV-33:
+      aggs:
+      - AGG-18
+      - AGG-10
+      - AGG-11
+      - AGG-13
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:131
+    INV-34:
+      aggs:
+      - AGG-36
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:139
+    INV-35:
+      aggs:
+      - AGG-05
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:140
+    INV-36:
+      aggs:
+      - AGG-06
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:142
+    INV-37:
+      aggs:
+      - AGG-39
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:143
+    INV-39:
+      aggs:
+      - AGG-59
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:153
+    INV-40:
+      aggs:
+      - AGG-19
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:154
+    INV-41:
+      aggs:
+      - AGG-20
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:155
+    INV-42:
+      aggs:
+      - AGG-20
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:156
+    INV-43:
+      aggs:
+      - AGG-21
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:157
+    INV-44:
+      aggs:
+      - AGG-22
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:158
+    INV-46:
+      aggs:
+      - AGG-27
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:159
+    INV-47:
+      aggs:
+      - AGG-27
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:160
+    INV-48:
+      aggs:
+      - AGG-27
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:161
+    INV-49:
+      aggs:
+      - AGG-28
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:162
+    INV-50:
+      aggs:
+      - AGG-28
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:163
+    INV-51:
+      aggs:
+      - AGG-27
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:164
+    INV-52:
+      aggs:
+      - AGG-28
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:165
+    INV-53:
+      aggs:
+      - AGG-39
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:166
+    INV-54:
+      aggs:
+      - AGG-30
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:167
+    INV-55:
+      aggs:
+      - AGG-35
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:168
+    INV-56:
+      aggs:
+      - AGG-35
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:169
+    INV-57:
+      aggs:
+      - AGG-37
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:170
+    INV-58:
+      aggs:
+      - AGG-38
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:171
+    INV-59:
+      aggs:
+      - AGG-60
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:177
+    INV-60:
+      aggs:
+      - AGG-61
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:178
+    INV-62:
+      aggs:
+      - AGG-63
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:179
+    INV-63:
+      aggs:
+      - AGG-64
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:180
+    INV-64:
+      aggs:
+      - AGG-39
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:181
+    INV-65:
+      aggs:
+      - AGG-39
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:182
+    INV-66:
+      aggs:
+      - AGG-39
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:183
+    INV-67:
+      aggs:
+      - AGG-39
+      - AGG-77
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:184
+    INV-68:
+      aggs:
+      - AGG-71
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:185
+    INV-69:
+      aggs:
+      - AGG-69
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:186
+    INV-70:
+      aggs:
+      - AGG-73
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:187
+    INV-105:
+      aggs:
+      - AGG-97
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:188
+    INV-71:
+      aggs:
+      - AGG-45
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:194
+    INV-72:
+      aggs:
+      - AGG-46
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:195
+    INV-73:
+      aggs:
+      - AGG-44
+      - AGG-46
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:196
+    INV-74:
+      aggs:
+      - AGG-89
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:197
+    INV-75:
+      aggs:
+      - AGG-52
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:199
+    INV-76:
+      aggs:
+      - AGG-49
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:200
+    INV-77:
+      aggs:
+      - AGG-52
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:202
+    INV-78:
+      aggs:
+      - AGG-53
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:204
+    INV-79:
+      aggs:
+      - AGG-52
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:205
+    INV-80:
+      aggs:
+      - AGG-53
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:206
+    INV-81:
+      aggs:
+      - AGG-53
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:207
+    INV-82:
+      aggs:
+      - AGG-58
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:208
+    INV-83:
+      aggs:
+      - AGG-57
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:209
+    INV-84:
+      aggs:
+      - AGG-59
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:210
+    INV-85:
+      aggs:
+      - AGG-88
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:211
+    INV-86:
+      aggs:
+      - AGG-44
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:212
+    INV-88:
+      aggs:
+      - AGG-43
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:213
+    INV-89:
+      aggs:
+      - AGG-41
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:214
+    INV-90:
+      aggs:
+      - AGG-42
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:215
+    INV-91:
+      aggs:
+      - AGG-86
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:217
+    INV-92:
+      aggs:
+      - AGG-77
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:225
+    INV-93:
+      aggs:
+      - AGG-77
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:226
+    INV-94:
+      aggs:
+      - AGG-77
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:227
+    INV-95:
+      aggs:
+      - AGG-84
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:229
+    INV-96:
+      aggs:
+      - AGG-84
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:230
+    INV-97:
+      aggs:
+      - AGG-84
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:231
+    INV-98:
+      aggs:
+      - AGG-84
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:232
+    INV-99:
+      aggs:
+      - AGG-81
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:233
+    INV-100:
+      aggs:
+      - AGG-81
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:234
+    INV-101:
+      aggs:
+      - AGG-79
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:235
+    INV-103:
+      aggs:
+      - AGG-82
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:236
+    INV-104:
+      aggs:
+      - AGG-96
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:237
+    INV-106:
+      aggs:
+      - AGG-100
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:238
+    INV-107:
+      aggs:
+      - AGG-101
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:239
+    INV-108:
+      aggs:
+      - AGG-98
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:240
+    INV-109:
+      aggs:
+      - AGG-99
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:241
+    INV-110:
+      aggs:
+      - AGG-102
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:242
+    INV-111:
+      aggs:
+      - AGG-105
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:243
+    INV-112:
+      aggs:
+      - AGG-103
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:244
+    INV-113:
+      aggs:
+      - AGG-104
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:245
+    INV-114:
+      aggs:
+      - AGG-106
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:246
+    INV-115:
+      aggs:
+      - AGG-107
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:247
+    INV-116:
+      aggs:
+      - AGG-108
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:248
+    INV-117:
+      aggs:
+      - AGG-109
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:249
+    INV-118:
+      aggs:
+      - AGG-113
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:250
+    INV-119:
+      aggs:
+      - AGG-113
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:251
+    INV-120:
+      aggs:
+      - AGG-114
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:252
+    INV-121:
+      aggs:
+      - AGG-115
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:253
+    INV-122:
+      aggs:
+      - AGG-117
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:254
+    INV-123:
+      aggs:
+      - AGG-118
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:255
+    INV-124:
+      aggs:
+      - AGG-13
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:256
+    INV-125:
+      aggs:
+      - AGG-13
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:257
+    INV-126:
+      aggs:
+      - AGG-13
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:258
+    INV-127:
+      aggs:
+      - AGG-54
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:259
+    INV-128:
+      aggs:
+      - AGG-54
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:260
+    INV-129:
+      aggs:
+      - AGG-89
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:261
+    INV-130:
+      aggs:
+      - AGG-52
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:262
+    INV-131:
+      aggs:
+      - AGG-82
+      - AGG-85
+      - AGG-86
+      - AGG-94
+      - AGG-128
+      - AGG-129
+      - AGG-05
+      - AGG-06
+      - AGG-07
+      - AGG-40
+      - AGG-78
+      - AGG-123
+      - AGG-124
+      - AGG-133
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:263
+    INV-132:
+      aggs:
+      - AGG-122
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:264
+    INV-133:
+      aggs:
+      - AGG-125
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:265
+    INV-134:
+      aggs:
+      - AGG-125
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:266
+    INV-135:
+      aggs:
+      - AGG-126
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:267
+    INV-136:
+      aggs:
+      - AGG-127
+      - AGG-128
+      - AGG-129
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:268
+    INV-137:
+      aggs:
+      - AGG-131
+      - AGG-59
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:269
+    INV-138:
+      aggs:
+      - AGG-113
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:270
+    INV-139:
+      aggs:
+      - AGG-119
+      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:271
+  obj:
+    OBJ-01:
+      name: 往来单位
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 待核实 → 有效（档案已核实）→ 已合并 / 已停用；档案按 D17 版本化；「正式往来单位」= 状态为「有效」（intent 120544 P-3）
+      facts: — （「往来单位已合并」事件）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:59
+    OBJ-02:
+      name: 往来单位角色
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已申请 → 合格 → 已暂停 → 已停用（原因必填；适用需准入的角色：供应商、合伙人、渠道伙伴、联合体伙伴、海外持牌伙伴）；客户角色无准入状态，往来单位档案已核实即可用（intent 120544 P-3）
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:60
+    OBJ-03:
+      name: 联系人
+      active: true
+      primary: false
+      class: 从属对象
+      parent: OBJ-01
+      states: 有效 / 已停用
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:61
+    OBJ-05:
+      name: 协议
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 草案 → 审批中 → 已签署生效（回签即生效，基线 1）→ 履行中 → 已完成 → 已结算（结算书经双方确认）/ 已终止（原因必填）；生效后只经协议变更产生新基线；违法分包认定时标「无效」；审批中的「合同评审」是协议审批的单据，不另立对象（完整性检查（intent 072440），M-20）
+      facts: 已签署生效 → 新签合同额、分包承诺额；协议变更生效 → 合同额变动；已终止 → 终止清算；已结算 → 最终交易价格、结算折让（原 OBJ-15）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:63
+    OBJ-06:
+      name: 合同范围条目
+      active: true
+      primary: false
+      class: 从属对象
+      parent: OBJ-05
+      states: 有效 → 被取代（只经协议变更）
+      facts: — （承诺比对基准）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:64
+    OBJ-07:
+      name: 付款条件项
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 待生效 → 已生效 → 可结算 → 被取代 / 已作废
+      facts: 可结算 → 可开票额度（不产生收入）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:65
+    OBJ-08:
+      name: 履约义务
+      active: true
+      primary: false
+      class: 从属对象
+      parent: OBJ-05
+      states: 未履行 → 已部分履行 → 已履行
+      facts: 已履行（部分）→ 收入、合同资产 / 合同负债变动、合同履约成本转出
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:66
+    OBJ-09:
+      name: 协议变更
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已提出 → 影响评估 → 审批 → 已生效（新基线）/ 驳回
+      facts: 已生效 → 合同额、交易价格变动（含违约金认定）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:67
+    OBJ-10:
+      name: 索赔
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已通知（时限内）→ 已提交 → 已认定 / 已拒绝 / 撤回
+      facts: 已认定 → 收入调整或成本补偿
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:68
+    OBJ-12:
+      name: 风险交付授权
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已申请 → 已批准 → 已转正（并入协议）/ 叫停
+      facts: — （为风险交付工时、金额度量提供维度）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:70
+    OBJ-13:
+      name: 保证金与押金
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 现金：待缴 → 已缴 → 已退 / 被没收（可部分扣减）；保函：已开立 → 已到期 / 被索赔
+      facts: 已缴 / 已退 / 已没收 → 其他应收（或其他应付）、受限资金（不计现金等价物，GL-051）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:71
+    OBJ-16:
+      name: 市场活动
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 已计划 → 进行中 → 已结束
+      facts: 活动费用（经费用报销归集）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:75
+    OBJ-17:
+      name: 线索
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 新建 → 跟进中 ⇄ 挂起 → 已确认（转商机）/ 已关闭（无价值，原因必填）；公海池
+      facts: 已确认 / 已关闭 → 线索计数（转化率）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:76
+    OBJ-18:
+      name: 商机
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 跟进中（内部阶段）→ 已决定参投（参投决策，用户 VS01-10）→ 已赢单 / 丢单（原因、竞争对手、中标单位、中标价）/ 已放弃（跟进中或已决定参投均可放弃）
+      facts: 赢单 → 赢单金额、计数（赢率）；售前工时、费用记于此，赢单后转入项目
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:77
+    OBJ-19:
+      name: 招标项目
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 外部：已公告 → 已截止 → 已开标 → 公示 → 已定标；已终止 / 已重新招标
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:78
+    OBJ-20:
+      name: 投标
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 准备中 →（资格预审：通过 / 未通过）→ 已递交 → 已开标 → 公示中 → 已中标 / 未中标 / 已废标；截止前撤回、截止后撤销、已放弃
+      facts: 中标 / 未中标 → 计数（中标率）；投标承诺快照（合同比对基准）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:79
+    OBJ-21:
+      name: 报价
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草拟 → 审批中 → 已通过 / 驳回 → 生效（成为该（商机，标段）的当前版本）；被取代；已作废（「已通过」= 评审通过并冻结，「生效」= 当前版本，回溯检查 RD-06）
+      facts: 已通过 → 报价金额、估算工时与成本、毛利（赢单版本为项目预算来源）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:80
+    OBJ-22:
+      name: 报价估算分解
+      active: true
+      primary: false
+      class: 从属对象
+      parent: OBJ-21
+      states: 随报价版本冻结
+      facts: 估算工时、估算成本（计划值）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:81
+    OBJ-23:
+      name: 独立性检查
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 待查 → 无冲突 / 有冲突已获书面同意 / 有冲突不得承接
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:82
+    OBJ-24:
+      name: 服务产品
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 已启用 → 已停用；版本化
+      facts: — （分析维度）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:84
+    OBJ-25:
+      name: 阶段类型
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 已启用 → 已停用；版本化
+      facts: — （维度）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:85
+    OBJ-26:
+      name: 标准成本费率表
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 草拟 → 已批准 → 已生效（生效期不重叠）→ 被取代
+      facts: — （计价参数）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:86
+    OBJ-27:
+      name: 计费系数
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草拟 → 已批准 → 已生效 → 被取代
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:87
+    OBJ-28:
+      name: 工作日历
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 年度：未维护 → 已维护；过去日期锁定
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:88
+    OBJ-29:
+      name: 项目
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 已立项 → 执行中 ⇄ 已暂停（原因）→ 收尾中 → 已结项 → 已归档（成果与证据已封存后）；已终止（解除或放弃，原因必填）；已取消（无任何投入时）（Q09：暂停期间拒绝记工时已答，intent 134134 Q-05；其余取值仍待定）
+      facts: 已立项 → 签约前投入起算（A7；用户 2026-10-15 Q19 以合同回签为界，见 C-43）；已终止 → 终止清算（D17-3）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:90
+    OBJ-30:
+      name: WBS 节点
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 阶段：未开始 → 进行中 → 已完成（只记工作进程；成果的提交与认可是交付物 OBJ-35 的事实，SC-01，聚合稿 §4.4.1）；工作包：进行中 → 已完成 → 已锁定 → 返工中；均可作废（保留历史）
+      facts: 阶段已认可 → 收入证据（经交付物）；工作包 ← 实际工时
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:91
+    OBJ-31:
+      name: 交付计划
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草拟 → 已批准（对客）/ 内部锁定 → 被修订版取代
+      facts: 计划日期（按期交付率）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:92
+    OBJ-32:
+      name: 项目预算
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 编制中 → 审批中 → 已锁定（成本基线）→ 修订中 → 已锁定（新版本）
+      facts: 已锁定 → 预算成本、预算工时
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:93
+    OBJ-33:
+      name: 完工估算
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已提出 → 已批准 / 已驳回
+      facts: 已批准 → 预测成本（减值测试的估计成本，CAS 14 第三十条）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:94
+    OBJ-34:
+      name: 项目团队成员
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已拟派 → 在岗 → 已撤出
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:95
+    OBJ-35:
+      name: 交付物
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: '编制中 → 内审中 → 已签发（报告类）→ 已交付（签收）→ 审查中 → 已认可 / 退回修改（轮次 +1）/ 已声明（项目经理登记的无异议声明：期满前未收到发包人书面异议，附往来函件检索记录，声明人与复核人按 ADR-0047 U-2；交付侧登记事实，与「已交付（签收）/ 审查中」并列；送达、退回也记在交付侧；期满判定在 `receivables.wip`；「视为同意」不是交付物状态，由
+        `reporting` 读模型派生显示，`delivery.acceptance` 不读、不订阅 `receivables.wip`；客户书面同意属认可，即「已认可」（ADR-0047 第 1 类），不是「已声明」；D-8，用户 2026-10-16，intent 061232；按 D-8 字面订正，ADR-0049 评审；状态名与事件「无异议已声明」一致，PR #320）；被取代 /
+        撤回（原因必填）/ 已作废；结项归档时已发布成果「已封存」'
+      facts: 已认可 → 收入确认的证据（客户认可证据五类见 §2.7，用户 2026-10-15 Q22）；已交付 → 按期交付度量
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:96
+    OBJ-37:
+      name: 内部评审
+      active: true
+      primary: false
+      class: 从属对象
+      parent: OBJ-35
+      states: 待评审 → 通过 / 已不通过（整改后复审）
+      facts: 评分；内审覆盖率、一次通过率
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:98
+    OBJ-38:
+      name: 不符合项（原质量问题；原发现 OBJ-51 并入，用户 2026-10-15 Q32）
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已识别 → 已确认 → 处置（返工 / 让步接受）→ 已关闭（我方成果类）；已识别 → 已复核 → 已发布 → 整改中 → 整改已申报 → 已闭合（复查通过）/ 回整改中 / 客户书面接受风险（推断，须有依据）/ 已停止跟踪（原因必填）（客户资产类）
+      facts: 缺陷率；闭合率、整改天数
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:99
+    OBJ-39:
+      name: 返工认定
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草拟 → 已认定；可撤销（冲销）
+      facts: 已认定 → 返工工时、质量损失
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:100
+    OBJ-40:
+      name: 设计变更
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已提出 → 原因认定与影响评估 → 编制 → 内审 → 已发出 → 已关闭
+      facts: 发出 → 变更工时；联动协议变更金额
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:101
+    OBJ-41:
+      name: 延期申请
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已通知（5 天内）→ 已提交详细说明（10 天内）→ 已批准 / 已拒绝 / 视为批准
+      facts: 工期变动
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:102
+    OBJ-42:
+      name: 发包人提供资料
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 待提供 → 已提供 → 已确认 / 有缺陷（退回）
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:103
+    OBJ-44:
+      name: 资源需求
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草拟 → 已提出 → 已部分满足 / 已满足 / 已取消
+      facts: 需求工时
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:105
+    OBJ-45:
+      name: 资源分配
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已计划（项目经理自排）→ 已确认（部门负责人审批）→ 已释放
+      facts: 计划工时（利用率预测）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:106
+    OBJ-46:
+      name: 建设工程
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 外部：规划 → 在建 → 已竣工（在用）→ 已超设计使用年限 → 改造中 → 已拆除
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:108
+    OBJ-47:
+      name: 建筑系统与部位
+      active: true
+      primary: false
+      class: 从属对象
+      parent: OBJ-46
+      states: 在用 → 已超年限 → 改造中 → 已拆除；不再受托
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:109
+    OBJ-48:
+      name: 检查计划
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已生效 → 已执行 / 已逾期 / 不再受托（删「到期提醒」状态：到期只作提醒，派生 / 策略，人工转线索或商机，另签协议；按周期或按次结算用协议付款条件项，用户 intent 090004）
+      facts: 计划生效 / 修订 → 当期应检对象、部位及次数的覆盖基准；与实际检查的已安排、已锁定、已取消及逾期未检集合对应，不直接产生金额事实
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:110
+    OBJ-49:
+      name: 检查
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已计划 → 已安排 → 现场进行中 → 记录已提交 → 已审核 → 已锁定；已取消（原因必填）
+      facts: 已完成 → 按次计价的计量依据（UNIT_RATE「品控按次月结」）、检查工时
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:111
+    OBJ-50:
+      name: 检查表模板
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草拟 → 已生效 → 已停用（只增版本）
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:112
+    OBJ-52:
+      name: 外部检测
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已建议 → 业主已委托 → 报告已收到 → 已采信 / 未采信（原因）
+      facts: — （不进我方成本）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:114
+    OBJ-53:
+      name: 证据
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已采集 → 已上传（摘要）→ 已关联 → 已封存；已作废（原因必填，保留原件）；「已关联」= 技术聚合「证据关联」（AGG-110，B-28）中存在该证据的挂接记录，证据聚合 AGG-38 不存该状态，只作段内状态、不入阶段门（intent 114200 F-1）
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:115
+    OBJ-54:
+      name: 法人主体
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 筹建 → 存续 → 已注销
+      facts: — （各事实的法人维度）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:117
+    OBJ-55:
+      name: 组织单元
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已启用 → 已停用 / 已撤销；树按生效区间版本化（组织调整产生新版本）
+      facts: — （部门维度；区域将作为数据范围维度）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:118
+    OBJ-56:
+      name: 人员（原「员工」；用户 2026-10-15 Q38 认可改名）
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 已登记（候选）→ 面试中 → 待入职 → 试用期 → 正式 → 待离职 → 已离职；未录用（候选阶段终态）；已停薪留职（可恢复）；权限用的在职 / 离职二值另存
+      facts: 人数、离职率
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:119
+    OBJ-57:
+      name: 任职
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 生效区间版本（只追加）；主任职区间不重叠，兼职任职可多个并行、不设上限（用户 intent 072440 INV-62）
+      facts: — （费率与成本按工作日当日任职取值）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:120
+    OBJ-58:
+      name: 岗位
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 已启用 → 已停用
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:121
+    OBJ-60:
+      name: 招聘需求
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草稿 → 已提交 → 已批准 / 已驳回 → 招聘中 → 已关闭（录满 / 取消）（与 AGG-65 统一，SC-03）
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:123
+    OBJ-62:
+      name: 社保与公积金参保
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 增员 → 在缴 → 减员（转移 / 封存）
+      facts: 缴费基数（算薪输入）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:125
+    OBJ-64:
+      name: 注册执业证书
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 有效 → 已到期 / 已注销
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:127
+    OBJ-65:
+      name: 资质证书
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 有效 → 核查中（年检 / 动态核查）→ 有效 / 已降级 / 已撤销；有效 → 延续中 → 有效（新有效期）/ 已到期（未延续）（用户答复 Q-D 第 1 项纳入资质维护，intent 082311）
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:128
+    OBJ-66:
+      name: 工时单
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草稿 → 已提交（含审批中）→ 已通过 / 已退回 / 已驳回（驳回、退回后改原单再提交，不设取消终态）；撤回是转换（已提交 → 草稿，事件 TimesheetApprovalWithdrawn），不是状态；已过账属 Phase 2；关期后只能冲销或修正（one-data TS-UNIQ 审查，intent 052923）
+      facts: 已通过 → 工时；已过账 → 人工成本（交易类型 TS）、售前投入
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:129
+    OBJ-68:
+      name: 请假
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草稿 → 审批中 → 已批准 / 已驳回 → 已销假 / 已撤销
+      facts: 请假小时（可用产能、算薪输入）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:131
+    OBJ-70:
+      name: 考勤记录
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 只追加
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:133
+    OBJ-72:
+      name: 加班
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已申请 → 已批准 → 已补偿（付薪 / 调休）
+      facts: 加班小时 → 加班工资（150% / 200% / 300%，第 44 条）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:135
+    OBJ-73:
+      name: 月度薪酬结算（原「算薪运行」）
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草稿 → 已计算 → 审核中 → 已批准 → 已发放 → 已过账；更正走冲销；员工薪酬行支付状态：待支付 → 已实付 / 支付失败（待补发）；部分成功时成功行保留实付，失败行待补发，整期仍为「已批准」，应付薪酬行全部实付后才转整期「已发放」
+      facts: 已批准 → 职工薪酬（工资、社保、公积金单位部分）、个税代扣；→ 实际成本费率（派生）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:136
+    OBJ-74:
+      name: 激励方案
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 编制 → 审批 → 已生效 → 已结束
+      facts: 奖金核定 → 职工薪酬（或预提）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:137
+    OBJ-78:
+      name: 分摊规则（原「分摊规则版本」）
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草稿 → 已批准 → 已生效 → 被取代
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:142
+    OBJ-81:
+      name: 收入确认
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 若作对象：草稿 → 审批中 → 已确认（锁定）/ 驳回；更正走冲销
+      facts: 已确认 → 收入、合同资产 / 合同负债、配对的合同履约成本转出
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:146
+    OBJ-82:
+      name: 开票申请
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草稿 → 审批中 → 准入通过 → 已开票 / 驳回 / 撤回 / 已作废（开具前）
+      facts: — （发票开具才产生事实）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:147
+    OBJ-83:
+      name: 增值税发票
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已开具 → 部分红冲 → 全额红冲（销项蓝字）；已开具（红字，引用蓝字）；已取得（查验）→ 已用途确认（抵扣 / 不抵扣）→ 已入账（进项）；进项转出；红冲确认中（蓝字已用途确认或入账者红冲前；红字信息确认单由税务平台登记，72 小时未确认自动作废则回到原状态；原 OBJ-84）
+      facts: 销项已开具 → 销项税额、应收（收付账簿只在开票时记销项，A4）；进项用途确认 → 进项税额 / 转出
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:148
+    OBJ-85:
+      name: 往来款项
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 未结 → 已部分结清 → 已结清；争议（往来款项处置分类，候选取值复工 / 结算 / 诉讼 / 核销，证据为老系统经营报表对不良资产的「四选一」处置分类，见 `r0/structure/pptx.md` 第 416 行，取值待用户在后续确认页定；「诉讼」，起诉状、判决书、律师函作证据类型，案件过程线下，用户 intent 090004）；已核销（坏账）；红冲减少
+      facts: 结清 → 回款、付款；核销坏账 → 信用损失
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:150
+    OBJ-86:
+      name: 资金收付
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 收：待认领 → 已认领 → 已分配；付：已发起 → 审批中 → 已成功 / 已失败（退票）→ 已核销
+      facts: 已到账 / 已成功 → 回款额、付款额、现金流量项目标注
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:151
+    OBJ-87:
+      name: 供方履约确认
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已提交 → 审核 → 已确认；已冲销
+      facts: 已确认 → 分包成本（经结转入合同履约成本）、应付
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:152
+    OBJ-88:
+      name: 费用报销
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草稿 → 已提交 → 审批中 → 已核定（所属期间确定）→ 已过账 → 已付；驳回、已冲销
+      facts: 已核定 → 直接费用、售前费用；→ 应付（员工）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:153
+    OBJ-89:
+      name: 资金账户
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已开立 → 在用 → 已冻结 → 已销户
+      facts: — （期末余额）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:154
+    OBJ-90:
+      name: 银行流水
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已导入 → 已匹配 / 未匹配
+      facts: 利息、手续费（经导入凭证）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:155
+    OBJ-91:
+      name: 合伙人出资
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已认缴 → 已实缴（到账）→ 已部分退回 / 已退回
+      facts: 实缴 / 退回 → 权益事实
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:156
+    OBJ-92:
+      name: 法定申报
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 待申报 → 已申报 → 已缴款；更正申报
+      facts: 已申报 / 已缴款 → 税费计提与缴纳
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:157
+    OBJ-93:
+      name: 公司资产
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 在用 → 已闲置 → 处置
+      facts: 折旧、摊销、处置损益
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:158
+    OBJ-95:
+      name: 会计科目
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已启用 → 已停用（被引用不可删）；科目表版本化
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:161
+    OBJ-96:
+      name: 账簿
+      active: true
+      primary: false
+      class: 参照数据
+      parent: null
+      states: 已开立 → 在用 → 只读
+      facts: — （期间余额）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:162
+    OBJ-97:
+      name: 会计期间
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 未开 → 已开放 → 关账中 → 已关账；重开须审批
+      facts: 关账 → 期间快照
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:163
+    OBJ-98:
+      name: 会计分录
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草稿 → 已审核 → 已记账（不可逆）；更正只能冲销
+      facts: 本身即会计记录
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:164
+    OBJ-99:
+      name: 报表行定义
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草拟 → 财务评审 → 已生效 → 被取代
+      facts: — （某期报表是单据）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:165
+    OBJ-100:
+      name: 经营计划
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 编制中 → 审批 → 基线（不可变）→ 新版本
+      facts: 计划值；类型「预算」：占用、消耗 → 预算执行额
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:166
+    OBJ-103:
+      name: 财务
+      active: true
+      primary: true
+      class: 视图
+      parent: null
+      states: —
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:170
+    OBJ-104:
+      name: 奖金核定
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草拟 → 已核定 → 已发放（经月度薪酬结算）
+      facts: 已核定 → 职工薪酬（或预提分录）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:171
+    OBJ-105:
+      name: 客户活动
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已计划 → 已变更 → 已完成（结果反馈）/ 已取消（原因必填）
+      facts: 已完成 → 拜访量、计划完成率（派生度量）；归集的售前工时
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:173
+    OBJ-106:
+      name: 客户满意度调查
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已发出 → 已回收 → 已评分 → 已跟进
+      facts: 已评分 → 满意度（派生度量，可按项目、阶段、客户统计）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:174
+    OBJ-107:
+      name: 项目复盘
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草拟 → 已评审 → 已发布
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:175
+    OBJ-108:
+      name: 项目风险与问题
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已登记 → 应对中 → 已关闭 / 已接受（须记接受人与依据）
+      facts: —
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:176
+    OBJ-109:
+      name: 绩效评估
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草拟 → 已提交 → 已确认（推断，待第 6 步）
+      facts: 已确认 → 奖金核定与转正的输入
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:177
+    OBJ-110:
+      name: 知识条目
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 起草 → 评审 → 已发布 → 已修订（新版本）→ 已废止
+      facts: — （不直接产生度量事实）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:178
+    OBJ-111:
+      name: 月度考勤确认
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已生成 → 已确认（本人）→ 已锁定；锁定后不重开
+      facts: 已锁定 → 出勤天数、加班小时（算薪输入）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:180
+    OBJ-112:
+      name: 利润分配
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草拟 → 已决议 → 已部分支付 → 已支付；已决议后变更须新决议并引用被取代决议
+      facts: 已决议 → 应付利润（权益减少）；已支付 → 付款额；自然人股东股息红利个税代扣
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:181
+    OBJ-113:
+      name: 用印申请
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草稿 → 审批中 → 已批准 / 已驳回 → 已用印 → 已关闭
+      facts: 已用印 → 用印台账（实际用印时间、份数、经办人）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:183
+    OBJ-114:
+      name: IT 需求工单
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已提交 → 审批中（需审批的类别）→ 处理中 → 已解决 → 已关闭 / 已退回
+      facts: 已解决 → 处理时长（仅分析）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:184
+    OBJ-115:
+      name: IT 资产使用记录
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 领用申请：草稿 → 已通过（规则直通，无人审）→ 已领用；规则缺失或不满足时拒绝并告警；调拨申请：草稿 → 已申请 → 已调拨 / 已转领用 / 已撤销；使用期间：在用 → 已结束；归还记录：已归还（期间已结束）；维修：草稿 → 已报修 → 已维修登记；原领用审批中、已驳回、已撤回及审批轮次只作迁入历史保留（PRC-143，B31-5）
+      facts: 已领用 / 已调拨 / 已归还 → 使用台账（离职交接可读）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:185
+    OBJ-116:
+      name: 员工活动申请
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 草稿 → 已批准（规则直通，无人工批准）→ 已完成；登记取消路径：已批准 / 已完成 → 已取消（提议状态名，待 one-glossary 定名），取消不构成 VS-14.4 正常退出；原审批中、已驳回及审批轮次只作迁入历史保留（PRC-144，B31-8）
+      facts: 已批准 → 活动安排（仅分析）
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:186
+    OBJ-117:
+      name: 勾稽差异案
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 未关闭 → 已解释 / 已修正 / 已豁免（均为关闭结局）
+      facts: 差异额及结案结果
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:189
+    OBJ-118:
+      name: 费用事前申请
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 已提交 → 已批准 / 已驳回 / 已撤回 → 已用尽 / 已关闭
+      facts: 已批准 → 事前批准金额
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:190
+    OBJ-119:
+      name: 出差申请
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 已提交 → 已批准 / 已驳回 / 已撤回 → 已同步 / 已关闭
+      facts: 已批准 → 行程批准结果
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:191
+    OBJ-120:
+      name: 差旅订单
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 超标审批：待审批 → 已批准 / 已驳回；归属、退改与核对依据分别记录
+      facts: 订单审批与核对结果
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:192
+    OBJ-121:
+      name: 差旅订单月账单
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 已登记 → 已核对 → 已确认应付
+      facts: 已确认应付 → 实际应付与费用确认依据
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:193
+    OBJ-122:
+      name: 假期余额账户
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 年度账户：已开账 → 已结转；占用行：已占用 → 已转用 / 已释放；补休额度行：有效 → 已转计薪 / 已休完
+      facts: 核定、使用、结转、折算与手工调整变动
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:194
+    OBJ-123:
+      name: 人员薪酬档案
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 版本：生效（按生效区间）→ 已结束；根记录无单独生命周期
+      facts: 薪资变更与待计发调整的计薪依据
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:195
+    OBJ-124:
+      name: 业务规则（暂名，待 one-glossary 定名）
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      states: 版本草稿 → 已生效 → 已停用（被新版本取代）
+      facts: 规则版本已生效 → 后续业务按它办
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:196
+    OBJ-125:
+      name: 外部法定账对账（暂名，待 one-glossary 定名）
+      active: true
+      primary: false
+      class: 业务对象
+      parent: null
+      states: 对账中 → 已签字
+      facts: 对账已签字 → 期间报告可发布
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:197
+  act:
+    cost.timesheet/SubmitTimesheet:
+      command: SubmitTimesheet
+      aggregate: cost.timesheet/Timesheet
+      bc: cost.timesheet
+      src: architecture/ddd/aggregates.yaml#cost.timesheet/Timesheet
+    cost.timesheet/ApplyApprovalResult:
+      command: ApplyApprovalResult
+      aggregate: cost.timesheet/Timesheet
+      bc: cost.timesheet
+      src: architecture/ddd/aggregates.yaml#cost.timesheet/Timesheet
+    cost.timesheet/WithdrawTimesheet:
+      command: WithdrawTimesheet
+      aggregate: cost.timesheet/Timesheet
+      bc: cost.timesheet
+      src: architecture/ddd/aggregates.yaml#cost.timesheet/Timesheet
+    cost.timesheet/CancelTimesheet:
+      command: CancelTimesheet
+      aggregate: cost.timesheet/Timesheet
+      bc: cost.timesheet
+      src: architecture/ddd/aggregates.yaml#cost.timesheet/Timesheet
+    organization.attendance/MaintainWorkCalendarYear:
+      command: MaintainWorkCalendarYear
+      aggregate: organization.attendance/WorkCalendarYear
+      bc: organization.attendance
+      src: architecture/ddd/aggregates.yaml#organization.attendance/WorkCalendarYear
+    organization.attendance/MaintainLockedWorkCalendarDays:
+      command: MaintainLockedWorkCalendarDays
+      aggregate: organization.attendance/WorkCalendarYear
+      bc: organization.attendance
+      src: architecture/ddd/aggregates.yaml#organization.attendance/WorkCalendarYear
+    organization.attendance/CalendarMaintenance:
+      command: CalendarMaintenance
+      aggregate: organization.attendance/WorkCalendarYear
+      bc: organization.attendance
+      src: architecture/ddd/aggregates.yaml#organization.attendance/WorkCalendarYear
+    organization.workforce/CreateLegalEntity:
+      command: CreateLegalEntity
+      aggregate: organization.workforce/LegalEntity
+      bc: organization.workforce
+      src: architecture/ddd/aggregates.yaml#organization.workforce/LegalEntity
+    organization.workforce/UpdateLegalEntity:
+      command: UpdateLegalEntity
+      aggregate: organization.workforce/LegalEntity
+      bc: organization.workforce
+      src: architecture/ddd/aggregates.yaml#organization.workforce/LegalEntity
+    organization.workforce/BeginSyncRun:
+      command: BeginSyncRun
+      aggregate: organization.workforce/SyncRun
+      bc: organization.workforce
+      src: architecture/ddd/aggregates.yaml#organization.workforce/SyncRun
+    organization.workforce/ApplySourceSnapshot:
+      command: ApplySourceSnapshot
+      aggregate: organization.workforce/SyncRun
+      bc: organization.workforce
+      src: architecture/ddd/aggregates.yaml#organization.workforce/SyncRun
+    organization.workforce/FailSyncRun:
+      command: FailSyncRun
+      aggregate: organization.workforce/SyncRun
+      bc: organization.workforce
+      src: architecture/ddd/aggregates.yaml#organization.workforce/SyncRun
+    organization.workforce/RecordSyncRunRelease:
+      command: RecordSyncRunRelease
+      aggregate: organization.workforce/SyncRun
+      bc: organization.workforce
+      src: architecture/ddd/aggregates.yaml#organization.workforce/SyncRun
+    organization.workforce/ReleaseSyncRunHolds:
+      command: ReleaseSyncRunHolds
+      aggregate: organization.workforce/SyncRun
+      bc: organization.workforce
+      src: architecture/ddd/aggregates.yaml#organization.workforce/SyncRun
+    organization.workforce/WithdrawSyncRunReleases:
+      command: WithdrawSyncRunReleases
+      aggregate: organization.workforce/SyncRun
+      bc: organization.workforce
+      src: architecture/ddd/aggregates.yaml#organization.workforce/SyncRun
+    organization.workforce/AttributeLegalEntity:
+      command: AttributeLegalEntity
+      aggregate: organization.workforce/LegalEntityAttribution
+      bc: organization.workforce
+      src: architecture/ddd/aggregates.yaml#organization.workforce/LegalEntityAttribution
+    organization.workforce/EndLegalEntityAttribution:
+      command: EndLegalEntityAttribution
+      aggregate: organization.workforce/LegalEntityAttribution
+      bc: organization.workforce
+      src: architecture/ddd/aggregates.yaml#organization.workforce/LegalEntityAttribution
+    organization.workforce/CorrectLegalEntityAttribution:
+      command: CorrectLegalEntityAttribution
+      aggregate: organization.workforce/LegalEntityAttribution
+      bc: organization.workforce
+      src: architecture/ddd/aggregates.yaml#organization.workforce/LegalEntityAttribution
+    organization.workforce/PersistRegisteredEmployee:
+      command: PersistRegisteredEmployee
+      aggregate: organization.workforce/RegisteredEmployee
+      bc: organization.workforce
+      src: architecture/ddd/aggregates.yaml#organization.workforce/RegisteredEmployee
+    organization.workforce/LoginMissRegistration:
+      command: LoginMissRegistration
+      aggregate: organization.workforce/RegisteredEmployee
+      bc: organization.workforce
+      src: architecture/ddd/aggregates.yaml#organization.workforce/RegisteredEmployee
+    platform.approval/Approvals:
+      command: Approvals
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
+    platform.approval/StartApproval:
+      command: StartApproval
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
+    platform.approval/Retraction:
+      command: Retraction
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
+    platform.approval/RefuseApprovalStart:
+      command: RefuseApprovalStart
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
+    platform.approval/TaskDeadline:
+      command: TaskDeadline
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
+    platform.approval/ClaimTask:
+      command: ClaimTask
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
+    platform.approval/ReleaseTask:
+      command: ReleaseTask
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
+    platform.approval/ReassignTask:
+      command: ReassignTask
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
+    platform.approval/TransferTask:
+      command: TransferTask
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
+    platform.approval/DecideTasks:
+      command: DecideTasks
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
+    platform.approval/ReturnToInitiator:
+      command: ReturnToInitiator
+      aggregate: platform.approval/ApprovalRequest
+      bc: platform.approval
+      src: architecture/ddd/aggregates.yaml#platform.approval/ApprovalRequest
+    platform.identity/AccountProvisioning:
+      command: AccountProvisioning
+      aggregate: platform.identity/UserAccount
+      bc: platform.identity
+      src: architecture/ddd/aggregates.yaml#platform.identity/UserAccount
+    platform.identity/ChangeAccountStatus:
+      command: ChangeAccountStatus
+      aggregate: platform.identity/UserAccount
+      bc: platform.identity
+      src: architecture/ddd/aggregates.yaml#platform.identity/UserAccount
+    platform.identity/GrantRoleByOperations:
+      command: GrantRoleByOperations
+      aggregate: platform.identity/UserAccount
+      bc: platform.identity
+      src: architecture/ddd/aggregates.yaml#platform.identity/UserAccount
+    platform.identity/HandleOrgSnapshotChange:
+      command: HandleOrgSnapshotChange
+      aggregate: platform.identity/UserAccount
+      bc: platform.identity
+      src: architecture/ddd/aggregates.yaml#platform.identity/UserAccount
+    platform.identity/ReplaceAccountRoles:
+      command: ReplaceAccountRoles
+      aggregate: platform.identity/UserAccount
+      bc: platform.identity
+      src: architecture/ddd/aggregates.yaml#platform.identity/UserAccount
+    platform.identity/CreateRole:
+      command: CreateRole
+      aggregate: platform.identity/Role
+      bc: platform.identity
+      src: architecture/ddd/aggregates.yaml#platform.identity/Role
+    platform.identity/UpdateRole:
+      command: UpdateRole
+      aggregate: platform.identity/Role
+      bc: platform.identity
+      src: architecture/ddd/aggregates.yaml#platform.identity/Role
+    platform.identity/DeleteRole:
+      command: DeleteRole
+      aggregate: platform.identity/Role
+      bc: platform.identity
+      src: architecture/ddd/aggregates.yaml#platform.identity/Role
+    platform.identity/RegisterEmergencyAdmin:
+      command: RegisterEmergencyAdmin
+      aggregate: platform.identity/EmergencyAdmin
+      bc: platform.identity
+      src: architecture/ddd/aggregates.yaml#platform.identity/EmergencyAdmin
+    platform.identity/EnableEmergencyAdmin:
+      command: EnableEmergencyAdmin
+      aggregate: platform.identity/EmergencyAdmin
+      bc: platform.identity
+      src: architecture/ddd/aggregates.yaml#platform.identity/EmergencyAdmin
+    platform.identity/DisableEmergencyAdmin:
+      command: DisableEmergencyAdmin
+      aggregate: platform.identity/EmergencyAdmin
+      bc: platform.identity
+      src: architecture/ddd/aggregates.yaml#platform.identity/EmergencyAdmin
+    platform.identity/DisableEmergencyAdminOnSeparation:
+      command: DisableEmergencyAdminOnSeparation
+      aggregate: platform.identity/EmergencyAdmin
+      bc: platform.identity
+      src: architecture/ddd/aggregates.yaml#platform.identity/EmergencyAdmin
+    platform.identity/ResetEmergencyAdminCredentials:
+      command: ResetEmergencyAdminCredentials
+      aggregate: platform.identity/EmergencyAdmin
+      bc: platform.identity
+      src: architecture/ddd/aggregates.yaml#platform.identity/EmergencyAdmin
+    platform.identity/AuthorizationGate:
+      command: AuthorizationGate
+      aggregate: platform.identity/AuthorizationRequest
+      bc: platform.identity
+      src: architecture/ddd/aggregates.yaml#platform.identity/AuthorizationRequest
+    platform.identity/ConfirmAuthorizationRequest:
+      command: ConfirmAuthorizationRequest
+      aggregate: platform.identity/AuthorizationRequest
+      bc: platform.identity
+      src: architecture/ddd/aggregates.yaml#platform.identity/AuthorizationRequest
+    platform.identity/RejectAuthorizationRequest:
+      command: RejectAuthorizationRequest
+      aggregate: platform.identity/AuthorizationRequest
+      bc: platform.identity
+      src: architecture/ddd/aggregates.yaml#platform.identity/AuthorizationRequest
+    platform.identity/ApplyConfirmedAuthorization:
+      command: ApplyConfirmedAuthorization
+      aggregate: platform.identity/AuthorizationRequest
+      bc: platform.identity
+      src: architecture/ddd/aggregates.yaml#platform.identity/AuthorizationRequest
+    platform.integration/RegisterSourceReference:
+      command: RegisterSourceReference
+      aggregate: platform.integration/SourceReference
+      bc: platform.integration
+      src: architecture/ddd/aggregates.yaml#platform.integration/SourceReference
+    platform.integration/ConfirmSourceReference:
+      command: ConfirmSourceReference
+      aggregate: platform.integration/SourceReference
+      bc: platform.integration
+      src: architecture/ddd/aggregates.yaml#platform.integration/SourceReference
+    platform.integration/RejectSourceReference:
+      command: RejectSourceReference
+      aggregate: platform.integration/SourceReference
+      bc: platform.integration
+      src: architecture/ddd/aggregates.yaml#platform.integration/SourceReference
+    platform.integration/AllocateOwnId:
+      command: AllocateOwnId
+      aggregate: platform.integration/SourceReference
+      bc: platform.integration
+      src: architecture/ddd/aggregates.yaml#platform.integration/SourceReference
+    platform.integration/RecordSourceReferenceRefusal:
+      command: RecordSourceReferenceRefusal
+      aggregate: platform.integration/SourceReferenceRefusal
+      bc: platform.integration
+      src: architecture/ddd/aggregates.yaml#platform.integration/SourceReferenceRefusal
+    platform.integration/QueueWecomCard:
+      command: QueueWecomCard
+      aggregate: platform.integration/OutboundDelivery
+      bc: platform.integration
+      src: architecture/ddd/aggregates.yaml#platform.integration/OutboundDelivery
+    platform.integration/DeliverWecomCards:
+      command: DeliverWecomCards
+      aggregate: platform.integration/OutboundDelivery
+      bc: platform.integration
+      src: architecture/ddd/aggregates.yaml#platform.integration/OutboundDelivery
+    platform.integration/MarkWecomCardHandled:
+      command: MarkWecomCardHandled
+      aggregate: platform.integration/OutboundDelivery
+      bc: platform.integration
+      src: architecture/ddd/aggregates.yaml#platform.integration/OutboundDelivery
+    platform.numbering/ConfigureNumberingRule:
+      command: ConfigureNumberingRule
+      aggregate: platform.numbering/NumberingRule
+      bc: platform.numbering
+      src: architecture/ddd/aggregates.yaml#platform.numbering/NumberingRule
+    platform.numbering/ConfirmNumberingRule:
+      command: ConfirmNumberingRule
+      aggregate: platform.numbering/NumberingRule
+      bc: platform.numbering
+      src: architecture/ddd/aggregates.yaml#platform.numbering/NumberingRule
+    platform.numbering/ConfirmNumberingRuleByFinance:
+      command: ConfirmNumberingRuleByFinance
+      aggregate: platform.numbering/NumberingRule
+      bc: platform.numbering
+      src: architecture/ddd/aggregates.yaml#platform.numbering/NumberingRule
+  fact: {}
+  dim: {}
+  metric:
+    business_variance:
+      zh: 经营偏差
+      bc: operations.facts
+      stages: []
+      processes: []
+    uncontracted_exposure:
+      zh: 无合同风险敞口
+      bc: contract.agreement
+      stages: []
+      processes: []
+    estimate_to_complete:
+      zh: ETC
+      bc: delivery.execution
+      stages: []
+      processes: []
+    delivery_variance:
+      zh: 交付偏差
+      bc: delivery.execution
+      stages: []
+      processes: []
+    post_completion_service_hours:
+      zh: 后期服务工时
+      bc: delivery.execution
+      stages: []
+      processes: []
+    quality_loss:
+      zh: 质量损失
+      bc: delivery.acceptance
+      stages: []
+      processes: []
+    rework_rate:
+      zh: 返工率
+      bc: delivery.acceptance
+      stages: []
+      processes: []
+    defect_rate:
+      zh: 质量缺陷率
+      bc: delivery.acceptance
+      stages: []
+      processes: []
+    effective_hours:
+      zh: 有效工时
+      bc: cost.timesheet
+      stages: []
+      processes: []
+    ineffective_hours:
+      zh: 无效工时
+      bc: cost.timesheet
+      stages: []
+      processes: []
+    rework_hours:
+      zh: 返工工时
+      bc: cost.timesheet
+      stages: []
+      processes: []
+    billable_hours:
+      zh: 可计费工时
+      bc: cost.timesheet
+      stages: []
+      processes: []
+    capacity_realization:
+      zh: 产能变现
+      bc: cost.timesheet
+      stages: []
+      processes: []
+    idle_capacity:
+      zh: 闲置产能
+      bc: cost.timesheet
+      stages: []
+      processes: []
+    project_cost:
+      zh: 项目成本
+      bc: cost.costing
+      stages: []
+      processes: []
+    direct_labor:
+      zh: 直接人工
+      bc: cost.costing
+      stages: []
+      processes: []
+    direct_expense:
+      zh: 直接费用
+      bc: cost.costing
+      stages: []
+      processes: []
+    outsourcing_cost:
+      zh: 外包成本
+      bc: cost.costing
+      stages: []
+      processes: []
+    subcontract_cost:
+      zh: 分包成本
+      bc: cost.costing
+      stages: []
+      processes: []
+    cost_budget:
+      zh: 成本预算
+      bc: cost.costing
+      stages: []
+      processes: []
+    cost_budget_variance:
+      zh: 成本预算偏差
+      bc: cost.costing
+      stages: []
+      processes: []
+    unbilled_wip:
+      zh: 未开票在制（WIP）
+      bc: receivables.wip
+      stages: []
+      processes: []
+    measure_of_progress:
+      zh: 履约进度
+      bc: receivables.wip
+      stages: []
+      processes: []
+    uncontracted_wip:
+      zh: 无合同 WIP
+      bc: receivables.wip
+      stages: []
+      processes: []
+    accounts_receivable:
+      zh: 应收账款
+      bc: receivables.collection
+      stages: []
+      processes: []
+    aging:
+      zh: 账龄
+      bc: receivables.collection
+      stages: []
+      processes: []
+    bad_debt_risk:
+      zh: 坏账风险
+      bc: receivables.collection
+      stages: []
+      processes: []
+    impairment_risk:
+      zh: 减值风险
+      bc: receivables.collection
+      stages: []
+      processes: []
+    cash_conversion:
+      zh: 现金转化
+      bc: receivables.collection
+      stages: []
+      processes: []
+    time_capture_rate:
+      zh: 工时捕获率
+      bc: receivables.wip
+      stages: []
+      processes: []
+    statutory_cost:
+      zh: 法定成本
+      bc: accounting.ledger
+      stages: []
+      processes: []
+    intercompany_balance:
+      zh: 内部往来
+      bc: accounting.ledger
+      stages: []
+      processes: []
+    costs_to_obtain_contract:
+      zh: 合同取得成本
+      bc: cost.costing
+      stages: []
+      processes: []
+    cost_of_sales:
+      zh: 营业成本
+      bc: cost.costing
+      stages: []
+      processes: []
+    remaining_performance_obligation:
+      zh: 剩余履约义务
+      bc: contract.agreement
+      stages: []
+      processes: []
+    estimate_at_completion:
+      zh: 完工估算
+      bc: delivery.execution
+      stages: []
+      processes: []
+    planned_value:
+      zh: 计划价值
+      bc: delivery.execution
+      stages: []
+      processes: []
+    earned_value:
+      zh: 挣值
+      bc: delivery.execution
+      stages: []
+      processes: []
+    actual_cost:
+      zh: 实际成本
+      bc: delivery.execution
+      stages: []
+      processes: []
+    cost_performance_index:
+      zh: 成本绩效指数
+      bc: delivery.execution
+      stages: []
+      processes: []
+    schedule_performance_index:
+      zh: 进度绩效指数
+      bc: delivery.execution
+      stages: []
+      processes: []
+    schedule_variance:
+      zh: 进度偏差
+      bc: delivery.execution
+      stages: []
+      processes: []
+    earned_value_cost_variance:
+      zh: 挣值成本偏差
+      bc: delivery.execution
+      stages: []
+      processes: []
+    utilization_rate:
+      zh: 利用率
+      bc: cost.timesheet
+      stages: []
+      processes: []
+    accrual_basis_revenue:
+      zh: 权责发生制收入
+      bc: operations.policy
+      stages: []
+      processes: []
+    reversible_balance:
+      zh: 可冲销余额
+      bc: kernel
+      stages: []
+      processes: []
+    job_failure:
+      zh: 作业失败
+      bc: platform.scheduling
+      stages: []
+      processes: []
+    contribution_margin:
+      zh: 贡献毛利
+      bc: operations.policy
+      stages: []
+      processes: []
+    contribution_margin_ratio:
+      zh: 贡献毛利率
+      bc: operations.policy
+      stages: []
+      processes: []
+    net_service_revenue:
+      zh: 净服务收入
+      bc: operations.policy
+      stages: []
+      processes: []
+    management_operating_profit:
+      zh: 经营利润
+      bc: operations.policy
+      stages: []
+      processes: []
+    management_operating_profit_margin:
+      zh: 经营利润率
+      bc: operations.policy
+      stages: []
+      processes: []
+    indirect_cost:
+      zh: 间接成本
+      bc: operations.policy
+      stages: []
+      processes: []
+    pass_through_cost:
+      zh: 转付成本
+      bc: operations.policy
+      stages: []
+      processes: []
+    labor_cost_multiplier:
+      zh: 人工成本产出倍数
+      bc: operations.policy
+      stages: []
+      processes: []
+    target_variance:
+      zh: 目标偏差
+      bc: operations.planning
+      stages: []
+      processes: []
+    available_budget:
+      zh: 可用额度
+      bc: operations.planning
+      stages: []
+      processes: []
+    plan_target_value:
+      zh: 计划目标值
+      bc: operations.planning
+      stages: []
+      processes: []
+    target_attainment_rate:
+      zh: 目标达成率
+      bc: operations.planning
+      stages: []
+      processes: []
+    budget_consumption_rate:
+      zh: 预算消耗率
+      bc: operations.planning
+      stages: []
+      processes: []
+    new_contract_value:
+      zh: 新签合同额
+      bc: contract.agreement
+      stages: []
+      processes: []
+    project_initiation_value:
+      zh: 项目立项金额
+      bc: delivery.execution
+      stages: []
+      processes: []
+    aged_receivable:
+      zh: 账龄超 N 天应收
+      bc: receivables.collection
+      stages: []
+      processes: []
+    days_sales_outstanding:
+      zh: 应收周转天数
+      bc: receivables.collection
+      stages: []
+      processes: []
+    billing_conversion_rate:
+      zh: 开票转化率
+      bc: receivables.wip
+      stages: []
+      processes: []
+    collection_rate:
+      zh: 回款率
+      bc: receivables.collection
+      stages: []
+      processes: []
+    overdue_billing_commitment:
+      zh: 承诺开票超期
+      bc: receivables.wip
+      stages: []
+      processes: []
+    allowance_for_bad_debts:
+      zh: 坏账准备
+      bc: receivables.collection
+      stages: []
+      processes: []
+    average_headcount:
+      zh: 平均在册人数
+      bc: organization.workforce
+      stages: []
+      processes: []
+    attrition_rate:
+      zh: 离职率
+      bc: organization.workforce
+      stages: []
+      processes: []
+    pipeline_value:
+      zh: 商机管道金额
+      bc: presales.opportunity
+      stages: []
+      processes: []
+    win_rate:
+      zh: 赢单率
+      bc: presales.opportunity
+      stages: []
+      processes: []
+    lead_conversion_rate:
+      zh: 线索转化率
+      bc: presales.opportunity
+      stages: []
+      processes: []
+    expense_payment:
+      zh: 费用支付
+      bc: payables.payment
+      stages: []
+      processes: []
+    kickoff_completion_rate:
+      zh: 启动会完成率
+      bc: delivery.execution
+      stages: []
+      processes: []
+    internal_review_coverage:
+      zh: 内部评审覆盖率
+      bc: delivery.acceptance
+      stages: []
+      processes: []
+  bind: {}
+  dec: {}
   agg:
     AGG-01:
       name: 往来单位
@@ -4990,564 +6880,6 @@ nodes:
       bc: B-31
       tables: []
       src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:659
-  inv:
-    INV-01:
-      aggs:
-      - AGG-01
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:90
-    INV-02:
-      aggs:
-      - AGG-01
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:91
-    INV-03:
-      aggs:
-      - AGG-53
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:94
-    INV-04:
-      aggs:
-      - AGG-53
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:96
-    INV-05:
-      aggs:
-      - AGG-13
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:97
-    INV-06:
-      aggs:
-      - AGG-13
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:98
-    INV-07:
-      aggs:
-      - AGG-13
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:99
-    INV-08:
-      aggs:
-      - AGG-13
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:100
-    INV-09:
-      aggs:
-      - AGG-13
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:101
-    INV-10:
-      aggs:
-      - AGG-14
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:102
-    INV-11:
-      aggs:
-      - AGG-55
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:103
-    INV-12:
-      aggs:
-      - AGG-55
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:104
-    INV-13:
-      aggs:
-      - AGG-55
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:105
-    INV-14:
-      aggs:
-      - AGG-67
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:106
-    INV-15:
-      aggs:
-      - AGG-55
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:107
-    INV-16:
-      aggs:
-      - AGG-56
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:109
-    INV-17:
-      aggs:
-      - AGG-16
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:110
-    INV-18:
-      aggs:
-      - AGG-17
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:111
-    INV-19:
-      aggs:
-      - AGG-17
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:112
-    INV-20:
-      aggs:
-      - AGG-51
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:113
-    INV-21:
-      aggs:
-      - AGG-44
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:114
-    INV-22:
-      aggs:
-      - AGG-44
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:115
-    INV-23:
-      aggs:
-      - AGG-44
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:116
-    INV-24:
-      aggs:
-      - AGG-09
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:122
-    INV-25:
-      aggs:
-      - AGG-10
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:123
-    INV-26:
-      aggs:
-      - AGG-10
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:124
-    INV-27:
-      aggs:
-      - AGG-10
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:125
-    INV-28:
-      aggs:
-      - AGG-11
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:126
-    INV-29:
-      aggs:
-      - AGG-11
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:127
-    INV-30:
-      aggs:
-      - AGG-12
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:128
-    INV-31:
-      aggs:
-      - AGG-12
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:129
-    INV-32:
-      aggs:
-      - AGG-12
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:130
-    INV-33:
-      aggs:
-      - AGG-18
-      - AGG-10
-      - AGG-11
-      - AGG-13
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:131
-    INV-34:
-      aggs:
-      - AGG-36
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:139
-    INV-35:
-      aggs:
-      - AGG-05
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:140
-    INV-36:
-      aggs:
-      - AGG-06
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:142
-    INV-37:
-      aggs:
-      - AGG-39
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:143
-    INV-39:
-      aggs:
-      - AGG-59
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:153
-    INV-40:
-      aggs:
-      - AGG-19
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:154
-    INV-41:
-      aggs:
-      - AGG-20
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:155
-    INV-42:
-      aggs:
-      - AGG-20
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:156
-    INV-43:
-      aggs:
-      - AGG-21
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:157
-    INV-44:
-      aggs:
-      - AGG-22
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:158
-    INV-46:
-      aggs:
-      - AGG-27
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:159
-    INV-47:
-      aggs:
-      - AGG-27
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:160
-    INV-48:
-      aggs:
-      - AGG-27
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:161
-    INV-49:
-      aggs:
-      - AGG-28
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:162
-    INV-50:
-      aggs:
-      - AGG-28
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:163
-    INV-51:
-      aggs:
-      - AGG-27
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:164
-    INV-52:
-      aggs:
-      - AGG-28
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:165
-    INV-53:
-      aggs:
-      - AGG-39
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:166
-    INV-54:
-      aggs:
-      - AGG-30
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:167
-    INV-55:
-      aggs:
-      - AGG-35
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:168
-    INV-56:
-      aggs:
-      - AGG-35
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:169
-    INV-57:
-      aggs:
-      - AGG-37
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:170
-    INV-58:
-      aggs:
-      - AGG-38
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:171
-    INV-59:
-      aggs:
-      - AGG-60
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:177
-    INV-60:
-      aggs:
-      - AGG-61
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:178
-    INV-62:
-      aggs:
-      - AGG-63
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:179
-    INV-63:
-      aggs:
-      - AGG-64
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:180
-    INV-64:
-      aggs:
-      - AGG-39
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:181
-    INV-65:
-      aggs:
-      - AGG-39
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:182
-    INV-66:
-      aggs:
-      - AGG-39
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:183
-    INV-67:
-      aggs:
-      - AGG-39
-      - AGG-77
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:184
-    INV-68:
-      aggs:
-      - AGG-71
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:185
-    INV-69:
-      aggs:
-      - AGG-69
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:186
-    INV-70:
-      aggs:
-      - AGG-73
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:187
-    INV-105:
-      aggs:
-      - AGG-97
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:188
-    INV-71:
-      aggs:
-      - AGG-45
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:194
-    INV-72:
-      aggs:
-      - AGG-46
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:195
-    INV-73:
-      aggs:
-      - AGG-44
-      - AGG-46
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:196
-    INV-74:
-      aggs:
-      - AGG-89
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:197
-    INV-75:
-      aggs:
-      - AGG-52
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:199
-    INV-76:
-      aggs:
-      - AGG-49
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:200
-    INV-77:
-      aggs:
-      - AGG-52
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:202
-    INV-78:
-      aggs:
-      - AGG-53
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:204
-    INV-79:
-      aggs:
-      - AGG-52
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:205
-    INV-80:
-      aggs:
-      - AGG-53
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:206
-    INV-81:
-      aggs:
-      - AGG-53
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:207
-    INV-82:
-      aggs:
-      - AGG-58
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:208
-    INV-83:
-      aggs:
-      - AGG-57
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:209
-    INV-84:
-      aggs:
-      - AGG-59
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:210
-    INV-85:
-      aggs:
-      - AGG-88
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:211
-    INV-86:
-      aggs:
-      - AGG-44
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:212
-    INV-88:
-      aggs:
-      - AGG-43
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:213
-    INV-89:
-      aggs:
-      - AGG-41
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:214
-    INV-90:
-      aggs:
-      - AGG-42
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:215
-    INV-91:
-      aggs:
-      - AGG-86
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:217
-    INV-92:
-      aggs:
-      - AGG-77
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:225
-    INV-93:
-      aggs:
-      - AGG-77
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:226
-    INV-94:
-      aggs:
-      - AGG-77
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:227
-    INV-95:
-      aggs:
-      - AGG-84
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:229
-    INV-96:
-      aggs:
-      - AGG-84
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:230
-    INV-97:
-      aggs:
-      - AGG-84
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:231
-    INV-98:
-      aggs:
-      - AGG-84
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:232
-    INV-99:
-      aggs:
-      - AGG-81
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:233
-    INV-100:
-      aggs:
-      - AGG-81
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:234
-    INV-101:
-      aggs:
-      - AGG-79
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:235
-    INV-103:
-      aggs:
-      - AGG-82
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:236
-    INV-104:
-      aggs:
-      - AGG-96
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:237
-    INV-106:
-      aggs:
-      - AGG-100
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:238
-    INV-107:
-      aggs:
-      - AGG-101
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:239
-    INV-108:
-      aggs:
-      - AGG-98
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:240
-    INV-109:
-      aggs:
-      - AGG-99
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:241
-    INV-110:
-      aggs:
-      - AGG-102
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:242
-    INV-111:
-      aggs:
-      - AGG-105
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:243
-    INV-112:
-      aggs:
-      - AGG-103
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:244
-    INV-113:
-      aggs:
-      - AGG-104
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:245
-    INV-114:
-      aggs:
-      - AGG-106
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:246
-    INV-115:
-      aggs:
-      - AGG-107
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:247
-    INV-116:
-      aggs:
-      - AGG-108
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:248
-    INV-117:
-      aggs:
-      - AGG-109
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:249
-    INV-118:
-      aggs:
-      - AGG-113
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:250
-    INV-119:
-      aggs:
-      - AGG-113
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:251
-    INV-120:
-      aggs:
-      - AGG-114
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:252
-    INV-121:
-      aggs:
-      - AGG-115
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:253
-    INV-122:
-      aggs:
-      - AGG-117
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:254
-    INV-123:
-      aggs:
-      - AGG-118
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:255
-    INV-124:
-      aggs:
-      - AGG-13
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:256
-    INV-125:
-      aggs:
-      - AGG-13
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:257
-    INV-126:
-      aggs:
-      - AGG-13
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:258
-    INV-127:
-      aggs:
-      - AGG-54
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:259
-    INV-128:
-      aggs:
-      - AGG-54
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:260
-    INV-129:
-      aggs:
-      - AGG-89
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:261
-    INV-130:
-      aggs:
-      - AGG-52
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:262
-    INV-131:
-      aggs:
-      - AGG-82
-      - AGG-85
-      - AGG-86
-      - AGG-94
-      - AGG-128
-      - AGG-129
-      - AGG-05
-      - AGG-06
-      - AGG-07
-      - AGG-40
-      - AGG-78
-      - AGG-123
-      - AGG-124
-      - AGG-133
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:263
-    INV-132:
-      aggs:
-      - AGG-122
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:264
-    INV-133:
-      aggs:
-      - AGG-125
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:265
-    INV-134:
-      aggs:
-      - AGG-125
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:266
-    INV-135:
-      aggs:
-      - AGG-126
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:267
-    INV-136:
-      aggs:
-      - AGG-127
-      - AGG-128
-      - AGG-129
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:268
-    INV-137:
-      aggs:
-      - AGG-131
-      - AGG-59
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:269
-    INV-138:
-      aggs:
-      - AGG-113
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:270
-    INV-139:
-      aggs:
-      - AGG-119
-      src: architecture/proposals/ENTERPRISE_AGGREGATES_DRAFT.md:271
   bc:
     B-01:
       name: 往来单位（含外部工程登记）
@@ -6014,388 +7346,27 @@ nodes:
       aggregate: platform.numbering/NumberingRule
       obj: null
       kind: null
-  metric:
-    business_variance:
-      zh: 经营偏差
-      bc: operations.facts
-      stages: []
-      processes: []
-    uncontracted_exposure:
-      zh: 无合同风险敞口
-      bc: contract.agreement
-      stages: []
-      processes: []
-    estimate_to_complete:
-      zh: ETC
-      bc: delivery.execution
-      stages: []
-      processes: []
-    delivery_variance:
-      zh: 交付偏差
-      bc: delivery.execution
-      stages: []
-      processes: []
-    post_completion_service_hours:
-      zh: 后期服务工时
-      bc: delivery.execution
-      stages: []
-      processes: []
-    quality_loss:
-      zh: 质量损失
-      bc: delivery.acceptance
-      stages: []
-      processes: []
-    rework_rate:
-      zh: 返工率
-      bc: delivery.acceptance
-      stages: []
-      processes: []
-    defect_rate:
-      zh: 质量缺陷率
-      bc: delivery.acceptance
-      stages: []
-      processes: []
-    effective_hours:
-      zh: 有效工时
-      bc: cost.timesheet
-      stages: []
-      processes: []
-    ineffective_hours:
-      zh: 无效工时
-      bc: cost.timesheet
-      stages: []
-      processes: []
-    rework_hours:
-      zh: 返工工时
-      bc: cost.timesheet
-      stages: []
-      processes: []
-    billable_hours:
-      zh: 可计费工时
-      bc: cost.timesheet
-      stages: []
-      processes: []
-    capacity_realization:
-      zh: 产能变现
-      bc: cost.timesheet
-      stages: []
-      processes: []
-    idle_capacity:
-      zh: 闲置产能
-      bc: cost.timesheet
-      stages: []
-      processes: []
-    project_cost:
-      zh: 项目成本
-      bc: cost.costing
-      stages: []
-      processes: []
-    direct_labor:
-      zh: 直接人工
-      bc: cost.costing
-      stages: []
-      processes: []
-    direct_expense:
-      zh: 直接费用
-      bc: cost.costing
-      stages: []
-      processes: []
-    outsourcing_cost:
-      zh: 外包成本
-      bc: cost.costing
-      stages: []
-      processes: []
-    subcontract_cost:
-      zh: 分包成本
-      bc: cost.costing
-      stages: []
-      processes: []
-    cost_budget:
-      zh: 成本预算
-      bc: cost.costing
-      stages: []
-      processes: []
-    cost_budget_variance:
-      zh: 成本预算偏差
-      bc: cost.costing
-      stages: []
-      processes: []
-    unbilled_wip:
-      zh: 未开票在制（WIP）
-      bc: receivables.wip
-      stages: []
-      processes: []
-    measure_of_progress:
-      zh: 履约进度
-      bc: receivables.wip
-      stages: []
-      processes: []
-    uncontracted_wip:
-      zh: 无合同 WIP
-      bc: receivables.wip
-      stages: []
-      processes: []
-    accounts_receivable:
-      zh: 应收账款
-      bc: receivables.collection
-      stages: []
-      processes: []
-    aging:
-      zh: 账龄
-      bc: receivables.collection
-      stages: []
-      processes: []
-    bad_debt_risk:
-      zh: 坏账风险
-      bc: receivables.collection
-      stages: []
-      processes: []
-    impairment_risk:
-      zh: 减值风险
-      bc: receivables.collection
-      stages: []
-      processes: []
-    cash_conversion:
-      zh: 现金转化
-      bc: receivables.collection
-      stages: []
-      processes: []
-    time_capture_rate:
-      zh: 工时捕获率
-      bc: receivables.wip
-      stages: []
-      processes: []
-    statutory_cost:
-      zh: 法定成本
-      bc: accounting.ledger
-      stages: []
-      processes: []
-    intercompany_balance:
-      zh: 内部往来
-      bc: accounting.ledger
-      stages: []
-      processes: []
-    costs_to_obtain_contract:
-      zh: 合同取得成本
-      bc: cost.costing
-      stages: []
-      processes: []
-    cost_of_sales:
-      zh: 营业成本
-      bc: cost.costing
-      stages: []
-      processes: []
-    remaining_performance_obligation:
-      zh: 剩余履约义务
-      bc: contract.agreement
-      stages: []
-      processes: []
-    estimate_at_completion:
-      zh: 完工估算
-      bc: delivery.execution
-      stages: []
-      processes: []
-    planned_value:
-      zh: 计划价值
-      bc: delivery.execution
-      stages: []
-      processes: []
-    earned_value:
-      zh: 挣值
-      bc: delivery.execution
-      stages: []
-      processes: []
-    actual_cost:
-      zh: 实际成本
-      bc: delivery.execution
-      stages: []
-      processes: []
-    cost_performance_index:
-      zh: 成本绩效指数
-      bc: delivery.execution
-      stages: []
-      processes: []
-    schedule_performance_index:
-      zh: 进度绩效指数
-      bc: delivery.execution
-      stages: []
-      processes: []
-    schedule_variance:
-      zh: 进度偏差
-      bc: delivery.execution
-      stages: []
-      processes: []
-    earned_value_cost_variance:
-      zh: 挣值成本偏差
-      bc: delivery.execution
-      stages: []
-      processes: []
-    utilization_rate:
-      zh: 利用率
-      bc: cost.timesheet
-      stages: []
-      processes: []
-    accrual_basis_revenue:
-      zh: 权责发生制收入
-      bc: operations.policy
-      stages: []
-      processes: []
-    reversible_balance:
-      zh: 可冲销余额
-      bc: kernel
-      stages: []
-      processes: []
-    job_failure:
-      zh: 作业失败
-      bc: platform.scheduling
-      stages: []
-      processes: []
-    contribution_margin:
-      zh: 贡献毛利
-      bc: operations.policy
-      stages: []
-      processes: []
-    contribution_margin_ratio:
-      zh: 贡献毛利率
-      bc: operations.policy
-      stages: []
-      processes: []
-    net_service_revenue:
-      zh: 净服务收入
-      bc: operations.policy
-      stages: []
-      processes: []
-    management_operating_profit:
-      zh: 经营利润
-      bc: operations.policy
-      stages: []
-      processes: []
-    management_operating_profit_margin:
-      zh: 经营利润率
-      bc: operations.policy
-      stages: []
-      processes: []
-    indirect_cost:
-      zh: 间接成本
-      bc: operations.policy
-      stages: []
-      processes: []
-    pass_through_cost:
-      zh: 转付成本
-      bc: operations.policy
-      stages: []
-      processes: []
-    labor_cost_multiplier:
-      zh: 人工成本产出倍数
-      bc: operations.policy
-      stages: []
-      processes: []
-    target_variance:
-      zh: 目标偏差
-      bc: operations.planning
-      stages: []
-      processes: []
-    available_budget:
-      zh: 可用额度
-      bc: operations.planning
-      stages: []
-      processes: []
-    plan_target_value:
-      zh: 计划目标值
-      bc: operations.planning
-      stages: []
-      processes: []
-    target_attainment_rate:
-      zh: 目标达成率
-      bc: operations.planning
-      stages: []
-      processes: []
-    budget_consumption_rate:
-      zh: 预算消耗率
-      bc: operations.planning
-      stages: []
-      processes: []
-    new_contract_value:
-      zh: 新签合同额
-      bc: contract.agreement
-      stages: []
-      processes: []
-    project_initiation_value:
-      zh: 项目立项金额
-      bc: delivery.execution
-      stages: []
-      processes: []
-    aged_receivable:
-      zh: 账龄超 N 天应收
-      bc: receivables.collection
-      stages: []
-      processes: []
-    days_sales_outstanding:
-      zh: 应收周转天数
-      bc: receivables.collection
-      stages: []
-      processes: []
-    billing_conversion_rate:
-      zh: 开票转化率
-      bc: receivables.wip
-      stages: []
-      processes: []
-    collection_rate:
-      zh: 回款率
-      bc: receivables.collection
-      stages: []
-      processes: []
-    overdue_billing_commitment:
-      zh: 承诺开票超期
-      bc: receivables.wip
-      stages: []
-      processes: []
-    allowance_for_bad_debts:
-      zh: 坏账准备
-      bc: receivables.collection
-      stages: []
-      processes: []
-    average_headcount:
-      zh: 平均在册人数
-      bc: organization.workforce
-      stages: []
-      processes: []
-    attrition_rate:
-      zh: 离职率
-      bc: organization.workforce
-      stages: []
-      processes: []
-    pipeline_value:
-      zh: 商机管道金额
-      bc: presales.opportunity
-      stages: []
-      processes: []
-    win_rate:
-      zh: 赢单率
-      bc: presales.opportunity
-      stages: []
-      processes: []
-    lead_conversion_rate:
-      zh: 线索转化率
-      bc: presales.opportunity
-      stages: []
-      processes: []
-    expense_payment:
-      zh: 费用支付
-      bc: payables.payment
-      stages: []
-      processes: []
-    kickoff_completion_rate:
-      zh: 启动会完成率
-      bc: delivery.execution
-      stages: []
-      processes: []
-    internal_review_coverage:
-      zh: 内部评审覆盖率
-      bc: delivery.acceptance
-      stages: []
-      processes: []
 links:
+- kind: vp-vs
+  from: VP-01
+  to: VS-01
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.value
+- kind: cap-stage
+  from: CAP-001
+  to: VS-01.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.1.capabilities
+- kind: cap-stage
+  from: CAP-016
+  to: VS-01.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.1.capabilities
+- kind: cap-stage
+  from: CAP-017
+  to: VS-01.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.1.capabilities
+- kind: cap-stage
+  from: CAP-018
+  to: VS-01.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.1.capabilities
 - kind: vs-stage
   from: VS-01
   to: VS-01.1
@@ -6420,6 +7391,22 @@ links:
   from: VS-01.1
   to: OBJ-17
   src: architecture/proposals/value-streams.v2.yaml#VS-01.1.exit
+- kind: cap-stage
+  from: CAP-018
+  to: VS-01.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.2.capabilities
+- kind: cap-stage
+  from: CAP-019
+  to: VS-01.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.2.capabilities
+- kind: cap-stage
+  from: CAP-024
+  to: VS-01.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.2.capabilities
+- kind: cap-stage
+  from: CAP-026
+  to: VS-01.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-01.2.capabilities
 - kind: vs-stage
   from: VS-01
   to: VS-01.2
@@ -6444,6 +7431,14 @@ links:
   from: VS-01.2
   to: OBJ-18
   src: architecture/proposals/value-streams.v2.yaml#VS-01.2.exit
+- kind: vp-vs
+  from: VP-02
+  to: VS-02
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.value
+- kind: cap-stage
+  from: CAP-029
+  to: VS-02.0
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.0.capabilities
 - kind: vs-stage
   from: VS-02
   to: VS-02.0
@@ -6476,6 +7471,10 @@ links:
   from: VS-02.0
   to: OBJ-30
   src: architecture/proposals/value-streams.v2.yaml#VS-02.0.exit
+- kind: cap-stage
+  from: CAP-029
+  to: VS-02.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.1.capabilities
 - kind: vs-stage
   from: VS-02
   to: VS-02.1
@@ -6484,6 +7483,10 @@ links:
   from: VS-02.1
   to: OBJ-42
   src: architecture/proposals/value-streams.v2.yaml#VS-02.1.entry
+- kind: cap-stage
+  from: CAP-029
+  to: VS-02.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.2.capabilities
 - kind: vs-stage
   from: VS-02
   to: VS-02.2
@@ -6492,6 +7495,10 @@ links:
   from: VS-02.2
   to: OBJ-42
   src: architecture/proposals/value-streams.v2.yaml#VS-02.2.entry
+- kind: cap-stage
+  from: CAP-029
+  to: VS-02.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.3.capabilities
 - kind: vs-stage
   from: VS-02
   to: VS-02.3
@@ -6500,6 +7507,10 @@ links:
   from: VS-02.3
   to: OBJ-42
   src: architecture/proposals/value-streams.v2.yaml#VS-02.3.entry
+- kind: cap-stage
+  from: CAP-029
+  to: VS-02.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.4.capabilities
 - kind: vs-stage
   from: VS-02
   to: VS-02.4
@@ -6508,10 +7519,22 @@ links:
   from: VS-02.4
   to: OBJ-42
   src: architecture/proposals/value-streams.v2.yaml#VS-02.4.entry
+- kind: cap-stage
+  from: CAP-029
+  to: VS-02.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.5.capabilities
 - kind: vs-stage
   from: VS-02
   to: VS-02.5
   src: architecture/proposals/value-streams.v2.yaml#VS-02.5
+- kind: cap-stage
+  from: CAP-029
+  to: VS-02.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.6.capabilities
+- kind: cap-stage
+  from: CAP-046
+  to: VS-02.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.6.capabilities
 - kind: vs-stage
   from: VS-02
   to: VS-02.6
@@ -6520,6 +7543,14 @@ links:
   from: VS-02.6
   to: OBJ-38
   src: architecture/proposals/value-streams.v2.yaml#VS-02.6.exit
+- kind: cap-stage
+  from: CAP-029
+  to: VS-02.7
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.7.capabilities
+- kind: cap-stage
+  from: CAP-053
+  to: VS-02.7
+  src: architecture/proposals/value-streams.v2.yaml#VS-02.7.capabilities
 - kind: vs-stage
   from: VS-02
   to: VS-02.7
@@ -6548,6 +7579,22 @@ links:
   from: VS-02.7
   to: OBJ-29
   src: architecture/proposals/value-streams.v2.yaml#VS-02.7.exit
+- kind: vp-vs
+  from: VP-03
+  to: VS-03
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.value
+- kind: cap-stage
+  from: CAP-029
+  to: VS-03.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.1.capabilities
+- kind: cap-stage
+  from: CAP-046
+  to: VS-03.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.1.capabilities
+- kind: cap-stage
+  from: CAP-005
+  to: VS-03.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.1.capabilities
 - kind: vs-stage
   from: VS-03
   to: VS-03.1
@@ -6568,6 +7615,10 @@ links:
   from: VS-03.1
   to: OBJ-49
   src: architecture/proposals/value-streams.v2.yaml#VS-03.1.exit
+- kind: cap-stage
+  from: CAP-029
+  to: VS-03.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.2.capabilities
 - kind: vs-stage
   from: VS-03
   to: VS-03.2
@@ -6580,6 +7631,10 @@ links:
   from: VS-03.2
   to: OBJ-49
   src: architecture/proposals/value-streams.v2.yaml#VS-03.2.exit
+- kind: cap-stage
+  from: CAP-029
+  to: VS-03.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.3.capabilities
 - kind: vs-stage
   from: VS-03
   to: VS-03.3
@@ -6592,6 +7647,10 @@ links:
   from: VS-03.3
   to: OBJ-38
   src: architecture/proposals/value-streams.v2.yaml#VS-03.3.exit
+- kind: cap-stage
+  from: CAP-029
+  to: VS-03.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.4.capabilities
 - kind: vs-stage
   from: VS-03
   to: VS-03.4
@@ -6612,6 +7671,10 @@ links:
   from: VS-03.4
   to: OBJ-38
   src: architecture/proposals/value-streams.v2.yaml#VS-03.4.exit
+- kind: cap-stage
+  from: CAP-029
+  to: VS-03.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-03.5.capabilities
 - kind: vs-stage
   from: VS-03
   to: VS-03.5
@@ -6624,6 +7687,14 @@ links:
   from: VS-03.5
   to: OBJ-35
   src: architecture/proposals/value-streams.v2.yaml#VS-03.5.exit
+- kind: vp-vs
+  from: VP-04
+  to: VS-04
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.value
+- kind: cap-stage
+  from: CAP-005
+  to: VS-04.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.1.capabilities
 - kind: vs-stage
   from: VS-04
   to: VS-04.1
@@ -6648,6 +7719,10 @@ links:
   from: VS-04.1
   to: OBJ-12
   src: architecture/proposals/value-streams.v2.yaml#VS-04.1.exit
+- kind: cap-stage
+  from: CAP-005
+  to: VS-04.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.6.capabilities
 - kind: vs-stage
   from: VS-04
   to: VS-04.6
@@ -6660,6 +7735,14 @@ links:
   from: VS-04.6
   to: OBJ-05
   src: architecture/proposals/value-streams.v2.yaml#VS-04.6.exit
+- kind: cap-stage
+  from: CAP-053
+  to: VS-04.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.2.capabilities
+- kind: cap-stage
+  from: CAP-005
+  to: VS-04.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.2.capabilities
 - kind: vs-stage
   from: VS-04
   to: VS-04.2
@@ -6668,6 +7751,14 @@ links:
   from: VS-04.2
   to: OBJ-05
   src: architecture/proposals/value-streams.v2.yaml#VS-04.2.entry
+- kind: cap-stage
+  from: CAP-103
+  to: VS-04.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.3.capabilities
+- kind: cap-stage
+  from: CAP-005
+  to: VS-04.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.3.capabilities
 - kind: vs-stage
   from: VS-04
   to: VS-04.3
@@ -6688,6 +7779,10 @@ links:
   from: VS-04.3
   to: OBJ-83
   src: architecture/proposals/value-streams.v2.yaml#VS-04.3.exit
+- kind: cap-stage
+  from: CAP-103
+  to: VS-04.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.4.capabilities
 - kind: vs-stage
   from: VS-04
   to: VS-04.4
@@ -6700,6 +7795,10 @@ links:
   from: VS-04.4
   to: OBJ-85
   src: architecture/proposals/value-streams.v2.yaml#VS-04.4.exit
+- kind: cap-stage
+  from: CAP-005
+  to: VS-04.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.5.capabilities
 - kind: vs-stage
   from: VS-04
   to: VS-04.5
@@ -6716,6 +7815,14 @@ links:
   from: VS-04.5
   to: OBJ-05
   src: architecture/proposals/value-streams.v2.yaml#VS-04.5.exit
+- kind: vp-vs
+  from: VP-05
+  to: VS-05
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.value
+- kind: cap-stage
+  from: CAP-001
+  to: VS-05.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.1.capabilities
 - kind: vs-stage
   from: VS-05
   to: VS-05.1
@@ -6732,6 +7839,10 @@ links:
   from: VS-05.1
   to: OBJ-65
   src: architecture/proposals/value-streams.v2.yaml#VS-05.1.exit
+- kind: cap-stage
+  from: CAP-005
+  to: VS-05.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.2.capabilities
 - kind: vs-stage
   from: VS-05
   to: VS-05.2
@@ -6752,6 +7863,10 @@ links:
   from: VS-05.2
   to: OBJ-05
   src: architecture/proposals/value-streams.v2.yaml#VS-05.2.exit
+- kind: cap-stage
+  from: CAP-005
+  to: VS-05.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.3.capabilities
 - kind: vs-stage
   from: VS-05
   to: VS-05.3
@@ -6764,6 +7879,10 @@ links:
   from: VS-05.3
   to: OBJ-87
   src: architecture/proposals/value-streams.v2.yaml#VS-05.3.exit
+- kind: cap-stage
+  from: CAP-103
+  to: VS-05.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.4.capabilities
 - kind: vs-stage
   from: VS-05
   to: VS-05.4
@@ -6780,6 +7899,10 @@ links:
   from: VS-05.4
   to: OBJ-83
   src: architecture/proposals/value-streams.v2.yaml#VS-05.4.exit
+- kind: cap-stage
+  from: CAP-103
+  to: VS-05.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.5.capabilities
 - kind: vs-stage
   from: VS-05
   to: VS-05.5
@@ -6796,6 +7919,10 @@ links:
   from: VS-05.5
   to: OBJ-85
   src: architecture/proposals/value-streams.v2.yaml#VS-05.5.exit
+- kind: cap-stage
+  from: CAP-005
+  to: VS-05.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.6.capabilities
 - kind: vs-stage
   from: VS-05
   to: VS-05.6
@@ -6812,6 +7939,14 @@ links:
   from: VS-05.6
   to: OBJ-05
   src: architecture/proposals/value-streams.v2.yaml#VS-05.6.exit
+- kind: vp-vs
+  from: VP-06
+  to: VS-06
+  src: architecture/proposals/value-streams.v2.yaml#VS-06.value
+- kind: cap-stage
+  from: CAP-103
+  to: VS-06.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-06.1.capabilities
 - kind: vs-stage
   from: VS-06
   to: VS-06.1
@@ -6820,6 +7955,14 @@ links:
   from: VS-06.1
   to: OBJ-92
   src: architecture/proposals/value-streams.v2.yaml#VS-06.1.exit
+- kind: cap-stage
+  from: CAP-054
+  to: VS-06.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-06.2.capabilities
+- kind: cap-stage
+  from: CAP-056
+  to: VS-06.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-06.2.capabilities
 - kind: vs-stage
   from: VS-06
   to: VS-06.2
@@ -6836,6 +7979,18 @@ links:
   from: VS-06.2
   to: OBJ-64
   src: architecture/proposals/value-streams.v2.yaml#VS-06.2.exit
+- kind: vp-vs
+  from: VP-07
+  to: VS-07
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.value
+- kind: cap-stage
+  from: CAP-056
+  to: VS-07.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.1.capabilities
+- kind: cap-stage
+  from: CAP-058
+  to: VS-07.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.1.capabilities
 - kind: vs-stage
   from: VS-07
   to: VS-07.1
@@ -6852,6 +8007,10 @@ links:
   from: VS-07.1
   to: OBJ-60
   src: architecture/proposals/value-streams.v2.yaml#VS-07.1.exit
+- kind: cap-stage
+  from: CAP-056
+  to: VS-07.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.2.capabilities
 - kind: vs-stage
   from: VS-07
   to: VS-07.2
@@ -6868,6 +8027,14 @@ links:
   from: VS-07.2
   to: OBJ-56
   src: architecture/proposals/value-streams.v2.yaml#VS-07.2.exit
+- kind: cap-stage
+  from: CAP-005
+  to: VS-07.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.3.capabilities
+- kind: cap-stage
+  from: CAP-056
+  to: VS-07.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-07.3.capabilities
 - kind: vs-stage
   from: VS-07
   to: VS-07.3
@@ -6888,6 +8055,18 @@ links:
   from: VS-07.3
   to: OBJ-62
   src: architecture/proposals/value-streams.v2.yaml#VS-07.3.exit
+- kind: vp-vs
+  from: VP-08
+  to: VS-08
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.value
+- kind: cap-stage
+  from: CAP-118
+  to: VS-08.0
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.0.capabilities
+- kind: cap-stage
+  from: CAP-119
+  to: VS-08.0
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.0.capabilities
 - kind: vs-stage
   from: VS-08
   to: VS-08.0
@@ -6900,6 +8079,14 @@ links:
   from: VS-08.0
   to: OBJ-119
   src: architecture/proposals/value-streams.v2.yaml#VS-08.0.exit
+- kind: cap-stage
+  from: CAP-056
+  to: VS-08.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.1.capabilities
+- kind: cap-stage
+  from: CAP-103
+  to: VS-08.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.1.capabilities
 - kind: vs-stage
   from: VS-08
   to: VS-08.1
@@ -6912,6 +8099,14 @@ links:
   from: VS-08.1
   to: OBJ-85
   src: architecture/proposals/value-streams.v2.yaml#VS-08.1.exit
+- kind: cap-stage
+  from: CAP-056
+  to: VS-08.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.2.capabilities
+- kind: cap-stage
+  from: CAP-103
+  to: VS-08.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.2.capabilities
 - kind: vs-stage
   from: VS-08
   to: VS-08.2
@@ -6928,6 +8123,14 @@ links:
   from: VS-08.2
   to: OBJ-83
   src: architecture/proposals/value-streams.v2.yaml#VS-08.2.exit
+- kind: cap-stage
+  from: CAP-056
+  to: VS-08.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.3.capabilities
+- kind: cap-stage
+  from: CAP-103
+  to: VS-08.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-08.3.capabilities
 - kind: vs-stage
   from: VS-08
   to: VS-08.3
@@ -6948,6 +8151,14 @@ links:
   from: VS-08.3
   to: OBJ-88
   src: architecture/proposals/value-streams.v2.yaml#VS-08.3.exit
+- kind: vp-vs
+  from: VP-09
+  to: VS-09
+  src: architecture/proposals/value-streams.v2.yaml#VS-09.value
+- kind: cap-stage
+  from: CAP-100
+  to: VS-09.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-09.1.capabilities
 - kind: vs-stage
   from: VS-09
   to: VS-09.1
@@ -6960,6 +8171,10 @@ links:
   from: VS-09.1
   to: OBJ-100
   src: architecture/proposals/value-streams.v2.yaml#VS-09.1.exit
+- kind: cap-stage
+  from: CAP-100
+  to: VS-09.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-09.2.capabilities
 - kind: vs-stage
   from: VS-09
   to: VS-09.2
@@ -6972,6 +8187,10 @@ links:
   from: VS-09.2
   to: OBJ-100
   src: architecture/proposals/value-streams.v2.yaml#VS-09.2.exit
+- kind: cap-stage
+  from: CAP-100
+  to: VS-09.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-09.3.capabilities
 - kind: vs-stage
   from: VS-09
   to: VS-09.3
@@ -6984,6 +8203,14 @@ links:
   from: VS-09.3
   to: OBJ-100
   src: architecture/proposals/value-streams.v2.yaml#VS-09.3.exit
+- kind: vp-vs
+  from: VP-10
+  to: VS-10
+  src: architecture/proposals/value-streams.v2.yaml#VS-10.value
+- kind: cap-stage
+  from: CAP-103
+  to: VS-10.0
+  src: architecture/proposals/value-streams.v2.yaml#VS-10.0.capabilities
 - kind: vs-stage
   from: VS-10
   to: VS-10.0
@@ -6996,6 +8223,10 @@ links:
   from: VS-10.0
   to: OBJ-98
   src: architecture/proposals/value-streams.v2.yaml#VS-10.0.exit
+- kind: cap-stage
+  from: CAP-103
+  to: VS-10.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-10.1.capabilities
 - kind: vs-stage
   from: VS-10
   to: VS-10.1
@@ -7012,6 +8243,10 @@ links:
   from: VS-10.1
   to: OBJ-97
   src: architecture/proposals/value-streams.v2.yaml#VS-10.1.exit
+- kind: cap-stage
+  from: CAP-103
+  to: VS-10.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-10.2.capabilities
 - kind: vs-stage
   from: VS-10
   to: VS-10.2
@@ -7028,6 +8263,14 @@ links:
   from: VS-10.2
   to: OBJ-125
   src: architecture/proposals/value-streams.v2.yaml#VS-10.2.exit
+- kind: vp-vs
+  from: VP-11
+  to: VS-11
+  src: architecture/proposals/value-streams.v2.yaml#VS-11.value
+- kind: cap-stage
+  from: CAP-110
+  to: VS-11.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-11.1.capabilities
 - kind: vs-stage
   from: VS-11
   to: VS-11.1
@@ -7044,6 +8287,10 @@ links:
   from: VS-11.1
   to: OBJ-110
   src: architecture/proposals/value-streams.v2.yaml#VS-11.1.exit
+- kind: cap-stage
+  from: CAP-110
+  to: VS-11.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-11.2.capabilities
 - kind: vs-stage
   from: VS-11
   to: VS-11.2
@@ -7056,6 +8303,10 @@ links:
   from: VS-11.2
   to: OBJ-110
   src: architecture/proposals/value-streams.v2.yaml#VS-11.2.exit
+- kind: cap-stage
+  from: CAP-110
+  to: VS-11.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-11.3.capabilities
 - kind: vs-stage
   from: VS-11
   to: VS-11.3
@@ -7072,6 +8323,14 @@ links:
   from: VS-11.3
   to: OBJ-110
   src: architecture/proposals/value-streams.v2.yaml#VS-11.3.exit
+- kind: vp-vs
+  from: VP-12
+  to: VS-12
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.value
+- kind: cap-stage
+  from: CAP-054
+  to: VS-12.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.1.capabilities
 - kind: vs-stage
   from: VS-12
   to: VS-12.1
@@ -7084,6 +8343,14 @@ links:
   from: VS-12.1
   to: OBJ-91
   src: architecture/proposals/value-streams.v2.yaml#VS-12.1.exit
+- kind: cap-stage
+  from: CAP-054
+  to: VS-12.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.2.capabilities
+- kind: cap-stage
+  from: CAP-103
+  to: VS-12.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.2.capabilities
 - kind: vs-stage
   from: VS-12
   to: VS-12.2
@@ -7096,6 +8363,10 @@ links:
   from: VS-12.2
   to: OBJ-112
   src: architecture/proposals/value-streams.v2.yaml#VS-12.2.exit
+- kind: cap-stage
+  from: CAP-054
+  to: VS-12.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.3.capabilities
 - kind: vs-stage
   from: VS-12
   to: VS-12.3
@@ -7108,6 +8379,18 @@ links:
   from: VS-12.3
   to: OBJ-91
   src: architecture/proposals/value-streams.v2.yaml#VS-12.3.exit
+- kind: vp-vs
+  from: VP-13
+  to: VS-13
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.value
+- kind: cap-stage
+  from: CAP-028
+  to: VS-13.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.1.capabilities
+- kind: cap-stage
+  from: CAP-056
+  to: VS-13.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.1.capabilities
 - kind: vs-stage
   from: VS-13
   to: VS-13.1
@@ -7132,6 +8415,14 @@ links:
   from: VS-13.1
   to: OBJ-72
   src: architecture/proposals/value-streams.v2.yaml#VS-13.1.exit
+- kind: cap-stage
+  from: CAP-056
+  to: VS-13.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.2.capabilities
+- kind: cap-stage
+  from: CAP-074
+  to: VS-13.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.2.capabilities
 - kind: vs-stage
   from: VS-13
   to: VS-13.2
@@ -7152,6 +8443,14 @@ links:
   from: VS-13.2
   to: OBJ-104
   src: architecture/proposals/value-streams.v2.yaml#VS-13.2.exit
+- kind: cap-stage
+  from: CAP-054
+  to: VS-13.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.3.capabilities
+- kind: cap-stage
+  from: CAP-056
+  to: VS-13.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.3.capabilities
 - kind: vs-stage
   from: VS-13
   to: VS-13.3
@@ -7168,6 +8467,18 @@ links:
   from: VS-13.3
   to: OBJ-73
   src: architecture/proposals/value-streams.v2.yaml#VS-13.3.exit
+- kind: cap-stage
+  from: CAP-054
+  to: VS-13.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.4.capabilities
+- kind: cap-stage
+  from: CAP-056
+  to: VS-13.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.4.capabilities
+- kind: cap-stage
+  from: CAP-103
+  to: VS-13.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.4.capabilities
 - kind: vs-stage
   from: VS-13
   to: VS-13.4
@@ -7184,6 +8495,18 @@ links:
   from: VS-13.4
   to: OBJ-92
   src: architecture/proposals/value-streams.v2.yaml#VS-13.4.exit
+- kind: cap-stage
+  from: CAP-054
+  to: VS-13.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.5.capabilities
+- kind: cap-stage
+  from: CAP-056
+  to: VS-13.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.5.capabilities
+- kind: cap-stage
+  from: CAP-103
+  to: VS-13.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.5.capabilities
 - kind: vs-stage
   from: VS-13
   to: VS-13.5
@@ -7204,6 +8527,14 @@ links:
   from: VS-13.5
   to: OBJ-73
   src: architecture/proposals/value-streams.v2.yaml#VS-13.5.exit
+- kind: cap-stage
+  from: CAP-005
+  to: VS-13.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.6.capabilities
+- kind: cap-stage
+  from: CAP-056
+  to: VS-13.6
+  src: architecture/proposals/value-streams.v2.yaml#VS-13.6.capabilities
 - kind: vs-stage
   from: VS-13
   to: VS-13.6
@@ -7224,6 +8555,22 @@ links:
   from: VS-13.6
   to: OBJ-05
   src: architecture/proposals/value-streams.v2.yaml#VS-13.6.exit
+- kind: vp-vs
+  from: VP-14
+  to: VS-14
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.value
+- kind: cap-stage
+  from: CAP-054
+  to: VS-14.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.1.capabilities
+- kind: cap-stage
+  from: CAP-056
+  to: VS-14.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.1.capabilities
+- kind: cap-stage
+  from: CAP-093
+  to: VS-14.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.1.capabilities
 - kind: vs-stage
   from: VS-14
   to: VS-14.1
@@ -7244,6 +8591,18 @@ links:
   from: VS-14.1
   to: OBJ-116
   src: architecture/proposals/value-streams.v2.yaml#VS-14.1.exit
+- kind: cap-stage
+  from: CAP-054
+  to: VS-14.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.2.capabilities
+- kind: cap-stage
+  from: CAP-056
+  to: VS-14.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.2.capabilities
+- kind: cap-stage
+  from: CAP-093
+  to: VS-14.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.2.capabilities
 - kind: vs-stage
   from: VS-14
   to: VS-14.2
@@ -7264,6 +8623,18 @@ links:
   from: VS-14.2
   to: OBJ-114
   src: architecture/proposals/value-streams.v2.yaml#VS-14.2.exit
+- kind: cap-stage
+  from: CAP-054
+  to: VS-14.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.3.capabilities
+- kind: cap-stage
+  from: CAP-056
+  to: VS-14.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.3.capabilities
+- kind: cap-stage
+  from: CAP-093
+  to: VS-14.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.3.capabilities
 - kind: vs-stage
   from: VS-14
   to: VS-14.3
@@ -7300,6 +8671,18 @@ links:
   from: VS-14.3
   to: OBJ-115
   src: architecture/proposals/value-streams.v2.yaml#VS-14.3.exit
+- kind: cap-stage
+  from: CAP-054
+  to: VS-14.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.4.capabilities
+- kind: cap-stage
+  from: CAP-056
+  to: VS-14.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.4.capabilities
+- kind: cap-stage
+  from: CAP-093
+  to: VS-14.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-14.4.capabilities
 - kind: vs-stage
   from: VS-14
   to: VS-14.4
@@ -7344,6 +8727,42 @@ links:
   from: VS-14.4
   to: OBJ-116
   src: architecture/proposals/value-streams.v2.yaml#VS-14.4.exit
+- kind: vp-vs
+  from: VP-15
+  to: VS-15
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.value
+- kind: cap-stage
+  from: CAP-024
+  to: VS-15.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.1.capabilities
+- kind: cap-stage
+  from: CAP-028
+  to: VS-15.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.1.capabilities
+- kind: cap-stage
+  from: CAP-054
+  to: VS-15.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.1.capabilities
+- kind: cap-stage
+  from: CAP-058
+  to: VS-15.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.1.capabilities
+- kind: cap-stage
+  from: CAP-074
+  to: VS-15.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.1.capabilities
+- kind: cap-stage
+  from: CAP-078
+  to: VS-15.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.1.capabilities
+- kind: cap-stage
+  from: CAP-103
+  to: VS-15.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.1.capabilities
+- kind: cap-stage
+  from: CAP-124
+  to: VS-15.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.1.capabilities
 - kind: vs-stage
   from: VS-15
   to: VS-15.1
@@ -7368,6 +8787,38 @@ links:
   from: VS-15.1
   to: OBJ-124
   src: architecture/proposals/value-streams.v2.yaml#VS-15.1.exit
+- kind: cap-stage
+  from: CAP-024
+  to: VS-15.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.2.capabilities
+- kind: cap-stage
+  from: CAP-028
+  to: VS-15.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.2.capabilities
+- kind: cap-stage
+  from: CAP-054
+  to: VS-15.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.2.capabilities
+- kind: cap-stage
+  from: CAP-058
+  to: VS-15.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.2.capabilities
+- kind: cap-stage
+  from: CAP-074
+  to: VS-15.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.2.capabilities
+- kind: cap-stage
+  from: CAP-078
+  to: VS-15.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.2.capabilities
+- kind: cap-stage
+  from: CAP-103
+  to: VS-15.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.2.capabilities
+- kind: cap-stage
+  from: CAP-124
+  to: VS-15.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.2.capabilities
 - kind: vs-stage
   from: VS-15
   to: VS-15.2
@@ -7432,6 +8883,34 @@ links:
   from: VS-15.2
   to: OBJ-124
   src: architecture/proposals/value-streams.v2.yaml#VS-15.2.exit
+- kind: cap-stage
+  from: CAP-024
+  to: VS-15.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.3.capabilities
+- kind: cap-stage
+  from: CAP-028
+  to: VS-15.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.3.capabilities
+- kind: cap-stage
+  from: CAP-058
+  to: VS-15.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.3.capabilities
+- kind: cap-stage
+  from: CAP-074
+  to: VS-15.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.3.capabilities
+- kind: cap-stage
+  from: CAP-078
+  to: VS-15.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.3.capabilities
+- kind: cap-stage
+  from: CAP-103
+  to: VS-15.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.3.capabilities
+- kind: cap-stage
+  from: CAP-124
+  to: VS-15.3
+  src: architecture/proposals/value-streams.v2.yaml#VS-15.3.capabilities
 - kind: vs-stage
   from: VS-15
   to: VS-15.3
