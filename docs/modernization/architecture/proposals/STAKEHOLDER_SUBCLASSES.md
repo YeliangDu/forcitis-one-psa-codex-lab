@@ -4,10 +4,11 @@
 
 依据：用户 2026-10-19「这还是只是分类，我认可 6 类干系人；子类也要明确」（one-coordinator 已记 intent）；BIZBOK v11 §2.8 干系人映射模板（印刷页 269–275）；示范文本与成熟产品笔记（frameworks/notes/）。
 
-做法：价值流参与由脚本从 value-streams.v2.yaml 机械算出；定义、判别标准、边界由 Codex（gpt-6.1-sol）起草、DeepSeek flash 出第二意见（原稿 draft-codex.yaml、draft-deepseek.yaml），one-architecture 对拍裁定：定义取 Codex 稿，判别标准与边界取 DeepSeek 稿（更可操作），股东三项与管理层的边界取 Codex 稿（维度更准）；数据源 subclasses.yaml。待 STKH2 确认页。
+做法：价值流参与由脚本从 value-streams.v2.yaml 机械算出；定义、判别标准、边界由 Codex（gpt-6.1-sol）起草、DeepSeek flash 出第二意见（两份原稿留在会话临时目录，不入仓库），one-architecture 对拍裁定：定义取 Codex 稿，判别标准与边界取 DeepSeek 稿（更可操作），股东三项与管理层的边界取 Codex 稿（维度更准）；数据源 subclasses.yaml。待 STKH2 确认页。
 
 ## 对拍裁定
 
+- 出处核验：DeepSeek 稿的出处有 8 处资料锚点不存在（指向 Vantagepoint 笔记中并不存在的编号），属编造，未采用；Codex 稿锚点经 notes 检查无断链。合并稿不含出处字段，依据以 BIZBOK §2.8 原文与本页为准。
 - 一致采纳：审计机构、出租方是供应商下的细分（往来单位角色仍是供应商）；金融机构是合作伙伴下的新子类（独立角色）。决策链 5 个角色与客户 5 个子类正交、可兼任；员工下 7 个具体干系人是可兼任的角色，不是互斥子类。工程审批与企业监管按监管对象区分，同一机关可兼具两者，分别落项目内身份「主管部门」与往来单位角色「主管机关」。
 - 分歧交用户（STKH2）：交付伙伴一个子类还是三个；是否增设「供应商细分」属性；管理层与员工的关系；股东子类按权益形式还是主体类型分；客户类型单值时的归类优先规则。
 - 参与者纠正（STKH2）：SH-R1 工程审批误挂 VS-04.3 开具发票；VS-15.2、15.3 的开户银行应为金融机构 SH-P5，不是资金监管银行 SH-X7。
