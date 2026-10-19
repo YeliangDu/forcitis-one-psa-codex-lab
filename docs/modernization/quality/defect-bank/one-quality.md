@@ -201,5 +201,5 @@
 - **根因**：`DeadLetterJobMetrics` 的构造器用 `Gauge.builder(name, this, fn)` 注册，Micrometer 对该对象只持弱引用；测试里 `new DeadLetterJobMetrics(management, registry, NOW);` 不保存返回值，GC 一旦回收该实例，gauge 读出 NaN。生产里实例是 Spring 单例，不受影响。同一文件的 `unreadableEngineIsNotZero` 断言 NaN，GC 与否都通过，掩盖了同一隐患。与 QUAL 中 `SingleAggregateGuardTest` 的 GC 失效同一类（弱引用对象无强引用）。
 - **拦下于**：pre-push 钩子（偶发，重试通过）。
 - **漏过于**：作者自审（测试作者）；机械检查没有覆盖“测试里丢弃注册 gauge 的实例”。
-- **新增检查项**：测试修复——保存实例并在断言后 `Reference.reachabilityFence(metrics)`（或把实例放进字段）；机械检查另议：扫描测试里“丢弃返回值的 `new *Metrics(...)`”，先只报告。不为此隔离或放宽断言。
-- **状态**：待落实（负责：one-1a-par〔platform.approval 归属，待核〕2026-10-26）
+- **新增检查项**：测试修复——保存实例并在断言后 `Reference.reachabilityFence(metrics)`（或把实例放进字段）；测试已由 one-1a-par 修复（PR #486，CI-1019-PAR-01，opus 首轮通过）；机械检查 `scripts/ci/weak_registration_scan.py`（PR #487）：测试里对只弱引用注册的类（Gauge.builder 三参、WeakHashMap 等）丢弃实例或赋给之后不再用的局部变量时报告，先只报告，跑一周无误报转 `--enforce`。不为此隔离或放宽断言。
+- **状态**：待落实（测试修复 #486 合入、检查项 #487 合入并转报错后改已落实；负责：one-1a-par〔测试，已确认归属〕、one-quality〔检查项〕2026-10-26）
