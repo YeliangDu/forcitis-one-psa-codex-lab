@@ -192,3 +192,14 @@
 - **漏过于**：机械检查（db_scripts_aligned 不比函数授权与角色）。
 - **新增检查项**：`scripts/ci/db_scripts_aligned.py` 比对 CREATE ROLE 集合、函数的 GRANT/REVOKE/默认权限语句、授权对象角色须已创建；PR 待开（分支 claude/one-quality-db-grants），负责人 one-quality。
 - **状态**：待落实（合入后改已落实；负责：one-quality 2026-10-24）
+
+### QUAL-019　DeadLetterJobMetricsTest 的 gauge 实例被丢弃，GC 后读出 NaN
+
+- **日期**：2026-10-19
+- **类别**：局部测试
+- **现象**：pre-push 时 `DeadLetterJobMetricsTest.gaugeFollowsTheEngine` 第 51 行偶发失败，期望 0.0、实际 NaN，重试通过（one-architecture 报告）。
+- **根因**：`DeadLetterJobMetrics` 的构造器用 `Gauge.builder(name, this, fn)` 注册，Micrometer 对该对象只持弱引用；测试里 `new DeadLetterJobMetrics(management, registry, NOW);` 不保存返回值，GC 一旦回收该实例，gauge 读出 NaN。生产里实例是 Spring 单例，不受影响。同一文件的 `unreadableEngineIsNotZero` 断言 NaN，GC 与否都通过，掩盖了同一隐患。与 QUAL 中 `SingleAggregateGuardTest` 的 GC 失效同一类（弱引用对象无强引用）。
+- **拦下于**：pre-push 钩子（偶发，重试通过）。
+- **漏过于**：作者自审（测试作者）；机械检查没有覆盖“测试里丢弃注册 gauge 的实例”。
+- **新增检查项**：测试修复——保存实例并在断言后 `Reference.reachabilityFence(metrics)`（或把实例放进字段）；机械检查另议：扫描测试里“丢弃返回值的 `new *Metrics(...)`”，先只报告。不为此隔离或放宽断言。
+- **状态**：待落实（负责：one-1a-par〔platform.approval 归属，待核〕2026-10-26）
