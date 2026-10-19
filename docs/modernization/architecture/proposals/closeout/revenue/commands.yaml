@@ -1023,7 +1023,6 @@ commands:
   idempotency_key:
   - 审批实例ID
   emits: []
-  unused_ok: 拟命令：骨架步 4 无 command（gap）
 - name: 撤回风险交付授权申请
   aggregate: AGG-17
   proposed: true
