@@ -10,6 +10,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import java.lang.ref.Reference;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -46,10 +47,12 @@ class DeadLetterJobMetricsTest {
         ManagementService management = mock(ManagementService.class, RETURNS_DEEP_STUBS);
         when(management.createDeadLetterJobQuery().count()).thenReturn(0L, 3L);
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
-        new DeadLetterJobMetrics(management, registry, NOW);
+        DeadLetterJobMetrics metrics = new DeadLetterJobMetrics(management, registry, NOW);
+        System.gc();
 
         assertThat(registry.get(GAUGE).gauge().value()).isZero();
         assertThat(registry.get(GAUGE).gauge().value()).isEqualTo(3.0);
+        Reference.reachabilityFence(metrics);
     }
 
     @Test
@@ -58,9 +61,12 @@ class DeadLetterJobMetricsTest {
         ManagementService management = mock(ManagementService.class, RETURNS_DEEP_STUBS);
         when(management.createDeadLetterJobQuery().count()).thenThrow(new IllegalStateException("engine down"));
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
-        new DeadLetterJobMetrics(management, registry, NOW);
+        DeadLetterJobMetrics metrics = new DeadLetterJobMetrics(management, registry, NOW);
+        System.gc();
 
         assertThat(registry.get(GAUGE).gauge().value()).isNaN();
+        assertThat(logged.list).as("NaN came from the unreadable engine, not from a collected gauge").anyMatch(e -> e.getLevel() == Level.WARN);
+        Reference.reachabilityFence(metrics);
     }
 
     @Test
