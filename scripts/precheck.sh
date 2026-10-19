@@ -220,6 +220,16 @@ if touches 'src/test/.*\.java$|scripts/ci/shared_mock_verify_scan\.py$'; then
     printf '%s\n' "$mock_scan" | tail -n 6 | sed 's/^/      | /'
   fi
 fi
+if touches 'src/(test|main)/.*\.java$|scripts/ci/weak_registration_scan\.py$'; then
+  run_step "weak-registration scan (self-test)" py scripts/ci/weak_registration_scan.py --self-test
+  if weak_scan=$(py scripts/ci/weak_registration_scan.py 2>&1); then
+    report PASS "weak-registration scan (report only)" "$(printf '%s\n' "$weak_scan" | tail -n 1)"
+    printf '%s\n' "$weak_scan" | head -n 6 | grep -v '^weak-registration scan' | sed 's/^/      | /' || true
+  else
+    report FAIL "weak-registration scan (report only)" "the scan itself failed:"
+    printf '%s\n' "$weak_scan" | tail -n 6 | sed 's/^/      | /'
+  fi
+fi
 
 grep -E '\.sh$' "$work/changed" >"$work/shell" || true
 : >"$work/shell.present"
