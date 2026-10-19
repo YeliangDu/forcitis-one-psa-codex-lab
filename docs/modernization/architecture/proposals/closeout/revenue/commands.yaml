@@ -1012,8 +1012,6 @@ commands:
   - 风险交付授权已批准
 - name: 驳回风险交付授权
   aggregate: AGG-17
-  proposed: true
-  proposed_basis: NOTES S1/VS-01 命令缺口：PRC-16 步 4
   params:
   - 风险交付授权
   - 审批实例
