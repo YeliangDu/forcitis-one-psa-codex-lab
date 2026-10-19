@@ -271,12 +271,17 @@ def check(m, anchoring=None):
         bc = a.get("bc") or (m["agg"].get(a.get("aggregate") or "", {}) or {}).get("bc")
         if not bc:
             gaps["N10-1"].append(f"{aid}（聚合 {a.get('aggregate')} 未归 BC）")
-    registered = {(a.get("aggregate"), a["command"]) for a in m["act"].values()}
+    strip = lambda c: re.sub(r"^〔缺〕", "", str(c or "")).strip()
+    registered = {(a.get("aggregate"), strip(a["command"])) for a in m["act"].values()}
+    seen = set()
     for s in m.get("steps", []):
+        if (s["prc"], s["step"]) in seen:
+            continue
+        seen.add((s["prc"], s["step"]))
         aggs = expand("AGG", s["aggregate"]) or [s["aggregate"]]
-        if not s["command"]:
+        if not strip(s["command"]):
             gaps["N07-P1"].append(f"{s['prc']} 第 {s['step']} 步（{s['aggregate']}）未声明 Command")
-        elif not any((a, s["command"]) in registered for a in aggs):
+        elif not any((a, strip(s["command"])) in registered for a in aggs):
             gaps["N07-P1"].append(f"{s['prc']} 第 {s['step']} 步命令「{s['command']}」未在 {s['aggregate']} 的 commands.yaml 登记")
     for o in sorted(primary):
         if m["obj"][o].get("class", "业务对象") == "业务对象" and m["obj"][o].get("facts", "—") in ("", "—", "-"):

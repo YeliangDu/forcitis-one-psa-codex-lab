@@ -38,7 +38,7 @@
 | N06-1 | 每个阶段都有对象状态作为门（进入或退出条件引用对象状态） | 1 |
 | N07-1 | 每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1） | 0 |
 | N07-2 | 流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 N07-1 / anchoring C1 判） | 0 |
-| N07-P1 | P-1：流程骨架中作用于聚合的步骤都声明 Command，且该命令在同一聚合下登记于各组 commands.yaml | 47 |
+| N07-P1 | P-1：流程骨架中作用于聚合的步骤都声明 Command，且该命令在同一聚合下登记于各组 commands.yaml | 1 |
 | N08-1 | 每个不变量都归属存在的聚合 | 0 |
 | N09-1 | 每个有效对象都有流程承载（同 anchoring_check C2；OBJD 定论的从属、参照、视图按定论排除） | 0 |
 | N09-2 | 每个有效一级业务对象都有聚合（聚合「对应」列；从属、参照、视图不要求） | 1 |
@@ -97,55 +97,9 @@
 
 - VS-02.5 完成招标采购配合
 
-## N07-P1 P-1：流程骨架中作用于聚合的步骤都声明 Command，且该命令在同一聚合下登记于各组 commands.yaml（47）
+## N07-P1 P-1：流程骨架中作用于聚合的步骤都声明 Command，且该命令在同一聚合下登记于各组 commands.yaml（1）
 
-- PRC-112 第 7 步命令「〔缺〕冲销应付利润」未在 AGG-52 的 commands.yaml 登记
-- PRC-171 第 5 步命令「〔缺〕处理账单差异」未在 AGG-131 的 commands.yaml 登记
-- PRC-82 第 4 步命令「〔缺〕登记候选人答复」未在 AGG-62 的 commands.yaml 登记
-- PRC-83 第 2 步命令「〔缺〕入职生效」未在 AGG-62 的 commands.yaml 登记
-- PRC-116 第 6 步命令「〔缺〕驳回请假」未在 AGG-70 的 commands.yaml 登记
-- PRC-117 第 3 步命令「〔缺〕驳回加班」未在 AGG-72 的 commands.yaml 登记
-- PRC-117 第 4 步命令「〔缺〕计入补休额度」未在 AGG-71 的 commands.yaml 登记
-- PRC-118 第 6 步命令「〔缺〕重新生成月度考勤」未在 AGG-97 的 commands.yaml 登记
-- PRC-118 第 7 步命令「〔缺〕默认确认月度考勤」未在 AGG-97 的 commands.yaml 登记
-- PRC-122 第 1 步命令「〔缺〕草拟奖金核定」未在 AGG-76 的 commands.yaml 登记
-- PRC-122 第 4 步命令「〔缺〕驳回奖金核定」未在 AGG-76 的 commands.yaml 登记
-- PRC-128 第 2 步命令「〔缺〕批准公司终止」未在 AGG-62 的 commands.yaml 登记
-- PRC-128 第 3 步命令「〔缺〕驳回公司终止」未在 AGG-62 的 commands.yaml 登记
-- PRC-128 第 4 步命令「〔缺〕撤回离职申请」未在 AGG-62 的 commands.yaml 登记
-- PRC-128 第 5 步命令「〔缺〕登记劳动合同终止依据」未在 AGG-67 的 commands.yaml 登记
-- PRC-128 第 7 步命令「〔缺〕离职生效」未在 AGG-62 的 commands.yaml 登记
-- PRC-128 第 10 步命令「〔缺〕撤销离职登记」未在 AGG-62 的 commands.yaml 登记
-- PRC-136 第 1 步命令「〔缺〕提交调岗申请」未在 AGG-63 的 commands.yaml 登记
-- PRC-136 第 2 步命令「〔缺〕批准调岗申请」未在 AGG-63 的 commands.yaml 登记
-- PRC-136 第 3 步命令「〔缺〕驳回调岗申请」未在 AGG-63 的 commands.yaml 登记
-- PRC-136 第 6 步命令「〔缺〕变更任职」未在 AGG-63 的 commands.yaml 登记
-- PRC-136 第 7 步命令「〔缺〕任职变更生效」未在 AGG-63 的 commands.yaml 登记
-- PRC-136 第 12 步命令「〔缺〕变更参保缴纳主体」未在 AGG-74 的 commands.yaml 登记
-- PRC-155 第 1 步命令「〔缺〕申请调拨资产」未在 AGG-115 的 commands.yaml 登记
 - PRC-16 第 4 步（AGG-17）未声明 Command
-- PRC-155 第 1 步命令「〔缺〕申请调拨资产」未在 AGG-115 的 commands.yaml 登记
-- PRC-82 第 4 步命令「〔缺〕登记候选人答复」未在 AGG-62 的 commands.yaml 登记
-- PRC-83 第 2 步命令「〔缺〕入职生效」未在 AGG-62 的 commands.yaml 登记
-- PRC-128 第 2 步命令「〔缺〕批准公司终止」未在 AGG-62 的 commands.yaml 登记
-- PRC-128 第 3 步命令「〔缺〕驳回公司终止」未在 AGG-62 的 commands.yaml 登记
-- PRC-128 第 4 步命令「〔缺〕撤回离职申请」未在 AGG-62 的 commands.yaml 登记
-- PRC-128 第 5 步命令「〔缺〕登记劳动合同终止依据」未在 AGG-67 的 commands.yaml 登记
-- PRC-128 第 7 步命令「〔缺〕离职生效」未在 AGG-62 的 commands.yaml 登记
-- PRC-128 第 10 步命令「〔缺〕撤销离职登记」未在 AGG-62 的 commands.yaml 登记
-- PRC-136 第 1 步命令「〔缺〕提交调岗申请」未在 AGG-63 的 commands.yaml 登记
-- PRC-136 第 2 步命令「〔缺〕批准调岗申请」未在 AGG-63 的 commands.yaml 登记
-- PRC-136 第 3 步命令「〔缺〕驳回调岗申请」未在 AGG-63 的 commands.yaml 登记
-- PRC-136 第 6 步命令「〔缺〕变更任职」未在 AGG-63 的 commands.yaml 登记
-- PRC-136 第 7 步命令「〔缺〕任职变更生效」未在 AGG-63 的 commands.yaml 登记
-- PRC-136 第 12 步命令「〔缺〕变更参保缴纳主体」未在 AGG-74 的 commands.yaml 登记
-- PRC-116 第 6 步命令「〔缺〕驳回请假」未在 AGG-70 的 commands.yaml 登记
-- PRC-117 第 3 步命令「〔缺〕驳回加班」未在 AGG-72 的 commands.yaml 登记
-- PRC-117 第 4 步命令「〔缺〕计入补休额度」未在 AGG-71 的 commands.yaml 登记
-- PRC-118 第 6 步命令「〔缺〕重新生成月度考勤」未在 AGG-97 的 commands.yaml 登记
-- PRC-118 第 7 步命令「〔缺〕默认确认月度考勤」未在 AGG-97 的 commands.yaml 登记
-- PRC-122 第 1 步命令「〔缺〕草拟奖金核定」未在 AGG-76 的 commands.yaml 登记
-- PRC-122 第 4 步命令「〔缺〕驳回奖金核定」未在 AGG-76 的 commands.yaml 登记
 
 ## N09-2 每个有效一级业务对象都有聚合（聚合「对应」列；从属、参照、视图不要求）（1）
 
