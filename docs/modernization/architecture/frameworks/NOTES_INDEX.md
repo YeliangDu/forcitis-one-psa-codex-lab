@@ -17,7 +17,7 @@
 | AMP4 | [ArchiMate 4 Specification: A Pocket Guide](notes/archimate4-pocket.md) | 未能从对应书的书内书目核实 | 书籍 | 已审定 | 3 |
 | BAH | [Practical Model-Driven Enterprise Architecture: Design a mature enterprise architecture repository using Sparx Systems Enterprise Architect and ArchiMate® 3.1](notes/bahri-togaf.md) | 2022 | 书籍 | 已审定 | 7 |
 | BARR | [Prove It!: How to Create a High-Performance Culture and Measurable Success](notes/barr-prove-it.md) | 2017 | 书籍 | 草稿 | 20 |
-| BES | [Introducing EventStorming: An act of Deliberate Collective Learning](notes/brandolini-es.md) | 2018 | 书籍 | 已审定 | 9 |
+| BES | [Introducing EventStorming: An act of Deliberate Collective Learning](notes/brandolini-es.md) | 2019（本地版本发布日期） | 书籍 | 已审定 | 9 |
 | BMS | [BPMN Method and Style: With BPMN Implementer's Guide](notes/silver-bpmn-ms2.md) | 版权页列 2011、2017、2019；本件发行年未核 | 书籍 | 草稿 | 16 |
 | BPMN | [Business Process Model and Notation（BPMN）](notes/bpmn-202.md) | 2013 | 规范标准 | 草稿 | 14 |
 | BSC | [平衡计分卡：化战略为行动](notes/kaplan-norton-bsc.md) | 2013 | 书籍 | 草稿 | 20 |
@@ -42,7 +42,7 @@
 | DUM | [Fundamentals of Business Process Management](notes/dumas-fbpm.md) | 2013 | 书籍 | 草稿 | 17 |
 | EINV | [国家税务总局关于推广应用全面数字化电子发票的公告；关于铁路客运推广使用全面数字化的电子发票的公告；关于民航旅客运输服务推广使用全面数字化的电子发票的公告（含附件）](notes/e-invoice-2024.md) | 2024 | 准则法规 | 草稿 | 29 |
 | EIP | [Enterprise Integration Patterns: Designing, Building, and Deploying Messaging Solutions](notes/hohpe-eip.md) | 2004（版权年；第二次印刷 2003） | 书籍 | 已审定 | 12 |
-| EVA | [Domain-Driven Design: Tackling Complexity in the Heart of Software](notes/evans-ddd2003.md) | 2003（首次印刷；版权年 2004） | 书籍 | 已审定 | 9 |
+| EVA | [Domain-Driven Design: Tackling Complexity in the Heart of Software](notes/evans-ddd2003.md) | 未核 | 书籍 | 已审定 | 9 |
 | FAP | [Analysis Patterns: Reusable Object Models](notes/fowler-ap.md) | 未核（文件名标 1996） | 书籍 | 已审定 | 20 |
 | FEE | [工程勘察设计收费管理规定及收费标准](notes/design-fee-2002.md) | 2002 | 行业规范 | 草稿 | 16 |
 | FID | [The International Application of FIDIC Contracts: A Practical Guide](notes/charrett-fidic.md) | 2020 | 书籍 | 草稿 | 17 |
@@ -68,7 +68,7 @@
 | MIL | [Patterns, Principles, and Practices of Domain-Driven Design](notes/millett-pppddd.md) | 2015 | 书籍 | 草稿 | 15 |
 | PARM | [关键绩效指标：KPI的开发、实施和应用](notes/parmenter-kpi.md) | 2023 | 书籍 | 草稿 | 21 |
 | PCF8 | [APQC 跨行业流程分类框架 v8.0](notes/apqc-pcf-80.md) | 2026 | 规范标准 | 草稿 | 15 |
-| PEAA | [Patterns of Enterprise Application Architecture](notes/fowler-poeaa.md) | 2002（首次印刷；版权年 2003） | 书籍 | 已审定 | 13 |
+| PEAA | [Patterns of Enterprise Application Architecture](notes/fowler-poeaa.md) | 2003（版权年；出版年未核） | 书籍 | 已审定 | 13 |
 | PIPL | [中华人民共和国个人信息保护法；信息安全技术 个人信息安全规范](notes/pipl.md) | 法律年份未核；国标2020 | 准则法规 | 草稿 | 24 |
 | PMB6 | [项目管理知识体系指南（PMBOK® 指南）第六版](notes/pmbok6-zh.md) | 2017（英文原版）；2018（中文译本） | 书籍 | 已审定 | 10 |
 | PMB7 | [项目管理标准和项目管理知识体系指南（PMBOK® 指南）](notes/pmbok7-zh.md) | 2021 | 书籍 | 草稿 | 16 |
@@ -161,7 +161,7 @@ BIZBOK 业务架构总体、信息图与业务对象
 | BZ11 | [A Guide to the Business Architecture Body of Knowledge®（BIZBOK® Guide）](notes/bizbok-v11.md) | 2022 | 书籍 | 已审定 | 11 |
 | BZ9 | [A Guide to the Business Architecture Body of Knowledge（BIZBOK Guide）](notes/bizbok-v9-diff.md) | 2020 | 书籍 | 已审定 | 10 |
 | BPMN | [Business Process Model and Notation（BPMN）](notes/bpmn-202.md) | 2013 | 规范标准 | 草稿 | 14 |
-| BES | [Introducing EventStorming: An act of Deliberate Collective Learning](notes/brandolini-es.md) | 2018 | 书籍 | 已审定 | 9 |
+| BES | [Introducing EventStorming: An act of Deliberate Collective Learning](notes/brandolini-es.md) | 2019（本地版本发布日期） | 书籍 | 已审定 | 9 |
 | DMN | [Decision Model and Notation](notes/dmn-15.md) | 2024 | 规范标准 | 草稿 | 15 |
 | DUM | [Fundamentals of Business Process Management](notes/dumas-fbpm.md) | 2013 | 书籍 | 草稿 | 17 |
 | BSC | [平衡计分卡：化战略为行动](notes/kaplan-norton-bsc.md) | 2013 | 书籍 | 草稿 | 20 |
@@ -178,12 +178,12 @@ DDD 战略与战术设计、限界上下文、聚合与事件
 | 编号 | 题名 | 年份 | 资料类型 | 状态 | 锚点 |
 |---|---|---|---|---|---|
 | BTP2 | [Principles of Transaction Processing](notes/bernstein-tp2.md) | 2009 | 书籍 | 已审定 | 9 |
-| BES | [Introducing EventStorming: An act of Deliberate Collective Learning](notes/brandolini-es.md) | 2018 | 书籍 | 已审定 | 9 |
+| BES | [Introducing EventStorming: An act of Deliberate Collective Learning](notes/brandolini-es.md) | 2019（本地版本发布日期） | 书籍 | 已审定 | 9 |
 | DDDR | [Domain-Driven Design Reference: Definitions and Pattern Summaries](notes/ddd-reference.md) | 2015 | 书籍 | 已审定 | 12 |
 | DMN | [Decision Model and Notation](notes/dmn-15.md) | 2024 | 规范标准 | 草稿 | 15 |
-| EVA | [Domain-Driven Design: Tackling Complexity in the Heart of Software](notes/evans-ddd2003.md) | 2003（首次印刷；版权年 2004） | 书籍 | 已审定 | 9 |
+| EVA | [Domain-Driven Design: Tackling Complexity in the Heart of Software](notes/evans-ddd2003.md) | 未核 | 书籍 | 已审定 | 9 |
 | FAP | [Analysis Patterns: Reusable Object Models](notes/fowler-ap.md) | 未核（文件名标 1996） | 书籍 | 已审定 | 20 |
-| PEAA | [Patterns of Enterprise Application Architecture](notes/fowler-poeaa.md) | 2002（首次印刷；版权年 2003） | 书籍 | 已审定 | 13 |
+| PEAA | [Patterns of Enterprise Application Architecture](notes/fowler-poeaa.md) | 2003（版权年；出版年未核） | 书籍 | 已审定 | 13 |
 | EIP | [Enterprise Integration Patterns: Designing, Building, and Deploying Messaging Solutions](notes/hohpe-eip.md) | 2004（版权年；第二次印刷 2003） | 书籍 | 已审定 | 12 |
 | JMOL | [jMolecules – Architectural abstractions for Java；jMolecules -- Technology integrations](notes/jmolecules.md) | 未核 | 规范标准 | 草稿 | 12 |
 | KHO | [Learning Domain-Driven Design: Aligning Software Architecture and Business Strategy](notes/khononov-lddd.md) | 2021（首版；版权年 2022） | 书籍 | 已审定 | 9 |
@@ -204,7 +204,7 @@ DDD 战略与战术设计、限界上下文、聚合与事件
 | DAMA2 | [The DAMA Guide to the Data Management Body of Knowledge](notes/dama-dmbok2.md) | 2017 | 书籍 | 已审定 | 11 |
 | DSEC | [中华人民共和国数据安全法；中华人民共和国网络安全法；信息安全技术 网络安全等级保护基本要求](notes/data-security.md) | 法律年份未核；国标2019 | 准则法规 | 草稿 | 25 |
 | FAP | [Analysis Patterns: Reusable Object Models](notes/fowler-ap.md) | 未核（文件名标 1996） | 书籍 | 已审定 | 20 |
-| PEAA | [Patterns of Enterprise Application Architecture](notes/fowler-poeaa.md) | 2002（首次印刷；版权年 2003） | 书籍 | 已审定 | 13 |
+| PEAA | [Patterns of Enterprise Application Architecture](notes/fowler-poeaa.md) | 2003（版权年；出版年未核） | 书籍 | 已审定 | 13 |
 | HAY | [Data Model Patterns: A Metadata Map](notes/hay-dmp.md) | 2006 | 书籍 | 已审定 | 9 |
 | KIM2 | [The Data Warehouse Toolkit: The Complete Guide to Dimensional Modeling](notes/kimball-dwt2.md) | 2002 | 书籍 | 已审定 | 10 |
 | KIM3 | [The Data Warehouse Toolkit: The Definitive Guide to Dimensional Modeling](notes/kimball-dwt3.md) | 2013 | 书籍 | 样板 | 11 |
@@ -273,7 +273,7 @@ DDD 战略与战术设计、限界上下文、聚合与事件
 | DSEC | [中华人民共和国数据安全法；中华人民共和国网络安全法；信息安全技术 网络安全等级保护基本要求](notes/data-security.md) | 法律年份未核；国标2019 | 准则法规 | 草稿 | 25 |
 | DDDR | [Domain-Driven Design Reference: Definitions and Pattern Summaries](notes/ddd-reference.md) | 2015 | 书籍 | 已审定 | 12 |
 | EINV | [国家税务总局关于推广应用全面数字化电子发票的公告；关于铁路客运推广使用全面数字化的电子发票的公告；关于民航旅客运输服务推广使用全面数字化的电子发票的公告（含附件）](notes/e-invoice-2024.md) | 2024 | 准则法规 | 草稿 | 29 |
-| EVA | [Domain-Driven Design: Tackling Complexity in the Heart of Software](notes/evans-ddd2003.md) | 2003（首次印刷；版权年 2004） | 书籍 | 已审定 | 9 |
+| EVA | [Domain-Driven Design: Tackling Complexity in the Heart of Software](notes/evans-ddd2003.md) | 未核 | 书籍 | 已审定 | 9 |
 | EIP | [Enterprise Integration Patterns: Designing, Building, and Deploying Messaging Solutions](notes/hohpe-eip.md) | 2004（版权年；第二次印刷 2003） | 书籍 | 已审定 | 12 |
 | JMOL | [jMolecules – Architectural abstractions for Java；jMolecules -- Technology integrations](notes/jmolecules.md) | 未核 | 规范标准 | 草稿 | 12 |
 | KHO | [Learning Domain-Driven Design: Aligning Software Architecture and Business Strategy](notes/khononov-lddd.md) | 2021（首版；版权年 2022） | 书籍 | 已审定 | 9 |
@@ -480,7 +480,7 @@ TOGAF、ArchiMate 等企业架构方法与建模语言
 | BTP2 | [Principles of Transaction Processing](notes/bernstein-tp2.md) | 2009 | 书籍 | 已审定 | 9 |
 | BZ11 | [A Guide to the Business Architecture Body of Knowledge®（BIZBOK® Guide）](notes/bizbok-v11.md) | 2022 | 书籍 | 已审定 | 11 |
 | BZ9 | [A Guide to the Business Architecture Body of Knowledge（BIZBOK Guide）](notes/bizbok-v9-diff.md) | 2020 | 书籍 | 已审定 | 10 |
-| BES | [Introducing EventStorming: An act of Deliberate Collective Learning](notes/brandolini-es.md) | 2018 | 书籍 | 已审定 | 9 |
+| BES | [Introducing EventStorming: An act of Deliberate Collective Learning](notes/brandolini-es.md) | 2019（本地版本发布日期） | 书籍 | 已审定 | 9 |
 | WBS2 | [Secrets to Mastering the WBS in Real-World Projects: The Most Practical Approach to Work Breakdown Structures (WBS)!](notes/buchtik-wbs2.md) | 2013 | 书籍 | 已审定 | 11 |
 | CASD | [企业会计准则详解与实务：条文解读+实务应用+案例讲解：2021年版](notes/cas-explained-2021.md) | 2021 | 书籍 | 草稿 | 20 |
 | CASG | [《企业会计准则第14号——收入》应用指南2018](notes/cas14-guide-2018.md) | 2018 | 书籍 | 草稿 | 21 |
@@ -489,10 +489,10 @@ TOGAF、ArchiMate 等企业架构方法与建模语言
 | DAMA2 | [The DAMA Guide to the Data Management Body of Knowledge](notes/dama-dmbok2.md) | 2017 | 书籍 | 已审定 | 11 |
 | DDDR | [Domain-Driven Design Reference: Definitions and Pattern Summaries](notes/ddd-reference.md) | 2015 | 书籍 | 已审定 | 12 |
 | DUM | [Fundamentals of Business Process Management](notes/dumas-fbpm.md) | 2013 | 书籍 | 草稿 | 17 |
-| EVA | [Domain-Driven Design: Tackling Complexity in the Heart of Software](notes/evans-ddd2003.md) | 2003（首次印刷；版权年 2004） | 书籍 | 已审定 | 9 |
+| EVA | [Domain-Driven Design: Tackling Complexity in the Heart of Software](notes/evans-ddd2003.md) | 未核 | 书籍 | 已审定 | 9 |
 | FIDW | [Client/Consultant Model Services Agreement](notes/fidic-white-book-2017.md) | 2017 | 书籍 | 草稿 | 24 |
 | FAP | [Analysis Patterns: Reusable Object Models](notes/fowler-ap.md) | 未核（文件名标 1996） | 书籍 | 已审定 | 20 |
-| PEAA | [Patterns of Enterprise Application Architecture](notes/fowler-poeaa.md) | 2002（首次印刷；版权年 2003） | 书籍 | 已审定 | 13 |
+| PEAA | [Patterns of Enterprise Application Architecture](notes/fowler-poeaa.md) | 2003（版权年；出版年未核） | 书籍 | 已审定 | 13 |
 | HAY | [Data Model Patterns: A Metadata Map](notes/hay-dmp.md) | 2006 | 书籍 | 已审定 | 9 |
 | EIP | [Enterprise Integration Patterns: Designing, Building, and Deploying Messaging Solutions](notes/hohpe-eip.md) | 2004（版权年；第二次印刷 2003） | 书籍 | 已审定 | 12 |
 | BSC | [平衡计分卡：化战略为行动](notes/kaplan-norton-bsc.md) | 2013 | 书籍 | 草稿 | 20 |

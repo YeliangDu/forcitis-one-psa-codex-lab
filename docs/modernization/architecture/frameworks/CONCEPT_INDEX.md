@@ -88,7 +88,7 @@
 
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
-| KHO#事件溯源 | [Learning Domain-Driven Design: Aligning Software Architecture and Business Strategy](notes/khononov-lddd.md) | 事件溯源 | 第 7 章 Event-Sourced Domain Model / Event Sourcing；16，`ch07.html`；L3 起 | — |
+| KHO#事件溯源 | [Learning Domain-Driven Design: Aligning Software Architecture and Business Strategy](notes/khononov-lddd.md) | 事件溯源 | 第 7 章 Modeling the Dimension of Time，Event Sourcing / Event-Sourced Domain Model | 99–101；108–109 / 125–127；134–135 |
 | MIL#事件溯源 | [Patterns, Principles, and Practices of Domain-Driven Design](notes/millett-pppddd.md) | Event Sourcing | 第 22 章开篇、The Limitations of Storing State as a Snapshot | 595–596 / 641–642 |
 
 ## 事实与维度
@@ -177,7 +177,7 @@
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
 | DDDR#仓储 | [Domain-Driven Design Reference: Definitions and Pattern Summaries](notes/ddd-reference.md) | 聚合根的仓储访问 | DDD，Repositories | 17 / 24 |
-| PEAA#仓储 | [Patterns of Enterprise Application Architecture](notes/fowler-poeaa.md) | 领域对象访问抽象 | 第 13 章 Repository（Edward Hieatt / Rob Mee）；`EPUB/Text/0321127420_ch13lev1sec3.html` | — |
+| PEAA#仓储 | [Patterns of Enterprise Application Architecture](notes/fowler-poeaa.md) | 领域对象访问抽象 | 第 13 章 Object-Relational Metadata Mapping Patterns，Repository（Edward Hieatt / Rob Mee） | 322–323 / 347–348 |
 | MIL#仓储 | [Patterns, Principles, and Practices of Domain-Driven Design](notes/millett-pppddd.md) | Repository | 第 14 章，Repositories；第 21 章，Repository Antipatterns | 323；507 / 369；553 |
 
 ## 价值流与阶段
@@ -390,7 +390,7 @@
 
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
-| KHO#命令查询职责分离 | [Learning Domain-Driven Design: Aligning Software Architecture and Business Strategy](notes/khononov-lddd.md) | 命令查询职责分离 | 第 8 章 Command-Query Responsibility Segregation；17，`ch08.html`；L180 起 | — |
+| KHO#命令查询职责分离 | [Learning Domain-Driven Design: Aligning Software Architecture and Business Strategy](notes/khononov-lddd.md) | 命令查询职责分离 | 第 8 章 Architectural Patterns，Command-Query Responsibility Segregation | 128–130 / 154–156 |
 | VER#命令查询职责分离 | [Implementing Domain-Driven Design](notes/vernon-iddd.md) | 第 4 章 Command-Query Responsibility Segregation | 第 4 章 Command-Query Responsibility Segregation | 138–140 / 181–183 |
 
 ## 商业账单复核
@@ -835,6 +835,6 @@
 | 锚点 | 资料 | 原文叫法 | 位置 | 页码 |
 |---|---|---|---|---|
 | DDDR#领域服务 | [Domain-Driven Design Reference: Definitions and Pattern Summaries](notes/ddd-reference.md) | 不自然归属对象的领域操作 | DDD，Services | 14 / 21 |
-| EVA#领域服务 | [Domain-Driven Design: Tackling Complexity in the Heart of Software](notes/evans-ddd2003.md) | 领域服务及其边界 | 第 5 章 Services；L873 起 | — |
+| EVA#领域服务 | [Domain-Driven Design: Tackling Complexity in the Heart of Software](notes/evans-ddd2003.md) | 领域服务及其边界 | 第 5 章 A Model Expressed in Software，Services | 63–64 / 59–60 |
 | MIL#领域服务 | [Patterns, Principles, and Practices of Domain-Driven Design](notes/millett-pppddd.md) | Domain Service | 第 14 章，Domain Services | 317 / 363 |
 | VER#领域服务 | [Implementing Domain-Driven Design](notes/vernon-iddd.md) | 第 7 章 Make Sure You Need a Service | 第 7 章 Make Sure You Need a Service | 268 / 311 |
