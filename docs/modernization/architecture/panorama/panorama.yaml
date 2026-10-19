@@ -19,7 +19,7 @@ meta:
     prc: 200
     inv: 134
     obj: 103
-    act: 390
+    act: 651
     fact: 0
     dim: 0
     metric: 76
@@ -29,7 +29,7 @@ meta:
     bc: 31
     sd: 13
     table: 25
-    steps: 431
+    steps: 647
   checks:
     N01-1: 每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）
     N03-1: 每条价值流都有价值主张（暂以价值流的 value 字段作 03 的登记）
@@ -6992,6 +6992,1572 @@ nodes:
       bc: null
       state_change: null
       src: architecture/proposals/closeout/people/commands.yaml#取消员工活动登记
+    AGG-34/登记检查计划:
+      command: 登记检查计划
+      aggregate: AGG-34
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记检查计划
+    AGG-34/生效检查计划:
+      command: 生效检查计划
+      aggregate: AGG-34
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#生效检查计划
+    AGG-34/标记检查计划不再受托:
+      command: 标记检查计划不再受托
+      aggregate: AGG-34
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#标记检查计划不再受托
+    AGG-35/安排检查:
+      command: 安排检查
+      aggregate: AGG-35
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#安排检查
+    AGG-35/指派检查人员:
+      command: 指派检查人员
+      aggregate: AGG-35
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#指派检查人员
+    AGG-35/开始现场检查:
+      command: 开始现场检查
+      aggregate: AGG-35
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#开始现场检查
+    AGG-35/提交检查记录:
+      command: 提交检查记录
+      aggregate: AGG-35
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提交检查记录
+    AGG-35/审核检查记录:
+      command: 审核检查记录
+      aggregate: AGG-35
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#审核检查记录
+    AGG-35/锁定检查:
+      command: 锁定检查
+      aggregate: AGG-35
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#锁定检查
+    AGG-35/关联检查报告:
+      command: 关联检查报告
+      aggregate: AGG-35
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#关联检查报告
+    AGG-35/复查检查:
+      command: 复查检查
+      aggregate: AGG-35
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#复查检查
+    AGG-35/取消检查:
+      command: 取消检查
+      aggregate: AGG-35
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#取消检查
+    AGG-36/发布检查表模板版本:
+      command: 发布检查表模板版本
+      aggregate: AGG-36
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#发布检查表模板版本
+    AGG-36/停用检查表模板版本:
+      command: 停用检查表模板版本
+      aggregate: AGG-36
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#停用检查表模板版本
+    AGG-37/建议外部检测:
+      command: 建议外部检测
+      aggregate: AGG-37
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#建议外部检测
+    AGG-37/登记业主委托外部检测:
+      command: 登记业主委托外部检测
+      aggregate: AGG-37
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记业主委托外部检测
+    AGG-37/登记外部检测报告:
+      command: 登记外部检测报告
+      aggregate: AGG-37
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记外部检测报告
+    AGG-37/采信外部检测报告:
+      command: 采信外部检测报告
+      aggregate: AGG-37
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#采信外部检测报告
+    AGG-37/不采信外部检测报告:
+      command: 不采信外部检测报告
+      aggregate: AGG-37
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#不采信外部检测报告
+    AGG-28/登记不符合项:
+      command: 登记不符合项
+      aggregate: AGG-28
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记不符合项
+    AGG-28/确认不符合项:
+      command: 确认不符合项
+      aggregate: AGG-28
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#确认不符合项
+    AGG-28/让步接受不符合项:
+      command: 让步接受不符合项
+      aggregate: AGG-28
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#让步接受不符合项
+    AGG-28/关闭不符合项:
+      command: 关闭不符合项
+      aggregate: AGG-28
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#关闭不符合项
+    AGG-28/复核不符合项:
+      command: 复核不符合项
+      aggregate: AGG-28
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#复核不符合项
+    AGG-28/发布不符合项:
+      command: 发布不符合项
+      aggregate: AGG-28
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#发布不符合项
+    AGG-28/登记不符合项送达:
+      command: 登记不符合项送达
+      aggregate: AGG-28
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记不符合项送达
+    AGG-28/记录重大险情已报告:
+      command: 记录重大险情已报告
+      aggregate: AGG-28
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#记录重大险情已报告
+    AGG-28/开始整改:
+      command: 开始整改
+      aggregate: AGG-28
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#开始整改
+    AGG-28/登记整改申报:
+      command: 登记整改申报
+      aggregate: AGG-28
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记整改申报
+    AGG-28/闭合不符合项:
+      command: 闭合不符合项
+      aggregate: AGG-28
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#闭合不符合项
+    AGG-28/退回整改:
+      command: 退回整改
+      aggregate: AGG-28
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#退回整改
+    AGG-28/登记客户接受风险:
+      command: 登记客户接受风险
+      aggregate: AGG-28
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记客户接受风险
+    AGG-28/停止跟踪不符合项:
+      command: 停止跟踪不符合项
+      aggregate: AGG-28
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#停止跟踪不符合项
+    AGG-38/采集证据:
+      command: 采集证据
+      aggregate: AGG-38
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#采集证据
+    AGG-38/上传证据摘要:
+      command: 上传证据摘要
+      aggregate: AGG-38
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#上传证据摘要
+    AGG-38/封存证据:
+      command: 封存证据
+      aggregate: AGG-38
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#封存证据
+    AGG-38/作废证据:
+      command: 作废证据
+      aggregate: AGG-38
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#作废证据
+    AGG-110/关联证据:
+      command: 关联证据
+      aggregate: AGG-110
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#关联证据
+    AGG-110/解除证据关联:
+      command: 解除证据关联
+      aggregate: AGG-110
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#解除证据关联
+    AGG-13/起草协议:
+      command: 起草协议
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#起草协议
+    AGG-13/登记合同—项目关联与范围挂 WBS:
+      command: 登记合同—项目关联与范围挂 WBS
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记合同—项目关联与范围挂 WBS
+    AGG-13/登记视为同意参数与发包人代表:
+      command: 登记视为同意参数与发包人代表
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记视为同意参数与发包人代表
+    AGG-13/提交合同评审:
+      command: 提交合同评审
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提交合同评审
+    AGG-13/通过合同评审:
+      command: 通过合同评审
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#通过合同评审
+    AGG-13/驳回合同评审:
+      command: 驳回合同评审
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#驳回合同评审
+    AGG-13/回签:
+      command: 回签
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#回签
+    AGG-13/应用变更:
+      command: 应用变更
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#应用变更
+    AGG-13/提交任务订单:
+      command: 提交任务订单
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提交任务订单
+    AGG-13/标记付款条件项可结算:
+      command: 标记付款条件项可结算
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#标记付款条件项可结算
+    AGG-13/登记付款条件达成:
+      command: 登记付款条件达成
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记付款条件达成
+    AGG-13/完成协议:
+      command: 完成协议
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#完成协议
+    AGG-13/编制结算书:
+      command: 编制结算书
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#编制结算书
+    AGG-13/确认最终价款:
+      command: 确认最终价款
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#确认最终价款
+    AGG-13/结算协议:
+      command: 结算协议
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#结算协议
+    AGG-13/终止协议:
+      command: 终止协议
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#终止协议
+    AGG-13/归档协议:
+      command: 归档协议
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#归档协议
+    AGG-13/登记协议借出:
+      command: 登记协议借出
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记协议借出
+    AGG-13/登记协议归还:
+      command: 登记协议归还
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记协议归还
+    AGG-13/标记协议借阅逾期:
+      command: 标记协议借阅逾期
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#标记协议借阅逾期
+    AGG-14/占用框架限额:
+      command: 占用框架限额
+      aggregate: AGG-14
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#占用框架限额
+    AGG-14/释放框架限额:
+      command: 释放框架限额
+      aggregate: AGG-14
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#释放框架限额
+    AGG-15/提出协议变更:
+      command: 提出协议变更
+      aggregate: AGG-15
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提出协议变更
+    AGG-15/评估变更影响:
+      command: 评估变更影响
+      aggregate: AGG-15
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#评估变更影响
+    AGG-15/提交协议变更审批:
+      command: 提交协议变更审批
+      aggregate: AGG-15
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提交协议变更审批
+    AGG-15/通过协议变更审批:
+      command: 通过协议变更审批
+      aggregate: AGG-15
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#通过协议变更审批
+    AGG-15/驳回协议变更审批:
+      command: 驳回协议变更审批
+      aggregate: AGG-15
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#驳回协议变更审批
+    AGG-15/登记发包人书面同意:
+      command: 登记发包人书面同意
+      aggregate: AGG-15
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记发包人书面同意
+    AGG-15/生效协议变更:
+      command: 生效协议变更
+      aggregate: AGG-15
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#生效协议变更
+    AGG-15/确认现场签证:
+      command: 确认现场签证
+      aggregate: AGG-15
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#确认现场签证
+    AGG-16/提出索赔:
+      command: 提出索赔
+      aggregate: AGG-16
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提出索赔
+    AGG-16/认定索赔:
+      command: 认定索赔
+      aggregate: AGG-16
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#认定索赔
+    AGG-16/拒绝或撤回索赔:
+      command: 拒绝或撤回索赔
+      aggregate: AGG-16
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#拒绝或撤回索赔
+    AGG-17/申请风险交付授权:
+      command: 申请风险交付授权
+      aggregate: AGG-17
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#申请风险交付授权
+    AGG-17/提交风险交付授权审批:
+      command: 提交风险交付授权审批
+      aggregate: AGG-17
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提交风险交付授权审批
+    AGG-17/批准风险交付授权:
+      command: 批准风险交付授权
+      aggregate: AGG-17
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#批准风险交付授权
+    AGG-17/驳回风险交付授权:
+      command: 驳回风险交付授权
+      aggregate: AGG-17
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#驳回风险交付授权
+    AGG-17/撤回风险交付授权申请:
+      command: 撤回风险交付授权申请
+      aggregate: AGG-17
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#撤回风险交付授权申请
+    AGG-17/转正风险交付授权:
+      command: 转正风险交付授权
+      aggregate: AGG-17
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#转正风险交付授权
+    AGG-17/叫停风险交付授权:
+      command: 叫停风险交付授权
+      aggregate: AGG-17
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#叫停风险交付授权
+    AGG-44/更新开票与收入额度:
+      command: 更新开票与收入额度
+      aggregate: AGG-44
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#更新开票与收入额度
+    AGG-44/占用收入额度:
+      command: 占用收入额度
+      aggregate: AGG-44
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#占用收入额度
+    AGG-44/认定视为同意成立:
+      command: 认定视为同意成立
+      aggregate: AGG-44
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#认定视为同意成立
+    AGG-44/追加收入确认事实并占用转实:
+      command: 追加收入确认事实并占用转实
+      aggregate: AGG-44
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#追加收入确认事实并占用转实
+    AGG-44/释放收入额度占用:
+      command: 释放收入额度占用
+      aggregate: AGG-44
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#释放收入额度占用
+    AGG-44/冲销收入确认:
+      command: 冲销收入确认
+      aggregate: AGG-44
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#冲销收入确认
+    AGG-44/占用冲销额度:
+      command: 占用冲销额度
+      aggregate: AGG-44
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#占用冲销额度
+    AGG-44/追加冲销行并占用转实:
+      command: 追加冲销行并占用转实
+      aggregate: AGG-44
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#追加冲销行并占用转实
+    AGG-44/开具销项发票并改写 WIP:
+      command: 开具销项发票并改写 WIP
+      aggregate: AGG-44
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#开具销项发票并改写 WIP
+    AGG-44/回冲开票额度:
+      command: 回冲开票额度
+      aggregate: AGG-44
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#回冲开票额度
+    AGG-44/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-44
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提交过账候选
+    AGG-45/提交开票申请:
+      command: 提交开票申请
+      aggregate: AGG-45
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提交开票申请
+    AGG-45/准入开票申请:
+      command: 准入开票申请
+      aggregate: AGG-45
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#准入开票申请
+    AGG-45/驳回开票申请:
+      command: 驳回开票申请
+      aggregate: AGG-45
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#驳回开票申请
+    AGG-45/作废开票申请:
+      command: 作废开票申请
+      aggregate: AGG-45
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#作废开票申请
+    AGG-46/开具销项发票并改写 WIP:
+      command: 开具销项发票并改写 WIP
+      aggregate: AGG-46
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#开具销项发票并改写 WIP
+    AGG-46/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-46
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提交过账候选
+    AGG-46/发起红字信息确认:
+      command: 发起红字信息确认
+      aggregate: AGG-46
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#发起红字信息确认
+    AGG-46/撤销红字信息确认:
+      command: 撤销红字信息确认
+      aggregate: AGG-46
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#撤销红字信息确认
+    AGG-46/红冲发票:
+      command: 红冲发票
+      aggregate: AGG-46
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#红冲发票
+    AGG-92/开放证据类型:
+      command: 开放证据类型
+      aggregate: AGG-92
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#开放证据类型
+    AGG-49/创建应收:
+      command: 创建应收
+      aggregate: AGG-49
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#创建应收
+    AGG-49/在应收上核销占用:
+      command: 在应收上核销占用
+      aggregate: AGG-49
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#在应收上核销占用
+    AGG-49/检测应收逾期:
+      command: 检测应收逾期
+      aggregate: AGG-49
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#检测应收逾期
+    AGG-49/登记争议与处置分类:
+      command: 登记争议与处置分类
+      aggregate: AGG-49
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记争议与处置分类
+    AGG-49/核销坏账:
+      command: 核销坏账
+      aggregate: AGG-49
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#核销坏账
+    AGG-49/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-49
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提交过账候选
+    AGG-49/释放占用、恢复应收:
+      command: 释放占用、恢复应收
+      aggregate: AGG-49
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#释放占用、恢复应收
+    AGG-49/冲抵员工借款:
+      command: 冲抵员工借款
+      aggregate: AGG-49
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#冲抵员工借款
+    AGG-49/冲减应收:
+      command: 冲减应收
+      aggregate: AGG-49
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#冲减应收
+    AGG-49/转预收或待退:
+      command: 转预收或待退
+      aggregate: AGG-49
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#转预收或待退
+    AGG-50/收款认领:
+      command: 收款认领
+      aggregate: AGG-50
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#收款认领
+    AGG-50/记分配行与流水行:
+      command: 记分配行与流水行
+      aggregate: AGG-50
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#记分配行与流水行
+    AGG-50/登记商票兑付:
+      command: 登记商票兑付
+      aggregate: AGG-50
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记商票兑付
+    AGG-50/标记商票已逾期:
+      command: 标记商票已逾期
+      aggregate: AGG-50
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#标记商票已逾期
+    AGG-50/处置待认领流水:
+      command: 处置待认领流水
+      aggregate: AGG-50
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#处置待认领流水
+    AGG-50/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-50
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提交过账候选
+    AGG-51/登记保证金缴纳:
+      command: 登记保证金缴纳
+      aggregate: AGG-51
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记保证金缴纳
+    AGG-51/登记保函开立:
+      command: 登记保函开立
+      aggregate: AGG-51
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记保函开立
+    AGG-51/扣减保证金:
+      command: 扣减保证金
+      aggregate: AGG-51
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#扣减保证金
+    AGG-51/退还保证金:
+      command: 退还保证金
+      aggregate: AGG-51
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#退还保证金
+    AGG-51/没收保证金:
+      command: 没收保证金
+      aggregate: AGG-51
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#没收保证金
+    AGG-51/登记保函到期或索赔:
+      command: 登记保函到期或索赔
+      aggregate: AGG-51
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记保函到期或索赔
+    AGG-51/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-51
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提交过账候选
+    AGG-01/登记往来单位:
+      command: 登记往来单位
+      aggregate: AGG-01
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记往来单位
+    AGG-01/变更银行账户:
+      command: 变更银行账户
+      aggregate: AGG-01
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#变更银行账户
+    AGG-01/核实往来单位档案:
+      command: 核实往来单位档案
+      aggregate: AGG-01
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#核实往来单位档案
+    AGG-01/合并往来单位:
+      command: 合并往来单位
+      aggregate: AGG-01
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#合并往来单位
+    AGG-01/停用往来单位:
+      command: 停用往来单位
+      aggregate: AGG-01
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#停用往来单位
+    AGG-01/申请往来单位角色:
+      command: 申请往来单位角色
+      aggregate: AGG-01
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#申请往来单位角色
+    AGG-01/核准往来单位角色合格:
+      command: 核准往来单位角色合格
+      aggregate: AGG-01
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#核准往来单位角色合格
+    AGG-01/暂停往来单位角色:
+      command: 暂停往来单位角色
+      aggregate: AGG-01
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#暂停往来单位角色
+    AGG-01/停用往来单位角色:
+      command: 停用往来单位角色
+      aggregate: AGG-01
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#停用往来单位角色
+    AGG-02/登记资质证书:
+      command: 登记资质证书
+      aggregate: AGG-02
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记资质证书
+    AGG-02/发起资质核查:
+      command: 发起资质核查
+      aggregate: AGG-02
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#发起资质核查
+    AGG-02/登记核查结果:
+      command: 登记核查结果
+      aggregate: AGG-02
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记核查结果
+    AGG-02/延续资质:
+      command: 延续资质
+      aggregate: AGG-02
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#延续资质
+    AGG-02/标记资质已到期:
+      command: 标记资质已到期
+      aggregate: AGG-02
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#标记资质已到期
+    AGG-33/登记建设工程:
+      command: 登记建设工程
+      aggregate: AGG-33
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记建设工程
+    AGG-33/更新外部状态:
+      command: 更新外部状态
+      aggregate: AGG-33
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#更新外部状态
+    AGG-33/登记我方参与记录:
+      command: 登记我方参与记录
+      aggregate: AGG-33
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记我方参与记录
+    REF-01/登记招标项目:
+      command: 登记招标项目
+      aggregate: REF-01
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记招标项目
+    AGG-03/发布服务产品版本:
+      command: 发布服务产品版本
+      aggregate: AGG-03
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#发布服务产品版本
+    AGG-03/停用服务产品版本:
+      command: 停用服务产品版本
+      aggregate: AGG-03
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#停用服务产品版本
+    AGG-04/发布阶段类型版本:
+      command: 发布阶段类型版本
+      aggregate: AGG-04
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#发布阶段类型版本
+    AGG-04/停用阶段类型版本:
+      command: 停用阶段类型版本
+      aggregate: AGG-04
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#停用阶段类型版本
+    AGG-05/编制费率版本:
+      command: 编制费率版本
+      aggregate: AGG-05
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#编制费率版本
+    AGG-05/批准费率版本:
+      command: 批准费率版本
+      aggregate: AGG-05
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#批准费率版本
+    AGG-05/生效费率版本:
+      command: 生效费率版本
+      aggregate: AGG-05
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#生效费率版本
+    AGG-06/编制计费系数版本:
+      command: 编制计费系数版本
+      aggregate: AGG-06
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#编制计费系数版本
+    AGG-06/生效计费系数版本:
+      command: 生效计费系数版本
+      aggregate: AGG-06
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#生效计费系数版本
+    AGG-07/编制协议价目版本:
+      command: 编制协议价目版本
+      aggregate: AGG-07
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#编制协议价目版本
+    AGG-07/生效协议价目版本:
+      command: 生效协议价目版本
+      aggregate: AGG-07
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#生效协议价目版本
+    AGG-08/计划市场活动:
+      command: 计划市场活动
+      aggregate: AGG-08
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#计划市场活动
+    AGG-08/开展市场活动:
+      command: 开展市场活动
+      aggregate: AGG-08
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#开展市场活动
+    AGG-08/结束市场活动:
+      command: 结束市场活动
+      aggregate: AGG-08
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#结束市场活动
+    AGG-09/登记线索:
+      command: 登记线索
+      aggregate: AGG-09
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记线索
+    AGG-09/认领线索:
+      command: 认领线索
+      aggregate: AGG-09
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#认领线索
+    AGG-09/挂起线索:
+      command: 挂起线索
+      aggregate: AGG-09
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#挂起线索
+    AGG-09/恢复线索:
+      command: 恢复线索
+      aggregate: AGG-09
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#恢复线索
+    AGG-09/确认线索:
+      command: 确认线索
+      aggregate: AGG-09
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#确认线索
+    AGG-09/关闭线索:
+      command: 关闭线索
+      aggregate: AGG-09
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#关闭线索
+    AGG-10/新建商机:
+      command: 新建商机
+      aggregate: AGG-10
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#新建商机
+    AGG-10/变更商机负责人:
+      command: 变更商机负责人
+      aggregate: AGG-10
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#变更商机负责人
+    AGG-10/维护商机参与团队:
+      command: 维护商机参与团队
+      aggregate: AGG-10
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#维护商机参与团队
+    AGG-10/登记商机赢单:
+      command: 登记商机赢单
+      aggregate: AGG-10
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记商机赢单
+    AGG-10/登记商机丢单:
+      command: 登记商机丢单
+      aggregate: AGG-10
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记商机丢单
+    AGG-10/放弃商机:
+      command: 放弃商机
+      aggregate: AGG-10
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#放弃商机
+    AGG-10/登记参投判断:
+      command: 登记参投判断
+      aggregate: AGG-10
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记参投判断
+    AGG-10/作出参投决策:
+      command: 作出参投决策
+      aggregate: AGG-10
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#作出参投决策
+    AGG-11/登记资格预审结果:
+      command: 登记资格预审结果
+      aggregate: AGG-11
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记资格预审结果
+    AGG-11/递交投标:
+      command: 递交投标
+      aggregate: AGG-11
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#递交投标
+    AGG-11/登记中标:
+      command: 登记中标
+      aggregate: AGG-11
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记中标
+    AGG-11/登记未中标:
+      command: 登记未中标
+      aggregate: AGG-11
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记未中标
+    AGG-11/登记废标:
+      command: 登记废标
+      aggregate: AGG-11
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记废标
+    AGG-11/撤回或撤销投标:
+      command: 撤回或撤销投标
+      aggregate: AGG-11
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#撤回或撤销投标
+    AGG-11/放弃投标:
+      command: 放弃投标
+      aggregate: AGG-11
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#放弃投标
+    AGG-12/编制报价版本:
+      command: 编制报价版本
+      aggregate: AGG-12
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#编制报价版本
+    AGG-12/提交报价评审:
+      command: 提交报价评审
+      aggregate: AGG-12
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提交报价评审
+    AGG-12/通过报价评审:
+      command: 通过报价评审
+      aggregate: AGG-12
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#通过报价评审
+    AGG-12/驳回报价评审:
+      command: 驳回报价评审
+      aggregate: AGG-12
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#驳回报价评审
+    AGG-12/生效报价版本:
+      command: 生效报价版本
+      aggregate: AGG-12
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#生效报价版本
+    AGG-12/登记报价发出:
+      command: 登记报价发出
+      aggregate: AGG-12
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记报价发出
+    AGG-12/作废报价版本:
+      command: 作废报价版本
+      aggregate: AGG-12
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#作废报价版本
+    AGG-18/登记独立性检查结论:
+      command: 登记独立性检查结论
+      aggregate: AGG-18
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记独立性检查结论
+    AGG-102/计划客户活动:
+      command: 计划客户活动
+      aggregate: AGG-102
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#计划客户活动
+    AGG-102/变更客户活动:
+      command: 变更客户活动
+      aggregate: AGG-102
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#变更客户活动
+    AGG-102/完成客户活动:
+      command: 完成客户活动
+      aggregate: AGG-102
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#完成客户活动
+    AGG-102/取消客户活动:
+      command: 取消客户活动
+      aggregate: AGG-102
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#取消客户活动
+    AGG-19/建立项目:
+      command: 建立项目
+      aggregate: AGG-19
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#建立项目
+    AGG-19/开始执行项目:
+      command: 开始执行项目
+      aggregate: AGG-19
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#开始执行项目
+    AGG-19/暂停项目:
+      command: 暂停项目
+      aggregate: AGG-19
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#暂停项目
+    AGG-19/恢复项目:
+      command: 恢复项目
+      aggregate: AGG-19
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#恢复项目
+    AGG-19/终止项目:
+      command: 终止项目
+      aggregate: AGG-19
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#终止项目
+    AGG-19/取消项目:
+      command: 取消项目
+      aggregate: AGG-19
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#取消项目
+    AGG-19/结项:
+      command: 结项
+      aggregate: AGG-19
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#结项
+    AGG-19/归档项目:
+      command: 归档项目
+      aggregate: AGG-19
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#归档项目
+    AGG-20/建立项目 WBS:
+      command: 建立项目 WBS
+      aggregate: AGG-20
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#建立项目 WBS
+    AGG-20/开始阶段:
+      command: 开始阶段
+      aggregate: AGG-20
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#开始阶段
+    AGG-20/完成阶段:
+      command: 完成阶段
+      aggregate: AGG-20
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#完成阶段
+    AGG-20/锁定工作包:
+      command: 锁定工作包
+      aggregate: AGG-20
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#锁定工作包
+    AGG-20/作废工作包:
+      command: 作废工作包
+      aggregate: AGG-20
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#作废工作包
+    AGG-21/编制交付计划版本:
+      command: 编制交付计划版本
+      aggregate: AGG-21
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#编制交付计划版本
+    AGG-21/批准交付计划:
+      command: 批准交付计划
+      aggregate: AGG-21
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#批准交付计划
+    AGG-22/编制项目预算版本:
+      command: 编制项目预算版本
+      aggregate: AGG-22
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#编制项目预算版本
+    AGG-22/锁定项目预算:
+      command: 锁定项目预算
+      aggregate: AGG-22
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#锁定项目预算
+    AGG-23/提出完工估算:
+      command: 提出完工估算
+      aggregate: AGG-23
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提出完工估算
+    AGG-23/批准完工估算:
+      command: 批准完工估算
+      aggregate: AGG-23
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#批准完工估算
+    AGG-23/填报产值估计:
+      command: 填报产值估计
+      aggregate: AGG-23
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#填报产值估计
+    AGG-24/维护项目团队成员:
+      command: 维护项目团队成员
+      aggregate: AGG-24
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#维护项目团队成员
+    AGG-25/提出资源需求:
+      command: 提出资源需求
+      aggregate: AGG-25
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提出资源需求
+    AGG-26/确认资源分配:
+      command: 确认资源分配
+      aggregate: AGG-26
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#确认资源分配
+    AGG-27/编制交付物:
+      command: 编制交付物
+      aggregate: AGG-27
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#编制交付物
+    AGG-27/登记内部评审结论:
+      command: 登记内部评审结论
+      aggregate: AGG-27
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记内部评审结论
+    AGG-27/签发交付物:
+      command: 签发交付物
+      aggregate: AGG-27
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#签发交付物
+    AGG-27/登记提交轮次送达:
+      command: 登记提交轮次送达
+      aggregate: AGG-27
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记提交轮次送达
+    AGG-27/登记客户认可:
+      command: 登记客户认可
+      aggregate: AGG-27
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记客户认可
+    AGG-27/登记客户退回:
+      command: 登记客户退回
+      aggregate: AGG-27
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记客户退回
+    AGG-27/登记项目经理的无异议声明:
+      command: 登记项目经理的无异议声明
+      aggregate: AGG-27
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记项目经理的无异议声明
+    AGG-27/封存交付物:
+      command: 封存交付物
+      aggregate: AGG-27
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#封存交付物
+    AGG-29/认定返工:
+      command: 认定返工
+      aggregate: AGG-29
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#认定返工
+    AGG-29/撤销返工认定:
+      command: 撤销返工认定
+      aggregate: AGG-29
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#撤销返工认定
+    AGG-30/提出设计变更:
+      command: 提出设计变更
+      aggregate: AGG-30
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提出设计变更
+    AGG-30/认定变更归因与影响:
+      command: 认定变更归因与影响
+      aggregate: AGG-30
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#认定变更归因与影响
+    AGG-30/内审设计变更:
+      command: 内审设计变更
+      aggregate: AGG-30
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#内审设计变更
+    AGG-30/发出设计变更:
+      command: 发出设计变更
+      aggregate: AGG-30
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#发出设计变更
+    AGG-30/标记待主张:
+      command: 标记待主张
+      aggregate: AGG-30
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#标记待主张
+    AGG-30/关闭设计变更:
+      command: 关闭设计变更
+      aggregate: AGG-30
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#关闭设计变更
+    AGG-31/通知延期:
+      command: 通知延期
+      aggregate: AGG-31
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#通知延期
+    AGG-31/提交延期详细说明:
+      command: 提交延期详细说明
+      aggregate: AGG-31
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提交延期详细说明
+    AGG-31/登记延期批准:
+      command: 登记延期批准
+      aggregate: AGG-31
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记延期批准
+    AGG-31/登记延期拒绝:
+      command: 登记延期拒绝
+      aggregate: AGG-31
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记延期拒绝
+    AGG-31/登记延期视为批准:
+      command: 登记延期视为批准
+      aggregate: AGG-31
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记延期视为批准
+    AGG-32/登记资料需求:
+      command: 登记资料需求
+      aggregate: AGG-32
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记资料需求
+    AGG-32/登记资料已提供:
+      command: 登记资料已提供
+      aggregate: AGG-32
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记资料已提供
+    AGG-32/确认发包人资料:
+      command: 确认发包人资料
+      aggregate: AGG-32
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#确认发包人资料
+    AGG-32/退回发包人资料:
+      command: 退回发包人资料
+      aggregate: AGG-32
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#退回发包人资料
+    AGG-103/编制项目复盘:
+      command: 编制项目复盘
+      aggregate: AGG-103
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#编制项目复盘
+    AGG-103/评审项目复盘:
+      command: 评审项目复盘
+      aggregate: AGG-103
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#评审项目复盘
+    AGG-103/发布项目复盘:
+      command: 发布项目复盘
+      aggregate: AGG-103
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#发布项目复盘
+    AGG-104/登记风险与问题:
+      command: 登记风险与问题
+      aggregate: AGG-104
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记风险与问题
+    AGG-104/记录应对措施:
+      command: 记录应对措施
+      aggregate: AGG-104
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#记录应对措施
+    AGG-104/关闭风险与问题:
+      command: 关闭风险与问题
+      aggregate: AGG-104
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#关闭风险与问题
+    AGG-104/接受风险与问题:
+      command: 接受风险与问题
+      aggregate: AGG-104
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#接受风险与问题
+    AGG-105/发出满意度调查:
+      command: 发出满意度调查
+      aggregate: AGG-105
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#发出满意度调查
+    AGG-105/登记调查回收:
+      command: 登记调查回收
+      aggregate: AGG-105
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记调查回收
+    AGG-105/评分满意度调查:
+      command: 评分满意度调查
+      aggregate: AGG-105
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#评分满意度调查
+    AGG-105/登记满意度跟进:
+      command: 登记满意度跟进
+      aggregate: AGG-105
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#登记满意度跟进
+    AGG-39/起草工时单:
+      command: 起草工时单
+      aggregate: AGG-39
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#起草工时单
+    AGG-39/提交工时单:
+      command: 提交工时单
+      aggregate: AGG-39
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提交工时单
+    AGG-39/通过工时单:
+      command: 通过工时单
+      aggregate: AGG-39
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#通过工时单
+    AGG-39/退回工时单:
+      command: 退回工时单
+      aggregate: AGG-39
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#退回工时单
+    AGG-39/驳回工时单:
+      command: 驳回工时单
+      aggregate: AGG-39
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#驳回工时单
+    AGG-39/撤回工时单:
+      command: 撤回工时单
+      aggregate: AGG-39
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#撤回工时单
+    AGG-39/认定工时有效性:
+      command: 认定工时有效性
+      aggregate: AGG-39
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#认定工时有效性
+    AGG-39/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-39
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#提交过账候选
+    AGG-18/创建独立性检查:
+      command: 创建独立性检查
+      aggregate: AGG-18
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#创建独立性检查
+    AGG-25/标记资源需求已满足:
+      command: 标记资源需求已满足
+      aggregate: AGG-25
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#标记资源需求已满足
+    AGG-25/关闭资源需求:
+      command: 关闭资源需求
+      aggregate: AGG-25
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#关闭资源需求
+    AGG-30/撤销设计变更:
+      command: 撤销设计变更
+      aggregate: AGG-30
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#撤销设计变更
+    AGG-31/撤回延期通知:
+      command: 撤回延期通知
+      aggregate: AGG-31
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#撤回延期通知
+    AGG-13/开始履行协议:
+      command: 开始履行协议
+      aggregate: AGG-13
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/revenue/commands.yaml#开始履行协议
     cost.timesheet/SubmitTimesheet:
       command: SubmitTimesheet
       aggregate: cost.timesheet/Timesheet
@@ -10814,6 +12380,1086 @@ nodes:
     aggregate: AGG-79
     command: 〔缺〕完成经营动作
     src: architecture/proposals/closeout/people/processes.people.yaml#PRC-181.steps[5]
+  - prc: PRC-03
+    step: 2
+    aggregate: AGG-09
+    command: 登记线索
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-03.steps[2]
+  - prc: PRC-03
+    step: 3
+    aggregate: AGG-09
+    command: 认领线索
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-03.steps[3]
+  - prc: PRC-03
+    step: 4
+    aggregate: AGG-09
+    command: 挂起线索
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-03.steps[4]
+  - prc: PRC-03
+    step: 5
+    aggregate: AGG-09
+    command: 恢复线索
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-03.steps[5]
+  - prc: PRC-03
+    step: 7
+    aggregate: AGG-10
+    command: 新建商机
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-03.steps[7]
+  - prc: PRC-03
+    step: 8
+    aggregate: AGG-09
+    command: 确认线索
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-03.steps[8]
+  - prc: PRC-03
+    step: 9
+    aggregate: AGG-09
+    command: 关闭线索
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-03.steps[9]
+  - prc: PRC-03
+    step: 11
+    aggregate: AGG-10
+    command: 变更商机负责人
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-03.steps[11]
+  - prc: PRC-03
+    step: 12
+    aggregate: AGG-10
+    command: 维护商机参与团队
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-03.steps[12]
+  - prc: PRC-07
+    step: 2
+    aggregate: AGG-12
+    command: 编制报价版本
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-07.steps[2]
+  - prc: PRC-07
+    step: 3
+    aggregate: AGG-12
+    command: 提交报价评审
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-07.steps[3]
+  - prc: PRC-07
+    step: 5
+    aggregate: AGG-12
+    command: 通过报价评审
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-07.steps[5]
+  - prc: PRC-07
+    step: 6
+    aggregate: AGG-12
+    command: 驳回报价评审
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-07.steps[6]
+  - prc: PRC-07
+    step: 7
+    aggregate: AGG-12
+    command: 生效报价版本
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-07.steps[7]
+  - prc: PRC-07
+    step: 9
+    aggregate: AGG-12
+    command: 登记报价发出
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-07.steps[9]
+  - prc: PRC-07
+    step: 10
+    aggregate: AGG-12
+    command: 作废报价版本
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-07.steps[10]
+  - prc: PRC-08
+    step: 3
+    aggregate: AGG-11
+    command: 登记资格预审结果
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-08.steps[3]
+  - prc: PRC-08
+    step: 4
+    aggregate: AGG-53
+    command: 发起付款
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-08.steps[4]
+  - prc: PRC-08
+    step: 5
+    aggregate: AGG-51
+    command: 登记保证金缴纳
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-08.steps[5]
+  - prc: PRC-08
+    step: 8
+    aggregate: AGG-11
+    command: 递交投标
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-08.steps[8]
+  - prc: PRC-08
+    step: 9
+    aggregate: AGG-11
+    command: 登记中标
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-08.steps[9]
+  - prc: PRC-08
+    step: 10
+    aggregate: AGG-11
+    command: 登记未中标
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-08.steps[10]
+  - prc: PRC-08
+    step: 11
+    aggregate: AGG-11
+    command: 登记废标
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-08.steps[11]
+  - prc: PRC-08
+    step: 12
+    aggregate: AGG-11
+    command: 撤回或撤销投标
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-08.steps[12]
+  - prc: PRC-08
+    step: 13
+    aggregate: AGG-11
+    command: 放弃投标
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-08.steps[13]
+  - prc: PRC-08
+    step: 14
+    aggregate: AGG-10
+    command: 登记商机赢单
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-08.steps[14]
+  - prc: PRC-08
+    step: 15
+    aggregate: AGG-10
+    command: 登记商机丢单
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-08.steps[15]
+  - prc: PRC-08
+    step: 16
+    aggregate: AGG-10
+    command: 登记商机赢单
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-08.steps[16]
+  - prc: PRC-08
+    step: 17
+    aggregate: AGG-10
+    command: 放弃商机
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-08.steps[17]
+  - prc: PRC-08
+    step: 18
+    aggregate: AGG-10
+    command: 登记商机丢单
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-08.steps[18]
+  - prc: PRC-183
+    step: 2
+    aggregate: AGG-10
+    command: 登记参投判断
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-183.steps[2]
+  - prc: PRC-183
+    step: 3
+    aggregate: AGG-10
+    command: 作出参投决策
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-183.steps[3]
+  - prc: PRC-183
+    step: 4
+    aggregate: AGG-10
+    command: 作出参投决策
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-183.steps[4]
+  - prc: PRC-183
+    step: 5
+    aggregate: AGG-10
+    command: 放弃商机
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-183.steps[5]
+  - prc: PRC-13
+    step: 4
+    aggregate: AGG-05
+    command: 批准费率版本
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-13.steps[4]
+  - prc: PRC-13
+    step: 5
+    aggregate: AGG-05
+    command: 生效费率版本
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-13.steps[5]
+  - prc: PRC-13
+    step: 6
+    aggregate: AGG-06
+    command: 生效计费系数版本
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-13.steps[6]
+  - prc: PRC-13
+    step: 7
+    aggregate: AGG-07
+    command: 生效协议价目版本
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-13.steps[7]
+  - prc: PRC-16
+    step: 2
+    aggregate: AGG-17
+    command: 申请风险交付授权
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-16.steps[2]
+  - prc: PRC-16
+    step: 4
+    aggregate: AGG-17
+    command: null
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-16.steps[4]
+  - prc: PRC-16
+    step: 5
+    aggregate: AGG-17
+    command: 批准风险交付授权
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-16.steps[5]
+  - prc: PRC-16
+    step: 6
+    aggregate: AGG-17
+    command: 转正风险交付授权
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-16.steps[6]
+  - prc: PRC-16
+    step: 7
+    aggregate: AGG-17
+    command: 叫停风险交付授权
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-16.steps[7]
+  - prc: PRC-17
+    step: 2
+    aggregate: AGG-19
+    command: 建立项目
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-17.steps[2]
+  - prc: PRC-17
+    step: 3
+    aggregate: AGG-33
+    command: 登记我方参与记录
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-17.steps[3]
+  - prc: PRC-17
+    step: 4
+    aggregate: AGG-20
+    command: 建立项目 WBS
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-17.steps[4]
+  - prc: PRC-17
+    step: 5
+    aggregate: AGG-24
+    command: 维护项目团队成员
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-17.steps[5]
+  - prc: PRC-17
+    step: 6
+    aggregate: AGG-19
+    command: 开始执行项目
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-17.steps[6]
+  - prc: PRC-18
+    step: 1
+    aggregate: AGG-21
+    command: 编制交付计划版本
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-18.steps[1]
+  - prc: PRC-18
+    step: 2
+    aggregate: AGG-21
+    command: 批准交付计划
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-18.steps[2]
+  - prc: PRC-18
+    step: 3
+    aggregate: AGG-21
+    command: 批准交付计划
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-18.steps[3]
+  - prc: PRC-19
+    step: 2
+    aggregate: AGG-22
+    command: 编制项目预算版本
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-19.steps[2]
+  - prc: PRC-19
+    step: 4
+    aggregate: AGG-22
+    command: 锁定项目预算
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-19.steps[4]
+  - prc: PRC-20
+    step: 1
+    aggregate: AGG-25
+    command: 提出资源需求
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-20.steps[1]
+  - prc: PRC-20
+    step: 3
+    aggregate: AGG-26
+    command: 确认资源分配
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-20.steps[3]
+  - prc: PRC-20
+    step: 4
+    aggregate: AGG-25
+    command: 标记资源需求已满足
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-20.steps[4]
+  - prc: PRC-20
+    step: 5
+    aggregate: AGG-25
+    command: 关闭资源需求
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-20.steps[5]
+  - prc: PRC-23
+    step: 2
+    aggregate: AGG-39
+    command: 提交工时单
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-23.steps[2]
+  - prc: PRC-23
+    step: 4
+    aggregate: AGG-39
+    command: 通过工时单
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-23.steps[4]
+  - prc: PRC-23
+    step: 5
+    aggregate: AGG-39
+    command: 退回工时单
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-23.steps[5]
+  - prc: PRC-23
+    step: 6
+    aggregate: AGG-39
+    command: 驳回工时单
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-23.steps[6]
+  - prc: PRC-23
+    step: 7
+    aggregate: AGG-39
+    command: 撤回工时单
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-23.steps[7]
+  - prc: PRC-23
+    step: 8
+    aggregate: AGG-39
+    command: 提交过账候选
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-23.steps[8]
+  - prc: PRC-24
+    step: 1
+    aggregate: AGG-19
+    command: 暂停项目
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-24.steps[1]
+  - prc: PRC-24
+    step: 2
+    aggregate: AGG-19
+    command: 恢复项目
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-24.steps[2]
+  - prc: PRC-24
+    step: 3
+    aggregate: AGG-19
+    command: 终止项目
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-24.steps[3]
+  - prc: PRC-24
+    step: 4
+    aggregate: AGG-19
+    command: 取消项目
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-24.steps[4]
+  - prc: PRC-26
+    step: 1
+    aggregate: AGG-32
+    command: 登记资料需求
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-26.steps[1]
+  - prc: PRC-26
+    step: 2
+    aggregate: AGG-32
+    command: 登记资料已提供
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-26.steps[2]
+  - prc: PRC-26
+    step: 3
+    aggregate: AGG-32
+    command: 确认发包人资料
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-26.steps[3]
+  - prc: PRC-26
+    step: 4
+    aggregate: AGG-32
+    command: 退回发包人资料
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-26.steps[4]
+  - prc: PRC-28
+    step: 2
+    aggregate: AGG-27
+    command: 编制交付物
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-28.steps[2]
+  - prc: PRC-28
+    step: 3
+    aggregate: AGG-27
+    command: 登记内部评审结论
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-28.steps[3]
+  - prc: PRC-28
+    step: 4
+    aggregate: AGG-27
+    command: 签发交付物
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-28.steps[4]
+  - prc: PRC-28
+    step: 5
+    aggregate: AGG-27
+    command: 登记提交轮次送达
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-28.steps[5]
+  - prc: PRC-28
+    step: 6
+    aggregate: AGG-27
+    command: 登记客户认可
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-28.steps[6]
+  - prc: PRC-28
+    step: 7
+    aggregate: AGG-27
+    command: 登记客户退回
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-28.steps[7]
+  - prc: PRC-28
+    step: 8
+    aggregate: AGG-27
+    command: 登记项目经理的无异议声明
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-28.steps[8]
+  - prc: PRC-30
+    step: 1
+    aggregate: AGG-23
+    command: 提出完工估算
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-30.steps[1]
+  - prc: PRC-30
+    step: 2
+    aggregate: AGG-23
+    command: 批准完工估算
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-30.steps[2]
+  - prc: PRC-31
+    step: 1
+    aggregate: AGG-30
+    command: 提出设计变更
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-31.steps[1]
+  - prc: PRC-31
+    step: 2
+    aggregate: AGG-30
+    command: 认定变更归因与影响
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-31.steps[2]
+  - prc: PRC-31
+    step: 3
+    aggregate: AGG-30
+    command: 内审设计变更
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-31.steps[3]
+  - prc: PRC-31
+    step: 4
+    aggregate: AGG-30
+    command: 发出设计变更
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-31.steps[4]
+  - prc: PRC-31
+    step: 5
+    aggregate: AGG-30
+    command: 标记待主张
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-31.steps[5]
+  - prc: PRC-31
+    step: 6
+    aggregate: AGG-30
+    command: 关闭设计变更
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-31.steps[6]
+  - prc: PRC-31
+    step: 7
+    aggregate: AGG-30
+    command: 撤销设计变更
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-31.steps[7]
+  - prc: PRC-32
+    step: 1
+    aggregate: AGG-31
+    command: 通知延期
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-32.steps[1]
+  - prc: PRC-32
+    step: 2
+    aggregate: AGG-31
+    command: 提交延期详细说明
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-32.steps[2]
+  - prc: PRC-32
+    step: 3
+    aggregate: AGG-31
+    command: 登记延期批准
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-32.steps[3]
+  - prc: PRC-32
+    step: 4
+    aggregate: AGG-31
+    command: 登记延期拒绝
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-32.steps[4]
+  - prc: PRC-32
+    step: 5
+    aggregate: AGG-31
+    command: 登记延期视为批准
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-32.steps[5]
+  - prc: PRC-32
+    step: 6
+    aggregate: AGG-31
+    command: 撤回延期通知
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-32.steps[6]
+  - prc: PRC-34
+    step: 1
+    aggregate: AGG-28
+    command: 登记不符合项
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-34.steps[1]
+  - prc: PRC-34
+    step: 2
+    aggregate: AGG-28
+    command: 确认不符合项
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-34.steps[2]
+  - prc: PRC-34
+    step: 3
+    aggregate: AGG-29
+    command: 认定返工
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-34.steps[3]
+  - prc: PRC-34
+    step: 4
+    aggregate: AGG-29
+    command: 撤销返工认定
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-34.steps[4]
+  - prc: PRC-34
+    step: 5
+    aggregate: AGG-28
+    command: 让步接受不符合项
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-34.steps[5]
+  - prc: PRC-34
+    step: 6
+    aggregate: AGG-28
+    command: 关闭不符合项
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-34.steps[6]
+  - prc: PRC-36
+    step: 1
+    aggregate: AGG-27
+    command: 封存交付物
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-36.steps[1]
+  - prc: PRC-36
+    step: 2
+    aggregate: AGG-38
+    command: 封存证据
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-36.steps[2]
+  - prc: PRC-36
+    step: 6
+    aggregate: AGG-19
+    command: 结项
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-36.steps[6]
+  - prc: PRC-36
+    step: 7
+    aggregate: AGG-19
+    command: 归档项目
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-36.steps[7]
+  - prc: PRC-37
+    step: 1
+    aggregate: AGG-105
+    command: 发出满意度调查
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-37.steps[1]
+  - prc: PRC-37
+    step: 2
+    aggregate: AGG-105
+    command: 登记调查回收
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-37.steps[2]
+  - prc: PRC-37
+    step: 3
+    aggregate: AGG-105
+    command: 评分满意度调查
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-37.steps[3]
+  - prc: PRC-37
+    step: 4
+    aggregate: AGG-104
+    command: 登记风险与问题
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-37.steps[4]
+  - prc: PRC-37
+    step: 5
+    aggregate: AGG-105
+    command: 登记满意度跟进
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-37.steps[5]
+  - prc: PRC-38
+    step: 1
+    aggregate: AGG-103
+    command: 编制项目复盘
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-38.steps[1]
+  - prc: PRC-38
+    step: 2
+    aggregate: AGG-103
+    command: 评审项目复盘
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-38.steps[2]
+  - prc: PRC-38
+    step: 3
+    aggregate: AGG-103
+    command: 发布项目复盘
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-38.steps[3]
+  - prc: PRC-41
+    step: 2
+    aggregate: AGG-34
+    command: 登记检查计划
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-41.steps[2]
+  - prc: PRC-41
+    step: 3
+    aggregate: AGG-34
+    command: 生效检查计划
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-41.steps[3]
+  - prc: PRC-41
+    step: 5
+    aggregate: AGG-34
+    command: 标记检查计划不再受托
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-41.steps[5]
+  - prc: PRC-43
+    step: 2
+    aggregate: AGG-35
+    command: 安排检查
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-43.steps[2]
+  - prc: PRC-43
+    step: 3
+    aggregate: AGG-35
+    command: 指派检查人员
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-43.steps[3]
+  - prc: PRC-43
+    step: 4
+    aggregate: AGG-38
+    command: 采集证据
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-43.steps[4]
+  - prc: PRC-43
+    step: 5
+    aggregate: AGG-110
+    command: 关联证据
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-43.steps[5]
+  - prc: PRC-43
+    step: 6
+    aggregate: AGG-35
+    command: 提交检查记录
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-43.steps[6]
+  - prc: PRC-43
+    step: 7
+    aggregate: AGG-35
+    command: 审核检查记录
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-43.steps[7]
+  - prc: PRC-43
+    step: 8
+    aggregate: AGG-35
+    command: 锁定检查
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-43.steps[8]
+  - prc: PRC-43
+    step: 9
+    aggregate: AGG-38
+    command: 封存证据
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-43.steps[9]
+  - prc: PRC-43
+    step: 10
+    aggregate: AGG-35
+    command: 关联检查报告
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-43.steps[10]
+  - prc: PRC-44
+    step: 1
+    aggregate: AGG-28
+    command: 登记不符合项
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-44.steps[1]
+  - prc: PRC-44
+    step: 2
+    aggregate: AGG-110
+    command: 关联证据
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-44.steps[2]
+  - prc: PRC-44
+    step: 3
+    aggregate: AGG-28
+    command: 复核不符合项
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-44.steps[3]
+  - prc: PRC-44
+    step: 4
+    aggregate: AGG-28
+    command: 发布不符合项
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-44.steps[4]
+  - prc: PRC-44
+    step: 6
+    aggregate: AGG-37
+    command: 建议外部检测
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-44.steps[6]
+  - prc: PRC-44
+    step: 7
+    aggregate: AGG-28
+    command: 关闭不符合项
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-44.steps[7]
+  - prc: PRC-45
+    step: 1
+    aggregate: AGG-28
+    command: 开始整改
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-45.steps[1]
+  - prc: PRC-45
+    step: 2
+    aggregate: AGG-28
+    command: 登记整改申报
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-45.steps[2]
+  - prc: PRC-45
+    step: 3
+    aggregate: AGG-38
+    command: 采集证据
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-45.steps[3]
+  - prc: PRC-45
+    step: 4
+    aggregate: AGG-110
+    command: 关联证据
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-45.steps[4]
+  - prc: PRC-45
+    step: 5
+    aggregate: AGG-35
+    command: 复查检查
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-45.steps[5]
+  - prc: PRC-45
+    step: 6
+    aggregate: AGG-28
+    command: 闭合不符合项
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-45.steps[6]
+  - prc: PRC-45
+    step: 7
+    aggregate: AGG-28
+    command: 退回整改
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-45.steps[7]
+  - prc: PRC-45
+    step: 8
+    aggregate: AGG-28
+    command: 登记客户接受风险
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-45.steps[8]
+  - prc: PRC-45
+    step: 9
+    aggregate: AGG-28
+    command: 停止跟踪不符合项
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-45.steps[9]
+  - prc: PRC-46
+    step: 1
+    aggregate: AGG-37
+    command: 登记业主委托外部检测
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-46.steps[1]
+  - prc: PRC-46
+    step: 2
+    aggregate: AGG-38
+    command: 采集证据
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-46.steps[2]
+  - prc: PRC-46
+    step: 3
+    aggregate: AGG-37
+    command: 登记外部检测报告
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-46.steps[3]
+  - prc: PRC-46
+    step: 4
+    aggregate: AGG-37
+    command: 采信外部检测报告
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-46.steps[4]
+  - prc: PRC-46
+    step: 5
+    aggregate: AGG-37
+    command: 不采信外部检测报告
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-46.steps[5]
+  - prc: PRC-47
+    step: 2
+    aggregate: AGG-13
+    command: 起草协议
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-47.steps[2]
+  - prc: PRC-47
+    step: 3
+    aggregate: AGG-13
+    command: 登记合同—项目关联与范围挂 WBS
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-47.steps[3]
+  - prc: PRC-47
+    step: 4
+    aggregate: AGG-13
+    command: 登记视为同意参数与发包人代表
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-47.steps[4]
+  - prc: PRC-47
+    step: 6
+    aggregate: AGG-13
+    command: 回签
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-47.steps[6]
+  - prc: PRC-48
+    step: 2
+    aggregate: AGG-15
+    command: 提出协议变更
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-48.steps[2]
+  - prc: PRC-48
+    step: 3
+    aggregate: AGG-15
+    command: 评估变更影响
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-48.steps[3]
+  - prc: PRC-48
+    step: 5
+    aggregate: AGG-15
+    command: 登记发包人书面同意
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-48.steps[5]
+  - prc: PRC-48
+    step: 6
+    aggregate: AGG-15
+    command: 生效协议变更
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-48.steps[6]
+  - prc: PRC-48
+    step: 7
+    aggregate: AGG-15
+    command: 确认现场签证
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-48.steps[7]
+  - prc: PRC-48
+    step: 8
+    aggregate: AGG-13
+    command: 应用变更
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-48.steps[8]
+  - prc: PRC-49
+    step: 2
+    aggregate: AGG-16
+    command: 提出索赔
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-49.steps[2]
+  - prc: PRC-49
+    step: 3
+    aggregate: AGG-16
+    command: 认定索赔
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-49.steps[3]
+  - prc: PRC-49
+    step: 4
+    aggregate: AGG-16
+    command: 拒绝或撤回索赔
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-49.steps[4]
+  - prc: PRC-50
+    step: 1
+    aggregate: AGG-14
+    command: 占用框架限额
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-50.steps[1]
+  - prc: PRC-50
+    step: 2
+    aggregate: AGG-13
+    command: 提交任务订单
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-50.steps[2]
+  - prc: PRC-50
+    step: 3
+    aggregate: AGG-14
+    command: 释放框架限额
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-50.steps[3]
+  - prc: PRC-54
+    step: 7
+    aggregate: AGG-44
+    command: 认定视为同意成立
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-54.steps[7]
+  - prc: PRC-54
+    step: 8
+    aggregate: AGG-13
+    command: 标记付款条件项可结算
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-54.steps[8]
+  - prc: PRC-57
+    step: 2
+    aggregate: AGG-45
+    command: 提交开票申请
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-57.steps[2]
+  - prc: PRC-57
+    step: 3
+    aggregate: AGG-45
+    command: 准入开票申请
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-57.steps[3]
+  - prc: PRC-57
+    step: 5
+    aggregate: AGG-45
+    command: 驳回开票申请
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-57.steps[5]
+  - prc: PRC-57
+    step: 6
+    aggregate: AGG-46
+    command: 开具销项发票并改写 WIP
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-57.steps[6]
+  - prc: PRC-57
+    step: 7
+    aggregate: AGG-45
+    command: 作废开票申请
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-57.steps[7]
+  - prc: PRC-57
+    step: 8
+    aggregate: AGG-46
+    command: 提交过账候选
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-57.steps[8]
+  - prc: PRC-58
+    step: 2
+    aggregate: AGG-46
+    command: 发起红字信息确认
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-58.steps[2]
+  - prc: PRC-58
+    step: 3
+    aggregate: AGG-46
+    command: 红冲发票
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-58.steps[3]
+  - prc: PRC-58
+    step: 4
+    aggregate: AGG-44
+    command: 回冲开票额度
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-58.steps[4]
+  - prc: PRC-58
+    step: 5
+    aggregate: AGG-46
+    command: 提交过账候选
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-58.steps[5]
+  - prc: PRC-60
+    step: 2
+    aggregate: AGG-50
+    command: 收款认领
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-60.steps[2]
+  - prc: PRC-60
+    step: 4
+    aggregate: AGG-49
+    command: 在应收上核销占用
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-60.steps[4]
+  - prc: PRC-60
+    step: 5
+    aggregate: AGG-50
+    command: 记分配行与流水行
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-60.steps[5]
+  - prc: PRC-60
+    step: 6
+    aggregate: AGG-50
+    command: 提交过账候选
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-60.steps[6]
+  - prc: PRC-60
+    step: 7
+    aggregate: AGG-50
+    command: 处置待认领流水
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-60.steps[7]
+  - prc: PRC-61
+    step: 1
+    aggregate: AGG-49
+    command: 检测应收逾期
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-61.steps[1]
+  - prc: PRC-61
+    step: 2
+    aggregate: AGG-49
+    command: 登记争议与处置分类
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-61.steps[2]
+  - prc: PRC-61
+    step: 4
+    aggregate: AGG-49
+    command: 核销坏账
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-61.steps[4]
+  - prc: PRC-61
+    step: 5
+    aggregate: AGG-49
+    command: 提交过账候选
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-61.steps[5]
+  - prc: PRC-63
+    step: 1
+    aggregate: AGG-50
+    command: 登记商票兑付
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-63.steps[1]
+  - prc: PRC-63
+    step: 2
+    aggregate: AGG-50
+    command: 标记商票已逾期
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-63.steps[2]
+  - prc: PRC-63
+    step: 3
+    aggregate: AGG-49
+    command: 释放占用、恢复应收
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-63.steps[3]
+  - prc: PRC-66
+    step: 2
+    aggregate: AGG-13
+    command: 完成协议
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-66.steps[2]
+  - prc: PRC-66
+    step: 3
+    aggregate: AGG-13
+    command: 编制结算书
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-66.steps[3]
+  - prc: PRC-66
+    step: 4
+    aggregate: AGG-13
+    command: 确认最终价款
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-66.steps[4]
+  - prc: PRC-66
+    step: 6
+    aggregate: AGG-13
+    command: 结算协议
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-66.steps[6]
+  - prc: PRC-69
+    step: 1
+    aggregate: AGG-01
+    command: 申请往来单位角色
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-69.steps[1]
+  - prc: PRC-69
+    step: 2
+    aggregate: AGG-02
+    command: 登记资质证书
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-69.steps[2]
+  - prc: PRC-69
+    step: 3
+    aggregate: AGG-01
+    command: 核准往来单位角色合格
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-69.steps[3]
+  - prc: PRC-69
+    step: 4
+    aggregate: AGG-01
+    command: 暂停往来单位角色
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-69.steps[4]
+  - prc: PRC-69
+    step: 5
+    aggregate: AGG-01
+    command: 停用往来单位角色
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-69.steps[5]
+  - prc: PRC-78
+    step: 2
+    aggregate: AGG-02
+    command: 发起资质核查
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-78.steps[2]
+  - prc: PRC-78
+    step: 3
+    aggregate: AGG-02
+    command: 登记核查结果
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-78.steps[3]
+  - prc: PRC-78
+    step: 5
+    aggregate: AGG-02
+    command: 延续资质
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-78.steps[5]
+  - prc: PRC-78
+    step: 6
+    aggregate: AGG-02
+    command: 标记资质已到期
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-78.steps[6]
+  - prc: PRC-86
+    step: 3
+    aggregate: AGG-49
+    command: 创建应收
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-86.steps[3]
+  - prc: PRC-86
+    step: 5
+    aggregate: AGG-49
+    command: 提交过账候选
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-86.steps[5]
+  - prc: PRC-86
+    step: 6
+    aggregate: AGG-50
+    command: 收款认领
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-86.steps[6]
+  - prc: PRC-86
+    step: 7
+    aggregate: AGG-49
+    command: 在应收上核销占用
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-86.steps[7]
+  - prc: PRC-86
+    step: 8
+    aggregate: AGG-50
+    command: 提交过账候选
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-86.steps[8]
+  - prc: PRC-86
+    step: 9
+    aggregate: AGG-49
+    command: 冲抵员工借款
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-86.steps[9]
+  - prc: PRC-140
+    step: 2
+    aggregate: AGG-13
+    command: 登记协议借出
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-140.steps[2]
+  - prc: PRC-140
+    step: 3
+    aggregate: AGG-13
+    command: 登记协议归还
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-140.steps[3]
+  - prc: PRC-140
+    step: 4
+    aggregate: AGG-13
+    command: 标记协议借阅逾期
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-140.steps[4]
+  - prc: PRC-141
+    step: 2
+    aggregate: AGG-13
+    command: 归档协议
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-141.steps[2]
+  - prc: PRC-149
+    step: 2
+    aggregate: AGG-44
+    command: 冲销收入确认
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-149.steps[2]
+  - prc: PRC-149
+    step: 3
+    aggregate: AGG-44
+    command: 占用冲销额度
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-149.steps[3]
+  - prc: PRC-149
+    step: 5
+    aggregate: AGG-44
+    command: 追加冲销行并占用转实
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-149.steps[5]
+  - prc: PRC-149
+    step: 6
+    aggregate: AGG-44
+    command: 提交过账候选
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-149.steps[6]
+  - prc: PRC-149
+    step: 7
+    aggregate: AGG-44
+    command: 释放收入额度占用
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-149.steps[7]
+  - prc: PRC-151
+    step: 1
+    aggregate: AGG-23
+    command: 填报产值估计
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-151.steps[1]
+  - prc: PRC-152
+    step: 2
+    aggregate: AGG-13
+    command: 登记付款条件达成
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-152.steps[2]
+  - prc: PRC-152
+    step: 3
+    aggregate: AGG-13
+    command: 标记付款条件项可结算
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-152.steps[3]
+  - prc: PRC-153
+    step: 4
+    aggregate: AGG-51
+    command: 退还保证金
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-153.steps[4]
+  - prc: PRC-153
+    step: 5
+    aggregate: AGG-51
+    command: 提交过账候选
+    src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-153.steps[5]
   - prc: PRC-139
     step: 1
     aggregate: AGG-113

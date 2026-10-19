@@ -28,6 +28,16 @@ OBJ-01:
     08:
     - INV-01
     - INV-02
+    '10':
+    - 停用往来单位
+    - 停用往来单位角色
+    - 变更银行账户
+    - 合并往来单位
+    - 暂停往来单位角色
+    - 核准往来单位角色合格
+    - 核实往来单位档案
+    - 申请往来单位角色
+    - 登记往来单位
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:59
@@ -53,6 +63,16 @@ OBJ-02:
     08:
     - INV-01
     - INV-02
+    '10':
+    - 停用往来单位
+    - 停用往来单位角色
+    - 变更银行账户
+    - 合并往来单位
+    - 暂停往来单位角色
+    - 核准往来单位角色合格
+    - 核实往来单位档案
+    - 申请往来单位角色
+    - 登记往来单位
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:60
   initial: 确认建模
   why: 有状态且被指向
@@ -69,6 +89,16 @@ OBJ-03:
     08:
     - INV-01
     - INV-02
+    '10':
+    - 停用往来单位
+    - 停用往来单位角色
+    - 变更银行账户
+    - 合并往来单位
+    - 暂停往来单位角色
+    - 核准往来单位角色合格
+    - 核实往来单位档案
+    - 申请往来单位角色
+    - 登记往来单位
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:61
   initial: 从属对象
   why: OBJD 定论从属对象
@@ -147,17 +177,47 @@ OBJ-05:
     - INV-29
     - INV-33
     '10':
+    - 回签
     - 完成供方协议
+    - 完成协议
+    - 应用变更
+    - 开始履行协议
+    - 归档协议
     - 批准劳动合同
+    - 提交任务订单
     - 提交劳动合同
+    - 提交合同评审
+    - 撤回或撤销投标
+    - 放弃投标
+    - 标记付款条件项可结算
+    - 标记协议借阅逾期
     - 生效供方协议
+    - 生效协议价目版本
+    - 登记中标
+    - 登记付款条件达成
     - 登记劳动合同终止依据
+    - 登记协议借出
+    - 登记协议归还
+    - 登记合同—项目关联与范围挂 WBS
+    - 登记废标
+    - 登记未中标
+    - 登记视为同意参数与发包人代表
+    - 登记资格预审结果
+    - 确认最终价款
     - 签订劳动合同
     - 终止供方协议
     - 终止劳动合同
+    - 终止协议
     - 结算供方协议
+    - 结算协议
+    - 编制协议价目版本
+    - 编制结算书
     - 起草供方协议
+    - 起草协议
+    - 递交投标
+    - 通过合同评审
     - 驳回劳动合同
+    - 驳回合同评审
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:63
@@ -183,6 +243,28 @@ OBJ-06:
     - INV-125
     - INV-126
     - INV-33
+    '10':
+    - 回签
+    - 完成协议
+    - 应用变更
+    - 开始履行协议
+    - 归档协议
+    - 提交任务订单
+    - 提交合同评审
+    - 标记付款条件项可结算
+    - 标记协议借阅逾期
+    - 登记付款条件达成
+    - 登记协议借出
+    - 登记协议归还
+    - 登记合同—项目关联与范围挂 WBS
+    - 登记视为同意参数与发包人代表
+    - 确认最终价款
+    - 终止协议
+    - 结算协议
+    - 编制结算书
+    - 起草协议
+    - 通过合同评审
+    - 驳回合同评审
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:64
@@ -218,6 +300,28 @@ OBJ-07:
     - INV-125
     - INV-126
     - INV-33
+    '10':
+    - 回签
+    - 完成协议
+    - 应用变更
+    - 开始履行协议
+    - 归档协议
+    - 提交任务订单
+    - 提交合同评审
+    - 标记付款条件项可结算
+    - 标记协议借阅逾期
+    - 登记付款条件达成
+    - 登记协议借出
+    - 登记协议归还
+    - 登记合同—项目关联与范围挂 WBS
+    - 登记视为同意参数与发包人代表
+    - 确认最终价款
+    - 终止协议
+    - 结算协议
+    - 编制结算书
+    - 起草协议
+    - 通过合同评审
+    - 驳回合同评审
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:65
@@ -246,6 +350,28 @@ OBJ-08:
     - INV-125
     - INV-126
     - INV-33
+    '10':
+    - 回签
+    - 完成协议
+    - 应用变更
+    - 开始履行协议
+    - 归档协议
+    - 提交任务订单
+    - 提交合同评审
+    - 标记付款条件项可结算
+    - 标记协议借阅逾期
+    - 登记付款条件达成
+    - 登记协议借出
+    - 登记协议归还
+    - 登记合同—项目关联与范围挂 WBS
+    - 登记视为同意参数与发包人代表
+    - 确认最终价款
+    - 终止协议
+    - 结算协议
+    - 编制结算书
+    - 起草协议
+    - 通过合同评审
+    - 驳回合同评审
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:66
@@ -273,8 +399,16 @@ OBJ-09:
     08:
     - INV-16
     '10':
+    - 提交协议变更审批
     - 提出分包变更
+    - 提出协议变更
     - 生效分包变更
+    - 生效协议变更
+    - 登记发包人书面同意
+    - 确认现场签证
+    - 评估变更影响
+    - 通过协议变更审批
+    - 驳回协议变更审批
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:67
@@ -299,6 +433,10 @@ OBJ-10:
     - PRC-49
     08:
     - INV-17
+    '10':
+    - 拒绝或撤回索赔
+    - 提出索赔
+    - 认定索赔
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:68
@@ -326,6 +464,14 @@ OBJ-12:
     08:
     - INV-18
     - INV-19
+    '10':
+    - 叫停风险交付授权
+    - 批准风险交付授权
+    - 提交风险交付授权审批
+    - 撤回风险交付授权申请
+    - 申请风险交付授权
+    - 转正风险交付授权
+    - 驳回风险交付授权
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:70
@@ -355,6 +501,14 @@ OBJ-13:
     - PRC-153
     08:
     - INV-20
+    '10':
+    - 扣减保证金
+    - 提交过账候选
+    - 没收保证金
+    - 登记保函到期或索赔
+    - 登记保函开立
+    - 登记保证金缴纳
+    - 退还保证金
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:71
@@ -376,6 +530,10 @@ OBJ-16:
     '07':
     - PRC-01
     - PRC-03
+    '10':
+    - 开展市场活动
+    - 结束市场活动
+    - 计划市场活动
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:75
@@ -400,6 +558,13 @@ OBJ-17:
     - PRC-03
     08:
     - INV-24
+    '10':
+    - 关闭线索
+    - 恢复线索
+    - 挂起线索
+    - 登记线索
+    - 确认线索
+    - 认领线索
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:76
@@ -438,6 +603,15 @@ OBJ-18:
     - INV-26
     - INV-27
     - INV-33
+    '10':
+    - 作出参投决策
+    - 变更商机负责人
+    - 放弃商机
+    - 新建商机
+    - 登记参投判断
+    - 登记商机丢单
+    - 登记商机赢单
+    - 维护商机参与团队
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:77
@@ -491,6 +665,14 @@ OBJ-20:
     - INV-28
     - INV-29
     - INV-33
+    '10':
+    - 撤回或撤销投标
+    - 放弃投标
+    - 登记中标
+    - 登记废标
+    - 登记未中标
+    - 登记资格预审结果
+    - 递交投标
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:79
@@ -522,6 +704,14 @@ OBJ-21:
     - INV-30
     - INV-31
     - INV-32
+    '10':
+    - 作废报价版本
+    - 提交报价评审
+    - 生效报价版本
+    - 登记报价发出
+    - 编制报价版本
+    - 通过报价评审
+    - 驳回报价评审
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:80
@@ -539,6 +729,14 @@ OBJ-22:
     - INV-30
     - INV-31
     - INV-32
+    '10':
+    - 作废报价版本
+    - 提交报价评审
+    - 生效报价版本
+    - 登记报价发出
+    - 编制报价版本
+    - 通过报价评审
+    - 驳回报价评审
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:81
@@ -565,6 +763,9 @@ OBJ-23:
     - PRC-47
     08:
     - INV-33
+    '10':
+    - 创建独立性检查
+    - 登记独立性检查结论
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:82
   initial: 确认建模
   why: 有状态且被指向
@@ -583,6 +784,9 @@ OBJ-24:
     '07':
     - PRC-12
     - PRC-182
+    '10':
+    - 停用服务产品版本
+    - 发布服务产品版本
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:84
@@ -602,6 +806,9 @@ OBJ-25:
     - VS-15.2
     '07':
     - PRC-12
+    '10':
+    - 停用阶段类型版本
+    - 发布阶段类型版本
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:85
@@ -629,6 +836,10 @@ OBJ-26:
     08:
     - INV-131
     - INV-35
+    '10':
+    - 批准费率版本
+    - 生效费率版本
+    - 编制费率版本
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:86
@@ -654,6 +865,9 @@ OBJ-27:
     08:
     - INV-131
     - INV-36
+    '10':
+    - 生效计费系数版本
+    - 编制计费系数版本
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:87
   initial: 确认建模
   why: 有状态且被指向
@@ -721,6 +935,15 @@ OBJ-29:
     - PRC-87
     08:
     - INV-40
+    '10':
+    - 取消项目
+    - 建立项目
+    - 开始执行项目
+    - 归档项目
+    - 恢复项目
+    - 暂停项目
+    - 终止项目
+    - 结项
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:90
@@ -753,6 +976,12 @@ OBJ-30:
     08:
     - INV-41
     - INV-42
+    '10':
+    - 作废工作包
+    - 完成阶段
+    - 建立项目 WBS
+    - 开始阶段
+    - 锁定工作包
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:91
@@ -777,6 +1006,9 @@ OBJ-31:
     - PRC-22
     08:
     - INV-43
+    '10':
+    - 批准交付计划
+    - 编制交付计划版本
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:92
@@ -801,6 +1033,9 @@ OBJ-32:
     - PRC-22
     08:
     - INV-44
+    '10':
+    - 编制项目预算版本
+    - 锁定项目预算
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:93
@@ -830,6 +1065,10 @@ OBJ-33:
     - PRC-151
     - PRC-154
     - PRC-30
+    '10':
+    - 填报产值估计
+    - 批准完工估算
+    - 提出完工估算
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:94
@@ -850,6 +1089,8 @@ OBJ-34:
     - VS-02.0
     '07':
     - PRC-17
+    '10':
+    - 维护项目团队成员
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:95
   initial: 确认建模
   why: 有状态且被指向
@@ -888,6 +1129,15 @@ OBJ-35:
     - INV-47
     - INV-48
     - INV-51
+    '10':
+    - 封存交付物
+    - 登记内部评审结论
+    - 登记客户认可
+    - 登记客户退回
+    - 登记提交轮次送达
+    - 登记项目经理的无异议声明
+    - 签发交付物
+    - 编制交付物
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:96
@@ -913,6 +1163,15 @@ OBJ-37:
     - INV-47
     - INV-48
     - INV-51
+    '10':
+    - 封存交付物
+    - 登记内部评审结论
+    - 登记客户认可
+    - 登记客户退回
+    - 登记提交轮次送达
+    - 登记项目经理的无异议声明
+    - 签发交付物
+    - 编制交付物
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:98
@@ -952,6 +1211,21 @@ OBJ-38:
     - INV-49
     - INV-50
     - INV-52
+    '10':
+    - 停止跟踪不符合项
+    - 关闭不符合项
+    - 发布不符合项
+    - 复核不符合项
+    - 开始整改
+    - 登记不符合项
+    - 登记不符合项送达
+    - 登记客户接受风险
+    - 登记整改申报
+    - 确认不符合项
+    - 让步接受不符合项
+    - 记录重大险情已报告
+    - 退回整改
+    - 闭合不符合项
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:99
@@ -974,6 +1248,9 @@ OBJ-39:
     - PRC-23
     - PRC-34
     - PRC-91
+    '10':
+    - 撤销返工认定
+    - 认定返工
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:100
@@ -1001,6 +1278,14 @@ OBJ-40:
     - PRC-49
     08:
     - INV-54
+    '10':
+    - 关闭设计变更
+    - 内审设计变更
+    - 发出设计变更
+    - 提出设计变更
+    - 撤销设计变更
+    - 标记待主张
+    - 认定变更归因与影响
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:101
@@ -1025,6 +1310,13 @@ OBJ-41:
     - PRC-32
     - PRC-48
     - PRC-49
+    '10':
+    - 提交延期详细说明
+    - 撤回延期通知
+    - 登记延期批准
+    - 登记延期拒绝
+    - 登记延期视为批准
+    - 通知延期
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:102
@@ -1050,6 +1342,11 @@ OBJ-42:
     - VS-02.4
     '07':
     - PRC-26
+    '10':
+    - 登记资料已提供
+    - 登记资料需求
+    - 确认发包人资料
+    - 退回发包人资料
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:103
   initial: 确认建模
   why: 有状态且被指向
@@ -1070,6 +1367,10 @@ OBJ-44:
     - VS-02.0
     '07':
     - PRC-20
+    '10':
+    - 关闭资源需求
+    - 提出资源需求
+    - 标记资源需求已满足
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:105
@@ -1090,6 +1391,8 @@ OBJ-45:
     - VS-02.0
     '07':
     - PRC-20
+    '10':
+    - 确认资源分配
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:106
@@ -1118,6 +1421,10 @@ OBJ-46:
     - PRC-17
     - PRC-41
     - PRC-43
+    '10':
+    - 更新外部状态
+    - 登记建设工程
+    - 登记我方参与记录
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:108
   initial: 确认建模
   why: 有状态且被指向
@@ -1136,6 +1443,10 @@ OBJ-47:
   pointers:
     '06':
     - VS-03.1
+    '10':
+    - 更新外部状态
+    - 登记建设工程
+    - 登记我方参与记录
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:109
   initial: 从属对象
   why: OBJD 定论从属对象
@@ -1156,6 +1467,10 @@ OBJ-48:
     '07':
     - PRC-41
     - PRC-43
+    '10':
+    - 标记检查计划不再受托
+    - 生效检查计划
+    - 登记检查计划
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:110
@@ -1187,6 +1502,16 @@ OBJ-49:
     08:
     - INV-55
     - INV-56
+    '10':
+    - 关联检查报告
+    - 取消检查
+    - 复查检查
+    - 安排检查
+    - 审核检查记录
+    - 开始现场检查
+    - 指派检查人员
+    - 提交检查记录
+    - 锁定检查
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:111
@@ -1213,6 +1538,9 @@ OBJ-50:
     - PRC-43
     08:
     - INV-34
+    '10':
+    - 停用检查表模板版本
+    - 发布检查表模板版本
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:112
   initial: 确认建模
   why: 有状态且被指向
@@ -1237,6 +1565,12 @@ OBJ-52:
     - PRC-46
     08:
     - INV-57
+    '10':
+    - 不采信外部检测报告
+    - 建议外部检测
+    - 登记业主委托外部检测
+    - 登记外部检测报告
+    - 采信外部检测报告
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:114
@@ -1272,6 +1606,11 @@ OBJ-53:
     - PRC-57
     08:
     - INV-58
+    '10':
+    - 上传证据摘要
+    - 作废证据
+    - 封存证据
+    - 采集证据
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:115
   initial: 确认建模
   why: 有状态且被指向
@@ -1577,6 +1916,12 @@ OBJ-65:
     - PRC-69
     - PRC-70
     - PRC-78
+    '10':
+    - 发起资质核查
+    - 延续资质
+    - 标记资质已到期
+    - 登记核查结果
+    - 登记资质证书
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:128
   initial: 确认建模
   why: 有状态且被指向
@@ -1607,6 +1952,15 @@ OBJ-66:
     - INV-65
     - INV-66
     - INV-67
+    '10':
+    - 提交工时单
+    - 提交过账候选
+    - 撤回工时单
+    - 认定工时有效性
+    - 起草工时单
+    - 退回工时单
+    - 通过工时单
+    - 驳回工时单
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:129
@@ -1836,6 +2190,11 @@ OBJ-82:
     - PRC-57
     08:
     - INV-71
+    '10':
+    - 作废开票申请
+    - 准入开票申请
+    - 提交开票申请
+    - 驳回开票申请
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:147
@@ -1878,10 +2237,14 @@ OBJ-83:
     - INV-74
     '10':
     - 占用进项发票入账
+    - 发起红字信息确认
+    - 开具销项发票并改写 WIP
     - 提交过账候选
+    - 撤销红字信息确认
     - 查验进项发票
     - 登记进项发票
     - 确认进项发票用途
+    - 红冲发票
     - 进项转出
     - 释放进项发票占用
     '11':
@@ -1940,16 +2303,25 @@ OBJ-85:
     - INV-79
     '10':
     - 人工处置核销差异
+    - 冲减应收
     - 冲回应付核销
+    - 冲抵员工借款
     - 冲销应付利润
+    - 创建应收
     - 在应付上核销占用
+    - 在应收上核销占用
     - 提交应付利润
     - 提交应付薪酬
     - 提交过账候选
+    - 核销坏账
     - 核销应付
+    - 检测应收逾期
+    - 登记争议与处置分类
     - 登记其他应付
     - 登记预付款
     - 确认应付
+    - 转预收或待退
+    - 释放占用、恢复应收
     - 释放核销占用
     - 预付款冲抵应付
     '11':
@@ -1992,11 +2364,16 @@ OBJ-86:
     - INV-81
     '10':
     - 发起付款
+    - 处置待认领流水
     - 提交过账候选
+    - 收款认领
     - 标记付款已核销
+    - 标记商票已逾期
     - 登记付款失败
+    - 登记商票兑付
     - 登记退票
     - 登记银行结果
+    - 记分配行与流水行
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:151
@@ -2500,6 +2877,11 @@ OBJ-105:
     - PRC-02
     08:
     - INV-110
+    '10':
+    - 取消客户活动
+    - 变更客户活动
+    - 完成客户活动
+    - 计划客户活动
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:173
@@ -2524,6 +2906,11 @@ OBJ-106:
     - PRC-37
     08:
     - INV-111
+    '10':
+    - 发出满意度调查
+    - 登记满意度跟进
+    - 登记调查回收
+    - 评分满意度调查
     '11':
     - 信息图「产生的事实」列
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:174
@@ -2548,6 +2935,10 @@ OBJ-107:
     - PRC-38
     08:
     - INV-112
+    '10':
+    - 发布项目复盘
+    - 编制项目复盘
+    - 评审项目复盘
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:175
   initial: 确认建模
   why: 有状态且被指向
@@ -2570,6 +2961,11 @@ OBJ-108:
     - PRC-37
     08:
     - INV-113
+    '10':
+    - 关闭风险与问题
+    - 接受风险与问题
+    - 登记风险与问题
+    - 记录应对措施
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:176
   initial: 确认建模
   why: 有状态且被指向
@@ -3118,6 +3514,7 @@ OBJ-124:
     - 发布成本核算参数版本
     - 发布薪酬规则版本
     - 发布资产类别与折旧政策版本
+    - 开放证据类型
     - 编制出差补贴标准版本
     - 编制口径版本
     - 编制成本核算参数版本
