@@ -34,7 +34,7 @@ ARG_CALLS = (
 )
 PLAIN_FORMS = (re.compile(r"\.\s*gauge(?:CollectionSize|MapSize)\s*\("), re.compile(r"\b(?:WeakReference|WeakHashMap)\b|\.\s*weak(?:Keys|Values)\s*\("))
 CLASS_DECL = re.compile(r"^[ \t]*(?:@\w+(?:\([^)]*\))?\s+)*(?:(?:public|protected|private|final|abstract|static|sealed|non-sealed|strictfp)\s+)*(?:class|record)\s+(\w+)", re.M)
-LOCAL_DECL = re.compile(r"(?:^|[\s(,])(?:final\s+)?[A-Za-z_][\w.]*(?:<[^;=()]*>)?(?:\[\])*[ \t]+(\w+)[ \t]*=[ \t]*$")
+LOCAL_DECL = re.compile(r"(?:^|[\s,])(?:final\s+)?(?!(?:else|return|yield|throw|case|new|do)\b)[A-Za-z_][\w.]*(?:<[^;=()]*>)?(?:\[\])*[ \t]+(\w+)[ \t]*=[ \t]*$")
 
 
 class ScanError(Exception):
@@ -164,8 +164,12 @@ def statement_end(text, start):
 
 def statement_starts_here(text, index):
     before = text[:index].rstrip()
-    if not before or before[-1] in ";{}:" or before.endswith("->"):
+    if not before or before[-1] in ";{}":
         return True
+    if before.endswith("->"):
+        return re.search(r"(?<![\w$])(?:case\b[^;{}]*|default)\s*->$", before) is not None
+    if before.endswith(":"):
+        return re.search(r"(?:^|[;{}])\s*(?:case\b[^;{}?]*|default|[A-Za-z_]\w*)\s*:$", before) is not None
     if re.search(r"(?<![\w$])else$", before):
         return True
     if before.endswith(")"):
@@ -189,7 +193,7 @@ def enclosing_block(text, index):
         elif text[i] == "{":
             if depth == 0:
                 before = text[:i].rstrip()
-                if before.endswith(")") or before.endswith("->") or re.search(r"(?<![\w$])(?:else|try|finally|do)$", before):
+                if before.endswith(")") or before.endswith("->") or re.search(r"\)\s*throws\s+[\w.,\s<>]+$", before) or re.search(r"(?<![\w$])(?:else|try|finally|do)$", before):
                     return i, close_of(text, i)
                 return None
             depth -= 1
@@ -201,6 +205,8 @@ def scan(root):
     classes = weak_classes(root)
     findings = []
     if not classes:
+        for path in java_files(os.path.join(root, TEST)):
+            read(path)
         return findings, classes
     names = "|".join(sorted(map(re.escape, classes)))
     pattern = re.compile(r"\bnew\s+(?:[\w$]+\s*\.\s*)*(" + names + r")\s*(?:<[^;(){}]*>)?\s*\(")
@@ -309,6 +315,14 @@ def run_self_test():
         "inside a string": ("void t() {\n        String s = \"new SyncMetrics(registry);\";\n    }", 0),
         "inside a comment": ("void t() {\n        // new SyncMetrics(registry);\n    }", 0),
         "escaped quote and paren in the argument": ("void t() {\n        new SyncMetrics(\"a\\\")\");\n    }", 1),
+        "unused local in a method with throws": ("void t() throws Exception {\n        SyncMetrics m = new SyncMetrics(registry);\n    }", 1),
+        "ternary assigned local, used": ("void t() {\n        SyncMetrics m = f ? null : new SyncMetrics(registry);\n        m.lag();\n    }", 0),
+        "ternary assigned field": ("void t() {\n        m = f ? null : new SyncMetrics(registry);\n    }", 0),
+        "expression lambda supplier": ("void t() {\n        Supplier<SyncMetrics> s = () -> new SyncMetrics(registry);\n        keep(s);\n    }", 0),
+        "else assigns a field": ("void t() {\n        if (a) { b(); } else m = new SyncMetrics(registry);\n    }", 0),
+        "return assigns": ("SyncMetrics t() {\n        return m = new SyncMetrics(registry);\n    }", 0),
+        "try with resources": ("void t() throws Exception {\n        try (SyncMetrics m = new SyncMetrics(registry); Other o = open()) { o.x(); }\n    }", 0),
+        "case label then discard": ("void t() {\n        switch (k) { case 1: new SyncMetrics(registry); break; default: break; }\n    }", 1),
         "unbalanced": ("void t() {\n        new SyncMetrics(registry\n    }", 0),
     }
     for label, (body, expected) in cases.items():
@@ -335,6 +349,21 @@ def run_self_test():
         with open(os.path.join(root, TEST, "p", "Bad.java"), "wb") as stream:
             stream.write(b"\xff\xfe\x00 not utf-8")
         assert main([root]) == 2 and main([root, "--enforce"]) == 2, "an unreadable file is an error, not a pass"
+    with tempfile.TemporaryDirectory() as root:
+        write(root, f"{MAIN}/p/Plain.java", "class Plain {\n}\n")
+        write(root, f"{TEST}/p/T.java", "class T {\n}\n")
+        with open(os.path.join(root, TEST, "p", "T.java"), "wb") as stream:
+            stream.write(b"\xff\xfe")
+        assert main([root]) == 2, "a broken test file is an error even without weakly registering classes"
+    with tempfile.TemporaryDirectory() as root:
+        fixtures(root)
+        write(root, f"{TEST}/q/T.java", "class T {\n}\n")
+        locked = os.path.join(root, TEST, "q")
+        os.chmod(locked, 0)
+        try:
+            assert main([root]) == 2, "an unreadable directory is an error"
+        finally:
+            os.chmod(locked, 0o700)
     with tempfile.TemporaryDirectory() as root:
         assert main([root]) == 2, "no test sources"
         os.makedirs(os.path.join(root, TEST))
