@@ -14,8 +14,8 @@ OBJ-06:
 OBJ-07:
   class: 确认建模
 OBJ-08:
-  class: 从属对象（父 OBJ-05）
-  owner: OBJ-05
+  class: 并入 OBJ-07 合同条款（用户 2026-10-19「履约义务就是条款」）
+  owner: OBJ-07
 OBJ-09:
   class: 确认建模
 OBJ-10:
@@ -184,8 +184,8 @@ OBJ-74:
 OBJ-78:
   class: 确认建模
 OBJ-81:
-  class: 改登记为 11 业务事实（形态随 Q20）
-  owner: OBJ-08
+  class: 改登记为 11 业务事实（主体为合同条款；形态随 Q20）
+  owner: OBJ-07
 OBJ-82:
   class: 确认建模
 OBJ-83:

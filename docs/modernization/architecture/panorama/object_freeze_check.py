@@ -137,6 +137,10 @@ def impact(nodes, touched, final):
         owner = e.get("owner") or ("（无，04 不承接）" if cls.startswith("不承接") else "（无，视图）")
         name = nodes["obj"].get(oid, {}).get("name", oid)
         adv = [a.format(o=owner) for a in ADVICE[kind]]
+        same = bool(set(agg_of.get(oid, [])) & set(agg_of.get(e.get("owner") or "", [])))
+        if same:
+            adv[2] = f"已与 {owner} 同在聚合内，挂接不变，只把规则的主语改为 {owner}"
+            adv[3] = f"已与 {owner} 同在聚合内，聚合不变；表随 {owner} 设计"
         stages = sorted(s for s, st in nodes["stage"].items() if any(g["obj"] == oid for g in st.get("gates") or []) or oid in (st.get("in_stage") or []))
         prcs = sorted((p for p, objs in touched.items() if oid in objs), key=lambda x: int(x[4:]))
         aggs = agg_of.get(oid, [])
@@ -150,7 +154,7 @@ def impact(nodes, touched, final):
                 "| 引用方 | 条目 | 改法 |", "|---|---|---|",
                 f"| 06 门条件与段内状态 | {'、'.join(stages) or '无'} | {adv[0] if stages else '—'} |",
                 f"| 07 流程 | {'、'.join(prcs) or '无'} | {adv[1] if prcs else '—'} |",
-                f"| 10 命令 | {'、'.join(cmds) or '无'} | {('撤销这些命令，骨架中引用它们的步骤改为引用制度版本或删除' if kind == '不承接' else f'移入承接对象 {owner} 所在聚合') if cmds else '—'} |",
+                f"| 10 命令 | {'、'.join(cmds) or '无'} | {('撤销这些命令，骨架中引用它们的步骤改为引用制度版本或删除' if kind == '不承接' else (f'已与 {owner} 同在聚合内，命令不动' if same else f'移入承接对象 {owner} 所在聚合')) if cmds else '—'} |",
                 f"| 08 不变量 | {'、'.join(invs) or '无'} | {adv[2] if invs else '—'} |",
                 f"| 聚合与表 | {'、'.join(aggs) or '无'}；表 {'、'.join(tables) or '无'} | {adv[3] if aggs else '—'} |",
                 f"| 词条 | {'、'.join(tws) or '无'} | {adv[4] if tws else '—'} |", ""]
