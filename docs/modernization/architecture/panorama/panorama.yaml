@@ -19,7 +19,7 @@ meta:
     prc: 200
     inv: 134
     obj: 103
-    act: 59
+    act: 390
     fact: 0
     dim: 0
     metric: 76
@@ -29,6 +29,7 @@ meta:
     bc: 31
     sd: 13
     table: 25
+    steps: 431
   checks:
     N01-1: 每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）
     N03-1: 每条价值流都有价值主张（暂以价值流的 value 字段作 03 的登记）
@@ -36,7 +37,7 @@ meta:
     N06-1: 每个阶段都有对象状态作为门（进入或退出条件引用对象状态）
     N07-1: 每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1）
     N07-2: 流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 N07-1 / anchoring C1 判）
-    N07-P1: P-1：流程中改变对象状态的步骤都声明 Command（三组骨架未整合进本分支，暂未自动化）
+    N07-P1: P-1：流程骨架中作用于聚合的步骤都声明 Command，且该命令在同一聚合下登记于各组 commands.yaml
     N08-1: 每个不变量都归属存在的聚合
     N09-1: 每个有效对象都有流程承载（同 anchoring_check C2；OBJD 定论的从属、参照、视图按定论排除）
     N09-2: 每个有效一级业务对象都有聚合（聚合「对应」列；从属、参照、视图不要求）
@@ -5005,6 +5006,1992 @@ nodes:
       facts: 对账已签字 → 期间报告可发布
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:197
   act:
+    AGG-40/批准分摊规则版本:
+      command: 批准分摊规则版本
+      aggregate: AGG-40
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#批准分摊规则版本
+    AGG-40/生效分摊规则版本:
+      command: 生效分摊规则版本
+      aggregate: AGG-40
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#生效分摊规则版本
+    AGG-40/编制分摊规则版本:
+      command: 编制分摊规则版本
+      aggregate: AGG-40
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#编制分摊规则版本
+    AGG-41/试算人工成本分配:
+      command: 试算人工成本分配
+      aggregate: AGG-41
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#试算人工成本分配
+    AGG-41/确认人工成本分配:
+      command: 确认人工成本分配
+      aggregate: AGG-41
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#确认人工成本分配
+    AGG-41/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-41
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交过账候选
+    AGG-42/试算分摊运行:
+      command: 试算分摊运行
+      aggregate: AGG-42
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#试算分摊运行
+    AGG-42/生效分摊运行:
+      command: 生效分摊运行
+      aggregate: AGG-42
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#生效分摊运行
+    AGG-43/售前投入转费用:
+      command: 售前投入转费用
+      aggregate: AGG-43
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#售前投入转费用
+    AGG-43/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-43
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交过账候选
+    AGG-43/转入售前投入:
+      command: 转入售前投入
+      aggregate: AGG-43
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#转入售前投入
+    AGG-43/终止清算成本:
+      command: 终止清算成本
+      aggregate: AGG-43
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#终止清算成本
+    AGG-43/结转合同履约成本:
+      command: 结转合同履约成本
+      aggregate: AGG-43
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#结转合同履约成本
+    AGG-43/标记成本结转已过账:
+      command: 标记成本结转已过账
+      aggregate: AGG-43
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#标记成本结转已过账
+    AGG-52/确认应付:
+      command: 确认应付
+      aggregate: AGG-52
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#确认应付
+    AGG-52/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-52
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交过账候选
+    AGG-52/在应付上核销占用:
+      command: 在应付上核销占用
+      aggregate: AGG-52
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#在应付上核销占用
+    AGG-52/释放核销占用:
+      command: 释放核销占用
+      aggregate: AGG-52
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#释放核销占用
+    AGG-52/核销应付:
+      command: 核销应付
+      aggregate: AGG-52
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#核销应付
+    AGG-52/提交应付利润:
+      command: 提交应付利润
+      aggregate: AGG-52
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交应付利润
+    AGG-52/提交应付薪酬:
+      command: 提交应付薪酬
+      aggregate: AGG-52
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交应付薪酬
+    AGG-52/冲回应付核销:
+      command: 冲回应付核销
+      aggregate: AGG-52
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#冲回应付核销
+    AGG-52/人工处置核销差异:
+      command: 人工处置核销差异
+      aggregate: AGG-52
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#人工处置核销差异
+    AGG-53/发起付款:
+      command: 发起付款
+      aggregate: AGG-53
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#发起付款
+    AGG-53/登记银行结果:
+      command: 登记银行结果
+      aggregate: AGG-53
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记银行结果
+    AGG-53/登记付款失败:
+      command: 登记付款失败
+      aggregate: AGG-53
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记付款失败
+    AGG-53/标记付款已核销:
+      command: 标记付款已核销
+      aggregate: AGG-53
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#标记付款已核销
+    AGG-53/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-53
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交过账候选
+    AGG-53/登记退票:
+      command: 登记退票
+      aggregate: AGG-53
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记退票
+    AGG-54/登记出资认缴:
+      command: 登记出资认缴
+      aggregate: AGG-54
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记出资认缴
+    AGG-54/登记出资实缴:
+      command: 登记出资实缴
+      aggregate: AGG-54
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记出资实缴
+    AGG-54/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-54
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交过账候选
+    AGG-54/登记出资退回:
+      command: 登记出资退回
+      aggregate: AGG-54
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记出资退回
+    AGG-54/更正出资登记:
+      command: 更正出资登记
+      aggregate: AGG-54
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#更正出资登记
+    AGG-109/草拟利润分配:
+      command: 草拟利润分配
+      aggregate: AGG-109
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#草拟利润分配
+    AGG-109/决议利润分配:
+      command: 决议利润分配
+      aggregate: AGG-109
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#决议利润分配
+    AGG-109/登记利润分配支付:
+      command: 登记利润分配支付
+      aggregate: AGG-109
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记利润分配支付
+    AGG-109/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-109
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交过账候选
+    AGG-109/撤销利润分配决议:
+      command: 撤销利润分配决议
+      aggregate: AGG-109
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#撤销利润分配决议
+    AGG-55/起草供方协议:
+      command: 起草供方协议
+      aggregate: AGG-55
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#起草供方协议
+    AGG-55/生效供方协议:
+      command: 生效供方协议
+      aggregate: AGG-55
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#生效供方协议
+    AGG-55/完成供方协议:
+      command: 完成供方协议
+      aggregate: AGG-55
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#完成供方协议
+    AGG-55/结算供方协议:
+      command: 结算供方协议
+      aggregate: AGG-55
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#结算供方协议
+    AGG-55/终止供方协议:
+      command: 终止供方协议
+      aggregate: AGG-55
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#终止供方协议
+    AGG-56/提出分包变更:
+      command: 提出分包变更
+      aggregate: AGG-56
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提出分包变更
+    AGG-56/生效分包变更:
+      command: 生效分包变更
+      aggregate: AGG-56
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#生效分包变更
+    AGG-57/确认供方履约:
+      command: 确认供方履约
+      aggregate: AGG-57
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#确认供方履约
+    AGG-57/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-57
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交过账候选
+    AGG-57/冲销供方履约确认:
+      command: 冲销供方履约确认
+      aggregate: AGG-57
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#冲销供方履约确认
+    AGG-58/建立履约额度:
+      command: 建立履约额度
+      aggregate: AGG-58
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#建立履约额度
+    AGG-58/供方额度更新:
+      command: 供方额度更新
+      aggregate: AGG-58
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#供方额度更新
+    AGG-58/占用履约额度:
+      command: 占用履约额度
+      aggregate: AGG-58
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#占用履约额度
+    AGG-58/释放履约额度:
+      command: 释放履约额度
+      aggregate: AGG-58
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#释放履约额度
+    AGG-59/提交费用报销:
+      command: 提交费用报销
+      aggregate: AGG-59
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交费用报销
+    AGG-59/核定费用报销:
+      command: 核定费用报销
+      aggregate: AGG-59
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#核定费用报销
+    AGG-59/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-59
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交过账候选
+    AGG-59/标记费用报销已付:
+      command: 标记费用报销已付
+      aggregate: AGG-59
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#标记费用报销已付
+    AGG-59/冲销费用报销:
+      command: 冲销费用报销
+      aggregate: AGG-59
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#冲销费用报销
+    AGG-77/过账:
+      command: 过账
+      aggregate: AGG-77
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#过账
+    AGG-77/冲销并重过账:
+      command: 冲销并重过账
+      aggregate: AGG-77
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#冲销并重过账
+    AGG-77/重提过账候选:
+      command: 重提过账候选
+      aggregate: AGG-77
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#重提过账候选
+    AGG-77/登记拒收处置结论:
+      command: 登记拒收处置结论
+      aggregate: AGG-77
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记拒收处置结论
+    AGG-81/发起关账:
+      command: 发起关账
+      aggregate: AGG-81
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#发起关账
+    AGG-81/确认关账:
+      command: 确认关账
+      aggregate: AGG-81
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#确认关账
+    AGG-81/退回开放:
+      command: 退回开放
+      aggregate: AGG-81
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#退回开放
+    AGG-81/开放第 13 期:
+      command: 开放第 13 期
+      aggregate: AGG-81
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#开放第 13 期
+    AGG-81/发起年末关账:
+      command: 发起年末关账
+      aggregate: AGG-81
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#发起年末关账
+    AGG-81/确认年末关账:
+      command: 确认年末关账
+      aggregate: AGG-81
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#确认年末关账
+    AGG-81/开立会计年度:
+      command: 开立会计年度
+      aggregate: AGG-81
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#开立会计年度
+    AGG-96/登记第 13 期启用:
+      command: 登记第 13 期启用
+      aggregate: AGG-96
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记第 13 期启用
+    AGG-82/发布科目表版本:
+      command: 发布科目表版本
+      aggregate: AGG-82
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#发布科目表版本
+    AGG-82/起草科目表版本:
+      command: 起草科目表版本
+      aggregate: AGG-82
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#起草科目表版本
+    AGG-84/生成分录:
+      command: 生成分录
+      aggregate: AGG-84
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#生成分录
+    AGG-84/处理待处理队列:
+      command: 处理待处理队列
+      aggregate: AGG-84
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#处理待处理队列
+    AGG-84/推送分录:
+      command: 推送分录
+      aggregate: AGG-84
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#推送分录
+    AGG-84/登记外部记账确认:
+      command: 登记外部记账确认
+      aggregate: AGG-84
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记外部记账确认
+    AGG-85/发布映射表版本:
+      command: 发布映射表版本
+      aggregate: AGG-85
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#发布映射表版本
+    AGG-85/起草映射表版本:
+      command: 起草映射表版本
+      aggregate: AGG-85
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#起草映射表版本
+    AGG-94/发布授权表版本:
+      command: 发布授权表版本
+      aggregate: AGG-94
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#发布授权表版本
+    AGG-94/起草授权表版本:
+      command: 起草授权表版本
+      aggregate: AGG-94
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#起草授权表版本
+    AGG-98/制单手工凭证:
+      command: 制单手工凭证
+      aggregate: AGG-98
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#制单手工凭证
+    AGG-98/复核手工凭证:
+      command: 复核手工凭证
+      aggregate: AGG-98
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#复核手工凭证
+    AGG-98/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-98
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交过账候选
+    AGG-98/作废手工凭证草稿:
+      command: 作废手工凭证草稿
+      aggregate: AGG-98
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#作废手工凭证草稿
+    AGG-99/生成期末结转运行:
+      command: 生成期末结转运行
+      aggregate: AGG-99
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#生成期末结转运行
+    AGG-99/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-99
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交过账候选
+    AGG-100/生成快照:
+      command: 生成快照
+      aggregate: AGG-100
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#生成快照
+    AGG-101/登记对账差异:
+      command: 登记对账差异
+      aggregate: AGG-101
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记对账差异
+    AGG-101/签字接受差异:
+      command: 签字接受差异
+      aggregate: AGG-101
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#签字接受差异
+    AGG-86/编制报表行定义版本:
+      command: 编制报表行定义版本
+      aggregate: AGG-86
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#编制报表行定义版本
+    AGG-86/生效报表行定义版本:
+      command: 生效报表行定义版本
+      aggregate: AGG-86
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#生效报表行定义版本
+    AGG-87/开立资金账户:
+      command: 开立资金账户
+      aggregate: AGG-87
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#开立资金账户
+    AGG-87/冻结资金账户:
+      command: 冻结资金账户
+      aggregate: AGG-87
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#冻结资金账户
+    AGG-87/销户资金账户:
+      command: 销户资金账户
+      aggregate: AGG-87
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#销户资金账户
+    AGG-87/确认开立资金账户:
+      command: 确认开立资金账户
+      aggregate: AGG-87
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#确认开立资金账户
+    AGG-87/解冻资金账户:
+      command: 解冻资金账户
+      aggregate: AGG-87
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#解冻资金账户
+    AGG-87/确认销户资金账户:
+      command: 确认销户资金账户
+      aggregate: AGG-87
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#确认销户资金账户
+    AGG-88/导入银行流水:
+      command: 导入银行流水
+      aggregate: AGG-88
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#导入银行流水
+    AGG-88/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-88
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交过账候选
+    AGG-89/登记进项发票:
+      command: 登记进项发票
+      aggregate: AGG-89
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记进项发票
+    AGG-89/查验进项发票:
+      command: 查验进项发票
+      aggregate: AGG-89
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#查验进项发票
+    AGG-89/确认进项发票用途:
+      command: 确认进项发票用途
+      aggregate: AGG-89
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#确认进项发票用途
+    AGG-89/进项转出:
+      command: 进项转出
+      aggregate: AGG-89
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#进项转出
+    AGG-89/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-89
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交过账候选
+    AGG-89/占用进项发票入账:
+      command: 占用进项发票入账
+      aggregate: AGG-89
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#占用进项发票入账
+    AGG-89/释放进项发票占用:
+      command: 释放进项发票占用
+      aggregate: AGG-89
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#释放进项发票占用
+    AGG-90/生成申报:
+      command: 生成申报
+      aggregate: AGG-90
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#生成申报
+    AGG-90/提交申报:
+      command: 提交申报
+      aggregate: AGG-90
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交申报
+    AGG-90/登记缴款:
+      command: 登记缴款
+      aggregate: AGG-90
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记缴款
+    AGG-90/更正申报:
+      command: 更正申报
+      aggregate: AGG-90
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#更正申报
+    AGG-90/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-90
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交过账候选
+    AGG-91/登记公司资产:
+      command: 登记公司资产
+      aggregate: AGG-91
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记公司资产
+    AGG-91/计提折旧与摊销:
+      command: 计提折旧与摊销
+      aggregate: AGG-91
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#计提折旧与摊销
+    AGG-91/处置资产:
+      command: 处置资产
+      aggregate: AGG-91
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#处置资产
+    AGG-91/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-91
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交过账候选
+    AGG-41/作废人工成本分配运行:
+      command: 作废人工成本分配运行
+      aggregate: AGG-41
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#作废人工成本分配运行
+    AGG-41/冲销人工成本分配运行:
+      command: 冲销人工成本分配运行
+      aggregate: AGG-41
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#冲销人工成本分配运行
+    AGG-42/冲销分摊运行:
+      command: 冲销分摊运行
+      aggregate: AGG-42
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#冲销分摊运行
+    AGG-99/冲销期末结转运行:
+      command: 冲销期末结转运行
+      aggregate: AGG-99
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#冲销期末结转运行
+    AGG-43/冲回成本结转:
+      command: 冲回成本结转
+      aggregate: AGG-43
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#冲回成本结转
+    AGG-52/登记其他应付:
+      command: 登记其他应付
+      aggregate: AGG-52
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记其他应付
+    AGG-52/登记预付款:
+      command: 登记预付款
+      aggregate: AGG-52
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记预付款
+    AGG-52/预付款冲抵应付:
+      command: 预付款冲抵应付
+      aggregate: AGG-52
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#预付款冲抵应付
+    AGG-52/冲销应付利润:
+      command: 冲销应付利润
+      aggregate: AGG-52
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#冲销应付利润
+    AGG-78/编制口径版本:
+      command: 编制口径版本
+      aggregate: AGG-78
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#编制口径版本
+    AGG-78/发布口径版本:
+      command: 发布口径版本
+      aggregate: AGG-78
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#发布口径版本
+    AGG-122/登记合同已签回:
+      command: 登记合同已签回
+      aggregate: AGG-122
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记合同已签回
+    AGG-122/登记项目已建立:
+      command: 登记项目已建立
+      aggregate: AGG-122
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记项目已建立
+    AGG-122/登记售前投入挂接归属:
+      command: 登记售前投入挂接归属
+      aggregate: AGG-122
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记售前投入挂接归属
+    AGG-122/标记售前投入已转入:
+      command: 标记售前投入已转入
+      aggregate: AGG-122
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#标记售前投入已转入
+    AGG-122/标记售前投入已转费用:
+      command: 标记售前投入已转费用
+      aggregate: AGG-122
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#标记售前投入已转费用
+    AGG-123/编制成本核算参数版本:
+      command: 编制成本核算参数版本
+      aggregate: AGG-123
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#编制成本核算参数版本
+    AGG-123/发布成本核算参数版本:
+      command: 发布成本核算参数版本
+      aggregate: AGG-123
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#发布成本核算参数版本
+    AGG-124/编制资产类别与折旧政策版本:
+      command: 编制资产类别与折旧政策版本
+      aggregate: AGG-124
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#编制资产类别与折旧政策版本
+    AGG-124/发布资产类别与折旧政策版本:
+      command: 发布资产类别与折旧政策版本
+      aggregate: AGG-124
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#发布资产类别与折旧政策版本
+    AGG-125/编制期初余额:
+      command: 编制期初余额
+      aggregate: AGG-125
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#编制期初余额
+    AGG-125/签字确认期初余额:
+      command: 签字确认期初余额
+      aggregate: AGG-125
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#签字确认期初余额
+    AGG-126/登记勾稽差异案:
+      command: 登记勾稽差异案
+      aggregate: AGG-126
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记勾稽差异案
+    AGG-126/解释勾稽差异案:
+      command: 解释勾稽差异案
+      aggregate: AGG-126
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#解释勾稽差异案
+    AGG-126/修正勾稽差异案:
+      command: 修正勾稽差异案
+      aggregate: AGG-126
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#修正勾稽差异案
+    AGG-126/豁免勾稽差异案:
+      command: 豁免勾稽差异案
+      aggregate: AGG-126
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#豁免勾稽差异案
+    AGG-127/登记口径转换规则版本:
+      command: 登记口径转换规则版本
+      aggregate: AGG-127
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记口径转换规则版本
+    AGG-128/起草期末结转模板版本:
+      command: 起草期末结转模板版本
+      aggregate: AGG-128
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#起草期末结转模板版本
+    AGG-128/发布期末结转模板版本:
+      command: 发布期末结转模板版本
+      aggregate: AGG-128
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#发布期末结转模板版本
+    AGG-129/起草现金流量项目表版本:
+      command: 起草现金流量项目表版本
+      aggregate: AGG-129
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#起草现金流量项目表版本
+    AGG-129/发布现金流量项目表版本:
+      command: 发布现金流量项目表版本
+      aggregate: AGG-129
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#发布现金流量项目表版本
+    AGG-130/提交费用事前申请:
+      command: 提交费用事前申请
+      aggregate: AGG-130
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交费用事前申请
+    AGG-130/批准费用事前申请:
+      command: 批准费用事前申请
+      aggregate: AGG-130
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#批准费用事前申请
+    AGG-130/驳回费用事前申请:
+      command: 驳回费用事前申请
+      aggregate: AGG-130
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#驳回费用事前申请
+    AGG-130/撤回费用事前申请:
+      command: 撤回费用事前申请
+      aggregate: AGG-130
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#撤回费用事前申请
+    AGG-130/关闭费用事前申请:
+      command: 关闭费用事前申请
+      aggregate: AGG-130
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#关闭费用事前申请
+    AGG-130/标记费用事前申请已用尽:
+      command: 标记费用事前申请已用尽
+      aggregate: AGG-130
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#标记费用事前申请已用尽
+    AGG-131/登记差旅订单与月账单:
+      command: 登记差旅订单与月账单
+      aggregate: AGG-131
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记差旅订单与月账单
+    AGG-131/归属差旅订单:
+      command: 归属差旅订单
+      aggregate: AGG-131
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#归属差旅订单
+    AGG-131/核对差旅月账单:
+      command: 核对差旅月账单
+      aggregate: AGG-131
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#核对差旅月账单
+    AGG-131/处理账单差异:
+      command: 处理账单差异
+      aggregate: AGG-131
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#处理账单差异
+    AGG-131/确认差旅账单应付:
+      command: 确认差旅账单应付
+      aggregate: AGG-131
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#确认差旅账单应付
+    AGG-131/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-131
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交过账候选
+    AGG-131/登记超标订单待审批:
+      command: 登记超标订单待审批
+      aggregate: AGG-131
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记超标订单待审批
+    AGG-131/批准差旅超标订单:
+      command: 批准差旅超标订单
+      aggregate: AGG-131
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#批准差旅超标订单
+    AGG-131/驳回差旅超标订单:
+      command: 驳回差旅超标订单
+      aggregate: AGG-131
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#驳回差旅超标订单
+    AGG-132/提交出差申请:
+      command: 提交出差申请
+      aggregate: AGG-132
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#提交出差申请
+    AGG-132/批准出差申请:
+      command: 批准出差申请
+      aggregate: AGG-132
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#批准出差申请
+    AGG-132/驳回出差申请:
+      command: 驳回出差申请
+      aggregate: AGG-132
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#驳回出差申请
+    AGG-132/撤回出差申请:
+      command: 撤回出差申请
+      aggregate: AGG-132
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#撤回出差申请
+    AGG-132/登记出差申请已同步:
+      command: 登记出差申请已同步
+      aggregate: AGG-132
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#登记出差申请已同步
+    AGG-133/编制出差补贴标准版本:
+      command: 编制出差补贴标准版本
+      aggregate: AGG-133
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#编制出差补贴标准版本
+    AGG-133/发布出差补贴标准版本:
+      command: 发布出差补贴标准版本
+      aggregate: AGG-133
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/finance/commands.yaml#发布出差补贴标准版本
+    AGG-60/登记法人主体:
+      command: 登记法人主体
+      aggregate: AGG-60
+      bc: null
+      state_change: 创建 → 有效
+      src: architecture/proposals/closeout/people/commands.yaml#登记法人主体
+    AGG-60/更名法人主体:
+      command: 更名法人主体
+      aggregate: AGG-60
+      bc: null
+      state_change: 有效 → 有效（追加名称版本）
+      src: architecture/proposals/closeout/people/commands.yaml#更名法人主体
+    AGG-60/停用法人主体:
+      command: 停用法人主体
+      aggregate: AGG-60
+      bc: null
+      state_change: 有效 → 已停用
+      src: architecture/proposals/closeout/people/commands.yaml#停用法人主体
+    AGG-60/启用法人主体:
+      command: 启用法人主体
+      aggregate: AGG-60
+      bc: null
+      state_change: 已停用 → 有效（恢复）
+      src: architecture/proposals/closeout/people/commands.yaml#启用法人主体
+    AGG-61/调整组织单元:
+      command: 调整组织单元
+      aggregate: AGG-61
+      bc: null
+      state_change: 创建 → 启用；启用 ⇄ 停用；启用 / 停用 → 已撤销
+      src: architecture/proposals/closeout/people/commands.yaml#调整组织单元
+    AGG-117/指定法人归属:
+      command: 指定法人归属
+      aggregate: AGG-117
+      bc: null
+      state_change: 创建 / 追加期间 → 已指定
+      src: architecture/proposals/closeout/people/commands.yaml#指定法人归属
+    AGG-117/更正法人归属:
+      command: 更正法人归属
+      aggregate: AGG-117
+      bc: null
+      state_change: 已指定 → 已指定（追加更正行）
+      src: architecture/proposals/closeout/people/commands.yaml#更正法人归属
+    AGG-64/停用岗位:
+      command: 停用岗位
+      aggregate: AGG-64
+      bc: null
+      state_change: 启用 → 已停用
+      src: architecture/proposals/closeout/people/commands.yaml#停用岗位
+    AGG-64/新建岗位:
+      command: 新建岗位
+      aggregate: AGG-64
+      bc: null
+      state_change: 创建 → 启用
+      src: architecture/proposals/closeout/people/commands.yaml#新建岗位
+    AGG-64/修改岗位:
+      command: 修改岗位
+      aggregate: AGG-64
+      bc: null
+      state_change: 启用 → 启用（追加版本）
+      src: architecture/proposals/closeout/people/commands.yaml#修改岗位
+    AGG-65/提交招聘需求:
+      command: 提交招聘需求
+      aggregate: AGG-65
+      bc: null
+      state_change: 草稿 → 已提交
+      src: architecture/proposals/closeout/people/commands.yaml#提交招聘需求
+    AGG-65/批准招聘需求:
+      command: 批准招聘需求
+      aggregate: AGG-65
+      bc: null
+      state_change: 已提交 → 已批准
+      src: architecture/proposals/closeout/people/commands.yaml#批准招聘需求
+    AGG-65/关闭招聘需求:
+      command: 关闭招聘需求
+      aggregate: AGG-65
+      bc: null
+      state_change: 已提交 / 已批准 → 已关闭
+      src: architecture/proposals/closeout/people/commands.yaml#关闭招聘需求
+    AGG-62/登记候选人:
+      command: 登记候选人
+      aggregate: AGG-62
+      bc: null
+      state_change: 创建 → 人员:候选人
+      src: architecture/proposals/closeout/people/commands.yaml#登记候选人
+    AGG-62/记录面试:
+      command: 记录面试
+      aggregate: AGG-62
+      bc: null
+      state_change: 人员:候选人 → 人员:候选人（追加面试行）
+      src: architecture/proposals/closeout/people/commands.yaml#记录面试
+    AGG-62/作出录用决定:
+      command: 作出录用决定
+      aggregate: AGG-62
+      bc: null
+      state_change: 人员:候选人 → 人员:待答复
+      src: architecture/proposals/closeout/people/commands.yaml#作出录用决定
+    AGG-62/登记候选人答复:
+      command: 登记候选人答复
+      aggregate: AGG-62
+      bc: null
+      state_change: 人员:待答复 → 人员:录用已确认（接受）/ 人员:候选人已放弃（放弃）
+      src: architecture/proposals/closeout/people/commands.yaml#登记候选人答复
+    AGG-62/标记未录用:
+      command: 标记未录用
+      aggregate: AGG-62
+      bc: null
+      state_change: 人员:候选人 → 人员:未录用
+      src: architecture/proposals/closeout/people/commands.yaml#标记未录用
+    AGG-62/登记入职:
+      command: 登记入职
+      aggregate: AGG-62
+      bc: null
+      state_change: 人员:录用已确认 / 创建 → 人员:待入职
+      src: architecture/proposals/closeout/people/commands.yaml#登记入职
+    AGG-62/入职生效:
+      command: 入职生效
+      aggregate: AGG-62
+      bc: null
+      state_change: 人员:待入职 → 人员:试用期 / 人员:正式
+      src: architecture/proposals/closeout/people/commands.yaml#入职生效
+    AGG-62/办理转正:
+      command: 办理转正
+      aggregate: AGG-62
+      bc: null
+      state_change: 人员:试用期 → 人员:正式
+      src: architecture/proposals/closeout/people/commands.yaml#办理转正
+    AGG-62/申请离职:
+      command: 申请离职
+      aggregate: AGG-62
+      bc: null
+      state_change: 创建 → 离职申请:已受理（来源=员工）/ 离职申请:已申请（来源=公司终止）
+      src: architecture/proposals/closeout/people/commands.yaml#申请离职
+    AGG-62/批准公司终止:
+      command: 批准公司终止
+      aggregate: AGG-62
+      bc: null
+      state_change: 离职申请:已申请 → 离职申请:已批准
+      src: architecture/proposals/closeout/people/commands.yaml#批准公司终止
+    AGG-62/驳回公司终止:
+      command: 驳回公司终止
+      aggregate: AGG-62
+      bc: null
+      state_change: 离职申请:已申请 → 离职申请:已驳回
+      src: architecture/proposals/closeout/people/commands.yaml#驳回公司终止
+    AGG-62/撤回离职申请:
+      command: 撤回离职申请
+      aggregate: AGG-62
+      bc: null
+      state_change: 离职申请:已受理 → 离职申请:已撤回
+      src: architecture/proposals/closeout/people/commands.yaml#撤回离职申请
+    AGG-62/办理离职:
+      command: 办理离职
+      aggregate: AGG-62
+      bc: null
+      state_change: 离职申请:已受理 / 已批准 → 离职申请:已登记；人员:试用期 / 正式 → 人员:待离职（同事务）
+      src: architecture/proposals/closeout/people/commands.yaml#办理离职
+    AGG-62/离职生效:
+      command: 离职生效
+      aggregate: AGG-62
+      bc: null
+      state_change: 人员:待离职 → 人员:已离职；离职申请:已登记 → 离职申请:已生效（同事务）
+      src: architecture/proposals/closeout/people/commands.yaml#离职生效
+    AGG-62/撤销离职登记:
+      command: 撤销离职登记
+      aggregate: AGG-62
+      bc: null
+      state_change: 离职申请:已登记 → 离职申请:已撤销；人员:待离职 → 人员:试用期 / 正式（同事务）
+      src: architecture/proposals/closeout/people/commands.yaml#撤销离职登记
+    AGG-63/建立任职:
+      command: 建立任职
+      aggregate: AGG-63
+      bc: null
+      state_change: 创建 → 任职:生效中
+      src: architecture/proposals/closeout/people/commands.yaml#建立任职
+    AGG-63/终止任职:
+      command: 终止任职
+      aggregate: AGG-63
+      bc: null
+      state_change: 任职:生效中 → 任职:已终止
+      src: architecture/proposals/closeout/people/commands.yaml#终止任职
+    AGG-63/提交调岗申请:
+      command: 提交调岗申请
+      aggregate: AGG-63
+      bc: null
+      state_change: 创建 → 调岗申请:已提交
+      src: architecture/proposals/closeout/people/commands.yaml#提交调岗申请
+    AGG-63/批准调岗申请:
+      command: 批准调岗申请
+      aggregate: AGG-63
+      bc: null
+      state_change: 调岗申请:已提交 → 调岗申请:已批准
+      src: architecture/proposals/closeout/people/commands.yaml#批准调岗申请
+    AGG-63/驳回调岗申请:
+      command: 驳回调岗申请
+      aggregate: AGG-63
+      bc: null
+      state_change: 调岗申请:已提交 → 调岗申请:已驳回
+      src: architecture/proposals/closeout/people/commands.yaml#驳回调岗申请
+    AGG-63/变更任职:
+      command: 变更任职
+      aggregate: AGG-63
+      bc: null
+      state_change: 任职:生效中 → 任职:变更待生效；调岗申请:已批准 → 调岗申请:已写入（同事务）
+      src: architecture/proposals/closeout/people/commands.yaml#变更任职
+    AGG-63/任职变更生效:
+      command: 任职变更生效
+      aggregate: AGG-63
+      bc: null
+      state_change: 任职:变更待生效 → 任职:生效中；调岗申请:已写入 → 调岗申请:已生效（同事务）
+      src: architecture/proposals/closeout/people/commands.yaml#任职变更生效
+    AGG-66/登记继续教育学时:
+      command: 登记继续教育学时
+      aggregate: AGG-66
+      bc: null
+      state_change: 有效 → 有效（追加学时）
+      src: architecture/proposals/closeout/people/commands.yaml#登记继续教育学时
+    AGG-66/延续注册执业证书:
+      command: 延续注册执业证书
+      aggregate: AGG-66
+      bc: null
+      state_change: 有效 → 有效（追加注册期）
+      src: architecture/proposals/closeout/people/commands.yaml#延续注册执业证书
+    AGG-66/标记执业证书已到期:
+      command: 标记执业证书已到期
+      aggregate: AGG-66
+      bc: null
+      state_change: 有效 → 已到期
+      src: architecture/proposals/closeout/people/commands.yaml#标记执业证书已到期
+    AGG-66/登记注册执业证书:
+      command: 登记注册执业证书
+      aggregate: AGG-66
+      bc: null
+      state_change: 创建 → 有效
+      src: architecture/proposals/closeout/people/commands.yaml#登记注册执业证书
+    AGG-66/注销注册执业证书:
+      command: 注销注册执业证书
+      aggregate: AGG-66
+      bc: null
+      state_change: 有效 → 已注销
+      src: architecture/proposals/closeout/people/commands.yaml#注销注册执业证书
+    AGG-67/提交劳动合同:
+      command: 提交劳动合同
+      aggregate: AGG-67
+      bc: null
+      state_change: 草案 → 审批中（常规）/ 草案 → 已批准（R-04 跨法人免批）
+      src: architecture/proposals/closeout/people/commands.yaml#提交劳动合同
+    AGG-67/批准劳动合同:
+      command: 批准劳动合同
+      aggregate: AGG-67
+      bc: null
+      state_change: 审批中 → 已批准
+      src: architecture/proposals/closeout/people/commands.yaml#批准劳动合同
+    AGG-67/驳回劳动合同:
+      command: 驳回劳动合同
+      aggregate: AGG-67
+      bc: null
+      state_change: 审批中 → 草案（退回人力修改）
+      src: architecture/proposals/closeout/people/commands.yaml#驳回劳动合同
+    AGG-67/签订劳动合同:
+      command: 签订劳动合同
+      aggregate: AGG-67
+      bc: null
+      state_change: 已批准 → 已签署生效
+      src: architecture/proposals/closeout/people/commands.yaml#签订劳动合同
+    AGG-67/登记劳动合同终止依据:
+      command: 登记劳动合同终止依据
+      aggregate: AGG-67
+      bc: null
+      state_change: 已签署生效 → 已签署生效（登记依据）
+      src: architecture/proposals/closeout/people/commands.yaml#登记劳动合同终止依据
+    AGG-67/终止劳动合同:
+      command: 终止劳动合同
+      aggregate: AGG-67
+      bc: null
+      state_change: 已签署生效 → 已终止
+      src: architecture/proposals/closeout/people/commands.yaml#终止劳动合同
+    AGG-69/导入考勤记录:
+      command: 导入考勤记录
+      aggregate: AGG-69
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#导入考勤记录
+    AGG-69/补卡:
+      command: 补卡
+      aggregate: AGG-69
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#补卡
+    AGG-70/提交请假:
+      command: 提交请假
+      aggregate: AGG-70
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#提交请假
+    AGG-70/批准请假:
+      command: 批准请假
+      aggregate: AGG-70
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#批准请假
+    AGG-70/驳回请假:
+      command: 驳回请假
+      aggregate: AGG-70
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#驳回请假
+    AGG-70/撤销请假:
+      command: 撤销请假
+      aggregate: AGG-70
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#撤销请假
+    AGG-70/销假:
+      command: 销假
+      aggregate: AGG-70
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#销假
+    AGG-71/占用余额:
+      command: 占用余额
+      aggregate: AGG-71
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#占用余额
+    AGG-71/批准转已用:
+      command: 批准转已用
+      aggregate: AGG-71
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#批准转已用
+    AGG-71/释放余额占用:
+      command: 释放余额占用
+      aggregate: AGG-71
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#释放余额占用
+    AGG-71/回冲已用额度:
+      command: 回冲已用额度
+      aggregate: AGG-71
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#回冲已用额度
+    AGG-71/开立年度额度账户:
+      command: 开立年度额度账户
+      aggregate: AGG-71
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#开立年度额度账户
+    AGG-71/年度结转额度账户:
+      command: 年度结转额度账户
+      aggregate: AGG-71
+      bc: null
+      state_change: 已开账 → 已结转
+      src: architecture/proposals/closeout/people/commands.yaml#年度结转额度账户
+    AGG-71/计入补休额度:
+      command: 计入补休额度
+      aggregate: AGG-71
+      bc: null
+      state_change: 创建 → 有效
+      src: architecture/proposals/closeout/people/commands.yaml#计入补休额度
+    AGG-71/补休到期转计薪:
+      command: 补休到期转计薪
+      aggregate: AGG-71
+      bc: null
+      state_change: 有效 → 已转计薪（余额大于零）；有效 → 已休完（余额为零）
+      src: architecture/proposals/closeout/people/commands.yaml#补休到期转计薪
+    AGG-72/提交加班申请:
+      command: 提交加班申请
+      aggregate: AGG-72
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#提交加班申请
+    AGG-72/批准加班:
+      command: 批准加班
+      aggregate: AGG-72
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#批准加班
+    AGG-72/驳回加班:
+      command: 驳回加班
+      aggregate: AGG-72
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#驳回加班
+    AGG-72/标记加班已补偿:
+      command: 标记加班已补偿
+      aggregate: AGG-72
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#标记加班已补偿
+    AGG-72/标记加班已计补休:
+      command: 标记加班已计补休
+      aggregate: AGG-72
+      bc: null
+      state_change: 已批准 → 已计入补休额度
+      src: architecture/proposals/closeout/people/commands.yaml#标记加班已计补休
+    AGG-97/生成月度考勤:
+      command: 生成月度考勤
+      aggregate: AGG-97
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#生成月度考勤
+    AGG-97/员工确认:
+      command: 员工确认
+      aggregate: AGG-97
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#员工确认
+    AGG-97/重新生成月度考勤:
+      command: 重新生成月度考勤
+      aggregate: AGG-97
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#重新生成月度考勤
+    AGG-97/默认确认月度考勤:
+      command: 默认确认月度考勤
+      aggregate: AGG-97
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#默认确认月度考勤
+    AGG-97/锁定:
+      command: 锁定
+      aggregate: AGG-97
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#锁定
+    AGG-118/发布假期规则版本:
+      command: 发布假期规则版本
+      aggregate: AGG-118
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#发布假期规则版本
+    AGG-68/维护工作日历年度:
+      command: 维护工作日历年度
+      aggregate: AGG-68
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#维护工作日历年度
+    AGG-108/发布标准工时版本:
+      command: 发布标准工时版本
+      aggregate: AGG-108
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#发布标准工时版本
+    AGG-106/编制绩效评估:
+      command: 编制绩效评估
+      aggregate: AGG-106
+      bc: null
+      state_change: 创建草拟
+      src: architecture/proposals/closeout/people/commands.yaml#编制绩效评估
+    AGG-106/编制试用期绩效评估:
+      command: 编制试用期绩效评估
+      aggregate: AGG-106
+      bc: null
+      state_change: 创建草拟
+      src: architecture/proposals/closeout/people/commands.yaml#编制试用期绩效评估
+    AGG-106/提交绩效评估:
+      command: 提交绩效评估
+      aggregate: AGG-106
+      bc: null
+      state_change: 草拟 → 已提交
+      src: architecture/proposals/closeout/people/commands.yaml#提交绩效评估
+    AGG-106/确认绩效评估:
+      command: 确认绩效评估
+      aggregate: AGG-106
+      bc: null
+      state_change: 已提交 → 已确认（试用期可草拟 → 已确认）
+      src: architecture/proposals/closeout/people/commands.yaml#确认绩效评估
+    AGG-106/登记绩效更正:
+      command: 登记绩效更正
+      aggregate: AGG-106
+      bc: null
+      state_change: 已确认 → 已确认（追加更正记录，不改状态）
+      src: architecture/proposals/closeout/people/commands.yaml#登记绩效更正
+    AGG-73/计算月度薪酬:
+      command: 计算月度薪酬
+      aggregate: AGG-73
+      bc: null
+      state_change: 创建 → 已计算；已计算 → 已计算（重算）；已退回 → 已计算
+      src: architecture/proposals/closeout/people/commands.yaml#计算月度薪酬
+    AGG-73/提交薪酬审核:
+      command: 提交薪酬审核
+      aggregate: AGG-73
+      bc: null
+      state_change: 已计算 → 审核中
+      src: architecture/proposals/closeout/people/commands.yaml#提交薪酬审核
+    AGG-73/批准月度薪酬:
+      command: 批准月度薪酬
+      aggregate: AGG-73
+      bc: null
+      state_change: 审核中 → 已批准
+      src: architecture/proposals/closeout/people/commands.yaml#批准月度薪酬
+    AGG-73/退回薪酬重算:
+      command: 退回薪酬重算
+      aggregate: AGG-73
+      bc: null
+      state_change: 审核中 → 已退回
+      src: architecture/proposals/closeout/people/commands.yaml#退回薪酬重算
+    AGG-73/撤回薪酬审核:
+      command: 撤回薪酬审核
+      aggregate: AGG-73
+      bc: null
+      state_change: 审核中 → 已退回
+      src: architecture/proposals/closeout/people/commands.yaml#撤回薪酬审核
+    AGG-73/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-73
+      bc: null
+      state_change: none（只写过账引用，不改状态）
+      src: architecture/proposals/closeout/people/commands.yaml#提交过账候选
+    AGG-73/标记薪酬已发放:
+      command: 标记薪酬已发放
+      aggregate: AGG-73
+      bc: null
+      state_change: 已批准 → 已发放
+      src: architecture/proposals/closeout/people/commands.yaml#标记薪酬已发放
+    AGG-73/标记薪酬已过账:
+      command: 标记薪酬已过账
+      aggregate: AGG-73
+      bc: null
+      state_change: 已发放 → 已过账；已批准 → 已批准（只置位）
+      src: architecture/proposals/closeout/people/commands.yaml#标记薪酬已过账
+    AGG-74/参保增员:
+      command: 参保增员
+      aggregate: AGG-74
+      bc: null
+      state_change: 创建 → 在缴
+      src: architecture/proposals/closeout/people/commands.yaml#参保增员
+    AGG-74/参保减员:
+      command: 参保减员
+      aggregate: AGG-74
+      bc: null
+      state_change: 在缴 → 已减员
+      src: architecture/proposals/closeout/people/commands.yaml#参保减员
+    AGG-74/变更参保缴纳主体:
+      command: 变更参保缴纳主体
+      aggregate: AGG-74
+      bc: null
+      state_change: 原登记 在缴 → 已减员；同事务为新缴纳主体创建登记 → 在缴
+      src: architecture/proposals/closeout/people/commands.yaml#变更参保缴纳主体
+    AGG-74/调整缴费基数:
+      command: 调整缴费基数
+      aggregate: AGG-74
+      bc: null
+      state_change: 在缴 → 在缴（追加新版本，不改状态）
+      src: architecture/proposals/closeout/people/commands.yaml#调整缴费基数
+    AGG-75/编制激励方案版本:
+      command: 编制激励方案版本
+      aggregate: AGG-75
+      bc: null
+      state_change: 草稿 → 审批中
+      src: architecture/proposals/closeout/people/commands.yaml#编制激励方案版本
+    AGG-75/生效激励方案版本:
+      command: 生效激励方案版本
+      aggregate: AGG-75
+      bc: null
+      state_change: 审批中 → 已生效或已批准；已批准 → 已生效；已生效 → 已结束（旧版本，同事务）
+      src: architecture/proposals/closeout/people/commands.yaml#生效激励方案版本
+    AGG-75/驳回激励方案版本:
+      command: 驳回激励方案版本
+      aggregate: AGG-75
+      bc: null
+      state_change: 审批中 → 草稿
+      src: architecture/proposals/closeout/people/commands.yaml#驳回激励方案版本
+    AGG-75/撤回激励方案版本:
+      command: 撤回激励方案版本
+      aggregate: AGG-75
+      bc: null
+      state_change: 审批中 → 已撤回
+      src: architecture/proposals/closeout/people/commands.yaml#撤回激励方案版本
+    AGG-76/草拟奖金核定:
+      command: 草拟奖金核定
+      aggregate: AGG-76
+      bc: null
+      state_change: 创建 → 草拟
+      src: architecture/proposals/closeout/people/commands.yaml#草拟奖金核定
+    AGG-76/核定奖金:
+      command: 核定奖金
+      aggregate: AGG-76
+      bc: null
+      state_change: 草拟 → 已核定
+      src: architecture/proposals/closeout/people/commands.yaml#核定奖金
+    AGG-76/驳回奖金核定:
+      command: 驳回奖金核定
+      aggregate: AGG-76
+      bc: null
+      state_change: 草拟 → 已驳回
+      src: architecture/proposals/closeout/people/commands.yaml#驳回奖金核定
+    AGG-93/建立薪酬档案:
+      command: 建立薪酬档案
+      aggregate: AGG-93
+      bc: null
+      state_change: 创建 → 生效（首个版本）
+      src: architecture/proposals/closeout/people/commands.yaml#建立薪酬档案
+    AGG-93/调整薪酬档案:
+      command: 调整薪酬档案
+      aggregate: AGG-93
+      bc: null
+      state_change: 创建 → 生效（新版本）；生效 → 已结束（旧版本，同事务）
+      src: architecture/proposals/closeout/people/commands.yaml#调整薪酬档案
+    AGG-93/登记补休转加班工资:
+      command: 登记补休转加班工资
+      aggregate: AGG-93
+      bc: null
+      state_change: none（只追加登记行，不改状态）
+      src: architecture/proposals/closeout/people/commands.yaml#登记补休转加班工资
+    AGG-93/终止薪酬档案:
+      command: 终止薪酬档案
+      aggregate: AGG-93
+      bc: null
+      state_change: 生效 → 已结束（最后一个版本）
+      src: architecture/proposals/closeout/people/commands.yaml#终止薪酬档案
+    AGG-120/更新专项附加扣除:
+      command: 更新专项附加扣除
+      aggregate: AGG-120
+      bc: null
+      state_change: 创建 → 有效；有效 → 已取代（旧声明，同事务）
+      src: architecture/proposals/closeout/people/commands.yaml#更新专项附加扣除
+    AGG-95/并入扣缴申报:
+      command: 并入扣缴申报
+      aggregate: AGG-95
+      bc: null
+      state_change: 创建 → 待申报；待申报 → 待申报（追加行）
+      src: architecture/proposals/closeout/people/commands.yaml#并入扣缴申报
+    AGG-95/生成申报:
+      command: 生成申报
+      aggregate: AGG-95
+      bc: null
+      state_change: 创建 → 待申报；待申报 → 待申报（重新汇总）
+      src: architecture/proposals/closeout/people/commands.yaml#生成申报
+    AGG-95/提交申报:
+      command: 提交申报
+      aggregate: AGG-95
+      bc: null
+      state_change: 待申报 → 已申报
+      src: architecture/proposals/closeout/people/commands.yaml#提交申报
+    AGG-95/登记缴款:
+      command: 登记缴款
+      aggregate: AGG-95
+      bc: null
+      state_change: 已申报 → 已缴款
+      src: architecture/proposals/closeout/people/commands.yaml#登记缴款
+    AGG-95/更正申报:
+      command: 更正申报
+      aggregate: AGG-95
+      bc: null
+      state_change: 原申报 已申报 → 已更正；创建 → 已申报（新申报行）
+      src: architecture/proposals/closeout/people/commands.yaml#更正申报
+    AGG-95/提交过账候选:
+      command: 提交过账候选
+      aggregate: AGG-95
+      bc: null
+      state_change: none（只写过账引用，不改状态）
+      src: architecture/proposals/closeout/people/commands.yaml#提交过账候选
+    AGG-119/发布薪酬规则版本:
+      command: 发布薪酬规则版本
+      aggregate: AGG-119
+      bc: null
+      state_change: 草稿 → 已生效；已生效 → 已被取代（前一版本，同事务）
+      src: architecture/proposals/closeout/people/commands.yaml#发布薪酬规则版本
+    AGG-79/编制经营计划版本:
+      command: 编制经营计划版本
+      aggregate: AGG-79
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#编制经营计划版本
+    AGG-79/〔缺〕提交经营计划审批:
+      command: 〔缺〕提交经营计划审批
+      aggregate: AGG-79
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#〔缺〕提交经营计划审批
+    AGG-79/〔缺〕撤回经营计划审批:
+      command: 〔缺〕撤回经营计划审批
+      aggregate: AGG-79
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#〔缺〕撤回经营计划审批
+    AGG-79/〔缺〕驳回经营计划审批:
+      command: 〔缺〕驳回经营计划审批
+      aggregate: AGG-79
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#〔缺〕驳回经营计划审批
+    AGG-79/〔缺〕通过经营计划审批:
+      command: 〔缺〕通过经营计划审批
+      aggregate: AGG-79
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#〔缺〕通过经营计划审批
+    AGG-79/基线化经营计划:
+      command: 基线化经营计划
+      aggregate: AGG-79
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#基线化经营计划
+    AGG-79/编制预测版本:
+      command: 编制预测版本
+      aggregate: AGG-79
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#编制预测版本
+    AGG-79/编制现金流预测:
+      command: 编制现金流预测
+      aggregate: AGG-79
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#编制现金流预测
+    AGG-79/〔缺〕创建经营复盘:
+      command: 〔缺〕创建经营复盘
+      aggregate: AGG-79
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#〔缺〕创建经营复盘
+    AGG-79/〔缺〕记录偏差解释:
+      command: 〔缺〕记录偏差解释
+      aggregate: AGG-79
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#〔缺〕记录偏差解释
+    AGG-79/〔缺〕确定经营动作:
+      command: 〔缺〕确定经营动作
+      aggregate: AGG-79
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#〔缺〕确定经营动作
+    AGG-79/〔缺〕定稿经营复盘:
+      command: 〔缺〕定稿经营复盘
+      aggregate: AGG-79
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#〔缺〕定稿经营复盘
+    AGG-79/〔缺〕完成经营动作:
+      command: 〔缺〕完成经营动作
+      aggregate: AGG-79
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#〔缺〕完成经营动作
+    AGG-80/开立预算账户:
+      command: 开立预算账户
+      aggregate: AGG-80
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#开立预算账户
+    AGG-80/调整预算:
+      command: 调整预算
+      aggregate: AGG-80
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#调整预算
+    AGG-80/占用预算:
+      command: 占用预算
+      aggregate: AGG-80
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#占用预算
+    AGG-80/释放预算占用:
+      command: 释放预算占用
+      aggregate: AGG-80
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#释放预算占用
+    AGG-80/调整预算占用:
+      command: 调整预算占用
+      aggregate: AGG-80
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#调整预算占用
+    AGG-80/〔缺〕消耗预算占用:
+      command: 〔缺〕消耗预算占用
+      aggregate: AGG-80
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#〔缺〕消耗预算占用
+    AGG-80/关闭预算账户:
+      command: 关闭预算账户
+      aggregate: AGG-80
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#关闭预算账户
+    AGG-79/作废经营计划草稿:
+      command: 作废经营计划草稿
+      aggregate: AGG-79
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#作废经营计划草稿
+    AGG-107/创建知识条目:
+      command: 创建知识条目
+      aggregate: AGG-107
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#创建知识条目
+    AGG-107/起草知识条目:
+      command: 起草知识条目
+      aggregate: AGG-107
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#起草知识条目
+    AGG-107/提交知识条目评审:
+      command: 提交知识条目评审
+      aggregate: AGG-107
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#提交知识条目评审
+    AGG-107/评审知识条目:
+      command: 评审知识条目
+      aggregate: AGG-107
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#评审知识条目
+    AGG-107/发布知识条目:
+      command: 发布知识条目
+      aggregate: AGG-107
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#发布知识条目
+    AGG-107/修订知识条目:
+      command: 修订知识条目
+      aggregate: AGG-107
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#修订知识条目
+    AGG-107/废止知识条目:
+      command: 废止知识条目
+      aggregate: AGG-107
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#废止知识条目
+    AGG-113/提交用印申请:
+      command: 提交用印申请
+      aggregate: AGG-113
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#提交用印申请
+    AGG-113/批准用印申请:
+      command: 批准用印申请
+      aggregate: AGG-113
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#批准用印申请
+    AGG-113/驳回用印申请:
+      command: 驳回用印申请
+      aggregate: AGG-113
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#驳回用印申请
+    AGG-113/撤回用印申请:
+      command: 撤回用印申请
+      aggregate: AGG-113
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#撤回用印申请
+    AGG-113/登记用印:
+      command: 登记用印
+      aggregate: AGG-113
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#登记用印
+    AGG-113/关闭用印申请:
+      command: 关闭用印申请
+      aggregate: AGG-113
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#关闭用印申请
+    AGG-114/提交 IT 需求:
+      command: 提交 IT 需求
+      aggregate: AGG-114
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#提交 IT 需求
+    AGG-114/批准 IT 需求:
+      command: 批准 IT 需求
+      aggregate: AGG-114
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#批准 IT 需求
+    AGG-114/驳回 IT 需求:
+      command: 驳回 IT 需求
+      aggregate: AGG-114
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#驳回 IT 需求
+    AGG-114/撤回 IT 需求:
+      command: 撤回 IT 需求
+      aggregate: AGG-114
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#撤回 IT 需求
+    AGG-114/受理 IT 需求:
+      command: 受理 IT 需求
+      aggregate: AGG-114
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#受理 IT 需求
+    AGG-114/解决 IT 需求:
+      command: 解决 IT 需求
+      aggregate: AGG-114
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#解决 IT 需求
+    AGG-114/关闭 IT 需求:
+      command: 关闭 IT 需求
+      aggregate: AGG-114
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#关闭 IT 需求
+    AGG-114/退回 IT 需求:
+      command: 退回 IT 需求
+      aggregate: AGG-114
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#退回 IT 需求
+    AGG-115/申请领用资产:
+      command: 申请领用资产
+      aggregate: AGG-115
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#申请领用资产
+    AGG-115/登记领用:
+      command: 登记领用
+      aggregate: AGG-115
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#登记领用
+    AGG-115/申请调拨资产:
+      command: 申请调拨资产
+      aggregate: AGG-115
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#申请调拨资产
+    AGG-115/撤销调拨申请:
+      command: 撤销调拨申请
+      aggregate: AGG-115
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#撤销调拨申请
+    AGG-115/调拨资产:
+      command: 调拨资产
+      aggregate: AGG-115
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#调拨资产
+    AGG-115/归还资产:
+      command: 归还资产
+      aggregate: AGG-115
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#归还资产
+    AGG-121/报修资产:
+      command: 报修资产
+      aggregate: AGG-121
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#报修资产
+    AGG-121/登记维修结果:
+      command: 登记维修结果
+      aggregate: AGG-121
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#登记维修结果
+    AGG-116/提交员工活动申请:
+      command: 提交员工活动申请
+      aggregate: AGG-116
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#提交员工活动申请
+    AGG-116/完成员工活动:
+      command: 完成员工活动
+      aggregate: AGG-116
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#完成员工活动
+    AGG-116/取消员工活动登记:
+      command: 取消员工活动登记
+      aggregate: AGG-116
+      bc: null
+      state_change: null
+      src: architecture/proposals/closeout/people/commands.yaml#取消员工活动登记
     cost.timesheet/SubmitTimesheet:
       command: SubmitTimesheet
       aggregate: cost.timesheet/Timesheet
@@ -7346,6 +9333,2162 @@ nodes:
       aggregate: platform.numbering/NumberingRule
       obj: null
       kind: null
+  steps:
+  - prc: PRC-15
+    step: 1
+    aggregate: AGG-43
+    command: 售前投入转费用
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-15.steps[1]
+  - prc: PRC-15
+    step: 2
+    aggregate: AGG-43
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-15.steps[2]
+  - prc: PRC-15
+    step: 3
+    aggregate: AGG-43
+    command: 标记成本结转已过账
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-15.steps[3]
+  - prc: PRC-15
+    step: 4
+    aggregate: AGG-122
+    command: 标记售前投入已转费用
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-15.steps[4]
+  - prc: PRC-25
+    step: 1
+    aggregate: AGG-122
+    command: 登记合同已签回
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-25.steps[1]
+  - prc: PRC-25
+    step: 2
+    aggregate: AGG-122
+    command: 登记项目已建立
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-25.steps[2]
+  - prc: PRC-25
+    step: 3
+    aggregate: AGG-122
+    command: 登记售前投入挂接归属
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-25.steps[3]
+  - prc: PRC-25
+    step: 4
+    aggregate: AGG-43
+    command: 转入售前投入
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-25.steps[4]
+  - prc: PRC-25
+    step: 5
+    aggregate: AGG-43
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-25.steps[5]
+  - prc: PRC-25
+    step: 6
+    aggregate: AGG-43
+    command: 标记成本结转已过账
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-25.steps[6]
+  - prc: PRC-25
+    step: 7
+    aggregate: AGG-122
+    command: 标记售前投入已转入
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-25.steps[7]
+  - prc: PRC-35
+    step: 1
+    aggregate: AGG-43
+    command: 终止清算成本
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-35.steps[1]
+  - prc: PRC-35
+    step: 2
+    aggregate: AGG-43
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-35.steps[2]
+  - prc: PRC-35
+    step: 3
+    aggregate: AGG-43
+    command: 标记成本结转已过账
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-35.steps[3]
+  - prc: PRC-55
+    step: 1
+    aggregate: AGG-43
+    command: 结转合同履约成本
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-55.steps[1]
+  - prc: PRC-55
+    step: 2
+    aggregate: AGG-43
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-55.steps[2]
+  - prc: PRC-55
+    step: 3
+    aggregate: AGG-43
+    command: 标记成本结转已过账
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-55.steps[3]
+  - prc: PRC-64
+    step: 1
+    aggregate: AGG-88
+    command: 导入银行流水
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-64.steps[1]
+  - prc: PRC-64
+    step: 2
+    aggregate: AGG-88
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-64.steps[2]
+  - prc: PRC-70
+    step: 2
+    aggregate: AGG-80
+    command: 占用预算
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-70.steps[2]
+  - prc: PRC-70
+    step: 3
+    aggregate: AGG-55
+    command: 起草供方协议
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-70.steps[3]
+  - prc: PRC-70
+    step: 5
+    aggregate: AGG-55
+    command: 生效供方协议
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-70.steps[5]
+  - prc: PRC-70
+    step: 6
+    aggregate: AGG-58
+    command: 建立履约额度
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-70.steps[6]
+  - prc: PRC-70
+    step: 7
+    aggregate: AGG-80
+    command: 释放预算占用
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-70.steps[7]
+  - prc: PRC-71
+    step: 1
+    aggregate: AGG-56
+    command: 提出分包变更
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-71.steps[1]
+  - prc: PRC-71
+    step: 3
+    aggregate: AGG-56
+    command: 生效分包变更
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-71.steps[3]
+  - prc: PRC-71
+    step: 4
+    aggregate: AGG-80
+    command: 调整预算占用
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-71.steps[4]
+  - prc: PRC-71
+    step: 5
+    aggregate: AGG-58
+    command: 供方额度更新
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-71.steps[5]
+  - prc: PRC-72
+    step: 2
+    aggregate: AGG-58
+    command: 占用履约额度
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-72.steps[2]
+  - prc: PRC-72
+    step: 3
+    aggregate: AGG-57
+    command: 确认供方履约
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-72.steps[3]
+  - prc: PRC-72
+    step: 4
+    aggregate: AGG-57
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-72.steps[4]
+  - prc: PRC-72
+    step: 5
+    aggregate: AGG-58
+    command: 释放履约额度
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-72.steps[5]
+  - prc: PRC-72
+    step: 7
+    aggregate: AGG-57
+    command: 冲销供方履约确认
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-72.steps[7]
+  - prc: PRC-72
+    step: 8
+    aggregate: AGG-58
+    command: 释放履约额度
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-72.steps[8]
+  - prc: PRC-72
+    step: 9
+    aggregate: AGG-77
+    command: 冲销并重过账
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-72.steps[9]
+  - prc: PRC-73
+    step: 1
+    aggregate: AGG-89
+    command: 登记进项发票
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-73.steps[1]
+  - prc: PRC-73
+    step: 2
+    aggregate: AGG-89
+    command: 查验进项发票
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-73.steps[2]
+  - prc: PRC-73
+    step: 3
+    aggregate: AGG-89
+    command: 确认进项发票用途
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-73.steps[3]
+  - prc: PRC-73
+    step: 4
+    aggregate: AGG-89
+    command: 进项转出
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-73.steps[4]
+  - prc: PRC-73
+    step: 5
+    aggregate: AGG-89
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-73.steps[5]
+  - prc: PRC-74
+    step: 1
+    aggregate: AGG-52
+    command: 确认应付
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-74.steps[1]
+  - prc: PRC-74
+    step: 2
+    aggregate: AGG-52
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-74.steps[2]
+  - prc: PRC-75
+    step: 3
+    aggregate: AGG-53
+    command: 发起付款
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-75.steps[3]
+  - prc: PRC-75
+    step: 4
+    aggregate: AGG-52
+    command: 释放核销占用
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-75.steps[4]
+  - prc: PRC-75
+    step: 5
+    aggregate: AGG-53
+    command: 登记银行结果
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-75.steps[5]
+  - prc: PRC-75
+    step: 6
+    aggregate: AGG-53
+    command: 登记付款失败
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-75.steps[6]
+  - prc: PRC-75
+    step: 7
+    aggregate: AGG-53
+    command: 登记退票
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-75.steps[7]
+  - prc: PRC-75
+    step: 8
+    aggregate: AGG-52
+    command: 冲回应付核销
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-75.steps[8]
+  - prc: PRC-75
+    step: 9
+    aggregate: AGG-77
+    command: 冲销并重过账
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-75.steps[9]
+  - prc: PRC-76
+    step: 1
+    aggregate: AGG-55
+    command: 完成供方协议
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-76.steps[1]
+  - prc: PRC-76
+    step: 3
+    aggregate: AGG-55
+    command: 结算供方协议
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-76.steps[3]
+  - prc: PRC-76
+    step: 5
+    aggregate: AGG-55
+    command: 终止供方协议
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-76.steps[5]
+  - prc: PRC-77
+    step: 2
+    aggregate: AGG-90
+    command: 生成申报
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-77.steps[2]
+  - prc: PRC-77
+    step: 3
+    aggregate: AGG-90
+    command: 提交申报
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-77.steps[3]
+  - prc: PRC-77
+    step: 4
+    aggregate: AGG-90
+    command: 登记缴款
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-77.steps[4]
+  - prc: PRC-77
+    step: 5
+    aggregate: AGG-90
+    command: 更正申报
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-77.steps[5]
+  - prc: PRC-77
+    step: 6
+    aggregate: AGG-90
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-77.steps[6]
+  - prc: PRC-87
+    step: 2
+    aggregate: AGG-89
+    command: 占用进项发票入账
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-87.steps[2]
+  - prc: PRC-87
+    step: 3
+    aggregate: AGG-80
+    command: 占用预算
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-87.steps[3]
+  - prc: PRC-87
+    step: 4
+    aggregate: AGG-59
+    command: 提交费用报销
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-87.steps[4]
+  - prc: PRC-87
+    step: 6
+    aggregate: AGG-59
+    command: 核定费用报销
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-87.steps[6]
+  - prc: PRC-87
+    step: 7
+    aggregate: AGG-59
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-87.steps[7]
+  - prc: PRC-87
+    step: 8
+    aggregate: AGG-80
+    command: 释放预算占用
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-87.steps[8]
+  - prc: PRC-87
+    step: 9
+    aggregate: AGG-89
+    command: 释放进项发票占用
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-87.steps[9]
+  - prc: PRC-87
+    step: 11
+    aggregate: AGG-59
+    command: 冲销费用报销
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-87.steps[11]
+  - prc: PRC-87
+    step: 12
+    aggregate: AGG-77
+    command: 冲销并重过账
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-87.steps[12]
+  - prc: PRC-92
+    step: 2
+    aggregate: AGG-77
+    command: 过账
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-92.steps[2]
+  - prc: PRC-92
+    step: 3
+    aggregate: AGG-77
+    command: 冲销并重过账
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-92.steps[3]
+  - prc: PRC-93
+    step: 1
+    aggregate: AGG-84
+    command: 生成分录
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-93.steps[1]
+  - prc: PRC-93
+    step: 2
+    aggregate: AGG-84
+    command: 推送分录
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-93.steps[2]
+  - prc: PRC-94
+    step: 1
+    aggregate: AGG-98
+    command: 制单手工凭证
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-94.steps[1]
+  - prc: PRC-94
+    step: 2
+    aggregate: AGG-98
+    command: 复核手工凭证
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-94.steps[2]
+  - prc: PRC-94
+    step: 4
+    aggregate: AGG-98
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-94.steps[4]
+  - prc: PRC-94
+    step: 5
+    aggregate: AGG-98
+    command: 作废手工凭证草稿
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-94.steps[5]
+  - prc: PRC-95
+    step: 2
+    aggregate: AGG-99
+    command: 生成期末结转运行
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-95.steps[2]
+  - prc: PRC-95
+    step: 3
+    aggregate: AGG-99
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-95.steps[3]
+  - prc: PRC-95
+    step: 5
+    aggregate: AGG-99
+    command: 冲销期末结转运行
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-95.steps[5]
+  - prc: PRC-95
+    step: 6
+    aggregate: AGG-77
+    command: 冲销并重过账
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-95.steps[6]
+  - prc: PRC-96
+    step: 2
+    aggregate: AGG-41
+    command: 试算人工成本分配
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-96.steps[2]
+  - prc: PRC-96
+    step: 3
+    aggregate: AGG-41
+    command: 确认人工成本分配
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-96.steps[3]
+  - prc: PRC-96
+    step: 4
+    aggregate: AGG-41
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-96.steps[4]
+  - prc: PRC-96
+    step: 5
+    aggregate: AGG-41
+    command: 作废人工成本分配运行
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-96.steps[5]
+  - prc: PRC-96
+    step: 7
+    aggregate: AGG-41
+    command: 冲销人工成本分配运行
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-96.steps[7]
+  - prc: PRC-96
+    step: 8
+    aggregate: AGG-77
+    command: 冲销并重过账
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-96.steps[8]
+  - prc: PRC-97
+    step: 1
+    aggregate: AGG-40
+    command: 编制分摊规则版本
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-97.steps[1]
+  - prc: PRC-97
+    step: 2
+    aggregate: AGG-40
+    command: 批准分摊规则版本
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-97.steps[2]
+  - prc: PRC-97
+    step: 3
+    aggregate: AGG-40
+    command: 生效分摊规则版本
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-97.steps[3]
+  - prc: PRC-98
+    step: 1
+    aggregate: AGG-42
+    command: 试算分摊运行
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-98.steps[1]
+  - prc: PRC-98
+    step: 2
+    aggregate: AGG-42
+    command: 生效分摊运行
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-98.steps[2]
+  - prc: PRC-98
+    step: 4
+    aggregate: AGG-42
+    command: 冲销分摊运行
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-98.steps[4]
+  - prc: PRC-98
+    step: 5
+    aggregate: AGG-77
+    command: 冲销并重过账
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-98.steps[5]
+  - prc: PRC-99
+    step: 2
+    aggregate: AGG-91
+    command: 登记公司资产
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-99.steps[2]
+  - prc: PRC-99
+    step: 3
+    aggregate: AGG-91
+    command: 计提折旧与摊销
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-99.steps[3]
+  - prc: PRC-99
+    step: 5
+    aggregate: AGG-91
+    command: 处置资产
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-99.steps[5]
+  - prc: PRC-99
+    step: 6
+    aggregate: AGG-91
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-99.steps[6]
+  - prc: PRC-100
+    step: 1
+    aggregate: AGG-82
+    command: 起草科目表版本
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-100.steps[1]
+  - prc: PRC-100
+    step: 2
+    aggregate: AGG-82
+    command: 发布科目表版本
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-100.steps[2]
+  - prc: PRC-100
+    step: 3
+    aggregate: AGG-85
+    command: 起草映射表版本
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-100.steps[3]
+  - prc: PRC-100
+    step: 4
+    aggregate: AGG-85
+    command: 发布映射表版本
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-100.steps[4]
+  - prc: PRC-100
+    step: 5
+    aggregate: AGG-94
+    command: 起草授权表版本
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-100.steps[5]
+  - prc: PRC-100
+    step: 6
+    aggregate: AGG-94
+    command: 发布授权表版本
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-100.steps[6]
+  - prc: PRC-100
+    step: 7
+    aggregate: AGG-128
+    command: 起草期末结转模板版本
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-100.steps[7]
+  - prc: PRC-100
+    step: 8
+    aggregate: AGG-128
+    command: 发布期末结转模板版本
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-100.steps[8]
+  - prc: PRC-100
+    step: 9
+    aggregate: AGG-129
+    command: 起草现金流量项目表版本
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-100.steps[9]
+  - prc: PRC-100
+    step: 10
+    aggregate: AGG-129
+    command: 发布现金流量项目表版本
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-100.steps[10]
+  - prc: PRC-101
+    step: 2
+    aggregate: AGG-81
+    command: 发起关账
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-101.steps[2]
+  - prc: PRC-101
+    step: 3
+    aggregate: AGG-81
+    command: 确认关账
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-101.steps[3]
+  - prc: PRC-101
+    step: 4
+    aggregate: AGG-81
+    command: 退回开放
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-101.steps[4]
+  - prc: PRC-102
+    step: 2
+    aggregate: AGG-96
+    command: 登记第 13 期启用
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-102.steps[2]
+  - prc: PRC-102
+    step: 3
+    aggregate: AGG-81
+    command: 开放第 13 期
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-102.steps[3]
+  - prc: PRC-102
+    step: 5
+    aggregate: AGG-81
+    command: 发起年末关账
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-102.steps[5]
+  - prc: PRC-102
+    step: 6
+    aggregate: AGG-81
+    command: 确认年末关账
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-102.steps[6]
+  - prc: PRC-102
+    step: 7
+    aggregate: AGG-81
+    command: 退回开放
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-102.steps[7]
+  - prc: PRC-102
+    step: 8
+    aggregate: AGG-81
+    command: 开立会计年度
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-102.steps[8]
+  - prc: PRC-103
+    step: 1
+    aggregate: AGG-100
+    command: 生成快照
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-103.steps[1]
+  - prc: PRC-104
+    step: 2
+    aggregate: AGG-84
+    command: 登记外部记账确认
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-104.steps[2]
+  - prc: PRC-104
+    step: 3
+    aggregate: AGG-101
+    command: 登记对账差异
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-104.steps[3]
+  - prc: PRC-104
+    step: 4
+    aggregate: AGG-101
+    command: 签字接受差异
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-104.steps[4]
+  - prc: PRC-105
+    step: 1
+    aggregate: AGG-86
+    command: 编制报表行定义版本
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-105.steps[1]
+  - prc: PRC-105
+    step: 2
+    aggregate: AGG-86
+    command: 生效报表行定义版本
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-105.steps[2]
+  - prc: PRC-112
+    step: 2
+    aggregate: AGG-109
+    command: 草拟利润分配
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-112.steps[2]
+  - prc: PRC-112
+    step: 3
+    aggregate: AGG-109
+    command: 决议利润分配
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-112.steps[3]
+  - prc: PRC-112
+    step: 4
+    aggregate: AGG-52
+    command: 提交应付利润
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-112.steps[4]
+  - prc: PRC-112
+    step: 5
+    aggregate: AGG-52
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-112.steps[5]
+  - prc: PRC-112
+    step: 6
+    aggregate: AGG-109
+    command: 撤销利润分配决议
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-112.steps[6]
+  - prc: PRC-112
+    step: 7
+    aggregate: AGG-52
+    command: 〔缺〕冲销应付利润
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-112.steps[7]
+  - prc: PRC-112
+    step: 8
+    aggregate: AGG-77
+    command: 冲销并重过账
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-112.steps[8]
+  - prc: PRC-114
+    step: 1
+    aggregate: AGG-54
+    command: 登记出资退回
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-114.steps[1]
+  - prc: PRC-114
+    step: 2
+    aggregate: AGG-52
+    command: 确认应付
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-114.steps[2]
+  - prc: PRC-114
+    step: 3
+    aggregate: AGG-54
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-114.steps[3]
+  - prc: PRC-131
+    step: 1
+    aggregate: AGG-52
+    command: 核销应付
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-131.steps[1]
+  - prc: PRC-131
+    step: 2
+    aggregate: AGG-52
+    command: 人工处置核销差异
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-131.steps[2]
+  - prc: PRC-132
+    step: 1
+    aggregate: AGG-53
+    command: 标记付款已核销
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-132.steps[1]
+  - prc: PRC-133
+    step: 1
+    aggregate: AGG-59
+    command: 标记费用报销已付
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-133.steps[1]
+  - prc: PRC-159
+    step: 1
+    aggregate: AGG-52
+    command: 确认应付
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-159.steps[1]
+  - prc: PRC-159
+    step: 2
+    aggregate: AGG-52
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-159.steps[2]
+  - prc: PRC-163
+    step: 1
+    aggregate: AGG-109
+    command: 登记利润分配支付
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-163.steps[1]
+  - prc: PRC-164
+    step: 1
+    aggregate: AGG-43
+    command: 冲回成本结转
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-164.steps[1]
+  - prc: PRC-170
+    step: 2
+    aggregate: AGG-130
+    command: 提交费用事前申请
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-170.steps[2]
+  - prc: PRC-170
+    step: 4
+    aggregate: AGG-130
+    command: 批准费用事前申请
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-170.steps[4]
+  - prc: PRC-170
+    step: 5
+    aggregate: AGG-130
+    command: 关闭费用事前申请
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-170.steps[5]
+  - prc: PRC-170
+    step: 6
+    aggregate: AGG-130
+    command: 驳回费用事前申请
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-170.steps[6]
+  - prc: PRC-170
+    step: 7
+    aggregate: AGG-130
+    command: 撤回费用事前申请
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-170.steps[7]
+  - prc: PRC-171
+    step: 1
+    aggregate: AGG-131
+    command: 登记差旅订单与月账单
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-171.steps[1]
+  - prc: PRC-171
+    step: 2
+    aggregate: AGG-131
+    command: 归属差旅订单
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-171.steps[2]
+  - prc: PRC-171
+    step: 3
+    aggregate: AGG-131
+    command: 登记差旅订单与月账单
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-171.steps[3]
+  - prc: PRC-171
+    step: 4
+    aggregate: AGG-131
+    command: 核对差旅月账单
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-171.steps[4]
+  - prc: PRC-171
+    step: 5
+    aggregate: AGG-131
+    command: 〔缺〕处理账单差异
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-171.steps[5]
+  - prc: PRC-171
+    step: 6
+    aggregate: AGG-131
+    command: 确认差旅账单应付
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-171.steps[6]
+  - prc: PRC-171
+    step: 7
+    aggregate: AGG-131
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-171.steps[7]
+  - prc: PRC-172
+    step: 2
+    aggregate: AGG-132
+    command: 提交出差申请
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-172.steps[2]
+  - prc: PRC-172
+    step: 4
+    aggregate: AGG-132
+    command: 批准出差申请
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-172.steps[4]
+  - prc: PRC-172
+    step: 5
+    aggregate: AGG-132
+    command: 登记出差申请已同步
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-172.steps[5]
+  - prc: PRC-172
+    step: 6
+    aggregate: AGG-132
+    command: 驳回出差申请
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-172.steps[6]
+  - prc: PRC-172
+    step: 7
+    aggregate: AGG-132
+    command: 撤回出差申请
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-172.steps[7]
+  - prc: PRC-173
+    step: 1
+    aggregate: AGG-131
+    command: 登记超标订单待审批
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-173.steps[1]
+  - prc: PRC-173
+    step: 3
+    aggregate: AGG-131
+    command: 批准差旅超标订单
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-173.steps[3]
+  - prc: PRC-173
+    step: 4
+    aggregate: AGG-131
+    command: 驳回差旅超标订单
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-173.steps[4]
+  - prc: PRC-175
+    step: 4
+    aggregate: AGG-52
+    command: 登记其他应付
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-175.steps[4]
+  - prc: PRC-175
+    step: 5
+    aggregate: AGG-52
+    command: 登记预付款
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-175.steps[5]
+  - prc: PRC-175
+    step: 6
+    aggregate: AGG-52
+    command: 提交过账候选
+    src: architecture/proposals/closeout/finance/processes.finance.yaml#PRC-175.steps[6]
+  - prc: PRC-80
+    step: 2
+    aggregate: AGG-60
+    command: 登记法人主体
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-80.steps[2]
+  - prc: PRC-80
+    step: 3
+    aggregate: AGG-61
+    command: 调整组织单元
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-80.steps[3]
+  - prc: PRC-80
+    step: 4
+    aggregate: AGG-117
+    command: 指定法人归属
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-80.steps[4]
+  - prc: PRC-80
+    step: 5
+    aggregate: AGG-64
+    command: 停用岗位
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-80.steps[5]
+  - prc: PRC-80
+    step: 7
+    aggregate: AGG-60
+    command: 更名法人主体
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-80.steps[7]
+  - prc: PRC-80
+    step: 8
+    aggregate: AGG-60
+    command: 停用法人主体
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-80.steps[8]
+  - prc: PRC-80
+    step: 9
+    aggregate: AGG-60
+    command: 启用法人主体
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-80.steps[9]
+  - prc: PRC-80
+    step: 10
+    aggregate: AGG-64
+    command: 新建岗位
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-80.steps[10]
+  - prc: PRC-80
+    step: 11
+    aggregate: AGG-64
+    command: 修改岗位
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-80.steps[11]
+  - prc: PRC-80
+    step: 12
+    aggregate: AGG-117
+    command: 更正法人归属
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-80.steps[12]
+  - prc: PRC-81
+    step: 2
+    aggregate: AGG-65
+    command: 提交招聘需求
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-81.steps[2]
+  - prc: PRC-81
+    step: 3
+    aggregate: AGG-65
+    command: 批准招聘需求
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-81.steps[3]
+  - prc: PRC-81
+    step: 4
+    aggregate: AGG-65
+    command: 关闭招聘需求
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-81.steps[4]
+  - prc: PRC-82
+    step: 1
+    aggregate: AGG-62
+    command: 登记候选人
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-82.steps[1]
+  - prc: PRC-82
+    step: 2
+    aggregate: AGG-62
+    command: 记录面试
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-82.steps[2]
+  - prc: PRC-82
+    step: 3
+    aggregate: AGG-62
+    command: 作出录用决定
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-82.steps[3]
+  - prc: PRC-82
+    step: 4
+    aggregate: AGG-62
+    command: 〔缺〕登记候选人答复
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-82.steps[4]
+  - prc: PRC-82
+    step: 5
+    aggregate: AGG-62
+    command: 标记未录用
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-82.steps[5]
+  - prc: PRC-83
+    step: 1
+    aggregate: AGG-62
+    command: 登记入职
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-83.steps[1]
+  - prc: PRC-83
+    step: 2
+    aggregate: AGG-62
+    command: 〔缺〕入职生效
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-83.steps[2]
+  - prc: PRC-83
+    step: 3
+    aggregate: AGG-63
+    command: 建立任职
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-83.steps[3]
+  - prc: PRC-83
+    step: 4
+    aggregate: AGG-67
+    command: 提交劳动合同
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-83.steps[4]
+  - prc: PRC-83
+    step: 5
+    aggregate: AGG-67
+    command: 批准劳动合同
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-83.steps[5]
+  - prc: PRC-83
+    step: 6
+    aggregate: AGG-67
+    command: 签订劳动合同
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-83.steps[6]
+  - prc: PRC-84
+    step: 1
+    aggregate: AGG-74
+    command: 参保增员
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-84.steps[1]
+  - prc: PRC-84
+    step: 2
+    aggregate: AGG-93
+    command: 建立薪酬档案
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-84.steps[2]
+  - prc: PRC-85
+    step: 1
+    aggregate: AGG-106
+    command: 编制试用期绩效评估
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-85.steps[1]
+  - prc: PRC-85
+    step: 2
+    aggregate: AGG-106
+    command: 确认绩效评估
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-85.steps[2]
+  - prc: PRC-85
+    step: 3
+    aggregate: AGG-62
+    command: 办理转正
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-85.steps[3]
+  - prc: PRC-88
+    step: 1
+    aggregate: AGG-79
+    command: 编制经营计划版本
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-88.steps[1]
+  - prc: PRC-88
+    step: 2
+    aggregate: AGG-79
+    command: 〔缺〕提交经营计划审批
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-88.steps[2]
+  - prc: PRC-88
+    step: 4
+    aggregate: AGG-79
+    command: 〔缺〕驳回经营计划审批
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-88.steps[4]
+  - prc: PRC-88
+    step: 5
+    aggregate: AGG-79
+    command: 〔缺〕通过经营计划审批
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-88.steps[5]
+  - prc: PRC-88
+    step: 6
+    aggregate: AGG-79
+    command: 基线化经营计划
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-88.steps[6]
+  - prc: PRC-88
+    step: 7
+    aggregate: AGG-80
+    command: 开立预算账户
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-88.steps[7]
+  - prc: PRC-88
+    step: 8
+    aggregate: AGG-80
+    command: 调整预算
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-88.steps[8]
+  - prc: PRC-88
+    step: 9
+    aggregate: AGG-79
+    command: 作废经营计划草稿
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-88.steps[9]
+  - prc: PRC-89
+    step: 1
+    aggregate: AGG-79
+    command: 编制预测版本
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-89.steps[1]
+  - prc: PRC-89
+    step: 2
+    aggregate: AGG-79
+    command: 编制现金流预测
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-89.steps[2]
+  - prc: PRC-107
+    step: 1
+    aggregate: AGG-107
+    command: 创建知识条目
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-107.steps[1]
+  - prc: PRC-107
+    step: 2
+    aggregate: AGG-107
+    command: 起草知识条目
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-107.steps[2]
+  - prc: PRC-107
+    step: 3
+    aggregate: AGG-107
+    command: 提交知识条目评审
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-107.steps[3]
+  - prc: PRC-107
+    step: 4
+    aggregate: AGG-107
+    command: 评审知识条目
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-107.steps[4]
+  - prc: PRC-107
+    step: 5
+    aggregate: AGG-107
+    command: 发布知识条目
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-107.steps[5]
+  - prc: PRC-107
+    step: 6
+    aggregate: AGG-107
+    command: 修订知识条目
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-107.steps[6]
+  - prc: PRC-107
+    step: 7
+    aggregate: AGG-107
+    command: 废止知识条目
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-107.steps[7]
+  - prc: PRC-115
+    step: 1
+    aggregate: AGG-69
+    command: 导入考勤记录
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-115.steps[1]
+  - prc: PRC-115
+    step: 3
+    aggregate: AGG-69
+    command: 补卡
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-115.steps[3]
+  - prc: PRC-116
+    step: 1
+    aggregate: AGG-71
+    command: 占用余额
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-116.steps[1]
+  - prc: PRC-116
+    step: 2
+    aggregate: AGG-70
+    command: 提交请假
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-116.steps[2]
+  - prc: PRC-116
+    step: 4
+    aggregate: AGG-70
+    command: 批准请假
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-116.steps[4]
+  - prc: PRC-116
+    step: 5
+    aggregate: AGG-71
+    command: 批准转已用
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-116.steps[5]
+  - prc: PRC-116
+    step: 6
+    aggregate: AGG-70
+    command: 〔缺〕驳回请假
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-116.steps[6]
+  - prc: PRC-116
+    step: 7
+    aggregate: AGG-70
+    command: 撤销请假
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-116.steps[7]
+  - prc: PRC-116
+    step: 8
+    aggregate: AGG-70
+    command: 销假
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-116.steps[8]
+  - prc: PRC-117
+    step: 1
+    aggregate: AGG-72
+    command: 提交加班申请
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-117.steps[1]
+  - prc: PRC-117
+    step: 2
+    aggregate: AGG-72
+    command: 批准加班
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-117.steps[2]
+  - prc: PRC-117
+    step: 3
+    aggregate: AGG-72
+    command: 〔缺〕驳回加班
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-117.steps[3]
+  - prc: PRC-117
+    step: 4
+    aggregate: AGG-71
+    command: 〔缺〕计入补休额度
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-117.steps[4]
+  - prc: PRC-117
+    step: 5
+    aggregate: AGG-70
+    command: 提交请假
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-117.steps[5]
+  - prc: PRC-118
+    step: 1
+    aggregate: AGG-97
+    command: 生成月度考勤
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-118.steps[1]
+  - prc: PRC-118
+    step: 2
+    aggregate: AGG-97
+    command: 员工确认
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-118.steps[2]
+  - prc: PRC-118
+    step: 3
+    aggregate: AGG-72
+    command: 标记加班已补偿
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-118.steps[3]
+  - prc: PRC-118
+    step: 4
+    aggregate: AGG-97
+    command: 锁定
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-118.steps[4]
+  - prc: PRC-118
+    step: 5
+    aggregate: AGG-69
+    command: 补卡
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-118.steps[5]
+  - prc: PRC-118
+    step: 6
+    aggregate: AGG-97
+    command: 〔缺〕重新生成月度考勤
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-118.steps[6]
+  - prc: PRC-118
+    step: 7
+    aggregate: AGG-97
+    command: 〔缺〕默认确认月度考勤
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-118.steps[7]
+  - prc: PRC-120
+    step: 1
+    aggregate: AGG-106
+    command: 编制绩效评估
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-120.steps[1]
+  - prc: PRC-120
+    step: 2
+    aggregate: AGG-106
+    command: 提交绩效评估
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-120.steps[2]
+  - prc: PRC-120
+    step: 3
+    aggregate: AGG-106
+    command: 确认绩效评估
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-120.steps[3]
+  - prc: PRC-120
+    step: 4
+    aggregate: AGG-106
+    command: 登记绩效更正
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-120.steps[4]
+  - prc: PRC-121
+    step: 1
+    aggregate: AGG-75
+    command: 编制激励方案版本
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-121.steps[1]
+  - prc: PRC-121
+    step: 3
+    aggregate: AGG-75
+    command: 生效激励方案版本
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-121.steps[3]
+  - prc: PRC-122
+    step: 1
+    aggregate: AGG-76
+    command: 〔缺〕草拟奖金核定
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-122.steps[1]
+  - prc: PRC-122
+    step: 3
+    aggregate: AGG-76
+    command: 核定奖金
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-122.steps[3]
+  - prc: PRC-122
+    step: 4
+    aggregate: AGG-76
+    command: 〔缺〕驳回奖金核定
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-122.steps[4]
+  - prc: PRC-124
+    step: 1
+    aggregate: AGG-73
+    command: 计算月度薪酬
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-124.steps[1]
+  - prc: PRC-124
+    step: 2
+    aggregate: AGG-73
+    command: 提交薪酬审核
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-124.steps[2]
+  - prc: PRC-124
+    step: 4
+    aggregate: AGG-73
+    command: 批准月度薪酬
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-124.steps[4]
+  - prc: PRC-124
+    step: 5
+    aggregate: AGG-73
+    command: 提交过账候选
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-124.steps[5]
+  - prc: PRC-125
+    step: 1
+    aggregate: AGG-95
+    command: 生成申报
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-125.steps[1]
+  - prc: PRC-125
+    step: 2
+    aggregate: AGG-95
+    command: 提交申报
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-125.steps[2]
+  - prc: PRC-125
+    step: 3
+    aggregate: AGG-95
+    command: 提交申报
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-125.steps[3]
+  - prc: PRC-125
+    step: 4
+    aggregate: AGG-95
+    command: 登记缴款
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-125.steps[4]
+  - prc: PRC-125
+    step: 5
+    aggregate: AGG-95
+    command: 更正申报
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-125.steps[5]
+  - prc: PRC-125
+    step: 6
+    aggregate: AGG-95
+    command: 提交过账候选
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-125.steps[6]
+  - prc: PRC-125
+    step: 7
+    aggregate: AGG-74
+    command: 调整缴费基数
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-125.steps[7]
+  - prc: PRC-125
+    step: 8
+    aggregate: AGG-95
+    command: 提交申报
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-125.steps[8]
+  - prc: PRC-128
+    step: 1
+    aggregate: AGG-62
+    command: 申请离职
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-128.steps[1]
+  - prc: PRC-128
+    step: 2
+    aggregate: AGG-62
+    command: 〔缺〕批准公司终止
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-128.steps[2]
+  - prc: PRC-128
+    step: 3
+    aggregate: AGG-62
+    command: 〔缺〕驳回公司终止
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-128.steps[3]
+  - prc: PRC-128
+    step: 4
+    aggregate: AGG-62
+    command: 〔缺〕撤回离职申请
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-128.steps[4]
+  - prc: PRC-128
+    step: 5
+    aggregate: AGG-67
+    command: 〔缺〕登记劳动合同终止依据
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-128.steps[5]
+  - prc: PRC-128
+    step: 6
+    aggregate: AGG-62
+    command: 办理离职
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-128.steps[6]
+  - prc: PRC-128
+    step: 7
+    aggregate: AGG-62
+    command: 〔缺〕离职生效
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-128.steps[7]
+  - prc: PRC-128
+    step: 8
+    aggregate: AGG-63
+    command: 终止任职
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-128.steps[8]
+  - prc: PRC-128
+    step: 9
+    aggregate: AGG-67
+    command: 终止劳动合同
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-128.steps[9]
+  - prc: PRC-128
+    step: 10
+    aggregate: AGG-62
+    command: 〔缺〕撤销离职登记
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-128.steps[10]
+  - prc: PRC-136
+    step: 1
+    aggregate: AGG-63
+    command: 〔缺〕提交调岗申请
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-136.steps[1]
+  - prc: PRC-136
+    step: 2
+    aggregate: AGG-63
+    command: 〔缺〕批准调岗申请
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-136.steps[2]
+  - prc: PRC-136
+    step: 3
+    aggregate: AGG-63
+    command: 〔缺〕驳回调岗申请
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-136.steps[3]
+  - prc: PRC-136
+    step: 4
+    aggregate: AGG-67
+    command: 提交劳动合同
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-136.steps[4]
+  - prc: PRC-136
+    step: 5
+    aggregate: AGG-67
+    command: 签订劳动合同
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-136.steps[5]
+  - prc: PRC-136
+    step: 6
+    aggregate: AGG-63
+    command: 〔缺〕变更任职
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-136.steps[6]
+  - prc: PRC-136
+    step: 7
+    aggregate: AGG-63
+    command: 〔缺〕任职变更生效
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-136.steps[7]
+  - prc: PRC-136
+    step: 8
+    aggregate: AGG-67
+    command: 终止劳动合同
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-136.steps[8]
+  - prc: PRC-136
+    step: 11
+    aggregate: AGG-93
+    command: 调整薪酬档案
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-136.steps[11]
+  - prc: PRC-136
+    step: 12
+    aggregate: AGG-74
+    command: 〔缺〕变更参保缴纳主体
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-136.steps[12]
+  - prc: PRC-139
+    step: 1
+    aggregate: AGG-113
+    command: 提交用印申请
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-139.steps[1]
+  - prc: PRC-139
+    step: 2
+    aggregate: AGG-113
+    command: 批准用印申请
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-139.steps[2]
+  - prc: PRC-139
+    step: 3
+    aggregate: AGG-113
+    command: 驳回用印申请
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-139.steps[3]
+  - prc: PRC-139
+    step: 4
+    aggregate: AGG-113
+    command: 登记用印
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-139.steps[4]
+  - prc: PRC-139
+    step: 5
+    aggregate: AGG-113
+    command: 关闭用印申请
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-139.steps[5]
+  - prc: PRC-142
+    step: 1
+    aggregate: AGG-114
+    command: 提交 IT 需求
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-142.steps[1]
+  - prc: PRC-142
+    step: 2
+    aggregate: AGG-114
+    command: 批准 IT 需求
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-142.steps[2]
+  - prc: PRC-142
+    step: 3
+    aggregate: AGG-114
+    command: 受理 IT 需求
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-142.steps[3]
+  - prc: PRC-142
+    step: 4
+    aggregate: AGG-114
+    command: 解决 IT 需求
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-142.steps[4]
+  - prc: PRC-142
+    step: 5
+    aggregate: AGG-114
+    command: 关闭 IT 需求
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-142.steps[5]
+  - prc: PRC-142
+    step: 6
+    aggregate: AGG-114
+    command: 退回 IT 需求
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-142.steps[6]
+  - prc: PRC-142
+    step: 7
+    aggregate: AGG-114
+    command: 驳回 IT 需求
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-142.steps[7]
+  - prc: PRC-143
+    step: 1
+    aggregate: AGG-115
+    command: 申请领用资产
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-143.steps[1]
+  - prc: PRC-143
+    step: 2
+    aggregate: AGG-115
+    command: 登记领用
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-143.steps[2]
+  - prc: PRC-144
+    step: 1
+    aggregate: AGG-116
+    command: 提交员工活动申请
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-144.steps[1]
+  - prc: PRC-144
+    step: 2
+    aggregate: AGG-116
+    command: 完成员工活动
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-144.steps[2]
+  - prc: PRC-144
+    step: 3
+    aggregate: AGG-116
+    command: 取消员工活动登记
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-144.steps[3]
+  - prc: PRC-155
+    step: 1
+    aggregate: AGG-115
+    command: 〔缺〕申请调拨资产
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-155.steps[1]
+  - prc: PRC-155
+    step: 2
+    aggregate: AGG-115
+    command: 调拨资产
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-155.steps[2]
+  - prc: PRC-156
+    step: 1
+    aggregate: AGG-115
+    command: 归还资产
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-156.steps[1]
+  - prc: PRC-157
+    step: 1
+    aggregate: AGG-121
+    command: 报修资产
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-157.steps[1]
+  - prc: PRC-157
+    step: 2
+    aggregate: AGG-121
+    command: 登记维修结果
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-157.steps[2]
+  - prc: PRC-181
+    step: 1
+    aggregate: AGG-79
+    command: 〔缺〕创建经营复盘
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-181.steps[1]
+  - prc: PRC-181
+    step: 2
+    aggregate: AGG-79
+    command: 〔缺〕记录偏差解释
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-181.steps[2]
+  - prc: PRC-181
+    step: 3
+    aggregate: AGG-79
+    command: 〔缺〕确定经营动作
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-181.steps[3]
+  - prc: PRC-181
+    step: 4
+    aggregate: AGG-79
+    command: 〔缺〕定稿经营复盘
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-181.steps[4]
+  - prc: PRC-181
+    step: 5
+    aggregate: AGG-79
+    command: 〔缺〕完成经营动作
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-181.steps[5]
+  - prc: PRC-139
+    step: 1
+    aggregate: AGG-113
+    command: 提交用印申请
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-139.steps[1]
+  - prc: PRC-139
+    step: 2
+    aggregate: AGG-113
+    command: 批准用印申请
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-139.steps[2]
+  - prc: PRC-139
+    step: 3
+    aggregate: AGG-113
+    command: 驳回用印申请
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-139.steps[3]
+  - prc: PRC-139
+    step: 4
+    aggregate: AGG-113
+    command: 登记用印
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-139.steps[4]
+  - prc: PRC-139
+    step: 5
+    aggregate: AGG-113
+    command: 关闭用印申请
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-139.steps[5]
+  - prc: PRC-142
+    step: 1
+    aggregate: AGG-114
+    command: 提交 IT 需求
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-142.steps[1]
+  - prc: PRC-142
+    step: 2
+    aggregate: AGG-114
+    command: 批准 IT 需求
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-142.steps[2]
+  - prc: PRC-142
+    step: 3
+    aggregate: AGG-114
+    command: 受理 IT 需求
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-142.steps[3]
+  - prc: PRC-142
+    step: 4
+    aggregate: AGG-114
+    command: 解决 IT 需求
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-142.steps[4]
+  - prc: PRC-142
+    step: 5
+    aggregate: AGG-114
+    command: 关闭 IT 需求
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-142.steps[5]
+  - prc: PRC-142
+    step: 6
+    aggregate: AGG-114
+    command: 退回 IT 需求
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-142.steps[6]
+  - prc: PRC-142
+    step: 7
+    aggregate: AGG-114
+    command: 驳回 IT 需求
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-142.steps[7]
+  - prc: PRC-143
+    step: 1
+    aggregate: AGG-115
+    command: 申请领用资产
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-143.steps[1]
+  - prc: PRC-143
+    step: 2
+    aggregate: AGG-115
+    command: 登记领用
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-143.steps[2]
+  - prc: PRC-155
+    step: 1
+    aggregate: AGG-115
+    command: 〔缺〕申请调拨资产
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-155.steps[1]
+  - prc: PRC-155
+    step: 2
+    aggregate: AGG-115
+    command: 调拨资产
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-155.steps[2]
+  - prc: PRC-156
+    step: 1
+    aggregate: AGG-115
+    command: 归还资产
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-156.steps[1]
+  - prc: PRC-157
+    step: 1
+    aggregate: AGG-121
+    command: 报修资产
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-157.steps[1]
+  - prc: PRC-157
+    step: 2
+    aggregate: AGG-121
+    command: 登记维修结果
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-157.steps[2]
+  - prc: PRC-144
+    step: 1
+    aggregate: AGG-116
+    command: 提交员工活动申请
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-144.steps[1]
+  - prc: PRC-144
+    step: 2
+    aggregate: AGG-116
+    command: 完成员工活动
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-144.steps[2]
+  - prc: PRC-144
+    step: 3
+    aggregate: AGG-116
+    command: 取消员工活动登记
+    src: architecture/proposals/closeout/people/parts/b31.processes.yaml#PRC-144.steps[3]
+  - prc: PRC-80
+    step: 2
+    aggregate: AGG-60
+    command: 登记法人主体
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-80.steps[2]
+  - prc: PRC-80
+    step: 3
+    aggregate: AGG-61
+    command: 调整组织单元
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-80.steps[3]
+  - prc: PRC-80
+    step: 4
+    aggregate: AGG-117
+    command: 指定法人归属
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-80.steps[4]
+  - prc: PRC-80
+    step: 5
+    aggregate: AGG-64
+    command: 停用岗位
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-80.steps[5]
+  - prc: PRC-80
+    step: 7
+    aggregate: AGG-60
+    command: 更名法人主体
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-80.steps[7]
+  - prc: PRC-80
+    step: 8
+    aggregate: AGG-60
+    command: 停用法人主体
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-80.steps[8]
+  - prc: PRC-80
+    step: 9
+    aggregate: AGG-60
+    command: 启用法人主体
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-80.steps[9]
+  - prc: PRC-80
+    step: 10
+    aggregate: AGG-64
+    command: 新建岗位
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-80.steps[10]
+  - prc: PRC-80
+    step: 11
+    aggregate: AGG-64
+    command: 修改岗位
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-80.steps[11]
+  - prc: PRC-80
+    step: 12
+    aggregate: AGG-117
+    command: 更正法人归属
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-80.steps[12]
+  - prc: PRC-81
+    step: 2
+    aggregate: AGG-65
+    command: 提交招聘需求
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-81.steps[2]
+  - prc: PRC-81
+    step: 3
+    aggregate: AGG-65
+    command: 批准招聘需求
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-81.steps[3]
+  - prc: PRC-81
+    step: 4
+    aggregate: AGG-65
+    command: 关闭招聘需求
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-81.steps[4]
+  - prc: PRC-82
+    step: 1
+    aggregate: AGG-62
+    command: 登记候选人
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-82.steps[1]
+  - prc: PRC-82
+    step: 2
+    aggregate: AGG-62
+    command: 记录面试
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-82.steps[2]
+  - prc: PRC-82
+    step: 3
+    aggregate: AGG-62
+    command: 作出录用决定
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-82.steps[3]
+  - prc: PRC-82
+    step: 4
+    aggregate: AGG-62
+    command: 〔缺〕登记候选人答复
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-82.steps[4]
+  - prc: PRC-82
+    step: 5
+    aggregate: AGG-62
+    command: 标记未录用
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-82.steps[5]
+  - prc: PRC-85
+    step: 1
+    aggregate: AGG-106
+    command: 编制试用期绩效评估
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-85.steps[1]
+  - prc: PRC-85
+    step: 2
+    aggregate: AGG-106
+    command: 确认绩效评估
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-85.steps[2]
+  - prc: PRC-85
+    step: 3
+    aggregate: AGG-62
+    command: 办理转正
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-85.steps[3]
+  - prc: PRC-83
+    step: 1
+    aggregate: AGG-62
+    command: 登记入职
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-83.steps[1]
+  - prc: PRC-83
+    step: 2
+    aggregate: AGG-62
+    command: 〔缺〕入职生效
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-83.steps[2]
+  - prc: PRC-83
+    step: 3
+    aggregate: AGG-63
+    command: 建立任职
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-83.steps[3]
+  - prc: PRC-83
+    step: 4
+    aggregate: AGG-67
+    command: 提交劳动合同
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-83.steps[4]
+  - prc: PRC-83
+    step: 5
+    aggregate: AGG-67
+    command: 批准劳动合同
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-83.steps[5]
+  - prc: PRC-83
+    step: 6
+    aggregate: AGG-67
+    command: 签订劳动合同
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-83.steps[6]
+  - prc: PRC-84
+    step: 1
+    aggregate: AGG-74
+    command: 参保增员
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-84.steps[1]
+  - prc: PRC-84
+    step: 2
+    aggregate: AGG-93
+    command: 建立薪酬档案
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-84.steps[2]
+  - prc: PRC-128
+    step: 1
+    aggregate: AGG-62
+    command: 申请离职
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-128.steps[1]
+  - prc: PRC-128
+    step: 2
+    aggregate: AGG-62
+    command: 〔缺〕批准公司终止
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-128.steps[2]
+  - prc: PRC-128
+    step: 3
+    aggregate: AGG-62
+    command: 〔缺〕驳回公司终止
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-128.steps[3]
+  - prc: PRC-128
+    step: 4
+    aggregate: AGG-62
+    command: 〔缺〕撤回离职申请
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-128.steps[4]
+  - prc: PRC-128
+    step: 5
+    aggregate: AGG-67
+    command: 〔缺〕登记劳动合同终止依据
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-128.steps[5]
+  - prc: PRC-128
+    step: 6
+    aggregate: AGG-62
+    command: 办理离职
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-128.steps[6]
+  - prc: PRC-128
+    step: 7
+    aggregate: AGG-62
+    command: 〔缺〕离职生效
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-128.steps[7]
+  - prc: PRC-128
+    step: 8
+    aggregate: AGG-63
+    command: 终止任职
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-128.steps[8]
+  - prc: PRC-128
+    step: 9
+    aggregate: AGG-67
+    command: 终止劳动合同
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-128.steps[9]
+  - prc: PRC-128
+    step: 10
+    aggregate: AGG-62
+    command: 〔缺〕撤销离职登记
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-128.steps[10]
+  - prc: PRC-136
+    step: 1
+    aggregate: AGG-63
+    command: 〔缺〕提交调岗申请
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-136.steps[1]
+  - prc: PRC-136
+    step: 2
+    aggregate: AGG-63
+    command: 〔缺〕批准调岗申请
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-136.steps[2]
+  - prc: PRC-136
+    step: 3
+    aggregate: AGG-63
+    command: 〔缺〕驳回调岗申请
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-136.steps[3]
+  - prc: PRC-136
+    step: 4
+    aggregate: AGG-67
+    command: 提交劳动合同
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-136.steps[4]
+  - prc: PRC-136
+    step: 5
+    aggregate: AGG-67
+    command: 签订劳动合同
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-136.steps[5]
+  - prc: PRC-136
+    step: 6
+    aggregate: AGG-63
+    command: 〔缺〕变更任职
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-136.steps[6]
+  - prc: PRC-136
+    step: 7
+    aggregate: AGG-63
+    command: 〔缺〕任职变更生效
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-136.steps[7]
+  - prc: PRC-136
+    step: 8
+    aggregate: AGG-67
+    command: 终止劳动合同
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-136.steps[8]
+  - prc: PRC-136
+    step: 11
+    aggregate: AGG-93
+    command: 调整薪酬档案
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-136.steps[11]
+  - prc: PRC-136
+    step: 12
+    aggregate: AGG-74
+    command: 〔缺〕变更参保缴纳主体
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-136.steps[12]
+  - prc: PRC-88
+    step: 1
+    aggregate: AGG-79
+    command: 编制经营计划版本
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-88.steps[1]
+  - prc: PRC-88
+    step: 2
+    aggregate: AGG-79
+    command: 〔缺〕提交经营计划审批
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-88.steps[2]
+  - prc: PRC-88
+    step: 4
+    aggregate: AGG-79
+    command: 〔缺〕驳回经营计划审批
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-88.steps[4]
+  - prc: PRC-88
+    step: 5
+    aggregate: AGG-79
+    command: 〔缺〕通过经营计划审批
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-88.steps[5]
+  - prc: PRC-88
+    step: 6
+    aggregate: AGG-79
+    command: 基线化经营计划
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-88.steps[6]
+  - prc: PRC-88
+    step: 7
+    aggregate: AGG-80
+    command: 开立预算账户
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-88.steps[7]
+  - prc: PRC-88
+    step: 8
+    aggregate: AGG-80
+    command: 调整预算
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-88.steps[8]
+  - prc: PRC-88
+    step: 9
+    aggregate: AGG-79
+    command: 作废经营计划草稿
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-88.steps[9]
+  - prc: PRC-89
+    step: 1
+    aggregate: AGG-79
+    command: 编制预测版本
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-89.steps[1]
+  - prc: PRC-89
+    step: 2
+    aggregate: AGG-79
+    command: 编制现金流预测
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-89.steps[2]
+  - prc: PRC-107
+    step: 1
+    aggregate: AGG-107
+    command: 创建知识条目
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-107.steps[1]
+  - prc: PRC-107
+    step: 2
+    aggregate: AGG-107
+    command: 起草知识条目
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-107.steps[2]
+  - prc: PRC-107
+    step: 3
+    aggregate: AGG-107
+    command: 提交知识条目评审
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-107.steps[3]
+  - prc: PRC-107
+    step: 4
+    aggregate: AGG-107
+    command: 评审知识条目
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-107.steps[4]
+  - prc: PRC-107
+    step: 5
+    aggregate: AGG-107
+    command: 发布知识条目
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-107.steps[5]
+  - prc: PRC-107
+    step: 6
+    aggregate: AGG-107
+    command: 修订知识条目
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-107.steps[6]
+  - prc: PRC-107
+    step: 7
+    aggregate: AGG-107
+    command: 废止知识条目
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-107.steps[7]
+  - prc: PRC-181
+    step: 1
+    aggregate: AGG-79
+    command: 〔缺〕创建经营复盘
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-181.steps[1]
+  - prc: PRC-181
+    step: 2
+    aggregate: AGG-79
+    command: 〔缺〕记录偏差解释
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-181.steps[2]
+  - prc: PRC-181
+    step: 3
+    aggregate: AGG-79
+    command: 〔缺〕确定经营动作
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-181.steps[3]
+  - prc: PRC-181
+    step: 4
+    aggregate: AGG-79
+    command: 〔缺〕定稿经营复盘
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-181.steps[4]
+  - prc: PRC-181
+    step: 5
+    aggregate: AGG-79
+    command: 〔缺〕完成经营动作
+    src: architecture/proposals/closeout/people/parts/vs0911.processes.yaml#PRC-181.steps[5]
+  - prc: PRC-115
+    step: 1
+    aggregate: AGG-69
+    command: 导入考勤记录
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-115.steps[1]
+  - prc: PRC-115
+    step: 3
+    aggregate: AGG-69
+    command: 补卡
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-115.steps[3]
+  - prc: PRC-116
+    step: 1
+    aggregate: AGG-71
+    command: 占用余额
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-116.steps[1]
+  - prc: PRC-116
+    step: 2
+    aggregate: AGG-70
+    command: 提交请假
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-116.steps[2]
+  - prc: PRC-116
+    step: 4
+    aggregate: AGG-70
+    command: 批准请假
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-116.steps[4]
+  - prc: PRC-116
+    step: 5
+    aggregate: AGG-71
+    command: 批准转已用
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-116.steps[5]
+  - prc: PRC-116
+    step: 6
+    aggregate: AGG-70
+    command: 〔缺〕驳回请假
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-116.steps[6]
+  - prc: PRC-116
+    step: 7
+    aggregate: AGG-70
+    command: 撤销请假
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-116.steps[7]
+  - prc: PRC-116
+    step: 8
+    aggregate: AGG-70
+    command: 销假
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-116.steps[8]
+  - prc: PRC-117
+    step: 1
+    aggregate: AGG-72
+    command: 提交加班申请
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-117.steps[1]
+  - prc: PRC-117
+    step: 2
+    aggregate: AGG-72
+    command: 批准加班
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-117.steps[2]
+  - prc: PRC-117
+    step: 3
+    aggregate: AGG-72
+    command: 〔缺〕驳回加班
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-117.steps[3]
+  - prc: PRC-117
+    step: 4
+    aggregate: AGG-71
+    command: 〔缺〕计入补休额度
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-117.steps[4]
+  - prc: PRC-117
+    step: 5
+    aggregate: AGG-70
+    command: 提交请假
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-117.steps[5]
+  - prc: PRC-118
+    step: 1
+    aggregate: AGG-97
+    command: 生成月度考勤
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-118.steps[1]
+  - prc: PRC-118
+    step: 2
+    aggregate: AGG-97
+    command: 员工确认
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-118.steps[2]
+  - prc: PRC-118
+    step: 3
+    aggregate: AGG-72
+    command: 标记加班已补偿
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-118.steps[3]
+  - prc: PRC-118
+    step: 4
+    aggregate: AGG-97
+    command: 锁定
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-118.steps[4]
+  - prc: PRC-118
+    step: 5
+    aggregate: AGG-69
+    command: 补卡
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-118.steps[5]
+  - prc: PRC-118
+    step: 6
+    aggregate: AGG-97
+    command: 〔缺〕重新生成月度考勤
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-118.steps[6]
+  - prc: PRC-118
+    step: 7
+    aggregate: AGG-97
+    command: 〔缺〕默认确认月度考勤
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-118.steps[7]
+  - prc: PRC-120
+    step: 1
+    aggregate: AGG-106
+    command: 编制绩效评估
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-120.steps[1]
+  - prc: PRC-120
+    step: 2
+    aggregate: AGG-106
+    command: 提交绩效评估
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-120.steps[2]
+  - prc: PRC-120
+    step: 3
+    aggregate: AGG-106
+    command: 确认绩效评估
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-120.steps[3]
+  - prc: PRC-120
+    step: 4
+    aggregate: AGG-106
+    command: 登记绩效更正
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-120.steps[4]
+  - prc: PRC-121
+    step: 1
+    aggregate: AGG-75
+    command: 编制激励方案版本
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-121.steps[1]
+  - prc: PRC-121
+    step: 3
+    aggregate: AGG-75
+    command: 生效激励方案版本
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-121.steps[3]
+  - prc: PRC-122
+    step: 1
+    aggregate: AGG-76
+    command: 〔缺〕草拟奖金核定
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-122.steps[1]
+  - prc: PRC-122
+    step: 3
+    aggregate: AGG-76
+    command: 核定奖金
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-122.steps[3]
+  - prc: PRC-122
+    step: 4
+    aggregate: AGG-76
+    command: 〔缺〕驳回奖金核定
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-122.steps[4]
+  - prc: PRC-124
+    step: 1
+    aggregate: AGG-73
+    command: 计算月度薪酬
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-124.steps[1]
+  - prc: PRC-124
+    step: 2
+    aggregate: AGG-73
+    command: 提交薪酬审核
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-124.steps[2]
+  - prc: PRC-124
+    step: 4
+    aggregate: AGG-73
+    command: 批准月度薪酬
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-124.steps[4]
+  - prc: PRC-124
+    step: 5
+    aggregate: AGG-73
+    command: 提交过账候选
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-124.steps[5]
+  - prc: PRC-125
+    step: 1
+    aggregate: AGG-95
+    command: 生成申报
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-125.steps[1]
+  - prc: PRC-125
+    step: 2
+    aggregate: AGG-95
+    command: 提交申报
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-125.steps[2]
+  - prc: PRC-125
+    step: 3
+    aggregate: AGG-95
+    command: 提交申报
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-125.steps[3]
+  - prc: PRC-125
+    step: 4
+    aggregate: AGG-95
+    command: 登记缴款
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-125.steps[4]
+  - prc: PRC-125
+    step: 5
+    aggregate: AGG-95
+    command: 更正申报
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-125.steps[5]
+  - prc: PRC-125
+    step: 6
+    aggregate: AGG-95
+    command: 提交过账候选
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-125.steps[6]
+  - prc: PRC-125
+    step: 7
+    aggregate: AGG-74
+    command: 调整缴费基数
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-125.steps[7]
+  - prc: PRC-125
+    step: 8
+    aggregate: AGG-95
+    command: 提交申报
+    src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-125.steps[8]
 links:
 - kind: vp-vs
   from: VP-01

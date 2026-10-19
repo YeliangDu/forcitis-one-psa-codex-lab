@@ -39,10 +39,11 @@ AGG_RE = re.compile(r"AGG-\d{2,3}")
 INV_RE = re.compile(r"INV-\d{2,3}")
 INACTIVE_PRC = {"retired", "merged"}
 
-UNAUTOMATED = {"N07-P1": "三组骨架（命令、状态机）未整合进本分支"}
+UNAUTOMATED = {}
+SKELETON = ARCH / "proposals" / "closeout"
 LAYER_NODE = {"sh": "01", "con": "02", "vp": "03", "decr": "04", "cap": "05", "vs": "06", "stage": "06", "prc": "07", "inv": "08",
               "obj": "09", "act": "10", "fact": "11", "dim": "12", "metric": "13", "bind": "14", "dec": "15",
-              "agg": "09/10 映射", "bc": "09/10 映射", "sd": "09/10 映射", "table": "09/10 映射"}
+              "steps": "07", "agg": "09/10 映射", "bc": "09/10 映射", "sd": "09/10 映射", "table": "09/10 映射"}
 NODES = {"01": "干系人", "02": "关注点", "03": "价值主张", "04": "取舍决定", "05": "业务能力", "06": "价值流与阶段", "07": "业务流程", "08": "约束与认定规则", "09": "业务对象", "10": "受控业务执行", "11": "业务事实", "12": "维度", "13": "指标与评价", "14": "计算绑定", "15": "决策与行动"}
 CHECKS = {
     "N01-1": "每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）",
@@ -51,7 +52,7 @@ CHECKS = {
     "N06-1": "每个阶段都有对象状态作为门（进入或退出条件引用对象状态）",
     "N07-1": "每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1）",
     "N07-2": "流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 N07-1 / anchoring C1 判）",
-    "N07-P1": "P-1：流程中改变对象状态的步骤都声明 Command（三组骨架未整合进本分支，暂未自动化）",
+    "N07-P1": "P-1：流程骨架中作用于聚合的步骤都声明 Command，且该命令在同一聚合下登记于各组 commands.yaml",
     "N08-1": "每个不变量都归属存在的聚合",
     "N09-1": "每个有效对象都有流程承载（同 anchoring_check C2；OBJD 定论的从属、参照、视图按定论排除）",
     "N09-2": "每个有效一级业务对象都有聚合（聚合「对应」列；从属、参照、视图不要求）",
@@ -202,6 +203,19 @@ def load():
         if b["subdomain"]:
             link("sd-bc", ns, bid, f"{rel(SRC['sd'])}#{ns}")
 
+    for f in sorted(SKELETON.glob("*/commands.yaml")):
+        for c in (yaml.safe_load(f.read_text(encoding="utf-8")) or {}).get("commands") or []:
+            agg = c.get("aggregate")
+            m["act"][f"{agg}/{c['name']}"] = {"command": c["name"], "aggregate": agg, "bc": None,
+                                              "state_change": c.get("state_change"), "src": f"{rel(f)}#{c['name']}"}
+    m["steps"] = []
+    for f in sorted(SKELETON.glob("*/processes*.yaml")) + sorted(SKELETON.glob("*/parts/*processes*.yaml")):
+        d = yaml.safe_load(f.read_text(encoding="utf-8")) or {}
+        for p in (d.get("processes") if isinstance(d, dict) else d) or []:
+            for i, s in enumerate(p.get("steps") or [], 1):
+                if s.get("aggregate"):
+                    m["steps"].append({"prc": p["id"], "step": i, "aggregate": str(s["aggregate"]), "command": s.get("command"),
+                                       "src": f"{rel(f)}#{p['id']}.steps[{i}]"})
     for a in yaml.safe_load(SRC["built"].read_text(encoding="utf-8"))["aggregates"]:
         for cmd in (a.get("commands") or []) + (a.get("commands_via") or []):
             m["act"][f"{a['bc']}/{cmd}"] = {"command": cmd, "aggregate": a["id"], "bc": a.get("bc"),
@@ -254,8 +268,16 @@ def check(m, anchoring=None):
         if not s.get("caps"):
             gaps["N05-1"].append(f"{sid} {s['name']}")
     for aid, a in m["act"].items():
-        if not a.get("bc"):
-            gaps["N10-1"].append(aid)
+        bc = a.get("bc") or (m["agg"].get(a.get("aggregate") or "", {}) or {}).get("bc")
+        if not bc:
+            gaps["N10-1"].append(f"{aid}（聚合 {a.get('aggregate')} 未归 BC）")
+    registered = {(a.get("aggregate"), a["command"]) for a in m["act"].values()}
+    for s in m.get("steps", []):
+        aggs = expand("AGG", s["aggregate"]) or [s["aggregate"]]
+        if not s["command"]:
+            gaps["N07-P1"].append(f"{s['prc']} 第 {s['step']} 步（{s['aggregate']}）未声明 Command")
+        elif not any((a, s["command"]) in registered for a in aggs):
+            gaps["N07-P1"].append(f"{s['prc']} 第 {s['step']} 步命令「{s['command']}」未在 {s['aggregate']} 的 commands.yaml 登记")
     for o in sorted(primary):
         if m["obj"][o].get("class", "业务对象") == "业务对象" and m["obj"][o].get("facts", "—") in ("", "—", "-"):
             gaps["N11-1"].append(f"{o} {m['obj'][o]['name']}")
