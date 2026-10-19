@@ -200,9 +200,10 @@ def compute(argv=()):
     supports = {r["id"]: r["supports"] for r in A["support_rows"]}
     stage_vs, vs_cond, vs_cat = stage_index(vs_doc)
     anchor_objects(catalog, olc.written_objs(pobj_doc, agg_objs))
-    C = analyse(catalog, stage_vs, vs_cond, vs_cat, touched_objects(catalog, pobj_doc, agg_objs), supports, objects,
+    touched = touched_objects(catalog, pobj_doc, agg_objs)
+    C = analyse(catalog, stage_vs, vs_cond, vs_cat, touched, supports, objects,
                 olc.object_dispositions(sac.INFO_MAP.read_text(encoding="utf-8")))
-    return {"C": C, "catalog": catalog, "objects": objects, "supports": supports, "stage_vs": stage_vs}
+    return {"C": C, "catalog": catalog, "objects": objects, "supports": supports, "stage_vs": stage_vs, "touched": touched}
 
 
 def run(argv):

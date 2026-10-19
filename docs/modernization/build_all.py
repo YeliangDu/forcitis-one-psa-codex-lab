@@ -38,6 +38,8 @@ STEPS.append("architecture/frameworks/notes_build.py")   # 资料笔记格式、
 SELF_TESTED.append("architecture/frameworks/notes_build.py")
 STEPS.append("architecture/panorama/panorama_build.py")   # 全景追溯模型与 TD/BU 缺口（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
 SELF_TESTED.append("architecture/panorama/panorama_build.py")
+STEPS.append("architecture/panorama/object_freeze_check.py")   # 业务对象冻结：逐对象事实与初判（ADR-0059 判据；每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
+SELF_TESTED.append("architecture/panorama/object_freeze_check.py")
 
 for step in STEPS:
     r = subprocess.run([sys.executable, os.path.join(BASE, step)], cwd=BASE, capture_output=True, text=True)
