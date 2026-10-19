@@ -3,7 +3,8 @@
 题名: "Learning Domain-Driven Design: Aligning Software Architecture and Business Strategy"
 作者: ["Vlad Khononov（版权名 Vladislav Khononov）"]
 年份: "2021（首版；版权年 2022）"
-版本: "首版（2021 年 10 月），本地文本为 2024-03-22 第二次发布"
+版本: "First Edition（October 2021）；2021-10-08 First Release"
+出版信息: "O’Reilly Media, Inc.；版权 © 2022 Vladislav Khononov；ISBN 978-1-098-10013-1"
 资料类型: "书籍"
 主题标签: ["领域建模", "集成", "度量与BI"]
 状态: "已审定"
@@ -26,21 +27,19 @@
 
 ## 概念及页码
 
-源 K；文档位于 EPUB `OEBPS/`；`L` 为对应 spine 抽取文本行号或小节定位。
-
-本地重排电子书无可靠版面页码，两列均记「—」；原章节、成员路径、spine 与文本行号合并保存在「原文位置」。
+PDF 物理页从 1 开始；印刷页按新版页面实见页眉或页脚记录，「—」表示未标页码或未核，原因见附节。分号分隔的位置与两列页码依次对应。
 
 | 锚点 | 概念 | 原文位置 | 印刷页 | PDF 页 | 要点 |
 |---|---|---|---|---|---|
-| KHO#书目 | 书目 | 书目与发布历史；3，`titlepage01.html`；4，`copyright-page01.html`；开头 | — | — | 书目与发布历史分别记录 |
-| KHO#子域分类 | 子域分类 | 第 1 章 Core / Generic / Supporting subdomains；9，`ch01.html`；Core L17、Supporting L34 起 | — | — | 核心、通用和支撑子域帮助判断设计投入 |
-| KHO#限界上下文与子域 | 限界上下文与子域 | 第 3 章 Bounded Contexts / Bounded Contexts Versus Subdomains；11，`ch03.html`；后者 L45 起 | — | — | 问题空间和模型解决方案边界不必一一对应 |
-| KHO#领域模型与聚合 | 领域模型与聚合 | 第 6 章 Domain Model / Value Objects / Aggregates；15，`ch06.html`；开头与同名小节 | — | — | 复杂业务由实体、值对象与聚合维护不变量 |
-| KHO#事件溯源 | 事件溯源 | 第 7 章 Event-Sourced Domain Model / Event Sourcing；16，`ch07.html`；L3 起 | — | — | 以事件重建状态不同于当前状态加审计 |
-| KHO#发件箱与过程管理器 | 发件箱与过程管理器 | 第 9 章 Outbox / Saga / Process Manager；18，`ch09.html`；L100、L138、L213 起 | — | — | 状态与待发事件一起提交，流程状态与重复另行明确 |
-| KHO#设计启发式 | 设计启发式 | 第 10 章 Heuristic / Bounded Contexts；20，`ch10.html`；开头 | — | — | 设计深度须适配业务复杂性 |
-| KHO#命令查询职责分离 | 命令查询职责分离 | 第 8 章 Command-Query Responsibility Segregation；17，`ch08.html`；L180 起 | — | — | 写入与读取职责分开是独立选择 |
-| KHO#领域分析数据责任 | 领域分析数据责任 | 第 16 章 Decompose Data Around Domains / Data as a Product；27，`ch16.html`；L63、L68 起 | — | — | 分析提供方、质量和消费契约须明确 |
+| KHO#书目 | 书目 | 书名页 / 版权页，Revision History for the First Edition | — | 5–6 | 书目与发布历史分别记录 |
+| KHO#子域分类 | 子域分类 | 第 1 章 Analyzing Business Domains，Core subdomains / Generic subdomains / Supporting subdomains | 4–7 | 30–33 | 核心、通用和支撑子域帮助判断设计投入 |
+| KHO#限界上下文与子域 | 限界上下文与子域 | 第 3 章 Managing Domain Complexity，Bounded Contexts Versus Subdomains（含 Bounded Contexts / Subdomains） | 38–40 | 64–66 | 问题空间和模型解决方案边界不必一一对应 |
+| KHO#领域模型与聚合 | 领域模型与聚合 | 第 6 章 Tackling Complex Business Logic，Domain Model / Value object / Aggregates | 76–78；84–86 | 102–104；110–112 | 复杂业务由实体、值对象与聚合维护不变量 |
+| KHO#事件溯源 | 事件溯源 | 第 7 章 Modeling the Dimension of Time，Event Sourcing / Event-Sourced Domain Model | 99–101；108–109 | 125–127；134–135 | 以事件重建状态不同于当前状态加审计 |
+| KHO#发件箱与过程管理器 | 发件箱与过程管理器 | 第 9 章 Communication Patterns，Outbox / Saga / Process Manager | 145–147；150–152 | 171–173；176–178 | 状态与待发事件一起提交，流程状态与重复另行明确 |
+| KHO#设计启发式 | 设计启发式 | 第 10 章 Design Heuristics，Heuristic / Bounded Contexts / Business Logic Implementation Patterns | 159–162 | 185–188 | 设计深度须适配业务复杂性 |
+| KHO#命令查询职责分离 | 命令查询职责分离 | 第 8 章 Architectural Patterns，Command-Query Responsibility Segregation | 128–130 | 154–156 | 写入与读取职责分开是独立选择 |
+| KHO#领域分析数据责任 | 领域分析数据责任 | 第 16 章 Data Mesh，Decompose Data Around Domains / Data as a Product | 259–261 | 285–287 | 分析提供方、质量和消费契约须明确 |
 
 ## 对本系统的启示
 
@@ -86,10 +85,10 @@
 ## 附：书目与阅读范围
 
 - 书名：Learning Domain-Driven Design: Aligning Software Architecture and Business Strategy；作者：Vlad Khononov（版权名 Vladislav Khononov）。
-- 版本：First Edition，October 2021；版权年：2022；本地版权页还列 2021-10-08 First Release、2024-03-22 Second Release。
+- 新版版权页（PDF 6）：First Edition，October 2021；版权年：2022；发布历史仅列 2021-10-08 First Release。
 - 出版者：O’Reilly Media, Inc.；ISBN：978-1-098-10013-1。
-- 本地源 K：桌面同名 EPUB，34 个 spine 文档；书目 spine 3–4。本次按本地第二次发布文本阅读，不声称它仍是 2021 初始文件。
-- 无稳定页码，索引为章节、小节与 spine/去标签文本行号。聚焦战略设计与实现选择、通信和分析数据责任。
+- 本地源 K：本机清单 KHO 当前路径所列 PDF，共 340 页；书名页与版权页为 PDF 5–6，无印刷页码。
+- 本次逐页读取原生文字层，以新版章节、小节与页码定位；聚焦战略设计与实现选择、通信和分析数据责任，不沿用旧 EPUB 的第二次发布声明。
 
 ## 附：核对记录
 
@@ -110,6 +109,8 @@
 
 抽查 8 条，偏差 0 条。
 
+本次重核：2026-10-19；版本：First Edition（October 2021）；2021-10-08 First Release；锚点 9 个（已定位 9 个）；旧版抽查记录保留作历史记录，新版定位见概念及页码及旧版本页码对照。
+
 ## 附：旧索引对照
 
 - K-B1 → KHO#书目
@@ -121,3 +122,23 @@
 - K-06 → KHO#设计启发式
 - K-07 → KHO#命令查询职责分离
 - K-08 → KHO#领域分析数据责任
+
+## 附：旧版本页码对照
+
+2026-10-19 按 ARC-1019-ARC-01 重核；旧值逐格保留自本次修改前的概念及页码表。旧文件已不存在，不据新版推算旧页码。下表「—」的原因见后文。
+
+| 锚点 | 旧印刷页 | 旧 PDF 页 | 新印刷页 | 新 PDF 页 |
+|---|---|---|---|---|
+| KHO#书目 | — | — | — | 5–6 |
+| KHO#子域分类 | — | — | 4–7 | 30–33 |
+| KHO#限界上下文与子域 | — | — | 38–40 | 64–66 |
+| KHO#领域模型与聚合 | — | — | 76–78；84–86 | 102–104；110–112 |
+| KHO#事件溯源 | — | — | 99–101；108–109 | 125–127；134–135 |
+| KHO#发件箱与过程管理器 | — | — | 145–147；150–152 | 171–173；176–178 |
+| KHO#设计启发式 | — | — | 159–162 | 185–188 |
+| KHO#命令查询职责分离 | — | — | 128–130 | 154–156 |
+| KHO#领域分析数据责任 | — | — | 259–261 | 285–287 |
+
+新版来源：本机 `~/.modernize/psa/library.yaml` 的 KHO「路径」所列 `Learning Domain-Driven Design (Vlad Khononov) .pdf`，共 340 个 PDF 物理页。逐页以 `pdftotext -layout -f N -l N` 读取原生文字层；未用旧路径、旧文本或 OCR 目录补证。
+
+版本差异：新版版权页（PDF 6）仅列 2021-10-08 First Release，未列旧 EPUB 的 2024-03-22 Second Release；不沿用旧发布历史。书名页与版权页无印刷页码，故 KHO#书目 的印刷页记「—」。

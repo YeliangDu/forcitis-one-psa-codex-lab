@@ -2,8 +2,9 @@
 编号: "PEAA"
 题名: "Patterns of Enterprise Application Architecture"
 作者: ["Martin Fowler", "David Rice", "Matthew Foemmel", "Edward Hieatt", "Robert Mee", "Randy Stafford"]
-年份: "2002（首次印刷；版权年 2003）"
-版本: "未见编号版次声明，2002 年 10 月首次印刷"
+年份: "2003（版权年；出版年未核）"
+版本: "未核（新版版权页未见编号版次与首次印刷日期）"
+出版信息: "Addison-Wesley；版权 © 2003 Pearson Education, Inc.；ISBN-13 978-0-321-12742-6；ISBN-10 0-321-12742-0"
 资料类型: "书籍"
 主题标签: ["领域建模", "数据建模"]
 状态: "已审定"
@@ -27,25 +28,23 @@
 
 ## 概念及页码
 
-下列均为 P1 中的精确成员路径；路径相对于 EPUB ZIP 根目录，不是仓库文件或网页。成员内的括号数字是原书交叉引用，未把它们当成本地 EPUB 页码。
-
-本地重排电子书无可靠版面页码，两列均记「—」；原章节、成员路径、spine 与文本行号合并保存在「原文位置」。
+PDF 物理页从 1 开始；印刷页按新版页面实见页眉或页脚记录，「—」表示未标页码或未核，原因见附节。分号分隔的位置与两列页码依次对应。
 
 | 锚点 | 概念 | 原文位置 | 印刷页 | PDF 页 | 要点 |
 |---|---|---|---|---|---|
-| PEAA#书目 | 作者、出版信息 / 版权与印次 | 书目入口 / Copyright；`EPUB/Text/0321127420_main.html`；`EPUB/Text/0321127420_copyrightpg.html` | — | — | 作者、出版、版权与印次分别记录 |
-| PEAA#逻辑组织选择 | 逻辑复杂度与组织选择 | 第 2 章 Making a Choice；`EPUB/Text/0321127420_ch02lev1sec1.html` | — | — | 按行为复杂度解释逻辑组织的选择 |
-| PEAA#请求过程与领域模型 | 请求过程与领域对象 | 第 9 章 Transaction Script / Domain Model；`EPUB/Text/0321127420_ch09lev1sec1.html`；`EPUB/Text/0321127420_ch09lev1sec2.html` | — | — | 过程逻辑与领域对象各有适用条件 |
-| PEAA#应用协调 | 应用边界与协调 | 第 2 章 Service Layer；第 9 章 Service Layer（Randy Stafford）；`EPUB/Text/0321127420_ch02lev1sec2.html`；`EPUB/Text/0321127420_ch09lev1sec4.html` | — | — | 应用可用操作与协调责任须明确 |
-| PEAA#领域与关系映射 | 领域与关系映射分离 | 第 10 章 Data Mapper；`EPUB/Text/0321127420_ch10lev1sec4.html` | — | — | 对象与数据库映射由独立层承担 |
-| PEAA#仓储 | 领域对象访问抽象 | 第 13 章 Repository（Edward Hieatt / Rob Mee）；`EPUB/Text/0321127420_ch13lev1sec3.html` | — | — | 在领域与映射层之间提供访问抽象 |
-| PEAA#变更跟踪 | 变更集合与写入协调 | 第 11 章 Unit of Work；`EPUB/Text/0321127420_ch11lev1sec1.html` | — | — | 跟踪一次业务处理的变更并协调写入 |
-| PEAA#对象同一性 | 一次处理中的对象同一性 | 第 11 章 Identity Map；`EPUB/Text/0321127420_ch11lev1sec2.html` | — | — | 避免同一记录被加载为多个可独立修改的对象 |
-| PEAA#延迟加载 | 推迟加载及查询代价 | 第 11 章 Lazy Load；`EPUB/Text/0321127420_ch11lev1sec3.html` | — | — | 推迟加载会改变查询时点与次数 |
-| PEAA#业务与系统事务 | 并发异常、事务与业务跨度 | 第 5 章 Concurrency Problems / Transactions / Business and System Transactions；`EPUB/Text/0321127420_ch05lev1sec1.html`；`EPUB/Text/0321127420_ch05lev1sec5.html`（后一标题在该成员内） | — | — | 跨请求业务处理不自动获得短事务的并发保证 |
-| PEAA#乐观离线锁 | 提交时检查冲突 | 第 16 章 Optimistic Offline Lock（David Rice）；`EPUB/Text/0321127420_ch16lev1sec1.html` | — | — | 版本验证与更新在同一系统事务内完成 |
-| PEAA#悲观离线锁 | 提前排斥冲突与代价 | 第 16 章 Pessimistic Offline Lock（David Rice）；`EPUB/Text/0321127420_ch16lev1sec2.html` | — | — | 提前排斥冲突会增加锁管理与并发成本 |
-| PEAA#值对象与金额 | 值相等、不可变性与币种金额 | 第 18 章 Value Object / Money；`EPUB/Text/0321127420_ch18lev1sec6.html`；`EPUB/Text/0321127420_ch18lev1sec7.html` | — | — | 值相等、不可变性及金额币种约束显式表达 |
+| PEAA#书目 | 作者、出版信息 / 版权与印次 | 书名页 / 版权页（未见首次印刷或编号版次声明） | — | 4–5 | 作者、出版、版权与印次分别记录 |
+| PEAA#逻辑组织选择 | 逻辑复杂度与组织选择 | 第 2 章 Organizing Domain Logic，Making a Choice | 29–30 | 54–55 | 按行为复杂度解释逻辑组织的选择 |
+| PEAA#请求过程与领域模型 | 请求过程与领域对象 | 第 9 章 Domain Logic Patterns，Transaction Script / Domain Model | 110–111；116–119 | 135–136；141–144 | 过程逻辑与领域对象各有适用条件 |
+| PEAA#应用协调 | 应用边界与协调 | 第 2 章 Organizing Domain Logic，Service Layer；第 9 章 Domain Logic Patterns，Service Layer（Randy Stafford） | 30–31；133–135 | 55–56；158–160 | 应用可用操作与协调责任须明确 |
+| PEAA#领域与关系映射 | 领域与关系映射分离 | 第 10 章 Data Source Architectural Patterns，Data Mapper | 165–166 | 190–191 | 对象与数据库映射由独立层承担 |
+| PEAA#仓储 | 领域对象访问抽象 | 第 13 章 Object-Relational Metadata Mapping Patterns，Repository（Edward Hieatt / Rob Mee） | 322–323 | 347–348 | 在领域与映射层之间提供访问抽象 |
+| PEAA#变更跟踪 | 变更集合与写入协调 | 第 11 章 Object-Relational Behavioral Patterns，Unit of Work | 184–185 | 209–210 | 跟踪一次业务处理的变更并协调写入 |
+| PEAA#对象同一性 | 一次处理中的对象同一性 | 第 11 章 Object-Relational Behavioral Patterns，Identity Map | 195–196 | 220–221 | 避免同一记录被加载为多个可独立修改的对象 |
+| PEAA#延迟加载 | 推迟加载及查询代价 | 第 11 章 Object-Relational Behavioral Patterns，Lazy Load | 200–201 | 225–226 | 推迟加载会改变查询时点与次数 |
+| PEAA#业务与系统事务 | 并发异常、事务与业务跨度 | 第 5 章 Concurrency，Concurrency Problems / Transactions / Business and System Transactions | 64；71；74–76 | 89；96；99–101 | 跨请求业务处理不自动获得短事务的并发保证 |
+| PEAA#乐观离线锁 | 提交时检查冲突 | 第 16 章 Offline Concurrency Patterns，Optimistic Offline Lock（David Rice） | 416–417 | 441–442 | 版本验证与更新在同一系统事务内完成 |
+| PEAA#悲观离线锁 | 提前排斥冲突与代价 | 第 16 章 Offline Concurrency Patterns，Pessimistic Offline Lock（David Rice） | 426–427 | 451–452 | 提前排斥冲突会增加锁管理与并发成本 |
+| PEAA#值对象与金额 | 值相等、不可变性与币种金额 | 第 18 章 Base Patterns，Value Object / Money | 486–489 | 511–514 | 值相等、不可变性及金额币种约束显式表达 |
 
 ## 对本系统的启示
 
@@ -92,10 +91,10 @@ Value Object 以值而不是身份判断相等，不可变性可避免共享引�
 ## 附：书目与阅读范围
 
 - 书名：Patterns of Enterprise Application Architecture。
-- 主作者：Martin Fowler；本地书目信息列合作者 David Rice、Matthew Foemmel、Edward Hieatt、Robert Mee、Randy Stafford；各模式保留其具体署名，例如 Repository 署 Edward Hieatt、Rob Mee。
-- 出版者：Addison-Wesley；ISBN：0-321-12742-0。版权页为 © 2003 Pearson Education, Inc.，首次印刷 October 2002；书目入口另载出版日期 November 05, 2002，二者分别记录，不混作同一日期。未见编号版次声明。
-- 本地源 P1：用户提供的本地 EPUB，不进仓库。书目与版权位置见 PEAA#书目；重排电子书没有可核实的固定物理页，本笔记只用 ZIP 成员路径、章与节标题定位。
-- 按问题选读领域逻辑、映射、事务与并发，并对照相关模式的意图、机制和适用讨论；未通读所有模式或运行代码示例。源包夹带的第三方推广页不作正文依据，未打开其链接。短引：0 处。
+- 主作者：Martin Fowler；新版书名页列合作者 David Rice、Matthew Foemmel、Edward Hieatt、Robert Mee、Randy Stafford；Repository 正文署 Edward Hieatt、Rob Mee。
+- 新版版权页（PDF 5）：出版者 Addison-Wesley；版权 © 2003 Pearson Education, Inc.；ISBN-13：978-0-321-12742-6；ISBN-10：0-321-12742-0。出版年、首次印刷日期与编号版次未核，原因见旧版本页码对照附节。
+- 本地源 P1：本机清单 PEAA 当前路径所列 PDF，共 558 页；书名页与版权页为 PDF 4–5，无印刷页码；正文以实见印刷页与 PDF 页定位。
+- 按问题选读领域逻辑、映射、事务与并发，并对照相关模式的意图、机制和适用讨论；未通读所有模式或运行代码示例。只读取 PDF 文字层，未打开链接。短引：0 处。
 
 ## 附：核对记录
 
@@ -116,6 +115,8 @@ Value Object 以值而不是身份判断相等，不可变性可避免共享引�
 
 抽查 8 条，偏差 0 条。
 
+本次重核：2026-10-19；版本：未核（新版版权页未见编号版次与首次印刷日期）；锚点 13 个（已定位 13 个）；旧版抽查记录保留作历史记录，新版定位见概念及页码及旧版本页码对照。
+
 ## 附：旧索引对照
 
 - P-B1 → PEAA#书目
@@ -131,3 +132,27 @@ Value Object 以值而不是身份判断相等，不可变性可避免共享引�
 - P-10 → PEAA#乐观离线锁
 - P-11 → PEAA#悲观离线锁
 - P-12 → PEAA#值对象与金额
+
+## 附：旧版本页码对照
+
+2026-10-19 按 ARC-1019-ARC-01 重核；旧值逐格保留自本次修改前的概念及页码表。旧文件已不存在，不据新版推算旧页码。下表「—」的原因见后文。
+
+| 锚点 | 旧印刷页 | 旧 PDF 页 | 新印刷页 | 新 PDF 页 |
+|---|---|---|---|---|
+| PEAA#书目 | — | — | — | 4–5 |
+| PEAA#逻辑组织选择 | — | — | 29–30 | 54–55 |
+| PEAA#请求过程与领域模型 | — | — | 110–111；116–119 | 135–136；141–144 |
+| PEAA#应用协调 | — | — | 30–31；133–135 | 55–56；158–160 |
+| PEAA#领域与关系映射 | — | — | 165–166 | 190–191 |
+| PEAA#仓储 | — | — | 322–323 | 347–348 |
+| PEAA#变更跟踪 | — | — | 184–185 | 209–210 |
+| PEAA#对象同一性 | — | — | 195–196 | 220–221 |
+| PEAA#延迟加载 | — | — | 200–201 | 225–226 |
+| PEAA#业务与系统事务 | — | — | 64；71；74–76 | 89；96；99–101 |
+| PEAA#乐观离线锁 | — | — | 416–417 | 441–442 |
+| PEAA#悲观离线锁 | — | — | 426–427 | 451–452 |
+| PEAA#值对象与金额 | — | — | 486–489 | 511–514 |
+
+新版来源：本机 `~/.modernize/psa/library.yaml` 的 PEAA「路径」所列 `Patterns of Enterprise Application Architecture (Martin Fowler) .pdf`，共 558 个 PDF 物理页。逐页以 `pdftotext -layout -f N -l N` 读取原生文字层；未用旧路径、旧文本或 OCR 目录补证。
+
+未核说明：新版版权页（PDF 5）确认版权、出版者及两种 ISBN，但未见旧 EPUB 的 October 2002 首印与 November 05, 2002 出版日期，未见编号版次声明；页末仅有「24 17」，不足以据此确定版次或印刷年份，故不沿用旧日期。书名页与版权页无印刷页码，故 PEAA#书目 的印刷页记「—」。

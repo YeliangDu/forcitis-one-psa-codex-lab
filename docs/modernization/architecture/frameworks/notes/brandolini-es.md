@@ -2,8 +2,9 @@
 编号: BES
 题名: "Introducing EventStorming: An act of Deliberate Collective Learning"
 作者: [Alberto Brandolini]
-年份: 2018
-版本: Main version 0.1.0.2（2018-06-06 发布，未完成版本）
+年份: "2019（本地版本发布日期）"
+版本: "Main version 0.1.0.2（2019-08-23 发布，未完成版本）"
+出版信息: "Leanpub；版权 © 2015–2019 Alberto Brandolini；ISBN 未核"
 资料类型: 书籍
 主题标签: [领域建模, 流程]
 状态: 已审定
@@ -20,8 +21,8 @@
 
 - 书名：Introducing EventStorming，副标题 An act of Deliberate Collective Learning。
 - 作者：Alberto Brandolini；出版平台：Leanpub。
-- 本地版权页标明此版本发布于 2018-06-06，版权 © 2015–2018；序言标明 Main version 0.1.0.2。序言明确说明全书未完成，多章有进度百分比和占位内容；不把文件名的1, 2018作为正式第一版证明。
-- 本地源 ES1：用户提供的本地 PDF，不进仓库，共 299 个物理页；书目证据见 BES#书目与未完成声明。未从本地版权页核实到 ISBN，故不补填。
+- 新版版权页（PDF 2）标明此版本发布于 2019-08-23，版权 © 2015–2019；序言（PDF 14）标明 Main version 0.1.0.2。序言明确说明全书未完成，多章有进度百分比和占位内容；不把文件名作为正式第一版证明。
+- 本地源 ES1：本机清单 BES 当前路径所列 PDF，不进仓库，共 345 个物理页；书目证据见 BES#书目与未完成声明。未从本地版权页核实到 ISBN，故不补填。
 - 按问题选读协同探索、热点、事件语义、策略、聚合与模型边界。章节索引仅定位本次使用的内容，不表示通读全书；未举办工作坊、运行示例或打开链接。短引：0 处。
 
 ## 核心思想
@@ -34,19 +35,19 @@
 
 ## 概念及页码
 
-PDF 物理页从 1 开始。ES1 正文所列物理页 = 印刷页 + 14；版权页无印刷页码，序言使用罗马页码。下列为选读范围，不复刻全书章节或工作坊步骤。
+PDF 物理页从 1 开始；印刷页按新版页面实见页眉或页脚记录，「—」表示未标页码或未核，原因见附节。分号分隔的位置与两列页码依次对应。
 
 | 锚点 | 概念 | 原文位置 | 印刷页 | PDF 页 | 要点 |
 |---|---|---|---|---|---|
-| BES#书目与未完成声明 | 作者、发布日期、版本与未完成声明 | ES1，版权页；Preface，How to read this book / Version | 无页码；ii–iii | 2；13–14 | 版权、发布日、主版本及未完成声明 |
-| BES#协同学习 | 协同叙述、词义与未知问题 | ES1，第 1 章 Conversations, conversations, conversations 及续页 | 10–11 | 24–25 | 协同叙述暴露词义差异和未知 |
-| BES#热点 | 在不一致处标热点 | ES1，第 4 章 Running a Big Picture Workshop，Highlight inconsistencies with Hot Spots | 86–87 | 100–101 | 标记风险、缺口或待选方案，不表示已裁定 |
-| BES#探索成果与局限 | 学习成果、大图局限与热点后续 | ES1，第 8 章 Workshop Aftermath，Managing the big picture artifact / Prioritizing hot spots | 133；135 | 147；149 | 大图可能有错，部分问题须经编码、测试及真实使用发现 |
-| BES#大图与设计层 | 大图与设计层目标、事件来源与职责 | ES1，第 18 章 Running a Design-Level EventStorming | 176；178–179 | 190；192–193 | 共同理解与具体设计目标不同 |
-| BES#事件语义 | 事件精确性、来源与状态变化 | ES1，第 22 章 Building Blocks，Events are precise / Domain Events as state transitions 及总结 | 190–193 | 204–207 | 已发生的变化和候选事件不等于运行发布 |
-| BES#策略与人工反应 | 事件到行动的反应及人工实施 | ES1，第 23 章 Color Modeling Patterns，Policies / From policies to implementation | 195–196 | 209–210 | 事件后的行动可由人、习惯或软件承担 |
-| BES#聚合与读模型 | 不变量与聚合、显示信息与读模型 | ES1，第 24 章 Modeling Aggregates / Discovering aggregates | 205–206 | 219–220 | 从职责、所需信息及不变量寻找边界 |
-| BES#模型边界与未完成范围 | 多个协作模型与边界讨论的局限 | ES1，第 29 章 Modeling in the large（章标进度 10%） | 217–218 | 231–232 | 大范围建模章节仅完成部分，不能补造完整方法 |
+| BES#书目与未完成声明 | 作者、发布日期、版本与未完成声明 | 版权页；Preface - 25%，About this book / Progress counter on top of chapters / Version | —；i–iv | 2；11–14 | 版权、发布日、主版本及未完成声明 |
+| BES#协同学习 | 协同叙述、词义与未知问题 | 第 1 章 What does EventStorming look like? - 85%，Conversations, conversations, conversations 及续页 | 10–11 | 24–25 | 协同叙述暴露词义差异和未知 |
+| BES#热点 | 在不一致处标热点 | 第 4 章 Running a Big Picture Workshop - 98%，Highlight inconsistencies with Hot Spots | 87–88 | 101–102 | 标记风险、缺口或待选方案，不表示已裁定 |
+| BES#探索成果与局限 | 学习成果、大图局限与热点后续 | 第 9 章 Workshop Aftermath - 20%，Managing the big picture artifact / Prioritizing hot spots | 167–169 | 181–183 | 大图可能有错，部分问题须经编码、测试及真实使用发现 |
+| BES#大图与设计层 | 大图与设计层目标、事件来源与职责 | 第 16 章 Running a Design-Level EventStorming - 10%，Scope is different / Outcome is different / Where are Events Coming from? / Discover Aggregates | 242–245 | 256–259 | 共同理解与具体设计目标不同 |
+| BES#事件语义 | 事件精确性、来源与状态变化 | 第 18 章 Building Blocks - 20%，Events are precise / Domain Events as state transitions / Wrapping everything up | 252–256 | 266–270 | 已发生的变化和候选事件不等于运行发布 |
+| BES#策略与人工反应 | 事件到行动的反应及人工实施 | 第 13 章 Process Modeling Building Blocks - 90%，Policies / Name and implementation / Software or people / Policies as lie detectors | 207–210 | 221–224 | 事件后的行动可由人、习惯或软件承担 |
+| BES#聚合与读模型 | 不变量与聚合、显示信息与读模型 | 第 19 章 Modeling Aggregates，Discovering aggregates；第 16 章 Discover Aggregates | 257–258；245 | 271–272；259 | 从职责、所需信息及不变量寻找边界 |
+| BES#模型边界与未完成范围 | 多个协作模型与边界讨论的局限 | 新版未定位对应内容（旧第 29 章 Modeling in the large；见附节说明） | — | — | 大范围建模章节仅完成部分，不能补造完整方法 |
 
 ## 对本系统的启示
 
@@ -63,7 +64,7 @@ PDF 物理页从 1 开始。ES1 正文所列物理页 = 印刷页 + 14；版权�
 - **建议借鉴：把热点作为待核问题的位置标记。** 问题应附来源、缺口和下一步验证，不把有人提出转写为事实；涉及新业务用语的正式定名仍交 one-glossary。本卡只保留来源词汇，不新增词表条目。
 - **建议借鉴：区分策略、读模型、外部系统与热点的职责。** 这四个词汇已在 ADR-0052 的现行方法中有落点；并不意味着整套工作坊、颜色体系、便签种类和流程顺序都已采纳。策略是否自动化、是否涉及 BPMN 或 DMN，继续按所属业务规则与流程判据决定。
 - **不建议：把协作叙述当作运行事件或完整业务证据。** 正式领域事件仍按 CS-2.5 由聚合产生并登记；需分别验证发生条件、负载、业务日期、持久投递与消费结果。本书允许探索时暂时模糊，不放宽本项目契约、命名或验收要求。
-- **不建议：从便签颜色、屏幕、表结构或人员分组直接确定聚合和 BC。** 候选边界须回到不变量、事务要求与上下文映射核对；第 29 章未完成的内容不能被补成作者已经给出的完整方法。
+- **不建议：从便签颜色、屏幕、表结构或人员分组直接确定聚合和 BC。** 候选边界须回到不变量、事务要求与上下文映射核对；旧版本第 29 章未完成的内容不能被补成作者已经给出的完整方法（该章在新版未定位，见附节）。
 - **不建议：把书中的 EventStorming 格式或章节中的 value stream 直接替代本项目方法。** BIZBOK 价值流、流程目录和 BPMN 分别按现行判据；本项目已用事件清单推导取代工作坊，本笔记不重开方法选择。
 
 **使用边界：** 本书提供协同探索的经验与部分设计技巧，且本地版本尚未完成。它不证明本企业某个经济事实、业务能力、流程边界、聚合或事件已经成立，也不能证明工作坊一定发现了全部例外。本笔记没有举办或验收工作坊，没有新增领域事件、聚合、上下文边界、规则或实现；原起草边界记以上建议仍待 one-architecture 审定；原状态行及取舍节后记为已审定，本次迁移不另行裁定。
@@ -97,3 +98,25 @@ PDF 物理页从 1 开始。ES1 正文所列物理页 = 印刷页 + 14；版权�
 | BES#模型边界与未完成范围 | PDF 231–232 | 231 第 29 章 Modeling in the large，章标 10% | 一致 |
 
 抽查 9 条，偏差 0 条。
+
+本次重核：2026-10-19；版本：Main version 0.1.0.2（2019-08-23 发布，未完成版本）；锚点 9 个（已定位 8 个）；旧版抽查记录保留作历史记录，新版定位见概念及页码及旧版本页码对照。
+
+## 附：旧版本页码对照
+
+2026-10-19 按 ARC-1019-ARC-01 重核；旧值逐格保留自本次修改前的概念及页码表。旧文件已不存在，不据新版推算旧页码。下表「—」的原因见后文。
+
+| 锚点 | 旧印刷页 | 旧 PDF 页 | 新印刷页 | 新 PDF 页 |
+|---|---|---|---|---|
+| BES#书目与未完成声明 | 无页码；ii–iii | 2；13–14 | —；i–iv | 2；11–14 |
+| BES#协同学习 | 10–11 | 24–25 | 10–11 | 24–25 |
+| BES#热点 | 86–87 | 100–101 | 87–88 | 101–102 |
+| BES#探索成果与局限 | 133；135 | 147；149 | 167–169 | 181–183 |
+| BES#大图与设计层 | 176；178–179 | 190；192–193 | 242–245 | 256–259 |
+| BES#事件语义 | 190–193 | 204–207 | 252–256 | 266–270 |
+| BES#策略与人工反应 | 195–196 | 209–210 | 207–210 | 221–224 |
+| BES#聚合与读模型 | 205–206 | 219–220 | 257–258；245 | 271–272；259 |
+| BES#模型边界与未完成范围 | 217–218 | 231–232 | — | — |
+
+新版来源：本机 `~/.modernize/psa/library.yaml` 的 BES「路径」所列 `Introducing EventStorming (Alberto Brandolini).pdf`，共 345 个 PDF 物理页。逐页以 `pdftotext -layout -f N -l N` 读取原生文字层；未用旧路径、旧文本或 OCR 目录补证。
+
+版本差异与未核说明：版权页（PDF 2）改为 2019-08-23、© 2015–2019，主版本仍为 0.1.0.2（PDF 14）。版权页未标印刷页码，故该位置记「—」。旧第 23 章 Color Modeling Patterns 的策略内容在新版第 13 章 Policies 等小节找到对应，依事件后的行动、人工与软件反应的正文重定位；旧第 18、22、24 章相关内容现分别位于第 16、18、19 章。BES#模型边界与未完成范围 在新版目录及全文未找到原 Modeling in the large 章节或对应的多个协作模型与边界讨论；新版第 29 章是 Anti-patterns，仅在 PDF 19 脚注预告 modeling in the large，不能作为该锚点的正文证据，两列页码均记「—」。正文关于旧第 29 章及其完成度的概括按卡保留，只代表旧版笔记，不作为新版已核内容。
