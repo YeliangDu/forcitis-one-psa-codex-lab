@@ -132,7 +132,8 @@ OBJ-44:
 OBJ-45:
   class: 确认建模
 OBJ-46:
-  class: 确认建模
+  class: 并入项目（用户 2026-10-19 已定）
+  owner: OBJ-29
 OBJ-47:
   class: 从属对象（父 OBJ-46）
   owner: OBJ-46

@@ -132,7 +132,7 @@ def impact(nodes, touched, final):
         cls = e["class"]
         if cls == "确认建模":
             continue
-        kind = "从属" if cls.startswith("从属") else "事实" if "业务事实" in cls else "参照"
+        kind = "从属" if cls.startswith("从属") or cls.startswith("并入") else "事实" if "业务事实" in cls else "参照"
         owner = e.get("owner") or "（无，视图）"
         name = nodes["obj"].get(oid, {}).get("name", oid)
         adv = [a.format(o=owner) for a in ADVICE[kind]]
