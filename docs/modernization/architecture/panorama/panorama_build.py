@@ -108,6 +108,8 @@ def gate_refs(node, patterns, depth=0):
         out += gate_refs(patterns[node["pattern"]], patterns, depth + 1)
     for k in ("any", "all"):
         for x in node.get(k) or []:
+            if not isinstance(x, dict):
+                raise ValueError(f"门条件 {k} 里有非条件项：{x!r}")
             out += gate_refs(x, patterns, depth + 1)
     return out
 
@@ -297,15 +299,30 @@ def check(m, anchoring=None):
             return set()
         return set().union(*[chain(p, seen + (o,)) for p in m["obj"][o].get("parents", [])] or [set()])
 
+    def in_cycle(o):
+        """沿父对象上行能回到自身则返回环路，否则 None。"""
+        stack = [(o, (o,))]
+        while stack:
+            cur, path = stack.pop()
+            for p in m["obj"].get(cur, {}).get("parents", []):
+                if p == o:
+                    return path + (o,)
+                if p not in path:
+                    stack.append((p, path + (p,)))
+        return None
+
     for o in sorted(active_obj, key=lambda x: int(x[4:])):
         ob = m["obj"][o]
         bad = [p for p in ob.get("parents", []) if p not in active_obj]
+        cyc = in_cycle(o)
         if o in primary and ob.get("parents"):
             gaps["N09-4"].append(f"{o} {ob['name']}（一级对象不应有父对象：{'、'.join(ob['parents'])}）")
         elif o not in primary and not ob.get("parents"):
             gaps["N09-4"].append(f"{o} {ob['name']}（非一级，父对象未填 OBJ 编号：{ob.get('parents_raw') or '空'}）")
         elif bad:
             gaps["N09-4"].append(f"{o} {ob['name']}（父对象 {'、'.join(bad)} 不是有效对象）")
+        elif cyc:
+            gaps["N09-4"].append(f"{o} {ob['name']}（依附链成环：{' → '.join(cyc)}）")
 
     def gate_note(objs):
         return "、".join(f"{o}→{'、'.join(sorted(chain(o))) or '断'}" for o in objs)
@@ -421,6 +438,12 @@ def self_test():
     assert expand("AGG", "AGG-01、02、33；REF-01") == ["AGG-01", "AGG-02", "AGG-33"]
     pat = {"exit_common": {"all": [{"any": [{"ref": "OBJ-35"}, {"all": [{"ref": "OBJ-30"}]}]}]}}
     assert [g["ref"] for g in gate_refs({"pattern": "exit_common", "all": [{"ref": "OBJ-38"}]}, pat)] == ["OBJ-35", "OBJ-30", "OBJ-38"]
+    for bad in ({"pattern": "nope"}, {"any": ["OBJ-35"]}):
+        try:
+            gate_refs(bad, pat)
+            raise AssertionError(f"应失败：{bad}")
+        except ValueError:
+            pass
     assert expand("AGG", "AGG-08–12、18、102") == ["AGG-08", "AGG-09", "AGG-10", "AGG-11", "AGG-12", "AGG-18", "AGG-102"]
     m = {"sh": {}, "con": {}, "act": {}, "vs": {}, "stage": {"VS-01.1": {"name": "s", "vs": "VS-01", "gates": [], "in_stage": []}},
          "obj": {"OBJ-01": {"name": "o", "active": True, "primary": True}}, "prc": {}, "agg": {}, "inv": {},
@@ -438,6 +461,14 @@ def self_test():
     g = check(m)
     assert not g["N06-2"] and not g["N06-3"], (g["N06-2"], g["N06-3"])   # 两跳依附链可达一级
     assert [x[:6] for x in g["N09-4"]] == ["OBJ-04", "OBJ-05"], g["N09-4"]
+    m["obj"]["OBJ-01"]["parents"] = ["OBJ-02"]
+    m["obj"]["OBJ-06"] = {"name": "g", "active": True, "primary": False, "parents": ["OBJ-07"]}
+    m["obj"]["OBJ-07"] = {"name": "h", "active": True, "primary": False, "parents": ["OBJ-06"]}
+    g = check(m)
+    assert [x[:6] for x in g["N09-4"]] == ["OBJ-01", "OBJ-02", "OBJ-04", "OBJ-05", "OBJ-06", "OBJ-07"], g["N09-4"]   # 一级填了父对象（且与 OBJ-02 成环）；OBJ-06、07 互指成环
+    assert "一级对象不应有父对象" in g["N09-4"][0] and all("成环" in g["N09-4"][i] for i in (1, 4, 5))
+    m["obj"]["OBJ-01"]["parents"] = []
+    del m["obj"]["OBJ-06"], m["obj"]["OBJ-07"]
     assert g["N01-2"] == ["SH-B 乙"] and g["N06-4"] == ["VS-01 v（缺价值接收者）"], (g["N01-2"], g["N06-4"])
     m["stage"]["VS-01.1"]["gates"] = [{"side": "entry", "obj": "OBJ-04"}]
     g = check(m)
