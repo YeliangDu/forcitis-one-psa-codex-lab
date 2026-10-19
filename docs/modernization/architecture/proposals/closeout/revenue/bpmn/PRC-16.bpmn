@@ -93,8 +93,8 @@
       <outgoing>Flow_9</outgoing>
       <outgoing>Flow_10</outgoing>
     </exclusiveGateway>
-    <serviceTask id="S4_8" name="审批驳回结果回调">
-      <documentation>AGG-17 审批驳回结果回调；B-05；automatic</documentation>
+    <serviceTask id="S4_8" name="驳回风险交付授权">
+      <documentation>AGG-17 驳回风险交付授权；B-05；automatic</documentation>
       <incoming>Flow_10</incoming>
       <outgoing>Flow_11</outgoing>
       <ioSpecification id="IO_S4_8">
