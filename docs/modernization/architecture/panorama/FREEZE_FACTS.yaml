@@ -3563,3 +3563,19 @@ OBJ-125:
   src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:197
   initial: 确认建模
   why: 有状态且被指向
+OBJ-126:
+  name: 股东
+  level: 一级
+  objd_class: 业务对象
+  parent: null
+  states:
+  - 已登记
+  - 持股中
+  - 已退出
+  identity_hint: true
+  pointers:
+    '11':
+    - 信息图「产生的事实」列
+  src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:198
+  initial: 补 07 或 10（无指向，对象保留）
+  why: 06、07、08、10 均无指向：先查 07 是否应有流程改其状态，有则补 07 或 10，确无业务动作才进 04 或降级

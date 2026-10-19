@@ -10,7 +10,7 @@ meta:
     terms: glossary/terms.yaml
     decr: architecture/panorama/tradeoffs.yaml
   counts:
-    sh: 36
+    sh: 39
     con: 0
     vp: 15
     decr: 2
@@ -19,7 +19,7 @@ meta:
     stage: 61
     prc: 200
     inv: 134
-    obj: 103
+    obj: 104
     act: 651
     fact: 0
     dim: 0
@@ -203,6 +203,36 @@ nodes:
       value: 渠道伙伴
       decr: null
       src: architecture/proposals/value-streams.v2.yaml#SH-P3
+    SH-P4:
+      name: 审计机构
+      category: 合作伙伴
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 角色
+      value: 供应商
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-P4
+    SH-P5:
+      name: 金融机构
+      category: 合作伙伴
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 角色
+      value: 金融机构
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-P5
+    SH-P6:
+      name: 供应商·出租方
+      category: 合作伙伴
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 角色
+      value: 出租方
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-P6
     SH-R1:
       name: 工程审批
       category: 监管机构
@@ -337,10 +367,10 @@ nodes:
       name: —
       category: 股东和合伙人
       type: 两者
-      in_system: 往来单位加角色
-      obj: OBJ-02
-      attr: 角色
-      value: 合伙人
+      in_system: 专门对象
+      obj: OBJ-126
+      attr: 股东类型
+      value: 单位股东、自然人股东、合伙人
       decr: null
       src: architecture/proposals/value-streams.v2.yaml#SH-O1
     SH-X1:
@@ -499,8 +529,8 @@ nodes:
       subject: SH-S1、SH-S2 社会公众
       decision: 不进系统
       reason: 不与我方订约、往来或办理任何事项，只获得建筑安全与效果等非货币价值；这些价值由交付物质量与合规事项体现。
-      status: 提议
-      source: STKH 确认页
+      status: 已定
+      source: 用户 2026-10-19 STKH-10 认可（STKH-20261019-202526-si5）
       src: architecture/panorama/tradeoffs.yaml#DECR-02
   cap:
     CAP-001:
@@ -679,7 +709,6 @@ nodes:
       - SH-C3
       - SH-C4
       - SH-C5
-      - SH-C6a
       - SH-P3
       - SH-P1c
       receivers:
@@ -688,7 +717,6 @@ nodes:
       - SH-C3
       - SH-C4
       - SH-C5
-      - SH-C6b
     VS-02:
       name: 获得交付成果
       category: business
@@ -698,13 +726,11 @@ nodes:
       - SH-C2
       - SH-C3
       - SH-C4
-      - SH-C6a
       receivers:
       - SH-C1
       - SH-C2
       - SH-C3
       - SH-C4
-      - SH-C6e
       - SH-S1
       - SH-S2
     VS-03:
@@ -1523,6 +1549,7 @@ nodes:
       - SH-E2
       - SH-C6d
       - SH-X7
+      - SH-P5
     VS-04.5:
       name: 确认最终价款
       vs: VS-04
@@ -1599,6 +1626,7 @@ nodes:
       - SH-P3
       - SH-E1
       - SH-X2
+      - SH-P6
     VS-05.3:
       name: 确认供方履约
       vs: VS-05
@@ -1666,6 +1694,8 @@ nodes:
       - SH-E2
       - SH-E3
       - SH-X7
+      - SH-P5
+      - SH-P6
     VS-05.6:
       name: 完成供方结算
       vs: VS-05
@@ -1989,6 +2019,7 @@ nodes:
       - SH-E6
       - SH-M1
       - SH-O1
+      - SH-P4
     VS-11.1:
       name: 编制知识条目
       vs: VS-11
@@ -2060,6 +2091,7 @@ nodes:
       - SH-O1
       - SH-E6
       - SH-M1
+      - SH-P5
     VS-12.2:
       name: 分配利润
       vs: VS-12
@@ -2080,6 +2112,7 @@ nodes:
       - SH-O1
       - SH-M1
       - SH-E6
+      - SH-P4
     VS-12.3:
       name: 退还出资
       vs: VS-12
@@ -6172,6 +6205,17 @@ nodes:
       states: 对账中 → 已签字
       facts: 对账已签字 → 期间报告可发布
       src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:197
+    OBJ-126:
+      name: 股东
+      active: true
+      primary: true
+      class: 业务对象
+      parent: null
+      parents: []
+      parents_raw: —
+      states: 已登记 → 持股中 → 已退出（提议，随 OBJFIN-14）
+      facts: 出资、退出、分配的权益事实主体
+      src: architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md:198
   act:
     AGG-40/批准分摊规则版本:
       command: 批准分摊规则版本
@@ -12080,7 +12124,7 @@ nodes:
       type: 外部
       obj: OBJ-01
       role_attr: 角色
-      role: 供应商、渠道伙伴、联合体伙伴、海外持牌伙伴
+      role: 供应商、渠道伙伴、联合体伙伴、海外持牌伙伴、金融机构
       desc: 协助我方交付、向我方供货或转介绍业务的单位（由往来单位管理 CAP-001 细化）。
       src: architecture/proposals/value-streams.v2.yaml#stakeholder_categories
     监管机构:
@@ -12100,10 +12144,10 @@ nodes:
     股东和合伙人:
       category: 股东和合伙人
       type: 两者
-      obj: OBJ-01
-      role_attr: 角色
-      role: 合伙人
-      desc: 向我方法人出资并取得回报的单位或个人；对应对象待用户定（STKH 页）。
+      obj: OBJ-126
+      role_attr: 股东类型
+      role: 单位股东、自然人股东、合伙人
+      desc: 向我方法人出资并取得回报的单位或个人（用户 2026-10-19 STKH-02：新增一级对象「股东」）。
       src: architecture/proposals/value-streams.v2.yaml#stakeholder_categories
     社会公众:
       category: 社会公众
@@ -15370,10 +15414,6 @@ links:
   to: VS-01
   src: architecture/proposals/value-streams.v2.yaml#VS-01.triggering_stakeholders
 - kind: sh-trigger
-  from: SH-C6a
-  to: VS-01
-  src: architecture/proposals/value-streams.v2.yaml#VS-01.triggering_stakeholders
-- kind: sh-trigger
   from: SH-P3
   to: VS-01
   src: architecture/proposals/value-streams.v2.yaml#VS-01.triggering_stakeholders
@@ -15399,10 +15439,6 @@ links:
   src: architecture/proposals/value-streams.v2.yaml#VS-01.value_receivers
 - kind: sh-receive
   from: SH-C5
-  to: VS-01
-  src: architecture/proposals/value-streams.v2.yaml#VS-01.value_receivers
-- kind: sh-receive
-  from: SH-C6b
   to: VS-01
   src: architecture/proposals/value-streams.v2.yaml#VS-01.value_receivers
 - kind: vp-vs
@@ -15569,10 +15605,6 @@ links:
   from: SH-C4
   to: VS-02
   src: architecture/proposals/value-streams.v2.yaml#VS-02.triggering_stakeholders
-- kind: sh-trigger
-  from: SH-C6a
-  to: VS-02
-  src: architecture/proposals/value-streams.v2.yaml#VS-02.triggering_stakeholders
 - kind: sh-receive
   from: SH-C1
   to: VS-02
@@ -15587,10 +15619,6 @@ links:
   src: architecture/proposals/value-streams.v2.yaml#VS-02.value_receivers
 - kind: sh-receive
   from: SH-C4
-  to: VS-02
-  src: architecture/proposals/value-streams.v2.yaml#VS-02.value_receivers
-- kind: sh-receive
-  from: SH-C6e
   to: VS-02
   src: architecture/proposals/value-streams.v2.yaml#VS-02.value_receivers
 - kind: sh-receive
@@ -16641,6 +16669,10 @@ links:
   from: SH-X7
   to: VS-04.4
   src: architecture/proposals/value-streams.v2.yaml#VS-04.4.participants
+- kind: sh-participate
+  from: SH-P5
+  to: VS-04.4
+  src: architecture/proposals/value-streams.v2.yaml#VS-04.4.participants
 - kind: cap-stage
   from: CAP-103
   to: VS-04.4
@@ -16805,6 +16837,10 @@ links:
   from: SH-X2
   to: VS-05.2
   src: architecture/proposals/value-streams.v2.yaml#VS-05.2.participants
+- kind: sh-participate
+  from: SH-P6
+  to: VS-05.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.2.participants
 - kind: cap-stage
   from: CAP-005
   to: VS-05.2
@@ -16935,6 +16971,14 @@ links:
   src: architecture/proposals/value-streams.v2.yaml#VS-05.5.participants
 - kind: sh-participate
   from: SH-X7
+  to: VS-05.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.5.participants
+- kind: sh-participate
+  from: SH-P5
+  to: VS-05.5
+  src: architecture/proposals/value-streams.v2.yaml#VS-05.5.participants
+- kind: sh-participate
+  from: SH-P6
   to: VS-05.5
   src: architecture/proposals/value-streams.v2.yaml#VS-05.5.participants
 - kind: cap-stage
@@ -17593,6 +17637,10 @@ links:
   from: SH-O1
   to: VS-10.2
   src: architecture/proposals/value-streams.v2.yaml#VS-10.2.participants
+- kind: sh-participate
+  from: SH-P4
+  to: VS-10.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-10.2.participants
 - kind: cap-stage
   from: CAP-103
   to: VS-10.2
@@ -17745,6 +17793,10 @@ links:
   from: SH-M1
   to: VS-12.1
   src: architecture/proposals/value-streams.v2.yaml#VS-12.1.participants
+- kind: sh-participate
+  from: SH-P5
+  to: VS-12.1
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.1.participants
 - kind: cap-stage
   from: CAP-054
   to: VS-12.1
@@ -17771,6 +17823,10 @@ links:
   src: architecture/proposals/value-streams.v2.yaml#VS-12.2.participants
 - kind: sh-participate
   from: SH-E6
+  to: VS-12.2
+  src: architecture/proposals/value-streams.v2.yaml#VS-12.2.participants
+- kind: sh-participate
+  from: SH-P4
   to: VS-12.2
   src: architecture/proposals/value-streams.v2.yaml#VS-12.2.participants
 - kind: cap-stage

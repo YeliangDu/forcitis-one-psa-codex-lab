@@ -26,7 +26,7 @@
 | ADV1 对抗第 1 轮：对象、流程与度量口径（29 题；one-architecture） | `sheets/ADV1.json` | https://claude.ai/artifact/1GMstmFyvpk6pQJn1F5CVB（2026-10-19 起，未实看渲染） |
 | ADV1R 对抗第 1 轮：范围题（5 题，不预选；one-rules 出题） | `sheets/ADV1R.json` | https://claude.ai/artifact/3f8GHHVKLPJ1EgJHuv6yhk（2026-10-19 起，未实看渲染） |
 | ADR59 架构骨架登记网络 v5 批准（2 题，不预选；one-architecture） | `sheets/ADR59.json` | https://claude.ai/artifact/KbuuP7NiaDgzgMEpPDcqL7（2026-10-19 起，未实看渲染） |
-| OBJFIN 业务对象清单定稿（13 题，不预选；one-architecture） | `sheets/OBJFIN.json` | https://claude.ai/artifact/DYwP9bkmzJHD1RNncJaaYa（2026-10-19 起，未实看渲染） |
+| OBJFIN 业务对象清单定稿（14 题，不预选；one-architecture） | `sheets/OBJFIN.json` | https://claude.ai/artifact/DYwP9bkmzJHD1RNncJaaYa（2026-10-19 起，未实看渲染） |
 | STKH 干系人与业务对象对应（10 题，不预选；one-architecture） | `sheets/STKH.json` | https://claude.ai/artifact/QD66je3YcbEgZToGPq9WwT（2026-10-19 起） |
 
 | 步骤 | 做法 |

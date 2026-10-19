@@ -52,6 +52,9 @@ stakeholders:
   - {id: SH-P1c, type: 外部, category: 合作伙伴, sub: 交付伙伴, members: 联合体伙伴, relation: 触、参、受, desc: 与我方组成联合体共同投标、分工履约的单位。, in_system: 往来单位加角色, obj: OBJ-02, attr: 角色, value: 联合体伙伴}
   - {id: SH-P2, type: 外部, category: 合作伙伴, sub: 供应商, members: 产品和材料厂商；软件、数据和工具供应商；职业责任保险公司, relation: 参, desc: 向我方提供产品、材料、软件、数据或保险的单位。, in_system: 往来单位加角色, obj: OBJ-02, attr: 角色, value: 采购供应商}
   - {id: SH-P3, type: 外部, category: 合作伙伴, sub: 渠道伙伴, members: 转介绍方（保险公司和 TIS、物业、设计院）, relation: 触（间接）, desc: 向我方转介绍业务机会的单位。, in_system: 往来单位加角色, obj: OBJ-02, attr: 角色, value: 渠道伙伴}
+  - {id: SH-P4, type: 外部, category: 合作伙伴, sub: 审计机构, members: 会计师事务所（年报审计、专项审计）, relation: 参, desc: 受我方委托审计财务报表并出具意见的会计师事务所（STKH-03）。, in_system: 往来单位加角色, obj: OBJ-02, attr: 角色, value: 供应商}
+  - {id: SH-P5, type: 外部, category: 合作伙伴, sub: 金融机构, members: 开户行；保函开立行；资金监管主办银行, relation: 参, desc: 为我方开立账户、开具保函或监管项目资金的银行（STKH-04，不含融资）。, in_system: 往来单位加角色, obj: OBJ-02, attr: 角色, value: 金融机构}
+  - {id: SH-P6, type: 外部, category: 合作伙伴, sub: 供应商·出租方, members: 办公场所与设备出租方, relation: 参, desc: 按租赁合同向我方出租场所或设备的单位或个人（STKH-05）。, in_system: 往来单位加角色, obj: OBJ-02, attr: 角色, value: 出租方}
   - {id: SH-R1, type: 外部, category: 监管机构, sub: 工程审批, members: 施工图审查；规划和照明管理；住建质量监督与消防, relation: 参（只作阶段参与者）, desc: 在项目上审查、许可或监督我方成果的政府部门与审查机构。, in_system: 只作属性或参与者, obj: OBJ-01, attr: 项目内身份, value: 主管部门}
   - {id: SH-R2, type: 外部, category: 监管机构, sub: 企业监管, members: 住建资质；税务；市场监管、人社社保、统计；注册执业管理；海外注册审批, relation: 触（法定期限）、受 / 参, desc: 我方须按期申报、缴款或接受年检核查的政府机关。, in_system: 往来单位加角色, obj: OBJ-02, attr: 角色, value: 主管机关}
   - {id: SH-H1, type: 外部, category: 人力资源, sub: 求职者和候选人, members: 求职者和候选人, relation: 触、参、受, desc: 应聘或拟调入我方、尚未入职的个人。, in_system: 专门对象, obj: OBJ-56, attr: 状态, value: 已登记（候选）}
@@ -65,7 +68,7 @@ stakeholders:
   - {id: SH-E5, type: 内部, category: 人力资源, sub: 市场和客户经理, members: 市场和客户经理, relation: 参, desc: 开拓市场、维护客户关系的人员。, in_system: 用户角色, obj: OBJ-56, attr: 用户角色, value: 市场和客户经理}
   - {id: SH-E6, type: 内部, category: 人力资源, sub: 职能人员, members: 财务、人力、行政、信息, relation: 参, desc: 财务、人力、行政、信息等职能岗位人员。, in_system: 用户角色, obj: OBJ-56, attr: 用户角色, value: 职能人员}
   - {id: SH-E7, type: 内部, category: 人力资源, sub: 注册执业人员, members: 注册建筑师、注册工程师等, relation: 参, desc: 持有注册建筑师、注册工程师等执业资格并签章的人员。, in_system: 用户角色, obj: OBJ-56, attr: 用户角色, value: 注册执业人员}
-  - {id: SH-O1, type: 两者, category: 股东和合伙人, sub: —, members: 股东和合伙人, relation: 触、受, desc: 向我方法人出资并按年度取得回报的股东和合伙人。, in_system: 往来单位加角色, obj: OBJ-02, attr: 角色, value: 合伙人}
+  - {id: SH-O1, type: 两者, category: 股东和合伙人, sub: —, members: 股东和合伙人, relation: 触、受, desc: 向我方法人出资并按年度取得回报的股东和合伙人。, in_system: 专门对象, obj: OBJ-126, attr: 股东类型, value: 单位股东、自然人股东、合伙人}
   # 只在价值阶段记作参与者（不立类别，STAKEHOLDERS.md）
   - {id: SH-X1, type: 外部, category: —, sub: 阶段参与者（不立类别）, members: 主体建筑设计院（不作发包方时）, desc: 项目上的主体建筑设计院（不作发包方时），与我方协同设计。, in_system: 只作属性或参与者, obj: OBJ-01, attr: 项目内身份, value: 设计单位}
   - {id: SH-X2, type: 外部, category: —, sub: 阶段参与者（不立类别）, members: 施工总包和专业分包, desc: 项目上的施工总包和专业分包，按我方成果施工。, in_system: 只作属性或参与者, obj: OBJ-01, attr: 项目内身份, value: 施工单位}
@@ -79,10 +82,10 @@ stakeholders:
 stakeholder_categories:
   # 每个类别对应一个一级业务对象（BIZBOK v11 §2.8 准则 11，印刷页 272）；没有对象的写理由并登记 04。
   - {category: 客户, type: 外部, obj: OBJ-01, role_attr: 角色, role: 客户, desc: 与我方有、将有或曾有服务约定，或直接从我方服务获益的单位或个人（由往来单位管理 CAP-001 推导）。}
-  - {category: 合作伙伴, type: 外部, obj: OBJ-01, role_attr: 角色, role: 供应商、渠道伙伴、联合体伙伴、海外持牌伙伴, desc: 协助我方交付、向我方供货或转介绍业务的单位（由往来单位管理 CAP-001 细化）。}
+  - {category: 合作伙伴, type: 外部, obj: OBJ-01, role_attr: 角色, role: 供应商、渠道伙伴、联合体伙伴、海外持牌伙伴、金融机构, desc: 协助我方交付、向我方供货或转介绍业务的单位（由往来单位管理 CAP-001 细化）。}
   - {category: 监管机构, type: 外部, obj: OBJ-01, role_attr: 角色, role: 主管机关, desc: 依法审批、监督我方成果或要求我方申报缴款的机关（由往来单位管理 CAP-001 细化）。}
   - {category: 人力资源, type: 两者, obj: OBJ-56, desc: 与我方法人存在或将建立劳动、劳务关系的自然人，含候选阶段（由人员管理 CAP-056 推导）。}
-  - {category: 股东和合伙人, type: 两者, obj: OBJ-01, role_attr: 角色, role: 合伙人, desc: 向我方法人出资并取得回报的单位或个人；对应对象待用户定（STKH 页）。}
+  - {category: 股东和合伙人, type: 两者, obj: OBJ-126, role_attr: 股东类型, role: 单位股东、自然人股东、合伙人, desc: 向我方法人出资并取得回报的单位或个人（用户 2026-10-19 STKH-02：新增一级对象「股东」）。}
   - {category: 社会公众, type: 外部, obj: null, decr: DECR-02, desc: 不与我方订约或往来、只获得建筑安全与效果等非货币价值的公众。}
 
 value_streams:
@@ -94,10 +97,10 @@ value_streams:
   name: 完成服务方选定
   working_name: 获客到赢单
   description: 客户为一项建设或检查需求寻找、比较并选定专业服务方，直到以中标或委托确立我方承接；手册售前 BD0、BD1 两段。
-  triggering_stakeholders: [SH-C1, SH-C2, SH-C3, SH-C4, SH-C5, SH-C6a, SH-P3, SH-P1c]
+  triggering_stakeholders: [SH-C1, SH-C2, SH-C3, SH-C4, SH-C5, SH-P3, SH-P1c]
   trigger_note: 客户发起人询价、邀标或发布招标；渠道伙伴转介绍（间接）；联合体伙伴邀请联合投标。我方市场活动产生的线索同样进入第 1 段。触发干系人可以有多个（BIZBOK 第 158 页）。
   value: 客户得到可信的方案、报价与承诺，以合理代价选定能胜任的服务方。
-  value_receivers: [SH-C1, SH-C2, SH-C3, SH-C4, SH-C5, SH-C6b]
+  value_receivers: [SH-C1, SH-C2, SH-C3, SH-C4, SH-C5]  # STKH-06：触发与受益只写客户子类，决策链角色只作阶段参与者
   ends_in:
     - {ref: OBJ-18, state: 已赢单}
     - {ref: OBJ-18, state: 丢单 / 已放弃, note: 价值流停止（G178 §2.2 每段后可停止）}
@@ -167,10 +170,10 @@ value_streams:
   name: 获得交付成果
   working_name: 交付到认可
   description: 客户获得按服务产品与协议范围约定的专业成果（设计咨询、品控、造价等），逐段提交、认可，直到项目结算与复盘；阶段即手册交付七段（另含目录中的「概念」），按协议范围在 WBS 上裁剪。品控类服务在施工期做的检查留在施工段（VS-02.6）；资本方或既有建筑业主委托的检查、尽调归 VS-03。
-  triggering_stakeholders: [SH-C1, SH-C2, SH-C3, SH-C4, SH-C6a]
+  triggering_stakeholders: [SH-C1, SH-C2, SH-C3, SH-C4]  # STKH-06
   trigger_note: 客户发起人在赢单或直接委托后要求开工；与签约先后无关（S3：阶段与商务分界脱开）。
   value: 客户按约获得可审查、可报审、可施工的专业成果，建成效果与安全达到要求。
-  value_receivers: [SH-C1, SH-C2, SH-C3, SH-C4, SH-C6e, SH-S1, SH-S2]
+  value_receivers: [SH-C1, SH-C2, SH-C3, SH-C4, SH-S1, SH-S2]  # STKH-06
   starts_when:
     any:
       - {ref: OBJ-18, state: 已赢单}
@@ -607,7 +610,7 @@ value_streams:
       name: 回收款项
       capabilities: [CAP-103]
       description: 由发票形成应收，跟踪账龄与催收，认领收款并核销。
-      participants: [SH-E6, SH-E2, SH-C6d, SH-X7]
+      participants: [SH-E6, SH-E2, SH-C6d, SH-X7, SH-P5]
       entry:
         all:
           - {ref: OBJ-85, state: 未结 / 已部分结清 / 争议, note: 应收方向；部分收款后、争议时重入（STEP3 C-09）}
@@ -679,7 +682,7 @@ value_streams:
       capabilities: [CAP-005]
       description: 起草供方协议、审批、生效，建立履约额度与预算占用。
       # SD-12（用户 2026-10-17 ANM 批准）
-      participants: [SH-E2, SH-E6, SH-M1, SH-P1, SH-P1c, SH-P2, SH-P3, SH-E1, SH-X2]
+      participants: [SH-E2, SH-E6, SH-M1, SH-P1, SH-P1c, SH-P2, SH-P3, SH-E1, SH-X2, SH-P6]
       entry:
         all:
           - {ref: OBJ-02, state: 合格}
@@ -729,7 +732,7 @@ value_streams:
       capabilities: [CAP-103]
       description: 发起、审批、执行付款，登记银行结果。
       # SD-12（用户 2026-10-17 ANM 批准）
-      participants: [SH-E6, SH-M1, SH-P1, SH-P2, SH-E1, SH-E2, SH-E3, SH-X7]
+      participants: [SH-E6, SH-M1, SH-P1, SH-P2, SH-E1, SH-E2, SH-E3, SH-X7, SH-P5, SH-P6]
       entry:
         all:
           - {ref: OBJ-85, state: 未结 / 已部分结清, note: 应付；预付类型可先于第 3、4 段}
@@ -1096,7 +1099,7 @@ value_streams:
       name: 发布报表
       capabilities: [CAP-103]
       description: 关账后出具三大报表与经营月报。
-      participants: [SH-E6, SH-M1, SH-O1]
+      participants: [SH-E6, SH-M1, SH-O1, SH-P4]
       entry:
         all:
           - {ref: OBJ-97, state: 已关账}
@@ -1177,7 +1180,7 @@ value_streams:
       name: 确认收到出资
       capabilities: [CAP-054]
       description: 认缴、实缴到账。
-      participants: [SH-O1, SH-E6, SH-M1]  # SD-12（用户 2026-10-17 ANM 批准；PRC-111 审批人）
+      participants: [SH-O1, SH-E6, SH-M1, SH-P5]  # SD-12（用户 2026-10-17 ANM 批准；PRC-111 审批人）
       entry:
         all:
           - {ref: OBJ-91, state: 已认缴}
@@ -1190,7 +1193,7 @@ value_streams:
       name: 分配利润
       capabilities: [CAP-054, CAP-103]
       description: 年度利润分配决议与支付。
-      participants: [SH-O1, SH-M1, SH-E6]
+      participants: [SH-O1, SH-M1, SH-E6, SH-P4]
       entry:
         all:
           - {ref: OBJ-97, state: 已关账, note: 年度末期间（含第 13 期，如启用）}
