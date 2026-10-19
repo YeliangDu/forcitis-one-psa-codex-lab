@@ -127,7 +127,7 @@ def obj_texts(text):
     secs = re.split(r"\n(?=### )", s2)
     out = {}
     for oid, (row, name) in rows.items():
-        out[oid] = row + "\n" + "\n".join(s for s in secs if re.search(rf"{oid}(?!\d)", s) or (len(name) >= 3 and name in s))
+        out[oid] = row + "\n" + "\n".join(s for s in secs if re.search(rf"{oid}(?!\d)", s.split("\n", 1)[0]) or name in s.split("\n", 1)[0])
     return out
 
 
@@ -165,8 +165,15 @@ def load():
         m["sh"][s["id"]] = {"name": s.get("members") if s.get("category") == "—" else (s.get("sub") or s.get("category")), "category": s.get("category"), "type": s.get("type"),
                             "in_system": s.get("in_system"), "obj": s.get("obj"), "attr": s.get("attr"), "value": s.get("value"),
                             "decr": s.get("decr"), "src": f"{rel(SRC['vs'])}#{s['id']}"}
-    m["shcat"] = {c["category"]: {**c, "src": f"{rel(SRC['vs'])}#stakeholder_categories"} for c in vsd.get("stakeholder_categories") or []}
-    for d in (yaml.safe_load(SRC["decr"].read_text(encoding="utf-8")) or {}).get("decisions") or []:
+    if not vsd.get("stakeholder_categories"):
+        raise ValueError(f"{rel(SRC['vs'])} 缺 stakeholder_categories")
+    m["shcat"] = {c["category"]: {**c, "src": f"{rel(SRC['vs'])}#stakeholder_categories"} for c in vsd["stakeholder_categories"]}
+    decisions = (yaml.safe_load(SRC["decr"].read_text(encoding="utf-8")) or {}).get("decisions")
+    if not decisions:
+        raise ValueError(f"{rel(SRC['decr'])} 缺 decisions")
+    for d in decisions:
+        if d["id"] in m["decr"]:
+            raise ValueError(f"{rel(SRC['decr'])} 编号重复：{d['id']}")
         m["decr"][d["id"]] = {**d, "src": f"{rel(SRC['decr'])}#{d['id']}"}
     for v in vsd["value_streams"]:
         m["vs"][v["id"]] = {"name": v["name"], "category": v.get("category"), "value": v.get("value"),
@@ -363,7 +370,7 @@ def check(m, anchoring=None):
     involved = {x for v in m["vs"].values() for x in v.get("triggers", []) + v.get("receivers", [])} | {x for s in m["stage"].values() for x in s.get("participants", [])}
 
     obj_text = m.get("obj_text", {})
-    decr_subj = {k: str(d.get("subject", "")) for k, d in m.get("decr", {}).items()}
+    decr_subj = {k: set(re.findall(r"SH-[A-Z]\d+[a-z]?|OBJ-\d+", str(d.get("subject", "")))) for k, d in m.get("decr", {}).items()}
 
     def under(o, root):
         """o 是 root 本身或顺依附链在 root 之下。"""
@@ -381,7 +388,8 @@ def check(m, anchoring=None):
 
     def found(o, values):
         txt = obj_text.get(o, "")
-        return [v for v in re.split(r"[、，,]", str(values or "")) if v.strip() and v.strip() not in txt]
+        vals = [v.strip() for v in re.split(r"[、，,]", str(values or "")) if v.strip()]
+        return [v for v in vals if v not in txt] if vals else ["（未填取值）"]
 
     for cname, c in m.get("shcat", {}).items():
         o = c.get("obj")
@@ -409,6 +417,8 @@ def check(m, anchoring=None):
             gaps["N01-4"].append(f"{sid} {s['name']}（承载对象 {o or '空'} 不是有效对象）")
         elif cat and cat.get("obj") and not under(o, cat["obj"]):
             gaps["N01-4"].append(f"{sid} {s['name']}（{o} 不在类别「{s['category']}」的对象 {cat['obj']} 之下）")
+        elif how != "用户角色" and not s.get("attr"):
+            gaps["N01-4"].append(f"{sid} {s['name']}（未填承载属性）")
         elif how != "用户角色" and found(o, s.get("value")):
             gaps["N01-4"].append(f"{sid} {s['name']}（{o}「{s.get('attr')}」没有取值：{'、'.join(found(o, s.get('value')))}）")
     for sid, s in m["sh"].items():
@@ -514,7 +524,7 @@ def render(m, links, gaps):
 
 def stakeholder_table(vsd, text):
     """STAKEHOLDERS.md 的干系人图（四列 + 在系统中的体现），替换标记之间的内容。"""
-    if SH_BEGIN not in text or SH_END not in text:
+    if SH_BEGIN not in text or SH_END not in text or text.index(SH_BEGIN) > text.index(SH_END):
         raise ValueError(f"{rel(OUT_SH)} 缺生成标记")
     cats = vsd.get("stakeholder_categories") or []
     rows = ["### 类别与一级业务对象", "", "| 类型 | 类别 | 对应一级业务对象 | 说明 |", "|---|---|---|---|"]
@@ -569,19 +579,41 @@ def self_test():
     g = check(m)
     assert g["N06-2"] and g["N06-3"]   # 断链：门对象追不到一级
     m["obj_text"] = {"OBJ-01": "往来单位", "OBJ-02": "角色：客户；供应商", "OBJ-03": "决策链角色：发起人"}
-    m["decr"] = {"DECR-01": {"subject": "SH-D 公众"}}
+    m["decr"] = {"DECR-01": {"subject": "SH-D1 公众"}, "DECR-02": {"subject": "SH-J10 别的"}}
     m["shcat"] = {"客户": {"obj": "OBJ-01", "role": "客户"}, "监管": {"obj": "OBJ-01", "role": "主管机关"}, "公众": {"obj": None, "decr": "DECR-01"},
                   "伙伴": {"obj": "OBJ-02"}}
-    m["sh"] = {"SH-A": {"name": "甲", "category": "客户", "in_system": "只作属性或参与者", "obj": "OBJ-03", "value": "发起人"},
+    m["sh"] = {"SH-A": {"name": "甲", "category": "客户", "in_system": "只作属性或参与者", "obj": "OBJ-03", "attr": "决策链角色", "value": "发起人"},
                "SH-B": {"name": "乙", "category": "客户", "in_system": "往来单位加角色", "obj": "OBJ-02", "attr": "客户类型", "value": "开发商"},
                "SH-C": {"name": "丙", "category": "客户", "in_system": "飞鸽", "obj": "OBJ-02"},
-               "SH-D": {"name": "丁", "category": "公众", "in_system": "不进系统", "decr": "DECR-01"},
+               "SH-D1": {"name": "丁", "category": "公众", "in_system": "不进系统", "decr": "DECR-01"},
                "SH-E": {"name": "戊", "category": "公众", "in_system": "不进系统"},
                "SH-F": {"name": "己", "category": "客户", "in_system": "往来单位加角色", "obj": "OBJ-05", "value": "x"},
-               "SH-G": {"name": "庚", "category": "客户"}}
+               "SH-G": {"name": "庚", "category": "客户"},
+               "SH-H": {"name": "辛", "category": "客户", "in_system": "往来单位加角色", "obj": "OBJ-02", "attr": "角色"},
+               "SH-I": {"name": "壬", "category": "客户", "in_system": "往来单位加角色", "obj": "OBJ-02", "value": "客户"},
+               "SH-J1": {"name": "癸", "category": "公众", "in_system": "不进系统", "decr": "DECR-02"},
+               "SH-K": {"name": "子", "category": "未登记", "in_system": "用户角色", "obj": "OBJ-01"},
+               "SH-L": {"name": "丑", "category": "客户", "in_system": "用户角色", "obj": "OBJ-01", "value": "随便"}}
     g = check(m)
-    assert g["N01-3"] == ["监管（OBJ-01 及其从属对象没有角色取值：主管机关）", "伙伴（对应 OBJ-02 不是一级业务对象）"], g["N01-3"]
-    assert [x[:4] for x in g["N01-4"]] == ["SH-B", "SH-C", "SH-E", "SH-F", "SH-G"], g["N01-4"]   # 缺取值、体现不在五选一、未登记 04、对象不在类别之下、未登记体现
+    assert g["N01-3"] == ["监管（OBJ-01 及其从属对象没有角色取值：主管机关）", "伙伴（对应 OBJ-02 不是一级业务对象）",
+                          "SH-K 子（类别「未登记」未在 stakeholder_categories 登记）"], g["N01-3"]
+    # 缺取值、体现不在五选一、未登记 04、对象不在类别之下、空取值、未填属性、04 主题只含 SH-J10 不算 SH-J1、未登记体现；用户角色不查取值（SH-L 通过）
+    assert [x.split(" ")[0] for x in g["N01-4"]] == ["SH-B", "SH-C", "SH-E", "SH-F", "SH-H", "SH-I", "SH-J1", "SH-G"], g["N01-4"]
+    assert "（未填取值）" in g["N01-4"][4] and "未填承载属性" in g["N01-4"][5]
+    page = f"头\n{SH_BEGIN}\n旧\n{SH_END}\n尾"
+    out = stakeholder_table({"stakeholder_categories": [{"type": "外部", "category": "客户", "obj": "OBJ-01", "desc": "d"}],
+                             "stakeholders": [{"id": "SH-A", "type": "外部", "category": "客户", "sub": "甲", "members": "m", "desc": "d",
+                                               "in_system": "往来单位加角色", "obj": "OBJ-02", "attr": "角色", "value": "客户"}]}, page)
+    assert "旧" not in out and "| SH-A | 外部 | 客户 | 甲：m |" in out and out.endswith("尾")
+    for bad in ("头", f"{SH_END}\n{SH_BEGIN}"):
+        try:
+            stakeholder_table({}, bad)
+            raise AssertionError("缺标记或标记倒置应失败")
+        except ValueError:
+            pass
+    txt = "## 1. 总表\n| 编号 | 对象 |\n|---|---|\n| OBJ-01 | 往来单位 | 甲 |\n### 1.1\n## 2. x\n### 2.1 往来单位与角色\n- 项目内身份：物业\n### 2.2 别的\n- 往来单位 监理\n## 3."
+    ot = obj_texts(txt)
+    assert "物业" in ot["OBJ-01"] and "监理" not in ot["OBJ-01"], ot   # 只取标题含对象名或编号的小节
     print("self-test ok")
 
 
