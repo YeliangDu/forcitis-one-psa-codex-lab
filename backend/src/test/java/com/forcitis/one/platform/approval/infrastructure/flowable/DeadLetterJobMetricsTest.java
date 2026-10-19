@@ -48,7 +48,7 @@ class DeadLetterJobMetricsTest {
         when(management.createDeadLetterJobQuery().count()).thenReturn(0L, 3L);
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         DeadLetterJobMetrics metrics = new DeadLetterJobMetrics(management, registry, NOW);
-        System.gc();
+        System.gc(); // Micrometer holds the gauge's object weakly: without a live reference the gauge reads NaN after a collection
 
         assertThat(registry.get(GAUGE).gauge().value()).isZero();
         assertThat(registry.get(GAUGE).gauge().value()).isEqualTo(3.0);
@@ -62,7 +62,7 @@ class DeadLetterJobMetricsTest {
         when(management.createDeadLetterJobQuery().count()).thenThrow(new IllegalStateException("engine down"));
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         DeadLetterJobMetrics metrics = new DeadLetterJobMetrics(management, registry, NOW);
-        System.gc();
+        System.gc(); // Micrometer holds the gauge's object weakly: without a live reference the gauge reads NaN after a collection
 
         assertThat(registry.get(GAUGE).gauge().value()).isNaN();
         assertThat(logged.list).as("NaN came from the unreadable engine, not from a collected gauge").anyMatch(e -> e.getLevel() == Level.WARN);
