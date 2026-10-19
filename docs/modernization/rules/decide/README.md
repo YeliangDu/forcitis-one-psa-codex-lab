@@ -25,6 +25,7 @@
 | ADR58 状态转换记录批准（1 题；one-architecture） | `sheets/ADR58.json` | https://claude.ai/artifact/BCGoTd7EeWU1g1Zr83obEy（2026-10-17 起，未实看渲染） |
 | ADV1 对抗第 1 轮：对象、流程与度量口径（29 题；one-architecture） | `sheets/ADV1.json` | https://claude.ai/artifact/1GMstmFyvpk6pQJn1F5CVB（2026-10-19 起，未实看渲染） |
 | ADV1R 对抗第 1 轮：范围题（5 题，不预选；one-rules 出题） | `sheets/ADV1R.json` | https://claude.ai/artifact/3f8GHHVKLPJ1EgJHuv6yhk（2026-10-19 起，未实看渲染） |
+| ADR59 架构骨架登记网络 v5 批准（2 题，不预选；one-architecture） | `sheets/ADR59.json` | https://claude.ai/artifact/KbuuP7NiaDgzgMEpPDcqL7（2026-10-19 起，未实看渲染） |
 
 | 步骤 | 做法 |
 |---|---|
