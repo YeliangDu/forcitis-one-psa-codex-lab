@@ -2824,7 +2824,7 @@ OBJ-100:
   why: 有状态且被指向
 OBJ-103:
   name: 财务
-  level: 一级
+  level: 次级
   objd_class: 视图
   parent: null
   states: []

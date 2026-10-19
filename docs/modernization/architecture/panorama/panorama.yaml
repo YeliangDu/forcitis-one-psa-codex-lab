@@ -4801,7 +4801,7 @@ nodes:
     OBJ-103:
       name: 财务
       active: true
-      primary: true
+      primary: false
       class: 视图
       parent: null
       states: —
