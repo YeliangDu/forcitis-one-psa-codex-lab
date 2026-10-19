@@ -28,6 +28,7 @@
 | ADR59 架构骨架登记网络 v5 批准（2 题，不预选；one-architecture） | `sheets/ADR59.json` | https://claude.ai/artifact/KbuuP7NiaDgzgMEpPDcqL7（2026-10-19 起，未实看渲染） |
 | OBJFIN 业务对象清单定稿（14 题，不预选；one-architecture） | `sheets/OBJFIN.json` | https://claude.ai/artifact/DYwP9bkmzJHD1RNncJaaYa（2026-10-19 起，未实看渲染） |
 | STKH 干系人与业务对象对应（10 题，不预选；one-architecture） | `sheets/STKH.json` | https://claude.ai/artifact/QD66je3YcbEgZToGPq9WwT（2026-10-19 起） |
+| STKH2 干系人子类（7 题，不预选；one-architecture） | `sheets/STKH2.json` | https://claude.ai/artifact/L4Ges3vue2F33Zhh4gwF7h（2026-10-19 起） |
 
 | 步骤 | 做法 |
 |---|---|
