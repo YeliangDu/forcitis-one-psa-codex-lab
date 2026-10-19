@@ -97,7 +97,8 @@
      "effect": "需补一组有限状态（如 生效中 / 已结束）。",
      "rec": false
     }
-   ]
+   ],
+   "check": "受影响的阶段门、流程、不变量、聚合与表、词条及改法，逐项列在 panorama/FREEZE_IMPACT.md；不变量改挂承接对象的聚合，不留孤儿。"
   },
   {
    "no": "OBJFIN-03",
@@ -127,7 +128,8 @@
      "effect": "需补有限状态。",
      "rec": false
     }
-   ]
+   ],
+   "check": "受影响的阶段门、流程、不变量、聚合与表、词条及改法，逐项列在 panorama/FREEZE_IMPACT.md；不变量改挂承接对象的聚合，不留孤儿。"
   },
   {
    "no": "OBJFIN-04",
@@ -158,7 +160,8 @@
      "effect": "等于先把 Q20 定为有状态单据，须另起 ADR。",
      "rec": false
     }
-   ]
+   ],
+   "check": "受影响的阶段门、流程、不变量、聚合与表、词条及改法，逐项列在 panorama/FREEZE_IMPACT.md；不变量改挂承接对象的聚合，不留孤儿。"
   },
   {
    "no": "OBJFIN-05",
@@ -183,7 +186,8 @@
      "effect": "在说明里写要改的地方。",
      "rec": false
     }
-   ]
+   ],
+   "check": "受影响的阶段门、流程、不变量、聚合与表、词条及改法，逐项列在 panorama/FREEZE_IMPACT.md；不变量改挂承接对象的聚合，不留孤儿。"
   },
   {
    "no": "OBJFIN-06",

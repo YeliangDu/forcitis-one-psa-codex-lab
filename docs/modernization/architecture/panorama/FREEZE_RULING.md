@@ -2,6 +2,8 @@
 
 状态：提议｜2026-10-19｜负责：one-architecture
 
+基线：三组骨架合并完成并合入 revenue b1a6808b 之后的提交 94dd2ccb；06、07、08、10 输入指纹见 FREEZE_FACTS.md。判据只用 06、07、08、10，11 本轮不作判据（one-coordinator 2026-10-19 补充做法）。第 2 轮按此口径重跑，初判与第 1 轮相同（无指向 0），已收敛。降级对象的影响清单见 FREEZE_IMPACT.md，12 维度候选列在其末尾。
+
 第③步对拍范围 17 个对象：脚本初判第 2–5 类与待判的 10 个，加研究报告 §3.4 的 7 个争议例。Codex（gpt-6.1-sol xhigh）与 DeepSeek flash 同题独立判，题面只含设计文件摘录（用户 2026-10-19「可以，就用两个模型同步跑，对拍」）。原始输出：FREEZE_DUAL_codex.json、FREEZE_DUAL_flash.json。
 
 | 对象 | 名称 | 脚本初判 | Codex | flash | 结论 | 理由 |

@@ -12578,7 +12578,7 @@ nodes:
   - prc: PRC-16
     step: 4
     aggregate: AGG-17
-    command: null
+    command: 驳回风险交付授权
     src: architecture/proposals/closeout/revenue/processes.revenue.yaml#PRC-16.steps[4]
   - prc: PRC-16
     step: 5
