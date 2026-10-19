@@ -8,11 +8,12 @@ meta:
     built: architecture/ddd/aggregates.yaml
     sd: architecture/ddd/subdomains.yaml
     terms: glossary/terms.yaml
+    decr: architecture/panorama/tradeoffs.yaml
   counts:
     sh: 36
     con: 0
     vp: 15
-    decr: 0
+    decr: 2
     cap: 24
     vs: 15
     stage: 61
@@ -29,9 +30,12 @@ meta:
     bc: 31
     sd: 13
     table: 25
+    shcat: 6
     steps: 647
   checks:
     N01-1: 每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）
+    N01-3: 每个干系人类别对应一个一级业务对象，类别角色取值在信息图可查；没有对象的登记 04 并写理由
+    N01-4: 每个具体干系人登记「在系统中的体现」（五选一），并是类别对象（或其从属对象）的一个类型、角色或属性取值；不进系统的登记 04
     N01-2: 每个干系人至少触发、接收或参与一条价值流（价值流 triggering_stakeholders、value_receivers，阶段 participants）
     N03-1: 每条价值流都有价值主张（暂以价值流的 value 字段作 03 的登记）
     N05-1: 每个阶段都有业务能力支撑（阶段 capabilities 字段）
@@ -62,111 +66,363 @@ nodes:
     SH-C1:
       name: 开发商
       category: 客户
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 客户类型
+      value: 开发商
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C1
     SH-C2:
       name: 自用业主
       category: 客户
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 客户类型
+      value: 自用业主
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C2
     SH-C3:
       name: 既有建筑业主
       category: 客户
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 客户类型
+      value: 既有建筑业主
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C3
     SH-C4:
       name: 发包方
       category: 客户
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 客户类型
+      value: 发包方
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C4
     SH-C5:
       name: 资本方
       category: 客户
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 客户类型
+      value: 资本方
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C5
     SH-C6a:
-      name: 发起人
-      category: 客户决策链
+      name: 客户决策链·发起人
+      category: 客户
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-03
+      attr: 决策链角色
+      value: 发起人
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C6a
     SH-C6b:
-      name: 决策人
-      category: 客户决策链
+      name: 客户决策链·决策人
+      category: 客户
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-03
+      attr: 决策链角色
+      value: 决策人
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C6b
     SH-C6c:
-      name: 经济买方
-      category: 客户决策链
+      name: 客户决策链·经济买方
+      category: 客户
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-03
+      attr: 决策链角色
+      value: 经济买方
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C6c
     SH-C6d:
-      name: 付款方
-      category: 客户决策链
+      name: 客户决策链·付款方
+      category: 客户
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-03
+      attr: 决策链角色
+      value: 付款方
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C6d
     SH-C6e:
-      name: 使用者
-      category: 客户决策链
+      name: 客户决策链·使用者
+      category: 客户
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-03
+      attr: 决策链角色
+      value: 使用者
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-C6e
     SH-P1:
       name: 交付伙伴
       category: 合作伙伴
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 角色
+      value: 分包方、海外持牌伙伴
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-P1
     SH-P1c:
       name: 交付伙伴
       category: 合作伙伴
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 角色
+      value: 联合体伙伴
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-P1c
     SH-P2:
       name: 供应商
       category: 合作伙伴
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 角色
+      value: 采购供应商
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-P2
     SH-P3:
       name: 渠道伙伴
       category: 合作伙伴
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 角色
+      value: 渠道伙伴
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-P3
     SH-R1:
       name: 工程审批
       category: 监管机构
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-01
+      attr: 项目内身份
+      value: 主管部门
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-R1
     SH-R2:
       name: 企业监管
       category: 监管机构
+      type: 外部
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 角色
+      value: 主管机关
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-R2
     SH-H1:
-      name: —
-      category: 人力资源（外部）
+      name: 求职者和候选人
+      category: 人力资源
+      type: 外部
+      in_system: 专门对象
+      obj: OBJ-56
+      attr: 状态
+      value: 已登记（候选）
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-H1
     SH-S1:
       name: 最终用户
       category: 社会公众
+      type: 外部
+      in_system: 不进系统
+      obj: null
+      attr: null
+      value: null
+      decr: DECR-02
+      src: architecture/proposals/value-streams.v2.yaml#SH-S1
     SH-S2:
       name: 市民
       category: 社会公众
+      type: 外部
+      in_system: 不进系统
+      obj: null
+      attr: null
+      value: null
+      decr: DECR-02
+      src: architecture/proposals/value-streams.v2.yaml#SH-S2
     SH-M1:
-      name: —
-      category: 管理层
+      name: 管理层
+      category: 人力资源
+      type: 内部
+      in_system: 用户角色
+      obj: OBJ-56
+      attr: 用户角色
+      value: 管理层
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-M1
     SH-E1:
       name: 用人经理
-      category: 员工
+      category: 人力资源
+      type: 内部
+      in_system: 用户角色
+      obj: OBJ-56
+      attr: 用户角色
+      value: 用人经理
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-E1
     SH-E2:
       name: 项目经理
-      category: 员工
+      category: 人力资源
+      type: 内部
+      in_system: 用户角色
+      obj: OBJ-56
+      attr: 用户角色
+      value: 项目经理
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-E2
     SH-E3:
       name: 设计师和顾问
-      category: 员工
+      category: 人力资源
+      type: 内部
+      in_system: 用户角色
+      obj: OBJ-56
+      attr: 用户角色
+      value: 设计师和顾问
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-E3
     SH-E4:
       name: 技术专家
-      category: 员工
+      category: 人力资源
+      type: 内部
+      in_system: 用户角色
+      obj: OBJ-56
+      attr: 用户角色
+      value: 技术专家
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-E4
     SH-E5:
       name: 市场和客户经理
-      category: 员工
+      category: 人力资源
+      type: 内部
+      in_system: 用户角色
+      obj: OBJ-56
+      attr: 用户角色
+      value: 市场和客户经理
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-E5
     SH-E6:
       name: 职能人员
-      category: 员工
+      category: 人力资源
+      type: 内部
+      in_system: 用户角色
+      obj: OBJ-56
+      attr: 用户角色
+      value: 职能人员
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-E6
     SH-E7:
       name: 注册执业人员
-      category: 员工
+      category: 人力资源
+      type: 内部
+      in_system: 用户角色
+      obj: OBJ-56
+      attr: 用户角色
+      value: 注册执业人员
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-E7
     SH-O1:
       name: —
       category: 股东和合伙人
+      type: 两者
+      in_system: 往来单位加角色
+      obj: OBJ-02
+      attr: 角色
+      value: 合伙人
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-O1
     SH-X1:
-      name: null
-      category: null
+      name: 主体建筑设计院（不作发包方时）
+      category: —
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-01
+      attr: 项目内身份
+      value: 设计单位
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-X1
     SH-X2:
-      name: null
-      category: null
+      name: 施工总包和专业分包
+      category: —
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-01
+      attr: 项目内身份
+      value: 施工单位
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-X2
     SH-X3:
-      name: null
-      category: null
+      name: 监理
+      category: —
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-01
+      attr: 项目内身份
+      value: 监理单位
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-X3
     SH-X4:
-      name: null
-      category: null
+      name: 造价咨询和招标代理
+      category: —
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-01
+      attr: 项目内身份
+      value: 造价咨询或招标代理
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-X4
     SH-X5:
-      name: null
-      category: null
+      name: 保险技术检查机构（TIS）
+      category: —
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-01
+      attr: 项目内身份
+      value: 保险技术检查机构
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-X5
     SH-X6:
-      name: null
-      category: null
+      name: 持证检测机构
+      category: —
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-01
+      attr: 项目内身份
+      value: 检测机构
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-X6
     SH-X7:
-      name: null
-      category: null
+      name: 资金监管主办银行
+      category: —
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-01
+      attr: 项目内身份
+      value: 资金监管银行
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-X7
     SH-X8:
-      name: null
-      category: null
+      name: 物业服务企业（未代业主委托时）
+      category: —
+      type: 外部
+      in_system: 只作属性或参与者
+      obj: OBJ-01
+      attr: 项目内身份
+      value: 物业
+      decr: null
+      src: architecture/proposals/value-streams.v2.yaml#SH-X8
   con: {}
   vp:
     VP-01:
@@ -229,7 +485,23 @@ nodes:
       name: 一版规则、参数或主数据生效，后续业务按它办。
       vs: VS-15
       provisional: 取自价值流 value 字段，待 03 正式登记
-  decr: {}
+  decr:
+    DECR-01:
+      id: DECR-01
+      subject: OBJ-74 激励方案
+      decision: 不承接
+      reason: 激励方案是制度文本，不建模；奖金核定等需要依据时只引用制度的版本号或文本。
+      status: 已定
+      source: 用户 2026-10-19「激励方案是制度文本，不会建模」
+      src: architecture/panorama/tradeoffs.yaml#DECR-01
+    DECR-02:
+      id: DECR-02
+      subject: SH-S1、SH-S2 社会公众
+      decision: 不进系统
+      reason: 不与我方订约、往来或办理任何事项，只获得建筑安全与效果等非货币价值；这些价值由交付物质量与合规事项体现。
+      status: 提议
+      source: STKH 确认页
+      src: architecture/panorama/tradeoffs.yaml#DECR-02
   cap:
     CAP-001:
       stages:
@@ -11794,6 +12066,52 @@ nodes:
       aggregate: platform.numbering/NumberingRule
       obj: null
       kind: null
+  shcat:
+    客户:
+      category: 客户
+      type: 外部
+      obj: OBJ-01
+      role_attr: 角色
+      role: 客户
+      desc: 与我方有、将有或曾有服务约定，或直接从我方服务获益的单位或个人（由往来单位管理 CAP-001 推导）。
+      src: architecture/proposals/value-streams.v2.yaml#stakeholder_categories
+    合作伙伴:
+      category: 合作伙伴
+      type: 外部
+      obj: OBJ-01
+      role_attr: 角色
+      role: 供应商、渠道伙伴、联合体伙伴、海外持牌伙伴
+      desc: 协助我方交付、向我方供货或转介绍业务的单位（由往来单位管理 CAP-001 细化）。
+      src: architecture/proposals/value-streams.v2.yaml#stakeholder_categories
+    监管机构:
+      category: 监管机构
+      type: 外部
+      obj: OBJ-01
+      role_attr: 角色
+      role: 主管机关
+      desc: 依法审批、监督我方成果或要求我方申报缴款的机关（由往来单位管理 CAP-001 细化）。
+      src: architecture/proposals/value-streams.v2.yaml#stakeholder_categories
+    人力资源:
+      category: 人力资源
+      type: 两者
+      obj: OBJ-56
+      desc: 与我方法人存在或将建立劳动、劳务关系的自然人，含候选阶段（由人员管理 CAP-056 推导）。
+      src: architecture/proposals/value-streams.v2.yaml#stakeholder_categories
+    股东和合伙人:
+      category: 股东和合伙人
+      type: 两者
+      obj: OBJ-01
+      role_attr: 角色
+      role: 合伙人
+      desc: 向我方法人出资并取得回报的单位或个人；对应对象待用户定（STKH 页）。
+      src: architecture/proposals/value-streams.v2.yaml#stakeholder_categories
+    社会公众:
+      category: 社会公众
+      type: 外部
+      obj: null
+      decr: DECR-02
+      desc: 不与我方订约或往来、只获得建筑安全与效果等非货币价值的公众。
+      src: architecture/proposals/value-streams.v2.yaml#stakeholder_categories
   steps:
   - prc: PRC-15
     step: 1
