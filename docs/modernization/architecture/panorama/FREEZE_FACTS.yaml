@@ -966,6 +966,12 @@ OBJ-30:
   pointers:
     '06':
     - VS-02.0
+    - VS-02.1
+    - VS-02.2
+    - VS-02.3
+    - VS-02.4
+    - VS-02.5
+    - VS-02.6
     '07':
     - PRC-17
     - PRC-21
@@ -1116,8 +1122,15 @@ OBJ-35:
   identity_hint: true
   pointers:
     '06':
+    - VS-02.1
+    - VS-02.2
+    - VS-02.3
+    - VS-02.4
+    - VS-02.5
+    - VS-02.6
     - VS-02.7
     - VS-03.5
+    - VS-04.2
     '07':
     - PRC-182
     - PRC-22
@@ -1432,7 +1445,7 @@ OBJ-47:
   name: 建筑系统与部位
   level: 次级
   objd_class: 从属对象
-  parent: OBJ-46
+  parent: OBJ-29
   states:
   - 在用
   - 已超年限
@@ -1578,7 +1591,7 @@ OBJ-52:
   why: 有状态且被指向
 OBJ-53:
   name: 证据
-  level: 次级
+  level: 一级
   objd_class: 业务对象
   parent: null
   states:
@@ -2120,7 +2133,7 @@ OBJ-74:
   why: 有状态且被指向
 OBJ-78:
   name: 分摊规则（原「分摊规则版本」）
-  level: 次级
+  level: 一级
   objd_class: 业务对象
   parent: null
   states:
@@ -2346,6 +2359,7 @@ OBJ-86:
   identity_hint: true
   pointers:
     '06':
+    - VS-04.4
     - VS-05.5
     - VS-08.3
     - VS-13.5

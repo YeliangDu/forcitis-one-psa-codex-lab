@@ -47,9 +47,13 @@ LAYER_NODE = {"sh": "01", "con": "02", "vp": "03", "decr": "04", "cap": "05", "v
 NODES = {"01": "干系人", "02": "关注点", "03": "价值主张", "04": "取舍决定", "05": "业务能力", "06": "价值流与阶段", "07": "业务流程", "08": "约束与认定规则", "09": "业务对象", "10": "受控业务执行", "11": "业务事实", "12": "维度", "13": "指标与评价", "14": "计算绑定", "15": "决策与行动"}
 CHECKS = {
     "N01-1": "每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）",
+    "N01-2": "每个干系人至少触发、接收或参与一条价值流（价值流 triggering_stakeholders、value_receivers，阶段 participants）",
     "N03-1": "每条价值流都有价值主张（暂以价值流的 value 字段作 03 的登记）",
     "N05-1": "每个阶段都有业务能力支撑（阶段 capabilities 字段）",
     "N06-1": "每个阶段都有对象状态作为门（进入或退出条件引用对象状态）",
+    "N06-2": "每条价值流的门对象中，至少一个顺依附链（信息图「父对象」列）追到一级业务对象",
+    "N06-3": "每个阶段的门对象中，至少一个顺依附链追到一级业务对象（无门对象的阶段也计缺口）",
+    "N06-4": "每条价值流都有触发者和价值接收者",
     "N07-1": "每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1）",
     "N07-2": "流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 N07-1 / anchoring C1 判）",
     "N07-P1": "P-1：流程骨架中作用于聚合的步骤都声明 Command，且该命令在同一聚合下登记于各组 commands.yaml",
@@ -57,6 +61,7 @@ CHECKS = {
     "N09-1": "每个有效对象都有流程承载（同 anchoring_check C2；OBJD 定论的从属、参照、视图按定论排除）",
     "N09-2": "每个有效一级业务对象都有聚合（聚合「对应」列；从属、参照、视图不要求）",
     "N09-3": "每个聚合对应的对象都出现在某个阶段的门或段内状态中",
+    "N09-4": "依附链必填：非一级的有效对象「父对象」列填有效 OBJ 编号，一级对象填「—」",
     "N09-M1": "每个聚合都归属一个 BC",
     "N09-M2": "每个聚合都有不变量",
     "N09-M3": "每个聚合至少一张表（ADR-0059 建表规则，不要求每个对象一张）",
@@ -92,6 +97,21 @@ def expand(prefix, text):
     return seen
 
 
+def gate_refs(node, patterns, depth=0):
+    """门条件里的全部叶子引用：展开价值流级 stage_pattern（entry_common / exit_common）与嵌套 any / all。"""
+    if not isinstance(node, dict) or depth > 10:
+        return []
+    out = [node] if "ref" in node else []
+    if node.get("pattern"):
+        if node["pattern"] not in patterns:
+            raise ValueError(f"门条件引用了未定义的 pattern：{node['pattern']}")
+        out += gate_refs(patterns[node["pattern"]], patterns, depth + 1)
+    for k in ("any", "all"):
+        for x in node.get(k) or []:
+            out += gate_refs(x, patterns, depth + 1)
+    return out
+
+
 def rel(p):
     return str(Path(p).relative_to(DOCS))
 
@@ -125,21 +145,26 @@ def load():
     for s in vsd.get("stakeholders") or []:
         m["sh"][s["id"]] = {"name": s.get("sub") or s.get("category"), "category": s.get("category")}
     for v in vsd["value_streams"]:
-        m["vs"][v["id"]] = {"name": v["name"], "category": v.get("category"), "value": v.get("value")}
+        m["vs"][v["id"]] = {"name": v["name"], "category": v.get("category"), "value": v.get("value"),
+                            "triggers": v.get("triggering_stakeholders") or [], "receivers": v.get("value_receivers") or []}
+        for kind, key in (("sh-trigger", "triggering_stakeholders"), ("sh-receive", "value_receivers")):
+            for sh in v.get(key) or []:
+                link(kind, sh, v["id"], f"{rel(SRC['vs'])}#{v['id']}.{key}")
         if v.get("value"):
             m["vp"][f"VP-{v['id'][3:]}"] = {"name": v["value"], "vs": v["id"], "provisional": "取自价值流 value 字段，待 03 正式登记"}
             link("vp-vs", f"VP-{v['id'][3:]}", v["id"], f"{rel(SRC['vs'])}#{v['id']}.value")
         for st in v.get("stages") or []:
             gates = []
             for side in ("entry", "exit"):
-                cond = st.get(side) or {}
-                for k in ("any", "all"):
-                    for g in cond.get(k) or []:
-                        if OBJ_RE.fullmatch(str(g.get("ref", ""))):
-                            gates.append({"side": side, "obj": g["ref"], "state": g.get("state")})
+                for g in gate_refs(st.get(side), v.get("stage_pattern") or {}):
+                    if OBJ_RE.fullmatch(str(g.get("ref", ""))):
+                        gates.append({"side": side, "obj": g["ref"], "state": g.get("state")})
             inside = [g["ref"] for g in st.get("in_stage_states") or [] if OBJ_RE.fullmatch(str(g.get("ref", "")))]
             caps = st.get("capabilities") or []
-            m["stage"][st["id"]] = {"name": st["name"], "vs": v["id"], "gates": gates, "in_stage": inside, "caps": caps}
+            m["stage"][st["id"]] = {"name": st["name"], "vs": v["id"], "gates": gates, "in_stage": inside, "caps": caps,
+                                    "participants": st.get("participants") or []}
+            for sh in st.get("participants") or []:
+                link("sh-participate", sh, st["id"], f"{rel(SRC['vs'])}#{st['id']}.participants")
             for c in caps:
                 m["cap"].setdefault(c, {"stages": []})["stages"].append(st["id"])
                 link("cap-stage", c, st["id"], f"{rel(SRC['vs'])}#{st['id']}.capabilities")
@@ -154,12 +179,16 @@ def load():
     for oid, c, no in md_rows(text, "## 1. 总表", "### 1.1", r"OBJ-\d{2,3}"):
         if oid not in valid:
             continue
-        level = c[3] if len(c) > 3 else ""
+        level = (c[3] if len(c) > 3 else "").replace("*", "")
         d = disp.get(oid)
-        m["obj"][oid] = {"name": c[1].replace("*", ""), "active": True, "primary": level.startswith("一级"),
+        parents = c[12] if len(c) > 12 else ""
+        m["obj"][oid] = {"name": c[1].replace("*", ""), "active": True, "primary": level.startswith("一级") or "暂列一级" in level,
                          "class": kinds[d["kind"]] if d else "业务对象", "parent": d.get("parent_object") if d else None,
+                         "parents": OBJ_RE.findall(parents), "parents_raw": parents,
                          "states": c[5] if len(c) > 5 else "", "facts": c[8].strip() if len(c) > 8 else "",
                          "src": f"{rel(SRC['obj'])}:{no}"}
+        for p in m["obj"][oid]["parents"]:
+            link("obj-parent", oid, p, f"{rel(SRC['obj'])}:{no}")
 
     for p in yaml.safe_load(SRC["prc"].read_text(encoding="utf-8"))["processes"]:
         po = str(p.get("primary_object") or "")
@@ -258,7 +287,44 @@ def check(m, anchoring=None):
     staged_obj = {g["obj"] for s in m["stage"].values() for g in s["gates"]} | {o for s in m["stage"].values() for o in s["in_stage"]}
     stage_metric = {s for mt in m["metric"].values() for s in mt["stages"]}
 
+    top = {k for k in primary if m["obj"][k].get("class", "业务对象") == "业务对象"}
+
+    def chain(o, seen=()):
+        """顺依附链上行，返回追到的一级业务对象（可多个，「或」关系任一可达即可）。"""
+        if o in top:
+            return {o}
+        if o in seen or o not in m["obj"]:
+            return set()
+        return set().union(*[chain(p, seen + (o,)) for p in m["obj"][o].get("parents", [])] or [set()])
+
+    for o in sorted(active_obj, key=lambda x: int(x[4:])):
+        ob = m["obj"][o]
+        bad = [p for p in ob.get("parents", []) if p not in active_obj]
+        if o in primary and ob.get("parents"):
+            gaps["N09-4"].append(f"{o} {ob['name']}（一级对象不应有父对象：{'、'.join(ob['parents'])}）")
+        elif o not in primary and not ob.get("parents"):
+            gaps["N09-4"].append(f"{o} {ob['name']}（非一级，父对象未填 OBJ 编号：{ob.get('parents_raw') or '空'}）")
+        elif bad:
+            gaps["N09-4"].append(f"{o} {ob['name']}（父对象 {'、'.join(bad)} 不是有效对象）")
+
+    def gate_note(objs):
+        return "、".join(f"{o}→{'、'.join(sorted(chain(o))) or '断'}" for o in objs)
+
+    for vid, v in m["vs"].items():
+        objs = sorted({g["obj"] for s in m["stage"].values() if s["vs"] == vid for g in s["gates"]})
+        if not any(chain(o) for o in objs):
+            gaps["N06-2"].append(f"{vid} {v['name']}（门对象 {gate_note(objs) or '无'}）")
+        if not v.get("triggers") or not v.get("receivers"):
+            gaps["N06-4"].append(f"{vid} {v['name']}（" + "、".join(x for x, ok in (("缺触发者", v.get("triggers")), ("缺价值接收者", v.get("receivers"))) if not ok) + "）")
+    for sid, s in m["stage"].items():
+        objs = sorted({g["obj"] for g in s["gates"]})
+        if not any(chain(o) for o in objs):
+            gaps["N06-3"].append(f"{sid} {s['name']}（门对象 {gate_note(objs) or '无'}）")
+    involved = {x for v in m["vs"].values() for x in v.get("triggers", []) + v.get("receivers", [])} | {x for s in m["stage"].values() for x in s.get("participants", [])}
+
     for sid, s in m["sh"].items():
+        if sid not in involved:
+            gaps["N01-2"].append(f"{sid} {s['name']}")
         if not any(c.get("sh") == sid for c in m["con"].values()):
             gaps["N01-1"].append(f"{sid} {s['name']}")
     for vid, v in m["vs"].items():
@@ -353,12 +419,29 @@ def render(m, links, gaps):
 def self_test():
     assert cells("| AGG-01 | x |") == ["AGG-01", "x"]
     assert expand("AGG", "AGG-01、02、33；REF-01") == ["AGG-01", "AGG-02", "AGG-33"]
+    pat = {"exit_common": {"all": [{"any": [{"ref": "OBJ-35"}, {"all": [{"ref": "OBJ-30"}]}]}]}}
+    assert [g["ref"] for g in gate_refs({"pattern": "exit_common", "all": [{"ref": "OBJ-38"}]}, pat)] == ["OBJ-35", "OBJ-30", "OBJ-38"]
     assert expand("AGG", "AGG-08–12、18、102") == ["AGG-08", "AGG-09", "AGG-10", "AGG-11", "AGG-12", "AGG-18", "AGG-102"]
     m = {"sh": {}, "con": {}, "act": {}, "vs": {}, "stage": {"VS-01.1": {"name": "s", "vs": "VS-01", "gates": [], "in_stage": []}},
          "obj": {"OBJ-01": {"name": "o", "active": True, "primary": True}}, "prc": {}, "agg": {}, "inv": {},
          "bc": {}, "sd": {}, "table": {}, "metric": {}}
     g = check(m)
     assert g["N06-1"] and g["N09-1"] and g["N09-2"] and g["N13-1"]
+    assert g["N06-3"] and not g["N09-4"]
+    m["sh"] = {"SH-A": {"name": "甲"}, "SH-B": {"name": "乙"}}
+    m["vs"] = {"VS-01": {"name": "v", "triggers": ["SH-A"], "receivers": []}}
+    m["stage"]["VS-01.1"]["gates"] = [{"side": "entry", "obj": "OBJ-03"}]
+    m["obj"].update({"OBJ-02": {"name": "c", "active": True, "primary": False, "parents": ["OBJ-01"]},
+                     "OBJ-03": {"name": "d", "active": True, "primary": False, "parents": ["OBJ-02"]},
+                     "OBJ-04": {"name": "e", "active": True, "primary": False, "parents": []},
+                     "OBJ-05": {"name": "f", "active": True, "primary": False, "parents": ["OBJ-09"]}})
+    g = check(m)
+    assert not g["N06-2"] and not g["N06-3"], (g["N06-2"], g["N06-3"])   # 两跳依附链可达一级
+    assert [x[:6] for x in g["N09-4"]] == ["OBJ-04", "OBJ-05"], g["N09-4"]
+    assert g["N01-2"] == ["SH-B 乙"] and g["N06-4"] == ["VS-01 v（缺价值接收者）"], (g["N01-2"], g["N06-4"])
+    m["stage"]["VS-01.1"]["gates"] = [{"side": "entry", "obj": "OBJ-04"}]
+    g = check(m)
+    assert g["N06-2"] and g["N06-3"]   # 断链：门对象追不到一级
     print("self-test ok")
 
 
