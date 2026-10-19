@@ -80,7 +80,8 @@ OBJ-17:
 OBJ-18:
   class: 确认建模
 OBJ-19:
-  class: 确认建模
+  class: 降为参照或维度（招标维度；用户 2026-10-19 已定）
+  owner: OBJ-18
 OBJ-20:
   class: 确认建模
 OBJ-21:
@@ -178,7 +179,8 @@ OBJ-72:
 OBJ-73:
   class: 确认建模
 OBJ-74:
-  class: 确认建模
+  class: 不承接（04 取舍决定：制度文本，不建模；用户 2026-10-19 已定）
+  owner: null
 OBJ-78:
   class: 确认建模
 OBJ-81:
