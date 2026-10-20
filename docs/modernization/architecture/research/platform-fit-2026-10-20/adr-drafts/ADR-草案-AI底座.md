@@ -137,7 +137,7 @@ AI 输出一律是建议，经有权限的人确认后才进入业务数据；�
 - 仓库事实：`STACK_DECISION.md` 持久化只用 JdbcClient、密钥用 KMS；`backend/architecture/test-images.txt` 只有 `postgres:18`；`ExternalConnectionIsolationTest` 已隔离外部连接；`contexts.yaml` `km.knowledge` schema `km_knowledge`。
 - 未核实：Spring AI 2.0 PgVectorStore 文档、百炼单价与保留期、各模型备案号、厂商 SDK 对 Java 25 的支持（D 稿 §6）。
 - 检索记录：`rg -n '大模型|AI 赋能|AI 只|、AI|向量|pgvector|生成式|出境|境外|KMS|凭据管家|km\.knowledge|知识条目' docs/modernization/adr/src/ADR-*.md`，命中 ADR-0002（KMS 凭据管家，相容）、ADR-0017（`km.knowledge` 蓝图未覆盖，无关）、ADR-0023（决定 2：AI 只经语义层取数，相容，本稿决定 2 第 4 条引用）、ADR-0025 与 ADR-0037（命中「KMS」为 BI 与只读账号凭据，「、AI」为文件名 `AI_NATIVE_SPEC`，无关）、ADR-0051（决定 4 第 8 条知识条目落 `km.knowledge`，相容）。另读 ADR-0039、0041、0042、0043、0054、0055：均相容；对 ADR-0043 第 2 项未登记列兜底，本稿只对外发收紧，不改其决定。本稿不取代任何 ADR。占号后须重放检索。
-- 评审：独立复审 `R-ADR草案复审.md`（ARC-1020-COO-06）§4 结论「修改后可交」。已处理：① 闸、审计、限额在集成层成环且与 ADR-0039 决定 1 第 2 款冲突，改到调用侧（决定 2）；② 上下文条目带来源登记键（决定 1 第 2 条）；③ 自由文本按 PI 的后果写入后果并列 one-security；④ 「第 12 条守护」改为守护规则第 1 条；⑤ pgvector 细节移出，Spring AI 配套补出处；X-1 写明不新增模块、与文件服务 ADR 相容。待 `code-modernization:architecture-critic` opus 对抗评审。
+- 评审：独立复审 `R-ADR草案复审.md`（ARC-1020-COO-06）§4 结论「修改后可交」。已处理：① 闸、审计、限额在集成层成环且与 ADR-0039 决定 1 第 2 款冲突，改到调用侧（决定 2）；② 上下文条目带来源登记键（决定 1 第 2 条）；③ 自由文本按 PI 的后果写入后果并列 one-security；④ 「第 12 条守护」改为守护规则第 1 条；⑤ pgvector 细节移出，Spring AI 配套补出处；X-1 写明不新增模块、与文件服务 ADR 相容。opus 对抗复审即上述 R；经 `R2-ADR改后复核.md`、`R3-ADR定点复核.md` 复核。
 
 ## 备选方案（未采用）
 
