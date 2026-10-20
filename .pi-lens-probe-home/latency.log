@@ -14,3 +14,7 @@
 {"type":"phase","filePath":"<pi-lens>","phase":"host_boot","durationMs":163,"metadata":{"loadedFrom":"dist","evaluationOrdinal":1},"ts":"2026-10-19T15:01:11.437Z","pid":8397,"turnId":"turn:0"}
 {"type":"phase","filePath":"<pi-lens>","phase":"extension_eval","durationMs":10,"metadata":{"loadedFrom":"dist"},"ts":"2026-10-19T15:01:11.437Z","pid":8397,"turnId":"turn:0"}
 {"type":"phase","phase":"ast_grep_rules_resolved","filePath":"/Users/yeliang/.pi/agent/npm/node_modules/pi-lens/rules","durationMs":0,"metadata":{"status":"healthy","entryCount":297},"ts":"2026-10-19T15:01:11.438Z","pid":8397,"turnId":"turn:0"}
+{"type":"phase","filePath":"<pi-lens>","phase":"extension_loaded","durationMs":227,"metadata":{"loadedFrom":"dist"},"ts":"2026-10-19T21:08:38.319Z","pid":22486,"turnId":"turn:0"}
+{"type":"phase","filePath":"<pi-lens>","phase":"host_boot","durationMs":213,"metadata":{"loadedFrom":"dist","evaluationOrdinal":1},"ts":"2026-10-19T21:08:38.319Z","pid":22486,"turnId":"turn:0"}
+{"type":"phase","filePath":"<pi-lens>","phase":"extension_eval","durationMs":14,"metadata":{"loadedFrom":"dist"},"ts":"2026-10-19T21:08:38.319Z","pid":22486,"turnId":"turn:0"}
+{"type":"phase","phase":"ast_grep_rules_resolved","filePath":"/Users/yeliang/.pi/agent/npm/node_modules/pi-lens/rules","durationMs":0,"metadata":{"status":"healthy","entryCount":297},"ts":"2026-10-19T21:08:38.322Z","pid":22486,"turnId":"turn:0"}

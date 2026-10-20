@@ -3,14 +3,16 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-17 13:28（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
-更新：2026-10-17 16:49（one-coordinator）
-- 清空后第一步：通读 SESSION_PLAYBOOK §11 全文与 §5「Codex 派工」「任务命名与登记」；核对开场注入的公共守则（_COMMON）含 10-17 新规（Codex A/B 分工、在制代码 PR≤3、并行、`< /dev/null`、禁网 -s workspace-write＋network_access=false）。没有就查插队小合集（two-lanes@07d39403）是否已合，未合催 one-merge。
-- 不得再犯：①要用户定的一律进收件箱（pending），对话里不问；②会话间技术问题直连，不居中转；③跨会话消息首行标「派工：/通知：」；④转述注明已核实/已抽查/未核实；⑤派工用 mcp__ccd_session_mgmt__send_message（唤醒），SendMessage 不唤醒；⑥会话报的结果先读分支/PR 原文再转；⑦确认页答完读 answers-submit 原文，不信「已在确认页答复」。
-- 常用：收件箱 https://claude.ai/artifact/RVU6nNNSsygF5sVRWLhQ15（只订阅 pending）；本会话 mod mainline-band（输入框上方两块进度＋状态行；进度文件 ~/.modernize/psa/handoff/mainline-band.txt，待答数 status-extra.txt，完成点即更新）；审题报告放 ~/.modernize/psa/handoff/reviews/。
-- 命名：词表 833（#481 在队）；N7 分流 497→A17/B17/C207/D110/E146，NM6 起「整表认可＋点不顺口」约 25–30 题，首页待我审；D110 由 one-glossary 自判；N3 已合；N6 切换、N8（#479 已合，QUA-02 待 N14）、事件/消息目录登记在分支。
-- 施工图：ADR-0052～0057 已采纳在 main；三组骨架＋VS-14 已铺；B31P 参数页待取证预填后重做；架构整合 8 册待 N7 后。
-- CI：strict 关、两道试行至 10-19；SQL Server 挪档已合；选测 S＋影子日志、并行度、B/E/C 在 one-quality；Linux CI 主机规格测算在 one-quality。dev 暂停。
-- 用户在对话中待答：无（10-17 已答：codex 全局配置不改、派工命令自限；阿里云 Linux CI 暂不试点；GitHub 不清旧对象）。
+更新：2026-10-20 （one-coordinator）
+- 清空后第一步：通读 SESSION_PLAYBOOK §11、§5；读本节与 intent 2026-10-19-223711 起各条。
+- **现行主线（用户 2026-10-19）**：仓库内只一套经调度认可的架构 SSOT，按节点导入，仓库外 SSOT 不作依据，仓库内其他口径作废并改为引用；版本号认可入库即 V1。用户在桌面 ~/Desktop/架构锚定-2026-10-19/ 维护工作稿，调度按框架原文（BIZBOK v11 等，本机 library.yaml）审核，「认可就导入，不认可给原因与框架原文证据」；**一次只处理当前节点，后续节点暂不处理**；自上而下（干系人→关注点→价值流…），不得用下游反推上游。
+- 已导入：01 干系人 V1（docs/modernization/architecture/ssot/01-stakeholders/，提交 42ca3834，分支 claude/one-coordinator-two-lanes，待文档合集）。待对账：金融机构、出租方（STKH-04/05）保留与否；「没有外部审计」与财务口径 GL-026/A1/A10 冲突待用户说明。
+- 当前节点 02 关注点：第 2 轮深挖完成（Codex xhigh + DeepSeek flash 3 批对拍，sonnet 核实），合成稿 scratchpad(540fb282)/con2/干系人关注点-第2轮合成稿.md 与 第2轮核实报告.md 已发用户，25 人 56 条；等用户改删补/认可后导入为 02 V1（D 级标待验证）。研究规格 con2/SPEC.md（一手来源、≥2 独立且≥1 A、自方材料、反证、业务线、原句）。
+- 暂停：one-architecture 全部建模（等导入方案）；OBJFIN、STKH2、ADV1、ADV1R、ADR59、NM8A/B 收件箱已撤；one-data ADR-0058 实施暂停。收件箱仍 pending：B31P（不急）、转财务确认「条款＝履约义务」。
+- 模型：对拍用 Codex（主稿）+ 用户付费 DeepSeek（pi deepseek/deepseek-flash 或 v4-pro）；DeepSeek 原句、条号须回原文核；推理强度按任务定。
+- 不得再犯：①要用户定的进收件箱；②转述他人报告用户原话先 search_session_transcripts 核原句；③确认页答复读 answers-submit 原文；④自写脚本统计（正则匹配编号带字母后缀）先验证再报。
+- 下一个文档合集清单：scratchpad(57026514)/next-docs-train.txt。
+
 ## 作战图（派工前先看；SESSION_PLAYBOOK §11「战队协作」第 5 条）
 | 主线 | 负责 | 当前 | 下一步 | 阻塞 |
 |---|---|---|---|---|
