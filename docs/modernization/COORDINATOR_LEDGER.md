@@ -16,11 +16,14 @@
 ## 作战图（派工前先看；SESSION_PLAYBOOK §11「战队协作」第 5 条）
 | 主线 | 负责 | 当前 | 下一步 | 阻塞 |
 |---|---|---|---|---|
-| dev | one-ops | **暂停**（用户 10-17「ops 这一轮 rc 后，暂时不考虑 dev 的事儿了」）：rc.6 已授角色、单人运维模式开；日历未导（C-6 SQL 已修，one-ops-r56 @ 1da307b9） | 用户说恢复再排 | — |
+| 开发主线（10-20 恢复，intent b58965a5） | A one-1a-par / B 待 ADR 入库 / C one-architecture+B31P / D one-ops | 里程碑=通用审批先行上线（TRN-03）。A：ADR-0055 拆 A8 同步改人事命令（IMP-1020-PAR-01，先报切分）、ADR-0034 收尾、数据范围；B：文件服务基础→签章服务第一段；C：行政事务模块+四类通用审批表单；D：恢复 dev、清单对齐、生产/演练评估、检测选型（one-ops 离线，消息排队） | 各线完成点报调度 | B 等 ADR 占号与用语（NAM-1020-COO-01）；C 等 B31P |
 | 流程与业务架构对齐 | one-architecture + 三组 | 阶段层：SD-01～10 已裁（#422）；对象层：主对象脚本提议、三组确认中；VS01-10 定独立流程「作出参投决策」（#428）；已派五件（#429）：支撑本段、配置补读关系、内部服务价值流评估、集成类型、业务/管理/支撑分类 | 数据到后刷新对齐图（scratchpad(e1ce474b)/align/refresh.sh 后以同 file_path+files 重发；流程栏按业务/管理/支撑分三行，归属实线、支撑虚线，集成单列） | — |
 | 命名与用语 | one-architecture / one-glossary / one-quality | 规则在 PROCESS_METHOD_DRAFT §11、name_id_check.py；用户定「先规范再登记」（#430）：架构产物只用规范名，改名对照表与用语决策单合并交用户，认可后再登记、再定稿；对象名一律名词（结果或记录）；86 个对象未登记 | #431 拆分：审计报告与用语问题先合，提议稿改为规范名+原名别名后随页交用户；one-quality 写架构用语检查 | — |
 | 确认页 | one-architecture | 7 页在收件箱，用户暂不作答，待对齐与命名后一次改版 | PAGE_IMPACT.md | 对齐完成 |
 | CI 与合并 | 调度批准 / one-merge 执行（10-17 已切 scripts/merge/mq.py，队列在 <git-common-dir>/merge-queue/）/ one-quality 写脚本 | 今日合入 #437–#455，队列空；10-17 08:5x 用户定「关」，strict 已关（intent 084339），快慢两道试行至 10-19 | 试行 2 天；main 因并行合入变红一次即恢复 strict（gh api PATCH required_status_checks strict=true） | — |
+
+## 平台服务（10-20）
+- 6 份平台 ADR 已批（intent 95c61e88，批准页 41cbCoxq487u81i1onT5ta），法务认可（dcb519eb），草案与复核在 architecture/research/platform-fit-2026-10-20/；占号入库交 one-architecture（部分恢复，只做五件 W0 事）；用语交 one-glossary NAM-1020-COO-01；AI 首批场景 087abdd0；财务：履约义务与合同条款分立 4911eb0a；平台分档冻结与准入 ADR 草案待复审（647ce42c）；分层总图 GANmVBuBzK58pT27xscJBE（已钉）。
 
 ## 调度惯例（本日新增）
 - 分层总图（已钉左栏）：https://claude.ai/artifact/GANmVBuBzK58pT27xscJBE ——五层＋贯穿＋老系统退役，数据在页面 db（items/i000..，meta/page），状态变化用 ArtifactData update 改对应条目，不重发页面；源数据脚本 scratchpad(e9617959)/layers。
