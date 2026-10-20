@@ -80,3 +80,43 @@ transitions:
   after: [TA-4]
   delivers: [reporting]
   conditions: MODERNIZATION_BRIEF.md §3「Phase 5」
+# 一次投产路线的建造批 W0–W5（ADR-0054 决定 1 表）：供 ADR「阶段」字段引用。delivers 只列已登记标识；新平台模块待用语决策单 NAM-1020-COO-01 定名后在 contexts.yaml 登记并补入，
+# 其余批次的 BC 清单随架构 SSOT 整合确认包 T 册写入（ADR-0054 后果第 2 条；SSOT 重建线暂停中）。TA-* 为旧读法（ADR-0054「旧时点读法」），暂留供已采纳 ADR 引用。
+- id: W0
+  zh: 平台与人事
+  status: in-progress
+  after: []
+  delivers: [platform.identity, platform.approval, platform.integration, platform.audit, platform.numbering, platform.scheduling,
+             platform.idempotency, platform.eventing, platform.web, organization.workforce]
+  note: 边界按 ADR-0055；最近里程碑为通用审批先行上线（TRN-03，intent 2026-10-20-230855）；文件服务、签章服务、一次性链接（ADR-0060、0063、0064）定名后补入
+  conditions: ADR-0054 决定 1
+- id: W1
+  zh: 主数据与业财主干
+  status: not-started
+  after: [W0]
+  delivers: []
+  conditions: ADR-0054 决定 1
+- id: W2
+  zh: 收入前段与经营
+  status: not-started
+  after: [W1]
+  delivers: []
+  conditions: ADR-0054 决定 1
+- id: W3
+  zh: 收入后段与工时
+  status: not-started
+  after: [W2]
+  delivers: []
+  conditions: ADR-0054 决定 1
+- id: W4
+  zh: 收付、采购、费用与薪酬
+  status: not-started
+  after: [W3]
+  delivers: []
+  conditions: ADR-0054 决定 1
+- id: W5
+  zh: 核算、报表与演练
+  status: not-started
+  after: [W4]
+  delivers: []
+  conditions: ADR-0054 决定 1
