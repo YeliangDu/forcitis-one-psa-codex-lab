@@ -44,7 +44,7 @@ final class AuthorizationHistoryRows implements AutoCloseable {
     static final String GRANT_INSERT = """
             insert into platform_identity.account_role_grants (account_role_grant_id, user_id, role_id, effective_from_at, effective_to_at,
                    granted_by, grant_channel_kind, grant_authorization_request_id, migration_batch_id, grant_audit_entry_id, revoked_by,
-                   revocation_cause_kind, revocation_authorization_request_id, revocation_sync_run_id, revocation_audit_entry_id, created_at, updated_at)
+                   revocation_cause_kind, revocation_authorization_request_id, revocation_separation_command_id, revocation_audit_entry_id, created_at, updated_at)
             values (?, ?, ?, ?::timestamptz, ?::timestamptz, null, 'DEFAULT_ROLE', null, null, ?, null, ?, null, null, ?, ?::timestamptz, ?::timestamptz)""";
 
     private static final Map<Class<?>, TestDatabase> DATABASES = new ConcurrentHashMap<>();
