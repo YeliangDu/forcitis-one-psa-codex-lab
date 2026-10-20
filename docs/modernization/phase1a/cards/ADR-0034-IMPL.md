@@ -275,7 +275,7 @@ CREATE TABLE platform_identity.account_role_grants (
     revoked_by                          uuid,
     revocation_cause_kind               text,
     revocation_authorization_request_id uuid,
-    revocation_separation_command_id              uuid,
+    revocation_separation_command_id    uuid,
     revocation_audit_entry_id           uuid,
     created_at                          timestamptz NOT NULL,
     updated_at                          timestamptz NOT NULL,
@@ -346,7 +346,7 @@ COMMENT ON COLUMN platform_identity.account_role_grants.grant_audit_entry_id IS 
 COMMENT ON COLUMN platform_identity.account_role_grants.revoked_by IS '收回人用户 ID：MANUAL 必有、SEPARATION 必为空；为空表示未收回或系统收回';
 COMMENT ON COLUMN platform_identity.account_role_grants.revocation_cause_kind IS '收回原因：MANUAL 账号授权 / SEPARATION 离职 / OPERATIONS 运维命令 revoke-role / MIGRATION_ROLLBACK 迁入批次回退；为空表示未收回';
 COMMENT ON COLUMN platform_identity.account_role_grants.revocation_authorization_request_id IS '收回所据的授权申请 ID；为空表示未收回或未经双人确认（只 MANUAL 可有）';
-COMMENT ON COLUMN platform_identity.account_role_grants.revocation_separation_command_id IS '触发离职收回的同步运行 ID（跨 schema，只存 ID）：只 SEPARATION 有；为空表示不是离职收回';
+COMMENT ON COLUMN platform_identity.account_role_grants.revocation_separation_command_id IS '触发离职收回的离职命令 ID（跨 schema，只存 ID）：只 SEPARATION 有；为空表示不是离职收回';
 COMMENT ON COLUMN platform_identity.account_role_grants.revocation_audit_entry_id IS '收回本行的审计条目 ID（platform.identity.account.role.revoked 等，跨 schema）；为空表示未收回';
 COMMENT ON COLUMN platform_identity.account_role_grants.created_at IS '创建时间（应用注入时钟）';
 COMMENT ON COLUMN platform_identity.account_role_grants.updated_at IS '更新时间（应用注入时钟）：关闭时写入关闭时刻（见待裁定 A-4）';
@@ -448,7 +448,7 @@ CREATE TRIGGER tg_roles_identity_immutable BEFORE UPDATE ON platform_identity.ro
 | `VOIDED` | 状态值 | 已作废 | 领域 / `platform.identity` | 授权申请状态；与 ADR-0032「作废」共用 |
 | `system_role_declaration`、`declaration_revision_number` | 概念、列 | 系统角色声明、声明修订号 | 领域 / `platform.identity` | 列名见 A-2 |
 | `AuthorizationHistory` | 只读仓储 | 授权历史 | 领域 / `platform.identity` | — |
-| `version_number`、`role_name`、`role_status`、`recorded_by`、`change_reason`、`closed_by`、`closure_reason`、`*_audit_entry_id`、`granted_by`、`revoked_by`、`revocation_separation_command_id` | 列 | 版本序号、角色名称、角色状态、记录人、变更理由、关闭人、关闭理由、审计条目、授予人、收回人、离职收回所据同步运行 | 领域 / `platform.identity` | 由已批准词组合；`role_name` 与 `roles.name` 退役同时生效 |
+| `version_number`、`role_name`、`role_status`、`recorded_by`、`change_reason`、`closed_by`、`closure_reason`、`*_audit_entry_id`、`granted_by`、`revoked_by`、`revocation_separation_command_id` | 列 | 版本序号、角色名称、角色状态、记录人、变更理由、关闭人、关闭理由、审计条目、授予人、收回人、离职收回所据离职命令 | 领域 / `platform.identity` | 由已批准词组合；`role_name` 与 `roles.name` 退役同时生效 |
 | 审计动作 `platform.identity.account.role.granted`、`platform.identity.role-version.opened`、`platform.identity.role-version.closed`、`platform.identity.authorization.voided` | 审计动作 | 角色已授予、角色版本已开启、角色版本已关闭、授权申请已作废 | 领域 / `platform.identity` | 前三个为本卡提议（A-6），第四个出自 ADR-0034 第 2 项第 5 条（与事件形式见 A-7） |
 
 文档用语问题（`separation` 定义中「删除全部角色授予」改「关闭全部有效授予」）用 `new_term_issue.py` 登记给 one-glossary，不自行改正式词表。约束、索引、触发器、函数名按 NAMING_STANDARD §2.4 组合已有词，不属术语登记对象。
@@ -529,7 +529,7 @@ CREATE TRIGGER tg_roles_identity_immutable BEFORE UPDATE ON platform_identity.ro
 - 角色版本状态 `ENABLED / DISABLED` = `RoleStatus` 枚举（`domain/RoleStatus.java`）= `ck_role_versions_role_status`；「已删除」不是状态值，是「无开放版本」（A-1）。转换 ↔ 事件：新建 → `RoleCreated`（版本 1）；修订 → `RoleRevised`；启用 / 停用 → `RoleEnabled` / `RoleDisabled`；删除 → `RoleDeleted`（关闭最后版本）。审计动作见 A-6。
 - 授权申请状态：`PENDING → CONFIRMED / REJECTED`、`CONFIRMED → VOIDED`；`CHECK` 取值 = `AuthorizationRequestStatus` 枚举 = 状态机（G-D12 同一测试）。事件：`AuthorizationOpened`、`AuthorizationConfirmed`、`AuthorizationRejected`、`AuthorizationVoided`（A-7 已裁）。`VOIDED` 无原因列：原因（基准已变 / 已有持有人）只进审计 detail（ADR 第 2 项第 5 条）。
 - 授予无状态列：开放 / 已收回由 `effective_to_at` 表达；收回原因 `revocation_cause_kind` 成对（`ck_account_role_grants_revocation`）。
-- 关系：版本 → 1 角色（`NOT NULL` 外键）；版本 → 0..1 授权申请、0..1 记录人、0..1 关闭人（可空外键）；授予 → 1 账号、1 角色（`NOT NULL` 外键）、0..1 授予人 / 收回人、0..1 开启 / 收回申请（可空外键）；迁入批次、同步运行、审计条目跨 schema 只存 ID。
+- 关系：版本 → 1 角色（`NOT NULL` 外键）；版本 → 0..1 授权申请、0..1 记录人、0..1 关闭人（可空外键）；授予 → 1 账号、1 角色（`NOT NULL` 外键）、0..1 授予人 / 收回人、0..1 开启 / 收回申请（可空外键）；迁入批次、离职命令、审计条目跨 schema 只存 ID。
 
 ### 不变量 → 约束（B5、O4）
 
@@ -550,7 +550,7 @@ CREATE TRIGGER tg_roles_identity_immutable BEFORE UPDATE ON platform_identity.ro
 | 13 | 同一人同一角色至多一条开放授予、区间不重叠（ADR 2.1） | `ex_account_role_grants_user_id_role_id_period` | — |
 | 14 | 已删除角色不能新开授予（ADR 2.1） | `tg_account_role_grants_open_role_version`；并发由 `FOR SHARE` / `FOR UPDATE`（ADR 1.6） | — |
 | 15 | 授予渠道与授予人、迁入批次、申请配对（ADR 2.1） | `ck_account_role_grants_grant`（D-5） | — |
-| 16 | 收回列成对；MANUAL 有收回人；SEPARATION 有同步运行、无收回人（ADR 2.1） | `ck_account_role_grants_revocation` | — |
+| 16 | 收回列成对；MANUAL 有收回人；SEPARATION 有离职命令、无收回人（ADR 2.1） | `ck_account_role_grants_revocation` | — |
 | 17 | 新开授予下界 = `greatest(:now, max(effective_to_at))`；新版本下界同理（ADR 1.6、2.2） | 仓储 SQL；排他约束兜底拒绝重叠 | 下界依赖同组已有行 |
 | 18 | 删除角色前无当前有效授予（ADR 1.5） | 仓储在 `FOR UPDATE` 锁内计数，返回 409 | 跨表计数 |
 | 19 | 不能改自己持有的角色、不能改自己持有角色的定义（I-12，按当前有效授予） | 应用 | 涉调用人 |
@@ -645,7 +645,7 @@ CREATE TRIGGER tg_roles_identity_immutable BEFORE UPDATE ON platform_identity.ro
 | `role_versions.change_reason` | SEED：声明出处（类名与修订号）；MANUAL：固定操作说明 + 申请 ID（A-5）；MIGRATION：批次 ID | 系统 | 否 |
 | `role_versions.closure_reason` | 删除角色的固定说明 + 操作人账号 ID 以外不写 | 系统（A-5 同口径） | 否 |
 | 审计 `account.role.granted` detail | 授予行 ID、角色 ID、渠道、申请 ID、实际钟点 | 系统 | 只有代理键 |
-| 审计 `account.role.revoked` detail | 授予行 ID、角色 ID、原因、同步运行 ID、实际钟点 | 系统 | 只有代理键 |
+| 审计 `account.role.revoked` detail | 授予行 ID、角色 ID、原因、离职命令 ID、实际钟点 | 系统 | 只有代理键 |
 | 审计 `role-version.opened / closed` detail | 版本 ID、角色 ID、版本序号、渠道、声明修订号、实际钟点 | 系统 | 否 |
 | 审计 `authorization.voided` detail | 申请 ID、原因（`base-changed` / `has-holders`）、基准与实际的版本号或版本 ID | 系统 | 否 |
 | 对账 ALERT 日志 | 角色 ID、声明修订号与库中修订号、未知或停用权限码 | 系统 | 否 |
