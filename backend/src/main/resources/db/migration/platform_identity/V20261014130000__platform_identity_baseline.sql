@@ -444,7 +444,7 @@ CREATE TABLE platform_identity.account_role_grants (
     revoked_by                          uuid,
     revocation_cause_kind               text,
     revocation_authorization_request_id uuid,
-    revocation_sync_run_id              uuid,
+    revocation_separation_command_id    uuid,
     revocation_audit_entry_id           uuid,
     created_at                          timestamptz NOT NULL,
     updated_at                          timestamptz NOT NULL,
@@ -466,7 +466,7 @@ CREATE TABLE platform_identity.account_role_grants (
     CONSTRAINT ck_account_role_grants_revocation CHECK ((effective_to_at IS NULL) = (revocation_cause_kind IS NULL)
         AND (revocation_cause_kind IS NULL) = (revocation_audit_entry_id IS NULL)
         AND (revocation_cause_kind IS DISTINCT FROM 'MANUAL' OR revoked_by IS NOT NULL)
-        AND ((revocation_cause_kind IS NOT DISTINCT FROM 'SEPARATION') = (revocation_sync_run_id IS NOT NULL))
+        AND ((revocation_cause_kind IS NOT DISTINCT FROM 'SEPARATION') = (revocation_separation_command_id IS NOT NULL))
         AND (revocation_cause_kind IS DISTINCT FROM 'SEPARATION' OR revoked_by IS NULL)
         AND (revocation_authorization_request_id IS NULL OR revocation_cause_kind = 'MANUAL')
         AND (revoked_by IS NULL OR effective_to_at IS NOT NULL)),
@@ -498,7 +498,7 @@ CREATE TRIGGER tg_account_role_grants_open_role_version BEFORE INSERT ON platfor
     FOR EACH ROW EXECUTE FUNCTION platform_identity.require_open_role_version();
 CREATE TRIGGER tg_account_role_grants_append_only BEFORE UPDATE OR DELETE ON platform_identity.account_role_grants
     FOR EACH ROW EXECUTE FUNCTION platform_identity.refuse_history_rewrite('effective_to_at', 'revoked_by', 'revocation_cause_kind',
-        'revocation_authorization_request_id', 'revocation_sync_run_id', 'revocation_audit_entry_id', 'updated_at');
+        'revocation_authorization_request_id', 'revocation_separation_command_id', 'revocation_audit_entry_id', 'updated_at');
 CREATE TRIGGER tg_account_role_grants_append_only_truncate BEFORE TRUNCATE ON platform_identity.account_role_grants
     FOR EACH STATEMENT EXECUTE FUNCTION platform_identity.refuse_history_rewrite();
 COMMENT ON TABLE platform_identity.account_role_grants IS '角色授予：某账号在一段时间内持有某角色，只追加；收回 = 关闭开放行，再次获得新增一行；当前有效授予 = effective_to_at 为空；离职关闭全部当前有效授予（ADR-0034 第 2、3 项）。粒度：每个账号每次持有某角色一行';
@@ -515,7 +515,7 @@ COMMENT ON COLUMN platform_identity.account_role_grants.grant_audit_entry_id IS 
 COMMENT ON COLUMN platform_identity.account_role_grants.revoked_by IS '收回人用户 ID：MANUAL 必有、SEPARATION 必为空；为空表示未收回或系统收回';
 COMMENT ON COLUMN platform_identity.account_role_grants.revocation_cause_kind IS '收回原因：MANUAL 账号授权 / SEPARATION 离职 / OPERATIONS 运维命令 revoke-role / MIGRATION_ROLLBACK 迁入批次回退；为空表示未收回';
 COMMENT ON COLUMN platform_identity.account_role_grants.revocation_authorization_request_id IS '收回所据的授权申请 ID；为空表示未收回或未经双人确认（只 MANUAL 可有）';
-COMMENT ON COLUMN platform_identity.account_role_grants.revocation_sync_run_id IS '触发离职收回的同步运行 ID（跨 schema，只存 ID）：只 SEPARATION 有；为空表示不是离职收回';
+COMMENT ON COLUMN platform_identity.account_role_grants.revocation_separation_command_id IS '触发离职收回的离职命令 ID（跨 schema，只存 ID）：只 SEPARATION 有；为空表示不是离职收回';
 COMMENT ON COLUMN platform_identity.account_role_grants.revocation_audit_entry_id IS '收回本行的审计条目 ID（platform.identity.account.role.revoked 等，跨 schema）；为空表示未收回';
 COMMENT ON COLUMN platform_identity.account_role_grants.created_at IS '创建时间（应用注入时钟）';
 COMMENT ON COLUMN platform_identity.account_role_grants.updated_at IS '更新时间（应用注入时钟）：关闭时写入关闭时刻（见待裁定 A-4）';

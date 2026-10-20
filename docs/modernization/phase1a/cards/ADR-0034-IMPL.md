@@ -275,7 +275,7 @@ CREATE TABLE platform_identity.account_role_grants (
     revoked_by                          uuid,
     revocation_cause_kind               text,
     revocation_authorization_request_id uuid,
-    revocation_sync_run_id              uuid,
+    revocation_separation_command_id              uuid,
     revocation_audit_entry_id           uuid,
     created_at                          timestamptz NOT NULL,
     updated_at                          timestamptz NOT NULL,
@@ -297,7 +297,7 @@ CREATE TABLE platform_identity.account_role_grants (
     CONSTRAINT ck_account_role_grants_revocation CHECK ((effective_to_at IS NULL) = (revocation_cause_kind IS NULL)
         AND (revocation_cause_kind IS NULL) = (revocation_audit_entry_id IS NULL)
         AND (revocation_cause_kind IS DISTINCT FROM 'MANUAL' OR revoked_by IS NOT NULL)
-        AND ((revocation_cause_kind IS NOT DISTINCT FROM 'SEPARATION') = (revocation_sync_run_id IS NOT NULL))
+        AND ((revocation_cause_kind IS NOT DISTINCT FROM 'SEPARATION') = (revocation_separation_command_id IS NOT NULL))
         AND (revocation_cause_kind IS DISTINCT FROM 'SEPARATION' OR revoked_by IS NULL)
         AND (revocation_authorization_request_id IS NULL OR revocation_cause_kind = 'MANUAL')
         AND (revoked_by IS NULL OR effective_to_at IS NOT NULL)),
@@ -329,7 +329,7 @@ CREATE TRIGGER tg_account_role_grants_open_role_version BEFORE INSERT ON platfor
     FOR EACH ROW EXECUTE FUNCTION platform_identity.require_open_role_version();
 CREATE TRIGGER tg_account_role_grants_append_only BEFORE UPDATE OR DELETE ON platform_identity.account_role_grants
     FOR EACH ROW EXECUTE FUNCTION platform_identity.refuse_history_rewrite('effective_to_at', 'revoked_by', 'revocation_cause_kind',
-        'revocation_authorization_request_id', 'revocation_sync_run_id', 'revocation_audit_entry_id', 'updated_at');
+        'revocation_authorization_request_id', 'revocation_separation_command_id', 'revocation_audit_entry_id', 'updated_at');
 CREATE TRIGGER tg_account_role_grants_append_only_truncate BEFORE TRUNCATE ON platform_identity.account_role_grants
     FOR EACH STATEMENT EXECUTE FUNCTION platform_identity.refuse_history_rewrite();
 COMMENT ON TABLE platform_identity.account_role_grants IS '角色授予：某账号在一段时间内持有某角色，只追加；收回 = 关闭开放行，再次获得新增一行；当前有效授予 = effective_to_at 为空；离职关闭全部当前有效授予（ADR-0034 第 2、3 项）。粒度：每个账号每次持有某角色一行';
@@ -346,7 +346,7 @@ COMMENT ON COLUMN platform_identity.account_role_grants.grant_audit_entry_id IS 
 COMMENT ON COLUMN platform_identity.account_role_grants.revoked_by IS '收回人用户 ID：MANUAL 必有、SEPARATION 必为空；为空表示未收回或系统收回';
 COMMENT ON COLUMN platform_identity.account_role_grants.revocation_cause_kind IS '收回原因：MANUAL 账号授权 / SEPARATION 离职 / OPERATIONS 运维命令 revoke-role / MIGRATION_ROLLBACK 迁入批次回退；为空表示未收回';
 COMMENT ON COLUMN platform_identity.account_role_grants.revocation_authorization_request_id IS '收回所据的授权申请 ID；为空表示未收回或未经双人确认（只 MANUAL 可有）';
-COMMENT ON COLUMN platform_identity.account_role_grants.revocation_sync_run_id IS '触发离职收回的同步运行 ID（跨 schema，只存 ID）：只 SEPARATION 有；为空表示不是离职收回';
+COMMENT ON COLUMN platform_identity.account_role_grants.revocation_separation_command_id IS '触发离职收回的同步运行 ID（跨 schema，只存 ID）：只 SEPARATION 有；为空表示不是离职收回';
 COMMENT ON COLUMN platform_identity.account_role_grants.revocation_audit_entry_id IS '收回本行的审计条目 ID（platform.identity.account.role.revoked 等，跨 schema）；为空表示未收回';
 COMMENT ON COLUMN platform_identity.account_role_grants.created_at IS '创建时间（应用注入时钟）';
 COMMENT ON COLUMN platform_identity.account_role_grants.updated_at IS '更新时间（应用注入时钟）：关闭时写入关闭时刻（见待裁定 A-4）';
@@ -448,7 +448,7 @@ CREATE TRIGGER tg_roles_identity_immutable BEFORE UPDATE ON platform_identity.ro
 | `VOIDED` | 状态值 | 已作废 | 领域 / `platform.identity` | 授权申请状态；与 ADR-0032「作废」共用 |
 | `system_role_declaration`、`declaration_revision_number` | 概念、列 | 系统角色声明、声明修订号 | 领域 / `platform.identity` | 列名见 A-2 |
 | `AuthorizationHistory` | 只读仓储 | 授权历史 | 领域 / `platform.identity` | — |
-| `version_number`、`role_name`、`role_status`、`recorded_by`、`change_reason`、`closed_by`、`closure_reason`、`*_audit_entry_id`、`granted_by`、`revoked_by`、`revocation_sync_run_id` | 列 | 版本序号、角色名称、角色状态、记录人、变更理由、关闭人、关闭理由、审计条目、授予人、收回人、离职收回所据同步运行 | 领域 / `platform.identity` | 由已批准词组合；`role_name` 与 `roles.name` 退役同时生效 |
+| `version_number`、`role_name`、`role_status`、`recorded_by`、`change_reason`、`closed_by`、`closure_reason`、`*_audit_entry_id`、`granted_by`、`revoked_by`、`revocation_separation_command_id` | 列 | 版本序号、角色名称、角色状态、记录人、变更理由、关闭人、关闭理由、审计条目、授予人、收回人、离职收回所据同步运行 | 领域 / `platform.identity` | 由已批准词组合；`role_name` 与 `roles.name` 退役同时生效 |
 | 审计动作 `platform.identity.account.role.granted`、`platform.identity.role-version.opened`、`platform.identity.role-version.closed`、`platform.identity.authorization.voided` | 审计动作 | 角色已授予、角色版本已开启、角色版本已关闭、授权申请已作废 | 领域 / `platform.identity` | 前三个为本卡提议（A-6），第四个出自 ADR-0034 第 2 项第 5 条（与事件形式见 A-7） |
 
 文档用语问题（`separation` 定义中「删除全部角色授予」改「关闭全部有效授予」）用 `new_term_issue.py` 登记给 one-glossary，不自行改正式词表。约束、索引、触发器、函数名按 NAMING_STANDARD §2.4 组合已有词，不属术语登记对象。
