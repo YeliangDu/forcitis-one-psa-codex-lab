@@ -6,7 +6,7 @@
 更新：2026-10-20 （one-coordinator）
 - 清空后第一步：通读 SESSION_PLAYBOOK §11、§5；读本节与 intent 2026-10-19-223711 起各条。
 - **现行主线（用户 2026-10-19）**：仓库内只一套经调度认可的架构 SSOT，按节点导入，仓库外 SSOT 不作依据，仓库内其他口径作废并改为引用；版本号认可入库即 V1。用户在桌面 ~/Desktop/架构锚定-2026-10-19/ 维护工作稿，调度按框架原文（BIZBOK v11 等，本机 library.yaml）审核，「认可就导入，不认可给原因与框架原文证据」；**一次只处理当前节点，后续节点暂不处理**；自上而下（干系人→关注点→价值流…），不得用下游反推上游。
-- 已导入：01 干系人 V1（docs/modernization/architecture/ssot/01-stakeholders/，提交 42ca3834，分支 claude/one-coordinator-two-lanes，待文档合集）。待对账：金融机构、出租方（STKH-04/05）保留与否；「没有外部审计」与财务口径 GL-026/A1/A10 冲突待用户说明。
+- 已导入：01 干系人 V1（docs/modernization/architecture/ssot/01-stakeholders/，提交 42ca3834，分支 claude/one-coordinator-two-lanes，待文档合集）。待对账：金融机构、出租方（STKH-04/05）保留与否（外部审计闸门已由 ADR-0056 定，10-20 关闭）。
 - 当前节点 02 关注点：第 2 轮深挖完成（Codex xhigh + DeepSeek flash 3 批对拍，sonnet 核实），合成稿 scratchpad(540fb282)/con2/干系人关注点-第2轮合成稿.md 与 第2轮核实报告.md 已发用户，25 人 56 条；等用户改删补/认可后导入为 02 V1（D 级标待验证）。研究规格 con2/SPEC.md（一手来源、≥2 独立且≥1 A、自方材料、反证、业务线、原句）。
 - 暂停：one-architecture 全部建模（等导入方案）；OBJFIN、STKH2、ADV1、ADV1R、ADR59、NM8A/B 收件箱已撤；one-data ADR-0058 实施暂停。收件箱仍 pending：B31P（不急）、转财务确认「条款＝履约义务」。
 - 模型：对拍用 Codex（主稿）+ 用户付费 DeepSeek（pi deepseek/deepseek-flash 或 v4-pro）；DeepSeek 原句、条号须回原文核；推理强度按任务定。
