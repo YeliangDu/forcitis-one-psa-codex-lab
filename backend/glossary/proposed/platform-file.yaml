@@ -521,6 +521,21 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: transition_sequence_number
+  zh: 转换序号
+  en: TransitionSequenceNumber
+  snake: transition_sequence_number
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 状态转换表中每个聚合的转换顺序号，取本次变更之后聚合行的 version（ADR-0058）；与「流水号」不同
+  standard_ref:
+  - ADR-0058 状态转换
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'one-glossary 2026-10-21 定名，避开「流水号」同名'
 - id: error__platform_file_not_found
   zh: 文件不存在
   en: PlatformFileNotFound
