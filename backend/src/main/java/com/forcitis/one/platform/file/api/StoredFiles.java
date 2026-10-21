@@ -18,7 +18,8 @@ public interface StoredFiles {
     /**
      * A file has one preservation category and anchor: the first link sets them and a later link with others is refused, as is a repeat of
      * the same file and document with another classification (an identical repeat is a no-op). A next version needs its previous version
-     * linked to the same document.
+     * linked to the same document. Only the uploader or a platform module may link it; for anyone else
+     * the file does not exist. The first link copies the file in the bucket, so call it outside a transaction of your own.
      */
     void bind(BindRequest request);
 
