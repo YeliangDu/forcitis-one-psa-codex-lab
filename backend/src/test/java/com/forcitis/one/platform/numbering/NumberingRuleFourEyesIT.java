@@ -293,8 +293,8 @@ class NumberingRuleFourEyesIT {
     void theSchemaEnforcesImmutabilityAndFourEyes() {
         NumberingFixtures.confirmSeeded(jdbc, "QUOTE");
         jdbc.sql("""
-                insert into platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value, effective_from_date, author_id, authored_at, status)
-                select uuidv7(), numbering_rule_id, 2, '{TYPE}-{seq:4}', 'NEVER', 1, DATE '2099-02-01', :author, now(), 'PENDING_CONFIRMATION'
+                insert into platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value, effective_from_date, author_id, authored_at, status, source_kind)
+                select uuidv7(), numbering_rule_id, 2, '{TYPE}-{seq:4}', 'NEVER', 1, DATE '2099-02-01', :author, now(), 'PENDING_CONFIRMATION', 'AUTHORED'
                   from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE')
                 """).param("author", TestAccounts.account(9).value()).update();
 
@@ -315,8 +315,8 @@ class NumberingRuleFourEyesIT {
         assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set status = 'SUPERSEDED' where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE')) and version_number = 1").update())
                 .hasMessageContaining("cannot go from CONFIRMED to SUPERSEDED");
         assertThatThrownBy(() -> jdbc.sql("""
-                insert into platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status)
-                select uuidv7(), numbering_rule_id, 3, '{TYPE}-{seq:4}', 'NEVER', 1, DATE '2099-02-01', now(), 'PENDING_CONFIRMATION'
+                insert into platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status, source_kind)
+                select uuidv7(), numbering_rule_id, 3, '{TYPE}-{seq:4}', 'NEVER', 1, DATE '2099-02-01', now(), 'PENDING_CONFIRMATION', 'SEEDED'
                   from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE')
                 """).update()).as("one waiting version per document type").hasMessageContaining("uk_numbering_rule_versions_numbering_rule_id");
     }

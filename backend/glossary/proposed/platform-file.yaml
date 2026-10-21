@@ -1,0 +1,715 @@
+# platform.file 提议术语（proposed，ADR-0018；one-platform-file 2026-10-21 登记，待 one-glossary 评审）。
+# 来源：ADR-0060「须交其他会话」用语、ADR-0061、ADR-0070；错误码中文名全局唯一。
+terms:
+- id: stored_file
+  zh: 存储文件
+  en: StoredFile
+  snake: stored_file
+  kind: entity
+  bc: platform.file
+  scope: domain
+  definition: 文件服务的根：一份不可变内容及其哈希、大小、媒体类型、上传主体、检测状态与版本 / 派生引用
+  standard_ref:
+  - ADR-0060 文件服务
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: content_hash
+  zh: 内容哈希
+  en: ContentHash
+  snake: content_hash
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: SHA-256，小写十六进制 64 位，本系统唯一的内容哈希，比对文件以它为准；代码里 platform.approval.api 另有同名类型 ContentHash（待审内容指纹，未登记术语），不是同一概念
+  standard_ref:
+  - ADR-0060 文件服务
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: file_subject
+  zh: 文件主体
+  en: FileSubject
+  snake: file_subject
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 写入或关联文件的主体（类型 + ID），类型取值用户、一次性链接、平台模块；作上传者时称上传主体，作关联者时称关联主体
+  standard_ref:
+  - ADR-0060 文件服务
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: uploader
+  zh: 上传主体
+  en: Uploader
+  snake: uploader
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 写入文件的文件主体
+  standard_ref:
+  - ADR-0060 文件服务
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: file_lineage
+  zh: 版本与派生
+  en: FileLineage
+  snake: file_lineage
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 写入时声明、此后不可改的文件引用：首版、上一版本（同一逻辑文件的线性修订）或派生自（经处理得到的新文件）；词 Lineage 作类型名
+  standard_ref:
+  - ADR-0060 文件服务
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: derivation_kind
+  zh: 派生方式
+  en: DerivationKind
+  snake: derivation_kind
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 派生件与源文件的关系，本期取值签署、格式转换
+  standard_ref:
+  - ADR-0060 文件服务
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: format_conversion
+  zh: 格式转换
+  en: FormatConversion
+  snake: format_conversion
+  kind: state
+  bc: platform.file
+  scope: domain
+  definition: 派生方式取值：由另一文件转换格式得到（如出件生成的 PDF）
+  standard_ref:
+  - ADR-0060 文件服务
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: bind_file
+  zh: 关联文件
+  en: BindFile
+  snake: bind_file
+  kind: command
+  bc: platform.file
+  scope: domain
+  definition: 所属模块把文件挂到单据，同时给出访问级别、个人信息标记、保存类别与起算单据，缺一即拒；关联前任何人不可下载
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: file_binding
+  zh: 文件关联
+  en: FileBinding
+  snake: file_binding
+  kind: entity
+  bc: platform.file
+  scope: domain
+  definition: 文件与单据的关联记录，只追加；一个文件可关联多张单据
+  standard_ref:
+  - ADR-0060 文件服务
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: file_hold
+  zh: 封存登记
+  en: FileHold
+  snake: file_hold
+  kind: entity
+  bc: platform.file
+  scope: domain
+  definition: 业务聚合封存时对文件的登记，只追加、不可撤销，保存期内拒绝处置；避开 seal（签章）
+  standard_ref:
+  - ADR-0060 文件服务
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: download_link
+  zh: 临时下载链接
+  en: DownloadLink
+  snake: download_link
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 预签名 GET 链接，默认 5 分钟、上限 15 分钟，强制附件下载；地址不进日志与审计
+  standard_ref:
+  - ADR-0060 文件服务
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: link_validity
+  zh: 链接时效
+  en: LinkValidity
+  snake: link_validity
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 临时下载链接的有效时长
+  standard_ref:
+  - ADR-0060 文件服务
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: media_type
+  zh: 媒体类型
+  en: MediaType
+  snake: media_type
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 按内容判定并登记的文件类型，须在白名单内
+  standard_ref:
+  - ADR-0060 文件服务
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: contains_macros
+  zh: 含宏
+  en: ContainsMacros
+  snake: contains_macros
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 文件属性：按扩展名或内容判定文件含宏（VBA、XLM 宏表、远程模板等），判定失败按含宏；含宏文件不预览、下载时提示来源
+  standard_ref:
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: quarantined
+  zh: 已隔离
+  en: Quarantined
+  snake: quarantined
+  kind: state
+  bc: platform.file
+  scope: domain
+  definition: 文件状态：检测未通过，内容在隔离前缀，不可关联、下载、预览
+  standard_ref:
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: expired_unbound
+  zh: 未关联已过期
+  en: ExpiredUnbound
+  snake: expired_unbound
+  kind: state
+  bc: platform.file
+  scope: domain
+  definition: 文件状态：在临时区到期仍未关联，对象由生命周期规则过期
+  standard_ref:
+  - ADR-0060 文件服务
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: disposed
+  zh: 已处置
+  en: Disposed
+  snake: disposed
+  kind: state
+  bc: platform.file
+  scope: domain
+  definition: 文件状态：保存期满经两人确认删除或去标识，行与哈希保留
+  standard_ref:
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: access_level
+  zh: 访问级别
+  en: AccessLevel
+  snake: access_level
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: PUBLIC / INTERNAL / SENSITIVE / RESTRICTED，对应 L1–L4；关联时由所属模块给出
+  standard_ref:
+  - ADR-0043 数据分级
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: personal_info_mark
+  zh: 个人信息标记
+  en: PersonalInfoMark
+  snake: personal_info_mark
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: NONE / PI / SPI；关联时由所属模块给出，SPI 在 U-14 定前拒收
+  standard_ref:
+  - ADR-0043 数据分级
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: pi
+  zh: 含个人信息
+  en: Pi
+  snake: pi
+  kind: state
+  bc: platform.file
+  scope: domain
+  definition: 个人信息标记取值 PI
+  standard_ref:
+  - ADR-0043 数据分级
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: spi
+  zh: 含敏感个人信息
+  en: Spi
+  snake: spi
+  kind: state
+  bc: platform.file
+  scope: domain
+  definition: 个人信息标记取值 SPI
+  standard_ref:
+  - ADR-0043 数据分级
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: preservation_category
+  zh: 保存类别
+  en: PreservationCategory
+  snake: preservation_category
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 文件所属的保存期限表类别，关联时由所属模块给出；文件保存期限与数据保留期限（data_retention_period）不同：后者管在线库与归档库的留存
+  standard_ref:
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: preservation_anchor
+  zh: 起算单据
+  en: PreservationAnchor
+  snake: preservation_anchor
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 其业务事件（合同履行完毕、项目结项、用印完成等）起算文件保存期的单据；关联时给出，无另外起算单据的即本单据
+  standard_ref:
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: agreed_preservation
+  zh: 约定保存年限
+  en: AgreedPreservation
+  snake: agreed_preservation
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 合同约定的保存年限，由合同模块写入；到期日取类别默认与约定的较长者
+  standard_ref:
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: import_rejection_reason
+  zh: 迁入文件拒收原因
+  en: ImportRejectionReason
+  snake: import_rejection_reason
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 迁入文件被拒的原因代码（超上限、类型不允许、加密、已隔离、不可用、敏感个人信息、保存类别不存在），计入核对差异清单；与 platform.integration「迁入拒收」互列
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: imported
+  zh: 已迁入
+  en: Imported
+  snake: imported
+  kind: state
+  bc: platform.file
+  scope: domain
+  definition: 迁入文件写入并关联成功的结果
+  standard_ref:
+  - ADR-0060 文件服务
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_not_found
+  zh: 文件不存在
+  en: PlatformFileNotFound
+  snake: platform_file_not_found
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 文件不存在，或调用方无权知道它（404）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_too_large
+  zh: 文件超过大小上限
+  en: PlatformFileTooLarge
+  snake: platform_file_too_large
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 文件超过单文件上限 100 MB，即拒（413）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_media_type_not_allowed
+  zh: 文件类型不允许
+  en: PlatformFileMediaTypeNotAllowed
+  snake: platform_file_media_type_not_allowed
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 按内容判定的媒体类型不在白名单（422）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_encrypted_rejected
+  zh: 加密文件不予接收
+  en: PlatformFileEncryptedRejected
+  snake: platform_file_encrypted_rejected
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 带打开口令的文件无法检测，拒收只写审计（422）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_scan_unavailable
+  zh: 恶意文件检测暂不可用
+  en: PlatformFileScanUnavailable
+  snake: platform_file_scan_unavailable
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 检测服务不可用、超时、超限或病毒库过期，拒绝并告警（503）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_quarantined
+  zh: 文件未通过检测
+  en: PlatformFileQuarantined
+  snake: platform_file_quarantined
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 文件已隔离，不可关联、下载、预览（409）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_not_available
+  zh: 文件不可用
+  en: PlatformFileNotAvailable
+  snake: platform_file_not_available
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 文件不是可用状态（409）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_not_bound_to_document
+  zh: 文件未关联到该单据
+  en: PlatformFileNotBoundToDocument
+  snake: platform_file_not_bound_to_document
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 文件没有关联到所给单据（404）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_disposed
+  zh: 文件已处置
+  en: PlatformFileDisposed
+  snake: platform_file_disposed
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 文件保存期满已处置（409）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_hash_mismatch
+  zh: 文件哈希不符
+  en: PlatformFileHashMismatch
+  snake: platform_file_hash_mismatch
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 写后读回或读取内容时哈希不符，整笔失败（503）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_spi_not_accepted
+  zh: 暂不接收敏感个人信息文件
+  en: PlatformFileSpiNotAccepted
+  snake: platform_file_spi_not_accepted
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: U-14 定前不接收 SPI 文件（422）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_binding_conflict
+  zh: 文件关联信息冲突
+  en: PlatformFileBindingConflict
+  snake: platform_file_binding_conflict
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 再次关联时的保存类别、起算单据或同一单据的分级与已有关联不一致（409）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_previous_version_not_bound
+  zh: 上一版本未关联到同一单据
+  en: PlatformFilePreviousVersionNotBound
+  snake: platform_file_previous_version_not_bound
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 关联新版本前须先关联其上一版本到同一单据（422）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_previous_version_has_successor
+  zh: 上一版本已有后继
+  en: PlatformFilePreviousVersionHasSuccessor
+  snake: platform_file_previous_version_has_successor
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 一个文件至多一个后继版本（409）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_preservation_category_unknown
+  zh: 保存类别不存在
+  en: PlatformFilePreservationCategoryUnknown
+  snake: platform_file_preservation_category_unknown
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 保存期限表中没有该类别（422）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_link_validity_exceeded
+  zh: 下载链接时效超过上限
+  en: PlatformFileLinkValidityExceeded
+  snake: platform_file_link_validity_exceeded
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 申请的链接时效超过配置上限（400）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_content_read_forbidden
+  zh: 无权读取文件内容
+  en: PlatformFileContentReadForbidden
+  snake: platform_file_content_read_forbidden
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 读取内容仅限平台模块（403）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_quarantine_read_not_approved
+  zh: 隔离内容读取未获批准
+  en: PlatformFileQuarantineReadNotApproved
+  snake: platform_file_quarantine_read_not_approved
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 隔离内容只有安全角色经审批可读（403）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_quarantine_content_purged
+  zh: 隔离内容已过保存期清除
+  en: PlatformFileQuarantineContentPurged
+  snake: platform_file_quarantine_content_purged
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 隔离 90 天到期内容已清，只留 SHA-256 与审计（409）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_file_false_positive_same_reviewer
+  zh: 误报复核人与判定人相同
+  en: PlatformFileFalsePositiveSameReviewer
+  snake: platform_file_false_positive_same_reviewer
+  kind: error_code
+  bc: platform.file
+  scope: domain
+  definition: 误报须第二人复核，不得同一人（422）
+  standard_ref:
+  - ADR-0060 文件服务
+  - ADR-0070 恶意文件检测
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''

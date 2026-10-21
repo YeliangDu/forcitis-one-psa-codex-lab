@@ -1,0 +1,101 @@
+{
+ "OBJD~OBJD-01": {
+  "choice": 0,
+  "defaulted": false,
+  "label": "采纳三条",
+  "no": "OBJD-01",
+  "note": "",
+  "recommended": true,
+  "submission": "OBJD-20261017-201658-837",
+  "submitted": "2026-10-17T18:16:58.449Z",
+  "unanswered": false
+ },
+ "OBJD~OBJD-02": {
+  "choice": 1,
+  "defaulted": false,
+  "label": "作为父对象的从属对象（写父对象名）",
+  "no": "OBJD-02",
+  "note": "",
+  "recommended": true,
+  "submission": "OBJD-20261017-201658-837",
+  "submitted": "2026-10-17T18:16:58.449Z",
+  "unanswered": false
+ },
+ "OBJD~OBJD-03": {
+  "choice": 1,
+  "defaulted": false,
+  "label": "作为父对象的从属对象（写父对象名）",
+  "no": "OBJD-03",
+  "note": "",
+  "recommended": true,
+  "submission": "OBJD-20261017-201658-837",
+  "submitted": "2026-10-17T18:16:58.449Z",
+  "unanswered": false
+ },
+ "OBJD~OBJD-04": {
+  "choice": 1,
+  "defaulted": false,
+  "label": "作为父对象的从属对象（写父对象名）",
+  "no": "OBJD-04",
+  "note": "",
+  "recommended": true,
+  "submission": "OBJD-20261017-201658-837",
+  "submitted": "2026-10-17T18:16:58.449Z",
+  "unanswered": false
+ },
+ "OBJD~OBJD-05": {
+  "choice": 1,
+  "defaulted": false,
+  "label": "作为父对象的从属对象（写父对象名）",
+  "no": "OBJD-05",
+  "note": "",
+  "recommended": true,
+  "submission": "OBJD-20261017-201658-837",
+  "submitted": "2026-10-17T18:16:58.449Z",
+  "unanswered": false
+ },
+ "OBJD~OBJD-06": {
+  "choice": 1,
+  "defaulted": false,
+  "label": "作为父对象的从属对象（写父对象名）",
+  "no": "OBJD-06",
+  "note": "",
+  "recommended": true,
+  "submission": "OBJD-20261017-201658-837",
+  "submitted": "2026-10-17T18:16:58.449Z",
+  "unanswered": false
+ },
+ "OBJD~OBJD-07": {
+  "choice": 1,
+  "defaulted": false,
+  "label": "作为父对象的从属对象（写父对象名）",
+  "no": "OBJD-07",
+  "note": "",
+  "recommended": true,
+  "submission": "OBJD-20261017-201658-837",
+  "submitted": "2026-10-17T18:16:58.449Z",
+  "unanswered": false
+ },
+ "OBJD~OBJD-08": {
+  "choice": 2,
+  "defaulted": false,
+  "label": "去掉或改视图",
+  "no": "OBJD-08",
+  "note": "",
+  "recommended": true,
+  "submission": "OBJD-20261017-201658-837",
+  "submitted": "2026-10-17T18:16:58.449Z",
+  "unanswered": false
+ },
+ "OBJD~OBJD-09": {
+  "choice": 2,
+  "defaulted": false,
+  "label": "去掉或改视图",
+  "no": "OBJD-09",
+  "note": "",
+  "recommended": true,
+  "submission": "OBJD-20261017-201658-837",
+  "submitted": "2026-10-17T18:16:58.449Z",
+  "unanswered": false
+ }
+}
