@@ -54,6 +54,11 @@ def version_tables(text):
     return set(names(one(r"FOREACH t IN ARRAY ARRAY\[(.*?)\]", text, "version table loop")))
 
 
+def table_revokes(text):
+    """Plain REVOKE statements on one named table from the runtime role (the registry tables only migrations write), normalised."""
+    return {re.sub(r"\s+", " ", m).upper() for m in re.findall(r"REVOKE\s+[A-Z, ]*\bON\s+(?!SCHEMA\b|ALL\b|FUNCTION|ROUTINE|PROCEDURE)[a-z_]+\.[a-z_]+\s+FROM\s+one_dev_app\s*;", text, re.IGNORECASE)}
+
+
 def nspname_list(text, what):
     return set(names(one(r"WHERE nspname IN \((.*?)\)", text, what)))
 
@@ -112,6 +117,7 @@ def problems(modules, reference, c3, c3_after, c3_verify):
         ("c3_dev_db.sql REVOKE CREATE", revoked_create(c3), schemas),
         ("c3_dev_db_verify.sql V3", nspname_list(c3_verify, "V3 schema list"), schemas),
         ("c3_dev_db_after_migrations.sql version tables", version_tables(c3_after), version_tables(reference)),
+        ("c3_dev_db_after_migrations.sql table revokes", table_revokes(c3_after), table_revokes(reference)),
     ]
     found = [f"{where}: missing {sorted(want - got)}, extra {sorted(got - want)}" for where, got, want in expected if got != want]
     reference_roles, c3_roles = role_statements(reference), role_statements(c3)

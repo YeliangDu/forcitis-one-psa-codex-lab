@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.approval.infrastructure.flowable;
 
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
@@ -85,7 +85,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
     }
 
     static DocumentReference documentOf(ProcessVariables variables) {
-        return new DocumentReference(DocumentType.valueOf(variables.firstVariable(VARIABLE_DOCUMENT_TYPE).orElseThrow()),
+        return new DocumentReference(DocumentTypeCode.of(variables.firstVariable(VARIABLE_DOCUMENT_TYPE).orElseThrow()),
                 EngineIds.document(variables.firstVariable(VARIABLE_DOCUMENT_ID).orElseThrow()));
     }
 
@@ -121,7 +121,7 @@ class FlowableApprovalEngine implements ApprovalEngine {
         Map<String, Object> engine = new LinkedHashMap<>(EngineVariables.toEngine(start.variables()));
         String businessKey = start.document().documentId().value().toString();
         engine.put(VARIABLE_INITIATOR, String.valueOf(start.initiator().value()));
-        engine.put(VARIABLE_DOCUMENT_TYPE, start.document().documentType().name());
+        engine.put(VARIABLE_DOCUMENT_TYPE, start.document().documentType().value());
         engine.put(VARIABLE_DOCUMENT_ID, start.document().documentId().value().toString());
         engine.put(VARIABLE_LEGAL_ENTITY, String.valueOf(start.legalEntityId().value()));
         engine.put(VARIABLE_CONTENT_HASH, start.contentHash().value());
