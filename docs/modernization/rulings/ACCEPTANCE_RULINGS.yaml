@@ -158,3 +158,40 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/A8SourceFlagsIT.java
     reason: 验收测试启动被测应用的参数里加一行 --server.address=127.0.0.1（SIGTERM 后卡在 Tomcat 停止监听约 2 秒，加参数后关闭 2.4 秒到 0.3–0.4 秒）；不改断言、用例集合、前置数据与生产代码。「同类在进程内或子进程中启动应用的验收类」经 one-1a-par 逐类实测、调度确认后补登记：A8SourceFlagsIT（11 例）；ManagementEndpointIT、StalledExternalSourceIT、ReadOnlyVerificationCommandIT 实测无需改
     ref: docs/modernization/rulings/COORD-2026-10-17.md
+  - id: RULING-COORD-20261021-01
+    date: 2026-10-21
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/ApprovalP4Support.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetEmployeeDayUniqueIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetNumberingRuleVersionIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetRejectedResubmitIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetRoundSubmittedCheckIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/cost/timesheet/TimesheetWorkerSupport.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/LegalEntityCodeCorrectionIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalAccountsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/AssigneeInputUuidIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/RetractionInitiatorAccountsIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/eventing/EventEnvelopeAggregateIdIT.java
+    reason: REG-1 机械改名：DocumentType 枚举改为 DocumentTypeCode（ADR-0066 决定 4），断言、用例与前置取值不变
+    ref: docs/modernization/rulings/COORD-2026-10-21.md
+  - id: RULING-COORD-20261021-02
+    date: 2026-10-21
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/NumberingRowRulesIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/LegacyNumberSourceIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/NumberingRuleConfirmerIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/numbering/NumberingRuleVersionIdIT.java
+    reason: REG-1：document_type 改 document_type_id、IN 列表 CHECK 改 schema 内外键；未登记类型被拒的断言改为断言新约束名，不得删除
+    ref: docs/modernization/rulings/COORD-2026-10-21.md
+  - id: RULING-COORD-20261021-03
+    date: 2026-10-21
+    ruled_by: one-coordinator
+    implementer: one-1a-next-5
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRequestTextAndRecordRulesIT.java
+    reason: AP-14 不得改为接受 QUOTE/JOURNAL_VOUCHER；改为经审批写入路径以「无审批流程」业务错误码拒绝、TIMESHEET 通过、格式非法另断言；删除的库层断言须在 PR 单列
+    ref: docs/modernization/rulings/COORD-2026-10-21.md
