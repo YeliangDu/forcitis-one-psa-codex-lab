@@ -33,7 +33,7 @@ class FileServiceConfigurationTest {
                 .withBean(MeterRegistry.class, SimpleMeterRegistry::new)
                 .withPropertyValues("forcitis.platform.file.store.enabled=true", "forcitis.platform.file.store.environment-prefix=dev",
                         "forcitis.platform.file.store.max-file-size=100MB", "forcitis.platform.file.store.allowed-media-types=application/pdf",
-                        "forcitis.platform.file.store.staging-root=" + staging, "forcitis.platform.file.store.staging-sweep-age=PT1H",
+                        "forcitis.platform.file.store.staging-root=" + staging, "forcitis.platform.file.store.upload-deadline=PT10M", "forcitis.platform.file.store.staging-sweep-age=PT1H",
                         "forcitis.platform.file.store.staging-sweep-interval=PT10M");
     }
 
@@ -53,6 +53,12 @@ class FileServiceConfigurationTest {
     void aSizeAboveWhatClamAvScansDoesNotStart() {
         runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, () -> mock(BusinessFileStore.class))
                 .withPropertyValues("forcitis.platform.file.store.max-file-size=3GB").run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
+    void aSweepAgeNotAboveTheUploadDeadlineDoesNotStart() {
+        runner().withBean(MalwareScanner.class, () -> mock(MalwareScanner.class)).withBean(BusinessFileStore.class, () -> mock(BusinessFileStore.class))
+                .withPropertyValues("forcitis.platform.file.store.staging-sweep-age=PT10M").run(context -> assertThat(context).hasFailed());
     }
 
     @Test

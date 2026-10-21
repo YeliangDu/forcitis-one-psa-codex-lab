@@ -310,7 +310,7 @@ platform.file 提议术语（proposed，ADR-0018；one-platform-file 2026-10-21 
 | `scan_exception` | 误报例外 | ScanException | 领域 · platform.file | 误报例外清单中的一项：按内容哈希豁免，只追加，可经两人撤销 |  |  |
 | `added_at` | 加入时间 | AddedAt | 领域 · platform.file | 内容哈希加入误报例外清单的时间 |  |  |
 | `deidentified` | 已去标识 | Deidentified | 领域 · platform.file | 原文件名到期后置为固定占位值「[已去标识]」的状态 |  |  |
-| `threat_name` | 病毒名 | ThreatName | 领域 · platform.file | 检测引擎检出时报告的特征名；与 platform.integration 同名词条互列 |  |  |
+| `stored_file_threat_name` | 病毒名 | ThreatName | 领域 · platform.file | 检测引擎检出时报告的特征名；与 platform.integration 同名词条互列 |  |  |
 | `preservation_sequence_number` | 保存期序号 | PreservationSequenceNumber | 领域 · platform.file | 每个文件的保存期记录从 1 递增的序号，最大者为当前 |  |  |
 | `transition_sequence_number` | 转换序号 | TransitionSequenceNumber | 领域 · platform.file | 状态转换表中每个聚合的转换顺序号，取本次变更之后聚合行的 version（ADR-0058）；与「流水号」不同 |  | one-glossary 2026-10-21 定名，避开「流水号」同名 |
 

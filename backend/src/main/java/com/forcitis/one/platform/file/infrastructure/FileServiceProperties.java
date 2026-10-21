@@ -8,12 +8,14 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.util.unit.DataSize;
 
 /**
+ * uploadDeadline is the request timeout plus the scan total time, set by operations with nginx and clamd.
  * Off until the malware gate is built and accepted (ADR-0070 migration item 2: no uploads before); once on, every value is required and a
  * missing one stops the start-up. maxFileSize is 100 MB by the user's decision and never above 2 GB, which ClamAV cannot scan.
  */
 @ConfigurationProperties("forcitis.platform.file.store")
 record FileServiceProperties(@DefaultValue("false") boolean enabled, String environmentPrefix, DataSize maxFileSize, List<String> allowedMediaTypes,
-                             Path stagingRoot, Duration stagingSweepAge, Duration stagingSweepInterval) {
+                             Path stagingRoot, Duration uploadDeadline, Duration stagingSweepAge,
+                             Duration stagingSweepInterval) {
 
     static final String PREFIX = "forcitis.platform.file.store.";
     static final DataSize SCANNABLE = DataSize.ofGigabytes(2);
@@ -32,7 +34,12 @@ record FileServiceProperties(@DefaultValue("false") boolean enabled, String envi
             if (stagingRoot == null || !stagingRoot.isAbsolute()) {
                 throw new IllegalArgumentException(PREFIX + "staging-root is required and must be absolute");
             }
+            positive(uploadDeadline, "upload-deadline");
             positive(stagingSweepAge, "staging-sweep-age");
+            if (stagingSweepAge.compareTo(uploadDeadline) <= 0) {
+                throw new IllegalArgumentException(PREFIX + "staging-sweep-age must exceed upload-deadline (request timeout plus scan total time), "
+                        + "or the sweep could remove an upload still being written or scanned (ADR-0070 section 3 item 3)");
+            }
             positive(stagingSweepInterval, "staging-sweep-interval");
         }
     }

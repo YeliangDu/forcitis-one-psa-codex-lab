@@ -220,6 +220,8 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
+  homonyms:
+  - stored_file_threat_name
   note: 'one-platform-file 2026-10-21 登记（单元 4）'
 - id: presign_download
   zh: 签发下载链接

@@ -12,6 +12,15 @@ public interface StoreAudit {
 
     void encryptedRefused(FileSubject uploader, ContentHash contentHash, String originalName);
 
+    /** Infected content whose quarantine write or row failed: the threat is still on record. */
+    void quarantineFailed(FileSubject uploader, ContentHash contentHash, String threatName);
+
     /** contentHash is null when the content was not fully read. */
-    void unavailable(FileSubject uploader, ContentHash contentHash, String reason);
+    void unavailable(FileSubject uploader, ContentHash contentHash, UnavailableCause cause);
+
+    enum UnavailableCause {
+        SCANNER,
+        OBJECT_STORE,
+        STAGING
+    }
 }

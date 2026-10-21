@@ -20,6 +20,7 @@ import com.forcitis.one.platform.file.domain.NewStoredFile;
 import com.forcitis.one.platform.file.domain.ScanStaging;
 import com.forcitis.one.platform.file.domain.StagingContent;
 import com.forcitis.one.platform.file.domain.StoreAudit;
+import com.forcitis.one.platform.file.domain.StoreAudit.UnavailableCause;
 import com.forcitis.one.platform.file.domain.StoredFileRepository;
 import com.forcitis.one.platform.integration.api.BusinessFileStore;
 import com.forcitis.one.platform.integration.api.ScanOutcome;
@@ -71,6 +72,7 @@ class StoreContentTest {
     RuntimeException storeFailure;
     RuntimeException insertFailure;
     boolean tooLarge;
+    boolean diskFull;
     boolean exempted;
     ContentFacts facts = new ContentFacts("application/pdf", false, false);
 
@@ -79,6 +81,9 @@ class StoreContentTest {
         public StagingContent write(InputStream content) throws TooLarge {
             if (tooLarge) {
                 throw new TooLarge(100);
+            }
+            if (diskFull) {
+                throw new java.io.UncheckedIOException(new java.io.IOException("No space left on device"));
             }
             try {
                 StagingContent s = new StagingContent(Files.write(directory.resolve("staged-" + staged.size()), content.readAllBytes()), HASH, 7);
@@ -157,8 +162,13 @@ class StoreContentTest {
         }
 
         @Override
-        public void unavailable(FileSubject uploader, ContentHash contentHash, String reason) {
-            audited.add("unavailable");
+        public void quarantineFailed(FileSubject uploader, ContentHash contentHash, String threatName) {
+            audited.add("quarantine failed " + threatName);
+        }
+
+        @Override
+        public void unavailable(FileSubject uploader, ContentHash contentHash, UnavailableCause cause) {
+            audited.add("unavailable " + cause);
         }
     };
 
@@ -262,18 +272,55 @@ class StoreContentTest {
         storeFailure = new ExternalSystemUnavailableException("read back differs");
         refused(FileError.PLATFORM_FILE_SCAN_UNAVAILABLE);
         assertThat(inserted).isEmpty();
-        assertThat(audited).containsExactly("unavailable", "unavailable");
+        assertThat(audited).containsExactly("unavailable SCANNER", "unavailable OBJECT_STORE");
         assertThat(deleted).isEqualTo(staged);
         assertThat(outcome("unavailable")).isEqualTo(2);
     }
 
     @Test
-    void aFailedQuarantineWriteIsAuditedAndRefused() {
+    void aFailedQuarantineIsAuditedWithItsThreatAndRefused() {
         verdict = new ScanVerdict(ScanOutcome.INFECTED, "Eicar-Signature", "ClamAV 1.4.1", "27435");
         storeFailure = new ExternalSystemUnavailableException("quarantine write failed");
         refused(FileError.PLATFORM_FILE_SCAN_UNAVAILABLE);
+        storeFailure = null;
+        insertFailure = new IllegalStateException("database down");
+        refused(FileError.PLATFORM_FILE_SCAN_UNAVAILABLE);
         assertThat(inserted).isEmpty();
-        assertThat(audited).containsExactly("unavailable");
+        assertThat(audited).containsExactly("quarantine failed Eicar-Signature", "quarantine failed Eicar-Signature");
+        assertThat(outcome("infected")).isEqualTo(2);
+        assertThat(deleted).isEqualTo(staged);
+    }
+
+    @Test
+    void infectedContentOfAnyTypeIsQuarantinedNotJustRefused() {
+        verdict = new ScanVerdict(ScanOutcome.INFECTED, "Win.Trojan", "ClamAV 1.4.1", "27435");
+        facts = new ContentFacts("application/x-msdownload", false, false);
+        assertThat(store().status()).isEqualTo(FileStatus.QUARANTINED);
+        assertThat(audited).containsExactly("quarantined Win.Trojan");
+    }
+
+    @Test
+    void aQuarantinedFileDeclaresNoLineage() {
+        FileId previous = new FileId(UUID.fromString("0199f0c4-0000-7000-8000-0000000000f1"));
+        targets.put(previous, new LineageTarget(FileStatus.AVAILABLE, false));
+        verdict = new ScanVerdict(ScanOutcome.INFECTED, "Eicar-Signature", "ClamAV 1.4.1", "27435");
+        gate().store(request(new Lineage.NextVersion(previous)));
+        assertThat(inserted).singleElement().satisfies(f -> assertThat(f.lineage()).isInstanceOf(Lineage.FirstVersion.class));
+    }
+
+    @Test
+    void aFullStagingDiskIsUnavailable() {
+        diskFull = true;
+        refused(FileError.PLATFORM_FILE_SCAN_UNAVAILABLE);
+        assertThat(audited).containsExactly("unavailable STAGING");
+    }
+
+    @Test
+    void aMacroExtensionCountsTogetherWithTheContent() {
+        StoreResult result = gate().store(new StoreRequest(new ByteArrayInputStream("content".getBytes()), "报价.XLSM ", "application/pdf",
+                new FileSubject(FileSubjectKind.USER, USER), new Lineage.FirstVersion()));
+        assertThat(result.containsMacros()).isTrue();
+        assertThat(store().containsMacros()).isFalse();
     }
 
     @Test

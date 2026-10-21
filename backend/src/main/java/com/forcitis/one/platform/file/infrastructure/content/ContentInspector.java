@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -42,7 +43,8 @@ final class ContentInspector {
     static final int MAX_ENTRY_BYTES = 8 * 1024 * 1024;
     static final int MAX_TOTAL_BYTES = 32 * 1024 * 1024;
     static final int MAX_CENTRAL_DIRECTORY_BYTES = 16 * 1024 * 1024;
-    static final long MAX_OLE_BYTES = 64L * 1024 * 1024;
+    // At least the largest scannable upload (2 GB): an OLE file the parser refuses could hide an EncryptedPackage.
+    static final long MAX_OLE_BYTES = 2L * 1024 * 1024 * 1024;
     static final int MAX_CHAIN_SECTORS = 1 << 17;
     static final int MAX_STREAM_BYTES = 32 * 1024 * 1024;
 
@@ -68,7 +70,9 @@ final class ContentInspector {
 
     private static final byte[] ENCRYPT_MARK = "/Encrypt".getBytes(StandardCharsets.ISO_8859_1);
     private static final byte[] PDF_MARK = "%PDF-".getBytes(StandardCharsets.ISO_8859_1);
-    private static final Pattern EXTERNAL_MODE = Pattern.compile("TargetMode\\s*=\\s*[\"']External[\"']");
+    private static final Pattern RELATIONSHIP_ELEMENT = Pattern.compile("<(?:[\\w.-]+:)?Relationship\\s(?:[^>\"']|\"[^\"]*\"|'[^']*')*>");
+    private static final Pattern TARGET_MODE = Pattern.compile("TargetMode\\s*=\\s*[\"']([^\"']*)[\"']");
+    private static final Pattern CHARACTER_REFERENCE = Pattern.compile("&#(?:[xX]([0-9a-fA-F]{1,6})|([0-9]{1,7}));");
     private static final Pattern HYPERLINK_TYPE = Pattern.compile("Type\\s*=\\s*[\"'][^\"']*/hyperlink[\"']");
 
     private enum Kind {
@@ -98,7 +102,8 @@ final class ContentInspector {
                 default -> new Inspection(kind.mediaType, false, false);
             };
         } catch (IOException | RuntimeException e) {
-            return new Inspection(kind.mediaType, false, true);
+            // An OLE file whose structure cannot be read may be an encrypted OOXML package: refused as unconfirmable, never passed.
+            return new Inspection(kind.mediaType, kind == Kind.OLE, true);
         }
     }
 
@@ -106,9 +111,6 @@ final class ContentInspector {
         try (FileChannel channel = FileChannel.open(file, StandardOpenOption.READ)) {
             long size = channel.size();
             byte[] head = readAt(channel, 0, (int) Math.min(size, HEAD_BYTES));
-            if (indexOf(head, PDF_MARK) >= 0) {
-                return Kind.PDF;
-            }
             if (startsWith(head, 0x89, 'P', 'N', 'G')) {
                 return Kind.PNG;
             }
@@ -126,6 +128,10 @@ final class ContentInspector {
             }
             if (startsWith(head, 0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C)) {
                 return Kind.SEVEN_ZIP;
+            }
+            // Only after the offset-0 magic numbers: a ZIP or OLE file can carry %PDF- in its first kilobyte to pass as PDF.
+            if (indexOf(head, PDF_MARK) >= 0) {
+                return Kind.PDF;
             }
             return isUtf8Text(channel, size) ? Kind.TEXT : Kind.OTHER;
         }
@@ -300,42 +306,43 @@ final class ContentInspector {
     }
 
     // 超链接是普通外部关系，不是远程模板注入；其余类型的外部关系一律按注入处理
-    private static boolean hasForeignExternalRelationship(String xml) {
-        int from = 0;
-        while (true) {
-            int start = xml.indexOf("<Relationship", from);
-            if (start < 0) {
-                return false;
-            }
-            int afterName = start + "<Relationship".length();
-            if (afterName >= xml.length() || !Character.isWhitespace(xml.charAt(afterName))) {
-                from = afterName;
+    private static boolean hasForeignExternalRelationship(String rawXml) {
+        String xml = decodeCharacterReferences(rawXml);
+        Matcher element = RELATIONSHIP_ELEMENT.matcher(xml);
+        int modes = 0;
+        while (element.find()) {
+            Matcher mode = TARGET_MODE.matcher(element.group());
+            if (!mode.find()) {
                 continue;
             }
-            int end = elementEnd(xml, afterName);
-            String element = xml.substring(start, end);
-            if (EXTERNAL_MODE.matcher(element).find() && !HYPERLINK_TYPE.matcher(element).find()) {
+            modes++;
+            if (!mode.group(1).equals("Internal") && !HYPERLINK_TYPE.matcher(element.group()).find()) {
                 return true;
             }
-            from = end;
         }
+        // A TargetMode outside any element this reader recognises is not understood, so it counts as external.
+        Matcher anywhere = TARGET_MODE.matcher(xml);
+        int all = 0;
+        while (anywhere.find()) {
+            all++;
+        }
+        return all != modes;
     }
 
-    private static int elementEnd(String xml, int from) {
-        char quote = 0;
-        for (int i = from; i < xml.length(); i++) {
-            char c = xml.charAt(i);
-            if (quote != 0) {
-                if (c == quote) {
-                    quote = 0;
-                }
-            } else if (c == '"' || c == '\'') {
-                quote = c;
-            } else if (c == '>') {
-                return i + 1;
+    private static String decodeCharacterReferences(String xml) {
+        Matcher reference = CHARACTER_REFERENCE.matcher(xml);
+        StringBuilder decoded = new StringBuilder();
+        while (reference.find()) {
+            int codePoint;
+            try {
+                codePoint = reference.group(1) != null ? Integer.parseInt(reference.group(1), 16) : Integer.parseInt(reference.group(2));
+            } catch (NumberFormatException e) {
+                codePoint = '?';
             }
+            reference.appendReplacement(decoded, Matcher.quoteReplacement(new String(Character.toChars(Character.isValidCodePoint(codePoint) ? codePoint : '?'))));
         }
-        return xml.length();
+        reference.appendTail(decoded);
+        return decoded.toString();
     }
 
     private static Inspection inspectOpenDocument(ZipFile zip, Set<String> names, boolean encrypted) {

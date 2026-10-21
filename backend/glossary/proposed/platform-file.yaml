@@ -504,6 +504,8 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
+  homonyms:
+  - threat_name
   note: ''
 - id: preservation_sequence_number
   zh: 保存期序号

@@ -48,10 +48,15 @@ class StoreAuditLog implements StoreAudit {
     }
 
     @Override
-    public void unavailable(FileSubject uploader, ContentHash contentHash, String reason) {
-        String code = reason.startsWith("object store") ? "OBJECT_STORE_UNAVAILABLE" : "SCANNER_UNAVAILABLE";
+    public void quarantineFailed(FileSubject uploader, ContentHash contentHash, String threatName) {
+        audit.recordIndependently(new AuditEntry("platform.file.upload.quarantine-failed", actor(uploader), null, AuditSubject.without(AuditSubjectKind.REQUEST),
+                "reason=QUARANTINE_FAILED sha256=" + contentHash.value() + " threat=" + threatName + uploaderOf(uploader)));
+    }
+
+    @Override
+    public void unavailable(FileSubject uploader, ContentHash contentHash, UnavailableCause cause) {
         audit.recordIndependently(new AuditEntry("platform.file.upload.unavailable", actor(uploader), null, AuditSubject.without(AuditSubjectKind.REQUEST),
-                "reason=" + code + (contentHash == null ? "" : " sha256=" + contentHash.value()) + uploaderOf(uploader)));
+                "reason=" + cause + "_UNAVAILABLE" + (contentHash == null ? "" : " sha256=" + contentHash.value()) + uploaderOf(uploader)));
     }
 
     private static String describe(NewStoredFile file) {

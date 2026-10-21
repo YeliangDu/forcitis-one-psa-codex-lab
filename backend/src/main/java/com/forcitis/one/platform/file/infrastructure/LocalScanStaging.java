@@ -93,17 +93,25 @@ final class LocalScanStaging implements ScanStaging {
         int removed = 0;
         try (Stream<Path> files = Files.walk(root, 2)) {
             for (Path file : files.filter(p -> Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS)).toList()) {
-                if (Files.getLastModifiedTime(file, LinkOption.NOFOLLOW_LINKS).toInstant().isBefore(cutoff) && Files.deleteIfExists(file)) {
-                    removed++;
-                }
+                removed += removeIfOlder(file, cutoff);
             }
-        } catch (IOException e) {
-            LOG.error("ALERT the scan staging sweep failed", e);
+        } catch (IOException | RuntimeException e) {
+            // Never let it escape: an uncaught exception would end the scheduled sweep for good.
+            LOG.error("ALERT the scan staging sweep failed this round", e);
         }
         if (removed > 0) {
             LOG.error("ALERT the scan staging sweep removed {} leftover uploads", removed);
         }
         return removed;
+    }
+
+    private static int removeIfOlder(Path file, Instant cutoff) {
+        try {
+            return Files.getLastModifiedTime(file, LinkOption.NOFOLLOW_LINKS).toInstant().isBefore(cutoff) && Files.deleteIfExists(file) ? 1 : 0;
+        } catch (IOException e) {
+            LOG.error("ALERT the scan staging sweep could not remove a leftover upload", e);
+            return 0;
+        }
     }
 
     Path instanceDirectory() {

@@ -3,6 +3,7 @@ package com.forcitis.one.platform.file.application;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.kernel.IdGenerator;
+import com.forcitis.one.platform.file.api.ContentHash;
 import com.forcitis.one.platform.file.api.FileError;
 import com.forcitis.one.platform.file.api.FileId;
 import com.forcitis.one.platform.file.api.FileStatus;
@@ -13,10 +14,12 @@ import com.forcitis.one.platform.file.api.StoreResult;
 import com.forcitis.one.platform.file.domain.ContentChecks;
 import com.forcitis.one.platform.file.domain.ContentFacts;
 import com.forcitis.one.platform.file.domain.LineageTarget;
+import com.forcitis.one.platform.file.domain.MacroNames;
 import com.forcitis.one.platform.file.domain.NewStoredFile;
 import com.forcitis.one.platform.file.domain.ScanStaging;
 import com.forcitis.one.platform.file.domain.StagingContent;
 import com.forcitis.one.platform.file.domain.StoreAudit;
+import com.forcitis.one.platform.file.domain.StoreAudit.UnavailableCause;
 import com.forcitis.one.platform.file.domain.StoredFileRepository;
 import com.forcitis.one.platform.integration.api.BusinessFileStore;
 import com.forcitis.one.platform.integration.api.MalwareScanner;
@@ -26,6 +29,7 @@ import com.forcitis.one.platform.integration.api.StoredObjectKey;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import java.io.UncheckedIOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Locale;
@@ -84,6 +88,8 @@ public final class StoreContent {
         } catch (ScanStaging.TooLarge e) {
             count("too_large");
             throw FileError.PLATFORM_FILE_TOO_LARGE.refusal(e.getMessage());
+        } catch (UncheckedIOException e) {
+            throw unavailable(request.uploader(), null, UnavailableCause.STAGING, e.getMessage());
         }
         try {
             return decide(request, staged);
@@ -97,35 +103,52 @@ public final class StoreContent {
         ContentFacts facts = checks.check(staged.path());
         if (verdict.outcome() == ScanOutcome.ENCRYPTED || facts.encrypted()) {
             audit.encryptedRefused(request.uploader(), staged.contentHash(), request.originalName());
+            LOG.error("ALERT encrypted upload refused: it cannot be scanned");
             count("encrypted");
             throw FileError.PLATFORM_FILE_ENCRYPTED_REJECTED.refusal("encrypted content cannot be scanned; remove the open password and upload again");
+        }
+        boolean infected = verdict.outcome() == ScanOutcome.INFECTED;
+        boolean released = infected && files.hasScanException(staged.contentHash());
+        FileStatus status = NewStoredFile.decidedBy(infected, released);
+        FileId id = new FileId(ids.next());
+        Instant now = clock.instant();
+        boolean macros = facts.containsMacros() || MacroNames.matches(request.originalName());
+        if (status == FileStatus.QUARANTINED) {
+            return quarantine(request, staged, facts, verdict, id, status, macros, now);
         }
         if (!allowedMediaTypes.contains(facts.mediaType())) {
             count("media_type_not_allowed");
             throw FileError.PLATFORM_FILE_MEDIA_TYPE_NOT_ALLOWED.refusal("the content is " + facts.mediaType());
         }
-        FileId id = new FileId(ids.next());
-        Instant now = clock.instant();
-        boolean infected = verdict.outcome() == ScanOutcome.INFECTED;
-        boolean released = infected && files.hasScanException(staged.contentHash());
-        FileStatus status = NewStoredFile.decidedBy(infected, released);
-        boolean quarantined = status == FileStatus.QUARANTINED;
-        StoredObjectKey key = quarantined ? keys.quarantine(id) : keys.formal(id, now);
-        NewStoredFile file = file(request, staged, facts, verdict, id, key, status, released, now);
-        write(request.uploader(), staged, quarantined ? keys.quarantine(id) : keys.staging(id, request.uploader().kind()));
+        NewStoredFile file = file(request, request.lineage(), staged, facts, verdict, id, keys.formal(id, now), status, released, macros, now);
+        write(request.uploader(), staged, keys.staging(id, request.uploader().kind()));
         transaction.executeWithoutResult(tx -> {
             files.insert(file);
-            if (quarantined) {
-                audit.quarantined(file);
-            } else {
-                audit.stored(file);
-            }
+            audit.stored(file);
         });
-        if (quarantined) {
-            LOG.error("ALERT malware found: file {} quarantined, threat {}", id, verdict.threatName());
-            count("infected");
-        } else {
-            count(released ? "released_by_exception" : "stored");
+        count(released ? "released_by_exception" : "stored");
+        return result(file);
+    }
+
+    /**
+     * Malware is reported before anything else can fail, and a failed quarantine is audited with its threat (ADR-0070 section 2 item 4).
+     * A quarantined file declares no lineage, so it never takes the successor place of a previous version.
+     */
+    private StoreResult quarantine(StoreRequest request, StagingContent staged, ContentFacts facts, ScanVerdict verdict, FileId id, FileStatus status,
+                                   boolean macros, Instant now) {
+        LOG.error("ALERT malware found in an upload: file {}, threat {}", id, verdict.threatName());
+        count("infected");
+        NewStoredFile file = file(request, new Lineage.FirstVersion(), staged, facts, verdict, id, keys.quarantine(id), status, false, macros, now);
+        try {
+            store.put(keys.quarantine(id), staged.path(), staged.contentHash().value(), staged.size());
+            transaction.executeWithoutResult(tx -> {
+                files.insert(file);
+                audit.quarantined(file);
+            });
+        } catch (RuntimeException e) {
+            audit.quarantineFailed(request.uploader(), staged.contentHash(), verdict.threatName());
+            LOG.error("ALERT the quarantine of file {} failed; the upload is refused", id, e);
+            throw FileError.PLATFORM_FILE_SCAN_UNAVAILABLE.refusal("the file cannot be checked now; try again later");
         }
         return result(file);
     }
@@ -135,7 +158,7 @@ public final class StoreContent {
         try {
             return scanner.scan(staged.path());
         } catch (ExternalSystemUnavailableException e) {
-            throw unavailable(uploader, staged, "scanner: " + e.getMessage());
+            throw unavailable(uploader, staged.contentHash(), UnavailableCause.SCANNER, e.getMessage());
         } finally {
             sample.stop(scanDuration);
         }
@@ -145,13 +168,13 @@ public final class StoreContent {
         try {
             store.put(key, staged.path(), staged.contentHash().value(), staged.size());
         } catch (ExternalSystemUnavailableException e) {
-            throw unavailable(uploader, staged, "object store: " + e.getMessage());
+            throw unavailable(uploader, staged.contentHash(), UnavailableCause.OBJECT_STORE, e.getMessage());
         }
     }
 
-    private DomainException unavailable(FileSubject uploader, StagingContent staged, String reason) {
-        audit.unavailable(uploader, staged.contentHash(), reason);
-        LOG.error("ALERT file upload refused, the malware gate is unavailable: {}", reason);
+    private DomainException unavailable(FileSubject uploader, ContentHash contentHash, UnavailableCause cause, String detail) {
+        audit.unavailable(uploader, contentHash, cause);
+        LOG.error("ALERT file upload refused, the malware gate is unavailable ({}): {}", cause, detail);
         count("unavailable");
         return FileError.PLATFORM_FILE_SCAN_UNAVAILABLE.refusal("the file cannot be checked now; try again later");
     }
@@ -190,11 +213,11 @@ public final class StoreContent {
         return target;
     }
 
-    private NewStoredFile file(StoreRequest request, StagingContent staged, ContentFacts facts, ScanVerdict verdict, FileId id, StoredObjectKey key,
-                               FileStatus status, boolean released, Instant now) {
+    private NewStoredFile file(StoreRequest request, Lineage lineage, StagingContent staged, ContentFacts facts, ScanVerdict verdict, FileId id,
+                               StoredObjectKey key, FileStatus status, boolean released, boolean macros, Instant now) {
         String threat = infectedVerdict(verdict) ? verdict.threatName() : null;
         return new NewStoredFile(id, key.value(), staged.contentHash(), staged.size(), facts.mediaType(), request.uploader(), status,
-                facts.containsMacros(), request.lineage(), verdict.engineVersion(), verdict.definitionsVersion(), threat, released,
+                macros, lineage, verdict.engineVersion(), verdict.definitionsVersion(), threat, released,
                 request.originalName(), now);
     }
 

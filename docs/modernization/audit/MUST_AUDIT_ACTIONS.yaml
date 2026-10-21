@@ -130,5 +130,6 @@ categories:
   - platform.file.stored-file.quarantined
   - platform.file.stored-file.released-by-exception
   - platform.file.stored-file.stored
+  - platform.file.upload.quarantine-failed
   - platform.file.upload.encrypted-refused
   - platform.file.upload.unavailable

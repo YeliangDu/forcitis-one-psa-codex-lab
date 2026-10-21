@@ -61,4 +61,17 @@ class LocalScanStagingTest {
         assertThat(old.path()).doesNotExist();
         assertThat(fresh.path()).exists();
     }
+
+    @Test
+    void aSweepThatHitsAnErrorStillReturnsAndRunsAgain() throws Exception {
+        LocalScanStaging staging = staging(100);
+        Path locked = Files.createDirectory(root.resolve("unreadable"));
+        Files.setPosixFilePermissions(locked, PosixFilePermissions.fromString("---------"));
+        try {
+            assertThat(staging.sweep(Duration.ofHours(1))).isZero();
+            assertThat(staging.sweep(Duration.ofHours(1))).isZero();
+        } finally {
+            Files.setPosixFilePermissions(locked, PosixFilePermissions.fromString("rwx------"));
+        }
+    }
 }
