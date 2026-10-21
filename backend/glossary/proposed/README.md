@@ -209,6 +209,21 @@ Phase 1a 时间与时区修复新增用语（proposed，待业务评审，ADR-00
 | `release` | 放行 | Release | ACL（过渡期） · platform.integration | 管理员核对同步差异后，让被中止的同步生效的动作 |  | 扫描前端界面文案发现；同步记录页按钮与结果用语 |
 | `org_sync` | 同步 | OrgSync | ACL（过渡期） · platform.integration | 把组织来源的组织单元与员工变化应用到本系统的一次运行 |  | 扫描前端界面文案发现；与「同步记录」「同步差异」配合使用 |
 
+## `gl5-direct.yaml`
+
+涉及模块：`accounting.tax`、`organization.administration`。
+
+GL5 页首「本页不请你选」各项的直接登记（one-glossary 2026-10-21，NAM-1021-GLO-14，proposed）。已被取代、草拟两个状态名是各对象状态链里的取值名，随各对象登记，决定记在 glossary/arch-naming/STATE_NAME_RULINGS.md。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `statutory_filing` | 法定申报 | StatutoryFiling | 领域 · accounting.tax | 法人对税务、社保等机关的周期申报与缴款（增值税及附加、企业所得税、个税扣缴、社保公积金、统计）；其中税务类的申报记录即已登记的「税务申报记录」 |  |  |
+| `statutory_filing_status__pending_filing` | 待申报 | PendingFiling | 领域 · accounting.tax | 法定申报的状态：已生成申报，尚未向机关申报 |  |  |
+| `statutory_filing_status__filed` | 已申报 | Filed | 领域 · accounting.tax | 法定申报的状态：已向机关申报，尚未缴款 |  |  |
+| `statutory_filing_status__remitted` | 已缴款 | Remitted | 领域 · accounting.tax | 法定申报的状态：税费或社保公积金已缴纳 |  |  |
+| `correct_filing` | 更正申报 | CorrectFiling | 领域 · accounting.tax | 对已申报的法定申报作更正，另起更正申报 |  |  |
+| `asset_card_list` | 资产卡片清单 | AssetCardList | 领域 · organization.administration | 先行期财务提供的资产卡片清单，每行带资产卡片号、所属法人、资产名称，行政事务据此引用信息技术资产；资产卡片一词待 GL5-02 定 |  |  |
+
 ## `kernel.yaml`
 
 `tail_adjustment`（尾调）、`rounding_residual`（舍入差）、`prorate`（按权重拆分）由用户 2026-10-15 XD-07「同意 (Recommended)」确认登记（`docs/modernization/CROSS_CUTTING_DECISIONS.md`）。`reversal_document`、`correction_document`、`document_nature`、`reversal_category`、`reversible_balance`、`derived_reversal`、`original_period`、`change_order_document`、`reverse_action`、`correct_action` 十条是 ADR-0031 第 8 项的提议，待用语确认（U-4）。
