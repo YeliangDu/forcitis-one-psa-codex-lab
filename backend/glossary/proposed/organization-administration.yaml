@@ -72,10 +72,10 @@ terms:
   zh: 用印审批人表
   en: SealUsageApproverTable
   snake: seal_usage_approver_table
-  kind: aggregate
+  kind: entity
   bc: organization.administration
   scope: domain
-  definition: 无来源单据的用印按用途确定第一审批人岗位与备用审批人岗位的版本化配置：每版本一个聚合，只追加，带版本号、生效日、定版人与决定依据；上线前须定版，是上线出口条件。
+  definition: 无来源单据的用印按用途确定第一审批人岗位与备用审批人岗位的版本化配置：作为配置集「用印审批人」的条目，随配置集版本只追加，带版本号、生效日、定版人与决定依据；上线前须定版，是上线出口条件。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q1、§11 第 2 条
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml JS-01
@@ -83,7 +83,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 设计原文「用印审批人表」；同类先例 control_account_authorization（控制科目授权表）。是否独立聚合待 one-data 冻结配置承载（§8.3）。
+  note: 设计原文「用印审批人表」；同类先例 control_account_authorization（控制科目授权表）。one-data 裁定（B31_PHYSICAL_MODEL_RULINGS §2）：配置不挂聚合，共用配置集根加版本头，各配置一张条目表；物理表 seal_approver_rule_items。
 - id: seal_usage_approver_line
   zh: 用印审批人表行
   en: SealUsageApproverLine
@@ -177,63 +177,122 @@ terms:
   status: proposed
   note: 设计中的 doc_type「用印审批」；同类先例 timesheet_approval 登记在 platform.approval，本条按所有者放 organization.administration；英文枚举尚未在审批模块注册。
 
-# 用印过渡通道（老系统已审批单据，上线后废止）
+# 配置集（one-data 物理承载裁定 §2：配置不挂聚合，共用配置集根加版本头，各配置一张条目表）
+- id: config_set
+  zh: 配置集
+  en: ConfigSet
+  snake: config_set
+  kind: entity
+  bc: organization.administration
+  scope: domain
+  definition: 一类版本化配置的根：以配置集代码区分用印审批人、信息技术服务类别、岗位资产配置标准、员工活动类型、提醒规则，并记负责该配置的角色；各配置的内容行落在各自的条目表，不挂在任何聚合下。
+  standard_ref:
+  - docs/modernization/data/B31_PHYSICAL_MODEL_RULINGS.md（claude/one-data-handoff-1） §2
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 物理表 config_sets（B31 裁定 §2）；通用配置版本结构，是否上移 kernel 由 one-architecture/one-data 另定。
+- id: config_set_version
+  zh: 配置集版本
+  en: ConfigSetVersion
+  snake: config_set_version
+  kind: entity
+  bc: organization.administration
+  scope: domain
+  definition: 配置集的一个版本头：版本号、生效日区间、待确认或已确认状态、作者与确认人（四眼）、决定依据；按业务日期取已确认且生效区间包含该日的版本，找不到失败告警。
+  standard_ref:
+  - docs/modernization/data/B31_PHYSICAL_MODEL_RULINGS.md（claude/one-data-handoff-1） §2
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 通用配置版本结构，是否上移 kernel 由 one-architecture/one-data 另定。物理表 config_set_versions。
+- id: reminder_rule_item
+  zh: 提醒规则项
+  en: ReminderRuleItem
+  snake: reminder_rule_item
+  kind: entity
+  bc: organization.administration
+  scope: domain
+  definition: 提醒规则配置集中的一条条目：提醒代码与提前天数（七日提醒、归还提醒等参数），类型化列、不用自由文本。
+  standard_ref:
+  - docs/modernization/data/B31_PHYSICAL_MODEL_RULINGS.md（claude/one-data-handoff-1） §2
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 物理表 reminder_rule_items（B31 裁定 §2）。
+- id: external_asset_card_key
+  zh: 外部资产卡片号
+  en: ExternalAssetCardKey
+  snake: external_asset_card_key
+  kind: value_object
+  bc: organization.administration
+  scope: domain
+  definition: 信息技术资产使用记录所指资产在先行期的外部卡片号文本；W5 固定资产落地后由公司资产标识替代。
+  standard_ref:
+  - docs/modernization/architecture/proposals/B31_ARCH_RULINGS_2026-10-21.md 第 3 项（claude/one-architecture-admission-file）
+  - docs/modernization/data/B31_PHYSICAL_MODEL_RULINGS.md（claude/one-data-handoff-1） §1（company_asset_id）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 裁定第 3 项；列名 asset_card_key。
+
+# 用印过渡通道（既有审批系统已审批单据，上线后废止）
 - id: seal_usage_transition_channel
   zh: 用印过渡通道
   en: SealUsageTransitionChannel
   snake: seal_usage_transition_channel
   kind: business_rule
   bc: organization.administration
-  scope: acl
-  acl_class: 过渡期
-  definition: 老系统已审批的用印单据在合同、报价、投标模块上线前，经行政核对批准页后直接办理的过渡规则，相关模块上线即废止。
+  scope: domain
+  definition: 既有审批系统已审批的用印单据在合同、报价、投标模块上线前，经行政核对批准页后直接办理的过渡规则，相关模块上线即废止。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §9 第 3 条、§10 Q7
   confidence: medium
   aliases: []
   forbidden: []
   status: proposed
-  note: '使用范围取防腐层（过渡期）是依据领域模块不出现老系统名称的规则；是否宜登记为 scope: domain 请 one-glossary 与 one-architecture 判定。'
-- id: legacy_approval_source
-  zh: 老系统审批来源
-  en: LegacyApprovalSource
-  snake: legacy_approval_source
+  note: 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10
+- id: prior_approval_source
+  zh: 既有审批来源
+  en: PriorApprovalSource
+  snake: prior_approval_source
   kind: entity
   bc: organization.administration
-  scope: acl
-  acl_class: 过渡期
-  definition: 用印申请来源为老系统已审批单据时保存的凭据：老系统审批单号、批准页文件、批准份数，以及行政核对的核对人与核对时间；同一老系统审批单号的累计用印份数在本系统内计数。
+  scope: domain
+  definition: 用印申请来源为既有审批系统已审批单据时保存的凭据：既有审批单号、批准页文件、批准份数，以及行政核对的核对人与核对时间；同一既有审批单号的累计用印份数在本系统内计数。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §9 第 3 条、§10 Q7、§11 第 3 条
   confidence: medium
   aliases: []
   forbidden: []
   status: proposed
-  note: 词表已有 legacy_number（原编号，platform.numbering）是单据编号映射，与本条不同。
-- id: legacy_approval_number
-  zh: 老系统审批单号
-  en: LegacyApprovalNumber
-  snake: legacy_approval_number
+  note: 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10
+- id: prior_approval_number
+  zh: 既有审批单号
+  en: PriorApprovalNumber
+  snake: prior_approval_number
   kind: value_object
   bc: organization.administration
-  scope: acl
-  acl_class: 过渡期
-  definition: 老系统中已审批用印单据的单号，过渡通道据此累计用印份数；不是本系统的单据编号。
+  scope: domain
+  definition: 既有审批系统中已审批用印单据的单号，过渡通道据此累计用印份数；不是本系统的单据编号。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
   confidence: medium
   aliases: []
   forbidden: []
   status: proposed
-  note: ''
+  note: 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10
 - id: transition_channel_review
   zh: 过渡通道季度复核
   en: TransitionChannelReview
   snake: transition_channel_review
   kind: entity
   bc: organization.administration
-  scope: acl
-  acl_class: 过渡期
+  scope: domain
   definition: 过渡通道存续期间行政负责人每季度对通道使用情况的复核记录，进入审计。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 3 条
@@ -241,23 +300,22 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: ''
+  note: 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10
 - id: transition_channel_spot_check
   zh: 过渡通道月度抽检
   en: TransitionChannelSpotCheck
   snake: transition_channel_spot_check
   kind: entity
   bc: organization.administration
-  scope: acl
-  acl_class: 过渡期
-  definition: 过渡通道存续期间每月抽取 5 单回老系统核对批准页的抽检记录，结果留痕。
+  scope: domain
+  definition: 过渡通道存续期间每月抽取 5 单回既有审批系统核对批准页的抽检记录，结果留痕。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 3 条
   confidence: medium
   aliases: []
   forbidden: []
   status: proposed
-  note: ''
+  note: 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10
 
 # 审批人与角色
 - id: primary_approver
@@ -289,7 +347,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 设计原文用「兜底」，但「兜底」已是 administrator_fallback（转流程管理员）的禁用写法，故改称备用审批人；备选 替补审批人 / AlternateApprover。
+  note: 设计原文用「兜底」，但「兜底」已是 administrator_fallback（转流程管理员）的禁用写法，故改称备用审批人；备选 替补审批人 / AlternateApprover。用户原话为「兜底」（B31R §11）；「兜底」被 administrator_fallback 禁用，用语待 one-glossary Q1。
 - id: applicant
   zh: 申请人
   en: Applicant
@@ -387,10 +445,10 @@ terms:
   zh: 信息技术服务类别表
   en: ItServiceCategoryTable
   snake: it_service_category_table
-  kind: aggregate
+  kind: entity
   bc: organization.administration
   scope: domain
-  definition: 信息技术服务工单类别的版本化配置，每版本一个聚合，只追加；类别可增删改并留版本与操作人，不写死在代码或迁移，上线前由信息技术负责人定版。
+  definition: 信息技术服务工单类别的版本化配置：作为配置集「信息技术服务类别」的条目，随配置集版本只追加；类别可增删改并留版本与操作人，不写死在代码或迁移，上线前由信息技术负责人定版。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q4、Q5
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml IT-01
@@ -398,7 +456,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 设计原文「IT 类别表」；是否独立聚合待 one-data 冻结配置承载（§8.3）。
+  note: 设计原文「IT 类别表」。one-data 裁定（B31_PHYSICAL_MODEL_RULINGS §2）：配置不挂聚合，共用配置集根加版本头，各配置一张条目表；物理表 it_service_category_items。
 - id: it_service_category
   zh: 信息技术服务类别
   en: ItServiceCategory
@@ -542,10 +600,10 @@ terms:
   zh: 岗位资产配置标准
   en: PositionAssetStandard
   snake: position_asset_standard
-  kind: aggregate
+  kind: entity
   bc: organization.administration
   scope: domain
-  definition: 按岗位核对可领用资产类别、规格与数量的版本化配置：每版本一个聚合，只追加；规则缺失或领用超出标准时拒绝领用。
+  definition: 按岗位核对可领用资产类别、规格与数量的版本化配置：作为配置集「岗位资产配置标准」的条目，随配置集版本只追加；规则缺失或领用超出标准时拒绝领用。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 清单、§3.4
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_RULES.yaml ZC-01
@@ -553,7 +611,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 设计原文「岗位资产配置标准」，b31.notes 沿原稿提议 AssetStandardIssuance；岗位指 position（岗位），不是 job_position（职位）。
+  note: 设计原文「岗位资产配置标准」，b31.notes 沿原稿提议 AssetStandardIssuance；岗位指 position（岗位），不是 job_position（职位）。one-data 裁定（B31_PHYSICAL_MODEL_RULINGS §2）：配置不挂聚合，共用配置集根加版本头，各配置一张条目表；物理表 position_asset_standard_items。
 - id: position_asset_standard_line
   zh: 岗位资产配置标准行
   en: PositionAssetStandardLine
@@ -663,7 +721,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 设计把它列为 AGG-116 子表，但清单独立版本维护的写边界待 one-data 定稿，故暂登记为 entity；备选 aggregate。
+  note: 设计把它列为 AGG-116 子表，但清单独立版本维护的写边界待 one-data 定稿，故暂登记为 entity；备选 aggregate。one-data 裁定（B31_PHYSICAL_MODEL_RULINGS §2）：配置不挂聚合，共用配置集根加版本头，各配置一张条目表；物理表 employee_activity_type_items。
 - id: anniversary_card
   zh: 周年贺卡
   en: AnniversaryCard
@@ -696,21 +754,6 @@ terms:
   forbidden: []
   status: proposed
   note: 依赖入职日期（hire_date），该词属 organization.workforce，词表尚未登记，见报告。
-- id: anniversary_generation_plan
-  zh: 周年生成计划
-  en: AnniversaryGenerationPlan
-  snake: anniversary_generation_plan
-  kind: read_model
-  bc: organization.administration
-  scope: domain
-  definition: B-31 自有、可重建的投影：记录人员事实引用、依据日期与版本及应生成时点，供周年生成作业扫描到期；不是业务聚合。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §5.3
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 设计称「待生成投影」，表名列名待登记；备选 周年待生成投影 / AnniversaryDueProjection。
 - id: activity_cost_estimate
   zh: 活动费用预估
   en: ActivityCostEstimate
@@ -743,7 +786,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: bcs.yaml 登记合同借阅归 contract.agreement，而本设计 Q8 先记在 organization.administration，bc 归属请 one-glossary 与 one-architecture 判定；聚合稿称「协议原件借出」，本条按设计称「合同原件」。
+  note: 放行政事务，按合同档案目标形状建；W3 移交 contract.agreement（B-31 裁定第 5 项，ADR-0074）。聚合稿称「协议原件借出」，本条按设计称「合同原件」。
 - id: contract_original_loan_approval
   zh: 合同原件借阅审批
   en: ContractOriginalLoanApproval
@@ -1365,30 +1408,28 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: verify_legacy_approval
-  zh: 核对老系统批准页
-  en: VerifyLegacyApproval
-  snake: verify_legacy_approval
+- id: verify_prior_approval_page
+  zh: 核对既有审批页
+  en: VerifyPriorApprovalPage
+  snake: verify_prior_approval_page
   kind: command
   bc: organization.administration
-  scope: acl
-  acl_class: 过渡期
-  definition: 行政核对老系统批准页与所填单号、份数是否一致并留痕（谁核、何时核）。
+  scope: domain
+  definition: 行政核对既有审批页与所填单号、份数是否一致并留痕（谁核、何时核）。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
   confidence: low
   aliases: []
   forbidden: []
   status: proposed
-  note: ''
+  note: 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10
 - id: record_transition_channel_review
   zh: 登记过渡通道季度复核
   en: RecordTransitionChannelReview
   snake: record_transition_channel_review
   kind: command
   bc: organization.administration
-  scope: acl
-  acl_class: 过渡期
+  scope: domain
   definition: 行政负责人完成季度复核待办并留下复核记录。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 3 条
@@ -1396,15 +1437,14 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: ''
+  note: 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10
 - id: record_transition_channel_spot_check
   zh: 登记过渡通道月度抽检
   en: RecordTransitionChannelSpotCheck
   snake: record_transition_channel_spot_check
   kind: command
   bc: organization.administration
-  scope: acl
-  acl_class: 过渡期
+  scope: domain
   definition: 行政完成月度抽检待办并留下抽检结果。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 3 条
@@ -1412,7 +1452,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: ''
+  note: 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10
 
 # 状态取值（同一 bc 内中文名与英文名唯一，故各聚合共用；已在其他 bc 登记同名的审批中、已驳回、已退回、已通过、已撤销，以及被禁用的已完成，不在此登记）
 - id: administration_status__draft
@@ -1618,21 +1658,6 @@ terms:
   bc: organization.administration
   scope: domain
   definition: 使用期间因归还或调拨而结束。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 使用：资产使用期间。
-- id: administration_status__returned
-  zh: 已归还
-  en: Returned
-  snake: returned
-  kind: state
-  bc: organization.administration
-  scope: domain
-  definition: 资产经归还命令结束使用期间；调拨结束不算归还。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
   confidence: medium
@@ -1882,21 +1907,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: error__organization_administration_seal_usage_zero_copies_not_allowed
-  zh: 零份用印须同时放弃剩余份数
-  en: OrganizationAdministrationSealUsageZeroCopiesNotAllowed
-  snake: organization_administration_seal_usage_zero_copies_not_allowed
-  kind: error_code
-  bc: organization.administration
-  scope: domain
-  definition: 零份登记只在确认放弃剩余份数时允许，不得把未盖章登记成已用印（422）。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §8.3
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__organization_administration_seal_usage_evidence_mismatch
   zh: 用印凭据与拟发文件不符
   en: OrganizationAdministrationSealUsageEvidenceMismatch
@@ -1907,21 +1917,6 @@ terms:
   definition: 报价版本、用印法人、拟发文件与实际盖章凭据不能核验对应，拒绝并告警（422）。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2、§4.4
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: error__organization_administration_seal_usage_operator_is_applicant
-  zh: 经办人不得是申请人
-  en: OrganizationAdministrationSealUsageOperatorIsApplicant
-  snake: organization_administration_seal_usage_operator_is_applicant
-  kind: error_code
-  bc: organization.administration
-  scope: domain
-  definition: 登记用印的经办人与申请人是同一人，职责分离不允许（403）。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §6.3
   confidence: low
   aliases: []
   forbidden: []
@@ -2002,36 +1997,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: error__organization_administration_approval_callback_unmatched
-  zh: 审批回调无法对应单据
-  en: OrganizationAdministrationApprovalCallbackUnmatched
-  snake: organization_administration_approval_callback_unmatched
-  kind: error_code
-  bc: organization.administration
-  scope: domain
-  definition: 审批完成事件与单据引用、流程类型、实例、轮次或当前状态对不上，拒绝并告警（409）。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §4.3
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: error__organization_administration_approval_outcome_unsupported
-  zh: 审批结果暂不支持
-  en: OrganizationAdministrationApprovalOutcomeUnsupported
-  snake: organization_administration_approval_outcome_unsupported
-  kind: error_code
-  bc: organization.administration
-  scope: domain
-  definition: 审批完成事件的结果在本模块没有约定的状态映射，拒绝并告警（422）。
-  standard_ref:
-  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §4.3
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__organization_administration_pre_stamp_not_allowed
   zh: 非投标用印不得预盖空白页
   en: OrganizationAdministrationPreStampNotAllowed
@@ -2077,14 +2042,14 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: error__organization_administration_legacy_approval_number_required
-  zh: 缺老系统审批单号
-  en: OrganizationAdministrationLegacyApprovalNumberRequired
-  snake: organization_administration_legacy_approval_number_required
+- id: error__organization_administration_prior_approval_number_required
+  zh: 缺既有审批单号
+  en: OrganizationAdministrationPriorApprovalNumberRequired
+  snake: organization_administration_prior_approval_number_required
   kind: error_code
   bc: organization.administration
   scope: domain
-  definition: 过渡通道的用印申请未填老系统审批单号（422）。
+  definition: 过渡通道的用印申请未填既有审批单号（422）。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
   confidence: low
@@ -2092,10 +2057,10 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: error__organization_administration_legacy_approval_page_required
-  zh: 缺老系统批准页
-  en: OrganizationAdministrationLegacyApprovalPageRequired
-  snake: organization_administration_legacy_approval_page_required
+- id: error__organization_administration_prior_approval_page_required
+  zh: 缺既有审批页
+  en: OrganizationAdministrationPriorApprovalPageRequired
+  snake: organization_administration_prior_approval_page_required
   kind: error_code
   bc: organization.administration
   scope: domain
@@ -2107,14 +2072,14 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: error__organization_administration_legacy_approval_copies_exceeded
-  zh: 超过老系统批准份数
-  en: OrganizationAdministrationLegacyApprovalCopiesExceeded
-  snake: organization_administration_legacy_approval_copies_exceeded
+- id: error__organization_administration_prior_approval_copies_exceeded
+  zh: 超过既有审批份数
+  en: OrganizationAdministrationPriorApprovalCopiesExceeded
+  snake: organization_administration_prior_approval_copies_exceeded
   kind: error_code
   bc: organization.administration
   scope: domain
-  definition: 同一老系统审批单号累计用印份数将超过批准页所载份数（409）。
+  definition: 同一既有审批单号累计用印份数将超过批准页所载份数（409）。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
   confidence: low
@@ -2122,10 +2087,10 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: error__organization_administration_legacy_approval_not_verified
-  zh: 老系统批准页尚未核对
-  en: OrganizationAdministrationLegacyApprovalNotVerified
-  snake: organization_administration_legacy_approval_not_verified
+- id: error__organization_administration_prior_approval_not_verified
+  zh: 既有审批页尚未核对
+  en: OrganizationAdministrationPriorApprovalNotVerified
+  snake: organization_administration_prior_approval_not_verified
   kind: error_code
   bc: organization.administration
   scope: domain
@@ -2144,7 +2109,7 @@ terms:
   kind: error_code
   bc: organization.administration
   scope: domain
-  definition: 合同、报价、投标模块上线后过渡通道已废止，不再接受老系统来源（409）。
+  definition: 合同、报价、投标模块上线后过渡通道已废止，不再接受既有审批系统来源（409）。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
   confidence: low

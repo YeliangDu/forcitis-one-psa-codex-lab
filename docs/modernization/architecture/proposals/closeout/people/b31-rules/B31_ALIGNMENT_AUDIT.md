@@ -1,5 +1,7 @@
 # B-31 施工设计与已采纳 ADR 字面一致性核对（IMP-1021-ADM-01 前置）
 
+> 附录说明：本报告成文于 2026-10-21 的 one-architecture、one-data、one-rules 裁定之前，是只读核对的原始记录；裁定已吸收的结果见 `B31_CONTRACT.md` §6，数字与结论以契约文档和裁定文件为准。
+
 基线：origin/main `526a906a5`，分支 `claude/one-1a-admin-skeleton`。只读核对，不裁定、不改设计。
 设计文件：`docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md`（下称「设计」，行号 L 为该文件行）；规则草案 `B31_RULES.yaml`（下称「规则稿」）。
 判定词：一致／字面不一致／设计缺口／代码缺口。裁定方列在每条末尾。

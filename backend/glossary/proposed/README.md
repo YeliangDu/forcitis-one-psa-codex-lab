@@ -237,27 +237,31 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 | `seal_usage_source_document` | 用印来源单据 | SealUsageSourceDocument | 领域 · organization.administration | 用印申请所依据的已审批来源单据：来源类型与标识、来源审批实例、来源批准份数快照与对应申请轮次；来源审批已通过且累计份数合规的申请不再另行审批。 |  | 设计草案表 seal_application_source_documents 按词表应为 seal_usage_source_documents；INV-138 的份数核验落在本实体上。 |
 | `seal_usage_registration` | 用印登记 | SealUsageRegistration | 领域 · organization.administration | 经办人对一次实际用印的只追加登记：用印时点、本次份数、经办人、所用印章台账条目及版本、拟发文件与实际盖章凭据的文件标识和内容哈希，以申请加登记请求键去重。 |  | 设计草案名为 seal_usage_records（b31.notes 沿原稿提议英文 SealUsageRecord）；备选 用印记录 / SealUsageRecord；对应命令「登记用印」，数据访问注册表登记为只追加（APPEND_ONLY）。 |
 | `seal_usage_purpose` | 用印用途 | SealUsagePurpose | 领域 · organization.administration | 用印申请所属的用途分类（如报价用印、投标用印）；审批人表的行、加审条件与预盖空白页的资格都按用途确定，取值为配置数据而非代码枚举。 |  | 用途清单由行政定版，取值不进代码；若 one-architecture 认为应并入审批人表行，可删本条。 |
-| `seal_usage_approver_table` | 用印审批人表 | SealUsageApproverTable | 领域 · organization.administration | 无来源单据的用印按用途确定第一审批人岗位与备用审批人岗位的版本化配置：每版本一个聚合，只追加，带版本号、生效日、定版人与决定依据；上线前须定版，是上线出口条件。 |  | 设计原文「用印审批人表」；同类先例 control_account_authorization（控制科目授权表）。是否独立聚合待 one-data 冻结配置承载（§8.3）。 |
+| `seal_usage_approver_table` | 用印审批人表 | SealUsageApproverTable | 领域 · organization.administration | 无来源单据的用印按用途确定第一审批人岗位与备用审批人岗位的版本化配置：作为配置集「用印审批人」的条目，随配置集版本只追加，带版本号、生效日、定版人与决定依据；上线前须定版，是上线出口条件。 |  | 设计原文「用印审批人表」；同类先例 control_account_authorization（控制科目授权表）。one-data 裁定（B31_PHYSICAL_MODEL_RULINGS §2）：配置不挂聚合，共用配置集根加版本头，各配置一张条目表；物理表 seal_approver_rule_items。 |
 | `seal_usage_approver_line` | 用印审批人表行 | SealUsageApproverLine | 领域 · organization.administration | 用印审批人表中一个用途对应的一行：用途、第一审批人岗位、备用审批人岗位；备用审批人存岗位引用，不存个人。 |  |  |
 | `seal_usage_special_approval` | 用印特批 | SealUsageSpecialApproval | 领域 · organization.administration | 用途未列入用印审批人表的用印不直接拒绝，改由行政负责人特批；特批有单号、可审计，并留审批实例号。 |  | 是「用印审批」审批人解析的一个分支，不是独立审批类型。 |
 | `high_risk_purpose` | 高风险用途 | HighRiskPurpose | 领域 · organization.administration | 担保、外借与预盖章属高风险用途：审批人解析结果不含备用审批人，缺人即挂起并告警，不进备用改派。 |  | 同时约束用印与合同原件借阅两条线。 |
 | `blank_page_pre_stamp` | 预盖空白页 | BlankPagePreStamp | 领域 · organization.administration | 仅投标用印可预先盖章的空白页或待填栏的登记：张数、用途、领用人、日期、编号；用完登记收回，未用当场记作废，不删除。 |  | 是否独立聚合待 one-architecture 定；对应设计「预盖空白页登记」。 |
 | `pre_stamp_page_limit` | 预盖张数上限 | PreStampPageLimit | 领域 · organization.administration | 投标用印可预盖空白页的张数上限，为行政填写的数字并记录定版人；未设定时不允许预盖。 |  |  |
 | `seal_usage_approval` | 用印审批 | SealUsageApproval | 领域 · organization.administration | 用印申请经通用审批办理时使用的审批单据类型，只适用于无来源单据的人工审批路径。 |  | 设计中的 doc_type「用印审批」；同类先例 timesheet_approval 登记在 platform.approval，本条按所有者放 organization.administration；英文枚举尚未在审批模块注册。 |
-| `seal_usage_transition_channel` | 用印过渡通道 | SealUsageTransitionChannel | ACL（过渡期） · organization.administration | 老系统已审批的用印单据在合同、报价、投标模块上线前，经行政核对批准页后直接办理的过渡规则，相关模块上线即废止。 |  | 使用范围取防腐层（过渡期）是依据领域模块不出现老系统名称的规则；是否宜登记为 scope: domain 请 one-glossary 与 one-architecture 判定。 |
-| `legacy_approval_source` | 老系统审批来源 | LegacyApprovalSource | ACL（过渡期） · organization.administration | 用印申请来源为老系统已审批单据时保存的凭据：老系统审批单号、批准页文件、批准份数，以及行政核对的核对人与核对时间；同一老系统审批单号的累计用印份数在本系统内计数。 |  | 词表已有 legacy_number（原编号，platform.numbering）是单据编号映射，与本条不同。 |
-| `legacy_approval_number` | 老系统审批单号 | LegacyApprovalNumber | ACL（过渡期） · organization.administration | 老系统中已审批用印单据的单号，过渡通道据此累计用印份数；不是本系统的单据编号。 |  |  |
-| `transition_channel_review` | 过渡通道季度复核 | TransitionChannelReview | ACL（过渡期） · organization.administration | 过渡通道存续期间行政负责人每季度对通道使用情况的复核记录，进入审计。 |  |  |
-| `transition_channel_spot_check` | 过渡通道月度抽检 | TransitionChannelSpotCheck | ACL（过渡期） · organization.administration | 过渡通道存续期间每月抽取 5 单回老系统核对批准页的抽检记录，结果留痕。 |  |  |
+| `config_set` | 配置集 | ConfigSet | 领域 · organization.administration | 一类版本化配置的根：以配置集代码区分用印审批人、信息技术服务类别、岗位资产配置标准、员工活动类型、提醒规则，并记负责该配置的角色；各配置的内容行落在各自的条目表，不挂在任何聚合下。 |  | 物理表 config_sets（B31 裁定 §2）；通用配置版本结构，是否上移 kernel 由 one-architecture/one-data 另定。 |
+| `config_set_version` | 配置集版本 | ConfigSetVersion | 领域 · organization.administration | 配置集的一个版本头：版本号、生效日区间、待确认或已确认状态、作者与确认人（四眼）、决定依据；按业务日期取已确认且生效区间包含该日的版本，找不到失败告警。 |  | 通用配置版本结构，是否上移 kernel 由 one-architecture/one-data 另定。物理表 config_set_versions。 |
+| `reminder_rule_item` | 提醒规则项 | ReminderRuleItem | 领域 · organization.administration | 提醒规则配置集中的一条条目：提醒代码与提前天数（七日提醒、归还提醒等参数），类型化列、不用自由文本。 |  | 物理表 reminder_rule_items（B31 裁定 §2）。 |
+| `external_asset_card_key` | 外部资产卡片号 | ExternalAssetCardKey | 领域 · organization.administration | 信息技术资产使用记录所指资产在先行期的外部卡片号文本；W5 固定资产落地后由公司资产标识替代。 |  | 裁定第 3 项；列名 asset_card_key。 |
+| `seal_usage_transition_channel` | 用印过渡通道 | SealUsageTransitionChannel | 领域 · organization.administration | 既有审批系统已审批的用印单据在合同、报价、投标模块上线前，经行政核对批准页后直接办理的过渡规则，相关模块上线即废止。 |  | 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10 |
+| `prior_approval_source` | 既有审批来源 | PriorApprovalSource | 领域 · organization.administration | 用印申请来源为既有审批系统已审批单据时保存的凭据：既有审批单号、批准页文件、批准份数，以及行政核对的核对人与核对时间；同一既有审批单号的累计用印份数在本系统内计数。 |  | 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10 |
+| `prior_approval_number` | 既有审批单号 | PriorApprovalNumber | 领域 · organization.administration | 既有审批系统中已审批用印单据的单号，过渡通道据此累计用印份数；不是本系统的单据编号。 |  | 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10 |
+| `transition_channel_review` | 过渡通道季度复核 | TransitionChannelReview | 领域 · organization.administration | 过渡通道存续期间行政负责人每季度对通道使用情况的复核记录，进入审计。 |  | 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10 |
+| `transition_channel_spot_check` | 过渡通道月度抽检 | TransitionChannelSpotCheck | 领域 · organization.administration | 过渡通道存续期间每月抽取 5 单回既有审批系统核对批准页的抽检记录，结果留痕。 |  | 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10 |
 | `primary_approver` | 第一审批人 | PrimaryApprover | 领域 · organization.administration | 审批人表中按用途或类别指定的首选审批岗位；不可用时才改派备用审批人。 |  | 设计原文「第一审批人」；备选英文 FirstApprover。 |
-| `backup_approver` | 备用审批人 | BackupApprover | 领域 · organization.administration | 第一审批人不可用时改派的同职能第二岗位，存岗位引用而非个人；改派加事后知会，不并行双批，不兜到总经理，高风险用途不进备用。 |  | 设计原文用「兜底」，但「兜底」已是 administrator_fallback（转流程管理员）的禁用写法，故改称备用审批人；备选 替补审批人 / AlternateApprover。 |
+| `backup_approver` | 备用审批人 | BackupApprover | 领域 · organization.administration | 第一审批人不可用时改派的同职能第二岗位，存岗位引用而非个人；改派加事后知会，不并行双批，不兜到总经理，高风险用途不进备用。 |  | 设计原文用「兜底」，但「兜底」已是 administrator_fallback（转流程管理员）的禁用写法，故改称备用审批人；备选 替补审批人 / AlternateApprover。用户原话为「兜底」（B31R §11）；「兜底」被 administrator_fallback 禁用，用语待 one-glossary Q1。 |
 | `applicant` | 申请人 | Applicant | 领域 · organization.administration | 提交用印申请或员工活动申请的在职员工；代办须注明委托人和事由。 |  | 词表无「申请人」；其他 bc 日后同名须按 homonyms 互列。 |
 | `requester` | 提出人 | Requester | 领域 · organization.administration | 提出信息技术服务工单、并负责确认关闭或反馈未解决的员工。 |  |  |
 | `asset_user` | 资产使用人 | AssetUser | 领域 · organization.administration | 当前持有一件信息技术资产的员工，领用、调拨和报修都以其为准。 |  | 设计列名 user_id / receiving_user_id；「使用人」在设计里亦指调入、调出两方，调入调出的列名待定。 |
 | `fault_reporter` | 报修人 | FaultReporter | 领域 · organization.administration | 为资产报修的人，须为该资产当前使用人，资产管理员代报时选使用人。 |  |  |
 | `borrower` | 借阅人 | Borrower | 领域 · organization.administration | 借出合同原件的人，借出时填归还日，逾期提醒借阅人及其部门负责人。 |  |  |
 | `it_service_ticket_handling` | 信息技术服务工单处理记录 | ItServiceTicketHandling | 领域 · organization.administration | 信息技术服务工单受理后每次处理的只追加记录：处理时点、处理人、处理说明、处理结论与受理序号。 |  | 设计草案表 it_request_handlings 按词表应为 it_service_ticket_handlings。 |
-| `it_service_category_table` | 信息技术服务类别表 | ItServiceCategoryTable | 领域 · organization.administration | 信息技术服务工单类别的版本化配置，每版本一个聚合，只追加；类别可增删改并留版本与操作人，不写死在代码或迁移，上线前由信息技术负责人定版。 |  | 设计原文「IT 类别表」；是否独立聚合待 one-data 冻结配置承载（§8.3）。 |
+| `it_service_category_table` | 信息技术服务类别表 | ItServiceCategoryTable | 领域 · organization.administration | 信息技术服务工单类别的版本化配置：作为配置集「信息技术服务类别」的条目，随配置集版本只追加；类别可增删改并留版本与操作人，不写死在代码或迁移，上线前由信息技术负责人定版。 |  | 设计原文「IT 类别表」。one-data 裁定（B31_PHYSICAL_MODEL_RULINGS §2）：配置不挂聚合，共用配置集根加版本头，各配置一张条目表；物理表 it_service_category_items。 |
 | `it_service_category` | 信息技术服务类别 | ItServiceCategory | 领域 · organization.administration | 类别表中的一行：类别名称、是否需审批及理由、审批人与备用审批人岗位、受理人与替补、提供方、维护方与采购交接。 |  | 设计列名 category_code；类别取值为配置数据，需求类 / 故障类的细分清单待确认。 |
 | `it_service_priority` | 信息技术服务优先级 | ItServicePriority | 领域 · organization.administration | 提出人填写的信息技术服务工单紧急程度。 |  | 设计列 priority_code 出现，但文档未给取值，值域待 one-architecture 或行政补；word priority 在词表中尚无登记。 |
 | `access_validity` | 权限有效期 | AccessValidity | 领域 · organization.administration | 开通新权限的信息技术服务工单须写明的有效期或复核日，到期自动收回或提醒。 |  | 设计未明确「收回」由谁执行、是否调用身份模块；有效期与复核日是一个字段还是两个也待定，见报告问题清单。 |
@@ -267,19 +271,18 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 | `asset_handover` | 资产交接 | AssetHandover | 领域 · organization.administration | 调拨时调出使用人与调入使用人的交接确认、交接日期与证据。 |  |  |
 | `return_acceptance` | 归还验收 | ReturnAcceptance | 领域 · organization.administration | 资产管理员对归还设备的验收：验收人、归还日期与归还时设备状态；管理员不得验收自己名下资产的归还。 |  |  |
 | `asset_condition` | 设备实物状态 | AssetCondition | 领域 · organization.administration | 领用交付或归还时登记的设备实物状况。 |  | 设计原文「设备实物状态」；英文取 AssetCondition 以与 ItAsset 系列词一致，备选 DeviceCondition。 |
-| `position_asset_standard` | 岗位资产配置标准 | PositionAssetStandard | 领域 · organization.administration | 按岗位核对可领用资产类别、规格与数量的版本化配置：每版本一个聚合，只追加；规则缺失或领用超出标准时拒绝领用。 |  | 设计原文「岗位资产配置标准」，b31.notes 沿原稿提议 AssetStandardIssuance；岗位指 position（岗位），不是 job_position（职位）。 |
+| `position_asset_standard` | 岗位资产配置标准 | PositionAssetStandard | 领域 · organization.administration | 按岗位核对可领用资产类别、规格与数量的版本化配置：作为配置集「岗位资产配置标准」的条目，随配置集版本只追加；规则缺失或领用超出标准时拒绝领用。 |  | 设计原文「岗位资产配置标准」，b31.notes 沿原稿提议 AssetStandardIssuance；岗位指 position（岗位），不是 job_position（职位）。one-data 裁定（B31_PHYSICAL_MODEL_RULINGS §2）：配置不挂聚合，共用配置集根加版本头，各配置一张条目表；物理表 position_asset_standard_items。 |
 | `position_asset_standard_line` | 岗位资产配置标准行 | PositionAssetStandardLine | 领域 · organization.administration | 岗位资产配置标准中一个岗位对应的一行：资产类别、规格、数量与计量单位。 |  |  |
 | `over_entitlement` | 超配 | OverEntitlement | 领域 · organization.administration | 领用超出岗位资产配置标准；允许条件确认前一律拒绝领用，不新增领用审批，也不转人审。 |  | 备选英文 OverAllocation，但 Allocation 在词表中已指成本分摊。 |
 | `return_reminder` | 离职归还提醒 | ReturnReminder | 领域 · organization.administration | 员工离职生效满七个日历日仍有在用资产未归还时，对原组织单元负责人发出的非中断提醒；起算点固定，晚到与重试不重置，已归还不重建，不阻塞离职。 |  | 七个日历日已定；幂等键为聚合标识加固定到期时点。 |
 | `fault_description` | 故障描述 | FaultDescription | 领域 · organization.administration | 报修人对资产故障的文字描述。 |  |  |
 | `repair_result` | 维修结果 | RepairResult | 领域 · organization.administration | 登记维修结果时填写的结论：已修复或无法修复；是工单属性，不另设状态，无法修复不自动报废也不自动归还。 |  |  |
 | `employee_activity_participant` | 员工活动参与人 | EmployeeActivityParticipant | 领域 · organization.administration | 员工活动申请登记时列明的参与员工，登记后不可改；同一申请内参与人唯一。 |  | 词表中 task_participant（任务参与人，platform.approval）禁用了「参与人」，故本条全称登记，界面不得单写「参与人」。 |
-| `employee_activity_type` | 员工活动类型 | EmployeeActivityType | 领域 · organization.administration | 员工活动的类型清单（周年贺卡、节日活动、创新项目发布），独立版本化维护、只追加；新增类型须先确认规则。 |  | 设计把它列为 AGG-116 子表，但清单独立版本维护的写边界待 one-data 定稿，故暂登记为 entity；备选 aggregate。 |
+| `employee_activity_type` | 员工活动类型 | EmployeeActivityType | 领域 · organization.administration | 员工活动的类型清单（周年贺卡、节日活动、创新项目发布），独立版本化维护、只追加；新增类型须先确认规则。 |  | 设计把它列为 AGG-116 子表，但清单独立版本维护的写边界待 one-data 定稿，故暂登记为 entity；备选 aggregate。one-data 裁定（B31_PHYSICAL_MODEL_RULINGS §2）：配置不挂聚合，共用配置集根加版本头，各配置一张条目表；物理表 employee_activity_type_items。 |
 | `anniversary_card` | 周年贺卡 | AnniversaryCard | 领域 · organization.administration | 员工活动类型之一：全体正式员工满周年时由系统自动生成的贺卡活动。 |  | 自动生成作业需要按类型引用它，故需常量；其余两类（节日活动、创新项目发布）只是配置数据，不进代码。 |
 | `anniversary_date` | 周年日期 | AnniversaryDate | 领域 · organization.administration | 员工本次入职日期在某一年的对应日期；闰日入职在平年取 02-28，重新入职从本次入职重算。 |  | 依赖入职日期（hire_date），该词属 organization.workforce，词表尚未登记，见报告。 |
-| `anniversary_generation_plan` | 周年生成计划 | AnniversaryGenerationPlan | 领域 · organization.administration | B-31 自有、可重建的投影：记录人员事实引用、依据日期与版本及应生成时点，供周年生成作业扫描到期；不是业务聚合。 |  | 设计称「待生成投影」，表名列名待登记；备选 周年待生成投影 / AnniversaryDueProjection。 |
 | `activity_cost_estimate` | 活动费用预估 | ActivityCostEstimate | 领域 · organization.administration | 登记员工活动时必填并留底的预估金额，只留底、不核对预算；预算上线后另加检查。 |  | 金额按 Money 承载，列为金额加币种。 |
-| `contract_original_loan_record` | 合同原件借阅记录 | ContractOriginalLoanRecord | 领域 · organization.administration | 合同原件借出、归还与续借的记录：同一份原件同时只能有一笔未归还的借出，借出时填归还日；先行期记在行政事务，合同模块建成后按 INV-125 移交。 |  | bcs.yaml 登记合同借阅归 contract.agreement，而本设计 Q8 先记在 organization.administration，bc 归属请 one-glossary 与 one-architecture 判定；聚合稿称「协议原件借出」，本条按设计称「合同原件」。 |
+| `contract_original_loan_record` | 合同原件借阅记录 | ContractOriginalLoanRecord | 领域 · organization.administration | 合同原件借出、归还与续借的记录：同一份原件同时只能有一笔未归还的借出，借出时填归还日；先行期记在行政事务，合同模块建成后按 INV-125 移交。 |  | 放行政事务，按合同档案目标形状建；W3 移交 contract.agreement（B-31 裁定第 5 项，ADR-0074）。聚合稿称「协议原件借出」，本条按设计称「合同原件」。 |
 | `contract_original_loan_approval` | 合同原件借阅审批 | ContractOriginalLoanApproval | 领域 · organization.administration | 合同原件借出与续借经通用审批办理时使用的审批单据类型：合同经办部门负责人批，外借再加该公司负责人。 |  | 设计 §4.1 只列两个审批 doc_type，Q9、Q10 实际新增此类，需补入映射表。 |
 | `offsite_loan` | 外借 | OffsiteLoan | 领域 · organization.administration | 合同原件离开办公场所或交给外部人员的借阅，须写明用途、地点与携带人，另经该公司负责人批准。 |  |  |
 | `loan_renewal` | 续借 | LoanRenewal | 领域 · organization.administration | 借阅期满前经原批准人同意的一次续借，续借为新审批，每笔借阅至多一次。 |  |  |
@@ -321,9 +324,9 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 | `register_blank_page_pre_stamp` | 登记预盖空白页 | RegisterBlankPagePreStamp | 领域 · organization.administration | 投标用印经批准后登记预盖的空白页张数、用途、领用人、日期与编号。 |  |  |
 | `reclaim_blank_page_pre_stamp` | 收回预盖空白页 | ReclaimBlankPagePreStamp | 领域 · organization.administration | 预盖空白页用完后登记收回。 |  |  |
 | `void_blank_page_pre_stamp` | 作废预盖空白页 | VoidBlankPagePreStamp | 领域 · organization.administration | 预盖空白页未使用时当场记作废，不删除原登记。 |  |  |
-| `verify_legacy_approval` | 核对老系统批准页 | VerifyLegacyApproval | ACL（过渡期） · organization.administration | 行政核对老系统批准页与所填单号、份数是否一致并留痕（谁核、何时核）。 |  |  |
-| `record_transition_channel_review` | 登记过渡通道季度复核 | RecordTransitionChannelReview | ACL（过渡期） · organization.administration | 行政负责人完成季度复核待办并留下复核记录。 |  |  |
-| `record_transition_channel_spot_check` | 登记过渡通道月度抽检 | RecordTransitionChannelSpotCheck | ACL（过渡期） · organization.administration | 行政完成月度抽检待办并留下抽检结果。 |  |  |
+| `verify_prior_approval_page` | 核对既有审批页 | VerifyPriorApprovalPage | 领域 · organization.administration | 行政核对既有审批页与所填单号、份数是否一致并留痕（谁核、何时核）。 |  | 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10 |
+| `record_transition_channel_review` | 登记过渡通道季度复核 | RecordTransitionChannelReview | 领域 · organization.administration | 行政负责人完成季度复核待办并留下复核记录。 |  | 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10 |
+| `record_transition_channel_spot_check` | 登记过渡通道月度抽检 | RecordTransitionChannelSpotCheck | 领域 · organization.administration | 行政完成月度抽检待办并留下抽检结果。 |  | 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10 |
 | `administration_status__draft` | 草稿 | Draft | 领域 · organization.administration | 单据已起草、尚未提交的状态。 |  | 使用：用印申请、信息技术服务工单、资产领用与调拨申请、维修单、员工活动申请。 |
 | `administration_status__approved` | 已批准 | Approved | 领域 · organization.administration | 用印申请经审批或来源直通而获批准，或员工活动登记经规则校验通过。 |  | 使用：用印申请、员工活动申请。员工活动的「已批准」仅表达规则通过，不是人工批准，界面须说明。 |
 | `administration_status__withdrawn` | 已撤回 | Withdrawn | 领域 · organization.administration | 申请人或提出人在审批期撤回，本轮提前结束，可经同一提交命令重提。 |  | 使用：用印申请、信息技术服务工单。 |
@@ -338,7 +341,6 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 | `administration_status__converted_to_issue` | 已转领用 | ConvertedToIssue | 领域 · organization.administration | 调拨申请发现资产无当前使用人，改走领用。 |  | 使用：资产调拨申请。 |
 | `administration_status__in_use` | 在用 | InUse | 领域 · organization.administration | 使用期间尚未结束，资产仍由该使用人持有。 |  | 使用：资产使用期间。 |
 | `administration_status__ended` | 已结束 | Ended | 领域 · organization.administration | 使用期间因归还或调拨而结束。 |  | 使用：资产使用期间。 |
-| `administration_status__returned` | 已归还 | Returned | 领域 · organization.administration | 资产经归还命令结束使用期间；调拨结束不算归还。 |  | 使用：资产使用期间。 |
 | `administration_status__ended_by_return` | 因归还结束 | EndedByReturn | 领域 · organization.administration | 使用期间的结束原因：资产被归还。 |  | 使用：资产使用期间。风格同 permission_adjustment_status__closed_by_separation（因离职关闭）。 |
 | `administration_status__ended_by_transfer` | 因调拨结束 | EndedByTransfer | 领域 · organization.administration | 使用期间的结束原因：资产被调拨给他人。 |  | 使用：资产使用期间。 |
 | `administration_status__fault_reported` | 已报修 | FaultReported | 领域 · organization.administration | 维修单已登记故障，待登记维修结果。 |  | 使用：维修单。 |
@@ -350,7 +352,7 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 | `pre_stamp_status__reclaimed` | 已收回 | Reclaimed | 领域 · organization.administration | 预盖空白页用完后已登记收回。 |  |  |
 | `pre_stamp_status__voided` | 已作废 | Voided | 领域 · organization.administration | 预盖空白页未使用而作废，不删除。 |  |  |
 
-另有错误码 54 个（kind 为 `error_code`）、技术词 1 个（`common_words`），不在表中。
+另有错误码 50 个（kind 为 `error_code`）、技术词 1 个（`common_words`），不在表中。
 
 ## organization.attendance（`organization_attendance.yaml`）
 

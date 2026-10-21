@@ -1,5 +1,7 @@
 # B-31 行政事务（organization.administration）用语差距清单
 
+> 附录说明：本报告成文于 2026-10-21 的 one-architecture、one-data、one-rules 裁定之前，是只读核对的原始记录；裁定已吸收的结果见 `B31_CONTRACT.md` §6，数字与结论以契约文档和裁定文件为准。
+
 基线：origin/main 526a906a5。依据：`B31_CONSTRUCTION_DESIGN.md`（下称「设计」，行号为该文件行号）、`B31_RULES.yaml`、`terms.yaml`、`bcs.yaml`、`backend/glossary/proposed/*.yaml`、NAMING_STANDARD §2.1–2.4、§2.6、§3、§4。
 提议文件：`backend/glossary/proposed/organization-administration.yaml`（新建，未改任何已有文件；`proposed/README.md` 是生成产物，需 `python3 docs/modernization/build_all.py` 重新生成，我没有运行）。
 
