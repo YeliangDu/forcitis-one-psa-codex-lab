@@ -1,0 +1,467 @@
+# 由 panorama/scan_aggregates.py 生成，勿手改
+meta:
+  count: 15
+  code_only: 5
+  registry_only: 0
+  both: 10
+  sources:
+  - backend/src/main/java/com/forcitis/one
+  - backend/architecture/data-access-registry.yaml
+aggregates:
+- id: cost.timesheet/Timesheet
+  bc: cost.timesheet
+  root_class: backend/src/main/java/com/forcitis/one/cost/timesheet/domain/Timesheet.java
+  source:
+  - code
+  tables:
+  - cost_timesheet.timesheets
+  commands:
+  - ApplyApprovalResult
+  - CancelTimesheet
+  - GetTimesheet
+  - SubmitTimesheet
+  - WithdrawTimesheet
+  events:
+  - cost.timesheet.TimesheetApprovalWithdrawn
+  - cost.timesheet.TimesheetApproved
+  - cost.timesheet.TimesheetRejected
+  - cost.timesheet.TimesheetReturned
+  - cost.timesheet.TimesheetSubmitted
+- id: organization.attendance/WorkCalendarYear
+  bc: organization.attendance
+  root_class: backend/src/main/java/com/forcitis/one/organization/attendance/domain/WorkCalendarYear.java
+  source:
+  - code
+  - registry
+  tables:
+  - organization_attendance.work_calendar_days
+  - organization_attendance.work_calendar_years
+  commands:
+  - CalendarMaintenance
+  - WorkCalendarYearView
+  events:
+  - organization.attendance.WorkCalendarLockedDaysChanged
+  - organization.attendance.WorkCalendarYearMaintained
+- id: organization.workforce/LegalEntity
+  bc: organization.workforce
+  root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/LegalEntity.java
+  source:
+  - code
+  - registry
+  tables:
+  - organization_workforce.legal_entities
+  - organization_workforce.legal_entity_versions
+  commands:
+  - CreateLegalEntity
+  - LegalEntityView
+  - UpdateLegalEntity
+  events:
+  - organization.workforce.LegalEntityActivated
+  - organization.workforce.LegalEntityCodeCorrected
+  - organization.workforce.LegalEntityDeactivated
+  - organization.workforce.LegalEntityRegistered
+  - organization.workforce.LegalEntityRenamed
+  events_in_module:
+  - organization.workforce.EmployeeRegistered
+  - organization.workforce.LegalEntityActivated
+  - organization.workforce.LegalEntityAttributed
+  - organization.workforce.LegalEntityAttributionCorrected
+  - organization.workforce.LegalEntityAttributionEnded
+  - organization.workforce.LegalEntityCodeCorrected
+  - organization.workforce.LegalEntityDeactivated
+  - organization.workforce.LegalEntityRegistered
+  - organization.workforce.LegalEntityRenamed
+  - organization.workforce.OrgSnapshotChanged
+  - organization.workforce.SyncRunFailed
+  - organization.workforce.SyncRunHeld
+  - organization.workforce.SyncRunHoldReleased
+  - organization.workforce.SyncRunReleased
+  - organization.workforce.SyncRunSucceeded
+- id: organization.workforce/LegalEntityAttribution
+  bc: organization.workforce
+  root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/LegalEntityAttribution.java
+  source:
+  - code
+  - registry
+  tables:
+  - organization_workforce.employee_legal_entities
+  - organization_workforce.legal_entity_attribution_corrections
+  - organization_workforce.legal_entity_attributions
+  - organization_workforce.org_unit_legal_entities
+  commands:
+  - AttributeLegalEntity
+  - CorrectLegalEntityAttribution
+  - EndLegalEntityAttribution
+  - LegalEntityAttributionView
+  events:
+  - organization.workforce.LegalEntityAttributed
+  - organization.workforce.LegalEntityAttributionCorrected
+  - organization.workforce.LegalEntityAttributionEnded
+  events_in_module:
+  - organization.workforce.EmployeeRegistered
+  - organization.workforce.LegalEntityActivated
+  - organization.workforce.LegalEntityAttributed
+  - organization.workforce.LegalEntityAttributionCorrected
+  - organization.workforce.LegalEntityAttributionEnded
+  - organization.workforce.LegalEntityCodeCorrected
+  - organization.workforce.LegalEntityDeactivated
+  - organization.workforce.LegalEntityRegistered
+  - organization.workforce.LegalEntityRenamed
+  - organization.workforce.OrgSnapshotChanged
+  - organization.workforce.SyncRunFailed
+  - organization.workforce.SyncRunHeld
+  - organization.workforce.SyncRunHoldReleased
+  - organization.workforce.SyncRunReleased
+  - organization.workforce.SyncRunSucceeded
+- id: organization.workforce/RegisteredEmployee
+  bc: organization.workforce
+  root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/RegisteredEmployee.java
+  source:
+  - code
+  tables: []
+  commands:
+  - PersistRegisteredEmployee
+  events:
+  - organization.workforce.EmployeeRegistered
+  events_in_module:
+  - organization.workforce.EmployeeRegistered
+  - organization.workforce.LegalEntityActivated
+  - organization.workforce.LegalEntityAttributed
+  - organization.workforce.LegalEntityAttributionCorrected
+  - organization.workforce.LegalEntityAttributionEnded
+  - organization.workforce.LegalEntityCodeCorrected
+  - organization.workforce.LegalEntityDeactivated
+  - organization.workforce.LegalEntityRegistered
+  - organization.workforce.LegalEntityRenamed
+  - organization.workforce.OrgSnapshotChanged
+  - organization.workforce.SyncRunFailed
+  - organization.workforce.SyncRunHeld
+  - organization.workforce.SyncRunHoldReleased
+  - organization.workforce.SyncRunReleased
+  - organization.workforce.SyncRunSucceeded
+- id: organization.workforce/SyncRun
+  bc: organization.workforce
+  root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/SyncRun.java
+  source:
+  - code
+  - registry
+  tables:
+  - organization_workforce.sync_diffs
+  - organization_workforce.sync_run_held_separations
+  - organization_workforce.sync_runs
+  commands:
+  - ApplySourceSnapshot
+  - BeginSyncRun
+  - FailSyncRun
+  - RecordSyncRunRelease
+  - ReleaseSyncRun
+  - ReleaseSyncRunHolds
+  events:
+  - organization.workforce.OrgSnapshotChanged
+  - organization.workforce.SyncRunFailed
+  - organization.workforce.SyncRunHeld
+  - organization.workforce.SyncRunHoldReleased
+  - organization.workforce.SyncRunReleased
+  - organization.workforce.SyncRunSucceeded
+  events_in_module:
+  - organization.workforce.EmployeeRegistered
+  - organization.workforce.LegalEntityActivated
+  - organization.workforce.LegalEntityAttributed
+  - organization.workforce.LegalEntityAttributionCorrected
+  - organization.workforce.LegalEntityAttributionEnded
+  - organization.workforce.LegalEntityCodeCorrected
+  - organization.workforce.LegalEntityDeactivated
+  - organization.workforce.LegalEntityRegistered
+  - organization.workforce.LegalEntityRenamed
+  - organization.workforce.OrgSnapshotChanged
+  - organization.workforce.SyncRunFailed
+  - organization.workforce.SyncRunHeld
+  - organization.workforce.SyncRunHoldReleased
+  - organization.workforce.SyncRunReleased
+  - organization.workforce.SyncRunSucceeded
+- id: platform.approval/ApprovalRequest
+  bc: platform.approval
+  root_class: backend/src/main/java/com/forcitis/one/platform/approval/domain/ApprovalRequest.java
+  source:
+  - code
+  - registry
+  tables:
+  - platform_approval.approval_requests
+  - platform_approval.approval_task_records
+  - platform_approval.approval_tasks
+  - platform_approval.start_rounds
+  commands:
+  - Approvals
+  - ClaimTask
+  - DecideTasks
+  - ReassignTask
+  - RefuseApprovalStart
+  - ReleaseTask
+  - Retraction
+  - ReturnToInitiator
+  - StartApproval
+  - TaskDeadline
+  - TaskRegistrar
+  - TransferTask
+  events: []
+  events_in_module:
+  - platform.approval.ApprovalCompleted
+  - platform.approval.ApprovalRoundStarted
+  - platform.approval.ApprovalTaskBecameOverdue
+  - platform.approval.ApprovalTaskEscalated
+  - platform.approval.DocumentSubmittedForApproval
+  - platform.approval.TaskAssigned
+  - platform.approval.TaskClaimed
+  - platform.approval.TaskClosed
+  - platform.approval.TaskHandled
+  - platform.approval.TaskReassigned
+  - platform.approval.TaskReleased
+  - platform.approval.TaskTransferred
+- id: platform.identity/AuthorizationRequest
+  bc: platform.identity
+  root_class: backend/src/main/java/com/forcitis/one/platform/identity/domain/AuthorizationRequest.java
+  source:
+  - code
+  - registry
+  tables:
+  - platform_identity.authorization_requests
+  commands:
+  - ApplyConfirmedAuthorization
+  - AuthorizationGate
+  - AuthorizationRequestView
+  - ConfirmAuthorizationRequest
+  - RejectAuthorizationRequest
+  events:
+  - platform.identity.AuthorizationConfirmed
+  - platform.identity.AuthorizationOpened
+  - platform.identity.AuthorizationRejected
+  events_in_module:
+  - platform.identity.AccountDisabled
+  - platform.identity.AccountEnabled
+  - platform.identity.AccountOpened
+  - platform.identity.AccountRolesReplaced
+  - platform.identity.AccountSeparated
+  - platform.identity.AuthorizationConfirmed
+  - platform.identity.AuthorizationOpened
+  - platform.identity.AuthorizationRejected
+  - platform.identity.EmergencyAdminCredentialsReset
+  - platform.identity.EmergencyAdminDisabled
+  - platform.identity.EmergencyAdminEnabled
+  - platform.identity.EmergencyAdminRegistered
+  - platform.identity.RoleCreated
+  - platform.identity.RoleDeleted
+  - platform.identity.RoleDisabled
+  - platform.identity.RoleEnabled
+  - platform.identity.RoleRevised
+- id: platform.identity/EmergencyAdmin
+  bc: platform.identity
+  root_class: backend/src/main/java/com/forcitis/one/platform/identity/domain/EmergencyAdmin.java
+  source:
+  - code
+  - registry
+  tables:
+  - platform_identity.emergency_admins
+  commands:
+  - DisableEmergencyAdmin
+  - DisableEmergencyAdminOnSeparation
+  - EmergencyBinding
+  - EnableEmergencyAdmin
+  - LoginAsEmergencyAdmin
+  - ReconcileEmergencyAdmins
+  - RegisterEmergencyAdmin
+  - ResetEmergencyAdminCredentials
+  - SessionPrincipals
+  events:
+  - platform.identity.EmergencyAdminCredentialsReset
+  - platform.identity.EmergencyAdminDisabled
+  - platform.identity.EmergencyAdminEnabled
+  - platform.identity.EmergencyAdminRegistered
+  events_in_module:
+  - platform.identity.AccountDisabled
+  - platform.identity.AccountEnabled
+  - platform.identity.AccountOpened
+  - platform.identity.AccountRolesReplaced
+  - platform.identity.AccountSeparated
+  - platform.identity.AuthorizationConfirmed
+  - platform.identity.AuthorizationOpened
+  - platform.identity.AuthorizationRejected
+  - platform.identity.EmergencyAdminCredentialsReset
+  - platform.identity.EmergencyAdminDisabled
+  - platform.identity.EmergencyAdminEnabled
+  - platform.identity.EmergencyAdminRegistered
+  - platform.identity.RoleCreated
+  - platform.identity.RoleDeleted
+  - platform.identity.RoleDisabled
+  - platform.identity.RoleEnabled
+  - platform.identity.RoleRevised
+- id: platform.identity/Role
+  bc: platform.identity
+  root_class: backend/src/main/java/com/forcitis/one/platform/identity/domain/Role.java
+  source:
+  - code
+  - registry
+  tables:
+  - platform_identity.role_permissions
+  - platform_identity.role_versions
+  - platform_identity.roles
+  commands:
+  - AdministratorSeparationReview
+  - CreateRole
+  - DeleteRole
+  - ForceUserLogout
+  - GrantRoleByOperations
+  - ReplaceAccountRoles
+  - RevokeRoleByOperations
+  - RoleView
+  - UpdateRole
+  events:
+  - platform.identity.RoleCreated
+  - platform.identity.RoleDeleted
+  - platform.identity.RoleDisabled
+  - platform.identity.RoleEnabled
+  - platform.identity.RoleRevised
+  events_in_module:
+  - platform.identity.AccountDisabled
+  - platform.identity.AccountEnabled
+  - platform.identity.AccountOpened
+  - platform.identity.AccountRolesReplaced
+  - platform.identity.AccountSeparated
+  - platform.identity.AuthorizationConfirmed
+  - platform.identity.AuthorizationOpened
+  - platform.identity.AuthorizationRejected
+  - platform.identity.EmergencyAdminCredentialsReset
+  - platform.identity.EmergencyAdminDisabled
+  - platform.identity.EmergencyAdminEnabled
+  - platform.identity.EmergencyAdminRegistered
+  - platform.identity.RoleCreated
+  - platform.identity.RoleDeleted
+  - platform.identity.RoleDisabled
+  - platform.identity.RoleEnabled
+  - platform.identity.RoleRevised
+- id: platform.identity/UserAccount
+  bc: platform.identity
+  root_class: backend/src/main/java/com/forcitis/one/platform/identity/domain/UserAccount.java
+  source:
+  - code
+  - registry
+  tables:
+  - platform_identity.account_role_grants
+  - platform_identity.account_roles
+  - platform_identity.user_accounts
+  commands:
+  - AccountProvisioning
+  - ChangeAccountStatus
+  - ConfirmAuthorizationRequest
+  - EmergencyBinding
+  - GetUserAccount
+  - GrantRoleByOperations
+  - HandleOrgSnapshotChange
+  - LoginAdmission
+  - LoginAsEmergencyAdmin
+  - ReconcileEmergencyAdmins
+  - ReplaceAccountRoles
+  - RevokeRoleByOperations
+  - SessionPrincipals
+  events:
+  - platform.identity.AccountDisabled
+  - platform.identity.AccountEnabled
+  - platform.identity.AccountOpened
+  - platform.identity.AccountRolesReplaced
+  - platform.identity.AccountSeparated
+  events_in_module:
+  - platform.identity.AccountDisabled
+  - platform.identity.AccountEnabled
+  - platform.identity.AccountOpened
+  - platform.identity.AccountRolesReplaced
+  - platform.identity.AccountSeparated
+  - platform.identity.AuthorizationConfirmed
+  - platform.identity.AuthorizationOpened
+  - platform.identity.AuthorizationRejected
+  - platform.identity.EmergencyAdminCredentialsReset
+  - platform.identity.EmergencyAdminDisabled
+  - platform.identity.EmergencyAdminEnabled
+  - platform.identity.EmergencyAdminRegistered
+  - platform.identity.RoleCreated
+  - platform.identity.RoleDeleted
+  - platform.identity.RoleDisabled
+  - platform.identity.RoleEnabled
+  - platform.identity.RoleRevised
+- id: platform.integration/OutboundDelivery
+  bc: platform.integration
+  root_class: backend/src/main/java/com/forcitis/one/platform/integration/domain/OutboundDelivery.java
+  source:
+  - code
+  tables:
+  - platform_integration.outbound_deliveries
+  commands:
+  - DeliverWecomCards
+  - MarkWecomCardHandled
+  - QueueWecomCard
+  events: []
+  events_in_module:
+  - platform.integration.SourceReferenceConfirmed
+  - platform.integration.SourceReferenceRefused
+  - platform.integration.SourceReferenceRegistered
+  - platform.integration.SourceReferenceRejected
+  - platform.integration.SourceReferenceSuperseded
+- id: platform.integration/SourceReference
+  bc: platform.integration
+  root_class: backend/src/main/java/com/forcitis/one/platform/integration/domain/SourceReference.java
+  source:
+  - code
+  - registry
+  tables:
+  - platform_integration.source_references
+  commands:
+  - AllocateOwnId
+  - ConfirmSourceReference
+  - ListSourceReferences
+  - RegisterSourceReference
+  - RejectSourceReference
+  - SourceReferenceView
+  events:
+  - platform.integration.SourceReferenceConfirmed
+  - platform.integration.SourceReferenceRegistered
+  - platform.integration.SourceReferenceRejected
+  - platform.integration.SourceReferenceSuperseded
+  events_in_module:
+  - platform.integration.SourceReferenceConfirmed
+  - platform.integration.SourceReferenceRefused
+  - platform.integration.SourceReferenceRegistered
+  - platform.integration.SourceReferenceRejected
+  - platform.integration.SourceReferenceSuperseded
+- id: platform.integration/SourceReferenceRefusal
+  bc: platform.integration
+  root_class: backend/src/main/java/com/forcitis/one/platform/integration/domain/SourceReferenceRefusal.java
+  source:
+  - code
+  tables: []
+  commands:
+  - RecordSourceReferenceRefusal
+  events:
+  - platform.integration.SourceReferenceRefused
+  events_in_module:
+  - platform.integration.SourceReferenceConfirmed
+  - platform.integration.SourceReferenceRefused
+  - platform.integration.SourceReferenceRegistered
+  - platform.integration.SourceReferenceRejected
+  - platform.integration.SourceReferenceSuperseded
+- id: platform.numbering/NumberingRule
+  bc: platform.numbering
+  root_class: backend/src/main/java/com/forcitis/one/platform/numbering/domain/NumberingRule.java
+  source:
+  - code
+  tables:
+  - platform_numbering.numbering_rule_versions
+  - platform_numbering.numbering_rules
+  commands:
+  - CheckCounterCapacity
+  - ConfigureNumberingRule
+  - ConfirmNumberingRule
+  - ConfirmNumberingRuleByFinance
+  - IssueDocumentNumber
+  - NumberingRuleViews
+  events:
+  - platform.numbering.NumberingRuleConfirmationGiven
+  - platform.numbering.NumberingRuleConfirmed
+  - platform.numbering.NumberingRuleReconfigured
