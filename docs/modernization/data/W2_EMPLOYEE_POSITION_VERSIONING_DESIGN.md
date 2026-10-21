@@ -133,7 +133,7 @@ CREATE INDEX ix_employee_versions_separated_effective_from_date ON organization_
 
 - 根表 `positions` 留：`id`、`created_at`、`updated_at`、`version`；`code`、`name`、`sort_order`、`status` 进版本表（与 `org_unit_versions` 同法）。
 - `position_versions`：`position_version_id`、`position_id`（外键）、第 2 节通用列、`code`（可空，长度 ≤ 500 非空白）、`name`（≤ 500 非空白）、`sort_order`、`status`。
-- **岗位状态（W-16）**：取值 `ACTIVE`、`DISABLED`；**不再沿用 `DELETED`**（那是同步「组织源删除或不再返回」的语义，基线 :19）。ADR-0068 第 4 条岗位只做新建与停用，与之对齐；岗位与组织单元命令同表 `org_structure_commands`（`target_kind` 取 `ORG_UNIT` / `POSITION`，ADR-0068 H4，已获采纳，纳入签发范围，DDL 草案待补，要求见 `reviews/ADR-0068.md` 第三轮）：`position_versions`、`org_unit_versions` 用 `change_org_structure_command_id` 指向它（同 schema 真外键，与 `change_command_id` 二者对 `COMMAND` 行恰有一个非空）；该表建成前 `COMMAND` 行不可写，只有 `MIGRATION` 行。
+- **岗位状态（W-16）**：取值 `ACTIVE`、`DISABLED`；**不再沿用 `DELETED`**（那是同步「组织源删除或不再返回」的语义，基线 :19）。ADR-0068 第 4 条岗位只做新建与停用，与之对齐；岗位与组织单元命令同表 `org_structure_commands`（`target_kind` 取 `ORG_UNIT` / `POSITION`，ADR-0068 H4，已获采纳；DDL 草案 @23401a91 已过 one-data 审，见 `reviews/ADR-0068.md` 第四轮）：`position_versions`、`org_unit_versions` 用 `change_org_structure_command_id` 指向它（同 schema 真外键，与 `change_command_id` 二者对 `COMMAND` 行恰有一个非空）；`org_unit_versions`、`position_versions` 各加一列 `change_org_structure_command_id uuid`（`COMMAND` 行必填、`MIGRATION` 行为空）；员工、任职、员工法人归属版本表仍用 `change_command_id`，两类列不同表，不需要互斥约束。
 - **岗位编码全公司唯一**（用户 2026-10-21 已定）：`position_versions.code` 可空；`uk_position_versions_code` 为部分唯一索引 `UNIQUE (code) WHERE code IS NOT NULL AND superseded_at IS NULL`（作废行不占编码）；**编码永不复用**——岗位撤销时保留编码、状态置 `DISABLED`，不过滤状态，停用岗位仍占编码；更名不换编码；另有守护测试断言「用过的编码不会出现在另一个岗位的任何版本里」（含已作废行，作废行不在索引内，由守护兜底）。
 
 ### 3.4 assignment_versions 与 assignments 去除（复核 2.1，结论：去除）
@@ -151,7 +151,7 @@ CREATE INDEX ix_employee_versions_separated_effective_from_date ON organization_
 `employee_legal_entities`、`org_unit_legal_entities`（均 DIMENSION_VERSIONED）现状：无修订号，唯一键 `(主体, effective_from_date)`，区间 CHECK 为 `>`，更正走覆盖表 `legal_entity_attribution_corrections`（DATA-RULE-07、RULE-416）。改动（W2 同批）：
 - 加第 2 节通用列：`closed_at`、`superseded_at`、`superseding_command_id`、`corrected_from_version_id`、`change_channel_kind`、`change_command_id`、`version_audit_entry_id`。
 - 唯一键 `uk_*_effective_from (主体, effective_from_date)` 改为**部分唯一** `… WHERE superseded_at IS NULL`（这两张表没有 `revision_number`，用部分唯一代替）；`ex_*_overlap` 加 `WHERE (superseded_at IS NULL)`；区间 CHECK 仍为 `>`（空区间不再需要，更正走作废）。
-- `change_command_id`：`employee_legal_entities` → `personnel_commands`（真外键）；`org_unit_legal_entities` 对应组织单元命令表，等 ADR-0068 第 4 条批准，期间 `COMMAND` 行不可写，只有 `MIGRATION` 行（同岗位版本）。
+- `change_command_id`：`employee_legal_entities` → `personnel_commands`（真外键）；`org_unit_legal_entities` → `change_org_structure_command_id` 指 `org_structure_commands`。**待 one-architecture 答**：法人归属期间（OBJ-55/56 的关系）的维护目前不在两张命令表的命令种类里（人事命令无归属种类，组织结构命令也没有 `ASSIGN_LEGAL_ENTITY`），要么给 `org_structure_commands` / `personnel_commands` 增加归属种类，要么承认归属维护走它自己的聚合与命令（RULE-416 的更正路径）；答复前这两张表的 `COMMAND` 行不可写，只有 `MIGRATION` 行。
 - 覆盖表 `legal_entity_attribution_corrections` 暂留作更正记录（原因、操作者），新写入的更正同时指向被作废行；收口由 K-2 承接（S-02）。
 - 触发器放行列同第 2 节参数化。
 
