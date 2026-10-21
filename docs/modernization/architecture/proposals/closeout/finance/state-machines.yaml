@@ -1283,36 +1283,36 @@ machines:
     note: 过账不改业务状态
   reversal_note: 已过账行的更正以冲销并重过账在开放期间追加新行表达（ADR-0045），原行状态不变
 - aggregate: AGG-90
-  initial: 已生成
+  initial: 待申报
   states:
-  - 已生成
-  - 已提交
+  - 待申报
+  - 已申报
   - 已缴款
   - {name: 已更正, terminal: true}
   transitions:
   - from: null
-    to: 已生成
+    to: 待申报
     command: 生成申报
     guard: []
     reverse_of: null
-  - from: 已生成
-    to: 已提交
+  - from: 待申报
+    to: 已申报
     command: 提交申报
     guard: [复核通过（SH-M1）]
     reverse_of: null
-  - from: 已生成
-    to: 已生成
+  - from: 待申报
+    to: 待申报
     command: null
     guard: []
     reverse_of: 提交申报
     on_event: 审批已驳回
     note: 复核驳回，退回重新生成
-  - from: 已提交
+  - from: 已申报
     to: 已缴款
     command: 登记缴款
     guard: []
     reverse_of: null
-  - from: [已提交, 已缴款]
+  - from: [已申报, 已缴款]
     to: 已更正
     command: 更正申报
     guard: [更正产生新申报，原申报标已更正]

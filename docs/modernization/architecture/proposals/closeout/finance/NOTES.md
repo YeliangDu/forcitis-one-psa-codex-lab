@@ -360,6 +360,8 @@ SQ-01–SQ-33 已由 S-31 裁定：采纳或改写 23 条，已覆盖 3 条（SQ
 | 登记外部记账确认 | accounting.ledger | S-30 ② 命令（原已在上表，现入骨架 PRC-93 步 3） | 交 one-glossary |
 | 标记成本结转已过账 | cost.costing | S-30 ① 命令（N7 定稿后与薪酬「标记薪酬已过账」分名） | 交 one-glossary |
 | 占用预算 | operations.planning（B-18，他组 AGG-80） | N7 定稿（NM6-07#7，原「预算占用」），本组 PRC-70、87 经 api 调用 | 交 one-glossary |
+| 待申报、已申报 | accounting.tax | AGG-90 法定申报（OBJ-92）状态，取代旧称「已生成」「已提交」（transition-review CF-033；one-glossary 暂定通过，待用户认可） | 交 one-glossary |
+| 登记进项发票入账（RegisterInputInvoicePosting） | accounting.tax | AGG-89 提议命令：占用方过账后登记进项发票在税务平台的入账状态（CF-032；one-glossary 暂定通过，动词「登记」按 V001） | 交 one-glossary |
 | 重提过账候选、登记拒收处置结论 | operations.facts | S-29 SQ-41 命令（PRC-158） | 交 one-glossary |
 | 付款已退票、资金账户已解冻、外部法定账记账回执已到达 | 各 BC | 事件名；回执为 platform.integration 事件 | 交 one-glossary |
 | 已冲销、已退票、已撤销、已作废、挂起、部分实缴、待确认开立、待确认销户、已生成 | 各 BC | 状态值；「已冲销」用于运行单据，「已取代」只用于版本化配置（S-30 ③） | 交 one-glossary |
