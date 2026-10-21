@@ -14,6 +14,7 @@
 - **ADR-0073 后续**：#501→#506→#508 须 one-architecture 逐个改基 main 后入队；ARC-1021-ARC-06 归 one-architecture（网络第一批后）；IMP-1021-ARC-01 挂到 W2 人事命令上线；DAT-1021-ARC-02 等收件箱「老系统法人维度」用户答复后派 one-data。
 - **本机性能（intent 2026-10-21-171238）**：监测结论——负载尖峰全来自推送前门禁 light_unit_tests（scripts/precheck.sh:360 推送模式不分改动都编译跑约 200 个单测，每次 5～6 核、约 4.8 GB）。one-quality 清空后第一优先：①没改 backend/ 跳过单测；②全机重活并发上限 2（锁）；③taskpolicy -b。CI 机器不减（用户「4 不做」）。工作区已清 109 个（60→37 GB）。纯文档合入不算代码 PR 落后（intent 2026-10-21-172506，one-merge 评估后改 mq.py）。one-quality 另加：队列不被非必需检查（assertion drift 僵尸作业，10-21 卡 30 分钟）卡住。用户自己在 Spotlight 隐私里排除仓库与 ~/.m2。
 - **网络第一批**：四卡完成（claude/one-architecture-network-batch1 @c01ad708），等 adr-governance 文档合集进 main 后开 PR；INV-62 与 ex_assignment_versions_overlap 不一致已交 one-1a-par W2 待办；U10（catalog 补 0052–0070）按 build_adrs.py:298 新格式不进 catalog，待用户确认视为已满足；第二批派工卡 one-architecture 起草中。
+- **攒着随确认页改版问用户**：RULE-265（无登录定时任务如何发起审批）、RULE-311（钩子与业务处理先后）、one-rules 新卡 9 张 Needs decision、revenue 终止/取消项目是否需上级复核、people「经营复盘」「经营动作」是否新立对象（OTR-876～884，VS-09.3 门 MS-22）。
 - **收件箱 pending**：ADR-0073 U3/U4（关账期间错误处置、会签逾期升级对象）。
 - **调度自检补充**：验收裁定登记后立即加急合集（守护只认 main 上的裁定）；通知用户重启前查 ps 常驻进程与会话 Monitor；有条件批准时实现会话报条件满足即可入队。
 - 不得再犯：沿用下方旧条目（会话身份、原话核对、答复读备注、脚本统计先验证等）。
