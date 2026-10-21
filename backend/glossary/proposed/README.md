@@ -227,7 +227,10 @@ NITS-1 项5 新增的标识符（proposed）。登记会话：one-1a-next-5，20
 
 organization.attendance 提议术语（proposed，待业务评审，ADR-0018）。
 
-无错误码以外的术语。
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `official_notice` | 官方通知 | OfficialNotice | 领域 · organization.attendance | 国家或地方政府发布的放假与调休安排通知，以文号和链接标识；工作日历版本确认时必须挂上（IMP-1021-PAR-02，one-data 审查 WORK-CALENDAR-DDL-2026-10-21 更正三、五） |  | 列名 official_notice_number、official_notice_url 用此词，暂名，待 one-glossary 定名 |
+| `make_up_workday_cancelled` | 调休上班日取消 | MakeUpWorkdayCancelled | 领域 · organization.attendance | 官方安排的调休上班日被公司取消、按普通周末休息计的例外日取值；必须是周六或周日，依据为公司加休或手工更正并写明取消的是哪份官方通知里的哪个调休（IMP-1021-PAR-02，更正六） |  | 暂名，待 one-glossary 定名 |
 
 另有错误码 8 个（kind 为 `error_code`）、技术词 8 个（`common_words`），不在表中。
 

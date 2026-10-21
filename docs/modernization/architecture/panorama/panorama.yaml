@@ -43,7 +43,7 @@ meta:
     agg: 145
     bc: 50
     sd: 13
-    table: 53
+    table: 56
     rule: 512
     ep: 601
     tc: 1132
@@ -110,7 +110,7 @@ meta:
         covers: 1
     表→聚合:
       covered: 20
-      total: 20
+      total: 22
       via:
         built: 20
         panorama: 0
@@ -14557,6 +14557,27 @@ nodes:
       role: AGGREGATE_CHILD
       registered: true
       registered_aggregate: WorkCalendarYear
+    organization_attendance.work_calendars:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/organization_attendance.work_calendars
+      role: CONFIG_VERSIONED
+      registered: true
+      registered_aggregate: WorkCalendar
+    organization_attendance.work_calendar_versions:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/organization_attendance.work_calendar_versions
+      role: AGGREGATE_CHILD
+      registered: true
+      registered_aggregate: WorkCalendar
+    organization_attendance.work_calendar_version_days:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/organization_attendance.work_calendar_version_days
+      role: AGGREGATE_CHILD
+      registered: true
+      registered_aggregate: WorkCalendar
     organization_workforce.positions:
       aggregates: []
       sources:

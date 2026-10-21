@@ -81,13 +81,13 @@ COMMENT ON COLUMN organization_attendance.work_calendar_versions.year_number IS 
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.version_number IS '版本号：同一日历同一年份从 1 起逐个加 1；迁入版本恒为 1';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.confirmation_status IS '确认状态：PENDING_CONFIRMATION 待确认（不生效，同一日历同一年份至多一个）/ CONFIRMED 已确认（生效，按生效区间取用）；只能由待确认改成已确认';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.source_kind IS '来源类别：AUTHORED 界面或运维起草（有作者，确认人不得是作者）/ MIGRATION 迁入（作者与确认人为空，只能由库的属主身份写入，恒为第 1 版）';
-COMMENT ON COLUMN organization_attendance.work_calendar_versions.effective_from_date IS '生效起始日（含）：此日及以后取本版本；第 1 版以外的版本不得早于确认日，且此日之前的例外日必须与上一版本一致（不追溯）';
+COMMENT ON COLUMN organization_attendance.work_calendar_versions.effective_from_date IS '生效日（含）：此日及以后取本版本；第 1 版以外的版本不得早于确认日，且此日之前的例外日必须与上一版本一致（不追溯）';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.effective_to_date IS '生效截止日（不含）；为空表示仍然开放。下一版本确认时由库自动关闭上一版本，其余时候不可改';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.authored_by IS '作者的用户账号 ID；来源为迁入时为空（迁入没有作者）';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.authored_at IS '起草时间；与作者同时有、同时空';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.confirmed_by IS '确认人的用户账号 ID；确认前为空，来源为迁入时始终为空（签字人由确认的审计记录追溯）；不得等于作者';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.confirmed_at IS '确认时间；确认前为空表示尚未确认';
-COMMENT ON COLUMN organization_attendance.work_calendar_versions.decision_audit_entry_id IS '决定出处：确认操作的审计记录 ID（迁入版本指核对签字的审计记录）；确认前为空表示尚未确认，跨 schema 只按 ID 引用，不建外键';
+COMMENT ON COLUMN organization_attendance.work_calendar_versions.decision_audit_entry_id IS '决定审计记录：确认操作的审计记录 ID（迁入版本指核对签字的审计记录）；确认前为空表示尚未确认，跨 schema 只按 ID 引用，不建外键';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.official_notice_number IS '官方通知文号；起草时可为空表示尚未挂，确认时必填';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.official_notice_url IS '官方通知链接（https）；起草时可为空表示尚未挂，确认时必填';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.company_leave_register_kind IS '公司加休登记类别：REGISTERED 已登记（见登记键）/ NONE 登记为没有加休；为空表示尚未登记（确认时必填）。有公司加休或取消调休的日期时只能是 REGISTERED';
