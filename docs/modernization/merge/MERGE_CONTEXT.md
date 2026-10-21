@@ -25,6 +25,11 @@
 
 - Monitor 两个（30 分钟到期重挂）：`merge.log` 关键事件（MERGED|CONFLICT|HOLD|ERROR|PAUSED|WAIT-SIGNAL）；main 上 ci 红运行。
 
+## 分支清理（用户 2026-10-21 起归 one-merge，intent 2026-10-21-191158）
+
+- 每周例行：删已在 main、无工作区占用、无在开 PR 的分支；本地先 `git branch -d`，被拒的逐个核 `merge-base --is-ancestor <分支> origin/main` 为真才 `-D`；远端经 `gh api -X DELETE .../git/refs/heads/<分支>`。
+- 未合入的远端分支逐个问负责会话再定。2026-10-21 首轮：本地 794 个、远端 506 个已清。
+
 ## 坑
 
 - 工作流文件的 PR：gh 令牌无 workflow 权限，队列改走 ssh 本地合并。
