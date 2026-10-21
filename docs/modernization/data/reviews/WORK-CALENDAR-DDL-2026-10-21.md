@@ -63,3 +63,10 @@
 - 表结构 PR 须带预期表结构 diff；我复核实际 diff 后按 DD 门禁签发「数据设计：通过」，未见实际 diff 前不签。
 - **谁负责保障**：设计与签发 one-data；实现 one-1a-par（Flyway 追加迁移，注册表、守护测试随之改）；库内护栏的守护**更正**（原稿说 M4 查作者、确认人、`decision_ref`，不实）：`measurable_ddl_scan.py` 不在 main，M4 只查「主数据须有版本表」，不查这些列。现在的守护是：实现方写集成测试，断言作者、确认人、`decision_ref` 列非空与四眼 CHECK、早于生效日的差异被拒、改删被拒；我在签发前逐条核对实际 diff；扫描脚本是否扩查这些列另议，不作为本次签发依据。基线 V20261014141000 属已合并的开放基线（ADR-0038）：开放期内可直接改基线文件，否则追加迁移，由 one-1a-par 与 one-coordinator 按 ADR-0038 选择，本审不限定。
 - 业务边界（谁有权确认日历、官方通知如何登记）归 one-architecture/用户，与本审的结构要求分开。
+
+## 更正二（2026-10-21，答 one-1a-par 与 one-architecture 裁定不一致）
+
+1. **待确认状态留在版本表**：同意（`numbering_rule_versions` 先例，免 attendance→approval 依赖）。版本表加 `confirmation_status`（`PENDING_CONFIRMATION`、`CONFIRMED`），确认三列（`confirmed_by`、`confirmed_at`、`decision_ref`）确认前为空、确认后非空（具名 CHECK 联动）；触发器只放行 `PENDING_CONFIRMATION → CONFIRMED` 且只改这三列与状态，禁删禁清空；`state_transitions` 登记该流转（ADR-0058）。原稿「版本行只在确认通过时插入、无可变状态」作废；日期表仍全程只追加，且只能在版本为待确认时插入、确认后拒绝再插（触发器）。
+2. **`decision_ref`** 取「确认操作的审计记录 ID」：同意（`text`，确认后非空）。
+3. **迁入行的人**：采纳 one-architecture 的放宽——`source_kind = MIGRATION` 时 `authored_by`、`confirmed_by` 可空；非 MIGRATION 时二者非空且不同（具名 CHECK）。条件是 MIGRATION 行的 `decision_ref` 仍非空，指向核对签字的审计记录，签字人由审计记录追溯。原稿「作者=装载主体、确认人=签字人」撤回。
+4. **批次引用**：**不采纳**加批次引用列。理由：ADR-0036 第 3、7 条与 SESSION_PLAYBOOK §14.2 M5 已采纳「批次挂在来源对照上，业务表不加批次列」，我无权在表结构审里放宽；one-architecture 若要改须先修订 ADR-0036。满足「可追到迁入批次」的做法：迁入版本在 `platform_integration.source_references` 有对照行（带批次列），由迁入测试断言每个 MIGRATION 版本都有对照行；`source_reference`（通知文号）对 MIGRATION 为空。
