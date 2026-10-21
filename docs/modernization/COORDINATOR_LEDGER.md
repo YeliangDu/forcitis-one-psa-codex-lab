@@ -52,6 +52,7 @@
 - 他人转达的用户原话先核实；用户决定当场记 intent（`new_intent.py --session=one-coordinator`）。全程中文。
 
 ## 会话
+- 10-21 15:09 上下文交接钩子在 one-coordinator、one-ops 实测生效（会话名正确识别）；试点一天后推全部会话。要点：app 读主检出的 .claude/settings.json，钩子 PR 合入后须快进主检出并重启 app；app 重启会结束所有由会话拉起的进程（含 mq.py），launchd 方案待 one-merge 出、问用户。用户「先解决钩子问题，再开展工作」的暂停于此解除。
 - 10-21 归档：one-ops-calendar（日历导入完）、psa-gl-finance-review、psa-gl-scope（未推送提交备份到 origin/claude/psa-gl-scope @1b5cc823）、psa-review-quotation、psa-review-approval。one-arch-revenue/people/finance 用户定保留（「后面流程还用得到」）。
 - 画像与当前状态见 `SESSIONS.md`（`build_all.py` 生成；画像 `sessions/<会话名>.md`，已结束的在 `sessions/_retired.md`）；实时情况看 `ListAgents`（SESSION_PLAYBOOK §2.1 第 16 条）。
 
