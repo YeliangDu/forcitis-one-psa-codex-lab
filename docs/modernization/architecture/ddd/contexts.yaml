@@ -135,7 +135,7 @@ contexts:
   zh: 文件服务
   subdomain: platform
   kind: platform
-  status: planned
+  status: built
   schema: platform_file
   blueprint_bc: null
   legacy_bc: null
@@ -149,7 +149,7 @@ contexts:
   admission: 待准入
   admission_due: W1 结束或首个使用 BC 开工，取早（ADR-0066 决定 7）
   review: 英文名 FileService，定名 2026-10-21 用户同意（bcs.yaml #496）；层名「基础层」暂定，待 one-glossary 终定 tier 取值
-  evidence: ADR-0060 决定 1；ADR-0066 决定 2 第 3 条
+  evidence: ADR-0060 决定 1；ADR-0066 决定 2 第 3 条；backend 模块包与 module-dependencies.txt
 - id: operations.planning
   zh: 战略与经营计划 BC
   subdomain: operations
