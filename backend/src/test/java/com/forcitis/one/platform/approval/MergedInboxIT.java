@@ -10,21 +10,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.forcitis.one.kernel.EmployeeId;
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
-import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
-import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.application.ClaimTask;
 import com.forcitis.one.platform.approval.application.ListInbox;
 import com.forcitis.one.platform.approval.application.MergedInbox;
 import com.forcitis.one.platform.identity.api.Permission;
-import com.forcitis.one.platform.integration.api.ExternalSource;
-import com.forcitis.one.platform.integration.api.SourceObjectKind;
-import com.forcitis.one.platform.integration.application.SourceReferences;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
@@ -45,24 +36,8 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
     @Autowired
     ClaimTask claimTask;
 
-    @Autowired
-    SourceReferences sourceReferences;
-
-    /** An employee the old system knows by its own number: the own id comes from the source reference, as the import gives it. */
-    EmployeeId knownToTheOldSystem(long legacyPerson) {
-        EmployeeId employee = new EmployeeId(sourceReferences.allocate(ExternalSource.LEGACY_SYSTEM, SourceObjectKind.EMPLOYEE, legacyPerson));
-        organisation.person(employee, 1, null);
-        return employee;
-    }
-
     static RequestPostProcessor reader(EmployeeId id) {
         return user(TestAccounts.account(id).value().toString()).authorities(com.forcitis.one.platform.approval.OrdinarySessions.with(Permission.Codes.PLATFORM_APPROVAL_TASK_READ));
-    }
-
-    void legacyRow(long user, String task, String instance, String node, String when, int result) {
-        jdbc.update("insert into legacy_fixture.todo_rows (assignee_user_id, task_id, process_instance_id, task_def_key, task_name,"
-                + " process_title, created_at, result) values (?, ?, ?, ?, ?, ?, ?, ?)", user, task, instance, node, "Old node " + node,
-                "Old title " + instance, LocalDateTime.ofInstant(Instant.parse(when), ZoneOffset.UTC), result);
     }
 
     ApprovalInstanceId newTaskFor(long initiator, String key, EmployeeId... managers) {
@@ -71,84 +46,41 @@ class MergedInboxIT extends ApprovalIntegrationSupport {
     }
 
     @Test
-    @DisplayName("C1a-14 old and new counts together: 2 new tasks + 3 old to-dos (5 row tasks of 2 nodes merged) = 5 for the same user")
-    void oldAndNewCountsAreConsistent() throws Exception {
+    @DisplayName("C1a-14 inbox counts contain only the approval tasks of the same user")
+    void ownTaskCountsAreConsistent() throws Exception {
         long me = newId();
         long colleague = newId();
         long initiator = newId();
-        EmployeeId myself = knownToTheOldSystem(me);
-        EmployeeId myColleague = knownToTheOldSystem(colleague);
+        EmployeeId myself = TestAccounts.employee(me);
+        organisation.person(myself, 1, null);
+        EmployeeId myColleague = TestAccounts.employee(colleague);
+        organisation.person(myColleague, 1, null);
         organisation.person(initiator, 1, null);
         newTaskFor(initiator, newKey("inbox"), myself, myColleague);
         newTaskFor(initiator, newKey("inbox"), myself);
-        legacyRow(me, "r1", "P1-" + me, "N1", "2026-10-01T01:00:00Z", 1);
-        legacyRow(me, "r2", "P1-" + me, "N1", "2026-10-01T02:00:00Z", 1);
-        legacyRow(me, "r3", "P1-" + me, "N1", "2026-10-01T03:00:00Z", 1);
-        legacyRow(me, "r4", "P1-" + me, "N2", "2026-10-02T01:00:00Z", 1);
-        legacyRow(me, "r5", "P2-" + me, "N1", "2026-10-03T01:00:00Z", 1);
-        legacyRow(me, "done", "P3-" + me, "N1", "2026-10-03T01:00:00Z", 2);
-        legacyRow(colleague, "c1", "P9-" + colleague, "N1", "2026-10-03T01:00:00Z", 1);
 
         MergedInbox inbox = listInbox.execute(TestAccounts.account(myself), com.forcitis.one.platform.approval.application.ListPage.first());
         assertThat(inbox.newCount()).isEqualTo(2);
-        assertThat(inbox.legacyCount()).isEqualTo(3);
-        assertThat(inbox.totalCount()).isEqualTo(5);
-        assertThat(inbox.legacyAvailable()).isTrue();
-        assertThat(inbox.items()).hasSize(5);
-        assertThat(inbox.items().stream().filter(i -> i.source().name().equals("LEGACY")).map(i -> i.taskId()).toList())
-                .containsExactlyInAnyOrder("r3", "r4", "r5");
+        assertThat(inbox.totalCount()).isEqualTo(2);
+        assertThat(inbox.items()).hasSize(2);
 
         mvc.perform(get("/api/v1/platform/approval-tasks").with(reader(myself))).andExpect(status().isOk())
-                .andExpect(jsonPath("$.newCount").value(2)).andExpect(jsonPath("$.legacyCount").value(3))
-                .andExpect(jsonPath("$.totalCount").value(5)).andExpect(jsonPath("$.legacyAvailable").value(true));
+                .andExpect(jsonPath("$.newCount").value(2))
+                .andExpect(jsonPath("$.totalCount").value(2));
         MergedInbox colleagueInbox = listInbox.execute(TestAccounts.account(myColleague), com.forcitis.one.platform.approval.application.ListPage.first());
         assertThat(colleagueInbox.newCount()).isEqualTo(1);
-        assertThat(colleagueInbox.legacyCount()).isEqualTo(1);
-        assertThat(colleagueInbox.totalCount()).isEqualTo(2);
+        assertThat(colleagueInbox.totalCount()).isEqualTo(1);
     }
 
     @Test
-    @DisplayName("RULE-261/C1a-14 every old to-do carries the old system's detail link; new tasks carry none")
-    void legacyItemsLinkBackToTheOldSystem() {
-        long me = newId();
-        EmployeeId myself = knownToTheOldSystem(me);
-        legacyRow(me, "t-1", "P-" + me, "N1", "2026-10-01T01:00:00Z", 1);
-        MergedInbox inbox = listInbox.execute(TestAccounts.account(myself), com.forcitis.one.platform.approval.application.ListPage.first());
-        assertThat(inbox.items()).singleElement().satisfies(item -> {
-            assertThat(item.source().name()).isEqualTo("LEGACY");
-            assertThat(item.detailUrl()).contains("https://legacy.example.test/bpm/detail?instance=P-" + me + "&task=t-1");
-            assertThat(item.title()).isEqualTo("Old title P-" + me);
-            assertThat(item.nodeName()).contains("Old node N1");
-            assertThat(item.createdAt()).contains(Instant.parse("2026-10-01T01:00:00Z"));
-        });
-    }
-
-    @Test
-    @DisplayName("REIMAGINED_ARCHITECTURE 3.6 no cache: rows added or finished in the old system show up on the very next call")
-    void theOldViewIsReadLiveEveryTime() {
-        long me = newId();
-        EmployeeId myself = knownToTheOldSystem(me);
-        assertThat(listInbox.execute(TestAccounts.account(myself), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isZero();
-        legacyRow(me, "live-1", "P-" + me, "N1", "2026-10-01T01:00:00Z", 1);
-        assertThat(listInbox.execute(TestAccounts.account(myself), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isEqualTo(1);
-        legacyRow(me, "live-2", "Q-" + me, "N1", "2026-10-02T01:00:00Z", 1);
-        assertThat(listInbox.execute(TestAccounts.account(myself), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isEqualTo(2);
-        jdbc.update("update legacy_fixture.todo_rows set result = 2 where task_id = 'live-1'");
-        assertThat(listInbox.execute(TestAccounts.account(myself), com.forcitis.one.platform.approval.application.ListPage.first()).legacyCount()).isEqualTo(1);
-    }
-
-    @Test
-    @DisplayName("C8 without an old-system reference the old to-dos are unavailable, not an empty list, and the new tasks still show")
-    void withoutReferenceTheOldToDosAreUnavailable() {
+    @DisplayName("C8 the approval tasks show without an old-system reference")
+    void ownTasksNeedNoOldSystemReference() {
         long me = newId();
         long initiator = newId();
         organisation.person(me, 1, null).person(initiator, 1, null);
         newTaskFor(initiator, newKey("inbox"), TestAccounts.employee(me));
-        legacyRow(me, "unref-1", "P-" + me, "N1", "2026-10-01T01:00:00Z", 1);
 
         MergedInbox inbox = listInbox.execute(TestAccounts.account(me), com.forcitis.one.platform.approval.application.ListPage.first());
-        assertThat(inbox.legacyAvailable()).isFalse();
-        assertThat(inbox.legacyCount()).isZero();
         assertThat(inbox.newCount()).isEqualTo(1);
     }
 

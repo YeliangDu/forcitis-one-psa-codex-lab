@@ -6,7 +6,7 @@ processes:
     name: "举办市场活动"
     type: single_aggregate
     stages: [VS-01.1]
-    stages_note: "判据不覆盖、按阶段描述归段：VS-01.1 描述明列「经市场活动、客户活动……形成线索」，本流程是该段的工作内容；其结局（市场活动「进行中」）只是 VS-01.1 的进入状态，不造出退出（线索已确认 / 已关闭），按 #421 进入条件不作归段依据，故以本说明保留 VS-01.1"
+    stages_note: "SD-14 已写回：VS-01.1 段内 OBJ-16「已结束」，本流程完成市场活动到达该状态；保留 VS-01.1，依据是段内产出，不再以进入状态「进行中」归段。"
     primary_object: "OBJ-16"
     owner_bc: "B-03"
     group: revenue
@@ -17,7 +17,7 @@ processes:
     name: "计划并完成客户活动"
     type: single_aggregate
     stages: [VS-01.1]
-    stages_note: "判据不覆盖、按阶段描述归段：VS-01.1 描述明列「经市场活动、客户活动……形成线索」，本流程是该段的工作内容；其结局（客户活动「计划」）只是 VS-01.1 的进入状态，不造出退出（线索已确认 / 已关闭），按 #421 进入条件不作归段依据，故以本说明保留 VS-01.1。字面误判另记：「已完成」被匹到 VS-02.0 的 WBS 阶段节点，是不同对象"
+    stages_note: "SD-14 已写回：VS-01.1 段内 OBJ-105「已完成（结果反馈）」，本流程完成客户活动到达该状态；保留 VS-01.1。VS-02.0 的「已完成」是 WBS 阶段节点，不同对象，近似项不补标。"
     primary_object: "OBJ-105"
     owner_bc: "B-03"
     group: revenue
@@ -25,10 +25,10 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-03
-    name: "登记并跟进线索，转为商机"
+    name: "跟进线索并转商机"
     type: business
     stages: [VS-01.1, VS-01.2]
-    stages_note: "判据：结局「已转商机」（线索已确认）造出 VS-01.1 退出；结局「商机跟进中」造出 VS-01.2 进入条件（OBJ-18 跟进中），故保留 VS-01.2。其余近似项是通用状态词撞名，不改"
+    stages_note: "判据①：线索转商机或关闭造出 VS-01.1 退出；SD-14 已将 OBJ-18「跟进中（内部阶段）」列入 VS-01.2 段内状态，结局「商机跟进中」据此归 VS-01.2，不再以进入条件归段。其余近似项不补标。"
     primary_object: "OBJ-17"
     owner_bc: "B-03"
     group: revenue
@@ -50,7 +50,7 @@ processes:
     name: "维护往来单位档案"
     type: single_aggregate
     stages: [VS-01.1, VS-05.1]
-    stages_note: "判据：本流程不造任何段的退出条件；档案核实是 PRC-03 新建商机的前置读（P-3，VS-01.1 衔接 VS-01.2）和申请供方角色（PRC-69，VS-05.1 进入）的前置，属门槛输入。近似项「有效」是不同对象状态撞名，不改"
+    stages_note: "SD-14 已写回：核实往来单位档案使 OBJ-01 到「有效（档案已核实）」，是 VS-01.1、VS-05.1 的段内状态；保留两段，不再只以门槛输入说明。VS-06.2 的「有效」是资质证书，不同对象，不补标。"
     primary_object: "OBJ-01"
     owner_bc: "B-01"
     group: revenue
@@ -72,7 +72,7 @@ processes:
     name: "编制并生效报价"
     type: business
     stages: [VS-01.2]
-    stages_note: "判据：通过报价评审使报价（OBJ-21）到「已通过」，即 VS-01.2 段内状态。字面误判：「报价已生效」被匹到 VS-04.1 退出的付款条件项「生效」，是不同对象"
+    stages_note: "判据：通过报价评审使报价（OBJ-21）到「已通过」，即 VS-01.2 段内状态。字面误判：「报价已生效」被匹到 VS-04.1 退出的付款条件项「生效」，是不同对象。 R1-A-02：先登记客户请求类型、轮次及逐项需要，关联本轮响应版本并记录未响应项和理由；非招标询价由 PRC-07 在商机内办理，竞争性采购由 PRC-08 引用招标资料并逐项对应。"
     primary_object: "OBJ-21"
     owner_bc: "B-03"
     group: revenue
@@ -83,6 +83,7 @@ processes:
     name: "参加投标，缴纳保证金并登记结果"
     type: business
     stages: [VS-01.2]
+    stages_note: "判据①：登记结果使商机赢单、丢单或放弃，造出 VS-01.2 退出；登记投标保证金缴纳也符合 SD-13 在 VS-01.2 补的 OBJ-13「已缴」。不加 VS-04.1：该段 OBJ-13 说明限履约保证金、押金及中标后退还的投标保证金；本流程步骤是投标前缴纳，不是上述业务，签约后退还由 PRC-153 承担。 R1-A-02：先登记客户请求类型、轮次及逐项需要，关联本轮响应版本并记录未响应项和理由；非招标询价由 PRC-07 在商机内办理，竞争性采购由 PRC-08 引用招标资料并逐项对应。"
     primary_object: "OBJ-18"
     primary_object_note: "结局赢单 / 丢单 / 放弃是 VS-01.2 退出；投标 OBJ-20、保证金 OBJ-13 为过程对象"
     owner_bc: "B-03"
@@ -105,7 +106,7 @@ processes:
     name: "收付保证金与保函"
     type: single_aggregate
     stages: [VS-01.2, VS-04.1]
-    stages_note: "VS-01.2、VS-04.1 的条件与段内状态都没有保证金与押金（OBJ-13）：投标保证金是递交投标（VS-01.2）的前置，履约保证金随协议签订（VS-04.1）。不改骨架，单列交 one-architecture（阶段定义）；近似项「到期」是 VS-06.2 的资质状态，不同对象"
+    stages_note: "SD-13 已写回：VS-01.2、VS-04.1 段内均列 OBJ-13「待缴 / 已缴 / 已退 / 被没收（可部分扣减）」及「已开立 / 到期 / 被索赔」。本流程维护相应保证金、押金与保函状态，保留两段；VS-01.2 对应投标保证金，VS-04.1 对应履约保证金、押金。VS-06.2 的「到期」是资质证书，不同对象，不补标。"
     primary_object: "OBJ-13"
     owner_bc: "B-09"
     group: revenue
@@ -127,7 +128,7 @@ processes:
     name: "发布服务产品与阶段类型版本"
     type: single_aggregate
     stages: [VS-01.2]
-    stages_note: "判据：发布服务产品版本即 OBJ-24「启用」（启用 = 版本已发布），是 VS-01.2 进入条件之一。近似项「已发布」是不同对象状态撞名，不改"
+    stages_note: "SD-14 已写回：发布服务产品版本即 OBJ-24「已启用」（版本已发布），是 VS-01.2 段内状态，保留 VS-01.2，不再以进入条件归段。单聚合 states 仍为「已发布」，不在本卡改状态机；其他段「已发布」是不同对象，近似项不补标。"
     primary_object: "OBJ-24"
     primary_object_note: "服务产品与阶段类型版本同批发布，取服务产品（VS-01.2 能力 CAP-024）；所标段无该对象退出条件，归段待 SD-14"
     owner_bc: "B-02"
@@ -139,7 +140,7 @@ processes:
     name: "批准并生效费率、计费系数与协议价目版本"
     type: business
     stages: [VS-01.2, VS-02.0]
-    stages_note: "判据：生效费率版本使 OBJ-26「生效」，是 VS-01.2 进入条件；同一费率版本是 VS-02.0 预算编制的输入（PRC-19 第 1 步），服务该段退出条件 OBJ-32「已锁定」。近似项 VS-04.1（付款条件项「生效」）是不同对象，不改"
+    stages_note: "SD-14 已写回：批准并生效标准成本费率表使 OBJ-26 到「生效（生效期不重叠）」，是 VS-01.2、VS-02.0 的段内状态；分别供报价估算和启动预算，保留两段。VS-04.1 的「生效」是付款条件项，不同对象，近似项不补标。"
     primary_object: "OBJ-26"
     primary_object_note: "三类版本中费率表是预算与报价的计价基础（VS-01.2 能力 CAP-026）；计费系数 OBJ-27、协议价目随同生效；所标段无该对象退出条件，归段待 SD-14"
     owner_bc: "B-02"
@@ -165,17 +166,19 @@ processes:
     stages: [VS-01.2]
     stages_note: "事件策略按触发状态归段（#421）：商机已丢单、已放弃=OBJ-18「丢单 / 放弃」，是 VS-01.2 退出条件；超期未签约的定时触发无对象状态，随同一策略归 VS-01.2。"
     primary_object: "none"
-    primary_object_note: "成本结转属流程与事实，信息图 OBJ-80 成本结转批次已去掉；售前投入是派生度量（信息图 §度量），不改业务对象状态，价值落在过账事实与账簿余额"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-07"
     group: finance
     status: draft
     human_orchestration: false
     bpmn: ~
+    acts_on: [OBJ-124]
+    acts_on_note: "CON-1017-ARC-10：骨架：期限 N 取成本核算参数版本（AGG-123）"
   - id: PRC-16
     name: "申请并转正风险交付授权"
     type: business
     stages: [VS-01.2, VS-02.0, VS-04.1]
-    stages_note: "判据：申请使风险交付授权（OBJ-12）到「申请」、批准到「批准」，是 VS-01.2 段内状态和 VS-02.0 进入条件；转正是 VS-04.1 退出（OBJ-12 转正）。三段均有依据"
+    stages_note: "判据：申请使风险交付授权（OBJ-12）到「申请」、批准到「批准」，是 VS-01.2 段内状态和 VS-02.0 进入条件；转正是 VS-04.1 退出（OBJ-12 已转正）。三段均有依据"
     primary_object: "OBJ-12"
     owner_bc: "B-05"
     group: revenue
@@ -186,7 +189,7 @@ processes:
     name: "建立项目并组建团队"
     type: business
     stages: [VS-02.0, VS-03.1]
-    stages_note: "判据：建立项目、开始执行使项目（OBJ-29）到「已立项 / 执行中」，是 VS-02.0 退出；结局「执行中」同时是 VS-03.1 进入条件之一（OBJ-29 执行中），故保留 VS-03.1"
+    stages_note: "判据①：建立项目并开始执行使 OBJ-29 到「已立项 / 执行中」，是 VS-02.0 退出；SD-14 已将 OBJ-29「执行中」列入 VS-03.1 段内状态（建立受检项目并开始执行），保留 VS-03.1，不再以进入条件归段。"
     primary_object: "OBJ-29"
     owner_bc: "B-04"
     group: revenue
@@ -229,7 +232,7 @@ processes:
     name: "推进阶段与工作包"
     type: single_aggregate
     stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
-    stages_note: "字面误判：开始阶段→进行中、完成阶段→已完成，即 VS-02 各段 entry_common（OBJ-30 未开始 / 进行中）、exit_common 和 VS-02.0 退出的 OBJ-30「已完成」；状态按 WBS 阶段节点登记，无对象名，脚本也未展开 pattern"
+    stages_note: "判据①：完成阶段使 WBS 阶段节点 OBJ-30 到「已完成」，是 VS-02.0 退出及 VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6 经 exit_common 展开的退出条件。现行检查器已展开 pattern，不再沿用未展开的旧说明；其他通用状态近似项不补标。"
     primary_object: "OBJ-30"
     owner_bc: "B-04"
     group: revenue
@@ -237,7 +240,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-22
-    name: "阶段门预警"
+    name: "查看阶段门预警"
     type: read_model
     stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7]
     owner_bc: "reporting"
@@ -246,21 +249,21 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-23
-    name: "填报并审批工时"
+    name: "填报并审批工时单"
     type: business
-    stages: [VS-01.2, VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
-    stages_note: "贯穿 VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：判据：工时（OBJ-66）「已通过」是 VS-02 贯穿活动「资源与工时」的产出；VS-01.2 保留是因商机是售前工时的归集目标（OBJ-18）。字面误判：结局「已通过」无对象名，未匹到 OBJ-66"
+    stages: []
     primary_object: "OBJ-66"
     owner_bc: "B-06"
     group: revenue
     status: draft
     human_orchestration: true
     bpmn: ~
+    support: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题（页首不补列清单）；工时为业务拓展与交付各段提供贯穿成本输入，不因输入给阶段补人员管理"
   - id: PRC-24
-    name: "暂停、恢复、终止或取消项目"
+    name: "变更项目状态"
     type: business
     stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7]
-    stages_note: "判据：终止、取消使项目（OBJ-29）到「已终止 / 已取消」，是 VS-02 价值流 ends_in；暂停、恢复可在任一段发生，恢复→「执行中」是 VS-02.0 退出。字面误判：「已终止」匹到的 VS-05.6、VS-13.6 是供方协议和员工，不同对象"
+    stages_note: "VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7：终止、取消使项目 OBJ-29 到「已终止 / 已取消」，是 VS-02 ends_in；SD-10 用户已定不设终止段，保留全段标记。恢复到「执行中」支持 VS-02.0。不加 VS-03.1：本流程是服务交付项目的暂停恢复终止取消编排，VS-03.1 段内「执行中」的说明为建立受检项目并开始执行（PRC-17），不据同一项目通用状态扩为检查策划流程。VS-04.5、VS-05.6、VS-13.6 的终止对象分别为协议、供方协议、员工，近似项不补标；入口仍随 Q09。"
     primary_object: "OBJ-29"
     owner_bc: "B-04"
     group: revenue
@@ -273,7 +276,7 @@ processes:
     stages: [VS-02.0, VS-04.1]
     stages_note: "事件策略按触发状态归段（#421）：项目已建立=OBJ-29「已立项」，是 VS-02.0 退出条件；合同已签回（ContractSigned）=OBJ-05「已签署生效」，是 VS-04.1 退出条件。两段在不同价值流，是按触发状态跨价值流归两段，不是跳段。触发名用事件名而非状态原文，检查器因此匹配不上。"
     primary_object: "none"
-    primary_object_note: "同 PRC-15：转入售前投入是成本结转，不改业务对象状态"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -283,7 +286,7 @@ processes:
     name: "接收并确认发包人提供资料"
     type: business
     stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4]
-    stages_note: "SD-01：概念阶段入口也要求发包人资料已提供，补标 VS-02.1。判据：登记资料已提供使 OBJ-42「已提供」，是 VS-02.0 段内状态和 VS-02.1–.4 进入条件。近似项「已确认」是不同对象撞名，不改"
+    stages_note: "SD-14 已写回：确认与退回发包人资料使 OBJ-42 到「已确认 / 有缺陷（退回）」，是 VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4 的段内状态，保留这些段；「已提供」是收件状态，不再只靠阶段进入条件归段。其他对象的确认状态近似项不补标。"
     primary_object: "OBJ-42"
     owner_bc: "B-28"
     group: revenue
@@ -326,8 +329,8 @@ processes:
   - id: PRC-30
     name: "提出并批准完工估算"
     type: business
-    stages: [VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
-    stages_note: "完工估算（OBJ-33）不在 VS-02 的进出条件和贯穿活动里，只是项目总监在阶段门处更新；不改骨架，单列交 one-architecture（阶段定义：贯穿活动是否补完工估算与经营产值）。近似项「已批准」是不同对象撞名"
+    stages: [VS-02.0, VS-02.1, VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6, VS-02.7]
+    stages_note: "SD-13 已写回：提出、批准完工估算使 OBJ-33 到「提出 / 已批准 / 已驳回」，该段内状态已列于 VS-02.0、VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6、VS-02.7；按步骤实际到达的「已提出 / 已批准」补标 VS-02.0、VS-02.1、VS-02.7，段内不作门。其他对象「已批准」近似项不补标。"
     primary_object: "OBJ-33"
     owner_bc: "B-04"
     group: revenue
@@ -346,7 +349,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-32
-    name: "申请并答复延期"
+    name: "申请并答复工期顺延"
     type: business
     stages: [VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
     stages_note: "贯穿 VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：判据：延期申请（OBJ-41）「已批准 / 已拒绝 / 视为批准」是 VS-02 贯穿活动「变更、延期与风险」的产出，结局用语与之一致，未匹到只因无对象名"
@@ -357,7 +360,7 @@ processes:
     human_orchestration: true
     bpmn: ~
   - id: PRC-33
-    name: "采集、关联并封存证据"
+    name: "采集并封存证据"
     type: single_aggregate
     stages: [VS-02.4, VS-02.7, VS-03.2, VS-04.2]
     stages_note: "判据：关联证据使 OBJ-53 到「已关联」（施工图审查意见与合格书），是 VS-02.4 段内状态；封存证据使其到「已封存」，是 VS-02.7 退出。VS-03.2 现场检查证据是检查审核（OBJ-49 已审核）的输入；VS-04.2 收入证据是进入条件的输入（PRC-52 开放证据类型）。证据采集贯穿各段，所列是证据作门槛输入的阶段"
@@ -370,8 +373,8 @@ processes:
   - id: PRC-34
     name: "处置我方成果不符合项"
     type: business
-    stages: [VS-02.6, VS-02.7]
-    stages_note: "判据：关闭不符合项使 OBJ-38「关闭」，是 VS-02.6 退出（我方成果类）；VS-02.7 保留是因收尾回访发现的成果问题归不符合项（VS-02.7 说明），不作门"
+    stages: [VS-02.2, VS-02.3, VS-02.4, VS-02.6, VS-02.7]
+    stages_note: "判据①：关闭我方成果类不符合项使 OBJ-38 到「关闭」，是 VS-02.6 退出；VS-02.7 保留收尾回访发现的成果问题处置（VS-02 贯穿活动「变更、延期与风险」），不作门。不加 VS-03.2：该段 OBJ-38「已识别」明确限客户资产类，本流程为我方成果类。 R1-D-04：VS-02.2–VS-02.4 的 PRC-28 内审发现我方成果不符合项后，同样由本流程确认、处置整改并关联复审结果，作为各阶段段内办理；不新增阶段门。原文仅列 VS-02.6 / VS-02.7 的限制由本补充取代。"
     primary_object: "OBJ-38"
     owner_bc: "B-28"
     group: revenue
@@ -379,21 +382,22 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-35
-    name: "项目或协议终止、结项后清算成本"
+    name: "清算项目成本"
     type: event_policy
     stages: [VS-02.7]
     stages_note: "按触发状态「项目已结项」归段；终止类结局不归段（SD-10）"
     primary_object: "none"
-    primary_object_note: "同 PRC-15：终止或结项清算是成本结转，不改业务对象状态"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-07"
     group: finance
     status: draft
     human_orchestration: false
     bpmn: ~
   - id: PRC-36
-    name: "封存成果、结项并归档项目"
+    name: "结项并归档项目"
     type: business
     stages: [VS-02.7]
+    stages_note: "判据①：封存已发布成果与证据、结项归档分别造出 VS-02.7 的 OBJ-35「已封存」、OBJ-53「已封存」、OBJ-29「已结项 → 已归档」。不加 VS-02.1、VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：这些段的 exit_common 要交付物「已认可」或「已交付（签收）/ 审查中」且「已声明」，本流程只作最终封存，不产生客户认可或声明；「交付物已封存」的文本匹配不能替代上述业务条件。"
     primary_object: "OBJ-29"
     primary_object_note: "结局「已归档」是项目 VS-02.7 退出；交付物、证据的「已封存」是同一编排的前置步骤"
     secondary_objects: [OBJ-35, OBJ-53]
@@ -403,7 +407,7 @@ processes:
     human_orchestration: true
     bpmn: ~
   - id: PRC-37
-    name: "回访客户满意度"
+    name: "开展客户满意度调查"
     type: business
     stages: [VS-02.7]
     primary_object: "OBJ-106"
@@ -445,10 +449,10 @@ processes:
     bpmn: ~
     note: "结项含封存与归档：项目已结项后归档"
   - id: PRC-41
-    name: "制定检查计划并使其生效"
+    name: "制定并生效检查计划"
     type: business
     stages: [VS-03.1]
-    stages_note: "判据：生效检查计划使 OBJ-48「生效」，是 VS-03.1 进入条件。字面误判：「计划已生效」被匹到 VS-04.1 退出的付款条件项「生效」，是不同对象"
+    stages_note: "SD-14 已写回：生效检查计划使 OBJ-48 到「生效」，是 VS-03.1 段内状态；本流程虽由 ContractSigned 触发，仍是含制定与生效步骤的检查策划业务流程。不加 VS-02.0：触发协议已签署是启动段读取的共享状态，本流程不建立项目、交付计划或预算，也不完成启动阶段节点；按实际产出保留 VS-03.1。"
     primary_object: "OBJ-48"
     owner_bc: "B-26"
     group: revenue
@@ -458,16 +462,18 @@ processes:
   - id: PRC-42
     name: "发布检查表模板版本"
     type: single_aggregate
-    stages: [VS-03.1]
-    stages_note: "VS-03.1 的说明把检查表模板列为本段确定的内容，但进入条件和段内状态没有检查表模板版本的状态（对照 VS-01.2 对服务产品「启用」的写法）。不改骨架，单列交 one-architecture（阶段定义）；近似项 VS-04.1「生效」是付款条件项，不同对象"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.1 草拟新版本、VS-15.2 已生效、VS-15.3 旧版本已停用，均由本流程完成（判据只推出 VS-15.2）；原支撑理由：CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题（页首不补列清单）；检查表模板发布维护供检查策划引用的主数据，不作阶段办理结果，不补服务产品管理"
     primary_object: "OBJ-50"
     owner_bc: "B-26"
     group: revenue
     status: draft
     human_orchestration: false
     bpmn: ~
+    supports: [VS-03.1]
+    supports_note: "CON-1017-ARC-10（one-coordinator 转用户批准的 SD-13）：VS-03.1 段内 OBJ-50「已生效」，本流程支撑该段；主挂仍为 VS-15（含 VS-15.2）。目录专有字段，检查脚本暂不读取"
   - id: PRC-43
-    name: "实施现场检查并锁定"
+    name: "实施并锁定检查记录"
     type: business
     stages: [VS-03.1, VS-03.2, VS-02.6]
     stages_note: "改标：删 VS-03.5，本流程止于检查锁定（VS-03.2 出口）；报告认可由 PRC-28 承担（VS-03.5）。判据：指派检查人员使检查（OBJ-49）到「已安排」，是 VS-03.1 退出；审核、锁定是 VS-03.2 退出；VS-02.6 保留是因品控类施工期检查的 OBJ-49「已锁定」是该段段内状态。字面误判：「封存证据→已封存」是检查证据，VS-02.7 退出的「已封存」是项目收尾时的证据与交付物封存，不加 VS-02.7"
@@ -510,12 +516,12 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-47
-    name: "起草、评审并回签协议"
+    name: "起草并回签协议"
     type: business
     stages: [VS-04.1]
-    stages_note: "判据：回签使协议（OBJ-05）到「已签署生效」，是 VS-04.1 退出。字面误判：匹到的 VS-05.2、VS-07.3 退出限供方类型协议、劳动合同类型，本流程是客户协议，不加"
+    stages_note: "判据①：回签客户协议使 OBJ-05 到「已签署生效」、付款条件项 OBJ-07「已生效」，造出 VS-04.1 退出。不加 VS-04.6：该段同状态明确限框架协议下任务订单，归 PRC-50；不加 VS-05.2、VS-07.3：分别限供方协议、劳动合同，本流程为客户主协议。"
     primary_object: "OBJ-05"
-    primary_object_note: "付款条件项 OBJ-07「生效」随协议回签同时生效（VS-04.1 退出），不另设流程"
+    primary_object_note: "付款条件项 OBJ-07「已生效」随协议回签同时生效（VS-04.1 退出），不另设流程"
     secondary_objects: [OBJ-07]
     owner_bc: "B-05"
     group: revenue
@@ -526,7 +532,7 @@ processes:
     name: "提出并生效协议变更或签证"
     type: business
     stages: [VS-04.6]
-    stages_note: "SD-02：新段 VS-04.6「履约」，协议变更和签证在本段重入，不再挂 VS-04.1。判据：新基线已生效 / 驳回使协议变更（OBJ-09）到「已生效（新基线）/ 驳回」，是 VS-04.6 段内状态。字面误判：「应用变更→已签署生效」协议状态不变，匹到的 VS-04.1 退出不成立，VS-05.2、VS-07.3 限供方类型协议、劳动合同类型"
+    stages_note: "SD-02：新段 VS-04.6「完成合同履行」，协议变更和签证在本段重入，不再挂 VS-04.1。判据：新基线已生效 / 驳回使协议变更（OBJ-09）到「已生效（新基线）/ 驳回」，是 VS-04.6 段内状态。字面误判：「应用变更→已签署生效」协议状态不变，匹到的 VS-04.1 退出不成立，VS-05.2、VS-07.3 限供方类型协议、劳动合同类型"
     primary_object: "OBJ-09"
     owner_bc: "B-05"
     group: revenue
@@ -537,7 +543,7 @@ processes:
     name: "提出并认定索赔"
     type: business
     stages: [VS-04.6, VS-04.5]
-    stages_note: "SD-02：新段 VS-04.6「履约」，索赔在本段重入，不再挂 VS-04.1。判据：认定 / 拒绝 / 撤回使索赔（OBJ-10）到「已认定 / 已拒绝 / 撤回」，是 VS-04.6 段内状态；保留 VS-04.5：结算中双方未能确认最终价款时转索赔（PRC-66，H3），并入最终价款确认。VS-04.2–.4 与索赔无关"
+    stages_note: "SD-02：新段 VS-04.6「完成合同履行」，索赔在本段重入，不再挂 VS-04.1。判据：认定 / 拒绝 / 撤回使索赔（OBJ-10）到「已认定 / 已拒绝 / 撤回」，是 VS-04.6 段内状态；保留 VS-04.5：结算中双方未能确认最终价款时转索赔（PRC-66，H3），并入最终价款确认。VS-04.2–.4 与索赔无关"
     primary_object: "OBJ-10"
     owner_bc: "B-05"
     group: revenue
@@ -548,7 +554,7 @@ processes:
     name: "占用框架限额并提交任务订单"
     type: business
     stages: [VS-04.6]
-    stages_note: "SD-02：新段 VS-04.6「履约」；判据：提交任务订单使任务订单（OBJ-05）到「已签署生效」，是 VS-04.6 段内状态（框架任务订单在本段占用限额并提交），stages 只留 VS-04.6。字面误判：匹到的 VS-04.1 退出对应主协议，VS-05.2、VS-07.3 限供方类型协议、劳动合同类型，不加"
+    stages_note: "SD-02：新段 VS-04.6「完成合同履行」；判据：提交任务订单使任务订单（OBJ-05）到「已签署生效」，是 VS-04.6 段内状态（框架任务订单在本段占用限额并提交），stages 只留 VS-04.6。字面误判：匹到的 VS-04.1 退出对应主协议，VS-05.2、VS-07.3 限供方类型协议、劳动合同类型，不加"
     primary_object: "OBJ-05"
     primary_object_note: "任务订单是协议 OBJ-05 的类型"
     owner_bc: "B-05"
@@ -559,22 +565,22 @@ processes:
   - id: PRC-51
     name: "建立并更新开票与收入额度"
     type: event_policy
-    stages: [VS-04.1, VS-04.2, VS-04.3]
-    stages_note: "判据（事件策略看触发状态）：触发事件 ContractSigned 对应 VS-04.1 退出（协议已签署生效）；新基线已生效随协议变更，在 VS-04.6 重入。VS-04.2、VS-04.3 保留：额度是收入确认（INV-22）与开票的占用额度，服务两段（PRC-53 第 1 步、PRC-57）。VS-04.6 是否补标待 one-architecture 随阶段定义定"
+    stages: [VS-04.1, VS-04.2, VS-04.3, VS-04.6]
+    stages_note: "判据②：ContractSigned 对应 VS-04.1 退出并为 VS-04.2、VS-04.6 进入的协议状态；新基线已生效是 VS-04.6 协议变更段内状态，本策略随之更新额度，补标 VS-04.6。保留 VS-04.1、VS-04.2、VS-04.3：额度由签约建立，供收入确认（INV-22、PRC-53）与开票（PRC-57）占用；VS-04.3 为服务该段的技术记录，不声称额度是新增业务对象。"
     primary_object: "none"
-    primary_object_note: "额度是开票与收入额度（AGG-44）上的技术记录，按履约义务与付款条件项分行；本策略不改任何业务对象的状态，故不设主对象"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-08"
     group: revenue
     status: draft
     human_orchestration: false
     bpmn: ~
   - id: PRC-52
-    name: "开放可触发收入确认的证据类型"
+    name: "开放收入确认证据类型"
     type: single_aggregate
-    stages: []
-    support: "收入确认证据类型开放是 B-08 的版本化配置（财务负责人书面确认后逐类开放），决定哪类客户确认证据可触发收入确认，本身不造任何段的进入或退出对象状态"
-    primary_object: "none"
-    primary_object_note: "版本化配置（AGG-92 证据类型开放配置版本），无业务对象"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：证据类型开放即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：收入确认证据类型开放是 B-08 的版本化配置（财务负责人书面确认后逐类开放），决定哪类客户确认证据可触发收入确认，本身不造任何段的进入或退出对象状态；CON-1017-ARC-10：补 VS-15.1（编制版本草稿）、VS-15.3（新版本发布取代旧版本即停用），OBJ-124 三段状态由本流程完成；须同步骨架"
+    primary_object: "OBJ-124"
+    primary_object_note: "CON-1017-ARC-10 O-1：发布一版业务规则（OBJ-124，暂名，待 one-glossary 定名，按类型区分）；原 none（CAPINFO-I01）由 intent 2026-10-17-174814 与审题后修订第 4 条的结构决定取代；须同步骨架"
     owner_bc: "B-08"
     group: revenue
     status: draft
@@ -584,7 +590,7 @@ processes:
     name: "确认收入"
     type: event_policy
     stages: [VS-04.2]
-    stages_note: "判据（事件策略看触发状态）：触发状态「交付物已认可」是 VS-04.2 进入条件（OBJ-35 已认可），策略是该段进入后的反应，故留在 VS-04.2。脚本只在退出条件里找触发状态，所以报 VS-03.5（及 VS-02 各段 exit_common）；是否改按退出所在段归，待用户确认"
+    stages_note: "判据②：触发状态交付物 OBJ-35「已认可」为 VS-04.2 的进入条件，收入确认是该段进入后的反应，保留 VS-04.2；本流程先占用并发起审批，由 PRC-148 接续。Q-04 仍待用户决定，SD-08 已定退出为「收入确认事实已过账」，对象状态缺口 MS-17 保留；其他对象「已通过」近似项不补标。"
     primary_object: "OBJ-81"
     primary_object_note: "发起收入确认（占用额度并提交审批），即收入确认进入「审批中」；OBJ-81 形态待定（Q20、Q-04），存储暂在 AGG-44 的收入确认行"
     owner_bc: "B-08"
@@ -610,7 +616,7 @@ processes:
     stages: [VS-04.2]
     stages_note: "事件策略按触发状态归段（#421）：触发是收入确认类型分录的过账回执，对应 OBJ-98「已记账（不可逆）」，是 VS-04.2 退出条件（收入确认类型分录）。触发名是事件名，检查器匹配不上。"
     primary_object: "none"
-    primary_object_note: "同 PRC-15：结转合同履约成本是成本结转，不改业务对象状态"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -629,7 +635,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-57
-    name: "申请并开具销项发票"
+    name: "申请并开具销项增值税发票"
     type: business
     stages: [VS-04.3]
     primary_object: "OBJ-83"
@@ -652,7 +658,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-59
-    name: "由销项发票创建应收"
+    name: "创建应收款项"
     type: event_policy
     stages: [VS-04.4]
     stages_note: "判据②（与 PRC-56 同口径）：触发状态发票 OBJ-83「已开具」是 VS-04.3 退出、VS-04.4 进入；本策略创建应收（OBJ-85「未结」），是收款段的起点，不归 VS-04.3：开票段到「已开具」即结束，本策略不碰发票"
@@ -676,7 +682,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-61
-    name: "检测应收逾期并催收"
+    name: "检测并催收逾期应收款项"
     type: business
     stages: [VS-04.4]
     stages_note: "判据：检测逾期、核销坏账使 OBJ-85 到「已核销（坏账）」，是 VS-04.4 退出的第二路。字面误判：匹到的 VS-05.4、VS-05.5、VS-08.1、VS-08.3、VS-13.5 是应付、员工借款、报销、薪酬类型"
@@ -687,7 +693,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-62
-    name: "质量保证金到期提示"
+    name: "查看质量保证金到期提示"
     type: read_model
     stages: [VS-04.4]
     owner_bc: "B-09"
@@ -720,8 +726,8 @@ processes:
   - id: PRC-65
     name: "维护资金账户"
     type: single_aggregate
-    stages: []
-    support: "资金账户是主数据维护，不推进任何价值流对象的阶段状态（#421 判据①不支持归段）"
+    stages: [VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.2 开户在用、VS-15.3 销户；判据只推出 VS-15.3，开户在用由本流程完成；原支撑理由：资金账户是主数据维护，不推进任何价值流对象的阶段状态（#421 判据①不支持归段）"
     primary_object: "OBJ-89"
     owner_bc: "B-22"
     group: finance
@@ -729,10 +735,10 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-66
-    name: "发起结算，确认最终价款并结算协议"
+    name: "确认最终价款并结算协议"
     type: business
     stages: [VS-04.5, VS-04.6]
-    stages_note: "改标：补 VS-04.6。判据：完成协议使协议（OBJ-05）到「已完成」，是 VS-04.6 退出和 VS-04.5 进入；结算协议到「已结算」是 VS-04.5 退出。字面误判：VS-05.6 退出的「已结算」限供方类型协议"
+    stages_note: "判据①：完成协议到 OBJ-05「已完成」造出 VS-04.6 退出，结算客户协议到「已结算」造出 VS-04.5 退出。不加 VS-02.7、VS-05.6：VS-02.7 段内协议「已结算 / 已终止」与 VS-05.6 退出明确限供方类型，本流程为客户协议。"
     primary_object: "OBJ-05"
     owner_bc: "B-08"
     group: revenue
@@ -754,7 +760,7 @@ processes:
     name: "终止协议"
     type: single_aggregate
     stages: [VS-04.5]
-    stages_note: "判据：终止协议使协议（OBJ-05）到「已终止」，是 VS-04 价值流 ends_in 的停止出口；VS-04.5 的退出条件没有「已终止」（VS-05.6 有），单列交 one-architecture（阶段定义），骨架不改。字面误判：匹到的 VS-05.6、VS-13.6 限供方类型协议、劳动合同类型"
+    stages_note: "SD-13 已写回：终止客户协议使 OBJ-05 到「已终止（原因必填）」，VS-04.5 现以 any 接受「已结算」或「已终止」，并为 VS-04 ends_in，保留 VS-04.5。不加 VS-04.1、VS-04.6：states 中「已签署生效 / 履行中」为终止前状态，不是终止命令的到达状态；VS-04.6 的「已签署生效」另限任务订单。不加 VS-02.7、VS-05.2、VS-05.6、VS-07.3、VS-13.6：分别为供方类型协议、供方签约结算、劳动合同或员工终止，不是本流程的客户协议终止。"
     primary_object: "OBJ-05"
     owner_bc: "B-05"
     group: revenue
@@ -762,10 +768,10 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-69
-    name: "供应商准入与资质核验"
+    name: "申请并核验供方角色"
     type: business
     stages: [VS-05.1]
-    stages_note: "判据：核准角色合格使 OBJ-02 到「合格」、登记资质证书使 OBJ-65 到「有效」，是 VS-05.1 退出。字面误判：VS-06.2 的「有效」是年检、延续后的退出，本流程是初次登记，不加"
+    stages_note: "判据①：核准供方角色使 OBJ-02「合格」，登记供方资质使 OBJ-65「有效」，造出 VS-05.1 退出。不加 VS-01.2：该段 OBJ-65 明确为投标引用我方资质，本流程为供方资质；不加 VS-06.2：该段为企业既有资质的年检核查与延续，非供方初次准入。"
     primary_object: "OBJ-02"
     primary_object_note: "结局「往来单位角色合格」是 VS-05.1 退出；资质证书 OBJ-65 为需资质供方的附加条件"
     secondary_objects: [OBJ-65]
@@ -785,12 +791,12 @@ processes:
     human_orchestration: true
     bpmn: ~
   - id: PRC-71
-    name: "生效分包变更"
+    name: "生效分包或采购变更（含增减量、部分取消）"
     type: business
     stages: [VS-05.2]
-    stages_note: "分包变更（AGG-56）生效即供方协议内容再次「已签署生效」，对应 OBJ-05（供方类型）「已签署生效」，是 VS-05.2 退出条件；与收入侧协议变更（PRC-48）对称。AGG-56 状态名「已生效」与 OBJ-05 状态名字面不同，检查器匹配不上。"
+    stages_note: "分包变更（AGG-56）生效即供方协议内容再次「已签署生效」，对应 OBJ-05（供方类型）「已签署生效」，是 VS-05.2 退出条件；与收入侧协议变更（PRC-48）对称。AGG-56 状态名「已生效」与 OBJ-05 状态名字面不同，检查器匹配不上。 R1-B-14：采购合同增减量、部分取消沿供方协议现有审批权限评估并批准，协议变更（OBJ-09）生效后形成新基线；已履行部分保留原履约及应付依据，未履行部分记录占用调整 / 释放与批准结果的对应，不以部分取消抹去已履行事实。"
     primary_object: "OBJ-09"
-    primary_object_note: "分包变更（AGG-56）对应 OBJ-09 协议变更"
+    primary_object_note: "分包变更（AGG-56）对应 OBJ-09 协议变更；采购变更及部分取消归同一 OBJ-09 / PRC-71，审批与基线条件沿用现行约定；承载聚合的采购类型细化交负责会话核对"
     owner_bc: "B-11"
     group: finance
     status: draft
@@ -807,7 +813,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-73
-    name: "登记并查验进项发票"
+    name: "登记并查验进项增值税发票"
     type: business
     stages: [VS-05.4]
     stages_note: "结局「进项发票已用途确认 / 已入账」造出 VS-05.4 应付确认的退出条件（#421 判据①）"
@@ -818,7 +824,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-74
-    name: "提交供方应付"
+    name: "提交供方应付款项"
     type: business
     stages: [VS-05.4]
     primary_object: "OBJ-85"
@@ -831,7 +837,7 @@ processes:
     name: "发起、审批并执行付款"
     type: business
     stages: [VS-05.5, VS-08.3, VS-13.5]
-    stages_note: "结局「付款已成功 / 已核销」造出 VS-05.5 付款、VS-08.3 报销付款、VS-13.5 的退出条件（#421 判据①）；借款发放不让借款结清，不归 VS-08.1；利润分配与出资退回的退出条件由 PRC-163、PRC-114 造出"
+    stages_note: "结局「付款已成功 / 已核销」造出 VS-05.5 完成付款、VS-08.3 完成报销付款、VS-13.5 的退出条件（#421 判据①）；借款发放不让借款结清，不归 VS-08.1；利润分配与出资退回的退出条件由 PRC-163、PRC-114 造出"
     primary_object: "OBJ-86"
     owner_bc: "B-10"
     group: finance
@@ -849,7 +855,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-77
-    name: "申报并缴纳增值税、附加税与企业所得税"
+    name: "申报并缴纳税款"
     type: business
     stages: [VS-06.1]
     primary_object: "OBJ-92"
@@ -862,7 +868,7 @@ processes:
     name: "年检、核查与延续企业资质"
     type: business
     stages: [VS-06.2]
-    stages_note: "判据：登记核查结果、延续使资质证书（OBJ-65）到「有效 / 降级 / 撤销 / 到期」，是 VS-06.2 退出。字面误判：VS-05.1 退出的「有效」是供方初次准入，本流程核查既有证书，不加"
+    stages_note: "判据①：核查、延续既有资质（持证方含我方法人）使 OBJ-65 到「有效 / 降级 / 撤销 / 到期」，造出 VS-06.2 退出。不加 VS-01.2：该段 OBJ-65 是投标引用我方资质，本流程办理既有资质年检核查，不含投标引用步骤；不加 VS-05.1：该段为供方初次准入，本流程核查既有证书（原第 5 节口径）。"
     primary_object: "OBJ-65"
     owner_bc: "B-01"
     group: revenue
@@ -882,8 +888,8 @@ processes:
   - id: PRC-80
     name: "维护法人、组织与岗位"
     type: business
-    stages: []
-    support: "B-13 主数据维护：法人主体、组织单元、法人归属、职位目录条目的维护，结局不造任何阶段的退出条件（职位「启用」只是 VS-07.1 的进入条件，判据按退出条件归段），服务多条价值流（STAGE_ALIGN.md 归段判据第 6 项）"
+    stages: [VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.2 组织单元与岗位启用、VS-15.3 停用；法人主体筹建存续不作门；法人主体筹建存续不作门；原支撑理由：B-13 主数据维护：法人主体、组织单元、法人归属、职位目录条目的维护，结局不造任何阶段的退出条件（职位「启用」只是 VS-07.1 的进入条件，判据按退出条件归段），服务多条价值流（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: "OBJ-55"
     secondary_objects: [OBJ-54, OBJ-58]
     owner_bc: "B-13"
@@ -912,7 +918,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-83
-    name: "办理入职与任职"
+    name: "办理员工入职与任职"
     type: business
     stages: [VS-07.3]
     primary_object: "OBJ-56"
@@ -923,7 +929,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-84
-    name: "入职后参保增员与建立薪酬档案"
+    name: "增员参保并建立薪酬档案"
     type: business
     stages: [VS-07.3]
     stages_note: "VS-07.3：触发状态 Employed（试用期 / 正式）是 VS-07.3 的退出条件，参保增员与建薪酬档案是入职任职的收尾；不归 VS-13.1——VS-13.1 进入条件同一状态只是字面重合，本流程不产生考勤确认的任何进出事实（#421 第 6a 项）"
@@ -934,7 +940,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-85
-    name: "试用期评估与转正"
+    name: "评估并转正试用期员工"
     type: business
     stages: [VS-07.3, VS-13.2]
     primary_object: "OBJ-56"
@@ -967,11 +973,13 @@ processes:
     status: user_confirmed
     human_orchestration: true
     bpmn: ~
+    acts_on: [OBJ-124]
+    acts_on_note: "CON-1017-ARC-10：骨架：差旅报销取出差补贴标准版本（AGG-133）"
   - id: PRC-88
     name: "编制、批准并基线化经营计划与预算"
     type: business
     stages: [VS-09.1, VS-09.3]
-    stages_note: "跳过 VS-09.2 有意：VS-09.3 退出条件「经营计划新版本」由本流程第二个触发（复盘后调整计划）产生，该路径不经滚动预测；VS-09.2 的新版本由 PRC-89 产生"
+    stages_note: "跳过 VS-09.2 有意：SD-15 已批准 VS-09.3 有两种退出：经营计划新版本、经营复盘已闭环；本流程第二个触发（复盘后调整计划）产生经营计划新版本，PRC-181 承接经营复盘已闭环，该路径不经滚动预测；VS-09.2 的新版本由 PRC-89 产生"
     primary_object: "OBJ-100"
     owner_bc: "B-18"
     group: people
@@ -992,28 +1000,30 @@ processes:
     name: "出具经营月报"
     type: read_model
     stages: [VS-09.3, VS-10.2]
-    stages_note: "读模型不造对象状态，按读取的对象状态归段（#421）：读 OBJ-97「已关账」的期间余额与经营计划基线，月报复盘落在 VS-09.3 经营复盘与 VS-10.2 报表发布。"
+    stages_note: "读模型不造对象状态，按读取的对象状态归段（#421）：读 OBJ-97「已关账」的期间余额与经营计划基线，月报复盘落在 VS-09.3 经营复盘与 VS-10.2 发布报表。"
     owner_bc: "reporting"
     group: finance
     status: draft
     human_orchestration: false
     bpmn: ~
   - id: PRC-91
-    name: "认定工时有效性"
+    name: "认定工时单有效性"
     type: event_policy
-    stages: [VS-10.1]
+    stages: []
     primary_object: "OBJ-66"
     owner_bc: "B-06"
     group: revenue
     status: draft
     human_orchestration: false
     bpmn: ~
+    support: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C12 题（页首不补列清单）；工时有效性认定提供关账输入，与折旧采用同一规则，不补人员管理"
   - id: PRC-92
     name: "过账业务事实"
     type: business
-    stages: [VS-10.1]
+    stages: [VS-10.0]
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已过账 / 已更正」经 PRC-93 生成分录，对应该段「本期分录已记账」退出条件。"
     primary_object: "none"
-    primary_object_note: "过账事实是设计构件，信息图 OBJ-75 经营事实已去掉（BIZBOK p197）；过账不改业务对象状态"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-16"
     group: finance
     status: draft
@@ -1022,7 +1032,8 @@ processes:
   - id: PRC-93
     name: "生成会计分录"
     type: event_policy
-    stages: [VS-10.1]
+    stages: [VS-10.0]
+    stages_note: "按事件策略看触发状态的判据②归 VS-10.0「执行记账结转」（SD-11 已批），触发为业务事实已过账或已更正，结局「已记账无需推送 / 已推送」对应该段「本期分录已记账」退出条件。"
     primary_object: "OBJ-98"
     owner_bc: "B-20"
     group: finance
@@ -1032,7 +1043,8 @@ processes:
   - id: PRC-94
     name: "制单并过账受控手工凭证"
     type: business
-    stages: [VS-10.1]
+    stages: [VS-10.0]
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已提交过账」经 PRC-92、PRC-93 形成手工调整分录，对应该段「本期分录已记账」退出条件。"
     primary_object: "OBJ-98"
     owner_bc: "B-20"
     group: finance
@@ -1040,11 +1052,12 @@ processes:
     human_orchestration: true
     bpmn: ~
   - id: PRC-95
-    name: "期末结转"
+    name: "执行期末结转"
     type: business
-    stages: [VS-10.1]
+    stages: [VS-10.0]
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已过账」经 PRC-93 形成期末结转分录，对应该段「本期分录已记账」退出条件。"
     primary_object: "none"
-    primary_object_note: "期末结转运行属流程与事实，结转凭证经过账生成 OBJ-98 会计分录，由 PRC-93 承载"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -1053,9 +1066,10 @@ processes:
   - id: PRC-96
     name: "分配人工成本"
     type: business
-    stages: [VS-10.1]
+    stages: [VS-10.0]
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「人工成本分配已过账」经 PRC-93 形成成本结转分录，对应该段「本期分录已记账」退出条件。"
     primary_object: "none"
-    primary_object_note: "人工成本分配属流程与事实，信息图 OBJ-76 已去掉"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1064,8 +1078,8 @@ processes:
   - id: PRC-97
     name: "批准并生效分摊规则版本"
     type: business
-    stages: []
-    support: "分摊规则版本是配置，供 VS-10 的分摊运行使用，本身不造出阶段退出条件（#421）"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.1 草稿、VS-15.2 已生效、VS-15.3 旧版本被取代，均由本流程完成（判据推出 VS-15.1、VS-15.2）；原支撑理由：分摊规则版本是配置，供 VS-10 的分摊运行使用，本身不造出阶段退出条件（#421）"
     primary_object: "OBJ-78"
     owner_bc: "B-07"
     group: finance
@@ -1075,9 +1089,10 @@ processes:
   - id: PRC-98
     name: "分摊间接成本"
     type: business
-    stages: [VS-10.1]
+    stages: [VS-10.0]
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「分摊已生效」经 PRC-92 过账、PRC-93 生成分摊分录，对应该段「本期分录已记账」退出条件；「分摊已冲销」经冲销并重过账同样落在本段。"
     primary_object: "none"
-    primary_object_note: "分摊运行属流程与事实，信息图 OBJ-79 已去掉"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1086,18 +1101,21 @@ processes:
   - id: PRC-99
     name: "计提折旧并处置公司资产"
     type: business
-    stages: [VS-10.1]
+    stages: [VS-10.0]
     primary_object: "OBJ-93"
     owner_bc: "B-24"
     group: finance
     status: draft
     human_orchestration: false
     bpmn: ~
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已过账」使折旧与资产处置事实经 PRC-93 生成分录，对应该段「本期分录已记账」退出条件。CAPINFO 页首不补列清单只涉及能力（不因折旧给期间关账补公司资产管理能力），不改本流程归段。"
+    acts_on: [OBJ-124]
+    acts_on_note: "CON-1017-ARC-10：骨架：按资产类别取资产类别与折旧政策版本（AGG-124）"
   - id: PRC-100
     name: "发布总账配置版本"
     type: business
-    stages: []
-    support: "科目表、映射表、授权表版本是总账配置，不造出阶段退出条件（#421）"
+    stages: [VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.2 科目表版本启用、VS-15.3 科目停用；判据暂推不出（科目对象无版本态）；判据暂推不出（科目对象无版本态）；原支撑理由：科目表、映射表、授权表版本是总账配置，不造出阶段退出条件（#421）"
     primary_object: "OBJ-95"
     primary_object_note: "科目表版本；映射表、授权表是技术配置（AGG-85、94），无对象"
     owner_bc: "B-20"
@@ -1106,7 +1124,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-101
-    name: "月结检查并关账"
+    name: "逐账户核对银行账单、处理未达并留存结论，检查并关闭会计期间"
     type: business
     stages: [VS-10.1]
     primary_object: "OBJ-97"
@@ -1116,7 +1134,7 @@ processes:
     human_orchestration: true
     bpmn: ~
   - id: PRC-102
-    name: "启用第 13 期并年末关账"
+    name: "启用并关闭第 13 期"
     type: business
     stages: [VS-10.1]
     primary_object: "OBJ-97"
@@ -1131,19 +1149,19 @@ processes:
     stages: [VS-10.1]
     stages_note: "事件策略按触发状态「会计期间已关账」归段（#421 判据②），该状态是 VS-10.1 期间关账的退出条件"
     primary_object: "none"
-    primary_object_note: "期间余额快照是派生、只追加的技术聚合，不改业务对象状态"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-20"
     group: finance
     status: draft
     human_orchestration: false
     bpmn: ~
   - id: PRC-104
-    name: "外部法定账对账与签字"
+    name: "对账外部法定账并签字"
     type: business
     stages: [VS-10.2]
-    stages_note: "外部法定账对账完成是 VS-10.2 退出条件改定后的「外部法定账对账已完成」（SD 已裁定的 VS-10.2 退出条件）；改定前检查器匹配不上。"
-    primary_object: "none"
-    primary_object_note: "外部法定账对账是运行单据（技术聚合），只读会计分录与快照；对账结论作关账与出表的依据，不改业务对象状态"
+    stages_note: "外部法定账对账完成是 VS-10.2 退出条件改定后的「外部法定账对账已完成」（SD 已裁定的 VS-10.2 退出条件）；改定前检查器匹配不上。；CON-1017-ARC-10：退出条件对账部分改指 OBJ-125「已签字」"
+    primary_object: "OBJ-125"
+    primary_object_note: "CON-1017-ARC-10 O-2：对账并签字形成外部法定账对账（OBJ-125，暂名，待 one-glossary 定名，承载聚合 AGG-101）；原 none（CAPINFO-I01）；须同步骨架"
     owner_bc: "B-20"
     group: finance
     status: draft
@@ -1152,8 +1170,8 @@ processes:
   - id: PRC-105
     name: "评审并生效报表行定义版本"
     type: business
-    stages: []
-    support: "报表行定义版本是配置，供出具报表使用，不造出阶段退出条件（#421）"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.1 草拟与财务评审、VS-15.2 已生效、VS-15.3 旧版本被取代，均由本流程完成（判据只推出 VS-15.2）；原支撑理由：报表行定义版本是配置，供出具报表使用，不造出阶段退出条件（#421）"
     primary_object: "OBJ-99"
     owner_bc: "B-21"
     group: finance
@@ -1174,6 +1192,7 @@ processes:
     name: "知识条目的起草、评审、发布与修订废止"
     type: business
     stages: [VS-11.1, VS-11.2, VS-11.3]
+    stages_note: "VS-11.1 由第 1–3 步承载（提交评审使 OBJ-110 到评审，即本段退出）"
     primary_object: "OBJ-110"
     owner_bc: "B-30"
     group: people
@@ -1214,7 +1233,7 @@ processes:
     bpmn: ~
     note: "知识条目生命周期：修订或废止"
   - id: PRC-111
-    name: "认缴并实缴出资"
+    name: "认缴并实缴合伙人出资"
     type: single_aggregate
     stages: [VS-12.1]
     primary_object: "OBJ-91"
@@ -1223,6 +1242,8 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
+    acts_on: [OBJ-01, OBJ-54, OBJ-98]
+    acts_on_note: "CON-1017-ARC-10：骨架：读合伙人（B-01 往来单位）与法人主体，实缴经过账候选最终记会计分录（O-6，方法 ②）"
   - id: PRC-112
     name: "决议并支付利润分配"
     type: business
@@ -1244,7 +1265,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-114
-    name: "退回出资"
+    name: "退回合伙人出资"
     type: business
     stages: [VS-12.3]
     primary_object: "OBJ-91"
@@ -1274,6 +1295,8 @@ processes:
     status: draft
     human_orchestration: true
     bpmn: ~
+    acts_on: [OBJ-124]
+    acts_on_note: "CON-1017-ARC-10：骨架：按额度与假期规则（AGG-118）自动通过或转人工"
   - id: PRC-117
     name: "申请并批准加班"
     type: business
@@ -1298,8 +1321,8 @@ processes:
   - id: PRC-119
     name: "维护工作日历与标准工时版本"
     type: single_aggregate
-    stages: []
-    support: "B-14 工作日历与标准工时版本的配置维护，结局不造任何阶段的退出条件（工作日历「已维护」是 VS-13.1 的进入条件，判据按退出条件归段）（STAGE_ALIGN.md 归段判据第 6 项）"
+    stages: [VS-15.2]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；判据：工作日历「已维护」为 VS-15.2 退出；原支撑理由：B-14 工作日历与标准工时版本的配置维护，结局不造任何阶段的退出条件（工作日历「已维护」是 VS-13.1 的进入条件，判据按退出条件归段）（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: "OBJ-28"
     owner_bc: "B-14"
     group: people
@@ -1319,8 +1342,8 @@ processes:
   - id: PRC-121
     name: "制定激励方案"
     type: business
-    stages: []
-    support: "B-15 激励方案版本的配置维护，结局（已生效）不造 VS-13.2 的退出条件（激励方案「生效」是 VS-13.2 的进入条件；退出是评估已确认、奖金已核定）（STAGE_ALIGN.md 归段判据第 6 项）"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.1 编制、VS-15.2 已生效、VS-15.3 已结束，均由本流程完成（判据推出 VS-15.2、VS-15.3）；原支撑理由：B-15 激励方案版本的配置维护，结局（已生效）不造 VS-13.2 的退出条件（激励方案「生效」是 VS-13.2 的进入条件；退出是评估已确认、奖金已核定）（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: "OBJ-74"
     owner_bc: "B-15"
     group: people
@@ -1342,8 +1365,8 @@ processes:
     type: single_aggregate
     stages: []
     support: "B-15 薪酬档案与专项附加扣除的维护，结局（档案已调整、扣除已更新）不造 VS-13.3、VS-13.4 的任一退出条件（月度薪酬结算已批准、法定申报已申报缴款），服务薪酬结算的输入（STAGE_ALIGN.md 归段判据第 6 项）"
-    primary_object: "none"
-    primary_object_note: "OBJ-61 薪酬档案在信息图定为人员属性版本、非对象；AGG-120 专项附加扣除声明无对象（F-6 随信息层交用户）"
+    primary_object: "OBJ-123"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I09 题；信息图现单列 OBJ-123，保留处理、审批及核对依据。"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -1359,8 +1382,10 @@ processes:
     status: draft
     human_orchestration: true
     bpmn: ~
+    acts_on: [OBJ-124]
+    acts_on_note: "CON-1017-ARC-10：骨架：取适用的薪酬规则版本（AGG-119）"
   - id: PRC-125
-    name: "申报个税扣缴与社保公积金"
+    name: "准备申报，按实付扣缴事实申报个税并缴库登记回执，办理社保公积金申报缴款"
     type: business
     stages: [VS-13.4, VS-06.1]
     primary_object: "OBJ-92"
@@ -1382,7 +1407,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-127
-    name: "薪酬发放完成"
+    name: "按逐人实付结果更新薪酬行并标记整期已发放"
     type: event_policy
     stages: [VS-13.5]
     primary_object: "OBJ-73"
@@ -1392,7 +1417,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-128
-    name: "办理离职"
+    name: "办理员工离职，出具并交付证明，办理档案及社保转移并登记回执"
     type: business
     stages: [VS-13.6]
     primary_object: "OBJ-56"
@@ -1404,16 +1429,18 @@ processes:
     bpmn: ~
   - id: PRC-129
     name: "离职后吊销会话"
-    type: event_policy
-    stages: [VS-13.6]
+    type: retired
+    stages: []
     primary_object: "none"
     owner_bc: "platform.identity"
     group: people
     status: draft
     human_orchestration: false
     bpmn: ~
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
+    note: "CON-1017-ARC-10 R-1：移出流程目录，进平台作业登记（platform.identity 吊销会话作业；PROCESS_ANCHORING_RESEARCH 审题后修订第 3 条：平台身份机制的技术动作，不是业务人员按规则反复办理的流程）；PRC-138 第 1 步改为调用平台作业，不再 calls PRC-129"
   - id: PRC-130
-    name: "离职后参保减员"
+    name: "办理社保减员及公积金转移或封存，登记申请与经办回执"
     type: event_policy
     stages: [VS-13.6]
     primary_object: "OBJ-62"
@@ -1423,7 +1450,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-131
-    name: "付款成功后核销应付"
+    name: "核销应付款项"
     type: event_policy
     stages: [VS-05.5, VS-08.3, VS-13.5]
     stages_note: "事件策略按触发状态「付款已成功」归段（#421 判据②），该状态是 VS-05.5、VS-08.3、VS-13.5 的退出条件"
@@ -1437,7 +1464,7 @@ processes:
     name: "应付核销后置付款已核销并提交过账候选"
     type: event_policy
     stages: [VS-05.5, VS-08.3, VS-13.5]
-    stages_note: "VS-05.5、VS-08.3、VS-13.5：事件策略按触发状态归段（#421 判据②）——触发「应付已核销」是 AGG-52 往来款项走向「已结清 / 部分结」的一步，供方应付对应 VS-05.5 付款、报销应付对应 VS-08.3 报销付款、薪酬应付对应 VS-13.5 的退出条件；与 PRC-131 同段"
+    stages_note: "VS-05.5、VS-08.3、VS-13.5：事件策略按触发状态归段（#421 判据②）——触发「应付已核销」是 AGG-52 往来款项走向「已结清 / 部分结」的一步，供方应付对应 VS-05.5 完成付款、报销应付对应 VS-08.3 完成报销付款、薪酬应付对应 VS-13.5 的退出条件；与 PRC-131 同段"
     primary_object: "OBJ-86"
     owner_bc: "B-10"
     group: finance
@@ -1445,7 +1472,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-133
-    name: "应付结清后报销置已付"
+    name: "标记报销已付"
     type: event_policy
     stages: [VS-08.3]
     stages_note: "VS-08.3：事件策略按触发状态归段（#421 判据②）——触发「应付已结清」限于报销类型的应付（AGG-52），正是 VS-08.3 报销付款退出条件 OBJ-85「已结清」（agg AGG-52，应付「报销」）；本策略再把 OBJ-88 置「已付」，补齐 VS-08.3 的另一退出条件"
@@ -1456,7 +1483,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-134
-    name: "薪酬事实已过账置位"
+    name: "标记薪酬已过账"
     type: event_policy
     stages: [VS-13.5]
     stages_note: "触发是过账事实（BusinessFactAttributed），不是任一阶段的对象状态；改按结局归段：置位月度薪酬结算「已过账」，是 VS-13.5 退出条件「已发放 → 已过账」的末端（归段判据第 6 项）"
@@ -1467,10 +1494,10 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-135
-    name: "处理会计分录待处理队列与推送重投"
+    name: "处理并重投会计分录"
     type: single_aggregate
-    stages: [VS-10.1]
-    stages_note: "VS-10.1：待处理队列为空、推送死信为空是 VS-10.1 期间关账的前置检查（ADR-0022 决定 10、INV-100）；本流程清理队列与死信，是关账得以达成的必要环节。期间内记账与结转段 VS-10.0 待 SD-11 裁定，定后改归 VS-10.0"
+    stages: [VS-10.0]
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），待处理项补齐授权或映射后生成分录并转为「待推送」，对应该段「会计分录待处理队列已清空」退出条件。"
     primary_object: "OBJ-98"
     owner_bc: "B-20"
     group: finance
@@ -1478,7 +1505,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-136
-    name: "调岗（任职变更，按人事业务生效日，触发数据范围复核）"
+    name: "变更任职"
     type: business
     stages: [VS-07.3]
     primary_object: "OBJ-57"
@@ -1499,6 +1526,9 @@ processes:
     status: user_confirmed
     human_orchestration: ~
     bpmn: ~
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
+    acts_on: [OBJ-56]
+    acts_on_note: "CON-1017-ARC-10：骨架：订阅人员（AGG-62）入职已登记与 Employed，以人员 ID 为键建登录身份并绑定"
   - id: PRC-138
     name: "离职停用企业微信账号并解绑"
     type: business
@@ -1510,19 +1540,22 @@ processes:
     status: draft
     human_orchestration: ~
     bpmn: ~
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
+    acts_on: [OBJ-56]
+    acts_on_note: "CON-1017-ARC-10：骨架：订阅人员（AGG-62）Separated，以人员在职为准停用登录身份、收回授予"
   - id: PRC-139
     name: "用印申请与用印登记"
     type: business
-    stages: []
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    stages: ["VS-14.1", "VS-14.2", "VS-14.3", "VS-14.4"]
     primary_object: "OBJ-113"
     owner_bc: "B-31"
     group: people
     status: draft
     human_orchestration: ~
     bpmn: ~
+    stages_note: "VS-14.1：步 1 正式记录用印申请；来源审批经 platform.approval 校验通过且 INV-138 满足时草稿直达已批准，跳过 .2；需人审的草稿到审批中，均符合 OBJ-113 出口。VS-14.2：步 2 按上线前须填的 D15 制度配置（版本、生效日、批准人及依据，B31-1）解析责任人和加审层级，不沿用候选部门负责人或 AR-16 范围，审批中到已批准；步 3 驳回及审批期撤回提前结束本轮，原单可经步 1 重提并保留轮次。VS-14.3：步 4 核对批准及 INV-118、119、138 后登记实际用印到已用印，记录报价版本、用印法人、拟发文件与凭据对应；分次登记为已用印自环。VS-14.4：步 5 份数到齐或确认放弃剩余份数后规则关闭到已关闭；已关闭仍可核验实际用印凭据，未实际盖章不算已用印；报价发出前由 REF-04 经 B-31 api 核验实际用印登记（B31-16，ADR-0057 待批）。"
   - id: PRC-140
-    name: "合同借阅"
+    name: "借阅协议原件"
     type: business
     stages: []
     support: "合同档案支持活动（B-05 合同模块档案功能，C-4，intent 144943）：只处理已归档合同原件的借阅流转，不改变任何价值流阶段的进入或退出对象状态"
@@ -1533,8 +1566,9 @@ processes:
     status: draft
     human_orchestration: ~
     bpmn: ~
+    note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C14 题；保持原 B-05 合同档案支撑，不纳入 VS-14，不新增借阅对象或协议归档状态。"
   - id: PRC-141
-    name: "销售合同归档"
+    name: "归档协议"
     type: business
     stages: []
     support: "合同档案支持活动（B-05，C-4 归档并入合同模块档案功能，intent 144943）：回签后原件移交档案，不改变 VS-04.1 退出状态"
@@ -1545,39 +1579,41 @@ processes:
     status: draft
     human_orchestration: ~
     bpmn: ~
+    note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C14 题；保持原 B-05 合同档案支撑，不纳入 VS-14，不新增借阅对象或协议归档状态。"
   - id: PRC-142
     name: "IT 需求工单"
     type: business
-    stages: []
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    stages: ["VS-14.1", "VS-14.2", "VS-14.3", "VS-14.4"]
     primary_object: "OBJ-114"
     owner_bc: "B-31"
     group: people
     status: draft
     human_orchestration: ~
     bpmn: ~
+    stages_note: "VS-14.1：步 1 依上线前须填的 D15 受控类别表判断（逐类填负责人、是否需人审、理由、表提供方与维护方、采购交接，B31-3），常规草稿到已提交（待受理），需人审草稿到审批中；未列类别或有效配置缺失拒绝并告警。VS-14.2：步 2 按类别和正式制度配置批准到已提交，步 3 人工受理到处理中，两步共同形成退出；常规类别直接受理。VS-14.3：在步 3 受理之后、步 4 解决之前判断，需求不成立或无法实现直接步 6 退回，不执行解决及其事件；成立才到已解决。VS-14.4：步 5 仅提出人人工确认且满足 INV-120 才关闭到已关闭，未解决回步 3 重开；步 6 从处理中、步 7 从审批中提前到已退回，撤回也可提前结束。不设受理提醒或系统代关（B31-2），不调用调度，人工超期不自动改变状态，保留人工催办和逾期查询。"
+
   - id: PRC-143
     name: "IT 资产领用"
     type: business
-    stages: []
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    stages: ["VS-14.1", "VS-14.3"]
     primary_object: "OBJ-115"
     owner_bc: "B-31"
     group: people
     status: draft
     human_orchestration: ~
     bpmn: ~
+    stages_note: "VS-14.1：现步 1（原步 1）申请领用资产，岗位标准和超配可执行规则通过才草稿到已通过，缺失或不满足拒绝并告警；全部领用只登记、由规则控制，不设人审，跳过 VS-14.2（B31-5）；岗位配置清单、超配规则及其提供与维护方为上线前须填 D15 配置。VS-14.3：现步 2（原步 3）以规则已通过为前提实物签收并登记，INV-121 兜底，同事务创建在用使用期间、申请到已领用。流程在已领用结束；归还另由 PRC-156 重入 .4，调拨由 PRC-155 重入 .3。原步 2、4 及其审批期撤回已删除，历史状态、审批轮次和原编号仅作迁入历史保留。"
   - id: PRC-144
-    name: "员工活动类申请（周年贺卡、节日活动、创新项目发布）"
+    name: "申请员工活动"
     type: business
-    stages: []
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    stages: ["VS-14.1", "VS-14.4"]
     primary_object: "OBJ-116"
     owner_bc: "B-31"
     group: people
     status: draft
     human_orchestration: ~
     bpmn: ~
+    stages_note: "VS-14.1：现步 1（原步 1）只登记、由规则控制（B31-8），统一规则登记，全部活动通过预算、组织安排及类型规则后草稿直达已批准（规则结果，无人工批准）；周年贺卡读 B-13 入职日期与有效人员事实，由 platform.scheduling 按入职周年于业务日自动生成（B31-10），以员工、入职日期、周年日期、类型去重；适用员工、闰日、重新入职、补跑口径与规则维护责任为上线前须填配置，缺配置拒绝并告警；其他活动可人工登记。VS-14.2 无人审直接跳过；VS-14.3 活动举办无独立对象状态，亦跳过。VS-14.4：现步 2（原步 3）组织活动并登记完成，已批准到已完成，只有已完成是本段正常退出。新增步 3「取消员工活动登记」是登记生命周期的逆向纠错，从已批准或已完成到提议终态已取消；归属于 PRC-144 的登记撤销路径，不构成 VS-14.4 服务办结退出、不新增阶段或人审。原步 2、4 和审批期撤回、AR-01/AR-02 活动金额加审已删除，历史状态与轮次保留迁入；费用、报销、采购保留自身流程。"
   - id: PRC-145
     name: "员工法人三口径不一致预警"
     type: event_policy
@@ -1588,8 +1624,11 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
+    acts_on: [OBJ-05, OBJ-54, OBJ-123]
+    acts_on_note: "CON-1017-ARC-10：骨架：比对劳动合同（AGG-67，协议 OBJ-05）用人单位、数据范围法人（AGG-117，法人主体 OBJ-54）与薪酬档案（AGG-93，OBJ-123）扣缴义务人"
   - id: PRC-146
-    name: "协议借阅逾期催还"
+    name: "催还逾期协议原件"
     type: event_policy
     stages: []
     support: "合同档案支持活动（B-05）：借阅逾期催还，随 PRC-140，不改变任何阶段状态"
@@ -1600,8 +1639,9 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
+    note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-C14 题；保持原 B-05 合同档案支撑，不纳入 VS-14，不新增借阅对象或协议归档状态。"
   - id: PRC-147
-    name: "费用报销核定后冲抵员工借款并确认应付"
+    name: "冲抵借款并确认报销应付"
     type: event_policy
     stages: [VS-08.2]
     primary_object: "OBJ-88"
@@ -1635,7 +1675,7 @@ processes:
     human_orchestration: true
     bpmn: ~
   - id: PRC-150
-    name: "发票红冲后冲减应收"
+    name: "冲减应收款项"
     type: event_policy
     stages: [VS-04.4]
     primary_object: "OBJ-85"
@@ -1648,7 +1688,7 @@ processes:
     name: "填报经营产值"
     type: business
     stages: [VS-02.2, VS-02.3, VS-02.4, VS-02.5, VS-02.6]
-    stages_note: "产值估计写在完工估算（OBJ-33）上，不在 VS-02 的进出条件和贯穿活动里；不改骨架，单列交 one-architecture（阶段定义：同 PRC-30）"
+    stages_note: "VS-02.2、VS-02.3、VS-02.4、VS-02.5、VS-02.6：SD-13 已列段内「产值已填报 / 产值已抽查」，ref 仍为「缺对象状态」，gap MS-23。流程只向完工估算追加产值估计行，不改 OBJ-33 批准状态；保留这些段与真实结局，不以「已批准」替代，信息图对象状态待回补。"
     primary_object: "OBJ-33"
     primary_object_note: "产值估计写入完工估算的只追加子表 progress_estimates，不改估算的批准状态"
     owner_bc: "B-04"
@@ -1657,10 +1697,10 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-152
-    name: "登记付款条件达成"
+    name: "登记付款条件项达成"
     type: business
     stages: [VS-04.3]
-    stages_note: "改标：删 VS-04.4。判据：登记付款条件达成使付款条件项（OBJ-07）到「可结算」，是 VS-04.3 进入条件；本流程不造应收（VS-04.4 进入是 OBJ-85 未结）。字面误判：匹到的 VS-04.1、VS-04.6、VS-05.2、VS-07.3 是协议状态不变，不造退出"
+    stages_note: "SD-14 已写回：登记付款条件达成使 OBJ-07 到「可结算」，是 VS-04.3 段内状态，保留 VS-04.3；不再只靠进入条件归段。本流程不造应收，不加 VS-04.4；VS-04.1、VS-04.6、VS-05.2、VS-07.3 的协议状态在本命令中不变，不加这些段。"
     primary_object: "OBJ-07"
     primary_object_note: "结局使付款条件项「可结算」（VS-04.3 进入条件）"
     owner_bc: "B-05"
@@ -1672,7 +1712,7 @@ processes:
     name: "退还投标保证金"
     type: business
     stages: [VS-01.2, VS-04.1]
-    stages_note: "VS-01.2、VS-04.1 的条件与段内状态没有保证金与押金（OBJ-13）：未中标、废标、撤销后退还属 VS-01.2 之后，中标方签约后退还属 VS-04.1。不改骨架，单列交 one-architecture（阶段定义，同 PRC-10）"
+    stages_note: "SD-13 已写回：退还投标保证金使 OBJ-13「已退」，是 VS-01.2 段内状态；中标后退还的投标保证金也已明列于 VS-04.1 段内 OBJ-13 说明。按既有两条退还路径保留 VS-01.2、VS-04.1，不再等待阶段定义；业务流程结局归段不能只以事件触发的文字匹配判定。"
     primary_object: "OBJ-13"
     owner_bc: "B-09"
     group: revenue
@@ -1680,7 +1720,7 @@ processes:
     human_orchestration: false
     bpmn: ~
   - id: PRC-154
-    name: "收入三口径对照"
+    name: "查看收入三口径对照"
     type: read_model
     stages: [VS-04.2, VS-04.3]
     owner_bc: "reporting"
@@ -1691,30 +1731,29 @@ processes:
   - id: PRC-155
     name: "IT 资产调拨"
     type: business
-    stages: []
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    stages: ["VS-14.3"]
     primary_object: "OBJ-115"
     owner_bc: "B-31"
     group: people
     status: draft
     human_orchestration: false
     bpmn: ~
+    stages_note: "仅占 VS-14.3：已领用或已调拨资产的使用期间在用，符合 OBJ-115 的在用进入条件；步 1 提出调拨请求（调拨申请草稿 → 已申请），本次为已使用资产重入，不是 VS-14.1 的初次领用申请；同一核算主体内跨组织调拨只通知调出、调入两侧负责人，不设批准（B31-6）。步 2 登记交接，调拨申请已申请 → 已调拨，并同事务结束调出期间、开启调入期间，满足本段已调拨退出；使用未结束，不归 VS-14.4，日后归还由 PRC-156 承接。无当前使用人的请求转 PRC-143 初次领用，结局已转领用；撤销只结束本次调拨；跨法人转让及账务归固定资产流程。"
   - id: PRC-156
     name: "IT 资产归还"
     type: business
-    stages: []
-    support: "B-31 资产归还：离职生效（Separated）触发的归还待办只是 VS-13.6 退出事件的反应，另有资产管理员人工登记触发（在职换机、收回）；结局不造 VS-13.6 的任一退出条件（人员已离职、参保减员、劳动合同已终止），不挂阶段（STAGE_ALIGN.md 归段判据第 6 项）"
+    stages: ["VS-14.4"]
     primary_object: "OBJ-115"
     owner_bc: "B-31"
     group: people
     status: draft
     human_orchestration: false
     bpmn: ~
+    stages_note: "仅占 VS-14.4：承接 PRC-143 的已领用或 PRC-155 的已调拨，已有在用使用期间时，由人工登记或 B-13 Separated 生成归还待办重入，不重复 VS-14.1–VS-14.3。步 1 验收并归还资产，结局已归还对应 OBJ-115 的本段退出；AGG-115 使用期间转换写在用 → 已结束且 process_outcome 为已归还；按 ARCH_VS14 A4，VS-14 出口的已结束限定为归还资产命令产生，调拨结束旧期间不算归还。离职触发的归还待办不作 VS-13.6 退出条件；仅离职入口按离职生效日（非事件到达日）起 7 个日历日仍未归还，非中断提醒原组织单元负责人，归还完成取消到期任务，幂等键为聚合 ID + 到期时点，手工入口不套期限（B31-7，参数按 D15 记版本）；离职逾期的已提醒只结束非中断提醒分支，不代替归还。"
   - id: PRC-157
     name: "IT 资产报修与维修登记"
     type: business
-    stages: []
-    support: "行政支撑：不在客户价值流上，按 B-31 行政事务查漏（S-31）"
+    stages: ["VS-14.3", "VS-14.4"]
     primary_object: "OBJ-115"
     primary_object_note: "AGG-121 维修单是 OBJ-115 的维修工单子生命周期"
     owner_bc: "B-31"
@@ -1722,20 +1761,21 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
+    stages_note: "VS-14.3：已有在用资产故障后重入，步 1 报修资产创建 AGG-121 维修单到已报修，步 2 登记维修结果到已维修登记，对应本段 OBJ-115 / AGG-121 退出；不重复初次领用的 VS-14.1、VS-14.2，也不设维修审批。按 ARCH_VS14 A5，VS-14.3 进入已拆为 AGG-121 已报修，不把已报修放入 AGG-115。VS-14.4：步 2 同时确认本次维修登记，已维修登记保持为该次服务办结事实（进入与退出同态），不加空转命令；已修复或无法修复是结果属性，不作状态，维修结束不等于资产已归还。"
   - id: PRC-158
     name: "处置过账拒收记录"
     type: single_aggregate
-    stages: [VS-10.1]
-    stages_note: "VS-10.1：「拒收记录已处置」是 VS-10.1 期间关账的前置检查项（S-29 SQ-54，INV-100）；期间内记账段 VS-10.0 待 SD-11 裁定，定后改归 VS-10.0"
+    stages: [VS-10.0]
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已重提 / 已结案」消除待处置拒收记录，对应该段「过账拒收记录已处置」退出条件。"
     primary_object: "none"
-    primary_object_note: "同 PRC-92：拒收记录是过账管道的技术记录"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-16"
     group: finance
     status: draft
     human_orchestration: false
     bpmn: ~
   - id: PRC-159
-    name: "申报已提交后确认税费应付"
+    name: "确认税费应付"
     type: event_policy
     stages: [VS-06.1]
     stages_note: "VS-06.1：事件策略按触发状态归段（#421 判据②）——触发「申报已提交」即 OBJ-92 法定申报（agg AGG-90）「已申报」，是 VS-06.1 申报缴款退出条件「已申报 → 已缴款」的前半；本策略确认税费应付，后接 PRC-75 缴款完成后半"
@@ -1749,15 +1789,17 @@ processes:
     name: "开立年度假期额度账户"
     type: event_policy
     stages: [VS-07.3]
-    stages_note: "事件触发「入职生效」（Employed）是 VS-07.3 退出条件「人员试用期 / 正式」的产生事件，按事件策略归 VS-07.3；年初定时触发没有对象状态，不单独归段（归段判据第 6 项）"
-    primary_object: "none"
+    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I08 题（页首架构处理告知）：VS-07.3 仅对应入职生效 Employed 入口；年初定时开户为年度例行支撑，不表示完成入职。补休按额度行有效期处理，不随年度开户结转。"
+    primary_object: "OBJ-122"
     owner_bc: "B-27"
     group: people
     status: draft
     human_orchestration: false
     bpmn: ~
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I08 题；信息图现单列 OBJ-122，保留处理、审批及核对依据。"
+    stage_scope: {"VS-07.3": "仅入职生效入口；年初定时入口不归段"}
   - id: PRC-161
-    name: "年末关闭预算账户"
+    name: "关闭预算账户"
     type: event_policy
     stages: []
     support: "B-18 预算期届满的定时例行处理：只有定时触发（无对象状态），结局（预算账户已关闭）不造 VS-09.3 的退出条件（OBJ-100 新版本）（STAGE_ALIGN.md 归段判据第 6 项）"
@@ -1771,17 +1813,17 @@ processes:
   - id: PRC-162
     name: "发布假期规则版本"
     type: single_aggregate
-    stages: []
-    support: "B-27 假期规则版本的配置维护，结局（假期规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
-    primary_object: "none"
-    primary_object_note: "AGG-118 假期类型与额度规则为配置，信息图无对象（假期类型是 OBJ-68 属性、OBJ-69 额度非对象；F-6）"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：B-27 假期规则版本的配置维护，结局（假期规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）；CON-1017-ARC-10：补 VS-15.1（编制版本草稿）、VS-15.3（新版本发布取代旧版本即停用），OBJ-124 三段状态由本流程完成；须同步骨架"
+    primary_object: "OBJ-124"
+    primary_object_note: "CON-1017-ARC-10 O-1：发布一版业务规则（OBJ-124，暂名，待 one-glossary 定名，按类型区分）；原 none（CAPINFO-I01）由 intent 2026-10-17-174814 与审题后修订第 4 条的结构决定取代；须同步骨架"
     owner_bc: "B-27"
     group: people
     status: draft
     human_orchestration: false
     bpmn: ~
   - id: PRC-163
-    name: "应付结清后登记利润分配支付"
+    name: "登记利润分配支付"
     type: event_policy
     stages: [VS-12.2]
     stages_note: "利润分配支付是「利润分配」阶段出口（应付股利结清）的一部分；触发「应付已结清」按来源限定为利润分配应付；结局造出 OBJ-112「已支付」，是 VS-12.2 退出条件（检查器没解析「已决议 → 已支付」）"
@@ -1798,7 +1840,7 @@ processes:
     stages: [VS-04.2]
     stages_note: "收入确认冲销后冲回已配对的成本结转，随收入确认所在阶段（VS-04.2，revenue 价值流）；触发是收入确认类型过账事实被冲销并重过账，对应 OBJ-98「已记账（不可逆）」，是 VS-04.2 退出条件（触发名是事件名，检查器匹配不上）"
     primary_object: "none"
-    primary_object_note: "同 PRC-15：冲回已配对成本结转，不改业务对象状态"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1808,10 +1850,10 @@ processes:
   - id: PRC-165
     name: "发布成本核算参数版本"
     type: single_aggregate
-    stages: []
-    support: "成本核算参数是配置版本，供 VS-10.1 的成本分配与分摊使用，本身不推进任何阶段的对象状态"
-    primary_object: "none"
-    primary_object_note: "成本核算参数版本（AGG-123）是配置，信息图无对象"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：成本核算参数是配置版本，供 VS-10.1 的成本分配与分摊使用，本身不推进任何阶段的对象状态；CON-1017-ARC-10：补 VS-15.1（编制版本草稿）、VS-15.3（新版本发布取代旧版本即停用），OBJ-124 三段状态由本流程完成；须同步骨架"
+    primary_object: "OBJ-124"
+    primary_object_note: "CON-1017-ARC-10 O-1：发布一版业务规则（OBJ-124，暂名，待 one-glossary 定名，按类型区分）；原 none（CAPINFO-I01）由 intent 2026-10-17-174814 与审题后修订第 4 条的结构决定取代；须同步骨架"
     owner_bc: "B-07"
     group: finance
     status: draft
@@ -1821,10 +1863,10 @@ processes:
   - id: PRC-166
     name: "发布资产类别与折旧政策版本"
     type: single_aggregate
-    stages: []
-    support: "资产类别与折旧政策是配置版本，供 PRC-99 计提折旧使用，不推进阶段"
-    primary_object: "none"
-    primary_object_note: "资产类别与折旧政策版本（AGG-124）是配置，信息图无对象"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象已立 OBJ-124（CON-1017-ARC-10 O-1），MS-25 消除；原支撑理由：资产类别与折旧政策是配置版本，供 PRC-99 计提折旧使用，不推进阶段；CON-1017-ARC-10：补 VS-15.1（编制版本草稿）、VS-15.3（新版本发布取代旧版本即停用），OBJ-124 三段状态由本流程完成；须同步骨架"
+    primary_object: "OBJ-124"
+    primary_object_note: "CON-1017-ARC-10 O-1：发布一版业务规则（OBJ-124，暂名，待 one-glossary 定名，按类型区分）；原 none（CAPINFO-I01）由 intent 2026-10-17-174814 与审题后修订第 4 条的结构决定取代；须同步骨架"
     owner_bc: "B-24"
     group: finance
     status: draft
@@ -1833,24 +1875,23 @@ processes:
     note: "S-31；阶段由 finance 组铺开时填"
   - id: PRC-167
     name: "编制并签字确认期初余额"
-    type: single_aggregate
+    type: retired
     stages: []
-    support: "期初余额只在投产时编制一次（ADR-0022 决定 11），是上线初始化，不是周期性价值流阶段"
     primary_object: "none"
-    primary_object_note: "期初余额（AGG-125）是投产初始化的余额载体，信息图无对象"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-20"
     group: finance
     status: draft
     human_orchestration: false
     bpmn: ~
-    note: "S-31；阶段由 finance 组铺开时填"
+    note: "S-31；阶段由 finance 组铺开时填；CON-1017-ARC-10 R-2：移出流程目录，进迁移规划 togaf/transitions.yaml（审题后修订第 3 条；ADR-0022 决定 11 投产一次）"
   - id: PRC-168
     name: "发布口径版本"
     type: single_aggregate
-    stages: []
-    support: "口径版本是勾稽侧配置（ADR-0023 决定 2），不推进阶段"
-    primary_object: "none"
-    primary_object_note: "口径版本（AGG-78）：信息图 OBJ-102 指标定义已去掉，移入第 11 步指标元数据"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：口径版本是勾稽侧配置（ADR-0023 决定 2），不推进阶段；CON-1017-ARC-10：补 VS-15.1（编制版本草稿）、VS-15.3（新版本发布取代旧版本即停用），OBJ-124 三段状态由本流程完成；须同步骨架"
+    primary_object: "OBJ-124"
+    primary_object_note: "CON-1017-ARC-10 O-1：发布一版业务规则（OBJ-124，暂名，待 one-glossary 定名，按类型区分）；原 none（CAPINFO-I01）由 intent 2026-10-17-174814 与审题后修订第 4 条的结构决定取代；须同步骨架"
     owner_bc: "B-17"
     group: finance
     status: draft
@@ -1860,23 +1901,25 @@ processes:
   - id: PRC-169
     name: "处置勾稽差异案"
     type: single_aggregate
-    stages: [VS-10.1]
-    stages_note: "VS-10.1：勾稽差异案须在关账前处置，是 VS-10.1 期间关账的前置检查（INV-100 扩展项，S-29 SQ-54；ADR-0016 决定 1 勾稽等式）；期间内记账段 VS-10.0 待 SD-11 裁定，定后再判是否改归 VS-10.0"
-    primary_object: "none"
-    primary_object_note: "勾稽差异案在词表是聚合（operations.policy），信息图没有对象；是否立对象随信息层定"
+    stages: [VS-10.0]
+    stages_note: "按判据①归 VS-10.0「执行记账结转」（SD-11 已批），结局「已解释关闭 / 已修正关闭 / 已豁免关闭」消除未结差异案，对应该段「勾稽差异案已处置」退出条件。"
+    primary_object: "OBJ-117"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I02 题；信息图现单列 OBJ-117，保留处理、审批及核对依据。"
     owner_bc: "B-17"
     group: finance
     status: draft
     human_orchestration: false
     bpmn: ~
     note: "S-31；阶段由 finance 组铺开时填"
+    acts_on: [OBJ-124]
+    acts_on_note: "CON-1017-ARC-10：骨架：按差异所属口径版本（AGG-78）处置"
   - id: PRC-170
     name: "申请费用事前额度"
     type: business
     stages: [VS-08.0]
-    stages_note: "按判据归 VS-08.0 事前申请（SD-03）：费用事前额度批准是该阶段的退出条件"
-    primary_object: "none"
-    primary_object_note: "费用事前申请是真实业务单据（A8 业务招待申请表），信息图缺对象；建议信息层补对象「费用事前申请」后改填"
+    stages_note: "按判据归 VS-08.0 批准事前申请（SD-03）：费用事前额度批准是该阶段的退出条件"
+    primary_object: "OBJ-118"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I05 题；信息图现单列 OBJ-118，保留处理、审批及核对依据。"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1884,24 +1927,26 @@ processes:
     bpmn: ~
     note: "S-31；阶段由 finance 组铺开时填"
   - id: PRC-171
-    name: "核对差旅服务商月账单并确认应付"
+    name: "核对差旅账单并确认应付"
     type: business
     stages: [VS-05.4]
     stages_note: "公司直付分贝通订单：核对月账单后确认供方应付，属「应付确认」；之后付款进 VS-05.5（PRC-75）；结局「应付已确认」即 OBJ-85「未结」（应付方向），是 VS-05.4 退出条件（同 PRC-74 的写法，检查器因结局没写「未结」匹配不上）"
-    primary_object: "OBJ-85"
+    primary_object: "OBJ-121"
     owner_bc: "B-12"
     group: finance
     status: draft
     human_orchestration: true
     bpmn: ~
     note: "S-31；阶段由 finance 组铺开时填"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I07 题；信息图现单列 OBJ-121，保留处理、审批及核对依据。"
+    secondary_objects: ["OBJ-85"]
   - id: PRC-172
     name: "申请出差并同步差旅服务商"
     type: business
     stages: [VS-08.0]
-    stages_note: "按判据归 VS-08.0 事前申请（SD-03）：出差申请批准是该阶段的退出条件"
-    primary_object: "none"
-    primary_object_note: "出差申请是真实业务单据，信息图缺对象；建议信息层补对象「出差申请」后改填"
+    stages_note: "按判据归 VS-08.0 批准事前申请（SD-03）：出差申请批准是该阶段的退出条件"
+    primary_object: "OBJ-119"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I05 题；信息图现单列 OBJ-119，保留处理、审批及核对依据。"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1912,9 +1957,9 @@ processes:
     name: "审批差旅超标订单"
     type: business
     stages: [VS-08.0]
-    stages_note: "按判据归 VS-08.0 事前申请（SD-03）：超标订单审批是下单前的事前申请"
-    primary_object: "none"
-    primary_object_note: "差旅订单（分贝通直付）是真实业务对象，信息图缺对象；建议信息层补对象「差旅订单」后改填"
+    stages_note: "按判据归 VS-08.0 批准事前申请（SD-03）：超标订单审批是下单前的事前申请"
+    primary_object: "OBJ-120"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I07 题；信息图现单列 OBJ-120，保留处理、审批及核对依据。"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1924,10 +1969,10 @@ processes:
   - id: PRC-174
     name: "发布出差补贴标准版本"
     type: single_aggregate
-    stages: []
-    support: "出差补贴标准是配置版本，供 PRC-87 生成补贴行使用，不推进阶段"
-    primary_object: "none"
-    primary_object_note: "出差补贴标准版本（AGG-133）是配置，信息图无对象"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：出差补贴标准是配置版本，供 PRC-87 生成补贴行使用，不推进阶段；CON-1017-ARC-10：补 VS-15.1（编制版本草稿）、VS-15.3（新版本发布取代旧版本即停用），OBJ-124 三段状态由本流程完成；须同步骨架"
+    primary_object: "OBJ-124"
+    primary_object_note: "CON-1017-ARC-10 O-1：发布一版业务规则（OBJ-124，暂名，待 one-glossary 定名，按类型区分）；原 none（CAPINFO-I01）由 intent 2026-10-17-174814 与审题后修订第 4 条的结构决定取代；须同步骨架"
     owner_bc: "B-12"
     group: finance
     status: draft
@@ -1935,10 +1980,10 @@ processes:
     bpmn: ~
     note: "S-31；阶段由 finance 组铺开时填"
   - id: PRC-175
-    name: "直接付款申请"
+    name: "申请直接付款"
     type: business
     stages: [VS-05.5]
-    stages_note: "VS-05.5：豁免清单内的直接付款不经 VS-05.4 应付确认（无发票或来源单据，RULE-407 豁免，S-34 ④）；本流程登记应付后即进入 PRC-75 付款，结局随 PRC-75 达成 VS-05.5 付款的退出条件「已成功 / 已核销」与「已结清」（#421 判据①经同段付款完成）"
+    stages_note: "VS-05.5：豁免清单内的直接付款不经 VS-05.4 确认应付款项（无发票或来源单据，RULE-407 豁免，S-34 ④）；本流程登记应付后即进入 PRC-75 付款，结局随 PRC-75 达成 VS-05.5 付款的退出条件「已成功 / 已核销」与「已结清」（#421 判据①经同段付款完成）"
     primary_object: "OBJ-85"
     owner_bc: "B-10"
     group: finance
@@ -1947,7 +1992,7 @@ processes:
     bpmn: ~
     note: "S-31；阶段由 finance 组铺开时填"
   - id: PRC-176
-    name: "预付款核销"
+    name: "核销预付款"
     type: single_aggregate
     stages: [VS-05.5]
     stages_note: "预付款核销使应付「已结清 / 部分结」，造出 VS-05.5 付款的退出条件（#421 判据①）"
@@ -1960,34 +2005,36 @@ processes:
     note: "S-31；阶段由 finance 组铺开时填"
   - id: PRC-177
     name: "向差旅服务商同步员工与组织"
-    type: event_policy
+    type: merged
     stages: []
-    support: "行政支撑：员工与组织的单向同步，服务差旅预订；四个触发分属 VS-07.3 退出、VS-13.6 退出、任职版本变更、组织单元调整，无共同阶段，不在客户或员工价值流的阶段门上（S-31 SQ-31；STAGE_ALIGN.md）"
     primary_object: "none"
-    primary_object_note: "外部同步（推送员工与组织到差旅服务商），不改任何业务对象状态"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I01 题；保留核算或处理结果、金额占用、核对签字、拒收处置、账号同步、提醒或规则修订依据，信息图不逐项单列业务记录。"
     owner_bc: "B-13"
     group: people
     status: draft
     human_orchestration: false
     bpmn: ~
-    note: "S-31；阶段由 people 组铺开时填"
+    note: "S-31；阶段由 people 组铺开时填；CON-1017-ARC-10 R-3：并入集成流程 PRC-197 同步差旅员工与组织（审题后修订第 1 条）"
+    merged_into: PRC-197
   - id: PRC-178
-    name: "补休到期未休或离职时转计发加班工资"
+    name: "转计发加班工资"
     type: event_policy
     stages: [VS-13.6]
-    stages_note: "事件触发「员工离职生效」（Separated）是 VS-13.6 退出条件「人员已离职」的产生事件，按事件策略归 VS-13.6；「补休已到期未休」是 B-27 的事实、没有阶段对象状态，不单独归段（归段判据第 6 项）"
-    primary_object: "none"
+    stages_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I09 题：VS-13.6 仅对应 Separated 离职入口；到期入口仅支撑薪酬结算，不表示离职结清；两入口向 OBJ-123 登记待计发调整并留幂等依据，U15 未定。"
+    primary_object: "OBJ-123"
     owner_bc: "B-15"
     group: people
     status: draft
     human_orchestration: false
     bpmn: ~
     note: "S-41；两个入口：B-27「补休已到期未休」、B-13 Separated"
+    primary_object_note: "CAPINFO 提交 CAPINFO-20261017-111010-cfy 第 CAPINFO-I09 题；信息图现单列 OBJ-123，保留处理、审批及核对依据。"
+    stage_scope: {"VS-13.6": "仅离职生效入口；补休到期入口不归段"}
   - id: PRC-179
     name: "项目开始执行后协议转入履行中"
     type: event_policy
     stages: [VS-04.6]
-    stages_note: "判据①：结局「协议已转入履行中」造出 VS-04.6 的进入与段内状态（one-architecture 裁定）；不造出 VS-04.1 退出（已签署生效由回签产生），故不标 VS-04.1"
+    stages_note: "按 one-architecture 已有裁定保留 VS-04.6：项目开始执行后，协议由「已签署生效」转「履行中」，承接 VS-04.6 进入状态的履约反应。不加 VS-02.0：项目「执行中」是本策略读取的触发状态，本策略只改协议、不造启动段退出对象状态；跨价值流共享状态不据此把协议履约反应归为项目启动。不加 VS-04.1：协议已签署生效由 PRC-47 回签造出。"
     primary_object: "OBJ-05"
     owner_bc: "B-05"
     group: revenue
@@ -1998,10 +2045,10 @@ processes:
   - id: PRC-180
     name: "发布薪酬规则版本"
     type: single_aggregate
-    stages: []
-    support: "B-15 薪酬规则版本的配置维护，结局（薪酬规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）"
-    primary_object: "none"
-    primary_object_note: "AGG-119 薪酬规则版本为配置，信息图无对象"
+    stages: [VS-15.1, VS-15.2, VS-15.3]
+    stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；挂 VS-15.2：规则版本发布即一版业务规则（暂名）生效；对象未立，判据暂推不出（MS-25）；原支撑理由：B-15 薪酬规则版本的配置维护，结局（薪酬规则版本已发布）不造任何阶段的退出条件（STAGE_ALIGN.md 归段判据第 6 项）；CON-1017-ARC-10：补 VS-15.1（编制版本草稿）、VS-15.3（新版本发布取代旧版本即停用），OBJ-124 三段状态由本流程完成；须同步骨架"
+    primary_object: "OBJ-124"
+    primary_object_note: "CON-1017-ARC-10 O-1：发布一版业务规则（OBJ-124，暂名，待 one-glossary 定名，按类型区分）；原 none（CAPINFO-I01）由 intent 2026-10-17-174814 与审题后修订第 4 条的结构决定取代；须同步骨架"
     owner_bc: "B-15"
     group: people
     status: draft
@@ -2009,10 +2056,10 @@ processes:
     bpmn: ~
     note: "S-43；AGG-119，INV-139 生效区间不重叠"
   - id: PRC-181
-    name: "记录经营复盘并跟踪经营动作"
+    name: "记录经营复盘并跟踪动作"
     type: business
     stages: [VS-09.3]
-    stages_note: "留 VS-09.3：复盘是本段的核心工作，但本段退出条件只写「经营计划新版本」（由 PRC-88 第二个触发产生），本流程结局「经营复盘已闭环 / 已转调整计划」不是该状态，按归段判据第 6 项字面不支持；已列 STAGE_ALIGN.md 请 one-architecture 看 VS-09.3 退出条件是否补「经营复盘已闭环」"
+    stages_note: "归 VS-09.3：SD-15 已批准退出条件补「经营复盘已闭环」，由本流程无动作定稿或全部经营动作完成产生；需调整计划时转 PRC-88 产生另一种退出「经营计划新版本」。批准依据：intent 2026-10-17-084935-one-coordinator-ANM-页提交-ANM-2026.md（AN-11）；价值流定义由 one-architecture 写回"
     primary_object: "OBJ-100"
     owner_bc: "B-18"
     group: people
@@ -2021,7 +2068,7 @@ processes:
     bpmn: ~
     note: "阶段对齐 J-8（people STAGE_ALIGN.md）；PRC-90 改名去掉「并复盘」"
   - id: PRC-182
-    name: "知识条目使用情况"
+    name: "查看知识条目使用情况"
     type: read_model
     stages: [VS-11.3]
     stages_note: "读模型只读 OBJ-110 已发布版本及其引用，不造任何状态；服务本段（修订废止）的复审决策，为旁路读，按其读取的「发布」状态（VS-11.3 进入条件）留在 VS-11.3（归段判据第 6 项）"
@@ -2032,7 +2079,7 @@ processes:
     bpmn: ~
     note: "阶段对齐 J-8；使用情况作修订废止的依据"
   - id: PRC-183
-    name: "作出参投决策"
+    name: "作出商机参投决策"
     type: business
     stages: [VS-01.2]
     stages_note: "判据：作出参投决策使商机（OBJ-18）到「已决定参投」，是 VS-01.2 段内状态；放弃商机到「放弃」，是 VS-01.2 退出"
@@ -2092,13 +2139,13 @@ processes:
     external_system: "致远协同（A8）单点登录门户"
     lifespan: transitional
     direction: in
-    feeds: [PRC-137]
+    feeds: [OBJ-56]
     owner_bc: "platform.integration"
     group: platform
     status: draft
     human_orchestration: false
     bpmn: ~
-    note: "feeds 填 PRC-137 仅表示登录与入职开通同属身份生命周期，不是数据供给关系，发号时请改填登录会话或留空。登录整体（联合身份）ADR-0039 只定方向，待「入职到账号开通」研究。；生命期为推断，待业务方认可（证据见 INTEGRATION_INVENTORY.md）"
+    note: "feeds 填 PRC-137 仅表示登录与入职开通同属身份生命周期，不是数据供给关系，发号时请改填登录会话或留空。登录整体（联合身份）ADR-0039 只定方向，待「入职到账号开通」研究。；生命期为推断，待业务方认可（证据见 INTEGRATION_INVENTORY.md）；CON-1017-ARC-10：feeds 由 PRC-137 改为供给对象人员（OBJ-56），票据校验结果是识别到的人员身份"
   - id: PRC-188
     name: "识别企业微信登录身份"
     type: integration
@@ -2129,7 +2176,7 @@ processes:
     note: "出站投递表 + 每 5 秒定时 worker + 重试计划，含默认只发白名单收件人的限制；审批任务经 TaskNotifier 入队。feeds 暂无稳定的对象或流程可填，写 PRC-135 仅为占位，请发号时改为审批任务相关对象。投递记录清理作业（OutboundDeliveryPurgeJob.java:55）并入本条。；生命期为推断，待业务方认可（证据见 INTEGRATION_INVENTORY.md）"
   - id: PRC-190
     name: "重投领域事件"
-    type: integration
+    type: retired
     stages: []
     external_system: "无（内部事件发布登记表，Spring Modulith 事件发布登记）"
     lifespan: long_term
@@ -2140,10 +2187,10 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
-    note: "每分钟重投未完成发布，最多 8 次，超限发运维告警；已完成的发布归档 30 天后每日 04:30 清理。事件信封的接收方是系统内部订阅者，不是外部系统。（证据见 INTEGRATION_INVENTORY.md）"
+    note: "每分钟重投未完成发布，最多 8 次，超限发运维告警；已完成的发布归档 30 天后每日 04:30 清理。事件信封的接收方是系统内部订阅者，不是外部系统。（证据见 INTEGRATION_INVENTORY.md）；CON-1017-ARC-10 R-4：用户答 ANC-02（intent 2026-10-17-181332）移出流程目录，记入平台作业登记（platform.integration 后台作业）；为 212218④「集成留目录」的例外，仅 PRC-190、PRC-191 两条"
   - id: PRC-191
     name: "归档数据到对象存储"
-    type: integration
+    type: retired
     stages: []
     external_system: "阿里云 OSS（只写保留桶，合规保留期）"
     lifespan: long_term
@@ -2154,7 +2201,7 @@ processes:
     status: draft
     human_orchestration: false
     bpmn: ~
-    note: "审计表与审批流程历史在删除前先归档。属技术支撑，与业务流程「封存成果、结项并归档项目」（PRC 目录 394-437 行）无关，不要混。同上，是否算业务流程目录条目待定。（证据见 INTEGRATION_INVENTORY.md）"
+    note: "审计表与审批流程历史在删除前先归档。属技术支撑，与业务流程「封存成果、结项并归档项目」（PRC 目录 394-437 行）无关，不要混。同上，是否算业务流程目录条目待定。（证据见 INTEGRATION_INVENTORY.md）；CON-1017-ARC-10 R-4：用户答 ANC-02（intent 2026-10-17-181332）移出流程目录，记入平台作业登记（platform.integration 后台作业）；为 212218④「集成留目录」的例外，仅 PRC-190、PRC-191 两条"
   - id: PRC-192
     name: "读取老系统待办"
     type: integration
@@ -2162,13 +2209,13 @@ processes:
     external_system: "老系统（只读视图 v_psa_one_legacy_todo）"
     lifespan: transitional
     direction: in
-    feeds: []
+    feeds: [OBJ-56]
     owner_bc: "platform.integration"
     group: platform
     status: draft
     human_orchestration: false
     bpmn: ~
-    note: "合并待办页时按人实时读老系统待办，老流程清零后即可下线，典型过渡期。（证据见 INTEGRATION_INVENTORY.md）"
+    note: "合并待办页时按人实时读老系统待办，老流程清零后即可下线，典型过渡期。（证据见 INTEGRATION_INVENTORY.md）；CON-1017-ARC-10 O-4：按人读老系统待办，供给对象为人员（OBJ-56，待办承办人）；合并待办页定稿后可补所供流程"
   - id: PRC-193
     name: "编排历史数据迁入"
     type: integration
@@ -2232,13 +2279,13 @@ processes:
     external_system: "分贝通（差旅服务商）"
     lifespan: long_term
     direction: out
-    feeds: [PRC-177]
+    feeds: [OBJ-56, OBJ-55]
     owner_bc: "platform.integration"
     group: platform
     status: draft
     human_orchestration: false
     bpmn: ~
-    note: "领域内称「差旅服务商」，分贝通只出现在集成登记。main 中未见代码。；生命期为推断，待业务方认可（证据见 INTEGRATION_INVENTORY.md）"
+    note: "领域内称「差旅服务商」，分贝通只出现在集成登记。main 中未见代码。；生命期为推断，待业务方认可（证据见 INTEGRATION_INVENTORY.md）；CON-1017-ARC-10 O-4：原 feeds PRC-177 已并入本条，改按供给对象挂接：人员（OBJ-56）与组织单元（OBJ-55）；触发为入职、离职、任职变更、组织调整"
   - id: PRC-198
     name: "接收差旅订单与账单"
     type: integration

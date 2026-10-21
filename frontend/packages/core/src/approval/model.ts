@@ -9,34 +9,30 @@ export type TaskHistoryEntry = Schema<'HistoryEntry'>;
 export type TaskRecordPage = Schema<'HandledTaskPageResponse'>;
 export type DecisionResult = Schema<'DecisionResponse'>;
 
-export type InboxFilterKey = 'all' | 'new' | 'legacy' | 'notice';
+export type InboxFilterKey = 'all' | 'new' | 'notice';
 /** The tabs of the inbox page: the filters of the open tasks, and the tasks already handled. */
 export type InboxView = InboxFilterKey | 'done';
 
 export function inboxViewOf(key: string): InboxView {
-  return key === 'new' || key === 'legacy' || key === 'notice' || key === 'done' ? key : 'all';
+  return key === 'new' || key === 'notice' || key === 'done' ? key : 'all';
 }
 
 export interface Inbox {
   items: InboxItem[];
   newCount: number;
-  legacyCount: number;
   noticeCount: number;
   totalCount: number;
-  legacyAvailable: boolean;
 }
 
-/** The counts and the legacy flag are totals the server repeats on every page; the first page is the freshest. */
+/** The counts are totals the server repeats on every page; the first page is the freshest. */
 export function inboxOf(pages: readonly InboxResponse[]): Inbox {
   const first = pages[0];
-  if (first === undefined) return { items: [], newCount: 0, legacyCount: 0, noticeCount: 0, totalCount: 0, legacyAvailable: true };
+  if (first === undefined) return { items: [], newCount: 0, noticeCount: 0, totalCount: 0 };
   return {
     items: pages.flatMap((page) => page.items),
     newCount: first.newCount,
-    legacyCount: first.legacyCount,
     noticeCount: first.noticeCount,
     totalCount: first.totalCount,
-    legacyAvailable: first.legacyAvailable,
   };
 }
 
@@ -45,23 +41,19 @@ export function filterInbox(items: readonly InboxItem[], filter: InboxFilterKey)
     case 'all':
       return [...items];
     case 'new':
-      return items.filter((item) => item.source === 'NEW');
-    case 'legacy':
-      return items.filter((item) => item.source === 'LEGACY' && item.category === 'TODO');
+      return [...items];
     case 'notice':
       return items.filter((item) => item.category === 'NOTICE');
   }
 }
 
 export function inboxRowId(item: InboxItem): string {
-  return `${item.source}:${item.taskId}`;
+  return item.taskId;
 }
 
 export const UNRECOGNISED_TASK_TITLE = '（无法显示的审批）';
 
-/** The title of a task of the new system is built here from the process and the document; the server's `title` is only the old system's own text. */
 export function inboxTitle(item: InboxItem): string {
-  if (item.source === 'LEGACY') return item.title ?? '';
   if (item.processKey === undefined || item.documentId === undefined) return UNRECOGNISED_TASK_TITLE;
   return `${labelOf(PROCESS_LABELS, item.processKey ?? '')} ${item.documentId}`;
 }

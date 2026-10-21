@@ -227,45 +227,10 @@ class StalledExternalSourceIT {
     @DisplayName("D1-1 对照：外部库不卡时合并待办含老待办、A8 登录名查得到人、同步成功")
     void controlWithoutAnyStall() throws Exception {
         String inbox = mvc.perform(get(INBOX).with(ordinarySession(INBOX_ACCOUNT))).andReturn().getResponse().getContentAsString();
-        assertThat(inbox).contains("\"legacyAvailable\":true").contains("\"legacyCount\":1");
         assertThat(a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME))).hasSize(1);
         assertThat(names.readShortNames()).hasSize(1);
         SyncResult result = runSync();
         assertThat(result.status()).as(result.note()).isNotEqualTo(SyncRunStatus.FAILED);
-    }
-
-    @Test
-    @DisplayName("D1-1 老系统待办来源卡住时合并待办按时返回并标明不可用")
-    void stalledLegacyInboxDegradesTheMergedInbox() throws Exception {
-        blockers.add(Blocker.hold(LEGACY_WORLD, "dbo.todo_rows"));
-        assertBlocked(LEGACY_WORLD, "SELECT COUNT(*) FROM dbo.v_psa_one_legacy_todo");
-
-        Outcome<Reply> outcome = timed(HARD_CAP_INTERACTIVE, () -> {
-            var response = mvc.perform(get(INBOX).with(ordinarySession(INBOX_ACCOUNT))).andReturn().getResponse();
-            return new Reply(response.getStatus(), response.getContentAsString());
-        });
-
-        assertThat(outcome.hung()).as("the inbox request is still waiting for the old database after %s: it holds a request thread", HARD_CAP_INTERACTIVE).isFalse();
-        assertThat(outcome.failure()).isNull();
-        assertThat(outcome.elapsed()).as("the merged inbox answers within the 3 s budget of an external call").isLessThanOrEqualTo(INTERACTIVE_BUDGET);
-        assertThat(outcome.value().status()).isEqualTo(200);
-        assertThat(outcome.value().body()).contains("\"legacyAvailable\":false").contains("\"legacyCount\":0");
-    }
-
-    @Test
-    @DisplayName("D1-1 老系统待办查询不加锁只是极慢时同样按时返回并标明不可用")
-    void slowLegacyInboxWithoutLocksDegradesToo() throws Exception {
-        replaceView(LEGACY_WORLD, "dbo.v_psa_one_legacy_todo", SLOW_TODO_VIEW);
-        viewsToRestore.add(new ViewRestore(LEGACY_WORLD, "dbo.v_psa_one_legacy_todo", TODO_VIEW));
-
-        Outcome<Reply> outcome = timed(HARD_CAP_INTERACTIVE, () -> {
-            var response = mvc.perform(get(INBOX).with(ordinarySession(INBOX_ACCOUNT))).andReturn().getResponse();
-            return new Reply(response.getStatus(), response.getContentAsString());
-        });
-
-        assertThat(outcome.hung()).as("a query that runs for minutes must be cut off by the query and socket timeouts").isFalse();
-        assertThat(outcome.elapsed()).isLessThanOrEqualTo(INTERACTIVE_BUDGET);
-        assertThat(outcome.value().body()).contains("\"legacyAvailable\":false");
     }
 
     @Test
@@ -322,7 +287,6 @@ class StalledExternalSourceIT {
     void everyExternalSessionCarriesALockTimeout() throws Exception {
         a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME));
         names.readShortNames();
-        readLegacyTodos();
 
         Map<String, Integer> lockTimeouts = new java.util.TreeMap<>();
         try (Connection c = admin("master"); Statement s = c.createStatement();
@@ -333,9 +297,8 @@ class StalledExternalSourceIT {
             }
         }
 
-        assertThat(lockTimeouts).as("each of the three adapters opened a session").containsOnlyKeys(A8_READER, NAMES_READER, TODO_READER);
+        assertThat(lockTimeouts).as("each of the three adapters opened a session").containsOnlyKeys(A8_READER, NAMES_READER);
         assertThat(lockTimeouts.get(A8_READER)).as("SQL Server's default -1 waits for ever").isBetween(1, 3_000);
-        assertThat(lockTimeouts.get(TODO_READER)).isBetween(1, 3_000);
         assertThat(lockTimeouts.get(NAMES_READER)).isGreaterThan(0);
     }
 
@@ -362,56 +325,6 @@ class StalledExternalSourceIT {
         Awaitility.await("SQL Server has stopped the slow statement of a8_reader once the login lookup gave up")
                 .atMost(Duration.ofSeconds(2)).pollInterval(Duration.ofMillis(100))
                 .untilAsserted(() -> assertThat(requestsOf(A8_READER, false)).as("requests of a8_reader still running in sys.dm_exec_requests").isZero());
-    }
-
-    /**
-     * The pool holds 2 connections. The third request starts once the first two are waiting on the lock, so it waits for a connection and then for
-     * the lock; the 3 s budget covers the whole call, not each wait.
-     */
-    @Test
-    @DisplayName("D1-1 复审 M1：D1-1-R3 并发卡住的合并待办都在预算内返回")
-    void reviewM1_concurrentStalledInboxRequestsAllAnswerWithinTheBudget() throws Exception {
-        blockers.add(Blocker.hold(LEGACY_WORLD, "dbo.todo_rows"));
-        assertBlocked(LEGACY_WORLD, "SELECT COUNT(*) FROM dbo.v_psa_one_legacy_todo");
-
-        List<Future<Outcome<Reply>>> requests = new ArrayList<>();
-        requests.add(CALLERS.submit(() -> timed(HARD_CAP_INTERACTIVE, this::inbox)));
-        requests.add(CALLERS.submit(() -> timed(HARD_CAP_INTERACTIVE, this::inbox)));
-        Awaitility.await("both pooled connections of todo_reader are waiting on the lock").atMost(Duration.ofMillis(2_500)).pollInterval(Duration.ofMillis(50))
-                .untilAsserted(() -> assertThat(requestsOf(TODO_READER, true)).isEqualTo(2));
-        requests.add(CALLERS.submit(() -> timed(HARD_CAP_INTERACTIVE, this::inbox)));
-
-        for (int i = 0; i < requests.size(); i++) {
-            Outcome<Reply> outcome = requests.get(i).get(HARD_CAP_INTERACTIVE.toMillis() * 2, TimeUnit.MILLISECONDS);
-            assertThat(outcome.hung()).as("request %d is still waiting after %s", i + 1, HARD_CAP_INTERACTIVE).isFalse();
-            assertThat(outcome.failure()).as("request %d", i + 1).isNull();
-            assertThat(outcome.elapsed()).as("request %d answers within one 3 s budget, pool wait included", i + 1).isLessThanOrEqualTo(INTERACTIVE_BUDGET);
-            assertThat(outcome.value().status()).isEqualTo(200);
-            assertThat(outcome.value().body()).as("request %d", i + 1).contains("\"legacyAvailable\":false");
-        }
-    }
-
-    /**
-     * Reads the old to-dos of the inbox employee through the port named LegacyInbox, wherever it lives: platform.approval.domain until R-1b P3b,
-     * platform.integration after (ADR-0039 item 5.2, RULING-P3B-D2, RULING-P3B-3). A missing port fails the test.
-     */
-    void readLegacyTodos() throws ReflectiveOperationException {
-        for (String name : context.getBeanDefinitionNames()) {
-            Class<?> type = context.getType(name);
-            if (type == null) {
-                continue;
-            }
-            for (Class<?> port : org.springframework.util.ClassUtils.getAllInterfacesForClassAsSet(type)) {
-                if (port.getSimpleName().equals("LegacyInbox") && port.getPackageName().startsWith("com.forcitis.one.platform")) {
-                    java.lang.reflect.Method read = java.util.Arrays.stream(port.getMethods()).filter(m -> m.getName().equals("readTodos")
-                            && m.getParameterCount() == 1).findFirst().orElseThrow(() -> new AssertionError(port + " has no readTodos(employee)"));
-                    Class<?> idType = EmployeeId.class.getRecordComponents()[0].getType();
-                    read.invoke(context.getBean(name), EmployeeId.class.getDeclaredConstructor(idType).newInstance(inboxEmployee));
-                    return;
-                }
-            }
-        }
-        throw new AssertionError("no bean implements a port named LegacyInbox");
     }
 
     Reply inbox() throws Exception {

@@ -54,3 +54,66 @@
 
 ## 临时工作目录
 `/private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-xin-61164f/138cb52b-4117-4136-9339-6ccc0ca6a2b4/scratchpad/` 下 `wt-*` 是各 PR 的独立 worktree（wt-ds=#368，wt-rules=#374，wt-prop=#375，wt-sess=#376，wt-bank=已合入分支，wt-ci=#406/#410 分支，wt-352=#352，wt-board=最近的测试修复分支，wt-adr=one-architecture 的 ADR 分支）；会话结束后可 `git worktree remove`。
+
+## 夜检记录
+- 2026-10-17 nightly-legacy-it 成功（运行 39062406822，约 14 分，schedule 19:25Z）；10-16 约 19 分、10-15 约 11 分，均成功。
+- 2026-10-19 复发检测（近 26 小时）：失败 0 次、复发 0；nightly-legacy-it 10-18 成功（运行 39158752436，约 19 分）。
+
+## 交接（2026-10-21 17:45，上下文 77%，一个批次边界）
+接续顺序：**QUA-05 三方评测 → QUA-03 七个钩子 → 网络 v2/v7 规则写成 CI 检查**（后者等 one-architecture 的登记文件方案批）。
+
+### PR 现状（以 `gh pr list --author @me` 为准）
+- #511 上下文节约（§5 三条+Bash 超长提醒）+开场要点头+锁文件忽略：调度已批入队，**入队后不再推该分支**（claude/one-quality-bulk-reminder）。
+- #512 root_of 以 cwd 为准：已合入。#513 DeepSeek 派工+pi 门禁：调度有条件批准，sonnet 复核通过、CI 绿，已报 one-merge「调度已批（条件已满足）」，等合入。
+- 分支 claude/one-quality-window-note（1845a5ef）：§2.1 补“钩子类 PR 合入后须合 main 并重启才生效”+ 窗口注释；文档档，由 one-merge 收。
+- 文档分支 claude/one-quality-ci-hostspec（本分支）：CI 复盘、规格测算（Linux CI 用户定“目前不用”，存档）、TEST_IMPACT_RESEARCH、错题本 QUAL-019、夜检记录、本交接。
+- N8（NAM-1017-QUA-02）Codex 半成品在本地 worktree 分支 claude/one-quality-n8-checkers（50ef61ad，未推送），等 one-glossary 的 N14 合入；G49–G58 与指称冲突待 one-architecture/one-glossary 核对。
+
+### QUA-05：Claude sonnet / Codex gpt-6.1-sol xhigh / DeepSeek flash high 三方对比（用户：「对比下 sonnet、codex sol 6.1 xhigh、deepseek 4.1 flash high；给我评测结论」，intent @82ce7f47）
+- 评测目录（scratchpad，会话清空后仍在磁盘）：`/private/tmp/claude-501/-Users-yeliang-Projects-FORCITIS-forcitis-one-psa--claude-worktrees-xin-61164f/9fa26eba-e3e3-4855-8834-f759dbe58762/scratchpad/eval/`。基线 `base-sha.txt`（afaf36fb…，origin/main）。每张卡 3 个 worktree：`q2-{sonnet,codex,ds}`、`q3-{sonnet,codex,ds}`，分支 `claude/one-quality-eval-q{2,3}-{sonnet,codex,ds}`。卡原文 `card-q2.md`（补 RULE-382 单元测试 `TaskDeadlineNeverDecidesTest`）、`card-q3.md`（执行点扫描 I08，原 ARC-1021-ARC-02，去掉了 main 上没有的 panorama_build.py 部分）；三方拿到同一份原文。
+- 记录文件：`q?-codex|ds.start/.end`（epoch 秒，用时=end−start）、`.log`（stdout）、`q?-codex.result.md`（Codex -o 输出）；sonnet 的起始 `q?-sonnet.start`，结束以子代理完成通知为准（Q2 子代理 ace34b202def5c5bf，Q3 a3575d508107fdd22；结果里的 duration/tokens 即用时与 token）。各 worktree 根目录有执行者写的 `RESULT.md`（不提交）。
+- 三方命令：Codex `codex exec -m gpt-6.1-sol -c model_reasoning_effort=xhigh -s workspace-write -c sandbox_workspace_write.network_access=false --ephemeral -o <结果> "<卡>" < /dev/null`；DeepSeek `pi -p --no-session --no-extensions --no-mcp --offline --model deepseek/deepseek-flash --thinking high --tools read,ls,grep,find,edit,write,bash "<卡>" < /dev/null`（在 worktree 里运行）；sonnet = Agent 子代理 model sonnet。
+- Q1 机械改动卡 IMP-1021-NX5-02（前端单据类型标签改从登记表取，含最小后端切片）：卡原文在 scratchpad `eval/card-q1.md`（one-1a-next-5 的卡 + 评测补充说明；原件 side-session-notes/…/IMP-1021-NX5-02-frontend-labels-card.md），已于 17:5x 开跑：`q1-{sonnet,codex,ds}` 三个 worktree、分支 `claude/one-quality-eval-q1-*`，sonnet 子代理 a7d95d5707f77c7b3；起止同样记在 `q1-*.start/.end`。不预先写验收测试（各自写）、不推送、时限 90 分钟。
+- 收尾：对每张卡三份 diff 去掉执行者标识给 opus 子代理盲评（正确性、范围是否越界、有无编造、可维护性）；记用时/token/一次编译测试全绿/precheck/返工轮次；只采纳最好一份走正常 PR（Q3 最好的一份交 one-architecture 验收；Q2 补测试走我自己的 PR），另两份不合并；产出一页评测结论（表+一句话推荐分工）交 one-coordinator 审后给用户。
+- 已出结果：Q2-sonnet 完成（子代理报 duration 146749 ms、85974 tokens；提交 927a7b0c，4 个用例，破坏验证 3 个变红，守护测试全过）。Q3-sonnet 完成（308711 ms、101502 tokens；提交 33b19b4a，554 个执行点，enforces 非空率 9.0%，精确破坏验证通过，precheck 3 PASS/0 FAIL）。其余四个执行者（q2-codex、q2-ds、q3-codex、q3-ds）接续时先看对应 `.end` 与 worktree 的 `git log`/`RESULT.md`。
+- 注意：评测期间各 worktree 不要合并/推送；测试用 `./mvnw -o test-compile surefire:test -Dtest=…`，不要触发 export-openapi。
+
+### 用户新定（2026-10-21 intent 153432）：不用自动清空，只需要能自动交接
+#511 合入后接一张卡：`context_handoff.py` 提醒文案删去 `clear_session self`，只要求更新上下文文档与交接节并报 one-coordinator；`context_windows.json` 的 `pilot_sessions` 改为全部会话（null）。之前“试 clear_session self”作废，不再清空自己。
+
+### QUA-05 现状快照（2026-10-21 16:20，上下文 86%，调度要求立即交接后停手，等用户清空）
+**已跑完（可直接盲评）**：
+| 卡 | 执行者 | 用时 | 产出 | 备注 |
+|---|---|---|---|---|
+| Q2 补 RULE-382 单测 | sonnet | 146.7 s，85974 tok | 已提交 927a7b0c，新增 `TaskDeadlineNeverDecidesTest` 4 用例 | 破坏验证 3 个变红，守护测试全过 |
+| | Codex xhigh | 883 s | **未提交**（沙箱禁止写 worktree 的 git 元数据），改动在 `q2-codex` 工作区 | 7 项全绿，破坏验证做了，RESULT.md 有细节 |
+| | DeepSeek flash high | 692 s | 已提交 e33c8206 | 114 个测试全绿，precheck 11 PASS；覆盖 approve/reject/returnRound/passAutomatically 等 |
+| Q3 执行点扫描 | sonnet | 308.7 s，101502 tok | 已提交 33b19b4a，554 项（不变量 150/守护 216/授权 11/数据约束 177），enforces 非空率 9.0% | precheck 3 PASS |
+| | Codex xhigh | 1689 s | **未提交**，工作区改动在 `q3-codex`；豁免清单 11 份共 44 行与生成数一致 | 脚本 400 行，precheck 过 |
+| | DeepSeek flash high | 553 s | 已提交 1e3d9518，35 项自测通过；`waives` 字段 44/44 非空 | 提出一处裁定：`primary-key-exemptions.txt` 不在卡的 `*-exceptions.txt` glob 内，按卡未纳入 |
+注意：Codex 两份没有提交，盲评取工作区 diff（`git -C eval/q?-codex diff` 加未跟踪文件）；用时=`eval/*.end−*.start`（sonnet 用子代理通知的 duration/tokens）；Codex/DeepSeek 的 token 费用拿不到则写“未取得”。
+
+**Q1（IMP-1021-NX5-02 前端标签+最小后端切片）未完成**：
+- q1-codex：280 s 后按卡规则**停下**（需改卡外文件：core 公开出口、PC/H5 审批详情页；触发器不保护新增 display_name 列），未改代码；`q1-codex/RESULT.md` 有两项阻塞说明。
+- q1-sonnet、q1-ds：被我中途终止（调度因本机负载 80/18 核、45 个 postgres 容器要求停手），工作区里各有**半成品未提交改动**（sonnet 28 个文件、DeepSeek 26 个文件），都没跑完整包验证，不可当作最终产出。
+**重跑步骤（今后构建一次一份）**：先把 `q1-*` 三个 worktree 重置回基线（`git -C <wt> checkout -- . && git -C <wt> clean -fd`，或删掉重建，基线 `eval/base-sha.txt`）；放宽 Q1 卡的“允许改动”（把 core 公开出口、PC/H5 审批详情页、触发器保护列入范围，三方同一份新卡；原卡 `eval/card-q1.md`，需要时给 one-1a-next-5 对齐）；**先让三方只写代码、各自只跑相关测试**，整包 `./mvnw verify`/`pnpm verify` 由我按顺序排队跑，一次一份（加 `taskpolicy -b`，别并行）；记录用时时把等待排队的时间扣掉。
+**盲评**：对 Q1/Q2/Q3 每张卡三份 diff 去掉执行者标识（脚本里把分支名/提交说明/RESULT.md 抹掉）交 opus 子代理按卡 §9 的维度打分（正确性、范围越界、编造、可维护性、复审维度①–⑦），只采纳最好的一份走正常 PR（Q3 最好的一份交 one-architecture 验收，Q2 走我自己的 PR），另两份不合并；产出一页评测结论（表+一句话推荐分工）交 one-coordinator 审后给用户。
+
+### QUA-03：七个钩子（用户回「加」，intent @1e24e8b6；钩子自己写，单列 PR，opus 首轮，每个带 --self-test，误拦有放行写法，先 one-coordinator、one-ops 试点）
+1 派子代理（Agent）不写 model 就拒绝；2 直接 Edit/Write 生成产物（INTENT.md、SESSION_LOG.md、STATUS.md、adr/ADR-*.md、adr/README.md）就拒绝并提示改片段；3 在主检出目录 /Users/yeliang/Projects/FORCITIS/forcitis-one-psa 里改文件、提交就拒绝（快进合并放行，one-merge 要用）；4 改 ci.yml、scripts/ci、.claude、scripts/hooks、验收测试时提示：守护文件单列 PR、opus 复审、验收改动先有 main 上的裁定；5 命令输出疑似密钥就告警并提示改写，拦已知返回私钥的调用（如阿里云 DescribeDBInstanceSSL 原样输出）；6 run_in_background 等启动常驻进程时提示登记台账并写明重启后由谁拉起；**7（调度扩）SessionStart（startup|clear|compact）检查落后 origin/main 的提交数：分支无独有提交→自动 fast-forward 并报一行；有独有提交→不自动合，只注入「先合入 main 再开工」+落后数；冲突留给会话，钩子里不做**。
+- 经验：桌面 app 钩子读的是**主检出**的 .claude/settings.json 且 CLAUDE_PROJECT_DIR 是主检出；钩子类 PR 合入后须先把主检出快进到 origin/main 再重启 app（stop_hook_summary 里出现脚本名即生效）；root 取 payload.cwd。
+
+### 新卡：AskUserQuestion 门禁（用户定，intent 2026-10-21-160954；排在 QUA-05 评测后、QUA-03 前）
+PreToolUse 钩子拦 `AskUserQuestion`：会话名为 one-* 且不是 one-coordinator 时 deny，理由写「按 SESSION_PLAYBOOK §11 战队协作第 1 条：技术问题报 one-coordinator，要用户定的写收件箱」；会话名解析沿用 session_context.py（`identify`），解析不出时放行并告警一次；钩子崩溃不得挡住；带自测；SESSION_PLAYBOOK 同步一句；改 .claude/settings.json，PR 要 opus 复审，合入后调度请用户重启。起因：one-1a-par 用提问框问用户 #509 重跑还是排查。
+
+### 网络 v2/v7 规则写成 CI 检查（新卡，排在 QUA-03 之后）
+把实现网络 v2 右下角「可自动核验」的 9 条接缝规则，以及 v7 的判定规则（05 只承接 04 中决定做的、约束不满射即架构未定、无执行点即未求解）写成 CI 检查。图在 claude/one-coordinator-two-lanes 的 docs/modernization/architecture/research/networks/。**等 one-architecture 的登记文件方案批了再开工。**
+追加（one-architecture 2026-10-21，one-coordinator 定）：凡新增或改动的验收测试、集成测试（backend/src/test 下非 architecture 目录），`@DisplayName` 或方法 Javadoc 须带至少一个 `RULE-nnn` 或 `INV-nn`；先做「报告档」不拦合并；判定沿用 `docs/modernization/architecture/panorama/scan_acceptance_tests.py` 的抽取规则（分支 claude/one-architecture-network-batch1 @3ade5580，合入 main 后直接调用），只看本次改动涉及的测试方法；存量 835 条无编号由 one-architecture 另出映射。
+
+### 评测期间的资源约束（调度 10-21）
+本机负载曾到 80/18 核、45 个 postgres 容器：评测的构建与测试**一次只跑一份、排队**，Codex/DeepSeek 写代码可并行；不要用满核压测（最多 4 个进程、`taskpolicy -b`）。q1-ds 与 q1-sonnet 已被我终止（见上面 QUA-05 快照），其余评测构建不再新起。
+
+### 其他待办
+- 日报新指标（#482）已合入；错题本 QUAL-019 的检查 `scripts/ci/weak_registration_scan.py`（#487）转 --enforce 要跑一周无误报后另开卡；#511 合入后清理本机留下的本地分支/worktree（scratchpad/wt-*）。
+- 每晚 nightly 巡检与复发检测照旧（结果只在本文件记一行）。
+- 钩子试点：#500 的 context_handoff 在 one-coordinator、one-ops 试点一天（15:09 起），异常报调度；我的会话工作区是否出现 `.claude/context-handoff-state.json` 作为生效凭据。

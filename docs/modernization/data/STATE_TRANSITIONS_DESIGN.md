@@ -9,12 +9,12 @@
 ```sql
 CREATE TABLE <schema>.state_transitions (
     id                      uuid        NOT NULL,
-    aggregate_type          text        NOT NULL,
+    aggregate_type_code          text        NOT NULL,
     aggregate_id            uuid        NOT NULL,
-    sequence_no             bigint      NOT NULL,
-    from_state              text,
-    to_state                text        NOT NULL,
-    occurred_on             date        NOT NULL,
+    transition_sequence_number             bigint      NOT NULL,
+    from_status              text,
+    to_status                text        NOT NULL,
+    occurred_on_date             date        NOT NULL,
     recorded_at             timestamptz NOT NULL,
     legal_entity_id         uuid,
     actor_type              text        NOT NULL,
@@ -27,16 +27,16 @@ CREATE TABLE <schema>.state_transitions (
     created_at              timestamptz NOT NULL,
     updated_at              timestamptz NOT NULL,
     CONSTRAINT pk_state_transitions PRIMARY KEY (id),
-    CONSTRAINT uk_state_transitions_aggregate_id_sequence_no UNIQUE (aggregate_id, sequence_no),
+    CONSTRAINT uk_state_transitions_aggregate_id_transition_sequence_number UNIQUE (aggregate_id, transition_sequence_number),
     CONSTRAINT uk_state_transitions_id_aggregate_id UNIQUE (id, aggregate_id),
     CONSTRAINT fk_state_transitions_reverses_transition_id FOREIGN KEY (reverses_transition_id, aggregate_id)
         REFERENCES <schema>.state_transitions (id, aggregate_id) ON DELETE RESTRICT,
-    CONSTRAINT ck_state_transitions_aggregate_type CHECK (aggregate_type ~ '^[A-Z][A-Za-z0-9]{0,99}$'),
-    CONSTRAINT ck_state_transitions_from_state CHECK (from_state IS NULL OR from_state ~ '^[A-Z][A-Z0-9_]{0,49}$'),
-    CONSTRAINT ck_state_transitions_to_state CHECK (to_state ~ '^[A-Z][A-Z0-9_]{0,49}$'),
-    CONSTRAINT ck_state_transitions_sequence_no CHECK (sequence_no >= 0),
-    CONSTRAINT ck_state_transitions_states_differ CHECK (from_state IS DISTINCT FROM to_state),
-    CONSTRAINT ck_state_transitions_first CHECK (from_state IS NOT NULL OR cause_kind = 'MIGRATION' OR sequence_no <= 1),
+    CONSTRAINT ck_state_transitions_aggregate_type_code CHECK (aggregate_type_code ~ '^[A-Z][A-Za-z0-9]{0,99}$'),
+    CONSTRAINT ck_state_transitions_from_status CHECK (from_status IS NULL OR from_status ~ '^[A-Z][A-Z0-9_]{0,49}$'),
+    CONSTRAINT ck_state_transitions_to_status CHECK (to_status ~ '^[A-Z][A-Z0-9_]{0,49}$'),
+    CONSTRAINT ck_state_transitions_transition_sequence_number CHECK (transition_sequence_number >= 0),
+    CONSTRAINT ck_state_transitions_states_differ CHECK (from_status IS DISTINCT FROM to_status),
+    CONSTRAINT ck_state_transitions_first CHECK (from_status IS NOT NULL OR cause_kind = 'MIGRATION' OR transition_sequence_number <= 1),
     CONSTRAINT ck_state_transitions_actor_type CHECK (actor_type IN ('USER', 'SYSTEM')),
     CONSTRAINT ck_state_transitions_cause_kind CHECK (cause_kind IN ('COMMAND', 'REVERSAL', 'CORRECTION', 'MIGRATION', 'SYSTEM_JOB')),
     CONSTRAINT ck_state_transitions_trigger CHECK (num_nonnulls(command_id, event_id) <= 1
@@ -44,10 +44,10 @@ CREATE TABLE <schema>.state_transitions (
         AND (cause_kind <> 'SYSTEM_JOB' OR command_id IS NULL)
         AND (cause_kind <> 'MIGRATION' OR num_nonnulls(command_id, event_id) = 0)),
     CONSTRAINT ck_state_transitions_reversal CHECK ((cause_kind IN ('REVERSAL', 'CORRECTION')) = (reverses_transition_id IS NOT NULL)),
-    CONSTRAINT ck_state_transitions_migration CHECK (cause_kind <> 'MIGRATION' OR from_state IS NULL),
+    CONSTRAINT ck_state_transitions_migration CHECK (cause_kind <> 'MIGRATION' OR from_status IS NULL),
     CONSTRAINT ck_state_transitions_times CHECK (created_at = recorded_at AND updated_at = recorded_at)
 );
-CREATE INDEX ix_state_transitions_legal_entity_id_occurred_on ON <schema>.state_transitions (legal_entity_id, occurred_on) WHERE legal_entity_id IS NOT NULL;
+CREATE INDEX ix_state_transitions_legal_entity_id_occurred_on_date ON <schema>.state_transitions (legal_entity_id, occurred_on_date) WHERE legal_entity_id IS NOT NULL;
 CREATE INDEX ix_state_transitions_recorded_at ON <schema>.state_transitions (recorded_at, id);   -- 投影按「水位回看窗口」读，见第 5 节
 CREATE FUNCTION <schema>.refuse_transition_rewrite() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
@@ -66,24 +66,24 @@ CREATE TRIGGER tg_state_transitions_append_only_truncate BEFORE TRUNCATE ON <sch
 ```
 `TRUNCATE` 触发器函数里 `TG_OP = 'TRUNCATE'`，不进放行分支，永远拒。表与列注释（含「为空表示」）随模板；时间列全部由应用传注入时钟，DDL 无 `now()`；`created_at`、`updated_at`、`recorded_at` 三列同值，由 `ck_state_transitions_times` 防漂移（行不可改，N1）。
 
-- `sequence_no`（S2）：取**本次状态变更之后**聚合行的 `version`，与聚合行的更新在同一事务、同一语句版本递增。核实：目前 14 张表中 `version` 默认值都是 0（`bigint NOT NULL DEFAULT 0`），所以新建聚合的第一条转换 `sequence_no` 为 0 或 1，取决于仓储插入时的版本值；模板 CHECK 允许 `>= 0`，`ck_state_transitions_first` 约束「原状态为空只能出现在新建（序号 0 或 1）或迁入」。`approval_tasks`、`numbering_rule_versions` **没有 `version` 列**：它们的转换用自己的计数，实现卡须给该表加 `version`（或用 `aggregate_type = ApprovalTask`、任务自己的序号列），在各自卡的数据设计里写。
+- `transition_sequence_number`（S2）：取**本次状态变更之后**聚合行的 `version`，与聚合行的更新在同一事务、同一语句版本递增。核实：目前 14 张表中 `version` 默认值都是 0（`bigint NOT NULL DEFAULT 0`），所以新建聚合的第一条转换 `transition_sequence_number` 为 0 或 1，取决于仓储插入时的版本值；模板 CHECK 允许 `>= 0`，`ck_state_transitions_first` 约束「原状态为空只能出现在新建（序号 0 或 1）或迁入」。`approval_tasks`、`numbering_rule_versions` **没有 `version` 列**：它们的转换用自己的计数，实现卡须给该表加 `version`（或用 `aggregate_type_code = ApprovalTask`、任务自己的序号列），在各自卡的数据设计里写。
 - `reverses_transition_id` 的外键是复合的（S1），保证被抵消的转换属于同一聚合。
 - `cause_kind` 与触发 ID（S1）：COMMAND 必须有 `command_id`；SYSTEM_JOB 不能有 `command_id`（可有 `event_id` 或都无）；MIGRATION 都无；REVERSAL / CORRECTION 与 `reverses_transition_id` 同有同无，并可带 `command_id` 或 `event_id`（至多一个）。
-- 列名 `cause_kind` 与 ADR 字面的 `cause` 不一致（S6）：我按 NAMING_STANDARD（枚举列带 `_kind`）取 `cause_kind`，**交 one-architecture 定**；`terms.yaml` 查重已做：`cause`、`cause_kind`、`state_transition(s)` 都不在词表里（grep 0），须登记提议术语（领域，bc 按各 schema 同一术语，含 `sequence_no` 的核对）。
+- 列名 `cause_kind` 与 ADR 字面的 `cause` 不一致（S6）：我按 NAMING_STANDARD（枚举列带 `_kind`）取 `cause_kind`，**交 one-architecture 定**；`terms.yaml` 查重已做：`cause`、`cause_kind`、`state_transition(s)` 都不在词表里（grep 0），须登记提议术语（领域，bc 按各 schema 同一术语，含 `transition_sequence_number` 的核对）。
 
 ## 2. 与 ADR-0058 逐项对照
 
 | ADR 条款 | 落点 |
 |---|---|
 | 1 主键 UUIDv7 | `id` |
-| 1 aggregate_type / aggregate_id / sequence_no，(aggregate_id, sequence_no) 唯一 | 同名列与 `uk_…_aggregate_id_sequence_no` |
-| 1 from_state（新建为空）、to_state | 两列；格式 CHECK 只定形不定值 |
-| 1 occurred_on、recorded_at | 两列；`recorded_at` 为注入时钟参数 |
+| 1 aggregate_type_code / aggregate_id / transition_sequence_number，(aggregate_id, transition_sequence_number) 唯一 | 同名列与 `uk_…_aggregate_id_transition_sequence_number` |
+| 1 from_status（新建为空）、to_status | 两列；格式 CHECK 只定形不定值 |
+| 1 occurred_on_date、recorded_at | 两列；`recorded_at` 为注入时钟参数 |
 | 1 legal_entity_id | 可空；是否必填按聚合类型在注册表登记并由守护核（第 6 节 S5） |
 | 1 actor_type / actor_id | 两列；系统操作者按 `system-actors.txt` |
 | 1 cause 枚举、command_id 或 event_id、correlation_id、reverses_transition_id | `cause_kind`（待 one-architecture 定名）、`ck_…_trigger`、`correlation_id NOT NULL`、复合外键 |
 | 2 只追加，回退也正向记 | 触发器 + 权限回收 + 回退写新行 |
-| 5 索引（aggregate_id+sequence_no；legal_entity_id+occurred_on） | 唯一约束；`ix_…_legal_entity_id_occurred_on`；另 `ix_…_recorded_at`（投影；复合外键自带唯一约束索引，不另建外键索引） |
+| 5 索引（aggregate_id+transition_sequence_number；legal_entity_id+occurred_on_date） | 唯一约束；`ix_…_legal_entity_id_occurred_on_date`；另 `ix_…_recorded_at`（投影；复合外键自带唯一约束索引，不另建外键索引） |
 | 8 迁入写初始转换 | `ck_…_migration` + `ck_…_trigger`（迁入无命令/事件 ID） |
 
 ## 3. 权限（B1）
@@ -104,9 +104,9 @@ c3 / c9 两份运行时脚本同步。`DataArchitectureTest` 核对：注册表�
 
 ## 5. 给度量设计的投影口径（B2、S4）
 
-- **水位不能只看 `recorded_at`**：并发事务按提交顺序而不是 `recorded_at` 顺序可见，较早的 `recorded_at` 可能晚于水位才提交，增量漏行。投影必须二选一（或并用）：①**回看窗口**——每次从「水位 − 回看窗口」读起，按 `id` 去重（窗口 ≥ 最长事务时间，建议起步 1 小时，由度量设计定）；②**按聚合断号检测**——对每个 `aggregate_id` 检查 `sequence_no` 连续，缺号则回补。建议并用：窗口读做日常，断号检测做每日对账。
-- **左截断**：存量不回填，迁入聚合的第一条转换是迁入时的状态（`cause_kind = MIGRATION`，`from_state` 空）。投影里阶段时长必须把「第一条是 MIGRATION 的聚合，其迁入前的阶段」标为左截断，不得当作真实起点。
-- **迁入行的 `occurred_on`**（S4）：迁入的初始转换用「状态业务意义上最后一次变化的业务日期」；取不到就用迁入作业的业务日期并在 `cause_kind = MIGRATION` 行上以左截断对待。具体取值口径各 schema 的迁入映射卡（E3）要有生产取证证据，本批卡不定。
+- **水位不能只看 `recorded_at`**：并发事务按提交顺序而不是 `recorded_at` 顺序可见，较早的 `recorded_at` 可能晚于水位才提交，增量漏行。投影必须二选一（或并用）：①**回看窗口**——每次从「水位 − 回看窗口」读起，按 `id` 去重（窗口 ≥ 最长事务时间，建议起步 1 小时，由度量设计定）；②**按聚合断号检测**——对每个 `aggregate_id` 检查 `transition_sequence_number` 连续，缺号则回补。建议并用：窗口读做日常，断号检测做每日对账。
+- **左截断**：存量不回填，迁入聚合的第一条转换是迁入时的状态（`cause_kind = MIGRATION`，`from_status` 空）。投影里阶段时长必须把「第一条是 MIGRATION 的聚合，其迁入前的阶段」标为左截断，不得当作真实起点。
+- **迁入行的 `occurred_on_date`**（S4）：迁入的初始转换用「状态业务意义上最后一次变化的业务日期」；取不到就用迁入作业的业务日期并在 `cause_kind = MIGRATION` 行上以左截断对待。具体取值口径各 schema 的迁入映射卡（E3）要有生产取证证据，本批卡不定。
 - **迁入作业的系统操作者**须登记进 `system-actors.txt`（UUIDv5，名称以 `platform.` 或本 BC 前缀开头），由各 BC 卡的迁入部分办。
 
 ## 6. 登记与守护
@@ -157,7 +157,7 @@ c3 / c9 两份运行时脚本同步。`DataArchitectureTest` 核对：注册表�
 | S1 | 第 1 节：按 `cause_kind` 绑定 `command_id`、复合外键 `(reverses_transition_id, aggregate_id)`、`ck_…_first` 限制原状态为空 |
 | S2 | 第 1 节：取变更之后的 version；核实默认 0；两张无 version 的表须加列 |
 | S3 | 第 6 节：统一落表点 + 结构守护 + 行为守护兜底 |
-| S4 | 第 5 节：左截断、迁入行 `occurred_on` 口径要证据、迁入操作者登记 |
+| S4 | 第 5 节：左截断、迁入行 `occurred_on_date` 口径要证据、迁入操作者登记 |
 | S5 | 第 6 节：不加 DDL CHECK，按聚合类型登记 + 行为守护；DDL 强制需 one-architecture 认可偏离 |
 | S6 | 第 1 节：列名 `cause_kind` 交 one-architecture 定；词表查重已做 |
 | S7 | 第 6 节：两端守护；`measurable_ddl_scan.py` 位置说明 |
@@ -166,3 +166,11 @@ c3 / c9 两份运行时脚本同步。`DataArchitectureTest` 核对：注册表�
 | N1 | 第 1 节 `ck_state_transitions_times` |
 | N3 | 第 6 节：去掉 `n/a` 哨兵值 |
 | N4 | 第 6 节：触发器命名条款提议稿 |
+
+## 列名更正（2026-10-21，DdlNamingTest 首次建表时拦下）
+
+模板列名按命名守护改为：`from_state`→`from_status`、`to_state`→`to_status`、`sequence_no`→`transition_sequence_number`、`occurred_on`→`occurred_on_date`、`aggregate_type`→`aggregate_type_code`（`_code` 列有格式 CHECK，G-DDL7）。理由：不放宽守护、不给模板表开豁免（CLAUDE.md 第 5 条）；`platform_file` 是第一个建表的 schema，现在改代价最小。约束名随列名（`ck_state_transitions_from_status` 等），其余形状不变。ADR-0058 正文中的旧列名由 one-architecture 在其修订中同步。
+
+各 schema 的 `from_status`/`to_status` 带取值并集 CHECK（DdlNamingTest 要求 `_status` 列有取值 CHECK），`aggregate_type_code` 限定该 schema 的聚合类型，并可加按聚合成对限定状态的 CHECK；这三处取值由该 schema 的流转清单决定，其余列与约束逐字沿用模板（2026-10-21，platform_file 首次建表时定）。
+
+**再更正（2026-10-21）**：`sequence_number` 与词条「流水号」（`platform.numbering`）同名，G39 要求列注释以「流水号」开头，语义不同会误导；本表的序号是聚合内第几次变更，列名定为 `transition_sequence_number`（约束名 `uk_state_transitions_aggregate_id_transition_sequence_number` 共 60 字符，在 63 以内）。不给守护开豁免。

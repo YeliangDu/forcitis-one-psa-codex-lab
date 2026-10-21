@@ -14,7 +14,6 @@ import {
   labelOf,
   opinionText,
   recordTitle,
-  safeExternalUrl,
   toneOf,
   useInbox,
   useTaskRecords,
@@ -48,19 +47,15 @@ export function InboxPage() {
 
   const toRow = (item: InboxItem): InboxRow => {
     const common = { id: inboxRowId(item), title: inboxTitle(item), subtitle: item.nodeName ?? '', timeText: formatDateTime(item.createdAt) };
-    if (item.source === 'NEW') {
-      const path = taskPath(item.taskId);
-      return {
-        ...common,
-        tag: { label: '新系统', tone: 'info' },
-        state: inboxStateOf(item),
-        href: path,
-        external: false,
-        onOpen: () => void navigate(path),
-      };
-    }
-    const target = safeExternalUrl(item.detailUrl);
-    return { ...common, state: inboxStateOf(item), tag: { label: item.category === 'NOTICE' ? '知会' : '老系统', tone: 'neutral' }, ...(target === undefined ? {} : { href: target }), external: true };
+    const path = taskPath(item.taskId);
+    return {
+      ...common,
+      tag: { label: item.category === 'NOTICE' ? '知会' : '新系统', tone: 'info' },
+      state: inboxStateOf(item),
+      href: path,
+      external: false,
+      onOpen: () => void navigate(path),
+    };
   };
 
   const showingDone = view === 'done';
@@ -76,14 +71,12 @@ export function InboxPage() {
         filters={[
           { key: 'all', label: '全部', count: inbox.totalCount },
           { key: 'new', label: '新系统', count: inbox.newCount },
-          { key: 'legacy', label: '老系统', count: inbox.legacyCount },
           { key: 'notice', label: '知会', count: inbox.noticeCount },
           { key: 'done', label: '已办' },
         ]}
         activeFilter={view}
         onFilterChange={(key) => setView(inboxViewOf(key))}
         emptyText={showingDone ? '暂无已办' : '暂无待办'}
-        {...(inbox.legacyAvailable ? {} : { notice: <Notice tone="warning" title="老系统的待办暂时无法读取">当前只显示新系统的待办，请稍后刷新。</Notice> })}
       />
       {showingDone && done.isError ? <Notice tone="error" title="已办加载失败">{describeFailure(done.error)}</Notice> : null}
       {showingDone && done.isPending ? <LoadingState /> : null}

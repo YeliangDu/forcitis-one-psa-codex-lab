@@ -47,9 +47,9 @@ class IntegrationConfigurationTest {
                 .filteredOn(key -> key.startsWith(SEEYON + "views.") || (key.startsWith(LEGACY) && !key.startsWith(LEGACY + "inbox.")))
                 .containsExactlyInAnyOrder(SEEYON + "views.enabled", SEEYON + "views.jdbc-url", SEEYON + "views.username", SEEYON + "views.password",
                         LEGACY + "enabled", LEGACY + "jdbc-url", LEGACY + "username", LEGACY + "password", LEGACY + "view-name");
-        assertThat(p.stringPropertyNames()).as("the to-do connection ships its view only: url and secrets come from the environment, none means unavailable")
+        assertThat(p.stringPropertyNames()).as("the old to-do connection is gone: no key of it ships")
                 .filteredOn(key -> key.startsWith(LEGACY + "inbox."))
-                .containsExactly(LEGACY + "inbox.view-name");
+                .isEmpty();
     }
 
     @Test
