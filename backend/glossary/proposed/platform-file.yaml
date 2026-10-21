@@ -272,10 +272,10 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: personal_info_mark
+- id: personal_information_mark
   zh: 个人信息标记
-  en: PersonalInfoMark
-  snake: personal_info_mark
+  en: PersonalInformationMark
+  snake: personal_information_mark
   kind: value_object
   bc: platform.file
   scope: domain
@@ -388,6 +388,134 @@ terms:
   definition: 迁入文件写入并关联成功的结果
   standard_ref:
   - ADR-0060 文件服务
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: false_positive_judgment
+  zh: 误报判定
+  en: FalsePositiveJudgment
+  snake: false_positive_judgment
+  kind: entity
+  bc: platform.file
+  scope: domain
+  definition: 安全角色把已隔离文件判为误报，第二人复核；确认后其内容哈希进误报例外清单（ADR-0070 决定 6 第 3 条）
+  standard_ref:
+  - ADR-0070 恶意文件检测
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: judged_by
+  zh: 判定人
+  en: JudgedBy
+  snake: judged_by
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 作出误报判定的安全角色用户；不得兼复核人
+  standard_ref:
+  - ADR-0070 恶意文件检测
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: reviewed_by
+  zh: 复核人
+  en: ReviewedBy
+  snake: reviewed_by
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 复核误报判定的第二人；不得是判定人
+  standard_ref:
+  - ADR-0070 恶意文件检测
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: scan_exception
+  zh: 误报例外
+  en: ScanException
+  snake: scan_exception
+  kind: entity
+  bc: platform.file
+  scope: domain
+  definition: 误报例外清单中的一项：按内容哈希豁免，只追加，可经两人撤销
+  standard_ref:
+  - ADR-0070 恶意文件检测
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: added_at
+  zh: 加入时间
+  en: AddedAt
+  snake: added_at
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 内容哈希加入误报例外清单的时间
+  standard_ref:
+  - ADR-0070 恶意文件检测
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: deidentified
+  zh: 已去标识
+  en: Deidentified
+  snake: deidentified
+  kind: state
+  bc: platform.file
+  scope: domain
+  definition: 原文件名到期后置为固定占位值「[已去标识]」的状态
+  standard_ref:
+  - ADR-0070 恶意文件检测
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: threat_name
+  zh: 病毒名
+  en: ThreatName
+  snake: threat_name
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 检测引擎检出时报告的特征名；与 platform.integration 同名词条互列
+  standard_ref:
+  - ADR-0070 恶意文件检测
+  - ADR-0061 文件保存期
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: preservation_sequence_number
+  zh: 保存期序号
+  en: PreservationSequenceNumber
+  snake: preservation_sequence_number
+  kind: value_object
+  bc: platform.file
+  scope: domain
+  definition: 每个文件的保存期记录从 1 递增的序号，最大者为当前
+  standard_ref:
+  - ADR-0070 恶意文件检测
+  - ADR-0061 文件保存期
   confidence: medium
   aliases: []
   forbidden: []

@@ -32,3 +32,9 @@ platform_integration.source_references.source_id | INTERNAL | 用途：来源系
 platform_identity.sessions.session_id | RESTRICTED | 会话标识，等同 Cookie 持有凭据（个人信息标记待 one-data / U-11 裁定，四段化随 ADR-0043 实施 PR）
 platform_identity.sessions.primary_id | RESTRICTED | 框架内部主键，不进 Cookie，可关联会话内容；按用户决定与 session_id 同级（个人信息标记待 one-data / U-11 裁定，四段化随 ADR-0043 实施 PR）
 platform_approval.approval_requests.summary_text | INTERNAL | 用途：审批卡片上显示的业务摘要；目前内容为单据编号、工作日、工时，不含个人信息；写入方新增字段须先评估个人信息
+platform_file.stored_file_names.original_name | INTERNAL | 用途：下载时还原文件名；个人信息 PI；到期去标识
+platform_file.file_holds.hold_reason | INTERNAL | 人填理由，注释要求不填个人信息；个人信息 PI
+platform_file.false_positive_judgments.judgment_reason | INTERNAL | 人填理由；个人信息 PI
+platform_file.false_positive_judgments.review_reason | INTERNAL | 人填意见；个人信息 PI
+platform_file.scan_exception_revocations.revocation_reason | INTERNAL | 人填理由；个人信息 PI
+platform_file.quarantine_read_requests.request_reason | INTERNAL | 人填理由；个人信息 PI
