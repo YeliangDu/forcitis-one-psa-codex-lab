@@ -50,6 +50,7 @@
 | 缺陷卡（首次部署暴露，部署后开） | ①current→bootstrap 被当版本比较（cmd_pull）；②应用没有 migrate 模式（无 application-migrate.properties，旧路径 web=none 起不来）；③one.env.template 与安装器校验缺 ARCHIVE_STORE_* 五项；④服务单元 ReadWritePaths 缺归档目录（INFRA_RUNBOOK §5.3 与单元不一致）；⑤首次启动 process_administrator 鸡生蛋 | 待开卡报 one-coordinator |
 | dev-db-rebuild 剧本 | 补一步「重新导入 2016–2026 与 2027 工作日历」（#396 合入后下次 dev 部署须按此重建开发库） | 待写（文档分支） |
 | 运维手册 profile 形态 | 改 --spring.profiles.active=<自身> 为 --spring.profiles.include=<自身>（dev 开单人模式前必须改好；随 SINGLE-OP-GATE 一并） | 同上 |
+| platform_file schema（one-platform-file 单元 3，分支 claude/one-platform-file-u3，PR 待开） | 含该 PR 的 rc 部署 dev/生产前，按 c3/c9 建库脚本建 schema platform_file 并授权（Flyway create-schemas=false）；after_migrations 新增两条 REVOKE；重建 dev 时一并带上 | 等 PR 合入、出新 rc |
 | 审计分区维护角色（#370） | 单开 PR：c3/c9 建库脚本新建 one_*_audit_maintainer（LOGIN NOINHERIT CONNECTION LIMIT 1）、*_after_migrations.sql 授权、INFRA_RUNBOOK §5.3「在线行暂不删除」是否改写 | 等 #370 合入、出下一个 rc |
 | 迁入 ID 对照 | 抽取 | ADR-0037 实现 |
 
