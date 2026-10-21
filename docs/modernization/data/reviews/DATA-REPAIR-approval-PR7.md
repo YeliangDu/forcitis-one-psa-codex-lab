@@ -6,7 +6,7 @@
   - O8、C4：通过。AP-15 `ck_approval_requests_summary_text`（与 `ApprovalSummary` 同口径）；`summary_text` 登记 `INTERNAL`、不加 `PI`。
   - AP-11：通过。删 `numbering_rules` 五个停用列，种子 `event_count` 写 0；`NumberingVersionMigrationIT:34-37` 的「旧四列仍在」断言反转为「五列均不存在」，在 PR 与报告单列理由（CLAUDE.md 第 5 条）。
   - B7、AP-14：通过。`approval_requests.document_type` 收窄为具名 `ck_approval_requests_document_type`（`IN ('TIMESHEET')`），待报价等模块上线时由该模块 PR 同批追加（CS-1.8）；numbering 侧的 `QUOTE`、`JOURNAL_VOUCHER` 取值随 ADR-0030 U-3 保留，B7 在 numbering 侧的既有提示不在本 PR。
-  - O12、T4：通过（基线开放期，改基线，附预期 diff，随库重建）。验收目录无需改动，已核。
+  - O12、T4：通过（基线开放期，改基线，附预期 diff，随库重建）。验收目录只改一处夹具，已核：RULING-DR-PR7-1 改 `ApprovalRowRulesIT` 的办理记录夹具 `COPY_CLAIMED_RECORD`（转交、改派复制时带处理人，因新增 `ck_approval_task_records_assignee`），断言不变；更正于 2026-10-17，原写「无需改动」不实。
 - 裁定（四个请裁点）：
   1. `summary_text` 登记 `INTERNAL`、不加 `PI`：接受；未来写入方扩内容须重判，C4 允许写入清单写入卡。
   2. `last_value` 上界 999999999999：追加（`{seq:12}` 的容量）。

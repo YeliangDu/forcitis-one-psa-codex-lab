@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.forcitis.one.kernel.ErrorCode;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.identity.api.Permission;
-import com.forcitis.one.kernel.DocumentType;
 import com.tngtech.archunit.core.domain.JavaClass;
 import java.io.IOException;
 import java.io.InputStream;
@@ -271,26 +270,57 @@ class NamingSurfaceTest {
     }
 
     @Test
-    void numberingDocumentTypesAreUpperSnakeGlossaryWordsAndEachHasExactlyTheSeededRule() throws IOException {
+    void numberingDocumentTypesAreUpperSnakeGlossaryWordsOfARegisteredBcAndEachHasExactlyTheSeededRule() throws IOException {
         List<String> problems = new ArrayList<>();
-        Set<String> declared = Arrays.stream(DocumentType.values()).map(Enum::name).collect(Collectors.toCollection(LinkedHashSet::new));
-        Map<String, String> seeded = insertedValues("platform_numbering", "numbering_rules", "document_type");
-        Set<String> all = new LinkedHashSet<>(declared);
-        all.addAll(seeded.keySet());
-        for (String code : all) {
-            String where = "document type '" + code + "'" + (seeded.containsKey(code) ? " (seeded in " + seeded.get(code) + ")" : "") + ": ";
+        Map<String, String> codes = insertedValues("platform_numbering", "document_types", "code");
+        Set<String> typeIds = insertedValues("platform_numbering", "document_types", "document_type_id").keySet();
+        Set<String> ruleTypeIds = insertedValues("platform_numbering", "numbering_rules", "document_type_id").keySet();
+        problems.addAll(ownerProblems(registeredBcs(), insertedValues("platform_numbering", "document_types", "owner_bc_code")));
+        for (String code : codes.keySet()) {
+            String where = "document type '" + code + "' (seeded in " + codes.get(code) + "): ";
             if (!UPPER_SNAKE.matcher(code).matches()) {
                 problems.add(where + "must be UPPER_SNAKE_CASE, e.g. JOURNAL_VOUCHER");
             }
             words(where, code, problems);
-            if (!declared.contains(code)) {
-                problems.add(where + "seeded but not a DocumentType constant (DocumentType.valueOf would fail at runtime)");
-            }
-            if (!seeded.containsKey(code)) {
-                problems.add(where + "DocumentType constant without a seeded numbering_rules row; add one in a new platform_numbering migration");
+        }
+        for (String typeId : typeIds) {
+            if (!ruleTypeIds.contains(typeId)) {
+                problems.add("document type " + typeId + " has no seeded numbering_rules row; add one in a new platform_numbering migration");
             }
         }
-        fail("G45 numbering rule codes (platform.numbering DocumentType + numbering_rules seed)", problems);
+        for (String ruleTypeId : ruleTypeIds) {
+            if (!typeIds.contains(ruleTypeId)) {
+                problems.add("numbering_rules row for document_type_id " + ruleTypeId + " has no seeded document_types row");
+            }
+        }
+        fail("G45 document type codes (platform_numbering.document_types seed)", problems);
+    }
+
+    @Test
+    void ownerGuardRefusesASubdomainAndAnUnknownId() {
+        Set<String> bcs = Set.of("cost.timesheet", "presales.opportunity");
+
+        assertThat(ownerProblems(bcs, Map.of("cost.timesheet", "a.sql", "presales.opportunity", "a.sql"))).isEmpty();
+        assertThat(ownerProblems(bcs, Map.of("presales", "a.sql", "nowhere.module", "b.sql"))).hasSize(2);
+    }
+
+    static List<String> ownerProblems(Set<String> bcs, Map<String, String> owners) {
+        List<String> problems = new ArrayList<>();
+        for (Map.Entry<String, String> owner : owners.entrySet()) {
+            if (!bcs.contains(owner.getKey())) {
+                problems.add("owner_bc_code '" + owner.getKey() + "' (seeded in " + owner.getValue() + ") is not an entry of kind bc in glossary/bcs.yaml (a subdomain does not count)");
+            }
+        }
+        return problems;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Set<String> registeredBcs() throws IOException {
+        try (java.io.InputStream in = Files.newInputStream(Path.of("../docs/modernization/glossary/bcs.yaml"))) {
+            Object root = new org.yaml.snakeyaml.Yaml().load(in);
+            List<Map<String, Object>> entries = root instanceof Map<?, ?> m ? (List<Map<String, Object>>) m.get("bcs") : (List<Map<String, Object>>) root;
+            return entries.stream().filter(e -> "bc".equals(e.get("kind"))).map(e -> String.valueOf(e.get("id"))).collect(Collectors.toSet());
+        }
     }
 
     static final Pattern METER_BUILDER = Pattern.compile(

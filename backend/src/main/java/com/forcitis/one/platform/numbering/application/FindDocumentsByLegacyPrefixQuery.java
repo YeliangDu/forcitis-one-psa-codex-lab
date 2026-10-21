@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.numbering.application;
 
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.platform.integration.api.ExternalSource;
@@ -24,7 +24,7 @@ class FindDocumentsByLegacyPrefixQuery implements FindDocumentsByLegacyPrefix {
 
     @Override
     @Transactional(readOnly = true)
-    public List<LegacyNumberEntry> findByPrefix(ExternalSource sourceSystem, DocumentType type, String prefix, String after, int limit) {
+    public List<LegacyNumberEntry> findByPrefix(ExternalSource sourceSystem, DocumentTypeCode type, String prefix, String after, int limit) {
         if (prefix == null || prefix.strip().length() < MIN_PREFIX) {
             throw new DomainException(NumberingError.PLATFORM_NUMBERING_LEGACY_PREFIX_INVALID, ErrorKind.UNPROCESSABLE,
                     "a prefix search needs at least " + MIN_PREFIX + " characters");

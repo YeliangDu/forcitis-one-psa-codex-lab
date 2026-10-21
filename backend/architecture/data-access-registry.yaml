@@ -379,6 +379,13 @@ tables:
     lineage: {source: ORG_SOURCE, migrated_from: [老系统人员与部门对照], via: ONE_OFF_IMPORT}
     writers: [platform.integration]
 
+  platform_numbering.document_types:
+    # ADR-0066 decision 4: uk_document_types_code is the business key. Rows are inserted by migrations only; platform.approval and the business contexts check codes through platform.numbering.api.DocumentTypes, never by reading this table.
+    role: CONFIG
+    mutability: MIGRATION_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    readers: [platform.numbering]
   platform_numbering.numbering_rules:
     role: CONFIG_VERSIONED
     aggregate: NumberingRule

@@ -22,12 +22,7 @@ public final class ApprovalTexts {
     }
 
     public static String documentName(DocumentReference document) {
-        String kind = switch (document.documentType()) {
-            case TIMESHEET -> "工时单";
-            case QUOTE -> "报价单";
-            case JOURNAL_VOUCHER -> "记账凭证";
-        };
-        return kind + " " + document.documentId().value();
+        return document.documentId().value().toString();
     }
 
     public static String inboxTitle(ProcessKey key, DocumentReference document) {

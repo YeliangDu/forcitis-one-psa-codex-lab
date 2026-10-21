@@ -1,7 +1,7 @@
 -- FORCITIS one · C-9 校验（只读；连 forcitis_one_prod 执行，结果截图或导出留档）
 -- 用法：psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one_prod -f c9_prod_db_verify.sql
 
--- V1 角色与属性：期望 5 行；owner 不可登录；app / readonly / audit_maintainer 为 NOINHERIT；连接上限 migrator 2、app 40、readonly 3、audit_maintainer 1
+-- V1 角色与属性：期望 5 行；owner 不可登录；app / readonly / audit_maintainer 为 NOINHERIT；连接上限 migrator 2、app 25、readonly 3、audit_maintainer 1
 SELECT rolname, rolcanlogin, rolinherit, rolconnlimit
   FROM pg_roles WHERE rolname LIKE 'one\_prod\_%' ORDER BY rolname;
 
@@ -59,3 +59,15 @@ SELECT r.rolname, has_function_privilege(r.rolname, to_regprocedure('platform_au
 -- 维护角色只能删除已归档分区：期望 drop = t、create = f
 SELECT has_function_privilege('one_prod_audit_maintainer', to_regprocedure('platform_audit.drop_archived_audit_entry_partition(date)'), 'EXECUTE') AS can_drop,
        has_function_privilege('one_prod_audit_maintainer', to_regprocedure('platform_audit.create_audit_entry_partitions(date,date)'), 'EXECUTE') AS can_create;
+
+-- V10 运行角色不是属主角色的成员（SEC-1021-COO-01）：编号版本表的「无作者行只由迁移写」靠这一点——触发器只放行属主角色的成员，运行账号若是成员，就能绕过编号四眼。
+-- 任一运行角色是成员则本条抛错，ON_ERROR_STOP 使校验失败；期望不抛错。
+DO $$
+DECLARE r text;
+BEGIN
+    FOREACH r IN ARRAY ARRAY['one_prod_app', 'one_prod_readonly', 'one_prod_audit_maintainer'] LOOP
+        IF pg_has_role(r, 'one_prod_owner', 'MEMBER') THEN
+            RAISE EXCEPTION 'V10 failed: runtime role % is a member of one_prod_owner', r;
+        END IF;
+    END LOOP;
+END $$;

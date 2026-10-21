@@ -31,7 +31,7 @@ import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.tngtech.archunit.core.domain.JavaClass;
 import java.lang.reflect.RecordComponent;
 import java.math.BigDecimal;
@@ -204,8 +204,8 @@ class ApplicationIntegrationTest {
         jdbc.update("""
                 update platform_numbering.numbering_rule_versions
                    set status = 'CONFIRMED', confirmed_by = '01900000-0000-7000-8000-000000000101', confirmed_at = now(),
-                       finance_confirmed_by = case when (select r.document_type from platform_numbering.numbering_rules r where r.numbering_rule_id = numbering_rule_versions.numbering_rule_id) = 'JOURNAL_VOUCHER' then '01900000-0000-7000-8000-000000000102'::uuid end,
-                       finance_confirmed_at = case when (select r.document_type from platform_numbering.numbering_rules r where r.numbering_rule_id = numbering_rule_versions.numbering_rule_id) = 'JOURNAL_VOUCHER' then now() end
+                       finance_confirmed_by = case when (select t.code from platform_numbering.numbering_rules r join platform_numbering.document_types t on t.document_type_id = r.document_type_id where r.numbering_rule_id = numbering_rule_versions.numbering_rule_id) = 'JOURNAL_VOUCHER' then '01900000-0000-7000-8000-000000000102'::uuid end,
+                       finance_confirmed_at = case when (select t.code from platform_numbering.numbering_rules r join platform_numbering.document_types t on t.document_type_id = r.document_type_id where r.numbering_rule_id = numbering_rule_versions.numbering_rule_id) = 'JOURNAL_VOUCHER' then now() end
                  where version_number = 1 and status = 'PENDING_CONFIRMATION'
                 """);
     }
@@ -214,25 +214,25 @@ class ApplicationIntegrationTest {
     void numbersFollowTheRuleResetYearlyAndAreSeparatePerLegalEntity() {
         LocalDate day = LocalDate.of(2026, 10, 14);
         // unified new format (ADR-0010 decision 5): {TYPE}-{LE}-{yyyyMM}-{seq:4}, reset monthly; {LE} is the legal entity code
-        assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-FST-202610-0001");
-        assertThat(issue(DocumentType.QUOTE, LE1, day)).isEqualTo("QT-FST-202610-0002");
-        assertThat(issue(DocumentType.QUOTE, new LegalEntityId(TestIds.uuid(2)), day)).isEqualTo("QT-FIT-202610-0001");
-        assertThat(issue(DocumentType.QUOTE, LE1, LocalDate.of(2026, 11, 2))).isEqualTo("QT-FST-202611-0001");
-        assertThat(issue(DocumentType.JOURNAL_VOUCHER, LE1, day)).isEqualTo("JV-FST-202610-0001");
+        assertThat(issue(new DocumentTypeCode("QUOTE"), LE1, day)).isEqualTo("QT-FST-202610-0001");
+        assertThat(issue(new DocumentTypeCode("QUOTE"), LE1, day)).isEqualTo("QT-FST-202610-0002");
+        assertThat(issue(new DocumentTypeCode("QUOTE"), new LegalEntityId(TestIds.uuid(2)), day)).isEqualTo("QT-FIT-202610-0001");
+        assertThat(issue(new DocumentTypeCode("QUOTE"), LE1, LocalDate.of(2026, 11, 2))).isEqualTo("QT-FST-202611-0001");
+        assertThat(issue(new DocumentTypeCode("JOURNAL_VOUCHER"), LE1, day)).isEqualTo("JV-FST-202610-0001");
     }
 
     @Test
     void rolledBackNumbersAreReissuedSoThereAreNoGaps() {
         LocalDate day = LocalDate.of(2026, 3, 1);
-        String first = issue(DocumentType.TIMESHEET, LE1, day);
+        String first = issue(new DocumentTypeCode("TIMESHEET"), LE1, day);
         String rolledBack = tx.execute(status -> {
-            String n = numbers.next(DocumentType.TIMESHEET, LE1, day).value();
+            String n = numbers.next(new DocumentTypeCode("TIMESHEET"), LE1, day).value();
             status.setRollbackOnly();
             return n;
         });
         assertThat(first).isEqualTo("TS-FST-202603-0001");
         assertThat(rolledBack).isEqualTo("TS-FST-202603-0002");
-        assertThat(issue(DocumentType.TIMESHEET, LE1, day)).isEqualTo("TS-FST-202603-0002");
+        assertThat(issue(new DocumentTypeCode("TIMESHEET"), LE1, day)).isEqualTo("TS-FST-202603-0002");
     }
 
     @Test
@@ -241,7 +241,7 @@ class ApplicationIntegrationTest {
         Set<String> issued = ConcurrentHashMap.newKeySet();
         ExecutorService pool = Executors.newFixedThreadPool(8);
         for (int i = 0; i < 20; i++) {
-            pool.submit(() -> issued.add(issue(DocumentType.TIMESHEET, LE1, day)));
+            pool.submit(() -> issued.add(issue(new DocumentTypeCode("TIMESHEET"), LE1, day)));
         }
         pool.shutdown();
         assertThat(pool.awaitTermination(30, TimeUnit.SECONDS)).isTrue();
@@ -250,12 +250,12 @@ class ApplicationIntegrationTest {
 
     @Test
     void issuingOutsideTheCallersTransactionIsRefused() {
-        assertThatThrownBy(() -> numbers.next(DocumentType.QUOTE, LE1, LocalDate.now()))
+        assertThatThrownBy(() -> numbers.next(new DocumentTypeCode("QUOTE"), LE1, LocalDate.now()))
                 .isInstanceOf(IllegalTransactionStateException.class);
     }
 
     private String ruleVersion(String documentType) {
-        return "\"" + jdbc.queryForObject("select version from platform_numbering.numbering_rules where document_type = ?", Long.class, documentType) + "\"";
+        return "\"" + jdbc.queryForObject("select version from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = ?)", Long.class, documentType) + "\"";
     }
 
     @Test
@@ -273,7 +273,7 @@ class ApplicationIntegrationTest {
         mvc.perform(post("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER:confirm-finance").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"templateVersion\":2}")
                         .with(user(TestAccounts.account(11).value().toString()).authorities(() -> Permission.Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE)))
                 .andExpect(status().isOk());
-        assertThat(issue(DocumentType.JOURNAL_VOUCHER, LE1, LocalDate.of(2026, 11, 1))).isEqualTo("PZFST-202611-00500");
+        assertThat(issue(new DocumentTypeCode("JOURNAL_VOUCHER"), LE1, LocalDate.of(2026, 11, 1))).isEqualTo("PZFST-202611-00500");
         mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(user(TestAccounts.account(8).value().toString()).authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"X{seq:2}\",\"resetPolicy\":\"NEVER\",\"startValue\":1,\"effectiveFrom\":\"" + LocalDate.now().plusDays(1) + "\"}"))
                 .andExpect(status().isForbidden());
@@ -427,6 +427,9 @@ class ApplicationIntegrationTest {
         if (type.isEnum()) {
             return type.getEnumConstants()[0];
         }
+        if (type.equals(com.forcitis.one.kernel.DocumentTypeCode.class)) {
+            return new com.forcitis.one.kernel.DocumentTypeCode("TIMESHEET");
+        }
         if (type.isRecord()) {
             RecordComponent[] components = type.getRecordComponents();
             Class<?>[] types = new Class<?>[components.length];
@@ -476,7 +479,7 @@ class ApplicationIntegrationTest {
         Files.writeString(Path.of("target/data-dictionary.md"), md);
     }
 
-    private String issue(DocumentType type, LegalEntityId legalEntity, LocalDate day) {
+    private String issue(DocumentTypeCode type, LegalEntityId legalEntity, LocalDate day) {
         return tx.execute(status -> numbers.next(type, legalEntity, day)).value();
     }
 
