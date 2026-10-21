@@ -229,7 +229,7 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 
 来源：B31_CONSTRUCTION_DESIGN.md（§2.3 事件、§3 聚合与表、§4 审批、§5 定时、§6 权限、§10–§11）与 B31_RULES.yaml；只含词表与其他提议文件查不到的词，已登记的五个聚合不重复。
 
-错误码中文名全局唯一；同 bc 内中英文名唯一；与其他 bc 同名的审批中、已驳回、已退回、已通过、已撤销，以及被他词条禁用或同名的兜底、已完成、参与人、处理人，本文件不以这些词登记，也不自行裁定，交 one-glossary 判定。
+错误码中文名全局唯一；同 bc 内中英文名唯一；与其他 bc 同名的审批中、已驳回、已退回、已通过、已撤销，以及被他词条禁用或同名的参与人、处理人，本文件不以这些词登记（用户 GL4 答复已定：备用审批人、员工活动终态已办结），也不自行裁定，交 one-glossary 判定。
 
 | id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|---|
@@ -253,7 +253,7 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 | `transition_channel_review` | 过渡通道季度复核 | TransitionChannelReview | 领域 · organization.administration | 过渡通道存续期间行政负责人每季度对通道使用情况的复核记录，进入审计。 |  | 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10 |
 | `transition_channel_spot_check` | 过渡通道月度抽检 | TransitionChannelSpotCheck | 领域 · organization.administration | 过渡通道存续期间每月抽取 5 单回既有审批系统核对批准页的抽检记录，结果留痕。 |  | 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10 |
 | `primary_approver` | 第一审批人 | PrimaryApprover | 领域 · organization.administration | 审批人表中按用途或类别指定的首选审批岗位；不可用时才改派备用审批人。 |  | 设计原文「第一审批人」；备选英文 FirstApprover。 |
-| `backup_approver` | 备用审批人 | BackupApprover | 领域 · organization.administration | 第一审批人不可用时改派的同职能第二岗位，存岗位引用而非个人；改派加事后知会，不并行双批，不兜到总经理，高风险用途不进备用。 |  | 设计原文用「兜底」，但「兜底」已是 administrator_fallback（转流程管理员）的禁用写法，故改称备用审批人；备选 替补审批人 / AlternateApprover。用户原话为「兜底」（B31R §11）；「兜底」被 administrator_fallback 禁用，用语待 one-glossary Q1。 |
+| `backup_approver` | 备用审批人 | BackupApprover | 领域 · organization.administration | 第一审批人不可用时改派的同职能第二岗位，存岗位引用而非个人；改派加事后知会，不并行双批，不兜到总经理，高风险用途不进备用。预先指定的接手人；将来若做运行时委派（临时转派给他人代办）是另一个机制，须另立词条，不用本词吸收。 | 「兜底」方言·已禁用；「替补审批人」方言·已禁用；「缺位委派」方言·已禁用 | 用户 GL4 答复（5 题全选推荐）定名；用户原话为「兜底」，已列方言。 |
 | `it_service_ticket_handling` | 信息技术服务工单处理记录 | ItServiceTicketHandling | 领域 · organization.administration | 信息技术服务工单受理后每次处理的只追加记录：处理时点、处理人、处理说明、处理结论与受理序号。 |  | 设计草案表 it_request_handlings 按词表应为 it_service_ticket_handlings。 |
 | `it_service_category_table` | 信息技术服务类别表 | ItServiceCategoryTable | 领域 · organization.administration | 信息技术服务工单类别的版本化配置：作为配置集「信息技术服务类别」的条目，随配置集版本只追加；类别可增删改并留版本与操作人，不写死在代码或迁移，上线前由信息技术负责人定版。 |  | 设计原文「IT 类别表」。one-data 裁定（B31_PHYSICAL_MODEL_RULINGS §2）：配置不挂聚合，共用配置集根加版本头，各配置一张条目表；物理表 it_service_category_items。 |
 | `it_service_category` | 信息技术服务类别 | ItServiceCategory | 领域 · organization.administration | 类别表中的一行：类别名称、是否需审批及理由、审批人与备用审批人岗位、受理人与替补、提供方、维护方与采购交接。 |  | 设计列名 category_code；类别取值为配置数据，需求类 / 故障类的细分清单待确认。 |
@@ -282,7 +282,7 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 | `loan_renewal` | 续借 | LoanRenewal | 领域 · organization.administration | 借阅期满前经原批准人同意的一次续借，续借为新审批，每笔借阅至多一次。 |  |  |
 | `loan_overdue_reminder` | 借阅逾期提醒 | LoanOverdueReminder | 领域 · organization.administration | 借阅逾期时提醒借阅人及其部门负责人，逾期满 7 天升级到行政负责人。 |  |  |
 | `seal_usage_request_approved` | 用印申请已批准 | SealUsageRequestApproved | 领域 · organization.administration | 用印申请经人工审批通过而置为已批准（先行期的既有审批凭证通道经行政核对后同样置为已批准）。 |  |  |
-| `seal_usage_registered` | 用印已办理 | SealUsageRegistered | 领域 · organization.administration | 经办人登记了一次实际用印，每次登记发布，关闭不删除凭据。 |  | 设计与事件目录的中文名为「用印已办理」，英文未定；事件由命令「登记用印」发出，按命名规范取 SealUsageRegistered，中文名与动词「登记」不一致，备选 用印已登记。 |
+| `seal_usage_registered` | 用印已登记 | SealUsageRegistered | 领域 · organization.administration | 经办人登记了一次实际用印，每次登记发布，关闭不删除凭据。 |  | 用户 GL4 答复定名「用印已登记」；「用印记录」「用印已办理」不用。 |
 | `it_service_ticket_resolved` | 信息技术服务工单已解决 | ItServiceTicketResolved | 领域 · organization.administration | 信息技术服务工单经受理后判定需求成立且可实现并已解决；需求不成立或无法实现直接退回，不发布本事件。 |  | 设计与事件目录称「IT 需求已解决」，其中「IT 需求」是旧称。 |
 | `it_asset_issued` | 信息技术资产已领用 | ItAssetIssued | 领域 · organization.administration | 一件信息技术资产登记领用，开启了使用人的使用期间。 |  | 设计与事件目录称「资产已领用」；加「信息技术」以区别于公司资产；英文 Issued 备选 Assigned。 |
 | `it_asset_transferred` | 信息技术资产已调拨 | ItAssetTransferred | 领域 · organization.administration | 一件信息技术资产在同一事务内结束调出方使用期间并开启调入方使用期间。 |  | 设计与事件目录称「资产已调拨」。 |
@@ -313,8 +313,8 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 | `report_it_asset_fault` | 报修资产 | ReportItAssetFault | 领域 · organization.administration | 当前使用人或资产管理员代报，登记资产故障报修。 |  |  |
 | `register_it_asset_repair_result` | 登记维修结果 | RegisterItAssetRepairResult | 领域 · organization.administration | 资产管理员登记已修复或无法修复、完成日期与维修单或发票引用。 |  |  |
 | `submit_employee_activity_request` | 提交员工活动申请 | SubmitEmployeeActivityRequest | 领域 · organization.administration | 登记员工活动并由规则校验直达已批准；周年自动生成与人工登记共用本入口，重复提交返回原记录。 |  |  |
-| `complete_employee_activity` | 完成员工活动 | CompleteEmployeeActivity | 领域 · organization.administration | 行政把已批准的员工活动登记置为已完成，已取消的拒绝完成。 |  |  |
-| `cancel_employee_activity_registration` | 取消员工活动登记 | CancelEmployeeActivityRegistration | 领域 · organization.administration | 行政把已批准或已完成的活动登记取消，原因必填并记取消人与时间，保留原记录，不设人审。 |  | 来自 ARC-1017-APE-02 提议。 |
+| `complete_employee_activity` | 完成员工活动 | CompleteEmployeeActivity | 领域 · organization.administration | 行政把已批准的员工活动登记置为已办结，已取消的拒绝办结。 |  |  |
+| `cancel_employee_activity_registration` | 取消员工活动登记 | CancelEmployeeActivityRegistration | 领域 · organization.administration | 行政把已批准或已办结的活动登记取消，原因必填并记取消人与时间，保留原记录，不设人审。 |  | 来自 ARC-1017-APE-02 提议。 |
 | `waive_remaining_seal_copies` | 放弃剩余用印份数 | WaiveRemainingSealCopies | 领域 · organization.administration | 申请人放弃批准后未用的份数，放弃即释放来源份数占用并可触发规则关闭。 |  | 设计只在 §9 第 2 条写「申请人可放弃未用份数」，命令目录把放弃作为「登记用印」的参数；是否独立命令待定。 |
 | `register_blank_page_pre_stamp` | 登记预盖空白页 | RegisterBlankPagePreStamp | 领域 · organization.administration | 投标用印经批准后登记预盖的空白页张数、用途、领用人、日期与编号。 |  |  |
 | `reclaim_blank_page_pre_stamp` | 收回预盖空白页 | ReclaimBlankPagePreStamp | 领域 · organization.administration | 预盖空白页用完后登记收回。 |  |  |
@@ -343,6 +343,7 @@ organization.administration（行政事务，B-31）提议术语（proposed，AD
 | `repair_result__repaired` | 已修复 | Repaired | 领域 · organization.administration | 维修结果取值：故障已修复。 |  |  |
 | `repair_result__unrepairable` | 无法修复 | Unrepairable | 领域 · organization.administration | 维修结果取值：无法修复，不自动报废也不自动归还，报废归公司资产所在模块。 |  |  |
 | `administration_status__cancelled` | 已取消 | Cancelled | 领域 · organization.administration | 员工活动登记因记错或活动取消而作废，终态，不可修改、恢复或完成，重登另建记录并引用被取消记录。 |  | 使用：员工活动申请。 |
+| `administration_status__concluded` | 已办结 | Concluded | 领域 · organization.administration | 员工活动登记的活动已办理完毕，终态之一；已取消的不可办结。 |  | 用户 GL4 答复定名「已办结」，不用已完成；使用：员工活动申请。 |
 | `pre_stamp_status__registered` | 已登记 | Registered | 领域 · organization.administration | 预盖空白页已登记张数与领用人，尚未收回或作废。 |  |  |
 | `pre_stamp_status__reclaimed` | 已收回 | Reclaimed | 领域 · organization.administration | 预盖空白页用完后已登记收回。 |  |  |
 | `pre_stamp_status__voided` | 已作废 | Voided | 领域 · organization.administration | 预盖空白页未使用而作废，不删除。 |  |  |

@@ -26,11 +26,11 @@
 
 | 表单 | 聚合 | 词条（状态） | 表 | 审批 | 命令 | 发布事件 |
 |---|---|---|---|---|---|---|
-| 用印 | AGG-113 用印申请 | `seal_usage_request`（已批准） | `seal_usage_requests`、`seal_usage_documents`、既有审批凭证来源表（先行期来源只有它）、`seal_usage_registrations`（只追加；冲正用 CORRECTION 行）、`seal_blank_page_preloads` 与处置表（只追加） | 用印审批（无来源路径、特批、加批） | 提交、批准、驳回、撤回、登记用印、关闭、放弃剩余份数；预盖登记、收回、作废 | 用印申请已批准、用印已办理 |
+| 用印 | AGG-113 用印申请 | `seal_usage_request`（已批准） | `seal_usage_requests`、`seal_usage_documents`、既有审批凭证来源表（先行期来源只有它）、`seal_usage_registrations`（只追加；冲正用 CORRECTION 行）、`seal_blank_page_preloads` 与处置表（只追加） | 用印审批（无来源路径、特批、加批） | 提交、批准、驳回、撤回、登记用印、关闭、放弃剩余份数；预盖登记、收回、作废 | 用印申请已批准、用印已登记 |
 | IT 需求 | AGG-114 信息技术服务工单 | `it_service_ticket`（已批准；「IT 需求工单」为已废弃旧称） | `it_service_tickets`、`it_service_ticket_handlings` | 信息技术服务审批（仅类别配置为需审批） | 提交、批准、驳回、撤回、受理、解决、关闭、退回、重开 | 信息技术服务工单已解决 |
 | IT 资产使用 | AGG-115 信息技术资产使用记录（每资产卡片一根，业务键资产卡片号；先行期不惰性建根，根只来自迁入与「登记资产卡片」命令） | `it_asset_usage_record`（已批准） | `it_asset_usage_records`、`it_asset_usage_requests`、`it_asset_usage_periods` | 无 | 登记资产卡片、申请领用、登记领用、申请调拨、撤销调拨申请、调拨、归还 | 信息技术资产已领用、已调拨、已归还 |
-| IT 资产维修 | AGG-121 信息技术设备维修单 | `it_asset_repair_order`（已批准） | `it_asset_repair_orders` | 无 | 报修、登记维修结果 | 无 |
-| 员工活动 | AGG-116 员工活动申请 | `employee_activity_request`（已批准） | `employee_activity_requests`、`employee_activity_participants` | 无（规则通过即已批准） | 提交、完成、取消登记；重登为显式提交 | 员工活动申请已批准 |
+| IT 资产维修 | AGG-121 信息技术资产维修单 | `it_asset_repair_order`（已批准） | `it_asset_repair_orders` | 无 | 报修、登记维修结果 | 无 |
+| 员工活动 | AGG-116 员工活动申请 | `employee_activity_request`（已批准） | `employee_activity_requests`、`employee_activity_participants` | 无（规则通过即已批准） | 提交、办结、取消登记；重登为显式提交 | 员工活动申请已批准 |
 | 合同原件借阅（B31R-Q8–Q10） | 合同原件借阅记录（目标形状同 AGG-13，W3 移交 `contract.agreement`） | 提议 | `contract_original_loan_records`、续借表 | 合同原件借阅审批（第三类人审，外借加审） | 借出、续借、归还 | 待定 |
 
 配置型版本表（one-data 裁定：**不挂聚合**，共用配置集根 `config_sets` 与版本头 `config_set_versions`，各配置一张条目表）：`seal_approver_rule_items`（用途×印章类型→第一审批人、备用审批人岗位、是否高风险、预盖上限）、`it_service_category_items`、`position_asset_standard_items`、`employee_activity_type_items`、`reminder_rule_items`。
@@ -115,7 +115,7 @@
 | 借阅审批人表、提醒规则定版权限的物理承载（one-data 裁定 §2 配置集清单未列借阅审批人） | one-data | 7.5 起各卡 |
 | 命名对齐：`prior_approval_number` 与 one-data 建议列 `external_approval_number`；配置条目表（`*_items`）与词条对应；资产卡片号词条是否并入「公司资产」 | one-glossary | 提议术语评审 |
 | 历史用印迁入口径（one-data，`B31_HISTORY_SEAL_MIGRATION_REQUIREMENTS.md`）：缺指纹迁入时现算并标 COMPUTED_AT_MIGRATION，拟发/凭据指纹置空、核验记「历史迁入，未核验」；缺文件、加密、病毒、超 100 MB 附件拒收、记录照迁、行政负责人逐项处置；老系统用印档案无单号，迁入行身份取来源对照，`document_number` 对迁入行可空并标 NO_SOURCE_NUMBER；事实（近 24 个月 5805 条记录、1519 条有附件、2704 个附件约 37.9 GiB、校验列全空、无版本族、108 个超 100 MB） | 写进 7.10 迁入规格 | 7.10 |
-| 用语 Q1–Q18 及新增：资产侧「已归还」状态与工单「已退回」英文同名（已删前者，后者待定） | one-glossary | 提议术语批准、状态枚举冻结 |
+| 用语：one-glossary 已判定 Q1–Q18，用户 GL4 五题全选推荐（备用审批人、员工活动终态已办结、用印登记/用印已登记、维修单改称信息技术资产维修单、工单处理人复用 assignee）；提议术语待其逐条转正 | one-glossary | 提议术语批准、状态枚举冻结 |
 | Q-B31-1…4 | 用户页（one-rules 汇总） | INV-138 口径、冲正、用途→印章类型 |
 | RUL-01–08 逐条回复；Q2 追加 INV 编号 | one-rules、one-architecture | 正式规则卡 |
 | 行政与 IT 配置：用印审批人表、IT 类别表（含备用审批人）、岗位资产配置标准、预盖上限、印章清单 | 行政、IT 负责人（经 one-coordinator） | 上线出口条件，不是实现卡责任 |

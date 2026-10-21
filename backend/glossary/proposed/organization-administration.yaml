@@ -1,6 +1,6 @@
 # organization.administration（行政事务，B-31）提议术语（proposed，ADR-0018；起草：用语差距清单，待 one-glossary 评审与 one-architecture 对照）。
 # 来源：B31_CONSTRUCTION_DESIGN.md（§2.3 事件、§3 聚合与表、§4 审批、§5 定时、§6 权限、§10–§11）与 B31_RULES.yaml；只含词表与其他提议文件查不到的词，已登记的五个聚合不重复。
-# 错误码中文名全局唯一；同 bc 内中英文名唯一；与其他 bc 同名的审批中、已驳回、已退回、已通过、已撤销，以及被他词条禁用或同名的兜底、已完成、参与人、处理人，本文件不以这些词登记，也不自行裁定，交 one-glossary 判定。
+# 错误码中文名全局唯一；同 bc 内中英文名唯一；与其他 bc 同名的审批中、已驳回、已退回、已通过、已撤销，以及被他词条禁用或同名的参与人、处理人，本文件不以这些词登记（用户 GL4 答复已定：备用审批人、员工活动终态已办结），也不自行裁定，交 one-glossary 判定。
 terms:
 
 # 用印申请（AGG-113）子实体、配置与审批类型
@@ -324,14 +324,29 @@ terms:
   kind: role
   bc: organization.administration
   scope: domain
-  definition: 第一审批人不可用时改派的同职能第二岗位，存岗位引用而非个人；改派加事后知会，不并行双批，不兜到总经理，高风险用途不进备用。
+  definition: 第一审批人不可用时改派的同职能第二岗位，存岗位引用而非个人；改派加事后知会，不并行双批，不兜到总经理，高风险用途不进备用。预先指定的接手人；将来若做运行时委派（临时转派给他人代办）是另一个机制，须另立词条，不用本词吸收。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 2 条
   confidence: low
-  aliases: []
-  forbidden: []
+  aliases:
+  - name: 兜底
+    type: dialect
+    deprecated: true
+    source: 用户原话（B31R §11）；用户 GL4 答复定名备用审批人
+  - name: 替补审批人
+    type: dialect
+    deprecated: true
+    source: B31_RULES.yaml IT-04；用户 GL4 答复
+  - name: 缺位委派
+    type: dialect
+    deprecated: true
+    source: 审批人缺位处理（AR-12）；用户 GL4 答复
+  forbidden:
+  - 兜底
+  - 替补审批人
+  - 缺位委派
   status: proposed
-  note: 设计原文用「兜底」，但「兜底」已是 administrator_fallback（转流程管理员）的禁用写法，故改称备用审批人；备选 替补审批人 / AlternateApprover。用户原话为「兜底」（B31R §11）；「兜底」被 administrator_fallback 禁用，用语待 one-glossary Q1。
+  note: 用户 GL4 答复（5 题全选推荐）定名；用户原话为「兜底」，已列方言。
 # 信息技术服务工单（AGG-114）子实体与配置
 - id: it_service_ticket_handling
   zh: 信息技术服务工单处理记录
@@ -772,7 +787,7 @@ terms:
   status: proposed
   note: ''
 - id: seal_usage_registered
-  zh: 用印已办理
+  zh: 用印已登记
   en: SealUsageRegistered
   snake: seal_usage_registered
   kind: domain_event
@@ -785,7 +800,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 设计与事件目录的中文名为「用印已办理」，英文未定；事件由命令「登记用印」发出，按命名规范取 SealUsageRegistered，中文名与动词「登记」不一致，备选 用印已登记。
+  note: 用户 GL4 答复定名「用印已登记」；「用印记录」「用印已办理」不用。
 - id: it_service_ticket_resolved
   zh: 信息技术服务工单已解决
   en: ItServiceTicketResolved
@@ -1245,7 +1260,7 @@ terms:
   kind: command
   bc: organization.administration
   scope: domain
-  definition: 行政把已批准的员工活动登记置为已完成，已取消的拒绝完成。
+  definition: 行政把已批准的员工活动登记置为已办结，已取消的拒绝办结。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
   confidence: medium
@@ -1260,7 +1275,7 @@ terms:
   kind: command
   bc: organization.administration
   scope: domain
-  definition: 行政把已批准或已完成的活动登记取消，原因必填并记取消人与时间，保留原记录，不设人审。
+  definition: 行政把已批准或已办结的活动登记取消，原因必填并记取消人与时间，保留原记录，不设人审。
   standard_ref:
   - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
   confidence: medium
@@ -1376,7 +1391,7 @@ terms:
   status: proposed
   note: 业务上指老系统已审批单据；迁入对照走 platform.integration；领域内不出现老系统名称（CLAUDE.md 第 1 条）；用语待 one-glossary Q10
 
-# 状态取值（同一 bc 内中文名与英文名唯一，故各聚合共用；已在其他 bc 登记同名的审批中、已驳回、已退回、已通过、已撤销，以及被禁用的已完成，不在此登记）
+# 状态取值（同一 bc 内中文名与英文名唯一，故各聚合共用；已在其他 bc 登记同名的审批中、已驳回、已退回、已通过、已撤销，；员工活动终态用户已定名「已办结」，不用被禁用的已完成）
 - id: administration_status__draft
   zh: 草稿
   en: Draft
@@ -1692,6 +1707,21 @@ terms:
   forbidden: []
   status: proposed
   note: 使用：员工活动申请。
+- id: administration_status__concluded
+  zh: 已办结
+  en: Concluded
+  snake: concluded
+  kind: state
+  bc: organization.administration
+  scope: domain
+  definition: 员工活动登记的活动已办理完毕，终态之一；已取消的不可办结。
+  standard_ref:
+  - docs/modernization/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 用户 GL4 答复定名「已办结」，不用已完成；使用：员工活动申请。
 - id: pre_stamp_status__registered
   zh: 已登记
   en: Registered
@@ -2205,7 +2235,7 @@ terms:
   status: proposed
   note: ''
 - id: error__organization_administration_it_asset_repair_order_not_found
-  zh: 信息技术设备维修单不存在
+  zh: 信息技术资产维修单不存在
   en: OrganizationAdministrationItAssetRepairOrderNotFound
   snake: organization_administration_it_asset_repair_order_not_found
   kind: error_code
