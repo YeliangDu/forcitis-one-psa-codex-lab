@@ -12,6 +12,7 @@ During the pilot `pilot_sessions` in context_windows.json limits the hook to the
 Usage: context_handoff.py < hook-input.json  |  context_handoff.py --self-test
 """
 import contextlib
+import fcntl
 import io
 import json
 import os
@@ -20,6 +21,7 @@ import subprocess
 import sys
 import tempfile
 import time
+
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -30,8 +32,14 @@ STATE = ".claude/context-handoff-state.json"
 LEVELS = (75, 85)
 FALLBACK_WINDOW = 200000
 KEEP_SESSIONS = 20
+NAME_RECHECK_SECONDS = 600
+RESET_BELOW = 60
 TAIL_BYTES = 4 * 1024 * 1024
 SESSIONS = sc.SESSIONS
+
+
+class NothingYet(ValueError):
+    """The transcript exists but holds no measurable assistant message yet (a new or just cleared session): nothing to report."""
 
 
 def load_windows(path=None):
@@ -90,10 +98,12 @@ def last_usage(path):
                 continue
             usage = message.get("usage")
             if isinstance(usage, dict):
+                if message.get("model") == "<synthetic>":
+                    continue
                 tokens = sum(int(usage.get(key) or 0) for key in ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"))
                 return tokens, str(message.get("model") or "")
         if size <= window:
-            raise ValueError("transcript 里没有带 usage 的 assistant 消息")
+            raise NothingYet("transcript 里还没有带 usage 的 assistant 消息")
         window *= 4
 
 
@@ -123,7 +133,7 @@ def load_state(root):
     try:
         with open(os.path.join(root, STATE), encoding="utf-8") as stream:
             data = json.load(stream)
-        return data if isinstance(data, dict) else {}
+        return {key: value for key, value in data.items() if isinstance(value, dict)} if isinstance(data, dict) else {}
     except (OSError, ValueError):
         return {}
 
@@ -134,10 +144,15 @@ def save_state(root, state):
     if len(state) > KEEP_SESSIONS:
         for stale in sorted(state, key=lambda key: state[key].get("seen", 0))[:len(state) - KEEP_SESSIONS]:
             del state[stale]
-    temporary = path + ".tmp"
-    with open(temporary, "w", encoding="utf-8") as stream:
-        json.dump(state, stream, ensure_ascii=False)
-    os.replace(temporary, path)
+    handle_, temporary = tempfile.mkstemp(dir=os.path.dirname(path), prefix="context-handoff-", suffix=".tmp")
+    try:
+        with os.fdopen(handle_, "w", encoding="utf-8") as stream:
+            json.dump(state, stream, ensure_ascii=False)
+        os.replace(temporary, path)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.unlink(temporary)
+        raise
 
 
 def measure(payload, state_entry):
@@ -152,6 +167,8 @@ def measure(payload, state_entry):
         if not isinstance(path, str) or not path:
             raise ValueError("钩子输入没有 transcript_path")
         tokens, model = last_usage(path)
+    except (NothingYet, FileNotFoundError):
+        return None, 0, 0, warnings
     except (OSError, ValueError) as error:
         if not state_entry.get("transcript_warned"):
             state_entry["transcript_warned"] = True
@@ -173,32 +190,48 @@ def reminder(level, percent, tokens, window, name):
 
 
 def handle(event, payload, root, now=None):
-    """The hook output (dict) for one event, or None. Mutates the state file."""
+    """The hook output (dict) for one event, or None. The state file is read, changed and written under a lock."""
+    if payload.get("agent_id"):
+        return None
     now = time.time() if now is None else now
+    os.makedirs(os.path.join(root, ".claude"), exist_ok=True)
+    with open(os.path.join(root, STATE + ".lock"), "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        return handle_locked(event, payload, root, now)
+
+
+def handle_locked(event, payload, root, now):
     session = str(payload.get("session_id") or "unknown")
     state = load_state(root)
     entry = state.setdefault(session, {})
     entry["seen"] = now
-    if "name" not in entry:
+    entry.setdefault("name", "")
+    if not entry["name"] and ("name_checked" not in entry or now - float(entry["name_checked"]) >= NAME_RECHECK_SECONDS):
         entry["name"] = resolve_session(root)[0] or ""
+        entry["name_checked"] = now
     pilot = pilot_sessions()
-    if pilot is not None and entry["name"] not in pilot:
-        save_state(root, state)
-        return None
-    percent, tokens, window, warnings = measure(payload, entry)
     out = None
-    if percent is not None:
-        for level in LEVELS:
-            if percent >= level:
-                entry.setdefault("crossed", {}).setdefault(str(level), now)
-        top = max((level for level in LEVELS if percent >= level), default=0)
-        if event == "Stop":
-            if top and not payload.get("stop_hook_active"):
-                out = stop_decision(root, entry, top, percent, now)
-        elif top and str(top) not in entry.setdefault("reminded", []):
-            entry["reminded"].append(str(top))
-            warnings.append(reminder(top, percent, tokens, window, entry["name"] or None))
-    save_state(root, state)
+    warnings = []
+    if pilot is None or entry["name"] in pilot:
+        percent, tokens, window, warnings = measure(payload, entry)
+        if percent is not None:
+            if percent < RESET_BELOW:
+                for key in ("reminded", "blocked", "crossed"):
+                    entry.pop(key, None)
+            for level in LEVELS:
+                if percent >= level:
+                    entry.setdefault("crossed", {}).setdefault(str(level), now)
+            top = max((level for level in LEVELS if percent >= level), default=0)
+            if event == "Stop":
+                if top and not payload.get("stop_hook_active"):
+                    out = stop_decision(root, entry, top, percent, now)
+            elif top and str(top) not in entry.setdefault("reminded", []):
+                entry["reminded"].append(str(top))
+                warnings.append(reminder(top, percent, tokens, window, entry["name"] or None))
+    try:
+        save_state(root, state)
+    except OSError as error:
+        print(f"context_handoff: 状态文件写不了（{error}），本次提醒照常输出，但同一档位可能重复提醒", file=sys.stderr)
     if event == "Stop":
         for text in warnings:
             print(f"context_handoff: {text}", file=sys.stderr)
@@ -231,7 +264,7 @@ def stop_decision(root, entry, top, percent, now):
 
 
 def root_of(payload):
-    start = payload.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    start = os.environ.get("CLAUDE_PROJECT_DIR") or payload.get("cwd") or os.getcwd()
     top = subprocess.run(["git", "-C", start, "rev-parse", "--show-toplevel"], capture_output=True, text=True)
     return top.stdout.strip() if top.returncode == 0 and top.stdout.strip() else start
 
@@ -350,11 +383,62 @@ def self_test():
         CONFIG = config
         assert "读不了" in text(fire("PostToolUse", 50, 403.0, session="m3"))
         write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}}))
-        gone = handle("PostToolUse", dict(payload, session_id="m4", transcript_path=os.path.join(tmp, "nope.jsonl")), root, 404.0)
-        assert "读不到" in text(gone) and handle("PostToolUse", dict(payload, session_id="m4", transcript_path=os.path.join(tmp, "nope.jsonl")), root, 405.0) is None
+        nope = os.path.join(tmp, "nope.jsonl")
+        assert handle("PostToolUse", dict(payload, session_id="m4", transcript_path=nope), root, 404.0) is None, "a transcript that does not exist yet (new session) is silent"
         write(trans, "garbage\n{}\n")
-        assert "没有带 usage" in text(handle("PostToolUse", dict(payload, session_id="m5"), root, 406.0))
+        assert handle("PostToolUse", dict(payload, session_id="m5"), root, 406.0) is None, "no measurable message yet is silent"
+        locked_transcript = os.path.join(tmp, "locked.jsonl")
+        transcript(locked_transcript, 100)
+        os.chmod(locked_transcript, 0)
+        try:
+            denied = text(handle("PostToolUse", dict(payload, session_id="m7", transcript_path=locked_transcript), root, 408.0))
+            assert denied and "读不到" in denied, denied
+            assert handle("PostToolUse", dict(payload, session_id="m7", transcript_path=locked_transcript), root, 409.0) is None, "said once"
+        finally:
+            os.chmod(locked_transcript, 0o600)
         assert "transcript_path" in text(handle("PostToolUse", {"session_id": "m6"}, root, 407.0))
+
+        # sub-agent calls, synthetic messages, compaction, name re-resolution, state trouble
+        assert fire("PostToolUse", 900, 600.0, extra={"agent_id": "a1"}, session="sub") is None and "sub" not in load_state(root), "a sub-agent call neither reminds nor marks the level"
+        transcript(trans, 800)
+        with open(trans, "a", encoding="utf-8") as stream:
+            stream.write(json.dumps({"type": "assistant", "isSidechain": False, "message": {"model": "<synthetic>", "usage": {"input_tokens": 0}}}) + "\n")
+        assert text(handle("PostToolUse", dict(payload, session_id="syn"), root, 610.0)), "a synthetic message at the end is skipped"
+        assert fire("PostToolUse", 800, 620.0, session="compact") is not None
+        assert fire("PostToolUse", 300, 621.0, session="compact") is None
+        assert fire("PostToolUse", 800, 622.0, session="compact") is not None, "after a compaction the level is said again"
+        os.remove(os.path.join(root, SESSIONS, "one-test.md"))
+        late = fire("PostToolUse", 800, 700.0, session="late")
+        assert "<会话名>" in text(late), "no profile yet: asked to write the session name"
+        write(os.path.join(root, SESSIONS, "one-test.md"), "# one-test\n\n## 上下文文档\n\n- `docs/ctx.md`\n")
+        assert fire("PostToolUse", 800, 701.0, session="late") is None
+        late_entry = load_state(root)["late"]
+        assert late_entry["name"] == "" and late_entry["name_checked"] == 700.0, "the name is looked up again only after a while"
+        assert fire("PostToolUse", 100, 700.0 + NAME_RECHECK_SECONDS + 1, session="late") is None and load_state(root)["late"]["name"] == "one-test", "a later profile is found"
+        write(os.path.join(root, STATE), json.dumps({"bad": [1, 2], "good": {"seen": 1}}))
+        assert fire("PostToolUse", 800, 800.0, session="after-bad") is not None and "bad" not in load_state(root), "a malformed state entry is dropped"
+        os.chmod(os.path.join(root, ".claude"), 0o500)
+        try:
+            quiet.truncate(0)
+            quiet.seek(0)
+            try:
+                trouble = fire("PostToolUse", 800, 900.0, session="no-write")
+            except OSError:
+                trouble = "crashed"
+            assert trouble not in (None, "crashed") and "状态文件写不了" in quiet.getvalue(), (trouble, quiet.getvalue())
+        finally:
+            os.chmod(os.path.join(root, ".claude"), 0o700)
+
+        # concurrent hooks: every level reminded exactly once, no crash
+        transcript(trans, 800)
+        script_path = os.path.abspath(__file__)
+        environment = {"LC_ALL": "C", "PATH": os.environ.get("PATH", ""), "CONTEXT_WINDOWS_CONFIG": config, "CLAUDE_PROJECT_DIR": root}
+        jobs = [subprocess.Popen([sys.executable, "-I", script_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=environment)
+                for _ in range(24)]
+        results = [job.communicate(json.dumps(dict(payload, hook_event_name="PostToolUse", session_id=f"race-{n % 3}", cwd=root))) for n, job in enumerate(jobs)]
+        assert all(job.returncode == 0 for job in jobs) and not any(err for _, err in results), results
+        assert sum(1 for out, _ in results if "到批次边界" in out) == 3, "three sessions, one reminder each"
+        assert len([key for key in load_state(root) if key.startswith("race-")]) == 3, "no session lost"
 
         # session name: unrecognised session is reported, never blocks
         other = os.path.join(tmp, "somewhere-else")
@@ -400,6 +484,8 @@ def self_test():
     CONFIG = original_config
     real_default, real_windows, real_warning = load_windows(original_config)
     assert real_warning is None and real_default > 0, "the shipped window configuration must be readable"
+    for model in ("claude-opus-5-5", "claude-sonnet-5-5", "claude-fable-5-1"):
+        assert window_for(model, real_default, real_windows)[1] is None, f"the shipped configuration must cover {model}"
     print("context_handoff self-test: ok")
     return 0
 
