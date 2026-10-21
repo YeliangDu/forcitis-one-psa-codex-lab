@@ -47,7 +47,7 @@ CREATE TABLE <schema>.state_transitions (
     CONSTRAINT ck_state_transitions_migration CHECK (cause_kind <> 'MIGRATION' OR from_status IS NULL),
     CONSTRAINT ck_state_transitions_times CHECK (created_at = recorded_at AND updated_at = recorded_at)
 );
-CREATE INDEX ix_state_transitions_legal_entity_id_occurred_on ON <schema>.state_transitions (legal_entity_id, occurred_on_date) WHERE legal_entity_id IS NOT NULL;
+CREATE INDEX ix_state_transitions_legal_entity_id_occurred_on_date ON <schema>.state_transitions (legal_entity_id, occurred_on_date) WHERE legal_entity_id IS NOT NULL;
 CREATE INDEX ix_state_transitions_recorded_at ON <schema>.state_transitions (recorded_at, id);   -- 投影按「水位回看窗口」读，见第 5 节
 CREATE FUNCTION <schema>.refuse_transition_rewrite() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
@@ -83,7 +83,7 @@ CREATE TRIGGER tg_state_transitions_append_only_truncate BEFORE TRUNCATE ON <sch
 | 1 actor_type / actor_id | 两列；系统操作者按 `system-actors.txt` |
 | 1 cause 枚举、command_id 或 event_id、correlation_id、reverses_transition_id | `cause_kind`（待 one-architecture 定名）、`ck_…_trigger`、`correlation_id NOT NULL`、复合外键 |
 | 2 只追加，回退也正向记 | 触发器 + 权限回收 + 回退写新行 |
-| 5 索引（aggregate_id+sequence_number；legal_entity_id+occurred_on_date） | 唯一约束；`ix_…_legal_entity_id_occurred_on`；另 `ix_…_recorded_at`（投影；复合外键自带唯一约束索引，不另建外键索引） |
+| 5 索引（aggregate_id+sequence_number；legal_entity_id+occurred_on_date） | 唯一约束；`ix_…_legal_entity_id_occurred_on_date`；另 `ix_…_recorded_at`（投影；复合外键自带唯一约束索引，不另建外键索引） |
 | 8 迁入写初始转换 | `ck_…_migration` + `ck_…_trigger`（迁入无命令/事件 ID） |
 
 ## 3. 权限（B1）
