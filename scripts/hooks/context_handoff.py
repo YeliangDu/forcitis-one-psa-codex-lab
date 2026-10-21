@@ -403,7 +403,8 @@ def self_test():
         transcript(trans, 800)
         with open(trans, "a", encoding="utf-8") as stream:
             stream.write(json.dumps({"type": "assistant", "isSidechain": False, "message": {"model": "<synthetic>", "usage": {"input_tokens": 0}}}) + "\n")
-        assert text(handle("PostToolUse", dict(payload, session_id="syn"), root, 610.0)), "a synthetic message at the end is skipped"
+        synthetic = text(handle("PostToolUse", dict(payload, session_id="syn"), root, 610.0))
+        assert synthetic and "到批次边界" in synthetic and "80%" in synthetic, "a synthetic message at the end is skipped"
         assert fire("PostToolUse", 800, 620.0, session="compact") is not None
         assert fire("PostToolUse", 300, 621.0, session="compact") is None
         assert fire("PostToolUse", 800, 622.0, session="compact") is not None, "after a compaction the level is said again"
@@ -439,6 +440,25 @@ def self_test():
         assert all(job.returncode == 0 for job in jobs) and not any(err for _, err in results), results
         assert sum(1 for out, _ in results if "到批次边界" in out) == 3, "three sessions, one reminder each"
         assert len([key for key in load_state(root) if key.startswith("race-")]) == 3, "no session lost"
+
+        # the lock itself: a hook waits while another process holds the state lock
+        with open(os.path.join(root, STATE + ".lock"), "w") as held:
+            fcntl.flock(held, fcntl.LOCK_EX)
+            waiting = subprocess.Popen([sys.executable, "-I", script_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=environment)
+            waiting.stdin.write(json.dumps(dict(payload, hook_event_name="PostToolUse", session_id="locked", cwd=root)))
+            waiting.stdin.close()
+            time.sleep(1.0)
+            assert waiting.poll() is None, "the hook must wait for the state lock"
+        assert waiting.wait(timeout=20) == 0, "and finish once it is released"
+        waiting.stdout.close()
+        waiting.stderr.close()
+
+        # the project root comes from CLAUDE_PROJECT_DIR, not from the working directory of the call
+        elsewhere = os.path.join(tmp, "elsewhere")
+        subprocess.run(["git", "init", "-q", elsewhere], check=True, capture_output=True)
+        moved = subprocess.run([sys.executable, "-I", script_path], input=json.dumps(dict(payload, hook_event_name="PostToolUse", session_id="rooted", cwd=elsewhere)),
+                               capture_output=True, text=True, env=environment)
+        assert moved.returncode == 0 and "rooted" in load_state(root) and not os.path.exists(os.path.join(elsewhere, STATE)), moved
 
         # session name: unrecognised session is reported, never blocks
         other = os.path.join(tmp, "somewhere-else")
