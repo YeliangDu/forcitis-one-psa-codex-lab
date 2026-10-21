@@ -19,7 +19,7 @@ meta:
     prc: 200
     inv: 134
     obj: 103
-    act: 651
+    act: 653
     fact: 0
     dim: 0
     metric: 76
@@ -29,7 +29,7 @@ meta:
     bc: 31
     sd: 13
     table: 25
-    steps: 647
+    steps: 651
   checks:
     N01-1: 每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）
     N03-1: 每条价值流都有价值主张（暂以价值流的 value 字段作 03 的登记）
@@ -6056,6 +6056,18 @@ nodes:
       bc: null
       state_change: 已指定 → 已指定（追加更正行）
       src: architecture/proposals/closeout/people/commands.yaml#更正法人归属
+    AGG-117/终止法人归属:
+      command: 终止法人归属
+      aggregate: AGG-117
+      bc: null
+      state_change: 已指定 → 已指定（关闭当前期间）
+      src: architecture/proposals/closeout/people/commands.yaml#终止法人归属
+    AGG-60/更正法人代码:
+      command: 更正法人代码
+      aggregate: AGG-60
+      bc: null
+      state_change: 有效 → 有效（改代码，状态不变）
+      src: architecture/proposals/closeout/people/commands.yaml#更正法人代码
     AGG-64/停用岗位:
       command: 停用岗位
       aggregate: AGG-64
@@ -11755,6 +11767,16 @@ nodes:
     aggregate: AGG-117
     command: 更正法人归属
     src: architecture/proposals/closeout/people/processes.people.yaml#PRC-80.steps[12]
+  - prc: PRC-80
+    step: 13
+    aggregate: AGG-117
+    command: 终止法人归属
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-80.steps[13]
+  - prc: PRC-80
+    step: 14
+    aggregate: AGG-60
+    command: 更正法人代码
+    src: architecture/proposals/closeout/people/processes.people.yaml#PRC-80.steps[14]
   - prc: PRC-81
     step: 2
     aggregate: AGG-65
@@ -13620,6 +13642,16 @@ nodes:
     aggregate: AGG-117
     command: 更正法人归属
     src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-80.steps[12]
+  - prc: PRC-80
+    step: 13
+    aggregate: AGG-117
+    command: 终止法人归属
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-80.steps[13]
+  - prc: PRC-80
+    step: 14
+    aggregate: AGG-60
+    command: 更正法人代码
+    src: architecture/proposals/closeout/people/parts/vs07.processes.yaml#PRC-80.steps[14]
   - prc: PRC-81
     step: 2
     aggregate: AGG-65
