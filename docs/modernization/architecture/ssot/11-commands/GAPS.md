@@ -31,9 +31,9 @@ source.index 为各来源列表的从 0 开始序号；group 汇集 commands 文
 
 ## 转换回填率
 
-- 合计：857/905（94.70%）
-- transitions：768/807；未回填 39
-- pending：89/98；未回填 9
+- 合计：826/873（94.62%）
+- transitions：817/864；未回填 47
+- pending：9/9；未回填 0
 
 只匹配 (aggregate, command 原文)，不去空格、不去「〔缺〕」、不做近似或同义匹配。
 
@@ -78,12 +78,11 @@ source.index 为各来源列表的从 0 开始序号；group 汇集 commands 文
 - transitions / OTR-797 — AGG-133 — None
 - transitions / OTR-798 — AGG-133 — None
 - transitions / OTR-807 — AGG-101 — None
-- pending / OTR-827 — AGG-85 — None
-- pending / OTR-828 — AGG-85 — None
-- pending / OTR-831 — AGG-94 — None
-- pending / OTR-832 — AGG-94 — None
-- pending / OTR-839 — AGG-128 — None
-- pending / OTR-840 — AGG-128 — None
-- pending / OTR-843 — AGG-129 — None
-- pending / OTR-844 — AGG-129 — None
-- pending / OTR-848 — AGG-125 — None
+- transitions / OTR-827 — AGG-85 — None
+- transitions / OTR-828 — AGG-85 — None
+- transitions / OTR-831 — AGG-94 — None
+- transitions / OTR-832 — AGG-94 — None
+- transitions / OTR-839 — AGG-128 — None
+- transitions / OTR-840 — AGG-128 — None
+- transitions / OTR-843 — AGG-129 — None
+- transitions / OTR-844 — AGG-129 — None

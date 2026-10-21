@@ -60,7 +60,7 @@ meta:
     api: 68
     mod: 13
     cmd: 606
-    otr: 905
+    otr: 873
     evt: 59
     shcat: 6
     steps: 647
@@ -60496,249 +60496,6 @@ nodes:
       self_loop: true
       section: transitions
       src: architecture/ssot/10-objects/transitions.yaml#transitions[806]/OTR-807
-    OTR-808:
-      id: OTR-808
-      aggregate: AGG-41
-      from: null
-      to: 已试算
-      command: 试算人工成本分配
-      by_command: CMD-1efde0df
-      source: proposals/closeout/finance/state-machines.yaml machines[1].transitions[0]
-      judgement: pending
-      candidates:
-      - OBJ-76
-      reason: 聚合清单未列 OBJ；状态（已试算 → 已确认 → 已过账）与 OBJ-76 人工成本分配 key_states 一致；候选 OBJ-76 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[0]/OTR-808
-    OTR-809:
-      id: OTR-809
-      aggregate: AGG-41
-      from: 已试算
-      to: 已试算
-      command: 试算人工成本分配
-      by_command: CMD-1efde0df
-      source: proposals/closeout/finance/state-machines.yaml machines[1].transitions[1]
-      judgement: pending
-      self_loop: true
-      candidates:
-      - OBJ-76
-      reason: 聚合清单未列 OBJ；状态（已试算 → 已确认 → 已过账）与 OBJ-76 人工成本分配 key_states 一致；候选 OBJ-76 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[1]/OTR-809
-    OTR-810:
-      id: OTR-810
-      aggregate: AGG-41
-      from: 已试算
-      to: 已确认
-      command: 确认人工成本分配
-      by_command: CMD-e8b0e073
-      source: proposals/closeout/finance/state-machines.yaml machines[1].transitions[2]
-      judgement: pending
-      candidates:
-      - OBJ-76
-      reason: 聚合清单未列 OBJ；状态（已试算 → 已确认 → 已过账）与 OBJ-76 人工成本分配 key_states 一致；候选 OBJ-76 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[2]/OTR-810
-    OTR-811:
-      id: OTR-811
-      aggregate: AGG-41
-      from: 已确认
-      to: 已过账
-      command: 提交过账候选
-      by_command: CMD-c6c46996
-      source: proposals/closeout/finance/state-machines.yaml machines[1].transitions[3]
-      judgement: pending
-      candidates:
-      - OBJ-76
-      reason: 聚合清单未列 OBJ；状态（已试算 → 已确认 → 已过账）与 OBJ-76 人工成本分配 key_states 一致；候选 OBJ-76 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[3]/OTR-811
-    OTR-812:
-      id: OTR-812
-      aggregate: AGG-41
-      from:
-      - 已试算
-      - 已确认
-      to: 已作废
-      command: 作废人工成本分配运行
-      by_command: CMD-5ceed1a1
-      source: proposals/closeout/finance/state-machines.yaml machines[1].transitions[4]
-      judgement: pending
-      candidates:
-      - OBJ-76
-      reason: 聚合清单未列 OBJ；状态（已试算 → 已确认 → 已过账）与 OBJ-76 人工成本分配 key_states 一致；候选 OBJ-76 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[4]/OTR-812
-    OTR-813:
-      id: OTR-813
-      aggregate: AGG-41
-      from: 已过账
-      to: 已冲销
-      command: 冲销人工成本分配运行
-      by_command: CMD-a996a5bc
-      source: proposals/closeout/finance/state-machines.yaml machines[1].transitions[5]
-      judgement: pending
-      candidates:
-      - OBJ-76
-      reason: 聚合清单未列 OBJ；状态（已试算 → 已确认 → 已过账）与 OBJ-76 人工成本分配 key_states 一致；候选 OBJ-76 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[5]/OTR-813
-    OTR-814:
-      id: OTR-814
-      aggregate: AGG-42
-      from: null
-      to: 已试算
-      command: 试算分摊运行
-      by_command: CMD-c22570ff
-      source: proposals/closeout/finance/state-machines.yaml machines[2].transitions[0]
-      judgement: pending
-      candidates:
-      - OBJ-79
-      reason: 聚合清单未列 OBJ（运行单据，信息图原 OBJ-79 已去掉）；状态与 OBJ-79 分摊运行 key_states 吻合；候选 OBJ-79 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[6]/OTR-814
-    OTR-815:
-      id: OTR-815
-      aggregate: AGG-42
-      from: 已试算
-      to: 已试算
-      command: 试算分摊运行
-      by_command: CMD-c22570ff
-      source: proposals/closeout/finance/state-machines.yaml machines[2].transitions[1]
-      judgement: pending
-      self_loop: true
-      candidates:
-      - OBJ-79
-      reason: 聚合清单未列 OBJ（运行单据，信息图原 OBJ-79 已去掉）；状态与 OBJ-79 分摊运行 key_states 吻合；候选 OBJ-79 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[7]/OTR-815
-    OTR-816:
-      id: OTR-816
-      aggregate: AGG-42
-      from: 已试算
-      to: 已生效
-      command: 生效分摊运行
-      by_command: CMD-16c47cb2
-      source: proposals/closeout/finance/state-machines.yaml machines[2].transitions[2]
-      judgement: pending
-      candidates:
-      - OBJ-79
-      reason: 聚合清单未列 OBJ（运行单据，信息图原 OBJ-79 已去掉）；状态与 OBJ-79 分摊运行 key_states 吻合；候选 OBJ-79 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[8]/OTR-816
-    OTR-817:
-      id: OTR-817
-      aggregate: AGG-42
-      from: 已生效
-      to: 已冲销
-      command: 冲销分摊运行
-      by_command: CMD-74780f62
-      source: proposals/closeout/finance/state-machines.yaml machines[2].transitions[3]
-      judgement: pending
-      candidates:
-      - OBJ-79
-      reason: 聚合清单未列 OBJ（运行单据，信息图原 OBJ-79 已去掉）；状态与 OBJ-79 分摊运行 key_states 吻合；候选 OBJ-79 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[9]/OTR-817
-    OTR-818:
-      id: OTR-818
-      aggregate: AGG-43
-      from: null
-      to: 已生成
-      command: 售前投入转费用
-      by_command: CMD-4878b15a
-      source: proposals/closeout/finance/state-machines.yaml machines[3].transitions[0]
-      judgement: pending
-      candidates:
-      - OBJ-80
-      reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[10]/OTR-818
-    OTR-819:
-      id: OTR-819
-      aggregate: AGG-43
-      from: null
-      to: 已生成
-      command: 转入售前投入
-      by_command: CMD-eaddcc89
-      source: proposals/closeout/finance/state-machines.yaml machines[3].transitions[1]
-      judgement: pending
-      candidates:
-      - OBJ-80
-      reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[11]/OTR-819
-    OTR-820:
-      id: OTR-820
-      aggregate: AGG-43
-      from: null
-      to: 已生成
-      command: 终止清算成本
-      by_command: CMD-fb266d88
-      source: proposals/closeout/finance/state-machines.yaml machines[3].transitions[2]
-      judgement: pending
-      candidates:
-      - OBJ-80
-      reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[12]/OTR-820
-    OTR-821:
-      id: OTR-821
-      aggregate: AGG-43
-      from: null
-      to: 已生成
-      command: 结转合同履约成本
-      by_command: CMD-de939f47
-      source: proposals/closeout/finance/state-machines.yaml machines[3].transitions[3]
-      judgement: pending
-      candidates:
-      - OBJ-80
-      reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[13]/OTR-821
-    OTR-822:
-      id: OTR-822
-      aggregate: AGG-43
-      from: 已生成
-      to: 已生成
-      command: 提交过账候选
-      by_command: CMD-0e8c882e
-      source: proposals/closeout/finance/state-machines.yaml machines[3].transitions[4]
-      judgement: pending
-      self_loop: true
-      candidates:
-      - OBJ-80
-      reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[14]/OTR-822
-    OTR-823:
-      id: OTR-823
-      aggregate: AGG-43
-      from: 已生成
-      to: 已过账
-      command: 标记成本结转已过账
-      by_command: CMD-400e4660
-      source: proposals/closeout/finance/state-machines.yaml machines[3].transitions[5]
-      judgement: pending
-      candidates:
-      - OBJ-80
-      reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[15]/OTR-823
-    OTR-824:
-      id: OTR-824
-      aggregate: AGG-43
-      from: 已过账
-      to: 已生成
-      command: 冲回成本结转
-      by_command: CMD-fe47616f
-      source: proposals/closeout/finance/state-machines.yaml machines[3].transitions[6]
-      judgement: pending
-      candidates:
-      - OBJ-80
-      reason: 聚合清单未列 OBJ；候选 OBJ-80 成本结转批次（状态「已生成」与 key_states「草稿 → 已确认」不同）；候选 OBJ-80 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[16]/OTR-824
     OTR-825:
       id: OTR-825
       aggregate: AGG-85
@@ -60747,12 +60504,16 @@ nodes:
       command: 起草映射表版本
       by_command: CMD-6e913c3a
       source: proposals/closeout/finance/state-machines.yaml machines[19].transitions[0]
-      judgement: pending
-      candidates:
-      - OBJ-124
+      judgement: decided
       reason: 配置类版本，聚合清单未列 OBJ；状态（草稿 → 已生效 → 已取代）与 OBJ-124 版本草稿 → 已生效 → 已停用同构
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[17]/OTR-825
+      decision:
+        decided_object: OBJ-124
+        reason: 映射表版本是配置类版本，与 PRC-165、166、168、174 同按 CON-1017-ARC-10 O-1 归业务规则（暂名）；「已取代」与 OBJ-124「已停用」同义，见 CF-046
+        group: finance
+        commit: fccf803c
+      object: OBJ-124
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[807]/OTR-825
     OTR-826:
       id: OTR-826
       aggregate: AGG-85
@@ -60761,12 +60522,16 @@ nodes:
       command: 发布映射表版本
       by_command: CMD-2b8a7849
       source: proposals/closeout/finance/state-machines.yaml machines[19].transitions[1]
-      judgement: pending
-      candidates:
-      - OBJ-124
+      judgement: decided
       reason: 配置类版本，聚合清单未列 OBJ；状态（草稿 → 已生效 → 已取代）与 OBJ-124 版本草稿 → 已生效 → 已停用同构
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[18]/OTR-826
+      decision:
+        decided_object: OBJ-124
+        reason: 映射表版本是配置类版本，与 PRC-165、166、168、174 同按 CON-1017-ARC-10 O-1 归业务规则（暂名）；「已取代」与 OBJ-124「已停用」同义，见 CF-046
+        group: finance
+        commit: fccf803c
+      object: OBJ-124
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[808]/OTR-826
     OTR-827:
       id: OTR-827
       aggregate: AGG-85
@@ -60775,13 +60540,17 @@ nodes:
       command: null
       by_command: null
       source: proposals/closeout/finance/state-machines.yaml machines[19].transitions[2]
-      judgement: pending
+      judgement: decided
       self_loop: true
-      candidates:
-      - OBJ-124
       reason: 配置类版本，聚合清单未列 OBJ；状态（草稿 → 已生效 → 已取代）与 OBJ-124 版本草稿 → 已生效 → 已停用同构
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[19]/OTR-827
+      decision:
+        decided_object: OBJ-124
+        reason: 映射表版本是配置类版本，与 PRC-165、166、168、174 同按 CON-1017-ARC-10 O-1 归业务规则（暂名）；「已取代」与 OBJ-124「已停用」同义，见 CF-046
+        group: finance
+        commit: fccf803c
+      object: OBJ-124
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[809]/OTR-827
     OTR-828:
       id: OTR-828
       aggregate: AGG-85
@@ -60790,12 +60559,16 @@ nodes:
       command: null
       by_command: null
       source: proposals/closeout/finance/state-machines.yaml machines[19].transitions[3]
-      judgement: pending
-      candidates:
-      - OBJ-124
+      judgement: decided
       reason: 配置类版本，聚合清单未列 OBJ；状态（草稿 → 已生效 → 已取代）与 OBJ-124 版本草稿 → 已生效 → 已停用同构
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[20]/OTR-828
+      decision:
+        decided_object: OBJ-124
+        reason: 映射表版本是配置类版本，与 PRC-165、166、168、174 同按 CON-1017-ARC-10 O-1 归业务规则（暂名）；「已取代」与 OBJ-124「已停用」同义，见 CF-046
+        group: finance
+        commit: fccf803c
+      object: OBJ-124
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[810]/OTR-828
     OTR-829:
       id: OTR-829
       aggregate: AGG-94
@@ -60804,12 +60577,16 @@ nodes:
       command: 起草授权表版本
       by_command: CMD-929cf289
       source: proposals/closeout/finance/state-machines.yaml machines[20].transitions[0]
-      judgement: pending
-      candidates:
-      - OBJ-124
+      judgement: decided
       reason: 同 AGG-85
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[21]/OTR-829
+      decision:
+        decided_object: OBJ-124
+        reason: 授权表版本：同 AGG-85
+        group: finance
+        commit: fccf803c
+      object: OBJ-124
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[811]/OTR-829
     OTR-830:
       id: OTR-830
       aggregate: AGG-94
@@ -60818,12 +60595,16 @@ nodes:
       command: 发布授权表版本
       by_command: CMD-07395079
       source: proposals/closeout/finance/state-machines.yaml machines[20].transitions[1]
-      judgement: pending
-      candidates:
-      - OBJ-124
+      judgement: decided
       reason: 同 AGG-85
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[22]/OTR-830
+      decision:
+        decided_object: OBJ-124
+        reason: 授权表版本：同 AGG-85
+        group: finance
+        commit: fccf803c
+      object: OBJ-124
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[812]/OTR-830
     OTR-831:
       id: OTR-831
       aggregate: AGG-94
@@ -60832,13 +60613,17 @@ nodes:
       command: null
       by_command: null
       source: proposals/closeout/finance/state-machines.yaml machines[20].transitions[2]
-      judgement: pending
+      judgement: decided
       self_loop: true
-      candidates:
-      - OBJ-124
       reason: 同 AGG-85
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[23]/OTR-831
+      decision:
+        decided_object: OBJ-124
+        reason: 授权表版本：同 AGG-85
+        group: finance
+        commit: fccf803c
+      object: OBJ-124
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[813]/OTR-831
     OTR-832:
       id: OTR-832
       aggregate: AGG-94
@@ -60847,69 +60632,16 @@ nodes:
       command: null
       by_command: null
       source: proposals/closeout/finance/state-machines.yaml machines[20].transitions[3]
-      judgement: pending
-      candidates:
-      - OBJ-124
+      judgement: decided
       reason: 同 AGG-85
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[24]/OTR-832
-    OTR-833:
-      id: OTR-833
-      aggregate: AGG-99
-      from: null
-      to: 已生成
-      command: 生成期末结转运行
-      by_command: CMD-e733125b
-      source: proposals/closeout/finance/state-machines.yaml machines[22].transitions[0]
-      judgement: pending
-      candidates:
-      - OBJ-98
-      reason: 运行单据，聚合清单未列 OBJ；产出期末凭证（会计分录 OBJ-98），无直接对应
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[25]/OTR-833
-    OTR-834:
-      id: OTR-834
-      aggregate: AGG-99
-      from: 已生成
-      to: 已生成
-      command: 生成期末结转运行
-      by_command: CMD-e733125b
-      source: proposals/closeout/finance/state-machines.yaml machines[22].transitions[1]
-      judgement: pending
-      self_loop: true
-      candidates:
-      - OBJ-98
-      reason: 运行单据，聚合清单未列 OBJ；产出期末凭证（会计分录 OBJ-98），无直接对应
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[26]/OTR-834
-    OTR-835:
-      id: OTR-835
-      aggregate: AGG-99
-      from: 已生成
-      to: 已过账
-      command: 提交过账候选
-      by_command: CMD-5a647d09
-      source: proposals/closeout/finance/state-machines.yaml machines[22].transitions[2]
-      judgement: pending
-      candidates:
-      - OBJ-98
-      reason: 运行单据，聚合清单未列 OBJ；产出期末凭证（会计分录 OBJ-98），无直接对应
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[27]/OTR-835
-    OTR-836:
-      id: OTR-836
-      aggregate: AGG-99
-      from: 已过账
-      to: 已冲销
-      command: 冲销期末结转运行
-      by_command: CMD-ec219693
-      source: proposals/closeout/finance/state-machines.yaml machines[22].transitions[3]
-      judgement: pending
-      candidates:
-      - OBJ-98
-      reason: 运行单据，聚合清单未列 OBJ；产出期末凭证（会计分录 OBJ-98），无直接对应
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[28]/OTR-836
+      decision:
+        decided_object: OBJ-124
+        reason: 授权表版本：同 AGG-85
+        group: finance
+        commit: fccf803c
+      object: OBJ-124
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[814]/OTR-832
     OTR-837:
       id: OTR-837
       aggregate: AGG-128
@@ -60918,12 +60650,16 @@ nodes:
       command: 起草期末结转模板版本
       by_command: CMD-2a3c17bf
       source: proposals/closeout/finance/state-machines.yaml machines[34].transitions[0]
-      judgement: pending
-      candidates:
-      - OBJ-124
+      judgement: decided
       reason: 同 AGG-85
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[29]/OTR-837
+      decision:
+        decided_object: OBJ-124
+        reason: 期末结转模板版本：同 AGG-85
+        group: finance
+        commit: fccf803c
+      object: OBJ-124
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[815]/OTR-837
     OTR-838:
       id: OTR-838
       aggregate: AGG-128
@@ -60932,12 +60668,16 @@ nodes:
       command: 发布期末结转模板版本
       by_command: CMD-e0b4c5cf
       source: proposals/closeout/finance/state-machines.yaml machines[34].transitions[1]
-      judgement: pending
-      candidates:
-      - OBJ-124
+      judgement: decided
       reason: 同 AGG-85
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[30]/OTR-838
+      decision:
+        decided_object: OBJ-124
+        reason: 期末结转模板版本：同 AGG-85
+        group: finance
+        commit: fccf803c
+      object: OBJ-124
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[816]/OTR-838
     OTR-839:
       id: OTR-839
       aggregate: AGG-128
@@ -60946,13 +60686,17 @@ nodes:
       command: null
       by_command: null
       source: proposals/closeout/finance/state-machines.yaml machines[34].transitions[2]
-      judgement: pending
+      judgement: decided
       self_loop: true
-      candidates:
-      - OBJ-124
       reason: 同 AGG-85
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[31]/OTR-839
+      decision:
+        decided_object: OBJ-124
+        reason: 期末结转模板版本：同 AGG-85
+        group: finance
+        commit: fccf803c
+      object: OBJ-124
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[817]/OTR-839
     OTR-840:
       id: OTR-840
       aggregate: AGG-128
@@ -60961,12 +60705,16 @@ nodes:
       command: null
       by_command: null
       source: proposals/closeout/finance/state-machines.yaml machines[34].transitions[3]
-      judgement: pending
-      candidates:
-      - OBJ-124
+      judgement: decided
       reason: 同 AGG-85
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[32]/OTR-840
+      decision:
+        decided_object: OBJ-124
+        reason: 期末结转模板版本：同 AGG-85
+        group: finance
+        commit: fccf803c
+      object: OBJ-124
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[818]/OTR-840
     OTR-841:
       id: OTR-841
       aggregate: AGG-129
@@ -60975,12 +60723,16 @@ nodes:
       command: 起草现金流量项目表版本
       by_command: CMD-4feb4be7
       source: proposals/closeout/finance/state-machines.yaml machines[35].transitions[0]
-      judgement: pending
-      candidates:
-      - OBJ-124
+      judgement: decided
       reason: 同 AGG-85
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[33]/OTR-841
+      decision:
+        decided_object: OBJ-124
+        reason: 现金流量项目表版本：同 AGG-85
+        group: finance
+        commit: fccf803c
+      object: OBJ-124
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[819]/OTR-841
     OTR-842:
       id: OTR-842
       aggregate: AGG-129
@@ -60989,12 +60741,16 @@ nodes:
       command: 发布现金流量项目表版本
       by_command: CMD-66728149
       source: proposals/closeout/finance/state-machines.yaml machines[35].transitions[1]
-      judgement: pending
-      candidates:
-      - OBJ-124
+      judgement: decided
       reason: 同 AGG-85
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[34]/OTR-842
+      decision:
+        decided_object: OBJ-124
+        reason: 现金流量项目表版本：同 AGG-85
+        group: finance
+        commit: fccf803c
+      object: OBJ-124
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[820]/OTR-842
     OTR-843:
       id: OTR-843
       aggregate: AGG-129
@@ -61003,13 +60759,17 @@ nodes:
       command: null
       by_command: null
       source: proposals/closeout/finance/state-machines.yaml machines[35].transitions[2]
-      judgement: pending
+      judgement: decided
       self_loop: true
-      candidates:
-      - OBJ-124
       reason: 同 AGG-85
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[35]/OTR-843
+      decision:
+        decided_object: OBJ-124
+        reason: 现金流量项目表版本：同 AGG-85
+        group: finance
+        commit: fccf803c
+      object: OBJ-124
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[821]/OTR-843
     OTR-844:
       id: OTR-844
       aggregate: AGG-129
@@ -61018,167 +60778,16 @@ nodes:
       command: null
       by_command: null
       source: proposals/closeout/finance/state-machines.yaml machines[35].transitions[3]
-      judgement: pending
-      candidates:
-      - OBJ-124
+      judgement: decided
       reason: 同 AGG-85
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[36]/OTR-844
-    OTR-845:
-      id: OTR-845
-      aggregate: AGG-125
-      from: null
-      to: 编制中
-      command: 编制期初余额
-      by_command: CMD-b777a558
-      source: proposals/closeout/finance/state-machines.yaml machines[37].transitions[0]
-      judgement: pending
-      candidates: []
-      reason: 聚合清单写明「信息图对象号未登记」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[37]/OTR-845
-    OTR-846:
-      id: OTR-846
-      aggregate: AGG-125
-      from: 编制中
-      to: 编制中
-      command: 编制期初余额
-      by_command: CMD-b777a558
-      source: proposals/closeout/finance/state-machines.yaml machines[37].transitions[1]
-      judgement: pending
-      self_loop: true
-      candidates: []
-      reason: 聚合清单写明「信息图对象号未登记」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[38]/OTR-846
-    OTR-847:
-      id: OTR-847
-      aggregate: AGG-125
-      from: 编制中
-      to: 已生效
-      command: 签字确认期初余额
-      by_command: CMD-de86972c
-      source: proposals/closeout/finance/state-machines.yaml machines[37].transitions[2]
-      judgement: pending
-      candidates: []
-      reason: 聚合清单写明「信息图对象号未登记」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[39]/OTR-847
-    OTR-848:
-      id: OTR-848
-      aggregate: AGG-125
-      from: 编制中
-      to: 编制中
-      command: null
-      by_command: null
-      source: proposals/closeout/finance/state-machines.yaml machines[37].transitions[3]
-      judgement: pending
-      self_loop: true
-      candidates: []
-      reason: 聚合清单写明「信息图对象号未登记」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[40]/OTR-848
-    OTR-849:
-      id: OTR-849
-      aggregate: AGG-122
-      from: null
-      to: 等待齐备
-      command: 登记合同已签回
-      by_command: CMD-b9abf046
-      source: proposals/closeout/finance/state-machines.yaml machines[40].transitions[0]
-      judgement: pending
-      candidates:
-      - OBJ-18
-      reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[41]/OTR-849
-    OTR-850:
-      id: OTR-850
-      aggregate: AGG-122
-      from: 等待齐备
-      to: 等待齐备
-      command: 登记合同已签回
-      by_command: CMD-b9abf046
-      source: proposals/closeout/finance/state-machines.yaml machines[40].transitions[1]
-      judgement: pending
-      self_loop: true
-      candidates:
-      - OBJ-18
-      reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[42]/OTR-850
-    OTR-851:
-      id: OTR-851
-      aggregate: AGG-122
-      from: null
-      to: 等待齐备
-      command: 登记项目已建立
-      by_command: CMD-81c9aea6
-      source: proposals/closeout/finance/state-machines.yaml machines[40].transitions[2]
-      judgement: pending
-      candidates:
-      - OBJ-18
-      reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[43]/OTR-851
-    OTR-852:
-      id: OTR-852
-      aggregate: AGG-122
-      from: 等待齐备
-      to: 等待齐备
-      command: 登记项目已建立
-      by_command: CMD-81c9aea6
-      source: proposals/closeout/finance/state-machines.yaml machines[40].transitions[3]
-      judgement: pending
-      self_loop: true
-      candidates:
-      - OBJ-18
-      reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[44]/OTR-852
-    OTR-853:
-      id: OTR-853
-      aggregate: AGG-122
-      from: 等待齐备
-      to: 等待齐备
-      command: 登记售前投入挂接归属
-      by_command: CMD-a06fdb57
-      source: proposals/closeout/finance/state-machines.yaml machines[40].transitions[4]
-      judgement: pending
-      self_loop: true
-      candidates:
-      - OBJ-18
-      reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[45]/OTR-853
-    OTR-854:
-      id: OTR-854
-      aggregate: AGG-122
-      from: 等待齐备
-      to: 已转入
-      command: 标记售前投入已转入
-      by_command: CMD-d98aa78f
-      source: proposals/closeout/finance/state-machines.yaml machines[40].transitions[5]
-      judgement: pending
-      candidates:
-      - OBJ-18
-      reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[46]/OTR-854
-    OTR-855:
-      id: OTR-855
-      aggregate: AGG-122
-      from: 等待齐备
-      to: 已转费用
-      command: 标记售前投入已转费用
-      by_command: CMD-38eba49b
-      source: proposals/closeout/finance/state-machines.yaml machines[40].transitions[6]
-      judgement: pending
-      candidates:
-      - OBJ-18
-      reason: 技术聚合「每商机一个」，聚合清单未列 OBJ；候选 OBJ-18 商机（状态等待齐备 / 已转入 / 已转费用不在其 key_states）
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[47]/OTR-855
+      decision:
+        decided_object: OBJ-124
+        reason: 现金流量项目表版本：同 AGG-85
+        group: finance
+        commit: fccf803c
+      object: OBJ-124
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[822]/OTR-844
     OTR-856:
       id: OTR-856
       aggregate: AGG-131
@@ -61187,14 +60796,17 @@ nodes:
       command: 归属差旅订单
       by_command: CMD-1a20617e
       source: proposals/closeout/finance/state-machines.yaml machines[43].transitions[2]
-      judgement: pending
+      judgement: decided
       self_loop: true
-      candidates:
-      - OBJ-120
-      - OBJ-121
       reason: 归属差旅订单是订单行属性、状态不变，OBJ-120 / OBJ-121 均可
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[48]/OTR-856
+      decision:
+        decided_object: OBJ-120
+        reason: 归属差旅订单改的是订单行的归属对象（项目、合同或部门），月账单状态不变；归订单 OBJ-120。骨架把订单行状态写在账单机上（自环），见 CF-036 的后续修改
+        group: finance
+        commit: fccf803c
+      object: OBJ-120
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[823]/OTR-856
     OTR-857:
       id: OTR-857
       aggregate: AGG-117
@@ -61203,13 +60815,19 @@ nodes:
       command: 指定法人归属
       by_command: CMD-5232c23b
       source: proposals/closeout/people/state-machines.yaml machines[2].transitions[0]
-      judgement: pending
-      candidates:
-      - OBJ-55
-      - OBJ-56
+      judgement: decided
       reason: 已建 LegalEntityAttribution，聚合清单未列 OBJ；归属对象为部门或员工
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[49]/OTR-857
+      decision:
+        decided_object: &id265
+        - OBJ-55
+        - OBJ-56
+        basis: AGG-117 归属对象为部门或员工（DATA_MODEL.md 表 legal_entity_attributions「归属对象（部门或员工）」），按归属对象类型分派：部门行属 OBJ-55、员工行属 OBJ-56；是两者的法人维度属性期间，不另立对象
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: *id265
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[824]/OTR-857
     OTR-858:
       id: OTR-858
       aggregate: AGG-117
@@ -61218,14 +60836,20 @@ nodes:
       command: 指定法人归属
       by_command: CMD-5232c23b
       source: proposals/closeout/people/state-machines.yaml machines[2].transitions[1]
-      judgement: pending
+      judgement: decided
       self_loop: true
-      candidates:
-      - OBJ-55
-      - OBJ-56
       reason: 已建 LegalEntityAttribution，聚合清单未列 OBJ；归属对象为部门或员工
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[50]/OTR-858
+      decision:
+        decided_object: &id266
+        - OBJ-55
+        - OBJ-56
+        basis: AGG-117 归属对象为部门或员工（DATA_MODEL.md 表 legal_entity_attributions「归属对象（部门或员工）」），按归属对象类型分派：部门行属 OBJ-55、员工行属 OBJ-56；是两者的法人维度属性期间，不另立对象
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: *id266
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[825]/OTR-858
     OTR-859:
       id: OTR-859
       aggregate: AGG-117
@@ -61234,14 +60858,20 @@ nodes:
       command: 更正法人归属
       by_command: CMD-40fee833
       source: proposals/closeout/people/state-machines.yaml machines[2].transitions[2]
-      judgement: pending
+      judgement: decided
       self_loop: true
-      candidates:
-      - OBJ-55
-      - OBJ-56
       reason: 已建 LegalEntityAttribution，聚合清单未列 OBJ；归属对象为部门或员工
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[51]/OTR-859
+      decision:
+        decided_object: &id267
+        - OBJ-55
+        - OBJ-56
+        basis: AGG-117 归属对象为部门或员工（DATA_MODEL.md 表 legal_entity_attributions「归属对象（部门或员工）」），按归属对象类型分派：部门行属 OBJ-55、员工行属 OBJ-56；是两者的法人维度属性期间，不另立对象
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: *id267
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[826]/OTR-859
     OTR-860:
       id: OTR-860
       aggregate: AGG-62
@@ -61251,12 +60881,17 @@ nodes:
       sub_lifecycle: 离职申请
       by_command: CMD-e5124a3a
       source: proposals/closeout/people/state-machines.yaml machines[5].transitions[16]
-      judgement: pending
-      candidates:
-      - OBJ-56
+      judgement: decided
       reason: 离职申请子生命周期在对象登记中无独立 OBJ；候选归人员（OBJ-56 key_states 含「待离职→已离职」），待 one-architecture 定是否另立对象
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[52]/OTR-860
+      decision:
+        decided_object: OBJ-56
+        basis: 离职申请（separation_requests，AGG-62 次级）是人员离职子生命周期，不另立对象；OBJ-56 的「待离职」对应离职申请已登记、「已离职」对应已生效（Separated）；其余申请态只在子生命周期内，建议 OBJ-56 key_states 注明「离职申请子生命周期」
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-56
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[827]/OTR-860
     OTR-861:
       id: OTR-861
       aggregate: AGG-62
@@ -61266,12 +60901,17 @@ nodes:
       sub_lifecycle: 离职申请
       by_command: CMD-e5124a3a
       source: proposals/closeout/people/state-machines.yaml machines[5].transitions[17]
-      judgement: pending
-      candidates:
-      - OBJ-56
+      judgement: decided
       reason: 离职申请子生命周期在对象登记中无独立 OBJ；候选归人员（OBJ-56 key_states 含「待离职→已离职」），待 one-architecture 定是否另立对象
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[53]/OTR-861
+      decision:
+        decided_object: OBJ-56
+        basis: 离职申请（separation_requests，AGG-62 次级）是人员离职子生命周期，不另立对象；OBJ-56 的「待离职」对应离职申请已登记、「已离职」对应已生效（Separated）；其余申请态只在子生命周期内，建议 OBJ-56 key_states 注明「离职申请子生命周期」
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-56
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[828]/OTR-861
     OTR-862:
       id: OTR-862
       aggregate: AGG-62
@@ -61281,12 +60921,17 @@ nodes:
       sub_lifecycle: 离职申请
       by_command: CMD-149bec95
       source: proposals/closeout/people/state-machines.yaml machines[5].transitions[18]
-      judgement: pending
-      candidates:
-      - OBJ-56
+      judgement: decided
       reason: 离职申请子生命周期在对象登记中无独立 OBJ；候选归人员（OBJ-56 key_states 含「待离职→已离职」），待 one-architecture 定是否另立对象
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[54]/OTR-862
+      decision:
+        decided_object: OBJ-56
+        basis: 离职申请（separation_requests，AGG-62 次级）是人员离职子生命周期，不另立对象；OBJ-56 的「待离职」对应离职申请已登记、「已离职」对应已生效（Separated）；其余申请态只在子生命周期内，建议 OBJ-56 key_states 注明「离职申请子生命周期」
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-56
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[829]/OTR-862
     OTR-863:
       id: OTR-863
       aggregate: AGG-62
@@ -61296,12 +60941,17 @@ nodes:
       sub_lifecycle: 离职申请
       by_command: CMD-63355430
       source: proposals/closeout/people/state-machines.yaml machines[5].transitions[19]
-      judgement: pending
-      candidates:
-      - OBJ-56
+      judgement: decided
       reason: 离职申请子生命周期在对象登记中无独立 OBJ；候选归人员（OBJ-56 key_states 含「待离职→已离职」），待 one-architecture 定是否另立对象
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[55]/OTR-863
+      decision:
+        decided_object: OBJ-56
+        basis: 离职申请（separation_requests，AGG-62 次级）是人员离职子生命周期，不另立对象；OBJ-56 的「待离职」对应离职申请已登记、「已离职」对应已生效（Separated）；其余申请态只在子生命周期内，建议 OBJ-56 key_states 注明「离职申请子生命周期」
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-56
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[830]/OTR-863
     OTR-864:
       id: OTR-864
       aggregate: AGG-62
@@ -61311,12 +60961,17 @@ nodes:
       sub_lifecycle: 离职申请
       by_command: CMD-98fe8c40
       source: proposals/closeout/people/state-machines.yaml machines[5].transitions[20]
-      judgement: pending
-      candidates:
-      - OBJ-56
+      judgement: decided
       reason: 离职申请子生命周期在对象登记中无独立 OBJ；候选归人员（OBJ-56 key_states 含「待离职→已离职」），待 one-architecture 定是否另立对象
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[56]/OTR-864
+      decision:
+        decided_object: OBJ-56
+        basis: 离职申请（separation_requests，AGG-62 次级）是人员离职子生命周期，不另立对象；OBJ-56 的「待离职」对应离职申请已登记、「已离职」对应已生效（Separated）；其余申请态只在子生命周期内，建议 OBJ-56 key_states 注明「离职申请子生命周期」
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-56
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[831]/OTR-864
     OTR-865:
       id: OTR-865
       aggregate: AGG-62
@@ -61326,12 +60981,17 @@ nodes:
       sub_lifecycle: 离职申请
       by_command: CMD-a27d4f53
       source: proposals/closeout/people/state-machines.yaml machines[5].transitions[21]
-      judgement: pending
-      candidates:
-      - OBJ-56
+      judgement: decided
       reason: 离职申请子生命周期在对象登记中无独立 OBJ；候选归人员（OBJ-56 key_states 含「待离职→已离职」），待 one-architecture 定是否另立对象
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[57]/OTR-865
+      decision:
+        decided_object: OBJ-56
+        basis: 离职申请（separation_requests，AGG-62 次级）是人员离职子生命周期，不另立对象；OBJ-56 的「待离职」对应离职申请已登记、「已离职」对应已生效（Separated）；其余申请态只在子生命周期内，建议 OBJ-56 key_states 注明「离职申请子生命周期」
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-56
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[832]/OTR-865
     OTR-866:
       id: OTR-866
       aggregate: AGG-62
@@ -61341,12 +61001,17 @@ nodes:
       sub_lifecycle: 离职申请
       by_command: CMD-a27d4f53
       source: proposals/closeout/people/state-machines.yaml machines[5].transitions[22]
-      judgement: pending
-      candidates:
-      - OBJ-56
+      judgement: decided
       reason: 离职申请子生命周期在对象登记中无独立 OBJ；候选归人员（OBJ-56 key_states 含「待离职→已离职」），待 one-architecture 定是否另立对象
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[58]/OTR-866
+      decision:
+        decided_object: OBJ-56
+        basis: 离职申请（separation_requests，AGG-62 次级）是人员离职子生命周期，不另立对象；OBJ-56 的「待离职」对应离职申请已登记、「已离职」对应已生效（Separated）；其余申请态只在子生命周期内，建议 OBJ-56 key_states 注明「离职申请子生命周期」
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-56
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[833]/OTR-866
     OTR-867:
       id: OTR-867
       aggregate: AGG-62
@@ -61356,12 +61021,17 @@ nodes:
       sub_lifecycle: 离职申请
       by_command: CMD-2a9216d1
       source: proposals/closeout/people/state-machines.yaml machines[5].transitions[23]
-      judgement: pending
-      candidates:
-      - OBJ-56
+      judgement: decided
       reason: 离职申请子生命周期在对象登记中无独立 OBJ；候选归人员（OBJ-56 key_states 含「待离职→已离职」），待 one-architecture 定是否另立对象
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[59]/OTR-867
+      decision:
+        decided_object: OBJ-56
+        basis: 离职申请（separation_requests，AGG-62 次级）是人员离职子生命周期，不另立对象；OBJ-56 的「待离职」对应离职申请已登记、「已离职」对应已生效（Separated）；其余申请态只在子生命周期内，建议 OBJ-56 key_states 注明「离职申请子生命周期」
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-56
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[834]/OTR-867
     OTR-868:
       id: OTR-868
       aggregate: AGG-62
@@ -61371,12 +61041,17 @@ nodes:
       sub_lifecycle: 离职申请
       by_command: CMD-407fe842
       source: proposals/closeout/people/state-machines.yaml machines[5].transitions[24]
-      judgement: pending
-      candidates:
-      - OBJ-56
+      judgement: decided
       reason: 离职申请子生命周期在对象登记中无独立 OBJ；候选归人员（OBJ-56 key_states 含「待离职→已离职」），待 one-architecture 定是否另立对象
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[60]/OTR-868
+      decision:
+        decided_object: OBJ-56
+        basis: 离职申请（separation_requests，AGG-62 次级）是人员离职子生命周期，不另立对象；OBJ-56 的「待离职」对应离职申请已登记、「已离职」对应已生效（Separated）；其余申请态只在子生命周期内，建议 OBJ-56 key_states 注明「离职申请子生命周期」
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-56
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[835]/OTR-868
     OTR-869:
       id: OTR-869
       aggregate: AGG-63
@@ -61386,12 +61061,17 @@ nodes:
       sub_lifecycle: 调岗申请
       by_command: CMD-8986e409
       source: proposals/closeout/people/state-machines.yaml machines[6].transitions[2]
-      judgement: pending
-      candidates:
-      - OBJ-57
+      judgement: decided
       reason: 调岗申请子生命周期在对象登记中无独立 OBJ；候选归任职（OBJ-57）
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[61]/OTR-869
+      decision:
+        decided_object: OBJ-57
+        basis: 调岗申请是任职变更的子生命周期（AGG-63 次级），不另立对象；已生效即产生新任职区间版本（OBJ-57 只追加）
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-57
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[836]/OTR-869
     OTR-870:
       id: OTR-870
       aggregate: AGG-63
@@ -61401,12 +61081,17 @@ nodes:
       sub_lifecycle: 调岗申请
       by_command: CMD-4695a19e
       source: proposals/closeout/people/state-machines.yaml machines[6].transitions[3]
-      judgement: pending
-      candidates:
-      - OBJ-57
+      judgement: decided
       reason: 调岗申请子生命周期在对象登记中无独立 OBJ；候选归任职（OBJ-57）
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[62]/OTR-870
+      decision:
+        decided_object: OBJ-57
+        basis: 调岗申请是任职变更的子生命周期（AGG-63 次级），不另立对象；已生效即产生新任职区间版本（OBJ-57 只追加）
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-57
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[837]/OTR-870
     OTR-871:
       id: OTR-871
       aggregate: AGG-63
@@ -61416,12 +61101,17 @@ nodes:
       sub_lifecycle: 调岗申请
       by_command: CMD-98fa8375
       source: proposals/closeout/people/state-machines.yaml machines[6].transitions[4]
-      judgement: pending
-      candidates:
-      - OBJ-57
+      judgement: decided
       reason: 调岗申请子生命周期在对象登记中无独立 OBJ；候选归任职（OBJ-57）
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[63]/OTR-871
+      decision:
+        decided_object: OBJ-57
+        basis: 调岗申请是任职变更的子生命周期（AGG-63 次级），不另立对象；已生效即产生新任职区间版本（OBJ-57 只追加）
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-57
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[838]/OTR-871
     OTR-872:
       id: OTR-872
       aggregate: AGG-63
@@ -61431,12 +61121,17 @@ nodes:
       sub_lifecycle: 调岗申请
       by_command: CMD-2a3889da
       source: proposals/closeout/people/state-machines.yaml machines[6].transitions[6]
-      judgement: pending
-      candidates:
-      - OBJ-57
+      judgement: decided
       reason: 调岗申请子生命周期在对象登记中无独立 OBJ；候选归任职（OBJ-57）
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[64]/OTR-872
+      decision:
+        decided_object: OBJ-57
+        basis: 调岗申请是任职变更的子生命周期（AGG-63 次级），不另立对象；已生效即产生新任职区间版本（OBJ-57 只追加）
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-57
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[839]/OTR-872
     OTR-873:
       id: OTR-873
       aggregate: AGG-63
@@ -61446,12 +61141,17 @@ nodes:
       sub_lifecycle: 调岗申请
       by_command: CMD-a57d91d8
       source: proposals/closeout/people/state-machines.yaml machines[6].transitions[8]
-      judgement: pending
-      candidates:
-      - OBJ-57
+      judgement: decided
       reason: 调岗申请子生命周期在对象登记中无独立 OBJ；候选归任职（OBJ-57）
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[65]/OTR-873
+      decision:
+        decided_object: OBJ-57
+        basis: 调岗申请是任职变更的子生命周期（AGG-63 次级），不另立对象；已生效即产生新任职区间版本（OBJ-57 只追加）
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-57
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[840]/OTR-873
     OTR-874:
       id: OTR-874
       aggregate: AGG-120
@@ -61460,12 +61160,17 @@ nodes:
       command: 更新专项附加扣除
       by_command: CMD-e2579dd5
       source: proposals/closeout/people/state-machines.yaml machines[23].transitions[0]
-      judgement: pending
-      candidates:
-      - OBJ-63
+      judgement: decided
       reason: 聚合清单未列 OBJ；候选 OBJ-63 专项附加扣除信息（年度有效）；候选 OBJ-63 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[66]/OTR-874
+      decision:
+        decided_object: OBJ-56
+        basis: OBJ-63 已非对象；专项附加扣除声明（AGG-120）是人员按年度报送的个税属性（OBJ-63 关系「→ 1 员工」），OBJ-123 关系注明「按人员与年度关联、分别维护」，故挂 OBJ-56，不并入 OBJ-123
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-56
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[841]/OTR-874
     OTR-875:
       id: OTR-875
       aggregate: AGG-120
@@ -61474,12 +61179,424 @@ nodes:
       command: 更新专项附加扣除
       by_command: CMD-e2579dd5
       source: proposals/closeout/people/state-machines.yaml machines[23].transitions[1]
-      judgement: pending
-      candidates:
-      - OBJ-63
+      judgement: decided
       reason: 聚合清单未列 OBJ；候选 OBJ-63 专项附加扣除信息（年度有效）；候选 OBJ-63 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[67]/OTR-875
+      decision:
+        decided_object: OBJ-56
+        basis: OBJ-63 已非对象；专项附加扣除声明（AGG-120）是人员按年度报送的个税属性（OBJ-63 关系「→ 1 员工」），OBJ-123 关系注明「按人员与年度关联、分别维护」，故挂 OBJ-56，不并入 OBJ-123
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-56
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[842]/OTR-875
+    OTR-885:
+      id: OTR-885
+      aggregate: AGG-80
+      from: null
+      to: 预算占用行（budget_reservations.状态）:占用中
+      command: 占用预算
+      sub_lifecycle: 预算占用行（budget_reservations.状态）
+      by_command: CMD-c61fdf34
+      source: proposals/closeout/people/state-machines.yaml machines[27].transitions[3]
+      judgement: decided
+      reason: 预算占用行无对应 OBJ；候选 OBJ-101 预算 / OBJ-100；候选 OBJ-101 在对象登记中已标「已非对象」
+      decision:
+        decided_object: OBJ-100
+        basis: OBJ-101 已非对象，预算并入 OBJ-100 为类型「预算」；预算占用行是预算执行（占用 / 消耗 / 释放）的次级子生命周期，挂 OBJ-100，不另立对象
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-100
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[843]/OTR-885
+    OTR-886:
+      id: OTR-886
+      aggregate: AGG-80
+      from: 预算占用行（budget_reservations.状态）:占用中
+      to: 预算占用行（budget_reservations.状态）:已释放
+      command: 释放预算占用
+      sub_lifecycle: 预算占用行（budget_reservations.状态）
+      by_command: CMD-a6fb8c3a
+      source: proposals/closeout/people/state-machines.yaml machines[27].transitions[4]
+      judgement: decided
+      reason: 预算占用行无对应 OBJ；候选 OBJ-101 预算 / OBJ-100；候选 OBJ-101 在对象登记中已标「已非对象」
+      decision:
+        decided_object: OBJ-100
+        basis: OBJ-101 已非对象，预算并入 OBJ-100 为类型「预算」；预算占用行是预算执行（占用 / 消耗 / 释放）的次级子生命周期，挂 OBJ-100，不另立对象
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-100
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[844]/OTR-886
+    OTR-887:
+      id: OTR-887
+      aggregate: AGG-80
+      from: 预算占用行（budget_reservations.状态）:占用中
+      to: 预算占用行（budget_reservations.状态）:占用中
+      command: 调整预算占用
+      sub_lifecycle: 预算占用行（budget_reservations.状态）
+      by_command: CMD-e1593ec2
+      source: proposals/closeout/people/state-machines.yaml machines[27].transitions[5]
+      judgement: decided
+      self_loop: true
+      reason: 预算占用行无对应 OBJ；候选 OBJ-101 预算 / OBJ-100；候选 OBJ-101 在对象登记中已标「已非对象」
+      decision:
+        decided_object: OBJ-100
+        basis: OBJ-101 已非对象，预算并入 OBJ-100 为类型「预算」；预算占用行是预算执行（占用 / 消耗 / 释放）的次级子生命周期，挂 OBJ-100，不另立对象
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-100
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[845]/OTR-887
+    OTR-888:
+      id: OTR-888
+      aggregate: AGG-80
+      from: 预算占用行（budget_reservations.状态）:占用中
+      to: 预算占用行（budget_reservations.状态）:已消耗
+      command: 〔缺〕消耗预算占用
+      sub_lifecycle: 预算占用行（budget_reservations.状态）
+      by_command: CMD-08bd4851
+      source: proposals/closeout/people/state-machines.yaml machines[27].transitions[6]
+      judgement: decided
+      reason: 预算占用行无对应 OBJ；候选 OBJ-101 预算 / OBJ-100；候选 OBJ-101 在对象登记中已标「已非对象」
+      decision:
+        decided_object: OBJ-100
+        basis: OBJ-101 已非对象，预算并入 OBJ-100 为类型「预算」；预算占用行是预算执行（占用 / 消耗 / 释放）的次级子生命周期，挂 OBJ-100，不另立对象
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
+      object: OBJ-100
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[846]/OTR-888
+    OTR-889:
+      id: OTR-889
+      aggregate: AGG-14
+      from: null
+      to: 占用中
+      command: 占用框架限额
+      by_command: CMD-3022cfac
+      source: proposals/closeout/revenue/state-machines.yaml machines[8].transitions[0]
+      judgement: decided
+      reason: 技术聚合（占用行），聚合清单未列 OBJ；候选 OBJ-05 协议（框架协议限额）
+      decision:
+        decided_object: OBJ-05
+        reason: 框架协议限额的占用：任务订单提交前占用框架协议（OBJ-05 类型框架协议）的限额；占用行是技术记录，不入 OBJ-05 主状态网，只作协议的限额余量维度
+        by: one-arch-revenue 2026-10-21
+        group: revenue
+        commit: 71bf731b
+      object: OBJ-05
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[847]/OTR-889
+    OTR-890:
+      id: OTR-890
+      aggregate: AGG-14
+      from: 占用中
+      to: 占用中
+      command: 占用框架限额
+      by_command: CMD-3022cfac
+      source: proposals/closeout/revenue/state-machines.yaml machines[8].transitions[1]
+      judgement: decided
+      self_loop: true
+      reason: 技术聚合（占用行），聚合清单未列 OBJ；候选 OBJ-05 协议（框架协议限额）
+      decision:
+        decided_object: OBJ-05
+        reason: 同 OTR-889（追加占用，自环）
+        by: one-arch-revenue 2026-10-21
+        group: revenue
+        commit: 71bf731b
+      object: OBJ-05
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[848]/OTR-890
+    OTR-891:
+      id: OTR-891
+      aggregate: AGG-14
+      from: 占用中
+      to: 已释放
+      command: 释放框架限额
+      by_command: CMD-49d66896
+      source: proposals/closeout/revenue/state-machines.yaml machines[8].transitions[2]
+      judgement: decided
+      reason: 技术聚合（占用行），聚合清单未列 OBJ；候选 OBJ-05 协议（框架协议限额）
+      decision:
+        decided_object: OBJ-05
+        reason: 同 OTR-889（驳回、撤回、作废、终止释放限额）
+        by: one-arch-revenue 2026-10-21
+        group: revenue
+        commit: 71bf731b
+      object: OBJ-05
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[849]/OTR-891
+    OTR-892:
+      id: OTR-892
+      aggregate: AGG-44
+      from: null
+      to: 额度变动已追加
+      command: 更新开票与收入额度
+      by_command: CMD-f1c8e2f6
+      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[0]
+      judgement: decided
+      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+      decision:
+        decided_object: OBJ-08
+        reason: 合同签订 / 新基线时按履约义务分摊交易价格建立或更新额度，付款条件项额度（OBJ-07）随同；技术状态，不入业务对象主状态网
+        by: one-arch-revenue 2026-10-21
+        group: revenue
+        commit: 71bf731b
+      object: OBJ-08
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[850]/OTR-892
+    OTR-893:
+      id: OTR-893
+      aggregate: AGG-44
+      from: null
+      to: 开票占用已转实
+      command: 开具销项发票并改写 WIP
+      by_command: CMD-cc7b8dce
+      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[1]
+      judgement: decided
+      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+      decision:
+        decided_object: OBJ-82
+        reason: 开具发票时开票申请的占用转实（开票申请到「已开票」，发票到「已开具」）；技术状态
+        by: one-arch-revenue 2026-10-21
+        group: revenue
+        commit: 71bf731b
+      object: OBJ-82
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[851]/OTR-893
+    OTR-894:
+      id: OTR-894
+      aggregate: AGG-44
+      from: 开票占用已转实
+      to: 开票占用已回冲
+      command: 回冲开票额度
+      by_command: CMD-bc82a1af
+      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[2]
+      judgement: decided
+      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+      decision:
+        decided_object: OBJ-82
+        reason: 红冲后回冲开票额度，是开票申请占用转实的逆向（发票侧到「已红冲」）；技术状态
+        by: one-arch-revenue 2026-10-21
+        group: revenue
+        commit: 71bf731b
+      object: OBJ-82
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[852]/OTR-894
+    OTR-895:
+      id: OTR-895
+      aggregate: AGG-44
+      from: null
+      to: 视为同意已认定
+      command: 认定视为同意成立
+      by_command: CMD-e91da8f8
+      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[3]
+      judgement: decided
+      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+      decision:
+        decided_object: OBJ-81
+        reason: 视为同意认定是收入确认的证据成立（PRC-54 主对象 OBJ-81）；OBJ-81 收入确认的生命周期（若作对象：草稿 → 审批中 → 已确认 / 驳回，更正走冲销）；形态随 Q20 / Q-04（VS04-01，已在用户待答）
+        by: one-arch-revenue 2026-10-21
+        group: revenue
+        commit: 71bf731b
+      object: OBJ-81
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[853]/OTR-895
+    OTR-896:
+      id: OTR-896
+      aggregate: AGG-44
+      from: null
+      to: 收入占用中
+      command: 占用收入额度
+      by_command: CMD-79e1ac6a
+      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[4]
+      judgement: decided
+      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+      decision:
+        decided_object: OBJ-81
+        reason: 收入占用 ≈ 收入确认「审批中」；OBJ-81 收入确认的生命周期（若作对象：草稿 → 审批中 → 已确认 / 驳回，更正走冲销）；形态随 Q20 / Q-04（VS04-01，已在用户待答）
+        by: one-arch-revenue 2026-10-21
+        group: revenue
+        commit: 71bf731b
+      object: OBJ-81
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[854]/OTR-896
+    OTR-897:
+      id: OTR-897
+      aggregate: AGG-44
+      from: 收入占用中
+      to: 收入占用已转实
+      command: 追加收入确认事实并占用转实
+      by_command: CMD-f9435dd9
+      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[5]
+      judgement: decided
+      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+      decision:
+        decided_object: OBJ-81
+        reason: 占用转实 ≈ 收入确认「已确认（锁定）」；OBJ-81 收入确认的生命周期（若作对象：草稿 → 审批中 → 已确认 / 驳回，更正走冲销）；形态随 Q20 / Q-04（VS04-01，已在用户待答）
+        by: one-arch-revenue 2026-10-21
+        group: revenue
+        commit: 71bf731b
+      object: OBJ-81
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[855]/OTR-897
+    OTR-898:
+      id: OTR-898
+      aggregate: AGG-44
+      from: null
+      to: 收入确认事实已追加
+      command: 追加收入确认事实并占用转实
+      by_command: CMD-f9435dd9
+      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[6]
+      judgement: decided
+      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+      decision:
+        decided_object: OBJ-81
+        reason: 追加确认事实 ≈ 收入确认「已确认（锁定）」；OBJ-81 收入确认的生命周期（若作对象：草稿 → 审批中 → 已确认 / 驳回，更正走冲销）；形态随 Q20 / Q-04（VS04-01，已在用户待答）
+        by: one-arch-revenue 2026-10-21
+        group: revenue
+        commit: 71bf731b
+      object: OBJ-81
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[856]/OTR-898
+    OTR-899:
+      id: OTR-899
+      aggregate: AGG-44
+      from: 收入占用中
+      to: 收入占用已释放
+      command: 释放收入额度占用
+      by_command: CMD-19e608b2
+      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[7]
+      judgement: decided
+      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+      decision:
+        decided_object: OBJ-81
+        reason: 驳回释放 ≈ 收入确认「驳回」；OBJ-81 收入确认的生命周期（若作对象：草稿 → 审批中 → 已确认 / 驳回，更正走冲销）；形态随 Q20 / Q-04（VS04-01，已在用户待答）
+        by: one-arch-revenue 2026-10-21
+        group: revenue
+        commit: 71bf731b
+      object: OBJ-81
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[857]/OTR-899
+    OTR-900:
+      id: OTR-900
+      aggregate: AGG-44
+      from: null
+      to: 冲销申请已登记
+      command: 冲销收入确认
+      by_command: CMD-061577ba
+      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[8]
+      judgement: decided
+      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+      decision:
+        decided_object: OBJ-81
+        reason: 冲销申请（更正走冲销，PRC-149 主对象 OBJ-81）；OBJ-81 收入确认的生命周期（若作对象：草稿 → 审批中 → 已确认 / 驳回，更正走冲销）；形态随 Q20 / Q-04（VS04-01，已在用户待答）
+        by: one-arch-revenue 2026-10-21
+        group: revenue
+        commit: 71bf731b
+      object: OBJ-81
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[858]/OTR-900
+    OTR-901:
+      id: OTR-901
+      aggregate: AGG-44
+      from: 冲销申请已登记
+      to: 冲销占用中
+      command: 占用冲销额度
+      by_command: CMD-864520ed
+      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[9]
+      judgement: decided
+      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+      decision:
+        decided_object: OBJ-81
+        reason: 冲销占用；OBJ-81 收入确认的生命周期（若作对象：草稿 → 审批中 → 已确认 / 驳回，更正走冲销）；形态随 Q20 / Q-04（VS04-01，已在用户待答）
+        by: one-arch-revenue 2026-10-21
+        group: revenue
+        commit: 71bf731b
+      object: OBJ-81
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[859]/OTR-901
+    OTR-902:
+      id: OTR-902
+      aggregate: AGG-44
+      from: 冲销占用中
+      to: 冲销已转实
+      command: 追加冲销行并占用转实
+      by_command: CMD-24e72bb9
+      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[10]
+      judgement: decided
+      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+      decision:
+        decided_object: OBJ-81
+        reason: 冲销转实；OBJ-81 收入确认的生命周期（若作对象：草稿 → 审批中 → 已确认 / 驳回，更正走冲销）；形态随 Q20 / Q-04（VS04-01，已在用户待答）
+        by: one-arch-revenue 2026-10-21
+        group: revenue
+        commit: 71bf731b
+      object: OBJ-81
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[860]/OTR-902
+    OTR-903:
+      id: OTR-903
+      aggregate: AGG-44
+      from: 冲销占用中
+      to: 冲销已释放
+      command: 释放收入额度占用
+      by_command: CMD-19e608b2
+      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[11]
+      judgement: decided
+      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+      decision:
+        decided_object: OBJ-81
+        reason: 冲销驳回释放；OBJ-81 收入确认的生命周期（若作对象：草稿 → 审批中 → 已确认 / 驳回，更正走冲销）；形态随 Q20 / Q-04（VS04-01，已在用户待答）
+        by: one-arch-revenue 2026-10-21
+        group: revenue
+        commit: 71bf731b
+      object: OBJ-81
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[861]/OTR-903
+    OTR-904:
+      id: OTR-904
+      aggregate: AGG-44
+      from: 收入确认事实已追加
+      to: 收入确认事实已追加
+      command: 提交过账候选
+      by_command: CMD-2fdf7108
+      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[12]
+      judgement: decided
+      self_loop: true
+      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+      decision:
+        decided_object: OBJ-81
+        reason: 提交过账候选不改收入确认状态（自环），过账经 B-16
+        by: one-arch-revenue 2026-10-21
+        group: revenue
+        commit: 71bf731b
+      object: OBJ-81
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[862]/OTR-904
+    OTR-905:
+      id: OTR-905
+      aggregate: AGG-44
+      from: 冲销已转实
+      to: 冲销已转实
+      command: 提交过账候选
+      by_command: CMD-2fdf7108
+      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[13]
+      judgement: decided
+      self_loop: true
+      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+      decision:
+        decided_object: OBJ-81
+        reason: 同 OTR-904（冲销行过账候选）
+        by: one-arch-revenue 2026-10-21
+        group: revenue
+        commit: 71bf731b
+      object: OBJ-81
+      section: transitions
+      src: architecture/ssot/10-objects/transitions.yaml#transitions[863]/OTR-905
     OTR-876:
       id: OTR-876
       aggregate: AGG-79
@@ -61493,8 +61610,15 @@ nodes:
       candidates:
       - OBJ-100
       reason: 经营复盘无对应 OBJ（聚合清单只列 OBJ-100）
+      decision:
+        new_object_needed: 经营复盘（暂名；经营动作为其次级）
+        needs_user: true
+        basis: 经营复盘有独立生命周期（复盘中 → 已定稿 → 已闭环），且「经营复盘已闭环」是 VS-09.3 退出条件，现以缺对象状态 MS-22 登记；挂 OBJ-100 无法表达阶段门。新立对象须随下一版确认页由用户定（同 CAPINFO 新立 OBJ-117–124 的做法），名称交 one-glossary
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
       section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[68]/OTR-876
+      src: architecture/ssot/10-objects/transitions.yaml#pending[0]/OTR-876
     OTR-877:
       id: OTR-877
       aggregate: AGG-79
@@ -61509,8 +61633,15 @@ nodes:
       candidates:
       - OBJ-100
       reason: 经营复盘无对应 OBJ（聚合清单只列 OBJ-100）
+      decision:
+        new_object_needed: 经营复盘（暂名；经营动作为其次级）
+        needs_user: true
+        basis: 经营复盘有独立生命周期（复盘中 → 已定稿 → 已闭环），且「经营复盘已闭环」是 VS-09.3 退出条件，现以缺对象状态 MS-22 登记；挂 OBJ-100 无法表达阶段门。新立对象须随下一版确认页由用户定（同 CAPINFO 新立 OBJ-117–124 的做法），名称交 one-glossary
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
       section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[69]/OTR-877
+      src: architecture/ssot/10-objects/transitions.yaml#pending[1]/OTR-877
     OTR-878:
       id: OTR-878
       aggregate: AGG-79
@@ -61525,8 +61656,15 @@ nodes:
       candidates:
       - OBJ-100
       reason: 经营复盘无对应 OBJ（聚合清单只列 OBJ-100）
+      decision:
+        new_object_needed: 经营复盘（暂名；经营动作为其次级）
+        needs_user: true
+        basis: 经营复盘有独立生命周期（复盘中 → 已定稿 → 已闭环），且「经营复盘已闭环」是 VS-09.3 退出条件，现以缺对象状态 MS-22 登记；挂 OBJ-100 无法表达阶段门。新立对象须随下一版确认页由用户定（同 CAPINFO 新立 OBJ-117–124 的做法），名称交 one-glossary
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
       section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[70]/OTR-878
+      src: architecture/ssot/10-objects/transitions.yaml#pending[2]/OTR-878
     OTR-879:
       id: OTR-879
       aggregate: AGG-79
@@ -61540,8 +61678,15 @@ nodes:
       candidates:
       - OBJ-100
       reason: 经营复盘无对应 OBJ（聚合清单只列 OBJ-100）
+      decision:
+        new_object_needed: 经营复盘（暂名；经营动作为其次级）
+        needs_user: true
+        basis: 经营复盘有独立生命周期（复盘中 → 已定稿 → 已闭环），且「经营复盘已闭环」是 VS-09.3 退出条件，现以缺对象状态 MS-22 登记；挂 OBJ-100 无法表达阶段门。新立对象须随下一版确认页由用户定（同 CAPINFO 新立 OBJ-117–124 的做法），名称交 one-glossary
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
       section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[71]/OTR-879
+      src: architecture/ssot/10-objects/transitions.yaml#pending[3]/OTR-879
     OTR-880:
       id: OTR-880
       aggregate: AGG-79
@@ -61555,8 +61700,15 @@ nodes:
       candidates:
       - OBJ-100
       reason: 经营复盘无对应 OBJ（聚合清单只列 OBJ-100）
+      decision:
+        new_object_needed: 经营复盘（暂名；经营动作为其次级）
+        needs_user: true
+        basis: 经营复盘有独立生命周期（复盘中 → 已定稿 → 已闭环），且「经营复盘已闭环」是 VS-09.3 退出条件，现以缺对象状态 MS-22 登记；挂 OBJ-100 无法表达阶段门。新立对象须随下一版确认页由用户定（同 CAPINFO 新立 OBJ-117–124 的做法），名称交 one-glossary
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
       section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[72]/OTR-880
+      src: architecture/ssot/10-objects/transitions.yaml#pending[4]/OTR-880
     OTR-881:
       id: OTR-881
       aggregate: AGG-79
@@ -61571,8 +61723,15 @@ nodes:
       candidates:
       - OBJ-100
       reason: 经营复盘无对应 OBJ（聚合清单只列 OBJ-100）
+      decision:
+        new_object_needed: 经营复盘（暂名；经营动作为其次级）
+        needs_user: true
+        basis: 经营复盘有独立生命周期（复盘中 → 已定稿 → 已闭环），且「经营复盘已闭环」是 VS-09.3 退出条件，现以缺对象状态 MS-22 登记；挂 OBJ-100 无法表达阶段门。新立对象须随下一版确认页由用户定（同 CAPINFO 新立 OBJ-117–124 的做法），名称交 one-glossary
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
       section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[73]/OTR-881
+      src: architecture/ssot/10-objects/transitions.yaml#pending[5]/OTR-881
     OTR-882:
       id: OTR-882
       aggregate: AGG-79
@@ -61586,8 +61745,15 @@ nodes:
       candidates:
       - OBJ-100
       reason: 经营复盘无对应 OBJ（聚合清单只列 OBJ-100）
+      decision:
+        new_object_needed: 经营复盘（暂名；经营动作为其次级）
+        needs_user: true
+        basis: 经营复盘有独立生命周期（复盘中 → 已定稿 → 已闭环），且「经营复盘已闭环」是 VS-09.3 退出条件，现以缺对象状态 MS-22 登记；挂 OBJ-100 无法表达阶段门。新立对象须随下一版确认页由用户定（同 CAPINFO 新立 OBJ-117–124 的做法），名称交 one-glossary
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
       section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[74]/OTR-882
+      src: architecture/ssot/10-objects/transitions.yaml#pending[6]/OTR-882
     OTR-883:
       id: OTR-883
       aggregate: AGG-79
@@ -61601,8 +61767,15 @@ nodes:
       candidates:
       - OBJ-100
       reason: 经营动作无对应 OBJ（聚合清单只列 OBJ-100）
+      decision:
+        new_object_needed: 经营复盘（暂名；经营动作为其次级）
+        needs_user: true
+        basis: 经营复盘有独立生命周期（复盘中 → 已定稿 → 已闭环），且「经营复盘已闭环」是 VS-09.3 退出条件，现以缺对象状态 MS-22 登记；挂 OBJ-100 无法表达阶段门。新立对象须随下一版确认页由用户定（同 CAPINFO 新立 OBJ-117–124 的做法），名称交 one-glossary
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
       section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[75]/OTR-883
+      src: architecture/ssot/10-objects/transitions.yaml#pending[7]/OTR-883
     OTR-884:
       id: OTR-884
       aggregate: AGG-79
@@ -61616,359 +61789,15 @@ nodes:
       candidates:
       - OBJ-100
       reason: 经营动作无对应 OBJ（聚合清单只列 OBJ-100）
+      decision:
+        new_object_needed: 经营复盘（暂名；经营动作为其次级）
+        needs_user: true
+        basis: 经营复盘有独立生命周期（复盘中 → 已定稿 → 已闭环），且「经营复盘已闭环」是 VS-09.3 退出条件，现以缺对象状态 MS-22 登记；挂 OBJ-100 无法表达阶段门。新立对象须随下一版确认页由用户定（同 CAPINFO 新立 OBJ-117–124 的做法），名称交 one-glossary
+        by: one-arch-people 2026-10-21
+        group: people
+        commit: 690c719a
       section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[76]/OTR-884
-    OTR-885:
-      id: OTR-885
-      aggregate: AGG-80
-      from: null
-      to: 预算占用行（budget_reservations.状态）:占用中
-      command: 占用预算
-      sub_lifecycle: 预算占用行（budget_reservations.状态）
-      by_command: CMD-c61fdf34
-      source: proposals/closeout/people/state-machines.yaml machines[27].transitions[3]
-      judgement: pending
-      candidates:
-      - OBJ-101
-      - OBJ-100
-      reason: 预算占用行无对应 OBJ；候选 OBJ-101 预算 / OBJ-100；候选 OBJ-101 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[77]/OTR-885
-    OTR-886:
-      id: OTR-886
-      aggregate: AGG-80
-      from: 预算占用行（budget_reservations.状态）:占用中
-      to: 预算占用行（budget_reservations.状态）:已释放
-      command: 释放预算占用
-      sub_lifecycle: 预算占用行（budget_reservations.状态）
-      by_command: CMD-a6fb8c3a
-      source: proposals/closeout/people/state-machines.yaml machines[27].transitions[4]
-      judgement: pending
-      candidates:
-      - OBJ-101
-      - OBJ-100
-      reason: 预算占用行无对应 OBJ；候选 OBJ-101 预算 / OBJ-100；候选 OBJ-101 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[78]/OTR-886
-    OTR-887:
-      id: OTR-887
-      aggregate: AGG-80
-      from: 预算占用行（budget_reservations.状态）:占用中
-      to: 预算占用行（budget_reservations.状态）:占用中
-      command: 调整预算占用
-      sub_lifecycle: 预算占用行（budget_reservations.状态）
-      by_command: CMD-e1593ec2
-      source: proposals/closeout/people/state-machines.yaml machines[27].transitions[5]
-      judgement: pending
-      self_loop: true
-      candidates:
-      - OBJ-101
-      - OBJ-100
-      reason: 预算占用行无对应 OBJ；候选 OBJ-101 预算 / OBJ-100；候选 OBJ-101 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[79]/OTR-887
-    OTR-888:
-      id: OTR-888
-      aggregate: AGG-80
-      from: 预算占用行（budget_reservations.状态）:占用中
-      to: 预算占用行（budget_reservations.状态）:已消耗
-      command: 〔缺〕消耗预算占用
-      sub_lifecycle: 预算占用行（budget_reservations.状态）
-      by_command: CMD-08bd4851
-      source: proposals/closeout/people/state-machines.yaml machines[27].transitions[6]
-      judgement: pending
-      candidates:
-      - OBJ-101
-      - OBJ-100
-      reason: 预算占用行无对应 OBJ；候选 OBJ-101 预算 / OBJ-100；候选 OBJ-101 在对象登记中已标「已非对象」
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[80]/OTR-888
-    OTR-889:
-      id: OTR-889
-      aggregate: AGG-14
-      from: null
-      to: 占用中
-      command: 占用框架限额
-      by_command: CMD-3022cfac
-      source: proposals/closeout/revenue/state-machines.yaml machines[8].transitions[0]
-      judgement: pending
-      candidates:
-      - OBJ-05
-      - OBJ-08
-      reason: 技术聚合（占用行），聚合清单未列 OBJ；候选 OBJ-05 协议（框架协议限额）
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[81]/OTR-889
-    OTR-890:
-      id: OTR-890
-      aggregate: AGG-14
-      from: 占用中
-      to: 占用中
-      command: 占用框架限额
-      by_command: CMD-3022cfac
-      source: proposals/closeout/revenue/state-machines.yaml machines[8].transitions[1]
-      judgement: pending
-      self_loop: true
-      candidates:
-      - OBJ-05
-      - OBJ-08
-      reason: 技术聚合（占用行），聚合清单未列 OBJ；候选 OBJ-05 协议（框架协议限额）
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[82]/OTR-890
-    OTR-891:
-      id: OTR-891
-      aggregate: AGG-14
-      from: 占用中
-      to: 已释放
-      command: 释放框架限额
-      by_command: CMD-49d66896
-      source: proposals/closeout/revenue/state-machines.yaml machines[8].transitions[2]
-      judgement: pending
-      candidates:
-      - OBJ-05
-      - OBJ-08
-      reason: 技术聚合（占用行），聚合清单未列 OBJ；候选 OBJ-05 协议（框架协议限额）
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[83]/OTR-891
-    OTR-892:
-      id: OTR-892
-      aggregate: AGG-44
-      from: null
-      to: 额度变动已追加
-      command: 更新开票与收入额度
-      by_command: CMD-f1c8e2f6
-      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[0]
-      judgement: pending
-      candidates:
-      - OBJ-07
-      - OBJ-08
-      - OBJ-81
-      - OBJ-82
-      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[84]/OTR-892
-    OTR-893:
-      id: OTR-893
-      aggregate: AGG-44
-      from: null
-      to: 开票占用已转实
-      command: 开具销项发票并改写 WIP
-      by_command: CMD-cc7b8dce
-      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[1]
-      judgement: pending
-      candidates:
-      - OBJ-07
-      - OBJ-08
-      - OBJ-81
-      - OBJ-82
-      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[85]/OTR-893
-    OTR-894:
-      id: OTR-894
-      aggregate: AGG-44
-      from: 开票占用已转实
-      to: 开票占用已回冲
-      command: 回冲开票额度
-      by_command: CMD-bc82a1af
-      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[2]
-      judgement: pending
-      candidates:
-      - OBJ-07
-      - OBJ-08
-      - OBJ-81
-      - OBJ-82
-      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[86]/OTR-894
-    OTR-895:
-      id: OTR-895
-      aggregate: AGG-44
-      from: null
-      to: 视为同意已认定
-      command: 认定视为同意成立
-      by_command: CMD-e91da8f8
-      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[3]
-      judgement: pending
-      candidates:
-      - OBJ-07
-      - OBJ-08
-      - OBJ-81
-      - OBJ-82
-      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[87]/OTR-895
-    OTR-896:
-      id: OTR-896
-      aggregate: AGG-44
-      from: null
-      to: 收入占用中
-      command: 占用收入额度
-      by_command: CMD-79e1ac6a
-      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[4]
-      judgement: pending
-      candidates:
-      - OBJ-07
-      - OBJ-08
-      - OBJ-81
-      - OBJ-82
-      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[88]/OTR-896
-    OTR-897:
-      id: OTR-897
-      aggregate: AGG-44
-      from: 收入占用中
-      to: 收入占用已转实
-      command: 追加收入确认事实并占用转实
-      by_command: CMD-f9435dd9
-      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[5]
-      judgement: pending
-      candidates:
-      - OBJ-07
-      - OBJ-08
-      - OBJ-81
-      - OBJ-82
-      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[89]/OTR-897
-    OTR-898:
-      id: OTR-898
-      aggregate: AGG-44
-      from: null
-      to: 收入确认事实已追加
-      command: 追加收入确认事实并占用转实
-      by_command: CMD-f9435dd9
-      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[6]
-      judgement: pending
-      candidates:
-      - OBJ-07
-      - OBJ-08
-      - OBJ-81
-      - OBJ-82
-      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[90]/OTR-898
-    OTR-899:
-      id: OTR-899
-      aggregate: AGG-44
-      from: 收入占用中
-      to: 收入占用已释放
-      command: 释放收入额度占用
-      by_command: CMD-19e608b2
-      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[7]
-      judgement: pending
-      candidates:
-      - OBJ-07
-      - OBJ-08
-      - OBJ-81
-      - OBJ-82
-      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[91]/OTR-899
-    OTR-900:
-      id: OTR-900
-      aggregate: AGG-44
-      from: null
-      to: 冲销申请已登记
-      command: 冲销收入确认
-      by_command: CMD-061577ba
-      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[8]
-      judgement: pending
-      candidates:
-      - OBJ-07
-      - OBJ-08
-      - OBJ-81
-      - OBJ-82
-      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[92]/OTR-900
-    OTR-901:
-      id: OTR-901
-      aggregate: AGG-44
-      from: 冲销申请已登记
-      to: 冲销占用中
-      command: 占用冲销额度
-      by_command: CMD-864520ed
-      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[9]
-      judgement: pending
-      candidates:
-      - OBJ-07
-      - OBJ-08
-      - OBJ-81
-      - OBJ-82
-      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[93]/OTR-901
-    OTR-902:
-      id: OTR-902
-      aggregate: AGG-44
-      from: 冲销占用中
-      to: 冲销已转实
-      command: 追加冲销行并占用转实
-      by_command: CMD-24e72bb9
-      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[10]
-      judgement: pending
-      candidates:
-      - OBJ-07
-      - OBJ-08
-      - OBJ-81
-      - OBJ-82
-      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[94]/OTR-902
-    OTR-903:
-      id: OTR-903
-      aggregate: AGG-44
-      from: 冲销占用中
-      to: 冲销已释放
-      command: 释放收入额度占用
-      by_command: CMD-19e608b2
-      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[11]
-      judgement: pending
-      candidates:
-      - OBJ-07
-      - OBJ-08
-      - OBJ-81
-      - OBJ-82
-      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[95]/OTR-903
-    OTR-904:
-      id: OTR-904
-      aggregate: AGG-44
-      from: 收入确认事实已追加
-      to: 收入确认事实已追加
-      command: 提交过账候选
-      by_command: CMD-2fdf7108
-      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[12]
-      judgement: pending
-      self_loop: true
-      candidates:
-      - OBJ-07
-      - OBJ-08
-      - OBJ-81
-      - OBJ-82
-      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[96]/OTR-904
-    OTR-905:
-      id: OTR-905
-      aggregate: AGG-44
-      from: 冲销已转实
-      to: 冲销已转实
-      command: 提交过账候选
-      by_command: CMD-2fdf7108
-      source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[13]
-      judgement: pending
-      self_loop: true
-      candidates:
-      - OBJ-07
-      - OBJ-08
-      - OBJ-81
-      - OBJ-82
-      reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
-      section: pending
-      src: architecture/ssot/10-objects/transitions.yaml#pending[97]/OTR-905
+      src: architecture/ssot/10-objects/transitions.yaml#pending[8]/OTR-884
   evt:
     platform.approval.ApprovalCompleted:
       name: ApprovalCompleted
@@ -87481,361 +87310,237 @@ links:
   to: OTR-806
   src: architecture/ssot/10-objects/transitions.yaml#transitions[805]/OTR-806.by_command
 - kind: cmd-otr
-  from: CMD-1efde0df
-  to: OTR-808
-  src: architecture/ssot/10-objects/transitions.yaml#pending[0]/OTR-808.by_command
-- kind: cmd-otr
-  from: CMD-1efde0df
-  to: OTR-809
-  src: architecture/ssot/10-objects/transitions.yaml#pending[1]/OTR-809.by_command
-- kind: cmd-otr
-  from: CMD-e8b0e073
-  to: OTR-810
-  src: architecture/ssot/10-objects/transitions.yaml#pending[2]/OTR-810.by_command
-- kind: cmd-otr
-  from: CMD-c6c46996
-  to: OTR-811
-  src: architecture/ssot/10-objects/transitions.yaml#pending[3]/OTR-811.by_command
-- kind: cmd-otr
-  from: CMD-5ceed1a1
-  to: OTR-812
-  src: architecture/ssot/10-objects/transitions.yaml#pending[4]/OTR-812.by_command
-- kind: cmd-otr
-  from: CMD-a996a5bc
-  to: OTR-813
-  src: architecture/ssot/10-objects/transitions.yaml#pending[5]/OTR-813.by_command
-- kind: cmd-otr
-  from: CMD-c22570ff
-  to: OTR-814
-  src: architecture/ssot/10-objects/transitions.yaml#pending[6]/OTR-814.by_command
-- kind: cmd-otr
-  from: CMD-c22570ff
-  to: OTR-815
-  src: architecture/ssot/10-objects/transitions.yaml#pending[7]/OTR-815.by_command
-- kind: cmd-otr
-  from: CMD-16c47cb2
-  to: OTR-816
-  src: architecture/ssot/10-objects/transitions.yaml#pending[8]/OTR-816.by_command
-- kind: cmd-otr
-  from: CMD-74780f62
-  to: OTR-817
-  src: architecture/ssot/10-objects/transitions.yaml#pending[9]/OTR-817.by_command
-- kind: cmd-otr
-  from: CMD-4878b15a
-  to: OTR-818
-  src: architecture/ssot/10-objects/transitions.yaml#pending[10]/OTR-818.by_command
-- kind: cmd-otr
-  from: CMD-eaddcc89
-  to: OTR-819
-  src: architecture/ssot/10-objects/transitions.yaml#pending[11]/OTR-819.by_command
-- kind: cmd-otr
-  from: CMD-fb266d88
-  to: OTR-820
-  src: architecture/ssot/10-objects/transitions.yaml#pending[12]/OTR-820.by_command
-- kind: cmd-otr
-  from: CMD-de939f47
-  to: OTR-821
-  src: architecture/ssot/10-objects/transitions.yaml#pending[13]/OTR-821.by_command
-- kind: cmd-otr
-  from: CMD-0e8c882e
-  to: OTR-822
-  src: architecture/ssot/10-objects/transitions.yaml#pending[14]/OTR-822.by_command
-- kind: cmd-otr
-  from: CMD-400e4660
-  to: OTR-823
-  src: architecture/ssot/10-objects/transitions.yaml#pending[15]/OTR-823.by_command
-- kind: cmd-otr
-  from: CMD-fe47616f
-  to: OTR-824
-  src: architecture/ssot/10-objects/transitions.yaml#pending[16]/OTR-824.by_command
-- kind: cmd-otr
   from: CMD-6e913c3a
   to: OTR-825
-  src: architecture/ssot/10-objects/transitions.yaml#pending[17]/OTR-825.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[807]/OTR-825.by_command
 - kind: cmd-otr
   from: CMD-2b8a7849
   to: OTR-826
-  src: architecture/ssot/10-objects/transitions.yaml#pending[18]/OTR-826.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[808]/OTR-826.by_command
 - kind: cmd-otr
   from: CMD-929cf289
   to: OTR-829
-  src: architecture/ssot/10-objects/transitions.yaml#pending[21]/OTR-829.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[811]/OTR-829.by_command
 - kind: cmd-otr
   from: CMD-07395079
   to: OTR-830
-  src: architecture/ssot/10-objects/transitions.yaml#pending[22]/OTR-830.by_command
-- kind: cmd-otr
-  from: CMD-e733125b
-  to: OTR-833
-  src: architecture/ssot/10-objects/transitions.yaml#pending[25]/OTR-833.by_command
-- kind: cmd-otr
-  from: CMD-e733125b
-  to: OTR-834
-  src: architecture/ssot/10-objects/transitions.yaml#pending[26]/OTR-834.by_command
-- kind: cmd-otr
-  from: CMD-5a647d09
-  to: OTR-835
-  src: architecture/ssot/10-objects/transitions.yaml#pending[27]/OTR-835.by_command
-- kind: cmd-otr
-  from: CMD-ec219693
-  to: OTR-836
-  src: architecture/ssot/10-objects/transitions.yaml#pending[28]/OTR-836.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[812]/OTR-830.by_command
 - kind: cmd-otr
   from: CMD-2a3c17bf
   to: OTR-837
-  src: architecture/ssot/10-objects/transitions.yaml#pending[29]/OTR-837.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[815]/OTR-837.by_command
 - kind: cmd-otr
   from: CMD-e0b4c5cf
   to: OTR-838
-  src: architecture/ssot/10-objects/transitions.yaml#pending[30]/OTR-838.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[816]/OTR-838.by_command
 - kind: cmd-otr
   from: CMD-4feb4be7
   to: OTR-841
-  src: architecture/ssot/10-objects/transitions.yaml#pending[33]/OTR-841.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[819]/OTR-841.by_command
 - kind: cmd-otr
   from: CMD-66728149
   to: OTR-842
-  src: architecture/ssot/10-objects/transitions.yaml#pending[34]/OTR-842.by_command
-- kind: cmd-otr
-  from: CMD-b777a558
-  to: OTR-845
-  src: architecture/ssot/10-objects/transitions.yaml#pending[37]/OTR-845.by_command
-- kind: cmd-otr
-  from: CMD-b777a558
-  to: OTR-846
-  src: architecture/ssot/10-objects/transitions.yaml#pending[38]/OTR-846.by_command
-- kind: cmd-otr
-  from: CMD-de86972c
-  to: OTR-847
-  src: architecture/ssot/10-objects/transitions.yaml#pending[39]/OTR-847.by_command
-- kind: cmd-otr
-  from: CMD-b9abf046
-  to: OTR-849
-  src: architecture/ssot/10-objects/transitions.yaml#pending[41]/OTR-849.by_command
-- kind: cmd-otr
-  from: CMD-b9abf046
-  to: OTR-850
-  src: architecture/ssot/10-objects/transitions.yaml#pending[42]/OTR-850.by_command
-- kind: cmd-otr
-  from: CMD-81c9aea6
-  to: OTR-851
-  src: architecture/ssot/10-objects/transitions.yaml#pending[43]/OTR-851.by_command
-- kind: cmd-otr
-  from: CMD-81c9aea6
-  to: OTR-852
-  src: architecture/ssot/10-objects/transitions.yaml#pending[44]/OTR-852.by_command
-- kind: cmd-otr
-  from: CMD-a06fdb57
-  to: OTR-853
-  src: architecture/ssot/10-objects/transitions.yaml#pending[45]/OTR-853.by_command
-- kind: cmd-otr
-  from: CMD-d98aa78f
-  to: OTR-854
-  src: architecture/ssot/10-objects/transitions.yaml#pending[46]/OTR-854.by_command
-- kind: cmd-otr
-  from: CMD-38eba49b
-  to: OTR-855
-  src: architecture/ssot/10-objects/transitions.yaml#pending[47]/OTR-855.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[820]/OTR-842.by_command
 - kind: cmd-otr
   from: CMD-1a20617e
   to: OTR-856
-  src: architecture/ssot/10-objects/transitions.yaml#pending[48]/OTR-856.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[823]/OTR-856.by_command
 - kind: cmd-otr
   from: CMD-5232c23b
   to: OTR-857
-  src: architecture/ssot/10-objects/transitions.yaml#pending[49]/OTR-857.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[824]/OTR-857.by_command
 - kind: cmd-otr
   from: CMD-5232c23b
   to: OTR-858
-  src: architecture/ssot/10-objects/transitions.yaml#pending[50]/OTR-858.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[825]/OTR-858.by_command
 - kind: cmd-otr
   from: CMD-40fee833
   to: OTR-859
-  src: architecture/ssot/10-objects/transitions.yaml#pending[51]/OTR-859.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[826]/OTR-859.by_command
 - kind: cmd-otr
   from: CMD-e5124a3a
   to: OTR-860
-  src: architecture/ssot/10-objects/transitions.yaml#pending[52]/OTR-860.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[827]/OTR-860.by_command
 - kind: cmd-otr
   from: CMD-e5124a3a
   to: OTR-861
-  src: architecture/ssot/10-objects/transitions.yaml#pending[53]/OTR-861.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[828]/OTR-861.by_command
 - kind: cmd-otr
   from: CMD-149bec95
   to: OTR-862
-  src: architecture/ssot/10-objects/transitions.yaml#pending[54]/OTR-862.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[829]/OTR-862.by_command
 - kind: cmd-otr
   from: CMD-63355430
   to: OTR-863
-  src: architecture/ssot/10-objects/transitions.yaml#pending[55]/OTR-863.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[830]/OTR-863.by_command
 - kind: cmd-otr
   from: CMD-98fe8c40
   to: OTR-864
-  src: architecture/ssot/10-objects/transitions.yaml#pending[56]/OTR-864.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[831]/OTR-864.by_command
 - kind: cmd-otr
   from: CMD-a27d4f53
   to: OTR-865
-  src: architecture/ssot/10-objects/transitions.yaml#pending[57]/OTR-865.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[832]/OTR-865.by_command
 - kind: cmd-otr
   from: CMD-a27d4f53
   to: OTR-866
-  src: architecture/ssot/10-objects/transitions.yaml#pending[58]/OTR-866.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[833]/OTR-866.by_command
 - kind: cmd-otr
   from: CMD-2a9216d1
   to: OTR-867
-  src: architecture/ssot/10-objects/transitions.yaml#pending[59]/OTR-867.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[834]/OTR-867.by_command
 - kind: cmd-otr
   from: CMD-407fe842
   to: OTR-868
-  src: architecture/ssot/10-objects/transitions.yaml#pending[60]/OTR-868.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[835]/OTR-868.by_command
 - kind: cmd-otr
   from: CMD-8986e409
   to: OTR-869
-  src: architecture/ssot/10-objects/transitions.yaml#pending[61]/OTR-869.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[836]/OTR-869.by_command
 - kind: cmd-otr
   from: CMD-4695a19e
   to: OTR-870
-  src: architecture/ssot/10-objects/transitions.yaml#pending[62]/OTR-870.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[837]/OTR-870.by_command
 - kind: cmd-otr
   from: CMD-98fa8375
   to: OTR-871
-  src: architecture/ssot/10-objects/transitions.yaml#pending[63]/OTR-871.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[838]/OTR-871.by_command
 - kind: cmd-otr
   from: CMD-2a3889da
   to: OTR-872
-  src: architecture/ssot/10-objects/transitions.yaml#pending[64]/OTR-872.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[839]/OTR-872.by_command
 - kind: cmd-otr
   from: CMD-a57d91d8
   to: OTR-873
-  src: architecture/ssot/10-objects/transitions.yaml#pending[65]/OTR-873.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[840]/OTR-873.by_command
 - kind: cmd-otr
   from: CMD-e2579dd5
   to: OTR-874
-  src: architecture/ssot/10-objects/transitions.yaml#pending[66]/OTR-874.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[841]/OTR-874.by_command
 - kind: cmd-otr
   from: CMD-e2579dd5
   to: OTR-875
-  src: architecture/ssot/10-objects/transitions.yaml#pending[67]/OTR-875.by_command
-- kind: cmd-otr
-  from: CMD-177f89c4
-  to: OTR-876
-  src: architecture/ssot/10-objects/transitions.yaml#pending[68]/OTR-876.by_command
-- kind: cmd-otr
-  from: CMD-ab45a8c0
-  to: OTR-877
-  src: architecture/ssot/10-objects/transitions.yaml#pending[69]/OTR-877.by_command
-- kind: cmd-otr
-  from: CMD-eece1cec
-  to: OTR-878
-  src: architecture/ssot/10-objects/transitions.yaml#pending[70]/OTR-878.by_command
-- kind: cmd-otr
-  from: CMD-5f740628
-  to: OTR-879
-  src: architecture/ssot/10-objects/transitions.yaml#pending[71]/OTR-879.by_command
-- kind: cmd-otr
-  from: CMD-5f740628
-  to: OTR-880
-  src: architecture/ssot/10-objects/transitions.yaml#pending[72]/OTR-880.by_command
-- kind: cmd-otr
-  from: CMD-d724b6e0
-  to: OTR-881
-  src: architecture/ssot/10-objects/transitions.yaml#pending[73]/OTR-881.by_command
-- kind: cmd-otr
-  from: CMD-d724b6e0
-  to: OTR-882
-  src: architecture/ssot/10-objects/transitions.yaml#pending[74]/OTR-882.by_command
-- kind: cmd-otr
-  from: CMD-eece1cec
-  to: OTR-883
-  src: architecture/ssot/10-objects/transitions.yaml#pending[75]/OTR-883.by_command
-- kind: cmd-otr
-  from: CMD-d724b6e0
-  to: OTR-884
-  src: architecture/ssot/10-objects/transitions.yaml#pending[76]/OTR-884.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[842]/OTR-875.by_command
 - kind: cmd-otr
   from: CMD-c61fdf34
   to: OTR-885
-  src: architecture/ssot/10-objects/transitions.yaml#pending[77]/OTR-885.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[843]/OTR-885.by_command
 - kind: cmd-otr
   from: CMD-a6fb8c3a
   to: OTR-886
-  src: architecture/ssot/10-objects/transitions.yaml#pending[78]/OTR-886.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[844]/OTR-886.by_command
 - kind: cmd-otr
   from: CMD-e1593ec2
   to: OTR-887
-  src: architecture/ssot/10-objects/transitions.yaml#pending[79]/OTR-887.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[845]/OTR-887.by_command
 - kind: cmd-otr
   from: CMD-08bd4851
   to: OTR-888
-  src: architecture/ssot/10-objects/transitions.yaml#pending[80]/OTR-888.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[846]/OTR-888.by_command
 - kind: cmd-otr
   from: CMD-3022cfac
   to: OTR-889
-  src: architecture/ssot/10-objects/transitions.yaml#pending[81]/OTR-889.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[847]/OTR-889.by_command
 - kind: cmd-otr
   from: CMD-3022cfac
   to: OTR-890
-  src: architecture/ssot/10-objects/transitions.yaml#pending[82]/OTR-890.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[848]/OTR-890.by_command
 - kind: cmd-otr
   from: CMD-49d66896
   to: OTR-891
-  src: architecture/ssot/10-objects/transitions.yaml#pending[83]/OTR-891.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[849]/OTR-891.by_command
 - kind: cmd-otr
   from: CMD-f1c8e2f6
   to: OTR-892
-  src: architecture/ssot/10-objects/transitions.yaml#pending[84]/OTR-892.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[850]/OTR-892.by_command
 - kind: cmd-otr
   from: CMD-cc7b8dce
   to: OTR-893
-  src: architecture/ssot/10-objects/transitions.yaml#pending[85]/OTR-893.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[851]/OTR-893.by_command
 - kind: cmd-otr
   from: CMD-bc82a1af
   to: OTR-894
-  src: architecture/ssot/10-objects/transitions.yaml#pending[86]/OTR-894.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[852]/OTR-894.by_command
 - kind: cmd-otr
   from: CMD-e91da8f8
   to: OTR-895
-  src: architecture/ssot/10-objects/transitions.yaml#pending[87]/OTR-895.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[853]/OTR-895.by_command
 - kind: cmd-otr
   from: CMD-79e1ac6a
   to: OTR-896
-  src: architecture/ssot/10-objects/transitions.yaml#pending[88]/OTR-896.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[854]/OTR-896.by_command
 - kind: cmd-otr
   from: CMD-f9435dd9
   to: OTR-897
-  src: architecture/ssot/10-objects/transitions.yaml#pending[89]/OTR-897.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[855]/OTR-897.by_command
 - kind: cmd-otr
   from: CMD-f9435dd9
   to: OTR-898
-  src: architecture/ssot/10-objects/transitions.yaml#pending[90]/OTR-898.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[856]/OTR-898.by_command
 - kind: cmd-otr
   from: CMD-19e608b2
   to: OTR-899
-  src: architecture/ssot/10-objects/transitions.yaml#pending[91]/OTR-899.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[857]/OTR-899.by_command
 - kind: cmd-otr
   from: CMD-061577ba
   to: OTR-900
-  src: architecture/ssot/10-objects/transitions.yaml#pending[92]/OTR-900.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[858]/OTR-900.by_command
 - kind: cmd-otr
   from: CMD-864520ed
   to: OTR-901
-  src: architecture/ssot/10-objects/transitions.yaml#pending[93]/OTR-901.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[859]/OTR-901.by_command
 - kind: cmd-otr
   from: CMD-24e72bb9
   to: OTR-902
-  src: architecture/ssot/10-objects/transitions.yaml#pending[94]/OTR-902.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[860]/OTR-902.by_command
 - kind: cmd-otr
   from: CMD-19e608b2
   to: OTR-903
-  src: architecture/ssot/10-objects/transitions.yaml#pending[95]/OTR-903.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[861]/OTR-903.by_command
 - kind: cmd-otr
   from: CMD-2fdf7108
   to: OTR-904
-  src: architecture/ssot/10-objects/transitions.yaml#pending[96]/OTR-904.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[862]/OTR-904.by_command
 - kind: cmd-otr
   from: CMD-2fdf7108
   to: OTR-905
-  src: architecture/ssot/10-objects/transitions.yaml#pending[97]/OTR-905.by_command
+  src: architecture/ssot/10-objects/transitions.yaml#transitions[863]/OTR-905.by_command
+- kind: cmd-otr
+  from: CMD-177f89c4
+  to: OTR-876
+  src: architecture/ssot/10-objects/transitions.yaml#pending[0]/OTR-876.by_command
+- kind: cmd-otr
+  from: CMD-ab45a8c0
+  to: OTR-877
+  src: architecture/ssot/10-objects/transitions.yaml#pending[1]/OTR-877.by_command
+- kind: cmd-otr
+  from: CMD-eece1cec
+  to: OTR-878
+  src: architecture/ssot/10-objects/transitions.yaml#pending[2]/OTR-878.by_command
+- kind: cmd-otr
+  from: CMD-5f740628
+  to: OTR-879
+  src: architecture/ssot/10-objects/transitions.yaml#pending[3]/OTR-879.by_command
+- kind: cmd-otr
+  from: CMD-5f740628
+  to: OTR-880
+  src: architecture/ssot/10-objects/transitions.yaml#pending[4]/OTR-880.by_command
+- kind: cmd-otr
+  from: CMD-d724b6e0
+  to: OTR-881
+  src: architecture/ssot/10-objects/transitions.yaml#pending[5]/OTR-881.by_command
+- kind: cmd-otr
+  from: CMD-d724b6e0
+  to: OTR-882
+  src: architecture/ssot/10-objects/transitions.yaml#pending[6]/OTR-882.by_command
+- kind: cmd-otr
+  from: CMD-eece1cec
+  to: OTR-883
+  src: architecture/ssot/10-objects/transitions.yaml#pending[7]/OTR-883.by_command
+- kind: cmd-otr
+  from: CMD-d724b6e0
+  to: OTR-884
+  src: architecture/ssot/10-objects/transitions.yaml#pending[8]/OTR-884.by_command
 - kind: evt-bc
   from: platform.approval.ApprovalCompleted
   to: platform.approval

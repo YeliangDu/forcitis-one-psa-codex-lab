@@ -48,7 +48,7 @@
 | 10 映射  | api | 68 |
 | 10 映射  | mod | 13 |
 | 10 受控业务执行 | cmd | 606 |
-| 09/10 映射  | otr | 905 |
+| 09/10 映射  | otr | 873 |
 | 10 映射  | evt | 59 |
 | 01 干系人 | shcat | 6 |
 | 07 业务流程 | steps | 647 |
@@ -89,7 +89,7 @@
 | N10-1 | 每个受控业务执行（命令）都有 owner BC | 37 |
 | N10-M1 | 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到） | 4 |
 | N10-2 | 每个 CMD 登记的命令有 owner BC（ssot/11-commands，只取 owner_bc；N10-1 查骨架中的受控执行） | 1 |
-| N10-3 | 每条状态转换有触发命令（含 pending；by_command 为空计缺口） | 48 |
+| N10-3 | 每条状态转换有触发命令（含 pending；by_command 为空计缺口） | 47 |
 | N10-4 | 每个已建命令类在 ssot/11-commands/command-mapping.yaml 登记对照（pending 计缺口） | 0 |
 | N10-5 | 每个事件有唯一发布者与版本 | 0 |
 | N10-6 | 跨 BC 只走已发布事件或契约（订阅模块对发布模块的依赖须登记；只按 kernel DomainEvent 信封接收的订阅方除外） | 0 |
@@ -814,7 +814,7 @@
 
 - CMD-c2d24f95 登记招标项目（REF-01 未归 BC）
 
-## N10-3 每条状态转换有触发命令（含 pending；by_command 为空计缺口）（48）
+## N10-3 每条状态转换有触发命令（含 pending；by_command 为空计缺口）（47）
 
 - OTR-017（transitions，AGG-55，命令 None）
 - OTR-019（transitions，AGG-55，命令 None）
@@ -855,15 +855,14 @@
 - OTR-797（transitions，AGG-133，命令 None）
 - OTR-798（transitions，AGG-133，命令 None）
 - OTR-807（transitions，AGG-101，命令 None）
-- OTR-827（pending，AGG-85，命令 None）
-- OTR-828（pending，AGG-85，命令 None）
-- OTR-831（pending，AGG-94，命令 None）
-- OTR-832（pending，AGG-94，命令 None）
-- OTR-839（pending，AGG-128，命令 None）
-- OTR-840（pending，AGG-128，命令 None）
-- OTR-843（pending，AGG-129，命令 None）
-- OTR-844（pending，AGG-129，命令 None）
-- OTR-848（pending，AGG-125，命令 None）
+- OTR-827（transitions，AGG-85，命令 None）
+- OTR-828（transitions，AGG-85，命令 None）
+- OTR-831（transitions，AGG-94，命令 None）
+- OTR-832（transitions，AGG-94，命令 None）
+- OTR-839（transitions，AGG-128，命令 None）
+- OTR-840（transitions，AGG-128，命令 None）
+- OTR-843（transitions，AGG-129，命令 None）
+- OTR-844（transitions，AGG-129，命令 None）
 
 ## N11-1 每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列）（6）
 
