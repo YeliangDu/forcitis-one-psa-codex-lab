@@ -118,3 +118,10 @@
 - 同一版本同一日期仍只有一行（`UNIQUE (work_calendar_version_id, calendar_date)`），所以该日在这一版里不再出现 `MAKE_UP_WORKDAY` 行；官方原本的调休安排只留在 `basis_note` 与版本行的官方通知文号、链接里。
 - 确认触发器：有 `MAKE_UP_WORKDAY_CANCELLED` 行的版本，`company_leave_register_kind` 必须是 `REGISTERED`（取消调休算公司加休登记的一部分，与 COMPANY 日期行同规则）。
 - 迁入：one-ops 投产表单列的 5 天（2022-01-30、2023-01-28/29、2025-01-26、2026-02-14）按此取值迁入，依据说明引用其依据文件；2023-04-23 与 2025-01-25 两条定性未决，未定前按 MQ-C-01 拒收。
+
+## 更正七（2026-10-21，ADR-0072 @545c338f 对齐；intent 2026-10-21-131415、-132249）
+
+1. **版本级 `adjustment_basis_kind` 取消**（更正五第 2 点作废）：依据只按天记，`work_calendar_version_days.basis_kind`（`OFFICIAL`/`COMPANY`/`MANUAL`，不可空，迁入行也不例外），版本行不再有 `adjustment_basis_kind`。词表「调整依据类别」改为按天的「依据」，增 `COMPANY` 取值，由 one-glossary 登记。
+2. **`MANUAL` 要有依据和批准人**：依据 = `basis_note`（更正四）；批准人 = 日期行新增列 `approved_by uuid`，具名 CHECK `basis_kind = 'MANUAL'` 当且仅当 `approved_by` 非空，且 `approved_by` 不得等于版本作者（作者非空时）。不能只靠版本确认人：迁入版本的确认人按规则为空，而迁入的 `MANUAL` 行也必须能追到批准人（`MANUAL` 行缺批准人按 MQ-C-01 拒收）。
+3. 确认前同时挂官方通知（文号 + 链接）和公司加休登记（可显式「无」）：同更正五，不变。
+4. 投产首次写入「官方 + 公司加休表」，`source_kind = MIGRATION`：同更正二、三；其中公司取消官方调休的日子用 `MAKE_UP_WORKDAY_CANCELLED`（更正六）。
