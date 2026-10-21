@@ -31,6 +31,21 @@ def head_unit_test():
     assert len(cut.encode()) <= 120 and cut.endswith("…（全文见画像）") and cut.startswith("状态"), cut
     assert len(snap.fit("x" * 500, 200).encode()) <= 200
     assert snap.fit("abc", 0).endswith("…（全文见画像）") or snap.fit("abc", 0) == "…（全文见画像）"
+    from unittest import mock
+
+    def head(brief, snapshot=None):
+        with mock.patch.object(snap, "command", return_value=json.dumps(brief, ensure_ascii=False)):
+            return snap.start_head("/r", 0, snapshot)
+
+    base = {"name": "one-x", "reason": "", "profile": "docs/p.md", "state": "状态" * 300, "docs": ["docs/a.md"]}
+    assert "告警：要点头" in head({**base, "profile": "docs/" + "p" * 960 + ".md"}), "a head over the limit is announced even when the mandatory lines fit"
+    assert "告警：必读部分已超过" in head({**base, "profile": "docs/" + "p" * 1600 + ".md"})
+    assert "告警" not in head(base) and len(head(base).partition("————")[0].encode()) <= 1500
+    assert "  上下文文档：" not in head({**base, "docs": 5}), "a malformed docs field is ignored, not a crash"
+    assert "告警：session_context.py --brief 返回的不是对象" in head([1, 2])
+    assert "未识别" in head({"name": None, "reason": "未识别本会话", "profile": None, "state": "", "docs": []})
+    with mock.patch.object(snap, "command", side_effect=snap.SnapshotError("x")):
+        assert "告警：session_context.py --brief 不可用" in snap.start_head("/r", 0, None)
 
 
 def self_test():

@@ -247,7 +247,7 @@ def latest(directory, root, session, deadline=None):
 
 
 HEAD_LIMIT = 1500
-HEAD_RULE = "硬规则：全程中文；守护/钩子代码自己写；代码 PR 先 opus 首轮复审；细则见下面输出里的 SESSION_PLAYBOOK 摘要段。"
+HEAD_RULE = "硬规则：全程中文；钩子、并发、文本解析类守护代码自己写；代码 PR 先 opus 首轮复审；细则见下面输出里的 SESSION_PLAYBOOK 摘要段。"
 
 
 def fit(text, room):
@@ -276,7 +276,7 @@ def start_head(root, deadline, snapshot):
     warning = ""
     if used > HEAD_LIMIT:
         warning = f"\n【开场摘要】告警：必读部分已超过 {HEAD_LIMIT} 字节（{used}），宿主预览会截断它；完整内容见下面的输出。"
-    docs = [str(doc) for doc in brief.get("docs") or []]
+    docs = [str(doc) for doc in brief["docs"]] if isinstance(brief.get("docs"), list) else []
     lines = mandatory[:]
     state = str(brief.get("state") or "")
     if state:
@@ -286,14 +286,17 @@ def start_head(root, deadline, snapshot):
     kept = 0
     for doc in docs:
         item = f"  上下文文档：{doc}"
-        if used + len(item.encode()) + 1 > HEAD_LIMIT - 60 and kept < len(docs):
+        if used + len(item.encode()) + 1 > HEAD_LIMIT - 60:
             break
         lines.insert(len(lines) - 1, item)
         used += len(item.encode()) + 1
         kept += 1
     if kept < len(docs):
         lines.insert(len(lines) - 1, f"  另有 {len(docs) - kept} 个上下文文档，见画像的「上下文文档」一节")
-    return "\n".join(lines) + warning + "\n\n———— 以下是完整内容（规则摘要、画像、上下文文档、交接快照） ————"
+    head = "\n".join(lines)
+    if not warning and len(head.encode()) > HEAD_LIMIT:
+        warning = f"\n【开场摘要】告警：要点头 {len(head.encode())} 字节，超过 {HEAD_LIMIT}，宿主预览会截断它的后部；完整内容见下面的输出。"
+    return head + warning + "\n\n———— 以下是完整内容（规则摘要、画像、上下文文档、交接快照） ————"
 
 
 def start(payload):
@@ -301,13 +304,21 @@ def start(payload):
     cwd = payload.get("cwd") or os.getcwd()
     root = git(cwd, deadline, "rev-parse", "--show-toplevel")
     hooks = Path(root) / "scripts/hooks"
-    snapshot = latest(Path(os.environ["HOME"]) / ".modernize/psa/handoff", root, payload.get("session_id"), deadline)
-    print(start_head(root, deadline, snapshot))
+    try:
+        snapshot, snapshot_problem = latest(Path(os.environ["HOME"]) / ".modernize/psa/handoff", root, payload.get("session_id"), deadline), ""
+    except SnapshotError:
+        snapshot, snapshot_problem = None, "【交接快照】告警：读取交接快照超时或失败；请核对当前实况。"
+    try:
+        print(start_head(root, deadline, snapshot))
+    except Exception as error:
+        print(f"【开场摘要】告警：生成要点头失败（{type(error).__name__}）；完整内容见下面的输出。")
     for script, args in [("playbook_digest.py", [str(Path(root) / "docs/modernization/SESSION_PLAYBOOK.md")]), ("session_context.py", [root])]:
         try:
             print(command([sys.executable, "-I", str(hooks / script), *args], root, deadline, timeout=5))
         except SnapshotError:
             print(f"【交接快照】告警：{script} 不可用；请手动读取上下文。")
+    if snapshot_problem:
+        print(snapshot_problem)
     if not snapshot:
         return
     path, text = snapshot
