@@ -69,3 +69,15 @@
 提醒（不阻断）：视图用 `security_invoker` 需 PostgreSQL 15 及以上，请迁移脚本验证实例版本（INFRA 记录）；种子版本的确认人由谁担任交 one-platform-file 与用户定。
 
 **P1–P3 答复**：P1 可行——一次性链接与平台模块的状态转换按 `actor_type = SYSTEM` + `system-actors.txt` 登记系统操作者（`STATE_TRANSITIONS_DESIGN` 第 83 行同款），上传主体本身另存在 `stored_files` 的主体列，不丢身份。P2 同意，写进 api 契约注释。P3 同意：业务日按 `Asia/Shanghai`，与 ADR-0044 一致；触发器里写死时区，如将来多时区再迁移。
+
+## 第三轮（2026-10-21，复核 `claude/one-platform-file` @d196bd31 的草案第 3 版）
+
+N1–N3 逐项核过：`platform_file.state_transitions` 的 DDL 与 `STATE_TRANSITIONS_DESIGN.md` v2 模板逐行比对一致；四个状态列各有流转清单，终态写明；三个系统操作者（一次性链接持有人、平台模块调用、临时区到期作业）给了 UUIDv5，待写入 `system-actors.txt`；版本表加了 `BEFORE INSERT` 只许 `PENDING`，种子也先待确认；注册表根表 `CONFIG_VERSIONED` + `versions_table`、版本表 `AGGREGATE_CHILD`；PG15+ 已注明。
+
+数据设计：通过（one-data，2026-10-21，依据 DATA_DESIGN_GATE 表结构草案项、ADR-0058、STATE_TRANSITIONS_DESIGN v2、SESSION_PLAYBOOK §14.1 D1–D19 逐项核对草案第 3 版）。
+
+范围与后续（均为表结构 PR 阶段的实际 diff 复核项，不是对本次签发的条件）：
+1. 草案未在数据库上执行，语法与触发器行为以 Testcontainers 结果为准；实际迁移脚本出来后我复核实际表结构 diff。
+2. 注册表行：`preservation_category_versions` 要写 `mutability: CONDITIONAL_UPDATE`（仅确认步），扫描脚本 M6（#504）按此判定。
+3. `system-actors.txt` 三行与守护测试随表结构 PR 提交；`data-classification.txt` 十二张表分级（见草案第 9 节）。
+4. 签发只覆盖本草案的数据设计；单元 6 的集成测试（改键与插关联顺序、触发器非法流转被拒）由实现方补。
