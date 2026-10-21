@@ -27,14 +27,14 @@ CREATE TABLE <schema>.state_transitions (
     created_at              timestamptz NOT NULL,
     updated_at              timestamptz NOT NULL,
     CONSTRAINT pk_state_transitions PRIMARY KEY (id),
-    CONSTRAINT uk_state_transitions_aggregate_id_sequence_no UNIQUE (aggregate_id, transition_sequence_number),
+    CONSTRAINT uk_state_transitions_aggregate_id_transition_sequence_number UNIQUE (aggregate_id, transition_sequence_number),
     CONSTRAINT uk_state_transitions_id_aggregate_id UNIQUE (id, aggregate_id),
     CONSTRAINT fk_state_transitions_reverses_transition_id FOREIGN KEY (reverses_transition_id, aggregate_id)
         REFERENCES <schema>.state_transitions (id, aggregate_id) ON DELETE RESTRICT,
-    CONSTRAINT ck_state_transitions_aggregate_type CHECK (aggregate_type_code ~ '^[A-Z][A-Za-z0-9]{0,99}$'),
-    CONSTRAINT ck_state_transitions_from_state CHECK (from_status IS NULL OR from_status ~ '^[A-Z][A-Z0-9_]{0,49}$'),
-    CONSTRAINT ck_state_transitions_to_state CHECK (to_status ~ '^[A-Z][A-Z0-9_]{0,49}$'),
-    CONSTRAINT ck_state_transitions_sequence_no CHECK (transition_sequence_number >= 0),
+    CONSTRAINT ck_state_transitions_aggregate_type_code CHECK (aggregate_type_code ~ '^[A-Z][A-Za-z0-9]{0,99}$'),
+    CONSTRAINT ck_state_transitions_from_status CHECK (from_status IS NULL OR from_status ~ '^[A-Z][A-Z0-9_]{0,49}$'),
+    CONSTRAINT ck_state_transitions_to_status CHECK (to_status ~ '^[A-Z][A-Z0-9_]{0,49}$'),
+    CONSTRAINT ck_state_transitions_transition_sequence_number CHECK (transition_sequence_number >= 0),
     CONSTRAINT ck_state_transitions_states_differ CHECK (from_status IS DISTINCT FROM to_status),
     CONSTRAINT ck_state_transitions_first CHECK (from_status IS NOT NULL OR cause_kind = 'MIGRATION' OR transition_sequence_number <= 1),
     CONSTRAINT ck_state_transitions_actor_type CHECK (actor_type IN ('USER', 'SYSTEM')),
@@ -76,7 +76,7 @@ CREATE TRIGGER tg_state_transitions_append_only_truncate BEFORE TRUNCATE ON <sch
 | ADR 条款 | 落点 |
 |---|---|
 | 1 主键 UUIDv7 | `id` |
-| 1 aggregate_type_code / aggregate_id / transition_sequence_number，(aggregate_id, transition_sequence_number) 唯一 | 同名列与 `uk_…_aggregate_id_sequence_no` |
+| 1 aggregate_type_code / aggregate_id / transition_sequence_number，(aggregate_id, transition_sequence_number) 唯一 | 同名列与 `uk_…_aggregate_id_transition_sequence_number` |
 | 1 from_status（新建为空）、to_status | 两列；格式 CHECK 只定形不定值 |
 | 1 occurred_on_date、recorded_at | 两列；`recorded_at` 为注入时钟参数 |
 | 1 legal_entity_id | 可空；是否必填按聚合类型在注册表登记并由守护核（第 6 节 S5） |
