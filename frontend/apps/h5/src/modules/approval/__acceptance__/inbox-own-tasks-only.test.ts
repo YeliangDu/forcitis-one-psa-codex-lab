@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { describe, expect, it } from 'vitest';
 
 // IMP-1021-PAR-01: the h5 inbox shows this system's approval tasks only. Judged on the source text of the h5 approval module and
@@ -18,6 +19,8 @@ describe('F-IMP1021 收件箱只含本系统审批待办（前端 h5）', () => 
   it('F-IMP1021-31 apps/h5/README.md 的页面说明不再写合并老系统待办', () => {
     const files = Object.entries(readme);
     expect(files.length, 'h5 README was found').toBe(1);
-    expect(files[0][1]).not.toMatch(/老系统|legacy/i);
+    const text = files[0]?.[1];
+    expect(typeof text, 'h5 README text was read').toBe('string');
+    expect(text ?? '').not.toMatch(/老系统|legacy/i);
   });
 });

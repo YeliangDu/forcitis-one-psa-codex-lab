@@ -46,9 +46,9 @@ describe('F-IMP1021 收件箱只含本系统审批待办（前端 web 与共享�
 
   it('F-IMP1021-22 生成的 api 类型里 InboxResponse 没有 legacyCount、legacyAvailable，InboxItemResponse 没有 source、detailUrl', () => {
     const schema = Object.values(generatedSchema)[0];
-    expect(schema, 'generated schema.ts was found').toBeDefined();
-    const response = typeBlock(schema, 'InboxResponse');
-    const item = typeBlock(schema, 'InboxItemResponse');
+    expect(typeof schema, 'generated schema.ts was found').toBe('string');
+    const response = typeBlock(schema ?? '', 'InboxResponse');
+    const item = typeBlock(schema ?? '', 'InboxItemResponse');
     expect(response).toContain('newCount');
     expect(response).not.toMatch(/legacyCount|legacyAvailable/);
     expect(item).toContain('taskId');
@@ -57,9 +57,9 @@ describe('F-IMP1021 收件箱只含本系统审批待办（前端 web 与共享�
 
   it('F-IMP1021-23 生成的 zod 校验里 InboxResponseSchema、InboxItemResponseSchema 没有老待办字段', () => {
     const validators = Object.values(generatedValidators)[0];
-    expect(validators, 'generated validators.ts was found').toBeDefined();
-    const response = zodBlock(validators, 'InboxResponse');
-    const item = zodBlock(validators, 'InboxItemResponse');
+    expect(typeof validators, 'generated validators.ts was found').toBe('string');
+    const response = zodBlock(validators ?? '', 'InboxResponse');
+    const item = zodBlock(validators ?? '', 'InboxItemResponse');
     expect(response).toContain('newCount');
     expect(response).not.toMatch(/legacyCount|legacyAvailable/);
     expect(item).toContain('taskId');
