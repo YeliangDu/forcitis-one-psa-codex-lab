@@ -1,6 +1,6 @@
 # 文件服务（platform.file）准入判断
 
-状态：评审中｜2026-10-21｜负责：one-architecture
+状态：已确认｜2026-10-21｜负责：one-architecture
 
 依据：ADR-0066 决定 6（准入九条）、决定 7（待准入到期条件）。触发：B-31 行政事务（organization.administration，one-1a-admin）2026-10-21 开工，是文件服务的首个使用 BC，到期条件「首个使用 BC 开工」成立（one-coordinator 2026-10-21 转达）。判定分工按决定 6：本会话写适配判断，one-coordinator 核对是否齐全，用户经 ADR 批准。
 
@@ -18,7 +18,7 @@
 | 6 | 用语已登记 | 守护（G37） | 满足，主要概念待评审 | 模块名已在 `glossary/bcs.yaml:248`（文件服务，英文名 FileService，用户 2026-10-21 同意）；主要概念 46 条已登记为提议术语 `backend/glossary/proposed/platform-file.yaml`、`platform-file-areas.yaml`，待 one-glossary 评审；`GlossaryTest`（G37）在 main 上通过。 |
 | 7 | 有 owner 与守护 | 守护 | 满足 | `contexts.yaml` 的 `owner: one-platform-file`，画像 `sessions/one-platform-file.md`；守护 `platform/file/guard/PlatformFileContentCallersTest`（只有平台模块能读内容）。 |
 | 8 | 有已入库的 ADR | 过渡条款视同满足 | 满足 | ADR-0060、0061、0070 均已采纳并入库；`contexts.yaml` 的 `adr` 字段已列。 |
-| 9 | 与第一个使用方同批建造，不预留 | 人判（CS-1.8） | 满足写入、关联、下载、检测；`FileImports` 视 B-31 迁入范围而定 | one-platform-file 已确认本批只建写入、关联、下载、检测（含 6b、5a、7），外部访问与迁入导入不提前建（one-coordinator 2026-10-21 转达）；one-1a-admin 的确认待到。**`FileImports` 判定**：其唯一调用方是迁入编排（接口注释与 ADR-0060 决定 7）。契约先行（CS-1.10）只许契约早于本批实现，不许为后续批次的使用方先放接口；第一个使用方不在本批，即使无实现也属预留。故：若 B-31 本批经迁入编排导入历史用印文件（由 B-31 迁入规格定，ADR-0060 决定 7 第 2 条），使用方同批，保留；否则由 one-platform-file 撤去 `FileImports` 及 `ImportRequest`、`ImportResult`、`ImportRejectionReason`，并同步 `PlatformFileContentCallersTest` 中的引用，待迁入编排开工时同批再建。不采用「标为待第一个使用方」：接口仍在 api 中，不能解决预留。 |
+| 9 | 与第一个使用方同批建造，不预留 | 人判（CS-1.8） | 满足 | one-platform-file 确认本批建写入、关联、下载、检测（含 6b、5a、7），不建外部访问；one-1a-admin 确认（one-coordinator 2026-10-21 转达）：B-31 只用写入、绑定、下载、检测，并且要导入历史用印及附件（设计 §1.2、§7.10 迁入适配器，ADR-0064 决定 3 第 3 条首版本回溯到迁入范围起点），7.10 同属先行上线范围。**`FileImports` 判定**：「同批」以首个使用方的上线范围为准，不以单张施工卡为准——同一使用 BC、同一上线范围内的后续卡算同批，所以保留；它的实现须随 B-31 的 7.10 落地，先行上线前未落地则按预留处理、撤去。外部访问稿的接口不在本批，不得提前加入 api。 |
 
 ## 结论
 
@@ -26,6 +26,6 @@
 
 1. 第 2 条：已闭合（opus 复审有条件满足，措辞已改）；实现落地时再复审一次。
 2. 第 6 条：46 条提议术语待 one-glossary 评审。机器守护已通过，评审不阻塞准入，评审结论改名时随改。
-3. 第 9 条：one-platform-file 已确认范围；待 one-1a-admin 确认 B-31 本批是否经迁入编排导入历史用印文件，据此保留或撤去 `FileImports`。
+3. 第 9 条：已闭合（B-31 先行上线范围含历史用印迁入，`FileImports` 保留，随 7.10 落地）。
 
-这三项闭合后，建议把 `contexts.yaml` 中文件服务的 `admission` 改为「已准入」。另提请 one-coordinator 注意：B-31 的 `organization.administration` 尚未在 `contexts.yaml` 登记，按该文件头部「新 BC 先在此登记再建模块」，须在 B-31 建模块前补登。
+第 2、9 条已闭合，第 6 条的术语评审不阻塞准入；`contexts.yaml` 中文件服务的 `admission` 已改为「已准入」（2026-10-21）。另提请 one-coordinator 注意：B-31 的 `organization.administration` 尚未在 `contexts.yaml` 登记，按该文件头部「新 BC 先在此登记再建模块」，须在 B-31 建模块前补登。
