@@ -1,10 +1,10 @@
-package com.forcitis.one.platform.file.infrastructure.staging;
+package com.forcitis.one.platform.file.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.platform.file.domain.ScanStaging;
-import com.forcitis.one.platform.file.domain.StagedContent;
+import com.forcitis.one.platform.file.domain.StagingContent;
 import java.io.ByteArrayInputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,7 +31,7 @@ class LocalScanStagingTest {
     @Test
     void contentIsWrittenOnceWithItsSha256AndOnlyTheGroupCanReadIt() throws Exception {
         LocalScanStaging staging = staging(100);
-        StagedContent staged = staging.receive(new ByteArrayInputStream("content".getBytes()));
+        StagingContent staged = staging.write(new ByteArrayInputStream("content".getBytes()));
         assertThat(staged.contentHash().value()).isEqualTo("ed7002b439e9ac845f22357d822bac1444730fbdb6016d3ec9432297b9ec9f73");
         assertThat(staged.size()).isEqualTo(7);
         assertThat(staged.path().getParent()).isEqualTo(staging.instanceDirectory());
@@ -44,7 +44,7 @@ class LocalScanStagingTest {
     @Test
     void contentBeyondTheLimitLeavesNothingBehind() {
         LocalScanStaging staging = staging(4);
-        assertThatThrownBy(() -> staging.receive(new ByteArrayInputStream("content".getBytes()))).isInstanceOf(ScanStaging.TooLarge.class);
+        assertThatThrownBy(() -> staging.write(new ByteArrayInputStream("content".getBytes()))).isInstanceOf(ScanStaging.TooLarge.class);
         assertThat(staging.instanceDirectory()).isEmptyDirectory();
     }
 
@@ -53,8 +53,8 @@ class LocalScanStagingTest {
         LocalScanStaging first = staging(100);
         LocalScanStaging second = staging(100);
         assertThat(first.instanceDirectory()).isNotEqualTo(second.instanceDirectory());
-        StagedContent old = first.receive(new ByteArrayInputStream("old".getBytes()));
-        StagedContent fresh = second.receive(new ByteArrayInputStream("fresh".getBytes()));
+        StagingContent old = first.write(new ByteArrayInputStream("old".getBytes()));
+        StagingContent fresh = second.write(new ByteArrayInputStream("fresh".getBytes()));
         Files.setLastModifiedTime(old.path(), FileTime.from(NOW.minus(Duration.ofHours(2))));
         Files.setLastModifiedTime(fresh.path(), FileTime.from(NOW.minus(Duration.ofMinutes(5))));
         assertThat(second.sweep(Duration.ofHours(1))).isEqualTo(1);

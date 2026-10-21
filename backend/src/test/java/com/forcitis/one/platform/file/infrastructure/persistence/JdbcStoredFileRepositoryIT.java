@@ -35,7 +35,7 @@ class JdbcStoredFileRepositoryIT {
         FileId id = new FileId(UUID.randomUUID());
         String key = status == FileStatus.QUARANTINED ? "dev/quarantine/" + id : "dev/files/2026/10/" + id;
         return new NewStoredFile(id, key, new ContentHash(hash), 7, "application/pdf", uploader, status, false, lineage, "ClamAV 1.4.1", "27435",
-                status == FileStatus.QUARANTINED ? "Eicar-Signature" : null, false, "合同.pdf", AT, UUID.randomUUID());
+                status == FileStatus.QUARANTINED ? "Eicar-Signature" : null, false, "合同.pdf", AT);
     }
 
     @Test
@@ -71,7 +71,7 @@ class JdbcStoredFileRepositoryIT {
         String hash = "e".repeat(64);
         NewStoredFile quarantined = file(new FileSubject(FileSubjectKind.USER, USER.toString()), FileStatus.QUARANTINED, new Lineage.FirstVersion(), hash);
         files.insert(quarantined);
-        assertThat(files.isExempted(new ContentHash(hash))).isFalse();
+        assertThat(files.hasScanException(new ContentHash(hash))).isFalse();
         UUID judgment = UUID.randomUUID();
         jdbc.sql("insert into platform_file.false_positive_judgments (false_positive_judgment_id, stored_file_id, content_hash, judgment_status, judgment_reason,"
                 + " judged_by, judged_at, created_at, updated_at) values (?, ?, ?, 'PENDING_REVIEW', '误报', ?, now(), now(), now())")
@@ -80,10 +80,10 @@ class JdbcStoredFileRepositoryIT {
                 + " where false_positive_judgment_id = ?").params(UUID.randomUUID(), judgment).update();
         jdbc.sql("insert into platform_file.scan_exceptions (scan_exception_id, content_hash, false_positive_judgment_id, judgment_status, added_at, created_at,"
                 + " updated_at) values (?, ?, ?, 'CONFIRMED', now(), now(), now())").params(UUID.randomUUID(), hash, judgment).update();
-        assertThat(files.isExempted(new ContentHash(hash))).isTrue();
+        assertThat(files.hasScanException(new ContentHash(hash))).isTrue();
         jdbc.sql("insert into platform_file.scan_exception_revocations (scan_exception_revocation_id, content_hash, revocation_reason, revoked_by, confirmed_by,"
                 + " revoked_at, created_at, updated_at) values (?, ?, '误判', ?, ?, now(), now(), now())")
                 .params(UUID.randomUUID(), hash, USER, UUID.randomUUID()).update();
-        assertThat(files.isExempted(new ContentHash(hash))).isFalse();
+        assertThat(files.hasScanException(new ContentHash(hash))).isFalse();
     }
 }

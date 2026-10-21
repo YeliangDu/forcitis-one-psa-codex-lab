@@ -489,7 +489,7 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: threat_name
+- id: stored_file_threat_name
   zh: 病毒名
   en: ThreatName
   snake: threat_name

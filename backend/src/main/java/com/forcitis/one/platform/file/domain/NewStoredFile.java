@@ -7,12 +7,11 @@ import com.forcitis.one.platform.file.api.FileSubject;
 import com.forcitis.one.platform.file.api.Lineage;
 import java.time.Instant;
 import java.util.Objects;
-import java.util.UUID;
 
 /** A file row as it is written once the scan decided (ADR-0070 section 2); threatName only for QUARANTINED or a release by exception. */
 public record NewStoredFile(FileId id, String objectKey, ContentHash contentHash, long size, String mediaType, FileSubject uploader,
                             FileStatus status, boolean containsMacros, Lineage lineage, String engineVersion, String definitionsVersion,
-                            String threatName, boolean releasedByException, String originalName, Instant storedAt, UUID commandId) {
+                            String threatName, boolean releasedByException, String originalName, Instant storedAt) {
 
     public NewStoredFile {
         Objects.requireNonNull(id, "id");
@@ -26,7 +25,6 @@ public record NewStoredFile(FileId id, String objectKey, ContentHash contentHash
         Objects.requireNonNull(definitionsVersion, "definitionsVersion");
         Objects.requireNonNull(originalName, "originalName");
         Objects.requireNonNull(storedAt, "storedAt");
-        Objects.requireNonNull(commandId, "commandId");
         if (status != FileStatus.AVAILABLE && status != FileStatus.QUARANTINED) {
             throw new IllegalArgumentException("a file starts AVAILABLE or QUARANTINED");
         }

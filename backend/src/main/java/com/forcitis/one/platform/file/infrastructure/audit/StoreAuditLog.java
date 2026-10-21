@@ -27,8 +27,12 @@ class StoreAuditLog implements StoreAudit {
 
     @Override
     public void stored(NewStoredFile file) {
-        audit.record(new AuditEntry(file.releasedByException() ? "platform.file.stored-file.released-by-exception" : "platform.file.stored-file.stored",
-                actor(file.uploader()), null, AuditSubject.of(AuditSubjectKind.STORED_FILE, file.id().value()), describe(file)));
+        AuditSubject subject = AuditSubject.of(AuditSubjectKind.STORED_FILE, file.id().value());
+        if (file.releasedByException()) {
+            audit.record(new AuditEntry("platform.file.stored-file.released-by-exception", actor(file.uploader()), null, subject, describe(file)));
+        } else {
+            audit.record(new AuditEntry("platform.file.stored-file.stored", actor(file.uploader()), null, subject, describe(file)));
+        }
     }
 
     @Override

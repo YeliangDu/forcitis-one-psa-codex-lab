@@ -6,7 +6,6 @@ import com.forcitis.one.platform.file.application.StoreContent;
 import com.forcitis.one.platform.file.domain.ContentChecks;
 import com.forcitis.one.platform.file.domain.StoreAudit;
 import com.forcitis.one.platform.file.domain.StoredFileRepository;
-import com.forcitis.one.platform.file.infrastructure.staging.LocalScanStaging;
 import com.forcitis.one.platform.integration.api.BusinessFileStore;
 import com.forcitis.one.platform.integration.api.MalwareScanner;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -20,7 +19,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * The scanner and the bucket are plain constructor dependencies, never optional: with the file service on and either missing, the
@@ -28,7 +26,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(FileServiceProperties.class)
-@ConditionalOnProperty(prefix = "forcitis.platform.file", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "forcitis.platform.file.store", name = "enabled", havingValue = "true")
 class FileServiceConfiguration {
 
     @Bean
@@ -41,7 +39,7 @@ class FileServiceConfiguration {
                               StoredFileRepository files, StoreAudit audit, FileServiceProperties properties, IdGenerator ids, Clock clock,
                               PlatformTransactionManager transactions, MeterRegistry meters) {
         return new StoreContent(staging, scanner, checks, store, files, audit, new FileKeys(properties.environmentPrefix()),
-                new HashSet<>(properties.allowedMediaTypes()), ids, clock, new TransactionTemplate(transactions), meters);
+                new HashSet<>(properties.allowedMediaTypes()), ids, clock, transactions, meters);
     }
 
     /**

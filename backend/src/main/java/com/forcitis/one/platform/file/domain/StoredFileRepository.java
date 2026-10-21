@@ -12,5 +12,5 @@ public interface StoredFileRepository {
     Optional<LineageTarget> lineageTarget(FileId file);
 
     /** On the false-positive exception list and not revoked (ADR-0070 section 6 item 3). */
-    boolean isExempted(ContentHash contentHash);
+    boolean hasScanException(ContentHash contentHash);
 }

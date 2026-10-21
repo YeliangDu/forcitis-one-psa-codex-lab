@@ -6,10 +6,10 @@ import java.io.InputStream;
 public interface ScanStaging {
 
     /** Writes the stream once while hashing it, then syncs it to disk; more than the size limit throws TooLarge and leaves nothing. */
-    StagedContent receive(InputStream content) throws TooLarge;
+    StagingContent write(InputStream content) throws TooLarge;
 
     /** Every exit of an upload, failures included, ends here. */
-    void delete(StagedContent staged);
+    void delete(StagingContent staged);
 
     final class TooLarge extends Exception {
         public TooLarge(long limit) {

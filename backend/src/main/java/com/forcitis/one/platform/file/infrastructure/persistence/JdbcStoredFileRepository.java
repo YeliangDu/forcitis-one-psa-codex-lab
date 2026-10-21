@@ -64,7 +64,8 @@ class JdbcStoredFileRepository implements StoredFileRepository {
                         """)
                 .param("id", file.id().value()).param("name", file.originalName()).param("at", at)
                 .update();
-        UUID correlation = WorkContext.correlationId().orElse(file.commandId());
+        UUID command = ids.next();
+        UUID correlation = WorkContext.correlationId().orElse(command);
         jdbc.sql("""
                         insert into platform_file.state_transitions (id, aggregate_type_code, aggregate_id, sequence_number, from_status, to_status,
                             occurred_on_date, recorded_at, actor_type, actor_id, cause_kind, command_id, correlation_id, created_at, updated_at)
@@ -73,7 +74,7 @@ class JdbcStoredFileRepository implements StoredFileRepository {
                 .param("id", ids.next()).param("file", file.id().value()).param("status", file.status().name())
                 .param("day", zone.dateOf(file.storedAt())).param("at", at)
                 .param("actorType", uploader.kind() == FileSubjectKind.USER ? "USER" : "SYSTEM")
-                .param("actorId", actorId(uploader)).param("command", file.commandId()).param("correlation", correlation)
+                .param("actorId", actorId(uploader)).param("command", command).param("correlation", correlation)
                 .update();
     }
 
@@ -91,7 +92,7 @@ class JdbcStoredFileRepository implements StoredFileRepository {
     }
 
     @Override
-    public boolean isExempted(ContentHash contentHash) {
+    public boolean hasScanException(ContentHash contentHash) {
         return jdbc.sql("""
                         select exists (select 1 from platform_file.scan_exceptions e
                                         where e.content_hash = :hash

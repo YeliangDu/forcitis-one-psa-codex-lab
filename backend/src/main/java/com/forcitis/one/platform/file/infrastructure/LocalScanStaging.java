@@ -1,8 +1,8 @@
-package com.forcitis.one.platform.file.infrastructure.staging;
+package com.forcitis.one.platform.file.infrastructure;
 
 import com.forcitis.one.platform.file.api.ContentHash;
 import com.forcitis.one.platform.file.domain.ScanStaging;
-import com.forcitis.one.platform.file.domain.StagedContent;
+import com.forcitis.one.platform.file.domain.StagingContent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
  * clears another instance's files; old subdirectories are left to the age sweep. Files are readable by the group clamd shares and by
  * nobody else; operations make the root setgid to that group.
  */
-public final class LocalScanStaging implements ScanStaging {
+final class LocalScanStaging implements ScanStaging {
     private static final Logger LOG = LoggerFactory.getLogger(LocalScanStaging.class);
 
     private final Path root;
@@ -37,7 +37,7 @@ public final class LocalScanStaging implements ScanStaging {
     private final long maxBytes;
     private final Clock clock;
 
-    public LocalScanStaging(Path root, long maxBytes, Clock clock) {
+    LocalScanStaging(Path root, long maxBytes, Clock clock) {
         this.root = root;
         this.maxBytes = maxBytes;
         this.clock = clock;
@@ -50,7 +50,7 @@ public final class LocalScanStaging implements ScanStaging {
     }
 
     @Override
-    public StagedContent receive(InputStream content) throws TooLarge {
+    public StagingContent write(InputStream content) throws TooLarge {
         Path file = instance.resolve(UUID.randomUUID().toString());
         MessageDigest sha256 = sha256();
         long size = 0;
@@ -75,11 +75,11 @@ public final class LocalScanStaging implements ScanStaging {
             deleteQuietly(file);
             throw new UncheckedIOException("cannot write the upload to the scan staging directory", e);
         }
-        return new StagedContent(file, new ContentHash(HexFormat.of().formatHex(sha256.digest())), size);
+        return new StagingContent(file, new ContentHash(HexFormat.of().formatHex(sha256.digest())), size);
     }
 
     @Override
-    public void delete(StagedContent staged) {
+    public void delete(StagingContent staged) {
         try {
             Files.deleteIfExists(staged.path());
         } catch (IOException e) {
@@ -88,7 +88,7 @@ public final class LocalScanStaging implements ScanStaging {
     }
 
     /** Every instance sweeps all subdirectories, without a cluster lock (ADR-0070 section 3 item 3). Returns how many files it removed. */
-    public int sweep(Duration olderThan) {
+    int sweep(Duration olderThan) {
         Instant cutoff = clock.instant().minus(olderThan);
         int removed = 0;
         try (Stream<Path> files = Files.walk(root, 2)) {
@@ -106,7 +106,7 @@ public final class LocalScanStaging implements ScanStaging {
         return removed;
     }
 
-    public Path instanceDirectory() {
+    Path instanceDirectory() {
         return instance;
     }
 

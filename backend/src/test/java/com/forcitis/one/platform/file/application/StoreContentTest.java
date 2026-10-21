@@ -18,7 +18,7 @@ import com.forcitis.one.platform.file.domain.ContentFacts;
 import com.forcitis.one.platform.file.domain.LineageTarget;
 import com.forcitis.one.platform.file.domain.NewStoredFile;
 import com.forcitis.one.platform.file.domain.ScanStaging;
-import com.forcitis.one.platform.file.domain.StagedContent;
+import com.forcitis.one.platform.file.domain.StagingContent;
 import com.forcitis.one.platform.file.domain.StoreAudit;
 import com.forcitis.one.platform.file.domain.StoredFileRepository;
 import com.forcitis.one.platform.integration.api.BusinessFileStore;
@@ -47,7 +47,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.transaction.support.SimpleTransactionStatus;
-import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
 
 /** ADR-0070 section 2: what each decision of the malware gate does, and that the staged copy is gone on every exit. */
 class StoreContentTest {
@@ -57,8 +59,8 @@ class StoreContentTest {
     @TempDir
     Path directory;
 
-    final List<StagedContent> staged = new ArrayList<>();
-    final List<StagedContent> deleted = new ArrayList<>();
+    final List<StagingContent> staged = new ArrayList<>();
+    final List<StagingContent> deleted = new ArrayList<>();
     final List<StoredObjectKey> written = new ArrayList<>();
     final List<NewStoredFile> inserted = new ArrayList<>();
     final List<String> audited = new ArrayList<>();
@@ -74,12 +76,12 @@ class StoreContentTest {
 
     final ScanStaging staging = new ScanStaging() {
         @Override
-        public StagedContent receive(InputStream content) throws TooLarge {
+        public StagingContent write(InputStream content) throws TooLarge {
             if (tooLarge) {
                 throw new TooLarge(100);
             }
             try {
-                StagedContent s = new StagedContent(Files.write(directory.resolve("staged-" + staged.size()), content.readAllBytes()), HASH, 7);
+                StagingContent s = new StagingContent(Files.write(directory.resolve("staged-" + staged.size()), content.readAllBytes()), HASH, 7);
                 staged.add(s);
                 return s;
             } catch (java.io.IOException e) {
@@ -88,7 +90,7 @@ class StoreContentTest {
         }
 
         @Override
-        public void delete(StagedContent s) {
+        public void delete(StagingContent s) {
             deleted.add(s);
         }
     };
@@ -133,7 +135,7 @@ class StoreContentTest {
         }
 
         @Override
-        public boolean isExempted(ContentHash contentHash) {
+        public boolean hasScanException(ContentHash contentHash) {
             return exempted;
         }
     };
@@ -162,10 +164,18 @@ class StoreContentTest {
 
     private StoreContent gate() {
         AtomicLong next = new AtomicLong();
-        TransactionTemplate transaction = new TransactionTemplate() {
+        PlatformTransactionManager transaction = new PlatformTransactionManager() {
             @Override
-            public <T> T execute(org.springframework.transaction.support.TransactionCallback<T> action) {
-                return action.doInTransaction(new SimpleTransactionStatus());
+            public TransactionStatus getTransaction(TransactionDefinition definition) {
+                return new SimpleTransactionStatus();
+            }
+
+            @Override
+            public void commit(TransactionStatus status) {
+            }
+
+            @Override
+            public void rollback(TransactionStatus status) {
             }
         };
         return new StoreContent(staging, path -> {

@@ -11,11 +11,11 @@ import org.springframework.util.unit.DataSize;
  * Off until the malware gate is built and accepted (ADR-0070 migration item 2: no uploads before); once on, every value is required and a
  * missing one stops the start-up. maxFileSize is 100 MB by the user's decision and never above 2 GB, which ClamAV cannot scan.
  */
-@ConfigurationProperties("forcitis.platform.file")
+@ConfigurationProperties("forcitis.platform.file.store")
 record FileServiceProperties(@DefaultValue("false") boolean enabled, String environmentPrefix, DataSize maxFileSize, List<String> allowedMediaTypes,
                              Path stagingRoot, Duration stagingSweepAge, Duration stagingSweepInterval) {
 
-    static final String PREFIX = "forcitis.platform.file.";
+    static final String PREFIX = "forcitis.platform.file.store.";
     static final DataSize SCANNABLE = DataSize.ofGigabytes(2);
 
     FileServiceProperties {

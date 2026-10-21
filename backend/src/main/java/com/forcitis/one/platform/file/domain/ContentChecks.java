@@ -5,5 +5,5 @@ import java.nio.file.Path;
 public interface ContentChecks {
 
     /** Read only; anything it cannot tell for sure counts as containing macros. */
-    ContentFacts inspect(Path stagedFile);
+    ContentFacts check(Path stagedFile);
 }

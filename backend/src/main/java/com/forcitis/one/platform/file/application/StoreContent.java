@@ -15,7 +15,7 @@ import com.forcitis.one.platform.file.domain.ContentFacts;
 import com.forcitis.one.platform.file.domain.LineageTarget;
 import com.forcitis.one.platform.file.domain.NewStoredFile;
 import com.forcitis.one.platform.file.domain.ScanStaging;
-import com.forcitis.one.platform.file.domain.StagedContent;
+import com.forcitis.one.platform.file.domain.StagingContent;
 import com.forcitis.one.platform.file.domain.StoreAudit;
 import com.forcitis.one.platform.file.domain.StoredFileRepository;
 import com.forcitis.one.platform.integration.api.BusinessFileStore;
@@ -32,6 +32,7 @@ import java.util.Locale;
 import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -57,7 +58,7 @@ public final class StoreContent {
     private final Timer scanDuration;
 
     public StoreContent(ScanStaging staging, MalwareScanner scanner, ContentChecks checks, BusinessFileStore store, StoredFileRepository files,
-                        StoreAudit audit, FileKeys keys, Set<String> allowedMediaTypes, IdGenerator ids, Clock clock, TransactionTemplate transaction,
+                        StoreAudit audit, FileKeys keys, Set<String> allowedMediaTypes, IdGenerator ids, Clock clock, PlatformTransactionManager transactions,
                         MeterRegistry meters) {
         this.staging = staging;
         this.scanner = scanner;
@@ -69,17 +70,17 @@ public final class StoreContent {
         this.allowedMediaTypes = Set.copyOf(allowedMediaTypes);
         this.ids = ids;
         this.clock = clock;
-        this.transaction = transaction;
+        this.transaction = new TransactionTemplate(transactions);
         this.meters = meters;
-        this.scanDuration = Timer.builder("forcitis.platform.file.scan.duration").register(meters);
+        this.scanDuration = Timer.builder("forcitis.platform.file.scans").register(meters);
     }
 
     public StoreResult store(StoreRequest request) {
         requireSubject(request.uploader());
         requireLineage(request.lineage());
-        StagedContent staged;
+        StagingContent staged;
         try {
-            staged = staging.receive(request.content());
+            staged = staging.write(request.content());
         } catch (ScanStaging.TooLarge e) {
             count("too_large");
             throw FileError.PLATFORM_FILE_TOO_LARGE.refusal(e.getMessage());
@@ -91,9 +92,9 @@ public final class StoreContent {
         }
     }
 
-    private StoreResult decide(StoreRequest request, StagedContent staged) {
+    private StoreResult decide(StoreRequest request, StagingContent staged) {
         ScanVerdict verdict = scan(request.uploader(), staged);
-        ContentFacts facts = checks.inspect(staged.path());
+        ContentFacts facts = checks.check(staged.path());
         if (verdict.outcome() == ScanOutcome.ENCRYPTED || facts.encrypted()) {
             audit.encryptedRefused(request.uploader(), staged.contentHash(), request.originalName());
             count("encrypted");
@@ -106,7 +107,7 @@ public final class StoreContent {
         FileId id = new FileId(ids.next());
         Instant now = clock.instant();
         boolean infected = verdict.outcome() == ScanOutcome.INFECTED;
-        boolean released = infected && files.isExempted(staged.contentHash());
+        boolean released = infected && files.hasScanException(staged.contentHash());
         if (infected && !released) {
             NewStoredFile file = file(request, staged, facts, verdict, id, keys.quarantine(id), FileStatus.QUARANTINED, false, now);
             write(request.uploader(), staged, keys.quarantine(id));
@@ -128,7 +129,7 @@ public final class StoreContent {
         return result(file);
     }
 
-    private ScanVerdict scan(FileSubject uploader, StagedContent staged) {
+    private ScanVerdict scan(FileSubject uploader, StagingContent staged) {
         Timer.Sample sample = Timer.start(meters);
         try {
             return scanner.scan(staged.path());
@@ -139,7 +140,7 @@ public final class StoreContent {
         }
     }
 
-    private void write(FileSubject uploader, StagedContent staged, StoredObjectKey key) {
+    private void write(FileSubject uploader, StagingContent staged, StoredObjectKey key) {
         try {
             store.put(key, staged.path(), staged.contentHash().value(), staged.size());
         } catch (ExternalSystemUnavailableException e) {
@@ -147,7 +148,7 @@ public final class StoreContent {
         }
     }
 
-    private DomainException unavailable(FileSubject uploader, StagedContent staged, String reason) {
+    private DomainException unavailable(FileSubject uploader, StagingContent staged, String reason) {
         audit.unavailable(uploader, staged.contentHash(), reason);
         LOG.error("ALERT file upload refused, the malware gate is unavailable: {}", reason);
         count("unavailable");
@@ -188,12 +189,12 @@ public final class StoreContent {
         return target;
     }
 
-    private NewStoredFile file(StoreRequest request, StagedContent staged, ContentFacts facts, ScanVerdict verdict, FileId id, StoredObjectKey key,
+    private NewStoredFile file(StoreRequest request, StagingContent staged, ContentFacts facts, ScanVerdict verdict, FileId id, StoredObjectKey key,
                                FileStatus status, boolean released, Instant now) {
         String threat = status == FileStatus.QUARANTINED || released ? verdict.threatName() : null;
         return new NewStoredFile(id, key.value(), staged.contentHash(), staged.size(), facts.mediaType(), request.uploader(), status,
                 facts.containsMacros(), request.lineage(), verdict.engineVersion(), verdict.definitionsVersion(), threat, released,
-                request.originalName(), now, ids.next());
+                request.originalName(), now);
     }
 
     private static StoreResult result(NewStoredFile file) {
