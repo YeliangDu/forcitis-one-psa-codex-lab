@@ -60,4 +60,4 @@
 
 ## 当前状态
 
-2026-10-17 13:25+02:00 rc.6 已装 dev 并授完角色（用户本人持 super_admin、process_administrator、org_data_admin；单人运维模式开），此后 dev 暂停，待用户明确恢复；暂停项与回读线索见 OPS_CONTEXT「暂停项」。取证、部署不交 Codex。C-14 已完成。
+2026-10-21 13:30+02:00 交接：dev 在 rc.6 并授完角色；D 线恢复（用户 2026-10-20 采纳开发主线），本日已出生产与演练评估、持续成本、恶意文件检测候选与 ClamAV 实施卡、NAS+WORM 估价、INFRA_RUNBOOK 对齐 ADR-0055、日历审计与投产日历表；RDS 已续 1 个月（自动续费关，12-01 提醒报下月续费方案）。待触发：A 线 #489 与 F 合入后出新 rc 并重建 dev；B、C 不下单（条件见 OPS_CONTEXT）；ClamAV 测扫描 P95；c14_run 自测与 OPS-007。取证、部署不交 Codex。细节见 OPS_CONTEXT「交接」。
