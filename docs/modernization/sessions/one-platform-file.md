@@ -43,7 +43,11 @@
 ## 上下文文档
 
 - `docs/modernization/COORDINATOR_LEDGER.md`
-- `docs/modernization/adr/src/ADR-0060.md`、`ADR-0061.md`、`ADR-0064.md`、`ADR-0066.md`、`ADR-0067.md`
+- `docs/modernization/adr/src/ADR-0060.md`
+- `docs/modernization/adr/src/ADR-0061.md`
+- `docs/modernization/adr/src/ADR-0064.md`
+- `docs/modernization/adr/src/ADR-0066.md`
+- `docs/modernization/adr/src/ADR-0067.md`
 
 ## 交接条件
 
