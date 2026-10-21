@@ -100,3 +100,22 @@ N1–N3 逐项核过：`platform_file.state_transitions` 的 DDL 与 `STATE_TRAN
 4. 其余补充（判定与读取申请插入只许初始态、待确认版本不得写到期日、`FOR NO KEY UPDATE`、`read_at ≥ decided_at`、视图 REVOKE 写权限）：同意，属于收紧。
 
 数据设计：通过（one-data，2026-10-21，依据第 5 轮三处偏差逐项核对；ADR-0043 第 50 行、ADR-0058、DATA_DESIGN_GATE）。实际表结构 diff 出来仍复核，命名改名（`access_level_code`、`personal_information_*`、`preservation_sequence_number`、`*_version_code`、`decision_ref_key`）一并看。
+
+## 第六轮（2026-10-21，复核表结构 PR #521 @5bb81155 的实际表结构 diff）
+
+对象：`V20261021120000__platform_file_baseline.sql`（716 行，十二张表加一个视图）、`data-access-registry.yaml` 十三行、`data-classification.txt` 六行、`system-actors.txt` 三行、授权脚本、`FileServiceSchemaIT`。逐表对照第 4 版签发稿与第 5 轮偏差：
+
+**对得上的**：十二张表的列、具名约束、复合外键（判定 → 存储文件三列、例外 → 判定三列、撤销 → 例外）、主体拆列且按 kind 恰好一个非空、`object_key` 建行写定且触发器禁改、去标识固定占位值、版本表根表 + `BEFORE INSERT` 只许 `PENDING` + 确认触发器、`preservation_sequence_number` + 插入触发器 + `current_file_preservations`（security_invoker）、`approval_expires_at`、`read_at ≥ decided_at`、`FOR NO KEY UPDATE`、待确认版本不得写到期日、只追加表各有 `UPDATE/DELETE` 与 `TRUNCATE` 两个触发器、授权脚本对只追加表 REVOKE 改删、视图 REVOKE 写。人员 ID 列未登记 PI，仅 `original_name` 与五个理由列登记，符合第 5 轮。
+
+**必须改（一项）**：
+
+| # | 位置 | 问题 | 改法 |
+|---|---|---|---|
+| F1 | `platform_file.state_transitions` | 序号列仍叫 `sequence_number`；第 5 轮之后 one-glossary 指出它与词条「流水号」（`sequence_number`，`platform.numbering`）同名，G39 会要求列注释以「流水号」开头，已定名 `transition_sequence_number`（见 `STATE_TRANSITIONS_DESIGN.md`「再更正」） | 列、`uk_state_transitions_aggregate_id_transition_sequence_number`、`ck_state_transitions_transition_sequence_number`、`ck_state_transitions_first`、测试、注册表注释里的旧名全部改；`preservation_sequence_number` 不受影响（已带限定词） |
+
+**提醒（不阻断，由 one-coordinator 的复审关注）**：
+1. `DataArchitectureTest` 被改：TRUNCATE 被外键拦下（`0A000`）时改用 `CASCADE` 重试，并新增「表自己的语句级 TRUNCATE 触发器必须存在」。方向是收紧，不是放宽，但属于守护代码变更，PR 说明里需单列。
+2. `preservation_categories`（根表）的 `category_name` 可被运行角色 UPDATE，名称不在版本化范围内；这是我在第 1 轮建议把名称放根表时留下的取舍，保留，但名称变更不进版本历史，若业务要求名称变更可追溯，另卡加版本列。
+3. 注册表 `state_transitions` 的保留期 `PERMANENT` 带「用户批准保留期后再定」的注释，同其他 schema 做法。
+
+结论：**数据设计（表结构 PR）：未通过，仅差 F1**。F1 改完推送后，我只复核该改动的 diff，通过即签「表结构 PR：通过」；不另做有条件通过。
