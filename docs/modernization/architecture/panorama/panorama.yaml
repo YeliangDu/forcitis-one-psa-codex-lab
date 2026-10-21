@@ -23,7 +23,7 @@ meta:
     act: 651
     fact: 0
     dim: 0
-    metric: 76
+    metric: 79
     bind: 0
     dec: 0
     agg: 130
@@ -10445,6 +10445,21 @@ nodes:
     internal_review_coverage:
       zh: 内部评审覆盖率
       bc: delivery.acceptance
+      stages: []
+      processes: []
+    net_revenue:
+      zh: 净收入
+      bc: operations.policy
+      stages: []
+      processes: []
+    revenue_including_tax:
+      zh: 含税收入
+      bc: operations.policy
+      stages: []
+      processes: []
+    net_new_contract_value:
+      zh: 新签净额
+      bc: operations.policy
       stages: []
       processes: []
   bind: {}

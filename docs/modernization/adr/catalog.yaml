@@ -47,7 +47,7 @@ adrs:
   category: "安全与权限"
   bc: ["platform.identity"]
   stage: ["TA-1a"]  # 目标建造批：TA-W0
-  partially_superseded: ["ADR-0026 第 4 条（部分）", "ADR-0027 第 6 条（部分）", "ADR-0037 第 6 条中「不读取」"]
+  partially_superseded: ["ADR-0026 第 4 条（部分）", "ADR-0027 第 6 条（部分）", "ADR-0037 第 6 条中「不读取」", "ADR-0063 第 2 条「令牌不进 URL」（部分）"]
 - id: "0010"   # 可配置的业务编号
   category: "数据"
   bc: ["platform.numbering"]
@@ -162,17 +162,17 @@ adrs:
   category: "数据"
   bc: ["全局"]
   stage: ["TA-1a"]  # 目标建造批：TA-W0、TA-W1
-  partially_superseded: ["ADR-0039 第 4 项第 1 条位置与迁移方案第 4 条", "ADR-0036 第 2 项第 1、2 条对迁入的适用", "ADR-0038 迁移方案第 1、5 条等时点", "ADR-0048 第 1 项第 1、8 条对审计表的适用", "ADR-0055 决定第 2、3、11 项（部分）", "ADR-0055 决定第 4 项第 3 条（部分）", "ADR-0055 迁移方案、回滚方案（部分）"]
+  partially_superseded: ["ADR-0039 第 4 项第 1 条位置与迁移方案第 4 条", "ADR-0036 第 2 项第 1、2 条对迁入的适用", "ADR-0038 迁移方案第 1、5 条等时点", "ADR-0048 第 1 项第 1、8 条对审计表的适用", "ADR-0055 决定第 2、3、11 项（部分）", "ADR-0055 决定第 4 项第 3 条（部分）", "ADR-0055 迁移方案、回滚方案（部分）", "ADR-0069 第 3 项第 6 条、第 7 项第 2 条（部分）"]
 - id: "0034"   # 授权历史可还原（角色与授予版本化）
   category: "安全与权限"
   bc: ["platform.identity"]
   stage: ["TA-1a"]  # 目标建造批：TA-W0
-  partially_superseded: ["ADR-0055 决定第 2、3 项（部分）"]
+  partially_superseded: ["ADR-0055 决定第 2、3 项（部分）", "ADR-0068 第 4 项第 4 条（部分）"]
 - id: "0035"   # 契约演进与兼容
   category: "集成"
   bc: ["全局"]
   stage: ["TA-1a"]  # 目标建造批：TA-W0
-  partially_superseded: []
+  partially_superseded: ["ADR-0067 第 2 条（限平台模块与 kernel）"]
 - id: "0036"   # 历史数据迁入
   category: "数据"
   bc: ["platform.migration"]
@@ -182,7 +182,7 @@ adrs:
   category: "集成"
   bc: ["platform.integration"]
   stage: ["TA-1a"]  # 目标建造批：TA-W0、TA-W1
-  partially_superseded: ["ADR-0043 第 1 项第 1 条（补充）", "ADR-0043 第 2 项第 5 条第 2 点词汇句", "ADR-0055 决定第 5、6、8 项（部分）"]
+  partially_superseded: ["ADR-0043 第 1 项第 1 条（补充）", "ADR-0043 第 2 项第 5 条第 2 点词汇句", "ADR-0055 决定第 5、6、8 项（部分）", "ADR-0069 决定 1 第 1 条、决定 4（部分）"]
 - id: "0038"   # 迁移基线在生产部署前关闭
   category: "数据"
   bc: ["全局"]
@@ -252,4 +252,4 @@ adrs:
   category: "边界与模块"
   bc: ["全局"]
   stage: ["全阶段"]
-  partially_superseded: ["ADR-0057 决定 1、2、7 中流程模块三处"]
+  partially_superseded: ["ADR-0057 决定 1、2、7 中流程模块三处", "ADR-0060 决定 2 第 1 条、决定 3 平台行"]

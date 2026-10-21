@@ -19,7 +19,7 @@
 | 10 受控业务执行 | act | 651 |
 | 11 业务事实 | fact | 0 |
 | 12 维度 | dim | 0 |
-| 13 指标与评价 | metric | 76 |
+| 13 指标与评价 | metric | 79 |
 | 14 计算绑定 | bind | 0 |
 | 15 决策与行动 | dec | 0 |
 | 09/10 映射  | agg | 130 |
@@ -59,8 +59,8 @@
 | N10-M1 | 每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到） | 3 |
 | N11-1 | 每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列） | 6 |
 | N13-1 | 每个阶段都有指标 | 61 |
-| N13-2 | 每个指标都能追到阶段或流程 | 76 |
-| N13-3 | 度量链：每个指标都有业务事实来源与计算绑定（12、14 未登记时计为缺口） | 76 |
+| N13-2 | 每个指标都能追到阶段或流程 | 79 |
+| N13-3 | 度量链：每个指标都有业务事实来源与计算绑定（12、14 未登记时计为缺口） | 79 |
 
 ## N01-1 每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）（39）
 
@@ -467,7 +467,7 @@
 - VS-15.2 批准生效
 - VS-15.3 修订停用
 
-## N13-2 每个指标都能追到阶段或流程（76）
+## N13-2 每个指标都能追到阶段或流程（79）
 
 - business_variance 经营偏差
 - uncontracted_exposure 无合同风险敞口
@@ -545,8 +545,11 @@
 - expense_payment 费用支付
 - kickoff_completion_rate 启动会完成率
 - internal_review_coverage 内部评审覆盖率
+- net_revenue 净收入
+- revenue_including_tax 含税收入
+- net_new_contract_value 新签净额
 
-## N13-3 度量链：每个指标都有业务事实来源与计算绑定（12、14 未登记时计为缺口）（76）
+## N13-3 度量链：每个指标都有业务事实来源与计算绑定（12、14 未登记时计为缺口）（79）
 
 - business_variance 经营偏差
 - uncontracted_exposure 无合同风险敞口
@@ -624,3 +627,6 @@
 - expense_payment 费用支付
 - kickoff_completion_rate 启动会完成率
 - internal_review_coverage 内部评审覆盖率
+- net_revenue 净收入
+- revenue_including_tax 含税收入
+- net_new_contract_value 新签净额

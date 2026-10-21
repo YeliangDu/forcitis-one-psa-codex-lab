@@ -13,7 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.forcitis.one.TestIds;
 import com.forcitis.one.TestPostgres;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
@@ -103,12 +103,12 @@ class NumberingRuleFourEyesIT {
                 .thenReturn(java.util.Optional.of(new com.forcitis.one.organization.workforce.api.LegalEntityCode("FST")));
     }
 
-    private String issue(DocumentType type) {
+    private String issue(DocumentTypeCode type) {
         return tx.execute(status -> numbers.next(type, LE1, BUSINESS_DAY).value());
     }
 
     private String issueOn(LocalDate day) {
-        return tx.execute(status -> numbers.next(DocumentType.QUOTE, LE1, day).value());
+        return tx.execute(status -> numbers.next(new DocumentTypeCode("QUOTE"), LE1, day).value());
     }
 
     private static LocalDate today() {
@@ -125,7 +125,7 @@ class NumberingRuleFourEyesIT {
     }
 
     private String ruleVersion(String type) {
-        return "\"" + jdbc.sql("select version from platform_numbering.numbering_rules where document_type = :t").param("t", type).query(Long.class).single() + "\"";
+        return "\"" + jdbc.sql("select version from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = :t)").param("t", type).query(Long.class).single() + "\"";
     }
 
     private ResultActions confirm(RequestPostProcessor who, String type, int templateVersion) throws Exception {
@@ -141,7 +141,7 @@ class NumberingRuleFourEyesIT {
     @Test
     @DisplayName("the seeded template waits for confirmation and issues nothing; one confirmation by a person with the approve permission puts it in force")
     void seededTemplateIssuesNothingUntilConfirmed() throws Exception {
-        assertThatThrownBy(() -> issue(DocumentType.QUOTE)).isInstanceOf(DomainException.class)
+        assertThatThrownBy(() -> issue(new DocumentTypeCode("QUOTE"))).isInstanceOf(DomainException.class)
                 .satisfies(e -> assertThat(((DomainException) e).errorCode().code()).isEqualTo("PLATFORM_NUMBERING_RULE_NOT_CONFIRMED"));
         assertThat(jdbc.sql("select count(*) from platform_numbering.numbering_counters").query(Long.class).single()).as("and burns no number").isZero();
 
@@ -150,7 +150,7 @@ class NumberingRuleFourEyesIT {
                 .andExpect(jsonPath("$.confirmationStatus").value("CONFIRMED"))
                 .andExpect(jsonPath("$.pending").doesNotExist());
 
-        assertThat(issue(DocumentType.QUOTE)).isEqualTo("QT-FST-209901-0001");
+        assertThat(issue(new DocumentTypeCode("QUOTE"))).isEqualTo("QT-FST-209901-0001");
     }
 
     @Test
@@ -162,13 +162,13 @@ class NumberingRuleFourEyesIT {
         confirm(AUTHOR, "QUOTE", 2)
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.errorCode").value("PLATFORM_NUMBERING_CONFIRMER_IS_AUTHOR"));
-        assertThat(issue(DocumentType.QUOTE)).as("the confirmed version keeps issuing meanwhile").isEqualTo("QT-FST-209901-0001");
+        assertThat(issue(new DocumentTypeCode("QUOTE"))).as("the confirmed version keeps issuing meanwhile").isEqualTo("QT-FST-209901-0001");
 
         confirm(APPROVER, "QUOTE", 2)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.templateVersion").value(2))
                 .andExpect(jsonPath("$.pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:5}"));
-        assertThat(issue(DocumentType.QUOTE)).isEqualTo("QT-FST-209901-00002");
+        assertThat(issue(new DocumentTypeCode("QUOTE"))).isEqualTo("QT-FST-209901-00002");
     }
 
     @Test
@@ -182,7 +182,7 @@ class NumberingRuleFourEyesIT {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.errorCode").value("PLATFORM_NUMBERING_VERSION_MISMATCH"));
         confirmByFinance(FINANCE, "JOURNAL_VOUCHER", 7).andExpect(status().isConflict());
-        assertThat(jdbc.sql("select status from platform_numbering.numbering_rule_versions where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE') and version_number = 3")
+        assertThat(jdbc.sql("select status from platform_numbering.numbering_rule_versions where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE')) and version_number = 3")
                 .query(String.class).single()).isEqualTo("PENDING_CONFIRMATION");
 
         confirm(APPROVER, "QUOTE", 3).andExpect(status().isOk()).andExpect(jsonPath("$.pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:6}"));
@@ -216,7 +216,7 @@ class NumberingRuleFourEyesIT {
         mvc.perform(get(RULES + "/QUOTE").with(APPROVER))
                 .andExpect(jsonPath("$.pending.templateVersion").value(3))
                 .andExpect(jsonPath("$.pending.pattern").value("{TYPE}-{yyyyMM}-{seq:6}"));
-        assertThat(jdbc.sql("select status from platform_numbering.numbering_rule_versions where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE') order by version_number")
+        assertThat(jdbc.sql("select status from platform_numbering.numbering_rule_versions where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE')) order by version_number")
                 .query(String.class).list()).containsExactly("CONFIRMED", "SUPERSEDED", "PENDING_CONFIRMATION");
     }
 
@@ -244,7 +244,7 @@ class NumberingRuleFourEyesIT {
                 .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.errorCode").value("PLATFORM_NUMBERING_EFFECTIVE_DATE_PASSED"));
 
-        assertThat(jdbc.sql("select effective_from_date from platform_numbering.numbering_rule_versions where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE') and version_number = 2")
+        assertThat(jdbc.sql("select effective_from_date from platform_numbering.numbering_rule_versions where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE')) and version_number = 2")
                 .query(LocalDate.class).single()).isEqualTo(past);
         save(AUTHOR, "QUOTE", "{TYPE}-{LE}-{yyyyMM}-{seq:5}", today()).andExpect(status().isOk());
         confirm(APPROVER, "QUOTE", 3).andExpect(status().isOk());
@@ -265,11 +265,11 @@ class NumberingRuleFourEyesIT {
                 .andExpect(jsonPath("$.confirmationStatus").value("PENDING_CONFIRMATION"))
                 .andExpect(jsonPath("$.requiresFinanceConfirmation").value(true))
                 .andExpect(jsonPath("$.pending.confirmedBy").value(TestAccounts.account(10).value().toString()));
-        assertThatThrownBy(() -> issue(DocumentType.JOURNAL_VOUCHER)).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> issue(new DocumentTypeCode("JOURNAL_VOUCHER"))).isInstanceOf(DomainException.class);
 
         confirmByFinance(FINANCE_AND_APPROVER, "JOURNAL_VOUCHER", 1).andExpect(status().isOk());
-        assertThat(issue(DocumentType.JOURNAL_VOUCHER)).isEqualTo("JV-FST-209901-0001");
-        assertThat(jdbc.sql("select confirmed_by || '/' || finance_confirmed_by from platform_numbering.numbering_rule_versions where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'JOURNAL_VOUCHER')")
+        assertThat(issue(new DocumentTypeCode("JOURNAL_VOUCHER"))).isEqualTo("JV-FST-209901-0001");
+        assertThat(jdbc.sql("select confirmed_by || '/' || finance_confirmed_by from platform_numbering.numbering_rule_versions where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'JOURNAL_VOUCHER'))")
                 .query(String.class).single()).isEqualTo(TestAccounts.account(10).value() + "/" + TestAccounts.account(12).value());
     }
 
@@ -295,29 +295,29 @@ class NumberingRuleFourEyesIT {
         jdbc.sql("""
                 insert into platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value, effective_from_date, author_id, authored_at, status)
                 select uuidv7(), numbering_rule_id, 2, '{TYPE}-{seq:4}', 'NEVER', 1, DATE '2099-02-01', :author, now(), 'PENDING_CONFIRMATION'
-                  from platform_numbering.numbering_rules where document_type = 'QUOTE'
+                  from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE')
                 """).param("author", TestAccounts.account(9).value()).update();
 
         assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set template_text = '{TYPE}-{seq:9}' where version_number = 1").update())
                 .hasMessageContaining("immutable");
         assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set effective_from_date = DATE '2001-01-01' where version_number = 2").update())
                 .hasMessageContaining("immutable");
-        assertThatThrownBy(() -> jdbc.sql("delete from platform_numbering.numbering_rule_versions where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE') and version_number = 1").update())
+        assertThatThrownBy(() -> jdbc.sql("delete from platform_numbering.numbering_rule_versions where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE')) and version_number = 1").update())
                 .hasMessageContaining("append-only");
-        assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set confirmed_by = " + TestAccounts.sql(9) + "::uuid, confirmed_at = now(), status = 'CONFIRMED' where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE') and version_number = 2").update())
+        assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set confirmed_by = " + TestAccounts.sql(9) + "::uuid, confirmed_at = now(), status = 'CONFIRMED' where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE')) and version_number = 2").update())
                 .hasMessageContaining("ck_numbering_rule_versions_confirmer_is_not_author");
-        assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set confirmed_by = " + TestAccounts.sql(55) + "::uuid, confirmed_at = now() where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE') and version_number = 1").update())
+        assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set confirmed_by = " + TestAccounts.sql(55) + "::uuid, confirmed_at = now() where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE')) and version_number = 1").update())
                 .as("B1-M4 a confirmation cannot be replaced").hasMessageContaining("cannot be changed or taken back");
-        assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set confirmed_by = null, confirmed_at = null where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE') and version_number = 1").update())
+        assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set confirmed_by = null, confirmed_at = null where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE')) and version_number = 1").update())
                 .as("nor taken back").hasMessageContaining("cannot be changed or taken back");
-        assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set status = 'PENDING_CONFIRMATION' where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE') and version_number = 1").update())
+        assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set status = 'PENDING_CONFIRMATION' where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE')) and version_number = 1").update())
                 .as("a confirmed version never goes back").hasMessageContaining("cannot go from CONFIRMED to PENDING_CONFIRMATION");
-        assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set status = 'SUPERSEDED' where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = 'QUOTE') and version_number = 1").update())
+        assertThatThrownBy(() -> jdbc.sql("update platform_numbering.numbering_rule_versions set status = 'SUPERSEDED' where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE')) and version_number = 1").update())
                 .hasMessageContaining("cannot go from CONFIRMED to SUPERSEDED");
         assertThatThrownBy(() -> jdbc.sql("""
                 insert into platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status)
                 select uuidv7(), numbering_rule_id, 3, '{TYPE}-{seq:4}', 'NEVER', 1, DATE '2099-02-01', now(), 'PENDING_CONFIRMATION'
-                  from platform_numbering.numbering_rules where document_type = 'QUOTE'
+                  from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE')
                 """).update()).as("one waiting version per document type").hasMessageContaining("uk_numbering_rule_versions_numbering_rule_id");
     }
 }

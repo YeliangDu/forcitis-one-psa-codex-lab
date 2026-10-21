@@ -3,10 +3,15 @@ package com.forcitis.one.platform.identity.application;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WorkContext;
+import com.forcitis.one.organization.workforce.api.EmployeeExistence;
+import com.forcitis.one.platform.audit.api.AuditPartitions;
 import com.forcitis.one.platform.identity.api.SingleOperatorMode;
 import java.io.PrintStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
@@ -37,9 +42,13 @@ public class OperationsCommands {
     private final GrantRoleByOperations grant;
     private final RevokeRoleByOperations revoke;
     private final SingleOperatorMode mode;
+    private final EmployeeExistence employees;
+    private final AuditPartitions auditPartitions;
+    private final Clock clock;
 
     OperationsCommands(RegisterEmergencyAdmin register, ResetEmergencyAdminCredentials reset, DisableEmergencyAdmin disable,
-            EnableEmergencyAdmin enable, GrantRoleByOperations grant, RevokeRoleByOperations revoke, SingleOperatorMode mode) {
+            EnableEmergencyAdmin enable, GrantRoleByOperations grant, RevokeRoleByOperations revoke, SingleOperatorMode mode,
+            EmployeeExistence employees, AuditPartitions auditPartitions, Clock clock) {
         this.register = register;
         this.reset = reset;
         this.disable = disable;
@@ -47,6 +56,9 @@ public class OperationsCommands {
         this.grant = grant;
         this.revoke = revoke;
         this.mode = mode;
+        this.employees = employees;
+        this.auditPartitions = auditPartitions;
+        this.clock = clock;
     }
 
     public int run(ApplicationArguments arguments, PrintStream out, PrintStream err) {
@@ -65,6 +77,14 @@ public class OperationsCommands {
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "platform.identity.operations")) {
             OperationAttestation attestation = attestation(arguments);
             EmployeeId employeeId = employeeId(arguments);
+            requireUsage(operation, arguments);
+            YearMonth month = YearMonth.from(clock.instant().atOffset(ZoneOffset.UTC));
+            if (!auditPartitions.exists(month)) {
+                err.println("refused: the audit partition for " + month + " does not exist, so no audit entry could be written. The resident application creates it ahead of time and "
+                        + "this one-off command does not; start the resident application once or have operations create the partition, then run the command again");
+                return 1;
+            }
+            requireExisting(attestation);
             return switch (operation) {
                 case "register-emergency-admin" -> registerAdmin(attestation, employeeId, single(arguments, LOGIN_NAME), out);
                 case "reset-emergency-admin-credentials" -> show(reset.execute(attestation, employeeId), out, "credentials reset");
@@ -74,10 +94,7 @@ public class OperationsCommands {
                         "the role is already held, nothing changed");
                 case "revoke-role" -> done(revoke.execute(attestation, employeeId, single(arguments, ROLE_CODE)), out, "role revoked",
                         "the role is not held, nothing changed");
-                default -> {
-                    err.println("unknown operation " + operation);
-                    yield 2;
-                }
+                default -> throw new IllegalArgumentException("unknown operation " + operation);
             };
         } catch (DomainException refused) {
             err.println("refused: " + refused.errorCode().code() + " - " + refused.getMessage());
@@ -85,6 +102,23 @@ public class OperationsCommands {
         } catch (IllegalArgumentException wrongUsage) {
             err.println("wrong usage: " + wrongUsage.getMessage());
             return 2;
+        }
+    }
+
+    /** Usage errors are answered before the partition check, so a missing partition never hides them behind exit code 1. */
+    private static void requireUsage(String operation, ApplicationArguments arguments) {
+        switch (operation) {
+            case "register-emergency-admin" -> requireOption(arguments, LOGIN_NAME);
+            case "grant-role", "revoke-role" -> requireOption(arguments, ROLE_CODE);
+            case "reset-emergency-admin-credentials", "disable-emergency-admin", "enable-emergency-admin" -> {
+            }
+            default -> throw new IllegalArgumentException("unknown operation " + operation);
+        }
+    }
+
+    private static void requireOption(ApplicationArguments arguments, String name) {
+        if (single(arguments, name) == null) {
+            throw new IllegalArgumentException("--" + name + " is required for this operation and must be given exactly once");
         }
     }
 
@@ -110,6 +144,13 @@ public class OperationsCommands {
             return OperationAttestation.withoutWitness(single(arguments, OPERATOR));
         }
         return OperationAttestation.of(single(arguments, OPERATOR), single(arguments, WITNESS));
+    }
+
+    /** Separated employees and employees without an assignment still count: the snapshot keeps them, and the audit trail must be able to name them. The witness is checked only when one was given. */
+    private void requireExisting(OperationAttestation attestation) {
+        if (!employees.exists(attestation.operator()) || (!attestation.witnessOmitted() && !employees.exists(attestation.witness()))) {
+            throw OperationAttestation.required();
+        }
     }
 
     private int registerAdmin(OperationAttestation attestation, EmployeeId employeeId, String loginName, PrintStream out) {

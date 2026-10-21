@@ -165,6 +165,21 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: error__platform_approval_no_process
+  zh: 没有审批流程
+  en: PlatformApprovalNoProcess
+  snake: platform_approval_no_process
+  kind: error_code
+  bc: platform.approval
+  scope: domain
+  definition: 该单据类型没有审批流程，报价上线前审批只受理工时（422，AP-14、ADR-0030 U-3）
+  standard_ref:
+  - ADR-0030 U-3
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1021-NX5-01 RULING-COORD-20261021-03
 - id: error__platform_approval_routing_flag_unknown
   zh: 路由标记未知
   en: PlatformApprovalRoutingFlagUnknown

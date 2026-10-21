@@ -76,4 +76,4 @@
 
 ## 当前状态
 
-2026-10-21 10:33：SSOT 重建线仍暂停；W0 五件已完成；在途 PR #493（ADR-0068/0069 已采纳，等 one-data 签发）、#495（ADR-0070 ClamAV，等批准页）。交接 proposals/HANDOFF_2026-10-21.md。
+2026-10-21 晚：#493 已合；#495→#501→#506 已批入队；#508（ADR-0073）待用户 U3、U4。ARC-1021-COO-10 提案已确认（用户 U1–U6），SSOT 按批次表分批重启（research/networks/ADR_NODE_FREQUENCY.md），第一批派工卡起草中。交接 proposals/HANDOFF_2026-10-21.md。

@@ -2,7 +2,7 @@ package com.forcitis.one.platform.approval.infrastructure.persistence;
 
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
@@ -86,7 +86,7 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
         Optional<UserId> onBehalf = Optional.ofNullable(rs.getObject("on_behalf_of_id", UUID.class)).map(UserId::new);
         Optional<UserId> assigneeId = Optional.ofNullable(rs.getObject("assignee_id", UUID.class)).map(UserId::new);
         return new TaskHandling(new TaskRecordId(rs.getObject("record_id", UUID.class)), ProcessKey.valueOf(rs.getString("process_key")),
-                new DocumentReference(DocumentType.valueOf(rs.getString("document_type")), new DocumentId(rs.getObject("document_id", UUID.class))),
+                new DocumentReference(DocumentTypeCode.of(rs.getString("document_type")), new DocumentId(rs.getObject("document_id", UUID.class))),
                 rs.getInt("round_number"), new ApprovalTaskId(rs.getObject("task_id", UUID.class)),
                 new ApprovalInstanceId(rs.getObject("instance_id", UUID.class)),
                 new NodeKey(rs.getString("node_key")), new NodeName(rs.getString("node_name")),
@@ -150,7 +150,7 @@ class JdbcApprovalTaskQueries implements ApprovalTaskQueries {
         String effect = rs.getString("effect_kind");
         String reason = rs.getString("result_reason");
         return new TaskRecord(new ApprovalTaskId(rs.getObject("task_id", UUID.class)), new ApprovalInstanceId(rs.getObject("instance_id", UUID.class)),
-                ProcessKey.valueOf(rs.getString("process_key")), new DocumentReference(DocumentType.valueOf(rs.getString("document_type")),
+                ProcessKey.valueOf(rs.getString("process_key")), new DocumentReference(DocumentTypeCode.of(rs.getString("document_type")),
                 new DocumentId(rs.getObject("document_id", UUID.class))), new NodeKey(rs.getString("node_key")), new EmployeeId(rs.getObject("initiator_id", UUID.class)),
                 ApprovalTaskStatus.valueOf(rs.getString("status")), assigneeId, JdbcApprovalRequestRepository.instant(rs, "created_at"),
                 Optional.ofNullable(JdbcApprovalRequestRepository.instant(rs, "due_at")),

@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -31,6 +32,7 @@ class AuditSubjectColumnsIT extends AcceptanceSupport {
     static final String CHECK_VIOLATION = "23514";
     static final String NOT_NULL_VIOLATION = "23502";
     static final String ACCEPTED = "accepted";
+    static final String NEW_IX_SUBJECT = "ix_audit_entries_subject_kind_subject_id_created_at";
 
     @Container
     @ServiceConnection
@@ -84,21 +86,24 @@ class AuditSubjectColumnsIT extends AcceptanceSupport {
     }
 
     @Test
-    @DisplayName("R-1b P5 ADR-0033 第 7 项第 2 条：索引 audit_entries_subject_idx 名称不变（C10），列为 (subject_kind, subject_id, created_at DESC)")
-    void theSubjectIndexKeepsItsNameAndGetsNewColumns() throws Exception {
+    @DisplayName("ADR-0033 第 7 项第 2 条 / ADR-0048（RULING-DR-PR1-1）：旧索引 audit_entries_subject_idx 不存在，新索引 ix_audit_entries_subject_kind_subject_id_created_at 列为 (subject_kind, subject_id, created_at DESC, id DESC)")
+    void theSubjectIndexIsRenamedAndGetsNewColumns() throws Exception {
         try (Connection catalogue = schemaConnection("public")) {
-            String definition = scalar(catalogue, "select indexdef from pg_indexes where schemaname = ? and indexname = ?", P5Names.AUDIT_SCHEMA, P5Names.IX_SUBJECT);
-            assertThat(definition).as(P5Names.IX_SUBJECT).isNotNull().contains("(" + P5Names.SUBJECT_KIND + ", " + P5Names.SUBJECT_ID + ", created_at DESC)")
-                    .doesNotContain(P5Names.SUBJECT_KEY_OLD);
+            assertThat(scalar(catalogue, "select indexdef from pg_indexes where schemaname = ? and indexname = ?", P5Names.AUDIT_SCHEMA, P5Names.IX_SUBJECT))
+                    .as("the old name " + P5Names.IX_SUBJECT + " is gone").isNull();
+            String definition = scalar(catalogue, "select indexdef from pg_indexes where schemaname = ? and indexname = ?", P5Names.AUDIT_SCHEMA, NEW_IX_SUBJECT);
+            assertThat(definition).as(NEW_IX_SUBJECT).isNotNull()
+                    .contains("(" + P5Names.SUBJECT_KIND + ", " + P5Names.SUBJECT_ID + ", created_at DESC, id DESC)").doesNotContain(P5Names.SUBJECT_KEY_OLD);
         }
     }
 
     private String insert(Connection audit, String kind, UUID subjectId) throws SQLException {
         Savepoint before = audit.setSavepoint();
         try (PreparedStatement insert = audit.prepareStatement("insert into audit_entries (id, action, " + P5Names.SUBJECT_KIND + ", " + P5Names.SUBJECT_ID
-                + ") values (uuidv7(), 'p5.synthetic', ?, ?)")) {
+                + ", created_at) values (uuidv7(), 'p5.synthetic', ?, ?, ?)")) {
             insert.setString(1, kind);
             insert.setObject(2, subjectId);
+            insert.setTimestamp(3, Timestamp.from(NOW)); // created_at has no default (ADR-0048); NOW falls in a pre-built partition
             insert.executeUpdate();
             audit.rollback(before);
             return ACCEPTED;

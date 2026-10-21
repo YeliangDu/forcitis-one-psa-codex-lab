@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.numbering.web;
 
 import com.forcitis.one.kernel.CursorPage;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.ExpectedVersion;
@@ -60,7 +60,7 @@ class NumberingRuleController {
 
     @GetMapping(path = "/{documentType}")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_READ + "')")
-    ResponseEntity<NumberingRuleResponse> get(@PathVariable DocumentType documentType) {
+    ResponseEntity<NumberingRuleResponse> get(@PathVariable DocumentTypeCode documentType) {
         NumberingRuleView rule = find.execute(documentType).orElseThrow(() -> new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_NOT_FOUND,
                 ErrorKind.NOT_FOUND, "no numbering rule for " + documentType));
         return answer(rule);
@@ -68,7 +68,7 @@ class NumberingRuleController {
 
     @PutMapping(path = "/{documentType}")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE + "')")
-    ResponseEntity<NumberingRuleResponse> put(@PathVariable DocumentType documentType, @RequestBody NumberingRuleRequest request,
+    ResponseEntity<NumberingRuleResponse> put(@PathVariable DocumentTypeCode documentType, @RequestBody NumberingRuleRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch) {
         if (request.resetPolicy() == null) {
             throw new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_INVALID, ErrorKind.UNPROCESSABLE, "the reset policy is missing");
@@ -79,13 +79,13 @@ class NumberingRuleController {
 
     @PostMapping(path = "/{documentType}:confirm")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE + "')")
-    ResponseEntity<NumberingRuleResponse> confirm(@PathVariable DocumentType documentType, @RequestBody ConfirmNumberingRuleRequest request) {
+    ResponseEntity<NumberingRuleResponse> confirm(@PathVariable DocumentTypeCode documentType, @RequestBody ConfirmNumberingRuleRequest request) {
         return answer(confirm.execute(documentType, currentUser.userId(), seen(request)));
     }
 
     @PostMapping(path = "/{documentType}:confirm-finance")
     @PreAuthorize("hasAuthority('" + Permission.Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE + "')")
-    ResponseEntity<NumberingRuleResponse> confirmByFinance(@PathVariable DocumentType documentType, @RequestBody ConfirmNumberingRuleRequest request) {
+    ResponseEntity<NumberingRuleResponse> confirmByFinance(@PathVariable DocumentTypeCode documentType, @RequestBody ConfirmNumberingRuleRequest request) {
         return answer(confirmByFinance.execute(documentType, currentUser.userId(), seen(request)));
     }
 

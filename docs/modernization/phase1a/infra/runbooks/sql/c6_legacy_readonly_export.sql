@@ -39,19 +39,28 @@ SELECT (SELECT COUNT(*) FROM dbo.system_role WHERE deleted = 0) AS roles,
 
 -- ===== STEP 3 工作日历 2016–2026（D-1a-114：4,018 天；导出到 legacy-calendar-<日期>.csv）=====
 -- 新系统只存例外日：周一至周五的非工作日 → HOLIDAY；周六日的工作日 → MAKE_UP_WORKDAY
+-- 依据（2026-10-17 取证，legacy-read 登记；列：holiday* 是节日编码、holiday_cn 等是中文名，workday 是「是否上班」，均为 varchar）：
+--   workday：'1' 上班、'2' 休息，无别的取值；周一至五 2663 天为 '1'、207 天为 '2'，周六日 65 天为 '1'、1083 天为 '2'。
+--   周一至五的 207 个休息日中 198 个带法定假日编码（春节 11、除夕 15、元旦 22、清明 44、劳动节 55、端午 66、中秋 77、国庆 88），
+--   另 9 个无编码（holiday = '10'），全部落在 2022–2025 年 1–2 月（春节假期的尾部日期，编码没有带到）；非法定节日（情人节、植树节等）的周一至五全部 workday = '1'。
+--   所以 HOLIDAY 以 workday = '2' 为准，法定假日编码印证其中 198 个，9 个无编码日期按春节假期尾部处理（推断，导入后与国务院公告核对）。
+-- 2026-10-17 前的版本写成 workday = 0 判 HOLIDAY（取值域写错），导出里一条 HOLIDAY 都没有，已改。
 -- DATEDIFF 对 1900-01-01（周一）取模，与 @@DATEFIRST 无关：0..4 为周一至周五
 SELECT CAST(c.[datetime] AS date) AS calendar_date,
        c.workday,
        CASE
-         WHEN DATEDIFF(day, '19000101', CAST(c.[datetime] AS date)) % 7 < 5 AND c.workday = 0 THEN 'HOLIDAY'
-         WHEN DATEDIFF(day, '19000101', CAST(c.[datetime] AS date)) % 7 >= 5 AND c.workday = 1 THEN 'MAKE_UP_WORKDAY'
+         WHEN DATEDIFF(day, '19000101', CAST(c.[datetime] AS date)) % 7 < 5 AND c.workday = '2' THEN 'HOLIDAY'
+         WHEN DATEDIFF(day, '19000101', CAST(c.[datetime] AS date)) % 7 >= 5 AND c.workday = '1' THEN 'MAKE_UP_WORKDAY'
        END AS day_kind
   FROM dbo.psa_calendar c
  WHERE c.[datetime] >= '20160101' AND c.[datetime] < '20270101'
  ORDER BY c.[datetime];
 
--- 3.1 完整性：期望 4018 行、无重复日期、每年天数为 365 / 366
-SELECT YEAR(c.[datetime]) AS calendar_year, COUNT(*) AS days, COUNT(DISTINCT CAST(c.[datetime] AS date)) AS distinct_days
+-- 3.1 完整性：期望 4018 行、无重复日期、每年天数为 365 / 366；每年 HOLIDAY 大于 0，MAKE_UP_WORKDAY 与两类合计都有计数
+SELECT YEAR(c.[datetime]) AS calendar_year, COUNT(*) AS days, COUNT(DISTINCT CAST(c.[datetime] AS date)) AS distinct_days,
+       SUM(CASE WHEN DATEDIFF(day, '19000101', CAST(c.[datetime] AS date)) % 7 < 5 AND c.workday = '2' THEN 1 ELSE 0 END) AS holidays,
+       SUM(CASE WHEN DATEDIFF(day, '19000101', CAST(c.[datetime] AS date)) % 7 >= 5 AND c.workday = '1' THEN 1 ELSE 0 END) AS make_up_workdays,
+       SUM(CASE WHEN c.workday NOT IN ('1', '2') OR c.workday IS NULL THEN 1 ELSE 0 END) AS unexpected_workday_values
   FROM dbo.psa_calendar c
  WHERE c.[datetime] >= '20160101' AND c.[datetime] < '20270101'
  GROUP BY YEAR(c.[datetime])

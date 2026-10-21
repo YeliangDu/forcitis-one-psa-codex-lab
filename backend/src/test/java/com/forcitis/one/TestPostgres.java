@@ -21,8 +21,9 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.utility.MountableFile;
 
-/** The one way tests start PostgreSQL: same sort order (built-in C.UTF-8) as the dev database, so an ORDER BY on text answers the same everywhere (DDL-11). */
+/** The one way tests start PostgreSQL: same sort order (built-in C.UTF-8) as the dev database, so an ORDER BY on text answers the same everywhere (DDL-11); btree_gist is there as the database setup script leaves it. */
 public final class TestPostgres {
     /** Seconds (pgjdbc unit). A container that accepts the TCP connection but never answers fails the test in connectTimeout/loginTimeout/socketTimeout instead of hanging it: the driver has no timeout of its own. */
     static final String CONNECT_TIMEOUT = "10";
@@ -56,7 +57,8 @@ public final class TestPostgres {
     public static PostgreSQLContainer container() {
         return new Diagnosed(TestImages.startingWith("postgres:")).withEnv("POSTGRES_INITDB_ARGS", INITDB_ARGS)
                 .withUrlParam("connectTimeout", CONNECT_TIMEOUT).withUrlParam("socketTimeout", SOCKET_TIMEOUT)
-                .withUrlParam("loginTimeout", LOGIN_TIMEOUT).withStartupAttempts(START_ATTEMPTS).withConnectTimeoutSeconds(START_CONNECT_SECONDS);
+                .withUrlParam("loginTimeout", LOGIN_TIMEOUT).withStartupAttempts(START_ATTEMPTS).withConnectTimeoutSeconds(START_CONNECT_SECONDS)
+                .withCopyFileToContainer(MountableFile.forClasspathResource("init-extensions.sh", 0755), "/docker-entrypoint-initdb.d/00-init-extensions.sh");
     }
 
     /** What an exhausted start says: the cause, the last lines the container wrote (a removed container has no logs left to ask for), and how loaded the Docker engine was. */

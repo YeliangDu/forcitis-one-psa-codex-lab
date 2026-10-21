@@ -38,14 +38,14 @@ final class NumberingFixtures {
                    set status = 'CONFIRMED', confirmed_by = '01900000-0000-7000-8000-000000000101', confirmed_at = now(),
                        finance_confirmed_by = case when :type = 'JOURNAL_VOUCHER' then '01900000-0000-7000-8000-000000000102'::uuid end,
                        finance_confirmed_at = case when :type = 'JOURNAL_VOUCHER' then now() end
-                 where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = :type) and version_number = 1
+                 where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = :type)) and version_number = 1
                 """).param("type", documentType).update();
     }
 
     static void useTemplate(JdbcClient jdbc, String documentType, String pattern, String resetPolicy) {
         jdbc.sql("alter table " + VERSIONS + " disable trigger " + TRIGGER).update();
         try {
-            jdbc.sql("update " + VERSIONS + " set template_text = :pattern, reset_policy = :reset where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type = :type) and version_number = 1")
+            jdbc.sql("update " + VERSIONS + " set template_text = :pattern, reset_policy = :reset where numbering_rule_id = (select numbering_rule_id from platform_numbering.numbering_rules where document_type_id = (select document_type_id from platform_numbering.document_types where code = :type)) and version_number = 1")
                     .param("pattern", pattern).param("reset", resetPolicy).param("type", documentType).update();
         } finally {
             jdbc.sql("alter table " + VERSIONS + " enable trigger " + TRIGGER).update();
