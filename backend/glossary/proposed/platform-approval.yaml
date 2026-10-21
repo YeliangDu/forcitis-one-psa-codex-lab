@@ -180,6 +180,21 @@ terms:
   forbidden: []
   status: proposed
   note: IMP-1021-NX5-01 RULING-COORD-20261021-03
+- id: error__platform_approval_document_type_unregistered
+  zh: 审批单据类型未登记
+  en: PlatformApprovalDocumentTypeUnregistered
+  snake: platform_approval_document_type_unregistered
+  kind: error_code
+  bc: platform.approval
+  scope: domain
+  definition: 发起审批的单据类型码不在单据类型登记表中（422）；编号模块的同类错误码在审批边界转成本码，不透给调用方
+  standard_ref:
+  - ADR-0066 决定 4
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1021-NX5-02 错误码项
 - id: error__platform_approval_routing_flag_unknown
   zh: 路由标记未知
   en: PlatformApprovalRoutingFlagUnknown

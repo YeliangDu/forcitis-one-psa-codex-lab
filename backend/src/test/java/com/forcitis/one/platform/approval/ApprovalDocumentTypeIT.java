@@ -43,6 +43,17 @@ class ApprovalDocumentTypeIT extends ApprovalIntegrationSupport {
     }
 
     @Test
+    @DisplayName("a document type without a process is reported before the round: a QUOTE asked for in round 2 gets NO_PROCESS, not ROUND_MISMATCH")
+    void typeMismatchIsReportedBeforeTheRound() {
+        ApprovalStartRequest secondRound = new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL,
+                new DocumentReference(new DocumentTypeCode("QUOTE"), new DocumentId(UUID.randomUUID())), LEGAL_ENTITY, TestAccounts.employee(1),
+                new RoundNumber(2), UUID.randomUUID(), Set.of("no-such-flag"), List.of(), new ContentHash("hash"), new ApprovalSummary("summary"));
+
+        assertThatThrownBy(() -> tx.execute(status -> approvals.start(secondRound)))
+                .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_NO_PROCESS));
+    }
+
+    @Test
     @DisplayName("a code that is not registered at all is refused too (a timesheet start is what every other approval IT does)")
     void unregisteredCodeIsRefused() {
         assertThatThrownBy(() -> tx.execute(status -> approvals.start(requestFor("PAYMENT"))))
