@@ -270,6 +270,16 @@ K-3b-4 审计列表、导出、本人登录记录接入分页公共契约新增�
 | `audit_page_mark` | 审计页标记 | AuditPageMark | 领域 · platform.audit | 审计条目键集分页的位置：上一页最后一条的发生时间与条目标识；只供生成下一页游标 | 「AuditPosition」已禁用 | K-3b-4 复审 M1；原名 AuditPosition 与岗位 Position（organization.workforce）同名异义，故改名 |
 | `own_login_record_page_view` | 本人登录记录分页视图 | OwnLoginRecordPageView | 领域 · platform.audit | 本人登录记录一页的应用层读模型：记录列表加下一页游标；不含条目标识 |  | K-3b-4，构词沿用审计条目分页视图 |
 
+## platform.file（`platform-file-areas.yaml`）
+
+文件服务存放位置用语（one-glossary 2026-10-21，NAM-1021-GLO-04；技术设施词，proposed）。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `staging_area` | 临时区 | StagingArea | 领域 · platform.file | 对象存储里放已通过检测、尚未关联到业务单据的文件内容的前缀（键 <环境前缀>/staging/<来源>/<文件 ID>），时效按来源由生命周期规则决定；关联时复制到正式键 |  | 口语「临时上传区」不入词表；与迁入暂存、检测暂存目录不同层，见 glossary/arch-naming/NAM-1021-GLO-04.md |
+| `inspection_staging_directory` | 检测暂存目录 | InspectionStagingDirectory | 领域 · platform.file | 后端实例本地磁盘上的专用目录，上传流先落盘于此、算哈希并交病毒检测，通过后才写入临时区；不对外签发链接，由年龄清扫作业清理 |  | ADR-0070 暂名「本地检测暂存目录」，去掉「本地」（目录本就在实例本地，不是区别项） |
+| `quarantine_prefix` | 隔离前缀 | QuarantinePrefix | 领域 · platform.file | 对象存储里放检测未通过文件内容的键前缀（<环境前缀>/quarantine/<文件 ID>），不可外读，只授安全角色经审批读取，保存期满清除内容 |  | 与文件状态「已隔离」配套：前缀是存放位置，状态是文件的判定结果 |
+
 ## platform.file（`platform-file.yaml`）
 
 platform.file 提议术语（proposed，ADR-0018；one-platform-file 2026-10-21 登记，待 one-glossary 评审）。
@@ -413,6 +423,22 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 | `round3_pending__qt` | 报价单据类型代码 | Qt | 领域 · platform.numbering | 第三轮用语确认（R3-NU-17）已定为：并入 document_type_code。代码与界面改名合入前保留旧写法。 |  | 代码仍用 Qt（main） |
 | `round3_pending__jv` | 记账凭证单据类型代码 | Jv | 领域 · platform.numbering | 第三轮用语确认（R3-NU-18）已定为：并入 document_type_code。代码与界面改名合入前保留旧写法。 |  | 代码仍用 Jv（main） |
 | `round3_pending__journal_voucher` | 会计凭证 | JournalVoucher | 领域 · accounting.ledger | 第三轮用语确认（R3-AP-26）已定为：记账凭证 / JournalVoucher（journal_voucher）。代码与界面改名合入前保留旧写法。 |  | 界面文字仍用「会计凭证」 |
+
+## `state-transitions-decisions.yaml`
+
+涉及模块：`platform.audit`、`platform.eventing`。
+
+状态转换记录与决定出处列名的提议术语（one-glossary 2026-10-21，E-009 与 #515 列名；ADR-0018）。
+
+注意：state_transitions.sequence_number 与已有词条 sequence_number（流水号，platform.numbering）同名异义，GlossaryTest G39 会要求该列注释以「流水号」开头，待裁定，见任务 NAM-1021-GLO-04。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `state_transition` | 状态转换记录 | StateTransition | 领域 · platform.eventing | 聚合每次状态变化的一行追加记录，与状态变更同一事务写入；各有状态聚合所在 schema 各建一张同形表 state_transitions |  | bc 暂取 platform.eventing，待 one-architecture 确认归属 |
+| `aggregate_type_code` | 聚合类型代码 | AggregateTypeCode | 领域 · platform.eventing | 状态转换记录里标明所属聚合类型的代码（列 aggregate_type_code） |  |  |
+| `occurred_on_date` | 发生日期 | OccurredOnDate | 领域 · platform.eventing | 状态转换记录里状态变化发生的日期（列 occurred_on_date） |  |  |
+| `decision_ref_key` | 决定出处键 | DecisionRefKey | 领域 · platform.audit | 配置型版本表里指向用户决定出处的键，填 intent 或 ADR 编号（列 decision_ref_key；裸 decision_ref 为命名守护所禁） |  |  |
+| `decision_audit_entry` | 决定审计记录 | DecisionAuditEntry | 领域 · platform.audit | 确认操作同一事务写入的审计记录，作为决定出处，版本行只存其标识、不建跨 schema 外键（列 decision_audit_entry_id） |  | ADR-0072 在提议阶段，随其采纳转正 |
 
 ## `step3-objects.yaml`
 
