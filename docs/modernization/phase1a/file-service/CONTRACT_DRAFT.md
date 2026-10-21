@@ -151,3 +151,9 @@ interface BusinessFileStore {                    // 业务文件桶；禁止覆�
 2. 1.2 两个方法放独立接口以便 ArchUnit 限调用方，计数仍按 10 —— 交 one-architecture 确认 G4 计法。
 3. `AccessLevel` 取值来源 —— 交 one-data（ADR-0043）。
 4. `retentionAnchor` 为 ADR-0061「起算单据」的落地写法（关联时给出），ADR 未逐字规定 —— 报调度确认。
+
+## 8. 实现回写（单元 6，2026-10-21）
+
+- `issueDownloadLink`、`readContent` 增 `FileSubject requester`（审计用）；`HoldRequest.heldBy` 为 `FileSubject`；`BindRequest.preservationAnchor` 必填（本单据即传本单据）。
+- 缺分级项由请求构造即拒（不另设 `PLATFORM_FILE_CLASSIFICATION_INCOMPLETE`）；`PLATFORM_FILE_BINDING_CONFLICT` 用于分级或保存期与已有不同。
+- 关联仅限上传人或平台模块，其他主体按 `PLATFORM_FILE_NOT_FOUND`（首轮安全复审必改）。
