@@ -39,6 +39,16 @@ B2 登记：代码里的聚合根与领域事件各自要有词条（G40、G41�
 
 无错误码以外的术语。
 
+## organization.administration（`contract-original-loan.yaml`）
+
+合同原件借阅用语（one-glossary 2026-10-21，NAM-1021-GLO-14；ADR-0076 提议，proposed）。bc 按 one-architecture 裁定：先行期 organization.administration，W3 移交 contract.agreement。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `contract_original` | 合同原件 | ContractOriginal | 领域 · organization.administration | 合同原件的归档记录：法人、合同编号、原件类型、存放位置、归档状态；先行期在行政事务，W3 移交合同模块的协议归档记录（ADR-0076） |  |  |
+| `loan_record` | 借阅记录 | LoanRecord | 领域 · organization.administration | 一份合同原件的一次借出：借用人、借出日、应还日、实际归还日，审批实例必填；借出须原件已归档且无未归还借出（ADR-0076，INV-125） |  |  |
+| `renewal_record` | 续借记录 | RenewalRecord | 领域 · organization.administration | 一笔借阅的续借，另起一条并引用原借阅记录，带新应还日与续借审批实例，每笔借阅最多续借一次（ADR-0076） |  |  |
+
 ## cost.timesheet（`cost-timesheet.yaml`）
 
 cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）。
