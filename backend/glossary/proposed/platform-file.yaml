@@ -324,7 +324,7 @@ terms:
   kind: value_object
   bc: platform.file
   scope: domain
-  definition: 文件所属的保存期限表类别，关联时由所属模块给出
+  definition: 文件所属的保存期限表类别，关联时由所属模块给出；文件保存期限与数据保留期限（data_retention_period）不同：后者管在线库与归档库的留存
   standard_ref:
   - ADR-0061 文件保存期
   confidence: medium
