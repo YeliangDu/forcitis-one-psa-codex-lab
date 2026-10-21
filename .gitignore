@@ -24,3 +24,4 @@ __pycache__/
 .claude/session-name
 .claude/push-bypass.log
 .claude/context-handoff-state.json
+.claude/context-handoff-state.json.lock
