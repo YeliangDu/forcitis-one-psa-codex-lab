@@ -203,14 +203,26 @@ class DataArchitectureTest {
         return found;
     }
 
-    /** Behaviour, not names: TRUNCATE inside a transaction that is rolled back; refused means the restrict_violation of a trigger, not a foreign key. */
+    /**
+     * Behaviour, not names: TRUNCATE inside a transaction that is rolled back; refused means the restrict_violation of a trigger, not a foreign key.
+     * A table that another table references is stopped by PostgreSQL's foreign key check before any trigger runs; for it the same is asked of
+     * TRUNCATE ... CASCADE, which fires the truncate trigger of every table it reaches.
+     */
     static boolean truncateIsRefused(Connection c, String table) throws SQLException {
+        String state = truncateState(c, "truncate table " + table);
+        if ("0A000".equals(state)) {
+            state = truncateState(c, "truncate table " + table + " cascade");
+        }
+        return "23001".equals(state);
+    }
+
+    private static String truncateState(Connection c, String statement) throws SQLException {
         c.setAutoCommit(false);
-        try (var statement = c.createStatement()) {
-            statement.execute("truncate table " + table);
-            return false;
+        try (var truncate = c.createStatement()) {
+            truncate.execute(statement);
+            return "";
         } catch (SQLException refused) {
-            return "23001".equals(refused.getSQLState());
+            return refused.getSQLState();
         } finally {
             c.rollback();
             c.setAutoCommit(true);
