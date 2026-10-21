@@ -11,33 +11,45 @@ import com.forcitis.one.platform.file.domain.FileBindingRepository;
 import com.forcitis.one.platform.file.domain.FilePreservation;
 import com.forcitis.one.platform.integration.api.BusinessFileStore;
 import com.forcitis.one.platform.integration.api.StoredObjectKey;
+import com.forcitis.one.kernel.BusinessZone;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
 import java.util.Optional;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Links a file to a document (ADR-0060 sections 2 and 5): the first link copies it from staging to its formal key, and only a committed link
  * makes it downloadable. The copy runs between two checks under the row lock rather than inside one, so no transaction waits on the bucket;
- * a copy that is retried, or raced by another first link, finds the same formal object and counts as done.
+ * a copy that is retried, or raced by another first link, finds the same formal object and counts as done while the staged copy is still
+ * there. Called inside the caller's transaction it joins it, and the row lock then lasts through the copy.
  */
 public final class BindFile {
+    private static final Logger LOG = LoggerFactory.getLogger(BindFile.class);
+
     private final FileBindingRepository bindings;
     private final BusinessFileStore store;
     private final BindingAudit audit;
     private final FileKeys keys;
     private final Clock clock;
+    private final BusinessZone zone;
     private final TransactionTemplate transaction;
+    private final Counter unlinkedCopies;
 
-    public BindFile(FileBindingRepository bindings, BusinessFileStore store, BindingAudit audit, FileKeys keys, Clock clock,
-                    PlatformTransactionManager transactions) {
+    public BindFile(FileBindingRepository bindings, BusinessFileStore store, BindingAudit audit, FileKeys keys, Clock clock, BusinessZone zone,
+                    PlatformTransactionManager transactions, MeterRegistry meters) {
         this.bindings = bindings;
         this.store = store;
         this.audit = audit;
         this.keys = keys;
         this.clock = clock;
+        this.zone = zone;
         this.transaction = new TransactionTemplate(transactions);
+        this.unlinkedCopies = Counter.builder("forcitis.platform.file.binding.failures").register(meters);
     }
 
     public void bind(BindRequest request) {
@@ -50,11 +62,24 @@ public final class BindFile {
         if (first == null) {
             return;
         }
-        if (!first.target().bound()) {
+        boolean copied = !first.target().bound();
+        if (copied) {
             BindingTarget target = first.target();
             store.promote(keys.staging(target.id(), target.uploader().kind()), new StoredObjectKey(target.objectKey()), target.contentHash().value(),
                     target.size());
         }
+        try {
+            link(request, classification);
+        } catch (RuntimeException e) {
+            if (copied) {
+                LOG.error("ALERT file {} was copied to its formal key but not linked; a retry links it, otherwise the object stays unlinked", request.file());
+                unlinkedCopies.increment();
+            }
+            throw e;
+        }
+    }
+
+    private void link(BindRequest request, Classification classification) {
         transaction.executeWithoutResult(tx -> {
             Decision decision = decide(request, classification);
             if (decision == null) {
@@ -71,8 +96,9 @@ public final class BindFile {
     private Decision decide(BindRequest request, Classification classification) {
         BindingTarget target = bindings.lockForBinding(request.file())
                 .orElseThrow(() -> FileError.PLATFORM_FILE_NOT_FOUND.refusal("the file does not exist"));
-        // A file nobody has linked yet belongs to its uploader: another user who learns its id cannot link it into a document of their own.
-        if (!target.bound() && !target.uploader().equals(request.boundBy()) && request.boundBy().kind() != FileSubjectKind.PLATFORM_MODULE) {
+        // The module owning the new document cannot judge the documents the file is already on, so only the uploader or a platform module may
+        // link it: anyone else who learns its id gets the answer for a file that does not exist.
+        if (!target.uploader().equals(request.boundBy()) && request.boundBy().kind() != FileSubjectKind.PLATFORM_MODULE) {
             throw FileError.PLATFORM_FILE_NOT_FOUND.refusal("the file does not exist");
         }
         Availability.require(target.status());
@@ -93,7 +119,7 @@ public final class BindFile {
             }
             return new Decision(target, Optional.empty());
         }
-        UUID version = bindings.currentCategoryVersion(request.preservationCategory())
+        UUID version = bindings.currentCategoryVersion(request.preservationCategory(), zone.dateOf(clock.instant()))
                 .orElseThrow(() -> FileError.PLATFORM_FILE_PRESERVATION_CATEGORY_UNKNOWN.refusal("the preservation category does not exist"));
         return new Decision(target, Optional.of(version));
     }

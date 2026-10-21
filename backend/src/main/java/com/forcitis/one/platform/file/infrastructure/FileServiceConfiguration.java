@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.file.infrastructure;
 
+import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.platform.file.application.BindFile;
 import com.forcitis.one.platform.file.application.FileKeys;
@@ -51,8 +52,8 @@ class FileServiceConfiguration {
 
     @Bean
     BindFile bindFile(FileBindingRepository bindings, BusinessFileStore store, BindingAudit audit, FileServiceProperties properties, Clock clock,
-                      PlatformTransactionManager transactions) {
-        return new BindFile(bindings, store, audit, new FileKeys(properties.environmentPrefix()), clock, transactions);
+                      BusinessZone zone, PlatformTransactionManager transactions, MeterRegistry meters) {
+        return new BindFile(bindings, store, audit, new FileKeys(properties.environmentPrefix()), clock, zone, transactions, meters);
     }
 
     @Bean

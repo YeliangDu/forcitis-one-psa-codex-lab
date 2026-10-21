@@ -7,6 +7,7 @@ import com.forcitis.one.platform.file.api.FileSubject;
 import com.forcitis.one.platform.file.api.PreservationCategoryCode;
 import com.forcitis.one.platform.file.api.StoredFileSummary;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,8 +22,8 @@ public interface FileBindingRepository {
 
     Optional<FilePreservation> preservation(FileId file);
 
-    /** The confirmed version with the highest number, else the pending one; empty when the category does not exist. */
-    Optional<UUID> currentCategoryVersion(PreservationCategoryCode category);
+    /** The confirmed version in effect on the day with the highest number, else the newest other one; empty when the category does not exist. */
+    Optional<UUID> currentCategoryVersion(PreservationCategoryCode category, LocalDate day);
 
     void insertBinding(FileId file, DocumentReference document, Classification classification, FileSubject boundBy, Instant at);
 

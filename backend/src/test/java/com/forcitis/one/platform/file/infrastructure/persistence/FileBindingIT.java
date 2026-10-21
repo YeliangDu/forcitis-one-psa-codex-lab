@@ -140,7 +140,8 @@ class FileBindingIT {
         }
     };
 
-    final BindFile bind = new BindFile(bindings, store, audit, keys, clock, transactions);
+    final BindFile bind = new BindFile(bindings, store, audit, keys, clock, new BusinessZone(ZoneId.of("Asia/Shanghai")), transactions,
+            new SimpleMeterRegistry());
     final HoldFile hold = new HoldFile(bindings, audit, clock, transactions);
     final IssueDownloadLink links = new IssueDownloadLink(bindings, store, audit, Duration.ofMinutes(5), Duration.ofMinutes(15), clock);
     final ReadFileContent content = new ReadFileContent(bindings, store, audit, new SimpleMeterRegistry());
@@ -214,15 +215,23 @@ class FileBindingIT {
     }
 
     @Test
-    void anUnlinkedFileIsInvisibleToAnyoneButItsUploaderAndAPlatformModule() {
+    void onlyTheUploaderOrAPlatformModuleLinksAFileAnyoneElseFindsNoFile() {
         FileId file = stored(FileStatus.AVAILABLE, new Lineage.FirstVersion());
         DocumentReference contract = document();
-        assertThatThrownBy(() -> bind.bind(request(file, contract, AccessLevel.INTERNAL, user())))
+        FileSubject stranger = user();
+        assertThatThrownBy(() -> bind.bind(request(file, contract, AccessLevel.INTERNAL, stranger)))
                 .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(FileError.PLATFORM_FILE_NOT_FOUND));
         assertThat(promoted).isEmpty();
-        bind.bind(request(file, contract, AccessLevel.INTERNAL, new FileSubject(FileSubjectKind.PLATFORM_MODULE, "platform.signing")));
-        bind.bind(new BindRequest(file, document(), AccessLevel.INTERNAL, PersonalInformationMark.NONE, category, contract, user()));
-        assertThat(rows("file_bindings", file)).isEqualTo(2);
+        FileSubject signing = new FileSubject(FileSubjectKind.PLATFORM_MODULE, "platform.signing");
+        bind.bind(request(file, contract, AccessLevel.RESTRICTED, signing));
+        DocumentReference own = document();
+        assertThatThrownBy(() -> bind.bind(new BindRequest(file, own, AccessLevel.PUBLIC, PersonalInformationMark.NONE, category, contract, stranger)))
+                .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(FileError.PLATFORM_FILE_NOT_FOUND));
+        assertThatThrownBy(() -> bind.bind(new BindRequest(file, own, AccessLevel.PUBLIC, PersonalInformationMark.NONE, category(), own, stranger)))
+                .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(FileError.PLATFORM_FILE_NOT_FOUND));
+        bind.bind(new BindRequest(file, document(), AccessLevel.INTERNAL, PersonalInformationMark.NONE, category, contract, uploader));
+        bind.bind(new BindRequest(file, document(), AccessLevel.INTERNAL, PersonalInformationMark.NONE, category, contract, signing));
+        assertThat(rows("file_bindings", file)).isEqualTo(3);
     }
 
     @Test

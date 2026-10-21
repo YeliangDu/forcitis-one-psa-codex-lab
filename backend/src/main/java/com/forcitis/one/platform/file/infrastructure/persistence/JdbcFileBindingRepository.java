@@ -25,6 +25,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -88,16 +89,16 @@ class JdbcFileBindingRepository implements FileBindingRepository {
     }
 
     @Override
-    public Optional<UUID> currentCategoryVersion(PreservationCategoryCode category) {
+    public Optional<UUID> currentCategoryVersion(PreservationCategoryCode category, LocalDate day) {
         return jdbc.sql("""
                         select v.preservation_category_version_id
                           from platform_file.preservation_category_versions v
                           join platform_file.preservation_categories c on c.preservation_category_id = v.preservation_category_id
                          where c.category_code = :code
-                         order by (v.confirmation_status = 'CONFIRMED') desc, v.version_number desc
+                         order by (v.confirmation_status = 'CONFIRMED' and v.effective_from_date <= :day) desc, v.version_number desc
                          limit 1
                         """)
-                .param("code", category.value())
+                .param("code", category.value()).param("day", day)
                 .query(UUID.class).optional();
     }
 
