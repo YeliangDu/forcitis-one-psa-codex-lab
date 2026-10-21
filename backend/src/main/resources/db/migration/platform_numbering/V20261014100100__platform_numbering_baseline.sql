@@ -146,6 +146,7 @@ CREATE TABLE platform_numbering.numbering_rule_versions (
     author_id            uuid,
     authored_at          timestamptz NOT NULL,
     status               text        NOT NULL CHECK (status IN ('PENDING_CONFIRMATION', 'CONFIRMED', 'SUPERSEDED')),
+    source_kind          text        NOT NULL CONSTRAINT ck_numbering_rule_versions_source_kind CHECK (source_kind IN ('AUTHORED', 'SEEDED', 'MIGRATION')),
     confirmed_by         uuid,
     confirmed_at         timestamptz,
     finance_confirmed_by uuid,
@@ -155,6 +156,8 @@ CREATE TABLE platform_numbering.numbering_rule_versions (
     CONSTRAINT pk_numbering_rule_versions PRIMARY KEY (numbering_rule_version_id),
     CONSTRAINT uk_numbering_rule_versions_numbering_rule_id_version_number UNIQUE (numbering_rule_id, version_number),
     CONSTRAINT fk_numbering_rule_versions_numbering_rule_id FOREIGN KEY (numbering_rule_id) REFERENCES platform_numbering.numbering_rules (numbering_rule_id),
+    CONSTRAINT ck_numbering_rule_versions_author_by_source
+        CHECK ((author_id IS NULL) = (source_kind IN ('SEEDED', 'MIGRATION'))),
     CONSTRAINT ck_numbering_rule_versions_confirmer_is_not_author
         CHECK (author_id IS NULL OR ((confirmed_by IS NULL OR confirmed_by <> author_id) AND (finance_confirmed_by IS NULL OR finance_confirmed_by <> author_id))),
     CONSTRAINT ck_numbering_rule_versions_two_different_confirmers
@@ -176,6 +179,7 @@ COMMENT ON COLUMN platform_numbering.numbering_rule_versions.start_value IS '每
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.effective_from_date IS '生效日：作者提交内容的一部分，不可改写；业务日期从这一天起用该版本发号。确认时若早于当天则拒绝，作者改日期重新提交；种子默认模板为 2000-01-01';
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.author_id IS '作者用户 ID：保存该版本的人；种子默认模板为空；确认人不得是作者（四眼）';
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.authored_at IS '保存该版本的时间';
+COMMENT ON COLUMN platform_numbering.numbering_rule_versions.source_kind IS '来源类别：AUTHORED 界面起草（作者必填，确认人不得是作者）/ SEEDED 种子默认模板 / MIGRATION 迁入；只有种子与迁入的行允许作者为空，且只能由迁移角色写入（插入触发器核对属主角色成员），运行账号写不进';
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.status IS '版本状态：PENDING_CONFIRMATION 待确认 / CONFIRMED 已确认 / SUPERSEDED 被新版本取代而未经确认';
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.confirmed_by IS '业务确认人用户 ID：持有 numbering-rule:approve 的人；为空表示尚未业务确认，已确认状态必填';
 COMMENT ON COLUMN platform_numbering.numbering_rule_versions.confirmed_at IS '业务确认时间';
@@ -193,7 +197,8 @@ BEGIN
     IF NEW.numbering_rule_id IS DISTINCT FROM OLD.numbering_rule_id OR NEW.version_number IS DISTINCT FROM OLD.version_number
        OR NEW.template_text IS DISTINCT FROM OLD.template_text OR NEW.reset_policy IS DISTINCT FROM OLD.reset_policy
        OR NEW.start_value IS DISTINCT FROM OLD.start_value OR NEW.effective_from_date IS DISTINCT FROM OLD.effective_from_date
-       OR NEW.author_id IS DISTINCT FROM OLD.author_id OR NEW.authored_at IS DISTINCT FROM OLD.authored_at THEN
+       OR NEW.author_id IS DISTINCT FROM OLD.author_id OR NEW.authored_at IS DISTINCT FROM OLD.authored_at
+       OR NEW.source_kind IS DISTINCT FROM OLD.source_kind THEN
         RAISE EXCEPTION 'a saved numbering template version is immutable' USING ERRCODE = 'restrict_violation';
     END IF;
     IF (OLD.confirmed_by IS NOT NULL AND (NEW.confirmed_by IS DISTINCT FROM OLD.confirmed_by OR NEW.confirmed_at IS DISTINCT FROM OLD.confirmed_at))
@@ -207,6 +212,19 @@ BEGIN
     RETURN NEW;
 END;
 $$;
+-- 作者可空的行（种子、迁入）只由迁移写：运行账号不是属主角色的成员（c3/c9 校验脚本核对），在这里被拒。
+CREATE FUNCTION platform_numbering.guard_rule_version_source() RETURNS trigger
+    LANGUAGE plpgsql AS $$
+BEGIN
+    IF NEW.source_kind <> 'AUTHORED' AND NOT pg_has_role(current_user,
+            (SELECT tableowner FROM pg_catalog.pg_tables WHERE schemaname = 'platform_numbering' AND tablename = 'numbering_rule_versions'), 'MEMBER') THEN
+        RAISE EXCEPTION 'a numbering template version without an author (%) can only be written by a migration', NEW.source_kind USING ERRCODE = 'restrict_violation';
+    END IF;
+    RETURN NEW;
+END;
+$$;
+CREATE TRIGGER tg_numbering_rule_versions_source BEFORE INSERT ON platform_numbering.numbering_rule_versions
+    FOR EACH ROW EXECUTE FUNCTION platform_numbering.guard_rule_version_source();
 CREATE TRIGGER numbering_rule_versions_guard
     BEFORE UPDATE OR DELETE ON platform_numbering.numbering_rule_versions
     FOR EACH ROW EXECUTE FUNCTION platform_numbering.guard_rule_version_change();
@@ -226,8 +244,8 @@ INSERT INTO platform_numbering.numbering_rules (numbering_rule_id, document_type
     ('019a0000-0000-7000-8000-000000000303', '019a0000-0000-7000-8000-000000000403', 1, 0);
 
 -- 种子规则的模板成为版本 1，一律待确认：由业务管理员按四眼确认（凭证号模板另由财务确认）。
-INSERT INTO platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status)
-SELECT seeds.version_id, rules.numbering_rule_id, 1, '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, DATE '2000-01-01', now(), 'PENDING_CONFIRMATION'
+INSERT INTO platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status, source_kind)
+SELECT seeds.version_id, rules.numbering_rule_id, 1, '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, DATE '2000-01-01', now(), 'PENDING_CONFIRMATION', 'SEEDED'
   FROM platform_numbering.numbering_rules rules
   JOIN (VALUES ('019a0000-0000-7000-8000-000000000401'::uuid, '019a0000-0000-7000-8000-000000000501'::uuid), ('019a0000-0000-7000-8000-000000000402'::uuid, '019a0000-0000-7000-8000-000000000502'::uuid), ('019a0000-0000-7000-8000-000000000403'::uuid, '019a0000-0000-7000-8000-000000000503'::uuid)) AS seeds (document_type_id, version_id)
     ON seeds.document_type_id = rules.document_type_id;
