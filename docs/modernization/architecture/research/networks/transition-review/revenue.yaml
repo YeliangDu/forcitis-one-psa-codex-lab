@@ -1,0 +1,814 @@
+# 状态转换待判清单（revenue 组）：ssot/10-objects/transitions.yaml @f8bc2dba 中来源为 proposals/closeout/revenue/ 的 pending 与涉及本组对象的 conflicts。
+# 请负责会话逐条判定：pending 写 decided_object（OBJ）或 new_object_needed；conflicts 写 same（同义，取哪个名）或 different（不同义）。
+# 同名异义交 one-glossary；需用户定的标 needs_user。判定写回本文件同一条目下的 decision 字段，回 one-architecture。
+pending:
+- id: OTR-889
+  aggregate: AGG-14
+  from: null
+  to: 占用中
+  command: 占用框架限额
+  by_command: null
+  source: proposals/closeout/revenue/state-machines.yaml machines[8].transitions[0]
+  judgement: pending
+  candidates:
+  - OBJ-05
+  - OBJ-08
+  reason: 技术聚合（占用行），聚合清单未列 OBJ；候选 OBJ-05 协议（框架协议限额）
+  decision:
+    decided_object: OBJ-05
+    reason: 框架协议限额的占用：任务订单提交前占用框架协议（OBJ-05 类型框架协议）的限额；占用行是技术记录，不入 OBJ-05 主状态网，只作协议的限额余量维度
+    by: one-arch-revenue 2026-10-21
+- id: OTR-890
+  aggregate: AGG-14
+  from: 占用中
+  to: 占用中
+  command: 占用框架限额
+  by_command: null
+  source: proposals/closeout/revenue/state-machines.yaml machines[8].transitions[1]
+  judgement: pending
+  self_loop: true
+  candidates:
+  - OBJ-05
+  - OBJ-08
+  reason: 技术聚合（占用行），聚合清单未列 OBJ；候选 OBJ-05 协议（框架协议限额）
+  decision:
+    decided_object: OBJ-05
+    reason: 同 OTR-889（追加占用，自环）
+    by: one-arch-revenue 2026-10-21
+- id: OTR-891
+  aggregate: AGG-14
+  from: 占用中
+  to: 已释放
+  command: 释放框架限额
+  by_command: null
+  source: proposals/closeout/revenue/state-machines.yaml machines[8].transitions[2]
+  judgement: pending
+  candidates:
+  - OBJ-05
+  - OBJ-08
+  reason: 技术聚合（占用行），聚合清单未列 OBJ；候选 OBJ-05 协议（框架协议限额）
+  decision:
+    decided_object: OBJ-05
+    reason: 同 OTR-889（驳回、撤回、作废、终止释放限额）
+    by: one-arch-revenue 2026-10-21
+- id: OTR-892
+  aggregate: AGG-44
+  from: null
+  to: 额度变动已追加
+  command: 更新开票与收入额度
+  by_command: null
+  source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[0]
+  judgement: pending
+  candidates:
+  - OBJ-07
+  - OBJ-08
+  - OBJ-81
+  - OBJ-82
+  reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+  decision:
+    decided_object: OBJ-08
+    reason: 合同签订 / 新基线时按履约义务分摊交易价格建立或更新额度，付款条件项额度（OBJ-07）随同；技术状态，不入业务对象主状态网
+    by: one-arch-revenue 2026-10-21
+- id: OTR-893
+  aggregate: AGG-44
+  from: null
+  to: 开票占用已转实
+  command: 开具销项发票并改写 WIP
+  by_command: null
+  source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[1]
+  judgement: pending
+  candidates:
+  - OBJ-07
+  - OBJ-08
+  - OBJ-81
+  - OBJ-82
+  reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+  decision:
+    decided_object: OBJ-82
+    reason: 开具发票时开票申请的占用转实（开票申请到「已开票」，发票到「已开具」）；技术状态
+    by: one-arch-revenue 2026-10-21
+- id: OTR-894
+  aggregate: AGG-44
+  from: 开票占用已转实
+  to: 开票占用已回冲
+  command: 回冲开票额度
+  by_command: null
+  source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[2]
+  judgement: pending
+  candidates:
+  - OBJ-07
+  - OBJ-08
+  - OBJ-81
+  - OBJ-82
+  reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+  decision:
+    decided_object: OBJ-82
+    reason: 红冲后回冲开票额度，是开票申请占用转实的逆向（发票侧到「已红冲」）；技术状态
+    by: one-arch-revenue 2026-10-21
+- id: OTR-895
+  aggregate: AGG-44
+  from: null
+  to: 视为同意已认定
+  command: 认定视为同意成立
+  by_command: null
+  source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[3]
+  judgement: pending
+  candidates:
+  - OBJ-07
+  - OBJ-08
+  - OBJ-81
+  - OBJ-82
+  reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+  decision:
+    decided_object: OBJ-81
+    reason: 视为同意认定是收入确认的证据成立（PRC-54 主对象 OBJ-81）；OBJ-81 收入确认的生命周期（若作对象：草稿 → 审批中 → 已确认 / 驳回，更正走冲销）；形态随 Q20 / Q-04（VS04-01，已在用户待答）
+    by: one-arch-revenue 2026-10-21
+- id: OTR-896
+  aggregate: AGG-44
+  from: null
+  to: 收入占用中
+  command: 占用收入额度
+  by_command: null
+  source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[4]
+  judgement: pending
+  candidates:
+  - OBJ-07
+  - OBJ-08
+  - OBJ-81
+  - OBJ-82
+  reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+  decision:
+    decided_object: OBJ-81
+    reason: 收入占用 ≈ 收入确认「审批中」；OBJ-81 收入确认的生命周期（若作对象：草稿 → 审批中 → 已确认 / 驳回，更正走冲销）；形态随 Q20 / Q-04（VS04-01，已在用户待答）
+    by: one-arch-revenue 2026-10-21
+- id: OTR-897
+  aggregate: AGG-44
+  from: 收入占用中
+  to: 收入占用已转实
+  command: 追加收入确认事实并占用转实
+  by_command: null
+  source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[5]
+  judgement: pending
+  candidates:
+  - OBJ-07
+  - OBJ-08
+  - OBJ-81
+  - OBJ-82
+  reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+  decision:
+    decided_object: OBJ-81
+    reason: 占用转实 ≈ 收入确认「已确认（锁定）」；OBJ-81 收入确认的生命周期（若作对象：草稿 → 审批中 → 已确认 / 驳回，更正走冲销）；形态随 Q20 / Q-04（VS04-01，已在用户待答）
+    by: one-arch-revenue 2026-10-21
+- id: OTR-898
+  aggregate: AGG-44
+  from: null
+  to: 收入确认事实已追加
+  command: 追加收入确认事实并占用转实
+  by_command: null
+  source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[6]
+  judgement: pending
+  candidates:
+  - OBJ-07
+  - OBJ-08
+  - OBJ-81
+  - OBJ-82
+  reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+  decision:
+    decided_object: OBJ-81
+    reason: 追加确认事实 ≈ 收入确认「已确认（锁定）」；OBJ-81 收入确认的生命周期（若作对象：草稿 → 审批中 → 已确认 / 驳回，更正走冲销）；形态随 Q20 / Q-04（VS04-01，已在用户待答）
+    by: one-arch-revenue 2026-10-21
+- id: OTR-899
+  aggregate: AGG-44
+  from: 收入占用中
+  to: 收入占用已释放
+  command: 释放收入额度占用
+  by_command: null
+  source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[7]
+  judgement: pending
+  candidates:
+  - OBJ-07
+  - OBJ-08
+  - OBJ-81
+  - OBJ-82
+  reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+  decision:
+    decided_object: OBJ-81
+    reason: 驳回释放 ≈ 收入确认「驳回」；OBJ-81 收入确认的生命周期（若作对象：草稿 → 审批中 → 已确认 / 驳回，更正走冲销）；形态随 Q20 / Q-04（VS04-01，已在用户待答）
+    by: one-arch-revenue 2026-10-21
+- id: OTR-900
+  aggregate: AGG-44
+  from: null
+  to: 冲销申请已登记
+  command: 冲销收入确认
+  by_command: null
+  source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[8]
+  judgement: pending
+  candidates:
+  - OBJ-07
+  - OBJ-08
+  - OBJ-81
+  - OBJ-82
+  reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+  decision:
+    decided_object: OBJ-81
+    reason: 冲销申请（更正走冲销，PRC-149 主对象 OBJ-81）；OBJ-81 收入确认的生命周期（若作对象：草稿 → 审批中 → 已确认 / 驳回，更正走冲销）；形态随 Q20 / Q-04（VS04-01，已在用户待答）
+    by: one-arch-revenue 2026-10-21
+- id: OTR-901
+  aggregate: AGG-44
+  from: 冲销申请已登记
+  to: 冲销占用中
+  command: 占用冲销额度
+  by_command: null
+  source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[9]
+  judgement: pending
+  candidates:
+  - OBJ-07
+  - OBJ-08
+  - OBJ-81
+  - OBJ-82
+  reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+  decision:
+    decided_object: OBJ-81
+    reason: 冲销占用；OBJ-81 收入确认的生命周期（若作对象：草稿 → 审批中 → 已确认 / 驳回，更正走冲销）；形态随 Q20 / Q-04（VS04-01，已在用户待答）
+    by: one-arch-revenue 2026-10-21
+- id: OTR-902
+  aggregate: AGG-44
+  from: 冲销占用中
+  to: 冲销已转实
+  command: 追加冲销行并占用转实
+  by_command: null
+  source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[10]
+  judgement: pending
+  candidates:
+  - OBJ-07
+  - OBJ-08
+  - OBJ-81
+  - OBJ-82
+  reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+  decision:
+    decided_object: OBJ-81
+    reason: 冲销转实；OBJ-81 收入确认的生命周期（若作对象：草稿 → 审批中 → 已确认 / 驳回，更正走冲销）；形态随 Q20 / Q-04（VS04-01，已在用户待答）
+    by: one-arch-revenue 2026-10-21
+- id: OTR-903
+  aggregate: AGG-44
+  from: 冲销占用中
+  to: 冲销已释放
+  command: 释放收入额度占用
+  by_command: null
+  source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[11]
+  judgement: pending
+  candidates:
+  - OBJ-07
+  - OBJ-08
+  - OBJ-81
+  - OBJ-82
+  reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+  decision:
+    decided_object: OBJ-81
+    reason: 冲销驳回释放；OBJ-81 收入确认的生命周期（若作对象：草稿 → 审批中 → 已确认 / 驳回，更正走冲销）；形态随 Q20 / Q-04（VS04-01，已在用户待答）
+    by: one-arch-revenue 2026-10-21
+- id: OTR-904
+  aggregate: AGG-44
+  from: 收入确认事实已追加
+  to: 收入确认事实已追加
+  command: 提交过账候选
+  by_command: null
+  source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[12]
+  judgement: pending
+  self_loop: true
+  candidates:
+  - OBJ-07
+  - OBJ-08
+  - OBJ-81
+  - OBJ-82
+  reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+  decision:
+    decided_object: OBJ-81
+    reason: 提交过账候选不改收入确认状态（自环），过账经 B-16
+    by: one-arch-revenue 2026-10-21
+- id: OTR-905
+  aggregate: AGG-44
+  from: 冲销已转实
+  to: 冲销已转实
+  command: 提交过账候选
+  by_command: null
+  source: proposals/closeout/revenue/state-machines.yaml machines[12].transitions[13]
+  judgement: pending
+  self_loop: true
+  candidates:
+  - OBJ-07
+  - OBJ-08
+  - OBJ-81
+  - OBJ-82
+  reason: 技术聚合，转换同时涉及付款条件项额度、履约义务分摊、收入确认行与开票占用，无单一 OBJ
+  decision:
+    decided_object: OBJ-81
+    reason: 同 OTR-904（冲销行过账候选）
+    by: one-arch-revenue 2026-10-21
+conflicts:
+- id: CF-001
+  kind: name-variant
+  object: OBJ-02
+  pairs:
+  - - 已申请
+    - 角色申请中
+  - - 合格
+    - 角色合格
+  - - 已暂停
+    - 角色已暂停
+  - - 已停用
+    - 角色已停用
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    result: same
+    take:
+    - 角色申请中
+    - 角色合格
+    - 角色已暂停
+    - 角色已停用
+    reason: AGG-01 一台状态机同时含往来单位与角色两组状态，须带「角色」前缀区分；角色已暂停、角色已停用为 N7 定名。取状态机名（N7 已审）；信息图 key_states 按此改
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-002
+  kind: name-variant
+  object: OBJ-09
+  pairs:
+  - - 影响评估
+    - 已评估
+  - - 审批
+    - 变更审批中
+  - - 驳回
+    - 已驳回
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    result: same
+    take:
+    - 已评估
+    - 变更审批中
+    - 已驳回
+    reason: 取状态机名（N7 已审）；信息图 key_states 按此改
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-003
+  kind: name-variant
+  object: OBJ-12
+  pairs:
+  - - 叫停
+    - 已叫停
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    result: same
+    take:
+    - 已叫停
+    reason: 取状态机名（N7 已审）；信息图 key_states 按此改
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-004
+  kind: name-variant
+  object: OBJ-18
+  pairs:
+  - - 丢单
+    - 已丢单
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    result: same
+    take:
+    - 已丢单
+    reason: 取状态机名（N7 已审）；信息图 key_states 按此改
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-005
+  kind: name-variant
+  object: OBJ-21
+  pairs:
+  - - 生效
+    - 已生效
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    result: same
+    take:
+    - 已生效
+    reason: 取状态机名（N7 已审）；信息图 key_states 按此改
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-006
+  kind: name-variant
+  object: OBJ-32
+  pairs:
+  - - 编制中
+    - 草拟
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    result: same
+    take:
+    - 草拟
+    reason: 编制中与草拟指同一状态；全稿草拟用法更普遍。取状态机名（N7 已审）；信息图 key_states 按此改
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-007
+  kind: name-variant
+  object: OBJ-35
+  pairs:
+  - - 编制中
+    - 草拟
+  - - 内审中
+    - 已内审
+  - - 退回修改
+    - 已退回
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    result: same
+    take:
+    - 草拟
+    - 已内审
+    - 已退回
+    reason: 内审过程由审批平台承载，聚合只记结果「已内审」；取状态机名（N7 已审）；信息图 key_states 按此改
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-008
+  kind: name-variant
+  object: OBJ-40
+  pairs:
+  - - 内审
+    - 已内审
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    result: same
+    take:
+    - 已内审
+    reason: 取状态机名（N7 已审）；信息图 key_states 按此改
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-009
+  kind: name-variant
+  object: OBJ-52
+  pairs:
+  - - 已采信
+    - 报告未采信
+  - - 已采信
+    - 报告已采信
+  - - 未采信
+    - 报告未采信
+  - - 未采信
+    - 报告已采信
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    result: same
+    take:
+    - 报告已采信
+    - 报告未采信
+    reason: 已采信 = 报告已采信、未采信 = 报告未采信；脚本列出的交叉对（已采信 ↔ 报告未采信、未采信 ↔ 报告已采信）为 different。取状态机名（N7 已审）；信息图 key_states 按此改
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-013
+  kind: name-variant
+  object: OBJ-82
+  pairs:
+  - - 准入通过
+    - 已准入
+  - - 驳回
+    - 已驳回
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    result: same
+    take:
+    - 已准入
+    - 已驳回
+    reason: 取状态机名（N7 已审）；信息图 key_states 按此改
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-014
+  kind: name-variant
+  object: OBJ-83
+  pairs:
+  - - 部分红冲
+    - 已红冲
+  - - 全额红冲
+    - 已红冲
+  - - 进项转出
+    - 已转出
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    result: same
+    take:
+    - 已红冲
+    - 已转出
+    reason: 部分红冲 / 全额红冲是红冲金额的属性，不另设状态（AGG-46 只一个「已红冲」）；进项转出 → 已转出属 finance AGG-89，请 finance 确认。取状态机名（N7 已审）；信息图 key_states 按此改
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-015
+  kind: name-variant
+  object: OBJ-85
+  pairs:
+  - - 争议
+    - 争议中
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    result: same
+    take:
+    - 争议中
+    reason: 取状态机名（N7 已审）；信息图 key_states 按此改
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-024
+  kind: name-variant
+  object: OBJ-124
+  pairs:
+  - - 版本草稿
+    - 草稿
+  note: key_states 与转换的状态名写法不同，疑为同一状态；是否同义待定，未合并
+  decision:
+    result: same
+    take:
+    - 草稿
+    reason: 与 CF-046 同口径（版本草稿 = 草稿）
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-031
+  kind: semantic
+  object: OBJ-05
+  aggregates:
+  - AGG-13
+  - AGG-55
+  - AGG-67
+  - AGG-07
+  key_states_says: 草案 → 审批中 → 已签署生效 → 履行中 → 已完成 → 已结算 / 已终止
+  transitions_say: AGG-13 同；AGG-55 供方协议：草拟 → 审批中 → 已生效 → …；AGG-67 劳动合同：草案 → 审批中 → 已批准 → 已签署生效 → 已终止；AGG-07 协议价目：待生效 → 已生效 → 被取代
+  note: OBJ-05 四个聚合共用一个 OBJ，状态集不同；「已签署生效」与「已生效」、「草案」与「草拟」是否同义，「已批准」「被取代」是否入 OBJ-05 key_states 待定；本稿均挂 OBJ-05
+  decision:
+    result: partly
+    items:
+    - pair:
+      - 草案
+      - 草拟
+      result: same
+      take: 草拟
+    - pair:
+      - 已签署生效
+      - 已生效
+      result: same
+      take: 已签署生效
+      note: 客户协议回签即生效；供方协议（AGG-55，finance）是否同名请 finance 确认
+    - pair:
+      - 已批准
+      result: different
+      note: 只属劳动合同 AGG-67（签署前批准），由 people 判是否入 OBJ-05
+    - pair:
+      - AGG-07 协议价目 待生效 / 已生效 / 被取代
+      result: different
+      note: 协议价目是版本化价目表，不是协议本身，挂 OBJ-05 不当；建议归 OBJ-124 业务规则或另立对象，交 one-architecture
+    reason: AGG-13 状态集与 key_states 一致
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-032
+  kind: semantic
+  object: OBJ-83
+  aggregates:
+  - AGG-46
+  - AGG-89
+  key_states_says: 销项：已开具 → 部分红冲 → 全额红冲；进项：已取得（查验）→ 已用途确认 → 已入账；进项转出；红冲确认中
+  transitions_say: AGG-46：已开具 → 红冲确认中 → 已红冲（无部分 / 全额之分）；AGG-89：已登记 → 已查验 → 已用途确认 → 已占用 → 已转出
+  note: 「已红冲」与「部分红冲 / 全额红冲」粒度不同；「已占用」与「已入账」、「已转出」与「进项转出」是否同义待定
+  decision:
+    result: same
+    take:
+    - 已开具
+    - 红冲确认中
+    - 已红冲
+    reason: 销项侧（AGG-46）同 CF-014：部分 / 全额是金额属性；进项侧 AGG-89（已占用 / 已入账 / 已转出）属 finance，请 finance 判
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-034
+  kind: semantic
+  object: OBJ-85
+  aggregates:
+  - AGG-49
+  - AGG-52
+  key_states_says: 未结 → 已部分结清 → 已结清；争议；已核销（坏账）；红冲减少
+  transitions_say: AGG-49：争议中、坏账已核销、已冲减、已转预收或待退、已逾期；AGG-52：已确认、已部分冲抵、已冲抵、预付款已登记、已冲销
+  note: 应收 / 应付两个聚合各自引入的状态（已冲抵、已冲减、已逾期等）在 key_states 中没有；「已冲减」是否即「红冲减少」待定；「已逾期」可能是派生而非状态
+  decision:
+    result: partly
+    items:
+    - pair:
+      - 争议
+      - 争议中
+      result: same
+      take: 争议中
+    - pair:
+      - 已核销（坏账）
+      - 坏账已核销
+      result: same
+      take: 坏账已核销
+      note: 避开与「核销」动作同名（已交 one-glossary 的老问题）
+    - pair:
+      - 红冲减少
+      - 已冲减
+      result: same
+      take: 已冲减
+    - pair:
+      - 已逾期
+      result: different
+      note: 不是派生值：催收、坏账处置的命令以它为前置（PRC-61），保留为状态，key_states 补
+    - pair:
+      - 已转预收或待退
+      result: different
+      note: 多收款的处置去向，key_states 补
+    - pair:
+      - AGG-52 已确认 / 已部分冲抵 / 已冲抵 / 预付款已登记 / 已冲销
+      result: different
+      note: 应付侧属 finance，请 finance 判
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-035
+  kind: semantic
+  object: OBJ-86
+  aggregates:
+  - AGG-50
+  - AGG-53
+  key_states_says: 收：待认领 → 已认领 → 已分配；付：已发起 → 审批中 → 已成功 / 已失败（退票）→ 已核销
+  transitions_say: AGG-50 增商票已收到 / 已逾期 / 已兑付（与分配状态正交）、已处置；AGG-53 增已撤回 / 已驳回 / 已退票
+  note: 商票兑付状态是另一正交维度，key_states 未提及；「已退票」与「已失败（退票）」是否同义待定
+  decision:
+    result: partly
+    items:
+    - pair:
+      - 商票已收到 / 已逾期 / 已兑付
+      result: different
+      note: 商票兑付是与分配正交的第二维度（PRC-63），不并入收款主状态；key_states 补为子状态或属性
+    - pair:
+      - 已失败（退票）
+      - 已退票
+      result: same
+      take: 已退票
+      note: 付款侧 AGG-53 属 finance，请 finance 确认
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-038
+  kind: semantic
+  object: OBJ-46
+  aggregates:
+  - AGG-33
+  key_states_says: 外部：规划 → 在建 → 已竣工 → 已超设计使用年限 → 改造中 → 已拆除
+  transitions_say: AGG-33 / REF-01 只有「已登记」（外部状态只记录，不迁移）
+  note: 外部生命周期状态按属性记录而非转换，全部 unreached；OBJ-19、OBJ-47 同类
+  decision:
+    result: different
+    reason: 外部生命周期按属性记录、不迁移（STEP3 C-20 已定，只记录不作门）；key_states 应标为外部属性而非状态转换，OBJ-19、OBJ-47 同理；本组骨架已在 PRC-14 结局写出外部状态值
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-039
+  kind: semantic
+  object: OBJ-30
+  aggregates:
+  - AGG-20
+  key_states_says: 阶段：未开始 → 进行中 → 已完成；工作包：进行中 → 已完成 → 已锁定 → 返工中；均可作废
+  transitions_say: AGG-20：阶段未开始 / 进行中 / 已完成；工作包未发布 / 已锁定 / 已作废（无进行中、已完成、返工中）
+  note: 工作包的起点「未发布」与 key_states 不同，「返工中」无转换
+  decision:
+    result: different
+    reason: 真缺口：AGG-20 工作包缺「进行中、已完成、返工中」（只有未发布 / 已锁定 / 已作废）。本组补状态机与命令（并入 QC-LIFECYCLE 待补项，CRUD 清零恢复时做），key_states 不改
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-040
+  kind: semantic
+  object: OBJ-35
+  aggregates:
+  - AGG-27
+  key_states_says: 编制中 → 内审中 → 已签发 → 已交付（签收）→ 审查中 → 已认可 / 退回修改 / 已声明
+  transitions_say: AGG-27：草拟 → 已内审 → 已签发 → 已送达 → 已退回 / 已认可 / 已声明 / 已封存
+  note: 内审中 vs 已内审（进行态 vs 完成态）、已交付（签收）vs 已送达、审查中无转换，是否同义待定
+  decision:
+    result: same
+    take:
+    - 已内审
+    - 已送达
+    reason: 内审中 / 已内审同 CF-007；已交付（签收）= 已送达；审查中即已送达后等待客户审查，不另设状态（视为同意期满判定在收入侧，D-8）。取状态机名（N7 已审）；信息图 key_states 按此改
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-041
+  kind: semantic
+  object: OBJ-38
+  aggregates:
+  - AGG-28
+  key_states_says: 处置（返工 / 让步接受）；客户书面接受风险
+  transitions_say: AGG-28：让步已接受、风险已保留
+  note: 让步已接受 ≈ 处置（让步接受）？风险已保留 ≈ 客户书面接受风险？待定
+  decision:
+    result: same
+    take:
+    - 让步已接受
+    - 风险已保留
+    reason: 风险已保留须附客户书面接受（价值流 VS-03.4 写作「客户书面接受风险」）；状态名与价值流用语的统一交 one-glossary 定
+    glossary: true
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-042
+  kind: semantic
+  object: OBJ-10
+  aggregates:
+  - AGG-16
+  key_states_says: 已通知 → 已提交 → 已认定 / 已拒绝 / 撤回
+  transitions_say: AGG-16：已提出 → … → 已拒绝或撤回
+  note: 「已拒绝」与「撤回」在聚合里合为一个状态；「已通知」「已提交」未到达，「已提出」key_states 无
+  decision:
+    result: different
+    reason: 「已拒绝」（发包人拒绝）与「撤回」（我方撤回）行为人不同，应拆为两个状态；已通知 → 已提交（先通知后提交详细索赔，合同范本做法）是两步，聚合的「已提出」只对应其一。本组拆状态并补「已通知」（PRC-49 改骨架）
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-043
+  kind: semantic
+  object: OBJ-41
+  aggregates:
+  - AGG-31
+  key_states_says: 已通知（5 天内）→ 已提交详细说明（10 天内）
+  transitions_say: AGG-31：已提交说明
+  note: 「已提交详细说明」与「已提交说明」是否同义待定
+  decision:
+    result: same
+    take:
+    - 已提交说明
+    reason: 「详细」是内容要求（10 天内），不是另一状态。取状态机名（N7 已审）；信息图 key_states 按此改
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-044
+  kind: semantic
+  object: OBJ-17
+  aggregates:
+  - AGG-09
+  key_states_says: 新建 → 跟进中 ⇄ 挂起 → 已确认 / 已关闭；公海池
+  transitions_say: AGG-09 初态为「待认领」，无「新建」
+  note: 公海池是否即「待认领」待定
+  decision:
+    result: same
+    take:
+    - 待认领
+    reason: 公海池是方言，待认领即新建后的初态；「公海池」交 one-glossary 登记为方言
+    glossary: true
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-045
+  kind: semantic
+  object: OBJ-24
+  aggregates:
+  - AGG-03
+  - AGG-04
+  key_states_says: 已启用 → 已停用；版本化（OBJ-25 同）
+  transitions_say: AGG-03 / 04：已发布 …
+  note: 「已启用」与「已发布」是否同义待定
+  decision:
+    result: same
+    take:
+    - 已发布
+    reason: 服务产品与阶段类型版本发布即启用；价值流 VS-01.2 段内状态写「启用」，请 one-architecture 统一为已发布。取状态机名（N7 已审）；信息图 key_states 按此改
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-046
+  kind: semantic
+  object: OBJ-124
+  aggregates:
+  - AGG-78
+  - AGG-85
+  - AGG-92
+  - AGG-118
+  - AGG-119
+  - AGG-123
+  - AGG-124
+  - AGG-133
+  key_states_says: 版本草稿 → 已生效 → 已停用（被新版本取代）
+  transitions_say: 各配置版本聚合：草稿 → 已生效 → 已取代 / 已被取代；AGG-92：已开放 / 未开放
+  note: 「已停用」与「已取代」「已被取代」是否同义待定；AGG-92 的开放 / 未开放不是版本状态
+  decision:
+    result: partly
+    items:
+    - pair:
+      - 版本草稿
+      - 草稿
+      result: same
+      take: 草稿
+    - pair:
+      - 已停用
+      - 已取代
+      - 已被取代
+      result: same
+      take: 已被取代
+      note: 与报价版本「已被取代」一致
+    - pair:
+      - AGG-92 已开放 / 未开放
+      result: different
+      note: 开放与否是证据类型的开关，不是版本状态；版本状态照草稿 → 已生效 → 已被取代
+    by: one-arch-revenue 2026-10-21
+    needs_user: false
+- id: CF-048
+  kind: semantic
+  object: OBJ-65
+  aggregates:
+  - AGG-02
+  key_states_says: 有效 → 核查中 → 有效 / 已降级 / 已撤销；有效 → 延续中 → 有效 / 已到期
+  transitions_say: AGG-02 含被取代，缺已降级、延续中
+  note: 资质证书的「被取代」key_states 未提
+  decision:
+    result: different
+    reason: AGG-02 缺「延续中、已降级」（本组补状态机：NOTES 已列「登记资质延续申请」候选命令），key_states 补「被取代」（新证书取代旧证书）
+    by: one-arch-revenue 2026-10-21
+    needs_user: false

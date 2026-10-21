@@ -3,20 +3,19 @@
 只记现行状态，一行一项，过程与决定只放链接（SESSION_PLAYBOOK §2.1 第 13 条、§11）。新开会话、清空或压缩后由钩子自动注入（#205 合并后生效；未注入就手动读本台账）。更新：2026-10-21 09:00（one-coordinator）
 
 ## 交接（每次 /clear 前更新；清空后先照做，用户 2026-10-17 要求）
-更新：2026-10-21 15:25（one-coordinator，上下文 75% 钩子触发）
-- 清空后第一步：通读 SESSION_PLAYBOOK §11、§5；读本节与「会话」节 10-21 各行；扫收件箱 pending（https://claude.ai/artifact/RVU6nNNSsygF5sVRWLhQ15）。intent 见 2026-10-21-1* 各片段。
-- **今日用户新口径**（详 intent）：不影响开发的运维/采购议题不发用户（记忆 dev-impact-only）；先本地知识库（桌面公开资料 kq.py / 公开资料研究 / 企业资料）再模型知识（记忆 external-knowledge-dirs）；决策影响面沿「登记网络 v7 + 实现网络 v2」系统分析（图在 architecture/research/networks/）；DeepSeek flash 列为执行者，三方对比评测进行中；launchd 托管合并队列（已批，one-merge 在装）；clear 后须同步 main（第 7 钩子）。
-- **合并队列**（one-merge 执行，mq.py；launchd 安装中）：队列 514（加急合集，含裁定 -05）→ 502 → 513；条件入队 #510（等 #502）、#501→#506（ADR-0071/0072，#506 条件 one-data 重签已满足）；#509 等 -05 进 main 后 one-1a-par 改 ReadOnlyAccountCheckIT 再报；#508 ADR-0073 等收件箱 U3/U4；#511 one-quality 开场注入压缩未完；one-data 文档合集收 ≥5378d121 的 docs/。钩子类 PR 合入后 one-merge 须快进主检出，必要时请用户重启 app（app 读主检出 settings；重启会杀会话拉起的进程）。
-- **各会话**：one-architecture（ARC-1021-COO-10 网络登记：批次表已批，I03 改过时、抽 10 份长 ADR 复核、第一批 C1+I08+I09 派工卡待交我；ADR-0073 待用户 U3/U4）；one-1a-par（#509 收尾→F2 PAR-04→组织接口清单 PAR-03→日历改造 PAR-02，日历 basis 含 MAKE_UP_WORKDAY_CANCELLED）；one-1a-next-5（sonnet，SEC-1021-COO-01 编号四眼，之后 NX5-02）；one-platform-file（#502 冲突收尾→单元 3，表结构第 4 版已签）；one-data（待派）；one-ops（12-01 续费提醒）；one-quality（#511 → QUA-05 三方评测 → QUA-03 七钩子 → 网络规则 CI）；one-glossary、one-rules、三个 one-arch-* 空闲保留。
-- **P0 无测试规则（UNTESTED_P0_RULES.md @95a2f5e9）**：补测试待派 one-1a-next-5（NX5-03 后）：340、412、304、308、337、376（265、311 等用户定）；377–382、291 与映射表高中置信 88 条补 @DisplayName 等模块会话空档（改验收要裁定）；193 条无规则卡测试已派 one-rules 补登；功能缺口已按作战图排（10-21）：①RULE-387、394（范围复核告警、权限调整逾期升级）随 A 线 W2 组织命令之后、投产前，归 one-1a-par；②工时 388/390/391（行模型）→ 397/398/399/403（填报义务、请假扣减、15 小时上限，依赖日历与请假来源）在通用审批先行上线之后排两张卡；③审批 407–411 随合同、往来单位、发票域建造写成其验收条件；④292 维持 Phase 2；员工法人归属迁入无来源，等 one-data 补查 52 账号后决定是否进收件箱。
-- **one-quality**：10-21 18:2x 清空并已下发顺序（性能三项→队列非必需检查与 mq 自测→QUA-05 换题重跑→网络规则 CI→QUA-03），作废卡与备份位置已告知。
-- **10-21 16:3x 用户重启电脑**：重启前 /private/tmp 下 15 个工作区的未提交改动已备份到 ~/.modernize/psa/reboot-backup-20261021/（<名>.tgz，INDEX.txt 记路径与分支；codex-wt-f=one-1a-par legacy-inbox-impl 43 个文件最要紧）；未推送提交在主仓库对象库不丢。重启后：通知 one-1a-par、one-quality 从备份恢复；one-merge 检查 launchd 队列与在途 CI 重跑；git worktree prune。
-- **ADR-0073 后续**：#501→#506→#508 须 one-architecture 逐个改基 main 后入队；ARC-1021-ARC-06 归 one-architecture（网络第一批后）；IMP-1021-ARC-01 挂到 W2 人事命令上线；DAT-1021-ARC-02 等收件箱「老系统法人维度」用户答复后派 one-data。
-- **本机性能（intent 2026-10-21-171238）**：监测结论——负载尖峰全来自推送前门禁 light_unit_tests（scripts/precheck.sh:360 推送模式不分改动都编译跑约 200 个单测，每次 5～6 核、约 4.8 GB）。one-quality 清空后第一优先：①没改 backend/ 跳过单测；②全机重活并发上限 2（锁）；③taskpolicy -b。CI 机器不减（用户「4 不做」）。工作区已清 109 个（60→37 GB）。纯文档合入不算代码 PR 落后（intent 2026-10-21-172506，one-merge 评估后改 mq.py）。one-quality 另加：队列不被非必需检查（assertion drift 僵尸作业，10-21 卡 30 分钟）卡住。用户自己在 Spotlight 隐私里排除仓库与 ~/.m2。
-- **网络第一批**：四卡完成（claude/one-architecture-network-batch1 @c01ad708），等 adr-governance 文档合集进 main 后开 PR；INV-62 与 ex_assignment_versions_overlap 不一致已交 one-1a-par W2 待办；U10（catalog 补 0052–0070）按 build_adrs.py:298 新格式不进 catalog，待用户确认视为已满足；第二批派工卡 one-architecture 起草中。
-- **收件箱 pending**：ADR-0073 U3/U4（关账期间错误处置、会签逾期升级对象）。
-- **调度自检补充**：验收裁定登记后立即加急合集（守护只认 main 上的裁定）；通知用户重启前查 ps 常驻进程与会话 Monitor；有条件批准时实现会话报条件满足即可入队。
-- 不得再犯：沿用下方旧条目（会话身份、原话核对、答复读备注、脚本统计先验证等）。
+更新：2026-10-21 22:15（one-coordinator，用户要求 clear）
+- 清空后第一步：通读 SESSION_PLAYBOOK §11（含战队协作 1–15 条）、§5；读本节与下方各「**…**」行；扫收件箱 pending（https://claude.ai/artifact/RVU6nNNSsygF5sVRWLhQ15，当前 0 项）；intent 见 2026-10-21-15* 以后各片段。卡的状态以 tasks 片段为准，台账只写指针。
+- **今日用户新口径**（详 intent）：交接钩子推全部会话、只交接不清空；回合结尾不向用户提问；后台任务命名适用所有后台任务；提交信息带 Session/任务号/为什么（钩子待做）；小代码 PR 可合批、已批 ADR PR 并入文档合集；纯文档合入不算代码 PR 落后；本机性能三项；分支/工作区清理归 one-merge 每周；重启前后固定步骤（§11 第 15 条）；派工登记表（intent 213907）。
+- **等用户批**：ADR-0074（organization.administration 补进 ADR-0051 BC 清单、审批聚合补 AGG-113/114/合同借阅、合同原件借阅 W3 移交 contract.agreement、「经通用审批办理」对 ADR-0054/0055/0064 部分取代；采纳前 B-31 模块骨架不合入 main）与 ADR-0075（ADR-0058 补篇，子状态机各记转换）——one-architecture 在 opus 复审，批准页出后调度先审题再进收件箱。
+- **C 线 one-1a-admin**（新，sonnet high，local_d0ced0f9）：ADM-01 契约/术语文档 PR 先走，骨架分支 claude/one-1a-admin-skeleton 等 ADR-0074；7.5/7.8 在分支写；platform.file 已准入（@2790c770）可登记依赖边；FileImports 随 7.10 落地，先行上线前未落地则撤。
+- **队列/合并**：文件服务 #521（修词表）→#525→#527；词表 #536→#537→#538；文档合集按 one-merge 报；one-quality 的 #531（性能三项）、#541（mq：FF-MAIN 等）、主检出守护 PR 在走；主检出 7 个未跟踪提案文件随 admission-file 合集入库后由 one-merge 删。
+- **one-quality 队列**：#531 → #541 → 主检出守护 → 派工登记表（陈旧检查+补登脚本）→ 后台任务命名钩子 → 提交信息钩子 → QUA-05 重跑 → 网络规则 CI → QUA-03。
+- **one-1a-par**：日历改造 PAR-02（DDL 已签发设计层）→ F2 PAR-04 → PAR-03；W2 待办含 INV-62、RULE-387/394、RegisteredEmployee/SyncRun。
+- **one-1a-next-5**：REG-2（verify 中）→ RULE-412 守护 → REG-3（#493 已合，不用等）；P0 验收 11+2 例合入，RULE-376 缺口卡 IMP-1021-COO-11（待派）。
+- **one-architecture**：ADR-0074/0075 → 回 one-arch-finance/people → 第三批卡 12–15（12 已交 Codex）；B-31 四项归架构（合同借阅 bc、撤回/退回映射、软件许可、§8.2）。
+- **one-glossary**：GL4 写回（工单处理人先问 one-1a-admin 是否可转派）→ 第三批前缀/维度 → n20 → n22 → n21。
+- 其余：one-ops ClamAV 待与应用侧联调后报建成；one-data、one-rules、one-arch-revenue 空闲。
+- 不得再犯：未核实就转述状态（REG-3 误等 #493）；台账写状态不写指针；重启前只保文件不保在途事。
 
 ## 作战图（派工前先看；SESSION_PLAYBOOK §11「战队协作」第 5 条）
 | 主线 | 负责 | 当前 | 下一步 | 阻塞 |

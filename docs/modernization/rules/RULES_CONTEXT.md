@@ -73,6 +73,8 @@ A1 后续页已答（intent 2026-10-16-162827）：维持按时点；无法定�
 
 - 2026-10-21 调度派：TEST_RULE_MAPPING 里 193 条「业务测试断言了行为、找不到规则卡」已补登 87 张新卡 RULE-418～504（五个文件：IDENTITY_AUTHORIZATION、IDENTITY_SINGLE_OPERATOR、SOURCE_REFERENCE、TIMESHEET_CALENDAR_ATTRIBUTION、APPROVAL_INTEGRITY 各 `_RULES.md`），测试到卡号对照在 `rules/TEST_RULE_BACKFILL_MAP.tsv`（2 条纯技术契约不成卡）。Review=Yes 共 9 张带 Needs decision，攒着随对齐后的确认页改版问；卡末 New terms 待 one-glossary 处理。
 
+- 2026-10-21 one-1a-admin 来问 B-31 四项：SCH-06（起算点＝离职版本 businessDate，ADR-0068）、冲正形态、用途→印章类型对应表已可定；待用户 Q-B31-1～4（INV-138 只数实际用印还是占用；老系统单号份数上限首次为准；冲正是否腾出份数；一用途多印章类型，可由行政答）已回复 `rules/B31_RULING_REPLY.md`，攒着随确认页改版问；RUL-01～08 逐条回复待做。
+
 ## 工作守则要点（画像「权限边界」下有全文）
 
 - 本会话主模型 sonnet；会话上下文 2026-10-16 傍晚到 76%，按手册先更新本文件再 `/clear`；新开后从本文件接续，不凭记忆。

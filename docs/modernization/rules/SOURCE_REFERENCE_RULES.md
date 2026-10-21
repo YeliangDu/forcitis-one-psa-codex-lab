@@ -16,7 +16,7 @@ Scope: platform.integration source references (`source_references`) as the new s
 | RULE-469 | integration | Source references are closed, never deleted, and their source id and own id are never rewritten | P0 | No |
 | RULE-470 | integration | Registration, confirmation and rejection are audited | P1 | No |
 | RULE-471 | integration | The pending list and the per-legal-entity history are readable by registrars and approvers | P1 | No |
-| RULE-472 | integration | A signed ticket subject is resolved to a user only through an existing source reference; without one, login is refused and audited | P0 | Yes |
+| RULE-472 | integration | A signed ticket subject is resolved to a user only through an existing source reference; without one, login is refused and audited | P0 | No |
 
 ### RULE-460: Only the accounting organization code of a legal entity can be registered by hand; other categories are refused and audited
 **Category:** Policy
@@ -146,7 +146,7 @@ Scope: platform.integration source references (`source_references`) as the new s
 **Priority:** P0
 **Source:** ADR-0033 section 3 item 5 (subject resolved, unresolvable means refuse and audit), section 2 items 2-3 (login only looks up, allocation belongs to sync); RULE-368 as revised by ADR-0033 section 11. Tests: `com.forcitis.one.acceptance.platform.integration.SignedTicketSubjectIT#theSubjectIsResolvedThroughTheSourceReference`, `com.forcitis.one.acceptance.platform.integration.SignedTicketSubjectIT#aSubjectWithoutReferenceIsRefusedAndAudited`, `com.forcitis.one.acceptance.platform.integration.SignedTicketSubjectIT#theSubjectIsNotTheEmployeeId`
 **Plain English:** The ticket's subject is an organization-source person id (signed 64-bit, possibly negative) that is looked up in (ORG_SOURCE, EMPLOYEE) source references to find the employee and account. A subject with no reference is a 401, no session cookie, a `platform.identity.login.failed` audit entry, and no reference is created; a subject numerically equal to an employee's old-form id but without a reference is refused too.
-**Needs decision:** ADR-0033 section 3 item 5 text says the subject resolves through `external_identities` (section 4) and that the current resolution stays until DA-3; the tests (and their DisplayName) assert resolution through the source reference table. Confirm which table owns the ticket subject, and whether this card follows ADR-0039's relocation of `external_identities`.
+**Transition:** the target owner is `platform_integration.external_identities`, looked up by (provider kind = the ticket issuer, external subject) to find the `UserId` (ADR-0033 section 3 item 5; ADR-0039 item 4 clause 1 moves the table from identity to integration). Until DA-3 lands the subject is resolved through the (ORG_SOURCE, EMPLOYEE) source reference, which section 3 item 5 allows ("DA-3 落地前沿用现行解析"); the tests assert this transitional behaviour. This card and `SignedTicketSubjectIT` are rewritten together when DA-3 lands (ruling by one-architecture, 2026-10-21).
 **Specification:**
 - Given a reference (ORG_SOURCE, EMPLOYEE, subject) for an employee with an account, When the ticket-login is called with that subject, Then 200 with that account's user id, and the number of references for the subject is still 1.
 - Given a subject with no reference, When ticket-login is called, Then 401, no `SESSION=` cookie, a `platform.identity.login.failed` audit entry, and zero references for it.

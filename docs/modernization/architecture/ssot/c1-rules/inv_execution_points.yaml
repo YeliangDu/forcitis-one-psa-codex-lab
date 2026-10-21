@@ -1,0 +1,755 @@
+# INV → 执行点对照（手写登记；sonnet 逐条提议并附依据，one-architecture 核对挂上的 4 条与 INV-59 定稿，sonnet 独立复查）
+# confidence：high/medium 进 execution_points；low 只列 candidates；none 为无执行点（所属 BC 未建表，或已建但无约束与守护）。
+meta:
+  status: proposal
+  reviewed_by: one-architecture
+  spot_check: sonnet 复查模块已建的 13 条与未建的随机 10 条，无漏挂（2026-10-21）
+entries:
+- inv: INV-01
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 masterdata.counterparty 的表
+  candidates: []
+- inv: INV-02
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 masterdata.counterparty 的表
+  candidates: []
+- inv: INV-03a
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 contract.agreement 的表
+  candidates: []
+- inv: INV-03b
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 procurement.subcontracting 的表
+  candidates: []
+- inv: INV-03c
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 payables.payment 的表
+  candidates: []
+- inv: INV-04a
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 procurement.subcontracting 的表
+  candidates: []
+- inv: INV-04b
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 payables.payment 的表
+  candidates: []
+- inv: INV-05
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 contract.agreement 的表
+  candidates: []
+- inv: INV-06
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 contract.agreement 的表
+  candidates: []
+- inv: INV-07
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 contract.agreement 的表
+  candidates: []
+- inv: INV-08
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 contract.agreement 的表
+  candidates: []
+- inv: INV-09
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 contract.agreement 的表
+  candidates: []
+- inv: INV-10
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 contract.agreement 的表
+  candidates: []
+- inv: INV-11
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 procurement.subcontracting 的表
+  candidates: []
+- inv: INV-12
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 procurement.subcontracting 的表
+  candidates: []
+- inv: INV-13
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 procurement.subcontracting 的表
+  candidates: []
+- inv: INV-14
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 已建表，但未找到强制该条的执行点：迁移（cost_timesheet / organization_workforce / organization_attendance 基线）中无对应 CHECK/UNIQUE/EXCLUDE/触发器，execution-points.yaml 中无对应守护测试；规则当前只可能在应用代码中判定
+  candidates: []
+- inv: INV-15
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 procurement.subcontracting 的表
+  candidates: []
+- inv: INV-16a
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 contract.agreement 的表
+  candidates: []
+- inv: INV-16b
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 procurement.subcontracting 的表
+  candidates: []
+- inv: INV-17
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 contract.agreement 的表
+  candidates: []
+- inv: INV-18
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 contract.agreement 的表
+  candidates: []
+- inv: INV-19
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 contract.agreement 的表
+  candidates: []
+- inv: INV-20
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 receivables.collection 的表
+  candidates: []
+- inv: INV-21
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 receivables.wip 的表
+  candidates: []
+- inv: INV-22
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 receivables.wip 的表
+  candidates: []
+- inv: INV-23
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 receivables.wip 的表
+  candidates: []
+- inv: INV-24
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 presales.opportunity 的表
+  candidates: []
+- inv: INV-25
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 presales.opportunity 的表
+  candidates: []
+- inv: INV-26
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 presales.opportunity 的表
+  candidates: []
+- inv: INV-27
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 presales.opportunity 的表
+  candidates: []
+- inv: INV-28
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 presales.opportunity 的表
+  candidates: []
+- inv: INV-29
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 presales.opportunity 的表
+  candidates: []
+- inv: INV-30
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 presales.opportunity 的表
+  candidates: []
+- inv: INV-31
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 presales.opportunity 的表
+  candidates: []
+- inv: INV-32
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 presales.opportunity 的表
+  candidates: []
+- inv: INV-33
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 contract.agreement、presales.opportunity 的表
+  candidates: []
+- inv: INV-34
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 masterdata.catalog 的表
+  candidates: []
+- inv: INV-34a
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 masterdata.catalog 的表
+  candidates: []
+- inv: INV-34b
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.inspection 的表
+  candidates: []
+- inv: INV-35
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 masterdata.catalog 的表
+  candidates: []
+- inv: INV-36
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 masterdata.catalog 的表
+  candidates: []
+- inv: INV-36a
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 masterdata.catalog 的表
+  candidates: []
+- inv: INV-37
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 已建表，但未找到强制该条的执行点：迁移（cost_timesheet / organization_workforce / organization_attendance 基线）中无对应 CHECK/UNIQUE/EXCLUDE/触发器，execution-points.yaml 中无对应守护测试；规则当前只可能在应用代码中判定
+  candidates: []
+- inv: INV-39
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 已建表，但未找到强制该条的执行点：迁移（cost_timesheet / organization_workforce / organization_attendance 基线）中无对应 CHECK/UNIQUE/EXCLUDE/触发器，execution-points.yaml 中无对应守护测试；规则当前只可能在应用代码中判定
+  candidates: []
+- inv: INV-39a
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 procurement.subcontracting 的表
+  candidates: []
+- inv: INV-39b
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 expense.spend 的表
+  candidates: []
+- inv: INV-40
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.execution 的表
+  candidates: []
+- inv: INV-41
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.execution 的表
+  candidates: []
+- inv: INV-42
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.execution 的表
+  candidates: []
+- inv: INV-43
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.execution 的表
+  candidates: []
+- inv: INV-44
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.execution 的表
+  candidates: []
+- inv: INV-46
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.acceptance 的表
+  candidates: []
+- inv: INV-47
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.acceptance 的表
+  candidates: []
+- inv: INV-48
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.acceptance 的表
+  candidates: []
+- inv: INV-49
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.acceptance 的表
+  candidates: []
+- inv: INV-50
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.acceptance 的表
+  candidates: []
+- inv: INV-51
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.acceptance 的表
+  candidates: []
+- inv: INV-52
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.acceptance 的表
+  candidates: []
+- inv: INV-53
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 已建表，但未找到强制该条的执行点：迁移（cost_timesheet / organization_workforce / organization_attendance 基线）中无对应 CHECK/UNIQUE/EXCLUDE/触发器，execution-points.yaml 中无对应守护测试；规则当前只可能在应用代码中判定
+  candidates: []
+- inv: INV-54
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.acceptance 的表
+  candidates: []
+- inv: INV-55
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.inspection 的表
+  candidates: []
+- inv: INV-56
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.inspection 的表
+  candidates: []
+- inv: INV-57
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.inspection 的表
+  candidates: []
+- inv: INV-58
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.acceptance 的表
+  candidates: []
+- inv: INV-59
+  execution_points: []
+  confidence: low
+  evidence: 法人代码发号后不可改：legal_entities.code 仅有格式 CHECK 与全表 UNIQUE（baseline.sql:228 legal_entities_code_format），无任何「已发号则禁改」的触发器或约束；tg_legal_entity_versions_append_only (:561) 只保证版本行只追加，不阻止主表 code 被改，故不挂，仅列候选
+  candidates:
+  - EP-805d93be03
+- inv: INV-60
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 已建表，但未找到强制该条的执行点：迁移（cost_timesheet / organization_workforce / organization_attendance 基线）中无对应 CHECK/UNIQUE/EXCLUDE/触发器，execution-points.yaml 中无对应守护测试；规则当前只可能在应用代码中判定
+  candidates: []
+- inv: INV-62
+  execution_points:
+  - EP-c2b42d23f3
+  confidence: medium
+  evidence: EP-c2b42d23f3 为 backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:376 的 ex_assignment_versions_overlap：EXCLUDE gist (employee_id
+    =, daterange(effective_from_date, effective_to_date) &&)，强制同一员工任职版本区间不重叠；缺口：表无主/兼职标记，约束对所有任职（含 INV-62 允许并行的兼职任职）一律禁重叠，是比 INV-62 更严的实现，且兼职并行目前无表可存；约束按 employee_id 排除全部任职区间重叠、表无主任职标记，兼职并行未支持，比本条更严（待负责会话处置）
+  candidates: []
+- inv: INV-63
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 已建表，但未找到强制该条的执行点：迁移（cost_timesheet / organization_workforce / organization_attendance 基线）中无对应 CHECK/UNIQUE/EXCLUDE/触发器，execution-points.yaml 中无对应守护测试；规则当前只可能在应用代码中判定
+  candidates: []
+- inv: INV-64
+  execution_points:
+  - EP-336c44e1bf
+  confidence: high
+  evidence: EP-336c44e1bf 为 backend/src/main/resources/db/migration/cost_timesheet/V20261014140000__cost_timesheet_baseline.sql:26 的 uk_timesheets_employee_id_work_date：UNIQUE (employee_id, work_date)，强制
+    工时单一人一日一单（表注释：所有状态的工时单都占用该日）
+  candidates: []
+- inv: INV-65
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 已建表，但未找到强制该条的执行点：迁移（cost_timesheet / organization_workforce / organization_attendance 基线）中无对应 CHECK/UNIQUE/EXCLUDE/触发器，execution-points.yaml 中无对应守护测试；规则当前只可能在应用代码中判定
+  candidates: []
+- inv: INV-66
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 已建表，但未找到强制该条的执行点：迁移（cost_timesheet / organization_workforce / organization_attendance 基线）中无对应 CHECK/UNIQUE/EXCLUDE/触发器，execution-points.yaml 中无对应守护测试；规则当前只可能在应用代码中判定
+  candidates: []
+- inv: INV-67
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 已建表，但未找到强制该条的执行点：迁移（cost_timesheet / organization_workforce / organization_attendance 基线）中无对应 CHECK/UNIQUE/EXCLUDE/触发器，execution-points.yaml 中无对应守护测试；规则当前只可能在应用代码中判定
+  candidates: []
+- inv: INV-68
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 organization.leave 的表
+  candidates: []
+- inv: INV-69
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 organization.leave 的表
+  candidates: []
+- inv: INV-70
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 organization.payroll 的表
+  candidates: []
+- inv: INV-105
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 organization.leave 的表
+  candidates: []
+- inv: INV-71
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 receivables.wip 的表
+  candidates: []
+- inv: INV-72
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 receivables.wip 的表
+  candidates: []
+- inv: INV-73
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 receivables.wip 的表
+  candidates: []
+- inv: INV-74
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.tax 的表
+  candidates: []
+- inv: INV-75
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 expense.spend 的表
+  candidates: []
+- inv: INV-75a
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 payables.payment 的表
+  candidates: []
+- inv: INV-76
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 receivables.collection 的表
+  candidates: []
+- inv: INV-77
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 receivables.collection 的表
+  candidates: []
+- inv: INV-77a
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 payables.payment 的表
+  candidates: []
+- inv: INV-78
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 receivables.collection 的表
+  candidates: []
+- inv: INV-78a
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 payables.payment 的表
+  candidates: []
+- inv: INV-79
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 payables.payment 的表
+  candidates: []
+- inv: INV-80
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 payables.payment 的表
+  candidates: []
+- inv: INV-81
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 payables.payment 的表
+  candidates: []
+- inv: INV-82
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 procurement.subcontracting 的表
+  candidates: []
+- inv: INV-83
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 procurement.subcontracting 的表
+  candidates: []
+- inv: INV-84
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 expense.spend 的表
+  candidates: []
+- inv: INV-85
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.cashbank 的表
+  candidates: []
+- inv: INV-86
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 receivables.wip 的表
+  candidates: []
+- inv: INV-88
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 cost.costing 的表
+  candidates: []
+- inv: INV-89
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 cost.costing 的表
+  candidates: []
+- inv: INV-90
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 cost.costing 的表
+  candidates: []
+- inv: INV-91
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 cost.costing 的表
+  candidates: []
+- inv: INV-91a
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.reporting 的表
+  candidates: []
+- inv: INV-92
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 operations.facts 的表
+  candidates: []
+- inv: INV-93
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 operations.facts 的表
+  candidates: []
+- inv: INV-94
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 operations.facts 的表
+  candidates: []
+- inv: INV-95
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 operations.facts 的表
+  candidates: []
+- inv: INV-95a
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.ledger 的表
+  candidates: []
+- inv: INV-96
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.ledger 的表
+  candidates: []
+- inv: INV-97
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.ledger 的表
+  candidates: []
+- inv: INV-98
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.ledger 的表
+  candidates: []
+- inv: INV-99
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.period 的表
+  candidates: []
+- inv: INV-100
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.period 的表
+  candidates: []
+- inv: INV-101
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 operations.planning 的表
+  candidates: []
+- inv: INV-103
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.ledger 的表
+  candidates: []
+- inv: INV-104
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.period 的表
+  candidates: []
+- inv: INV-106
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.ledger 的表
+  candidates: []
+- inv: INV-107
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.ledger 的表
+  candidates: []
+- inv: INV-108
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.ledger 的表
+  candidates: []
+- inv: INV-109
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.ledger 的表
+  candidates: []
+- inv: INV-110
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 presales.opportunity 的表
+  candidates: []
+- inv: INV-111
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.acceptance 的表
+  candidates: []
+- inv: INV-112
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.execution 的表
+  candidates: []
+- inv: INV-113
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 delivery.execution 的表
+  candidates: []
+- inv: INV-114
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 已建表，但未找到强制该条的执行点：迁移（cost_timesheet / organization_workforce / organization_attendance 基线）中无对应 CHECK/UNIQUE/EXCLUDE/触发器，execution-points.yaml 中无对应守护测试；规则当前只可能在应用代码中判定
+  candidates: []
+- inv: INV-115
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 km.knowledge 的表
+  candidates: []
+- inv: INV-116
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 已建的 organization_attendance 基线（V20261014141000）只有 work_calendar_years / work_calendar_days，无标准工时版本表，故无对应代码；日历的唯一约束与标准工时版本生效期不重叠无关
+  candidates: []
+- inv: INV-117
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 payables.payment 的表
+  candidates: []
+- inv: INV-118
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 organization.administration 的表
+  candidates: []
+- inv: INV-119
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 organization.administration 的表
+  candidates: []
+- inv: INV-120
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 organization.administration 的表
+  candidates: []
+- inv: INV-121
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 organization.administration 的表
+  candidates: []
+- inv: INV-122
+  execution_points:
+  - EP-4b53f4c0ef
+  - EP-99a52e1e70
+  confidence: high
+  evidence: EP-4b53f4c0ef 为 backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql:283 的 ex_org_unit_legal_entities_overlap：EXCLUDE gist (org_unit_id
+    =, daterange(生效日,失效日) &&)，强制同一部门法人归属期间不重叠；EP-99a52e1e70 为同文件:308 的 ex_employee_legal_entities_overlap：同形式，键为 employee_id，强制同一员工法人归属期间不重叠；两者合起来覆盖「部门 / 员工」两侧
+  candidates: []
+- inv: INV-123
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 organization.leave 的表
+  candidates: []
+- inv: INV-124
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 contract.agreement 的表
+  candidates: []
+- inv: INV-125
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 contract.agreement 的表
+  candidates: []
+- inv: INV-126
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 contract.agreement 的表
+  candidates: []
+- inv: INV-127
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 payables.payment 的表
+  candidates: []
+- inv: INV-128
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 payables.payment 的表
+  candidates: []
+- inv: INV-129
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.tax 的表
+  candidates: []
+- inv: INV-130
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 payables.payment 的表
+  candidates: []
+- inv: INV-131
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.ledger、masterdata.catalog 的表
+  candidates: []
+- inv: INV-132
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 cost.costing 的表
+  candidates: []
+- inv: INV-133
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.ledger 的表
+  candidates: []
+- inv: INV-134
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.ledger 的表
+  candidates: []
+- inv: INV-135
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 operations.policy 的表
+  candidates: []
+- inv: INV-136
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 accounting.ledger 的表
+  candidates: []
+- inv: INV-137
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 expense.spend 的表
+  candidates: []
+- inv: INV-138
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 organization.administration 的表
+  candidates: []
+- inv: INV-139
+  execution_points: []
+  confidence: none
+  evidence: 所属 BC 未建表/无对应代码：现有迁移仅含 cost_timesheet、organization_workforce、organization_attendance、platform_* 各模块，无 organization.payroll 的表
+  candidates: []
