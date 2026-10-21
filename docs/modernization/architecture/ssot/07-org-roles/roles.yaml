@@ -1,0 +1,781 @@
+# 角色登记（手写；sonnet 提议，one-architecture 核对结构，2026-10-21）。粒度与编号问题见 meta.open_questions，定稿前只作网络连线依据，不作授权设计。
+meta:
+  status: proposal
+  reviewed_by: one-architecture（结构核对；粒度与编号待定）
+  open_questions:
+  - 权责表与干系人登记的 SH 编号同串异义（提案 §1.3 第 1 条，属 SSOT 重建线，暂停令期间不改编号）；本登记按职责原文归并
+  - 角色粒度待定：权责表 SH-M1（部门负责人、项目总监、区域负责人、总经理、分管副总）、SH-E6（财务、人事、信息行政）已拆为多个 ROLE
+  - 客户采购决策链 5 个角色是否作 ROLE（客户侧、不登录）
+  - super_admin 与 administrator-mode 是否同一角色；编号模板确认人与 business_admin 的关系
+  decisions:            # one-arch-people 2026-10-21 判定第 2、3 条；第 1、4 条不在本组范围
+    by: one-arch-people 2026-10-21
+    granularity:
+      principle: ROLE 按「承担的职责与解析方式」分，不按职位分；具体职位（出纳、会计、薪酬岗等）属职位目录（JOB_CATALOG_DRAFT FN-*），不另立 ROLE。
+      SH-M1:
+        result: 拆分正确，但调整为 5 个
+        items:
+        - {role: ROLE-24 部门负责人, decision: 保留；与「组织单元负责人」「事业部负责人」同义，任何层级组织单元的负责人都是它，按单据归属组织单元解析（resolve instance，词表 org_unit_head）；JOB_CATALOG J-4 推荐 b（任职上的组织单元负责人标记），与本 ROLE 一致}
+        - {role: ROLE-25 区域负责人, decision: 保留为独立 ROLE；是区域类组织单元的负责人，但职责不同（对区域组织数据范围负责、不承担工时审批，词表 regional_head），不能用部门负责人替代}
+        - {role: ROLE-22 项目总监 + ROLE-23 总监, decision: 同一身份，合并为 ROLE-22「项目总监」，ROLE-23 删除；依据 RULE-256：老系统「部门总监」脚本取的是角色 BU-002「BU项目总监」与本部门直属人员的交集，与部门负责人（RULE-257 dept.leader_user_id）是两种解析，故与 ROLE-24 不合并；词表 director 的中文名与定义（「BU-002 部门总监」引了老系统编码）交 one-glossary 改，to_glossary: true}
+        - {role: ROLE-26 管理层（总经理、分管副总）, decision: 拆为「总经理」与「分管领导」两个 ROLE；加审与升级规则点名总经理（如用印加审 AR-16 候选、超时升级），分管副总按分管范围解析，二者解析方式不同；总经理按法人解析，分管领导按 D15 分管配置解析}
+        - {role: ROLE-06 用人经理, decision: 保留为流程角色，不与部门负责人合并；包含关系：用人经理默认由招聘需求所属组织单元的部门负责人担任（resolve instance），可由其指定的下属经理代行；部门负责人 ⊇ 用人经理的默认人选，用人经理不是稳定人群}
+      SH-E6:
+        result: 拆分正确，ROLE-30 再拆为两个
+        items:
+        - {role: ROLE-27 法人财务负责人, decision: 保留；权责表泛称「财务负责人」处一律指单据所属法人的财务负责人（词表 legal_entity_finance_head），非推断，按法人解析}
+        - {role: ROLE-28 财务职能人员, decision: 保留为职能级 ROLE；出纳、会计等是职位，不拆 ROLE}
+        - {role: ROLE-29 人力资源职能人员, decision: 保留；同上}
+        - {role: ROLE-30 信息与行政职能人员, decision: 拆为「信息职能人员」（IT 需求、IT 资产、账号）与「行政职能人员」（用印登记、员工活动、档案）；VS-14 两类事务承办人不同，B-31 骨架已分 信息部门 / 行政 两种 department_hint}
+    customer_buying_chain:
+      roles: [ROLE-01, ROLE-02, ROLE-03, ROLE-04, ROLE-05]
+      decision: 登记为 ROLE，标 external: true、system_roles 为空、不授权；它们是 VS-01 商机跟进时记录在客户决策链上的外部角色（BIZBOK 角色不以是否登录为准），删除会使决策链字段无落点。归属收入组（presales.opportunity），本组只给口径，收入组可推翻
+      needs_user: false
+    needs_user:
+    - ROLE-26 拆为总经理与分管领导后，分管领导的分管范围配置由谁维护（D15 配置项责任人），随确认页问用户
+roles:
+
+- id: ROLE-01
+  name: 采购发起人
+  aliases:
+    stakeholder_ssot:
+    - ROLE-01
+    glossary: []
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 客户（外部，不登录本系统）
+  bears: []
+  evidence: stakeholder_ssot ROLE-01 发起人（客户采购决策链，参与 VS-01.1/01.2/02.0）；与审批发起人同名异义，见 glossary_issues。客户侧，不登录。
+- id: ROLE-02
+  name: 采购决策人
+  aliases:
+    stakeholder_ssot:
+    - ROLE-02
+    glossary: []
+    responsibility_matrix:
+    - SH-C6b
+  system_roles: []
+  host_category: 客户（外部，不登录本系统）
+  bears: []
+  evidence: SSOT ROLE-02 决策人；权责表 SH-C6b「客户决策人：回签、认定索赔与变更」，客户方书面决定为线下证据，本系统只登记，不登录。
+- id: ROLE-03
+  name: 经济买方
+  aliases:
+    stakeholder_ssot:
+    - ROLE-03
+    glossary: []
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 客户（外部，不登录本系统）
+  bears: []
+  evidence: SSOT ROLE-03 经济买方，客户采购决策链；权责表无对应条目。
+- id: ROLE-04
+  name: 付款方
+  aliases:
+    stakeholder_ssot:
+    - ROLE-04
+    glossary: []
+    responsibility_matrix:
+    - SH-C6d
+  system_roles: []
+  host_category: 客户（外部，不登录本系统）
+  bears: []
+  evidence: SSOT ROLE-04 付款方；权责表 SH-C6d「客户财务：付款、确认红字信息」（客户方财务确认，经税务平台或银行回单），不登录。
+- id: ROLE-05
+  name: 客户使用者
+  aliases:
+    stakeholder_ssot:
+    - ROLE-05
+    glossary: []
+    responsibility_matrix:
+    - SH-C6e
+  system_roles: []
+  host_category: 客户（外部，不登录本系统）
+  bears: []
+  evidence: SSOT ROLE-05 使用者；权责表 SH-C6e「客户方使用者，接收成果并反馈」，外部方不设系统权限，不登录。
+- id: ROLE-06
+  name: 用人经理
+  aliases:
+    stakeholder_ssot:
+    - ROLE-06
+    glossary: []
+    responsibility_matrix:
+    - SH-E1
+  system_roles: []
+  host_category: 人力资源（本企业；流程角色，由部门负责人扮演）
+  bears: []
+  evidence: SSOT ROLE-06 用人经理（招聘流程角色，非稳定人群）；权责表 SH-E1 全部职位提示为「用人经理」或「部门负责人、用人经理」（招聘需求、录用决定、试用期评估、下属绩效等）。与部门负责人的关系见 glossary_issues。
+- id: ROLE-07
+  name: 监理
+  aliases:
+    stakeholder_ssot:
+    - PRJ-01
+    glossary: []
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 业主/监管侧参与方（不占干系人类别；不登录本系统）
+  bears: []
+  evidence: SSOT project_roles PRJ-01；权责表与词表无对应。
+- id: ROLE-08
+  name: 造价咨询与招标代理
+  aliases:
+    stakeholder_ssot:
+    - PRJ-02
+    glossary: []
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 业主/监管侧参与方（不登录）
+  bears: []
+  evidence: SSOT PRJ-02；与权责表 SH-X4（招标人或招标代理，退还投标保证金）相近但职责不同，未合并。
+- id: ROLE-09
+  name: 保险技术检查机构（TIS）
+  aliases:
+    stakeholder_ssot:
+    - PRJ-03
+    glossary: []
+    responsibility_matrix:
+    - SH-X5
+  system_roles: []
+  host_category: 业主/监管侧参与方（不登录）
+  bears: []
+  evidence: SSOT PRJ-03 保险技术检查机构（TIS）；权责表 SH-X5「我方为 TIS 专项分包时的上游保险技术检查机构」，无权限，不登录。合并为推断，把握不足。
+- id: ROLE-10
+  name: 资金监管主办银行
+  aliases:
+    stakeholder_ssot:
+    - PRJ-04
+    glossary: []
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 业主/监管侧参与方（不登录）
+  bears: []
+  evidence: SSOT PRJ-04；两处其他来源无对应。
+- id: ROLE-11
+  name: 物业服务企业（未代业主委托时）
+  aliases:
+    stakeholder_ssot:
+    - PRJ-05
+    glossary: []
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 业主/监管侧参与方（不登录）
+  bears: []
+  evidence: SSOT PRJ-05；其他来源无对应。
+- id: ROLE-12
+  name: 业主代表
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-C3
+  system_roles: []
+  host_category: 客户（外部，不登录本系统）
+  bears: []
+  evidence: 权责表 SH-C3：「业主方在现场签认检查记录，不登录本系统」「整改责任方（业主）」，职位提示均为业主代表，无审批权（现场签认作证据；风险保留时线下书面确认）。
+- id: ROLE-13
+  name: 检查委托方
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-C5
+  system_roles: []
+  host_category: 客户（外部，不登录本系统）
+  bears: []
+  evidence: 权责表 SH-C5：委托方（保险公司等）线下委托并接收检查报告与发现，不登录本系统，无审批权。
+- id: ROLE-14
+  name: 客户方项目代表
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-C6a
+  system_roles: []
+  host_category: 客户（外部，不登录本系统）
+  bears: []
+  evidence: 权责表 SH-C6a：客户项目负责人、发包人代表（外部），书面批准对客交付计划、出具认可与答复；外部方不设系统权限，不登录。
+- id: ROLE-15
+  name: 持证检测机构
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-X6
+  system_roles: []
+  host_category: 合作伙伴（外部，不登录本系统）
+  bears: []
+  evidence: 权责表 SH-X6「持证检测机构，受业主委托做第三方检测、出具报告」，无权限，不登录。
+- id: ROLE-16
+  name: 招标人/招标代理
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-X4
+  system_roles: []
+  host_category: 外部（不登录本系统）
+  bears: []
+  evidence: 权责表 SH-X4：招标人或招标代理退还投标保证金；外部方不设系统权限。
+- id: ROLE-17
+  name: 审图机构
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-R1
+  system_roles: []
+  host_category: 监管（外部，不登录本系统）
+  bears: []
+  evidence: 权责表 SH-R1：出具施工图审查合格书，不适用（外部监管）。
+- id: ROLE-18
+  name: 监管机构（税务等）
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-R2
+  system_roles: []
+  host_category: 监管（外部，不登录本系统）
+  bears: []
+  evidence: 权责表 SH-R2：税务平台开具并返回结果、税务机关（外部监管）。
+- id: ROLE-19
+  name: 股东
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-O1
+  system_roles: []
+  host_category: 股东（外部，不登录本系统）
+  bears: []
+  evidence: 权责表 SH-O1：获知经营计划基线；自然人股东是个税纳税人，外部相关方，无权限。
+- id: ROLE-20
+  name: 候选人
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-H1
+  system_roles: []
+  host_category: 人力资源（入职前，外部）
+  bears: []
+  evidence: 权责表 SH-H1：应聘、面试、答复录用通知、确认入职日、签署劳动合同；无权限，入职前不登录。
+- id: ROLE-21
+  name: 项目经理
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - project_manager
+    responsibility_matrix:
+    - SH-E2
+  system_roles: []
+  host_category: 人力资源（本企业员工）
+  bears: []
+  evidence: 词表 project_manager（工时审批第一道审批人）；权责表 SH-E2 职位提示全为项目经理/项目经理职能岗。
+- id: ROLE-22
+  name: 项目总监
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-M1
+  system_roles: []
+  host_category: 人力资源（本企业员工）
+  bears: []
+  evidence: 权责表 SH-M1 职位提示「事业部负责人、项目总监」，职责含审核交付物校审结论、批准完工估算、审批授权；词表无对应，与 director 总监关系见 glossary_issues。
+- id: ROLE-23
+  name: 总监
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - director
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 人力资源（本企业员工）
+  bears: []
+  evidence: 词表 director：BU-002 部门总监（RULE-256）；权责表无独立条目。
+- id: ROLE-24
+  name: 部门负责人
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - org_unit_head
+    responsibility_matrix:
+    - SH-M1
+  system_roles: []
+  host_category: 人力资源（本企业员工）
+  bears: []
+  evidence: 词表 org_unit_head（组织单元负责人，RULE-356/257）；权责表 SH-M1 大量「部门负责人」「组织单元负责人」（审批、升级、经营责任）。SH-M1 同时含项目总监、总经理等，见 glossary_issues。
+- id: ROLE-25
+  name: 区域负责人
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - regional_head
+    responsibility_matrix:
+    - SH-M1
+  system_roles: []
+  host_category: 人力资源（本企业员工）
+  bears: []
+  evidence: 词表 regional_head（区域组织单元负责人，不承担工时审批）；权责表 SH-M1「区域负责人（职能：对本区域组织数据范围负责）」。
+- id: ROLE-26
+  name: 管理层（总经理、分管副总）
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-M1
+  system_roles: []
+  host_category: 人力资源（本企业员工）
+  bears: []
+  evidence: 权责表 SH-M1 提示「总经理、分管副总」「管理层负责人」（超时升级、加审、批准资质延续）；SSOT 的 SH-E1 管理层是干系人类别，非角色，此处仅按权责表职责成立。词表无对应。
+- id: ROLE-27
+  name: 法人财务负责人
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - legal_entity_finance_head
+    responsibility_matrix:
+    - SH-E6
+  system_roles: []
+  host_category: 人力资源（本企业员工，财务）
+  bears: []
+  evidence: 词表 legal_entity_finance_head（每个法人分别明确）；权责表 SH-E6 「财务负责人」承担加审、收入确认复核、红冲复核等，提示为「财务负责人」，未写按法人，等同为推断。
+- id: ROLE-28
+  name: 财务职能人员
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-E6
+  system_roles: []
+  host_category: 人力资源（本企业员工，财务）
+  bears: []
+  evidence: 权责表 SH-E6 提示：财务专员、出纳、会计、开票会计、应收会计、收入会计、预算会计、总账会计等；岗位体系待定，按职能合并，粒度需 one-architecture 裁定。
+- id: ROLE-29
+  name: 人力资源职能人员
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-E6
+  system_roles: []
+  host_category: 人力资源（本企业员工，人事）
+  bears: []
+  evidence: 权责表 SH-E6 提示：人事专员、招聘专员、人力资源专员、考勤管理员、薪酬岗、申报岗、薪酬与社保专员、人事主数据维护岗等；岗位待定，按职能合并。
+- id: ROLE-30
+  name: 信息与行政职能人员
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-E6
+  system_roles: []
+  host_category: 人力资源（本企业员工，信息行政）
+  bears: []
+  evidence: 权责表 SH-E6 提示：信息管理员、档案管理员、IT 服务台、IT 资产管理员、印章保管与行政事务经办人员；岗位体系未定。
+- id: ROLE-31
+  name: 直属上级
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - supervisor
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 人力资源（本企业员工）
+  bears: []
+  evidence: 词表 supervisor（员工的人员级汇报对象，RULE-372）；权责表 SH-M1 的「汇报线上级代批（AR-11）」文字相关，无独立条目。
+- id: ROLE-32
+  name: 区域应收负责人
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - regional_receivables_manager
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 人力资源（本企业员工）
+  bears: []
+  evidence: 词表 regional_receivables_manager（职责角色，RULE-255/356）；权责表无独立条目。
+- id: ROLE-33
+  name: 业务负责人（权限复核）
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - business_owner
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 人力资源（本企业员工）
+  bears: []
+  evidence: 词表 business_owner：权限复核中为授权业务需要负责并确认的人，ADR-0044 草案；定义明示与部门负责人不是同一概念。
+- id: ROLE-34
+  name: 设计师与顾问（含检查人员）
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-E3
+  system_roles: []
+  host_category: 人力资源（本企业员工）
+  bears: []
+  evidence: 权责表 SH-E3：设计师、咨询顾问、检查人员，编制成果、记工时、现场检查。
+- id: ROLE-35
+  name: 员工
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-E3
+  system_roles:
+  - employee
+  host_category: 人力资源（本企业员工）
+  bears: []
+  evidence: 权责表 SH-E3 另含「全体在职员工」「任一在职员工」（填报本人工时、请假、用印申请、查看工资条）；系统角色 employee（访问范围 SELF）。词表无对应词。
+- id: ROLE-36
+  name: 技术专家与校审人
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-E4
+  system_roles: []
+  host_category: 人力资源（本企业员工，技术委员会）
+  bears: []
+  evidence: 权责表 SH-E4：技术专家、专业负责人、审核人、检查负责人、目录管理员、检查表模板管理员（校审、检查结论、知识条目）；合并为一，粒度待裁定。
+- id: ROLE-37
+  name: 市场与客户经理
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-E5
+  system_roles: []
+  host_category: 人力资源（本企业员工，市场与经营）
+  bears: []
+  evidence: 权责表 SH-E5：市场经理、客户经理、投标专员（线索、商机、报价、投标）。
+- id: ROLE-38
+  name: 商务经理（合同管理岗）
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-E5
+  system_roles: []
+  host_category: 人力资源（本企业员工，市场与经营）
+  bears: []
+  evidence: 权责表 SH-E5：商务、商务经理（合同管理岗）（起草协议、变更、索赔、结算、开票申请）。
+- id: ROLE-39
+  name: 注册执业人员
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-E7
+  system_roles: []
+  host_category: 人力资源（本企业员工）
+  bears: []
+  evidence: 权责表 SH-E7：注册建筑师、注册工程师等，签发交付物并登记继续教育；SSOT 仅在 SH-E3 别名出现「注册执业人员」。
+- id: ROLE-40
+  name: 审批发起人
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - initiator
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 系统内任务角色（任一用户）
+  bears: []
+  evidence: 词表 initiator（platform.approval）：发起审批的用户。与采购发起人同名异义。
+- id: ROLE-41
+  name: 审批人
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - approver
+    - assignee
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 系统内任务角色（任一用户）
+  bears: []
+  evidence: 词表 approver 处理审批任务的用户；assignee 认领后唯一可办理的人（RULE-276）。合并为推断（同一人在认领前后的阶段名），把握不足。
+- id: ROLE-42
+  name: 候选审批人
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - candidate_approver
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 系统内任务角色（任一用户）
+  bears: []
+  evidence: 词表 candidate_approver：任务尚未认领时有资格认领的审批人。
+- id: ROLE-43
+  name: 操作人
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - actor
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 系统内任务角色（任一用户）
+  bears: []
+  evidence: 词表 actor（platform.audit）：执行动作的用户，系统作业为空。
+- id: ROLE-44
+  name: 被代理人
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - on_behalf_of
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 系统内任务角色（任一用户）
+  bears: []
+  evidence: 词表 on_behalf_of（RULE-270）：显式代理操作中被代理的用户。
+- id: ROLE-45
+  name: 系统操作主体
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - system_actor
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 系统（非人）
+  bears: []
+  evidence: 词表 system_actor（kernel）：以 SYSTEM 身份发事件的作业、监听器或运维入口。
+- id: ROLE-46
+  name: 见证人
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - witness
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 系统内任务角色（任一用户）
+  bears: []
+  evidence: 词表 witness：运维命令执行时在场的另一人（双人在场）。
+- id: ROLE-47
+  name: 编号模板确认人
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - confirmer
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 系统内任务角色
+  bears: []
+  evidence: 词表 confirmer（platform.numbering）：业务确认人持 numbering-rule:approve，财务确认人持凭证号模板确认权限（1a 内未设角色）。与业务管理员持有同一权限，未直接绑定，未确认。
+- id: ROLE-48
+  name: 编号模板作者
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - author
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 系统内任务角色
+  bears: []
+  evidence: 词表 author：保存编号模板版本的人，不得确认自己保存的版本（四眼）。
+- id: ROLE-49
+  name: 收件人
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - recipient
+    responsibility_matrix: []
+  system_roles: []
+  host_category: 系统内任务角色（企业微信用户）
+  bears: []
+  evidence: 词表 recipient（platform.integration）：消息接收人，企业微信用户 ID 精确指定。
+- id: ROLE-50
+  name: 组织数据管理员
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - org_data_admin
+    responsibility_matrix: []
+  system_roles:
+  - org_data_admin
+  host_category: 人力资源（本企业员工）
+  bears: []
+  evidence: 词表 org_data_admin 与迁移种子系统角色 org_data_admin 同名同义（ADR-0027 第 2 项）。权责表 SH-E6 「人事主数据维护岗」职能相近，未合并。
+- id: ROLE-51
+  name: 业务管理员
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - business_admin
+    responsibility_matrix: []
+  system_roles:
+  - business_admin
+  host_category: 人力资源（本企业员工）
+  bears: []
+  evidence: 词表 business_admin 与系统角色 business_admin（确认各单据编号模板）。
+- id: ROLE-52
+  name: 安全审计员
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - security_auditor
+    responsibility_matrix: []
+  system_roles:
+  - security_auditor
+  host_category: 人力资源（本企业员工）
+  bears: []
+  evidence: 词表 security_auditor 与系统角色 security_auditor（审计记录查看导出、放行管理员离职同步暂停）。
+- id: ROLE-53
+  name: 管理员
+  aliases:
+    stakeholder_ssot: []
+    glossary:
+    - administrator
+    responsibility_matrix: []
+  system_roles:
+  - super_admin
+  host_category: 人力资源（本企业员工，IT）
+  bears: []
+  evidence: 词表 administrator：持 super_admin 或管理员角色的人。系统角色表仅有 super_admin（is_administrative）；任务所说代码定义的 administrator-mode 未列入 permissions.yaml，是否同属需确认。
+- id: ROLE-54
+  name: 流程管理员
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix: []
+  system_roles:
+  - process_administrator
+  host_category: 人力资源（本企业员工）
+  bears: []
+  evidence: 系统角色 process_administrator（迁移种子，无权限码）；词表无 kind=role 词条，仅 ui_proxy_handling 定义提到「流程管理员替被代理人办理」，权责表无。
+unmatched:
+- source: glossary
+  ref: responsible_party（operations_facts__responsible_party 责任对象）
+  reason: 事实归属的责任承载（责任人/BU/法人），数据归属维度而非人的角色
+- source: glossary
+  ref: contract_riskdelivery__responsible_party（责任承担方）
+  reason: 授权三要素之三，数据维度
+- source: glossary
+  ref: contract_changeorder__responsible_party（责任方）
+  reason: 变更/签证/索赔归因维度，数据维度
+- source: glossary
+  ref: customer_party（客户方主体）
+  reason: 合同上的主体引用与快照，数据对象
+- source: glossary
+  ref: project_owner_party（项目业主主体）
+  reason: 合同侧主体引用，数据对象；与 SH-C3 业主代表不是同一事物
+- source: glossary
+  ref: contracting_legal_entity（签约法人）
+  reason: 我方法人主体，主体而非职责角色
+- source: glossary
+  ref: customer_role（客户）
+  reason: 往来单位承担的客户角色，主数据角色而非职责角色，与干系人类别「客户」同名
+- source: glossary
+  ref: role_holder（角色持有人）
+  reason: 持有某角色的账号，泛指，无独立职责
+- source: glossary
+  ref: task_participant（任务参与人）
+  reason: 候选审批人或处理人的并集，聚合概念
+- source: glossary
+  ref: ui_proxy_handling（代理办理）
+  reason: 是动作而非角色，主体是流程管理员
+- source: responsibility_matrix
+  ref: SH-C6c
+  reason: 全部条目为通用「外部方，按本流程交互」，无可识别职责
+- source: responsibility_matrix
+  ref: SH-P1
+  reason: 同上，通用外部方，无可识别职责（SSOT 的 SH-P1 外协设计未见佐证）
+- source: responsibility_matrix
+  ref: SH-P1c
+  reason: 同上，通用外部方
+- source: responsibility_matrix
+  ref: SH-P2
+  reason: 同上，通用外部方（含财务、收入两组）
+- source: responsibility_matrix
+  ref: SH-P3
+  reason: 同上，通用外部方；不能据 SSOT SH-P3 持证检测机构而并入 SH-X6，匹配键不同
+- source: responsibility_matrix
+  ref: SH-X2
+  reason: org_needs 为空，仅属财务组，无职责原文
+- source: responsibility_matrix
+  ref: SH-X7
+  reason: org_needs 为空，仅属财务组，无职责原文
+- source: responsibility_matrix
+  ref: command_references 的 platform.approval、system 及 B-11 等键
+  reason: 非干系人或角色，是系统自动化执行方，未纳入 ROLE
+glossary_issues:
+- names:
+  - 发起人（SSOT ROLE-01）
+  - 发起人（词表 initiator）
+  kind: conflict
+  note: 前者是客户采购决策链角色，后者是发起审批的用户；已拆为采购发起人与审批发起人。
+- names:
+  - 权责表 SH-* 编号
+  - 干系人登记 SSOT SH-* 编号
+  kind: conflict
+  note: 编号体系不一致：权责表 SH-C5 为保险公司等委托方而 SSOT SH-C5 为发包方、SH-C7 才是保险公司；权责表 SH-E1 为用人经理而 SSOT SH-E1 为管理层；SH-E4 技术专家对 SSOT 市场和客户经理；SH-E5 市场商务对职能人员；SH-E6 财务人事行政对求职者；SH-E7 注册执业对不持股合伙人；SH-H1、SH-M1、SH-X* 在 SSOT 中不存在。本表按权责表原文内容归并，不按编号对应。
+- names:
+  - SH-M1
+  kind: conflict
+  note: 一个键混装项目总监、部门负责人、区域负责人、总经理、分管副总、管理层负责人，已拆成多个 ROLE，权责表应按职责拆键。
+- names:
+  - SH-E6
+  kind: conflict
+  note: 一个键混装财务、人力、行政、信息及财务负责人，职位提示粒度不一，已拆四个 ROLE，粒度待定。
+- names:
+  - SH-E3
+  kind: conflict
+  note: 一个键混装设计师与顾问、全体在职员工；同时 SSOT SH-E3 别名含技术专家、注册执业人员。
+- names:
+  - 总监（词表 director）
+  - 项目总监（权责表）
+  kind: conflict
+  note: 部门总监（BU-002）与项目总监是否同一职位未知，未合并。
+- names:
+  - 部门负责人
+  - 用人经理
+  - 组织单元负责人
+  - 事业部负责人
+  kind: duplicate
+  note: SSOT 称用人经理由部门负责人扮演；权责表并列「部门负责人、用人经理」，同义或包含关系待裁定。事业部负责人未见词条。
+- names:
+  - 区域负责人
+  - 区域应收负责人
+  kind: conflict
+  note: 词表分别定义；区域负责人不承担工时审批，区域应收负责人为应收职责，不是应收事实。
+- names:
+  - 法人财务负责人
+  - 财务负责人
+  - 分管副总
+  kind: dialect
+  note: 权责表与规则多处泛称财务负责人，词表限定为法人范围，需确认。
+- names:
+  - approver 审批人
+  - assignee 处理人
+  - candidate_approver 候选审批人
+  - task_participant 任务参与人
+  kind: duplicate
+  note: 同一人在任务不同阶段的叫法，拆分是否必要待定。
+- names:
+  - 责任对象
+  - 责任承担方
+  - 责任方
+  - ResponsibleParty
+  kind: duplicate
+  note: 英文名 ResponsibleParty 在 operations.facts 与 contract.agreement 各用于不同中文名（责任对象、责任方），三个中文词语义相近；词表已区分授权前缀，但跨 bc 同英文名需确认。
+- names:
+  - business_owner 业务负责人
+  - org_unit_head 部门负责人
+  kind: conflict
+  note: 词表已注明不同概念，仅提示避免混用。
+- names:
+  - 管理员
+  - administrator-mode
+  - super_admin
+  kind: duplicate
+  note: 词表管理员含 super_admin 或管理员角色，系统角色种子仅有 super_admin；代码中的 administrator-mode 不在词表。
+- names:
+  - 流程管理员
+  kind: duplicate
+  note: 系统角色 process_administrator 存在，词表无 kind=role 词条（仅出现在 ui_proxy_handling 定义中）。
+- names:
+  - 客户（客户方主体/customer_role）
+  - 客户（干系人类别）
+  - 客户使用者
+  kind: conflict
+  note: 同名「客户」在词表是往来单位角色，在干系人是类别，在权责表是外部方；不合并。
