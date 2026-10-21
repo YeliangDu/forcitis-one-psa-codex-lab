@@ -1,9 +1,11 @@
 ---
 卡号: ADR-0034-IMPL
-状态: 待派
+状态: 进行中
 负责会话: one-1a-par
 前置: R-1b-P5
 ---
+
+> 进度（2026-10-21）：PR-1 已合入（#476）；PR-2、PR-3 待做，PR-3 按 `phase1a/a8-split/SPLIT_PLAN.md` 改范围（切分方案 C）。
 # 派工卡 ADR-0034-IMPL：授权历史可还原——角色与授予版本化（含 DDL-17 角色不物理删除、复职重授）
 
 - 草稿：one-1a-par，2026-10-17，基线 origin/main `cfb04dd4`。本卡是 F-1 的前置（F-1 卡头 `前置: R-1b-P5, ADR-0034-IMPL`，分支 `claude/one-1a-par-f1-card` `369769fd`）；F-1 预期 diff 的「改动前」以本卡全部 PR 合并后的 `platform_identity` 基线为准。

@@ -1,7 +1,7 @@
 # IMP-1020-PAR-01 切分方案：按 ADR-0055 拆 A8 同步、改本地人事命令
 
 - 作者：one-1a-par，2026-10-20；依据 ADR-0055 全文、基线 main `8cddaee3`；盘点明细见同目录 `INVENTORY.md`（opus 只读盘点，每条带文件:行号；“有/没有”断言已 grep，未核实处原文标注）。
-- 状态：方案待 one-coordinator 批；未开工。在制 ≤1，方案批后按下表顺序一单元一 PR。
+- 状态：one-coordinator 2026-10-20 已批；R、F 先做（R = #489），A、B 及其依赖项等 one-architecture 的 ADR-0055 补篇（owner 2026-10-21 裁定，见 #491 评论）。在制 ≤1，按下表顺序一单元一 PR。
 
 ## 1. 关键事实
 
@@ -51,7 +51,7 @@
 
 交 one-coordinator：
 15. W2（员工与岗位版本化）的负责会话：ADR 写交 one-data，one-1a-next-5 画像写“不碰 W2”；D2 删表后 DATA-REPAIR-workforce 的 WF-01/02/07/08/13/14 与 SD-1 失去对象，须 one-data 重判。
-16. 文档与台账滞后：`process/1a/组织与人员同步.md` 未标退役；`TASKS.md:89-90`、`ADR-0034-IMPL.md:3` 状态与 #476 已合并不符。
+16. 文档与台账滞后（owner 2026-10-21 归 A0，已订正）：`process/1a/组织与人员同步.md` 已标退役；`TASKS.md` 由 `tasks/` 片段生成，`IMP-1017-PAR-01/02` 状态已订正为已合并；`ADR-0034-IMPL.md` 卡头状态已改。
 
 ## 4. 衔接
 
