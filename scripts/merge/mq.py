@@ -337,6 +337,7 @@ class Pause:
         self.directory = directory
         self.paused_file, self.acked_file, self.gh, self.log = os.path.join(directory, "mq.paused"), os.path.join(directory, "mq.acked"), gh, log
         self.lock = threading.Lock()
+        self.clock = time.monotonic
         self.last_signal_log = None   # monotonic time of the last WAIT-SIGNAL line; None until the first one
 
     @contextlib.contextmanager
@@ -374,8 +375,8 @@ class Pause:
             try:
                 red = self.red_runs()
             except SignalError as e:
-                if self.last_signal_log is None or time.monotonic() - self.last_signal_log > 300:
-                    self.last_signal_log = time.monotonic()
+                if self.last_signal_log is None or self.clock() - self.last_signal_log > 300:
+                    self.last_signal_log = self.clock()
                     self.log.event("WAIT-SIGNAL", None, None, None, f"cannot read main's runs ({e}); both lanes wait")
                 return True
             fresh = [(kind, rid) for kind, rid in red if rid not in self.acked()]
@@ -511,7 +512,8 @@ class Processor:
         if not behind:
             return behind
         files = self.gh.behind_files(head)
-        if files is not None and self.docs_only(files):
+        # a Python file under docs/ is check logic (build_all.py, check_*.py run in every pull request's secret scan job): it is no plain documentation for this purpose, the pull request is tested again against it
+        if files is not None and self.docs_only(files) and not any(f.endswith(".py") for f in files):
             return 0
         return behind
 
@@ -666,8 +668,16 @@ class Processor:
         checkout = self.main_checkout
         if not checkout:
             return
-        fetched = sh(["git", "-C", checkout, "fetch", "--quiet", "origin", "main"], timeout=120)
-        if fetched.returncode:
+        with self.queue.locked(".ff-lock"):   # two lanes merging one after the other must not fetch and merge in the main checkout at the same time (index.lock)
+            self._ff_main(n, since, checkout)
+
+    def _ff_main(self, n, since, checkout):
+        for attempt in range(3):   # a fetch or fast-forward that fails because another git command holds a lock in that checkout is tried again before anybody is called
+            fetched = sh(["git", "-C", checkout, "fetch", "--quiet", "origin", "main"], timeout=120)
+            if fetched.returncode == 0:
+                break
+            self.sleep(5)
+        else:
             self.log.event("ALERT", n, None, since, f"FF-MAIN: fetch failed, main checkout not updated: {fetched.stderr.strip()[:200]}")
             return
         branch = sh(["git", "-C", checkout, "symbolic-ref", "--short", "-q", "HEAD"]).stdout.strip()
@@ -681,7 +691,11 @@ class Processor:
         elif ahead != "0":
             why = f"the main checkout has {ahead or 'an unknown number of'} commit(s) origin/main lacks"
         else:
-            merged = sh(["git", "-C", checkout, "merge", "--ff-only", "--quiet", "origin/main"])
+            for attempt in range(3):
+                merged = sh(["git", "-C", checkout, "merge", "--ff-only", "--quiet", "origin/main"])
+                if merged.returncode == 0 or "lock" not in merged.stderr:
+                    break
+                self.sleep(5)
             if merged.returncode == 0:
                 self.log.event("FF-MAIN", n, None, since, sh(["git", "-C", checkout, "rev-parse", "--short", "HEAD"]).stdout.strip())
                 return
@@ -785,10 +799,12 @@ def train_module():
 
 
 def main_checkout():
-    """The directory of the main checkout (the parent of the common .git directory), None when the repository has no such directory."""
-    common = sh(["git", "rev-parse", "--path-format=absolute", "--git-common-dir"])
-    path = common.stdout.strip()
-    return os.path.dirname(path) if common.returncode == 0 and os.path.basename(path) == ".git" else None
+    """The main checkout: the first entry of `git worktree list` (a bare repository has none: None)."""
+    r = sh(["git", "worktree", "list", "--porcelain"])
+    first = r.stdout.split("\n\n")[0].splitlines() if r.returncode == 0 else []
+    if not first or not first[0].startswith("worktree ") or "bare" in first:
+        return None
+    return first[0][len("worktree "):]
 
 
 def repo_root():
@@ -877,7 +893,10 @@ def main(argv=None):
         print(f"resumed; acknowledged {[r for _, r in red] or 'no red run'}")
     else:
         root = repo_root()
-        proc = Processor(Gh(), q, log, root, ci_timeout=a.ci_timeout * 60, main_checkout=main_checkout())
+        checkout = main_checkout()
+        if not checkout:
+            print("mq: no main checkout found (bare repository?): FF-MAIN is switched off", file=sys.stderr)
+        proc = Processor(Gh(), q, log, root, ci_timeout=a.ci_timeout * 60, main_checkout=checkout)
         with runner_lock(directory):
             if a.cmd == "once":
                 proc.process(a.pr)

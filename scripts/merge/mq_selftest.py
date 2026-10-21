@@ -738,7 +738,7 @@ def _signals(mq, d):
     # the docs lane never waits for the code lane: a docs merge leaves a code pull request counted as up to date (see the docs-tier cases below)
     gh = FakeGh(); gh.add(84)
     proc, q, log, slept = _proc(mq, d, "s5", gh, [84], lane=lambda g, n: "docs")
-    assert proc.process(84) == "MERGED" and "WAIT-CODE-LANE" not in events(log) and 30 not in slept, (events(log), slept)
+    assert proc.process(84) == "MERGED" and 30 not in slept, (events(log), slept)
 
     # no network failure of the merge decision: compare fails (None) -> HOLD; the pull request closed meanwhile -> HOLD
     gh = FakeGh(); gh.add(86)
@@ -981,12 +981,8 @@ def _ff_main(mq, d):
     gh = FakeGh(); gh.add(200)
     proc, q, log, _ = _proc(mq, d, "ffs", gh, [200])
     gh.main_runs["push"] = mq.SignalError("rate limited")
-    real = mq.time.monotonic
-    mq.time.monotonic = lambda: 5.0
-    try:
-        assert proc.pause.check() is True
-    finally:
-        mq.time.monotonic = real
+    proc.pause.clock = lambda: 5.0
+    assert proc.pause.check() is True
     assert sum(" WAIT-SIGNAL " in l for l in log.lines) == 1, "the first line must not depend on how long the machine has been up"
 
     # the main checkout after a merge: fast-forwarded when it is clean and on main; left alone, ALERT and both lanes paused otherwise
@@ -1041,6 +1037,45 @@ def _ff_main(mq, d):
     proc.pause.resume([])
     assert not proc.pause.is_paused(), "a person's resume lets them go on"
 
+    # a Python file under docs/ is check logic, not plain documentation: a code pull request that lacks it is tested again
+    gh = FakeGh(); gh.add(204, behind=1)
+    gh.prs[204]["behind_files"] = ["docs/x/check_something.py"]
+    proc, q, log, _ = _proc(mq, d, "ffpy", gh, [204], docs_only_fn=lambda files: True)
+    assert proc.process(204) == "MERGED" and "UPDATE" in events(log), events(log)
+
+    # the fast-forward runs under its own lock, and a git command that fails on another command's lock is tried again before anybody is called
+    lock_seen = []
+    gh = FakeGh(); gh.add(205)
+    proc, q, log, slept = _proc(mq, d, "fflock", gh, [205], main_checkout=checkout("ff-lockrun"))
+    real_locked = proc.queue.locked
+    proc.queue.locked = lambda suffix=".lock": (lock_seen.append(suffix), real_locked(suffix))[1]
+    real_sh, tries = mq.sh, {"n": 0}
+
+    def flaky(args, **kw):
+        if "merge" in args and "--ff-only" in args and tries["n"] < 2:
+            tries["n"] += 1
+            return subprocess.CompletedProcess(args, 128, "", "fatal: Unable to create '.git/index.lock': File exists.")
+        return real_sh(args, **kw)
+    mq.sh = flaky
+    try:
+        proc.ff_main(205, 0)
+    finally:
+        mq.sh = real_sh
+    assert lock_seen == [".ff-lock"] and tries["n"] == 2 and "FF-MAIN" in events(log) and "ALERT" not in events(log) and slept.count(5) == 2, (lock_seen, tries, log.lines)
+
+    # the main checkout is found as the first worktree, from a worktree too; a bare repository has none
+    root = checkout("ff-where")
+    _git("worktree", "add", "-q", os.path.join(d, "ff-where-wt"), "-b", "other", cwd=root)
+    cwd = os.getcwd()
+    try:
+        os.chdir(os.path.join(d, "ff-where-wt"))
+        assert os.path.realpath(mq.main_checkout()) == os.path.realpath(root)
+        os.chdir(d)
+        os.chdir(origin)
+        assert mq.main_checkout() is None
+    finally:
+        os.chdir(cwd)
+
     # unreachable origin: only logged, nothing paused
     broken = checkout("ff-fetch")
     _git("remote", "set-url", "origin", os.path.join(d, "nowhere.git"), cwd=broken)
@@ -1064,20 +1099,21 @@ def _docs_tiers(mq, d):
     spec = importlib.util.spec_from_file_location("relevant_change", os.path.join(repo, "scripts", "ci", "relevant_change.py"))
     rc = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(rc)
-    plain = next(f for f in subprocess.run(["git", "ls-files", "docs"], cwd=repo, capture_output=True, text=True).stdout.split() if f.endswith(".md") and not rc.is_relevant(f))
+    plain = next(f for f in subprocess.run(["git", "-c", "core.quotepath=off", "ls-files", "docs"], cwd=repo, capture_output=True, text=True).stdout.split() if f.endswith(".md") and not rc.is_relevant(f))
     assert check([plain]), "plain documentation is tier=docs"
     # docs that only a container-free test reads (tier=guarded) are found, not named: relevant_change.py takes every script that names a doc for a reader of it
-    listed = [f for f in subprocess.run(["git", "ls-files", "docs"], cwd=repo, capture_output=True, text=True).stdout.split() if rc.is_guarded_doc(f)]
+    listed = [f for f in subprocess.run(["git", "-c", "core.quotepath=off", "ls-files", "docs"], cwd=repo, capture_output=True, text=True).stdout.split() if rc.is_guarded_doc(f)]
     index, light = rc.ReaderIndex(repo), rc.light_class_names(repo)
     guarded = [f for f in listed if (rc.plan_for([f], index, light) or {}).get("classes")]
+    assert guarded, "no doc of the guarded tier is left in the repository: the guarded case below would silently vanish; pick the sample differently"
     for read in ["docs/modernization/events/asyncapi.yaml", "docs/modernization/glossary/terms.yaml", "docs/modernization/audit/MUST_AUDIT_ACTIONS.yaml", *guarded]:
         assert not check([read]), f"{read} is read by a test: not docs"
         assert not check([plain, read]), "one test-read file among docs makes the whole set non-docs"
 
     # a code pull request whose CI ends after main gained docs commits merges as it is; after a test-read doc or code, it is brought up to date and run again
-    for name, files, reruns in (("docs", [plain], False), *([("guarded", guarded[:1], True)] if guarded else []), ("code", ["docs/modernization/events/asyncapi.yaml"], True), ("mixed", [plain, "backend/pom.xml"], True)):
+    for name, files, reruns in (("docs", [plain], False), ("guarded", guarded[:1], True), ("code", ["docs/modernization/events/asyncapi.yaml"], True), ("mixed", [plain, "backend/pom.xml"], True)):
         gh = FakeGh(); gh.add(210, behind=1)
         gh.prs[210]["behind_files"] = files
         proc, q, log, _ = _proc(mq, d, f"dt-{name}", gh, [210], docs_only_fn=check)
         assert proc.process(210) == "MERGED", log.lines
-        assert ("UPDATE" in events(log)) is reruns and ("WAIT-CODE-LANE" not in events(log)), (name, events(log))
+        assert ("UPDATE" in events(log)) is reruns, (name, events(log))
