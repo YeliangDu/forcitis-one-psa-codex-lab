@@ -1,6 +1,6 @@
-# DATA-REPAIR-workforce 重判（ADR-0055：同步退役后失去对象的条目）——第 2 版
+# DATA-REPAIR-workforce 重判（ADR-0055：同步退役后失去对象的条目）——第 3 版
 
-- 作者：one-data，2026-10-21。第 1 版 @ae8e4621；独立复核 R-01…R-04（`R-W2设计复核-2026-10-21.md`，`claude/one-coordinator-two-lanes` @13dd137e）已改。
+- 作者：one-data，2026-10-21。第 1 版 @ae8e4621；独立复核 R-01…R-04 已改（`R-W2设计复核-2026-10-21.md` @13dd137e）；改后复核剩余两处（`repository-id-exceptions.txt:3`、三个 SyncRun 错误码）已补（`R2-W2设计改后复核-2026-10-21.md`）。
 - 起因：one-coordinator 派工；切分方案 PR-D2 删同步表（`sync_runs`、`sync_diffs`、`sync_run_held_separations`、两个 `last_sync_run_id`），`DATA-REPAIR-workforce.md` 的 WF-01/02/07/08/13/14 与 SD-1 失去对象（切分方案第 3 节第 15 条）。依据：ADR-0055 决定 6、ADR-0068 第 2、7 条。
 - **前提（R-04）**：以下「取消」成立的前提是 **D1、D2 在基线关闭前落地**。基线开放期可重建库、不产生迁移负担；基线关闭后再删表要按 ADR-0038 追加迁移，且 `sync_run_held_separations` 的 `ON DELETE CASCADE` 要在迁移里先断言行数为 0（ADR-0068 第 2 条 5）。
 - 状态：重判结论，待并入主卡（分支同步 main 后在 `DATA-REPAIR-workforce.md` 各条加「已取消」状态行；本页先作依据）。
@@ -44,8 +44,11 @@
 - `unversioned-table-writes.txt:6、:7、:27`。
 - `versioned-table-unconditional-writes.txt:10`（`SyncPurgeJob`）；:4 的 `updateShortNames` 视 G（部门简称）的裁定。
 - `audit-text-writers.txt:12`（`RecordSyncRunRelease`）。
+- `repository-id-exceptions.txt:3`（`JdbcSyncRunRepository.insertRunning`；不删守护报「已修好却没删」）；`unversioned-table-writes.txt:6、:7` 在 `JdbcSyncRunRepository` 删除后随之失效，若该仓储另有其他表的写入行需一并核。
 - `primary-key-exemptions.txt:3` 只是注释，不动。
 - **已核无**：`data-classification.txt` 与 `status-write-exceptions.txt` 没有同步表的行（`data-classification.txt:20-21` 是 `login_name`、`wecom_user_id`，不属 D2，属 W2/DA-3）。`one_db_roles_schemas.sql` §4b 不涉及同步表；W2 要把三张新版本表加进去。
+
+**错误码词表**：`backend/glossary/proposed/fix-b.yaml:125`（`OrganizationWorkforceSyncRunApplyFailed`）、`organization_workforce.yaml:37`（`…SyncRunTransitionIllegal`）、`:52`（`…SyncRunNotFound`）——错误码中文名全局唯一，退役经 one-glossary，不自行删。
 
 **文档与词表**：`docs/modernization/architecture/ddd/aggregates.yaml:93-129`（SyncRun 聚合及五个事件）；`glossary/terms.yaml` 中 SyncRun 及 `SyncRun*` 事件条目——**经 `new_term_issue.py` 交 one-glossary 退役，不自行删除**；`data/RETENTION_PROPOSAL.md:23`；SESSION_PLAYBOOK §14「已登记的例外」中 `BeginSyncRun`、`ApplySourceSnapshot` 两条；前端 `frontend/apps/web/src/modules/workforce/hooks/use-workforce.ts`（同步接口调用方，D2 已写前端，清单点名）。
 
