@@ -56,7 +56,7 @@ meta:
     agg: 145
     bc: 51
     sd: 13
-    table: 53
+    table: 65
     rule: 512
     ep: 601
     tc: 1132
@@ -137,7 +137,7 @@ meta:
         covers: 1
     表→聚合:
       covered: 20
-      total: 20
+      total: 28
       via:
         built: 20
         panorama: 0
@@ -14985,6 +14985,90 @@ nodes:
       sources:
       - backend/architecture/data-access-registry.yaml#tables/platform_numbering.legacy_numbers
       role: LINEAGE
+      registered: true
+      registered_aggregate: null
+    platform_file.stored_files:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/platform_file.stored_files
+      role: AGGREGATE_ROOT
+      registered: true
+      registered_aggregate: StoredFile
+    platform_file.stored_file_names:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/platform_file.stored_file_names
+      role: AGGREGATE_CHILD
+      registered: true
+      registered_aggregate: StoredFile
+    platform_file.file_bindings:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/platform_file.file_bindings
+      role: AGGREGATE_CHILD
+      registered: true
+      registered_aggregate: StoredFile
+    platform_file.file_holds:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/platform_file.file_holds
+      role: AGGREGATE_CHILD
+      registered: true
+      registered_aggregate: StoredFile
+    platform_file.file_preservations:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/platform_file.file_preservations
+      role: AGGREGATE_CHILD
+      registered: true
+      registered_aggregate: StoredFile
+    platform_file.preservation_categories:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/platform_file.preservation_categories
+      role: CONFIG_VERSIONED
+      registered: true
+      registered_aggregate: PreservationCategory
+    platform_file.preservation_category_versions:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/platform_file.preservation_category_versions
+      role: AGGREGATE_CHILD
+      registered: true
+      registered_aggregate: PreservationCategory
+    platform_file.false_positive_judgments:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/platform_file.false_positive_judgments
+      role: AGGREGATE_ROOT
+      registered: true
+      registered_aggregate: FalsePositiveJudgment
+    platform_file.scan_exceptions:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/platform_file.scan_exceptions
+      role: LOG_APPEND_ONLY
+      registered: true
+      registered_aggregate: null
+    platform_file.scan_exception_revocations:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/platform_file.scan_exception_revocations
+      role: LOG_APPEND_ONLY
+      registered: true
+      registered_aggregate: null
+    platform_file.quarantine_read_requests:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/platform_file.quarantine_read_requests
+      role: AGGREGATE_ROOT
+      registered: true
+      registered_aggregate: QuarantineReadRequest
+    platform_file.state_transitions:
+      aggregates: []
+      sources:
+      - backend/architecture/data-access-registry.yaml#tables/platform_file.state_transitions
+      role: LOG_APPEND_ONLY
       registered: true
       registered_aggregate: null
     platform_scheduling.scheduler_locks:
