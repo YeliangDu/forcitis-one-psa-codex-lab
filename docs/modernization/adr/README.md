@@ -287,7 +287,6 @@
 | E-007 | ADR-0036 证据节「`period_status` 只有 OPEN / CLOSING / CLOSED（`docs/modernization/glossary/terms.yaml:5067`）」 | 词表重排后行号已失效 | 按词条 id 读：`period_status`「期间状态」 | ADR-0053 首轮复审后起草者核查（2026-10-17）；one-architecture 判定为失效引用、不改变决定含义 | 2026-10-17 |
 | E-008 | ADR-0055 决定 7 第 1 句「ADR-0037 决定 5 的运行时读取…决定 6、8 的登记与启动检查」 | 所引 ADR-0037 条号有误：决定 5 是账号，运行时读取在决定 1 第 1 条，启动校验在决定 4 | 读作：ADR-0037 决定 1 第 1 条的运行时读取从生产依赖撤销；决定 4 的启动校验与决定 6、8 的登记随同步及老待办调用方清理；决定 5 的账号按该句后半退出。头部「取代」未列决定 1、4 属效力问题，由 ADR-0068「取代」行承接 | owner 2026-10-21 PR #491 评论（A0 第 13 条）；one-architecture 判定为勘误 | 2026-10-21 |
 | E-009 | ADR-0058 决定第 4 条（转换记录列）与第 5 条（表形状）中的列名 `aggregate_type`、`sequence_no`、`from_state`、`to_state`、`occurred_on` | 命名守护 DdlNamingTest 在 `platform_file` 首次建表时拦下：代码列须带 `_code`，序号列写全称，日期列带 `_date`，状态列用 `status`；改名不改含义 | 依次读作 `aggregate_type_code`、`sequence_number`、`from_status`、`to_status`、`occurred_on_date` | one-data `data/STATE_TRANSITIONS_DESIGN.md`「列名更正」节（2026-10-21）；one-architecture 判定不改变决定含义 | 2026-10-21 |
-| E-010 | ADR-0072 决定 1 第 2、3 款的 `decision_ref` | 命名守护会拦下无后缀的 `decision_ref`；列名以 one-data 签发的表结构为准，改名不改含义（仍指确认操作写入的审计记录） | 读作 `decision_ref_key` | one-data 2026-10-21 提示（实现前）；one-architecture 判定不改变决定含义 | 2026-10-21 |
 
 ### 3. 性质登记（不改正文）
 
