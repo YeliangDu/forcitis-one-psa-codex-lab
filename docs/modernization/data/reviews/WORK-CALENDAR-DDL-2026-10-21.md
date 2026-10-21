@@ -104,3 +104,17 @@
 2. **`adjustment_basis_kind` 保留**在版本行（NOT NULL，`OFFICIAL_NOTICE`/`MANUAL`），只表示这一版改动的依据；日期行 `basis_kind`（OFFICIAL/COMPANY/MANUAL）说明每个例外日为什么是例外，两者不冲突。
 3. **K-2 形状**：同更正四②，已含生效区间（起止日）、版本号、作者与确认人、确认时刻、依据（`decision_ref`）。
 4. **「次年是否已确认」查询**：按 (日历, 年份) 取已确认版本，`uk_…(work_calendar_id, year_number, version_number)` 加 `EXCLUDE` 的索引已覆盖，另加部分索引 `ix_work_calendar_versions_confirmed ON (work_calendar_id, year_number) WHERE confirmation_status = 'CONFIRMED'`，让 11 月 15 日起的每日告警和 12 月 1 日起的阻断检查走索引；不需要新列。告警与阻断是应用行为，不在表结构里。
+
+## 更正六（2026-10-21，答 one-coordinator：公司取消官方调休的那几天要记一行）
+
+**结论：要记，`day_kind` 加第三种取值 `MAKE_UP_WORKDAY_CANCELLED`（官方调休上班、公司取消；暂名，交 one-glossary 登记），不用「`basis_kind = COMPANY` 的休息行」。**
+
+理由：日期行的含义是「相对周一至周五上班、周末休息这条默认规则的例外」；`HOLIDAY` 记在周末上语义矛盾（周末本来就休息），而且读取方会把它误当作多放的假；取消调休的周末对有效日历来说就是普通周末，不是例外。单列一种取值，读取方一条规则处理：`MAKE_UP_WORKDAY_CANCELLED` 按普通周末休息计，行本身只承担「查得到为什么不按官方上班」。
+
+表结构：
+- `day_kind` 具名 CHECK 取值 `HOLIDAY`、`MAKE_UP_WORKDAY`、`MAKE_UP_WORKDAY_CANCELLED`；
+- 调休必在周末的 CHECK 扩到两种调休取值（`ck_…_make_up_weekend`：`day_kind NOT IN ('MAKE_UP_WORKDAY', 'MAKE_UP_WORKDAY_CANCELLED') OR ISODOW IN (6, 7)`）；
+- 具名 CHECK：`day_kind = 'MAKE_UP_WORKDAY_CANCELLED'` 时 `basis_kind IN ('COMPANY', 'MANUAL')`（取消是公司或手工更正的决定，不是官方的）且 `basis_note` 非空，`basis_note` 写明取消的是哪份官方通知里的哪个调休；
+- 同一版本同一日期仍只有一行（`UNIQUE (work_calendar_version_id, calendar_date)`），所以该日在这一版里不再出现 `MAKE_UP_WORKDAY` 行；官方原本的调休安排只留在 `basis_note` 与版本行的官方通知文号、链接里。
+- 确认触发器：有 `MAKE_UP_WORKDAY_CANCELLED` 行的版本，`company_leave_register_kind` 必须是 `REGISTERED`（取消调休算公司加休登记的一部分，与 COMPANY 日期行同规则）。
+- 迁入：one-ops 投产表单列的 5 天（2022-01-30、2023-01-28/29、2025-01-26、2026-02-14）按此取值迁入，依据说明引用其依据文件；2023-04-23 与 2025-01-25 两条定性未决，未定前按 MQ-C-01 拒收。
