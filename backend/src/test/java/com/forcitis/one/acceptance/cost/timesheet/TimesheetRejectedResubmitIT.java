@@ -15,7 +15,7 @@ import com.forcitis.one.cost.timesheet.events.TimesheetApprovalWithdrawn;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.platform.approval.ApprovalIntegrationSupport;
@@ -105,7 +105,7 @@ class TimesheetRejectedResubmitIT extends ApprovalIntegrationSupport {
     }
 
     static DocumentReference documentOf(TimesheetId id) {
-        return new DocumentReference(DocumentType.TIMESHEET, new DocumentId(id.value()));
+        return new DocumentReference(new DocumentTypeCode("TIMESHEET"), new DocumentId(id.value()));
     }
 
     TimesheetView submit(TimesheetId id, LocalDate day, String hours) {
