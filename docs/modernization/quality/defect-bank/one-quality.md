@@ -209,7 +209,7 @@
 - **日期**：2026-10-21
 - **类别**：局部测试
 - **现象**：one-1a-par 整包单测里 `SeeyonTicketVerifierTest.loginName` 一次得 `Unavailable`（预期 `LoginName`），单跑 3 次稳定。
-- **根因（推断，待日志确认）**：被测类对每次校验都发真实 HTTP 请求到测试里的 WireMock，请求超时是测试传入的 2 秒墙钟（`Duration.ofSeconds(2)`）；`SsoVerdict.Unavailable` 只在非 200、`IOException`（含 `HttpTimeoutException`、连接失败）、中断或基址不可用时出现。整包并发（backend_verify 同时跑 surefire 与 failsafe 各 4 个 fork）下首个真实 HTTP 往返遇到 JVM 冷启动（HttpClient 选择器线程、类加载）加 CPU 争抢，停顿超过 2 秒即抛 `HttpTimeoutException` → `Unavailable`。本机在 24 个满载进程下重复 8 次未复现（只出现该类 `unavailable` 用例预期内的 500/302/HttpTimeout/基址告警），所以这是推断；确认只需看失败那次的日志有没有 `Seeyon OA ticket check failed: <异常类>` 或 `answered HTTP <码>`。
+- **根因**：（推断，待日志确认）被测类对每次校验都发真实 HTTP 请求到测试里的 WireMock，请求超时是测试传入的 2 秒墙钟（`Duration.ofSeconds(2)`）；`SsoVerdict.Unavailable` 只在非 200、`IOException`（含 `HttpTimeoutException`、连接失败）、中断或基址不可用时出现。整包并发（backend_verify 同时跑 surefire 与 failsafe 各 4 个 fork）下首个真实 HTTP 往返遇到 JVM 冷启动（HttpClient 选择器线程、类加载）加 CPU 争抢，停顿超过 2 秒即抛 `HttpTimeoutException` → `Unavailable`。本机在 24 个满载进程下重复 8 次未复现（只出现该类 `unavailable` 用例预期内的 500/302/HttpTimeout/基址告警），所以这是推断；确认只需看失败那次的日志有没有 `Seeyon OA ticket check failed: <异常类>` 或 `answered HTTP <码>`。
 - **拦下于**：整包单测（偶发，重跑通过）。
 - **漏过于**：作者自审（成功路径的用例与“故意超时”的用例共用了同一量级的墙钟超时）。
 - **新增检查项**：测试修复——期望成功的用例（`loginName`、`invalidAnswers`）改用宽松超时（例如 10 秒，仅作兜底，不影响用时），“故意超时”的用例保持 500 ms 对 2000 ms 服务端延迟不变；不隔离、不放宽断言。机械检查另议：扫描测试里“期望成功却用 ≤3 秒的真实网络超时”，先只报告。
