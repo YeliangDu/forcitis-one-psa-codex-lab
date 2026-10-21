@@ -24,6 +24,8 @@ processes:
       - {type: human, name: "人力更名、停用或启用法人主体"}
       - {type: human, name: "人力新建或修改职位"}
       - {type: human, name: "人力更正法人归属"}
+      - {type: human, name: "人力终止法人归属"}
+      - {type: human, name: "人力更正法人代码（未发号前）"}
     stages: [VS-15.2, VS-15.3]
     stages_note: "intent 2026-10-17-174814 挂内部价值流 VS-15 确立经营基准（暂名）；VS-15.2 组织单元与岗位启用、VS-15.3 停用；法人主体筹建存续不作门；法人主体筹建存续不作门；原支撑理由：B-13 主数据维护：法人主体、组织单元、法人归属、职位目录条目的维护，结局不造任何阶段的退出条件（职位「启用」只是 VS-07.1 的进入条件，判据按退出条件归段），服务多条价值流（STAGE_ALIGN.md 归段判据第 6 项）"
     primary_object: OBJ-55
@@ -34,7 +36,7 @@ processes:
     migration: "法人、组织单元、职位目录、法人归属全量迁入（U-3、U-4），迁入不触发 P-31 待复核（ADR-0036 M7）；无在途实例"
     scope: "人力按法人与组织数据范围维护"
     outcomes: [已维护]
-    scenarios: [PRC-80-S01, PRC-80-S02, PRC-80-S03, PRC-80-S04, PRC-80-S05, PRC-80-S06, PRC-80-S07, PRC-80-S08, PRC-80-S09, PRC-80-S10, PRC-80-S11, PRC-80-S12, PRC-80-S13]
+    scenarios: [PRC-80-S01, PRC-80-S02, PRC-80-S03, PRC-80-S04, PRC-80-S05, PRC-80-S06, PRC-80-S07, PRC-80-S08, PRC-80-S09, PRC-80-S10, PRC-80-S11, PRC-80-S12, PRC-80-S13, PRC-80-S14, PRC-80-S15]
     roles:
       - {id: SH-E6, as: initiator, org_needs: {responsibility: "维护法人、组织单元、职位目录与法人归属主数据", approval_right: "无（全部由不变量守卫，不设审批）", department_hint: "人力资源部", position_hint: "人事主数据维护岗（职能：维护组织与职位目录）"}}      # 人力
       - {id: SH-M1, as: informed, org_needs: {responsibility: "数据范围待复核时确认是否调整授权", approval_right: "无", department_hint: "区域或事业部", position_hint: "区域负责人（职能：对本区域组织数据范围负责）"}}       # 区域负责人：数据范围待复核时被通知（P-31）；区域负责人是否归 SH-M1 见 notes 格式问题 7
@@ -57,6 +59,8 @@ processes:
           - {when: 新建岗位, goto: 10}
           - {when: 修改岗位, goto: 11}
           - {when: 更正法人归属, goto: 12}
+          - {when: 终止法人归属, goto: 13}
+          - {when: 更正法人代码, goto: 14}
           - {when: otherwise, goto: 5}      # 其余即停用职位
       - actor: SH-E6
         where: in_system
@@ -198,7 +202,32 @@ processes:
         decision:
           - {when: 更正后期间与同一对象其他期间重叠, goto: 12, rule: INV-122}
           - {when: otherwise, goto: end}
-    notes: "步 2–5、7–12 是人力择一执行的备选路径（步 1 是入口选择）；步 6 是步 3 的事件反应。职位目录的新建与修改命令聚合稿未列（notes 结构问题）。本流程无人工审批：全部由不变量守卫（INV-59、60、63、新-P5）。"
+      - actor: SH-E6
+        where: in_system
+        branch: 终止法人归属
+        command: 终止法人归属        # 已建代码 EndLegalEntityAttribution，规划原缺（one-architecture command-mapping 2026-10-21）
+        aggregate: AGG-117
+        desc: 为部门或员工当前的法人归属期间写入结束日，关闭当前期间；只关闭不改写历史，结束日不得早于期间开始日；操作人不得终止本人的归属；发「法人归属已结束」
+        permission: 法人归属.终止
+        page: 法人归属维护页
+        audit: true
+        emits: [法人归属已结束]
+        decision:
+          - {when: 该对象没有当前法人归属, goto: 13}
+          - {when: otherwise, goto: end}
+      - actor: SH-E6
+        where: in_system
+        branch: 更正法人代码
+        command: 更正法人代码        # 已建代码 UpdateLegalEntity 的代码更正分支，规划原缺（one-architecture command-mapping 2026-10-21）
+        aggregate: AGG-60
+        desc: 法人代码登记有误且尚未用该代码发号时更正；已发号则拒绝（INV-59），只能另登法人主体
+        permission: 法人主体.更正代码
+        page: 法人主体维护页
+        audit: true
+        decision:
+          - {when: 法人代码已用于发号, goto: 14, rule: INV-59}
+          - {when: otherwise, goto: end}
+    notes: "步 2–5、7–14 是人力择一执行的备选路径（步 1 是入口选择）；步 6 是步 3 的事件反应。职位目录的新建与修改命令聚合稿未列（notes 结构问题）。本流程无人工审批：全部由不变量守卫（INV-59、60、63、新-P5）。"
 
   - id: PRC-81
     name: 提出并批准招聘需求
@@ -3343,10 +3372,12 @@ event_policies:
       events:
         - {event: 劳动合同已签订, aggregate: AGG-67}
         - {event: 〔缺〕法人归属已变更, aggregate: AGG-117}
+        - {event: 法人归属已结束, aggregate: AGG-117}   # 2026-10-21 补：终止归属后三口径可能出现缺口，同样复核
         - {event: 薪酬档案已变更, aggregate: AGG-93}
     triggers:
       - {type: event, name: "劳动合同已签订（B-13）"}
       - {type: event, name: "〔缺〕法人归属已变更（B-13）"}
+      - {type: event, name: "法人归属已结束（B-13）"}
       - {type: event, name: "薪酬档案已变更（同 BC）"}
     stages: [VS-07.3]
     primary_object: none
