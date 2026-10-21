@@ -8,7 +8,7 @@ import static org.mockito.Mockito.when;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
@@ -47,7 +47,7 @@ class GetTaskDetailAccountsTest {
 
     private static TaskRecord record(ApprovalTaskStatus status) {
         return new TaskRecord(OpenTasks.TASK, OpenTasks.INSTANCE, ProcessKey.COST_TIMESHEET_APPROVAL,
-                new DocumentReference(DocumentType.TIMESHEET, com.forcitis.one.TestApprovalIds.document("7")), new NodeKey("approverReview"), INITIATOR, status, Optional.of(HANDLER),
+                new DocumentReference(new DocumentTypeCode("TIMESHEET"), com.forcitis.one.TestApprovalIds.document("7")), new NodeKey("approverReview"), INITIATOR, status, Optional.of(HANDLER),
                 NOW, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), new ApprovalSummary("TS-1"), 3, 1);
     }
 

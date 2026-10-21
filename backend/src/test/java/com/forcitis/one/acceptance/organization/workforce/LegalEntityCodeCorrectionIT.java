@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import com.forcitis.one.acceptance.AcceptanceSupport;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
@@ -79,7 +79,7 @@ class LegalEntityCodeCorrectionIT extends AcceptanceSupport {
         MockHttpServletResponse confirmedTemplate = mvc.perform(post("/api/v1/platform/numbering-rules/QUOTE:confirm").with(csrf()).with(NUMBERING_APPROVER)
                 .contentType(MediaType.APPLICATION_JSON).content("{\"templateVersion\":1}")).andReturn().getResponse();
         assertThat(confirmedTemplate.getStatus()).as(confirmedTemplate.getContentAsString()).isEqualTo(200);
-        String issued = new TransactionTemplate(transactions).execute(status -> numbers.next(DocumentType.QUOTE, new LegalEntityId(legalEntity), TODAY).value());
+        String issued = new TransactionTemplate(transactions).execute(status -> numbers.next(new DocumentTypeCode("QUOTE"), new LegalEntityId(legalEntity), TODAY).value());
         assertThat(issued).startsWith("QT-CHB-");
 
         MockHttpServletResponse locked = change(legalEntity, "CHC", "Synthetic CHA");
@@ -101,7 +101,7 @@ class LegalEntityCodeCorrectionIT extends AcceptanceSupport {
         MockHttpServletResponse confirmedTemplate = mvc.perform(post("/api/v1/platform/numbering-rules/TIMESHEET:confirm").with(csrf())
                 .with(NUMBERING_APPROVER).contentType(MediaType.APPLICATION_JSON).content("{\"templateVersion\":1}")).andReturn().getResponse();
         assertThat(confirmedTemplate.getStatus()).as(confirmedTemplate.getContentAsString()).isEqualTo(200);
-        new TransactionTemplate(transactions).execute(status -> numbers.next(DocumentType.TIMESHEET, new LegalEntityId(numbered), TODAY).value());
+        new TransactionTemplate(transactions).execute(status -> numbers.next(new DocumentTypeCode("TIMESHEET"), new LegalEntityId(numbered), TODAY).value());
 
         assertThat(change(numbered, "CHX", "Synthetic CHD").getStatus()).isEqualTo(409);
         int correctionsBefore = auditedActions(CODE_CORRECTED).size();

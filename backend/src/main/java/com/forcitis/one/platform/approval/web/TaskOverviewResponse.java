@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.approval.web;
 
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.application.TaskOverview;
@@ -8,7 +8,7 @@ import java.time.Instant;
 import java.util.UUID;
 import org.springframework.lang.Nullable;
 
-record TaskOverviewResponse(UUID taskId, ProcessKey processKey, DocumentType documentType, UUID documentId, String nodeKey, String status,
+record TaskOverviewResponse(UUID taskId, ProcessKey processKey, DocumentTypeCode documentType, UUID documentId, String nodeKey, String status,
                             @Nullable UUID assignee, Instant createdAt, @Nullable Instant dueAt, boolean overdue) {
 
     static TaskOverviewResponse of(TaskOverview task) {

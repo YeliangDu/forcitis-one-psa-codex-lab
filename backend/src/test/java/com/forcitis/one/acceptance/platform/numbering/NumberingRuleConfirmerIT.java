@@ -77,7 +77,7 @@ class NumberingRuleConfirmerIT extends AccountsAcceptanceSupport {
         assertThat(byAnother.getStatus()).as(byAnother.getContentAsString()).isEqualTo(200);
         try (Connection numbering = schemaConnection("platform_numbering"); PreparedStatement select = numbering.prepareStatement("""
                 select v.author_id, v.confirmed_by from numbering_rule_versions v join numbering_rules r on r.numbering_rule_id = v.numbering_rule_id
-                 where r.document_type = 'QUOTE' and v.version_number = ?""")) {
+                 where r.document_type_id = (select document_type_id from platform_numbering.document_types where code = 'QUOTE') and v.version_number = ?""")) {
             select.setInt(1, pending);
             try (ResultSet rs = select.executeQuery()) {
                 assertThat(rs.next()).isTrue();

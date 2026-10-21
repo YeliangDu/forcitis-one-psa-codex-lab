@@ -7,7 +7,7 @@ import com.forcitis.one.cost.timesheet.application.SubmitTimesheet;
 import com.forcitis.one.cost.timesheet.application.SubmitTimesheetCommand;
 import com.forcitis.one.cost.timesheet.application.TimesheetView;
 import com.forcitis.one.kernel.DomainException;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.platform.numbering.api.DocumentNumbers;
@@ -100,7 +100,7 @@ abstract class TimesheetWorkerSupport extends AccountsAcceptanceSupport {
     protected long nextTimesheetSequence() {
         String number = transactionTemplate.execute(status -> {
             status.setRollbackOnly();
-            return documentNumbers.next(DocumentType.TIMESHEET, new LegalEntityId(legalEntity), TODAY).value();
+            return documentNumbers.next(new DocumentTypeCode("TIMESHEET"), new LegalEntityId(legalEntity), TODAY).value();
         });
         var digits = java.util.regex.Pattern.compile("(\\d+)$").matcher(number);
         assertThat(digits.find()).as("the timesheet number %s ends in its sequence", number).isTrue();

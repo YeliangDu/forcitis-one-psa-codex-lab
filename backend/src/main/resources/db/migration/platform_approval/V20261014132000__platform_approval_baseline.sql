@@ -14,7 +14,7 @@ CREATE TABLE platform_approval.approval_requests (
     created_at          timestamptz NOT NULL DEFAULT now(),
     updated_at          timestamptz NOT NULL DEFAULT now(),
     version             bigint      NOT NULL DEFAULT 0,
-    document_type       text        NOT NULL CONSTRAINT ck_approval_requests_document_type CHECK (document_type IN ('TIMESHEET')),
+    document_type       text        NOT NULL CONSTRAINT ck_approval_requests_document_type CHECK (document_type ~ '^[A-Z][A-Z0-9_]{1,39}$'),
     legal_entity_id     uuid        NOT NULL,
     event_count         bigint      NOT NULL DEFAULT 0,
     summary_text        text        NOT NULL,
@@ -39,7 +39,7 @@ COMMENT ON COLUMN platform_approval.approval_requests.result_reason IS '驳回�
 COMMENT ON COLUMN platform_approval.approval_requests.created_at IS '创建时间';
 COMMENT ON COLUMN platform_approval.approval_requests.updated_at IS '更新时间';
 COMMENT ON COLUMN platform_approval.approval_requests.version IS '乐观锁版本';
-COMMENT ON COLUMN platform_approval.approval_requests.document_type IS '单据类型（DocumentType 枚举名）：与流程标识一一对应';
+COMMENT ON COLUMN platform_approval.approval_requests.document_type IS '单据类型码：与流程标识一一对应；是否已登记由写入前经编号模块接口校验（单据类型登记在 platform_numbering.document_types，不建跨 schema 外键）';
 COMMENT ON COLUMN platform_approval.approval_requests.legal_entity_id IS '法人主体（法人 ID）：由发起方传入，缺失即失败，不设默认';
 COMMENT ON COLUMN platform_approval.approval_requests.event_count IS '事件序号：该聚合已记录的领域事件数，每个事件加一，下一个事件取其加一作信封的聚合版本；与乐观锁版本 version（每次保存加一）是两个计数';
 COMMENT ON COLUMN platform_approval.approval_requests.summary_text IS '业务摘要：1 至 200 字符，发起时由拥有单据的业务模块给出，卡片显示它而不回查单据（本轮）；目前内容为单据编号、工作日、工时，写入方新增内容须先评估个人信息';
