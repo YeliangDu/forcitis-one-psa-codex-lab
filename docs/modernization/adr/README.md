@@ -94,7 +94,8 @@
 | [ADR-0065](ADR-0065.md) | AI 底座：大模型接入与使用边界 | 技术与平台 | 全局 | 已采纳 |
 | [ADR-0066](ADR-0066.md) | 平台模块分层、依赖方向与准入退出 | 边界与模块 | 全局 | 已采纳 |
 | [ADR-0067](ADR-0067.md) | 平台模块契约冻结与变更通道 | 边界与模块 | 全局 | 已采纳 |
-| [ADR-0068](ADR-0068.md) | 撤同步后的人事命令、待放行离职与收尾（ADR-0055 补篇） | 安全与权限 | organization.workforce、platform.identity、platform.integration、platform.audit | 提议 |
+| [ADR-0068](ADR-0068.md) | 撤同步后的人事命令与待放行离职（ADR-0055 补篇一） | 安全与权限 | organization.workforce、platform.identity | 提议 |
+| [ADR-0069](ADR-0069.md) | 撤同步收尾：同步列、迁入适配器、来源对照封存与审计对象类别（ADR-0055 补篇二） | 集成 | organization.workforce、platform.identity、platform.integration、platform.audit | 提议 |
 
 ## ADR 生命周期与变更规则
 
