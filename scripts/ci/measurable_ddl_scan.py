@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Scan the DDL for the "measurable raw material" items M1-M6 (rules: docs/modernization/data/MEASURABLE_RAW_MATERIAL_SPEC.md).
+"""Scan the DDL for the "measurable raw material" items M1-M6 (rules: MEASURABLE_RAW_MATERIAL_SPEC.md).
 
 M6 (D15): a registry entry with role CONFIG_VERSIONED names `versions_table` (schema.table); that table has author, authored_at, confirmer,
 confirmed_at, decision_ref and effective_from_date columns and is APPEND_ONLY in the registry.
