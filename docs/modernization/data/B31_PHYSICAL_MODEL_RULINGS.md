@@ -79,3 +79,27 @@
 2. 我逐卡复核并签「数据设计：通过」，复核记录进 `data/reviews/`；
 3. 迁移出来后复核实际表结构 diff，在 PR 留签发评论（写 head 提交号）；
 4. 注册表、分级（预估金额、理由文本、审批人角色）、保留期、系统操作者随表结构 PR 提交。
+
+## 10. 更正：先行期资产卡片与法人来源（取代第 3 节第 1、3 条的依赖；2026-10-21，答 one-architecture）
+
+one-architecture 裁定先行期不建 B-31 → `fixedasset` 的依赖边（ADR-0051 决定 9，fixedasset 在 W5）。我同意这个方向，第 3 节「经公司资产读取接口确认、法人由它给」作废，改为：
+
+1. **卡片身份**：根表 `it_asset_usage_records` 的业务键是 `asset_card_number text NOT NULL`（资产卡片号，格式 CHECK、`UNIQUE`），登记为业务键（G-DDL1）。它是公司资产卡片号这一业务编号，不是老系统的内部 ID；`company_asset_id uuid` **先不建**，W5 fixedasset 上线时用追加迁移加 `company_asset_id uuid`（可空）并按卡片号回填，回填完成后再改为必填，那次迁移由 fixedasset 的卡负责。
+2. **根的建立**：先行期**不惰性建根**（卡片号无法被外部确认，惰性建根会让手误录入变成新根）。根只有两个来源：迁入入口（按迁入的卡片清单）与行政的「登记资产卡片」命令（B-31 自己的台账登记，权限码由 one-1a-admin 定）。领用申请的卡片号必须已有根，没有就失败。
+3. **法人**：先行期 `it_asset_usage_requests.legal_entity_id`、`it_asset_usage_periods.legal_entity_id` 取**领用人在业务日期当天的法人归属**（`organization.workforce` 的员工法人归属读取接口，已有 W2 区间，缺归属则失败，不默认），不取资产的法人。列注释写明先行期口径；W5 后改取资产卡片的法人时，历史行不改，新行换来源，换口径当天登记在 ADR。
+4. 迁入的卡片：卡片清单由行政提供，作为迁入规格的输入进评审；卡片号重复、格式不符的拒收。
+5. 取证提醒：老系统员工法人归属无来源（DAT-1021-ARC-01、B-1），所以第 3 点在迁入历史行和投产初期依赖人事提供的归属表；缺归属的领用申请在先行期失败并告警，不能默认 1001。
+
+## 11. 合同原件借阅移交（B-31 → contract.agreement）的具体步骤（答 one-architecture ③）
+
+前提：第一版在 `organization_administration` 按 AGG-13 目标形状建表（含 INV-125 部分唯一索引），W3 合同模块上线时移交。移交是一次维护窗口内的迁移，步骤：
+
+1. **冻结**：窗口开始时 `organization.administration` 关闭借阅写入入口（功能开关），在途借阅审批实例逐个处置：已通过的保持；审批中的等其结束或由业务撤回，**窗口内不留审批中**（比回调改路由简单）；定时作业先停用。
+2. **表移动**：`ALTER TABLE organization_administration.<借阅表> SET SCHEMA contract_agreement`（行不动，不洗数据）；表上约束、索引名不含 schema，随表移动；**触发器函数与视图留在原 schema，须在目标 schema 重建同名函数并把触发器重指向**，再删除原函数；`OWNER` 保持迁移属主。
+3. **状态转换**：把原 schema 的 `state_transitions` 中 `aggregate_type_code` 属借阅聚合的行**复制**到目标 schema 的 `state_transitions`（`id`、时间、序号原样，只追加表上由属主迁移写入，复制后做行数与逐行摘要核对）；目标 schema 的 `aggregate_type_code` 与状态并集 CHECK 须先在其基线里包含借阅聚合的取值；原 schema 的这些转换行**保留**（只追加表不删），注册表标注「已移交」。
+4. **审批回调**：审批单据类型码（如 `CONTRACT_LOAN_APPROVAL`）是身份，**不变**，`platform_approval` 里已有的实例与历史不动；变的是单据类型到处理模块的绑定：窗口内由 `platform.approval` 的回调登记从旧模块切到新模块（登记是配置/代码，随同一部署）；因窗口内不留审批中，没有需要重路由的在途回调。
+5. **逾期作业**：旧作业（`organization.administration` 的借阅逾期提醒）停用并删除，ShedLock 记录不迁；新模块自声明新作业；提醒是否已发的状态在表里（逾期提醒时间列、升级标记列）随表移动，新作业靠它幂等，不会重复发。
+6. **权限码与路径**：权限码由 `organization.administration:contract-loan:*` 改为 `contract.agreement:agreement-loan:*`（名字以 one-glossary 裁定为准）。`platform_identity` 的角色授权是数据：窗口内由 `platform.identity` 追加迁移加新码并**复制**原授权，验证通过后才删旧码；前端路径与 API 路径变更，旧路径保留一个版本的 301/兼容，随后删。
+7. **登记与守护**：数据访问注册表、分级、保留期、`aggregates.yaml`、`module-dependencies.txt`、模块边界测试随移交 PR 改；移交 PR 改两个 schema 的迁移，须带 ADR（one-architecture 起草），并过 `migrations_immutable` 的开放基线规则或走追加迁移。
+8. **核对与回滚**：窗口内核对行数与逐行摘要（借阅表、转换行）、INV-125 唯一索引存在、权限副本一致；任一失败，`SET SCHEMA` 反向执行即可恢复（数据未动，转换行复制可删，权限新码可删）；回滚点之前不删任何旧物。
+9. 移交 PR 的检查清单：本节 1–8 步逐项有对应迁移或配置变更、有集成测试（SET SCHEMA 后写入仍成立、INV-125 仍拒绝并发借出、复制的转换行可读）。
