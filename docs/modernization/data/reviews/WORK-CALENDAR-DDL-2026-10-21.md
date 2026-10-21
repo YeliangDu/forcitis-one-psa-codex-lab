@@ -71,3 +71,9 @@
 3. **迁入行的人（与 one-architecture 对齐后的定稿）**：`authored_by`、`confirmed_by` 为空当且仅当 `source_kind = MIGRATION`（具名 CHECK）；其余行 `confirmed_by` 必填，`authored_by` 仅运维起草的单人路径可空（`authored_by IS NULL OR confirmed_by IS NULL OR authored_by <> confirmed_by`，形同 `numbering_rule_versions`）；MIGRATION 行 `decision_ref` 非空，指向核对签字的审计记录，签字人由审计记录追溯。更正二第 3 点此前「作者、确认人可空、无签字人」的说法以本条为准，前稿「作者=装载主体」撤回。
 4. **批次引用**：不进业务表（ADR-0036 第 3 条、§14.2 M5；one-architecture 已同意，作废「须带批次引用」）。迁入版本在 `platform_integration.source_references` 有对照行（带批次列），迁入测试断言每个 MIGRATION 版本都有对照行。
 5. **官方通知文号列改名**：不用 `source_reference`（词表里它是来源对照，同名异义）；新列名交 one-glossary 登记，暂名 `official_notice_number`（`text`，`source_kind = OFFICIAL_NOTICE` 时必填，其余为空）。
+
+## 更正三（2026-10-21，与 one-architecture 对齐的依据列定稿）
+
+1. 版本行两列并存：`source_kind`（`AUTHORED`、`OPERATIONS_DRAFT`、`MIGRATION`，具名 CHECK）说明这一版怎么产生，决定作者、确认人规则（更正二第 3 点）；`adjustment_basis_kind`（`OFFICIAL_NOTICE`、`MANUAL`，具名 CHECK，`NOT NULL`，迁入行也不例外）说明调整依据。前文 `source_kind` 的 `OFFICIAL_NOTICE`/`MANUAL` 取值作废。
+2. `official_notice_number`（暂名，词表登记后定名）非空当且仅当 `adjustment_basis_kind = 'OFFICIAL_NOTICE'`（具名 CHECK），长度上限。
+3. 依据列落在版本行，不落例外日行。迁入版本缺文号的，按 MQ-C-01 拒收，由人事补文号或如实记 `MANUAL`，不得默认填值。
