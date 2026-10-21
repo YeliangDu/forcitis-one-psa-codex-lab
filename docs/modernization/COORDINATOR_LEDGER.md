@@ -8,6 +8,7 @@
 - **今日用户新口径**（详 intent）：不影响开发的运维/采购议题不发用户（记忆 dev-impact-only）；先本地知识库（桌面公开资料 kq.py / 公开资料研究 / 企业资料）再模型知识（记忆 external-knowledge-dirs）；决策影响面沿「登记网络 v7 + 实现网络 v2」系统分析（图在 architecture/research/networks/）；DeepSeek flash 列为执行者，三方对比评测进行中；launchd 托管合并队列（已批，one-merge 在装）；clear 后须同步 main（第 7 钩子）。
 - **合并队列**（one-merge 执行，mq.py；launchd 安装中）：队列 514（加急合集，含裁定 -05）→ 502 → 513；条件入队 #510（等 #502）、#501→#506（ADR-0071/0072，#506 条件 one-data 重签已满足）；#509 等 -05 进 main 后 one-1a-par 改 ReadOnlyAccountCheckIT 再报；#508 ADR-0073 等收件箱 U3/U4；#511 one-quality 开场注入压缩未完；one-data 文档合集收 ≥5378d121 的 docs/。钩子类 PR 合入后 one-merge 须快进主检出，必要时请用户重启 app（app 读主检出 settings；重启会杀会话拉起的进程）。
 - **各会话**：one-architecture（ARC-1021-COO-10 网络登记：批次表已批，I03 改过时、抽 10 份长 ADR 复核、第一批 C1+I08+I09 派工卡待交我；ADR-0073 待用户 U3/U4）；one-1a-par（#509 收尾→F2 PAR-04→组织接口清单 PAR-03→日历改造 PAR-02，日历 basis 含 MAKE_UP_WORKDAY_CANCELLED）；one-1a-next-5（sonnet，SEC-1021-COO-01 编号四眼，之后 NX5-02）；one-platform-file（#502 冲突收尾→单元 3，表结构第 4 版已签）；one-data（待派）；one-ops（12-01 续费提醒）；one-quality（#511 → QUA-05 三方评测 → QUA-03 七钩子 → 网络规则 CI）；one-glossary、one-rules、三个 one-arch-* 空闲保留。
+- **P0 无测试规则（UNTESTED_P0_RULES.md @95a2f5e9）**：340、412 补测试排 one-1a-next-5 队尾；377–382、291 并入存量编号映射；388/390/391 部分实现与 12 张未实现（292 属 Phase 2）是功能缺口，待按作战图排功能卡（未派）；RULE-340 卡文与 ADR-0026 D-7 相反，交 one-rules 改卡。
 - **收件箱 pending**：ADR-0073 U3/U4（关账期间错误处置、会签逾期升级对象）。
 - **调度自检补充**：验收裁定登记后立即加急合集（守护只认 main 上的裁定）；通知用户重启前查 ps 常驻进程与会话 Monitor；有条件批准时实现会话报条件满足即可入队。
 - 不得再犯：沿用下方旧条目（会话身份、原话核对、答复读备注、脚本统计先验证等）。
