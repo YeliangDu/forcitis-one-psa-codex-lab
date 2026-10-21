@@ -5,7 +5,7 @@ import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.domain.Timesheet;
 import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
 import com.forcitis.one.kernel.BusinessZone;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.cost.timesheet.api.TimesheetDocument;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.event.AggregateReference;
@@ -85,7 +85,7 @@ public class SubmitTimesheet {
             if (repository.existsFor(employee, command.workDate())) {
                 throw TimesheetError.COST_TIMESHEET_WORK_DATE_DUPLICATE.refusal("The employee already has a timesheet for " + command.workDate());
             }
-            IssuedNumber issued = numbers.next(DocumentType.TIMESHEET, legalEntity, today);
+            IssuedNumber issued = numbers.next(TimesheetDocument.TYPE, legalEntity, today);
             timesheet = Timesheet.draft(command.timesheetId(), issued.number(), new AggregateReference("NumberingCounter", issued.counterId().value()),
                     issued.ruleVersionId(), employee, legalEntity, orgUnit, command.workDate(), command.hours(),
                     command.projectManager(), today);

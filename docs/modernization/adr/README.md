@@ -288,6 +288,7 @@
 | E-006 | ADR-0031 背景、决定（「变更单」）、与现有词条的关系、守护第 10 条与证据节对 `terms.yaml` 的行号引用（`:94`、`:1172`、`:2532`、`:3232`、`:4716`、`:5134`、`:5146-5157`、`:5150-5157`） | 词表重排后行号已失效（如 `:5134` 现为 `status` 行），按行号无法定位原指的词条 | 按词条 id 读：`:94` → `business_fact_restated`「事实重述」；`:1172` → `change_order`「变更」；`:2532` → `cost_adjustment`「成本调整」；`:3232` → `period_adjustment`「期间调整」；`:4716` → `contract_modification`「合同变更（会计口径）」；`:5134` → `reversing_entry`「冲销」；`:5146-5157` 与 `:5150-5157` → `reversing_entry` 下禁用的方言「红冲」「红字冲销」「RedReversal」。今后引用词表一律写 id，不写行号 | ADR-0053 独立首轮复审第 9 条（2026-10-17）；one-architecture 判定为失效引用、不改变决定含义 | 2026-10-17 |
 | E-007 | ADR-0036 证据节「`period_status` 只有 OPEN / CLOSING / CLOSED（`docs/modernization/glossary/terms.yaml:5067`）」 | 词表重排后行号已失效 | 按词条 id 读：`period_status`「期间状态」 | ADR-0053 首轮复审后起草者核查（2026-10-17）；one-architecture 判定为失效引用、不改变决定含义 | 2026-10-17 |
 | E-008 | ADR-0055 决定 7 第 1 句「ADR-0037 决定 5 的运行时读取…决定 6、8 的登记与启动检查」 | 所引 ADR-0037 条号有误：决定 5 是账号，运行时读取在决定 1 第 1 条，启动校验在决定 4 | 读作：ADR-0037 决定 1 第 1 条的运行时读取从生产依赖撤销；决定 4 的启动校验与决定 6、8 的登记随同步及老待办调用方清理；决定 5 的账号按该句后半退出。头部「取代」未列决定 1、4 属效力问题，由 ADR-0068「取代」行承接 | owner 2026-10-21 PR #491 评论（A0 第 13 条）；one-architecture 判定为勘误 | 2026-10-21 |
+| E-009 | ADR-0058 决定第 4 条（转换记录列）与第 5 条（表形状）中的列名 `aggregate_type`、`sequence_no`、`from_state`、`to_state`、`occurred_on` | 命名守护 DdlNamingTest 在 `platform_file` 首次建表时拦下：代码列须带 `_code`，序号列写全称，日期列带 `_date`，状态列用 `status`；改名不改含义 | 依次读作 `aggregate_type_code`、`transition_sequence_number`、`from_status`、`to_status`、`occurred_on_date`（序号列避开词条「流水号」） | one-data `data/STATE_TRANSITIONS_DESIGN.md`「列名更正」与「再更正」节（2026-10-21）；one-architecture 判定不改变决定含义 | 2026-10-21 |
 
 ### 3. 性质登记（不改正文）
 
@@ -296,3 +297,4 @@
 | 编号 | ADR 与范围 | 性质的改变 | 今后以何为准 | 用户原话与出处 | 登记日期 |
 |---|---|---|---|---|---|
 | N-001 | ADR-0020 全文（协作规则：会话、协议、调度） | 由 ADR 的决定改为协作规则；按「写什么、不写什么」不属于 ADR | `SESSION_PLAYBOOK.md`；今后只改 SESSION_PLAYBOOK，不为其开 ADR；ADR-0020 正文与状态不动 | 用户原话为「采纳」（研究方案 P1–P7，2026-10-16，intent `2026-10-16-131918-one-coordinator-ADR-管理优化-采纳-集中解决.md`）；「协作规则归 SESSION_PLAYBOOK」是调度转述的性质说明，非用户原话；研究报告 `ADR_PRACTICES_RESEARCH.md` 第 29 行 | 本规则合入日 |
+| N-002 | ADR-0060 决定 2 表「审计」行「detail 不写原文件名」对加密拒收的适用 | ADR-0070 决定 2 第 4 条表要求加密拒收审计记文件名（来自用户 E1 原话），但 ADR-0070「取代」栏未列此句，两份已采纳 ADR 字面冲突；用户裁定以 ADR-0070 为准 | 加密拒收的审计 detail 记原文件名，作个人信息字段（ADR-0043：INTERNAL＋PI，保留期随审计）；其余审计仍按 ADR-0060 不写原文件名；ADR-0060 头部「被部分取代」同步列入 | 用户 2026-10-21：加密拒收审计记文件名，「文件名是判断意图、串起改名重试的唯一证据」（intent `2026-10-21-170547`） | 2026-10-21 |

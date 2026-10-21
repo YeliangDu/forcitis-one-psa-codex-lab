@@ -21,7 +21,7 @@
 ## 执行前确认点
 
 1. C-1 已完成（或用户明确先在现规格上建 dev 库）；`SHOW max_connections` 已记录。
-2. 连接预算：`one_dev_*` 合计 46（app 40、migrator 2、readonly 3、audit_maintainer 1），加上 it_portal 与以后的 `one_prod_*`，合计须小于 `max_connections` 减保留；不满足时先由用户决定下调哪一方。
+2. 连接预算：`one_dev_*` 合计 31（app 25、migrator 2、readonly 3、audit_maintainer 1；app 原 40，2026-10-21 改 25：连接池 10 + 运维命令池最多 10 + 余量 5），加上 it_portal 与以后的 `one_prod_*`，合计须小于 `max_connections` 减保留；不满足时先由用户决定下调哪一方。
 3. 排序规则：脚本用 PG 内置 provider 的 `C.UTF-8`（PG 17 起可用），不依赖操作系统 locale；执行前确认 `SELECT collname FROM pg_collation WHERE collprovider = 'b'` 含 `pg_c_utf8`。
 4. 执行账号是 FORCITIS one 专用高权限账号 `one_admin`（用户 2026-10-15「新建 FORCITIS one 专用高权限账号 (Recommended)」「先建后轮换 (Recommended)」；只用于建库建角色，不碰 IT 服务门户的 `portal_migrator` 与 `forcitis_one` 库），口令文件 ECS `/etc/forcitis-one/one-admin.pgpass`（root 0600）；执行环境可连 RDS 内网地址（ECS 已装发行版 `postgresql` 15 客户端，2026-10-15）。高权限口令只能经用户提供的安全通道到 ECS（例如用 ECS 上临时 RSA 公钥加密后传入），不经聊天、命令行参数或日志。
 5. 1a 修复批已合并（status/blockers/080）——**建库可先做，但首次 Flyway 迁移与应用启动须等修复批合并**。

@@ -40,7 +40,7 @@
 
 ### 2.1 会话管理（用户 2026-10-15 对会话管理十二条答「两条都采纳」）
 
-1. **生命周期与交接**：一个会话负责一个工作单元，在批次边界交接；连续运行超过约 8 小时、上下文已压缩两次以上，或上下文用量达到阈值时交接：达到 75% 准备交接（不再接新的大块工作，台账与会话日志写到最新），达到 85% 在下一个批次边界完成交接（用户 2026-10-15 采纳）。各会话在每个批次边界用 `get_usage`（`session_id` 取 `self`）自查，按上述阈值处理（用户 2026-10-16 停掉调度的定时巡检，intent 见本日「会话通信」）；自查常被遗漏，调度兜底：每收到一个会话的完成点或收尾报告，调度即用 `get_usage` 查该会话用量，达 75% 时要求其在批次边界更新上下文文档后 `/clear` 接续或交接，达 85% 时要求立即在当前批次边界处理（用户 2026-10-16「按这个改，记进规则」），不设定时巡检；仓库 `.claude/settings.json` 的压缩前钩子（`scripts/hooks/precompact_snapshot.sh`）在自动压缩前把分支、未提交改动、最近提交与 PR 写入 `~/.modernize/psa/handoff/`，压缩后先读它。新会话目前须由用户在侧边栏打开。交接报告写明在途分支与 PR、未完事项、待用户决定的事、下一步派工草案；旧会话改名「<原名>-1（已交接）」，不再接新工作。
+1. **生命周期与交接**：一个会话负责一个工作单元，在批次边界交接；连续运行超过约 8 小时、上下文已压缩两次以上，或上下文用量达到阈值时交接：达到 75% 准备交接（不再接新的大块工作，台账与会话日志写到最新），达到 85% 在下一个批次边界完成交接（用户 2026-10-15 采纳）。各会话在每个批次边界用 `get_usage`（`session_id` 取 `self`）自查，按上述阈值处理（用户 2026-10-16 停掉调度的定时巡检，intent 见本日「会话通信」）；自查常被遗漏，调度兜底：每收到一个会话的完成点或收尾报告，调度即用 `get_usage` 查该会话用量，达 75% 时要求其在批次边界更新上下文文档后 `/clear` 接续或交接，达 85% 时要求立即在当前批次边界处理（用户 2026-10-16「按这个改，记进规则」），不设定时巡检；仓库 `.claude/settings.json` 的压缩前钩子（`scripts/hooks/precompact_snapshot.sh`）在自动压缩前把分支、未提交改动、最近提交与 PR 写入 `~/.modernize/psa/handoff/`，压缩后先读它。新会话目前须由用户在侧边栏打开。交接报告写明在途分支与 PR、未完事项、待用户决定的事、下一步派工草案；旧会话改名「<原名>-1（已交接）」，不再接新工作。 上下文自动交接钩子（GOV-1021-QUA-01，用户已批）：`scripts/hooks/context_handoff.py`（PostToolUse、UserPromptSubmit、Stop）从 transcript 最后一条主线 assistant 消息的用量（input + cache_read + cache_creation）除以 `scripts/hooks/context_windows.json` 里该模型的窗口，达 75% 向模型注入「到批次边界更新上下文文档与交接、报 one-coordinator、clear_session self」，达 85% 注入「立即交接」，同一档位只提醒一次；过 75% 后上下文文档（画像与其上下文文档）自过线以来没有更新，Stop 钩子挡一次并写明要补什么，写过即放行，`stop_hook_active` 时一律放行；窗口配置缺该模型时按保守值 200000 计算并告警一次，transcript 读不到也告警一次，不静默跳过。试点期由配置里的 `pilot_sessions` 限定会话（先 one-coordinator、one-ops，试一天再推到全部）。已知限制：开着远程控制的会话不能 `clear_session`，这类会话退回自动压缩加 SessionStart 重新注入；提醒经 additionalContext 送出，只在下一次工具调用或下一条用户消息时生效，长时间不调工具的一轮内看不到。
 2. **命名与唯一性**：新会话一律 `one-*` 前缀；同名只能有一个（本机与远程会话也不得重名）；调度会话全局唯一，换人按 §11 交接。
 3. **权限模式一致**：工作会话与调度会话的权限模式相同，否则跨会话消息会被扣住或过期；新开会话时就设好。
 4. **推理强度与模型**：调度、整合、复审用 high；执行类按任务难度选，并写进派工单。
@@ -147,6 +147,10 @@
   - 流程不变：设计初稿照常走评审、批准页；代码卡验收测试由测试代理先写，Codex 产出照常开 PR、过 CI，合并前 opus 复审；PR 正文与文档状态行注明「Codex 起草 / 实现（模型、强度）」。
   - 并行：互不改同一批文件的卡各开独立 worktree 同时交 Codex 后台跑，不串行排队（用户 2026-10-17「如果不限制后台任务，让他多跑几个」）；会改同一文件的卡串行；全机同时运行的 Codex 以 CI 不明显变慢为度，状态栏可见在跑数。
   - 记录每张 Codex 卡的返工轮次与耗时，完成点报告带上；调度按返工率每日在日报里评估，返工两轮以上的同类工作收回 Claude。
+- **DeepSeek 派工**（用户 2026-10-21「我希望子代理能除了 codex 外还能加上 deekseek，我发现 deepseek 最新 flash TPS 特别快，会加快我们的效率」，GOV-1021-QUA-04）：DeepSeek flash 与 Codex 并列做执行者，经本机 `pi` 调用用户付费账户（凭据已在 pi 里配好，`pi auth check --provider deepseek` 查就绪，不打印密钥）。
+  - 调用：在独立 worktree 中 `pi -p --no-session --no-extensions --no-mcp --offline --model deepseek/deepseek-flash --tools <限定> "<卡>" < /dev/null`（`<限定>` 按卡取最小集，只读卡用 `read,ls,grep,find`，要改文件才加 `edit,write`，要跑命令才加 `bash`；另有 `deepseek/deepseek-v4-pro`）。`--tools` 只管工具清单，扩展（pi-lens 会自动分析、格式化、联网拉规则）和 MCP 服务器照常启动，所以必须带 `--no-extensions --no-mcp --offline`；pi 没有沙箱，带 `bash` 的卡同样遵守「不联网」与 `pnpm --offline` 的约定。必须关闭标准输入：pi 在没有终端时先读完标准输入才开始，不分模式（`scripts/hooks/codex_stdin_gate.py` 对没关标准输入的 pi 调用一律拒绝，`pi list`、`pi auth` 等子命令与 `--help`/`--version` 除外）；在工作区里运行 pi（连 `pi --version` 也算）会让 pi-lens 在当前目录写 `.pi-lens-probe-home/` 探针日志，曾混进 #494、#513 的提交：派工命令带 `--no-extensions` 不会写；手工运行 pi 要先 `cd` 到工作区之外的临时目录（没找到单独指定日志目录的设置）；该目录已列入 `.gitignore`，提交前仍看一眼 `git status`；一律用 `run_in_background` 启动，description 写 `<任务号> <任务名> (DeepSeek flash)`，并按“任务命名与登记”写任务片段（执行者填 DeepSeek flash）。
+  - 不交的范围与上面 Codex 派工的「不交 Codex」清单完全一致（照那一条，不另列子集）；派工卡同样写满四项（不得做的事、与 CI 和在途工作的衔接、资源与时限、自测与破坏验证）。
+  - 产出由 Claude 审（同 Codex：diff 质量、返工次数与耗时记入任务片段）；Codex 与 DeepSeek 的分工以对比结果定（同一张机械卡各做一遍，对比用时、diff 质量、返工次数）。
 - **任务命名与登记**（用户 2026-10-17「后台任务要显示任务名……要对所有任务卡进行复盘能搞清是什么bc的什么任务」，intent 见本日「任务命名」）：
   - 每张卡（派给 Codex、子代理或工作会话的一件事，含设计、文档、取证、复审）一个**任务号** `<主线码>-<MMDD>-<会话码>-<两位序号>`，如 `NAM-1017-GLO-03`；序号由派卡会话当天自增，全局不重。主线码：NAM 命名、CON 施工图、ARC 架构整合、RUL 规则、DAT 数据、IMP 代码实现、CI 合并与 CI、OPS 运维、GOV 流程治理。会话码取会话名去掉 `one-` 的前三个字母大写（one-glossary→GLO、one-arch-finance→AFI、one-arch-revenue→ARE、one-arch-people→APE、one-architecture→ARC、one-1a-par→PAR、one-1a-next-5→NX5、one-quality→QUA、one-rules→RUL、one-data→DAT、one-ops→OPS、one-merge→MRG、one-coordinator→COO）。
   - **任务名**：`[主线·bc] 动作 + 对象`，bc 取 `glossary/bcs.yaml` 的 id，跨 bc 写 `跨域`，如 `[命名·glossary] 登记 NM5 名词`。
@@ -253,7 +257,7 @@
   6. 给用户的回复先写结论；转述其他会话的报告只取用户需要知道或决定的部分。
 
 **战队协作**（用户 2026-10-16 对调度复盘的八条建议答「全做」，intent 见本日「战队协作」）
-1. **待决定收件箱**：要用户定的事一律提交到调度维护的在线收件箱页（链接见 `COORDINATOR_LEDGER.md`「待用户」），写明来源会话、要选什么、卡住了什么、紧急度；不在各自会话里用提问框问用户（收件箱上线前照旧）。用户在任何会话里口头作的决定，由该会话当场记 intent 并登记到收件箱「已定」。确认页、批准页照常发布，链接登记到收件箱。出题（确认页、批准页、收件箱事项）前必须对照已定决策速查表 `DECISION_DIGEST.md`（`build_decision_digest.py` 从 `intent/` 生成，generated-docs 分支可看），在题中引用相关条目（条目标识为 intent 文件名）；与已定决定相悖的题须先列在「待用户裁定」或说明为何重问。
+1. **待决定收件箱**：要用户定的事一律提交到调度维护的在线收件箱页（链接见 `COORDINATOR_LEDGER.md`「待用户」），写明来源会话、要选什么、卡住了什么、紧急度；不在各自会话里用提问框问用户（收件箱上线前照旧）。一轮结束时最后一段话也不向用户提问或请用户定（侧栏「Claude 询问」卡片取这段话）：技术问题报 one-coordinator，要用户定的写收件箱，结尾只写状态（用户 2026-10-21「同意」，起因 one-1a-par 结尾写「#509 待定重跑或排查」）。用户在任何会话里口头作的决定，由该会话当场记 intent 并登记到收件箱「已定」。确认页、批准页照常发布，链接登记到收件箱。出题（确认页、批准页、收件箱事项）前必须对照已定决策速查表 `DECISION_DIGEST.md`（`build_decision_digest.py` 从 `intent/` 生成，generated-docs 分支可看），在题中引用相关条目（条目标识为 intent 文件名）；与已定决定相悖的题须先列在「待用户裁定」或说明为何重问。
 2. **直连协作**：技术协调在会话之间直接进行，不经调度转述，也不抄送调度。固定直连线：one-architecture ↔ one-glossary（对象、BC 与用语）、one-1a-next-4 ↔ one-1a-par（代码边界与冲突）、one-ops ↔ one-1a-par（发布内容与核实命令）、one-rules ↔ one-glossary（规则用语）。调度只管优先级、合并与用户决定；直连中形成的、影响他人排期或需用户定的结论，才报调度。
 3. **提 PR 前跑全相关检查**：`scripts/precheck.sh` 按改动自动选跑（改词表即跑前端用语检查与后端用语守护；改守护文件即跑其自测）；precheck 未全过不提 PR。
 4. **共享登记改片段**：多人追加的登记与速查（如 `LEGACY_READ_REGISTER.md`）改为「每次新增一个片段文件 + `build_all.py` 生成总表」，不直接编辑生成的总表。
