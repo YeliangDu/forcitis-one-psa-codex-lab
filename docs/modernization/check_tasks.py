@@ -19,7 +19,7 @@ import tempfile
 BASE = Path(__file__).resolve().parent
 FIELDS = ('任务号', '任务名', '主线', 'bc', '种类', '会话', '执行者与模型', '状态', '分支', '提交', '返工轮次', '用时', '旧编号')
 LANES = dict(NAM='命名', CON='施工图', ARC='架构整合', RUL='规则', DAT='数据', IMP='代码实现', CI='合并与 CI', OPS='运维', GOV='流程治理')
-SESSION_CODES = ('GLO', 'AFI', 'ARE', 'APE', 'ARC', 'PAR', 'NX5', 'QUA', 'RUL', 'DAT', 'OPS', 'MRG', 'COO')
+SESSION_CODES = ('GLO', 'AFI', 'ARE', 'APE', 'ARC', 'PAR', 'NX5', 'QUA', 'RUL', 'DAT', 'OPS', 'MRG', 'COO', 'ADM')
 STATUSES = ('待派', '已派', '进行中', '复审中', '返工中', '待验收', '已完成', '已提交', '已合并', '阻塞', '已取消', '待核')
 KINDS = ('设计', '编码', '测试', '取证', '复审', '确认页', '文档')
 TASK_ID = re.compile(r'(' + '|'.join(LANES) + r')-(\d{4})-(' + '|'.join(SESSION_CODES) + r')-(\d{2})')
