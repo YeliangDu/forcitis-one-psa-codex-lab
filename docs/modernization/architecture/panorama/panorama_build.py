@@ -17,6 +17,7 @@ from pathlib import Path
 
 import yaml
 import scan_commands
+import scan_org_roles
 
 HERE = Path(__file__).resolve().parent
 ARCH = HERE.parent
@@ -54,6 +55,9 @@ SRC = {
     "otr": ARCH / "ssot/10-objects/transitions.yaml",
     "events": DOCS / "events",
     "cmd_map": ARCH / "ssot/11-commands/command-mapping.yaml",
+    "permissions": ARCH / "ssot/07-org-roles/permissions.yaml",
+    "roles": ARCH / "ssot/07-org-roles/roles.yaml",
+    "roles_raw": ARCH / "ssot/07-org-roles/roles.raw.yaml",
 }
 IN_SYSTEM = ("用户角色", "往来单位加角色", "专门对象", "只作属性或参与者", "不进系统")
 OUT_MODEL = HERE / "panorama.yaml"
@@ -71,7 +75,7 @@ UNAUTOMATED = {}
 SKELETON = ARCH / "proposals" / "closeout"
 LAYER_NODE = {"sh": "01", "shcat": "01", "con": "02", "vp": "03", "decr": "04", "cap": "05", "vs": "06", "stage": "06", "prc": "07", "inv": "08",
               "obj": "09", "act": "10", "fact": "11", "dim": "12", "metric": "13", "bind": "14", "dec": "15",
-              "evt": "10 映射", "cmd": "10", "otr": "09/10 映射", "rule": "08", "ep": "10", "tc": "10", "api": "10 映射", "mod": "10 映射", "steps": "07", "agg": "09/10 映射", "bc": "09/10 映射", "sd": "09/10 映射", "table": "09/10 映射"}
+              "perm": "01 映射", "srole": "01 映射", "role": "01 映射", "evt": "10 映射", "cmd": "10", "otr": "09/10 映射", "rule": "08", "ep": "10", "tc": "10", "api": "10 映射", "mod": "10 映射", "steps": "07", "agg": "09/10 映射", "bc": "09/10 映射", "sd": "09/10 映射", "table": "09/10 映射"}
 NODES = {"01": "干系人", "02": "关注点", "03": "价值主张", "04": "取舍决定", "05": "业务能力", "06": "价值流与阶段", "07": "业务流程", "08": "约束与认定规则", "09": "业务对象", "10": "受控业务执行", "11": "业务事实", "12": "维度", "13": "指标与评价", "14": "计算绑定", "15": "决策与行动"}
 CHECKS = {
     "N01-1": "每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）",
@@ -87,6 +91,9 @@ CHECKS = {
     "N07-1": "每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1）",
     "N07-2": "流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 N07-1 / anchoring C1 判）",
     "N07-P1": "P-1：流程骨架中作用于聚合的步骤都声明 Command，且该命令在同一聚合下登记于各组 commands.yaml",
+    "N01-R1": "权责表引用的每个干系人编号都归入 ssot/07-org-roles/roles.yaml 的某个 ROLE（系统执行者与模块除外；roles.yaml 未建时不查）",
+    "N01-R2": "每个 ROLE 写明由谁承担（host_category 非空）",
+    "N01-R3": "每个权限码至少一个系统角色持有（迁移种子与 AdministratorMode 代码定义，只报告）",
     "N08-1": "每个不变量都归属存在的聚合",
     "N08-2": "每条不变量至少有一个执行点",
     "N08-3": "每条不变量至少有一个用例",
@@ -433,6 +440,69 @@ def load_commands(m, link):
                 if not target or (row["aggregate"], row["command"]) != (target["aggregate"], target["name"]):
                     raise ValueError(f"{ident} 的 by_command 未对上同聚合的命令原文：{command}")
                 link("cmd-otr", command, ident, src + ".by_command")
+
+
+def load_org_roles(m, link):
+    data = read_mapping(SRC["permissions"])
+    for key, field in (("perm", "permissions"), ("srole", "system_roles")):
+        m[key] = {}
+        for row in scan_commands.rows(data, field):
+            code = row.get("code")
+            scan_commands.string(code, f"{field}.code")
+            scan_commands.string(row.get("source"), f"{field}.source")
+            if code in m[key]:
+                raise ValueError(f"{field} 编号重复")
+            m[key][code] = {**row, "src": row["source"]}
+    for code, node in m["perm"].items():
+        if not re.fullmatch(scan_org_roles.CODE, code) or node.get("module") != code.split(":")[0]:
+            raise ValueError("权限码或模块结构不符")
+        if node["module"] not in m["mod"]:
+            raise ValueError(f"权限码模块未登记：{node['module']}")
+        link("perm-mod", code, node["module"], node["src"], via="code")
+    for code, node in m["srole"].items():
+        grants, sources = node.get("permission_codes"), node.get("permission_sources")
+        if not isinstance(grants, list) or not isinstance(sources, dict):
+            raise ValueError("系统角色缺 permission_codes / permission_sources")
+        for permission in grants:
+            if not isinstance(permission, str) or not re.fullmatch(scan_org_roles.CODE, permission):
+                raise ValueError("系统角色权限码结构不符")
+            origins = sources.get(permission)
+            if not isinstance(origins, list) or not origins or any(not isinstance(src, str) or not src for src in origins):
+                raise ValueError("系统角色权限码缺来源")
+            if permission in m["perm"]:
+                for src in origins:
+                    link("srole-perm", code, permission, src, via="seed")
+    m["role"] = {}
+    if not SRC["roles"].exists():
+        return
+    for index, row in enumerate(read_rows("roles", "roles")):
+        ident = row.get("id")
+        src = f"{rel(SRC['roles'])}#roles[{index}]"
+        if not isinstance(ident, str) or not re.fullmatch(r"ROLE-\d{2,3}", ident) or ident in m["role"]:
+            raise ValueError(f"{src} 编号无效或重复：{ident!r}")
+        m["role"][ident] = {**row, "src": f"{src}/{ident}"}
+        for code in row.get("system_roles") or []:
+            if code not in m["srole"]:
+                raise ValueError(f"{src} 引用了不存在的系统角色：{code}")
+            link("role-srole", ident, code, f"{src}.system_roles")
+
+
+def check_org_roles(m, gaps):
+    held = {code for role in m.get("srole", {}).values() for code in role["permission_codes"]}
+    for code in m.get("perm", {}):
+        if code not in held:
+            gaps["N01-R3"].append(code)
+    if not m.get("role"):
+        return
+    covered = {sh for r in m["role"].values() for sh in (r.get("aliases") or {}).get("responsibility_matrix") or []}
+    for sh in sorted(read_mapping(SRC["roles_raw"])["responsibility_matrix"]["command_references"]):
+        if sh.split("（")[0] == "system" or sh in m.get("mod", {}):
+            continue
+        if sh not in covered:
+            gaps["N01-R1"].append(f"{sh}（权责表引用，未归任何 ROLE）")
+    for ident, r in m["role"].items():
+        if not r.get("host_category"):
+            gaps["N01-R2"].append(ident)
 
 
 def check_commands(m, gaps):
@@ -814,6 +884,7 @@ def load():
     load_tables(m, link, mod_to_bc)
     load_constraints(m, link)
     load_interfaces(m, link, mod_to_bc)
+    load_org_roles(m, link)
     load_commands(m, link)
     load_events(m, link, mod_to_bc)
 
@@ -1023,6 +1094,7 @@ def check(m, anchoring=None):
     check_coverage(m, gaps)
     check_commands(m, gaps)
     check_events(m, gaps)
+    check_org_roles(m, gaps)
     return gaps
 
 
@@ -1152,7 +1224,10 @@ def self_test():
     assert "物业" in ot["OBJ-01"] and "监理" not in ot["OBJ-01"], ot   # 只取标题含对象名或编号的小节
     import unittest
     import test_panorama_build
-    result = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromModule(test_panorama_build))
+    import test_scan_org_roles
+    suite = unittest.TestSuite(unittest.defaultTestLoader.loadTestsFromModule(module)
+                               for module in (test_panorama_build, test_scan_org_roles))
+    result = unittest.TextTestRunner().run(suite)
     if not result.wasSuccessful():
         raise AssertionError("ARC-1021-ARC-04 自测失败")
     print("self-test ok")
@@ -1163,6 +1238,7 @@ def main():
         self_test()
         return 0
     scan_commands.generate(ROOT, check="--check" in sys.argv)
+    scan_org_roles.generate(ROOT, check="--check" in sys.argv)
     m, links, _ = load()
     vsd = yaml.safe_load(SRC["vs"].read_text(encoding="utf-8"))
     old_sh = OUT_SH.read_text(encoding="utf-8")

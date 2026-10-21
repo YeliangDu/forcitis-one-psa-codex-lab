@@ -26,6 +26,9 @@ meta:
     cmd: architecture/ssot/11-commands/commands.yaml
     otr: architecture/ssot/10-objects/transitions.yaml
     cmd_map: architecture/ssot/11-commands/command-mapping.yaml
+    permissions: architecture/ssot/07-org-roles/permissions.yaml
+    roles: architecture/ssot/07-org-roles/roles.yaml
+    roles_raw: architecture/ssot/07-org-roles/roles.raw.yaml
     evt_approval: events/approval.yaml
     evt_attendance: events/attendance.yaml
     evt_identity: events/identity.yaml
@@ -64,6 +67,9 @@ meta:
     evt: 59
     shcat: 6
     steps: 647
+    perm: 27
+    srole: 7
+    role: 54
   checks:
     N01-1: 每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）
     N01-3: 每个干系人类别对应一个一级业务对象，类别角色取值在信息图可查；没有对象的登记 04 并写理由
@@ -78,6 +84,9 @@ meta:
     N07-1: 每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1）
     N07-2: 流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 N07-1 / anchoring C1 判）
     N07-P1: P-1：流程骨架中作用于聚合的步骤都声明 Command，且该命令在同一聚合下登记于各组 commands.yaml
+    N01-R1: 权责表引用的每个干系人编号都归入 ssot/07-org-roles/roles.yaml 的某个 ROLE（系统执行者与模块除外；roles.yaml 未建时不查）
+    N01-R2: 每个 ROLE 写明由谁承担（host_category 非空）
+    N01-R3: 每个权限码至少一个系统角色持有（迁移种子与 AdministratorMode 代码定义，只报告）
     N08-1: 每个不变量都归属存在的聚合
     N08-2: 每条不变量至少有一个执行点
     N08-3: 每条不变量至少有一个用例
@@ -66226,6 +66235,1108 @@ nodes:
     aggregate: AGG-95
     command: 提交申报
     src: architecture/proposals/closeout/people/parts/vs13.processes.yaml#PRC-125.steps[8]
+  perm:
+    cost.timesheet:timesheet:submit:
+      name: TIMESHEET_SUBMIT
+      code: cost.timesheet:timesheet:submit
+      module: cost.timesheet
+      resource: timesheet
+      action: submit
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:5
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:5
+    cost.timesheet:timesheet:approve:
+      name: TIMESHEET_APPROVE
+      code: cost.timesheet:timesheet:approve
+      module: cost.timesheet
+      resource: timesheet
+      action: approve
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:6
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:6
+    platform.numbering:numbering-rule:update:
+      name: PLATFORM_NUMBERING_RULE_UPDATE
+      code: platform.numbering:numbering-rule:update
+      module: platform.numbering
+      resource: numbering-rule
+      action: update
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:7
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:7
+    platform.numbering:numbering-rule:read:
+      name: PLATFORM_NUMBERING_RULE_READ
+      code: platform.numbering:numbering-rule:read
+      module: platform.numbering
+      resource: numbering-rule
+      action: read
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:8
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:8
+    platform.numbering:numbering-rule:approve:
+      name: PLATFORM_NUMBERING_RULE_APPROVE
+      code: platform.numbering:numbering-rule:approve
+      module: platform.numbering
+      resource: numbering-rule
+      action: approve
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:9
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:9
+    platform.numbering:voucher-numbering-rule:approve:
+      name: PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE
+      code: platform.numbering:voucher-numbering-rule:approve
+      module: platform.numbering
+      resource: voucher-numbering-rule
+      action: approve
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:10
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:10
+    platform.numbering:legacy-number:read:
+      name: PLATFORM_NUMBERING_LEGACY_NUMBER_READ
+      code: platform.numbering:legacy-number:read
+      module: platform.numbering
+      resource: legacy-number
+      action: read
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:11
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:11
+    platform.approval:task:read:
+      name: PLATFORM_APPROVAL_TASK_READ
+      code: platform.approval:task:read
+      module: platform.approval
+      resource: task
+      action: read
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:12
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:12
+    platform.approval:task:approve:
+      name: PLATFORM_APPROVAL_TASK_APPROVE
+      code: platform.approval:task:approve
+      module: platform.approval
+      resource: task
+      action: approve
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:13
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:13
+    platform.identity:role:read:
+      name: PLATFORM_IDENTITY_ROLE_READ
+      code: platform.identity:role:read
+      module: platform.identity
+      resource: role
+      action: read
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:14
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:14
+    platform.identity:role:update:
+      name: PLATFORM_IDENTITY_ROLE_UPDATE
+      code: platform.identity:role:update
+      module: platform.identity
+      resource: role
+      action: update
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:15
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:15
+    platform.identity:account-role:update:
+      name: PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE
+      code: platform.identity:account-role:update
+      module: platform.identity
+      resource: account-role
+      action: update
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:16
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:16
+    platform.identity:session:delete:
+      name: PLATFORM_IDENTITY_SESSION_DELETE
+      code: platform.identity:session:delete
+      module: platform.identity
+      resource: session
+      action: delete
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:17
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:17
+    platform.integration:source-reference:update:
+      name: PLATFORM_INTEGRATION_SOURCE_REFERENCE_UPDATE
+      code: platform.integration:source-reference:update
+      module: platform.integration
+      resource: source-reference
+      action: update
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:18
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:18
+    platform.integration:source-reference:approve:
+      name: PLATFORM_INTEGRATION_SOURCE_REFERENCE_APPROVE
+      code: platform.integration:source-reference:approve
+      module: platform.integration
+      resource: source-reference
+      action: approve
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:19
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:19
+    platform.audit:audit-entry:read:
+      name: PLATFORM_AUDIT_ENTRY_READ
+      code: platform.audit:audit-entry:read
+      module: platform.audit
+      resource: audit-entry
+      action: read
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:20
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:20
+    platform.audit:audit-entry:export:
+      name: PLATFORM_AUDIT_ENTRY_EXPORT
+      code: platform.audit:audit-entry:export
+      module: platform.audit
+      resource: audit-entry
+      action: export
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:21
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:21
+    platform.audit:own-login-record:read:
+      name: PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ
+      code: platform.audit:own-login-record:read
+      module: platform.audit
+      resource: own-login-record
+      action: read
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:22
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:22
+    organization.workforce:org-unit:read:
+      name: ORGANIZATION_WORKFORCE_ORG_UNIT_READ
+      code: organization.workforce:org-unit:read
+      module: organization.workforce
+      resource: org-unit
+      action: read
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:23
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:23
+    organization.workforce:sync-run:read:
+      name: ORGANIZATION_WORKFORCE_SYNC_RUN_READ
+      code: organization.workforce:sync-run:read
+      module: organization.workforce
+      resource: sync-run
+      action: read
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:24
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:24
+    organization.workforce:sync-run:execute:
+      name: ORGANIZATION_WORKFORCE_SYNC_RUN_EXECUTE
+      code: organization.workforce:sync-run:execute
+      module: organization.workforce
+      resource: sync-run
+      action: execute
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:25
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:25
+    organization.workforce:separation-hold:approve:
+      name: ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE
+      code: organization.workforce:separation-hold:approve
+      module: organization.workforce
+      resource: separation-hold
+      action: approve
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:26
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:26
+    organization.workforce:legal-entity:update:
+      name: ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE
+      code: organization.workforce:legal-entity:update
+      module: organization.workforce
+      resource: legal-entity
+      action: update
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:27
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:27
+    organization.workforce:legal-entity-attribution-correction:create:
+      name: ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE
+      code: organization.workforce:legal-entity-attribution-correction:create
+      module: organization.workforce
+      resource: legal-entity-attribution-correction
+      action: create
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:28
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:28
+    organization.attendance:work-calendar:read:
+      name: ORGANIZATION_ATTENDANCE_WORK_CALENDAR_READ
+      code: organization.attendance:work-calendar:read
+      module: organization.attendance
+      resource: work-calendar
+      action: read
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:29
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:29
+    organization.attendance:work-calendar:update:
+      name: ORGANIZATION_ATTENDANCE_WORK_CALENDAR_UPDATE
+      code: organization.attendance:work-calendar:update
+      module: organization.attendance
+      resource: work-calendar
+      action: update
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:30
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:30
+    organization.attendance:locked-day:update:
+      name: ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE
+      code: organization.attendance:locked-day:update
+      module: organization.attendance
+      resource: locked-day
+      action: update
+      source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:31
+      src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:31
+  srole:
+    super_admin:
+      code: super_admin
+      name: 超级管理员
+      kind: SYSTEM
+      status: ENABLED
+      access_scope: ALL
+      is_administrative: true
+      permission_codes: []
+      source: migration
+      source_location: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:525
+      permission_sources: {}
+      src: migration
+    employee:
+      code: employee
+      name: 员工
+      kind: SYSTEM
+      status: ENABLED
+      access_scope: SELF
+      is_administrative: false
+      permission_codes:
+      - platform.approval:task:approve
+      - platform.approval:task:read
+      - platform.audit:own-login-record:read
+      source: migration
+      source_location: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:526
+      permission_sources:
+        platform.approval:task:read:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:528
+        platform.approval:task:approve:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:528
+        platform.audit:own-login-record:read:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+      src: migration
+    process_administrator:
+      code: process_administrator
+      name: 流程管理员
+      kind: SYSTEM
+      status: ENABLED
+      access_scope: SELF
+      is_administrative: false
+      permission_codes: []
+      source: migration
+      source_location: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:544
+      permission_sources: {}
+      src: migration
+    org_data_admin:
+      code: org_data_admin
+      name: 组织数据管理员
+      kind: SYSTEM
+      status: ENABLED
+      access_scope: ALL
+      is_administrative: false
+      permission_codes:
+      - organization.attendance:locked-day:update
+      - organization.attendance:work-calendar:read
+      - organization.attendance:work-calendar:update
+      - organization.workforce:legal-entity-attribution-correction:create
+      - organization.workforce:legal-entity:update
+      - organization.workforce:org-unit:read
+      - organization.workforce:sync-run:execute
+      - organization.workforce:sync-run:read
+      - platform.integration:source-reference:update
+      - platform.numbering:numbering-rule:read
+      - platform.numbering:numbering-rule:update
+      source: migration
+      source_location: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:548
+      permission_sources:
+        organization.workforce:org-unit:read:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+        organization.workforce:sync-run:read:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+        organization.workforce:sync-run:execute:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+        organization.workforce:legal-entity:update:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+        organization.attendance:work-calendar:read:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+        organization.attendance:work-calendar:update:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+        organization.attendance:locked-day:update:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+        platform.numbering:numbering-rule:read:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+        platform.numbering:numbering-rule:update:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+        platform.integration:source-reference:update:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+        organization.workforce:legal-entity-attribution-correction:create:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:581
+      src: migration
+    business_admin:
+      code: business_admin
+      name: 业务管理员
+      kind: SYSTEM
+      status: ENABLED
+      access_scope: SELF
+      is_administrative: false
+      permission_codes:
+      - platform.integration:source-reference:approve
+      - platform.numbering:numbering-rule:approve
+      - platform.numbering:numbering-rule:read
+      source: migration
+      source_location: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:549
+      permission_sources:
+        platform.numbering:numbering-rule:read:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+        platform.numbering:numbering-rule:approve:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+        platform.integration:source-reference:approve:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+      src: migration
+    security_auditor:
+      code: security_auditor
+      name: 安全审计员
+      kind: SYSTEM
+      status: ENABLED
+      access_scope: ALL
+      is_administrative: false
+      permission_codes:
+      - organization.workforce:separation-hold:approve
+      - platform.audit:audit-entry:export
+      - platform.audit:audit-entry:read
+      source: migration
+      source_location: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:550
+      permission_sources:
+        platform.audit:audit-entry:read:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+        platform.audit:audit-entry:export:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+        organization.workforce:separation-hold:approve:
+        - backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:575
+      src: migration
+    administrator-mode:
+      code: administrator-mode
+      name: 管理员模式
+      source: code
+      source_location: backend/src/main/java/com/forcitis/one/platform/identity/domain/AdministratorMode.java:12
+      permissions:
+      - organization.workforce:separation-hold:approve
+      - platform.identity:account-role:update
+      - platform.identity:role:read
+      - platform.identity:role:update
+      - platform.identity:session:delete
+      platform_only:
+      - platform.identity:account-role:update
+      - platform.identity:role:read
+      - platform.identity:role:update
+      - platform.identity:session:delete
+      permission_codes:
+      - organization.workforce:separation-hold:approve
+      - platform.identity:account-role:update
+      - platform.identity:role:read
+      - platform.identity:role:update
+      - platform.identity:session:delete
+      permission_sources:
+        platform.identity:role:read:
+        - backend/src/main/java/com/forcitis/one/platform/identity/domain/AdministratorMode.java:13
+        platform.identity:role:update:
+        - backend/src/main/java/com/forcitis/one/platform/identity/domain/AdministratorMode.java:14
+        platform.identity:account-role:update:
+        - backend/src/main/java/com/forcitis/one/platform/identity/domain/AdministratorMode.java:15
+        platform.identity:session:delete:
+        - backend/src/main/java/com/forcitis/one/platform/identity/domain/AdministratorMode.java:16
+        organization.workforce:separation-hold:approve:
+        - backend/src/main/java/com/forcitis/one/platform/identity/domain/AdministratorMode.java:17
+      src: code
+  role:
+    ROLE-01:
+      id: ROLE-01
+      name: 采购发起人
+      aliases:
+        stakeholder_ssot:
+        - ROLE-01
+        glossary: []
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 客户（外部，不登录本系统）
+      bears: []
+      evidence: stakeholder_ssot ROLE-01 发起人（客户采购决策链，参与 VS-01.1/01.2/02.0）；与审批发起人同名异义，见 glossary_issues。客户侧，不登录。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[0]/ROLE-01
+    ROLE-02:
+      id: ROLE-02
+      name: 采购决策人
+      aliases:
+        stakeholder_ssot:
+        - ROLE-02
+        glossary: []
+        responsibility_matrix:
+        - SH-C6b
+      system_roles: []
+      host_category: 客户（外部，不登录本系统）
+      bears: []
+      evidence: SSOT ROLE-02 决策人；权责表 SH-C6b「客户决策人：回签、认定索赔与变更」，客户方书面决定为线下证据，本系统只登记，不登录。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[1]/ROLE-02
+    ROLE-03:
+      id: ROLE-03
+      name: 经济买方
+      aliases:
+        stakeholder_ssot:
+        - ROLE-03
+        glossary: []
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 客户（外部，不登录本系统）
+      bears: []
+      evidence: SSOT ROLE-03 经济买方，客户采购决策链；权责表无对应条目。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[2]/ROLE-03
+    ROLE-04:
+      id: ROLE-04
+      name: 付款方
+      aliases:
+        stakeholder_ssot:
+        - ROLE-04
+        glossary: []
+        responsibility_matrix:
+        - SH-C6d
+      system_roles: []
+      host_category: 客户（外部，不登录本系统）
+      bears: []
+      evidence: SSOT ROLE-04 付款方；权责表 SH-C6d「客户财务：付款、确认红字信息」（客户方财务确认，经税务平台或银行回单），不登录。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[3]/ROLE-04
+    ROLE-05:
+      id: ROLE-05
+      name: 客户使用者
+      aliases:
+        stakeholder_ssot:
+        - ROLE-05
+        glossary: []
+        responsibility_matrix:
+        - SH-C6e
+      system_roles: []
+      host_category: 客户（外部，不登录本系统）
+      bears: []
+      evidence: SSOT ROLE-05 使用者；权责表 SH-C6e「客户方使用者，接收成果并反馈」，外部方不设系统权限，不登录。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[4]/ROLE-05
+    ROLE-06:
+      id: ROLE-06
+      name: 用人经理
+      aliases:
+        stakeholder_ssot:
+        - ROLE-06
+        glossary: []
+        responsibility_matrix:
+        - SH-E1
+      system_roles: []
+      host_category: 人力资源（本企业；流程角色，由部门负责人扮演）
+      bears: []
+      evidence: SSOT ROLE-06 用人经理（招聘流程角色，非稳定人群）；权责表 SH-E1 全部职位提示为「用人经理」或「部门负责人、用人经理」（招聘需求、录用决定、试用期评估、下属绩效等）。与部门负责人的关系见 glossary_issues。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[5]/ROLE-06
+    ROLE-07:
+      id: ROLE-07
+      name: 监理
+      aliases:
+        stakeholder_ssot:
+        - PRJ-01
+        glossary: []
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 业主/监管侧参与方（不占干系人类别；不登录本系统）
+      bears: []
+      evidence: SSOT project_roles PRJ-01；权责表与词表无对应。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[6]/ROLE-07
+    ROLE-08:
+      id: ROLE-08
+      name: 造价咨询与招标代理
+      aliases:
+        stakeholder_ssot:
+        - PRJ-02
+        glossary: []
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 业主/监管侧参与方（不登录）
+      bears: []
+      evidence: SSOT PRJ-02；与权责表 SH-X4（招标人或招标代理，退还投标保证金）相近但职责不同，未合并。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[7]/ROLE-08
+    ROLE-09:
+      id: ROLE-09
+      name: 保险技术检查机构（TIS）
+      aliases:
+        stakeholder_ssot:
+        - PRJ-03
+        glossary: []
+        responsibility_matrix:
+        - SH-X5
+      system_roles: []
+      host_category: 业主/监管侧参与方（不登录）
+      bears: []
+      evidence: SSOT PRJ-03 保险技术检查机构（TIS）；权责表 SH-X5「我方为 TIS 专项分包时的上游保险技术检查机构」，无权限，不登录。合并为推断，把握不足。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[8]/ROLE-09
+    ROLE-10:
+      id: ROLE-10
+      name: 资金监管主办银行
+      aliases:
+        stakeholder_ssot:
+        - PRJ-04
+        glossary: []
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 业主/监管侧参与方（不登录）
+      bears: []
+      evidence: SSOT PRJ-04；两处其他来源无对应。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[9]/ROLE-10
+    ROLE-11:
+      id: ROLE-11
+      name: 物业服务企业（未代业主委托时）
+      aliases:
+        stakeholder_ssot:
+        - PRJ-05
+        glossary: []
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 业主/监管侧参与方（不登录）
+      bears: []
+      evidence: SSOT PRJ-05；其他来源无对应。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[10]/ROLE-11
+    ROLE-12:
+      id: ROLE-12
+      name: 业主代表
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-C3
+      system_roles: []
+      host_category: 客户（外部，不登录本系统）
+      bears: []
+      evidence: 权责表 SH-C3：「业主方在现场签认检查记录，不登录本系统」「整改责任方（业主）」，职位提示均为业主代表，无审批权（现场签认作证据；风险保留时线下书面确认）。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[11]/ROLE-12
+    ROLE-13:
+      id: ROLE-13
+      name: 检查委托方
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-C5
+      system_roles: []
+      host_category: 客户（外部，不登录本系统）
+      bears: []
+      evidence: 权责表 SH-C5：委托方（保险公司等）线下委托并接收检查报告与发现，不登录本系统，无审批权。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[12]/ROLE-13
+    ROLE-14:
+      id: ROLE-14
+      name: 客户方项目代表
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-C6a
+      system_roles: []
+      host_category: 客户（外部，不登录本系统）
+      bears: []
+      evidence: 权责表 SH-C6a：客户项目负责人、发包人代表（外部），书面批准对客交付计划、出具认可与答复；外部方不设系统权限，不登录。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[13]/ROLE-14
+    ROLE-15:
+      id: ROLE-15
+      name: 持证检测机构
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-X6
+      system_roles: []
+      host_category: 合作伙伴（外部，不登录本系统）
+      bears: []
+      evidence: 权责表 SH-X6「持证检测机构，受业主委托做第三方检测、出具报告」，无权限，不登录。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[14]/ROLE-15
+    ROLE-16:
+      id: ROLE-16
+      name: 招标人/招标代理
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-X4
+      system_roles: []
+      host_category: 外部（不登录本系统）
+      bears: []
+      evidence: 权责表 SH-X4：招标人或招标代理退还投标保证金；外部方不设系统权限。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[15]/ROLE-16
+    ROLE-17:
+      id: ROLE-17
+      name: 审图机构
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-R1
+      system_roles: []
+      host_category: 监管（外部，不登录本系统）
+      bears: []
+      evidence: 权责表 SH-R1：出具施工图审查合格书，不适用（外部监管）。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[16]/ROLE-17
+    ROLE-18:
+      id: ROLE-18
+      name: 监管机构（税务等）
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-R2
+      system_roles: []
+      host_category: 监管（外部，不登录本系统）
+      bears: []
+      evidence: 权责表 SH-R2：税务平台开具并返回结果、税务机关（外部监管）。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[17]/ROLE-18
+    ROLE-19:
+      id: ROLE-19
+      name: 股东
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-O1
+      system_roles: []
+      host_category: 股东（外部，不登录本系统）
+      bears: []
+      evidence: 权责表 SH-O1：获知经营计划基线；自然人股东是个税纳税人，外部相关方，无权限。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[18]/ROLE-19
+    ROLE-20:
+      id: ROLE-20
+      name: 候选人
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-H1
+      system_roles: []
+      host_category: 人力资源（入职前，外部）
+      bears: []
+      evidence: 权责表 SH-H1：应聘、面试、答复录用通知、确认入职日、签署劳动合同；无权限，入职前不登录。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[19]/ROLE-20
+    ROLE-21:
+      id: ROLE-21
+      name: 项目经理
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - project_manager
+        responsibility_matrix:
+        - SH-E2
+      system_roles: []
+      host_category: 人力资源（本企业员工）
+      bears: []
+      evidence: 词表 project_manager（工时审批第一道审批人）；权责表 SH-E2 职位提示全为项目经理/项目经理职能岗。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[20]/ROLE-21
+    ROLE-22:
+      id: ROLE-22
+      name: 项目总监
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-M1
+      system_roles: []
+      host_category: 人力资源（本企业员工）
+      bears: []
+      evidence: 权责表 SH-M1 职位提示「事业部负责人、项目总监」，职责含审核交付物校审结论、批准完工估算、审批授权；词表无对应，与 director 总监关系见 glossary_issues。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[21]/ROLE-22
+    ROLE-23:
+      id: ROLE-23
+      name: 总监
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - director
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 人力资源（本企业员工）
+      bears: []
+      evidence: 词表 director：BU-002 部门总监（RULE-256）；权责表无独立条目。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[22]/ROLE-23
+    ROLE-24:
+      id: ROLE-24
+      name: 部门负责人
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - org_unit_head
+        responsibility_matrix:
+        - SH-M1
+      system_roles: []
+      host_category: 人力资源（本企业员工）
+      bears: []
+      evidence: 词表 org_unit_head（组织单元负责人，RULE-356/257）；权责表 SH-M1 大量「部门负责人」「组织单元负责人」（审批、升级、经营责任）。SH-M1 同时含项目总监、总经理等，见 glossary_issues。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[23]/ROLE-24
+    ROLE-25:
+      id: ROLE-25
+      name: 区域负责人
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - regional_head
+        responsibility_matrix:
+        - SH-M1
+      system_roles: []
+      host_category: 人力资源（本企业员工）
+      bears: []
+      evidence: 词表 regional_head（区域组织单元负责人，不承担工时审批）；权责表 SH-M1「区域负责人（职能：对本区域组织数据范围负责）」。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[24]/ROLE-25
+    ROLE-26:
+      id: ROLE-26
+      name: 管理层（总经理、分管副总）
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-M1
+      system_roles: []
+      host_category: 人力资源（本企业员工）
+      bears: []
+      evidence: 权责表 SH-M1 提示「总经理、分管副总」「管理层负责人」（超时升级、加审、批准资质延续）；SSOT 的 SH-E1 管理层是干系人类别，非角色，此处仅按权责表职责成立。词表无对应。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[25]/ROLE-26
+    ROLE-27:
+      id: ROLE-27
+      name: 法人财务负责人
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - legal_entity_finance_head
+        responsibility_matrix:
+        - SH-E6
+      system_roles: []
+      host_category: 人力资源（本企业员工，财务）
+      bears: []
+      evidence: 词表 legal_entity_finance_head（每个法人分别明确）；权责表 SH-E6 「财务负责人」承担加审、收入确认复核、红冲复核等，提示为「财务负责人」，未写按法人，等同为推断。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[26]/ROLE-27
+    ROLE-28:
+      id: ROLE-28
+      name: 财务职能人员
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-E6
+      system_roles: []
+      host_category: 人力资源（本企业员工，财务）
+      bears: []
+      evidence: 权责表 SH-E6 提示：财务专员、出纳、会计、开票会计、应收会计、收入会计、预算会计、总账会计等；岗位体系待定，按职能合并，粒度需 one-architecture 裁定。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[27]/ROLE-28
+    ROLE-29:
+      id: ROLE-29
+      name: 人力资源职能人员
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-E6
+      system_roles: []
+      host_category: 人力资源（本企业员工，人事）
+      bears: []
+      evidence: 权责表 SH-E6 提示：人事专员、招聘专员、人力资源专员、考勤管理员、薪酬岗、申报岗、薪酬与社保专员、人事主数据维护岗等；岗位待定，按职能合并。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[28]/ROLE-29
+    ROLE-30:
+      id: ROLE-30
+      name: 信息与行政职能人员
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-E6
+      system_roles: []
+      host_category: 人力资源（本企业员工，信息行政）
+      bears: []
+      evidence: 权责表 SH-E6 提示：信息管理员、档案管理员、IT 服务台、IT 资产管理员、印章保管与行政事务经办人员；岗位体系未定。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[29]/ROLE-30
+    ROLE-31:
+      id: ROLE-31
+      name: 直属上级
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - supervisor
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 人力资源（本企业员工）
+      bears: []
+      evidence: 词表 supervisor（员工的人员级汇报对象，RULE-372）；权责表 SH-M1 的「汇报线上级代批（AR-11）」文字相关，无独立条目。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[30]/ROLE-31
+    ROLE-32:
+      id: ROLE-32
+      name: 区域应收负责人
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - regional_receivables_manager
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 人力资源（本企业员工）
+      bears: []
+      evidence: 词表 regional_receivables_manager（职责角色，RULE-255/356）；权责表无独立条目。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[31]/ROLE-32
+    ROLE-33:
+      id: ROLE-33
+      name: 业务负责人（权限复核）
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - business_owner
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 人力资源（本企业员工）
+      bears: []
+      evidence: 词表 business_owner：权限复核中为授权业务需要负责并确认的人，ADR-0044 草案；定义明示与部门负责人不是同一概念。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[32]/ROLE-33
+    ROLE-34:
+      id: ROLE-34
+      name: 设计师与顾问（含检查人员）
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-E3
+      system_roles: []
+      host_category: 人力资源（本企业员工）
+      bears: []
+      evidence: 权责表 SH-E3：设计师、咨询顾问、检查人员，编制成果、记工时、现场检查。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[33]/ROLE-34
+    ROLE-35:
+      id: ROLE-35
+      name: 员工
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-E3
+      system_roles:
+      - employee
+      host_category: 人力资源（本企业员工）
+      bears: []
+      evidence: 权责表 SH-E3 另含「全体在职员工」「任一在职员工」（填报本人工时、请假、用印申请、查看工资条）；系统角色 employee（访问范围 SELF）。词表无对应词。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[34]/ROLE-35
+    ROLE-36:
+      id: ROLE-36
+      name: 技术专家与校审人
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-E4
+      system_roles: []
+      host_category: 人力资源（本企业员工，技术委员会）
+      bears: []
+      evidence: 权责表 SH-E4：技术专家、专业负责人、审核人、检查负责人、目录管理员、检查表模板管理员（校审、检查结论、知识条目）；合并为一，粒度待裁定。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[35]/ROLE-36
+    ROLE-37:
+      id: ROLE-37
+      name: 市场与客户经理
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-E5
+      system_roles: []
+      host_category: 人力资源（本企业员工，市场与经营）
+      bears: []
+      evidence: 权责表 SH-E5：市场经理、客户经理、投标专员（线索、商机、报价、投标）。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[36]/ROLE-37
+    ROLE-38:
+      id: ROLE-38
+      name: 商务经理（合同管理岗）
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-E5
+      system_roles: []
+      host_category: 人力资源（本企业员工，市场与经营）
+      bears: []
+      evidence: 权责表 SH-E5：商务、商务经理（合同管理岗）（起草协议、变更、索赔、结算、开票申请）。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[37]/ROLE-38
+    ROLE-39:
+      id: ROLE-39
+      name: 注册执业人员
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix:
+        - SH-E7
+      system_roles: []
+      host_category: 人力资源（本企业员工）
+      bears: []
+      evidence: 权责表 SH-E7：注册建筑师、注册工程师等，签发交付物并登记继续教育；SSOT 仅在 SH-E3 别名出现「注册执业人员」。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[38]/ROLE-39
+    ROLE-40:
+      id: ROLE-40
+      name: 审批发起人
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - initiator
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 系统内任务角色（任一用户）
+      bears: []
+      evidence: 词表 initiator（platform.approval）：发起审批的用户。与采购发起人同名异义。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[39]/ROLE-40
+    ROLE-41:
+      id: ROLE-41
+      name: 审批人
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - approver
+        - assignee
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 系统内任务角色（任一用户）
+      bears: []
+      evidence: 词表 approver 处理审批任务的用户；assignee 认领后唯一可办理的人（RULE-276）。合并为推断（同一人在认领前后的阶段名），把握不足。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[40]/ROLE-41
+    ROLE-42:
+      id: ROLE-42
+      name: 候选审批人
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - candidate_approver
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 系统内任务角色（任一用户）
+      bears: []
+      evidence: 词表 candidate_approver：任务尚未认领时有资格认领的审批人。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[41]/ROLE-42
+    ROLE-43:
+      id: ROLE-43
+      name: 操作人
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - actor
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 系统内任务角色（任一用户）
+      bears: []
+      evidence: 词表 actor（platform.audit）：执行动作的用户，系统作业为空。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[42]/ROLE-43
+    ROLE-44:
+      id: ROLE-44
+      name: 被代理人
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - on_behalf_of
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 系统内任务角色（任一用户）
+      bears: []
+      evidence: 词表 on_behalf_of（RULE-270）：显式代理操作中被代理的用户。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[43]/ROLE-44
+    ROLE-45:
+      id: ROLE-45
+      name: 系统操作主体
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - system_actor
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 系统（非人）
+      bears: []
+      evidence: 词表 system_actor（kernel）：以 SYSTEM 身份发事件的作业、监听器或运维入口。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[44]/ROLE-45
+    ROLE-46:
+      id: ROLE-46
+      name: 见证人
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - witness
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 系统内任务角色（任一用户）
+      bears: []
+      evidence: 词表 witness：运维命令执行时在场的另一人（双人在场）。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[45]/ROLE-46
+    ROLE-47:
+      id: ROLE-47
+      name: 编号模板确认人
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - confirmer
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 系统内任务角色
+      bears: []
+      evidence: 词表 confirmer（platform.numbering）：业务确认人持 numbering-rule:approve，财务确认人持凭证号模板确认权限（1a 内未设角色）。与业务管理员持有同一权限，未直接绑定，未确认。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[46]/ROLE-47
+    ROLE-48:
+      id: ROLE-48
+      name: 编号模板作者
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - author
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 系统内任务角色
+      bears: []
+      evidence: 词表 author：保存编号模板版本的人，不得确认自己保存的版本（四眼）。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[47]/ROLE-48
+    ROLE-49:
+      id: ROLE-49
+      name: 收件人
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - recipient
+        responsibility_matrix: []
+      system_roles: []
+      host_category: 系统内任务角色（企业微信用户）
+      bears: []
+      evidence: 词表 recipient（platform.integration）：消息接收人，企业微信用户 ID 精确指定。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[48]/ROLE-49
+    ROLE-50:
+      id: ROLE-50
+      name: 组织数据管理员
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - org_data_admin
+        responsibility_matrix: []
+      system_roles:
+      - org_data_admin
+      host_category: 人力资源（本企业员工）
+      bears: []
+      evidence: 词表 org_data_admin 与迁移种子系统角色 org_data_admin 同名同义（ADR-0027 第 2 项）。权责表 SH-E6 「人事主数据维护岗」职能相近，未合并。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[49]/ROLE-50
+    ROLE-51:
+      id: ROLE-51
+      name: 业务管理员
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - business_admin
+        responsibility_matrix: []
+      system_roles:
+      - business_admin
+      host_category: 人力资源（本企业员工）
+      bears: []
+      evidence: 词表 business_admin 与系统角色 business_admin（确认各单据编号模板）。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[50]/ROLE-51
+    ROLE-52:
+      id: ROLE-52
+      name: 安全审计员
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - security_auditor
+        responsibility_matrix: []
+      system_roles:
+      - security_auditor
+      host_category: 人力资源（本企业员工）
+      bears: []
+      evidence: 词表 security_auditor 与系统角色 security_auditor（审计记录查看导出、放行管理员离职同步暂停）。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[51]/ROLE-52
+    ROLE-53:
+      id: ROLE-53
+      name: 管理员
+      aliases:
+        stakeholder_ssot: []
+        glossary:
+        - administrator
+        responsibility_matrix: []
+      system_roles:
+      - super_admin
+      host_category: 人力资源（本企业员工，IT）
+      bears: []
+      evidence: 词表 administrator：持 super_admin 或管理员角色的人。系统角色表仅有 super_admin（is_administrative）；任务所说代码定义的 administrator-mode 未列入 permissions.yaml，是否同属需确认。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[52]/ROLE-53
+    ROLE-54:
+      id: ROLE-54
+      name: 流程管理员
+      aliases:
+        stakeholder_ssot: []
+        glossary: []
+        responsibility_matrix: []
+      system_roles:
+      - process_administrator
+      host_category: 人力资源（本企业员工）
+      bears: []
+      evidence: 系统角色 process_administrator（迁移种子，无权限码）；词表无 kind=role 词条，仅 ui_proxy_handling 定义提到「流程管理员替被代理人办理」，权责表无。
+      src: architecture/ssot/07-org-roles/roles.yaml#roles[53]/ROLE-54
 links:
 - kind: sh-trigger
   from: SH-C1
@@ -76613,6 +77724,290 @@ links:
   controller_src:
   - backend/src/main/java/com/forcitis/one/platform/identity/web/RoleController.java:115
   bc_src: architecture/ddd/contexts.yaml#contexts/platform.identity
+- kind: perm-mod
+  from: cost.timesheet:timesheet:submit
+  to: cost.timesheet
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:5
+  via: code
+- kind: perm-mod
+  from: cost.timesheet:timesheet:approve
+  to: cost.timesheet
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:6
+  via: code
+- kind: perm-mod
+  from: platform.numbering:numbering-rule:update
+  to: platform.numbering
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:7
+  via: code
+- kind: perm-mod
+  from: platform.numbering:numbering-rule:read
+  to: platform.numbering
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:8
+  via: code
+- kind: perm-mod
+  from: platform.numbering:numbering-rule:approve
+  to: platform.numbering
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:9
+  via: code
+- kind: perm-mod
+  from: platform.numbering:voucher-numbering-rule:approve
+  to: platform.numbering
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:10
+  via: code
+- kind: perm-mod
+  from: platform.numbering:legacy-number:read
+  to: platform.numbering
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:11
+  via: code
+- kind: perm-mod
+  from: platform.approval:task:read
+  to: platform.approval
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:12
+  via: code
+- kind: perm-mod
+  from: platform.approval:task:approve
+  to: platform.approval
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:13
+  via: code
+- kind: perm-mod
+  from: platform.identity:role:read
+  to: platform.identity
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:14
+  via: code
+- kind: perm-mod
+  from: platform.identity:role:update
+  to: platform.identity
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:15
+  via: code
+- kind: perm-mod
+  from: platform.identity:account-role:update
+  to: platform.identity
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:16
+  via: code
+- kind: perm-mod
+  from: platform.identity:session:delete
+  to: platform.identity
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:17
+  via: code
+- kind: perm-mod
+  from: platform.integration:source-reference:update
+  to: platform.integration
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:18
+  via: code
+- kind: perm-mod
+  from: platform.integration:source-reference:approve
+  to: platform.integration
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:19
+  via: code
+- kind: perm-mod
+  from: platform.audit:audit-entry:read
+  to: platform.audit
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:20
+  via: code
+- kind: perm-mod
+  from: platform.audit:audit-entry:export
+  to: platform.audit
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:21
+  via: code
+- kind: perm-mod
+  from: platform.audit:own-login-record:read
+  to: platform.audit
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:22
+  via: code
+- kind: perm-mod
+  from: organization.workforce:org-unit:read
+  to: organization.workforce
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:23
+  via: code
+- kind: perm-mod
+  from: organization.workforce:sync-run:read
+  to: organization.workforce
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:24
+  via: code
+- kind: perm-mod
+  from: organization.workforce:sync-run:execute
+  to: organization.workforce
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:25
+  via: code
+- kind: perm-mod
+  from: organization.workforce:separation-hold:approve
+  to: organization.workforce
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:26
+  via: code
+- kind: perm-mod
+  from: organization.workforce:legal-entity:update
+  to: organization.workforce
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:27
+  via: code
+- kind: perm-mod
+  from: organization.workforce:legal-entity-attribution-correction:create
+  to: organization.workforce
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:28
+  via: code
+- kind: perm-mod
+  from: organization.attendance:work-calendar:read
+  to: organization.attendance
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:29
+  via: code
+- kind: perm-mod
+  from: organization.attendance:work-calendar:update
+  to: organization.attendance
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:30
+  via: code
+- kind: perm-mod
+  from: organization.attendance:locked-day:update
+  to: organization.attendance
+  src: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:31
+  via: code
+- kind: srole-perm
+  from: employee
+  to: platform.approval:task:approve
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:528
+  via: seed
+- kind: srole-perm
+  from: employee
+  to: platform.approval:task:read
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:528
+  via: seed
+- kind: srole-perm
+  from: employee
+  to: platform.audit:own-login-record:read
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+  via: seed
+- kind: srole-perm
+  from: org_data_admin
+  to: organization.attendance:locked-day:update
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+  via: seed
+- kind: srole-perm
+  from: org_data_admin
+  to: organization.attendance:work-calendar:read
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+  via: seed
+- kind: srole-perm
+  from: org_data_admin
+  to: organization.attendance:work-calendar:update
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+  via: seed
+- kind: srole-perm
+  from: org_data_admin
+  to: organization.workforce:legal-entity-attribution-correction:create
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:581
+  via: seed
+- kind: srole-perm
+  from: org_data_admin
+  to: organization.workforce:legal-entity:update
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+  via: seed
+- kind: srole-perm
+  from: org_data_admin
+  to: organization.workforce:org-unit:read
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+  via: seed
+- kind: srole-perm
+  from: org_data_admin
+  to: organization.workforce:sync-run:execute
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+  via: seed
+- kind: srole-perm
+  from: org_data_admin
+  to: organization.workforce:sync-run:read
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+  via: seed
+- kind: srole-perm
+  from: org_data_admin
+  to: platform.integration:source-reference:update
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+  via: seed
+- kind: srole-perm
+  from: org_data_admin
+  to: platform.numbering:numbering-rule:read
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+  via: seed
+- kind: srole-perm
+  from: org_data_admin
+  to: platform.numbering:numbering-rule:update
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+  via: seed
+- kind: srole-perm
+  from: business_admin
+  to: platform.integration:source-reference:approve
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+  via: seed
+- kind: srole-perm
+  from: business_admin
+  to: platform.numbering:numbering-rule:approve
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+  via: seed
+- kind: srole-perm
+  from: business_admin
+  to: platform.numbering:numbering-rule:read
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+  via: seed
+- kind: srole-perm
+  from: security_auditor
+  to: organization.workforce:separation-hold:approve
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:575
+  via: seed
+- kind: srole-perm
+  from: security_auditor
+  to: platform.audit:audit-entry:export
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+  via: seed
+- kind: srole-perm
+  from: security_auditor
+  to: platform.audit:audit-entry:read
+  src: backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql:552
+  via: seed
+- kind: srole-perm
+  from: administrator-mode
+  to: organization.workforce:separation-hold:approve
+  src: backend/src/main/java/com/forcitis/one/platform/identity/domain/AdministratorMode.java:17
+  via: seed
+- kind: srole-perm
+  from: administrator-mode
+  to: platform.identity:account-role:update
+  src: backend/src/main/java/com/forcitis/one/platform/identity/domain/AdministratorMode.java:15
+  via: seed
+- kind: srole-perm
+  from: administrator-mode
+  to: platform.identity:role:read
+  src: backend/src/main/java/com/forcitis/one/platform/identity/domain/AdministratorMode.java:13
+  via: seed
+- kind: srole-perm
+  from: administrator-mode
+  to: platform.identity:role:update
+  src: backend/src/main/java/com/forcitis/one/platform/identity/domain/AdministratorMode.java:14
+  via: seed
+- kind: srole-perm
+  from: administrator-mode
+  to: platform.identity:session:delete
+  src: backend/src/main/java/com/forcitis/one/platform/identity/domain/AdministratorMode.java:16
+  via: seed
+- kind: role-srole
+  from: ROLE-35
+  to: employee
+  src: architecture/ssot/07-org-roles/roles.yaml#roles[34].system_roles
+- kind: role-srole
+  from: ROLE-50
+  to: org_data_admin
+  src: architecture/ssot/07-org-roles/roles.yaml#roles[49].system_roles
+- kind: role-srole
+  from: ROLE-51
+  to: business_admin
+  src: architecture/ssot/07-org-roles/roles.yaml#roles[50].system_roles
+- kind: role-srole
+  from: ROLE-52
+  to: security_auditor
+  src: architecture/ssot/07-org-roles/roles.yaml#roles[51].system_roles
+- kind: role-srole
+  from: ROLE-53
+  to: super_admin
+  src: architecture/ssot/07-org-roles/roles.yaml#roles[52].system_roles
+- kind: role-srole
+  from: ROLE-54
+  to: process_administrator
+  src: architecture/ssot/07-org-roles/roles.yaml#roles[53].system_roles
 - kind: cmd-agg
   from: CMD-9085512f
   to: AGG-01

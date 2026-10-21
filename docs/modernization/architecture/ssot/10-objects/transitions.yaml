@@ -10200,10 +10200,13 @@ conflicts:
     needs_user: false
     group: revenue
     commit: 71bf731b
-  status: to_glossary
+  status: provisional
   ruling:
     by: one-architecture 2026-10-21
     text: 「草案 / 草拟」「已签署生效 / 已生效」三组判同义，统一名交 one-glossary；「已批准」只属劳动合同 AGG-67；AGG-07 协议价目不属 OBJ-05，归属（OBJ-124 或新对象）属对象表改动，列入设计待办
+  glossary:
+    by: one-glossary 2026-10-21
+    text: one-glossary 预判：取「草拟」「已签署生效」；「草案」为名词另算（并入下一张用语页由用户认可）；AGG-07 归属仍列设计待办
 - id: CF-032
   kind: semantic
   object: OBJ-83
@@ -10600,10 +10603,13 @@ conflicts:
     needs_user: false
     group: revenue
     commit: 71bf731b
-  status: to_glossary
+  status: provisional
   ruling:
     by: one-architecture 2026-10-21
     text: 三组均判同义；统一名分歧（finance 取「已取代」，people、revenue 取「已被取代」），交 one-glossary 定名；AGG-92 开放 / 未开放不是版本状态
+  glossary:
+    by: one-glossary 2026-10-21
+    text: one-glossary 预判：取「已被取代」；「已停用」「已取代」列为同义不用（并入下一张用语页由用户认可）
 - id: CF-047
   kind: semantic
   object: OBJ-78

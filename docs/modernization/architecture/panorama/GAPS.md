@@ -52,6 +52,9 @@
 | 10 映射  | evt | 59 |
 | 01 干系人 | shcat | 6 |
 | 07 业务流程 | steps | 647 |
+| 01 映射  | perm | 27 |
+| 01 映射  | srole | 7 |
+| 01 映射  | role | 54 |
 
 对象按分类：业务对象 96、从属对象 6、参照数据 1、视图 1。
 
@@ -70,6 +73,9 @@
 | N07-1 | 每个有效流程都能归集到价值流：所标阶段或支撑本段，且有作用对象（同 anchoring_check C1） | 0 |
 | N07-2 | 流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 N07-1 / anchoring C1 判） | 0 |
 | N07-P1 | P-1：流程骨架中作用于聚合的步骤都声明 Command，且该命令在同一聚合下登记于各组 commands.yaml | 0 |
+| N01-R1 | 权责表引用的每个干系人编号都归入 ssot/07-org-roles/roles.yaml 的某个 ROLE（系统执行者与模块除外；roles.yaml 未建时不查） | 0 |
+| N01-R2 | 每个 ROLE 写明由谁承担（host_category 非空） | 0 |
+| N01-R3 | 每个权限码至少一个系统角色持有（迁移种子与 AdministratorMode 代码定义，只报告） | 4 |
 | N08-1 | 每个不变量都归属存在的聚合 | 0 |
 | N08-2 | 每条不变量至少有一个执行点 | 145 |
 | N08-3 | 每条不变量至少有一个用例 | 147 |
@@ -153,6 +159,13 @@
 - VS-10.0 执行记账结转（门对象 OBJ-97→断、OBJ-98→断）
 - VS-10.1 关闭会计期间（门对象 OBJ-97→断、OBJ-98→断）
 - VS-10.2 发布报表（门对象 OBJ-125→断、OBJ-97→断、OBJ-98→断）
+
+## N01-R3 每个权限码至少一个系统角色持有（迁移种子与 AdministratorMode 代码定义，只报告）（4）
+
+- cost.timesheet:timesheet:submit
+- cost.timesheet:timesheet:approve
+- platform.numbering:voucher-numbering-rule:approve
+- platform.numbering:legacy-number:read
 
 ## N08-2 每条不变量至少有一个执行点（145）
 
