@@ -10,8 +10,8 @@ public interface StoreAudit {
 
     void quarantined(NewStoredFile file);
 
-    /** No original name until the user settles ADR-0060 against ADR-0070 (one-architecture 2026-10-21): the stricter rule holds. */
-    void encryptedRefused(FileSubject uploader, ContentHash contentHash, long size, String mediaType);
+    /** The original name is the only evidence that ties renamed retries together (user, intent 2026-10-21-170547); personal data. */
+    void encryptedRefused(FileSubject uploader, ContentHash contentHash, long size, String mediaType, String originalName);
 
     /** Infected content whose quarantine write or row failed: the threat is still on record. */
     void quarantineFailed(FileSubject uploader, ContentHash contentHash, String threatName);

@@ -14,8 +14,8 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /**
- * Details carry own ids, the SHA-256, engine and definitions versions and fixed codes only: never the original name or a link
- * (ADR-0060 section 2), never an exception text (TB-01 row 22).
+ * Details carry own ids, the SHA-256, engine and definitions versions and fixed codes, never a link or an exception text (TB-01 row 22).
+ * The original name appears in the encrypted refusal only, by the user's decision (intent 2026-10-21-170547).
  */
 @Component
 class StoreAuditLog implements StoreAudit {
@@ -42,10 +42,11 @@ class StoreAuditLog implements StoreAudit {
     }
 
     @Override
-    public void encryptedRefused(FileSubject uploader, ContentHash contentHash, long size, String mediaType) {
+    public void encryptedRefused(FileSubject uploader, ContentHash contentHash, long size, String mediaType, String originalName) {
         audit.recordIndependently(new AuditEntry("platform.file.upload.encrypted-refused", actor(uploader), null,
                 AuditSubject.without(AuditSubjectKind.REQUEST),
-                "reason=ENCRYPTED sha256=" + contentHash.value() + " bytes=" + size + " media=" + mediaType + uploaderOf(uploader)));
+                "reason=ENCRYPTED sha256=" + contentHash.value() + " bytes=" + size + " media=" + mediaType + uploaderOf(uploader)
+                        + " name=" + auditableName(originalName)));
     }
 
     @Override
@@ -58,6 +59,13 @@ class StoreAuditLog implements StoreAudit {
     public void unavailable(FileSubject uploader, ContentHash contentHash, UnavailableCause cause) {
         audit.recordIndependently(new AuditEntry("platform.file.upload.unavailable", actor(uploader), null, AuditSubject.without(AuditSubjectKind.REQUEST),
                 "reason=" + cause + "_UNAVAILABLE" + (contentHash == null ? "" : " sha256=" + contentHash.value()) + uploaderOf(uploader)));
+    }
+
+    /** Personal data (ADR-0043: INTERNAL + PI), so only for the encrypted refusal; control characters out, never a secret-looking text. */
+    static String auditableName(String originalName) {
+        String name = originalName.replaceAll("\\p{Cntrl}", "?");
+        name = name.length() > 255 ? name.substring(0, 255) : name;
+        return AuditEntry.acceptsText(name) ? name : "[withheld: looks like a secret]";
     }
 
     private static String describe(NewStoredFile file) {

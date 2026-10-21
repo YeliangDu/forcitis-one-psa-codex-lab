@@ -104,7 +104,7 @@ public final class StoreContent {
         boolean infected = verdict.outcome() == ScanOutcome.INFECTED;
         // Malware found is quarantined even when the structure also looks encrypted: the threat must be on record.
         if (!infected && (verdict.outcome() == ScanOutcome.ENCRYPTED || facts.encrypted())) {
-            audit.encryptedRefused(request.uploader(), staged.contentHash(), staged.size(), facts.mediaType());
+            audit.encryptedRefused(request.uploader(), staged.contentHash(), staged.size(), facts.mediaType(), request.originalName());
             LOG.error("ALERT encrypted upload refused: it cannot be scanned");
             count("encrypted");
             throw FileError.PLATFORM_FILE_ENCRYPTED_REJECTED.refusal("the content is encrypted or its structure cannot be read, so it cannot be checked; "
