@@ -195,3 +195,13 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/platform/approval/ApprovalRequestTextAndRecordRulesIT.java
     reason: AP-14 不得改为接受 QUOTE/JOURNAL_VOUCHER；改为经审批写入路径以「无审批流程」业务错误码拒绝、TIMESHEET 通过、格式非法另断言；删除的库层断言须在 PR 单列
     ref: docs/modernization/rulings/COORD-2026-10-21.md
+  - id: RULING-COORD-20261021-04
+    date: 2026-10-21
+    ruled_by: one-coordinator
+    implementer: one-1a-par
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/LegacyAdapterPlacementTest.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/LegacyReferencesIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/StalledExternalSourceIT.java
+    reason: 删老待办（ADR-0055 决定 6）后删去引用老待办的断言与用例，其余不动；同 PR 带新验收测试断言收件箱不含老待办字段、本系统审批待办照常；删除项在 PR 单列
+    ref: docs/modernization/rulings/COORD-2026-10-21.md
