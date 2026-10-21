@@ -1,6 +1,6 @@
 # one-data 速查
 
-只记现行状态，一行一项（SESSION_PLAYBOOK §2.1 第 13 条）。2026-10-16 批次边界更新（上下文 76%，交接 /clear 续）。
+只记现行状态，一行一项（SESSION_PLAYBOOK §2.1 第 13 条）。2026-10-17 23:06+02:00 暂停交接（one-coordinator：用户额度紧，只保留命名主线；ADR-0058 设计修订、开发卡、DDL 扫描全部暂停）。
 
 | 项 | 值 |
 |---|---|
@@ -13,3 +13,18 @@
 | 一次投产 | 生产不再同步 A8，全量历史一次性迁入；sync_* 取消方向、已建表等过渡 ADR 退役，不删不新增；**迁入映射与对账方案（U-4 全量历史明细、U-10 投产前两个已结期间重算比对）由 one-data 负责，等施工方案定稿再向 one-coordinator 要排期** |
 | 未完成 | ① 填报义务实现的数据设计：等 one-rules 规则卡（预审前置 P1–P11 已发；请假 = OBJ-68、标准工时 = AGG-108，one-architecture 已答）；② 触发器命名条款提议 `data/TRIGGER_NAMING_PROPOSAL.md`（已写，待 one-coordinator 排改全库小卡与 NAMING_STANDARD 条款、one-glossary 查重）；③ DG-0 注册表字段扩展（business_key、数据类别、DECLARED / OBSERVED、查询路径、分区键、projections、failed_policy 等）与基线 DDL 扫描脚本（#322）由 one-quality；④ E3：迁入单的 `round_number` / `submitted_date` 口径回看（TA-A 决定点 6）；⑤ one-1a-next-5 后续：运维证明员工 ID 须存在小卡（M-4）、DATA-REPAIR-workforce 其余条目 |
 | 接 one-architecture | OBJ-105–109 等新增对象，为 METHOD 第 11 步准备（未开始，等一次投产过渡 ADR 后再排） |
+
+## 2026-10-17 暂停时的状态与恢复清单
+
+| 项 | 值 |
+|---|---|
+| 暂停原因 | one-coordinator 通知：用户额度紧，只保留命名主线，ADR-0058 设计修订、开发卡、DDL 扫描暂停；恢复前不要主动推进下列项 |
+| 分支 | `claude/one-data-handoff-1`，已全部推送；本地与远端一致。分支落后 main 约 1000 提交，`sync_with_base_branch` 被拦（需用户在应用里 Help → Troubleshooting → Review Pinned Git Origins 确认 origin），同步前扫描用 main 的导出 |
+| 已签发 / 已复核 | F-1 全部（`reviews/F-1.md` 第四轮）；ADR-0034-IMPL PR-1/2/3 的 DDL（`reviews/ADR-0034-IMPL.md` 两次补签，B 组除外）；#476 表结构复核通过（`reviews/ADR-0034-IMPL-PR1.md`，待 CI 与合并，合并后我补 `DATA_SCORECARD.md` 两行） |
+| ADR-0058 状态转换 | 已采纳。设计第 2 版 `data/STATE_TRANSITIONS_DESIGN.md` @65c78cfe 已按 opus 复核（`~/.modernize/psa/handoff/reviews/STATE_TRANSITIONS_DESIGN-review-1.md`）改完 B1–B3、S1–S9；**待**：sonnet 复核 → 我签发 → 派开发卡（7 张：kernel、模板与守护公共卡、6 个 schema）。待 one-architecture 定三处：`cause_kind` 命名、S5 DDL 层强制法人、两张无 `version` 列表的转换序号来源。保留期（设计第 7 节）待用户认可前不进表结构 PR。两张例外：`sync_runs`、`outbound_deliveries` |
+| 可度量原料扫描 | `scripts/ci/measurable_ddl_scan.py`（M1–M5，只报告，带自测）@51be702e 起；首报 M3 14、M4 7 个候选、M1/M2/M5 为 0（`data/MEASURABLE_DDL_SCAN_2026-10-17.txt`）。**待**：注册表加 `data_category`（五选一）后重扫 M4；写进 NAMING_STANDARD / §14；接 `build_all --check`（须先同步 main）。M3 已按 ADR-0058 表形状改 |
+| B31P 取证（ARC-1017-ARC-07） | 已出：`data/evidence/` 下本地盘点与查询包、第四五批查询草稿，汇总稿 `B31P_EVIDENCE_SUMMARY_DRAFT.md` @20566fa2（已交 one-architecture）。one-ops 的 `b31p_r4_result.md`（分支 `claude/one-ops-r56`）含一处个人姓名，已批准改写该分支历史清除；以后核对取证结果只用 `grep -c` / 行号（错题本 DATA-018） |
+| 对象 ↔ 表 | `data/TABLE_OBJECT_LIST.md`（已有 + 已提议 5 张）与 `TABLE_OBJECT_LIST_PROPOSED.md`（三组 362 表项）已交 one-architecture；等《业务对象界定标准》经用户认可后它按标准复核，结论会回我 |
+| C-6 日历导出缺陷 | `data/CALENDAR_EXPORT_DEFECT.md` @c1f73f06：条件在 SQL:46 与 `c6_relay.py:162` 两处，需 one-ops 修并重导出；回放报告不受影响 |
+| 其他待办 | 填报义务实现的数据设计（等 one-rules 规则卡）；触发器命名条款提议 `TRIGGER_NAMING_PROPOSAL.md`；迁入映射与对账方案（等施工方案）；错题本 DATA-001…007、011–013、018 待落实（负责 one-data，2026-10-24 前；暂停期间顺延） |
+| 工作规则 | 文档类提交不开 PR，推本会话分支，报分支+提交号；消息一到三行、只在对方要做事时发；Codex 先交（取证汇总、设计初稿），生产取证和签发本人做；任务号 `ARC-1017-DAT-nn`，登记片段在 `tasks/` |

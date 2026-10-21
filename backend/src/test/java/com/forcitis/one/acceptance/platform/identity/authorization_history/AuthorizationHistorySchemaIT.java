@@ -100,7 +100,7 @@ class AuthorizationHistorySchemaIT {
         expected.put("revoked_by", "uuid");
         expected.put("revocation_cause_kind", "text");
         expected.put("revocation_authorization_request_id", "uuid");
-        expected.put("revocation_sync_run_id", "uuid");
+        expected.put("revocation_separation_command_id", "uuid");
         expected.put("revocation_audit_entry_id", "uuid");
         expected.put("created_at", "timestamp with time zone NOT NULL");
         expected.put("updated_at", "timestamp with time zone NOT NULL");
@@ -191,7 +191,7 @@ class AuthorizationHistorySchemaIT {
         assertThat(names(TRIGGERS, "platform_identity.account_role_grants")).containsExactly(
                 "CREATE TRIGGER tg_account_role_grants_append_only BEFORE DELETE OR UPDATE ON platform_identity.account_role_grants FOR EACH ROW EXECUTE FUNCTION"
                         + " platform_identity.refuse_history_rewrite('effective_to_at', 'revoked_by', 'revocation_cause_kind', 'revocation_authorization_request_id',"
-                        + " 'revocation_sync_run_id', 'revocation_audit_entry_id', 'updated_at')",
+                        + " 'revocation_separation_command_id', 'revocation_audit_entry_id', 'updated_at')",
                 "CREATE TRIGGER tg_account_role_grants_append_only_truncate BEFORE TRUNCATE ON platform_identity.account_role_grants FOR EACH STATEMENT EXECUTE FUNCTION"
                         + " platform_identity.refuse_history_rewrite()",
                 "CREATE TRIGGER tg_account_role_grants_open_role_version BEFORE INSERT ON platform_identity.account_role_grants FOR EACH ROW EXECUTE FUNCTION"

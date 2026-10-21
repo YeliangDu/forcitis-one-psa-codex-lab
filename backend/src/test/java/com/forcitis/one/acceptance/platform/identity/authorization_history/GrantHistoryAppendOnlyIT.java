@@ -170,7 +170,7 @@ class GrantHistoryAppendOnlyIT {
     }
 
     @Test
-    @DisplayName("0034-G1-03 离职收回：开放授予同时写 effective_to_at、revocation_cause_kind=SEPARATION、revocation_sync_run_id、revocation_audit_entry_id、updated_at 成功；人工收回（MANUAL + revoked_by）亦成功")
+    @DisplayName("0034-G1-03 离职收回：开放授予同时写 effective_to_at、revocation_cause_kind=SEPARATION、revocation_separation_command_id、revocation_audit_entry_id、updated_at 成功；人工收回（MANUAL + revoked_by）亦成功")
     void anOpenGrantIsClosedBySeparationOrByHand() throws SQLException {
         UUID role = db.role();
         db.openVersion(role, 1, T0);
@@ -180,7 +180,7 @@ class GrantHistoryAppendOnlyIT {
         UUID byHand = db.openGrant(revoker, role, T0);
 
         db.setup("update platform_identity.account_role_grants set effective_to_at = ?::timestamptz, revocation_cause_kind = 'SEPARATION',"
-                + " revocation_sync_run_id = ?, revocation_audit_entry_id = ?, updated_at = ?::timestamptz where account_role_grant_id = ?",
+                + " revocation_separation_command_id = ?, revocation_audit_entry_id = ?, updated_at = ?::timestamptz where account_role_grant_id = ?",
                 T1, UUID.randomUUID(), UUID.randomUUID(), T1, separated);
         db.setup("update platform_identity.account_role_grants set effective_to_at = ?::timestamptz, revocation_cause_kind = 'MANUAL', revoked_by = ?,"
                 + " revocation_audit_entry_id = ?, updated_at = ?::timestamptz where account_role_grant_id = ?", T1, revoker, UUID.randomUUID(), T1, byHand);

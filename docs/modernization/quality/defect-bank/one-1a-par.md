@@ -67,3 +67,14 @@
 - **漏过于**：无（写入后即回读发现）。
 - **新增检查项**：往文件写含反引号或 `$` 的文字时一律用 `<<'EOF'`，或用 Python 脚本写；写完回读。待写入画像“工作守则”。
 - **状态**：待落实（负责：one-1a-par，2026-10-24 前把这一条写进画像“工作守则”）
+
+### PAR-007　测试代理的提交说明里 Acceptance-Test-Author 与 Co-Authored-By 之间隔了空行，守护判“没有 trailer”
+
+- **日期**：2026-10-20
+- **类别**：提交卫生
+- **现象**：IMP-1020-PAR-02 的测试提交带了 `Acceptance-Test-Author: test-engineer`，但与后面的 `Co-Authored-By` 之间有空行；`acceptance_guard` 报“changes acceptance tests without a valid Acceptance-Test-Author or Acceptance-Ruling trailer”，推送被预检钩子拦下。
+- **根因**：git 只把提交说明最后一个段落当 trailer 块；派给测试代理的提示词只写了“要带这一行”，没写“与 Co-Authored-By 同一段、紧挨着”。
+- **拦下于**：机械检查（`scripts/ci/acceptance_guard.py`，经 precheck 与推送前钩子）。
+- **漏过于**：无。
+- **新增检查项**：派测试代理的提示词写明“trailer 行与 Co-Authored-By 之间不留空行”；cherry-pick 测试提交后先跑 `python3 scripts/ci/acceptance_guard.py origin/main HEAD`。
+- **状态**：已落实（本条与画像“工作守则”；机械拦截已存在）

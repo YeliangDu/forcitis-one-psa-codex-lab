@@ -47,7 +47,7 @@ adrs:
   category: "安全与权限"
   bc: ["platform.identity"]
   stage: ["TA-1a"]  # 目标建造批：TA-W0
-  partially_superseded: ["ADR-0026 第 4 条（部分）", "ADR-0027 第 6 条（部分）", "ADR-0037 第 6 条中「不读取」"]
+  partially_superseded: ["ADR-0026 第 4 条（部分）", "ADR-0027 第 6 条（部分）", "ADR-0037 第 6 条中「不读取」", "ADR-0063 第 2 条「令牌不进 URL」（部分）"]
 - id: "0010"   # 可配置的业务编号
   category: "数据"
   bc: ["platform.numbering"]
@@ -172,7 +172,7 @@ adrs:
   category: "集成"
   bc: ["全局"]
   stage: ["TA-1a"]  # 目标建造批：TA-W0
-  partially_superseded: []
+  partially_superseded: ["ADR-0067 第 2 条（限平台模块与 kernel）"]
 - id: "0036"   # 历史数据迁入
   category: "数据"
   bc: ["platform.migration"]
@@ -252,4 +252,4 @@ adrs:
   category: "边界与模块"
   bc: ["全局"]
   stage: ["全阶段"]
-  partially_superseded: ["ADR-0057 决定 1、2、7 中流程模块三处"]
+  partially_superseded: ["ADR-0057 决定 1、2、7 中流程模块三处", "ADR-0060 决定 2 第 1 条、决定 3 平台行"]
