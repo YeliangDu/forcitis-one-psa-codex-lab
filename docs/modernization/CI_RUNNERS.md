@@ -30,7 +30,7 @@ CI（`.github/workflows/ci.yml`、`generated-docs.yml`）全部跑在本机自�
 - 没有标签的 PR 只跑轻量检查（密钥扫描、文档与发布脚本检查、迁移与验收守护、断言漂移）。此时 backend、frontend 两个作业的检查名带后缀「 (light)」，与分支保护要求的检查名不同，所以必需检查停在「等待状态」，**未入队的 PR 合不了**；打上 `queued` 后检查名恢复，重步骤通过才算数。docs 类 PR 同样要打标签（重步骤因无相关改动自动跳过，几分钟即绿）。
 - 给 PR 打 `queued` 以外的标签：只跑一次轻量运行，检查名同样带「 (light)」，不会重复也不会覆盖重步骤的结果，并发组独立，不取消在途运行。
 - push 到 main：不跑重步骤。strict 下合入的树就是带标签的 PR 刚测过的树。
-- 每晚 21:03 UTC（`ci.yml` 的 `schedule`）在 main 上全量跑一遍 ci（含前端 verify 与 OpenAPI 比对，不含 SQL Server 测试，那个由 `nightly-legacy-it.yml` 在 01:23 UTC 跑）。
+- 每晚 21:03 UTC（`ci.yml` 的 `schedule`）在 main 上全量跑一遍 ci（含前端 verify 与 OpenAPI 比对，不含 SQL Server 测试，那个由 `nightly-legacy-it.yml` 在 23:23 UTC 跑）。
 - 发布门禁 `scripts/release/ci_passed.py` 读的是 main 的 push 运行，它现在只证明轻量检查通过；重步骤的证据是合入前带标签的 PR 运行与当晚的定时全量运行，是否让发布门禁另核由 one-ops 定。
 
 ## 日常操作
@@ -62,7 +62,7 @@ runner 程序会在 GitHub 发布新版本后自动更新自己；需要手动�
 
 只跑 `*MssqlIT` 与 ADR 原文的 `verify -Plegacy-it` 等价：该 profile 只比默认构建多编译并运行 `*MssqlIT`，其余测试与同一作业里的默认全量运行相同，不必重跑。
 
-每夜另有 `nightly-legacy-it.yml`：本机凌晨 03:23（cron `23 1 * * *`，UTC 01:23；冬令时 02:23），避开当天 PR 的 CI在同一批 runner 上全量运行 `backend_verify.sh -Plegacy-it`，随后核实有 `TEST-*MssqlIT.xml` 报告（没有即失败）；也可手动触发。它占一台 runner，最长 90 分钟。
+每夜另有 `nightly-legacy-it.yml`：本机凌晨 01:23（cron `23 23 * * *`，UTC 23:23；冬令时 00:23），在当天 PR 的 CI 之后、macOS 凌晨 2～5 点自动装更新重启之前在同一批 runner 上全量运行 `backend_verify.sh -Plegacy-it`，随后核实有 `TEST-*MssqlIT.xml` 报告（没有即失败）；也可手动触发。它占一台 runner，最长 90 分钟。
 
 **怎样发现每夜失败**：不另设通知。调度会话开场执行 `gh run list --workflow nightly-legacy-it.yml -L 1`，最近一次不是 success 就开卡处理。
 
