@@ -300,6 +300,14 @@ class StoreContentTest {
     }
 
     @Test
+    void infectedContentThatAlsoLooksEncryptedIsQuarantined() {
+        verdict = new ScanVerdict(ScanOutcome.INFECTED, "Doc.Dropper", "ClamAV 1.4.1", "27435");
+        facts = new ContentFacts("application/x-ole-storage", true, true);
+        assertThat(store().status()).isEqualTo(FileStatus.QUARANTINED);
+        assertThat(audited).containsExactly("quarantined Doc.Dropper");
+    }
+
+    @Test
     void aQuarantinedFileDeclaresNoLineage() {
         FileId previous = new FileId(UUID.fromString("0199f0c4-0000-7000-8000-0000000000f1"));
         targets.put(previous, new LineageTarget(FileStatus.AVAILABLE, false));

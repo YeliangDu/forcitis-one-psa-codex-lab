@@ -101,13 +101,15 @@ public final class StoreContent {
     private StoreResult decide(StoreRequest request, StagingContent staged) {
         ScanVerdict verdict = scan(request.uploader(), staged);
         ContentFacts facts = checks.check(staged.path());
-        if (verdict.outcome() == ScanOutcome.ENCRYPTED || facts.encrypted()) {
+        boolean infected = verdict.outcome() == ScanOutcome.INFECTED;
+        // Malware found is quarantined even when the structure also looks encrypted: the threat must be on record.
+        if (!infected && (verdict.outcome() == ScanOutcome.ENCRYPTED || facts.encrypted())) {
             audit.encryptedRefused(request.uploader(), staged.contentHash(), request.originalName());
             LOG.error("ALERT encrypted upload refused: it cannot be scanned");
             count("encrypted");
-            throw FileError.PLATFORM_FILE_ENCRYPTED_REJECTED.refusal("encrypted content cannot be scanned; remove the open password and upload again");
+            throw FileError.PLATFORM_FILE_ENCRYPTED_REJECTED.refusal("the content is encrypted or its structure cannot be read, so it cannot be checked; "
+                    + "remove the open password or save the file again, then upload");
         }
-        boolean infected = verdict.outcome() == ScanOutcome.INFECTED;
         boolean released = infected && files.hasScanException(staged.contentHash());
         FileStatus status = NewStoredFile.decidedBy(infected, released);
         FileId id = new FileId(ids.next());
@@ -146,8 +148,13 @@ public final class StoreContent {
                 audit.quarantined(file);
             });
         } catch (RuntimeException e) {
-            audit.quarantineFailed(request.uploader(), staged.contentHash(), verdict.threatName());
             LOG.error("ALERT the quarantine of file {} failed; the upload is refused", id, e);
+            try {
+                audit.quarantineFailed(request.uploader(), staged.contentHash(), verdict.threatName());
+            } catch (RuntimeException auditFailure) {
+                e.addSuppressed(auditFailure);
+                LOG.error("ALERT the failed quarantine of file {} could not be audited", id, e);
+            }
             throw FileError.PLATFORM_FILE_SCAN_UNAVAILABLE.refusal("the file cannot be checked now; try again later");
         }
         return result(file);

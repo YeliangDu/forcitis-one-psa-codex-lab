@@ -30,7 +30,7 @@ import java.util.zip.ZipFile;
  * 按内容（魔数与结构）判定媒体类型，并补充 clamd 覆盖不到的加密结构与含宏识别（ADR-0070 决定 4 第 3 条、决定 5 第 1–2 条）。
  *
  * <p>只读、不执行内容；XML 只做子串或正则扫描，不用解析器，因此不解析外部实体。
- * 任何解析异常、超限一律 containsMacros=true、encrypted=false，媒体类型能判就判。
+ * 任何解析异常、超限一律 containsMacros=true；OLE 结构读不出时另按 encrypted=true（无法确认未加密），媒体类型能判就判。
  *
  * <p>PDF 的 /Encrypt 命中包括只设权限口令、仍可打开的文件，这里照实返回 encrypted=true，由上层按 ADR 处理。
  * 7z 的头部可加密，不解密无法确认，一律按无法确认返回 encrypted=true，由上层拒收。
@@ -70,7 +70,7 @@ final class ContentInspector {
 
     private static final byte[] ENCRYPT_MARK = "/Encrypt".getBytes(StandardCharsets.ISO_8859_1);
     private static final byte[] PDF_MARK = "%PDF-".getBytes(StandardCharsets.ISO_8859_1);
-    private static final Pattern RELATIONSHIP_ELEMENT = Pattern.compile("<(?:[\\w.-]+:)?Relationship\\s(?:[^>\"']|\"[^\"]*\"|'[^']*')*>");
+    private static final Pattern RELATIONSHIP_ELEMENT = Pattern.compile("<(?:[\\w.-]+:)?Relationship\\s(?:[^>\"']++|\"[^\"]*+\"|'[^']*+')*+>");
     private static final Pattern TARGET_MODE = Pattern.compile("TargetMode\\s*=\\s*[\"']([^\"']*)[\"']");
     private static final Pattern CHARACTER_REFERENCE = Pattern.compile("&#(?:[xX]([0-9a-fA-F]{1,6})|([0-9]{1,7}));");
     private static final Pattern HYPERLINK_TYPE = Pattern.compile("Type\\s*=\\s*[\"'][^\"']*/hyperlink[\"']");
@@ -101,7 +101,7 @@ final class ContentInspector {
                 case SEVEN_ZIP -> new Inspection(kind.mediaType, true, false);
                 default -> new Inspection(kind.mediaType, false, false);
             };
-        } catch (IOException | RuntimeException e) {
+        } catch (IOException | RuntimeException | StackOverflowError e) {
             // An OLE file whose structure cannot be read may be an encrypted OOXML package: refused as unconfirmable, never passed.
             return new Inspection(kind.mediaType, kind == Kind.OLE, true);
         }
