@@ -12,6 +12,7 @@
 - **one-quality 清空后告知**：交接里的 AskUserQuestion 门禁卡已撤（intent 2026-10-21-162433），改为 SESSION_PLAYBOOK §11 战队协作第 1 条结尾规则；#517 合入后交接钩子已覆盖全部会话。
 - **10-21 16:3x 用户重启电脑**：重启前 /private/tmp 下 15 个工作区的未提交改动已备份到 ~/.modernize/psa/reboot-backup-20261021/（<名>.tgz，INDEX.txt 记路径与分支；codex-wt-f=one-1a-par legacy-inbox-impl 43 个文件最要紧）；未推送提交在主仓库对象库不丢。重启后：通知 one-1a-par、one-quality 从备份恢复；one-merge 检查 launchd 队列与在途 CI 重跑；git worktree prune。
 - **ADR-0073 后续**：#501→#506→#508 须 one-architecture 逐个改基 main 后入队；ARC-1021-ARC-06 归 one-architecture（网络第一批后）；IMP-1021-ARC-01 挂到 W2 人事命令上线；DAT-1021-ARC-02 等收件箱「老系统法人维度」用户答复后派 one-data。
+- **本机性能（intent 2026-10-21-171238）**：监测结论——负载尖峰全来自推送前门禁 light_unit_tests（scripts/precheck.sh:360 推送模式不分改动都编译跑约 200 个单测，每次 5～6 核、约 4.8 GB）。one-quality 清空后第一优先：①没改 backend/ 跳过单测；②全机重活并发上限 2（锁）；③taskpolicy -b。CI 机器不减（用户「4 不做」）。工作区已清 109 个（60→37 GB）。待议：文档合集不等代码道（mq.py，问 one-merge）。用户自己在 Spotlight 隐私里排除仓库与 ~/.m2。
 - **收件箱 pending**：ADR-0073 U3/U4（关账期间错误处置、会签逾期升级对象）。
 - **调度自检补充**：验收裁定登记后立即加急合集（守护只认 main 上的裁定）；通知用户重启前查 ps 常驻进程与会话 Monitor；有条件批准时实现会话报条件满足即可入队。
 - 不得再犯：沿用下方旧条目（会话身份、原话核对、答复读备注、脚本统计先验证等）。
