@@ -52,6 +52,7 @@
 - 他人转达的用户原话先核实；用户决定当场记 intent（`new_intent.py --session=one-coordinator`）。全程中文。
 
 ## 会话
+- 10-21 归档：one-ops-calendar（日历导入完）、psa-gl-finance-review、psa-gl-scope（未推送提交备份到 origin/claude/psa-gl-scope @1b5cc823）、psa-review-quotation、psa-review-approval。one-arch-revenue/people/finance 用户定保留（「后面流程还用得到」）。
 - 画像与当前状态见 `SESSIONS.md`（`build_all.py` 生成；画像 `sessions/<会话名>.md`，已结束的在 `sessions/_retired.md`）；实时情况看 `ListAgents`（SESSION_PLAYBOOK §2.1 第 16 条）。
 
 ## 开场核对
