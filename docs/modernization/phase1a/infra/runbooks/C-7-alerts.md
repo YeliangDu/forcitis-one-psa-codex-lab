@@ -46,6 +46,21 @@ systemctl start one-cert-check.service; journalctl -u one-cert-check.service -n 
 
 回滚：`systemctl disable --now one-cert-check.timer`，删除两个单元文件与脚本。
 
+## ClamAV 健康检查（OPS-1021-OPS-02 第 6 条）
+
+| 项 | 内容 |
+|---|---|
+| 脚本 | `scripts/one_clamav_check.sh` → ECS `/usr/local/sbin/one_clamav_check.sh`（root 0755）；`files/one-clamav-check.service`、`files/one-clamav-check.timer` → `/etc/systemd/system/`；开机 2 分钟后起、之后每 5 分钟 |
+| 检查 | ① clamd 经 socket 的 PING；② clamd 回报的病毒库日期（库龄）；③ `forcitis-one-freshclam` 是否运行 |
+| 级别 | clamd 不应答（检测不可用，上传一律拒收）→ P1；库龄 > 48 小时（`ONE_CLAMAV_MAX_AGE_HOURS`）、读不到库日期、freshclam 未运行 → P2 |
+| 输出 | 一行 JSON 写 journal（标签 `one-clamav-check`）与 `/data/forcitis-one/logs/ops/clamav-check.json`；告警行以 `ALERT P1` / `ALERT P2` 开头，被 SLS 兜底规则捕获 |
+| 推送 | 经 `one_alert_send`；级别变化时发，持续告警每 6 小时（`ONE_CLAMAV_REMIND_HOURS`）重发，恢复只写日志；状态在 `/var/lib/one-clamav-check/last` |
+| 演练 | `ONE_CLAMAV_DRILL=1` 时推送级别用 TEST、消息前缀「演练」 |
+| 应用侧 | 健康检查端点把「库过期」当「不可用」由应用侧实现（卡第 6 条）；本脚本是运维侧告警 |
+| 回滚 | `systemctl disable --now one-clamav-check.timer`，删两个单元文件与脚本 |
+
+dev 演练（2026-10-21，ECS i-bp122xlpar8w2uylmal2，沿用既有 C-7 群机器人通道，三条「演练」消息）：脚本 SHA256 回读一致；停 clamd → `ALERT P1`、恢复后 OK；库龄阈值压到 0 小时 → `ALERT P2`、恢复 OK；停 freshclam → `ALERT P2`、恢复 OK；推送无失败记录。真实库龄超限需等库过期，无法在不改库的前提下制造，以阈值覆盖演练代替；真实场景由「freshclam 未运行」与库龄两条共同覆盖。
+
 ## 落地方案：哪些免费、哪些要花钱
 
 依据 2026-10-15 只读查询（`forcitis-production`，cn-hangzhou）：云监控只有一个联系人组「云账号报警联系人」、一条老系统 A8 的 RDS 探测规则，没有站点监控；ARMS 只有云监控 2.0 默认工作区自动建的三个 remote-write 实例，没有抓取 FORCITIS one 的任务；SLS 只有默认工作区、ARMS 托管、门户与操作审计四个 Project，没有 FORCITIS one 的 Project。新 ECS 未绑实例 RAM 角色。

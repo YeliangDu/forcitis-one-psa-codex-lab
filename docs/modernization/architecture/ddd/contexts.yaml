@@ -150,6 +150,23 @@ contexts:
   admission_due: W1 结束或首个使用 BC 开工，取早（ADR-0066 决定 7）
   review: 英文名 FileService，定名 2026-10-21 用户同意（bcs.yaml #496）；层名「基础层」暂定，待 one-glossary 终定 tier 取值
   evidence: ADR-0060 决定 1；ADR-0066 决定 2 第 3 条；backend 模块包与 module-dependencies.txt
+- id: platform.signing
+  zh: 签章服务
+  subdomain: platform
+  kind: platform
+  status: planned
+  schema: null
+  blueprint_bc: null
+  legacy_bc: null
+  basis: adr
+  tier: 公共服务层
+  owner: one-platform-file
+  adr:
+  - ADR-0064
+  admission: 待准入
+  admission_due: W1 结束或首个使用 BC 开工，取早（ADR-0066 决定 7）；准入判断在 one-platform-file 开工签章第一段时做
+  review: 英文名 SigningService，定名 2026-10-21 用户同意（bcs.yaml）；模块标识、schema、权限码前缀待 one-glossary 登记，登记前代码不落地（ADR-0064 决定 2 第 2 条）；owner 由 one-coordinator 2026-10-21 指派；层名「公共服务层」暂定，待 one-glossary 终定 tier 取值
+  evidence: ADR-0064；ADR-0066 决定 2 第 3 条（签章服务属公共服务层）、决定 7
 - id: operations.planning
   zh: 战略与经营计划 BC
   subdomain: operations
