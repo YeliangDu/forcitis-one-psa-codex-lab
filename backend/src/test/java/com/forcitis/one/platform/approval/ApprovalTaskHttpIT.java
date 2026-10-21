@@ -37,7 +37,7 @@ class ApprovalTaskHttpIT extends ApprovalIntegrationSupport {
         RequestPostProcessor approve = as(manager, Permission.Codes.PLATFORM_APPROVAL_TASK_APPROVE, Permission.Codes.PLATFORM_APPROVAL_TASK_READ);
 
         mvc.perform(get(BASE).with(approve)).andExpect(status().isOk()).andExpect(jsonPath("$.newCount").value(1))
-                .andExpect(jsonPath("$.items[0].source").value("NEW")).andExpect(jsonPath("$.items[0].taskId").value(task))
+                .andExpect(jsonPath("$.items[0].source").doesNotExist()).andExpect(jsonPath("$.items[0].taskId").value(task))
                 .andExpect(jsonPath("$.items[0].claimed").value(false));
         mvc.perform(post(BASE + "/" + task + ":claim").with(csrf()).with(currentEtag()).with(approve)).andExpect(status().isNoContent());
         mvc.perform(get(BASE + "/" + task).with(approve)).andExpect(status().isOk()).andExpect(jsonPath("$.assignee").value(TestAccounts.account(manager).value().toString()))

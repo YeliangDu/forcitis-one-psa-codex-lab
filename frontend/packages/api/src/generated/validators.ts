@@ -213,20 +213,16 @@ export const InboxItemResponseSchema = z.object({
   claimed: z.boolean(),
   createdAt: z.string().nullable().optional(),
   deadlineAt: z.string().nullable().optional(),
-  detailUrl: z.string().nullable().optional(),
   documentId: z.string().nullable().optional(),
   nodeName: z.string().nullable().optional(),
   overdue: z.boolean(),
   get processKey() { return ProcessKeySchema.optional(); },
-  source: z.string(),
   taskId: z.string(),
   title: z.string(),
 });
 
 export const InboxResponseSchema = z.object({
   get items() { return z.array(InboxItemResponseSchema); },
-  legacyAvailable: z.boolean(),
-  legacyCount: z.number().int(),
   newCount: z.number().int(),
   nextCursor: z.string().nullable().optional(),
   noticeCount: z.number().int(),
