@@ -131,3 +131,7 @@
 数据设计：通过（one-data，2026-10-21，依据 DATA_DESIGN_GATE、SESSION_PLAYBOOK §14.1 D6/D15/D17、ADR-0033 第 9 项、ADR-0072 @545c338f 与更正一至七）。
 
 范围：日历表结构的设计条件（根表、版本表按 K-2 形状、按天依据、确认须挂官方通知与加休登记、取消调休取值、四眼与迁入例外）。实际迁移与表结构 diff 出来后，我再复核实际 diff；那一步没做之前，不签表结构 PR。
+
+## 更正八（2026-10-21，列名按命名守护）
+
+日历版本表的 `decision_ref`（确认操作的审计记录 ID）改名 **`decision_audit_entry_id uuid`**：存的是审计记录的 uuid，`_key` 按 NAMING_STANDARD 只用于外部系统的文本标识，uuid 引用用 `_id`；命名守护也不允许裸 `decision_ref`。跨 schema 不建外键，确认后非空（迁入版本指核对签字的审计记录）。同一概念在别处存的若是 intent、法务答复、ADR 编号这类文本出处（如文件服务的保存类别版本），列名用 `decision_ref_key text`，两种写法在 D15 都算「决定出处」，扫描脚本 M6 都认。
