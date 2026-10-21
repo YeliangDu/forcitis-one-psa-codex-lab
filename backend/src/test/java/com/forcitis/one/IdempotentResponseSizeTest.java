@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.kernel.IdempotentResponses;
 import com.forcitis.one.platform.identity.api.Permission;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.RecordComponent;
@@ -133,6 +134,9 @@ class IdempotentResponseSizeTest {
         }
         if (type instanceof Class<?> raw && raw.isEnum()) {
             return Arrays.stream(raw.getEnumConstants()).max(Comparator.comparingInt(c -> c.toString().length())).orElseThrow();
+        }
+        if (type.equals(DocumentTypeCode.class)) {
+            return new DocumentTypeCode("A" + "B".repeat(39));
         }
         if (type instanceof Class<?> raw && raw.isRecord()) {
             return largest(raw);

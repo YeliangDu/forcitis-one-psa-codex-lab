@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
@@ -68,7 +68,7 @@ class RetractionInitiatorAccountsIT extends AccountsAcceptanceSupport {
         signIn(projectManager);
         maintainWorkCalendar(maintainerSession);
         LegalEntityId legalEntity = new LegalEntityId(createLegalEntity(maintainerSession, newLegalEntityCode("RI"), "Synthetic retraction"));
-        DocumentReference document = new DocumentReference(DocumentType.TIMESHEET, newDocumentId());
+        DocumentReference document = new DocumentReference(new DocumentTypeCode("TIMESHEET"), newDocumentId());
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "acceptance.timesheet-submission")) {
             approvals.start(new ApprovalStartRequest(ProcessKey.COST_TIMESHEET_APPROVAL, document, legalEntity, employeeIdOf(initiator), new RoundNumber(1),
                     UUID.randomUUID(), Set.of("projectHours"), List.of(new ApprovalField("projectManagerId", List.of(text(projectManager)))),
