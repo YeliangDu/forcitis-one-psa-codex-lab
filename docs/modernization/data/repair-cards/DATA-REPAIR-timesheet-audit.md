@@ -115,6 +115,7 @@ B 部分（one-1a-next-4）允许改动：
 | 19 | before_text / after_text | 无（全库唯一写入点 `AuditDomainEvents:56` 写 `null, null`） | 现在不写 | — | **现在一律不得写非空值**；将来写入按 U-7(b)：被变更字段自身的 L2 个人信息原值可写，L3 及以上与 `SPI` 不记，并在本表追加一行 |
 | 20 | detail | `SingleOperatorModeStartup`（启动审计 `platform.identity.single-operator-mode.enabled`，ADR-0030 第 1 节第 7 条） | 恰为 `profile=<profile 名>`；actor 为空；不写数据库名 | 否 | 允许（one-data 签发，SINGLE-OP P1） |
 | 21 | detail | `SingleOperatorMarks`（放宽项标注 `platform.identity.single-operator-mode.applied`，ADR-0030 第 2 项） | 恰为 `relaxation=<固定代码>`，代码取 `WITNESS_OMITTED`、`EMERGENCY_ACCOUNT_MINIMUM_ONE`、`SUPER_ADMIN_MINIMUM_ONE`（第四个 `TEMPLATE_VERSION_WITHOUT_AUTHOR` 随编号运维起草落地） | 否 | 允许（one-data 签发，SINGLE-OP P2） |
+| 22 | detail | `StoreAuditLog`（文件服务检测闸，ADR-0070 决定 2 第 4 条；one-platform-file 2026-10-21 新增，待 one-data 复核） | `sha256=<64 位十六进制> engine=<引擎版本> definitions=<病毒库版本> [threat=<特征名>] [uploader=<ONE_TIME_LINK\|PLATFORM_MODULE>:<自有 ID 或模块代码>]`；拒收为 `reason=<ENCRYPTED\|SCANNER_UNAVAILABLE\|OBJECT_STORE_UNAVAILABLE> [sha256=…] [uploader=…]`；不写原文件名、链接与异常文本 | 代理键 | 允许 |
 
   - 清单共 21 行（`detail` 19 行、`change_reason` 1 行、`before_text` / `after_text` 合 1 行）；覆盖全部 44 处 `new AuditEntry(`。所有写入点另受 `AuditEntry` 构造的既有限制：每段至多 2000 字，含 `password|secret|token|…=` 样式文本即拒绝（`AuditEntry.java:15-25`）。
   - **登记四列分级**（建议，待用户第 5 节待决 2 与 ADR-0043 实施 PR 的四段格式；落地前按本表视为已登记，C4 末句）：
