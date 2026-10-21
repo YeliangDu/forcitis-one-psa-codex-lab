@@ -445,12 +445,14 @@ tables:
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
+    writers: [platform.file]
   platform_file.file_holds:
     role: AGGREGATE_CHILD
     aggregate: StoredFile
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
+    writers: [platform.file]
   platform_file.file_preservations:
     # The current row of a file is the one with the highest preservation_sequence_number; read it through current_file_preservations only.
     role: AGGREGATE_CHILD
@@ -458,6 +460,7 @@ tables:
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
+    writers: [platform.file]
   platform_file.preservation_categories:
     role: CONFIG_VERSIONED
     aggregate: PreservationCategory
@@ -465,6 +468,7 @@ tables:
     versions_table: platform_file.preservation_category_versions
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
+    readers: [platform.file]
   platform_file.preservation_category_versions:
     # Inserted PENDING only (seed included) and confirmed once by another person; content never changes.
     role: AGGREGATE_CHILD
@@ -473,6 +477,7 @@ tables:
     condition: PENDING to CONFIRMED with the confirmation columns only (tg_preservation_category_versions_guard)
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
+    readers: [platform.file]
   platform_file.false_positive_judgments:
     role: AGGREGATE_ROOT
     aggregate: FalsePositiveJudgment

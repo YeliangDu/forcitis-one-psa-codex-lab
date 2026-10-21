@@ -127,6 +127,11 @@ categories:
   - cost.timesheet.TimesheetSubmitted
 - name: 文件
   actions:
+  - platform.file.stored-file.bound
+  - platform.file.stored-file.content-read
+  - platform.file.stored-file.download-link-issued
+  - platform.file.stored-file.hash-mismatch
+  - platform.file.stored-file.held
   - platform.file.stored-file.quarantined
   - platform.file.stored-file.released-by-exception
   - platform.file.stored-file.stored

@@ -1,9 +1,17 @@
 package com.forcitis.one.platform.file.infrastructure;
 
+import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.IdGenerator;
+import com.forcitis.one.platform.file.application.BindFile;
 import com.forcitis.one.platform.file.application.FileKeys;
+import com.forcitis.one.platform.file.application.HoldFile;
+import com.forcitis.one.platform.file.application.IssueDownloadLink;
+import com.forcitis.one.platform.file.application.ListDocumentFiles;
+import com.forcitis.one.platform.file.application.ReadFileContent;
 import com.forcitis.one.platform.file.application.StoreContent;
+import com.forcitis.one.platform.file.domain.BindingAudit;
 import com.forcitis.one.platform.file.domain.ContentChecks;
+import com.forcitis.one.platform.file.domain.FileBindingRepository;
 import com.forcitis.one.platform.file.domain.StoreAudit;
 import com.forcitis.one.platform.file.domain.StoredFileRepository;
 import com.forcitis.one.platform.integration.api.BusinessFileStore;
@@ -40,6 +48,33 @@ class FileServiceConfiguration {
                               PlatformTransactionManager transactions, MeterRegistry meters) {
         return new StoreContent(staging, scanner, checks, store, files, audit, new FileKeys(properties.environmentPrefix()),
                 new HashSet<>(properties.allowedMediaTypes()), ids, clock, transactions, meters);
+    }
+
+    @Bean
+    BindFile bindFile(FileBindingRepository bindings, BusinessFileStore store, BindingAudit audit, FileServiceProperties properties, Clock clock,
+                      BusinessZone zone, PlatformTransactionManager transactions, MeterRegistry meters) {
+        return new BindFile(bindings, store, audit, new FileKeys(properties.environmentPrefix()), clock, zone, transactions, meters);
+    }
+
+    @Bean
+    HoldFile holdFile(FileBindingRepository bindings, BindingAudit audit, Clock clock, PlatformTransactionManager transactions) {
+        return new HoldFile(bindings, audit, clock, transactions);
+    }
+
+    @Bean
+    IssueDownloadLink issueDownloadLink(FileBindingRepository bindings, BusinessFileStore store, BindingAudit audit, FileServiceProperties properties,
+                                        Clock clock) {
+        return new IssueDownloadLink(bindings, store, audit, properties.downloadLinkValidity(), properties.downloadLinkMaximumValidity(), clock);
+    }
+
+    @Bean
+    ListDocumentFiles listDocumentFiles(FileBindingRepository bindings) {
+        return new ListDocumentFiles(bindings);
+    }
+
+    @Bean
+    ReadFileContent readFileContent(FileBindingRepository bindings, BusinessFileStore store, BindingAudit audit, MeterRegistry meters) {
+        return new ReadFileContent(bindings, store, audit, meters);
     }
 
     /**
