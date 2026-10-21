@@ -1,16 +1,16 @@
 package com.forcitis.one.platform.approval.api;
 
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import java.util.Locale;
 
 /** One BPMN file per constant (processes/{key}.bpmn20.xml); constant = {SUBDOMAIN}_{BC}_{NAME} of the owning module (G47). */
 public enum ProcessKey {
-    COST_TIMESHEET_APPROVAL(true, DocumentType.TIMESHEET);
+    COST_TIMESHEET_APPROVAL(true, new DocumentTypeCode("TIMESHEET"));
 
     private final boolean routingFlagRequired;
-    private final DocumentType documentType;
+    private final DocumentTypeCode documentType;
 
-    ProcessKey(boolean routingFlagRequired, DocumentType documentType) {
+    ProcessKey(boolean routingFlagRequired, DocumentTypeCode documentType) {
         this.routingFlagRequired = routingFlagRequired;
         this.documentType = documentType;
     }
@@ -20,7 +20,7 @@ public enum ProcessKey {
         return routingFlagRequired;
     }
 
-    public DocumentType documentType() {
+    public DocumentTypeCode documentType() {
         return documentType;
     }
 

@@ -319,9 +319,15 @@ def stop_decision(root, entry, top, percent, now):
 
 
 def root_of(payload):
-    start = os.environ.get("CLAUDE_PROJECT_DIR") or payload.get("cwd") or os.getcwd()
-    top = subprocess.run(["git", "-C", start, "rev-parse", "--show-toplevel"], capture_output=True, text=True)
-    return top.stdout.strip() if top.returncode == 0 and top.stdout.strip() else start
+    # the desktop app starts a worktree session's hooks with CLAUDE_PROJECT_DIR = the main checkout; the session's own worktree is the hook input's cwd
+    cwd = payload.get("cwd")
+    candidates = [cwd] if isinstance(cwd, str) and cwd else []
+    candidates += [os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()]
+    for start in candidates:
+        top = subprocess.run(["git", "-C", start, "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+        if top.returncode == 0 and top.stdout.strip():
+            return top.stdout.strip()
+    return candidates[-1]
 
 
 def main():
@@ -548,12 +554,32 @@ def self_test():
         waiting.stdout.close()
         waiting.stderr.close()
 
-        # the project root comes from CLAUDE_PROJECT_DIR, not from the working directory of the call
+        # the project root is the session's own working directory; CLAUDE_PROJECT_DIR (the main checkout under the desktop app) is only the fallback
         elsewhere = os.path.join(tmp, "elsewhere")
         subprocess.run(["git", "init", "-q", elsewhere], check=True, capture_output=True)
         moved = subprocess.run([sys.executable, "-I", script_path], input=json.dumps(dict(payload, hook_event_name="PostToolUse", session_id="rooted", cwd=elsewhere)),
                                capture_output=True, text=True, env=environment)
-        assert moved.returncode == 0 and "rooted" in load_state(root) and not os.path.exists(os.path.join(elsewhere, STATE)), moved
+        assert moved.returncode == 0 and "rooted" in load_state(elsewhere) and "rooted" not in load_state(root), moved
+        main_checkout = os.path.join(tmp, "forcitis-one-psa")
+        subprocess.run(["git", "init", "-q", main_checkout], check=True, capture_output=True)
+        transcript(trans, 800)
+        named = subprocess.run([sys.executable, "-I", script_path], input=json.dumps(dict(payload, hook_event_name="PostToolUse", session_id="named", cwd=root)),
+                               capture_output=True, text=True, env=dict(environment, CLAUDE_PROJECT_DIR=main_checkout))
+        assert named.returncode == 0 and "sessions/one-test.md" in json.loads(named.stdout)["hookSpecificOutput"]["additionalContext"], named
+        assert "named" in load_state(root) and "named" not in load_state(main_checkout), "CLAUDE_PROJECT_DIR pointing at the main checkout must not decide the session"
+        plain = os.path.join(tmp, "not-a-repository")
+        os.makedirs(plain)
+        for label, cwd in (("a directory outside any repository", plain), ("a directory that does not exist", os.path.join(tmp, "gone")), ("a number", 123)):
+            outside = subprocess.run([sys.executable, "-I", script_path], input=json.dumps(dict(payload, hook_event_name="PostToolUse", session_id="outside", cwd=cwd)),
+                                     capture_output=True, text=True, env=environment)
+            assert outside.returncode == 0 and "outside" in load_state(root) and not os.path.exists(os.path.join(plain, STATE)), (label, outside)
+            state_path = os.path.join(root, STATE)
+            saved = load_state(root)
+            saved.pop("outside", None)
+            write(state_path, json.dumps(saved))
+        fallback = subprocess.run([sys.executable, "-I", script_path], input=json.dumps(dict(payload, hook_event_name="PostToolUse", session_id="fallback")),
+                                  capture_output=True, text=True, env=environment)
+        assert fallback.returncode == 0 and "fallback" in load_state(root), fallback
 
         # session name: unrecognised session is reported, never blocks
         other = os.path.join(tmp, "somewhere-else")

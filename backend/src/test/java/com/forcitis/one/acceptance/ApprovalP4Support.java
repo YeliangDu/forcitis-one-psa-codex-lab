@@ -7,7 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.WorkContext;
@@ -129,7 +129,7 @@ public abstract class ApprovalP4Support extends AccountsAcceptanceSupport {
     }
 
     protected static DocumentReference newDocument() {
-        return new DocumentReference(DocumentType.TIMESHEET, documentIdOf(UUID.randomUUID()));
+        return new DocumentReference(new DocumentTypeCode("TIMESHEET"), documentIdOf(UUID.randomUUID()));
     }
 
     protected static UUID uuidOf(DocumentReference document) {

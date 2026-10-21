@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.numbering.api;
 
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.ValueObject;
 import java.util.Optional;
 
@@ -9,6 +9,6 @@ import java.util.Optional;
  * pending is the version waiting for confirmation, if any (a confirmed rule keeps issuing with its version in force meanwhile).
  */
 @ValueObject
-public record NumberingRuleView(DocumentType documentType, Optional<String> typeCode, long version, ConfirmationStatus confirmation,
+public record NumberingRuleView(DocumentTypeCode documentType, Optional<String> numberCode, long version, ConfirmationStatus confirmation,
         boolean requiresFinanceConfirmation, NumberingTemplateView template, Optional<NumberingTemplateView> pending) {
 }
