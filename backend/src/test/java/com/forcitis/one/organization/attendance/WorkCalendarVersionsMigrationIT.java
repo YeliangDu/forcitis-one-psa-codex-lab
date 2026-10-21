@@ -10,7 +10,10 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
+import java.time.DayOfWeek;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.temporal.TemporalAdjusters;
 import java.util.UUID;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
@@ -43,6 +46,12 @@ class WorkCalendarVersionsMigrationIT {
     static final LocalDate SUNDAY = LocalDate.of(2026, 10, 4);
     static final LocalDate MONDAY = LocalDate.of(2026, 10, 5);
     static final String NOTICE_URL = "https://www.gov.cn/zhengce/notice";
+    /** The confirmation day is the database's own day, so the dates of the no-retroactivity cases hang on the year after today's. */
+    static final LocalDate TODAY = LocalDate.now(ZoneId.of("Asia/Shanghai"));
+    static final int NEXT_YEAR = TODAY.getYear() + 1;
+    static final LocalDate JANUARY_SATURDAY = LocalDate.of(NEXT_YEAR, 1, 1).with(TemporalAdjusters.firstInMonth(DayOfWeek.SATURDAY));
+    static final LocalDate MARCH_SATURDAY = LocalDate.of(NEXT_YEAR, 3, 1).with(TemporalAdjusters.firstInMonth(DayOfWeek.SATURDAY));
+    static final LocalDate DECEMBER_SATURDAY = LocalDate.of(NEXT_YEAR, 12, 1).with(TemporalAdjusters.firstInMonth(DayOfWeek.SATURDAY));
 
     @BeforeAll
     static void migrate() {
@@ -82,13 +91,17 @@ class WorkCalendarVersionsMigrationIT {
     }
 
     private static UUID version(Connection db, UUID calendar, int number, String sourceKind, LocalDate from) throws SQLException {
+        return versionOf(db, calendar, 2026, number, sourceKind, from);
+    }
+
+    private static UUID versionOf(Connection db, UUID calendar, int year, int number, String sourceKind, LocalDate from) throws SQLException {
         UUID id = UUID.randomUUID();
         boolean migration = sourceKind.equals("MIGRATION");
         run(db, """
                 insert into organization_attendance.work_calendar_versions (id, work_calendar_id, year_number, version_number, confirmation_status, source_kind, effective_from_date,
                        authored_by, authored_at, created_at, updated_at)
-                values (?, ?, 2026, ?, 'PENDING_CONFIRMATION', ?, ?, ?, ?, ?, ?)
-                """, id, calendar, number, sourceKind, from, migration ? null : AUTHOR, migration ? null : AUTHORED_AT, AUTHORED_AT, AUTHORED_AT);
+                values (?, ?, ?, ?, 'PENDING_CONFIRMATION', ?, ?, ?, ?, ?, ?)
+                """, id, calendar, year, number, sourceKind, from, migration ? null : AUTHOR, migration ? null : AUTHORED_AT, AUTHORED_AT, AUTHORED_AT);
         return id;
     }
 
@@ -191,7 +204,7 @@ class WorkCalendarVersionsMigrationIT {
             refused(CHECK_VIOLATION, "ck_work_calendar_versions_official_notice_number", () -> confirmWith(db, version, " ", NOTICE_URL, "NONE", null));
             refused(CHECK_VIOLATION, "ck_work_calendar_versions_company_leave_register_key", () -> confirmWith(db, version, "n", NOTICE_URL, "REGISTERED", null));
             refused(CHECK_VIOLATION, "ck_work_calendar_versions_company_leave_register_key", () -> confirmWith(db, version, "n", NOTICE_URL, "NONE", "a-key"));
-            refused(RESTRICT_VIOLATION, "can only be confirmed once", () -> run(db,
+            refused(RESTRICT_VIOLATION, "can only be confirmed or withdrawn once", () -> run(db,
                     "update organization_attendance.work_calendar_versions set official_notice_url = ? where id = ?", NOTICE_URL, version));
             confirm(db, version, CONFIRMER, CONFIRMED_AT, "NONE");
             assertThat(text(db, "select confirmation_status from organization_attendance.work_calendar_versions where id = ?", version)).isEqualTo("CONFIRMED");
@@ -203,8 +216,8 @@ class WorkCalendarVersionsMigrationIT {
     void aConfirmedVersionIsFrozenAndTakesNoMoreDays() throws Exception {
         try (Connection db = connect()) {
             UUID version = confirmedFirstVersion(db, calendar(db), LocalDate.of(2026, 1, 1));
-            refused(RESTRICT_VIOLATION, "can only be confirmed once", () -> run(db, "update organization_attendance.work_calendar_versions set effective_to_date = '2026-12-31' where id = ?", version));
-            refused(RESTRICT_VIOLATION, "can only be confirmed once", () -> run(db, "update organization_attendance.work_calendar_versions set official_notice_number = 'x' where id = ?", version));
+            refused(RESTRICT_VIOLATION, "can only be confirmed or withdrawn once", () -> run(db, "update organization_attendance.work_calendar_versions set effective_to_date = '2026-12-31' where id = ?", version));
+            refused(RESTRICT_VIOLATION, "can only be confirmed or withdrawn once", () -> run(db, "update organization_attendance.work_calendar_versions set official_notice_number = 'x' where id = ?", version));
             refused(RESTRICT_VIOLATION, "append-only", () -> run(db, "delete from organization_attendance.work_calendar_versions where id = ?", version));
             refused(RESTRICT_VIOLATION, "truncate on organization_attendance.work_calendar_versions", () -> run(db, "truncate table organization_attendance.work_calendar_versions cascade"));
             refused(CHECK_VIOLATION, "waits for confirmation", () -> day(db, version, SUNDAY, "HOLIDAY", "OFFICIAL", null, null));
@@ -258,51 +271,110 @@ class WorkCalendarVersionsMigrationIT {
         }
     }
 
+    private static UUID confirmedFirstOfNextYear(Connection db, UUID calendar) throws SQLException {
+        UUID first = versionOf(db, calendar, NEXT_YEAR, 1, "AUTHORED", LocalDate.of(NEXT_YEAR, 1, 1));
+        day(db, first, JANUARY_SATURDAY, "HOLIDAY", "OFFICIAL", null, null);
+        confirm(db, first, CONFIRMER, CONFIRMED_AT, "NONE");
+        return first;
+    }
+
     @Test
-    @DisplayName("不追溯：第 2 版起生效日不得早于确认日，生效日之前的例外日必须与上一版本一致；确认新版本关闭上一版本；首版不受限")
+    @DisplayName("不追溯：确认日取库的事务时间，生效日不得早于它（倒填 confirmed_at 无用），生效日之前的例外日必须与上一版本一致；确认新版本关闭上一版本")
     void aNewVersionDoesNotActOnThePastAndClosesThePreviousOne() throws Exception {
+        LocalDate midYear = LocalDate.of(NEXT_YEAR, 6, 1);
         try (Connection db = connect()) {
             UUID calendar = calendar(db);
-            UUID first = confirmedFirstVersion(db, calendar, LocalDate.of(2026, 1, 1));
-            assertThat(text(db, "select effective_to_date::text from organization_attendance.work_calendar_versions where id = ?", first)).isNull();
-
-            UUID early = version(db, calendar, 2, "AUTHORED", LocalDate.of(2026, 6, 1));
-            day(db, early, SATURDAY, "HOLIDAY", "OFFICIAL", null, null);
-            OffsetDateTime afterTheEffectiveDay = OffsetDateTime.parse("2026-06-10T04:00:00Z");
-            refused(CHECK_VIOLATION, "earlier than the confirmation day", () -> confirm(db, early, CONFIRMER, afterTheEffectiveDay, "NONE"));
+            confirmedFirstOfNextYear(db, calendar);
+            UUID backdated = versionOf(db, calendar, NEXT_YEAR, 2, "AUTHORED", TODAY.minusDays(1));
+            day(db, backdated, JANUARY_SATURDAY, "HOLIDAY", "OFFICIAL", null, null);
+            refused(CHECK_VIOLATION, "earlier than the confirmation day", () -> confirm(db, backdated, CONFIRMER, TODAY.minusDays(30).atStartOfDay().atOffset(java.time.ZoneOffset.UTC), "NONE"));
         }
         try (Connection db = connect()) {
             UUID calendar = calendar(db);
-            UUID first = confirmedFirstVersion(db, calendar, LocalDate.of(2026, 1, 1));
-            UUID rewritesThePast = version(db, calendar, 2, "AUTHORED", LocalDate.of(2026, 11, 1));
-            day(db, rewritesThePast, SUNDAY, "HOLIDAY", "OFFICIAL", null, null);
+            confirmedFirstOfNextYear(db, calendar);
+            UUID rewritesThePast = versionOf(db, calendar, NEXT_YEAR, 2, "AUTHORED", midYear);
+            day(db, rewritesThePast, JANUARY_SATURDAY, "HOLIDAY", "OFFICIAL", null, null);
+            day(db, rewritesThePast, MARCH_SATURDAY, "HOLIDAY", "OFFICIAL", null, null);
             refused(CHECK_VIOLATION, "differ from the previous version", () -> confirm(db, rewritesThePast, CONFIRMER, CONFIRMED_AT, "NONE"));
         }
         try (Connection db = connect()) {
             UUID calendar = calendar(db);
-            UUID first = confirmedFirstVersion(db, calendar, LocalDate.of(2026, 1, 1));
-            UUID second = version(db, calendar, 2, "AUTHORED", LocalDate.of(2026, 11, 1));
-            day(db, second, SATURDAY, "HOLIDAY", "OFFICIAL", null, null);
-            day(db, second, LocalDate.of(2026, 11, 7), "HOLIDAY", "OFFICIAL", null, null);
-            confirm(db, second, CONFIRMER, CONFIRMED_AT, "NONE");
-            assertThat(text(db, "select effective_to_date::text from organization_attendance.work_calendar_versions where id = ?", first))
-                    .as("the previous version ends where the new one starts").isEqualTo("2026-11-01");
-            assertThat(text(db, "select effective_to_date::text from organization_attendance.work_calendar_versions where id = ?", second)).isNull();
-            refused(RESTRICT_VIOLATION, "can only be confirmed once", () -> run(db,
-                    "update organization_attendance.work_calendar_versions set effective_to_date = '2026-12-01' where id = ?", first));
-
-            UUID startsBeforeTheOpenOne = version(db, calendar, 3, "AUTHORED", LocalDate.of(2025, 12, 1));
-            day(db, startsBeforeTheOpenOne, SATURDAY, "HOLIDAY", "OFFICIAL", null, null);
-            refused(CHECK_VIOLATION, "earlier than the confirmation day", () -> confirm(db, startsBeforeTheOpenOne, CONFIRMER, CONFIRMED_AT, "NONE"));
-            refused(CHECK_VIOLATION, "ck_work_calendar_versions_effective_range", () -> confirm(db, startsBeforeTheOpenOne, CONFIRMER, OffsetDateTime.parse("2025-11-20T04:00:00Z"), "NONE"));
+            confirmedFirstOfNextYear(db, calendar);
+            UUID changesBasisOnly = versionOf(db, calendar, NEXT_YEAR, 2, "AUTHORED", midYear);
+            day(db, changesBasisOnly, JANUARY_SATURDAY, "HOLIDAY", "COMPANY", null, null);
+            refused(CHECK_VIOLATION, "differ from the previous version", () -> confirm(db, changesBasisOnly, CONFIRMER, CONFIRMED_AT, "REGISTERED"));
         }
         try (Connection db = connect()) {
             UUID calendar = calendar(db);
-            UUID first = version(db, calendar, 1, "AUTHORED", LocalDate.of(2020, 1, 1));
-            confirm(db, first, CONFIRMER, OffsetDateTime.parse("2026-06-10T04:00:00Z"), "NONE");
-            assertThat(text(db, "select confirmation_status from organization_attendance.work_calendar_versions where id = ?", first))
-                    .as("the first version may start in the past").isEqualTo("CONFIRMED");
+            UUID first = confirmedFirstOfNextYear(db, calendar);
+            assertThat(text(db, "select effective_to_date::text from organization_attendance.work_calendar_versions where id = ?", first)).isNull();
+            UUID second = versionOf(db, calendar, NEXT_YEAR, 2, "AUTHORED", midYear);
+            day(db, second, JANUARY_SATURDAY, "HOLIDAY", "OFFICIAL", null, null);
+            day(db, second, DECEMBER_SATURDAY, "HOLIDAY", "OFFICIAL", null, null);
+            confirm(db, second, CONFIRMER, CONFIRMED_AT, "NONE");
+            assertThat(text(db, "select effective_to_date::text from organization_attendance.work_calendar_versions where id = ?", first))
+                    .as("the previous version ends where the new one starts").isEqualTo(midYear.toString());
+            assertThat(text(db, "select effective_to_date::text from organization_attendance.work_calendar_versions where id = ?", second)).isNull();
+            refused(RESTRICT_VIOLATION, "can only be confirmed or withdrawn once", () -> run(db,
+                    "update organization_attendance.work_calendar_versions set effective_to_date = ? where id = ?", midYear.plusDays(1), first));
         }
+    }
+
+    @Test
+    @DisplayName("首个已确认版本不得晚于该年 1 月 1 日：第 1 版有 CHECK，前面的版本都撤回后的首个已确认版本由触发器管")
+    void theFirstConfirmedVersionCoversTheStartOfTheYear() throws Exception {
+        try (Connection db = connect()) {
+            UUID calendar = calendar(db);
+            refused(CHECK_VIOLATION, "ck_work_calendar_versions_first_version_covers_year", () -> versionOf(db, calendar, 2026, 1, "AUTHORED", LocalDate.of(2026, 1, 2)));
+            UUID first = versionOf(db, calendar, 2026, 1, "AUTHORED", LocalDate.of(2026, 1, 1));
+            withdraw(db, first, AUTHOR, "wrong year start");
+            UUID second = versionOf(db, calendar, 2026, 2, "AUTHORED", TODAY.plusDays(5));
+            day(db, second, SATURDAY, "HOLIDAY", "OFFICIAL", null, null);
+            refused(CHECK_VIOLATION, "starts on 1 January at the latest", () -> confirm(db, second, CONFIRMER, CONFIRMED_AT, "NONE"));
+        }
+        try (Connection db = connect()) {
+            UUID calendar = calendar(db);
+            withdraw(db, version(db, calendar, 1, "AUTHORED", LocalDate.of(2026, 1, 1)), AUTHOR, "redo");
+            UUID second = version(db, calendar, 2, "AUTHORED", LocalDate.of(2026, 1, 1));
+            day(db, second, SATURDAY, "HOLIDAY", "OFFICIAL", null, null);
+            confirm(db, second, CONFIRMER, CONFIRMED_AT, "NONE");
+            assertThat(text(db, "select confirmation_status from organization_attendance.work_calendar_versions where id = ?", second)).isEqualTo("CONFIRMED");
+        }
+    }
+
+    private static void withdraw(Connection db, UUID version, UUID by, String reason) throws SQLException {
+        run(db, """
+                update organization_attendance.work_calendar_versions set confirmation_status = 'WITHDRAWN', withdrawn_by = ?, withdrawn_at = ?, withdraw_reason_text = ? where id = ?
+                """, by, CONFIRMED_AT, reason, version);
+    }
+
+    @Test
+    @DisplayName("撤回：待确认可撤回成终态，撤回要有人、时间和原因，已确认不能撤回，撤回后不能再确认或加日期，版本号不回收且不占待确认名额")
+    void aPendingVersionCanBeWithdrawnAndOnlyThat() throws Exception {
+        try (Connection db = connect()) {
+            UUID calendar = calendar(db);
+            UUID first = version(db, calendar, 1, "AUTHORED", LocalDate.of(2026, 1, 1));
+            refused(CHECK_VIOLATION, "ck_work_calendar_versions_withdrawal_columns", () -> run(db,
+                    "update organization_attendance.work_calendar_versions set confirmation_status = 'WITHDRAWN' where id = ?", first));
+            refused(CHECK_VIOLATION, "ck_work_calendar_versions_withdrawal_columns", () -> withdraw(db, first, AUTHOR, " padded "));
+            refused(RESTRICT_VIOLATION, "can only be confirmed or withdrawn once", () -> run(db,
+                    "update organization_attendance.work_calendar_versions set withdrawn_by = ?, withdrawn_at = ?, withdraw_reason_text = 'x' where id = ?", AUTHOR, CONFIRMED_AT, first));
+            withdraw(db, first, AUTHOR, "录错了例外日");
+            assertThat(text(db, "select confirmation_status from organization_attendance.work_calendar_versions where id = ?", first)).isEqualTo("WITHDRAWN");
+
+            refused(RESTRICT_VIOLATION, "can only be confirmed or withdrawn once", () -> confirm(db, first, CONFIRMER, CONFIRMED_AT, "NONE"));
+            refused(RESTRICT_VIOLATION, "can only be confirmed or withdrawn once", () -> withdraw(db, first, AUTHOR, "again"));
+            refused(CHECK_VIOLATION, "waits for confirmation", () -> day(db, first, SATURDAY, "HOLIDAY", "OFFICIAL", null, null));
+            refused(CHECK_VIOLATION, "version_number must be 2", () -> version(db, calendar, 1, "AUTHORED", LocalDate.of(2026, 1, 1)));
+            UUID second = version(db, calendar, 2, "AUTHORED", LocalDate.of(2026, 1, 1));
+            confirmedMeansNoWithdrawal(db, second);
+        }
+    }
+
+    private static void confirmedMeansNoWithdrawal(Connection db, UUID version) throws SQLException {
+        day(db, version, SATURDAY, "HOLIDAY", "OFFICIAL", null, null);
+        confirm(db, version, CONFIRMER, CONFIRMED_AT, "NONE");
+        refused(RESTRICT_VIOLATION, "can only be confirmed or withdrawn once", () -> withdraw(db, version, AUTHOR, "too late"));
     }
 
     @Test
@@ -346,7 +418,7 @@ class WorkCalendarVersionsMigrationIT {
                         end $$
                         """);
                 run(runtime, "create trigger spoof_close before insert on spoof for each row execute function pg_temp.close_it()");
-                refused(RESTRICT_VIOLATION, "can only be confirmed once", () -> run(runtime, "insert into spoof values (?)", confirmed));
+                refused(RESTRICT_VIOLATION, "can only be confirmed or withdrawn once", () -> run(runtime, "insert into spoof values (?)", confirmed));
             }
             assertThat(text(db, "select effective_to_date::text from organization_attendance.work_calendar_versions where id = ?", confirmed)).isNull();
             run(db, "drop owned by " + application);
@@ -390,6 +462,9 @@ class WorkCalendarVersionsMigrationIT {
             day(db, migrated, SATURDAY, "HOLIDAY", "OFFICIAL", null, null);
             refused(CHECK_VIOLATION, "ck_work_calendar_versions_confirmation_columns", () -> confirm(db, migrated, CONFIRMER, CONFIRMED_AT, "NONE"));
             try (Connection runtime = DriverManager.getConnection(postgres.getJdbcUrl(), application, password)) {
+                refused(INSUFFICIENT_PRIVILEGE, "owner role", () -> run(runtime, """
+                        update organization_attendance.work_calendar_versions set confirmation_status = 'WITHDRAWN', withdrawn_by = ?, withdrawn_at = ?, withdraw_reason_text = 'x' where id = ?
+                        """, AUTHOR, CONFIRMED_AT, migrated));
                 refused(INSUFFICIENT_PRIVILEGE, "owner role", () -> run(runtime, """
                         update organization_attendance.work_calendar_versions set confirmation_status = 'CONFIRMED', confirmed_at = ?, decision_audit_entry_id = ?,
                                official_notice_number = 'n', official_notice_url = ?, company_leave_register_kind = 'NONE' where id = ?

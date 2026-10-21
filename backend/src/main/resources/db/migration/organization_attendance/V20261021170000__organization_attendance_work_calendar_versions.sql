@@ -32,7 +32,7 @@ CREATE TABLE organization_attendance.work_calendar_versions (
     work_calendar_id            uuid        NOT NULL,
     year_number                 integer     NOT NULL CONSTRAINT ck_work_calendar_versions_year_number CHECK (year_number BETWEEN 2000 AND 2100),
     version_number              integer     NOT NULL CONSTRAINT ck_work_calendar_versions_version_number CHECK (version_number >= 1),
-    confirmation_status         text        NOT NULL CONSTRAINT ck_work_calendar_versions_confirmation_status CHECK (confirmation_status IN ('PENDING_CONFIRMATION', 'CONFIRMED')),
+    confirmation_status         text        NOT NULL CONSTRAINT ck_work_calendar_versions_confirmation_status CHECK (confirmation_status IN ('PENDING_CONFIRMATION', 'CONFIRMED', 'WITHDRAWN')),
     source_kind                 text        NOT NULL CONSTRAINT ck_work_calendar_versions_source_kind CHECK (source_kind IN ('AUTHORED', 'MIGRATION')),
     effective_from_date         date        NOT NULL,
     effective_to_date           date,
@@ -45,6 +45,9 @@ CREATE TABLE organization_attendance.work_calendar_versions (
     official_notice_url         text,
     company_leave_register_kind text CONSTRAINT ck_work_calendar_versions_company_leave_register_kind CHECK (company_leave_register_kind IN ('REGISTERED', 'NONE')),
     company_leave_register_key  text,
+    withdrawn_by                uuid,
+    withdrawn_at                timestamptz,
+    withdraw_reason_text        text,
     created_at                  timestamptz NOT NULL,
     updated_at                  timestamptz NOT NULL,
     CONSTRAINT pk_work_calendar_versions PRIMARY KEY (id),
@@ -60,7 +63,13 @@ CREATE TABLE organization_attendance.work_calendar_versions (
     CONSTRAINT ck_work_calendar_versions_confirmation_columns CHECK (
         (confirmation_status = 'PENDING_CONFIRMATION' AND confirmed_by IS NULL AND confirmed_at IS NULL AND decision_audit_entry_id IS NULL)
         OR (confirmation_status = 'CONFIRMED' AND confirmed_at IS NOT NULL AND decision_audit_entry_id IS NOT NULL
-            AND (confirmed_by IS NOT NULL) = (source_kind <> 'MIGRATION'))),
+            AND (confirmed_by IS NOT NULL) = (source_kind <> 'MIGRATION'))
+        OR (confirmation_status = 'WITHDRAWN' AND confirmed_by IS NULL AND confirmed_at IS NULL AND decision_audit_entry_id IS NULL)),
+    CONSTRAINT ck_work_calendar_versions_withdrawal_columns CHECK (
+        (confirmation_status = 'WITHDRAWN') = (withdrawn_by IS NOT NULL)
+        AND (withdrawn_by IS NULL) = (withdrawn_at IS NULL) AND (withdrawn_by IS NULL) = (withdraw_reason_text IS NULL)
+        AND (withdraw_reason_text IS NULL OR (withdraw_reason_text = btrim(withdraw_reason_text) AND char_length(withdraw_reason_text) BETWEEN 1 AND 500))),
+    CONSTRAINT ck_work_calendar_versions_first_version_covers_year CHECK (version_number <> 1 OR effective_from_date <= make_date(year_number, 1, 1)),
     CONSTRAINT ck_work_calendar_versions_confirmed_after_authored CHECK (authored_at IS NULL OR confirmed_at IS NULL OR confirmed_at >= authored_at),
     CONSTRAINT ck_work_calendar_versions_confirmed_has_evidence CHECK (
         confirmation_status <> 'CONFIRMED'
@@ -80,9 +89,9 @@ COMMENT ON COLUMN organization_attendance.work_calendar_versions.id IS '工作�
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.work_calendar_id IS '工作日历 ID：所属日历';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.year_number IS '日历年份';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.version_number IS '版本号：同一日历同一年份从 1 起逐个加 1；迁入版本恒为 1';
-COMMENT ON COLUMN organization_attendance.work_calendar_versions.confirmation_status IS '确认状态：PENDING_CONFIRMATION 待确认（不生效，同一日历同一年份至多一个）/ CONFIRMED 已确认（生效，按生效区间取用）；只能由待确认改成已确认';
+COMMENT ON COLUMN organization_attendance.work_calendar_versions.confirmation_status IS '确认状态：PENDING_CONFIRMATION 待确认（不生效，同一日历同一年份至多一个）/ CONFIRMED 已确认（生效，按生效区间取用）/ WITHDRAWN 已撤回（终态，版本号不回收）；只能由待确认改成已确认或已撤回';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.source_kind IS '来源类别：AUTHORED 界面或运维起草（有作者，确认人不得是作者）/ MIGRATION 迁入（作者与确认人为空，只能由库的属主身份写入，恒为第 1 版）';
-COMMENT ON COLUMN organization_attendance.work_calendar_versions.effective_from_date IS '生效日（含）：此日及以后取本版本；第 1 版以外的版本不得早于确认日，且此日之前的例外日必须与上一版本一致（不追溯）';
+COMMENT ON COLUMN organization_attendance.work_calendar_versions.effective_from_date IS '生效日（含）：此日及以后取本版本；首个已确认版本以外的版本不得早于确认日（按库的事务时间取日），且此日之前的例外日必须与上一版本一致（不追溯）；第 1 版不得晚于该年 1 月 1 日';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.effective_to_date IS '生效截止日（不含）；为空表示仍然开放。下一版本确认时由库自动关闭上一版本，其余时候不可改';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.authored_by IS '作者的用户账号 ID；来源为迁入时为空（迁入没有作者）';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.authored_at IS '起草时间；与作者同时有、同时空';
@@ -93,6 +102,9 @@ COMMENT ON COLUMN organization_attendance.work_calendar_versions.official_notice
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.official_notice_url IS '官方通知链接（https）；起草时可为空表示尚未挂，确认时必填';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.company_leave_register_kind IS '公司加休登记类别：REGISTERED 已登记（见登记键）/ NONE 登记为没有加休；为空表示尚未登记（确认时必填）。有公司加休或取消调休的日期时只能是 REGISTERED';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.company_leave_register_key IS '公司加休登记键：已登记时填登记的标识文本；为空表示登记类别不是已登记';
+COMMENT ON COLUMN organization_attendance.work_calendar_versions.withdrawn_by IS '撤回人的用户账号 ID；为空表示未撤回';
+COMMENT ON COLUMN organization_attendance.work_calendar_versions.withdrawn_at IS '撤回时间；为空表示未撤回';
+COMMENT ON COLUMN organization_attendance.work_calendar_versions.withdraw_reason_text IS '撤回原因；为空表示未撤回，撤回时必填';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.created_at IS '创建时间（由应用写入）';
 COMMENT ON COLUMN organization_attendance.work_calendar_versions.updated_at IS '更新时间（行只追加，由应用写入，等于创建时间；版本表的确认不改它，确认时间看 confirmed_at）';
 
@@ -168,6 +180,9 @@ BEGIN
     IF NEW.confirmation_status <> 'PENDING_CONFIRMATION' THEN
         RAISE EXCEPTION 'a calendar version starts as PENDING_CONFIRMATION and is confirmed afterwards' USING ERRCODE = 'check_violation';
     END IF;
+    IF NEW.effective_to_date IS NOT NULL THEN
+        RAISE EXCEPTION 'a new calendar version is open: effective_to_date is set when the next version is confirmed' USING ERRCODE = 'check_violation';
+    END IF;
     PERFORM organization_attendance.require_owner_for_migration_version(NEW);
     SELECT max(version_number) INTO latest FROM organization_attendance.work_calendar_versions
         WHERE work_calendar_id = NEW.work_calendar_id AND year_number = NEW.year_number;
@@ -183,7 +198,9 @@ DECLARE
     -- 确认时允许一起写入的列：状态、确认三列、官方通知与公司加休登记。其余列确认后与确认前一致。
     confirmation_columns text[] := ARRAY['confirmation_status', 'confirmed_by', 'confirmed_at', 'decision_audit_entry_id', 'official_notice_number',
             'official_notice_url', 'company_leave_register_kind', 'company_leave_register_key'];
+    withdrawal_columns text[] := ARRAY['confirmation_status', 'withdrawn_by', 'withdrawn_at', 'withdraw_reason_text'];
     previous organization_attendance.work_calendar_versions;
+    confirmation_day date := (transaction_timestamp() AT TIME ZONE 'Asia/Shanghai')::date;
     day_conflict boolean;
     closed integer;
 BEGIN
@@ -195,14 +212,20 @@ BEGIN
     IF pg_trigger_depth() > 1 AND OLD.confirmation_status = 'CONFIRMED' AND OLD.effective_to_date IS NULL AND NEW.effective_to_date IS NOT NULL
             AND (to_jsonb(NEW) - 'effective_to_date') = (to_jsonb(OLD) - 'effective_to_date')
             AND EXISTS (SELECT 1 FROM organization_attendance.work_calendar_versions successor
-                WHERE successor.work_calendar_id = OLD.work_calendar_id AND successor.year_number = OLD.year_number AND successor.version_number = OLD.version_number + 1
+                WHERE successor.work_calendar_id = OLD.work_calendar_id AND successor.year_number = OLD.year_number AND successor.version_number > OLD.version_number
                   AND successor.confirmation_status = 'PENDING_CONFIRMATION' AND successor.effective_from_date = NEW.effective_to_date) THEN
+        RETURN NEW;
+    END IF;
+
+    IF OLD.confirmation_status = 'PENDING_CONFIRMATION' AND NEW.confirmation_status = 'WITHDRAWN'
+            AND (to_jsonb(NEW) - withdrawal_columns) = (to_jsonb(OLD) - withdrawal_columns) THEN
+        PERFORM organization_attendance.require_owner_for_migration_version(NEW);
         RETURN NEW;
     END IF;
 
     IF NOT (OLD.confirmation_status = 'PENDING_CONFIRMATION' AND NEW.confirmation_status = 'CONFIRMED'
             AND (to_jsonb(NEW) - confirmation_columns) = (to_jsonb(OLD) - confirmation_columns)) THEN
-        RAISE EXCEPTION 'a calendar version can only be confirmed once; nothing else of it changes: %.%', TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
+        RAISE EXCEPTION 'a calendar version can only be confirmed or withdrawn once; nothing else of it changes: %.%', TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
     END IF;
 
     PERFORM organization_attendance.require_owner_for_migration_version(NEW);
@@ -213,13 +236,17 @@ BEGIN
         RAISE EXCEPTION 'a version with company leave or cancelled make-up days needs company_leave_register_kind REGISTERED' USING ERRCODE = 'check_violation';
     END IF;
 
-    IF NEW.version_number > 1 THEN
-        SELECT * INTO previous FROM organization_attendance.work_calendar_versions
-            WHERE work_calendar_id = NEW.work_calendar_id AND year_number = NEW.year_number AND version_number = NEW.version_number - 1;
-        IF previous.id IS NULL OR previous.confirmation_status <> 'CONFIRMED' THEN
-            RAISE EXCEPTION 'version % cannot be confirmed before the version below it is confirmed', NEW.version_number USING ERRCODE = 'check_violation';
+    -- 上一版本 = 同日历同年版本号最大的已确认版本（撤回的版本不算）；没有就是这一年的第一个已确认版本。
+    SELECT * INTO previous FROM organization_attendance.work_calendar_versions
+        WHERE work_calendar_id = NEW.work_calendar_id AND year_number = NEW.year_number AND confirmation_status = 'CONFIRMED' AND version_number < NEW.version_number
+        ORDER BY version_number DESC LIMIT 1;
+    IF previous.id IS NULL THEN
+        IF NEW.effective_from_date > make_date(NEW.year_number, 1, 1) THEN
+            RAISE EXCEPTION 'the first confirmed version of a year starts on 1 January at the latest: the days before it would have no version' USING ERRCODE = 'check_violation';
         END IF;
-        IF (NEW.confirmed_at AT TIME ZONE 'Asia/Shanghai')::date > NEW.effective_from_date THEN
+    ELSE
+        -- 确认日取库的事务时间，不取应用写入的 confirmed_at（后者只作记录），倒填绕不过去。
+        IF confirmation_day > NEW.effective_from_date THEN
             RAISE EXCEPTION 'effective_from_date % is earlier than the confirmation day: a calendar version does not act on the past', NEW.effective_from_date USING ERRCODE = 'check_violation';
         END IF;
         SELECT EXISTS (
@@ -243,7 +270,7 @@ BEGIN
     END IF;
     RETURN NEW;
 END $$;
-COMMENT ON FUNCTION organization_attendance.guard_work_calendar_version_change() IS '版本表只追加：不删不清空；唯一允许的改动是待确认改成已确认（同时挂确认三列与官方通知、公司加休登记，检查不追溯，并关闭上一版本）和该关闭本身（只在触发器内）';
+COMMENT ON FUNCTION organization_attendance.guard_work_calendar_version_change() IS '版本表只追加：不删不清空；允许的改动只有：待确认改成已确认（同时挂确认三列与官方通知、公司加休登记，检查不追溯，并关闭上一版本）、待确认改成已撤回，以及上述关闭本身（只在触发器内）';
 
 CREATE TRIGGER tg_work_calendar_versions_insert BEFORE INSERT ON organization_attendance.work_calendar_versions
     FOR EACH ROW EXECUTE FUNCTION organization_attendance.guard_work_calendar_version_insert();
@@ -252,6 +279,7 @@ CREATE TRIGGER tg_work_calendar_versions_change BEFORE UPDATE OR DELETE ON organ
 CREATE TRIGGER tg_work_calendar_versions_change_truncate BEFORE TRUNCATE ON organization_attendance.work_calendar_versions
     FOR EACH STATEMENT EXECUTE FUNCTION organization_attendance.guard_work_calendar_version_change();
 
+-- 对版本行加共享锁使日期插入与确认互斥，前提是 READ COMMITTED（应用只用它）；REPEATABLE READ 下确认与加日期之间可能漏检（one-data 更正十，记录在案）。
 CREATE FUNCTION organization_attendance.guard_work_calendar_version_day_insert() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 DECLARE
     parent organization_attendance.work_calendar_versions;
