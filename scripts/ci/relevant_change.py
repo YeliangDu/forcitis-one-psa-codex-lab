@@ -17,6 +17,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Release checks invoke this script with -I; only trusted sibling modules go back on sys.path.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from acceptance_reports import legacy_acceptance_paths
+
 READ_BY_BUILDS = (
     "docs/modernization/glossary/",
     "docs/modernization/events/",
@@ -59,9 +63,16 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/build_all.py",
     # 错题本：build_all.py 的自测步骤（scripts/ci/ci_recurrence.py 读册、quality/defect-bank/defect_bank_check.py 检查册）在 gitleaks 作业里无条件运行
     "docs/modernization/quality/defect-bank/",
+    # ruling record: read by scripts/ci/acceptance_rulings.py in the always-run acceptance step
+    "docs/modernization/rulings/",
     # session profiles: checked by build_all.py --check, injected by scripts/hooks/session_context.py
     "docs/modernization/sessions/",
+    # SESSION_PLAYBOOK §11: playbook_digest.py 的自测对真实文件断言；SessionStart 钩子读取它
+    "docs/modernization/SESSION_PLAYBOOK.md",
     "docs/modernization/check_legacy_name.py",
+    # task register: check_tasks.py runs in build_all.py; session_daily.py reads origin/main's tasks/
+    "docs/modernization/check_tasks.py",
+    "docs/modernization/tasks/",
     # decision page question rules: run by scripts/precheck.sh when a decision page changes
     "docs/modernization/architecture/decision-page/check_pages.py",
     "docs/modernization/rules/decide/build_decision_page.py",
@@ -70,6 +81,11 @@ READ_BY_ALWAYS_RUN_CHECKS = (
 
 LEGACY_IT_PATHS = (
     "backend/src/main/java/com/forcitis/one/platform/integration/",
+    "backend/src/main/java/com/forcitis/one/organization/workforce/",
+    "backend/src/main/resources/application",
+    "backend/src/main/resources/config/platform_integration.properties",
+    "backend/src/main/resources/db/migration/platform_integration/",
+    "backend/src/main/resources/db/migration/organization_workforce/",
     "backend/src/main/java/com/forcitis/one/platform/approval/infrastructure/legacy/",
     "backend/src/test/java/com/forcitis/one/platform/integration/",
     "backend/src/test/java/com/forcitis/one/platform/approval/infrastructure/legacy/",
@@ -83,9 +99,33 @@ LEGACY_IT_PATHS = (
     "backend/src/main/java/com/forcitis/one/platform/approval/domain/Legacy",
     "backend/architecture/test-images.txt",
     "backend/architecture/external-read-registry.yaml",
+    # QUAL-CARD-H: imports and fixtures of the moved classes and their test helpers.
+    "backend/src/main/java/com/forcitis/one/OneApplication.java",
+    "backend/src/main/java/com/forcitis/one/kernel/AccountEmployees.java",
+    "backend/src/main/java/com/forcitis/one/kernel/DocumentId.java",
+    "backend/src/main/java/com/forcitis/one/kernel/DocumentReference.java",
+    "backend/src/main/java/com/forcitis/one/kernel/EmployeeId.java",
+    "backend/src/main/java/com/forcitis/one/kernel/UserId.java",
+    "backend/src/main/java/com/forcitis/one/kernel/Uuids.java",
+    "backend/src/main/java/com/forcitis/one/kernel/WorkContext.java",
+    "backend/src/main/java/com/forcitis/one/platform/audit/api/AuditLog.java",
+    "backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java",
+    "backend/src/main/java/com/forcitis/one/platform/identity/api/SessionRoles.java",
+    "backend/src/test/java/com/forcitis/one/TestDatabase.java",
+    "backend/src/test/java/com/forcitis/one/TestPostgres.java",
+    "backend/src/test/java/com/forcitis/one/acceptance/AcceptanceSupport.java",
+    "backend/src/test/java/com/forcitis/one/acceptance/AccountsAcceptanceSupport.java",
+    "backend/src/test/java/com/forcitis/one/fixture/doubles/MutableClock.java",
+    "backend/src/test/java/com/forcitis/one/fixture/doubles/TestAccounts.java",
+    "backend/src/test/resources/init-schemas.sql",
     "backend/pom.xml",
     "docs/modernization/phase1a/SEEYON_VIEWS.sql",
     "scripts/ci/legacy_it.sh",
+    "scripts/ci/backend_verify.sh",
+    "scripts/ci/acceptance_reports.py",
+    "scripts/ci/ci_git.py",
+    "scripts/ci/repeat_new_tests.py",
+    "scripts/ci/relevant_change.py",
     ".github/workflows/nightly-legacy-it.yml",
     ".github/workflows/ci.yml",
 )
@@ -318,25 +358,72 @@ def tier_lines(tier, plan):
 
 SOURCE_ROOTS = ("backend/src/main/java", "backend/src/test/java")
 JAVA_IMPORT = re.compile(r"^import (?:static )?(com\.forcitis\.one\.[\w.]+);", re.M)
-RELATIVE_PATH = re.compile(r'Path\.of\("(\.\./[^"]+)"')
+RELATIVE_PATH = re.compile(r'Path\.of\("((?:\.\./|architecture/)[^"]+)"')
 
 
 def mssql_it_inputs(root):
-    for test in sorted(Path(root, "backend/src/test/java").rglob("*MssqlIT.java")):
-        text = test.read_text(encoding="utf-8")
+    test_root = Path(root, TEST_ROOT)
+    pending = list(test_root.rglob("*MssqlIT.java")) + [test_root / p for p in legacy_acceptance_paths(root)]
+    seen = set()
+    while pending:
+        test = pending.pop()
+        if test in seen:
+            continue
+        seen.add(test)
+        text = strip_code_comments(test.read_text(encoding="utf-8"))
         yield test.relative_to(root).as_posix()
         for match in JAVA_IMPORT.finditer(text):
-            cls = match.group(1).replace(".", "/")
-            for source_root in SOURCE_ROOTS:
-                if Path(root, f"{source_root}/{cls}.java").exists():
-                    yield f"{source_root}/{cls}.java"
+            # Static member / nested type imports resolve to their containing source file.
+            parts = match.group(1).split(".")
+            while parts:
+                candidates = [Path(root, source_root, "/".join(parts) + ".java") for source_root in SOURCE_ROOTS]
+                found = next((p for p in candidates if p.is_file()), None)
+                if found is not None:
+                    yield found.relative_to(root).as_posix()
+                    if found.is_relative_to(test_root):
+                        pending.append(found)
                     break
+                parts.pop()
+        # Same-package helpers (not imported), including OrgSourceWorldSupport and ReadOnlyBaselineFixture.
+        for sibling in test.parent.glob("*.java"):
+            if sibling != test and re.search(rf"\b{re.escape(sibling.stem)}\b", text):
+                pending.append(sibling)
         for match in RELATIVE_PATH.finditer(text):
             yield os.path.normpath(os.path.join("backend", match.group(1)))
+        # Classpath fixtures and relative Paths are build inputs too, not only ../docs paths.
+        for resource in re.findall(r'withInitScript\("([^"\n]+)"\)', text):
+            yield "backend/src/test/resources/" + resource
 
 
 def uncovered_mssql_inputs(root):
     return sorted({path for path in mssql_it_inputs(root) if not is_legacy_it(path)})
+
+
+def mssql_inputs_self_test():
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        base = TEST_ROOT + "com/forcitis/one/acceptance/platform/integration/"
+        moved = base + "MovedIT.java"
+        files = {
+            "backend/pom.xml": '<project xmlns="http://maven.apache.org/POM/4.0.0"><properties><legacy.it.acceptance>'
+                               + moved[len(TEST_ROOT):] + '</legacy.it.acceptance></properties></project>',
+            moved: 'class MovedIT extends WorldSupport {}',
+            base + "WorldSupport.java": 'import static com.forcitis.one.fixture.Fixture.value;\nclass WorldSupport { Object x = OtherHelper.x; }',
+            base + "OtherHelper.java": 'class OtherHelper { Object x = Path.of("../docs/modernization/phase1a/SEEYON_VIEWS.sql"); Object r = Path.of("architecture/external-read-registry.yaml"); }',
+            TEST_ROOT + "com/forcitis/one/fixture/Fixture.java": 'import com.forcitis.one.kernel.EmployeeId;\nclass Fixture { Object x = db.withInitScript("init-schemas.sql"); }',
+            "backend/src/main/java/com/forcitis/one/kernel/EmployeeId.java": "record EmployeeId() {}",
+            TEST_ROOT + "com/forcitis/one/platform/integration/ExistingMssqlIT.java": "class ExistingMssqlIT {}",
+        }
+        for path, content in files.items():
+            target = root / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        found = set(mssql_it_inputs(root))
+        expected = set(files) - {"backend/pom.xml"}
+        expected |= {"backend/src/test/resources/init-schemas.sql", "docs/modernization/phase1a/SEEYON_VIEWS.sql", "backend/architecture/external-read-registry.yaml"}
+        assert found == expected, f"SQL Server input scan lost tests, inherited/local/imported helpers, static imports or fixtures: {expected - found}; extra={found - expected}"
 
 
 def tiers_self_test(root):
@@ -513,8 +600,29 @@ def real_tiers_self_test(root):
 
 def self_test():
     root = Path(__file__).resolve().parents[2]
+    for path in (
+        "backend/src/main/resources/application.properties",
+        "backend/src/main/resources/application-read-only-verification.properties",
+        "backend/src/main/resources/application-read-only-verification.yml",
+        "backend/src/main/resources/application-read-only-verification.yaml",
+        "backend/src/main/resources/application-prod.properties",
+        "backend/src/main/resources/config/platform_integration.properties",
+        "backend/src/main/resources/db/migration/platform_integration/V20261014133000__platform_integration_baseline.sql",
+        "backend/src/main/resources/db/migration/organization_workforce/V20261014000000__organization_workforce_baseline.sql",
+        "backend/src/main/java/com/forcitis/one/organization/workforce/application/ApplySourceSnapshot.java",
+        "scripts/ci/ci_git.py",
+        "scripts/ci/repeat_new_tests.py",
+    ):
+        assert is_legacy_it(path), f"QUAL-CARD-H-R2-3: direct SQL Server input must trigger legacy-it: {path}"
+    scheduled = subprocess.run([sys.executable, str(Path(__file__).resolve()), "main"],
+                               env={**os.environ, "GITHUB_EVENT_NAME": "schedule", "GITHUB_OUTPUT": os.devnull},
+                               capture_output=True, text=True, check=True)
+    assert "legacy_it=true" in scheduled.stdout.splitlines(), "QUAL-CARD-H-R2-7: schedule must always run SQL Server"
+    mssql_inputs_self_test()
     unlisted = uncovered_mssql_inputs(root)
-    assert not unlisted, "files the *MssqlIT tests import or read are not in LEGACY_IT_PATHS (add them in scripts/ci/relevant_change.py):\n  " + "\n  ".join(unlisted)
+    assert not unlisted, "files the SQL Server tests or their helpers import or read are not in LEGACY_IT_PATHS (add them in scripts/ci/relevant_change.py):\n  " + "\n  ".join(unlisted)
+    for path in legacy_acceptance_paths(root):
+        assert is_legacy_it(TEST_ROOT + path), f"legacy.it.acceptance class does not trigger legacy-it: {path}"
     tiers_self_test(root)
     rename_self_test()
     real_tiers_self_test(root)
@@ -532,6 +640,8 @@ def self_test():
     assert not is_covered("docs/modernization/glossary/issues/x.md"), "a build reading NOT_READ_BY_BUILDS must fail the scan"
     assert not is_covered("docs/modernization/glossary/issues")
     assert is_covered("docs/modernization/sessions/one-ops.md")
+    assert is_covered("docs/modernization/sessions/_COMMON.md")
+    assert not is_relevant("docs/modernization/sessions/_COMMON.md")
     assert is_relevant("docs/modernization/phase1a/SEEYON_VIEWS.sql")
     assert is_relevant("docs/modernization/status/blockers/080-1a-no-deploy-until-fix.md")
     assert not is_relevant("docs/modernization/adr/src/ADR-0001.md")
@@ -561,7 +671,7 @@ def self_test():
     assert is_legacy_it("docs/modernization/phase1a/infra/handoff/B-5-dba/read-all/a8_apply.sql")
     assert not is_legacy_it("docs/modernization/phase1a/infra/handoff/B-5-dba/README.md")
     assert not is_legacy_it("backend/src/main/java/com/forcitis/one/platform/integrationx/Other.java")
-    assert not is_legacy_it("backend/src/main/java/com/forcitis/one/organization/workforce/WorkforceService.java")
+    assert is_legacy_it("backend/src/main/java/com/forcitis/one/organization/workforce/WorkforceService.java")
     assert not is_legacy_it("backend/src/test/java/com/forcitis/one/organization/workforce/WorkforceServiceTest.java")
     assert not is_legacy_it("frontend/package.json")
     assert is_legacy_it(".github/workflows/ci.yml")
@@ -571,7 +681,7 @@ def self_test():
     assert is_legacy_it("backend/src/main/java/com/forcitis/one/kernel/WecomUserId.java")
     assert not is_legacy_it("backend/src/main/java/com/forcitis/one/kernel/Money.java")
     assert any_legacy_it(["README.md", "backend/pom.xml", ""])
-    assert not any_legacy_it(["README.md", "", "backend/src/main/java/com/forcitis/one/organization/workforce/WorkforceService.java"])
+    assert not any_legacy_it(["README.md", "", "backend/src/main/java/com/forcitis/one/cost/timesheet/Timesheet.java"])
     assert not any_legacy_it([])
 
 
@@ -611,7 +721,7 @@ def main():
         tier = tier_lines(*tier_of(files, Path(__file__).resolve().parents[2]))
         print(f"{len(files)} changed files, relevant={relevant}, legacy_it={legacy_it}, {', '.join(tier)}")
     elif event == "schedule":
-        relevant, legacy_it = True, False   # the nightly full run of main; the SQL Server tests have their own nightly workflow
+        relevant, legacy_it = True, True   # full nightly run, including the SQL Server tier
     else:
         relevant = True
         before = os.environ.get("BEFORE", "")

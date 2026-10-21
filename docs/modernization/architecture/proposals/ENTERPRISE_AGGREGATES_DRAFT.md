@@ -440,7 +440,7 @@ AGG-28 的客户资产类不符合项由检查 BC 经质量与认可 api 发起�
 | AGG-14 | 框架协议限额（框架限额占用，词表 `framework_capacity_reservation`） | 限额、占用行 | 次级在内（组成部分自成聚合） | INV-10 | 占用框架限额（→ 限额已占用、框架限额占用被拒）；释放框架限额（→ 限额已释放） | 限额已占用（仅分析）、限额已释放（仅分析）、框架限额占用被拒（仅分析） | AGG-13 框架协议与任务订单（api） |
 | AGG-15 | 协议变更（OBJ-09：合同变更、签证） | 影响评估、审批结论、所主张的设计变更与延期 | 一拆多（OBJ-09 拆为 AGG-15 与 AGG-56；签证作类型） | INV-16a | 提出协议变更（→ （内部））；评估变更影响（→ （内部））；生效协议变更（→ 协议变更已批准（`ChangeOrderApproved`））；确认现场签证（→ 现场签证已确认（`SiteVisaConfirmed`）） | 协议变更已批准（`ChangeOrderApproved`）（同 BC：协议应用变更）、现场签证已确认（`SiteVisaConfirmed`）（同 BC） | AGG-13 协议（api）；AGG-30 设计变更（api）；AGG-31 延期申请（api）；platform.approval 审批（api） |
 | AGG-16 | 索赔（OBJ-10） | 方向、时限、认定 | 一对一 | INV-17 | 提出索赔（→ ClaimAsserted；前置 INV-17）；认定索赔（→ ClaimSettled）；拒绝或撤回索赔（→ （内部）） | `ClaimAsserted`（仅分析）、`ClaimSettled`（仅分析） | AGG-13 协议（api）；AGG-31 延期申请（api）；AGG-30 设计变更（api） |
-| AGG-17 | 风险交付授权（OBJ-12）（口径与转正时点待流程梳理，C-56） | 额度、期限、责任人、依据证据 | 一对一 | INV-18、19 | 申请风险交付授权（→ （内部））；批准风险交付授权（→ 风险交付授权已批准）；转正风险交付授权（→ 风险交付授权已转正（`Regularized`）；前置 INV-19）；叫停风险交付授权（→ Halted） | 风险交付授权已转正（`Regularized`）（仅分析）、`Halted`（仅分析）、风险交付授权已批准（仅分析） | AGG-10 商机（api）；AGG-19 项目（api）；AGG-13 转正协议（api）；AGG-38 依据证据（api）；platform.approval 审批（api） |
+| AGG-17 | 风险交付授权（OBJ-12）（口径与转正时点待流程梳理，C-56） | 额度、期限、责任人、依据证据 | 一对一 | INV-18、19 | 申请风险交付授权（→ （内部））；批准风险交付授权（→ 风险交付授权已批准）；驳回风险交付授权（→ 风险交付授权已驳回；审批中 → 已驳回，revenue 骨架 PRC-16 第 4 步，b1a6808b）；转正风险交付授权（→ 风险交付授权已转正（`Regularized`）；前置 INV-19）；叫停风险交付授权（→ Halted） | 风险交付授权已转正（`Regularized`）（仅分析）、`Halted`（仅分析）、风险交付授权已批准（仅分析） | AGG-10 商机（api）；AGG-19 项目（api）；AGG-13 转正协议（api）；AGG-38 依据证据（api）；platform.approval 审批（api） |
 
 **B-06 `cost.timesheet`**（已建）
 

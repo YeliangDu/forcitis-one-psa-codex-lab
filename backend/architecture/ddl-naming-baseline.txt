@@ -19,10 +19,6 @@ column platform_identity.sso_ticket_uses.ticket_source | 改名为 ticket_source
 column platform_identity.ticket_issuers.key_reference | 改名为 key_reference_name
 column platform_integration.outbound_deliveries.handled_result | 改名为 handled_result_kind（加 CHECK）
 column platform_integration.outbound_deliveries.last_error | 改名为 last_error_message
-column platform_numbering.legacy_numbers.document_type | 改名为 document_type_code（单据类型代码是可扩展的登记项，G45；或保留并补 CHECK）
-column platform_numbering.numbering_counters.document_type | 改名为 document_type_code（同上）
-column platform_numbering.numbering_rules.document_type | 改名为 document_type_code（同上）
-column platform_numbering.numbering_rules.pattern | 改名为 pattern_text
 constraint organization_workforce.assignments.assignments_employee_id_fkey | RENAME CONSTRAINT assignments_employee_id_fkey TO fk_assignments_employee_id
 constraint organization_workforce.assignments.assignments_org_unit_id_fkey | RENAME CONSTRAINT assignments_org_unit_id_fkey TO fk_assignments_org_unit_id
 constraint organization_workforce.assignments.assignments_pkey | RENAME CONSTRAINT assignments_pkey TO pk_assignments
@@ -40,7 +36,6 @@ constraint platform_approval.approval_requests.approval_requests_pkey | RENAME C
 constraint platform_approval.approval_requests.uq_approval_requests_document | RENAME CONSTRAINT uq_approval_requests_document TO uk_approval_requests_document
 constraint platform_approval.start_rounds.start_rounds_pkey | RENAME CONSTRAINT start_rounds_pkey TO pk_start_rounds
 constraint platform_approval.start_rounds.uq_start_rounds_round | RENAME CONSTRAINT uq_start_rounds_round TO uk_start_rounds_round
-constraint platform_audit.audit_entries.audit_entries_pkey | RENAME CONSTRAINT audit_entries_pkey TO pk_audit_entries
 constraint platform_identity.account_roles.account_roles_user_id_fkey | RENAME CONSTRAINT account_roles_user_id_fkey TO fk_account_roles_user_id
 constraint platform_identity.emergency_admins.emergency_admins_account_name_key | RENAME CONSTRAINT emergency_admins_account_name_key TO uk_emergency_admins_account_name
 constraint platform_identity.emergency_admins.emergency_admins_pkey | RENAME CONSTRAINT emergency_admins_pkey TO pk_emergency_admins
@@ -63,9 +58,6 @@ index organization_workforce.org_units_parent_org_unit_id_idx | ALTER INDEX orga
 index organization_workforce.sync_diffs_sync_run_id_idx | ALTER INDEX organization_workforce.sync_diffs_sync_run_id_idx RENAME TO ix_sync_diffs_sync_run_id
 index organization_workforce.sync_runs_started_at_idx | ALTER INDEX organization_workforce.sync_runs_started_at_idx RENAME TO ix_sync_runs_started_at
 index organization_workforce.sync_runs_status_idx | ALTER INDEX organization_workforce.sync_runs_status_idx RENAME TO ix_sync_runs_status
-index platform_audit.audit_entries_action_idx | ALTER INDEX platform_audit.audit_entries_action_idx RENAME TO ix_audit_entries_action
-index platform_audit.audit_entries_actor_idx | ALTER INDEX platform_audit.audit_entries_actor_idx RENAME TO ix_audit_entries_actor
-index platform_audit.audit_entries_subject_idx | ALTER INDEX platform_audit.audit_entries_subject_idx RENAME TO ix_audit_entries_subject
 index platform_identity.uq_roles_code | ALTER INDEX platform_identity.uq_roles_code RENAME TO uk_roles_code
 index platform_identity.uq_roles_name | ALTER INDEX platform_identity.uq_roles_name RENAME TO uk_roles_name
 index platform_integration.outbound_deliveries_dead_idx | ALTER INDEX platform_integration.outbound_deliveries_dead_idx RENAME TO ix_outbound_deliveries_dead

@@ -17,7 +17,7 @@ import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
 import com.forcitis.one.cost.timesheet.domain.Timesheet;
 import com.forcitis.one.cost.timesheet.domain.TimesheetRepository;
 import com.forcitis.one.kernel.BusinessZone;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.Hours;
@@ -148,7 +148,7 @@ class TimesheetOwnerGateTest {
         when(directory.findEmployee(TestAccounts.employee(40))).thenReturn(Optional.of(manager));
         LegalEntityId legalEntity = new LegalEntityId(TestIds.uuid(1));
         when(legalEntities.on(eq(EMPLOYEE), any())).thenReturn(legalEntity);
-        when(numbers.next(eq(DocumentType.TIMESHEET), eq(legalEntity), any())).thenReturn(new IssuedNumber(new DocumentNumber("TS-ABC-202610-0007"), new NumberingCounterId(TestIds.uuid(11)), new NumberingRuleVersionId(TestIds.uuid(12))));
+        when(numbers.next(eq(new DocumentTypeCode("TIMESHEET")), eq(legalEntity), any())).thenReturn(new IssuedNumber(new DocumentNumber("TS-ABC-202610-0007"), new NumberingCounterId(TestIds.uuid(11)), new NumberingRuleVersionId(TestIds.uuid(12))));
 
         submit.execute(command);
 

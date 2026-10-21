@@ -7,7 +7,7 @@
 ## 执行前确认点
 
 1. C-3 已在 dev 执行并通过 V1–V8，且首次迁移、Flowable 安装在 dev 已验证（包括 C-3 中的 `currentSchema` 风险）。
-2. 连接预算重算：it_portal + `one_dev_*`（45）+ `one_prod_*`（45）< `max_connections` − 保留。若 A-7 决定生产前停用 dev 库，先执行 C-3 回滚再建生产库。
+2. 连接预算重算：it_portal + `one_dev_*`（31）+ `one_prod_*`（31）< `max_connections` − 保留。若 A-7 决定生产前停用 dev 库，先执行 C-3 回滚再建生产库。
 3. 生产角色的超时与 `work_mem` 是否与 dev 相同：脚本沿用 dev 建议值；按 dev 压测结果由用户确认是否调整（调整改 dev 版再生成）。
 4. ADR-0025 的分析侧 schema（`reporting`、`reporting_compat`、`reporting_archive_src`）与构建、重建、查询、镜像角色属 R1，不在本剧本。
 5. 生产口令与 dev 不同；dev 凭据不能连生产库（角色名不同，库级 CONNECT 只授予本环境角色）。

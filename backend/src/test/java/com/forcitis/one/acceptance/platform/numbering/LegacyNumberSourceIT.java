@@ -80,7 +80,7 @@ class LegacyNumberSourceIT extends AcceptanceSupport {
     private Map<String, Object> entry(String sourceSystem, String legacyNumber, UUID batch) {
         Map<String, Object> row = new LinkedHashMap<>();
         row.put("source_system", sourceSystem);
-        row.put("document_type", "QUOTE");
+        row.put("document_type_id", UUID.fromString("019a0000-0000-7000-8000-000000000401"));
         row.put("legacy_number", legacyNumber);
         row.put("document_id", UUID.randomUUID());
         row.put("migration_batch_id", batch);
@@ -156,7 +156,7 @@ class LegacyNumberSourceIT extends AcceptanceSupport {
     }
 
     @Test
-    @DisplayName("R-1b P3a ADR-0033 第 2 项第 7 条（DA-11）：同一 (来源系统, 单据类型, 原编号) 唯一，由具名唯一约束 uk_legacy_numbers_source_system_document_type_legacy_number 保证；不同来源系统可有相同原编号")
+    @DisplayName("R-1b P3a ADR-0033 第 2 项第 7 条（DA-11）：同一 (来源系统, 单据类型, 原编号) 唯一，由具名唯一约束 uk_legacy_numbers_source_system_document_type_id_legacy_number 保证；不同来源系统可有相同原编号")
     void uniquePerSourceSystem() throws Exception {
         assertThat(insert(entry("LEGACY_SYSTEM", "Q-2020-0001", BATCH), true)).isEqualTo(ACCEPTED);
 
@@ -168,14 +168,14 @@ class LegacyNumberSourceIT extends AcceptanceSupport {
                 select a.attname from pg_constraint c cross join lateral unnest(c.conkey) with ordinality k(attnum, position)
                   join pg_attribute a on a.attrelid = c.conrelid and a.attnum = k.attnum
                  where c.conrelid = cast('legacy_numbers' as regclass) and c.contype = 'u'
-                   and c.conname = 'uk_legacy_numbers_source_system_document_type_legacy_number'
+                   and c.conname = 'uk_legacy_numbers_source_system_document_type_id_legacy_number'
                  order by k.position
                 """); ResultSet rs = select.executeQuery()) {
             while (rs.next()) {
                 keyColumns.add(rs.getString(1));
             }
         }
-        assertThat(keyColumns).containsExactly("source_system", "document_type", "legacy_number");
+        assertThat(keyColumns).containsExactly("source_system", "document_type_id", "legacy_number");
     }
 
     @Test
@@ -189,9 +189,20 @@ class LegacyNumberSourceIT extends AcceptanceSupport {
         assertThat(change("delete from legacy_numbers where legacy_number = 'Q-2021-0001'")).isNotEqualTo(ACCEPTED);
     }
 
+    /** Hidden files and directories (a path segment below the root starting with a dot, such as macOS .DS_Store) are not source and need not be UTF-8. */
+    private static boolean hidden(Path root, Path file) {
+        Path relative = root.relativize(file);
+        for (Path segment : relative) {
+            if (segment.toString().startsWith(".")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static List<Path> filesContaining(Path root, java.util.function.Predicate<String> found) throws Exception {
         try (Stream<Path> files = Files.walk(root)) {
-            return files.filter(Files::isRegularFile).filter(file -> {
+            return files.filter(Files::isRegularFile).filter(file -> !hidden(root, file)).filter(file -> {
                 try {
                     return found.test(Files.readString(file));
                 } catch (java.io.IOException unreadable) {

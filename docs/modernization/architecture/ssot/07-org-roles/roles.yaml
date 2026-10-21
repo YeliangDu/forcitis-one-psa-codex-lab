@@ -6,7 +6,8 @@ meta:
   - 权责表与干系人登记的 SH 编号同串异义（提案 §1.3 第 1 条，属 SSOT 重建线，暂停令期间不改编号）；本登记按职责原文归并
   - 角色粒度待定：权责表 SH-M1（部门负责人、项目总监、区域负责人、总经理、分管副总）、SH-E6（财务、人事、信息行政）已拆为多个 ROLE
   - 客户采购决策链 5 个角色是否作 ROLE（客户侧、不登录）
-  - super_admin 与 administrator-mode 是否同一角色；编号模板确认人与 business_admin 的关系
+  - 已定：super_admin 与管理员模式（见 ROLE-53 的 ruling）
+  - 已定：角色粒度（见 meta.decisions，one-arch-people），条目已按判定落地
   decisions:
     by: one-arch-people 2026-10-21
     note: 判定 open_questions 第 2、3 条；第 1、4 条不在本组范围
@@ -50,8 +51,8 @@ meta:
     - 词表 director（总监）中文名与定义引了老系统编码 BU-002，按与项目总监合并后改写
     needs_user:
     - ROLE-26 拆为总经理与分管领导后，分管领导的分管范围配置由谁维护（D15 配置项责任人），随确认页问用户
+  applied: one-architecture 2026-10-21 按 meta.decisions 落地：ROLE-23 停用并入 ROLE-22；ROLE-26 拆出 ROLE-55；ROLE-30 拆出 ROLE-56；ROLE-01～05 标 external
 roles:
-
 - id: ROLE-01
   name: 采购发起人
   aliases:
@@ -63,6 +64,8 @@ roles:
   host_category: 客户（外部，不登录本系统）
   bears: []
   evidence: stakeholder_ssot ROLE-01 发起人（客户采购决策链，参与 VS-01.1/01.2/02.0）；与审批发起人同名异义，见 glossary_issues。客户侧，不登录。
+  external: true
+  owner_group: presales.opportunity（收入组可推翻）
 - id: ROLE-02
   name: 采购决策人
   aliases:
@@ -75,6 +78,8 @@ roles:
   host_category: 客户（外部，不登录本系统）
   bears: []
   evidence: SSOT ROLE-02 决策人；权责表 SH-C6b「客户决策人：回签、认定索赔与变更」，客户方书面决定为线下证据，本系统只登记，不登录。
+  external: true
+  owner_group: presales.opportunity（收入组可推翻）
 - id: ROLE-03
   name: 经济买方
   aliases:
@@ -86,6 +91,8 @@ roles:
   host_category: 客户（外部，不登录本系统）
   bears: []
   evidence: SSOT ROLE-03 经济买方，客户采购决策链；权责表无对应条目。
+  external: true
+  owner_group: presales.opportunity（收入组可推翻）
 - id: ROLE-04
   name: 付款方
   aliases:
@@ -98,6 +105,8 @@ roles:
   host_category: 客户（外部，不登录本系统）
   bears: []
   evidence: SSOT ROLE-04 付款方；权责表 SH-C6d「客户财务：付款、确认红字信息」（客户方财务确认，经税务平台或银行回单），不登录。
+  external: true
+  owner_group: presales.opportunity（收入组可推翻）
 - id: ROLE-05
   name: 客户使用者
   aliases:
@@ -110,6 +119,8 @@ roles:
   host_category: 客户（外部，不登录本系统）
   bears: []
   evidence: SSOT ROLE-05 使用者；权责表 SH-C6e「客户方使用者，接收成果并反馈」，外部方不设系统权限，不登录。
+  external: true
+  owner_group: presales.opportunity（收入组可推翻）
 - id: ROLE-06
   name: 用人经理
   aliases:
@@ -293,7 +304,8 @@ roles:
   name: 项目总监
   aliases:
     stakeholder_ssot: []
-    glossary: []
+    glossary:
+    - director
     responsibility_matrix:
     - SH-M1
   system_roles: []
@@ -311,6 +323,9 @@ roles:
   host_category: 人力资源（本企业员工）
   bears: []
   evidence: 词表 director：BU-002 部门总监（RULE-256）；权责表无独立条目。
+  status: retired
+  merged_into: ROLE-22
+  decision: one-arch-people 2026-10-21 meta.decisions（9a58cda7）
 - id: ROLE-24
   name: 部门负责人
   aliases:
@@ -336,7 +351,7 @@ roles:
   bears: []
   evidence: 词表 regional_head（区域组织单元负责人，不承担工时审批）；权责表 SH-M1「区域负责人（职能：对本区域组织数据范围负责）」。
 - id: ROLE-26
-  name: 管理层（总经理、分管副总）
+  name: 总经理
   aliases:
     stakeholder_ssot: []
     glossary: []
@@ -346,6 +361,7 @@ roles:
   host_category: 人力资源（本企业员工）
   bears: []
   evidence: 权责表 SH-M1 提示「总经理、分管副总」「管理层负责人」（超时升级、加审、批准资质延续）；SSOT 的 SH-E1 管理层是干系人类别，非角色，此处仅按权责表职责成立。词表无对应。
+  decision: one-arch-people 2026-10-21 meta.decisions（9a58cda7）：按法人解析；分管领导拆出为 ROLE-55
 - id: ROLE-27
   name: 法人财务负责人
   aliases:
@@ -381,7 +397,7 @@ roles:
   bears: []
   evidence: 权责表 SH-E6 提示：人事专员、招聘专员、人力资源专员、考勤管理员、薪酬岗、申报岗、薪酬与社保专员、人事主数据维护岗等；岗位待定，按职能合并。
 - id: ROLE-30
-  name: 信息与行政职能人员
+  name: 信息职能人员
   aliases:
     stakeholder_ssot: []
     glossary: []
@@ -391,6 +407,7 @@ roles:
   host_category: 人力资源（本企业员工，信息行政）
   bears: []
   evidence: 权责表 SH-E6 提示：信息管理员、档案管理员、IT 服务台、IT 资产管理员、印章保管与行政事务经办人员；岗位体系未定。
+  decision: one-arch-people 2026-10-21 meta.decisions（9a58cda7）：IT 需求、IT 资产、账号；行政拆出为 ROLE-56
 - id: ROLE-31
   name: 直属上级
   aliases:
@@ -650,6 +667,8 @@ roles:
   host_category: 人力资源（本企业员工，IT）
   bears: []
   evidence: 词表 administrator：持 super_admin 或管理员角色的人。系统角色表仅有 super_admin（is_administrative）；任务所说代码定义的 administrator-mode 未列入 permissions.yaml，是否同属需确认。
+  ruling: one-architecture 2026-10-21 按 ADR-0026 D-7、D-10：super_admin 是系统角色，本身不带业务或平台权限，只是进入管理模式的资格（EnterAdministratorMode.java:76 不持有即拒绝）；管理员模式是持有者再次验证后同一会话的限时状态（1 小时，权限集合 AdministratorMode.PERMISSIONS），不是角色。登记为一个
+    ROLE 绑定 super_admin；permissions.yaml 中 administrator-mode 只用于统计权限持有，不作 ROLE 的 system_roles。
 - id: ROLE-54
   name: 流程管理员
   aliases:
@@ -661,6 +680,32 @@ roles:
   host_category: 人力资源（本企业员工）
   bears: []
   evidence: 系统角色 process_administrator（迁移种子，无权限码）；词表无 kind=role 词条，仅 ui_proxy_handling 定义提到「流程管理员替被代理人办理」，权责表无。
+- id: ROLE-55
+  name: 分管领导
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-M1
+  system_roles: []
+  host_category: 人力资源（本企业员工）
+  bears: []
+  evidence: 权责表 SH-M1 提示「总经理、分管副总」「管理层负责人」（超时升级、加审、批准资质延续）；SSOT 的 SH-E1 管理层是干系人类别，非角色，此处仅按权责表职责成立。词表无对应。（拆分时 aliases 原样复制，两条共用原出处）
+  split_from: ROLE-26
+  decision: one-arch-people 2026-10-21 meta.decisions（9a58cda7）：按 D15 分管配置解析
+- id: ROLE-56
+  name: 行政职能人员
+  aliases:
+    stakeholder_ssot: []
+    glossary: []
+    responsibility_matrix:
+    - SH-E6
+  system_roles: []
+  host_category: 人力资源（本企业员工，信息行政）
+  bears: []
+  evidence: 权责表 SH-E6 提示：信息管理员、档案管理员、IT 服务台、IT 资产管理员、印章保管与行政事务经办人员；岗位体系未定。（拆分时 aliases 原样复制，两条共用原出处）
+  split_from: ROLE-30
+  decision: one-arch-people 2026-10-21 meta.decisions（9a58cda7）：用印登记、员工活动、档案
 unmatched:
 - source: glossary
   ref: responsible_party（operations_facts__responsible_party 责任对象）

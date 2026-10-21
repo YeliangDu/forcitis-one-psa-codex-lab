@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
+import com.forcitis.one.platform.audit.AuditPartitionsTestSupport;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
@@ -52,6 +54,13 @@ class SingleOperatorEndToEndIT extends AccountsAcceptanceSupport {
         return arguments;
     }
 
+    /** The operations profile does not create audit partitions; the child process needs the running UTC month, which the baseline fixes only up to 2027-03. */
+    private static void prebuildCurrentMonthAuditPartition() throws Exception {
+        try (Connection admin = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())) {
+            AuditPartitionsTestSupport.ensureCurrentMonth(admin);
+        }
+    }
+
     private long rolesHeld(UUID employee, String roleCode) throws Exception {
         try (Connection identity = schemaConnection("platform_identity"); PreparedStatement count = identity.prepareStatement("""
                 select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id
@@ -76,7 +85,9 @@ class SingleOperatorEndToEndIT extends AccountsAcceptanceSupport {
         orgUnit(unit, null, null);
         UUID person = newEmployeeId();
         employee(person, unit, null);
-        UUID operator = UUID.randomUUID();
+        UUID operator = newEmployeeId();
+        employee(operator, unit, null);
+        prebuildCurrentMonthAuditPartition();
         int enabledBefore = audit("platform.identity.single-operator-mode.enabled").size();
 
         SingleOperatorModeProcess.Ended ended = SingleOperatorModeProcess.runToEnd(commandLine("true", "--operation=grant-role", "--employee-id=" + text(person),
@@ -108,9 +119,11 @@ class SingleOperatorEndToEndIT extends AccountsAcceptanceSupport {
         employee(person, unit, null);
         int enabledBefore = audit("platform.identity.single-operator-mode.enabled").size();
         int marksBefore = audit("platform.identity.single-operator-mode.applied").size();
+        UUID operator = newEmployeeId();
+        employee(operator, unit, null);
 
         SingleOperatorModeProcess.Ended ended = SingleOperatorModeProcess.runToEnd(commandLine(null, "--operation=grant-role", "--employee-id=" + text(person),
-                "--role-code=business_admin", "--operator=" + UUID.randomUUID()));
+                "--role-code=business_admin", "--operator=" + operator));
 
         assertThat(ended.exitCode()).as(ended.output()).isEqualTo(1);
         assertThat(ended.output()).contains("PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED").doesNotContain("ADR-0030");

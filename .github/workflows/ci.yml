@@ -64,11 +64,13 @@ jobs:
         run: |
           python3 scripts/ci/acceptance_guard.py --self-test
           python3 scripts/ci/acceptance_reports.py --self-test
+          python3 scripts/ci/acceptance_rulings.py --self-test
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then base="origin/$GITHUB_BASE_REF"; else base="$BEFORE"; fi
           if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
             echo "no earlier commit to compare against (new branch); self-test only"
           else
             python3 scripts/ci/acceptance_guard.py "$base"
+            python3 scripts/ci/acceptance_rulings.py "$base"
           fi
       - name: backend or frontend inputs changed?
         id: change
@@ -112,21 +114,24 @@ jobs:
         env:
           BACKEND_WATCHDOG_SECONDS: '1500'
         run: scripts/ci/backend_verify.sh -Dtest.forks=2 -Dtest.fork.timeout=1800
+      - name: every acceptance test class produced a surefire or failsafe report
+        if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
+        # Check the default invocation before explicit -Dit.test reruns can add SQL Server reports.
+        run: python3 scripts/ci/acceptance_reports.py --tier default
       # a flaky test usually shows itself the first time it runs: the test classes this pull request adds or changes run again, three times, each in a new JVM (scripts/ci/repeat_new_tests.py); one failure fails the pull request
       - name: new or changed test classes, repeated
         if: github.event_name == 'pull_request' && steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
         timeout-minutes: 20
         run: python3 scripts/ci/repeat_new_tests.py "origin/$GITHUB_BASE_REF" --times 3
-      - name: every acceptance test class produced a surefire or failsafe report
-        if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
-        run: python3 scripts/ci/acceptance_reports.py
       - name: OpenAPI contract unchanged (OpenApiExportTest rewrites frontend/packages/api/openapi.json)
         if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
         run: git diff --exit-code -- frontend/packages/api/openapi.json
       - name: SQL Server integration tests (profile legacy-it)
         if: steps.change.outputs.legacy_it == 'true' && steps.heavy.outputs.run == 'true'
         timeout-minutes: 30
-        run: scripts/ci/legacy_it.sh
+        env:
+          BACKEND_WATCHDOG_SECONDS: '1500'
+        run: scripts/ci/legacy_it.sh -Dtest.forks=2 -Dtest.fork.timeout=1800
       # a test container that did not come up or lost its connection leaves no trace once its attempt is removed: the engine's events since the job started, the logs of the test containers created since, and the engine summary (scripts/ci/docker_diagnostics.py)
       - name: docker evidence for the failed job
         if: failure()
@@ -142,6 +147,7 @@ jobs:
           path: |
             backend/target/surefire-reports
             backend/target/failsafe-reports
+            backend/target/legacy-it-reports
             backend/target/thread-dumps
             backend/target/docker-diagnostics
             backend/target/**/*.dump*

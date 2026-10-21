@@ -90,6 +90,7 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
         for (String person : forms) {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             ByteArrayOutputStream err = new ByteArrayOutputStream();
+            ensureAttestors();
             int exit = operations.run(new DefaultApplicationArguments("--operation=register-emergency-admin", person, "--login-name=" + loginName,
                     "--operator=01900000-0000-7000-8000-00000000a001", "--witness=01900000-0000-7000-8000-00000000a002"), new PrintStream(out, true, StandardCharsets.UTF_8),
                     new PrintStream(err, true, StandardCharsets.UTF_8));

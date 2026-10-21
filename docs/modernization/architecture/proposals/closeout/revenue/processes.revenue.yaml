@@ -1815,8 +1815,8 @@ processes:
   - actor: system
     where: automatic
     added_in: closeout
+    command: 驳回风险交付授权
     aggregate: AGG-17
-    gap: 聚合稿 AGG-17 缺「驳回风险交付授权」命令（见 NOTES 命令缺口）
     desc: 审批驳回结果回调；授权不生效，不产生先行投入依据
     audit: true
     cross_bc:

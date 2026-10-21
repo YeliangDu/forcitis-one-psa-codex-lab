@@ -2,10 +2,10 @@
 """新增或改动的测试类在引入它的 PR 上重复跑（错题本机制，用户 2026-10-17 批准）：一个偶发失败的测试通常头一次进 CI 就露馅，重复跑几遍让它在 PR 上挂，而不是合入后挂在 main 上。
 
 用法：repeat_new_tests.py <基线引用> [--times 3] [--max 40] [--dry-run]  |  repeat_new_tests.py --self-test
-基线引用如 origin/main；比较 `<基线>...HEAD` 里新增或改动的 backend/src/test/java 下以 Test 或 IT 结尾的类（文件仍存在的）。*Test 用 surefire，*IT 用 failsafe，各自在已编译的目录上
+基线引用如 origin/main；只从 `<基线>...HEAD` 里新增或改动的 backend/src/test/java 下文件名以 Test.java 或 IT.java 结尾的类进入候选（文件仍存在的）；Support 等辅助类不进入候选、不展开子类。*Test 用 surefire，*IT 用 failsafe，各自在已编译的目录上
 重复 --times 遍，每遍一个新的 Maven 进程（新 JVM、新容器）；任何一遍失败、或某个类没产生报告，整体失败（挂一次即不过）。类多于 --max 时只重复前 --max 个（按路径排序）并明说，不失败。
 CI 里接在 `surefire and failsafe, side by side` 之后，只在 pull_request、tier=code、重步骤门控放行（带 queued 标签）时跑。
-不重复的：抽象类（改它则改重复它的子类，沿 `extends` 找，最多三层）、`*MssqlIT`（pom 的 testExcludes 不编译它，由 legacy-it 跑）、`OpenApiExportTest`（pom 的 excludes：它要单独先跑，且改写 openapi.json）。
+不重复的：候选中的抽象 Test / IT 类（改为重复它的具体子类，沿 `extends` 找，最多三层）、pom 的 legacy.it.acceptance 清单与 `*MssqlIT`（由 legacy-it 跑）、`OpenApiExportTest`（pom 的 excludes：它要单独先跑，且改写 openapi.json）。
 名额（--max）先给集成测试再给单元测试：偶发失败主要出在 IT，一个改了几十个 IT 的 PR 不能把 IT 整批挤掉。
 Maven 参数沿用 CI（backend_verify.sh）：每个插件 2 个 fork、fork 总超时 900 秒，挂起的测试不会等到步骤超时。
 """
@@ -15,6 +15,8 @@ import re
 import subprocess
 import sys
 import tempfile
+
+from acceptance_reports import legacy_acceptance_paths
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BACKEND = os.path.normpath(os.path.join(HERE, "..", "..", "backend"))
@@ -51,13 +53,13 @@ def concrete_subclasses(name, sources, depth=3):
 
 
 def changed_test_classes(base, git=None, sources=None, note=print):
-    """([surefire 类], [failsafe 类])：新增或改动且仍存在的测试类，按路径排序；抽象类换成它的具体子类，*MssqlIT 与 SKIP 里的不算。"""
+    """([surefire 类], [failsafe 类])：只选 Test / IT 文件，抽象候选换成具体子类；SQL Server 清单、*MssqlIT 与 SKIP 不算。"""
     git = git or (lambda *a: subprocess.run(["git", "-c", "core.quotepath=off", *a], capture_output=True, text=True, check=True).stdout)
     out = git("diff", "--no-renames", "--name-only", "--diff-filter=AM", f"{base}...HEAD")
     names = []
     for path in sorted(out.splitlines()):
-        if path.startswith(TEST_ROOT) and path.endswith(".java") and (m := CLASS.match(os.path.basename(path))):
-            names.append(m.group("name"))
+        if path.startswith(TEST_ROOT) and CLASS.fullmatch(os.path.basename(path)):
+            names.append(os.path.basename(path)[:-5])
     sources = test_sources() if sources is None else sources
     chosen = []
     for name in names:
@@ -65,11 +67,14 @@ def changed_test_classes(base, git=None, sources=None, note=print):
             subs = concrete_subclasses(name, sources)
             note(f"abstract {name}: repeating its {len(subs)} concrete subclass(es)")
             chosen += subs
-        else:
+        elif CLASS.match(name + ".java"):
             chosen.append(name)
     unit, integration = [], []
+    legacy = {os.path.basename(p)[:-5] for p in legacy_acceptance_paths(os.path.dirname(BACKEND))}
     for name in dict.fromkeys(chosen):
-        if name.endswith("MssqlIT") or name in SKIP:
+        if name in legacy or name.endswith("MssqlIT"):
+            note(f"not repeated: {name} (SQL Server; handled by the legacy-it step)")
+        elif name in SKIP:
             note(f"not repeated: {name} (excluded from the default build, run elsewhere)")
         else:
             (integration if name.endswith("IT") else unit).append(name)
@@ -141,12 +146,36 @@ def self_test():
                "ChildAIT": "class ChildAIT extends AbstractBaseTest {}", "GrandChildTest": "class GrandChildTest extends ChildBTest {}", "MidAbstractTest": "abstract class MidAbstractTest extends AbstractBaseTest {}",
                "LeafOfMidTest": "class LeafOfMidTest extends MidAbstractTest {}", "Helper": "class Helper {}", "SeeyonMssqlIT": "class SeeyonMssqlIT {}", "OpenApiExportTest": "class OpenApiExportTest {}",
                "Unrelated2Test": "class Unrelated2Test extends SomethingElse {}"}
+    for helper in ("AcceptanceSupport", "AccountsAcceptanceSupport", "OrgSourceWorldSupport"):
+        helper_sources = {helper: f"abstract class {helper} {{}}", "NewTest": f"class NewTest extends {helper} {{}}",
+                          "NewIT": f"class NewIT extends {helper} {{}}"}
+        notes = []
+        changed = TEST_ROOT + "com/x/" + helper + ".java"
+        selected = changed_test_classes("origin/main", git=lambda *a: changed, sources=helper_sources, note=notes.append)
+        assert selected == ([], []) and not notes, f"QUAL-CARD-H-R3-A: changing {helper} must not expand its subclasses: {selected}, {notes}"
+        changed = TEST_ROOT + "com/x/NewTest.java\n" + TEST_ROOT + "com/x/NewIT.java"
+        new_classes = changed_test_classes("origin/main", git=lambda *a: changed, sources=helper_sources, note=notes.append)
+        assert new_classes == (["NewTest"], ["NewIT"]), "QUAL-CARD-H-R3-A: directly changed Test/IT classes remain candidates"
     calls, notes = [], []
     unit, integration = changed_test_classes("origin/main", git=lambda *a: (calls.append(a), git_out)[1], sources=sources, note=notes.append)
     assert unit == ["ChildBTest", "FooTest", "GrandChildTest", "LeafOfMidTest"] and integration == ["BarIT", "ChildAIT"], (unit, integration)
     assert calls == [("diff", "--no-renames", "--name-only", "--diff-filter=AM", "origin/main...HEAD")], "added or modified only (a deleted test has nothing to run), renames not folded"
     assert any("abstract AbstractBaseTest: repeating its 4" in n for n in notes) and any("SeeyonMssqlIT" in n for n in notes) and any("OpenApiExportTest" in n for n in notes), notes
     assert "AbstractBaseTest" not in unit and "MidAbstractTest" not in unit and "SeeyonMssqlIT" not in integration and "OpenApiExportTest" not in unit, "abstract, Mssql and the excluded export test are never run"
+    root = os.path.dirname(BACKEND)
+    paths = legacy_acceptance_paths(root)
+    changed = [TEST_ROOT + p for p in paths]
+    changed.append(TEST_ROOT + "com/forcitis/one/acceptance/platform/integration/OrgSourceWorldSupport.java")
+    notes = []
+    unit, integration = changed_test_classes("origin/main", git=lambda *a: "\n".join(changed), note=notes.append)
+    assert not unit and not integration, "QUAL-CARD-H-R2-5: POM-listed SQL Server classes must never repeat in the default tier"
+    for path in paths:
+        name = os.path.basename(path)[:-5]
+        assert any(name in n and "legacy-it" in n for n in notes), f"must explain legacy-it owns {name}: {notes}"
+    notes = []
+    support = [p for p in changed if p.endswith("OrgSourceWorldSupport.java")]
+    unit, integration = changed_test_classes("origin/main", git=lambda *a: "\n".join(support), note=notes.append)
+    assert not unit and not integration and not notes, "QUAL-CARD-H-R3-A: helper-only changes must not expand or consume rerun slots"
     assert maven_args("unit", ["A", "B"]) == ["./mvnw", "-B", "-q", "surefire:test", "-Dtest=A,B", "-Dtest.forks=2", "-Dtest.fork.timeout=900"]
     assert maven_args("integration", ["C"]) == ["./mvnw", "-B", "-q", "failsafe:integration-test", "failsafe:verify", "-Dit.test=C", "-Dtest.forks=2", "-Dtest.fork.timeout=900"], "failsafe:verify is what fails the run"
     with tempfile.TemporaryDirectory() as tmp:
@@ -176,6 +205,9 @@ def self_test():
             return R(next(it, 0), "boom line")
         return run
     out = log.append
+    assert repeat(*new_classes, 3, 40, run=runner([0] * 6), has_report=lambda k, c: True, clear=lambda *a: None, out=out) == 0
+    assert seen == [("unit", ("NewTest",))] * 3 + [("integration", ("NewIT",))] * 3, "QUAL-CARD-H-R3-A: new Test/IT classes repeat three times"
+    seen.clear(); log.clear()
     assert repeat([], [], 3, 40, out=out) == 0 and "nothing to repeat" in log[-1]
     seen.clear(); log.clear()
     assert repeat(["A"], ["B"], 3, 40, run=runner([0] * 6), has_report=lambda k, c: True, clear=lambda *a: None, out=out) == 0

@@ -1,0 +1,13 @@
+{
+  "default": 200000,
+  "windows": {
+    "claude-opus-5-5": 1000000,
+    "claude-sonnet-5-5": 1000000,
+    "claude-fable-5-1": 1000000,
+    "claude-opus-5": 1000000
+  },
+  "pilot_sessions": null,
+  "_note": "窗口 1000000 来自 get_usage 的 contextWindow 实测（调度与 one-quality 的会话均报 1000000，97% 自动压缩，2026-10-21 one-coordinator 核对）。",
+  "bash_input_chars": 5000,
+  "bash_output_chars": 8000
+}

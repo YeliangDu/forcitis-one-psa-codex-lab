@@ -1,6 +1,6 @@
 package com.forcitis.one.platform.numbering.application;
 
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.platform.numbering.api.NumberingRuleView;
 import com.forcitis.one.platform.numbering.domain.NumberingRuleRepository;
 import java.util.Optional;
@@ -16,7 +16,7 @@ public class FindNumberingRule {
     }
 
     @Transactional(readOnly = true)
-    public Optional<NumberingRuleView> execute(DocumentType type) {
+    public Optional<NumberingRuleView> execute(DocumentTypeCode type) {
         return rules.findActive(type).map(NumberingRuleViews::of);
     }
 }

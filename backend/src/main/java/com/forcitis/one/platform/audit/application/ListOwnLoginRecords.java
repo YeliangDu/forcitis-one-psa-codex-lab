@@ -1,30 +1,30 @@
 package com.forcitis.one.platform.audit.application;
 
-import com.forcitis.one.kernel.DomainException;
-import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.platform.audit.api.AuditError;
 import com.forcitis.one.platform.audit.domain.AuditEntryQueries;
-import com.forcitis.one.platform.audit.domain.AuditQuery;
-import java.util.List;
+import com.forcitis.one.platform.audit.domain.OwnLoginRecordPage;
+import java.time.Clock;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /** The person is the caller, never a parameter: nobody asks for someone else's records through this use case (ADR-0027 section 3). */
 @Service
 public class ListOwnLoginRecords {
+    private static final String LIST = "own-login-records";
 
     private final AuditEntryQueries entries;
+    private final Clock clock;
 
-    ListOwnLoginRecords(AuditEntryQueries entries) {
+    ListOwnLoginRecords(AuditEntryQueries entries, Clock clock) {
         this.entries = entries;
+        this.clock = clock;
     }
 
     @Transactional(readOnly = true)
-    public List<OwnLoginRecordView> execute(UserId caller, int limit) {
-        if (limit < 1 || limit > AuditQuery.MAX_LIMIT) {
-            throw new DomainException(AuditError.PLATFORM_AUDIT_QUERY_INVALID, ErrorKind.INVALID, "limit must be 1.." + AuditQuery.MAX_LIMIT);
-        }
-        return entries.findOwnLoginRecords(caller, limit).stream().map(OwnLoginRecordView::of).toList();
+    public OwnLoginRecordPageView execute(UserId caller, PageRequest paging) {
+        OwnLoginRecordPage page = entries.findOwnLoginRecords(caller, AuditCursor.decode(paging, clock.instant()), paging.limit());
+        return new OwnLoginRecordPageView(page.items().stream().map(OwnLoginRecordView::of).toList(),
+                page.next() == null ? null : AuditCursor.encode(LIST, page.next()));
     }
 }
