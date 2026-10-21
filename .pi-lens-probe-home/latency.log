@@ -1,0 +1,8 @@
+{"type":"phase","filePath":"<pi-lens>","phase":"extension_loaded","durationMs":214,"metadata":{"loadedFrom":"dist"},"ts":"2026-10-21T12:22:02.837Z","pid":58992,"turnId":"turn:0"}
+{"type":"phase","filePath":"<pi-lens>","phase":"host_boot","durationMs":203,"metadata":{"loadedFrom":"dist","evaluationOrdinal":1},"ts":"2026-10-21T12:22:02.837Z","pid":58992,"turnId":"turn:0"}
+{"type":"phase","filePath":"<pi-lens>","phase":"extension_eval","durationMs":11,"metadata":{"loadedFrom":"dist"},"ts":"2026-10-21T12:22:02.837Z","pid":58992,"turnId":"turn:0"}
+{"type":"phase","phase":"ast_grep_rules_resolved","filePath":"/Users/yeliang/.pi/agent/npm/node_modules/pi-lens/rules","durationMs":0,"metadata":{"status":"healthy","entryCount":297},"ts":"2026-10-21T12:22:02.838Z","pid":58992,"turnId":"turn:0"}
+{"type":"phase","filePath":"<pi-lens>","phase":"extension_loaded","durationMs":214,"metadata":{"loadedFrom":"dist"},"ts":"2026-10-21T12:22:02.837Z","pid":58992,"turnId":"turn:0"}
+{"type":"phase","filePath":"<pi-lens>","phase":"host_boot","durationMs":203,"metadata":{"loadedFrom":"dist","evaluationOrdinal":1},"ts":"2026-10-21T12:22:02.837Z","pid":58992,"turnId":"turn:0"}
+{"type":"phase","filePath":"<pi-lens>","phase":"extension_eval","durationMs":11,"metadata":{"loadedFrom":"dist"},"ts":"2026-10-21T12:22:02.837Z","pid":58992,"turnId":"turn:0"}
+{"type":"phase","phase":"ast_grep_rules_resolved","filePath":"/Users/yeliang/.pi/agent/npm/node_modules/pi-lens/rules","durationMs":0,"metadata":{"status":"healthy","entryCount":297},"ts":"2026-10-21T12:22:02.838Z","pid":58992,"turnId":"turn:0"}

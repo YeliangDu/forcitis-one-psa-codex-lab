@@ -27,8 +27,8 @@ CODEX_VALUE_OPTIONS = {"-c", "--config", "-m", "--model", "-p", "--profile", "-C
 REDIRECTS = {"<", "<<", "<<-", "<<<", "<&"}
 ENV = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 HEREDOC = re.compile(r"<<-?\s*(?:'([^']+)'|\"([^\"]+)\"|\\?([A-Za-z_][A-Za-z0-9_]*))")
-MESSAGE = ("codex exec 没有关闭标准输入，会停在「Reading additional input from stdin」干等。"
-           "在命令末尾加 `< /dev/null`（SESSION_PLAYBOOK §5）；确需从管道或文件喂提示词时用 `| codex exec -` 或 `< 文件`。")
+MESSAGE = ("codex exec / pi -p 没有关闭标准输入，会停在「Reading additional input from stdin」干等。"
+           "在命令末尾加 `< /dev/null`（SESSION_PLAYBOOK §5）；确需从管道或文件喂提示词时用 `| codex exec -`、`| pi -p` 或 `< 文件`。")
 NETWORK_WARNING = ("告警：codex exec 未显式禁网，或使用了 danger-full-access / --dangerously-bypass-approvals-and-sandbox。"
                    "按 SESSION_PLAYBOOK §5 使用 `-c sandbox_workspace_write.network_access=false` 与受限沙箱（或 `-s read-only`）；"
                    "前端命令使用 `pnpm --offline --config.verify-deps-before-run=false`。本告警不拦截调用。")
@@ -72,6 +72,15 @@ def stdin_open(seg, piped_in):
     return not piped_in and not any(t in REDIRECTS for t in seg)
 
 
+AGENT = re.compile(r"\b(?:codex|pi)\b")
+
+
+def is_pi_print(seg, i):
+    """True when seg[i] is pi in non-interactive mode (-p / --print), which waits on standard input like codex exec does."""
+    rest = seg[i + 1:]
+    return os.path.basename(seg[i]) == "pi" and any(t in ("-p", "--print") for t in rest) and not any(t in ("--help", "-h", "--version", "-v") for t in rest)
+
+
 def is_codex_exec(seg, i):
     """True when seg[i] is codex and its first sub-command is exec (not --help)."""
     if os.path.basename(seg[i]) != "codex":
@@ -83,12 +92,12 @@ def is_codex_exec(seg, i):
 
 
 def codex_invocations(command, depth=0, closed=False):
-    if "codex" not in command:
+    if not AGENT.search(command):
         return
     try:
         tokens = tokens_of(command)
     except ValueError:
-        if re.search(r"\bcodex\b", command) is not None and re.search(r"\bexec\b", command) is not None:
+        if (re.search(r"\bcodex\b", command) and re.search(r"\bexec\b", command)) or (re.search(r"\bpi\b", command) and re.search(r"(?<!\S)(?:-p|--print)(?!\S)", command)):
             yield [], True
         return
     segments, cur, piped = [], [], False
@@ -104,7 +113,7 @@ def codex_invocations(command, depth=0, closed=False):
     for seg, piped_in in segments:
         if depth < 3:
             for token in seg:
-                if "$(" in token and "codex" in token:
+                if "$(" in token and AGENT.search(token):
                     yield from codex_invocations(token.replace("$(", " ; ").replace(")", " ; "), depth + 1, piped_in or closed)
         i = 0
         while i < len(seg):
@@ -122,9 +131,11 @@ def codex_invocations(command, depth=0, closed=False):
             continue
         if is_codex_exec(seg, i):
             yield seg[i + 1:], stdin_open(seg, piped_in or closed)
+        elif is_pi_print(seg, i):
+            yield None, stdin_open(seg, piped_in or closed)
         elif depth < 3 and os.path.basename(seg[i]) in SHELLS:
             for token in seg[i + 1:]:
-                if " " in token and "codex" in token:
+                if " " in token and AGENT.search(token):
                     yield from codex_invocations(token, depth + 1, piped_in or closed or any(t in REDIRECTS for t in seg))
 
 
@@ -175,7 +186,7 @@ def main():
         if any(open_stdin for _, open_stdin in invocations):
             print(MESSAGE, file=sys.stderr)
             return 2
-        if any(not network_disabled(args) for args, _ in invocations):
+        if any(args is not None and not network_disabled(args) for args, _ in invocations):
             print(json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "additionalContext": NETWORK_WARNING}}))
     return 0
 
@@ -190,6 +201,8 @@ def guarded_main():
 
 def hook_cases():
     allow = (
+        "pi -p --no-session --model deepseek/deepseek-flash --tools read,ls,grep,find 'x' < /dev/null",
+        "pi -p x < /dev/null",
         "codex exec -s workspace-write -c sandbox_workspace_write.network_access=false p < /dev/null",
         "codex -s workspace-write -c 'sandbox_workspace_write.network_access=false' exec p < /dev/null",
         "codex exec --sandbox=workspace-write --config=sandbox_workspace_write.network_access=false p < /dev/null",
@@ -235,6 +248,12 @@ def hook_cases():
         "codex exec - <<'EOF'\nnetwork_access=false\nEOF",
     )
     deny = (
+        "pi -p --no-session --model deepseek/deepseek-flash --tools read,ls 'x'",
+        "pi --print 'x' | tail -n 5",
+        "timeout 600 pi -p x",
+        "cd w && pi -p x; echo done",
+        "bash -c \"pi -p x\"",
+        "out=$(pi -p x)",
         "codex exec p", "codex exec -s read-only p",
         "codex exec -c sandbox_workspace_write.network_access=false p",
         "codex exec --dangerously-bypass-approvals-and-sandbox p",
@@ -292,6 +311,12 @@ def self_test():
     assert unclosed('out="$(codex exec p)"') and unclosed('echo "$(codex exec p)"'), "command substitutions inside double quotes"
     assert not unclosed('echo "$(codex exec p < /dev/null)"')
     assert unclosed("codex exec a < /dev/null; codex exec b"), "a second codex exec without redirection is still caught"
+    for command in ("pi -p x", "pi --print x", "timeout 600 pi -p x", "bash -c 'pi -p x'", "out=$(pi -p x)", "pi -p 'unbalanced", "pi --model m -p x | tail", 'echo "$(pi -p x)"'):
+        assert unclosed(command), command
+    for command in ("pi -p x < /dev/null", "pi", "pi --version", "pi -p --help", "pi install foo", "pi list", "cat card.md | pi -p", "pip install x", "echo 'pi -p x'", "grep -p pi file", "pi -p x <<'EOF'\ntext\nEOF",
+                    "bash -c 'pi -p x < /dev/null'", "git commit -m \"$(cat <<'EOF'\npi -p x\nEOF\n)\"", "ls pi", "api -p x", "pid -p x", "pi -p x 0</dev/null"):
+        assert not unclosed(command), command
+    assert not any(args is not None for args, _ in codex_invocations("pi -p x < /dev/null")), "pi has no sandbox settings: no network warning"
     hook_self_test()
     print("codex_stdin_gate self-test: ok")
     return 0
