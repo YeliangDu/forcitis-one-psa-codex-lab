@@ -1,0 +1,66 @@
+# 全历史迁入数据量估算：两库每表行数与占用（one-ops，2026-10-21，one_evidence_ro 只读元数据）
+
+来源：`migration_volume_queries.sql`（one-data 草稿，TOP 400 按占用页降序）与 `migration_volume_totals.sql`（全部用户表合计，补 TOP 400 截断）。只读 `sys.partitions` / `allocation_units`，行数为分区统计近似值，不读行值，不含个人信息。
+
+## 两库合计（全部有行的用户表）
+
+| 库 | 有行的表数 | 总行数 | 总占用 | 其中数据页 | 索引与 LOB |
+|---|---|---|---|---|---|
+| a8_db（A8） | 1,413 | 74,836,992 | 79.4 GB | 69.6 GB | 9.8 GB |
+| ruoyi-vue-pro（老系统） | 241 | 60,782,372 | 37.2 GB | 20.4 GB | 16.8 GB |
+| 合计 | 1,654 | 135,619,364 | **116.6 GB** | 90.0 GB | 26.6 GB |
+
+说明：SQL Server 的占用口径，含索引；迁入 PostgreSQL 后的体积不等于此数（见末节）。a8_db 的 TOP 400 只覆盖占用最大的 400 张表（合计行数以上表为准）；老系统库 241 张表全部在列。附件文件本体（约 2.04 TB）在 NAS，不在库内、不在此表。
+
+## a8_db（A8）：行数最大 20 张表（表名｜行数｜平均行宽字节｜占用 GB）
+
+- CTP_PROCESS_LOG｜9,004,290｜66｜0.99
+- CTP_CONTENT_ALL｜7,069,278｜137｜1.27
+- CTP_COMMENT_ALL｜4,718,250｜215｜1.3
+- CTP_AFFAIR｜4,600,178｜470｜4.92
+- FORM_TRIGGER_RECORD_0554｜3,371,482｜2,700｜8.78
+- FORM_TRIGGER_RECORD_0307｜3,206,354｜2,735｜8.35
+- WF_WORKITEM_HISTORY｜2,981,340｜178｜0.96
+- FORM_TRIGGER_RECORD_0685｜2,883,566｜2,122｜5.86
+- CTP_APP_LOG｜2,466,462｜102｜0.4
+- COL_SUMMARY｜2,267,910｜234｜0.96
+- CAP_FORM_RELATION_RECORD｜1,824,972｜302｜0.71
+- LOGON_LOG｜1,700,773｜211｜0.71
+- caprunninglog_2026_3｜1,631,394｜1,788｜2.89
+- WF_PROCESS_RUNNING｜1,529,204｜4,510｜6.52
+- WF_CASE_HISTORY｜1,479,180｜4,372｜6.11
+- M3_USER_BEHAVIOR｜1,155,322｜107｜0.15
+- CAP_FORM_TRIGGER_EVENT_HISTORY｜1,086,554｜621｜0.74
+- M3_APP_BEHAVIOR｜902,570｜84｜0.11
+- LEXMISCIF_VOUCHER｜811,098｜404｜0.31
+- formmain_0792｜796,339｜566｜1.1
+
+## ruoyi-vue-pro（老系统）：行数最大 20 张表（表名｜行数｜平均行宽字节｜占用 GB）
+
+- infra_api_access_log｜14,944,575｜290｜4.04
+- ACT_HI_DETAIL｜8,399,742｜373｜7.2
+- ACT_HI_VARINST｜7,718,964｜355｜7.87
+- ACT_GE_BYTEARRAY｜3,974,418｜219｜0.81
+- psa_wip_movement｜2,827,974｜212｜2.07
+- psa_carry_batch_line｜2,827,974｜167｜0.96
+- ACT_HI_ACTINST｜2,784,298｜413｜2.33
+- system_operate_log｜2,432,085｜646｜1.46
+- psa_cost_source_claim｜1,806,130｜143｜0.42
+- psa_cost_ledger｜1,296,617｜565｜1.21
+- psa_cost_allocation_line｜1,273,596｜366｜0.6
+- psa_wip_entry｜1,273,368｜217｜0.81
+- psa_pl_ledger｜1,257,726｜332｜0.67
+- ACT_HI_IDENTITYLINK｜714,765｜393｜1.04
+- psa_time_sheet_works｜702,414｜715｜0.89
+- psa_time_sheet_works_end｜627,015｜491｜0.61
+- psa_oh_cost_pool｜546,386｜378｜0.31
+- psa_cost_summary_history_log｜539,766｜2,074｜1.06
+- psa_time_sheet｜531,407｜237｜0.21
+- bpm_process_instance_ext｜401,718｜1,204｜0.51
+
+## 容量复核（one-ops，供定生产规格）
+
+- 源库合计 ≈ 117 GB（含索引），其中 A8 约 79 GB、老系统约 37 GB；**不是全部都迁**，迁入范围由 one-data 归并后定。
+- PostgreSQL 目标的体积不等于 SQL Server 占用：行存开销、TOAST、新增索引（外键与查询索引）、版本化与审计表会让同样数据变大，也有压缩与去冗余的反向因素，**无法在不建样例库的情况下精确换算**；粗估取源库迁入部分的 1.0–1.5 倍。
+- 再加：WAL 与归档日志不占实例存储但占备份额度；Flowable 引擎表、审计表（每日分区）、事件发布表与工作期间增长；自动扩容上限另设；VACUUM 与重建索引需要 30% 以上空闲空间。
+- 结论待 one-data 的迁入范围归并：若迁入部分 ≤ 80 GB，则 200 GB 够用（含 1.5 倍与 30% 空闲）；若 80–130 GB，建议 300 GB 起；> 130 GB 或含老系统工时与成本明细全量，按 500 GB。单价见评估稿：200 GB 3084、500 GB 3564 /月，存储每多 100 GB 约 +160/月，**宁可先多买**（只能扩不能缩）。
