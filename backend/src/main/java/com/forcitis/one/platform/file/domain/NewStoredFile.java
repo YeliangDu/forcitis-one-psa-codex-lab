@@ -29,4 +29,9 @@ public record NewStoredFile(FileId id, String objectKey, ContentHash contentHash
             throw new IllegalArgumentException("a file starts AVAILABLE or QUARANTINED");
         }
     }
+
+    /** The scan decided: infected content not on the exception list is quarantined, anything else that got this far is available. */
+    public static FileStatus decidedBy(boolean infected, boolean releasedByException) {
+        return infected && !releasedByException ? FileStatus.QUARANTINED : FileStatus.AVAILABLE;
+    }
 }

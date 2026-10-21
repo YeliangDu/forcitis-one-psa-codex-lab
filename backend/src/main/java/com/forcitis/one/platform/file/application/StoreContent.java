@@ -108,24 +108,25 @@ public final class StoreContent {
         Instant now = clock.instant();
         boolean infected = verdict.outcome() == ScanOutcome.INFECTED;
         boolean released = infected && files.hasScanException(staged.contentHash());
-        if (infected && !released) {
-            NewStoredFile file = file(request, staged, facts, verdict, id, keys.quarantine(id), FileStatus.QUARANTINED, false, now);
-            write(request.uploader(), staged, keys.quarantine(id));
-            transaction.executeWithoutResult(status -> {
-                files.insert(file);
+        FileStatus status = NewStoredFile.decidedBy(infected, released);
+        boolean quarantined = status == FileStatus.QUARANTINED;
+        StoredObjectKey key = quarantined ? keys.quarantine(id) : keys.formal(id, now);
+        NewStoredFile file = file(request, staged, facts, verdict, id, key, status, released, now);
+        write(request.uploader(), staged, quarantined ? keys.quarantine(id) : keys.staging(id, request.uploader().kind()));
+        transaction.executeWithoutResult(tx -> {
+            files.insert(file);
+            if (quarantined) {
                 audit.quarantined(file);
-            });
+            } else {
+                audit.stored(file);
+            }
+        });
+        if (quarantined) {
             LOG.error("ALERT malware found: file {} quarantined, threat {}", id, verdict.threatName());
             count("infected");
-            return result(file);
+        } else {
+            count(released ? "released_by_exception" : "stored");
         }
-        NewStoredFile file = file(request, staged, facts, verdict, id, keys.formal(id, now), FileStatus.AVAILABLE, released, now);
-        write(request.uploader(), staged, keys.staging(id, request.uploader().kind()));
-        transaction.executeWithoutResult(status -> {
-            files.insert(file);
-            audit.stored(file);
-        });
-        count(released ? "released_by_exception" : "stored");
         return result(file);
     }
 
@@ -191,10 +192,14 @@ public final class StoreContent {
 
     private NewStoredFile file(StoreRequest request, StagingContent staged, ContentFacts facts, ScanVerdict verdict, FileId id, StoredObjectKey key,
                                FileStatus status, boolean released, Instant now) {
-        String threat = status == FileStatus.QUARANTINED || released ? verdict.threatName() : null;
+        String threat = infectedVerdict(verdict) ? verdict.threatName() : null;
         return new NewStoredFile(id, key.value(), staged.contentHash(), staged.size(), facts.mediaType(), request.uploader(), status,
                 facts.containsMacros(), request.lineage(), verdict.engineVersion(), verdict.definitionsVersion(), threat, released,
                 request.originalName(), now);
+    }
+
+    private static boolean infectedVerdict(ScanVerdict verdict) {
+        return verdict.outcome() == ScanOutcome.INFECTED;
     }
 
     private static StoreResult result(NewStoredFile file) {

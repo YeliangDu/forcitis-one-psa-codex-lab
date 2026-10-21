@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.file.infrastructure;
 
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.platform.file.api.ContentHash;
 import com.forcitis.one.platform.file.domain.ScanStaging;
 import com.forcitis.one.platform.file.domain.StagingContent;
@@ -19,7 +20,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HexFormat;
-import java.util.UUID;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +42,7 @@ final class LocalScanStaging implements ScanStaging {
         this.maxBytes = maxBytes;
         this.clock = clock;
         try {
-            this.instance = Files.createDirectory(root.resolve("instance-" + UUID.randomUUID()),
+            this.instance = Files.createDirectory(root.resolve("instance-" + Uuids.timeOrdered(clock)),
                     PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwxr-x---")));
         } catch (IOException e) {
             throw new UncheckedIOException("cannot create this instance's scan staging directory under " + root, e);
@@ -51,7 +51,7 @@ final class LocalScanStaging implements ScanStaging {
 
     @Override
     public StagingContent write(InputStream content) throws TooLarge {
-        Path file = instance.resolve(UUID.randomUUID().toString());
+        Path file = instance.resolve(Uuids.timeOrdered(clock).toString());
         MessageDigest sha256 = sha256();
         long size = 0;
         try (FileChannel out = FileChannel.open(file, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
