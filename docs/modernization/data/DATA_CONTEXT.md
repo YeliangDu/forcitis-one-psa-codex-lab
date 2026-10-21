@@ -44,8 +44,7 @@
 | 其他待办 | 触发器命名条款 `TRIGGER_NAMING_PROPOSAL.md`；填报义务实现的数据设计（等 one-rules）；迁入映射与对账方案；SD-1 带入迁入核对设计（负责人 one-data，触发点迁入核对卡签发）；错题本 DATA-001…007、011–013、018 待落实（2026-10-24 前，已逾期顺延）；`ARC-1017-DAT-01/02` 任务登记已按 check_tasks 格式修 |
 | 规则提醒 | 文档类提交不开 PR，推本会话分支、报分支+提交号；代码 PR ≤3 且一单元一个；消息一到三行、只在对方要做事时发（连续发 10 条左右会被限流，到用户发言才解）；Codex 先交（取证汇总、设计初稿），生产取证、签发、守护/钩子/并发/解析类代码自己做；任务号 `<主线码>-<MMDD>-DAT-<nn>`，登记片段在 `tasks/`；会话长时先看 `get_usage` |
 
-### 2026-10-21 交接补充（one-coordinator 新派两项，尚未动笔，清上下文后接手）
+### 2026-10-21 交接补充（one-coordinator 新派两项，已完成初稿）
 
-- ② 工作日历 DDL 审（用户问「满足全系统要求吗、谁负责保障」）：对 `organization_attendance` 基线 `V20261014141000` 按 §14/§14.1、NAMING_STANDARD 出结论与改法清单（建议写 `data/reviews/WORK-CALENDAR-DDL-2026-10-21.md`），表结构改动由本会话签发、one-1a-par 实现。已读：基线 DDL、登记表 37-50 行、ADR-0033 第 9 项（`work_calendar_versions`/`work_calendar_version_days`、`calendar_scope_kind`、部分唯一索引）、D15/D17、意图 2026-10-14-110/-117、2026-10-15-012200（四眼）、2026-10-16-085332。待判点：缺版本与确认人/作者/`decision_ref`、`ON DELETE CASCADE` 与「已维护年份今天以前不可改」无库内护栏、`calendar_date` 年份与 `year_number` 无约束、`day_kind` CHECK 未命名、无来源/官方通知列、`DEFAULT now()`、登记/分类/保留期注释；另须答「谁负责保障」（建议：本会话守门，one-1a-par 实现，扫描脚本 M4 守护）。
-- ① 迁入质量检查要求（用户：「旧系统数据进来要进行质量检查，确保新数据质量可靠」）：在 ADR-0036 核对与 MIGRATION 相关文档写明按数据类分的质量规则（完整性、取值、引用、跨表一致、与权威源比对）、差异清单字段（含负责人、期限）、「不通过不入库」、现有缺口清单；复用 SD-1 对象列（category+subject_id uuid 或来源引用 ID 二选一）与工号冲突清单设计（employee_code_conflicts）。
-- 两项完成后各报 one-coordinator 一到三行；提交与推送分两次调用。
+- ② 工作日历 DDL 审已完成：`data/reviews/WORK-CALENDAR-DDL-2026-10-21.md`（结论：需修改；改法为 `work_calendar_versions` / `work_calendar_version_days` 只追加版本表，含四眼、来源、不追溯触发器；待 one-1a-par 出表结构 PR 后复核实际 diff 再签）。
+- ① 迁入质量检查要求已完成初稿：`data/MIGRATION_QUALITY_CHECKS.md`（按数据类规则、差异清单含负责人与期限、不通过不入库七条门槛、缺口 Q-1…Q-10）；待 one-architecture/one-coordinator 并入 ADR-0036 与 §14.2 M11；需用户定抽样比例、阈值、期限默认值。
