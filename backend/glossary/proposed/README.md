@@ -437,7 +437,7 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 
 one-rules 规则卡 RULE-418～504 提到的待登记词（one-glossary 2026-10-21，NAM-1021-GLO-05；proposed，ADR-0018）。
 
-已有词条沿用、不另登记：待办卡片→通知，管理员离职暂停→待放行离职（separation_hold），核算系统（bcs.yaml system），确认人 / 待确认 / 已确认 / 编号规则版本确认（platform.numbering 已有），本人登录记录（own_login_record_page_view），四眼（只在 ADR 文字里，不登记）。
+已有词条沿用、不另登记：票据 subject→外部主体键的一种取值（one-architecture 判，platform.integration），待办卡片→通知，管理员离职暂停→待放行离职（separation_hold），核算系统（bcs.yaml system），确认人 / 待确认 / 已确认 / 编号规则版本确认（platform.numbering 已有），本人登录记录（own_login_record_page_view），四眼（只在 ADR 文字里，不登记）。
 
 | id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
 |---|---|---|---|---|---|---|
@@ -452,7 +452,6 @@ one-rules 规则卡 RULE-418～504 提到的待登记词（one-glossary 2026-10-
 | `identity_confirmation` | 身份确认 | IdentityConfirmation | 领域 · platform.identity | 外部票据登录后，本人确认「这个账号是我」的步骤；确认前会话无任何权限 |  |  |
 | `browser_identifier` | 浏览器标识 | BrowserIdentifier | 领域 · platform.identity | 身份确认后下发给浏览器的标识 cookie，用于识别是否新浏览器 |  |  |
 | `registrar` | 登记人 | Registrar | 领域 · platform.integration | 录入来源对照待确认行的人；确认人不得是登记人 |  | 规则文件称 Registrar / Recorder（录入人）；错误码已用「登记人」，录入人不用 |
-| `ticket_subject` | 票据主体标识 | TicketSubject | 领域 · platform.integration | 签名票据携带的组织来源人员标识（带符号 64 位整数），只经来源对照解析为用户 |  | RULE-472 的出处与测试在 external_identities / 来源对照上不一致，已交 one-rules 与 one-architecture 判定 |
 | `login_method` | 登录方式 | LoginMethod | 领域 · platform.audit | 本人登录记录里这次登录所用的方式 |  |  |
 | `login_outcome` | 登录结果 | LoginOutcome | 领域 · platform.audit | 本人登录记录里这次登录成功或失败的结果 |  |  |
 | `submitted_date` | 提交日 | SubmittedDate | 领域 · cost.timesheet | 员工提交工时单审批的业务日期（列 submitted_date，与工作日期是两件事） |  |  |
