@@ -6,9 +6,8 @@
     "claude-fable-5-1": 1000000,
     "claude-opus-5": 1000000
   },
-  "pilot_sessions": [
-    "one-coordinator",
-    "one-ops"
-  ],
-  "_note": "窗口 1000000 由本机 transcript 里这些模型实测的最大用量（97 万 tokens 级）反推，是下限推断，不是官方数字；官方值确认后请改。"
+  "pilot_sessions": null,
+  "_note": "窗口 1000000 来自 get_usage 的 contextWindow 实测（调度与 one-quality 的会话均报 1000000，97% 自动压缩，2026-10-21 one-coordinator 核对）。",
+  "bash_input_chars": 5000,
+  "bash_output_chars": 8000
 }

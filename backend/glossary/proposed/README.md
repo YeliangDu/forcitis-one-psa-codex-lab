@@ -258,7 +258,7 @@ platform.approval 提议术语（proposed，待业务评审，ADR-0018）。单�
 
 无错误码以外的术语。
 
-另有错误码 30 个（kind 为 `error_code`）、技术词 111 个（`common_words`），不在表中。
+另有错误码 31 个（kind 为 `error_code`）、技术词 111 个（`common_words`），不在表中。
 
 ## platform.audit（`platform-audit-paging.yaml`）
 
@@ -269,6 +269,16 @@ K-3b-4 审计列表、导出、本人登录记录接入分页公共契约新增�
 | `audit_filter` | 审计筛选条件 | AuditFilter | 领域 · platform.audit | 审计条目列表与导出共用的十个筛选条件（操作人、代办人、动作、动作前缀、对象种类、对象、来源地址、结果、起止时间）；构造时校验对象与种类一致、起早于止 |  | K-3b-4，取代原 AuditQuery 中的筛选部分 |
 | `audit_page_mark` | 审计页标记 | AuditPageMark | 领域 · platform.audit | 审计条目键集分页的位置：上一页最后一条的发生时间与条目标识；只供生成下一页游标 | 「AuditPosition」已禁用 | K-3b-4 复审 M1；原名 AuditPosition 与岗位 Position（organization.workforce）同名异义，故改名 |
 | `own_login_record_page_view` | 本人登录记录分页视图 | OwnLoginRecordPageView | 领域 · platform.audit | 本人登录记录一页的应用层读模型：记录列表加下一页游标；不含条目标识 |  | K-3b-4，构词沿用审计条目分页视图 |
+
+## platform.file（`platform-file-areas.yaml`）
+
+文件服务存放位置用语（one-glossary 2026-10-21，NAM-1021-GLO-04；技术设施词，proposed）。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `staging_area` | 临时区 | StagingArea | 领域 · platform.file | 对象存储里放已通过检测、尚未关联到业务单据的文件内容的前缀（键 <环境前缀>/staging/<来源>/<文件 ID>），时效按来源由生命周期规则决定；关联时复制到正式键 |  | 口语「临时上传区」不入词表；与迁入暂存、检测暂存目录不同层，见 glossary/arch-naming/NAM-1021-GLO-04.md |
+| `inspection_staging_directory` | 检测暂存目录 | InspectionStagingDirectory | 领域 · platform.file | 后端实例本地磁盘上的专用目录，上传流先落盘于此、算哈希并交病毒检测，通过后才写入临时区；不对外签发链接，由年龄清扫作业清理 |  | ADR-0070 暂名「本地检测暂存目录」，去掉「本地」（目录本就在实例本地，不是区别项） |
+| `quarantine_prefix` | 隔离前缀 | QuarantinePrefix | 领域 · platform.file | 对象存储里放检测未通过文件内容的键前缀（<环境前缀>/quarantine/<文件 ID>），不可外读，只授安全角色经审批读取，保存期满清除内容 |  | 与文件状态「已隔离」配套：前缀是存放位置，状态是文件的判定结果 |
 
 ## platform.file（`platform-file.yaml`）
 
@@ -311,7 +321,7 @@ platform.file 提议术语（proposed，ADR-0018；one-platform-file 2026-10-21 
 | `scan_exception` | 误报例外 | ScanException | 领域 · platform.file | 误报例外清单中的一项：按内容哈希豁免，只追加，可经两人撤销 |  |  |
 | `added_at` | 加入时间 | AddedAt | 领域 · platform.file | 内容哈希加入误报例外清单的时间 |  |  |
 | `deidentified` | 已去标识 | Deidentified | 领域 · platform.file | 原文件名到期后置为固定占位值「[已去标识]」的状态 |  |  |
-| `stored_file_threat_name` | 病毒名 | ThreatName | 领域 · platform.file | 检测引擎检出时报告的特征名；与 platform.integration 同名词条互列 |  |  |
+| `platform_file__threat_name` | 病毒名 | ThreatName | 领域 · platform.file | 检测引擎检出时报告的特征名；与 platform.integration 同名词条互列 |  |  |
 | `preservation_sequence_number` | 保存期序号 | PreservationSequenceNumber | 领域 · platform.file | 每个文件的保存期记录从 1 递增的序号，最大者为当前 |  |  |
 | `transition_sequence_number` | 转换序号 | TransitionSequenceNumber | 领域 · platform.file | 状态转换表中每个聚合的转换顺序号，取本次变更之后聚合行的 version（ADR-0058）；与「流水号」不同 |  | one-glossary 2026-10-21 定名，避开「流水号」同名 |
 
@@ -342,7 +352,7 @@ platform.integration 提议术语（proposed，待业务评审，ADR-0018）。
 | `scan_outcome` | 检测结论 | ScanOutcome | ACL（长期） · platform.integration | CLEAN 通过 / INFECTED 未通过 / ENCRYPTED 加密不可检测；不可用不是结论，抛错 |  | one-platform-file 2026-10-21 登记（单元 4） |
 | `clean` | 检测通过 | Clean | ACL（长期） · platform.integration | 检测结论取值：引擎未检出 |  | one-platform-file 2026-10-21 登记（单元 4） |
 | `infected` | 检测未通过 | Infected | ACL（长期） · platform.integration | 检测结论取值：引擎检出，文件服务隔离 |  | one-platform-file 2026-10-21 登记（单元 4） |
-| `threat_name` | 病毒名 | ThreatName | ACL（长期） · platform.integration | 引擎检出时报告的特征名 |  | one-platform-file 2026-10-21 登记（单元 4） |
+| `platform_integration__threat_name` | 病毒名 | ThreatName | ACL（长期） · platform.integration | 引擎检出时报告的特征名 |  | one-platform-file 2026-10-21 登记（单元 4） |
 | `presign_download` | 签发下载链接 | PresignDownload | ACL（长期） · platform.integration | 以签发身份为正式键生成预签名 GET 链接，强制附件下载；临时区与隔离键拒绝 |  | one-platform-file 2026-10-21 登记（单元 4） |
 | `promote_file_object` | 转入正式区 | PromoteFileObject | ACL（长期） · platform.integration | 把临时区对象服务端复制到同一文件的正式键，禁止覆盖并读回核对 |  | one-platform-file 2026-10-21 登记（单元 4） |
 
@@ -430,6 +440,48 @@ platform.numbering 提议术语（proposed，待业务评审，ADR-0018）。服
 | `round3_pending__qt` | 报价单据类型代码 | Qt | 领域 · platform.numbering | 第三轮用语确认（R3-NU-17）已定为：并入 document_type_code。代码与界面改名合入前保留旧写法。 |  | 代码仍用 Qt（main） |
 | `round3_pending__jv` | 记账凭证单据类型代码 | Jv | 领域 · platform.numbering | 第三轮用语确认（R3-NU-18）已定为：并入 document_type_code。代码与界面改名合入前保留旧写法。 |  | 代码仍用 Jv（main） |
 | `round3_pending__journal_voucher` | 会计凭证 | JournalVoucher | 领域 · accounting.ledger | 第三轮用语确认（R3-AP-26）已定为：记账凭证 / JournalVoucher（journal_voucher）。代码与界面改名合入前保留旧写法。 |  | 界面文字仍用「会计凭证」 |
+
+## `rules-batch-1021.yaml`
+
+涉及模块：`cost.timesheet`、`kernel`、`platform.approval`、`platform.audit`、`platform.identity`、`platform.integration`。
+
+one-rules 规则卡 RULE-418～504 提到的待登记词（one-glossary 2026-10-21，NAM-1021-GLO-05；proposed，ADR-0018）。
+
+已有词条沿用、不另登记：票据 subject→外部主体键的一种取值（one-architecture 判，platform.integration），待办卡片→通知，管理员离职暂停→待放行离职（separation_hold），核算系统（bcs.yaml system），确认人 / 待确认 / 已确认 / 编号规则版本确认（platform.numbering 已有），本人登录记录（own_login_record_page_view），四眼（只在 ADR 文字里，不登记）。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `content_digest` | 内容摘要 | ContentDigest | 领域 · platform.approval | 待审内容在提交审批时的指纹（列 approved_hash 的取值），用于核对审批的内容未被改动；与文件服务的内容哈希（platform.file）是两个概念，不同 bc |  | platform.approval.api 现有类型 ContentHash 与 platform.file 的 ContentHash 同名，改名交 platform.approval 会话 |
+| `binding` | 约束性 | Binding | 领域 · platform.approval | 审批意见对流程有约束力、会推进或终止流程；与「建议性」相对。one-rules 用「正式效力」，名词化后与建议性不成对，改用约束性 |  | one-rules 原写正式效力（binding effect），请确认改用约束性 |
+| `process_administrator` | 流程管理员 | ProcessAdministrator | 领域 · platform.approval | 负责审批流程兜底、取不到办理人时接手待办的管理角色 |  |  |
+| `operations_command` | 运维命令 | OperationsCommand | 领域 · platform.identity | 命令行的运维操作族（授予角色、撤销角色、登记应急管理员等），须有见证人，区别于界面发起的业务命令 |  |  |
+| `usable_emergency_admin` | 可用应急管理员 | UsableEmergencyAdmin | 领域 · platform.identity | 应急管理员中本身启用、所绑定账号启用且仍持有超级管理员的人 |  | 规则文件称 emergency account，沿用词表的应急管理员 |
+| `relaxation_mark` | 放宽标注 | RelaxationMark | 领域 · platform.identity | 单人运维放宽项生效时写入的审计记录（single-operator-mode.applied） |  |  |
+| `canonical_employee_id` | 规范员工标识 | CanonicalEmployeeId | 共享内核 · kernel | 员工标识的唯一文本形式（UUID 字符串），运维命令的 --employee-id 只接受它 |  |  |
+| `project_role` | 项目角色 | ProjectRole | 领域 · platform.identity | 人在项目上担任的角色，是数据范围的一个维度（法人 × 部门 × 项目角色） |  |  |
+| `identity_confirmation` | 身份确认 | IdentityConfirmation | 领域 · platform.identity | 外部票据登录后，本人确认「这个账号是我」的步骤；确认前会话无任何权限 |  |  |
+| `browser_identifier` | 浏览器标识 | BrowserIdentifier | 领域 · platform.identity | 身份确认后下发给浏览器的标识 cookie，用于识别是否新浏览器 |  |  |
+| `registrar` | 登记人 | Registrar | 领域 · platform.integration | 录入来源对照待确认行的人；确认人不得是登记人 |  | 规则文件称 Registrar / Recorder（录入人）；错误码已用「登记人」，录入人不用 |
+| `login_method` | 登录方式 | LoginMethod | 领域 · platform.audit | 本人登录记录里这次登录所用的方式 |  |  |
+| `login_outcome` | 登录结果 | LoginOutcome | 领域 · platform.audit | 本人登录记录里这次登录成功或失败的结果 |  |  |
+| `submitted_date` | 提交日 | SubmittedDate | 领域 · cost.timesheet | 员工提交工时单审批的业务日期（列 submitted_date，与工作日期是两件事） |  |  |
+| `accounting_organization_code` | 核算组织编码 | AccountingOrganizationCode | ACL（长期） · platform.integration | 法人在核算系统里的数字编码，登记在来源对照里，只在防腐层使用 |  |  |
+
+## `state-transitions-decisions.yaml`
+
+涉及模块：`platform.audit`、`platform.eventing`。
+
+状态转换记录与决定出处列名的提议术语（one-glossary 2026-10-21，E-009 与 #515 列名；ADR-0018）。
+
+注意：state_transitions.sequence_number 与已有词条 sequence_number（流水号，platform.numbering）同名异义，GlossaryTest G39 会要求该列注释以「流水号」开头，待裁定，见任务 NAM-1021-GLO-04。
+
+| id | zh | en | 使用范围 | 定义 | 是否疑似方言 | 备注 |
+|---|---|---|---|---|---|---|
+| `state_transition` | 状态转换记录 | StateTransition | 领域 · platform.eventing | 聚合每次状态变化的一行追加记录，与状态变更同一事务写入；各有状态聚合所在 schema 各建一张同形表 state_transitions |  | bc 暂取 platform.eventing，待 one-architecture 确认归属 |
+| `aggregate_type_code` | 聚合类型代码 | AggregateTypeCode | 领域 · platform.eventing | 状态转换记录里标明所属聚合类型的代码（列 aggregate_type_code） |  |  |
+| `occurred_on_date` | 发生日期 | OccurredOnDate | 领域 · platform.eventing | 状态转换记录里状态变化发生的日期（列 occurred_on_date） |  |  |
+| `decision_ref_key` | 决定出处键 | DecisionRefKey | 领域 · platform.audit | 配置型版本表里指向用户决定出处的键，填 intent 或 ADR 编号（列 decision_ref_key；裸 decision_ref 为命名守护所禁） |  |  |
+| `decision_audit_entry` | 决定审计记录 | DecisionAuditEntry | 领域 · platform.audit | 确认操作同一事务写入的审计记录，作为决定出处，版本行只存其标识、不建跨 schema 外键（列 decision_audit_entry_id） |  | ADR-0072 在提议阶段，随其采纳转正 |
 
 ## `step3-objects.yaml`
 

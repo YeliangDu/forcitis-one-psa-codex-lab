@@ -4,10 +4,11 @@
 Measure: the usage of the last assistant message of the session's own transcript (hook input `transcript_path`, sub-agent messages skipped):
 input + cache_read + cache_creation tokens, divided by the model's window from scripts/hooks/context_windows.json.
 A model missing from the file is counted against the conservative `default` and says so once per session; an unreadable transcript or config says so once and does nothing else.
-Remind (PostToolUse, UserPromptSubmit; reaches the model as additionalContext, so it only takes effect at the next tool call or prompt): at >= 75% "at the batch boundary update the context documents and hand over, report to one-coordinator, then clear_session self";
+Remind (PostToolUse, UserPromptSubmit; reaches the model as additionalContext, so it only takes effect at the next tool call or prompt): at >= 75% "at the batch boundary update the context documents and hand over, report to one-coordinator" (no clear: the user clears or the session compacts, user 2026-10-21);
 at >= 85% "hand over now". Each level once per session; state lives in the untracked <root>/.claude/context-handoff-state.json (a cleared session has a new id, so starts clean).
 Enforce (Stop): past 75% while none of the profile / context documents (SESSION_PLAYBOOK §2.1 #16, same session-name resolution as session_context.py) was modified since the level was first reached, the stop is blocked once per level with the reason; a document written since lets it through.
 Never a loop: `stop_hook_active` lets the stop through, and a level blocks at most once. A crash of this hook never blocks a stop; for the other events it is reported once as additionalContext.
+Bulk (PostToolUse of Bash): a single command longer than `bash_input_chars` or a result longer than `bash_output_chars` (context_windows.json; defaults 5000 / 8000 from the length distribution of 1.6k Bash calls: about p96 / p98) is pointed out once per session and reason as additionalContext, never blocking (SESSION_PLAYBOOK §5 context-saving rules).
 During the pilot `pilot_sessions` in context_windows.json limits the hook to the listed session names (null or absent = every session).
 Usage: context_handoff.py < hook-input.json  |  context_handoff.py --self-test
 """
@@ -33,6 +34,8 @@ LEVELS = (75, 85)
 FALLBACK_WINDOW = 200000
 KEEP_SESSIONS = 20
 NAME_RECHECK_SECONDS = 600
+BASH_INPUT_CHARS = 5000
+BASH_OUTPUT_CHARS = 8000
 RESET_BELOW = 60
 TAIL_BYTES = 4 * 1024 * 1024
 SESSIONS = sc.SESSIONS
@@ -65,6 +68,55 @@ def pilot_sessions(path=None):
         return [str(item) for item in listed] if isinstance(listed, list) else None
     except (OSError, ValueError, AttributeError):
         return None
+
+
+def bulk_limits(path=None):
+    """((input chars, output chars), warning or None) above which a single Bash call is pointed out; `bash_input_chars` / `bash_output_chars` in the configuration, positive integers."""
+    limits = {"bash_input_chars": BASH_INPUT_CHARS, "bash_output_chars": BASH_OUTPUT_CHARS}
+    try:
+        with open(path or CONFIG, encoding="utf-8") as stream:
+            data = json.load(stream)
+        for key in limits:
+            if key in data:
+                value = data[key]
+                if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                    raise ValueError(f"{key} 必须是正整数，读到 {value!r}")
+                limits[key] = value
+        return (limits["bash_input_chars"], limits["bash_output_chars"]), None
+    except (OSError, ValueError, TypeError, AttributeError) as error:
+        return (BASH_INPUT_CHARS, BASH_OUTPUT_CHARS), f"Bash 超长阈值配置有问题（{error}），改用默认值 {BASH_INPUT_CHARS} / {BASH_OUTPUT_CHARS}"
+
+
+def bash_output_size(response):
+    """Characters of what the model sees of a Bash result: a string as it is, or stdout + stderr of the result object; none for an image or an output Claude Code already stored in a file (it passes only a preview then)."""
+    if isinstance(response, str):
+        return len(response)
+    if not isinstance(response, dict) or response.get("isImage") or response.get("persistedOutputPath"):
+        return 0
+    return sum(len(response[key]) for key in ("stdout", "stderr") if isinstance(response.get(key), str))
+
+
+def bulk_reminders(payload, entry):
+    """One-time notes (per session and reason) on a single oversized Bash input or result; only PostToolUse of Bash, never blocking."""
+    if payload.get("hook_event_name") != "PostToolUse" or payload.get("tool_name") != "Bash":
+        return []
+    (limit_in, limit_out), problem = bulk_limits()
+    notes = []
+    if problem and not entry.get("limits_warned"):
+        entry["limits_warned"] = True
+        notes.append(problem)
+    seen = entry.setdefault("bulk", [])
+    tool_input = payload.get("tool_input")
+    command = tool_input.get("command") if isinstance(tool_input, dict) else None
+    size_in = len(command) if isinstance(command, str) else 0
+    if size_in > limit_in and "input" not in seen:
+        seen.append("input")
+        notes.append(f"【上下文节约】本次 Bash 命令输入 {size_in} 字符（阈值 {limit_in}）：改文件用 Edit 改片段，不要用脚本整篇重写；新文件用 Write，长正文先写文件再用 --body-file 或 < 传入（SESSION_PLAYBOOK §5）。")
+    size_out = bash_output_size(payload.get("tool_response"))
+    if size_out > limit_out and "output" not in seen:
+        seen.append("output")
+        notes.append(f"【上下文节约】本次 Bash 输出 {size_out} 字符（阈值 {limit_out}）：先统计、筛选再读具体段，长输出存文件按需读；报错与测试失败的输出要完整读，不要用 head/tail 截掉（SESSION_PLAYBOOK §5）。")
+    return notes
 
 
 def window_for(model, default, windows):
@@ -185,8 +237,8 @@ def reminder(level, percent, tokens, window, name):
     where = f"sessions/{name}.md" if name else "sessions/<会话名>.md（本会话未识别，先在 .claude/session-name 写入会话名）"
     head = f"【上下文 {percent:.0f}%（{tokens}/{window}）】"
     if level >= 85:
-        return head + f"立即交接：现在就更新 {where} 的上下文文档与交接，报 one-coordinator，然后 clear_session self。"
-    return head + f"到批次边界：更新 {where} 的上下文文档与交接，报 one-coordinator，然后 clear_session self。"
+        return head + f"立即交接：现在就更新 {where} 的上下文文档与交接，报 one-coordinator；不要 clear_session。"
+    return head + f"到批次边界：更新 {where} 的上下文文档与交接，报 one-coordinator；不要 clear_session。"
 
 
 def handle(event, payload, root, now=None):
@@ -214,8 +266,11 @@ def handle_locked(event, payload, root, now):
     warnings = []
     if pilot is None or entry["name"] in pilot:
         percent, tokens, window, warnings = measure(payload, entry)
+        warnings += bulk_reminders(dict(payload, hook_event_name=event), entry)
         if percent is not None:
             if percent < RESET_BELOW:
+                if "crossed" in entry:
+                    entry.pop("bulk", None)
                 for key in ("reminded", "blocked", "crossed"):
                     entry.pop(key, None)
             for level in LEVELS:
@@ -260,7 +315,7 @@ def stop_decision(root, entry, top, percent, now):
     blocked.append(str(top))
     todo = "、".join([profile, *docs])
     return {"decision": "block", "reason": f"上下文已用 {percent:.0f}%（过 {top}% 线），但 {todo} 自过线以来没有更新。"
-            f"先更新上下文文档与交接（当前状态、在途、下一步），报 one-coordinator，再 clear_session self；写过之后可以直接结束。"}
+            f"先更新上下文文档与交接（当前状态、在途、下一步），报 one-coordinator；不要 clear_session，写过之后可以直接结束。"}
 
 
 def root_of(payload):
@@ -354,7 +409,7 @@ def self_test():
         os.utime(os.path.join(root, "docs/ctx.md"), (1, 1))
         os.utime(os.path.join(root, f"{SESSIONS}/one-test.md"), (1, 1))
         blocked = fire("Stop", 860, 200.0, session="stopper")
-        assert blocked and blocked["decision"] == "block" and "docs/ctx.md" in blocked["reason"] and "clear_session self" in blocked["reason"], blocked
+        assert blocked and blocked["decision"] == "block" and "docs/ctx.md" in blocked["reason"] and "不要 clear_session" in blocked["reason"], blocked
         assert fire("Stop", 860, 201.0, session="stopper") is None, "one block per level, never a loop"
         assert fire("Stop", 860, 202.0, session="stopper2", extra={"stop_hook_active": True}) is None, "stop_hook_active lets the stop through"
         assert fire("Stop", 700, 203.0, session="low") is None, "below the line does not block"
@@ -376,6 +431,46 @@ def self_test():
         os.utime(os.path.join(root, "docs/ctx.md"), (900.0, 900.0))
         fire("PostToolUse", 780, 1000.0, session="flow2")
         assert fire("Stop", 790, 1500.0, session="flow2") is not None, "context document older than the crossing blocks"
+
+        # oversized Bash input / result: pointed out once per session and reason, only for Bash, never blocking
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000, "claude-long": 5000}, "bash_input_chars": 100, "bash_output_chars": 200}))
+        small = fire("PostToolUse", 100, 1100.0, extra={"tool_name": "Bash", "tool_input": {"command": "x" * 100}, "tool_response": {"stdout": "y" * 150, "stderr": "z" * 50}}, session="bulk")
+        assert small is None, "at the limit is not over it"
+        big_out = text(fire("PostToolUse", 100, 1101.0, extra={"tool_name": "Bash", "tool_input": {"command": "ls"}, "tool_response": {"stdout": "y" * 150, "stderr": "z" * 51}}, session="bulk"))
+        assert big_out and "Bash 输出 201 字符" in big_out and "存文件按需读" in big_out and "完整读" in big_out, big_out
+        assert fire("PostToolUse", 100, 1102.0, extra={"tool_name": "Bash", "tool_input": {"command": "ls"}, "tool_response": "y" * 900}, session="bulk") is None, "the same reason is not repeated"
+        big_in = text(fire("PostToolUse", 100, 1103.0, extra={"tool_name": "Bash", "tool_input": {"command": "x" * 101}, "tool_response": "ok"}, session="bulk"))
+        assert big_in and "Bash 命令输入 101 字符" in big_in and "Edit" in big_in and "输出" not in big_in, big_in
+        assert fire("PostToolUse", 100, 1103.5, extra={"tool_name": "Bash", "tool_input": {"command": "x" * 900}, "tool_response": "ok"}, session="bulk") is None, "input is said once too"
+        both = text(fire("PostToolUse", 100, 1104.0, extra={"tool_name": "Bash", "tool_input": {"command": "x" * 500}, "tool_response": "y" * 300}, session="bulk2"))
+        assert both and "命令输入 500" in both and "输出 300" in both, "a list response is measured and both reasons come together"
+        for label, shape in (("a diff the model never sees", {"stdout": "", "stderr": "", "bashEditDiff": "d" * 5000}),
+                             ("an image", {"stdout": "b" * 5000, "stderr": "", "isImage": True}),
+                             ("an output stored in a file", {"stdout": "o" * 5000, "stderr": "", "persistedOutputPath": "/tmp/x"}),
+                             ("a non-text response", 12345)):
+            assert fire("PostToolUse", 100, 1104.5, extra={"tool_name": "Bash", "tool_input": {"command": "ls"}, "tool_response": shape}, session="shape-" + label) is None, label
+        assert fire("UserPromptSubmit", 100, 1104.6, extra={"tool_name": "Bash", "tool_input": {"command": "x" * 900}, "tool_response": "y" * 900}, session="bulk9") is None, "only PostToolUse is pointed out"
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000}, "bash_input_chars": 0, "bash_output_chars": "many"}))
+        invalid = text(fire("PostToolUse", 100, 1104.7, extra={"tool_name": "Bash", "tool_input": {"command": "ls"}, "tool_response": "ok"}, session="badlimits"))
+        assert invalid and "阈值配置有问题" in invalid and "默认值" in invalid, invalid
+        assert fire("PostToolUse", 100, 1104.8, extra={"tool_name": "Bash", "tool_input": {"command": "ls"}, "tool_response": "ok"}, session="badlimits") is None, "said once"
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000, "claude-long": 5000}, "bash_input_chars": 100, "bash_output_chars": 200}))
+        loud = {"tool_name": "Bash", "tool_input": {"command": "ls"}, "tool_response": "y" * 300}
+        assert fire("PostToolUse", 100, 1104.9, extra=loud, session="again") is not None and fire("PostToolUse", 100, 1104.95, extra=loud, session="again") is None
+        fire("PostToolUse", 100, 1104.96, session="again")
+        assert fire("PostToolUse", 100, 1104.97, extra=loud, session="again") is None, "below 60% without a crossing does not reset the bulk notes"
+        fire("PostToolUse", 800, 1104.98, session="again")
+        fire("PostToolUse", 100, 1104.99, session="again")
+        assert fire("PostToolUse", 100, 1105.0, extra=loud, session="again") is not None, "after a crossing and a compaction the bulk note is said again"
+        assert fire("PostToolUse", 100, 1105.1, extra={"tool_name": "Read", "tool_input": {"file_path": "x" * 900}, "tool_response": "y" * 900}, session="bulk3") is None, "other tools are not pointed out"
+        assert fire("PostToolUse", 100, 1106.0, extra={"tool_name": "Bash", "tool_input": {"command": "x" * 900}, "tool_response": "y" * 900, "agent_id": "a"}, session="bulk4") is None, "sub-agent calls are not pointed out"
+        assert fire("Stop", 100, 1107.0, extra={"tool_name": "Bash", "tool_input": {"command": "x" * 900}, "tool_response": "y" * 900}, session="bulk5") is None
+        assert fire("PostToolUse", 100, 1108.0, extra={"tool_name": "Bash", "tool_input": None, "tool_response": None}, session="bulk6") is None, "missing input / response are not an error"
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000, "claude-long": 5000}, "bash_input_chars": 100, "bash_output_chars": 200, "pilot_sessions": ["one-ops"]}))
+        assert fire("PostToolUse", 100, 1109.0, extra={"tool_name": "Bash", "tool_input": {"command": "x" * 900}, "tool_response": "y" * 900}, session="bulk7") is None, "the pilot limit applies to the bulk notes too"
+        write(config, json.dumps({"default": 200000, "windows": {"claude-test": 1000, "claude-long": 5000}}))
+        defaults = text(fire("PostToolUse", 100, 1110.0, extra={"tool_name": "Bash", "tool_input": {"command": "x" * (BASH_INPUT_CHARS + 1)}, "tool_response": "ok"}, session="bulk8"))
+        assert defaults and f"阈值 {BASH_INPUT_CHARS}" in defaults, "without configured limits the defaults apply"
 
         # missing window configuration and unreadable transcript say so, once
         unknown = text(fire("PostToolUse", 50, 400.0, model="claude-new", session="m1"))
