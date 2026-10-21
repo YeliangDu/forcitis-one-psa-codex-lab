@@ -363,3 +363,45 @@ rulings:
       forbidden:
       - 经营层
       note: ''
+  - op: promote
+    id: customer_facing_baseline
+    source: 用户 2026-10-21 内部基线重定（收件箱 2026-10-21-one-glossary-internal-baseline，intent 2026-10-21-204352）
+    confirmed: 2026-10-21（用户，内部基线重定）
+    entry:
+      id: customer_facing_baseline
+      zh: 对客基线
+      en: CustomerFacingBaseline
+      snake: customer_facing_baseline
+      kind: value_object
+      bc: delivery.execution
+      scope: domain
+      definition: 计划基线的一种：经发包人批准后生效；同一时间只有一个生效版本
+      standard_ref:
+      - 交付计划版本 AGG-21（revenue/state-machines.yaml）
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: promote
+    id: internal_baseline
+    source: 用户 2026-10-21 内部基线重定（收件箱 2026-10-21-one-glossary-internal-baseline，intent 2026-10-21-204352）
+    confirmed: 2026-10-21（用户，内部基线重定）
+    entry:
+      id: internal_baseline
+      zh: 内部基线
+      en: InternalBaseline
+      snake: internal_baseline
+      kind: value_object
+      bc: delivery.execution
+      scope: domain
+      definition: 计划基线的一种：项目经理锁定即生效，无需发包人批准，可先于对客基线存在；同一时间只有一个生效版本
+      standard_ref:
+      - 交付计划版本 AGG-21（revenue/state-machines.yaml）
+      confidence: medium
+      aliases: []
+      forbidden: []
+      note: ''
+  - op: redefine
+    id: plan_baseline
+    definition: 交付计划的不可变版本（修订须依据；与经营子域计划基线同名不同义）；按种类分对客基线与内部基线，各自一个生效版本，状态链同为草拟、已批准、被取代
+    source: 用户 2026-10-21 内部基线重定（收件箱 2026-10-21-one-glossary-internal-baseline，intent 2026-10-21-204352）
