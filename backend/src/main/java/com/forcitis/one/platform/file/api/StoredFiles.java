@@ -36,6 +36,6 @@ public interface StoredFiles {
     /** Written by the contract module; the longer of the category default and the agreed years counts. Returns how many files. */
     int setAgreedPreservation(DocumentReference preservationAnchor, PreservationYears agreed);
 
-    /** Empty while the start date is unknown or the category has no years yet. */
+    /** One date per file, since a file has one category and anchor; empty while the start date is unknown or the category has no years yet. */
     Optional<LocalDate> expiryOf(FileId file);
 }
