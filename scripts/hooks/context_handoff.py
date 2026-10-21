@@ -4,7 +4,7 @@
 Measure: the usage of the last assistant message of the session's own transcript (hook input `transcript_path`, sub-agent messages skipped):
 input + cache_read + cache_creation tokens, divided by the model's window from scripts/hooks/context_windows.json.
 A model missing from the file is counted against the conservative `default` and says so once per session; an unreadable transcript or config says so once and does nothing else.
-Remind (PostToolUse, UserPromptSubmit; reaches the model as additionalContext, so it only takes effect at the next tool call or prompt): at >= 75% "at the batch boundary update the context documents and hand over, report to one-coordinator, then clear_session self";
+Remind (PostToolUse, UserPromptSubmit; reaches the model as additionalContext, so it only takes effect at the next tool call or prompt): at >= 75% "at the batch boundary update the context documents and hand over, report to one-coordinator" (no clear: the user clears or the session compacts, user 2026-10-21);
 at >= 85% "hand over now". Each level once per session; state lives in the untracked <root>/.claude/context-handoff-state.json (a cleared session has a new id, so starts clean).
 Enforce (Stop): past 75% while none of the profile / context documents (SESSION_PLAYBOOK §2.1 #16, same session-name resolution as session_context.py) was modified since the level was first reached, the stop is blocked once per level with the reason; a document written since lets it through.
 Never a loop: `stop_hook_active` lets the stop through, and a level blocks at most once. A crash of this hook never blocks a stop; for the other events it is reported once as additionalContext.
@@ -237,8 +237,8 @@ def reminder(level, percent, tokens, window, name):
     where = f"sessions/{name}.md" if name else "sessions/<会话名>.md（本会话未识别，先在 .claude/session-name 写入会话名）"
     head = f"【上下文 {percent:.0f}%（{tokens}/{window}）】"
     if level >= 85:
-        return head + f"立即交接：现在就更新 {where} 的上下文文档与交接，报 one-coordinator，然后 clear_session self。"
-    return head + f"到批次边界：更新 {where} 的上下文文档与交接，报 one-coordinator，然后 clear_session self。"
+        return head + f"立即交接：现在就更新 {where} 的上下文文档与交接，报 one-coordinator；不要 clear_session。"
+    return head + f"到批次边界：更新 {where} 的上下文文档与交接，报 one-coordinator；不要 clear_session。"
 
 
 def handle(event, payload, root, now=None):
@@ -315,7 +315,7 @@ def stop_decision(root, entry, top, percent, now):
     blocked.append(str(top))
     todo = "、".join([profile, *docs])
     return {"decision": "block", "reason": f"上下文已用 {percent:.0f}%（过 {top}% 线），但 {todo} 自过线以来没有更新。"
-            f"先更新上下文文档与交接（当前状态、在途、下一步），报 one-coordinator，再 clear_session self；写过之后可以直接结束。"}
+            f"先更新上下文文档与交接（当前状态、在途、下一步），报 one-coordinator；不要 clear_session，写过之后可以直接结束。"}
 
 
 def root_of(payload):
@@ -409,7 +409,7 @@ def self_test():
         os.utime(os.path.join(root, "docs/ctx.md"), (1, 1))
         os.utime(os.path.join(root, f"{SESSIONS}/one-test.md"), (1, 1))
         blocked = fire("Stop", 860, 200.0, session="stopper")
-        assert blocked and blocked["decision"] == "block" and "docs/ctx.md" in blocked["reason"] and "clear_session self" in blocked["reason"], blocked
+        assert blocked and blocked["decision"] == "block" and "docs/ctx.md" in blocked["reason"] and "不要 clear_session" in blocked["reason"], blocked
         assert fire("Stop", 860, 201.0, session="stopper") is None, "one block per level, never a loop"
         assert fire("Stop", 860, 202.0, session="stopper2", extra={"stop_hook_active": True}) is None, "stop_hook_active lets the stop through"
         assert fire("Stop", 700, 203.0, session="low") is None, "below the line does not block"
