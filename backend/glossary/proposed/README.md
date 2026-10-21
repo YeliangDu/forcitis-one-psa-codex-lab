@@ -258,7 +258,7 @@ platform.approval 提议术语（proposed，待业务评审，ADR-0018）。单�
 
 无错误码以外的术语。
 
-另有错误码 29 个（kind 为 `error_code`）、技术词 111 个（`common_words`），不在表中。
+另有错误码 30 个（kind 为 `error_code`）、技术词 111 个（`common_words`），不在表中。
 
 ## platform.audit（`platform-audit-paging.yaml`）
 
