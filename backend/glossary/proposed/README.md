@@ -320,7 +320,7 @@ platform.file 提议术语（proposed，ADR-0018；one-platform-file 2026-10-21 
 | `scan_exception` | 误报例外 | ScanException | 领域 · platform.file | 误报例外清单中的一项：按内容哈希豁免，只追加，可经两人撤销 |  |  |
 | `added_at` | 加入时间 | AddedAt | 领域 · platform.file | 内容哈希加入误报例外清单的时间 |  |  |
 | `deidentified` | 已去标识 | Deidentified | 领域 · platform.file | 原文件名到期后置为固定占位值「[已去标识]」的状态 |  |  |
-| `threat_name` | 病毒名 | ThreatName | 领域 · platform.file | 检测引擎检出时报告的特征名；与 platform.integration 同名词条互列 |  |  |
+| `platform_file__threat_name` | 病毒名 | ThreatName | 领域 · platform.file | 检测引擎检出时报告的特征名；与 platform.integration 同名词条互列 |  |  |
 | `preservation_sequence_number` | 保存期序号 | PreservationSequenceNumber | 领域 · platform.file | 每个文件的保存期记录从 1 递增的序号，最大者为当前 |  |  |
 | `transition_sequence_number` | 转换序号 | TransitionSequenceNumber | 领域 · platform.file | 状态转换表中每个聚合的转换顺序号，取本次变更之后聚合行的 version（ADR-0058）；与「流水号」不同 |  | one-glossary 2026-10-21 定名，避开「流水号」同名 |
 
@@ -351,7 +351,7 @@ platform.integration 提议术语（proposed，待业务评审，ADR-0018）。
 | `scan_outcome` | 检测结论 | ScanOutcome | ACL（长期） · platform.integration | CLEAN 通过 / INFECTED 未通过 / ENCRYPTED 加密不可检测；不可用不是结论，抛错 |  | one-platform-file 2026-10-21 登记（单元 4） |
 | `clean` | 检测通过 | Clean | ACL（长期） · platform.integration | 检测结论取值：引擎未检出 |  | one-platform-file 2026-10-21 登记（单元 4） |
 | `infected` | 检测未通过 | Infected | ACL（长期） · platform.integration | 检测结论取值：引擎检出，文件服务隔离 |  | one-platform-file 2026-10-21 登记（单元 4） |
-| `threat_name` | 病毒名 | ThreatName | ACL（长期） · platform.integration | 引擎检出时报告的特征名 |  | one-platform-file 2026-10-21 登记（单元 4） |
+| `platform_integration__threat_name` | 病毒名 | ThreatName | ACL（长期） · platform.integration | 引擎检出时报告的特征名 |  | one-platform-file 2026-10-21 登记（单元 4） |
 | `presign_download` | 签发下载链接 | PresignDownload | ACL（长期） · platform.integration | 以签发身份为正式键生成预签名 GET 链接，强制附件下载；临时区与隔离键拒绝 |  | one-platform-file 2026-10-21 登记（单元 4） |
 | `promote_file_object` | 转入正式区 | PromoteFileObject | ACL（长期） · platform.integration | 把临时区对象服务端复制到同一文件的正式键，禁止覆盖并读回核对 |  | one-platform-file 2026-10-21 登记（单元 4） |
 
