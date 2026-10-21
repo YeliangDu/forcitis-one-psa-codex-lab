@@ -1,8 +1,8 @@
 # 行政事务模块（B-31）需新增的平台枚举常量
 
-状态：起草，供 one-architecture 合成 ADR-0067 决定 5 的冻结通道申请｜2026-10-21｜负责：one-1a-admin
+状态：起草，随施工卡加（W0 平台模块未冻结，不走冻结通道），one-architecture 已登记进收口窗口批量审核清单 `proposals/freeze/W0_CONTRACT_BATCH_REVIEW.md`｜2026-10-21｜负责：one-1a-admin
 
-依据：`B31_ARCH_RULINGS_2026-10-21.md` 第 10、11 项（流程键、权限码、投递用途三类枚举新增不属兼容新增，须一次申请；单据类型与审计主体走注册表，不新增常量）。
+依据：`B31_ARCH_RULINGS_2026-10-21.md` 第 10、11 项及其更正（W0 平台模块未冻结，流程键、权限码、投递用途三类枚举新增属正常建造；单据类型与审计主体走注册表，不新增常量）。
 
 英文名取自 `backend/glossary/proposed/organization-administration.yaml`，其中仍待 one-glossary 评审的词标「待定」；定名后本表跟改。常量随各施工卡落地，**申请时一次列全**。
 
@@ -73,7 +73,7 @@
 | `TRANSITION_CHANNEL_SPOT_CHECK_DUE` | `TRANSITION_CHANNEL_SPOT_CHECK` | 每月 | 行政负责人 |
 | `BACKUP_APPROVER_NOTIFIED` | `APPROVAL_TASK`（既有） | 第一审批人不可用，改派备用审批人 | 待定（§11.2 只说「事后知会」，接收人待 one-rules） |
 
-接收人列标「待定」的不得以确定值进入冻结申请。投递用途名进的是平台共享枚举，`LOAN_`、`ANNIVERSARY_` 等是否加 bc 前缀由 one-architecture 在冻结申请时定规则。
+接收人列标「待定」的不得以确定值进入收口窗口批量审核。投递用途名进的是平台共享枚举，`LOAN_`、`ANNIVERSARY_` 等是否加 bc 前缀由 one-architecture 在批量审核时定规则。
 
 提醒投递失败须可重试、幂等键含固定到期时点（施工设计 §5.2）。到期列表是本模块聚合上的到期时点列与查询，不建通用待办（ADR-0066 决定 9 第 3 条）。
 

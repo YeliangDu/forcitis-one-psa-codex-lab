@@ -10,7 +10,7 @@
 
 - `B31_TERM_GAPS.md`：用语差距清单（M1–M22、Q1–Q18）。
 - `B31_ALIGNMENT_AUDIT.md`：施工设计与已采纳 ADR、代码现状的核对（条目 REF/DATA/GLO/APR/MOD/SCH/DOC/RUL，分类见各节）。
-- `B31_PLATFORM_CONSTANTS.md`：需新增的流程键、权限码、投递用途清单（供 one-architecture 合成冻结通道申请）。
+- `B31_PLATFORM_CONSTANTS.md`：需新增的流程键、权限码、投递用途清单（W0 仍在建造期，随施工卡加；one-architecture 已登记进收口窗口批量审核清单）。
 
 裁定文件（别的会话的分支）：`B31_ARCH_RULINGS_2026-10-21.md`（one-architecture）、`B31_PHYSICAL_MODEL_RULINGS.md`（one-data）、`B31_RULING_REPLY.md`（one-rules）。
 
@@ -76,7 +76,7 @@
 ## 4. 审批接入契约
 
 1. 业务模块不碰流程引擎，只依赖审批 api 与 `ApprovalCompleted`（ADR-0007）。
-2. 三类人审：用印审批、信息技术服务审批、合同原件借阅审批（裁定第 5 项：施工设计的「两类人审」改为三类）。单据类型走编号模块注册表，审计主体以类型码记录，**不新增** `DocumentType`、`AuditSubjectKind` 常量；流程键、权限码、投递用途三类枚举新增见 `B31_PLATFORM_CONSTANTS.md`，由 one-architecture 合成一次冻结通道申请（裁定第 10 项）。
+2. 三类人审：用印审批、信息技术服务审批、合同原件借阅审批（裁定第 5 项：施工设计的「两类人审」改为三类）。单据类型走编号模块注册表，审计主体以类型码记录，**不新增** `DocumentType`、`AuditSubjectKind` 常量；流程键、权限码、投递用途三类枚举新增见 `B31_PLATFORM_CONSTANTS.md`，W0 平台模块未冻结（ADR-0067 决定 3），属正常建造，随施工卡加，不走冻结通道、不报用户；one-architecture 已登记进 `proposals/freeze/W0_CONTRACT_BATCH_REVIEW.md`，冻结前一次审完（裁定第 10 项更正）。
 3. 回调须同时匹配单据引用、流程类型、实例 ID、轮次与当前状态；重复事件幂等；旧轮事件不改新轮；未知对应或不支持结果拒绝并告警。
 4. `ApprovalCompleted` 结果映射（裁定第 8 项，用印与 IT；借阅沿用，待借阅状态机）：
 
@@ -109,7 +109,7 @@
 |---|---|---|
 | ADR-0074（B-31 补入 BC 清单与借阅移交手续）采纳 | one-architecture 起草，用户批 | 模块代码合入 main 前置；骨架留分支 |
 | ADR-0075（状态历史补篇）采纳：已按 one-data 方案对齐——子状态机各自记转换，主体取子行（类型码为子实体类型、ID 为子行 ID、序号为子行自己的 version），不加列；无状态变化不写转换、序号允许跳号；带状态机的子表行各自带 version | one-architecture 起草，用户批 | 采纳前 AGG-113、AGG-115 状态历史代码与 DDL 不落地 |
-| 平台枚举冻结通道申请 | one-architecture 合成，one-coordinator 核对 | 审批接入、提醒投递 |
+| 平台枚举（流程键、权限码、投递用途）冻结前批量审核 | one-architecture | 不挡施工卡 |
 | `platform.file` 已准入（`ADMISSION_PLATFORM_FILE_2026-10-21.md`，one-architecture @2790c770，进 main 后生效；B-31→file 边可登记，放骨架分支；`FileImports` 保留，先行上线前 7.10 未落地则撤）；`platform.signing` 由 one-architecture 补登记 `contexts.yaml`（待准入，owner one-platform-file） | one-architecture、one-coordinator | 签章边挂到 7.4 |
 | ADR-0054、0055、0064 勘误（资产与员工活动不经审批，用户 B31 答复 2026-10-17）；设计 §1.1 标偏差；注册表改造卡（单据类型、审计主体）先于本模块用到它们 | one-architecture | 不影响本 PR |
 | 借阅审批人表、提醒规则定版权限的物理承载（one-data 裁定 §2 配置集清单未列借阅审批人） | one-data | 7.5 起各卡 |
