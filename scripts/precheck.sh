@@ -51,10 +51,10 @@ show_tail() {
 # corepack picks pnpm from the nearest package.json at start-up, and only frontend/ names it; `pnpm -C frontend` would start at the root
 in_frontend() { (cd frontend && "$@"); }
 
-# Empty when the frontend can run here; otherwise the reason, which always says to ask the user (installing downloads packages, CLAUDE.md 9)
+# Empty when the frontend can run here; otherwise the reason. Installing from the local pnpm cache (--offline) downloads nothing and needs no asking; anything that downloads does (CLAUDE.md 9)
 frontend_missing() {
   if ! command -v pnpm >/dev/null; then echo "pnpm 未安装：需先问用户安装"; return; fi
-  if [ ! -d frontend/node_modules ]; then echo "前端依赖未安装：需先问用户安装（pnpm install --frozen-lockfile 会下载包）"; return; fi
+  if [ ! -d frontend/node_modules ]; then echo "前端依赖未安装：先在 frontend/ 运行 pnpm install --frozen-lockfile --offline（只用本机缓存、不下载）；缓存缺包而失败时，再问用户是否联网安装"; return; fi
   if ! node --version 2>/dev/null | grep -q '^v24\.'; then echo "Node $(node --version 2>/dev/null) found, CI uses Node 24：需先问用户安装"; fi
 }
 
@@ -102,11 +102,11 @@ if ! git rev-parse --verify --quiet "$base^{commit}" >/dev/null; then
 fi
 
 {
-  gitq diff --name-only "$base...HEAD"
-  gitq diff --name-only HEAD
+  gitq diff --name-only --no-renames "$base...HEAD"
+  gitq diff --name-only --no-renames HEAD
   gitq ls-files --others --exclude-standard
 } | grep . | sort -u >"$work/changed"
-{ gitq diff --name-only HEAD; gitq ls-files --others --exclude-standard; } | grep . | sort -u >"$work/uncommitted"
+{ gitq diff --name-only --no-renames HEAD; gitq ls-files --others --exclude-standard; } | grep . | sort -u >"$work/uncommitted"
 changed_count=$(grep -c . "$work/changed")
 uncommitted=$(grep -c . "$work/uncommitted")
 
@@ -130,13 +130,15 @@ if [ "$relevant_status" -ne 0 ] || printf '%s\n' "$relevant_output" | grep -qx '
   legacy_it_relevant=true
 fi
 
-records_dir=$(dirname docs/modernization/build_all.py)
-if [ -n "$(gitq status --porcelain -- "$records_dir" backend/glossary/proposed)" ]; then
-  report SKIP "generated docs (build_all --check)" "$records_dir or backend/glossary/proposed has uncommitted changes: commit first, then run again (请先提交再运行)"
-else
-  run_step "generated docs (build_all --check)" py docs/modernization/build_all.py --check
-fi
+run_step "generated docs (build_all --check)" py docs/modernization/build_all.py --check
 run_step "legacy system name" py docs/modernization/check_legacy_name.py
+if touches 'rules/decide/(build_decision_page\.py|page-template\.html)$'; then
+  run_step "decision page generator (self-test)" py docs/modernization/rules/decide/build_decision_page.py --self-test
+fi
+if touches 'architecture/decision-page/[^/]+\.json$|rules/decide/sheets/[^/]+\.json$|architecture/decision-page/check_pages\.py$'; then
+  run_step "decision pages: question rules (self-test)" py docs/modernization/architecture/decision-page/check_pages.py --self-test
+  run_step "decision pages: question rules" py docs/modernization/architecture/decision-page/check_pages.py --changed "$base"
+fi
 
 if touches '^(backend/src/(main/resources/db/migration|test/resources/db/testdata)/|backend/architecture/migration-baseline-open|backend/src/main/resources/application.*\.(properties|ya?ml)$|scripts/ci/(migrations_immutable|ci_git)\.py$)'; then
   run_step "migrations immutable (self-test)" py scripts/ci/migrations_immutable.py --self-test
@@ -152,13 +154,15 @@ else
   report SKIP "system actors append-only" "system-actors.txt and its script did not change"
 fi
 
-if touches '^(backend/src/test/java/com/forcitis/one/acceptance/|backend/src/test/resources/acceptance/|frontend/.*__acceptance__/|scripts/ci/(acceptance_|ci_git))'; then
+if touches '^(backend/src/test/java/com/forcitis/one/acceptance/|backend/src/test/resources/acceptance/|frontend/.*__acceptance__/|docs/modernization/rulings/|scripts/ci/(acceptance_|ci_git))'; then
   run_step "acceptance guard (self-test)" py scripts/ci/acceptance_guard.py --self-test
   run_step "acceptance reports (self-test)" py scripts/ci/acceptance_reports.py --self-test
+  run_step "acceptance rulings (self-test)" py scripts/ci/acceptance_rulings.py --self-test
   if grep -Eq '__acceptance__/|/acceptance/' "$work/uncommitted"; then
     echo "      note: uncommitted acceptance changes are judged only once committed (trailers live in commit messages)"
   fi
   run_step "acceptance guard" py scripts/ci/acceptance_guard.py "$base"
+  run_step "acceptance rulings" py scripts/ci/acceptance_rulings.py "$base"
 else
   report SKIP "acceptance guard" "no acceptance test changed"
 fi
@@ -186,6 +190,9 @@ if touches '(^(backend/src/main/resources/db/migration/|backend/architecture/(da
     printf '%s\n' "$ddl_scan" | tail -n 8 | sed 's/^/      | /'
   fi
 fi
+if touches 'architecture/proposals/(j_checks|aggregates_dep_check|vs_links_gen)\.py$'; then
+  run_step "j_checks (self-test)" py docs/modernization/architecture/proposals/j_checks.py --self-test
+fi
 if touches '^scripts/ci/(assertion_drift|ci_git)\.py$'; then
   run_step "assertion drift (self-test)" py scripts/ci/assertion_drift.py --self-test
 fi
@@ -203,6 +210,25 @@ if touches '(src/test/.*\.java|\.test\.tsx?|\.spec\.tsx?)$'; then
   fi
 else
   report SKIP "assertion drift (warning only)" "no test file changed"
+fi
+if touches 'src/test/.*\.java$|scripts/ci/shared_mock_verify_scan\.py$'; then
+  run_step "shared-mock verify scan (self-test)" py scripts/ci/shared_mock_verify_scan.py --self-test
+  if mock_scan=$(py scripts/ci/shared_mock_verify_scan.py 2>&1); then
+    report PASS "shared-mock verify scan (report only)" "$(printf '%s\n' "$mock_scan" | tail -n 1)"
+  else
+    report FAIL "shared-mock verify scan (report only)" "the scan itself failed:"
+    printf '%s\n' "$mock_scan" | tail -n 6 | sed 's/^/      | /'
+  fi
+fi
+if touches 'src/(test|main)/.*\.java$|scripts/ci/weak_registration_scan\.py$'; then
+  run_step "weak-registration scan (self-test)" py scripts/ci/weak_registration_scan.py --self-test
+  if weak_scan=$(py scripts/ci/weak_registration_scan.py 2>&1); then
+    report PASS "weak-registration scan (report only)" "$(printf '%s\n' "$weak_scan" | tail -n 1)"
+    printf '%s\n' "$weak_scan" | head -n 6 | grep -v '^weak-registration scan' | sed 's/^/      | /' || true
+  else
+    report FAIL "weak-registration scan (report only)" "the scan itself failed:"
+    printf '%s\n' "$weak_scan" | tail -n 6 | sed 's/^/      | /'
+  fi
 fi
 
 grep -E '\.sh$' "$work/changed" >"$work/shell" || true
@@ -233,8 +259,16 @@ fi
 
 guard_pattern='^backend/src/test/java/.*(Guard|ArchitectureRules|Modularity|ModuleDependency|NamingSurface|Glossary|DdlNaming|LegacyShape)[A-Za-z]*Test\.java$'
 guard_classes="ArchitectureRulesTest,ModularityTest,ModuleDependencyTest,NamingSurfaceTest,GlossaryTest,ErrorCodeGlossaryTest,DdlNamingTest,LegacyShapeTest,TimeSourceGuardTest,TestIsolationGuardTest,TestContainerGuardTest"
+guard_container_note=
 if touches '^backend/architecture/'; then
-  guard_run="$guard_classes"
+  # every light class that reads backend/architecture, found in the sources (a hand-kept list left out PrimaryKeyTypeGuardTest and about twenty more), plus the fixed guards
+  if readers=$(py scripts/ci/light_unit_classes.py --reading architecture) && [ -n "$readers" ]; then
+    guard_run="$guard_classes,$readers"
+  else
+    report FAIL "guards: architecture readers" "scripts/ci/light_unit_classes.py --reading architecture failed or found no class: only the fixed guards would run"
+    guard_run="$guard_classes"
+  fi
+  guard_container_note=$(py scripts/ci/light_unit_classes.py --reading architecture --heavy) || guard_container_note=""
 else
   # present files only (a deleted guard has nothing to run) and no container-starting classes (*IntegrationTest, *IT): CI runs those
   guard_run=$(grep -E "$guard_pattern" "$work/changed" | grep -vE '(IntegrationTest|IT)\.java$' | while IFS= read -r file; do [ -f "$file" ] && printf '%s\n' "$file"; done \
@@ -242,16 +276,30 @@ else
 fi
 if [ -n "$guard_run" ]; then
   run_step "guards: backend guard tests" backend_classes "$guard_run"
+  if [ -n "${guard_container_note:-}" ]; then
+    echo "      note: these tests also read backend/architecture but start a container (CI runs them): $guard_container_note"
+  fi
 else
   report SKIP "guards: backend guard tests" "no guard test or architecture list changed"
 fi
-if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(precheck_before_pr|pre_push_gate)\.py|scripts/ci/light_unit_classes\.py|\.claude/settings\.json)$'; then
+if touches '^(\.github/workflows/ci\.yml|scripts/precheck\.sh|scripts/hooks/(precheck_before_pr|pre_push_gate|codex_stdin_gate)\.py|scripts/ci/(light_unit_classes|heavy_gate|docker_diagnostics|failure_summary|repeat_new_tests)\.py|\.claude/settings\.json)$'; then
   for guard in migrations_immutable acceptance_guard acceptance_reports db_scripts_aligned relevant_change assertion_drift; do
     run_step "guards: $guard (self-test)" py "scripts/ci/$guard.py" --self-test
   done
   run_step "guards: precheck_before_pr (self-test)" py scripts/hooks/precheck_before_pr.py --self-test
   run_step "guards: pre_push_gate (self-test)" py scripts/hooks/pre_push_gate.py --self-test
+  run_step "guards: codex_stdin_gate (self-test)" py scripts/hooks/codex_stdin_gate.py --self-test
   run_step "guards: light_unit_classes (self-test)" py scripts/ci/light_unit_classes.py --self-test
+  run_step "guards: heavy_gate (self-test)" py scripts/ci/heavy_gate.py --self-test
+  run_step "guards: docker_diagnostics (self-test)" py scripts/ci/docker_diagnostics.py --self-test
+  run_step "guards: failure_summary (self-test)" py scripts/ci/failure_summary.py --self-test
+  run_step "guards: repeat_new_tests (self-test)" py scripts/ci/repeat_new_tests.py --self-test
+fi
+if touches '^(scripts/hooks/((postcompact_context|sessionend_snapshot|precompact_snapshot)\.sh|(handoff_snapshot|handoff_selftest|handoff_safe_selftest|handoff_storage_selftest|playbook_digest(_selftest)?|session_context|context_handoff)\.py)|scripts/hooks/context_windows\.json|scripts/precheck\.sh|.*build_all\.py|\.claude/settings\.json)$' || grep -Fxq 'docs/modernization/SESSION_PLAYBOOK.md' "$work/changed" || grep -Fxq 'docs/modernization/sessions/_COMMON.md' "$work/changed"; then
+  run_step "guards: playbook_digest (self-test)" py scripts/hooks/playbook_digest.py --self-test
+  run_step "guards: handoff (self-test)" py scripts/hooks/handoff_selftest.py --self-test
+  run_step "guards: session_context (self-test)" py scripts/hooks/session_context.py --self-test
+  run_step "guards: context_handoff (self-test)" py scripts/hooks/context_handoff.py --self-test
 fi
 
 if [ "$builds_relevant" = true ]; then

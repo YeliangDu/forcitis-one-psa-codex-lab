@@ -131,8 +131,13 @@ class ProcessArchiveJobIT {
         return history.createHistoricProcessInstanceQuery().processDefinitionKey("archive_probe").finished().count();
     }
 
+    /** The probes finish at START (the engine reads the injected clock), so the retention window is counted from START: counting from the real now made this test fail once the real date moved two days past START. */
+    private static Instant afterRetention(int days) {
+        return ZonedDateTime.ofInstant(START, ZoneId.of("Asia/Shanghai")).plusYears(3).plusDays(days).toInstant();
+    }
+
     private static Instant after3Years() {
-        return ZonedDateTime.now(ZoneId.of("Asia/Shanghai")).plusYears(3).plusDays(2).toInstant();
+        return afterRetention(2);
     }
 
     @Test
@@ -142,7 +147,7 @@ class ProcessArchiveJobIT {
         finishedProbe();
         runtime.startProcessInstanceByKey("archive_probe", "still-running");
 
-        clock.set(ZonedDateTime.now(ZoneId.of("Asia/Shanghai")).plusYears(3).minusDays(2).toInstant());
+        clock.set(afterRetention(-2));
         job.run();
         assertThat(vault.batches).isEmpty();
         assertThat(finished()).isEqualTo(2);
@@ -193,6 +198,45 @@ class ProcessArchiveJobIT {
 
         Mockito.reset(history);
         history.deleteHistoricProcessInstance(bad);
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-approval AP-08 a failed delete is logged and recorded by its class names only; the engine message reaches neither the log nor the table")
+    void theEngineMessageIsNeitherLoggedNorStored() {
+        String bad = finishedProbe();
+        doThrow(new IllegalStateException("secret-detail", new java.io.UncheckedIOException("deeper-secret", new java.io.IOException("x"))))
+                .when(history).deleteHistoricProcessInstance(bad);
+        clock.set(after3Years());
+        ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(ProcessArchiveJob.class);
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> captured = new ch.qos.logback.core.read.ListAppender<>();
+        captured.start();
+        logger.addAppender(captured);
+        try {
+            job.run();
+        } finally {
+            logger.detachAppender(captured);
+            Mockito.reset(history);
+        }
+
+        String stored = jdbc.sql("select failure_message from platform_approval.process_archive_skips where process_instance_id = cast(:id as uuid)")
+                .param("id", bad).query(String.class).single();
+        assertThat(stored).isEqualTo("java.lang.IllegalStateException <- java.io.UncheckedIOException <- java.io.IOException");
+        assertThat(captured.list).filteredOn(e -> e.getLevel() == ch.qos.logback.classic.Level.ERROR).isNotEmpty().allSatisfy(e -> {
+            assertThat(e.getFormattedMessage()).doesNotContain("secret-detail").doesNotContain("deeper-secret");
+            assertThat(e.getThrowableProxy()).isNull();
+        });
+        assertThat(captured.list).anySatisfy(e -> assertThat(e.getFormattedMessage()).contains("ALERT").contains("IllegalStateException"));
+        history.deleteHistoricProcessInstance(bad);
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-approval AP-08 the class-name chain stops at 5 levels")
+    void theClassNameChainStopsAtFiveLevels() {
+        Throwable chain = new RuntimeException();
+        for (int i = 0; i < 9; i++) {
+            chain = new RuntimeException(chain);
+        }
+        assertThat(ProcessArchiveJob.failureKind(chain).split(" <- ")).hasSize(5);
     }
 
     @Test

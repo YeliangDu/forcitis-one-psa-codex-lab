@@ -17,7 +17,7 @@ public class ListNumberingRules {
 
     @Transactional(readOnly = true)
     public CursorPage<NumberingRuleView> execute(PageRequest page) {
-        return page.slice(rules.findAllActive().stream().map(NumberingRuleViews::of).toList(), view -> view.documentType().name(),
+        return page.slice(rules.findAllActive().stream().map(NumberingRuleViews::of).toList(), view -> view.documentType().value(),
                 "numbering-rules");
     }
 }

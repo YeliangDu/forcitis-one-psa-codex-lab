@@ -26,6 +26,7 @@ BC = {
     "费用报销与支出管控 BC": "expense.spend", "组织人事 BC": "organization.workforce",
     "权限流程与集成平台 BC": "platform",
 }
+# KEY_BCS 与下方 A 表的键「bc:原代码」是旧资料（源术语表、审计覆盖）时代的模块标识，只用来取覆盖项，有意不跟着 ADR-0051 的退役改名；词条的最终 bc 由 rulings.yaml 的 move_bc 写定（P-059）
 KEY_BCS = {"operations.facts", "operations.policy", "contract.baseline", "contract.changeorder", "contract.riskdelivery",
            "delivery.execution", "delivery.acceptance", "cost.timesheet", "cost.costing",
            "receivables.wip", "receivables.collection", "accounting.ledger", "accounting.period"}
@@ -628,7 +629,7 @@ for t in terms:
                 al["type"] = "dialect"
                 fb = t.setdefault("forbidden", [])
                 for n in _split(al["name"]):
-                    if n not in fb and not re.fullmatch(r"[A-Za-z]+", n):
+                    if n not in fb and n != t["zh"] and not re.fullmatch(r"[A-Za-z]+", n):
                         fb.append(n)
             elif al["name"] == t["zh"]:
                 al["type"] = "standard-zh"   # 叫法与正式用语相同
@@ -736,6 +737,10 @@ for t in terms:
         _to_kernel.append(t["id"])
     t.update(_x)
 print("term_rules: bc 为 kernel 的领域词条转为共享内核", len(_to_kernel), "条：", "、".join(_to_kernel))
+import apply_nm
+print("nm: 应用命名第 2–4 批答复", apply_nm.apply(terms))
+import apply_recon
+print("recon: 已裁定漏登与提议转正", apply_recon.apply(terms))
 _entries = [("terms.yaml", t) for t in terms]
 _proposed = sorted(glob.glob("../../backend/glossary/proposed/*.yaml"))
 if not _proposed:

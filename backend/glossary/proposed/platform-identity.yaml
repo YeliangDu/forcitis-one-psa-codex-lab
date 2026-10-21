@@ -1,21 +1,5 @@
 # platform.identity 新增术语（proposed，待业务评审，ADR-0018）。登录、会话、票据、角色与数据范围用到的词。
 terms:
-- id: signing_key_code
-  zh: 签名密钥编码
-  en: SigningKeyCode
-  snake: signing_key_code
-  kind: value_object
-  bc: platform.identity
-  scope: acl
-  acl_class: 长期
-  definition: 票据签发方签名密钥的编码（票据头部的 kid），一方一把；原列名 key_id 按 ADR-0033 影响面改为以 _code 结尾（R-1b P2）
-  standard_ref:
-  - ADR-0033 影响面「ticket_issuers.key_id 改名」
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__platform_identity_role_transition_illegal
   zh: 角色状态转换非法
   en: PlatformIdentityRoleTransitionIllegal
@@ -61,87 +45,69 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: ticket
-  zh: 票据
-  en: Ticket
-  snake: ticket
+- id: role_version
+  zh: 角色版本
+  en: RoleVersion
+  snake: role_version
   kind: entity
   bc: platform.identity
-  scope: acl
-  acl_class: "长期"
-  definition: 一次性登录凭据：致远 OA 票据，或外部系统的签名票据
+  scope: domain
+  definition: 角色定义（名称、状态、数据范围类型、完整权限集合）的每次变化一行，只追加；当前版本是没有失效时刻的那一行，每个角色至多一个；删除角色是关闭最后一个版本（ADR-0034 第 1 项）
   standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
+  - adr/src/ADR-0034.md
   confidence: medium
   aliases: []
   forbidden: []
   status: proposed
-  note: ''
-- id: ticket_issuer
-  zh: 票据签发方
-  en: TicketIssuer
-  snake: ticket_issuer
-  kind: aggregate
-  bc: platform.identity
-  scope: acl
-  acl_class: "长期"
-  definition: 被允许签发签名票据的外部系统（KM、组织门户、YD 门户、BI），每方一把密钥，默认关闭
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.1 §3.2
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: external_identity
-  zh: 外部身份
-  en: ExternalIdentity
-  snake: external_identity
+  note: 登记会话 one-1a-par（IMP-1017-PAR-02，派工卡 ADR-0034-IMPL 第 11 节）；查重：terms.yaml 与 proposed 中同一 bc 无同名、同中文名
+- id: account_role_grant
+  zh: 角色授予
+  en: AccountRoleGrant
+  snake: account_role_grant
   kind: entity
   bc: platform.identity
-  scope: acl
-  acl_class: "长期"
-  definition: 用户账号在某个身份提供方（企业微信、致远登录）中的标识与该账号的绑定，带绑定区间；登录只经此绑定解析用户
+  scope: domain
+  definition: 某账号在一段时间内持有某角色，只追加；结束一律称收回，收回是关闭开放行，再次获得新增一行（ADR-0034 第 2 项）
   standard_ref:
-  - adr/ADR-0033.md
+  - adr/src/ADR-0034.md
   confidence: medium
   aliases: []
   forbidden: []
   status: proposed
-  note: ADR-0033（提议）登记，待用语确认
-- id: provider_kind
-  zh: 身份提供方类别
-  en: ProviderKind
-  snake: provider_kind
-  kind: state
-  bc: platform.identity
-  scope: acl
-  acl_class: "长期"
-  definition: 外部身份所属的身份提供方类别，如企业微信用户 ID、致远登录名
-  standard_ref:
-  - adr/ADR-0033.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ADR-0033（提议）登记，待用语确认
-- id: external_subject
-  zh: 外部主体标识
-  en: ExternalSubject
-  snake: external_subject
+  note: 登记会话 one-1a-par（IMP-1017-PAR-02，派工卡 ADR-0034-IMPL 第 11 节）；查重：terms.yaml 与 proposed 中同一 bc 无同名、同中文名
+- id: revocation_cause
+  zh: 收回原因
+  en: RevocationCause
+  snake: revocation_cause
   kind: value_object
   bc: platform.identity
-  scope: acl
-  acl_class: "长期"
-  definition: 身份提供方给出的用户标识文本（企业微信 userid、致远登录名），只存于外部身份绑定
+  scope: domain
+  definition: 角色授予被收回的原因：账号授权、离职、运维命令、迁入批次回退（ADR-0034 第 2 项）；列名 revocation_cause_kind
   standard_ref:
-  - adr/ADR-0033.md
+  - adr/src/ADR-0034.md
   confidence: medium
   aliases: []
   forbidden: []
   status: proposed
-  note: ADR-0033（提议）登记，待用语确认
+  note: 登记会话 one-1a-par（IMP-1017-PAR-02，派工卡 ADR-0034-IMPL 第 11 节）；查重：terms.yaml 与 proposed 中同一 bc 无同名、同中文名
+- id: role_version_closure
+  zh: 角色版本关闭
+  en: RoleVersionClosure
+  snake: role_version_closure
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 删除角色时给最后一个角色版本写下失效时刻、关闭人、关闭理由与审计条目，不再开新版本；被新版本接替的关闭不记这三项（ADR-0034 第 1 项）
+  standard_ref:
+  - adr/src/ADR-0034.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 登记会话 one-1a-par（IMP-1017-PAR-02）；查重：terms.yaml 与 proposed 中同一 bc 无同名、同中文名
 common_words:
+- granted
+- recorded
 - absent
 - absolute
 - accept
@@ -249,3 +215,4 @@ common_words:
 - replaced
 - revised
 - reach
+- omitted

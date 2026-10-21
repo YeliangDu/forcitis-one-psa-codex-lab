@@ -131,6 +131,25 @@ contexts:
   legacy_bc: null
   evidence: backend 模块包与 module-dependencies.txt
   note: 无 schema：唯一的错误处理与 OpenAPI 调整
+- id: platform.file
+  zh: 文件服务
+  subdomain: platform
+  kind: platform
+  status: planned
+  schema: platform_file
+  blueprint_bc: null
+  legacy_bc: null
+  basis: adr
+  tier: 基础层
+  owner: one-platform-file
+  adr:
+  - ADR-0060
+  - ADR-0061
+  - ADR-0070
+  admission: 待准入
+  admission_due: W1 结束或首个使用 BC 开工，取早（ADR-0066 决定 7）
+  review: 英文名 FileService，定名 2026-10-21 用户同意（bcs.yaml #496）；层名「基础层」暂定，待 one-glossary 终定 tier 取值
+  evidence: ADR-0060 决定 1；ADR-0066 决定 2 第 3 条
 - id: operations.planning
   zh: 战略与经营计划 BC
   subdomain: operations

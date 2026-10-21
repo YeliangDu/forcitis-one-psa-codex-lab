@@ -18,8 +18,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 /**
  * R-1b P4 DDL-04 (acceptance item 3) and ADR-0033 section 1 item 2 (item 7): the engine's instance ids are unique where they are
  * stored. A second start round with an instance id that is already used, two approval requests with the same current instance, and
- * a second skip record for the same process instance are each refused by the named unique constraint; requests with no current
- * instance may be many. The rows are written with plain SQL on the approval schema, which is the only way to bring two of them
+ * a second skip record for the same process instance are each refused by the named unique constraint; a request with no current
+ * instance is refused (NOT NULL). The rows are written with plain SQL on the approval schema, which is the only way to bring two of them
  * into conflict.
  */
 @Testcontainers
@@ -62,7 +62,7 @@ class ApprovalUniqueKeysIT extends ApprovalP4Support {
     }
 
     @Test
-    @DisplayName("R-1b P4 DDL-04：两个审批请求不能指向同一当前实例（部分唯一索引 uk_approval_requests_current_instance_id）")
+    @DisplayName("R-1b P4 DDL-04：两个审批请求不能指向同一当前实例（唯一索引 uk_approval_requests_current_instance_id）")
     void twoRequestsCannotShareTheCurrentInstance() throws Exception {
         UUID first = requestIdOf(startProjectHours(projectManager));
         UUID second = requestIdOf(startProjectHours(projectManager));
@@ -74,14 +74,16 @@ class ApprovalUniqueKeysIT extends ApprovalP4Support {
     }
 
     @Test
-    @DisplayName("R-1b P4 DDL-04：当前实例为空的审批请求可以有多条（部分索引不含空值）")
-    void requestsWithoutACurrentInstanceMayBeMany() throws Exception {
+    @DisplayName("R-1b P4 DDL-04 / DATA-REPAIR-approval AP-03：当前实例为空的审批请求被拒（current_instance_id 为 NOT NULL，23502）")
+    void aRequestWithoutACurrentInstanceIsRefused() throws Exception {
         UUID first = requestIdOf(startProjectHours(projectManager));
-        UUID second = requestIdOf(startProjectHours(projectManager));
 
-        execute("update approval_requests set current_instance_id = null where id in (?, ?)", first, second);
+        PSQLException refused = org.junit.jupiter.api.Assertions.assertThrows(PSQLException.class,
+                () -> execute("update approval_requests set current_instance_id = null where id = ?", first));
 
-        assertThat(rows("select id from approval_requests where id in (?, ?) and current_instance_id is null", first, second)).hasSize(2);
+        assertThat(refused.getSQLState()).as("not null violation").isEqualTo("23502");
+        assertThat(refused.getServerErrorMessage().getColumn()).isEqualTo("current_instance_id");
+        assertThat(instanceOf(first)).as("the request keeps its instance").isNotNull();
     }
 
     @Test

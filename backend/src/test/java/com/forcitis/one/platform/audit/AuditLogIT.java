@@ -14,6 +14,7 @@ import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditEntry;
+import com.forcitis.one.platform.audit.api.AuditEntryId;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
@@ -110,6 +111,19 @@ class AuditLogIT {
     }
 
     @Test
+    @DisplayName("C-6: record returns the id of the entry it wrote, so the caller can keep it in the same transaction")
+    void recordReturnsTheIdOfTheWrittenEntry() {
+        UUID subject = UUID.randomUUID();
+
+        AuditEntryId id = tx.execute(s -> audit.record(
+                new AuditEntry("platform.audit.test.recorded", TestAccounts.account(5), null, subj(subject), "returned")));
+
+        assertThat(id).isNotNull();
+        assertThat(jdbc.sql("select id from platform_audit.audit_entries where subject_id = :subject").param("subject", subject)
+                .query(UUID.class).single()).isEqualTo(id.value());
+    }
+
+    @Test
     @DisplayName("record outside a transaction is refused: an audit entry is never written on its own by accident")
     void recordNeedsTheCallersTransaction() {
         assertThatThrownBy(() -> audit.record(new AuditEntry("platform.audit.test.recorded", null, null, subj(UUID.randomUUID()), "x")))
@@ -154,6 +168,7 @@ class AuditLogIT {
     void searchFiltersAndPages() throws Exception {
         UUID subject = UUID.randomUUID();
         String action = unique("platform.audit.test");
+        jdbc.sql("select platform_audit.create_audit_entry_partitions(date '2026-01-01', date '2026-01-01')").query(Integer.class).single();
         insertAt("2026-01-01T08:00:00Z", action, 41L, subject);
         insertAt("2026-01-02T08:00:00Z", action, 41L, subject);
         insertAt("2026-01-03T08:00:00Z", action, 42L, subject);

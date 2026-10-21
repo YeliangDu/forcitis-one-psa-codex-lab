@@ -137,7 +137,7 @@ class SessionController {
 
     private void throttle(String kind) {
         if (!throttle.allows(kind, clientOrigin.address())) {
-            throw IdentityError.PLATFORM_IDENTITY_LOGIN_RATE_LIMITED.refusal("too many " + kind + " requests from " + clientOrigin.address());
+            throw IdentityError.PLATFORM_IDENTITY_LOGIN_RATE_LIMITED.refusal("too many " + kind + " requests");
         }
     }
 

@@ -690,7 +690,7 @@ terms:
   en: JournalVoucher
   snake: journal_voucher
   kind: aggregate
-  bc: accounting.voucher
+  bc: accounting.ledger
   scope: domain
   definition: 第三轮用语确认（R3-AP-26）已定为：记账凭证 / JournalVoucher（journal_voucher）。代码与界面改名合入前保留旧写法。
   standard_ref:

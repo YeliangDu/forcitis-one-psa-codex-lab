@@ -2,6 +2,7 @@ package com.forcitis.one;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.fixture.aggregates.domain.NoopSampleRepository;
 import com.forcitis.one.fixture.aggregates.domain.SampleRepository;
 import com.forcitis.one.fixture.aggregates.domain.Samples;
 import com.forcitis.one.fixture.doubles.AggregateWriteGuard;
@@ -52,9 +53,7 @@ class SingleAggregateGuardTest {
 
     private static List<String> transactionSaving(java.util.function.Consumer<AggregateWriteGuard> events, Object... aggregates) {
         AggregateWriteGuard guard = new AggregateWriteGuard();
-        org.springframework.aop.aspectj.annotation.AspectJProxyFactory factory = new org.springframework.aop.aspectj.annotation.AspectJProxyFactory(
-                (SampleRepository) aggregate -> {
-                });
+        org.springframework.aop.aspectj.annotation.AspectJProxyFactory factory = new org.springframework.aop.aspectj.annotation.AspectJProxyFactory(new NoopSampleRepository());
         factory.addAspect(guard);
         SampleRepository repository = factory.getProxy();
         AggregateWriteGuard.forget();
@@ -63,6 +62,9 @@ class SingleAggregateGuardTest {
             for (Object aggregate : aggregates) {
                 repository.save(aggregate);
             }
+            assertThat(TransactionSynchronizationManager.getSynchronizations())
+                    .as("the aspect must have intercepted save and registered its synchronization; none means it did not match, and the violations would be empty by silence")
+                    .hasSize(1);
             events.accept(guard);
             TransactionSynchronizationManager.getSynchronizations().forEach(synchronization -> synchronization.afterCompletion(
                     TransactionSynchronization.STATUS_COMMITTED));

@@ -1,3 +1,9 @@
+---
+卡号: DATA-REPAIR-identity
+状态: 进行中
+负责会话: one-1a-next-5
+前置: R-1b-P5
+---
 # 派工卡 DATA-REPAIR-identity：platform_identity 已建表的数据设计缺陷修复（草稿）
 
 - 草稿（第二版）：one-data 起草助手，2026-10-16；第二版并入用户 2026-10-16 的决定、统一分级（阻断 0）与 `SCAN_SUPPLEMENT.md` 补入；待 one-data 终审、one-coordinator 派工。
@@ -12,7 +18,7 @@
 - 批次：已建表数据设计审查（门禁 v2 §1.2 第 6 条「补审不通过而卡已合并」）的修复批；一个小 PR 直接合入 main（§6.1 第 10 条）
 - 建议负责会话：one-1a-next-4
 - 与 W2 的关系：ADR-0034 的 R-1 / RP-1 / AR-1 / AQ-2 / AQ-6 已排 W2 独立卡（ADR-0034:288-290；NEXT_BATCH_PLAN:269；COORDINATOR_LEDGER:47），本卡不含，见第 6 节
-- 排期：本卡排在 dev 部署之后（用户「同意，不挡 dev」，`BASELINE_TABLE_REVIEW.md` §3 末段）；本卡本身不是闸门；W2 才是生产前闸门（one-ops 登记到 PREDEPLOY，C-15 一组，见 README）
+- 排期：本卡排在 dev 部署之后（用户「同意，不挡 dev」，`BASELINE_TABLE_REVIEW.md` §3 末段）；本卡本身不是闸门；W2 须在 dev 正式交用户使用前完成（one-coordinator 2026-10-17 口径：dev 前阻塞，不挡 rc.6 重建；one-ops 登记到 PREDEPLOY，C-15 一组，见 README）
 
 ## 2. 依据
 - 门禁 v2（`origin/claude/one-data-gate-v2:docs/modernization/data/DATA_DESIGN_GATE.md`）：B3、B5、O4、O3、O10、O8、C3、C4、C5
@@ -182,11 +188,11 @@
 ## 6. 不含（已有归属，本卡不起条目）
 | 项 | 归属 |
 |---|---|
-| R-1 `roles` 版本化、系统角色迁移不写（高） | ADR-0034 W2 独立卡；**生产前闸门**（用户「同意，不挡 dev」，one-ops 登记到 PREDEPLOY，C-15 一组），不是 dev 部署闸门（OV「R-1 降级」） |
+| R-1 `roles` 版本化、系统角色迁移不写（高） | ADR-0034 W2 独立卡；**dev 正式交用户使用前完成**（用户「同意，不挡 dev」，one-ops 登记到 PREDEPLOY，C-15 一组），不是 dev 部署闸门（OV「R-1 降级」） |
 | RP-1（高）`role_permissions` 复合主键 / 删表 | 主键部分已被 R-1b P5 覆盖（`pk_role_permissions`，RULING-P5-D12）；删表并入 ADR-0034 W2 卡 |
 | AR-1（高）`account_roles` 复合主键 / `account_role_grants` | 主键部分已被 P5 覆盖；授予历史并入 ADR-0034 W2 卡 |
 | AQ-2（高）`VOIDED`、基准列、事件 `AuthorizationVoided` | ADR-0034 W2 卡；本卡 ID-01 的 CHECK 写成可并入 `VOIDED` 的形态 |
-| AQ-6（高）`role_codes` 改 `role_ids uuid[]` | 随 AQ-2 定形态，归 W2 卡（生产前闸门） |
+| AQ-6（高）`role_codes` 改 `role_ids uuid[]` | 随 AQ-2 定形态，归 W2 卡（dev 正式交用户使用前完成） |
 | UA-1 的清除路径、四段格式分级、R-2 守护 | ADR-0043 实施 PR（首次部署前） |
 | X-1 时间列数据库默认值（低） | 全库口径，另卡（PI 待决 10）；本 schema 11 表 22 列见末节 |
 | X-2 内联枚举 CHECK 具名（低） | 守护 G-D12 实现时一次改基线（OV 建议新增规则 4） |

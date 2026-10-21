@@ -36,7 +36,9 @@ jobs:
         run: scripts/ci/backend_verify.sh -Plegacy-it -Dtest.forks=2 -Dtest.fork.timeout=1800
       - name: the SQL Server integration tests ran
         shell: bash
-        run: compgen -G 'backend/target/failsafe-reports/TEST-*MssqlIT.xml'
+        run: |
+          compgen -G 'backend/target/failsafe-reports/TEST-*MssqlIT.xml'
+          python3 scripts/ci/acceptance_reports.py --tier full
       - if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:

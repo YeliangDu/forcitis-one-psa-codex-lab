@@ -1,5 +1,7 @@
 # 架构框架适配评审（对抗式，2026-10-15）
 
+状态：历史记录｜2026-10-15｜负责：one-architecture
+
 起因：用户 2026-10-15「关于架构的任何选择都要非常谨慎，必须深入研究后才能决策」（intent `2026-10-15-193135`）。评审：opus 子代理（architecture-critic，只读、未联网），one-architecture 抽查核实（见文末）。结论待用户在确认页重新定；在用户决定前，FRAMEWORKS.md 不改。
 
 评审对象：`architecture/FRAMEWORKS.md` §1–§8、`METHOD.md`、`DESIGN.md`，ADR-0040、0016、0003、0017。

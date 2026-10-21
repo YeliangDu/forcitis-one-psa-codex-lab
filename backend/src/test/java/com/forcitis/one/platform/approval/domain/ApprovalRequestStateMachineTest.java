@@ -7,7 +7,7 @@ import com.forcitis.one.TestIds;
 import com.forcitis.one.fixture.doubles.TestEventEnvelopes;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Reason;
@@ -41,7 +41,7 @@ class ApprovalRequestStateMachineTest {
     static final EmployeeId STRANGER = TestAccounts.employee(11);
     static final LocalDate TODAY = LocalDate.of(2026, 10, 14);
     static final Moment NOW = new Moment(Instant.parse("2026-10-14T02:00:00Z"), TODAY);
-    static final DocumentReference DOCUMENT = new DocumentReference(DocumentType.TIMESHEET, com.forcitis.one.TestApprovalIds.document("7"));
+    static final DocumentReference DOCUMENT = new DocumentReference(new DocumentTypeCode("TIMESHEET"), com.forcitis.one.TestApprovalIds.document("7"));
     static final ApprovalSummary SUMMARY = new ApprovalSummary("TS-1 2026-10-14 8h");
     static final TestEventEnvelopes ENVELOPES = new TestEventEnvelopes();
 
@@ -214,6 +214,18 @@ class ApprovalRequestStateMachineTest {
                 e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
         assertThatThrownBy(() -> in(ApprovalStatus.RUNNING).cancel(INITIATOR, false, null, NOW)).isInstanceOfSatisfying(DomainException.class,
                 e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-approval AP-01 a rejection, a return or a cancellation without a reason is refused and the request keeps running")
+    void anEndingWithoutAReasonIsRefused() {
+        for (java.util.function.Consumer<ApprovalRequest> ending : List.<java.util.function.Consumer<ApprovalRequest>>of(
+                r -> r.reject(null, NOW), r -> r.returnRound(null, NOW), r -> r.cancel(INITIATOR, false, null, NOW))) {
+            ApprovalRequest request = in(ApprovalStatus.RUNNING);
+            assertThatThrownBy(() -> ending.accept(request)).isInstanceOfSatisfying(DomainException.class,
+                    e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_REASON_REQUIRED));
+            assertThat(request.status()).isEqualTo(ApprovalStatus.RUNNING);
+        }
     }
 
     @Test

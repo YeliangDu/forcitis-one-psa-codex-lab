@@ -12,7 +12,7 @@ import com.forcitis.one.TestIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
@@ -40,7 +40,7 @@ class RetractionInitiatorGateTest {
     static final EmployeeId INITIATOR = TestAccounts.employee(1001);
     static final UserId INITIATORS_ACCOUNT = TestAccounts.account(1001);
     static final UserId ACCOUNT_NUMBERED_LIKE_THE_INITIATOR = TestAccounts.unknownAccount(1001);
-    static final DocumentReference DOCUMENT = new DocumentReference(DocumentType.TIMESHEET, com.forcitis.one.TestApprovalIds.document("7"));
+    static final DocumentReference DOCUMENT = new DocumentReference(new DocumentTypeCode("TIMESHEET"), com.forcitis.one.TestApprovalIds.document("7"));
 
     final ApprovalRequestRepository requests = mock(ApprovalRequestRepository.class);
     final ApprovalEngine engine = mock(ApprovalEngine.class);

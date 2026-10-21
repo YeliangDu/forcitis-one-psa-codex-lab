@@ -1,26 +1,34 @@
 #!/usr/bin/env python3
 """统一生成入口：依次生成 INTENT / SESSION_LOG / STATUS、正式术语 glossary/terms.yaml、会话一览 SESSIONS、用语问题清单 glossary/ISSUES、ADR 与 README、brief、
-提议术语清单（backend/glossary/proposed/README.md）、老系统读取登记（phase1a/infra/LEGACY_READ_REGISTER.md，由 legacy-read/ 片段生成，不入仓）。
+已定决策速查表 DECISION_DIGEST.md（由 intent/ 片段汇总，不入仓）、提议术语清单（backend/glossary/proposed/README.md）、老系统读取登记（phase1a/infra/LEGACY_READ_REGISTER.md，由 legacy-read/ 片段生成，不入仓）。
 
 用法：
   python3 docs/modernization/build_all.py          生成全部产物
-  python3 docs/modernization/build_all.py --check  生成后要求 docs/modernization 与提议术语清单工作区无差异（CI 使用）：
-                                                   terms.yaml、ADR、README、brief 与提议术语清单与已提交的产物不一致、或有未提交的新产物时失败；
-                                                   INTENT / SESSION_LOG / STATUS / SESSIONS / glossary/ISSUES / LEGACY_READ_REGISTER 不入仓（.gitignore），只要求能生成、片段合规
-                                                   （会话画像必备字段、会话名 one-* 且唯一；用语问题片段格式）；
+  python3 docs/modernization/build_all.py --check  要求 docs/modernization 与提议术语清单重新生成前后无差异（CI 使用）：
+                                                   terms.yaml、ADR、README、brief 与提议术语清单过期或缺失时失败；允许已生成一致的未提交改动；
+                                                   INTENT / SESSION_LOG / STATUS / DECISION_DIGEST / SESSIONS / glossary/ISSUES / LEGACY_READ_REGISTER / tasks/TASKS / sessions/_COMMON 不入仓（.gitignore），只要求能生成、片段合规
+                                                   （会话画像必备字段、会话名 one-* 且唯一；用语问题片段格式）；TASKS 另要求连续两次生成内容一致；
                                                    另校验 RULE_REVIEWS.json 的原结论未被改写（与 origin/main 的合并基点比对；取不到时由 review_revisions.py
                                                    按环境处理：CI 失败，本地告警），
                                                    并运行提议术语清单、会话一览（含钩子 session_context.py）、用语问题清单生成器的自测
 """
-import importlib.util, os, subprocess, sys
+import hashlib, importlib.util, os, subprocess, sys, tempfile
+from pathlib import Path
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 GLOSSARY_INDEX = os.path.join("..", "..", "backend", "glossary", "proposed", "README.md")
-STEPS = ["build_records.py", "build_sessions.py", "build_work_board.py", "glossary/build_issues.py", "adr/build_adrs.py", "rules/build_brief.py",
+STEPS = ["build_records.py", "build_decision_digest.py", "build_sessions.py", "build_work_board.py", "glossary/build_issues.py", "adr/build_adrs.py", "rules/build_brief.py",
          "phase1a/infra/build_legacy_read_register.py", "../../backend/glossary/build_proposed_index.py"]
-SELF_TESTED = ["build_sessions.py", "build_work_board.py", "../../scripts/hooks/session_context.py", "glossary/build_issues.py", "glossary/term_rules.py",
+SELF_TESTED = ["build_decision_digest.py", "build_sessions.py", "build_work_board.py", "adr/build_adrs.py", "adr/new_adr.py", "../../scripts/queue/merge_train.py", "../../scripts/merge/mq.py", "../../scripts/hooks/session_context.py", "glossary/build_issues.py", "glossary/term_rules.py",
                "phase1a/infra/build_legacy_read_register.py", STEPS[-1]]
+STEPS.append("rules/build_rule_index.py")   # 规则索引（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
+SELF_TESTED.append("rules/build_rule_index.py")
+SELF_TESTED.append("../../scripts/hooks/playbook_digest.py")
+SELF_TESTED.append("../../scripts/ci/ci_recurrence.py")   # 每晚复发检测：失败 CI 按错题本报错特征归类
+SELF_TESTED.append("../../scripts/ops/session_daily.py")   # 会话日报取数（调度每天早上用）
 # 正式术语 glossary/terms.yaml 由 build_terms.py 生成，--check 要求可复现；PyYAML 依赖登记于 SUPPLY_CHAIN.md S1
+STEPS.append("quality/defect-bank/defect_bank_check.py")   # 错题本检查（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
+SELF_TESTED.append("quality/defect-bank/defect_bank_check.py")
 if importlib.util.find_spec("yaml"):
     STEPS.insert(1, "glossary/build_terms.py")
     STEPS.insert(-1, "architecture/build_architecture.py")   # 架构施工图（architecture/DESIGN.md §3）：mmd 可复现、SVG 未过期
@@ -29,37 +37,133 @@ elif "--check" in sys.argv:
     sys.exit(f"失败：{sys.executable} 缺少 PyYAML，无法运行 glossary/build_terms.py 校验 terms.yaml 可复现（依赖见 SUPPLY_CHAIN.md S1）")
 else:
     print(f"警告：{sys.executable} 缺少 PyYAML，本次未重新生成 glossary/terms.yaml；--check 会因此失败（依赖见 SUPPLY_CHAIN.md S1）", file=sys.stderr)
+STEPS.append("architecture/check_proposals.py")   # 提议稿状态行检查（每个治理工具各占一行、位置分开，几个 PR 同时合入不冲突）
+SELF_TESTED.append("architecture/check_proposals.py")
 
-for step in STEPS:
-    r = subprocess.run([sys.executable, os.path.join(BASE, step)], cwd=BASE, capture_output=True, text=True)
-    if r.returncode:
-        sys.exit(f"{step} 失败：\n{r.stdout}{r.stderr}")
-    print(f"{step}: {r.stdout.strip().splitlines()[0] if r.stdout.strip() else 'ok'}")
-    if r.stderr.strip():
-        print(r.stderr.strip(), file=sys.stderr)
+STEPS.append("check_tasks.py")   # GOV-1017-COO-01：任务片段检查与 tasks/TASKS.md 总表
+SELF_TESTED.append("check_tasks.py")
+SELF_TESTED.append("build_all.py")
 
-if "--check" in sys.argv:
-    for step in SELF_TESTED:
-        r = subprocess.run([sys.executable, os.path.join(BASE, step), "--self-test"], cwd=BASE, capture_output=True, text=True)
+
+def snapshot(base=BASE):
+    files = subprocess.run(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", ".", GLOSSARY_INDEX],
+                           cwd=base, capture_output=True, text=True, check=True).stdout.split("\0")
+    return {name: hashlib.sha256(Path(base, name).read_bytes()).hexdigest() if Path(base, name).is_file() else None
+            for name in files if name and name != "tasks/TASKS.md"}
+
+
+def run_steps(steps, base=BASE):
+    for step in steps:
+        r = subprocess.run([sys.executable, os.path.join(base, step)], cwd=base, capture_output=True, text=True)
         if r.returncode:
-            sys.exit(f"{step} 自测失败：\n{r.stdout}{r.stderr}")
-        print(f"{os.path.basename(step)} --self-test: {r.stdout.strip()}")
-    merge_base = subprocess.run(["git", "merge-base", "HEAD", "origin/main"], cwd=BASE, capture_output=True, text=True)
-    base_args = ["--base", merge_base.stdout.strip()] if merge_base.returncode == 0 and merge_base.stdout.strip() else []
-    if not base_args:
-        print("警告：取不到 origin/main 的合并基点（无 origin/main、或浅克隆无共同祖先），原结论比对交给 review_revisions.py："
-              "有 origin/main 时回退为它本身作基线（可能误报），否则 CI 失败、本地告警", file=sys.stderr)
-    else:
-        head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=BASE, capture_output=True, text=True).stdout.strip()
-        if base_args[1] == head:
-            print("说明：合并基点即 HEAD（在 main 上运行），本步原结论比对不会发现改写；push 的比对由 CI 的专门步骤以 github.event.before 为基线完成")
-    r = subprocess.run([sys.executable, "-B", os.path.join(BASE, "rules", "review_revisions.py"), *base_args], cwd=BASE, capture_output=True, text=True)
-    if r.stderr.strip():
-        print(r.stderr.strip(), file=sys.stderr)
-    if r.returncode:
-        sys.exit(f"RULE_REVIEWS.json 修订记录校验失败：\n{r.stdout}")
-    print(f"rules/review_revisions.py: {r.stdout.strip()}")
-    dirty = subprocess.run(["git", "status", "--porcelain", "--", ".", GLOSSARY_INDEX], cwd=BASE, capture_output=True, text=True, check=True).stdout
+            sys.exit(f"{step} 失败：\n{r.stdout}{r.stderr}")
+        print(f"{step}: {r.stdout.strip().splitlines()[0] if r.stdout.strip() else 'ok'}")
+        if r.stderr.strip():
+            print(r.stderr.strip(), file=sys.stderr)
+
+
+def generate(check, base=BASE, steps=STEPS):
+    before = snapshot(base) if check else None
+    run_steps(steps, base)
+    if not check:
+        return
+    task_table = Path(base, "tasks/TASKS.md")
+    first = task_table.read_bytes()
+    run_steps(["check_tasks.py"], base)
+    if task_table.read_bytes() != first:
+        sys.exit("tasks/TASKS.md 连续两次生成内容不一致")
+    after = snapshot(base)
+    dirty = "\n".join(sorted(name for name in before.keys() | after.keys() if before.get(name) != after.get(name)))
     if dirty:
-        sys.exit("生成产物与片段不一致（请运行 build_all.py 并提交结果，不要直接编辑生成产物）：\n" + dirty)
-    print("check: 生成后工作区无差异")
+        sys.exit("生成产物与片段不一致（请运行 build_all.py 后重新检查，不要直接编辑生成产物）：\n" + dirty)
+    print("check: 入仓产物重新生成前后无差异；TASKS.md 连续两次生成一致")
+
+
+def self_test():
+    import contextlib, io, shutil
+    with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stdout(io.StringIO()):
+        root = Path(tmp)
+        base = root / "docs/modernization"
+        (base / "inputs").mkdir(parents=True)
+        (base / "tasks").mkdir()
+        (base / "glossary").mkdir()
+        (base / "glossary/bcs.yaml").write_text("bcs: []\n", encoding="utf-8")
+        (root / ".gitignore").write_text("docs/modernization/tasks/TASKS.md\n", encoding="utf-8")
+        shutil.copyfile(Path(BASE, "check_tasks.py"), base / "check_tasks.py")
+        (base / "build_index.py").write_text(
+            "from pathlib import Path\np = Path('.')\n"
+            "(p / 'README.md').write_text(''.join(f.read_text() for f in sorted((p / 'inputs').glob('*.txt'))))\n", encoding="utf-8")
+        (base / "inputs/a.txt").write_text("one", encoding="utf-8")
+        subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+        steps = ["build_index.py", "check_tasks.py"]
+        generate(False, str(base), steps)
+        subprocess.run(["git", "-C", str(root), "add", "."], check=True, capture_output=True)
+        def checked_failure(message):
+            try:
+                generate(True, str(base), steps)
+            except SystemExit as error:
+                assert message in str(error), str(error)
+            else:
+                raise AssertionError(f"应失败：{message}")
+        (base / "README.md").write_text("manual edit", encoding="utf-8")
+        checked_failure("生成产物与片段不一致")
+        (base / "README.md").unlink()
+        checked_failure("生成产物与片段不一致")
+        (base / "inputs/b.txt").write_text("two", encoding="utf-8")
+        checked_failure("生成产物与片段不一致")
+        generate(True, str(base), steps)
+        (base / "tasks/TASKS.md").unlink()
+        generate(True, str(base), steps)
+        (base / "tasks/TASKS.md").write_text("manual table", encoding="utf-8")
+        generate(True, str(base), steps)
+        with (base / "check_tasks.py").open("a", encoding="utf-8") as stream:
+            stream.write("\nimport time\n(BASE / 'tasks/TASKS.md').write_text(str(time.time_ns()))\n")
+        checked_failure("连续两次生成内容不一致")
+        (base / "check_tasks.py").write_text("raise SystemExit('generation failed')\n", encoding="utf-8")
+        checked_failure("generation failed")
+    print("build_all --self-test：通过（手改、删除、漏生成失败；一致未提交产物通过；TASKS 缺失或手改可重建、两次不一致或生成失败被拦截）")
+
+
+def build_common(check):
+    """sessions/_COMMON.md（不入仓）：SESSION_PLAYBOOK §2.1/§5/§11 的最小摘要；--check 要求两次生成无告警且内容一致。"""
+    spec = importlib.util.spec_from_file_location("playbook_digest", os.path.join(BASE, "../../scripts/hooks/playbook_digest.py"))
+    digest = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(digest)
+    try:
+        digest.write_common(os.path.join(BASE, "SESSION_PLAYBOOK.md"), os.path.join(BASE, "sessions/_COMMON.md"), check=check)
+    except (OSError, ValueError) as error:
+        sys.exit(f"sessions/_COMMON.md 失败：{error}")
+    print("sessions/_COMMON.md: 两次生成无告警且内容一致" if check else "sessions/_COMMON.md: 已生成")
+
+
+def main():
+    if sys.argv[1:] == ["--self-test"]:
+        self_test()
+        return
+    build_common("--check" in sys.argv)
+    generate("--check" in sys.argv)
+    if "--check" in sys.argv:
+        for step in SELF_TESTED:
+            r = subprocess.run([sys.executable, os.path.join(BASE, step), "--self-test"], cwd=BASE, capture_output=True, text=True)
+            if r.returncode:
+                sys.exit(f"{step} 自测失败：\n{r.stdout}{r.stderr}")
+            print(f"{os.path.basename(step)} --self-test: {r.stdout.strip()}")
+        merge_base = subprocess.run(["git", "merge-base", "HEAD", "origin/main"], cwd=BASE, capture_output=True, text=True)
+        base_args = ["--base", merge_base.stdout.strip()] if merge_base.returncode == 0 and merge_base.stdout.strip() else []
+        if not base_args:
+            print("警告：取不到 origin/main 的合并基点（无 origin/main、或浅克隆无共同祖先），原结论比对交给 review_revisions.py："
+                  "有 origin/main 时回退为它本身作基线（可能误报），否则 CI 失败、本地告警", file=sys.stderr)
+        else:
+            head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=BASE, capture_output=True, text=True).stdout.strip()
+            if base_args[1] == head:
+                print("说明：合并基点即 HEAD（在 main 上运行），本步原结论比对不会发现改写；push 的比对由 CI 的专门步骤以 github.event.before 为基线完成")
+        r = subprocess.run([sys.executable, "-B", os.path.join(BASE, "rules", "review_revisions.py"), *base_args], cwd=BASE, capture_output=True, text=True)
+        if r.stderr.strip():
+            print(r.stderr.strip(), file=sys.stderr)
+        if r.returncode:
+            sys.exit(f"RULE_REVIEWS.json 修订记录校验失败：\n{r.stdout}")
+        print(f"rules/review_revisions.py: {r.stdout.strip()}")
+
+
+if __name__ == "__main__":
+    main()

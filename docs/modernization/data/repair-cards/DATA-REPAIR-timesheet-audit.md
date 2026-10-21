@@ -1,3 +1,9 @@
+---
+卡号: DATA-REPAIR-timesheet-audit
+状态: 进行中
+负责会话: one-1a-next-5
+前置: R-1b-P5, TS-UNIQ
+---
 # 派工卡 DATA-REPAIR-timesheet-audit：工时、考勤日历、审计、幂等已建表的数据设计缺陷修复（草稿）
 
 - 草稿（第二版）：one-data 起草助手，2026-10-16；第二版并入用户 2026-10-16 的决定、统一分级（阻断 0）与 `SCAN_SUPPLEMENT.md` 补入；待 one-data 终审、one-coordinator 派工。
@@ -102,13 +108,15 @@ B 部分（one-1a-next-4）允许改动：
 | 12 | detail | `LoginAdmission:100` 的 `reason`，来自 `LoginWithSso:65-66` | `no employee for login name <登录名>`（登录名由请求方输入，可能是任何字符串） | **PI**（登录名，ADR-0043 第 3 项表 U-2） | 禁；改 `login name unknown`。**本项不在 ADR 第 4 项第 5 条三处之列，属本次核实新发现** |
 | 13 | detail | `LoginAdmission:100` 的 `reason`，来自 `WecomIdentification:57-58`（经 `LoginWithWecom:28`） | `no employee for WeCom user id <企业微信 ID>` | **PI**（企业微信 ID） | 禁；改 `wecom user not bound`。**新发现** |
 | 14 | detail | `RegisterEmergencyAdmin:79` | `operator=<姓名> witness=<姓名> loginName=<登录名>` | 代理键（姓名已改员工 ID） | `loginName=` 删，主体已是应急账号 ID（`AuditSubject`），读时再解析。**新发现** |
-| 15 | detail | `GrantRoleByOperations:68`、`EnableEmergencyAdmin:43`、`DisableEmergencyAdmin:50`、`ResetEmergencyAdminCredentials:49` | `OperationAttestation.describe()`：`operator=<姓名> witness=<姓名>`（`GrantRoleByOperations` 另加 `role=<角色码>`）；姓名由命令行/运维入参，正则 `[\p{L}\p{N}][\p{L}\p{N} ._-]{0,63}` | 代理键（员工 ID） | 改写员工 ID：`operatorId=<UUID> witnessId=<UUID>` |
+| 15 | detail | `GrantRoleByOperations:68`、`EnableEmergencyAdmin:43`、`DisableEmergencyAdmin:50`、`ResetEmergencyAdminCredentials:49` | `OperationAttestation.describe()`：`operator=<姓名> witness=<姓名>`（`GrantRoleByOperations` 另加 `role=<角色码>`）；姓名由命令行/运维入参，正则 `[\p{L}\p{N}][\p{L}\p{N} ._-]{0,63}` | 代理键（员工 ID） | 改写员工 ID：`operatorId=<员工 UUID> witnessId=<员工 UUID 或 none>`（单人运维模式省略见证人时写 `none`）；`RevokeRoleByOperations` 同归此行 |
 | 16 | detail | `ForceUserLogout:67` | `forced logout: <原因>`，原因由人填，去控制字符，1 至 200 字（`MAX_REASON_LENGTH`） | 可能（人填自由文本） | 允许，与 `change_reason` 同口径：只提示不拦截（ADR-0043 第 4 项第 1 条表） |
 | 17 | detail | `RecordSyncRunRelease:38`（调用方 `ReleaseSyncRun:67-70`） | `reason: <人填原因>; session mode: …; held: <UUID 列表>; applied: <UUID 列表>; remaining super_admin: <数>` | 可能（人填原因）；其余代理键与计数 | 允许；原因无长度上限，超 2000 字 `AuditEntry` 构造会抛 `IllegalArgumentException`，见「拿不准」 |
 | 18 | change_reason | `AuditDomainEvents:56`（`withChange(reason, null, null)`，唯一调用） | 事件实现 `Reasoned` 时取 `reason().value()`：目前 `SyncRunReleased`、`LegalEntityAttributionCorrected`，人填自由文本 | 可能 | 允许，只提示不拦截（U-7(b)） |
 | 19 | before_text / after_text | 无（全库唯一写入点 `AuditDomainEvents:56` 写 `null, null`） | 现在不写 | — | **现在一律不得写非空值**；将来写入按 U-7(b)：被变更字段自身的 L2 个人信息原值可写，L3 及以上与 `SPI` 不记，并在本表追加一行 |
+| 20 | detail | `SingleOperatorModeStartup`（启动审计 `platform.identity.single-operator-mode.enabled`，ADR-0030 第 1 节第 7 条） | 恰为 `profile=<profile 名>`；actor 为空；不写数据库名 | 否 | 允许（one-data 签发，SINGLE-OP P1） |
+| 21 | detail | `SingleOperatorMarks`（放宽项标注 `platform.identity.single-operator-mode.applied`，ADR-0030 第 2 项） | 恰为 `relaxation=<固定代码>`，代码取 `WITNESS_OMITTED`、`EMERGENCY_ACCOUNT_MINIMUM_ONE`、`SUPER_ADMIN_MINIMUM_ONE`（第四个 `TEMPLATE_VERSION_WITHOUT_AUTHOR` 随编号运维起草落地） | 否 | 允许（one-data 签发，SINGLE-OP P2） |
 
-  - 清单共 19 行（`detail` 17 行、`change_reason` 1 行、`before_text` / `after_text` 合 1 行）；覆盖全部 41 处 `new AuditEntry(`。所有写入点另受 `AuditEntry` 构造的既有限制：每段至多 2000 字，含 `password|secret|token|…=` 样式文本即拒绝（`AuditEntry.java:15-25`）。
+  - 清单共 21 行（`detail` 19 行、`change_reason` 1 行、`before_text` / `after_text` 合 1 行）；覆盖全部 44 处 `new AuditEntry(`。所有写入点另受 `AuditEntry` 构造的既有限制：每段至多 2000 字，含 `password|secret|token|…=` 样式文本即拒绝（`AuditEntry.java:15-25`）。
   - **登记四列分级**（建议，待用户第 5 节待决 2 与 ADR-0043 实施 PR 的四段格式；落地前按本表视为已登记，C4 末句）：
       `platform_audit.audit_entries.detail | INTERNAL | PI | 用途：说明动作的上下文；不得含直接标识（IP、登录名、企业微信 ID）与人名，操作人、见证人只记员工 ID`
       `platform_audit.audit_entries.change_reason | INTERNAL | PI | 用途：人填的变更理由；只提示不拦截`
@@ -119,7 +127,7 @@ B 部分（one-1a-next-4）允许改动：
 
 - RULING-DR-TB01-1（one-1a-next-4，2026-10-16）：用户答 U-7b「改写员工 ID，阅读时再解析姓名」后，运维命令 `--operator`、`--witness` 入参改为员工 ID；5 个验收文件中这两个参数的取值随之机械改为员工 ID，断言未动。
 
-- 后续小卡 DR-TB01-FU1（one-data 2026-10-16 准许移出 PR-2，交 one-1a-next-5）：运维证明的操作人、见证人员工 ID 须为存在员工（不存在 → 用法错误退出码 2，不写审计）；需在 5 个验收文件造出操作人 / 见证人员工（测试代理按 Acceptance-Ruling 改）。PR-2 暂未校验存在，「阅读时再解析姓名」可能遇到解析不到的 ID。落地时须统一退出码：RUNBOOK 现写格式错误为退出码 1，本卡写不存在为 2。
+- 后续小卡 DR-TB01-FU1（one-data 2026-10-16 准许移出 PR-2，交 one-1a-next-5）：运维证明的操作人、见证人员工 ID 须为存在员工（不存在 → 退出码 1，不写审计）；需在 5 个验收文件造出操作人 / 见证人员工（测试代理按 Acceptance-Ruling 改）。PR-2 暂未校验存在，「阅读时再解析姓名」可能遇到解析不到的 ID。退出码 1（one-data 2026-10-16 裁定：与格式错误同为拒绝，沿用错误码 PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED）；已在 one-1a-next-5 落地。「员工存在」口径见 one-data `reviews/DR-TB01-FU1-1.md`（存在 = employees 有该 ID 的行，不要求任职、在职；现实现联接任职偏严，随 NITS-1 修）。
 
 #### TB-02　IR-1　高（OV 确认）　整份应答正文落库 24 小时，无分级、无内容边界、无长度上限
 - 问题：`IdempotencyFilter` 对所有非 `/sessions`、`/login-states` 的 POST 保存完整应答正文（黑名单），`response_text` 是任意接口应答副本；`data-classification.txt` 无该列。
@@ -199,7 +207,7 @@ POST /api/v1/platform/approval-tasks/{taskId}:reassign  # 204 无正文
 - 改法：导出改 `limit maxRows + 1`，返回行数大于 `maxRows` 即判超限并按现有超限错误失败，去掉 `count`；索引改造（`(actor_id, created_at DESC, id DESC)` 等、`starts_with` 的 `text_pattern_ops`）与 AE-2 分区同批做，归 TB-07（分区后索引需重建），不在本条。
 - 预期表结构 diff：无。
 - 验收要点：行数恰为 `maxRows` 时成功，`maxRows + 1` 时失败；无 `count` 语句。
-- 依据：门禁 O10；D19。
+- 依据：门禁 O10；D19。　已由 K-3b-4 覆盖（one-coordinator 2026-10-16），PR-3 不含。
 
 #### TB-05　AE-4（子集）　中　`audit_entries` 文本列无长度与空串约束
 - 问题：`action`、`subject_key`、`detail`、`change_reason`、`before_text`、`after_text`、`source_address` 库内无长度上限，应用只限 2000（`AuditEntry.java:16`），也未禁空串。
@@ -231,6 +239,29 @@ POST /api/v1/platform/approval-tasks/{taskId}:reassign  # 204 无正文
 - 验收要点：同一事件重复投递只落一行；分区边界写入通过；维护角色可摘除分区、其他角色 DELETE 被拒；UPDATE、DELETE、TRUNCATE 触发器对各分区生效；归档作业与对账通过。 守护（ADR-0048「需同步修改的守护规则」1–5）：① `PrimaryKeyTypeGuardTest` 读 `primary-key-exemptions.txt`，除 5 张框架表外只接受 `platform_audit.audit_entries` 一行并校验形状（主键恰为 `id uuid` + `created_at timestamptz`，`created_at` 是范围分区键）；② 分区表守护：出现 `PARTITION BY` 的表必须登记且注明批准它的 ADR 号；③ 引用只用 `id`：任何 `FOREIGN KEY … REFERENCES platform_audit.audit_entries`（含复合外键）失败，`uk_audit_entries_event_id_created_at` 恰为 `(event_id, created_at)`；④ `AuditDomainEventsIT`：同一事件重投两次只产生一条，事件条目 `created_at` 等于信封发生时刻；⑤ `primary-key-exemptions.txt` 文件头注明「非框架表只允许 ADR-0048 的 audit_entries；新增须另立 ADR」。另按 ADR-0048 影响面：SESSION_PLAYBOOK §14.1 D16 注明本例外；NAMING_STANDARD §2.4a 第 8 条的分区登记本表分区键。
 - 依据：门禁 O11、O7、C3；GUIDING_PRINCIPLES §11 O-8；NAMING_STANDARD §2.4a-8；ADR-0043 R-2；用户决定（第 5 节「已定」）。
 
+- **数据设计（PR-1：TB-07 + TB-09 + TB-05，one-1a-next-5 补，待 one-data 签）**（基线 `origin/main` @4d0b7c34；依据 ADR-0048 决定 1–7 与「需同步修改的守护规则」1–5；one-architecture 判定 TB-09 删 DEFAULT 与 `created_at` 注释口径）
+  1. **分区**：`audit_entries` 改 `PARTITION BY RANGE (created_at)`，每月一个分区，边界取 UTC 月初（`[YYYY-MM-01 00:00+00, 次月 01 00:00+00)`），分区名 `audit_entries_pYYYYMM`。取 UTC 而不取业务时区：分区只是存储与删除的单位，不对用户呈现；UTC 边界不依赖应用配置，库内函数可确定地算出。**不建 DEFAULT 分区**：落不进任何分区的行直接报错（SQLSTATE 23514），不静默收容。
+  2. **主键与去重键**：`CONSTRAINT pk_audit_entries PRIMARY KEY (id, created_at)`；`CONSTRAINT uk_audit_entries_event_id_created_at UNIQUE (event_id, created_at)`（`event_id` 为空的直接审计行不受约束）；`saveForEvent` 改 `on conflict (event_id, created_at) do nothing`。`id` 仍由 `IdGenerator` 生成，引用只用 `id`，任何表不得外键指向本表。
+  3. **TB-09**：删 `created_at DEFAULT now()`，保留 NOT NULL；列注释改为「审计事实发生的时间：事件条目取事件信封的发生时刻，直接审计取注入的时钟；分区键」；`event_id` 注释改「与 `created_at` 一起唯一，重复投递同一事件不产生第二条」。`AuditArchiveJobIT` 三处夹具补 `created_at`（只补列值，不改断言，PR 单列）。`updated_at` 的 DEFAULT 属全库口径，不动。
+  4. **索引**（在父表上建，随分区自动建；名字按 NAMING_STANDARD，删 `ddl-naming-baseline.txt` 对应 4 行：`audit_entries_pkey`、`audit_entries_action_idx`、`audit_entries_actor_idx`、`audit_entries_subject_idx`）：
+     - `ix_audit_entries_actor_id_created_at (actor_id, created_at DESC, id DESC)`
+     - `ix_audit_entries_action_created_at (action text_pattern_ops, created_at DESC, id DESC)`：等值与前缀两用；若 `starts_with(action, :p)` 用不上该索引，查询改为 `action like :p || '%'`（前缀转义 `%`、`_`、`\`），以 EXPLAIN 为证，写进 PR
+     - `ix_audit_entries_subject_kind_subject_id_created_at (subject_kind, subject_id, created_at DESC, id DESC)`
+     - `ix_audit_entries_created_at_id (created_at, id)`（归档推进与列表游标）
+     - 主键 `(id, created_at)` 兼作按 `id` 查单条的前导列索引。
+  5. **只追加触发器**：行级 `BEFORE UPDATE OR DELETE` 建在父表上（PG 自动克隆到每个分区）；语句级 `BEFORE TRUNCATE` 父表一条，并由建分区函数（第 6 条）在每个新分区上各建一条（语句级触发器不克隆）。验收逐分区核对：经父表与直接对分区的 UPDATE、DELETE、TRUNCATE 都被拒。
+  6. **分区预建**：基线建函数 `platform_audit.create_audit_entry_partitions(p_from date, p_through date) RETURNS integer`，`SECURITY DEFINER`、`SET search_path = pg_catalog, platform_audit`、属主 `one_*_owner`，`REVOKE EXECUTE … FROM PUBLIC`；为 `[p_from, p_through]` 内缺失的月份建分区并加 TRUNCATE 触发器，已有的跳过，返回新建个数。拒绝条件（报错，不静默）：参数不是月初、`p_from > p_through`、跨度超过 24 个月、目标月份已在归档位置之内（月末 `<=` `audit_archive_batches` 中最大 `last_entry_created_at`，防止给已归档或已删除的月份重建分区，让迟到行进入已归档区间）。函数不读数据库时钟。基线本身建 2026-10 起 6 个月分区（迁移时刻无关、`pg_dump` 可重现）。
+     - 应用作业 `AuditPartitionJob`（`platform.audit.infrastructure.archive`，ShedLock `platform.audit.entry.partitions`）：启动时与每日一次，以注入时钟取当月 UTC 月初，调用函数补到「当月 + 3 个月」；失败记 `ALERT platform.audit …` 并计数 `forcitis.platform.audit.partitions.failures`；调用后核对次月分区存在，不存在同样 ALERT。配置 `forcitis.platform.audit.partitions.months-ahead=3`（必填、正数，缺失启动失败）。
+     - 运行角色获 `EXECUTE` 该函数（`one_db_roles_schemas.sql` §4b 草稿与 `RoleSeparatedDeploymentIT`；`runbooks/sql/c3_*`、`c9_*` 可执行版由 one-ops 同步，PR 中列为待 one-ops）。运行角色仍无 `CREATE`。
+  7. **迟到事件**（ADR-0048 第 7 项必答）：① 发生时刻所在月份无分区（早于最早分区或已删除）：插入报错，事件处理失败，事件发布保持未完成并由现有重投与未完成发布告警兜底；`saveForEvent` 捕获「无分区」错误时另记 `ALERT platform.audit late event … no partition`（只记事件号与月份，不记内容）后原样抛出。② 所在月份有分区但已在归档位置之前：照常写入，归档不会再收它，由现有对账计数不一致告警（`AuditArchiveJob.reconcile`）。不建兜底分区、不改写时刻。
+  8. **维护角色删除在线分区**（O-8，只追加约束的登记例外）：基线建函数 `platform_audit.drop_archived_audit_entry_partition(p_month date) RETURNS bigint`，`SECURITY DEFINER`、属主 `one_*_owner`、`REVOKE EXECUTE … FROM PUBLIC`，只授予新角色 `one_*_audit_maintainer`（LOGIN、NOINHERIT、连接上限 1；草稿脚本 §1 与 §4b，可执行版待 one-ops；口令由运维设置）。校验全部通过才 `DETACH PARTITION` 并 `DROP TABLE`，返回删除的行数：分区存在；该月整月在归档位置之内（分区中没有 `(created_at, id) >` 最后归档位置的行）；分区行数等于首末条都落在该月的归档批次 `entry_count` 之和。任一不符即报错，不删。运行角色无 EXECUTE，也不是属主，不能 DETACH、DROP；应用代码不调用此函数。`data-access-registry.yaml` 的 `audit_entries` 登记分区键、粒度、预建作业、删除方式（维护角色经此函数）；`retention` 写 3 年在线、10 年归档。
+  9. **归档与对账**：`AuditArchiveJob` 每批只取同一 UTC 月的条目（批次不跨分区），使分区与批次可逐月对上；`reconcile` 改为只对仍在线的月份比较：在线分区内 `(created_at, id) <=` 归档位置的行数，等于首条落在在线月份的批次 `entry_count` 之和。`audit_archive_batches` 列与约束不变（TB-06 另批）。
+  10. **TB-05**（具名 CHECK）：`action`、`detail`、`change_reason`、`before_text`、`after_text`：`char_length BETWEEN 1 AND 2000`（禁空串，与 `AuditEntry` 上限 2000 一致），名 `ck_audit_entries_<列>_length`；`source_address`：`BETWEEN 1 AND 64`，超限或不像地址则置空并 ALERT，审计照常写入（one-data 裁定⑤）。改名（`action_code` 等）归 R-2a，不做。
+  11. **守护**（ADR-0048 1–5）：`PrimaryKeyTypeGuardTest` 读 `primary-key-exemptions.txt`，非框架表只接受 `platform_audit.audit_entries` 一行并校验形状（主键恰为 `id uuid` + `created_at timestamptz`，`created_at` 是 RANGE 分区键）；出现 `PARTITION BY` 的表未登记或未写 ADR 号即失败；`DdlNamingTest` 能解析 `PARTITION BY RANGE` 与复合主键，任何 `REFERENCES platform_audit.audit_entries` 失败，`uk_audit_entries_event_id_created_at` 恰为 `(event_id, created_at)`；`AuditDomainEventsIT` 同一事件重投两次只一条、`created_at` 等于信封发生时刻；例外文件头写「非框架表只允许 ADR-0048 的 audit_entries；新增须另立 ADR」。
+  - **预期表结构 diff**（空库执行改前、改后基线，`pg_dump --schema-only`）：`audit_entries` 变为分区父表 + 6 个月分区；主键、唯一约束、4 个索引如上（旧 5 个索引名消失）；`created_at` 无 DEFAULT；新增 6 条 TB-05 CHECK；两函数及其 `REVOKE`；各分区 TRUNCATE 触发器；两列注释。不得出现其他表、列、种子变化。
+  - **不在本 PR**：TB-04（导出去 count，PR-3）、TB-06、TB-08（PR-3）；`audit_archive_batches` 10 年后删除作业（首次删除在 10 年后，CS-1.8，注册表只写口径）；内联 CHECK 具名（G-D12）。
+  - **请 one-data 裁定**：① UTC 月边界与分区名；② 初建 6 个月、预建 3 个月是否合适；③ 第 6 条拒绝条件够不够（是否还要禁止早于最早分区）；④ 第 8 条删除校验口径；⑤ `source_address` 上限（one-data 裁定改为 64）。
+
 #### TB-08　SS §4 第 8 组　中（待核后落）　`audit_entries` 登录类三列无成对约束
 - 证据：SS §4 第 8 组：`source_address:21` / `outcome_kind:22` / `login_method_kind:23` 应同空同非空，且对应登录与会话类 `subject_kind:11`；表内仅 `ck_audit_entries_subject_id:24` 约束了 `subject_id`；SS §3：`source_address`、`outcome_kind`、`login_method_kind` 为「等价措辞」、`on_behalf_of_id`、`event_id`、`correlation_id` 等 7 列无空值说明。
 - 改法：待核哪些 `subject_kind`（如登录尝试、会话类）携带这三列：读 `LoginAdmission`、`AuditEntry` 工厂与 `AuditSearch`，核实前不落；候选写法 `(outcome_kind IS NULL) = (login_method_kind IS NULL)`，`source_address` 是否同空另待核（AE-7 对远端地址为空的情形未定）。
@@ -244,6 +275,47 @@ POST /api/v1/platform/approval-tasks/{taskId}:reassign  # 204 无正文
 - 预期表结构 diff：`audit_entries.created_at`：去 `DEFAULT now()`。
 - 验收要点：全部写入点显式传时钟；不带 `created_at` 的 INSERT 被拒；`AuditArchiveJob` 相关测试通过。
 - 依据：NAMING_STANDARD §2.4a-3；SS §5。
+
+- **数据设计（PR-3：TB-06、TB-08，one-1a-next-5 补，待 one-data 签）**（基线：PR-1 合入后的 `origin/main`；PR-1 已把 `audit_entries` 改为 UTC 月分区、`AuditArchiveJob` 每批只取同一 UTC 月、`reconcile` 只比在线月份，本节与之兼容，两处改同一个基线文件，PR-3 在 PR-1 之后 rebase；TB-04 已移出，归 K-3b-4，本节不含）
+  1. **TB-06　DDL**（改 `V20261014134000__platform_audit_baseline.sql` 中 `audit_archive_batches` 的建表语句，内联具名）：
+     - `CONSTRAINT uk_audit_archive_batches_first_entry_id UNIQUE (first_entry_id)`
+     - `CONSTRAINT uk_audit_archive_batches_object_key UNIQUE (object_key)`
+     - `CONSTRAINT ck_audit_archive_batches_sha256_hash CHECK (sha256_hash ~ '^[0-9a-f]{64}$')`
+     - `sha256_hash` 列注释不改（已写「小写十六进制」）；表注释末尾追加「批次区间不重叠、无缺口由归档作业按位置推进保证、由对账核验（只比在线月份），库内不设排他约束」。
+  2. **TB-06　哈希格式核实**：`sha256_hash` 的值来自 `AuditArchiveJob.insertBatch`（`AuditArchiveJob.java:199`）的 `stored.sha256()`；`ObjectStoreArchiveVault.archive` 先以 `HexFormat.of().formatHex(...)`（`ObjectStoreArchiveVault.java:120`，小写、定长 64）算出 `sha256`，再要求 `sha256.equals(stored.sha256())`，不等则抛 `ExternalSystemUnavailableException`（同文件 `:68-71`），所以入库值必等于本地算出的小写 64 位十六进制，`^[0-9a-f]{64}$` 与实际格式一致。`OssObjectStoreTest` 的 `"abc"`、`ObjectStoreArchiveVaultTest` 的 `"f".repeat(64)` 是金库层替身，不入库，不受影响。
+  3. **TB-06　唯一约束为何成立**：批次由 `archiveOlderThan` 严格按 `(created_at, id)` 推进，下一批的首条必在上一批末条之后，故 `first_entry_id` 不会重复；`object_key` 含 UTC 时刻到秒与内容哈希前 12 位（`ObjectStoreArchiveVault.java:66`），不同批内容不同、哈希不同，同键只会出现在重复登记同一批的错误里，正是要挡的。约束违反发生在金库已写入之后：对象留在归档库而批次行未登记，下一轮作业会从原位置重新取同一批、写新键（现状对任何登记失败都如此，不新增处理，CS-1.8）。两个 uk 触发时的现状：由调度器记 ERROR，无 ALERT 前缀与计数，金库对象成孤儿，本轮 reconcile 不执行；按现有作业逻辑起止位置只后推、实际撞不上，按 CS-1.8 不新增处理，列后续卡。
+  4. **TB-06　触发器 `tg_` 前缀改名：已核，未排入 R-2a，本 PR 不做**。证据：`ddl-naming-baseline.txt` 只含列、约束、索引三类，没有触发器行；`DdlNamingTest` 不检查触发器名；`NAMING_STANDARD.md` 没有触发器命名条款（G-D12 是枚举 CHECK）；`NEXT_BATCH_PLAN.md` 第 249 行 R-2a 条目是「79 处命名改名 + DDL-09/10/12/13/14」，不含触发器。基线里 `tg_` 与 `<表>_reject_*` 两种风格并存且 `tg_` 占多数（`organization_workforce` 5 对、`platform_integration` 3 个、`platform_approval`、`platform_numbering`、`platform_audit` 批次表），单改本表只会换一种不一致，且 `AuditArchiveJobIT.java:70,71,168,169` 按旧名禁用与启用触发器。统一须先在 `NAMING_STANDARD` 增触发器条款再一次性改全库，交 **one-data 裁定**：是否另立条目（建议并入 R-2a 之后的命名小卡，本卡 AB-4 的触发器部分关闭为「转卡」）。
+  5. **TB-06　注册表**：`data-access-registry.yaml` 没有自由说明字段，在 `platform_audit.audit_archive_batches` 条目上方加 `#` 注释：「批次区间不重叠、无缺口不设数据库约束：区间由作业按 (created_at, id) 推进产生，由 `AuditArchiveJob.reconcile` 对账（只比在线月份）；分区摘除前由 `drop_archived_audit_entry_partition` 逐月核对批次条数之和。」并诚实写明：已摘除月份的缺口，库内此后无法再核验。`retention: PERMANENT` 与 GUIDING §6「归档保留至满 10 年」不一致属待用户（第 5 节第 2 条），本条不动。
+  6. **TB-06　Java 与测试**：主代码无改动（键、哈希本就合规）。约束用例由测试代理先写在验收目录 `acceptance/platform/audit/AuditArchiveAndOutcomeConstraintsIT`（582a1602），不再在 `AuditArchiveJobIT` / `AuditLogIT` 追加（断言重复）。TB-06 部分共 3 条，名以 `DATA-REPAIR-timesheet-audit TB-06:` 开头：重复 `object_key` 被拒；重复 `first_entry_id` 被拒；`sha256_hash` 为大写、63 位、65 位、含非十六进制字符各被拒，小写 64 位通过。**不改任何现有夹具或断言**，理由：`RecordingArchiveVault` 返回的键 `test/<kind>/<第几批>` 与哈希 `"0".repeat(64)` 都已合规；键靠 `batches.size()` 计数，只要金库与批次表一起重置键就不重复，`AuditArchiveJobIT.java:65-72` 正是这样做的；`acceptance/.../AuditArchiveOrderIT` 只有一条 `@Test`、一个容器、一个金库，键不会重复。
+  7. **TB-06　验收要点**：`AuditArchiveJobIT`、`AuditArchiveOrderIT`、`AuditSubjectColumnsIT` 原样通过；三类违反各被具名约束拒绝（错误信息含约束名）。
+  8. **TB-06　预期表结构 diff**：`audit_archive_batches` 新增 `uk_audit_archive_batches_first_entry_id`、`uk_audit_archive_batches_object_key`（各带一个同名索引）、`ck_audit_archive_batches_sha256_hash`；表注释一句。触发器、列、其他表无变化。
+  9. **TB-08　写入点核实**：三列只由 `AuditEntry.withTrace`（`AuditEntry.java:33`）写入，其余构造路径三列恒为空；`withTrace` 共 15 处主代码调用，结果如下（S 成功、F 失败）：
+
+     | 位置 | action | subject_kind | 地址 | 结果 | 方式 |
+     |---|---|---|---|---|---|
+     | `LoginAdmission.java:76-77` | `platform.identity.login.succeeded` | USER_ACCOUNT | 有 | S | 有 |
+     | `LoginAdmission.java:88-90` | `platform.identity.emergency.login` | USER_ACCOUNT | 有 | S | EMERGENCY |
+     | `LoginAdmission.java:97-101` | `platform.identity.login.failed` | LOGIN_ATTEMPT（账号未识别）或 USER_ACCOUNT | 有 | F | 有 |
+     | `BrowserIdentity.java:72-74`、`:81-84` | `…browser-identifier.replayed`、`…login.identity-check` | USER_ACCOUNT | 有 | F 或 S | 有 |
+     | `EnterAdministratorMode.java:79-80`、`:87-88` | `…administrator-mode.entered`、`.refused` | USER_ACCOUNT | 有 | S、F | 有 |
+     | `ExitAdministratorMode.java:42-43`、`SessionGuardFilter.java:92-94` | `…administrator-mode.exited` | USER_ACCOUNT | 有 | S | 有 |
+     | `Logout.java:35-36` | `platform.identity.logout` | USER_ACCOUNT | 有 | S | 有 |
+     | `PrivilegedRequestAudit.java:44-46` | `platform.identity.privileged.request` | REQUEST | 有 | S | 有 |
+     | `ForceUserLogout.java:67-68` | `platform.identity.session.revoked` | USER_ACCOUNT | 有 | S | **空** |
+     | `AccessDeniedAudit.java:77-78` | `platform.identity.access.denied` | OPERATION 或 REQUEST（`:89-97`） | 有 | F | **空** |
+     | `HandleOrgSnapshotChange.java:91-92` | `platform.identity.session.revoked`（系统动作） | USER_ACCOUNT | **空** | S | **空** |
+     | `CorrectLegalEntityAttribution.java:51-53` | `organization.workforce.legal-entity-attribution.correction-refused` | ORG_UNIT 或 EMPLOYEE（`AttributionAuditKinds.java:13-14`） | **空** | F | **空** |
+
+  10. **TB-08　结论一（卡与列注释的前提不成立）**：三列并非「登录与会话类才有」，也并非同空同非空：(a) `outcome_kind` 还写在拒绝访问、特权请求、归属更正被拒这类非登录条目上；(b) 方式为空而结果非空的有 4 处（强制下线、拒绝访问、离职收回会话、归属更正被拒）；(c) 地址为空而结果非空的有 2 处（系统动作、归属更正被拒，二者未传来源）；(d) 失败登录的方式**从不为空**：`LoginAdmission.reject` 的 `method` 是非空参数，全部调用点（`LoginAsEmergencyAdmin.java:65,92,100,106,127`、`LoginWithSignedTicket.java:82,95`、`LoginWithSso.java:45-70`、`LoginWithWecom.java:24-32`）都传入入口对应的方式，账号未识别时只是 `actor` 与 `subject_id` 为空、主体类别为 `LOGIN_ATTEMPT`。因此：「`(outcome_kind IS NULL) = (login_method_kind IS NULL)`」会被 4 处现有写入违反，**不落**；「`source_address` 与另两列同非空」同样不成立（与 PR-1 的置空规则并存更不成立），**不落**；「按 `subject_kind` 限定携带三列」：携带三列的 `subject_kind` 含 USER_ACCOUNT、LOGIN_ATTEMPT、REQUEST、OPERATION、ORG_UNIT、EMPLOYEE，且新增审计点会继续增加，写成枚举就是把应用的审计清单抄进 DDL，**未核实为稳定规则，不落**。
+  11. **TB-08　能落的 CHECK（单向）**：登录方式只对「有结果的条目」有意义，15 处写入点在方式非空时结果必非空，故加 `CONSTRAINT ck_audit_entries_login_method_outcome CHECK (login_method_kind IS NULL OR outcome_kind IS NOT NULL)`，位置在 `audit_entries` 建表语句中 `ck_audit_entries_subject_id` 之后；声明在分区父表上，PG 自动带到每个分区，与 PR-1 的分区键、主键、TB-05 的 CHECK 互不依赖。另在 `AuditEntry` 紧凑构造器加同一断言（`loginMethod != null && outcome == null` 抛 `IllegalArgumentException`），使违反在写入前、带出处地失败，不靠数据库报错（规则 6）。
+  12. **TB-08　可选的第二条（本节不含，待裁定）**：`source_address IS NULL OR outcome_kind IS NOT NULL`（有地址必有结果）。15 处主代码写入都满足，但验收夹具 `P5Support.auditRow` 的调用 `OwnLoginRecordsBySubjectIT.java:48`（`ROLES_REPLACED`，结果与方式为空而地址 `10.1.0.4` 非空）违反；验收目录本卡不碰，且这一行是构造出来的数据，现实中没有对应写入点。要落须先由 one-data 与验收目录归属会话同意把该行地址改为空（该测试断言的是 `ACTIONS` 内三条的地址，改后不影响断言）。建议：**本 PR 不落**。
+  13. **TB-08　列注释**（基线 `COMMENT ON COLUMN`，按核实结果纠正）：`outcome_kind` 改「结果：SUCCEEDED / FAILED；记录动作成败的条目才有（登录与会话、拒绝访问、特权请求、归属更正被拒等），其他条目为空」；`login_method_kind` 改「登录方式：企业微信（工作台、小程序、扫码）、单点登录、签名票据、应急登录；登录、会话、管理员模式、特权请求类条目才有，强制下线、拒绝访问等为空；有登录方式必有结果」；`source_address` 改「来源地址：带登录与会话轨迹的条目（登录、会话、管理员模式、拒绝访问、特权请求、强制下线）记录的客户端地址；其他条目、系统动作与取不到可信地址时为空」。注意 `RequestClientOrigin.java:22` 在无请求上下文时返回字面量 `"unknown"`，它不是地址，由 PR-1 的「不像地址则置空并 ALERT」兜住，本条不另处理；`SessionGuardFilter.java:93` 取 `request.getRemoteAddr()` 是否经 Tomcat remote-ip 还原属 AE-7，不在本节。
+  14. **TB-08　测试**：新增 `AuditEntryTest`（`platform/audit/api`）：`loginMethod` 非空且 `outcome` 为空构造失败；结果非空而方式为空、三列全空均通过。集成测试同在验收目录 `AuditArchiveAndOutcomeConstraintsIT`（不在 `AuditLogIT` 追加，断言重复）一条 `DATA-REPAIR-timesheet-audit TB-08:`：直接 INSERT 方式非空而结果为空，被 `ck_audit_entries_login_method_outcome` 拒；全空、仅结果、结果加方式、结果加地址不加方式四种通过。**现有夹具与断言不改**，理由：逐一核对 `withTrace` 的 15 处主代码调用、测试中全部 `withTrace`（`AuditExportAndOwnRecordsIT.java:92-103`、`AuditLogIT.java:234,236`）与 `P5Support.auditRow` 的 7 次调用（`OwnLoginRecordsBySubjectIT.java:45-51,69-70`），没有任何一行是「方式非空而结果为空」。
+  15. **TB-08　验收要点**：登录成功、失败（账号已识别与未识别）、拒绝访问、强制下线、系统收回会话、归属更正被拒各路径写入通过；`AuditExportAndOwnRecordsIT`、`OwnLoginRecordsBySubjectIT`、`AuditLogIT`、`LoginAuditDetailTest`、`ClientAddressNotLoggedTest` 原样通过。
+  16. **TB-08　预期表结构 diff**：`audit_entries` 新增 `ck_audit_entries_login_method_outcome`（分区后每个分区各带一条继承的同名约束）；三条列注释；无列、索引、其他表变化。
+  - **PR-3 总 diff**：`audit_archive_batches` 2 个唯一约束 + 1 条 CHECK + 表注释；`audit_entries` 1 条 CHECK + 3 条列注释；`data-access-registry.yaml` 一段注释；`AuditEntry` 构造器一处断言；新增测试 `AuditEntryTest`；约束用例（TB-06 共 3 条、TB-08 共 1 条）在验收目录 `AuditArchiveAndOutcomeConstraintsIT`，不在 `AuditArchiveJobIT` / `AuditLogIT` 追加。不得出现：触发器改名、分区或主键变化、`retention` 变化、种子变化。
+  - **与卡原文不一致处**：(1) 卡 TB-08 写「三列应同空同非空、对应登录与会话类 `subject_kind`」，核实后不成立，只落单向一条；(2) 卡 TB-06 写触发器改名「随 R-2a、待核是否已排」，核实未排入，转 one-data；(3) PR-1 写 `source_address` 上限 45，本任务说明写「超 64 字置空」，两个上限需由 PR-1 对齐，本节不涉及。
+  - **请 one-data 裁定**：① 第 10 条：三列不做成对约束、不按 `subject_kind` 限定，是否同意；② 第 11 条：只落「方式非空 ⇒ 结果非空」一条；③ 第 12 条：「地址非空 ⇒ 结果非空」是否另落（需改验收夹具一行）；④ 第 4 条：触发器统一命名是否另立卡及由谁起草 `NAMING_STANDARD` 条款；⑤ 第 5 条：注册表用注释表达「区间不重叠、无缺口由对账承担」是否可接受，或要求登记结构化字段；⑥ 是否给批次表加「首末条同一 UTC 月」的 CHECK（PR-1 约定批次不跨月，写法 `date_trunc('month', first_entry_created_at AT TIME ZONE 'UTC') = date_trunc('month', last_entry_created_at AT TIME ZONE 'UTC')`；本节倾向不落，理由是 PR-1 已写明批次表列与约束不变，且作业与摘除函数已按月核对）。
 
 低级顺带（B 部分，不阻塞）：AE-6（注释）、AE-7（待核：`SessionGuardFilter.java:91` 用 `getRemoteAddr()`，是否已用 Tomcat remote-ip 还原）、IR 注释、SL-1、SL-2、X-3（只追加表的冗余 `updated_at`）。
 
