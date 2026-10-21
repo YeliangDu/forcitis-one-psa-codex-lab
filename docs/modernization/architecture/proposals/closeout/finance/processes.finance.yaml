@@ -1914,6 +1914,9 @@ processes:
     where: automatic
     command: 提交过账候选
     aggregate: AGG-52
+    inner:
+    - command: 〔缺〕登记进项发票入账
+      aggregate: AGG-89
     calls: PRC-92
     period_gate: true
     decision:
@@ -3089,6 +3092,9 @@ processes:
     where: automatic
     command: 提交过账候选
     aggregate: AGG-59
+    inner:
+    - command: 〔缺〕登记进项发票入账
+      aggregate: AGG-89
     calls: PRC-92
     cross_bc:
     - mode: api
