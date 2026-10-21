@@ -94,3 +94,13 @@
 - 不满足即拒绝确认，错误码 `check_violation`；日期行只能在版本待确认时插入，所以确认时看到的就是最终集合。
 - 三个依据列都有格式 CHECK（链接 `^https://` 且长度上限；其余长度上限）；MIGRATION 来源的版本同受此约束（迁入缺依据按 MQ-C-01 拒收）。
 **待用户认定的一点**：「缺一不许确认」我按「用到哪类依据就必须挂哪类」实现。若用户意思是「官方通知与公司加休登记每个版本都必须同时挂」，则去掉上面的条件、两列恒为必填；这样没有加休的年份也得挂一份「无加休」登记。请 one-1a-par / one-coordinator 向用户确认后告诉我。
+
+## 更正五（2026-10-21，ADR-0072 已采纳后的重签；用户 A72、C1，PR #506 @ba5c5c00）
+
+1. **更正四「待用户认定」一点已有答案：恒必填，不是按用途**。凡 `CONFIRMED` 版本：`official_notice_number`、`official_notice_url`、加休登记三者都非空；没有加休也要显式登记「无」。库层写法：
+   - `company_leave_register_kind text`，具名 CHECK IN (`REGISTERED`、`NONE`)；`company_leave_register_ref text`，`REGISTERED` 时非空、`NONE` 时为空（具名 CHECK）；确认前三列可空，`CONFIRMED` 时 `official_notice_number`、`official_notice_url`、`company_leave_register_kind` 都非空（具名 CHECK 与确认状态联动，加上确认触发器双保险）；
+   - 一致性：有 `COMPANY` 日期行的版本，`company_leave_register_kind` 必须是 `REGISTERED`（`NONE` 与 `COMPANY` 日期行矛盾，确认触发器拒绝）；
+   - 更正三「`official_notice_number` 非空当且仅当 OFFICIAL_NOTICE」作废，更正四③「用到哪类才必挂」作废，其余条目（链接 `^https://` 与长度上限等）不变。
+2. **`adjustment_basis_kind` 保留**在版本行（NOT NULL，`OFFICIAL_NOTICE`/`MANUAL`），只表示这一版改动的依据；日期行 `basis_kind`（OFFICIAL/COMPANY/MANUAL）说明每个例外日为什么是例外，两者不冲突。
+3. **K-2 形状**：同更正四②，已含生效区间（起止日）、版本号、作者与确认人、确认时刻、依据（`decision_ref`）。
+4. **「次年是否已确认」查询**：按 (日历, 年份) 取已确认版本，`uk_…(work_calendar_id, year_number, version_number)` 加 `EXCLUDE` 的索引已覆盖，另加部分索引 `ix_work_calendar_versions_confirmed ON (work_calendar_id, year_number) WHERE confirmation_status = 'CONFIRMED'`，让 11 月 15 日起的每日告警和 12 月 1 日起的阻断检查走索引；不需要新列。告警与阻断是应用行为，不在表结构里。
