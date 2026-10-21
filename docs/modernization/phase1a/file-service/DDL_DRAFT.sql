@@ -1,4 +1,4 @@
--- 文件服务 platform_file 表结构草案第 3 版（IMP-1021-COO-02 单元 3），交 one-data 复核签发；签发前不进 db/migration。
+-- 文件服务 platform_file 表结构草案第 4 版（IMP-1021-COO-02 单元 3），交 one-data 复核签发；签发前不进 db/migration。
 -- 作者 one-platform-file，2026-10-21。依据：ADR-0060 决定 3–5、ADR-0061 决定 7、ADR-0070 决定 2、6、ADR-0058、契约 PR #502。
 -- 第 1 版审：claude/one-data-handoff-1 @a282e2c3，第二轮 @e2184aba（data/reviews/IMP-1021-COO-02-U3-file-service.md）；逐条处理见文末「审改对照」。
 -- current_file_preservations 用 security_invoker，须 PostgreSQL 15+，迁移时核实例版本。
@@ -128,7 +128,7 @@ CREATE TABLE platform_file.stored_files (
     CONSTRAINT fk_stored_files_derived_from_file_id FOREIGN KEY (derived_from_file_id) REFERENCES platform_file.stored_files (stored_file_id) ON DELETE RESTRICT,
     CONSTRAINT ck_stored_files_content_hash CHECK (content_hash ~ '^[0-9a-f]{64}$'),
     CONSTRAINT ck_stored_files_byte_count CHECK (byte_count >= 0),
-    CONSTRAINT ck_stored_files_object_key CHECK (object_key ~ '^[a-z0-9-]+/(staging/[a-z_]+|files/[0-9]{4}/[0-9]{2}|quarantine)/[0-9a-f-]{36}$'
+    CONSTRAINT ck_stored_files_object_key CHECK (object_key ~ '^[a-z0-9-]+/(files/[0-9]{4}/(0[1-9]|1[0-2])|quarantine)/[0-9a-f-]{36}$'
                                                  AND object_key LIKE '%/' || stored_file_id::text),
     CONSTRAINT ck_stored_files_media_type_code CHECK (media_type_code ~ '^[a-z]+/[a-z0-9.+-]+$' AND char_length(media_type_code) <= 127),
     CONSTRAINT ck_stored_files_uploader_kind CHECK (uploader_kind IN ('USER', 'ONE_TIME_LINK', 'PLATFORM_MODULE')),
@@ -152,10 +152,9 @@ CREATE TABLE platform_file.stored_files (
 CREATE INDEX ix_stored_files_derived_from_file_id ON platform_file.stored_files (derived_from_file_id);
 CREATE INDEX ix_stored_files_content_hash ON platform_file.stored_files (content_hash);
 CREATE INDEX ix_stored_files_uploader_user_id ON platform_file.stored_files (uploader_user_id, stored_at) WHERE uploader_user_id IS NOT NULL;
-CREATE INDEX ix_stored_files_staging ON platform_file.stored_files (stored_at) WHERE file_status = 'AVAILABLE' AND object_key LIKE '%/staging/%';
 COMMENT ON TABLE platform_file.stored_files IS '存储文件：一份不可变内容及其哈希；检测判定后才建行（ADR-0070），加密与不可用不建行。迁入文件的批次与老系统来源走 platform_integration.source_references。粒度：每个文件一行';
 COMMENT ON COLUMN platform_file.stored_files.stored_file_id IS '存储文件 ID（UUIDv7）';
-COMMENT ON COLUMN platform_file.stored_files.object_key IS '对象键：<环境前缀>/staging/<来源>|files/<yyyy>/<mm>|quarantine/<存储文件 ID>，末段恒为本行 ID，不含文件名、单据号、人名；只允许关联时由临时区改为正式区一次';
+COMMENT ON COLUMN platform_file.stored_files.object_key IS '对象键：建行即写定、不可改（ADR-0060 决定 3、ADR-0070 决定 2）。可用文件为正式键 <环境前缀>/files/<yyyy>/<mm>/<存储文件 ID>（关联时才复制到此），已隔离文件为 <环境前缀>/quarantine/<存储文件 ID>；临时区键 <环境前缀>/staging/<来源>/<存储文件 ID> 由 ID 与上传主体类型推出，不落列';
 COMMENT ON COLUMN platform_file.stored_files.content_hash IS '内容哈希：SHA-256 小写十六进制 64 位，比对文件以它为准';
 COMMENT ON COLUMN platform_file.stored_files.byte_count IS '字节数';
 COMMENT ON COLUMN platform_file.stored_files.media_type_code IS '媒体类型：按内容判定并登记，白名单在配置';
@@ -177,19 +176,15 @@ COMMENT ON COLUMN platform_file.stored_files.created_at IS '创建时间（恒�
 COMMENT ON COLUMN platform_file.stored_files.updated_at IS '更新时间';
 COMMENT ON COLUMN platform_file.stored_files.version IS '乐观锁版本';
 
--- 除 object_key（staging→files 一次，末段不变）、file_status（按流转清单）、updated_at、version 外全部不可改；禁 DELETE / TRUNCATE。
+-- 除 file_status（按流转清单）、updated_at、version 外全部不可改（含 object_key）；禁 DELETE / TRUNCATE。
 CREATE FUNCTION platform_file.guard_stored_file_change() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
     IF TG_OP IN ('DELETE', 'TRUNCATE') THEN
         RAISE EXCEPTION 'platform_file.stored_files: % is not allowed', TG_OP USING ERRCODE = 'restrict_violation';
     END IF;
-    IF (to_jsonb(NEW) - ARRAY['object_key', 'file_status', 'updated_at', 'version'])
-            IS DISTINCT FROM (to_jsonb(OLD) - ARRAY['object_key', 'file_status', 'updated_at', 'version']) THEN
-        RAISE EXCEPTION 'platform_file.stored_files: content, subject, lineage and scan columns are immutable' USING ERRCODE = 'restrict_violation';
-    END IF;
-    IF NEW.object_key IS DISTINCT FROM OLD.object_key
-            AND NOT (OLD.object_key LIKE '%/staging/%' AND NEW.object_key LIKE '%/files/%') THEN
-        RAISE EXCEPTION 'platform_file.stored_files: object_key moves from staging to files once only' USING ERRCODE = 'restrict_violation';
+    IF (to_jsonb(NEW) - ARRAY['file_status', 'updated_at', 'version'])
+            IS DISTINCT FROM (to_jsonb(OLD) - ARRAY['file_status', 'updated_at', 'version']) THEN
+        RAISE EXCEPTION 'platform_file.stored_files: object key, content, subject, lineage and scan columns are immutable' USING ERRCODE = 'restrict_violation';
     END IF;
     IF NEW.file_status IS DISTINCT FROM OLD.file_status
             AND NOT (OLD.file_status = 'AVAILABLE' AND NEW.file_status = 'EXPIRED_UNBOUND') THEN
@@ -687,7 +682,7 @@ CREATE TRIGGER tg_quarantine_read_requests_guard_truncate BEFORE TRUNCATE ON pla
 
 -- ═══ 9. 登记、分级、保留（M7；随表结构 PR 提交，这里列要点）════════════════
 -- data-access-registry.yaml（十二张表 + 视图）：
---   stored_files                    role AGGREGATE_ROOT, mutability CONDITIONAL_UPDATE, condition「object_key staging→files 一次；file_status 按流转清单」，
+--   stored_files                    role AGGREGATE_ROOT, mutability CONDITIONAL_UPDATE, condition「只有 file_status 按流转清单可改」，
 --                                   business_key [object_key]（另 content_hash 非唯一），retention PERMANENT（人员类标识随 RETENTION_PROPOSAL，清理作业另卡）
 --   stored_file_names               CONDITIONAL_UPDATE「去标识一次」，去标识作业 platform.file.deidentify-file-names（ADR-0061 处置建成时实现）
 --   file_bindings / file_holds / scan_exceptions / scan_exception_revocations / file_preservations   APPEND_ONLY
@@ -721,6 +716,9 @@ CREATE TRIGGER tg_quarantine_read_requests_guard_truncate BEFORE TRUNCATE ON pla
 
 -- 第二轮：N1 补 state_transitions 完整 DDL、合法流转清单与三个系统操作者；N2 版本表加 BEFORE INSERT 只许 PENDING（种子同）；
 --    N3 注册表根表 CONFIG_VERSIONED + versions_table、版本表 AGGREGATE_CHILD。P1–P3 已获同意。
+
+-- 第四轮（one-architecture 2026-10-21 指出，与 ADR-0060 决定 3、ADR-0070 决定 2 对齐）：object_key 建行即写正式键或隔离键、触发器禁改；
+--    临时区键由 ID 与来源推出不落列；去掉 staging 键形与 ix_stored_files_staging；正式区孤儿只读核对作业（N 天配置项，只告警）进单元 6。
 
 -- ═══ 仍待定 ═══════════════════════════════════════════════════════════
 -- 无（P1 SYSTEM + system-actors.txt、P2 契约补「取较严者」、P3 Asia/Shanghai 均已同意）。
