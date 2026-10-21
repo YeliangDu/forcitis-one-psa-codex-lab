@@ -58,6 +58,13 @@ class FileServiceSchemaIT {
         assertThatThrownBy(() -> sql(statement)).isInstanceOfSatisfying(SQLException.class, e -> assertThat(e.getSQLState()).as(e.getMessage()).isEqualTo(state));
     }
 
+    private void refused(String statement, String state, String message) {
+        assertThatThrownBy(() -> sql(statement)).isInstanceOfSatisfying(SQLException.class, e -> {
+            assertThat(e.getSQLState()).as(e.getMessage()).isEqualTo(state);
+            assertThat(e.getMessage()).contains(message);
+        });
+    }
+
     private static UUID id() {
         return UUID.randomUUID();
     }
@@ -180,10 +187,11 @@ class FileServiceSchemaIT {
         sql(insert.formatted(id(), 1, anchor, "null"));
         refused(insert.formatted(id(), 2, id(), "date '2026-12-31'"), CHECK);
         UUID otherCategory = categoryVersion(USER_A);
-        refused(insert.replace("'" + version + "'", "'" + otherCategory + "'").formatted(id(), 2, anchor, "null"), CHECK);
+        refused(insert.replace("'" + version + "'", "'" + otherCategory + "'").formatted(id(), 2, anchor, "null"), CHECK, "keeps one preservation category");
         refused("insert into platform_file.file_preservations (file_preservation_id, stored_file_id, preservation_sequence_number,"
                 + " preservation_category_version_id, anchor_document_type, anchor_document_id, start_date, expiry_date, recorded_at, created_at, updated_at)"
-                + " values ('" + id() + "', '" + file + "', 2, '" + version + "', 'CONTRACT', '" + anchor + "', date '2026-12-31', date '2036-12-31', now(), now(), now())", CHECK);
+                + " values ('" + id() + "', '" + file + "', 2, '" + version + "', 'CONTRACT', '" + anchor + "', date '2026-12-31', date '2036-12-31', now(), now(), now())", CHECK,
+                "pending category version gives no expiry");
         UUID second = id();
         sql(insert.formatted(second, 2, anchor, "date '2026-12-31'"));
         try (Statement s = c.createStatement(); var rows = s.executeQuery("select file_preservation_id from platform_file.current_file_preservations where stored_file_id = '" + file + "'")) {
@@ -200,7 +208,7 @@ class FileServiceSchemaIT {
         UUID file = storedFile("QUARANTINED");
         refused("insert into platform_file.false_positive_judgments (false_positive_judgment_id, stored_file_id, content_hash, judgment_status, judgment_reason,"
                 + " judged_by, judged_at, review_reason, reviewed_by, reviewed_at, created_at, updated_at) values ('" + id() + "', '" + file + "', '" + HASH
-                + "', 'CONFIRMED', '直接确认', '" + USER_A + "', now(), '同意', '" + USER_B + "', now(), now(), now())", CHECK);
+                + "', 'CONFIRMED', '直接确认', '" + USER_A + "', now(), '同意', '" + USER_B + "', now(), now(), now())", CHECK, "starts PENDING_REVIEW");
         UUID judgment = id();
         sql("insert into platform_file.false_positive_judgments (false_positive_judgment_id, stored_file_id, content_hash, judgment_status, judgment_reason,"
                 + " judged_by, judged_at, created_at, updated_at) values ('" + judgment + "', '" + file + "', '" + HASH + "', 'PENDING_REVIEW', '样本核对为误报', '"
@@ -227,7 +235,7 @@ class FileServiceSchemaIT {
         UUID file = storedFile("QUARANTINED");
         refused("insert into platform_file.quarantine_read_requests (quarantine_read_request_id, stored_file_id, request_status, request_reason, requested_by,"
                 + " requested_at, decided_by, decided_at, approval_expires_at, created_at, updated_at) values ('" + id() + "', '" + file + "', 'APPROVED', '取证', '"
-                + USER_A + "', now(), '" + USER_B + "', now(), now() + interval '1 hour', now(), now())", CHECK);
+                + USER_A + "', now(), '" + USER_B + "', now(), now() + interval '1 hour', now(), now())", CHECK, "starts PENDING");
         UUID request = id();
         sql("insert into platform_file.quarantine_read_requests (quarantine_read_request_id, stored_file_id, request_status, request_reason, requested_by,"
                 + " requested_at, created_at, updated_at) values ('" + request + "', '" + file + "', 'PENDING', '取证', '" + USER_A + "', now(), now(), now())");
@@ -238,6 +246,8 @@ class FileServiceSchemaIT {
                 + " approval_expires_at = now() + interval '1 hour' where quarantine_read_request_id = '" + request + "'");
         refused("update platform_file.quarantine_read_requests set request_status = 'READ', read_at = now() + interval '2 hours' where quarantine_read_request_id = '"
                 + request + "'", CHECK);
+        refused("update platform_file.quarantine_read_requests set request_status = 'READ', read_at = now() - interval '1 hour' where quarantine_read_request_id = '"
+                + request + "'", CHECK, "ck_quarantine_read_requests_read");
         sql("update platform_file.quarantine_read_requests set request_status = 'READ', read_at = now() where quarantine_read_request_id = '" + request + "'");
         refused("update platform_file.quarantine_read_requests set request_status = 'APPROVED', read_at = null where quarantine_read_request_id = '" + request + "'", TRIGGER);
     }
