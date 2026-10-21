@@ -1,0 +1,34 @@
+对照:
+  SH-C2g: SH-C3
+  SH-C3: SH-C4
+  SH-C4: SH-C5
+  SH-C5: SH-C6
+  SH-C5i: SH-C7
+  SH-C6a: ROLE-01
+  SH-C6b: ROLE-02
+  SH-C6c: ROLE-03
+  SH-C6d: ROLE-04
+  SH-C6e: ROLE-05
+  SH-E1: ROLE-06
+  SH-E4: SH-E3
+  SH-E5: SH-E4
+  SH-E6: SH-E5
+  SH-E7: SH-E3
+  SH-H1: SH-E6
+  SH-M1: SH-E1
+  SH-O2: SH-E7
+  SH-P1c: SH-P6
+  SH-P1o: SH-P7
+  SH-P2: SH-P4
+  SH-P3: SH-P5
+  SH-S2: SH-S1
+  SH-X1: SH-P2
+  SH-X2: SH-C5
+  SH-X3: PRJ-01
+  SH-X4: PRJ-02
+  SH-X5: PRJ-03
+  SH-X6: SH-P3
+  SH-X7: PRJ-04
+  SH-X8: PRJ-05
+来源: 用户桌面 架构锚定-2026-10-19/legacy_map.py（2026-10-19）
+说明: 旧干系人编号（value-streams.v2.yaml 及其派生产物所用）到 01 干系人 SSOT 编号的对照；未列出的旧号与新号同号同义。导入时据此一次性替换下游引用。
