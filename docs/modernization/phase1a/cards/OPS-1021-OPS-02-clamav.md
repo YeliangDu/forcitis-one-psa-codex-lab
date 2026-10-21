@@ -39,6 +39,11 @@
 2. **单次扫描 P95 耗时**：在 dev 机上装好 clamd，用公开的、非敏感的样本（按得到的大小分布合成的文档、PDF、含压缩包的样本；加 EICAR 测试串验证检出）测 `SCAN` 耗时分布；同机并发上传时的耗时也测一轮。
 3. 结果写进本卡「测量记录」，再据此落 `MaxFileSize`、`MaxScanSize`、`MaxScanTime`、检测总超时。
 
+### 测量记录（one-ops 填）
+
+- **业务单文件大小（第 8 条前半，2026-10-21）**：A8 附件登记值，P50 0.15 MB、P90 7.4 MB、P95 22 MB、**P99 97 MB**、P99.9 465 MB、最大约 2.5 GB；> 25 MB 占 4.7%、> 100 MB 占 0.97%；明细见 `phase1a/infra/handoff/B-5-dba/evidence/att_size_result.md`。含义：`MaxFileSize`/`MaxScanSize` 要远高于 clamd 默认；ClamAV 单文件 2 GB 以上不能扫，文件服务大小上限须定在 2 GB 以内（业务决定，待用户）；压缩包与 octet-stream 是大文件主体。
+- 单次扫描 P95 耗时：待测（§4 第 2 步，dev 装好 clamd 后）。
+
 ## 5. 实施步骤（运维侧）
 
 1. dev 机装 clamd 与 freshclam（发行版包），unix socket；不开 TCP 监听。
