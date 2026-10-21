@@ -4,11 +4,12 @@
 节点：01 干系人 · 02 关注点 · 03 价值主张 · 04 取舍决定 · 05 业务能力 · 06 价值流与阶段 · 07 业务流程 · 08 约束与认定规则 ·
 09 业务对象 · 10 受控业务执行 · 11 业务事实 · 12 维度 · 13 指标与评价 · 14 计算绑定 · 15 决策与行动。
 聚合、BC、子域、表作为 09、10 的领域与实现层映射（检查编号 N09-Mn、N10-Mn）。每条链接带出处（源文件与定位）。
-源：proposals/value-streams.v2.yaml、ENTERPRISE_INFO_MAP_DRAFT.md §1、closeout/process-catalog.yaml、
-ENTERPRISE_AGGREGATES_DRAFT.md §1.2 / §2.2 / §3.2、ddd/aggregates.yaml、ddd/subdomains.yaml、glossary/terms.yaml（kind=metric）、
-data/PANORAMA_TABLES.yaml（one-data 出，缺失时表层只用 ddd/aggregates.yaml 的已建表）。
+源：proposals/value-streams.v2.yaml、ssot/10-objects/objects.yaml、ENTERPRISE_INFO_MAP_DRAFT.md §2、closeout/process-catalog.yaml、
+ssot/c1-rules/rules.yaml、ssot/i03-aggregates/{planned,built}.yaml、ENTERPRISE_AGGREGATES_DRAFT.md §3.2、ddd/subdomains.yaml、glossary/terms.yaml（kind=metric）、
+data/PANORAMA_TABLES.yaml（one-data 出，缺失时表层只用 ssot/i03-aggregates/built.yaml 的已建表）。
 缺口只报告、不使构建失败：反复跑到收敛；--check 由 build_all 保证生成物可复现。
 """
+import json
 import re
 import sys
 from collections import Counter, defaultdict
@@ -22,16 +23,32 @@ sys.path.insert(0, str(ARCH / "proposals" / "closeout"))
 import anchoring_check as anc  # noqa: E402  流程归集与对象承载的判定与 anchoring_check C1、C2 共用一份代码
 import object_layer_check as olc  # noqa: E402
 DOCS = ARCH.parent
+ROOT = DOCS.parent.parent
+JAVA = ROOT / "backend/src/main/java/com/forcitis/one"
 SRC = {
     "vs": ARCH / "proposals" / "value-streams.v2.yaml",
-    "obj": ARCH / "proposals" / "ENTERPRISE_INFO_MAP_DRAFT.md",
+    "obj": ARCH / "ssot/10-objects/objects.yaml",
+    "obj_details": ARCH / "proposals/ENTERPRISE_INFO_MAP_DRAFT.md",
     "prc": ARCH / "proposals" / "closeout" / "process-catalog.yaml",
     "agg": ARCH / "proposals" / "ENTERPRISE_AGGREGATES_DRAFT.md",
-    "built": ARCH / "ddd" / "aggregates.yaml",
+    "planned": ARCH / "ssot/i03-aggregates/planned.yaml",
+    "built": ARCH / "ssot/i03-aggregates/built.yaml",
+    "agg_map": ARCH / "ssot/i03-aggregates/mapping.yaml",
     "sd": ARCH / "ddd" / "subdomains.yaml",
+    "bc": ARCH / "ddd" / "contexts.yaml",
     "terms": DOCS / "glossary" / "terms.yaml",
     "tables": DOCS / "data" / "PANORAMA_TABLES.yaml",
     "decr": HERE / "tradeoffs.yaml",
+    "inv": ARCH / "ssot/c1-rules/rules.yaml",
+    "rule_cards": ARCH / "ssot/c1-rules/rule_cards.yaml",
+    "manual": ARCH / "ssot/c1-rules/inv_execution_points.yaml",
+    "rule": DOCS / "rules/RULE_INDEX.md",
+    "ep": ARCH / "ssot/i08-execution-points/execution-points.yaml",
+    "tc": ARCH / "ssot/i09-acceptance/tests.yaml",
+    "api": ROOT / "frontend/packages/api/openapi.json",
+    "external": ROOT / "backend/architecture/external-read-registry.yaml",
+    "access": ROOT / "backend/architecture/data-access-registry.yaml",
+    "modules": ROOT / "backend/architecture/module-dependencies.txt",
 }
 IN_SYSTEM = ("用户角色", "往来单位加角色", "专门对象", "只作属性或参与者", "不进系统")
 OUT_MODEL = HERE / "panorama.yaml"
@@ -40,14 +57,13 @@ OUT_SH = ARCH / "proposals" / "STAKEHOLDERS.md"
 SH_BEGIN, SH_END = "<!-- 干系人图：由 panorama_build.py 从 value-streams.v2.yaml 生成，勿手改 -->", "<!-- 干系人图结束 -->"
 OBJ_RE = re.compile(r"OBJ-\d{2,3}")
 AGG_RE = re.compile(r"AGG-\d{2,3}")
-INV_RE = re.compile(r"INV-\d{2,3}")
 INACTIVE_PRC = {"retired", "merged"}
 
 UNAUTOMATED = {}
 SKELETON = ARCH / "proposals" / "closeout"
 LAYER_NODE = {"sh": "01", "shcat": "01", "con": "02", "vp": "03", "decr": "04", "cap": "05", "vs": "06", "stage": "06", "prc": "07", "inv": "08",
               "obj": "09", "act": "10", "fact": "11", "dim": "12", "metric": "13", "bind": "14", "dec": "15",
-              "steps": "07", "agg": "09/10 映射", "bc": "09/10 映射", "sd": "09/10 映射", "table": "09/10 映射"}
+              "rule": "08", "ep": "10", "tc": "10", "api": "10 映射", "mod": "10 映射", "steps": "07", "agg": "09/10 映射", "bc": "09/10 映射", "sd": "09/10 映射", "table": "09/10 映射"}
 NODES = {"01": "干系人", "02": "关注点", "03": "价值主张", "04": "取舍决定", "05": "业务能力", "06": "价值流与阶段", "07": "业务流程", "08": "约束与认定规则", "09": "业务对象", "10": "受控业务执行", "11": "业务事实", "12": "维度", "13": "指标与评价", "14": "计算绑定", "15": "决策与行动"}
 CHECKS = {
     "N01-1": "每个干系人都登记了关注点（02 CON 未登记时全部计为缺口）",
@@ -64,6 +80,9 @@ CHECKS = {
     "N07-2": "流程主要对象引用的编号存在且是有效对象（主要对象为空不算缺口：作用对象由 N07-1 / anchoring C1 判）",
     "N07-P1": "P-1：流程骨架中作用于聚合的步骤都声明 Command，且该命令在同一聚合下登记于各组 commands.yaml",
     "N08-1": "每个不变量都归属存在的聚合",
+    "N08-2": "每条不变量至少有一个执行点",
+    "N08-3": "每条不变量至少有一个用例",
+    "N08-4": "每张有不变量对照的 RULE 至少有一个用例",
     "N09-1": "每个有效对象都有流程承载（同 anchoring_check C2；OBJD 定论的从属、参照、视图按定论排除）",
     "N09-2": "每个有效一级业务对象都有聚合（聚合「对应」列；从属、参照、视图不要求）",
     "N09-3": "每个聚合对应的对象都出现在某个阶段的门或段内状态中",
@@ -72,6 +91,10 @@ CHECKS = {
     "N09-M2": "每个聚合都有不变量",
     "N09-M3": "每个聚合至少一张表（ADR-0059 建表规则，不要求每个对象一张）",
     "N09-M4": "每张表都能追到聚合，聚合能追到业务对象",
+    "N09-M5": "数据访问登记中 AGGREGATE_ROOT、AGGREGATE_CHILD、BUSINESS_DOCUMENT 表能追到聚合（其他 role 只计数）",
+    "N09-M6": "每个已建聚合在 ssot/i03-aggregates/mapping.yaml 对上规划聚合或写明无对应（pending 计缺口）",
+    "N10-M2": "每个后端模块在 module-dependencies.txt 登记",
+    "N10-M3": "每个 API 路径能追到 BC（同路径的全部方法均须有明确且一致的归属）",
     "N10-1": "每个受控业务执行（命令）都有 owner BC",
     "N10-M1": "每个 BC 都归属一个子域（模块命名空间可在 subdomains.yaml 找到）",
     "N11-1": "每个一级业务对象都声明了产生的业务事实（信息图「产生的事实」列）",
@@ -120,9 +143,10 @@ def gate_refs(node, patterns, depth=0):
     return out
 
 
-def obj_texts(text):
-    """每个对象可查取值的文字：总表该行，加上 §2 中提到它（编号或名称）的小节。"""
-    rows = {oid: (" ".join(c), c[1].replace("*", "")) for oid, c, _ in md_rows(text, "## 1. 总表", "### 1.1", r"OBJ-\d{2,3}")}
+def obj_texts(objects, text):
+    """每个对象可查取值的文字：登记字段，加上 §2 中提到它（编号或名称）的小节。"""
+    fields = ("id", "name", "definition", "level", "type", "key_states", "relations", "rules", "facts", "source", "term", "scope", "parent_text")
+    rows = {o["id"]: (" ".join(o[k] for k in fields), o["name"]) for o in objects}
     s2 = text[text.index("## 2."):text.index("## 3.")] if "## 2." in text and "## 3." in text else ""
     secs = re.split(r"\n(?=### )", s2)
     out = {}
@@ -131,8 +155,32 @@ def obj_texts(text):
     return out
 
 
+def load_objects(m, link):
+    objects = read_rows("obj", "objects")
+    text = SRC["obj_details"].read_text(encoding="utf-8")
+    m["obj_text"] = obj_texts(objects, text)
+    disp = olc.object_dispositions(text)
+    kinds = {"subordinate": "从属对象", "reference_data": "参照数据", "view": "视图"}
+    seen = set()
+    for index, row in enumerate(objects):
+        oid = row["id"]
+        if oid in seen:
+            raise ValueError(f"{rel(SRC['obj'])} 编号重复：{oid}")
+        seen.add(oid)
+        if "已非对象" in row["definition"]:
+            continue
+        level, d = row["level"], disp.get(oid)
+        src = f"{rel(SRC['obj'])}#objects[{index}]/{oid}"
+        m["obj"][oid] = {"name": row["name"], "active": True, "primary": level.startswith("一级") or "暂列一级" in level,
+                         "class": kinds[d["kind"]] if d else "业务对象", "parent": d.get("parent_object") if d else None,
+                         "parents": row["parent"], "parents_raw": row["parent_text"],
+                         "states": row["key_states"], "facts": row["facts"], "src": src}
+        for parent in row["parent"]:
+            link("obj-parent", oid, parent, src)
+
+
 def rel(p):
-    return str(Path(p).relative_to(DOCS))
+    return str(Path(p).relative_to(DOCS)) if Path(p).is_relative_to(DOCS) else str(Path(p).relative_to(ROOT))
 
 
 def cells(line):
@@ -152,13 +200,326 @@ def md_rows(text, start_heading, end_heading, first_re):
     return rows
 
 
+BUSINESS_ROLES = {"AGGREGATE_ROOT", "AGGREGATE_CHILD", "BUSINESS_DOCUMENT"}
+HTTP_METHODS = {"get", "put", "post", "delete", "options", "head", "patch", "trace"}
+
+
+def read_mapping(path):
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError(f"{rel(path)} 应为映射")
+    return data
+
+
+def read_rows(key, field):
+    rows = read_mapping(SRC[key]).get(field)
+    if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+        raise ValueError(f"{rel(SRC[key])}#{field} 应为条目列表")
+    return rows
+
+
+def rule_id(ref):
+    match = re.fullmatch(r"((?:DATA-)?RULE-)(\d+)", ref)
+    return f"{match[1]}{int(match[2]):0{2 if match[1] == 'DATA-RULE-' else 3}d}" if match else ref
+
+
+def add_nodes(m, key, field, id_field):
+    for index, row in enumerate(read_rows(key, field)):
+        ident = row[id_field]
+        if ident in m[key]:
+            raise ValueError(f"{rel(SRC[key])} 编号重复：{ident}")
+        m[key][ident] = {**row, "src": f"{rel(SRC[key])}#{field}[{index}]/{ident}"}
+
+
+def manual_entries(m):
+    if not SRC["manual"].exists():
+        return []
+    data = yaml.safe_load(SRC["manual"].read_text(encoding="utf-8"))
+    if data is None:
+        return []
+    if not isinstance(data, dict) or not isinstance(data.get("entries"), list):
+        raise ValueError(f"{rel(SRC['manual'])} 应为 entries 列表")
+    for index, row in enumerate(data["entries"]):
+        src = f"{rel(SRC['manual'])}#entries[{index}]"
+        if not isinstance(row, dict) or row.get("inv") not in m["inv"]:
+            raise ValueError(f"{src} 引用了不存在的 INV：{row!r}")
+        if not isinstance(row.get("execution_points"), list) or not isinstance(row.get("evidence"), str) or not row["evidence"].strip():
+            raise ValueError(f"{src} 缺 execution_points 列表或 evidence")
+        for ep in row["execution_points"]:
+            if ep not in m["ep"]:
+                raise ValueError(f"{src} 引用了不存在的 EP：{ep}")
+    return data["entries"]
+
+
+def load_constraints(m, link):
+    add_nodes(m, "inv", "rules", "id")
+    add_nodes(m, "ep", "execution_points", "id")
+    add_nodes(m, "tc", "tests", "key")
+    for no, line in enumerate(SRC["rule"].read_text(encoding="utf-8").splitlines(), 1):
+        row = cells(line)
+        if row and re.fullmatch(r"(?:[A-Z]+-)?RULE-\d+", row[0]):
+            m["rule"][row[0]] = {"name": row[2], "src": f"{rel(SRC['rule'])}:{no}", "tcs": [], "eps": []}
+    if not m["rule"]:
+        raise ValueError(f"{rel(SRC['rule'])} 没有 RULE 节点")
+    for iid, inv in m["inv"].items():
+        inv.update(aggs=inv["owner_aggregates"], rules=[], eps=[], tcs=[])
+        for agg in inv["aggs"]:
+            link("inv-agg", iid, agg, inv["src"] + ".owner_aggregates", via="owner_aggregates")
+    for index, row in enumerate(read_rows("rule_cards", "entries")):
+        iid = row["inv"]
+        if iid not in m["inv"]:
+            raise ValueError(f"rule_cards.entries[{index}] 引用了不存在的 INV：{iid}")
+        for raw in row["rule_cards"]:
+            rid = rule_id(raw)
+            if rid not in m["rule"]:
+                raise ValueError(f"rule_cards.entries[{index}] 引用了不存在的 RULE：{raw}")
+            m["inv"][iid]["rules"].append(rid)
+            link("inv-rule", iid, rid, f"{rel(SRC['rule_cards'])}#entries[{index}].rule_cards", reference=raw, evidence=row["evidence"])
+    link_constraint_refs(m, link)
+    for index, row in enumerate(manual_entries(m)):
+        for ep in row["execution_points"]:
+            m["inv"][row["inv"]]["eps"].append(ep)
+            link("inv-ep", row["inv"], ep, f"{rel(SRC['manual'])}#entries[{index}].execution_points", via="manual", evidence=row["evidence"])
+    link_execution_tests(m, link)
+
+
+def constraint_refs(node, key):
+    return [(rule_id(ref), field) for field in (("enforces",) if key == "ep" else ("covers", "class_covers")) for ref in node[field]]
+
+
+def link_constraint_refs(m, link):
+    invs_by_rule = defaultdict(list)
+    for iid, inv in m["inv"].items():
+        for rid in inv["rules"]:
+            invs_by_rule[rid].append(iid)
+    for key, targets in (("ep", "eps"), ("tc", "tcs")):
+        for ident, node in m[key].items():
+            for ref, field in constraint_refs(node, key):
+                src = node["src"] + "." + field
+                if ref.startswith(("INV-", "RULE-", "DATA-RULE-")) and ref not in m["inv"] and ref not in m["rule"]:
+                    raise ValueError(f"{src} 引用了不存在的编号：{ref}")
+                if ref in m["rule"]:
+                    m["rule"][ref][targets].append(ident)
+                    link(f"rule-{key}", ref, ident, src, via=field)
+                    for iid in invs_by_rule[ref]:
+                        m["inv"][iid][targets].append(ident)
+                        link(f"inv-{key}", iid, ident, src, via="rule", rule=ref,
+                             mapping_src=f"{rel(SRC['rule_cards'])}#entries/{iid}.rule_cards")
+                elif ref in m["inv"]:
+                    m["inv"][ref][targets].append(ident)
+                    link(f"inv-{key}", ref, ident, src, via=field)
+
+
+def link_execution_tests(m, link):
+    tests_by_ref = defaultdict(list)
+    for tid, test in m["tc"].items():
+        for ref, field in constraint_refs(test, "tc"):
+            if ref in m["inv"] or ref in m["rule"]:
+                tests_by_ref[ref].append((tid, test["src"] + "." + field))
+    for eid, ep in m["ep"].items():
+        for ref, field in constraint_refs(ep, "ep"):
+            for tid, src in tests_by_ref[ref]:
+                link("ep-tc", eid, tid, ep["src"] + "." + field, via="rule" if ref in m["rule"] else "inv", reference=ref, test_src=src)
+
+
+def attach_table(m, link, table, agg, src, via):
+    if agg not in m["agg"]:
+        raise ValueError(f"{src} 引用了不存在的聚合：{agg}")
+    if agg not in m["table"][table]["aggregates"]:
+        m["table"][table]["aggregates"].append(agg)
+    if table not in m["agg"][agg]["tables"]:
+        m["agg"][agg]["tables"].append(table)
+    link("table-agg", table, agg, src, via=via)
+
+
+def load_tables(m, link, mod_to_bc):
+    built = read_rows("built", "aggregates")
+    mapped = {e["built"]: e for e in read_rows("agg_map", "entries")}
+    unknown = sorted(set(mapped) - {agg["id"] for agg in built})
+    if unknown:
+        raise ValueError(f"{rel(SRC['agg_map'])} 引用了不存在的已建聚合：{'、'.join(unknown)}")
+    for agg in built:
+        m["agg"][agg["id"]] = {"name": agg["id"].split("/")[-1], "objs": [],
+                                "invs": (mapped.get(agg["id"]) or {}).get("invariants") or [],
+                                "planned": (mapped.get(agg["id"]) or {}).get("planned") or [],
+                                "relation": (mapped.get(agg["id"]) or {}).get("relation"),
+                                "bc": mod_to_bc.get(agg["bc"]), "module": agg["bc"], "tables": [], "built": True,
+                                "src": f"{rel(SRC['built'])}#aggregates/{agg['id']}"}
+    rows = yaml.safe_load(SRC["tables"].read_text(encoding="utf-8")) if SRC["tables"].exists() else []
+    if not isinstance(rows, list):
+        raise ValueError(f"{rel(SRC['tables'])} 应为表列表")
+    for index, row in enumerate(rows):
+        table = row.get("table") or f"{row['schema']}.{row['name']}"
+        src = f"{rel(SRC['tables'])}#[{index}]"
+        m["table"][table] = {**row, "aggregates": [], "sources": [src]}
+        targets = [aid for aid, agg in m["agg"].items() if row.get("obj") and row["obj"] in agg["objs"]]
+        if row.get("aggregate") in m["agg"]:
+            targets.append(row["aggregate"])
+        for aid in sorted(set(targets)):
+            attach_table(m, link, table, aid, src, "panorama")
+    registry = read_mapping(SRC["access"])["tables"]
+    if not isinstance(registry, dict):
+        raise ValueError(f"{rel(SRC['access'])}#tables 应为映射")
+    for table, row in registry.items():
+        src = f"{rel(SRC['access'])}#tables/{table}"
+        node = m["table"].setdefault(table, {"aggregates": [], "sources": []})
+        node.update(role=row["role"], registered=True, registered_aggregate=row.get("aggregate"))
+        node["sources"].append(src)
+    for agg in built:
+        for table in agg.get("tables") or []:
+            src = f"{rel(SRC['built'])}#aggregates/{agg['id']}.tables"
+            node = m["table"].setdefault(table, {"aggregates": [], "sources": []})
+            node["sources"].append(src)
+            attach_table(m, link, table, agg["id"], src, "built")
+
+
+def load_planned_aggregates(m, link):
+    for index, row in enumerate(read_rows("planned", "aggregates")):
+        aid = row["id"]
+        if not AGG_RE.fullmatch(aid) or aid in m["agg"]:
+            raise ValueError(f"{rel(SRC['planned'])} 编号无效或编号重复：{aid}")
+        name = row.get("聚合（根）") if "聚合（根）" in row else row["聚合"]
+        objs = OBJ_RE.findall(" ".join((name, row["内含"], row["对应"])))
+        src = f"{rel(SRC['planned'])}#aggregates[{index}]/{aid}"
+        m["agg"][aid] = {"name": re.sub(r"（.*", "", name), "objs": sorted(set(objs), key=objs.index),
+                         "invs": expand("INV", row["不变量"]), "bc": None, "tables": [], "src": src}
+        for obj in m["agg"][aid]["objs"]:
+            link("obj-agg", obj, aid, src)
+
+
+def mapping_paths(args):
+    match = re.search(r'(?:\b(?:path|value)\s*=\s*|^\s*)(\{(?:\s*"[^"]*"\s*,?)+\}|"[^"]*")', args)
+    if match:
+        return re.findall(r'"([^"]*)"', match[1])
+    return [""] if not args.strip() or re.match(r"\s*(?:produces|consumes|headers|params)\s*=", args) else []
+
+
+def controller_routes(java):
+    routes = defaultdict(list)
+    pattern = re.compile(r"@(Request|Get|Post|Put|Delete|Patch|Head|Options)Mapping\s*(?:\(([^)]*)\))?")
+    for path in sorted(java.glob("*/*/web/*Controller.java")):
+        text = path.read_text(encoding="utf-8")
+        text = re.sub(r'/\*.*?\*/|//[^\n]*', lambda match: "\n" * match[0].count("\n"), text, flags=re.S)
+        cls = re.search(r"\bclass\s+\w+", text)
+        if not cls or "@RestController" not in text[:cls.start()]:
+            continue
+        annotations = list(pattern.finditer(text))
+        class_mappings = [ann for ann in annotations if ann.start() < cls.start()]
+        bases = [base for ann in class_mappings for base in mapping_paths(ann[2] or "")] if class_mappings else [""]
+        module = ".".join(path.relative_to(java).parts[:2])
+        for ann in annotations:
+            if ann.start() < cls.start():
+                continue
+            methods = [ann[1].lower()] if ann[1] != "Request" else [x.lower() for x in re.findall(r"RequestMethod\.(\w+)", ann[2] or "")]
+            for base in bases:
+                for suffix in mapping_paths(ann[2] or ""):
+                    route = "/" + "/".join(x.strip("/") for x in (base, suffix) if x.strip("/"))
+                    for method in methods:
+                        routes[(route, method)].append((module, f"{rel(path)}:{text[:ann.start()].count(chr(10)) + 1}"))
+    return routes
+
+
+def load_interfaces(m, link, mod_to_bc):
+    registered = {}
+    for no, line in enumerate(SRC["modules"].read_text(encoding="utf-8").splitlines(), 1):
+        line = line.split("#", 1)[0].strip()
+        if not line:
+            continue
+        match = re.fullmatch(r"([a-z]+\.[a-z]+)\s*->\s*(.*)", line)
+        if not match:
+            raise ValueError(f"{rel(SRC['modules'])}:{no} 模块依赖登记无效")
+        registered[match[1]] = f"{rel(SRC['modules'])}:{no}"
+    for path in sorted(JAVA.glob("*/*")):
+        if not path.is_dir() or path.parent.name == "kernel":
+            continue
+        module = ".".join(path.relative_to(JAVA).parts)
+        bc = mod_to_bc.get(module) if module.split(".")[0] in m["sd"] else None
+        m["mod"][module] = {"bc": bc, "registered": module in registered, "src": rel(path), "registration_src": registered.get(module)}
+        if bc:
+            link("mod-bc", module, bc, rel(path), via="module", bc_src=m["bc"][bc]["src"], subdomain_src=f"{rel(SRC['sd'])}#subdomains/{module.split('.')[0]}")
+    routes = controller_routes(JAVA)
+    for path, operations in sorted(json.loads(SRC["api"].read_text(encoding="utf-8"))["paths"].items()):
+        parts = path.strip("/").split("/")
+        sd = parts[2] if len(parts) >= 4 and parts[:2] == ["api", "v1"] and parts[2] in m["sd"] else None
+        for method, operation in sorted(operations.items()):
+            if method not in HTTP_METHODS:
+                continue
+            matches = routes.get((path, method), [])
+            owners = {module for module, _ in matches}
+            module = next(iter(owners)) if len(owners) == 1 else None
+            bc = m["mod"].get(module, {}).get("bc") if module and module.split(".")[0] == sd else None
+            ident, src = f"{method.upper()} {path}", f"{rel(SRC['api'])}#/paths/{path}/{method}"
+            reason = None if bc else "路径子域未登记或格式不符" if not sd else "Controller 未唯一匹配或模块未登记 BC"
+            m["api"][ident] = {"path": path, "method": method.upper(), "subdomain": sd, "bc": bc, "module": module,
+                                "operation_id": operation.get("operationId"), "gap": reason, "src": src, "controllers": [s for _, s in matches]}
+            if bc:
+                link("api-bc", ident, bc, src, via="controller", controller_src=[s for _, s in matches], bc_src=m["bc"][bc]["src"])
+
+
+def api_paths(m):
+    paths = defaultdict(list)
+    for node in m.get("api", {}).values():
+        paths[node["path"]].append(node)
+    return paths
+
+
+def covered_api(nodes):
+    return all(n["bc"] for n in nodes) and len({n["bc"] for n in nodes}) == 1
+
+
+def check_coverage(m, gaps):
+    for iid, inv in m["inv"].items():
+        if not inv.get("eps"):
+            gaps["N08-2"].append(iid)
+        if not inv.get("tcs"):
+            gaps["N08-3"].append(iid)
+    mapped = {r for inv in m["inv"].values() for r in inv.get("rules", [])}
+    for rid in sorted(mapped):
+        if not m["rule"][rid]["tcs"]:
+            gaps["N08-4"].append(rid)
+    for table, node in m["table"].items():
+        if node.get("registered") and node["role"] in BUSINESS_ROLES and not node["aggregates"]:
+            gaps["N09-M5"].append(f"{table}（{node['role']}，聚合登记 {node.get('registered_aggregate') or '无'}）")
+    for aid, a in m.get("agg", {}).items():
+        if a.get("built") and a.get("relation") in (None, "pending"):
+            gaps["N09-M6"].append(f"{aid}（{a.get('relation') or '未登记对照'}）")
+    for module, node in m.get("mod", {}).items():
+        if not node["registered"]:
+            gaps["N10-M2"].append(module)
+    for path, nodes in api_paths(m).items():
+        if not covered_api(nodes):
+            gaps["N10-M3"].append(path + "（" + "；".join(f"{n['method']}: {n.get('gap') or n['bc']}" for n in nodes) + "）")
+
+
+def coverage_counts(m, links):
+    mapped = {r for inv in m["inv"].values() for r in inv.get("rules", [])}
+    tables = {t for t, node in m["table"].items() if node.get("registered") and node["role"] in BUSINESS_ROLES}
+    coverage = {}
+    for label, kind, universe in (("INV→EP", "inv-ep", set(m["inv"])), ("INV→TC", "inv-tc", set(m["inv"])),
+                                  ("RULE→TC（有 INV 对照）", "rule-tc", mapped), ("表→聚合", "table-agg", tables)):
+        edges = [edge for edge in links if edge["kind"] == kind and edge["from"] in universe]
+        by_via = defaultdict(set)
+        expected = {"inv-ep": ("enforces", "rule", "manual"), "inv-tc": ("covers", "class_covers", "rule"),
+                    "rule-tc": ("covers", "class_covers"), "table-agg": ("panorama", "built")}
+        for via in expected[kind]:
+            by_via[via]
+        for edge in edges:
+            by_via[edge.get("via", "direct")].add(edge["from"])
+        coverage[label] = {"covered": len({edge["from"] for edge in edges}), "total": len(universe),
+                           "via": {via: len(nodes) for via, nodes in sorted(by_via.items())}}
+    paths = api_paths(m)
+    covered = sum(covered_api(nodes) for nodes in paths.values())
+    coverage["API→BC"] = {"covered": covered, "total": len(paths), "via": {"controller": covered}}
+    return coverage
+
+
 def load():
     m = {k: {} for k in ("sh", "con", "vp", "decr", "cap", "vs", "stage", "prc", "inv", "obj", "act", "fact", "dim",
-                         "metric", "bind", "dec", "agg", "bc", "sd", "table")}
+                         "metric", "bind", "dec", "agg", "bc", "sd", "table", "rule", "ep", "tc", "api", "mod")}
     links = []
 
-    def link(kind, a, b, src):
-        links.append({"kind": kind, "from": a, "to": b, "src": src})
+    def link(kind, a, b, src, **evidence):
+        links.append({"kind": kind, "from": a, "to": b, "src": src, **evidence})
 
     vsd = yaml.safe_load(SRC["vs"].read_text(encoding="utf-8"))
     for s in vsd.get("stakeholders") or []:
@@ -203,24 +564,7 @@ def load():
             for g in gates:
                 link(f"stage-gate-{g['side']}", st["id"], g["obj"], f"{rel(SRC['vs'])}#{st['id']}.{g['side']}")
 
-    text = SRC["obj"].read_text(encoding="utf-8")
-    m["obj_text"] = obj_texts(text)
-    valid = anc.info_objects(text)
-    disp = olc.object_dispositions(text)
-    kinds = {"subordinate": "从属对象", "reference_data": "参照数据", "view": "视图"}
-    for oid, c, no in md_rows(text, "## 1. 总表", "### 1.1", r"OBJ-\d{2,3}"):
-        if oid not in valid:
-            continue
-        level = (c[3] if len(c) > 3 else "").replace("*", "")
-        d = disp.get(oid)
-        parents = c[12] if len(c) > 12 else ""
-        m["obj"][oid] = {"name": c[1].replace("*", ""), "active": True, "primary": level.startswith("一级") or "暂列一级" in level,
-                         "class": kinds[d["kind"]] if d else "业务对象", "parent": d.get("parent_object") if d else None,
-                         "parents": OBJ_RE.findall(parents), "parents_raw": parents,
-                         "states": c[5] if len(c) > 5 else "", "facts": c[8].strip() if len(c) > 8 else "",
-                         "src": f"{rel(SRC['obj'])}:{no}"}
-        for p in m["obj"][oid]["parents"]:
-            link("obj-parent", oid, p, f"{rel(SRC['obj'])}:{no}")
+    load_objects(m, link)
 
     for p in yaml.safe_load(SRC["prc"].read_text(encoding="utf-8"))["processes"]:
         po = str(p.get("primary_object") or "")
@@ -233,19 +577,8 @@ def load():
         for o in OBJ_RE.findall(po):
             link("obj-prc", o, p["id"], f"{rel(SRC['prc'])}#{p['id']}.primary_object")
 
+    load_planned_aggregates(m, link)
     text = SRC["agg"].read_text(encoding="utf-8")
-    for iid, c, no in md_rows(text, "### 1.2", "### 1.3", r"INV-\d{2,3}"):
-        aggs = expand("AGG", c[3] if len(c) > 3 else "")
-        m["inv"][iid] = {"aggs": aggs, "src": f"{rel(SRC['agg'])}:{no}"}
-        for a in aggs:
-            link("agg-inv", a, iid, f"{rel(SRC['agg'])}:{no}")
-    for aid, c, no in md_rows(text, "### 2.2", "### 2.3", r"AGG-\d{2,3}"):
-        objs = OBJ_RE.findall(" ".join(c[1:4]))
-        m["agg"][aid] = {"name": re.sub(r"（.*", "", c[1]), "objs": sorted(set(objs), key=objs.index),
-                         "invs": expand("INV", c[4] if len(c) > 4 else ""), "bc": None, "tables": [],
-                         "src": f"{rel(SRC['agg'])}:{no}"}
-        for o in m["agg"][aid]["objs"]:
-            link("obj-agg", o, aid, f"{rel(SRC['agg'])}:{no}")
     for bid, c, no in md_rows(text, "### 3.2", "### 3.3", r"B-\d{2,3}"):
         mod = re.search(r"`([a-z_]+\.[a-z_]+)`", c[2] if len(c) > 2 else "")
         aggs = expand("AGG", c[4] if len(c) > 4 else "")
@@ -282,22 +615,18 @@ def load():
             m["act"][f"{a['bc']}/{cmd}"] = {"command": cmd, "aggregate": a["id"], "bc": a.get("bc"),
                                             "src": f"{rel(SRC['built'])}#{a['id']}"}
     mod_to_bc = {b["module"]: bid for bid, b in m["bc"].items() if b["module"]}
-    if SRC["tables"].exists():
-        rows = yaml.safe_load(SRC["tables"].read_text(encoding="utf-8")) or []
-        tsrc = rel(SRC["tables"])
-    else:
-        rows, tsrc = [], rel(SRC["built"])
-        for a in yaml.safe_load(SRC["built"].read_text(encoding="utf-8"))["aggregates"]:
-            for t in a.get("tables") or []:
-                rows.append({"table": t, "bc": a["bc"], "aggregate": a["id"], "obj": None})
-    for r in rows:
-        t = r.get("table") or f"{r.get('schema')}.{r.get('name')}"
-        m["table"][t] = {"bc": r.get("bc"), "aggregate": r.get("aggregate"), "obj": r.get("obj"), "kind": r.get("kind")}
-        for a in m["agg"].values():
-            if r.get("obj") and r["obj"] in a["objs"]:
-                a["tables"].append(t)
-                link("agg-table", None, t, tsrc)
-                break
+    for context in read_rows("bc", "contexts"):
+        module = context["id"]
+        if context.get("kind") == "shared-kernel" or context.get("status") == "retired" or module in mod_to_bc:
+            continue
+        m["bc"][module] = {"name": context["zh"], "module": module, "aggs": [], "subdomain": context.get("subdomain") if context.get("subdomain") in m["sd"] else None,
+                           "src": f"{rel(SRC['bc'])}#contexts/{module}"}
+        mod_to_bc[module] = module
+        if context.get("subdomain") in m["sd"]:
+            link("sd-bc", context["subdomain"], module, m["bc"][module]["src"])
+    load_tables(m, link, mod_to_bc)
+    load_constraints(m, link)
+    load_interfaces(m, link, mod_to_bc)
 
     for t in yaml.safe_load(SRC["terms"].read_text(encoding="utf-8"))["terms"]:
         if t.get("kind") == "metric":
@@ -502,17 +831,24 @@ def check(m, anchoring=None):
     for mid, mt in m["metric"].items():
         if not mt["stages"] and not mt["processes"]:
             gaps["N13-2"].append(f"{mid} {mt['zh']}")
+    check_coverage(m, gaps)
     return gaps
 
 
 def render(m, links, gaps):
+    coverage = coverage_counts(m, links)
     m = {k: v for k, v in m.items() if k != "obj_text"}
     counts = {k: len(v) for k, v in m.items()}
     model = {"meta": {"generator": "architecture/panorama/panorama_build.py", "sources": {k: rel(v) for k, v in SRC.items() if v.exists()},
-                      "counts": counts, "checks": CHECKS},
+                      "counts": counts, "checks": CHECKS, "coverage": coverage,
+                      "external_reads": {k: len(v) for k, v in read_mapping(SRC["external"]).items() if isinstance(v, list)}},
              "nodes": m, "links": links}
     lines = ["<!-- 由 architecture/panorama/panorama_build.py 生成，勿手改 -->", "", "# 全景追溯缺口", "",
              "每轮生成一次，反复跑到收敛。缺口是「缺上层」还是「本身多余」，由 one-architecture 逐条判定，写进层笔记的待决问题。", "",
+             "## 覆盖率", "", "按起点去重；via 列为每种出处下已覆盖起点数（可重叠），不是执行通过率。表→聚合只统计 data-access-registry 的三类业务表；API→BC 按路径统计，方法数见 api 节点。", "",
+             "| 关系 | 已覆盖 / 总数 | via（已覆盖起点数） |", "|---|---|---|",
+             *[f"| {k} | {v['covered']} / {v['total']} | " + "、".join(f"{via}: {n}" for via, n in v['via'].items()) + " |" for k, v in coverage.items()], "",
+             "登记表其他 role（只计数）：" + "、".join(f"{role} {n}" for role, n in sorted(Counter(t['role'] for t in m['table'].values() if t.get('registered') and t.get('role') not in BUSINESS_ROLES).items())) + "。", "",
              "| 节点 | 层 | 条目数 |", "|---|---|---|", *[f"| {LAYER_NODE[k]} {NODES.get(LAYER_NODE[k], '')} | {k} | {v} |" for k, v in counts.items()], "",
              "对象按分类：" + "、".join(f"{c} {n}" for c, n in sorted(Counter(o.get("class", "业务对象") for o in m["obj"].values()).items())) + "。", "",
              "| 检查 | 含义 | 缺口 |", "|---|---|---|", *[f"| {k} | {d} | {UNAUTOMATED[k] + '，未自动化' if k in UNAUTOMATED else len(gaps.get(k, []))} |" for k, d in CHECKS.items()], ""]
@@ -612,8 +948,14 @@ def self_test():
         except ValueError:
             pass
     txt = "## 1. 总表\n| 编号 | 对象 |\n|---|---|\n| OBJ-01 | 往来单位 | 甲 |\n### 1.1\n## 2. x\n### 2.1 往来单位与角色\n- 项目内身份：物业\n### 2.2 别的\n- 往来单位 监理\n## 3."
-    ot = obj_texts(txt)
+    row = dict.fromkeys(("definition", "level", "type", "key_states", "relations", "rules", "facts", "source", "term", "scope", "parent_text"), "")
+    ot = obj_texts([{**row, "id": "OBJ-01", "name": "往来单位"}], txt)
     assert "物业" in ot["OBJ-01"] and "监理" not in ot["OBJ-01"], ot   # 只取标题含对象名或编号的小节
+    import unittest
+    import test_panorama_build
+    result = unittest.TextTestRunner().run(unittest.defaultTestLoader.loadTestsFromModule(test_panorama_build))
+    if not result.wasSuccessful():
+        raise AssertionError("ARC-1021-ARC-04 自测失败")
     print("self-test ok")
 
 
@@ -623,7 +965,10 @@ def main():
         return 0
     m, links, _ = load()
     vsd = yaml.safe_load(SRC["vs"].read_text(encoding="utf-8"))
-    OUT_SH.write_text(stakeholder_table(vsd, OUT_SH.read_text(encoding="utf-8")), encoding="utf-8")
+    old_sh = OUT_SH.read_text(encoding="utf-8")
+    new_sh = stakeholder_table(vsd, old_sh)
+    if new_sh != old_sh:
+        OUT_SH.write_text(new_sh, encoding="utf-8")
     gaps = check(m, anc.compute())
     model, report = render(m, links, gaps)
     OUT_MODEL.write_text(model, encoding="utf-8")

@@ -2468,29 +2468,33 @@ Unclaimed lines on whitelisted vouchers are kept; lines on other vouchers are ex
 **Category:** Calculation
 **Priority:** P0
 **Source:** `psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/domain/presales/quote/quotation/Quotation.java:252-259`
-**Plain English:** Gross margin = (final quote ÷ (1 + header tax rate) − BU cost) ÷ that ex-tax amount. The ex-tax amount is rounded to cents first, then the margin is rounded to 4 decimals.
+**Plain English:** Gross margin = (ex-tax final quote − BU cost) ÷ ex-tax final quote. The ex-tax final quote is the sum of the lines' ex-tax amounts plus the tail adjustment divided by (1 + header tax rate), rounded to cents; the margin is then rounded to 4 decimals. A fixed 1.06 is never used, and the header rate is not applied to the whole quote.
 **Specification:**
-  Given finalAmount ¥106,000.00, taxRate 0.06, buCost ¥45,500.00
+  Given one line of ¥113,000 at 13% (line ex-tax ¥100,000.00), tail adjustment ¥0, header tax rate 0.06, buCost ¥45,500.00
   When  saved
   Then  exTax = ¥100,000.00 and grossMargin = (100,000 − 45,500) ÷ 100,000 = 0.5450
-**Parameters:** exTax scale 2 HALF_UP; margin scale 4 HALF_UP
-**Edge cases handled:** When finalAmount ≤ 0 or exTax ≤ 0 the margin is null (avoids division by zero), and null is explicitly written to the DB so a stale value cannot remain. The same formula is repeated in the approval path (lines 402-409) and the submit-refresh path (lines 427-434).
-**Suspected defect:** (1) The seed doc (Q6) says to divide by a fixed 1.06; the code uses the quotation's own tax rate. (2) The margin always uses the header rate even when lines carry different rates. Example: one line of ¥113,000 at 13% has a line ex-tax amount of ¥100,000.00, but the margin uses 113,000 ÷ 1.06 = ¥106,603.77. That overstates margin by about 6 percentage points compared with the sum of the lines' ex-tax amounts.
-**Confidence:** High for the code behaviour. SME question: "Should margin use Σ line amountNotax instead of final ÷ (1 + header rate)?"
+  Given final quote ≤ 0 or exTax ≤ 0
+  Then  the margin is null and null is written explicitly
+**Parameters:** exTax scale 2 HALF_UP; margin scale 4 HALF_UP. The same formula applies on save, on submit and in approval (RULE-145). Phase 2 budget gross margin (RULE-182, RULE-239) uses the same basis.
+**Legacy behaviour:** exTax = final ÷ (1 + header rate), which overstates margin when lines carry different rates (¥113,000 at 13% gave ¥106,603.77).
+**Corrected:** 2026-10-21 per the verdict "wrong" of 2026-10-14 (RULE_REVIEWS.json); the legacy behaviour is kept only as evidence.
+**Confidence:** High.
 
 ### RULE-145: Approval-time edits recalculate the final quote from the stored line total plus the new tail adjustment
 **Category:** Calculation
 **Priority:** P0
 **Source:** `psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/domain/presales/quote/quotation/Quotation.java:367-410`
-**Plain English:** When an approver changes values during approval, the line total is worked back as (old final − old tail adjustment) without reloading the lines. The new final is that line total + the new tail adjustment. Labour is recalculated only if a tree is adopted; BU cost is recalculated if a tree or other costs are adopted; margin is always recalculated.
+**Plain English:** Recalculation during approval uses the same calculation as save: the lines are reloaded and their tax splits are re-derived from the header tax rate, then ex-tax amount and margin are recalculated. The final quote is not recalculated or changed in approval (clauses are locked, RULE-155). If labour cost is empty on an old record, it is recalculated from the cost tree before BU cost and margin.
 **Specification:**
-  Given a pending quotation with final ¥106,000, tail ¥0, buCost ¥45,500 and tax rate 0.06
+  Given a pending quotation with one line of ¥106,000 at 6%, final ¥106,000, tail ¥0, buCost ¥45,500
   When  the approver adopts tax rate 0.09 and no tree
-  Then  final stays ¥106,000, exTax = ¥97,247.71, and grossMargin = (97,247.71 − 45,500) ÷ 97,247.71 = 0.5321
-**Parameters:** same rounding as RULE-07
-**Edge cases handled:** The final must still be > 0. An empty adopted tree is treated as "not adopted" (`ApplyQuotationApprovalUseCase.java:69-71`).
-**Suspected defect:** (1) A tax-rate change during approval does not re-derive the stored lines' tax splits, so line amountNotax and taxAmount no longer match the header rate. (2) If a legacy row has labor_cost NULL and the approver adopts only other costs, buCost becomes other costs only: labour drops out and margin is inflated.
-**Confidence:** High for the logic; Medium for how much the legacy-NULL case matters in practice.
+  Then  the line is re-split at 9% (ex-tax ¥97,247.71, tax ¥8,752.29), final stays ¥106,000, grossMargin = (97,247.71 − 45,500) ÷ 97,247.71 = 0.5321
+  Given an old record with labour cost null and the approver adopts only other costs
+  Then  labour cost is first recalculated from the cost tree, so BU cost keeps its labour part
+**Parameters:** same rounding as RULE-144. An empty adopted tree counts as "not adopted".
+**Legacy behaviour:** the line total was worked back as (old final − old tail) without reloading lines, so a tax change left line splits stale; a null labour cost dropped out of BU cost and inflated margin.
+**Corrected:** 2026-10-21 per the verdict "wrong" of 2026-10-14 (RULE_REVIEWS.json); the legacy behaviour is kept only as evidence.
+**Confidence:** High.
 
 ### RULE-146: Line amount: a hand-entered discounted total overrides quantity × unit price
 **Category:** Calculation
@@ -2850,18 +2854,20 @@ Two things worth flagging:
 **Category:** Lifecycle
 **Priority:** P0
 **Source:** `psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/mq/consumer/approval/quotation/QuotationProcessResultHandler.java:34-52`
-**Plain English:** When the OPP_QUOTATION workflow finishes, "approved" marks the quotation APPROVED. Both "not approved" and "cancelled" mark it REJECTED. Any other result changes nothing.
+**Plain English:** When the quotation workflow ends, "approved" marks the quotation APPROVED and "not approved" marks it REJECTED with the approver's reason. A cancellation or withdrawal by the initiator sends the quotation back to DRAFT and records no rejection reason. The result is carried as an enumeration, not a number. Any other result changes nothing. Consistent with RULE-279 and RULE-288.
 **Specification:**
-  Given a PENDING quotation and a BPM message with result = 2 (通过)
+  Given a PENDING quotation and the result APPROVED
   Then the quotation becomes APPROVED
-  Given result = 3 (不通过) or 4 (已取消)
-  Then the quotation becomes REJECTED
-  Given result = 1 (in progress)
+  Given the result REJECTED
+  Then the quotation becomes REJECTED and the reason is stored
+  Given the result CANCELLED (initiator withdraws)
+  Then the quotation returns to DRAFT and no rejection reason is written
+  Given the result IN_PROGRESS
   Then nothing is written back
-**Parameters:** businessKey `OPP_QUOTATION`. BPM result codes 通过=2, 不通过=3, 已取消=4 (`CommonConstants.BpmProcessInstanceResult`).
-**Edge cases handled:** A message with a null paramsId is ignored.
-**Suspected defect:** A cancellation (e.g. the initiator withdraws) is stored as REJECTED, labelled "OA 驳回", and, if no comment was given, with reason "审批未通过". Users and reports cannot tell a withdrawal from a real rejection.
-**Confidence:** Medium — mapping is explicit. SME question: "When an approval is cancelled or withdrawn, should the quotation show as 'OA 驳回 / 审批未通过', or go back to DRAFT or a separate CANCELLED state?"
+**Parameters:** business key `OPP_QUOTATION`. A message with a null document id is ignored.
+**Legacy behaviour:** CANCELLED (4) was stored as REJECTED with the label "OA 驳回" and reason "审批未通过", so a withdrawal looked like a rejection.
+**Corrected:** 2026-10-21 per the verdict "wrong" of 2026-10-14 (RULE_REVIEWS.json); the legacy behaviour is kept only as evidence.
+**Confidence:** High.
 
 ### RULE-170: A quotation returned to the initiator stays PENDING but can be edited and resubmitted
 **Category:** Lifecycle
@@ -4335,15 +4341,18 @@ Within that city, the role's standard cost rate comes from today's active scheme
 **Category:** Validation
 **Priority:** P0
 **Source:** `psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/oa/CustomizedBpmOAServiceImpl.java:105-110`
-**Plain English:** When a business document is sent for approval, the process starter is whoever the request names in `creator`. Only when `creator` is empty does the system use the logged-in user.
+**Plain English:** The initiator of a business-document approval is always the logged-in user of the current session. The request carries no `creator` or other identity field; any such field is ignored or refused (ADR-0009 decision 5, G33).
 **Specification:**
-  Given a request {paramsId: 1789…, processKey: "OPP_QUOTATION", creator: 2048}, sent by any caller
-  When /bpm/oa/customized/create is invoked
-  Then the process instance is started with startUserId = 2048, and the initiator variables (creUserId, roles, leaderUserId, depts, postName, billing) are derived from user 2048
-**Parameters:** `creator` is optional (#356, meant for scheduled jobs with no login). The initiator variable `rejected` is always initialised to false (lines 206-225).
-**Edge cases handled:** If there is no login and no creator, `userId` is null. `userMap.get(null)` then leads to an NPE in `buildProcessInstanceVariables`.
-**Suspected defect:** The HTTP endpoint is `@PermitAll` with `@DataPermission(enable=false)` (CustomizedBpmController.java:29-38) and accepts `creator` from the request body. An unauthenticated caller could therefore start, or resume (see RULE-03), an approval for any document while posing as any user, with arbitrary process variables that drive gateways and assignee selection.
-**Confidence:** High on the code. SME/security question: "Is /bpm/oa/customized/create reachable from outside the internal service mesh (gateway rules), and should `creator` be accepted only from trusted internal RPC?"
+  Given a request {documentId: 1789…, processKey: "OPP_QUOTATION", creator: 2048} sent by user 1001
+  When  the approval is started
+  Then  the initiator is user 1001, never 2048, and the initiator's roles, leader and departments are derived from user 1001
+  Given a request with no logged-in session
+  Then  it is refused with 401 and no process is started
+**Parameters:** none.
+**Legacy behaviour:** the initiator was the caller-supplied `creator` on an `@PermitAll` endpoint (patched in the old system by SEC-005).
+**Open (not covered by the review note, to be asked with the aligned decision page):** how scheduled jobs, which have no logged-in user, start an approval; the rule here covers user requests only.
+**Corrected:** 2026-10-21 per the verdict "wrong" of 2026-10-14 (RULE_REVIEWS.json); the legacy behaviour is kept only as evidence.
+**Confidence:** High.
 
 ### RULE-266: Duplicate-start guard: one live process per business document, reused on resubmission
 **Category:** Validation
@@ -4593,13 +4602,13 @@ A duplicate or late message is ignored silently, and a real failure is rethrown 
   Then the quotation is rejected with reason "审批未通过" via a compare-and-set from PENDING; 0 rows updated means an idempotent ignore
 **Parameters:**
 - Default reject reason "审批未通过".
-- Result mapping in QuotationProcessResultHandler.java:39-48: 2 means approve, 3 or 4 means reject, others are ignored.
+- Result mapping: approved → approve; not approved → reject; cancelled by the initiator → back to draft with no rejection reason (RULE-169); others are ignored.
 **Edge cases handled:**
 - A missing document is ignored.
 - ETC (DecideEtcApprovalUseCase.java:59-84) adds a "message arrived before the start transaction committed" check through `isCommittedInstance` and `latestProcessInstanceId`. It throws in order to be redelivered.
 - Consumers rethrow every failure (ProcessResultConsumer.java:58-74; ApprovalTaskResultConsumer.java:58-74).
 **Suspected defect:**
-- Cancelled (4) is mapped to a quotation reject, which conflates initiator withdrawal with an approver rejection.
+- Legacy: cancelled (4) was mapped to a quotation reject, which conflated initiator withdrawal with an approver rejection. Corrected 2026-10-21 per the review of 2026-10-14 ("发起人撤销后单据回到草稿，不记为驳回"; RULE-169).
 - When `afterHookKey` is present, ApprovalTaskResultConsumer runs only the hook and skips the businessKey handler (lines 46-63). ProcessResultConsumer runs both. The asymmetry is undocumented.
 - Idempotency is per handler and by convention only. The interface comment requires it, but nothing enforces it.
 **Confidence:** Medium. SME questions: "Should a cancelled approval leave the quotation in REJECTED or return it to DRAFT?" and "Do all other ProcessResultHandlers (budget, revenue, deliverable, travel, timesheet) implement the same status, instance and time checks?"
@@ -5012,17 +5021,17 @@ If permissions cannot be loaded, approval is refused. A pass defaults its reason
 **Category:** Policy
 **Priority:** P0
 **Source:** `psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/mq/producer/BpmApprovalMqReliableSender.java:402-485`
-**Plain English:** Every 10 minutes, any task approved or rejected, and any process approved, rejected or cancelled, between 24 hours and 2 minutes ago that was never sent, staged or queued is rebuilt from the bpm tables and queued.
+**Plain English:** Delivery of task and process results is guaranteed by the event publication register: an event is written in the same transaction as the decision and resent from the register until acknowledged. Nothing is rebuilt from the engine's own records, so an automatic skip, a same-approver auto-approval or an advisory co-sign rejection never goes out as a result.
 **Specification:**
-  Given bpm_task_ext row T has result=3 and end_time 30 minutes ago, with no sent marker or outbox row, and its process is linked to paramsId 900
-  When  reconcile runs
-  Then  a task-result message (result 3, reason, rowId from bpm_task_ext) is queued with error "reconcile: missing task send"
-  Given bpm_process_instance_ext P has result=4 and end_time 1 hour ago, and was never sent
-  Then  a process-result message "PE:P" (result 4, afterHookKey) is queued
-**Parameters:** lookback 24 h, grace 120 s, interval 600000 ms, `psa.bpm.mq.reconcile-enabled` default true
-**Edge cases handled:** non-document processes are skipped. The sent-marker TTL (48 h) is longer than the lookback.
-**Suspected defect:** (a) Any task completed by the engine gets result=2 from RULE-02, even when nothing was published: initiator auto-skip, resubmit completion, same-approver auto-approve. The same applies to advisory co-sign rejections (RULE-06). Reconcile would emit these as "missed". (b) A rebuilt cancel message lacks cancelAction and reason if the original outbox payload is gone.
-**Confidence:** Medium — SME/tech lead: should reconcile limit itself to tasks completed by a human decision?
+  Given a task decided by a person whose result event is in the register but not acknowledged
+  When  the redelivery job runs
+  Then  that same event is resent unchanged
+  Given a task completed by the engine without a decision (initiator auto-skip, resubmission completion, same-approver auto-approval) or an advisory co-sign rejection
+  Then  no result event exists and nothing is sent
+**Parameters:** redelivery interval and retention are configuration of the publication register, not of this rule.
+**Legacy behaviour:** a job every 10 minutes rebuilt "missed" results from the engine tables over a 24-hour lookback; it emitted engine-made completions as results, and a rebuilt cancel lost its cancel action and reason.
+**Corrected:** 2026-10-21 per the verdict "wrong" of 2026-10-14 (RULE_REVIEWS.json); the legacy behaviour is kept only as evidence.
+**Confidence:** High.
 
 ### RULE-305: Task-result messages (topic-bpm-approval-task-result)
 **Category:** Policy
@@ -5073,20 +5082,16 @@ If permissions cannot be loaded, approval is refused. A pass defaults its reason
 **Category:** Policy
 **Priority:** P0
 **Source:** `psa-backend/yudao-module-bpm/yudao-module-bpm-biz/src/main/java/cn/iocoder/yudao/module/bpm/service/oa/CustomizedBpmOAServiceImpl.java:303-337`
-**Plain English:** When a process ends, BPM writes the outcome into the `approve_status` column of the business table configured on the process definition. Timesheets are excluded.
+**Plain English:** There is no generic write-back to a business table. When a process ends, a typed result event is published and each business module applies the outcome to its own document in its own code, with its own status check.
 **Specification:**
-  Given process key "OPP_X" has tableName "fst_x" and document 1001 is mapped to the ended instance
-  When the result event arrives with result 2 (通过) / 3 (不通过) / 4 (已取消)
-  Then `UPDATE fst_x SET approve_status = 3 / 2 / 4, update_time = getDate() WHERE id = 1001`. Result 1 (处理中) writes nothing.
-**Parameters:**
-- Mapping from process result to ApproveStatus: 2→通过(3), 3→驳回(2), 4→取消(4).
-- Excluded key: "TIMESHEET", whose write-back moved to fst consumers (#564).
-**Edge cases handled:** A blank tableName or a missing mapping row means no write.
-**Suspected defect:**
-- The table name is interpolated as `${tableName}` (SqlActionMapper.java:15), so it relies on trusted definition configuration.
-- The definition is resolved by the currently active version of the key. A suspended or missing definition, or a missing ext row, causes an NPE.
-- There is no status precondition (it is not a CAS), so a redelivered or late event can overwrite a newer status.
-**Confidence:** Medium. SME question: "Which process keys still rely on this generic write-back rather than an fst ProcessResultHandler, and is overwriting without a state check acceptable?"
+  Given a process of document type X ends with the result APPROVED
+  Then  a typed result event is published and the module owning X updates its own document
+  Given any process definition
+  Then  no statement is built from a table name held in configuration
+**Parameters:** none.
+**Legacy behaviour:** the engine wrote `approve_status` into the table named on the process definition by string-built SQL (2→3, 3→2, 4→4), with no status precondition, so a late or repeated event could overwrite a newer status.
+**Corrected:** 2026-10-21 per the verdict "wrong" of 2026-10-14 (RULE_REVIEWS.json); the legacy behaviour is kept only as evidence.
+**Confidence:** High.
 
 ### RULE-309: Withdraw/cancel cutoff = any marked node with a completed task
 **Category:** Policy
@@ -5123,16 +5128,17 @@ If permissions cannot be loaded, approval is refused. A pass defaults its reason
 **Category:** Policy
 **Priority:** P0
 **Source:** `psa-backend/yudao-module-fst/yudao-module-fst-biz/src/main/java/cn/iocoder/yudao/module/fst/mq/consumer/approval/ApprovalTaskResultConsumer.java:41-75`
-**Plain English:** The business module applies each task result through the one handler registered for that process key, acting as the approver. If the message has an AFTER hook, only the hook runs. A failure is rethrown so that RocketMQ redelivers the message.
+**Plain English:** A task result is handled the same way as a process result: the node's after-hook and the business handler registered for the business key both run, in a fixed order. A failure is rethrown so the event is redelivered.
 **Specification:**
-  Given a message with businessKey "OPP_QUOTATION", no afterHookKey and assigneeId 2002
-  Then  the OPP_QUOTATION handler runs with the operator set to 2002, and an exception causes redelivery
-  Given the same message with afterHookKey "travelX"
-  Then  only the workflow hook registry runs and the business handler is not called
-**Parameters:** none
-**Edge cases handled:** no handler and no hook → skip. Two handlers for the same key → startup failure.
-**Suspected defect:** This is inconsistent with the process consumer (RULE-22), which runs both the hook and the handler.
-**Confidence:** Medium — SME: is it intended that a node AFTER hook fully replaces the business handler?
+  Given a task result with business key "OPP_QUOTATION" and no after-hook
+  Then  the business handler runs as the approver and a failure causes redelivery
+  Given the same result with an after-hook
+  Then  both the hook and the business handler run, in the same order as for process results
+**Parameters:** none.
+**Legacy behaviour:** with an after-hook only the hook ran and the business handler was skipped, unlike the process-result consumer.
+**Open (the review note says "fixed order" without naming it):** whether the hook runs before or after the business handler; follow the process-result order once that is written down.
+**Corrected:** 2026-10-21 per the verdict "wrong" of 2026-10-14 (RULE_REVIEWS.json); the legacy behaviour is kept only as evidence.
+**Confidence:** High.
 
 ### RULE-312: The process-end consumer runs the hook and then the handler, and must be idempotent
 **Category:** Policy
