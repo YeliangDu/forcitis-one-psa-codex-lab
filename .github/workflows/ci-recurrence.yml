@@ -2,8 +2,8 @@ name: ci-recurrence
 
 on:
   schedule:
-    # 23:17 UTC = 次日北京时间 07:17（UTC+8）、欧洲夏令时 01:17（CEST，UTC+2）；晚于 19:23 UTC 的 nightly-legacy-it 全量（上限 90 分钟）与 21:03 UTC 的 ci 全量，错开整点。
-    - cron: '17 23 * * *'
+    # 03:17 UTC = 本机夏令时 05:17（CEST，UTC+2）、冬令时 04:17；晚于 01:23 UTC 的 nightly-legacy-it 全量（上限 90 分钟，最晚 02:53 结束）与前一晚 21:03 UTC 的 ci 全量，错开整点。
+    - cron: '17 3 * * *'
   workflow_dispatch:
 
 permissions:

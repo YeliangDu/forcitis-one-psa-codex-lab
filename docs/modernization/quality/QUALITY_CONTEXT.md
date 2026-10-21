@@ -33,7 +33,7 @@
 5. ADR R-11（intent 核对脚本）：先整理正反例样本集交 one-architecture 核对口径；ADR 工具已推到 one-architecture 的分支（catalog.yaml 与 ADR-0029 已并入）。
 6. CS-1.11 基线/例外统一生命周期条款草案（过 opus 后走收件箱请用户批准）与 G-C8 守护实现 PR（排在其后）。
 7. FD 财务口径单 9 条事实题是否改 `kind: fact`（one-rules 定，需重新发布页面）；GL/GL2 用语审定页下次改动加 `terms_review`。
-8. 每晚 23:17 本机 nightly-legacy-it 巡检的会话内定时任务（job b9569dfe）7 天到期（约 10-22）前续设；接续后用 CronList 核对。
+8. nightly-legacy-it 自 2026-10-22 起定在 01:23 UTC（本机夏令时 03:23），ci-recurrence 在 03:17 UTC，巡检的会话内定时任务（job b9569dfe，7 天到期，约 10-22）续设时改到本机 06:00 之后；接续后用 CronList 核对。
    nightly-legacy-it 近况：10-16 19:28Z 运行 38955221470 成功，19 分 16 秒；10-15 运行 38794167238 成功，11 分 35 秒。
 9. 合并队列评估结论：私有仓库在 team 套餐下不能用 GitHub 合并队列，用 `merge_train.py` 合集；strict 已关试行至 10-19，监控与回退按现行队列规则（调度手册）；仓库保护设置由用户定。
 10. 推送门禁缺失的 worktree 清单已交调度（#332 之前的老分支，合并 origin/main 即得）。
