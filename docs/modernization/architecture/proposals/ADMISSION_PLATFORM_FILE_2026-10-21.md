@@ -11,7 +11,7 @@
 | # | 条件 | 判定方式 | 结论 | 证据 |
 |---|---|---|---|---|
 | 1 | 使用面：≥2 个模块确认使用，其中 ≥1 个业务 BC | 过渡条款视同满足 | 满足 | 决定 6「过渡」：ADR-0060–0065 所设模块视同已满足第 1、8 条。另有实据：业务 BC——B-31 用印申请 AGG-113 含「用印事由与文件」，是最早使用方（ADR-0060 背景第 2 条，ADR-0054 先行期附件与历史版本保全）；平台模块——审批附件、签章服务送签与回收签后件（ADR-0060 决定「上传主体」「读取内容」两行、背景第 3 条，ADR-0064）。 |
-| 2 | 不认识业务单据（决定 3 第 4 条、决定 4） | 人判，加复审 | 满足，待复审 | api 不枚举业务单据：绑定用 kernel `DocumentReference(DocumentTypeCode, DocumentId)`（`BindRequest.java:10`、`kernel/DocumentReference.java:7`），类型码经注册表校验；`FileSubjectKind` 只有上传主体种类 USER、ONE_TIME_LINK、PLATFORM_MODULE，不是单据类型。复审由 one-coordinator 指派。 |
+| 2 | 不认识业务单据（决定 3 第 4 条、决定 4） | 人判，加复审 | 满足（opus 复审「有条件满足」，本条按复审意见改写后闭合） | api 不枚举业务单据：绑定用 kernel `DocumentReference(DocumentTypeCode, DocumentId)`（`BindRequest.java:10`、`kernel/DocumentReference.java:7`），类型码的格式由值对象校验，是否已登记由调用方负责（与审计同款，ADR-0066 决定 4 第 5 条；文件服务只依赖 integration，决定 4 第 2 条的写入校验只限审批与编号）；`FileSubjectKind` 只有上传主体种类 USER、ONE_TIME_LINK、PLATFORM_MODULE，不是单据类型。复审附带条件：实现与 B-31 同批落地时再复审一次，核 `file_bindings` 的类型列无 CHECK 枚举、代码无按类型码分支。 |
 | 3 | 依赖方向，无环 | 守护 | 满足 | `module-dependencies.txt:16` 只有 `platform.file -> platform.integration`（基础层可依赖 integration 的 api，决定 3 第 1 条）；同文件第 15 行注明 audit、identity、scheduling 随使用单元落地，三者都是基础层，允许。`ModuleDependencyTest`、`build_architecture.py` 在 main 上通过。 |
 | 4 | 两面写清，策略项已登记 | 人判 | 满足 | 契约与数据形状面：api 10 个方法，表 `stored_files` 等与错误码 `FileError` 见 ADR-0060 决定表。策略面：大小与媒体类型白名单为配置项（ADR-0060 决定「写入内容」行）；下载链接时效默认 5 分钟、上限 15 分钟、超上限启动失败（「下载链接」行）；保存年限为版本化配置表 `retention_category_versions`（ADR-0061 决定 4，§14.1 D15、D17）；对象存储与检测引擎经 integration 端口（ADR-0060 决定 1 第 3 条、ADR-0070 决定 1 第 1 条）。三类载体都在决定 5 第 1 条允许的范围内。 |
 | 5 | 契约先行，api 方法数 ≤12 | 守护（G4） | 满足 | api 先于实现入库（CS-1.10）；接口方法 `StoredFiles` 8、`FileImports` 1、`PlatformFileContent` 1，共 10 ≤ 12。 |
@@ -24,7 +24,7 @@
 
 九条中第 1、3、4、5、7、8 条满足；第 2、6、9 条实质满足，但各留一个待办：
 
-1. 第 2 条：「不认识业务单据」按决定 6 须加复审。
+1. 第 2 条：已闭合（opus 复审有条件满足，措辞已改）；实现落地时再复审一次。
 2. 第 6 条：46 条提议术语待 one-glossary 评审。机器守护已通过，评审不阻塞准入，评审结论改名时随改。
 3. 第 9 条：one-platform-file 已确认范围；待 one-1a-admin 确认 B-31 本批是否经迁入编排导入历史用印文件，据此保留或撤去 `FileImports`。
 
