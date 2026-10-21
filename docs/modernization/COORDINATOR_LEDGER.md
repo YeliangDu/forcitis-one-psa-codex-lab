@@ -11,6 +11,7 @@
 - **P0 无测试规则（UNTESTED_P0_RULES.md @95a2f5e9）**：补测试待派 one-1a-next-5（NX5-03 后）：340、412、304、308、337、376（265、311 等用户定）；377–382、291 与映射表高中置信 88 条补 @DisplayName 等模块会话空档（改验收要裁定）；193 条无规则卡测试已派 one-rules 补登；388/390/391 与 12 张未实现是功能缺口，待按作战图排（未派）；员工法人归属迁入无来源，等 one-data 补查 52 账号后决定是否进收件箱。
 - **one-quality 清空后告知**：交接里的 AskUserQuestion 门禁卡已撤（intent 2026-10-21-162433），改为 SESSION_PLAYBOOK §11 战队协作第 1 条结尾规则；#517 合入后交接钩子已覆盖全部会话。
 - **10-21 16:3x 用户重启电脑**：重启前 /private/tmp 下 15 个工作区的未提交改动已备份到 ~/.modernize/psa/reboot-backup-20261021/（<名>.tgz，INDEX.txt 记路径与分支；codex-wt-f=one-1a-par legacy-inbox-impl 43 个文件最要紧）；未推送提交在主仓库对象库不丢。重启后：通知 one-1a-par、one-quality 从备份恢复；one-merge 检查 launchd 队列与在途 CI 重跑；git worktree prune。
+- **ADR-0073 后续**：#501→#506→#508 须 one-architecture 逐个改基 main 后入队；ARC-1021-ARC-06 归 one-architecture（网络第一批后）；IMP-1021-ARC-01 挂到 W2 人事命令上线；DAT-1021-ARC-02 等收件箱「老系统法人维度」用户答复后派 one-data。
 - **收件箱 pending**：ADR-0073 U3/U4（关账期间错误处置、会签逾期升级对象）。
 - **调度自检补充**：验收裁定登记后立即加急合集（守护只认 main 上的裁定）；通知用户重启前查 ps 常驻进程与会话 Monitor；有条件批准时实现会话报条件满足即可入队。
 - 不得再犯：沿用下方旧条目（会话身份、原话核对、答复读备注、脚本统计先验证等）。
