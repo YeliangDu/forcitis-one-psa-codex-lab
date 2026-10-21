@@ -13,9 +13,9 @@ public final class SeededDocumentTypes {
 
     public static DocumentTypeEntry of(String code) {
         return switch (code) {
-            case "QUOTE" -> entry(1, code, "QT", "presales", false);
+            case "QUOTE" -> entry(1, code, "QT", "presales.opportunity", false);
             case "TIMESHEET" -> entry(2, code, "TS", "cost.timesheet", false);
-            case "JOURNAL_VOUCHER" -> entry(3, code, "JV", "accounting", true);
+            case "JOURNAL_VOUCHER" -> entry(3, code, "JV", "accounting.ledger", true);
             default -> throw new IllegalArgumentException("not a seeded document type: " + code);
         };
     }

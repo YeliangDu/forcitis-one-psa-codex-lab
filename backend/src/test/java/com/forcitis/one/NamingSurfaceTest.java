@@ -275,12 +275,7 @@ class NamingSurfaceTest {
         Map<String, String> codes = insertedValues("platform_numbering", "document_types", "code");
         Set<String> typeIds = insertedValues("platform_numbering", "document_types", "document_type_id").keySet();
         Set<String> ruleTypeIds = insertedValues("platform_numbering", "numbering_rules", "document_type_id").keySet();
-        Set<String> bcs = registeredBcs();
-        for (Map.Entry<String, String> owner : insertedValues("platform_numbering", "document_types", "owner_bc_code").entrySet()) {
-            if (!bcs.contains(owner.getKey())) {
-                problems.add("owner_bc_code '" + owner.getKey() + "' (seeded in " + owner.getValue() + ") is not a bc in glossary/bcs.yaml");
-            }
-        }
+        problems.addAll(ownerProblems(registeredBcs(), insertedValues("platform_numbering", "document_types", "owner_bc_code")));
         for (String code : codes.keySet()) {
             String where = "document type '" + code + "' (seeded in " + codes.get(code) + "): ";
             if (!UPPER_SNAKE.matcher(code).matches()) {
@@ -301,12 +296,30 @@ class NamingSurfaceTest {
         fail("G45 document type codes (platform_numbering.document_types seed)", problems);
     }
 
+    @Test
+    void ownerGuardRefusesASubdomainAndAnUnknownId() {
+        Set<String> bcs = Set.of("cost.timesheet", "presales.opportunity");
+
+        assertThat(ownerProblems(bcs, Map.of("cost.timesheet", "a.sql", "presales.opportunity", "a.sql"))).isEmpty();
+        assertThat(ownerProblems(bcs, Map.of("presales", "a.sql", "nowhere.module", "b.sql"))).hasSize(2);
+    }
+
+    static List<String> ownerProblems(Set<String> bcs, Map<String, String> owners) {
+        List<String> problems = new ArrayList<>();
+        for (Map.Entry<String, String> owner : owners.entrySet()) {
+            if (!bcs.contains(owner.getKey())) {
+                problems.add("owner_bc_code '" + owner.getKey() + "' (seeded in " + owner.getValue() + ") is not an entry of kind bc in glossary/bcs.yaml (a subdomain does not count)");
+            }
+        }
+        return problems;
+    }
+
     @SuppressWarnings("unchecked")
     private static Set<String> registeredBcs() throws IOException {
         try (java.io.InputStream in = Files.newInputStream(Path.of("../docs/modernization/glossary/bcs.yaml"))) {
             Object root = new org.yaml.snakeyaml.Yaml().load(in);
             List<Map<String, Object>> entries = root instanceof Map<?, ?> m ? (List<Map<String, Object>>) m.get("bcs") : (List<Map<String, Object>>) root;
-            return entries.stream().filter(e -> !"system".equals(e.get("kind"))).map(e -> String.valueOf(e.get("id"))).collect(Collectors.toSet());
+            return entries.stream().filter(e -> "bc".equals(e.get("kind"))).map(e -> String.valueOf(e.get("id"))).collect(Collectors.toSet());
         }
     }
 

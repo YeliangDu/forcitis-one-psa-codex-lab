@@ -216,9 +216,9 @@ CREATE TRIGGER tg_numbering_rule_versions_append_only_truncate
 
 -- ADR-0010 第 5 项：统一新格式。三种单据都从默认模板起步，待管理员确认；老系统的编号格式不沿用（旧编号进 legacy_numbers）。
 INSERT INTO platform_numbering.document_types (document_type_id, code, number_code, owner_bc_code, is_finance_confirmation_required, effective_from_date) VALUES
-    ('019a0000-0000-7000-8000-000000000401', 'QUOTE', 'QT', 'presales', false, DATE '2000-01-01'),
+    ('019a0000-0000-7000-8000-000000000401', 'QUOTE', 'QT', 'presales.opportunity', false, DATE '2000-01-01'),
     ('019a0000-0000-7000-8000-000000000402', 'TIMESHEET', 'TS', 'cost.timesheet', false, DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000403', 'JOURNAL_VOUCHER', 'JV', 'accounting', true, DATE '2000-01-01');
+    ('019a0000-0000-7000-8000-000000000403', 'JOURNAL_VOUCHER', 'JV', 'accounting.ledger', true, DATE '2000-01-01');
 
 INSERT INTO platform_numbering.numbering_rules (numbering_rule_id, document_type_id, version, event_count) VALUES
     ('019a0000-0000-7000-8000-000000000301', '019a0000-0000-7000-8000-000000000401', 1, 0),
