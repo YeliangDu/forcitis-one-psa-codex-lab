@@ -151,6 +151,7 @@ CREATE TABLE platform_file.stored_files (
 );
 CREATE INDEX ix_stored_files_derived_from_file_id ON platform_file.stored_files (derived_from_file_id);
 CREATE INDEX ix_stored_files_content_hash ON platform_file.stored_files (content_hash);
+CREATE INDEX ix_stored_files_available_stored_at ON platform_file.stored_files (stored_at) WHERE file_status = 'AVAILABLE';  -- 临时区过期作业：可用且无关联
 CREATE INDEX ix_stored_files_uploader_user_id ON platform_file.stored_files (uploader_user_id, stored_at) WHERE uploader_user_id IS NOT NULL;
 COMMENT ON TABLE platform_file.stored_files IS '存储文件：一份不可变内容及其哈希；检测判定后才建行（ADR-0070），加密与不可用不建行。迁入文件的批次与老系统来源走 platform_integration.source_references。粒度：每个文件一行';
 COMMENT ON COLUMN platform_file.stored_files.stored_file_id IS '存储文件 ID（UUIDv7）';
