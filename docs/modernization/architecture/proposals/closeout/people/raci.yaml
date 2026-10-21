@@ -100,6 +100,35 @@ entries:
   sensitive: false
   sensitive_reason: 同指定法人归属
   source_part: vs07
+- object: AGG-117
+  command: 终止法人归属
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+    C: []
+    I:
+    - SH-M1
+  sensitive: false
+  sensitive_reason: 同指定法人归属；结束数据范围法人期间，影响由 P-31「待调整权限」提醒兜底
+  source_part: vs07
+- object: AGG-60
+  command: 更正法人代码
+  raci:
+    A:
+      resolve: type
+      role: SH-E6
+      function: 人事主数据维护
+    R:
+    - SH-E6
+    C: []
+    I: []
+  sensitive: false
+  sensitive_reason: 法人代码为 INTERNAL；仅未发号前可改（INV-59）
+  source_part: vs07
 - object: AGG-64
   command: 停用岗位
   raci:
