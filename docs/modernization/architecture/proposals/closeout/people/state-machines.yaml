@@ -5,7 +5,7 @@ machines:
   entity: legal_entities
   perpetual: true
   reason: 法人主体只增不删、可停用可启用，长期存在，无业务终结
-  note: 根只留代码，名称与状态随版本表；聚合稿只列登记法人主体，更名 / 停用 / 启用三条〔缺〕命令取自词表事件（法人主体已更名 / 已停用 / 已启用），经对象增删改查检查补入（vs07.notes.md 结构问题 19）；词表区分已登记与已启用，本稿登记即有效；代码已更正（仅未发号前）仍不建模
+  note: 根只留代码，名称与状态随版本表；聚合稿只列登记法人主体，更名 / 停用 / 启用三条〔缺〕命令取自词表事件（法人主体已更名 / 已停用 / 已启用），经对象增删改查检查补入（vs07.notes.md 结构问题 19）；词表区分已登记与已启用，本稿登记即有效；代码更正（仅未发号前，INV-59）按已建代码补「更正法人代码」，状态不变
   states:
   - 有效
   - 已停用
@@ -34,6 +34,12 @@ machines:
     command: 启用法人主体
     guard: []
     kind: reverse
+  - from: 有效
+    to: 有效
+    command: 更正法人代码
+    guard:
+    - INV-59：仅代码未发号时
+    kind: non_state
     note: 恢复
   source_part: vs07
 - aggregate: AGG-61
@@ -111,6 +117,14 @@ machines:
     guard:
     - INV-122：仅已关闭期间的结束日，只追加更正行
     kind: non_state
+  - from: 已指定
+    to: 已指定
+    command: 终止法人归属
+    guard:
+    - INV-122：只关闭当前期间
+    - 操作人不得终止本人归属
+    kind: non_state
+    note: 关闭当前期间，聚合随归属对象长期存续
   source_part: vs07
 - aggregate: AGG-64
   machine: job_catalog_entry
