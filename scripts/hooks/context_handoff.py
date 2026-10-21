@@ -460,6 +460,13 @@ def self_test():
         moved = subprocess.run([sys.executable, "-I", script_path], input=json.dumps(dict(payload, hook_event_name="PostToolUse", session_id="rooted", cwd=elsewhere)),
                                capture_output=True, text=True, env=environment)
         assert moved.returncode == 0 and "rooted" in load_state(elsewhere) and "rooted" not in load_state(root), moved
+        main_checkout = os.path.join(tmp, "forcitis-one-psa")
+        subprocess.run(["git", "init", "-q", main_checkout], check=True, capture_output=True)
+        transcript(trans, 800)
+        named = subprocess.run([sys.executable, "-I", script_path], input=json.dumps(dict(payload, hook_event_name="PostToolUse", session_id="named", cwd=root)),
+                               capture_output=True, text=True, env=dict(environment, CLAUDE_PROJECT_DIR=main_checkout))
+        assert named.returncode == 0 and "sessions/one-test.md" in json.loads(named.stdout)["hookSpecificOutput"]["additionalContext"], named
+        assert "named" in load_state(root) and "named" not in load_state(main_checkout), "CLAUDE_PROJECT_DIR pointing at the main checkout must not decide the session"
         fallback = subprocess.run([sys.executable, "-I", script_path], input=json.dumps(dict(payload, hook_event_name="PostToolUse", session_id="fallback")),
                                   capture_output=True, text=True, env=environment)
         assert fallback.returncode == 0 and "fallback" in load_state(root), fallback
