@@ -127,10 +127,13 @@ class OssBusinessFileStoreTest {
     }
 
     @Test
-    void anExistingFormalObjectIsNeverOverwrittenNorAccepted() {
+    void anExistingFormalObjectIsNeverOverwrittenAndCountsAsDoneOnlyWithTheSameContent() {
         when(writer.getObjectMetadata("files-dev", STAGING.value())).thenReturn(stored(MD5, SHA, 7));
         com.aliyun.oss.OSSException exists = new com.aliyun.oss.OSSException("exists", "FileAlreadyExists", null, null, null, null, null);
         when(writer.copyObject(any(CopyObjectRequest.class))).thenThrow(exists);
+        when(writer.getObjectMetadata("files-dev", FORMAL.value())).thenReturn(stored(MD5, SHA, 7));
+        store.promote(STAGING, FORMAL, SHA, 7);
+        when(writer.getObjectMetadata("files-dev", FORMAL.value())).thenReturn(stored("1".repeat(32), "1".repeat(64), 9));
         assertThatThrownBy(() -> store.promote(STAGING, FORMAL, SHA, 7)).isInstanceOf(ExternalSystemUnavailableException.class);
     }
 

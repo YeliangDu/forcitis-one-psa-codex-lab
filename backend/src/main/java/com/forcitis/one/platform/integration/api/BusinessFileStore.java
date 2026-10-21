@@ -15,7 +15,10 @@ public interface BusinessFileStore {
     /** Into a staging or quarantine key only. */
     void put(StoredObjectKey key, Path source, String sha256Hex, long size);
 
-    /** Server-side copy from a staging key, itself checked against size and SHA-256 first, to the formal key of the same file, then read back. */
+    /**
+     * Server-side copy from a staging key, itself checked against size and SHA-256 first, to the formal key of the same file, then read
+     * back. A formal object already there with the same size and SHA-256 counts as done (a retry); any other is refused, never overwritten.
+     */
     void promote(StoredObjectKey staging, StoredObjectKey formal, String sha256Hex, long size);
 
     /** Formal keys only; the link forces an attachment download with the given name and media type. */

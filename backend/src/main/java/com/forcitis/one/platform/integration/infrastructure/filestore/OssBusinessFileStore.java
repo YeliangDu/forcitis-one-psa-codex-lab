@@ -108,7 +108,14 @@ final class OssBusinessFileStore implements BusinessFileStore, AutoCloseable {
             verify(staging, size, md5, sha256Hex);
             CopyObjectRequest copy = new CopyObjectRequest(properties.bucket(), staging.value(), properties.bucket(), formal.value());
             copy.addHeader(FORBID_OVERWRITE, "true");
-            writer.copyObject(copy);
+            try {
+                writer.copyObject(copy);
+            } catch (OSSException exists) {
+                // A retry after the linking transaction rolled back: the same content counts as done, other content is refused.
+                if (!"FileAlreadyExists".equals(exists.getErrorCode())) {
+                    throw exists;
+                }
+            }
             verify(formal, size, md5, sha256Hex);
         } catch (OSSException | ClientException failure) {
             throw new ExternalSystemUnavailableException("cannot promote the business file object", failure);
