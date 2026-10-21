@@ -74,4 +74,4 @@
 
 ## 当前状态
 
-2026-10-19 22:40 暂停（用户：仓库只留一套认可的 SSOT，异口径作废，intent 2026-10-19-223711）。架构建模类工作停，等 one-coordinator 导入方案；只读盘点 architecture/proposals/SSOT_INVENTORY_2026-10-19.md；交接 proposals/HANDOFF_2026-10-19.md 页首。
+2026-10-21 10:33：SSOT 重建线仍暂停；W0 五件已完成；在途 PR #493（ADR-0068/0069 已采纳，等 one-data 签发）、#495（ADR-0070 ClamAV，等批准页）。交接 proposals/HANDOFF_2026-10-21.md。
