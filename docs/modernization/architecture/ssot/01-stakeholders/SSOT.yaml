@@ -1,0 +1,1520 @@
+meta:
+  node: 01 干系人
+  code: '01'
+  name: 干系人
+  version: V2
+  status: frozen
+  owner: one-coordinator（导入并认可）；维护者 用户
+  frameworks:
+  - BIZBOK v11 §2.8（p.270 stakeholder≠role、p.274 Type/Category/Specific）
+  - TOGAF G178
+  - TOGAF 10 C220 Part 0 §4.75 p.65 与 Part 2 §3.4 p.36–39（stakeholder = individual/team/organization；模板 stakeholder map 列职能部门与岗位）；ArchiMate 3.2 §6.2.1 p.65（stakeholder = the role of an individual, team,
+    or organization）；BIZBOK v11 §2.8 p.266（stakeholder 高于 role、以个体表示更具体）——用于 2026-10-20 客户侧条线登记
+  id_scheme: SH-<类><序号>（条线：SH-<类><序号>-L<条线序号>，host 指向法人）
+  sources:
+  - 用户桌面 架构锚定-2026-10-19/01-干系人/SSOT.yaml v11.1（2026-10-20），经 one-coordinator 审核导入为 V2
+  - 本目录为仓库内唯一来源（intent 2026-10-19-223711）
+  decisions:
+  - 用户 2026-10-19：我们没有外部审计（不设外部审计机构干系人）
+  - 用户 2026-10-19：合伙人分两类——持股合伙人归股东；不持股、享受分红者列人力资源的合伙人
+  - 外部审计与收入证据闸门：已由 ADR-0056（2026-10-17 采纳）定为无法定年审时由财务负责人书面确认并留档、逐类开放（intent 2026-10-17-121025），不再待核
+  open_reconciliation:
+  - STKH-04 金融机构（我方开户及融资银行）、STKH-05 出租方：用户曾在 STKH 页同意补，本版未含，待用户确认保留或放弃
+  version_note: V1：用户 v10（2026-10-19）；V2：用户 v11.1（2026-10-20，客户侧对接条线 13 条），导入时保留 V1 的用户决定
+criteria:
+  三层: Type（3）→ Category（6）→ Specific（25）；family 是标签，不是层
+  角色: stakeholder ≠ role（p.266）；角色与项目参与方是维度
+  关系: 触发 / 参与阶段 / 接受价值；反推关系须标 basis
+stats:
+  stakeholders: 38
+  roles: 6
+  project_roles: 5
+  interface_lines: 13
+model:
+  taxonomy:
+    frozen: true
+    levels:
+    - Type
+    - Category
+    - Specific
+    not_levels:
+    - family
+    - roles
+    - project_roles
+    categories:
+    - 客户
+    - 合作伙伴
+    - 人力资源
+    - 监管
+    - 股东
+    - 社会公众
+    families:
+      客户:
+      - 开发商
+      - 自用业主
+      - 政府与公共业主
+      - 既有建筑业主
+      - 发包方
+      - 投资方与金融机构
+      - 保险公司
+      合作伙伴:
+      - 供应商
+      - 分包方
+      - 渠道伙伴
+      - 联合体伙伴
+      - 海外持牌伙伴
+      人力资源:
+      - 岗位群体
+      - 候选人
+      - 合伙人
+      监管:
+      - 工程审批
+      - 企业监管
+      股东:
+      - 股东
+      社会公众:
+      - 社会公众
+    structure: Type → Category → Specific；family 是标签（视图过滤），不是层
+    note: ''
+    interface_lines: 客户侧对接条线（SH-C*-L*）是 Specific 层的 team 粒度干系人，用 host 指向法人级 SH；不改三层（Type/Category/Specific），岗位差异写 members，流程扮演仍归 roles。
+  stakeholders:
+  - id: SH-C1
+    type: 外部
+    category: 客户
+    specific: 开发商
+    members: 房地产开发商；海外业主和开发商
+    aliases: []
+    source_role: 触、参、受
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers:
+      - VS-01
+      - VS-02
+      - VS-04
+      participates: []
+      receives:
+      - VS-01
+      - VS-02
+      - VS-04
+    attributes:
+      subject_kind: 企业
+      jurisdiction: 境内/境外
+      proxy: 自营
+      service_products:
+      - 设计
+    concern_status: covered
+    family: 开发商
+  - id: SH-C2
+    type: 外部
+    category: 客户
+    specific: 企业自用业主
+    members: 企业自用业主
+    aliases: []
+    source_role: 触、参、受
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers:
+      - VS-01
+      - VS-02
+      - VS-04
+      participates: []
+      receives:
+      - VS-01
+      - VS-02
+      - VS-04
+    attributes:
+      subject_kind: 企业
+      jurisdiction: 境内
+      proxy: 自营
+      service_products:
+      - 设计
+      - 检测
+    concern_status: covered
+    family: 自用业主
+  - id: SH-C3
+    type: 外部
+    category: 客户
+    specific: 政府与公共业主
+    members: 政府机关；事业单位；政府平台公司；代建单位
+    aliases: []
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    silent_reason: 拆自分用业主；与业主的采购法/财政评审相关，价值流关系待确认
+    relations:
+      triggers:
+      - VS-02
+      - VS-04
+      participates:
+      - VS-02.2
+      - VS-02.7
+      - VS-04.1
+      receives:
+      - VS-02
+      - VS-04
+    relations_basis: V2 补触发与接收（VS-02 获得交付成果、VS-04 约定并支付服务价款）：依据客户拜访编码——V031 签成果确认函（接收 VS-02 成果）、V035 招标清单（发起委托）、V139/V467 招采与首笔款（VS-04）；参与阶段沿用 V1
+    attributes:
+      subject_kind: 政府机关/事业单位
+      jurisdiction: 境内
+      proxy: 自营/代建
+      service_products:
+      - 设计
+      - 检测
+    concern_status: covered
+    family: 政府与公共业主
+  - id: SH-C4
+    type: 外部
+    category: 客户
+    specific: 既有建筑业主
+    members: 产权人和管理人（业主、业委会、产权单位）；物业代业主委托时归此
+    aliases: []
+    source_role: 触、参、受
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers:
+      - VS-01
+      - VS-02
+      - VS-03
+      - VS-04
+      participates:
+      - VS-03.1
+      - VS-03.3
+      - VS-03.4
+      - VS-03.5
+      receives:
+      - VS-01
+      - VS-02
+      - VS-03
+      - VS-04
+    attributes:
+      subject_kind: 企业/事业单位/个人
+      jurisdiction: 境内
+      proxy: 自营/物业代委托
+      service_products:
+      - 检测
+      - 设计
+    concern_status: covered
+    family: 既有建筑业主
+  - id: SH-C5
+    type: 外部
+    category: 客户
+    specific: 发包方（设计院/EPC/施工总包）
+    members: 建筑设计院；EPC 总包；施工总包与专业分包
+    aliases: []
+    source_role: 触、参、受
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers:
+      - VS-01
+      - VS-02
+      - VS-04
+      participates:
+      - VS-02.5
+      - VS-02.6
+      - VS-03.2
+      - VS-03.4
+      receives:
+      - VS-01
+      - VS-02
+      - VS-04
+    attributes:
+      subject_kind: 企业
+      jurisdiction: 境内/境外
+      proxy: 代理（proxy_for=终端业主）
+      service_products:
+      - 设计
+    concern_status: covered
+    family: 发包方
+  - id: SH-C6
+    type: 外部
+    category: 客户
+    specific: 投资方与金融机构
+    members: 投资方和金融机构（技术尽调）
+    aliases: []
+    source_role: 触、参、受
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers:
+      - VS-01
+      - VS-03
+      - VS-04
+      participates:
+      - VS-03.1
+      - VS-03.3
+      - VS-03.5
+      receives:
+      - VS-01
+      - VS-03
+      - VS-04
+    attributes:
+      subject_kind: 企业
+      jurisdiction: 境内/境外
+      proxy: 自营
+      service_products:
+      - 技术尽调
+    concern_status: covered
+    family: 投资方与金融机构
+  - id: SH-C7
+    type: 外部
+    category: 客户
+    specific: 保险公司（IDI/TIS）
+    members: 保险公司（IDI 委托、TIS 委托）
+    aliases: []
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped（由 02 CON 反推，已确认）
+    silent_reason: 拆自资本方；只应触发获得风险结论，关系待确认
+    relations:
+      triggers: []
+      participates:
+      - VS-03.1
+      receives: []
+    relations_basis: 由该子类的 CON accepted_as 反推参与阶段；触发关系未由 CON 证明
+    attributes:
+      subject_kind: 企业
+      jurisdiction: 境内
+      proxy: 自营
+      service_products:
+      - IDI 专项检查
+    concern_status: covered
+    family: 保险公司
+  - id: SH-P1
+    type: 外部
+    category: 合作伙伴
+    specific: 外协设计
+    members: 外协设计和顾问单位
+    aliases: []
+    source_role: 参、受
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates:
+      - VS-02.2
+      - VS-02.3
+      - VS-02.4
+      - VS-05.1
+      - VS-05.2
+      - VS-05.3
+      - VS-05.4
+      - VS-05.5
+      - VS-05.6
+      receives: []
+    attributes:
+      subject_kind: 企业
+      jurisdiction: 境内/境外
+      proxy: 分包
+      service_products:
+      - 设计
+    concern_status: covered
+    family: 分包方
+  - id: SH-P2
+    type: 外部
+    category: 合作伙伴
+    specific: 主体建筑设计院
+    members: 主体建筑设计院（不作发包方时）
+    aliases: []
+    source_role: null
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates:
+      - VS-02.1
+      - VS-02.2
+      - VS-02.3
+      - VS-02.4
+      receives: []
+    attributes:
+      subject_kind: 企业
+      jurisdiction: 境内
+      proxy: 设计协作
+      service_products:
+      - 设计
+    concern_status: covered
+    family: 分包方
+  - id: SH-P3
+    type: 外部
+    category: 合作伙伴
+    specific: 持证检测机构
+    members: 持证检测机构
+    aliases: []
+    source_role: null
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates:
+      - VS-03.3
+      - VS-03.4
+      receives: []
+    attributes:
+      subject_kind: 企业
+      jurisdiction: 境内
+      proxy: 分包
+      service_products:
+      - 检测
+    concern_status: covered
+    family: 分包方
+  - id: SH-P4
+    type: 外部
+    category: 合作伙伴
+    specific: 供应商
+    members: 产品和材料厂商；软件、数据和工具供应商；职业责任保险公司
+    aliases: []
+    source_role: 参
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates:
+      - VS-01.1
+      - VS-02.4
+      - VS-02.5
+      - VS-02.6
+      - VS-05.1
+      - VS-05.2
+      - VS-05.3
+      - VS-05.4
+      - VS-05.5
+      receives: []
+    attributes:
+      subject_kind: 企业
+      jurisdiction: 境内/境外
+      proxy: 合同相对方
+      service_products:
+      - 产品/材料/软件/服务
+    concern_status: covered
+    family: 供应商
+  - id: SH-P5
+    type: 外部
+    category: 合作伙伴
+    specific: 渠道伙伴
+    members: 转介绍方（保险公司和 TIS、物业、设计院）
+    aliases: []
+    source_role: 触（间接）
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers:
+      - VS-01
+      - VS-03
+      participates:
+      - VS-01.1
+      - VS-05.2
+      receives: []
+    attributes:
+      subject_kind: 企业
+      jurisdiction: 境内
+      proxy: 转介绍
+      service_products:
+      - 渠道
+    concern_status: covered
+    family: 渠道伙伴
+  - id: SH-P6
+    type: 外部
+    category: 合作伙伴
+    specific: 联合体伙伴
+    members: 联合体伙伴
+    aliases: []
+    source_role: 触、参、受
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers:
+      - VS-01
+      participates:
+      - VS-01.2
+      - VS-05.2
+      receives: []
+    attributes:
+      subject_kind: 企业
+      jurisdiction: 境内/境外
+      proxy: 联合体成员
+      service_products:
+      - 设计/施工
+    concern_status: covered
+    family: 联合体伙伴
+  - id: SH-P7
+    type: 外部
+    category: 合作伙伴
+    specific: 海外持牌伙伴
+    members: 海外本地持牌伙伴
+    aliases: []
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped（由 02 CON 反推，已确认）
+    silent_reason: 拆自交付伙伴；只参与海外项目，现有价值流未单独区分
+    relations:
+      triggers: []
+      participates:
+      - VS-02.1
+      - VS-02.4
+      receives: []
+    relations_basis: 由该子类的 CON accepted_as 反推参与阶段；触发关系未由 CON 证明
+    attributes:
+      subject_kind: 企业
+      jurisdiction: 境外
+      proxy: 属地持牌
+      service_products:
+      - 设计
+    concern_status: covered
+    family: 海外持牌伙伴
+  - id: SH-E1
+    type: 内部
+    category: 人力资源
+    specific: 管理层
+    members: 执委会；职能高管；区域和事业部负责人
+    aliases: []
+    source_role: 触、参
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers:
+      - VS-05
+      - VS-09
+      - VS-10
+      participates:
+      - VS-02.0
+      - VS-02.7
+      - VS-04.1
+      - VS-05.2
+      - VS-05.5
+      - VS-06.1
+      - VS-06.2
+      - VS-07.1
+      - VS-08.0
+      - VS-08.1
+      - VS-08.3
+      - VS-09.1
+      - VS-09.2
+      - VS-09.3
+      - VS-10.1
+      - VS-10.2
+      - VS-11.2
+      - VS-12.2
+      - VS-12.3
+      - VS-13.2
+      - VS-13.3
+      - VS-13.5
+      receives:
+      - VS-05
+      - VS-09
+      - VS-10
+    attributes:
+      subject_kind: 人
+      jurisdiction: 境内
+      proxy: 雇员
+      service_products: []
+    concern_status: covered
+    family: 岗位群体
+  - id: SH-E2
+    type: 内部
+    category: 人力资源
+    specific: 项目经理
+    members: 经营项目负责人
+    aliases: []
+    source_role: 触、参
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers:
+      - VS-05
+      - VS-08
+      - VS-11
+      - VS-13
+      participates:
+      - VS-01.2
+      - VS-02.0
+      - VS-02.1
+      - VS-02.2
+      - VS-02.3
+      - VS-02.4
+      - VS-02.5
+      - VS-02.6
+      - VS-02.7
+      - VS-03.1
+      - VS-04.1
+      - VS-04.2
+      - VS-04.4
+      - VS-04.5
+      - VS-04.6
+      - VS-05.2
+      - VS-05.3
+      - VS-05.6
+      - VS-08.0
+      - VS-08.2
+      - VS-09.2
+      - VS-11.1
+      receives:
+      - VS-05
+      - VS-08
+      - VS-11
+      - VS-13
+    attributes:
+      subject_kind: 人
+      jurisdiction: 境内
+      proxy: 雇员
+      service_products: []
+    concern_status: covered
+    family: 岗位群体
+  - id: SH-E3
+    type: 内部
+    category: 人力资源
+    specific: 设计师和顾问
+    members: 设计师和顾问（含驻场）
+    aliases:
+    - 技术专家
+    - 注册执业人员
+    source_role: 参、受
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers:
+      - VS-08
+      - VS-11
+      - VS-13
+      participates:
+      - VS-01.2
+      - VS-02.1
+      - VS-02.2
+      - VS-02.3
+      - VS-02.4
+      - VS-02.5
+      - VS-02.6
+      - VS-02.7
+      - VS-03.1
+      - VS-03.2
+      - VS-03.3
+      - VS-03.4
+      - VS-03.5
+      - VS-05.3
+      - VS-06.2
+      - VS-08.0
+      - VS-08.1
+      - VS-08.2
+      - VS-11.1
+      - VS-11.2
+      - VS-11.3
+      - VS-13.1
+      - VS-13.5
+      - VS-13.6
+      receives:
+      - VS-08
+      - VS-11
+      - VS-13
+    attributes:
+      subject_kind: 人
+      jurisdiction: 境内
+      proxy: 雇员
+      service_products: []
+      technical_authority: true
+      qualification: 注册执业（部分）
+    concern_status: covered
+    consolidated_from:
+    - SH-E4
+    - SH-E7
+    consolidation_note: 技术专家（签字/评审）与注册执业人员（执业签章）并入：差异由 attributes.technical_authority / qualification 表达
+    family: 岗位群体
+  - id: SH-E4
+    type: 内部
+    category: 人力资源
+    specific: 市场和客户经理
+    members: 市场和客户经理
+    aliases: []
+    source_role: 参
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers:
+      - VS-08
+      - VS-13
+      participates:
+      - VS-01.1
+      - VS-01.2
+      - VS-04.1
+      - VS-04.6
+      - VS-09.2
+      receives:
+      - VS-08
+      - VS-11
+      - VS-13
+    attributes:
+      subject_kind: 人
+      jurisdiction: 境内
+      proxy: 雇员
+      service_products: []
+    concern_status: covered
+    family: 岗位群体
+  - id: SH-E5
+    type: 内部
+    category: 人力资源
+    specific: 职能人员
+    members: 财务、人力、行政、信息
+    aliases: []
+    source_role: 参
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers:
+      - VS-08
+      - VS-13
+      participates:
+      - VS-02.0
+      - VS-04.1
+      - VS-04.2
+      - VS-04.3
+      - VS-04.4
+      - VS-04.5
+      - VS-04.6
+      - VS-05.1
+      - VS-05.2
+      - VS-05.4
+      - VS-05.5
+      - VS-05.6
+      - VS-06.1
+      - VS-06.2
+      - VS-07.1
+      - VS-07.2
+      - VS-07.3
+      - VS-08.0
+      - VS-08.1
+      - VS-08.2
+      - VS-08.3
+      - VS-09.1
+      - VS-09.2
+      - VS-09.3
+      - VS-10.1
+      - VS-10.2
+      - VS-12.1
+      - VS-12.2
+      - VS-12.3
+      - VS-13.1
+      - VS-13.2
+      - VS-13.3
+      - VS-13.4
+      - VS-13.5
+      - VS-13.6
+      receives:
+      - VS-08
+      - VS-13
+    attributes:
+      subject_kind: 人
+      jurisdiction: 境内
+      proxy: 雇员
+      service_products: []
+    concern_status: covered
+    family: 岗位群体
+  - id: SH-E6
+    type: 外部
+    category: 人力资源
+    specific: 求职者和候选人
+    members: 求职者和候选人
+    aliases: []
+    source_role: 触、参、受
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers:
+      - VS-07
+      participates:
+      - VS-07.2
+      - VS-07.3
+      receives:
+      - VS-07
+    attributes:
+      subject_kind: 人
+      jurisdiction: 境内
+      proxy: 雇员
+      service_products: []
+    concern_status: covered
+    family: 候选人
+  - id: SH-E7
+    type: 内部
+    category: 人力资源
+    specific: 不持股合伙人
+    members: 不持股、享受分红的合伙人（内部）
+    aliases: []
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped（已确认：纯权益、不发起）
+    silent_reason: null
+    relations:
+      triggers: []
+      participates:
+      - VS-12.2
+      - VS-12.3
+      receives:
+      - VS-12
+    relations_basis: 用户 2026-10-19：合伙人分两类，不持股、享受分红者列人力资源的合伙人；持股合伙人归股东（SH-O1）
+    attributes:
+      subject_kind: 人
+      jurisdiction: 境内
+      proxy: 合伙制权益人
+      service_products: []
+    concern_status: covered
+    initiates: false
+    role_note: 不持股，享受分红；不发起价值流
+    family: 合伙人
+  - id: SH-R1
+    type: 外部
+    category: 监管
+    specific: 工程审批
+    members: 施工图审查；规划和照明管理；住建质量监督与消防
+    aliases: []
+    source_role: 参（只作阶段参与者）
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates:
+      - VS-02.2
+      - VS-02.3
+      - VS-02.4
+      - VS-02.6
+      receives: []
+    attributes:
+      subject_kind: 政府机关/事业单位
+      jurisdiction: 境内
+      proxy: 审批
+      service_products: []
+    concern_status: covered
+    family: 工程审批
+  - id: SH-R2
+    type: 外部
+    category: 监管
+    specific: 企业监管
+    members: 住建资质；税务；市场监管、人社社保、统计；注册执业管理；海外注册审批
+    aliases: []
+    source_role: 触（法定期限）、受 / 参
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers:
+      - VS-06
+      participates:
+      - VS-06.1
+      - VS-06.2
+      - VS-13.4
+      receives:
+      - VS-06
+    attributes:
+      subject_kind: 政府机关
+      jurisdiction: 境内
+      proxy: 监管
+      service_products: []
+    concern_status: covered
+    family: 企业监管
+  - id: SH-O1
+    type: 两者
+    category: 股东
+    specific: 股东
+    members: 股东（出资人）；持股合伙人
+    aliases: []
+    source_role: 触、受
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers:
+      - VS-12
+      participates:
+      - VS-09.3
+      - VS-10.2
+      - VS-12.1
+      - VS-12.2
+      - VS-12.3
+      receives:
+      - VS-09
+      - VS-10
+      - VS-12
+    attributes:
+      subject_kind: 人/企业
+      jurisdiction: 境内
+      proxy: 出资人
+      service_products: []
+    concern_status: covered
+    family: 股东
+    category_note: 用户 2026-10-19：持股合伙人归类为股东
+  - id: SH-S1
+    type: 外部
+    category: 社会公众
+    specific: 社会公众
+    members: 购房者、住户、租户；城市公众
+    aliases:
+    - 最终用户
+    - 市民
+    source_role: 受（非货币价值）
+    category_source: SSOT/01（v6）
+    role:
+    - stakeholder
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates: []
+      receives:
+      - VS-02
+      - VS-03
+    attributes:
+      subject_kind: 人群
+      jurisdiction: 境内
+      proxy: 受益方
+      service_products: []
+    concern_status: rejected
+    affected_by:
+    - CON-063
+    family: 社会公众
+  - id: SH-C1-L1
+    type: 外部
+    category: 客户
+    specific: 开发商·设计管理条线
+    members: 设计总、设计总监、区域设计总、设计负责人、设计主管
+    aliases: []
+    source_role: 触、参、受
+    category_source: SSOT/01 v11（2026-10-20 条线登记）
+    role:
+    - stakeholder
+    host: SH-C1
+    discipline: 设计管理
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates:
+      - VS-02.1
+      - VS-02.2
+      - VS-02.3
+      - VS-02.4
+      - VS-02.7
+      receives:
+      - VS-02
+    attributes:
+      subject_kind: 团队
+      approval_rights: false
+      interface_line: true
+      jurisdiction: 境内
+      proxy: 自营
+      service_products: []
+    concern_status: covered
+    family: 开发商
+    basis: 条线是 team 粒度的 stakeholder；岗位差异写在 members，流程扮演留在 roles
+    evidence: 拜访 V001,V004,V006,V009,V011,V012,V278：施工图深度不足致项目停滞；规委会未过；标准化审图阻力
+    evidence_ref: 客户拜访编码表（仓库外；明细与个人信息不入仓，ADR-0037）
+    relations_basis: 阶段参与由 184 条拜访的 role/title 分桶推断（S1 31 条，V001,V004,V006 等）；接收方同 host 取 VS-02；2026-10-20 标 mapped，待 06 迭代复核
+  - id: SH-C1-L2
+    type: 外部
+    category: 客户
+    specific: 开发商·项目设计执行条线
+    members: 设计经理、设计 PM、建筑经理、建筑师
+    aliases: []
+    source_role: 触、参、受
+    category_source: SSOT/01 v11（2026-10-20 条线登记）
+    role:
+    - stakeholder
+    host: SH-C1
+    discipline: 设计执行
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates:
+      - VS-02.1
+      - VS-02.2
+      - VS-02.3
+      - VS-02.4
+      - VS-02.5
+      - VS-02.6
+      receives:
+      - VS-02
+    attributes:
+      subject_kind: 团队
+      approval_rights: false
+      interface_line: true
+      jurisdiction: 境内
+      proxy: 自营
+      service_products: []
+    concern_status: covered
+    family: 开发商
+    basis: 条线是 team 粒度的 stakeholder；岗位差异写在 members，流程扮演留在 roles
+    evidence: 拜访 V002,V014,V015,V019,V020,V025,V444：增补费用比例不被认可；集采入库；图纸未达深化要求
+    evidence_ref: 客户拜访编码表（仓库外；明细与个人信息不入仓，ADR-0037）
+    relations_basis: 阶段参与由 211 条拜访的 role/title 分桶推断（S1 46 条，V002,V014,V015 等）；接收方同 host 取 VS-02；2026-10-20 标 mapped，待 06 迭代复核
+  - id: SH-C1-L3
+    type: 外部
+    category: 客户
+    specific: 开发商·专业技术条线
+    members: 幕墙工程师、设计总工、门窗幕墙专业、幕墙专家
+    aliases: []
+    source_role: 触、参、受
+    category_source: SSOT/01 v11（2026-10-20 条线登记）
+    role:
+    - stakeholder
+    host: SH-C1
+    discipline: 专业技术（幕墙/门窗/机电）
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates:
+      - VS-02.2
+      - VS-02.4
+      - VS-02.6
+      - VS-03.2
+      receives:
+      - VS-02
+    attributes:
+      subject_kind: 团队
+      approval_rights: false
+      interface_line: true
+      jurisdiction: 境内
+      proxy: 自营
+      service_products: []
+    concern_status: covered
+    family: 开发商
+    basis: 条线是 team 粒度的 stakeholder；岗位差异写在 members，流程扮演留在 roles
+    evidence: 拜访 V030,V037,V039,V047,V053,V070：单点对接、多专业信息不交圈；龙骨尺寸与按图施工
+    evidence_ref: 客户拜访编码表（仓库外；明细与个人信息不入仓，ADR-0037）
+    relations_basis: 阶段参与由 57 条拜访的 role/title 分桶推断（S1 14 条，V030,V037,V039 等）；接收方同 host 取 VS-02；2026-10-20 标 mapped，待 06 迭代复核
+  - id: SH-C1-L4
+    type: 外部
+    category: 客户
+    specific: 开发商·成本与招采条线
+    members: 招采总、招采经理、成本经理、成本招采总
+    aliases: []
+    source_role: 触、参
+    category_source: SSOT/01 v11（2026-10-20 条线登记）
+    role:
+    - stakeholder
+    host: SH-C1
+    discipline: 成本/招采（集团集采归工程条线）
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates:
+      - VS-02.5
+      - VS-04.1
+      - VS-04.4
+      - VS-04.5
+      receives: []
+    attributes:
+      subject_kind: 团队
+      approval_rights: true
+      interface_line: true
+      jurisdiction: 境内
+      proxy: 自营
+      service_products: []
+    concern_status: covered
+    family: 开发商
+    basis: 条线是 team 粒度的 stakeholder；岗位差异写在 members，流程扮演留在 roles
+    evidence: 拜访 V005,V062,V146,V151,V153,V189：示范区预留预算不足、以合同罚则施压；集采单价口径
+    evidence_ref: 客户拜访编码表（仓库外；明细与个人信息不入仓，ADR-0037）
+    relations_basis: 阶段参与由 29 条拜访的 role/title 分桶推断（S1 8 条，V005,V062,V146 等）；拜访中未见接收成果，未列接收方；2026-10-20 标 mapped，待 06 迭代复核
+  - id: SH-C1-L5
+    type: 外部
+    category: 客户
+    specific: 开发商·工程与项目管理条线
+    members: 项目总、项目负责人、项目经理、工程经理、工程总
+    aliases: []
+    source_role: 触、参
+    category_source: SSOT/01 v11（2026-10-20 条线登记）
+    role:
+    - stakeholder
+    host: SH-C1
+    discipline: 工程/项目管理
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates:
+      - VS-02.6
+      - VS-02.7
+      - VS-04.6
+      receives: []
+    attributes:
+      subject_kind: 团队
+      approval_rights: false
+      interface_line: true
+      jurisdiction: 境内
+      proxy: 自营
+      service_products: []
+    concern_status: covered
+    family: 开发商
+    basis: 条线是 team 粒度的 stakeholder；岗位差异写在 members，流程扮演留在 roles
+    evidence: 拜访 V008,V027,V046,V073,V078,V204：担心验收不过；现房销售下工期提速；展示区抢工需驻场
+    evidence_ref: 客户拜访编码表（仓库外；明细与个人信息不入仓，ADR-0037）
+    relations_basis: 阶段参与由 38 条拜访的 role/title 分桶推断（S1 6 条，V008,V027,V046 等）；拜访中未见接收成果，未列接收方；2026-10-20 标 mapped，待 06 迭代复核
+  - id: SH-C1-L6
+    type: 外部
+    category: 客户
+    specific: 开发商·产品研发与品质条线
+    members: 研发总、产品经理、审图中心负责人、运营质量中心副总
+    aliases: []
+    source_role: 触、参、受
+    category_source: SSOT/01 v11（2026-10-20 条线登记）
+    role:
+    - stakeholder
+    host: SH-C1
+    discipline: 产品研发/品质/标准
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates:
+      - VS-02.1
+      - VS-02.2
+      - VS-02.4
+      receives:
+      - VS-02
+    attributes:
+      subject_kind: 团队
+      approval_rights: false
+      interface_line: true
+      jurisdiction: 境内
+      proxy: 自营
+      service_products: []
+    concern_status: covered
+    family: 开发商
+    basis: 条线是 team 粒度的 stakeholder；岗位差异写在 members，流程扮演留在 roles
+    evidence: 拜访 V010,V016,V023,V026,V033：客户方审图机制与幕墙标准化；门窗幕墙战略启动；审图费用承担
+    evidence_ref: 客户拜访编码表（仓库外；明细与个人信息不入仓，ADR-0037）
+    relations_basis: 阶段参与由 15 条拜访的 role/title 分桶推断（S1 5 条，V010,V016,V023 等）；接收方同 host 取 VS-02；2026-10-20 标 mapped，待 06 迭代复核
+  - id: SH-C3-L1
+    type: 外部
+    category: 客户
+    specific: 政府与公共业主·建设管理条线
+    members: 设计经理、设计总、设计总监、中心负责人
+    aliases: []
+    source_role: 触、参、受
+    category_source: SSOT/01 v11（2026-10-20 条线登记）
+    role:
+    - stakeholder
+    host: SH-C3
+    discipline: 建设管理/设计管理
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates:
+      - VS-02.1
+      - VS-02.2
+      - VS-02.3
+      - VS-02.7
+      receives:
+      - VS-02
+    attributes:
+      subject_kind: 团队
+      approval_rights: false
+      interface_line: true
+      jurisdiction: 境内/境外
+      proxy: 自营
+      service_products: []
+    concern_status: covered
+    family: 政府与公共业主
+    basis: 条线是 team 粒度的 stakeholder；岗位差异写在 members，流程扮演留在 roles
+    evidence: 拜访 V018,V031,V035,V045,V055,V204：需配合签成果确认函；招标清单与品控追加路径；验收表格细化
+    evidence_ref: 客户拜访编码表（仓库外；明细与个人信息不入仓，ADR-0037）
+    relations_basis: 阶段参与由 36 条拜访的 role/title 分桶推断（S1 5 条，V018,V031,V035 等）；接收方同 host 取 VS-02；2026-10-20 标 mapped，待 06 迭代复核
+  - id: SH-C3-L2
+    type: 外部
+    category: 客户
+    specific: 政府与公共业主·招采与合约条线
+    members: 招采科长、招采经理、合约对接人
+    aliases: []
+    source_role: 触、参
+    category_source: SSOT/01 v11（2026-10-20 条线登记）
+    role:
+    - stakeholder
+    host: SH-C3
+    discipline: 招采/合约
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates:
+      - VS-04.1
+      - VS-04.5
+      receives: []
+    attributes:
+      subject_kind: 团队
+      approval_rights: true
+      interface_line: true
+      jurisdiction: 境内/境外
+      proxy: 自营
+      service_products: []
+    concern_status: covered
+    family: 政府与公共业主
+    basis: 条线是 team 粒度的 stakeholder；岗位差异写在 members，流程扮演留在 roles
+    evidence: 拜访 V139,V277,V467：规避后期审计风险、求稳；首笔款可报计划开票、后续地块受阻
+    evidence_ref: 客户拜访编码表（仓库外；明细与个人信息不入仓，ADR-0037）
+    relations_basis: 阶段参与由 3 条拜访的 role/title 分桶推断（S1 1 条，V139,V277,V467 等）；拜访中未见接收成果，未列接收方；2026-10-20 标 mapped，待 06 迭代复核
+  - id: SH-C3-L3
+    type: 外部
+    category: 客户
+    specific: 政府与公共业主·工程与技术管理条线
+    members: 项目经理、项目负责人、幕墙工程师、技术部经理
+    aliases: []
+    source_role: 触、参
+    category_source: SSOT/01 v11（2026-10-20 条线登记）
+    role:
+    - stakeholder
+    host: SH-C3
+    discipline: 工程/技术管理
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates:
+      - VS-02.6
+      - VS-02.7
+      receives: []
+    attributes:
+      subject_kind: 团队
+      approval_rights: false
+      interface_line: true
+      jurisdiction: 境内/境外
+      proxy: 自营
+      service_products: []
+    concern_status: covered
+    family: 政府与公共业主
+    basis: 条线是 team 粒度的 stakeholder；岗位差异写在 members，流程扮演留在 roles
+    evidence: 拜访 V003,V227,V309,V417,V525,V627：现场巡查与第三方配合度低；审计不认第四笔款、缺成果依据（S1=0，强度待访谈）
+    evidence_ref: 客户拜访编码表（仓库外；明细与个人信息不入仓，ADR-0037）
+    relations_basis: 阶段参与由 6 条拜访的 role/title 分桶推断（S1 0 条，V003,V227,V309 等）；拜访中未见接收成果，未列接收方；2026-10-20 标 mapped，待 06 迭代复核
+  - id: SH-C5-L1
+    type: 外部
+    category: 客户
+    specific: 发包方·设计院 PM 条线
+    members: 设计 PM、设计经理、方案负责人、设计师
+    aliases: []
+    source_role: 触、参、受
+    category_source: SSOT/01 v11（2026-10-20 条线登记）
+    role:
+    - stakeholder
+    host: SH-C5
+    discipline: 项目管理/设计 PM
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates:
+      - VS-02.1
+      - VS-02.2
+      - VS-02.3
+      - VS-02.4
+      receives:
+      - VS-02
+    attributes:
+      subject_kind: 团队
+      approval_rights: false
+      interface_line: true
+      jurisdiction: 境内/境外
+      proxy: 自营
+      service_products: []
+    concern_status: covered
+    family: 发包方
+    basis: 条线是 team 粒度的 stakeholder；岗位差异写在 members，流程扮演留在 roles
+    evidence: 拜访 V071,V095,V111,V116,V125,V179：只提问题不解决；无施工图审查许可无法请款；报规报建与总图公示
+    evidence_ref: 客户拜访编码表（仓库外；明细与个人信息不入仓，ADR-0037）
+    relations_basis: 阶段参与由 31 条拜访的 role/title 分桶推断（S1 6 条，V071,V095,V111 等）；接收方同 host 取 VS-02；2026-10-20 标 mapped，待 06 迭代复核
+  - id: SH-C5-L2
+    type: 外部
+    category: 客户
+    specific: 发包方·设计院专业技术条线
+    members: 总工程师、审图总工程师、副总工程师、技术总工
+    aliases: []
+    source_role: 触、参、受
+    category_source: SSOT/01 v11（2026-10-20 条线登记）
+    role:
+    - stakeholder
+    host: SH-C5
+    discipline: 专业技术/审图
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates:
+      - VS-02.2
+      - VS-02.4
+      receives:
+      - VS-02
+    attributes:
+      subject_kind: 团队
+      approval_rights: false
+      interface_line: true
+      jurisdiction: 境内/境外
+      proxy: 自营
+      service_products: []
+    concern_status: pending
+    family: 发包方
+    basis: 条线是 team 粒度的 stakeholder；岗位差异写在 members，流程扮演留在 roles
+    evidence: 拜访 V296,V297,V420,V569：设计院缺幕墙专项人才；审图公司独立经营
+    evidence_ref: 客户拜访编码表（仓库外；明细与个人信息不入仓，ADR-0037）
+    relations_basis: 阶段参与由 4 条拜访的 role/title 分桶推断（S1 1 条，V296,V297,V420 等）；接收方同 host 取 VS-02；2026-10-20 标 mapped，待 06 迭代复核
+  - id: SH-C5-L3
+    type: 外部
+    category: 客户
+    specific: 发包方·施工/EPC 商务条线
+    members: 招采负责人、商务总监、营销
+    aliases: []
+    source_role: 触、参
+    category_source: SSOT/01 v11（2026-10-20 条线登记）
+    role:
+    - stakeholder
+    host: SH-C5
+    discipline: 商务/招采/合约
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates:
+      - VS-04.1
+      - VS-04.6
+      receives: []
+    attributes:
+      subject_kind: 团队
+      approval_rights: true
+      interface_line: true
+      jurisdiction: 境内/境外
+      proxy: 自营
+      service_products: []
+    concern_status: covered
+    family: 发包方
+    basis: 条线是 team 粒度的 stakeholder；岗位差异写在 members，流程扮演留在 roles
+    evidence: 拜访 V085,V199,V268,V284,V469,V501：承兑回款、按实增补；海外实体化运营（S1=0，强度待访谈）
+    evidence_ref: 客户拜访编码表（仓库外；明细与个人信息不入仓，ADR-0037）
+    relations_basis: 阶段参与由 7 条拜访的 role/title 分桶推断（S1 0 条，V085,V199,V268 等）；拜访中未见接收成果，未列接收方；2026-10-20 标 mapped，待 06 迭代复核
+  - id: SH-C5-L4
+    type: 外部
+    category: 客户
+    specific: 发包方·施工/EPC 工程条线
+    members: 项目经理、工程总、项目负责人、技术
+    aliases: []
+    source_role: 触、参
+    category_source: SSOT/01 v11（2026-10-20 条线登记）
+    role:
+    - stakeholder
+    host: SH-C5
+    discipline: 工程/项目管理
+    relations_status: mapped
+    relations:
+      triggers: []
+      participates:
+      - VS-02.6
+      - VS-04.6
+      receives: []
+    attributes:
+      subject_kind: 团队
+      approval_rights: false
+      interface_line: true
+      jurisdiction: 境内/境外
+      proxy: 自营
+      service_products: []
+    concern_status: pending
+    family: 发包方
+    basis: 条线是 team 粒度的 stakeholder；岗位差异写在 members，流程扮演留在 roles
+    evidence: 拜访 V141,V241,V346,V441,V453,V577：低价中标后报增补、漏项清单；海外门窗厂与属地安装
+    evidence_ref: 客户拜访编码表（仓库外；明细与个人信息不入仓，ADR-0037）
+    relations_basis: 阶段参与由 8 条拜访的 role/title 分桶推断（S1 1 条，V141,V241,V346 等）；拜访中未见接收成果，未列接收方；2026-10-20 标 mapped，待 06 迭代复核
+  roles:
+  - id: ROLE-01
+    label: 发起人
+    status: role
+    participates:
+    - VS-01.1
+    - VS-01.2
+    - VS-02.0
+    basis: BIZBOK p.266：stakeholder ≠ role；角色在阶段参与者上标注
+    host: 客户
+    process: 采购决策链
+    host_category: 客户
+  - id: ROLE-02
+    label: 决策人
+    status: role
+    participates:
+    - VS-01.2
+    - VS-02.1
+    - VS-02.2
+    - VS-02.7
+    - VS-04.1
+    - VS-04.6
+    basis: BIZBOK p.266：stakeholder ≠ role；角色在阶段参与者上标注
+    host: 客户
+    process: 采购决策链
+    host_category: 客户
+  - id: ROLE-03
+    label: 经济买方
+    status: role
+    participates:
+    - VS-01.2
+    - VS-02.5
+    - VS-02.7
+    - VS-04.1
+    - VS-04.5
+    - VS-04.6
+    basis: BIZBOK p.266：stakeholder ≠ role；角色在阶段参与者上标注
+    host: 客户
+    process: 采购决策链
+    host_category: 客户
+  - id: ROLE-04
+    label: 付款方
+    status: role
+    participates:
+    - VS-04.3
+    - VS-04.4
+    basis: BIZBOK p.266：stakeholder ≠ role；角色在阶段参与者上标注
+    host: 客户
+    process: 采购决策链
+    host_category: 客户
+  - id: ROLE-05
+    label: 使用者
+    status: role
+    participates:
+    - VS-02.0
+    - VS-02.1
+    - VS-02.2
+    - VS-02.3
+    - VS-02.4
+    - VS-02.6
+    - VS-04.2
+    basis: BIZBOK p.266：stakeholder ≠ role；角色在阶段参与者上标注
+    host: 客户
+    process: 采购决策链
+    host_category: 客户
+  - id: ROLE-06
+    label: 用人经理
+    status: role
+    participates:
+    - VS-07.1
+    - VS-07.2
+    - VS-07.3
+    - VS-13.1
+    - VS-13.2
+    - VS-13.6
+    basis: 流程角色：招聘流程中由部门负责人扮演，不是稳定人群（BIZBOK p.266）
+    host: 本企业
+    process: 招聘
+    host_category: 人力资源
+  project_roles:
+  - id: PRJ-01
+    label: 监理
+    status: project_role
+    participates:
+    - VS-02.6
+    basis: 非往来单位角色：业主/监管侧的参与方，不占干系人类别
+  - id: PRJ-02
+    label: 造价咨询与招标代理
+    status: project_role
+    participates:
+    - VS-01.2
+    - VS-02.5
+    - VS-02.7
+    - VS-04.5
+    basis: 非往来单位角色：业主/监管侧的参与方，不占干系人类别
+  - id: PRJ-03
+    label: 保险技术检查机构（TIS）
+    status: project_role
+    participates:
+    - VS-02.6
+    - VS-03.2
+    - VS-03.4
+    basis: 非往来单位角色：业主/监管侧的参与方，不占干系人类别
+  - id: PRJ-04
+    label: 资金监管主办银行
+    status: project_role
+    participates:
+    - VS-04.4
+    basis: 非往来单位角色：业主/监管侧的参与方，不占干系人类别
+  - id: PRJ-05
+    label: 物业服务企业（未代业主委托时）
+    status: project_role
+    participates:
+    - VS-03.1
+    - VS-03.2
+    basis: 非往来单位角色：业主/监管侧的参与方，不占干系人类别
+  freeze_note: 2026-10-20 重新冻结（v11，含 13 条客户侧对接条线）。冻结口径：taxonomy.frozen=true → enrich_framework.py / build_ssot.py 跳过 01 的重建，只保留本文件。解冻条件：新增/改类目、改条线、改关系，须在 change_log 留「解冻理由 + 对应校验」；只改文字说明（basis/evidence）不算解冻。
+interface:
+- dir: out
+  node: '02'
+  label: 提出
+- dir: in
+  node: '15'
+  label: 行动结果反馈 · 关注点复核
+checks:
+- （无独立校验器）穷举判据仍是散文
+conformance: {}
+gaps:
+- C2 企业自用业主 / C4 既有建筑业主 / C6 投资方 / C7 保险：744 条拜访里 0 条 → 未建条线（不是遗漏，是证据不足）
+- 'SH-C5-L2 设计院专业技术 / SH-C5-L4 施工工程：界面已建，关切未采（concern_status: pending）'
+- 条线的 relations 由拜访分桶推断（每条带 relations_basis），06 的 contributors 已同步，但「设计管理 vs 项目设计执行」是否该拆待样本复核
+- BIZBOK §2.8 p.266 / TOGAF Part2 §3.4 的条线粒度只到「部门/职能」；岗位级（设计总 vs 设计经理）差异仍写在 members，未单列
+rulings: []
+change_log:
+- at: '2026-10-19'
+  by: 用户
+  change: 冻结：Category 6 类、Specific 25 个；角色 6、项目参与方 5（维度）
+- at: '2026-10-19'
+  by: 用户
+  change: 编号顺序化：SH-C1–C7／P1–P7／E1–E7／R1–R2／O1／S1；旧号不保留
+- at: '2026-10-19'
+  by: 用户
+  change: 合伙人归人力资源（内部），纯权益、不发起价值流
+- at: '2026-10-19'
+  by: 用户
+  change: 技术专家、注册执业人员并入设计师和顾问（属性区分）；用人经理降为角色
+- at: '2026-10-19'
+  by: 用户
+  change: 角色加 host / process：明确角色是“在流程里扮演什么”，不是“某类干系人内部的子类”
+- at: '2026-10-20'
+  by: 方案 A（用户裁定）· 01 解冻
+  change: 登记客户侧对接条线 13 条（SH-C1-L1/SH-C1-L2/SH-C1-L3/SH-C1-L4/SH-C1-L5/SH-C1-L6/SH-C3-L1/SH-C3-L2/SH-C3-L3/SH-C5-L1/SH-C5-L2/SH-C5-L3/SH-C5-L4），host 指向 SH-C1/C3/C5；同步 06 的 contributors 与 value_receivers。依据：TOGAF
+    Part0 p.65、Part2 §3.4 p.36–39、ArchiMate §6.2.1 p.65、BIZBOK §2.8 p.266（条线=team 粒度 stakeholder，岗位=role）。C2/C4/C6/C7 0 条拜访，不建条线。version → v11。
+- at: '2026-10-20'
+  by: 方案 A 收尾 · 重新冻结
+  change: 重新冻结 v11：taxonomy.frozen 保持 true，新增 model.freeze_note 写明解冻条件；gaps 记录 4 项残余（C2/C4/C6/C7 无条线、2 条条线关切待采、relations 由证据推断、岗位级未拆）。数据未改。
+- at: '2026-10-20'
+  by: 03 落库时的跨节点修复 · 01 解冻一次（仅关系边）
+  change: SH-C3 的 relations.triggers / receives 补 VS-02、VS-04。解冻理由：01 原为空边，与 06 的 contributors、02 的 accepted_as 不一致；仅改关系边，不动类目/条线。校验：validate_ssot S-8（01→06 闭合）+ validate_categories。
+- at: '2026-10-20'
+  by: one-coordinator（审核导入 V2）
+  change: 导入用户 v11.1 的 13 条客户侧对接条线（框架原文已核：TOGAF C220 Part0 §4.75、Part2 §3.4 表 3-2；ArchiMate 3.2 §6.2.1；BIZBOK v11 §2.8）。修正：①保留 V1 用户决定（SH-E7 不持股合伙人、SH-O1 含持股合伙人、meta.decisions 与 open_reconciliation）；②条线
+    evidence 只留拜访编号与主题，去人名与客户名；③SH-C3 触发/接收边改以拜访证据为依据（原依据为与下游 06/02 一致）；④relations_basis「接收方继承 host」与数据不符处按数据改写。
+- at: '2026-10-20'
+  by: one-coordinator
+  change: 关闭待对账项「没有外部审计与 GL-026/A1/A10 冲突」：ADR-0056 已定（只改 meta，数据未改）
