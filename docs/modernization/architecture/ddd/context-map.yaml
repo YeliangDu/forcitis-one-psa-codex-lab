@@ -165,6 +165,6 @@ relations:
 - id: platform.scheduling>platform.file
   upstream: platform.scheduling
   downstream: platform.file
-  via: 作业：暂存清扫、保存期每日检查
+  via: 作业：保存期每日检查（暂存清扫按 ADR-0070 决定 3 第 3 条每实例自跑，不经本边）
   status: planned
   basis: ADR-0060 决定 1 第 2 条；代码落地时随 module-dependencies.txt 改 built
