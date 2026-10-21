@@ -144,7 +144,7 @@ def impact(nodes, touched, final):
         stages = sorted(s for s, st in nodes["stage"].items() if any(g["obj"] == oid for g in st.get("gates") or []) or oid in (st.get("in_stage") or []))
         prcs = sorted((p for p, objs in touched.items() if oid in objs), key=lambda x: int(x[4:]))
         aggs = agg_of.get(oid, [])
-        invs = sorted({i for i, v in nodes["inv"].items() if set(v.get("aggs") or []) & set(aggs)}, key=lambda x: int(x[4:]))
+        invs = sorted({i for i, v in nodes["inv"].items() if set(v.get("aggs") or []) & set(aggs)}, key=lambda x: (int(x[4:].rstrip("abcdefghijklmnopqrstuvwxyz")), x))
         tables = sorted({t for a in aggs for t in nodes["agg"][a].get("tables") or []})
         cmds = sorted({a["command"] for a in nodes["act"].values() if a.get("aggregate") in aggs})
         tws = [f"{x['id']}（{x['zh']}）" for x in terms if x.get("zh") and (x["zh"] == name.split("（")[0])]
