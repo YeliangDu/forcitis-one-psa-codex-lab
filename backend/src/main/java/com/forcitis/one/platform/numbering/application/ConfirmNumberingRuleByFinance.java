@@ -1,7 +1,7 @@
 package com.forcitis.one.platform.numbering.application;
 
 import com.forcitis.one.kernel.BusinessZone;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.UserId;
@@ -31,7 +31,7 @@ public class ConfirmNumberingRuleByFinance {
     }
 
     @Transactional
-    public NumberingRuleView execute(DocumentType type, UserId confirmer, RuleVersion seen) {
+    public NumberingRuleView execute(DocumentTypeCode type, UserId confirmer, RuleVersion seen) {
         NumberingRule rule = rules.findActive(type).orElseThrow(() -> new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_NOT_FOUND,
                 ErrorKind.NOT_FOUND, "no active numbering rule for " + type));
         rule.confirmByFinance(confirmer, clock.instant(), zone.today(clock), seen);

@@ -8,7 +8,7 @@ import com.forcitis.one.cost.timesheet.api.TimesheetApprovalField;
 import com.forcitis.one.cost.timesheet.api.TimesheetRoutingFlag;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
-import com.forcitis.one.kernel.DocumentType;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
@@ -255,7 +255,7 @@ public abstract class ApprovalIntegrationSupport {
     }
 
     protected static DocumentReference document(String key) {
-        return new DocumentReference(DocumentType.TIMESHEET, new DocumentId(UUID.fromString(key)));
+        return new DocumentReference(new DocumentTypeCode("TIMESHEET"), new DocumentId(UUID.fromString(key)));
     }
 
     protected String requestStatus(String key) {
