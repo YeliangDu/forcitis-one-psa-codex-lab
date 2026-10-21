@@ -75,7 +75,7 @@
 - 三方命令：Codex `codex exec -m gpt-6.1-sol -c model_reasoning_effort=xhigh -s workspace-write -c sandbox_workspace_write.network_access=false --ephemeral -o <结果> "<卡>" < /dev/null`；DeepSeek `pi -p --no-session --no-extensions --no-mcp --offline --model deepseek/deepseek-flash --thinking high --tools read,ls,grep,find,edit,write,bash "<卡>" < /dev/null`（在 worktree 里运行）；sonnet = Agent 子代理 model sonnet。
 - Q1 机械改动卡 IMP-1021-NX5-02（前端单据类型标签改从注册表取，#507 已合）：one-1a-next-5 按 WORK_CARD 模板写好发我，**还没收到**；收到后建 `q1-*` 三个 worktree（同一 base-sha）、三方各做一遍。
 - 收尾：对每张卡三份 diff 去掉执行者标识给 opus 子代理盲评（正确性、范围是否越界、有无编造、可维护性）；记用时/token/一次编译测试全绿/precheck/返工轮次；只采纳最好一份走正常 PR（Q3 最好的一份交 one-architecture 验收；Q2 补测试走我自己的 PR），另两份不合并；产出一页评测结论（表+一句话推荐分工）交 one-coordinator 审后给用户。
-- 已出结果：Q2-sonnet 完成（子代理报 duration 146749 ms、85974 tokens；提交 927a7b0c，4 个用例，破坏验证 3 个变红，守护测试全过）。其余五个执行者（q2-codex、q2-ds、q3-codex、q3-ds、q3-sonnet）接续时先看对应 `.end` 与 worktree 的 `git log`/`RESULT.md`。
+- 已出结果：Q2-sonnet 完成（子代理报 duration 146749 ms、85974 tokens；提交 927a7b0c，4 个用例，破坏验证 3 个变红，守护测试全过）。Q3-sonnet 完成（308711 ms、101502 tokens；提交 33b19b4a，554 个执行点，enforces 非空率 9.0%，精确破坏验证通过，precheck 3 PASS/0 FAIL）。其余四个执行者（q2-codex、q2-ds、q3-codex、q3-ds）接续时先看对应 `.end` 与 worktree 的 `git log`/`RESULT.md`。
 - 注意：评测期间各 worktree 不要合并/推送；测试用 `./mvnw -o test-compile surefire:test -Dtest=…`，不要触发 export-openapi。
 
 ### QUA-03：七个钩子（用户回「加」，intent @1e24e8b6；钩子自己写，单列 PR，opus 首轮，每个带 --self-test，误拦有放行写法，先 one-coordinator、one-ops 试点）
