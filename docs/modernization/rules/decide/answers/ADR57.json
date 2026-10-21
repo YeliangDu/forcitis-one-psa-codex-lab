@@ -1,0 +1,13 @@
+{
+ "ADR57~ADR57-01": {
+  "choice": 0,
+  "defaulted": true,
+  "label": "批准",
+  "no": "ADR57-01",
+  "note": "",
+  "recommended": true,
+  "submission": "ADR57-20261017-131944-76w",
+  "submitted": "2026-10-17T11:19:44.847Z",
+  "unanswered": false
+ }
+}
