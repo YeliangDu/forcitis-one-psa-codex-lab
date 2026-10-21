@@ -13,7 +13,7 @@ SELECT FORMAT(start_date, 'yyyy-MM') AS ym,
        SUM(CASE WHEN prev_company IS NOT NULL AND company_code <> prev_company THEN 1 ELSE 0 END)       AS cross_entity_changes,
        COUNT(DISTINCT CASE WHEN prev_company IS NOT NULL AND company_code <> prev_company THEN user_id END) AS people_changed,
        SUM(CASE WHEN prev_company IS NOT NULL AND company_code = prev_company THEN 1 ELSE 0 END)         AS same_entity_transfers,
-       SUM(CASE WHEN company_code IS NULL OR prev_company IS NULL AND company_code IS NULL THEN 1 ELSE 0 END) AS rows_without_company
+       SUM(CASE WHEN company_code IS NULL THEN 1 ELSE 0 END) AS rows_without_company
   FROM r
  WHERE start_date >= '2024-11-01'
  GROUP BY FORMAT(start_date, 'yyyy-MM')
