@@ -1,0 +1,78 @@
+# 已建聚合 ↔ 规划聚合对照（手写登记；sonnet 提议，one-architecture 定稿 2026-10-21；invariants 原样迁自旧 ddd/aggregates.yaml）
+meta: {status: proposal}
+entries:
+  - built: cost.timesheet/Timesheet
+    planned: ["AGG-39"]
+    relation: same
+    invariants: ["RULE-266", "RULE-267", "RULE-269", "RULE-279", "RULE-295", "RULE-303"]
+    evidence: "依据：规划表 AGG-39 行（planned.yaml source_line 449）聚合名写明「工时单（OBJ-66，已建 `Timesheet`）」，命令提交/通过/退回/驳回对应已建 SubmitTimesheet/ApplyApprovalResult 与事件 TimesheetSubmitted/Approved/Returned/Rejected；规划另含「提交过账候选、认定工时有效性」两个未建命令，已建另有 WithdrawTimesheet/CancelTimesheet/GetTimesheet（规划事件列有 Cancelled）。"
+  - built: organization.attendance/WorkCalendarYear
+    planned: ["AGG-68"]
+    relation: same
+    invariants: []
+    evidence: "依据：规划表 AGG-68 行（source_line 531）「工作日历年度（OBJ-28，已建）」内含「日」，对应已建表 work_calendar_years/work_calendar_days，命令「维护工作日历年度」与事件 WorkCalendarLockedDaysChanged 对应已建 MaintainWorkCalendarYear/MaintainLockedWorkCalendarDays。AGG-108 标准工时版本是 OBJ-28 下另一聚合（尚未建），不并入本条。"
+  - built: organization.workforce/LegalEntity
+    planned: ["AGG-60"]
+    relation: same
+    invariants: []
+    evidence: "依据：规划表 AGG-60 行（source_line 514）「法人主体（OBJ-54，已建 `LegalEntity`）」，对应「一对一」，已建表 legal_entities/legal_entity_versions，命令「登记法人主体」对应 CreateLegalEntity（规划表只列登记一条命令，已建另有 UpdateLegalEntity）。"
+  - built: organization.workforce/LegalEntityAttribution
+    planned: ["AGG-117"]
+    relation: same
+    invariants: ["RULE-385"]
+    evidence: "依据：规划表 AGG-117 行（source_line 523）聚合名写明「法人归属（已建 `LegalEntityAttribution`，表 `organization_workforce.legal_entity_attributions`…）」，命令指定/更正法人归属对应 AttributeLegalEntity/CorrectLegalEntityAttribution，事件 法人归属已变更/已更正与已建 LegalEntityAttributed/Corrected 对应；已建另有 EndLegalEntityAttribution，规划表未列（规划称命令名以已建代码为准）。"
+  - built: organization.workforce/RegisteredEmployee
+    planned: ["AGG-62"]
+    relation: pending
+    invariants: []
+    evidence: "依据：规划表 AGG-62 行（source_line 516）「人员（OBJ-56）」命令含「登记候选人/登记入职」等，事件列「人员已登记」；已建 RegisteredEmployee 无表、仅命令 PersistRegisteredEmployee 与事件 EmployeeRegistered，规划行未提 RegisteredEmployee 或 EmployeeRegistered，事件名与「人员已登记」是否同义、是否为 AGG-62 的早期切片无法由规划原文证实，候选 AGG-62，relation 待 one-architecture 定（可能 part-of）。"
+  - built: organization.workforce/SyncRun
+    planned: []
+    relation: none
+    invariants: ["RULE-358", "RULE-366"]
+    evidence: "依据：规划表 无对应：规划表 AGG-61/AGG-62/AGG-64 行均写「B-13 自有记录，撤 A8 同步快照来源，S-02」（source_line 515/516/518），130 条规划聚合中没有同步运行、同步差异、扣留离职的聚合；已建 SyncRun（表 sync_runs/sync_diffs/sync_run_held_separations）属于被规划撤销的同步来源路径，去向（退役或保留为迁入工具）须 one-architecture 判定。"
+  - built: platform.approval/ApprovalRequest
+    planned: []
+    relation: none
+    invariants: ["RULE-268", "RULE-269", "RULE-273", "RULE-276", "RULE-279", "RULE-280", "RULE-285", "RULE-287", "RULE-288", "RULE-289", "RULE-295", "RULE-302", "RULE-309", "RULE-382", "RULE-383"]
+    evidence: "依据：规划表 无对应：规划表 130 条聚合的 BC 均为 B-01..B-31 业务 BC，没有 platform.* 聚合；审批仅在其他行的命令中作为被调用方出现（如 AGG-62、AGG-132「由 platform.approval 回调」），本聚合（表 approval_requests/approval_tasks/approval_task_records/start_rounds）规划表未立项。"
+  - built: platform.identity/AuthorizationRequest
+    planned: []
+    relation: none
+    invariants: []
+    evidence: "依据：规划表 无对应：规划表无 platform.identity 聚合；AGG-62 事件列仅提到 platform.identity 作订阅方（建待开通登录身份、放行登录）；已建 authorization_requests（双人确认授权）规划表未出现。"
+  - built: platform.identity/EmergencyAdmin
+    planned: []
+    relation: none
+    invariants: ["RULE-316", "RULE-317"]
+    evidence: "依据：规划表 无对应：规划表无 platform.identity 聚合，未出现应急管理员；已建表 emergency_admins 在规划表中无承载对象。"
+  - built: platform.identity/Role
+    planned: []
+    relation: none
+    invariants: ["RULE-338", "RULE-341", "RULE-342", "RULE-343", "RULE-345", "RULE-346"]
+    evidence: "依据：规划表 无对应：规划表无角色聚合（全表检索「角色」仅出现在 AGG-01 往来单位角色、AGG-33 业主角色，与权限角色无关）；已建表 roles/role_versions/role_permissions 无承载对象。"
+  - built: platform.identity/UserAccount
+    planned: []
+    relation: none
+    invariants: ["RULE-363"]
+    evidence: "依据：规划表 无对应：规划表无用户账号聚合；AGG-62 只写「platform.identity：建立待开通登录身份、放行登录」作为订阅方，账号本身在规划表中无承载对象。"
+  - built: platform.integration/OutboundDelivery
+    planned: []
+    relation: none
+    invariants: ["RULE-375"]
+    evidence: "依据：规划表 无对应：规划表无 platform.integration 聚合；已建 outbound_deliveries（企业微信卡片出站队列）在规划表无承载对象，AGG-132 仅提到批准后经 platform.integration 推给差旅服务商，属调用关系。"
+  - built: platform.integration/SourceReference
+    planned: []
+    relation: none
+    invariants: []
+    evidence: "依据：规划表 无对应：规划表无 platform.integration 聚合；AGG-33 的「外部引用登记」是建设工程（OBJ-46）的外部登记，与已建 source_references（来源引用确认/重映射）不同义，不作对应。"
+  - built: platform.integration/SourceReferenceRefusal
+    planned: []
+    relation: none
+    invariants: []
+    evidence: "依据：规划表 无对应：规划表无 platform.integration 聚合；已建类是一次性事件载体、不落表，规划表无承载对象。"
+  - built: platform.numbering/NumberingRule
+    planned: []
+    relation: none
+    invariants: []
+    evidence: "依据：规划表 无对应：规划表无 platform.numbering 聚合（检索「编号」无聚合行承载编号规则）；已建表 numbering_rules/numbering_rule_versions 在规划表无承载对象。"
