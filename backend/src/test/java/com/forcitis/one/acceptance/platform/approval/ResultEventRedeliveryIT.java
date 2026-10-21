@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.acceptance.P5Support;
 import com.forcitis.one.kernel.DocumentReference;
+import com.forcitis.one.platform.approval.api.TaskEffect;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -102,5 +104,25 @@ class ResultEventRedeliveryIT extends P5Support {
         assertThat(handled).as("the register holds the task result of the decision").isNotEmpty();
         assertThat(completed).as("the register holds the process result of the decision").isNotEmpty();
         assertThat(handled.stream().map(found -> found.get("serialized_event")).map(Object::toString).toList()).allSatisfy(json -> assertThat(json).contains("APPROVED"));
+    }
+
+    @Test
+    @DisplayName("RULE-304 D-1a-66：任务结果事件的办理效果恰好是 BINDING、ADVISORY、AUTOMATIC——没有「跳过」类取值，因为无决定的跳过不发任何事件")
+    void theTaskEffectsAreExactlyBindingAdvisoryAndAutomatic() {
+        assertThat(Arrays.stream(TaskEffect.values()).map(Enum::name).toList()).containsExactlyInAnyOrder("BINDING", "ADVISORY", "AUTOMATIC");
+    }
+
+    @Test
+    @DisplayName("RULE-304 D-1a-66：人办结后，登记簿里该单据的 TaskHandled 事件内容含 BINDING（人的决定按自身发布，不是 AUTOMATIC 或 ADVISORY）")
+    void aHumanDecisionIsPublishedAsBinding() throws Exception {
+        DocumentReference document = decidedByTheProjectManager();
+
+        List<Map<String, Object>> handled = allPublicationsOf(TASK_HANDLED, document);
+
+        assertThat(handled).as("the register holds the task result of the decision").isNotEmpty();
+        assertThat(handled.stream().map(found -> found.get("serialized_event").toString()).toList()).allSatisfy(json -> {
+            assertThat(json).contains("BINDING");
+            assertThat(json).doesNotContain("AUTOMATIC").doesNotContain("ADVISORY");
+        });
     }
 }
